@@ -25,7 +25,7 @@ namespace Asn1f2
 {
     public class Program
     {
-        static int Main(string[] args)
+        public static int Main(string[] args)
         {
             if (System.Diagnostics.Debugger.IsAttached)
                 return Main2(args);
@@ -148,11 +148,11 @@ namespace Asn1f2
             });
             cmdArgs.CheckArguments();
             if (cmdArgs.HasArgument("h"))
-                Environment.Exit(Usage());
+                return Usage();
             if (!asn1InputFiles.Any())
             {
                 Console.Error.WriteLine("No input files");
-                Environment.Exit(Usage());
+                return Usage();
             }
             var generateEqualFunctions = cmdArgs.HasArgument("equal") || cmdArgs.HasArgument("atc");
             var outDir = cmdArgs.GetOptionalArgument("o") ?? ".";
@@ -664,7 +664,7 @@ namespace Asn1f2
             backendInvocation(stgFileName, outFileName);
         }
 
-        private static string GetVersionString()
+        public static string GetVersionString()
         {
             return typeof(Program).Assembly.GetName().Version.ToString(3);
         }

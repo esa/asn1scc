@@ -73,18 +73,23 @@ Install:
         make && sudo make install 
     ```
 
-3. Execute
+3. Install `nuget` package.
+
+4. Execute
 
     ```
+    nuget restore
     xbuild
     ```
 
 Depending on the version of Mono that you are using, you may need to specify
 a specific target .NET framework version:
 
+    ```
     xbuild /p:TargetFrameworkVersion="v4.5"
+    ```
 
-4. Run tests (if you want to):
+5. Run tests (if you want to):
 
     ```
     cd Tests
