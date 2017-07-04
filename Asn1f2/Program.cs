@@ -19,7 +19,7 @@ using Antlr.Runtime.Tree;
 using System.IO;
 using Antlr.Asn1;
 using Antlr.Acn;
-
+using Antlr;
 
 namespace Asn1f2
 {
@@ -73,14 +73,11 @@ namespace Asn1f2
             catch (FsUtils.SemanticError ex)
             {
                 if (ex.Data0.Equals(FsUtils.emptyLocation))
-                    // do not display empty file/zero line for "emptyLocation"
-                    Console.Error.WriteLine("{0}", ex.Data1);
+                    Console.Error.WriteLine("error: {0}", ex.Data1);
                 else
-                    Console.Error.WriteLine("File:{0}, line:{1}, {2}", Path.GetFileName(ex.Data0.srcFilename), ex.Data0.srcLine, ex.Data1);
+                    Console.Error.WriteLine(ErrorFormatter.FormatError(ex.Data0.srcFilename, ex.Data0.srcLine, ex.Data0.charPos, ex.Data1));
                 return 2;
             }
-
-
         }
 
         public static CommonTypes.EnumRenamePolicy getRenamePolicy(CmdLineArgs.CmdLineArguments cmdArgs, CommonTypes.EnumRenamePolicy defaultValue)

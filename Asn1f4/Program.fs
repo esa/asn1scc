@@ -4,6 +4,7 @@ open System
 open System.IO
 open CommonTypes
 open System.Resources
+open Antlr
 
 type CliArguments =
     | [<AltCommandLine("-c")>]C_lang 
@@ -237,7 +238,10 @@ let main0 argv =
             Console.Error.WriteLine(ex.Message)
             2
         | SemanticError (loc,msg)            ->
-            Console.Error.WriteLine("File:{0}, line:{1}, {2}", Path.GetFileName(loc.srcFilename), loc.srcLine, msg);
+            if loc.Equals(FsUtils.emptyLocation) then 
+                Console.Error.WriteLine("error: {0}", msg)
+            else
+                Console.Error.WriteLine(ErrorFormatter.FormatError(loc.srcFilename, loc.srcLine, loc.charPos, msg))
             3
         | ex            ->
             Console.Error.WriteLine(ex.Message)
