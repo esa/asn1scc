@@ -23,6 +23,4 @@ END
 --TCLS     MyPDU[] {int1[], bBool BOOLEAN[], int2[present-when bBool], enm[], buf[present-when bBool], gg[present-when bBool]}             
 --TCLS     MyPDU[] 
 --TCLS     MyPDU[] {int1[], bBool BOOLEAN[], int2[], enm[], buf[present-when bBool], gg[present-when bBool]}             
---TCLFC     MyPDU[] {int1[], bBool BOOLEAN[], int2[present-when bBool], enm[present-when bBool], buf[present-when bBool], gg[present-when bBool]}   $$$ File:sample1.acn, line:4, 'present-when' attribute can be applied to optional components only
-
-
+--TCLFC     MyPDU[] {int1[], bBool BOOLEAN[], int2[present-when bBool], enm[present-when bBool], buf[present-when bBool], gg[present-when bBool]}   $$$ sample1.acn:4:65: error: 'present-when' attribute can be applied to optional components only

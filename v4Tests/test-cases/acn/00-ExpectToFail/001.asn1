@@ -8,4 +8,4 @@ TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
 	
 END
 
---TCLFC    MyPDU[encoding pos-int, size 6]          $$$ File:sample1.asn1, line:3, Cyclic dependencies detected : Type assignment 'TEST-CASE.MyPDU' depends on : 'TEST-CASE.MyPDU2' and Type assignment 'TEST-CASE.MyPDU2' depends on : 'TEST-CASE.MyPDU'
+--TCLFC    MyPDU[encoding pos-int, size 6]          $$$ sample1.asn1:3:1: error: Cyclic dependencies detected : Type assignment 'TEST-CASE.MyPDU' depends on : 'TEST-CASE.MyPDU2' and Type assignment 'TEST-CASE.MyPDU2' depends on : 'TEST-CASE.MyPDU'

@@ -33,5 +33,4 @@ TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
 
 END
 
---TCLFC     MyPDU[] {a[], inserted ChoiceSelector[], b<inserted>[ ]}   ChoiceSelector[]  ChoiceType<ChoiceSelector:sel>[determinant sel]  $$$ File:sample1.acn, line:4, expecting an enumerated field with names matching the choice names
-
+--TCLFC     MyPDU[] {a[], inserted ChoiceSelector[], b<inserted>[ ]}   ChoiceSelector[]  ChoiceType<ChoiceSelector:sel>[determinant sel]  $$$ sample1.acn:4:89: error: expecting an enumerated field with names matching the choice names

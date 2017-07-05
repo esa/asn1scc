@@ -11,4 +11,4 @@ MYMOD DEFINITIONS AUTOMATIC TAGS::= BEGIN
     }
 END 
 
---TCFFC     002.acn  $$$ File:sample1.acn, line:10, Duplicate condition found in choice alternatives
+--TCFFC     002.acn  $$$ sample1.acn:10:50: error: Duplicate condition found in choice alternatives

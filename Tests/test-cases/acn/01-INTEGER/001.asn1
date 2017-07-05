@@ -8,37 +8,36 @@ TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
 	
 END
 
---TCLFC    MyPDU[encoding pos-int, size 6]          $$$ File:sample1.acn, line:4, The applied ACN encoding does not allow values larger than 63 to be encoded, while the corresponding ASN.1 type allows values up to 68719476736
+--TCLFC    MyPDU[encoding pos-int, size 6]          $$$ sample1.acn:4:30: error: The applied ACN encoding does not allow values larger than 63 to be encoded, while the corresponding ASN.1 type allows values up to 68719476736
 --TCLS     CONSTANT WSIZE ::=37 MyPDU[encoding pos-int, size WSIZE]
 --TCLS     CONSTANT WSIZE ::=37/1  MyPDU[encoding pos-int, size WSIZE]
---IGN_TCLFC    MyPDU[encoding pos-int, size 36, adjust 2]          $$$ File:sample1.acn, line:4, Applied ACN encoding  allows values in the range [0, 68719476735] while asn1 type requires values in the range [-1, 68719476734]
---IGN_TCLS    MyPDU[encoding pos-int, size 36, adjust 1]          
---TCLFC    MyPDU[encoding pos-int, size 36]         $$$ File:sample1.acn, line:4, The applied ACN encoding does not allow values larger than 68719476735 to be encoded, while the corresponding ASN.1 type allows values up to 68719476736
+--IGN_TCLFC    MyPDU[encoding pos-int, size 36, adjust 2]          $$$ sample1.acn:4:30: error: Applied ACN encoding  allows values in the range [0, 68719476735] while asn1 type requires values in the range [-1, 68719476734]
+--IGN_TCLS    MyPDU[encoding pos-int, size 36, adjust 1]
+--TCLFC    MyPDU[encoding pos-int, size 36]         $$$ sample1.acn:4:30: error: The applied ACN encoding does not allow values larger than 68719476735 to be encoded, while the corresponding ASN.1 type allows values up to 68719476736
 
---TCLFC     MyPDU[encoding ASCII, size 88]       $$$ File:sample1.acn, line:4, The applied ACN encoding does not allow values larger than 9999999999 to be encoded, while the corresponding ASN.1 type allows values up to 68719476736
---TCLFC    CONSTANT WSIZE ::=37 CONSTANT WSIZE2 ::=37 - 1 MyPDU[encoding twos-complement, size WSIZE2]      $$$ File:sample1.acn, line:4, The applied ACN encoding does not allow values larger than 34359738367 to be encoded, while the corresponding ASN.1 type allows values up to 68719476736
+--TCLFC     MyPDU[encoding ASCII, size 88]       $$$ sample1.acn:4:28: error: The applied ACN encoding does not allow values larger than 9999999999 to be encoded, while the corresponding ASN.1 type allows values up to 68719476736
+--TCLFC    CONSTANT WSIZE ::=37 CONSTANT WSIZE2 ::=37 - 1 MyPDU[encoding twos-complement, size WSIZE2]      $$$ sample1.acn:4:85: error: The applied ACN encoding does not allow values larger than 34359738367 to be encoded, while the corresponding ASN.1 type allows values up to 68719476736
 --TCLS     MyPDU[encoding ASCII, size 104]
 --TCLS     MyPDU[encoding BCD, size 44]
 --TCLS     MyPDU[encoding BCD, size 48]
 --TCLS     MyPDU[encoding ASCII, size 96]
 --TCLS     MyPDU[encoding BCD, size null-terminated]
---TCLFC     MyPDU[encoding ASCII, size 95]       $$$ File:sample1.acn, line:4, size value should be multiple of 8
---TCLFC     MyPDU[encoding BCD, size 40]       $$$ File:sample1.acn, line:4, The applied ACN encoding does not allow values larger than 9999999999 to be encoded, while the corresponding ASN.1 type allows values up to 68719476736
---TCLFC     MyPDU[encoding BCD, size 41]       $$$ File:sample1.acn, line:4, size value should be multiple of 4
---TCLFC     MyPDU[encoding BCD, size -200]     $$$  File sample1.acn, line 4:21 no viable alternative at input 'size'
+--TCLFC     MyPDU[encoding ASCII, size 95]       $$$ sample1.acn:4:28: error: size value should be multiple of 8
+--TCLFC     MyPDU[encoding BCD, size 40]       $$$ sample1.acn:4:26: error: The applied ACN encoding does not allow values larger than 9999999999 to be encoded, while the corresponding ASN.1 type allows values up to 68719476736
+--TCLFC     MyPDU[encoding BCD, size 41]       $$$ sample1.acn:4:26: error: size value should be multiple of 4
+--TCLFC     MyPDU[encoding BCD, size -200]     $$$  sample1.acn:4:21: error: no viable alternative at input 'size'
 --TCLS     MyPDU[encoding pos-int, size 37]
 --TCLS     MyPDU[]
---TCLFC     CONSTANT WSIZE ::=37 CONSTANT WSIZE2 ::=37+1 MyPDU[encoding twos-complement, size WSIZE2]  $$$ Acn property twos-complement cannot be applied to non negative INTEGER types
---TCLS     MyPDU[encoding pos-int, size 64]		
---TCLFC    MyPDU[encoding pos-int, size h9hd]       $$$ File:sample1.acn, line:4, Expecting an Integer value or an ACN constant as value for the size property
+--TCLFC     CONSTANT WSIZE ::=37 CONSTANT WSIZE2 ::=37+1 MyPDU[encoding twos-complement, size WSIZE2]  $$$ error: Acn property twos-complement cannot be applied to non negative INTEGER types
+--TCLS     MyPDU[encoding pos-int, size 64]
+--TCLFC    MyPDU[encoding pos-int, size h9hd]       $$$ sample1.acn:4:30: error: Expecting an Integer value or an ACN constant as value for the size property
 
--- TCLFC     MyPDU[encoding BCD, size 200]       $$$  File:sample1.acn, line:4, Resulting integer encoding can have values up to 99999999999999999999999999999999999999999999999999 which is larger than MAXINT (9223372036854775807)
+-- TCLFC     MyPDU[encoding BCD, size 200]       $$$  sample1.acn:4:34: error: Resulting integer encoding can have values up to 99999999999999999999999999999999999999999999999999 which is larger than MAXINT (9223372036854775807)
 -- TCLS     MyPDU[encoding ASCII, size null-terminated]
--- TCLFC     MyPDU[encoding ASCII, size 200]      $$$ File:sample1.acn, line:4, Resulting integer encoding can have values up to 999999999999999999999999 which is larger than MAXINT (9223372036854775807)
+-- TCLFC     MyPDU[encoding ASCII, size 200]      $$$ sample1.acn:4:34: error: Resulting integer encoding can have values up to 999999999999999999999999 which is larger than MAXINT (9223372036854775807)
 
 
-        
---   TC   Test Case 
+--   TC   Test Case
 --   L  Line test case
 --   F   complex  test case written in separate File
 --   S  Expected to Succeed

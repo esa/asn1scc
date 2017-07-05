@@ -9,5 +9,3 @@ TEST-CASE DEFINITIONS ::= BEGIN
    HeaderType[]
    Payload[]
 END  
-
-

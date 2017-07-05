@@ -14,7 +14,7 @@ END
 -- TCLS     MyPDU[encode-values, encoding ASCII, size null-terminated]
 --TCLS     MyPDU[]
 --TCLS     MyPDU[encoding pos-int, size 10]
---TCLFC     MyPDU[encoding twos-complement, size 10]    $$$ Acn property twos-complement cannot be applied to non negative INTEGER types
+--TCLFC     MyPDU[encoding twos-complement, size 10]    $$$ error: Acn property twos-complement cannot be applied to non negative INTEGER types
 --TCLS     MyPDU[encoding BCD, size 8]
 -- TCLS     MyPDU[encoding BCD, size null-terminated]
 --TCLS     MyPDU[encoding ASCII, size 16]
