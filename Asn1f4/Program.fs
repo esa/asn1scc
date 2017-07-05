@@ -153,6 +153,11 @@ let exportRTL outDir  (l:DAst.ProgrammingLanguage) =
                 writeTextFile (Path.Combine(outDir, "runSpark.sh"))    (rm.GetString("run",null)) 
                 writeTextFile (Path.Combine(outDir, "GPS_project.gpr"))    (rm.GetString("GPS_project",null)) 
 
+let formatError (loc:SrcLoc) (msg:string) =
+    if loc.Equals(FsUtils.emptyLocation)
+        then "error: " + msg
+        else ErrorFormatter.FormatError(loc.srcFilename, loc.srcLine, loc.charPos, msg)
+
 let main0 argv =
     let parser = ArgumentParser.Create<CliArguments>(programName = "Asn1f4.exe")
     try
@@ -238,10 +243,7 @@ let main0 argv =
             Console.Error.WriteLine(ex.Message)
             2
         | SemanticError (loc,msg)            ->
-            if loc.Equals(FsUtils.emptyLocation) then 
-                Console.Error.WriteLine("error: {0}", msg)
-            else
-                Console.Error.WriteLine(ErrorFormatter.FormatError(loc.srcFilename, loc.srcLine, loc.charPos, msg))
+            Console.WriteLine(formatError loc msg)
             3
         | ex            ->
             Console.Error.WriteLine(ex.Message)
