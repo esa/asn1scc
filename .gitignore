@@ -1,3 +1,6 @@
+/.vs
+/Debug
+/Release
 Antlr/acn.tokens
 Antlr/acnLexer.cs
 Antlr/acnParser.cs
