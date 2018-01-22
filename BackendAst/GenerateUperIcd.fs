@@ -309,8 +309,9 @@ let PrintFile2 (stgFileName:string) (f:Asn1File) =
               Seq.collect(fun x -> GetMySelfAndChildren x) |>
               Seq.choose(fun x -> match x.Kind with
                                   |ReferenceType ref    -> 
-                                    let tas = f.TypeAssignments |> Seq.find(fun y -> y.Name.Value = ref.baseInfo.tasName.Value)
-                                    Some(ref.baseInfo.tasName.Value, ref.baseInfo.tasName.Location.srcLine, ref.baseInfo.tasName.Location.charPos)
+                                    match f.TypeAssignments |> Seq.tryFind(fun y -> y.Name.Value = ref.baseInfo.tasName.Value) with
+                                    | Some tas  -> Some(ref.baseInfo.tasName.Value, tas.Type.Location.srcLine, tas.Type.Location.charPos)
+                                    | None      -> None
                                   | _                           -> None ) |> Seq.toArray
     let colorize (t: IToken, idx: int, tasses: string array, blueTassesWithLoc: (string*int*int) array) =
             let asn1Tokens = [| "PLUS-INFINITY";"MINUS-INFINITY";"GeneralizedTime";"UTCTime";"mantissa";"base";"exponent";"UNION";"INTERSECTION";
