@@ -43,7 +43,7 @@ let PrintCustomAsn1Value (vas: ValueAssignment) stgFileName =
         |IntegerValue(v)         -> gen.Print_IntegerValue v stgFileName
         |RealValue(v)            -> gen.Print_RealValue v stgFileName
         |StringValue(v)          -> gen.Print_StringValue v stgFileName
-        |EnumValue enmv          -> enmv //gen.Print_EnmValueValue enmv stgFileName
+        |EnumValue enmv          -> gen.Print_RefValue enmv stgFileName //gen.Print_EnmValueValue enmv stgFileName
         |BooleanValue(v)         -> if v = true then gen.Print_TrueValue () stgFileName else gen.Print_FalseValue () stgFileName
         |BitStringValue(v)       -> gen.Print_BitStringValue v stgFileName
         |OctetStringValue(v)     -> gen.Print_OctetStringValue (v |> Seq.map(fun x -> x) |> Seq.toArray) stgFileName
