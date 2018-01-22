@@ -71,9 +71,9 @@ let PrintContract (tas:TypeAssignment) (r:AstRoot) (stgFileName:string) =
         match t.Kind with
         | Integer   intInfo     -> handTypeWithMinMax pattern intInfo.baseInfo.uperRange gen.ContractExprMinMax stgFileName
         | Real      realInfo    -> handTypeWithMinMax_real pattern realInfo.baseInfo.uperRange gen.ContractExprMinMax stgFileName
-        | OctetString info      -> handTypeWithMinMax pattern (Asn1AcnAst.Concrete (info.baseInfo.uperMinSizeInBits, info.baseInfo.uperMaxSizeInBits)) gen.ContractExprSize stgFileName
-        | IA5String   info      -> handTypeWithMinMax pattern (Asn1AcnAst.Concrete (info.baseInfo.uperMinSizeInBits, info.baseInfo.uperMaxSizeInBits)) gen.ContractExprSize stgFileName  
-        | BitString   info      -> handTypeWithMinMax pattern (Asn1AcnAst.Concrete (info.baseInfo.uperMinSizeInBits, info.baseInfo.uperMaxSizeInBits)) gen.ContractExprSize stgFileName
+        | OctetString info      -> handTypeWithMinMax pattern (Asn1AcnAst.Concrete (info.baseInfo.minSize, info.baseInfo.maxSize)) gen.ContractExprSize stgFileName
+        | IA5String   info      -> handTypeWithMinMax pattern (Asn1AcnAst.Concrete (info.baseInfo.minSize, info.baseInfo.maxSize)) gen.ContractExprSize stgFileName  
+        | BitString   info      -> handTypeWithMinMax pattern (Asn1AcnAst.Concrete (info.baseInfo.minSize, info.baseInfo.maxSize)) gen.ContractExprSize stgFileName
         | Boolean   _
         | NullType  _
         | Choice _
@@ -113,10 +113,10 @@ let rec PrintType (r:AstRoot) (f:Asn1File) (stgFileName:string) modName (t:Asn1T
     let PrintTypeAux (t:Asn1Type) =
         match t.Kind with
         | Integer           i    -> handTypeWithMinMax (gen.IntegerType () stgFileName)         i.baseInfo.uperRange gen.MinMaxType stgFileName
-        | BitString         i    -> handTypeWithMinMax (gen.BitStringType () stgFileName)       (Asn1AcnAst.Concrete (i.baseInfo.uperMinSizeInBits, i.baseInfo.uperMaxSizeInBits)) gen.MinMaxType2 stgFileName
-        | OctetString       i    -> handTypeWithMinMax (gen.OctetStringType () stgFileName)     (Asn1AcnAst.Concrete (i.baseInfo.uperMinSizeInBits, i.baseInfo.uperMaxSizeInBits)) gen.MinMaxType2 stgFileName
+        | BitString         i    -> handTypeWithMinMax (gen.BitStringType () stgFileName)       (Asn1AcnAst.Concrete (i.baseInfo.minSize, i.baseInfo.maxSize)) gen.MinMaxType2 stgFileName
+        | OctetString       i    -> handTypeWithMinMax (gen.OctetStringType () stgFileName)     (Asn1AcnAst.Concrete (i.baseInfo.minSize, i.baseInfo.maxSize)) gen.MinMaxType2 stgFileName
         | Real              i    -> handTypeWithMinMax_real (gen.RealType () stgFileName)       i.baseInfo.uperRange gen.MinMaxType stgFileName
-        | IA5String         i    -> handTypeWithMinMax (gen.IA5StringType () stgFileName)       (Asn1AcnAst.Concrete (i.baseInfo.uperMinSizeInBits, i.baseInfo.uperMaxSizeInBits)) gen.MinMaxType2 stgFileName
+        | IA5String         i    -> handTypeWithMinMax (gen.IA5StringType () stgFileName)       (Asn1AcnAst.Concrete (i.baseInfo.minSize, i.baseInfo.maxSize)) gen.MinMaxType2 stgFileName
         | Boolean           i    -> gen.BooleanType () stgFileName
         | NullType          i    -> gen.NullType () stgFileName
         | Choice(chInfo)      ->
@@ -144,10 +144,10 @@ let rec PrintType (r:AstRoot) (f:Asn1File) (stgFileName:string) modName (t:Asn1T
             let uperRange = 
                 match (t.ActualType).Kind with
                 | Integer       i         -> Some (GetMinMax i.baseInfo.uperRange)
-                | BitString     i         -> Some (i.baseInfo.uperMinSizeInBits.ToString(), i.baseInfo.uperMaxSizeInBits.ToString())
-                | OctetString   i         -> Some (i.baseInfo.uperMinSizeInBits.ToString(), i.baseInfo.uperMaxSizeInBits.ToString())
-                | IA5String     i         -> Some (i.baseInfo.uperMinSizeInBits.ToString(), i.baseInfo.uperMaxSizeInBits.ToString())
-                | SequenceOf    i         -> Some (i.baseInfo.uperMinSizeInBits.ToString(), i.baseInfo.uperMaxSizeInBits.ToString())
+                | BitString     i         -> Some (i.baseInfo.minSize.ToString(), i.baseInfo.maxSize.ToString())
+                | OctetString   i         -> Some (i.baseInfo.minSize.ToString(), i.baseInfo.maxSize.ToString())
+                | IA5String     i         -> Some (i.baseInfo.minSize.ToString(), i.baseInfo.maxSize.ToString())
+                | SequenceOf    i         -> Some (i.baseInfo.minSize.ToString(), i.baseInfo.maxSize.ToString())
                 | Real          i         -> Some (GetMinMax i.baseInfo.uperRange)
                 | Boolean _ | NullType _ | Choice _ | Enumerated _ | Sequence _ | ReferenceType _       -> None
             let sModName = if info.baseInfo.modName.Value=modName then null else info.baseInfo.modName.Value
