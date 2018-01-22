@@ -25,6 +25,7 @@ type CliArguments =
     | [<AltCommandLine("-icdAcn")>] IcdAcn  of acn_icd_output_file:string
     | [<AltCommandLine("-customIcdAcn")>] CustomIcdAcn  of custom_stg_colon_out_filename:string
     | [<AltCommandLine("-AdaUses")>] AdaUses 
+    | [<AltCommandLine("-ACND")>]   ACND
     | [<MainCommand; ExactlyOnce; Last>] Files of files:string list
 with
     interface IArgParserTemplate with
@@ -49,7 +50,7 @@ with
             | IcdAcn  _         -> "Produces an Interface Control Document for the input ASN.1 and ACN grammars for ACN encoding"
             | CustomIcdAcn  _   -> "Invokes the custom stg file 'stgFile.stg' using the icdAcn backend and produces the output file 'outputFile'"
             | AdaUses           -> "Prints in the console all type Assignments of the input ASN.1 grammar"
-
+            | ACND              -> "creates ACN grammars for the input ASN.1 grammars using the default encoding properties"
 
 let getCustmStgFileNames (compositeFile:string) =
     let files = compositeFile.Split ':' |> Seq.toList
@@ -107,6 +108,7 @@ let checkArguement arg =
     | IcdAcn  outHtmlFile       -> checkOutFileName outHtmlFile ".html" "-icdAcn"
     | CustomIcdAcn  comFile     -> checkCompositeFile comFile "-customIcdAcn" ".html"
     | AdaUses                   -> ()
+    | ACND                      -> ()
 
 let constructCommandLineSettings args (parserResults: ParseResults<CliArguments>)=
     let files = parserResults.GetResult <@ Files @>
@@ -219,6 +221,7 @@ let main0 argv =
                     | Some(stgFile, outFile)  -> GenerateAcnIcd.DoWork r  acnDeps stgFile outFile
                     | None  -> ()
                 | AdaUses   -> DAstUtilFunctions.AdaUses r
+                | ACND      -> GenerateFiles.EmmitDefaultACNGrammar r outDir
                 | _ -> ())
 
         cliArgs |> 

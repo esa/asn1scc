@@ -422,3 +422,20 @@ let generateAll outDir (r:DAst.AstRoot) (encodings: CommonTypes.Asn1Encoding lis
 
         CreateAdaIndexFile r false outDir
 
+
+
+let EmmitDefaultACNGrammar (r:AstRoot) outDir  =
+    let printTas (tas: TypeAssignment) =
+        tas.Name.Value + "[]"
+    let printModule (m:Asn1Module) =
+        let arrTases = m.TypeAssignments |> Seq.map printTas
+        uper_c.PrintDefaultAcnModule m.Name.Value arrTases "::="
+    let printFile (f:Asn1File) =
+        let fileName = f.FileNameWithoutExtension + ".acn"
+        if (System.IO.File.Exists fileName) then
+            System.Console.Error.WriteLine("File {0} already exists. Creation of default ASN.1 grammar abandoned", fileName);
+        else
+            let content = f.Modules |> Seq.map printModule |> Seq.StrJoin "\n"
+            let fileName = Path.Combine(outDir, fileName)
+            File.WriteAllText(fileName, content.Replace("\r",""))
+    r.Files |> Seq.iter printFile
