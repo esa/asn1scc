@@ -871,3 +871,10 @@ let hasUperEncodeFunction (encFunc : UPerFunction option)  =
             | None   -> false
             | Some _ -> true
 
+let AdaUses (r:AstRoot) =
+    seq {
+        for f in r.Files do
+            for m in f.Modules do
+                for tas in m.TypeAssignments do
+                    yield sprintf "%s:%s" tas.Name.Value (ToC m.Name.Value);
+    } |> Seq.iter(fun l -> System.Console.WriteLine l)

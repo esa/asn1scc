@@ -24,8 +24,7 @@ type CliArguments =
     | [<AltCommandLine("-customIcdUper")>] CustomIcdUper  of custom_stg_colon_out_filename:string
     | [<AltCommandLine("-icdAcn")>] IcdAcn  of acn_icd_output_file:string
     | [<AltCommandLine("-customIcdAcn")>] CustomIcdAcn  of custom_stg_colon_out_filename:string
-
-
+    | [<AltCommandLine("-AdaUses")>] AdaUses 
     | [<MainCommand; ExactlyOnce; Last>] Files of files:string list
 with
     interface IArgParserTemplate with
@@ -49,7 +48,7 @@ with
             | CustomIcdUper  _  -> "Invokes the custom stg file 'stgFile.stg' using the icdUper backend and produces the output file 'outputFile'"
             | IcdAcn  _         -> "Produces an Interface Control Document for the input ASN.1 and ACN grammars for ACN encoding"
             | CustomIcdAcn  _   -> "Invokes the custom stg file 'stgFile.stg' using the icdAcn backend and produces the output file 'outputFile'"
-            
+            | AdaUses           -> "Prints in the console all type Assignments of the input ASN.1 grammar"
 
 
 let getCustmStgFileNames (compositeFile:string) =
@@ -107,7 +106,7 @@ let checkArguement arg =
     | CustomIcdUper  comFile    -> checkCompositeFile comFile "-customIcdUper" ".html"
     | IcdAcn  outHtmlFile       -> checkOutFileName outHtmlFile ".html" "-icdAcn"
     | CustomIcdAcn  comFile     -> checkCompositeFile comFile "-customIcdAcn" ".html"
-
+    | AdaUses                   -> ()
 
 let constructCommandLineSettings args (parserResults: ParseResults<CliArguments>)=
     let files = parserResults.GetResult <@ Files @>
@@ -219,6 +218,7 @@ let main0 argv =
                     match getCustmStgFileNames comFile with
                     | Some(stgFile, outFile)  -> GenerateAcnIcd.DoWork r  acnDeps stgFile outFile
                     | None  -> ()
+                | AdaUses   -> DAstUtilFunctions.AdaUses r
                 | _ -> ())
 
         cliArgs |> 
