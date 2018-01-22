@@ -20,4 +20,4 @@ TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
 	
 END
 
---TCFFC     001_02.acn  $$$ File:sample1.acn, line:10, ASN.1 fields cannot act as encoding determinants. Remove field 'secHeaderFlag' from the ASN.1 grammar and introduce it in the ACN grammar
+--TCFFC     001_02.acn  $$$ sample1.acn:10:52: error: ASN.1 fields cannot act as encoding determinants. Remove field 'secHeaderFlag' from the ASN.1 grammar and introduce it in the ACN grammar

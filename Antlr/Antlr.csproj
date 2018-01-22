@@ -57,6 +57,7 @@
     <Compile Include="asn1Lexer.cs" />
     <Compile Include="asn1Parser.cs" />
     <Compile Include="Comments.cs" />
+    <Compile Include="ErrorFormatter.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

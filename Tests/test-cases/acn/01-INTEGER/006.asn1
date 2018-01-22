@@ -7,13 +7,13 @@ TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
 END
 
 
--- TCLS     MyPDU[encoding ASCII, size 200]  
+-- TCLS     MyPDU[encoding ASCII, size 200]
 
 --TCLS     CONSTANT WSIZE ::=64 MyPDU[encoding twos-complement, size WSIZE]
---TCLFC     MyPDU[encoding ASCII, size 95]       $$$  File:sample1.acn, line:4, size value should be multiple of 8
---TCLFC    CONSTANT WSIZE ::=64-1 MyPDU[encoding twos-complement, size WSIZE]      $$$  File:sample1.acn, line:4, The applied ACN encoding does not allow values larger than 4611686018427387903 to be encoded, while the corresponding ASN.1 type allows values up to 9223372036854775807
---TCLFC    MyPDU[encoding pos-int, size 64]          $$$ File:sample1.acn, line:4, The applied ACN encoding does not allow negative values which are supported by the corresponding ASN.1 type
---TCLFC     MyPDU[encoding ASCII, size 152]       $$$  File:sample1.acn, line:4, The applied ACN encoding does not allow values larger than 999999999999999999 to be encoded, while the corresponding ASN.1 type allows values up to 9223372036854775807
+--TCLFC     MyPDU[encoding ASCII, size 95]       $$$  sample1.acn:4:28: error: size value should be multiple of 8
+--TCLFC    CONSTANT WSIZE ::=64-1 MyPDU[encoding twos-complement, size WSIZE]      $$$  sample1.acn:4:61: error: The applied ACN encoding does not allow values larger than 4611686018427387903 to be encoded, while the corresponding ASN.1 type allows values up to 9223372036854775807
+--TCLFC    MyPDU[encoding pos-int, size 64]          $$$ sample1.acn:4:30: error: The applied ACN encoding does not allow negative values which are supported by the corresponding ASN.1 type
+--TCLFC     MyPDU[encoding ASCII, size 152]       $$$  sample1.acn:4:28: error: The applied ACN encoding does not allow values larger than 999999999999999999 to be encoded, while the corresponding ASN.1 type allows values up to 9223372036854775807
 --TCLS     MyPDU[]
---TCLFC     MyPDU[encoding ASCII, size -200]     $$$  File sample1.acn, line 4:23 no viable alternative at input 'size'
+--TCLFC     MyPDU[encoding ASCII, size -200]     $$$  sample1.acn:4:23: error: no viable alternative at input 'size'
 -- TCLS     MyPDU[encoding ASCII, size null-terminated]

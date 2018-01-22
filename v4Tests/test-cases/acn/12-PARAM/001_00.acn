@@ -23,5 +23,3 @@ TEST-CASE DEFINITIONS ::= BEGIN
     }
     Call[]
 END  
-
-

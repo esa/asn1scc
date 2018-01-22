@@ -33,5 +33,4 @@ TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
 	
 END
 
---TCFFC     001_00.acn   $$$ File:sample1.asn1, line:18, ASN.1 fields cannot act as encoding determinants. Remove field 'nrCalls' from the ASN.1 grammar and introduce it in the ACN grammar
-
+--TCFFC     001_00.acn   $$$ sample1.asn1:18:8: error: ASN.1 fields cannot act as encoding determinants. Remove field 'nrCalls' from the ASN.1 grammar and introduce it in the ACN grammar

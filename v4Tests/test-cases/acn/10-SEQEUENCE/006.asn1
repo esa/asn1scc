@@ -26,4 +26,4 @@ END
 
 
 --TCLS     MyPDU[]  {int1[], bInt2Present BOOLEAN[], int2[encoding pos-int, size 16, present-when bInt2Present], enm[], buf[], gg[]}  
---TCLFC     MyPDU[size 200]  {int1[], bInt2Present BOOLEAN[], int2[encoding pos-int, size auto, present-when bInt2Present], enm[], buf[], gg[]}   $$$ File:sample1.acn, line:4, Expecting an Integer value or an ACN constant as value for the size property
+--TCLFC     MyPDU[size 200]  {int1[], bInt2Present BOOLEAN[], int2[encoding pos-int, size auto, present-when bInt2Present], enm[], buf[], gg[]}   $$$ sample1.acn:4:55: error: Expecting an Integer value or an ACN constant as value for the size property

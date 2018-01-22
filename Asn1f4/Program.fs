@@ -4,6 +4,7 @@ open System
 open System.IO
 open CommonTypes
 open System.Resources
+open Antlr
 
 type CliArguments =
     | [<AltCommandLine("-c")>]C_lang 
@@ -153,6 +154,11 @@ let exportRTL outDir  (l:DAst.ProgrammingLanguage) =
                 writeTextFile (Path.Combine(outDir, "runSpark.sh"))    (rm.GetString("run",null)) 
                 writeTextFile (Path.Combine(outDir, "GPS_project.gpr"))    (rm.GetString("GPS_project",null)) 
 
+let formatError (loc:SrcLoc) (msg:string) =
+    if loc.Equals(FsUtils.emptyLocation)
+        then "error: " + msg
+        else ErrorFormatter.FormatError(loc.srcFilename, loc.srcLine, loc.charPos, msg)
+
 let main0 argv =
     let parser = ArgumentParser.Create<CliArguments>(programName = "Asn1f4.exe")
     try
@@ -240,7 +246,7 @@ let main0 argv =
             Console.Error.WriteLine(ex.Message)
             2
         | SemanticError (loc,msg)            ->
-            Console.Error.WriteLine("File:{0}, line:{1}, {2}", Path.GetFileName(loc.srcFilename), loc.srcLine, msg);
+            Console.WriteLine(formatError loc msg)
             3
         | ex            ->
             Console.Error.WriteLine(ex.Message)

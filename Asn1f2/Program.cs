@@ -19,7 +19,7 @@ using Antlr.Runtime.Tree;
 using System.IO;
 using Antlr.Asn1;
 using Antlr.Acn;
-
+using Antlr;
 
 namespace Asn1f2
 {
@@ -72,15 +72,16 @@ namespace Asn1f2
             }
             catch (FsUtils.SemanticError ex)
             {
-                if (ex.Data0.Equals(FsUtils.emptyLocation))
-                    // do not display empty file/zero line for "emptyLocation"
-                    Console.Error.WriteLine("{0}", ex.Data1);
-                else
-                    Console.Error.WriteLine("File:{0}, line:{1}, {2}", Path.GetFileName(ex.Data0.srcFilename), ex.Data0.srcLine, ex.Data1);
+                Console.Error.WriteLine(FormatError(ex));
                 return 2;
             }
+        }
 
-
+        public static string FormatError(FsUtils.SemanticError ex)
+        {
+            if (ex.Data0.Equals(FsUtils.emptyLocation))
+                return "error: " + ex.Data1;
+            return ErrorFormatter.FormatError(ex.Data0.srcFilename, ex.Data0.srcLine, ex.Data0.charPos, ex.Data1);
         }
 
         public static CommonTypes.EnumRenamePolicy getRenamePolicy(CmdLineArgs.CmdLineArguments cmdArgs, CommonTypes.EnumRenamePolicy defaultValue)
@@ -105,10 +106,8 @@ namespace Asn1f2
 
         public static int CheckSuccess(IEnumerable<string> args)
         {
-            var aaa = Resource1.asn1crt;
-
-            var asn1InputFiles = args.Where(a => !a.StartsWith("-") && (a.ToLower().EndsWith(".asn1") || a.ToLower().EndsWith(".asn")));
-            var acnInputFiles = args.Where(a => !a.StartsWith("-") && a.ToLower().EndsWith(".acn"));
+            var asn1InputFiles = args.Where(a => !a.StartsWith("-") && (a.ToLower().EndsWith(".asn1") || a.ToLower().EndsWith(".asn"))).ToList();
+            var acnInputFiles = args.Where(a => !a.StartsWith("-") && a.ToLower().EndsWith(".acn")).ToList();
             
             foreach (var f in asn1InputFiles.Concat(acnInputFiles))
                 if (!File.Exists(f))
@@ -665,13 +664,17 @@ namespace Asn1f2
             backendInvocation(stgFileName, outFileName);
         }
 
+        private static string GetVersionString()
+        {
+            return typeof(Program).Assembly.GetName().Version.ToString(3);
+        }
 
         static int Usage()
         {
             var procName = "asn1";
             Console.Error.WriteLine();
             Console.Error.WriteLine("Semantix ASN.1 Compiler");
-            Console.Error.WriteLine("Current Version is: 3.3.{0} ", Svn.Version);
+            Console.Error.WriteLine("Current Version is: {0} ", GetVersionString());
             Console.Error.WriteLine("Usage:");
             Console.Error.WriteLine();
             Console.Error.WriteLine("{0}  <OPTIONS> file1, file2, ..., fileN ", procName);

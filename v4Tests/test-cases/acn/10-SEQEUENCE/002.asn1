@@ -8,6 +8,6 @@ TEST-CASE  DEFINITIONS AUTOMATIC TAGS::= BEGIN
 	
 	pdu1 MyPDU ::= {a 1, b NULL, c "42"}
 --TCLS     MyPDU[] {a[], b[], c[]}
---TCLFC    MyPDU[] {a[], b[]}  $$$ File:sample1.acn, line:4, No ACN encoding specification was provided for component c
-	
+--TCLFC    MyPDU[] {a[], b[]}  $$$ sample1.acn:4:6: error: No ACN encoding specification was provided for component c
+
 END
