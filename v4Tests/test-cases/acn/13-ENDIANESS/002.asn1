@@ -18,14 +18,14 @@ END
 --TCLS     MyPDU[encoding pos-int, size 16, endianness little]
 --TCLS     MyPDU[encoding pos-int, size 32, endianness little]
 --TCLS     MyPDU[encoding pos-int, size 64, endianness little]
---TCLFC     MyPDU[encoding twos-complement, size 16]							 $$$ File:sample1.acn, line:4, Acn property twos-complement cannot be applied to non negative INTEGER types
---TCLFC     MyPDU[encoding twos-complement, size 32]                             $$$ File:sample1.acn, line:4, Acn property twos-complement cannot be applied to non negative INTEGER types
---TCLFC     MyPDU[encoding twos-complement, size 64]                             $$$ File:sample1.acn, line:4, Acn property twos-complement cannot be applied to non negative INTEGER types
---TCLFC     MyPDU[encoding twos-complement, size 16, endianness big]             $$$ File:sample1.acn, line:4, Acn property twos-complement cannot be applied to non negative INTEGER types
---TCLFC     MyPDU[encoding twos-complement, size 32, endianness big]             $$$ File:sample1.acn, line:4, Acn property twos-complement cannot be applied to non negative INTEGER types
---TCLFC     MyPDU[encoding twos-complement, size 64, endianness big]             $$$ File:sample1.acn, line:4, Acn property twos-complement cannot be applied to non negative INTEGER types
---TCLFC     MyPDU[encoding twos-complement, size 16, endianness little]          $$$ File:sample1.acn, line:4, Acn property twos-complement cannot be applied to non negative INTEGER types
---TCLFC     MyPDU[encoding twos-complement, size 32, endianness little]          $$$ File:sample1.acn, line:4, Acn property twos-complement cannot be applied to non negative INTEGER types
---TCLFC     MyPDU[encoding twos-complement, size 64, endianness little]          $$$ File:sample1.acn, line:4, Acn property twos-complement cannot be applied to non negative INTEGER types
+--TCLFC     MyPDU[encoding twos-complement, size 16]							 $$$ sample1.acn:4:6: error: Acn property twos-complement cannot be applied to non negative INTEGER types
+--TCLFC     MyPDU[encoding twos-complement, size 32]                             $$$ sample1.acn:4:6: error: Acn property twos-complement cannot be applied to non negative INTEGER types
+--TCLFC     MyPDU[encoding twos-complement, size 64]                             $$$ sample1.acn:4:6: error: Acn property twos-complement cannot be applied to non negative INTEGER types
+--TCLFC     MyPDU[encoding twos-complement, size 16, endianness big]             $$$ sample1.acn:4:6: error: Acn property twos-complement cannot be applied to non negative INTEGER types
+--TCLFC     MyPDU[encoding twos-complement, size 32, endianness big]             $$$ sample1.acn:4:6: error: Acn property twos-complement cannot be applied to non negative INTEGER types
+--TCLFC     MyPDU[encoding twos-complement, size 64, endianness big]             $$$ sample1.acn:4:6: error: Acn property twos-complement cannot be applied to non negative INTEGER types
+--TCLFC     MyPDU[encoding twos-complement, size 16, endianness little]          $$$ sample1.acn:4:6: error: Acn property twos-complement cannot be applied to non negative INTEGER types
+--TCLFC     MyPDU[encoding twos-complement, size 32, endianness little]          $$$ sample1.acn:4:6: error: Acn property twos-complement cannot be applied to non negative INTEGER types
+--TCLFC     MyPDU[encoding twos-complement, size 64, endianness little]          $$$ sample1.acn:4:6: error: Acn property twos-complement cannot be applied to non negative INTEGER types
 
         

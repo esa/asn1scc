@@ -12,5 +12,5 @@ END
 --TCLS     MyPDU[]
 --TCLS     MyPDU[] { a1[], a2[]}
 -- TCLS     MyPDU[] { a1[], a2[size null-terminated]}
---TCLS    MyPDU[] { a1[], a2[size 20]}               
---TCLFC    MyPDU[] { a1[], a2[size 25]}               $$$ File:sample1.acn, line:4, size property value should be set to 20 
+--TCLS    MyPDU[] { a1[], a2[size 20]}
+--TCLFC    MyPDU[] { a1[], a2[size 25]}               $$$ sample1.acn:4:25: error: size property value should be set to 20 

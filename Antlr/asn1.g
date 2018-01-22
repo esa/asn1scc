@@ -131,8 +131,7 @@ public override void EmitErrorMessage(string msg)
 }
 public override string GetErrorHeader(RecognitionException e)
 {
-    object[] objArray1 = new object[] { "File ", System.IO.Path.GetFileName(input.SourceName), ", ", "line ", e.Line, ":", e.CharPositionInLine };
-    return string.Concat(objArray1);
+    return ErrorFormatter.GetErrorHeader(input.SourceName, e);
 }
 }
 
@@ -160,13 +159,11 @@ public override void ReportError(RecognitionException e) {
 
 public override void EmitErrorMessage(string msg)
 {
-//    throw new Semantix.Utils.SyntaxErrorException(msg);
     throw new asn1Parser.SyntaxErrorException(msg);
 }
 public override string GetErrorHeader(RecognitionException e)
 {
-    object[] objArray1 = new object[] { "File ", System.IO.Path.GetFileName(input.SourceName), ", ", "line ", e.Line, ":", e.CharPositionInLine };
-    return string.Concat(objArray1);
+    return ErrorFormatter.GetErrorHeader(input.SourceName, e);
 }
 }
 

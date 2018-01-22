@@ -6,7 +6,7 @@ TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
 END
 
 -- ASCII encodings
---TCLFC    MyPDU[encoding ASCII, size null-terminated, termination-pattern '41'H]               $$$ File:sample1.acn, line:4, The termination-pattern defines a character which belongs to the allowed values of the ASN.1 type. Use another value in the termination-pattern or apply different constraints in the ASN.1 type.
+--TCLFC    MyPDU[encoding ASCII, size null-terminated, termination-pattern '41'H]               $$$ sample1.acn:4:6: error: The termination-pattern defines a character which belongs to the allowed values of the ASN.1 type. Use another value in the termination-pattern or apply different constraints in the ASN.1 type.
 --TCLS     MyPDU[encoding ASCII, size null-terminated, termination-pattern '01'H]
 --TCLS     MyPDU[encoding ASCII, size null-terminated, termination-pattern '00000001'B]
 --TCLS     MyPDU[encoding ASCII, size 20]

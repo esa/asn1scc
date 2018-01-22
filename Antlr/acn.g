@@ -52,8 +52,7 @@ public override void EmitErrorMessage(string msg)
 }
 public override string GetErrorHeader(RecognitionException e)
 {
-    object[] objArray1 = new object[] { "File ", System.IO.Path.GetFileName(input.SourceName), ", ", "line ", e.Line, ":", e.CharPositionInLine };
-    return string.Concat(objArray1);
+    return ErrorFormatter.GetErrorHeader(input.SourceName, e);
 }
 }
 
@@ -76,12 +75,11 @@ public override IToken NextToken() {
 
 public override void EmitErrorMessage(string msg)
 {
-    throw new  Antlr.Asn1.asn1Parser.SyntaxErrorException(msg);
+    throw new Antlr.Asn1.asn1Parser.SyntaxErrorException(msg);
 }
 public override string GetErrorHeader(RecognitionException e)
 {
-    object[] objArray1 = new object[] { "File ", System.IO.Path.GetFileName(input.SourceName), ", ", "line ", e.Line, ":", e.CharPositionInLine };
-    return string.Concat(objArray1);
+    return ErrorFormatter.GetErrorHeader(input.SourceName, e);
 }
 
 }

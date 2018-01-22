@@ -6,7 +6,7 @@ TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
 	
 END
 
---TCLFC     MyPDU[encoding ASCII]    $$$  File:sample1.acn, line:4, Invalid encoding property value. Expecting 'IEEE754-1985-32' or 'IEEE754-1985-64'
+--TCLFC     MyPDU[encoding ASCII]    $$$  sample1.acn:4:6: error: Invalid encoding property value. Expecting 'IEEE754-1985-32' or 'IEEE754-1985-64'
 --TCLS     MyPDU[encoding IEEE754-1985-64, endianness little]
 --TCLS     MyPDU[encoding IEEE754-1985-64, endianness big]
 --TCLS     MyPDU[]
@@ -14,4 +14,4 @@ END
 --  TCLS     MyPDU[encoding IEEE754-1985-32]   /*In this test cases the final comparison failes due to conversion from double to float*/
 
 
---TCLFC     MyPDU[encoding ASCII, size 100]    $$$  File:sample1.acn, line:4, Acn property 'size' cannot be applied to REAL types
+--TCLFC     MyPDU[encoding ASCII, size 100]    $$$  sample1.acn:4:6: error: Acn property 'size' cannot be applied to REAL types

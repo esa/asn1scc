@@ -36,10 +36,6 @@ END
 --TCLS     MyPDU[]  ChoiceSelector[]  ChoiceType[]
 --TCLS     MyPDU[] {a[], b[]}   ChoiceSelector[]  ChoiceType[]
 
---TCFC     MyPDU[] {a[], b<a>[]}   ChoiceSelector[]  ChoiceType<ChoiceSelector:sel>[determinant sel] $$$ Asn.1 compiler error is: File:sample1.asn1, line:4, ASN.1 fields cannot act as encoding determinants. Remove field 'a' from the ASN.1 grammar and introduce it in the ACN grammar
+--TCFC     MyPDU[] {a[], b<a>[]}   ChoiceSelector[]  ChoiceType<ChoiceSelector:sel>[determinant sel] $$$ sample1.asn1:4:1: error: ASN.1 fields cannot act as encoding determinants. Remove field 'a' from the ASN.1 grammar and introduce it in the ACN grammar
 
 --TCLS     MyPDU[] {a[], inserted ChoiceSelector[], b<inserted>[]}   ChoiceSelector[]  ChoiceType<ChoiceSelector:sel>[determinant sel]
-
-
-
-

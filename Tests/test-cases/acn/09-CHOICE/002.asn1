@@ -23,7 +23,6 @@ TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
 
 END
 
---TCLFC     MyPDU[determinant tt]       $$$ File:sample1.acn, line:4, invalid reference 'tt'
+--TCLFC     MyPDU[determinant tt]       $$$ sample1.acn:4:19: error: invalid reference 'tt'
 --TCLS     MyPDU[]
---TCLFC     MyPDU[determinant ]       $$$ File sample1.acn, line 4:19 no viable alternative at input ']'
-
+--TCLFC     MyPDU[determinant ]       $$$ sample1.acn:4:19: error: no viable alternative at input ']'

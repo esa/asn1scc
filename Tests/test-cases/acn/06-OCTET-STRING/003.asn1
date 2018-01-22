@@ -8,5 +8,5 @@ END
 
 
 --TCLS     MyPDU[]
---TCLS    MyPDU[size 7]               
---TCLFC    MyPDU[size 20]               $$$ File:sample1.acn, line:4, size property value should be set to 7
+--TCLS    MyPDU[size 7]
+--TCLFC    MyPDU[size 20]               $$$ sample1.acn:4:12: error: size property value should be set to 7

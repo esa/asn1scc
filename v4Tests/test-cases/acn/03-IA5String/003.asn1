@@ -13,4 +13,4 @@ END
 --TCLS     MyPDU[] { a1[], a2[]}
 -- TCLS     MyPDU[] { a1[], a2[size null-terminated]}
 --TCLS    MyPDU[] { a1[], a2[size 20]}               
---TCLFC    MyPDU[] { a1[], a2[size 25]}               $$$ File:sample1.acn, line:4, The size property must either be ommited or have the fixed value 20
+--TCLFC    MyPDU[] { a1[], a2[size 25]}               $$$ sample1.acn:4:19: error: The size property must either be ommited or have the fixed value 20
