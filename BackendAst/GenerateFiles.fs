@@ -167,20 +167,23 @@ let private printUnit (r:DAst.AstRoot) (l:ProgrammingLanguage) (encodings: Commo
 
 
     // test cases header file
-    let typeDefs = 
-        seq {
-            for tas in tases do
-                if r.args.encodings |> Seq.exists ((=) CommonTypes.UPER) then
-                    yield (tas.Type.uperEncDecTestFunc |> Option.map (fun z -> z.funcDef))
-                if r.args.encodings |> Seq.exists ((=) CommonTypes.ACN) then
-                    yield (tas.Type.acnEncDecTestFunc |> Option.map (fun z -> z.funcDef))
-            } |> Seq.choose id |> Seq.toList
-    let tetscase_specFileName = Path.Combine(outDir, pu.tetscase_specFileName)
-    let tstCasesHdrContent =
-        match l with
-        | C     -> test_cases_c.PrintAutomaticTestCasesHeaderFile (ToC pu.tetscase_specFileName) pu.name typeDefs
-        | Ada   -> test_cases_a.PrintCodecsFile_spec pu.name pu.importedProgramUnits typeDefs
-    File.WriteAllText(tetscase_specFileName, tstCasesHdrContent.Replace("\r",""))
+    match r.args.generateAutomaticTestCases with
+    | false -> ()
+    | true  -> 
+        let typeDefs = 
+            seq {
+                for tas in tases do
+                    if r.args.encodings |> Seq.exists ((=) CommonTypes.UPER) then
+                        yield (tas.Type.uperEncDecTestFunc |> Option.map (fun z -> z.funcDef))
+                    if r.args.encodings |> Seq.exists ((=) CommonTypes.ACN) then
+                        yield (tas.Type.acnEncDecTestFunc |> Option.map (fun z -> z.funcDef))
+                } |> Seq.choose id |> Seq.toList
+        let tetscase_specFileName = Path.Combine(outDir, pu.tetscase_specFileName)
+        let tstCasesHdrContent =
+            match l with
+            | C     -> test_cases_c.PrintAutomaticTestCasesHeaderFile (ToC pu.tetscase_specFileName) pu.name typeDefs
+            | Ada   -> test_cases_a.PrintCodecsFile_spec pu.name pu.importedProgramUnits typeDefs
+        File.WriteAllText(tetscase_specFileName, tstCasesHdrContent.Replace("\r",""))
         
     //sourse file
     let arrsTypeAssignments = 
@@ -226,22 +229,26 @@ let private printUnit (r:DAst.AstRoot) (l:ProgrammingLanguage) (encodings: Commo
     File.WriteAllText(fileName, eqContntent.Replace("\r",""))
 
     //test cases sourse file
-    let encDecFuncs = 
-        seq {
-            for tas in tases do
+    match r.args.generateAutomaticTestCases with
+    | false -> ()
+    | true  -> 
+        let encDecFuncs = 
+            seq {
+                for tas in tases do
                 
-                if r.args.encodings |> Seq.exists ((=) CommonTypes.UPER) then
-                    yield (tas.Type.uperEncDecTestFunc |> Option.map (fun z -> z.func))
-                if r.args.encodings |> Seq.exists ((=) CommonTypes.ACN) then
-                    yield (tas.Type.acnEncDecTestFunc |> Option.map (fun z -> z.func))
-            } |> Seq.choose id |> Seq.toList
+                    if r.args.encodings |> Seq.exists ((=) CommonTypes.UPER) then
+                        yield (tas.Type.uperEncDecTestFunc |> Option.map (fun z -> z.func))
+                    if r.args.encodings |> Seq.exists ((=) CommonTypes.ACN) then
+                        yield (tas.Type.acnEncDecTestFunc |> Option.map (fun z -> z.func))
+                } |> Seq.choose id |> Seq.toList
 
-    let tetscase_SrcFileName = Path.Combine(outDir, pu.tetscase_bodyFileName)
-    let tstCasesHdrContent =
-        match l with
-        | C     -> test_cases_c.PrintAutomaticTestCasesSourceFile pu.tetscase_specFileName pu.importedProgramUnits encDecFuncs
-        | Ada   -> test_cases_a.PrintCodecsFile_body pu.name pu.importedProgramUnits [] encDecFuncs
-    File.WriteAllText(tetscase_SrcFileName, tstCasesHdrContent.Replace("\r",""))
+        let tetscase_SrcFileName = Path.Combine(outDir, pu.tetscase_bodyFileName)
+    
+        let tstCasesHdrContent =
+            match l with
+            | C     -> test_cases_c.PrintAutomaticTestCasesSourceFile pu.tetscase_specFileName pu.importedProgramUnits encDecFuncs
+            | Ada   -> test_cases_a.PrintCodecsFile_body pu.name pu.importedProgramUnits [] encDecFuncs
+        File.WriteAllText(tetscase_SrcFileName, tstCasesHdrContent.Replace("\r",""))
 
 let TestSuiteFileName = "testsuite"
 
@@ -410,17 +417,20 @@ let generateAll outDir (r:DAst.AstRoot) (encodings: CommonTypes.Asn1Encoding lis
     r.programUnits |> Seq.iter (printUnit r r.lang encodings outDir)
     //print extra such make files etc
     //print_debug.DoWork r outDir "debug.txt"
-    CreateMakeFile r r.lang outDir
-    match r.lang with
-    | C    -> 
-        CreateCMainFile r  ProgrammingLanguage.C outDir
-        CreateTestSuiteFile r ProgrammingLanguage.C outDir "ALL"
-        generateVisualStudtioProject r outDir
-    | Ada  -> 
-        //CreateAdaMain r false outDir
-        CreateTestSuiteFile r ProgrammingLanguage.Ada outDir "ALL"
+    match r.args.generateAutomaticTestCases with
+    | false -> ()
+    | true  -> 
+        CreateMakeFile r r.lang outDir
+        match r.lang with
+        | C    -> 
+            CreateCMainFile r  ProgrammingLanguage.C outDir
+            CreateTestSuiteFile r ProgrammingLanguage.C outDir "ALL"
+            generateVisualStudtioProject r outDir
+        | Ada  -> 
+            //CreateAdaMain r false outDir
+            CreateTestSuiteFile r ProgrammingLanguage.Ada outDir "ALL"
 
-        CreateAdaIndexFile r false outDir
+            CreateAdaIndexFile r false outDir
 
 
 

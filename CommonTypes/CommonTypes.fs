@@ -63,6 +63,7 @@ type CommandLineSettings = {
     acnFiles  : string list
     encodings: Asn1Encoding list
     GenerateEqualFunctions : bool
+    generateAutomaticTestCases : bool
     TypePrefix:string
     CheckWithOss:bool
     AstXmlAbsFileName:string
@@ -71,6 +72,7 @@ type CommandLineSettings = {
     mappingFunctionsModule : string option
     integerSizeInBytes : int            //currently only the value of 8 bytes (64 bits) is supported
     renamePolicy :  EnumRenamePolicy
+    
 }
 with 
   member this.SIntMax =

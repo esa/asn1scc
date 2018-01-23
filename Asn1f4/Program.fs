@@ -125,6 +125,7 @@ let constructCommandLineSettings args (parserResults: ParseResults<CliArguments>
                 | _       -> None )
 
         GenerateEqualFunctions = parserResults.Contains<@ Equal_Func @> || parserResults.Contains<@ Auto_test_cases @>
+        generateAutomaticTestCases = parserResults.Contains<@ Auto_test_cases @>
         TypePrefix = parserResults.GetResult(<@ Type_Prefix@>, defaultValue = "")
         CheckWithOss = false
         AstXmlAbsFileName = parserResults.GetResult(<@Xml_Ast@>, defaultValue = "")
