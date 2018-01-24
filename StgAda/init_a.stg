@@ -12,6 +12,24 @@ initIA5String(sPtr, sValue, arrsNullChars) ::= "<sPtr> := \"<sValue>\"<if(arrsNu
 initEnumerated(sVal, sValue) ::= "<sVal> := <sValue>;"
 initNull(sVal)    ::= "<sVal> := 0;"
 
+initTestCaseIA5String(p, sAcc, nSize, i, sTasName, bAlpha, arrnAlphabetAsciiCodes, nAlphabetLength) ::= <<
+<i> := 1;
+while <i>\<= <nSize> loop
+    pragma Loop_Invariant (<i> >=1 and <i>\<=<nSize>);
+    <if(bAlpha)>
+    <p>(<i>) := <sTasName>_alpha_set( ((<i>-1) mod <sTasName>_alpha_set'Last) + 1 );
+
+    <else>
+    <p>(<i>) := Character'Val( if <i>-1 = 0 then 65 else (<i>-1) mod 128);
+
+    <endif>
+
+    <i> := <i> + 1;
+end loop;
+<p>(<nSize> + 1) := <rtlModuleName()>.NUL;
+>>
+
+
 
 /* BIT AND OCTET STRINGS */
 initFixSizeBitOrOctString_bytei(p, sAcc, sI, sByteHexVal) ::= "<p><sAcc>Data(<sI>) := 16#<sByteHexVal>#;"
@@ -21,6 +39,26 @@ initFixSizeBitOrOctString(p, sAcc,arrsBytes) ::= <<
 initFixVarSizeBitOrOctString(p, sAcc, nSize, arrsBytes) ::= <<
 <p><sAcc>Length := <nSize>;
 <arrsBytes; separator="\n">
+>>
+
+initTestCaseOctetString(p, sAcc, nSize, i, bIsFixedSize) ::= <<
+<i> := 1;
+while <i>\<= <nSize> loop
+    pragma Loop_Invariant (<i> >=1 and <i>\<=<nSize>);
+    <p><sAcc>Data(<i>) := <rtlModuleName()>.Asn1Byte((<i>-1) mod 256);
+    <i> := <i> + 1;
+end loop;
+<if(!bIsFixedSize)><p><sAcc>Length := <nSize>;<endif>
+>>
+
+initTestCaseBitString(p, sAcc, nSize, nSizeCeiled, i, bIsFixedSize) ::= <<
+<i> := 1;
+while <i>\<= <nSize> loop
+    pragma Loop_Invariant (<i> >=1 and <i>\<=<nSize>);
+    <p><sAcc>Data(<i>) := <rtlModuleName()>.BIT((<i>-1) mod 2);
+    <i> := <i> + 1;
+end loop;
+<if(!bIsFixedSize)><p><sAcc>Length := <nSize>;<endif>
 >>
 
 
@@ -40,6 +78,25 @@ initVarSizeSequenceOf(p, sAcc, nSize, arrsInnerValues) ::= <<
 <arrsInnerValues; separator="\n">        
 >>
 
+initTestCaseSizeSequenceOf_innerItem(bFirst, bLastItem, nCaseIdx, sChildCaseInit, i, nCaseLen) ::= <<
+<if(!bLastItem)><if(bFirst)>if<else>elsif<endif> (<i>-1) mod <nCaseLen> = <nCaseIdx>  then<else>else<endif>
+    <sChildCaseInit>
+>>
+
+initTestCaseSizeSequenceOf(p, sAcc, nSize, bIsFixedSize, arrsInnerItems, bMultiCases, i) ::= <<
+<i> := 1;
+while <i>\<= <nSize> loop
+    pragma Loop_Invariant (<i> >=1 and <i>\<=<nSize>);
+    <arrsInnerItems; separator="\n">
+    <if(bMultiCases)>       
+    end if;
+
+    <endif>
+    <i> := <i> + 1;
+end loop;
+<if(!bIsFixedSize)><p><sAcc>Length := <nSize>;<endif>
+>>
+
 /*SEQUENCE*/
 
 initSequence_optionalChild(p, sAcc, sChName, sPresentFlag, sChildContent) ::=<<
@@ -50,6 +107,17 @@ initSequence_optionalChild(p, sAcc, sChName, sPresentFlag, sChildContent) ::=<<
 initSequence(arrsInnerValues) ::= <<
 <arrsInnerValues; separator="\n">        
 >>
+
+
+initTestCase_sequence_child(p, sAcc, sChName, sChildContent, bOptional) ::= <<
+--set <sChName> 
+<if(bOptional)><p><sAcc>exist.<sChName> := 1;<endif>
+<sChildContent>
+>>
+initTestCase_sequence_child_opt(p, sAcc, sChName) ::= <<
+<p><sAcc>exist.<sChName> := 0;
+>>
+
 
 initChoice(p1, sAccess, sChildContent, sChildKind, sChildTempVarName, sChildTypeName, sChoiceTypeName, sChildName) ::= <<
 declare

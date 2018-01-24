@@ -21,16 +21,52 @@ initIA5String(sPtr, sValue, arrsNullChars) ::= "strcpy(<sPtr>,\"<sValue>\");"
 initEnumerated(sVal, sValue) ::= "<sVal> = <sValue>;"
 initNull(sVal)    ::= "<sVal> = 0;"
 
+initTestCaseIA5String(p, sAcc, nSize, i, sTasName, bAlpha, arrnAlphabetAsciiCodes, nAlphabetLength) ::= <<
+<i> = 0;
+while (<i>\<= <nSize>) {
+    <if(bAlpha)>
+    static byte allowedCharSet[] = {<arrnAlphabetAsciiCodes:{ch|0x<ch;format="X2">}; wrap, anchor, separator=",">}; 
+
+    <p>[<i>] = allowedCharSet[<i> % <nAlphabetLength>];
+
+    <else>
+    <p>[<i>] = (char)(<i> == 0 ? 'A' : <i> % 128);
+
+    <endif>
+    <i> = <i> + 1;
+}
+<p>[<nSize> + 1] := 0x0;
+>>
 
 /* BIT AND OCTET STRINGS */
 initFixSizeBitOrOctString_bytei(p, sAcc, sI, sByteHexVal) ::= "<p><sAcc>arr[<sI>] = 0x<sByteHexVal>;"
 initFixSizeBitOrOctString(p, sAcc,arrsBytes) ::= <<
 <arrsBytes; separator="\n">
 >>
+
 initFixVarSizeBitOrOctString(p, sAcc, nSize, arrsBytes) ::= <<
 <p><sAcc>nCount = <nSize>;
 <arrsBytes; separator="\n">
 >>
+
+initTestCaseOctetString(p, sAcc, nSize, i, bIsFixedSize) ::= <<
+<i> = 0;
+while (<i>\<= <nSize>) {
+    <p><sAcc>arr[<i>] = (byte)(i%256);
+    <i> = <i> + 1;
+}
+<if(!bIsFixedSize)><p><sAcc>nCount = <nSize>;<endif>
+>>
+
+initTestCaseBitString(p, sAcc, nSize, nSizeCeiled,  i, bIsFixedSize) ::= <<
+<i> = 0;
+while (<i>\<= <nSizeCeiled>) {
+    <p><sAcc>arr[<i>] = 0x55; /* --> 0101 0101 as in Ada*/
+    <i> = <i> + 8;
+}
+<if(!bIsFixedSize)><p><sAcc>nCount = <nSize>;<endif>
+>>
+
 
 
 /*SEQUENCE OF */
@@ -49,6 +85,22 @@ initVarSizeSequenceOf(p, sAcc, nSize, arrsInnerValues) ::= <<
 <arrsInnerValues; separator="\n">        
 >>
 
+
+initTestCaseSizeSequenceOf_innerItem(bFirst, bLastItem, nCaseIdx, sChildCaseInit, i, nCaseLen) ::= <<
+<if(!bLastItem)><if(bFirst)>if<else>else if<endif> <i> % <nCaseLen> == <nCaseIdx>  {<else>else {<endif>
+    <sChildCaseInit>
+}>>
+
+initTestCaseSizeSequenceOf(p, sAcc, nSize, bIsFixedSize, arrsInnerItems, bMultiCases, i) ::= <<
+<i> = 0;
+while (<i>\<= <nSize>) {
+    <arrsInnerItems; separator="\n">
+    <i> = <i> + 1;
+}
+<if(!bIsFixedSize)><p><sAcc>nCount = <nSize>;<endif>
+>>
+
+
 /*SEQUENCE*/
 
 initSequence_optionalChild(p, sAcc, sChName, sPresentFlag, sChildContent) ::=<<
@@ -59,6 +111,17 @@ initSequence_optionalChild(p, sAcc, sChName, sPresentFlag, sChildContent) ::=<<
 initSequence(arrsInnerValues) ::= <<
 <arrsInnerValues; separator="\n">        
 >>
+
+initTestCase_sequence_child(p, sAcc, sChName, sChildContent, bOptional) ::= <<
+/*set <sChName> */
+<if(bOptional)><p><sAcc>exist.<sChName> = 1;<endif>
+<sChildContent>
+>>
+initTestCase_sequence_child_opt(p, sAcc, sChName) ::= <<
+<p><sAcc>exist.<sChName> = 0;
+>>
+
+
 
 initChoice(p1, sAccess, sChildContent, sChildKind) ::= <<
 <p1><sAccess>kind = <sChildKind>;

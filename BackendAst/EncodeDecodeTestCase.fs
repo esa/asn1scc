@@ -295,6 +295,12 @@ let EnumeratedAutomaticTestCaseValues (r:Asn1AcnAst.AstRoot)  (t:Asn1AcnAst.Asn1
     match o.AllCons with
     | [] -> allItems
     | _  -> allItems |> List.filter (isValidValueGeneric o.AllCons (=))
+
+let EnumeratedAutomaticTestCaseValues2 (r:Asn1AcnAst.AstRoot)  (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Enumerated) =
+    let allItems = o.items 
+    match o.AllCons with
+    | [] -> allItems
+    | _  -> allItems |> List.filter (isValidValueGeneric o.AllCons (fun a b -> a = b.Name.Value))
     
 let BooleanAutomaticTestCaseValues (r:Asn1AcnAst.AstRoot)  (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Boolean) =
     let allItems = [true; false]

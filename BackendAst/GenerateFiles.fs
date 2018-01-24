@@ -301,6 +301,7 @@ let private CreateAdaMain (r:AstRoot) bGenTestCases outDir =
 let CreateTestSuiteFile (r:AstRoot) (l:ProgrammingLanguage) outDir vasName =
     let generate_dat_file  = match l with C -> test_cases_c.PrintSuite_call_codec_generate_dat_file | Ada -> test_cases_a.PrintMain_call_codec_generate_dat_file
     let call_codec =         match l with C -> test_cases_c.PrintSuite_call_codec                   | Ada -> test_cases_a.PrintMain_call_codec
+    let call_codec2 =         match l with C -> test_cases_c.PrintSuite_call_codec2                   | Ada -> test_cases_a.PrintMain_call_codec2
 
     let GetEncodingString = function    
         | UPER  -> match l with C -> "" | Ada -> "UPER_"
@@ -312,38 +313,39 @@ let CreateTestSuiteFile (r:AstRoot) (l:ProgrammingLanguage) outDir vasName =
         match l with
         | C     -> r.programUnits |> Seq.map(fun x -> x.tetscase_specFileName)
         | Ada   -> r.programUnits |> Seq.collect(fun x -> [x.name; x.tetscase_name])
+
+
+    let rec gAmber (t:Asn1Type) = 
+        match t.Kind with
+        | Integer      _ -> ""  , "&"
+        | Real         _ -> ""  , "&"
+        | IA5String    _ -> ""  , ""
+        | OctetString  _ -> "&" , "&"
+        | NullType     _ -> ""  , "&"
+        | BitString    _ -> "&" , "&"
+        | Boolean      _ -> ""  , "&"
+        | Enumerated   _ -> ""  , "&"
+        | SequenceOf   _ -> "&" , "&"
+        | Sequence     _ -> "&" , "&"
+        | Choice       _ -> "&" , "&"
+        | ReferenceType r -> gAmber r.resolvedType
+
+    let GetDatFile (v:ValueAssignment) modName sTasName encAmper (enc:Asn1Encoding) = 
+        let bGenerateDatFile = (r.args.CheckWithOss && v.Name.Value = "testPDU")
+        match bGenerateDatFile, enc with
+        | false,_     -> ""
+        | true, ACN   -> ""
+        | true, XER   -> generate_dat_file modName sTasName encAmper (GetEncodingString enc) "Byte"
+        | true, BER   -> generate_dat_file modName sTasName encAmper (GetEncodingString enc) "Byte"
+        | true, uPER  -> generate_dat_file modName sTasName encAmper (GetEncodingString enc) "Bit"
+
     let PrintTestCase (v:ValueAssignment) (m:Asn1Module) (sTasName : string)  (idx :int) initFuncName (uperEncDecTestFunc  : EncodeDecodeTestFunc option) (acnEncDecTestFunc   : EncodeDecodeTestFunc option) =
         let modName = ToC m.Name.Value
-        let rec gAmber (t:Asn1Type) = 
-            match t.Kind with
-            | Integer      _ -> ""  , "&"
-            | Real         _ -> ""  , "&"
-            | IA5String    _ -> ""  , ""
-            | OctetString  _ -> "&" , "&"
-            | NullType     _ -> ""  , "&"
-            | BitString    _ -> "&" , "&"
-            | Boolean      _ -> ""  , "&"
-            | Enumerated   _ -> ""  , "&"
-            | SequenceOf   _ -> "&" , "&"
-            | Sequence     _ -> "&" , "&"
-            | Choice       _ -> "&" , "&"
-            | ReferenceType r -> gAmber r.resolvedType
-
         let encAmper, initAmper = gAmber v.Type
-        //let packageName = ToC m.Name.Value
         let sValue = DAstVariables.printValue r l  v.Type None v.Value.kind
         let sTestCaseIndex = idx.ToString()
-
-        let GetDatFile (enc:Asn1Encoding) = 
-            let bGenerateDatFile = (r.args.CheckWithOss && v.Name.Value = "testPDU")
-            match bGenerateDatFile, enc with
-            | false,_     -> ""
-            | true, ACN   -> ""
-            | true, XER   -> generate_dat_file modName sTasName encAmper (GetEncodingString enc) "Byte"
-            | true, BER   -> generate_dat_file modName sTasName encAmper (GetEncodingString enc) "Byte"
-            | true, uPER  -> generate_dat_file modName sTasName encAmper (GetEncodingString enc) "Bit"
-
         let bStatic = match v.Type.ActualType.Kind with Integer _ | Enumerated(_) -> false | _ -> true
+        let GetDatFile = GetDatFile v modName sTasName encAmper
          
         r.args.encodings |> Seq.map(fun e -> 
                                         match e with
@@ -358,7 +360,27 @@ let CreateTestSuiteFile (r:AstRoot) (l:ProgrammingLanguage) outDir vasName =
                                         | Asn1Encoding.XER   -> call_codec modName sTasName encAmper (GetEncodingString e) sValue sTestCaseIndex (ToC v.Name.Value) bStatic (GetDatFile e) initFuncName initAmper
                                         | Asn1Encoding.BER   -> call_codec modName sTasName encAmper (GetEncodingString e) sValue sTestCaseIndex (ToC v.Name.Value) bStatic (GetDatFile e) initFuncName initAmper
                                  ) |> Seq.StrJoin "\n\n"
-        
+    
+    let PrintTestCase2 (initStatement:String) (m:Asn1Module) (t:Asn1Type) (sTasName : string)  (idx :int) initFuncName (uperEncDecTestFunc  : EncodeDecodeTestFunc option) (acnEncDecTestFunc   : EncodeDecodeTestFunc option) =
+        let modName = ToC m.Name.Value
+        let encAmper, initAmper = gAmber t
+        let sTestCaseIndex = idx.ToString()
+        let bStatic = match t.ActualType.Kind with Integer _ | Enumerated(_) -> false | _ -> true
+        let GetDatFile = ""
+         
+        r.args.encodings |> Seq.map(fun e -> 
+                                        match e with
+                                        | Asn1Encoding.UPER  -> 
+                                            match uperEncDecTestFunc with
+                                            | Some _    -> call_codec2 modName sTasName encAmper (GetEncodingString e) initStatement sTestCaseIndex sTestCaseIndex bStatic "" initFuncName initAmper
+                                            | None      -> ""
+                                        | Asn1Encoding.ACN   -> 
+                                            match acnEncDecTestFunc with
+                                            | Some _    -> call_codec2 modName sTasName encAmper (GetEncodingString e) initStatement sTestCaseIndex sTestCaseIndex bStatic "" initFuncName initAmper
+                                            | _         -> ""
+                                        | Asn1Encoding.XER   -> call_codec2 modName sTasName encAmper (GetEncodingString e) initStatement sTestCaseIndex sTestCaseIndex bStatic "" initFuncName initAmper
+                                        | Asn1Encoding.BER   -> call_codec2 modName sTasName encAmper (GetEncodingString e) initStatement sTestCaseIndex sTestCaseIndex bStatic "" initFuncName initAmper
+                                 ) |> Seq.StrJoin "\n\n"
     let mutable idx = 0;
     let funcs = 
         seq {
@@ -380,7 +402,14 @@ let CreateTestSuiteFile (r:AstRoot) (l:ProgrammingLanguage) outDir vasName =
                                 idx <- idx + 1
                                 let initFuncName = t.Type.initFunction.initFuncName
                                 yield PrintTestCase vas m (ToC2(r.args.TypePrefix + t.Name.Value) ) idx initFuncName t.Type.uperEncDecTestFunc t.Type.acnEncDecTestFunc
-                            
+//                            for func in t.Type.initFunction.initFuncBodyTestCases  do
+//                                //let vas = {ValueAssignment.Name = StringLoc.ByValue ""; c_name = ""; ada_name = ""; Type = t.Type; Value = v}
+//                                let p = {CallerScope.modName = ToC m.Name.Value; arg = VALUE "tc_data"}
+//                                let initStatement = func p
+//                                idx <- idx + 1
+//                                let initFuncName = t.Type.initFunction.initFuncName
+//                                yield PrintTestCase2 initStatement m t.Type (ToC2(r.args.TypePrefix + t.Name.Value) ) idx initFuncName t.Type.uperEncDecTestFunc t.Type.acnEncDecTestFunc
+                                
         }  |> Seq.toList
 
     match l with

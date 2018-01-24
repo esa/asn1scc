@@ -265,6 +265,53 @@ PrintSuite_call_codec(sModName, sTasName, sAmber, sEnc, sValue, sValueAsAsn1, sV
 >>
 
 
+PrintSuite_call_codec2(sModName, sTasName, sAmber, sEnc, sInitializeTcData, sValueAsAsn1, sVasName, bStatic, sGenerateDatFile, soInitFunction, sInitAmber) ::= <<
+{
+    output->report_case_begin("<sTasName>_<sEnc>enc_dec");
+    <if(soInitFunction)>
+    {
+        // dummy statement used for calling init functions
+        <if(bStatic)>static <endif><sTasName> tmp0;
+        <soInitFunction>(<sInitAmber>tmp0);
+    }
+
+    <endif>
+    <if(bStatic)>static <endif><sTasName> tc_data;
+        <sInitializeTcData>;
+        result = <sTasName>_<sEnc>enc_dec(<sAmber>tc_data, &errCode);
+        if (!result) {
+           output->report_failure_begin();
+
+           switch(errCode)
+           {
+           case 1:
+                output->report_failure_message("Test case <sVasName> failed in encoding.");
+                break;
+           case 2:
+                output->report_failure_message("Test case '<sVasName>' failed in decoding.");
+                break;
+           case 3:
+                output->report_failure_message("Test case '<sVasName>' failed in the validation of the decoded message.");
+                break;
+           case 4:
+                output->report_failure_message("Test case '<sVasName>' failed. Encoded and decoded messages are different.");
+                break;
+           default:
+                output->report_failure_message("Unexpected error code in test case '<sVasName>'.");
+           }
+           output->report_failure_message("Test case index was <sValueAsAsn1>");
+           output->report_failure_message("========================================");
+           totalErrors = totalErrors + 1;
+
+           output->report_failure_end();
+        }
+    <sGenerateDatFile>
+
+    output->report_case_end();
+}
+>>
+
+
 PrintSuite_call_codec_generate_dat_file(sModName, sTasName, sAmber, sEnc, sStreamName) ::= <<
 	if (result) {
 		static byte encBuff[<sTasName>_REQUIRED_BYTES_FOR_<sEnc>ENCODING + 1]; /* +1 for zerosized types */

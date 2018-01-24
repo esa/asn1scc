@@ -188,6 +188,7 @@ type InitFunction = {
     initFunc                : string option               // the body of the function
     initFuncDef             : string option               // function definition in header file
     initFuncBody            : CallerScope  -> Asn1ValueKind -> string                      // returns the statement(s) that initialize this type
+    initFuncBodyTestCases    : (CallerScope  -> string) list                      // returns the statement(s) that initialize this type
 }
 
 

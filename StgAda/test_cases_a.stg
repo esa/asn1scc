@@ -168,6 +168,36 @@ END IF;
 
 >>
 
+
+PrintMain_call_codec2(sModName, sTasName, sAmber, sEnc, sInitializeTcData, sValueAsAsn1, sVasName, bStatic, sGenerateDatFile, soInitFunction, sInitAmber) ::= <<
+declare
+    tc_data : <sModName>.<sTasName>;
+begin
+    <sInitializeTcData>
+    result := <sModName>_auto_tcs.<sTasName>_<sEnc>enc_dec(tc_data);
+    IF NOT result.Success THEN
+        CASE result.Step IS
+            WHEN <rtlModuleName()>.TC_VALIDATE =>
+                Put_Line ("Test case '<sVasName>' failed in validation"); 
+            WHEN <rtlModuleName()>.TC_ENCODE =>
+                Put_Line ("Test case '<sVasName>' failed in encoding");
+            WHEN <rtlModuleName()>.TC_DECODE =>
+                Put_Line ("Test case '<sVasName>' failed in decoding");
+            WHEN <rtlModuleName()>.TC_VALIDATE_DECODED =>
+                Put_Line ("Test case '<sVasName>' failed in the validation of the decoded message");
+            WHEN <rtlModuleName()>.TC_EQUAL =>
+                Put_Line ("Test case '<sVasName>' failed. Encoded and decoded messages are different");
+        END CASE;
+        Put_Line ("Test Value was <sValueAsAsn1>");
+        Put_Line ("========================================");
+        totalErrors := totalErrors + 1;
+    END IF;
+    <sGenerateDatFile>
+end;
+>>
+
+
+
 PrintMain_call_codec_generate_dat_file(sModName, sTasName, sAmber, sEnc, sStreamName) ::= <<
 IF result.Success THEN
     DECLARE
