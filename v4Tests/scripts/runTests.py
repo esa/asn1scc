@@ -295,7 +295,7 @@ knownIssues = {
 }
 
 
-def submain(lang, encoding, testCaseSet):
+def submain(lang, encoding, testCaseSet, cntTest):
     global language, targetDir
 
     language = lang
@@ -305,14 +305,17 @@ def submain(lang, encoding, testCaseSet):
     if os.path.exists(tmpDir):
         shutil.rmtree(tmpDir)
     os.mkdir(tmpDir)
-
-    if testCaseSet == "":
+    
+    testCaseStart = testCaseSet
+    if testCaseSet == "" or cntTest:
         testCaseSet = rootDir + os.sep + "test-cases" + os.sep + "acn"
 
     funcName = "DoWork_" + encoding
     if os.path.isfile(testCaseSet):
         globals()[funcName](os.path.abspath(testCaseSet))
     else:
+        #relAsn1Path = "test-cases" + os.sep + "acn" + os.sep + asn1file
+        #print ("testCaseStart is :" + testCaseStart)
         for curDir in sorted(os.listdir(testCaseSet)):
             if curDir.find('.svn') != -1:
                 continue
@@ -321,9 +324,13 @@ def submain(lang, encoding, testCaseSet):
                 for x in sorted(os.listdir(testCaseSet + os.sep + curDir))
                 if x.endswith(".asn1")]
             for asn1file in asn1files:
-                globals()[funcName](
-                    os.path.abspath(
-                        testCaseSet + os.sep + curDir + os.sep + asn1file))
+                relAsn1Path = "test-cases" + os.sep + "acn" + os.sep + curDir + os.sep + asn1file
+                if cntTest and testCaseStart != "" and relAsn1Path < testCaseStart:
+                    print ("skiping test case :" + relAsn1Path)
+                else:
+                    globals()[funcName](
+                        os.path.abspath(
+                            testCaseSet + os.sep + curDir + os.sep + asn1file))
 
 
 def usage():
@@ -350,7 +357,7 @@ def main():
     try:
         args = sys.argv[1:]
         optlist, args = getopt.gnu_getopt(
-            args, "al:t:", ['all', 'lang=', 'testCaseSet='])
+            args, "al:t:c", ['all', 'lang=', 'testCaseSet=','cntTest'])
     except:
         usage()
     if args != []:
@@ -360,6 +367,7 @@ def main():
     lang = ""
     testCaseSet = ""
     bAll = False
+    cntTest = False
     for opt, arg in optlist:
         if opt in ("-a", "--all"):
             bAll = True
@@ -367,12 +375,14 @@ def main():
             lang = arg
         elif opt in ("-t", "--testCase"):
             testCaseSet = arg
+        elif opt in ("-c", "--cntTest"):
+            cntTest = True
     if bAll:
         f = open(language+"_log.txt", 'a')
         f.write("==========================================\n")
         f.close()
-        submain("c", "ACN", "")
-        submain("Ada", "ACN", "")
+        submain("c", "ACN", "", cntTest)
+        submain("Ada", "ACN", "", cntTest)
     else:
         if lang not in ["c", "Ada"]:
             print("Invalid language argument")
@@ -387,7 +397,7 @@ def main():
         #f = open(language+"_log.txt", 'a')
         #f.write("==========================================\n")
         #f.close()
-        submain(lang, "ACN", testCaseSet)
+        submain(lang, "ACN", testCaseSet, cntTest)
     print("Test run ended succesfully. Number of test cases run :", nTests)
 
 

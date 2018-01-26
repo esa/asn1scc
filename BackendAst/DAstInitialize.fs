@@ -87,7 +87,7 @@ let createIA5StringInitFunc (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:As
         let bAlpha = o.uperCharSet.Length < 128
         let arrAsciiCodes = o.uperCharSet |> Array.map(fun x -> BigInteger (System.Convert.ToInt32 x))
         let seqOfCase (nSize:int) (p:CallerScope) = 
-            initTestCaseIA5String p.arg.p (p.arg.getAcces l) (BigInteger nSize) i (typeDefinition.longTypedefName l) bAlpha arrAsciiCodes (BigInteger arrAsciiCodes.Length)
+            initTestCaseIA5String p.arg.p (p.arg.getAcces l) (BigInteger nSize) (BigInteger (o.maxSize+1)) i (typeDefinition.longTypedefName l) bAlpha arrAsciiCodes (BigInteger arrAsciiCodes.Length)
         seq {
             match o.minSize = o.maxSize with
             | true  -> yield (fun p -> seqOfCase o.minSize p)
@@ -131,7 +131,7 @@ let createNullTypeInitFunc (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn
     let testCaseFuncs = [fun p -> initNull (p.arg.getValue l) ]
     createInitFunctionCommon r l t typeDefinition funcBody iv testCaseFuncs
 
-let createBitStringInitFunc (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1AcnAst.Asn1Type) (o :Asn1AcnAst.BitString   ) (typeDefinition:TypeDefintionOrReference) iv = 
+let createBitStringInitFunc (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1AcnAst.Asn1Type) (o :Asn1AcnAst.BitString   ) (typeDefinition:TypeDefintionOrReference) iv (isValidFunction:IsValidFunction option)= 
     let initFixSizeBitOrOctString_bytei = match l with C -> init_c.initFixSizeBitOrOctString_bytei  | Ada -> init_a.initFixSizeBitOrOctString_bytei
     let initFixSizeBitOrOctString       = match l with C -> init_c.initFixSizeBitOrOctString        | Ada -> init_a.initFixSizeBitOrOctString
     let initFixVarSizeBitOrOctString    = match l with C -> init_c.initFixVarSizeBitOrOctString     | Ada -> init_a.initFixVarSizeBitOrOctString
@@ -146,18 +146,38 @@ let createBitStringInitFunc (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:As
         match o.minSize = o.maxSize with
         | true  -> initFixSizeBitOrOctString p.arg.p (p.arg.getAcces l) arrsBytes
         | false -> initFixVarSizeBitOrOctString p.arg.p (p.arg.getAcces l) (BigInteger arrsBytes.Length) arrsBytes
+
+//    let signleValueConstraints =
+//        o.AllCons |> List.choose(fun c -> match c with Asn1AcnAst.SizeSingleValueConstraint (v,_) -> Some v | _ -> None) 
+//    let signleValueConstraints_names =
+//        o.AllCons |> List.choose(fun c -> match c with Asn1AcnAst.SizeSingleValueConstraint (_,a) -> Some a | _ -> None) |>
+//        List.iter (fun (a,b) -> printfn "refToValue=%s" (a.ModName.ToString()))
+    let anonymousValues =
+        match isValidFunction with
+        | None  -> []
+        | Some isV -> isV.anonymousVariables
+
     let testCaseFuncs =
-        let i = sprintf "i%d" (t.id.SeqeuenceOfLevel + 1)
-        let seqOfCase (nSize:int) (p:CallerScope) = 
-            let nSizeCeiled =  if nSize % 8 = 0 then nSize else (nSize + (8 - nSize % 8)) 
-            initTestCaseBitString p.arg.p (p.arg.getAcces l) nSize.AsBigInt (BigInteger nSizeCeiled) i (o.minSize = o.maxSize) 
-        seq {
-            match o.minSize = o.maxSize with
-            | true  -> yield (fun p -> seqOfCase o.minSize p)
-            | false -> 
-                yield (fun p -> seqOfCase o.minSize p)
-                yield (fun p -> seqOfCase o.maxSize p)
-        } |> Seq.toList
+        match anonymousValues with
+        | []  ->
+            let i = sprintf "i%d" (t.id.SeqeuenceOfLevel + 1)
+            let seqOfCase (nSize:int) (p:CallerScope) = 
+                let nSizeCeiled =  if nSize % 8 = 0 then nSize else (nSize + (8 - nSize % 8)) 
+                initTestCaseBitString p.arg.p (p.arg.getAcces l) nSize.AsBigInt (BigInteger nSizeCeiled) i (o.minSize = o.maxSize) 
+            seq {
+                match o.minSize = o.maxSize with
+                | true  -> yield (fun p -> seqOfCase o.minSize p)
+                | false -> 
+                    yield (fun p -> seqOfCase o.minSize p)
+                    yield (fun p -> seqOfCase o.maxSize p)
+            } |> Seq.toList
+        | _ ->
+            anonymousValues |> 
+            List.map(fun iv ->
+                let retFunc (p:CallerScope) =
+                    //let ret = funcBody p (BitStringValue iv.Value)
+                    sprintf "%s%s%s;" p.arg.p l.AssignOperator iv.valueName
+                retFunc)
     createInitFunctionCommon r l t typeDefinition funcBody iv testCaseFuncs
 
 let createBooleanInitFunc (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1AcnAst.Asn1Type) (o :Asn1AcnAst.Boolean     ) (typeDefinition:TypeDefintionOrReference) iv = 
@@ -274,34 +294,47 @@ let createSequenceInitFunc (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn
             List.filter(fun z -> match z.Type.Kind with NullType _ -> false | _ -> true) |>
             List.filter(fun z -> match z.Optionality with Some Asn1AcnAst.AlwaysAbsent -> false | _ -> true)
         
+
+        let optChildCount = 
+            children |> 
+            List.filter(fun c -> 
+                match c.Optionality with
+                | Some (Asn1AcnAst.Optional opt) when opt.acnPresentWhen.IsSome -> true
+                | _                                                             -> false
+            ) |> Seq.length 
+
+        let maxCasesPerChild = 
+            match asn1Children.Length with
+            | _ when asn1Children.Length <= 3 -> 5   //max 3^5 --> 125 cases
+            | _ when asn1Children.Length <= 6 -> 2   // max 2^6 = 128 cases
+            | _                               -> 1   
         let handleChild  (ch:Asn1Child)  = 
             let len = ch.Type.initFunction.initFuncBodyTestCases.Length
 
-            ch.Type.initFunction.initFuncBodyTestCases |> Seq.take (min 5 len) |> Seq.toList |>
+            ch.Type.initFunction.initFuncBodyTestCases |> 
+            Seq.take (min maxCasesPerChild len) |> Seq.toList |>
             List.collect(fun fnc -> 
                 let presentFunc (p:CallerScope) = 
                     let chContent =  fnc {p with arg = p.arg.getSeqChild l ch.c_name ch.Type.isIA5String} 
                     initTestCase_sequence_child p.arg.p (p.arg.getAcces l) ch.c_name chContent ch.Optionality.IsSome
                 let nonPresenceFunc (p:CallerScope) =  
                     initTestCase_sequence_child_opt p.arg.p (p.arg.getAcces l) ch.c_name
-                match ch.Optionality.IsSome with
-                | false ->[presentFunc]
-                | true  ->[presentFunc; nonPresenceFunc] )
+                match ch.Optionality with
+                | None                              ->  [presentFunc]
+                | Some (Asn1AcnAst.Optional opt) when optChildCount > 1 && opt.acnPresentWhen.IsSome ->
+                       [nonPresenceFunc] //if this component (x1) is optional with present-when conditions then no test case is generated for this component because we might generated wrong test cases 
+                | Some (Asn1AcnAst.Optional opt)    -> [presentFunc; nonPresenceFunc] 
+                | Some (Asn1AcnAst.AlwaysAbsent)    -> [nonPresenceFunc] 
+                | Some (Asn1AcnAst.AlwaysPresent)   -> [presentFunc] )
+
+
+
 
         let rec generateCases   (children : Asn1Child list) : (CallerScope -> string) list=
             match children with
             | []        -> []
             | x1::xs    -> 
                 // generate this component test cases (x1) and the rest and the join them.
-                // However, if this component (x1) is optional with present-when conditions then no test case
-                // is generated for this component because we might generated wrong test cases 
-                let optChildCount = 
-                    children |> 
-                    List.filter(fun c -> 
-                        match c.Optionality with
-                        | Some (Asn1AcnAst.Optional opt) when opt.acnPresentWhen.IsSome -> true
-                        | _                                                             -> false
-                    ) |> Seq.length 
                 let rest = generateCases  xs
                 let ret = 
                     let childCases  = 
@@ -319,11 +352,13 @@ let createSequenceInitFunc (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn
                             } |> Seq.toList
 
                     seq {
-                        match x1.Optionality with
-                        | Some (Asn1AcnAst.Optional opt) when optChildCount > 1 && opt.acnPresentWhen.IsSome  ->  
-                            // do not generate test case for this item
-                            yield! rest 
-                        | _                               -> 
+                        // if this component (x1) is optional with present-when conditions then no test case
+                        // is generated for this component because we might generated wrong test cases 
+//                        match x1.Optionality with
+//                        | Some (Asn1AcnAst.Optional opt) when optChildCount > 1 && opt.acnPresentWhen.IsSome  ->  
+//                            // do not generate test case for this item
+//                            yield! rest 
+//                        | _                               -> 
                             yield! childCases
                     } |> Seq.toList
                 ret
@@ -335,7 +370,8 @@ let createSequenceInitFunc (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn
 
 let createChoiceInitFunc (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1AcnAst.Asn1Type) (o :Asn1AcnAst.Choice) (typeDefinition:TypeDefintionOrReference) (children:ChChildInfo list) iv =     
     //let initChoice = match l with C -> init_c.initChoice | Ada -> init_a.initChoice
-
+    let initTestCase_choice_child = match l with C -> init_c.initTestCase_choice_child | Ada -> init_a.initTestCase_choice_child
+    let typeDefinitionName = typeDefinition.longTypedefName l 
     let funcBody (p:CallerScope) v = 
         let childrenOut = 
             match v with
@@ -351,21 +387,8 @@ let createChoiceInitFunc (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1A
                             Some (init_c.initChoice p.arg.p (p.arg.getAcces l) chContent (chChild.presentWhenName (Some typeDefinition) l)) 
                         | Ada ->
                             let sChildTypeName = chChild.chType.typeDefintionOrReference.longTypedefName l
-//                                match chChild.chType.inheritInfo with
-//                                | Some tasInfo  -> ToC2(r.args.TypePrefix + tasInfo.tasName)
-//                                | None          ->
-//                                    match chChild.chType.Kind with
-//                                    | ReferenceType ref ->     ToC2(r.args.TypePrefix + ref.baseInfo.tasName.Value)
-//                                    | _                 ->
-//                                        chChild.chType.typeDefinition.typeDefinitionBodyWithinSeq
                             let sChildTempVarName = (ToC chChild.chType.id.AsString) + "_tmp"
                             let sChoiceTypeName = typeDefinition.longTypedefName l
-//                                match t.tasInfo with
-//                                | Some tasInfo  -> ToC2(r.args.TypePrefix + tasInfo.tasName)
-//                                | None          ->
-//                                    match chChild.chType.Kind with
-//                                    | ReferenceType ref -> ToC2(r.args.TypePrefix + ref.baseInfo.tasName.Value)
-//                                    | _                 -> typeDefinition.typeDefinitionBodyWithinSeq
                             let sChildName = chChild.c_name
                             let chContent = chChild.chType.initFunction.initFuncBody ({CallerScope.modName = t.id.ModName; arg = VALUE sChildTempVarName}) iv.Value.kind
                             Some (init_a.initChoice p.arg.p (p.arg.getAcces l) chContent (chChild.presentWhenName (Some typeDefinition) l) sChildTempVarName sChildTypeName sChoiceTypeName sChildName) 
@@ -374,7 +397,41 @@ let createChoiceInitFunc (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1A
             | _               -> raise(BugErrorException "UnexpectedValue")
         childrenOut |> Seq.head
 
-    let testCaseFuncs = []
+    let testCaseFuncs = 
+        let handleChild  (ch:ChChildInfo)  = 
+            let len = ch.chType.initFunction.initFuncBodyTestCases.Length
+            let sChildName = ch.c_name
+            let sChildTypeDef = ch.chType.typeDefintionOrReference.longTypedefName l 
+
+            let sChildID (p:CallerScope) = 
+                match l with
+                | C     -> (ToC ch._present_when_name_private) + "_PRESENT"
+                | Ada   ->
+//                    let modName = 
+//                        match ch.chType.typeDefintionOrReference with
+//                        | TypeDefinition  _ -> ToC ch.chType.id.ModName
+//                        | ReferenceToExistingDefinition ref -> 
+//                            match ref.programUnit with
+//                            | Some pu       -> pu
+//                            | None          -> ToC ch.chType.id.ModName
+//                    modName + "." + ((ToC ch._present_when_name_private) + "_PRESENT")
+                    (ToC ch._present_when_name_private) + "_PRESENT"
+
+
+            ch.chType.initFunction.initFuncBodyTestCases |> Seq.take (min 5 len) |> Seq.toList |>
+            List.map(fun fnc -> 
+                let presentFunc (p:CallerScope) = 
+                    let childContent =  
+                        match l with
+                        | C     -> fnc {p with arg = p.arg.getChChild l sChildName ch.chType.isIA5String} 
+                        | Ada   -> fnc {p with arg = VALUE (sChildName + "_tmp")} 
+                    initTestCase_choice_child p.arg.p (p.arg.getAcces l) (sChildID p) childContent sChildName  sChildTypeDef typeDefinitionName
+                presentFunc)
+
+        children |>
+        List.filter (fun c -> c.Optionality.IsNone || c.Optionality = (Some Asn1AcnAst.Asn1ChoiceOptionality.ChoiceAlwaysPresent)) |>
+        List.collect handleChild
+
     createInitFunctionCommon r l t typeDefinition funcBody iv testCaseFuncs
 
 let createReferenceType (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1AcnAst.Asn1Type) (o :Asn1AcnAst.ReferenceType) (baseType:Asn1Type) =

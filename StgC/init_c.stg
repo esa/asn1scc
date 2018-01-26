@@ -21,8 +21,9 @@ initIA5String(sPtr, sValue, arrsNullChars) ::= "strcpy(<sPtr>,\"<sValue>\");"
 initEnumerated(sVal, sValue) ::= "<sVal> = <sValue>;"
 initNull(sVal)    ::= "<sVal> = 0;"
 
-initTestCaseIA5String(p, sAcc, nSize, i, sTasName, bAlpha, arrnAlphabetAsciiCodes, nAlphabetLength) ::= <<
+initTestCaseIA5String(p, sAcc, nSize, nMaxSizePlusOne, i, sTasName, bAlpha, arrnAlphabetAsciiCodes, nAlphabetLength) ::= <<
 <i> = 0;
+memset(<p>, 0x0, <nMaxSizePlusOne>);
 while (<i>\<= <nSize>) {
     <if(bAlpha)>
     static byte allowedCharSet[] = {<arrnAlphabetAsciiCodes:{ch|0x<ch;format="X2">}; wrap, anchor, separator=",">}; 
@@ -30,12 +31,11 @@ while (<i>\<= <nSize>) {
     <p>[<i>] = allowedCharSet[<i> % <nAlphabetLength>];
 
     <else>
-    <p>[<i>] = (char)(<i> == 0 ? 'A' : <i> % 128);
+    <p>[<i>] = (char)(<i> % 128 == 0 ? 'A' : <i> % 128);
 
     <endif>
     <i> = <i> + 1;
 }
-<p>[<nSize> + 1] := 0x0;
 >>
 
 /* BIT AND OCTET STRINGS */
@@ -129,3 +129,8 @@ initChoice(p1, sAccess, sChildContent, sChildKind) ::= <<
 >>
 
 
+initTestCase_choice_child(p, sAcc, sChildID, sChildContent, sChildName, sChildTypeDef, sChoiceTypeName) ::= <<
+--set <sChildName> 
+<p><sAcc>kind = <sChildID>;
+<sChildContent>
+>>

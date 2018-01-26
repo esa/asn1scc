@@ -404,17 +404,22 @@ let CreateTestSuiteFile (r:AstRoot) (l:ProgrammingLanguage) outDir vasName =
                                 yield PrintTestCase vas m (ToC2(r.args.TypePrefix + t.Name.Value) ) idx initFuncName t.Type.uperEncDecTestFunc t.Type.acnEncDecTestFunc
 //                            for func in t.Type.initFunction.initFuncBodyTestCases  do
 //                                //let vas = {ValueAssignment.Name = StringLoc.ByValue ""; c_name = ""; ada_name = ""; Type = t.Type; Value = v}
-//                                let p = {CallerScope.modName = ToC m.Name.Value; arg = VALUE "tc_data"}
+//                                let p = {CallerScope.modName = ToC "MainProgram"; arg = VALUE "tc_data"}
 //                                let initStatement = func p
 //                                idx <- idx + 1
 //                                let initFuncName = t.Type.initFunction.initFuncName
 //                                yield PrintTestCase2 initStatement m t.Type (ToC2(r.args.TypePrefix + t.Name.Value) ) idx initFuncName t.Type.uperEncDecTestFunc t.Type.acnEncDecTestFunc
                                 
         }  |> Seq.toList
+    let maxI = r.Files |> List.collect(fun f -> f.Modules) |> List.collect(fun m -> m.TypeAssignments) |> List.map(fun tas -> tas.maxI_testCases) |> List.fold(fun cs cv -> max cs cv) 0
+    let arrsVars = 
+        match maxI = 0 with
+        | true  -> []
+        | false -> [1 .. maxI]  |> List.map(fun i -> SequenceOfIndex (i, None)) |> List.map(fun lv -> lv.GetDeclaration l)
 
     match l with
     | C ->
-        let contentC = test_cases_c.PrintTestSuiteSource TestSuiteFileName includedPackages funcs
+        let contentC = test_cases_c.PrintTestSuiteSource TestSuiteFileName includedPackages arrsVars funcs
         let outCFileName = Path.Combine(outDir, TestSuiteFileName + "." + l.BodyExtention)
         File.WriteAllText(outCFileName, contentC.Replace("\r",""))
 
@@ -422,7 +427,7 @@ let CreateTestSuiteFile (r:AstRoot) (l:ProgrammingLanguage) outDir vasName =
         let outHFileName = Path.Combine(outDir, TestSuiteFileName + "." + l.SpecExtention)
         File.WriteAllText(outHFileName, contentH.Replace("\r",""))
     | Ada ->
-        let contentC = test_cases_a.PrintMain includedPackages funcs [] [] false
+        let contentC = test_cases_a.PrintMain includedPackages arrsVars funcs [] [] false
         let outCFileName = Path.Combine(outDir, "mainprogram." + l.BodyExtention)
         File.WriteAllText(outCFileName, contentC.Replace("\r",""))
         

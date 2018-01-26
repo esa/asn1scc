@@ -370,7 +370,7 @@ int asn1scc_run_generated_testsuite(TestOutput* output);
 
 >>
 
-PrintTestSuiteSource(sTestSuiteFilename, arrsIncludedModules, arrsTestFunctions) ::= <<
+PrintTestSuiteSource(sTestSuiteFilename, arrsIncludedModules, arrsVars, arrsTestFunctions) ::= <<
 #include "<sTestSuiteFilename>.h"
 
 #include \<stdio.h>
@@ -388,6 +388,7 @@ int asn1scc_run_generated_testsuite(TestOutput* output)
     int totalErrors = 0;
     flag result;
     int errCode;
+    <arrsVars; separator="\n">
 
 	(void)result;
     (void)errCode;

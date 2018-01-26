@@ -689,7 +689,7 @@ type TypeAssignment = {
     ada_name:string
     Type:Asn1Type
     Comments: string array
-
+    maxI_testCases : int
 }
 
 type ValueAssignment = {

@@ -1023,7 +1023,8 @@ when <sChildID> =>
 Choice_preWhen_decode(p, sAcc, arrsChildren, sErrCode) ::= <<
 result := <rtlModuleName()>.ASN1_RESULT'(Success => true, ErrorCode => 0);
 <arrsChildren; separator="\n">
-    result := <rtlModuleName()>.ASN1_RESULT'(Success => false, ErrorCode => <sErrCode>);
+else
+    result := <rtlModuleName()>.ASN1_RESULT'(Success => false, ErrorCode => <sErrCode>); 
 end if;
 >>
 

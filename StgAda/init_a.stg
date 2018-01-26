@@ -12,21 +12,23 @@ initIA5String(sPtr, sValue, arrsNullChars) ::= "<sPtr> := \"<sValue>\"<if(arrsNu
 initEnumerated(sVal, sValue) ::= "<sVal> := <sValue>;"
 initNull(sVal)    ::= "<sVal> := 0;"
 
-initTestCaseIA5String(p, sAcc, nSize, i, sTasName, bAlpha, arrnAlphabetAsciiCodes, nAlphabetLength) ::= <<
+initTestCaseIA5String(p, sAcc, nSize, nMaxSizePlusOne, i, sTasName, bAlpha, arrnAlphabetAsciiCodes, nAlphabetLength) ::= <<
 <i> := 1;
-while <i>\<= <nSize> loop
-    pragma Loop_Invariant (<i> >=1 and <i>\<=<nSize>);
+while <i>\<= <nMaxSizePlusOne> loop
+    pragma Loop_Invariant (<i> >=1 and <i>\<=<nMaxSizePlusOne>);
+    if <i> \<= <nSize> then
     <if(bAlpha)>
-    <p>(<i>) := <sTasName>_alpha_set( ((<i>-1) mod <sTasName>_alpha_set'Last) + 1 );
+        <p>(<i>) := <sTasName>_alpha_set( ((<i>-1) mod <sTasName>_alpha_set'Last) + 1 );
 
     <else>
-    <p>(<i>) := Character'Val( if <i>-1 = 0 then 65 else (<i>-1) mod 128);
+        <p>(<i>) := Character'Val( if ((<i>-1) mod 128) = 0 then 65 else (<i>-1) mod 128);
 
     <endif>
-
+    else
+        <p>(<i>) := <rtlModuleName()>.NUL;
+    end if;
     <i> := <i> + 1;
 end loop;
-<p>(<nSize> + 1) := <rtlModuleName()>.NUL;
 >>
 
 
@@ -116,6 +118,16 @@ initTestCase_sequence_child(p, sAcc, sChName, sChildContent, bOptional) ::= <<
 >>
 initTestCase_sequence_child_opt(p, sAcc, sChName) ::= <<
 <p><sAcc>exist.<sChName> := 0;
+>>
+
+initTestCase_choice_child(p, sAcc, sChildID, sChildContent, sChildName, sChildTypeDef, sChoiceTypeName) ::= <<
+--set <sChildName> 
+declare
+    <sChildName>_tmp:<sChildTypeDef>;
+begin
+    <sChildContent>
+    <p> := <sChoiceTypeName>'(kind => <sChildID>, <sChildName> => <sChildName>_tmp);
+end;
 >>
 
 

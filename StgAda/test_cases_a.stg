@@ -212,7 +212,7 @@ END IF;
 
                    
 
-PrintMain(arrsIncludedModules, arrsTestFunctions, arrsUsedPackages, arrsInitCalls, bGenerateDatFile) ::= <<
+PrintMain(arrsIncludedModules, arrsVars, arrsTestFunctions, arrsUsedPackages, arrsInitCalls, bGenerateDatFile) ::= <<
 WITH Ada.Text_IO;
 <if(bGenerateDatFile)>
 with Ada.Sequential_IO;
@@ -232,6 +232,7 @@ IS --# hide MainProgram
     <arrsUsedPackages:{p|USE <p>;}; separator="\n">
     result      : <rtlModuleName()>.TEST_CASE_RESULT;
     totalErrors  : INTEGER:=0;
+    <arrsVars; separator="\n">
     
 <if(bGenerateDatFile)>
     PROCEDURE WRITE_STR_TO_FILE(Strm : <rtlModuleName()>.BitArray; 
