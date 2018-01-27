@@ -129,7 +129,8 @@ def RunTestCase(asn1, acn, behavior, expErrMsg):
         res = mysystem("make coverage >covlog.txt 2>&1", True)
         if res != 0 and behavior != 2:
             PrintFailed("run time failure")
-            PrintFailed("see covlog.txt")
+            PrintFailed("covlog.txt is ...")
+            mysystem("cat tmp_Ada/covlog.txt",False)
             sys.exit(1)
         elif behavior == 2 and res == 2:
             PrintSucceededAsExpected(
