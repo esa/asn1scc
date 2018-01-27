@@ -590,7 +590,7 @@ while (<sRemainingItemsVar> >= 0x4000 && <sBlockIndex> \< <if(bIsAsciiString)>st
 	<if(bIsBitStringType)>
 	BitStream_AppendBits(pBitStrm, &<p><sAcc>arr[<sCurOffset>/8], (int)<sCurBlockSize>);
 	<else>
-	for(<sBLI>=(int)<sCurOffset>; <sBLI> \< <sCurBlockSize> + <sCurOffset>; <sBLI>++)
+	for(<sBLI>=(int)<sCurOffset>; <sBLI> \< (int)(<sCurBlockSize> + <sCurOffset>); <sBLI>++)
 	{
 		<sInternalItem>
 	}
@@ -611,7 +611,7 @@ else
 <if(bIsBitStringType)>
 BitStream_AppendBits(pBitStrm, &<p><sAcc>arr[<sCurOffset>/8], (int)<sRemainingItemsVar>);
 <else>
-for(<sBLI>=(int)<sCurOffset>; <sBLI> \< <sCurOffset> + <sRemainingItemsVar>; <sBLI>++)
+for(<sBLI>=(int)<sCurOffset>; <sBLI> \< (int)(<sCurOffset> + <sRemainingItemsVar>); <sBLI>++)
 {
 	<sInternalItem>
 }
@@ -650,7 +650,7 @@ if (ret) {
 		ret = BitStream_ReadBits(pBitStrm, &<p><sAcc>arr[<sCurOffset>/8], (int)<sCurBlockSize>);
         *pErrCode = ret ? 0 : <sErrCodeName>;
 		<else>
-		for(<sBLI>=<sCurOffset>; ret && (<sBLI> \< <sCurOffset> + <sCurBlockSize>) ; <sBLI>++)
+		for(<sBLI>=(int)<sCurOffset>; ret && (<sBLI> \< (int)(<sCurOffset> + <sCurBlockSize>)) ; <sBLI>++)
 		{
 			<sInternalItem>
 		}
@@ -682,7 +682,7 @@ if (ret) {
             ret = BitStream_ReadBits(pBitStrm, &<p><sAcc>arr[<sCurOffset>/8], (int)<sRemainingItemsVar>);
             *pErrCode = ret ? 0 : <sErrCodeName>;
 	        <else>
-	        for(<sBLI>=<sCurOffset>; ret && (<sBLI> \< <sCurOffset> + <sRemainingItemsVar>) ; <sBLI>++)
+	        for(<sBLI>=(int)<sCurOffset>; ret && (<sBLI> \< (int)(<sCurOffset> + <sRemainingItemsVar>)) ; <sBLI>++)
 	        {
 		        <sInternalItem>
 	        }
@@ -693,7 +693,7 @@ if (ret) {
                 <if(bIsVariableSize)>
                 if ((<sLengthTmp> >= <nSizeMin>) && (<sLengthTmp> \<= <nSizeMax>)) {
 	                <if(!bIsAsciiString)>
-	                <p><sAcc>nCount = <sLengthTmp>;
+	                <p><sAcc>nCount = (int)<sLengthTmp>;
 
                     <else>
                     <p>[<sLengthTmp>] = 0x0;

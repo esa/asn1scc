@@ -364,59 +364,63 @@ let CreateTestSuiteFile (r:AstRoot) (l:ProgrammingLanguage) outDir vasName =
     let PrintTestCase2 (initStatement:String) (m:Asn1Module) (t:Asn1Type) (sTasName : string)  (idx :int) initFuncName (uperEncDecTestFunc  : EncodeDecodeTestFunc option) (acnEncDecTestFunc   : EncodeDecodeTestFunc option) =
         let modName = ToC m.Name.Value
         let encAmper, initAmper = gAmber t
-        let sTestCaseIndex = idx.ToString()
         let bStatic = match t.ActualType.Kind with Integer _ | Enumerated(_) -> false | _ -> true
         let GetDatFile = ""
          
         r.args.encodings |> Seq.map(fun e -> 
                                         match e with
                                         | Asn1Encoding.UPER  -> 
+                                            let sTestCaseIndex = idx.ToString()
                                             match uperEncDecTestFunc with
                                             | Some _    -> call_codec2 modName sTasName encAmper (GetEncodingString e) initStatement sTestCaseIndex sTestCaseIndex bStatic "" initFuncName initAmper
                                             | None      -> ""
                                         | Asn1Encoding.ACN   -> 
+                                            let sTestCaseIndex = (idx+1).ToString()
                                             match acnEncDecTestFunc with
                                             | Some _    -> call_codec2 modName sTasName encAmper (GetEncodingString e) initStatement sTestCaseIndex sTestCaseIndex bStatic "" initFuncName initAmper
                                             | _         -> ""
-                                        | Asn1Encoding.XER   -> call_codec2 modName sTasName encAmper (GetEncodingString e) initStatement sTestCaseIndex sTestCaseIndex bStatic "" initFuncName initAmper
-                                        | Asn1Encoding.BER   -> call_codec2 modName sTasName encAmper (GetEncodingString e) initStatement sTestCaseIndex sTestCaseIndex bStatic "" initFuncName initAmper
+                                        | Asn1Encoding.XER   -> 
+                                            let sTestCaseIndex = idx.ToString()
+                                            call_codec2 modName sTasName encAmper (GetEncodingString e) initStatement sTestCaseIndex sTestCaseIndex bStatic "" initFuncName initAmper
+                                        | Asn1Encoding.BER   -> 
+                                            let sTestCaseIndex = idx.ToString()
+                                            call_codec2 modName sTasName encAmper (GetEncodingString e) initStatement sTestCaseIndex sTestCaseIndex bStatic "" initFuncName initAmper
                                  ) |> Seq.StrJoin "\n\n"
     let mutable idx = 0;
-    let funcs = 
+    let funcs, localVars = 
         seq {
             for m in r.Files |> List.collect(fun f -> f.Modules) do
                 for v in m.ValueAssignments do
                         if v.Name.Value = "apid" then
                             ()
                         if vasName = "ALL" || v.Name.Value = vasName then
-                            idx <- idx + 1
+                            idx <- idx + 2
                             let initFuncName = v.Type.initFunction.initFuncName
                             let aaa = PrintTestCase v m (getTypeDecl r (ToC m.Name.Value) l v )  idx initFuncName v.Type.uperEncDecTestFunc v.Type.acnEncDecTestFunc
-                            yield aaa
+                            yield (aaa, [])
                 if vasName = "ALL" then
                     for t in m.TypeAssignments do
                         let hasEncodeFunc = hasAcnEncodeFunction t.Type.acnEncFunction t.Type.acnParameters 
                         if hasEncodeFunc then
-                            for v in t.Type.automaticTestCasesValues do
-                                let vas = {ValueAssignment.Name = StringLoc.ByValue ""; c_name = ""; ada_name = ""; Type = t.Type; Value = v}
-                                idx <- idx + 1
-                                let initFuncName = t.Type.initFunction.initFuncName
-                                yield PrintTestCase vas m (ToC2(r.args.TypePrefix + t.Name.Value) ) idx initFuncName t.Type.uperEncDecTestFunc t.Type.acnEncDecTestFunc
-//                            for func in t.Type.initFunction.initFuncBodyTestCases  do
-//                                //let vas = {ValueAssignment.Name = StringLoc.ByValue ""; c_name = ""; ada_name = ""; Type = t.Type; Value = v}
-//                                let p = {CallerScope.modName = ToC "MainProgram"; arg = VALUE "tc_data"}
-//                                let initStatement = func p
+//                            for v in t.Type.automaticTestCasesValues do
+//                                let vas = {ValueAssignment.Name = StringLoc.ByValue ""; c_name = ""; ada_name = ""; Type = t.Type; Value = v}
 //                                idx <- idx + 1
 //                                let initFuncName = t.Type.initFunction.initFuncName
-//                                yield PrintTestCase2 initStatement m t.Type (ToC2(r.args.TypePrefix + t.Name.Value) ) idx initFuncName t.Type.uperEncDecTestFunc t.Type.acnEncDecTestFunc
+//                                yield PrintTestCase vas m (ToC2(r.args.TypePrefix + t.Name.Value) ) idx initFuncName t.Type.uperEncDecTestFunc t.Type.acnEncDecTestFunc
+                            for func in t.Type.initFunction.initFuncBodyTestCases  do
+                                //let vas = {ValueAssignment.Name = StringLoc.ByValue ""; c_name = ""; ada_name = ""; Type = t.Type; Value = v}
+                                let p = {CallerScope.modName = ToC "MainProgram"; arg = VALUE "tc_data"}
+                                let initStatement = func p
+                                idx <- idx + 2
+                                let initFuncName = t.Type.initFunction.initFuncName
+                                let ret = PrintTestCase2 initStatement.funcBody m t.Type (ToC2(r.args.TypePrefix + t.Name.Value) ) idx initFuncName t.Type.uperEncDecTestFunc t.Type.acnEncDecTestFunc
+                                yield (ret, initStatement.localVariables)
                                 
-        }  |> Seq.toList
-    let maxI = r.Files |> List.collect(fun f -> f.Modules) |> List.collect(fun m -> m.TypeAssignments) |> List.map(fun tas -> tas.maxI_testCases) |> List.fold(fun cs cv -> max cs cv) 0
-    let arrsVars = 
-        match maxI = 0 with
-        | true  -> []
-        | false -> [1 .. maxI]  |> List.map(fun i -> SequenceOfIndex (i, None)) |> List.map(fun lv -> lv.GetDeclaration l)
+        }  |>  Seq.toList |> List.unzip
 
+    let arrsVars = 
+        localVars |> List.collect id |> List.map(fun lv -> lv.GetDeclaration l) |> Seq.distinct |> Seq.toList
+        
     match l with
     | C ->
         let contentC = test_cases_c.PrintTestSuiteSource TestSuiteFileName includedPackages arrsVars funcs

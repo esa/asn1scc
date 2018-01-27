@@ -183,12 +183,17 @@ type BaseTypesEquivalence<'T> = {
 (*
 Generates initialization statement(s) that inititalize the type with the given Asn1GeneticValue.
 *)            
+type InitFunctionResult = {
+    funcBody            : string
+    localVariables      : LocalVariable list
+}
+
 type InitFunction = {
     initFuncName            : string option               // the name of the function
     initFunc                : string option               // the body of the function
     initFuncDef             : string option               // function definition in header file
     initFuncBody            : CallerScope  -> Asn1ValueKind -> string                      // returns the statement(s) that initialize this type
-    initFuncBodyTestCases    : (CallerScope  -> string) list                      // returns the statement(s) that initialize this type
+    initFuncBodyTestCases   : (CallerScope  -> InitFunctionResult) list                      // returns the statement(s) that initialize this type
 }
 
 
@@ -689,7 +694,6 @@ type TypeAssignment = {
     ada_name:string
     Type:Asn1Type
     Comments: string array
-    maxI_testCases : int
 }
 
 type ValueAssignment = {

@@ -626,29 +626,6 @@ let private mapType (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDepe
 
 
 let private mapTas (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (l:ProgrammingLanguage) (m:Asn1AcnAst.Asn1Module) (tas:Asn1AcnAst.TypeAssignment) (us:State)=
-    let getTasMaxDepth t = 
-        let lev (t:Asn1Type) = t.id.SeqeuenceOfLevel + 1
-        DastFold.foldAsn1Type
-            t
-            0
-            (fun t ti us        -> (), us) //integer
-            (fun t ti us        -> (), us) //real
-            (fun t ti us        -> (), max us  (lev t)) //string
-            (fun t ti us        -> (), max us  (lev t)) //octet
-            (fun t ti us        -> (), us) //null
-            (fun t ti us        -> (), max us  (lev t)) //bit string
-            (fun t ti us        -> (), us) //boolean
-            (fun t ti us        -> (), us) //enum
-            (fun t ti (_, us)   -> (), max us  (lev t)) //sequence of
-            (fun t ti ch (_, us)-> (), us)
-            (fun t ti ch us     -> (), us)
-            (fun t ti (_,us)    -> (), us)
-            (fun t ti ch (_, us)-> (), us)
-            (fun t ti (_,us)    -> (), us)
-            (fun t ti (_,us)    -> (), us)
-            (fun o newKind  -> newKind)
-        |> snd
-
     let newType, ns = mapType r deps l m (tas.Type, us)
     {
         TypeAssignment.Name = tas.Name
@@ -656,7 +633,6 @@ let private mapTas (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDepen
         ada_name = tas.ada_name
         Type = newType
         Comments = tas.Comments
-        maxI_testCases = getTasMaxDepth newType
     },ns
 
 

@@ -24,7 +24,7 @@ initNull(sVal)    ::= "<sVal> = 0;"
 initTestCaseIA5String(p, sAcc, nSize, nMaxSizePlusOne, i, sTasName, bAlpha, arrnAlphabetAsciiCodes, nAlphabetLength) ::= <<
 <i> = 0;
 memset(<p>, 0x0, <nMaxSizePlusOne>);
-while (<i>\<= <nSize>) {
+while (<i>\< <nSize>) {
     <if(bAlpha)>
     static byte allowedCharSet[] = {<arrnAlphabetAsciiCodes:{ch|0x<ch;format="X2">}; wrap, anchor, separator=",">}; 
 
@@ -51,8 +51,8 @@ initFixVarSizeBitOrOctString(p, sAcc, nSize, arrsBytes) ::= <<
 
 initTestCaseOctetString(p, sAcc, nSize, i, bIsFixedSize) ::= <<
 <i> = 0;
-while (<i>\<= <nSize>) {
-    <p><sAcc>arr[<i>] = (byte)(i%256);
+while (<i>\< <nSize>) {
+    <p><sAcc>arr[<i>] = (byte)(<i>%256);
     <i> = <i> + 1;
 }
 <if(!bIsFixedSize)><p><sAcc>nCount = <nSize>;<endif>
@@ -60,9 +60,9 @@ while (<i>\<= <nSize>) {
 
 initTestCaseBitString(p, sAcc, nSize, nSizeCeiled,  i, bIsFixedSize) ::= <<
 <i> = 0;
-while (<i>\<= <nSizeCeiled>) {
+while (<i>\< <nSizeCeiled>/8) {
     <p><sAcc>arr[<i>] = 0x55; /* --> 0101 0101 as in Ada*/
-    <i> = <i> + 8;
+    <i> = <i> + 1;
 }
 <if(!bIsFixedSize)><p><sAcc>nCount = <nSize>;<endif>
 >>
@@ -87,13 +87,13 @@ initVarSizeSequenceOf(p, sAcc, nSize, arrsInnerValues) ::= <<
 
 
 initTestCaseSizeSequenceOf_innerItem(bFirst, bLastItem, nCaseIdx, sChildCaseInit, i, nCaseLen) ::= <<
-<if(!bLastItem)><if(bFirst)>if<else>else if<endif> <i> % <nCaseLen> == <nCaseIdx>  {<else>else {<endif>
+<if(!bLastItem)><if(bFirst)>if<else>else if<endif> (<i> % <nCaseLen> == <nCaseIdx>)  {<else>else {<endif>
     <sChildCaseInit>
 }>>
 
 initTestCaseSizeSequenceOf(p, sAcc, nSize, bIsFixedSize, arrsInnerItems, bMultiCases, i) ::= <<
 <i> = 0;
-while (<i>\<= <nSize>) {
+while (<i>\< <nSize>) {
     <arrsInnerItems; separator="\n">
     <i> = <i> + 1;
 }
@@ -130,7 +130,7 @@ initChoice(p1, sAccess, sChildContent, sChildKind) ::= <<
 
 
 initTestCase_choice_child(p, sAcc, sChildID, sChildContent, sChildName, sChildTypeDef, sChoiceTypeName) ::= <<
---set <sChildName> 
+/*set <sChildName>*/
 <p><sAcc>kind = <sChildID>;
 <sChildContent>
 >>
