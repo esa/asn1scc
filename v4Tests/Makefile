@@ -2,7 +2,7 @@ export PATH:=$(realpath ../Asn1f4/bin/Debug/):$(PATH)
 
 $(info ${PATH})
 
-all:	adaTests cTests
+all:	cTests adaTests
 
 cTests:
 	./scripts/runTests.py -l c

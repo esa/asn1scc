@@ -560,11 +560,11 @@ ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, &nCount, <nSizeMin>, <nSiz
 
 
 Fragmentation_sqf_encode(p, sAcc, sInternalItem, nIntItemMaxSize, nSizeMin, nSizeMax, nRequiredBitsForUPerEncoding, bIsVariableSize, sErrCodeName, sRemainingItemsVar, sCurBlockSize, sBlockIndex, sCurOffset, sBLJ, sBLI, sLengthTmp, bIsBitStringType, bIsAsciiString) ::= <<
-<sRemainingItemsVar> = <if(bIsAsciiString)>strlen(<p>)<else><if(bIsVariableSize)><p><sAcc>nCount<else><nSizeMax><endif><endif>;
+<sRemainingItemsVar> = <if(bIsAsciiString)>(asn1SccSint)strlen(<p>)<else><if(bIsVariableSize)><p><sAcc>nCount<else><nSizeMax><endif><endif>;
 <sCurBlockSize> = 0;
 <sCurOffset> = 0;
 <sBlockIndex> = 0;
-while (<sRemainingItemsVar> >= 0x4000 && <sBlockIndex> \< <if(bIsAsciiString)>strlen(<p>)<else><if(bIsVariableSize)><p><sAcc>nCount<else><nSizeMax><endif><endif>) 
+while (<sRemainingItemsVar> >= 0x4000 && <sBlockIndex> \< <if(bIsAsciiString)>(asn1SccSint)strlen(<p>)<else><if(bIsVariableSize)><p><sAcc>nCount<else><nSizeMax><endif><endif>) 
 {
 	if (<sRemainingItemsVar> >= 0x10000)
 	{
