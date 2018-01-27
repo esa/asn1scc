@@ -191,11 +191,11 @@ let private createOctetString (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserte
     let defOrRef            =  DAstTypeDefinition2.createOctet r l pi t o us0
     let initialValue        =
         [1 .. o.minSize] |> List.map(fun i -> 0uy)
-    let initFunction        = DAstInitialize.createOctetStringInitFunc r l t o defOrRef (OctetStringValue initialValue)
     let equalFunction       = DAstEqual.createOctetStringEqualFunction r l t o defOrRef 
     let printValue          = DAstVariables.createOctetStringFunction r l t o defOrRef 
 
     let isValidFunction, s1     = DAstValidate.createOctetStringFunction r l t o defOrRef  equalFunction printValue us
+    let initFunction        = DAstInitialize.createOctetStringInitFunc r l t o defOrRef (OctetStringValue initialValue) isValidFunction
     let uperEncFunction, s2     = DAstUPer.createOctetStringFunction r l Codec.Encode t o  defOrRef None isValidFunction s1
     let uperDecFunction, s3     = DAstUPer.createOctetStringFunction r l Codec.Decode t o  defOrRef None isValidFunction s2
     let acnEncFunction, s4      = DAstACN.createOctetStringFunction r deps l Codec.Encode t o defOrRef isValidFunction uperEncFunction s3

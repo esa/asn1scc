@@ -5,9 +5,11 @@ initTypeAssignment_def(sVarName, sStar, sFuncName, sTypeDefName) ::= <<
 void <sFuncName>(<sTypeDefName><sStar> <sVarName>);
 >>
 
-initTypeAssignment(sVarName, sStar, sFuncName, sTypeDefName, sContent) ::= <<
+initTypeAssignment(sVarName, sStar, sFuncName, sTypeDefName, sContent, arrsLocalVariables) ::= <<
 void <sFuncName>(<sTypeDefName><sStar> <sVarName>)
 {
+    <arrsLocalVariables; separator="\n">
+
 	<sContent>
 }
 >>
@@ -21,7 +23,11 @@ initIA5String(sPtr, sValue, arrsNullChars) ::= "strcpy(<sPtr>,\"<sValue>\");"
 initEnumerated(sVal, sValue) ::= "<sVal> = <sValue>;"
 initNull(sVal)    ::= "<sVal> = 0;"
 
-initTestCaseIA5String(p, sAcc, nSize, nMaxSizePlusOne, i, sTasName, bAlpha, arrnAlphabetAsciiCodes, nAlphabetLength) ::= <<
+initTestCaseIA5String(p, sAcc, nSize, nMaxSizePlusOne, i, sTasName, bAlpha, arrnAlphabetAsciiCodes, nAlphabetLength, bZero) ::= <<
+<if(bZero)>
+memset(<p>, 0x0, <nMaxSizePlusOne>);
+
+<else>
 <i> = 0;
 memset(<p>, 0x0, <nMaxSizePlusOne>);
 while (<i>\< <nSize>) {
@@ -36,6 +42,8 @@ while (<i>\< <nSize>) {
     <endif>
     <i> = <i> + 1;
 }
+
+<endif>
 >>
 
 /* BIT AND OCTET STRINGS */
@@ -49,22 +57,34 @@ initFixVarSizeBitOrOctString(p, sAcc, nSize, arrsBytes) ::= <<
 <arrsBytes; separator="\n">
 >>
 
-initTestCaseOctetString(p, sAcc, nSize, i, bIsFixedSize) ::= <<
+initTestCaseOctetString(p, sAcc, nSize, i, bIsFixedSize, bZero) ::= <<
+<if(bZero)>
+memset(<p><sAcc>arr, 0x0, <nSize>);
+
+<else>
 <i> = 0;
 while (<i>\< <nSize>) {
     <p><sAcc>arr[<i>] = (byte)(<i>%256);
     <i> = <i> + 1;
 }
-<if(!bIsFixedSize)><p><sAcc>nCount = <nSize>;<endif>
+<if(!bIsFixedSize)><p><sAcc>nCount = <if(bZero)>0<else><nSize><endif>;<endif>
+
+<endif>
 >>
 
-initTestCaseBitString(p, sAcc, nSize, nSizeCeiled,  i, bIsFixedSize) ::= <<
+initTestCaseBitString(p, sAcc, nSize, nSizeCeiled,  i, bIsFixedSize, bZero) ::= <<
+<if(bZero)>
+memset(<p><sAcc>arr, 0x0, <nSizeCeiled>/8);
+
+<else>
 <i> = 0;
 while (<i>\< <nSizeCeiled>/8) {
     <p><sAcc>arr[<i>] = 0x55; /* --> 0101 0101 as in Ada*/
     <i> = <i> + 1;
 }
-<if(!bIsFixedSize)><p><sAcc>nCount = <nSize>;<endif>
+<if(!bIsFixedSize)><p><sAcc>nCount = <if(bZero)>0<else><nSize><endif>;<endif>
+
+<endif>
 >>
 
 

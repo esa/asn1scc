@@ -192,8 +192,9 @@ type InitFunction = {
     initFuncName            : string option               // the name of the function
     initFunc                : string option               // the body of the function
     initFuncDef             : string option               // function definition in header file
-    initFuncBody            : CallerScope  -> Asn1ValueKind -> string                      // returns the statement(s) that initialize this type
-    initFuncBodyTestCases   : (CallerScope  -> InitFunctionResult) list                      // returns the statement(s) that initialize this type
+    initTas                 : (CallerScope  -> InitFunctionResult)              // returns the statement(s) that defaults initialize this type (used in the init function)
+    initByAsn1Value         : CallerScope  -> Asn1ValueKind -> string           // returns the statement(s) that initialize according to the asn1value
+    initFuncBodyTestCases   : (CallerScope  -> InitFunctionResult) list         // returns a list of set the statement(s). Each set that initialize this type according to a specific test case
 }
 
 

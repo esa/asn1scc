@@ -92,7 +92,8 @@ let private printUnit (r:DAst.AstRoot) (l:ProgrammingLanguage) (encodings: Commo
                 match tas.Type.typeDefintionOrReference with
                 | TypeDefinition td -> td.typedefBody ()      
                 | ReferenceToExistingDefinition _   -> raise(BugErrorException "Type Assignment with no Type Defintion")
-            let init_def        = match l with C -> tas.Type.initFunction.initFuncDef | Ada -> None
+            let init_def        = tas.Type.initFunction.initFuncDef 
+
             let equal_defs      = collectEqualFuncs tas.Type |> List.choose(fun ef -> ef.isEqualFuncDef)
             let isValid        = 
                 match tas.Type.isValidFunction with
@@ -188,7 +189,7 @@ let private printUnit (r:DAst.AstRoot) (l:ProgrammingLanguage) (encodings: Commo
     //sourse file
     let arrsTypeAssignments = 
         tases |> List.map(fun t -> 
-            let initialize        = match l with C -> t.Type.initFunction.initFunc | Ada -> None
+            let initialize        = t.Type.initFunction.initFunc 
             //let eqFuncs = collectEqualDeffinitions t |> List.choose(fun ef -> ef.isEqualFunc)
             let eqFuncs = collectEqualFuncs t.Type |> List.choose(fun ef -> ef.isEqualFunc)
             let isValid = match t.Type.isValidFunction with None -> None | Some isVal -> isVal.func

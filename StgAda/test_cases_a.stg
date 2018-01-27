@@ -173,6 +173,11 @@ PrintMain_call_codec2(sModName, sTasName, sAmber, sEnc, sInitializeTcData, sValu
 declare
     tc_data : <sModName>.<sTasName>;
 begin
+    <if(soInitFunction)>
+    -- dummy statement used for calling init functions
+    <soInitFunction>(tc_data);
+    <endif>
+    --the actual initialization with the test case data is made here.
     <sInitializeTcData>
     result := <sModName>_auto_tcs.<sTasName>_<sEnc>enc_dec(tc_data);
     IF NOT result.Success THEN

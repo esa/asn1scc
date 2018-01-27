@@ -12,10 +12,14 @@ initIA5String(sPtr, sValue, arrsNullChars) ::= "<sPtr> := \"<sValue>\"<if(arrsNu
 initEnumerated(sVal, sValue) ::= "<sVal> := <sValue>;"
 initNull(sVal)    ::= "<sVal> := 0;"
 
-initTestCaseIA5String(p, sAcc, nSize, nMaxSizePlusOne, i, sTasName, bAlpha, arrnAlphabetAsciiCodes, nAlphabetLength) ::= <<
+initTestCaseIA5String(p, sAcc, nSize, nMaxSizePlusOne, i, sTasName, bAlpha, arrnAlphabetAsciiCodes, nAlphabetLength, bZero) ::= <<
 <i> := 1;
 while <i>\<= <nMaxSizePlusOne> loop
     pragma Loop_Invariant (<i> >=1 and <i>\<=<nMaxSizePlusOne>);
+    <if(bZero)>
+    <p>(<i>) := <rtlModuleName()>.NUL;
+
+    <else>
     if <i> \<= <nSize> then
     <if(bAlpha)>
         <p>(<i>) := <sTasName>_alpha_set( ((<i>-1) mod <sTasName>_alpha_set'Last) + 1 );
@@ -27,6 +31,8 @@ while <i>\<= <nMaxSizePlusOne> loop
     else
         <p>(<i>) := <rtlModuleName()>.NUL;
     end if;
+
+    <endif>
     <i> := <i> + 1;
 end loop;
 >>
@@ -43,24 +49,24 @@ initFixVarSizeBitOrOctString(p, sAcc, nSize, arrsBytes) ::= <<
 <arrsBytes; separator="\n">
 >>
 
-initTestCaseOctetString(p, sAcc, nSize, i, bIsFixedSize) ::= <<
+initTestCaseOctetString(p, sAcc, nSize, i, bIsFixedSize, bZero) ::= <<
 <i> := 1;
 while <i>\<= <nSize> loop
     pragma Loop_Invariant (<i> >=1 and <i>\<=<nSize>);
-    <p><sAcc>Data(<i>) := <rtlModuleName()>.Asn1Byte((<i>-1) mod 256);
+    <p><sAcc>Data(<i>) := <rtlModuleName()>.Asn1Byte(<if(bZero)>0<else>(<i>-1) mod 256<endif>);
     <i> := <i> + 1;
 end loop;
-<if(!bIsFixedSize)><p><sAcc>Length := <nSize>;<endif>
+<if(!bIsFixedSize)><p><sAcc>Length := <if(bZero)><nSize><else><nSize><endif>;<endif>
 >>
 
-initTestCaseBitString(p, sAcc, nSize, nSizeCeiled, i, bIsFixedSize) ::= <<
+initTestCaseBitString(p, sAcc, nSize, nSizeCeiled, i, bIsFixedSize, bZero) ::= <<
 <i> := 1;
 while <i>\<= <nSize> loop
     pragma Loop_Invariant (<i> >=1 and <i>\<=<nSize>);
-    <p><sAcc>Data(<i>) := <rtlModuleName()>.BIT((<i>-1) mod 2);
+    <p><sAcc>Data(<i>) := <rtlModuleName()>.BIT(<if(bZero)>0<else>(<i>-1) mod 2<endif>);
     <i> := <i> + 1;
 end loop;
-<if(!bIsFixedSize)><p><sAcc>Length := <nSize>;<endif>
+<if(!bIsFixedSize)><p><sAcc>Length := <if(bZero)><nSize><else><nSize><endif>;<endif>
 >>
 
 
@@ -146,9 +152,10 @@ initTypeAssignment_def(sVarName, sStar, sFuncName, sTypeDefName) ::= <<
 procedure <sFuncName>(<sVarName>:in out <sTypeDefName>);
 >>
 
-initTypeAssignment(sVarName, sStar, sFuncName, sTypeDefName, sContent) ::= <<
+initTypeAssignment(sVarName, sStar, sFuncName, sTypeDefName, sContent, arrsLocalVariables) ::= <<
 procedure <sFuncName>(<sVarName>:in out <sTypeDefName>)
-IS
+is
+    <arrsLocalVariables; separator="\n">
 begin
     <sContent>
 end <sFuncName>;
