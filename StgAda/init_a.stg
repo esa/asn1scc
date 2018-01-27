@@ -21,7 +21,7 @@ while <i>\<= <nMaxSizePlusOne> loop
         <p>(<i>) := <sTasName>_alpha_set( ((<i>-1) mod <sTasName>_alpha_set'Last) + 1 );
 
     <else>
-        <p>(<i>) := Character'Val( if ((<i>-1) mod 128) = 0 then 65 else (<i>-1) mod 128);
+        <p>(<i>) := Character'Val(Integer'Pos( if ((<i>-1) mod 128) = 0 then 65 else (<i>-1) mod 128));
 
     <endif>
     else
