@@ -95,20 +95,6 @@ let PrintContract (tas:TypeAssignment) (r:AstRoot) (stgFileName:string) =
 
 
 let rec PrintType (r:AstRoot) (f:Asn1File) (stgFileName:string) modName (t:Asn1Type)    =
-    let rec printAsn1Value (v:Asn1AcnAst.Asn1Value) = 
-        match v.kind with
-        | Asn1AcnAst.IntegerValue        v       -> stg_asn1.Print_IntegerValue v.Value
-        | Asn1AcnAst.EnumValue           v       -> v.Value
-        | Asn1AcnAst.RealValue           v       -> stg_asn1.Print_RealValue v.Value
-        | Asn1AcnAst.StringValue         v       -> stg_asn1.Print_StringValue v.Value
-        | Asn1AcnAst.BooleanValue        v       -> stg_asn1.Print_BooleanValue v.Value
-        | Asn1AcnAst.BitStringValue      v       -> stg_asn1.Print_BitStringValue v.Value
-        | Asn1AcnAst.OctetStringValue    v       -> stg_asn1.Print_OctetStringValue (v |> List.map (fun b -> b.Value))
-        | Asn1AcnAst.RefValue       ((md,ts),_)  -> stg_asn1.Print_RefValue  ts.Value
-        | Asn1AcnAst.SeqOfValue          vals    -> stg_asn1.Print_SeqOfValue (vals |> List.map printAsn1Value)
-        | Asn1AcnAst.SeqValue            vals    -> stg_asn1.Print_SeqValue (vals |> List.map (fun nmv -> stg_asn1.Print_SeqValue_Child nmv.name.Value (printAsn1Value nmv.Value)))
-        | Asn1AcnAst.ChValue             nmv     -> stg_asn1.Print_ChValue nmv.name.Value (printAsn1Value nmv.Value)
-        | Asn1AcnAst.NullValue           _       -> stg_asn1.Print_NullValue ()
 
     let PrintTypeAux (t:Asn1Type) =
         match t.Kind with
@@ -129,7 +115,7 @@ let rec PrintType (r:AstRoot) (f:Asn1File) (stgFileName:string) modName (t:Asn1T
                 | Asn1Child c -> 
                     match c.Optionality with
                     | Some(Asn1AcnAst.Optional(optVal)) when optVal.defaultValue.IsSome -> 
-                           gen.SequenceChild c.Name.Value (ToC c.Name.Value) true (printAsn1Value optVal.defaultValue.Value) (BigInteger c.Name.Location.srcLine) (BigInteger c.Name.Location.charPos) (PrintType r f stgFileName modName c.Type  ) stgFileName
+                           gen.SequenceChild c.Name.Value (ToC c.Name.Value) true (DAstAsn1.printAsn1Value optVal.defaultValue.Value) (BigInteger c.Name.Location.srcLine) (BigInteger c.Name.Location.charPos) (PrintType r f stgFileName modName c.Type  ) stgFileName
                     | _ -> gen.SequenceChild c.Name.Value (ToC c.Name.Value) c.Optionality.IsSome null (BigInteger c.Name.Location.srcLine) (BigInteger c.Name.Location.charPos) (PrintType r f stgFileName modName c.Type  ) stgFileName
                 | AcnChild  c -> null
             gen.SequenceType (seqInfo.children |> Seq.map emitChild) stgFileName

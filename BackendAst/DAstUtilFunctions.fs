@@ -486,6 +486,33 @@ with
         | Sequence     t -> SeqValue t.initialValue
         | Choice       t -> ChValue t.initialValue
         | ReferenceType t-> t.initialValue.kind
+    member this.ConstraintsAsn1Str = 
+        match this.Kind with
+        | Integer      t -> t.constraintsAsn1Str
+        | Real         t -> t.constraintsAsn1Str
+        | IA5String    t -> t.constraintsAsn1Str
+        | OctetString  t -> t.constraintsAsn1Str
+        | NullType     t -> t.constraintsAsn1Str
+        | BitString    t -> t.constraintsAsn1Str
+        | Boolean      t -> t.constraintsAsn1Str
+        | Enumerated   t -> t.constraintsAsn1Str
+        | SequenceOf   t -> t.constraintsAsn1Str
+        | Sequence     t -> t.constraintsAsn1Str
+        | Choice       t -> t.constraintsAsn1Str
+        | ReferenceType t-> t.constraintsAsn1Str
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     member this.initFunction =
         match this.Kind with

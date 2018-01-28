@@ -281,6 +281,7 @@ type Integer = {
 
     //DAst properties
     //baseTypeEquivalence: BaseTypesEquivalence<Integer>
+    constraintsAsn1Str  : string list   //an ASN.1 representation of the constraints
 
     //typeDefinition      : TypeDefinitionCommon
     definitionOrRef     : TypeDefintionOrReference
@@ -303,6 +304,7 @@ type Integer = {
 type Enumerated = {
     baseInfo             : Asn1AcnAst.Enumerated
 
+    constraintsAsn1Str  : string list   //an ASN.1 representation of the constraints
     //DAst properties
     //baseTypeEquivalence: BaseTypesEquivalence<Enumerated>
     //typeDefinition      : TypeDefinitionCommon
@@ -326,6 +328,9 @@ type Real = {
     baseInfo             : Asn1AcnAst.Real
 
     //DAst properties
+    constraintsAsn1Str  : string list   //an ASN.1 representation of the constraints
+
+
     //baseTypeEquivalence: BaseTypesEquivalence<Real>
     //typeDefinition      : TypeDefinitionCommon
     definitionOrRef     : TypeDefintionOrReference
@@ -349,6 +354,7 @@ type Boolean = {
     baseInfo             : Asn1AcnAst.Boolean
 
     //DAst properties
+    constraintsAsn1Str  : string list   //an ASN.1 representation of the constraints
     //baseTypeEquivalence: BaseTypesEquivalence<Boolean>
     //typeDefinition      : TypeDefinitionCommon
     definitionOrRef     : TypeDefintionOrReference
@@ -372,6 +378,7 @@ type NullType = {
     baseInfo             : Asn1AcnAst.NullType
 
     //DAst properties
+    constraintsAsn1Str  : string list   //an ASN.1 representation of the constraints
     //baseTypeEquivalence: BaseTypesEquivalence<NullType>
     //typeDefinition      : TypeDefinitionCommon
     definitionOrRef     : TypeDefintionOrReference
@@ -392,6 +399,7 @@ type StringType = {
     baseInfo             : Asn1AcnAst.StringType
 
     //DAst properties
+    constraintsAsn1Str  : string list   //an ASN.1 representation of the constraints
     //baseTypeEquivalence: BaseTypesEquivalence<StringType>
     //typeDefinition      : TypeDefinitionCommon
     definitionOrRef     : TypeDefintionOrReference
@@ -416,6 +424,7 @@ type OctetString = {
 
 
     //DAst properties
+    constraintsAsn1Str  : string list   //an ASN.1 representation of the constraints
     //baseTypeEquivalence: BaseTypesEquivalence<OctetString>
     //typeDefinition      : TypeDefinitionCommon
     definitionOrRef     : TypeDefintionOrReference
@@ -440,6 +449,7 @@ type BitString = {
     baseInfo             : Asn1AcnAst.BitString
 
     //DAst properties
+    constraintsAsn1Str  : string list   //an ASN.1 representation of the constraints
     //baseTypeEquivalence: BaseTypesEquivalence<BitString>
     //typeDefinition      : TypeDefinitionCommon
     definitionOrRef     : TypeDefintionOrReference
@@ -464,6 +474,7 @@ type SequenceOf = {
     childType           : Asn1Type
 
     //DAst properties
+    constraintsAsn1Str  : string list   //an ASN.1 representation of the constraints
     //baseTypeEquivalence: BaseTypesEquivalence<SequenceOf>
     //typeDefinition      : TypeDefinitionCommon
     definitionOrRef     : TypeDefintionOrReference
@@ -539,6 +550,7 @@ and Sequence = {
 
 
     //DAst properties
+    constraintsAsn1Str  : string list   //an ASN.1 representation of the constraints
     //baseTypeEquivalence: BaseTypesEquivalence<Sequence>
     //typeDefinition      : TypeDefinitionCommon
     definitionOrRef     : TypeDefintionOrReference
@@ -582,6 +594,7 @@ and Choice = {
     children            : ChChildInfo list
 
     //DAst properties
+    constraintsAsn1Str  : string list   //an ASN.1 representation of the constraints
     //baseTypeEquivalence: BaseTypesEquivalence<Choice>
     //typeDefinition      : TypeDefinitionCommon
     definitionOrRef     : TypeDefintionOrReference
@@ -606,6 +619,7 @@ and ReferenceType = {
     resolvedType        : Asn1Type
 
     //typeDefinition      : TypeDefinitionCommon
+    constraintsAsn1Str  : string list   //an ASN.1 representation of the constraints
     definitionOrRef     : TypeDefintionOrReference
     printValue          : (Asn1ValueKind option) -> (Asn1ValueKind) -> string
     initialValue        : Asn1Value

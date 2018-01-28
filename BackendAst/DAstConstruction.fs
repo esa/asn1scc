@@ -102,6 +102,7 @@ let private createInteger (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (m:Asn1
             uperEncDecTestFunc  = uperEncDecTestFunc
             acnEncDecTestFunc   = acnEncDecTestFunc
             automaticTestCasesValues     = automaticTestCasesValues
+            constraintsAsn1Str = DAstAsn1.createIntegerFunction r t o
         }
     ((Integer ret),[]), s7
 
@@ -138,6 +139,7 @@ let private createReal (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (m:Asn1Acn
             uperEncDecTestFunc  = uperEncDecTestFunc
             acnEncDecTestFunc   = acnEncDecTestFunc
             automaticTestCasesValues = automaticTestCasesValues
+            constraintsAsn1Str = DAstAsn1.createRealFunction r t o
         }
     ((Real ret),[]), s7
 
@@ -181,6 +183,7 @@ let private createStringType (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserted
             uperEncDecTestFunc  = uperEncDecTestFunc
             acnEncDecTestFunc   = acnEncDecTestFunc
             automaticTestCasesValues = automaticTestCasesValues
+            constraintsAsn1Str = DAstAsn1.createStringFunction r t o
         }
     (ret,newPrms), s7
 
@@ -221,6 +224,7 @@ let private createOctetString (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserte
             uperEncDecTestFunc  = uperEncDecTestFunc
             acnEncDecTestFunc   = acnEncDecTestFunc
             automaticTestCasesValues = automaticTestCasesValues
+            constraintsAsn1Str = DAstAsn1.createOctetStringFunction r t o
         }
     ((OctetString ret),newPrms), s7
 
@@ -253,6 +257,7 @@ let private createNullType (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (m:Asn
             acnDecFunction      = acnDecFunction
             uperEncDecTestFunc  = uperEncDecTestFunc
             acnEncDecTestFunc   = acnEncDecTestFunc
+            constraintsAsn1Str = []
         }
     ((NullType ret),[]), s7
 
@@ -294,6 +299,7 @@ let private createBitString (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
             uperEncDecTestFunc  = uperEncDecTestFunc
             acnEncDecTestFunc   = acnEncDecTestFunc
             automaticTestCasesValues = automaticTestCasesValues
+            constraintsAsn1Str = DAstAsn1.createBitStringFunction r t o
         }
     ((BitString ret),newPrms), s7
 
@@ -329,6 +335,7 @@ let private createBoolean (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (m:Asn1
             uperEncDecTestFunc  = uperEncDecTestFunc
             acnEncDecTestFunc   = acnEncDecTestFunc
             automaticTestCasesValues = automaticTestCasesValues
+            constraintsAsn1Str = DAstAsn1.createBoolFunction r t o
         }
     ((Boolean ret),[]), s7
 
@@ -371,6 +378,7 @@ let private createEnumerated (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (m:A
             uperEncDecTestFunc  = uperEncDecTestFunc
             acnEncDecTestFunc   = acnEncDecTestFunc
             automaticTestCasesValues = automaticTestCasesValues
+            constraintsAsn1Str = DAstAsn1.createEnumeratedFunction r t o
         }
     ((Enumerated ret),[]), s7
 
@@ -409,6 +417,7 @@ let private createSequenceOf (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserted
             uperEncDecTestFunc  = uperEncDecTestFunc
             acnEncDecTestFunc   = acnEncDecTestFunc
             automaticTestCasesValues = automaticTestCasesValues
+            constraintsAsn1Str = DAstAsn1.createSequenceOfFunction r t o
         }
     ((SequenceOf ret),newPrms), s7
 
@@ -470,6 +479,7 @@ let private createSequence (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
             uperEncDecTestFunc  = uperEncDecTestFunc
             acnEncDecTestFunc   = acnEncDecTestFunc
             automaticTestCasesValues = automaticTestCasesValues
+            constraintsAsn1Str = DAstAsn1.createSequenceFunction r t o children
         }
     ((Sequence ret),newPrms), s7
 
@@ -507,6 +517,7 @@ let private createChoice (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
             uperEncDecTestFunc  = uperEncDecTestFunc
             acnEncDecTestFunc   = acnEncDecTestFunc
             automaticTestCasesValues = automaticTestCasesValues
+            constraintsAsn1Str = DAstAsn1.createChoiceFunction r t o children
         }
     ((Choice ret),newPrms), s7
 
@@ -564,6 +575,7 @@ let private createReferenceType (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInser
             uperEncDecTestFunc  = uperEncDecTestFunc
             acnEncDecTestFunc   = acnEncDecTestFunc
             automaticTestCasesValues = newResolvedType.automaticTestCasesValues
+            constraintsAsn1Str = newResolvedType.ConstraintsAsn1Str
         }
     ((ReferenceType ret),newPrms), s7
 

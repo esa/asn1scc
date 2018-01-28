@@ -155,7 +155,7 @@ let rec printType (stgFileName:string) (m:Asn1Module) (tas:TypeAssignment) (t:As
                                | Some Asn1AcnAst.AlwaysPresent  -> "Yes (always present)"
                                | Some (Asn1AcnAst.Optional opt )-> "Def"
             let sType = getTypeName stgFileName ch.Type
-            let sAsn1Constraints = ""
+            let sAsn1Constraints = ch.Type.ConstraintsAsn1Str |> Seq.StrJoin ""
                 //+++
                 //let ret = ch.Type.Constraints |> Seq.map PrintAsn1.PrintConstraint |> Seq.StrJoin ""
                 //( if ret.Trim() ="" then "N.A." else ret)
@@ -190,7 +190,7 @@ let rec printType (stgFileName:string) (m:Asn1Module) (tas:TypeAssignment) (t:As
             let nIndex = BigInteger 2
             let sComment = GetCommentLine ch.Comments ch.chType
             let sType = getTypeName stgFileName ch.chType
-            let sAsn1Constraints = ""
+            let sAsn1Constraints = ch.chType.ConstraintsAsn1Str |> Seq.StrJoin ""
                 //+++
                 //let ret = ch.Type.Constraints |> Seq.map PrintAsn1.PrintConstraint |> Seq.StrJoin ""
                 //( if ret.Trim() ="" then "N.A." else ret)
@@ -219,7 +219,7 @@ let rec printType (stgFileName:string) (m:Asn1Module) (tas:TypeAssignment) (t:As
             match t.Kind with
             | SequenceOf o ->
                 let child = o.childType
-                let sAsn1Constraints = ""//+++ child.Constraints |> Seq.map PrintAsn1.PrintConstraint |> Seq.StrJoin "" 
+                let sAsn1Constraints = child.ConstraintsAsn1Str |> Seq.StrJoin ""//+++ child.Constraints |> Seq.map PrintAsn1.PrintConstraint |> Seq.StrJoin "" 
                 let ret = ( if sAsn1Constraints.Trim() ="" then "N.A." else sAsn1Constraints)
                 let sMinBits, _, sMaxBits, _ = getMinMaxBitsAndBytes child.uperMinSizeInBits child.uperMaxSizeInBits
                 let sMaxBitsExplained =  GetWhyExplanation stgFileName child r
@@ -246,7 +246,7 @@ let rec printType (stgFileName:string) (m:Asn1Module) (tas:TypeAssignment) (t:As
                 | Asn1AcnAst.PosInf(b)                     ->  8I, 16I
                 | Asn1AcnAst.Full                          -> 8I, 16I
             let comment = "Special field used by PER to indicate the number of items present in the array."
-            let ret = "" //+++ t.Constraints |> Seq.map PrintAsn1.PrintConstraint |> Seq.StrJoin "" 
+            let ret = t.ConstraintsAsn1Str |> Seq.StrJoin "" //+++ t.Constraints |> Seq.map PrintAsn1.PrintConstraint |> Seq.StrJoin "" 
             let sCon = ( if ret.Trim() ="" then "N.A." else ret)
 
             icd_uper.EmmitChoiceChild stgFileName (icd_uper.OddRow stgFileName ()) (BigInteger 1) "Length" comment    "unsigned int" sCon (nMin.ToString()) (nLengthSize.ToString())
