@@ -109,7 +109,6 @@ PrintTypeAssignment(sName, sTasDecl, nMaxBitsInPER, nMaxBytesInPER, nMaxBitsInAC
 <sName>_REQUIRED_BITS_FOR_ENCODING:CONSTANT INTEGER := <nMaxBitsInPER>;
 <sName>_REQUIRED_BYTES_FOR_ACN_ENCODING:CONSTANT INTEGER := <nMaxBytesInACN>;
 <sName>_REQUIRED_BITS_FOR_ACN_ENCODING:CONSTANT INTEGER := <nMaxBitsInACN>;
-<sName>_REQUIRED_BYTES_FOR_XER_ENCODING:CONSTANT INTEGER :=  0;
 
 FUNCTION <sName>_Init return <sName>;
 ---# derives val from;
