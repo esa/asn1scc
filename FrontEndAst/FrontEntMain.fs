@@ -8,6 +8,8 @@ open Antlr.Acn
 open System.Collections.Generic
 open System.Linq
 open CommonTypes
+open FsUtils
+open Antlr
 
 //let CreateAstRoot (list:(ITree*string*array<IToken>) seq) (encodings:array<Asn1Encoding>) generateEqualFunctions typePrefix checkWithOss astXmlFileName icdUperHtmlFileName icdAcnHtmlFileName (mappingFunctionsModule:string) integerSizeInBytes =  
 
@@ -86,3 +88,8 @@ let constructAst (args:CommandLineSettings) =
 
     (acnAst, acnDeps)
 
+
+let formatSemanticError (loc:SrcLoc) (msg:string) =
+    if loc.Equals(FsUtils.emptyLocation)
+        then "error: " + msg
+        else ErrorFormatter.FormatError(loc.srcFilename, loc.srcLine, loc.charPos, msg)

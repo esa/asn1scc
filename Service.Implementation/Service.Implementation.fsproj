@@ -84,14 +84,14 @@
       <Project>{a1882f1d-5185-407c-8227-1e2b69baade9}</Project>
       <Private>True</Private>
     </ProjectReference>
-    <ProjectReference Include="..\Asn1f2\Asn1f2.csproj">
-      <Name>Asn1f2</Name>
-      <Project>{9fc95eba-a745-4c0d-bf4e-53497e066d1c}</Project>
-      <Private>True</Private>
-    </ProjectReference>
     <ProjectReference Include="..\CommonTypes\CommonTypes.fsproj">
       <Name>CommonTypes</Name>
       <Project>{83f15fa6-7da0-4e47-9512-39ae3fdd28cf}</Project>
+      <Private>True</Private>
+    </ProjectReference>
+    <ProjectReference Include="..\FrontEndAst\FrontEndAst.fsproj">
+      <Name>FrontEndAst</Name>
+      <Project>{11fdc208-86e6-464e-9974-0e534ed55513}</Project>
       <Private>True</Private>
     </ProjectReference>
     <ProjectReference Include="..\Service\Service.fsproj">

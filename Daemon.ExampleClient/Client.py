@@ -19,7 +19,23 @@ def get_correct_ast(uri):
         'AcnFiles': []
     }
     get_ast(uri, data)
-
+    
+def get_correct_ast_with_acn(uri):
+    data = {
+        'AsnFiles': [
+                {
+                    'Name': 'Test.asn',
+                    'Contents': 'Example DEFINITIONS ::= BEGIN MyInt ::= INTEGER(0 .. 10) END'
+                }
+        ],
+        'AcnFiles': [
+                {
+                    'Name': 'Test.acn',
+                    'Contents': 'Example DEFINITIONS ::= BEGIN MyInt [size 32, encoding pos-int] END'
+                }
+        ]
+    }
+    get_ast(uri, data)
 
 def get_compilation_error(uri):
     data = {
@@ -40,6 +56,7 @@ def run(uri):
 
     get_correct_ast(uri)
     get_compilation_error(uri)
+    get_correct_ast_with_acn(uri)
 
 
 if __name__ == "__main__":
