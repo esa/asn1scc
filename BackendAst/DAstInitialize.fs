@@ -19,7 +19,9 @@ However, now with the 'pragma Annotate (GNATprove, False_Positive)' we can handl
 *)
 
 let getFuncName (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (tasInfo:TypeAssignmentInfo option) =
-    tasInfo |> Option.map (fun x -> ToC2(r.args.TypePrefix + x.tasName + "_Initialize"))
+    match l with
+    | C     -> tasInfo |> Option.map (fun x -> ToC2(r.args.TypePrefix + x.tasName + "_Initialize"))
+    | Ada   -> tasInfo |> Option.map (fun x -> ToC2(r.args.TypePrefix + x.tasName + "_Init"))
 
 let createInitFunctionCommon (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage)   (o:Asn1AcnAst.Asn1Type) (typeDefinition:TypeDefintionOrReference) initByAsn1Value (iv:Asn1ValueKind) (initTasFunction:CallerScope  -> InitFunctionResult)  testCaseFuncs =
     let funcName            = getFuncName r l o.id.tasInfo

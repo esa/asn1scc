@@ -149,15 +149,17 @@ end;
 
 
 initTypeAssignment_def(sVarName, sStar, sFuncName, sTypeDefName) ::= <<
-procedure <sFuncName>(<sVarName>:in out <sTypeDefName>);
+function <sFuncName> return <sTypeDefName>;
 >>
 
 initTypeAssignment(sVarName, sStar, sFuncName, sTypeDefName, sContent, arrsLocalVariables) ::= <<
-procedure <sFuncName>(<sVarName>:in out <sTypeDefName>)
+function <sFuncName> return <sTypeDefName>
 is
+    <sVarName>: <sTypeDefName>;
     <arrsLocalVariables; separator="\n">
 begin
     <sContent>
+    return <sVarName>;
 end <sFuncName>;
 >>
 

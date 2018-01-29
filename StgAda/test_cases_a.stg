@@ -175,7 +175,7 @@ declare
 begin
     <if(soInitFunction)>
     -- dummy statement used for calling init functions
-    <soInitFunction>(tc_data);
+    tc_data := <soInitFunction>;
     <endif>
     --the actual initialization with the test case data is made here.
     <sInitializeTcData>
