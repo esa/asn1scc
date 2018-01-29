@@ -360,7 +360,7 @@ let createSequenceOf (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (pi : Asn1Fo
 let createSequence (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (pi : Asn1Fold.ParentInfo<ParentInfoData> option) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Sequence)  (children:SeqChildInfo list) (us:State) =
     let children = children |> List.choose (fun c -> match c with Asn1Child z -> Some z | _ -> None)
     let optionalChildren = children |> List.choose(fun c -> match c.Optionality with Some _ -> Some c | None -> None)
-    let optChildNames  = optionalChildren |> List.map(fun c -> c.Name.Value)
+    let optChildNames  = optionalChildren |> List.map(fun c -> c.c_name)
     let childldrenCompleteDefintions = children |> List.collect (fun c -> getChildDefinition c.Type.typeDefintionOrReference)
     let getCompleteDefinition (programUnit:string) (typeDefinitionName:string) =
         match l with
@@ -372,7 +372,7 @@ let createSequence (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (pi : Asn1Fold
         | Ada                    -> 
             let handleChild (o:Asn1Child) = header_a.SEQUENCE_tas_decl_child o.c_name (o.Type.typeDefintionOrReference.longTypedefName l)
             let childrenBodies = children |> List.map handleChild
-            let optChildren  = optionalChildren |> List.map(fun c -> header_a.SEQUENCE_tas_decl_child_bit c.Name.Value)
+            let optChildren  = optionalChildren |> List.map(fun c -> header_a.SEQUENCE_tas_decl_child_bit c.ada_name)
             header_a.SEQUENCE_tas_decl typeDefinitionName childrenBodies optChildren childldrenCompleteDefintions
     let getExtraSubTypes sTypeDefinitionName soParentTypePackage sParentType =
         match l with
