@@ -16,6 +16,8 @@ let private xsi = XNamespace.Get xsiUrl
 let private customWsSchemaLocation = "asn1sccAst.xsd"
 
 
+let constraintsTag = "Constraints"
+let withCompConstraintsTag = "WithComponentConstraints"
 
 let private printUInt (v:UInt32) = XElement(xname "IntegerValue", v)
 let private printIntVal (v:BigInteger) = XElement(xname "IntegerValue", v)
@@ -233,42 +235,42 @@ let private exportType (t:Asn1Type) =
                         (exportAcnEndianness ti.acnProperties.endiannessProp),
                         (exportAcnIntSizeProperty ti.acnProperties.sizeProp),
                         (exportAcnIntEncoding ti.acnProperties.encodingProp),
-                        XElement(xname "CONS", ti.cons |> List.map (printRangeConstraint printIntVal) ),
-                        XElement(xname "WITH_CONS", ti.withcons |> List.map(printRangeConstraint printIntVal ))
+                        XElement(xname constraintsTag, ti.cons |> List.map (printRangeConstraint printIntVal) ),
+                        XElement(xname withCompConstraintsTag, ti.withcons |> List.map(printRangeConstraint printIntVal ))
                         ), us )
         (fun ti us -> XElement(xname "REAL",
                         (exportAcnEndianness ti.acnProperties.endiannessProp),
                         (exportAcnRealEncoding ti.acnProperties.encodingProp),
-                        XElement(xname "CONS", ti.cons |> List.map(printRangeConstraint printRealVal)),
-                        XElement(xname "WITH_CONS", ti.withcons |> List.map(printRangeConstraint printRealVal ))
+                        XElement(xname constraintsTag, ti.cons |> List.map(printRangeConstraint printRealVal)),
+                        XElement(xname withCompConstraintsTag, ti.withcons |> List.map(printRangeConstraint printRealVal ))
                         ), us )
         (fun ti us -> XElement(xname "IA5String",
                         (exportAcnStringSizeProperty ti.acnProperties.sizeProp),
                         (exportAcnStringEncoding ti.acnProperties.encodingProp),
-                        XElement(xname "CONS", ti.cons |> List.map(printAlphaConstraint printStringVal )),
-                        XElement(xname "WITH_CONS", ti.withcons |> List.map(printAlphaConstraint printStringVal ))
+                        XElement(xname constraintsTag, ti.cons |> List.map(printAlphaConstraint printStringVal )),
+                        XElement(xname withCompConstraintsTag, ti.withcons |> List.map(printAlphaConstraint printStringVal ))
                         ), us )
         (fun ti us -> XElement(xname "NumericString",
                         (exportAcnStringSizeProperty ti.acnProperties.sizeProp),
                         (exportAcnStringEncoding ti.acnProperties.encodingProp),
-                        XElement(xname "CONS", ti.cons |> List.map(printAlphaConstraint printStringVal )),
-                        XElement(xname "WITH_CONS", ti.withcons |> List.map(printAlphaConstraint printStringVal ))
+                        XElement(xname constraintsTag, ti.cons |> List.map(printAlphaConstraint printStringVal )),
+                        XElement(xname withCompConstraintsTag, ti.withcons |> List.map(printAlphaConstraint printStringVal ))
                         ), us )
         (fun ti us -> XElement(xname "OCTET_STRING",
                         (exportSizeableSizeProp ti.acnProperties.sizeProp),
-                        XElement(xname "CONS", ti.cons |> List.map(printSizableConstraint printOctetStringVal )),
-                        XElement(xname "WITH_CONS", ti.withcons |> List.map(printSizableConstraint printOctetStringVal ))
+                        XElement(xname constraintsTag, ti.cons |> List.map(printSizableConstraint printOctetStringVal )),
+                        XElement(xname withCompConstraintsTag, ti.withcons |> List.map(printSizableConstraint printOctetStringVal ))
                         ), us )
         (fun ti us -> XElement(xname "NULL", (exportAcnNullType ti.acnProperties.encodingPattern)),us )
         (fun ti us -> XElement(xname "BIT_STRING",
                         (exportSizeableSizeProp ti.acnProperties.sizeProp),
-                        XElement(xname "CONS", ti.cons |> List.map(printSizableConstraint printBitStringVal )),
-                        XElement(xname "WITH_CONS", ti.withcons |> List.map(printSizableConstraint printBitStringVal ))
+                        XElement(xname constraintsTag, ti.cons |> List.map(printSizableConstraint printBitStringVal )),
+                        XElement(xname withCompConstraintsTag, ti.withcons |> List.map(printSizableConstraint printBitStringVal ))
                         ), us )
         (fun ti us -> XElement(xname "BOOLEAN",
                         (exportAcnBooleanEncoding ti.acnProperties.encodingPattern),
-                        XElement(xname "CONS", ti.cons |> List.map(printGenericConstraint printBoolVal )),
-                        XElement(xname "WITH_CONS", ti.withcons |> List.map(printGenericConstraint printBoolVal ))
+                        XElement(xname constraintsTag, ti.cons |> List.map(printGenericConstraint printBoolVal )),
+                        XElement(xname withCompConstraintsTag, ti.withcons |> List.map(printGenericConstraint printBoolVal ))
                         ), us )
         (fun ti us -> XElement(xname "Enumerated",
                         (exportAcnEndianness ti.acnProperties.endiannessProp),
@@ -281,18 +283,18 @@ let private exportType (t:Asn1Type) =
                                                                     XAttribute(xname "Line", c.Name.Location.srcLine),
                                                                     XAttribute(xname "CharPositionInLine", c.Name.Location.charPos)
                                                                 ))),
-                        XElement(xname "CONS", ti.cons |> List.map(printGenericConstraint printEnumVal )),
-                        XElement(xname "WITH_CONS", ti.withcons |> List.map(printGenericConstraint printEnumVal ))
+                        XElement(xname constraintsTag, ti.cons |> List.map(printGenericConstraint printEnumVal )),
+                        XElement(xname withCompConstraintsTag, ti.withcons |> List.map(printGenericConstraint printEnumVal ))
                         ), us )
         (fun ti nc us -> XElement(xname "SEQUENCE_OF",
                             (exportSizeableSizeProp ti.acnProperties.sizeProp),
-                            XElement(xname "CONS", ti.cons |> List.map(printSizableConstraint printSeqOfValue )),
-                            XElement(xname "WITH_CONS", ti.withcons |> List.map(printSizableConstraint printSeqOfValue )),
+                            XElement(xname constraintsTag, ti.cons |> List.map(printSizableConstraint printSeqOfValue )),
+                            XElement(xname withCompConstraintsTag, ti.withcons |> List.map(printSizableConstraint printSeqOfValue )),
                             nc), us )
         (fun ti children us -> XElement(xname "SEQUENCE",
                                 children,
-                                XElement(xname "CONS", ti.cons |> List.map(printGenericConstraint printSeqValue )),
-                                XElement(xname "WITH_CONS", ti.withcons |> List.map(printGenericConstraint printSeqValue ))
+                                XElement(xname constraintsTag, ti.cons |> List.map(printGenericConstraint printSeqValue )),
+                                XElement(xname withCompConstraintsTag, ti.withcons |> List.map(printGenericConstraint printSeqValue ))
                                 ), us )
         (fun ch nt us -> XElement(xname "SEQUENCE_COMPONENT",
                             XAttribute(xname "name", ch.Name.Value),
@@ -329,8 +331,8 @@ let private exportType (t:Asn1Type) =
                     (exportAcnIntSizeProperty a.enumerated.acnProperties.sizeProp),
                     (exportAcnIntEncoding a.enumerated.acnProperties.encodingProp),
                     XElement(xname "Items", a.enumerated.items |> List.map(fun c ->  XElement(xname "Item", XAttribute(xname "name", c.Name.Value), XAttribute(xname "value", c.definitionValue))   )),
-                    XElement(xname "CONS", a.enumerated.cons |> List.map(printGenericConstraint printEnumVal )),
-                    XElement(xname "WITH_CONS", a.enumerated.withcons |> List.map(printGenericConstraint printEnumVal )) ), us 
+                    XElement(xname constraintsTag, a.enumerated.cons |> List.map(printGenericConstraint printEnumVal )),
+                    XElement(xname withCompConstraintsTag, a.enumerated.withcons |> List.map(printGenericConstraint printEnumVal )) ), us 
 
             | AcnReferenceToIA5String (a)        -> 
                 XElement(xname "ACN_COMPONENT", 
@@ -350,8 +352,8 @@ let private exportType (t:Asn1Type) =
         (fun ti children us -> XElement(xname "CHOICE",
                                 (exportChoiceDeterminant ti.acnProperties.enumDeterminant),
                                 children,
-                                XElement(xname "CONS", ti.cons |> List.map(printGenericConstraint printChoiceValue )),
-                                XElement(xname "WITH_CONS", ti.withcons |> List.map(printGenericConstraint printChoiceValue ))
+                                XElement(xname constraintsTag, ti.cons |> List.map(printGenericConstraint printChoiceValue )),
+                                XElement(xname withCompConstraintsTag, ti.withcons |> List.map(printGenericConstraint printChoiceValue ))
                                 ), us )
         (fun ch nt us -> XElement(xname "CHOICE_ALTERNATIVE",
                             XAttribute(xname "name", ch.Name.Value),
