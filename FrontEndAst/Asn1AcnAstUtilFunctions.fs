@@ -312,6 +312,19 @@ type AstRoot with
         | None    -> raise(SemanticError(loc, sprintf "No Module Defined with name: %s" n ))
 
 type Asn1Module with
+    member this.ExportedTypes =
+        match this.Exports with
+        | Asn1Ast.All   -> 
+            let importedTypes = this.Imports |> List.collect(fun imp -> imp.Types) |> List.map(fun x -> x.Value)
+            (this.TypeAssignments |> List.map(fun x -> x.Name.Value))@importedTypes
+        | Asn1Ast.OnlySome(typesAndVars)    ->
+            typesAndVars |> List.filter(fun x -> System.Char.IsUpper (x.Chars 0))
+    member this.ExportedVars =
+        match this.Exports with
+        | Asn1Ast.All   -> this.ValueAssignments |> List.map(fun x -> x.Name.Value)
+        | Asn1Ast.OnlySome(typesAndVars)    ->
+            typesAndVars |> List.filter(fun x -> not (System.Char.IsUpper (x.Chars 0)))
+
     member m.TryGetTypeAssignmentByName name (r:AstRoot) =
         match m.TypeAssignments|> Seq.tryFind(fun x -> x.Name = name) with
         | Some t   -> Some t

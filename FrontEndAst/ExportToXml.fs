@@ -16,6 +16,7 @@ let private xsi = XNamespace.Get xsiUrl
 let private customWsSchemaLocation = "asn1sccAst.xsd"
 
 
+
 let private printUInt (v:UInt32) = XElement(xname "IntegerValue", v)
 let private printIntVal (v:BigInteger) = XElement(xname "IntegerValue", v)
 let private printRealVal (v:double) = XElement(xname "RealValue", v)
@@ -408,11 +409,26 @@ let private exportVas (vas:ValueAssignment) =
         (PrintAsn1GenericValue vas.Value)
     )
 
+
+
 let private exportModule (m:Asn1Module) =
+    let handleImpotModule (im:Asn1Ast.ImportedModule) =
+        XElement(xname "ImportedModule",
+            XAttribute(xname "ID", im.Name.Value),
+            (XElement(xname "ImportedTypes",
+                im.Types |> List.map(fun et -> XElement(xname "ImportedType", XAttribute(xname "Name", et.Value))))),
+            (XElement(xname "ImportedVariables",
+                im.Values |> List.map(fun et -> XElement(xname "ImportedVariable", XAttribute(xname "Name", et.Value))))))
+
     XElement(xname "Module",
         XAttribute(xname "Name", m.Name.Value),
         XAttribute(xname "Line", m.Name.Location.srcLine),
         XAttribute(xname "CharPositionInLine", m.Name.Location.charPos),
+        (XElement(xname "ExportedTypes",
+            m.ExportedTypes |> List.map(fun et -> XElement(xname "ExportedType", XAttribute(xname "Name", et))))),
+        (XElement(xname "ExportedVariables",
+            m.ExportedVars |> List.map(fun et -> XElement(xname "ExportedVariable", XAttribute(xname "Name", et))))),
+        (XElement(xname "ImportedModules", m.Imports |> List.map handleImpotModule)),
         XElement(xname "TypeAssigments", m.TypeAssignments |> List.map  exportTas),
         XElement(xname "ValueAssigments",m.ValueAssignments |> List.map  exportVas)
     )
