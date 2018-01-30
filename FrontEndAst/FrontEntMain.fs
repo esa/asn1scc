@@ -13,24 +13,26 @@ open Antlr
 
 //let CreateAstRoot (list:(ITree*string*array<IToken>) seq) (encodings:array<Asn1Encoding>) generateEqualFunctions typePrefix checkWithOss astXmlFileName icdUperHtmlFileName icdAcnHtmlFileName (mappingFunctionsModule:string) integerSizeInBytes =  
 
+
 let antlrParse (lexer: ICharStream -> #ITokenSource ) parser treeParser (fileName: string, files : string seq) = 
 
-    let stream = 
+    let concatenateStreams (streams : Stream seq) =
+        let spaceAscii = (byte 32)
+        let memStream = new MemoryStream()
+        streams |> Seq.iter (fun s -> s.CopyTo(memStream); memStream.WriteByte(spaceAscii))
+        memStream.Position <- (int64 0)
+        memStream :> Stream
+
+    let inputStream =
         match Seq.length files > 1 with
-        | true  ->
-            let memStream = new MemoryStream()
-            files |> Seq.iter(fun f -> 
-                let fileData  = File.ReadAllBytes(f)
-                memStream.Write(fileData, 0, fileData.Length)
-                memStream.WriteByte(byte 32)    //append a space in case there is no character after ASN.1 END
-            )
-            memStream.Position <- (int64 0)
-            new CommonTokenStream(lexer(new ANTLRInputStream(memStream)));
-        | false ->
-            let file  = files |> Seq.toList |> List.head
-            CommonTokenStream(lexer(new ANTLRFileStream(file)));
-    let tokens = stream.GetTokens().Cast<IToken>() |> Seq.toArray
-    let tree = treeParser(parser(stream));
+        | true -> files |> Seq.map (fun f -> File.OpenRead(f) :> Stream) |> concatenateStreams
+        | false -> File.OpenRead(files |> Seq.toList |> List.head) :> Stream
+    
+    let antlrStream = new ANTLRInputStream(inputStream)
+    antlrStream.SourceName <- fileName
+    let tokenStream = new CommonTokenStream(lexer(antlrStream))
+    let tokens = tokenStream.GetTokens().Cast<IToken>() |> Seq.toArray
+    let tree = treeParser(parser(tokenStream));
     {ParameterizedAsn1Ast.AntlrParserResult.fileName = fileName; ParameterizedAsn1Ast.AntlrParserResult.rootItem=tree; ParameterizedAsn1Ast.AntlrParserResult.tokens=tokens}
 
 let constructAst (args:CommandLineSettings) =
