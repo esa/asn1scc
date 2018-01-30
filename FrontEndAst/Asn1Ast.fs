@@ -117,6 +117,7 @@ type Asn1Type = {
     Kind            : Asn1TypeKind;
     Constraints     : Asn1Constraint list
     Location        : SrcLoc //Line no, Char pos
+    parameterizedTypeInstance : bool
 }
 
 

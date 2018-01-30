@@ -376,6 +376,7 @@ let private exportType (t:Asn1Type) =
                             XAttribute(xname "id", t.id.AsString),
                             XAttribute(xname "Line", t.Location.srcLine),
                             XAttribute(xname "CharPositionInLine", t.Location.charPos),
+                            XAttribute(xname "ParameterizedTypeInstance", t.parameterizedTypeInstance),
                             (match t.inheritInfo with
                              |Some ts -> XAttribute(xname "tasInfoModule",ts.modName)
                              |None     -> null

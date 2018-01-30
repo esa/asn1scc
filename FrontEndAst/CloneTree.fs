@@ -94,6 +94,7 @@ let CloneType (old:Asn1Type) m key cons state =
         Kind = newKind
         Constraints = old.Constraints
         Location = old.Location
+        parameterizedTypeInstance = old.parameterizedTypeInstance
     }, newState
 
     

@@ -290,6 +290,7 @@ and MapAsn1Type (r:ParameterizedAsn1Ast.AstRoot) typeScope (t:ParameterizedAsn1A
                    let newSs = visitSilbingConstraint ss
                    newC, newSs) (visitConstraint []) |> fst
             Location = t.Location
+            parameterizedTypeInstance = t.parameterizedTypeInstance
         }        
     match t.Kind with
     | ParameterizedAsn1Ast.Integer          -> aux Asn1Ast.Integer

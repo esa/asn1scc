@@ -1323,6 +1323,8 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (m:Asn1Ast.Asn1Mo
         acnParameters   = acnParameters |> List.map(fun prm -> {prm with id = (ReferenceToType (curPath@[(PRM prm.name)]))})
         inheritInfo   = inferitInfo
         typeAssignmentInfo = typeAssignmentInfo
+        parameterizedTypeInstance = t.parameterizedTypeInstance
+
         
     }
 

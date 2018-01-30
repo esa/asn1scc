@@ -93,6 +93,7 @@ let rec CloneType  (r:AstRoot)  (curModule:Asn1Module) (oldModName:string) (name
             Asn1Type.Kind = newKind
             Constraints = newCons
             Location = old.Location
+            parameterizedTypeInstance = false
         }
     retType, (implicitImports@newImports |> Seq.distinct |> Seq.toList)
 
@@ -187,7 +188,9 @@ and SpecializeRefType (r:AstRoot) (curModule:Asn1Module) (mdName:StringLoc) (tsN
         | _, TemplateParameter(_)   -> raise (SemanticError(tsName.Location, sprintf "Unexpected combination"))
     let namedArgs = List.zip args parmTas.Parameters |> List.map getNameArg
 
-    CloneType  r curModule mdName.Value namedArgs parmTas.Type (implicitImports@newImports |> Seq.distinct |> Seq.toList)
+    let newType, implImps = CloneType  r curModule mdName.Value namedArgs parmTas.Type (implicitImports@newImports |> Seq.distinct |> Seq.toList)
+
+    {newType with parameterizedTypeInstance=true}, implImps
 
 
 
@@ -214,6 +217,7 @@ and DoAsn1Type (r:AstRoot) (curModule:Asn1Module) (implicitImports : List<string
             Asn1Type.Kind = kind
             Constraints = t.Constraints 
             Location = t.Location
+            parameterizedTypeInstance = false
         }        
     match t.Kind with
     | SequenceOf(child) -> 

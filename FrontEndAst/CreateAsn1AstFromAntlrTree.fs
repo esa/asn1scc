@@ -179,6 +179,7 @@ let rec CreateType (tasParameters : TemplateParameter list) (astRoot:list<ITree>
                 | _     -> userConstraints
             | _                 -> userConstraints
         Location = tree.Location
+        parameterizedTypeInstance = false
     }
 
 and CreateChoiceChild (tasParameters : TemplateParameter list) (astRoot:list<ITree>) (tree:ITree) (fileTokens:array<IToken>) (alreadyTakenComments:System.Collections.Generic.List<IToken>) = 
@@ -477,7 +478,7 @@ let CreateAsn1Module (astRoot:list<ITree>) (tree:ITree)   (fileTokens:array<ITok
         List.filter(fun x -> x.Type = asn1Parser.INTEGER_TYPE && not (x.Children.IsEmpty) && x.Parent.Parent.Type = asn1Parser.TYPE_ASSIG) |>
         List.collect(fun x -> 
             let tas = x.Parent.Parent.GetChild(0).TextL
-            let Type = { Asn1Type.Kind =  ReferenceType(mdName, tas, []); Constraints= []; Location = tas.Location}
+            let Type = { Asn1Type.Kind =  ReferenceType(mdName, tas, []); Constraints= []; Location = tas.Location; parameterizedTypeInstance = false}
             
             //CreateType astRoot x.Parent fileTokens alreadyTakenComments 
 

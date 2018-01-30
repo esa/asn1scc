@@ -513,6 +513,7 @@ with
 
 type Asn1Type = {
     id              : ReferenceToType
+    parameterizedTypeInstance : bool
     Kind            : Asn1TypeKind
     acnAligment     : AcnAligment option
     acnParameters   : AcnParameter list

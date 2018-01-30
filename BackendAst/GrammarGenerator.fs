@@ -106,7 +106,7 @@ let genetateIntegers (name:string) =
             for (i1,(a,b))  in (toIdxList pairs) do
                 let cons = generatedIntConstraints a b |> List.map(fun c -> Some c)
                 for (i2, c) in (toIdxList (None::cons)) do
-                    let asn1Type =  {ParameterizedAsn1Ast.Asn1Type.Kind = ParameterizedAsn1Ast.Integer; ParameterizedAsn1Ast.Constraints = Option.toList c ; ParameterizedAsn1Ast.Location=emptyLocation}    
+                    let asn1Type =  {ParameterizedAsn1Ast.Asn1Type.Kind = ParameterizedAsn1Ast.Integer; ParameterizedAsn1Ast.Constraints = Option.toList c ; ParameterizedAsn1Ast.Location=emptyLocation; parameterizedTypeInstance = false}    
                     let acnSpec = genrateAcnIntProps c
                     for (i3,s) in (toIdxList acnSpec) do
                         let newName = sprintf "%s-%d-%d-%d" name i1 i2 i3
