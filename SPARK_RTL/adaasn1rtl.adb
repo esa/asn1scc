@@ -10,354 +10,361 @@ use type Interfaces.Unsigned_64;
 use type Interfaces.Integer_64;
 use Interfaces;
 
-PACKAGE BODY adaasn1rtl with SPARK_Mode IS
+package body adaasn1rtl with
+     Spark_Mode is
 
-   MASKS : CONSTANT OctetBuffer_8 := OctetBuffer_8'(16#80#, 16#40#, 16#20#, 16#10#, 16#08#, 16#04#, 16#02#, 16#01#);
-   MSBIT_ONE  : CONSTANT Asn1UInt := 16#8000000000000000#;
+   MASKS : constant OctetBuffer_8 :=
+     OctetBuffer_8'
+       (16#80#, 16#40#, 16#20#, 16#10#, 16#08#, 16#04#, 16#02#, 16#01#);
+   MSBIT_ONE : constant Asn1UInt := 16#8000000000000000#;
 
-   MSBYTE_FF  : CONSTANT Asn1UInt:= 16#FF00000000000000#;
+   MSBYTE_FF : constant Asn1UInt := 16#FF00000000000000#;
 
-   MantissaFactor : CONSTANT Asn1Real:=Asn1Real(Interfaces.Unsigned_64(2)**Asn1Real'Machine_Mantissa);
+   MantissaFactor : constant Asn1Real :=
+     Asn1Real (Interfaces.Unsigned_64 (2)**Asn1Real'Machine_Mantissa);
 
-   ERR_END_OF_STREAM           :CONSTANT INTEGER:= 1001;
-   ERR_UNSUPPORTED_ENCODING    :CONSTANT INTEGER:= 1001;  --  Returned when the uPER encoding for REALs is not binary encoding
+   ERR_END_OF_STREAM        : constant Integer := 1001;
+   ERR_UNSUPPORTED_ENCODING : constant Integer :=
+     1001;  --  Returned when the uPER encoding for REALs is not binary encoding
 
-
-   FUNCTION Asn1Real_Equal(Left, Right: in Asn1Real) RETURN Boolean
-   IS
-       ret : Boolean;
-   BEGIN
-       IF Left = Right THEN
-           ret := true;
-       ELSIF Left = 0.0 THEN
-           ret := Right = 0.0;
-       ELSE
-           ret := ABS((Left - Right) / Left) < 0.00001;
-       END IF;
-       RETURN ret;
-   END Asn1Real_Equal;
-
-
-   FUNCTION Asn1Boolean_Equal(Left, Right: in Boolean) RETURN Boolean
-   IS (Left = Right);
-
-   FUNCTION Asn1Int_Equal(Left, Right: in Asn1Int) RETURN Boolean
-   IS (Left = Right);
-
-   FUNCTION Asn1NullType_Equal(Left, Right: in Asn1NullType) RETURN Boolean
-    IS
-                pragma SPARK_Mode(Off);
+   function Asn1Real_Equal (Left, Right : in Asn1Real) return Boolean is
+      ret : Boolean;
    begin
-      return true;
+      if Left = Right then
+         ret := True;
+      elsif Left = 0.0 then
+         ret := Right = 0.0;
+      else
+         ret := abs ((Left - Right) / Left) < 0.00001;
+      end if;
+      return ret;
+   end Asn1Real_Equal;
+
+   function Asn1Boolean_Equal
+     (Left, Right : in Boolean) return Boolean is
+     (Left = Right);
+
+   function Asn1Int_Equal
+     (Left, Right : in Asn1Int) return Boolean is
+     (Left = Right);
+
+   function Asn1NullType_Equal
+     (Left, Right : in Asn1NullType) return Boolean
+   is
+      pragma SPARK_Mode (Off);
+   begin
+      return True;
    end Asn1NullType_Equal;
-   FUNCTION getStringSize(str:String) RETURN Integer
-   IS
-      I:Integer:=1;
-   BEGIN
-      WHILE I<=str'Last AND THEN str(I)/=NUL LOOP
-         pragma Loop_Invariant (I>=1 AND I<=str'Last);
-         I:=I+1;
-      END LOOP;
-      RETURN I-1;
-   END  getStringSize;
+   function getStringSize (str : String) return Integer is
+      I : Integer := 1;
+   begin
+      while I <= str'Last and then str (I) /= NUL loop
+         pragma Loop_Invariant (I >= 1 and I <= str'Last);
+         I := I + 1;
+      end loop;
+      return I - 1;
+   end getStringSize;
 
-
-   FUNCTION stringContainsChar(str:String; ch:Character) RETURN Boolean
-   IS
-      I:INTEGER;
-      bFound:BOOLEAN:=false;
-   BEGIN
-      I:=str'First;
-      WHILE I<=str'Last AND NOT bFound LOOP
-         pragma Loop_Invariant (I>=str'First AND I<=str'Last);
-         bFound := str(I) = ch;
-         I:=I+1;
-      END LOOP;
+   function stringContainsChar (str : String; ch : Character) return Boolean is
+      I      : Integer;
+      bFound : Boolean := False;
+   begin
+      I := str'First;
+      while I <= str'Last and not bFound loop
+         pragma Loop_Invariant (I >= str'First and I <= str'Last);
+         bFound := str (I) = ch;
+         I      := I + 1;
+      end loop;
       return bFound;
-   END stringContainsChar;
+   end stringContainsChar;
 
+   function To_Int (IntVal : Asn1UInt) return Asn1Int is
+      ret : Asn1Int;
+      c   : Asn1UInt;
+   begin
+      if IntVal > Asn1UInt (Asn1Int'Last) then
+         c   := not IntVal;
+         ret := -Asn1Int (c) - 1;
+      else
+         ret := Asn1Int (IntVal);
+      end if;
+      return ret;
+   end To_Int;
 
-   FUNCTION To_Int(IntVal: Asn1UInt) return Asn1Int
-   IS
-       ret:Asn1Int;
-       c:Asn1UInt;
-   BEGIN
-       IF IntVal > Asn1UInt(Asn1Int'Last) THEN
-           c := NOT IntVal;
-           ret := -Asn1Int(c) - 1;
-       ELSE
-           ret := Asn1Int(IntVal);
-       END IF;
-       RETURN ret;
-   END To_Int;
+   function Zero return Asn1Real is
+   begin
+      return 0.0;
+   end Zero;
 
+   function PLUS_INFINITY return Asn1Real is
+      pragma SPARK_Mode (Off);
+   begin
+      return 1.0 / Zero;
+   end PLUS_INFINITY;
 
-   FUNCTION Zero return Asn1Real is
-   BEGIN
-        return 0.0;
-   END Zero;
+   function MINUS_INFINITY return Asn1Real is
+      pragma SPARK_Mode (Off);
+   begin
+      return -1.0 / Zero;
+   end MINUS_INFINITY;
 
-   FUNCTION PLUS_INFINITY return Asn1Real
-   is
-        pragma SPARK_Mode(Off);
-   BEGIN
-        return 1.0/Zero;
-   END PLUS_INFINITY;
-
-   FUNCTION MINUS_INFINITY return Asn1Real
-   is
-        pragma SPARK_Mode(Off);
-   BEGIN
-        return -1.0/Zero;
-   END MINUS_INFINITY;
-
-
-   FUNCTION RequiresReverse(dummy:BOOLEAN) return BOOLEAN
-   IS
-      pragma SPARK_Mode(Off);
-      dword:Integer := 16#00000001#;
-      arr: aliased OctetArray4;
+   function RequiresReverse (dummy : Boolean) return Boolean is
+      pragma SPARK_Mode (Off);
+      dword : Integer := 16#00000001#;
+      arr   : aliased OctetArray4;
       for arr'Address use dword'Address;
-   BEGIN
-      return arr(arr'First)=1;
-   END RequiresReverse;
+   begin
+      return arr (arr'First) = 1;
+   end RequiresReverse;
 
-   FUNCTION To_Int_n(IntVal: Asn1UInt; nBits: INTEGER) return Asn1Int
-   with pre => nBits>=0 and nBits<=64
-   IS
-      ret:Asn1Int;
-      c:Asn1UInt;
-  BEGIN
-      IF nBits = 0 THEN
-          ret :=0;
-      ELSIF nBits = 64 THEN
-          ret := To_Int(IntVal);
-      ELSE
-            pragma Assert (
-                             nBits>=1 and
-                             nBits<=63 and
-                             2**(nBits-1)>=1 AND
-                             2**(nBits-1)<=4611686018427387904 AND 2**nBits-1>=1 AND 2**nBits-1<=9223372036854775807);
+   function To_Int_n (IntVal : Asn1UInt; nBits : Integer) return Asn1Int with
+      Pre => nBits >= 0 and nBits <= 64 is
+      ret : Asn1Int;
+      c   : Asn1UInt;
+   begin
+      if nBits = 0 then
+         ret := 0;
+      elsif nBits = 64 then
+         ret := To_Int (IntVal);
+      else
+         pragma Assert
+           (nBits >= 1 and
+            nBits <= 63 and
+            2**(nBits - 1) >= 1 and
+            2**(nBits - 1) <= 4611686018427387904 and
+            2**nBits - 1 >= 1 and
+            2**nBits - 1 <= 9223372036854775807);
       --#  ;
-          IF IntVal >= Asn1UInt(2)**(nBits-1) THEN
-              c := NOT (Asn1UInt(2)**nBits-1);
-              ret := To_Int(IntVal OR c);
-          ELSE
-              ret := Asn1Int(IntVal);
-          END IF;
-      END IF;
-      RETURN ret;
-  END To_Int_n;
+         if IntVal >= Asn1UInt (2)**(nBits - 1) then
+            c   := not (Asn1UInt (2)**nBits - 1);
+            ret := To_Int (IntVal or c);
+         else
+            ret := Asn1Int (IntVal);
+         end if;
+      end if;
+      return ret;
+   end To_Int_n;
 
+   procedure BitStream_AppendBit
+     (S      : in out BitArray;
+      I      : in out Natural;
+      BitVal : in     BIT)
+   is
+   begin
+      I     := I + 1;
+      S (I) := BitVal;
+   end BitStream_AppendBit;
 
+   procedure BitStream_ReadBit
+     (S      : in     BitArray;
+      P      : in out DECODE_PARAMS;
+      BitVal :    out BIT;
+      result :    out Boolean)
+   is
+   begin
+      P.K    := P.K + 1;
+      BitVal := S (P.K);
+      result := P.DataLen - P.K >= 0;
+   end BitStream_ReadBit;
 
+   ---# pre K +1 >= S'First and K+8 <= S'Last;
+   ---# post K = K~ + 8;
 
-    PROCEDURE BitStream_AppendBit(S : in out BitArray; I : in out Natural; BitVal:IN BIT) IS
-    BEGIN
-        I := I + 1;
-        S(I) := BitVal;
-   END BitStream_AppendBit;
+   procedure BitStream_AppendByte
+     (S         : in out BitArray;
+      K         : in out Natural;
+      ByteValue : in     Asn1Byte;
+      Negate    : in     Boolean)
+   is
+      ByteVal : Asn1Byte;
+   begin
+      if Negate then
+         ByteVal := not ByteValue;
+      else
+         ByteVal := ByteValue;
+      end if;
 
-
-
-
-    PROCEDURE BitStream_ReadBit(S : in BitArray; P : in out DECODE_PARAMS; BitVal:OUT BIT; result:OUT BOOLEAN)
-    IS
-    BEGIN
-        P.K := P.K + 1;
-        BitVal := S(P.K);
-        result := P.DataLen - P.K >=0;
-    END BitStream_ReadBit;
-
-
-
-
-
-
-    ---# pre K +1 >= S'First and K+8 <= S'Last;
-    ---# post K = K~ + 8;
-
-    PROCEDURE BitStream_AppendByte(S : in out BitArray; K : in out Natural; ByteValue:IN Asn1Byte; Negate:IN Boolean)
-    IS
-        ByteVal: Asn1Byte;
-    BEGIN
-        IF Negate THEN
-            ByteVal := NOT ByteValue;
-        ELSE
-            ByteVal := ByteValue;
-        END IF;
-
-        FOR I IN  RANGE_1_8 LOOP
+      for I in RANGE_1_8 loop
             --# assert K = K~ and K + 1>= S'First and K + 8 <= S'Last and K+I >=S'First  and K+I-1 < S'Last;
-            IF  (MASKS(I) AND ByteVal)>0 THEN
-                S(K+I) := 1;
-            ELSE
-                S(K+I) := 0;
-            END IF;
-        END LOOP;
-        K := K + 8;
+         if (MASKS (I) and ByteVal) > 0 then
+            S (K + I) := 1;
+         else
+            S (K + I) := 0;
+         end if;
+      end loop;
+      K := K + 8;
 
-    END BitStream_AppendByte;
+   end BitStream_AppendByte;
 
-     PROCEDURE BitStream_DecodeByte(S : in  BitArray; P : in out DECODE_PARAMS; ByteValue:OUT Asn1Byte; success: OUT Boolean)
-     IS
-     BEGIN
-        ByteValue := 0;
-        FOR I IN Integer range 1..8 LOOP
-    --# assert 	P.K + 8 <= S'Last and P.K+1>= S'First and
-    --#		P.K=P~.K and  P.K + I - 1< S'Last;
+   procedure BitStream_DecodeByte
+     (S         : in     BitArray;
+      P         : in out DECODE_PARAMS;
+      ByteValue :    out Asn1Byte;
+      success   :    out Boolean)
+   is
+   begin
+      ByteValue := 0;
+      for I in Integer range 1 .. 8 loop
+    --# assert  P.K + 8 <= S'Last and P.K+1>= S'First and
+    --#         P.K=P~.K and  P.K + I - 1< S'Last;
 
-            IF S(P.K+I)=0 THEN
-                ByteValue := 2*ByteValue;
-            ELSE
-                ByteValue := 2*ByteValue + 1;
-            END IF;
+         if S (P.K + I) = 0 then
+            ByteValue := 2 * ByteValue;
+         else
+            ByteValue := 2 * ByteValue + 1;
+         end if;
 
-        END LOOP;
+      end loop;
 
-        P.K := P.K + 8;
-        success := P.DataLen-P.K>=0;
-     END BitStream_DecodeByte;
+      P.K     := P.K + 8;
+      success := P.DataLen - P.K >= 0;
+   end BitStream_DecodeByte;
 
+   procedure BitStream_AppendPartialByte
+     (S         : in out BitArray;
+      K         : in out Natural;
+      ByteValue : in     Asn1Byte;
+      NBits     : in     Integer;
+      Negate    : in     Boolean)
+   is
+      ByteVal : Asn1Byte;
 
-    PROCEDURE BitStream_AppendPartialByte (S : in out BitArray; K : in out Natural; ByteValue:IN Asn1Byte; NBits:IN INTEGER; Negate:IN Boolean)
-    IS
-        ByteVal: Asn1Byte;
+   begin
+      if Negate then
+         ByteVal := not ByteValue;
+      else
+         ByteVal := ByteValue;
+      end if;
 
-    BEGIN
-        IF Negate THEN
-            ByteVal := NOT ByteValue;
-        ELSE
-            ByteVal := ByteValue;
-        END IF;
-
-        FOR I IN Integer range 1 .. NBITS LOOP
+      for I in Integer range 1 .. NBits loop
 --            --# assert  NBits >= MASKS'FIRST and NBits < MASKS'LAST and K + 1 >= S'First and K + NBits <= S'Last and S'First + nBits -1 <= S'Last and
             --# assert  NBits >= MASKS'FIRST and NBits < MASKS'LAST and K + 1 >= S'First and K + NBits <= S'Last and
             --#         K = K~ and  K + I>=S'First  and K + I - 1< S'Last and
-            --#   	I+(MASKS'LAST - NBITS) >=MASKS'First and I+(MASKS'LAST - NBITS) <=MASKS'Last;
-            IF  (MASKS(I+(MASKS'LAST - NBITS)) AND ByteVal)>0 THEN
-                S(K+I) := 1;
-            ELSE
-                S(K+I) := 0;
-            END IF;
-        END LOOP;
+            --#         I+(MASKS'LAST - NBITS) >=MASKS'First and I+(MASKS'LAST - NBITS) <=MASKS'Last;
+         if (MASKS (I + (MASKS'Last - NBits)) and ByteVal) > 0 then
+            S (K + I) := 1;
+         else
+            S (K + I) := 0;
+         end if;
+      end loop;
 
-        K := K + NBits;
-    END BitStream_AppendPartialByte;
+      K := K + NBits;
+   end BitStream_AppendPartialByte;
 
+   procedure BitStream_ReadNibble
+     (S         : in     BitArray;
+      P         : in out DECODE_PARAMS;
+      ByteValue :    out Asn1Byte;
+      success   :    out Boolean)
+   is
+   begin
+      ByteValue := 0;
+      for I in Integer range 1 .. 4 loop
+    --# assert  P.K + 4 <= S'Last and P.K+1>= S'First and
+    --#         P.K=P~.K and  P.K + I - 1< S'Last;
 
-     PROCEDURE BitStream_ReadNibble(S : in  BitArray; P : in out DECODE_PARAMS; ByteValue:OUT Asn1Byte; success: OUT Boolean)
-     IS
-     BEGIN
-        ByteValue := 0;
-        FOR I IN Integer range 1..4 LOOP
-    --# assert 	P.K + 4 <= S'Last and P.K+1>= S'First and
-    --#		P.K=P~.K and  P.K + I - 1< S'Last;
+         if S (P.K + I) = 0 then
+            ByteValue := 2 * ByteValue;
+         else
+            ByteValue := 2 * ByteValue + 1;
+         end if;
 
-            IF S(P.K+I)=0 THEN
-                ByteValue := 2*ByteValue;
-            ELSE
-                ByteValue := 2*ByteValue + 1;
-            END IF;
+      end loop;
 
-        END LOOP;
+      P.K     := P.K + 4;
+      success := P.DataLen - P.K >= 0;
+   end BitStream_ReadNibble;
 
-        P.K := P.K + 4;
-        success := P.DataLen-P.K>=0;
-     END BitStream_ReadNibble;
+   procedure BitStream_Encode_Non_Negative_Integer
+     (S          : in out BitArray;
+      K          : in out Natural;
+      IntValue   : in     Asn1UInt;
+      nBitsRange : in     Integer)
+   is
+      IVAL        : Asn1UInt;
+      scaleFactor : Asn1UInt;
+      nBitsToSkip : Integer;
+   begin
+      if nBitsRange <= 63 then
+         nBitsToSkip := 64 - nBitsRange;
+         scaleFactor := 2**nBitsToSkip;
+         IVAL        := IntValue * scaleFactor;
+      else
+         IVAL := IntValue;
+      end if;
 
-
-    PROCEDURE BitStream_Encode_Non_Negative_Integer (S : in out BitArray; K : in out Natural;
-                                                     IntValue : IN     Asn1UInt;
-                                                     nBitsRange : IN Integer)
-    IS
-        IVAL :          Asn1UInt;
-        scaleFactor : Asn1UInt;
-        nBitsToSkip : Integer;
-    BEGIN
-        IF nBitsRange <= 63 THEN
-            nBitsToSkip := 64 - nBitsRange;
-            scaleFactor := 2**nBitsToSkip;
-            IVal := IntValue * scaleFactor;
-        ELSE
-            IVal := IntValue;
-        END IF;
-
-        FOR I IN Integer range 1..nBitsRange LOOP
-    --# assert 	nBitsRange >= 1 and nBitsRange <= 64 and
+      for I in Integer range 1 .. nBitsRange loop
+    --# assert  nBitsRange >= 1 and nBitsRange <= 64 and
     --#         K + nBitsRange <= S'Last and
     --#         K+1>= S'First and
-    --#		K=K~ and  K + I - 1< S'Last;
+    --#         K=K~ and  K + I - 1< S'Last;
 
-            IF (IVAL AND MSBIT_ONE)=0 THEN
-                S(K+I) := 0;
-            ELSE
-                S(K+I) := 1;
-            END IF;
+         if (IVAL and MSBIT_ONE) = 0 then
+            S (K + I) := 0;
+         else
+            S (K + I) := 1;
+         end if;
 
-            IVal := IVal * 2;
-        END LOOP;
+         IVAL := IVAL * 2;
+      end loop;
 
-        K := K + nBitsRange;
-    END BitStream_Encode_Non_Negative_Integer;
+      K := K + nBitsRange;
+   end BitStream_Encode_Non_Negative_Integer;
 
-
-    PROCEDURE BitStream_Decode_Non_Negative_Integer (S : in BitArray;
-                                                     P : in out DECODE_PARAMS;
-                                                     IntValue : out     Asn1UInt;
-                                                     nBitsRange : IN Integer;
-                                                     result : OUT Boolean)
+   procedure BitStream_Decode_Non_Negative_Integer
+     (S          : in     BitArray;
+      P          : in out DECODE_PARAMS;
+      IntValue   :    out Asn1UInt;
+      nBitsRange : in     Integer;
+      result     :    out Boolean)
     --# derives IntValue from S, P, nBitsRange & P from P, nBitsRange & result from P, nBitsRange;
-    --# pre 	nBitsRange >= 0 and nBitsRange <= 64 and
+    --# pre     nBitsRange >= 0 and nBitsRange <= 64 and
     --#         P.K+1>= S'First and P.K + nBitsRange <= S'Last;
     --# post P.K = P~.K + nBitsRange;
-    IS
-    BEGIN
+   is
+   begin
 
-        IntValue := 0;
-        FOR I IN Integer range 1..nBitsRange LOOP
-    --# assert 	nBitsRange >= 1 and nBitsRange <= 64 and
+      IntValue := 0;
+      for I in Integer range 1 .. nBitsRange loop
+    --# assert  nBitsRange >= 1 and nBitsRange <= 64 and
     --#         P.K + nBitsRange <= S'Last and
     --#         P.K+1>= S'First and
-    --#		P.K=P~.K and  P.K + I - 1< S'Last;
+    --#         P.K=P~.K and  P.K + I - 1< S'Last;
 
-            IF S(P.K+I)=0 THEN
-                IntValue := 2*IntValue;
-            ELSE
-                IntValue := 2*IntValue + 1;
-            END IF;
+         if S (P.K + I) = 0 then
+            IntValue := 2 * IntValue;
+         else
+            IntValue := 2 * IntValue + 1;
+         end if;
 
-        END LOOP;
+      end loop;
 
-        P.K := P.K + nBitsRange;
-        result := P.DataLen-P.K>=0;
-    END BitStream_Decode_Non_Negative_Integer;
+      P.K    := P.K + nBitsRange;
+      result := P.DataLen - P.K >= 0;
+   end BitStream_Decode_Non_Negative_Integer;
 
-    FUNCTION To_UInt(IntVal: Asn1Int) return Asn1Uint
-    IS
-        ret:Asn1Uint;
-    Begin
-        IF IntVal < 0 THEN
-            ret:=Asn1UInt(-(IntVal+1));
-            ret := NOT ret;
-        ELSE
-            ret:= Asn1UInt(IntVal);
-        END IF;
+   function To_UInt (IntVal : Asn1Int) return Asn1UInt is
+      ret : Asn1UInt;
+   begin
+      if IntVal < 0 then
+         ret := Asn1UInt (-(IntVal + 1));
+         ret := not ret;
+      else
+         ret := Asn1UInt (IntVal);
+      end if;
       return ret;
-    End To_UInt;
+   end To_UInt;
 
-
-    FUNCTION Sub (A : IN     Asn1Int; B : IN     Asn1Int)    RETURN Asn1UInt
+   function Sub (A : in Asn1Int; B : in Asn1Int) return Asn1UInt
     --# pre A >= B;
     --# return Asn1Uint(A-B);
-    IS
+       is
 --                pragma SPARK_Mode(Off);
-      ret:Asn1UInt ;
-      au:Asn1UInt;
-      bu:Asn1UInt;
+      ret : Asn1UInt;
+      au  : Asn1UInt;
+      bu  : Asn1UInt;
 --      diff:Asn1Int;
-   BEGIN
+   begin
 
       --diff := A-B;
       --  if (diff >= 0) then
@@ -367,2401 +374,2936 @@ PACKAGE BODY adaasn1rtl with SPARK_Mode IS
       --      ret := NOT ret;
       --      ret := ret + 1;
       --end if;
-      au := To_UInt(a);
-      bu := To_UInt(b);
+      au := To_UInt (A);
+      bu := To_UInt (B);
 
       if au >= bu then
          ret := au - bu;
       else
          ret := bu - au;
-         ret := NOT ret;
+         ret := not ret;
          ret := ret + 1;
       end if;
 
+      return ret;
+   end Sub;
 
-        RETURN ret;
-    END Sub;
-
-
-
-
-    FUNCTION GetBytes (V : Asn1Uint)   RETURN Integer
+   function GetBytes (V : Asn1UInt) return Integer
       --# return M => M>=1 and M<=8;
-    IS
-      Ret:Integer;
-    BEGIN
-        IF    V<16#100#             THEN Ret:=1;
-        ELSIF V<16#10000#           THEN Ret:=2;
-        ELSIF V<16#1000000#         THEN Ret:=3;
-        ELSIF V<16#100000000#       THEN Ret:=4;
-        ELSIF V<16#10000000000#     THEN Ret:=5;
-        ELSIF V<16#1000000000000#   THEN Ret:=6;
-        ELSIF V<16#100000000000000# THEN Ret:=7;
-        ELSE                             Ret:=8;
-        END IF;
-        return Ret;
-    END GetBytes;
+       is
+      Ret : Integer;
+   begin
+      if V < 16#100# then
+         Ret := 1;
+      elsif V < 16#10000# then
+         Ret := 2;
+      elsif V < 16#1000000# then
+         Ret := 3;
+      elsif V < 16#100000000# then
+         Ret := 4;
+      elsif V < 16#10000000000# then
+         Ret := 5;
+      elsif V < 16#1000000000000# then
+         Ret := 6;
+      elsif V < 16#100000000000000# then
+         Ret := 7;
+      else
+         Ret := 8;
+      end if;
+      return Ret;
+   end GetBytes;
 
-
-
-    PROCEDURE Enc_UInt (
-                        S : in out BitArray;
-                        K : in out Natural;
-                      	EncodedValue : IN     Asn1UInt;
-                        nBytes : IN Integer)
+   procedure Enc_UInt
+     (S            : in out BitArray;
+      K            : in out Natural;
+      EncodedValue : in     Asn1UInt;
+      nBytes       : in     Integer)
     --# derives S from S, K, EncodedValue, nBytes & K from K, nBytes;
     --# pre nBytes >= 1  and nBytes<=8 and
     --#     K+1>= S'First and K + nBytes*8 <= S'Last;
     --# post K = K~ + nBytes*8;
-    IS
-        ActualEncodedValue :Asn1UInt;
-        byteToEncode:Interfaces.Unsigned_8;
-    BEGIN
+   is
+      ActualEncodedValue : Asn1UInt;
+      byteToEncode       : Interfaces.Unsigned_8;
+   begin
 
+      ActualEncodedValue := EncodedValue;
 
-
-        ActualEncodedValue := EncodedValue;
-
-        --Encode number
-        FOR I IN Integer range 1..(8-nBytes) LOOP
+      --Encode number
+      for I in Integer range 1 .. (8 - nBytes) loop
             --# assert nBytes >= 1  and nBytes<=8 and K=K~ and I>=1 and I<=7 and
             --#        K+1>= S'First and K + nBytes*8 <= S'Last;
-            ActualEncodedValue := ActualEncodedValue * 16#100#;
-        END LOOP;
+         ActualEncodedValue := ActualEncodedValue * 16#100#;
+      end loop;
 
-        FOR I IN Integer range 0..nBytes-1 LOOP
+      for I in Integer range 0 .. nBytes - 1 loop
             --# assert nBytes >= 1  and nBytes<=8 and I>=0 and I<=7 and K = K~ + 8*I and
             --#        K+1>= S'First and K + 8 <= S'Last;
-            byteToEncode :=  Interfaces.Unsigned_8((ActualEncodedValue AND MSBYTE_FF)/16#100000000000000#);
-            ActualEncodedValue := ActualEncodedValue * 16#100#;
-            BitStream_AppendByte(S,K, byteToEncode, FALSE);
-        END LOOP;
-    END Enc_UInt;
+         byteToEncode :=
+           Interfaces.Unsigned_8
+             ((ActualEncodedValue and MSBYTE_FF) / 16#100000000000000#);
+         ActualEncodedValue := ActualEncodedValue * 16#100#;
+         BitStream_AppendByte (S, K, byteToEncode, False);
+      end loop;
+   end Enc_UInt;
 
-
-
-
-
-
-
-
-    FUNCTION GetLengthInBytesOfSIntAux (V : Asn1Uint)     RETURN Integer
+   function GetLengthInBytesOfSIntAux (V : Asn1UInt) return Integer
       --# pre V >= 0;
       --# return M => M>=1 and M<=8;
-    IS
-        Ret:Integer;
-    BEGIN
-        IF    V<16#80#             THEN Ret := 1;
-        ELSIF V<16#8000#           THEN Ret := 2;
-        ELSIF V<16#800000#         THEN  Ret := 3;
-        ELSIF V<16#80000000#       THEN  Ret := 4;
-        ELSIF V<16#8000000000#     THEN  Ret := 5;
-        ELSIF V<16#800000000000#   THEN  Ret := 6;
-        ELSIF V<16#80000000000000# THEN  Ret := 7;
-        ELSE  Ret := 8;
-        END IF;
+       is
+      Ret : Integer;
+   begin
+      if V < 16#80# then
+         Ret := 1;
+      elsif V < 16#8000# then
+         Ret := 2;
+      elsif V < 16#800000# then
+         Ret := 3;
+      elsif V < 16#80000000# then
+         Ret := 4;
+      elsif V < 16#8000000000# then
+         Ret := 5;
+      elsif V < 16#800000000000# then
+         Ret := 6;
+      elsif V < 16#80000000000000# then
+         Ret := 7;
+      else
+         Ret := 8;
+      end if;
 
-        RETURN Ret;
-    END GetLengthInBytesOfSIntAux;
+      return Ret;
+   end GetLengthInBytesOfSIntAux;
 
-
-    FUNCTION GetLengthInBytesOfSInt (V : Asn1Int) RETURN Integer
+   function GetLengthInBytesOfSInt (V : Asn1Int) return Integer
       --# return M => M>=1 and M<=8;
-    IS
-        Ret:Integer;
-    BEGIN
-        IF V >= 0 THEN
-            Ret := GetLengthInBytesOfSIntAux(Asn1UInt(V));
-        ELSE
-            Ret := GetLengthInBytesOfSIntAux(Asn1UInt(-(V + 1)));
-        END IF;
-        RETURN Ret;
-    END GetLengthInBytesOfSInt;
+       is
+      Ret : Integer;
+   begin
+      if V >= 0 then
+         Ret := GetLengthInBytesOfSIntAux (Asn1UInt (V));
+      else
+         Ret := GetLengthInBytesOfSIntAux (Asn1UInt (-(V + 1)));
+      end if;
+      return Ret;
+   end GetLengthInBytesOfSInt;
 
+   function Int32_UInt32
+     (IntVal : Interfaces.Integer_32) return Interfaces.Unsigned_32
+   is
+      ret : Interfaces.Unsigned_32;
+   begin
 
-
-    FUNCTION Int32_UInt32(IntVal: Interfaces.Integer_32) return Interfaces.Unsigned_32
-    IS
-        ret:Interfaces.Unsigned_32;
-    Begin
-
-        IF IntVal < 0 THEN
-            ret:=Interfaces.Unsigned_32(-(IntVal+1));
-            ret := NOT ret;
-        ELSE
-            ret:= Interfaces.Unsigned_32(IntVal);
-        END IF;
+      if IntVal < 0 then
+         ret := Interfaces.Unsigned_32 (-(IntVal + 1));
+         ret := not ret;
+      else
+         ret := Interfaces.Unsigned_32 (IntVal);
+      end if;
       return ret;
-    End Int32_UInt32;
+   end Int32_UInt32;
 
-    FUNCTION UInt32_Int32(IntVal: Interfaces.Unsigned_32) return Interfaces.Integer_32
-    IS
-        ret:Interfaces.Integer_32;
-        c:Interfaces.Unsigned_32;
-    Begin
-        IF IntVal > Interfaces.Unsigned_32(Interfaces.Integer_32'Last) THEN
-            c := NOT IntVal;
-            ret := -Interfaces.Integer_32(c) - 1;
-        ELSE
-            ret := Interfaces.Integer_32(IntVal);
-        END IF;
+   function UInt32_Int32
+     (IntVal : Interfaces.Unsigned_32) return Interfaces.Integer_32
+   is
+      ret : Interfaces.Integer_32;
+      c   : Interfaces.Unsigned_32;
+   begin
+      if IntVal > Interfaces.Unsigned_32 (Interfaces.Integer_32'Last) then
+         c   := not IntVal;
+         ret := -Interfaces.Integer_32 (c) - 1;
+      else
+         ret := Interfaces.Integer_32 (IntVal);
+      end if;
       return ret;
-    End UInt32_Int32;
+   end UInt32_Int32;
 
+   function Int16_UInt16
+     (IntVal : Interfaces.Integer_16) return Interfaces.Unsigned_16
+   is
+      ret : Interfaces.Unsigned_16;
+   begin
 
-
-
-
-
-    FUNCTION Int16_UInt16(IntVal: Interfaces.Integer_16) return Interfaces.Unsigned_16
-    IS
-        ret:Interfaces.Unsigned_16;
-    Begin
-
-        IF IntVal < 0 THEN
-            ret:=Interfaces.Unsigned_16(-(IntVal+1));
-            ret := NOT ret;
-        ELSE
-            ret:= Interfaces.Unsigned_16(IntVal);
-        END IF;
+      if IntVal < 0 then
+         ret := Interfaces.Unsigned_16 (-(IntVal + 1));
+         ret := not ret;
+      else
+         ret := Interfaces.Unsigned_16 (IntVal);
+      end if;
       return ret;
-    End Int16_UInt16;
+   end Int16_UInt16;
 
-    FUNCTION UInt16_Int16(IntVal: Interfaces.Unsigned_16) return Interfaces.Integer_16
-    IS
-        ret:Interfaces.Integer_16;
-        c:Interfaces.Unsigned_16;
-    Begin
-        IF IntVal > Interfaces.Unsigned_16(Interfaces.Integer_16'Last) THEN
-            c := NOT IntVal;
-            ret := -Interfaces.Integer_16(c) - 1;
-        ELSE
-            ret := Interfaces.Integer_16(IntVal);
-        END IF;
+   function UInt16_Int16
+     (IntVal : Interfaces.Unsigned_16) return Interfaces.Integer_16
+   is
+      ret : Interfaces.Integer_16;
+      c   : Interfaces.Unsigned_16;
+   begin
+      if IntVal > Interfaces.Unsigned_16 (Interfaces.Integer_16'Last) then
+         c   := not IntVal;
+         ret := -Interfaces.Integer_16 (c) - 1;
+      else
+         ret := Interfaces.Integer_16 (IntVal);
+      end if;
       return ret;
-    End UInt16_Int16;
+   end UInt16_Int16;
 
+   procedure UPER_Enc_ConstraintWholeNumber
+     (S           : in out BitArray;
+      K           : in out Natural;
+      IntVal      : in     Asn1Int;
+      MinVal      : in     Asn1Int;
+      nSizeInBits : in     Integer)
+   is
+      encVal : Asn1UInt;
+   begin
+      encVal := Sub (IntVal, MinVal);
+      BitStream_Encode_Non_Negative_Integer (S, K, encVal, nSizeInBits);
+   end UPER_Enc_ConstraintWholeNumber;
 
-    PROCEDURE UPER_Enc_ConstraintWholeNumber(
-                                            S : in out BitArray;
-                                            K : in out Natural;
-                                            IntVal : IN     Asn1Int;
-                                            MinVal : IN     Asn1Int;
-                                            nSizeInBits : IN Integer
-                                           )
-    IS
-        encVal : Asn1UInt;
-    BEGIN
-        encVal := Sub(IntVal, MinVal);
-        BitStream_Encode_Non_Negative_Integer(S, K, encVal, nSizeInBits);
-    END UPER_Enc_ConstraintWholeNumber;
+   procedure UPER_Enc_ConstraintPosWholeNumber
+     (S           : in out BitArray;
+      K           : in out Natural;
+      IntVal      : in     Asn1UInt;
+      MinVal      : in     Asn1UInt;
+      nSizeInBits : in     Integer)
+   is
+      encVal : Asn1UInt;
+   begin
+      encVal := IntVal - MinVal;
+      BitStream_Encode_Non_Negative_Integer (S, K, encVal, nSizeInBits);
+   end UPER_Enc_ConstraintPosWholeNumber;
 
+   procedure UPER_Dec_ConstraintWholeNumber
+     (S           : in     BitArray;
+      K           : in out DECODE_PARAMS;
+      IntVal      :    out Asn1Int;
+      MinVal      : in     Asn1Int;
+      MaxVal      : in     Asn1Int;
+      nSizeInBits : in     Integer;
+      Result      :    out Boolean)
+   is
+      encVal : Asn1UInt;
+   begin
+      BitStream_Decode_Non_Negative_Integer
+        (S,
+         K,
+         encVal,
+         nSizeInBits,
+         Result);
+      if Result then
+         IntVal := To_Int (encVal + To_UInt (MinVal));
 
-    PROCEDURE UPER_Enc_ConstraintPosWholeNumber(
-                                            S : in out BitArray;
-                                            K : in out Natural;
-                                            IntVal : IN     Asn1UInt;
-                                            MinVal : IN     Asn1UInt;
-                                            nSizeInBits : IN Integer
-                                           )
-    IS
-        encVal : Asn1UInt;
-    BEGIN
-        encVal := IntVal - MinVal;
-        BitStream_Encode_Non_Negative_Integer(S, K, encVal, nSizeInBits);
-    END UPER_Enc_ConstraintPosWholeNumber;
-
-
-
-    PROCEDURE UPER_Dec_ConstraintWholeNumber(
-                                            S : in BitArray;
-                                            K : in out DECODE_PARAMS;
-                                            IntVal : out     Asn1Int;
-                                            MinVal : IN     Asn1Int;
-                                            MaxVal : IN     Asn1Int;
-                                             nSizeInBits : IN Integer;
-                                             Result : OUT Boolean
-                                            )
-    IS
-        encVal : Asn1UInt;
-    BEGIN
-        BitStream_Decode_Non_Negative_Integer(S, K, encVal, nSizeInBits, Result);
-        IF Result THEN
-            IntVal := To_Int(encVal + To_UInt(MinVal));
-
-            Result := IntVal>= MinVal AND IntVal <=MaxVal;
-            IF NOT Result THEN
-                IntVal := MinVal;
-            END IF;
-        ELSE
+         Result := IntVal >= MinVal and IntVal <= MaxVal;
+         if not Result then
             IntVal := MinVal;
-        END IF;
+         end if;
+      else
+         IntVal := MinVal;
+      end if;
 
+   end UPER_Dec_ConstraintWholeNumber;
 
-    END UPER_Dec_ConstraintWholeNumber;
+   procedure UPER_Dec_ConstraintPosWholeNumber
+     (S           : in     BitArray;
+      K           : in out DECODE_PARAMS;
+      IntVal      :    out Asn1UInt;
+      MinVal      : in     Asn1UInt;
+      MaxVal      : in     Asn1UInt;
+      nSizeInBits : in     Integer;
+      Result      :    out Boolean)
+   is
+      encVal : Asn1UInt;
+   begin
+      BitStream_Decode_Non_Negative_Integer
+        (S,
+         K,
+         encVal,
+         nSizeInBits,
+         Result);
+      if Result then
+         IntVal := encVal + MinVal;
 
-
-
-    PROCEDURE UPER_Dec_ConstraintPosWholeNumber(
-                                            S : in BitArray;
-                                            K : in out DECODE_PARAMS;
-                                            IntVal : out     Asn1UInt;
-                                            MinVal : IN     Asn1UInt;
-                                            MaxVal : IN     Asn1UInt;
-                                             nSizeInBits : IN Integer;
-                                             Result : OUT Boolean
-                                            )
-    IS
-        encVal : Asn1UInt;
-    BEGIN
-        BitStream_Decode_Non_Negative_Integer(S, K, encVal, nSizeInBits, Result);
-        IF Result THEN
-            IntVal := encVal + MinVal;
-
-            Result := IntVal>= MinVal AND IntVal <=MaxVal;
-            IF NOT Result THEN
-                IntVal := MinVal;
-            END IF;
-        ELSE
+         Result := IntVal >= MinVal and IntVal <= MaxVal;
+         if not Result then
             IntVal := MinVal;
-        END IF;
+         end if;
+      else
+         IntVal := MinVal;
+      end if;
 
+   end UPER_Dec_ConstraintPosWholeNumber;
 
-    END UPER_Dec_ConstraintPosWholeNumber;
+   procedure UPER_Dec_ConstraintWholeNumberInt
+     (S           : in     BitArray;
+      K           : in out DECODE_PARAMS;
+      IntVal      :    out Integer;
+      MinVal      : in     Integer;
+      MaxVal      : in     Integer;
+      nSizeInBits : in     Integer;
+      Result      :    out Boolean)
+   is
+      Ret : Asn1Int;
+   begin
+      UPER_Dec_ConstraintWholeNumber
+        (S,
+         K,
+         Ret,
+         Asn1Int (MinVal),
+         Asn1Int (MaxVal),
+         nSizeInBits,
+         Result);
+      IntVal := Integer (Ret);
+   end UPER_Dec_ConstraintWholeNumberInt;
 
+   procedure UPER_Enc_SemiConstraintWholeNumber
+     (S      : in out BitArray;
+      K      : in out Natural;
+      IntVal : in     Asn1Int;
+      MinVal : in     Asn1Int)
+   is
+      nBytes             : Integer;
+      ActualEncodedValue : Asn1UInt;
+   begin
+      ActualEncodedValue := Sub (IntVal, MinVal);
 
-    PROCEDURE UPER_Dec_ConstraintWholeNumberInt(
-                                            S : in BitArray;
-                                            K : in out DECODE_PARAMS;
-                                            IntVal : out    Integer;
-                                            MinVal : IN     Integer;
-                                            MaxVal : IN     Integer;
-                                            nSizeInBits : IN Integer;
-                                            Result : OUT boolean
-                                               )
-    IS
-    	Ret : Asn1Int;
-    BEGIN
-        UPER_Dec_ConstraintWholeNumber(S,K,Ret,Asn1Int(MinVal),Asn1Int(MaxVal),nSizeInBits,Result);
-        IntVal := Integer(Ret);
-    END UPER_Dec_ConstraintWholeNumberInt;
-
-
-
-
-    PROCEDURE UPER_Enc_SemiConstraintWholeNumber (
-                                                  S : in out BitArray;
-                                                  K : in out Natural;
-                                                  IntVal : IN     Asn1Int;
-                                                  MinVal : IN     Asn1Int)
-    IS
-        nBytes : Integer;
-        ActualEncodedValue : Asn1UInt;
-    BEGIN
-      ActualEncodedValue  := Sub (IntVal,  MinVal);
-
-        nBytes:=GetBytes(ActualEncodedValue);
+      nBytes := GetBytes (ActualEncodedValue);
 
       -- encode length
-      BitStream_AppendByte(S,K, Interfaces.Unsigned_8(nBytes),FALSE);
+      BitStream_AppendByte (S, K, Interfaces.Unsigned_8 (nBytes), False);
       --Encode number
-      Enc_UInt(S,K, ActualEncodedValue, nBytes);
-   END UPER_Enc_SemiConstraintWholeNumber;
+      Enc_UInt (S, K, ActualEncodedValue, nBytes);
+   end UPER_Enc_SemiConstraintWholeNumber;
 
-    PROCEDURE UPER_Enc_SemiConstraintPosWholeNumber (
-                                                  S : in out BitArray;
-                                                  K : in out Natural;
-                                                  IntVal : IN     Asn1UInt;
-                                                  MinVal : IN     Asn1UInt)
-    IS
-        nBytes : Integer;
-        ActualEncodedValue : Asn1UInt;
-    BEGIN
-      ActualEncodedValue  := IntVal -  MinVal;
+   procedure UPER_Enc_SemiConstraintPosWholeNumber
+     (S      : in out BitArray;
+      K      : in out Natural;
+      IntVal : in     Asn1UInt;
+      MinVal : in     Asn1UInt)
+   is
+      nBytes             : Integer;
+      ActualEncodedValue : Asn1UInt;
+   begin
+      ActualEncodedValue := IntVal - MinVal;
 
-        nBytes:=GetBytes(ActualEncodedValue);
+      nBytes := GetBytes (ActualEncodedValue);
 
       -- encode length
-      BitStream_AppendByte(S,K, Interfaces.Unsigned_8(nBytes),FALSE);
+      BitStream_AppendByte (S, K, Interfaces.Unsigned_8 (nBytes), False);
       --Encode number
-      Enc_UInt(S,K, ActualEncodedValue, nBytes);
-   END UPER_Enc_SemiConstraintPosWholeNumber;
+      Enc_UInt (S, K, ActualEncodedValue, nBytes);
+   end UPER_Enc_SemiConstraintPosWholeNumber;
 
-
-
-
-
-
-
-
-
-
-
-    PROCEDURE Dec_UInt (
-           S : in BitArray;
-           K : in out DECODE_PARAMS;
-           nBytes  : Integer;
-           Ret : OUT Asn1UInt;
-           result : OUT Boolean)
+   procedure Dec_UInt
+     (S      : in     BitArray;
+      K      : in out DECODE_PARAMS;
+      nBytes :        Integer;
+      Ret    :    out Asn1UInt;
+      result :    out Boolean)
     --#derives K    from K, nBytes &
     --#        Ret  from S, K, nBytes &
     --#        result from K, nBytes;
     --#pre     nBytes>=1 AND nBytes<=8 AND
     --#        K.K+1>= S'First and K.K + nBytes*8 <= S'Last;
     --#post    K.K >= K~.K AND K.K<=K~.K+nBytes*8;
-    IS
-       ByteVal : Asn1UInt;
-       I	      : Integer;
-    BEGIN
-        I :=1;
-        Ret := 0;
-        result := True;
-        WHILE I <= nBytes AND result LOOP
+   is
+      ByteVal : Asn1UInt;
+      I       : Integer;
+   begin
+      I      := 1;
+      Ret    := 0;
+      result := True;
+      while I <= nBytes and result loop
         --# assert I<=nBytes and I>=1 and K~.K+1>= S'First and K~.K + nBytes*8 <= S'Last and K.K=K~.K+8*(I-1);
-            BitStream_Decode_Non_Negative_Integer(S,K,ByteVal,8, result);
-            IF result THEN
-                Ret := (Ret*256) OR ByteVal;
-                I := I + 1;
-            END IF;
-        END LOOP;
-        result := result AND K.DataLen-K.K >=0;
-    END Dec_UInt;
+         BitStream_Decode_Non_Negative_Integer (S, K, ByteVal, 8, result);
+         if result then
+            Ret := (Ret * 256) or ByteVal;
+            I   := I + 1;
+         end if;
+      end loop;
+      result := result and K.DataLen - K.K >= 0;
+   end Dec_UInt;
 
-
-
-    PROCEDURE Dec_Int (
-           S : in BitArray;
-           K : in out DECODE_PARAMS;
-           nBytes  : Integer;
-           RetVal : OUT Asn1Int;
-           result : OUT Boolean)
+   procedure Dec_Int
+     (S      : in     BitArray;
+      K      : in out DECODE_PARAMS;
+      nBytes :        Integer;
+      RetVal :    out Asn1Int;
+      result :    out Boolean)
     --#derives K       from K, nBytes &
     --#        RetVal  from S, K, nBytes &
     --#        result  from K, nBytes;
     --#pre     nBytes>=1 AND nBytes<=8 AND
     --#        K.K+1>= S'First and K.K + nBytes*8 <= S'Last;
     --#post    K.K >= K~.K AND K.K<=K~.K+nBytes*8;
-    IS
-        ByteVal : Asn1UInt;
-        I       : Integer;
-        Ret     : Asn1UInt;
-    BEGIN
-        I :=1;
-        IF S(K.K+1) = 0 THEN
-            Ret := 0;
-        ELSE
-            Ret:=Asn1UInt'Last;
-        END IF;
-        result := True;
-        WHILE I <= nBytes AND result LOOP
+   is
+      ByteVal : Asn1UInt;
+      I       : Integer;
+      Ret     : Asn1UInt;
+   begin
+      I := 1;
+      if S (K.K + 1) = 0 then
+         Ret := 0;
+      else
+         Ret := Asn1UInt'Last;
+      end if;
+      result := True;
+      while I <= nBytes and result loop
         --# assert I<=nBytes and I>=1 and K~.K+1>= S'First and K~.K + nBytes*8 <= S'Last and K.K=K~.K+8*(I-1);
-            BitStream_Decode_Non_Negative_Integer(S,K,ByteVal,8, result);
-            IF result THEN
-                Ret := (Ret*256) OR ByteVal;
-                I := I + 1;
-            END IF;
-        END LOOP;
-        RetVal := To_Int(Ret);
-        result := result AND K.DataLen-K.K >=0;
-    END Dec_Int;
+         BitStream_Decode_Non_Negative_Integer (S, K, ByteVal, 8, result);
+         if result then
+            Ret := (Ret * 256) or ByteVal;
+            I   := I + 1;
+         end if;
+      end loop;
+      RetVal := To_Int (Ret);
+      result := result and K.DataLen - K.K >= 0;
+   end Dec_Int;
 
-
-
-
-   PROCEDURE UPER_Dec_SemiConstraintWholeNumber (
-                                            S : in BitArray;
-                                            K : in out DECODE_PARAMS;
-				            IntVal : OUT Asn1Int;
-         				    MinVal : IN  Asn1Int;
-                                            Result : OUT Boolean)
-   IS
-      NBytes  : Asn1Int;
+   procedure UPER_Dec_SemiConstraintWholeNumber
+     (S      : in     BitArray;
+      K      : in out DECODE_PARAMS;
+      IntVal :    out Asn1Int;
+      MinVal : in     Asn1Int;
+      Result :    out Boolean)
+   is
+      NBytes : Asn1Int;
 --      ByteVal : Asn1UInt;
-      Ret     : Asn1UInt;
+      Ret : Asn1UInt;
 --      I_MAX   : Integer;
---      I	      : Integer;
-   BEGIN
+--      I             : Integer;
+   begin
 
       IntVal := MinVal;
-      UPER_Dec_ConstraintWholeNumber(S,K,NBytes,0,255,8,Result);
-      IF Result AND NBytes>=1 AND NBytes<=8 THEN
-            Dec_UInt(S, K, Integer(nBytes), Ret, result);
-            IF result THEN
-                IntVal := To_Int(Ret + To_UInt(MinVal));
-                Result := IntVal>= MinVal;
-                IF NOT Result THEN IntVal := MinVal; END IF;
-            END IF;
-      ELSE
-      	 Result :=FALSE;
-      END IF;
+      UPER_Dec_ConstraintWholeNumber (S, K, NBytes, 0, 255, 8, Result);
+      if Result and NBytes >= 1 and NBytes <= 8 then
+         Dec_UInt (S, K, Integer (NBytes), Ret, Result);
+         if Result then
+            IntVal := To_Int (Ret + To_UInt (MinVal));
+            Result := IntVal >= MinVal;
+            if not Result then
+               IntVal := MinVal;
+            end if;
+         end if;
+      else
+         Result := False;
+      end if;
 
-   END UPER_Dec_SemiConstraintWholeNumber;
+   end UPER_Dec_SemiConstraintWholeNumber;
 
-
-   PROCEDURE UPER_Dec_SemiConstraintPosWholeNumber (
-                                            S : in BitArray;
-                                            K : in out DECODE_PARAMS;
-				            IntVal : OUT Asn1UInt;
-         				    MinVal : IN  Asn1UInt;
-                                            Result : OUT Boolean)
-   IS
-      NBytes  : Asn1Int;
+   procedure UPER_Dec_SemiConstraintPosWholeNumber
+     (S      : in     BitArray;
+      K      : in out DECODE_PARAMS;
+      IntVal :    out Asn1UInt;
+      MinVal : in     Asn1UInt;
+      Result :    out Boolean)
+   is
+      NBytes : Asn1Int;
 --      ByteVal : Asn1UInt;
-      Ret     : Asn1UInt;
+      Ret : Asn1UInt;
 --      I_MAX   : Integer;
---      I	      : Integer;
-   BEGIN
+--      I             : Integer;
+   begin
 
       IntVal := MinVal;
-      UPER_Dec_ConstraintWholeNumber(S,K,NBytes,0,255,8,Result);
-      IF Result AND NBytes>=1 AND NBytes<=8 THEN
-            Dec_UInt(S, K, Integer(nBytes), Ret, result);
-            IF result THEN
-                IntVal := Ret + MinVal;
-                Result := IntVal>= MinVal;
-                IF NOT Result THEN IntVal := MinVal; END IF;
-            END IF;
-      ELSE
-      	 Result :=FALSE;
-      END IF;
+      UPER_Dec_ConstraintWholeNumber (S, K, NBytes, 0, 255, 8, Result);
+      if Result and NBytes >= 1 and NBytes <= 8 then
+         Dec_UInt (S, K, Integer (NBytes), Ret, Result);
+         if Result then
+            IntVal := Ret + MinVal;
+            Result := IntVal >= MinVal;
+            if not Result then
+               IntVal := MinVal;
+            end if;
+         end if;
+      else
+         Result := False;
+      end if;
 
-   END UPER_Dec_SemiConstraintPosWholeNumber;
+   end UPER_Dec_SemiConstraintPosWholeNumber;
 
-    PROCEDURE UPER_Enc_UnConstraintWholeNumber (
-                                                S : in out BitArray;
-                                                K : in out Natural;
-                                                IntVal:IN Asn1Int)
-    IS
-       nBytes : Integer;
-    BEGIN
+   procedure UPER_Enc_UnConstraintWholeNumber
+     (S      : in out BitArray;
+      K      : in out Natural;
+      IntVal : in     Asn1Int)
+   is
+      nBytes : Integer;
+   begin
 
-        nBytes:=GetLengthInBytesOfSInt(IntVal);
+      nBytes := GetLengthInBytesOfSInt (IntVal);
 
-        -- encode length
-        BitStream_AppendByte(S, K, Interfaces.Unsigned_8(NBytes),FALSE);
-        Enc_UInt(S, K, To_UInt(IntVal), nBytes);
-    END UPER_Enc_UnConstraintWholeNumber;
+      -- encode length
+      BitStream_AppendByte (S, K, Interfaces.Unsigned_8 (nBytes), False);
+      Enc_UInt (S, K, To_UInt (IntVal), nBytes);
+   end UPER_Enc_UnConstraintWholeNumber;
 
+   procedure UPER_Dec_UnConstraintWholeNumber
+     (S      : in     BitArray;
+      K      : in out DECODE_PARAMS;
+      IntVal :    out Asn1Int;
+      Result :    out Boolean)
+   is
+      NBytes : Asn1Int;
+   begin
+      UPER_Dec_ConstraintWholeNumber (S, K, NBytes, 0, 255, 8, Result);
+      if Result and NBytes >= 1 and NBytes <= 8 then
+         Dec_Int (S, K, Integer (NBytes), IntVal, Result);
+      else
+         IntVal := 0;
+         Result := False;
+      end if;
+   end UPER_Dec_UnConstraintWholeNumber;
 
+   procedure UPER_Dec_UnConstraintWholeNumberMax
+     (S      : in     BitArray;
+      K      : in out DECODE_PARAMS;
+      IntVal :    out Asn1Int;
+      MaxVal : in     Asn1Int;
+      Result :    out Boolean)
+   ---# derives IntVal,
+   ---#         Result from K, MaxVal, S &
+   ---#                K      from K, S;
+   ---# pre  K.K+1>= S'First and K.K + 72 <= S'Last;
+   ---# post K.K >= K~.K +8 and K.K <=K~.K+72 and IntVal<=MaxVal;
+   is
+   begin
+      UPER_Dec_UnConstraintWholeNumber (S, K, IntVal, Result);
+      Result := Result and IntVal <= MaxVal;
+      if not Result then
+         IntVal := MaxVal;
+      end if;
+   end UPER_Dec_UnConstraintWholeNumberMax;
 
+   procedure UPER_Enc_Boolean
+     (S   : in out BitArray;
+      I   : in out Natural;
+      Val : in     Asn1Boolean)
+   is
+      b : BIT;
+   begin
 
-
-    PROCEDURE UPER_Dec_UnConstraintWholeNumber (
-                                                S : in BitArray;
-                                                K : in out DECODE_PARAMS;
-                                                IntVal:OUT Asn1Int;
-                                               Result : OUT Boolean)
-    IS
-        NBytes  : Asn1Int;
-    BEGIN
-       UPER_Dec_ConstraintWholeNumber(S,K,NBytes,0,255,8,Result);
-       IF Result AND NBytes>=1 AND NBytes<=8 THEN
-           Dec_Int(S, K, Integer(nBytes), IntVal, result);
-       ELSE
-           IntVal := 0;
-           Result := False;
-       END IF;
-    END UPER_Dec_UnConstraintWholeNumber;
-
-
-    PROCEDURE UPER_Dec_UnConstraintWholeNumberMax (
-                                                S : in BitArray;
-                                                K : in out DECODE_PARAMS;
-                                                IntVal:OUT Asn1Int;
-                                                MaxVal : IN     Asn1Int;
-                                                Result : OUT Boolean)
-    ---# derives IntVal,
-    ---#         Result from K, MaxVal, S &
-    ---#		K      from K, S;
-    ---# pre  K.K+1>= S'First and K.K + 72 <= S'Last;
-    ---# post K.K >= K~.K +8 and K.K <=K~.K+72 and IntVal<=MaxVal;
-    IS
-    BEGIN
-    	UPER_Dec_UnConstraintWholeNumber(S, K, IntVal, Result);
-        Result := Result AND IntVal <= MaxVal;
-        IF NOT Result THEN
-	    IntVal := MaxVal;
-        END IF;
-    END UPER_Dec_UnConstraintWholeNumberMax;
-
-
-   PROCEDURE UPER_Enc_Boolean (S : in out BitArray; I : in out Natural; Val:IN Asn1Boolean)
-   IS
-      b:BIT;
-   BEGIN
-
-      IF Val THEN
+      if Val then
          b := 1;
-      ELSE
+      else
          b := 0;
-      END IF;
-      BitStream_AppendBit(S, I, b);
-   END  UPER_Enc_Boolean;
+      end if;
+      BitStream_AppendBit (S, I, b);
+   end UPER_Enc_Boolean;
 
+   procedure UPER_Dec_boolean
+     (S      : in     BitArray;
+      P      : in out DECODE_PARAMS;
+      val    :    out Asn1Boolean;
+      result :    out Boolean)
+   is
+      v : BIT;
+   begin
+      BitStream_ReadBit (S, P, v, result);
+      val := v = 1;
+   end UPER_Dec_boolean;
 
-   PROCEDURE UPER_Dec_boolean(S : in BitArray; P : in out DECODE_PARAMS; val:OUT Asn1Boolean; result:OUT Boolean)
-   IS
-      v:BIT;
-   BEGIN
-       BitStream_ReadBit(S,P,v, result);
-       val := v=1;
-   END UPER_Dec_boolean;
+   function GetExponent (V : Asn1Real) return Asn1Int is
+      pragma SPARK_Mode (Off);
+   --due to the fact that Examiner has not yet implement the Exponent attribute
+   begin
+      return Asn1Int (Asn1Real'Exponent (V) - Asn1Real'Machine_Mantissa);
+   end GetExponent;
 
+   function GetMantissa (V : Asn1Real) return Asn1UInt is
+      pragma SPARK_Mode (Off);
+   --due to the fact that Examiner has not yet implement the Fraction attribute
+   begin
+      return Asn1UInt (Asn1Real'Fraction (V) * MantissaFactor);
+   end GetMantissa;
 
-   FUNCTION GetExponent(V:Asn1Real) return Asn1Int
-   IS
-        pragma SPARK_Mode(Off);
-      --due to the fact that Examiner has not yet implement the Exponent attribute
-   BEGIN
-      RETURN Asn1Int(Asn1Real'Exponent(V) - Asn1Real'Machine_Mantissa);
-   END GetExponent;
-
-   FUNCTION GetMantissa(V:Asn1Real) return Asn1UInt
-   IS
-        pragma SPARK_Mode(Off);
-      --due to the fact that Examiner has not yet implement the Fraction attribute
-   BEGIN
-      RETURN Asn1UInt(Asn1Real'Fraction(V)* MantissaFactor);
-   END GetMantissa;
-
-
-   PROCEDURE UPER_Enc_Real(S : in out BitArray; K : in out Natural; RealVal:IN Asn1Real)
-   IS
+   procedure UPER_Enc_Real
+     (S       : in out BitArray;
+      K       : in out Natural;
+      RealVal : in     Asn1Real)
+   is
       Header   : Interfaces.Unsigned_8 := 16#80#;
       NExpLen  : Integer;
       NManLen  : Integer;
       Exp      : Asn1Int;
       Mantissa : Asn1UInt;
       V        : Asn1Real;
-   BEGIN
+   begin
 
-      IF RealVal>=0.0 AND RealVal<=0.0 THEN
-         BitStream_AppendByte(S, K, 0, FALSE);
-      ELSIF RealVal = PLUS_INFINITY THEN
-         BitStream_AppendByte(S, K, 1, FALSE);
-         BitStream_AppendByte(S, K, 16#40#, FALSE);
-      ELSIF RealVal = MINUS_INFINITY THEN
-         BitStream_AppendByte(S, K, 1, FALSE);
-         BitStream_AppendByte(S, K, 16#41#, FALSE);
-      ELSE
-      	 V := RealVal;
+      if RealVal >= 0.0 and RealVal <= 0.0 then
+         BitStream_AppendByte (S, K, 0, False);
+      elsif RealVal = PLUS_INFINITY then
+         BitStream_AppendByte (S, K, 1, False);
+         BitStream_AppendByte (S, K, 16#40#, False);
+      elsif RealVal = MINUS_INFINITY then
+         BitStream_AppendByte (S, K, 1, False);
+         BitStream_AppendByte (S, K, 16#41#, False);
+      else
+         V := RealVal;
 
-         IF V < 0.0 THEN
-            V:= -V;
-            HEADER := HEADER OR 16#40#;
-         END IF;
+         if V < 0.0 then
+            V      := -V;
+            Header := Header or 16#40#;
+         end if;
 
-         Exp := GetExponent(V);
-         Mantissa := GetMantissa(V);
+         Exp      := GetExponent (V);
+         Mantissa := GetMantissa (V);
 
-         NExpLen := GetLengthInBytesOfSInt(Exp);
-         NManLen := GetBytes(Mantissa);
+         NExpLen := GetLengthInBytesOfSInt (Exp);
+         NManLen := GetBytes (Mantissa);
 
-         IF NExpLen >=4 THEN
+         if NExpLen >= 4 then
             NExpLen := 3;
-         END IF;
+         end if;
 
-         IF NExpLen = 2 THEN
-            Header := Header OR 1;
-         ELSIF NExpLen = 3 THEN
-            Header := Header OR 2;
-         END IF;
+         if NExpLen = 2 then
+            Header := Header or 1;
+         elsif NExpLen = 3 then
+            Header := Header or 2;
+         end if;
 
          --#check NExpLen>=1 AND NExpLen<=3;
 
          -- encode length
-         BitStream_AppendByte(S, K, Interfaces.Unsigned_8((1+NExpLen)+NManLen), FALSE); --1
+         BitStream_AppendByte
+           (S,
+            K,
+            Interfaces.Unsigned_8 ((1 + NExpLen) + NManLen),
+            False); --1
 
          -- encode header
-         BitStream_AppendByte(S, K, Header, FALSE); --1
+         BitStream_AppendByte (S, K, Header, False); --1
 
          -- encode exponent
-         Enc_UInt(S, K, To_UInt(Exp), NExpLen); --max 3 octets
+         Enc_UInt (S, K, To_UInt (Exp), NExpLen); --max 3 octets
 
          -- encode mantissa
-         Enc_UInt(S, K, Mantissa, NManLen); --max 8 octets
-      END IF;
-   END UPER_Enc_Real;
+         Enc_UInt (S, K, Mantissa, NManLen); --max 8 octets
+      end if;
+   end UPER_Enc_Real;
 
-
-    FUNCTION CalcReal(Factor:Asn1UInt;N : Asn1UInt; base:Integer; Exp:Integer) RETURN Asn1Real
-    with pre => base=2 OR base=8 OR base=16
-    IS
+   function CalcReal
+     (Factor : Asn1UInt;
+      N      : Asn1UInt;
+      base   : Integer;
+      Exp    : Integer) return Asn1Real with
+      Pre => base = 2 or base = 8 or base = 16 is
 --          pragma SPARK_Mode(Off);
-    BEGIN
-        RETURN Asn1Real(Factor*N)*Asn1Real(Base)**Exp;
-    END CalcReal;
+   begin
+      return Asn1Real (Factor * N) * Asn1Real (base)**Exp;
+   end CalcReal;
 
-    PROCEDURE UPER_Dec_Real_AsBinary_aux (
-        S         : IN     BitArray;
-        K         : in out DECODE_PARAMS;
-        ExpLen    : IN     Interfaces.Unsigned_8;
-        Length    : IN     Interfaces.Unsigned_8;
-        Factor    : IN     Asn1UInt;
-        Sign      : IN     Integer;
-        Base      : IN     Integer;
-        RealVal   : OUT    Asn1Real;
-        Result    : OUT    ASN1_RESULT)
+   procedure UPER_Dec_Real_AsBinary_aux
+     (S       : in     BitArray;
+      K       : in out DECODE_PARAMS;
+      ExpLen  : in     Interfaces.Unsigned_8;
+      Length  : in     Interfaces.Unsigned_8;
+      Factor  : in     Asn1UInt;
+      Sign    : in     Integer;
+      Base    : in     Integer;
+      RealVal :    out Asn1Real;
+      Result  :    out ASN1_RESULT)
     --# derives K from K, ExpLen, Length &
     --#         RealVal from S, K, ExpLen, Length, Factor, Sign, Base &
     --#         Result  from  S, K, ExpLen, Length;
     --# pre  K.K+1>= S'First and K.K + 88 <= S'Last AND (base=2 OR base=8 OR base=16) AND ExpLen>=1;
     --# post K.K >= K~.K  and K.K <=K~.K+88;
-    IS
-        Exp       : Asn1Int;
-        N         : Asn1UInt ;
-    BEGIN
-        RealVal:=0.0;
-        Result := ASN1_RESULT'(Success   => FALSE, ErrorCode => ERR_END_OF_STREAM);
-        IF ExpLen<Length AND ExpLen<=3 THEN
-            Dec_Int(S, K, Integer(ExpLen), Exp,result.Success);
+   is
+      Exp : Asn1Int;
+      N   : Asn1UInt;
+   begin
+      RealVal := 0.0;
+      Result := ASN1_RESULT'(Success => False, ErrorCode => ERR_END_OF_STREAM);
+      if ExpLen < Length and ExpLen <= 3 then
+         Dec_Int (S, K, Integer (ExpLen), Exp, Result.Success);
 
-            IF result.Success AND Length-ExpLen<=8 THEN
-                Dec_UInt(S,K,Integer(Length-ExpLen),N,result.Success);
-          	IF result.Success AND Exp>Asn1Int(Integer'First) AND Exp<Asn1Int(Integer'Last)  THEN
-		    RealVal := CalcReal(Factor,N,base,Integer(Exp));
+         if Result.Success and Length - ExpLen <= 8 then
+            Dec_UInt (S, K, Integer (Length - ExpLen), N, Result.Success);
+            if Result.Success and
+              Exp > Asn1Int (Integer'First) and
+              Exp < Asn1Int (Integer'Last)
+            then
+               RealVal := CalcReal (Factor, N, Base, Integer (Exp));
 
-                    IF Sign<0 THEN
-                       RealVal:=- RealVal;
-                    END IF;
+               if Sign < 0 then
+                  RealVal := -RealVal;
+               end if;
 
-                    Result := ASN1_RESULT'(Success   => TRUE, ErrorCode => 0);
-                END IF;
-            END IF;
-    	END IF;
-    END UPER_Dec_Real_AsBinary_aux;
+               Result := ASN1_RESULT'(Success => True, ErrorCode => 0);
+            end if;
+         end if;
+      end if;
+   end UPER_Dec_Real_AsBinary_aux;
 
-
-    PROCEDURE UPER_Dec_Real_AsBinary (
-        S         : IN     BitArray;
-        K         : in out DECODE_PARAMS;
-        Header    : IN     Interfaces.Unsigned_8;
-        EncLength : IN     Interfaces.Unsigned_8;
-        RealVal   : OUT    Asn1Real;
-        Result    : OUT    ASN1_RESULT)
+   procedure UPER_Dec_Real_AsBinary
+     (S         : in     BitArray;
+      K         : in out DECODE_PARAMS;
+      Header    : in     Interfaces.Unsigned_8;
+      EncLength : in     Interfaces.Unsigned_8;
+      RealVal   :    out Asn1Real;
+      Result    :    out ASN1_RESULT)
     --# derives K from K, Header, EncLength &
     --#         RealVal from S, Header, K, EncLength &
     --#         Result  from  S, Header, K, EncLength;
     --# pre  K.K+1>= S'First and K.K + 88 <= S'Last AND EncLength<=11;
     --# post K.K >= K~.K  and K.K <=K~.K+88;
 
-    IS
-        Sign          : Integer    := 1;
-        Base          : Integer    := 2;
-        F             : Interfaces.Unsigned_8;
-        Factor        : Asn1UInt   := 1;
-        ExpLen        : Interfaces.Unsigned_8;
+   is
+      Sign   : Integer  := 1;
+      Base   : Integer  := 2;
+      F      : Interfaces.Unsigned_8;
+      Factor : Asn1UInt := 1;
+      ExpLen : Interfaces.Unsigned_8;
 
-    BEGIN
+   begin
 
-        IF (Header AND 16#40#)>0 THEN
-            Sign := -1;
-        END IF;
+      if (Header and 16#40#) > 0 then
+         Sign := -1;
+      end if;
 
-        IF (Header AND 16#10#)>0 THEN
-            Base := 8;
-        ELSIF (Header AND 16#20#)>0 THEN
-            Base := 16;
-        END IF;
+      if (Header and 16#10#) > 0 then
+         Base := 8;
+      elsif (Header and 16#20#) > 0 then
+         Base := 16;
+      end if;
 
-        F:= (Header AND 16#0C#)/4;
-        Factor:=Factor*(2**Integer(F));
+      F      := (Header and 16#0C#) / 4;
+      Factor := Factor * (2**Integer (F));
 
+      ExpLen := (Header and 16#03#) + 1;
 
-        ExpLen := (Header AND 16#03#) + 1;
+      UPER_Dec_Real_AsBinary_aux
+        (S,
+         K,
+         ExpLen,
+         EncLength,
+         Factor,
+         Sign,
+         Base,
+         RealVal,
+         Result);
 
-  	UPER_Dec_Real_AsBinary_aux(S, K, ExpLen, EncLength, Factor, Sign, Base, RealVal, Result);
+   end UPER_Dec_Real_AsBinary;
 
-     END UPER_Dec_Real_AsBinary;
+   procedure UPER_Dec_Real
+     (S       : in     BitArray;
+      K       : in out DECODE_PARAMS;
+      RealVal :    out Asn1Real;
+      Result  :    out ASN1_RESULT)
+   is
+      Header : Interfaces.Unsigned_8;
+      Length : Interfaces.Unsigned_8;
+   begin
+      RealVal := 0.0;
+      Result := ASN1_RESULT'(Success => False, ErrorCode => ERR_END_OF_STREAM);
 
+      BitStream_DecodeByte (S, K, Length, Result.Success);
+      if Result.Success and Length <= 12 then
+         if Length > 0 then
+            BitStream_DecodeByte (S, K, Header, Result.Success);
+            if Result.Success then
+               if Header = 16#40# then
+                  RealVal := PLUS_INFINITY;
+                  Result  := ASN1_RESULT'(Success => True, ErrorCode => 0);
+               elsif Header = 16#41# then
+                  RealVal := MINUS_INFINITY;
+                  Result  := ASN1_RESULT'(Success => True, ErrorCode => 0);
+               elsif (Header and 16#80#) > 0 then
+                  UPER_Dec_Real_AsBinary
+                    (S,
+                     K,
+                     Header,
+                     Length - 1,
+                     RealVal,
+                     Result);
+               else
+                  Result :=
+                    ASN1_RESULT'
+                      (Success   => False,
+                       ErrorCode => ERR_UNSUPPORTED_ENCODING);
+               end if;
+            end if;
+         else
+            Result := ASN1_RESULT'(Success => True, ErrorCode => 0);
+         end if;
+      end if;
+   end UPER_Dec_Real;
 
-    PROCEDURE UPER_Dec_Real (
-        S       : IN     BitArray;
-        K       : in out DECODE_PARAMS;
-        RealVal : OUT    Asn1Real;
-        Result  : OUT    ASN1_RESULT)
-    IS
-        Header : Interfaces.Unsigned_8;
-        Length : Interfaces.Unsigned_8;
-    BEGIN
-       RealVal:=0.0;
-       Result := ASN1_RESULT'(Success   => FALSE, ErrorCode => ERR_END_OF_STREAM);
+   ---# assert I>=AllowedCharSet'FIRST AND I<=AllowedCharSet'LAST AND AllowedCharSet'First=1 AND
+   ---# AllowedCharSet'Last>=AllowedCharSet'First AND AllowedCharSet'Last<=INTEGER'LAST-1 AND
+   ---# ret=I-AllowedCharSet'First;
 
-       BitStream_DecodeByte (S, K, Length, Result.Success);
-       IF Result.Success AND  Length<=12 THEN
-           IF Length > 0 THEN
-               BitStream_DecodeByte (S, K, Header, Result.Success);
-               IF Result.Success  THEN
-                   IF Header=16#40# THEN
-                       RealVal:= PLUS_INFINITY;
-                       Result := ASN1_RESULT'(Success   => TRUE,ErrorCode => 0);
-                   ELSIF Header=16#41# THEN
-                       RealVal:= MINUS_INFINITY;
-                       Result := ASN1_RESULT'(Success   => TRUE,ErrorCode => 0);
-                   ELSIF (Header AND 16#80#)>0 THEN
-                       UPER_Dec_Real_AsBinary(S, K, Header, Length-1, RealVal, Result);
-                   ELSE
-       		       Result := ASN1_RESULT'(Success   => FALSE, ErrorCode => ERR_UNSUPPORTED_ENCODING);
-                   END IF;
-               END IF;
-           ELSE
-              Result := ASN1_RESULT'(Success   => TRUE,ErrorCode => 0);
-           END IF;
-       END IF;
-     END UPER_Dec_Real;
+   function GetZeroBasedCharIndex
+     (CharToSearch   :    Character;
+      AllowedCharSet : in String) return Integer
+   is
+      ret : Integer;
+   begin
+      ret := 0;
+      for I in Integer range AllowedCharSet'Range loop
+         ret := I - AllowedCharSet'First;
+         pragma Loop_Invariant
+           (I >= AllowedCharSet'First and
+            I <= AllowedCharSet'Last and
+            AllowedCharSet'Last >= AllowedCharSet'First and
+            AllowedCharSet'Last <= Integer'Last - 1 and
+            ret = I - AllowedCharSet'First);
+         exit when CharToSearch = AllowedCharSet (I);
+      end loop;
+      return ret;
+   end GetZeroBasedCharIndex;
 
-
-        ---# assert I>=AllowedCharSet'FIRST AND I<=AllowedCharSet'LAST AND AllowedCharSet'First=1 AND
-        ---# AllowedCharSet'Last>=AllowedCharSet'First AND AllowedCharSet'Last<=INTEGER'LAST-1 AND
-        ---# ret=I-AllowedCharSet'First;
-
-
-    FUNCTION GetZeroBasedCharIndex (CharToSearch : Character; AllowedCharSet : IN String) RETURN Integer
-    IS
-    	ret:INTEGER;
-    BEGIN
-    	ret:=0;
-        FOR I IN INTEGER range AllowedCharSet'RANGE LOOP
-	    ret:=I-AllowedCharSet'First;
-         pragma Loop_Invariant (I>=AllowedCharSet'FIRST AND I<=AllowedCharSet'LAST AND
-                                AllowedCharSet'Last>=AllowedCharSet'First AND AllowedCharSet'Last<=INTEGER'LAST-1 AND
-                                ret=I-AllowedCharSet'First);
-            exit when CharToSearch=AllowedCharSet(I);
-       END LOOP;
-       return ret;
-    END GetZeroBasedCharIndex;
-
-    FUNCTION CharacterPos(C : Character) RETURN Integer
-    IS
-    	ret:INTEGER;
-    BEGIN
-    	ret := Character'Pos(C);
-        IF NOT (ret>=0 AND ret<=127) THEN
-            ret := 0;
-        END IF;
-        RETURN ret;
-    END CharacterPos;
-
-
-
-
-
-
-
-
+   function CharacterPos (C : Character) return Integer is
+      ret : Integer;
+   begin
+      ret := Character'Pos (C);
+      if not (ret >= 0 and ret <= 127) then
+         ret := 0;
+      end if;
+      return ret;
+   end CharacterPos;
 
 -- ACN Functions
 
+   procedure Acn_Enc_Int_PositiveInteger_ConstSize
+     (S      : in out BitArray;
+      K      : in out Natural;
+      IntVal : in     Asn1UInt;
+      Size   : in     Integer)
+   is
+   begin
+      UPER_Enc_ConstraintPosWholeNumber (S, K, IntVal, 0, Size);
+   end Acn_Enc_Int_PositiveInteger_ConstSize;
 
-    PROCEDURE Acn_Enc_Int_PositiveInteger_ConstSize (S : in out BitArray; K : in out Natural; IntVal:IN Asn1UInt; Size:IN Integer)
-    IS
-    BEGIN
-        UPER_Enc_ConstraintPosWholeNumber(S, K, IntVal, 0, Size);
-    END Acn_Enc_Int_PositiveInteger_ConstSize;
+   procedure Acn_Enc_Int_PositiveInteger_ConstSize_8
+     (S      : in out BitArray;
+      K      : in out Natural;
+      IntVal : in     Asn1UInt)
+   is
+   begin
+      UPER_Enc_ConstraintPosWholeNumber (S, K, IntVal, 0, 8);
+   end Acn_Enc_Int_PositiveInteger_ConstSize_8;
 
+   procedure Acn_Enc_Int_PositiveInteger_ConstSize_big_endian_16
+     (S      : in out BitArray;
+      K      : in out Natural;
+      IntVal : in     Asn1UInt)
+   is
+   begin
+      UPER_Enc_ConstraintPosWholeNumber (S, K, IntVal, 0, 16);
+   end Acn_Enc_Int_PositiveInteger_ConstSize_big_endian_16;
 
-    PROCEDURE Acn_Enc_Int_PositiveInteger_ConstSize_8 (S : in out BitArray; K : in out Natural; IntVal:IN Asn1UInt)
-    IS
-    BEGIN
-        UPER_Enc_ConstraintPosWholeNumber(S, K, IntVal, 0, 8);
-    END Acn_Enc_Int_PositiveInteger_ConstSize_8;
+   procedure Acn_Enc_Int_PositiveInteger_ConstSize_big_endian_32
+     (S      : in out BitArray;
+      K      : in out Natural;
+      IntVal : in     Asn1UInt)
+   is
+   begin
+      UPER_Enc_ConstraintPosWholeNumber (S, K, IntVal, 0, 32);
+   end Acn_Enc_Int_PositiveInteger_ConstSize_big_endian_32;
 
-    PROCEDURE Acn_Enc_Int_PositiveInteger_ConstSize_big_endian_16 (S : in out BitArray; K : in out Natural; IntVal:IN Asn1UInt)
-    IS
-    BEGIN
-        UPER_Enc_ConstraintPosWholeNumber(S, K, IntVal, 0, 16);
-    END Acn_Enc_Int_PositiveInteger_ConstSize_big_endian_16;
+   procedure Acn_Enc_Int_PositiveInteger_ConstSize_big_endian_64
+     (S      : in out BitArray;
+      K      : in out Natural;
+      IntVal : in     Asn1UInt)
+   is
+   begin
+      UPER_Enc_ConstraintPosWholeNumber (S, K, IntVal, 0, 64);
+   end Acn_Enc_Int_PositiveInteger_ConstSize_big_endian_64;
 
-    PROCEDURE Acn_Enc_Int_PositiveInteger_ConstSize_big_endian_32 (S : in out BitArray; K : in out Natural; IntVal:IN Asn1UInt)
-    IS
-    BEGIN
-        UPER_Enc_ConstraintPosWholeNumber(S, K, IntVal, 0, 32);
-    END Acn_Enc_Int_PositiveInteger_ConstSize_big_endian_32;
-
-    PROCEDURE Acn_Enc_Int_PositiveInteger_ConstSize_big_endian_64 (S : in out BitArray; K : in out Natural; IntVal:IN Asn1UInt)
-    IS
-    BEGIN
-        UPER_Enc_ConstraintPosWholeNumber(S, K, IntVal, 0, 64);
-    END Acn_Enc_Int_PositiveInteger_ConstSize_big_endian_64;
-
-    PROCEDURE Acn_Enc_Int_PositiveInteger_ConstSize_little_endian_16 (S : in out BitArray; K : in out Natural; IntVal:IN Asn1UInt)
-    IS
-	tmp : OctetArray2;
-    BEGIN
-    	tmp := UInt16_to_OctetArray2(Interfaces.Unsigned_16(IntVal));
-	IF NOT RequiresReverse(K>0) THEN
-		FOR I IN  RANGE_1_2 LOOP
+   procedure Acn_Enc_Int_PositiveInteger_ConstSize_little_endian_16
+     (S      : in out BitArray;
+      K      : in out Natural;
+      IntVal : in     Asn1UInt)
+   is
+      tmp : OctetArray2;
+   begin
+      tmp := UInt16_to_OctetArray2 (Interfaces.Unsigned_16 (IntVal));
+      if not RequiresReverse (K > 0) then
+         for I in RANGE_1_2 loop
                 --# assert K~+1>= S'First and K~ + 64 <= S'Last and K = K~ + 8*(8-I);
-			BitStream_AppendByte(S,K, tmp(I), FALSE);
-		END LOOP;
-	ELSE
-		FOR I IN reverse RANGE_1_2 LOOP
+            BitStream_AppendByte (S, K, tmp (I), False);
+         end loop;
+      else
+         for I in reverse RANGE_1_2 loop
                 --# assert K~+1>= S'First and K~ + 64 <= S'Last and K = K~ + 8*(I-1);
-			BitStream_AppendByte(S, K, tmp(I), FALSE);
-		END LOOP;
-	END IF;
-    END Acn_Enc_Int_PositiveInteger_ConstSize_little_endian_16;
+            BitStream_AppendByte (S, K, tmp (I), False);
+         end loop;
+      end if;
+   end Acn_Enc_Int_PositiveInteger_ConstSize_little_endian_16;
 
-    PROCEDURE Acn_Enc_Int_PositiveInteger_ConstSize_little_endian_32 (S : in out BitArray; K : in out Natural; IntVal:IN Asn1UInt)
-    IS
-	tmp : OctetArray4;
-    BEGIN
-    	tmp := UInt32_to_OctetArray4(Interfaces.Unsigned_32(IntVal));
-	IF NOT RequiresReverse(K>0) THEN
-		FOR I IN  RANGE_1_4 LOOP
+   procedure Acn_Enc_Int_PositiveInteger_ConstSize_little_endian_32
+     (S      : in out BitArray;
+      K      : in out Natural;
+      IntVal : in     Asn1UInt)
+   is
+      tmp : OctetArray4;
+   begin
+      tmp := UInt32_to_OctetArray4 (Interfaces.Unsigned_32 (IntVal));
+      if not RequiresReverse (K > 0) then
+         for I in RANGE_1_4 loop
                 --# assert K~+1>= S'First and K~ + 64 <= S'Last and K = K~ + 8*(8-I);
-			BitStream_AppendByte(S,K, tmp(I), FALSE);
-		END LOOP;
-	ELSE
-		FOR I IN reverse RANGE_1_4 LOOP
+            BitStream_AppendByte (S, K, tmp (I), False);
+         end loop;
+      else
+         for I in reverse RANGE_1_4 loop
                 --# assert K~+1>= S'First and K~ + 64 <= S'Last and K = K~ + 8*(I-1);
-			BitStream_AppendByte(S, K, tmp(I), FALSE);
-		END LOOP;
-	END IF;
-    END Acn_Enc_Int_PositiveInteger_ConstSize_little_endian_32;
+            BitStream_AppendByte (S, K, tmp (I), False);
+         end loop;
+      end if;
+   end Acn_Enc_Int_PositiveInteger_ConstSize_little_endian_32;
 
-    PROCEDURE Acn_Enc_Int_PositiveInteger_ConstSize_little_endian_64 (S : in out BitArray; K : in out Natural; IntVal:IN Asn1UInt)
-    IS
-	tmp : OctetArray8;
-    BEGIN
-    	tmp := Asn1UInt_to_OctetArray8(IntVal);
-	IF NOT RequiresReverse(K>0) THEN
-		FOR I IN  RANGE_1_8 LOOP
+   procedure Acn_Enc_Int_PositiveInteger_ConstSize_little_endian_64
+     (S      : in out BitArray;
+      K      : in out Natural;
+      IntVal : in     Asn1UInt)
+   is
+      tmp : OctetArray8;
+   begin
+      tmp := Asn1UInt_to_OctetArray8 (IntVal);
+      if not RequiresReverse (K > 0) then
+         for I in RANGE_1_8 loop
                 --# assert K~+1>= S'First and K~ + 64 <= S'Last and K = K~ + 8*(8-I);
-			BitStream_AppendByte(S,K, tmp(I), FALSE);
-		END LOOP;
-	ELSE
-		FOR I IN reverse RANGE_1_8 LOOP
+            BitStream_AppendByte (S, K, tmp (I), False);
+         end loop;
+      else
+         for I in reverse RANGE_1_8 loop
                 --# assert K~+1>= S'First and K~ + 64 <= S'Last and K = K~ + 8*(I-1);
-			BitStream_AppendByte(S, K, tmp(I), FALSE);
-		END LOOP;
-	END IF;
-    END Acn_Enc_Int_PositiveInteger_ConstSize_little_endian_64;
+            BitStream_AppendByte (S, K, tmp (I), False);
+         end loop;
+      end if;
+   end Acn_Enc_Int_PositiveInteger_ConstSize_little_endian_64;
 
+   procedure Acn_Enc_Int_PositiveInteger_VarSize_LengthEmbedded
+     (S      : in out BitArray;
+      K      : in out Natural;
+      IntVal : in     Asn1UInt)
+   is
+   begin
+      UPER_Enc_SemiConstraintPosWholeNumber (S, K, IntVal, 0);
+   end Acn_Enc_Int_PositiveInteger_VarSize_LengthEmbedded;
 
-    PROCEDURE Acn_Enc_Int_PositiveInteger_VarSize_LengthEmbedded(S : in out BitArray; K : in out Natural; IntVal:IN Asn1UInt)
-    IS
-    BEGIN
-        UPER_Enc_SemiConstraintPosWholeNumber(S, K, IntVal, 0);
-    END Acn_Enc_Int_PositiveInteger_VarSize_LengthEmbedded;
+   procedure Acn_Enc_Int_TwosComplement_ConstSize
+     (S      : in out BitArray;
+      K      : in out Natural;
+      IntVal : in     Asn1Int;
+      Size   : in     Integer)
+   is
+   begin
+      BitStream_Encode_Non_Negative_Integer (S, K, To_UInt (IntVal), Size);
+   end Acn_Enc_Int_TwosComplement_ConstSize;
 
+   procedure Acn_Enc_Int_TwosComplement_ConstSize_8
+     (S      : in out BitArray;
+      K      : in out Natural;
+      IntVal : in     Asn1Int)
+   is
+   begin
+      Acn_Enc_Int_TwosComplement_ConstSize (S, K, IntVal, 8);
+   end Acn_Enc_Int_TwosComplement_ConstSize_8;
 
-    PROCEDURE Acn_Enc_Int_TwosComplement_ConstSize (S : in out BitArray; K : in out Natural; IntVal:IN Asn1Int; Size:IN Integer)
-    IS
-    BEGIN
-    	BitStream_Encode_Non_Negative_Integer(S,K,To_UInt(IntVal), Size);
-    END Acn_Enc_Int_TwosComplement_ConstSize;
+   procedure Acn_Enc_Int_TwosComplement_ConstSize_big_endian_16
+     (S      : in out BitArray;
+      K      : in out Natural;
+      IntVal : in     Asn1Int)
+   is
+   begin
+      Acn_Enc_Int_TwosComplement_ConstSize (S, K, IntVal, 16);
+   end Acn_Enc_Int_TwosComplement_ConstSize_big_endian_16;
 
-    PROCEDURE Acn_Enc_Int_TwosComplement_ConstSize_8 (S : in out BitArray; K : in out Natural; IntVal:IN Asn1Int)
-    IS
-    BEGIN
-        Acn_Enc_Int_TwosComplement_ConstSize(S, K, IntVal, 8);
-    END Acn_Enc_Int_TwosComplement_ConstSize_8;
+   procedure Acn_Enc_Int_TwosComplement_ConstSize_big_endian_32
+     (S      : in out BitArray;
+      K      : in out Natural;
+      IntVal : in     Asn1Int)
+   is
+   begin
+      Acn_Enc_Int_TwosComplement_ConstSize (S, K, IntVal, 32);
+   end Acn_Enc_Int_TwosComplement_ConstSize_big_endian_32;
 
-    PROCEDURE Acn_Enc_Int_TwosComplement_ConstSize_big_endian_16 (S : in out BitArray; K : in out Natural; IntVal:IN Asn1Int)
-    IS
-    BEGIN
-        Acn_Enc_Int_TwosComplement_ConstSize(S, K, IntVal, 16);
-    END Acn_Enc_Int_TwosComplement_ConstSize_big_endian_16;
+   procedure Acn_Enc_Int_TwosComplement_ConstSize_big_endian_64
+     (S      : in out BitArray;
+      K      : in out Natural;
+      IntVal : in     Asn1Int)
+   is
+   begin
+      Acn_Enc_Int_TwosComplement_ConstSize (S, K, IntVal, 64);
+   end Acn_Enc_Int_TwosComplement_ConstSize_big_endian_64;
 
-    PROCEDURE Acn_Enc_Int_TwosComplement_ConstSize_big_endian_32 (S : in out BitArray; K : in out Natural; IntVal:IN Asn1Int)
-    IS
-    BEGIN
-        Acn_Enc_Int_TwosComplement_ConstSize(S, K, IntVal, 32);
-    END Acn_Enc_Int_TwosComplement_ConstSize_big_endian_32;
-
-    PROCEDURE Acn_Enc_Int_TwosComplement_ConstSize_big_endian_64 (S : in out BitArray; K : in out Natural; IntVal:IN Asn1Int)
-    IS
-    BEGIN
-        Acn_Enc_Int_TwosComplement_ConstSize(S, K, IntVal, 64);
-    END Acn_Enc_Int_TwosComplement_ConstSize_big_endian_64;
-
-    PROCEDURE Acn_Enc_Int_TwosComplement_ConstSize_little_endian_16 (S : in out BitArray; K : in out Natural; IntVal:IN Asn1Int)
-    IS
-	tmp : OctetArray2;
-    BEGIN
-    	tmp := UInt16_to_OctetArray2(Int16_UInt16(Interfaces.Integer_16(IntVal)));
-	IF NOT RequiresReverse(K>0) THEN
-		FOR I IN  RANGE_1_2 LOOP
+   procedure Acn_Enc_Int_TwosComplement_ConstSize_little_endian_16
+     (S      : in out BitArray;
+      K      : in out Natural;
+      IntVal : in     Asn1Int)
+   is
+      tmp : OctetArray2;
+   begin
+      tmp :=
+        UInt16_to_OctetArray2 (Int16_UInt16 (Interfaces.Integer_16 (IntVal)));
+      if not RequiresReverse (K > 0) then
+         for I in RANGE_1_2 loop
                 --# assert K~+1>= S'First and K~ + 64 <= S'Last and K = K~ + 8*(8-I);
-			BitStream_AppendByte(S,K, tmp(I), FALSE);
-		END LOOP;
-	ELSE
-		FOR I IN reverse RANGE_1_2 LOOP
+            BitStream_AppendByte (S, K, tmp (I), False);
+         end loop;
+      else
+         for I in reverse RANGE_1_2 loop
                 --# assert K~+1>= S'First and K~ + 64 <= S'Last and K = K~ + 8*(I-1);
-			BitStream_AppendByte(S, K, tmp(I), FALSE);
-		END LOOP;
-	END IF;
-    END Acn_Enc_Int_TwosComplement_ConstSize_little_endian_16;
+            BitStream_AppendByte (S, K, tmp (I), False);
+         end loop;
+      end if;
+   end Acn_Enc_Int_TwosComplement_ConstSize_little_endian_16;
 
-    PROCEDURE Acn_Enc_Int_TwosComplement_ConstSize_little_endian_32 (S : in out BitArray; K : in out Natural; IntVal:IN Asn1Int)
-    IS
-	tmp : OctetArray4;
-    BEGIN
-    	tmp := UInt32_to_OctetArray4(Int32_UInt32(Interfaces.Integer_32(IntVal)));
-	IF NOT RequiresReverse(K>0) THEN
-		FOR I IN  RANGE_1_4 LOOP
+   procedure Acn_Enc_Int_TwosComplement_ConstSize_little_endian_32
+     (S      : in out BitArray;
+      K      : in out Natural;
+      IntVal : in     Asn1Int)
+   is
+      tmp : OctetArray4;
+   begin
+      tmp :=
+        UInt32_to_OctetArray4 (Int32_UInt32 (Interfaces.Integer_32 (IntVal)));
+      if not RequiresReverse (K > 0) then
+         for I in RANGE_1_4 loop
                 --# assert K~+1>= S'First and K~ + 64 <= S'Last and K = K~ + 8*(8-I);
-			BitStream_AppendByte(S,K, tmp(I), FALSE);
-		END LOOP;
-	ELSE
-		FOR I IN reverse RANGE_1_4 LOOP
+            BitStream_AppendByte (S, K, tmp (I), False);
+         end loop;
+      else
+         for I in reverse RANGE_1_4 loop
                 --# assert K~+1>= S'First and K~ + 64 <= S'Last and K = K~ + 8*(I-1);
-			BitStream_AppendByte(S, K, tmp(I), FALSE);
-		END LOOP;
-	END IF;
-    END Acn_Enc_Int_TwosComplement_ConstSize_little_endian_32;
+            BitStream_AppendByte (S, K, tmp (I), False);
+         end loop;
+      end if;
+   end Acn_Enc_Int_TwosComplement_ConstSize_little_endian_32;
 
-    PROCEDURE Acn_Enc_Int_TwosComplement_ConstSize_little_endian_64 (S : in out BitArray; K : in out Natural; IntVal:IN Asn1Int)
-    IS
-	tmp : OctetArray8;
-    BEGIN
-    	tmp := Asn1UInt_to_OctetArray8(To_UInt(IntVal));
-	IF NOT RequiresReverse(K>0) THEN
-		FOR I IN  RANGE_1_8 LOOP
+   procedure Acn_Enc_Int_TwosComplement_ConstSize_little_endian_64
+     (S      : in out BitArray;
+      K      : in out Natural;
+      IntVal : in     Asn1Int)
+   is
+      tmp : OctetArray8;
+   begin
+      tmp := Asn1UInt_to_OctetArray8 (To_UInt (IntVal));
+      if not RequiresReverse (K > 0) then
+         for I in RANGE_1_8 loop
                 --# assert K~+1>= S'First and K~ + 64 <= S'Last and K = K~ + 8*(8-I);
-			BitStream_AppendByte(S,K, tmp(I), FALSE);
-		END LOOP;
-	ELSE
-		FOR I IN reverse RANGE_1_8 LOOP
+            BitStream_AppendByte (S, K, tmp (I), False);
+         end loop;
+      else
+         for I in reverse RANGE_1_8 loop
                 --# assert K~+1>= S'First and K~ + 64 <= S'Last and K = K~ + 8*(I-1);
-			BitStream_AppendByte(S, K, tmp(I), FALSE);
-		END LOOP;
-	END IF;
-    END Acn_Enc_Int_TwosComplement_ConstSize_little_endian_64;
+            BitStream_AppendByte (S, K, tmp (I), False);
+         end loop;
+      end if;
+   end Acn_Enc_Int_TwosComplement_ConstSize_little_endian_64;
 
+   procedure Acn_Enc_Int_TwosComplement_VarSize_LengthEmbedded
+     (S      : in out BitArray;
+      K      : in out Natural;
+      IntVal : in     Asn1Int)
+   is
+   begin
+      UPER_Enc_UnConstraintWholeNumber (S, K, IntVal);
+   end Acn_Enc_Int_TwosComplement_VarSize_LengthEmbedded;
 
-    PROCEDURE Acn_Enc_Int_TwosComplement_VarSize_LengthEmbedded(S : in out BitArray; K : in out Natural; IntVal:IN Asn1Int)
-    IS
-    BEGIN
-        UPER_Enc_UnConstraintWholeNumber(S, K, IntVal);
-    END Acn_Enc_Int_TwosComplement_VarSize_LengthEmbedded;
-
-
-
-    PROCEDURE Acn_Enc_Int_BCD_ConstSize (S : in out BitArray; K : in out Natural; IntVal:IN Asn1UInt; nNibbles:IN Integer)
-    IS
-        totalNibbles:Integer:=1;
-        tmp  : OctetArray100 := OctetArray100'(others => 0);
-        intValCopy : Asn1UInt;
-    BEGIN
-        intValCopy := IntVal;
-        WHILE intValCopy>0 and totalNibbles<=nNibbles LOOP
+   procedure Acn_Enc_Int_BCD_ConstSize
+     (S        : in out BitArray;
+      K        : in out Natural;
+      IntVal   : in     Asn1UInt;
+      nNibbles : in     Integer)
+   is
+      totalNibbles : Integer       := 1;
+      tmp          : OctetArray100 := OctetArray100'(others => 0);
+      intValCopy   : Asn1UInt;
+   begin
+      intValCopy := IntVal;
+      while intValCopy > 0 and totalNibbles <= nNibbles loop
         --# assert totalNibbles>=1 and totalNibbles>=1 and totalNibbles<=nNibbles and K~ + 1>=S'First and K~ + 4*nNibbles <= S'Last and K~=K;
-            tmp(totalNibbles) := Interfaces.Unsigned_8(intValCopy MOD 10);
-            totalNibbles := totalNibbles + 1;
-            intValCopy := intValCopy / 10;
-        END LOOP;
+         tmp (totalNibbles) := Interfaces.Unsigned_8 (intValCopy mod 10);
+         totalNibbles       := totalNibbles + 1;
+         intValCopy         := intValCopy / 10;
+      end loop;
 
-
-        FOR I IN REVERSE INTEGER range 1..nNibbles LOOP
+      for I in reverse Integer range 1 .. nNibbles loop
         --# assert K~ + 1>=S'First and K~ + 4*nNibbles <= S'Last and K = K~ + (nNibbles-I)*4;
-            BitStream_AppendPartialByte(S, K, tmp(i), 4, FALSE);
-        END LOOP;
-    END Acn_Enc_Int_BCD_ConstSize;
+         BitStream_AppendPartialByte (S, K, tmp (I), 4, False);
+      end loop;
+   end Acn_Enc_Int_BCD_ConstSize;
 
-    PROCEDURE Acn_Enc_Int_BCD_VarSize_LengthEmbedded(S : in out BitArray; K : in out Natural; IntVal:IN Asn1UInt)
-    IS
-        pragma SPARK_Mode(Off);
-    BEGIN
-        null;
-    END Acn_Enc_Int_BCD_VarSize_LengthEmbedded;
+   procedure Acn_Enc_Int_BCD_VarSize_LengthEmbedded
+     (S      : in out BitArray;
+      K      : in out Natural;
+      IntVal : in     Asn1UInt)
+   is
+      pragma SPARK_Mode (Off);
+   begin
+      null;
+   end Acn_Enc_Int_BCD_VarSize_LengthEmbedded;
 
-    PROCEDURE Acn_Enc_Int_BCD_VarSize_NullTerminated(S : in out BitArray; K : in out Natural; IntVal:IN Asn1UInt)
-    IS
-        totalNibbles:Integer:=1;
-        tmp  : OctetArray100 := OctetArray100'(others => 0);
-        intValCopy : Asn1UInt;
-    BEGIN
-        intValCopy := IntVal;
-        WHILE intValCopy>0 and totalNibbles<=18 LOOP
+   procedure Acn_Enc_Int_BCD_VarSize_NullTerminated
+     (S      : in out BitArray;
+      K      : in out Natural;
+      IntVal : in     Asn1UInt)
+   is
+      totalNibbles : Integer       := 1;
+      tmp          : OctetArray100 := OctetArray100'(others => 0);
+      intValCopy   : Asn1UInt;
+   begin
+      intValCopy := IntVal;
+      while intValCopy > 0 and totalNibbles <= 18 loop
         --# assert totalNibbles>=1 and totalNibbles<=18 and K~ + 1>=S'First and K~ + 76 <= S'Last and K~=K;
-            tmp(totalNibbles) := Interfaces.Unsigned_8(intValCopy MOD 10);
-            totalNibbles := totalNibbles + 1;
-            intValCopy := intValCopy / 10;
-        END LOOP;
+         tmp (totalNibbles) := Interfaces.Unsigned_8 (intValCopy mod 10);
+         totalNibbles       := totalNibbles + 1;
+         intValCopy         := intValCopy / 10;
+      end loop;
 
-	totalNibbles:= totalNibbles - 1;
+      totalNibbles := totalNibbles - 1;
 
-        FOR I IN REVERSE INTEGER range 1..totalNibbles LOOP
+      for I in reverse Integer range 1 .. totalNibbles loop
         --# assert totalNibbles>=1 and totalNibbles<=18 and K~ + 1>=S'First and K~ + 76 <= S'Last and K = K~ + (totalNibbles-I)*4;
-            BitStream_AppendPartialByte(S, K, tmp(i), 4, FALSE);
-        END LOOP;
-        BitStream_AppendPartialByte(S, K, 16#F#, 4, FALSE);
+         BitStream_AppendPartialByte (S, K, tmp (I), 4, False);
+      end loop;
+      BitStream_AppendPartialByte (S, K, 16#F#, 4, False);
 
-    END Acn_Enc_Int_BCD_VarSize_NullTerminated;
+   end Acn_Enc_Int_BCD_VarSize_NullTerminated;
 
+   procedure Acn_Enc_Int_ASCII_VarSize_LengthEmbedded
+     (S      : in out BitArray;
+      K      : in out Natural;
+      IntVal : in     Asn1Int)
+   is
+      pragma SPARK_Mode (Off);
+   begin
+      null;
+   end Acn_Enc_Int_ASCII_VarSize_LengthEmbedded;
 
+   procedure Acn_Enc_Int_ASCII_VarSize_NullTerminated
+     (S      : in out BitArray;
+      K      : in out Natural;
+      IntVal : in     Asn1Int)
+   is
+      pragma SPARK_Mode (Off);
+   begin
+      null;
+   end Acn_Enc_Int_ASCII_VarSize_NullTerminated;
 
-    PROCEDURE Acn_Enc_Int_ASCII_VarSize_LengthEmbedded(S : in out BitArray; K : in out Natural; IntVal:IN Asn1Int)
-    IS
-        pragma SPARK_Mode(Off);
-    BEGIN
-        null;
-    END Acn_Enc_Int_ASCII_VarSize_LengthEmbedded;
+   procedure Acn_Dec_Int_PositiveInteger_ConstSize
+     (S           : in     BitArray;
+      K           : in out DECODE_PARAMS;
+      IntVal      :    out Asn1UInt;
+      minVal      : in     Asn1UInt;
+      maxVal      : in     Asn1UInt;
+      nSizeInBits : in     Integer;
+      Result      :    out ASN1_RESULT)
+   is
+      encVal : Asn1UInt;
+   begin
+      Result.ErrorCode := 0;
+      BitStream_Decode_Non_Negative_Integer
+        (S,
+         K,
+         encVal,
+         nSizeInBits,
+         Result.Success);
+      if Result.Success then
+         IntVal := encVal;
 
-    PROCEDURE Acn_Enc_Int_ASCII_VarSize_NullTerminated(S : in out BitArray; K : in out Natural; IntVal:IN Asn1Int)
-    IS
-        pragma SPARK_Mode(Off);
-    BEGIN
-        null;
-    END Acn_Enc_Int_ASCII_VarSize_NullTerminated;
-
-
-
-
-
-
-    PROCEDURE Acn_Dec_Int_PositiveInteger_ConstSize (S : in BitArray; K : in out DECODE_PARAMS; IntVal:OUT Asn1UInt; minVal:IN Asn1UInt; maxVal:IN Asn1UInt; nSizeInBits:IN Integer; Result:OUT ASN1_RESULT)
-    IS
-        encVal : Asn1UInt;
-    BEGIN
-    	result.ErrorCode := 0;
-        BitStream_Decode_Non_Negative_Integer(S, K, encVal, nSizeInBits, result.Success);
-        IF result.Success THEN
-            IntVal := encVal;
-
-            Result.Success := IntVal>= MinVal AND IntVal <=MaxVal;
-            IF NOT Result.Success THEN
-                IntVal := MinVal;
-                Result.ErrorCode := ERR_INCORRECT_STREAM;
-            END IF;
-        ELSE
-            IntVal := minVal;
+         Result.Success := IntVal >= minVal and IntVal <= maxVal;
+         if not Result.Success then
+            IntVal           := minVal;
             Result.ErrorCode := ERR_INCORRECT_STREAM;
-        END IF;
-    END Acn_Dec_Int_PositiveInteger_ConstSize;
+         end if;
+      else
+         IntVal           := minVal;
+         Result.ErrorCode := ERR_INCORRECT_STREAM;
+      end if;
+   end Acn_Dec_Int_PositiveInteger_ConstSize;
 
-    PROCEDURE Acn_Dec_Int_PositiveInteger_ConstSize_8(S : in BitArray; K : in out DECODE_PARAMS; IntVal:OUT Asn1UInt; minVal:IN Asn1UInt; maxVal:IN Asn1UInt; Result:OUT ASN1_RESULT)
-    IS
-    BEGIN
-        Acn_Dec_Int_PositiveInteger_ConstSize(S, K, IntVal, minVal, maxVal, 8, result);
-    END Acn_Dec_Int_PositiveInteger_ConstSize_8;
+   procedure Acn_Dec_Int_PositiveInteger_ConstSize_8
+     (S      : in     BitArray;
+      K      : in out DECODE_PARAMS;
+      IntVal :    out Asn1UInt;
+      minVal : in     Asn1UInt;
+      maxVal : in     Asn1UInt;
+      Result :    out ASN1_RESULT)
+   is
+   begin
+      Acn_Dec_Int_PositiveInteger_ConstSize
+        (S,
+         K,
+         IntVal,
+         minVal,
+         maxVal,
+         8,
+         Result);
+   end Acn_Dec_Int_PositiveInteger_ConstSize_8;
 
-    PROCEDURE Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_16(S : in BitArray; K : in out DECODE_PARAMS; IntVal:OUT Asn1UInt; minVal:IN Asn1UInt; maxVal:IN Asn1UInt; Result:OUT ASN1_RESULT)
-    IS
-    BEGIN
-         Acn_Dec_Int_PositiveInteger_ConstSize(S, K, IntVal, minVal, maxVal, 16, result);
-    END Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_16;
+   procedure Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_16
+     (S      : in     BitArray;
+      K      : in out DECODE_PARAMS;
+      IntVal :    out Asn1UInt;
+      minVal : in     Asn1UInt;
+      maxVal : in     Asn1UInt;
+      Result :    out ASN1_RESULT)
+   is
+   begin
+      Acn_Dec_Int_PositiveInteger_ConstSize
+        (S,
+         K,
+         IntVal,
+         minVal,
+         maxVal,
+         16,
+         Result);
+   end Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_16;
 
-    PROCEDURE Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_32(S : in BitArray; K : in out DECODE_PARAMS; IntVal:OUT Asn1UInt; minVal:IN Asn1UInt; maxVal:IN Asn1UInt; Result:OUT ASN1_RESULT)
-    IS
-    BEGIN
-         Acn_Dec_Int_PositiveInteger_ConstSize(S, K, IntVal, minVal, maxVal, 32, result);
-    END Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_32;
+   procedure Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_32
+     (S      : in     BitArray;
+      K      : in out DECODE_PARAMS;
+      IntVal :    out Asn1UInt;
+      minVal : in     Asn1UInt;
+      maxVal : in     Asn1UInt;
+      Result :    out ASN1_RESULT)
+   is
+   begin
+      Acn_Dec_Int_PositiveInteger_ConstSize
+        (S,
+         K,
+         IntVal,
+         minVal,
+         maxVal,
+         32,
+         Result);
+   end Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_32;
 
-    PROCEDURE Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_64(S : in BitArray; K : in out DECODE_PARAMS; IntVal:OUT Asn1UInt; minVal:IN Asn1UInt; maxVal:IN Asn1UInt; Result:OUT ASN1_RESULT)
-    IS
-    BEGIN
-         Acn_Dec_Int_PositiveInteger_ConstSize(S, K, IntVal, minVal, maxVal, 64, result);
-    END Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_64;
+   procedure Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_64
+     (S      : in     BitArray;
+      K      : in out DECODE_PARAMS;
+      IntVal :    out Asn1UInt;
+      minVal : in     Asn1UInt;
+      maxVal : in     Asn1UInt;
+      Result :    out ASN1_RESULT)
+   is
+   begin
+      Acn_Dec_Int_PositiveInteger_ConstSize
+        (S,
+         K,
+         IntVal,
+         minVal,
+         maxVal,
+         64,
+         Result);
+   end Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_64;
 
-    PROCEDURE Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_16(S : in BitArray; K : in out DECODE_PARAMS; IntVal:OUT Asn1UInt; minVal:IN Asn1UInt; maxVal:IN Asn1UInt; Result:OUT ASN1_RESULT)
-    IS
-	tmp : OctetArray2:=OctetArray2'(others=>0);
-        I   : INTEGER;
-        ret : Asn1UInt;
-    BEGIN
-	Result := ASN1_RESULT'(Success   => TRUE,ErrorCode => ERR_INSUFFICIENT_DATA);
-        ret := MinVal;
-	IF RequiresReverse(K.K>0) THEN
-            I:=RANGE_1_2'Last;
-            WHILE Result.Success AND I>=RANGE_1_2'First LOOP
+   procedure Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_16
+     (S      : in     BitArray;
+      K      : in out DECODE_PARAMS;
+      IntVal :    out Asn1UInt;
+      minVal : in     Asn1UInt;
+      maxVal : in     Asn1UInt;
+      Result :    out ASN1_RESULT)
+   is
+      tmp : OctetArray2 := OctetArray2'(others => 0);
+      I   : Integer;
+      ret : Asn1UInt;
+   begin
+      Result :=
+        ASN1_RESULT'(Success => True, ErrorCode => ERR_INSUFFICIENT_DATA);
+      ret := minVal;
+      if RequiresReverse (K.K > 0) then
+         I := RANGE_1_2'Last;
+         while Result.Success and I >= RANGE_1_2'First loop
             --# assert K~.K+1>= S'First and K~.K + 64 <= S'Last and K.K = K~.K + 8*(8-I) AND I>=1 AND I<=8;
-                BitStream_DecodeByte(S,K, tmp(I), Result.Success);
-                I := I - 1;
-            END LOOP;
-	ELSE
-            I:=RANGE_1_2'First;
-            WHILE Result.Success AND I<=RANGE_1_2'Last LOOP
+            BitStream_DecodeByte (S, K, tmp (I), Result.Success);
+            I := I - 1;
+         end loop;
+      else
+         I := RANGE_1_2'First;
+         while Result.Success and I <= RANGE_1_2'Last loop
             --# assert K~.K+1>= S'First and K~.K + 64 <= S'Last and K.K = K~.K + 8*(I-1) AND I>=1 AND I<=8;
-                BitStream_DecodeByte(S,K, tmp(I), Result.Success);
-                I := I + 1;
-            END LOOP;
-	END IF;
-        IF Result.Success THEN
-	    ret := Asn1UInt(OctetArray2_to_UInt16(tmp));
-            Result.Success := ret>= MinVal AND ret <=MaxVal;
-        END IF;
-        IF Result.Success THEN
-            IntVal := ret;
-        ELSE
-            IntVal := MinVal;
-        END IF;
-    END Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_16;
+            BitStream_DecodeByte (S, K, tmp (I), Result.Success);
+            I := I + 1;
+         end loop;
+      end if;
+      if Result.Success then
+         ret            := Asn1UInt (OctetArray2_to_UInt16 (tmp));
+         Result.Success := ret >= minVal and ret <= maxVal;
+      end if;
+      if Result.Success then
+         IntVal := ret;
+      else
+         IntVal := minVal;
+      end if;
+   end Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_16;
 
-    PROCEDURE Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_32(S : in BitArray; K : in out DECODE_PARAMS; IntVal:OUT Asn1UInt; minVal:IN Asn1UInt; maxVal:IN Asn1UInt; Result:OUT ASN1_RESULT)
-    IS
-	tmp : OctetArray4:=OctetArray4'(others=>0);
-        I   : INTEGER;
-        ret : Asn1UInt;
-    BEGIN
-	Result := ASN1_RESULT'(Success   => TRUE,ErrorCode => ERR_INSUFFICIENT_DATA);
-        ret := MinVal;
-	IF RequiresReverse(K.K>0) THEN
-            I:=RANGE_1_4'Last;
-            WHILE Result.Success AND I>=RANGE_1_4'First LOOP
+   procedure Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_32
+     (S      : in     BitArray;
+      K      : in out DECODE_PARAMS;
+      IntVal :    out Asn1UInt;
+      minVal : in     Asn1UInt;
+      maxVal : in     Asn1UInt;
+      Result :    out ASN1_RESULT)
+   is
+      tmp : OctetArray4 := OctetArray4'(others => 0);
+      I   : Integer;
+      ret : Asn1UInt;
+   begin
+      Result :=
+        ASN1_RESULT'(Success => True, ErrorCode => ERR_INSUFFICIENT_DATA);
+      ret := minVal;
+      if RequiresReverse (K.K > 0) then
+         I := RANGE_1_4'Last;
+         while Result.Success and I >= RANGE_1_4'First loop
             --# assert K~.K+1>= S'First and K~.K + 64 <= S'Last and K.K = K~.K + 8*(8-I) AND I>=1 AND I<=8;
-                BitStream_DecodeByte(S,K, tmp(I), Result.Success);
-                I := I - 1;
-            END LOOP;
-	ELSE
-            I:=RANGE_1_4'First;
-            WHILE Result.Success AND I<=RANGE_1_4'Last LOOP
+            BitStream_DecodeByte (S, K, tmp (I), Result.Success);
+            I := I - 1;
+         end loop;
+      else
+         I := RANGE_1_4'First;
+         while Result.Success and I <= RANGE_1_4'Last loop
             --# assert K~.K+1>= S'First and K~.K + 64 <= S'Last and K.K = K~.K + 8*(I-1) AND I>=1 AND I<=8;
-                BitStream_DecodeByte(S,K, tmp(I), Result.Success);
-                I := I + 1;
-            END LOOP;
-	END IF;
-        IF Result.Success THEN
-	    ret := Asn1UInt(OctetArray4_to_UInt32(tmp));
-            Result.Success := ret>= MinVal AND ret <=MaxVal;
-        END IF;
-        IF Result.Success THEN
-            IntVal := ret;
-        ELSE
-            IntVal := MinVal;
-        END IF;
-    END Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_32;
+            BitStream_DecodeByte (S, K, tmp (I), Result.Success);
+            I := I + 1;
+         end loop;
+      end if;
+      if Result.Success then
+         ret            := Asn1UInt (OctetArray4_to_UInt32 (tmp));
+         Result.Success := ret >= minVal and ret <= maxVal;
+      end if;
+      if Result.Success then
+         IntVal := ret;
+      else
+         IntVal := minVal;
+      end if;
+   end Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_32;
 
-    PROCEDURE Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_64(S : in BitArray; K : in out DECODE_PARAMS; IntVal:OUT Asn1UInt; minVal:IN Asn1UInt; maxVal:IN Asn1UInt; Result:OUT ASN1_RESULT)
-    IS
-	tmp : OctetArray8:=OctetArray8'(others=>0);
-        I   : INTEGER;
-        ret : Asn1UInt;
-    BEGIN
-	Result := ASN1_RESULT'(Success   => TRUE,ErrorCode => ERR_INSUFFICIENT_DATA);
-        ret := MinVal;
-	IF RequiresReverse(K.K>0) THEN
-            I:=RANGE_1_8'Last;
-            WHILE Result.Success AND I>=RANGE_1_8'First LOOP
+   procedure Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_64
+     (S      : in     BitArray;
+      K      : in out DECODE_PARAMS;
+      IntVal :    out Asn1UInt;
+      minVal : in     Asn1UInt;
+      maxVal : in     Asn1UInt;
+      Result :    out ASN1_RESULT)
+   is
+      tmp : OctetArray8 := OctetArray8'(others => 0);
+      I   : Integer;
+      ret : Asn1UInt;
+   begin
+      Result :=
+        ASN1_RESULT'(Success => True, ErrorCode => ERR_INSUFFICIENT_DATA);
+      ret := minVal;
+      if RequiresReverse (K.K > 0) then
+         I := RANGE_1_8'Last;
+         while Result.Success and I >= RANGE_1_8'First loop
             --# assert K~.K+1>= S'First and K~.K + 64 <= S'Last and K.K = K~.K + 8*(8-I) AND I>=1 AND I<=8;
-                BitStream_DecodeByte(S,K, tmp(I), Result.Success);
-                I := I - 1;
-            END LOOP;
-	ELSE
-            I:=RANGE_1_8'First;
-            WHILE Result.Success AND I<=RANGE_1_8'Last LOOP
+            BitStream_DecodeByte (S, K, tmp (I), Result.Success);
+            I := I - 1;
+         end loop;
+      else
+         I := RANGE_1_8'First;
+         while Result.Success and I <= RANGE_1_8'Last loop
             --# assert K~.K+1>= S'First and K~.K + 64 <= S'Last and K.K = K~.K + 8*(I-1) AND I>=1 AND I<=8;
-                BitStream_DecodeByte(S,K, tmp(I), Result.Success);
-                I := I + 1;
-            END LOOP;
-	END IF;
-        IF Result.Success THEN
-	    ret := OctetArray8_to_Asn1UInt(tmp);
-            Result.Success := ret>= MinVal AND ret <=MaxVal;
-        END IF;
-        IF Result.Success THEN
-            IntVal := ret;
-        ELSE
-            IntVal := MinVal;
-        END IF;
-    END Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_64;
+            BitStream_DecodeByte (S, K, tmp (I), Result.Success);
+            I := I + 1;
+         end loop;
+      end if;
+      if Result.Success then
+         ret            := OctetArray8_to_Asn1UInt (tmp);
+         Result.Success := ret >= minVal and ret <= maxVal;
+      end if;
+      if Result.Success then
+         IntVal := ret;
+      else
+         IntVal := minVal;
+      end if;
+   end Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_64;
 
+   procedure Acn_Dec_Int_PositiveInteger_VarSize_LengthEmbedded
+     (S      : in     BitArray;
+      K      : in out DECODE_PARAMS;
+      IntVal :    out Asn1UInt;
+      minVal : in     Asn1UInt;
+      Result :    out ASN1_RESULT)
+   is
+      NBytes : Asn1Int;
+      Ret    : Asn1UInt;
+   begin
 
-    PROCEDURE Acn_Dec_Int_PositiveInteger_VarSize_LengthEmbedded(S : in BitArray; K : in out DECODE_PARAMS; IntVal:OUT Asn1UInt; minVal:IN Asn1UInt; Result:OUT ASN1_RESULT)
-    IS
-      NBytes  : Asn1Int;
-      Ret     : Asn1UInt;
-   BEGIN
-
-      IntVal := MinVal;
-      result.ErrorCode := 0;
-      UPER_Dec_ConstraintWholeNumber(S,K,NBytes,0,255,8,result.Success);
-      IF Result.Success AND NBytes>=1 AND NBytes<=8 THEN
-            Dec_UInt(S, K, Integer(nBytes), Ret, result.Success);
-            IF result.Success THEN
-                IntVal := Ret;
-                Result.Success := IntVal>= MinVal;
-                IF NOT Result.Success THEN
-                     IntVal := MinVal;
-      	             result.ErrorCode := ERR_INCORRECT_STREAM;
-                END IF;
-            ELSE
-  	        result.ErrorCode := ERR_INCORRECT_STREAM;
-            END IF;
-      ELSE
-      	 result.ErrorCode := ERR_INCORRECT_STREAM;
-      	 Result.Success :=FALSE;
-      END IF;
-    END Acn_Dec_Int_PositiveInteger_VarSize_LengthEmbedded;
-
-
-    PROCEDURE Acn_Dec_Int_TwosComplement_ConstSize (S : in BitArray; K : in out DECODE_PARAMS; IntVal:OUT Asn1Int; minVal:IN Asn1Int; maxVal:IN Asn1Int; nSizeInBits:IN Integer; Result:OUT ASN1_RESULT)
-    IS
-        encVal : Asn1UInt;
-    BEGIN
-    	result.ErrorCode := 0;
-        BitStream_Decode_Non_Negative_Integer(S, K, encVal, nSizeInBits, result.Success);
-        IF result.Success THEN
-            IntVal := To_Int_n(encVal, nSizeInBits);
-            Result.Success := IntVal>= MinVal AND IntVal<=maxVal;
-            IF NOT Result.Success THEN
-                IntVal := minVal;
-                Result.ErrorCode := ERR_INCORRECT_STREAM;
-            END IF;
-        ELSE
-            IntVal := minVal;
+      IntVal           := minVal;
+      Result.ErrorCode := 0;
+      UPER_Dec_ConstraintWholeNumber (S, K, NBytes, 0, 255, 8, Result.Success);
+      if Result.Success and NBytes >= 1 and NBytes <= 8 then
+         Dec_UInt (S, K, Integer (NBytes), Ret, Result.Success);
+         if Result.Success then
+            IntVal         := Ret;
+            Result.Success := IntVal >= minVal;
+            if not Result.Success then
+               IntVal           := minVal;
+               Result.ErrorCode := ERR_INCORRECT_STREAM;
+            end if;
+         else
             Result.ErrorCode := ERR_INCORRECT_STREAM;
-        END IF;
-    END Acn_Dec_Int_TwosComplement_ConstSize;
+         end if;
+      else
+         Result.ErrorCode := ERR_INCORRECT_STREAM;
+         Result.Success   := False;
+      end if;
+   end Acn_Dec_Int_PositiveInteger_VarSize_LengthEmbedded;
 
-    PROCEDURE Acn_Dec_Int_TwosComplement_ConstSize_8(S : in BitArray; K : in out DECODE_PARAMS; IntVal:OUT Asn1Int; minVal:IN Asn1Int; maxVal:IN Asn1Int; Result:OUT ASN1_RESULT)
-    IS
-    BEGIN
-        Acn_Dec_Int_TwosComplement_ConstSize(S, K, IntVal, minVal, maxVal, 8, Result);
-    END Acn_Dec_Int_TwosComplement_ConstSize_8;
+   procedure Acn_Dec_Int_TwosComplement_ConstSize
+     (S           : in     BitArray;
+      K           : in out DECODE_PARAMS;
+      IntVal      :    out Asn1Int;
+      minVal      : in     Asn1Int;
+      maxVal      : in     Asn1Int;
+      nSizeInBits : in     Integer;
+      Result      :    out ASN1_RESULT)
+   is
+      encVal : Asn1UInt;
+   begin
+      Result.ErrorCode := 0;
+      BitStream_Decode_Non_Negative_Integer
+        (S,
+         K,
+         encVal,
+         nSizeInBits,
+         Result.Success);
+      if Result.Success then
+         IntVal         := To_Int_n (encVal, nSizeInBits);
+         Result.Success := IntVal >= minVal and IntVal <= maxVal;
+         if not Result.Success then
+            IntVal           := minVal;
+            Result.ErrorCode := ERR_INCORRECT_STREAM;
+         end if;
+      else
+         IntVal           := minVal;
+         Result.ErrorCode := ERR_INCORRECT_STREAM;
+      end if;
+   end Acn_Dec_Int_TwosComplement_ConstSize;
 
-    PROCEDURE Acn_Dec_Int_TwosComplement_ConstSize_big_endian_16(S : in BitArray; K : in out DECODE_PARAMS; IntVal:OUT Asn1Int; minVal:IN Asn1Int; maxVal:IN Asn1Int; Result:OUT ASN1_RESULT)
-    IS
-    BEGIN
-        Acn_Dec_Int_TwosComplement_ConstSize(S, K, IntVal, minVal, maxVal, 16, Result);
-    END Acn_Dec_Int_TwosComplement_ConstSize_big_endian_16;
+   procedure Acn_Dec_Int_TwosComplement_ConstSize_8
+     (S      : in     BitArray;
+      K      : in out DECODE_PARAMS;
+      IntVal :    out Asn1Int;
+      minVal : in     Asn1Int;
+      maxVal : in     Asn1Int;
+      Result :    out ASN1_RESULT)
+   is
+   begin
+      Acn_Dec_Int_TwosComplement_ConstSize
+        (S,
+         K,
+         IntVal,
+         minVal,
+         maxVal,
+         8,
+         Result);
+   end Acn_Dec_Int_TwosComplement_ConstSize_8;
 
-    PROCEDURE Acn_Dec_Int_TwosComplement_ConstSize_big_endian_32(S : in BitArray; K : in out DECODE_PARAMS; IntVal:OUT Asn1Int; minVal:IN Asn1Int; maxVal:IN Asn1Int; Result:OUT ASN1_RESULT)
-    IS
-    BEGIN
-        Acn_Dec_Int_TwosComplement_ConstSize(S, K, IntVal, minVal, maxVal, 32, Result);
-    END Acn_Dec_Int_TwosComplement_ConstSize_big_endian_32;
+   procedure Acn_Dec_Int_TwosComplement_ConstSize_big_endian_16
+     (S      : in     BitArray;
+      K      : in out DECODE_PARAMS;
+      IntVal :    out Asn1Int;
+      minVal : in     Asn1Int;
+      maxVal : in     Asn1Int;
+      Result :    out ASN1_RESULT)
+   is
+   begin
+      Acn_Dec_Int_TwosComplement_ConstSize
+        (S,
+         K,
+         IntVal,
+         minVal,
+         maxVal,
+         16,
+         Result);
+   end Acn_Dec_Int_TwosComplement_ConstSize_big_endian_16;
 
-    PROCEDURE Acn_Dec_Int_TwosComplement_ConstSize_big_endian_64(S : in BitArray; K : in out DECODE_PARAMS; IntVal:OUT Asn1Int; minVal:IN Asn1Int; maxVal:IN Asn1Int; Result:OUT ASN1_RESULT)
-    IS
-    BEGIN
-        Acn_Dec_Int_TwosComplement_ConstSize(S, K, IntVal, minVal, maxVal, 64, Result);
-    END Acn_Dec_Int_TwosComplement_ConstSize_big_endian_64;
+   procedure Acn_Dec_Int_TwosComplement_ConstSize_big_endian_32
+     (S      : in     BitArray;
+      K      : in out DECODE_PARAMS;
+      IntVal :    out Asn1Int;
+      minVal : in     Asn1Int;
+      maxVal : in     Asn1Int;
+      Result :    out ASN1_RESULT)
+   is
+   begin
+      Acn_Dec_Int_TwosComplement_ConstSize
+        (S,
+         K,
+         IntVal,
+         minVal,
+         maxVal,
+         32,
+         Result);
+   end Acn_Dec_Int_TwosComplement_ConstSize_big_endian_32;
 
-    PROCEDURE Acn_Dec_Int_TwosComplement_ConstSize_little_endian_16(S : in BitArray; K : in out DECODE_PARAMS; IntVal:OUT Asn1Int; minVal:IN Asn1Int; maxVal:IN Asn1Int; Result:OUT ASN1_RESULT)
-    IS
-	tmp : OctetArray2:=OctetArray2'(others=>0);
-        I   : INTEGER;
-        ret : Asn1Int;
-    BEGIN
-	Result := ASN1_RESULT'(Success   => TRUE,ErrorCode => ERR_INSUFFICIENT_DATA);
-        ret := MinVal;
-	IF RequiresReverse(K.K>0) THEN
-            I:=RANGE_1_2'Last;
-            WHILE Result.Success AND I>=RANGE_1_2'First LOOP
+   procedure Acn_Dec_Int_TwosComplement_ConstSize_big_endian_64
+     (S      : in     BitArray;
+      K      : in out DECODE_PARAMS;
+      IntVal :    out Asn1Int;
+      minVal : in     Asn1Int;
+      maxVal : in     Asn1Int;
+      Result :    out ASN1_RESULT)
+   is
+   begin
+      Acn_Dec_Int_TwosComplement_ConstSize
+        (S,
+         K,
+         IntVal,
+         minVal,
+         maxVal,
+         64,
+         Result);
+   end Acn_Dec_Int_TwosComplement_ConstSize_big_endian_64;
+
+   procedure Acn_Dec_Int_TwosComplement_ConstSize_little_endian_16
+     (S      : in     BitArray;
+      K      : in out DECODE_PARAMS;
+      IntVal :    out Asn1Int;
+      minVal : in     Asn1Int;
+      maxVal : in     Asn1Int;
+      Result :    out ASN1_RESULT)
+   is
+      tmp : OctetArray2 := OctetArray2'(others => 0);
+      I   : Integer;
+      ret : Asn1Int;
+   begin
+      Result :=
+        ASN1_RESULT'(Success => True, ErrorCode => ERR_INSUFFICIENT_DATA);
+      ret := minVal;
+      if RequiresReverse (K.K > 0) then
+         I := RANGE_1_2'Last;
+         while Result.Success and I >= RANGE_1_2'First loop
             --# assert K~.K+1>= S'First and K~.K + 64 <= S'Last and K.K = K~.K + 8*(8-I) AND I>=1 AND I<=8;
-                BitStream_DecodeByte(S,K, tmp(I), Result.Success);
-                I := I - 1;
-            END LOOP;
-	ELSE
-            I:=RANGE_1_2'First;
-            WHILE Result.Success AND I<=RANGE_1_2'Last LOOP
+            BitStream_DecodeByte (S, K, tmp (I), Result.Success);
+            I := I - 1;
+         end loop;
+      else
+         I := RANGE_1_2'First;
+         while Result.Success and I <= RANGE_1_2'Last loop
             --# assert K~.K+1>= S'First and K~.K + 64 <= S'Last and K.K = K~.K + 8*(I-1) AND I>=1 AND I<=8;
-                BitStream_DecodeByte(S,K, tmp(I), Result.Success);
-                I := I + 1;
-            END LOOP;
-	END IF;
-        IF Result.Success THEN
-	    ret := Asn1Int(UInt16_Int16(OctetArray2_to_UInt16(tmp)));
-            Result.Success := ret>= MinVal AND ret <=MaxVal;
-        END IF;
-        IF Result.Success THEN
-            IntVal := ret;
-        ELSE
-            IntVal := MinVal;
-        END IF;
-    END Acn_Dec_Int_TwosComplement_ConstSize_little_endian_16;
+            BitStream_DecodeByte (S, K, tmp (I), Result.Success);
+            I := I + 1;
+         end loop;
+      end if;
+      if Result.Success then
+         ret := Asn1Int (UInt16_Int16 (OctetArray2_to_UInt16 (tmp)));
+         Result.Success := ret >= minVal and ret <= maxVal;
+      end if;
+      if Result.Success then
+         IntVal := ret;
+      else
+         IntVal := minVal;
+      end if;
+   end Acn_Dec_Int_TwosComplement_ConstSize_little_endian_16;
 
-    PROCEDURE Acn_Dec_Int_TwosComplement_ConstSize_little_endian_32(S : in BitArray; K : in out DECODE_PARAMS; IntVal:OUT Asn1Int; minVal:IN Asn1Int; maxVal:IN Asn1Int; Result:OUT ASN1_RESULT)
-    IS
-	tmp : OctetArray4:=OctetArray4'(others=>0);
-        I   : INTEGER;
-        ret : Asn1Int;
-    BEGIN
-	Result := ASN1_RESULT'(Success   => TRUE,ErrorCode => ERR_INSUFFICIENT_DATA);
-        ret := MinVal;
-	IF RequiresReverse(K.K>0) THEN
-            I:=RANGE_1_4'Last;
-            WHILE Result.Success AND I>=RANGE_1_4'First LOOP
+   procedure Acn_Dec_Int_TwosComplement_ConstSize_little_endian_32
+     (S      : in     BitArray;
+      K      : in out DECODE_PARAMS;
+      IntVal :    out Asn1Int;
+      minVal : in     Asn1Int;
+      maxVal : in     Asn1Int;
+      Result :    out ASN1_RESULT)
+   is
+      tmp : OctetArray4 := OctetArray4'(others => 0);
+      I   : Integer;
+      ret : Asn1Int;
+   begin
+      Result :=
+        ASN1_RESULT'(Success => True, ErrorCode => ERR_INSUFFICIENT_DATA);
+      ret := minVal;
+      if RequiresReverse (K.K > 0) then
+         I := RANGE_1_4'Last;
+         while Result.Success and I >= RANGE_1_4'First loop
             --# assert K~.K+1>= S'First and K~.K + 64 <= S'Last and K.K = K~.K + 8*(8-I) AND I>=1 AND I<=8;
-                BitStream_DecodeByte(S,K, tmp(I), Result.Success);
-                I := I - 1;
-            END LOOP;
-	ELSE
-            I:=RANGE_1_4'First;
-            WHILE Result.Success AND I<=RANGE_1_4'Last LOOP
+            BitStream_DecodeByte (S, K, tmp (I), Result.Success);
+            I := I - 1;
+         end loop;
+      else
+         I := RANGE_1_4'First;
+         while Result.Success and I <= RANGE_1_4'Last loop
             --# assert K~.K+1>= S'First and K~.K + 64 <= S'Last and K.K = K~.K + 8*(I-1) AND I>=1 AND I<=8;
-                BitStream_DecodeByte(S,K, tmp(I), Result.Success);
-                I := I + 1;
-            END LOOP;
-	END IF;
-        IF Result.Success THEN
-	    ret :=  Asn1Int(UInt32_Int32(OctetArray4_to_UInt32(tmp)));
-            Result.Success := ret>= MinVal AND ret <=MaxVal;
-        END IF;
-        IF Result.Success THEN
-            IntVal := ret;
-        ELSE
-            IntVal := MinVal;
-        END IF;
-    END Acn_Dec_Int_TwosComplement_ConstSize_little_endian_32;
+            BitStream_DecodeByte (S, K, tmp (I), Result.Success);
+            I := I + 1;
+         end loop;
+      end if;
+      if Result.Success then
+         ret := Asn1Int (UInt32_Int32 (OctetArray4_to_UInt32 (tmp)));
+         Result.Success := ret >= minVal and ret <= maxVal;
+      end if;
+      if Result.Success then
+         IntVal := ret;
+      else
+         IntVal := minVal;
+      end if;
+   end Acn_Dec_Int_TwosComplement_ConstSize_little_endian_32;
 
-    PROCEDURE Acn_Dec_Int_TwosComplement_ConstSize_little_endian_64(S : in BitArray; K : in out DECODE_PARAMS; IntVal:OUT Asn1Int; minVal:IN Asn1Int; maxVal:IN Asn1Int; Result:OUT ASN1_RESULT)
-    IS
-	tmp : OctetArray8:=OctetArray8'(others=>0);
-        I   : INTEGER;
-        ret : Asn1Int;
-    BEGIN
-	Result := ASN1_RESULT'(Success   => TRUE,ErrorCode => ERR_INSUFFICIENT_DATA);
-        ret := MinVal;
-	IF RequiresReverse(K.K>0) THEN
-            I:=RANGE_1_8'Last;
-            WHILE Result.Success AND I>=RANGE_1_8'First LOOP
+   procedure Acn_Dec_Int_TwosComplement_ConstSize_little_endian_64
+     (S      : in     BitArray;
+      K      : in out DECODE_PARAMS;
+      IntVal :    out Asn1Int;
+      minVal : in     Asn1Int;
+      maxVal : in     Asn1Int;
+      Result :    out ASN1_RESULT)
+   is
+      tmp : OctetArray8 := OctetArray8'(others => 0);
+      I   : Integer;
+      ret : Asn1Int;
+   begin
+      Result :=
+        ASN1_RESULT'(Success => True, ErrorCode => ERR_INSUFFICIENT_DATA);
+      ret := minVal;
+      if RequiresReverse (K.K > 0) then
+         I := RANGE_1_8'Last;
+         while Result.Success and I >= RANGE_1_8'First loop
             --# assert K~.K+1>= S'First and K~.K + 64 <= S'Last and K.K = K~.K + 8*(8-I) AND I>=1 AND I<=8;
-                BitStream_DecodeByte(S,K, tmp(I), Result.Success);
-                I := I - 1;
-            END LOOP;
-	ELSE
-            I:=RANGE_1_8'First;
-            WHILE Result.Success AND I<=RANGE_1_8'Last LOOP
+            BitStream_DecodeByte (S, K, tmp (I), Result.Success);
+            I := I - 1;
+         end loop;
+      else
+         I := RANGE_1_8'First;
+         while Result.Success and I <= RANGE_1_8'Last loop
             --# assert K~.K+1>= S'First and K~.K + 64 <= S'Last and K.K = K~.K + 8*(I-1) AND I>=1 AND I<=8;
-                BitStream_DecodeByte(S,K, tmp(I), Result.Success);
-                I := I + 1;
-            END LOOP;
-	END IF;
-        IF Result.Success THEN
-	    ret := To_Int(OctetArray8_to_Asn1UInt(tmp));
-            Result.Success := ret>= MinVal AND ret <=MaxVal;
-        END IF;
-        IF Result.Success THEN
-            IntVal := ret;
-        ELSE
-            IntVal := MinVal;
-        END IF;
-    END Acn_Dec_Int_TwosComplement_ConstSize_little_endian_64;
+            BitStream_DecodeByte (S, K, tmp (I), Result.Success);
+            I := I + 1;
+         end loop;
+      end if;
+      if Result.Success then
+         ret            := To_Int (OctetArray8_to_Asn1UInt (tmp));
+         Result.Success := ret >= minVal and ret <= maxVal;
+      end if;
+      if Result.Success then
+         IntVal := ret;
+      else
+         IntVal := minVal;
+      end if;
+   end Acn_Dec_Int_TwosComplement_ConstSize_little_endian_64;
 
+   function UInt16_to_OctetArray2
+     (x : Interfaces.Unsigned_16) return OctetArray2
+   is
+      pragma SPARK_Mode (Off);
+      function do_it is new Ada.Unchecked_Conversion
+        (Interfaces.Unsigned_16,
+         OctetArray2);
+   begin
+      return do_it (x);
+   end UInt16_to_OctetArray2;
 
+   function OctetArray2_to_UInt16
+     (x : OctetArray2) return Interfaces.Unsigned_16
+   is
+      pragma SPARK_Mode (Off);
+      function do_it is new Ada.Unchecked_Conversion
+        (OctetArray2,
+         Interfaces.Unsigned_16);
+   begin
+      return do_it (x);
+   end OctetArray2_to_UInt16;
 
+   function UInt32_to_OctetArray4
+     (x : Interfaces.Unsigned_32) return OctetArray4
+   is
+      pragma SPARK_Mode (Off);
+      function do_it is new Ada.Unchecked_Conversion
+        (Interfaces.Unsigned_32,
+         OctetArray4);
+   begin
+      return do_it (x);
+   end UInt32_to_OctetArray4;
 
+   function OctetArray4_to_UInt32
+     (x : OctetArray4) return Interfaces.Unsigned_32
+   is
+      pragma SPARK_Mode (Off);
+      function do_it is new Ada.Unchecked_Conversion
+        (OctetArray4,
+         Interfaces.Unsigned_32);
+   begin
+      return do_it (x);
+   end OctetArray4_to_UInt32;
 
+   function Asn1UInt_to_OctetArray8 (x : Asn1UInt) return OctetArray8 is
+      pragma SPARK_Mode (Off);
+      function do_it is new Ada.Unchecked_Conversion (Asn1UInt, OctetArray8);
+   begin
+      return do_it (x);
+   end Asn1UInt_to_OctetArray8;
 
+   function OctetArray8_to_Asn1UInt (x : OctetArray8) return Asn1UInt is
+      pragma SPARK_Mode (Off);
+      function do_it is new Ada.Unchecked_Conversion (OctetArray8, Asn1UInt);
+   begin
+      return do_it (x);
+   end OctetArray8_to_Asn1UInt;
 
-    FUNCTION UInt16_to_OctetArray2(x:Interfaces.Unsigned_16) RETURN OctetArray2
-    IS
-        pragma SPARK_Mode(Off);
-        function do_it IS NEW Ada.Unchecked_Conversion(Interfaces.Unsigned_16, OctetArray2);
-    BEGIN
-        RETURN do_it(x);
-    END UInt16_to_OctetArray2;
+   function Int16_to_OctetArray2
+     (x : Interfaces.Integer_16) return OctetArray2
+   is
+      pragma SPARK_Mode (Off);
+      function do_it is new Ada.Unchecked_Conversion
+        (Interfaces.Integer_16,
+         OctetArray2);
+   begin
+      return do_it (x);
+   end Int16_to_OctetArray2;
 
-    FUNCTION OctetArray2_to_UInt16(x:OctetArray2) RETURN Interfaces.Unsigned_16
-    IS
-        pragma SPARK_Mode(Off);
-        function do_it IS NEW Ada.Unchecked_Conversion(OctetArray2, Interfaces.Unsigned_16);
-    BEGIN
-        RETURN do_it(x);
-    END OctetArray2_to_UInt16;
+   function OctetArray2_to_Int16
+     (x : OctetArray2) return Interfaces.Integer_16
+   is
+      pragma SPARK_Mode (Off);
+      function do_it is new Ada.Unchecked_Conversion
+        (OctetArray2,
+         Interfaces.Integer_16);
+   begin
+      return do_it (x);
+   end OctetArray2_to_Int16;
 
+   function Int32_to_OctetArray4
+     (x : Interfaces.Integer_32) return OctetArray4
+   is
+      pragma SPARK_Mode (Off);
+      function do_it is new Ada.Unchecked_Conversion
+        (Interfaces.Integer_32,
+         OctetArray4);
+   begin
+      return do_it (x);
+   end Int32_to_OctetArray4;
 
-    FUNCTION UInt32_to_OctetArray4(x:Interfaces.Unsigned_32) RETURN OctetArray4
-    IS
-        pragma SPARK_Mode(Off);
-        function do_it IS NEW Ada.Unchecked_Conversion(Interfaces.Unsigned_32, OctetArray4);
-    BEGIN
-        RETURN do_it(x);
-    END UInt32_to_OctetArray4;
+   function OctetArray4_to_Int32
+     (x : OctetArray4) return Interfaces.Integer_32
+   is
+      pragma SPARK_Mode (Off);
+      function do_it is new Ada.Unchecked_Conversion
+        (OctetArray4,
+         Interfaces.Integer_32);
+   begin
+      return do_it (x);
+   end OctetArray4_to_Int32;
 
-    FUNCTION OctetArray4_to_UInt32(x:OctetArray4) RETURN Interfaces.Unsigned_32
-    IS
-        pragma SPARK_Mode(Off);
-        function do_it IS NEW Ada.Unchecked_Conversion(OctetArray4, Interfaces.Unsigned_32);
-    BEGIN
-        RETURN do_it(x);
-    END OctetArray4_to_UInt32;
+   function Asn1Int_to_OctetArray8 (x : Asn1Int) return OctetArray8 is
+      pragma SPARK_Mode (Off);
+      function do_it is new Ada.Unchecked_Conversion (Asn1Int, OctetArray8);
+   begin
+      return do_it (x);
+   end Asn1Int_to_OctetArray8;
 
+   function OctetArray8_to_Asn1Int (x : OctetArray8) return Asn1Int is
+      pragma SPARK_Mode (Off);
+      function do_it is new Ada.Unchecked_Conversion (OctetArray8, Asn1Int);
+   begin
+      return do_it (x);
+   end OctetArray8_to_Asn1Int;
 
-    FUNCTION Asn1UInt_to_OctetArray8(x:Asn1UInt) RETURN OctetArray8
-    IS
-        pragma SPARK_Mode(Off);
-        function do_it  IS NEW Ada.Unchecked_Conversion(Asn1UInt, OctetArray8);
-    BEGIN
-        RETURN do_it(x);
-    END Asn1UInt_to_OctetArray8;
-
-    FUNCTION OctetArray8_to_Asn1UInt(x:OctetArray8) RETURN Asn1UInt
-    IS
-        pragma SPARK_Mode(Off);
-        function do_it IS NEW Ada.Unchecked_Conversion(OctetArray8, Asn1UInt);
-    BEGIN
-        RETURN do_it(x);
-    END OctetArray8_to_Asn1UInt;
-
-
-
-   FUNCTION Int16_to_OctetArray2(x:Interfaces.Integer_16) RETURN OctetArray2
-   IS
-        pragma SPARK_Mode(Off);
-        function do_it IS NEW Ada.Unchecked_Conversion(Interfaces.Integer_16, OctetArray2);
-   BEGIN
-   	RETURN do_it(x);
-   END Int16_to_OctetArray2;
-
-   FUNCTION OctetArray2_to_Int16(x:OctetArray2) RETURN Interfaces.Integer_16
-   IS
-        pragma SPARK_Mode(Off);
-        function do_it IS NEW Ada.Unchecked_Conversion(OctetArray2, Interfaces.Integer_16);
-   BEGIN
-   	RETURN do_it(x);
-   END OctetArray2_to_Int16;
-
-
-   FUNCTION Int32_to_OctetArray4(x:Interfaces.Integer_32) RETURN OctetArray4
-   IS
-        pragma SPARK_Mode(Off);
-        function do_it IS NEW Ada.Unchecked_Conversion(Interfaces.Integer_32, OctetArray4);
-   BEGIN
-   	RETURN do_it(x);
-   END Int32_to_OctetArray4;
-
-   FUNCTION OctetArray4_to_Int32(x:OctetArray4) RETURN Interfaces.Integer_32
-   IS
-        pragma SPARK_Mode(Off);
-        function do_it IS NEW Ada.Unchecked_Conversion(OctetArray4, Interfaces.Integer_32);
-   BEGIN
-   	RETURN do_it(x);
-   END OctetArray4_to_Int32;
-
-
-   FUNCTION Asn1Int_to_OctetArray8(x:Asn1Int) RETURN OctetArray8
-   IS
-        pragma SPARK_Mode(Off);
-        function do_it  IS NEW Ada.Unchecked_Conversion(Asn1Int, OctetArray8);
-   BEGIN
-   	RETURN do_it(x);
-   END Asn1Int_to_OctetArray8;
-
-   FUNCTION OctetArray8_to_Asn1Int(x:OctetArray8) RETURN Asn1Int
-   IS
-        pragma SPARK_Mode(Off);
-        function do_it IS NEW Ada.Unchecked_Conversion(OctetArray8, Asn1Int);
-   BEGIN
-   	RETURN do_it(x);
-   END OctetArray8_to_Asn1Int;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-   FUNCTION Float_to_OctetArray4(x:Float) RETURN OctetArray4
-   IS
+   function Float_to_OctetArray4 (x : Float) return OctetArray4 is
 --        pragma SPARK_Mode(Off);
-        function do_it IS NEW Ada.Unchecked_Conversion(Float, OctetArray4);
-   BEGIN
-   	RETURN do_it(x);
-   END Float_to_OctetArray4;
+      function do_it is new Ada.Unchecked_Conversion (Float, OctetArray4);
+   begin
+      return do_it (x);
+   end Float_to_OctetArray4;
 
-   FUNCTION Long_Float_to_OctetArray8(x:Asn1Real) RETURN OctetArray8
-   IS
-        pragma SPARK_Mode(Off);
-        function do_it  IS NEW Ada.Unchecked_Conversion(Asn1Real, OctetArray8);
-   BEGIN
-   	RETURN do_it(x);
-   END Long_Float_to_OctetArray8;
+   function Long_Float_to_OctetArray8 (x : Asn1Real) return OctetArray8 is
+      pragma SPARK_Mode (Off);
+      function do_it is new Ada.Unchecked_Conversion (Asn1Real, OctetArray8);
+   begin
+      return do_it (x);
+   end Long_Float_to_OctetArray8;
 
+   function OctetArray4_to_Float (x : OctetArray4) return Float is
+      pragma SPARK_Mode (Off);
+      function do_it is new Ada.Unchecked_Conversion (OctetArray4, Float);
+   begin
+      return do_it (x);
+   end OctetArray4_to_Float;
 
-   FUNCTION OctetArray4_to_Float(x:OctetArray4) RETURN Float
-   IS
-        pragma SPARK_Mode(Off);
-        function do_it IS NEW Ada.Unchecked_Conversion(OctetArray4, Float);
-   BEGIN
-   	RETURN do_it(x);
-   END OctetArray4_to_Float;
+   function OctetArray8_to_Long_Float (x : OctetArray8) return Asn1Real is
+      pragma SPARK_Mode (Off);
+      function do_it is new Ada.Unchecked_Conversion (OctetArray8, Asn1Real);
+   begin
+      return do_it (x);
+   end OctetArray8_to_Long_Float;
 
-   FUNCTION OctetArray8_to_Long_Float(x:OctetArray8) RETURN Asn1Real
-   IS
-        pragma SPARK_Mode(Off);
-        function do_it IS NEW Ada.Unchecked_Conversion(OctetArray8, Asn1Real);
-   BEGIN
-   	RETURN do_it(x);
-   END OctetArray8_to_Long_Float;
+   procedure Acn_Dec_Int_TwosComplement_VarSize_LengthEmbedded
+     (S      : in     BitArray;
+      K      : in out DECODE_PARAMS;
+      IntVal :    out Asn1Int;
+      Result :    out ASN1_RESULT)
+   is
+   begin
+      Result.ErrorCode := ERR_INCORRECT_STREAM;
+      UPER_Dec_UnConstraintWholeNumber (S, K, IntVal, Result.Success);
+   end Acn_Dec_Int_TwosComplement_VarSize_LengthEmbedded;
 
-
-
-    PROCEDURE Acn_Dec_Int_TwosComplement_VarSize_LengthEmbedded(S : in BitArray; K : in out DECODE_PARAMS; IntVal:OUT Asn1Int; Result:OUT ASN1_RESULT)
-    IS
-    BEGIN
-    	Result.ErrorCode := ERR_INCORRECT_STREAM;
-        UPER_Dec_UnConstraintWholeNumber(S, K, IntVal,Result.Success);
-    END Acn_Dec_Int_TwosComplement_VarSize_LengthEmbedded;
-
-
-    PROCEDURE Acn_Dec_Int_BCD_ConstSize (S : in BitArray; K : in out DECODE_PARAMS; IntVal:OUT Asn1UInt; minVal:IN Asn1UInt; maxVal:IN Asn1UInt; nNibbles:IN Integer; Result:OUT ASN1_RESULT)
-    IS
-        digit:Asn1Byte;
-        I : Integer;
-        max_aux : CONSTANT Asn1UInt := Asn1UInt'Last/10 - 9;
-    BEGIN
-        intVal:=0;
-        Result := ASN1_RESULT'(Success   => TRUE,ErrorCode => ERR_INSUFFICIENT_DATA);
-        I := nNibbles;
-        WHILE I>0 AND Result.Success LOOP
+   procedure Acn_Dec_Int_BCD_ConstSize
+     (S        : in     BitArray;
+      K        : in out DECODE_PARAMS;
+      IntVal   :    out Asn1UInt;
+      minVal   : in     Asn1UInt;
+      maxVal   : in     Asn1UInt;
+      nNibbles : in     Integer;
+      Result   :    out ASN1_RESULT)
+   is
+      digit   : Asn1Byte;
+      I       : Integer;
+      max_aux : constant Asn1UInt := Asn1UInt'Last / 10 - 9;
+   begin
+      IntVal := 0;
+      Result :=
+        ASN1_RESULT'(Success => True, ErrorCode => ERR_INSUFFICIENT_DATA);
+      I := nNibbles;
+      while I > 0 and Result.Success loop
         --# assert K~.K+1>= S'First and  K~.K + 4*nNibbles <= S'Last and
         --#        I>0 and I<=nNibbles and
         --#        K.K = K~.K + (nNibbles-I)*4;
-            BitStream_ReadNibble(S, K, digit, Result.Success);
+         BitStream_ReadNibble (S, K, digit, Result.Success);
 
-            Result.Success := Result.Success AND digit<=9 AND intVal>=0 AND intVal <=max_aux;
-            IF Result.Success THEN
-                intVal := intVal*10;
-                intVal := intVal + Asn1UInt(digit);
-                I:= I -1;
-            END IF;
-        END LOOP;
+         Result.Success :=
+           Result.Success and digit <= 9 and IntVal >= 0 and IntVal <= max_aux;
+         if Result.Success then
+            IntVal := IntVal * 10;
+            IntVal := IntVal + Asn1UInt (digit);
+            I      := I - 1;
+         end if;
+      end loop;
 
-	Result.Success := Result.Success AND THEN ((IntVal>= minVal) AND (IntVal <=maxVal));
-	IF NOT Result.Success THEN
-            intVal:=minVal;
-        END IF;
-    END Acn_Dec_Int_BCD_ConstSize;
+      Result.Success :=
+        Result.Success and then ((IntVal >= minVal) and (IntVal <= maxVal));
+      if not Result.Success then
+         IntVal := minVal;
+      end if;
+   end Acn_Dec_Int_BCD_ConstSize;
 
-    PROCEDURE Acn_Dec_Int_BCD_VarSize_LengthEmbedded(S : in BitArray; K : in out DECODE_PARAMS; IntVal:OUT Asn1UInt; Result:OUT ASN1_RESULT)
-    IS
-        pragma SPARK_Mode(Off);
-    BEGIN
-        null;
-    END Acn_Dec_Int_BCD_VarSize_LengthEmbedded;
+   procedure Acn_Dec_Int_BCD_VarSize_LengthEmbedded
+     (S      : in     BitArray;
+      K      : in out DECODE_PARAMS;
+      IntVal :    out Asn1UInt;
+      Result :    out ASN1_RESULT)
+   is
+      pragma SPARK_Mode (Off);
+   begin
+      null;
+   end Acn_Dec_Int_BCD_VarSize_LengthEmbedded;
 
-    PROCEDURE Acn_Dec_Int_BCD_VarSize_NullTerminated(S : in BitArray; K : in out DECODE_PARAMS; IntVal:OUT Asn1UInt; minVal:IN Asn1UInt; maxVal:IN Asn1UInt; Result:OUT ASN1_RESULT)
-    IS
-        digit:Asn1Byte;
-        I : Integer;
-        max_aux : CONSTANT Asn1UInt := Asn1UInt'Last/10 - 9;
-        stopDigitFound : BOOLEAN :=FALSE;
-    BEGIN
-        intVal:=0;
-        Result := ASN1_RESULT'(Success   => TRUE,ErrorCode => ERR_INSUFFICIENT_DATA);
-        I := 0;
-        WHILE Result.Success AND (NOT stopDigitFound) AND I <18 LOOP
+   procedure Acn_Dec_Int_BCD_VarSize_NullTerminated
+     (S      : in     BitArray;
+      K      : in out DECODE_PARAMS;
+      IntVal :    out Asn1UInt;
+      minVal : in     Asn1UInt;
+      maxVal : in     Asn1UInt;
+      Result :    out ASN1_RESULT)
+   is
+      digit          : Asn1Byte;
+      I              : Integer;
+      max_aux        : constant Asn1UInt := Asn1UInt'Last / 10 - 9;
+      stopDigitFound : Boolean           := False;
+   begin
+      IntVal := 0;
+      Result :=
+        ASN1_RESULT'(Success => True, ErrorCode => ERR_INSUFFICIENT_DATA);
+      I := 0;
+      while Result.Success and (not stopDigitFound) and I < 18 loop
         --# assert K~.K+1>= S'First and  K~.K + 76 <= S'Last and
         --#        I>=0 and I<18 and
         --#        K.K = K~.K + I*4;
-            BitStream_ReadNibble(S, K, digit, Result.Success);
+         BitStream_ReadNibble (S, K, digit, Result.Success);
 
-            Result.Success := Result.Success AND (digit<=9 OR digit=16#F#) AND intVal>=0 AND intVal <=max_aux;
-            stopDigitFound := digit=16#F#;
-            IF Result.Success AND (NOT stopDigitFound) THEN
-                intVal := intVal*10;
-                intVal := intVal + Asn1UInt(digit);
-            END IF;
-            I:= I + 1;
-        END LOOP;
+         Result.Success :=
+           Result.Success and
+           (digit <= 9 or digit = 16#F#) and
+           IntVal >= 0 and
+           IntVal <= max_aux;
+         stopDigitFound := digit = 16#F#;
+         if Result.Success and (not stopDigitFound) then
+            IntVal := IntVal * 10;
+            IntVal := IntVal + Asn1UInt (digit);
+         end if;
+         I := I + 1;
+      end loop;
 
-	Result.Success := Result.Success AND THEN ((IntVal>= minVal) AND (IntVal <=maxVal));
-	IF NOT Result.Success THEN
-            intVal:=minVal;
-        END IF;
-    END Acn_Dec_Int_BCD_VarSize_NullTerminated;
+      Result.Success :=
+        Result.Success and then ((IntVal >= minVal) and (IntVal <= maxVal));
+      if not Result.Success then
+         IntVal := minVal;
+      end if;
+   end Acn_Dec_Int_BCD_VarSize_NullTerminated;
 
-    PROCEDURE Acn_Enc_Int_ASCII_ConstSize (S : in out BitArray; K : in out Natural; IntVal:IN Asn1Int; nChars:IN Integer)
-    IS
-        I : INTEGER;
-        tmp  : OctetArray100 := OctetArray100'(others => Character'Pos('0'));
-        intValCopy : Asn1Int;
-    BEGIN
-    	IF IntVal>=0 THEN
-            tmp(1) := Character'Pos('+');
-            intValCopy := IntVal;
-        ELSE
-            tmp(1) := Character'Pos('-');
-            intValCopy := -IntVal;
-        END IF;
+   procedure Acn_Enc_Int_ASCII_ConstSize
+     (S      : in out BitArray;
+      K      : in out Natural;
+      IntVal : in     Asn1Int;
+      nChars : in     Integer)
+   is
+      I          : Integer;
+      tmp : OctetArray100 := OctetArray100'(others => Character'Pos ('0'));
+      intValCopy : Asn1Int;
+   begin
+      if IntVal >= 0 then
+         tmp (1)    := Character'Pos ('+');
+         intValCopy := IntVal;
+      else
+         tmp (1)    := Character'Pos ('-');
+         intValCopy := -IntVal;
+      end if;
 
-        I := nChars;
-        WHILE intValCopy>0 and I>=2 LOOP
+      I := nChars;
+      while intValCopy > 0 and I >= 2 loop
         --# assert I>=2 and I<=nChars and K~ + 1>=S'First and K~ + 8*nChars <= S'Last and K~=K;
-            tmp(I) := Interfaces.Unsigned_8(Character'Pos('0') + (intValCopy MOD 10));
-            I := I - 1;
-            intValCopy := intValCopy / 10;
-        END LOOP;
+         tmp (I) :=
+           Interfaces.Unsigned_8 (Character'Pos ('0') + (intValCopy mod 10));
+         I          := I - 1;
+         intValCopy := intValCopy / 10;
+      end loop;
 
-        FOR J IN INTEGER range 1..nChars LOOP
+      for J in Integer range 1 .. nChars loop
         --# assert K~ + 1>=S'First and K~ + 8*nChars <= S'Last and K = K~ + (J-1)*8;
-            BitStream_AppendByte(S, K, tmp(J), FALSE);
-        END LOOP;
-    END Acn_Enc_Int_ASCII_ConstSize;
+         BitStream_AppendByte (S, K, tmp (J), False);
+      end loop;
+   end Acn_Enc_Int_ASCII_ConstSize;
 
-    PROCEDURE Acn_Enc_UInt_ASCII_ConstSize (S : in out BitArray; K : in out Natural; IntVal:IN Asn1UInt; nChars:IN Integer)
-    IS
-        I : INTEGER;
-        tmp  : OctetArray100 := OctetArray100'(others => Character'Pos('0'));
-        intValCopy : Asn1UInt;
-    BEGIN
-        intValCopy := IntVal;
+   procedure Acn_Enc_UInt_ASCII_ConstSize
+     (S      : in out BitArray;
+      K      : in out Natural;
+      IntVal : in     Asn1UInt;
+      nChars : in     Integer)
+   is
+      I          : Integer;
+      tmp : OctetArray100 := OctetArray100'(others => Character'Pos ('0'));
+      intValCopy : Asn1UInt;
+   begin
+      intValCopy := IntVal;
 
-        I := nChars;
-        WHILE intValCopy>0 and I>=2 LOOP
+      I := nChars;
+      while intValCopy > 0 and I >= 2 loop
         --# assert I>=2 and I<=nChars and K~ + 1>=S'First and K~ + 8*nChars <= S'Last and K~=K;
-            tmp(I) := Interfaces.Unsigned_8(Character'Pos('0') + (intValCopy MOD 10));
-            I := I - 1;
-            intValCopy := intValCopy / 10;
-        END LOOP;
+         tmp (I) :=
+           Interfaces.Unsigned_8 (Character'Pos ('0') + (intValCopy mod 10));
+         I          := I - 1;
+         intValCopy := intValCopy / 10;
+      end loop;
 
-        FOR J IN INTEGER range 1..nChars LOOP
+      for J in Integer range 1 .. nChars loop
         --# assert K~ + 1>=S'First and K~ + 8*nChars <= S'Last and K = K~ + (J-1)*8;
-            BitStream_AppendByte(S, K, tmp(J), FALSE);
-        END LOOP;
-    END Acn_Enc_UInt_ASCII_ConstSize;
+         BitStream_AppendByte (S, K, tmp (J), False);
+      end loop;
+   end Acn_Enc_UInt_ASCII_ConstSize;
 
+   procedure Acn_Dec_Int_ASCII_ConstSize
+     (S      : in     BitArray;
+      K      : in out DECODE_PARAMS;
+      IntVal :    out Asn1Int;
+      minVal : in     Asn1Int;
+      maxVal : in     Asn1Int;
+      nChars : in     Integer;
+      Result :    out ASN1_RESULT)
+   is
+      digit : Asn1Byte;
+      Ch    : Character;
 
-    PROCEDURE Acn_Dec_Int_ASCII_ConstSize (S : in BitArray; K : in out DECODE_PARAMS; IntVal:OUT Asn1Int; minVal:IN Asn1Int; maxVal:IN Asn1Int; nChars:IN Integer; Result:OUT ASN1_RESULT)
-    IS
-        digit: Asn1Byte;
-        Ch   : Character;
-
-        I : Integer;
-        max_aux : CONSTANT Asn1Int := Asn1Int'Last/10 - 9;
-	negative:BOOLEAN:=FALSE;
-    BEGIN
-        intVal:=0;
-        Result := ASN1_RESULT'(Success   => TRUE,ErrorCode => ERR_INSUFFICIENT_DATA);
-        BitStream_DecodeByte(S, K, digit, Result.Success);
-        IF Result.Success THEN
-       	    IF digit = Character'Pos('+') THEN
-                negative := FALSE;
-            ELSIF digit = Character'Pos('-') THEN
-                negative := TRUE;
-            ELSE
-                Result.Success := FALSE;
-            END IF;
-            I := nChars-1;
-            WHILE I>0 AND Result.Success LOOP
+      I        : Integer;
+      max_aux  : constant Asn1Int := Asn1Int'Last / 10 - 9;
+      negative : Boolean          := False;
+   begin
+      IntVal := 0;
+      Result :=
+        ASN1_RESULT'(Success => True, ErrorCode => ERR_INSUFFICIENT_DATA);
+      BitStream_DecodeByte (S, K, digit, Result.Success);
+      if Result.Success then
+         if digit = Character'Pos ('+') then
+            negative := False;
+         elsif digit = Character'Pos ('-') then
+            negative := True;
+         else
+            Result.Success := False;
+         end if;
+         I := nChars - 1;
+         while I > 0 and Result.Success loop
                 --# assert K~.K+1>= S'First and  K~.K + 8*nChars <= S'Last and
                 --#        I>0 and I<=nChars-1 and
                 --#        K.K = K~.K + (nChars-I)*8;
-                BitStream_DecodeByte(S, K, digit, Result.Success);
-                ch := Character'Val(digit);
-                digit := Character'Pos(ch) - Character'Pos('0');
+            BitStream_DecodeByte (S, K, digit, Result.Success);
+            Ch    := Character'Val (digit);
+            digit := Character'Pos (Ch) - Character'Pos ('0');
 
-                Result.Success := Result.Success AND digit<=9 AND intVal>=0 AND intVal <=max_aux;
-                IF Result.Success THEN
-                    intVal := intVal*10;
-                    intVal := intVal + Asn1Int(digit);
-                    I:= I -1;
-                END IF;
-            END LOOP;
-            IF negative AND IntVal>Asn1Int'First THEN
-		IntVal := -IntVal;
-            END IF;
+            Result.Success :=
+              Result.Success and
+              digit <= 9 and
+              IntVal >= 0 and
+              IntVal <= max_aux;
+            if Result.Success then
+               IntVal := IntVal * 10;
+               IntVal := IntVal + Asn1Int (digit);
+               I      := I - 1;
+            end if;
+         end loop;
+         if negative and IntVal > Asn1Int'First then
+            IntVal := -IntVal;
+         end if;
 
-            Result.Success := Result.Success AND THEN ((IntVal>= minVal) AND (IntVal <=maxVal));
-        END IF;
-	IF NOT Result.Success THEN
-            intVal:=minVal;
-        END IF;
-    END Acn_Dec_Int_ASCII_ConstSize;
+         Result.Success :=
+           Result.Success and then ((IntVal >= minVal) and (IntVal <= maxVal));
+      end if;
+      if not Result.Success then
+         IntVal := minVal;
+      end if;
+   end Acn_Dec_Int_ASCII_ConstSize;
 
+   procedure Acn_Dec_UInt_ASCII_ConstSize
+     (S      : in     BitArray;
+      K      : in out DECODE_PARAMS;
+      IntVal :    out Asn1UInt;
+      minVal : in     Asn1UInt;
+      maxVal : in     Asn1UInt;
+      nChars : in     Integer;
+      Result :    out ASN1_RESULT)
+   is
+      digit : Asn1Byte;
+      Ch    : Character;
 
-    PROCEDURE Acn_Dec_UInt_ASCII_ConstSize (S : in BitArray; K : in out DECODE_PARAMS; IntVal:OUT Asn1UInt; minVal:IN Asn1UInt; maxVal:IN Asn1UInt; nChars:IN Integer; Result:OUT ASN1_RESULT)
-    IS
-        digit: Asn1Byte;
-        Ch   : Character;
-
-        I : Integer;
-        max_aux : CONSTANT Asn1UInt := Asn1UInt'Last/10 - 9;
-	negative:BOOLEAN:=FALSE;
-    BEGIN
-        intVal:=0;
-        Result := ASN1_RESULT'(Success   => TRUE,ErrorCode => ERR_INSUFFICIENT_DATA);
-        I := nChars;
-        WHILE I>0 AND Result.Success LOOP
+      I        : Integer;
+      max_aux  : constant Asn1UInt := Asn1UInt'Last / 10 - 9;
+      negative : Boolean           := False;
+   begin
+      IntVal := 0;
+      Result :=
+        ASN1_RESULT'(Success => True, ErrorCode => ERR_INSUFFICIENT_DATA);
+      I := nChars;
+      while I > 0 and Result.Success loop
             --# assert K~.K+1>= S'First and  K~.K + 8*nChars <= S'Last and
             --#        I>0 and I<=nChars-1 and
             --#        K.K = K~.K + (nChars-I)*8;
-            BitStream_DecodeByte(S, K, digit, Result.Success);
-            ch := Character'Val(digit);
-            digit := Character'Pos(ch) - Character'Pos('0');
+         BitStream_DecodeByte (S, K, digit, Result.Success);
+         Ch    := Character'Val (digit);
+         digit := Character'Pos (Ch) - Character'Pos ('0');
 
-            Result.Success := Result.Success AND digit<=9 AND intVal <=max_aux;
-            IF Result.Success THEN
-                intVal := intVal*10;
-                intVal := intVal + Asn1UInt(digit);
-                I:= I -1;
-            END IF;
-        END LOOP;
+         Result.Success := Result.Success and digit <= 9 and IntVal <= max_aux;
+         if Result.Success then
+            IntVal := IntVal * 10;
+            IntVal := IntVal + Asn1UInt (digit);
+            I      := I - 1;
+         end if;
+      end loop;
 
-        Result.Success := Result.Success AND THEN ((IntVal>= minVal) AND (IntVal <=maxVal));
-	IF NOT Result.Success THEN
-            intVal:=minVal;
-        END IF;
-    END Acn_Dec_UInt_ASCII_ConstSize;
+      Result.Success :=
+        Result.Success and then ((IntVal >= minVal) and (IntVal <= maxVal));
+      if not Result.Success then
+         IntVal := minVal;
+      end if;
+   end Acn_Dec_UInt_ASCII_ConstSize;
 
+   procedure Acn_Dec_Int_ASCII_VarSize_LengthEmbedded
+     (S      : in     BitArray;
+      K      : in out DECODE_PARAMS;
+      IntVal :    out Asn1Int;
+      Result :    out ASN1_RESULT)
+   is
+      pragma SPARK_Mode (Off);
+   begin
+      null;
+   end Acn_Dec_Int_ASCII_VarSize_LengthEmbedded;
 
-    PROCEDURE Acn_Dec_Int_ASCII_VarSize_LengthEmbedded(S : in BitArray; K : in out DECODE_PARAMS; IntVal:OUT Asn1Int; Result:OUT ASN1_RESULT)
-    IS
-        pragma SPARK_Mode(Off);
-    BEGIN
-        null;
-    END Acn_Dec_Int_ASCII_VarSize_LengthEmbedded;
+   procedure Acn_Dec_Int_ASCII_VarSize_NullTerminated
+     (S      : in     BitArray;
+      K      : in out DECODE_PARAMS;
+      IntVal :    out Asn1Int;
+      Result :    out ASN1_RESULT)
+   is
+      pragma SPARK_Mode (Off);
+   begin
+      null;
+   end Acn_Dec_Int_ASCII_VarSize_NullTerminated;
 
-    PROCEDURE Acn_Dec_Int_ASCII_VarSize_NullTerminated(S : in BitArray; K : in out DECODE_PARAMS; IntVal:OUT Asn1Int; Result:OUT ASN1_RESULT)
-    IS
-        pragma SPARK_Mode(Off);
-    BEGIN
-        null;
-    END Acn_Dec_Int_ASCII_VarSize_NullTerminated;
-
-
-    FUNCTION Long_Float_to_Float(x:Asn1Real) RETURN Float
-    IS
+   function Long_Float_to_Float (x : Asn1Real) return Float is
 --        pragma SPARK_Mode(Off);
-    BEGIN
-        RETURN float(x);
-    END Long_Float_to_Float;
+   begin
+      return Float (x);
+   end Long_Float_to_Float;
 
-    PROCEDURE Acn_Enc_Real_IEEE754_32_big_endian(S : in out BitArray; K : in out Natural; RealVal:IN Asn1Real)
-    IS
-	tmp : OctetArray4;
-    BEGIN
-    	tmp := Float_to_OctetArray4(Long_Float_to_Float(RealVal));
-	IF RequiresReverse(K>0) THEN
-		FOR I IN reverse RANGE_1_4 LOOP
+   procedure Acn_Enc_Real_IEEE754_32_big_endian
+     (S       : in out BitArray;
+      K       : in out Natural;
+      RealVal : in     Asn1Real)
+   is
+      tmp : OctetArray4;
+   begin
+      tmp := Float_to_OctetArray4 (Long_Float_to_Float (RealVal));
+      if RequiresReverse (K > 0) then
+         for I in reverse RANGE_1_4 loop
                 --# assert K~+1>= S'First and K~ + 32 <= S'Last and K = K~ + 8*(4-I);
-			BitStream_AppendByte(S,K, tmp(I), FALSE);
-		END LOOP;
-	ELSE
-		FOR I IN RANGE_1_4 LOOP
+            BitStream_AppendByte (S, K, tmp (I), False);
+         end loop;
+      else
+         for I in RANGE_1_4 loop
                 --# assert K~+1>= S'First and K~ + 32 <= S'Last and K = K~ + 8*(I-1);
-			BitStream_AppendByte(S, K, tmp(I), FALSE);
-		END LOOP;
-	END IF;
-    END Acn_Enc_Real_IEEE754_32_big_endian;
+            BitStream_AppendByte (S, K, tmp (I), False);
+         end loop;
+      end if;
+   end Acn_Enc_Real_IEEE754_32_big_endian;
 
-    PROCEDURE Acn_Dec_Real_IEEE754_32_big_endian(S : in BitArray; K : in out DECODE_PARAMS; RealVal:OUT Asn1Real; Result:OUT ASN1_RESULT)
-    IS
-	tmp : OctetArray4:=OctetArray4'(others=>0);
-        I   : INTEGER;
-    BEGIN
-	Result := ASN1_RESULT'(Success   => TRUE,ErrorCode => ERR_INSUFFICIENT_DATA);
-        RealVal := 0.0;
-	IF RequiresReverse(K.K>0) THEN
-            I:=RANGE_1_4'Last;
-            WHILE Result.Success AND I>=RANGE_1_4'First LOOP
+   procedure Acn_Dec_Real_IEEE754_32_big_endian
+     (S       : in     BitArray;
+      K       : in out DECODE_PARAMS;
+      RealVal :    out Asn1Real;
+      Result  :    out ASN1_RESULT)
+   is
+      tmp : OctetArray4 := OctetArray4'(others => 0);
+      I   : Integer;
+   begin
+      Result :=
+        ASN1_RESULT'(Success => True, ErrorCode => ERR_INSUFFICIENT_DATA);
+      RealVal := 0.0;
+      if RequiresReverse (K.K > 0) then
+         I := RANGE_1_4'Last;
+         while Result.Success and I >= RANGE_1_4'First loop
             --# assert K~.K+1>= S'First and K~.K + 32 <= S'Last and K.K = K~.K + 8*(4-I) AND I>=1 AND I<=4;
-                BitStream_DecodeByte(S,K, tmp(I), Result.Success);
-                I := I - 1;
-            END LOOP;
-	ELSE
-            I:=RANGE_1_4'First;
-            WHILE Result.Success AND I<=RANGE_1_4'Last LOOP
+            BitStream_DecodeByte (S, K, tmp (I), Result.Success);
+            I := I - 1;
+         end loop;
+      else
+         I := RANGE_1_4'First;
+         while Result.Success and I <= RANGE_1_4'Last loop
             --# assert K~.K+1>= S'First and K~.K + 32 <= S'Last and K.K = K~.K + 8*(I-1) AND I>=1 AND I<=4;
-                BitStream_DecodeByte(S,K, tmp(I), Result.Success);
-                I := I + 1;
-            END LOOP;
-	END IF;
-        IF Result.Success THEN
-	    RealVal := Asn1Real(OctetArray4_to_Float(tmp));
-        END IF;
-    END Acn_Dec_Real_IEEE754_32_big_endian;
+            BitStream_DecodeByte (S, K, tmp (I), Result.Success);
+            I := I + 1;
+         end loop;
+      end if;
+      if Result.Success then
+         RealVal := Asn1Real (OctetArray4_to_Float (tmp));
+      end if;
+   end Acn_Dec_Real_IEEE754_32_big_endian;
 
-    PROCEDURE Acn_Enc_Real_IEEE754_64_big_endian(S : in out BitArray; K : in out Natural; RealVal:IN Asn1Real)
-    IS
-	tmp : OctetArray8;
-    BEGIN
-    	tmp := Long_Float_to_OctetArray8(RealVal);
-	IF RequiresReverse(K>0) THEN
-		FOR I IN reverse RANGE_1_8 LOOP
+   procedure Acn_Enc_Real_IEEE754_64_big_endian
+     (S       : in out BitArray;
+      K       : in out Natural;
+      RealVal : in     Asn1Real)
+   is
+      tmp : OctetArray8;
+   begin
+      tmp := Long_Float_to_OctetArray8 (RealVal);
+      if RequiresReverse (K > 0) then
+         for I in reverse RANGE_1_8 loop
                 --# assert K~+1>= S'First and K~ + 64 <= S'Last and K = K~ + 8*(8-I);
-			BitStream_AppendByte(S,K, tmp(I), FALSE);
-		END LOOP;
-	ELSE
-		FOR I IN RANGE_1_8 LOOP
+            BitStream_AppendByte (S, K, tmp (I), False);
+         end loop;
+      else
+         for I in RANGE_1_8 loop
                 --# assert K~+1>= S'First and K~ + 64 <= S'Last and K = K~ + 8*(I-1);
-			BitStream_AppendByte(S, K, tmp(I), FALSE);
-		END LOOP;
-	END IF;
-    END Acn_Enc_Real_IEEE754_64_big_endian;
+            BitStream_AppendByte (S, K, tmp (I), False);
+         end loop;
+      end if;
+   end Acn_Enc_Real_IEEE754_64_big_endian;
 
-    PROCEDURE Acn_Dec_Real_IEEE754_64_big_endian(S : in BitArray; K : in out DECODE_PARAMS; RealVal:OUT Asn1Real; Result:OUT ASN1_RESULT)
-    IS
-	tmp : OctetArray8:=OctetArray8'(others=>0);
-        I   : INTEGER;
-    BEGIN
-	Result := ASN1_RESULT'(Success   => TRUE,ErrorCode => ERR_INSUFFICIENT_DATA);
-        RealVal := 0.0;
-	IF RequiresReverse(K.K>0) THEN
-            I:=RANGE_1_8'Last;
-            WHILE Result.Success AND I>=RANGE_1_8'First LOOP
+   procedure Acn_Dec_Real_IEEE754_64_big_endian
+     (S       : in     BitArray;
+      K       : in out DECODE_PARAMS;
+      RealVal :    out Asn1Real;
+      Result  :    out ASN1_RESULT)
+   is
+      tmp : OctetArray8 := OctetArray8'(others => 0);
+      I   : Integer;
+   begin
+      Result :=
+        ASN1_RESULT'(Success => True, ErrorCode => ERR_INSUFFICIENT_DATA);
+      RealVal := 0.0;
+      if RequiresReverse (K.K > 0) then
+         I := RANGE_1_8'Last;
+         while Result.Success and I >= RANGE_1_8'First loop
             --# assert K~.K+1>= S'First and K~.K + 64 <= S'Last and K.K = K~.K + 8*(8-I) AND I>=1 AND I<=8;
-                BitStream_DecodeByte(S,K, tmp(I), Result.Success);
-                I := I - 1;
-            END LOOP;
-	ELSE
-            I:=RANGE_1_8'First;
-            WHILE Result.Success AND I<=RANGE_1_8'Last LOOP
+            BitStream_DecodeByte (S, K, tmp (I), Result.Success);
+            I := I - 1;
+         end loop;
+      else
+         I := RANGE_1_8'First;
+         while Result.Success and I <= RANGE_1_8'Last loop
             --# assert K~.K+1>= S'First and K~.K + 64 <= S'Last and K.K = K~.K + 8*(I-1) AND I>=1 AND I<=8;
-                BitStream_DecodeByte(S,K, tmp(I), Result.Success);
-                I := I + 1;
-            END LOOP;
-	END IF;
-        IF Result.Success THEN
-	    RealVal := OctetArray8_to_Long_Float(tmp);
-        END IF;
-    END Acn_Dec_Real_IEEE754_64_big_endian;
+            BitStream_DecodeByte (S, K, tmp (I), Result.Success);
+            I := I + 1;
+         end loop;
+      end if;
+      if Result.Success then
+         RealVal := OctetArray8_to_Long_Float (tmp);
+      end if;
+   end Acn_Dec_Real_IEEE754_64_big_endian;
 
-    PROCEDURE Acn_Enc_Real_IEEE754_32_little_endian(S : in out BitArray; K : in out Natural; RealVal:IN Asn1Real)
-    IS
-	tmp : OctetArray4;
-    BEGIN
-    	tmp := Float_to_OctetArray4(Long_Float_to_Float(RealVal));
-	IF NOT RequiresReverse(K>0) THEN
-		FOR I IN reverse RANGE_1_4 LOOP
+   procedure Acn_Enc_Real_IEEE754_32_little_endian
+     (S       : in out BitArray;
+      K       : in out Natural;
+      RealVal : in     Asn1Real)
+   is
+      tmp : OctetArray4;
+   begin
+      tmp := Float_to_OctetArray4 (Long_Float_to_Float (RealVal));
+      if not RequiresReverse (K > 0) then
+         for I in reverse RANGE_1_4 loop
                 --# assert K~+1>= S'First and K~ + 32 <= S'Last and K = K~ + 8*(4-I);
-			BitStream_AppendByte(S,K, tmp(I), FALSE);
-		END LOOP;
-	ELSE
-		FOR I IN RANGE_1_4 LOOP
+            BitStream_AppendByte (S, K, tmp (I), False);
+         end loop;
+      else
+         for I in RANGE_1_4 loop
                 --# assert K~+1>= S'First and K~ + 32 <= S'Last and K = K~ + 8*(I-1);
-			BitStream_AppendByte(S, K, tmp(I), FALSE);
-		END LOOP;
-	END IF;
-    END Acn_Enc_Real_IEEE754_32_little_endian;
+            BitStream_AppendByte (S, K, tmp (I), False);
+         end loop;
+      end if;
+   end Acn_Enc_Real_IEEE754_32_little_endian;
 
-    PROCEDURE Acn_Dec_Real_IEEE754_32_little_endian(S : in BitArray; K : in out DECODE_PARAMS; RealVal:OUT Asn1Real; Result:OUT ASN1_RESULT)
-    IS
-	tmp : OctetArray4:=OctetArray4'(others=>0);
-        I   : INTEGER;
-    BEGIN
-	Result := ASN1_RESULT'(Success   => TRUE,ErrorCode => ERR_INSUFFICIENT_DATA);
-        RealVal := 0.0;
-	IF NOT RequiresReverse(K.K>0) THEN
-            I:=RANGE_1_4'Last;
-            WHILE Result.Success AND I>=RANGE_1_4'First LOOP
+   procedure Acn_Dec_Real_IEEE754_32_little_endian
+     (S       : in     BitArray;
+      K       : in out DECODE_PARAMS;
+      RealVal :    out Asn1Real;
+      Result  :    out ASN1_RESULT)
+   is
+      tmp : OctetArray4 := OctetArray4'(others => 0);
+      I   : Integer;
+   begin
+      Result :=
+        ASN1_RESULT'(Success => True, ErrorCode => ERR_INSUFFICIENT_DATA);
+      RealVal := 0.0;
+      if not RequiresReverse (K.K > 0) then
+         I := RANGE_1_4'Last;
+         while Result.Success and I >= RANGE_1_4'First loop
             --# assert K~.K+1>= S'First and K~.K + 32 <= S'Last and K.K = K~.K + 8*(4-I) AND I>=1 AND I<=4;
-                BitStream_DecodeByte(S,K, tmp(I), Result.Success);
-                I := I - 1;
-            END LOOP;
-	ELSE
-            I:=RANGE_1_4'First;
-            WHILE Result.Success AND I<=RANGE_1_4'Last LOOP
+            BitStream_DecodeByte (S, K, tmp (I), Result.Success);
+            I := I - 1;
+         end loop;
+      else
+         I := RANGE_1_4'First;
+         while Result.Success and I <= RANGE_1_4'Last loop
             --# assert K~.K+1>= S'First and K~.K + 32 <= S'Last and K.K = K~.K + 8*(I-1) AND I>=1 AND I<=4;
-                BitStream_DecodeByte(S,K, tmp(I), Result.Success);
-                I := I + 1;
-            END LOOP;
-	END IF;
-        IF Result.Success THEN
-	    RealVal := Asn1Real(OctetArray4_to_Float(tmp));
-        END IF;
-    END Acn_Dec_Real_IEEE754_32_little_endian;
+            BitStream_DecodeByte (S, K, tmp (I), Result.Success);
+            I := I + 1;
+         end loop;
+      end if;
+      if Result.Success then
+         RealVal := Asn1Real (OctetArray4_to_Float (tmp));
+      end if;
+   end Acn_Dec_Real_IEEE754_32_little_endian;
 
-    PROCEDURE Acn_Enc_Real_IEEE754_64_little_endian(S : in out BitArray; K : in out Natural; RealVal:IN Asn1Real)
-    IS
-	tmp : OctetArray8;
-    BEGIN
-    	tmp := Long_Float_to_OctetArray8(RealVal);
-	IF NOT RequiresReverse(K>0) THEN
-		FOR I IN reverse RANGE_1_8 LOOP
+   procedure Acn_Enc_Real_IEEE754_64_little_endian
+     (S       : in out BitArray;
+      K       : in out Natural;
+      RealVal : in     Asn1Real)
+   is
+      tmp : OctetArray8;
+   begin
+      tmp := Long_Float_to_OctetArray8 (RealVal);
+      if not RequiresReverse (K > 0) then
+         for I in reverse RANGE_1_8 loop
                 --# assert K~+1>= S'First and K~ + 64 <= S'Last and K = K~ + 8*(8-I);
-			BitStream_AppendByte(S,K, tmp(I), FALSE);
-		END LOOP;
-	ELSE
-		FOR I IN RANGE_1_8 LOOP
+            BitStream_AppendByte (S, K, tmp (I), False);
+         end loop;
+      else
+         for I in RANGE_1_8 loop
                 --# assert K~+1>= S'First and K~ + 64 <= S'Last and K = K~ + 8*(I-1);
-			BitStream_AppendByte(S, K, tmp(I), FALSE);
-		END LOOP;
-	END IF;
-    END Acn_Enc_Real_IEEE754_64_little_endian;
+            BitStream_AppendByte (S, K, tmp (I), False);
+         end loop;
+      end if;
+   end Acn_Enc_Real_IEEE754_64_little_endian;
 
-    PROCEDURE Acn_Dec_Real_IEEE754_64_little_endian(S : in BitArray; K : in out DECODE_PARAMS; RealVal:OUT Asn1Real; Result:OUT ASN1_RESULT)
-    IS
-	tmp : OctetArray8:=OctetArray8'(others=>0);
-        I   : INTEGER;
-    BEGIN
-	Result := ASN1_RESULT'(Success   => TRUE,ErrorCode => ERR_INSUFFICIENT_DATA);
-        RealVal := 0.0;
-	IF NOT RequiresReverse(K.K>0) THEN
-            I:=RANGE_1_8'Last;
-            WHILE Result.Success AND I>=RANGE_1_8'First LOOP
+   procedure Acn_Dec_Real_IEEE754_64_little_endian
+     (S       : in     BitArray;
+      K       : in out DECODE_PARAMS;
+      RealVal :    out Asn1Real;
+      Result  :    out ASN1_RESULT)
+   is
+      tmp : OctetArray8 := OctetArray8'(others => 0);
+      I   : Integer;
+   begin
+      Result :=
+        ASN1_RESULT'(Success => True, ErrorCode => ERR_INSUFFICIENT_DATA);
+      RealVal := 0.0;
+      if not RequiresReverse (K.K > 0) then
+         I := RANGE_1_8'Last;
+         while Result.Success and I >= RANGE_1_8'First loop
             --# assert K~.K+1>= S'First and K~.K + 64 <= S'Last and K.K = K~.K + 8*(8-I) AND I>=1 AND I<=8;
-                BitStream_DecodeByte(S,K, tmp(I), Result.Success);
-                I := I - 1;
-            END LOOP;
-	ELSE
-            I:=RANGE_1_8'First;
-            WHILE Result.Success AND I<=RANGE_1_8'Last LOOP
+            BitStream_DecodeByte (S, K, tmp (I), Result.Success);
+            I := I - 1;
+         end loop;
+      else
+         I := RANGE_1_8'First;
+         while Result.Success and I <= RANGE_1_8'Last loop
             --# assert K~.K+1>= S'First and K~.K + 64 <= S'Last and K.K = K~.K + 8*(I-1) AND I>=1 AND I<=8;
-                BitStream_DecodeByte(S,K, tmp(I), Result.Success);
-                I := I + 1;
-            END LOOP;
-	END IF;
-        IF Result.Success THEN
-	    RealVal := OctetArray8_to_Long_Float(tmp);
-        END IF;
-    END Acn_Dec_Real_IEEE754_64_little_endian;
+            BitStream_DecodeByte (S, K, tmp (I), Result.Success);
+            I := I + 1;
+         end loop;
+      end if;
+      if Result.Success then
+         RealVal := OctetArray8_to_Long_Float (tmp);
+      end if;
+   end Acn_Dec_Real_IEEE754_64_little_endian;
 
-
-
-    PROCEDURE Acn_Enc_Boolean_true_pattern(S : in out BitArray; K : in out Natural; BoolVal:IN Asn1Boolean; pattern : IN BitArray)
-    ---# derives S from S, BoolVal, K, pattern &
-    ---#         K from  K, pattern;
-    ---# pre  K+1>= S'First and K + pattern'Length <= S'Last;
-    ---# post K = K~+pattern'Length;
-    IS
-    BEGIN
-        IF BoolVal THEN
-    	    FOR I IN INTEGER range pattern'Range LOOP
+   procedure Acn_Enc_Boolean_true_pattern
+     (S       : in out BitArray;
+      K       : in out Natural;
+      BoolVal : in     Asn1Boolean;
+      pattern : in     BitArray)
+   ---# derives S from S, BoolVal, K, pattern &
+   ---#         K from  K, pattern;
+   ---# pre  K+1>= S'First and K + pattern'Length <= S'Last;
+   ---# post K = K~+pattern'Length;
+   is
+   begin
+      if BoolVal then
+         for I in Integer range pattern'Range loop
             --# assert K = K~ and K + 1>= S'First and K + pattern'Length <= S'Last and K+I-pattern'First+1 >=S'First  and K+I-pattern'First < S'Last;
-                S(K+((I-pattern'First)+1)) := pattern(I);
-            END LOOP;
-        ELSE
-    	    FOR I IN INTEGER range pattern'Range LOOP
+            S (K + ((I - pattern'First) + 1)) := pattern (I);
+         end loop;
+      else
+         for I in Integer range pattern'Range loop
             --# assert K = K~ and K + 1>= S'First and K + pattern'Length <= S'Last and K+I-pattern'First+1 >=S'First  and K+I-pattern'First < S'Last;
-                S(K+((I-pattern'First)+1)) := NOT pattern(I);
-            END LOOP;
-        END IF;
-        K := K + pattern'Length;
-    END Acn_Enc_Boolean_true_pattern;
+            S (K + ((I - pattern'First) + 1)) := not pattern (I);
+         end loop;
+      end if;
+      K := K + pattern'Length;
+   end Acn_Enc_Boolean_true_pattern;
 
-
-    PROCEDURE Acn_Dec_Boolean_true_pattern(S : in BitArray; K : in out DECODE_PARAMS; BoolVal:OUT Asn1Boolean; pattern : IN BitArray; Result:OUT ASN1_RESULT)
-    ---# derives  K 	 from K, pattern &
-    ---#		 BoolVal from S,K, pattern &
-    ---#          Result  from K, pattern;
-    ---# pre  K.K+1>= S'First and K.K + pattern'Length <= S'Last;
-    ---# post K.K = K~.K + pattern'Length;
-    IS
-    BEGIN
-        BoolVal := TRUE;
-	FOR I IN INTEGER range pattern'Range LOOP
+   procedure Acn_Dec_Boolean_true_pattern
+     (S       : in     BitArray;
+      K       : in out DECODE_PARAMS;
+      BoolVal :    out Asn1Boolean;
+      pattern : in     BitArray;
+      Result  :    out ASN1_RESULT)
+   ---# derives  K      from K, pattern &
+   ---#                 BoolVal from S,K, pattern &
+   ---#          Result  from K, pattern;
+   ---# pre  K.K+1>= S'First and K.K + pattern'Length <= S'Last;
+   ---# post K.K = K~.K + pattern'Length;
+   is
+   begin
+      BoolVal := True;
+      for I in Integer range pattern'Range loop
         --# assert K.K = K~.K and K.K + 1>= S'First and K.K + pattern'Length <= S'Last and K.K+I-pattern'First+1 >=S'First  and K.K+I-pattern'First < S'Last;
-             BoolVal := BoolVal AND S(K.K+((I-pattern'First)+1)) = pattern(I);
-        END LOOP;
-        K.K := K.K + pattern'Length;
-        result := ASN1_RESULT'(Success => K.DataLen - K.K >=0, ErrorCode => ERR_INCORRECT_STREAM);
-    END Acn_Dec_Boolean_true_pattern;
+         BoolVal :=
+           BoolVal and S (K.K + ((I - pattern'First) + 1)) = pattern (I);
+      end loop;
+      K.K    := K.K + pattern'Length;
+      Result :=
+        ASN1_RESULT'
+          (Success => K.DataLen - K.K >= 0, ErrorCode => ERR_INCORRECT_STREAM);
+   end Acn_Dec_Boolean_true_pattern;
 
-
-
-
-    PROCEDURE Acn_Enc_Boolean_false_pattern(S : in out BitArray; K : in out Natural; BoolVal:IN Asn1Boolean; pattern : IN BitArray)
-    ---# derives S from S, BoolVal, K, pattern &
-    ---#         K from  K, pattern;
-    ---# pre  K+1>= S'First and K + pattern'Length <= S'Last;
-    ---# post K = K~+pattern'Length;
-    IS
-    BEGIN
-        IF not BoolVal THEN
-    	    FOR I IN INTEGER range pattern'Range LOOP
+   procedure Acn_Enc_Boolean_false_pattern
+     (S       : in out BitArray;
+      K       : in out Natural;
+      BoolVal : in     Asn1Boolean;
+      pattern : in     BitArray)
+   ---# derives S from S, BoolVal, K, pattern &
+   ---#         K from  K, pattern;
+   ---# pre  K+1>= S'First and K + pattern'Length <= S'Last;
+   ---# post K = K~+pattern'Length;
+   is
+   begin
+      if not BoolVal then
+         for I in Integer range pattern'Range loop
             --# assert K = K~ and K + 1>= S'First and K + pattern'Length <= S'Last and K+I-pattern'First+1 >=S'First  and K+I-pattern'First < S'Last;
-                S(K+((I-pattern'First)+1)) := pattern(I);
-            END LOOP;
-        ELSE
-    	    FOR I IN INTEGER range pattern'Range LOOP
+            S (K + ((I - pattern'First) + 1)) := pattern (I);
+         end loop;
+      else
+         for I in Integer range pattern'Range loop
             --# assert K = K~ and K + 1>= S'First and K + pattern'Length <= S'Last and K+I-pattern'First+1 >=S'First  and K+I-pattern'First < S'Last;
-                S(K+((I-pattern'First)+1)) := NOT pattern(I);
-            END LOOP;
-        END IF;
-        K := K + pattern'Length;
-    END Acn_Enc_Boolean_false_pattern;
+            S (K + ((I - pattern'First) + 1)) := not pattern (I);
+         end loop;
+      end if;
+      K := K + pattern'Length;
+   end Acn_Enc_Boolean_false_pattern;
 
+   procedure Acn_Dec_Boolean_false_pattern
+     (S       : in     BitArray;
+      K       : in out DECODE_PARAMS;
+      BoolVal :    out Asn1Boolean;
+      pattern : in     BitArray;
+      Result  :    out ASN1_RESULT)
+   ---# derives  K      from K, pattern &
+   ---#                 BoolVal from S,K, pattern &
+   ---#          Result  from K, pattern;
+   ---# pre  K.K+1>= S'First and K.K + pattern'Length <= S'Last;
+   ---# post K.K = K~.K + pattern'Length;
+   is
+   begin
+      Acn_Dec_Boolean_true_pattern (S, K, BoolVal, pattern, Result);
+      BoolVal := not BoolVal;
+   end Acn_Dec_Boolean_false_pattern;
 
-    PROCEDURE Acn_Dec_Boolean_false_pattern(S : in BitArray; K : in out DECODE_PARAMS; BoolVal:OUT Asn1Boolean; pattern : IN BitArray; Result:OUT ASN1_RESULT)
-    ---# derives  K 	 from K, pattern &
-    ---#		 BoolVal from S,K, pattern &
-    ---#          Result  from K, pattern;
-    ---# pre  K.K+1>= S'First and K.K + pattern'Length <= S'Last;
-    ---# post K.K = K~.K + pattern'Length;
-    IS
-    BEGIN
-        Acn_Dec_Boolean_true_pattern(S, K, BoolVal, pattern, Result);
-        BoolVal := NOT BoolVal;
-    END Acn_Dec_Boolean_false_pattern;
-
-
-    PROCEDURE Acn_Enc_NullType_pattern(S : in out BitArray; K : in out Natural; encVal: IN Asn1NullType; pattern : IN BitArray)
-    ---# derives S from S, K, encVal, pattern &
-    ---#         K from  K, pattern;
-    ---# pre  K+1>= S'First and K + pattern'Length <= S'Last;
-    ---# post K = K~+pattern'Length;
-    IS
-    BEGIN
-    	IF encVal = 0 THEN
-   	    FOR I IN INTEGER range pattern'Range LOOP
+   procedure Acn_Enc_NullType_pattern
+     (S       : in out BitArray;
+      K       : in out Natural;
+      encVal  : in     Asn1NullType;
+      pattern : in     BitArray)
+   ---# derives S from S, K, encVal, pattern &
+   ---#         K from  K, pattern;
+   ---# pre  K+1>= S'First and K + pattern'Length <= S'Last;
+   ---# post K = K~+pattern'Length;
+   is
+   begin
+      if encVal = 0 then
+         for I in Integer range pattern'Range loop
             --# assert K = K~ and K + 1>= S'First and K + pattern'Length <= S'Last and K+I-pattern'First+1 >=S'First  and K+I-pattern'First < S'Last;
-                S(K+((I-pattern'First)+1)) := pattern(I);
-            END LOOP;
-        ELSE
-   	    FOR I IN INTEGER range pattern'Range LOOP
+            S (K + ((I - pattern'First) + 1)) := pattern (I);
+         end loop;
+      else
+         for I in Integer range pattern'Range loop
             --# assert K = K~ and K + 1>= S'First and K + pattern'Length <= S'Last and K+I-pattern'First+1 >=S'First  and K+I-pattern'First < S'Last;
-                S(K+((I-pattern'First)+1)) := pattern(I);
-            END LOOP;
-        END IF;
-        K := K + pattern'Length;
-    END Acn_Enc_NullType_pattern;
+            S (K + ((I - pattern'First) + 1)) := pattern (I);
+         end loop;
+      end if;
+      K := K + pattern'Length;
+   end Acn_Enc_NullType_pattern;
 
-
-    PROCEDURE Acn_Dec_NullType_pattern(S : in BitArray; K : in out DECODE_PARAMS; decValue : out Asn1NullType; pattern : IN BitArray; Result:OUT ASN1_RESULT)
-    ---# derives  K 	 from K, pattern &
-    ---#          Result  from K, pattern  &
-    ---#          decValue from S, K, pattern;
-    ---# pre  K.K+1>= S'First and K.K + pattern'Length <= S'Last;
-    ---# post K.K = K~.K + pattern'Length;
-    IS
-    	BoolVal:Boolean := TRUE;
-    BEGIN
-        decValue := 0;
-	FOR I IN INTEGER range pattern'Range LOOP
+   procedure Acn_Dec_NullType_pattern
+     (S        : in     BitArray;
+      K        : in out DECODE_PARAMS;
+      decValue :    out Asn1NullType;
+      pattern  : in     BitArray;
+      Result   :    out ASN1_RESULT)
+      ---# derives  K      from K, pattern &
+      ---#          Result  from K, pattern  &
+      ---#          decValue from S, K, pattern;
+      ---# pre  K.K+1>= S'First and K.K + pattern'Length <= S'Last;
+      ---# post K.K = K~.K + pattern'Length;
+   is
+      BoolVal : Boolean := True;
+   begin
+      decValue := 0;
+      for I in Integer range pattern'Range loop
         --# assert K.K = K~.K and K.K + 1>= S'First and K.K + pattern'Length <= S'Last and K.K+I-pattern'First+1 >=S'First  and K.K+I-pattern'First < S'Last;
-             BoolVal := BoolVal AND S(K.K+((I-pattern'First)+1)) = pattern(I);
-        END LOOP;
-        K.K := K.K + pattern'Length;
-        IF not BoolVal THEN
-            decValue := 1;
-        END IF;
+         BoolVal :=
+           BoolVal and S (K.K + ((I - pattern'First) + 1)) = pattern (I);
+      end loop;
+      K.K := K.K + pattern'Length;
+      if not BoolVal then
+         decValue := 1;
+      end if;
 
-        result := ASN1_RESULT'(Success => K.DataLen - K.K >=0 AND BoolVal, ErrorCode => ERR_INCORRECT_STREAM);
-    END Acn_Dec_NullType_pattern;
+      Result :=
+        ASN1_RESULT'
+          (Success   => K.DataLen - K.K >= 0 and BoolVal,
+           ErrorCode => ERR_INCORRECT_STREAM);
+   end Acn_Dec_NullType_pattern;
 
-
-
-    PROCEDURE Acn_Enc_NullType_pattern2(S : in out BitArray; K : in out Natural;  pattern : IN BitArray)
-    ---# derives S from S, K, encVal, pattern &
-    ---#         K from  K, pattern;
-    ---# pre  K+1>= S'First and K + pattern'Length <= S'Last;
-    ---# post K = K~+pattern'Length;
-    IS
-    BEGIN
- 	FOR I IN INTEGER range pattern'Range LOOP
+   procedure Acn_Enc_NullType_pattern2
+     (S       : in out BitArray;
+      K       : in out Natural;
+      pattern : in     BitArray)
+   ---# derives S from S, K, encVal, pattern &
+   ---#         K from  K, pattern;
+   ---# pre  K+1>= S'First and K + pattern'Length <= S'Last;
+   ---# post K = K~+pattern'Length;
+   is
+   begin
+      for I in Integer range pattern'Range loop
             --# assert K = K~ and K + 1>= S'First and K + pattern'Length <= S'Last and K+I-pattern'First+1 >=S'First  and K+I-pattern'First < S'Last;
-            S(K+((I-pattern'First)+1)) := pattern(I);
-        END LOOP;
-        K := K + pattern'Length;
-    END Acn_Enc_NullType_pattern2;
+         S (K + ((I - pattern'First) + 1)) := pattern (I);
+      end loop;
+      K := K + pattern'Length;
+   end Acn_Enc_NullType_pattern2;
 
-
-    PROCEDURE Acn_Dec_NullType_pattern2(S : in BitArray; K : in out DECODE_PARAMS; pattern : IN BitArray; Result:OUT ASN1_RESULT)
-    ---# derives  K 	 from K, pattern &
-    ---#          Result  from K, pattern  &
-    ---#          decValue from S, K, pattern;
-    ---# pre  K.K+1>= S'First and K.K + pattern'Length <= S'Last;
-    ---# post K.K = K~.K + pattern'Length;
-    IS
-    	BoolVal:Boolean := TRUE;
-    BEGIN
-	FOR I IN INTEGER range pattern'Range LOOP
+   procedure Acn_Dec_NullType_pattern2
+     (S       : in     BitArray;
+      K       : in out DECODE_PARAMS;
+      pattern : in     BitArray;
+      Result  :    out ASN1_RESULT)
+      ---# derives  K      from K, pattern &
+      ---#          Result  from K, pattern  &
+      ---#          decValue from S, K, pattern;
+      ---# pre  K.K+1>= S'First and K.K + pattern'Length <= S'Last;
+      ---# post K.K = K~.K + pattern'Length;
+   is
+      BoolVal : Boolean := True;
+   begin
+      for I in Integer range pattern'Range loop
         --# assert K.K = K~.K and K.K + 1>= S'First and K.K + pattern'Length <= S'Last and K.K+I-pattern'First+1 >=S'First  and K.K+I-pattern'First < S'Last;
-             BoolVal := BoolVal AND S(K.K+((I-pattern'First)+1)) = pattern(I);
-        END LOOP;
-        K.K := K.K + pattern'Length;
+         BoolVal :=
+           BoolVal and S (K.K + ((I - pattern'First) + 1)) = pattern (I);
+      end loop;
+      K.K := K.K + pattern'Length;
 
-        result := ASN1_RESULT'(Success => K.DataLen - K.K >=0 AND BoolVal, ErrorCode => ERR_INCORRECT_STREAM);
-    END Acn_Dec_NullType_pattern2;
+      Result :=
+        ASN1_RESULT'
+          (Success   => K.DataLen - K.K >= 0 and BoolVal,
+           ErrorCode => ERR_INCORRECT_STREAM);
+   end Acn_Dec_NullType_pattern2;
 
+   procedure Acn_Enc_NullType
+     (S      : in out BitArray;
+      K      : in out Natural;
+      encVal : in     Asn1NullType)
+      ---# derives S from S, K, encVal &
+      ---#         K from  K;
+      ---# pre  K+1>= S'First and K <= S'Last;
+      ---# post K = K~;
+   is
+      pragma SPARK_Mode (Off);
+   begin
+      null;
+   end Acn_Enc_NullType;
 
+   procedure Acn_Dec_NullType
+     (S        : in     BitArray;
+      K        : in out DECODE_PARAMS;
+      decValue :    out Asn1NullType;
+      Result   :    out ASN1_RESULT)
+      ---# derives  K      from K &
+      ---#          Result  from K  &
+      ---#          decValue from S, K;
+      ---# pre  K.K+1>= S'First and K.K  <= S'Last;
+      ---# post K.K = K~.K ;
+   is
+      pragma SPARK_Mode (Off);
+      pragma Unreferenced (S);
+      pragma Unreferenced (K);
+   begin
+      decValue := 0;
+      Result   := ASN1_RESULT'(Success => True, ErrorCode => 0);
+   end Acn_Dec_NullType;
 
-
-
-    PROCEDURE Acn_Enc_NullType(S : in out BitArray; K : in out Natural; encVal: IN Asn1NullType)
-    ---# derives S from S, K, encVal &
-    ---#         K from  K;
-    ---# pre  K+1>= S'First and K <= S'Last;
-    ---# post K = K~;
-    IS
-        pragma SPARK_Mode(Off);
-    BEGIN
-        null;
-    END Acn_Enc_NullType;
-
-    PROCEDURE Acn_Dec_NullType(S : in BitArray; K : in out DECODE_PARAMS; decValue : out Asn1NullType; Result:OUT ASN1_RESULT)
-    ---# derives  K 	 from K &
-    ---#          Result  from K  &
-    ---#          decValue from S, K;
-    ---# pre  K.K+1>= S'First and K.K  <= S'Last;
-    ---# post K.K = K~.K ;
-    IS
-        pragma SPARK_Mode(Off);
-        PRAGMA Unreferenced(S);
-        PRAGMA Unreferenced(K);
-    BEGIN
-    	decValue:=0;
-        Result := ASN1_RESULT'(Success => True,ErrorCode => 0);
-    END Acn_Dec_NullType;
-
-
-     PROCEDURE Acn_Enc_String_Ascii_FixSize(S : in out BitArray; K : in out Natural; strVal : in String)
-     IS
-         I:Integer:=strVal'First;
-     BEGIN
-         WHILE I<=strVal'Last - 1 LOOP
+   procedure Acn_Enc_String_Ascii_FixSize
+     (S      : in out BitArray;
+      K      : in out Natural;
+      strVal : in     String)
+   is
+      I : Integer := strVal'First;
+   begin
+      while I <= strVal'Last - 1 loop
              --# assert I>=1 AND I<=str'Last-1;
-             UPER_Enc_ConstraintWholeNumber(S, K, Asn1Int(CharacterPos(strVal(I))), 0, 8);
+         UPER_Enc_ConstraintWholeNumber
+           (S,
+            K,
+            Asn1Int (CharacterPos (strVal (I))),
+            0,
+            8);
 
-             I:=I+1;
-         END LOOP;
+         I := I + 1;
+      end loop;
 
-     END Acn_Enc_String_Ascii_FixSize;
+   end Acn_Enc_String_Ascii_FixSize;
 
-
-     PROCEDURE Acn_Dec_String_Ascii_FixSize(S : in BitArray; K : in out DECODE_PARAMS; strVal : in out String; Result:OUT ASN1_RESULT)
-     IS
-         I:Integer:=strVal'First;
-         charIndex:Integer;
-     BEGIN
-	 Result := ASN1_RESULT'(Success   => TRUE,ErrorCode => ERR_INSUFFICIENT_DATA);
-         WHILE I<=strVal'Last - 1 and Result.Success LOOP
+   procedure Acn_Dec_String_Ascii_FixSize
+     (S      : in     BitArray;
+      K      : in out DECODE_PARAMS;
+      strVal : in out String;
+      Result :    out ASN1_RESULT)
+   is
+      I         : Integer := strVal'First;
+      charIndex : Integer;
+   begin
+      Result :=
+        ASN1_RESULT'(Success => True, ErrorCode => ERR_INSUFFICIENT_DATA);
+      while I <= strVal'Last - 1 and Result.Success loop
              --# assert I>=1 AND I<=str'Last-1;
-             UPER_Dec_ConstraintWholeNumberInt(S, K, charIndex, 0, 255, 8, Result.Success);
-             strVal(i) := Character'Val(charIndex);
+         UPER_Dec_ConstraintWholeNumberInt
+           (S,
+            K,
+            charIndex,
+            0,
+            255,
+            8,
+            Result.Success);
+         strVal (I) := Character'Val (charIndex);
 
-             I:=I+1;
-         END LOOP;
-         strVal(strVal'Last) := NUL;
-     END Acn_Dec_String_Ascii_FixSize;
+         I := I + 1;
+      end loop;
+      strVal (strVal'Last) := NUL;
+   end Acn_Dec_String_Ascii_FixSize;
 
-
-
-    PROCEDURE Acn_Enc_String_Ascii_Null_Teminated(S : in out BitArray; K : in out Natural; null_character : in Integer; strVal : in String)
-     IS
-         I:Integer:=strVal'First;
-    BEGIN
-          WHILE I<=strVal'Last - 1 AND THEN strVal(I)/=NUL LOOP
+   procedure Acn_Enc_String_Ascii_Null_Teminated
+     (S              : in out BitArray;
+      K              : in out Natural;
+      null_character : in     Integer;
+      strVal         : in     String)
+   is
+      I : Integer := strVal'First;
+   begin
+      while I <= strVal'Last - 1 and then strVal (I) /= NUL loop
              --# assert I>=1 AND I<=str'Last-1;
-             UPER_Enc_ConstraintWholeNumber(S, K, Asn1Int(CharacterPos(strVal(I))), 0, 8);
+         UPER_Enc_ConstraintWholeNumber
+           (S,
+            K,
+            Asn1Int (CharacterPos (strVal (I))),
+            0,
+            8);
 
-             I:=I+1;
-          END LOOP;
-          UPER_Enc_ConstraintWholeNumber(S, K, Asn1Int(null_character), 0, 8);
+         I := I + 1;
+      end loop;
+      UPER_Enc_ConstraintWholeNumber (S, K, Asn1Int (null_character), 0, 8);
 
-    END Acn_Enc_String_Ascii_Null_Teminated;
+   end Acn_Enc_String_Ascii_Null_Teminated;
 
-    PROCEDURE Acn_Dec_String_Ascii_Null_Teminated(S : in BitArray; K : in out DECODE_PARAMS; null_character : in Integer; strVal :in out String; Result:OUT ASN1_RESULT)
-    IS
-         I:Integer:=strVal'First;
-         charIndex:Integer:=65; -- ascii code of 'A'. Let's hope that 'A' will never be null Character
-    BEGIN
-        Result := ASN1_RESULT'(Success   => TRUE,ErrorCode => ERR_INSUFFICIENT_DATA);
-        WHILE result.Success AND THEN I<=strVal'Last AND THEN charIndex/=null_character LOOP
-            pragma Loop_Invariant (I>=1 AND I<=strVal'Last);
-            UPER_Dec_ConstraintWholeNumberInt(S, K, charIndex, 0, 255, 8, result.Success);
-            IF charIndex/=null_character THEN
-                strVal(i) := Character'Val(charIndex);
-            ELSE
-                strVal(I) := NUL;
-            END IF;
+   procedure Acn_Dec_String_Ascii_Null_Teminated
+     (S              : in     BitArray;
+      K              : in out DECODE_PARAMS;
+      null_character : in     Integer;
+      strVal         : in out String;
+      Result         :    out ASN1_RESULT)
+   is
+      I         : Integer := strVal'First;
+      charIndex : Integer :=
+        65; -- ascii code of 'A'. Let's hope that 'A' will never be null Character
+   begin
+      Result :=
+        ASN1_RESULT'(Success => True, ErrorCode => ERR_INSUFFICIENT_DATA);
+      while Result.Success
+        and then I <= strVal'Last
+        and then charIndex /= null_character
+      loop
+         pragma Loop_Invariant (I >= 1 and I <= strVal'Last);
+         UPER_Dec_ConstraintWholeNumberInt
+           (S,
+            K,
+            charIndex,
+            0,
+            255,
+            8,
+            Result.Success);
+         if charIndex /= null_character then
+            strVal (I) := Character'Val (charIndex);
+         else
+            strVal (I) := NUL;
+         end if;
 
-            I:=I+1;
-        END LOOP;
-        WHILE I <= strVal'Last LOOP
-            strVal(I) := NUL;
-             I:=I+1;
-        END LOOP;
+         I := I + 1;
+      end loop;
+      while I <= strVal'Last loop
+         strVal (I) := NUL;
+         I          := I + 1;
+      end loop;
 
-    END Acn_Dec_String_Ascii_Null_Teminated;
+   end Acn_Dec_String_Ascii_Null_Teminated;
 
+   procedure Acn_Enc_String_Ascii_Internal_Field_Determinant
+     (S                            : in out BitArray;
+      K                            : in out Natural;
+      asn1Min                      :        Asn1Int;
+      nLengthDeterminantSizeInBits : in     Integer;
+      strVal                       : in     String)
+   is
+      I : Integer := strVal'First;
+   begin
+      UPER_Enc_ConstraintWholeNumber
+        (S,
+         K,
+         Asn1Int (getStringSize (strVal)),
+         asn1Min,
+         nLengthDeterminantSizeInBits);
+      while I <= strVal'Last - 1 and then strVal (I) /= NUL loop
+         pragma Loop_Invariant (I >= 1 and I <= strVal'Last);
+         UPER_Enc_ConstraintWholeNumber
+           (S,
+            K,
+            Asn1Int (CharacterPos (strVal (I))),
+            0,
+            8);
 
+         I := I + 1;
+      end loop;
 
+   end Acn_Enc_String_Ascii_Internal_Field_Determinant;
 
-    PROCEDURE Acn_Enc_String_Ascii_Internal_Field_Determinant(S : in out BitArray; K : in out Natural; asn1Min: Asn1Int; nLengthDeterminantSizeInBits : IN Integer; strVal : in String)
-     IS
-         I:Integer:=strVal'First;
-    BEGIN
-          UPER_Enc_ConstraintWholeNumber(S, K, Asn1Int(getStringSize(strVal)), asn1Min, nLengthDeterminantSizeInBits);
-          WHILE I<=strVal'Last - 1 AND THEN strVal(I)/=NUL LOOP
-            pragma Loop_Invariant (I>=1 AND I<=strVal'Last);
-             UPER_Enc_ConstraintWholeNumber(S, K, Asn1Int(CharacterPos(strVal(I))), 0, 8);
+   procedure Acn_Dec_String_Ascii_Internal_Field_Determinant
+     (S                            : in     BitArray;
+      K                            : in out DECODE_PARAMS;
+      asn1Min                      :        Asn1Int;
+      asn1Max                      :        Asn1Int;
+      nLengthDeterminantSizeInBits : in     Integer;
+      strVal                       : in out String;
+      Result                       :    out ASN1_RESULT)
+   is
+      I         : Integer := strVal'First;
+      nSize     : Integer;
+      charIndex : Integer;
+   begin
+      Result :=
+        ASN1_RESULT'(Success => True, ErrorCode => ERR_INSUFFICIENT_DATA);
 
-             I:=I+1;
-          END LOOP;
+      UPER_Dec_ConstraintWholeNumberInt
+        (S,
+         K,
+         nSize,
+         Integer (asn1Min),
+         Integer (asn1Max),
+         nLengthDeterminantSizeInBits,
+         Result.Success);
+      while Result.Success and then I <= strVal'Last - 1 and then I <= nSize
+      loop
+         pragma Loop_Invariant (I >= 1 and I <= strVal'Last);
+         UPER_Dec_ConstraintWholeNumberInt
+           (S,
+            K,
+            charIndex,
+            0,
+            255,
+            8,
+            Result.Success);
+         strVal (I) := Character'Val (charIndex);
 
-    END Acn_Enc_String_Ascii_Internal_Field_Determinant;
+         I := I + 1;
+      end loop;
+      while I <= strVal'Last loop
+         strVal (I) := NUL;
+         I          := I + 1;
+      end loop;
 
-    PROCEDURE Acn_Dec_String_Ascii_Internal_Field_Determinant(S : in BitArray; K : in out DECODE_PARAMS; asn1Min: Asn1Int; asn1Max: Asn1Int; nLengthDeterminantSizeInBits : IN  Integer; strVal : in out String; Result:OUT ASN1_RESULT)
-    IS
-         I:Integer:=strVal'First;
-         nSize:Integer;
-         charIndex:Integer;
-    BEGIN
-        Result := ASN1_RESULT'(Success   => TRUE,ErrorCode => ERR_INSUFFICIENT_DATA);
+   end Acn_Dec_String_Ascii_Internal_Field_Determinant;
 
-        UPER_Dec_ConstraintWholeNumberInt(S, K, nSize, Integer(asn1Min), Integer(asn1Max), nLengthDeterminantSizeInBits, result.Success);
-        WHILE result.Success AND THEN I<=strVal'Last-1 AND THEN I <=  nSize LOOP
-            pragma Loop_Invariant (I>=1 AND I<=strVal'Last);
-             UPER_Dec_ConstraintWholeNumberInt(S, K, charIndex, 0, 255, 8, result.Success);
-             strVal(i) := Character'Val(charIndex);
-
-             I:=I+1;
-        END LOOP;
-        WHILE I <= strVal'Last LOOP
-            strVal(I) := NUL;
-             I:=I+1;
-        END LOOP;
-
-    END Acn_Dec_String_Ascii_Internal_Field_Determinant;
-
-
-
-
-    PROCEDURE Acn_Enc_String_Ascii_External_Field_Determinant(S : in out BitArray; K : in out Natural; strVal : in String)
-     IS
-         I:Integer:=strVal'First;
-    BEGIN
-          WHILE I<=strVal'Last - 1 AND THEN strVal(I)/=NUL LOOP
+   procedure Acn_Enc_String_Ascii_External_Field_Determinant
+     (S      : in out BitArray;
+      K      : in out Natural;
+      strVal : in     String)
+   is
+      I : Integer := strVal'First;
+   begin
+      while I <= strVal'Last - 1 and then strVal (I) /= NUL loop
              --# assert I>=1 AND I<=str'Last-1;
-            pragma Loop_Invariant (I>=1 AND I<=strVal'Last-1);
-             UPER_Enc_ConstraintWholeNumber(S, K, Asn1Int(CharacterPos(strVal(I))), 0, 8);
+         pragma Loop_Invariant (I >= 1 and I <= strVal'Last - 1);
+         UPER_Enc_ConstraintWholeNumber
+           (S,
+            K,
+            Asn1Int (CharacterPos (strVal (I))),
+            0,
+            8);
 
-             I:=I+1;
-          END LOOP;
+         I := I + 1;
+      end loop;
 
-    END Acn_Enc_String_Ascii_External_Field_Determinant;
+   end Acn_Enc_String_Ascii_External_Field_Determinant;
 
-    PROCEDURE Acn_Dec_String_Ascii_External_Field_Determinant(S : in BitArray; K : in out DECODE_PARAMS; extSizeDeterminatFld : IN Asn1Int; strVal : in out String; Result:OUT ASN1_RESULT)
-    IS
-         I:Integer:=strVal'First;
-         charIndex:Integer;
-    BEGIN
-        Result := ASN1_RESULT'(Success   => TRUE,ErrorCode => ERR_INSUFFICIENT_DATA);
+   procedure Acn_Dec_String_Ascii_External_Field_Determinant
+     (S                    : in     BitArray;
+      K                    : in out DECODE_PARAMS;
+      extSizeDeterminatFld : in     Asn1Int;
+      strVal               : in out String;
+      Result               :    out ASN1_RESULT)
+   is
+      I         : Integer := strVal'First;
+      charIndex : Integer;
+   begin
+      Result :=
+        ASN1_RESULT'(Success => True, ErrorCode => ERR_INSUFFICIENT_DATA);
 
-        WHILE result.Success AND THEN I<=strVal'Last-1 AND THEN I <=  Integer(extSizeDeterminatFld) LOOP
+      while Result.Success
+        and then I <= strVal'Last - 1
+        and then I <= Integer (extSizeDeterminatFld)
+      loop
              --# assert I>=1 AND I<=str'Last-1;
-            pragma Loop_Invariant (I>=1 AND I<=strVal'Last-1);
-             UPER_Dec_ConstraintWholeNumberInt(S, K, charIndex, 0, 255, 8, result.Success);
-             strVal(i) := Character'Val(charIndex);
+         pragma Loop_Invariant (I >= 1 and I <= strVal'Last - 1);
+         UPER_Dec_ConstraintWholeNumberInt
+           (S,
+            K,
+            charIndex,
+            0,
+            255,
+            8,
+            Result.Success);
+         strVal (I) := Character'Val (charIndex);
 
-             I:=I+1;
-        END LOOP;
-        WHILE I <= strVal'Last LOOP
-            strVal(I) := NUL;
-             I:=I+1;
-        END LOOP;
+         I := I + 1;
+      end loop;
+      while I <= strVal'Last loop
+         strVal (I) := NUL;
+         I          := I + 1;
+      end loop;
 
-
-    END Acn_Dec_String_Ascii_External_Field_Determinant;
-
-
-
+   end Acn_Dec_String_Ascii_External_Field_Determinant;
 
 -- -------------------------------------
-     PROCEDURE Acn_Enc_String_CharIndex_FixSize(S : in out BitArray; K : in out Natural; charSet : String; nCharSize:Integer; strVal : in String)
-     IS
-         I:Integer:=strVal'First;
-         charIndex:Integer;
-     BEGIN
-         WHILE I<=strVal'Last - 1 LOOP
-             --# assert I>=1 AND I<=str'Last-1;
-            pragma Loop_Invariant (I>=1 AND I<=strVal'Last-1);
-             charIndex := GetZeroBasedCharIndex(strVal(I), charSet);
-             UPER_Enc_ConstraintWholeNumber(S, K, Asn1Int(charIndex), 0, nCharSize);
-
-             I:=I+1;
-         END LOOP;
-
-     END Acn_Enc_String_CharIndex_FixSize;
-
-
-     PROCEDURE Acn_Dec_String_CharIndex_FixSize(S : in BitArray; K : in out DECODE_PARAMS; charSet : String; nCharSize:Integer; strVal : in out String; Result:OUT ASN1_RESULT)
-     IS
-         I:Integer:=strVal'First;
-         charIndex:Integer;
-         asn1Max:CONSTANT Integer := charSet'Last - 1;
-     BEGIN
-	 Result := ASN1_RESULT'(Success   => TRUE,ErrorCode => ERR_INSUFFICIENT_DATA);
-         WHILE I<=strVal'Last - 1 and Result.Success LOOP
-             --# assert I>=1 AND I<=str'Last-1;
-            pragma Loop_Invariant (I>=1 AND I<=strVal'Last-1);
-             UPER_Dec_ConstraintWholeNumberInt(S, K, charIndex, 0, asn1Max, nCharSize, Result.Success);
-             strVal(i) := charSet(charIndex+1);
-
-             I:=I+1;
-         END LOOP;
-         strVal(strVal'Last) := NUL;
-     END Acn_Dec_String_CharIndex_FixSize;
-
-
-
-
-    PROCEDURE Acn_Enc_String_CharIndex_External_Field_Determinant(S : in out BitArray; K : in out Natural; charSet : String; nCharSize:Integer; strVal : in String)
-     IS
-         I:Integer:=strVal'First;
-         charIndex:Integer;
-    BEGIN
-          WHILE I<=strVal'Last - 1 AND THEN strVal(I)/=NUL LOOP
-             --# assert I>=1 AND I<=str'Last-1;
-             charIndex := GetZeroBasedCharIndex(strVal(I), charSet);
-             UPER_Enc_ConstraintWholeNumber(S, K, Asn1Int(charIndex), 0, nCharSize);
-
-             I:=I+1;
-          END LOOP;
-
-    END Acn_Enc_String_CharIndex_External_Field_Determinant;
-
-    PROCEDURE Acn_Dec_String_CharIndex_External_Field_Determinant(S : in BitArray; K : in out DECODE_PARAMS; charSet : String; nCharSize:Integer; extSizeDeterminatFld : IN Asn1Int; strVal : in out String; Result:OUT ASN1_RESULT)
-    IS
-         I:Integer:=strVal'First;
-         charIndex:Integer;
-         asn1Max:CONSTANT Integer := charSet'Last - 1;
-    BEGIN
-        Result := ASN1_RESULT'(Success   => TRUE,ErrorCode => ERR_INSUFFICIENT_DATA);
-
-        WHILE result.Success AND THEN I<=strVal'Last-1 AND THEN I <=  Integer(extSizeDeterminatFld) LOOP
-             --# assert I>=1 AND I<=str'Last-1;
-             UPER_Dec_ConstraintWholeNumberInt(S, K, charIndex, 0, asn1Max, nCharSize, Result.Success);
-             strVal(i) := charSet(charIndex+1);
-
-             I:=I+1;
-        END LOOP;
-        WHILE I <= strVal'Last LOOP
-            strVal(I) := NUL;
-             I:=I+1;
-        END LOOP;
-
-
-    END Acn_Dec_String_CharIndex_External_Field_Determinant;
-
-
-    PROCEDURE Acn_Enc_String_CharIndex_Internal_Field_Determinant(S : in out BitArray; K : in out Natural; charSet : String; nCharSize:Integer; asn1Min: Asn1Int; nLengthDeterminantSizeInBits : IN Integer; strVal : in String)
-     IS
-         I:Integer:=strVal'First;
-         charIndex:Integer;
-    BEGIN
-          UPER_Enc_ConstraintWholeNumber(S, K, Asn1Int(getStringSize(strVal)), asn1Min, nLengthDeterminantSizeInBits);
-          WHILE I<=strVal'Last - 1 AND THEN strVal(I)/=NUL LOOP
-             --# assert I>=1 AND I<=str'Last-1;
-             charIndex := GetZeroBasedCharIndex(strVal(I), charSet);
-             UPER_Enc_ConstraintWholeNumber(S, K, Asn1Int(charIndex), 0, nCharSize);
-
-             I:=I+1;
-          END LOOP;
-
-    END Acn_Enc_String_CharIndex_Internal_Field_Determinant;
-
-    PROCEDURE Acn_Dec_String_CharIndex_Internal_Field_Determinant(S : in BitArray; K : in out DECODE_PARAMS; charSet : String; nCharSize:Integer; asn1Min: Asn1Int; asn1Max: Asn1Int; nLengthDeterminantSizeInBits : IN Integer; strVal : in out String; Result:OUT ASN1_RESULT)
-    IS
-         I:Integer:=strVal'First;
-         nSize:Integer;
-         charIndex:Integer;
-    BEGIN
-        Result := ASN1_RESULT'(Success   => TRUE,ErrorCode => ERR_INSUFFICIENT_DATA);
-
-        UPER_Dec_ConstraintWholeNumberInt(S, K, nSize, Integer(asn1Min), Integer(asn1Max), nLengthDeterminantSizeInBits, result.Success);
-        WHILE result.Success AND THEN I<=strVal'Last-1 AND THEN I <=  nSize LOOP
-             --# assert I>=1 AND I<=str'Last-1;
-             UPER_Dec_ConstraintWholeNumberInt(S, K, charIndex, 0, charSet'Last - 1, nCharSize, Result.Success);
-             strVal(i) := charSet(charIndex+1);
-
-             I:=I+1;
-        END LOOP;
-        WHILE I <= strVal'Last LOOP
-            strVal(I) := NUL;
-             I:=I+1;
-        END LOOP;
-
-    END Acn_Dec_String_CharIndex_Internal_Field_Determinant;
-
-
-   FUNCTION milbus_encode(IntVal:IN Asn1Int) RETURN Asn1Int
+   procedure Acn_Enc_String_CharIndex_FixSize
+     (S         : in out BitArray;
+      K         : in out Natural;
+      charSet   :        String;
+      nCharSize :        Integer;
+      strVal    : in     String)
    is
+      I         : Integer := strVal'First;
+      charIndex : Integer;
+   begin
+      while I <= strVal'Last - 1 loop
+             --# assert I>=1 AND I<=str'Last-1;
+         pragma Loop_Invariant (I >= 1 and I <= strVal'Last - 1);
+         charIndex := GetZeroBasedCharIndex (strVal (I), charSet);
+         UPER_Enc_ConstraintWholeNumber
+           (S,
+            K,
+            Asn1Int (charIndex),
+            0,
+            nCharSize);
+
+         I := I + 1;
+      end loop;
+
+   end Acn_Enc_String_CharIndex_FixSize;
+
+   procedure Acn_Dec_String_CharIndex_FixSize
+     (S         : in     BitArray;
+      K         : in out DECODE_PARAMS;
+      charSet   :        String;
+      nCharSize :        Integer;
+      strVal    : in out String;
+      Result    :    out ASN1_RESULT)
+   is
+      I         : Integer          := strVal'First;
+      charIndex : Integer;
+      asn1Max   : constant Integer := charSet'Last - 1;
+   begin
+      Result :=
+        ASN1_RESULT'(Success => True, ErrorCode => ERR_INSUFFICIENT_DATA);
+      while I <= strVal'Last - 1 and Result.Success loop
+             --# assert I>=1 AND I<=str'Last-1;
+         pragma Loop_Invariant (I >= 1 and I <= strVal'Last - 1);
+         UPER_Dec_ConstraintWholeNumberInt
+           (S,
+            K,
+            charIndex,
+            0,
+            asn1Max,
+            nCharSize,
+            Result.Success);
+         strVal (I) := charSet (charIndex + 1);
+
+         I := I + 1;
+      end loop;
+      strVal (strVal'Last) := NUL;
+   end Acn_Dec_String_CharIndex_FixSize;
+
+   procedure Acn_Enc_String_CharIndex_External_Field_Determinant
+     (S         : in out BitArray;
+      K         : in out Natural;
+      charSet   :        String;
+      nCharSize :        Integer;
+      strVal    : in     String)
+   is
+      I         : Integer := strVal'First;
+      charIndex : Integer;
+   begin
+      while I <= strVal'Last - 1 and then strVal (I) /= NUL loop
+             --# assert I>=1 AND I<=str'Last-1;
+         charIndex := GetZeroBasedCharIndex (strVal (I), charSet);
+         UPER_Enc_ConstraintWholeNumber
+           (S,
+            K,
+            Asn1Int (charIndex),
+            0,
+            nCharSize);
+
+         I := I + 1;
+      end loop;
+
+   end Acn_Enc_String_CharIndex_External_Field_Determinant;
+
+   procedure Acn_Dec_String_CharIndex_External_Field_Determinant
+     (S                    : in     BitArray;
+      K                    : in out DECODE_PARAMS;
+      charSet              :        String;
+      nCharSize            :        Integer;
+      extSizeDeterminatFld : in     Asn1Int;
+      strVal               : in out String;
+      Result               :    out ASN1_RESULT)
+   is
+      I         : Integer          := strVal'First;
+      charIndex : Integer;
+      asn1Max   : constant Integer := charSet'Last - 1;
+   begin
+      Result :=
+        ASN1_RESULT'(Success => True, ErrorCode => ERR_INSUFFICIENT_DATA);
+
+      while Result.Success
+        and then I <= strVal'Last - 1
+        and then I <= Integer (extSizeDeterminatFld)
+      loop
+             --# assert I>=1 AND I<=str'Last-1;
+         UPER_Dec_ConstraintWholeNumberInt
+           (S,
+            K,
+            charIndex,
+            0,
+            asn1Max,
+            nCharSize,
+            Result.Success);
+         strVal (I) := charSet (charIndex + 1);
+
+         I := I + 1;
+      end loop;
+      while I <= strVal'Last loop
+         strVal (I) := NUL;
+         I          := I + 1;
+      end loop;
+
+   end Acn_Dec_String_CharIndex_External_Field_Determinant;
+
+   procedure Acn_Enc_String_CharIndex_Internal_Field_Determinant
+     (S                            : in out BitArray;
+      K                            : in out Natural;
+      charSet                      :        String;
+      nCharSize                    :        Integer;
+      asn1Min                      :        Asn1Int;
+      nLengthDeterminantSizeInBits : in     Integer;
+      strVal                       : in     String)
+   is
+      I         : Integer := strVal'First;
+      charIndex : Integer;
+   begin
+      UPER_Enc_ConstraintWholeNumber
+        (S,
+         K,
+         Asn1Int (getStringSize (strVal)),
+         asn1Min,
+         nLengthDeterminantSizeInBits);
+      while I <= strVal'Last - 1 and then strVal (I) /= NUL loop
+             --# assert I>=1 AND I<=str'Last-1;
+         charIndex := GetZeroBasedCharIndex (strVal (I), charSet);
+         UPER_Enc_ConstraintWholeNumber
+           (S,
+            K,
+            Asn1Int (charIndex),
+            0,
+            nCharSize);
+
+         I := I + 1;
+      end loop;
+
+   end Acn_Enc_String_CharIndex_Internal_Field_Determinant;
+
+   procedure Acn_Dec_String_CharIndex_Internal_Field_Determinant
+     (S                            : in     BitArray;
+      K                            : in out DECODE_PARAMS;
+      charSet                      :        String;
+      nCharSize                    :        Integer;
+      asn1Min                      :        Asn1Int;
+      asn1Max                      :        Asn1Int;
+      nLengthDeterminantSizeInBits : in     Integer;
+      strVal                       : in out String;
+      Result                       :    out ASN1_RESULT)
+   is
+      I         : Integer := strVal'First;
+      nSize     : Integer;
+      charIndex : Integer;
+   begin
+      Result :=
+        ASN1_RESULT'(Success => True, ErrorCode => ERR_INSUFFICIENT_DATA);
+
+      UPER_Dec_ConstraintWholeNumberInt
+        (S,
+         K,
+         nSize,
+         Integer (asn1Min),
+         Integer (asn1Max),
+         nLengthDeterminantSizeInBits,
+         Result.Success);
+      while Result.Success and then I <= strVal'Last - 1 and then I <= nSize
+      loop
+             --# assert I>=1 AND I<=str'Last-1;
+         UPER_Dec_ConstraintWholeNumberInt
+           (S,
+            K,
+            charIndex,
+            0,
+            charSet'Last - 1,
+            nCharSize,
+            Result.Success);
+         strVal (I) := charSet (charIndex + 1);
+
+         I := I + 1;
+      end loop;
+      while I <= strVal'Last loop
+         strVal (I) := NUL;
+         I          := I + 1;
+      end loop;
+
+   end Acn_Dec_String_CharIndex_Internal_Field_Determinant;
+
+   function milbus_encode (IntVal : in Asn1Int) return Asn1Int is
       ret : Asn1Int;
    begin
       if IntVal = 32 then
@@ -2772,8 +3314,7 @@ PACKAGE BODY adaasn1rtl with SPARK_Mode IS
       return ret;
    end milbus_encode;
 
-   FUNCTION milbus_decode(IntVal:IN Asn1Int) RETURN Asn1Int
-   is
+   function milbus_decode (IntVal : in Asn1Int) return Asn1Int is
       ret : Asn1Int;
    begin
       if IntVal = 0 then
@@ -2784,8 +3325,4 @@ PACKAGE BODY adaasn1rtl with SPARK_Mode IS
       return ret;
    end milbus_decode;
 
-
-END adaasn1rtl;
-
-
-
+end adaasn1rtl;
