@@ -23,6 +23,7 @@ Asn1.userprefs
 */obj/
 *.suo
 *.csproj.user
+/packages
 /mantis/0000374/out.py
 /mantis/0000421/a3.html
 /mantis/0000421/a1.html
