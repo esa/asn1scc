@@ -90,7 +90,7 @@ let CheckModuleName (r:AstRoot) (modNameL:StringLoc)  =
 
 let gatTasByName (r:AstRoot) (m:Asn1Module) (tasNameL:StringLoc) =
     match m.TypeAssignments |> Seq.tryFind(fun t -> t.Name.Value = tasNameL.Value) with
-    | None      -> raise(SemanticError(tasNameL.Location, (sprintf "No ASN.1 Type Assigment is defined with name '%s'" tasNameL.Value)))
+    | None      -> raise(SemanticError(tasNameL.Location, (sprintf "No ASN.1 Type Assignment is defined with name '%s'" tasNameL.Value)))
     | Some tas  -> tas
 
 

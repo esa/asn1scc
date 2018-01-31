@@ -28,7 +28,7 @@ type Constructors<'state> = {
     createFile : AstRoot-> Asn1File -> Constructors<'state> -> 'state -> Asn1File*'state
     createModule : AstRoot-> Asn1Module -> Constructors<'state> -> 'state  -> Asn1Module*'state
     cloneTypeAssignment : TypeAssignment -> Asn1Module -> Constructors<'state> -> 'state -> TypeAssignment*'state
-    cloneValueAssigment : ValueAssignment -> Asn1Module -> Constructors<'state> -> 'state -> ValueAssignment*'state
+    cloneValueAssignment : ValueAssignment -> Asn1Module -> Constructors<'state> -> 'state -> ValueAssignment*'state
     cloneType: Asn1Type -> Asn1Module -> list<string> -> Constructors<'state> -> 'state  -> Asn1Type*'state
 }
 
@@ -42,7 +42,7 @@ and CloneAsn1File (old:AstRoot) (f:Asn1File) cons state =
 
 let CloneModule (oldRoot:AstRoot) (old:Asn1Module) cons state  = 
     let newTas, s0 = old.TypeAssignments |> foldMap (fun s t -> cons.cloneTypeAssignment t old cons s) state
-    let newVas, s1 = old.ValueAssignments |> foldMap (fun s v -> cons.cloneValueAssigment v old cons s) s0
+    let newVas, s1 = old.ValueAssignments |> foldMap (fun s v -> cons.cloneValueAssignment v old cons s) s0
     {
         Asn1Module.Name = old.Name;
         TypeAssignments  = newTas
@@ -53,7 +53,7 @@ let CloneModule (oldRoot:AstRoot) (old:Asn1Module) cons state  =
     }, s1
 
 
-let CloneTypeAssigment (old:TypeAssignment) (m:Asn1Module) cons state =
+let CloneTypeAssignment (old:TypeAssignment) (m:Asn1Module) cons state =
     let newType,s = cons.cloneType old.Type m [m.Name.Value; old.Name.Value] cons state
     {
         TypeAssignment.Name = old.Name
@@ -102,8 +102,8 @@ let CloneType (old:Asn1Type) m key cons state =
 let defaultConstructors = {
     createFile = CloneAsn1File
     createModule = CloneModule
-    cloneTypeAssignment = CloneTypeAssigment
-    cloneValueAssigment = CloneValueAssignment
+    cloneTypeAssignment = CloneTypeAssignment
+    cloneValueAssignment = CloneValueAssignment
     cloneType = CloneType
 }
 

@@ -168,7 +168,7 @@ let generatedAsn1Grammar (outDir:string) (ast:GenFile list) =
         | Integer   -> stg_asn1.Print_Integer "" (t.Constraints |> List.map printConstraint)
         | _         -> raise(BugErrorException "Not Implemented yet")
     let printTas (tas:GenTas) : string=
-        stg_asn1.PrintTypeAssigment tas.name (printAsn1Type tas.Type)
+        stg_asn1.PrintTypeAssignment tas.name (printAsn1Type tas.Type)
     let printModule (m:GenMod) : string=
         stg_asn1.PrintModule m.name (m.tases |> List.map printTas) [] "" []
     let generateAsn1File (f:GenFile) =
@@ -201,7 +201,7 @@ let generatedAcnGrammar (outDir:string) (ast:GenFile list) =
         | Integer   -> stg_acn.PrintType props []
         | _         -> raise(BugErrorException "Not Implemented yet")
     let printTas (tas:GenTas) : string=
-        stg_acn.PrintTypeAssigment tas.name [] [] (printAcnType tas.Type tas.acnProps)
+        stg_acn.PrintTypeAssignment tas.name [] [] (printAcnType tas.Type tas.acnProps)
     let printModule (m:GenMod) =
         stg_acn.PrintModule m.name (m.tases |> List.map printTas)
     let generateAcnFile (f:GenFile) =

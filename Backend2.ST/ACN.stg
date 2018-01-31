@@ -30,7 +30,7 @@ PrintParam(sName, sType, sMode) ::= "<sName>:<sMode> <sType>"
 
 PrintTemp(sName, sType) ::= "<sName>:<sType>"
 
-PrintTypeAssigment(sName, arrsParasm, arrsTempTypes, sType) ::= <<
+PrintTypeAssignment(sName, arrsParasm, arrsTempTypes, sType) ::= <<
 <sName><if(arrsParasm)>(<arrsParasm; separator=", ">)<endif><if(arrsTempTypes)> 
     LOCALS {
         <arrsTempTypes; separator=",\n">

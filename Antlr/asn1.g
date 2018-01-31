@@ -198,12 +198,12 @@ moduleDefinition :  	a=modulereference	definitiveIdentifier?
 			exports?
 			imports?
 			(
-				typeAssigment
-				|valueAssigment
-//				|valueSetAssigment
+				typeAssignment
+				|valueAssignment
+//				|valueSetAssignment
 			)*
 			END
-			->  ^(MODULE_DEF[$d] modulereference EXPLICIT? IMPLICIT? AUTOMATIC? EXTENSIBILITY? exports? imports? typeAssigment* valueAssigment* /* valueSetAssigment* */)
+			->  ^(MODULE_DEF[$d] modulereference EXPLICIT? IMPLICIT? AUTOMATIC? EXTENSIBILITY? exports? imports? typeAssignment* valueAssignment* /* valueSetAssignment* */)
 			;
 
 /*
@@ -235,16 +235,16 @@ importFromModule
 	;	
 	
 	
-valueAssigment	
+valueAssignment	
 	:	valuereference type a=ASSIG_OP value	 -> ^(VAL_ASSIG[$a] valuereference type value)
 	;		
 
 /*		
-valueSetAssigment
+valueSetAssignment
 	:	typereference type '::=' L_BRACKET setOfValues R_BRACKET    -> ^(VAL_SET_ASSIG typereference type setOfValues)
 	;		
 */	
-typeAssigment 
+typeAssignment 
 	:	/*SPECIAL_COMMENT**/ typereference paramList? a=ASSIG_OP type -> ^(TYPE_ASSIG[$a] typereference type paramList?/*SPECIAL_COMMENT* */)
 	;	
 

@@ -432,8 +432,8 @@ let private exportModule (m:Asn1Module) =
         (XElement(xname "ExportedVariables",
             m.ExportedVars |> List.map(fun et -> XElement(xname "ExportedVariable", XAttribute(xname "Name", et))))),
         (XElement(xname "ImportedModules", m.Imports |> List.map handleImpotModule)),
-        XElement(xname "TypeAssigments", m.TypeAssignments |> List.map  exportTas),
-        XElement(xname "ValueAssigments",m.ValueAssignments |> List.map  exportVas)
+        XElement(xname "TypeAssignments", m.TypeAssignments |> List.map  exportTas),
+        XElement(xname "ValueAssignments",m.ValueAssignments |> List.map  exportVas)
     )
 
 let private exportAcnDependencyKind (d:AcnDependencyKind) =

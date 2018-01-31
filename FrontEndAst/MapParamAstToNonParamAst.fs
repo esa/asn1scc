@@ -99,7 +99,7 @@ let rec getSequenceChildren (r:ParameterizedAsn1Ast.AstRoot) (input:list<Paramet
         match ch with
         | ParameterizedAsn1Ast.ChildInfo ch  -> yield ch
         | ParameterizedAsn1Ast.ComponentsOf (md,ts) ->
-            let tas = ParameterizedAsn1Ast.getTypeAssigment r md ts
+            let tas = ParameterizedAsn1Ast.getTypeAssignment r md ts
             match tas.Type.Kind with
             | ParameterizedAsn1Ast.Sequence(children)    ->
                  yield! getSequenceChildren r children
@@ -109,7 +109,7 @@ let rec getSequenceChildren (r:ParameterizedAsn1Ast.AstRoot) (input:list<Paramet
 let rec getActualKind r kind =
     match kind with
     | ParameterizedAsn1Ast.ReferenceType(md, ts,_) -> 
-        let newTas = ParameterizedAsn1Ast.getTypeAssigment r md ts
+        let newTas = ParameterizedAsn1Ast.getTypeAssignment r md ts
         getActualKind r newTas.Type.Kind
     | _                                            -> kind
 
@@ -120,7 +120,7 @@ let rec MapAsn1Value (r:ParameterizedAsn1Ast.AstRoot) (kind: ParameterizedAsn1As
             match kind with
             | ParameterizedAsn1Ast.ReferenceType(md, ts,_) -> 
                 let mdl = ParameterizedAsn1Ast.getModuleByName  r md
-                let newTas = ParameterizedAsn1Ast.getTypeAssigment r md ts
+                let newTas = ParameterizedAsn1Ast.getTypeAssignment r md ts
                 getActualaux r newTas.Type.Kind (Some mdl.Name)
             | _                                            -> kind, modName
         getActualaux r kind None

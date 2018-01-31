@@ -196,7 +196,7 @@ let getTasByName  (tsName:StringLoc) (m:Asn1Module) =
     | None      -> raise(SemanticError(tsName.Location, sprintf "No type assignment with name '%s' found in the module '%s'" tsName.Value m.Name.Value))
 
 
-let getTypeAssigment r m t = m |> getModuleByName r |> getTasByName t
+let getTypeAssignment r m t = m |> getModuleByName r |> getTasByName t
 
 let rec TryGetActualType (t:Asn1Type) (r:AstRoot) =
     match t.Kind with

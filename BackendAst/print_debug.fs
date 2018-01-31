@@ -176,10 +176,10 @@ and PrintType (r:AstRoot) (t:Asn1Type) =
 let PrintTypeAss (r:AstRoot) (t:Asn1Type)  = 
     let nm = match t.asn1Name with Some x -> x | None -> "anonymous"
     let bnm = t.baseType |> Option.map (fun t -> printReferenceToType r REF t.id)
-    stg_asn1.PrintTypeAssigment2 (printReferenceToType r REF t.id) bnm nm (PrintType r t)
+    stg_asn1.PrintTypeAssignment2 (printReferenceToType r REF t.id) bnm nm (PrintType r t)
 
 let PrintValueAss (r:AstRoot) (v:Asn1GenericValue) = 
-    stg_asn1.PrintValueAssigment (printReferenceToValue r REF v.id) (printReferenceToType r REF v.refToType) (PrintAsn1GenericValue r v)
+    stg_asn1.PrintValueAssignment (printReferenceToValue r REF v.id) (printReferenceToType r REF v.refToType) (PrintAsn1GenericValue r v)
 
 let PrintModule (r:AstRoot) (m:Asn1Module) =
     let exports =

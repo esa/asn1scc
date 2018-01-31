@@ -63,7 +63,7 @@ let PrintFile (fileIdx:int) (f:Asn1File) outDir newFileExt (r:AstRoot) (acn:AcnT
             if file.FileName <> f.FileName then
                 if file.Modules |> Seq.exists (fun m -> allImportedModules |> Seq.exists(fun x -> x = m.Name.Value)) then
                     yield file.FileNameWithoutExtension } |> Seq.toList 
-    let sortedTas = c_h.SortTypeAssigments f r acn |> Seq.toList
+    let sortedTas = c_h.SortTypeAssignments f r acn |> Seq.toList
     let tases = sortedTas |> Seq.map(fun (m,tas) -> PrintTypeAss tas m f r acn ) |> Seq.toList
     let vases= seq {
                 for m in f.Modules do

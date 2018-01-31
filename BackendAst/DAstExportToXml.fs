@@ -201,7 +201,7 @@ let private exportTas (r:AstRoot) (tas:TypeAssignment) =
 let private exportModule (r:AstRoot) (m:Asn1Module) =
     XElement(xname "Module",
         XAttribute(xname "Name", m.Name.Value),
-        XElement(xname "TypeAssigments", m.TypeAssignments |> List.map  (exportTas r))
+        XElement(xname "TypeAssignments", m.TypeAssignments |> List.map  (exportTas r))
     )
 
 let exportFile (r:AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (fileName:string) =

@@ -1347,7 +1347,7 @@ let private mergeTAS (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (m:Asn1Ast.Asn1Module) 
         Comments = tas.Comments
     }
 
-let private mergeValueAssigment (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (m:Asn1Ast.Asn1Module) (am:AcnModule option)  (vas:Asn1Ast.ValueAssignment) :ValueAssignment =
+let private mergeValueAssignment (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (m:Asn1Ast.Asn1Module) (am:AcnModule option)  (vas:Asn1Ast.ValueAssignment) :ValueAssignment =
     {
         ValueAssignment.Name = vas.Name
         c_name = vas.c_name
@@ -1361,7 +1361,7 @@ let private mergeModule (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (m:Asn1Ast.Asn1Modul
     {
         Asn1Module.Name = m.Name
         TypeAssignments = m.TypeAssignments |> List.map (mergeTAS asn1 acn m acnModule)
-        ValueAssignments = m.ValueAssignments |> List.map (mergeValueAssigment asn1 acn m acnModule)
+        ValueAssignments = m.ValueAssignments |> List.map (mergeValueAssignment asn1 acn m acnModule)
         Imports  =  m.Imports
         Exports = m.Exports
         Comments = m.Comments

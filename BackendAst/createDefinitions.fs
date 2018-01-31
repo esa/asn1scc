@@ -107,7 +107,7 @@ let createTypeAss  (r:AstRoot) (acn:AcnTypes.AcnAstResolved) (f:Asn1File) (m:Asn
     }
 
 
-let SortTypeAssigments (f:Asn1File) (r:AstRoot) (acn:AcnTypes.AcnAstResolved) =
+let SortTypeAssignments (f:Asn1File) (r:AstRoot) (acn:AcnTypes.AcnAstResolved) =
     let GetTypeDependencies (tas:TypeAssignment)  = 
         seq {
             for ch in (GetMySelfAndChildren tas.Type) do
@@ -154,7 +154,7 @@ let createDefinitionsFile  (r:AstRoot) (acn:AcnTypes.AcnAstResolved) (l:Programm
             if file.FileName <> f.FileName then
                 if file.Modules |> Seq.exists (fun m -> allImportedModules |> Seq.exists(fun x -> x = m.Name.Value)) then
                     yield file.FileNameWithoutExtension } |> Seq.toList 
-    let sortedTas = SortTypeAssigments f r acn
+    let sortedTas = SortTypeAssignments f r acn
     //let protos  = sortedTas |> Seq.map(fun (m,tas) -> PrintAcnProtos tas m f r acn )
 
     {

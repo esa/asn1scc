@@ -566,7 +566,7 @@ let CheckFiles( ast:AstRoot) (pass :int) =
     
 
 
-let checkDuplicateValueAssigments (r:AstRoot)  (lang:ProgrammingLanguage) =
+let checkDuplicateValueAssignments (r:AstRoot)  (lang:ProgrammingLanguage) =
     let doubleEnumNames0 = 
         seq {
             for m in r.Modules do
@@ -580,7 +580,7 @@ let checkDuplicateValueAssigments (r:AstRoot)  (lang:ProgrammingLanguage) =
     | (varName,duplicates)::_     -> 
         match duplicates with
         | []
-        | _::[]     -> raise(BugErrorException"checkDuplicateValueAssigments")
+        | _::[]     -> raise(BugErrorException"checkDuplicateValueAssignments")
         | d1::d2::_ ->
             match lang with
             | ProgrammingLanguage.C ->

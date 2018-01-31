@@ -321,7 +321,7 @@ let PrintTas stgFileName (tas:Ast.TypeAssignment) (m:Asn1Module) (r:AstRoot) (ac
 
 let PrintModule stgFileName (m:Asn1Module) (f:Asn1File) (r:AstRoot) (acn:AcnTypes.AcnAstResolved)  =
     let blueTasses = icdUper.getModuleBlueTasses m |> Seq.map snd
-    let sortedTas = spark_spec.SortTypeAssigments m r acn |> List.rev
+    let sortedTas = spark_spec.SortTypeAssignments m r acn |> List.rev
     let tases = sortedTas |> Seq.map (fun x -> PrintTas stgFileName x m r acn blueTasses) 
     let comments = m.Comments |> Array.map (fun x -> x.Trim().Replace("--", "").Replace("/*", "").Replace("*/",""))
     let moduleName = m.Name.Value

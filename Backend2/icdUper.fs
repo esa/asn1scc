@@ -265,7 +265,7 @@ let getModuleBlueTasses (m:Asn1Module) =
 
 let PrintModule (stgFileName:string) (m:Asn1Module) (f:Asn1File) (r:AstRoot) (acn:AcnTypes.AcnAstResolved)  =
     let blueTasses = getModuleBlueTasses m |> Seq.map snd
-    let sortedTas = spark_spec.SortTypeAssigments m r acn |> List.rev
+    let sortedTas = spark_spec.SortTypeAssignments m r acn |> List.rev
     let tases = sortedTas  |> Seq.map (fun x -> PrintTas stgFileName m x r acn blueTasses) 
     let comments = []
     icd_uper.EmmitModule stgFileName m.Name.Value comments tases
