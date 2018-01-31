@@ -131,12 +131,12 @@ let private exportType (r:AstRoot) (t:Asn1Type) =
                         ), us )
         (fun t ti ch (chType, us) -> 
                     XElement(xname "SEQUENCE_COMPONENT",
-                        XAttribute(xname "name", ch.Name.Value),
+                        XAttribute(xname "Name", ch.Name.Value),
                         (ExportToXml.exportOptionality ch.Optionality ),
                         chType), us )
         (fun t ti ch us -> 
                     XElement(xname "ACN_COMPONENT",
-                        XAttribute(xname "name", ch.Name.Value)
+                        XAttribute(xname "Name", ch.Name.Value)
                         ), us )
 
         (fun t ti (children,us) -> 
@@ -153,10 +153,10 @@ let private exportType (r:AstRoot) (t:Asn1Type) =
         
         (fun t ti ch (chType, us) -> 
                     XElement(xname "CHOICE_ALTERNATIVE",
-                        XAttribute(xname "name", ch.Name.Value),
-                        XAttribute(xname "present_when_name", ch.presentWhenName (Some ch.chType.typeDefintionOrReference) Ada),
-                        XAttribute(xname "ada_name", ch.ada_name),
-                        XAttribute(xname "c_name", ch.c_name),
+                        XAttribute(xname "Name", ch.Name.Value),
+                        XAttribute(xname "PresentWhenName", ch.presentWhenName (Some ch.chType.typeDefintionOrReference) Ada),
+                        XAttribute(xname "AdaName", ch.ada_name),
+                        XAttribute(xname "CName", ch.c_name),
                         chType), us )
 
         (fun t ti (children, us) -> 

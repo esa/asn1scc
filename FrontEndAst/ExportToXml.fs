@@ -36,13 +36,13 @@ and private printSeqValue(v:SeqValue) =
     XElement(xname "SequenceOfValue", 
         (v |> List.map(fun nv -> 
             XElement(xname "NamedValue", 
-                XAttribute(xname "name", nv.name.Value),
+                XAttribute(xname "Name", nv.name.Value),
                 PrintAsn1GenericValue nv.Value                ))))
 and private printChoiceValue (v:ChValue) =
     XElement(xname "ChoiceValue", 
                 ([v] |> List.map(fun nv -> 
                     XElement(xname "NamedValue", 
-                        XAttribute(xname "name", nv.name.Value),
+                        XAttribute(xname "Name", nv.name.Value),
                         PrintAsn1GenericValue nv.Value                ))))    
 and private printRefValue ((md:StringLoc,ts:StringLoc), v:Asn1Value) =    
         XElement(xname "ReferenceValue", 
@@ -224,9 +224,9 @@ let exportAcnNullType (a:StringLoc option) =
                          
 let exportAcnParameter (a:AcnParameter) =
     XElement(xname "AcnParameter", 
-        XAttribute(xname "id", a.id.AsString),
-        XAttribute(xname "name", a.name),
-        XAttribute(xname "type", (a.asn1Type.ToString())))    
+        XAttribute(xname "Id", a.id.AsString),
+        XAttribute(xname "Name", a.name),
+        XAttribute(xname "Type", (a.asn1Type.ToString())))    
 
 let private exportType (t:Asn1Type) = 
     Asn1Fold.foldType
@@ -278,8 +278,8 @@ let private exportType (t:Asn1Type) =
                         (exportAcnIntEncoding ti.acnProperties.encodingProp),
                         XElement(xname "Items", ti.items |> List.map(fun c ->  
                                                                 XElement(xname "Item", 
-                                                                    XAttribute(xname "name", c.Name.Value), 
-                                                                    XAttribute(xname "value", c.definitionValue),   
+                                                                    XAttribute(xname "Name", c.Name.Value), 
+                                                                    XAttribute(xname "Value", c.definitionValue),   
                                                                     XAttribute(xname "Line", c.Name.Location.srcLine),
                                                                     XAttribute(xname "CharPositionInLine", c.Name.Location.charPos)
                                                                 ))),
@@ -297,7 +297,7 @@ let private exportType (t:Asn1Type) =
                                 XElement(xname withCompConstraintsTag, ti.withcons |> List.map(printGenericConstraint printSeqValue ))
                                 ), us )
         (fun ch nt us -> XElement(xname "SEQUENCE_COMPONENT",
-                            XAttribute(xname "name", ch.Name.Value),
+                            XAttribute(xname "Name", ch.Name.Value),
                             XAttribute(xname "Line", ch.Name.Location.srcLine),
                             XAttribute(xname "CharPositionInLine", ch.Name.Location.charPos),
                             (exportOptionality ch.Optionality ),
@@ -306,47 +306,47 @@ let private exportType (t:Asn1Type) =
             match ch.Type with
             | AcnInteger  (a)        -> 
                 XElement(xname "ACN_COMPONENT", 
-                    XAttribute(xname "id", ch.id.AsString),
-                    XAttribute(xname "name", ch.Name.Value),
-                    XAttribute(xname "type", "INTEGER"), 
+                    XAttribute(xname "Id", ch.id.AsString),
+                    XAttribute(xname "Name", ch.Name.Value),
+                    XAttribute(xname "Type", "INTEGER"), 
                     (exportAcnEndianness a.acnProperties.endiannessProp),
                     (exportAcnIntSizeProperty a.acnProperties.sizeProp),
                     (exportAcnIntEncoding a.acnProperties.encodingProp),
                     (exportAcnAligment a.acnAligment)), us 
             | AcnNullType (a)        -> 
                 XElement(xname "ACN_COMPONENT", 
-                    XAttribute(xname "id", ch.id.AsString),
-                    XAttribute(xname "name", ch.Name.Value),
-                    XAttribute(xname "type", "NULL"),    
+                    XAttribute(xname "Id", ch.id.AsString),
+                    XAttribute(xname "Name", ch.Name.Value),
+                    XAttribute(xname "Type", "NULL"),    
                     (exportAcnNullType a.acnProperties.encodingPattern),
                     (exportAcnAligment a.acnAligment)), us 
 
             | AcnReferenceToEnumerated (a)        -> 
                 XElement(xname "ACN_COMPONENT", 
-                    XAttribute(xname "id", ch.id.AsString),
-                    XAttribute(xname "name", ch.Name.Value),
-                    XAttribute(xname "type", "Enumerated"),    
+                    XAttribute(xname "Id", ch.id.AsString),
+                    XAttribute(xname "Name", ch.Name.Value),
+                    XAttribute(xname "Type", "Enumerated"),    
                     (exportAcnAligment a.acnAligment),
                     (exportAcnEndianness a.enumerated.acnProperties.endiannessProp),
                     (exportAcnIntSizeProperty a.enumerated.acnProperties.sizeProp),
                     (exportAcnIntEncoding a.enumerated.acnProperties.encodingProp),
-                    XElement(xname "Items", a.enumerated.items |> List.map(fun c ->  XElement(xname "Item", XAttribute(xname "name", c.Name.Value), XAttribute(xname "value", c.definitionValue))   )),
+                    XElement(xname "Items", a.enumerated.items |> List.map(fun c ->  XElement(xname "Item", XAttribute(xname "Name", c.Name.Value), XAttribute(xname "Value", c.definitionValue))   )),
                     XElement(xname constraintsTag, a.enumerated.cons |> List.map(printGenericConstraint printEnumVal )),
                     XElement(xname withCompConstraintsTag, a.enumerated.withcons |> List.map(printGenericConstraint printEnumVal )) ), us 
 
             | AcnReferenceToIA5String (a)        -> 
                 XElement(xname "ACN_COMPONENT", 
-                    XAttribute(xname "id", ch.id.AsString),
-                    XAttribute(xname "name", ch.Name.Value),
-                    XAttribute(xname "type", "IA5String"),    
+                    XAttribute(xname "Id", ch.id.AsString),
+                    XAttribute(xname "Name", ch.Name.Value),
+                    XAttribute(xname "Type", "IA5String"),    
                     (exportAcnAligment a.acnAligment) ), us 
 
 
             | AcnBoolean  (a)       -> 
                 XElement(xname "ACN_COMPONENT", 
-                    XAttribute(xname "id", ch.id.AsString),
-                    XAttribute(xname "name", ch.Name.Value),
-                    XAttribute(xname "type", "BOOLEAN"), 
+                    XAttribute(xname "Id", ch.id.AsString),
+                    XAttribute(xname "Name", ch.Name.Value),
+                    XAttribute(xname "Type", "BOOLEAN"), 
                     (exportAcnBooleanEncoding a.acnProperties.encodingPattern),
                     (exportAcnAligment a.acnAligment)), us )
         (fun ti children us -> XElement(xname "CHOICE",
@@ -356,12 +356,12 @@ let private exportType (t:Asn1Type) =
                                 XElement(xname withCompConstraintsTag, ti.withcons |> List.map(printGenericConstraint printChoiceValue ))
                                 ), us )
         (fun ch nt us -> XElement(xname "CHOICE_ALTERNATIVE",
-                            XAttribute(xname "name", ch.Name.Value),
+                            XAttribute(xname "Name", ch.Name.Value),
                             XAttribute(xname "Line", ch.Name.Location.srcLine),
                             XAttribute(xname "CharPositionInLine", ch.Name.Location.charPos),
-                            XAttribute(xname "present_when_name", ch.present_when_name),
-                            XAttribute(xname "ada_name", ch.ada_name),
-                            XAttribute(xname "c_name", ch.c_name),
+                            XAttribute(xname "PresentWhenName", ch.present_when_name),
+                            XAttribute(xname "AdaName", ch.ada_name),
+                            XAttribute(xname "CName", ch.c_name),
                             (exportChoiceOptionality ch.Optionality ),
                             (ch.acnPresentWhenConditions |> List.map exportChoiceChildPresentWhenCondition),
                             nt), us )
