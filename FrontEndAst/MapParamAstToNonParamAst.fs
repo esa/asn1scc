@@ -343,21 +343,13 @@ let MapValueAssignment (r:ParameterizedAsn1Ast.AstRoot) (m:ParameterizedAsn1Ast.
 
 
 let MapModule (r:ParameterizedAsn1Ast.AstRoot) (m:ParameterizedAsn1Ast.Asn1Module) :Asn1Ast.Asn1Module =
-    let DoImportedModule (x:ParameterizedAsn1Ast.ImportedModule) : Asn1Ast.ImportedModule option =
-        let types = x.Types |> List.choose(fun ts -> 
-                                            let tas = getModuleByName r x.Name |> getTasByName ts
-                                            match tas.Parameters with
-                                            | []    -> Some ts
-                                            | _     -> None     //Paramterized Import, so remove it
-                                       )
-        match types with
-        | []    -> None
-        | _     -> Some  { Asn1Ast.ImportedModule.Name = x.Name; Types = types; Values = x.Values}
+    let DoImportedModule (x:ParameterizedAsn1Ast.ImportedModule) : Asn1Ast.ImportedModule =
+        { Asn1Ast.ImportedModule.Name = x.Name; Types = x.Types; Values = x.Values}
     {
         Asn1Ast.Asn1Module.Name = m.Name
         TypeAssignments = m.TypeAssignments |> List.filter(fun x -> x.Parameters.Length = 0) |> List.map (MapTypeAssignment r m)
         ValueAssignments = m.ValueAssignments |> List.map (MapValueAssignment r m)
-        Imports = m.Imports |> List.choose DoImportedModule
+        Imports = m.Imports |> List.map DoImportedModule
         Exports  = match m.Exports with
                    | ParameterizedAsn1Ast.All               -> Asn1Ast.All
                    | ParameterizedAsn1Ast.OnlySome(lst)     -> Asn1Ast.OnlySome(lst)
