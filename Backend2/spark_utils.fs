@@ -503,7 +503,7 @@ let MoveChoiceVasToPrivateModule (ast:Ast.AstRoot) =
     let OnCloneModule (oldRoot:Ast.AstRoot) (old:Asn1Module) cons state  = 
         let newTas, s0 = old.TypeAssignments |> foldMap (fun s t -> cons.cloneTypeAssignment t old cons s) state
         let extraVases = vasesToBeMoved |> List.filter(fun ((oldModName, vas),(newModName, vasName)) -> old.Name.Value = newModName) |> List.map(fun ((oldModName, vas),(newModName, vasName)) -> vas)
-        let newVas, s1 = (old.ValueAssignments@extraVases) |> foldMap (fun s v -> cons.cloneValueAssigment v old cons s) s0
+        let newVas, s1 = (old.ValueAssignments@extraVases) |> foldMap (fun s v -> cons.cloneValueAssignment v old cons s) s0
         {
             Asn1Module.Name = old.Name;
             TypeAssignments  = newTas
@@ -527,7 +527,7 @@ let MoveChoiceVasToPrivateModule (ast:Ast.AstRoot) =
         },s
 
 
-    CloneTree ast {defaultConstructors with createModule = OnCloneModule; cloneValueAssigment = OnCloneValueAssignment} () |> fst
+    CloneTree ast {defaultConstructors with createModule = OnCloneModule; cloneValueAssignment = OnCloneValueAssignment} () |> fst
     
 
 

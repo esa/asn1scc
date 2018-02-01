@@ -98,9 +98,9 @@ let rec PrintType (t:Asn1Type) (m:Asn1Module) =
         | false -> ASN.Print_ReferenceType2 mname.Value name.Value cons
         
 
-let PrintTypeAss (t:TypeAssignment) m = ASN.PrintTypeAssigment t.Name.Value (PrintType t.Type m)
+let PrintTypeAss (t:TypeAssignment) m = ASN.PrintTypeAssignment t.Name.Value (PrintType t.Type m)
 
-let PrintValueAss (v:ValueAssignment) m = ASN.PrintValueAssigment v.Name.Value (PrintType v.Type m) (PrintAsn1Value v.Value)
+let PrintValueAss (v:ValueAssignment) m = ASN.PrintValueAssignment v.Name.Value (PrintType v.Type m) (PrintAsn1Value v.Value)
 
 let PrintModule (m:Asn1Module) =
     let exports =
@@ -280,7 +280,7 @@ module AcnPrint =
                           |> Seq.filter(fun x -> x.ModName = m.Name.Value && x.TasName = tas.Name.Value)
                           |> Seq.map(fun x -> ACN.PrintTemp x.Name (printAcnAsn1Type x.Asn1Type) )
         let tp = PrintAcnType asn1 acn m tas.Type [m.Name.Value; tas.Name.Value]
-        ACN.PrintTypeAssigment tas.Name.Value arParams arTempTypes tp
+        ACN.PrintTypeAssignment tas.Name.Value arParams arTempTypes tp
 
     let PrintModule (asn1:AstRoot) (acn:AcnTypes.AcnAstResolved)  (m:Asn1Module) =
         ACN.PrintModule m.Name.Value [for tas in m.TypeAssignments -> PrintTas asn1 acn m tas ]

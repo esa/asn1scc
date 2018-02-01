@@ -30,15 +30,15 @@ PrintModuleImportFromModule(arrsImports, sModName) ::= <<
 <arrsImports; separator = ", "> FROM <sModName>
 >>
 
-PrintTypeAssigment(sName, sType) ::= "<sName> ::= <sType>"
+PrintTypeAssignment(sName, sType) ::= "<sName> ::= <sType>"
 
-PrintTypeAssigment2(sID, soBaseType, sName, sTypeBody) ::= <<
+PrintTypeAssignment2(sID, soBaseType, sName, sTypeBody) ::= <<
 -- ID: <sID>
 -- extends: <soBaseType>
 <sName> :: = <sTypeBody>
 >>
 
-PrintValueAssigment(sName, sType, sValue) ::= "<sName> <sType> ::= <sValue>"
+PrintValueAssignment(sName, sType, sValue) ::= "<sName> <sType> ::= <sValue>"
 
 
 PrintType(sTypeSpecific) ::= "<sTypeSpecific>"

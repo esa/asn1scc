@@ -44,7 +44,7 @@ let CheckModuleName (modNameL:StringLoc) (r:Ast.AstRoot) =
 
 let CheckTasName modName (tasNameL:StringLoc) (r:Ast.AstRoot)=
     let m = r.Modules |> Seq.find(fun x -> x.Name.Value = modName)
-    let extToThrow = SemanticError(tasNameL.Location, (sprintf "No ASN.1 Type Assigment is defined with name '%s'" tasNameL.Value))
+    let extToThrow = SemanticError(tasNameL.Location, (sprintf "No ASN.1 Type Assignment is defined with name '%s'" tasNameL.Value))
     CheckExists tasNameL (m.TypeAssignments |> Seq.map(fun x -> x.Name)) extToThrow
 
 
@@ -143,9 +143,9 @@ and CreateAcnModule (files:seq<ITree*string*array<IToken>>) (t:ITree) (ast:AcnAs
     //check for duplicate type assignments in the ACN module
     tases |> List.map(fun x -> x.GetChildByType(acnParser.UID).TextL) |> CheckForDuplicates
 
-    tases |> List.fold(fun a x-> CreateAcnTypeAssigment files x modNameL.Value a r tokens) ast
+    tases |> List.fold(fun a x-> CreateAcnTypeAssignment files x modNameL.Value a r tokens) ast
 
-and CreateAcnTypeAssigment (files:seq<ITree*string*array<IToken>>) (t:ITree) modName (ast:AcnAst) (r:Ast.AstRoot) (tokens:array<IToken>) =
+and CreateAcnTypeAssignment (files:seq<ITree*string*array<IToken>>) (t:ITree) modName (ast:AcnAst) (r:Ast.AstRoot) (tokens:array<IToken>) =
     //Check that the ACN tas name exists also as an ASN.1 tas name
     let tasNameL = t.GetChildByType(acnParser.UID).TextL
     CheckTasName modName tasNameL r

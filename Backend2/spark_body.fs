@@ -70,7 +70,7 @@ let PrintModule (fileIndex:int) (mdIndex:int) (m:Asn1Module) (f:Asn1File) (r:Ast
         | Some mfm -> includedPackages@[mfm]
     let acnBoolPatterns = spark_acn.CollectBoolPatterns m r
     let negRealConstants = CollectNegativeReals m r |> Seq.map(fun (nm, dv) -> ss.PrintNegativeRealConstant nm (spark_variables.printRealValue dv))
-    let tases, s1 = (spark_spec.SortTypeAssigments m r acn) |> foldMap(fun s tas -> PrintTypeAss tas m r acn s) state
+    let tases, s1 = (spark_spec.SortTypeAssignments m r acn) |> foldMap(fun s tas -> PrintTypeAss tas m r acn s) state
     let vases, s2 = m.ValueAssignments|>List.filter(fun v ->IsOrContainsChoice v.Type r) |> foldMap(fun s vas -> PrintValueAss vas m r s) s1
     let content = ss.PrintPackageBody (ToC m.Name.Value) includedPackages negRealConstants acnBoolPatterns tases vases
     let fileName = Path.Combine(outDir, ((ToC m.Name.Value)+fileExt).ToLower())

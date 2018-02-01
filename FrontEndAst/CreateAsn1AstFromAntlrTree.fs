@@ -434,7 +434,7 @@ let CreateTemplateParameter (astRoot:list<ITree>) (tree:ITree) (fileTokens:array
     | _ -> raise (BugErrorException("Bug in CreateConstraint"))
     
 
-let CreateTypeAssigment (astRoot:list<ITree>) (tree:ITree) (fileTokens:array<IToken>) (alreadyTakenComments:System.Collections.Generic.List<IToken>) = 
+let CreateTypeAssignment (astRoot:list<ITree>) (tree:ITree) (fileTokens:array<IToken>) (alreadyTakenComments:System.Collections.Generic.List<IToken>) = 
     let parameters = 
             match tree.GetOptChild asn1Parser.PARAM_LIST with
             | None          -> []
@@ -446,7 +446,7 @@ let CreateTypeAssigment (astRoot:list<ITree>) (tree:ITree) (fileTokens:array<ITo
         Comments = Antlr.Comment.GetComments(fileTokens, alreadyTakenComments, fileTokens.[tree.TokenStopIndex].Line, tree.TokenStartIndex - 1, tree.TokenStopIndex + 1)
     }
 
-let CreateValueAssigment (astRoot:list<ITree>) (tree:ITree) = 
+let CreateValueAssignment (astRoot:list<ITree>) (tree:ITree) = 
     let alreadyTakenComments = System.Collections.Generic.List<IToken>()
     let name = tree.GetChild(0).TextL;
     let typ = CreateType [] astRoot (tree.GetChild(1)) [||] alreadyTakenComments
@@ -508,9 +508,9 @@ let CreateAsn1Module (astRoot:list<ITree>) (tree:ITree)   (fileTokens:array<ITok
           | None ->
           { 
                 Name=  getChildByType(tree, asn1Parser.UID).TextL
-                TypeAssignments= getChildrenByType(tree, asn1Parser.TYPE_ASSIG) |> List.map(fun x -> CreateTypeAssigment astRoot x fileTokens alreadyTakenComments)
+                TypeAssignments= getChildrenByType(tree, asn1Parser.TYPE_ASSIG) |> List.map(fun x -> CreateTypeAssignment astRoot x fileTokens alreadyTakenComments)
                 ValueAssignments = 
-                    let globalValueAssignments = getChildrenByType(tree, asn1Parser.VAL_ASSIG) |> List.map(fun x -> CreateValueAssigment astRoot x)
+                    let globalValueAssignments = getChildrenByType(tree, asn1Parser.VAL_ASSIG) |> List.map(fun x -> CreateValueAssignment astRoot x)
                     let typeScopedValueAssignments = handleIntegerValues tree
                     globalValueAssignments@typeScopedValueAssignments
                 Imports = getChildrenByType(tree, asn1Parser.IMPORTS_FROM_MODULE) |> List.map createImport
