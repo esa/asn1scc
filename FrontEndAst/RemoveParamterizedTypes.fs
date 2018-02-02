@@ -263,9 +263,9 @@ let DoModule (r:AstRoot) (m:Asn1Module) :Asn1Module =
                                             | []    -> Some ts
                                             | _     -> None     //Paramterized Import, so remove it
                                        )
-        match types with
-        | []    -> None
-        | _     -> Some  { ImportedModule.Name = x.Name; Types = types; Values = x.Values}
+        match types, x.Values with
+        | [],[]  -> None
+        | _      -> Some  { ImportedModule.Name = x.Name; Types = types; Values = x.Values}
     
     let newTypeAssignments, newImports = m.TypeAssignments |> List.filter(fun x -> x.Parameters.Length = 0) |> foldMap (DoTypeAssignment r m) []
     let newValueAssignments, newImports = m.ValueAssignments |> foldMap (DoValueAssignment r m) newImports
