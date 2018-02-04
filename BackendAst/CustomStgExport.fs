@@ -217,10 +217,10 @@ let exportFile (r:AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (stgFi
                 | ReferenceToExistingDefinition _ -> None
                 | TypeDefinition td               -> 
                     let asn1Name = td.typedefName.Replace("_","-")
-                    let ret = gen.TasXml asn1Name t.Location.srcLine.AsBigInt t.Location.charPos.AsBigInt (PrintType r f stgFileName modName false t ) td.typedefName (AssigOp t) (PrintContract r stgFileName asn1Name td.typedefName t) stgFileName
+                    let deepRecursion = r.args.custom_Stg_Ast_Version = 1
+                    let ret = gen.TasXml asn1Name t.Location.srcLine.AsBigInt t.Location.charPos.AsBigInt (PrintType r f stgFileName modName deepRecursion t ) td.typedefName (AssigOp t) (PrintContract r stgFileName asn1Name td.typedefName t) stgFileName
                     Some ret) |> Seq.StrJoin "\n"
         innerTypeDef
-        //gen.TasXml tas.Name.Value (BigInteger tas.Name.Location.srcLine) (BigInteger tas.Name.Location.charPos) (PrintType r f stgFileName modName true tas.Type ) (ToC tas.Name.Value) (AssigOp tas.Type) (PrintContract r stgFileName  tas.Name.Value (ToC tas.Name.Value) tas.Type) stgFileName
     let PrintModule (f:Asn1File) (m:Asn1Module) =
         let PrintImpModule (im:Asn1Ast.ImportedModule) =
             gen.ImportedMod im.Name.Value (ToC im.Name.Value) (im.Types |> Seq.map(fun x -> x.Value)) (im.Values |> Seq.map(fun x -> x.Value)) stgFileName

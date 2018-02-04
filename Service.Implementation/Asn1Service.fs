@@ -63,6 +63,7 @@ type Asn1Service() =
             mappingFunctionsModule = None
             integerSizeInBytes = 8
             renamePolicy = CommonTypes.EnumRenamePolicy.NoRenamePolicy
+            custom_Stg_Ast_Version = 1
         }
 
     member private this.StoreFilesInDirectory (dir:TemporaryDirectory) (files:IEnumerable<Dto.FileData>) = files |> Seq.map (fun f -> dir.Store f) |> Seq.toList

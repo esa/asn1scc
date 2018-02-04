@@ -45,7 +45,7 @@ with
             | Rename_Policy _  -> "Specify rename policy for enums 0 no rename (Ada default), 1 rename only conflicting enumerants (C default), 2 rename all enumerants of an enum with at lest one conflicting enumerant"
             | Generate_Test_Grammar -> "generate a sample grammar for testing purposes"
             | Custom_Stg _   -> "custom_stg_colon_outfilename is expected as stgFile.stg:outputFile where stgFile.stg is an existing custom stg file, while outputFile is the name of the generated file. Invokes the custom stg file 'stgFile.stg' and produces the output file 'outputFile'"
-            | Custom_Stg_Ast_Version _ -> "depricated option. Used only for backwards compatibility"
+            | Custom_Stg_Ast_Version _ -> "1 = original AST, 4: like version of asn1scc where inner types are replaced with referenced types"
             | IcdUper  _        -> "Produces an Interface Control Document for the input ASN.1 grammar for uPER encoding"    
             | CustomIcdUper  _  -> "Invokes the custom stg file 'stgFile.stg' using the icdUper backend and produces the output file 'outputFile'"
             | IcdAcn  _         -> "Produces an Interface Control Document for the input ASN.1 and ACN grammars for ACN encoding"
@@ -103,7 +103,11 @@ let checkArguement arg =
     | Type_Prefix _    -> ()
     | Rename_Policy _   -> ()
     | Custom_Stg comFile  -> checkCompositeFile comFile "-customStg" "txt"
-    | Custom_Stg_Ast_Version _ -> ()
+    | Custom_Stg_Ast_Version v -> 
+        match v with
+        | 1 -> ()
+        | 4 -> ()
+        | _ -> raise (UserException ("invalid value for argument -customStgAstVersion. Currently only values 1 and 4 are supported"))
     | IcdUper  outHtmlFile      -> checkOutFileName outHtmlFile ".html" "-icdUper"
     | CustomIcdUper  comFile    -> checkCompositeFile comFile "-customIcdUper" ".html"
     | IcdAcn  outHtmlFile       -> checkOutFileName outHtmlFile ".html" "-icdAcn"
@@ -131,6 +135,7 @@ let constructCommandLineSettings args (parserResults: ParseResults<CliArguments>
         AstXmlAbsFileName = parserResults.GetResult(<@Xml_Ast@>, defaultValue = "")
         IcdUperHtmlFileName = ""
         IcdAcnHtmlFileName = ""
+        custom_Stg_Ast_Version = parserResults.GetResult(<@ Custom_Stg_Ast_Version @>, defaultValue = 1)
         mappingFunctionsModule = None
         integerSizeInBytes = 8
         renamePolicy = CommonTypes.EnumRenamePolicy.SelectiveEnumerants

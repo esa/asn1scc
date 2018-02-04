@@ -69,6 +69,7 @@ type CommandLineSettings = {
     AstXmlAbsFileName:string
     IcdUperHtmlFileName:string
     IcdAcnHtmlFileName:string
+    custom_Stg_Ast_Version : int
     mappingFunctionsModule : string option
     integerSizeInBytes : int            //currently only the value of 8 bytes (64 bits) is supported
     renamePolicy :  EnumRenamePolicy
