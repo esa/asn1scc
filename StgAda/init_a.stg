@@ -107,6 +107,10 @@ end loop;
 
 /*SEQUENCE*/
 
+initSequence_emptySeq(p) ::= <<
+<p> := (null record);
+>>
+
 initSequence_optionalChild(p, sAcc, sChName, sPresentFlag, sChildContent) ::=<<
 <p><sAcc>Exist.<sChName> := <sPresentFlag>;
 <sChildContent>

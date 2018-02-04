@@ -37,9 +37,7 @@ let createInitFunctionCommon (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage)   (o
             | Some funcName     -> 
                 let res = initTasFunction p 
                 let lvars = res.localVariables |> List.map(fun (lv:LocalVariable) -> lv.GetDeclaration l) |> Seq.distinct
-                match (res.funcBody.Trim()) with
-                | ""        -> None, None
-                | _         -> Some(initTypeAssignment varName sStar funcName  (typeDefinition.longTypedefName l) res.funcBody lvars), Some(initTypeAssignment_def varName sStar funcName  (typeDefinition.longTypedefName l))
+                Some(initTypeAssignment varName sStar funcName  (typeDefinition.longTypedefName l) res.funcBody lvars), Some(initTypeAssignment_def varName sStar funcName  (typeDefinition.longTypedefName l))
 
 
     {
@@ -454,15 +452,22 @@ let createSequenceInitFunc (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn
             | Some (Asn1AcnAst.Optional opt)    -> presentFunc ()
             | Some (Asn1AcnAst.AlwaysAbsent)    -> nonPresenceFunc ()
             | Some (Asn1AcnAst.AlwaysPresent)   -> presentFunc ()
-
+        let asn1Children = children |> List.choose(fun c -> match c with Asn1Child x -> Some x | _ -> None)
         let ret = 
-            children |> 
-            List.choose(fun c -> match c with Asn1Child x -> Some x | _ -> None) |> 
-            List.fold(fun (cr:InitFunctionResult) ch ->
-                    let chResult = handleChild ch
-                    let newFuncBody = cr.funcBody + "\n" + chResult.funcBody
-                    {InitFunctionResult.funcBody = newFuncBody; localVariables = cr.localVariables@chResult.localVariables }
-                ) {InitFunctionResult.funcBody = ""; localVariables = [] }
+            match asn1Children with
+            | []    -> 
+                match l with
+                | Ada   -> 
+                    let initEmpytSeq = init_a.initSequence_emptySeq p.arg.p
+                    {InitFunctionResult.funcBody = initEmpytSeq; localVariables = [] }
+                | C     -> {InitFunctionResult.funcBody = ""; localVariables = [] }
+            | _     ->
+                asn1Children |> 
+                List.fold(fun (cr:InitFunctionResult) ch ->
+                        let chResult = handleChild ch
+                        let newFuncBody = cr.funcBody + "\n" + chResult.funcBody
+                        {InitFunctionResult.funcBody = newFuncBody; localVariables = cr.localVariables@chResult.localVariables }
+                    ) {InitFunctionResult.funcBody = ""; localVariables = [] }
         ret
         
     createInitFunctionCommon r l t typeDefinition funcBody iv initTasFunction testCaseFuncs
