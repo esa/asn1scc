@@ -420,8 +420,8 @@ let private exportModule (m:Asn1Module) =
             XAttribute(xname "ID", im.Name.Value),
             (XElement(xname "ImportedTypes",
                 im.Types |> List.map(fun et -> XElement(xname "ImportedType", XAttribute(xname "Name", et.Value))))),
-            (XElement(xname "ImportedVariables",
-                im.Values |> List.map(fun et -> XElement(xname "ImportedVariable", XAttribute(xname "Name", et.Value))))))
+            (XElement(xname "ImportedValues",
+                im.Values |> List.map(fun et -> XElement(xname "ImportedValue", XAttribute(xname "Name", et.Value))))))
 
     XElement(xname "Module",
         XAttribute(xname "Name", m.Name.Value),
@@ -429,8 +429,8 @@ let private exportModule (m:Asn1Module) =
         XAttribute(xname "CharPositionInLine", m.Name.Location.charPos),
         (XElement(xname "ExportedTypes",
             m.ExportedTypes |> List.map(fun et -> XElement(xname "ExportedType", XAttribute(xname "Name", et))))),
-        (XElement(xname "ExportedVariables",
-            m.ExportedVars |> List.map(fun et -> XElement(xname "ExportedVariable", XAttribute(xname "Name", et))))),
+        (XElement(xname "ExportedValues",
+            m.ExportedValues |> List.map(fun et -> XElement(xname "ExportedValue", XAttribute(xname "Name", et))))),
         (XElement(xname "ImportedModules", m.Imports |> List.map handleImpotModule)),
         XElement(xname "TypeAssignments", m.TypeAssignments |> List.map  exportTas),
         XElement(xname "ValueAssignments",m.ValueAssignments |> List.map  exportVas)
