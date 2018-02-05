@@ -238,6 +238,8 @@ let createInteger (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (pi : Asn1Fold.
     let declare_IntegerNoRTL            = match l with C -> header_c.Declare_Integer                    | Ada -> header_a.Declare_IntegerNoRTL
     let declare_PosIntegerNoRTL         = match l with C -> header_c.Declare_PosInteger                 | Ada -> header_a.Declare_PosIntegerNoRTL
     let define_SubType_int_range        = match l with C -> (fun _ _ _ _  -> "")                        | Ada -> header_a.Define_SubType_int_range
+//    if t.id.AsString = "TEST-CASE.T-POS.anInt" then
+//        printfn "%s" t.id.AsString
 
     let getNewRange soInheritParentTypePackage sInheritParentType = 
         match o.uperRange with
@@ -247,7 +249,8 @@ let createInteger (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (pi : Asn1Fold.
         | PosInf (a)                  ->  Some (define_SubType_int_range soInheritParentTypePackage sInheritParentType (Some a) None)
         | Full                        ->  None
     let getRtlTypeName () = if o.isUnsigned then declare_PosIntegerNoRTL() else declare_IntegerNoRTL()
-    createTypeGeneric r l pi t (fun _ _ _ -> None) (DefineSubTypeAux {DefineSubTypeAux.getNewRange = getNewRange; getRtlTypeName = getRtlTypeName})
+    let ret = createTypeGeneric r l pi t (fun _ _ _ -> None) (DefineSubTypeAux {DefineSubTypeAux.getNewRange = getNewRange; getRtlTypeName = getRtlTypeName})
+    ret
 
 let createBoolean (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (pi : Asn1Fold.ParentInfo<ParentInfoData> option) (t:Asn1AcnAst.Asn1Type)  (o:Asn1AcnAst.Boolean)   (us:State) =
     let getRtlTypeName  = match l with C -> header_c.Declare_Boolean  | Ada -> header_a.Declare_BOOLEANNoRTL 
@@ -381,6 +384,8 @@ let createSequence (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (pi : Asn1Fold
     createTypeGeneric r l pi t getExtraSubTypes (DefineNewTypeAux {DefineNewTypeAux.getCompleteDefintion = getCompleteDefinition})
 
 let createChoice (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (pi : Asn1Fold.ParentInfo<ParentInfoData> option) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Choice)  (children:ChChildInfo list) (us:State) =
+//    if t.id.AsString = "TEST-CASE.T-POS" then
+//        printfn "%s" t.id.AsString
     let childldrenCompleteDefintions = children |> List.collect (fun c -> getChildDefinition c.chType.typeDefintionOrReference)
     let getCompleteDefinition (programUnit:string) (typeDefinitionName:string) =
         match l with

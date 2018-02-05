@@ -18,13 +18,35 @@ Currently this code is not used since it is no longer required (it was originall
 However, now with the 'pragma Annotate (GNATprove, False_Positive)' we can handle this case.
 *)
 
+let getFuncName2 (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (tasInfo:TypeAssignmentInfo option) (inhInfo: InheritanceInfo option) (typeKind:Asn1AcnAst.Asn1TypeKind) (typeDefinition:TypeDefintionOrReference) =
+    let nameSuffix = match l with C -> "_Initialize" | Ada -> "_Init"
+    let tasName =
+        match tasInfo with
+        | Some tasInfo  -> Some tasInfo.tasName
+        | None          -> 
+            match inhInfo, typeKind with
+            | None, Asn1AcnAst.Integer _ 
+            | None, Asn1AcnAst.Real _ 
+            | None, Asn1AcnAst.Boolean _ 
+            | None, Asn1AcnAst.NullType _ -> None
+            | _     ->
+                match typeDefinition with
+                | ReferenceToExistingDefinition  refEx  -> None
+                | TypeDefinition   td                   -> Some td.typedefName
+    tasName |> Option.map (fun x -> ToC2(r.args.TypePrefix + x + nameSuffix))
+
 let getFuncName (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (tasInfo:TypeAssignmentInfo option) =
     match l with
     | C     -> tasInfo |> Option.map (fun x -> ToC2(r.args.TypePrefix + x.tasName + "_Initialize"))
     | Ada   -> tasInfo |> Option.map (fun x -> ToC2(r.args.TypePrefix + x.tasName + "_Init"))
 
 let createInitFunctionCommon (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage)   (o:Asn1AcnAst.Asn1Type) (typeDefinition:TypeDefintionOrReference) initByAsn1Value (iv:Asn1ValueKind) (initTasFunction:CallerScope  -> InitFunctionResult)  testCaseFuncs =
-    let funcName            = getFuncName r l o.id.tasInfo
+//    if o.id.AsString = "TEST-CASE.T-POS.anInt" then
+//        printfn "%s" o.id.AsString
+
+    let aaaa = o.id.AsString
+    let funcName            = getFuncName2 r l o.id.tasInfo o.inheritInfo o.Kind typeDefinition
+    //let funcName            = getFuncName r l o.id.tasInfo 
     let p = o.getParamType l CommonTypes.Codec.Decode
     let initTypeAssignment = match l with C -> init_c.initTypeAssignment | Ada -> init_a.initTypeAssignment
     let initTypeAssignment_def = match l with C -> init_c.initTypeAssignment_def | Ada -> init_a.initTypeAssignment_def
@@ -72,7 +94,7 @@ let createIntegerInitFunc (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1
         integerVals |> 
         List.map (fun vl -> (fun (p:CallerScope) -> {InitFunctionResult.funcBody = initInteger (p.arg.getValue l) vl;  localVariables=[]} ))
 
-    createInitFunctionCommon r l t typeDefinition funcBody iv tasInitFunc testCaseFuncs
+    createInitFunctionCommon r l t  typeDefinition funcBody iv tasInitFunc testCaseFuncs
 
 let createRealInitFunc (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1AcnAst.Asn1Type) (o :Asn1AcnAst.Real) (typeDefinition:TypeDefintionOrReference) iv = 
     let initReal = match l with C -> init_c.initReal | Ada -> init_a.initReal
@@ -556,5 +578,6 @@ let createChoiceInitFunc (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1A
         
     createInitFunctionCommon r l t typeDefinition funcBody iv initTasFunction testCaseFuncs
 
-let createReferenceType (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1AcnAst.Asn1Type) (o :Asn1AcnAst.ReferenceType) (baseType:Asn1Type) =
-    baseType.initFunction
+let createReferenceType (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1AcnAst.Asn1Type) (o :Asn1AcnAst.ReferenceType) (typeDefinition:TypeDefintionOrReference) (baseType:Asn1Type) =
+    let bs = baseType.initFunction
+    createInitFunctionCommon r l t typeDefinition bs.initByAsn1Value baseType.initialValue bs.initTas bs.initFuncBodyTestCases

@@ -186,19 +186,6 @@ let rec PrintType (r:AstRoot) (f:Asn1File) (stgFileName:string) modName (deepRec
     gen.TypeGeneric (BigInteger t.Location.srcLine) (BigInteger t.Location.charPos) f.FileName (PrintTypeAux t) stgFileName
 
 
-let rec GetMySelfAndChildren (t:Asn1Type) = 
-    seq {
-        match t.Kind with
-        | SequenceOf(conType) ->  yield! GetMySelfAndChildren conType.childType
-        | Sequence seq ->
-            for ch in seq.Asn1Children do 
-                yield! GetMySelfAndChildren ch.Type
-        | Choice(ch)-> 
-            for ch in ch.children do 
-                yield! GetMySelfAndChildren ch.chType
-        |_ -> ()    
-        yield t
-    } |> Seq.toList
 
 
 

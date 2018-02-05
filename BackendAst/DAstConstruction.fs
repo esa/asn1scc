@@ -547,7 +547,7 @@ let private createReferenceType (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInser
     //let typeDefinition = DAstTypeDefinition.createReferenceType r l t o newResolvedType us
     let equalFunction       = DAstEqual.createReferenceTypeEqualFunction r l t o defOrRef newResolvedType
     let initialValue        = {Asn1Value.kind=newResolvedType.initialValue;id=ReferenceToValue([],[]);loc=emptyLocation}
-    let initFunction        = DAstInitialize.createReferenceType r l t o newResolvedType
+    let initFunction        = DAstInitialize.createReferenceType r l t o defOrRef newResolvedType
     let isValidFunction, s1     = DAstValidate.createReferenceTypeFunction r l t o defOrRef newResolvedType us
     let uperEncFunction, s2     = DAstUPer.createReferenceFunction r l Codec.Encode t o defOrRef isValidFunction newResolvedType s1
     let uperDecFunction, s3     = DAstUPer.createReferenceFunction r l Codec.Decode t o defOrRef isValidFunction newResolvedType s2

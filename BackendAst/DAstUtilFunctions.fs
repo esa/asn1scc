@@ -905,3 +905,17 @@ let AdaUses (r:AstRoot) =
                 for tas in m.TypeAssignments do
                     yield sprintf "%s:%s" tas.Name.Value (ToC m.Name.Value);
     } |> Seq.iter(fun l -> System.Console.WriteLine l)
+
+let rec GetMySelfAndChildren (t:Asn1Type) = 
+    seq {
+        match t.Kind with
+        | SequenceOf(conType) ->  yield! GetMySelfAndChildren conType.childType
+        | Sequence seq ->
+            for ch in seq.Asn1Children do 
+                yield! GetMySelfAndChildren ch.Type
+        | Choice(ch)-> 
+            for ch in ch.children do 
+                yield! GetMySelfAndChildren ch.chType
+        |_ -> ()    
+        yield t
+    } |> Seq.toList

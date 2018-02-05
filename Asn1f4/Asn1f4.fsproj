@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="14.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
   <PropertyGroup>
@@ -27,8 +27,8 @@
     <PlatformTarget>AnyCPU</PlatformTarget>
     <DocumentationFile>bin\Debug\Asn1f4.XML</DocumentationFile>
     <Prefer32Bit>true</Prefer32Bit>
-    <StartWorkingDirectory>C:\prj\GitHub\master\asn1scc\mantis\0000645</StartWorkingDirectory>
-    <StartArguments>-customStg xml.stg:aaa.xml -c -o outV4/ -atc -uPER inputFolder1/DataView.asn inputFolder2/DataView.asn</StartArguments>
+    <StartWorkingDirectory>C:\prj\GitHub\asn1scc\v4Tests\tmp_Ada</StartWorkingDirectory>
+    <StartArguments>-Ada -uPER -ACN -typePrefix gmamais_ -renamePolicy 2 -equal -atc  sample1.asn1 sample1.acn</StartArguments>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
