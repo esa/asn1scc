@@ -14,7 +14,7 @@ open Antlr
 //let CreateAstRoot (list:(ITree*string*array<IToken>) seq) (encodings:array<Asn1Encoding>) generateEqualFunctions typePrefix checkWithOss astXmlFileName icdUperHtmlFileName icdAcnHtmlFileName (mappingFunctionsModule:string) integerSizeInBytes =  
 
 
-let antlrParse (lexer: ICharStream -> #ITokenSource ) parser treeParser (fileName: string, files : string seq) = 
+let antlrParse (lexer: ICharStream -> #ITokenSource ) parser treeParser (name: string, inputs : Input seq) = 
 
     let concatenateStreams (streams : Stream seq) =
         let spaceAscii = (byte 32)
@@ -24,20 +24,20 @@ let antlrParse (lexer: ICharStream -> #ITokenSource ) parser treeParser (fileNam
         memStream :> Stream
 
     let inputStream =
-        match Seq.length files > 1 with
-        | true -> files |> Seq.map (fun f -> File.OpenRead(f) :> Stream) |> concatenateStreams
-        | false -> File.OpenRead(files |> Seq.toList |> List.head) :> Stream
+        match Seq.length inputs > 1 with
+        | true -> inputs |> Seq.map (fun i -> i.contents) |> concatenateStreams
+        | false -> inputs |> Seq.head |> (fun i -> i.contents)
     
     let antlrStream = new ANTLRInputStream(inputStream)
-    antlrStream.SourceName <- fileName
+    antlrStream.SourceName <- name
     let tokenStream = new CommonTokenStream(lexer(antlrStream))
     let tokens = tokenStream.GetTokens().Cast<IToken>() |> Seq.toArray
     let tree = treeParser(parser(tokenStream));
-    {ParameterizedAsn1Ast.AntlrParserResult.fileName = fileName; ParameterizedAsn1Ast.AntlrParserResult.rootItem=tree; ParameterizedAsn1Ast.AntlrParserResult.tokens=tokens}
+    {ParameterizedAsn1Ast.AntlrParserResult.fileName = name; ParameterizedAsn1Ast.AntlrParserResult.rootItem=tree; ParameterizedAsn1Ast.AntlrParserResult.tokens=tokens}
 
 let constructAst (args:CommandLineSettings) =
-    let asn1ParseTrees = args.asn1Files |> Seq.groupBy(fun f -> f) |> Seq.map (antlrParse (fun f -> new asn1Lexer(f)) (fun ts -> new asn1Parser(ts))  (fun p -> p.moduleDefinitions().Tree :?> ITree)  ) |> Seq.toList
-    let acnParseTrees = args.acnFiles |> Seq.groupBy(fun f -> f) |> Seq.map (antlrParse (fun f -> new acnLexer(f)) (fun ts -> new acnParser(ts))  (fun p -> p.moduleDefinitions().Tree :?> ITree)  ) |> Seq.toList
+    let asn1ParseTrees = args.asn1Files |> Seq.groupBy(fun f -> f.name) |> Seq.map (antlrParse (fun f -> new asn1Lexer(f)) (fun ts -> new asn1Parser(ts))  (fun p -> p.moduleDefinitions().Tree :?> ITree)  ) |> Seq.toList
+    let acnParseTrees = args.acnFiles |> Seq.groupBy(fun f -> f.name) |> Seq.map (antlrParse (fun f -> new acnLexer(f)) (fun ts -> new acnParser(ts))  (fun p -> p.moduleDefinitions().Tree :?> ITree)  ) |> Seq.toList
 
     (*
         * constructs a parameterized (templatized) ASN.1 AST by antlr trees.
