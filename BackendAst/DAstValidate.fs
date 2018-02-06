@@ -206,7 +206,7 @@ let callBaseTypeFunc l = match l with C -> isvalid_c.call_base_type_func | Ada -
 let callBaseTypeFuncExp l = match l with C -> isvalid_c.call_base_type_func_exp | Ada -> isvalid_a.call_base_type_func_exp
 let joinTwoIfFirstOk l = match l with C -> isvalid_c.JoinTwoIfFirstOk | Ada -> isvalid_a.JoinTwoIfFirstOk
 
-let getAddres = DAstEqual.getAddres
+//let getAddres = DAstEqual.getAddres
 
 let createPrimitiveFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage)  (t:Asn1AcnAst.Asn1Type) allCons  conToStrFunc (typeDefinition:TypeDefintionOrReference) (alphaFuncs : AlphaFunc list) (us:State)  =
     let hasValidationFunc= hasValidationFunc allCons
@@ -703,8 +703,8 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:A
             | Some _  -> true
             | None    -> false
 
-    let baseCallStatement l p baseFncName =
-        callBaseTypeFunc l (getAddres l p) baseFncName
+    //let baseCallStatement l p baseFncName =
+    //    callBaseTypeFunc l (getAddres l p) baseFncName
 
     (*alphaFuncs, localVars, ercCodes, funcBody, deltaErrCode*)
     let body =

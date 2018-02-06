@@ -233,7 +233,7 @@ let private createOctetString (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserte
 let private createNullType (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (m:Asn1AcnAst.Asn1Module) (pi : Asn1Fold.ParentInfo<ParentInfoData> option) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.NullType) (us:State) =
     //let typeDefinition = DAstTypeDefinition.createNull  r l t o us
     let defOrRef            =  DAstTypeDefinition2.createNull r l pi t o us
-    let equalFunction       = DAstEqual.createNullTypeEqualFunction r l  o
+    let equalFunction       = DAstEqual.createNullTypeEqualFunction r l  t o defOrRef
     let initialValue        = ()
     let initFunction        = DAstInitialize.createNullTypeInitFunc r l t o defOrRef (NullValue initialValue)
     let uperEncFunction, s2     = DAstUPer.createNullTypeFunction r l Codec.Encode t o defOrRef None None us

@@ -37,6 +37,32 @@ begin
 end <sFuncName>;
 >>
 
+equalTypeAssignment_def(sVarName1, sVarName2, sStar, sFuncName, sTypeDefName) ::= <<
+function <sFuncName>(<sVarName1>, <sVarName2>: in <sTypeDefName>) return Boolean;
+>>
+
+equalTypeAssignment(sVarName1, sVarName2, sStar, sFuncName, sTypeDefName, sContent, arrsLocalVars, bExpression) ::= <<
+function <sFuncName>(<sVarName1>, <sVarName2>: in <sTypeDefName>)
+    return Boolean 
+is
+    <if(!bExpression)>
+    pragma Warnings (Off, "initialization of ret has no effect");        
+    ret : Boolean := TRUE;
+    pragma Warnings (On, "initialization of ret has no effect");        
+    <arrsLocalVars; separator="\n">
+
+    <endif>
+begin
+    <if(bExpression)>
+	return <sContent>;
+
+    <else>
+    <sContent>
+	return ret;
+
+    <endif>
+end <sFuncName>;
+>>
 
 
 

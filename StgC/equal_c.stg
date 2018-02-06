@@ -50,6 +50,28 @@ flag <sFuncName>(const <sTypeDefName>* pVal1, const <sTypeDefName>* pVal2)
 }
 >>
 
+equalTypeAssignment_def(sVarName1, sVarName2, sStar, sFuncName, sTypeDefName) ::= <<
+flag <sFuncName>(const <sTypeDefName><sStar> <sVarName1>, const <sTypeDefName><sStar> <sVarName2>);
+>>
+
+equalTypeAssignment(sVarName1, sVarName2, sStar, sFuncName, sTypeDefName, sContent, arrsLocalVars, bExpression) ::= <<
+flag <sFuncName>(const <sTypeDefName><sStar> <sVarName1>, const <sTypeDefName><sStar> <sVarName2>)
+{
+    <if(bExpression)>
+	return <sContent>;
+
+    <else>
+	flag ret=TRUE;
+    <arrsLocalVars; separator="\n">
+
+    <sContent>
+	return ret;
+
+    <endif>
+}
+>>
+
+
 
 isEqual_Integer(p1, p2) ::= "ret = (<p1> == <p2>);"
 

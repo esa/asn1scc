@@ -361,41 +361,43 @@ type Asn1AcnAst.NamedItem      with
 
 
 type Asn1AcnAst.Asn1Type with
-    member this.getParamType (l:ProgrammingLanguage) (c:Codec) =
+    member this.getParamTypeSuffix (l:ProgrammingLanguage) (suf:string) (c:Codec) =
         match l with
-        | Ada   -> {CallerScope.modName = this.id.ModName; arg= VALUE "val" }
+        | Ada   -> {CallerScope.modName = this.id.ModName; arg= VALUE ("val" + suf) }
         | C     ->
             match c with
             | Encode  ->
                 match this.Kind with
-                | Asn1AcnAst.Integer         _ -> {CallerScope.modName = this.id.ModName; arg= VALUE "val"    }
-                | Asn1AcnAst.Real            _ -> {CallerScope.modName = this.id.ModName; arg= VALUE "val"    }
-                | Asn1AcnAst.IA5String       _ -> {CallerScope.modName = this.id.ModName; arg= FIXARRAY "val" }
-                | Asn1AcnAst.NumericString   _ -> {CallerScope.modName = this.id.ModName; arg= FIXARRAY "val" }
-                | Asn1AcnAst.OctetString     _ -> {CallerScope.modName = this.id.ModName; arg= POINTER "pVal" }
-                | Asn1AcnAst.NullType        _ -> {CallerScope.modName = this.id.ModName; arg= VALUE "val"    }
-                | Asn1AcnAst.BitString       _ -> {CallerScope.modName = this.id.ModName; arg= POINTER "pVal" }
-                | Asn1AcnAst.Boolean         _ -> {CallerScope.modName = this.id.ModName; arg= VALUE "val"    }
-                | Asn1AcnAst.Enumerated      _ -> {CallerScope.modName = this.id.ModName; arg= VALUE "val"    }
-                | Asn1AcnAst.SequenceOf      _ -> {CallerScope.modName = this.id.ModName; arg= POINTER "pVal" }
-                | Asn1AcnAst.Sequence        _ -> {CallerScope.modName = this.id.ModName; arg= POINTER "pVal" }
-                | Asn1AcnAst.Choice          _ -> {CallerScope.modName = this.id.ModName; arg= POINTER "pVal" }
-                | Asn1AcnAst.ReferenceType r -> r.resolvedType.getParamType l c
+                | Asn1AcnAst.Integer         _ -> {CallerScope.modName = this.id.ModName; arg= VALUE ("val" + suf)    }
+                | Asn1AcnAst.Real            _ -> {CallerScope.modName = this.id.ModName; arg= VALUE ("val" + suf)    }
+                | Asn1AcnAst.IA5String       _ -> {CallerScope.modName = this.id.ModName; arg= FIXARRAY ("val" + suf) }
+                | Asn1AcnAst.NumericString   _ -> {CallerScope.modName = this.id.ModName; arg= FIXARRAY ("val" + suf) }
+                | Asn1AcnAst.OctetString     _ -> {CallerScope.modName = this.id.ModName; arg= POINTER ("pVal" + suf) }
+                | Asn1AcnAst.NullType        _ -> {CallerScope.modName = this.id.ModName; arg= VALUE ("val" + suf)    }
+                | Asn1AcnAst.BitString       _ -> {CallerScope.modName = this.id.ModName; arg= POINTER ("pVal" + suf) }
+                | Asn1AcnAst.Boolean         _ -> {CallerScope.modName = this.id.ModName; arg= VALUE ("val" + suf)    }
+                | Asn1AcnAst.Enumerated      _ -> {CallerScope.modName = this.id.ModName; arg= VALUE ("val" + suf)    }
+                | Asn1AcnAst.SequenceOf      _ -> {CallerScope.modName = this.id.ModName; arg= POINTER ("pVal" + suf) }
+                | Asn1AcnAst.Sequence        _ -> {CallerScope.modName = this.id.ModName; arg= POINTER ("pVal" + suf) }
+                | Asn1AcnAst.Choice          _ -> {CallerScope.modName = this.id.ModName; arg= POINTER ("pVal" + suf) }
+                | Asn1AcnAst.ReferenceType r -> r.resolvedType.getParamTypeSuffix l suf c
             | Decode  ->
                 match this.Kind with
-                | Asn1AcnAst.Integer            _ -> {CallerScope.modName = this.id.ModName; arg= POINTER "pVal" }
-                | Asn1AcnAst.Real               _ -> {CallerScope.modName = this.id.ModName; arg= POINTER "pVal" }
-                | Asn1AcnAst.IA5String          _ -> {CallerScope.modName = this.id.ModName; arg= FIXARRAY "val" }
-                | Asn1AcnAst.NumericString      _ -> {CallerScope.modName = this.id.ModName; arg= FIXARRAY "val" }
-                | Asn1AcnAst.OctetString        _ -> {CallerScope.modName = this.id.ModName; arg= POINTER "pVal" }
-                | Asn1AcnAst.NullType           _ -> {CallerScope.modName = this.id.ModName; arg= POINTER "pVal" }
-                | Asn1AcnAst.BitString          _ -> {CallerScope.modName = this.id.ModName; arg= POINTER "pVal" }
-                | Asn1AcnAst.Boolean            _ -> {CallerScope.modName = this.id.ModName; arg= POINTER "pVal" }
-                | Asn1AcnAst.Enumerated         _ -> {CallerScope.modName = this.id.ModName; arg= POINTER "pVal" }
-                | Asn1AcnAst.SequenceOf         _ -> {CallerScope.modName = this.id.ModName; arg= POINTER "pVal" }
-                | Asn1AcnAst.Sequence           _ -> {CallerScope.modName = this.id.ModName; arg= POINTER "pVal" }
-                | Asn1AcnAst.Choice             _ -> {CallerScope.modName = this.id.ModName; arg= POINTER "pVal" }
-                | Asn1AcnAst.ReferenceType r -> r.resolvedType.getParamType l c
+                | Asn1AcnAst.Integer            _ -> {CallerScope.modName = this.id.ModName; arg= POINTER ("pVal" + suf) }
+                | Asn1AcnAst.Real               _ -> {CallerScope.modName = this.id.ModName; arg= POINTER ("pVal" + suf) }
+                | Asn1AcnAst.IA5String          _ -> {CallerScope.modName = this.id.ModName; arg= FIXARRAY ("val" + suf) }
+                | Asn1AcnAst.NumericString      _ -> {CallerScope.modName = this.id.ModName; arg= FIXARRAY ("val" + suf) }
+                | Asn1AcnAst.OctetString        _ -> {CallerScope.modName = this.id.ModName; arg= POINTER ("pVal" + suf) }
+                | Asn1AcnAst.NullType           _ -> {CallerScope.modName = this.id.ModName; arg= POINTER ("pVal" + suf) }
+                | Asn1AcnAst.BitString          _ -> {CallerScope.modName = this.id.ModName; arg= POINTER ("pVal" + suf) }
+                | Asn1AcnAst.Boolean            _ -> {CallerScope.modName = this.id.ModName; arg= POINTER ("pVal" + suf) }
+                | Asn1AcnAst.Enumerated         _ -> {CallerScope.modName = this.id.ModName; arg= POINTER ("pVal" + suf) }
+                | Asn1AcnAst.SequenceOf         _ -> {CallerScope.modName = this.id.ModName; arg= POINTER ("pVal" + suf) }
+                | Asn1AcnAst.Sequence           _ -> {CallerScope.modName = this.id.ModName; arg= POINTER ("pVal" + suf) }
+                | Asn1AcnAst.Choice             _ -> {CallerScope.modName = this.id.ModName; arg= POINTER ("pVal" + suf) }
+                | Asn1AcnAst.ReferenceType r -> r.resolvedType.getParamTypeSuffix l suf c
+    member this.getParamType (l:ProgrammingLanguage) (c:Codec) =
+        this.getParamTypeSuffix l "" c
     member this.getParamValue (p:FuncParamType) (l:ProgrammingLanguage) (c:Codec) =
         match l with
         | Ada   -> p.p
@@ -919,3 +921,18 @@ let rec GetMySelfAndChildren (t:Asn1Type) =
         |_ -> ()    
         yield t
     } |> Seq.toList
+
+let getFuncNameGeneric (r:Asn1AcnAst.AstRoot) nameSuffix (tasInfo:TypeAssignmentInfo option) (inhInfo: InheritanceInfo option) (typeKind:Asn1AcnAst.Asn1TypeKind) (typeDefinition:TypeDefintionOrReference) =
+    match tasInfo with
+    | Some tasInfo  -> Some (ToC2 (r.args.TypePrefix + tasInfo.tasName + nameSuffix))
+    | None          -> 
+        match inhInfo, typeKind with
+        | None, Asn1AcnAst.Integer _ 
+        | None, Asn1AcnAst.Real _ 
+        | None, Asn1AcnAst.Boolean _ 
+        | None, Asn1AcnAst.NullType _ -> None
+        | _     ->
+            match typeDefinition with
+            | ReferenceToExistingDefinition  refEx  -> None
+            | TypeDefinition   td                   -> Some (td.typedefName + nameSuffix)
+
