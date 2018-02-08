@@ -344,7 +344,7 @@ let createSequenceOfInitFunc (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:A
                 yield (fun p -> seqOfCase o.minSize p)
         } |> Seq.toList
     let initTasFunction (p:CallerScope) =
-        let initCountValue = match l with C -> Some 0I | Ada -> Some o.minSize.AsBigInt
+        let initCountValue = Some o.minSize.AsBigInt
         let childInitRes = childType.initFunction.initTas ({p with arg = p.arg.getArrayItem l i childType.isIA5String})
         let funcBody = initTestCaseSizeSequenceOf p.arg.p (p.arg.getAcces l) initCountValue o.maxSize.AsBigInt (o.minSize = o.maxSize) [childInitRes.funcBody] false i
         {InitFunctionResult.funcBody = funcBody; localVariables= (SequenceOfIndex (ii, None))::childInitRes.localVariables }
