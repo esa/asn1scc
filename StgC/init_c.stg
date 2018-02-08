@@ -111,13 +111,13 @@ initTestCaseSizeSequenceOf_innerItem(bFirst, bLastItem, nCaseIdx, sChildCaseInit
     <sChildCaseInit>
 }>>
 
-initTestCaseSizeSequenceOf(p, sAcc, nSize, bIsFixedSize, arrsInnerItems, bMultiCases, i) ::= <<
+initTestCaseSizeSequenceOf(p, sAcc, noMinSize, nSize, bIsFixedSize, arrsInnerItems, bMultiCases, i) ::= <<
 <i> = 0;
 while (<i>\< <nSize>) {
     <arrsInnerItems; separator="\n">
     <i> = <i> + 1;
 }
-<if(!bIsFixedSize)><p><sAcc>nCount = <nSize>;<endif>
+<if(!bIsFixedSize)><p><sAcc>nCount = <if(noMinSize)><noMinSize><else><nSize><endif>;<endif>
 >>
 
 

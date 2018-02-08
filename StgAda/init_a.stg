@@ -91,7 +91,7 @@ initTestCaseSizeSequenceOf_innerItem(bFirst, bLastItem, nCaseIdx, sChildCaseInit
     <sChildCaseInit>
 >>
 
-initTestCaseSizeSequenceOf(p, sAcc, nSize, bIsFixedSize, arrsInnerItems, bMultiCases, i) ::= <<
+initTestCaseSizeSequenceOf(p, sAcc, noMinSize, nSize, bIsFixedSize, arrsInnerItems, bMultiCases, i) ::= <<
 <i> := 1;
 while <i>\<= <nSize> loop
     pragma Loop_Invariant (<i> >=1 and <i>\<=<nSize>);
@@ -102,7 +102,7 @@ while <i>\<= <nSize> loop
     <endif>
     <i> := <i> + 1;
 end loop;
-<if(!bIsFixedSize)><p><sAcc>Length := <nSize>;<endif>
+<if(!bIsFixedSize)><p><sAcc>Length := <if(noMinSize)><noMinSize><else><nSize><endif>;<endif>
 >>
 
 /*SEQUENCE*/

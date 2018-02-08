@@ -323,7 +323,7 @@ let createSequenceOfInitFunc (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:A
             match childTestCases with
             | []    -> {InitFunctionResult.funcBody = ""; localVariables = []}
             | childCase::[] -> 
-                let funcBody = initTestCaseSizeSequenceOf p.arg.p (p.arg.getAcces l) nSize.AsBigInt (o.minSize = o.maxSize) [childCase.funcBody] false i
+                let funcBody = initTestCaseSizeSequenceOf p.arg.p (p.arg.getAcces l) None nSize.AsBigInt (o.minSize = o.maxSize) [childCase.funcBody] false i
                 {InitFunctionResult.funcBody = funcBody; localVariables= (SequenceOfIndex (ii, None))::childCase.localVariables }
             | _             ->
                 let arrsInnerItems, childLocalVars = 
@@ -333,7 +333,7 @@ let createSequenceOfInitFunc (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:A
                         (funcBody, (SequenceOfIndex (ii, None))::sChildItem.localVariables)) |>
                     List.unzip
 
-                let funcBody = initTestCaseSizeSequenceOf p.arg.p (p.arg.getAcces l) nSize.AsBigInt (o.minSize = o.maxSize) arrsInnerItems true i 
+                let funcBody = initTestCaseSizeSequenceOf p.arg.p (p.arg.getAcces l) None  nSize.AsBigInt (o.minSize = o.maxSize) arrsInnerItems true i 
                 {InitFunctionResult.funcBody = funcBody; localVariables= (SequenceOfIndex (ii, None))::(childLocalVars |> List.collect id)}
 
         seq {
@@ -344,8 +344,9 @@ let createSequenceOfInitFunc (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:A
                 yield (fun p -> seqOfCase o.minSize p)
         } |> Seq.toList
     let initTasFunction (p:CallerScope) =
+        let initCountValue = match l with C -> Some 0I | Ada -> Some o.minSize.AsBigInt
         let childInitRes = childType.initFunction.initTas ({p with arg = p.arg.getArrayItem l i childType.isIA5String})
-        let funcBody = initTestCaseSizeSequenceOf p.arg.p (p.arg.getAcces l) o.maxSize.AsBigInt (o.minSize = o.maxSize) [childInitRes.funcBody] false i
+        let funcBody = initTestCaseSizeSequenceOf p.arg.p (p.arg.getAcces l) initCountValue o.maxSize.AsBigInt (o.minSize = o.maxSize) [childInitRes.funcBody] false i
         {InitFunctionResult.funcBody = funcBody; localVariables= (SequenceOfIndex (ii, None))::childInitRes.localVariables }
         
     createInitFunctionCommon r l t typeDefinition funcBody iv  initTasFunction testCaseFuncs
