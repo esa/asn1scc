@@ -555,7 +555,9 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec:C
                         | Ada when codec = CommonTypes.Decode -> chFunc.funcBody ({p with arg = VALUE (child.c_name + "_tmp")})
                         | Ada -> chFunc.funcBody ({p with arg = p.arg.getChChild l child.c_name child.chType.isIA5String})
                     match uperChildRes with
-                    | None              -> "/*no encoding/decoding is required*/",[],[]
+                    | None              -> 
+                        let noEncodingComment = match l with C ->"/*no encoding/decoding is required*/" | Ada -> "--no encoding/decoding is required"
+                        noEncodingComment,[],[]
                     | Some childContent ->  
                         let sChildName = child.c_name
                         let sChildTypeDef = child.chType.typeDefintionOrReference.longTypedefName l //child.chType.typeDefinition.typeDefinitionBodyWithinSeq
