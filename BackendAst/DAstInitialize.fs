@@ -70,6 +70,7 @@ let createIntegerInitFunc (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1
             | IntegerValue iv   -> iv
             | _                 -> raise(BugErrorException "UnexpectedValue")
         initInteger (p.arg.getValue l) vl
+
     let integerVals = EncodeDecodeTestCase.IntegerAutomaticTestCaseValues r t o
     
     let allCons = DAstValidate.getIntSimplifiedConstraints r o.isUnsigned o.AllCons

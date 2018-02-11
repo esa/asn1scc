@@ -97,11 +97,11 @@ let SIntHandleRangeContraint_val_MAX  (r:Asn1AcnAst.AstRoot) eqIsInc  v1 =
 
 (* e.g INTEGER (MIN .. 40) --> intVal <= 40*)
 let UintHandleRangeContraint_MIN_val (r:Asn1AcnAst.AstRoot) zero intMax eqIsInc  v1 =
-    match v1 <= zero with
+    match v1 < zero with
     | true  -> SicAlwaysTrue
     | false ->
         match eqIsInc with
-        | true  when v1 = intMax -> SicAlwaysTrue
+        | true  when v1 = intMax && intMax <> zero -> SicAlwaysTrue
         | true   -> SciConstraint (RangeContraint_MIN_val (v1,eqIsInc))
         | false  -> SciConstraint (RangeContraint_MIN_val (v1,eqIsInc))
 
@@ -313,7 +313,16 @@ let createBitOrOctetStringFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage
 
 let getIntSimplifiedConstraints (r:Asn1AcnAst.AstRoot) isUnsigned (allCons  : IntegerTypeConstraint list) =
     match isUnsigned with
-    | true         -> allCons |> List.map (fun c -> simplifytIntegerTypeConstraint (UintHandleEqual r 0I) (UintHandleRangeContraint_val_MAX r 0I) (UintHandleRangeContraint_MIN_val r 0I r.args.UIntMax) c) |> List.choose (fun sc -> match sc with SicAlwaysTrue -> None | SciConstraint c -> Some c)
+    | true         -> 
+        allCons |> 
+        List.map (fun c -> 
+            let ret = simplifytIntegerTypeConstraint (UintHandleEqual r 0I) (UintHandleRangeContraint_val_MAX r 0I) (UintHandleRangeContraint_MIN_val r 0I r.args.UIntMax) c
+            ret
+        ) |> 
+        List.choose (fun sc -> 
+            match sc with 
+            | SicAlwaysTrue -> None 
+            | SciConstraint c -> Some c)
     | false        -> allCons |> List.map (fun c -> simplifytIntegerTypeConstraint (SIntHandleEqual r) (SIntHandleRangeContraint_val_MAX r) (SIntHandleRangeContraint_MIN_val r) c) |> List.choose (fun sc -> match sc with SicAlwaysTrue -> None | SciConstraint c -> Some c)
     
 

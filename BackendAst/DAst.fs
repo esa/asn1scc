@@ -18,6 +18,7 @@ type State = {
 type ParentInfoData = {
     program_unit_name : string
     typedefName       : string
+    isRefType         : bool
 }
 
 
@@ -141,6 +142,9 @@ type TypeDefinitionCommon = {
 }
 
 type TypeDefinition = {
+    // The program unit where this type is defined.
+    // In C this is None
+    //programUnitName : string option
     /// The name of the defined type. If type is a type assignment then is the name of the type assignment.
     /// if the type is an inner type (i.e. within a SEQUENCE/SEQUENCE OF/CHOICE) then name is created as 
     /// parentType.typedefName + "_" + component_name

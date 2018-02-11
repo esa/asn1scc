@@ -106,32 +106,33 @@ let getParentInfoData (r:Asn1AcnAst.AstRoot) (pi : Asn1Fold.ParentInfo<ParentInf
     match t.typeAssignmentInfo with
     | Some (TypeAssignmentInfo tasInfo)       ->  
         match t.inheritInfo with
-        | Some inhInfo      -> (*I am a reference type*) {ParentInfoData.program_unit_name = ToC inhInfo.modName ;typedefName = ToC2(r.args.TypePrefix + inhInfo.tasName)}
+        | Some inhInfo      -> (*I am a reference type*) {ParentInfoData.program_unit_name = ToC inhInfo.modName ;typedefName = ToC2(r.args.TypePrefix + inhInfo.tasName); isRefType= true}
         | None              -> 
-            {ParentInfoData.program_unit_name = ToC t.id.ModName;  typedefName = ToC2(r.args.TypePrefix + tasInfo.tasName)} // I am a type assignment
-    | Some (ValueAssignmentInfo vasInfo)      ->  {ParentInfoData.program_unit_name = ToC t.id.ModName;  typedefName = ToC2(r.args.TypePrefix + vasInfo.vasName)} // I am a type assignment
+            {ParentInfoData.program_unit_name = ToC t.id.ModName;  typedefName = ToC2(r.args.TypePrefix + tasInfo.tasName); isRefType= false} // I am a type assignment
+    | Some (ValueAssignmentInfo vasInfo)      ->  
+            {ParentInfoData.program_unit_name = ToC t.id.ModName;  typedefName = ToC2(r.args.TypePrefix + vasInfo.vasName); isRefType= true} // I am a type assignment
     | None              ->  // I am an inner type
         match t.inheritInfo with
-        | Some inhInfo      -> (*I am a reference type*) {ParentInfoData.program_unit_name = ToC inhInfo.modName ;typedefName = ToC2(r.args.TypePrefix + inhInfo.tasName)}
+        | Some inhInfo      -> (*I am a reference type*) {ParentInfoData.program_unit_name = ToC inhInfo.modName ;typedefName = ToC2(r.args.TypePrefix + inhInfo.tasName); isRefType= true}
         | None              -> 
             match pi with
             | Some parentInfo   ->
                 match parentInfo.name with
-                | Some nm -> {ParentInfoData.program_unit_name = parentInfo.parentData.program_unit_name;  typedefName = ToC2(parentInfo.parentData.typedefName + "_" + nm)}
-                | None    -> {ParentInfoData.program_unit_name = parentInfo.parentData.program_unit_name;  typedefName = ToC2(parentInfo.parentData.typedefName + "_" + "elem")}
+                | Some nm -> {ParentInfoData.program_unit_name = parentInfo.parentData.program_unit_name;  typedefName = ToC2(parentInfo.parentData.typedefName + "_" + nm); isRefType= parentInfo.parentData.isRefType}
+                | None    -> {ParentInfoData.program_unit_name = parentInfo.parentData.program_unit_name;  typedefName = ToC2(parentInfo.parentData.typedefName + "_" + "elem"); isRefType= parentInfo.parentData.isRefType}
             | None              ->
                 raise(BugErrorException "type has no typeAssignmentInfo and No parent!!!")
                 
 
 
-let private createTypeGeneric (r:Asn1AcnAst.AstRoot)  l (pi : Asn1Fold.ParentInfo<ParentInfoData> option) (t:Asn1AcnAst.Asn1Type) getExtraSubtypes (defineNewType:DefineTypeAux)   =
+let private createTypeGeneric (r:Asn1AcnAst.AstRoot)  l (pi : Asn1Fold.ParentInfo<ParentInfoData> option) (t:Asn1AcnAst.Asn1Type) getExtraSubtypes (defineNewTypeFnc:DefineTypeAux)   =
     let programUnit = ToC t.id.ModName
     let rtlModuleName  = match l with C -> None                                          | Ada -> Some (header_a.rtlModuleName())
     let defineSubType l = match l with C -> header_c.Define_SubType | Ada -> header_a.Define_SubType
-    if t.id.AsString = "" then
+    if t.id.AsString = "TEST-CASE.T-META.longitude" then
         let dummy = 0
         ()
-
+        (*
     let defineSubTypeAux (parent_pu_name:string option) (programUnit:string) (typedefName:string) (inheritInfo : InheritanceInfo option) (subAux:DefineSubTypeAux) (innerType:bool) =
         let soInheritParentTypePackage, sInheritParentType = 
             match inheritInfo with
@@ -161,72 +162,140 @@ let private createTypeGeneric (r:Asn1AcnAst.AstRoot)  l (pi : Asn1Fold.ParentInf
                 ReferenceToExistingDefinition {ReferenceToExistingDefinition.programUnit = Some parent_pu_name; typedefName= typedefName}
     //if t.id.AsString = "Onboard-Monitoring.Transition-Report.value.type-1-0" then
     //    printfn "%s" t.id.AsString
-
+    *)
     match t.typeAssignmentInfo with
     | Some (TypeAssignmentInfo tasInfo)      ->  (*I am a type assignmet ==> Always define a new type*)
         let typedefName = (ToC2(r.args.TypePrefix + tasInfo.tasName))
         match t.inheritInfo with
-        | Some inheritInfo  (*when  not inheritInfo.hasAdditionalConstraints *)-> 
+        | Some inheritInfo  ->  (*E.g. MyNewType ::= ExistingType*)
             let otherProgramUnit = if  inheritInfo.modName = tasInfo.modName then None else Some (ToC inheritInfo.modName)
             let baseTypeTypedefName = ToC2(r.args.TypePrefix + inheritInfo.tasName)
             let soNewRange = 
-                match defineNewType with
+                match defineNewTypeFnc with
                 | DefineSubTypeAux subAux -> subAux.getNewRange otherProgramUnit baseTypeTypedefName
                 | DefineNewTypeAux _      -> None
             let extraDefs = getExtraSubtypes typedefName otherProgramUnit baseTypeTypedefName
             let typedefBody = defineSubType l typedefName otherProgramUnit baseTypeTypedefName soNewRange extraDefs
-            TypeDefinition {TypeDefinition.typedefName=typedefName; typedefBody = (fun () -> typedefBody)}
+            TypeDefinition {TypeDefinition.typedefName=typedefName; (*programUnitName = Some programUnit;*) typedefBody = (fun () -> typedefBody)}
         | None             -> 
-            match defineNewType with
+            match defineNewTypeFnc with
             | DefineSubTypeAux subAux -> 
-                defineSubTypeAux None programUnit typedefName t.inheritInfo subAux false
+                //defineSubTypeAux None programUnit typedefName t.inheritInfo subAux false
+                let soNewRange = subAux.getNewRange rtlModuleName (subAux.getRtlTypeName())
+                let completeDefintion = defineSubType l typedefName rtlModuleName (subAux.getRtlTypeName()) soNewRange None
+                TypeDefinition {TypeDefinition.typedefName = typedefName; typedefBody = (fun () -> completeDefintion)}
             | DefineNewTypeAux ntAux  ->
                 let completeDefintion = ntAux.getCompleteDefintion  programUnit typedefName 
-                TypeDefinition {TypeDefinition.typedefName = typedefName; typedefBody = (fun () -> completeDefintion)}
+                TypeDefinition {TypeDefinition.typedefName = typedefName; (*programUnitName = Some programUnit;*) typedefBody = (fun () -> completeDefintion)}
     | Some (ValueAssignmentInfo vasInfo)      ->  (*I am a value assignmet ==> Reference an existing or throw a user exception*)
         match t.inheritInfo with
         | Some inheritInfo   ->  
             let baseTypeProgramUnit = if programUnit = ToC inheritInfo.modName then None else Some (ToC inheritInfo.modName)
             ReferenceToExistingDefinition {ReferenceToExistingDefinition.programUnit = baseTypeProgramUnit; typedefName=ToC2(r.args.TypePrefix + inheritInfo.tasName)}
         | None   -> 
-            match defineNewType with
+            match defineNewTypeFnc with
             | DefineSubTypeAux  subAux -> 
                 let soInheritParentTypePackage, sInheritParentType =  rtlModuleName, subAux.getRtlTypeName()
                 ReferenceToExistingDefinition {ReferenceToExistingDefinition.programUnit = soInheritParentTypePackage; typedefName=sInheritParentType}         
             | DefineNewTypeAux ntAux  ->
                 raise(SemanticError(t.Location, "Anonymous types are not supported. Please define a new type and then use it in the value assignment"))
     | None              -> (*I am a SEQUENCE or SEQUENCE OF or CHOICE child.*)
+        let parentInfo =
+            match pi with
+            | Some parentInfo   -> parentInfo
+            | None              -> raise(BugErrorException "type has no typeAssignmentInfo and No parent!!!")
+        let typedefName =
+            match parentInfo.name with
+            | Some nm -> ToC2(parentInfo.parentData.typedefName + "_" + nm)
+            | None    -> ToC2(parentInfo.parentData.typedefName + "_" + "elem")
+        
+        match t.inheritInfo with
+        | Some inheritInfo -> (*I am referenced type. In most cases just return a reference to my TAS. However, if I a reference to a primitive type with additional constraints*)
+                              (*then a new sub type must be defined*)
+            let baseTypeProgramUnit = if programUnit = ToC inheritInfo.modName then None else Some (ToC inheritInfo.modName)
+            let referenceToExistingDefinition = ReferenceToExistingDefinition {ReferenceToExistingDefinition.programUnit = baseTypeProgramUnit; typedefName=ToC2(r.args.TypePrefix + inheritInfo.tasName)}
+            match defineNewTypeFnc with
+            | DefineSubTypeAux subAux -> 
+                match inheritInfo.hasAdditionalConstraints with
+                | false -> referenceToExistingDefinition 
+                | true  ->
+                    match parentInfo.parentData.isRefType with
+                    | true  -> referenceToExistingDefinition 
+                    | false -> (*I am a referenced type of a primitive type (e.g. INTEGER) with additional constraints and my parent type is not referenced type*)
+                               (*In this case a new type sub type must be defined*)
+                    let soInheritParentTypePackage, sInheritParentType = 
+                        match l with
+                        | C     ->  None, (ToC2(r.args.TypePrefix + inheritInfo.tasName))
+                        | Ada   ->
+                            match ToC(inheritInfo.modName) = programUnit with
+                            | true  -> None, (ToC2(r.args.TypePrefix + inheritInfo.tasName))
+                            | false -> Some (ToC inheritInfo.modName), (ToC2(r.args.TypePrefix + inheritInfo.tasName))
+                    let soNewRange = subAux.getNewRange soInheritParentTypePackage sInheritParentType
+                    let completeDefintion = defineSubType l typedefName soInheritParentTypePackage sInheritParentType soNewRange None
+                    TypeDefinition {TypeDefinition.typedefName = typedefName; typedefBody = (fun () -> completeDefintion)}
+            | DefineNewTypeAux  _  -> referenceToExistingDefinition 
+        | None           -> (*I am not a referenced type. If my parent is a referenced type then I am also a referenced type.*)
+                            (*Otherwise, define a new type or subtype*)
+            match parentInfo.parentData.isRefType with
+            | true  -> (*I am a child of a type which is a referenced type ==> ReferenceToExistingDefinition*)
+                let progUnit =
+                    match parentInfo.parentData.program_unit_name = programUnit with
+                    | true  -> None
+                    | false -> Some parentInfo.parentData.program_unit_name
+                match defineNewTypeFnc with
+                | DefineSubTypeAux subAux -> 
+                    let soNewRange = subAux.getNewRange rtlModuleName (subAux.getRtlTypeName())
+                    match soNewRange with
+                    | None  ->  (*If there is no new range and since I am an inner primitive type, then just make a reference to existing type in RTL*)
+                        ReferenceToExistingDefinition {ReferenceToExistingDefinition.programUnit = rtlModuleName; typedefName=(subAux.getRtlTypeName()) }         
+                    | Some _ -> (*I have a new range so make reference to this type*)
+                        ReferenceToExistingDefinition {ReferenceToExistingDefinition.programUnit =  progUnit; typedefName= typedefName}
+                | DefineNewTypeAux ntAux  ->
+                        ReferenceToExistingDefinition {ReferenceToExistingDefinition.programUnit =  progUnit; typedefName= typedefName}
+            | false -> (*I am a non referenced child and my parent is not a referenced type*)
+                match defineNewTypeFnc with
+                | DefineSubTypeAux subAux -> 
+                    let soNewRange = subAux.getNewRange rtlModuleName (subAux.getRtlTypeName())
+                    match soNewRange with
+                    | None  ->  (*If there is no new range and since I am an inner primitive type, then just make a reference to existing type in RTL*)
+                        ReferenceToExistingDefinition {ReferenceToExistingDefinition.programUnit = rtlModuleName; typedefName=(subAux.getRtlTypeName()) }         
+                    | Some _ ->
+                        let completeDefintion = defineSubType l typedefName rtlModuleName (subAux.getRtlTypeName()) soNewRange None
+                        TypeDefinition {TypeDefinition.typedefName = typedefName; typedefBody = (fun () -> completeDefintion)}
+                | DefineNewTypeAux ntAux  ->
+                    let completeDefintion = ntAux.getCompleteDefintion  programUnit typedefName 
+                    TypeDefinition {TypeDefinition.typedefName = typedefName; (*programUnitName = Some programUnit;*) typedefBody = (fun () -> completeDefintion)}
+        (*
         let parent_pu_name, typedefName = 
             match pi with
             | Some parentInfo   ->
                 match parentInfo.name with
-                | Some nm -> Some parentInfo.parentData.program_unit_name,  ToC2(parentInfo.parentData.typedefName + "_" + nm)
-                | None    -> None, ToC2(parentInfo.parentData.typedefName + "_" + "elem")
+                | Some nm -> Some parentInfo.parentData.program_unit_name, ToC2(parentInfo.parentData.typedefName + "_" + nm)
+                | None    -> Some parentInfo.parentData.program_unit_name, ToC2(parentInfo.parentData.typedefName + "_" + "elem")
             | None              ->
                 raise(BugErrorException "type has no typeAssignmentInfo and No parent!!!")
 
         let aux () =
-            match defineNewType with
+            match defineNewTypeFnc with
             | DefineSubTypeAux subAux -> 
                 defineSubTypeAux parent_pu_name programUnit typedefName t.inheritInfo subAux true
             | DefineNewTypeAux ntAux  ->
                 match t.inheritInfo with
-                //| Some inheritInfo  when not inheritInfo.hasAdditionalConstraints ->  //when enabled test cases 14-RealCases/NPAL.asn1 fails
                 | Some inheritInfo   ->  
                 
                     let baseTypeProgramUnit = if programUnit = ToC inheritInfo.modName then None else Some (ToC inheritInfo.modName)
                     ReferenceToExistingDefinition {ReferenceToExistingDefinition.programUnit = baseTypeProgramUnit; typedefName=ToC2(r.args.TypePrefix + inheritInfo.tasName)}
                 | _   -> 
                     let completeDefintion = ntAux.getCompleteDefintion  programUnit typedefName 
-                    TypeDefinition {TypeDefinition.typedefName = typedefName; typedefBody = (fun () -> completeDefintion)}
-        aux ()
-//        match parent_pu_name with
-//        | None          -> aux ()
-//        | Some parent_pu_name  when programUnit =   parent_pu_name -> aux ()
-//        | Some parent_pu_name        ->
-//            ReferenceToExistingDefinition {ReferenceToExistingDefinition.programUnit = Some parent_pu_name; typedefName= typedefName}
+                    TypeDefinition {TypeDefinition.typedefName = typedefName; (*programUnitName = Some programUnit;*) typedefBody = (fun () -> completeDefintion)}
+        //aux ()
+        match parent_pu_name with
+        | None          -> aux ()
+        | Some parent_pu_name  when programUnit =   parent_pu_name -> aux ()
+        | Some parent_pu_name        -> //aux()
+            ReferenceToExistingDefinition {ReferenceToExistingDefinition.programUnit = Some parent_pu_name; typedefName= typedefName}
 
-
+            *)
 (*
 Primitive types with base definition in RTL which can be used as is generated code (Integer, Real, Boolean, NULL).
 
@@ -410,18 +479,14 @@ let createChoice (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (pi : Asn1Fold.P
 let createReferenceType (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.ReferenceType)  (baseType:Asn1Type ) (us:State) =
     let programUnit = ToC t.id.ModName
     match t.typeAssignmentInfo with
-    | Some (TypeAssignmentInfo _)    -> baseType.typeDefintionOrReference
-    | Some (ValueAssignmentInfo _)    
-    | None      ->
-        match o.hasConstraints with
-        | true  -> baseType.typeDefintionOrReference
-        | false -> 
-
-            let soInheritParentTypePackage, sInheritParentType = 
-                match l with
-                | C     ->  None, (ToC2(r.args.TypePrefix + o.tasName.Value))
-                | Ada   ->
-                    match ToC(o.modName.Value) = programUnit with
-                    | true  -> None, (ToC2(r.args.TypePrefix + o.tasName.Value))
-                    | false -> Some (ToC o.modName.Value), (ToC2(r.args.TypePrefix + o.tasName.Value))
-            ReferenceToExistingDefinition {ReferenceToExistingDefinition.programUnit = soInheritParentTypePackage; typedefName=sInheritParentType}
+    | Some (TypeAssignmentInfo _)    
+    | None                           -> baseType.typeDefintionOrReference
+    | Some (ValueAssignmentInfo _)   ->
+        let soInheritParentTypePackage, sInheritParentType = 
+            match l with
+            | C     ->  None, (ToC2(r.args.TypePrefix + o.tasName.Value))
+            | Ada   ->
+                match ToC(o.modName.Value) = programUnit with
+                | true  -> None, (ToC2(r.args.TypePrefix + o.tasName.Value))
+                | false -> Some (ToC o.modName.Value), (ToC2(r.args.TypePrefix + o.tasName.Value))
+        ReferenceToExistingDefinition {ReferenceToExistingDefinition.programUnit = soInheritParentTypePackage; typedefName=sInheritParentType}

@@ -262,6 +262,7 @@ let foldSizableConstraint  (c:SizableTypeConstraint<'v>) =
 
 
 let IntegerAutomaticTestCaseValues (r:Asn1AcnAst.AstRoot)  (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Integer) =
+    let orig = o.AllCons
     let allCons = DAstValidate.getIntSimplifiedConstraints r o.isUnsigned o.AllCons
     let min = r.args.IntMin o.isUnsigned
     let max = r.args.IntMax o.isUnsigned

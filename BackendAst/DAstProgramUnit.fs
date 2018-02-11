@@ -136,6 +136,8 @@ let internal createProgramUnits (args:CommandLineSettings) (files: Asn1File list
             let moduTypes = m.TypeAssignments |> List.map(fun x -> x.Type)
             let valueAssignments = m.ValueAssignments
             
+
+
             let importedTypes = 
                 m.Imports |>
                 Seq.collect(fun imp -> imp.Types |> List.map (fun impType ->{TypeAssignmentInfo.modName = imp.Name.Value; tasName = impType.Value})) |> 
@@ -157,7 +159,30 @@ let internal createProgramUnits (args:CommandLineSettings) (files: Asn1File list
             let importedProgramUnitsFromTasses = 
                 depTypesFromOtherModules |> Seq.map(fun ti -> ToC ti.modName) |> Seq.distinct |> Seq.toList
             let importedProgramUnits = importedProgramUnitsFromTasses@importedProgramUnitsFromVases |> Seq.distinct |> Seq.toList
-            let importedTypes = depTypesFromOtherModules |> Seq.map(fun ti -> (ToC ti.modName) + "." + (ToC (args.TypePrefix + ti.tasName)) ) |> Seq.distinct |> Seq.toList
+
+
+            let importedTypes = 
+                depTypesFromOtherModules |> 
+                List.collect(fun ts -> 
+                    let t = typesMap.[ts]
+                    let allTypes = GetMySelfAndChildren t.Type
+                    
+                        
+                    let aaa = 
+                        allTypes |> 
+                        List.choose (fun t -> 
+                            let rtlPrimitve =
+                                match t.Kind with
+                                | Integer _ 
+                                | Real _ 
+                                | Boolean _ 
+                                | NullType _ -> true
+                                | _     -> false
+                            getFuncNameGeneric2 args t.tasInfo t.inheritInfo rtlPrimitve t.typeDefintionOrReference) |>
+                        List.map(fun td -> (ToC ts.modName) + "." + td)
+
+                    aaa) 
+                //Seq.map(fun ti -> (ToC ti.modName) + "." + (ToC (args.TypePrefix + ti.tasName)) ) |> Seq.distinct |> Seq.toList
 
             let specFileName = ToC (m.Name.Value.ToLower()) + "." + l.SpecExtention
             let bodyFileName = ToC (m.Name.Value.ToLower()) + "." + l.BodyExtention

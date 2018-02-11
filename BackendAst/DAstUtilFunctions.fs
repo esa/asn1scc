@@ -936,3 +936,13 @@ let getFuncNameGeneric (r:Asn1AcnAst.AstRoot) nameSuffix (tasInfo:TypeAssignment
             | ReferenceToExistingDefinition  refEx  -> None
             | TypeDefinition   td                   -> Some (td.typedefName + nameSuffix)
 
+let getFuncNameGeneric2 (args:CommandLineSettings) (tasInfo:TypeAssignmentInfo option) (inhInfo: InheritanceInfo option) (rtlPrimitve: bool) (typeDefinition:TypeDefintionOrReference) =
+    match tasInfo with
+    | Some tasInfo  -> Some (ToC2 (args.TypePrefix + tasInfo.tasName ))
+    | None          -> 
+        match inhInfo, rtlPrimitve with
+        | None, true -> None
+        | _     ->
+            match typeDefinition with
+            | ReferenceToExistingDefinition  refEx  -> None
+            | TypeDefinition   td                   -> Some (td.typedefName)

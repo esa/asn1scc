@@ -76,7 +76,7 @@ let internal createUperFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (
 
 let getIntfuncBodyByCons (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec:CommonTypes.Codec) uperRange errLoc isUnsigned (cons: IntegerTypeConstraint list) (allCons: IntegerTypeConstraint list) (errCode:ErroCode) (p:CallerScope) = 
     let pp = match codec with CommonTypes.Encode -> p.arg.getValue l | CommonTypes.Decode -> p.arg.getPointer l
-    let IntNoneRequired         = match l with C -> uper_c.IntNoneRequired          | Ada -> (fun p min   errCode codec -> if min > 0I then  (uper_a.IntFullyConstraintPos p min min 0I errCode codec) else (uper_a.IntFullyConstraint p min min 0I errCode codec))
+    let IntNoneRequired         = match l with C -> uper_c.IntNoneRequired          | Ada -> (fun p min   errCode codec -> if min >= 0I then  (uper_a.IntFullyConstraintPos p min min 0I errCode codec) else (uper_a.IntFullyConstraint p min min 0I errCode codec))
     let IntFullyConstraintPos   = match l with C -> uper_c.IntFullyConstraintPos    | Ada -> uper_a.IntFullyConstraintPos
     let IntFullyConstraint      = match l with C -> uper_c.IntFullyConstraint       | Ada -> uper_a.IntFullyConstraint
     let IntSemiConstraintPos    = match l with C -> uper_c.IntSemiConstraintPos     | Ada -> uper_a.IntSemiConstraintPos
@@ -410,7 +410,8 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (cod
             let nStringLength =
                 match o.minSize = o.maxSize,  l, codec with
                 | true , _,_    -> []
-                | false, Ada, _ -> [IntegerLocalVariable ("nStringLength", None)]
+                | false, Ada, Encode -> []
+                | false, Ada, Decode -> [IntegerLocalVariable ("nStringLength", None)]
                 | false, C, Encode -> []
                 | false, C, Decode -> [Asn1SIntLocalVariable ("nCount", None)]
 
@@ -556,8 +557,11 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec:C
                         | Ada -> chFunc.funcBody ({p with arg = p.arg.getChChild l child.c_name child.chType.isIA5String})
                     match uperChildRes with
                     | None              -> 
+                        let sChildName = child.c_name
+                        let sChildTypeDef = child.chType.typeDefintionOrReference.longTypedefName l //child.chType.typeDefinition.typeDefinitionBodyWithinSeq
+                        let sChoiceTypeName = typeDefinitionName
                         let noEncodingComment = match l with C ->"/*no encoding/decoding is required*/" | Ada -> "--no encoding/decoding is required"
-                        noEncodingComment,[],[]
+                        choice_child p.arg.p (p.arg.getAcces l) (child.presentWhenName (Some typeDefinition) l) (BigInteger i) nIndexSizeInBits (BigInteger (children.Length - 1)) noEncodingComment sChildName sChildTypeDef sChoiceTypeName codec,[],[]
                     | Some childContent ->  
                         let sChildName = child.c_name
                         let sChildTypeDef = child.chType.typeDefintionOrReference.longTypedefName l //child.chType.typeDefinition.typeDefinitionBodyWithinSeq
