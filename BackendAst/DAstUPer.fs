@@ -427,7 +427,7 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (cod
                     | _ when o.maxSize < 65536 && o.maxSize=o.minSize  -> None
                     | _ when o.maxSize < 65536 && o.maxSize<>o.minSize -> 
                         let funcBody = varSize p.arg.p (p.arg.getAcces l)  typeDefinitionName i "" (BigInteger o.minSize) (BigInteger o.maxSize) nSizeInBits (BigInteger child.uperMinSizeInBits) nIntItemMaxSize 0I errCode.errCodeName codec
-                        Some ({UPERFuncBodyResult.funcBody = funcBody; errCodes = [errCode]; localVariables = nStringLength})    
+                        Some ({UPERFuncBodyResult.funcBody = funcBody; errCodes = [errCode]; localVariables = lv::nStringLength})    
                     | _                                                -> 
                         let funcBody, localVariables = handleFragmentation l p codec errCode ii (BigInteger o.uperMaxSizeInBits) o.minSize o.maxSize "" nIntItemMaxSize false false
                         Some ({UPERFuncBodyResult.funcBody = funcBody; errCodes = [errCode]; localVariables = localVariables})    

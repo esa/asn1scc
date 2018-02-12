@@ -659,7 +659,7 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserted
                         | _ when o.maxSize < 65536 && o.maxSize=o.minSize  -> None
                         | _ when o.maxSize < 65536 && o.maxSize<>o.minSize -> 
                             let funcBody = varSize p.arg.p (p.arg.getAcces l)  typeDefinitionName i "" (BigInteger o.minSize) (BigInteger o.maxSize) nSizeInBits (BigInteger child.acnMinSizeInBits) nIntItemMaxSize 0I errCode.errCodeName codec
-                            Some ({AcnFuncBodyResult.funcBody = funcBody; errCodes = [errCode]; localVariables = nStringLength})    
+                            Some ({AcnFuncBodyResult.funcBody = funcBody; errCodes = [errCode]; localVariables = lv::nStringLength})    
                         | _                                                -> 
                             let funcBody, localVariables = DAstUPer.handleFragmentation l p codec errCode ii (BigInteger o.acnMaxSizeInBits) o.minSize o.maxSize "" nIntItemMaxSize false false
                             Some ({AcnFuncBodyResult.funcBody = funcBody; errCodes = [errCode]; localVariables = localVariables})    

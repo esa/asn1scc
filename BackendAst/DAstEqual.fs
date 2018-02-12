@@ -96,7 +96,8 @@ let isEqualBodyChoiceChild  (choiceTypeDefName:string) (l:ProgrammingLanguage) (
 
 
 let getFuncName (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (tasInfo:TypeAssignmentInfo option) (inhInfo: InheritanceInfo option) (typeKind:Asn1AcnAst.Asn1TypeKind) (typeDefinition:TypeDefintionOrReference) =
-    getFuncNameGeneric r "_Equal" tasInfo inhInfo typeKind typeDefinition
+    //getFuncNameGeneric r "_Equal" tasInfo inhInfo typeKind typeDefinition
+    getFuncNameGeneric  typeDefinition "_Equal"
 
 let createEqualFunction_any (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1AcnAst.Asn1Type) (typeDefinition:TypeDefintionOrReference) isEqualBody  =
     let equalTypeAssignment      = match l with C -> equal_c.equalTypeAssignment     | Ada -> equal_a.equalTypeAssignment
@@ -154,6 +155,10 @@ let createIntegerEqualFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t
     createEqualFunction_any r l t typeDefinition isEqualBody //(stgPrintEqualPrimitive l) (stgMacroPrimDefFunc l) 
 
 let createRealEqualFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Real) (typeDefinition:TypeDefintionOrReference) =
+    let isEqualBodyPrimitive (l:ProgrammingLanguage) (v1:CallerScope) (v2:CallerScope) =
+        match l with
+        | C         -> Some (sprintf "%s == %s" v1.arg.p v2.arg.p  , [])
+        | Ada       -> Some (sprintf "adaasn1rtl.Asn1Real_Equal(%s, %s)" v1.arg.p v2.arg.p   , [])
     let isEqualBody         = EqualBodyExpression (isEqualBodyPrimitive l)
     createEqualFunction_any r l t typeDefinition isEqualBody //(stgPrintEqualPrimitive l) (stgMacroPrimDefFunc l) 
 

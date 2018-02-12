@@ -22,7 +22,8 @@ However, now with the 'pragma Annotate (GNATprove, False_Positive)' we can handl
 
 let getFuncName2 (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (tasInfo:TypeAssignmentInfo option) (inhInfo: InheritanceInfo option) (typeKind:Asn1AcnAst.Asn1TypeKind) (typeDefinition:TypeDefintionOrReference) =
     let nameSuffix = match l with C -> "_Initialize" | Ada -> "_Init"
-    getFuncNameGeneric r nameSuffix tasInfo inhInfo typeKind typeDefinition
+    //getFuncNameGeneric r nameSuffix tasInfo inhInfo typeKind typeDefinition
+    getFuncNameGeneric typeDefinition nameSuffix
 
 (*
 let getFuncName (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (tasInfo:TypeAssignmentInfo option) =

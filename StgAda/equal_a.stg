@@ -106,6 +106,8 @@ while ret and <i> \<= <p1>.Length loop
     <i> := <i>+1;
 end loop;
 
+<else>
+-- no need to test for equality the elements (always return true)
 <endif>
 >>
 

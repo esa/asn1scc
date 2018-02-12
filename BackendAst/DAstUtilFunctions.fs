@@ -252,6 +252,16 @@ type TypeDefintionOrReference with
                 | C     -> ref.typedefName
             | None    -> ref.typedefName
             
+    member this.getAsn1Name (typePrefix : string) =
+        let typedefName = 
+            match this with
+            | TypeDefinition  td -> td.typedefName
+            | ReferenceToExistingDefinition ref -> ref.typedefName
+        let idx = typedefName.IndexOf typePrefix
+        match idx < 0 with
+        | true      -> typedefName.Replace("_","-")
+        | false     -> typedefName.Remove(idx, typePrefix.Length).Replace("_","-")
+
 
 
 type Asn1AcnAst.NamedItem with
@@ -922,27 +932,22 @@ let rec GetMySelfAndChildren (t:Asn1Type) =
         yield t
     } |> Seq.toList
 
-let getFuncNameGeneric (r:Asn1AcnAst.AstRoot) nameSuffix (tasInfo:TypeAssignmentInfo option) (inhInfo: InheritanceInfo option) (typeKind:Asn1AcnAst.Asn1TypeKind) (typeDefinition:TypeDefintionOrReference) =
-    match tasInfo with
-    | Some tasInfo  -> Some (ToC2 (r.args.TypePrefix + tasInfo.tasName + nameSuffix))
-    | None          -> 
-        match inhInfo, typeKind with
-        | None, Asn1AcnAst.Integer _ 
-        | None, Asn1AcnAst.Real _ 
-        | None, Asn1AcnAst.Boolean _ 
-        | None, Asn1AcnAst.NullType _ -> None
-        | _     ->
-            match typeDefinition with
-            | ReferenceToExistingDefinition  refEx  -> None
-            | TypeDefinition   td                   -> Some (td.typedefName + nameSuffix)
+let getFuncNameGeneric (typeDefinition:TypeDefintionOrReference) nameSuffix  =
+    match typeDefinition with
+    | ReferenceToExistingDefinition  refEx  -> None
+    | TypeDefinition   td                   -> Some (td.typedefName + nameSuffix)
 
-let getFuncNameGeneric2 (args:CommandLineSettings) (tasInfo:TypeAssignmentInfo option) (inhInfo: InheritanceInfo option) (rtlPrimitve: bool) (typeDefinition:TypeDefintionOrReference) =
-    match tasInfo with
-    | Some tasInfo  -> Some (ToC2 (args.TypePrefix + tasInfo.tasName ))
-    | None          -> 
-        match inhInfo, rtlPrimitve with
-        | None, true -> None
-        | _     ->
-            match typeDefinition with
-            | ReferenceToExistingDefinition  refEx  -> None
-            | TypeDefinition   td                   -> Some (td.typedefName)
+let getFuncNameGeneric2 (typeDefinition:TypeDefintionOrReference) =
+    match typeDefinition with
+    | ReferenceToExistingDefinition  refEx  -> None
+    | TypeDefinition   td                   -> Some (td.typedefName)
+
+//    match tasInfo with
+//    | Some tasInfo  -> Some (ToC2 (args.TypePrefix + tasInfo.tasName ))
+//    | None          -> 
+//        match inhInfo, rtlPrimitve with
+//        | None, true -> None
+//        | _     ->
+//            match typeDefinition with
+//            | ReferenceToExistingDefinition  refEx  -> None
+//            | TypeDefinition   td                   -> Some (td.typedefName)

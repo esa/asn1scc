@@ -96,11 +96,11 @@ let PrintContract (r:AstRoot) (stgFileName:string) (asn1Name:string) (backendNam
 
 let rec PrintType (r:AstRoot) (f:Asn1File) (stgFileName:string) modName (deepRecursion:bool) (t:Asn1Type)    =
     let printChildTypeAsReferencedType (t:Asn1Type) =
-        match t.inheritInfo, t.Kind with
-        | None, Integer _ 
-        | None, Real _ 
-        | None, Boolean _ 
-        | None, NullType _ -> PrintType r f stgFileName modName deepRecursion t
+        match t.typeDefintionOrReference, t.inheritInfo, t.Kind with
+        | ReferenceToExistingDefinition _, None, Integer _ 
+        | ReferenceToExistingDefinition _, None, Real _ 
+        | ReferenceToExistingDefinition _, None, Boolean _ 
+        | ReferenceToExistingDefinition _, None, NullType _ -> PrintType r f stgFileName modName deepRecursion t
         | _                ->
             let uperRange = 
                 match (t.ActualType).Kind with
@@ -115,7 +115,7 @@ let rec PrintType (r:AstRoot) (f:Asn1File) (stgFileName:string) modName (deepRec
                 match t.typeDefintionOrReference with
                 | ReferenceToExistingDefinition  refEx  -> match refEx.programUnit with Some x -> x.Replace("_","-"), refEx.typedefName | None -> null, refEx.typedefName
                 | TypeDefinition   td                   -> null, td.typedefName
-            let asn1Name = typedefName.Replace("_","-")
+            let asn1Name = t.typeDefintionOrReference.getAsn1Name r.args.TypePrefix
             let sCModName = if sModName <> null then (ToC sModName) else null
             let refTypeContent = 
                 match uperRange with
@@ -196,15 +196,19 @@ let exportFile (r:AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (stgFi
         | _           -> gen.AssigOpNormalType () stgFileName
     let PrintVas (f:Asn1File) (vas: ValueAssignment) modName =
         gen.VasXml vas.Name.Value (BigInteger vas.Name.Location.srcLine) (BigInteger vas.Name.Location.charPos) (PrintType r f stgFileName modName  false vas.Type ) (PrintCustomAsn1Value vas stgFileName) (ToC vas.c_name)  stgFileName
+    let deepRecursion = r.args.custom_Stg_Ast_Version = 1
+    let getInnerTypes (t:Asn1Type) =
+        match deepRecursion with
+        | true      -> [t]
+        | false     -> GetMySelfAndChildren t
     let PrintTas (f:Asn1File) (tas:TypeAssignment) modName =
         let innerTypeDef =
-             GetMySelfAndChildren tas.Type |> 
+             getInnerTypes tas.Type |> 
              List.choose(fun t -> 
                 match t.typeDefintionOrReference with
                 | ReferenceToExistingDefinition _ -> None
                 | TypeDefinition td               -> 
-                    let asn1Name = td.typedefName.Replace("_","-")
-                    let deepRecursion = r.args.custom_Stg_Ast_Version = 1
+                    let asn1Name = t.typeDefintionOrReference.getAsn1Name r.args.TypePrefix
                     let ret = gen.TasXml asn1Name t.Location.srcLine.AsBigInt t.Location.charPos.AsBigInt (PrintType r f stgFileName modName deepRecursion t ) td.typedefName (AssigOp t) (PrintContract r stgFileName asn1Name td.typedefName t) stgFileName
                     Some ret) |> Seq.StrJoin "\n"
         innerTypeDef
@@ -216,11 +220,11 @@ let exportFile (r:AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (stgFi
             List.collect(fun n -> 
                 match m.TypeAssignments |> Seq.tryFind(fun z -> z.Name.Value = n) with
                 | Some tas ->
-                    GetMySelfAndChildren tas.Type |>
+                    getInnerTypes tas.Type |>
                     List.choose(fun t -> 
                         match t.typeDefintionOrReference with
                         | ReferenceToExistingDefinition _ -> None
-                        | TypeDefinition td               -> Some (td.typedefName.Replace("_","-")))
+                        | TypeDefinition td               -> Some (t.typeDefintionOrReference.getAsn1Name r.args.TypePrefix))
                 | None     -> [])
             
         gen.ModuleXml m.Name.Value (ToC m.Name.Value) (m.Imports |> Seq.map PrintImpModule) exportedTypes m.ExportedVars (m.TypeAssignments |> Seq.map (fun t -> PrintTas f t m.Name.Value)) (m.ValueAssignments |> Seq.map (fun t -> PrintVas f t m.Name.Value)) stgFileName

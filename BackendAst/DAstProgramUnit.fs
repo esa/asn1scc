@@ -178,7 +178,8 @@ let internal createProgramUnits (args:CommandLineSettings) (files: Asn1File list
                                 | Boolean _ 
                                 | NullType _ -> true
                                 | _     -> false
-                            getFuncNameGeneric2 args t.tasInfo t.inheritInfo rtlPrimitve t.typeDefintionOrReference) |>
+                            getFuncNameGeneric2 t.typeDefintionOrReference) |>
+                            //getFuncNameGeneric2 args t.tasInfo t.inheritInfo rtlPrimitve t.typeDefintionOrReference) |>
                         List.map(fun td -> (ToC ts.modName) + "." + td)
 
                     aaa) 
