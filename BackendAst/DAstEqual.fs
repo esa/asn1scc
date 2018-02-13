@@ -320,9 +320,9 @@ let createReferenceTypeEqualFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLangua
                 | false -> (ToC o.modName.Value) + "." + baseTypeDefName + "_Equal"
 
         let    isEqualBody                   = 
-                match baseType.equalFunction.isEqualFuncName with
-                | None  -> (fun b c -> None)
-                | Some _    ->
+//                match baseType.equalFunction.isEqualFuncName with
+//                | None  -> (fun b c -> None)
+//                | Some _    ->
                     let eqBody (p1:CallerScope) (p2:CallerScope) = 
                         let exp = callBaseTypeFunc l (p1.arg.getPointer l) (p2.arg.getPointer l) baseEqName
                         Some(makeExpressionToStatement l exp, [])

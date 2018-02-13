@@ -226,15 +226,20 @@ let private printUnit (r:DAst.AstRoot) (l:ProgrammingLanguage) (encodings: Commo
             let arrsSourceAnonymousValues = 
                 arrsAnonymousValues |>
                 List.map (fun av -> variables_c.PrintValueAssignment av.typeDefinitionName av.valueName av.valueExpresion)
-            body_c.printSourceFile pu.name arrsUnnamedVariables (arrsValueAssignments@arrsSourceAnonymousValues) arrsTypeAssignments
+            Some (body_c.printSourceFile pu.name arrsUnnamedVariables (arrsValueAssignments@arrsSourceAnonymousValues) arrsTypeAssignments)
         | Ada   ->
             let arrsNegativeReals = []
             let arrsBoolPatterns = []
             let arrsChoiceValueAssignments = []
             let rtl = [body_a.rtlModuleName()]
-            body_a.PrintPackageBody pu.name  (rtl@pu.importedProgramUnits) arrsNegativeReals arrsBoolPatterns arrsTypeAssignments arrsChoiceValueAssignments pu.importedTypes
-    let fileName = Path.Combine(outDir, pu.bodyFileName)
-    File.WriteAllText(fileName, eqContntent.Replace("\r",""))
+            match arrsTypeAssignments with
+            | []    -> None
+            | _     -> Some (body_a.PrintPackageBody pu.name  (rtl@pu.importedProgramUnits) arrsNegativeReals arrsBoolPatterns arrsTypeAssignments arrsChoiceValueAssignments pu.importedTypes)
+    match eqContntent with
+    | Some eqContntent ->
+        let fileName = Path.Combine(outDir, pu.bodyFileName)
+        File.WriteAllText(fileName, eqContntent.Replace("\r",""))
+    | None             -> ()
 
     //test cases sourse file
     match r.args.generateAutomaticTestCases with
@@ -254,9 +259,13 @@ let private printUnit (r:DAst.AstRoot) (l:ProgrammingLanguage) (encodings: Commo
     
         let tstCasesHdrContent =
             match l with
-            | C     -> test_cases_c.PrintAutomaticTestCasesSourceFile pu.tetscase_specFileName pu.importedProgramUnits encDecFuncs
-            | Ada   -> test_cases_a.PrintCodecsFile_body pu.name pu.importedProgramUnits [] encDecFuncs
-        File.WriteAllText(tetscase_SrcFileName, tstCasesHdrContent.Replace("\r",""))
+            | C     -> Some (test_cases_c.PrintAutomaticTestCasesSourceFile pu.tetscase_specFileName pu.importedProgramUnits encDecFuncs)
+            | Ada   -> 
+                match encDecFuncs with
+                | []    -> None
+                | _     -> Some (test_cases_a.PrintCodecsFile_body pu.name pu.importedProgramUnits [] encDecFuncs)
+        
+        tstCasesHdrContent |> Option.iter(fun tstCasesHdrContent -> File.WriteAllText(tetscase_SrcFileName, tstCasesHdrContent.Replace("\r","")))
 
 let TestSuiteFileName = "testsuite"
 
