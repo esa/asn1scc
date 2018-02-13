@@ -386,10 +386,10 @@ let createEnumerated (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (pi : Asn1Fo
     let getCompleteDefinition (programUnit:string) (typeDefinitionName:string) =
         match l with
         | C                      -> 
-            let items = 
-                match o.userDefinedValues with
-                | true  -> o.items |> List.map( fun i -> header_c.PrintNamedItem (i.getBackendName None l) i.definitionValue)
-                | false -> o.items |> List.map( fun i -> i.getBackendName None l)
+            let items = o.items |> List.map( fun i -> header_c.PrintNamedItem (i.getBackendName None l) i.definitionValue)
+                //match o.userDefinedValues with
+                //| true  -> o.items |> List.map( fun i -> header_c.PrintNamedItem (i.getBackendName None l) i.definitionValue)
+                //| false -> o.items |> List.map( fun i -> i.getBackendName None l)
             let typeDefinitionBody = header_c.Declare_Enumerated items
             header_c.Define_Type typeDefinitionBody typeDefinitionName None []
         | Ada                    -> 

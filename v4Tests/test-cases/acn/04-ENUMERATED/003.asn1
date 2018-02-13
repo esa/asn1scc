@@ -1,0 +1,12 @@
+-- NOCOVERAGE
+TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
+
+	MyPDU ::= ENUMERATED {
+		alpha, beta
+	}
+	
+	pdu1 MyPDU ::= beta
+		
+END
+
+--TCLS     MyPDU[]
