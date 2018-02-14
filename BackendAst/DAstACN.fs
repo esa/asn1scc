@@ -291,7 +291,7 @@ let createEnumComn (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec:CommonT
             | None      -> None
             | Some(intAcnFuncBdResult) ->
                 let arrItems = o.items |> List.map(fun it -> Enumerated_item (p.arg.getValue l) (it.getBackendName (Some defOrRef) l) it.acnEncodeValue codec)
-                Some (EnumeratedEncValues p.arg.p typeDefinitionName arrItems intAcnFuncBdResult.funcBody errCode.errCodeName sFirstItemName codec, intAcnFuncBdResult.errCodes, localVar::intAcnFuncBdResult.localVariables)
+                Some (EnumeratedEncValues (p.arg.getValue l) typeDefinitionName arrItems intAcnFuncBdResult.funcBody errCode.errCodeName sFirstItemName codec, intAcnFuncBdResult.errCodes, localVar::intAcnFuncBdResult.localVariables)
         match funcBodyContent with
         | None -> None
         | Some (funcBodyContent,errCodes, localVariables) -> Some ({AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = errCodes; localVariables = localVariables})

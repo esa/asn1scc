@@ -378,15 +378,15 @@ type Asn1AcnAst.Asn1Type with
             match c with
             | Encode  ->
                 match this.Kind with
-                | Asn1AcnAst.Integer         _ -> {CallerScope.modName = this.id.ModName; arg= VALUE ("val" + suf)    }
-                | Asn1AcnAst.Real            _ -> {CallerScope.modName = this.id.ModName; arg= VALUE ("val" + suf)    }
+                | Asn1AcnAst.Integer         _ -> {CallerScope.modName = this.id.ModName; arg= POINTER ("pVal" + suf)    }
+                | Asn1AcnAst.Real            _ -> {CallerScope.modName = this.id.ModName; arg= POINTER ("pVal" + suf)    }
                 | Asn1AcnAst.IA5String       _ -> {CallerScope.modName = this.id.ModName; arg= FIXARRAY ("val" + suf) }
                 | Asn1AcnAst.NumericString   _ -> {CallerScope.modName = this.id.ModName; arg= FIXARRAY ("val" + suf) }
                 | Asn1AcnAst.OctetString     _ -> {CallerScope.modName = this.id.ModName; arg= POINTER ("pVal" + suf) }
-                | Asn1AcnAst.NullType        _ -> {CallerScope.modName = this.id.ModName; arg= VALUE ("val" + suf)    }
+                | Asn1AcnAst.NullType        _ -> {CallerScope.modName = this.id.ModName; arg= POINTER ("pVal" + suf)    }
                 | Asn1AcnAst.BitString       _ -> {CallerScope.modName = this.id.ModName; arg= POINTER ("pVal" + suf) }
-                | Asn1AcnAst.Boolean         _ -> {CallerScope.modName = this.id.ModName; arg= VALUE ("val" + suf)    }
-                | Asn1AcnAst.Enumerated      _ -> {CallerScope.modName = this.id.ModName; arg= VALUE ("val" + suf)    }
+                | Asn1AcnAst.Boolean         _ -> {CallerScope.modName = this.id.ModName; arg= POINTER ("pVal" + suf)    }
+                | Asn1AcnAst.Enumerated      _ -> {CallerScope.modName = this.id.ModName; arg= POINTER ("pVal" + suf)    }
                 | Asn1AcnAst.SequenceOf      _ -> {CallerScope.modName = this.id.ModName; arg= POINTER ("pVal" + suf) }
                 | Asn1AcnAst.Sequence        _ -> {CallerScope.modName = this.id.ModName; arg= POINTER ("pVal" + suf) }
                 | Asn1AcnAst.Choice          _ -> {CallerScope.modName = this.id.ModName; arg= POINTER ("pVal" + suf) }
@@ -415,15 +415,15 @@ type Asn1AcnAst.Asn1Type with
             match c with
             | Encode  ->
                 match this.Kind with
-                | Asn1AcnAst.Integer      _ -> p.getValue l
-                | Asn1AcnAst.Real         _ -> p.getValue l
+                | Asn1AcnAst.Integer      _ -> p.getPointer l
+                | Asn1AcnAst.Real         _ -> p.getPointer l
                 | Asn1AcnAst.IA5String    _ -> p.getValue l //FIXARRAY "val"
                 | Asn1AcnAst.NumericString _ -> p.getValue l// FIXARRAY "val"
                 | Asn1AcnAst.OctetString  _ -> p.getPointer l
-                | Asn1AcnAst.NullType     _ -> p.getValue l
+                | Asn1AcnAst.NullType     _ -> p.getPointer l
                 | Asn1AcnAst.BitString    _ -> p.getPointer l
-                | Asn1AcnAst.Boolean      _ -> p.getValue l
-                | Asn1AcnAst.Enumerated   _ -> p.getValue l
+                | Asn1AcnAst.Boolean      _ -> p.getPointer l
+                | Asn1AcnAst.Enumerated   _ -> p.getPointer l
                 | Asn1AcnAst.SequenceOf   _ -> p.getPointer l
                 | Asn1AcnAst.Sequence     _ -> p.getPointer l
                 | Asn1AcnAst.Choice       _ -> p.getPointer l

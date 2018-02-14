@@ -40,14 +40,14 @@ PrintErrorCode(sErrorName, nErrCode, sComment) ::= <<
 >>
 
 
-EmitTypeAssignment_primitive_def(sFuncName, sTypeDefName, sErrCode, nErrValue) ::= <<
+EmitTypeAssignment_primitive_def(sVarName, sStar, sFuncName, sTypeDefName, sErrCode, nErrValue) ::= <<
 #define <sErrCode>		<nErrValue>  /**/
-flag <sFuncName>(const <sTypeDefName> val, int* pErrCode);
+flag <sFuncName>(const <sTypeDefName><sStar> <sVarName>, int* pErrCode);
 >>
 
-EmitTypeAssignment_primitive(sFuncName, sTypeDefName, sContent, arrsAlphaFuncs) ::= <<
+EmitTypeAssignment_primitive(sVarName, sStar, sFuncName, sTypeDefName, sContent, arrsAlphaFuncs) ::= <<
 <arrsAlphaFuncs; separator="\n">
-flag <sFuncName>(const <sTypeDefName> val, int* pErrCode)
+flag <sFuncName>(const <sTypeDefName><sStar> <sVarName>, int* pErrCode)
 {
     flag ret = TRUE;
 	
@@ -58,14 +58,14 @@ flag <sFuncName>(const <sTypeDefName> val, int* pErrCode)
 >>
 
 
-EmitTypeAssignment_oct_or_bit_string_def(sFuncName, sTypeDefName, sErrCode, nErrValue) ::= <<
+EmitTypeAssignment_oct_or_bit_string_def(sVarName, sStar, sFuncName, sTypeDefName, sErrCode, nErrValue) ::= <<
 #define <sErrCode>		<nErrValue>  /**/
-flag <sFuncName>(const <sTypeDefName>* pVal, int* pErrCode);
+flag <sFuncName>(const <sTypeDefName><sStar> <sVarName>, int* pErrCode);
 >>
 
-EmitTypeAssignment_oct_or_bit_string(sFuncName, sTypeDefName, sContent, arrsAlphaFuncs) ::= <<
+EmitTypeAssignment_oct_or_bit_string(sVarName, sStar, sFuncName, sTypeDefName, sContent, arrsAlphaFuncs) ::= <<
 <arrsAlphaFuncs; separator="\n">
-flag <sFuncName>(const <sTypeDefName>* pVal, int* pErrCode)
+flag <sFuncName>(const <sTypeDefName><sStar> <sVarName>, int* pErrCode)
 {
     flag ret = TRUE;
 	

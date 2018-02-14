@@ -31,7 +31,7 @@ let OptFlatMap fun1 u =
        match uu with
        | None   -> None
        | Some uuu -> fun1 uuu
-
+(*
 let rec getAmberIsValid (t:Asn1AcnAst.Asn1Type) = 
     match t.Kind with
     | Asn1AcnAst.Integer      _ ->  ""
@@ -47,7 +47,7 @@ let rec getAmberIsValid (t:Asn1AcnAst.Asn1Type) =
     | Asn1AcnAst.Sequence     _ -> "&"
     | Asn1AcnAst.Choice       _ -> "&"
     | Asn1AcnAst.ReferenceType z -> getAmberIsValid z.resolvedType
-
+    *)
 let rec getAmberDecode (t:Asn1AcnAst.Asn1Type) = 
     match t.Kind with
     | Asn1AcnAst.IA5String    _ -> ""
@@ -68,7 +68,7 @@ let createUperEncDecFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:A
     let varName = p.arg.p
     let sStar = p.arg.getStar l
     let sAmberDecode = getAmberDecode t
-    let sAmberIsValid = getAmberIsValid t
+    let sAmberIsValid = getAmberDecode t
    
     match funcName  with
     | None              -> None, us
@@ -142,7 +142,7 @@ let createAcnEncDecFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:As
     let varName = p.arg.p
     let sStar = p.arg.getStar l
     let sAmberDecode = getAmberDecode t
-    let sAmberIsValid = getAmberIsValid t
+    let sAmberIsValid = getAmberDecode t
 
     match hasAcnEncodeFunction encFunc t.acnParameters  with
     | false -> None, us

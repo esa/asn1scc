@@ -41,7 +41,7 @@ let foldGenericCon (l:ProgrammingLanguage) valToStrFunc  (p:CallerScope)  (c:Gen
         (fun e1 e2 s        -> l.ExpAnd e1 (l.ExpNot e2), s)
         (fun e s            -> e, s)
         (fun e1 e2 s        -> l.ExpOr e1 e2, s)
-        (fun v  s           -> l.ExpEqual p.arg.p (valToStrFunc p v) ,s)
+        (fun v  s           -> l.ExpEqual (p.arg.getValue l) (valToStrFunc p v) ,s)
         c
         0 |> fst
 
@@ -53,11 +53,11 @@ let foldRangeCon (l:ProgrammingLanguage) valToStrFunc1 valToStrFunc2 (p:CallerSc
         (fun e1 e2 s        -> l.ExpAnd e1 (l.ExpNot e2), s)
         (fun e s            -> e, s)
         (fun e1 e2 s        -> l.ExpOr e1 e2, s)
-        (fun v  s         -> l.ExpEqual p.arg.p (valToStrFunc2 v) ,s)
+        (fun v  s         -> l.ExpEqual (p.arg.getValue l) (valToStrFunc2 v) ,s)
         (fun v1 v2  minIsIn maxIsIn s   -> 
-            l.ExpAnd (Lte l minIsIn (valToStrFunc1 v1) p.arg.p) (Lte l maxIsIn p.arg.p (valToStrFunc1 v2)), s)
-        (fun v1 minIsIn s   -> Lte l minIsIn (valToStrFunc1 v1) p.arg.p, s)
-        (fun v2 maxIsIn s   -> Lte l maxIsIn p.arg.p (valToStrFunc1 v2), s)
+            l.ExpAnd (Lte l minIsIn (valToStrFunc1 v1) (p.arg.getValue l)) (Lte l maxIsIn (p.arg.getValue l) (valToStrFunc1 v2)), s)
+        (fun v1 minIsIn s   -> Lte l minIsIn (valToStrFunc1 v1) (p.arg.getValue l), s)
+        (fun v2 maxIsIn s   -> Lte l maxIsIn (p.arg.getValue l) (valToStrFunc1 v2), s)
         c
         0 |> fst
 
@@ -230,22 +230,24 @@ let createPrimitiveFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage)  (t:A
             | c::cs ->
                 makeExpressionToStatement l (l.ExpAndMulti allCons) errCode.errCodeName
 
+        let p  = t.getParamType l Encode
+        let varName = p.arg.p
+        let sStar = p.arg.getStar l
         let  func  = 
                 match funcName  with
                 | None              -> None
                 | Some funcName     -> 
-                    let p  = t.getParamType l Encode
                     let exp = funcBody p  
                     match l with
-                    |C     -> Some(isvalid_c.EmitTypeAssignment_primitive funcName  (typeDefinition.longTypedefName l) exp  (alphaFuncs |> List.map(fun x -> x.funcBody)) )
-                    |Ada   -> Some(isvalid_a.EmitTypeAssignment_primitive funcName  (typeDefinition.longTypedefName l) exp  (alphaFuncs |> List.map(fun x -> x.funcBody)) )
+                    |C     -> Some(isvalid_c.EmitTypeAssignment_primitive varName sStar funcName  (typeDefinition.longTypedefName l) exp  (alphaFuncs |> List.map(fun x -> x.funcBody)) )
+                    |Ada   -> Some(isvalid_a.EmitTypeAssignment_primitive varName sStar funcName  (typeDefinition.longTypedefName l) exp  (alphaFuncs |> List.map(fun x -> x.funcBody)) )
         let  funcDef  = 
                 match funcName with
                 | None              -> None
                 | Some funcName     -> 
                     match l with
-                    |C     ->  Some(isvalid_c.EmitTypeAssignment_primitive_def funcName  (typeDefinition.longTypedefName l) errCode.errCodeName (BigInteger errCode.errCodeValue))
-                    |Ada   ->  Some(isvalid_a.EmitTypeAssignment_primitive_def funcName  (typeDefinition.longTypedefName l) errCode.errCodeName (BigInteger errCode.errCodeValue))
+                    |C     ->  Some(isvalid_c.EmitTypeAssignment_primitive_def varName sStar funcName  (typeDefinition.longTypedefName l) errCode.errCodeName (BigInteger errCode.errCodeValue))
+                    |Ada   ->  Some(isvalid_a.EmitTypeAssignment_primitive_def varName sStar funcName  (typeDefinition.longTypedefName l) errCode.errCodeName (BigInteger errCode.errCodeValue))
         
         let ret = 
             {
@@ -278,23 +280,25 @@ let createBitOrOctetStringFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage
             | c::cs ->
                 makeExpressionToStatement l (l.ExpAndMulti allCons) errCode.errCodeName
 
+        let p  = t.getParamType l Encode
+        let varName = p.arg.p
+        let sStar = p.arg.getStar l
 
         let  func  = 
                 match funcName  with
                 | None              -> None
                 | Some funcName     -> 
-                    let p  = t.getParamType l Encode
                     let exp = funcBody p  
                     match l with
-                    |C     -> Some(isvalid_c.EmitTypeAssignment_oct_or_bit_string funcName  (typeDefinition.longTypedefName l) exp (alphaFuncs |> List.map(fun x -> x.funcBody)) )
-                    |Ada   -> Some(isvalid_a.EmitTypeAssignment_primitive funcName  (typeDefinition.longTypedefName l) exp (alphaFuncs |> List.map(fun x -> x.funcBody)) )
+                    |C     -> Some(isvalid_c.EmitTypeAssignment_oct_or_bit_string varName sStar funcName  (typeDefinition.longTypedefName l) exp (alphaFuncs |> List.map(fun x -> x.funcBody)) )
+                    |Ada   -> Some(isvalid_a.EmitTypeAssignment_primitive varName sStar funcName  (typeDefinition.longTypedefName l) exp (alphaFuncs |> List.map(fun x -> x.funcBody)) )
         let  funcDef  = 
                 match funcName with
                 | None              -> None
                 | Some funcName     -> 
                     match l with
-                    |C     ->  Some(isvalid_c.EmitTypeAssignment_oct_or_bit_string_def funcName  (typeDefinition.longTypedefName l) errCode.errCodeName (BigInteger errCode.errCodeValue))
-                    |Ada   ->  Some(isvalid_a.EmitTypeAssignment_primitive_def funcName  (typeDefinition.longTypedefName l) errCode.errCodeName (BigInteger errCode.errCodeValue))
+                    |C     ->  Some(isvalid_c.EmitTypeAssignment_oct_or_bit_string_def varName sStar funcName  (typeDefinition.longTypedefName l) errCode.errCodeName (BigInteger errCode.errCodeValue))
+                    |Ada   ->  Some(isvalid_a.EmitTypeAssignment_primitive_def varName sStar funcName  (typeDefinition.longTypedefName l) errCode.errCodeName (BigInteger errCode.errCodeValue))
         
         let ret = 
             {

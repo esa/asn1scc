@@ -334,14 +334,14 @@ let CreateTestSuiteFile (r:AstRoot) (l:ProgrammingLanguage) outDir vasName =
 
     let rec gAmber (t:Asn1Type) = 
         match t.Kind with
-        | Integer      _ -> ""  , "&"
-        | Real         _ -> ""  , "&"
+        | Integer      _ -> "&"  , "&"
+        | Real         _ -> "&"  , "&"
         | IA5String    _ -> ""  , ""
         | OctetString  _ -> "&" , "&"
-        | NullType     _ -> ""  , "&"
+        | NullType     _ -> "&"  , "&"
         | BitString    _ -> "&" , "&"
-        | Boolean      _ -> ""  , "&"
-        | Enumerated   _ -> ""  , "&"
+        | Boolean      _ -> "&"  , "&"
+        | Enumerated   _ -> "&"  , "&"
         | SequenceOf   _ -> "&" , "&"
         | Sequence     _ -> "&" , "&"
         | Choice       _ -> "&" , "&"

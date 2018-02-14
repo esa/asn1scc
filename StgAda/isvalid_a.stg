@@ -41,14 +41,14 @@ ret := <rtlModuleName()>.ASN1_RESULT'(Success => <sIsValidExp>, ErrorCode => <sE
 >>
 
 
-EmitTypeAssignment_primitive_def(sFuncName, sTypeDefName, sErrCode, nErrValue) ::= <<
+EmitTypeAssignment_primitive_def(sVarName, sStar, sFuncName, sTypeDefName, sErrCode, nErrValue) ::= <<
 <sErrCode>:CONSTANT INTEGER := <nErrValue>; -- 
-FUNCTION <sFuncName>(val : in <sTypeDefName>) return <rtlModuleName()>.ASN1_RESULT;
+FUNCTION <sFuncName>(<sVarName> : in <sTypeDefName>) return <rtlModuleName()>.ASN1_RESULT;
 >>
 
-EmitTypeAssignment_primitive(sFuncName, sTypeDefName, sContent, arrsAlphaFuncs) ::= <<
+EmitTypeAssignment_primitive(sVarName, sStar, sFuncName, sTypeDefName, sContent, arrsAlphaFuncs) ::= <<
 <arrsAlphaFuncs; separator="\n">
-FUNCTION <sFuncName>(val : in <sTypeDefName>) return <rtlModuleName()>.ASN1_RESULT
+FUNCTION <sFuncName>(<sVarName> : in <sTypeDefName>) return <rtlModuleName()>.ASN1_RESULT
 IS
     ret : <rtlModuleName()>.ASN1_RESULT;
 BEGIN
