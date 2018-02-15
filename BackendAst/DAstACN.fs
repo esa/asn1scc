@@ -141,28 +141,31 @@ let private createAcnFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (co
             |  None              -> None, None
             |  Some funcName     -> 
                 let content = funcBody [] p  
-                match content with 
-                | None          -> None, None
-                | Some bodyResult  ->
-                    let handleAcnParameter (p:Asn1AcnAst.AcnParameter) =
-                        let intType  = match l with C -> header_c.Declare_Integer () | Ada -> header_a.Declare_Integer ()
-                        let boolType = match l with C -> header_c.Declare_Boolean () | Ada -> header_a.Declare_BOOLEAN ()
-                        let emitPrm  = match l with C -> acn_c.EmitAcnParameter      | Ada -> acn_a.EmitAcnParameter
-                        match p.asn1Type with
-                        | Asn1AcnAst.AcnPrmInteger    loc          -> emitPrm p.c_name intType
-                        | Asn1AcnAst.AcnPrmBoolean    loc          -> emitPrm p.c_name boolType
-                        | Asn1AcnAst.AcnPrmNullType   loc          -> raise(SemanticError (loc, "Invalid type for parameter"))
-                        | Asn1AcnAst.AcnPrmRefType(md,ts)          -> emitPrm p.c_name (ToC2(r.args.TypePrefix + ts.Value))
+                let bodyResult_funcBody, errCodes,  bodyResult_localVariables = 
+                    match content with 
+                    | None              -> 
+                        let emtyStatement = match l with C -> "" | Ada -> "null;"
+                        emtyStatement, [], []
+                    | Some bodyResult   -> bodyResult.funcBody, bodyResult.errCodes, bodyResult.localVariables
+                let handleAcnParameter (p:Asn1AcnAst.AcnParameter) =
+                    let intType  = match l with C -> header_c.Declare_Integer () | Ada -> header_a.Declare_Integer ()
+                    let boolType = match l with C -> header_c.Declare_Boolean () | Ada -> header_a.Declare_BOOLEAN ()
+                    let emitPrm  = match l with C -> acn_c.EmitAcnParameter      | Ada -> acn_a.EmitAcnParameter
+                    match p.asn1Type with
+                    | Asn1AcnAst.AcnPrmInteger    loc          -> emitPrm p.c_name intType
+                    | Asn1AcnAst.AcnPrmBoolean    loc          -> emitPrm p.c_name boolType
+                    | Asn1AcnAst.AcnPrmNullType   loc          -> raise(SemanticError (loc, "Invalid type for parameter"))
+                    | Asn1AcnAst.AcnPrmRefType(md,ts)          -> emitPrm p.c_name (ToC2(r.args.TypePrefix + ts.Value))
 
-                    let lvars = bodyResult.localVariables |> List.map(fun (lv:LocalVariable) -> lv.GetDeclaration l) |> Seq.distinct
-                    let prms = t.acnParameters |> List.map handleAcnParameter
-                    let prmNames = t.acnParameters |> List.map (fun p -> p.c_name)
-                    let func = Some(EmitTypeAssignment_primitive varName sStar funcName isValidFuncName  (typeDefinition.longTypedefName l) lvars  bodyResult.funcBody soSparkAnnotations sInitilialExp prms prmNames codec)
+                let lvars = bodyResult_localVariables |> List.map(fun (lv:LocalVariable) -> lv.GetDeclaration l) |> Seq.distinct
+                let prms = t.acnParameters |> List.map handleAcnParameter
+                let prmNames = t.acnParameters |> List.map (fun p -> p.c_name)
+                let func = Some(EmitTypeAssignment_primitive varName sStar funcName isValidFuncName  (typeDefinition.longTypedefName l) lvars  bodyResult_funcBody soSparkAnnotations sInitilialExp prms prmNames codec)
                 
-                    let errCodes = bodyResult.errCodes
-                    let errCodStr = errCodes |> List.map(fun x -> (EmitTypeAssignment_def_err_code x.errCodeName) (BigInteger x.errCodeValue))
-                    let funcDef = Some(EmitTypeAssignment_primitive_def varName sStar funcName  (typeDefinition.longTypedefName l) errCodStr (t.acnMaxSizeInBits = 0) (BigInteger (ceil ((double t.acnMaxSizeInBits)/8.0))) (BigInteger t.acnMaxSizeInBits) prms codec)
-                    func, funcDef
+                //let errCodes = bodyResult.errCodes
+                let errCodStr = errCodes |> List.map(fun x -> (EmitTypeAssignment_def_err_code x.errCodeName) (BigInteger x.errCodeValue))
+                let funcDef = Some(EmitTypeAssignment_primitive_def varName sStar funcName  (typeDefinition.longTypedefName l) errCodStr (t.acnMaxSizeInBits = 0) (BigInteger (ceil ((double t.acnMaxSizeInBits)/8.0))) (BigInteger t.acnMaxSizeInBits) prms codec)
+                func, funcDef
 
 
     let ret = 
