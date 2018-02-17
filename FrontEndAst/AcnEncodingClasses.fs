@@ -168,24 +168,26 @@ let GetStringEncodingClass (aligment: AcnAligment option) errLoc (p  : StringAcn
 ╚══════╝╚══════╝ ╚══▀▀═╝  ╚═════╝ ╚══════╝╚═╝  ╚═══╝ ╚═════╝╚══════╝     ╚═════╝ ╚═╝          ╚═════╝  ╚═════╝   ╚═╝   ╚══════╝   ╚═╝╚═╝    ╚═════╝ ╚═╝   ╚═╝       ╚══════╝   ╚═╝   ╚═╝  ╚═╝╚═╝╚═╝  ╚═══╝ ╚═════╝ 
 *)
 
-let GetOctetBitSeqofEncodingClass (aligment: AcnAligment option) errLoc (p  : SizeableAcnProperties) uperMinSizeInBits uperMaxSizeInBits asn1Min asn1Max internalMinSize internalMaxSize  =
+let GetOctetBitSeqofEncodingClass (aligment: AcnAligment option) errLoc (p  : SizeableAcnProperties) uperMinSizeInBits uperMaxSizeInBits asn1Min asn1Max internalMinSize internalMaxSize bSequenecOf =
     let alignmentSize = getAlignmentSize aligment
-
+    
     let encClass, minSizeInBits, maxSizeInBits = 
         match  p.sizeProp with
-        | None                  -> SZ_EC_uPER, uperMinSizeInBits, uperMaxSizeInBits
+        | None                  -> 
+                let minSizeInBits, maxSizeInBits = uPER.getSizeableTypeSize asn1Min asn1Max internalMaxSize
+                SZ_EC_uPER, minSizeInBits, maxSizeInBits
         | Some p                -> SZ_EC_ExternalField p, asn1Min*internalMinSize, asn1Max*internalMaxSize
 
     encClass, minSizeInBits+alignmentSize, maxSizeInBits+alignmentSize
 
 let GetOctetStringEncodingClass (aligment: AcnAligment option) errLoc (p  : SizeableAcnProperties) uperMinSizeInBits uperMaxSizeInBits asn1Min asn1Max =
-    GetOctetBitSeqofEncodingClass aligment errLoc p   uperMinSizeInBits uperMaxSizeInBits asn1Min asn1Max 8 8
+    GetOctetBitSeqofEncodingClass aligment errLoc p   uperMinSizeInBits uperMaxSizeInBits asn1Min asn1Max 8 8 false
 
 let GetBitStringEncodingClass (aligment: AcnAligment option) errLoc (p  : SizeableAcnProperties) uperMinSizeInBits uperMaxSizeInBits asn1Min asn1Max =
-    GetOctetBitSeqofEncodingClass aligment errLoc p   uperMinSizeInBits uperMaxSizeInBits asn1Min asn1Max 1 1
+    GetOctetBitSeqofEncodingClass aligment errLoc p   uperMinSizeInBits uperMaxSizeInBits asn1Min asn1Max 1 1 false
 
 let GetSequenceOfEncodingClass (aligment: AcnAligment option) errLoc (p  : SizeableAcnProperties) uperMinSizeInBits uperMaxSizeInBits asn1Min asn1Max internalMinSize internalMaxSize =
-    GetOctetBitSeqofEncodingClass aligment errLoc p   uperMinSizeInBits uperMaxSizeInBits asn1Min asn1Max internalMinSize internalMaxSize
+    GetOctetBitSeqofEncodingClass aligment errLoc p   uperMinSizeInBits uperMaxSizeInBits asn1Min asn1Max internalMinSize internalMaxSize true
 
 
 let GetNullEncodingClass (aligment: AcnAligment option) errLoc (p  : NullTypeAcnProperties) =

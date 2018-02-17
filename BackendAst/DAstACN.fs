@@ -155,7 +155,15 @@ let private createAcnFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (co
                     | Asn1AcnAst.AcnPrmInteger    loc          -> emitPrm p.c_name intType
                     | Asn1AcnAst.AcnPrmBoolean    loc          -> emitPrm p.c_name boolType
                     | Asn1AcnAst.AcnPrmNullType   loc          -> raise(SemanticError (loc, "Invalid type for parameter"))
-                    | Asn1AcnAst.AcnPrmRefType(md,ts)          -> emitPrm p.c_name (ToC2(r.args.TypePrefix + ts.Value))
+                    | Asn1AcnAst.AcnPrmRefType(md,ts)          -> 
+                        let prmTypeName =
+                            match l with
+                            | C         -> ToC2(r.args.TypePrefix + ts.Value)
+                            | Ada       -> 
+                                match md.Value = t.id.ModName with
+                                | true  -> ToC2(r.args.TypePrefix + ts.Value)
+                                | false -> (ToC2 md.Value) + "." + ToC2(r.args.TypePrefix + ts.Value)
+                        emitPrm p.c_name prmTypeName
 
                 let lvars = bodyResult_localVariables |> List.map(fun (lv:LocalVariable) -> lv.GetDeclaration l) |> Seq.distinct
                 let prms = t.acnParameters |> List.map handleAcnParameter
