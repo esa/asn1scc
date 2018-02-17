@@ -111,16 +111,19 @@ let rec PrintType (r:AstRoot) (f:Asn1File) (stgFileName:string) modName (deepRec
                 | SequenceOf    i         -> Some (i.baseInfo.minSize.ToString(), i.baseInfo.maxSize.ToString())
                 | Real          i         -> Some (GetMinMax i.baseInfo.uperRange)
                 | Boolean _ | NullType _ | Choice _ | Enumerated _ | Sequence _ | ReferenceType _       -> None
-            let sModName, typedefName =
+            let sModName=
                 match t.typeDefintionOrReference with
-                | ReferenceToExistingDefinition  refEx  -> match refEx.programUnit with Some x -> x.Replace("_","-"), refEx.typedefName | None -> null, refEx.typedefName
-                | TypeDefinition   td                   -> null, td.typedefName
+                | ReferenceToExistingDefinition  refEx  -> 
+                    match refEx.programUnit with 
+                    | Some x -> x.Replace("_","-")
+                    | None -> null
+                | TypeDefinition   td                   -> null
             let asn1Name = t.typeDefintionOrReference.getAsn1Name r.args.TypePrefix
             let sCModName = if sModName <> null then (ToC sModName) else null
             let refTypeContent = 
                 match uperRange with
-                | Some(sMin, sMax)  -> gen.RefTypeMinMax sMin sMax asn1Name sModName typedefName sCModName stgFileName
-                | None              -> gen.RefType asn1Name sModName typedefName sCModName stgFileName
+                | Some(sMin, sMax)  -> gen.RefTypeMinMax sMin sMax asn1Name sModName (ToC asn1Name) (*typedefName*) sCModName stgFileName
+                | None              -> gen.RefType asn1Name sModName (ToC asn1Name) (*typedefName*) sCModName stgFileName
             gen.TypeGeneric (BigInteger t.Location.srcLine) (BigInteger t.Location.charPos) f.FileName refTypeContent stgFileName
     let PrintTypeAux (t:Asn1Type) =
         match t.Kind with
@@ -209,7 +212,7 @@ let exportFile (r:AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (stgFi
                 | ReferenceToExistingDefinition _ -> None
                 | TypeDefinition td               -> 
                     let asn1Name = t.typeDefintionOrReference.getAsn1Name r.args.TypePrefix
-                    let ret = gen.TasXml asn1Name t.Location.srcLine.AsBigInt t.Location.charPos.AsBigInt (PrintType r f stgFileName modName deepRecursion t ) td.typedefName (AssigOp t) (PrintContract r stgFileName asn1Name td.typedefName t) stgFileName
+                    let ret = gen.TasXml asn1Name t.Location.srcLine.AsBigInt t.Location.charPos.AsBigInt (PrintType r f stgFileName modName deepRecursion t ) (ToC asn1Name) (*td.typedefName*) (AssigOp t) (PrintContract r stgFileName asn1Name td.typedefName t) stgFileName
                     Some ret) |> Seq.StrJoin "\n"
         innerTypeDef
     let PrintModule (f:Asn1File) (m:Asn1Module) =
