@@ -224,11 +224,7 @@ let createPrimitiveFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage)  (t:A
             | c::cs  -> l.ExpAndMulti allCons 
 
         let funcBody (p:CallerScope) = 
-            let allCons = allCons |> List.map (conToStrFunc p)
-            match allCons with
-            | []    -> raise(BugErrorException("Invalid case"))
-            | c::cs ->
-                makeExpressionToStatement l (l.ExpAndMulti allCons) errCode.errCodeName
+            makeExpressionToStatement l (funcExp p) errCode.errCodeName
 
         let p  = t.getParamType l Encode
         let varName = p.arg.p
@@ -272,13 +268,14 @@ let createBitOrOctetStringFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage
         let errCodeName         = ToC ("ERR_" + ((t.id.AcnAbsPath |> Seq.skip 1 |> Seq.StrJoin("-")).Replace("#","elm")))
         let errCode, ns = getNextValidErrorCode us errCodeName
 
-
-        let funcBody (p:CallerScope)  = 
-            let allCons = allCons |> List.map (fun c -> conToStrFunc  p c)
+        let funcExp (p:CallerScope) = 
+            let allCons = allCons |> List.map (conToStrFunc p)
             match allCons with
             | []    -> raise(BugErrorException("Invalid case"))
-            | c::cs ->
-                makeExpressionToStatement l (l.ExpAndMulti allCons) errCode.errCodeName
+            | c::cs -> l.ExpAndMulti allCons
+
+        let funcBody (p:CallerScope)  = 
+            makeExpressionToStatement l (funcExp p) errCode.errCodeName
 
         let p  = t.getParamType l Encode
         let varName = p.arg.p
@@ -305,7 +302,7 @@ let createBitOrOctetStringFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage
                 IsValidFunction.funcName    = funcName
                 errCodes                    = [errCode]
                 func                        = func
-                funcExp                     = None
+                funcExp                     = Some funcExp
                 funcDef                     = funcDef
                 funcBody                    = (fun p -> funcBody p )
                 //funcBody2                   = funcBody

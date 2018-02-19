@@ -75,6 +75,7 @@
     <Compile Include="DAstEqual.fs" />
     <Compile Include="DAstValidate.fs" />
     <Compile Include="DAstUPer.fs" />
+    <Compile Include="DAstXer.fs" />
     <Compile Include="DAstACN.fs" />
     <Compile Include="EncodeDecodeTestCase.fs" />
     <Compile Include="DAstInitialize.fs" />

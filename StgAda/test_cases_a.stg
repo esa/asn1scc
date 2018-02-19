@@ -88,6 +88,15 @@ Codec_Decode(sModName, sFuncName, sTasName, sEnc, sAmber) ::= <<
 ret := <rtlModuleName()>.TEST_CASE_RESULT'(Step => <rtlModuleName()>.TC_DECODE, Success => result.Success, ErrorCode => result.ErrorCode);
 >>
 
+Codec_Decode_XER(sModName, sFuncName, sTasName, sEnc, sAmber) ::= <<
+-- Decode value
+--at this point stream contains the <sEnc> data
+<sModName>.<sFuncName>(decodedPDU, stream, result);
+ret := <rtlModuleName()>.TEST_CASE_RESULT'(Step => <rtlModuleName()>.TC_DECODE, Success => result.Success, ErrorCode => result.ErrorCode);
+>>
+
+
+
 Codec_validate_output(sModName, sFuncName, sAmber) ::= <<
 -- validate decoded data
 result := <sModName>.<sFuncName>(decodedPDU);
@@ -134,6 +143,18 @@ BEGIN
 END <sFuncName>;
 >>
 
+PrintCodec_body_XER(sModName, sFuncName, sTasName, sStar,  sVal, sEnc, sNestedStatements) ::= <<
+FUNCTION <sFuncName>(<sVal>:<sModName>.<sTasName>) RETURN <rtlModuleName()>.TEST_CASE_RESULT
+IS
+    decodedPDU  : <sModName>.<sTasName>;
+    stream      : <sModName>.<sTasName>_<sEnc>Stream;
+    result      : <rtlModuleName()>.ASN1_RESULT;
+    ret         : <rtlModuleName()>.TEST_CASE_RESULT;
+BEGIN
+    <sNestedStatements>
+    RETURN ret;
+END <sFuncName>;
+>>
 
 
 /*

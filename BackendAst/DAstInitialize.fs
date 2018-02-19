@@ -129,7 +129,7 @@ let createIA5StringInitFunc (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:As
 
     let ii = t.id.SeqeuenceOfLevel + 1
     let i = sprintf "i%d" ii
-    let visibleChars = o.uperCharSet |> Seq.filter(fun c -> not (System.Char.IsControl c))
+    //let visibleChars = o.uperCharSet |> Seq.filter(fun c -> not (System.Char.IsControl c))
     let bAlpha = o.uperCharSet.Length < 128
     let arrAsciiCodes = o.uperCharSet |> Array.map(fun x -> BigInteger (System.Convert.ToInt32 x))
     let testCaseFuncs = 

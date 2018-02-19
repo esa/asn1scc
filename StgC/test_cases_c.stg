@@ -85,10 +85,10 @@ ret = <sFuncName>(<sAmber>decodedPDU, &bitStrm, pErrCode);
 *pErrCode = ret ? 0 : 2;
 >>
 
-Codec_Decode_XER(sModName, sTasName, sEnc, sAmber, arrsDecInParamsNames, arrsEncInDecOutParamsNames) ::= <<
+Codec_Decode_XER(sModName, sFuncName, sTasName, sEnc, sAmber) ::= <<
 ByteStream_AttachBuffer(&bitStrm, encBuff, <sTasName>_REQUIRED_BYTES_FOR_<sEnc>ENCODING);
 // Decode value
-ret = <sTasName>_<sEnc>Decode(<sAmber>decodedPDU, &bitStrm, pErrCode<if(arrsDecInParamsNames)>, <arrsDecInParamsNames:{p| dec_<p>}; separator=", "><endif><if(arrsEncInDecOutParamsNames)>, <arrsEncInDecOutParamsNames:{p| &dec_<p>}; separator=", "><endif>);
+ret = <sFuncName>(<sAmber>decodedPDU, &bitStrm, pErrCode);
 *pErrCode = ret ? 0 : 2;
 >>
 
@@ -141,21 +141,20 @@ flag <sFuncName>(const <sTasName><sStar> <sVal>, int* pErrCode)
 }
 >>
 
-PrintCodec_body_XER(sTasName, sStar, sEnc, arrsEncInDecOutParamsLocalVars, arrsDecInParamLocalVars, sNestedStatements) ::= <<
-flag <sTasName>_<sEnc>enc_dec(const <sTasName><sStar> pVal, int* pErrCode)
+PrintCodec_body_XER(sModName, sFuncName, sTasName, sStar,  sVal, sEnc, sNestedStatements) ::= <<
+flag <sFuncName>(const <sTasName><sStar> <sVal>, int* pErrCode)
 {
     static <sTasName> decodedPDU;
     static byte encBuff[<sTasName>_REQUIRED_BYTES_FOR_<sEnc>ENCODING + 1]; /* +1 for zerosized types */
     ByteStream bitStrm;
     flag ret = TRUE;
-    <arrsEncInDecOutParamsLocalVars; separator="\n">
-    <arrsDecInParamLocalVars; separator="\n">
 
     ByteStream_Init(&bitStrm, encBuff, <sTasName>_REQUIRED_BYTES_FOR_<sEnc>ENCODING);
     <sNestedStatements>
     return ret;
 }
 >>
+
 
 
 

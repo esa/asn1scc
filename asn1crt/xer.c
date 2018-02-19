@@ -5,6 +5,7 @@
 #include <float.h>
 #include <ctype.h>
 #include <stdlib.h>
+#include <inttypes.h>
 
 
 #include "asn1crt.h"
@@ -14,9 +15,28 @@
 char* Int2String(asn1SccSint v) {
     static char tmp[256];
 #if WORD_SIZE==8
+#ifdef __MINGW32__
+    sprintf(tmp,"%I64d",v);
+#else
     sprintf(tmp,"%lld",v);
+#endif	
 #else
     sprintf(tmp,"%ld",v);
+#endif
+
+    return tmp;
+}
+
+char* UInt2String(asn1SccUint v) {
+    static char tmp[256];
+#if WORD_SIZE==8
+#ifdef __MINGW32__
+    sprintf(tmp, "%I64u", v);
+#else
+    sprintf(tmp, "%llu", v);
+#endif	
+#else
+    sprintf(tmp, "%ld", v);
 #endif
 
     return tmp;
@@ -498,6 +518,11 @@ flag Xer_EncodeInteger(ByteStream* pByteStrm, const char* elementTag, asn1SccSin
     return Xer_EncodePrimitiveElement(pByteStrm, elementTag, Int2String(value), pErrCode, level); 
 }
 
+flag Xer_EncodePosInteger(ByteStream* pByteStrm, const char* elementTag, asn1SccUint value, int *pErrCode, int level)
+{
+    return Xer_EncodePrimitiveElement(pByteStrm, elementTag, UInt2String(value), pErrCode, level);
+}
+
 flag Xer_EncodeBoolean(ByteStream* pByteStrm, const char* elementTag, flag value, int *pErrCode, int level) {
     if (elementTag == NULL || strlen(elementTag)==0) {
         if (value)
@@ -626,6 +651,15 @@ flag Xer_DecodeInteger(ByteStream* pByteStrm, const char* elementTag, asn1SccSin
     return TRUE;
 }
 
+flag Xer_DecodePosInteger(ByteStream* pByteStrm, const char* elementTag, asn1SccUint* value, int *pErrCode)
+{
+    char tmp[256];
+    memset(tmp, 0x0, sizeof(tmp));
+    if (!Xer_DecodePrimitiveElement(pByteStrm, elementTag, tmp, pErrCode))
+        return FALSE;
+    *value = strtoull(tmp, NULL, 10); 
+    return TRUE;
+}
 
 flag Xer_DecodeBoolean(ByteStream* pByteStrm, const char* elementTag, flag* value, int *pErrCode)
 {
@@ -714,7 +748,7 @@ flag CharToNibble(char c, byte* pNibble) {
     return FALSE;
 }
 
-flag Xer_DecodeOctetString(ByteStream* pByteStrm, const char* elementTag, byte value[], long* nCount, int *pErrCode)
+flag Xer_DecodeOctetString(ByteStream* pByteStrm, const char* elementTag, byte value[], int bufferMaxSize, int* nCount, int *pErrCode)
 {
     char tmp[1024];
     int len=0;
@@ -734,7 +768,7 @@ flag Xer_DecodeOctetString(ByteStream* pByteStrm, const char* elementTag, byte v
 
     len = j;
 
-    for(i=0; i<len; i++) {
+    for(i=0; i<len && i/2 < bufferMaxSize; i++) {
         byte nibble;
         if (!CharToNibble(tmp[i], &nibble))
             return FALSE;
@@ -753,7 +787,7 @@ flag Xer_DecodeOctetString(ByteStream* pByteStrm, const char* elementTag, byte v
 
 
 
-flag Xer_DecodeBitString(ByteStream* pByteStrm, const char* elementTag, byte value[], long* nCount, int *pErrCode)
+flag Xer_DecodeBitString(ByteStream* pByteStrm, const char* elementTag, byte value[], int bufferMaxSize, int* nCount, int *pErrCode)
 {
     char tmp[2048];
     int len=0;
@@ -780,7 +814,7 @@ flag Xer_DecodeBitString(ByteStream* pByteStrm, const char* elementTag, byte val
     memset(value, 0x0, (size_t)bytes);
 
 
-    for(i=0; i<len; i++) {
+    for(i=0; i<len && i/8 < bufferMaxSize; i++) {
         byte curVal = (byte)(tmp[i] - '0');
         int curBit = 7 - i%8;
         value[i/8] |= (byte)(curVal<<curBit);

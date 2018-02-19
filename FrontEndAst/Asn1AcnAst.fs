@@ -357,6 +357,7 @@ type Integer = {
     acnMinSizeInBits    : int
     acnEncodingClass    : IntEncodingClass
     isUnsigned          : bool
+
 }
 
 type Real = {
@@ -370,6 +371,7 @@ type Real = {
     acnMaxSizeInBits    : int
     acnMinSizeInBits    : int
     acnEncodingClass    : RealEncodingClass
+
 }
 
 type StringType = {
@@ -387,6 +389,7 @@ type StringType = {
     acnMinSizeInBits    : int
     acnEncodingClass    : StringAcnEncodingClass
     isNumeric           : bool
+
 }
 
 
@@ -402,6 +405,7 @@ type OctetString = {
     acnMaxSizeInBits    : int
     acnMinSizeInBits    : int
     acnEncodingClass    : SizeableAcnEncodingClass
+
 }
 
 type BitString = {
@@ -416,6 +420,7 @@ type BitString = {
     acnMaxSizeInBits    : int
     acnMinSizeInBits    : int
     acnEncodingClass    : SizeableAcnEncodingClass
+
 }
 
 type NullType = {
@@ -425,6 +430,7 @@ type NullType = {
 
     acnMaxSizeInBits    : int
     acnMinSizeInBits    : int
+
 }
 
 type Boolean = {    
@@ -435,6 +441,7 @@ type Boolean = {
     uperMinSizeInBits   : int
     acnMaxSizeInBits    : int
     acnMinSizeInBits    : int
+
 }
 
 type Enumerated = {
@@ -449,6 +456,7 @@ type Enumerated = {
     acnEncodingClass    : IntEncodingClass
     encodeValues        : bool
     userDefinedValues   : bool      //if true, the user has associated at least one item with a value
+
 }
 
 type AcnReferenceToEnumerated = {
@@ -558,6 +566,7 @@ and SequenceOf = {
     acnMaxSizeInBits    : int
     acnMinSizeInBits    : int
     acnEncodingClass    : SizeableAcnEncodingClass
+
 }
 
 and Sequence = {
@@ -605,6 +614,7 @@ and Choice = {
     acnMaxSizeInBits    : int
     acnMinSizeInBits    : int
     acnLoc              : SrcLoc option
+
 }
 
 and ChChildInfo = {
@@ -625,6 +635,7 @@ and ReferenceType = {
     acnArguments: RelativePath list
     resolvedType: Asn1Type
     hasConstraints : bool
+
 }
 
 

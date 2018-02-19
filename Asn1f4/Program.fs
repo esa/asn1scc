@@ -10,6 +10,7 @@ type CliArguments =
     | [<AltCommandLine("-c")>]C_lang 
     | [<AltCommandLine("-Ada")>]Ada_Lang
     | [<AltCommandLine("-uPER")>]UPER_enc
+    | [<AltCommandLine("-XER")>]XER_enc
     | [<AltCommandLine("-ACN")>]ACN_enc
     | [<AltCommandLine("-atc")>]Auto_test_cases
     | [<AltCommandLine("-o")>]Out of dir:string
@@ -35,6 +36,7 @@ with
             | C_lang           -> "generate code for the C/C++ programming language"
             | Ada_Lang         -> "generate code for the Ada/SPARK programming language"
             | UPER_enc         -> "generates encoding and decoding functions for unaligned Packed Encoding Rules (uPER)"
+            | XER_enc          -> "generates encoding and decoding functions for XML Encoding Rules (XER)"
             | ACN_enc          -> "generates encoding and decoding functions using the ASSERT ASN.1 encoding Control Notation"
             | Auto_test_cases  -> "create automatic test cases."
             | Out (_)          -> "directory where all files are produced."
@@ -89,6 +91,7 @@ let checkArguement arg =
     | C_lang           -> ()
     | Ada_Lang         -> ()
     | UPER_enc         -> ()
+    | XER_enc         -> ()
     | ACN_enc          -> ()
     | Auto_test_cases  -> ()
     | Equal_Func       -> ()
@@ -125,6 +128,7 @@ let constructCommandLineSettings args (parserResults: ParseResults<CliArguments>
             List.choose(fun arg ->
                 match arg with
                 |UPER_enc -> Some CommonTypes.Asn1Encoding.UPER
+                |XER_enc  -> Some CommonTypes.Asn1Encoding.XER
                 |ACN_enc  -> Some CommonTypes.Asn1Encoding.ACN
                 | _       -> None )
 
@@ -142,7 +146,7 @@ let constructCommandLineSettings args (parserResults: ParseResults<CliArguments>
     }    
 
 
-let exportRTL outDir  (l:DAst.ProgrammingLanguage) =
+let exportRTL outDir  (l:DAst.ProgrammingLanguage) (args:CommandLineSettings)=
     let writeTextFile fileName (content:String) =
         System.IO.File.WriteAllText(fileName, content.Replace("\r",""))
     let rm = new ResourceManager("Resource1", System.Reflection.Assembly.GetExecutingAssembly());
@@ -152,6 +156,9 @@ let exportRTL outDir  (l:DAst.ProgrammingLanguage) =
                 writeTextFile (Path.Combine(outDir, "asn1crt.h")) (rm.GetString("asn1crt1",null)) 
                 writeTextFile (Path.Combine(outDir, "acn.c"))     (rm.GetString("Acn",null)) 
                 writeTextFile (Path.Combine(outDir, "real.c"))    (rm.GetString("real",null)) 
+                match args.encodings |> Seq.exists ((=) Asn1Encoding.XER) with
+                | true  -> writeTextFile (Path.Combine(outDir, "xer.c"))  (rm.GetString("xer",null)) 
+                | false -> ()
     | DAst.ProgrammingLanguage.Ada ->
                 writeTextFile (Path.Combine(outDir, "adaasn1rtl.adb")) (rm.GetString("adaasn1rtl_adb",null)) 
                 writeTextFile (Path.Combine(outDir, "adaasn1rtl.ads")) (rm.GetString("adaasn1rtl_ads",null)) 
@@ -192,7 +199,7 @@ let main0 argv =
         backends |> 
             Seq.iter (fun r -> 
                 GenerateFiles.generateAll outDir r args.encodings
-                exportRTL outDir r.lang
+                exportRTL outDir r.lang args
                 match args.AstXmlAbsFileName with
                 | ""    -> ()
                 | _     -> DAstExportToXml.exportFile r acnDeps ("backend_" + args.AstXmlAbsFileName)

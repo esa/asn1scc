@@ -606,6 +606,38 @@ with
          | Choice       t -> t.uperDecFunction
          | ReferenceType t-> t.uperDecFunction
 
+
+    member this.xerEncFunction =
+         match this.Kind with
+         | Integer      t ->t.xerEncFunction
+         | Real         t ->t.xerEncFunction
+         | IA5String    t ->t.xerEncFunction
+         | OctetString  t ->t.xerEncFunction
+         | NullType     t ->t.xerEncFunction
+         | BitString    t ->t.xerEncFunction
+         | Boolean      t ->t.xerEncFunction
+         | Enumerated   t ->t.xerEncFunction
+         | SequenceOf   t ->t.xerEncFunction
+         | Sequence     t ->t.xerEncFunction
+         | Choice       t ->t.xerEncFunction
+         | ReferenceType t->t.xerEncFunction
+
+    member this.xerDecFunction =
+         match this.Kind with
+         | Integer      t -> t.xerDecFunction
+         | Real         t -> t.xerDecFunction
+         | IA5String    t -> t.xerDecFunction
+         | OctetString  t -> t.xerDecFunction
+         | NullType     t -> t.xerDecFunction
+         | BitString    t -> t.xerDecFunction
+         | Boolean      t -> t.xerDecFunction
+         | Enumerated   t -> t.xerDecFunction
+         | SequenceOf   t -> t.xerDecFunction
+         | Sequence     t -> t.xerDecFunction
+         | Choice       t -> t.xerDecFunction
+         | ReferenceType t-> t.xerDecFunction
+
+
     member this.uperMaxSizeInBits =
         match this.Kind with
         | Integer      t -> t.baseInfo.uperMaxSizeInBits
@@ -731,6 +763,20 @@ with
         | Sequence     t -> t.acnEncDecTestFunc
         | Choice       t -> t.acnEncDecTestFunc
         | ReferenceType t-> t.acnEncDecTestFunc
+    member this.xerEncDecTestFunc =
+        match this.Kind with
+        | Integer      t -> t.xerEncDecTestFunc
+        | Real         t -> t.xerEncDecTestFunc
+        | IA5String    t -> t.xerEncDecTestFunc
+        | OctetString  t -> t.xerEncDecTestFunc
+        | NullType     t -> t.xerEncDecTestFunc
+        | BitString    t -> t.xerEncDecTestFunc
+        | Boolean      t -> t.xerEncDecTestFunc
+        | Enumerated   t -> t.xerEncDecTestFunc
+        | SequenceOf   t -> t.xerEncDecTestFunc
+        | Sequence     t -> t.xerEncDecTestFunc
+        | Choice       t -> t.xerEncDecTestFunc
+        | ReferenceType t-> t.xerEncDecTestFunc
 
     member this.automaticTestCasesValues =
         match this.Kind with
@@ -909,6 +955,17 @@ let hasUperEncodeFunction (encFunc : UPerFunction option)  =
             match fnc.funcBody p with
             | None   -> false
             | Some _ -> true
+
+let hasXerEncodeFunction (encFunc : XerFunction option)  =
+    match encFunc with
+    | None  -> false
+    | Some fnc ->
+            let p = {CallerScope.modName = ""; arg = VALUE "dummy"}
+            let errCode = {ErroCode.errCodeName = "DUMMY_ERR"; errCodeValue=0}
+            match fnc.funcBody errCode p "dummy"  with
+            | None   -> false
+            | Some _ -> true
+
 
 let AdaUses (r:AstRoot) =
     seq {

@@ -316,7 +316,7 @@ Boolean_encode(p, sErrCode) ::= "BitStream_AppendBit(pBitStrm,<p>);"
 
 Boolean_decode(p, sErrCode) ::= <<
 ret = BitStream_ReadBit(pBitStrm, <p>);
-*pErrCode = ret ? 0 : ERR_INSUFFICIENT_DATA;
+*pErrCode = ret ? 0 : <sErrCode>;
 >>
 
 Real_encode(p, sErrCode) ::= "BitStream_EncodeReal(pBitStrm, <p>);"

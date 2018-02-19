@@ -1,164 +1,200 @@
 group a_xer;
 
+rtlModuleName() ::= "adaasn1rtl"
 
 
 
-CHOICE_setters_body_child(sTasName, sName, sType, sNamePresent) ::= <<
-FUNCTION <sTasName>_<sName>_get(val:<sTasName>) RETURN <sType>
-IS --# hide <sTasName>_<sName>_get;
-BEGIN
-    RETURN val.<sName>;
-END <sTasName>_<sName>_get;
-
-FUNCTION <sTasName>_<sName>_set(itm:<sType>) RETURN <sTasName>
-IS --# hide <sTasName>_<sName>_set;
-BEGIN
-    RETURN <sTasName>'(kind => <sNamePresent>, <sName> => itm);
-END <sTasName>_<sName>_set;
+EmitTypeAssignment_def_err_code(sErrCode, nErrValue) ::= <<
+<sErrCode>:CONSTANT INTEGER := <nErrValue>; 
 >>
 
+EmitTypeAssignment_def_encode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes, bEmptyEncodingSpace, nMaxBytesInXER, soSparkAnnotations) ::= <<
+<arrsErrcodes; separator="\n">
+<sTypeDefName>_REQUIRED_BYTES_FOR_XER_ENCODING:CONSTANT INTEGER := <nMaxBytesInXER>;
 
-CHOICE_setters_body(sTasName, arrsChildren) ::= <<
-FUNCTION <sTasName>_kind(val:<sTasName>) RETURN <sTasName>_selection 
-IS --# hide <sTasName>_kind;
-BEGIN
-    return val.kind;
-END <sTasName>_kind;
+SUBTYPE <sTypeDefName>_XER_byte_array_range is Natural range 1..<if(bEmptyEncodingSpace)>1<else><sTypeDefName>_REQUIRED_BYTES_FOR_XER_ENCODING<endif>;
+SUBTYPE <sTypeDefName>_XER_byte_array is <rtlModuleName()>.OctetBuffer(<sTypeDefName>_XER_byte_array_range);
 
-<arrsChildren; separator="\n">
+TYPE <sTypeDefName>_XER_Stream IS RECORD
+    K	: Natural;
+    DataLen	: Natural;
+    Data : <sTypeDefName>_XER_byte_array;
+end RECORD;
 
-
+procedure <sFuncName>(val:in <sTypeDefName>; Stream : OUT <sTypeDefName>_XER_Stream; result : OUT <rtlModuleName()>.ASN1_RESULT);
+procedure <sFuncName>_aux(<sVarName>:in <sTypeDefName>; S : in out <rtlModuleName()>.OctetBuffer; K : in out Natural; result : OUT <rtlModuleName()>.ASN1_RESULT)
+<soSparkAnnotations>;
 >>
 
-
-
-PrintTypeAssignment(sName, sInitBody, bContainsChoice) ::= <<
-FUNCTION <sName>_Init return <sName>
-IS <if(bContainsChoice)>--#hide <sName>_Init;<endif>
-BEGIN
-    RETURN <sInitBody>;
-END <sName>_Init;
+EmitTypeAssignment_def_decode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes, bEmptyEncodingSpace, nMaxBytesInXER, soSparkAnnotations) ::= <<
+<arrsErrcodes; separator="\n">
+procedure <sFuncName>(<sVarName>: out <sTypeDefName>; Stream : IN <sTypeDefName>_XER_Stream; result : OUT <rtlModuleName()>.ASN1_RESULT);
+procedure <sFuncName>_aux(<sVarName>: out <sTypeDefName>; S : in <rtlModuleName()>.OctetBuffer; K : in out <rtlModuleName()>.DECODE_PARAMS; result : OUT <rtlModuleName()>.ASN1_RESULT)
+<soSparkAnnotations>;
 >>
 
-/*
- *****************************************************************************************
-               E Q U A L I T Y     F U N C T I O N S
- *****************************************************************************************
- */
-PrimitiveEqual(p1,p2) ::= <<
+TasEncodeMain(sVarName, sFuncName, sTypeDefName) ::= /*nogen*/<<
+procedure <sFuncName>(<sVarName>:in <sTypeDefName>; Stream : OUT <sTypeDefName>_XER_Stream; result : OUT <rtlModuleName()>.ASN1_RESULT)
+IS
 begin
-    return <p1> = <p2>;
+    Stream := <sTypeDefName>_XER_Stream'(K => 0, DataLen => 0, Data => <sTypeDefName>_XER_byte_array'(others => 0));
+    <sFuncName>_aux(<sVarName>, Stream.Data, Stream.DataLen, result);
+end <sFuncName>;
 >>
 
-
-isEqual_Integer(p1, p2) ::= <<
-begin
-    return <p1> = <p2>;
->>
-
-
-isEqual_Real(p1, p2) ::= <<
-begin
-    return Asn1Real_Equal(<p1>, <p2>);
->>
-
-
-isEqual_IA5String(p1, p2) ::= <<
-begin
-    return <p1> = <p2>;
->>
-
-
-isEqual_NumericString(p1, p2) ::= <<
-begin
-    return <p1> = <p2>;
->>
-
-
-isEqual_OctetString(p1, p2, bFixedSize, nFixedSize) ::= <<
-<if(!bFixedSize)>
-    subtype Slice is Natural range 1 .. <p1>.Length;
-begin
-    return (<p1>.Length = <p2>.Length and then <p1>.Data(Slice) = <p2>.Data(Slice));
-<else>
-begin
-    return <p1>.Data(<p1>.Data'Range) = <p2>.Data(<p2>.Data'Range);
-<endif>	
->>
-
-
-isEqual_NullType() ::= <<
-begin
-    return True;
->>
-
-
-isEqual_BitString(p1,p2,bFixedSize,nFixedSize) ::= <<
-<isEqual_OctetString(p1=p1,p2=p2, bFixedSize=bFixedSize, nFixedSize=nFixedSize)>
->>
-
-isEqual_Boolean(p1, p2) ::= <<
-begin
-    return <p1> = <p2>;
->>
-
-
-isEqual_Enumerated(p1, p2) ::= <<
-begin
-    return <p1> = <p2>;
->>
-
-
-isEqual_SequenceOf(p1,p2, i, bIsFixedSize, nFixedSize, sInnerType, sInnerTypeName) ::= <<
-<if(!bIsFixedSize)>
-    subtype Slice is Natural range 1 .. <p1>.Length;
-begin
-    return (<p1>.Length = <p2>.Length and then (for all I in Slice => <sInnerTypeName>_Equal(<p1>.Data(I), <p2>.Data(I))));
-<else>
-begin
-    return (for all I in <p1>.Data'Range => <sInnerTypeName>_Equal(<p1>.Data(I), <p2>.Data(I)));
-<endif>	
->>
-
-
-isEqual_Choice_Child(p1, p2, sCid, sAsn1Id, sInnerType, sTasName, sInnerTypeName) ::= <<
-(if <sTasName>_kind(<p1>) = <sCid> then
- <sInnerTypeName>_Equal(<sTasName>_<sAsn1Id>_get(<p1>), <sTasName>_<sAsn1Id>_get(<p2>)) else False)
->>
-
-
-isEqual_Choice(p1,p2, arrsChildren, sTasName) ::= <<
-begin
-    return <sTasName>_kind(<p1>) = <sTasName>_kind(<p2>) and then
-    (<arrsChildren; separator=" or \n">);
-
->>
-
-
-isEqual_Sequence_Child(p1, p2, bIsOptional, sChName, sInnerTypeName) ::= <<
-<if(bIsOptional)>
-(if <p1>.Exist.<sChName> = 1 then (<p2>.Exist.<sChName> = 1 and <sInnerTypeName>_Equal(<p1>.<sChName>, <p2>.<sChName>)) else (<p2>.Exist.<sChName> = 0))
-<else>
-<sInnerTypeName>_Equal(<p1>.<sChName>, <p2>.<sChName>)
-<endif>
->>
-
-
-isEqual_Sequence(p1, p2, arrsChildren) ::= <<
-begin
-    return <if(arrsChildren)><arrsChildren; separator=" and "><else>true<endif>;
->>
-
-
-isEqual_ReferenceType(sPtr1, sPtr2, sName) ::= <<
-begin
-    return <sName>_Equal(<sPtr1>, <sPtr2>);
->>
-
-
-PrintTypeAssignment_Equal(sName, sBody, arrsLocalVariables) ::= <<
-function <sName>_Equal(val1, val2: in <sName>) return Boolean
+EmitTypeAssignment_encode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitilialExp) ::= <<
+procedure <sFuncName>_aux(<sVarName>:in <sTypeDefName>; S : in out <rtlModuleName()>.OctetBuffer; K : in out Natural; result : OUT <rtlModuleName()>.ASN1_RESULT)
 is
-<sBody>
-end <sName>_Equal;
+    <arrsLocalVariables; separator="\n">
+begin
+    <if(soIValidFuncName)>
+    result := <soIValidFuncName>(<sVarName>);
+    if result.success THEN
+        <sContent>
+    end if;
+    <else>
+    result := <rtlModuleName()>.ASN1_RESULT'(Success => true, ErrorCode => 0);
+    <sContent>
+    <endif>
+end <sFuncName>_aux;
+
+<TasEncodeMain(sVarName=sVarName, sFuncName=sFuncName, sTypeDefName=sTypeDefName)>
 >>
+
+TasDecodeMain(sVarName, sFuncName, sTypeDefName, sInitilialExp) ::= /*nogen*/<<
+procedure <sFuncName>(<sVarName>:out <sTypeDefName>; Stream : IN <sTypeDefName>_XER_Stream; result : OUT <rtlModuleName()>.ASN1_RESULT)
+IS
+    iter:<rtlModuleName()>.DECODE_PARAMS;
+begin
+    iter := <rtlModuleName()>.DECODE_PARAMS'(K => 0, DataLen => Stream.DataLen);
+    --<sVarName> := <sInitilialExp>;
+    <sFuncName>_aux(<sVarName>, Stream.Data, iter, result);
+    result.Success := result.Success AND iter.K\<=iter.DataLen;
+end <sFuncName>;
+>>
+EmitTypeAssignment_decode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitilialExp) ::= <<
+pragma Warnings (Off, "unused initial value of ""val""");
+procedure <sFuncName>_aux(<sVarName>: out <sTypeDefName>; S : in <rtlModuleName()>.OctetBuffer; K : in out <rtlModuleName()>.DECODE_PARAMS; result : OUT <rtlModuleName()>.ASN1_RESULT)
+IS
+    <arrsLocalVariables; separator="\n">
+begin
+    <sContent>
+end <sFuncName>_aux;
+pragma Warnings (On, "unused initial value of ""val""");
+<TasDecodeMain(sVarName=sVarName, sFuncName=sFuncName, sTypeDefName=sTypeDefName, sInitilialExp=sInitilialExp)>
+>>
+
+
+
+Integer_encode(p, sTag, nLevel, soCheckExp, sErrCode) ::= <<
+Xer_EncodeInteger(Strm, "<sTag>", <p>, result, <nLevel>);
+result.ErrorCode := <sErrCode>;
+>>
+
+Integer_decode(p, sTag, nLevel, soCheckExp, sErrCode) ::= <<
+Xer_DecodeInteger(Strm, "<sTag>", <p>, result);
+result := <rtlModuleName()>.ASN1_RESULT'(Success => result.Success <if(soCheckExp)>and then (<soCheckExp>)<endif>, ErrorCode => <sErrCode>);
+>>
+
+
+IntegerPos_encode(p, sTag, nLevel, soCheckExp, sErrCode) ::= <<
+Xer_EncodePosInteger(Strm, "<sTag>", <p>, result, <nLevel>);
+result.ErrorCode := <sErrCode>;
+>>
+
+IntegerPos_decode(p, sTag, nLevel, soCheckExp, sErrCode) ::= <<
+Xer_DecodePosInteger(Strm, "<sTag>", <p>, result);
+result := <rtlModuleName()>.ASN1_RESULT'(Success => result.Success <if(soCheckExp)>and then (<soCheckExp>)<endif>, ErrorCode => <sErrCode>);
+>>
+
+
+Boolean_encode(p, sTag, nLevel, soCheckExp, sErrCode) ::= <<
+Xer_EncodeBoolean(Strm, "<sTag>", <p>, result, <nLevel>);
+result.ErrorCode := <sErrCode>;
+>>
+
+
+Boolean_decode(p, sTag, nLevel, soCheckExp, sErrCode) ::= <<
+Xer_DecodeBoolean(Strm, "<sTag>", <p>, result);
+result := <rtlModuleName()>.ASN1_RESULT'(Success => result.Success <if(soCheckExp)>and then (<soCheckExp>)<endif>, ErrorCode => <sErrCode>);
+>>
+
+Real_encode(p, sTag, nLevel, soCheckExp, sErrCode) ::= <<
+Xer_EncodeReal(Strm, "<sTag>", <p>, result, <nLevel>);
+result.ErrorCode := <sErrCode>;
+>>
+
+Real_decode(p, sTag, nLevel, soCheckExp, sErrCode) ::= <<
+Xer_DecodeReal(Strm, "<sTag>", <p>, result);
+result := <rtlModuleName()>.ASN1_RESULT'(Success => result.Success <if(soCheckExp)>and then (<soCheckExp>)<endif>, ErrorCode => <sErrCode>);
+>>
+
+String_encode(p, sTag, nLevel, soCheckExp, sErrCode) ::= <<
+Xer_EncodeString(Strm, "<sTag>", <p>, result, <nLevel>);
+result.ErrorCode := <sErrCode>;
+>>
+
+String_decode(p, sTag, nLevel, soCheckExp, sErrCode) ::= <<
+Xer_DecodeString(Strm, "<sTag>", <p>, result);
+result := <rtlModuleName()>.ASN1_RESULT'(Success => result.Success <if(soCheckExp)>and then (<soCheckExp>)<endif>, ErrorCode => <sErrCode>);
+>>
+
+
+Enumerated_item_encode(p, sTag, nLevel, sItemID, sXerValue, sErrCode, bFirst) ::= <<
+when <sItemID>    => 
+	Xer_EncodeEnumerated(Strm, "<sTag>", "<sXerValue>", pErrCode, <nLevel>);
+    result.ErrorCode := <sErrCode>;
+>>
+
+Enumerated_encode(p, sTag, nLevel, arrsItems, soCheckExp, sErrCode) ::= <<
+case <p> is 
+    <arrsItems; separator="\n">
+end case;
+>>
+
+
+Enumerated_item_decode(p, sTag, nLevel, sItemID, sXerValue, sErrCode, bFirst) ::= <<
+<if(!bFirst)>else <endif>if(strcmp(enmLabel,"<sXerValue>") == 0)
+    <p> = <sItemID>;
+>>
+
+Enumerated_decode(p, sTag, nLevel, arrsItems, soCheckExp, sErrCode) ::= <<
+declare
+	enmLabel : char [200];
+begin
+	ret = Xer_DecodeEnumerated(Strm, <sTag>, enmLabel, pErrCode);
+    if (ret) {
+        <arrsItems; separator="\n">
+	    else {
+		    *pErrCode = <sErrCode>;
+	    }
+    } else {
+        *pErrCode = <sErrCode>;
+    }
+
+end;
+>>
+
+
+
+OctetString_encode(p, sAcc, sTag, nLevel, nSizeMax, bIsFixedSize, soCheckExp, sErrCode) ::= <<
+ret = Xer_EncodeOctetString(pByteStrm, <sTag>, <p><sAcc>arr, <if(!bIsFixedSize)><p><sAcc>nCount<else><nSizeMax><endif>, pErrCode, <nLevel>);
+*pErrCode = ret ? 0 : <sErrCode>;
+>>
+
+OctetString_decode(p, sAcc, sTag, nLevel, nSizeMax, bIsFixedSize, soCheckExp, sErrCode) ::= <<
+ret = Xer_DecodeOctetString(pByteStrm, <sTag>, <p><sAcc>arr, <if(!bIsFixedSize)>&<p><sAcc>nCount<else>NULL<endif>, pErrCode);
+*pErrCode = (ret <if(soCheckExp)> && (<soCheckExp>)<endif>) ? 0 : <sErrCode>;
+>>
+
+
+BitString_encode(p, sAcc, sTag, nLevel, nSizeMax, bIsFixedSize, soCheckExp, sErrCode) ::= <<
+ret = Xer_EncodeBitString(pByteStrm, <sTag>, <p><sAcc>arr, <if(!bIsFixedSize)><p><sAcc>nCount<else><nSizeMax><endif>, pErrCode, <nLevel>);
+*pErrCode = ret ? 0 : <sErrCode>;
+>>
+
+BitString_decode(p, sAcc, sTag, nLevel, nSizeMax, bIsFixedSize, soCheckExp, sErrCode) ::= <<
+ret = Xer_DecodeBitString(pByteStrm, <sTag>, <p><sAcc>arr, <if(!bIsFixedSize)>&<p><sAcc>nCount<else>NULL<endif>, pErrCode);
+*pErrCode = (ret <if(soCheckExp)> && (<soCheckExp>)<endif>) ? 0 : <sErrCode>;
+>>
+

@@ -82,6 +82,7 @@ let private printUnit (r:DAst.AstRoot) (l:ProgrammingLanguage) (encodings: Commo
     
     let requiresUPER = encodings |> Seq.exists ( (=) Asn1Encoding.UPER)
     let requiresAcn = encodings |> Seq.exists ( (=) Asn1Encoding.ACN)
+    let requiresXER = encodings |> Seq.exists ( (=) Asn1Encoding.XER)
 
     //header file
     //let typeDefs = tases |> List.choose(fun t -> t.getTypeDefinition l)
@@ -107,6 +108,9 @@ let private printUnit (r:DAst.AstRoot) (l:ProgrammingLanguage) (encodings: Commo
             let uPerEncFunc = match requiresUPER with true -> tas.Type.uperEncFunction.funcDef | false -> None
             let uPerDecFunc = match requiresUPER with true -> tas.Type.uperDecFunction.funcDef | false -> None
 
+            let xerEncFunc = match requiresXER with true -> tas.Type.xerEncFunction.funcDef | false -> None
+            let xerDecFunc = match requiresXER with true -> tas.Type.xerDecFunction.funcDef | false -> None
+
             let acnEncFunc = 
                 match requiresAcn, tas.Type.acnEncFunction with 
                 | true, Some x -> x.funcDef
@@ -116,7 +120,7 @@ let private printUnit (r:DAst.AstRoot) (l:ProgrammingLanguage) (encodings: Commo
                 | true, Some x -> x.funcDef
                 | _ -> None 
 
-            let allProcs = equal_defs@([init_def;isValid;uPerEncFunc;uPerDecFunc;acnEncFunc; acnDecFunc] |> List.choose id)
+            let allProcs = equal_defs@([init_def;isValid;uPerEncFunc;uPerDecFunc;acnEncFunc; acnDecFunc;xerEncFunc;xerDecFunc] |> List.choose id)
             match l with
             |C     -> header_c.Define_TAS type_defintion allProcs 
             |Ada   -> header_a.Define_TAS type_defintion allProcs 
@@ -179,6 +183,8 @@ let private printUnit (r:DAst.AstRoot) (l:ProgrammingLanguage) (encodings: Commo
                 for tas in tases do
                     if r.args.encodings |> Seq.exists ((=) CommonTypes.UPER) then
                         yield (tas.Type.uperEncDecTestFunc |> Option.map (fun z -> z.funcDef))
+                    if r.args.encodings |> Seq.exists ((=) CommonTypes.XER) then
+                        yield (tas.Type.xerEncDecTestFunc |> Option.map (fun z -> z.funcDef))
                     if r.args.encodings |> Seq.exists ((=) CommonTypes.ACN) then
                         yield (tas.Type.acnEncDecTestFunc |> Option.map (fun z -> z.funcDef))
                 } |> Seq.choose id |> Seq.toList
@@ -207,6 +213,15 @@ let private printUnit (r:DAst.AstRoot) (l:ProgrammingLanguage) (encodings: Commo
                     | CommonTypes.Encode    -> t.Type.uperEncFunction.func
                     | CommonTypes.Decode    -> t.Type.uperDecFunction.func
                 | false -> None
+
+            let xerEncDec codec         =  
+                match requiresXER with
+                | true  ->
+                    match codec with
+                    | CommonTypes.Encode    -> t.Type.xerEncFunction.func
+                    | CommonTypes.Decode    -> t.Type.xerDecFunction.func
+                | false -> None
+
             let ancEncDec codec         = 
                 match requiresAcn with
                 | true ->
@@ -214,7 +229,7 @@ let private printUnit (r:DAst.AstRoot) (l:ProgrammingLanguage) (encodings: Commo
                     | CommonTypes.Encode    -> match t.Type.acnEncFunction with None -> None | Some x -> x.func
                     | CommonTypes.Decode    -> match t.Type.acnDecFunction with None -> None | Some x -> x.func
                 | false     -> None
-            let allProcs =  eqFuncs@([initialize; isValid;(uperEncDec CommonTypes.Encode); (uperEncDec CommonTypes.Decode);(ancEncDec CommonTypes.Encode); (ancEncDec CommonTypes.Decode)] |> List.choose id)
+            let allProcs =  eqFuncs@([initialize; isValid;(uperEncDec CommonTypes.Encode); (uperEncDec CommonTypes.Decode);(ancEncDec CommonTypes.Encode); (ancEncDec CommonTypes.Decode);(xerEncDec CommonTypes.Encode); (xerEncDec CommonTypes.Decode)] |> List.choose id)
             match l with
             | C     ->  body_c.printTass allProcs 
             | Ada   ->  body_a.printTass allProcs )
@@ -251,6 +266,8 @@ let private printUnit (r:DAst.AstRoot) (l:ProgrammingLanguage) (encodings: Commo
                 
                     if r.args.encodings |> Seq.exists ((=) CommonTypes.UPER) then
                         yield (tas.Type.uperEncDecTestFunc |> Option.map (fun z -> z.func))
+                    if r.args.encodings |> Seq.exists ((=) CommonTypes.XER) then
+                        yield (tas.Type.xerEncDecTestFunc |> Option.map (fun z -> z.func))
                     if r.args.encodings |> Seq.exists ((=) CommonTypes.ACN) then
                         yield (tas.Type.acnEncDecTestFunc |> Option.map (fun z -> z.func))
                 } |> Seq.choose id |> Seq.toList
@@ -356,7 +373,7 @@ let CreateTestSuiteFile (r:AstRoot) (l:ProgrammingLanguage) outDir vasName =
         | true, BER   -> generate_dat_file modName sTasName encAmper (GetEncodingString enc) "Byte"
         | true, uPER  -> generate_dat_file modName sTasName encAmper (GetEncodingString enc) "Bit"
 
-    let PrintTestCase (v:ValueAssignment) (m:Asn1Module) (sTasName : string)  (idx :int) initFuncName (uperEncDecTestFunc  : EncodeDecodeTestFunc option) (acnEncDecTestFunc   : EncodeDecodeTestFunc option) =
+    let PrintTestCase (v:ValueAssignment) (m:Asn1Module) (sTasName : string)  (idx :int) initFuncName (uperEncDecTestFunc  : EncodeDecodeTestFunc option) (xerEncDecTestFunc  : EncodeDecodeTestFunc option) (acnEncDecTestFunc   : EncodeDecodeTestFunc option) =
         let modName = ToC m.Name.Value
         let encAmper, initAmper = gAmber v.Type
         let sValue = DAstVariables.printValue r l  v.Type None v.Value.kind
@@ -374,11 +391,14 @@ let CreateTestSuiteFile (r:AstRoot) (l:ProgrammingLanguage) outDir vasName =
                                             match acnEncDecTestFunc with
                                             | Some _    -> call_codec modName sTasName encAmper (GetEncodingString e) sValue sTestCaseIndex (ToC v.Name.Value) bStatic (GetDatFile e) initFuncName initAmper
                                             | _         -> ""
-                                        | Asn1Encoding.XER   -> call_codec modName sTasName encAmper (GetEncodingString e) sValue sTestCaseIndex (ToC v.Name.Value) bStatic (GetDatFile e) initFuncName initAmper
+                                        | Asn1Encoding.XER   -> 
+                                            match xerEncDecTestFunc with
+                                            | Some _    -> call_codec modName sTasName encAmper (GetEncodingString e) sValue sTestCaseIndex (ToC v.Name.Value) bStatic (GetDatFile e) initFuncName initAmper
+                                            | _         -> ""
                                         | Asn1Encoding.BER   -> call_codec modName sTasName encAmper (GetEncodingString e) sValue sTestCaseIndex (ToC v.Name.Value) bStatic (GetDatFile e) initFuncName initAmper
                                  ) |> Seq.StrJoin "\n\n"
     
-    let PrintTestCase2 (initStatement:String) (m:Asn1Module) (t:Asn1Type) (sTasName : string)  (idx :int) initFuncName (uperEncDecTestFunc  : EncodeDecodeTestFunc option) (acnEncDecTestFunc   : EncodeDecodeTestFunc option) =
+    let PrintTestCase2 (initStatement:String) (m:Asn1Module) (t:Asn1Type) (sTasName : string)  (idx :int) initFuncName (uperEncDecTestFunc  : EncodeDecodeTestFunc option) (xerEncDecTestFunc  : EncodeDecodeTestFunc option) (acnEncDecTestFunc   : EncodeDecodeTestFunc option) =
         let modName = ToC m.Name.Value
         let encAmper, initAmper = gAmber t
         let bStatic = match t.ActualType.Kind with Integer _ | Enumerated(_) -> false | _ -> true
@@ -398,7 +418,9 @@ let CreateTestSuiteFile (r:AstRoot) (l:ProgrammingLanguage) outDir vasName =
                                             | _         -> ""
                                         | Asn1Encoding.XER   -> 
                                             let sTestCaseIndex = idx.ToString()
-                                            call_codec2 modName sTasName encAmper (GetEncodingString e) initStatement sTestCaseIndex sTestCaseIndex bStatic "" initFuncName initAmper
+                                            match xerEncDecTestFunc with
+                                            | Some _    ->  call_codec2 modName sTasName encAmper (GetEncodingString e) initStatement sTestCaseIndex sTestCaseIndex bStatic "" initFuncName initAmper
+                                            | _         -> ""
                                         | Asn1Encoding.BER   -> 
                                             let sTestCaseIndex = idx.ToString()
                                             call_codec2 modName sTasName encAmper (GetEncodingString e) initStatement sTestCaseIndex sTestCaseIndex bStatic "" initFuncName initAmper
@@ -413,7 +435,7 @@ let CreateTestSuiteFile (r:AstRoot) (l:ProgrammingLanguage) outDir vasName =
                         if vasName = "ALL" || v.Name.Value = vasName then
                             idx <- idx + 2
                             let initFuncName = v.Type.initFunction.initFuncName
-                            let aaa = PrintTestCase v m (getTypeDecl r (ToC m.Name.Value) l v )  idx initFuncName v.Type.uperEncDecTestFunc v.Type.acnEncDecTestFunc
+                            let aaa = PrintTestCase v m (getTypeDecl r (ToC m.Name.Value) l v )  idx initFuncName v.Type.uperEncDecTestFunc v.Type.xerEncDecTestFunc v.Type.acnEncDecTestFunc
                             yield (aaa, [])
                 if vasName = "ALL" then
                     for t in m.TypeAssignments do
@@ -430,7 +452,7 @@ let CreateTestSuiteFile (r:AstRoot) (l:ProgrammingLanguage) outDir vasName =
                                 let initStatement = func p
                                 idx <- idx + 2
                                 let initFuncName = t.Type.initFunction.initFuncName
-                                let ret = PrintTestCase2 initStatement.funcBody m t.Type (ToC2(r.args.TypePrefix + t.Name.Value) ) idx initFuncName t.Type.uperEncDecTestFunc t.Type.acnEncDecTestFunc
+                                let ret = PrintTestCase2 initStatement.funcBody m t.Type (ToC2(r.args.TypePrefix + t.Name.Value) ) idx initFuncName t.Type.uperEncDecTestFunc t.Type.xerEncDecTestFunc t.Type.acnEncDecTestFunc
                                 yield (ret, initStatement.localVariables)
                                 
         }  |>  Seq.toList |> List.unzip

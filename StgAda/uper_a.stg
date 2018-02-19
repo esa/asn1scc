@@ -218,7 +218,7 @@ Null_decode(p) ::= <<
 Boolean_encode(p, sErrCode) ::= "<rtlModuleName()>.UPER_Enc_Boolean(S, K, <p>);"
 
 Boolean_decode(p, sErrCode) ::= <<
-result.ErrorCode := <rtlModuleName()>.ERR_INSUFFICIENT_DATA;
+result.ErrorCode := <sErrCode>;
 <rtlModuleName()>.UPER_Dec_boolean(S, K, <p>, result.Success);
 >>
 

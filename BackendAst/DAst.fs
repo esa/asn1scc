@@ -263,6 +263,22 @@ type AcnFuncBodyResult = {
     localVariables      : LocalVariable list
 }
 
+type XERFuncBodyResult = {
+    funcBody            : string
+    errCodes            : ErroCode list
+    localVariables      : LocalVariable list
+    encodingSizeInBytes : int
+}
+
+type XerFunction = {
+    funcName            : string option               // the name of the function
+    func            : string option               // the body of the function
+    funcDef             : string option               // function definition in header file
+    encodingSizeInBytes : int
+    funcBody            : ErroCode -> CallerScope -> string -> (XERFuncBodyResult option)            //p, XmlTag,   returns a list of encoding/decoding statements
+}
+
+
 type AcnFunction = {
     funcName            : string option               // the name of the function. Valid only for TASes)
     func                : string option               // the body of the function
@@ -298,8 +314,12 @@ type Integer = {
     uperDecFunction     : UPerFunction
     acnEncFunction      : AcnFunction
     acnDecFunction      : AcnFunction
+    xerEncFunction      : XerFunction
+    xerDecFunction      : XerFunction
+
     uperEncDecTestFunc  : EncodeDecodeTestFunc option
     acnEncDecTestFunc   : EncodeDecodeTestFunc option
+    xerEncDecTestFunc   : EncodeDecodeTestFunc option
 
     automaticTestCasesValues     : Asn1Value list
 
@@ -322,8 +342,11 @@ type Enumerated = {
     uperDecFunction     : UPerFunction
     acnEncFunction      : AcnFunction
     acnDecFunction      : AcnFunction
+    xerEncFunction      : XerFunction
+    xerDecFunction      : XerFunction
     uperEncDecTestFunc  : EncodeDecodeTestFunc option
     acnEncDecTestFunc   : EncodeDecodeTestFunc option
+    xerEncDecTestFunc   : EncodeDecodeTestFunc option
 
     automaticTestCasesValues     : Asn1Value list
 }
@@ -347,8 +370,11 @@ type Real = {
     uperDecFunction     : UPerFunction
     acnEncFunction      : AcnFunction
     acnDecFunction      : AcnFunction
+    xerEncFunction      : XerFunction
+    xerDecFunction      : XerFunction
     uperEncDecTestFunc  : EncodeDecodeTestFunc option
     acnEncDecTestFunc   : EncodeDecodeTestFunc option
+    xerEncDecTestFunc   : EncodeDecodeTestFunc option
 
     automaticTestCasesValues     : Asn1Value list
 }
@@ -371,8 +397,11 @@ type Boolean = {
     uperDecFunction     : UPerFunction
     acnEncFunction      : AcnFunction
     acnDecFunction      : AcnFunction
+    xerEncFunction      : XerFunction
+    xerDecFunction      : XerFunction
     uperEncDecTestFunc  : EncodeDecodeTestFunc option
     acnEncDecTestFunc   : EncodeDecodeTestFunc option
+    xerEncDecTestFunc   : EncodeDecodeTestFunc option
 
     automaticTestCasesValues     : Asn1Value list
 }
@@ -394,8 +423,11 @@ type NullType = {
     uperDecFunction     : UPerFunction
     acnEncFunction      : AcnFunction
     acnDecFunction      : AcnFunction
+    xerEncFunction      : XerFunction
+    xerDecFunction      : XerFunction
     uperEncDecTestFunc  : EncodeDecodeTestFunc option
     acnEncDecTestFunc   : EncodeDecodeTestFunc option
+    xerEncDecTestFunc   : EncodeDecodeTestFunc option
 }
 
 
@@ -416,8 +448,11 @@ type StringType = {
     uperDecFunction     : UPerFunction
     acnEncFunction      : AcnFunction
     acnDecFunction      : AcnFunction
+    xerEncFunction      : XerFunction
+    xerDecFunction      : XerFunction
     uperEncDecTestFunc  : EncodeDecodeTestFunc option
     acnEncDecTestFunc   : EncodeDecodeTestFunc option
+    xerEncDecTestFunc   : EncodeDecodeTestFunc option
 
     automaticTestCasesValues     : Asn1Value list
 }
@@ -441,8 +476,11 @@ type OctetString = {
     uperDecFunction     : UPerFunction
     acnEncFunction      : AcnFunction
     acnDecFunction      : AcnFunction
+    xerEncFunction      : XerFunction
+    xerDecFunction      : XerFunction
     uperEncDecTestFunc  : EncodeDecodeTestFunc option
     acnEncDecTestFunc   : EncodeDecodeTestFunc option
+    xerEncDecTestFunc   : EncodeDecodeTestFunc option
 
     automaticTestCasesValues     : Asn1Value list
 }
@@ -466,8 +504,11 @@ type BitString = {
     uperDecFunction     : UPerFunction
     acnEncFunction      : AcnFunction
     acnDecFunction      : AcnFunction
+    xerEncFunction      : XerFunction
+    xerDecFunction      : XerFunction
     uperEncDecTestFunc  : EncodeDecodeTestFunc option
     acnEncDecTestFunc   : EncodeDecodeTestFunc option
+    xerEncDecTestFunc   : EncodeDecodeTestFunc option
 
     automaticTestCasesValues     : Asn1Value list
 }
@@ -491,8 +532,11 @@ type SequenceOf = {
     uperDecFunction     : UPerFunction
     acnEncFunction      : AcnFunction
     acnDecFunction      : AcnFunction
+    xerEncFunction      : XerFunction
+    xerDecFunction      : XerFunction
     uperEncDecTestFunc  : EncodeDecodeTestFunc option
     acnEncDecTestFunc   : EncodeDecodeTestFunc option
+    xerEncDecTestFunc   : EncodeDecodeTestFunc option
 
     automaticTestCasesValues     : Asn1Value list
 }
@@ -568,8 +612,11 @@ and Sequence = {
     //
     acnEncFunction      : AcnFunction
     acnDecFunction      : AcnFunction
+    xerEncFunction      : XerFunction
+    xerDecFunction      : XerFunction
     uperEncDecTestFunc  : EncodeDecodeTestFunc option
     acnEncDecTestFunc   : EncodeDecodeTestFunc option
+    xerEncDecTestFunc   : EncodeDecodeTestFunc option
 
     automaticTestCasesValues     : Asn1Value list
 }
@@ -611,8 +658,11 @@ and Choice = {
     uperDecFunction     : UPerFunction
     acnEncFunction      : AcnFunction
     acnDecFunction      : AcnFunction
+    xerEncFunction      : XerFunction
+    xerDecFunction      : XerFunction
     uperEncDecTestFunc  : EncodeDecodeTestFunc option
     acnEncDecTestFunc   : EncodeDecodeTestFunc option
+    xerEncDecTestFunc   : EncodeDecodeTestFunc option
 
     automaticTestCasesValues     : Asn1Value list
 }
@@ -634,8 +684,11 @@ and ReferenceType = {
     uperDecFunction     : UPerFunction
     acnEncFunction      : AcnFunction
     acnDecFunction      : AcnFunction
+    xerEncFunction      : XerFunction
+    xerDecFunction      : XerFunction
     uperEncDecTestFunc  : EncodeDecodeTestFunc option
     acnEncDecTestFunc   : EncodeDecodeTestFunc option
+    xerEncDecTestFunc   : EncodeDecodeTestFunc option
 
     automaticTestCasesValues     : Asn1Value list
 }
