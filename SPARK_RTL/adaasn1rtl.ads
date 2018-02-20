@@ -1332,61 +1332,6 @@ package adaasn1rtl with
       Result                       :    out ASN1_RESULT);
 
    function milbus_encode (IntVal : in Asn1Int) return Asn1Int;
-    function milbus_decode (IntVal : in Asn1Int) return Asn1Int;
-
-
-
-    -------------- XER ENCODING ------------------------------------------------
-   SUBTYPE XString IS String;
-
-
-
-   TYPE CharStream (N: Integer) IS
-   RECORD
-      CurrentByte : Natural :=1;
-      Data       : XString  (1 .. N) := (1..N => Character'Val(0));
-      EncodeWhiteSpace : Boolean := False;
-   END RECORD;
-
-
-
-   PROCEDURE Xer_EncodeXmlHeader(Strm :IN OUT CharStream; XmlHeader:IN XString; Result :OUT ASN1_RESULT);
-   PROCEDURE Xer_EncodeComment(Strm :IN OUT CharStream; comment:IN XString; Result :OUT ASN1_RESULT);
-
-   PROCEDURE Xer_EncodeInteger(Strm :IN OUT CharStream; elementTag:IN XString; value: IN Asn1Int; Result :OUT ASN1_RESULT; level: IN Integer);
-   PROCEDURE Xer_EncodeBoolean(Strm :IN OUT CharStream; elementTag:IN XString; value: IN Asn1Boolean; Result :OUT ASN1_RESULT; level: IN Integer);
-   PROCEDURE Xer_EncodeEnumerated(Strm :IN OUT CharStream; elementTag:IN XString; value: IN XString; Result :OUT ASN1_RESULT; level: IN Integer);
-   PROCEDURE Xer_EncodeReal(Strm :IN OUT CharStream; elementTag:IN XString; value: IN Asn1Real; Result :OUT ASN1_RESULT; level: IN Integer);
-   PROCEDURE Xer_EncodeString(Strm :IN OUT CharStream; elementTag:IN XString; value: IN XString; Result :OUT ASN1_RESULT; level: IN Integer);
-   PROCEDURE Xer_EncodeOctetString(Strm :IN OUT CharStream; elementTag:IN XString;
-                                   value: IN OctetBuffer; len: IN Integer; Result :OUT ASN1_RESULT; level: IN Integer);
-   PROCEDURE Xer_EncodeBitString(Strm :IN OUT CharStream; elementTag:IN XString;
-                                 value: IN BitArray; len: IN Integer; Result :OUT ASN1_RESULT; level: IN Integer);
-
-   PROCEDURE Xer_DecodeInteger(Strm :IN OUT CharStream; elementTag:IN XString; value: OUT Asn1Int; Result :OUT ASN1_RESULT);
-   PROCEDURE Xer_DecodeBoolean(Strm :IN OUT CharStream; elementTag:IN XString; value: OUT Asn1Boolean; Result :OUT ASN1_RESULT);
-   PROCEDURE Xer_DecodeEnumerated(Strm :IN OUT CharStream; elementTag:IN XString; value: OUT XString; Result :OUT ASN1_RESULT);
-   PROCEDURE Xer_DecodeReal(Strm :IN OUT CharStream; elementTag:IN XString; value: OUT Asn1Real; Result :OUT ASN1_RESULT);
-   PROCEDURE Xer_DecodeString(Strm :IN OUT CharStream; elementTag:IN XString; value: OUT XString; Result :OUT ASN1_RESULT);
-   PROCEDURE Xer_DecodeOctetString(Strm :IN OUT CharStream; elementTag:IN XString;
-                                   value: OUT OctetBuffer; len: OUT Integer; Result :OUT ASN1_RESULT);
-   PROCEDURE Xer_DecodeBitString(Strm :IN OUT CharStream; elementTag:IN XString;
-                                 value: OUT BitArray; len: OUT Integer; Result :OUT ASN1_RESULT);
-
-
-
-   PROCEDURE Xer_EncodeComplexElementStart(Strm :IN OUT CharStream; elementTag:IN XString;  Result :OUT ASN1_RESULT; level: IN Integer);
-   PROCEDURE Xer_EncodeComplexElementEnd(Strm :IN OUT CharStream; elementTag:IN XString; Result :OUT ASN1_RESULT; level: IN Integer);
-   PROCEDURE Xer_DecodeComplexElementStart(Strm :IN OUT CharStream; elementTag:IN XString; Result :OUT ASN1_RESULT);
-   PROCEDURE Xer_DecodeComplexElementEnd(Strm :IN OUT CharStream; elementTag:IN XString; Result :OUT ASN1_RESULT);
-
-   FUNCTION Xer_NextEndElementIs(Strm :IN CharStream; elementTag:IN XString) return Asn1Boolean;
-   FUNCTION Xer_NextStartElementIs(Strm :IN CharStream; elementTag:IN XString) return Asn1Boolean;
-   PROCEDURE Xer_LA_NextElementTag(Strm :IN CharStream; elementTag:OUT XString; Result :OUT ASN1_RESULT);
-
-   PROCEDURE LoadXmlFile(fileName:IN XString; Strm : OUT CharStream; BytesLoaded : OUT INTEGER; success: OUT Boolean);
-
-
-
+   function milbus_decode (IntVal : in Asn1Int) return Asn1Int;
 
 end adaasn1rtl;

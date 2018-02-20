@@ -166,6 +166,11 @@ let exportRTL outDir  (l:DAst.ProgrammingLanguage) (args:CommandLineSettings)=
                 writeTextFile (Path.Combine(outDir, "gnat.cfg"))    (rm.GetString("gnat",null)) 
                 writeTextFile (Path.Combine(outDir, "runSpark.sh"))    (rm.GetString("run",null)) 
                 writeTextFile (Path.Combine(outDir, "GPS_project.gpr"))    (rm.GetString("GPS_project",null)) 
+                match args.encodings |> Seq.exists ((=) Asn1Encoding.XER) with
+                | true  -> 
+                    writeTextFile (Path.Combine(outDir, "xer_rtl.adb")) (rm.GetString("xer_rtl_adb",null)) 
+                    writeTextFile (Path.Combine(outDir, "xer_rtl.ads")) (rm.GetString("xer_rtl_ads",null)) 
+                | false -> ()
 
 let main0 argv =
     let parser = ArgumentParser.Create<CliArguments>(programName = "Asn1f4.exe")
