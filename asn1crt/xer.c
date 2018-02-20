@@ -45,7 +45,7 @@ char* UInt2String(asn1SccUint v) {
 char* Double2String(double v) {
     static char tmp[256];
     char* pos1 = NULL;
-    sprintf(tmp,"%#.12E",v);
+    sprintf(tmp,"%#.24E",v);
 
     pos1 = strchr(tmp,'+');
     if (pos1!=NULL) {

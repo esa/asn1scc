@@ -275,7 +275,8 @@ type XerFunction = {
     func            : string option               // the body of the function
     funcDef             : string option               // function definition in header file
     encodingSizeInBytes : int
-    funcBody            : ErroCode -> CallerScope -> string -> (XERFuncBodyResult option)            //p, XmlTag,   returns a list of encoding/decoding statements
+    funcBody            : CallerScope -> string -> (XERFuncBodyResult option)
+    funcBody_e          : ErroCode -> CallerScope -> string -> (XERFuncBodyResult option)            //p, XmlTag,   returns a list of encoding/decoding statements
 }
 
 

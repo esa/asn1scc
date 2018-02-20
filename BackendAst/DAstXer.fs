@@ -8,11 +8,29 @@ open CommonTypes
 open DAst
 open DAstUtilFunctions
 
+let rec XerTag (t:Asn1AcnAst.Asn1Type) (r:Asn1AcnAst.AstRoot) =
+    match (Asn1AcnAstUtilFunctions.GetActualType t r).Kind with
+    | Asn1AcnAst.Enumerated(_) | Asn1AcnAst.Choice(_) | Asn1AcnAst.Boolean _  -> ""
+    | _     ->
+        match t.Kind with
+        | Asn1AcnAst.ReferenceType ref    -> ref.tasName.Value
+        | Asn1AcnAst.Integer _            -> "INTEGER"
+        | Asn1AcnAst.BitString _          -> "BIT-STRING"
+        | Asn1AcnAst.OctetString _        -> "OCTET-STRING"
+        | Asn1AcnAst.Boolean      _       -> ""
+        | Asn1AcnAst.Choice(_)            -> ""
+        | Asn1AcnAst.Enumerated(_)        -> ""
+        | Asn1AcnAst.IA5String     _      -> "IA5String"
+        | Asn1AcnAst.NumericString  _     -> "NumericString"
+        | Asn1AcnAst.NullType _           -> "NULL"
+        | Asn1AcnAst.Real      _          -> "REAL"
+        | Asn1AcnAst.Sequence(_)          -> "SEQUENCE"
+        | Asn1AcnAst.SequenceOf(_)        -> "SEQUENCE-OF"
 
 let getFuncName (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage)  (codec:CommonTypes.Codec) (typeDefinition:TypeDefintionOrReference) =
     getFuncNameGeneric  typeDefinition ("_XER" + codec.suffix)
 
-let createXerFunction_any (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (typeDefinition:TypeDefintionOrReference) (isValidFunc: IsValidFunction option) xerFuncBody  soSparkAnnotations (us:State)  =
+let createXerFunction_any (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (typeDefinition:TypeDefintionOrReference) (isValidFunc: IsValidFunction option) xerFuncBody_e  soSparkAnnotations (us:State)  =
 
     let emitTypeAssignment      = match l with C -> xer_c.EmitTypeAssignment    | Ada -> xer_c.EmitTypeAssignment
     let emitTypeAssignment_def  = match l with C -> xer_c.EmitTypeAssignment_def    | Ada -> xer_a.EmitTypeAssignment_def
@@ -26,13 +44,14 @@ let createXerFunction_any (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec:
     let sInitilialExp = ""
     let errCodeName         = ToC ("ERR_XER" + (codec.suffix.ToUpper()) + "_" + ((t.id.AcnAbsPath |> Seq.skip 1 |> Seq.StrJoin("-")).Replace("#","elm")))
     let defaultErrCode, ns = getNextValidErrorCode us errCodeName
+    let xerFuncBody = (xerFuncBody_e defaultErrCode)
 
     let  xerFunc, xerFuncDef, encodingSizeInBytes  = 
         match funcName  with
         | None              -> None, None, 0
         | Some funcName     -> 
             let asn1TasName = typeDefinition.getAsn1Name r.args.TypePrefix
-            let xerBdResultOpt : XERFuncBodyResult option= xerFuncBody defaultErrCode p  asn1TasName
+            let xerBdResultOpt : XERFuncBodyResult option= xerFuncBody_e defaultErrCode p  asn1TasName
 
             let bodyResult_funcBody, errCodes,  bodyResult_localVariables, encodingSizeInBytes = 
                 match xerBdResultOpt with
@@ -53,6 +72,7 @@ let createXerFunction_any (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec:
             func                       = xerFunc
             funcDef                    = xerFuncDef
             encodingSizeInBytes        = encodingSizeInBytes
+            funcBody_e                 = xerFuncBody_e
             funcBody                   = xerFuncBody
         }
     ret, ns
@@ -111,7 +131,9 @@ let createRealFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec:Com
     createXerFunction_any r l codec t typeDefinition  isValidFunc  funcBody  soSparkAnnotations us
 
 let createNullTypeFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.NullType) (typeDefinition:TypeDefintionOrReference)  (isValidFunc: IsValidFunction option) (us:State)  =
-    let funcBody (errCode:ErroCode) (p:CallerScope) (xmlTag:string) = None
+    let funcBody (errCode:ErroCode) (p:CallerScope) (xmlTag:string) = 
+        let totalSize = XER.getMaxSizeInBytesForXER xmlTag 0
+        Some {XERFuncBodyResult.funcBody = ""; errCodes= [errCode]; localVariables=[];encodingSizeInBytes=totalSize}
     let soSparkAnnotations = None
     createXerFunction_any r l codec t typeDefinition  isValidFunc  funcBody  soSparkAnnotations us
 
@@ -155,12 +177,33 @@ let createOctetStringFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (co
     createXerFunction_any r l codec t typeDefinition  isValidFunc  funcBody  soSparkAnnotations us
 
 let createBitStringFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.BitString) (typeDefinition:TypeDefintionOrReference)  (isValidFunc: IsValidFunction option) (us:State)  =
-    let funcBody (errCode:ErroCode) (p:CallerScope) (xmlTag:string) = None
+    let BitString = match l with C -> xer_c.BitString   | Ada -> xer_a.BitString
+    let funcBody (errCode:ErroCode) (p:CallerScope) (xmlTag:string) = 
+        let pp =  p.arg.getPointer l
+        let nLevel = BigInteger (t.id.AcnAbsPath.Length - 2)
+        let contentSize = XER.getMaxSizeInBytesForXER_BitString o.maxSize
+        let totalSize = XER.getMaxSizeInBytesForXER xmlTag contentSize
+        let bodyStm = BitString pp (p.arg.getAcces l) xmlTag nLevel o.maxSize.AsBigInt (o.minSize=o.maxSize) (checkExp isValidFunc p) errCode.errCodeName codec
+        Some {XERFuncBodyResult.funcBody = bodyStm; errCodes= [errCode]; localVariables=[];encodingSizeInBytes=totalSize}
     let soSparkAnnotations = None
     createXerFunction_any r l codec t typeDefinition  isValidFunc  funcBody  soSparkAnnotations us
 
 let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.SequenceOf) (typeDefinition:TypeDefintionOrReference)  (isValidFunc: IsValidFunction option) (child:Asn1Type) (us:State)  =
-    let funcBody (errCode:ErroCode) (p:CallerScope) (xmlTag:string) = None
+    let SequenceOf = match l with C -> xer_c.SequenceOf   | Ada -> xer_c.SequenceOf
+    let funcBody (errCode:ErroCode) (p:CallerScope) (xmlTag:string) = 
+        let ii = t.id.SeqeuenceOfLevel + 1
+        let i = sprintf "i%d" ii
+        let lv = SequenceOfIndex (t.id.SeqeuenceOfLevel + 1, None)
+        let pp =  p.arg.getPointer l
+        let nLevel = BigInteger (t.id.AcnAbsPath.Length - 2)
+        let childTag = XerTag o.child r
+        let chFunc = child.getXerFunction codec
+        let internalItem =  chFunc.funcBody ({p with arg = p.arg.getArrayItem l i child.isIA5String}) childTag
+        let internalItem_str, chLocalVars, chErrCodes, chSize = match internalItem with Some x -> x.funcBody, x.localVariables, x.errCodes, x.encodingSizeInBytes | None -> "",[],[],0
+        let contentSize = o.maxSize * chSize
+        let totalSize = XER.getMaxSizeInBytesForXER xmlTag contentSize
+        let bodyStm = SequenceOf pp (p.arg.getAcces l) xmlTag nLevel i o.maxSize.AsBigInt internalItem_str (o.minSize=o.maxSize) (checkExp isValidFunc p) errCode.errCodeName codec
+        Some {XERFuncBodyResult.funcBody = bodyStm; errCodes= errCode::chErrCodes; localVariables=lv::chLocalVars;encodingSizeInBytes=totalSize}
     let soSparkAnnotations = None
     createXerFunction_any r l codec t typeDefinition  isValidFunc  funcBody  soSparkAnnotations us
 

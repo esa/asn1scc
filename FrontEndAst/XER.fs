@@ -8,26 +8,6 @@ open Asn1Fold
 
 
 
-let rec XerTag (t:Asn1Type) (r:AstRoot) =
-    match (GetActualType t r).Kind with
-    | Enumerated(_) | Choice(_) | Boolean _  -> ""
-    | _     ->
-        match t.Kind with
-        | ReferenceType ref    -> ref.tasName.Value
-        | Integer              -> "INTEGER"
-        | BitString _          -> "BIT-STRING"
-        | OctetString _        -> "OCTET-STRING"
-        | Boolean      _       -> ""
-        | Choice(_)            -> ""
-        | Enumerated(_)        -> ""
-        | IA5String     _      -> "IA5String"
-        | NumericString  _     -> "NumericString"
-        | NullType _           -> "NULL"
-        | Real      _          -> "REAL"
-        | Sequence(_)          -> "SEQUENCE"
-        | SequenceOf(_)        -> "SEQUENCE-OF"
-
-
 
 let private aux (s:string) = 2 * (s.Length + 1) + 1
 

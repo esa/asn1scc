@@ -163,7 +163,47 @@ ret = Xer_DecodeBitString(pByteStrm, "<sTag>", <p><sAcc>arr, <nSizeMax>, <if(!bI
 
 
 
+SequenceOf_encode(p, sAcc, sTag, nLevel, sI, nSizeMax, sChildBody, bFixedSize, soCheckExp, sErrCode) ::= <<
+/* SEQUENCE OF Encode*/
+ret = Xer_EncodeComplexElementStart(pByteStrm, "<sTag>", NULL, pErrCode, <nLevel>);
+*pErrCode = ret ? 0 : <sErrCode>;
+if (ret) {
+    for(<sI>=0;((<sI> \< <if(!bFixedSize)><p><sAcc>nCount<else><nSizeMax><endif>) && ret);<sI>++) 
+    {
+	    <sChildBody>
+    }
+    if (ret) {
+        ret = Xer_EncodeComplexElementEnd(pByteStrm, "<sTag>", pErrCode, <nLevel>);
+        *pErrCode = ret ? 0 : <sErrCode>;
+    }
+}
+>>
 
+
+SequenceOf_decode(p, sAcc, sTag, nLevel, sI, nSizeMax, sChildBody, bFixedSize, soCheckExp, sErrCode) ::= <<
+/* SEQUENCE OF Decode*/
+ret = Xer_DecodeComplexElementStart(pByteStrm, "<sTag>", NULL, pErrCode);
+if (ret) {
+    <if(!bFixedSize)><p><sAcc>nCount = 0;<endif>
+    <sI> = 0;
+    while(ret && !Xer_NextEndElementIs(pByteStrm, "<sTag>"))
+    {
+	    <sChildBody>
+	    <sI>++;
+	    <if(!bFixedSize)><p><sAcc>nCount++;<endif>
+    }
+    if (ret) {
+        ret = Xer_DecodeComplexElementEnd(pByteStrm, "<sTag>", pErrCode);
+    }
+}
+<if(bFixedSize)>
+*pErrCode = (ret && <sI> == <nSizeMax>) ? 0 : <sErrCode>;
+
+<else>
+*pErrCode = (ret <if(soCheckExp)> && (<soCheckExp>)<endif>) ? 0 : <sErrCode>;
+
+<endif>
+>>
 
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -306,38 +346,8 @@ if (ret) {
 >>
 
 
-SequenceOf_encode(p, sTag, nLevel, sI, sCount, sChildBody, bFixedSize) ::= <<
-/* SEQUENCE OF Encode*/
-ret = Xer_EncodeComplexElementStart(pByteStrm, <sTag>, NULL, pErrCode, <nLevel>);
-if (ret) {
-    for(<sI>=0;((<sI>\<<sCount>) && ret);<sI>++) 
-    {
-	    <sChildBody>
-    }
-    if (ret) {
-        ret = Xer_EncodeComplexElementEnd(pByteStrm, <sTag>, pErrCode, <nLevel>);
-    }
-}
->>
 
 
-SequenceOf_decode(p, sTag, nLevel, sI, sCount, sChildBody, bFixedSize) ::= <<
-/* SEQUENCE OF Decode*/
-ret = Xer_DecodeComplexElementStart(pByteStrm, <sTag>, NULL, pErrCode);
-if (ret) {
-    <if(!bFixedSize)><sCount> = 0;<endif>
-    <sI> = 0;
-    while(ret && !Xer_NextEndElementIs(pByteStrm, <sTag>))
-    {
-	    <sChildBody>
-	    <sI>++;
-	    <if(!bFixedSize)><sCount>++;<endif>
-    }
-    if (ret) {
-        ret = Xer_DecodeComplexElementEnd(pByteStrm, <sTag>, pErrCode);
-    }
-}
->>
 
 
 

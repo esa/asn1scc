@@ -478,9 +478,13 @@ let CreateTestSuiteFile (r:AstRoot) (l:ProgrammingLanguage) outDir vasName =
 
 let generateVisualStudtioProject (r:DAst.AstRoot) outDir =
     //generate Visual Studio project file
+    let extrSrcFiles, extrHdrFiles = 
+        match r.args.encodings |> List.exists ((=) Asn1Encoding.XER) with
+        | false     -> [],[]
+        | true      -> ["xer.c"],["xer.h"]
     let vcprjContent = xml_outputs.emitVisualStudioProject 
-                        (r.programUnits |> List.map (fun z -> z.bodyFileName))
-                        (r.programUnits |> List.map (fun z -> z.specFileName))
+                        ((r.programUnits |> List.map (fun z -> z.bodyFileName))@extrSrcFiles)
+                        ((r.programUnits |> List.map (fun z -> z.specFileName))@extrHdrFiles)
                         (r.programUnits |> List.map (fun z -> z.tetscase_bodyFileName))
                         (r.programUnits |> List.map (fun z -> z.tetscase_specFileName))
     let vcprjFileName = Path.Combine(outDir, "VsProject.vcxproj")
