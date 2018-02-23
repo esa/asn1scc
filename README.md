@@ -127,7 +127,7 @@ the test run are then executed inside the Docker image.
 Needless to say, the Docker image can be used for development as well;
 simply execute...
 
-    docker build -t asn1scc 
+    docker build -t asn1scc .    # Don't forget the dot!
 
 ...and your Docker install will build an "asn1scc" Docker image, pre-setup
 with all the build-time dependencies to compile ASN1SCC and run its 
