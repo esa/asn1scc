@@ -9,24 +9,6 @@ open Asn1Fold
 
 
 
-let private aux (s:string) = 2 * (s.Length + 1) + 1
-
-let getMaxSizeInBytesForXER_boolean ()  =  aux "False"
-let getMaxSizeInBytesForXER_Integer ()  =  System.Int64.MinValue.ToString().Length
-let getMaxSizeInBytesForXER_Enumerated (itemNames : string list) =
-    let maxName = itemNames |>  Seq.max
-    aux maxName
-let getMaxSizeInBytesForXER_BitString   maxSize = maxSize * 8
-let getMaxSizeInBytesForXER_OctetString maxSize = maxSize * 2
-let getMaxSizeInBytesForXER_Real        = 50
-let getMaxSizeInBytesForXER_NullType    = 0
-let getMaxSizeInBytesForXER_IA5String   maxSize = maxSize
-let getMaxSizeInBytesForXER_NumericString   maxSize = maxSize
-
-let getMaxSizeInBytesForXER  (xmlTag:string) contentSize =
-    match xmlTag with
-    | null  -> contentSize
-    | _     -> (2 * (xmlTag.Length + 2)) + 1 + contentSize
 
 (*
 let rec GetMaxSizeInBytesForXER (t:Asn1Type) (xmlTag:string) (r:AstRoot) =

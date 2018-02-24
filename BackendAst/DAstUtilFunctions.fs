@@ -966,7 +966,7 @@ let hasXerEncodeFunction (encFunc : XerFunction option)  =
     | Some fnc ->
             let p = {CallerScope.modName = ""; arg = VALUE "dummy"}
             let errCode = {ErroCode.errCodeName = "DUMMY_ERR"; errCodeValue=0}
-            match fnc.funcBody_e errCode p "dummy"  with
+            match fnc.funcBody_e errCode p None  with
             | None   -> false
             | Some _ -> true
 

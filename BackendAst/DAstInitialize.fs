@@ -195,7 +195,7 @@ let createOctetStringInitFunc (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:
                 anonymousValues |> 
                 List.map(fun iv ->
                     let retFunc (p:CallerScope) =
-                        let ret = sprintf "%s%s%s;" p.arg.p l.AssignOperator iv.valueName
+                        let ret = sprintf "%s%s%s;" (p.arg.getValue l) l.AssignOperator iv.valueName
                         {InitFunctionResult.funcBody = ret; localVariables=[]}
                     retFunc)
             ret, ret.Head
@@ -257,7 +257,7 @@ let createBitStringInitFunc (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:As
                 anonymousValues |> 
                 List.map(fun iv ->
                     let retFunc (p:CallerScope) =
-                        let ret = sprintf "%s%s%s;" p.arg.p l.AssignOperator iv.valueName
+                        let ret = sprintf "%s%s%s;" (p.arg.getValue l) l.AssignOperator iv.valueName
                         {InitFunctionResult.funcBody = ret; localVariables=[]}
                     retFunc)
             ret, ret.Head
@@ -358,11 +358,13 @@ let createSequenceInitFunc (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn
     let initSequence_optionalChild  = match l with C -> init_c.initSequence_optionalChild | Ada -> init_a.initSequence_optionalChild
     let initTestCase_sequence_child = match l with C -> init_c.initTestCase_sequence_child | Ada -> init_a.initTestCase_sequence_child
     let initTestCase_sequence_child_opt = match l with C -> init_c.initTestCase_sequence_child_opt | Ada -> init_a.initTestCase_sequence_child_opt
+    let dummy =
+        let aaa = typeDefinition.longTypedefName l
+        match aaa = "MySuperSeqOf_elem" with
+        | true  -> 1
+        | false -> 0
+
     let funcBody (p:CallerScope) v = 
-        let dummy =
-            match (typeDefinition.longTypedefName l) = "MyPDU" with
-            | true  -> 1
-            | false -> 0
 
         let childrenRet = 
             match v with
@@ -435,20 +437,23 @@ let createSequenceInitFunc (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn
                 let rest = generateCases  xs
                 let childCases  = 
                     let ths =  handleChild  x1 
-                    seq {
-                        for i1 in ths do   
-                            match rest with
-                            | []    ->  yield i1
-                            | _     ->
-                                for lst in rest do
-                                    let combineFnc (p:CallerScope) = 
-                                        let partA = i1 p
-                                        let partB = lst p
-                                        let funcBody = [partA.funcBody; partB.funcBody] |> Seq.StrJoin "\n"
-                                        {InitFunctionResult.funcBody = funcBody; localVariables = partA.localVariables@partB.localVariables }
+                    match ths with
+                    | []    -> rest
+                    | _     ->
+                        seq {
+                            for i1 in ths do   
+                                match rest with
+                                | []    ->  yield i1
+                                | _     ->
+                                    for lst in rest do
+                                        let combineFnc (p:CallerScope) = 
+                                            let partA = i1 p
+                                            let partB = lst p
+                                            let funcBody = [partA.funcBody; partB.funcBody] |> Seq.StrJoin "\n"
+                                            {InitFunctionResult.funcBody = funcBody; localVariables = partA.localVariables@partB.localVariables }
                                     
-                                    yield combineFnc
-                        } |> Seq.toList
+                                        yield combineFnc
+                            } |> Seq.toList
                 childCases
         let tesCases = generateCases  asn1Children 
         tesCases 

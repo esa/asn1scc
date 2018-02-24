@@ -270,13 +270,17 @@ type XERFuncBodyResult = {
     encodingSizeInBytes : int
 }
 
+type XerTag =
+    | XerLiteralConstant   of string        //tagValue
+    | XerFunctionParameter of string*string //tagValue, prmName holding the tag value
+
 type XerFunction = {
     funcName            : string option               // the name of the function
     func            : string option               // the body of the function
     funcDef             : string option               // function definition in header file
     encodingSizeInBytes : int
-    funcBody            : CallerScope -> string -> (XERFuncBodyResult option)
-    funcBody_e          : ErroCode -> CallerScope -> string -> (XERFuncBodyResult option)            //p, XmlTag,   returns a list of encoding/decoding statements
+    funcBody            : CallerScope -> (XerTag option) -> (XERFuncBodyResult option)
+    funcBody_e          : ErroCode -> CallerScope -> (XerTag option) -> (XERFuncBodyResult option)            //p, XmlTag,   returns a list of encoding/decoding statements
 }
 
 
