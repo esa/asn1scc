@@ -955,3 +955,9 @@ v2out
 /mantis/0000733/backend_ast.xml
 /mantis/0000733/ast.xml
 /mantis/0000724/out
+/drawing.xml
+/mantis/0000579/context.asn1
+/mantis/0000579/dataview-uniq.asn1
+/v4Tests/test-cases/huge.acn
+/v4Tests/test-cases/huge.asn1
+/v4Tests/test_case.adb
