@@ -202,13 +202,49 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (cod
         let internalItem_str, chLocalVars, chErrCodes, chSize = match internalItem with Some x -> x.funcBody, x.localVariables, x.errCodes, x.encodingSizeInBytes | None -> "",[],[],0
         let contentSize = o.maxSize * chSize
         let totalSize = XER.getMaxSizeInBytesForXER xmlTag contentSize
-        let bodyStm = SequenceOf pp (p.arg.getAcces l) xmlTag nLevel i o.maxSize.AsBigInt internalItem_str (o.minSize=o.maxSize) (checkExp isValidFunc p) errCode.errCodeName codec
+        let bodyStm = SequenceOf p.arg.p (p.arg.getAcces l) xmlTag nLevel i o.maxSize.AsBigInt internalItem_str (o.minSize=o.maxSize) (checkExp isValidFunc p) errCode.errCodeName codec
         Some {XERFuncBodyResult.funcBody = bodyStm; errCodes= errCode::chErrCodes; localVariables=lv::chLocalVars;encodingSizeInBytes=totalSize}
     let soSparkAnnotations = None
     createXerFunction_any r l codec t typeDefinition  isValidFunc  funcBody  soSparkAnnotations us
 
 let createSequenceFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Sequence) (typeDefinition:TypeDefintionOrReference)  (isValidFunc: IsValidFunction option) (children:SeqChildInfo list) (us:State)  =
-    let funcBody (errCode:ErroCode) (p:CallerScope) (xmlTag:string) = None
+    let sequence_mandatory_child  = match l with C -> xer_c.Sequence_mandatory_child  | Ada -> xer_c.Sequence_mandatory_child
+    let sequence_optional_child   = match l with C -> xer_c.Sequence_optional_child   | Ada -> xer_c.Sequence_optional_child
+    let sequence_start            = match l with C -> xer_c.SEQUENCE_start            | Ada -> xer_c.SEQUENCE_start
+    let sequence_end              = match l with C -> xer_c.SEQUENCE_end              | Ada -> xer_c.SEQUENCE_end
+    let sequence                  = match l with C -> xer_c.SEQUENCE_xer              | Ada -> xer_c.SEQUENCE_xer
+    let nLevel = BigInteger (t.id.AcnAbsPath.Length - 2)
+
+    let funcBody (errCode:ErroCode) (p:CallerScope) (xmlTag:string) = 
+        let nonAcnChildren = children |> List.choose(fun c -> match c with Asn1Child c -> Some c | AcnChild _ -> None)
+        let startTag    = sequence_start xmlTag nLevel errCode.errCodeName codec
+        let endTag      = sequence_end xmlTag nLevel errCode.errCodeName codec
+
+        let handleChild (child:Asn1Child) =
+            let chFunc = child.Type.getXerFunction codec
+            let childContentResult = chFunc.funcBody ({p with arg = p.arg.getSeqChild l child.c_name child.Type.isIA5String}) child.Name.Value
+            match childContentResult with
+            | None              -> None
+            | Some childContent ->
+                let childBody = 
+                    match child.Optionality with
+                    | None                       ->  sequence_mandatory_child child.c_name childContent.funcBody child.Name.Value codec
+                    | Some _                     ->  sequence_optional_child p.arg.p (p.arg.getAcces l) child.c_name childContent.funcBody child.Name.Value codec
+                Some (childBody, childContent.localVariables, childContent.errCodes, childContent.encodingSizeInBytes)
+        
+        let childrenStatements0 = nonAcnChildren |> List.choose handleChild
+        let childrenStatements = childrenStatements0 |> List.map(fun (s,_,_,_)    -> s)
+        let childrenLocalvars = childrenStatements0 |> List.collect(fun (_,s,_,_) -> s)
+        let childrenErrCodes = childrenStatements0 |> List.collect(fun (_,_,s,_)  -> s)
+        let contentSize = childrenStatements0 |> List.map(fun (_,_,_,s)    -> s) |> List.fold (+) 0
+        let seqContent =  
+            let opt = (startTag::childrenStatements@[endTag]) |> DAstUPer.nestChildItems l codec 
+            match opt with
+            | Some x -> x
+            | None   -> ""
+        
+        let totalSize = XER.getMaxSizeInBytesForXER xmlTag contentSize
+        Some {XERFuncBodyResult.funcBody = seqContent; errCodes= errCode::childrenErrCodes; localVariables=childrenLocalvars;encodingSizeInBytes=totalSize}
     let soSparkAnnotations = None
     createXerFunction_any r l codec t typeDefinition  isValidFunc  funcBody  soSparkAnnotations us
 

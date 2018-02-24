@@ -468,18 +468,18 @@ let nestChildItems (l:ProgrammingLanguage) (codec:CommonTypes.Codec) children =
             | Some childrenCont    -> Some (printChild x  (Some childrenCont))
     printChildren children
 
-let createSequenceFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Sequence) (typeDefinition:TypeDefintionOrReference) (baseTypeUperFunc : UPerFunction option) (isValidFunc: IsValidFunction option) (children:SeqChildInfo list) (us:State)  =
+let createSequenceFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Sequence) (typeDefinition:TypeDefintionOrReference) (isValidFunc: IsValidFunction option) (children:SeqChildInfo list) (us:State)  =
     // stg macros
     let sequence_presence_bit       = match l with C -> uper_c.sequence_presence_bit        | Ada -> uper_a.sequence_presence_bit
     let sequence_presence_bit_fix   = match l with C -> uper_c.sequence_presence_bit_fix    | Ada -> uper_a.sequence_presence_bit_fix
     let sequence_mandatory_child    = match l with C -> uper_c.sequence_mandatory_child     | Ada -> uper_a.sequence_mandatory_child
     let sequence_optional_child     = match l with C -> uper_c.sequence_optional_child      | Ada -> uper_a.sequence_optional_child
     let sequence_default_child      = match l with C -> uper_c.sequence_default_child       | Ada -> uper_a.sequence_default_child
-    let baseFuncName =  match baseTypeUperFunc  with None -> None | Some baseFunc -> baseFunc.funcName
+    //let baseFuncName =  match baseTypeUperFunc  with None -> None | Some baseFunc -> baseFunc.funcName
 
     let funcBody (errCode:ErroCode) (p:CallerScope) = 
-        match baseFuncName with
-        | None ->
+//        match baseFuncName with
+//        | None ->
             let nonAcnChildren = children |> List.choose(fun c -> match c with Asn1Child c -> Some c | AcnChild _ -> None)
             let localVariables =
                 match nonAcnChildren |> Seq.exists(fun x -> x.Optionality.IsSome) with
@@ -519,15 +519,15 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec
             match seqContent with
             | None  -> None
             | Some ret -> Some ({UPERFuncBodyResult.funcBody = ret; errCodes = errCode::childrenErrCodes; localVariables = localVariables@childrenLocalvars})    
-        | Some baseFuncName ->
-            let funcBodyContent = callBaseTypeFunc l (p.arg.getPointer l) baseFuncName codec
-            Some ({UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = []})
+//        | Some baseFuncName ->
+//            let funcBodyContent = callBaseTypeFunc l (p.arg.getPointer l) baseFuncName codec
+//            Some ({UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = []})
             
     let soSparkAnnotations = 
         match l with
         | C     -> None
         | Ada   -> None
-    createUperFunction r l codec t typeDefinition baseTypeUperFunc  isValidFunc  funcBody soSparkAnnotations  us
+    createUperFunction r l codec t typeDefinition None  isValidFunc  funcBody soSparkAnnotations  us
 
 
 

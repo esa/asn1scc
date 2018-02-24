@@ -206,6 +206,78 @@ if (ret) {
 >>
 
 
+/* SEQUENCE Start*/
+
+Sequence_mandatory_child_encode(sChName, sChildContent, sChildTag) ::= <<
+/*Encode <sChName> */
+<sChildContent>
+>>
+
+Sequence_mandatory_child_decode(sChName, sChildContent, sChildTag) ::= <<
+/*Decode <sChName> */
+ret = Xer_NextStartElementIs(pByteStrm, "<sChildTag>");
+if (ret) {
+	<sChildContent>
+}
+>>
+
+Sequence_optional_child_encode(p, sAcc, sChName, sChildContent, sChildTag) ::= <<
+/*Encode <sChName> */
+if (<p><sAcc>exist.<sChName>) {
+	<sChildContent>
+}
+>>
+
+Sequence_optional_child_decode(p, sAcc, sChName, sChildContent, sChildTag) ::= <<
+/*Decode <sChName> */
+<p><sAcc>exist.<sChName> = 0;
+if (Xer_NextStartElementIs(pByteStrm, "<sChildTag>")) {
+	<p><sAcc>exist.<sChName> = 1;
+	<sChildContent>
+}
+>>
+
+SEQUENCE_start_encode(sTag, nLevel, sErrCode) ::= <<
+ret = Xer_EncodeComplexElementStart(pByteStrm, "<sTag>", NULL, pErrCode, <nLevel>);
+*pErrCode = ret ? 0 : <sErrCode>;
+>>
+
+SEQUENCE_start_decode(sTag, nLevel, sErrCode) ::= <<
+ret = Xer_DecodeComplexElementStart(pByteStrm, "<sTag>", NULL, pErrCode);
+*pErrCode = ret ? 0 : <sErrCode>;
+>>
+
+
+SEQUENCE_end_encode(sTag, nLevel, sErrCode) ::= <<
+ret = Xer_EncodeComplexElementEnd(pByteStrm, "<sTag>", pErrCode, <nLevel>);
+*pErrCode = ret ? 0 : <sErrCode>;
+>>
+
+SEQUENCE_end_decode(sTag, nLevel, sErrCode) ::= <<
+ret = Xer_DecodeComplexElementEnd(pByteStrm, "<sTag>", pErrCode);
+*pErrCode = ret ? 0 : <sErrCode>;
+>>
+
+
+SEQUENCE_xer_encode(sChildren) ::= <<
+/* SEQUENCE Encode*/
+<sChildren>
+>>
+
+SEQUENCE_xer_decode(sChildren) ::= <<
+/* SEQUENCE Decode*/
+<sChildren>
+>>
+
+
+
+
+
+
+
+
+
+
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -344,72 +416,6 @@ if (ret) {
     ret = Xer_DecodeComplexElementEnd(pByteStrm, <sTag>, pErrCode);
 }
 >>
-
-
-
-
-
-
-
-/* SEQUENCE Start*/
-
-Sequence_mandatory_child_encode(sChName, sChildContent, sChildTag) ::= <<
-/*Encode <sChName> */
-<sChildContent>
->>
-
-Sequence_mandatory_child_decode(sChName, sChildContent, sChildTag) ::= <<
-/*Decode <sChName> */
-ret = Xer_NextStartElementIs(pByteStrm, "<sChildTag>");
-if (ret) {
-	<sChildContent>
-}
->>
-
-Sequence_optional_child_encode(p, sChName, sChildContent, sChildTag) ::= <<
-/*Encode <sChName> */
-if (<p>exist.<sChName>) {
-	<sChildContent>
-}
->>
-
-Sequence_optional_child_decode(p, sChName, sChildContent, sChildTag) ::= <<
-/*Decode <sChName> */
-<p>exist.<sChName> = 0;
-if (Xer_NextStartElementIs(pByteStrm, "<sChildTag>")) {
-	<p>exist.<sChName> = 1;
-	<sChildContent>
-}
->>
-
-SEQUENCE_start_encode(sTag, nLevel) ::= <<
-ret = Xer_EncodeComplexElementStart(pByteStrm, <sTag>, NULL, pErrCode, <nLevel>);
->>
-
-SEQUENCE_start_decode(sTag, nLevel) ::= <<
-ret = Xer_DecodeComplexElementStart(pByteStrm, <sTag>, NULL, pErrCode);
->>
-
-
-SEQUENCE_end_encode(sTag, nLevel) ::= <<
-ret = Xer_EncodeComplexElementEnd(pByteStrm, <sTag>, pErrCode, <nLevel>);
->>
-
-SEQUENCE_end_decode(sTag, nLevel) ::= <<
-ret = Xer_DecodeComplexElementEnd(pByteStrm, <sTag>, pErrCode);
->>
-
-
-SEQUENCE_xer_encode(sChildren) ::= <<
-/* SEQUENCE Encode*/
-<sChildren>
->>
-
-SEQUENCE_xer_decode(sChildren) ::= <<
-/* SEQUENCE Decode*/
-<sChildren>
->>
-
 
 
 

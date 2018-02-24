@@ -510,8 +510,8 @@ let private createSequence (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
             | AcnChild  _ -> None)
     let initFunction        = DAstInitialize.createSequenceInitFunc r l t o defOrRef children (SeqValue initialValue)
     let isValidFunction, s1     = DAstValidate.createSequenceFunction r l t o defOrRef children  us
-    let uperEncFunction, s2     = DAstUPer.createSequenceFunction r l Codec.Encode t o defOrRef None isValidFunction children s1
-    let uperDecFunction, s3     = DAstUPer.createSequenceFunction r l Codec.Decode t o defOrRef None isValidFunction children s2
+    let uperEncFunction, s2     = DAstUPer.createSequenceFunction r l Codec.Encode t o defOrRef isValidFunction children s1
+    let uperDecFunction, s3     = DAstUPer.createSequenceFunction r l Codec.Decode t o defOrRef isValidFunction children s2
     let acnEncFunction, s4      = DAstACN.createSequenceFunction r deps l Codec.Encode t o defOrRef  isValidFunction children newPrms s3
     let acnDecFunction, s5      = DAstACN.createSequenceFunction r deps l Codec.Decode t o defOrRef  isValidFunction children newPrms s4
     let uperEncDecTestFunc,s6         = EncodeDecodeTestCase.createUperEncDecFunction r l t defOrRef equalFunction isValidFunction (Some uperEncFunction) (Some uperDecFunction) s5
