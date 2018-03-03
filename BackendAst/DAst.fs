@@ -645,10 +645,16 @@ and ChChildInfo = {
     isValidBodyStats    : State -> (SeqChoiceChildInfoIsValid option * State)
 }
 
+and AcnChoiceEncClass =
+    | CEC_uper
+    | CEC_enum          of (Asn1AcnAst.ReferenceToEnumerated * Asn1AcnAst.Determinant)
+    | CEC_presWhen
+
+
 and Choice = {
     baseInfo            : Asn1AcnAst.Choice
     children            : ChChildInfo list
-
+    ancEncClass         : AcnChoiceEncClass
     //DAst properties
     constraintsAsn1Str  : string list   //an ASN.1 representation of the constraints
     //baseTypeEquivalence: BaseTypesEquivalence<Choice>
@@ -814,25 +820,12 @@ type ProgramUnit = {
 
 
 type AstRoot = {
-    Files: Asn1File list
+    Files        : Asn1File list
+    deps         :Asn1AcnAst.AcnInsertedFieldDependencies
     acnConstants : Map<string, BigInteger>
-    args:CommandLineSettings
+    args         : CommandLineSettings
     programUnits : ProgramUnit list
     lang         : ProgrammingLanguage
+    acnParseResults:ParameterizedAsn1Ast.AntlrParserResult list //used in ICDs to regenerate with collors the initial ACN input
 }
-
-(*
-type AstRoot = {
-    Files                   : Asn1File list
-    args                    : CommandLineSettings
-    //valsMap                 : Map<ReferenceToValue, Asn1GenericValue>
-    typesMap                : Map<ReferenceToType, Asn1Type>
-    TypeAssignments         : Asn1Type list
-    ValueAssignments        : Asn1GenericValue list
-    programUnits            : ProgramUnit list
-    acnConstants            : Map<string, BigInteger>
-    acnLinks                : AcnLink list
-}
-*)
-
 

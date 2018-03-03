@@ -1376,4 +1376,4 @@ let private mergeFile (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (f:Asn1Ast.Asn1File) :
 let mergeAsn1WithAcnAst (asn1:Asn1Ast.AstRoot) (acnParseResults:ParameterizedAsn1Ast.AntlrParserResult list) : AstRoot=
     let acn = CreateAcnAst acnParseResults
     let files = asn1.Files |> List.map (mergeFile asn1 acn)
-    {AstRoot.Files = files; args = asn1.args; acnConstants = acn.acnConstants}
+    {AstRoot.Files = files; args = asn1.args; acnConstants = acn.acnConstants; acnParseResults=acnParseResults}

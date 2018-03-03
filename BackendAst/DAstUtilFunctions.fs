@@ -346,21 +346,7 @@ type ChChildInfo with
             | Some (ReferenceToExistingDefinition r) when r.programUnit.IsSome -> r.programUnit.Value + "." + ((ToC this._present_when_name_private) + "_PRESENT")
             | _       -> (ToC this._present_when_name_private) + "_PRESENT"
 
-type SeqChildInfo with
-    member this.acnInsertetField =
-        match this with
-        | Asn1Child _    -> false
-        | AcnChild _     -> true
-
-    member this.Name =
-        match this with
-        | Asn1Child x    -> x.Name.Value
-        | AcnChild x     -> x.Name.Value
-
-    member this.Optionality =
-        match this with
-        | Asn1Child x    -> x.Optionality
-        | AcnChild x     -> None
+        
 
 
 type Asn1AcnAst.NamedItem      with
@@ -939,6 +925,35 @@ type Asn1Value with
             ToC2(longName.Replace("#","elem").L1)
 
 
+
+type SeqChildInfo with
+    member this.acnInsertetField =
+        match this with
+        | Asn1Child _    -> false
+        | AcnChild _     -> true
+
+    member this.Name =
+        match this with
+        | Asn1Child x    -> x.Name.Value
+        | AcnChild x     -> x.Name.Value
+
+    member this.Optionality =
+        match this with
+        | Asn1Child x    -> x.Optionality
+        | AcnChild x     -> None
+    member this.acnMaxSizeInBits =
+        match this with
+        | Asn1Child x    -> x.Type.acnMaxSizeInBits
+        | AcnChild x     -> x.Type.acnMaxSizeInBits
+    member this.acnMinSizeInBits =
+        match this with
+        | Asn1Child x    -> x.Type.acnMinSizeInBits
+        | AcnChild x     -> x.Type.acnMinSizeInBits
+    member this.Comments =
+        match this with
+        | Asn1Child x    -> x.Comments
+        | AcnChild x     -> [||]
+
 let hasAcnEncodeFunction (encFunc : AcnFunction option) acnParameters  =
     match encFunc with
     | None  -> false
@@ -1012,3 +1027,4 @@ let getFuncNameGeneric2 (typeDefinition:TypeDefintionOrReference) =
 //            match typeDefinition with
 //            | ReferenceToExistingDefinition  refEx  -> None
 //            | TypeDefinition   td                   -> Some (td.typedefName)
+

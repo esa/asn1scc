@@ -76,7 +76,7 @@ let constructAst (args:CommandLineSettings) =
     let uniqueEnumNamesAst = EnsureUniqueEnumNames.DoWork asn1Ast0 
 
     (*
-        - Updates ASN.1 AST with ASN.1 information
+        - Updates ASN.1 AST with ACN information
         - Creates the expanded tree (i.e reference types are now resolved)
     *)
     let acnAst = AcnCreateFromAntlr.mergeAsn1WithAcnAst uniqueEnumNamesAst acnParseTrees

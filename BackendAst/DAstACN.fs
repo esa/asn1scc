@@ -439,7 +439,7 @@ let createNullTypeFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec
 
 
 let getExternaField0 (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) asn1TypeIdWithDependency func1 =
-    let dependencies = deps.acnDependencies |> List.filter(fun d -> d.asn1Type = asn1TypeIdWithDependency && func1 d )
+    //let dependencies = deps.acnDependencies |> List.filter(fun d -> d.asn1Type = asn1TypeIdWithDependency && func1 d )
     let dependency = deps.acnDependencies |> List.find(fun d -> d.asn1Type = asn1TypeIdWithDependency && func1 d )
     let rec resolveParam (prmId:ReferenceToType) =
         let nodes = match prmId with ReferenceToType nodes -> nodes
@@ -1021,10 +1021,6 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
     createAcnFunction r l codec t typeDefinition  isValidFunc  funcBody soSparkAnnotations  us
 
 
-type private AcnChoiceEncClass =
-    | CEC_uper
-    | CEC_enum          of Asn1AcnAst.ReferenceToEnumerated
-    | CEC_presWhen
 
 let createChoiceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (l:ProgrammingLanguage) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Choice) (typeDefinition:TypeDefintionOrReference) (defOrRef:TypeDefintionOrReference) (isValidFunc: IsValidFunction option) (children:ChChildInfo list) (acnPrms:AcnParameter list)  (us:State)  =
     let choice_uper          =  match l with C -> acn_c.Choice                | Ada -> acn_a.Choice  
@@ -1050,7 +1046,7 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
         | Some _            -> 
             let dependency = deps.acnDependencies |> List.find(fun d -> d.asn1Type = t.id)
             match dependency.dependencyKind with
-            | Asn1AcnAst.AcnDepChoiceDeteterminant (enm,_)  -> CEC_enum enm
+            | Asn1AcnAst.AcnDepChoiceDeteterminant (enm,_)  -> CEC_enum (enm, dependency.determinant)
             | _                                         -> raise(BugErrorException("unexpected dependency type"))
         | None              ->
             match children |> Seq.exists(fun c -> not (Seq.isEmpty c.acnPresentWhenConditions)) with
@@ -1098,7 +1094,7 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
                             match ec with
                             | CEC_uper  -> 
                                 Some (choiceChild p.arg.p (p.arg.getAcces l) (child.presentWhenName (Some defOrRef) l) (BigInteger idx) nIndexSizeInBits nMax childContent.funcBody sChildName sChildTypeDef sChoiceTypeName codec)
-                            | CEC_enum enm -> 
+                            | CEC_enum (enm,_) -> 
                                 let getDefOrRef (a:Asn1AcnAst.ReferenceToEnumerated) =
                                     match p.modName = a.modName with
                                     | true  -> ReferenceToExistingDefinition {ReferenceToExistingDefinition.programUnit = None; typedefName = ToC (r.args.TypePrefix + a.tasName)}
@@ -1142,7 +1138,7 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
         match l with
         | C     -> None
         | Ada   -> None
-    createAcnFunction r l codec t typeDefinition  isValidFunc  funcBody soSparkAnnotations  us
+    createAcnFunction r l codec t typeDefinition  isValidFunc  funcBody soSparkAnnotations  us, ec
 
 let createReferenceFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.ReferenceType) (typeDefinition:TypeDefintionOrReference) (isValidFunc: IsValidFunction option) (baseType:Asn1Type) (us:State)  =
     match codec with

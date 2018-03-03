@@ -556,8 +556,8 @@ let private createChoice (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
     let isValidFunction, s1     = DAstValidate.createChoiceFunction r l t o defOrRef defOrRef children None us
     let uperEncFunction, s2     = DAstUPer.createChoiceFunction r l Codec.Encode t o  defOrRef None isValidFunction children s1
     let uperDecFunction, s3     = DAstUPer.createChoiceFunction r l Codec.Decode t o  defOrRef None isValidFunction children s2
-    let acnEncFunction, s4      = DAstACN.createChoiceFunction r deps l Codec.Encode t o defOrRef defOrRef isValidFunction children newPrms  s3
-    let acnDecFunction, s5      = DAstACN.createChoiceFunction r deps l Codec.Decode t o defOrRef defOrRef isValidFunction children newPrms  s4
+    let (acnEncFunction, s4),ec      = DAstACN.createChoiceFunction r deps l Codec.Encode t o defOrRef defOrRef isValidFunction children newPrms  s3
+    let (acnDecFunction, s5),_      = DAstACN.createChoiceFunction r deps l Codec.Decode t o defOrRef defOrRef isValidFunction children newPrms  s4
     let uperEncDecTestFunc,s6         = EncodeDecodeTestCase.createUperEncDecFunction r l t defOrRef equalFunction isValidFunction (Some uperEncFunction) (Some uperDecFunction) s5
     let acnEncDecTestFunc ,s7         = EncodeDecodeTestCase.createAcnEncDecFunction r l t defOrRef equalFunction isValidFunction (Some acnEncFunction) (Some acnDecFunction) s6
     let automaticTestCasesValues      = EncodeDecodeTestCase.ChoiceAutomaticTestCaseValues r t o children |> List.mapi (fun i x -> createAsn1ValueFromValueKind t i (ChValue x)) 
@@ -586,6 +586,7 @@ let private createChoice (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
             automaticTestCasesValues = automaticTestCasesValues
             constraintsAsn1Str = DAstAsn1.createChoiceFunction r t o children
             xerEncDecTestFunc   = xerEncDecTestFunc
+            ancEncClass         = ec
         }
     ((Choice ret),newPrms), s10
 
@@ -796,5 +797,7 @@ let DoWork (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies)
         args = r.args
         programUnits = DAstProgramUnit.createProgramUnits r.args files l
         lang = l
+        acnParseResults = r.acnParseResults
+        deps    = deps
     }
 

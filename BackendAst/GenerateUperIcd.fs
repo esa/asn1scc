@@ -89,31 +89,47 @@ let GetWhyExplanation (stgFileName:string) (t:Asn1Type) (r:AstRoot) =
         | _                             -> ""
     | _         -> ""
 
+type StgCommentLineMacros = {
+    NewLine                 : string -> unit -> string
+    EmitEnumItem            : string -> string -> BigInteger -> string
+    EmitEnumItemWithComment : string -> string -> BigInteger -> string -> string
+    EmitEnumInternalContents: string -> seq<string> -> string
+}
 
-let rec printType (stgFileName:string) (m:Asn1Module) (tas:TypeAssignment) (t:Asn1Type) (r:AstRoot)  color =
-    let GetCommentLine (comments:string array) (t:Asn1Type) =
-        let singleComment = comments |> Seq.StrJoin (icd_uper.NewLine stgFileName ()) 
+let GetCommentLineFactory (stgFileName:string) (stgs:StgCommentLineMacros) =
+    let GetCommentLine  (comments:string array) (t:Asn1Type) =
+        let singleComment = comments |> Seq.StrJoin (stgs.NewLine stgFileName ()) 
         let ret = 
             match (t.ActualType).Kind with
             | Enumerated  enum ->
                 let EmitItem (n:Asn1AcnAst.NamedItem) =
                     let comment =  n.Comments |> Seq.StrJoin "\n"
                     match comment.Trim() with
-                    | ""        ->    icd_uper.EmitEnumItem stgFileName n.Name.Value n.definitionValue
-                    | _         ->    icd_uper.EmitEnumItemWithComment stgFileName n.Name.Value n.definitionValue comment
+                    | ""        ->    stgs.EmitEnumItem stgFileName n.Name.Value n.definitionValue
+                    | _         ->    stgs.EmitEnumItemWithComment stgFileName n.Name.Value n.definitionValue comment
                 let itemsHtml = 
                     enum.baseInfo.items |> 
                         List.filter(fun z -> 
                             let v = z.Name.Value
                             Asn1Fold.isValidValueGeneric enum.AllCons (=) v ) |>
-                        List.map EmitItem
-                let extraComment = icd_uper.EmitEnumInternalContents stgFileName itemsHtml
+                        List.map EmitItem 
+                let extraComment = stgs.EmitEnumInternalContents stgFileName (itemsHtml :> string seq)
                 match singleComment.Trim() with
                 | ""    -> extraComment
-                | _     -> singleComment + (icd_uper.NewLine stgFileName ()) + extraComment
+                | _     -> singleComment + (stgs.NewLine stgFileName ()) + extraComment
             | _                 -> singleComment
         let ret = ret.Replace("/*","").Replace("*/","").Replace("--","")
         ret.Trim()
+    GetCommentLine
+
+let rec printType (stgFileName:string) (m:Asn1Module) (tas:TypeAssignment) (t:Asn1Type) (r:AstRoot)  color =
+    let enumStg = {
+        NewLine                  = icd_uper.NewLine                 
+        EmitEnumItem             = icd_uper.EmitEnumItem            
+        EmitEnumItemWithComment  = icd_uper.EmitEnumItemWithComment 
+        EmitEnumInternalContents = icd_uper.EmitEnumInternalContents
+    }
+    let GetCommentLine = GetCommentLineFactory stgFileName enumStg
     let bitsToBytes nBits = BigInteger(System.Math.Ceiling(double(nBits)/8.0)).ToString()
     let getMinMaxBitsAndBytes nMinBits nMaxBits =
         let nMinBytes = bitsToBytes nMinBits
@@ -124,7 +140,7 @@ let rec printType (stgFileName:string) (m:Asn1Module) (tas:TypeAssignment) (t:As
         let sTasName = tas.Name.Value
         let sKind = Kind2Name  stgFileName t
         let sMaxBitsExplained =  GetWhyExplanation stgFileName t r
-        let sCommentLine = GetCommentLine tas.Comments t
+        let sCommentLine = GetCommentLine  tas.Comments t
         icd_uper.EmitPrimitiveType stgFileName color sTasName (ToC sTasName) sKind sMinBytes sMaxBytes sMaxBitsExplained sCommentLine ( if sAsn1Constraints.Trim() ="" then "N.A." else sAsn1Constraints) sMinBits sMaxBits (sCommentLine.Split [|'\n'|])
     match t.Kind with
     | Integer    o   ->
