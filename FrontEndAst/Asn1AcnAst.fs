@@ -324,11 +324,11 @@ type RealEncodingClass =
     | Real_IEEE754_64_little_endian
 
 type StringAcnEncodingClass =
-    | Acn_Enc_String_uPER                                                               //as in uper 
-    | Acn_Enc_String_uPER_Ascii                                                         //as in uper but with charset (0..255)
-    | Acn_Enc_String_Ascii_Null_Teminated                   of byte                     //byte = the null character
-    | Acn_Enc_String_Ascii_External_Field_Determinant       of RelativePath             //encode ascii, size is provided by an external length determinant
-    | Acn_Enc_String_CharIndex_External_Field_Determinant   of RelativePath             //encode char index, size is provided by an external length determinant
+    | Acn_Enc_String_uPER                                   of int                          //char size in bits, as in uper 
+    | Acn_Enc_String_uPER_Ascii                             of int                          //char size in bits, as in uper but with charset (0..255)
+    | Acn_Enc_String_Ascii_Null_Teminated                   of int*byte                     //char size in bits, byte = the null character
+    | Acn_Enc_String_Ascii_External_Field_Determinant       of int*RelativePath             //char size in bits, encode ascii, size is provided by an external length determinant
+    | Acn_Enc_String_CharIndex_External_Field_Determinant   of int*RelativePath             //char size in bits, encode char index, size is provided by an external length determinant
 
 type SizeableAcnEncodingClass =
     | SZ_EC_uPER

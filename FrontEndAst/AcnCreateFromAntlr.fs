@@ -642,14 +642,14 @@ let private mergeStringType (asn1:Asn1Ast.AstRoot) (loc:SrcLoc) (acnErrLoc: SrcL
     let acnEncodingClass,  acnMinSizeInBits, acnMaxSizeInBits= AcnEncodingClasses.GetStringEncodingClass aligment loc acnProperties uperMinSizeInBits uperMaxSizeInBits minSize maxSize uperCharSet
 
     match acnEncodingClass with                                          
-    | Acn_Enc_String_uPER                                                -> ()
-    | Acn_Enc_String_uPER_Ascii                                          -> ()
-    | Acn_Enc_String_Ascii_Null_Teminated                   nullChar     -> 
+    | Acn_Enc_String_uPER                                _                -> ()
+    | Acn_Enc_String_uPER_Ascii                          _                -> ()
+    | Acn_Enc_String_Ascii_Null_Teminated                (_, nullChar)     -> 
         match uperCharSet |> Seq.exists ((=) (System.Convert.ToChar nullChar)) with
         | true  when nullChar <> (byte 0) -> raise(SemanticError(acnErrLoc0, "The termination-pattern defines a character which belongs to the allowed values of the ASN.1 type. Use another value in the termination-pattern or apply different constraints in the ASN.1 type."))
         | _ -> ()
-    | Acn_Enc_String_Ascii_External_Field_Determinant       relativePath -> ()
-    | Acn_Enc_String_CharIndex_External_Field_Determinant   relativePath -> ()
+    | Acn_Enc_String_Ascii_External_Field_Determinant       (_,relativePath) -> ()
+    | Acn_Enc_String_CharIndex_External_Field_Determinant   (_,relativePath) -> ()
 
 
 

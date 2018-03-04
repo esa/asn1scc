@@ -148,12 +148,12 @@ let GetStringEncodingClass (aligment: AcnAligment option) errLoc (p  : StringAcn
 
     let encClass, minSizeInBits, maxSizeInBits = 
         match  bAsciiEncoding, p.sizeProp with
-        | false, None                                  ->       Acn_Enc_String_uPER, uperMinSizeInBits, uperMaxSizeInBits
-        | false, Some (StrExternalField longField)     ->       Acn_Enc_String_CharIndex_External_Field_Determinant longField , asn1Min*charSizeInBits,  asn1Max*charSizeInBits
+        | false, None                                  ->       Acn_Enc_String_uPER charSizeInBits, uperMinSizeInBits, uperMaxSizeInBits
+        | false, Some (StrExternalField longField)     ->       Acn_Enc_String_CharIndex_External_Field_Determinant (charSizeInBits, longField) , asn1Min*charSizeInBits,  asn1Max*charSizeInBits
         | false, Some (StrNullTerminated b)            ->       raise(BugErrorException(sprintf "when a string type has the acn property 'size null-terminated' it must also have the acn property 'encoding ASCII'" ))
-        | true, None                                   ->       Acn_Enc_String_uPER_Ascii, lengthDeterminantSize + asn1Min*charSizeInBits, lengthDeterminantSize + asn1Max*charSizeInBits
-        | true, Some (StrExternalField longField)      ->       Acn_Enc_String_Ascii_External_Field_Determinant longField, asn1Min*charSizeInBits,  asn1Max*charSizeInBits
-        | true, Some (StrNullTerminated b)             ->       Acn_Enc_String_Ascii_Null_Teminated b, asn1Min*charSizeInBits + 8,  asn1Max*charSizeInBits + 8
+        | true, None                                   ->       Acn_Enc_String_uPER_Ascii charSizeInBits, lengthDeterminantSize + asn1Min*charSizeInBits, lengthDeterminantSize + asn1Max*charSizeInBits
+        | true, Some (StrExternalField longField)      ->       Acn_Enc_String_Ascii_External_Field_Determinant (charSizeInBits, longField), asn1Min*charSizeInBits,  asn1Max*charSizeInBits
+        | true, Some (StrNullTerminated b)             ->       Acn_Enc_String_Ascii_Null_Teminated (charSizeInBits, b), asn1Min*charSizeInBits + 8,  asn1Max*charSizeInBits + 8
 
     encClass,  minSizeInBits+alignmentSize, maxSizeInBits+alignmentSize
 

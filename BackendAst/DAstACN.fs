@@ -480,14 +480,14 @@ let createStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
         let pp = match codec with CommonTypes.Encode -> p.arg.getValue l | CommonTypes.Decode -> p.arg.getPointer l
         let funcBodyContent = 
             match o.acnEncodingClass with
-            | Acn_Enc_String_uPER                                              -> uperFunc.funcBody_e errCode p |> Option.map(fun x -> x.funcBody, x.errCodes, x.localVariables)
-            | Acn_Enc_String_uPER_Ascii                                        -> 
+            | Acn_Enc_String_uPER  _                                           -> uperFunc.funcBody_e errCode p |> Option.map(fun x -> x.funcBody, x.errCodes, x.localVariables)
+            | Acn_Enc_String_uPER_Ascii _                                      -> 
                 match o.maxSize = o.minSize with
                 | true      ->  Some (Acn_String_Ascii_FixSize pp (BigInteger o.maxSize) codec, [errCode], [])
                 | false     ->  
                     let nSizeInBits = GetNumberOfBitsForNonNegativeInteger (BigInteger (o.maxSize - o.minSize))
                     Some (Acn_String_Ascii_Internal_Field_Determinant pp (BigInteger o.maxSize) (BigInteger o.minSize) nSizeInBits codec , [errCode], [])
-            | Acn_Enc_String_Ascii_Null_Teminated                   nullChar   -> Some (Acn_String_Ascii_Null_Teminated pp (BigInteger o.maxSize) (nullChar.ToString()) codec, [errCode], [])
+            | Acn_Enc_String_Ascii_Null_Teminated                   (_,nullChar)   -> Some (Acn_String_Ascii_Null_Teminated pp (BigInteger o.maxSize) (nullChar.ToString()) codec, [errCode], [])
             | Acn_Enc_String_Ascii_External_Field_Determinant       _    -> 
                 let extField = getExternaField r deps t.id
                 Some(Acn_String_Ascii_External_Field_Determinant pp (BigInteger o.maxSize) extField codec, [errCode], [])
@@ -560,13 +560,13 @@ let createAcnStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
         let pp = match codec with CommonTypes.Encode -> p.arg.getValue l | CommonTypes.Decode -> p.arg.getPointer l
         let funcBodyContent = 
             match t.str.acnEncodingClass with
-            | Acn_Enc_String_uPER_Ascii                                        -> 
+            | Acn_Enc_String_uPER_Ascii    _                                    -> 
                 match t.str.maxSize = t.str.minSize with
                 | true      ->  Some (Acn_String_Ascii_FixSize pp (BigInteger t.str.maxSize) codec, [])
                 | false     ->  
                     let nSizeInBits = GetNumberOfBitsForNonNegativeInteger (BigInteger (o.maxSize - o.minSize))
                     Some (Acn_String_Ascii_Internal_Field_Determinant pp (BigInteger t.str.maxSize) (BigInteger t.str.minSize) nSizeInBits codec , [])
-            | Acn_Enc_String_Ascii_Null_Teminated                   nullChar   -> Some (Acn_String_Ascii_Null_Teminated pp (BigInteger t.str.maxSize) (nullChar.ToString()) codec, [])
+            | Acn_Enc_String_Ascii_Null_Teminated                  (_, nullChar)   -> Some (Acn_String_Ascii_Null_Teminated pp (BigInteger t.str.maxSize) (nullChar.ToString()) codec, [])
             | Acn_Enc_String_Ascii_External_Field_Determinant       _    -> 
                 let extField = getExternaField r deps typeId
                 Some(Acn_String_Ascii_External_Field_Determinant pp (BigInteger t.str.maxSize) extField codec, [])
@@ -575,7 +575,7 @@ let createAcnStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
                 let arrAsciiCodes = t.str.uperCharSet |> Array.map(fun x -> BigInteger (System.Convert.ToInt32 x))
                 let nBits = GetNumberOfBitsForNonNegativeInteger (BigInteger (t.str.uperCharSet.Length-1))
                 Some(Acn_String_CharIndex_External_Field_Determinant pp (BigInteger t.str.maxSize) arrAsciiCodes (BigInteger t.str.uperCharSet.Length) extField typeDefinitionName nBits codec, [])
-            | Acn_Enc_String_uPER                                              -> 
+            | Acn_Enc_String_uPER    _                                         -> 
                 let x = (uper_funcBody errCode) p 
                 Some(x.funcBody, x.errCodes)
         match funcBodyContent with

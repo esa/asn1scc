@@ -238,7 +238,8 @@ let main0 argv =
                 | IcdAcn outFile       -> GenerateAcnIcd.DoWork r  acnDeps "icdtemplate_acn.stg" outFile
                 | CustomIcdAcn comFile ->
                     match getCustmStgFileNames comFile with
-                    | Some(stgFile, outFile)  -> GenerateAcnIcd.DoWork r  acnDeps stgFile outFile
+                    | Some(stgFile, outFile)  -> 
+                        GenerateAcnIcd.DoWork r  acnDeps stgFile outFile
                     | None  -> ()
                 | AdaUses   -> DAstUtilFunctions.AdaUses r
                 | ACND      -> GenerateFiles.EmmitDefaultACNGrammar r outDir

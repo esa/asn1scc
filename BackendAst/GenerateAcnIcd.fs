@@ -160,9 +160,9 @@ let rec printType stgFileName (tas:TypeAssignment) (t:Asn1Type) (m:Asn1Module) (
                 | AcnChild ch   ->
                     let sType = 
                         match ch.Type with
-                        | Asn1AcnAst.AcnInteger                o -> icd_uper.Integer           stgFileName ()
-                        | Asn1AcnAst.AcnNullType               o -> icd_uper.NullType           stgFileName ()
-                        | Asn1AcnAst.AcnBoolean                o -> icd_uper.Boolean           stgFileName ()
+                        | Asn1AcnAst.AcnInteger                o -> icd_acn.Integer           stgFileName ()
+                        | Asn1AcnAst.AcnNullType               o -> icd_acn.NullType           stgFileName ()
+                        | Asn1AcnAst.AcnBoolean                o -> icd_acn.Boolean           stgFileName ()
                         | Asn1AcnAst.AcnReferenceToEnumerated  o -> icd_acn.EmmitSeqChild_RefType stgFileName o.tasName.Value (ToC o.tasName.Value)
                         | Asn1AcnAst.AcnReferenceToIA5String   o -> icd_acn.EmmitSeqChild_RefType stgFileName o.tasName.Value (ToC o.tasName.Value)
                     sType, "", ""
@@ -197,10 +197,10 @@ let rec printType stgFileName (tas:TypeAssignment) (t:Asn1Type) (m:Asn1Module) (
             match chInfo.ancEncClass with
             | CEC_uper          -> 
                 let ChIndex =
-                    let optChild = chInfo.children |> Seq.mapi(fun i c -> icd_uper.EmmitChoiceIndexSingleComment stgFileName (BigInteger (i+1)) c.Name.Value)
-                    let sComment = icd_uper.EmmitChoiceIndexComment stgFileName optChild
+                    //let optChild = chInfo.children |> Seq.mapi(fun i c -> icd_uper.EmmitChoiceIndexSingleComment stgFileName (BigInteger (i+1)) c.Name.Value)
+                    let sComment = icd_acn.EmmitChoiceIndexComment stgFileName ()
                     let indexSize = (GetNumberOfBitsForNonNegativeInteger(BigInteger(Seq.length chInfo.children))).ToString()
-                    icd_uper.EmmitChoiceChild stgFileName (icd_uper.OddRow stgFileName ()) (BigInteger 1) "ChoiceIndex" sComment    "unsigned int" "N.A." indexSize indexSize
+                    icd_acn.EmmitChoiceChild stgFileName (icd_acn.OddRow stgFileName ()) (BigInteger 1) "ChoiceIndex" sComment    "unsigned int" "N.A." indexSize indexSize
                 let getPresenceWhenNone_uper (i:int) (ch:ChChildInfo) =
                     sprintf "ChoiceIndex = %d" i
                 let EmitChild (i:int) (ch:ChChildInfo) = EmitSeqOrChoiceChild i ch  getPresenceWhenNone_uper
@@ -221,8 +221,51 @@ let rec printType stgFileName (tas:TypeAssignment) (t:Asn1Type) (m:Asn1Module) (
                 let EmitChild (i:int) (ch:ChChildInfo) = EmitSeqOrChoiceChild i ch  getPresence
                 children |> Seq.mapi(fun i ch -> EmitChild (1 + i) ch) |> Seq.toList
         icd_acn.EmitSequenceOrChoice stgFileName isAnonymousType sTasName (ToC sTasName) hasAcnDef "CHOICE" sMinBytes sMaxBytes sMaxBitsExplained sCommentLine arrRows (myParams 3I) (sCommentLine.Split [|'\n'|])
-    | IA5String  _  ->
-        ""
+    | IA5String  o  ->
+        let nMin, nMax, encClass = o.baseInfo.minSize, o.baseInfo.maxSize, o.baseInfo.acnEncodingClass
+        let sType, characterSizeInBits = 
+            match encClass with
+            | Asn1AcnAst.Acn_Enc_String_uPER                                   characterSizeInBits             -> "NUMERIC CHARACTER" , characterSizeInBits.ToString()
+            | Asn1AcnAst.Acn_Enc_String_uPER_Ascii                             characterSizeInBits             -> "ASCII CHARACTER"   , characterSizeInBits.ToString()
+            | Asn1AcnAst.Acn_Enc_String_Ascii_Null_Teminated                  (characterSizeInBits, nullChar)  -> "ASCII CHARACTER"   , characterSizeInBits.ToString()
+            | Asn1AcnAst.Acn_Enc_String_Ascii_External_Field_Determinant      (characterSizeInBits, rp)        -> "ASCII CHARACTER"   , characterSizeInBits.ToString()
+            | Asn1AcnAst.Acn_Enc_String_CharIndex_External_Field_Determinant  (characterSizeInBits, rp)        -> "NUMERIC CHARACTER" , characterSizeInBits.ToString()
+        let ChildRow (lineFrom:BigInteger) (i:BigInteger) =
+            let sClass = if i % 2I = 0I then icd_acn.EvenRow stgFileName () else icd_acn.OddRow stgFileName ()
+            let nIndex = lineFrom + i
+            let sFieldName = icd_acn.ItemNumber stgFileName i
+            let sComment = ""
+            icd_acn.EmmitChoiceChild stgFileName sClass nIndex sFieldName sComment  sType "" characterSizeInBits characterSizeInBits
+        let NullRow (lineFrom:BigInteger) (i:BigInteger) =
+            let sClass = if i % 2I = 0I then icd_acn.EvenRow stgFileName () else icd_acn.OddRow stgFileName ()
+            let nIndex = lineFrom + i
+            let sFieldName = icd_acn.ItemNumber stgFileName i
+            let sComment = "NULL Character"
+            icd_acn.EmmitChoiceChild stgFileName sClass nIndex sFieldName sComment  sType "" characterSizeInBits characterSizeInBits
+                
+        let comment = "Special field used by ACN indicating the number of items."
+        let sCon = t.ConstraintsAsn1Str |> Seq.StrJoin ""
+        let sCon =  if sCon.Trim() ="" then "N.A." else sCon
+        let lenDetSize = GetNumberOfBitsForNonNegativeInteger (BigInteger (o.baseInfo.maxSize - o.baseInfo.minSize))
+        let arRows, sExtraComment =
+            match encClass with
+            | Asn1AcnAst.Acn_Enc_String_uPER                                  nSizeInBits              -> 
+                let lengthLine = icd_acn.EmmitChoiceChild stgFileName (icd_acn.OddRow stgFileName ()) 1I "Length" comment    "unsigned int" sCon (lenDetSize.ToString()) (lenDetSize.ToString())
+                lengthLine::(ChildRow 1I 1I)::(icd_acn.EmitRowWith3Dots stgFileName ())::(ChildRow 1I (BigInteger nMax))::[], ""
+            | Asn1AcnAst.Acn_Enc_String_uPER_Ascii                            nSizeInBits              -> 
+                let lengthLine = icd_acn.EmmitChoiceChild stgFileName (icd_acn.OddRow stgFileName ()) 1I "Length" comment    "unsigned int" sCon (lenDetSize.ToString()) (lenDetSize.ToString())
+                lengthLine::(ChildRow 1I 1I)::(icd_acn.EmitRowWith3Dots stgFileName ())::(ChildRow 1I (BigInteger nMax))::[], ""
+            | Asn1AcnAst.Acn_Enc_String_Ascii_Null_Teminated                  (nSizeInBits, nullChar)  -> 
+                (ChildRow 0I 1I)::(icd_acn.EmitRowWith3Dots stgFileName ())::(ChildRow 0I (BigInteger nMax))::(NullRow 0I (BigInteger (nMax+1)))::[],""
+            | Asn1AcnAst.Acn_Enc_String_Ascii_External_Field_Determinant      (nSizeInBits, rp)        -> 
+                (ChildRow 0I 1I)::(icd_acn.EmitRowWith3Dots stgFileName ())::(ChildRow 0I (BigInteger nMax))::[], sprintf "Length determined by external field %s" (rp.AsString)
+            | Asn1AcnAst.Acn_Enc_String_CharIndex_External_Field_Determinant  (nSizeInBits, rp)        -> 
+                (ChildRow 0I 1I)::(icd_acn.EmitRowWith3Dots stgFileName ())::(ChildRow 0I (BigInteger nMax))::[], sprintf "Length determined by external field %s" (rp.AsString)
+        let sCommentLine = match sCommentLine with
+                           | null | ""  -> sExtraComment
+                           | _          -> sprintf "%s%s%s" sCommentLine (icd_acn.NewLine stgFileName ()) sExtraComment
+
+        icd_acn.EmitSizeable stgFileName isAnonymousType sTasName  (ToC sTasName) hasAcnDef (Kind2Name stgFileName t) sMinBytes sMaxBytes sMaxBitsExplained (makeEmptyNull sCommentLine) arRows (myParams 2I) (sCommentLine.Split [|'\n'|])
     | OctetString _
     | BitString  _
     | SequenceOf _   ->
@@ -276,16 +319,16 @@ let rec printType stgFileName (tas:TypeAssignment) (t:Asn1Type) (m:Asn1Module) (
                     let ret = t.ConstraintsAsn1Str |> Seq.StrJoin "" //+++ t.Constraints |> Seq.map PrintAsn1.PrintConstraint |> Seq.StrJoin "" 
                     let sCon = ( if ret.Trim() ="" then "N.A." else ret)
 
-                    icd_uper.EmmitChoiceChild stgFileName (icd_uper.OddRow stgFileName ()) (BigInteger 1) "Length" comment    "unsigned int" sCon (nMin.ToString()) (nLengthSize.ToString())
+                    icd_acn.EmmitChoiceChild stgFileName (icd_acn.OddRow stgFileName ()) (BigInteger 1) "Length" comment    "unsigned int" sCon (nMin.ToString()) (nLengthSize.ToString())
 
                 match sizeUperRange with
                 | Asn1AcnAst.Concrete(a,b)  when a=b && b<2     -> [ChildRow 0I 1I], "The array contains a single element."
                 | Asn1AcnAst.Concrete(a,b)  when a=b && b=2     -> (ChildRow 0I 1I)::(ChildRow 0I 2I)::[], (sFixedLengthComment b.AsBigInt)
-                | Asn1AcnAst.Concrete(a,b)  when a=b && b>2     -> (ChildRow 0I 1I)::(icd_uper.EmitRowWith3Dots stgFileName ())::(ChildRow 0I b.AsBigInt)::[], (sFixedLengthComment b.AsBigInt)
+                | Asn1AcnAst.Concrete(a,b)  when a=b && b>2     -> (ChildRow 0I 1I)::(icd_acn.EmitRowWith3Dots stgFileName ())::(ChildRow 0I b.AsBigInt)::[], (sFixedLengthComment b.AsBigInt)
                 | Asn1AcnAst.Concrete(a,b)  when a<>b && b<2    -> LengthRow::(ChildRow 1I 1I)::[],""
-                | Asn1AcnAst.Concrete(a,b)                       -> LengthRow::(ChildRow 1I 1I)::(icd_uper.EmitRowWith3Dots stgFileName ())::(ChildRow 1I b.AsBigInt)::[], ""
+                | Asn1AcnAst.Concrete(a,b)                       -> LengthRow::(ChildRow 1I 1I)::(icd_acn.EmitRowWith3Dots stgFileName ())::(ChildRow 1I b.AsBigInt)::[], ""
                 | Asn1AcnAst.PosInf(_)
-                | Asn1AcnAst.Full                                -> LengthRow::(ChildRow 1I 1I)::(icd_uper.EmitRowWith3Dots stgFileName ())::(ChildRow 1I 65535I)::[], ""
+                | Asn1AcnAst.Full                                -> LengthRow::(ChildRow 1I 1I)::(icd_acn.EmitRowWith3Dots stgFileName ())::(ChildRow 1I 65535I)::[], ""
                 | Asn1AcnAst.NegInf(_)                           -> raise(BugErrorException "")
 
             | Asn1AcnAst.SZ_EC_ExternalField relPath,false    -> 
@@ -323,6 +366,10 @@ let PrintModule stgFileName (m:Asn1Module) (f:Asn1File) (r:AstRoot)   =
 let PrintTasses stgFileName (f:Asn1File)  (r:AstRoot)   =
     f.Modules |> Seq.map (fun  m -> PrintModule stgFileName m f r ) |> String.concat "\n"
 
+let emitCss (r:AstRoot) stgFileName   outFileName =
+    let cssContent = icd_acn.RootCss stgFileName ()
+    File.WriteAllText(outFileName, cssContent.Replace("\r", ""))
+
 let DoWork (r:AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (stgFileName:string)   outFileName =
     let files1 = r.Files |> Seq.map (fun f -> PrintTasses stgFileName f r ) 
     let bAcnParamsMustBeExplained = true 
@@ -330,10 +377,9 @@ let DoWork (r:AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (stgFileNa
     let files3 = PrintAcnAsHTML stgFileName r 
     let cssFileName = Path.ChangeExtension(outFileName, ".css")
     let htmlContent = icd_acn.RootHtml stgFileName files1 files2 bAcnParamsMustBeExplained files3 (Path.GetFileName(cssFileName))
-
+    
     File.WriteAllText(outFileName, htmlContent.Replace("\r",""))
+    let cssFileName = Path.ChangeExtension(outFileName, ".css");
+    emitCss r stgFileName cssFileName
 
 
-let emitCss (r:AstRoot) stgFileName   outFileName =
-    let cssContent = icd_acn.RootCss stgFileName ()
-    File.WriteAllText(outFileName, cssContent.Replace("\r", ""))
