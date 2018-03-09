@@ -145,8 +145,8 @@ let get_group  fileName =
             | ""    -> []
             | _     -> [Path.GetFullPath(Path.Combine(System.IO.Directory.GetCurrentDirectory(), Path.GetDirectoryName fileName))] 
         let stgFoldres = match devFolders |> Seq.forall(fun devFolder -> Directory.Exists devFolder) with
-                         | true  -> devFolders @ custFolder @ [ applicationFolder; (System.IO.Directory.GetCurrentDirectory ()) ]   |> Seq.toArray
-                         | false -> custFolder @ [ applicationFolder; (System.IO.Directory.GetCurrentDirectory ()) ]  |> Seq.toArray
+                         | true  -> devFolders @ custFolder @ [ (System.IO.Directory.GetCurrentDirectory ());applicationFolder ]   |> Seq.toArray
+                         | false -> custFolder @ [ (System.IO.Directory.GetCurrentDirectory ()); applicationFolder ]  |> Seq.toArray
         let grpLoader = CommonGroupLoader(StringTemplateGroup.DEFAULT_ERROR_LISTENER, stgFoldres)
                         
         StringTemplateGroup.RegisterGroupLoader(grpLoader);

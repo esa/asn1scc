@@ -13,7 +13,6 @@ open DAstUtilFunctions
 
 
 
-
 let GetMinMax uperRange =
     match uperRange with
     | Asn1AcnAst.Concrete(min, max)      -> min.ToString(), max.ToString()
@@ -36,8 +35,7 @@ let handTypeWithMinMax_real name (uperRange:Asn1AcnAst.uperRange<double>) func s
     let sMin, sMax = GetMinMax uperRange
     func name sMin sMax (sMin=sMax) stgFileName
 
-
-let PrintCustomAsn1Value (vas: ValueAssignment) stgFileName =
+let internal PrintCustomAsn1Value_aux (v: Asn1Value) stgFileName =
     let rec PrintValue (v: Asn1Value) =
         match v.kind with
         |IntegerValue(v)         -> gen.Print_IntegerValue v stgFileName
@@ -52,7 +50,22 @@ let PrintCustomAsn1Value (vas: ValueAssignment) stgFileName =
         |SeqValue(vals)          -> gen.Print_SeqValue (vals |> Seq.map(fun nmv -> gen.Print_SeqValue_Child nmv.name (PrintValue nmv.Value) stgFileName ) |> Seq.toArray) stgFileName
         |ChValue(nmv)            -> gen.Print_ChValue nmv.name (PrintValue nmv.Value) stgFileName
         |NullValue _             -> gen.Print_NullValue() stgFileName
-    PrintValue vas.Value
+    PrintValue v
+
+let PrintCustomAsn1Value  (vas: ValueAssignment) stgFileName =
+    PrintCustomAsn1Value_aux vas.Value stgFileName
+
+let rec printAsn1ValueAsXmlAttribute (v: Asn1Value) stgFileName = 
+    let ret = PrintCustomAsn1Value_aux v stgFileName
+    let withinCdata = ret.StartsWith("<![CDATA[") && ret.EndsWith("]]>")
+    match withinCdata with
+    | false -> ret
+    |true   -> 
+        let str1 = ret.Substring(9)
+        let n1 = str1.LastIndexOf("]]>")
+        let str2 = str1.Substring(0,n1)
+        str2.Replace("&", "&amp;").Replace("<", "&lt;").Replace(">", "&gt;").Replace("\"", "&quot;").Replace("'", "&apos;");
+
 
 let PrintContract (r:AstRoot) (stgFileName:string) (asn1Name:string) (backendName:string) (t:Asn1Type)=
     let PrintPattern () =
@@ -154,7 +167,7 @@ let rec PrintType (r:AstRoot) (f:Asn1File) (stgFileName:string) modName (deepRec
 
                     match c.Optionality with
                     | Some(Asn1AcnAst.Optional(optVal)) when optVal.defaultValue.IsSome -> 
-                           gen.SequenceChild c.Name.Value (ToC c.Name.Value) true (DAstAsn1.printAsn1Value optVal.defaultValue.Value) (BigInteger c.Name.Location.srcLine) (BigInteger c.Name.Location.charPos) childTypeExp stgFileName
+                           gen.SequenceChild c.Name.Value (ToC c.Name.Value) true (printAsn1ValueAsXmlAttribute (DAstUtilFunctions.mapValue optVal.defaultValue.Value) stgFileName) (BigInteger c.Name.Location.srcLine) (BigInteger c.Name.Location.charPos) childTypeExp stgFileName
                     | _ -> gen.SequenceChild c.Name.Value (ToC c.Name.Value) c.Optionality.IsSome null (BigInteger c.Name.Location.srcLine) (BigInteger c.Name.Location.charPos) childTypeExp stgFileName
                 | AcnChild  c -> null
             gen.SequenceType (seqInfo.children |> Seq.map emitChild) stgFileName

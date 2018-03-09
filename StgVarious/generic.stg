@@ -176,7 +176,7 @@ ContractExprSequence(arrsChildren) ::= ""
 /* Print Values */
 Print_IntegerValue(nVal) ::= ""
 Print_RealValue(dVal) ::= ""
-Print_StringValue(v) ::= ""
+Print_StringValue(v) ::= "<![CDATA[$v$]]>"
 Print_TrueValue() ::= ""
 Print_FalseValue() ::= ""
 Print_BitStringValue(v) ::= ""
