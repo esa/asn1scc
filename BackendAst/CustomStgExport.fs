@@ -35,36 +35,46 @@ let handTypeWithMinMax_real name (uperRange:Asn1AcnAst.uperRange<double>) func s
     let sMin, sMax = GetMinMax uperRange
     func name sMin sMax (sMin=sMax) stgFileName
 
-let internal PrintCustomAsn1Value_aux (v: Asn1Value) stgFileName =
-    let rec PrintValue (v: Asn1Value) =
+let internal PrintCustomAsn1Value_aux (bPrintAsAttr:bool) (v: Asn1Value) stgFileName =
+    let rec PrintValue (bChildVal:bool) (v: Asn1Value) =
         match v.kind with
         |IntegerValue(v)         -> gen.Print_IntegerValue v stgFileName
         |RealValue(v)            -> gen.Print_RealValue v stgFileName
-        |StringValue(v)          -> gen.Print_StringValue v stgFileName
+        |StringValue(v)          -> 
+            match bPrintAsAttr with 
+            | true   -> 
+                printfn "%s\n" v
+                let retVal = v.Replace("&", "&amp;").Replace("<", "&lt;").Replace(">", "&gt;").Replace("\"", "&quot;").Replace("'", "&apos;")
+                printfn "%s\n" retVal
+                match bChildVal with
+                | true  ->  "&quot;" + retVal + "&quot;"
+                | false -> retVal
+            | false  -> gen.Print_StringValue v stgFileName
         |EnumValue enmv          -> gen.Print_RefValue enmv stgFileName //gen.Print_EnmValueValue enmv stgFileName
         |BooleanValue(v)         -> if v = true then gen.Print_TrueValue () stgFileName else gen.Print_FalseValue () stgFileName
         |BitStringValue(v)       -> gen.Print_BitStringValue v stgFileName
         |OctetStringValue(v)     -> gen.Print_OctetStringValue (v |> Seq.map(fun x -> x) |> Seq.toArray) stgFileName
         |RefValue((mn,nm),_)     -> gen.Print_RefValue nm stgFileName
-        |SeqOfValue(vals)        -> gen.Print_SeqOfValue (vals |> Seq.map PrintValue |> Seq.toArray) stgFileName
-        |SeqValue(vals)          -> gen.Print_SeqValue (vals |> Seq.map(fun nmv -> gen.Print_SeqValue_Child nmv.name (PrintValue nmv.Value) stgFileName ) |> Seq.toArray) stgFileName
-        |ChValue(nmv)            -> gen.Print_ChValue nmv.name (PrintValue nmv.Value) stgFileName
+        |SeqOfValue(vals)        -> gen.Print_SeqOfValue (vals |> Seq.map (PrintValue true) |> Seq.toArray) stgFileName
+        |SeqValue(vals)          -> gen.Print_SeqValue (vals |> Seq.map(fun nmv -> gen.Print_SeqValue_Child nmv.name (PrintValue true nmv.Value) stgFileName ) |> Seq.toArray) stgFileName
+        |ChValue(nmv)            -> gen.Print_ChValue nmv.name (PrintValue true nmv.Value) stgFileName
         |NullValue _             -> gen.Print_NullValue() stgFileName
-    PrintValue v
+    PrintValue false v
 
 let PrintCustomAsn1Value  (vas: ValueAssignment) stgFileName =
-    PrintCustomAsn1Value_aux vas.Value stgFileName
+    PrintCustomAsn1Value_aux false vas.Value stgFileName
 
 let rec printAsn1ValueAsXmlAttribute (v: Asn1Value) stgFileName = 
-    let ret = PrintCustomAsn1Value_aux v stgFileName
-    let withinCdata = ret.StartsWith("<![CDATA[") && ret.EndsWith("]]>")
-    match withinCdata with
-    | false -> ret
-    |true   -> 
-        let str1 = ret.Substring(9)
-        let n1 = str1.LastIndexOf("]]>")
-        let str2 = str1.Substring(0,n1)
-        str2.Replace("&", "&amp;").Replace("<", "&lt;").Replace(">", "&gt;").Replace("\"", "&quot;").Replace("'", "&apos;");
+    PrintCustomAsn1Value_aux true v stgFileName
+//    let ret = PrintCustomAsn1Value_aux true v stgFileName
+//    let withinCdata = ret.StartsWith("<![CDATA[") && ret.EndsWith("]]>")
+//    match withinCdata with
+//    | false -> ret
+//    |true   -> 
+//        let str1 = ret.Substring(9)
+//        let n1 = str1.LastIndexOf("]]>")
+//        let str2 = str1.Substring(0,n1)
+//        str2.Replace("&", "&amp;").Replace("<", "&lt;").Replace(">", "&gt;").Replace("\"", "&quot;").Replace("'", "&apos;");
 
 
 let PrintContract (r:AstRoot) (stgFileName:string) (asn1Name:string) (backendName:string) (t:Asn1Type)=
