@@ -27,12 +27,14 @@ type CliArguments =
     | [<AltCommandLine("-icdAcn")>] IcdAcn  of acn_icd_output_file:string
     | [<AltCommandLine("-customIcdAcn")>] CustomIcdAcn  of custom_stg_colon_out_filename:string
     | [<AltCommandLine("-AdaUses")>] AdaUses 
-    | [<AltCommandLine("-ACND")>]   ACND
+    | [<AltCommandLine("-ACND")>] ACND  
+    | [<AltCommandLine("-v")>]   Version
     | [<MainCommand; ExactlyOnce; Last>] Files of files:string list
 with
     interface IArgParserTemplate with
         member this.Usage =
             match this with
+            | Version          -> "displays version information"
             | C_lang           -> "generate code for the C/C++ programming language"
             | Ada_Lang         -> "generate code for the Ada/SPARK programming language"
             | UPER_enc         -> "generates encoding and decoding functions for unaligned Packed Encoding Rules (uPER)"
@@ -88,6 +90,7 @@ let checkCompositeFile comFile cmdoption extention=
 
 let checkArguement arg =
     match arg with
+    | Version          -> ()
     | C_lang           -> ()
     | Ada_Lang         -> ()
     | UPER_enc         -> ()
@@ -174,6 +177,7 @@ let exportRTL outDir  (l:DAst.ProgrammingLanguage) (args:CommandLineSettings)=
 
 
 let main0 argv =
+    
     let parser = ArgumentParser.Create<CliArguments>(programName = "Asn1f4.exe")
     try
         let parserResults = parser.Parse argv
@@ -243,6 +247,7 @@ let main0 argv =
                     | None  -> ()
                 | AdaUses   -> DAstUtilFunctions.AdaUses r
                 | ACND      -> GenerateFiles.EmmitDefaultACNGrammar r outDir
+                | Version   -> Antlr.VersionInformation.printGitVersion()
                 | _ -> ())
 
         cliArgs |> 
@@ -252,8 +257,13 @@ let main0 argv =
         0
     with
         | :? Argu.ArguParseException as ex -> 
-            Console.Error.WriteLine(ex.Message)
-            1    
+            match argv.Length = 1 && (argv.[0] = "-v" || argv.[0] = "--version") with
+            | true -> 
+                Antlr.VersionInformation.printGitVersion ()
+                0
+            | false ->
+                Console.Error.WriteLine(ex.Message)
+                1    
         | UserException msg            ->
             Console.Error.WriteLine(msg)
             2
