@@ -66,16 +66,6 @@ let PrintCustomAsn1Value  (vas: ValueAssignment) stgFileName =
 
 let rec printAsn1ValueAsXmlAttribute (v: Asn1Value) stgFileName = 
     PrintCustomAsn1Value_aux true v stgFileName
-//    let ret = PrintCustomAsn1Value_aux true v stgFileName
-//    let withinCdata = ret.StartsWith("<![CDATA[") && ret.EndsWith("]]>")
-//    match withinCdata with
-//    | false -> ret
-//    |true   -> 
-//        let str1 = ret.Substring(9)
-//        let n1 = str1.LastIndexOf("]]>")
-//        let str2 = str1.Substring(0,n1)
-//        str2.Replace("&", "&amp;").Replace("<", "&lt;").Replace(">", "&gt;").Replace("\"", "&quot;").Replace("'", "&apos;");
-
 
 let PrintContract (r:AstRoot) (stgFileName:string) (asn1Name:string) (backendName:string) (t:Asn1Type)=
     let PrintPattern () =
