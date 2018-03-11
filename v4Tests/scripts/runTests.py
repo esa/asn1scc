@@ -77,7 +77,7 @@ def RunTestCase(asn1, acn, behavior, expErrMsg):
         "' '" + resolvedir(asn1File) + "' '" + resolvedir(acnFile) +
         "' >tmp.err"+"_"+language+" 2>&1", True)
     ferr = open("tmp.err"+"_"+language, 'r')
-    err_msg = ferr.read().replace("\r\n", "").replace("\n", "")
+    err_msg = ferr.read().replace("\r\n", "").replace("\n", "").replace(targetDir + os.sep, "")
     ferr.close()
     if behavior == 0 or behavior == 2:
         if res != 0 or err_msg != "":

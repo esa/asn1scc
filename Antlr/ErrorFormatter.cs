@@ -6,7 +6,7 @@ namespace Antlr
     {
         private static string FormatErrorHeader(string path, int line, int column)
         {
-            var arr = new object[] { System.IO.Path.GetFileName(path), ":", line, ":", column, ": error:" };
+            var arr = new object[] { path, ":", line, ":", column, ": error:" };
             return string.Concat(arr);
         }
 
