@@ -319,7 +319,7 @@ type Asn1Module with
             (this.TypeAssignments |> List.map(fun x -> x.Name.Value))@importedTypes
         | Asn1Ast.OnlySome(typesAndVars)    ->
             typesAndVars |> List.filter(fun x -> System.Char.IsUpper (x.Chars 0))
-    member this.ExportedVars =
+    member this.ExportedValues =
         match this.Exports with
         | Asn1Ast.All   -> this.ValueAssignments |> List.map(fun x -> x.Name.Value)
         | Asn1Ast.OnlySome(typesAndVars)    ->
