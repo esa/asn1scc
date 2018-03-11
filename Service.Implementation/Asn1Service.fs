@@ -7,6 +7,8 @@ open CommonTypes
 open System.Collections.Generic
 open FsUtils
 open Antlr
+open System.Text
+open System.IO
 
 type Asn1Service() =
 
@@ -48,10 +50,10 @@ type Asn1Service() =
 
         member this.Version = "TODO" /// TODO, where version should be stored? FrontEnd? it can't be in Asnf4 Asn1f2.Program.GetVersionString()
     
-    member private this.BuildCommandLineSettings (dir:TemporaryDirectory) (input:Dto.InputFiles) outfile =
+    member private this.BuildCommandLineSettings (input:Dto.InputFiles) outfile =
         {
-            CommandLineSettings.asn1Files = this.StoreFilesInDirectory dir input.AsnFiles
-            acnFiles = this.StoreFilesInDirectory dir input.AcnFiles
+            CommandLineSettings.asn1Files = input.AsnFiles |> Seq.map this.ConvertInput |> Seq.toList
+            acnFiles = input.AcnFiles |> Seq.map this.ConvertInput |> Seq.toList
             encodings = [ CommonTypes.Asn1Encoding.ACN ]// TODO does this influence generated XML?
             GenerateEqualFunctions = false
             generateAutomaticTestCases = false
@@ -65,21 +67,23 @@ type Asn1Service() =
             renamePolicy = CommonTypes.EnumRenamePolicy.NoRenamePolicy
             custom_Stg_Ast_Version = 1
         }
-
-    member private this.StoreFilesInDirectory (dir:TemporaryDirectory) (files:IEnumerable<Dto.FileData>) = files |> Seq.map (fun f -> dir.Store f) |> Seq.toList
-    member private this.ReadAstXmlFromTempDir file (dir:TemporaryDirectory) : Dto.FileData = 
+    
+    member private this.ConvertInput (input:Dto.FileData) : CommonTypes.Input =
+        let bytes = Encoding.UTF8.GetBytes input.Contents
+        {
+            name = input.Name
+            contents = new MemoryStream(bytes)
+        }
+    member private this.ReadAstXmlFromTempDir (file:string) (dir:TemporaryDirectory) : Dto.FileData = 
                 {
-                    Name = file
-                    Contents = dir.FullPath(file) 
-                                |> System.IO.File.ReadAllLines 
-                                |> Seq.map (fun l -> l.Replace(dir.Path, ""))
-                                |> String.concat "\n"
+                    Name = file.Replace(dir.Path, "")
+                    Contents = System.IO.File.ReadAllLines file |> String.concat "\n"
                 }
     member private this.CallProgram (files: Dto.InputFiles) : Dto.Output =
         use dir = new TemporaryDirectory()
         let xmlFileName = dir.FullPath "AST.xml"
 
-        let args = this.BuildCommandLineSettings dir files xmlFileName
+        let args = this.BuildCommandLineSettings files xmlFileName
         let frontEntAst, acnDeps = FrontEntMain.constructAst args
         ExportToXml.exportFile frontEntAst acnDeps args.AstXmlAbsFileName
 

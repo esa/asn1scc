@@ -121,11 +121,17 @@ let checkArguement arg =
     | AdaUses                   -> ()
     | ACND                      -> ()
 
+let createInput (fileName:string) : Input = 
+    {
+        name = fileName
+        contents = File.OpenRead(fileName)
+    }
+
 let constructCommandLineSettings args (parserResults: ParseResults<CliArguments>)=
     let files = parserResults.GetResult <@ Files @>
     {
-        CommandLineSettings.asn1Files = files |> List.filter(fun a -> (a.ToLower().EndsWith(".asn1")) || (a.ToLower().EndsWith(".asn")) )
-        acnFiles  = files |> List.filter(fun a -> (a.ToLower().EndsWith(".acn")) )
+        CommandLineSettings.asn1Files = files |> List.filter(fun a -> (a.ToLower().EndsWith(".asn1")) || (a.ToLower().EndsWith(".asn")) ) |> List.map createInput
+        acnFiles  = files |> List.filter(fun a -> (a.ToLower().EndsWith(".acn")) ) |> List.map createInput
         encodings = 
             args |> 
             List.choose(fun arg ->
