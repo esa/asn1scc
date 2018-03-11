@@ -100,6 +100,21 @@ Note that in order to run the tests you need both GCC and GNAT.
 The tests will process hundreds of ASN.1 grammars, generate C and
 Ada source code, compile it, run it, and check the coverage results.
 
+Troubleshooting libgit2 errors
+==============================
+
+If you get errors during the build about libgit2, then you'll need to setup
+a symlink to your distribution-provided libgit2 - i.e. do something like
+this:
+
+    ```
+    cd packages/GitVersionTask.*/lib/linux/x86_64
+    mv libgit2-baa87df.so libgit2-baa87df.so.bad
+    LIBGIT2_DIR=$(pkg-config --variable=libdir libgit2)
+    ln -s $(/bin/ls ${LIBGIT2_DIR}/libgit2.so.* | sort | head -1) \
+        libgit2-baa87df.so
+    ```
+
 Continuous integration and Docker image
 =======================================
 
