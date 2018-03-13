@@ -277,7 +277,7 @@ let main0 argv =
             Console.Error.WriteLine(ex.Message)
             2
         | SemanticError (loc,msg)            ->
-            Console.WriteLine(FrontEntMain.formatSemanticError loc msg)
+            Console.Error.WriteLine(FrontEntMain.formatSemanticError loc msg)
             3
         | ex            ->
             Console.Error.WriteLine(ex.Message)
