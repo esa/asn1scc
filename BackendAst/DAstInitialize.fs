@@ -274,7 +274,13 @@ let createBooleanInitFunc (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1
     let testCaseFuncs = 
         EncodeDecodeTestCase.BooleanAutomaticTestCaseValues r t o |> 
         List.map (fun vl -> (fun (p:CallerScope) -> {InitFunctionResult.funcBody = initBoolean (p.arg.getValue l) vl; localVariables = []}) )
-    createInitFunctionCommon r l t typeDefinition funcBody iv testCaseFuncs.Head testCaseFuncs
+
+    let tasInitFunc (p:CallerScope)  = 
+        match isValidValueGeneric o.AllCons (=) false  with
+        | true    -> {InitFunctionResult.funcBody = initBoolean (p.arg.getValue l) false; localVariables = []}
+        | false     -> {InitFunctionResult.funcBody = initBoolean (p.arg.getValue l) true; localVariables = []}
+
+    createInitFunctionCommon r l t typeDefinition funcBody iv tasInitFunc testCaseFuncs
 
 let createEnumeratedInitFunc (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1AcnAst.Asn1Type) (o :Asn1AcnAst.Enumerated  )  (typeDefinition:TypeDefintionOrReference) iv = 
     let initEnumerated = match l with C -> init_c.initEnumerated | Ada -> init_a.initEnumerated
