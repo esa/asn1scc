@@ -93,14 +93,15 @@ let checkParamIsActuallyInteger (r:AstRoot) (prmMod:StringLoc) (tasName:StringLo
         | None      -> raise(SemanticError (tasName.Location, (sprintf "No type assignment defined with name '%s' in module '%s'"  tasName.Value prmMod.Value)))
         | Some ts   -> ()
 
-let sizeReference (r:AstRoot) (curState:AcnInsertedFieldDependencies) (parents: Asn1Type list) (t:Asn1Type) (visibleParameters:(ReferenceToType*AcnParameter) list)  (rp :RelativePath  option) (d:AcnDependencyKind) =
+let sizeReference (r:AstRoot) (curState:AcnInsertedFieldDependencies) (parents: Asn1Type list) (t:Asn1Type) (sizeMin:int) (sizeMax:int) (visibleParameters:(ReferenceToType*AcnParameter) list)  (rp :RelativePath  option) (d:AcnDependencyKind) =
     match rp with
     | None      -> curState
     | Some (RelativePath path) -> 
         let loc = path.Head.Location
         let checkParameter (p:AcnParameter) = 
             match p.asn1Type with
-            | AcnPrmInteger _ -> d
+            | AcnPrmInteger acnInt -> 
+                d
             | AcnPrmRefType  (mdName,tsName)    -> 
                 checkParamIsActuallyInteger r mdName tsName
                 d
@@ -108,7 +109,9 @@ let sizeReference (r:AstRoot) (curState:AcnInsertedFieldDependencies) (parents: 
             | _              -> raise(SemanticError(loc, (sprintf "Invalid argument type. Expecting INTEGER got %s "  (p.asn1Type.ToString()))))
         let checkAcnType (c:AcnChild) =
             match c.Type with
-            | AcnInteger    _ -> d
+            | AcnInteger    ai -> 
+                ai.checkIntHasEnoughSpace (BigInteger sizeMin) (BigInteger sizeMax)
+                d
             | _              -> raise(SemanticError(loc, (sprintf "Invalid argument type. Expecting INTEGER got %s "  (c.Type.AsString))))
         checkRelativePath curState parents t visibleParameters   (RelativePath path) checkParameter checkAcnType
 
@@ -236,14 +239,14 @@ let rec private checkType (r:AstRoot) (parents: Asn1Type list) (curentPath : Sco
     | NumericString  a      ->
         match a.acnProperties.sizeProp with
         | Some (StrExternalField   relPath)    ->
-            sizeReference r curState parents t visibleParameters (Some relPath) AcnDepIA5StringSizeDeterminant
+            sizeReference r curState parents t a.minSize a.maxSize visibleParameters (Some relPath) AcnDepIA5StringSizeDeterminant
         | _          -> curState
     | OctetString    a      -> 
-        sizeReference r curState parents t visibleParameters a.acnProperties.sizeProp AcnDepSizeDeterminant
+        sizeReference r curState parents t a.minSize a.maxSize visibleParameters a.acnProperties.sizeProp AcnDepSizeDeterminant
     | BitString      a      -> 
-        sizeReference r curState parents t visibleParameters a.acnProperties.sizeProp AcnDepSizeDeterminant
+        sizeReference r curState parents t a.minSize a.maxSize visibleParameters a.acnProperties.sizeProp AcnDepSizeDeterminant
     | SequenceOf   seqOf    ->
-        let ns = sizeReference r curState (parents) t visibleParameters seqOf.acnProperties.sizeProp AcnDepSizeDeterminant
+        let ns = sizeReference r curState (parents) t seqOf.minSize seqOf.maxSize visibleParameters seqOf.acnProperties.sizeProp AcnDepSizeDeterminant
         checkType r (parents@[t]) (curentPath@[SQF]) seqOf.child ns
     | Sequence   seq        ->
         seq.children |>

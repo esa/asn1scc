@@ -20,9 +20,6 @@ open CommonTypes
 
 type private State =  string list
 
-let private c_keyworkds =  [ "auto"; "break"; "case"; "char"; "const"; "continue"; "default"; "do"; "double"; "else"; "enum"; "extern"; "float"; "for"; "goto"; "if"; "int"; "long"; "register"; "return"; "short"; "signed"; "sizeof"; "static"; "struct"; "switch"; "typedef"; "union"; "unsigned"; "void"; "volatile"; "while"; ]
-
-let private ada_keyworkds =  [ "abort"; "else"; "new"; "return"; "abs"; "elsif"; "not"; "reverse"; "abstract"; "end"; "null"; "accept"; "entry"; "select"; "access"; "exception"; "of"; "separate"; "aliased"; "exit"; "or"; "some"; "all"; "others"; "subtype"; "and"; "for"; "out"; "synchronized"; "array"; "function"; "overriding"; "at"; "tagged"; "generic"; "package"; "task"; "begin"; "goto"; "pragma"; "terminate"; "body"; "private"; "then"; "if"; "procedure"; "type"; "case"; "in"; "protected"; "constant"; "interface"; "until"; "is"; "raise"; "use"; "declare"; "range"; "delay"; "limited"; "record"; "when"; "delta"; "loop"; "rem"; "while"; "digits"; "renames"; "with"; "do"; "mod"; "requeue"; "xor" ]
 
 let rec private handleEnumChoices (r:AstRoot) (renamePolicy:EnumRenamePolicy)=
     let doubleEnumNames = seq {
@@ -151,9 +148,9 @@ let rec private handleEnums (r:AstRoot) (renamePolicy:EnumRenamePolicy) (lang:Pr
         } |> Seq.toList 
     let doubleEnumNames = 
         match lang with
-        | ProgrammingLanguage.C     -> doubleEnumNames0 @ c_keyworkds|> List.keepDuplicates
+        | ProgrammingLanguage.C     -> doubleEnumNames0 @ CheckAsn1.c_keywords|> List.keepDuplicates
         | ProgrammingLanguage.Ada   
-        | ProgrammingLanguage.Spark -> doubleEnumNames0 @ ada_keyworkds |> List.keepDuplicatesI
+        | ProgrammingLanguage.Spark -> doubleEnumNames0 @ CheckAsn1.ada_keywords |> List.keepDuplicatesI
         | _                         -> doubleEnumNames0
 
 

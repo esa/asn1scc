@@ -526,6 +526,17 @@ ret = Acn_Dec_String_CharIndex_External_Field_Determinant(pBitStrm, <nAsn1Max>, 
 <A()>
 >>
 
+
+Acn_IA5String_CharIndex_External_Field_Determinant_encode(p, nAsn1Max, sExtFld, sTasName, nCharSize) ::= <<
+Acn_Enc_IA5String_CharIndex_External_Field_Determinant(pBitStrm, <nAsn1Max>, <p>);
+>>
+
+Acn_IA5String_CharIndex_External_Field_Determinant_decode(p, nAsn1Max, sExtFld, sTasName, nCharSize) ::= <<
+ret = Acn_Dec_IA5String_CharIndex_External_Field_Determinant(pBitStrm, <nAsn1Max>, <sExtFld>, <p>);
+<A()>
+>>
+
+
 Acn_String_CharIndex_Internal_Field_Determinant_encode(p, nAsn1Max, arrnAlphabetAsciiCodes, nCharSetSize, nAsn1Min) ::= <<
 <PrintAlphabet2(arrnAlphabetAsciiCodes)>
 Acn_Enc_String_CharIndex_Internal_Field_Determinant(pBitStrm, <nAsn1Max>, allowedCharSet, <nCharSetSize>, <nAsn1Min>, <p>);

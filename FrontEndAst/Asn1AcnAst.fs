@@ -484,6 +484,7 @@ type AcnInteger = {
     Location            : SrcLoc //Line no, Char pos
     uperRange           : uperRange<BigInteger>
     isUnsigned          : bool
+    checkIntHasEnoughSpace  : BigInteger -> BigInteger -> unit
 }
 
 type AcnBoolean = {

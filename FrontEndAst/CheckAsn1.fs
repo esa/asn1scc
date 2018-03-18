@@ -16,6 +16,26 @@ open Asn1Ast
 open FsUtils
 open CommonTypes
 
+let c_keywords =  [ "auto"; "break"; "case"; "char"; "const"; "continue"; "default"; "do"; "double"; "else"; "enum"; "extern"; "float"; "for"; "goto"; "if"; "int"; "long"; "register"; "return"; "short"; "signed"; "sizeof"; "static"; "struct"; "switch"; "typedef"; "union"; "unsigned"; "void"; "volatile"; "while"; ]
+
+let ada_keywords =  [ "abort"; "else"; "new"; "return"; "abs"; "elsif"; "not"; "reverse"; "abstract"; "end"; "null"; "accept"; "entry"; "select"; "access"; "exception"; "of"; "separate"; "aliased"; "exit"; "or"; "some"; "all"; "others"; "subtype"; "and"; "for"; "out"; "synchronized"; "array"; "function"; "overriding"; "at"; "tagged"; "generic"; "package"; "task"; "begin"; "goto"; "pragma"; "terminate"; "body"; "private"; "then"; "if"; "procedure"; "type"; "case"; "in"; "protected"; "constant"; "interface"; "until"; "is"; "raise"; "use"; "declare"; "range"; "delay"; "limited"; "record"; "when"; "delta"; "loop"; "rem"; "while"; "digits"; "renames"; "with"; "do"; "mod"; "requeue"; "xor" ]
+
+let all_keywords =
+    let cmn_keys = c_keywords @ ada_keywords |> List.distinct
+    let cmn_set = cmn_keys |> Set.ofList
+    let cmn_keys = cmn_keys  |> List.map(fun k -> (k, "is a C and Ada"))
+    let c_keys = c_keywords |> List.filter(fun z -> not (cmn_set.Contains z))  |> List.map(fun k -> (k, "is a C"))
+    let a_keys = ada_keywords |> List.filter(fun z -> not (cmn_set.Contains z)) |> List.map(fun k -> (k, "is an Ada"))
+    cmn_keys@c_keys@a_keys |> Map.ofList
+
+let checkAgainstKeywords (strLc : StringLoc) =
+    match all_keywords.TryFind(strLc.Value.ToLower()) with
+    | None      -> ()
+    | Some langMsg ->
+        let errMsg = sprintf "'%s' %s  keyword." strLc.Value langMsg
+        raise (SemanticError (strLc.Location, errMsg))
+
+    
     
 
 ///chekcs whether the input values is int or not
@@ -437,6 +457,17 @@ let rec isConstraintValid (t:Asn1Type) (c:Asn1Constraint) ast =
 let rec CheckType(t:Asn1Type) (m:Asn1Module) ast =
     let CheckSeqChoiceChildren (children:seq<ChildInfo>) =
         children |> Seq.map(fun c -> c.Name) |> CheckForDuplicates 
+        
+        //check that component name does not conflict with a type assignment
+        children |> 
+            Seq.map(fun c -> c.Name) |>
+            Seq.iter(fun c ->
+                match m.TypeAssignments |> Seq.tryFind(fun tas -> ToC ((ast.args.TypePrefix + tas.Name.Value).ToLower()) = ToC (c.Value.ToLower()) ) with
+                | Some tas -> 
+                    let errMsg = sprintf "component name '%s' conflicts with type assignment '%s'. May cause compilation errors in case insensitive languages" c.Value tas.Name.Value
+                    raise(SemanticError(c.Location, errMsg))
+                | None     -> ())
+        
         children |> Seq.map(fun c -> c.Type) |> Seq.iter (fun x -> CheckType x m ast)
         children |> 
         Seq.choose(fun c -> 
@@ -504,6 +535,8 @@ let CheckModule (m:Asn1Module) ast (pass :int)=
     //check for duplicate type assignments
     let typeAssNames = m.TypeAssignments |> List.map(fun t -> t.Name) 
     typeAssNames |> CheckForDuplicates 
+    typeAssNames |> CheckForDuplicatesCI "Type Assignment"
+    typeAssNames |> Seq.iter(fun z -> checkAgainstKeywords ({z with Value = ast.args.TypePrefix + z.Value}))
     
     //check for duplicate imported types
     let importedTypeAssNames = m.Imports |> Seq.collect(fun imp -> imp.Types) |> Seq.toList
@@ -516,6 +549,9 @@ let CheckModule (m:Asn1Module) ast (pass :int)=
     //check for duplicate value assignments
     let valAssNames = m.ValueAssignments  |> Seq.map(fun t -> t.Name) 
     valAssNames |> CheckForDuplicates 
+    valAssNames |> CheckForDuplicatesCI "Value Assignment"
+    valAssNames |> Seq.iter checkAgainstKeywords
+
 
     //check for duplicate imported values
     let importedValAssNames = m.Imports |> Seq.collect(fun imp -> imp.Values) 

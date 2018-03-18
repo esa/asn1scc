@@ -15,6 +15,8 @@ type State = {
     curErrCodeNames : Set<String>
 }
 
+let emptyState = {curSeqOfLevel=0; currErrorCode=0; curErrCodeNames=Set.empty}
+
 type ParentInfoData = {
     program_unit_name : string
     typedefName       : string
@@ -291,7 +293,7 @@ type AcnFunction = {
 
     // takes as input (a) any acn arguments and (b) the field where the encoding/decoding takes place
     // returns a list of acn encoding statements
-    funcBody            : ((Asn1AcnAst.RelativePath*Asn1AcnAst.AcnParameter) list) -> CallerScope -> (AcnFuncBodyResult option)            
+    funcBody            : State->((Asn1AcnAst.RelativePath*Asn1AcnAst.AcnParameter) list) -> CallerScope -> ((AcnFuncBodyResult option)*State)            
 }
 
 type EncodeDecodeTestFunc = {

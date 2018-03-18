@@ -1,0 +1,13 @@
+TEST-CASE  DEFINITIONS AUTOMATIC TAGS::= BEGIN
+
+	MyPDU ::= SEQUENCE {
+		gmamais-myInt	MyInt
+	}
+    MyInt   ::= INTEGER
+	
+
+	
+END
+
+
+--TCLS     MyPDU[] 

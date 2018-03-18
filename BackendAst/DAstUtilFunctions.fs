@@ -961,7 +961,8 @@ let hasAcnEncodeFunction (encFunc : AcnFunction option) acnParameters  =
         match acnParameters with
         | [] ->
             let p = {CallerScope.modName = ""; arg = VALUE "dummy"}
-            match fnc.funcBody [] p with
+            let ret,_ = fnc.funcBody emptyState [] p
+            match ret with
             | None   -> false
             | Some _ -> true
         | _     -> false

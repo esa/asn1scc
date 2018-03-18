@@ -448,6 +448,18 @@ let CheckForDuplicates<'T when 'T :equality>   (sequence:seq<PrimitiveWithLocati
         let errMsg = sprintf "Duplicate definition: %s" (name.ToString())
         raise (SemanticError (loc, errMsg))
 
+let CheckForDuplicatesCI asn1ConstructCheck (lst: StringLoc seq) =
+    lst |> 
+    Seq.groupBy(fun s -> s.Value.ToLower()) |> 
+    Seq.filter(fun (n,dups) -> Seq.length dups > 1) |> 
+    Seq.iter(fun (_,dups) -> 
+        let head = dups |> Seq.head
+        let dupStr = dups |> Seq.map(fun z -> "'" + z.Value + "'") |> Seq.StrJoin ", "
+        let errMsg = sprintf "Duplicate %s. Values: %s have the same spelling but different case. Use different names to avoid conflicts in case insentive target languages" asn1ConstructCheck dupStr
+        raise (SemanticError (head.Location, errMsg))) 
+        
+
+
 //it throws excToThrow if list2 contains an element that does not exist in list1
 let CompareLists (list1:List<StringLoc>) (list2:List<StringLoc>) excToThrow =
     list2 |> Seq.iter(fun s2 ->match list1 |> Seq.exists(fun s1 -> s1.Value = s2.Value) with
