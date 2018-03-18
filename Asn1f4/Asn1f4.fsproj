@@ -29,8 +29,8 @@
     <PlatformTarget>AnyCPU</PlatformTarget>
     <DocumentationFile>bin\Debug\Asn1f4.XML</DocumentationFile>
     <Prefer32Bit>true</Prefer32Bit>
-    <StartWorkingDirectory>C:\prj\GitHub\asn1scc\tmp\xer</StartWorkingDirectory>
-    <StartArguments>-v</StartArguments>
+    <StartWorkingDirectory>C:\prj\GitHub\asn1scc\v4Tests\tmp_Ada</StartWorkingDirectory>
+    <StartArguments>-Ada -uPER -ACN -atc sample1.asn1 sample1.acn</StartArguments>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>

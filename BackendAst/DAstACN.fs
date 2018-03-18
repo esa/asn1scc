@@ -228,7 +228,7 @@ let private createAcnIntegerFunctionInternal (r:Asn1AcnAst.AstRoot) (l:Programmi
             let a = 2I**nBits - 1I
             min a nUperMax
         let sIntActualMin (nBits:int) =
-            let a = 2I**(nBits-1)
+            let a = -2I**(nBits-1)
             max a nUperMin
         let sIntActualMax (nBits:int) =
             let a = 2I**(nBits-1) - 1I
