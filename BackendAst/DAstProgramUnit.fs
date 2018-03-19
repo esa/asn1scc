@@ -143,6 +143,10 @@ let internal createProgramUnits (args:CommandLineSettings) (files: Asn1File list
                 Seq.collect(fun imp -> imp.Types |> List.map (fun impType ->{TypeAssignmentInfo.modName = imp.Name.Value; tasName = impType.Value})) |> 
                 Seq.distinct |> Seq.toList        
             let sortedTypes = sortTypes moduTypes importedTypes |> List.filter(fun z -> z.modName = m.Name.Value) |> List.map(fun ref -> typesMap.[ref]) 
+
+            //debud start
+            //sortedTypes |> Seq.iter(fun tas -> printfn "%s\t%d\n" tas.Name.Value tas.Name.Location.srcLine)
+            //debug end
             let depTypesFromOtherModules =
                 sortedTypes |> 
                 List.collect (fun t -> getTypeDependencies t.Type) |>
