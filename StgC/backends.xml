@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Settings>
+<Settings generateInterfacesSignature="ILang.fs">
   <run mode="single">
     <input>header_c.stg</input>
     <output>header_c.stg.fs</output>
@@ -47,7 +47,13 @@
     <input>acn_c.stg</input>
     <output>acn_c.stg.fs</output>
     <modName>acn_c</modName>
+	<interfaces_def></interfaces_def>
 	<lang>c</lang>
+	<interfacesImplementation>
+		<interface name="Lang.ACN:IntegerMacros"  />
+		<interface name="Lang.uPER:IntegerMacros" />
+	</interfacesImplementation>
+	
   </run>
   <run mode="single">
         <input>xer_c.stg</input>
