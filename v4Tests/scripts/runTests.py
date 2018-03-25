@@ -45,6 +45,11 @@ def resolvedir(path):
     else:
         return path
 
+def resolvesep():
+    if sys.platform == 'cygwin':
+        return "\\"
+    else:
+        return os.sep
 
 def PrintFailed(mssg):
     print("\033[31m%-65s\033[0m" % (mssg))
@@ -77,7 +82,8 @@ def RunTestCase(asn1, acn, behavior, expErrMsg):
         "' '" + resolvedir(asn1File) + "' '" + resolvedir(acnFile) +
         "' >tmp.err"+"_"+language+" 2>&1", True)
     ferr = open("tmp.err"+"_"+language, 'r')
-    err_msg = ferr.read().replace("\r\n", "").replace("\n", "").replace(targetDir + os.sep, "")
+    #print("str to replace '" + resolvedir(targetDir) + resolvesep() + "'")
+    err_msg = ferr.read().replace("\r\n", "").replace("\n", "").replace(resolvedir(targetDir) +  resolvesep(), "")
     ferr.close()
     if behavior == 0 or behavior == 2:
         if res != 0 or err_msg != "":

@@ -480,7 +480,17 @@ let createReferenceType (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1Ac
     let programUnit = ToC t.id.ModName
     match t.typeAssignmentInfo with
     | Some (TypeAssignmentInfo _)    
-    | None                           -> baseType.typeDefintionOrReference
+    | None                           -> 
+        //
+        match baseType.typeDefintionOrReference with
+        | ReferenceToExistingDefinition  retEx  -> 
+            let programUnit =
+                match o.modName.Value = t.id.ModName with
+                | true  -> None
+                | false -> Some (ToC o.modName.Value)
+            ReferenceToExistingDefinition  {ReferenceToExistingDefinition.programUnit = programUnit; typedefName=ToC2(r.args.TypePrefix + o.tasName.Value)}
+        | TypeDefinition                   _    -> baseType.typeDefintionOrReference
+
     | Some (ValueAssignmentInfo _)   ->
         let soInheritParentTypePackage, sInheritParentType = 
             match l with
