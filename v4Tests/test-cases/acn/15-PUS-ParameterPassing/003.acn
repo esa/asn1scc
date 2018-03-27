@@ -1,0 +1,17 @@
+TEST-CASE DEFINITIONS ::= BEGIN
+
+TC-8-1-PerformAFunction []
+{
+	function-IDa Function-ID [],
+	functionArgs <function-IDa>[]
+}
+
+Function-ID []
+
+FunctionArguments <Function-ID: argfunctionID> []
+{
+	pus8-Function1 [present-when argfunctionID == "Function1"],
+	pus8-Function2 [present-when argfunctionID == "Function2"]
+}
+
+END

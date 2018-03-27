@@ -831,7 +831,7 @@ case <sChildID>:
 
 ChoiceChild_preWhen_bool_condition(sExtFld) ::= "<sExtFld>"
 ChoiceChild_preWhen_int_condition(sExtFld, nVal) ::= "(<sExtFld> == <nVal>)"
-ChoiceChild_preWhen_str_condition(sExtFld, sVal) ::= "(strcmp(<sExtFld>, \"<sVal>\") == 0)"
+ChoiceChild_preWhen_str_condition(sExtFld, sVal, arrsNullChars) ::= "(strcmp(<sExtFld>, \"<sVal>\") == 0)"
 
 ChoiceChild_preWhen_decode(p, sAcc, sChildID, sChildBody, arrsConditions, bFirst, sChildName, sChildTypeDef, sChoiceTypeName) ::= <<
 <if(!bFirst)>else <endif>if (<arrsConditions; separator=" && ">) {
@@ -983,7 +983,7 @@ case <sChildNamePrese>:
     break;
 >>
 
-ChoiceDependencyStrPres_child(v, sChildNamePrese, sChildRetVal) ::= <<
+ChoiceDependencyStrPres_child(v, sChildNamePrese, sChildRetVal, arrsNullChars) ::= <<
 case <sChildNamePrese>:
     <v>_is_initialized = TRUE;
 	strcpy(<v>, "<sChildRetVal>");

@@ -606,7 +606,7 @@ let createAcnStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
                 Some(x.funcBody, x.errCodes)
         match funcBodyContent with
         | None -> None
-        | Some (funcBodyContent,errCodes) -> Some ({AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = errCode::errCodes; localVariables = []})
+        | Some (funcBodyContent,errCodes) -> Some ({AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = errCode::errCodes |> List.distinct ; localVariables = []})
 
 
     (funcBody errCode), ns
@@ -788,7 +788,27 @@ let rec handleSingleUpdateDependency (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.Acn
                     let pres = ch.acnPresentWhenConditions |> Seq.find(fun x -> x.relativePath = relPath)
                     match pres with
                     | PresenceInt   (_, intVal) -> choiceDependencyIntPres_child v ch.presentWhenName intVal.Value
-                    | PresenceStr   (_, strVal) -> choiceDependencyStrPres_child v ch.presentWhenName strVal.Value )
+                    | PresenceStr   (_, strVal) -> raise(SemanticError(strVal.Location, "Unexpected presence condition. Expected integer, found string")))
+            let updateStatement = choiceDependencyPres choicePath.arg.p (choicePath.arg.getAcces l) arrsChildUpdates
+            match checkPath with
+            | []    -> updateStatement
+            | _     -> checkAccessPath checkPath updateStatement
+        Some ({AcnChildUpdateResult.func = updateFunc; errCodes=[]}), us
+    | AcnDepPresenceStr   (relPath, chc, str)               -> 
+        let updateFunc (vTarget : CallerScope) (pSrcRoot : CallerScope)  = 
+            let v = vTarget.arg.getValue l
+            let choicePath, checkPath = getAccessFromScopeNodeList d.asn1Type false l pSrcRoot
+            let arrsChildUpdates = 
+                chc.children |> 
+                List.map(fun ch -> 
+                    let pres = ch.acnPresentWhenConditions |> Seq.find(fun x -> x.relativePath = relPath)
+                    match pres with
+                    | PresenceInt   (_, intVal) -> 
+                        raise(SemanticError(intVal.Location, "Unexpected presence condition. Expected string, found integer"))
+                        //choiceDependencyIntPres_child v ch.presentWhenName intVal.Value
+                    | PresenceStr   (_, strVal) -> 
+                        let arrNuls = [0 .. (str.maxSize- strVal.Value.Length)]|>Seq.map(fun x -> variables_a.PrintStringValueNull())
+                        choiceDependencyStrPres_child v ch.presentWhenName strVal.Value arrNuls)
             let updateStatement = choiceDependencyPres choicePath.arg.p (choicePath.arg.getAcces l) arrsChildUpdates
             match checkPath with
             | []    -> updateStatement
@@ -1113,42 +1133,57 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
                             | Ada   ->  chFunc.funcBody us [] ({p with arg = p.arg.getChChild l child.c_name child.chType.isIA5String})
                         | None          -> None, us
 
-                match childContentResult with
-                | None              -> [], ns1
-                | Some childContent ->
-                    let childBody = 
-                        let sChildName = child.c_name
-                        let sChildTypeDef = child.chType.typeDefintionOrReference.longTypedefName l //child.chType.typeDefinition.typeDefinitionBodyWithinSeq
+                let childContent_funcBody, childContent_localVariables, childContent_errCodes =
+                    match childContentResult with
+                    | None              -> (match l with C -> "" | Ada -> "null;"),[],[]
+                    | Some childContent -> childContent.funcBody,  childContent.localVariables, childContent.errCodes
 
-                        let sChoiceTypeName = typeDefinitionName
-                        match child.Optionality with
-                        | Some (ChoiceAlwaysAbsent) -> Some (choiceChildAlwaysAbsent p.arg.p (p.arg.getAcces l) (child.presentWhenName (Some defOrRef) l) (BigInteger idx) errCode.errCodeName codec)
-                        | Some (ChoiceAlwaysPresent)
-                        | None  ->
-                            match ec with
-                            | CEC_uper  -> 
-                                Some (choiceChild p.arg.p (p.arg.getAcces l) (child.presentWhenName (Some defOrRef) l) (BigInteger idx) nIndexSizeInBits nMax childContent.funcBody sChildName sChildTypeDef sChoiceTypeName codec)
-                            | CEC_enum (enm,_) -> 
-                                let getDefOrRef (a:Asn1AcnAst.ReferenceToEnumerated) =
-                                    match p.modName = a.modName with
-                                    | true  -> ReferenceToExistingDefinition {ReferenceToExistingDefinition.programUnit = None; typedefName = ToC (r.args.TypePrefix + a.tasName)}
-                                    | false -> ReferenceToExistingDefinition {ReferenceToExistingDefinition.programUnit = Some (ToC a.modName); typedefName = ToC (r.args.TypePrefix + a.tasName)}
+//                match childContentResult with
+//                | None              -> [], ns1
+//                | Some childContent ->
+                let childBody = 
+                    let sChildName = child.c_name
+                    let sChildTypeDef = child.chType.typeDefintionOrReference.longTypedefName l //child.chType.typeDefinition.typeDefinitionBodyWithinSeq
+
+                    let sChoiceTypeName = typeDefinitionName
+                    match child.Optionality with
+                    | Some (ChoiceAlwaysAbsent) -> Some (choiceChildAlwaysAbsent p.arg.p (p.arg.getAcces l) (child.presentWhenName (Some defOrRef) l) (BigInteger idx) errCode.errCodeName codec)
+                    | Some (ChoiceAlwaysPresent)
+                    | None  ->
+                        match ec with
+                        | CEC_uper  -> 
+                            Some (choiceChild p.arg.p (p.arg.getAcces l) (child.presentWhenName (Some defOrRef) l) (BigInteger idx) nIndexSizeInBits nMax childContent_funcBody sChildName sChildTypeDef sChoiceTypeName codec)
+                        | CEC_enum (enm,_) -> 
+                            let getDefOrRef (a:Asn1AcnAst.ReferenceToEnumerated) =
+                                match p.modName = a.modName with
+                                | true  -> ReferenceToExistingDefinition {ReferenceToExistingDefinition.programUnit = None; typedefName = ToC (r.args.TypePrefix + a.tasName)}
+                                | false -> ReferenceToExistingDefinition {ReferenceToExistingDefinition.programUnit = Some (ToC a.modName); typedefName = ToC (r.args.TypePrefix + a.tasName)}
 
 
-                                let enmItem = enm.enm.items |> List.find(fun itm -> itm.Name.Value = child.Name.Value)
-                                Some (choiceChild_Enum p.arg.p (p.arg.getAcces l) (enmItem.getBackendName (Some (getDefOrRef enm)) l) (child.presentWhenName (Some defOrRef) l) childContent.funcBody sChildName sChildTypeDef sChoiceTypeName codec)
-                            | CEC_presWhen  ->
-                                let handPresenseCond (cond:Asn1AcnAst.AcnPresentWhenConditionChoiceChild) =
-                                    match cond with
-                                    | PresenceInt  (relPath, intLoc)   -> 
-                                        let extField = getExternaFieldChoizePresentWhen r deps t.id relPath
-                                        choiceChild_preWhen_int_condition extField intLoc.Value
-                                    | PresenceStr  (relPath, strVal)   -> 
-                                        let extField = getExternaFieldChoizePresentWhen r deps t.id relPath
-                                        choiceChild_preWhen_str_condition extField strVal.Value
-                                let conds = child.acnPresentWhenConditions |>List.map handPresenseCond
-                                Some (choiceChild_preWhen p.arg.p (p.arg.getAcces l) (child.presentWhenName (Some defOrRef) l) childContent.funcBody conds (idx=0) sChildName sChildTypeDef sChoiceTypeName codec)
-                    [(childBody, childContent.localVariables, childContent.errCodes)], ns1
+                            let enmItem = enm.enm.items |> List.find(fun itm -> itm.Name.Value = child.Name.Value)
+                            Some (choiceChild_Enum p.arg.p (p.arg.getAcces l) (enmItem.getBackendName (Some (getDefOrRef enm)) l) (child.presentWhenName (Some defOrRef) l) childContent_funcBody sChildName sChildTypeDef sChoiceTypeName codec)
+                        | CEC_presWhen  ->
+                            let handPresenseCond (cond:Asn1AcnAst.AcnPresentWhenConditionChoiceChild) =
+                                match cond with
+                                | PresenceInt  (relPath, intLoc)   -> 
+                                    let extField = getExternaFieldChoizePresentWhen r deps t.id relPath
+                                    choiceChild_preWhen_int_condition extField intLoc.Value
+                                | PresenceStr  (relPath, strVal)   -> 
+                                    let strType = 
+                                        deps.acnDependencies |> 
+                                        List.filter(fun d -> d.asn1Type = t.id) |>
+                                        List.choose(fun d -> 
+                                            match d.dependencyKind with
+                                            | AcnDepPresenceStr(relPathCond, ch, str)  when relPathCond = relPath-> Some str
+                                            | _     -> None) |> Seq.head
+
+
+                                    let extField = getExternaFieldChoizePresentWhen r deps t.id relPath
+                                    let arrNuls = [0 .. (strType.maxSize- strVal.Value.Length)]|>Seq.map(fun x -> variables_a.PrintStringValueNull())
+                                    choiceChild_preWhen_str_condition extField strVal.Value arrNuls
+                            let conds = child.acnPresentWhenConditions |>List.map handPresenseCond
+                            Some (choiceChild_preWhen p.arg.p (p.arg.getAcces l) (child.presentWhenName (Some defOrRef) l) childContent_funcBody conds (idx=0) sChildName sChildTypeDef sChoiceTypeName codec)
+                [(childBody, childContent_localVariables, childContent_errCodes)], ns1
 
         let childrenStatements00, ns = children |> List.mapi (fun i x -> i,x)  |> foldMap (fun us (i,x) ->  handleChild us i x) us
         let childrenStatements0 = childrenStatements00 |> List.collect id

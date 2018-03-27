@@ -443,6 +443,7 @@ let private exportAcnDependencyKind (d:AcnDependencyKind) =
     | AcnDepRefTypeArgument prm    -> XElement(xname "RefTypeArgumentDependency", XAttribute(xname "prmId", prm.id.AsString))
     | AcnDepPresenceBool           -> XElement(xname "PresenseBoolDependency")
     | AcnDepPresence   _           -> XElement(xname "ChoicePresenseDependency")
+    | AcnDepPresenceStr   _           -> XElement(xname "ChoicePresenseStrDependency")
     | AcnDepChoiceDeteterminant _  -> XElement(xname "ChoiceEnumDependency")
                                    
 let private exportAcnDependency (d:AcnDependency) =

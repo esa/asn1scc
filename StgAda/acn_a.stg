@@ -1009,7 +1009,7 @@ end case;
 
 ChoiceChild_preWhen_bool_condition(sExtFld) ::= "<sExtFld>"
 ChoiceChild_preWhen_int_condition(sExtFld, nVal) ::= "(<sExtFld> = <nVal>)"
-ChoiceChild_preWhen_str_condition(sExtFld, sVal) ::= "(<sExtFld> = \"<sVal>\""
+ChoiceChild_preWhen_str_condition(sExtFld, sVal, arrsNullChars) ::= "(<sExtFld> = \"<sVal>\"<if(arrsNullChars)> & <arrsNullChars; wrap, anchor, separator=\" & \"><endif>)"
 
 Choice_preWhen_encode(p, sAcc, arrsChildren, sErrCode) ::= <<
 case <p><sAcc>kind IS
@@ -1125,10 +1125,10 @@ when <sChildNamePrese> =>
 	<v> := <nChildRetVal>; 
 >>
 
-ChoiceDependencyStrPres_child(v, sChildNamePrese, sChildRetVal) ::= <<
+ChoiceDependencyStrPres_child(v, sChildNamePrese, sChildRetVal, arrsNullChars) ::= <<
 when <sChildNamePrese> =>
     <v>_is_initialized := TRUE;
-	<v> := "<nChildRetVal>"; 
+	<v> := "<sChildRetVal>"<if(arrsNullChars)> & <arrsNullChars; wrap, anchor, separator=" & "><endif>; 
 >>
 
 

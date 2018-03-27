@@ -43,9 +43,9 @@ let internal PrintCustomAsn1Value_aux (bPrintAsAttr:bool) (v: Asn1Value) stgFile
         |StringValue(v)          -> 
             match bPrintAsAttr with 
             | true   -> 
-                printfn "%s\n" v
+                //printfn "%s\n" v
                 let retVal = v.Replace("&", "&amp;").Replace("<", "&lt;").Replace(">", "&gt;").Replace("\"", "&quot;").Replace("'", "&apos;")
-                printfn "%s\n" retVal
+                //printfn "%s\n" retVal
                 match bChildVal with
                 | true  ->  "&quot;" + retVal + "&quot;"
                 | false -> retVal

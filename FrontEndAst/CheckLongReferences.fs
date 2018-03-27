@@ -172,20 +172,25 @@ let checkChoicePresentWhen (r:AstRoot) (curState:AcnInsertedFieldDependencies) (
                         | AcnPrmRefType (md,ts) -> 
                             let actType = GetActualTypeByName r md ts 
                             match actType.Kind with
-                            | IA5String str ->  AcnDepPresence ((RelativePath path), ch)
+                            | IA5String str ->  
+                                match  str.minSize <= strVal.Value.Length && strVal.Value.Length <= str.maxSize with
+                                | true  -> AcnDepPresenceStr ((RelativePath path), ch, str)
+                                | false -> raise(SemanticError(strVal.Location, (sprintf "Length of value '%s' is not within the expected range: i.e. %d not in (%d .. %d)"  strVal.Value  strVal.Value.Length str.minSize str.maxSize)))
+
                             | _              -> raise(SemanticError(loc, (sprintf "Invalid argument type. Expecting STRING got %s "  (p.asn1Type.ToString()))))
                         | _              -> raise(SemanticError(loc, (sprintf "Invalid argument type. Expecting STRING got %s "  (p.asn1Type.ToString()))))
                     let rec checkAcnType (c:AcnChild) =
                         match c.Type with
                         | AcnReferenceToIA5String    str -> 
-                            AcnDepPresence ((RelativePath path), ch)
+                            match  str.str.minSize <= strVal.Value.Length && strVal.Value.Length <= str.str.maxSize with
+                            | true  -> AcnDepPresenceStr ((RelativePath path), ch, str.str)
+                            | false -> raise(SemanticError(strVal.Location, (sprintf "Length of value '%s' is not within the expected range: i.e. %d not in (%d .. %d)"  strVal.Value  strVal.Value.Length str.str.minSize str.str.maxSize)))
                         | _              -> raise(SemanticError(loc, (sprintf "Invalid argument type. Expecting STRING got %s "  (c.Type.AsString))))
                     checkRelativePath curState parents t visibleParameters   (RelativePath path)  checkParameter checkAcnType
 
             
 
-            c1.acnPresentWhenConditions |>
-            List.fold(fun ns pc -> checkAcnPresentWhenConditionChoiceChild ns pc ) curState
+            c1.acnPresentWhenConditions |> List.fold(fun ns pc -> checkAcnPresentWhenConditionChoiceChild ns pc ) curState
             
 
     
