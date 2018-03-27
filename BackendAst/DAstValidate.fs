@@ -211,54 +211,54 @@ let joinTwoIfFirstOk l = match l with C -> isvalid_c.JoinTwoIfFirstOk | Ada -> i
 let createPrimitiveFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage)  (t:Asn1AcnAst.Asn1Type) allCons  conToStrFunc (typeDefinition:TypeDefintionOrReference) (alphaFuncs : AlphaFunc list) (us:State)  =
     let hasValidationFunc= hasValidationFunc allCons
     
-    match allCons with
-    | []            -> None, us
-    | c::cs         ->
-        let funcName            = getFuncName r l t.id
-        let errCodeName         = ToC ("ERR_" + ((t.id.AcnAbsPath |> Seq.skip 1 |> Seq.StrJoin("-")).Replace("#","elm")))
-        let errCode, ns = getNextValidErrorCode us errCodeName
-        let funcExp (p:CallerScope) = 
-            let allCons = allCons |> List.map (conToStrFunc p)
-            match allCons with
-            | []     -> raise(BugErrorException("Invalid case"))
-            | c::cs  -> l.ExpAndMulti allCons 
+//    match allCons with
+//    | []            -> None, us
+//    | _         ->
+    let funcName            = getFuncName r l t.id
+    let errCodeName         = ToC ("ERR_" + ((t.id.AcnAbsPath |> Seq.skip 1 |> Seq.StrJoin("-")).Replace("#","elm")))
+    let errCode, ns = getNextValidErrorCode us errCodeName
+    let funcExp (p:CallerScope) = 
+        let allCons = allCons |> List.map (conToStrFunc p)
+        match allCons with
+        | []     -> "TRUE"//raise(BugErrorException("Invalid case"))
+        | c::cs  -> l.ExpAndMulti allCons 
 
-        let funcBody (p:CallerScope) = 
-            makeExpressionToStatement l (funcExp p) errCode.errCodeName
+    let funcBody (p:CallerScope) = 
+        makeExpressionToStatement l (funcExp p) errCode.errCodeName
 
-        let p  = t.getParamType l Encode
-        let varName = p.arg.p
-        let sStar = p.arg.getStar l
-        let  func  = 
-                match funcName  with
-                | None              -> None
-                | Some funcName     -> 
-                    let exp = funcBody p  
-                    match l with
-                    |C     -> Some(isvalid_c.EmitTypeAssignment_primitive varName sStar funcName  (typeDefinition.longTypedefName l) exp  (alphaFuncs |> List.map(fun x -> x.funcBody)) )
-                    |Ada   -> Some(isvalid_a.EmitTypeAssignment_primitive varName sStar funcName  (typeDefinition.longTypedefName l) exp  (alphaFuncs |> List.map(fun x -> x.funcBody)) )
-        let  funcDef  = 
-                match funcName with
-                | None              -> None
-                | Some funcName     -> 
-                    match l with
-                    |C     ->  Some(isvalid_c.EmitTypeAssignment_primitive_def varName sStar funcName  (typeDefinition.longTypedefName l) errCode.errCodeName (BigInteger errCode.errCodeValue))
-                    |Ada   ->  Some(isvalid_a.EmitTypeAssignment_primitive_def varName sStar funcName  (typeDefinition.longTypedefName l) errCode.errCodeName (BigInteger errCode.errCodeValue))
+    let p  = t.getParamType l Encode
+    let varName = p.arg.p
+    let sStar = p.arg.getStar l
+    let  func  = 
+            match funcName  with
+            | None              -> None
+            | Some funcName     -> 
+                let exp = funcBody p  
+                match l with
+                |C     -> Some(isvalid_c.EmitTypeAssignment_primitive varName sStar funcName  (typeDefinition.longTypedefName l) exp  (alphaFuncs |> List.map(fun x -> x.funcBody)) )
+                |Ada   -> Some(isvalid_a.EmitTypeAssignment_primitive varName sStar funcName  (typeDefinition.longTypedefName l) exp  (alphaFuncs |> List.map(fun x -> x.funcBody)) )
+    let  funcDef  = 
+            match funcName with
+            | None              -> None
+            | Some funcName     -> 
+                match l with
+                |C     ->  Some(isvalid_c.EmitTypeAssignment_primitive_def varName sStar funcName  (typeDefinition.longTypedefName l) errCode.errCodeName (BigInteger errCode.errCodeValue))
+                |Ada   ->  Some(isvalid_a.EmitTypeAssignment_primitive_def varName sStar funcName  (typeDefinition.longTypedefName l) errCode.errCodeName (BigInteger errCode.errCodeValue))
         
-        let ret = 
-            {
-                IsValidFunction.funcName    = funcName
-                errCodes                    = [errCode]
-                func                        = func
-                funcDef                     = funcDef
-                funcExp                     = Some funcExp
-                funcBody                    = funcBody 
-                //funcBody2                   = (fun p acc -> funcBody p)
-                alphaFuncs                  = alphaFuncs
-                localVariables              = []
-                anonymousVariables          = []
-            }    
-        Some ret, ns
+    let ret = 
+        {
+            IsValidFunction.funcName    = funcName
+            errCodes                    = [errCode]
+            func                        = func
+            funcDef                     = funcDef
+            funcExp                     = Some funcExp
+            funcBody                    = funcBody 
+            //funcBody2                   = (fun p acc -> funcBody p)
+            alphaFuncs                  = alphaFuncs
+            localVariables              = []
+            anonymousVariables          = []
+        }    
+    Some ret, ns
 
 let createBitOrOctetStringFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage)  (t:Asn1AcnAst.Asn1Type) allCons  conToStrFunc (typeDefinition:TypeDefintionOrReference) (alphaFuncs : AlphaFunc list)  anonymousVariables (us:State)  =
     match allCons with
