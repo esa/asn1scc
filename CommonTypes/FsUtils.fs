@@ -178,14 +178,15 @@ type System.String with
     member this.ISQ =
         if this.IsEmptyOrNull then "''"
         else sprintf "'%s'" this.JSEsc
+    member this.EDQ = if this.IsEmptyOrNull then "" else this.Replace("\"","\\\"")
     member this.HtmlEsc =
         if this.IsEmptyOrNull then ""
         else this.
-                Replace("\"","&quot;").
                 Replace("&", "&amp;").
-                Replace("'","&#39;").
                 Replace("<","&lt;").
-                Replace(">","&gt;");
+                Replace(">","&gt;").
+                Replace("\"","&quot;").
+                Replace("'","&apos;");
 
 type Option<'T> with
     member this.orElse other =

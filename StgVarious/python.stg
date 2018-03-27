@@ -184,7 +184,7 @@ ChoiceType(arrsChildren) ::= <<
 /* Sequence (record) field. May be optional and may have a default value */
 SequenceChild(sName, sCName, bOptional, sDefVal, nLine, nPos, sChildContent ) ::= <<
 "$sName$": type("$sName$", (object,), {
-    "Optional": "$bOptional$"$if(sDefVal)$, "DefaultValue": "$sDefVal$"$endif$, "Line": $nLine$, "CharPositionInLine": $nPos$, "type": type("$sName$_type", (object,), {
+    "Optional": "$bOptional$"$if(sDefVal)$, "DefaultValue": "$sDefVal.EDQ$"$endif$, "Line": $nLine$, "CharPositionInLine": $nPos$, "type": type("$sName$_type", (object,), {
         $sChildContent$
     })
 })

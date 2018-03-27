@@ -41,15 +41,16 @@ let internal PrintCustomAsn1Value_aux (bPrintAsAttr:bool) (v: Asn1Value) stgFile
         |IntegerValue(v)         -> gen.Print_IntegerValue v stgFileName
         |RealValue(v)            -> gen.Print_RealValue v stgFileName
         |StringValue(v)          -> 
-            match bPrintAsAttr with 
-            | true   -> 
-                //printfn "%s\n" v
-                let retVal = v.Replace("&", "&amp;").Replace("<", "&lt;").Replace(">", "&gt;").Replace("\"", "&quot;").Replace("'", "&apos;")
-                //printfn "%s\n" retVal
-                match bChildVal with
-                | true  ->  "&quot;" + retVal + "&quot;"
-                | false -> retVal
-            | false  -> gen.Print_StringValue v stgFileName
+//            match bPrintAsAttr with 
+//            | true   -> 
+//                //printfn "%s\n" v
+//                let retVal = v.Replace("&", "&amp;").Replace("<", "&lt;").Replace(">", "&gt;").Replace("\"", "&quot;").Replace("'", "&apos;")
+//                //printfn "%s\n" retVal
+//                match bChildVal with
+//                | true  ->  "&quot;" + retVal + "&quot;"
+//                | false -> retVal
+//            | false  -> 
+            gen.Print_StringValue v stgFileName
         |EnumValue enmv          -> gen.Print_RefValue enmv stgFileName //gen.Print_EnmValueValue enmv stgFileName
         |BooleanValue(v)         -> if v = true then gen.Print_TrueValue () stgFileName else gen.Print_FalseValue () stgFileName
         |BitStringValue(v)       -> gen.Print_BitStringValue v stgFileName
@@ -64,8 +65,8 @@ let internal PrintCustomAsn1Value_aux (bPrintAsAttr:bool) (v: Asn1Value) stgFile
 let PrintCustomAsn1Value  (vas: ValueAssignment) stgFileName =
     PrintCustomAsn1Value_aux false vas.Value stgFileName
 
-let rec printAsn1ValueAsXmlAttribute (v: Asn1Value) stgFileName = 
-    PrintCustomAsn1Value_aux true v stgFileName
+//let rec printAsn1ValueAsXmlAttribute (v: Asn1Value) stgFileName = 
+//    PrintCustomAsn1Value_aux true v stgFileName
 
 let PrintContract (r:AstRoot) (stgFileName:string) (asn1Name:string) (backendName:string) (t:Asn1Type)=
     let PrintPattern () =
@@ -167,7 +168,14 @@ let rec PrintType (r:AstRoot) (f:Asn1File) (stgFileName:string) modName (deepRec
 
                     match c.Optionality with
                     | Some(Asn1AcnAst.Optional(optVal)) when optVal.defaultValue.IsSome -> 
-                           gen.SequenceChild c.Name.Value (ToC c.Name.Value) true (printAsn1ValueAsXmlAttribute (DAstUtilFunctions.mapValue optVal.defaultValue.Value) stgFileName) (BigInteger c.Name.Location.srcLine) (BigInteger c.Name.Location.charPos) childTypeExp stgFileName
+                        let defValueAsAsn1Value = DAstAsn1.printAsn1Value optVal.defaultValue.Value
+                        let defValueAsAsn1Value =
+                            match defValueAsAsn1Value.StartsWith("\"") && defValueAsAsn1Value.EndsWith("\"") with
+                            | false -> defValueAsAsn1Value
+                            | true  -> 
+                                defValueAsAsn1Value.Substring(1,defValueAsAsn1Value.Length-2)
+                        gen.SequenceChild c.Name.Value (ToC c.Name.Value) true defValueAsAsn1Value (BigInteger c.Name.Location.srcLine) (BigInteger c.Name.Location.charPos) childTypeExp stgFileName
+                        //gen.SequenceChild c.Name.Value (ToC c.Name.Value) true (printAsn1ValueAsXmlAttribute (DAstUtilFunctions.mapValue optVal.defaultValue.Value) stgFileName) (BigInteger c.Name.Location.srcLine) (BigInteger c.Name.Location.charPos) childTypeExp stgFileName
                     | _ -> gen.SequenceChild c.Name.Value (ToC c.Name.Value) c.Optionality.IsSome null (BigInteger c.Name.Location.srcLine) (BigInteger c.Name.Location.charPos) childTypeExp stgFileName
                 | AcnChild  c -> null
             gen.SequenceType (seqInfo.children |> Seq.map emitChild) stgFileName

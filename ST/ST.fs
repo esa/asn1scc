@@ -37,7 +37,12 @@ type StrHelper =
         match this with  StrHelper(actStr) -> actStr.JSEsc
     member this.ISQ =
         match this with  StrHelper(actStr) -> actStr.ISQ
-
+    member this.HtmlEsc =
+        match this with  StrHelper(actStr) -> actStr.HtmlEsc
+    member this.XmlEsc =
+        match this with  StrHelper(actStr) -> actStr.HtmlEsc
+    member this.EDQ =
+        match this with  StrHelper(actStr) -> actStr.EDQ
         
 
 type BasicFormatRenderer() =

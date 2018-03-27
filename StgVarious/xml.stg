@@ -137,7 +137,7 @@ ChoiceType(arrsChildren) ::= <<
 
 
 SequenceChild(sName, sCName, bOptional, sDefVal, nLine, nPos, sChildContent ) ::= <<
-<SequenceOrSetChild VarName="$sName$" Optional="$bOptional$"$if(sDefVal)$ DefaultValue="$sDefVal$"$endif$ Line="$nLine$" CharPositionInLine="$nPos$">
+<SequenceOrSetChild VarName="$sName$" Optional="$bOptional$"$if(sDefVal)$ DefaultValue="$sDefVal.HtmlEsc$"$endif$ Line="$nLine$" CharPositionInLine="$nPos$">
     $sChildContent$
 </SequenceOrSetChild>
 >>
