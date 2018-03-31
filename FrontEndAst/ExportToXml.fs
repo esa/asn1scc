@@ -148,11 +148,16 @@ let exportOptionality (opt:Asn1Optionality option) =
         | None, Some v      -> [XElement(xname "Default",(PrintAsn1GenericValue v))]
         | None, None        -> []
 
-let exportChoiceChildPresentWhenCondition (a:AcnPresentWhenConditionChoiceChild) =
-    match a with
-    | PresenceInt (RelativePath path, intVal)   -> [XAttribute(xname "present-when", (sprintf "%s = %A" (path |> Seq.StrJoin ".") intVal.Value) )]
-    | PresenceStr (RelativePath path, strVal)   -> [XAttribute(xname "present-when", (sprintf "%s = %A" (path |> Seq.StrJoin ".") strVal.Value) )]
-
+let exportChoiceChildPresentWhenCondition (presentConditions:AcnPresentWhenConditionChoiceChild list) =
+    let attrValue (aa:AcnPresentWhenConditionChoiceChild) = 
+        match aa with
+        | PresenceInt (RelativePath path, intVal)   -> (sprintf "%s = %A" (path |> Seq.StrJoin ".") intVal.Value) 
+        | PresenceStr (RelativePath path, strVal)   -> (sprintf "%s = %A" (path |> Seq.StrJoin ".") strVal.Value) 
+    match presentConditions with
+    | []    -> null
+    | _     ->
+        let attrValue = presentConditions |> List.map attrValue |> Seq.StrJoin " "
+        XAttribute(xname "present-when", attrValue)
     
 
 let exportAcnEndianness (a:AcnEndianness option) =
@@ -363,7 +368,7 @@ let private exportType (t:Asn1Type) =
                             XAttribute(xname "AdaName", ch.ada_name),
                             XAttribute(xname "CName", ch.c_name),
                             (exportChoiceOptionality ch.Optionality ),
-                            (ch.acnPresentWhenConditions |> List.map exportChoiceChildPresentWhenCondition),
+                            (exportChoiceChildPresentWhenCondition ch.acnPresentWhenConditions),
                             nt), us )
         (fun ref nt us -> XElement(xname "REFERENCE_TYPE",
                             XAttribute(xname "Module", ref.modName.Value),

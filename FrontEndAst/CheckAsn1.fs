@@ -618,7 +618,7 @@ let checkForCyclicModules ( ast:AstRoot) =
 
 let CheckFiles( ast:AstRoot) (pass :int) =
     checkForCyclicModules ast |> ignore
-    let modules = ast.Files |> Seq.collect(fun f -> f.Modules ) 
+    let modules = ast.Files |> Seq.collect(fun f -> f.Modules ) |> Seq.toList
     // check for multiple module definitions
     modules |> Seq.map(fun m-> m.Name) |> CheckForDuplicates 
     // check each file

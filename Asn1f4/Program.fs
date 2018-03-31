@@ -106,6 +106,12 @@ let checkArguement arg =
         | false -> raise (UserException (sprintf "directory '%s' does not exist." outDir))
     | Files files      -> 
         files |> Seq.iter(fun f -> match File.Exists f with true -> () | false -> raise (UserException (sprintf "File '%s' does not exist." f)))
+        files |>        
+        Seq.groupBy id |> 
+        Seq.filter(fun (n,dups) -> Seq.length dups > 1) |> 
+        Seq.iter(fun (file,_) -> 
+            let errMsg = sprintf "Duplicate Input file. File '%s' was provided twice in the command line"  file
+            raise (SemanticError (emptyLocation, errMsg))) 
     | Type_Prefix _    -> ()
     | Rename_Policy _   -> ()
     | Custom_Stg comFile  -> checkCompositeFile comFile "-customStg" "txt"
