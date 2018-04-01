@@ -167,3 +167,7 @@ begin
 end <sFuncName>;
 >>
 
+
+initChildWithInitFunc(p, sChildInitFuncName) ::= <<
+<p> := <sChildInitFuncName>;
+>>

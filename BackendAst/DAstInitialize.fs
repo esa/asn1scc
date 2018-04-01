@@ -19,11 +19,11 @@ However, now with the 'pragma Annotate (GNATprove, False_Positive)' we can handl
 *)
 
 
+let nameSuffix l = match l with C -> "_Initialize" | Ada -> "_Init"
 
 let getFuncName2 (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (tasInfo:TypeAssignmentInfo option) (inhInfo: InheritanceInfo option) (typeKind:Asn1AcnAst.Asn1TypeKind) (typeDefinition:TypeDefintionOrReference) =
-    let nameSuffix = match l with C -> "_Initialize" | Ada -> "_Init"
     //getFuncNameGeneric r nameSuffix tasInfo inhInfo typeKind typeDefinition
-    getFuncNameGeneric typeDefinition nameSuffix
+    getFuncNameGeneric typeDefinition (nameSuffix l)
 
 (*
 let getFuncName (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (tasInfo:TypeAssignmentInfo option) =
@@ -300,6 +300,7 @@ let createSequenceOfInitFunc (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:A
     let initVarSizeSequenceOf = match l with C -> init_c.initVarSizeSequenceOf | Ada -> init_a.initVarSizeSequenceOf
     let initTestCaseSizeSequenceOf_innerItem = match l with C -> init_c.initTestCaseSizeSequenceOf_innerItem | Ada -> init_a.initTestCaseSizeSequenceOf_innerItem
     let initTestCaseSizeSequenceOf = match l with C -> init_c.initTestCaseSizeSequenceOf | Ada -> init_a.initTestCaseSizeSequenceOf
+    let initChildWithInitFunc       = match l with C -> init_c.initChildWithInitFunc | Ada -> init_a.initChildWithInitFunc
     let funcBody (p:CallerScope) v = 
         let vl = 
             match v with
@@ -353,9 +354,16 @@ let createSequenceOfInitFunc (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:A
         } |> Seq.toList
     let initTasFunction (p:CallerScope) =
         let initCountValue = Some o.minSize.AsBigInt
-        let childInitRes = childType.initFunction.initTas ({p with arg = p.arg.getArrayItem l i childType.isIA5String})
-        let funcBody = initTestCaseSizeSequenceOf p.arg.p (p.arg.getAcces l) initCountValue o.maxSize.AsBigInt (o.minSize = o.maxSize) [childInitRes.funcBody] false i
-        {InitFunctionResult.funcBody = funcBody; localVariables= (SequenceOfIndex (ii, None))::childInitRes.localVariables }
+        let chp = {p with arg = p.arg.getArrayItem l i childType.isIA5String}
+        let childInitRes_funcBody, childInitRes_localVariables = 
+            match childType.initFunction.initFuncName with
+            | None  ->
+                let childInitRes = childType.initFunction.initTas chp
+                childInitRes.funcBody, childInitRes.localVariables
+            | Some fncName  ->
+                initChildWithInitFunc (chp.arg.getPointer l) fncName, []
+        let funcBody = initTestCaseSizeSequenceOf p.arg.p (p.arg.getAcces l) initCountValue o.maxSize.AsBigInt (o.minSize = o.maxSize) [childInitRes_funcBody] false i
+        {InitFunctionResult.funcBody = funcBody; localVariables= (SequenceOfIndex (ii, None))::childInitRes_localVariables }
         
     createInitFunctionCommon r l t typeDefinition funcBody iv  initTasFunction testCaseFuncs
 
@@ -364,6 +372,7 @@ let createSequenceInitFunc (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn
     let initSequence_optionalChild  = match l with C -> init_c.initSequence_optionalChild | Ada -> init_a.initSequence_optionalChild
     let initTestCase_sequence_child = match l with C -> init_c.initTestCase_sequence_child | Ada -> init_a.initTestCase_sequence_child
     let initTestCase_sequence_child_opt = match l with C -> init_c.initTestCase_sequence_child_opt | Ada -> init_a.initTestCase_sequence_child_opt
+    let initChildWithInitFunc       = match l with C -> init_c.initChildWithInitFunc | Ada -> init_a.initChildWithInitFunc
     let dummy =
         let aaa = typeDefinition.longTypedefName l
         match aaa = "MySuperSeqOf_elem" with
@@ -467,10 +476,27 @@ let createSequenceInitFunc (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn
     let initTasFunction (p:CallerScope) =
         let handleChild  (ch:Asn1Child)  = 
             let presentFunc () = 
-                let fnc = ch.Type.initFunction.initTas
-                let chContent =  fnc {p with arg = p.arg.getSeqChild l ch.c_name ch.Type.isIA5String} 
-                let funcBody = initTestCase_sequence_child p.arg.p (p.arg.getAcces l) ch.c_name chContent.funcBody ch.Optionality.IsSome
-                {InitFunctionResult.funcBody = funcBody; localVariables = chContent.localVariables }
+                match ch.Type.initFunction.initFuncName with
+                | None  ->
+                    match ch.Type.typeDefintionOrReference with
+                    | ReferenceToExistingDefinition    rf   when (not rf.definedInRtl) ->
+                        let fncName = (ch.Type.typeDefintionOrReference.longTypedefName l) + (nameSuffix l)
+                        let chP = {p with arg = p.arg.getSeqChild l ch.c_name ch.Type.isIA5String} 
+                        let chContent =  initChildWithInitFunc (chP.arg.getPointer l) fncName
+                        let funcBody = initTestCase_sequence_child p.arg.p (p.arg.getAcces l) ch.c_name chContent ch.Optionality.IsSome
+                        {InitFunctionResult.funcBody = funcBody; localVariables = [] }
+                    | _       ->
+                        let fnc = ch.Type.initFunction.initTas
+                        let chContent =  fnc {p with arg = p.arg.getSeqChild l ch.c_name ch.Type.isIA5String} 
+                        let funcBody = initTestCase_sequence_child p.arg.p (p.arg.getAcces l) ch.c_name chContent.funcBody ch.Optionality.IsSome
+                        {InitFunctionResult.funcBody = funcBody; localVariables = chContent.localVariables }
+                        
+                | Some fncName  ->
+                    let chP = {p with arg = p.arg.getSeqChild l ch.c_name ch.Type.isIA5String} 
+                    let chContent =  initChildWithInitFunc (chP.arg.getPointer l) fncName
+                    let funcBody = initTestCase_sequence_child p.arg.p (p.arg.getAcces l) ch.c_name chContent ch.Optionality.IsSome
+                    {InitFunctionResult.funcBody = funcBody; localVariables = [] }
+                    
             let nonPresenceFunc () =  
                 let funcBody = initTestCase_sequence_child_opt p.arg.p (p.arg.getAcces l) ch.c_name
                 {InitFunctionResult.funcBody = funcBody; localVariables = [] }
@@ -502,6 +528,7 @@ let createSequenceInitFunc (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn
 let createChoiceInitFunc (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1AcnAst.Asn1Type) (o :Asn1AcnAst.Choice) (typeDefinition:TypeDefintionOrReference) (children:ChChildInfo list) iv =     
     //let initChoice = match l with C -> init_c.initChoice | Ada -> init_a.initChoice
     let initTestCase_choice_child = match l with C -> init_c.initTestCase_choice_child | Ada -> init_a.initTestCase_choice_child
+    let initChildWithInitFunc       = match l with C -> init_c.initChildWithInitFunc | Ada -> init_a.initChildWithInitFunc
     let typeDefinitionName = typeDefinition.longTypedefName l 
     let funcBody (p:CallerScope) v = 
         let childrenOut = 
@@ -569,13 +596,21 @@ let createChoiceInitFunc (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1A
         let handleChild  (ch:ChChildInfo)  = 
             let sChildName = ch.c_name
             let sChildTypeDef = ch.chType.typeDefintionOrReference.longTypedefName l 
-            let fnc = ch.chType.initFunction.initTas
-            let childContent =  
-                match l with
-                | C     -> fnc {p with arg = p.arg.getChChild l sChildName ch.chType.isIA5String} 
-                | Ada   -> fnc {p with arg = VALUE (sChildName + "_tmp")} 
-            let funcBody = initTestCase_choice_child p.arg.p (p.arg.getAcces l) (ch.presentWhenName (Some typeDefinition) l) childContent.funcBody sChildName  sChildTypeDef typeDefinitionName
-            {InitFunctionResult.funcBody = funcBody; localVariables = childContent.localVariables}
+            let chp = {p with arg = p.arg.getChChild l sChildName ch.chType.isIA5String} 
+            let childContent_funcBody, childContent_localVariables = 
+                match ch.chType.initFunction.initFuncName with
+                | None  ->
+                    let fnc = ch.chType.initFunction.initTas
+                    let childContent =  
+                        match l with
+                        | C     -> fnc chp
+                        | Ada   -> fnc {p with arg = VALUE (sChildName + "_tmp")} 
+                    childContent.funcBody, childContent.localVariables
+                | Some fncName  ->
+                    initChildWithInitFunc (chp.arg.getPointer l) fncName, []
+            let funcBody = initTestCase_choice_child p.arg.p (p.arg.getAcces l) (ch.presentWhenName (Some typeDefinition) l) childContent_funcBody sChildName  sChildTypeDef typeDefinitionName
+
+            {InitFunctionResult.funcBody = funcBody; localVariables = childContent_localVariables}
         match children with
         | x::_  -> handleChild x
         | _     -> {InitFunctionResult.funcBody = ""; localVariables = []}
@@ -584,5 +619,25 @@ let createChoiceInitFunc (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1A
     createInitFunctionCommon r l t typeDefinition funcBody iv initTasFunction testCaseFuncs
 
 let createReferenceType (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1AcnAst.Asn1Type) (o :Asn1AcnAst.ReferenceType) (typeDefinition:TypeDefintionOrReference) (baseType:Asn1Type) =
+    let initChildWithInitFunc       = match l with C -> init_c.initChildWithInitFunc | Ada -> init_a.initChildWithInitFunc
+    let typeDefinitionName = ToC2(r.args.TypePrefix + o.tasName.Value)
+    
+    let t1              = Asn1AcnAstUtilFunctions.GetActualTypeByName r o.modName o.tasName
+    let t1WithExtensios = o.resolvedType;
+
     let bs = baseType.initFunction
-    createInitFunctionCommon r l t typeDefinition bs.initByAsn1Value baseType.initialValue bs.initTas bs.initFuncBodyTestCases
+    match TypesEquivalence.uperEquivalence t1 t1WithExtensios with
+    | false -> 
+        createInitFunctionCommon r l t typeDefinition bs.initByAsn1Value baseType.initialValue bs.initTas bs.initFuncBodyTestCases
+    | true  ->
+        let baseFncName = 
+            match l with
+            | C     -> typeDefinitionName + (nameSuffix l)
+            | Ada   -> 
+                match t.id.ModName = o.modName.Value with
+                | true  -> typeDefinitionName + (nameSuffix l)
+                | false -> (ToC o.modName.Value) + "." + (typeDefinitionName + (nameSuffix l))
+        let initTasFunction (p:CallerScope) =
+            let funcBody = initChildWithInitFunc (p.arg.getPointer l) baseFncName
+            {InitFunctionResult.funcBody = funcBody; localVariables = []}
+        createInitFunctionCommon r l t typeDefinition bs.initByAsn1Value baseType.initialValue initTasFunction bs.initFuncBodyTestCases

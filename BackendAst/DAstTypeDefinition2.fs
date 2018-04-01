@@ -191,12 +191,12 @@ let private createTypeGeneric (r:Asn1AcnAst.AstRoot)  l (pi : Asn1Fold.ParentInf
         match t.inheritInfo with
         | Some inheritInfo   ->  
             let baseTypeProgramUnit = if programUnit = ToC inheritInfo.modName then None else Some (ToC inheritInfo.modName)
-            ReferenceToExistingDefinition {ReferenceToExistingDefinition.programUnit = baseTypeProgramUnit; typedefName=ToC2(r.args.TypePrefix + inheritInfo.tasName)}
+            ReferenceToExistingDefinition {ReferenceToExistingDefinition.programUnit = baseTypeProgramUnit; typedefName=ToC2(r.args.TypePrefix + inheritInfo.tasName); definedInRtl = false}
         | None   -> 
             match defineNewTypeFnc with
             | DefineSubTypeAux  subAux -> 
                 let soInheritParentTypePackage, sInheritParentType =  rtlModuleName, subAux.getRtlTypeName()
-                ReferenceToExistingDefinition {ReferenceToExistingDefinition.programUnit = soInheritParentTypePackage; typedefName=sInheritParentType}         
+                ReferenceToExistingDefinition {ReferenceToExistingDefinition.programUnit = soInheritParentTypePackage; typedefName=sInheritParentType; definedInRtl = true}         
             | DefineNewTypeAux ntAux  ->
                 raise(SemanticError(t.Location, "Anonymous types are not supported. Please define a new type and then use it in the value assignment"))
     | None              -> (*I am a SEQUENCE or SEQUENCE OF or CHOICE child.*)
@@ -213,7 +213,7 @@ let private createTypeGeneric (r:Asn1AcnAst.AstRoot)  l (pi : Asn1Fold.ParentInf
         | Some inheritInfo -> (*I am referenced type. In most cases just return a reference to my TAS. However, if I a reference to a primitive type with additional constraints*)
                               (*then a new sub type must be defined*)
             let baseTypeProgramUnit = if programUnit = ToC inheritInfo.modName then None else Some (ToC inheritInfo.modName)
-            let referenceToExistingDefinition = ReferenceToExistingDefinition {ReferenceToExistingDefinition.programUnit = baseTypeProgramUnit; typedefName=ToC2(r.args.TypePrefix + inheritInfo.tasName)}
+            let referenceToExistingDefinition = ReferenceToExistingDefinition {ReferenceToExistingDefinition.programUnit = baseTypeProgramUnit; typedefName=ToC2(r.args.TypePrefix + inheritInfo.tasName) ; definedInRtl = false}
             match defineNewTypeFnc with
             | DefineSubTypeAux subAux -> 
                 match inheritInfo.hasAdditionalConstraints with
@@ -247,18 +247,18 @@ let private createTypeGeneric (r:Asn1AcnAst.AstRoot)  l (pi : Asn1Fold.ParentInf
                     let soNewRange = subAux.getNewRange rtlModuleName (subAux.getRtlTypeName())
                     match soNewRange with
                     | None  ->  (*If there is no new range and since I am an inner primitive type, then just make a reference to existing type in RTL*)
-                        ReferenceToExistingDefinition {ReferenceToExistingDefinition.programUnit = rtlModuleName; typedefName=(subAux.getRtlTypeName()) }         
+                        ReferenceToExistingDefinition {ReferenceToExistingDefinition.programUnit = rtlModuleName; typedefName=(subAux.getRtlTypeName()) ; definedInRtl = true }         
                     | Some _ -> (*I have a new range so make reference to this type*)
-                        ReferenceToExistingDefinition {ReferenceToExistingDefinition.programUnit =  progUnit; typedefName= typedefName}
+                        ReferenceToExistingDefinition {ReferenceToExistingDefinition.programUnit =  progUnit; typedefName= typedefName; definedInRtl = false}
                 | DefineNewTypeAux ntAux  ->
-                        ReferenceToExistingDefinition {ReferenceToExistingDefinition.programUnit =  progUnit; typedefName= typedefName}
+                        ReferenceToExistingDefinition {ReferenceToExistingDefinition.programUnit =  progUnit; typedefName= typedefName; definedInRtl = false}
             | false -> (*I am a non referenced child and my parent is not a referenced type*)
                 match defineNewTypeFnc with
                 | DefineSubTypeAux subAux -> 
                     let soNewRange = subAux.getNewRange rtlModuleName (subAux.getRtlTypeName())
                     match soNewRange with
                     | None  ->  (*If there is no new range and since I am an inner primitive type, then just make a reference to existing type in RTL*)
-                        ReferenceToExistingDefinition {ReferenceToExistingDefinition.programUnit = rtlModuleName; typedefName=(subAux.getRtlTypeName()) }         
+                        ReferenceToExistingDefinition {ReferenceToExistingDefinition.programUnit = rtlModuleName; typedefName=(subAux.getRtlTypeName()); definedInRtl = true }         
                     | Some _ ->
                         let completeDefintion = defineSubType l typedefName rtlModuleName (subAux.getRtlTypeName()) soNewRange None
                         TypeDefinition {TypeDefinition.typedefName = typedefName; typedefBody = (fun () -> completeDefintion)}
@@ -488,7 +488,7 @@ let createReferenceType (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1Ac
                 match o.modName.Value = t.id.ModName with
                 | true  -> None
                 | false -> Some (ToC o.modName.Value)
-            ReferenceToExistingDefinition  {ReferenceToExistingDefinition.programUnit = programUnit; typedefName=ToC2(r.args.TypePrefix + o.tasName.Value)}
+            ReferenceToExistingDefinition  {ReferenceToExistingDefinition.programUnit = programUnit; typedefName=ToC2(r.args.TypePrefix + o.tasName.Value); definedInRtl = false}
         | TypeDefinition                   _    -> baseType.typeDefintionOrReference
 
     | Some (ValueAssignmentInfo _)   ->
@@ -499,4 +499,4 @@ let createReferenceType (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1Ac
                 match ToC(o.modName.Value) = programUnit with
                 | true  -> None, (ToC2(r.args.TypePrefix + o.tasName.Value))
                 | false -> Some (ToC o.modName.Value), (ToC2(r.args.TypePrefix + o.tasName.Value))
-        ReferenceToExistingDefinition {ReferenceToExistingDefinition.programUnit = soInheritParentTypePackage; typedefName=sInheritParentType}
+        ReferenceToExistingDefinition {ReferenceToExistingDefinition.programUnit = soInheritParentTypePackage; typedefName=sInheritParentType; definedInRtl = false}

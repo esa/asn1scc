@@ -800,8 +800,9 @@ with
 
     member this.isIA5String =
         match this.Kind with
-        | IA5String    _ -> true
-        | _              -> false
+        | IA5String    _    -> true
+        | ReferenceType r   -> this.ActualType.isIA5String
+        | _                 -> false
 
     member this.asn1Name = 
         match this.id with

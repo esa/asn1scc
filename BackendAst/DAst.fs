@@ -163,9 +163,10 @@ type TypeDefinition = {
 type ReferenceToExistingDefinition = {
     /// the module where this type is defined
     /// if the value is not present then is the same as the "caller"
-    programUnit  : string option
+    programUnit     : string option
     /// The name of the defined type. 
-    typedefName : string
+    typedefName     : string
+    definedInRtl    : bool
 }
 
 type TypeDefintionOrReference =

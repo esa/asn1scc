@@ -40,16 +40,31 @@ let isEqualBodyBitString (l:ProgrammingLanguage) sMin sMax (v1:CallerScope) (v2:
     | C         -> Some (equal_c.isEqual_BitString v1 v2 (sMin = sMax) sMax, [])
     | Ada       -> Some (equal_a.isEqual_BitString v1 v2 (sMin = sMax) sMax, [])
 
+(*
+                match c.Type.equalFunction.isEqualFuncName with
+                | None  -> c.isEqualBodyStats  v1 v2 
+                | Some fncName ->
+                    let chp1 = {v1 with arg = v1.arg.getSeqChild l c.c_name c.Type.isIA5String}
+                    let chp2 = {v2 with arg = v2.arg.getSeqChild l c.c_name c.Type.isIA5String}
+
+*)
 
 let isEqualBodySequenceChild   (l:ProgrammingLanguage)  (o:Asn1AcnAst.Asn1Child) (newChild:Asn1Type) (v1:CallerScope) (v2:CallerScope)  = 
     let c_name = ToC o.c_name
+    let callChildEqualFunc  = match l with C -> equal_c.callChildEqualFunc | Ada -> equal_a.callChildEqualFunc
     let sInnerStatement = 
-        match newChild.equalFunction.isEqualBody with
-        | EqualBodyExpression func  ->  
-            match func ({v1 with arg = v1.arg.getSeqChild l c_name newChild.isIA5String}) ({v2 with arg = v2.arg.getSeqChild l c_name newChild.isIA5String}) with
-            | Some (exp, lvars)  -> Some (sprintf "ret %s (%s);" l.AssignOperator exp, lvars)
-            | None      -> None
-        | EqualBodyStatementList  func   -> func ({v1 with arg = v1.arg.getSeqChild l c_name newChild.isIA5String}) ({v2 with arg = v2.arg.getSeqChild l c_name newChild.isIA5String})
+        let chp1 = {v1 with arg = v1.arg.getSeqChild l c_name newChild.isIA5String}
+        let chp2 = {v2 with arg = v2.arg.getSeqChild l c_name newChild.isIA5String}
+        match newChild.equalFunction.isEqualFuncName with
+        | None  ->
+            match newChild.equalFunction.isEqualBody with
+            | EqualBodyExpression func  ->  
+                match func chp1 chp2 with
+                | Some (exp, lvars)  -> Some (sprintf "ret %s (%s);" l.AssignOperator exp, lvars)
+                | None      -> None
+            | EqualBodyStatementList  func   -> func ({v1 with arg = v1.arg.getSeqChild l c_name newChild.isIA5String}) ({v2 with arg = v2.arg.getSeqChild l c_name newChild.isIA5String})
+        | Some  fncName ->
+            Some ((callChildEqualFunc (chp1.arg.getPointer l) (chp2.arg.getPointer l) fncName), [])              
 
     match l with
     | C         -> 
@@ -244,7 +259,7 @@ let createSequenceEqualFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (
         let childrenConent =   
             children |> 
             List.choose(fun c -> match c with Asn1Child x -> Some x | AcnChild _ -> None) |> 
-            List.choose(fun c -> c.isEqualBodyStats  v1 v2 )  
+            List.choose(fun c -> c.isEqualBodyStats  v1 v2 )
         printChildren childrenConent
     let isEqualBody         = isEqualBodySequence l children
     createEqualFunction_any r l t typeDefinition (EqualBodyStatementList isEqualBody)

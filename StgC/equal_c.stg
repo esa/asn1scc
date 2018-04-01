@@ -172,3 +172,8 @@ call_base_type_func(p1, p2, sFuncName) ::= "<sFuncName>(<p1>, <p2>)"
 makeExpressionToStatement(sIsValidExp) ::= <<
 ret = <sIsValidExp>;
 >>
+
+
+callChildEqualFunc(p1, p2,  sChildEqualFuncName) ::= <<
+ret = <sChildEqualFuncName>(<p1>, <p2>);
+>>

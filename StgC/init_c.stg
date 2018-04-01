@@ -154,3 +154,8 @@ initTestCase_choice_child(p, sAcc, sChildID, sChildContent, sChildName, sChildTy
 <p><sAcc>kind = <sChildID>;
 <sChildContent>
 >>
+
+
+initChildWithInitFunc(p, sChildInitFuncName) ::= <<
+<sChildInitFuncName>(<p>);
+>>
