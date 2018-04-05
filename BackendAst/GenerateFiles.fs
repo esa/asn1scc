@@ -38,7 +38,7 @@ let printValueAssignment (r:DAst.AstRoot) (vasPU_name:string) (l:ProgrammingLang
     let t = vas.Type
     let sTypeDecl= getTypeDecl r vasPU_name l vas
 
-    let sVal = DAstVariables.printValue r  l  vas.Type None vas.Value.kind
+    let sVal = DAstVariables.printValue r  l vasPU_name vas.Type None vas.Value.kind
     match l with
     | C     -> variables_c.PrintValueAssignment sTypeDecl sName sVal
     | Ada   -> header_a.PrintValueAssignment sName sTypeDecl sVal
@@ -376,7 +376,8 @@ let CreateTestSuiteFile (r:AstRoot) (l:ProgrammingLanguage) outDir vasName =
     let PrintTestCase (v:ValueAssignment) (m:Asn1Module) (sTasName : string)  (idx :int) initFuncName (uperEncDecTestFunc  : EncodeDecodeTestFunc option) (xerEncDecTestFunc  : EncodeDecodeTestFunc option) (acnEncDecTestFunc   : EncodeDecodeTestFunc option) =
         let modName = ToC m.Name.Value
         let encAmper, initAmper = gAmber v.Type
-        let sValue = DAstVariables.printValue r l  v.Type None v.Value.kind
+        let curProgramUnitName = ""  //Main program has no module
+        let sValue = DAstVariables.printValue r l  curProgramUnitName v.Type None v.Value.kind
         let sTestCaseIndex = idx.ToString()
         let bStatic = match v.Type.ActualType.Kind with Integer _ | Enumerated(_) -> false | _ -> true
         let GetDatFile = GetDatFile v modName sTasName encAmper
