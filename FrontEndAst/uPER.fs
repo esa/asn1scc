@@ -251,18 +251,18 @@ let isUnsigned uperRange =
 
 let getSizeMinAndMaxValue loc (sizeUperRange:uperRange<uint32>) =
     match sizeUperRange with
-    | Concrete(a,b) -> int a, int b
+    | Concrete(a,b) -> BigInteger a, BigInteger b
     | _             -> raise(SemanticError(loc,"Declared type may have infinite size. Use size constraints to limit the upper bound"))
 
 
-let getRequiredBitsForIntUperEncoding  integerSizeInBytes uperRange =
+let getRequiredBitsForIntUperEncoding  (integerSizeInBytes:BigInteger) uperRange =
     match uperRange with
-    | Concrete(a,b)                   -> int32 (GetNumberOfBitsForNonNegativeInteger(b-a)), int32 (GetNumberOfBitsForNonNegativeInteger(b-a))
-    | Full | PosInf(_) |  NegInf(_)   -> 8, (integerSizeInBytes+1)*8
+    | Concrete(a,b)                   -> (GetNumberOfBitsForNonNegativeInteger(b-a)), (GetNumberOfBitsForNonNegativeInteger(b-a))
+    | Full | PosInf(_) |  NegInf(_)   -> 8I, (integerSizeInBytes+1I)*8I
 
-let getSizeableTypeSize a b internalSize =
-    let lenSize (a:int) (b:int) = int32 (GetNumberOfBitsForNonNegativeInteger(BigInteger(b)-BigInteger(a)))
+let getSizeableTypeSize (a:BigInteger) (b:BigInteger) (internalSize:BigInteger) =
+    let lenSize (a:BigInteger) (b:BigInteger) = GetNumberOfBitsForNonNegativeInteger(b-a)
     match a with
-    | _ when a=b  && b<65536 -> a*internalSize                , b*internalSize
-    | _ when a<>b && b<65536 -> a*internalSize + (lenSize a b), b*internalSize + (lenSize a b)
-    | _                      -> a*internalSize + (lenSize a b), b*internalSize + (b / 65536 + 3) * 8
+    | _ when a=b  && b<65536I -> a*internalSize                , b*internalSize
+    | _ when a<>b && b<65536I -> a*internalSize + (lenSize a b), b*internalSize + (lenSize a b)
+    | _                       -> a*internalSize + (lenSize a b), b*internalSize + (b / 65536I + 3I) * 8I

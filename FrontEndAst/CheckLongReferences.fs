@@ -93,7 +93,7 @@ let checkParamIsActuallyInteger (r:AstRoot) (prmMod:StringLoc) (tasName:StringLo
         | None      -> raise(SemanticError (tasName.Location, (sprintf "No type assignment defined with name '%s' in module '%s'"  tasName.Value prmMod.Value)))
         | Some ts   -> ()
 
-let sizeReference (r:AstRoot) (curState:AcnInsertedFieldDependencies) (parents: Asn1Type list) (t:Asn1Type) (sizeMin:int) (sizeMax:int) (visibleParameters:(ReferenceToType*AcnParameter) list)  (rp :RelativePath  option) (d:AcnDependencyKind) =
+let sizeReference (r:AstRoot) (curState:AcnInsertedFieldDependencies) (parents: Asn1Type list) (t:Asn1Type) (sizeMin:BigInteger) (sizeMax:BigInteger) (visibleParameters:(ReferenceToType*AcnParameter) list)  (rp :RelativePath  option) (d:AcnDependencyKind) =
     match rp with
     | None      -> curState
     | Some (RelativePath path) -> 
@@ -110,7 +110,7 @@ let sizeReference (r:AstRoot) (curState:AcnInsertedFieldDependencies) (parents: 
         let checkAcnType (c:AcnChild) =
             match c.Type with
             | AcnInteger    ai -> 
-                ai.checkIntHasEnoughSpace (BigInteger sizeMin) (BigInteger sizeMax)
+                ai.checkIntHasEnoughSpace sizeMin sizeMax
                 d
             | _              -> raise(SemanticError(loc, (sprintf "Invalid argument type. Expecting INTEGER got %s "  (c.Type.AsString))))
         checkRelativePath curState parents t visibleParameters   (RelativePath path) checkParameter checkAcnType
@@ -173,18 +173,18 @@ let checkChoicePresentWhen (r:AstRoot) (curState:AcnInsertedFieldDependencies) (
                             let actType = GetActualTypeByName r md ts 
                             match actType.Kind with
                             | IA5String str ->  
-                                match  str.minSize <= strVal.Value.Length && strVal.Value.Length <= str.maxSize with
+                                match  str.minSize <= strVal.Value.Length.AsBigInt && strVal.Value.Length.AsBigInt <= str.maxSize with
                                 | true  -> AcnDepPresenceStr ((RelativePath path), ch, str)
-                                | false -> raise(SemanticError(strVal.Location, (sprintf "Length of value '%s' is not within the expected range: i.e. %d not in (%d .. %d)"  strVal.Value  strVal.Value.Length str.minSize str.maxSize)))
+                                | false -> raise(SemanticError(strVal.Location, (sprintf "Length of value '%s' is not within the expected range: i.e. %d not in (%A .. %A)"  strVal.Value  strVal.Value.Length str.minSize str.maxSize)))
 
                             | _              -> raise(SemanticError(loc, (sprintf "Invalid argument type. Expecting STRING got %s "  (p.asn1Type.ToString()))))
                         | _              -> raise(SemanticError(loc, (sprintf "Invalid argument type. Expecting STRING got %s "  (p.asn1Type.ToString()))))
                     let rec checkAcnType (c:AcnChild) =
                         match c.Type with
                         | AcnReferenceToIA5String    str -> 
-                            match  str.str.minSize <= strVal.Value.Length && strVal.Value.Length <= str.str.maxSize with
+                            match  str.str.minSize <= strVal.Value.Length.AsBigInt && strVal.Value.Length.AsBigInt <= str.str.maxSize with
                             | true  -> AcnDepPresenceStr ((RelativePath path), ch, str.str)
-                            | false -> raise(SemanticError(strVal.Location, (sprintf "Length of value '%s' is not within the expected range: i.e. %d not in (%d .. %d)"  strVal.Value  strVal.Value.Length str.str.minSize str.str.maxSize)))
+                            | false -> raise(SemanticError(strVal.Location, (sprintf "Length of value '%s' is not within the expected range: i.e. %d not in (%A .. %A)"  strVal.Value  strVal.Value.Length str.str.minSize str.str.maxSize)))
                         | _              -> raise(SemanticError(loc, (sprintf "Invalid argument type. Expecting STRING got %s "  (c.Type.AsString))))
                     checkRelativePath curState parents t visibleParameters   (RelativePath path)  checkParameter checkAcnType
 

@@ -246,21 +246,21 @@ let rec printType stgFileName (tas:TypeAssignment) (t:Asn1Type) (m:Asn1Module) (
         let comment = "Special field used by ACN indicating the number of items."
         let sCon = t.ConstraintsAsn1Str |> Seq.StrJoin ""
         let sCon =  if sCon.Trim() ="" then "N.A." else sCon
-        let lenDetSize = GetNumberOfBitsForNonNegativeInteger (BigInteger (o.baseInfo.maxSize - o.baseInfo.minSize))
+        let lenDetSize = GetNumberOfBitsForNonNegativeInteger ( (o.baseInfo.maxSize - o.baseInfo.minSize))
         let arRows, sExtraComment =
             match encClass with
             | Asn1AcnAst.Acn_Enc_String_uPER                                  nSizeInBits              -> 
                 let lengthLine = icd_acn.EmmitChoiceChild stgFileName (icd_acn.OddRow stgFileName ()) 1I "Length" comment    "unsigned int" sCon (lenDetSize.ToString()) (lenDetSize.ToString())
-                lengthLine::(ChildRow 1I 1I)::(icd_acn.EmitRowWith3Dots stgFileName ())::(ChildRow 1I (BigInteger nMax))::[], ""
+                lengthLine::(ChildRow 1I 1I)::(icd_acn.EmitRowWith3Dots stgFileName ())::(ChildRow 1I ( nMax))::[], ""
             | Asn1AcnAst.Acn_Enc_String_uPER_Ascii                            nSizeInBits              -> 
                 let lengthLine = icd_acn.EmmitChoiceChild stgFileName (icd_acn.OddRow stgFileName ()) 1I "Length" comment    "unsigned int" sCon (lenDetSize.ToString()) (lenDetSize.ToString())
-                lengthLine::(ChildRow 1I 1I)::(icd_acn.EmitRowWith3Dots stgFileName ())::(ChildRow 1I (BigInteger nMax))::[], ""
+                lengthLine::(ChildRow 1I 1I)::(icd_acn.EmitRowWith3Dots stgFileName ())::(ChildRow 1I ( nMax))::[], ""
             | Asn1AcnAst.Acn_Enc_String_Ascii_Null_Teminated                  (nSizeInBits, nullChar)  -> 
-                (ChildRow 0I 1I)::(icd_acn.EmitRowWith3Dots stgFileName ())::(ChildRow 0I (BigInteger nMax))::(NullRow 0I (BigInteger (nMax+1)))::[],""
+                (ChildRow 0I 1I)::(icd_acn.EmitRowWith3Dots stgFileName ())::(ChildRow 0I ( nMax))::(NullRow 0I ( (nMax+1I)))::[],""
             | Asn1AcnAst.Acn_Enc_String_Ascii_External_Field_Determinant      (nSizeInBits, rp)        -> 
-                (ChildRow 0I 1I)::(icd_acn.EmitRowWith3Dots stgFileName ())::(ChildRow 0I (BigInteger nMax))::[], sprintf "Length determined by external field %s" (rp.AsString)
+                (ChildRow 0I 1I)::(icd_acn.EmitRowWith3Dots stgFileName ())::(ChildRow 0I ( nMax))::[], sprintf "Length determined by external field %s" (rp.AsString)
             | Asn1AcnAst.Acn_Enc_String_CharIndex_External_Field_Determinant  (nSizeInBits, rp)        -> 
-                (ChildRow 0I 1I)::(icd_acn.EmitRowWith3Dots stgFileName ())::(ChildRow 0I (BigInteger nMax))::[], sprintf "Length determined by external field %s" (rp.AsString)
+                (ChildRow 0I 1I)::(icd_acn.EmitRowWith3Dots stgFileName ())::(ChildRow 0I ( nMax))::[], sprintf "Length determined by external field %s" (rp.AsString)
         let sCommentLine = match sCommentLine with
                            | null | ""  -> sExtraComment
                            | _          -> sprintf "%s%s%s" sCommentLine (icd_acn.NewLine stgFileName ()) sExtraComment
@@ -302,7 +302,7 @@ let rec printType stgFileName (tas:TypeAssignment) (t:Asn1Type) (m:Asn1Module) (
             icd_acn.EmmitChoiceChild stgFileName sClass nIndex sFieldName sComment  sType sAsn1Constraints sMinBits sMaxBits
         let sFixedLengthComment = sprintf "Length is Fixed equal to %A, so no length determinant is encoded." nMax
         let arRows, sExtraComment =
-            match encClass, nMax >= 2 with
+            match encClass, nMax >= 2I with
             | Asn1AcnAst.SZ_EC_uPER, _                     -> 
                 let sizeUperRange =  Asn1AcnAst.Concrete(nMin, nMax)
                 let sFixedLengthComment (nMax: BigInteger) =
@@ -311,7 +311,7 @@ let rec printType stgFileName (tas:TypeAssignment) (t:Asn1Type) (m:Asn1Module) (
                     let nMin, nLengthSize = 
                         match sizeUperRange with
                         | Asn1AcnAst.Concrete(a,b)  when a=b       -> 0I, 0I
-                        | Asn1AcnAst.Concrete(a,b)                 -> (GetNumberOfBitsForNonNegativeInteger(b.AsBigInt-a.AsBigInt)), (GetNumberOfBitsForNonNegativeInteger(b.AsBigInt-a.AsBigInt))
+                        | Asn1AcnAst.Concrete(a,b)                 -> (GetNumberOfBitsForNonNegativeInteger(b - a)), (GetNumberOfBitsForNonNegativeInteger(b - a))
                         | Asn1AcnAst.NegInf(_)                     -> raise(BugErrorException "")
                         | Asn1AcnAst.PosInf(b)                     ->  8I, 16I
                         | Asn1AcnAst.Full                          -> 8I, 16I
@@ -322,11 +322,11 @@ let rec printType stgFileName (tas:TypeAssignment) (t:Asn1Type) (m:Asn1Module) (
                     icd_acn.EmmitChoiceChild stgFileName (icd_acn.OddRow stgFileName ()) (BigInteger 1) "Length" comment    "unsigned int" sCon (nMin.ToString()) (nLengthSize.ToString())
 
                 match sizeUperRange with
-                | Asn1AcnAst.Concrete(a,b)  when a=b && b<2     -> [ChildRow 0I 1I], "The array contains a single element."
-                | Asn1AcnAst.Concrete(a,b)  when a=b && b=2     -> (ChildRow 0I 1I)::(ChildRow 0I 2I)::[], (sFixedLengthComment b.AsBigInt)
-                | Asn1AcnAst.Concrete(a,b)  when a=b && b>2     -> (ChildRow 0I 1I)::(icd_acn.EmitRowWith3Dots stgFileName ())::(ChildRow 0I b.AsBigInt)::[], (sFixedLengthComment b.AsBigInt)
-                | Asn1AcnAst.Concrete(a,b)  when a<>b && b<2    -> LengthRow::(ChildRow 1I 1I)::[],""
-                | Asn1AcnAst.Concrete(a,b)                       -> LengthRow::(ChildRow 1I 1I)::(icd_acn.EmitRowWith3Dots stgFileName ())::(ChildRow 1I b.AsBigInt)::[], ""
+                | Asn1AcnAst.Concrete(a,b)  when a=b && b<2I     -> [ChildRow 0I 1I], "The array contains a single element."
+                | Asn1AcnAst.Concrete(a,b)  when a=b && b=2I     -> (ChildRow 0I 1I)::(ChildRow 0I 2I)::[], (sFixedLengthComment b)
+                | Asn1AcnAst.Concrete(a,b)  when a=b && b>2I     -> (ChildRow 0I 1I)::(icd_acn.EmitRowWith3Dots stgFileName ())::(ChildRow 0I b)::[], (sFixedLengthComment b)
+                | Asn1AcnAst.Concrete(a,b)  when a<>b && b<2I    -> LengthRow::(ChildRow 1I 1I)::[],""
+                | Asn1AcnAst.Concrete(a,b)                       -> LengthRow::(ChildRow 1I 1I)::(icd_acn.EmitRowWith3Dots stgFileName ())::(ChildRow 1I b)::[], ""
                 | Asn1AcnAst.PosInf(_)
                 | Asn1AcnAst.Full                                -> LengthRow::(ChildRow 1I 1I)::(icd_acn.EmitRowWith3Dots stgFileName ())::(ChildRow 1I 65535I)::[], ""
                 | Asn1AcnAst.NegInf(_)                           -> raise(BugErrorException "")
@@ -334,7 +334,7 @@ let rec printType stgFileName (tas:TypeAssignment) (t:Asn1Type) (m:Asn1Module) (
             | Asn1AcnAst.SZ_EC_ExternalField relPath,false    -> 
                 (ChildRow 0I 1I)::[], sprintf "Length is determined by the external field: %s" relPath.AsString
             | Asn1AcnAst.SZ_EC_ExternalField relPath,true     -> 
-                (ChildRow 0I 1I)::(icd_acn.EmitRowWith3Dots stgFileName ())::(ChildRow 0I (BigInteger nMax))::[], sprintf "Length determined by external field %s" relPath.AsString
+                (ChildRow 0I 1I)::(icd_acn.EmitRowWith3Dots stgFileName ())::(ChildRow 0I (nMax))::[], sprintf "Length determined by external field %s" relPath.AsString
 
         let sCommentLine = match sCommentLine with
                            | null | ""  -> sExtraComment

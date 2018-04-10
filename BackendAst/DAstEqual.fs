@@ -194,12 +194,12 @@ let createNullTypeEqualFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (
     createEqualFunction_any r l t typeDefinition isEqualBody //(stgPrintEqualPrimitive l) (stgMacroPrimDefFunc l) 
 
 let createOctetStringEqualFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.OctetString) (typeDefinition:TypeDefintionOrReference)  =
-    let isEqualBody = isEqualBodyOctetString l (BigInteger o.minSize) (BigInteger o.maxSize)
+    let isEqualBody = isEqualBodyOctetString l ( o.minSize) ( o.maxSize)
     createEqualFunction_any r l t typeDefinition (EqualBodyExpression isEqualBody)
     //createOctetOrBitStringEqualFunction r l  t typeDefinition isEqualBody (stgMacroCompDefFunc l) 
 
 let createBitStringEqualFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.BitString) (typeDefinition:TypeDefintionOrReference)  =
-    let isEqualBody = isEqualBodyBitString l (BigInteger o.minSize) (BigInteger o.maxSize)
+    let isEqualBody = isEqualBodyBitString l ( o.minSize) ( o.maxSize)
     createEqualFunction_any r l t typeDefinition (EqualBodyExpression isEqualBody)
     //createOctetOrBitStringEqualFunction r l t typeDefinition isEqualBody (stgMacroCompDefFunc l) 
 
@@ -222,14 +222,14 @@ let createSequenceOfEqualFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage)
         | None when o.minSize = o.maxSize        -> None
         | None                                   ->
             match l with
-            | C    -> Some (equal_c.isEqual_SequenceOf v1.arg.p v2.arg.p (v1.arg.getAcces l) i (o.minSize = o.maxSize) (BigInteger o.minSize) None, [])
+            | C    -> Some (equal_c.isEqual_SequenceOf v1.arg.p v2.arg.p (v1.arg.getAcces l) i (o.minSize = o.maxSize) ( o.minSize) None, [])
             | Ada  -> Some (equal_a.isEqual_SequenceOf_var_size v1.arg.p v2.arg.p i None, [])
         | Some (innerStatement, lvars)           ->
             match l with
-            | C    -> Some (equal_c.isEqual_SequenceOf v1.arg.p v2.arg.p (v1.arg.getAcces l) i (o.minSize = o.maxSize) (BigInteger o.minSize) (Some innerStatement), lv::lvars)
+            | C    -> Some (equal_c.isEqual_SequenceOf v1.arg.p v2.arg.p (v1.arg.getAcces l) i (o.minSize = o.maxSize) ( o.minSize) (Some innerStatement), lv::lvars)
             | Ada  -> 
                 match (o.minSize = o.maxSize) with
-                | true  -> Some (equal_a.isEqual_SequenceOf_fix_size v1.arg.p v2.arg.p i  (BigInteger o.minSize) innerStatement, lv::lvars)
+                | true  -> Some (equal_a.isEqual_SequenceOf_fix_size v1.arg.p v2.arg.p i  ( o.minSize) innerStatement, lv::lvars)
                 | false -> Some (equal_a.isEqual_SequenceOf_var_size v1.arg.p v2.arg.p i  (Some innerStatement), lv::lvars)
 
 

@@ -156,7 +156,7 @@ let constructCommandLineSettings args (parserResults: ParseResults<CliArguments>
         IcdAcnHtmlFileName = ""
         custom_Stg_Ast_Version = parserResults.GetResult(<@ Custom_Stg_Ast_Version @>, defaultValue = 1)
         mappingFunctionsModule = None
-        integerSizeInBytes = 8
+        integerSizeInBytes = 8I
         renamePolicy = CommonTypes.EnumRenamePolicy.SelectiveEnumerants
     }    
 

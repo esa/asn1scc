@@ -270,7 +270,7 @@ type XERFuncBodyResult = {
     funcBody            : string
     errCodes            : ErroCode list
     localVariables      : LocalVariable list
-    encodingSizeInBytes : int
+    encodingSizeInBytes : BigInteger
 }
 
 type XerTag =
@@ -281,7 +281,7 @@ type XerFunction = {
     funcName            : string option               // the name of the function
     func            : string option               // the body of the function
     funcDef             : string option               // function definition in header file
-    encodingSizeInBytes : int
+    encodingSizeInBytes : BigInteger
     funcBody            : CallerScope -> (XerTag option) -> (XERFuncBodyResult option)
     funcBody_e          : ErroCode -> CallerScope -> (XerTag option) -> (XERFuncBodyResult option)            //p, XmlTag,   returns a list of encoding/decoding statements
 }

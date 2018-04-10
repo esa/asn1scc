@@ -78,26 +78,26 @@ type CommandLineSettings = {
     IcdAcnHtmlFileName:string
     custom_Stg_Ast_Version : int
     mappingFunctionsModule : string option
-    integerSizeInBytes : int            //currently only the value of 8 bytes (64 bits) is supported
+    integerSizeInBytes : BigInteger            //currently only the value of 8 bytes (64 bits) is supported
     renamePolicy :  EnumRenamePolicy
     
 }
 with 
   member this.SIntMax =
     match this.integerSizeInBytes with
-    | 8     -> BigInteger(Int64.MaxValue)
-    | 4     -> BigInteger(Int32.MaxValue)
-    | _     -> BigInteger.Pow(2I, this.integerSizeInBytes*8 - 1) - 1I
+    | _ when this.integerSizeInBytes = 8I     -> BigInteger(Int64.MaxValue)
+    | _ when this.integerSizeInBytes = 4I     -> BigInteger(Int32.MaxValue)
+    | _     -> BigInteger.Pow(2I, int (this.integerSizeInBytes*8I - 1I)) - 1I
   member this.SIntMin =
     match this.integerSizeInBytes with
-    | 8     -> BigInteger(Int64.MinValue)
-    | 4     -> BigInteger(Int32.MinValue)
-    | _     -> -BigInteger.Pow(2I, this.integerSizeInBytes*8 - 1)
+    | _ when this.integerSizeInBytes = 8I     -> BigInteger(Int64.MinValue)
+    | _ when this.integerSizeInBytes = 4I     -> BigInteger(Int32.MinValue)
+    | _     -> -BigInteger.Pow(2I, int(this.integerSizeInBytes*8I - 1I))
   member this.UIntMax =
     match this.integerSizeInBytes with
-    | 8     -> BigInteger(UInt64.MaxValue)
-    | 4     -> BigInteger(UInt32.MaxValue)
-    | _     -> BigInteger.Pow(2I, this.integerSizeInBytes*8) - 1I
+    | _ when this.integerSizeInBytes = 8I     -> BigInteger(UInt64.MaxValue)
+    | _ when this.integerSizeInBytes = 4I     -> BigInteger(UInt32.MaxValue)
+    | _     -> BigInteger.Pow(2I, int (this.integerSizeInBytes*8I)) - 1I
   member this.IntMax (isUnsigned:bool) =
     match isUnsigned with
     | true          -> this.UIntMax

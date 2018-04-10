@@ -169,7 +169,7 @@ let private createStringType (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserted
             match o.uperCharSet |> Seq.exists((=) ' ') with
             | true  -> ' '
             | false -> o.uperCharSet |> Seq.find(fun c -> not (Char.IsControl c))
-        System.String(ch, o.minSize)
+        System.String(ch, int o.minSize)
     let initFunction        = DAstInitialize.createIA5StringInitFunc r l t o defOrRef (StringValue initialValue)
     let isValidFunction, s1     = DAstValidate.createStringFunction r l t o defOrRef  us
     let uperEncFunction, s2     = DAstUPer.createIA5StringFunction r l Codec.Encode t o  defOrRef None isValidFunction s1
@@ -213,7 +213,7 @@ let private createOctetString (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserte
     //let typeDefinition = DAstTypeDefinition.createOctet  r l t o us0
     let defOrRef            =  DAstTypeDefinition2.createOctet r l pi t o us0
     let initialValue        =
-        [1 .. o.minSize] |> List.map(fun i -> 0uy)
+        [1 .. int o.minSize] |> List.map(fun i -> 0uy)
     let equalFunction       = DAstEqual.createOctetStringEqualFunction r l t o defOrRef 
     let printValue          = DAstVariables.createOctetStringFunction r l t o defOrRef 
 
@@ -300,7 +300,7 @@ let private createBitString (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
     //let typeDefinition = DAstTypeDefinition.createBitString  r l t o us0
     let defOrRef            =  DAstTypeDefinition2.createBitString r l pi t o us
     let initialValue        =
-        System.String('0', o.minSize)
+        System.String('0', int o.minSize)
         
     let equalFunction       = DAstEqual.createBitStringEqualFunction r l t o defOrRef 
     let printValue          = DAstVariables.createBitStringFunction r l t o defOrRef 
@@ -439,7 +439,7 @@ let private createSequenceOf (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserted
     //let typeDefinition = DAstTypeDefinition.createSequenceOf r l t o childType.typeDefinition us0
     let equalFunction       = DAstEqual.createSequenceOfEqualFunction r l t o defOrRef childType
     let initialValue =
-        [1 .. o.minSize] |> List.map(fun i -> childType.initialValue) |> List.map(fun x -> {Asn1Value.kind=x;id=ReferenceToValue([],[]);loc=emptyLocation}) 
+        [1 .. int o.minSize] |> List.map(fun i -> childType.initialValue) |> List.map(fun x -> {Asn1Value.kind=x;id=ReferenceToValue([],[]);loc=emptyLocation}) 
     let initFunction        = DAstInitialize.createSequenceOfInitFunc r l t o defOrRef childType (SeqOfValue initialValue)
     let isValidFunction, s1     = DAstValidate.createSequenceOfFunction r l t o defOrRef childType None us0
     let uperEncFunction, s2     = DAstUPer.createSequenceOfFunction r l Codec.Encode t o  defOrRef None isValidFunction childType s1

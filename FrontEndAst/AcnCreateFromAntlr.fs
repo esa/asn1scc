@@ -434,44 +434,44 @@ let private  getEndianessProperty (props:GenericAcnProperty list) =
 let private getIntSizeProperty  errLoc (props:GenericAcnProperty list) = 
     match tryGetProp props (fun x -> match x with SIZE e -> Some e | _ -> None) with
     | None  -> None
-    | Some (GP_Fixed           v)   -> Some(Fixed (int v.Value))
+    | Some (GP_Fixed           v)   -> Some(Fixed (v.Value))
     | Some (GP_NullTerminated   )   -> 
         match tryGetProp props (fun x -> match x with TERMINATION_PATTERN e -> Some e | _ -> None) with
         | Some b    -> Some(IntNullTerminated b)
         | None      -> Some(IntNullTerminated (byte 0))
     | Some (GP_SizeDeterminant _)   -> raise(SemanticError(errLoc ,"Expecting an Integer value or an ACN constant as value for the size property"))
 
-let private getStringSizeProperty minSize maxSize errLoc (props:GenericAcnProperty list) = 
+let private getStringSizeProperty (minSize:BigInteger) (maxSize:BigInteger) errLoc (props:GenericAcnProperty list) = 
     match tryGetProp props (fun x -> match x with SIZE e -> Some e | _ -> None) with
     | None  -> None
     | Some (GP_Fixed           v)   -> 
         match minSize = maxSize with
         | false ->
-            let errMessage = sprintf "The size constraints of the ASN.1  allows variable items (%d .. %d). Therefore, you should either remove the size property (in which case the size determinant will be encoded automatically exactly like uPER), or use a an Integer field as size determinant"  minSize maxSize
+            let errMessage = sprintf "The size constraints of the ASN.1  allows variable items (%A .. %A). Therefore, you should either remove the size property (in which case the size determinant will be encoded automatically exactly like uPER), or use a an Integer field as size determinant"  minSize maxSize
             raise(SemanticError(errLoc ,errMessage))
         | true  ->
-            match minSize = int v.Value with
+            match minSize = v.Value with
             | true  -> None
-            | false -> raise(SemanticError(errLoc , (sprintf "The size property must either be ommited or have the fixed value %d" minSize)))
+            | false -> raise(SemanticError(errLoc , (sprintf "The size property must either be ommited or have the fixed value %A" minSize)))
     | Some (GP_NullTerminated   )   -> 
         match tryGetProp props (fun x -> match x with TERMINATION_PATTERN e -> Some e | _ -> None) with
         | Some b    -> Some(StrNullTerminated b)
         | None      -> Some(StrNullTerminated (byte 0))
     | Some (GP_SizeDeterminant fld)   -> (Some (StrExternalField fld))
 
-let private getSizeableSizeProperty minSize maxSize errLoc (props:GenericAcnProperty list) = 
+let private getSizeableSizeProperty (minSize:BigInteger) (maxSize:BigInteger) errLoc (props:GenericAcnProperty list) = 
     match tryGetProp props (fun x -> match x with SIZE e -> Some e | _ -> None) with
     | None  -> None
     | Some (GP_NullTerminated   )        -> raise(SemanticError(errLoc ,"Acn proporty 'size null-terminated' is supported only in IA5String and NumericString string types and in Integer types and when encoding is ASCII"))
     | Some (GP_Fixed           v)   ->
         match minSize = maxSize with
         | false ->
-            let errMessage = sprintf "The size constraints of the ASN.1  allows variable items (%d .. %d). Therefore, you should either remove the size property (in which case the size determinant will be encoded automatically exactly like uPER), or use a an Integer field as size determinant"  minSize maxSize
+            let errMessage = sprintf "The size constraints of the ASN.1  allows variable items (%A .. %A). Therefore, you should either remove the size property (in which case the size determinant will be encoded automatically exactly like uPER), or use a an Integer field as size determinant"  minSize maxSize
             raise(SemanticError(errLoc ,errMessage))
         | true  ->
-            match minSize = int v.Value with
+            match minSize = v.Value with
             | true  -> None
-            | false -> raise(SemanticError(errLoc , (sprintf "The size property must either be ommited or have the fixed value %d" minSize)))
+            | false -> raise(SemanticError(errLoc , (sprintf "The size property must either be ommited or have the fixed value %A" minSize)))
     | Some (GP_SizeDeterminant fld)   -> (Some fld)
 
 let private getIntEncodingProperty errLoc (props:GenericAcnProperty list) = 
@@ -520,37 +520,37 @@ let checkIntHasEnoughSpace acnEncodingClass acnErrLoc0 asn1Min asn1Max =
         | false                             -> 
             let errMessage = sprintf "The applied ACN encoding does not allow values smaller than %A to be encoded, while the corresponding ASN.1 type allows values up to %A" minEnc asn1Min
             raise(SemanticError(acnErrLoc0, errMessage))
-    let checkBinary isUnsigned lengthInBiths =
+    let checkBinary isUnsigned (lengthInBiths:BigInteger) =
         match isUnsigned  with
-        | true              -> check_ 0I (BigInteger.Pow(2I, lengthInBiths) - 1I) 
-        | false             -> check_ (-BigInteger.Pow(2I, lengthInBiths - 1)) ((BigInteger.Pow(2I, lengthInBiths - 1)) - 1I)
-    let checkAscii isUnsigned lengthInBiths =
-        let digits = lengthInBiths / 8
+        | true              -> check_ 0I (BigInteger.Pow(2I, int lengthInBiths) - 1I) 
+        | false             -> check_ (-BigInteger.Pow(2I, int (lengthInBiths - 1I))) ((BigInteger.Pow(2I, int (lengthInBiths - 1I))) - 1I)
+    let checkAscii isUnsigned (lengthInBiths:BigInteger) =
+        let digits = int (lengthInBiths / 8I)
         match isUnsigned  with
         | true              -> check_ 0I (BigInteger.Pow(10I, digits) - 1I) 
         | false             -> check_ (-BigInteger.Pow(10I, digits - 1)) ((BigInteger.Pow(10I, digits - 1)) - 1I)
-    let checkBCD lengthInBiths =
-        let digits = lengthInBiths / 4
+    let checkBCD (lengthInBiths:BigInteger) =
+        let digits = int (lengthInBiths / 4I)
         check_ 0I (BigInteger.Pow(10I, digits) - 1I) 
 
 
     match acnEncodingClass with
     |Integer_uPER                                   -> ()
-    |PositiveInteger_ConstSize_8                    -> checkBinary true 8
-    |PositiveInteger_ConstSize_big_endian_16        -> checkBinary true 16
-    |PositiveInteger_ConstSize_little_endian_16     -> checkBinary true 16
-    |PositiveInteger_ConstSize_big_endian_32        -> checkBinary true 32
-    |PositiveInteger_ConstSize_little_endian_32     -> checkBinary true 32
-    |PositiveInteger_ConstSize_big_endian_64        -> checkBinary true 64
-    |PositiveInteger_ConstSize_little_endian_64     -> checkBinary true 64
+    |PositiveInteger_ConstSize_8                    -> checkBinary true 8I
+    |PositiveInteger_ConstSize_big_endian_16        -> checkBinary true 16I
+    |PositiveInteger_ConstSize_little_endian_16     -> checkBinary true 16I
+    |PositiveInteger_ConstSize_big_endian_32        -> checkBinary true 32I
+    |PositiveInteger_ConstSize_little_endian_32     -> checkBinary true 32I
+    |PositiveInteger_ConstSize_big_endian_64        -> checkBinary true 64I
+    |PositiveInteger_ConstSize_little_endian_64     -> checkBinary true 64I
     |PositiveInteger_ConstSize nBits                -> checkBinary true nBits
-    |TwosComplement_ConstSize_8                     -> checkBinary false 8
-    |TwosComplement_ConstSize_big_endian_16         -> checkBinary false 16
-    |TwosComplement_ConstSize_little_endian_16      -> checkBinary false 16
-    |TwosComplement_ConstSize_big_endian_32         -> checkBinary false 32
-    |TwosComplement_ConstSize_little_endian_32      -> checkBinary false 32
-    |TwosComplement_ConstSize_big_endian_64         -> checkBinary false 64
-    |TwosComplement_ConstSize_little_endian_64      -> checkBinary false 64
+    |TwosComplement_ConstSize_8                     -> checkBinary false 8I
+    |TwosComplement_ConstSize_big_endian_16         -> checkBinary false 16I
+    |TwosComplement_ConstSize_little_endian_16      -> checkBinary false 16I
+    |TwosComplement_ConstSize_big_endian_32         -> checkBinary false 32I
+    |TwosComplement_ConstSize_little_endian_32      -> checkBinary false 32I
+    |TwosComplement_ConstSize_big_endian_64         -> checkBinary false 64I
+    |TwosComplement_ConstSize_little_endian_64      -> checkBinary false 64I
     |TwosComplement_ConstSize nBits                 -> checkBinary false nBits
     |ASCII_ConstSize nBits                          -> checkAscii false nBits
     |ASCII_VarSize_NullTerminated _                 -> ()
@@ -591,7 +591,7 @@ let private mergeInteger (asn1:Asn1Ast.AstRoot) (loc:SrcLoc) (acnErrLoc: SrcLoc 
         | []  -> uPER.getRequiredBitsForIntUperEncoding asn1.args.integerSizeInBytes uperRange
         | _   -> 
             let mn,mx = uPER.getRequiredBitsForIntUperEncoding asn1.args.integerSizeInBytes uperRange
-            1 + mn, 1 + mx
+            1I + mn, 1I + mx
 
     let isUnsigned =
         match uperRange with
@@ -685,8 +685,8 @@ let private mergeReal (asn1:Asn1Ast.AstRoot) (loc:SrcLoc) (acnErrLoc: SrcLoc opt
             }
         | None  -> {RealAcnProperties.encodingProp = None; endiannessProp = None }
     let uperRange    = uPER.getRealTypeConstraintUperRange cons loc
-    let uperMaxSizeInBits=(5+asn1.args.integerSizeInBytes)*8
-    let uperMinSizeInBits=8
+    let uperMaxSizeInBits=(5I+asn1.args.integerSizeInBytes)*8I
+    let uperMinSizeInBits=8I
     let aligment = tryGetProp props (fun x -> match x with ALIGNTONEXT e -> Some e | _ -> None)
     let acnEncodingClass,  acnMinSizeInBits, acnMaxSizeInBits= AcnEncodingClasses.GetRealEncodingClass aligment loc acnProperties uperMinSizeInBits uperMaxSizeInBits 
     {Real.acnProperties = acnProperties; cons = cons; withcons = withcons; uperRange=uperRange; uperMaxSizeInBits=uperMaxSizeInBits; uperMinSizeInBits=uperMinSizeInBits; acnEncodingClass = acnEncodingClass;  acnMinSizeInBits=acnMinSizeInBits; acnMaxSizeInBits = acnMaxSizeInBits}
@@ -705,7 +705,7 @@ let private mergeStringType (asn1:Asn1Ast.AstRoot) (loc:SrcLoc) (acnErrLoc: SrcL
             }
         | None  -> {StringAcnProperties.encodingProp = None; sizeProp = None }
     
-    let charSize =  int (GetNumberOfBitsForNonNegativeInteger (BigInteger (uperCharSet.Length-1)))
+    let charSize =  GetNumberOfBitsForNonNegativeInteger (BigInteger (uperCharSet.Length-1))
     let uperMinSizeInBits, uperMaxSizeInBits = uPER.getSizeableTypeSize minSize maxSize charSize
     let aligment = tryGetProp props (fun x -> match x with ALIGNTONEXT e -> Some e | _ -> None)
 
@@ -729,7 +729,7 @@ let private mergeStringType (asn1:Asn1Ast.AstRoot) (loc:SrcLoc) (acnErrLoc: SrcL
 let private mergeOctetStringType (asn1:Asn1Ast.AstRoot) (loc:SrcLoc) (acnErrLoc: SrcLoc option) (props:GenericAcnProperty list) cons withcons =
     let sizeUperRange = uPER.getOctetStringUperRange cons loc
     let minSize, maxSize = uPER.getSizeMinAndMaxValue loc sizeUperRange
-    let uperMinSizeInBits, uperMaxSizeInBits = uPER.getSizeableTypeSize minSize maxSize 8
+    let uperMinSizeInBits, uperMaxSizeInBits = uPER.getSizeableTypeSize minSize maxSize 8I
     let fixAsn1Size = match minSize = maxSize with true -> Some minSize | false -> None
 
     let acnProperties = 
@@ -746,7 +746,7 @@ let private mergeOctetStringType (asn1:Asn1Ast.AstRoot) (loc:SrcLoc) (acnErrLoc:
 let private mergeBitStringType (asn1:Asn1Ast.AstRoot) (loc:SrcLoc) (acnErrLoc: SrcLoc option) (props:GenericAcnProperty list) cons withcons =
     let sizeUperRange = uPER.getBitStringUperRange cons loc
     let minSize, maxSize = uPER.getSizeMinAndMaxValue loc sizeUperRange
-    let uperMinSizeInBits, uperMaxSizeInBits = uPER.getSizeableTypeSize minSize maxSize 8
+    let uperMinSizeInBits, uperMaxSizeInBits = uPER.getSizeableTypeSize minSize maxSize 8I
     let fixAsn1Size = match minSize = maxSize with true -> Some minSize | false -> None
 
     let acnProperties = 
@@ -767,7 +767,7 @@ let private mergeNullType (acnErrLoc: SrcLoc option) (props:GenericAcnProperty l
 
     let aligment = tryGetProp props (fun x -> match x with ALIGNTONEXT e -> Some e | _ -> None)
     let acnMinSizeInBits, acnMaxSizeInBits= AcnEncodingClasses.GetNullEncodingClass aligment loc acnProperties
-    {NullType.acnProperties = acnProperties; uperMaxSizeInBits = 0; uperMinSizeInBits=0;  acnMinSizeInBits=acnMinSizeInBits; acnMaxSizeInBits = acnMaxSizeInBits}
+    {NullType.acnProperties = acnProperties; uperMaxSizeInBits = 0I; uperMinSizeInBits=0I;  acnMinSizeInBits=acnMinSizeInBits; acnMaxSizeInBits = acnMaxSizeInBits}
 
 let private mergeBooleanType (acnErrLoc: SrcLoc option) (props:GenericAcnProperty list) cons withcons =
     let acnProperties = 
@@ -782,7 +782,7 @@ let private mergeBooleanType (acnErrLoc: SrcLoc option) (props:GenericAcnPropert
         | None              -> {BooleanAcnProperties.encodingPattern = None }
     let aligment = tryGetProp props (fun x -> match x with ALIGNTONEXT e -> Some e | _ -> None)
     let acnMinSizeInBits, acnMaxSizeInBits= AcnEncodingClasses.GetBooleanEncodingClass aligment loc acnProperties
-    {Boolean.acnProperties = acnProperties; cons = cons; withcons = withcons;uperMaxSizeInBits = 1; uperMinSizeInBits=1; acnMinSizeInBits=acnMinSizeInBits; acnMaxSizeInBits = acnMaxSizeInBits}
+    {Boolean.acnProperties = acnProperties; cons = cons; withcons = withcons;uperMaxSizeInBits = 1I; uperMinSizeInBits=1I; acnMinSizeInBits=acnMinSizeInBits; acnMaxSizeInBits = acnMaxSizeInBits}
 
 
 
@@ -833,7 +833,7 @@ let private mergeEnumerated (asn1:Asn1Ast.AstRoot) (items: Asn1Ast.NamedItem lis
         match items |> Seq.exists (fun nm -> nm._value.IsSome) with
         | false -> allocatedValuesToAllEnumItems items, false 
         | true -> allocatedValuesToAllEnumItems items, true
-    let uperSizeInBits = int32(GetNumberOfBitsForNonNegativeInteger(BigInteger((Seq.length items) - 1)))
+    let uperSizeInBits = GetNumberOfBitsForNonNegativeInteger(BigInteger((Seq.length items) - 1))
     let items = items0|> List.mapi mapItem
     
     let acnProperties = 
@@ -957,7 +957,7 @@ let rec private mapAcnParamTypeToAcnAcnInsertedType (asn1:Asn1Ast.AstRoot) (acn:
             | TwosComplement    -> false
             | IntAscii          -> false
             | BCD               -> true
-        let acnEncodingClass,  acnMinSizeInBits, acnMaxSizeInBits= AcnEncodingClasses.GetIntEncodingClass acnAligment acnErrLoc acnProperties 0 0 isUnsigned
+        let acnEncodingClass,  acnMinSizeInBits, acnMaxSizeInBits= AcnEncodingClasses.GetIntEncodingClass acnAligment acnErrLoc acnProperties 0I 0I isUnsigned
 
         let checkIntHasEnoughSpace asn1Min asn1Max =
             checkIntHasEnoughSpace acnEncodingClass acnErrLoc asn1Min asn1Max
@@ -1242,7 +1242,7 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (m:Asn1Ast.Asn1Mo
                                 | None ->
                                     raise(SemanticError(acnChild.name.Location, (sprintf "invalid name %s" acnChild.name.Value))))
             
-            let uperBitMaskSize      = children |> Seq.filter(fun c -> c.Optionality.IsSome) |> Seq.length 
+            let uperBitMaskSize      = children |> Seq.filter(fun c -> c.Optionality.IsSome) |> Seq.length |> BigInteger
             let asn1Children     = mergedChildren |> List.choose(fun c -> match c with Asn1Child c -> Some c | AcnChild _ -> None)
             let uperMaxChildrenSize  = asn1Children |> List.map(fun x -> x.Type.uperMaxSizeInBits) |> Seq.sum
             let uperMinChildrenSize  = asn1Children |> List.filter(fun x -> x.Optionality.IsNone) |> List.map(fun x -> x.Type.uperMinSizeInBits) |> Seq.sum
@@ -1254,12 +1254,12 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (m:Asn1Ast.Asn1Mo
                 List.filter(fun c ->
                     match c.Optionality with
                     | Some (Optional p) when p.acnPresentWhen.IsNone    -> true
-                    | _                                                 -> false) |> Seq.length
+                    | _                                                 -> false) |> Seq.length |> BigInteger
             let minChildrenSize = 
                 mergedChildren |> 
                 List.map(fun c ->
                     match c.Optionality with
-                    | Some (Optional _) -> 0
+                    | Some (Optional _) -> 0I
                     | _                 -> c.acnMinSizeInBits) |> Seq.sum
             let maxChildrenSize = mergedChildren |> List.map(fun c -> c.acnMaxSizeInBits) |> Seq.sum
             let acnMaxSizeInBits = alignmentSize + acnBitMaskSize + maxChildrenSize
@@ -1358,7 +1358,7 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (m:Asn1Ast.Asn1Mo
             let acnProperties = 
                 {ChoiceAcnProperties.enumDeterminant = tryGetProp combinedProperties (fun x -> match x with CHOICE_DETERMINANT e -> Some e | _ -> None)}
             let acnLoc = acnType |> Option.map (fun z -> z.loc)
-            let indexSize = int (GetNumberOfBitsForNonNegativeInteger(BigInteger(Seq.length children)))
+            let indexSize = GetNumberOfBitsForNonNegativeInteger(BigInteger(Seq.length children))
             let minChildSize = mergedChildren  |> List.map(fun x -> x.Type.uperMinSizeInBits) |> Seq.min
             let maxChildSize = mergedChildren  |> List.map(fun x -> x.Type.uperMaxSizeInBits) |> Seq.max
 

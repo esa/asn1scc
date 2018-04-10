@@ -95,7 +95,7 @@ let rec printValue (r:DAst.AstRoot)  (l:ProgrammingLanguage)  (curProgamUnitName
         | StringValue       v -> 
             match t.ActualType.Kind with
             | IA5String st  ->
-                let arrNuls = [0 .. (st.baseInfo.maxSize- v.Length)]|>Seq.map(fun x -> variables_a.PrintStringValueNull())
+                let arrNuls = [0 .. ((int st.baseInfo.maxSize) - v.Length)]|>Seq.map(fun x -> variables_a.PrintStringValueNull())
                 variables_a.PrintStringValue (v.Replace("\"","\"\"")) arrNuls
             | _             -> raise(BugErrorException "unexpected type")
         | BooleanValue      v -> variables_a.PrintBooleanValue v
@@ -119,8 +119,8 @@ let rec printValue (r:DAst.AstRoot)  (l:ProgrammingLanguage)  (curProgamUnitName
                 let typeDefName  = t.typeDefintionOrReference.longTypedefName l//if parentValue.IsSome then bs.typeDefinition.typeDefinitionBodyWithinSeq else bs.typeDefinition.name
                 let bittring = byteArrayToBitStringValue v
                 let arBits = bittring.ToCharArray() |> Array.map(fun x -> x.ToString()) 
-                let maxLen = if (arBits.Length > bs.baseInfo.maxSize) then (bs.baseInfo.maxSize-1) else (arBits.Length-1)
-                let arBits = arBits.[0..maxLen]
+                let maxLen = if (arBits.Length > int bs.baseInfo.maxSize) then ((int bs.baseInfo.maxSize)-1) else (arBits.Length-1)
+                let arBits = arBits.[0 .. maxLen]
                 variables_a.PrintBitStringValue typeDefName (bs.baseInfo.minSize = bs.baseInfo.maxSize) arBits (BigInteger arBits.Length)
             | _         -> raise(BugErrorException "unexpected type")
         | EnumValue         v -> 
@@ -261,7 +261,7 @@ let createStringFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1A
             match l with 
             | C ->  variables_c.PrintStringValue v
             | Ada ->
-                let arrNuls = [0 .. (o.maxSize- v.Length)] |> Seq.map(fun x -> variables_a.PrintStringValueNull())
+                let arrNuls = [0 .. (int o.maxSize - v.Length)] |> Seq.map(fun x -> variables_a.PrintStringValueNull())
                 variables_a.PrintStringValue (v.Replace("\"","\"\"")) arrNuls
 
         | RefValue ((md,vs),ov)   -> vs

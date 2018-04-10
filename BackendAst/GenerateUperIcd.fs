@@ -257,7 +257,7 @@ let rec printType (stgFileName:string) (m:Asn1Module) (tas:TypeAssignment) (t:As
             let nMin, nLengthSize = 
                 match sizeUperRange with
                 | Asn1AcnAst.Concrete(a,b)  when a=b       -> 0I, 0I
-                | Asn1AcnAst.Concrete(a,b)                 -> (GetNumberOfBitsForNonNegativeInteger(b.AsBigInt-a.AsBigInt)), (GetNumberOfBitsForNonNegativeInteger(b.AsBigInt-a.AsBigInt))
+                | Asn1AcnAst.Concrete(a,b)                 -> (GetNumberOfBitsForNonNegativeInteger(b - a)), (GetNumberOfBitsForNonNegativeInteger(b - a))
                 | Asn1AcnAst.NegInf(_)                     -> raise(BugErrorException "")
                 | Asn1AcnAst.PosInf(b)                     ->  8I, 16I
                 | Asn1AcnAst.Full                          -> 8I, 16I
@@ -275,11 +275,11 @@ let rec printType (stgFileName:string) (m:Asn1Module) (tas:TypeAssignment) (t:As
 
         let arRows, sExtraComment = 
             match sizeUperRange with
-            | Asn1AcnAst.Concrete(a,b)  when a=b && b<2     -> [ChildRow 0I 1I], "The array contains a single element."
-            | Asn1AcnAst.Concrete(a,b)  when a=b && b=2     -> (ChildRow 0I 1I)::(ChildRow 0I 2I)::[], (sFixedLengthComment b.AsBigInt)
-            | Asn1AcnAst.Concrete(a,b)  when a=b && b>2     -> (ChildRow 0I 1I)::(icd_uper.EmitRowWith3Dots stgFileName ())::(ChildRow 0I b.AsBigInt)::[], (sFixedLengthComment b.AsBigInt)
-            | Asn1AcnAst.Concrete(a,b)  when a<>b && b<2    -> LengthRow::(ChildRow 1I 1I)::[],""
-            | Asn1AcnAst.Concrete(a,b)                       -> LengthRow::(ChildRow 1I 1I)::(icd_uper.EmitRowWith3Dots stgFileName ())::(ChildRow 1I b.AsBigInt)::[], ""
+            | Asn1AcnAst.Concrete(a,b)  when a=b && b<2I     -> [ChildRow 0I 1I], "The array contains a single element."
+            | Asn1AcnAst.Concrete(a,b)  when a=b && b=2I     -> (ChildRow 0I 1I)::(ChildRow 0I 2I)::[], (sFixedLengthComment b)
+            | Asn1AcnAst.Concrete(a,b)  when a=b && b>2I     -> (ChildRow 0I 1I)::(icd_uper.EmitRowWith3Dots stgFileName ())::(ChildRow 0I b)::[], (sFixedLengthComment b)
+            | Asn1AcnAst.Concrete(a,b)  when a<>b && b<2I    -> LengthRow::(ChildRow 1I 1I)::[],""
+            | Asn1AcnAst.Concrete(a,b)                       -> LengthRow::(ChildRow 1I 1I)::(icd_uper.EmitRowWith3Dots stgFileName ())::(ChildRow 1I b)::[], ""
             | Asn1AcnAst.PosInf(_)
             | Asn1AcnAst.Full                                -> LengthRow::(ChildRow 1I 1I)::(icd_uper.EmitRowWith3Dots stgFileName ())::(ChildRow 1I 65535I)::[], ""
             | Asn1AcnAst.NegInf(_)                           -> raise(BugErrorException "")
@@ -399,7 +399,7 @@ let DoWork (r:AstRoot) (stgFileName:string)   outFileName =
         allTypes |> 
         Seq.exists(fun x -> 
             match x.ActualType.Kind with 
-            | Integer o -> o.baseInfo.uperMinSizeInBits = 0
+            | Integer o -> o.baseInfo.uperMinSizeInBits = 0I
             | _ -> false)
     let content = icd_uper.RootHtml stgFileName files1 files2 bIntegerSizeMustBeExplained bRealSizeMustBeExplained bLengthSizeMustBeExplained bWithComponentMustBeExplained bZeroBitsMustBeExplained
     File.WriteAllText(outFileName, content.Replace("\r",""))

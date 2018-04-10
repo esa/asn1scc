@@ -742,8 +742,8 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:A
                 //let childAccesPath = p + childAccess + l.ArrName + (l.ArrayAccess i) //"[" + i + "]"
                 let innerStatement = Some(cvf.funcBody ({p with arg = p.arg.getArrayItem l i childType.isIA5String}) )
                 match l with
-                | C   -> isvalid_c.sequenceOf p.arg.p (p.arg.getAcces l) i bIsFixedSize (BigInteger o.minSize) None None innerStatement
-                | Ada -> isvalid_a.sequenceOf p.arg.p (p.arg.getAcces l) i bIsFixedSize (BigInteger o.minSize) None None innerStatement
+                | C   -> isvalid_c.sequenceOf p.arg.p (p.arg.getAcces l) i bIsFixedSize ( o.minSize) None None innerStatement
+                | Ada -> isvalid_a.sequenceOf p.arg.p (p.arg.getAcces l) i bIsFixedSize ( o.minSize) None None innerStatement
             Some(cvf.alphaFuncs, lv::cvf.localVariables , cvf.errCodes, funcBody, us)
         | None, Some(errCode, sIsValidSizeExpFunc, ns) ->
             let funcBody (p:CallerScope)  = 
@@ -754,8 +754,8 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:A
                 //let childAccesPath = p + childAccess + l.ArrName + (l.ArrayAccess i) //"[" + i + "]"
                 let innerStatement = Some(cvf.funcBody ({p with arg = p.arg.getArrayItem l i childType.isIA5String}))
                 match l with
-                | C   -> isvalid_c.sequenceOf p.arg.p (p.arg.getAcces l) i bIsFixedSize (BigInteger o.minSize) (Some (sIsValidSizeExpFunc p )) (Some errCode.errCodeName) innerStatement
-                | Ada -> isvalid_a.sequenceOf p.arg.p (p.arg.getAcces l) i bIsFixedSize (BigInteger o.minSize) (Some (sIsValidSizeExpFunc p )) (Some errCode.errCodeName) innerStatement
+                | C   -> isvalid_c.sequenceOf p.arg.p (p.arg.getAcces l) i bIsFixedSize ( o.minSize) (Some (sIsValidSizeExpFunc p )) (Some errCode.errCodeName) innerStatement
+                | Ada -> isvalid_a.sequenceOf p.arg.p (p.arg.getAcces l) i bIsFixedSize ( o.minSize) (Some (sIsValidSizeExpFunc p )) (Some errCode.errCodeName) innerStatement
             Some(cvf.alphaFuncs, lv::cvf.localVariables , cvf.errCodes@[errCode], funcBody, ns)
 
 

@@ -174,7 +174,7 @@ let private createAcnFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (co
                 
                 //let errCodes = bodyResult.errCodes
                 let errCodStr = errCodes |> List.map(fun x -> (EmitTypeAssignment_def_err_code x.errCodeName) (BigInteger x.errCodeValue))
-                let funcDef = Some(EmitTypeAssignment_primitive_def varName sStar funcName  (typeDefinition.longTypedefName l) errCodStr (t.acnMaxSizeInBits = 0) (BigInteger (ceil ((double t.acnMaxSizeInBits)/8.0))) (BigInteger t.acnMaxSizeInBits) prms codec)
+                let funcDef = Some(EmitTypeAssignment_primitive_def varName sStar funcName  (typeDefinition.longTypedefName l) errCodStr (t.acnMaxSizeInBits = 0I) (BigInteger (ceil ((double t.acnMaxSizeInBits)/8.0))) ( t.acnMaxSizeInBits) prms codec)
                 func, funcDef,ns1a
 
 
@@ -244,7 +244,7 @@ let private createAcnIntegerFunctionInternal (r:Asn1AcnAst.AstRoot) (l:Programmi
             |Asn1AcnAst.PositiveInteger_ConstSize_little_endian_32         ->  Some(PositiveInteger_ConstSize_little_endian_32 pp None None (max 0I nUperMin) (uIntActualMax 32) codec, [errCode])
             |Asn1AcnAst.PositiveInteger_ConstSize_big_endian_64            ->  Some(PositiveInteger_ConstSize_big_endian_64 pp None None (max 0I nUperMin) (uIntActualMax 64) codec, [errCode])
             |Asn1AcnAst.PositiveInteger_ConstSize_little_endian_64         ->  Some(PositiveInteger_ConstSize_little_endian_64 pp None None (max 0I nUperMin) (uIntActualMax 64) codec, [errCode])
-            |Asn1AcnAst.PositiveInteger_ConstSize bitSize                  ->  Some(PositiveInteger_ConstSize pp (BigInteger bitSize) None None (max 0I nUperMin) (uIntActualMax bitSize) codec, [errCode])
+            |Asn1AcnAst.PositiveInteger_ConstSize bitSize                  ->  Some(PositiveInteger_ConstSize pp ( bitSize) None None (max 0I nUperMin) (uIntActualMax (int bitSize)) codec, [errCode])
             
             |Asn1AcnAst.TwosComplement_ConstSize_8                         ->  Some(TwosComplement_ConstSize_8 pp None None (sIntActualMin 8) (sIntActualMax 8) codec, [errCode])
             |Asn1AcnAst.TwosComplement_ConstSize_big_endian_16             ->  Some(TwosComplement_ConstSize_big_endian_16 pp None None (sIntActualMin 16) (sIntActualMax 16) codec, [errCode])
@@ -253,13 +253,13 @@ let private createAcnIntegerFunctionInternal (r:Asn1AcnAst.AstRoot) (l:Programmi
             |Asn1AcnAst.TwosComplement_ConstSize_little_endian_32          ->  Some(TwosComplement_ConstSize_little_endian_32 pp None None (sIntActualMin 32) (sIntActualMax 32) codec, [errCode])
             |Asn1AcnAst.TwosComplement_ConstSize_big_endian_64             ->  Some(TwosComplement_ConstSize_big_endian_64 pp None None (sIntActualMin 64) (sIntActualMax 64) codec, [errCode])
             |Asn1AcnAst.TwosComplement_ConstSize_little_endian_64          ->  Some(TwosComplement_ConstSize_little_endian_64 pp None None (sIntActualMin 64) (sIntActualMax 64) codec, [errCode])
-            |Asn1AcnAst.TwosComplement_ConstSize bitSize                   ->  Some(TwosComplement_ConstSize pp None None (BigInteger bitSize) (sIntActualMin bitSize) (sIntActualMax bitSize) codec, [errCode])
+            |Asn1AcnAst.TwosComplement_ConstSize bitSize                   ->  Some(TwosComplement_ConstSize pp None None ( bitSize) (sIntActualMin (int bitSize)) (sIntActualMax (int bitSize)) codec, [errCode])
 
-            |Asn1AcnAst.ASCII_ConstSize size                               ->  Some(ASCII_ConstSize pp None None nUperMin nUperMax ((BigInteger size)/8I) codec, [errCode])
+            |Asn1AcnAst.ASCII_ConstSize size                               ->  Some(ASCII_ConstSize pp None None nUperMin nUperMax (( size)/8I) codec, [errCode])
             |Asn1AcnAst.ASCII_VarSize_NullTerminated nullByte              ->  Some(ASCII_VarSize_NullTerminated pp None None nUperMin nUperMax codec, [errCode])
-            |Asn1AcnAst.ASCII_UINT_ConstSize size                          ->  Some(ASCII_UINT_ConstSize pp None None nUperMin nUperMax ((BigInteger size)/8I) codec, [errCode])
+            |Asn1AcnAst.ASCII_UINT_ConstSize size                          ->  Some(ASCII_UINT_ConstSize pp None None nUperMin nUperMax (( size)/8I) codec, [errCode])
             |Asn1AcnAst.ASCII_UINT_VarSize_NullTerminated nullByte         ->  Some(ASCII_UINT_VarSize_NullTerminated pp  None None nUperMin nUperMax codec, [errCode])
-            |Asn1AcnAst.BCD_ConstSize size                                 ->  Some(BCD_ConstSize pp None None nUperMin nUperMax ((BigInteger size)/4I) codec, [errCode])
+            |Asn1AcnAst.BCD_ConstSize size                                 ->  Some(BCD_ConstSize pp None None nUperMin nUperMax (( size)/4I) codec, [errCode])
             |Asn1AcnAst.BCD_VarSize_NullTerminated nullByte                ->  Some(BCD_VarSize_NullTerminated pp None None nUperMin nUperMax codec, [errCode])
         match funcBodyContent with
         | None -> None
@@ -498,14 +498,14 @@ let createStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
             | Acn_Enc_String_uPER  _                                           -> uperFunc.funcBody_e errCode p |> Option.map(fun x -> x.funcBody, x.errCodes, x.localVariables)
             | Acn_Enc_String_uPER_Ascii _                                      -> 
                 match o.maxSize = o.minSize with
-                | true      ->  Some (Acn_String_Ascii_FixSize pp (BigInteger o.maxSize) codec, [errCode], [])
+                | true      ->  Some (Acn_String_Ascii_FixSize pp ( o.maxSize) codec, [errCode], [])
                 | false     ->  
-                    let nSizeInBits = GetNumberOfBitsForNonNegativeInteger (BigInteger (o.maxSize - o.minSize))
-                    Some (Acn_String_Ascii_Internal_Field_Determinant pp (BigInteger o.maxSize) (BigInteger o.minSize) nSizeInBits codec , [errCode], [])
-            | Acn_Enc_String_Ascii_Null_Teminated                   (_,nullChar)   -> Some (Acn_String_Ascii_Null_Teminated pp (BigInteger o.maxSize) (nullChar.ToString()) codec, [errCode], [])
+                    let nSizeInBits = GetNumberOfBitsForNonNegativeInteger ( (o.maxSize - o.minSize))
+                    Some (Acn_String_Ascii_Internal_Field_Determinant pp ( o.maxSize) ( o.minSize) nSizeInBits codec , [errCode], [])
+            | Acn_Enc_String_Ascii_Null_Teminated                   (_,nullChar)   -> Some (Acn_String_Ascii_Null_Teminated pp ( o.maxSize) (nullChar.ToString()) codec, [errCode], [])
             | Acn_Enc_String_Ascii_External_Field_Determinant       _    -> 
                 let extField = getExternaField r deps t.id
-                Some(Acn_String_Ascii_External_Field_Determinant pp (BigInteger o.maxSize) extField codec, [errCode], [])
+                Some(Acn_String_Ascii_External_Field_Determinant pp ( o.maxSize) extField codec, [errCode], [])
             | Acn_Enc_String_CharIndex_External_Field_Determinant   _    -> 
                 let extField = getExternaField r deps t.id
                 let typeDefinitionName = defOrRef.longTypedefName l//getTypeDefinitionName t.id.tasInfo typeDefinition
@@ -514,8 +514,8 @@ let createStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
                     match o.uperCharSet.Length = 128 with
                     | false -> 
                         let arrAsciiCodes = o.uperCharSet |> Array.map(fun x -> BigInteger (System.Convert.ToInt32 x))
-                        Acn_String_CharIndex_External_Field_Determinant pp (BigInteger o.maxSize) arrAsciiCodes (BigInteger o.uperCharSet.Length) extField typeDefinitionName nBits codec 
-                    | true  -> Acn_IA5String_CharIndex_External_Field_Determinant pp (BigInteger o.maxSize)  extField typeDefinitionName nBits codec
+                        Acn_String_CharIndex_External_Field_Determinant pp ( o.maxSize) arrAsciiCodes (BigInteger o.uperCharSet.Length) extField typeDefinitionName nBits codec 
+                    | true  -> Acn_IA5String_CharIndex_External_Field_Determinant pp ( o.maxSize)  extField typeDefinitionName nBits codec
                 Some(encDecStatement, [errCode], [])
         match funcBodyContent with
         | None -> None
@@ -565,13 +565,13 @@ let createAcnStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
                 let nBits = GetNumberOfBitsForNonNegativeInteger (BigInteger (o.uperCharSet.Length-1))
                 let arrAsciiCodes = o.uperCharSet |> Array.map(fun x -> BigInteger (System.Convert.ToInt32 x))
                 InternalItem_string_with_alpha p.arg.p typeDefinitionName i (BigInteger (o.uperCharSet.Length-1)) arrAsciiCodes (BigInteger (o.uperCharSet.Length)) nBits  codec
-        let nSizeInBits = GetNumberOfBitsForNonNegativeInteger (BigInteger (o.maxSize - o.minSize))
+        let nSizeInBits = GetNumberOfBitsForNonNegativeInteger ( (o.maxSize - o.minSize))
         let funcBodyContent, localVariables = 
             match o.minSize with
-            | _ when o.maxSize < 65536 && o.maxSize=o.minSize  -> str_FixedSize p.arg.p typeDefinitionName i internalItem (BigInteger o.minSize) nBits nBits 0I codec, charIndex@nStringLength
-            | _ when o.maxSize < 65536 && o.maxSize<>o.minSize  -> str_VarSize p.arg.p typeDefinitionName i internalItem (BigInteger o.minSize) (BigInteger o.maxSize) nSizeInBits nBits nBits 0I codec , charIndex@nStringLength
+            | _ when o.maxSize < 65536I && o.maxSize=o.minSize  -> str_FixedSize p.arg.p typeDefinitionName i internalItem ( o.minSize) nBits nBits 0I codec, charIndex@nStringLength
+            | _ when o.maxSize < 65536I && o.maxSize<>o.minSize  -> str_VarSize p.arg.p typeDefinitionName i internalItem ( o.minSize) ( o.maxSize) nSizeInBits nBits nBits 0I codec , charIndex@nStringLength
             | _                                                -> 
-                let funcBodyContent,localVariables = DAstUPer.handleFragmentation l p codec errCode ii (BigInteger o.uperMaxSizeInBits) o.minSize o.maxSize internalItem nBits false true
+                let funcBodyContent,localVariables = DAstUPer.handleFragmentation l p codec errCode ii ( o.uperMaxSizeInBits) o.minSize o.maxSize internalItem nBits false true
                 funcBodyContent,charIndex@localVariables
 
         {UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = lv::localVariables}    
@@ -583,14 +583,14 @@ let createAcnStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
             match t.str.acnEncodingClass with
             | Acn_Enc_String_uPER_Ascii    _                                    -> 
                 match t.str.maxSize = t.str.minSize with
-                | true      ->  Some (Acn_String_Ascii_FixSize pp (BigInteger t.str.maxSize) codec, [])
+                | true      ->  Some (Acn_String_Ascii_FixSize pp ( t.str.maxSize) codec, [])
                 | false     ->  
-                    let nSizeInBits = GetNumberOfBitsForNonNegativeInteger (BigInteger (o.maxSize - o.minSize))
-                    Some (Acn_String_Ascii_Internal_Field_Determinant pp (BigInteger t.str.maxSize) (BigInteger t.str.minSize) nSizeInBits codec , [])
-            | Acn_Enc_String_Ascii_Null_Teminated                  (_, nullChar)   -> Some (Acn_String_Ascii_Null_Teminated pp (BigInteger t.str.maxSize) (nullChar.ToString()) codec, [])
+                    let nSizeInBits = GetNumberOfBitsForNonNegativeInteger ( (o.maxSize - o.minSize))
+                    Some (Acn_String_Ascii_Internal_Field_Determinant pp ( t.str.maxSize) ( t.str.minSize) nSizeInBits codec , [])
+            | Acn_Enc_String_Ascii_Null_Teminated                  (_, nullChar)   -> Some (Acn_String_Ascii_Null_Teminated pp ( t.str.maxSize) (nullChar.ToString()) codec, [])
             | Acn_Enc_String_Ascii_External_Field_Determinant       _    -> 
                 let extField = getExternaField r deps typeId
-                Some(Acn_String_Ascii_External_Field_Determinant pp (BigInteger t.str.maxSize) extField codec, [])
+                Some(Acn_String_Ascii_External_Field_Determinant pp ( t.str.maxSize) extField codec, [])
             | Acn_Enc_String_CharIndex_External_Field_Determinant   _    -> 
                 let extField = getExternaField r deps typeId
                 let nBits = GetNumberOfBitsForNonNegativeInteger (BigInteger (t.str.uperCharSet.Length-1))
@@ -598,8 +598,8 @@ let createAcnStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
                     match t.str.uperCharSet.Length = 128 with
                     | false -> 
                         let arrAsciiCodes = t.str.uperCharSet |> Array.map(fun x -> BigInteger (System.Convert.ToInt32 x))
-                        Acn_String_CharIndex_External_Field_Determinant pp (BigInteger t.str.maxSize) arrAsciiCodes (BigInteger t.str.uperCharSet.Length) extField typeDefinitionName nBits codec
-                    | true  -> Acn_IA5String_CharIndex_External_Field_Determinant pp (BigInteger t.str.maxSize) extField typeDefinitionName nBits codec
+                        Acn_String_CharIndex_External_Field_Determinant pp ( t.str.maxSize) arrAsciiCodes (BigInteger t.str.uperCharSet.Length) extField typeDefinitionName nBits codec
+                    | true  -> Acn_IA5String_CharIndex_External_Field_Determinant pp ( t.str.maxSize) extField typeDefinitionName nBits codec
                 Some(encDecStatement, [])
             | Acn_Enc_String_uPER    _                                         -> 
                 let x = (uper_funcBody errCode) p 
@@ -626,7 +626,7 @@ let createOctetStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserte
             | SZ_EC_ExternalField   _    -> 
                 let extField = getExternaField r deps t.id
                 let internalItem = InternalItem_oct_str p.arg.p (p.arg.getAcces l) i  errCode.errCodeName codec 
-                let fncBody = oct_sqf_external_field p.arg.p (p.arg.getAcces l) i internalItem (if o.minSize=0 then None else Some (BigInteger o.minSize)) (BigInteger o.maxSize) extField nAlignSize errCode.errCodeName 8I 8I codec
+                let fncBody = oct_sqf_external_field p.arg.p (p.arg.getAcces l) i internalItem (if o.minSize=0I then None else Some ( o.minSize)) ( o.maxSize) extField nAlignSize errCode.errCodeName 8I 8I codec
                 Some(fncBody, [errCode],[])
         match funcBodyContent with
         | None -> None
@@ -646,13 +646,13 @@ let createBitStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
                 let extField = getExternaField r deps t.id
                 match l with
                 | C     ->
-                    let fncBody = acn_c.bit_string_external_field p.arg.p (p.arg.getAcces l) (if o.minSize=0 then None else Some (BigInteger o.minSize)) (BigInteger o.maxSize) extField codec
+                    let fncBody = acn_c.bit_string_external_field p.arg.p (p.arg.getAcces l) (if o.minSize=0I then None else Some ( o.minSize)) ( o.maxSize) extField codec
                     Some(fncBody, [errCode], [])
                 | Ada   ->
                     let i = sprintf "i%d" (t.id.SeqeuenceOfLevel + 1)
                     let lv = SequenceOfIndex (t.id.SeqeuenceOfLevel + 1, None)
                     let internalItem = uper_a.InternalItem_bit_str p.arg.p i  errCode.errCodeName codec 
-                    let fncBody = acn_a.oct_sqf_external_field p.arg.p (p.arg.getAcces l) i internalItem (if o.minSize=0 then None else Some (BigInteger o.minSize)) (BigInteger o.maxSize) extField nAlignSize errCode.errCodeName 1I 1I codec
+                    let fncBody = acn_a.oct_sqf_external_field p.arg.p (p.arg.getAcces l) i internalItem (if o.minSize=0I then None else Some ( o.minSize)) ( o.maxSize) extField nAlignSize errCode.errCodeName 1I 1I codec
                     Some(fncBody, [errCode], [lv])
         match funcBodyContent with
         | None -> None
@@ -673,7 +673,7 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserted
     let lv = SequenceOfIndex (t.id.SeqeuenceOfLevel + 1, None)
     let nAlignSize = 0I;
     let typeDefinitionName = defOrRef.longTypedefName l 
-    let nIntItemMaxSize = (BigInteger child.acnMaxSizeInBits)
+    let nIntItemMaxSize = ( child.acnMaxSizeInBits)
     let funcBody (us:State) (errCode:ErroCode) (acnArgs: (Asn1AcnAst.RelativePath*Asn1AcnAst.AcnParameter) list) (p:CallerScope)        = 
         match child.getAcnFunction codec with
         | None         -> None, us
@@ -682,7 +682,7 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserted
             let ret = 
                 match o.acnEncodingClass with
                 | SZ_EC_uPER                                              -> 
-                    let nSizeInBits = GetNumberOfBitsForNonNegativeInteger (BigInteger (o.maxSize - o.minSize))
+                    let nSizeInBits = GetNumberOfBitsForNonNegativeInteger ( (o.maxSize - o.minSize))
                     let nStringLength =
                         match o.minSize = o.maxSize,  l, codec with
                         | true , _,_    -> []
@@ -694,23 +694,23 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserted
                     match internalItem with
                     | None  -> 
                             match o.minSize with
-                            | _ when o.maxSize < 65536 && o.maxSize=o.minSize  -> None
-                            | _ when o.maxSize < 65536 && o.maxSize<>o.minSize -> 
-                                let funcBody = varSize p.arg.p (p.arg.getAcces l)  typeDefinitionName i "" (BigInteger o.minSize) (BigInteger o.maxSize) nSizeInBits (BigInteger child.acnMinSizeInBits) nIntItemMaxSize 0I errCode.errCodeName codec
+                            | _ when o.maxSize < 65536I && o.maxSize=o.minSize  -> None
+                            | _ when o.maxSize < 65536I && o.maxSize<>o.minSize -> 
+                                let funcBody = varSize p.arg.p (p.arg.getAcces l)  typeDefinitionName i "" ( o.minSize) ( o.maxSize) nSizeInBits ( child.acnMinSizeInBits) nIntItemMaxSize 0I errCode.errCodeName codec
                                 Some ({AcnFuncBodyResult.funcBody = funcBody; errCodes = [errCode]; localVariables = lv::nStringLength})    
                             | _                                                -> 
-                                let funcBody, localVariables = DAstUPer.handleFragmentation l p codec errCode ii (BigInteger o.acnMaxSizeInBits) o.minSize o.maxSize "" nIntItemMaxSize false false
+                                let funcBody, localVariables = DAstUPer.handleFragmentation l p codec errCode ii ( o.acnMaxSizeInBits) o.minSize o.maxSize "" nIntItemMaxSize false false
                                 Some ({AcnFuncBodyResult.funcBody = funcBody; errCodes = [errCode]; localVariables = localVariables})    
 
                     | Some internalItem -> 
-                        let nSizeInBits = GetNumberOfBitsForNonNegativeInteger (BigInteger (o.maxSize - o.minSize))
+                        let nSizeInBits = GetNumberOfBitsForNonNegativeInteger ( (o.maxSize - o.minSize))
                         let childErrCodes =  internalItem.errCodes
                         let ret, localVariables = 
                             match o.minSize with
-                            | _ when o.maxSize < 65536 && o.maxSize=o.minSize  -> fixedSize p.arg.p typeDefinitionName i internalItem.funcBody (BigInteger o.minSize) (BigInteger child.acnMinSizeInBits) nIntItemMaxSize 0I codec , nStringLength 
-                            | _ when o.maxSize < 65536 && o.maxSize<>o.minSize  -> varSize p.arg.p (p.arg.getAcces l)  typeDefinitionName i internalItem.funcBody (BigInteger o.minSize) (BigInteger o.maxSize) nSizeInBits (BigInteger child.acnMinSizeInBits) nIntItemMaxSize 0I errCode.errCodeName codec , nStringLength 
+                            | _ when o.maxSize < 65536I && o.maxSize=o.minSize  -> fixedSize p.arg.p typeDefinitionName i internalItem.funcBody ( o.minSize) ( child.acnMinSizeInBits) nIntItemMaxSize 0I codec , nStringLength 
+                            | _ when o.maxSize < 65536I && o.maxSize<>o.minSize  -> varSize p.arg.p (p.arg.getAcces l)  typeDefinitionName i internalItem.funcBody ( o.minSize) ( o.maxSize) nSizeInBits ( child.acnMinSizeInBits) nIntItemMaxSize 0I errCode.errCodeName codec , nStringLength 
                             | _                                                -> 
-                                DAstUPer.handleFragmentation l p codec errCode ii (BigInteger o.acnMaxSizeInBits) o.minSize o.maxSize internalItem.funcBody nIntItemMaxSize false false
+                                DAstUPer.handleFragmentation l p codec errCode ii ( o.acnMaxSizeInBits) o.minSize o.maxSize internalItem.funcBody nIntItemMaxSize false false
                         Some ({AcnFuncBodyResult.funcBody = ret; errCodes = errCode::childErrCodes; localVariables = lv::(internalItem.localVariables@localVariables)})    
 
                 | SZ_EC_ExternalField   _    -> 
@@ -721,7 +721,7 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserted
                         let childErrCodes   = internalItem.errCodes
                         let internalItem    = internalItem.funcBody
                         let extField        = getExternaField r deps t.id
-                        let funcBodyContent = external_field p.arg.p (p.arg.getAcces l) i internalItem (if o.minSize=0 then None else Some (BigInteger o.minSize)) (BigInteger o.maxSize) extField nAlignSize errCode.errCodeName o.child.acnMinSizeInBits.AsBigInt o.child.acnMaxSizeInBits.AsBigInt  codec
+                        let funcBodyContent = external_field p.arg.p (p.arg.getAcces l) i internalItem (if o.minSize=0I then None else Some ( o.minSize)) ( o.maxSize) extField nAlignSize errCode.errCodeName o.child.acnMinSizeInBits o.child.acnMaxSizeInBits  codec
                         Some ({AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = errCode::childErrCodes; localVariables = lv::localVariables})
             ret,ns
     let soSparkAnnotations = None
@@ -807,7 +807,7 @@ let rec handleSingleUpdateDependency (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.Acn
                         raise(SemanticError(intVal.Location, "Unexpected presence condition. Expected string, found integer"))
                         //choiceDependencyIntPres_child v ch.presentWhenName intVal.Value
                     | PresenceStr   (_, strVal) -> 
-                        let arrNuls = [0 .. (str.maxSize- strVal.Value.Length)]|>Seq.map(fun x -> variables_a.PrintStringValueNull())
+                        let arrNuls = [0 .. ((int str.maxSize)- strVal.Value.Length)]|>Seq.map(fun x -> variables_a.PrintStringValueNull())
                         choiceDependencyStrPres_child v ch.presentWhenName strVal.Value arrNuls)
             let updateStatement = choiceDependencyPres choicePath.arg.p (choicePath.arg.getAcces l) arrsChildUpdates
             match checkPath with
@@ -1179,7 +1179,7 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
 
 
                                     let extField = getExternaFieldChoizePresentWhen r deps t.id relPath
-                                    let arrNuls = [0 .. (strType.maxSize- strVal.Value.Length)]|>Seq.map(fun x -> variables_a.PrintStringValueNull())
+                                    let arrNuls = [0 .. ((int strType.maxSize) - strVal.Value.Length)]|>Seq.map(fun x -> variables_a.PrintStringValueNull())
                                     choiceChild_preWhen_str_condition extField strVal.Value arrNuls
                             let conds = child.acnPresentWhenConditions |>List.map handPresenseCond
                             Some (choiceChild_preWhen p.arg.p (p.arg.getAcces l) (child.presentWhenName (Some defOrRef) l) childContent_funcBody conds (idx=0) sChildName sChildTypeDef sChoiceTypeName codec)

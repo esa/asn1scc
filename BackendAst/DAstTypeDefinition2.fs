@@ -345,9 +345,9 @@ let createString (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (pi : Asn1Fold.P
         match l with
         | C                      -> 
             let typeDefinitionBody =header_c.Declare_IA5String ()
-            header_c.Define_Type typeDefinitionBody typeDefinitionName (Some (BigInteger (o.maxSize+1))) []
+            header_c.Define_Type typeDefinitionBody typeDefinitionName (Some (o.maxSize+1I)) []
         | Ada                    -> 
-            header_a.IA5STRING_OF_tas_decl typeDefinitionName (BigInteger o.minSize) (BigInteger o.maxSize) (BigInteger (o.maxSize + 1)) arrnAlphaChars
+            header_a.IA5STRING_OF_tas_decl typeDefinitionName (o.minSize) (o.maxSize) ((o.maxSize + 1I)) arrnAlphaChars
     let getExtraSubTypes sTypeDefinitionName soParentTypePackage sParentType =
         match l with
         | C     -> None
@@ -358,10 +358,10 @@ let createOctet (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (pi : Asn1Fold.Pa
     let getCompleteDefinition (programUnit:string) (typeDefinitionName:string) =
         match l with
         | C                      -> 
-            let typeDefinitionBody = header_c.Declare_OctetString (o.minSize=o.maxSize) (BigInteger o.maxSize)
+            let typeDefinitionBody = header_c.Declare_OctetString (o.minSize=o.maxSize) ( o.maxSize)
             header_c.Define_Type typeDefinitionBody typeDefinitionName None []
         | Ada                    -> 
-            header_a.OCTET_STRING_tas_decl typeDefinitionName (BigInteger o.minSize) (BigInteger o.maxSize) (o.maxSize=o.minSize)
+            header_a.OCTET_STRING_tas_decl typeDefinitionName ( o.minSize) ( o.maxSize) (o.maxSize=o.minSize)
     let getExtraSubTypes sTypeDefinitionName soParentTypePackage sParentType =
         match l with
         | C     -> None
@@ -372,10 +372,10 @@ let createBitString (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (pi : Asn1Fol
     let getCompleteDefinition (programUnit:string) (typeDefinitionName:string) =
         match l with
         | C                      -> 
-            let typeDefinitionBody = header_c.Declare_BitString (o.minSize=o.maxSize) (BigInteger o.MaxOctets) (BigInteger o.maxSize)
+            let typeDefinitionBody = header_c.Declare_BitString (o.minSize=o.maxSize) (BigInteger o.MaxOctets) ( o.maxSize)
             header_c.Define_Type typeDefinitionBody typeDefinitionName None []
         | Ada                    -> 
-            header_a.BIT_STRING_tas_decl typeDefinitionName (BigInteger o.minSize) (BigInteger o.maxSize) (o.maxSize=o.minSize)
+            header_a.BIT_STRING_tas_decl typeDefinitionName ( o.minSize) ( o.maxSize) (o.maxSize=o.minSize)
     let getExtraSubTypes sTypeDefinitionName soParentTypePackage sParentType =
         match l with
         | C     -> None
@@ -418,10 +418,10 @@ let createSequenceOf (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (pi : Asn1Fo
     let getCompleteDefinition (programUnit:string) (typeDefinitionName:string) =
         match l with
         | C                      -> 
-            let typeDefinitionBody = header_c.Declare_SequenceOf (o.minSize = o.maxSize) (childDefinition.longTypedefName l) (BigInteger o.maxSize) ""
+            let typeDefinitionBody = header_c.Declare_SequenceOf (o.minSize = o.maxSize) (childDefinition.longTypedefName l) ( o.maxSize) ""
             header_c.Define_Type typeDefinitionBody typeDefinitionName None (getChildDefinition childDefinition)
         | Ada                    -> 
-            header_a.SEQUENCE_OF_tas_decl typeDefinitionName (BigInteger o.minSize) (BigInteger o.maxSize) (o.minSize = o.maxSize) (childDefinition.longTypedefName l) (getChildDefinition childDefinition)
+            header_a.SEQUENCE_OF_tas_decl typeDefinitionName ( o.minSize) ( o.maxSize) (o.minSize = o.maxSize) (childDefinition.longTypedefName l) (getChildDefinition childDefinition)
     let getExtraSubTypes sTypeDefinitionName soParentTypePackage sParentType =
         match l with
         | C     -> None

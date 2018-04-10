@@ -63,7 +63,7 @@ type Asn1Service() =
             IcdUperHtmlFileName = ""
             IcdAcnHtmlFileName = ""
             mappingFunctionsModule = None
-            integerSizeInBytes = 8
+            integerSizeInBytes = 8I
             renamePolicy = CommonTypes.EnumRenamePolicy.NoRenamePolicy
             custom_Stg_Ast_Version = 1
         }

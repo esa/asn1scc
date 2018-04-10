@@ -124,7 +124,7 @@ let createIA5StringInitFunc (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:As
             | StringValue iv   -> 
                 iv
             | _                 -> raise(BugErrorException "UnexpectedValue")
-        let arrNuls = [0 .. (o.maxSize- vl.Length)]|>Seq.map(fun x -> variables_a.PrintStringValueNull())
+        let arrNuls = [0 .. (int o.maxSize- vl.Length)]|>Seq.map(fun x -> variables_a.PrintStringValueNull())
         initIA5String (p.arg.getValue l) (vl.Replace("\"","\"\"")) arrNuls
 
     let ii = t.id.SeqeuenceOfLevel + 1
@@ -133,8 +133,8 @@ let createIA5StringInitFunc (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:As
     let bAlpha = o.uperCharSet.Length < 128
     let arrAsciiCodes = o.uperCharSet |> Array.map(fun x -> BigInteger (System.Convert.ToInt32 x))
     let testCaseFuncs = 
-        let seqOfCase (nSize:int) (p:CallerScope) = 
-            let funcBody = initTestCaseIA5String p.arg.p (p.arg.getAcces l) (BigInteger nSize) (BigInteger (o.maxSize+1)) i (typeDefinition.longTypedefName l) bAlpha arrAsciiCodes (BigInteger arrAsciiCodes.Length) false
+        let seqOfCase (nSize:BigInteger) (p:CallerScope) = 
+            let funcBody = initTestCaseIA5String p.arg.p (p.arg.getAcces l) (nSize) ((o.maxSize+1I)) i (typeDefinition.longTypedefName l) bAlpha arrAsciiCodes (BigInteger arrAsciiCodes.Length) false
             {InitFunctionResult.funcBody = funcBody; localVariables=[SequenceOfIndex (ii, None)]}
         seq {
             match o.minSize = o.maxSize with
@@ -144,7 +144,7 @@ let createIA5StringInitFunc (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:As
                 yield (fun p -> seqOfCase o.maxSize p)
         } |> Seq.toList
     let zero (p:CallerScope) = 
-        let funcBody = initTestCaseIA5String p.arg.p (p.arg.getAcces l) (BigInteger (o.maxSize+1)) (BigInteger (o.maxSize+1)) i (typeDefinition.longTypedefName l) bAlpha arrAsciiCodes (BigInteger arrAsciiCodes.Length) true
+        let funcBody = initTestCaseIA5String p.arg.p (p.arg.getAcces l) ( (o.maxSize+1I)) ( (o.maxSize+1I)) i (typeDefinition.longTypedefName l) bAlpha arrAsciiCodes (BigInteger arrAsciiCodes.Length) true
         let lvars = match l with C -> [] | Ada -> [SequenceOfIndex (ii, None)]
         {InitFunctionResult.funcBody = funcBody; localVariables=lvars}
     createInitFunctionCommon r l t typeDefinition funcBody iv zero testCaseFuncs
@@ -173,8 +173,8 @@ let createOctetStringInitFunc (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:
         | []  ->
             let ii = t.id.SeqeuenceOfLevel + 1
             let i = sprintf "i%d" ii
-            let seqOfCase (nSize:int) (p:CallerScope) = 
-                let funcBody = initTestCaseOctetString p.arg.p (p.arg.getAcces l) nSize.AsBigInt i (o.minSize = o.maxSize) false
+            let seqOfCase (nSize:BigInteger) (p:CallerScope) = 
+                let funcBody = initTestCaseOctetString p.arg.p (p.arg.getAcces l) nSize i (o.minSize = o.maxSize) false
                 {InitFunctionResult.funcBody = funcBody; localVariables=[SequenceOfIndex (ii, None)]}
             let testCaseFuncs = 
                 seq {
@@ -185,7 +185,7 @@ let createOctetStringInitFunc (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:
                         yield (fun p -> seqOfCase o.maxSize p)
                 } |> Seq.toList
             let zero (p:CallerScope) = 
-                let funcBody = initTestCaseOctetString p.arg.p (p.arg.getAcces l) o.maxSize.AsBigInt i (o.minSize = o.maxSize) true
+                let funcBody = initTestCaseOctetString p.arg.p (p.arg.getAcces l) o.maxSize i (o.minSize = o.maxSize) true
                 let lvars = match l with C -> [] | Ada -> [SequenceOfIndex (ii, None)]
                 {InitFunctionResult.funcBody = funcBody; localVariables=lvars}
 
@@ -233,9 +233,9 @@ let createBitStringInitFunc (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:As
         | []  ->
             let ii = t.id.SeqeuenceOfLevel + 1
             let i = sprintf "i%d" ii
-            let seqOfCase (nSize:int) (p:CallerScope) = 
-                let nSizeCeiled =  if nSize % 8 = 0 then nSize else (nSize + (8 - nSize % 8)) 
-                let funcBody = initTestCaseBitString p.arg.p (p.arg.getAcces l) nSize.AsBigInt (BigInteger nSizeCeiled) i (o.minSize = o.maxSize) false
+            let seqOfCase (nSize:BigInteger) (p:CallerScope) = 
+                let nSizeCeiled =  if nSize % 8I = 0I then nSize else (nSize + (8I - nSize % 8I)) 
+                let funcBody = initTestCaseBitString p.arg.p (p.arg.getAcces l) nSize (nSizeCeiled) i (o.minSize = o.maxSize) false
                 {InitFunctionResult.funcBody = funcBody; localVariables=[SequenceOfIndex (ii, None)]}
             let testCaseFuncs = 
                 seq {
@@ -247,8 +247,8 @@ let createBitStringInitFunc (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:As
                 } |> Seq.toList
             let zero (p:CallerScope) = 
                 let nSize = o.maxSize
-                let nSizeCeiled =  if nSize % 8 = 0 then nSize else (nSize + (8 - nSize % 8)) 
-                let funcBody = initTestCaseBitString p.arg.p (p.arg.getAcces l) nSize.AsBigInt (BigInteger nSizeCeiled) i (o.minSize = o.maxSize) true
+                let nSizeCeiled =  if nSize % 8I = 0I then nSize else (nSize + (8I - nSize % 8I)) 
+                let funcBody = initTestCaseBitString p.arg.p (p.arg.getAcces l) nSize (nSizeCeiled) i (o.minSize = o.maxSize) true
                 let lvars = match l with C -> [] | Ada -> [SequenceOfIndex (ii, None)]
                 {InitFunctionResult.funcBody = funcBody; localVariables=lvars}
             testCaseFuncs, zero
@@ -324,7 +324,7 @@ let createSequenceOfInitFunc (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:A
     let ii = t.id.SeqeuenceOfLevel + 1
     let i = sprintf "i%d" (t.id.SeqeuenceOfLevel + 1)
     let testCaseFuncs =
-        let seqOfCase (nSize:int) (p:CallerScope) = 
+        let seqOfCase (nSize:BigInteger) (p:CallerScope) = 
             let len = childType.initFunction.initFuncBodyTestCases.Length
             let childTestCases = 
                 childType.initFunction.initFuncBodyTestCases |> Seq.take (min 5 len) |> Seq.toList |>
@@ -332,7 +332,7 @@ let createSequenceOfInitFunc (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:A
             match childTestCases with
             | []    -> {InitFunctionResult.funcBody = ""; localVariables = []}
             | childCase::[] -> 
-                let funcBody = initTestCaseSizeSequenceOf p.arg.p (p.arg.getAcces l) None nSize.AsBigInt (o.minSize = o.maxSize) [childCase.funcBody] false i
+                let funcBody = initTestCaseSizeSequenceOf p.arg.p (p.arg.getAcces l) None nSize (o.minSize = o.maxSize) [childCase.funcBody] false i
                 {InitFunctionResult.funcBody = funcBody; localVariables= (SequenceOfIndex (ii, None))::childCase.localVariables }
             | _             ->
                 let arrsInnerItems, childLocalVars = 
@@ -342,7 +342,7 @@ let createSequenceOfInitFunc (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:A
                         (funcBody, (SequenceOfIndex (ii, None))::sChildItem.localVariables)) |>
                     List.unzip
 
-                let funcBody = initTestCaseSizeSequenceOf p.arg.p (p.arg.getAcces l) None  nSize.AsBigInt (o.minSize = o.maxSize) arrsInnerItems true i 
+                let funcBody = initTestCaseSizeSequenceOf p.arg.p (p.arg.getAcces l) None  nSize (o.minSize = o.maxSize) arrsInnerItems true i 
                 {InitFunctionResult.funcBody = funcBody; localVariables= (SequenceOfIndex (ii, None))::(childLocalVars |> List.collect id)}
 
         seq {
@@ -353,7 +353,7 @@ let createSequenceOfInitFunc (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:A
                 yield (fun p -> seqOfCase o.minSize p)
         } |> Seq.toList
     let initTasFunction (p:CallerScope) =
-        let initCountValue = Some o.minSize.AsBigInt
+        let initCountValue = Some o.minSize
         let chp = {p with arg = p.arg.getArrayItem l i childType.isIA5String}
         let childInitRes_funcBody, childInitRes_localVariables = 
             match childType.initFunction.initFuncName with
@@ -362,7 +362,7 @@ let createSequenceOfInitFunc (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:A
                 childInitRes.funcBody, childInitRes.localVariables
             | Some fncName  ->
                 initChildWithInitFunc (chp.arg.getPointer l) fncName, []
-        let funcBody = initTestCaseSizeSequenceOf p.arg.p (p.arg.getAcces l) initCountValue o.maxSize.AsBigInt (o.minSize = o.maxSize) [childInitRes_funcBody] false i
+        let funcBody = initTestCaseSizeSequenceOf p.arg.p (p.arg.getAcces l) initCountValue o.maxSize (o.minSize = o.maxSize) [childInitRes_funcBody] false i
         {InitFunctionResult.funcBody = funcBody; localVariables= (SequenceOfIndex (ii, None))::childInitRes_localVariables }
         
     createInitFunctionCommon r l t typeDefinition funcBody iv  initTasFunction testCaseFuncs

@@ -45,7 +45,7 @@ type AcnPresentWhenConditionChoiceChild =
 
 // Integer acn properties
 type AcnIntSizeProperty =
-    | Fixed                 of int
+    | Fixed                 of BigInteger
     | IntNullTerminated     of byte      //termination character when encoding is ASCII
 
 type AcnIntEncoding =
@@ -299,7 +299,7 @@ type IntEncodingClass =
     |PositiveInteger_ConstSize_little_endian_32
     |PositiveInteger_ConstSize_big_endian_64
     |PositiveInteger_ConstSize_little_endian_64
-    |PositiveInteger_ConstSize of int
+    |PositiveInteger_ConstSize of BigInteger
     |TwosComplement_ConstSize_8
     |TwosComplement_ConstSize_big_endian_16
     |TwosComplement_ConstSize_little_endian_16
@@ -307,12 +307,12 @@ type IntEncodingClass =
     |TwosComplement_ConstSize_little_endian_32
     |TwosComplement_ConstSize_big_endian_64
     |TwosComplement_ConstSize_little_endian_64
-    |TwosComplement_ConstSize of int
-    |ASCII_ConstSize of int
+    |TwosComplement_ConstSize of BigInteger
+    |ASCII_ConstSize of BigInteger
     |ASCII_VarSize_NullTerminated of byte
-    |ASCII_UINT_ConstSize of int
+    |ASCII_UINT_ConstSize of BigInteger
     |ASCII_UINT_VarSize_NullTerminated of byte
-    |BCD_ConstSize of int
+    |BCD_ConstSize of BigInteger
     |BCD_VarSize_NullTerminated of byte
 
 
@@ -324,11 +324,11 @@ type RealEncodingClass =
     | Real_IEEE754_64_little_endian
 
 type StringAcnEncodingClass =
-    | Acn_Enc_String_uPER                                   of int                          //char size in bits, as in uper 
-    | Acn_Enc_String_uPER_Ascii                             of int                          //char size in bits, as in uper but with charset (0..255)
-    | Acn_Enc_String_Ascii_Null_Teminated                   of int*byte                     //char size in bits, byte = the null character
-    | Acn_Enc_String_Ascii_External_Field_Determinant       of int*RelativePath             //char size in bits, encode ascii, size is provided by an external length determinant
-    | Acn_Enc_String_CharIndex_External_Field_Determinant   of int*RelativePath             //char size in bits, encode char index, size is provided by an external length determinant
+    | Acn_Enc_String_uPER                                   of BigInteger                          //char size in bits, as in uper 
+    | Acn_Enc_String_uPER_Ascii                             of BigInteger                          //char size in bits, as in uper but with charset (0..255)
+    | Acn_Enc_String_Ascii_Null_Teminated                   of BigInteger*byte                     //char size in bits, byte = the null character
+    | Acn_Enc_String_Ascii_External_Field_Determinant       of BigInteger*RelativePath             //char size in bits, encode ascii, size is provided by an external length determinant
+    | Acn_Enc_String_CharIndex_External_Field_Determinant   of BigInteger*RelativePath             //char size in bits, encode char index, size is provided by an external length determinant
 
 type SizeableAcnEncodingClass =
     | SZ_EC_uPER
@@ -349,12 +349,12 @@ type Integer = {
     acnProperties       : IntegerAcnProperties
     cons                : IntegerTypeConstraint list
     withcons            : IntegerTypeConstraint list
-    uperMaxSizeInBits   : int
-    uperMinSizeInBits   : int
+    uperMaxSizeInBits   : BigInteger
+    uperMinSizeInBits   : BigInteger
     uperRange           : uperRange<BigInteger>
 
-    acnMaxSizeInBits    : int
-    acnMinSizeInBits    : int
+    acnMaxSizeInBits    : BigInteger
+    acnMinSizeInBits    : BigInteger
     acnEncodingClass    : IntEncodingClass
     isUnsigned          : bool
 
@@ -364,12 +364,12 @@ type Real = {
     acnProperties       : RealAcnProperties
     cons                : RealTypeConstraint list
     withcons            : RealTypeConstraint list
-    uperMaxSizeInBits   : int
-    uperMinSizeInBits   : int
+    uperMaxSizeInBits   : BigInteger
+    uperMinSizeInBits   : BigInteger
     uperRange           : uperRange<double>
 
-    acnMaxSizeInBits    : int
-    acnMinSizeInBits    : int
+    acnMaxSizeInBits    : BigInteger
+    acnMinSizeInBits    : BigInteger
     acnEncodingClass    : RealEncodingClass
 
 }
@@ -379,14 +379,14 @@ type StringType = {
     cons                : IA5StringConstraint list
     withcons            : IA5StringConstraint list
 
-    minSize             : int
-    maxSize             : int
-    uperMaxSizeInBits   : int
-    uperMinSizeInBits   : int
+    minSize             : BigInteger
+    maxSize             : BigInteger
+    uperMaxSizeInBits   : BigInteger
+    uperMinSizeInBits   : BigInteger
     uperCharSet         : char array
 
-    acnMaxSizeInBits    : int
-    acnMinSizeInBits    : int
+    acnMaxSizeInBits    : BigInteger
+    acnMinSizeInBits    : BigInteger
     acnEncodingClass    : StringAcnEncodingClass
     isNumeric           : bool
 
@@ -397,13 +397,13 @@ type OctetString = {
     acnProperties       : SizeableAcnProperties
     cons                : OctetStringConstraint list
     withcons            : OctetStringConstraint list
-    minSize             : int
-    maxSize             : int
-    uperMaxSizeInBits   : int
-    uperMinSizeInBits   : int
+    minSize             : BigInteger
+    maxSize             : BigInteger
+    uperMaxSizeInBits   : BigInteger
+    uperMinSizeInBits   : BigInteger
 
-    acnMaxSizeInBits    : int
-    acnMinSizeInBits    : int
+    acnMaxSizeInBits    : BigInteger
+    acnMinSizeInBits    : BigInteger
     acnEncodingClass    : SizeableAcnEncodingClass
 
 }
@@ -412,24 +412,24 @@ type BitString = {
     acnProperties   : SizeableAcnProperties
     cons                : BitStringConstraint list
     withcons            : BitStringConstraint list
-    minSize             : int
-    maxSize             : int
-    uperMaxSizeInBits   : int
-    uperMinSizeInBits   : int
+    minSize             : BigInteger
+    maxSize             : BigInteger
+    uperMaxSizeInBits   : BigInteger
+    uperMinSizeInBits   : BigInteger
 
-    acnMaxSizeInBits    : int
-    acnMinSizeInBits    : int
+    acnMaxSizeInBits    : BigInteger
+    acnMinSizeInBits    : BigInteger
     acnEncodingClass    : SizeableAcnEncodingClass
 
 }
 
 type NullType = {
     acnProperties       : NullTypeAcnProperties
-    uperMaxSizeInBits   : int
-    uperMinSizeInBits   : int
+    uperMaxSizeInBits   : BigInteger
+    uperMinSizeInBits   : BigInteger
 
-    acnMaxSizeInBits    : int
-    acnMinSizeInBits    : int
+    acnMaxSizeInBits    : BigInteger
+    acnMinSizeInBits    : BigInteger
 
 }
 
@@ -437,10 +437,10 @@ type Boolean = {
     acnProperties       : BooleanAcnProperties
     cons                : BoolConstraint list
     withcons            : BoolConstraint list
-    uperMaxSizeInBits   : int
-    uperMinSizeInBits   : int
-    acnMaxSizeInBits    : int
-    acnMinSizeInBits    : int
+    uperMaxSizeInBits   : BigInteger
+    uperMinSizeInBits   : BigInteger
+    acnMaxSizeInBits    : BigInteger
+    acnMinSizeInBits    : BigInteger
 
 }
 
@@ -449,10 +449,10 @@ type Enumerated = {
     acnProperties       : IntegerAcnProperties
     cons                : EnumConstraint list
     withcons            : EnumConstraint list
-    uperMaxSizeInBits   : int
-    uperMinSizeInBits   : int
-    acnMaxSizeInBits    : int
-    acnMinSizeInBits    : int
+    uperMaxSizeInBits   : BigInteger
+    uperMinSizeInBits   : BigInteger
+    acnMaxSizeInBits    : BigInteger
+    acnMinSizeInBits    : BigInteger
     acnEncodingClass    : IntEncodingClass
     encodeValues        : bool
     userDefinedValues   : bool      //if true, the user has associated at least one item with a value
@@ -478,8 +478,8 @@ type AcnInteger = {
     cons                : IntegerTypeConstraint list
     withcons            : IntegerTypeConstraint list
     acnAligment         : AcnAligment option
-    acnMaxSizeInBits    : int
-    acnMinSizeInBits    : int
+    acnMaxSizeInBits    : BigInteger
+    acnMinSizeInBits    : BigInteger
     acnEncodingClass    : IntEncodingClass
     Location            : SrcLoc //Line no, Char pos
     uperRange           : uperRange<BigInteger>
@@ -490,16 +490,16 @@ type AcnInteger = {
 type AcnBoolean = {
     acnProperties       : BooleanAcnProperties
     acnAligment         : AcnAligment option
-    acnMaxSizeInBits    : int
-    acnMinSizeInBits    : int
+    acnMaxSizeInBits    : BigInteger
+    acnMinSizeInBits    : BigInteger
     Location            : SrcLoc //Line no, Char pos
 }
 
 type AcnNullType = {
     acnProperties       : NullTypeAcnProperties
     acnAligment         : AcnAligment option
-    acnMaxSizeInBits    : int
-    acnMinSizeInBits    : int
+    acnMaxSizeInBits    : BigInteger
+    acnMinSizeInBits    : BigInteger
     Location            : SrcLoc //Line no, Char pos
 }
 
@@ -559,13 +559,13 @@ and SequenceOf = {
     acnProperties   : SizeableAcnProperties
     cons                : SequenceOfConstraint list
     withcons            : SequenceOfConstraint list
-    minSize             : int
-    maxSize             : int
-    uperMaxSizeInBits   : int
-    uperMinSizeInBits   : int
+    minSize             : BigInteger
+    maxSize             : BigInteger
+    uperMaxSizeInBits   : BigInteger
+    uperMinSizeInBits   : BigInteger
 
-    acnMaxSizeInBits    : int
-    acnMinSizeInBits    : int
+    acnMaxSizeInBits    : BigInteger
+    acnMinSizeInBits    : BigInteger
     acnEncodingClass    : SizeableAcnEncodingClass
 
 }
@@ -574,11 +574,11 @@ and Sequence = {
     children                : SeqChildInfo list
     cons                    : SequenceConstraint list
     withcons                : SequenceConstraint list
-    uperMaxSizeInBits       : int
-    uperMinSizeInBits       : int
+    uperMaxSizeInBits       : BigInteger
+    uperMinSizeInBits       : BigInteger
 
-    acnMaxSizeInBits        : int
-    acnMinSizeInBits        : int
+    acnMaxSizeInBits        : BigInteger
+    acnMinSizeInBits        : BigInteger
 }
 
 and AcnChild = {
@@ -609,11 +609,11 @@ and Choice = {
     acnProperties       : ChoiceAcnProperties
     cons                : ChoiceConstraint list
     withcons            : ChoiceConstraint list
-    uperMaxSizeInBits   : int
-    uperMinSizeInBits   : int
+    uperMaxSizeInBits   : BigInteger
+    uperMinSizeInBits   : BigInteger
 
-    acnMaxSizeInBits    : int
-    acnMinSizeInBits    : int
+    acnMaxSizeInBits    : BigInteger
+    acnMinSizeInBits    : BigInteger
     acnLoc              : SrcLoc option
 
 }

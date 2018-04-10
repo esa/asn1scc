@@ -70,8 +70,9 @@ let private posIntValGetter (r:Asn1Ast.AstRoot) (v:Asn1Ast.Asn1Value) =
         }
     let newValue = ValuesMapping.mapValue r sizeIntegerType v
     match (getBaseValue newValue).kind with
-    | IntegerValue x when x.Value >= 0I   -> uint32 x.Value
-    | _                                 -> raise(BugErrorException "Value is not of expected type")
+    | IntegerValue x when x.Value >= 0I && x.Value <= BigInteger UInt32.MaxValue  -> uint32 x.Value
+    | IntegerValue x when x.Value > BigInteger UInt32.MaxValue     -> raise(SemanticError(v.Location, (sprintf "Constant value '%A' is too large" x.Value)))
+    | _                                 -> raise(SemanticError(v.Location, "Value is not of expected type"))
 
 let private charGetter (r:Asn1Ast.AstRoot)  (v:Asn1Ast.Asn1Value) =
     let charType = 
