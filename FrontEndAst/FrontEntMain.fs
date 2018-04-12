@@ -35,7 +35,7 @@ let antlrParse (lexer: ICharStream -> #ITokenSource ) parser treeParser (name: s
     let tree = treeParser(parser(tokenStream));
     {ParameterizedAsn1Ast.AntlrParserResult.fileName = name; ParameterizedAsn1Ast.AntlrParserResult.rootItem=tree; ParameterizedAsn1Ast.AntlrParserResult.tokens=tokens}
 
-let constructAst (args:CommandLineSettings) =
+let constructAst (args:CommandLineSettings) (debugFnc : Asn1Ast.AstRoot -> unit) =
     let asn1ParseTrees = args.asn1Files |> Seq.groupBy(fun f -> f.name) |> Seq.map (antlrParse (fun f -> new asn1Lexer(f)) (fun ts -> new asn1Parser(ts))  (fun p -> p.moduleDefinitions().Tree :?> ITree)  ) |> Seq.toList
     let acnParseTrees = args.acnFiles |> Seq.groupBy(fun f -> f.name) |> Seq.map (antlrParse (fun f -> new acnLexer(f)) (fun ts -> new acnParser(ts))  (fun p -> p.moduleDefinitions().Tree :?> ITree)  ) |> Seq.toList
 
@@ -76,6 +76,8 @@ let constructAst (args:CommandLineSettings) =
         Ensure unique enum names
     *)
     let uniqueEnumNamesAst = EnsureUniqueEnumNames.DoWork asn1Ast0 
+    
+    debugFnc uniqueEnumNamesAst
 
     (*
         - Updates ASN.1 AST with ACN information

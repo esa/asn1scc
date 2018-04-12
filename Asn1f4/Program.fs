@@ -29,6 +29,7 @@ type CliArguments =
     | [<AltCommandLine("-AdaUses")>] AdaUses 
     | [<AltCommandLine("-ACND")>] ACND  
     | [<AltCommandLine("-v")>]   Version
+    | [<AltCommandLine("-asn1")>]   Debug_Asn1 of string option
     | [<MainCommand; ExactlyOnce; Last>] Files of files:string list
 with
     interface IArgParserTemplate with
@@ -56,6 +57,7 @@ with
             | CustomIcdAcn  _   -> "Invokes the custom stg file 'stgFile.stg' using the icdAcn backend and produces the output file 'outputFile'"
             | AdaUses           -> "Prints in the console all type Assignments of the input ASN.1 grammar"
             | ACND              -> "creates ACN grammars for the input ASN.1 grammars using the default encoding properties"
+            | Debug_Asn1  _     -> "Prints all input ASN.1 grammars in a single module/single file and with parameterized types removed. Used for debugging purposes"
 
 let getCustmStgFileNames (compositeFile:string) =
     let files = compositeFile.Split ':' |> Seq.toList
@@ -126,6 +128,7 @@ let checkArguement arg =
     | CustomIcdAcn  comFile     -> checkCompositeFile comFile "-customIcdAcn" ".html"
     | AdaUses                   -> ()
     | ACND                      -> ()
+    | Debug_Asn1  _             -> ()
 
 let createInput (fileName:string) : Input = 
     {
@@ -196,9 +199,18 @@ let main0 argv =
         let cliArgs = parserResults.GetAllResults()
         cliArgs |> Seq.iter checkArguement 
         let args = constructCommandLineSettings cliArgs parserResults
+        let outDir = parserResults.GetResult(<@Out@>, defaultValue = ".")
         
         // create front ent ast
-        let frontEntAst, acnDeps = FrontEntMain.constructAst args
+
+        let debugFunc (r:Asn1Ast.AstRoot) = 
+            match parserResults.Contains<@ Debug_Asn1 @> with
+            | true  -> 
+                let pdu = parserResults.GetResult(<@Debug_Asn1@>, defaultValue = None)
+                PrintAsn1.printInASignleFile r outDir "SingleAsn1FileDbg.asn1" pdu
+            | false -> ()
+
+        let frontEntAst, acnDeps = FrontEntMain.constructAst args debugFunc
         
         // print front ent ast as xml 
         match args.AstXmlAbsFileName with
@@ -217,7 +229,6 @@ let main0 argv =
                 | _             -> None)
 
         //generate code
-        let outDir = parserResults.GetResult(<@Out@>, defaultValue = ".")
         backends |> 
             Seq.iter (fun r -> 
                 GenerateFiles.generateAll outDir r args.encodings
