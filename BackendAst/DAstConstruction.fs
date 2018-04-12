@@ -267,7 +267,7 @@ let private createNullType (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (m:Asn
     let acnEncFunction, s4      = DAstACN.createNullTypeFunction r l Codec.Encode t o defOrRef None  s3
     let acnDecFunction, s5      = DAstACN.createNullTypeFunction r l Codec.Decode t o defOrRef None  s4
     let uperEncDecTestFunc,s6         = EncodeDecodeTestCase.createUperEncDecFunction r l t defOrRef equalFunction None (Some uperEncFunction) (Some uperDecFunction) s5
-    let acnEncDecTestFunc ,s7         = EncodeDecodeTestCase.createAcnEncDecFunction r l t defOrRef equalFunction None (Some acnEncFunction) (Some acnEncFunction) s6
+    let acnEncDecTestFunc ,s7         = EncodeDecodeTestCase.createAcnEncDecFunction r l t defOrRef equalFunction None (Some acnEncFunction) (Some acnDecFunction) s6
     let xerEncFunction, s8      = DAstXer.createNullTypeFunction  r l Codec.Encode t o defOrRef None s7
     let xerDecFunction, s9      = DAstXer.createNullTypeFunction  r l Codec.Decode t o defOrRef None s8       
     let xerEncDecTestFunc,s10   = EncodeDecodeTestCase.createXerEncDecFunction r l t defOrRef equalFunction None (Some xerEncFunction) (Some xerDecFunction) s9
