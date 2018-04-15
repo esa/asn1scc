@@ -33,9 +33,9 @@ let checkAgainstKeywords (strLc : StringLoc) =
     | None      -> ()
     | Some langMsg ->
         let errMsg = sprintf "'%s' %s  keyword." strLc.Value langMsg
-        match tryGetEnvVar "ASN1SCC_DISABLE_KEYW_CHECKS" with
-        | Some _    -> ()
-        | None      ->raise (SemanticError (strLc.Location, errMsg))
+        match checkForAdaKeywords () with
+        | false   -> ()
+        | true      ->raise (SemanticError (strLc.Location, errMsg))
         
 
     
@@ -468,9 +468,9 @@ let rec CheckType(t:Asn1Type) (m:Asn1Module) ast =
                 match m.TypeAssignments |> Seq.tryFind(fun tas -> ToC ((ast.args.TypePrefix + tas.Name.Value).ToLower()) = ToC (c.Value.ToLower()) ) with
                 | Some tas -> 
                     let errMsg = sprintf "component name '%s' conflicts with type assignment '%s'. May cause compilation errors in case insensitive languages" c.Value tas.Name.Value
-                    match tryGetEnvVar "ASN1SCC_DISABLE_KEYW_CHECKS" with
-                    | Some _    -> ()
-                    | None      ->raise(SemanticError(c.Location, errMsg))
+                    match checkForAdaKeywords () with
+                    | false   -> ()
+                    | true      ->raise(SemanticError(c.Location, errMsg))
                     
                 | None     -> ())
         
