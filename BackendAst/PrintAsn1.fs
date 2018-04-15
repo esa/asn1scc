@@ -127,6 +127,8 @@ let DoWork (r:AstRoot) outDir newFileExt =
     r.Files |> Seq.iter(fun f -> PrintFile f outDir newFileExt)
 
 
+
+
 let printInASignleFile (r:AstRoot) outDir newFile (pdu:string option)=
     
     let rec  getTypeDependencies2 (tsMap:Map<TypeAssignmentInfo,TypeAssignment>) (deep:bool) (t:Asn1Type) : (TypeAssignmentInfo list )    =
@@ -174,24 +176,24 @@ let printInASignleFile (r:AstRoot) outDir newFile (pdu:string option)=
                     let cycTasses = cyclicTasses |> List.map printTas |> Seq.StrJoin "\n\tand\n"
                     SemanticError(emptyLocation, sprintf "Cyclic Types detected:\n%s\n"  cycTasses)                    )
 
+    let tastToPrint = 
+        match pdu with
+        | None      -> sortedTypeAss
+        | Some pdu  ->
+            match allTasses |> Seq.tryFind(fun (_,ts) -> ts.Name.Value = pdu) with
+            | None -> 
+                Console.Error.WriteLine("No type assignment with name {0} found", pdu)
+                sortedTypeAss
+            | Some (tsInfo,ts)   ->
+                let deps = tsInfo::(getTypeDependencies2 tsMap true ts.Type) |> List.map(fun z -> z.tasName) |> Set.ofList
+                sortedTypeAss |> List.filter(fun ts -> deps.Contains ts.tasName)
     let modulesContent =
-        let tastToPrint = 
-            match pdu with
-            | None      -> sortedTypeAss
-            | Some pdu  ->
-                match allTasses |> Seq.tryFind(fun (_,ts) -> ts.Name.Value = pdu) with
-                | None -> 
-                    Console.Error.WriteLine("No type assignment with name {0} found", pdu)
-                    sortedTypeAss
-                | Some (tsInfo,ts)   ->
-                    let deps = tsInfo::(getTypeDependencies2 tsMap true ts.Type) |> List.map(fun z -> z.tasName) |> Set.ofList
-                    sortedTypeAss |> List.filter(fun ts -> deps.Contains ts.tasName)
         let tases = tastToPrint |> Seq.map(fun tsInfo -> PrintTypeAss (tsMap.[tsInfo]) (modMap.[tsInfo.modName]) true) |> Seq.toArray
         let vases = allVasses |> Seq.map(fun (m,x) -> PrintValueAss x m true)|> Seq.toArray
-        stg_asn1.PrintModule "SingleModuleName" tases vases "" []
+        stg_asn1.PrintModule "SingleModuleName" tases vases null []
 
     let outFileName = Path.Combine(outDir, newFile)
     File.WriteAllText(outFileName, modulesContent.Replace("\r",""))
-
+    tastToPrint
 
 

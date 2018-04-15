@@ -160,6 +160,11 @@ let MakeLowerFirst(s:string) =
     else s.Substring(0,1).ToLower() + s.Substring(1)
 
 
+let tryGetEnvVar (varName:string) =
+    let envVars = 
+        System.Environment.GetEnvironmentVariables() |> Seq.cast<System.Collections.DictionaryEntry>  |> Seq.map (fun d -> d.Key :?> string, d.Value :?> string)    
+    envVars |> Seq.tryFind(fun (nm, vl) -> nm = varName) 
+
 type System.String with
     member s.WithLoc (lc:SrcLoc) = {StringLoc.Value = s; Location=lc}
     member this.L1 = MakeLowerFirst this
@@ -449,6 +454,9 @@ let CheckForDuplicates<'T when 'T :equality>   (sequence:seq<PrimitiveWithLocati
         let errMsg = sprintf "Duplicate definition: %s" (name.ToString())
         raise (SemanticError (loc, errMsg))
 
+
+
+
 let CheckForDuplicatesCI asn1ConstructCheck (lst: StringLoc seq) =
     lst |> 
     Seq.groupBy(fun s -> s.Value.ToLower()) |> 
@@ -457,8 +465,9 @@ let CheckForDuplicatesCI asn1ConstructCheck (lst: StringLoc seq) =
         let head = dups |> Seq.head
         let dupStr = dups |> Seq.map(fun z -> "'" + z.Value + "'") |> Seq.StrJoin ", "
         let errMsg = sprintf "Duplicate %s. Values: %s have the same spelling but different case. Use different names to avoid conflicts in case insentive target languages" asn1ConstructCheck dupStr
-        raise (SemanticError (head.Location, errMsg))) 
-        
+        match tryGetEnvVar "ASN1SCC_DISABLE_KEYW_CHECKS" with
+        | Some _    -> ()
+        | None      -> raise (SemanticError (head.Location, errMsg)) ) 
 
 
 //it throws excToThrow if list2 contains an element that does not exist in list1

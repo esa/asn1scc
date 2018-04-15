@@ -29,8 +29,8 @@
     <PlatformTarget>AnyCPU</PlatformTarget>
     <DocumentationFile>bin\Debug\Asn1f4.XML</DocumentationFile>
     <Prefer32Bit>true</Prefer32Bit>
-    <StartWorkingDirectory>C:\prj\GitHub\asn1scc\tmp\bigint</StartWorkingDirectory>
-    <StartArguments>-c -uPER -atc -o o_c/ a.asn1</StartArguments>
+    <StartWorkingDirectory>C:\prj\GitHub\asn1scc\tmp\asn1-pusc-lib-master\service-01\s01</StartWorkingDirectory>
+    <StartArguments>-c -uPER -ACN -o c_o/ -atc SingleAsn1FileDbg.asn1 SingleAsn1FileDbg.acn</StartArguments>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>

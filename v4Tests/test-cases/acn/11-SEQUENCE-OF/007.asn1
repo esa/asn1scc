@@ -1,0 +1,18 @@
+TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
+
+    PUSC-UINT32 ::= INTEGER (0 .. 4294967295) --PFC-14
+
+    MyPDU ::=  SEQUENCE {
+        dt MyPDU-INT
+    }
+
+
+    MyPDU-INT ::=  SEQUENCE {
+        arr SEQUENCE (SIZE(1..100)) OF INTEGER
+    }
+	
+END
+
+
+--TCLS     MyPDU-INT[] {nLen PUSC-UINT32 [], arr [size nLen]} MyPDU[] PUSC-UINT32 [size 32, encoding pos-int, endianness big]
+--TCLS     MyPDU-INT[] {nLen INTEGER [size 8, encoding pos-int], arr [size nLen]} MyPDU[] 

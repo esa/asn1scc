@@ -88,6 +88,7 @@
     <Compile Include="CustomStgExport.fs" />
     <Compile Include="GenerateUperIcd.fs" />
     <Compile Include="GenerateAcnIcd.fs" />
+    <Compile Include="PrintAcn.fs" />
     <Compile Include="PrintAsn1.fs" />
   </ItemGroup>
   <ItemGroup>

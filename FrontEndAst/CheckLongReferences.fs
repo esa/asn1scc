@@ -85,13 +85,20 @@ let private checkRelativePath (curState:AcnInsertedFieldDependencies) (parents: 
             checkSeqWithPath p path
 
 
-let checkParamIsActuallyInteger (r:AstRoot) (prmMod:StringLoc) (tasName:StringLoc) =
-    match r.Modules |> Seq.tryFind(fun z -> z.Name.Value = prmMod.Value) with
-    | None      -> raise(SemanticError (prmMod.Location, (sprintf "No module defined with name '%s'"  prmMod.Value)))
-    | Some md   ->
-        match md.TypeAssignments |> Seq.tryFind(fun z -> z.Name.Value = tasName.Value) with
-        | None      -> raise(SemanticError (tasName.Location, (sprintf "No type assignment defined with name '%s' in module '%s'"  tasName.Value prmMod.Value)))
-        | Some ts   -> ()
+let checkParamIsActuallyInteger (r:AstRoot) (prmMod0:StringLoc) (tasName0:StringLoc) =
+    let rec checkParamIsActuallyInteger_aux (r:AstRoot) (prmMod:StringLoc) (tasName:StringLoc) =
+        match r.Modules |> Seq.tryFind(fun z -> z.Name.Value = prmMod.Value) with
+        | None      -> raise(SemanticError (prmMod.Location, (sprintf "No module defined with name '%s'"  prmMod.Value)))
+        | Some md   ->
+            match md.TypeAssignments |> Seq.tryFind(fun z -> z.Name.Value = tasName.Value) with
+            | None      -> raise(SemanticError (tasName.Location, (sprintf "No type assignment defined with name '%s' in module '%s'"  tasName.Value prmMod.Value)))
+            | Some ts   -> 
+                match ts.Type.Kind with
+                | Integer   intInfo     -> intInfo
+                | ReferenceType refInfo -> checkParamIsActuallyInteger_aux r refInfo.modName refInfo.tasName
+                | _                     -> 
+                    raise(SemanticError (tasName.Location, (sprintf "Type assignment '%s' defined in module '%s' does not resolve to an Integer"  tasName.Value prmMod.Value)))
+    checkParamIsActuallyInteger_aux r prmMod0 tasName0
 
 let sizeReference (r:AstRoot) (curState:AcnInsertedFieldDependencies) (parents: Asn1Type list) (t:Asn1Type) (sizeMin:BigInteger) (sizeMax:BigInteger) (visibleParameters:(ReferenceToType*AcnParameter) list)  (rp :RelativePath  option) (d:AcnDependencyKind) =
     match rp with
@@ -103,7 +110,7 @@ let sizeReference (r:AstRoot) (curState:AcnInsertedFieldDependencies) (parents: 
             | AcnPrmInteger acnInt -> 
                 d
             | AcnPrmRefType  (mdName,tsName)    -> 
-                checkParamIsActuallyInteger r mdName tsName
+                let intInfo = checkParamIsActuallyInteger r mdName tsName
                 d
 
             | _              -> raise(SemanticError(loc, (sprintf "Invalid argument type. Expecting INTEGER got %s "  (p.asn1Type.ToString()))))
@@ -157,12 +164,31 @@ let checkChoicePresentWhen (r:AstRoot) (curState:AcnInsertedFieldDependencies) (
                         match p.asn1Type with
                         | AcnPrmInteger _                   -> AcnDepPresence ((RelativePath path), ch)
                         | AcnPrmRefType    (prmMod, prmTas) ->
-                            checkParamIsActuallyInteger r prmMod prmTas
+                            let intInfo = checkParamIsActuallyInteger r prmMod prmTas
+                            let isWithinRange = 
+                                match intInfo.uperRange with
+                                | Concrete   (a,b)   -> a <= intVal.Value && intVal.Value <= b 
+                                | NegInf     b       -> intVal.Value <= b 
+                                | PosInf     a       -> a <= intVal.Value
+                                | Full               -> true
+                            match isWithinRange with
+                            | true  -> ()
+                            | false -> raise(SemanticError(intVal.Location, (sprintf "Value '%A' is not within the allowed limits of type %s "  intVal.Value (p.asn1Type.ToString()))))
                             AcnDepPresence ((RelativePath path), ch)
                         | _              -> raise(SemanticError(loc, (sprintf "Invalid argument type. Expecting INTEGER got %s "  (p.asn1Type.ToString()))))
                     let rec checkAcnType (c:AcnChild) =
                         match c.Type with
-                        | AcnInteger    _ -> AcnDepPresence ((RelativePath path), ch)
+                        | AcnInteger    intInfo -> 
+                            let isWithinRange = 
+                                match intInfo.uperRange with
+                                | Concrete   (a,b)   -> a <= intVal.Value && intVal.Value <= b 
+                                | NegInf     b       -> intVal.Value <= b 
+                                | PosInf     a       -> a <= intVal.Value
+                                | Full               -> true
+                            match isWithinRange with
+                            | true  -> ()
+                            | false -> raise(SemanticError(intVal.Location, (sprintf "Value '%A' is not within the allowed limits"  intVal.Value )))
+                            AcnDepPresence ((RelativePath path), ch)
                         | _              -> raise(SemanticError(loc, (sprintf "Invalid argument type. Expecting INTEGER got %s "  (c.Type.AsString))))
                     checkRelativePath curState parents t visibleParameters   (RelativePath path)  checkParameter checkAcnType
                 | PresenceStr   ((RelativePath path), strVal)-> 

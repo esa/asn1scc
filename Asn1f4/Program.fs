@@ -203,11 +203,12 @@ let main0 argv =
         
         // create front ent ast
 
-        let debugFunc (r:Asn1Ast.AstRoot) = 
+        let debugFunc (r:Asn1Ast.AstRoot) (acn:AcnCreateFromAntlr.AcnAst) = 
             match parserResults.Contains<@ Debug_Asn1 @> with
             | true  -> 
                 let pdu = parserResults.GetResult(<@Debug_Asn1@>, defaultValue = None)
-                PrintAsn1.printInASignleFile r outDir "SingleAsn1FileDbg.asn1" pdu
+                let tastToPrint = PrintAsn1.printInASignleFile r outDir "SingleAsn1FileDbg.asn1" pdu
+                PrintAcn.printInASignleFile acn outDir "SingleAsn1FileDbg.acn" tastToPrint
             | false -> ()
 
         let frontEntAst, acnDeps = FrontEntMain.constructAst args debugFunc

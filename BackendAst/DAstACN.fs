@@ -568,8 +568,11 @@ let createAcnStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
         let nSizeInBits = GetNumberOfBitsForNonNegativeInteger ( (o.maxSize - o.minSize))
         let funcBodyContent, localVariables = 
             match o.minSize with
-            | _ when o.maxSize < 65536I && o.maxSize=o.minSize  -> str_FixedSize p.arg.p typeDefinitionName i internalItem ( o.minSize) nBits nBits 0I codec, charIndex@nStringLength
-            | _ when o.maxSize < 65536I && o.maxSize<>o.minSize  -> str_VarSize p.arg.p typeDefinitionName i internalItem ( o.minSize) ( o.maxSize) nSizeInBits nBits nBits 0I codec , charIndex@nStringLength
+            | _ when o.maxSize < 65536I && o.maxSize=o.minSize  -> 
+                str_FixedSize p.arg.p typeDefinitionName i internalItem ( o.minSize) nBits nBits 0I codec, charIndex@nStringLength
+            | _ when o.maxSize < 65536I && o.maxSize<>o.minSize  -> 
+                //printfn "%A\n" nStringLength
+                str_VarSize p.arg.p typeDefinitionName i internalItem ( o.minSize) ( o.maxSize) nSizeInBits nBits nBits 0I codec , charIndex@nStringLength
             | _                                                -> 
                 let funcBodyContent,localVariables = DAstUPer.handleFragmentation l p codec errCode ii ( o.uperMaxSizeInBits) o.minSize o.maxSize internalItem nBits false true
                 funcBodyContent,charIndex@localVariables
@@ -583,14 +586,14 @@ let createAcnStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
             match t.str.acnEncodingClass with
             | Acn_Enc_String_uPER_Ascii    _                                    -> 
                 match t.str.maxSize = t.str.minSize with
-                | true      ->  Some (Acn_String_Ascii_FixSize pp ( t.str.maxSize) codec, [])
+                | true      ->  Some (Acn_String_Ascii_FixSize pp ( t.str.maxSize) codec, [], [])
                 | false     ->  
                     let nSizeInBits = GetNumberOfBitsForNonNegativeInteger ( (o.maxSize - o.minSize))
-                    Some (Acn_String_Ascii_Internal_Field_Determinant pp ( t.str.maxSize) ( t.str.minSize) nSizeInBits codec , [])
-            | Acn_Enc_String_Ascii_Null_Teminated                  (_, nullChar)   -> Some (Acn_String_Ascii_Null_Teminated pp ( t.str.maxSize) (nullChar.ToString()) codec, [])
+                    Some (Acn_String_Ascii_Internal_Field_Determinant pp ( t.str.maxSize) ( t.str.minSize) nSizeInBits codec , [], [])
+            | Acn_Enc_String_Ascii_Null_Teminated                  (_, nullChar)   -> Some (Acn_String_Ascii_Null_Teminated pp ( t.str.maxSize) (nullChar.ToString()) codec, [], [])
             | Acn_Enc_String_Ascii_External_Field_Determinant       _    -> 
                 let extField = getExternaField r deps typeId
-                Some(Acn_String_Ascii_External_Field_Determinant pp ( t.str.maxSize) extField codec, [])
+                Some(Acn_String_Ascii_External_Field_Determinant pp ( t.str.maxSize) extField codec, [], [])
             | Acn_Enc_String_CharIndex_External_Field_Determinant   _    -> 
                 let extField = getExternaField r deps typeId
                 let nBits = GetNumberOfBitsForNonNegativeInteger (BigInteger (t.str.uperCharSet.Length-1))
@@ -600,13 +603,13 @@ let createAcnStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
                         let arrAsciiCodes = t.str.uperCharSet |> Array.map(fun x -> BigInteger (System.Convert.ToInt32 x))
                         Acn_String_CharIndex_External_Field_Determinant pp ( t.str.maxSize) arrAsciiCodes (BigInteger t.str.uperCharSet.Length) extField typeDefinitionName nBits codec
                     | true  -> Acn_IA5String_CharIndex_External_Field_Determinant pp ( t.str.maxSize) extField typeDefinitionName nBits codec
-                Some(encDecStatement, [])
+                Some(encDecStatement, [], [])
             | Acn_Enc_String_uPER    _                                         -> 
                 let x = (uper_funcBody errCode) p 
-                Some(x.funcBody, x.errCodes)
+                Some(x.funcBody, x.errCodes, x.localVariables)
         match funcBodyContent with
         | None -> None
-        | Some (funcBodyContent,errCodes) -> Some ({AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = errCode::errCodes |> List.distinct ; localVariables = []})
+        | Some (funcBodyContent,errCodes, lvs) -> Some ({AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = errCode::errCodes |> List.distinct ; localVariables = lvs})
 
 
     (funcBody errCode), ns
@@ -919,6 +922,8 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
     let sequence_presense_optChild_pres_str     = match l with C -> acn_c.sequence_presense_optChild_pres_str    | Ada -> acn_a.sequence_presense_optChild_pres_str 
     let sequence_mandatory_child                = match l with C -> acn_c.sequence_mandatory_child               | Ada -> acn_a.sequence_mandatory_child            
     let sequence_optional_child                 = match l with C -> acn_c.sequence_optional_child                | Ada -> acn_a.sequence_optional_child             
+    let sequence_always_present_child           = match l with C -> acn_c.sequence_always_present_child          | Ada -> acn_a.sequence_always_present_child             
+    let sequence_always_absent_child           = match l with C -> acn_c.sequence_always_absent_child          | Ada -> acn_a.sequence_always_absent_child             
     let sequence_optional_always_present        = match l with C -> acn_c.sequence_optional_always_present_child | Ada -> acn_a.sequence_optional_always_present_child
     let sequence_default_child                  = match l with C -> acn_c.sequence_default_child                 | Ada -> acn_a.sequence_default_child              
     let sequence_acn_child                      = match l with C -> acn_c.sequence_acn_child                     | Ada -> acn_a.sequence_acn_child              
@@ -986,18 +991,18 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                     match childContentResult with
                     | None              -> [], ns2
                     | Some childContent ->
-                        let childBody = 
+                        let childBody, chLocalVars = 
                             match child.Optionality with
-                            | None                             -> Some (sequence_mandatory_child child.c_name childContent.funcBody codec)
-                            | Some Asn1AcnAst.AlwaysAbsent     -> match codec with CommonTypes.Encode -> None                        | CommonTypes.Decode -> Some (sequence_optional_child p.arg.p (p.arg.getAcces l) child.c_name childContent.funcBody codec) 
-                            | Some Asn1AcnAst.AlwaysPresent    -> match codec with CommonTypes.Encode -> Some childContent.funcBody  | CommonTypes.Decode -> Some (sequence_optional_child p.arg.p (p.arg.getAcces l) child.c_name childContent.funcBody codec)
+                            | None                             -> sequence_mandatory_child child.c_name childContent.funcBody codec, childContent.localVariables
+                            | Some Asn1AcnAst.AlwaysAbsent     -> sequence_always_absent_child p.arg.p (p.arg.getAcces l) child.c_name childContent.funcBody codec, []
+                            | Some Asn1AcnAst.AlwaysPresent    -> sequence_always_present_child p.arg.p (p.arg.getAcces l) child.c_name childContent.funcBody codec, childContent.localVariables
                             | Some (Asn1AcnAst.Optional opt)   -> 
                                 match opt.defaultValue with
-                                | None                   -> Some (sequence_optional_child p.arg.p (p.arg.getAcces l) child.c_name childContent.funcBody codec)
+                                | None                   -> sequence_optional_child p.arg.p (p.arg.getAcces l) child.c_name childContent.funcBody codec, childContent.localVariables
                                 | Some v                 -> 
                                     let defInit= child.Type.initFunction.initByAsn1Value ({p with arg = p.arg.getSeqChild l child.c_name child.Type.isIA5String}) (mapValue v).kind
-                                    Some (sequence_default_child p.arg.p (p.arg.getAcces l) child.c_name childContent.funcBody defInit codec) 
-                        [(Asn1ChildEncodeStatement, childBody, childContent.localVariables, childContent.errCodes)], ns2
+                                    sequence_default_child p.arg.p (p.arg.getAcces l) child.c_name childContent.funcBody defInit codec, childContent.localVariables
+                        [(Asn1ChildEncodeStatement, (Some childBody), chLocalVars, childContent.errCodes)], ns2
                 present_when_statements@childEncDecStatement,ns3
             | AcnChild  acnChild    -> 
                 //handle updates

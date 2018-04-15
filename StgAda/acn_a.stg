@@ -812,6 +812,31 @@ sequence_mandatory_child_decode(sChName, sChildContent) ::= <<
 <sChildContent>
 >>
 
+sequence_always_present_child_encode(p, sAcc, sChName, sChildContent) ::= <<
+-- Encode <sChName>
+-- marked as ALWAYS PRESENT, so do not look in exist
+<sChildContent>
+>>
+
+sequence_always_present_child_decode(p, sAcc, sChName, sChildContent) ::= <<
+-- Decode <sChName>
+-- marked as ALWAYS PRESENT, so do not look in exist
+<p>.Exist.<sChName> := 1; 
+<sChildContent>
+>>
+
+sequence_always_absent_child_encode(p, sAcc, sChName, sChildContent) ::= <<
+-- Encode <sChName>
+-- marked as ALWAYS ABSENT, so do not encode anything
+>>
+
+sequence_always_absent_child_decode(p, sAcc, sChName, sChildContent) ::= <<
+-- Decode <sChName>
+-- marked as ALWAYS ABSENT, so do not decode anything
+<p>.Exist.<sChName> := 0;
+>>
+
+
 sequence_optional_child_encode(p, sAcc, sChName, sChildContent) ::= <<
 -- Encode <sChName>
 if <p>.Exist.<sChName> = 1 then

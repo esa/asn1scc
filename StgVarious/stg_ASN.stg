@@ -7,10 +7,12 @@ PrintAsn1File(arrsModules) ::= <<
 
 PrintModule(sName, arrsTas, arrsVas, sExports, arrsImportsFromModule) ::= <<
 <sName> DEFINITIONS AUTOMATIC TAGS ::= BEGIN 
-
+<if(sExports)>
     EXPORTS
         <sExports>
     ;
+
+<endif>
 <if(arrsImportsFromModule)>
     IMPORTS
         <arrsImportsFromModule; separator="\n\n">

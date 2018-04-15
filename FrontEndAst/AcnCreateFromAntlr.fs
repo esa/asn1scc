@@ -81,18 +81,18 @@ type  AcnTypeAssignment = {
     typeEncodingSpec: AcnTypeEncodingSpec
 }
 
-type private AcnModule = {
+type  AcnModule = {
     name            : StringLoc
     typeAssignments : AcnTypeAssignment list
 }
 
 
-type private AcnFile = {
+type  AcnFile = {
     antlrResult : ParameterizedAsn1Ast.AntlrParserResult
     modules     : AcnModule list
 }
 
-type private AcnAst = {
+type  AcnAst = {
     files : AcnFile list
     acnConstants : Map<string, BigInteger>
 }
@@ -1156,7 +1156,7 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (m:Asn1Ast.Asn1Mo
                     List.choose(fun nc -> 
                         match nc.Mark with
                         | Asn1Ast.NoMark            -> None
-                        | Asn1Ast.MarkPresent       -> Some AlwaysAbsent
+                        | Asn1Ast.MarkPresent       -> Some AlwaysPresent
                         | Asn1Ast.MarkAbsent        -> Some AlwaysAbsent
                         | Asn1Ast.MarkOptional      -> Some (Optional ({Optional.defaultValue = None; acnPresentWhen= None})) ) |>
                     Seq.distinct |> Seq.toList 
@@ -1449,7 +1449,8 @@ let private mergeFile (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (f:Asn1Ast.Asn1File) :
         Modules =  f.Modules |> List.map (mergeModule asn1 acn)
     }
 
-let mergeAsn1WithAcnAst (asn1:Asn1Ast.AstRoot) (acnParseResults:ParameterizedAsn1Ast.AntlrParserResult list) : AstRoot=
+
+let mergeAsn1WithAcnAst (asn1:Asn1Ast.AstRoot) (acnParseResults:ParameterizedAsn1Ast.AntlrParserResult list) =
     let acn = CreateAcnAst acnParseResults
     let files = asn1.Files |> List.map (mergeFile asn1 acn)
-    {AstRoot.Files = files; args = asn1.args; acnConstants = acn.acnConstants; acnParseResults=acnParseResults}
+    {AstRoot.Files = files; args = asn1.args; acnConstants = acn.acnConstants; acnParseResults=acnParseResults}, acn
