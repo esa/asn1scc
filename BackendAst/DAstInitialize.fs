@@ -12,6 +12,69 @@ open DAst
 open DAstUtilFunctions
 
 
+
+
+type TypeValue =
+    | TypeValueAny
+    | OctetTypeValue of Asn1Type*BigInteger      //size of byte array, actual value is not important
+    | BitTypeValue of Asn1Type*BigInteger            //size of bit array, actual value is not important
+    | SequenceOfTypeValue of Asn1Type*(TypeValue list)     //size of SequenceOf value, actual child type value not important
+    | SequenceTypeValue of Asn1Type*((string*TypeValue) list)
+    
+type Asn1Type
+with
+    member this.isValidAsn1AcnVal (v:TypeValue) =
+        match this.Kind with
+        | ReferenceType t-> t.resolvedType.isValidAsn1AcnVal v
+        | Integer      _ -> true
+        | Real         _ -> true
+        | IA5String    _ -> true
+        | OctetString  _ -> true
+        | NullType     _ -> true
+        | BitString    _ -> true
+        | Boolean      _ -> true
+        | Enumerated   _ -> true
+        | SequenceOf   _ -> true
+        | Sequence     _ -> true
+        | Choice       _ -> true
+
+let getSizeValue (ReferenceToType nodes)   (pVal : TypeValue) =
+    0I
+let rec handleSingleUpdateDependency (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (m:Asn1AcnAst.Asn1Module) (d:Asn1AcnAst.AcnDependency)   =
+    match d.dependencyKind with
+    | Asn1AcnAst.AcnDepSizeDeterminant         -> 
+        let updateFunc (vRoot:TypeValue)  = 
+            let nSize = getSizeValue d.asn1Type vRoot
+            nSize
+        Some updateFunc
+
+and getUpdateFunctionUsedInEncoding (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (m:Asn1AcnAst.Asn1Module) (acnChildOrAcnParameterId)  : ((TypeValue -> BigInteger)option)=
+
+    match deps.acnDependencies |> List.filter(fun d -> d.determinant.id = acnChildOrAcnParameterId) with
+    | []  -> None
+    | d1::[]    -> 
+        let ret= handleSingleUpdateDependency r deps  m d1 
+        ret
+
+
+let isValidAsn1SeqValue (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (t:Asn1AcnAst.Asn1Type) (o :Asn1AcnAst.Sequence)  (children:SeqChildInfo list) =
+    let acnChildren = children |> List.choose (fun c -> match c with AcnChild c -> Some c | Asn1Child _ -> None)
+    let asn1Children = children |> List.choose (fun c -> match c with AcnChild _ -> None | Asn1Child c -> Some c)
+    let retFunc (chVals: (string*TypeValue) list) =
+        let isValidAcnChild (acnChild :AcnChild ) =
+            true
+            
+        let foo = acnChildren |> List.forall isValidAcnChild
+
+        let childrenResult = 
+            chVals |> List.fold(fun curRes (chnm, typeValue) ->
+                let chChild = asn1Children |> Seq.find(fun z -> z.Name.Value = chnm)
+                curRes &&  chChild.Type.isValidAsn1AcnVal typeValue
+            ) true
+        childrenResult
+    retFunc 
+
+
 (*
 create c and Ada procedures that initialize an ASN.1 type.
 Currently this code is not used since it is no longer required (it was originally written to handle the 'data might not be initialized' errors of spark

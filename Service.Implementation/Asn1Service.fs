@@ -84,7 +84,7 @@ type Asn1Service() =
         let xmlFileName = dir.FullPath "AST.xml"
 
         let args = this.BuildCommandLineSettings files xmlFileName
-        let frontEntAst, acnDeps = FrontEntMain.constructAst args
+        let frontEntAst, acnDeps = FrontEntMain.constructAst args (fun a b -> ())
         ExportToXml.exportFile frontEntAst acnDeps args.AstXmlAbsFileName
 
         {
