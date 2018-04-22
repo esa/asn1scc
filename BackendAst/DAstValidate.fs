@@ -409,7 +409,8 @@ let createOctetStringFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:
         List.map DastFold.getValueFromSizeableConstraint 
         |> List.collect id |> 
         List.choose (fun (v:Asn1AcnAst.OctetStringValue, (id,loc)) ->
-                    let recValue = {Asn1Value.kind = OctetStringValue (v |> List.map(fun z -> z.Value)); id=id;loc=loc}
+                    let valKind = OctetStringValue (v |> List.map(fun z -> z.Value))
+                    let recValue = {Asn1Value.kind = valKind; id=id;loc=loc}
                     match id with
                     | ReferenceToValue (typePath,(VA2 vasName)::[]) -> None
                     | ReferenceToValue(ts,vs)                       ->
@@ -417,7 +418,7 @@ let createOctetStringFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:
                             //match t.tasInfo with
                             //| Some tasInfo    -> ToC2(r.args.TypePrefix + tasInfo.tasName)
                             //| None            -> typeDefinition.typeDefinitionBodyWithinSeq
-                        Some ({AnonymousVariable.valueName = (recValue.getBackendName l); valueExpresion = (printValue None recValue.kind); typeDefinitionName = typeDefinitionName}))
+                        Some ({AnonymousVariable.valueName = (recValue.getBackendName l); valueExpresion = (printValue None recValue.kind); typeDefinitionName = typeDefinitionName; valKind=valKind}))
     let compareSingValueFunc (p:CallerScope) (v:Asn1AcnAst.OctetStringValue, (id,loc)) =
         let recValue = {Asn1Value.kind = OctetStringValue (v |> List.map(fun z -> z.Value)); id=id;loc=loc}
         let vstr = {CallerScope.modName = id.ModName; arg = VALUE (recValue.getBackendName l)}
@@ -441,7 +442,8 @@ let createBitStringFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:As
         List.map DastFold.getValueFromSizeableConstraint 
         |> List.collect id |> 
         List.choose (fun (v:Asn1AcnAst.BitStringValue, (id,loc)) ->
-                    let recValue = {Asn1Value.kind = BitStringValue (v.Value ); id=id;loc=loc}
+                    let valKind = BitStringValue (v.Value)
+                    let recValue = {Asn1Value.kind = valKind; id=id;loc=loc}
                     match id with
                     | ReferenceToValue (typePath,(VA2 vasName)::[]) -> None
                     | ReferenceToValue(ts,vs)                       ->
@@ -449,7 +451,7 @@ let createBitStringFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:As
                             //match t.tasInfo with
                             //| Some tasInfo    -> ToC2(r.args.TypePrefix + tasInfo.tasName)
                             //| None            -> typeDefinition.typeDefinitionBodyWithinSeq
-                        Some ({AnonymousVariable.valueName = (recValue.getBackendName l); valueExpresion = (printValue None recValue.kind); typeDefinitionName = typeDefinitionName}))
+                        Some ({AnonymousVariable.valueName = (recValue.getBackendName l); valueExpresion = (printValue None recValue.kind); typeDefinitionName = typeDefinitionName; valKind = valKind}))
     let compareSingValueFunc (p:CallerScope) (v:Asn1AcnAst.BitStringValue, (id,loc)) =
         let recValue = {Asn1Value.kind = BitStringValue (v.Value ); id=id;loc=loc}
         //let vstr = VALUE (recValue.getBackendName l)

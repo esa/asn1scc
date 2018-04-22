@@ -447,10 +447,10 @@ let CreateTestSuiteFile (r:AstRoot) (l:ProgrammingLanguage) outDir vasName =
 //                                idx <- idx + 1
 //                                let initFuncName = t.Type.initFunction.initFuncName
 //                                yield PrintTestCase vas m (ToC2(r.args.TypePrefix + t.Name.Value) ) idx initFuncName t.Type.uperEncDecTestFunc t.Type.acnEncDecTestFunc
-                            for func in t.Type.initFunction.initFuncBodyTestCases  do
+                            for atc in t.Type.initFunction.automaticTestCases  do
                                 //let vas = {ValueAssignment.Name = StringLoc.ByValue ""; c_name = ""; ada_name = ""; Type = t.Type; Value = v}
                                 let p = {CallerScope.modName = ToC "MainProgram"; arg = VALUE "tc_data"}
-                                let initStatement = func p
+                                let initStatement = atc.initTestCaseFunc p
                                 idx <- idx + 2
                                 let initFuncName = t.Type.initFunction.initFuncName
                                 let ret = PrintTestCase2 initStatement.funcBody m t.Type (ToC2(r.args.TypePrefix + t.Name.Value) ) idx initFuncName t.Type.uperEncDecTestFunc t.Type.xerEncDecTestFunc t.Type.acnEncDecTestFunc

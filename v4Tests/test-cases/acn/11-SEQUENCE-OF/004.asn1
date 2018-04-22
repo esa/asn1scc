@@ -5,7 +5,7 @@ TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
         a2  MySqOf
     }
 	
-	maxSize INTEGER ::= 70000
+	maxSize INTEGER ::= 7000
 
 	MySqOf ::= SEQUENCE (SIZE(0..maxSize)) OF SEQUENCE {
 		int1	INTEGER(0..15),

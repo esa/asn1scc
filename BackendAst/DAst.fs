@@ -195,13 +195,26 @@ type InitFunctionResult = {
     localVariables      : LocalVariable list
 }
 
+type TestCaseValue =
+    | PrimitiveTypeValue
+    | SizeableTypeValue of BigInteger       //size 
+    | BitTypeValue of BigInteger            //size of bit array, actual value is not important
+    | SequenceOfTypeValue of (TestCaseValue list)     //size of SequenceOf value, actual child type value not important
+    | SequenceTypeValue of ((string*TestCaseValue) list)
+
+type AutomaticTestCase = {
+    initTestCaseFunc : CallerScope  -> InitFunctionResult //returns a list of set the statement(s) that initialize this type accordingly
+    testCase         : Map<ReferenceToType, TestCaseValue>
+}
+
 type InitFunction = {
     initFuncName            : string option               // the name of the function
     initFunc                : string option               // the body of the function
     initFuncDef             : string option               // function definition in header file
     initTas                 : (CallerScope  -> InitFunctionResult)              // returns the statement(s) that defaults initialize this type (used in the init function)
     initByAsn1Value         : CallerScope  -> Asn1ValueKind -> string           // returns the statement(s) that initialize according to the asn1value
-    initFuncBodyTestCases   : (CallerScope  -> InitFunctionResult) list         // returns a list of set the statement(s). Each set that initialize this type according to a specific test case
+    //initFuncBodyTestCases   : (CallerScope  -> InitFunctionResult) list         // returns a list of set the statement(s). Each set that initialize this type according to a specific test case
+    automaticTestCases      : AutomaticTestCase list
 }
 
 
@@ -230,6 +243,7 @@ type AnonymousVariable = {
     valueName           : string
     valueExpresion      : string
     typeDefinitionName  : string
+    valKind             : Asn1ValueKind        // the value
 }
 
 type IsValidFunction = {

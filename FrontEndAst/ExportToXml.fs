@@ -281,11 +281,13 @@ let private exportType (t:Asn1Type) =
                         (exportAcnEndianness ti.acnProperties.endiannessProp),
                         (exportAcnIntSizeProperty ti.acnProperties.sizeProp),
                         (exportAcnIntEncoding ti.acnProperties.encodingProp),
+                        (XAttribute(xname "encode-values", ti.encodeValues)),
                         XElement(xname "Items", ti.items |> List.map(fun c ->  
                                                                 XElement(xname "Item", 
                                                                     XAttribute(xname "Name", c.Name.Value), 
                                                                     XAttribute(xname "Value", c.definitionValue),   
                                                                     XAttribute(xname "Line", c.Name.Location.srcLine),
+                                                                    XAttribute(xname "acnEncodeValue", c.acnEncodeValue),
                                                                     XAttribute(xname "CharPositionInLine", c.Name.Location.charPos)
                                                                 ))),
                         XElement(xname constraintsTag, ti.cons |> List.map(printGenericConstraint printEnumVal )),
