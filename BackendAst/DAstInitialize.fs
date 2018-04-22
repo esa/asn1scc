@@ -582,8 +582,8 @@ let createSequenceInitFunc (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn
                     {AutomaticTestCase.initTestCaseFunc = initTestCaseFunc; testCase = Map.empty }
                 match ch.Optionality with
                 | None                              ->  [presentFunc]
-                //| Some (Asn1AcnAst.Optional opt) when optChildCount > 1 && opt.acnPresentWhen.IsSome ->
-                //       [nonPresenceFunc] //if child is optional with present-when conditions then no test case is generated for this component because we might generated wrong test cases 
+                | Some (Asn1AcnAst.Optional opt) when optChildCount > 1 && opt.acnPresentWhen.IsSome ->
+                       [nonPresenceFunc] //if child is optional with present-when conditions then no test case is generated for this component because we might generated wrong test cases 
                 | Some (Asn1AcnAst.Optional opt)    -> [presentFunc; nonPresenceFunc] 
                 | Some (Asn1AcnAst.AlwaysAbsent)    -> [nonPresenceFunc] 
                 | Some (Asn1AcnAst.AlwaysPresent)   -> [presentFunc] )
@@ -599,8 +599,6 @@ let createSequenceInitFunc (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn
                     match ths with
                     | []    -> rest
                     | _     ->
-                        let combinedTestCase =
-                          0
                         seq {
                             for i1 in ths do   
                                 match rest with
@@ -615,7 +613,6 @@ let createSequenceInitFunc (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn
                                                 {InitFunctionResult.funcBody = funcBody; localVariables = partA.localVariables@partB.localVariables }
                                             let combinedTestCases = mergeMaps i1.testCase lst.testCase
                                             {AutomaticTestCase.initTestCaseFunc = combineFnc; testCase = combinedTestCases }
-                                    
                                         yield ret
                             } |> Seq.toList
                 childCases
