@@ -196,11 +196,13 @@ type InitFunctionResult = {
 }
 
 type TestCaseValue =
-    | PrimitiveTypeValue
-    | SizeableTypeValue of BigInteger       //size 
-    | BitTypeValue of BigInteger            //size of bit array, actual value is not important
-    | SequenceOfTypeValue of (TestCaseValue list)     //size of SequenceOf value, actual child type value not important
-    | SequenceTypeValue of ((string*TestCaseValue) list)
+    | TcvComponentPresent
+    | TcvComponentAbsent
+    | TcvAnyValue
+    | TcvEnumeratedValue of String
+    | TcvSizeableTypeValue of BigInteger       //length
+    | TcvChoiceAlternativePresentWhenInt of BigInteger            
+    | TcvChoiceAlternativePresentWhenStr of String
 
 type AutomaticTestCase = {
     initTestCaseFunc : CallerScope  -> InitFunctionResult //returns a list of set the statement(s) that initialize this type accordingly
@@ -278,6 +280,7 @@ type AcnFuncBodyResult = {
     funcBody            : string
     errCodes            : ErroCode list
     localVariables      : LocalVariable list
+
 }
 
 type XERFuncBodyResult = {
@@ -309,6 +312,7 @@ type AcnFunction = {
     // takes as input (a) any acn arguments and (b) the field where the encoding/decoding takes place
     // returns a list of acn encoding statements
     funcBody            : State->((Asn1AcnAst.RelativePath*Asn1AcnAst.AcnParameter) list) -> CallerScope -> ((AcnFuncBodyResult option)*State)            
+    isTestVaseValid     : AutomaticTestCase -> bool
 }
 
 type EncodeDecodeTestFunc = {
@@ -722,7 +726,8 @@ and ReferenceType = {
 }
 
 and AcnChildUpdateResult = {
-    func        : CallerScope -> CallerScope -> string
+    updateAcnChildFnc        : CallerScope -> CallerScope -> string
+    testCaseFnc : AutomaticTestCase -> TestCaseValue option 
     errCodes    : ErroCode list
 }
 

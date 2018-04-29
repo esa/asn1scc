@@ -190,7 +190,7 @@ let createIntegerInitFunc (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1
         List.map (fun vl -> 
             let initTestCaseFunc =
                 (fun (p:CallerScope) -> {InitFunctionResult.funcBody = initInteger (p.arg.getValue l) vl;  localVariables=[]} )
-            {AutomaticTestCase.initTestCaseFunc = initTestCaseFunc; testCase = Map.ofList [(t.id, PrimitiveTypeValue)] }        )
+            {AutomaticTestCase.initTestCaseFunc = initTestCaseFunc; testCase = Map.ofList [(t.id, TcvAnyValue)] }        )
 
     createInitFunctionCommon r l t  typeDefinition funcBody iv tasInitFunc testCaseFuncs
 
@@ -208,7 +208,7 @@ let createRealInitFunc (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1Acn
         realVals |> 
         List.map (fun vl -> 
             let initTestCaseFunc = (fun (p:CallerScope) -> {InitFunctionResult.funcBody = initReal (p.arg.getValue l) vl; localVariables=[]}) 
-            {AutomaticTestCase.initTestCaseFunc = initTestCaseFunc; testCase = Map.ofList [(t.id, PrimitiveTypeValue)] } )
+            {AutomaticTestCase.initTestCaseFunc = initTestCaseFunc; testCase = Map.ofList [(t.id, TcvAnyValue)] } )
 
     let tasInitFunc (p:CallerScope)  = 
         match isValidValueRanged o.AllCons 0.0  with
@@ -244,7 +244,7 @@ let createIA5StringInitFunc (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:As
             let initTestCaseFunc (p:CallerScope) = 
                 let funcBody = initTestCaseIA5String p.arg.p (p.arg.getAcces l) (nSize) ((o.maxSize+1I)) i (typeDefinition.longTypedefName l) bAlpha arrAsciiCodes (BigInteger arrAsciiCodes.Length) false
                 {InitFunctionResult.funcBody = funcBody; localVariables=[SequenceOfIndex (ii, None)]}
-            {AutomaticTestCase.initTestCaseFunc = initTestCaseFunc; testCase = Map.ofList [(t.id, SizeableTypeValue nSize)] }
+            {AutomaticTestCase.initTestCaseFunc = initTestCaseFunc; testCase = Map.ofList [(t.id, TcvSizeableTypeValue nSize)] }
         seq {
             match o.minSize = o.maxSize with
             | true  -> yield seqOfCase o.minSize 
@@ -292,7 +292,7 @@ let createOctetStringInitFunc (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:
                 let initTestCaseFunc (p:CallerScope) = 
                     let funcBody = initTestCaseOctetString p.arg.p (p.arg.getAcces l) nSize i (o.minSize = o.maxSize) false
                     {InitFunctionResult.funcBody = funcBody; localVariables=[SequenceOfIndex (ii, None)]}
-                {AutomaticTestCase.initTestCaseFunc = initTestCaseFunc; testCase = Map.ofList [(t.id, SizeableTypeValue nSize)] }
+                {AutomaticTestCase.initTestCaseFunc = initTestCaseFunc; testCase = Map.ofList [(t.id, TcvSizeableTypeValue nSize)] }
             let testCaseFuncs = 
                 seq {
                     match o.minSize = o.maxSize with
@@ -314,14 +314,14 @@ let createOctetStringInitFunc (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:
                     let initTestCaseFunc (p:CallerScope) =
                         let ret = sprintf "%s%s%s;" (p.arg.getValue l) l.AssignOperator iv.valueName
                         {InitFunctionResult.funcBody = ret; localVariables=[]}
-                    {AutomaticTestCase.initTestCaseFunc = initTestCaseFunc; testCase = Map.ofList [(t.id, SizeableTypeValue bytes.Length.AsBigInt)] })
+                    {AutomaticTestCase.initTestCaseFunc = initTestCaseFunc; testCase = Map.ofList [(t.id, TcvSizeableTypeValue bytes.Length.AsBigInt)] })
             ret, ret.Head.initTestCaseFunc
     createInitFunctionCommon r l t typeDefinition funcBody iv tasInitFunc testCaseFuncs
 
 let createNullTypeInitFunc (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1AcnAst.Asn1Type) (o :Asn1AcnAst.NullType    ) (typeDefinition:TypeDefintionOrReference) iv = 
     let initNull = match l with C -> init_c.initNull | Ada -> init_a.initNull
     let funcBody (p:CallerScope) v = initNull (p.arg.getValue l) 
-    let testCaseFuncs = [{AutomaticTestCase.initTestCaseFunc = (fun p -> {InitFunctionResult.funcBody = initNull (p.arg.getValue l); localVariables=[]}); testCase = Map.ofList [(t.id, PrimitiveTypeValue)]} ]
+    let testCaseFuncs = [{AutomaticTestCase.initTestCaseFunc = (fun p -> {InitFunctionResult.funcBody = initNull (p.arg.getValue l); localVariables=[]}); testCase = Map.ofList [(t.id, TcvAnyValue)]} ]
     createInitFunctionCommon r l t typeDefinition funcBody iv testCaseFuncs.Head.initTestCaseFunc testCaseFuncs
 
 let createBitStringInitFunc (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1AcnAst.Asn1Type) (o :Asn1AcnAst.BitString   ) (typeDefinition:TypeDefintionOrReference) iv (isValidFunction:IsValidFunction option)= 
@@ -359,7 +359,7 @@ let createBitStringInitFunc (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:As
                     let nSizeCeiled =  if nSize % 8I = 0I then nSize else (nSize + (8I - nSize % 8I)) 
                     let funcBody = initTestCaseBitString p.arg.p (p.arg.getAcces l) nSize (nSizeCeiled) i (o.minSize = o.maxSize) false
                     {InitFunctionResult.funcBody = funcBody; localVariables=[SequenceOfIndex (ii, None)]}
-                {AutomaticTestCase.initTestCaseFunc = initTestCaseFunc; testCase = Map.ofList [(t.id, SizeableTypeValue nSize)] }
+                {AutomaticTestCase.initTestCaseFunc = initTestCaseFunc; testCase = Map.ofList [(t.id, TcvSizeableTypeValue nSize)] }
 
             let testCaseFuncs = 
                 seq {
@@ -383,7 +383,7 @@ let createBitStringInitFunc (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:As
                     let retFunc (p:CallerScope) =
                         let ret = sprintf "%s%s%s;" (p.arg.getValue l) l.AssignOperator iv.valueName
                         {InitFunctionResult.funcBody = ret; localVariables=[]}
-                    {AutomaticTestCase.initTestCaseFunc = retFunc; testCase = Map.ofList [(t.id, SizeableTypeValue bitVal.Length.AsBigInt)] })
+                    {AutomaticTestCase.initTestCaseFunc = retFunc; testCase = Map.ofList [(t.id, TcvSizeableTypeValue bitVal.Length.AsBigInt)] })
             ret, ret.Head.initTestCaseFunc
     createInitFunctionCommon r l t typeDefinition funcBody iv tasInitFunc testCaseFuncs
 
@@ -397,7 +397,7 @@ let createBooleanInitFunc (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1
         initBoolean (p.arg.getValue l) vl
     let testCaseFuncs = 
         EncodeDecodeTestCase.BooleanAutomaticTestCaseValues r t o |> 
-        List.map (fun vl -> {AutomaticTestCase.initTestCaseFunc = (fun (p:CallerScope) -> {InitFunctionResult.funcBody = initBoolean (p.arg.getValue l) vl; localVariables = []}); testCase = Map.ofList [(t.id, PrimitiveTypeValue)] })
+        List.map (fun vl -> {AutomaticTestCase.initTestCaseFunc = (fun (p:CallerScope) -> {InitFunctionResult.funcBody = initBoolean (p.arg.getValue l) vl; localVariables = []}); testCase = Map.ofList [(t.id, TcvAnyValue)] })
 
     let tasInitFunc (p:CallerScope)  = 
         match isValidValueGeneric o.AllCons (=) false  with
@@ -420,7 +420,11 @@ let createEnumeratedInitFunc (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:A
         initEnumerated (p.arg.getValue l) (vl.getBackendName (Some typeDefinition) l)
     let testCaseFuncs = 
         EncodeDecodeTestCase.EnumeratedAutomaticTestCaseValues2 r t o |> 
-        List.map (fun vl -> {AutomaticTestCase.initTestCaseFunc = (fun (p:CallerScope) -> {InitFunctionResult.funcBody = initEnumerated (p.arg.getValue l) (vl.getBackendName (Some typeDefinition) l); localVariables=[]}); testCase = Map.ofList [(t.id, PrimitiveTypeValue)] } )
+        List.map (fun vl -> 
+            {
+                AutomaticTestCase.initTestCaseFunc = (fun (p:CallerScope) -> {InitFunctionResult.funcBody = initEnumerated (p.arg.getValue l) (vl.getBackendName (Some typeDefinition) l); localVariables=[]}); 
+                testCase = Map.ofList [(t.id, (TcvEnumeratedValue vl.Name.Value))] 
+            })
     createInitFunctionCommon r l t typeDefinition funcBody iv testCaseFuncs.Head.initTestCaseFunc testCaseFuncs
 
 let createSequenceOfInitFunc (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1AcnAst.Asn1Type) (o :Asn1AcnAst.SequenceOf  ) (typeDefinition:TypeDefintionOrReference) (childType:Asn1Type) iv = 
@@ -461,13 +465,13 @@ let createSequenceOfInitFunc (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:A
                 | []    -> 
                     let initTestCaseFunc (p:CallerScope) = 
                         {InitFunctionResult.funcBody = ""; localVariables = []}
-                    {AutomaticTestCase.initTestCaseFunc = initTestCaseFunc; testCase = Map.ofList [(t.id, SizeableTypeValue nSize)] }
+                    {AutomaticTestCase.initTestCaseFunc = initTestCaseFunc; testCase = Map.ofList [(t.id, TcvSizeableTypeValue nSize)] }
                 | atc::[] -> 
                     let initTestCaseFunc (p:CallerScope) = 
                         let childCase = atc.initTestCaseFunc ({p with arg = p.arg.getArrayItem l i childType.isIA5String})
                         let funcBody = initTestCaseSizeSequenceOf p.arg.p (p.arg.getAcces l) None nSize (o.minSize = o.maxSize) [childCase.funcBody] false i
                         {InitFunctionResult.funcBody = funcBody; localVariables= (SequenceOfIndex (ii, None))::childCase.localVariables }
-                    let combinedTestCase = atc.testCase.Add(t.id, SizeableTypeValue nSize)
+                    let combinedTestCase = atc.testCase.Add(t.id, TcvSizeableTypeValue nSize)
                     {AutomaticTestCase.initTestCaseFunc = initTestCaseFunc; testCase = combinedTestCase }
                 | _             ->
                     let initTestCaseFunc (p:CallerScope) = 
@@ -481,7 +485,7 @@ let createSequenceOfInitFunc (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:A
                         let funcBody = initTestCaseSizeSequenceOf p.arg.p (p.arg.getAcces l) None  nSize (o.minSize = o.maxSize) arrsInnerItems true i 
                         {InitFunctionResult.funcBody = funcBody; localVariables= (SequenceOfIndex (ii, None))::(childLocalVars |> List.collect id)}
                     let combinedTestCase =
-                        let thisCase = Map.ofList [(t.id, SizeableTypeValue nSize)]
+                        let thisCase = Map.ofList [(t.id, TcvSizeableTypeValue nSize)]
                         childTestCases |> List.fold(fun (newMap:Map<ReferenceToType, TestCaseValue>) atc -> mergeMaps newMap atc.testCase) thisCase
                     {AutomaticTestCase.initTestCaseFunc = initTestCaseFunc; testCase = combinedTestCase }
 
@@ -574,7 +578,11 @@ let createSequenceInitFunc (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn
                         let chContent =  atc.initTestCaseFunc {p with arg = p.arg.getSeqChild l ch.c_name ch.Type.isIA5String} 
                         let funcBody = initTestCase_sequence_child p.arg.p (p.arg.getAcces l) ch.c_name chContent.funcBody ch.Optionality.IsSome
                         {InitFunctionResult.funcBody = funcBody; localVariables = chContent.localVariables }
-                    {AutomaticTestCase.initTestCaseFunc = initTestCaseFunc; testCase = atc.testCase }
+                    let combinedTestCase =
+                        match atc.testCase.ContainsKey ch.Type.id with
+                        | true      -> atc.testCase
+                        | false     -> atc.testCase.Add(ch.Type.id, TcvAnyValue)
+                    {AutomaticTestCase.initTestCaseFunc = initTestCaseFunc; testCase = combinedTestCase }
                 let nonPresenceFunc =  
                     let initTestCaseFunc (p:CallerScope) = 
                         let funcBody = initTestCase_sequence_child_opt p.arg.p (p.arg.getAcces l) ch.c_name
@@ -582,9 +590,12 @@ let createSequenceInitFunc (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn
                     {AutomaticTestCase.initTestCaseFunc = initTestCaseFunc; testCase = Map.empty }
                 match ch.Optionality with
                 | None                              ->  [presentFunc]
-                | Some (Asn1AcnAst.Optional opt) when optChildCount > 1 && opt.acnPresentWhen.IsSome ->
-                       [nonPresenceFunc] //if child is optional with present-when conditions then no test case is generated for this component because we might generated wrong test cases 
-                | Some (Asn1AcnAst.Optional opt)    -> [presentFunc; nonPresenceFunc] 
+//                | Some (Asn1AcnAst.Optional opt) when optChildCount > 1 && opt.acnPresentWhen.IsSome ->
+//                       [nonPresenceFunc] //if child is optional with present-when conditions then no test case is generated for this component because we might generated wrong test cases 
+                | Some (Asn1AcnAst.Optional opt)    -> 
+                    
+                    [presentFunc; nonPresenceFunc] 
+                    
                 | Some (Asn1AcnAst.AlwaysAbsent)    -> [nonPresenceFunc] 
                 | Some (Asn1AcnAst.AlwaysPresent)   -> [presentFunc] )
 
@@ -732,9 +743,14 @@ let createChoiceInitFunc (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1A
                         | Ada   -> fnc {p with arg = VALUE (sChildName + "_tmp")} 
                     let funcBody = initTestCase_choice_child p.arg.p (p.arg.getAcces l) (sChildID p) childContent.funcBody sChildName  sChildTypeDef typeDefinitionName
                     {InitFunctionResult.funcBody = funcBody; localVariables = childContent.localVariables}
-                {AutomaticTestCase.initTestCaseFunc = presentFunc; testCase = atc.testCase } )
+                let combinedTestCase =
+                    match atc.testCase.ContainsKey ch.chType.id with
+                    | true      -> atc.testCase
+                    | false     -> atc.testCase.Add(ch.chType.id, TcvAnyValue)
+                {AutomaticTestCase.initTestCaseFunc = presentFunc; testCase = combinedTestCase } )
 
         children |>
+        //if some alternatives have restricted to always ABSENT (via WITH COMPONENTS constraint) then do not produce a test case for them.
         List.filter (fun c -> c.Optionality.IsNone || c.Optionality = (Some Asn1AcnAst.Asn1ChoiceOptionality.ChoiceAlwaysPresent)) |>
         List.collect handleChild
 

@@ -122,7 +122,7 @@ let getDeterminantTypeCheckEqual (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) 
         | Asn1AcnAst.AcnPrmRefType (md,ts)  -> multiAcnUpdate_checkEqual_pri
         *)
 
-let private createAcnFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (typeDefinition:TypeDefintionOrReference) (isValidFunc: IsValidFunction option)  (funcBody:State-> ErroCode->((Asn1AcnAst.RelativePath*Asn1AcnAst.AcnParameter) list) -> CallerScope -> ((AcnFuncBodyResult option)*State)) soSparkAnnotations (us:State)  =
+let private createAcnFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (typeDefinition:TypeDefintionOrReference) (isValidFunc: IsValidFunction option)  (funcBody:State-> ErroCode->((Asn1AcnAst.RelativePath*Asn1AcnAst.AcnParameter) list) -> CallerScope -> ((AcnFuncBodyResult option)*State)) isTestVaseValid soSparkAnnotations (us:State)  =
     let funcNameAndtasInfo   = getFuncName r l codec t.id
     let errCodeName         = ToC ("ERR_ACN" + (codec.suffix.ToUpper()) + "_" + ((t.id.AcnAbsPath |> Seq.skip 1 |> Seq.StrJoin("-")).Replace("#","elm")))
     let errCode, ns = getNextValidErrorCode us errCodeName
@@ -184,6 +184,7 @@ let private createAcnFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (co
             func                       = func 
             funcDef                    = funcDef
             funcBody                   = (fun us acnArgs p -> funcBody us errCode acnArgs p )
+            isTestVaseValid            = isTestVaseValid
         }
     ret, ns2
 
@@ -287,7 +288,7 @@ let createAcnIntegerFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (cod
 let createIntegerFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Integer) (typeDefinition:TypeDefintionOrReference)  (isValidFunc: IsValidFunction option) (uperFunc: UPerFunction) (us:State)  =
     let funcBody = createAcnIntegerFunctionInternal r l codec o.uperRange o.acnEncodingClass uperFunc.funcBody_e
     let soSparkAnnotations = None
-    createAcnFunction r l codec t typeDefinition isValidFunc  (fun us e acnArgs p -> funcBody e acnArgs p, us) soSparkAnnotations  us
+    createAcnFunction r l codec t typeDefinition isValidFunc  (fun us e acnArgs p -> funcBody e acnArgs p, us) (fun atc -> true) soSparkAnnotations  us
 
 
 let createEnumComn (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec:CommonTypes.Codec) (typeId : ReferenceToType) (o:Asn1AcnAst.Enumerated) (defOrRef:TypeDefintionOrReference ) (typeDefinitionName:string)  =
@@ -326,7 +327,7 @@ let createEnumeratedFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (cod
     let typeDefinitionName = defOrRef.longTypedefName l //getTypeDefinitionName t.id.tasInfo typeDefinition
     let funcBody = createEnumComn r l codec t.id o defOrRef typeDefinitionName
     let soSparkAnnotations = None
-    createAcnFunction r l codec t typeDefinition  isValidFunc  (fun us e acnArgs p -> funcBody e acnArgs p, us) soSparkAnnotations  us
+    createAcnFunction r l codec t typeDefinition  isValidFunc  (fun us e acnArgs p -> funcBody e acnArgs p, us) (fun atc -> true) soSparkAnnotations  us
 
 
 let createAcnEnumeratedFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec:CommonTypes.Codec) (typeId : ReferenceToType) (t:Asn1AcnAst.AcnReferenceToEnumerated)  (defOrRef:TypeDefintionOrReference) (us:State)  =
@@ -357,7 +358,7 @@ let createRealrFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec:Co
         | None -> None
         | Some (funcBodyContent,errCodes) -> Some ({AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = errCodes; localVariables = []})
     let soSparkAnnotations = None
-    createAcnFunction r l codec t typeDefinition isValidFunc  (fun us e acnArgs p -> funcBody e acnArgs p, us) soSparkAnnotations us
+    createAcnFunction r l codec t typeDefinition isValidFunc  (fun us e acnArgs p -> funcBody e acnArgs p, us) (fun atc -> true) soSparkAnnotations us
 
 
 let nestChildItems (l:ProgrammingLanguage) (codec:CommonTypes.Codec) children = 
@@ -416,7 +417,7 @@ let createBooleanFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec:
                 
         {AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = []}    
     let soSparkAnnotations = None
-    createAcnFunction r l codec t typeDefinition  isValidFunc  (fun us e acnArgs p -> Some (funcBody e acnArgs p), us) soSparkAnnotations us
+    createAcnFunction r l codec t typeDefinition  isValidFunc  (fun us e acnArgs p -> Some (funcBody e acnArgs p), us) (fun atc -> true) soSparkAnnotations us
 
 
 
@@ -449,7 +450,7 @@ let createNullTypeFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec
             let ret = nullType pp arrBytes (BigInteger encPattern.Value.Length) arrsBits errCode.errCodeName codec
             Some ({AcnFuncBodyResult.funcBody = ret; errCodes = [errCode]; localVariables = []})
     let soSparkAnnotations = None
-    createAcnFunction r l codec t typeDefinition  isValidFunc  (fun us e acnArgs p -> funcBody e acnArgs p, us) soSparkAnnotations us
+    createAcnFunction r l codec t typeDefinition  isValidFunc  (fun us e acnArgs p -> funcBody e acnArgs p, us) (fun atc -> true) soSparkAnnotations us
 
 
 let getExternaField0 (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) asn1TypeIdWithDependency func1 =
@@ -521,7 +522,7 @@ let createStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
         | None -> None
         | Some (funcBodyContent,errCodes, localVars) -> Some ({AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = errCodes; localVariables = localVars})
     let soSparkAnnotations = None
-    createAcnFunction r l codec t typeDefinition  isValidFunc  (fun us e acnArgs p -> funcBody e acnArgs p, us) soSparkAnnotations us
+    createAcnFunction r l codec t typeDefinition  isValidFunc  (fun us e acnArgs p -> funcBody e acnArgs p, us) (fun atc -> true) soSparkAnnotations us
 
 
 let createAcnStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (l:ProgrammingLanguage) (codec:CommonTypes.Codec) (typeId : ReferenceToType) (t:Asn1AcnAst.AcnReferenceToIA5String)  (us:State)  =
@@ -635,7 +636,7 @@ let createOctetStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserte
         | None -> None
         | Some (funcBodyContent,errCodes, localVariables) -> Some ({AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = errCodes; localVariables = lv::localVariables})
     let soSparkAnnotations = None
-    createAcnFunction r l codec t typeDefinition  isValidFunc  (fun us e acnArgs p -> funcBody e acnArgs p, us) soSparkAnnotations us
+    createAcnFunction r l codec t typeDefinition  isValidFunc  (fun us e acnArgs p -> funcBody e acnArgs p, us) (fun atc -> true) soSparkAnnotations us
 
 let createBitStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (l:ProgrammingLanguage) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.BitString) (typeDefinition:TypeDefintionOrReference)  (isValidFunc: IsValidFunction option) (uperFunc: UPerFunction) (us:State)  =
     let nAlignSize = 0I;
@@ -661,7 +662,7 @@ let createBitStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
         | None -> None
         | Some (funcBodyContent,errCodes, localVariables) -> Some ({AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = errCodes; localVariables = localVariables})
     let soSparkAnnotations = None
-    createAcnFunction r l codec t typeDefinition  isValidFunc  (fun us e acnArgs p -> funcBody e acnArgs p, us) soSparkAnnotations us
+    createAcnFunction r l codec t typeDefinition  isValidFunc  (fun us e acnArgs p -> funcBody e acnArgs p, us) (fun atc -> true) soSparkAnnotations us
 
 
 
@@ -728,7 +729,7 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserted
                         Some ({AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = errCode::childErrCodes; localVariables = lv::localVariables})
             ret,ns
     let soSparkAnnotations = None
-    createAcnFunction r l codec t typeDefinition  isValidFunc  funcBody soSparkAnnotations us
+    createAcnFunction r l codec t typeDefinition  isValidFunc  funcBody (fun atc -> true) soSparkAnnotations us
 
 
 let rec handleSingleUpdateDependency (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (l:ProgrammingLanguage) (m:Asn1AcnAst.Asn1Module) (d:AcnDependency)  (us:State) =
@@ -751,8 +752,9 @@ let rec handleSingleUpdateDependency (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.Acn
         | None  -> None, ns1
         | Some prmUpdateStatement   -> 
             let updateFunc (vTarget : CallerScope) (pSrcRoot : CallerScope)  = 
-                prmUpdateStatement.func vTarget pSrcRoot
-            Some ({AcnChildUpdateResult.func = updateFunc; errCodes=prmUpdateStatement.errCodes}), ns1
+                prmUpdateStatement.updateAcnChildFnc vTarget pSrcRoot
+            
+            Some ({AcnChildUpdateResult.updateAcnChildFnc = updateFunc; errCodes=prmUpdateStatement.errCodes; testCaseFnc = prmUpdateStatement.testCaseFnc}), ns1
     | AcnDepSizeDeterminant         -> 
         let updateFunc (vTarget : CallerScope) (pSrcRoot : CallerScope)  = 
             let pSizeable, checkPath = getAccessFromScopeNodeList d.asn1Type false l pSrcRoot
@@ -760,7 +762,9 @@ let rec handleSingleUpdateDependency (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.Acn
             match checkPath with
             | []    -> updateStatement
             | _     -> checkAccessPath checkPath updateStatement
-        Some ({AcnChildUpdateResult.func = updateFunc; errCodes=[]}), us
+        let testCaseFnc (atc:AutomaticTestCase) : TestCaseValue option =
+            atc.testCase.TryFind d.asn1Type
+        Some ({AcnChildUpdateResult.updateAcnChildFnc = updateFunc; errCodes=[]; testCaseFnc=testCaseFnc}), us
     | AcnDepIA5StringSizeDeterminant    ->
         let updateFunc (vTarget : CallerScope) (pSrcRoot : CallerScope)  = 
             let pSizeable, checkPath = getAccessFromScopeNodeList d.asn1Type true l pSrcRoot
@@ -768,7 +772,9 @@ let rec handleSingleUpdateDependency (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.Acn
             match checkPath with
             | []    -> updateStatement
             | _     -> checkAccessPath checkPath updateStatement
-        Some ({AcnChildUpdateResult.func = updateFunc; errCodes=[]}), us
+        let testCaseFnc (atc:AutomaticTestCase) : TestCaseValue option =
+            atc.testCase.TryFind d.asn1Type
+        Some ({AcnChildUpdateResult.updateAcnChildFnc = updateFunc; errCodes=[]; testCaseFnc=testCaseFnc}), us
     | AcnDepPresenceBool              -> 
         let updateFunc (vTarget : CallerScope) (pSrcRoot : CallerScope)  = 
             let v = vTarget.arg.getValue l
@@ -780,7 +786,11 @@ let rec handleSingleUpdateDependency (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.Acn
             match checkPath with
             | []    -> updateStatement
             | _     -> checkAccessPath checkPath updateStatement
-        Some ({AcnChildUpdateResult.func = updateFunc; errCodes=[]}), us
+        let testCaseFnc (atc:AutomaticTestCase) : TestCaseValue option =
+            match atc.testCase.TryFind(d.asn1Type) with
+            | Some _    -> Some TcvComponentPresent
+            | None      -> Some TcvComponentAbsent
+        Some ({AcnChildUpdateResult.updateAcnChildFnc = updateFunc; errCodes=[]; testCaseFnc=testCaseFnc}), us
     | AcnDepPresence   (relPath, chc)               -> 
         let updateFunc (vTarget : CallerScope) (pSrcRoot : CallerScope)  = 
             let v = vTarget.arg.getValue l
@@ -796,7 +806,19 @@ let rec handleSingleUpdateDependency (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.Acn
             match checkPath with
             | []    -> updateStatement
             | _     -> checkAccessPath checkPath updateStatement
-        Some ({AcnChildUpdateResult.func = updateFunc; errCodes=[]}), us
+        let testCaseFnc (atc:AutomaticTestCase) : TestCaseValue option =
+            let updateValues = 
+                chc.children |> 
+                List.filter(fun ch -> atc.testCase.ContainsKey ch.Type.id) |>
+                List.choose(fun ch -> 
+                    let pres = ch.acnPresentWhenConditions |> Seq.find(fun x -> x.relativePath = relPath)
+                    match pres with
+                    | PresenceInt   (_, intVal) -> Some (TcvChoiceAlternativePresentWhenInt intVal.Value)
+                    | PresenceStr   (_, strVal) -> None) 
+            match updateValues with
+            | v1::[]    -> Some v1
+            | _         -> None
+        Some ({AcnChildUpdateResult.updateAcnChildFnc = updateFunc; errCodes=[] ; testCaseFnc=testCaseFnc}), us
     | AcnDepPresenceStr   (relPath, chc, str)               -> 
         let updateFunc (vTarget : CallerScope) (pSrcRoot : CallerScope)  = 
             let v = vTarget.arg.getValue l
@@ -816,7 +838,19 @@ let rec handleSingleUpdateDependency (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.Acn
             match checkPath with
             | []    -> updateStatement
             | _     -> checkAccessPath checkPath updateStatement
-        Some ({AcnChildUpdateResult.func = updateFunc; errCodes=[]}), us
+        let testCaseFnc (atc:AutomaticTestCase) : TestCaseValue option =
+            let updateValues = 
+                chc.children |> 
+                List.filter(fun ch -> atc.testCase.ContainsKey ch.Type.id) |>
+                List.choose(fun ch -> 
+                    let pres = ch.acnPresentWhenConditions |> Seq.find(fun x -> x.relativePath = relPath)
+                    match pres with
+                    | PresenceInt   (_, intVal) -> None
+                    | PresenceStr   (_, strVal) -> Some (TcvChoiceAlternativePresentWhenStr strVal.Value)) 
+            match updateValues with
+            | v1::[]    -> Some v1
+            | _         -> None
+        Some ({AcnChildUpdateResult.updateAcnChildFnc = updateFunc; errCodes=[]; testCaseFnc = testCaseFnc}), us
     | AcnDepChoiceDeteterminant       (enm,chc)      -> 
         let updateFunc (vTarget : CallerScope) (pSrcRoot : CallerScope)  = 
             let v = vTarget.arg.getValue l
@@ -835,7 +869,9 @@ let rec handleSingleUpdateDependency (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.Acn
             match checkPath with
             | []    -> updateStatement
             | _     -> checkAccessPath checkPath updateStatement
-        Some ({AcnChildUpdateResult.func = updateFunc; errCodes=[]}), us
+        let testCaseFnc (atc:AutomaticTestCase) : TestCaseValue option =
+            atc.testCase.TryFind d.asn1Type
+        Some ({AcnChildUpdateResult.updateAcnChildFnc = updateFunc; errCodes=[] ; testCaseFnc=testCaseFnc}), us
 
 and getUpdateFunctionUsedInEncoding (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (l:ProgrammingLanguage) (m:Asn1AcnAst.Asn1Module) (acnChildOrAcnParameterId) (us:State) : (AcnChildUpdateResult option*State)=
     let multiAcnUpdate       = match l with C -> acn_c.MultiAcnUpdate          | Ada -> acn_a.MultiAcnUpdate
@@ -874,7 +910,7 @@ and getUpdateFunctionUsedInEncoding (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnI
                     let lv = {CallerScope.modName = vTarget.modName; arg = VALUE c_name}
                     match fn with
                     | None      -> None
-                    | Some fn   -> Some(fn.func lv pSrcRoot)) |>
+                    | Some fn   -> Some(fn.updateAcnChildFnc lv pSrcRoot)) |>
                 List.choose id
             let v0 = sprintf "%s%02d" (getAcnDeterminantName acnChildOrAcnParameterId) 0
             let arrsGetFirstIntValue =
@@ -891,8 +927,20 @@ and getUpdateFunctionUsedInEncoding (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnI
                     cmp v vi )
             let updateStatement = multiAcnUpdate vTarget.arg.p c_name0 errCode.errCodeName localVars arrsLocalUpdateStatements arrsGetFirstIntValue arrsLocalCheckEquality
             updateStatement
-
-        let ret = Some(({AcnChildUpdateResult.func = multiUpdateFunc; errCodes=[errCode]}))
+        let testCaseFnc (atc:AutomaticTestCase) : TestCaseValue option =
+            let updateValues =
+                localUpdateFuns |> List.map(fun z -> match z with None -> None | Some res -> res.testCaseFnc atc)
+            match updateValues |> Seq.exists(fun z -> z.IsNone) with
+            | true  -> None //at least one update is not present
+            | false -> 
+                match updateValues |> List.choose id with
+                | []        -> None
+                | u1::us    -> 
+                    match us |> Seq.exists(fun z -> z <> u1) with
+                    | true  -> None
+                    | false -> Some u1
+                    
+        let ret = Some(({AcnChildUpdateResult.updateAcnChildFnc = multiUpdateFunc; errCodes=[errCode] ; testCaseFnc = testCaseFnc}))
         ret, ns
 
 type private AcnSequenceStatement =
@@ -1015,7 +1063,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                         let pRoot : CallerScope = t.getParamType l codec  //????
                         let updateStatement, lvs, lerCodes = 
                             match acnChild.funcUpdateStatement with
-                            | Some funcUpdateStatement -> Some (funcUpdateStatement.func childP pRoot), [], funcUpdateStatement.errCodes
+                            | Some funcUpdateStatement -> Some (funcUpdateStatement.updateAcnChildFnc childP pRoot), [], funcUpdateStatement.errCodes
                             | None                     -> None, [], []
 
                         [(AcnChildUpdateStatement, updateStatement, lvs, lerCodes)], us
@@ -1056,7 +1104,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                 let pRoot : CallerScope = t.getParamType l codec  
                 let updateStatement = 
                     match acnChild.funcUpdateStatement with
-                    | Some funcUpdateStatement -> Some (funcUpdateStatement.func childP pRoot)
+                    | Some funcUpdateStatement -> Some (funcUpdateStatement.updateAcnChildFnc childP pRoot)
                     | None                     -> None
                 updateStatement.IsNone)
 
@@ -1074,11 +1122,18 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
             | None  -> None, ns
             | Some ret -> Some ({AcnFuncBodyResult.funcBody = ret; errCodes = errCode::childrenErrCodes; localVariables = localVariables@childrenLocalvars}), ns    
         
+    let isTestVaseValid (atc:AutomaticTestCase) =
+        acnChildren |>
+        List.filter (fun acnChild -> match acnChild.Type with Asn1AcnAst.AcnNullType _ -> false | _ -> true) |>
+        Seq.forall(fun acnChild -> 
+            match acnChild.funcUpdateStatement with
+            | Some funcUpdateStatement -> (funcUpdateStatement.testCaseFnc atc).IsSome
+            | None                     -> false)
     let soSparkAnnotations = 
         match l with
         | C     -> None
         | Ada   -> None
-    createAcnFunction r l codec t typeDefinition  isValidFunc  funcBody soSparkAnnotations  us
+    createAcnFunction r l codec t typeDefinition  isValidFunc  funcBody isTestVaseValid soSparkAnnotations  us
 
 
 
@@ -1212,7 +1267,7 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
         match l with
         | C     -> None
         | Ada   -> None
-    createAcnFunction r l codec t typeDefinition  isValidFunc  funcBody soSparkAnnotations  us, ec
+    createAcnFunction r l codec t typeDefinition  isValidFunc  funcBody (fun atc -> true) soSparkAnnotations  us, ec
 
 let createReferenceFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.ReferenceType) (typeDefinition:TypeDefintionOrReference) (isValidFunc: IsValidFunction option) (baseType:Asn1Type) (us:State)  =
     match codec with

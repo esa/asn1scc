@@ -440,8 +440,12 @@ let CreateTestSuiteFile (r:AstRoot) (l:ProgrammingLanguage) outDir vasName =
                             yield (aaa, [])
                 if vasName = "ALL" then
                     for t in m.TypeAssignments do
+                        let isTestCaseValid atc =
+                            match t.Type.acnEncFunction with
+                            | None  -> false
+                            |Some ancEncFnc -> ancEncFnc.isTestVaseValid atc
                         let hasEncodeFunc = hasAcnEncodeFunction t.Type.acnEncFunction t.Type.acnParameters 
-                        if hasEncodeFunc then
+                        if hasEncodeFunc   then
 //                            for v in t.Type.automaticTestCasesValues do
 //                                let vas = {ValueAssignment.Name = StringLoc.ByValue ""; c_name = ""; ada_name = ""; Type = t.Type; Value = v}
 //                                idx <- idx + 1
@@ -449,12 +453,13 @@ let CreateTestSuiteFile (r:AstRoot) (l:ProgrammingLanguage) outDir vasName =
 //                                yield PrintTestCase vas m (ToC2(r.args.TypePrefix + t.Name.Value) ) idx initFuncName t.Type.uperEncDecTestFunc t.Type.acnEncDecTestFunc
                             for atc in t.Type.initFunction.automaticTestCases  do
                                 //let vas = {ValueAssignment.Name = StringLoc.ByValue ""; c_name = ""; ada_name = ""; Type = t.Type; Value = v}
-                                let p = {CallerScope.modName = ToC "MainProgram"; arg = VALUE "tc_data"}
-                                let initStatement = atc.initTestCaseFunc p
-                                idx <- idx + 2
-                                let initFuncName = t.Type.initFunction.initFuncName
-                                let ret = PrintTestCase2 initStatement.funcBody m t.Type (ToC2(r.args.TypePrefix + t.Name.Value) ) idx initFuncName t.Type.uperEncDecTestFunc t.Type.xerEncDecTestFunc t.Type.acnEncDecTestFunc
-                                yield (ret, initStatement.localVariables)
+                                if isTestCaseValid atc then
+                                    let p = {CallerScope.modName = ToC "MainProgram"; arg = VALUE "tc_data"}
+                                    let initStatement = atc.initTestCaseFunc p
+                                    idx <- idx + 2
+                                    let initFuncName = t.Type.initFunction.initFuncName
+                                    let ret = PrintTestCase2 initStatement.funcBody m t.Type (ToC2(r.args.TypePrefix + t.Name.Value) ) idx initFuncName t.Type.uperEncDecTestFunc t.Type.xerEncDecTestFunc t.Type.acnEncDecTestFunc
+                                    yield (ret, initStatement.localVariables)
                                 
         }  |>  Seq.toList |> List.unzip
 

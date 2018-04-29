@@ -519,3 +519,5 @@ let ChoiceAutomaticTestCaseValues (r:Asn1AcnAst.AstRoot)  (t:Asn1AcnAst.Asn1Type
                 | Some(ChoiceAlwaysAbsent) -> ()
                 | _ ->                yield {NamedValue.name = ch.Name.Value; Value = v}
     } |> Seq.toList
+
+
