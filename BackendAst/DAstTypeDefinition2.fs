@@ -176,17 +176,21 @@ let private createTypeGeneric (r:Asn1AcnAst.AstRoot)  l (pi : Asn1Fold.ParentInf
                 | DefineNewTypeAux _      -> None
             let extraDefs = getExtraSubtypes typedefName otherProgramUnit baseTypeTypedefName
             let typedefBody = defineSubType l typedefName otherProgramUnit baseTypeTypedefName soNewRange extraDefs
-            TypeDefinition {TypeDefinition.typedefName=typedefName; (*programUnitName = Some programUnit;*) typedefBody = (fun () -> typedefBody)}
+            
+            let baseTypeProgramUnit = if programUnit = ToC inheritInfo.modName then None else Some (ToC inheritInfo.modName)
+            let referenceToExistingDefinition = {ReferenceToExistingDefinition.programUnit = baseTypeProgramUnit; typedefName=ToC2(r.args.TypePrefix + inheritInfo.tasName) ; definedInRtl = false}
+            
+            TypeDefinition {TypeDefinition.typedefName=typedefName; (*programUnitName = Some programUnit;*) typedefBody = (fun () -> typedefBody); baseType= Some referenceToExistingDefinition}
         | None             -> 
             match defineNewTypeFnc with
             | DefineSubTypeAux subAux -> 
                 //defineSubTypeAux None programUnit typedefName t.inheritInfo subAux false
                 let soNewRange = subAux.getNewRange rtlModuleName (subAux.getRtlTypeName())
                 let completeDefintion = defineSubType l typedefName rtlModuleName (subAux.getRtlTypeName()) soNewRange None
-                TypeDefinition {TypeDefinition.typedefName = typedefName; typedefBody = (fun () -> completeDefintion)}
+                TypeDefinition {TypeDefinition.typedefName = typedefName; typedefBody = (fun () -> completeDefintion); baseType=None}
             | DefineNewTypeAux ntAux  ->
                 let completeDefintion = ntAux.getCompleteDefintion  programUnit typedefName 
-                TypeDefinition {TypeDefinition.typedefName = typedefName; (*programUnitName = Some programUnit;*) typedefBody = (fun () -> completeDefintion)}
+                TypeDefinition {TypeDefinition.typedefName = typedefName; (*programUnitName = Some programUnit;*) typedefBody = (fun () -> completeDefintion); baseType=None}
     | Some (ValueAssignmentInfo vasInfo)      ->  (*I am a value assignmet ==> Reference an existing or throw a user exception*)
         match t.inheritInfo with
         | Some inheritInfo   ->  
@@ -232,7 +236,7 @@ let private createTypeGeneric (r:Asn1AcnAst.AstRoot)  l (pi : Asn1Fold.ParentInf
                             | false -> Some (ToC inheritInfo.modName), (ToC2(r.args.TypePrefix + inheritInfo.tasName))
                     let soNewRange = subAux.getNewRange soInheritParentTypePackage sInheritParentType
                     let completeDefintion = defineSubType l typedefName soInheritParentTypePackage sInheritParentType soNewRange None
-                    TypeDefinition {TypeDefinition.typedefName = typedefName; typedefBody = (fun () -> completeDefintion)}
+                    TypeDefinition {TypeDefinition.typedefName = typedefName; typedefBody = (fun () -> completeDefintion); baseType=None}
             | DefineNewTypeAux  _  -> referenceToExistingDefinition 
         | None           -> (*I am not a referenced type. If my parent is a referenced type then I am also a referenced type.*)
                             (*Otherwise, define a new type or subtype*)
@@ -261,10 +265,10 @@ let private createTypeGeneric (r:Asn1AcnAst.AstRoot)  l (pi : Asn1Fold.ParentInf
                         ReferenceToExistingDefinition {ReferenceToExistingDefinition.programUnit = rtlModuleName; typedefName=(subAux.getRtlTypeName()); definedInRtl = true }         
                     | Some _ ->
                         let completeDefintion = defineSubType l typedefName rtlModuleName (subAux.getRtlTypeName()) soNewRange None
-                        TypeDefinition {TypeDefinition.typedefName = typedefName; typedefBody = (fun () -> completeDefintion)}
+                        TypeDefinition {TypeDefinition.typedefName = typedefName; typedefBody = (fun () -> completeDefintion); baseType=None}
                 | DefineNewTypeAux ntAux  ->
                     let completeDefintion = ntAux.getCompleteDefintion  programUnit typedefName 
-                    TypeDefinition {TypeDefinition.typedefName = typedefName; (*programUnitName = Some programUnit;*) typedefBody = (fun () -> completeDefintion)}
+                    TypeDefinition {TypeDefinition.typedefName = typedefName; (*programUnitName = Some programUnit;*) typedefBody = (fun () -> completeDefintion); baseType=None}
         (*
         let parent_pu_name, typedefName = 
             match pi with

@@ -1,0 +1,6 @@
+DEFS1 DEFINITIONS ::=
+BEGIN
+
+MyDef1Enum ::= ENUMERATED {a, b, c}
+
+END

@@ -126,7 +126,7 @@ let rec printValue (r:DAst.AstRoot)  (l:ProgrammingLanguage)  (curProgamUnitName
         | EnumValue         v -> 
             match t.ActualType.Kind with
             | Enumerated enm    -> 
-                let typeModName = t.ActualType.id.ModName
+                let typeModName = (t.getActualType r).id.ModName
                 let itm = enm.baseInfo.items |> Seq.find(fun x -> x.Name.Value = v)
                 //variables_a.PrintEnumValue (itm.getBackendName (Some t.typeDefintionOrReference) l)
                 match (ToC typeModName) = curProgamUnitName with

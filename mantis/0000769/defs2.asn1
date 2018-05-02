@@ -1,0 +1,8 @@
+DEFS2 DEFINITIONS ::=
+BEGIN
+
+IMPORTS MyDef1Enum FROM DEFS1;
+
+MyDef2Type ::= MyDef1Enum
+
+END

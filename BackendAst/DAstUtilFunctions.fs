@@ -271,6 +271,7 @@ type Asn1AcnAst.NamedItem with
         | Ada       -> 
             match defOrRef with
             | Some (ReferenceToExistingDefinition r) when r.programUnit.IsSome -> r.programUnit.Value + "." + this.ada_name
+            | Some (TypeDefinition td) when td.baseType.IsSome && td.baseType.Value.programUnit.IsSome  -> td.baseType.Value.programUnit.Value + "." + this.ada_name
             | _       -> ToC this.ada_name
 
 type Integer with
@@ -425,6 +426,24 @@ type Asn1AcnAst.Asn1Type with
 
 type Asn1Type
 with
+    member this.getActualType (r:AstRoot) =
+        match this.Kind with
+        | ReferenceType t-> 
+            let md =  r.Files |> List.collect(fun f -> f.Modules) |> Seq.find(fun m -> m.Name.Value = t.baseInfo.modName.Value) //t.baseInfo.modName
+            let ts = md.TypeAssignments |> Seq.find(fun ts -> ts.Name.Value = t.baseInfo.tasName.Value) //t.baseInfo.modName
+            ts.Type.getActualType r
+        | Integer      _ -> this
+        | Real         _ -> this
+        | IA5String    _ -> this
+        | OctetString  _ -> this
+        | NullType     _ -> this
+        | BitString    _ -> this
+        | Boolean      _ -> this
+        | Enumerated   _ -> this
+        | SequenceOf   _ -> this
+        | Sequence     _ -> this
+        | Choice       _ -> this
+    
     member this.ActualType =
         match this.Kind with
         | ReferenceType t-> t.resolvedType.ActualType

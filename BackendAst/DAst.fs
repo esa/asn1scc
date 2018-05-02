@@ -143,6 +143,16 @@ type TypeDefinitionCommon = {
     completeDefinitionWithinSeq : string option
 }
 
+type ReferenceToExistingDefinition = {
+    /// the module where this type is defined
+    /// if the value is not present then is the same as the "caller"
+    programUnit     : string option
+    /// The name of the defined type. 
+    typedefName     : string
+    definedInRtl    : bool
+}
+
+
 type TypeDefinition = {
     // The program unit where this type is defined.
     // In C this is None
@@ -158,16 +168,9 @@ type TypeDefinition = {
     /// For composite types, typedefBody contains also the definition of any 
     /// inner children
     typedefBody : unit -> string
+    baseType    : ReferenceToExistingDefinition option
 }
 
-type ReferenceToExistingDefinition = {
-    /// the module where this type is defined
-    /// if the value is not present then is the same as the "caller"
-    programUnit     : string option
-    /// The name of the defined type. 
-    typedefName     : string
-    definedInRtl    : bool
-}
 
 type TypeDefintionOrReference =
     /// indicates that no extra type definition is required (e.g. INTEGER without constraints or type reference type without new constraints)

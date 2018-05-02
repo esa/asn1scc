@@ -1,0 +1,22 @@
+DEFS3 DEFINITIONS ::=
+BEGIN
+
+IMPORTS
+MyDef2Type FROM DEFS2
+MyDef1Enum FROM DEFS1;
+
+AnotherType ::= INTEGER (0 .. 1000)
+
+MyDef3Type ::= CHOICE {
+d2 MyDef2Type,
+a1 AnotherType
+}
+
+MyDef3Seq ::= SEQUENCE (SIZE (1..10)) OF MyDef3Type
+
+myDef3Var MyDef3Seq ::= {
+d2:a,
+a1:100
+}
+
+END
