@@ -226,11 +226,7 @@ type InitFunction = {
 type IsEqualBody =
     | EqualBodyExpression       of (CallerScope -> CallerScope -> (string*(LocalVariable list)) option)
     | EqualBodyStatementList    of (CallerScope -> CallerScope -> (string*(LocalVariable list)) option)
-(*
-type IsEqualBody2 =
-    | EqualBodyExpression2       of (string -> string -> string -> (string*(LocalVariable list)) option)
-    | EqualBodyStatementList2    of (string -> string -> string -> (string*(LocalVariable list)) option)
-    *)
+
 type EqualFunction = {
     isEqualFuncName     : string option               // the name of the equal function. 
     isEqualFunc         : string option               // the body of the equal function
@@ -319,6 +315,12 @@ type AcnFunction = {
 }
 
 type EncodeDecodeTestFunc = {
+    funcName            : string               // the name of the function
+    func                : string               // the body of the function
+    funcDef             : string               // function definition in header file
+}
+
+type TestCaseFunction = {
     funcName            : string               // the name of the function
     func                : string               // the body of the function
     funcDef             : string               // function definition in header file

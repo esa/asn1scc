@@ -29,7 +29,7 @@ IS
 
 <arrsTestFunctions; separator="\n\n">
 
-END <sModName>_auto_tcs;
+end <sModName>_auto_tcs;
 >>
                 
 PrintCodec_spec(sFuncName, sModName, sTasName, sStar, sVal) ::= <<
@@ -54,7 +54,7 @@ IS
 
 <arrsTestFunctions; separator="\n\n">
 
-END <sModName>_auto_tcs;
+end <sModName>_auto_tcs;
 >>
 
 
@@ -111,9 +111,9 @@ ret := <rtlModuleName()>.TEST_CASE_RESULT'(Step => <rtlModuleName()>.TC_EQUAL, S
 JoinItems(sPart, soNestedPart) ::= <<
 <sPart>
 <if(soNestedPart)>
-IF result.Success THEN
+if result.Success THEN
     <soNestedPart>
-END IF;
+end if;
 
 <endif>
 >>
@@ -140,7 +140,7 @@ IS
 BEGIN
     <sNestedStatements>
     RETURN ret;
-END <sFuncName>;
+end <sFuncName>;
 >>
 
 PrintCodec_body_XER(sModName, sFuncName, sTasName, sStar,  sVal, sEnc, sNestedStatements) ::= <<
@@ -153,7 +153,7 @@ IS
 BEGIN
     <sNestedStatements>
     RETURN ret;
-END <sFuncName>;
+end <sFuncName>;
 >>
 
 
@@ -168,23 +168,23 @@ Code calling a test case
 */                   
 PrintMain_call_codec(sModName, sTasName, sAmber, sEnc, sValue, sValueAsAsn1, sVasName, bStatic, sGenerateDatFile, soInitFunction, sInitAmber) ::= <<
 result := <sModName>_auto_tcs.<sTasName>_<sEnc>enc_dec(<sValue>);
-IF NOT result.Success THEN
-    CASE result.Step IS
-        WHEN <rtlModuleName()>.TC_VALIDATE =>
+if NOT result.Success THEN
+    case result.Step IS
+        when <rtlModuleName()>.TC_VALIDATE =>
             Put_Line ("Test case '<sVasName>' failed in validation"); 
-        WHEN <rtlModuleName()>.TC_ENCODE =>
+        when <rtlModuleName()>.TC_ENCODE =>
             Put_Line ("Test case '<sVasName>' failed in encoding");
-        WHEN <rtlModuleName()>.TC_DECODE =>
+        when <rtlModuleName()>.TC_DECODE =>
             Put_Line ("Test case '<sVasName>' failed in decoding");
-        WHEN <rtlModuleName()>.TC_VALIDATE_DECODED =>
+        when <rtlModuleName()>.TC_VALIDATE_DECODED =>
             Put_Line ("Test case '<sVasName>' failed in the validation of the decoded message");
-        WHEN <rtlModuleName()>.TC_EQUAL =>
+        when <rtlModuleName()>.TC_EQUAL =>
             Put_Line ("Test case '<sVasName>' failed. Encoded and decoded messages are different");
-    END CASE;
+    end case;
     Put_Line ("Test Value was <sValueAsAsn1>");
     Put_Line ("========================================");
     totalErrors := totalErrors + 1;
-END IF;
+end if;
 <sGenerateDatFile>
 
 >>
@@ -201,23 +201,23 @@ begin
     --the actual initialization with the test case data is made here.
     <sInitializeTcData>
     result := <sModName>_auto_tcs.<sTasName>_<sEnc>enc_dec(tc_data);
-    IF NOT result.Success THEN
-        CASE result.Step IS
-            WHEN <rtlModuleName()>.TC_VALIDATE =>
+    if NOT result.Success THEN
+        case result.Step IS
+            when <rtlModuleName()>.TC_VALIDATE =>
                 Put_Line ("Test case '<sVasName>' failed in validation"); 
-            WHEN <rtlModuleName()>.TC_ENCODE =>
+            when <rtlModuleName()>.TC_ENCODE =>
                 Put_Line ("Test case '<sVasName>' failed in encoding");
-            WHEN <rtlModuleName()>.TC_DECODE =>
+            when <rtlModuleName()>.TC_DECODE =>
                 Put_Line ("Test case '<sVasName>' failed in decoding");
-            WHEN <rtlModuleName()>.TC_VALIDATE_DECODED =>
+            when <rtlModuleName()>.TC_VALIDATE_DECODED =>
                 Put_Line ("Test case '<sVasName>' failed in the validation of the decoded message");
-            WHEN <rtlModuleName()>.TC_EQUAL =>
+            when <rtlModuleName()>.TC_EQUAL =>
                 Put_Line ("Test case '<sVasName>' failed. Encoded and decoded messages are different");
-        END CASE;
+        end case;
         Put_Line ("Test Value was <sValueAsAsn1>");
         Put_Line ("========================================");
         totalErrors := totalErrors + 1;
-    END IF;
+    end if;
     <sGenerateDatFile>
 end;
 >>
@@ -225,15 +225,15 @@ end;
 
 
 PrintMain_call_codec_generate_dat_file(sModName, sTasName, sAmber, sEnc, sStreamName) ::= <<
-IF result.Success THEN
+if result.Success THEN
     DECLARE
     	stream   : <sModName>.<sTasName>_uPER_Stream;
         ret      : <rtlModuleName()>.ASN1_RESULT;
     BEGIN
         <sModName>.<sTasName>_uPER_Encode(<sValue>, stream, ret);
 	    WRITE_STR_TO_FILE(Strm => stream.Data,DataLen => stream.DataLen, fileName => "asn1scc_<sEnc>.dat");
-    END;
-END IF;
+    end;
+end if;
 >>
 
                    
@@ -276,19 +276,19 @@ IS --# hide MainProgram
 
       FOR I IN 1..DataLen LOOP
          bitIndex := ((I-1) mod 8) +1;
-         IF bitIndex = 1 THEN
+         if bitIndex = 1 THEN
             curByte:=0;
-         END IF;
-         IF Strm(I)=1 THEN
+         end if;
+         if Strm(I)=1 THEN
            curByte := curByte OR MASKS(bitIndex);
-         END IF;
-         IF bitIndex = 8 OR I = DataLen THEN
+         end if;
+         if bitIndex = 8 OR I = DataLen THEN
             Write(My_Out_File, curByte);
-         END IF;
-      END LOOP;
+         end if;
+      end LOOP;
 
       Close(My_Out_File);
-    END;
+    end;
 
 <endif>
 BEGIN
@@ -299,13 +299,103 @@ BEGIN
     <arrsInitCalls; separator="\n\n">
 
 
-    IF totalErrors > 0 THEN
+    if totalErrors > 0 THEN
         Put_Line (Integer'Image(totalErrors) & " out of <arrsTestFunctions.Length> failed."); 
         RETURN 1;
     ELSE
         Put_Line ("All test cases (<arrsTestFunctions.Length>) run successfully."); 
         RETURN 0;
-    END IF;
-END MainProgram;
+    end if;
+end MainProgram;
 >>
 
+invokeTestCaseAsFunc(sFuncName) ::= <<
+<sFuncName>(totalErrors);
+>>
+
+
+emitTestCaseAsFunc_h(sFuncName) ::= <<
+procedure <sFuncName>( totalErrors : in out integer);
+>>
+
+emitTestCaseAsFunc(sFuncName, arrsVars, sModName, sTasName, sAmber, sEnc, bValueAssignment, sInitializeTcData, bStatic, sGenerateDatFile, soInitFunction, sInitAmber) ::= <<
+procedure <sFuncName>( totalErrors : in out integer)
+is
+    use Ada.Text_IO;
+    result      : adaasn1rtl.test_case_result;
+
+    <arrsVars; separator="\n">
+    tc_data : <sModName>.<sTasName><if(bValueAssignment)> := <sInitializeTcData><endif>;
+begin
+    <if(soInitFunction)>
+    -- dummy statement used for calling init functions
+    tc_data := <soInitFunction>;
+    <endif>
+    <if(!bValueAssignment)>
+    --the actual initialization with the test case data is made here.
+    <sInitializeTcData>
+
+    <endif>
+    result := <sModName>_auto_tcs.<sTasName>_<sEnc>enc_dec(tc_data);
+    if NOT result.Success THEN
+        case result.Step IS
+            when <rtlModuleName()>.TC_VALIDATE =>
+                Put_Line ("Test case '<sFuncName>' failed in validation"); 
+            when <rtlModuleName()>.TC_ENCODE =>
+                Put_Line ("Test case '<sFuncName>' failed in encoding");
+            when <rtlModuleName()>.TC_DECODE =>
+                Put_Line ("Test case '<sFuncName>' failed in decoding");
+            when <rtlModuleName()>.TC_VALIDATE_DECODED =>
+                Put_Line ("Test case '<sFuncName>' failed in the validation of the decoded message");
+            when <rtlModuleName()>.TC_EQUAL =>
+                Put_Line ("Test case '<sFuncName>' failed. Encoded and decoded messages are different");
+        end case;
+        Put_Line ("========================================");
+        totalErrors := totalErrors + 1;
+    end if;
+    <sGenerateDatFile>
+    
+end <sFuncName>;
+>>
+
+printTestCaseFileDef(sPackageName, arrsIncludedModules, arrsTestFunctionDefs) ::= <<
+
+WITH <rtlModuleName()>;
+USE <rtlModuleName()>;
+use type <rtlModuleName()>.OctetBuffer;
+use type <rtlModuleName()>.BitArray;
+use type <rtlModuleName()>.Asn1UInt;
+use type <rtlModuleName()>.Asn1Int;
+use type <rtlModuleName()>.BIT;
+
+<arrsIncludedModules:{inc| WITH <inc>; USE <inc>;}; separator="\n">
+
+
+PACKAGE <sPackageName> 
+IS
+<arrsTestFunctionDefs:{tas|<tas>}; separator="\n">
+
+END <sPackageName>;
+>>
+
+printTestCaseFileBody(sPackageName, arrsIncludedModules, arrsTestFunctionBodies) ::= <<
+-- Code automatically generated by asn1scc tool
+WITH Ada.Text_IO;
+WITH adaasn1rtl; use type adaasn1rtl.Asn1UInt; use type adaasn1rtl.Asn1Int;use type adaasn1rtl.BIT;
+
+<arrsIncludedModules:{inc| WITH <inc>; USE <inc>;}; separator="\n">
+
+use type <rtlModuleName()>.OctetBuffer;
+use type <rtlModuleName()>.BitArray;
+use type <rtlModuleName()>.Asn1UInt;
+use type <rtlModuleName()>.Asn1Int;
+use type <rtlModuleName()>.BIT;
+
+
+PACKAGE BODY <sPackageName> IS
+
+<arrsTestFunctionBodies:{vas|<vas>}; separator="\n\n"> 
+
+END <sPackageName>;
+
+>>

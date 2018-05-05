@@ -12,135 +12,24 @@ open DAst
 open DAstUtilFunctions
 
 
-#if ZZZZ
 
-type TestCaseValue =
-    | TypeValueAny
-    | OctetTypeValue of Asn1Type*BigInteger      //size of byte array, actual value is not important
-    | BitTypeValue of Asn1Type*BigInteger            //size of bit array, actual value is not important
-    | SequenceOfTypeValue of Asn1Type*(TestCaseValue list)     //size of SequenceOf value, actual child type value not important
-    | SequenceTypeValue of Asn1Type*((string*TestCaseValue) list)
-    
-type Asn1Type
-with
-    member this.isValidAsn1AcnVal (vRoot:TestCaseValue) =
-        match this.Kind with
-        | ReferenceType t-> t.resolvedType.isValidAsn1AcnVal vRoot
-        | Integer      _ -> true
-        | Real         _ -> true
-        | IA5String    _ -> true
-        | OctetString  _ -> true
-        | NullType     _ -> true
-        | BitString    _ -> true
-        | Boolean      _ -> true
-        | Enumerated   _ -> true
-        | SequenceOf   _ -> true
-        | Sequence     _ -> true
-        | Choice       _ -> true
-
-let getSizeValue (ReferenceToType nodes)   (pVal : TestCaseValue) =
-    0I
-
-let getSubCaseFromPath (ReferenceToType nodes)  (pVal : TestCaseValue) =
-    let handleNode zeroBasedSeqeuenceOfLevel (tcVal : TestCaseValue) (n:ScopeNode)  = 
-        match n with
-        | MD _
-        | TA _
-        | PRM _
-        | VA _              -> raise(BugErrorException "getSubCaseFromPath")
-        | SEQ_CHILD chName  -> [], 
-            match tcVal with
-            | 
-        | CH_CHILD (chName,pre_name)  -> 
-            
-            [pVal.arg.getChChildIsPresent l pre_name], {pVal with arg = pVal.arg.getChChild l (ToC chName) childTypeIsString}
-        | SQF               -> 
-            let curIdx = sprintf "i%d" (zeroBasedSeqeuenceOfLevel + 1)
-
-            [], {pVal with arg = pVal.arg.getArrayItem l curIdx childTypeIsString}
-
-    match nodes with
-    | (MD md)::(TA tas)::(PRM prm)::[]  -> ({CallerScope.modName = pVal.modName; arg = VALUE (ToC (md + "_" + tas + "_" + prm))}, [])
-    | (MD md)::(TA tas):: xs            ->
-        let length = Seq.length xs
-        let ret = 
-            xs |> 
-            List.fold(fun (curPath, curCheckExp, zeroBasedSeqeuenceOfLevel, idx) n -> 
-                let chekPath, newPath = handleNode zeroBasedSeqeuenceOfLevel curPath n (childTypeIsString && idx=length)
-                let zeroBasedSeqeuenceOfLevel = match n with SQF -> zeroBasedSeqeuenceOfLevel + 1 | _ -> zeroBasedSeqeuenceOfLevel
-                (newPath, chekPath@curCheckExp, zeroBasedSeqeuenceOfLevel, idx+1)) (pVal,[], 0, 1) |> (fun (a,chekPath,_,_) -> a, chekPath)
-        ret 
-    | _                                 -> raise(BugErrorException "getAccessFromScopeNodeList")
-
-let rec handleSingleUpdateDependency (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (m:Asn1AcnAst.Asn1Module) (d:Asn1AcnAst.AcnDependency)   =
-    match d.dependencyKind with
-    | Asn1AcnAst.AcnDepSizeDeterminant         -> 
-        let updateFunc (vRoot:TestCaseValue)  = 
-            let nSize = getSizeValue d.asn1Type vRoot
-            nSize
-        updateFunc
-
-and getUpdateFunctionUsedInEncoding (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (m:Asn1AcnAst.Asn1Module) (acnChildOrAcnParameterId)  (*: ((TestCaseValue -> BigInteger)option)*)=
-    (*
-    match deps.acnDependencies |> List.filter(fun d -> d.determinant.id = acnChildOrAcnParameterId) with
-    | []  -> None
-    | d1::[]    -> 
-        let ret= handleSingleUpdateDependency r deps  m d1 
-        ret
-        *)
-    deps.acnDependencies |> List.filter(fun d -> d.determinant.id = acnChildOrAcnParameterId) |> List.map(fun d -> handleSingleUpdateDependency r deps  m d)
-
-let isValidAsn1SeqValue (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (m:Asn1AcnAst.Asn1Module) (t:Asn1AcnAst.Asn1Type) (o :Asn1AcnAst.Sequence)  (children:SeqChildInfo list) =
-    let acnChildren = children |> List.choose (fun c -> match c with AcnChild c -> Some c | Asn1Child _ -> None)
-    let asn1Children = children |> List.choose (fun c -> match c with AcnChild _ -> None | Asn1Child c -> Some c)
-    let retFunc (seqVal: TestCaseValue) =
-        let isValidAcnChild (acnChild :AcnChild ) =
-            let values = getUpdateFunctionUsedInEncoding r deps m acnChild.id |> List.map(fun fnc -> fnc seqVal)
-            match values with
-            | [] | [_]  -> true
-            | v1::restValues    -> restValues |> List.forall ((=) v1)
-            
-        let foo = acnChildren |> List.forall isValidAcnChild
-
-        let childrenResult = 
-            match seqVal with
-            | SequenceTypeValue (_,chVals)  ->
-                chVals |> List.fold(fun curRes (chnm, chval) ->
-                    let chChild = asn1Children |> Seq.find(fun z -> z.Name.Value = chnm)
-                    curRes &&  chChild.Type.isValidAsn1AcnVal chval
-                ) true
-            | _         -> false
-        childrenResult
-    retFunc 
-#endif
 
 (*
 create c and Ada procedures that initialize an ASN.1 type.
-Currently this code is not used since it is no longer required (it was originally written to handle the 'data might not be initialized' errors of spark
-However, now with the 'pragma Annotate (GNATprove, False_Positive)' we can handle this case.
+
+
+
 *)
 
 
 let nameSuffix l = match l with C -> "_Initialize" | Ada -> "_Init"
 
 let getFuncName2 (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (tasInfo:TypeAssignmentInfo option) (inhInfo: InheritanceInfo option) (typeKind:Asn1AcnAst.Asn1TypeKind) (typeDefinition:TypeDefintionOrReference) =
-    //getFuncNameGeneric r nameSuffix tasInfo inhInfo typeKind typeDefinition
     getFuncNameGeneric typeDefinition (nameSuffix l)
 
-(*
-let getFuncName (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (tasInfo:TypeAssignmentInfo option) =
-    match l with
-    | C     -> tasInfo |> Option.map (fun x -> ToC2(r.args.TypePrefix + x.tasName + "_Initialize"))
-    | Ada   -> tasInfo |> Option.map (fun x -> ToC2(r.args.TypePrefix + x.tasName + "_Init"))
-*)
 
 let createInitFunctionCommon (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage)   (o:Asn1AcnAst.Asn1Type) (typeDefinition:TypeDefintionOrReference) initByAsn1Value (iv:Asn1ValueKind) (initTasFunction:CallerScope  -> InitFunctionResult) automaticTestCases =
-//    if o.id.AsString = "TEST-CASE.T-POS.anInt" then
-//        printfn "%s" o.id.AsString
-
-    //let aaaa = o.id.AsString
     let funcName            = getFuncName2 r l o.id.tasInfo o.inheritInfo o.Kind typeDefinition
-    //let funcName            = getFuncName r l o.id.tasInfo 
     let p = o.getParamType l CommonTypes.Codec.Decode
     let initTypeAssignment = match l with C -> init_c.initTypeAssignment | Ada -> init_a.initTypeAssignment
     let initTypeAssignment_def = match l with C -> init_c.initTypeAssignment_def | Ada -> init_a.initTypeAssignment_def

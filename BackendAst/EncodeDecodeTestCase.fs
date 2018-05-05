@@ -12,6 +12,7 @@ open Asn1AcnAstUtilFunctions
 open DAst
 open DAstUtilFunctions
 
+
 let getFuncName (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (sEncoding:string) (typeId:ReferenceToType) =
     typeId.tasInfo |> Option.map (fun x -> ToC2(r.args.TypePrefix + x.tasName + "_" + sEncoding + "enc_dec"))
 
@@ -31,23 +32,7 @@ let OptFlatMap fun1 u =
        match uu with
        | None   -> None
        | Some uuu -> fun1 uuu
-(*
-let rec getAmberIsValid (t:Asn1AcnAst.Asn1Type) = 
-    match t.Kind with
-    | Asn1AcnAst.Integer      _ ->  ""
-    | Asn1AcnAst.Real         _ -> ""
-    | Asn1AcnAst.IA5String    _ -> ""
-    | Asn1AcnAst.NumericString _ -> ""
-    | Asn1AcnAst.OctetString  _ -> "&"
-    | Asn1AcnAst.NullType     _ -> ""
-    | Asn1AcnAst.BitString    _ -> "&"
-    | Asn1AcnAst.Boolean      _ -> ""
-    | Asn1AcnAst.Enumerated   _ -> ""
-    | Asn1AcnAst.SequenceOf   _ -> "&"
-    | Asn1AcnAst.Sequence     _ -> "&"
-    | Asn1AcnAst.Choice       _ -> "&"
-    | Asn1AcnAst.ReferenceType z -> getAmberIsValid z.resolvedType
-    *)
+
 let rec getAmberDecode (t:Asn1AcnAst.Asn1Type) = 
     match t.Kind with
     | Asn1AcnAst.IA5String    _ -> ""

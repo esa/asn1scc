@@ -80,6 +80,7 @@
     <Compile Include="EncodeDecodeTestCase.fs" />
     <Compile Include="DAstInitialize.fs" />
     <Compile Include="DAstProgramUnit.fs" />
+    <Compile Include="DastTestCaseCreation.fs" />
     <Compile Include="DAstConstruction.fs" />
     <Compile Include="GenerateFiles.fs" />
     <None Include="Script.fsx" />

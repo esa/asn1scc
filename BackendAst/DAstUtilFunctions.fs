@@ -786,7 +786,13 @@ with
         | Sequence     t -> t.xerEncDecTestFunc
         | Choice       t -> t.xerEncDecTestFunc
         | ReferenceType t-> t.xerEncDecTestFunc
-
+    member this.getEncDecTestFunc (e:Asn1Encoding) =
+        match e with
+        | Asn1Encoding.UPER  -> this.uperEncDecTestFunc
+        | Asn1Encoding.ACN   -> this.acnEncDecTestFunc
+        | Asn1Encoding.XER   -> this.xerEncDecTestFunc
+        | Asn1Encoding.BER   -> None
+        
     member this.automaticTestCasesValues =
         match this.Kind with
         | Integer      t -> t.automaticTestCasesValues
