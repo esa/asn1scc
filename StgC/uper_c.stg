@@ -129,7 +129,7 @@ flag <sFuncName>(<sTypeDefName><sStar> <sVarName>, BitStream* pBitStrm, int* pEr
 
 	<sContent>
 
-	return ret;
+	return ret <if(soIValidFuncName)> && <soIValidFuncName>(<sVarName>, pErrCode)<endif>;
 }
 >>
 

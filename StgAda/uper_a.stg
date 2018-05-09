@@ -52,7 +52,7 @@ is
 begin
     <if(soIValidFuncName)>
     result := <soIValidFuncName>(<sVarName>);
-    if result.success THEN
+    if result.success then
         <sContent>
     end if;
     <else>
@@ -73,6 +73,12 @@ begin
     --<sVarName> := <sInitilialExp>;
     <sFuncName>_aux(<sVarName>, Stream.Data, iter, result);
     result.Success := result.Success AND iter.K\<=iter.DataLen;
+    <if(soIValidFuncName)>
+    if result.success then
+        result := <soIValidFuncName>(<sVarName>);
+    end if;
+
+    <endif>
 end <sFuncName>;
 >>
 EmitTypeAssignment_decode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitilialExp) ::= <<

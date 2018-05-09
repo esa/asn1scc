@@ -71,6 +71,12 @@ BEGIN
     iter := <rtlModuleName()>.DECODE_PARAMS'(K => 0, DataLen => Stream.DataLen);
     <sFuncName>_aux(<sVarName>, Stream.Data, iter, result<if(arrsAcnParamNames)>, <arrsAcnParamNames; separator=","><endif>);
     result.Success := result.Success AND iter.K\<=iter.DataLen;
+    <if(soIValidFuncName)>
+    if result.success then
+        result := <soIValidFuncName>(<sVarName>);
+    end if;
+
+    <endif>
 END <sFuncName>;
 >>
 
