@@ -29,8 +29,8 @@
     <PlatformTarget>AnyCPU</PlatformTarget>
     <DocumentationFile>bin\Debug\Asn1f4.XML</DocumentationFile>
     <Prefer32Bit>true</Prefer32Bit>
-    <StartWorkingDirectory>C:\prj\GitHub\asn1scc\mantis\0000769\</StartWorkingDirectory>
-    <StartArguments>-Ada -uPER -o ada_o/ -atc defs1.asn1 defs2.asn1 defs3.asn1</StartArguments>
+    <StartWorkingDirectory>C:\prj\GitHub\asn1scc\mantis\0000535\</StartWorkingDirectory>
+    <StartArguments>-c -wordSize 4 -uPER -atc -o c_out32/ DataView.asn</StartArguments>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>

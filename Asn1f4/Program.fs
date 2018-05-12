@@ -1,6 +1,7 @@
 ﻿open Argu
 open FsUtils
 open System
+open System.Numerics
 open System.IO
 open CommonTypes
 open System.Resources
@@ -21,13 +22,13 @@ type CliArguments =
     | [<AltCommandLine("-gtc")>] Generate_Test_Grammar 
     | [<AltCommandLine("-customStg")>] Custom_Stg  of custom_stg_colon_outfilename:string
     | [<AltCommandLine("-customStgAstVersion")>] Custom_Stg_Ast_Version  of astver:int
-
     | [<AltCommandLine("-icdUper")>] IcdUper  of uper_icd_output_file:string
     | [<AltCommandLine("-customIcdUper")>] CustomIcdUper  of custom_stg_colon_out_filename:string
     | [<AltCommandLine("-icdAcn")>] IcdAcn  of acn_icd_output_file:string
     | [<AltCommandLine("-customIcdAcn")>] CustomIcdAcn  of custom_stg_colon_out_filename:string
     | [<AltCommandLine("-AdaUses")>] AdaUses 
     | [<AltCommandLine("-ACND")>] ACND  
+    | [<AltCommandLine("-wordSize")>] Word_Size  of wordSize:int
     | [<AltCommandLine("-v")>]   Version
     | [<AltCommandLine("-asn1")>]   Debug_Asn1 of string option
     | [<MainCommand; ExactlyOnce; Last>] Files of files:string list
@@ -58,6 +59,7 @@ with
             | AdaUses           -> "Prints in the console all type Assignments of the input ASN.1 grammar"
             | ACND              -> "creates ACN grammars for the input ASN.1 grammars using the default encoding properties"
             | Debug_Asn1  _     -> "Prints all input ASN.1 grammars in a single module/single file and with parameterized types removed. Used for debugging purposes"
+            | Word_Size _       -> "Applicable only to C.Defines the size of asn1SccSint and asn1SccUint types. Valid values are 8 bytes (default) and 4 bytes. If you pass 4 then you should compile the C code -DWORD_SIZE=4."
 
 let getCustmStgFileNames (compositeFile:string) =
     let files = compositeFile.Split ':' |> Seq.toList
@@ -129,6 +131,12 @@ let checkArguement arg =
     | AdaUses                   -> ()
     | ACND                      -> ()
     | Debug_Asn1  _             -> ()
+    | Word_Size  ws             -> 
+        match ws with
+        | _ when ws = 4 -> ()
+        | _ when ws = 8 -> ()
+        | _  -> raise (UserException ("invalid value for argument -wordSize. Currently only values 4 and 8 are supported"))
+
 
 let createInput (fileName:string) : Input = 
     {
@@ -159,7 +167,9 @@ let constructCommandLineSettings args (parserResults: ParseResults<CliArguments>
         IcdAcnHtmlFileName = ""
         custom_Stg_Ast_Version = parserResults.GetResult(<@ Custom_Stg_Ast_Version @>, defaultValue = 1)
         mappingFunctionsModule = None
-        integerSizeInBytes = 8I
+        integerSizeInBytes = 
+            let ws = parserResults.GetResult(<@Word_Size@>, defaultValue = 8)
+            BigInteger ws
         renamePolicy = CommonTypes.EnumRenamePolicy.SelectiveEnumerants
     }    
 

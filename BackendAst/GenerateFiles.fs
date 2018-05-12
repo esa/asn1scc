@@ -275,7 +275,7 @@ let CreateMakeFile (r:AstRoot) (l:ProgrammingLanguage) outDir  =
     match l with
     | C ->
         let files = r.Files |> Seq.map(fun x -> x.FileNameWithoutExtension.ToLower() )
-        let content = aux_c.PrintMakeFile files
+        let content = aux_c.PrintMakeFile files (r.args.integerSizeInBytes = 4I)
         let outFileName = Path.Combine(outDir, "Makefile")
         File.WriteAllText(outFileName, content.Replace("\r",""))
     | Ada ->
