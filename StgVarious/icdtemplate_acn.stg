@@ -194,9 +194,19 @@ EmmitSeqOrChoiceRow(sCssClass, nIndex, sName, sComment, sPresentWhen, sType, sCo
 </tr>
 >>
 
+EmmitSequencePreambleSingleComment(nIndex, sOptChildName) ::= <<
+<li>bit$nIndex$ == 1 &#8658 <font  color="#5F9EA0" >$sOptChildName$</font> is present</li>
+>>
 
-EmmitSequencePreambleComment() ::= <<
+
+EmmitSequencePreambleComment(arrsOptWihtNoPresentWhenChildren) ::= <<
 Special field used by ACN to indicate the presence/absence of optional fields that do not have the present when property.
+$if(arrsOptWihtNoPresentWhenChildren)$
+<br/>
+<ul type="square">
+$arrsOptWihtNoPresentWhenChildren;separator="\n"$
+</ul>
+$endif$
 >>
 
 EmmitChoiceIndexComment() ::= <<

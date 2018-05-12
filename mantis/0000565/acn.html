@@ -1,0 +1,138 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"> 
+<html xmlns="http://www.w3.org/1999/xhtml" >
+<head>
+    <title>ICD</title>
+    <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+    <link rel="stylesheet" href="acn.css" /> 
+</head>
+<body>
+<em>The following tables describe the binary encodings of the data model using the ACN Encoding Rules.
+</em><br/><br/>
+  <div style="width: 100%">
+  <h1>Module TASTE-Dataview</h1>
+  <i>Defined in: a.asn1, a.acn.</i><p>
+  </p>
+  <a name="ICD_MySeq"></a> 
+  <table width="100%" >
+  <tbody>
+  
+  <tr class="typeRow">
+  <td colspan="6">
+  MySeq <font size="-1">(SEQUENCE)</font>
+  <font size="-2"><a href="#ASN1_MySeq" class="fileLink">ASN.1</a>  <a href="#ACN_MySeq" class="fileLink">ACN</a></font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Min:&nbsp;1&nbsp;bytes</font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Max:&nbsp;19&nbsp;bytes</font>
+  </td>
+  </tr>
+  
+  <tr class="CommentRow">
+  <td class="comment2" colspan="8"></td>
+  </tr>
+  
+  
+  <tr class="headerRow">
+  <td class="hrNo">No</td>
+  <td class="hrField">Field</td>
+  <td class="hrComment">Comment</td>
+  <td class="hrOptional">Present</td>
+  <td class="hrType">Type</td>
+  <td class="hrConstraint">Constraint</td>
+  <td class="hrMin">Min Bits</td>
+  <td class="hrMax">Max Bits</td>
+  </tr>
+  
+  <tr class="OddRow">
+  <td class="no">1</td>
+  <td class="field">Preamble</td>
+  <td class="comment">Special field used by ACN to indicate the presence/absence of optional fields that do not have the present when property.
+  <br/>
+  <ul type="square">
+  <li>bit1 == 1 &#8658 <font  color="#5F9EA0" >a1</font> is present</li>
+  </ul></td>
+  <td class="optional">always</td>
+  <td class="type">Bit mask</td>
+  <td class="constraint">N.A.</td>
+  <td class="min">1</td>
+  <td class="max">1</td>
+  </tr>
+  <tr class="EvenRow">
+  <td class="no">2</td>
+  <td class="field">a1</td>
+  <td class="comment"></td>
+  <td class="optional">when the 1st bit of the bit mask is set</td>
+  <td class="type">INTEGER</td>
+  <td class="constraint"></td>
+  <td class="min">8</td>
+  <td class="max">72</td>
+  </tr>
+  <tr class="OddRow">
+  <td class="no">3</td>
+  <td class="field">bA2Present</td>
+  <td class="comment"></td>
+  <td class="optional">always</td>
+  <td class="type">BOOLEAN</td>
+  <td class="constraint"></td>
+  <td class="min">1</td>
+  <td class="max">1</td>
+  </tr>
+  <tr class="EvenRow">
+  <td class="no">4</td>
+  <td class="field">a2</td>
+  <td class="comment"></td>
+  <td class="optional">when bA2Present is true</td>
+  <td class="type">INTEGER</td>
+  <td class="constraint"></td>
+  <td class="min">8</td>
+  <td class="max">72</td>
+  </tr>
+  
+  </tbody>
+  </table>
+  &nbsp;<br/>
+  </div>
+
+  <hr />
+    <a name="ACN_PARAMS_EXPLAINED123"></a>
+    <em>ACN Parameters</em><br/>
+    In the standard ASN.1 encodings such as uPER, BER etc, the encoding and decoding of any type has no external dependencies. For example, the encoded data for a SEQUENCE OF depends on the number of items in the SEQUENCE OF (the length determinant) and the type of item contained in the SEQUENCE. On the other hand, ACN allows types to be parameterized. For instance, the length of a SEQUENCE OF may be determined by the value of an external field. In this case, the SEQUENCE OF is parameterized and the input parameter is the field providing the length.
+  <hr />
+    <br/>
+  <div style="width: 100%">
+  <h1 >File : a.asn1</h1>
+  <div style="width: 100%; white-space:pre; font-family:Courier New; font-size:small">
+  TASTE-Dataview <b><font color="#5F9EA0">DEFINITIONS</font></b> ::=
+  <b><font color="#5F9EA0">BEGIN</font></b>
+  
+  <a name="ACN_MySeq"></a><a href="#ICD_MySeq"><font color="#B8860B"><b>MySeq</b></font></a> ::= <b><font color="#5F9EA0">SEQUENCE</font></b> {
+      a1 <b><font color="#5F9EA0">INTEGER</font></b> <b><font color="#5F9EA0">OPTIONAL</font></b>,
+      a2 <b><font color="#5F9EA0">INTEGER</font></b> <b><font color="#5F9EA0">OPTIONAL</font></b>
+  }
+  
+  <b><font color="#5F9EA0">END</font></b>
+  </div>
+  </div>
+
+  <div style="width: 100%">
+  <h1 >File : a.acn</h1>
+  <div style="width: 100%; white-space:pre; font-family:Courier New; font-size:small">
+  TASTE-Dataview <b><font color="#5F9EA0">DEFINITIONS</font></b> ::=
+  <b><font color="#5F9EA0">BEGIN</font></b>
+  
+  <a name="ACN_MySeq"></a><a href="#ICD_MySeq"><font color="#B8860B"><b>MySeq</b></font></a> [] {
+      a1 [],
+      bA2Present <b><font color="#5F9EA0">BOOLEAN</font></b> [],
+      a2 [<b><font color="#5F9EA0">present-when</font></b> bA2Present]
+  }
+  
+  <b><font color="#5F9EA0">END</font></b>
+  </div>
+  </div>
+
+</body>
+</html>

@@ -1,0 +1,10 @@
+TASTE-Dataview DEFINITIONS ::=
+BEGIN
+
+MySeq [] {
+    a1 [],
+    bA2Present BOOLEAN [],
+    a2 [present-when bA2Present]
+}
+
+END

@@ -114,13 +114,26 @@ let rec printType stgFileName (tas:TypeAssignment) (t:Asn1Type) (m:Asn1Module) (
     |ReferenceType o ->
         printType stgFileName tas t.ActualType m r isAnonymousType
     |Sequence seq   -> 
-        let optionalLikeUperChildren = seq.Asn1Children |> Seq.filter (fun x -> x.Optionality.IsSome) |> Seq.toList
+        let optionalLikeUperChildren = 
+            seq.Asn1Children 
+            |> Seq.filter (fun x -> 
+                match x.Optionality with
+                | None  -> false
+                | Some (Asn1AcnAst.Optional opt)  ->
+                    match opt.acnPresentWhen with
+                    | Some (Asn1AcnAst.PresenceWhenBool _) -> false
+                    | None                      -> true
+                | _                               -> false) 
+            |> Seq.toList
         let SeqPreamble =
             match optionalLikeUperChildren with
             | []    -> None
             | _     ->
+                let arrsOptWihtNoPresentWhenChildren = 
+                    optionalLikeUperChildren |> Seq.mapi(fun i c -> icd_acn.EmmitSequencePreambleSingleComment stgFileName (BigInteger (i+1)) c.Name.Value)
+
                 let nLen = optionalLikeUperChildren |> Seq.length
-                let ret = icd_acn.EmmitSeqOrChoiceRow stgFileName (icd_acn.OddRow stgFileName ()) 1I "Preamble" (icd_acn.EmmitSequencePreambleComment stgFileName ())  "always"  "Bit mask" "N.A." (nLen.ToString()) (nLen.ToString())
+                let ret = icd_acn.EmmitSeqOrChoiceRow stgFileName (icd_acn.OddRow stgFileName ()) 1I "Preamble" (icd_acn.EmmitSequencePreambleComment stgFileName arrsOptWihtNoPresentWhenChildren)  "always"  "Bit mask" "N.A." (nLen.ToString()) (nLen.ToString())
                 Some ret
 
         let emitSeqChild (i:int) (ch:SeqChildInfo)  =
