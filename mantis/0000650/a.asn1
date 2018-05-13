@@ -1,0 +1,6 @@
+TASTE-Dataview DEFINITIONS ::=
+BEGIN
+
+MyEnum      ::= ENUMERATED { hello(1), world(2), howareyou(3) }
+
+END

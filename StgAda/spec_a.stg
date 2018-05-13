@@ -285,7 +285,8 @@ SUBTYPE <sName>_index_range is integer range 0..<nIndexMax>;
 TYPE <sName> IS (<arrsEnumNames; separator=", ">);
 for <sName> use
     (<arrsEnumNamesAndValues; separator=", ">);
-for <sName>'Size use 32;
+--for <sName>'Size use 32;
+pragma Convention (C, <sName>);
 >>
 
 Define_SubType_enumerated(sTypeDefinitionName, soParentTypePackage, sParentType) ::= <<

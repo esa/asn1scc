@@ -256,7 +256,6 @@ FUNCTION MainProgram RETURN INTEGER
 IS --# hide MainProgram
     USE Ada.Text_IO;
     <arrsUsedPackages:{p|USE <p>;}; separator="\n">
-    result      : <rtlModuleName()>.TEST_CASE_RESULT;
     totalErrors  : INTEGER:=0;
     <arrsVars; separator="\n">
     
