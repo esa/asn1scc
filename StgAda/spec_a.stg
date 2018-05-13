@@ -282,11 +282,9 @@ SUBTYPE <sTypeDefinitionName>_alpha <if(soParentTypePackage)><soParentTypePackag
 ENUMERATED_tas_decl_item(sName, nValue) ::= "<sName> => <nValue>"
 ENUMERATED_tas_decl(sName, arrsEnumNames, arrsEnumNamesAndValues, nIndexMax) ::= <<
 SUBTYPE <sName>_index_range is integer range 0..<nIndexMax>;
-TYPE <sName> IS (<arrsEnumNames; separator=", ">);
+TYPE <sName> IS (<arrsEnumNames; separator=", ">) with Convention => C;
 for <sName> use
     (<arrsEnumNamesAndValues; separator=", ">);
---for <sName>'Size use 32;
-pragma Convention (C, <sName>);
 >>
 
 Define_SubType_enumerated(sTypeDefinitionName, soParentTypePackage, sParentType) ::= <<
