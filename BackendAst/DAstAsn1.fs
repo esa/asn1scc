@@ -104,7 +104,14 @@ let createBoolFunction (r:Asn1AcnAst.AstRoot)  (t:Asn1AcnAst.Asn1Type) (o:Asn1Ac
 
 let createEnumeratedFunction (r:Asn1AcnAst.AstRoot) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Enumerated) =
     let conToStrFunc = foldGenericCon (fun b -> b)
-    o.AllCons |> List.map conToStrFunc
+    //remove the "virtual constraint" that is added in all ENUMERAED wich constraints the type to all of each possible values
+    let actualConstraints = 
+        o.AllCons |>
+        List.filter(fun c ->
+            match c with
+            | Asn1AcnAst.UnionConstraint(_,_,virtCon)   -> not virtCon
+            | _                                         -> true)
+    actualConstraints |> List.map conToStrFunc
 
 //type OctetStringConstraint  =    SizableTypeConstraint<OctetStringValue*(ReferenceToValue*SrcLoc)>
 

@@ -200,14 +200,14 @@ SequenceType(arrsChildren) ::= <<
 
 
 /* Sequence of (array) */
-SequenceOfType(sMin, sMax, sChild) ::= <<
+SequenceOfType(sMin, sMax, sChild, bFixedSize) ::= <<
 "kind": "SequenceOfType", "Min": "$sMin$", "Max": "$sMax$", "type": type("SeqOf_type", (object,), {
     $sChild$
 })
 >>
 
 
-RefTypeMinMax(sMin, sMax, sName, sModName, sCName, sCModName) ::= <<
+RefTypeMinMax(sMin, sMax, sName, sModName, sCName, sCModName, bFixedSize) ::= <<
 "kind": "ReferenceType", "ReferencedTypeName": "$sName$", "Min": "$sMin$", "Max": "$sMax$"$if(sModName)$, "ReferencedModName": "$sModName$"$endif$
 >>
 

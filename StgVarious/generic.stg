@@ -138,13 +138,13 @@ SequenceType(arrsChildren) ::= <<
 >>
 
 
-SequenceOfType(sMin, sMax, sChild) ::= <<
+SequenceOfType(sMin, sMax, sChild, bFixedSize) ::= <<
 "Kind": "SequenceOfType", "Min": "$sMin$", "Max": "$sMax$", "type": {
     $sChild$
 }
 >>
 
-RefTypeMinMax(sMin, sMax, sName, sModName, sCName, sCModName) ::= <<
+RefTypeMinMax(sMin, sMax, sName, sModName, sCName, sCModName, bFixedSize) ::= <<
 "Kind": "ReferenceType", "ReferencedTypeName": "$sName$", "Min": "$sMin$", "Max": "$sMax$"$if(sModName)$, "ReferencedModName": "$sModName$"$endif$
 >>
 

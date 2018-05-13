@@ -87,10 +87,10 @@
     <Compile Include="DAstExportToXml.fs" />
     <Compile Include="GrammarGenerator.fs" />
     <Compile Include="CustomStgExport.fs" />
+    <Compile Include="PrintAsn1.fs" />
     <Compile Include="GenerateUperIcd.fs" />
     <Compile Include="GenerateAcnIcd.fs" />
     <Compile Include="PrintAcn.fs" />
-    <Compile Include="PrintAsn1.fs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Antlr\Antlr.csproj">

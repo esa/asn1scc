@@ -136,7 +136,7 @@ let rec PrintType (r:AstRoot) (f:Asn1File) (stgFileName:string) modName (deepRec
             let sCModName = if sModName <> null then (ToC sModName) else null
             let refTypeContent = 
                 match uperRange with
-                | Some(sMin, sMax)  -> gen.RefTypeMinMax sMin sMax asn1Name sModName (ToC asn1Name) (*typedefName*) sCModName stgFileName
+                | Some(sMin, sMax)  -> gen.RefTypeMinMax sMin sMax asn1Name sModName (ToC asn1Name) (*typedefName*) sCModName (sMin = sMax) stgFileName
                 | None              -> gen.RefType asn1Name sModName (ToC asn1Name) (*typedefName*) sCModName stgFileName
             gen.TypeGeneric (BigInteger t.Location.srcLine) (BigInteger t.Location.charPos) f.FileName refTypeContent stgFileName
     let PrintTypeAux (t:Asn1Type) =
@@ -190,7 +190,7 @@ let rec PrintType (r:AstRoot) (f:Asn1File) (stgFileName:string) modName (deepRec
                 |false  -> printChildTypeAsReferencedType info.childType
 
             let sMin, sMax = info.baseInfo.minSize.ToString(), info.baseInfo.maxSize.ToString()
-            gen.SequenceOfType sMin sMax  childTypeExp stgFileName
+            gen.SequenceOfType sMin sMax  childTypeExp (sMin=sMax) stgFileName
         | ReferenceType info ->
             let uperRange = 
                 match (t.ActualType).Kind with
@@ -204,7 +204,7 @@ let rec PrintType (r:AstRoot) (f:Asn1File) (stgFileName:string) modName (deepRec
             let sModName = if info.baseInfo.modName.Value=modName then null else info.baseInfo.modName.Value
             let sCModName = if sModName <> null then (ToC sModName) else null
             match uperRange with
-            | Some(sMin, sMax)  -> gen.RefTypeMinMax sMin sMax info.baseInfo.tasName.Value sModName (ToC info.baseInfo.tasName.Value) sCModName stgFileName
+            | Some(sMin, sMax)  -> gen.RefTypeMinMax sMin sMax info.baseInfo.tasName.Value sModName (ToC info.baseInfo.tasName.Value) sCModName  (sMin=sMax) stgFileName
             | None              -> gen.RefType info.baseInfo.tasName.Value sModName (ToC info.baseInfo.tasName.Value) sCModName stgFileName
 
     gen.TypeGeneric (BigInteger t.Location.srcLine) (BigInteger t.Location.charPos) f.FileName (PrintTypeAux t) stgFileName

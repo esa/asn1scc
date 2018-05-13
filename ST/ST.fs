@@ -13,6 +13,7 @@ module ST
 
 open FsUtils
 open System
+open System.Collections
 open System.Numerics
 open System.Globalization
 open Antlr.StringTemplate
@@ -132,6 +133,8 @@ type BasicFormatRendererBigInt() =
 
 let cache = System.Collections.Generic.Dictionary<string, StringTemplateGroup>()
 
+let macrosWithErrorsDiscoveredInRunTime = System.Collections.Generic.Dictionary<string, int>()
+
 let runsUnderMono() = 
     match System.Type.GetType("Mono.Runtime") with
     | null  -> false
@@ -196,6 +199,42 @@ let call fileName macroName (attrs:seq<string*#Object>)=
     let ret = template.ToString 80
     //printfn "%s\n" ret
     ret
+
+let call_generic fileName macroName (attrs:seq<string*#Object>)=
+    let group = get_group fileName
+
+    let template = group.GetInstanceOf(macroName);
+
+    let argsNotPresentInLocalMacro = 
+        attrs |> Seq.filter(fun (attrName, obj) -> (not (template.FormalArguments.Contains attrName))) |> Seq.map fst |> Seq.toList
+
+    match argsNotPresentInLocalMacro with
+    | []    -> ()
+    | _     ->
+        let macroKey = fileName + "#" + macroName
+        match macrosWithErrorsDiscoveredInRunTime.ContainsKey macroKey with
+        | true  -> () //we have already print a warning for this macro
+        | false ->
+            macrosWithErrorsDiscoveredInRunTime.Add(macroKey, 1)
+            let newArgs = attrs |> Seq.map fst |> Seq.StrJoin ", "
+            let newSignature = sprintf "%s(%s)" macroName newArgs
+            let orldArgs = template.FormalArguments.Values |> Seq.cast |> Seq.StrJoin ", "
+            let oldSignature = sprintf "%s(%s)" macroName orldArgs
+
+            let errMsg = sprintf "Warning: Signature of macro '%s' of custom stg file '%s' has changed from\n  %s\nto\n  %s\nConsider updating your custom stg file '%s' to comply to the new signature.\n" macroName fileName oldSignature newSignature fileName
+            Console.Error.WriteLine(errMsg)
+
+
+    attrs |> 
+    Seq.iter(fun (attrName, obj) -> 
+        match template.FormalArguments.Contains attrName with
+        | true  -> template.SetAttribute(attrName,obj)
+        | false -> ()
+        )
+    let ret = template.ToString 80
+    //printfn "%s\n" ret
+    ret
+
 
 let call2 (fileName, macroName, [<ParamArray>] attrs:array<string*#Object>)=
     let group = get_group fileName

@@ -156,7 +156,7 @@ let rec printType (stgFileName:string) (m:Asn1Module) (tas:TypeAssignment) (t:As
         let sAsn1Constraints = ""
         handlePrimitive sAsn1Constraints
     | Enumerated  o   ->
-        let sAsn1Constraints = ""
+        let sAsn1Constraints = t.ConstraintsAsn1Str |> Seq.StrJoin ""
         handlePrimitive sAsn1Constraints
     |ReferenceType o ->
         printType stgFileName m tas t.ActualType r color
