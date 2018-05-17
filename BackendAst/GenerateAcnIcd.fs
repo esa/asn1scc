@@ -179,7 +179,7 @@ let rec printType stgFileName (tas:TypeAssignment) (t:Asn1Type) (m:Asn1Module) (
                         | Asn1AcnAst.AcnReferenceToEnumerated  o -> icd_acn.EmmitSeqChild_RefType stgFileName o.tasName.Value (ToC o.tasName.Value)
                         | Asn1AcnAst.AcnReferenceToIA5String   o -> icd_acn.EmmitSeqChild_RefType stgFileName o.tasName.Value (ToC o.tasName.Value)
                     sType, "", ""
-
+            let name = ch.Name
             let sMaxBits, sMaxBytes = ch.acnMaxSizeInBits.ToString(), BigInteger(System.Math.Ceiling(double(ch.acnMaxSizeInBits)/8.0)).ToString()
             let sMinBits, sMinBytes = ch.acnMinSizeInBits.ToString(), BigInteger(System.Math.Ceiling(double(ch.acnMinSizeInBits)/8.0)).ToString()
             icd_acn.EmmitSeqOrChoiceRow stgFileName sClass nIndex ch.Name sComment  sPresentWhen  sType sAsn1Constraints sMinBits sMaxBits

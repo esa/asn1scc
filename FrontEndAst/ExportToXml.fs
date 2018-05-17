@@ -237,6 +237,10 @@ let private exportType (t:Asn1Type) =
     Asn1Fold.foldType
         (fun ti us -> 
                     XElement(xname "INTEGER",
+                        (XAttribute(xname "acnMaxSizeInBits", ti.acnMaxSizeInBits )),
+                        (XAttribute(xname "acnMinSizeInBits", ti.acnMinSizeInBits )),
+                        (XAttribute(xname "uperMaxSizeInBits", ti.uperMaxSizeInBits )),
+                        (XAttribute(xname "uperMinSizeInBits", ti.uperMinSizeInBits )),
                         (exportAcnEndianness ti.acnProperties.endiannessProp),
                         (exportAcnIntSizeProperty ti.acnProperties.sizeProp),
                         (exportAcnIntEncoding ti.acnProperties.encodingProp),
@@ -244,40 +248,73 @@ let private exportType (t:Asn1Type) =
                         XElement(xname withCompConstraintsTag, ti.withcons |> List.map(printRangeConstraint printIntVal ))
                         ), us )
         (fun ti us -> XElement(xname "REAL",
+                        (XAttribute(xname "acnMaxSizeInBits", ti.acnMaxSizeInBits )),
+                        (XAttribute(xname "acnMinSizeInBits", ti.acnMinSizeInBits )),
+                        (XAttribute(xname "uperMaxSizeInBits", ti.uperMaxSizeInBits )),
+                        (XAttribute(xname "uperMinSizeInBits", ti.uperMinSizeInBits )),
                         (exportAcnEndianness ti.acnProperties.endiannessProp),
                         (exportAcnRealEncoding ti.acnProperties.encodingProp),
                         XElement(xname constraintsTag, ti.cons |> List.map(printRangeConstraint printRealVal)),
                         XElement(xname withCompConstraintsTag, ti.withcons |> List.map(printRangeConstraint printRealVal ))
                         ), us )
         (fun ti us -> XElement(xname "IA5String",
+                        (XAttribute(xname "acnMaxSizeInBits", ti.acnMaxSizeInBits )),
+                        (XAttribute(xname "acnMinSizeInBits", ti.acnMinSizeInBits )),
+                        (XAttribute(xname "uperMaxSizeInBits", ti.uperMaxSizeInBits )),
+                        (XAttribute(xname "uperMinSizeInBits", ti.uperMinSizeInBits )),
                         (exportAcnStringSizeProperty ti.acnProperties.sizeProp),
                         (exportAcnStringEncoding ti.acnProperties.encodingProp),
                         XElement(xname constraintsTag, ti.cons |> List.map(printAlphaConstraint printStringVal )),
                         XElement(xname withCompConstraintsTag, ti.withcons |> List.map(printAlphaConstraint printStringVal ))
                         ), us )
         (fun ti us -> XElement(xname "NumericString",
+                        (XAttribute(xname "acnMaxSizeInBits", ti.acnMaxSizeInBits )),
+                        (XAttribute(xname "acnMinSizeInBits", ti.acnMinSizeInBits )),
+                        (XAttribute(xname "uperMaxSizeInBits", ti.uperMaxSizeInBits )),
+                        (XAttribute(xname "uperMinSizeInBits", ti.uperMinSizeInBits )),
                         (exportAcnStringSizeProperty ti.acnProperties.sizeProp),
                         (exportAcnStringEncoding ti.acnProperties.encodingProp),
                         XElement(xname constraintsTag, ti.cons |> List.map(printAlphaConstraint printStringVal )),
                         XElement(xname withCompConstraintsTag, ti.withcons |> List.map(printAlphaConstraint printStringVal ))
                         ), us )
         (fun ti us -> XElement(xname "OCTET_STRING",
+                        (XAttribute(xname "acnMaxSizeInBits", ti.acnMaxSizeInBits )),
+                        (XAttribute(xname "acnMinSizeInBits", ti.acnMinSizeInBits )),
+                        (XAttribute(xname "uperMaxSizeInBits", ti.uperMaxSizeInBits )),
+                        (XAttribute(xname "uperMinSizeInBits", ti.uperMinSizeInBits )),
                         (exportSizeableSizeProp ti.acnProperties.sizeProp),
                         XElement(xname constraintsTag, ti.cons |> List.map(printSizableConstraint printOctetStringVal )),
                         XElement(xname withCompConstraintsTag, ti.withcons |> List.map(printSizableConstraint printOctetStringVal ))
                         ), us )
-        (fun ti us -> XElement(xname "NULL", (exportAcnNullType ti.acnProperties.encodingPattern)),us )
+        (fun ti us -> XElement(xname "NULL", 
+                        (XAttribute(xname "acnMaxSizeInBits", ti.acnMaxSizeInBits )),
+                        (XAttribute(xname "acnMinSizeInBits", ti.acnMinSizeInBits )),
+                        (XAttribute(xname "uperMaxSizeInBits", ti.uperMaxSizeInBits )),
+                        (XAttribute(xname "uperMinSizeInBits", ti.uperMinSizeInBits )),
+                        (exportAcnNullType ti.acnProperties.encodingPattern)),us )
         (fun ti us -> XElement(xname "BIT_STRING",
+                        (XAttribute(xname "acnMaxSizeInBits", ti.acnMaxSizeInBits )),
+                        (XAttribute(xname "acnMinSizeInBits", ti.acnMinSizeInBits )),
+                        (XAttribute(xname "uperMaxSizeInBits", ti.uperMaxSizeInBits )),
+                        (XAttribute(xname "uperMinSizeInBits", ti.uperMinSizeInBits )),
                         (exportSizeableSizeProp ti.acnProperties.sizeProp),
                         XElement(xname constraintsTag, ti.cons |> List.map(printSizableConstraint printBitStringVal )),
                         XElement(xname withCompConstraintsTag, ti.withcons |> List.map(printSizableConstraint printBitStringVal ))
                         ), us )
         (fun ti us -> XElement(xname "BOOLEAN",
+                        (XAttribute(xname "acnMaxSizeInBits", ti.acnMaxSizeInBits )),
+                        (XAttribute(xname "acnMinSizeInBits", ti.acnMinSizeInBits )),
+                        (XAttribute(xname "uperMaxSizeInBits", ti.uperMaxSizeInBits )),
+                        (XAttribute(xname "uperMinSizeInBits", ti.uperMinSizeInBits )),
                         (exportAcnBooleanEncoding ti.acnProperties.encodingPattern),
                         XElement(xname constraintsTag, ti.cons |> List.map(printGenericConstraint printBoolVal )),
                         XElement(xname withCompConstraintsTag, ti.withcons |> List.map(printGenericConstraint printBoolVal ))
                         ), us )
         (fun ti us -> XElement(xname "Enumerated",
+                        (XAttribute(xname "acnMaxSizeInBits", ti.acnMaxSizeInBits )),
+                        (XAttribute(xname "acnMinSizeInBits", ti.acnMinSizeInBits )),
+                        (XAttribute(xname "uperMaxSizeInBits", ti.uperMaxSizeInBits )),
+                        (XAttribute(xname "uperMinSizeInBits", ti.uperMinSizeInBits )),
                         (exportAcnEndianness ti.acnProperties.endiannessProp),
                         (exportAcnIntSizeProperty ti.acnProperties.sizeProp),
                         (exportAcnIntEncoding ti.acnProperties.encodingProp),
@@ -294,11 +331,19 @@ let private exportType (t:Asn1Type) =
                         XElement(xname withCompConstraintsTag, ti.withcons |> List.map(printGenericConstraint printEnumVal ))
                         ), us )
         (fun ti nc us -> XElement(xname "SEQUENCE_OF",
+                            (XAttribute(xname "acnMaxSizeInBits", ti.acnMaxSizeInBits )),
+                            (XAttribute(xname "acnMinSizeInBits", ti.acnMinSizeInBits )),
+                            (XAttribute(xname "uperMaxSizeInBits", ti.uperMaxSizeInBits )),
+                            (XAttribute(xname "uperMinSizeInBits", ti.uperMinSizeInBits )),
                             (exportSizeableSizeProp ti.acnProperties.sizeProp),
                             XElement(xname constraintsTag, ti.cons |> List.map(printSizableConstraint printSeqOfValue )),
                             XElement(xname withCompConstraintsTag, ti.withcons |> List.map(printSizableConstraint printSeqOfValue )),
                             nc), us )
         (fun ti children us -> XElement(xname "SEQUENCE",
+                                (XAttribute(xname "acnMaxSizeInBits", ti.acnMaxSizeInBits )),
+                                (XAttribute(xname "acnMinSizeInBits", ti.acnMinSizeInBits )),
+                                (XAttribute(xname "uperMaxSizeInBits", ti.uperMaxSizeInBits )),
+                                (XAttribute(xname "uperMinSizeInBits", ti.uperMinSizeInBits )),
                                 children,
                                 XElement(xname constraintsTag, ti.cons |> List.map(printGenericConstraint printSeqValue )),
                                 XElement(xname withCompConstraintsTag, ti.withcons |> List.map(printGenericConstraint printSeqValue ))
@@ -357,6 +402,10 @@ let private exportType (t:Asn1Type) =
                     (exportAcnBooleanEncoding a.acnProperties.encodingPattern),
                     (exportAcnAligment a.acnAligment)), us )
         (fun ti children us -> XElement(xname "CHOICE",
+                                (XAttribute(xname "acnMaxSizeInBits", ti.acnMaxSizeInBits )),
+                                (XAttribute(xname "acnMinSizeInBits", ti.acnMinSizeInBits )),
+                                (XAttribute(xname "uperMaxSizeInBits", ti.uperMaxSizeInBits )),
+                                (XAttribute(xname "uperMinSizeInBits", ti.uperMinSizeInBits )),
                                 (exportChoiceDeterminant ti.acnProperties.enumDeterminant),
                                 children,
                                 XElement(xname constraintsTag, ti.cons |> List.map(printGenericConstraint printChoiceValue )),

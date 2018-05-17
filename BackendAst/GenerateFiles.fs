@@ -300,17 +300,19 @@ let private CreateAdaIndexFile (r:AstRoot) bGenTestCases outDir =
     File.WriteAllText(outFileName, content.Replace("\r",""))
 
 
-let generateVisualStudtioProject (r:DAst.AstRoot) outDir =
+let generateVisualStudtioProject (r:DAst.AstRoot) outDir (arrsSrcTstFilesX, arrsHdrTstFilesX) =
     //generate Visual Studio project file
     let extrSrcFiles, extrHdrFiles = 
         match r.args.encodings |> List.exists ((=) Asn1Encoding.XER) with
         | false     -> [],[]
         | true      -> ["xer.c"],["xer.h"]
+    let arrsSrcTstFiles = (r.programUnits |> List.map (fun z -> z.tetscase_bodyFileName))
+    let arrsHdrTstFiles = (r.programUnits |> List.map (fun z -> z.tetscase_specFileName))
     let vcprjContent = xml_outputs.emitVisualStudioProject 
                         ((r.programUnits |> List.map (fun z -> z.bodyFileName))@extrSrcFiles)
                         ((r.programUnits |> List.map (fun z -> z.specFileName))@extrHdrFiles)
-                        (r.programUnits |> List.map (fun z -> z.tetscase_bodyFileName))
-                        (r.programUnits |> List.map (fun z -> z.tetscase_specFileName))
+                        (arrsSrcTstFiles@arrsSrcTstFilesX)
+                        (arrsHdrTstFiles@arrsHdrTstFilesX)
     let vcprjFileName = Path.Combine(outDir, "VsProject.vcxproj")
     File.WriteAllText(vcprjFileName, vcprjContent)
 
@@ -326,13 +328,13 @@ let generateAll outDir (r:DAst.AstRoot) (encodings: CommonTypes.Asn1Encoding lis
     | false -> ()
     | true  -> 
         CreateMakeFile r r.lang outDir
-        DastTestCaseCreation.printAllTestCases r r.lang outDir
+        let arrsSrcTstFiles, arrsHdrTstFiles = DastTestCaseCreation.printAllTestCases r r.lang outDir
         match r.lang with
         | C    -> 
             CreateCMainFile r  ProgrammingLanguage.C outDir
 
             //CreateTestSuiteFile r ProgrammingLanguage.C outDir "ALL"
-            generateVisualStudtioProject r outDir
+            generateVisualStudtioProject r outDir (arrsSrcTstFiles, arrsHdrTstFiles)
         | Ada  -> 
             //CreateAdaMain r false outDir
             //CreateTestSuiteFile r ProgrammingLanguage.Ada outDir "ALL"

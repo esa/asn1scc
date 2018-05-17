@@ -148,6 +148,16 @@ let printAllTestCases (r:DAst.AstRoot) l outDir =
     let printTestCaseFileDef       =         match l with C -> test_cases_c.printTestCaseFileDef                   | Ada -> test_cases_a.printTestCaseFileDef
     let printTestCaseFileBody      =         match l with C -> test_cases_c.printTestCaseFileBody                  | Ada -> test_cases_a.printTestCaseFileBody
 
+    let arrsSrcTstFiles, arrsHdrTstFiles =
+        [1 .. nFiles] |> 
+        List.map (fun fileIndex ->
+            let testCaseFileName = sprintf "test_case_%03d" fileIndex
+            testCaseFileName + "." + l.BodyExtention, testCaseFileName + "." + l.SpecExtention) |>
+        List.unzip
+
+
+
+    
     [1 .. nFiles] |> 
     List.iter (fun fileIndex ->
         let arrsTestFunctionDefs, arrsTestFunctionBodies,_ = 
@@ -193,6 +203,6 @@ let printAllTestCases (r:DAst.AstRoot) l outDir =
         let outCFileName = Path.Combine(outDir, "mainprogram." + l.BodyExtention)
         File.WriteAllText(outCFileName, contentC.Replace("\r",""))
 
-
+    arrsSrcTstFiles, arrsHdrTstFiles
     //tcFunctors |> Seq.mapi (fun i fnc -> fnc i)
         

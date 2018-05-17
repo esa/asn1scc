@@ -323,9 +323,16 @@ let rec private checkType (r:AstRoot) (parents: Asn1Type list) (curentPath : Sco
                 | _                                  -> raise(SemanticError(loc, (sprintf "Invalid argument type. Expecting %s got %s " (prm.asn1Type.ToString()) (c.Type.AsString))))
             checkRelativePath curState parents t visibleParameters   (RelativePath path)  checkParameter checkAcnType
 
+        let acnLoc =
+            match ref.acnArguments with
+            | []        -> t.Location
+            | arg1::_   -> arg1.location
+
         match ref.acnArguments.Length = ref.resolvedType.acnParameters.Length with
         | true  -> ()
-        | false -> raise(SemanticError(t.Location, (sprintf "Expecting %d arguments, provide %d" ref.acnArguments.Length ref.resolvedType.acnParameters.Length)))
+        | false -> 
+            let errMgs = sprintf "Expecting %d ACN arguments, provide %d" ref.resolvedType.acnParameters.Length ref.acnArguments.Length
+            raise(SemanticError(acnLoc, errMgs))
         let ziped = List.zip ref.acnArguments ref.resolvedType.acnParameters
         let ns = ziped |> List.fold(fun s c -> checkArgument s c) curState
         checkType r parents curentPath ref.resolvedType ns

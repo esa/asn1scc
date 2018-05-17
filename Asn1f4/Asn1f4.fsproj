@@ -29,8 +29,8 @@
     <PlatformTarget>AnyCPU</PlatformTarget>
     <DocumentationFile>bin\Debug\Asn1f4.XML</DocumentationFile>
     <Prefer32Bit>true</Prefer32Bit>
-    <StartWorkingDirectory>C:\prj\GitHub\asn1scc\mantis\0000498</StartWorkingDirectory>
-    <StartArguments>--icduper icdv4.html icd.asn1</StartArguments>
+    <StartWorkingDirectory>C:\prj\GitHub\asn1scc\tmp\11</StartWorkingDirectory>
+    <StartArguments>-icdAcn acn.html -c -ACN -atc -o c_o/ PUS.asn1 PUS.acn</StartArguments>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>

@@ -210,9 +210,12 @@ let GetChoiceEncodingClass  (children : ChChildInfo list) (aligment: AcnAligment
     let minChildSize = children |> List.map(fun c -> c.Type.acnMaxSizeInBits) |> Seq.min
     let alignmentSize = getAlignmentSize aligment
 
-    match p.enumDeterminant with
-    | None      -> 
+    let presenceDeterminentByAcn =
+        p.enumDeterminant.IsSome || (children |> Seq.exists(fun z -> not z.acnPresentWhenConditions.IsEmpty))
+
+    match presenceDeterminentByAcn with
+    | false      -> 
         let indexSize = GetNumberOfBitsForNonNegativeInteger(BigInteger(Seq.length children))
         alignmentSize + indexSize + minChildSize, alignmentSize + indexSize + maxChildSize
-    | Some _    ->
+    | true   ->
         alignmentSize + minChildSize, alignmentSize + maxChildSize
