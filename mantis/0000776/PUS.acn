@@ -1,0 +1,13 @@
+PUS DEFINITIONS ::= BEGIN
+   Telecommand[] {
+        header      [],
+        pus-type    Discr [size 16, encoding pos-int],
+        pus-subtype Discr [size 32, encoding pos-int],
+        payload     [] {
+            switch-on  [present-when pus-type==1 pus-subtype==2],
+            switch-off [present-when pus-type==2 pus-subtype==2]
+        }
+    }
+
+
+END

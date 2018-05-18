@@ -1,0 +1,16 @@
+PUS DEFINITIONS ::= BEGIN
+    
+    Discr ::= INTEGER (0 .. 255)
+    
+    TC-Type ::= CHOICE {
+        switch-on  BOOLEAN,
+        switch-off BOOLEAN
+    }
+    
+    Telecommand ::= SEQUENCE {
+        header      BOOLEAN,
+        payload     TC-Type
+    }
+END
+
+

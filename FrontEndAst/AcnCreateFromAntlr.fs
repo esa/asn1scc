@@ -1358,7 +1358,7 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (m:Asn1Ast.Asn1Mo
             let acnProperties = 
                 {ChoiceAcnProperties.enumDeterminant = tryGetProp combinedProperties (fun x -> match x with CHOICE_DETERMINANT e -> Some e | _ -> None)}
             let acnLoc = acnType |> Option.map (fun z -> z.loc)
-            let indexSize = GetNumberOfBitsForNonNegativeInteger(BigInteger(Seq.length children))
+            let indexSize = GetChoiceUperDeterminantLengthInBits(BigInteger(Seq.length children))
             let minChildSize = mergedChildren  |> List.map(fun x -> x.Type.uperMinSizeInBits) |> Seq.min
             let maxChildSize = mergedChildren  |> List.map(fun x -> x.Type.uperMaxSizeInBits) |> Seq.max
 

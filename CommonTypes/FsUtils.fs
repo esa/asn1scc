@@ -296,6 +296,12 @@ let MinInt() = if WordSize()=64I then BigInteger(System.Int64.MinValue) else Big
 let GetNumberOfBitsForNonNegativeInteger(a:BigInteger) = 
     BigInteger( System.Math.Ceiling(BigInteger.Log(a+BigInteger(1),2.0)) )
 
+let GetChoiceUperDeterminantLengthInBits(nChoiceAlternatives:BigInteger) = 
+    match nChoiceAlternatives with
+    | _ when nChoiceAlternatives > 0I   -> BigInteger( System.Math.Ceiling(BigInteger.Log(nChoiceAlternatives,2.0)) )
+    | _                                 -> 0I
+
+
 let GetNumberOfBitsForNonNegativeInt(a:int) = 
     int (System.Math.Ceiling(BigInteger.Log(BigInteger(a)+1I,2.0)) )
 

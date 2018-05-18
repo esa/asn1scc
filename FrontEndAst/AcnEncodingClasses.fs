@@ -215,7 +215,7 @@ let GetChoiceEncodingClass  (children : ChChildInfo list) (aligment: AcnAligment
 
     match presenceDeterminentByAcn with
     | false      -> 
-        let indexSize = GetNumberOfBitsForNonNegativeInteger(BigInteger(Seq.length children))
+        let indexSize = GetChoiceUperDeterminantLengthInBits(BigInteger(Seq.length children))
         alignmentSize + indexSize + minChildSize, alignmentSize + indexSize + maxChildSize
     | true   ->
         alignmentSize + minChildSize, alignmentSize + maxChildSize

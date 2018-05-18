@@ -212,7 +212,7 @@ let rec printType stgFileName (tas:TypeAssignment) (t:Asn1Type) (m:Asn1Module) (
                 let ChIndex =
                     //let optChild = chInfo.children |> Seq.mapi(fun i c -> icd_uper.EmmitChoiceIndexSingleComment stgFileName (BigInteger (i+1)) c.Name.Value)
                     let sComment = icd_acn.EmmitChoiceIndexComment stgFileName ()
-                    let indexSize = (GetNumberOfBitsForNonNegativeInteger(BigInteger(Seq.length chInfo.children))).ToString()
+                    let indexSize = (GetChoiceUperDeterminantLengthInBits(BigInteger(Seq.length chInfo.children))).ToString()
                     icd_acn.EmmitChoiceChild stgFileName (icd_acn.OddRow stgFileName ()) (BigInteger 1) "ChoiceIndex" sComment    "unsigned int" "N.A." indexSize indexSize
                 let getPresenceWhenNone_uper (i:int) (ch:ChChildInfo) =
                     sprintf "ChoiceIndex = %d" i
