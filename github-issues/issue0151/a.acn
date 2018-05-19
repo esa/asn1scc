@@ -1,0 +1,9 @@
+MyModel DEFINITIONS ::= BEGIN
+
+MySeq []
+{
+    number INTEGER [encoding BCD, size 32],
+    bitStr [size number]
+}
+
+END

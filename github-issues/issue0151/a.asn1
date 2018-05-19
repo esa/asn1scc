@@ -1,0 +1,11 @@
+MyModel DEFINITIONS ::= BEGIN
+
+MyBitString ::= BIT STRING(SIZE(5))
+
+MySeq ::= SEQUENCE
+{
+     bitStr MyBitString
+}
+
+
+END

@@ -105,6 +105,7 @@ let sizeReference (r:AstRoot) (curState:AcnInsertedFieldDependencies) (parents: 
     | None      -> curState
     | Some (RelativePath path) -> 
         let loc = path.Head.Location
+
         let checkParameter (p:AcnParameter) = 
             match p.asn1Type with
             | AcnPrmInteger acnInt -> 
@@ -120,7 +121,12 @@ let sizeReference (r:AstRoot) (curState:AcnInsertedFieldDependencies) (parents: 
                 ai.checkIntHasEnoughSpace sizeMin sizeMax
                 d
             | _              -> raise(SemanticError(loc, (sprintf "Invalid argument type. Expecting INTEGER got %s "  (c.Type.AsString))))
-        checkRelativePath curState parents t visibleParameters   (RelativePath path) checkParameter checkAcnType
+        
+        // first check the sizeable type is a fixed size type (i.e. sizeMin = sizeMax). In this case emit a user error
+        match sizeMin = sizeMax with
+        | true  -> raise(SemanticError(loc, (sprintf "size acn property cannot be assigned to fixed size types. To fix this error remove 'size %s'." (path |> Seq.StrJoin "."))))
+        | false ->
+                checkRelativePath curState parents t visibleParameters   (RelativePath path) checkParameter checkAcnType
 
 
 let checkChoicePresentWhen (r:AstRoot) (curState:AcnInsertedFieldDependencies) (parents: Asn1Type list) (t:Asn1Type)  (ch:Choice) (visibleParameters:(ReferenceToType*AcnParameter) list)    =
