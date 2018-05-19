@@ -254,9 +254,9 @@ let rec private getSizeTypeConstraint (r:Asn1Ast.AstRoot) valueGetter  (c:Asn1As
 let rec private getStringTypeConstraint (r:Asn1Ast.AstRoot) valueGetter  (c:Asn1Ast.Asn1Constraint)   =
     foldBConstraint 
         (fun rv                 -> StrSingleValueConstraint (valueGetter rv)) 
-        (fun rv1 rv2 b1 b2      -> raise(BugErrorException "Range constraint is not expected here"))
-        (fun rv b               -> raise(BugErrorException "Range constraint is not expected here"))
-        (fun rv b               -> raise(BugErrorException "Range constraint is not expected here"))
+        (fun rv1 rv2 b1 b2      -> raise(SemanticError(rv1.Location, "Range constraint is not expected here in string types")))
+        (fun rv b               -> raise(SemanticError(rv.Location, "Range constraint is not expected here in string types")))
+        (fun rv b               -> raise(SemanticError(rv.Location, "Range constraint is not expected here in string types")))
         (fun c                  -> 
             let posIntCon = getRangeTypeConstraint (posIntValGetter r) (posIntValGetter r) c
             StrSizeContraint posIntCon)

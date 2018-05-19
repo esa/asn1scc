@@ -1,0 +1,6 @@
+MyModel DEFINITIONS ::= BEGIN
+
+MyNumericString ::= NumericString(SIZE(10))(FROM("A" .. "Z"))
+
+
+END

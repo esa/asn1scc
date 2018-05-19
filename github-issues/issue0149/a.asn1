@@ -1,0 +1,6 @@
+MyModel DEFINITIONS ::= BEGIN
+
+MyIA5String ::= IA5String("A" .. "Z")
+MyNumericString ::= NumericString("1" .. "9")
+
+END

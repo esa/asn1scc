@@ -183,11 +183,21 @@ let getStringConstraintAlphabetUperRange (c:IA5StringConstraint) (defaultCharSet
     let GetCharSetFromString (str:string) = str.ToCharArray() |> Seq.distinct |> Seq.toArray
     let CharSetUnion(s1: char array) (s2:char array) = [s1;s2] |>Seq.concat |> Seq.distinct |> Seq.toArray
     let GetCharSetFromMinMax a b minIsIn maxIsIn = 
-        let a1 = defaultCharSet |> Array.findIndex(fun ch -> ch = a)
-        let a2 = defaultCharSet |> Array.findIndex(fun ch -> ch = b)
-        let a1 = if minIsIn then a1 else a1+1
-        let a2 = if maxIsIn then a2 else a2-1
-        defaultCharSet.[a1..a2]
+        
+        match defaultCharSet |> Array.tryFindIndex(fun ch -> ch = a) with
+        | Some a1 ->
+            match defaultCharSet |> Array.tryFindIndex(fun ch -> ch = b) with
+            | Some a2 ->
+                let a1 = if minIsIn then a1 else a1+1
+                let a2 = if maxIsIn then a2 else a2-1
+                defaultCharSet.[a1..a2]
+            | None  ->
+                let errMsg = sprintf "Character '%c' does not belong to the base type characters set" b
+                raise(SemanticError(l, errMsg))
+        | None  -> 
+            let errMsg = sprintf "Character '%c' does not belong to the base type characters set" a
+            raise(SemanticError(l, errMsg))
+            
 
     let nextChar (c:System.Char) =
         System.Convert.ToChar(System.Convert.ToInt32(c)+1)
