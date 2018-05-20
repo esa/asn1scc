@@ -54,11 +54,14 @@ type AcnIntEncoding =
     | IntAscii
     | BCD
 
+type MappingFunction  = 
+    | MappingFunction of StringLoc
 
 type IntegerAcnProperties = {
     encodingProp    : AcnIntEncoding        option
     sizeProp        : AcnIntSizeProperty    option
     endiannessProp  : AcnEndianness         option
+    mappingFunction : MappingFunction       option
 }
 
 

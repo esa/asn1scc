@@ -1,0 +1,11 @@
+PUS DEFINITIONS ::= BEGIN
+    
+    LENG-DET ::= INTEGER (1..32) 
+    WORD ::= INTEGER (0..65535) 
+    
+    Milbus ::= SEQUENCE { 
+        words32 SEQUENCE (SIZE(1..32)) OF WORD 
+    }
+END
+
+

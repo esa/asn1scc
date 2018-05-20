@@ -1,0 +1,11 @@
+PUS DEFINITIONS ::= BEGIN
+
+    LENG-DET [encoding pos-int, size 5, mapping-function milbus2] 
+    
+    WORD[] 
+    Milbus[] { 
+        length LENG-DET [], 
+        words32 [size length] 
+    }
+
+END

@@ -484,6 +484,11 @@ let private getIntEncodingProperty errLoc (props:GenericAcnProperty list) =
     | Some (GP_IEEE754_32     ) 
     | Some (GP_IEEE754_64     ) ->   raise(SemanticError(errLoc ,"The encoding property was expected to be one of 'pos-int','twos-complement','BCD' or 'ASCII' "))
 
+let private getMappingFunctionProperty acnErrLoc (props:GenericAcnProperty list) = 
+    match tryGetProp props (fun x -> match x with MAPPING_FUNCTION e -> Some e | _ -> None) with
+    | None  -> None
+    | Some mapFuncName  -> Some (MappingFunction mapFuncName)
+
 let private getRealEncodingProperty errLoc (props:GenericAcnProperty list) = 
     match tryGetProp props (fun x -> match x with ENCODING e -> Some e | _ -> None) with
     | None  -> None
@@ -510,7 +515,7 @@ let private getStringEncodingProperty errLoc (props:GenericAcnProperty list) =
 
 
 
-let checkIntHasEnoughSpace acnEncodingClass acnErrLoc0 asn1Min asn1Max =
+let checkIntHasEnoughSpace acnEncodingClass (hasMappingFunction:bool) acnErrLoc0 asn1Min asn1Max =
     let check_ (minEnc : BigInteger) (maxEnc:BigInteger) =
         match minEnc <= asn1Min && asn1Max <= maxEnc with
         | true                              -> ()
@@ -533,31 +538,33 @@ let checkIntHasEnoughSpace acnEncodingClass acnErrLoc0 asn1Min asn1Max =
         let digits = int (lengthInBiths / 4I)
         check_ 0I (BigInteger.Pow(10I, digits) - 1I) 
 
-
-    match acnEncodingClass with
-    |Integer_uPER                                   -> ()
-    |PositiveInteger_ConstSize_8                    -> checkBinary true 8I
-    |PositiveInteger_ConstSize_big_endian_16        -> checkBinary true 16I
-    |PositiveInteger_ConstSize_little_endian_16     -> checkBinary true 16I
-    |PositiveInteger_ConstSize_big_endian_32        -> checkBinary true 32I
-    |PositiveInteger_ConstSize_little_endian_32     -> checkBinary true 32I
-    |PositiveInteger_ConstSize_big_endian_64        -> checkBinary true 64I
-    |PositiveInteger_ConstSize_little_endian_64     -> checkBinary true 64I
-    |PositiveInteger_ConstSize nBits                -> checkBinary true nBits
-    |TwosComplement_ConstSize_8                     -> checkBinary false 8I
-    |TwosComplement_ConstSize_big_endian_16         -> checkBinary false 16I
-    |TwosComplement_ConstSize_little_endian_16      -> checkBinary false 16I
-    |TwosComplement_ConstSize_big_endian_32         -> checkBinary false 32I
-    |TwosComplement_ConstSize_little_endian_32      -> checkBinary false 32I
-    |TwosComplement_ConstSize_big_endian_64         -> checkBinary false 64I
-    |TwosComplement_ConstSize_little_endian_64      -> checkBinary false 64I
-    |TwosComplement_ConstSize nBits                 -> checkBinary false nBits
-    |ASCII_ConstSize nBits                          -> checkAscii false nBits
-    |ASCII_VarSize_NullTerminated _                 -> ()
-    |ASCII_UINT_ConstSize nBits                     -> checkAscii false nBits
-    |ASCII_UINT_VarSize_NullTerminated _            -> ()
-    |BCD_ConstSize nBits                            -> checkBCD nBits
-    |BCD_VarSize_NullTerminated _                   -> ()
+    match hasMappingFunction with
+    | true  -> ()       //when there is a mapping function we are performing no size check
+    | false -> 
+        match acnEncodingClass with
+        |Integer_uPER                                   -> ()
+        |PositiveInteger_ConstSize_8                    -> checkBinary true 8I
+        |PositiveInteger_ConstSize_big_endian_16        -> checkBinary true 16I
+        |PositiveInteger_ConstSize_little_endian_16     -> checkBinary true 16I
+        |PositiveInteger_ConstSize_big_endian_32        -> checkBinary true 32I
+        |PositiveInteger_ConstSize_little_endian_32     -> checkBinary true 32I
+        |PositiveInteger_ConstSize_big_endian_64        -> checkBinary true 64I
+        |PositiveInteger_ConstSize_little_endian_64     -> checkBinary true 64I
+        |PositiveInteger_ConstSize nBits                -> checkBinary true nBits
+        |TwosComplement_ConstSize_8                     -> checkBinary false 8I
+        |TwosComplement_ConstSize_big_endian_16         -> checkBinary false 16I
+        |TwosComplement_ConstSize_little_endian_16      -> checkBinary false 16I
+        |TwosComplement_ConstSize_big_endian_32         -> checkBinary false 32I
+        |TwosComplement_ConstSize_little_endian_32      -> checkBinary false 32I
+        |TwosComplement_ConstSize_big_endian_64         -> checkBinary false 64I
+        |TwosComplement_ConstSize_little_endian_64      -> checkBinary false 64I
+        |TwosComplement_ConstSize nBits                 -> checkBinary false nBits
+        |ASCII_ConstSize nBits                          -> checkAscii false nBits
+        |ASCII_VarSize_NullTerminated _                 -> ()
+        |ASCII_UINT_ConstSize nBits                     -> checkAscii false nBits
+        |ASCII_UINT_VarSize_NullTerminated _            -> ()
+        |BCD_ConstSize nBits                            -> checkBCD nBits
+        |BCD_VarSize_NullTerminated _                   -> ()
 
 
 
@@ -584,8 +591,9 @@ let private mergeInteger (asn1:Asn1Ast.AstRoot) (loc:SrcLoc) (acnErrLoc: SrcLoc 
                 IntegerAcnProperties.encodingProp    = getIntEncodingProperty acnErrLoc props
                 sizeProp                             = getIntSizeProperty acnErrLoc props
                 endiannessProp                       = getEndianessProperty props
+                mappingFunction                      = getMappingFunctionProperty acnErrLoc props
             }
-        | None  -> {IntegerAcnProperties.encodingProp = None; sizeProp = None; endiannessProp = None }
+        | None  -> {IntegerAcnProperties.encodingProp = None; sizeProp = None; endiannessProp = None; mappingFunction = None }
     let uperMinSizeInBits, uperMaxSizeInBits = 
         match rootCons with
         | []  -> uPER.getRequiredBitsForIntUperEncoding asn1.args.integerSizeInBytes uperRange
@@ -613,7 +621,7 @@ let private mergeInteger (asn1:Asn1Ast.AstRoot) (loc:SrcLoc) (acnErrLoc: SrcLoc 
         | PosInf   a                        -> (a, asn1.args.SIntMax)
         | Full    _                         -> (asn1.args.SIntMin, asn1.args.SIntMax)
 
-    checkIntHasEnoughSpace acnEncodingClass acnErrLoc0 asn1Min asn1Max
+    checkIntHasEnoughSpace acnEncodingClass acnProperties.mappingFunction.IsSome acnErrLoc0 asn1Min asn1Max
     (*
     let checkEnoughSpace =
         let check_ (minEnc : BigInteger) (maxEnc:BigInteger) =
@@ -841,11 +849,11 @@ let private mergeEnumerated (asn1:Asn1Ast.AstRoot) (items: Asn1Ast.NamedItem lis
         | Some acnErrLoc    ->
             {
                 IntegerAcnProperties.encodingProp    = getIntEncodingProperty acnErrLoc props
-                sizeProp                             = 
-                    getIntSizeProperty  acnErrLoc props
+                sizeProp                             = getIntSizeProperty  acnErrLoc props
                 endiannessProp                       = getEndianessProperty props
+                mappingFunction                      = getMappingFunctionProperty acnErrLoc props
             }
-        | None  -> {IntegerAcnProperties.encodingProp = None; sizeProp = None; endiannessProp = None }
+        | None  -> {IntegerAcnProperties.encodingProp = None; sizeProp = None; endiannessProp = None; mappingFunction = None }
     
     let aligment = tryGetProp props (fun x -> match x with ALIGNTONEXT e -> Some e | _ -> None)
     let acnEncodingClass,  acnMinSizeInBits, acnMaxSizeInBits= AcnEncodingClasses.GetEnumeratedEncodingClass items aligment loc acnProperties uperSizeInBits uperSizeInBits endodeValues
@@ -946,7 +954,7 @@ let rec private mapAcnParamTypeToAcnAcnInsertedType (asn1:Asn1Ast.AstRoot) (acn:
     let  acnAligment     = tryGetProp props (fun x -> match x with ALIGNTONEXT e -> Some e | _ -> None)
     match p with
     | AcnPrmInteger acnErrLoc -> 
-        let acnProperties = {IntegerAcnProperties.encodingProp = getIntEncodingProperty acnErrLoc props; sizeProp = getIntSizeProperty acnErrLoc props; endiannessProp = getEndianessProperty props}
+        let acnProperties = {IntegerAcnProperties.encodingProp = getIntEncodingProperty acnErrLoc props; sizeProp = getIntSizeProperty acnErrLoc props; endiannessProp = getEndianessProperty props; mappingFunction = getMappingFunctionProperty acnErrLoc props}
         let encProp = 
             match acnProperties.encodingProp with
             | Some e -> e
@@ -960,7 +968,7 @@ let rec private mapAcnParamTypeToAcnAcnInsertedType (asn1:Asn1Ast.AstRoot) (acn:
         let acnEncodingClass,  acnMinSizeInBits, acnMaxSizeInBits= AcnEncodingClasses.GetIntEncodingClass acnAligment acnErrLoc acnProperties 0I 0I isUnsigned
 
         let checkIntHasEnoughSpace asn1Min asn1Max =
-            checkIntHasEnoughSpace acnEncodingClass acnErrLoc asn1Min asn1Max
+            checkIntHasEnoughSpace acnEncodingClass acnProperties.mappingFunction.IsSome acnErrLoc asn1Min asn1Max
 
         AcnInteger ({AcnInteger.acnProperties=acnProperties; acnAligment=acnAligment; acnEncodingClass = acnEncodingClass;  Location = acnErrLoc; acnMinSizeInBits=acnMinSizeInBits; acnMaxSizeInBits = acnMaxSizeInBits; cons=[]; withcons=[];isUnsigned=isUnsigned; uperRange= Full; checkIntHasEnoughSpace=checkIntHasEnoughSpace})
     | AcnPrmBoolean  acnErrLoc ->
@@ -996,7 +1004,7 @@ let rec private mapAcnParamTypeToAcnAcnInsertedType (asn1:Asn1Ast.AstRoot) (acn:
             let uperRange    = uPER.getIntTypeConstraintUperRange cons  ts.Location
             let alignmentSize = AcnEncodingClasses.getAlignmentSize acnAligment
             let uperMinSizeInBits, uperMaxSizeInBits = uPER.getRequiredBitsForIntUperEncoding asn1.args.integerSizeInBytes uperRange
-            let acnProperties = {IntegerAcnProperties.encodingProp = getIntEncodingProperty ts.Location props; sizeProp = getIntSizeProperty ts.Location props; endiannessProp = getEndianessProperty props}
+            let acnProperties = {IntegerAcnProperties.encodingProp = getIntEncodingProperty ts.Location props; sizeProp = getIntSizeProperty ts.Location props; endiannessProp = getEndianessProperty props; mappingFunction = getMappingFunctionProperty ts.Location props}
             let isUnsigned =
                 match acnProperties.encodingProp with
                 | Some encProp -> 
@@ -1021,7 +1029,7 @@ let rec private mapAcnParamTypeToAcnAcnInsertedType (asn1:Asn1Ast.AstRoot) (acn:
                 AcnEncodingClasses.GetIntEncodingClass acnAligment ts.Location acnProperties uperMinSizeInBits uperMaxSizeInBits isUnsigned
             
             let checkIntHasEnoughSpace asn1Min asn1Max =
-                checkIntHasEnoughSpace acnEncodingClass ts.Location asn1Min asn1Max
+                checkIntHasEnoughSpace acnEncodingClass acnProperties.mappingFunction.IsSome ts.Location asn1Min asn1Max
 
             AcnInteger ({AcnInteger.acnProperties=acnProperties; acnAligment=acnAligment; acnEncodingClass = acnEncodingClass;  Location = ts.Location; acnMinSizeInBits=acnMinSizeInBits; acnMaxSizeInBits = acnMaxSizeInBits;cons=cons;withcons=[];isUnsigned=isUnsigned; uperRange= uperRange;checkIntHasEnoughSpace=checkIntHasEnoughSpace})
         | _                               ->

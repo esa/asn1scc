@@ -103,7 +103,7 @@ let internal createProgramUnits (args:CommandLineSettings) (files: Asn1File list
                     let impFile = files |> Seq.find(fun f -> f.Modules |> Seq.exists (fun md -> md.Name.Value = imp.Name.Value) )
                     impFile.FileNameWithoutExtension) |> 
                 Seq.distinct |> Seq.toList
-
+            let importedProgramUnits = (args.mappingFunctionsModule |> Option.toList) @ importedProgramUnits
             let importedTypes = 
                 importedModules |>
                 Seq.collect(fun imp -> imp.Types |> List.map (fun impType ->{TypeAssignmentInfo.modName = imp.Name.Value; tasName = impType.Value}  )) |> 
@@ -162,7 +162,7 @@ let internal createProgramUnits (args:CommandLineSettings) (files: Asn1File list
                     | _                -> None)
             let importedProgramUnitsFromTasses = 
                 depTypesFromOtherModules |> Seq.map(fun ti -> ToC ti.modName) |> Seq.distinct |> Seq.toList
-            let importedProgramUnits = importedProgramUnitsFromTasses@importedProgramUnitsFromVases |> Seq.distinct |> Seq.toList
+            let importedProgramUnits = (args.mappingFunctionsModule |> Option.toList)@importedProgramUnitsFromTasses@importedProgramUnitsFromVases |> Seq.distinct |> Seq.toList
 
 
             let importedTypes = 
