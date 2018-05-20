@@ -181,27 +181,27 @@ PrintAlphabet2(arrnCharSet) ::= <<
 static byte allowedCharSet[] = {<arrnCharSet:{ch|0x<ch;format="X2">}; wrap, anchor, separator=",">}; 
 >>
 
-InternalItem_string_with_alpha_encode(p, sTasName, i, nLastItemIndex, arrnAlphabetAsciiCodes, nAlphabetLength, nCharIndexSize) ::=<<
+InternalItem_string_with_alpha_encode(p, sErrCode, sTasName, i, nLastItemIndex, arrnAlphabetAsciiCodes, nAlphabetLength, nCharIndexSize) ::=<<
 <PrintAlphabet2(arrnAlphabetAsciiCodes)>
 int charIndex = GetCharIndex(<p>[<i>], allowedCharSet, <nAlphabetLength>);
 BitStream_EncodeConstraintWholeNumber(pBitStrm, charIndex, 0, <nLastItemIndex>);
 >>
-InternalItem_string_with_alpha_decode(p, sTasName, i, nLastItemIndex, arrnAlphabetAsciiCodes, nAlphabetLength, nCharIndexSize) ::=<<
+InternalItem_string_with_alpha_decode(p, sErrCode,  sTasName, i, nLastItemIndex, arrnAlphabetAsciiCodes, nAlphabetLength, nCharIndexSize) ::=<<
 <PrintAlphabet2(arrnAlphabetAsciiCodes)>
 asn1SccSint charIndex = 0;
 ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, &charIndex, 0, <nLastItemIndex>);
-*pErrCode = ret ? 0 : ERR_INSUFFICIENT_DATA;
+*pErrCode = ret ? 0 : <sErrCode>;
 <p>[<i>] = ret ? allowedCharSet[charIndex] : '\0' ;
 >>
 
-InternalItem_string_no_alpha_encode(p, i) ::=<<
+InternalItem_string_no_alpha_encode(p, sErrCode, i) ::=<<
 BitStream_EncodeConstraintWholeNumber(pBitStrm, <p>[<i>], 0, 127);
 >>
 
-InternalItem_string_no_alpha_decode(p, i) ::=<<
+InternalItem_string_no_alpha_decode(p, sErrCode, i) ::=<<
 asn1SccSint charValue=0;
 ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, &charValue, 0, 127);
-*pErrCode = ret ? 0 : ERR_INSUFFICIENT_DATA;
+*pErrCode = ret ? 0 : <sErrCode>;
 <p>[<i>] = (char)charValue;
 >>
 

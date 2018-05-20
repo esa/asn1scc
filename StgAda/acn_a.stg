@@ -130,107 +130,124 @@ end if;
 >>
 
 
-PositiveInteger_ConstSize_encode(p, nFixedSize, soMF, soMFM, nUperMin, nUperMax) ::= <<
+PositiveInteger_ConstSize_encode(p, sErrCode, nFixedSize, soMF, soMFM, nUperMin, nUperMax) ::= <<
 <rtlModuleName()>.Acn_Enc_Int_PositiveInteger_ConstSize(S, K, <MFen(soMF=soMF, soMFM=soMFM, p=p)>, <nFixedSize>);
 >>
 
-PositiveInteger_ConstSize_decode(p, nFixedSize, soMF, soMFM, nUperMin, nUperMax) ::= <<
+PositiveInteger_ConstSize_decode(p, sErrCode, nFixedSize, soMF, soMFM, nUperMin, nUperMax) ::= <<
 <if(soMF)>
 <rtlModuleName()>.Acn_Dec_Int_PositiveInteger_ConstSize(S, K, mapFuncIntVal, 0, 0, Asn1Int(2)**<nFixedSize> - 1, <nFixedSize>, result);
+result.ErrorCode := <sErrCode>;
 <MF(p=p, soMF=soMF, soMFM=soMFM, nUperMin=nUperMin, nUperMax=nUperMax)>
 
 <else>
 <rtlModuleName()>.Acn_Dec_Int_PositiveInteger_ConstSize(S, K, <p>, <nUperMin>, <nUperMax>, <nFixedSize>, result);
+result.ErrorCode := <sErrCode>;
 
 <endif>
 >>
 
-PositiveInteger_ConstSize_8_encode(p, soMF, soMFM, nUperMin, nUperMax) ::= "<rtlModuleName()>.Acn_Enc_Int_PositiveInteger_ConstSize_8(S, K, <MFen(soMF=soMF, soMFM=soMFM, p=p)>);"
-PositiveInteger_ConstSize_8_decode(p, soMF, soMFM, nUperMin, nUperMax) ::= <<
+PositiveInteger_ConstSize_8_encode(p, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "<rtlModuleName()>.Acn_Enc_Int_PositiveInteger_ConstSize_8(S, K, <MFen(soMF=soMF, soMFM=soMFM, p=p)>);"
+PositiveInteger_ConstSize_8_decode(p, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
 <if(soMF)>
 <rtlModuleName()>.Acn_Dec_Int_PositiveInteger_ConstSize_8(S, K, mapFuncIntVal, 0, 0, Asn1Int(255), result);
+result.ErrorCode := <sErrCode>;
 <MF(p=p, soMF=soMF, soMFM=soMFM, nUperMin=nUperMin, nUperMax=nUperMax)>
 
 <else>
 <rtlModuleName()>.Acn_Dec_Int_PositiveInteger_ConstSize_8(S, K, <p>, <nUperMin>, <nUperMax>, result);
+result.ErrorCode := <sErrCode>;
 
 <endif>
 >>
 
-PositiveInteger_ConstSize_big_endian_16_encode(p, soMF, soMFM, nUperMin, nUperMax) ::= "<rtlModuleName()>.Acn_Enc_Int_PositiveInteger_ConstSize_big_endian_16(S, K, <MFen(soMF=soMF, soMFM=soMFM, p=p)>);"
-PositiveInteger_ConstSize_big_endian_16_decode(p, soMF, soMFM, nUperMin, nUperMax) ::= <<
+PositiveInteger_ConstSize_big_endian_16_encode(p, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "<rtlModuleName()>.Acn_Enc_Int_PositiveInteger_ConstSize_big_endian_16(S, K, <MFen(soMF=soMF, soMFM=soMFM, p=p)>);"
+PositiveInteger_ConstSize_big_endian_16_decode(p, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
 <if(soMF)>
 <rtlModuleName()>.Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_16(S, K, mapFuncIntVal, 0, 0, Asn1Int(65535), result);
+result.ErrorCode := <sErrCode>;
 <MF(p=p, soMF=soMF, soMFM=soMFM, nUperMin=nUperMin, nUperMax=nUperMax)>
 
 <else>
 <rtlModuleName()>.Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_16(S, K, <p>, <nUperMin>, <nUperMax>, result);
+result.ErrorCode := <sErrCode>;
+
 <endif>
 >>
 
 
-PositiveInteger_ConstSize_big_endian_32_encode(p, soMF, soMFM, nUperMin, nUperMax) ::= "<rtlModuleName()>.Acn_Enc_Int_PositiveInteger_ConstSize_big_endian_32(S, K, <MFen(soMF=soMF, soMFM=soMFM, p=p)>);"
-PositiveInteger_ConstSize_big_endian_32_decode(p, soMF, soMFM, nUperMin, nUperMax) ::= <<
+PositiveInteger_ConstSize_big_endian_32_encode(p, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "<rtlModuleName()>.Acn_Enc_Int_PositiveInteger_ConstSize_big_endian_32(S, K, <MFen(soMF=soMF, soMFM=soMFM, p=p)>);"
+PositiveInteger_ConstSize_big_endian_32_decode(p, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
 <if(soMF)>
 <rtlModuleName()>.Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_32(S, K, mapFuncIntVal, 0, 0, Asn1Int'Last, result);
+result.ErrorCode := <sErrCode>;
 <MF(p=p, soMF=soMF, soMFM=soMFM, nUperMin=nUperMin, nUperMax=nUperMax)>
 
 <else>
 <rtlModuleName()>.Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_32(S, K, <p>, <nUperMin>, <nUperMax>, result);
+result.ErrorCode := <sErrCode>;
 
 <endif>
 >>
 
-PositiveInteger_ConstSize_big_endian_64_encode(p, soMF, soMFM, nUperMin, nUperMax) ::= "<rtlModuleName()>.Acn_Enc_Int_PositiveInteger_ConstSize_big_endian_64(S, K, <MFen(soMF=soMF, soMFM=soMFM, p=p)>);"
-PositiveInteger_ConstSize_big_endian_64_decode(p, soMF, soMFM, nUperMin, nUperMax) ::= <<
+PositiveInteger_ConstSize_big_endian_64_encode(p, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "<rtlModuleName()>.Acn_Enc_Int_PositiveInteger_ConstSize_big_endian_64(S, K, <MFen(soMF=soMF, soMFM=soMFM, p=p)>);"
+PositiveInteger_ConstSize_big_endian_64_decode(p, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
 <if(soMF)>
 <rtlModuleName()>.Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_64(S, K, mapFuncIntVal, 0, 0, Asn1Int'Last, result);
+result.ErrorCode := <sErrCode>;
 <MF(p=p, soMF=soMF, soMFM=soMFM, nUperMin=nUperMin, nUperMax=nUperMax)>
 
 <else>
 <rtlModuleName()>.Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_64(S, K, <p>, <nUperMin>, <nUperMax>, result);
+result.ErrorCode := <sErrCode>;
 
 <endif>
 >>
 
-PositiveInteger_ConstSize_little_endian_16_encode(p, soMF, soMFM, nUperMin, nUperMax) ::= "<rtlModuleName()>.Acn_Enc_Int_PositiveInteger_ConstSize_little_endian_16(S, K, <MFen(soMF=soMF, soMFM=soMFM, p=p)>);"
-PositiveInteger_ConstSize_little_endian_16_decode(p, soMF, soMFM, nUperMin, nUperMax) ::= <<
+PositiveInteger_ConstSize_little_endian_16_encode(p, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "<rtlModuleName()>.Acn_Enc_Int_PositiveInteger_ConstSize_little_endian_16(S, K, <MFen(soMF=soMF, soMFM=soMFM, p=p)>);"
+PositiveInteger_ConstSize_little_endian_16_decode(p, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
 <if(soMF)>
 <rtlModuleName()>.Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_16(S, K, mapFuncIntVal, 0, 0, Asn1Int'Last, result);
+result.ErrorCode := <sErrCode>;
 <MF(p=p, soMF=soMF, soMFM=soMFM, nUperMin=nUperMin, nUperMax=nUperMax)>
 
 <else>
 <rtlModuleName()>.Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_16(S, K, <p>, <nUperMin>, <nUperMax>, result);
+result.ErrorCode := <sErrCode>;
 
 <endif>
 >>
 
-PositiveInteger_ConstSize_little_endian_32_encode(p, soMF, soMFM, nUperMin, nUperMax) ::= "<rtlModuleName()>.Acn_Enc_Int_PositiveInteger_ConstSize_little_endian_32(S, K, <MFen(soMF=soMF, soMFM=soMFM, p=p)>);"
-PositiveInteger_ConstSize_little_endian_32_decode(p, soMF, soMFM, nUperMin, nUperMax) ::= <<
+PositiveInteger_ConstSize_little_endian_32_encode(p, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "<rtlModuleName()>.Acn_Enc_Int_PositiveInteger_ConstSize_little_endian_32(S, K, <MFen(soMF=soMF, soMFM=soMFM, p=p)>);"
+PositiveInteger_ConstSize_little_endian_32_decode(p, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
 <if(soMF)>
 <rtlModuleName()>.Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_32(S, K, mapFuncIntVal, 0, 0, Asn1Int'Last,  result);
+result.ErrorCode := <sErrCode>;
 <MF(p=p, soMF=soMF, soMFM=soMFM, nUperMin=nUperMin, nUperMax=nUperMax)>
 
 <else>
 <rtlModuleName()>.Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_32(S, K, <p>, <nUperMin>, <nUperMax>,  result);
+result.ErrorCode := <sErrCode>;
 
 <endif>
 >>
 
-PositiveInteger_ConstSize_little_endian_64_encode(p, soMF, soMFM, nUperMin, nUperMax) ::= "<rtlModuleName()>.Acn_Enc_Int_PositiveInteger_ConstSize_little_endian_64(S, K, <MFen(soMF=soMF, soMFM=soMFM, p=p)>);"
-PositiveInteger_ConstSize_little_endian_64_decode(p, soMF, soMFM, nUperMin, nUperMax) ::= <<
+PositiveInteger_ConstSize_little_endian_64_encode(p, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "<rtlModuleName()>.Acn_Enc_Int_PositiveInteger_ConstSize_little_endian_64(S, K, <MFen(soMF=soMF, soMFM=soMFM, p=p)>);"
+PositiveInteger_ConstSize_little_endian_64_decode(p, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
 <if(soMF)>
 <rtlModuleName()>.Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_64(S, K, mapFuncIntVal, 0, 0, Asn1Int'Last, result);
+result.ErrorCode := <sErrCode>;
 <MF(p=p, soMF=soMF, soMFM=soMFM, nUperMin=nUperMin, nUperMax=nUperMax)>
 
 <else>
 <rtlModuleName()>.Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_64(S, K, <p>, <nUperMin>, <nUperMax>, result);
+result.ErrorCode := <sErrCode>;
 
 <endif>
 >>
 
-PositiveInteger_VarSize_LengthEmbedded_encode(p, soMF, soMFM, nUperMin) ::= "<rtlModuleName()>.Acn_Enc_Int_PositiveInteger_VarSize_LengthEmbedded(S, K, <MFen(soMF=soMF, soMFM=soMFM, p=p)>);"
-PositiveInteger_VarSize_LengthEmbedded_decode(p, soMF, soMFM, nUperMin) ::= <<
+PositiveInteger_VarSize_LengthEmbedded_encode(p, sErrCode, soMF, soMFM, nUperMin) ::= "<rtlModuleName()>.Acn_Enc_Int_PositiveInteger_VarSize_LengthEmbedded(S, K, <MFen(soMF=soMF, soMFM=soMFM, p=p)>);"
+PositiveInteger_VarSize_LengthEmbedded_decode(p, sErrCode, soMF, soMFM, nUperMin) ::= <<
 <if(soMF)>
 <rtlModuleName()>.Acn_Dec_Int_PositiveInteger_VarSize_LengthEmbedded(S, K, mapFuncIntVal, 0, 0, result);
 IF Result.Success THEN
@@ -238,228 +255,263 @@ IF Result.Success THEN
     Result.Success := <p> \>= <nUperMin>;
     IF NOT Result.Success THEN
         <p> := <nUperMin>;
-        Result.ErrorCode := ERR_INCORRECT_STREAM;
+        result.ErrorCode := <sErrCode>;
     END IF;
 END IF;
 
 <else>
 <rtlModuleName()>.Acn_Dec_Int_PositiveInteger_VarSize_LengthEmbedded(S, K, <p>, <nUperMin>, result);
+result.ErrorCode := <sErrCode>;
 
 <endif>
 >>
 
 
-TwosComplement_ConstSize_encode(p, soMF, soMFM, nFixedSize, nUperMin, nUperMax) ::= "<rtlModuleName()>.Acn_Enc_Int_TwosComplement_ConstSize(S, K, <MFen(soMF=soMF, soMFM=soMFM, p=p)>, <nFixedSize>);"
-TwosComplement_ConstSize_decode(p, soMF, soMFM, nFixedSize, nUperMin, nUperMax) ::= <<
+TwosComplement_ConstSize_encode(p, sErrCode, soMF, soMFM, nFixedSize, nUperMin, nUperMax) ::= "<rtlModuleName()>.Acn_Enc_Int_TwosComplement_ConstSize(S, K, <MFen(soMF=soMF, soMFM=soMFM, p=p)>, <nFixedSize>);"
+TwosComplement_ConstSize_decode(p, sErrCode, soMF, soMFM, nFixedSize, nUperMin, nUperMax) ::= <<
 <if(soMF)>
 <rtlModuleName()>.Acn_Dec_Int_TwosComplement_ConstSize(S, K, mapFuncIntVal, Asn1Int'First, Asn1Int'Last, <nFixedSize>, result);
+result.ErrorCode := <sErrCode>;
 <MF(p=p, soMF=soMF, soMFM=soMFM, nUperMin=nUperMin, nUperMax=nUperMax)>
 
 <else>
 <rtlModuleName()>.Acn_Dec_Int_TwosComplement_ConstSize(S, K, <p>, <nUperMin>, <nUperMax>, <nFixedSize>, result);
+result.ErrorCode := <sErrCode>;
 
 <endif>
 >>
 
-TwosComplement_ConstSize_8_encode(p, soMF, soMFM, nUperMin, nUperMax) ::= "<rtlModuleName()>.Acn_Enc_Int_TwosComplement_ConstSize_8(S, K, <MFen(soMF=soMF, soMFM=soMFM, p=p)>);"
-TwosComplement_ConstSize_8_decode(p, soMF, soMFM, nUperMin, nUperMax) ::= <<
+TwosComplement_ConstSize_8_encode(p, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "<rtlModuleName()>.Acn_Enc_Int_TwosComplement_ConstSize_8(S, K, <MFen(soMF=soMF, soMFM=soMFM, p=p)>);"
+TwosComplement_ConstSize_8_decode(p, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
 <if(soMF)>
 <rtlModuleName()>.Acn_Dec_Int_TwosComplement_ConstSize_8(S, K, mapFuncIntVal, -Asn1Int(128), Asn1Int(127), result);
+result.ErrorCode := <sErrCode>;
 <MF(p=p, soMF=soMF, soMFM=soMFM, nUperMin=nUperMin, nUperMax=nUperMax)>
 
 <else>
 <rtlModuleName()>.Acn_Dec_Int_TwosComplement_ConstSize_8(S, K, <p>, <nUperMin>, <nUperMax>, result);
+result.ErrorCode := <sErrCode>;
 
 <endif>
 >>
 
-TwosComplement_ConstSize_big_endian_16_encode(p, soMF, soMFM, nUperMin, nUperMax) ::= "<rtlModuleName()>.Acn_Enc_Int_TwosComplement_ConstSize_big_endian_16(S, K, <MFen(soMF=soMF, soMFM=soMFM, p=p)>);"
-TwosComplement_ConstSize_big_endian_16_decode(p, soMF, soMFM, nUperMin, nUperMax) ::= <<
+TwosComplement_ConstSize_big_endian_16_encode(p, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "<rtlModuleName()>.Acn_Enc_Int_TwosComplement_ConstSize_big_endian_16(S, K, <MFen(soMF=soMF, soMFM=soMFM, p=p)>);"
+TwosComplement_ConstSize_big_endian_16_decode(p, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
 <if(soMF)>
 <rtlModuleName()>.Acn_Dec_Int_TwosComplement_ConstSize_big_endian_16(S, K, mapFuncIntVal, Asn1Int'First, Asn1Int'Last, result);
+result.ErrorCode := <sErrCode>;
 <MF(p=p, soMF=soMF, soMFM=soMFM, nUperMin=nUperMin, nUperMax=nUperMax)>
 
 <else>
 <rtlModuleName()>.Acn_Dec_Int_TwosComplement_ConstSize_big_endian_16(S, K, <p>, <nUperMin>, <nUperMax>, result);
+result.ErrorCode := <sErrCode>;
 
 <endif>
 >>
 
-TwosComplement_ConstSize_big_endian_32_encode(p, soMF, soMFM, nUperMin, nUperMax) ::= "<rtlModuleName()>.Acn_Enc_Int_TwosComplement_ConstSize_big_endian_32(S, K, <MFen(soMF=soMF, soMFM=soMFM, p=p)>);"
-TwosComplement_ConstSize_big_endian_32_decode(p, soMF, soMFM, nUperMin, nUperMax) ::= <<
+TwosComplement_ConstSize_big_endian_32_encode(p, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "<rtlModuleName()>.Acn_Enc_Int_TwosComplement_ConstSize_big_endian_32(S, K, <MFen(soMF=soMF, soMFM=soMFM, p=p)>);"
+TwosComplement_ConstSize_big_endian_32_decode(p, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
 <if(soMF)>
 <rtlModuleName()>.Acn_Dec_Int_TwosComplement_ConstSize_big_endian_32(S, K, mapFuncIntVal, Asn1Int'First, Asn1Int'Last, result);
+result.ErrorCode := <sErrCode>;
 <MF(p=p, soMF=soMF, soMFM=soMFM, nUperMin=nUperMin, nUperMax=nUperMax)>
 
 <else>
 <rtlModuleName()>.Acn_Dec_Int_TwosComplement_ConstSize_big_endian_32(S, K, <p>, <nUperMin>, <nUperMax>, result);
+result.ErrorCode := <sErrCode>;
 
 <endif>
 >>
 
-TwosComplement_ConstSize_big_endian_64_encode(p, soMF, soMFM, nUperMin, nUperMax) ::= "<rtlModuleName()>.Acn_Enc_Int_TwosComplement_ConstSize_big_endian_64(S, K, <MFen(soMF=soMF, soMFM=soMFM, p=p)>);"
-TwosComplement_ConstSize_big_endian_64_decode(p, soMF, soMFM, nUperMin, nUperMax) ::= <<
+TwosComplement_ConstSize_big_endian_64_encode(p, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "<rtlModuleName()>.Acn_Enc_Int_TwosComplement_ConstSize_big_endian_64(S, K, <MFen(soMF=soMF, soMFM=soMFM, p=p)>);"
+TwosComplement_ConstSize_big_endian_64_decode(p, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
 <if(soMF)>
 <rtlModuleName()>.Acn_Dec_Int_TwosComplement_ConstSize_big_endian_64(S, K, mapFuncIntVal, Asn1Int'First, Asn1Int'Last, result);
+result.ErrorCode := <sErrCode>;
 <MF(p=p, soMF=soMF, soMFM=soMFM, nUperMin=nUperMin, nUperMax=nUperMax)>
 
 <else>
 <rtlModuleName()>.Acn_Dec_Int_TwosComplement_ConstSize_big_endian_64(S, K, <p>, <nUperMin>, <nUperMax>, result);
+result.ErrorCode := <sErrCode>;
 
 <endif>
 >>
 
-TwosComplement_ConstSize_little_endian_16_encode(p, soMF, soMFM, nUperMin, nUperMax) ::= "<rtlModuleName()>.Acn_Enc_Int_TwosComplement_ConstSize_little_endian_16(S, K, <MFen(soMF=soMF, soMFM=soMFM, p=p)>);"
-TwosComplement_ConstSize_little_endian_16_decode(p, soMF, soMFM, nUperMin, nUperMax) ::= <<
+TwosComplement_ConstSize_little_endian_16_encode(p, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "<rtlModuleName()>.Acn_Enc_Int_TwosComplement_ConstSize_little_endian_16(S, K, <MFen(soMF=soMF, soMFM=soMFM, p=p)>);"
+TwosComplement_ConstSize_little_endian_16_decode(p, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
 <if(soMF)>
 <rtlModuleName()>.Acn_Dec_Int_TwosComplement_ConstSize_little_endian_16(S, K, mapFuncIntVal, Asn1Int'First, Asn1Int'Last, result);
+result.ErrorCode := <sErrCode>;
 <MF(p=p, soMF=soMF, soMFM=soMFM, nUperMin=nUperMin, nUperMax=nUperMax)>
 
 <else>
 <rtlModuleName()>.Acn_Dec_Int_TwosComplement_ConstSize_little_endian_16(S, K, <p>, <nUperMin>, <nUperMax>, result);
+result.ErrorCode := <sErrCode>;
 
 <endif>
 >>
 
-TwosComplement_ConstSize_little_endian_32_encode(p, soMF, soMFM, nUperMin, nUperMax) ::= "<rtlModuleName()>.Acn_Enc_Int_TwosComplement_ConstSize_little_endian_32(S, K, <MFen(soMF=soMF, soMFM=soMFM, p=p)>);"
-TwosComplement_ConstSize_little_endian_32_decode(p, soMF, soMFM, nUperMin, nUperMax) ::= <<
+TwosComplement_ConstSize_little_endian_32_encode(p, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "<rtlModuleName()>.Acn_Enc_Int_TwosComplement_ConstSize_little_endian_32(S, K, <MFen(soMF=soMF, soMFM=soMFM, p=p)>);"
+TwosComplement_ConstSize_little_endian_32_decode(p, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
 <if(soMF)>
 <rtlModuleName()>.Acn_Dec_Int_TwosComplement_ConstSize_little_endian_32(S, K, mapFuncIntVal, Asn1Int'First, Asn1Int'Last, result);
+result.ErrorCode := <sErrCode>;
 <MF(p=p, soMF=soMF, soMFM=soMFM, nUperMin=nUperMin, nUperMax=nUperMax)>
 
 <else>
 <rtlModuleName()>.Acn_Dec_Int_TwosComplement_ConstSize_little_endian_32(S, K, <p>, <nUperMin>, <nUperMax>, result);
+result.ErrorCode := <sErrCode>;
 
 <endif>
 >>
 
-TwosComplement_ConstSize_little_endian_64_encode(p, soMF, soMFM, nUperMin, nUperMax) ::= "<rtlModuleName()>.Acn_Enc_Int_TwosComplement_ConstSize_little_endian_64(S, K, <MFen(soMF=soMF, soMFM=soMFM, p=p)>);"
-TwosComplement_ConstSize_little_endian_64_decode(p, soMF, soMFM, nUperMin, nUperMax) ::= <<
+TwosComplement_ConstSize_little_endian_64_encode(p, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "<rtlModuleName()>.Acn_Enc_Int_TwosComplement_ConstSize_little_endian_64(S, K, <MFen(soMF=soMF, soMFM=soMFM, p=p)>);"
+TwosComplement_ConstSize_little_endian_64_decode(p, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
 <if(soMF)>
 <rtlModuleName()>.Acn_Dec_Int_TwosComplement_ConstSize_little_endian_64(S, K, mapFuncIntVal, Asn1Int'First, Asn1Int'Last, result);
+result.ErrorCode := <sErrCode>;
 <MF(p=p, soMF=soMF, soMFM=soMFM, nUperMin=nUperMin, nUperMax=nUperMax)>
 
 <else>
 <rtlModuleName()>.Acn_Dec_Int_TwosComplement_ConstSize_little_endian_64(S, K, <p>, <nUperMin>, <nUperMax>, result);
+result.ErrorCode := <sErrCode>;
 
 <endif>
 >>
 
-TwosComplement_VarSize_LengthEmbedded_encode(p,soMF, soMFM) ::= "<rtlModuleName()>.Acn_Enc_Int_TwosComplement_VarSize_LengthEmbedded(S, K, <MFen(soMF=soMF, soMFM=soMFM, p=p)>);"
-TwosComplement_VarSize_LengthEmbedded_decode(p,soMF, soMFM) ::= <<
+TwosComplement_VarSize_LengthEmbedded_encode(p, sErrCode, soMF, soMFM) ::= "<rtlModuleName()>.Acn_Enc_Int_TwosComplement_VarSize_LengthEmbedded(S, K, <MFen(soMF=soMF, soMFM=soMFM, p=p)>);"
+TwosComplement_VarSize_LengthEmbedded_decode(p, sErrCode, soMF, soMFM) ::= <<
 <if(soMF)>
 <rtlModuleName()>.Acn_Dec_Int_TwosComplement_VarSize_LengthEmbedded(S, K, <p>, result);
+result.ErrorCode := <sErrCode>;
 IF Result.Success THEN
     <p> := <soMFM>.<soMF>_decode(mapFuncIntVal);
 END IF;
 
 <else>
 <rtlModuleName()>.Acn_Dec_Int_TwosComplement_VarSize_LengthEmbedded(S, K, <p>, result);
+result.ErrorCode := <sErrCode>;
 
 <endif>
 >>
 
 
-BCD_ConstSize_encode(p, soMF, soMFM, nUperMin, nUperMax, nNibbles) ::= "<rtlModuleName()>.Acn_Enc_Int_BCD_ConstSize(S, K, <MFen(soMF=soMF, soMFM=soMFM, p=p)>, <nNibbles>);"
-BCD_ConstSize_decode(p, soMF, soMFM, nUperMin, nUperMax, nNibbles) ::= <<
+BCD_ConstSize_encode(p, sErrCode, soMF, soMFM, nUperMin, nUperMax, nNibbles) ::= "<rtlModuleName()>.Acn_Enc_Int_BCD_ConstSize(S, K, <MFen(soMF=soMF, soMFM=soMFM, p=p)>, <nNibbles>);"
+BCD_ConstSize_decode(p, sErrCode, soMF, soMFM, nUperMin, nUperMax, nNibbles) ::= <<
 <if(soMF)>
 <rtlModuleName()>.Acn_Dec_Int_BCD_ConstSize(S, K, mapFuncIntVal, Asn1Int'First, Asn1Int'Last, <nNibbles>, result);
+result.ErrorCode := <sErrCode>;
 <MF(p=p, soMF=soMF, soMFM=soMFM, nUperMin=nUperMin, nUperMax=nUperMax)>
 
 <else>
 <rtlModuleName()>.Acn_Dec_Int_BCD_ConstSize(S, K, <p>, <nUperMin>, <nUperMax>, <nNibbles>, result);
+result.ErrorCode := <sErrCode>;
 
 <endif>
 >>
 
-BCD_VarSize_LengthEmbedded_encode(p, soMF, soMFM) ::= "<rtlModuleName()>.Acn_Enc_Int_BCD_VarSize_LengthEmbedded(S, K, <MFen(soMF=soMF, soMFM=soMFM, p=p)>);"
-BCD_VarSize_LengthEmbedded_decode(p, soMF, soMFM) ::= <<
+BCD_VarSize_LengthEmbedded_encode(p, sErrCode, soMF, soMFM) ::= "<rtlModuleName()>.Acn_Enc_Int_BCD_VarSize_LengthEmbedded(S, K, <MFen(soMF=soMF, soMFM=soMFM, p=p)>);"
+BCD_VarSize_LengthEmbedded_decode(p, sErrCode, soMF, soMFM) ::= <<
 <if(soMF)>
 <rtlModuleName()>.Acn_Dec_Int_BCD_VarSize_LengthEmbedded(S, K, mapFuncIntVal, result);
+result.ErrorCode := <sErrCode>;
 IF Result.Success THEN
     <p> := <soMFM>.<soMF>_decode(mapFuncIntVal);
 END IF;
 
 <else>
 <rtlModuleName()>.Acn_Dec_Int_BCD_VarSize_LengthEmbedded(S, K, <p>, result);
+result.ErrorCode := <sErrCode>;
 
 <endif>
 >>
 
-BCD_VarSize_NullTerminated_encode(p, soMF, soMFM, nUperMin, nUperMax) ::= "<rtlModuleName()>.Acn_Enc_Int_BCD_VarSize_NullTerminated(S, K, <MFen(soMF=soMF, soMFM=soMFM, p=p)>);"
-BCD_VarSize_NullTerminated_decode(p, soMF, soMFM, nUperMin, nUperMax) ::= <<
+BCD_VarSize_NullTerminated_encode(p, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "<rtlModuleName()>.Acn_Enc_Int_BCD_VarSize_NullTerminated(S, K, <MFen(soMF=soMF, soMFM=soMFM, p=p)>);"
+BCD_VarSize_NullTerminated_decode(p, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
 <if(soMF)>
 <rtlModuleName()>.Acn_Dec_Int_BCD_VarSize_NullTerminated(S, K, mapFuncIntVal, Asn1Int'First, Asn1Int'Last, result);
+result.ErrorCode := <sErrCode>;
 <MF(p=p, soMF=soMF, soMFM=soMFM, nUperMin=nUperMin, nUperMax=nUperMax)>
 
 <else>
 <rtlModuleName()>.Acn_Dec_Int_BCD_VarSize_NullTerminated(S, K, <p>, <nUperMin>, <nUperMax>, result);
+result.ErrorCode := <sErrCode>;
 
 <endif>
 >>
 
-ASCII_ConstSize_encode(p, soMF, soMFM, nUperMin, nUperMax, nSizeInBytes) ::= "<rtlModuleName()>.Acn_Enc_Int_ASCII_ConstSize(S, K, <MFen(soMF=soMF, soMFM=soMFM, p=p)>, <nSizeInBytes>);"
-ASCII_ConstSize_decode(p, soMF, soMFM, nUperMin, nUperMax, nSizeInBytes) ::= <<
+ASCII_ConstSize_encode(p, sErrCode, soMF, soMFM, nUperMin, nUperMax, nSizeInBytes) ::= "<rtlModuleName()>.Acn_Enc_Int_ASCII_ConstSize(S, K, <MFen(soMF=soMF, soMFM=soMFM, p=p)>, <nSizeInBytes>);"
+ASCII_ConstSize_decode(p, sErrCode, soMF, soMFM, nUperMin, nUperMax, nSizeInBytes) ::= <<
 <if(soMF)>
 <rtlModuleName()>.Acn_Dec_Int_ASCII_ConstSize(S, K, mapFuncIntVal, Asn1Int'First, Asn1Int'Last, <nSizeInBytes>, result);
+result.ErrorCode := <sErrCode>;
 <MF(p=p, soMF=soMF, soMFM=soMFM, nUperMin=nUperMin, nUperMax=nUperMax)>
 
 <else>
 <rtlModuleName()>.Acn_Dec_Int_ASCII_ConstSize(S, K, <p>, <nUperMin>, <nUperMax>, <nSizeInBytes>, result);
+result.ErrorCode := <sErrCode>;
 
 <endif>
 >>
 
 
-ASCII_UINT_ConstSize_encode(p, soMF, soMFM, nUperMin, nUperMax, nSizeInBytes) ::= "<rtlModuleName()>.Acn_Enc_UInt_ASCII_ConstSize(S, K, <MFen(soMF=soMF, soMFM=soMFM, p=p)>, <nSizeInBytes>);"
-ASCII_UINT_ConstSize_decode(p, soMF, soMFM, nUperMin, nUperMax, nSizeInBytes) ::= <<
+ASCII_UINT_ConstSize_encode(p, sErrCode, soMF, soMFM, nUperMin, nUperMax, nSizeInBytes) ::= "<rtlModuleName()>.Acn_Enc_UInt_ASCII_ConstSize(S, K, <MFen(soMF=soMF, soMFM=soMFM, p=p)>, <nSizeInBytes>);"
+ASCII_UINT_ConstSize_decode(p, sErrCode, soMF, soMFM, nUperMin, nUperMax, nSizeInBytes) ::= <<
 <if(soMF)>
 <rtlModuleName()>.Acn_Dec_UInt_ASCII_ConstSize(S, K, mapFuncIntVal, Asn1Int'First, Asn1Int'Last, <nSizeInBytes>, result);
+result.ErrorCode := <sErrCode>;
 <MF(p=p, soMF=soMF, soMFM=soMFM, nUperMin=nUperMin, nUperMax=nUperMax)>
 
 <else>
 <rtlModuleName()>.Acn_Dec_UInt_ASCII_ConstSize(S, K, <p>, <nUperMin>, <nUperMax>, <nSizeInBytes>, result);
+result.ErrorCode := <sErrCode>;
 
 <endif>
 >>
 
 
 
-ASCII_VarSize_LengthEmbedded_encode(p, soMF, soMFM) ::= "<rtlModuleName()>.Acn_Enc_Int_ASCII_VarSize_LengthEmbedded(S, K, <MFen(soMF=soMF, soMFM=soMFM, p=p)>);"
-ASCII_VarSize_LengthEmbedded_decode(p, soMF, soMFM) ::= <<
+ASCII_VarSize_LengthEmbedded_encode(p, sErrCode, soMF, soMFM) ::= "<rtlModuleName()>.Acn_Enc_Int_ASCII_VarSize_LengthEmbedded(S, K, <MFen(soMF=soMF, soMFM=soMFM, p=p)>);"
+ASCII_VarSize_LengthEmbedded_decode(p, sErrCode, soMF, soMFM) ::= <<
 <if(soMF)>
 <rtlModuleName()>.Acn_Dec_Int_ASCII_VarSize_LengthEmbedded(S, K, mapFuncIntVal, result);
+result.ErrorCode := <sErrCode>;
 IF Result.Success THEN
     <p> := <soMFM>.<soMF>_decode(mapFuncIntVal);
 END IF;
 
 <else>
 <rtlModuleName()>.Acn_Dec_Int_ASCII_VarSize_LengthEmbedded(S, K, <p>, result);
+result.ErrorCode := <sErrCode>;
 
 <endif>
 >>
 
-ASCII_VarSize_NullTerminated_encode(p, soMF, soMFM, nUperMin, nUperMax) ::= "<rtlModuleName()>.Acn_Enc_Int_ASCII_VarSize_NullTerminated(S, K, <MFen(soMF=soMF, soMFM=soMFM, p=p)>);"
-ASCII_VarSize_NullTerminated_decode(p, soMF, soMFM, nUperMin, nUperMax) ::= <<
+ASCII_VarSize_NullTerminated_encode(p, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "<rtlModuleName()>.Acn_Enc_Int_ASCII_VarSize_NullTerminated(S, K, <MFen(soMF=soMF, soMFM=soMFM, p=p)>);"
+ASCII_VarSize_NullTerminated_decode(p, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
 <if(soMF)>
 <rtlModuleName()>.Acn_Dec_Int_ASCII_VarSize_NullTerminated(S, K, mapFuncIntVal, result);
+result.ErrorCode := <sErrCode>;
 <MF(p=p, soMF=soMF, soMFM=soMFM, nUperMin=nUperMin, nUperMax=nUperMax)>
 
 <else>
 <rtlModuleName()>.Acn_Dec_Int_ASCII_VarSize_NullTerminated(S, K, <p>, result);
+result.ErrorCode := <sErrCode>;
 
 <endif>
 >>
 
 
-ASCII_UINT_VarSize_NullTerminated_encode(p, soMF, soMFM, nUperMin, nUperMax) ::= "<rtlModuleName()>.Acn_Enc_UInt_ASCII_VarSize_NullTerminated(S, K, <MFen(soMF=soMF, soMFM=soMFM, p=p)>);"
-ASCII_UINT_VarSize_NullTerminated_decode(p, soMF, soMFM, nUperMin, nUperMax) ::= <<
+ASCII_UINT_VarSize_NullTerminated_encode(p, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "<rtlModuleName()>.Acn_Enc_UInt_ASCII_VarSize_NullTerminated(S, K, <MFen(soMF=soMF, soMFM=soMFM, p=p)>);"
+ASCII_UINT_VarSize_NullTerminated_decode(p, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
 <if(soMF)>
 <rtlModuleName()>.Acn_Dec_UInt_ASCII_VarSize_NullTerminated(S, K, mapFuncIntVal, result);
+result.ErrorCode := <sErrCode>;
 <MF(p=p, soMF=soMF, soMFM=soMFM, nUperMin=nUperMin, nUperMax=nUperMax)>
 
 <else>
 <rtlModuleName()>.Acn_Dec_UInt_ASCII_VarSize_NullTerminated(S, K, <p>, result);
+result.ErrorCode := <sErrCode>;
 
 <endif>
 >>
@@ -496,17 +548,29 @@ END IF;
 >>
 
 
-Real_32_big_endian_encode(p) ::= "<rtlModuleName()>.Acn_Enc_Real_IEEE754_32_big_endian(S, K, <p>);"
-Real_32_big_endian_decode(p) ::= "<rtlModuleName()>.Acn_Dec_Real_IEEE754_32_big_endian(S, K, <p>, result);"
+Real_32_big_endian_encode(p, sErrCode) ::= "<rtlModuleName()>.Acn_Enc_Real_IEEE754_32_big_endian(S, K, <p>);"
+Real_32_big_endian_decode(p, sErrCode) ::= <<
+<rtlModuleName()>.Acn_Dec_Real_IEEE754_32_big_endian(S, K, <p>, result);
+result.ErrorCode := <sErrCode>;
+>>
 
-Real_64_big_endian_encode(p) ::= "<rtlModuleName()>.Acn_Enc_Real_IEEE754_64_big_endian(S, K, <p>);"
-Real_64_big_endian_decode(p) ::= "<rtlModuleName()>.Acn_Dec_Real_IEEE754_64_big_endian(S, K, <p>, result);"
+Real_64_big_endian_encode(p, sErrCode) ::= "<rtlModuleName()>.Acn_Enc_Real_IEEE754_64_big_endian(S, K, <p>);"
+Real_64_big_endian_decode(p, sErrCode) ::= <<
+<rtlModuleName()>.Acn_Dec_Real_IEEE754_64_big_endian(S, K, <p>, result);
+result.ErrorCode := <sErrCode>;
+>>
 
-Real_32_little_endian_encode(p) ::= "<rtlModuleName()>.Acn_Enc_Real_IEEE754_32_little_endian(S, K, <p>);"
-Real_32_little_endian_decode(p) ::= "<rtlModuleName()>.Acn_Dec_Real_IEEE754_32_little_endian(S, K, <p>, result);"
+Real_32_little_endian_encode(p, sErrCode) ::= "<rtlModuleName()>.Acn_Enc_Real_IEEE754_32_little_endian(S, K, <p>);"
+Real_32_little_endian_decode(p, sErrCode) ::= <<
+<rtlModuleName()>.Acn_Dec_Real_IEEE754_32_little_endian(S, K, <p>, result);
+result.ErrorCode := <sErrCode>;
+>>
 
-Real_64_little_endian_encode(p) ::= "<rtlModuleName()>.Acn_Enc_Real_IEEE754_64_little_endian(S, K, <p>);"
-Real_64_little_endian_decode(p) ::= "<rtlModuleName()>.Acn_Dec_Real_IEEE754_64_little_endian(S, K, <p>, result);"
+Real_64_little_endian_encode(p, sErrCode) ::= "<rtlModuleName()>.Acn_Enc_Real_IEEE754_64_little_endian(S, K, <p>);"
+Real_64_little_endian_decode(p, sErrCode) ::= <<
+<rtlModuleName()>.Acn_Dec_Real_IEEE754_64_little_endian(S, K, <p>, result);
+result.ErrorCode := <sErrCode>;
+>>
 
 
 
@@ -620,31 +684,62 @@ end if;
 
 
 
-Acn_String_Ascii_FixSize_encode(p, nAsn1Max) ::= "<rtlModuleName()>.Acn_Enc_String_Ascii_FixSize(S, K, <p>);"
-Acn_String_Ascii_FixSize_decode(p, nAsn1Max) ::= "<rtlModuleName()>.Acn_Dec_String_Ascii_FixSize(S, K, <p>, result);"
+Acn_String_Ascii_FixSize_encode(p, sErrCode, nAsn1Max) ::= "<rtlModuleName()>.Acn_Enc_String_Ascii_FixSize(S, K, <p>);"
+Acn_String_Ascii_FixSize_decode(p, sErrCode, nAsn1Max) ::= <<
+<rtlModuleName()>.Acn_Dec_String_Ascii_FixSize(S, K, <p>, result);
+result.ErrorCode := <sErrCode>;
+>>
 
-Acn_String_Ascii_Null_Teminated_encode(p, nAsn1Max, sNull) ::= "<rtlModuleName()>.Acn_Enc_String_Ascii_Null_Teminated(S, K, <sNull>, <p>);"
-Acn_String_Ascii_Null_Teminated_decode(p, nAsn1Max, sNull) ::= "<rtlModuleName()>.Acn_Dec_String_Ascii_Null_Teminated(S, K, <sNull>, <p>, result);"
-
-Acn_String_Ascii_External_Field_Determinant_encode(p, nAsn1Max, sExtFld) ::= "<rtlModuleName()>.Acn_Enc_String_Ascii_External_Field_Determinant(S, K, <p>);"
-Acn_String_Ascii_External_Field_Determinant_decode(p, nAsn1Max, sExtFld) ::= "<rtlModuleName()>.Acn_Dec_String_Ascii_External_Field_Determinant(S, K, <rtlModuleName()>.Asn1Int(<sExtFld>), <p>, result);"
-
-Acn_String_Ascii_Internal_Field_Determinant_encode(p, nAsn1Max, nAsn1Min, nInternalLengthDeterminantSizeInBits) ::= "<rtlModuleName()>.Acn_Enc_String_Ascii_Internal_Field_Determinant(S, K, <nAsn1Min>, <nInternalLengthDeterminantSizeInBits>, <p>);"
-Acn_String_Ascii_Internal_Field_Determinant_decode(p, nAsn1Max, nAsn1Min, nInternalLengthDeterminantSizeInBits) ::= "<rtlModuleName()>.Acn_Dec_String_Ascii_Internal_Field_Determinant(S, K, <nAsn1Min>, <nAsn1Max>, <nInternalLengthDeterminantSizeInBits>, <p>, result);"
-
-
-Acn_String_CharIndex_FixSize_encode(p, nAsn1Max, arrnAlphabetAsciiCodes, nCharSetSize, sTasName, nCharSize) ::= "<rtlModuleName()>.Acn_Enc_String_CharIndex_FixSize(S, K, <sTasName>_alpha_set, <nCharSize>, <p>);"
-Acn_String_CharIndex_FixSize_decode(p, nAsn1Max, arrnAlphabetAsciiCodes, nCharSetSize, sTasName, nCharSize) ::= "<rtlModuleName()>.Acn_Dec_String_CharIndex_FixSize(S, K, <sTasName>_alpha_set, <nCharSize>, <p>, result);"
-
-Acn_String_CharIndex_External_Field_Determinant_encode(p, nAsn1Max, arrnAlphabetAsciiCodes, nCharSetSize, sExtFld, sTasName, nCharSize) ::= "<rtlModuleName()>.Acn_Enc_String_CharIndex_External_Field_Determinant(S, K, <sTasName>_alpha_set, <nCharSize>, <p>);"
-Acn_String_CharIndex_External_Field_Determinant_decode(p, nAsn1Max, arrnAlphabetAsciiCodes, nCharSetSize, sExtFld, sTasName, nCharSize) ::= "<rtlModuleName()>.Acn_Dec_String_CharIndex_External_Field_Determinant(S, K, <sTasName>_alpha_set, <nCharSize>, <rtlModuleName()>.Asn1Int(<sExtFld>), <p>, result);"
-
-Acn_IA5String_CharIndex_External_Field_Determinant_encode(p, nAsn1Max, sExtFld, sTasName, nCharSize) ::= "<rtlModuleName()>.Acn_Enc_String_CharIndex_External_Field_Determinant(S, K, <sTasName>_alpha_set, <nCharSize>, <p>);"
-Acn_IA5String_CharIndex_External_Field_Determinant_decode(p, nAsn1Max, sExtFld, sTasName, nCharSize) ::= "<rtlModuleName()>.Acn_Dec_String_CharIndex_External_Field_Determinant(S, K, <sTasName>_alpha_set, <nCharSize>, <rtlModuleName()>.Asn1Int(<sExtFld>), <p>, result);"
+Acn_String_Ascii_Null_Teminated_encode(p, sErrCode, nAsn1Max, sNull) ::= "<rtlModuleName()>.Acn_Enc_String_Ascii_Null_Teminated(S, K, <sNull>, <p>);"
+Acn_String_Ascii_Null_Teminated_decode(p, sErrCode, nAsn1Max, sNull) ::= <<
+<rtlModuleName()>.Acn_Dec_String_Ascii_Null_Teminated(S, K, <sNull>, <p>, result);
+result.ErrorCode := <sErrCode>;
+>>
 
 
-Acn_String_CharIndex_Internal_Field_Determinant_encode(p, sTasName, nCharSize, nAsn1Max, nAsn1Min, nInternalLengthDeterminantSizeInBits) ::= "<rtlModuleName()>.Acn_Enc_String_CharIndex_Internal_Field_Determinant(S, K, <sTasName>_alpha_set, <nCharSize>, <nAsn1Min>, <nInternalLengthDeterminantSizeInBits>, <p>);"
-Acn_String_CharIndex_Internal_Field_Determinant_decode(p, sTasName, nCharSize, nAsn1Max, nAsn1Min, nInternalLengthDeterminantSizeInBits) ::= "<rtlModuleName()>.Acn_Dec_String_CharIndex_Internal_Field_Determinant(S, K, <sTasName>_alpha_set, <nCharSize>, <nAsn1Min>, <nAsn1Max>, <nInternalLengthDeterminantSizeInBits>, <p>, result);"
+Acn_String_Ascii_External_Field_Determinant_encode(p, sErrCode, nAsn1Max, sExtFld) ::= "<rtlModuleName()>.Acn_Enc_String_Ascii_External_Field_Determinant(S, K, <p>);"
+Acn_String_Ascii_External_Field_Determinant_decode(p, sErrCode, nAsn1Max, sExtFld) ::= <<
+<rtlModuleName()>.Acn_Dec_String_Ascii_External_Field_Determinant(S, K, <rtlModuleName()>.Asn1Int(<sExtFld>), <p>, result);
+result.ErrorCode := <sErrCode>;
+>>
+
+
+Acn_String_Ascii_Internal_Field_Determinant_encode(p, sErrCode, nAsn1Max, nAsn1Min, nInternalLengthDeterminantSizeInBits) ::= "<rtlModuleName()>.Acn_Enc_String_Ascii_Internal_Field_Determinant(S, K, <nAsn1Min>, <nInternalLengthDeterminantSizeInBits>, <p>);"
+Acn_String_Ascii_Internal_Field_Determinant_decode(p, sErrCode, nAsn1Max, nAsn1Min, nInternalLengthDeterminantSizeInBits) ::= <<
+<rtlModuleName()>.Acn_Dec_String_Ascii_Internal_Field_Determinant(S, K, <nAsn1Min>, <nAsn1Max>, <nInternalLengthDeterminantSizeInBits>, <p>, result);
+result.ErrorCode := <sErrCode>;
+>>
+
+
+
+Acn_String_CharIndex_FixSize_encode(p, sErrCode, nAsn1Max, arrnAlphabetAsciiCodes, nCharSetSize, sTasName, nCharSize) ::= "<rtlModuleName()>.Acn_Enc_String_CharIndex_FixSize(S, K, <sTasName>_alpha_set, <nCharSize>, <p>);"
+Acn_String_CharIndex_FixSize_decode(p, sErrCode, nAsn1Max, arrnAlphabetAsciiCodes, nCharSetSize, sTasName, nCharSize) ::= <<
+<rtlModuleName()>.Acn_Dec_String_CharIndex_FixSize(S, K, <sTasName>_alpha_set, <nCharSize>, <p>, result);
+result.ErrorCode := <sErrCode>;
+>>
+
+
+Acn_String_CharIndex_External_Field_Determinant_encode(p, sErrCode, nAsn1Max, arrnAlphabetAsciiCodes, nCharSetSize, sExtFld, sTasName, nCharSize) ::= "<rtlModuleName()>.Acn_Enc_String_CharIndex_External_Field_Determinant(S, K, <sTasName>_alpha_set, <nCharSize>, <p>);"
+Acn_String_CharIndex_External_Field_Determinant_decode(p, sErrCode, nAsn1Max, arrnAlphabetAsciiCodes, nCharSetSize, sExtFld, sTasName, nCharSize) ::= <<
+<rtlModuleName()>.Acn_Dec_String_CharIndex_External_Field_Determinant(S, K, <sTasName>_alpha_set, <nCharSize>, <rtlModuleName()>.Asn1Int(<sExtFld>), <p>, result);
+result.ErrorCode := <sErrCode>;
+>>
+
+
+Acn_IA5String_CharIndex_External_Field_Determinant_encode(p, sErrCode, nAsn1Max, sExtFld, sTasName, nCharSize) ::= "<rtlModuleName()>.Acn_Enc_String_CharIndex_External_Field_Determinant(S, K, <sTasName>_alpha_set, <nCharSize>, <p>);"
+Acn_IA5String_CharIndex_External_Field_Determinant_decode(p, sErrCode, nAsn1Max, sExtFld, sTasName, nCharSize) ::= <<
+<rtlModuleName()>.Acn_Dec_String_CharIndex_External_Field_Determinant(S, K, <sTasName>_alpha_set, <nCharSize>, <rtlModuleName()>.Asn1Int(<sExtFld>), <p>, result);
+result.ErrorCode := <sErrCode>;
+>>
+
+
+
+Acn_String_CharIndex_Internal_Field_Determinant_encode(p, sErrCode, sTasName, nCharSize, nAsn1Max, nAsn1Min, nInternalLengthDeterminantSizeInBits) ::= "<rtlModuleName()>.Acn_Enc_String_CharIndex_Internal_Field_Determinant(S, K, <sTasName>_alpha_set, <nCharSize>, <nAsn1Min>, <nInternalLengthDeterminantSizeInBits>, <p>);"
+Acn_String_CharIndex_Internal_Field_Determinant_decode(p, sErrCode, sTasName, nCharSize, nAsn1Max, nAsn1Min, nInternalLengthDeterminantSizeInBits) ::= <<
+<rtlModuleName()>.Acn_Dec_String_CharIndex_Internal_Field_Determinant(S, K, <sTasName>_alpha_set, <nCharSize>, <nAsn1Min>, <nAsn1Max>, <nInternalLengthDeterminantSizeInBits>, <p>, result);
+result.ErrorCode := <sErrCode>;
+>>
+
 
 
 
@@ -684,58 +779,7 @@ end loop;
 
 
 
-string_InternalItem_encode(p, i) ::=<<
-charIndex := <rtlModuleName()>.CharacterPos(<p>(<i>));
-<rtlModuleName()>.UPER_Enc_ConstraintWholeNumber(S, K, <rtlModuleName()>.Asn1Int(charIndex), 0, 7);
->>
 
-
-string_InternalItem_decode(p, i) ::=<<
-<rtlModuleName()>.UPER_Dec_ConstraintWholeNumberInt(S, K, charIndex, 0, 127, 7, result.Success);
-<p>(<i>) := Character'Val(charIndex);
->>
-
-
-str_FixedSize_encode(p, sTasName, i, sInternalItem, nFixedSize, nIntItemMinSize, nIntItemMaxSize, nAlignSize) ::= <<
-<loopFixedItem_enc(i=i, sInternalItem=sInternalItem, fixedSize=nFixedSize, nfixedSizeUperLimit = nFixedSize, nCurOffset="0", nAlignSize=nAlignSize, nIntItemMinSize=nIntItemMinSize, nIntItemMaxSize=nIntItemMaxSize)>
->>
-
-str_FixedSize_decode(p, sTasName, i, sInternalItem, nFixedSize, nIntItemMinSize, nIntItemMaxSize, nAlignSize) ::= <<
-val := <sTasName>_Init;
-result := <rtlModuleName()>.ASN1_RESULT'(Success => TRUE, ErrorCode => 0);
-<loopFixedItem_dec(i=i, sInternalItem=sInternalItem, fixedSize=nFixedSize, nfixedSizeUperLimit = nFixedSize, nCurOffset="0", nAlignSize=nAlignSize, nIntItemMinSize=nIntItemMinSize, nIntItemMaxSize=nIntItemMaxSize)>
->>
-
-str_VarSize_encode(p, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize) ::= <<
-length := <rtlModuleName()>.getStringSize(<p>);
-result.Success := length >= <nSizeMin> AND length \<= <nSizeMax>;
-IF result.Success THEN
-    <rtlModuleName()>.UPER_Enc_ConstraintWholeNumber(S, K, <rtlModuleName()>.Asn1Int(length), <nSizeMin>, <nSizeInBits>);
-    <loopFixedItem_enc(i=i, sInternalItem=sInternalItem, fixedSize="length", nfixedSizeUperLimit = nSizeMax, nCurOffset=nSizeInBits, nAlignSize=nAlignSize, nIntItemMinSize=nIntItemMinSize, nIntItemMaxSize=nIntItemMaxSize)>
-END IF;
->>
-
-str_VarSize_decode(p, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize) ::= <<
-val := <sTasName>_Init;
-result.ErrorCode := <rtlModuleName()>.ERR_INSUFFICIENT_DATA; 
-<rtlModuleName()>.UPER_Dec_ConstraintWholeNumberInt(S, K, length, <nSizeMin>, <nSizeMax>, <nSizeInBits>, result.Success);
-<loopFixedItem_dec(i=i, sInternalItem=sInternalItem, fixedSize="length", nfixedSizeUperLimit = nSizeMax, nCurOffset=nSizeInBits, nAlignSize=nAlignSize, nIntItemMinSize=nIntItemMinSize, nIntItemMaxSize=nIntItemMaxSize)>
->>
-
-
-str_external_field_encode(p, sTasName, i, sInternalItem, nSizeMin, nSizeMax,  nIntItemMinSize, nIntItemMaxSize, sExtFld, nAlignSize) ::= <<
-length := <rtlModuleName()>.getStringSize(<p>);
-result.Success := length >= <nSizeMin> AND length \<= <nSizeMax>;
-IF result.Success THEN
-    <loopFixedItem_enc(i=i, sInternalItem=sInternalItem, fixedSize="length", nfixedSizeUperLimit = nSizeMax, nCurOffset="0", nAlignSize=nAlignSize, nIntItemMinSize=nIntItemMinSize, nIntItemMaxSize=nIntItemMaxSize)>
-END IF;
->>
-
-str_external_field_decode(p, sTasName, i, sInternalItem, nSizeMin, nSizeMax,  nIntItemMinSize, nIntItemMaxSize, sExtFld, nAlignSize) ::= <<
-val := <sTasName>_Init;
-result := <rtlModuleName()>.ASN1_RESULT'(Success => <sExtFld> >= <nSizeMin> AND <sExtFld>\<=<nSizeMax>, ErrorCode => 0);
-<loopFixedItem_dec(i=i, sInternalItem=sInternalItem, fixedSize=["Integer(",sExtFld,")"], nfixedSizeUperLimit = nSizeMax, nCurOffset="0", nAlignSize=nAlignSize, nIntItemMinSize=nIntItemMinSize, nIntItemMaxSize=nIntItemMaxSize)>
->>
 
 
 
@@ -755,12 +799,12 @@ END IF;
 >>
 
 
-bit_oct_sqf_external_field_encode(sTasName, p, i, sInternalItem, nSizeMin, nSizeMax, nIntItemMinSize, nIntItemMaxSize, sExtFld, nAlignSize) ::= <<
+bit_oct_sqf_external_field_encode(sTasName, sErrCode, p, i, sInternalItem, nSizeMin, nSizeMax, nIntItemMinSize, nIntItemMaxSize, sExtFld, nAlignSize) ::= <<
 <loopFixedItem_enc(i=i, sInternalItem=sInternalItem, fixedSize=[p,".Length"], nfixedSizeUperLimit = nSizeMax, nCurOffset="0", nAlignSize=nAlignSize, nIntItemMinSize=nIntItemMinSize, nIntItemMaxSize=nIntItemMaxSize)>
 >>
 
 
-bit_oct_sqf_external_field_decode(sTasName, p, i, sInternalItem, nSizeMin, nSizeMax, nIntItemMinSize, nIntItemMaxSize, sExtFld, nAlignSize) ::= <<
+bit_oct_sqf_external_field_decode(sTasName, sErrCode, p, i, sInternalItem, nSizeMin, nSizeMax, nIntItemMinSize, nIntItemMaxSize, sExtFld, nAlignSize) ::= <<
 val := <sTasName>_Init;
 result := <rtlModuleName()>.ASN1_RESULT'(Success => <nSizeMin>\<=<sExtFld> AND <sExtFld>\<=<nSizeMax>, ErrorCode => 0);
 IF result.Success THEN
@@ -1269,44 +1313,5 @@ RefTypeArgument2(v, sModName, sTasName, sParamName, sRefTypePath, bHasSuccess) :
 
 
 
-MultiUpdateCheckWithFirstValue(sCurValue, sFirstValue) ::= <<
-result := <rtlModuleName()>.ASN1_RESULT'(Success => <sCurValue> = <sFirstValue>, ErrorCode => <rtlModuleName()>.ERR_INCORRECT_DATA);
->>
-
-MultiUpdateCheckWithFirstValueInteger(sCurValue, sFirstValue) ::= <<
-result := <rtlModuleName()>.ASN1_RESULT'(Success => <sCurValue> = <sFirstValue>, ErrorCode => <rtlModuleName()>.ERR_INCORRECT_DATA);
->>
-
-MultiParamUpdateCheckWithFirstValue(sCurValue, sFirstValue) ::= <<
-result := <rtlModuleName()>.ASN1_RESULT'(Success => <sCurValue> = <sFirstValue>, ErrorCode => <rtlModuleName()>.ERR_INCORRECT_DATA);
->>
-
-CheckBeforeAssignToIntField_min_max(sTmpVar0, nMin, nMax) ::= <<
-result := <rtlModuleName()>.ASN1_RESULT'(Success => <sTmpVar0> >= <nMin> AND <sTmpVar0>\<=<nMax>, ErrorCode => <rtlModuleName()>.ERR_INCORRECT_DATA);
->>
-CheckBeforeAssignToIntField_max(sTmpVar0, nMax) ::= <<
-result := <rtlModuleName()>.ASN1_RESULT'(Success => <sTmpVar0>\<=<nMax>, ErrorCode => <rtlModuleName()>.ERR_INCORRECT_DATA);
->>
-CheckBeforeAssignToIntField_min(sTmpVar0, nMin) ::= <<
-result := <rtlModuleName()>.ASN1_RESULT'(Success => <sTmpVar0> >= <nMin>, ErrorCode => <rtlModuleName()>.ERR_INCORRECT_DATA);
->>
-
-UpdateAsn1Field(sAcnField, sTmpVar) ::= <<
-<sAcnField> := <sTmpVar>; -- 23945
->>
-
-
-UpdateAsn1IntegerField(sAcnField, sTmpVar0, sAsn1FieldType) ::= <<
-<sAcnField> := <sTmpVar0>; -- 23946
->>
-
-
-MultiUpdateCheckWithFirstValue2(sCurValue, sFirstValue) ::= <<
-result := <rtlModuleName()>.ASN1_RESULT'(Success => result.success AND <sCurValue> = <sFirstValue>, ErrorCode => <rtlModuleName()>.ERR_INCORRECT_DATA);
->>
-
-MultiParamUpdateCheckWithFirstValue2(sCurValue, sFirstValue) ::= <<
-result := <rtlModuleName()>.ASN1_RESULT'(Success => result.success AND <sCurValue> = <sFirstValue>, ErrorCode => <rtlModuleName()>.ERR_INCORRECT_DATA);
->>
 
 

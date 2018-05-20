@@ -489,25 +489,27 @@ result.ErrorCode := <rtlModuleName()>.ERR_INSUFFICIENT_DATA;
 Declare_CharValue() ::= "charIndex:Integer;"
 
 
-InternalItem_string_no_alpha_encode(p, i) ::=<<
+InternalItem_string_no_alpha_encode(p, sErrCode, i) ::=<<
 charIndex := <rtlModuleName()>.CharacterPos(<p>(<i>));
 <rtlModuleName()>.UPER_Enc_ConstraintWholeNumber(S, K, <rtlModuleName()>.Asn1Int(charIndex), 0, 7);
 >>
 
 
-InternalItem_string_no_alpha_decode(p, i) ::=<<
+InternalItem_string_no_alpha_decode(p, sErrCode, i) ::=<<
 <rtlModuleName()>.UPER_Dec_ConstraintWholeNumberInt(S, K, charIndex, 0, 127, 7, result.Success);
+result.ErrorCode := <sErrCode>;
 <p>(<i>) := Character'Val(charIndex);
 >>
 
 
-InternalItem_string_with_alpha_encode(p, sTasName, i, nLastItemIndex, arrnAlphabetAsciiCodes, nAlphabetLength, nCharIndexSize) ::=<<
+InternalItem_string_with_alpha_encode(p, sErrCode, sTasName, i, nLastItemIndex, arrnAlphabetAsciiCodes, nAlphabetLength, nCharIndexSize) ::=<<
 charIndex := <rtlModuleName()>.GetZeroBasedCharIndex(<p>(<i>), <sTasName>_alpha_set);
 <rtlModuleName()>.UPER_Enc_ConstraintWholeNumber(S, K, <rtlModuleName()>.Asn1Int(charIndex), 0, <nCharIndexSize>);
 >>
 
-InternalItem_string_with_alpha_decode(p, sTasName, i, nLastItemIndex, arrnAlphabetAsciiCodes, nAlphabetLength, nCharIndexSize) ::=<<
+InternalItem_string_with_alpha_decode(p, sErrCode, sTasName, i, nLastItemIndex, arrnAlphabetAsciiCodes, nAlphabetLength, nCharIndexSize) ::=<<
 <rtlModuleName()>.UPER_Dec_ConstraintWholeNumberInt(S, K, charIndex, 0, <nLastItemIndex>, <nCharIndexSize>, result.Success);
+result.ErrorCode := <sErrCode>;
 <p>(<i>) := <sTasName>_alpha_set(charIndex+1);
 >>
 

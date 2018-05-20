@@ -18,7 +18,7 @@ open CommonTypes
             abstract member positiveInteger_ConstSize_8_x : inp:IntegerMacros_positiveInteger_ConstSize_8 -> string;
             member this.positiveInteger_ConstSize_8 (p:string) (soMF:string option) (soMFM:string option) (nUperMin:BigInteger) (nUperMax:BigInteger) (codec:Codec) : string =
                 this.positiveInteger_ConstSize_8_x ({IntegerMacros_positiveInteger_ConstSize_8.p=p; soMF=soMF; soMFM=soMFM; nUperMin=nUperMin; nUperMax=nUperMax; codec=codec})
-            abstract member positiveInteger_ConstSize_big_endian_16 : p:string -> soMF:string option -> soMFM:string option -> nUperMin:BigInteger -> nUperMax:BigInteger -> codec:Codec -> string;
+            abstract member positiveInteger_ConstSize_big_endian_16 : p:string -> sErrCode:string -> soMF:string option -> soMFM:string option -> nUperMin:BigInteger -> nUperMax:BigInteger -> codec:Codec -> string;
 
         type RealMacros =
             abstract member positiveInteger_ConstSize_8 : p:string -> soMF:string option -> soMFM:string option -> nUperMin:BigInteger-> nUperMax:BigInteger-> codec:Codec -> string;
