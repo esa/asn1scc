@@ -114,26 +114,6 @@ flag <sFuncName>(<sTypeDefName>* pVal1, BitStream* pBitStrm, int* pErrCode<if(ar
 >>
 
 
-PrintType_encode(sMainBody, bAligmentApplied, sAligmentValue, bHasDependencies, sDependencyUpdates) ::= <<
-<if(bAligmentApplied)>
-Acn_AlignTo<sAligmentValue>(pBitStrm);
-
-<endif>
-<if(bHasDependencies)>
-<sDependencyUpdates>
-
-<endif>
-<sMainBody>
->>
-
-
-PrintType_decode(sMainBody, bAligmentApplied, sAligmentValue, bHasDependencies, sDependencyUpdates) ::= <<
-<if(bAligmentApplied)>
-Acn_AlignTo<sAligmentValue>(pBitStrm);
-
-<endif>
-<sMainBody>
->>
 
 
 PrintTypeNoUpdate_encode(sMainBody, bAligmentApplied, sAligmentValue) ::= <<
@@ -151,6 +131,18 @@ for(<i>=0; (<i> \< (int)<fixedSize>) && ret; <i>++)
 }
 >>
 
+
+
+alignToNext_encode(sMainBody, sAligmentValue, nAligmentValue) ::= <<
+Acn_AlignTo<sAligmentValue>(pBitStrm);
+<sMainBody>
+>>
+
+
+alignToNext_decode(sMainBody, sAligmentValue, nAligmentValue) ::= <<
+Acn_AlignTo<sAligmentValue>(pBitStrm);
+<sMainBody>
+>>
 
 
 

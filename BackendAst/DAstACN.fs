@@ -122,6 +122,53 @@ let getDeterminantTypeCheckEqual (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) 
         | Asn1AcnAst.AcnPrmRefType (md,ts)  -> multiAcnUpdate_checkEqual_pri
         *)
 
+let handleAlignemntForAsn1Types (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec:CommonTypes.Codec) (acnAligment     : AcnAligment option ) (funcBody:State-> ErroCode->((Asn1AcnAst.RelativePath*Asn1AcnAst.AcnParameter) list) -> CallerScope -> ((AcnFuncBodyResult option)*State))  =
+    let alignToNext                      =  match l with C -> acn_c.alignToNext                         | Ada -> acn_a.alignToNext
+    match acnAligment with
+    | None      -> funcBody
+    | Some al   -> 
+        let alStr, nAligmVal = 
+            match al with
+            | Asn1AcnAst.NextByte   -> "NextByte", 8I
+            | Asn1AcnAst.NextWord   -> "NextWord", 16I
+            | Asn1AcnAst.NextDWord  -> "NextDWord", 32I
+        let newFuncBody st errCode prms p =
+            let content, ns1a = funcBody st errCode prms p  
+            let newContent = 
+                match content with
+                | Some bodyResult   -> 
+                    let funcBodyStr = alignToNext bodyResult.funcBody alStr nAligmVal codec
+                    Some {bodyResult with funcBody  = funcBodyStr}
+                | None              ->
+                    let funcBodyStr = alignToNext "" alStr nAligmVal codec
+                    Some {funcBody = funcBodyStr; errCodes =[errCode]; localVariables = []}                        
+            newContent, ns1a
+        newFuncBody
+
+let handleAlignemntForAcnTypes (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage)  (acnAligment : AcnAligment option ) (funcBody:CommonTypes.Codec -> ((Asn1AcnAst.RelativePath*Asn1AcnAst.AcnParameter) list) -> CallerScope -> (AcnFuncBodyResult option))  =
+    let alignToNext                      =  match l with C -> acn_c.alignToNext                         | Ada -> acn_a.alignToNext
+    match acnAligment with
+    | None      -> funcBody
+    | Some al   -> 
+        let alStr, nAligmVal = 
+            match al with
+            | Asn1AcnAst.NextByte   -> "NextByte", 8I
+            | Asn1AcnAst.NextWord   -> "NextWord", 16I
+            | Asn1AcnAst.NextDWord  -> "NextDWord", 32I
+        let newFuncBody (codec:CommonTypes.Codec) prms p =
+            let content = funcBody codec prms p  
+            let newContent = 
+                match content with
+                | Some bodyResult   -> 
+                    let funcBodyStr = alignToNext bodyResult.funcBody alStr nAligmVal codec
+                    Some {bodyResult with funcBody  = funcBodyStr}
+                | None              ->
+                    let funcBodyStr = alignToNext "" alStr nAligmVal codec
+                    Some {funcBody = funcBodyStr; errCodes =[]; localVariables = []}                        
+            newContent
+        newFuncBody
+
+
 let private createAcnFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (typeDefinition:TypeDefintionOrReference) (isValidFunc: IsValidFunction option)  (funcBody:State-> ErroCode->((Asn1AcnAst.RelativePath*Asn1AcnAst.AcnParameter) list) -> CallerScope -> ((AcnFuncBodyResult option)*State)) isTestVaseValid soSparkAnnotations (us:State)  =
     let funcNameAndtasInfo   = getFuncName r l codec t.id
     let errCodeName         = ToC ("ERR_ACN" + (codec.suffix.ToUpper()) + "_" + ((t.id.AcnAbsPath |> Seq.skip 1 |> Seq.StrJoin("-")).Replace("#","elm")))
@@ -131,7 +178,10 @@ let private createAcnFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (co
     let EmitTypeAssignment_primitive_def =  match l with C -> acn_c.EmitTypeAssignment_primitive_def    | Ada -> acn_a.EmitTypeAssignment_primitive_def
     let EmitTypeAssignment_def_err_code  =  match l with C -> acn_c.EmitTypeAssignment_def_err_code     | Ada -> acn_a.EmitTypeAssignment_def_err_code
 
-    //let funcBody = (funcBody errCode)
+    
+
+    let funcBody = handleAlignemntForAsn1Types r l codec t.acnAligment funcBody
+
     let p : CallerScope = t.getParamType l codec
     let topLevAcc = p.arg.getAcces l
     let varName = p.arg.p

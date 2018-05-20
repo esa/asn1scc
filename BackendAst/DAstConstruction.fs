@@ -32,7 +32,15 @@ let private createAcnChild (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
         match m.Name.Value = a.modName.Value with
         | true  -> ReferenceToExistingDefinition {ReferenceToExistingDefinition.programUnit = None; typedefName = ToC (r.args.TypePrefix + a.tasName.Value) ; definedInRtl = false}
         | false -> ReferenceToExistingDefinition {ReferenceToExistingDefinition.programUnit = Some (ToC a.modName.Value); typedefName = ToC (r.args.TypePrefix + a.tasName.Value); definedInRtl = false}
-    let funcBodyEncode, ns1 = 
+    let acnAligment =
+        match ch.Type with
+        | Asn1AcnAst.AcnInteger  a -> a.acnAligment
+        | Asn1AcnAst.AcnBoolean  a -> a.acnAligment
+        | Asn1AcnAst.AcnNullType a -> a.acnAligment
+        | Asn1AcnAst.AcnReferenceToEnumerated a -> a.acnAligment
+        | Asn1AcnAst.AcnReferenceToIA5String a -> a.acnAligment
+
+    let funcBodyEncode, ns1= 
         match ch.Type with
         | Asn1AcnAst.AcnInteger  a -> DAstACN.createAcnIntegerFunction r l Codec.Encode ch.id a us
         | Asn1AcnAst.AcnBoolean  a -> DAstACN.createAcnBooleanFunction r l Codec.Encode ch.id a us
@@ -49,7 +57,7 @@ let private createAcnChild (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
         | Asn1AcnAst.AcnReferenceToIA5String a -> DAstACN.createAcnStringFunction r deps l Codec.Decode ch.id a ns1
         
     let funcUpdateStatement, ns3 = DAstACN.getUpdateFunctionUsedInEncoding r deps l m ch.id ns2
-
+    let funcBody = fun codec -> match codec with Codec.Encode -> funcBodyEncode | Codec.Decode -> funcBodyDecode
     let ret = 
         {
         
@@ -58,7 +66,7 @@ let private createAcnChild (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
             c_name         = DAstACN.getAcnDeterminantName ch.id
             Type           = ch.Type
             typeDefinitionBodyWithinSeq = DAstACN.getDeterminantTypeDefinitionBodyWithinSeq r l (Asn1AcnAst.AcnChildDeterminant ch)
-            funcBody = fun codec -> match codec with Codec.Encode -> funcBodyEncode | Codec.Decode -> funcBodyDecode
+            funcBody = DAstACN.handleAlignemntForAcnTypes r l acnAligment funcBody
             funcUpdateStatement = funcUpdateStatement
         }
     AcnChild ret, ns3

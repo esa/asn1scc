@@ -111,6 +111,25 @@ END IF;
 
 MFen(soMF, soMFM, p) ::= "<if(soMF)><soMFM>.<soMF>_encode(<p>)<else><p><endif>"
 
+
+alignToNext_encode(sMainBody, sAligmentValue, nAligmentValue) ::= <<
+--align to next <sAligmentValue>
+if (K mod <nAligmentValue>) /= 0 then
+    K := K + (<nAligmentValue> - (K mod <nAligmentValue>));
+end if;
+<sMainBody>
+>>
+
+
+alignToNext_decode(sMainBody, sAligmentValue, nAligmentValue) ::= <<
+--align to next <sAligmentValue>
+if (K.K mod <nAligmentValue>) /= 0 then
+    K.K := K.K + (<nAligmentValue> - (K.K mod <nAligmentValue>));
+end if;
+<sMainBody>
+>>
+
+
 PositiveInteger_ConstSize_encode(p, nFixedSize, soMF, soMFM, nUperMin, nUperMax) ::= <<
 <rtlModuleName()>.Acn_Enc_Int_PositiveInteger_ConstSize(S, K, <MFen(soMF=soMF, soMFM=soMFM, p=p)>, <nFixedSize>);
 >>
