@@ -1,0 +1,5 @@
+TESTMODULE DEFINITIONS ::= BEGIN
+
+FixedLength[encoding ASCII, size null-terminated, termination-pattern 'FF'H]
+
+END

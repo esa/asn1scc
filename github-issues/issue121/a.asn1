@@ -1,0 +1,6 @@
+TESTMODULE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+
+FixedLength ::= IA5String(SIZE(21))
+fl FixedLength ::= "Konrad Grochowski    "
+
+END

@@ -111,14 +111,18 @@ let printAllTestCases (r:DAst.AstRoot) l outDir =
             for m in r.Files |> List.collect(fun f -> f.Modules) do
                 for e in r.args.encodings do
                     for v in m.ValueAssignments do
-                        let encDecTestFunc = v.Type.getEncDecTestFunc e
+                        let encDecTestFunc = 
+                            match v.Type.Kind with
+                            | ReferenceType   ref ->
+                                ref.resolvedType.getEncDecTestFunc e
+                            | _                  -> v.Type.getEncDecTestFunc e
                         match encDecTestFunc with
                         | Some _    ->
                             let generateTcFun idx = 
                                 let initFuncName = v.Type.initFunction.initFuncName
                                 PrintValueAssignmentAsTestCase r l e v m (getTypeDecl r (ToC m.Name.Value) l v )  idx initFuncName 
                             yield generateTcFun
-                        | _         -> ()
+                        | None         -> ()
                     for t in m.TypeAssignments do
                         let encDecTestFunc = t.Type.getEncDecTestFunc e
                         match encDecTestFunc with

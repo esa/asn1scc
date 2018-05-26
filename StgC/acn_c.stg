@@ -37,7 +37,7 @@ flag <sFuncName>(const <sTypeDefName><sStar> <sVarName>, BitStream* pBitStrm, in
 
     <endif>
 	
-    return ret<if(soIValidFuncName)> && <soIValidFuncName>(<sVarName>, pErrCode)<endif>;
+    return ret;
 }
 >>
 
@@ -54,7 +54,7 @@ flag <sFuncName>(<sTypeDefName><sStar> <sVarName>, BitStream* pBitStrm, int* pEr
 
 	<sContent>
 
-	return ret;
+    return ret<if(soIValidFuncName)> && <soIValidFuncName>(<sVarName>, pErrCode)<endif>;
 }
 >>
 

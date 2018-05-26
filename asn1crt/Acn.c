@@ -1161,10 +1161,11 @@ flag Acn_Dec_String_Ascii_Null_Teminated(BitStream* pBitStrm, asn1SccSint max, c
     while (i<=max) {
         if (!BitStream_ReadByte(pBitStrm, &decodedCharacter))
             return FALSE;
-        if (decodedCharacter != null_character) {
+        if (decodedCharacter != (byte)null_character) {
             strVal[i] = decodedCharacter;
             i++;
         } else {
+            strVal[i] = 0x0;
             return TRUE;
         }
     }

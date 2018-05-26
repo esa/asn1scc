@@ -733,9 +733,6 @@ let private mapTas (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDepen
 
 
 let private mapVas (r:Asn1AcnAst.AstRoot) (allNewTypeAssignments : (Asn1Module*TypeAssignment) list) (deps:Asn1AcnAst.AcnInsertedFieldDependencies)  (l:ProgrammingLanguage) (m:Asn1AcnAst.Asn1Module) (vas:Asn1AcnAst.ValueAssignment) (us:State)=
-    if (vas.Name.Value = "apid") then
-        let dummy = 0
-        ()
     let newType, ns = 
         match vas.Type.Kind with
         | Asn1AcnAst.ReferenceType ref ->

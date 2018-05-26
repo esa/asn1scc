@@ -29,8 +29,8 @@
     <PlatformTarget>AnyCPU</PlatformTarget>
     <DocumentationFile>bin\Debug\Asn1f4.XML</DocumentationFile>
     <Prefer32Bit>true</Prefer32Bit>
-    <StartWorkingDirectory>C:\prj\GitHub\asn1scc\mantis\0000776</StartWorkingDirectory>
-    <StartArguments>-icdUper uper.html -icdAcn acn.html -c -ACN -uPER -atc -o c_out/ PUS.asn1 PUS.acn</StartArguments>
+    <StartWorkingDirectory>C:\prj\GitHub\asn1scc\github-issues\issue121</StartWorkingDirectory>
+    <StartArguments>-c -ACN -atc -o c_out/ a.asn1 a.acn</StartArguments>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
