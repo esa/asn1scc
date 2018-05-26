@@ -1,0 +1,207 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"> 
+<html xmlns="http://www.w3.org/1999/xhtml" >
+<head>
+    <title>ICD</title>
+    <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+    <link rel="stylesheet" href="acn.css" /> 
+</head>
+<body>
+<em>The following tables describe the binary encodings of the data model using the ACN Encoding Rules.
+</em><br/><br/>
+  <div style="width: 100%">
+  <h1>Module TESTMODULE</h1>
+  <i>Defined in: a.asn1, a.acn.</i><p>
+  </p>
+  <a name="ICD_GenericCommand"></a> 
+  <table width="100%" >
+  <tbody>
+  
+  <tr class="typeRow">
+  <td colspan="6">
+  GenericCommand <font size="-1">(<i>anonymous </i>SEQUENCE)</font>
+  <font size="-2"><a href="#ASN1_GenericCommand" class="fileLink">ASN.1</a>  <a href="#ACN_GenericCommand" class="fileLink">ACN</a></font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Min:&nbsp;3&nbsp;bytes</font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Max:&nbsp;911&nbsp;bytes</font>
+  </td>
+  </tr>
+  
+  <tr class="CommentRow">
+  <td class="comment2" colspan="8"></td>
+  </tr>
+  
+  
+  <tr class="headerRow">
+  <td class="hrNo">No</td>
+  <td class="hrField">Field</td>
+  <td class="hrComment">Comment</td>
+  <td class="hrOptional">Present</td>
+  <td class="hrType">Type</td>
+  <td class="hrConstraint">Constraint</td>
+  <td class="hrMin">Min Bits</td>
+  <td class="hrMax">Max Bits</td>
+  </tr>
+  
+  <tr class="OddRow">
+  <td class="no">1</td>
+  <td class="field">Preamble</td>
+  <td class="comment">Special field used by ACN to indicate the presence/absence of optional fields that do not have the present when property.
+  <br/>
+  <ul type="square">
+  <li>bit1 == 1 &#8658 <font  color="#5F9EA0" >commandArgument</font> is present</li>
+  </ul></td>
+  <td class="optional">always</td>
+  <td class="type">Bit mask</td>
+  <td class="constraint">N.A.</td>
+  <td class="min">1</td>
+  <td class="max">1</td>
+  </tr>
+  <tr class="EvenRow">
+  <td class="no">2</td>
+  <td class="field">commandArgument</td>
+  <td class="comment"></td>
+  <td class="optional">when the 1st bit of the bit mask is set</td>
+  <td class="type">INTEGER</td>
+  <td class="constraint"></td>
+  <td class="min">8</td>
+  <td class="max">72</td>
+  </tr>
+  <tr class="OddRow">
+  <td class="no">3</td>
+  <td class="field">n</td>
+  <td class="comment"></td>
+  <td class="optional">always</td>
+  <td class="type">INTEGER</td>
+  <td class="constraint"></td>
+  <td class="min">8</td>
+  <td class="max">8</td>
+  </tr>
+  <tr class="EvenRow">
+  <td class="no">4</td>
+  <td class="field">instructions</td>
+  <td class="comment"></td>
+  <td class="optional">always</td>
+  <td class="type">SEQUENCE-OF</td>
+  <td class="constraint">(1 .. 100)</td>
+  <td class="min">8</td>
+  <td class="max">7200</td>
+  </tr>
+  
+  </tbody>
+  </table>
+  &nbsp;<br/>
+  <a name="ICD_Command"></a> 
+  <table width="100%" >
+  <tbody>
+  
+  <tr class="typeRow">
+  <td colspan="6">
+  Command <font size="-1">(SEQUENCE)</font>
+  <font size="-2"><a href="#ASN1_Command" class="fileLink">ASN.1</a></font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Min:&nbsp;3&nbsp;bytes</font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Max:&nbsp;910&nbsp;bytes</font>
+  </td>
+  </tr>
+  
+  <tr class="CommentRow">
+  <td class="comment2" colspan="8"></td>
+  </tr>
+  
+  
+  <tr class="headerRow">
+  <td class="hrNo">No</td>
+  <td class="hrField">Field</td>
+  <td class="hrComment">Comment</td>
+  <td class="hrOptional">Present</td>
+  <td class="hrType">Type</td>
+  <td class="hrConstraint">Constraint</td>
+  <td class="hrMin">Min Bits</td>
+  <td class="hrMax">Max Bits</td>
+  </tr>
+  
+  <tr class="OddRow">
+  <td class="no">1</td>
+  <td class="field">commandArgument</td>
+  <td class="comment"></td>
+  <td class="optional">always</td>
+  <td class="type">INTEGER</td>
+  <td class="constraint"></td>
+  <td class="min">8</td>
+  <td class="max">72</td>
+  </tr>
+  <tr class="EvenRow">
+  <td class="no">2</td>
+  <td class="field">n</td>
+  <td class="comment"></td>
+  <td class="optional">always</td>
+  <td class="type">INTEGER</td>
+  <td class="constraint"></td>
+  <td class="min">8</td>
+  <td class="max">8</td>
+  </tr>
+  <tr class="OddRow">
+  <td class="no">3</td>
+  <td class="field">instructions</td>
+  <td class="comment"></td>
+  <td class="optional">always</td>
+  <td class="type">SEQUENCE-OF</td>
+  <td class="constraint">(1 .. 100)</td>
+  <td class="min">8</td>
+  <td class="max">7200</td>
+  </tr>
+  
+  </tbody>
+  </table>
+  &nbsp;<br/>
+  </div>
+
+  <hr />
+    <a name="ACN_PARAMS_EXPLAINED123"></a>
+    <em>ACN Parameters</em><br/>
+    In the standard ASN.1 encodings such as uPER, BER etc, the encoding and decoding of any type has no external dependencies. For example, the encoded data for a SEQUENCE OF depends on the number of items in the SEQUENCE OF (the length determinant) and the type of item contained in the SEQUENCE. On the other hand, ACN allows types to be parameterized. For instance, the length of a SEQUENCE OF may be determined by the value of an external field. In this case, the SEQUENCE OF is parameterized and the input parameter is the field providing the length.
+  <hr />
+    <br/>
+  <div style="width: 100%">
+  <h1 >File : a.asn1</h1>
+  <div style="width: 100%; white-space:pre; font-family:Courier New; font-size:small">
+  TESTMODULE <b><font color="#5F9EA0">DEFINITIONS</font></b> <b><font color="#5F9EA0">AUTOMATIC</font></b> <b><font color="#5F9EA0">TAGS</font></b> ::= <b><font color="#5F9EA0">BEGIN</font></b>
+  
+  <a name="ACN_GenericCommand"></a><a href="#ICD_GenericCommand"><font color="#B8860B"><b>GenericCommand</b></font></a> ::= <a name="ASN1_GenericCommand">SEQUENCE</a> {
+    commandArgument <b><font color="#5F9EA0">INTEGER</font></b> <b><font color="#5F9EA0">OPTIONAL</font></b>,
+    instructions <b><font color="#5F9EA0">SEQUENCE</font></b>(<b><font color="#5F9EA0">SIZE</font></b>(1..100)) <b><font color="#5F9EA0">OF</font></b> <b><font color="#5F9EA0">INTEGER</font></b>
+  }
+  
+  <a name="ACN_Command"></a><a href="#ICD_Command"><font color="#B8860B"><b>Command</b></font></a> ::= <a href="#ASN1_GenericCommand"><font color="#000000">GenericCommand</font></a> (<b><font color="#5F9EA0">WITH</font></b> <b><font color="#5F9EA0">COMPONENTS</font></b> {commandArgument <b><font color="#5F9EA0">PRESENT</font></b>})
+  
+  <b><font color="#5F9EA0">END</font></b>
+  </div>
+  </div>
+
+  <div style="width: 100%">
+  <h1 >File : a.acn</h1>
+  <div style="width: 100%; white-space:pre; font-family:Courier New; font-size:small">
+  TESTMODULE <b><font color="#5F9EA0">DEFINITIONS</font></b> ::= <b><font color="#5F9EA0">BEGIN</font></b>
+  
+  <a name="ACN_GenericCommand"></a><a href="#ICD_GenericCommand"><font color="#B8860B"><b>GenericCommand</b></font></a> [] {
+    commandArgument [],
+    n <b><font color="#5F9EA0">INTEGER</font></b>[<b><font color="#5F9EA0">encoding</font></b> <b><font color="#5F9EA0">pos-int</font></b>, <b><font color="#5F9EA0">size</font></b> 8],
+    instructions [<b><font color="#5F9EA0">size</font></b> n]
+  }
+  
+  <b><font color="#5F9EA0">END</font></b>
+  </div>
+  </div>
+
+</body>
+</html>

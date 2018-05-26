@@ -1,0 +1,9 @@
+TESTMODULE DEFINITIONS ::= BEGIN
+
+GenericCommand [] {
+  commandArgument [],
+  n INTEGER[encoding pos-int, size 8],
+  instructions [size n]
+}
+
+END

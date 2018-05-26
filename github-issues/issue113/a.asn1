@@ -1,0 +1,10 @@
+TESTMODULE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+
+GenericCommand ::= SEQUENCE {
+  commandArgument INTEGER OPTIONAL,
+  instructions SEQUENCE(SIZE(1..100)) OF INTEGER
+}
+
+Command ::= GenericCommand (WITH COMPONENTS {commandArgument PRESENT})
+
+END
