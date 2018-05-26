@@ -568,9 +568,6 @@ flag NextTagMatches(ByteStream* pByteStrm, BerTag tag) {
     return ret;
 }
 
-int GetStrmPos(ByteStream* pByteStrm) {
-    return pByteStrm->currentByte;
-}
 
 
 flag LA_Next_Two_Bytes_00(ByteStream* pByteStrm) 

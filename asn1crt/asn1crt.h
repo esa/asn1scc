@@ -371,7 +371,6 @@ flag BerDecodeOctetString(ByteStream* pByteStrm, BerTag tag, byte* value, int *o
 
 flag NextTagMatches(ByteStream* pByteStrm, BerTag tag);
 
-int GetStrmPos(ByteStream* pByteStrm);
 flag LA_Next_Two_Bytes_00(ByteStream* pByteStrm);
 
 asn1SccSint milbus_encode(asn1SccSint val);
