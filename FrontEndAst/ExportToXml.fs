@@ -87,9 +87,9 @@ let private printRangeConstraint0 (printValue:'v1->XElement) printValue2  (c:Ran
         (fun r s            -> XElement(xname "ROOTC_CONSTRAINT", r), s)       
         (fun r1 r2 s        -> XElement(xname "ROOTC_CONSTRAINT_WITH_EXTENSION", r1, r2), s)
         (fun v  s           -> printValue2 v,s)
-        (fun v1 v2  b1 b2 s -> XElement(xname "Range", (XElement(xname "a", (printValue v1))), (XElement(xname "b", (printValue v2)))), s)
-        (fun v1 b s         -> XElement(xname "GT", (XElement(xname "a", (printValue v1))) ),s )
-        (fun v2 b s         -> XElement(xname "LT", (XElement(xname "b", (printValue v2))) ), s)
+        (fun v1 v2  b1 b2 s -> XElement(xname "Range", (XElement(xname "Min", (printValue v1))), (XElement(xname "Max", (printValue v2)))), s)
+        (fun v1 b s         -> XElement(xname "GT", (XElement(xname "Min", (printValue v1))) ),s )
+        (fun v2 b s         -> XElement(xname "LT", (XElement(xname "Max", (printValue v2))) ), s)
         c 
         0 |> fst
 
@@ -310,7 +310,7 @@ let private exportType (t:Asn1Type) =
                         XElement(xname constraintsTag, ti.cons |> List.map(printGenericConstraint printBoolVal )),
                         XElement(xname withCompConstraintsTag, ti.withcons |> List.map(printGenericConstraint printBoolVal ))
                         ), us )
-        (fun ti us -> XElement(xname "Enumerated",
+        (fun ti us -> XElement(xname "ENUMERATED",
                         (XAttribute(xname "acnMaxSizeInBits", ti.acnMaxSizeInBits )),
                         (XAttribute(xname "acnMinSizeInBits", ti.acnMinSizeInBits )),
                         (XAttribute(xname "uperMaxSizeInBits", ti.uperMaxSizeInBits )),
@@ -377,7 +377,7 @@ let private exportType (t:Asn1Type) =
                 XElement(xname "ACN_COMPONENT", 
                     XAttribute(xname "Id", ch.id.AsString),
                     XAttribute(xname "Name", ch.Name.Value),
-                    XAttribute(xname "Type", "Enumerated"),    
+                    XAttribute(xname "Type", "ENUMERATED"),    
                     (exportAcnAligment a.acnAligment),
                     (exportAcnEndianness a.enumerated.acnProperties.endiannessProp),
                     (exportAcnIntSizeProperty a.enumerated.acnProperties.sizeProp),
