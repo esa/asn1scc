@@ -29,7 +29,7 @@
     <PlatformTarget>AnyCPU</PlatformTarget>
     <DocumentationFile>bin\Debug\Asn1f4.XML</DocumentationFile>
     <Prefer32Bit>true</Prefer32Bit>
-    <StartWorkingDirectory>C:\prj\GitHub\asn1scc\github-issues\issue121</StartWorkingDirectory>
+    <StartWorkingDirectory>C:\prj\GitHub\asn1scc\github-issues\issue122</StartWorkingDirectory>
     <StartArguments>-c -ACN -atc -o c_out/ a.asn1 a.acn</StartArguments>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">

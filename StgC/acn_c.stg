@@ -308,9 +308,9 @@ ret = Acn_Dec_SInt_ASCII_VarSize_LengthEmbedded(pBitStrm, <p>);
 <A(sErrCode)>
 >>
 
-ASCII_VarSize_NullTerminated_encode(p, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "Acn_Enc_SInt_ASCII_VarSize_NullTerminated(pBitStrm, <if(soMF)><soMF>_encode(<p>)<else><p><endif>);"
-ASCII_VarSize_NullTerminated_decode(p, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
-ret = Acn_Dec_SInt_ASCII_VarSize_NullTerminated(pBitStrm, <p>);
+ASCII_VarSize_NullTerminated_encode(p, sErrCode, soMF, soMFM, nUperMin, nUperMax, sNullChar) ::= "Acn_Enc_SInt_ASCII_VarSize_NullTerminated(pBitStrm, <if(soMF)><soMF>_encode(<p>)<else><p><endif>, <sNullChar>);"
+ASCII_VarSize_NullTerminated_decode(p, sErrCode, soMF, soMFM, nUperMin, nUperMax, sNullChar) ::= <<
+ret = Acn_Dec_SInt_ASCII_VarSize_NullTerminated(pBitStrm, <p>, <sNullChar>);
 <MF(soMF)>
 <A(sErrCode)>
 >>
@@ -329,9 +329,9 @@ ret = Acn_Dec_UInt_ASCII_VarSize_LengthEmbedded(pBitStrm, <p>);
 <A(sErrCode)>
 >>
 
-ASCII_UINT_VarSize_NullTerminated_encode(p, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "Acn_Enc_UInt_ASCII_VarSize_NullTerminated(pBitStrm, <if(soMF)><soMF>_encode(<p>)<else><p><endif>);"
-ASCII_UINT_VarSize_NullTerminated_decode(p, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
-ret = Acn_Dec_UInt_ASCII_VarSize_NullTerminated(pBitStrm, <p>);
+ASCII_UINT_VarSize_NullTerminated_encode(p, sErrCode, soMF, soMFM, nUperMin, nUperMax, sNullCharacter) ::= "Acn_Enc_UInt_ASCII_VarSize_NullTerminated(pBitStrm, <if(soMF)><soMF>_encode(<p>)<else><p><endif>, <sNullCharacter>);"
+ASCII_UINT_VarSize_NullTerminated_decode(p, sErrCode, soMF, soMFM, nUperMin, nUperMax, sNullCharacter) ::= <<
+ret = Acn_Dec_UInt_ASCII_VarSize_NullTerminated(pBitStrm, <p>, <sNullCharacter>);
 <MF(soMF)>
 <A(sErrCode)>
 >>

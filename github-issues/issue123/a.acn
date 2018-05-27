@@ -1,0 +1,5 @@
+TESTMODULE DEFINITIONS ::= BEGIN
+
+Positive[encoding ASCII, size null-terminated]
+
+END

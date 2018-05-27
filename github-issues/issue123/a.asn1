@@ -1,0 +1,6 @@
+TESTMODULE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+
+Positive ::= INTEGER(1..MAX)
+p Positive ::= 911
+
+END

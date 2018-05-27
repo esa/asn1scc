@@ -629,6 +629,7 @@ flag Acn_Dec_Int_BCD_VarSize_NullTerminated(BitStream* pBitStrm, asn1SccUint* pI
     return TRUE;
 }
 
+
 void Acn_Enc_UInt_ASCII_ConstSize(BitStream* pBitStrm, asn1SccUint intVal, int encodedSizeInBytes)
 {
     int i = 0;
@@ -655,19 +656,15 @@ void Acn_Enc_UInt_ASCII_ConstSize(BitStream* pBitStrm, asn1SccUint intVal, int e
 
 void Acn_Enc_SInt_ASCII_ConstSize(BitStream* pBitStrm, asn1SccSint intVal, int encodedSizeInBytes)
 {
-    if (intVal<0) {
-        intVal = -intVal;
-        BitStream_AppendByte0(pBitStrm, '-');
-    }
-    else {
-        BitStream_AppendByte0(pBitStrm, '+');
-    }
+    asn1SccUint absIntVal = intVal >= 0 ? (asn1SccUint)intVal : (asn1SccUint)(-intVal);
+
+    /* encode sign */
+    BitStream_AppendByte0(pBitStrm, intVal >= 0 ? '+' : '-');
     encodedSizeInBytes--;
 
 
-    assert(intVal >= 0);
 
-    Acn_Enc_UInt_ASCII_ConstSize(pBitStrm, intVal, encodedSizeInBytes);
+    Acn_Enc_UInt_ASCII_ConstSize(pBitStrm, absIntVal, encodedSizeInBytes);
 
 }
 
@@ -723,47 +720,73 @@ flag Acn_Dec_SInt_ASCII_ConstSize(BitStream* pBitStrm, asn1SccSint* pIntVal, int
 }
 
 
-//return values is in bytes
-static int Acn_Get_Int_Size_ASCII(asn1SccSint intVal)
-{
-#if WORD_SIZE==8
-    //the number of digits plus one character for the sign '+' or '-'
-    if (intVal == (-9223372036854775807 - 1))
-        return 20;
-#endif
-    if (intVal<0)
-        return Acn_Get_Int_Size_BCD(-intVal) +1;
-    return Acn_Get_Int_Size_BCD(intVal) +1;
+
+void getIntegerDigits(asn1SccUint intVal, byte digitsArray100[], byte* totalDigits) {
+    int i = 0;
+    *totalDigits = 0;
+    byte reversedDigitsArray[100];
+    memset(reversedDigitsArray, 0x0, 100);
+    memset(digitsArray100, 0x0, 100);
+    if (intVal > 0) {
+        while (intVal > 0 && *totalDigits < 100) {
+            reversedDigitsArray[*totalDigits] = '0' + (byte)(intVal % 10);
+            (*totalDigits)++;
+            intVal /= 10;
+        }
+        for (i = *totalDigits - 1; i >= 0; i--) {
+            digitsArray100[(*totalDigits - 1) - i] = reversedDigitsArray[i];
+        }
+    }
+    else {
+        digitsArray100[0] = '0';
+        *totalDigits = 1;
+    }
 }
 
-
-void Acn_Enc_UInt_ASCII_VarSize_LengthEmbedded(BitStream* pBitStrm, asn1SccUint intVal)
-{
-    byte nChars = (byte)Acn_Get_Int_Size_BCD(intVal);
-    
-    /* encode length */
-    BitStream_AppendByte0(pBitStrm, nChars);
-
-    /* Encode Number */
-    Acn_Enc_UInt_ASCII_ConstSize(pBitStrm, intVal, nChars);
-
-    CHECK_BIT_STREAM(pBitStrm);
-
-}
 
 void Acn_Enc_SInt_ASCII_VarSize_LengthEmbedded(BitStream* pBitStrm, asn1SccSint intVal)
 {
-    byte nChars = (byte)Acn_Get_Int_Size_ASCII(intVal);
+    byte digitsArray100[100];
+    int i = 0;
+    byte nChars;
+    asn1SccUint absIntVal = intVal >= 0 ? (asn1SccUint)intVal : (asn1SccUint)(-intVal);
+    getIntegerDigits(absIntVal, digitsArray100, &nChars);
+    
+    /* encode length, plus 1 for sign */
+    BitStream_AppendByte0(pBitStrm, nChars+1);
 
-    /* encode length */
-    BitStream_AppendByte0(pBitStrm, nChars);
+    /* encode sign */
+    BitStream_AppendByte0(pBitStrm, intVal >= 0 ? '+' : '-');
 
-    /* Encode Number */
-    Acn_Enc_SInt_ASCII_ConstSize(pBitStrm, intVal, nChars);
+    /* encode digits */
+    while (digitsArray100[i] != 0x0 && i<100) {
+        BitStream_AppendByte0(pBitStrm, digitsArray100[i]);
+        i++;
+    }
 
     CHECK_BIT_STREAM(pBitStrm);
 
 }
+
+void Acn_Enc_UInt_ASCII_VarSize_LengthEmbedded(BitStream* pBitStrm, asn1SccUint intVal)
+{
+    byte digitsArray100[100];
+    int i = 0;
+    byte nChars;
+    getIntegerDigits(intVal, digitsArray100, &nChars);
+    
+    /* encode length */
+    BitStream_AppendByte0(pBitStrm, nChars);
+    /* encode digits */
+    while (digitsArray100[i] != 0x0 && i<100) {
+        BitStream_AppendByte0(pBitStrm, digitsArray100[i]);
+        i++;
+    }
+
+    CHECK_BIT_STREAM(pBitStrm);
+
+}
+
 
 flag Acn_Dec_UInt_ASCII_VarSize_LengthEmbedded(BitStream* pBitStrm, asn1SccUint* pIntVal)
 {
@@ -785,32 +808,30 @@ flag Acn_Dec_SInt_ASCII_VarSize_LengthEmbedded(BitStream* pBitStrm, asn1SccSint*
 
 
 
-void Acn_Enc_UInt_ASCII_VarSize_NullTerminated(BitStream* pBitStrm, asn1SccUint intVal)
+void Acn_Enc_UInt_ASCII_VarSize_NullTerminated(BitStream* pBitStrm, asn1SccUint intVal, byte null_character)
 {
-    int nChars = Acn_Get_Int_Size_BCD(intVal);
-
-    /* Encode Number */
-    Acn_Enc_UInt_ASCII_ConstSize(pBitStrm, intVal, nChars);
-
-    BitStream_AppendByte0(pBitStrm, 0x0);
-
+    byte digitsArray100[100];
+    byte nChars;
+    getIntegerDigits(intVal, digitsArray100, &nChars);
+    int i = 0;
+    while (digitsArray100[i] != 0x0 && i<100) {
+        BitStream_AppendByte0(pBitStrm, digitsArray100[i]);
+        i++;
+    }
+    BitStream_AppendByte0(pBitStrm, null_character);
     CHECK_BIT_STREAM(pBitStrm);
 }
 
-void Acn_Enc_SInt_ASCII_VarSize_NullTerminated(BitStream* pBitStrm, asn1SccSint intVal)
+void Acn_Enc_SInt_ASCII_VarSize_NullTerminated(BitStream* pBitStrm, asn1SccSint intVal, byte null_character)
 {
-    int nChars = Acn_Get_Int_Size_ASCII(intVal);
+    asn1SccUint absValue = intVal >=0 ? (asn1SccUint)intVal : (asn1SccUint) (-intVal);
+    BitStream_AppendByte0(pBitStrm, intVal >= 0 ? '+' : '-');
 
-    /* Encode Number */
-    Acn_Enc_SInt_ASCII_ConstSize(pBitStrm, intVal, nChars);
-
-    BitStream_AppendByte0(pBitStrm,0x0);
-
-    CHECK_BIT_STREAM(pBitStrm);
+    Acn_Enc_UInt_ASCII_VarSize_NullTerminated(pBitStrm, absValue, null_character);
 }
 
 
-flag Acn_Dec_UInt_ASCII_VarSize_NullTerminated(BitStream* pBitStrm, asn1SccUint* pIntVal)
+flag Acn_Dec_UInt_ASCII_VarSize_NullTerminated(BitStream* pBitStrm, asn1SccUint* pIntVal, byte null_character)
 {
     byte digit;
     asn1SccUint ret = 0;
@@ -819,7 +840,7 @@ flag Acn_Dec_UInt_ASCII_VarSize_NullTerminated(BitStream* pBitStrm, asn1SccUint*
     {
         if (!BitStream_ReadByte(pBitStrm, &digit))
             return FALSE;
-        if (digit == 0x0)
+        if (digit == null_character)
             break;
         digit = (byte)((int)digit - '0');
 
@@ -833,7 +854,7 @@ flag Acn_Dec_UInt_ASCII_VarSize_NullTerminated(BitStream* pBitStrm, asn1SccUint*
 }
 
 
-flag Acn_Dec_Int_ASCII_VarSize_NullTerminated(BitStream* pBitStrm, asn1SccSint* pIntVal)
+flag Acn_Dec_SInt_ASCII_VarSize_NullTerminated(BitStream* pBitStrm, asn1SccSint* pIntVal, byte null_character)
 {
     byte digit;
     asn1SccUint ret = 0;
@@ -845,7 +866,7 @@ flag Acn_Dec_Int_ASCII_VarSize_NullTerminated(BitStream* pBitStrm, asn1SccSint* 
     if (digit == '-')
         isNegative = TRUE;
 
-    if (!Acn_Dec_UInt_ASCII_VarSize_NullTerminated(pBitStrm, &ret))
+    if (!Acn_Dec_UInt_ASCII_VarSize_NullTerminated(pBitStrm, &ret, null_character))
         return false;
 
     *pIntVal = (asn1SccSint)ret;

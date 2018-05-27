@@ -1460,27 +1460,127 @@ package body adaasn1rtl with
       end loop;
       BitStream_AppendPartialByte (S, K, 16#F#, 4, False);
 
-   end Acn_Enc_Int_BCD_VarSize_NullTerminated;
+    end Acn_Enc_Int_BCD_VarSize_NullTerminated;
+
+    procedure getIntegerDigits(intVal :in Asn1Uint; digitsArray100: out OctetArray100; totalDigits : out Asn1Byte)
+    is
+      reversedDigitsArray          : OctetArray100 := OctetArray100'(others => 0);
+      intValCopy   : Asn1UInt := intVal;
+    begin
+        totalDigits := 0;
+        digitsArray100 := OctetArray100'(others => 0);
+        if intVal > 0 then
+            while intValCopy > 0 and totalDigits < 100 loop
+                totalDigits := totalDigits + 1;
+                reversedDigitsArray(Integer(totalDigits)) := Asn1Byte(Character'Pos ('0') + (intValCopy mod 10));
+                intValCopy := intValCopy / 10;
+            end loop;
+            for i in reverse 1 .. Integer(totalDigits) loop
+                digitsArray100(Integer(totalDigits) - i + 1) := reversedDigitsArray(i);
+            end loop;
+        else
+            totalDigits := 1;
+            reversedDigitsArray(Integer(totalDigits)) := Asn1Byte(Character'Pos ('0'));
+        end if;
+
+    end getIntegerDigits;
 
    procedure Acn_Enc_Int_ASCII_VarSize_LengthEmbedded
      (S      : in out BitArray;
       K      : in out Natural;
       IntVal : in     Asn1Int)
    is
-      pragma SPARK_Mode (Off);
+        digitsArray100: OctetArray100;
+        nChars : Asn1Byte;
+        sing : Asn1Byte;
+        absIntVal : Asn1Uint;
+
    begin
-      null;
+        absIntVal := (if intVal >= 0  then Asn1Uint(intVal) else (Asn1Uint(-(intVal+1))+1));
+        sing := (if intVal >= 0  then Character'Pos('+') else Character'Pos('-'));
+        getIntegerDigits(absIntVal,digitsArray100, nChars);
+
+        -- encode length, plus 1 for sign
+        BitStream_AppendByte(S, K, nChars+1, False);
+
+        -- encode sign
+        BitStream_AppendByte(S, K, sing, False);
+
+        for i in 1..Integer(nChars) loop
+             BitStream_AppendByte(S, K, digitsArray100(i), False);
+        end loop;
+
+
    end Acn_Enc_Int_ASCII_VarSize_LengthEmbedded;
+
+   procedure Acn_Enc_UInt_ASCII_VarSize_LengthEmbedded
+     (S      : in out BitArray;
+      K      : in out Natural;
+      IntVal : in     Asn1UInt)
+   is
+        digitsArray100: OctetArray100;
+        nChars : Asn1Byte;
+   begin
+        getIntegerDigits(IntVal,digitsArray100, nChars);
+
+        -- encode length
+        BitStream_AppendByte(S, K, nChars, False);
+
+        for i in 1..Integer(nChars) loop
+             BitStream_AppendByte(S, K, digitsArray100(i), False);
+        end loop;
+   end Acn_Enc_UInt_ASCII_VarSize_LengthEmbedded;
+
 
    procedure Acn_Enc_Int_ASCII_VarSize_NullTerminated
      (S      : in out BitArray;
       K      : in out Natural;
-      IntVal : in     Asn1Int)
+      IntVal : in     Asn1Int;
+      nullChar : in Asn1Byte)
    is
-      pragma SPARK_Mode (Off);
+        digitsArray100: OctetArray100;
+        nChars : Asn1Byte;
+        sing : Asn1Byte;
+        absIntVal : Asn1Uint;
    begin
-      null;
+        absIntVal := (if intVal >= 0  then Asn1Uint(intVal) else (Asn1Uint(-(intVal+1))+1));
+        sing := (if intVal >= 0  then Character'Pos('+') else Character'Pos('-'));
+        getIntegerDigits(absIntVal,digitsArray100, nChars);
+
+        -- encode sign
+        BitStream_AppendByte(S, K, sing, False);
+
+        -- encode digits
+        for i in 1..Integer(nChars) loop
+             BitStream_AppendByte(S, K, digitsArray100(i), False);
+        end loop;
+
+        -- encode nullChar
+        BitStream_AppendByte(S, K, nullChar, False);
+
    end Acn_Enc_Int_ASCII_VarSize_NullTerminated;
+
+
+   procedure Acn_Enc_UInt_ASCII_VarSize_NullTerminated
+     (S      : in out BitArray;
+      K      : in out Natural;
+      IntVal : in     Asn1UInt;
+      nullChar : in Asn1Byte)
+   is
+        digitsArray100: OctetArray100;
+        nChars : Asn1Byte;
+   begin
+        getIntegerDigits(IntVal,digitsArray100, nChars);
+
+        -- encode digits
+        for i in 1..Integer(nChars) loop
+             BitStream_AppendByte(S, K, digitsArray100(i), False);
+        end loop;
+
+        -- encode nullChar
+        BitStream_AppendByte(S, K, nullChar, False);
+
+    end Acn_Enc_UInt_ASCII_VarSize_NullTerminated;
 
    procedure Acn_Dec_Int_PositiveInteger_ConstSize
      (S           : in     BitArray;
@@ -2231,15 +2331,16 @@ package body adaasn1rtl with
    is
       I          : Integer;
       tmp : OctetArray100 := OctetArray100'(others => Character'Pos ('0'));
-      intValCopy : Asn1Int;
+      intValCopy : Asn1UInt;
    begin
       if IntVal >= 0 then
          tmp (1)    := Character'Pos ('+');
-         intValCopy := IntVal;
+--         intValCopy := IntVal;
       else
          tmp (1)    := Character'Pos ('-');
-         intValCopy := -IntVal;
+--         intValCopy := -IntVal;
       end if;
+      intValCopy := (if intVal >= 0  then Asn1Uint(intVal) else (Asn1Uint(-(intVal+1))+1));
 
       I := nChars;
       while intValCopy > 0 and I >= 2 loop
@@ -2269,10 +2370,9 @@ package body adaasn1rtl with
       intValCopy := IntVal;
 
       I := nChars;
-      while intValCopy > 0 and I >= 2 loop
+      while intValCopy > 0 and I >= 1 loop
         --# assert I>=2 and I<=nChars and K~ + 1>=S'First and K~ + 8*nChars <= S'Last and K~=K;
-         tmp (I) :=
-           Interfaces.Unsigned_8 (Character'Pos ('0') + (intValCopy mod 10));
+         tmp (I) :=    Interfaces.Unsigned_8 (Character'Pos ('0') + (intValCopy mod 10));
          I          := I - 1;
          intValCopy := intValCopy / 10;
       end loop;
@@ -2296,8 +2396,9 @@ package body adaasn1rtl with
       Ch    : Character;
 
       I        : Integer;
-      max_aux  : constant Asn1Int := Asn1Int'Last / 10 - 9;
+      --max_aux  : constant Asn1Int := Asn1Int'Last / 10 - 9;
       negative : Boolean          := False;
+      absIntVal : Asn1UInt := 0;
    begin
       IntVal := 0;
       Result :=
@@ -2320,23 +2421,22 @@ package body adaasn1rtl with
             Ch    := Character'Val (digit);
             digit := Character'Pos (Ch) - Character'Pos ('0');
 
-            Result.Success :=
-              Result.Success and
-              digit <= 9 and
-              IntVal >= 0 and
-              IntVal <= max_aux;
+            Result.Success := Result.Success and digit >=0 and digit <= 9;
             if Result.Success then
-               IntVal := IntVal * 10;
-               IntVal := IntVal + Asn1Int (digit);
+               absIntVal := absIntVal * 10;
+               absIntVal := absIntVal + Asn1UInt (digit);
                I      := I - 1;
             end if;
          end loop;
-         if negative and IntVal > Asn1Int'First then
-            IntVal := -IntVal;
+         if negative then
+           IntVal := Asn1Int((absIntVal-1));
+           IntVal := -IntVal;
+           IntVal := IntVal - 1;
+         else
+            IntVal := Asn1Int(absIntVal);
          end if;
 
-         Result.Success :=
-           Result.Success and then ((IntVal >= minVal) and (IntVal <= maxVal));
+         Result.Success := Result.Success and then ((IntVal >= minVal) and (IntVal <= maxVal));
       end if;
       if not Result.Success then
          IntVal := minVal;
@@ -2356,12 +2456,9 @@ package body adaasn1rtl with
       Ch    : Character;
 
       I        : Integer;
-      max_aux  : constant Asn1UInt := Asn1UInt'Last / 10 - 9;
-      negative : Boolean           := False;
    begin
       IntVal := 0;
-      Result :=
-        ASN1_RESULT'(Success => True, ErrorCode => ERR_INSUFFICIENT_DATA);
+      Result := ASN1_RESULT'(Success => True, ErrorCode => ERR_INSUFFICIENT_DATA);
       I := nChars;
       while I > 0 and Result.Success loop
             --# assert K~.K+1>= S'First and  K~.K + 8*nChars <= S'Last and
@@ -2371,7 +2468,7 @@ package body adaasn1rtl with
          Ch    := Character'Val (digit);
          digit := Character'Pos (Ch) - Character'Pos ('0');
 
-         Result.Success := Result.Success and digit <= 9 and IntVal <= max_aux;
+         Result.Success := Result.Success and digit >= 0 and digit <= 9;
          if Result.Success then
             IntVal := IntVal * 10;
             IntVal := IntVal + Asn1UInt (digit);
@@ -2379,8 +2476,7 @@ package body adaasn1rtl with
          end if;
       end loop;
 
-      Result.Success :=
-        Result.Success and then ((IntVal >= minVal) and (IntVal <= maxVal));
+      Result.Success :=  Result.Success and then ((IntVal >= minVal) and (IntVal <= maxVal));
       if not Result.Success then
          IntVal := minVal;
       end if;
@@ -2397,16 +2493,90 @@ package body adaasn1rtl with
       null;
    end Acn_Dec_Int_ASCII_VarSize_LengthEmbedded;
 
-   procedure Acn_Dec_Int_ASCII_VarSize_NullTerminated
+   procedure Acn_Dec_UInt_ASCII_VarSize_LengthEmbedded
      (S      : in     BitArray;
       K      : in out DECODE_PARAMS;
-      IntVal :    out Asn1Int;
+      IntVal :    out Asn1UInt;
       Result :    out ASN1_RESULT)
    is
       pragma SPARK_Mode (Off);
    begin
       null;
+   end Acn_Dec_UInt_ASCII_VarSize_LengthEmbedded;
+
+   procedure Acn_Dec_Int_ASCII_VarSize_NullTerminated
+     (S      : in     BitArray;
+      K      : in out DECODE_PARAMS;
+      IntVal :    out Asn1Int;
+      nullChar:   in Asn1Byte;
+      Result :    out ASN1_RESULT)
+   is
+      digitAscii : Asn1Byte;
+      Ch    : Character;
+      absIntVal : Asn1UInt;
+   begin
+      IntVal := 0;
+      Result := ASN1_RESULT'(Success => True, ErrorCode => ERR_INSUFFICIENT_DATA);
+      IntVal := 0;
+      --decode sign
+      BitStream_DecodeByte (S, K, digitAscii, Result.Success);
+      if Result.Success then
+         Ch    := Character'Val (digitAscii);
+
+         Result.Success := Result.Success and (Ch = '+' or Ch = '-');
+         if result.Success then
+            Acn_Dec_UInt_ASCII_VarSize_NullTerminated(S, K, absIntVal, nullChar, result);
+
+            if result.Success then
+
+                if Ch= '+' and absIntVal <= Asn1UInt(Asn1Int'Last) then
+                    IntVal := Asn1Int(absIntVal);
+                elsif Ch = '-' and absIntVal <= Asn1UInt(Asn1Int'Last) + 1 then
+                   IntVal := Asn1Int((absIntVal-1));
+                   IntVal := -IntVal;
+                   IntVal := IntVal - 1;
+                end if;
+            end if;
+         end if;
+
+      end if;
    end Acn_Dec_Int_ASCII_VarSize_NullTerminated;
+
+   procedure Acn_Dec_UInt_ASCII_VarSize_NullTerminated
+     (S      : in     BitArray;
+      K      : in out DECODE_PARAMS;
+      IntVal :    out Asn1UInt;
+      nullChar:   in Asn1Byte;
+      Result :    out ASN1_RESULT)
+   is
+      digit : Asn1Byte;
+      digitAscii : Asn1Byte;
+      Ch    : Character;
+
+      max_aux  : constant Asn1UInt := Asn1UInt'Last / 10 - 9;
+      negative : Boolean           := False;
+      nullCharFound :Boolean := False;
+   begin
+      IntVal := 0;
+      Result := ASN1_RESULT'(Success => True, ErrorCode => ERR_INSUFFICIENT_DATA);
+
+      while Result.Success and not nullCharFound loop
+         BitStream_DecodeByte (S, K, digitAscii, Result.Success);
+         nullCharFound :=  digitAscii = nullChar;
+         if not nullCharFound and Result.Success then
+
+                Ch    := Character'Val (digitAscii);
+                digit := Character'Pos (Ch) - Character'Pos ('0');
+
+                Result.Success := Result.Success and digit >= 0 and digit <= 9 ;
+                if Result.Success then
+                    IntVal := IntVal * 10;
+                    IntVal := IntVal + Asn1UInt (digit);
+                end if;
+         end if;
+      end loop;
+
+   end Acn_Dec_UInt_ASCII_VarSize_NullTerminated;
 
    function Long_Float_to_Float (x : Asn1Real) return Float is
 --        pragma SPARK_Mode(Off);

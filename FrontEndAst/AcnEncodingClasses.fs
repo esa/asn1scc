@@ -16,8 +16,17 @@ let getAlignmentSize (aligment: AcnAligment option) =
     | Some NextDWord    -> 32I
 
 
-let GetIntEncodingClass (aligment: AcnAligment option) errLoc (p  : IntegerAcnProperties) (uperMinSizeInBits:BigInteger) (uperMaxSizeInBits:BigInteger) isUnsigned=
+let GetIntEncodingClass (integerSizeInBytes:BigInteger) (aligment: AcnAligment option) errLoc (p  : IntegerAcnProperties) (uperMinSizeInBits:BigInteger) (uperMaxSizeInBits:BigInteger) isUnsigned=
     let alignmentSize = getAlignmentSize aligment
+    let maxDigitsInInteger =
+        match integerSizeInBytes with
+        | _ when integerSizeInBytes = 8I && isUnsigned      -> UInt64.MaxValue.ToString().Length
+        | _ when integerSizeInBytes = 8I && not(isUnsigned) -> Int64.MaxValue.ToString().Length
+        | _ when integerSizeInBytes = 4I && isUnsigned      -> UInt32.MaxValue.ToString().Length
+        | _ when integerSizeInBytes = 4I && not(isUnsigned) -> Int32.MaxValue.ToString().Length
+        | _                                                 -> raise(SemanticError(errLoc, (sprintf "Unsuported integer size :%A" integerSizeInBytes)))
+    let maxDigitsInInteger = BigInteger maxDigitsInInteger
+
         
     let encClass, minSizeInBits, maxSizeInBits = 
         match p.encodingProp.IsNone && p.sizeProp.IsNone && p.endiannessProp.IsNone with     
@@ -65,26 +74,26 @@ let GetIntEncodingClass (aligment: AcnAligment option) errLoc (p  : IntegerAcnPr
                 | false                                         -> ASCII_ConstSize  fxVal, fxVal, fxVal
             | BCD, Fixed(fxVal) , BigEndianness   when fxVal % 4I <> 0I       ->  raise(SemanticError(errLoc, "size value should be multiple of 4"))
             | BCD, Fixed(fxVal) , BigEndianness                 ->  BCD_ConstSize fxVal, fxVal, fxVal
-            | BCD, IntNullTerminated b, BigEndianness           ->  BCD_VarSize_NullTerminated b, 4I, 19I*4I
+            | BCD, IntNullTerminated b, BigEndianness           ->  BCD_VarSize_NullTerminated b, 4I, maxDigitsInInteger*4I
             | IntAscii, IntNullTerminated b, BigEndianness         ->  
                 match bUINT with
-                | true                                                            -> ASCII_UINT_VarSize_NullTerminated b, 8I, 8I+8I+18I*8I
-                | false                                                           -> ASCII_VarSize_NullTerminated b, 8I, 8I+8I+18I*8I
+                | true                                                            -> ASCII_UINT_VarSize_NullTerminated b, 8I, 8I+ maxDigitsInInteger*8I
+                | false                                                           -> ASCII_VarSize_NullTerminated b, 8I, 8I+8I+maxDigitsInInteger*8I
             | _, IntNullTerminated _, _                                  ->  raise(SemanticError(errLoc, "null-terminated can be applied only for ASCII or BCD encodings"))
             | _, _ , LittleEndianness                           ->  raise(SemanticError(errLoc, "Little endian can be applied only for fixed size encodings and size must be 16 or 32 or 64"))
 
     encClass, minSizeInBits+alignmentSize, maxSizeInBits+alignmentSize
 
 
-let GetEnumeratedEncodingClass (items:NamedItem list) (aligment: AcnAligment option) errLoc (p  : IntegerAcnProperties) uperMinSizeInBits uperMaxSizeInBits endodeValues =
+let GetEnumeratedEncodingClass (integerSizeInBytes:BigInteger) (items:NamedItem list) (aligment: AcnAligment option) errLoc (p  : IntegerAcnProperties) uperMinSizeInBits uperMaxSizeInBits endodeValues =
     match endodeValues with
     | false -> 
-        GetIntEncodingClass aligment errLoc p uperMinSizeInBits uperMaxSizeInBits true
+        GetIntEncodingClass integerSizeInBytes aligment errLoc p uperMinSizeInBits uperMaxSizeInBits true
     | true  -> 
         let minVal = items |> List.map(fun x -> x.acnEncodeValue) |> List.min
         let maxVal = items |> List.map(fun x -> x.acnEncodeValue) |> List.max
         let uperSizeForValues = GetNumberOfBitsForNonNegativeInteger(maxVal-minVal)
-        GetIntEncodingClass aligment errLoc p uperSizeForValues uperSizeForValues (minVal >= 0I)
+        GetIntEncodingClass integerSizeInBytes aligment errLoc p uperSizeForValues uperSizeForValues (minVal >= 0I)
 
 (*
  ######                       

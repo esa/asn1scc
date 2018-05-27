@@ -1,0 +1,11 @@
+TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
+
+	MyPDU ::= INTEGER
+	
+	
+END
+
+
+--TCLS     MyPDU[encoding ASCII, size null-terminated]  
+--TCLS     MyPDU[encoding ASCII, size 240]  
+

@@ -12,5 +12,9 @@ project GPS_Project is
       for Default_Switches ("ada") use ("-gnat2012", "-g");
    end Compiler;
 
+   package Pretty_Printer is
+      for Default_Switches ("ada") use ("-i4", "-M200", "--no-separate-is", "--no-separate-loop-then");
+   end Pretty_Printer;
+
 end GPS_Project;
 

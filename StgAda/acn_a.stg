@@ -487,30 +487,30 @@ result.ErrorCode := <sErrCode>;
 <endif>
 >>
 
-ASCII_VarSize_NullTerminated_encode(p, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "<rtlModuleName()>.Acn_Enc_Int_ASCII_VarSize_NullTerminated(S, K, <MFen(soMF=soMF, soMFM=soMFM, p=p)>);"
-ASCII_VarSize_NullTerminated_decode(p, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
+ASCII_VarSize_NullTerminated_encode(p, sErrCode, soMF, soMFM, nUperMin, nUperMax, sNullChar) ::= "<rtlModuleName()>.Acn_Enc_Int_ASCII_VarSize_NullTerminated(S, K, <MFen(soMF=soMF, soMFM=soMFM, p=p)>, <sNullChar>);"
+ASCII_VarSize_NullTerminated_decode(p, sErrCode, soMF, soMFM, nUperMin, nUperMax, sNullChar) ::= <<
 <if(soMF)>
-<rtlModuleName()>.Acn_Dec_Int_ASCII_VarSize_NullTerminated(S, K, mapFuncIntVal, result);
+<rtlModuleName()>.Acn_Dec_Int_ASCII_VarSize_NullTerminated(S, K, mapFuncIntVal, <sNullChar>, result);
 result.ErrorCode := <sErrCode>;
 <MF(p=p, soMF=soMF, soMFM=soMFM, nUperMin=nUperMin, nUperMax=nUperMax)>
 
 <else>
-<rtlModuleName()>.Acn_Dec_Int_ASCII_VarSize_NullTerminated(S, K, <p>, result);
+<rtlModuleName()>.Acn_Dec_Int_ASCII_VarSize_NullTerminated(S, K, <p>, <sNullChar>, result);
 result.ErrorCode := <sErrCode>;
 
 <endif>
 >>
 
 
-ASCII_UINT_VarSize_NullTerminated_encode(p, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "<rtlModuleName()>.Acn_Enc_UInt_ASCII_VarSize_NullTerminated(S, K, <MFen(soMF=soMF, soMFM=soMFM, p=p)>);"
-ASCII_UINT_VarSize_NullTerminated_decode(p, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
+ASCII_UINT_VarSize_NullTerminated_encode(p, sErrCode, soMF, soMFM, nUperMin, nUperMax, sNullCharacter) ::= "<rtlModuleName()>.Acn_Enc_UInt_ASCII_VarSize_NullTerminated(S, K, <MFen(soMF=soMF, soMFM=soMFM, p=p)>, <sNullCharacter>);"
+ASCII_UINT_VarSize_NullTerminated_decode(p, sErrCode, soMF, soMFM, nUperMin, nUperMax, sNullCharacter) ::= <<
 <if(soMF)>
-<rtlModuleName()>.Acn_Dec_UInt_ASCII_VarSize_NullTerminated(S, K, mapFuncIntVal, result);
+<rtlModuleName()>.Acn_Dec_UInt_ASCII_VarSize_NullTerminated(S, K, mapFuncIntVal, <sNullCharacter>, result);
 result.ErrorCode := <sErrCode>;
 <MF(p=p, soMF=soMF, soMFM=soMFM, nUperMin=nUperMin, nUperMax=nUperMax)>
 
 <else>
-<rtlModuleName()>.Acn_Dec_UInt_ASCII_VarSize_NullTerminated(S, K, <p>, result);
+<rtlModuleName()>.Acn_Dec_UInt_ASCII_VarSize_NullTerminated(S, K, <p>, <sNullCharacter>, result);
 result.ErrorCode := <sErrCode>;
 
 <endif>

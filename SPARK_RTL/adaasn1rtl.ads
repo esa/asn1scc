@@ -656,10 +656,28 @@ package adaasn1rtl with
    procedure Acn_Enc_Int_ASCII_VarSize_NullTerminated
      (S      : in out BitArray;
       K      : in out Natural;
-      IntVal : in     Asn1Int) with
+      IntVal : in     Asn1Int;
+      nullChar : in Asn1Byte) with
+      Depends => (K => (K, IntVal), S => (S, IntVal, K, nullChar)),
+      Pre     => K + 1 >= S'First and K + 168 <= S'Last,
+      Post    => K >= K'Old and K <= K'Old + 168;
+
+   procedure Acn_Enc_UInt_ASCII_VarSize_LengthEmbedded
+     (S      : in out BitArray;
+      K      : in out Natural;
+      IntVal : in     Asn1UInt) with
       Depends => (K => (K, IntVal), S => (S, IntVal, K)),
-      Pre     => K + 1 >= S'First and K + 160 <= S'Last,
-      Post    => K >= K'Old and K <= K'Old + 160;
+      Pre     => K + 1 >= S'First and K + 168 <= S'Last,
+      Post    => K >= K'Old and K <= K'Old + 168;
+
+   procedure Acn_Enc_UInt_ASCII_VarSize_NullTerminated
+     (S      : in out BitArray;
+      K      : in out Natural;
+      IntVal : in     Asn1UInt;
+      nullChar : in Asn1Byte) with
+      Depends => (K => (K, IntVal), S => (S, IntVal, K, nullChar)),
+      Pre     => K + 1 >= S'First and K + 168 <= S'Last,
+      Post    => K >= K'Old and K <= K'Old + 168;
 
    procedure Acn_Dec_Int_PositiveInteger_ConstSize
      (S           : in     BitArray;
@@ -1036,9 +1054,9 @@ package adaasn1rtl with
       IntVal :    out Asn1Int;
       Result :    out ASN1_RESULT) with
       Depends => ((IntVal, Result) => (K, S), K => (K)),
-      Pre     => K.K + 1 >= S'First and K.K + 160 <= S'Last,
+      Pre     => K.K + 1 >= S'First and K.K + 168 <= S'Last,
       Post    => K.K >= K'Old.K and
-      K.K <= K'Old.K + 160 and
+      K.K <= K'Old.K + 168 and
       (Result.Success = True and then (((IntVal >= 0)))) and
       (Result.Success = False and then (IntVal = 0));
 
@@ -1046,11 +1064,36 @@ package adaasn1rtl with
      (S      : in     BitArray;
       K      : in out DECODE_PARAMS;
       IntVal :    out Asn1Int;
+      nullChar:   in Asn1Byte;
+      Result :    out ASN1_RESULT) with
+      Depends => ((IntVal, Result) => (K, S, nullChar), K => (K)),
+      Pre     => K.K + 1 >= S'First and K.K + 168 <= S'Last,
+      Post    => K.K >= K'Old.K and
+      K.K <= K'Old.K + 168 and
+      (Result.Success = True and then (((IntVal >= 0)))) and
+      (Result.Success = False and then (IntVal = 0));
+   procedure Acn_Dec_UInt_ASCII_VarSize_LengthEmbedded
+     (S      : in     BitArray;
+      K      : in out DECODE_PARAMS;
+      IntVal :    out Asn1UInt;
       Result :    out ASN1_RESULT) with
       Depends => ((IntVal, Result) => (K, S), K => (K)),
-      Pre     => K.K + 1 >= S'First and K.K + 160 <= S'Last,
+      Pre     => K.K + 1 >= S'First and K.K + 168 <= S'Last,
       Post    => K.K >= K'Old.K and
-      K.K <= K'Old.K + 160 and
+      K.K <= K'Old.K + 168 and
+      (Result.Success = True and then (((IntVal >= 0)))) and
+      (Result.Success = False and then (IntVal = 0));
+
+   procedure Acn_Dec_UInt_ASCII_VarSize_NullTerminated
+     (S      : in     BitArray;
+      K      : in out DECODE_PARAMS;
+      IntVal :    out Asn1UInt;
+      nullChar:   in Asn1Byte;
+      Result :    out ASN1_RESULT) with
+      Depends => ((IntVal, Result) => (K, S, nullChar), K => (K)),
+      Pre     => K.K + 1 >= S'First and K.K + 168 <= S'Last,
+      Post    => K.K >= K'Old.K and
+      K.K <= K'Old.K + 168 and
       (Result.Success = True and then (((IntVal >= 0)))) and
       (Result.Success = False and then (IntVal = 0));
 
