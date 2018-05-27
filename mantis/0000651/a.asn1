@@ -1,0 +1,9 @@
+TASTE-Dataview DEFINITIONS ::=
+BEGIN
+
+T-FieldType ::= INTEGER (-10 .. 10)
+
+T-SeqName ::= SEQUENCE {
+    field-name T-FieldType DEFAULT -5
+}
+END
