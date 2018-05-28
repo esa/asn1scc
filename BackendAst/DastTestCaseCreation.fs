@@ -112,10 +112,15 @@ let printAllTestCases (r:DAst.AstRoot) l outDir =
                 for e in r.args.encodings do
                     for v in m.ValueAssignments do
                         let encDecTestFunc, tasName = 
-                            match v.Type.Kind with
-                            | ReferenceType   ref ->
-                                ref.resolvedType.getEncDecTestFunc e, (ToC2(r.args.TypePrefix + ref.baseInfo.tasName.Value) )
-                            | _                  -> v.Type.getEncDecTestFunc e, v.Type.typeDefintionOrReference.longTypedefName l
+                            //does not work for Ada (tasname is not calculated correctly, needs to be fixed)
+                            match l with
+                            | C ->
+                                match v.Type.Kind with
+                                | ReferenceType   ref ->
+                                    ref.resolvedType.getEncDecTestFunc e, (ToC2(r.args.TypePrefix + ref.baseInfo.tasName.Value) )
+                                | _                  -> v.Type.getEncDecTestFunc e, v.Type.typeDefintionOrReference.longTypedefName l
+                            | Ada ->
+                                v.Type.getEncDecTestFunc e, (getTypeDecl r (ToC m.Name.Value) l v )
                         match encDecTestFunc with
                         | Some _    ->
                             let generateTcFun idx = 
