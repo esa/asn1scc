@@ -167,7 +167,7 @@ end <sFuncName>;
 Code calling a test case
 */                   
 PrintMain_call_codec(sModName, sTasName, sAmber, sEnc, sValue, sValueAsAsn1, sVasName, bStatic, sGenerateDatFile, soInitFunction, sInitAmber) ::= <<
-result := <sModName>_auto_tcs.<sTasName>_<sEnc>enc_dec(<sValue>);
+result := <sTasName>_<sEnc>enc_dec(<sValue>);
 if NOT result.Success THEN
     case result.Step IS
         when <rtlModuleName()>.TC_VALIDATE =>
@@ -192,7 +192,7 @@ end if;
 
 PrintMain_call_codec2(sModName, sTasName, sAmber, sEnc, sInitializeTcData, sValueAsAsn1, sVasName, bStatic, sGenerateDatFile, soInitFunction, sInitAmber) ::= <<
 declare
-    tc_data : <sModName>.<sTasName>;
+    tc_data : <sTasName>;
 begin
     <if(soInitFunction)>
     -- dummy statement used for calling init functions
@@ -200,7 +200,7 @@ begin
     <endif>
     --the actual initialization with the test case data is made here.
     <sInitializeTcData>
-    result := <sModName>_auto_tcs.<sTasName>_<sEnc>enc_dec(tc_data);
+    result := <sTasName>_<sEnc>enc_dec(tc_data);
     if NOT result.Success THEN
         case result.Step IS
             when <rtlModuleName()>.TC_VALIDATE =>
@@ -324,7 +324,7 @@ is
     result      : adaasn1rtl.test_case_result;
 
     <arrsVars; separator="\n">
-    tc_data : <sModName>.<sTasName><if(bValueAssignment)> := <sInitializeTcData><endif>;
+    tc_data : <sTasName><if(bValueAssignment)> := <sInitializeTcData><endif>;
 begin
     <if(soInitFunction)>
     -- dummy statement used for calling init functions
@@ -335,7 +335,7 @@ begin
     <sInitializeTcData>
 
     <endif>
-    result := <sModName>_auto_tcs.<sTasName>_<sEnc>enc_dec(tc_data);
+    result := <sTasName>_<sEnc>enc_dec(tc_data);
     if NOT result.Success THEN
         case result.Step IS
             when <rtlModuleName()>.TC_VALIDATE =>

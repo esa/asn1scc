@@ -18,7 +18,7 @@ use type <rtlModuleName()>.BitArray;
 use type <rtlModuleName()>.Asn1UInt;
 use type <rtlModuleName()>.Asn1Int;
 use type <rtlModuleName()>.BIT;
-<arrsIncludedModules:{inc| WITH <inc>;}; separator="\n">
+<arrsIncludedModules:{inc| WITH <inc>; use <inc>;}; separator="\n">
 --# inherit <arrsIncludedModules:{inc| <inc>}; separator=",">;
 
 
