@@ -815,12 +815,12 @@ let rec handleSingleUpdateDependency (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.Acn
         match prmUpdateStatement with
         | None  -> None, ns1
         | Some prmUpdateStatement   -> 
-            let updateFunc (vTarget : CallerScope) (pSrcRoot : CallerScope)  = 
-                prmUpdateStatement.updateAcnChildFnc vTarget pSrcRoot
+            let updateFunc (typedefName :string) (vTarget : CallerScope) (pSrcRoot : CallerScope)  = 
+                prmUpdateStatement.updateAcnChildFnc typedefName vTarget pSrcRoot
             
             Some ({AcnChildUpdateResult.updateAcnChildFnc = updateFunc; errCodes=prmUpdateStatement.errCodes; testCaseFnc = prmUpdateStatement.testCaseFnc}), ns1
     | AcnDepSizeDeterminant         -> 
-        let updateFunc (vTarget : CallerScope) (pSrcRoot : CallerScope)  = 
+        let updateFunc (typedefName :string) (vTarget : CallerScope) (pSrcRoot : CallerScope)  = 
             let pSizeable, checkPath = getAccessFromScopeNodeList d.asn1Type false l pSrcRoot
             let updateStatement = sizeDependency (vTarget.arg.getValue l) (getSizeableSize pSizeable.arg.p (pSizeable.arg.getAcces l))
             match checkPath with
@@ -830,7 +830,7 @@ let rec handleSingleUpdateDependency (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.Acn
             atc.testCase.TryFind d.asn1Type
         Some ({AcnChildUpdateResult.updateAcnChildFnc = updateFunc; errCodes=[]; testCaseFnc=testCaseFnc}), us
     | AcnDepIA5StringSizeDeterminant    ->
-        let updateFunc (vTarget : CallerScope) (pSrcRoot : CallerScope)  = 
+        let updateFunc (typedefName :string) (vTarget : CallerScope) (pSrcRoot : CallerScope)  = 
             let pSizeable, checkPath = getAccessFromScopeNodeList d.asn1Type true l pSrcRoot
             let updateStatement = sizeDependency (vTarget.arg.getValue l) (getStringSize pSizeable.arg.p)
             match checkPath with
@@ -840,7 +840,7 @@ let rec handleSingleUpdateDependency (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.Acn
             atc.testCase.TryFind d.asn1Type
         Some ({AcnChildUpdateResult.updateAcnChildFnc = updateFunc; errCodes=[]; testCaseFnc=testCaseFnc}), us
     | AcnDepPresenceBool              -> 
-        let updateFunc (vTarget : CallerScope) (pSrcRoot : CallerScope)  = 
+        let updateFunc (typedefName :string) (vTarget : CallerScope) (pSrcRoot : CallerScope)  = 
             let v = vTarget.arg.getValue l
             let parDecTypeSeq =
                 match d.asn1Type with
@@ -856,7 +856,7 @@ let rec handleSingleUpdateDependency (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.Acn
             | None      -> Some TcvComponentAbsent
         Some ({AcnChildUpdateResult.updateAcnChildFnc = updateFunc; errCodes=[]; testCaseFnc=testCaseFnc}), us
     | AcnDepPresence   (relPath, chc)               -> 
-        let updateFunc (vTarget : CallerScope) (pSrcRoot : CallerScope)  = 
+        let updateFunc (typedefName :string) (vTarget : CallerScope) (pSrcRoot : CallerScope)  = 
             let v = vTarget.arg.getValue l
             let choicePath, checkPath = getAccessFromScopeNodeList d.asn1Type false l pSrcRoot
             let arrsChildUpdates = 
@@ -884,7 +884,7 @@ let rec handleSingleUpdateDependency (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.Acn
             | _         -> None
         Some ({AcnChildUpdateResult.updateAcnChildFnc = updateFunc; errCodes=[] ; testCaseFnc=testCaseFnc}), us
     | AcnDepPresenceStr   (relPath, chc, str)               -> 
-        let updateFunc (vTarget : CallerScope) (pSrcRoot : CallerScope)  = 
+        let updateFunc (typedefName :string) (vTarget : CallerScope) (pSrcRoot : CallerScope)  = 
             let v = vTarget.arg.getValue l
             let choicePath, checkPath = getAccessFromScopeNodeList d.asn1Type false l pSrcRoot
             let arrsChildUpdates = 
@@ -916,7 +916,7 @@ let rec handleSingleUpdateDependency (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.Acn
             | _         -> None
         Some ({AcnChildUpdateResult.updateAcnChildFnc = updateFunc; errCodes=[]; testCaseFnc = testCaseFnc}), us
     | AcnDepChoiceDeteterminant       (enm,chc)      -> 
-        let updateFunc (vTarget : CallerScope) (pSrcRoot : CallerScope)  = 
+        let updateFunc (typedefName :string) (vTarget : CallerScope) (pSrcRoot : CallerScope)  = 
             let v = vTarget.arg.getValue l
             let choicePath, checkPath = getAccessFromScopeNodeList d.asn1Type false l pSrcRoot
             let defOrRef (a:Asn1AcnAst.ReferenceToEnumerated) =
@@ -952,11 +952,11 @@ and getUpdateFunctionUsedInEncoding (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnI
 
         let ds = d1::dds
         let c_name0 = sprintf "%s%02d" (getAcnDeterminantName acnChildOrAcnParameterId) 0
-        let localVars = 
+        let localVars (typedefName :string) = 
             ds |> 
             List.mapi(fun i d1 -> 
                 let c_name = sprintf "%s%02d" (getAcnDeterminantName acnChildOrAcnParameterId) i
-                let typegetDeterminantTypeDefinitionBodyWithinSeq = getDeterminantTypeDefinitionBodyWithinSeq r l d1.determinant
+                let typegetDeterminantTypeDefinitionBodyWithinSeq = typedefName // getDeterminantTypeDefinitionBodyWithinSeq r l d1.determinant
                 [AcnInsertedChild (c_name, typegetDeterminantTypeDefinitionBodyWithinSeq); BooleanLocalVariable (c_name+"_is_initialized", Some false)]) |>
             List.collect(fun lvList -> lvList |> List.map (fun lv -> lv.GetDeclaration l))
         let localUpdateFuns,ns =
@@ -965,7 +965,7 @@ and getUpdateFunctionUsedInEncoding (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnI
                 let f1, nns = handleSingleUpdateDependency r deps l m d1 ns 
                 updates@[f1], nns) ([],us)
 
-        let multiUpdateFunc (vTarget : CallerScope) (pSrcRoot : CallerScope)  = 
+        let multiUpdateFunc (typedefName :string) (vTarget : CallerScope) (pSrcRoot : CallerScope)  = 
             let v = vTarget.arg.getValue l
             let arrsLocalUpdateStatements = 
                 localUpdateFuns |> 
@@ -974,7 +974,7 @@ and getUpdateFunctionUsedInEncoding (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnI
                     let lv = {CallerScope.modName = vTarget.modName; arg = VALUE c_name}
                     match fn with
                     | None      -> None
-                    | Some fn   -> Some(fn.updateAcnChildFnc lv pSrcRoot)) |>
+                    | Some fn   -> Some(fn.updateAcnChildFnc typedefName lv pSrcRoot)) |>
                 List.choose id
             let v0 = sprintf "%s%02d" (getAcnDeterminantName acnChildOrAcnParameterId) 0
             let arrsGetFirstIntValue =
@@ -989,7 +989,7 @@ and getUpdateFunctionUsedInEncoding (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnI
                     let cmp = getDeterminantTypeCheckEqual r l d.determinant
                     let vi = sprintf "%s%02d" (getAcnDeterminantName acnChildOrAcnParameterId) i
                     cmp v vi )
-            let updateStatement = multiAcnUpdate vTarget.arg.p c_name0 errCode.errCodeName localVars arrsLocalUpdateStatements arrsGetFirstIntValue arrsLocalCheckEquality
+            let updateStatement = multiAcnUpdate vTarget.arg.p c_name0 errCode.errCodeName (localVars typedefName) arrsLocalUpdateStatements arrsGetFirstIntValue arrsLocalCheckEquality
             updateStatement
         let testCaseFnc (atc:AutomaticTestCase) : TestCaseValue option =
             let updateValues =
@@ -1127,7 +1127,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                         let pRoot : CallerScope = t.getParamType l codec  //????
                         let updateStatement, lvs, lerCodes = 
                             match acnChild.funcUpdateStatement with
-                            | Some funcUpdateStatement -> Some (funcUpdateStatement.updateAcnChildFnc childP pRoot), [], funcUpdateStatement.errCodes
+                            | Some funcUpdateStatement -> Some (funcUpdateStatement.updateAcnChildFnc acnChild.typeDefinitionBodyWithinSeq childP pRoot), [], funcUpdateStatement.errCodes
                             | None                     -> None, [], []
 
                         [(AcnChildUpdateStatement, updateStatement, lvs, lerCodes)], us
@@ -1168,7 +1168,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                 let pRoot : CallerScope = t.getParamType l codec  
                 let updateStatement = 
                     match acnChild.funcUpdateStatement with
-                    | Some funcUpdateStatement -> Some (funcUpdateStatement.updateAcnChildFnc childP pRoot)
+                    | Some funcUpdateStatement -> Some (funcUpdateStatement.updateAcnChildFnc acnChild.typeDefinitionBodyWithinSeq childP pRoot)
                     | None                     -> None
                 updateStatement.IsNone)
 

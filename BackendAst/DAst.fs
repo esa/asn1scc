@@ -731,7 +731,7 @@ and ReferenceType = {
 }
 
 and AcnChildUpdateResult = {
-    updateAcnChildFnc        : CallerScope -> CallerScope -> string
+    updateAcnChildFnc        : (*typedef name*)string -> CallerScope -> CallerScope -> string
     testCaseFnc : AutomaticTestCase -> TestCaseValue option 
     errCodes    : ErroCode list
 }
@@ -743,7 +743,7 @@ and AcnParameter = {
     loc         : SrcLoc
     id          : ReferenceToType
     typeDefinitionBodyWithinSeq : string
-    funcUpdateStatement         : AcnChildUpdateResult option                                    // vTarget,  pSrcRoot, return the update statement 
+    //funcUpdateStatement00         : AcnChildUpdateResult option                                    // vTarget,  pSrcRoot, return the update statement 
 }
     
 
