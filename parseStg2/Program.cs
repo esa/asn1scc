@@ -316,7 +316,7 @@ namespace parseStg2
 
                 foreach (var groupedFunc in functions.GroupBy(f => f.ID)) {
                     foreach (var func in groupedFunc.Take(1)) {
-                        var prms = func.prms.Select(p => MapParamName(p)).Join(";");
+                        //var prms = func.prms.Select(p => MapParamName(p)).Join(";");
                         var paramerters =
                                 func.prms.Count() > 0 ?
                                 func.prms.Select(p => p + ":" + detectTypeByParam(p) ).Join(" -> ") :
@@ -385,7 +385,7 @@ namespace parseStg2
                 {
                     foreach (var func in groupedFunc.Take(1))
                     {
-                        var prms = func.prms.Select(p => MapParamName(p)).Join(";");
+                        //var prms = func.prms.Select(p => MapParamName(p)).Join(";");
                         var paramerters =
                                 func.prms.Count() > 0 ?
                                 func.prms.Select(p => "(" + p + ":" + detectTypeByParam(p) +")").Join(" ") :

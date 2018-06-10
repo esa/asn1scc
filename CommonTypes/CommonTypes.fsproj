@@ -82,8 +82,22 @@
     <Reference Include="System" />
     <Reference Include="System.Numerics" />
   </ItemGroup>
+
+  <Choose>
+    <When Condition="$(OS) == 'Unix'">
+      <PropertyGroup>
+        <MonoCallPrefix> mono </MonoCallPrefix>
+      </PropertyGroup>
+    </When>
+    <Otherwise>
+      <PropertyGroup>
+        <MonoCallPrefix />
+      </PropertyGroup>
+    </Otherwise>
+  </Choose>
+  
   <PropertyGroup>
-    <PreBuildEvent>$(MonoCallPrefix) $(ProjectDir)..\parseStg2\bin\Debug\parseStg2.exe $(ProjectDir)..\StgC\backends.xml 2</PreBuildEvent>
+    <PreBuildEvent>$(MonoCallPrefix) $(ProjectDir)..\parseStg2\bin\Debug\parseStg2.exe $(ProjectDir)../StgC/backends.xml 2</PreBuildEvent>
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
