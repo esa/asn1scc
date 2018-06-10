@@ -224,7 +224,7 @@ let main0 argv =
                 PrintAcn.printInASignleFile acn outDir "SingleAsn1FileDbg.acn" tastToPrint
             | false -> ()
 
-        let frontEntAst, acnDeps = FrontEntMain.constructAst args debugFunc TargetLanguageStgMacros.c_StgMacros
+        let frontEntAst, acnDeps = FrontEntMain.constructAst args debugFunc 
         
         // print front ent ast as xml 
         match args.AstXmlAbsFileName with

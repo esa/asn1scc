@@ -86,6 +86,7 @@
     <Compile Include="AcnCreateFromAntlr.fs" />
     <Compile Include="TypesEquivalence.fs" />
     <Compile Include="ExportToXml.fs" />
+    <Compile Include="TargetLanguageStgMacros.fs" />
     <Compile Include="FrontEntMain.fs" />
   </ItemGroup>
   <ItemGroup>
@@ -97,6 +98,16 @@
     <ProjectReference Include="..\CommonTypes\CommonTypes.fsproj">
       <Name>CommonTypes</Name>
       <Project>{83f15fa6-7da0-4e47-9512-39ae3fdd28cf}</Project>
+      <Private>True</Private>
+    </ProjectReference>
+    <ProjectReference Include="..\StgAda\StgAda.fsproj">
+      <Name>StgAda</Name>
+      <Project>{18b04aee-c300-4139-a2de-c3519cc24e94}</Project>
+      <Private>True</Private>
+    </ProjectReference>
+    <ProjectReference Include="..\StgC\StgC.fsproj">
+      <Name>StgC</Name>
+      <Project>{a35cb9d7-70b4-41e3-bba8-7f8263aa3498}</Project>
       <Private>True</Private>
     </ProjectReference>
   </ItemGroup>
