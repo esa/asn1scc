@@ -25,13 +25,21 @@
     <modName>equal_c</modName>
 	<lang>c</lang>
   </run>
-  <run mode="single">
+  <run mode="single" >
     <input>isvalid_c.stg</input>
     <output>isvalid_c.stg.fs</output>
     <modName>isvalid_c</modName>
 	<lang>c</lang>
-  </run>
-  <run mode="single">
+   </run>
+    <run mode="single" >
+        <input>isvalid_new_c.stg</input>
+        <output>isvalid_new_c.stg.fs</output>
+        <modName>isvalid_new_c</modName>
+        <lang>c</lang>
+        <abctractInterface   modMame="isvalid_if">../CommonTypes/isvalid_if.stg.fs</abctractInterface>
+        <implementationClass ifModMame="isvalid_if" modMame="isvalid_c_impl">isvalid_c_impl.stg.fs</implementationClass>
+    </run>
+    <run mode="single">
     <input>init_c.stg</input>
     <output>init_c.stg.fs</output>
     <modName>init_c</modName>

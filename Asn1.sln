@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 15
-VisualStudioVersion = 15.0.27130.2024
+# Visual Studio 14
+VisualStudioVersion = 14.0.25420.1
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "parseStg2", "parseStg2\parseStg2.csproj", "{4112E7C9-0E9C-41DB-88C3-D5911C1D89D5}"
 EndProject
@@ -34,6 +34,9 @@ EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "FrontEndAst", "FrontEndAst\FrontEndAst.fsproj", "{11FDC208-86E6-464E-9974-0E534ED55513}"
 EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "CommonTypes", "CommonTypes\CommonTypes.fsproj", "{83F15FA6-7DA0-4E47-9512-39AE3FDD28CF}"
+	ProjectSection(ProjectDependencies) = postProject
+		{4112E7C9-0E9C-41DB-88C3-D5911C1D89D5} = {4112E7C9-0E9C-41DB-88C3-D5911C1D89D5}
+	EndProjectSection
 EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Asn1f4", "Asn1f4\Asn1f4.fsproj", "{963B2383-6D5B-4641-9D6A-E2ED08FD55F6}"
 EndProject

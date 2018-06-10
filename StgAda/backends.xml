@@ -31,7 +31,15 @@
     <modName>isvalid_a</modName>
 	<lang>Ada</lang>
   </run>
-  <run mode="single">
+    <run mode="single" >
+        <input>isvalid_new_a.stg</input>
+        <output>isvalid_new_a.stg.fs</output>
+        <modName>isvalid_new_a</modName>
+        <lang>Ada</lang>
+        <implementationClass ifModMame="isvalid_if" modMame="isvalid_a_impl">isvalid_a_impl.stg.fs</implementationClass>
+    </run>
+
+    <run mode="single">
     <input>init_a.stg</input>
     <output>init_a.stg.fs</output>
     <modName>init_a</modName>

@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="14.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
   <PropertyGroup>
@@ -70,6 +70,7 @@
     <None Include="isvalid_a.stg">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Include="isvalid_new_a.stg" />
     <None Include="uper_a.stg">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
@@ -93,6 +94,8 @@
     <Compile Include="equal_a.stg.fs" />
     <Compile Include="init_a.stg.fs" />
     <Compile Include="isvalid_a.stg.fs" />
+    <Compile Include="isvalid_new_a.stg.fs" />
+    <Compile Include="isvalid_a_impl.stg.fs" />
     <Compile Include="spec_a.stg.fs" />
     <Compile Include="uper_a.stg.fs" />
     <Compile Include="variables_a.stg.fs" />
@@ -154,7 +157,7 @@
   <Import Project="$(FSharpTargetsPath)" />
   <PropertyGroup>
     <PreBuildEvent>
-      $(MonoCallPrefix) $(ProjectDir)..\parseStg2\bin\Debug\parseStg2.exe $(ProjectDir)backends.xml
+      $(MonoCallPrefix) $(ProjectDir)..\parseStg2\bin\Debug\parseStg2.exe $(ProjectDir)backends.xml 3
 </PreBuildEvent>
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

@@ -27,7 +27,7 @@ always_false_statement(sErrorCodeName)::= <<
 ret = FALSE;
 *pErrCode = <sErrorCodeName>;
 >>
-
+ 
 
 
 /*
@@ -193,10 +193,6 @@ call_base_type_func_exp(p, sFuncName) ::= "<sFuncName>(<p>, pErrCode)"
 
 /* SEQUENCE start*/
 
-makeExpressionToStatement(sIsValidExp, sErrCode) ::= <<
-ret = <sIsValidExp>;
-*pErrCode = ret ? 0 :  <sErrCode>;
->>
 
 Sequence_OptionalChild(p, sAcc,  sChName, sInnerStatement) ::= <<
 if (<p><sAcc>exist.<sChName>) {

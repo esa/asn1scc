@@ -84,6 +84,18 @@ namespace parseStg2
             public IEnumerable<string> prms { get; set; }
             public string name2 { get { return name.Replace("_decode", "").Replace("_encode", ""); } }
             public string ID { get { return name2 + prms.Join(""); } }
+
+            public static IEnumerable<Function> readFromFile(String inpFileName)
+            {
+                var functions =
+                        from line in skipComments(File.ReadAllLines(inpFileName).Skip(1))
+                        where line.Contains("::=") && !line.Contains("/*nogen*/") && !line.Contains("DEFINITIONS AUTOMATIC TAGS")
+                        let declPart = line.Split(':')[0].Trim()
+                        let Name = declPart.Split('(')[0].Trim()
+                        let Prms = declPart.Split('(')[1].Split(')')[0].Split(',').Select(s => s.Trim()).Where(s => s != "")
+                        select new Function { name = Name, prms = Prms };
+                return functions;
+            }
         }
 
 
@@ -92,12 +104,22 @@ namespace parseStg2
         {
             var curDir = Path.GetDirectoryName(args[0]);
             XDocument doc = XDocument.Load(args[0]);
+            var runMode = args.Length >= 2 ? int.Parse(args[1]) : 1;
+
             int ret = 0;
             foreach (var elem in doc.Descendants("run"))
             {
                 if (elem.Attribute("mode").Value == "single")
                 {
-                    ret += ProcessSingle(elem, curDir);
+                    if (runMode == 1) {
+                        ret += ProcessSingle(elem, curDir);
+                    } else if (runMode == 2) {
+                        ret += emitAbstractInterface(elem, curDir);
+                    } else if (runMode == 3)
+                    {
+                        ret += ProcessSingle(elem, curDir);
+                        ret += emitInterfaceImplementation(elem, curDir);
+                    }
                 }
                     
             }
@@ -190,14 +212,7 @@ namespace parseStg2
                 return 0;
             }
 
-            var functions =
-                    from line in skipComments(File.ReadAllLines(inpFileName).Skip(1))
-                    where line.Contains("::=") && !line.Contains("/*nogen*/") && !line.Contains("DEFINITIONS AUTOMATIC TAGS")
-                    let declPart = line.Split(':')[0].Trim()
-                    let Name = declPart.Split('(')[0].Trim()
-                    let Prms = declPart.Split('(')[1].Split(')')[0].Split(',').Select(s => s.Trim()).Where(s => s != "")
-                    select new Function { name = Name, prms = Prms };
-
+            var functions = Function.readFromFile(inpFileName);
 
 
 
@@ -255,6 +270,147 @@ namespace parseStg2
                         txt.WriteLine();
                     }
                 }
+            }
+            return 0;
+        }
+
+
+        static int emitAbstractInterface(XElement run, string curDir)
+        {
+            var abstInterf = run.Element("abctractInterface");
+            
+            if (abstInterf == null)
+                return 0;
+            var inpFileName = Path.Combine(curDir, run.Element("input").Value);
+            var outFileName = Path.Combine(curDir, abstInterf.Value);
+
+            if (!File.Exists(inpFileName))
+            {
+                Console.Error.WriteLine("Input file {0} does not exist", inpFileName);
+                return 1;
+            }
+
+            if (File.Exists(outFileName) && File.GetLastWriteTimeUtc(outFileName) > File.GetLastWriteTimeUtc(inpFileName))
+            {
+                Console.WriteLine("Processing of file '{0}' skiped", inpFileName);
+                return 0;
+            }
+
+            var modName = abstInterf.Attribute("modMame").Value;
+            var UseAttr = run.Attribute("uses");
+            var Uses = UseAttr == null ? new List<string>() { "CommonTypes" } : new List<string>(UseAttr.Value.Split(';').Where(c => c.Trim() != ""));
+
+            var functions = Function.readFromFile(inpFileName);
+
+            using (var txt = new StreamWriter(outFileName))
+            {
+                txt.WriteLine("module {0}", modName);
+                txt.WriteLine("open System");
+                txt.WriteLine("open System.Numerics");
+                foreach (var md in Uses)
+                    txt.WriteLine("open {0}", md);
+
+                txt.WriteLine();
+                txt.WriteLine("    [<AbstractClass>]");
+                txt.WriteLine("    type AbsMacros () =");
+
+                foreach (var groupedFunc in functions.GroupBy(f => f.ID)) {
+                    foreach (var func in groupedFunc.Take(1)) {
+                        var prms = func.prms.Select(p => MapParamName(p)).Join(";");
+                        var paramerters =
+                                func.prms.Count() > 0 ?
+                                func.prms.Select(p => p + ":" + detectTypeByParam(p) ).Join(" -> ") :
+                                "unit";
+
+                        if (groupedFunc.Count() == 1)  {
+                            txt.WriteLine("        abstract member {0} : {1} -> string;", func.name2, paramerters);
+                        }
+                        else {
+                            txt.WriteLine("        abstract member {0} : {1} codec -> string;", func.name2, paramerters);
+                        }
+                    }
+                }
+
+
+            }
+            return 0;
+
+        }
+
+
+
+        static int emitInterfaceImplementation(XElement run, string curDir)
+        {
+            var interfaceImpl = run.Element("implementationClass");
+            var lmodName = run.Element("modName").Value;
+
+            if (interfaceImpl == null)
+                return 0;
+            var inpFileName = Path.Combine(curDir, run.Element("input").Value);
+            var outFileName = Path.Combine(curDir, interfaceImpl.Value);
+
+            if (!File.Exists(inpFileName))
+            {
+                Console.Error.WriteLine("Input file {0} does not exist", inpFileName);
+                return 1;
+            }
+
+            if (File.Exists(outFileName) && File.GetLastWriteTimeUtc(outFileName) > File.GetLastWriteTimeUtc(inpFileName))
+            {
+                Console.WriteLine("Processing of file '{0}' skiped", inpFileName);
+                return 0;
+            }
+
+            var modName = interfaceImpl.Attribute("modMame").Value;
+            var ifModName = interfaceImpl.Attribute("ifModMame").Value;
+
+            var UseAttr = run.Attribute("uses");
+            var Uses = UseAttr == null ? new List<string>() { "CommonTypes" } : new List<string>(UseAttr.Value.Split(';').Where(c => c.Trim() != ""));
+
+            var functions = Function.readFromFile(inpFileName);
+
+            using (var txt = new StreamWriter(outFileName))
+            {
+                txt.WriteLine("module {0}", modName);
+                txt.WriteLine("open System");
+                txt.WriteLine("open System.Numerics");
+                foreach (var md in Uses)
+                    txt.WriteLine("open {0}", md);
+
+                txt.WriteLine();
+                txt.WriteLine("let macrosImplClass =");
+                txt.WriteLine("    {{new {0}.AbsMacros() with", ifModName);
+
+                foreach (var groupedFunc in functions.GroupBy(f => f.ID))
+                {
+                    foreach (var func in groupedFunc.Take(1))
+                    {
+                        var prms = func.prms.Select(p => MapParamName(p)).Join(";");
+                        var paramerters =
+                                func.prms.Count() > 0 ?
+                                func.prms.Select(p => "(" + p + ":" + detectTypeByParam(p) +")").Join(" ") :
+                                "()";
+                        var args =
+                                func.prms.Count() > 0 ?
+                                func.prms.Select(p => p ).Join(" ") :
+                                "()";
+
+                        if (groupedFunc.Count() == 1)
+                        {
+                            txt.WriteLine("        member this.{0}  {1} =", func.name2, paramerters);
+                            txt.WriteLine("            {0}.{1}  {2} ", lmodName, func.name2, args);
+                        }
+                        else
+                        {
+                            txt.WriteLine("        member this.{0}  {1} codec =", func.name2, paramerters);
+                            txt.WriteLine("            {0}.{1}  {2} codec", lmodName, func.name2, args);
+                        }
+                    }
+                }
+
+                txt.WriteLine("    }");
+
+
             }
             return 0;
         }

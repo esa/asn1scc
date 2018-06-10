@@ -201,7 +201,7 @@ let hasValidationFunc allCons =
     | []      -> false
     | _       -> true
 
-let makeExpressionToStatement l = match l with C -> isvalid_c.makeExpressionToStatement | Ada -> isvalid_a.makeExpressionToStatement
+//let makeExpressionToStatement l = match l with C -> isvalid_new_c.makeExpressionToStatement | Ada -> isvalid_new_a.makeExpressionToStatement
 let callBaseTypeFunc l = match l with C -> isvalid_c.call_base_type_func | Ada -> isvalid_a.call_base_type_func
 let callBaseTypeFuncExp l = match l with C -> isvalid_c.call_base_type_func_exp | Ada -> isvalid_a.call_base_type_func_exp
 let joinTwoIfFirstOk l = match l with C -> isvalid_c.JoinTwoIfFirstOk | Ada -> isvalid_a.JoinTwoIfFirstOk
@@ -224,7 +224,7 @@ let createPrimitiveFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage)  (t:A
         | c::cs  -> l.ExpAndMulti allCons 
 
     let funcBody (p:CallerScope) = 
-        makeExpressionToStatement l (funcExp p) errCode.errCodeName
+        r.stg.is_valid.makeExpressionToStatement (funcExp p) errCode.errCodeName
 
     let p  = t.getParamType l Encode
     let varName = p.arg.p
@@ -275,7 +275,7 @@ let createBitOrOctetStringFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage
             | c::cs -> l.ExpAndMulti allCons
 
         let funcBody (p:CallerScope)  = 
-            makeExpressionToStatement l (funcExp p) errCode.errCodeName
+            r.stg.is_valid.makeExpressionToStatement (funcExp p) errCode.errCodeName
 
         let p  = t.getParamType l Encode
         let varName = p.arg.p
@@ -749,7 +749,7 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:A
             Some(cvf.alphaFuncs, lv::cvf.localVariables , cvf.errCodes, funcBody, us)
         | None, Some(errCode, sIsValidSizeExpFunc, ns) ->
             let funcBody (p:CallerScope)  = 
-                makeExpressionToStatement l (sIsValidSizeExpFunc p ) errCode.errCodeName
+                r.stg.is_valid.makeExpressionToStatement (sIsValidSizeExpFunc p ) errCode.errCodeName
             Some([],[], [errCode], funcBody, ns)
         | Some cvf, Some(errCode, sIsValidSizeExpFunc, ns) ->
             let funcBody (p:CallerScope)  = 

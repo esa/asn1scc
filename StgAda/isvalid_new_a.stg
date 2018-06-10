@@ -1,0 +1,10 @@
+group a_isvalid;
+
+
+rtlModuleName() ::= /*nogen*/ "adaasn1rtl"
+
+makeExpressionToStatement(sIsValidExp, sErrCode) ::= <<
+ret := <rtlModuleName()>.ASN1_RESULT'(Success => <sIsValidExp>, ErrorCode => <sErrCode>);
+>>
+
+

@@ -36,9 +36,6 @@ ArrayLen(sExp, sAcc) ::= "<sExp><sAcc>Length"
 
 
 
-makeExpressionToStatement(sIsValidExp, sErrCode) ::= <<
-ret := <rtlModuleName()>.ASN1_RESULT'(Success => <sIsValidExp>, ErrorCode => <sErrCode>);
->>
 
 
 EmitTypeAssignment_primitive_def(sVarName, sStar, sFuncName, sTypeDefName, sErrCode, nErrValue) ::= <<

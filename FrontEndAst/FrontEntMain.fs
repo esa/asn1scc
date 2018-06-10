@@ -35,7 +35,7 @@ let antlrParse (lexer: ICharStream -> #ITokenSource ) parser treeParser (name: s
     let tree = treeParser(parser(tokenStream));
     {ParameterizedAsn1Ast.AntlrParserResult.fileName = name; ParameterizedAsn1Ast.AntlrParserResult.rootItem=tree; ParameterizedAsn1Ast.AntlrParserResult.tokens=tokens}
 
-let constructAst (args:CommandLineSettings) (debugFnc : Asn1Ast.AstRoot -> AcnCreateFromAntlr.AcnAst-> unit) =
+let constructAst (args:CommandLineSettings) (debugFnc : Asn1Ast.AstRoot -> AcnCreateFromAntlr.AcnAst-> unit) defaultStgLang =
     let asn1ParseTrees = args.asn1Files |> Seq.groupBy(fun f -> f.name) |> Seq.map (antlrParse (fun f -> new asn1Lexer(f)) (fun ts -> new asn1Parser(ts))  (fun p -> p.moduleDefinitions().Tree :?> ITree)  ) |> Seq.toList
     let acnParseTrees = args.acnFiles |> Seq.groupBy(fun f -> f.name) |> Seq.map (antlrParse (fun f -> new acnLexer(f)) (fun ts -> new acnParser(ts))  (fun p -> p.moduleDefinitions().Tree :?> ITree)  ) |> Seq.toList
 
@@ -82,7 +82,7 @@ let constructAst (args:CommandLineSettings) (debugFnc : Asn1Ast.AstRoot -> AcnCr
         - Updates ASN.1 AST with ACN information
         - Creates the expanded tree (i.e reference types are now resolved)
     *)
-    let acnAst,acn0 = AcnCreateFromAntlr.mergeAsn1WithAcnAst uniqueEnumNamesAst acnParseTrees
+    let acnAst,acn0 = AcnCreateFromAntlr.mergeAsn1WithAcnAst uniqueEnumNamesAst acnParseTrees defaultStgLang
     debugFnc uniqueEnumNamesAst acn0
 
     (*

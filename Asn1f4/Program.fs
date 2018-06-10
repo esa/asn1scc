@@ -224,7 +224,7 @@ let main0 argv =
                 PrintAcn.printInASignleFile acn outDir "SingleAsn1FileDbg.acn" tastToPrint
             | false -> ()
 
-        let frontEntAst, acnDeps = FrontEntMain.constructAst args debugFunc
+        let frontEntAst, acnDeps = FrontEntMain.constructAst args debugFunc TargetLanguageStgMacros.c_StgMacros
         
         // print front ent ast as xml 
         match args.AstXmlAbsFileName with
@@ -238,8 +238,11 @@ let main0 argv =
             cliArgs |> 
             List.choose (fun a -> 
                 match a with
-                | C_lang                -> Some (DAstConstruction.DoWork frontEntAst acnDeps CommonTypes.ProgrammingLanguage.C args.encodings)
-                | Ada_Lang              -> Some (DAstConstruction.DoWork frontEntAst acnDeps CommonTypes.ProgrammingLanguage.Ada args.encodings)
+                | C_lang                -> 
+                    Some (DAstConstruction.DoWork frontEntAst acnDeps CommonTypes.ProgrammingLanguage.C  args.encodings)
+                | Ada_Lang              -> 
+                    
+                    Some (DAstConstruction.DoWork {frontEntAst with stg=TargetLanguageStgMacros.a_StgMacros} acnDeps CommonTypes.ProgrammingLanguage.Ada  args.encodings)
                 | _             -> None)
 
         //generate code
@@ -259,7 +262,7 @@ let main0 argv =
 
         let r = 
             match backends with
-            | []    -> DAstConstruction.DoWork frontEntAst acnDeps CommonTypes.ProgrammingLanguage.C args.encodings
+            | []    -> DAstConstruction.DoWork frontEntAst acnDeps CommonTypes.ProgrammingLanguage.C  args.encodings
             | x::_  -> x
         
 

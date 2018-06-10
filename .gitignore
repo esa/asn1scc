@@ -1077,3 +1077,8 @@ v2out
 /mantis/0000777/c_o/mainprogram.gcda
 /v4Tests/tmp_c - Copy
 /mantis/0000769/ada_o2
+/StgC/isvalid_c_impl.stg.fs
+/StgC/isvalid_new_c.stg.fs
+/StgAda/isvalid_a_impl.stg.fs
+/StgAda/isvalid_new_a.stg.fs
+/CommonTypes/isvalid_if.stg.fs

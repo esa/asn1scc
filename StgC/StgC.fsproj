@@ -71,6 +71,7 @@
     <None Include="isvalid_c.stg">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Include="isvalid_new_c.stg" />
     <None Include="uper_c.stg">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
@@ -95,12 +96,14 @@
     <Compile Include="header_c.stg.fs" />
     <Compile Include="init_c.stg.fs" />
     <Compile Include="isvalid_c.stg.fs" />
+    <Compile Include="isvalid_new_c.stg.fs" />
     <Compile Include="uper_c.stg.fs" />
     <Compile Include="variables_c.stg.fs" />
     <Compile Include="xer_c.stg.fs" />
     <Compile Include="test_cases_c.stg.fs" />
     <Compile Include="aux_c.stg.fs" />
     <Compile Include="AbstractMacrosImp.fs" />
+    <Compile Include="isvalid_c_impl.stg.fs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="mscorlib" />
@@ -158,7 +161,7 @@
   <Import Project="$(FSharpTargetsPath)" />
   <PropertyGroup>
     <PreBuildEvent>
-      $(MonoCallPrefix) $(ProjectDir)..\parseStg2\bin\Debug\parseStg2.exe $(ProjectDir)backends.xml
+      $(MonoCallPrefix) $(ProjectDir)..\parseStg2\bin\Debug\parseStg2.exe $(ProjectDir)backends.xml 3
 </PreBuildEvent>
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
