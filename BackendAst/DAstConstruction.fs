@@ -493,8 +493,8 @@ let private createAsn1Child (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (m:As
         {
         
             Asn1Child.Name     = ch.Name
-            c_name             = ch.c_name
-            ada_name           = ch.ada_name
+            _c_name             = ch._c_name
+            _ada_name           = ch._ada_name
             Type               = newChildType
             Optionality        = ch.Optionality
             Comments           = ch.Comments

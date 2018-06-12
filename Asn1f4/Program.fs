@@ -50,7 +50,19 @@ with
             | Type_Prefix _    -> "adds 'prefix' to all generated C or Ada/SPARK data types."
             | Equal_Func       -> "generate functions for testing type equality."
             | Xml_Ast _        -> "dump internal AST in an xml file"
-            | Rename_Policy _  -> "Specify rename policy for enums 0 no rename (Ada default), 1 rename only conflicting enumerants (C default), 2 rename all enumerants of an enum with at lest one conflicting enumerant"
+            | Rename_Policy _  -> """Specify rename policy. 
+  Allowed values are:
+    0 perform no rename (Ada default).
+    1 rename only conflicting enumerants (C default). 
+      E.g. In a grammar that contains 
+        RGB ::= ENUMERATED {red, green, blue} 
+        FavColors = {red, yellow} 
+      only the red enumerant will be renamed to 
+      RGB_red and FavColors_red. 
+    2 rename all enumerants of an enumerated type 
+      that has least one conflicting enumerant.
+Moreover, if value 1 or 2 is provided then any component or alternative name that conflicts with the one of the target language keywords will be renamed by prefixing it with the name of the parent type. The same renaming will be applied if the target language is Ada (which is case insensitive) and the component or alternative name conflicts with the name of a Type Assignment.
+"""
             | Generate_Test_Grammar -> "generate a sample grammar for testing purposes"
             | Custom_Stg _   -> "custom_stg_colon_outfilename is expected as stgFile.stg:outputFile where stgFile.stg is an existing custom stg file, while outputFile is the name of the generated file. Invokes the custom stg file 'stgFile.stg' and produces the output file 'outputFile'"
             | Custom_Stg_Ast_Version _ -> "1 = original AST, 4: like version of asn1scc where inner types are replaced with referenced types"
@@ -120,7 +132,10 @@ let checkArguement arg =
             let errMsg = sprintf "Duplicate Input file. File '%s' was provided twice in the command line"  file
             raise (SemanticError (emptyLocation, errMsg))) 
     | Type_Prefix _    -> ()
-    | Rename_Policy _   -> ()
+    | Rename_Policy rp   -> 
+        match rp with
+        | 0 | 1 | 2 -> ()
+        | _             -> raise (UserException ("invalid value for argument -renamePolicy. Currently only values 0,1,2 are supported"))
     | Custom_Stg comFile  -> checkCompositeFile comFile "-customStg" "txt"
     | Custom_Stg_Ast_Version v -> 
         match v with
@@ -173,7 +188,20 @@ let constructCommandLineSettings args (parserResults: ParseResults<CliArguments>
         integerSizeInBytes = 
             let ws = parserResults.GetResult(<@Word_Size@>, defaultValue = 8)
             BigInteger ws
-        renamePolicy = CommonTypes.EnumRenamePolicy.SelectiveEnumerants
+        renamePolicy = 
+            match args |> List.choose (fun a -> match a with Rename_Policy rp -> Some rp | _ -> None) with
+            | []    ->
+                match args |> List.filter(fun a -> a = C_lang || a = Ada_Lang) with
+                | C_lang::[] ->  CommonTypes.EnumRenamePolicy.SelectiveEnumerants
+                | Ada_Lang::[]  -> CommonTypes.EnumRenamePolicy.NoRenamePolicy
+                | []            -> CommonTypes.EnumRenamePolicy.NoRenamePolicy
+                | _             -> raise (UserException ("Please select only one of target languages, not both."))
+            | rp::_    ->
+                match rp with
+                | _ when rp = 0 -> CommonTypes.EnumRenamePolicy.NoRenamePolicy
+                | _ when rp = 1 -> CommonTypes.EnumRenamePolicy.SelectiveEnumerants
+                | _             -> CommonTypes.EnumRenamePolicy.AllEnumerants
+
     }    
 
 

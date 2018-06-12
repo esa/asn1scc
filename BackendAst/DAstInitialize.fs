@@ -425,12 +425,12 @@ let createSequenceInitFunc (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn
                         | None  ->
                             match seqChild.Optionality with
                             | None      -> None
-                            | Some _    -> Some (initSequence_optionalChild p.arg.p (p.arg.getAcces l) seqChild.c_name "0" "")
+                            | Some _    -> Some (initSequence_optionalChild p.arg.p (p.arg.getAcces l) (seqChild.getBackendName l) "0" "")
                         | Some chv  ->
-                            let chContent = seqChild.Type.initFunction.initByAsn1Value ({p with arg = p.arg.getSeqChild l seqChild.c_name seqChild.Type.isIA5String}) chv.Value.kind
+                            let chContent = seqChild.Type.initFunction.initByAsn1Value ({p with arg = p.arg.getSeqChild l (seqChild.getBackendName l) seqChild.Type.isIA5String}) chv.Value.kind
                             match seqChild.Optionality with
                             | None      -> Some chContent
-                            | Some _    -> Some (initSequence_optionalChild p.arg.p (p.arg.getAcces l) seqChild.c_name "1" chContent)
+                            | Some _    -> Some (initSequence_optionalChild p.arg.p (p.arg.getAcces l) (seqChild.getBackendName l) "1" chContent)
                     | AcnChild _     -> None)
 
             | _               -> raise(BugErrorException "UnexpectedValue")
@@ -464,8 +464,8 @@ let createSequenceInitFunc (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn
             List.collect(fun atc -> 
                 let presentFunc  = 
                     let initTestCaseFunc (p:CallerScope) = 
-                        let chContent =  atc.initTestCaseFunc {p with arg = p.arg.getSeqChild l ch.c_name ch.Type.isIA5String} 
-                        let funcBody = initTestCase_sequence_child p.arg.p (p.arg.getAcces l) ch.c_name chContent.funcBody ch.Optionality.IsSome
+                        let chContent =  atc.initTestCaseFunc {p with arg = p.arg.getSeqChild l (ch.getBackendName l) ch.Type.isIA5String} 
+                        let funcBody = initTestCase_sequence_child p.arg.p (p.arg.getAcces l) (ch.getBackendName l) chContent.funcBody ch.Optionality.IsSome
                         {InitFunctionResult.funcBody = funcBody; localVariables = chContent.localVariables }
                     let combinedTestCase =
                         match atc.testCase.ContainsKey ch.Type.id with
@@ -474,7 +474,7 @@ let createSequenceInitFunc (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn
                     {AutomaticTestCase.initTestCaseFunc = initTestCaseFunc; testCase = combinedTestCase }
                 let nonPresenceFunc =  
                     let initTestCaseFunc (p:CallerScope) = 
-                        let funcBody = initTestCase_sequence_child_opt p.arg.p (p.arg.getAcces l) ch.c_name
+                        let funcBody = initTestCase_sequence_child_opt p.arg.p (p.arg.getAcces l) (ch.getBackendName l)
                         {InitFunctionResult.funcBody = funcBody; localVariables = [] }
                     {AutomaticTestCase.initTestCaseFunc = initTestCaseFunc; testCase = Map.empty }
                 match ch.Optionality with
@@ -527,24 +527,24 @@ let createSequenceInitFunc (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn
                     match ch.Type.typeDefintionOrReference with
                     | ReferenceToExistingDefinition    rf   when (not rf.definedInRtl) ->
                         let fncName = (ch.Type.typeDefintionOrReference.longTypedefName l) + (nameSuffix l)
-                        let chP = {p with arg = p.arg.getSeqChild l ch.c_name ch.Type.isIA5String} 
+                        let chP = {p with arg = p.arg.getSeqChild l (ch.getBackendName l) ch.Type.isIA5String} 
                         let chContent =  initChildWithInitFunc (chP.arg.getPointer l) fncName
-                        let funcBody = initTestCase_sequence_child p.arg.p (p.arg.getAcces l) ch.c_name chContent ch.Optionality.IsSome
+                        let funcBody = initTestCase_sequence_child p.arg.p (p.arg.getAcces l) (ch.getBackendName l) chContent ch.Optionality.IsSome
                         {InitFunctionResult.funcBody = funcBody; localVariables = [] }
                     | _       ->
                         let fnc = ch.Type.initFunction.initTas
-                        let chContent =  fnc {p with arg = p.arg.getSeqChild l ch.c_name ch.Type.isIA5String} 
-                        let funcBody = initTestCase_sequence_child p.arg.p (p.arg.getAcces l) ch.c_name chContent.funcBody ch.Optionality.IsSome
+                        let chContent =  fnc {p with arg = p.arg.getSeqChild l (ch.getBackendName l) ch.Type.isIA5String} 
+                        let funcBody = initTestCase_sequence_child p.arg.p (p.arg.getAcces l) (ch.getBackendName l) chContent.funcBody ch.Optionality.IsSome
                         {InitFunctionResult.funcBody = funcBody; localVariables = chContent.localVariables }
                         
                 | Some fncName  ->
-                    let chP = {p with arg = p.arg.getSeqChild l ch.c_name ch.Type.isIA5String} 
+                    let chP = {p with arg = p.arg.getSeqChild l (ch.getBackendName l) ch.Type.isIA5String} 
                     let chContent =  initChildWithInitFunc (chP.arg.getPointer l) fncName
-                    let funcBody = initTestCase_sequence_child p.arg.p (p.arg.getAcces l) ch.c_name chContent ch.Optionality.IsSome
+                    let funcBody = initTestCase_sequence_child p.arg.p (p.arg.getAcces l) (ch.getBackendName l) chContent ch.Optionality.IsSome
                     {InitFunctionResult.funcBody = funcBody; localVariables = [] }
                     
             let nonPresenceFunc () =  
-                let funcBody = initTestCase_sequence_child_opt p.arg.p (p.arg.getAcces l) ch.c_name
+                let funcBody = initTestCase_sequence_child_opt p.arg.p (p.arg.getAcces l) (ch.getBackendName l)
                 {InitFunctionResult.funcBody = funcBody; localVariables = [] }
             match ch.Optionality with
             | None                              -> presentFunc ()

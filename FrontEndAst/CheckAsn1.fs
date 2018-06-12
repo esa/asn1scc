@@ -16,9 +16,9 @@ open Asn1Ast
 open FsUtils
 open CommonTypes
 
-let c_keywords =  [ "auto"; "break"; "case"; "char"; "const"; "continue"; "default"; "do"; "double"; "else"; "enum"; "extern"; "float"; "for"; "goto"; "if"; "int"; "long"; "register"; "return"; "short"; "signed"; "sizeof"; "static"; "struct"; "switch"; "typedef"; "union"; "unsigned"; "void"; "volatile"; "while"; ]
+let c_keywords =  CommonTypes.c_keyworkds
 
-let ada_keywords =  [ "abort"; "else"; "new"; "return"; "abs"; "elsif"; "not"; "reverse"; "abstract"; "end"; "null"; "accept"; "entry"; "select"; "access"; "exception"; "of"; "separate"; "aliased"; "exit"; "or"; "some"; "all"; "others"; "subtype"; "and"; "for"; "out"; "synchronized"; "array"; "function"; "overriding"; "at"; "tagged"; "generic"; "package"; "task"; "begin"; "goto"; "pragma"; "terminate"; "body"; "private"; "then"; "if"; "procedure"; "type"; "case"; "in"; "protected"; "constant"; "interface"; "until"; "is"; "raise"; "use"; "declare"; "range"; "delay"; "limited"; "record"; "when"; "delta"; "loop"; "rem"; "while"; "digits"; "renames"; "with"; "do"; "mod"; "requeue"; "xor" ]
+let ada_keywords =  CommonTypes.ada_keyworkds
 
 let all_keywords =
     let cmn_keys = c_keywords @ ada_keywords |> List.distinct
@@ -467,10 +467,13 @@ let rec CheckType(t:Asn1Type) (m:Asn1Module) ast =
             Seq.iter(fun c ->
                 match m.TypeAssignments |> Seq.tryFind(fun tas -> ToC ((ast.args.TypePrefix + tas.Name.Value).ToLower()) = ToC (c.Value.ToLower()) ) with
                 | Some tas -> 
-                    let errMsg = sprintf "component name '%s' conflicts with type assignment '%s'. May cause compilation errors in case insensitive languages" c.Value tas.Name.Value
+                    let errMsg = sprintf "component name '%s' conflicts with type assignment '%s'. May cause compilation errors in case insensitive languages.\nTo overcome this problem use the -typePrefix argument to add a prefix to all generated types or\nuse -renamePolicy 1 or renamePolicy 2 to rename the component name." c.Value tas.Name.Value
                     match checkForAdaKeywords () with
                     | false   -> ()
-                    | true      ->raise(SemanticError(c.Location, errMsg))
+                    | true      ->
+                        match ast.args.renamePolicy with
+                        | NoRenamePolicy           -> raise(SemanticError(c.Location, errMsg))
+                        | _                        -> ()
                     
                 | None     -> ())
         

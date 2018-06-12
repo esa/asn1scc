@@ -69,7 +69,7 @@ let rec private handleEnumChoices (r:AstRoot) (renamePolicy:EnumRenamePolicy)=
 
 
 let rec private handleSequencesAndChoices (r:AstRoot) (lang:ProgrammingLanguage) (renamePolicy:EnumRenamePolicy)=
-    let doubleEnumNames = seq {
+    let invalidComponentNames = seq {
         for m in r.Modules do
             for tas in m.TypeAssignments do
                 for t in GetMySelfAndChildren tas.Type  do
@@ -78,13 +78,22 @@ let rec private handleSequencesAndChoices (r:AstRoot) (lang:ProgrammingLanguage)
                     | Choice(children)  -> 
                         let names = 
                             children |> 
-                            List.filter(fun x -> lang.keywords |> Seq.exists(lang.cmp (x.CName lang) )) |>
+                            List.filter(fun x -> 
+                                let isKeyword = lang.keywords |> Seq.exists(lang.cmp (x.CName lang) )
+                                let isTas =
+                                    match lang with
+                                    | ProgrammingLanguage.C     -> false
+                                    | ProgrammingLanguage.Spark
+                                    | ProgrammingLanguage.Ada   ->
+                                        m.TypeAssignments |> Seq.exists(fun tas -> lang.cmp (ToC (x.CName lang)) (ToC r.args.TypePrefix + tas.Name.Value) )
+                                    | _                         -> false
+                                isKeyword || isTas ) |>
                             List.map(fun x -> x.CName lang)
                         yield! names
                     | _                 -> () } |> Seq.toList 
 
 
-    match doubleEnumNames with
+    match invalidComponentNames with
     | []    -> r
     | _     ->
         let CloneType (old:Asn1Type) m (key:list<string>) (cons:Constructors<State>) (state:State) =
@@ -127,7 +136,7 @@ let rec private handleSequencesAndChoices (r:AstRoot) (lang:ProgrammingLanguage)
                 | _                   -> raise (BugErrorException "impossible case in handleSequencesAndChoices")
             | _             -> defaultConstructors.cloneType old m key cons state
 
-        let newTree = CloneTree r {defaultConstructors with cloneType =  CloneType; } doubleEnumNames |> fst
+        let newTree = CloneTree r {defaultConstructors with cloneType =  CloneType; } invalidComponentNames |> fst
         handleSequencesAndChoices newTree lang renamePolicy
 
 

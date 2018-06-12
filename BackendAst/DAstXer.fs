@@ -265,22 +265,22 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec
 
         let handleChild (child:Asn1Child) =
             let chFunc = child.Type.getXerFunction codec
-            let childContentResult = chFunc.funcBody ({p with arg = p.arg.getSeqChild l child.c_name child.Type.isIA5String}) (Some (XerLiteralConstant child.Name.Value))
+            let childContentResult = chFunc.funcBody ({p with arg = p.arg.getSeqChild l (child.getBackendName l) child.Type.isIA5String}) (Some (XerLiteralConstant child.Name.Value))
             match childContentResult with
             | None              -> None
             | Some childContent ->
                 let childBody = 
                     match child.Optionality with
-                    | None                          ->  sequence_mandatory_child child.c_name childContent.funcBody child.Name.Value codec
+                    | None                          ->  sequence_mandatory_child (child.getBackendName l) childContent.funcBody child.Name.Value codec
                     //| Some Asn1AcnAst.AlwaysAbsent  ->  match codec with CommonTypes.Encode -> None                        | CommonTypes.Decode -> Some (sequence_optional_child p.arg.p (p.arg.getAcces l) child.c_name childContent.funcBody codec) 
                         | Some Asn1AcnAst.AlwaysAbsent     -> ""
-                        | Some Asn1AcnAst.AlwaysPresent    -> sequence_optional_child p.arg.p (p.arg.getAcces l) child.c_name childContent.funcBody child.Name.Value codec
+                        | Some Asn1AcnAst.AlwaysPresent    -> sequence_optional_child p.arg.p (p.arg.getAcces l) (child.getBackendName l) childContent.funcBody child.Name.Value codec
                         | Some (Asn1AcnAst.Optional opt)   -> 
                             match opt.defaultValue with
-                            | None                   -> sequence_optional_child p.arg.p (p.arg.getAcces l) child.c_name childContent.funcBody child.Name.Value codec
+                            | None                   -> sequence_optional_child p.arg.p (p.arg.getAcces l) (child.getBackendName l) childContent.funcBody child.Name.Value codec
                             | Some v                 -> 
-                                let defInit= child.Type.initFunction.initByAsn1Value ({p with arg = p.arg.getSeqChild l child.c_name child.Type.isIA5String}) (mapValue v).kind
-                                sequence_default_child p.arg.p (p.arg.getAcces l) child.c_name childContent.funcBody child.Name.Value defInit codec
+                                let defInit= child.Type.initFunction.initByAsn1Value ({p with arg = p.arg.getSeqChild l (child.getBackendName l) child.Type.isIA5String}) (mapValue v).kind
+                                sequence_default_child p.arg.p (p.arg.getAcces l) (child.getBackendName l) childContent.funcBody child.Name.Value defInit codec
                 Some (childBody, childContent.localVariables, childContent.errCodes, childContent.encodingSizeInBytes)
         
         let childrenStatements0 = nonAcnChildren |> List.choose handleChild

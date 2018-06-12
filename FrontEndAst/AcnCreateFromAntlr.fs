@@ -1220,12 +1220,12 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (m:Asn1Ast.Asn1Mo
                 match cc with
                 | None      ->  
                     let newChild = mergeType asn1 acn m c.Type (curPath@[SEQ_CHILD c.Name.Value]) None None [] childWithCons [] [] None  None
-                    Asn1Child ({Asn1Child.Name = c.Name; c_name = c.c_name; ada_name = c.ada_name; Type  = newChild; Optionality = newOptionality;Comments = c.Comments})
+                    Asn1Child ({Asn1Child.Name = c.Name; _c_name = c.c_name; _ada_name = c.ada_name; Type  = newChild; Optionality = newOptionality;Comments = c.Comments})
                 | Some cc   ->
                     match cc.asn1Type with
                     | None  -> 
                         let newChild = mergeType asn1 acn m c.Type (curPath@[SEQ_CHILD c.Name.Value]) (Some cc.childEncodingSpec) None [] childWithCons cc.argumentList [] None  None
-                        Asn1Child ({Asn1Child.Name = c.Name; c_name = c.c_name; ada_name = c.ada_name; Type  = newChild; Optionality = newOptionality; Comments = c.Comments})
+                        Asn1Child ({Asn1Child.Name = c.Name; _c_name = c.c_name; _ada_name = c.ada_name; Type  = newChild; Optionality = newOptionality; Comments = c.Comments})
                     | Some xx  ->
                         AcnChild({AcnChild.Name = c.Name; id = ReferenceToType(curPath@[SEQ_CHILD c.Name.Value]); Type = mapAcnParamTypeToAcnAcnInsertedType asn1 acn xx cc.childEncodingSpec.acnProperties})
 

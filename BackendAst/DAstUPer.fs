@@ -488,26 +488,26 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec
             let printPresenceBit (child:Asn1Child) =
                 match child.Optionality with
                 | None                       -> None
-                | Some Asn1AcnAst.AlwaysAbsent     -> Some (sequence_presence_bit_fix p.arg.p (p.arg.getAcces l) child.c_name errCode.errCodeName "0"  codec)    // please note that in decode, macro uper_sequence_presence_bit_fix
-                | Some Asn1AcnAst.AlwaysPresent    -> Some (sequence_presence_bit_fix p.arg.p (p.arg.getAcces l) child.c_name errCode.errCodeName "1"  codec)    // calls macro uper_sequence_presence_bit (i.e. behaves like optional)
-                | Some (Asn1AcnAst.Optional opt)   -> Some (sequence_presence_bit p.arg.p (p.arg.getAcces l) child.c_name  errCode.errCodeName codec)
+                | Some Asn1AcnAst.AlwaysAbsent     -> Some (sequence_presence_bit_fix p.arg.p (p.arg.getAcces l) (child.getBackendName l) errCode.errCodeName "0"  codec)    // please note that in decode, macro uper_sequence_presence_bit_fix
+                | Some Asn1AcnAst.AlwaysPresent    -> Some (sequence_presence_bit_fix p.arg.p (p.arg.getAcces l) (child.getBackendName l) errCode.errCodeName "1"  codec)    // calls macro uper_sequence_presence_bit (i.e. behaves like optional)
+                | Some (Asn1AcnAst.Optional opt)   -> Some (sequence_presence_bit p.arg.p (p.arg.getAcces l) (child.getBackendName l)  errCode.errCodeName codec)
             let handleChild (child:Asn1Child) =
                 let chFunc = child.Type.getUperFunction codec
-                let childContentResult = chFunc.funcBody ({p with arg = p.arg.getSeqChild l child.c_name child.Type.isIA5String})
+                let childContentResult = chFunc.funcBody ({p with arg = p.arg.getSeqChild l (child.getBackendName l) child.Type.isIA5String})
                 match childContentResult with
                 | None              -> None
                 | Some childContent ->
                     let childBody = 
                         match child.Optionality with
-                        | None                       -> Some (sequence_mandatory_child child.c_name childContent.funcBody codec) 
-                        | Some Asn1AcnAst.AlwaysAbsent     -> match codec with CommonTypes.Encode -> None                        | CommonTypes.Decode -> Some (sequence_optional_child p.arg.p (p.arg.getAcces l) child.c_name childContent.funcBody codec) 
-                        | Some Asn1AcnAst.AlwaysPresent    -> match codec with CommonTypes.Encode -> Some childContent.funcBody  | CommonTypes.Decode -> Some (sequence_optional_child p.arg.p (p.arg.getAcces l) child.c_name childContent.funcBody codec)
+                        | None                       -> Some (sequence_mandatory_child (child.getBackendName l) childContent.funcBody codec) 
+                        | Some Asn1AcnAst.AlwaysAbsent     -> match codec with CommonTypes.Encode -> None                        | CommonTypes.Decode -> Some (sequence_optional_child p.arg.p (p.arg.getAcces l) (child.getBackendName l) childContent.funcBody codec) 
+                        | Some Asn1AcnAst.AlwaysPresent    -> match codec with CommonTypes.Encode -> Some childContent.funcBody  | CommonTypes.Decode -> Some (sequence_optional_child p.arg.p (p.arg.getAcces l) (child.getBackendName l) childContent.funcBody codec)
                         | Some (Asn1AcnAst.Optional opt)   -> 
                             match opt.defaultValue with
-                            | None                   -> Some (sequence_optional_child p.arg.p (p.arg.getAcces l) child.c_name childContent.funcBody codec)
+                            | None                   -> Some (sequence_optional_child p.arg.p (p.arg.getAcces l) (child.getBackendName l) childContent.funcBody codec)
                             | Some v                 -> 
-                                let defInit= child.Type.initFunction.initByAsn1Value ({p with arg = p.arg.getSeqChild l child.c_name child.Type.isIA5String}) (mapValue v).kind
-                                Some (sequence_default_child p.arg.p (p.arg.getAcces l) child.c_name childContent.funcBody defInit codec) 
+                                let defInit= child.Type.initFunction.initByAsn1Value ({p with arg = p.arg.getSeqChild l (child.getBackendName l) child.Type.isIA5String}) (mapValue v).kind
+                                Some (sequence_default_child p.arg.p (p.arg.getAcces l) (child.getBackendName l) childContent.funcBody defInit codec) 
                     Some (childBody, childContent.localVariables, childContent.errCodes)
             
             let presenseBits = nonAcnChildren |> List.choose printPresenceBit

@@ -597,8 +597,8 @@ and SeqChildInfo =
 
 and Asn1Child = {
     Name                        : StringLoc
-    c_name                      : string
-    ada_name                    : string                     
+    _c_name                      : string
+    _ada_name                    : string                     
     Type                        : Asn1Type
     Optionality                 : Asn1Optionality option
     Comments                    : string array

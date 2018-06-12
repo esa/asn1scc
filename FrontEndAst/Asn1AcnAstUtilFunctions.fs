@@ -213,6 +213,14 @@ type Choice           with
 //    member this.AllCons  = this.cons@this.withcons
 
 
+type Asn1Child with
+    member this.getBackendName0 l = 
+        match l with
+        | CommonTypes.C         -> this._c_name
+        | CommonTypes.Ada       -> this._ada_name
+        | _                     -> this.Name.Value
+
+
 
 type AcnPresentWhenConditionChoiceChild with
     member this.valueAsString = 

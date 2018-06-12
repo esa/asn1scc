@@ -29,8 +29,8 @@
     <PlatformTarget>AnyCPU</PlatformTarget>
     <DocumentationFile>bin\Debug\Asn1f4.XML</DocumentationFile>
     <Prefer32Bit>true</Prefer32Bit>
-    <StartWorkingDirectory>C:\prj\GitHub\asn1scc\github-issues\issue122</StartWorkingDirectory>
-    <StartArguments>-c -ACN -atc -o c_out/ a.asn1 a.acn</StartArguments>
+    <StartWorkingDirectory>C:\prj\GitHub\asn1scc\tmp\773\</StartWorkingDirectory>
+    <StartArguments>-renamePolicy 0 -Ada -uPER -atc -o ada_out/ sample1.asn1</StartArguments>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>

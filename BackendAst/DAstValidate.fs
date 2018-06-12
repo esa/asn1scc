@@ -473,7 +473,7 @@ let createBitStringFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:As
 (*  SEQUENCE *)
 
 let isValidSequenceChild   (l:ProgrammingLanguage) (o:Asn1AcnAst.Asn1Child) (newChild:Asn1Type) (us:State)= 
-    let c_name = ToC o.c_name
+    let c_name = o.getBackendName l
     let sInnerStatement = 
         match newChild.isValidFunction with
         | Some (isValidFunction)    ->

@@ -54,19 +54,19 @@ let rec printValue (r:DAst.AstRoot)  (l:ProgrammingLanguage)  (curProgamUnitName
                     List.filter(fun ch -> ch.Optionality.IsSome) |>
                     List.map(fun x ->
                         match v |> Seq.tryFind(fun chv -> chv.name = x.Name.Value) with
-                        | Some _    -> variables_c.PrintSequenceValue_child_exists x.c_name "1"
-                        | None      -> variables_c.PrintSequenceValue_child_exists x.c_name "0")
+                        | Some _    -> variables_c.PrintSequenceValue_child_exists (x.getBackendName l) "1"
+                        | None      -> variables_c.PrintSequenceValue_child_exists (x.getBackendName l) "0")
                 let arrChildren = 
                     s.children |>
                     List.choose(fun ch -> match ch with Asn1Child a -> Some a | AcnChild _ -> None) |>
                     List.choose(fun cht -> 
                         match v |> Seq.tryFind(fun chv -> chv.name = cht.Name.Value) with
-                        | Some v    -> Some (variables_c.PrintSequenceValueChild cht.c_name (printValue r l curProgamUnitName cht.Type (Some gv) v.Value.kind))
+                        | Some v    -> Some (variables_c.PrintSequenceValueChild (cht.getBackendName l) (printValue r l curProgamUnitName cht.Type (Some gv) v.Value.kind))
                         | None      -> 
                             match cht.Optionality with
                             | Some(Asn1AcnAst.Optional opt)    -> 
                                 match opt.defaultValue with
-                                | Some v    -> Some (variables_c.PrintSequenceValueChild cht.c_name (printValue r l curProgamUnitName cht.Type (Some gv) (mapValue v).kind ))                    
+                                | Some v    -> Some (variables_c.PrintSequenceValueChild (cht.getBackendName l) (printValue r l curProgamUnitName cht.Type (Some gv) (mapValue v).kind ))                    
                                 | None      -> None
                             | _             -> None)
                 variables_c.PrintSequenceValue arrChildren optChildren
@@ -153,14 +153,14 @@ let rec printValue (r:DAst.AstRoot)  (l:ProgrammingLanguage)  (curProgamUnitName
                     List.filter(fun ch -> ch.Optionality.IsSome) |>
                     List.map(fun x ->
                         match v |> Seq.tryFind(fun chv -> chv.name = x.Name.Value) with
-                        | Some _    -> variables_a.PrintSequenceValue_child_exists x.c_name "1"
-                        | None      -> variables_a.PrintSequenceValue_child_exists x.c_name "0")
+                        | Some _    -> variables_a.PrintSequenceValue_child_exists (x.getBackendName l) "1"
+                        | None      -> variables_a.PrintSequenceValue_child_exists (x.getBackendName l) "0")
                 let arrChildren = 
                     s.children |>
                     List.choose(fun ch -> match ch with Asn1Child a -> Some a | AcnChild _ -> None) |>
                     List.map(fun x -> 
                         match v |> Seq.tryFind(fun chv -> chv.name = x.Name.Value) with
-                        | Some v    -> variables_a.PrintSequenceValueChild x.c_name (printValue r l curProgamUnitName x.Type (Some gv) v.Value.kind)
+                        | Some v    -> variables_a.PrintSequenceValueChild (x.getBackendName l) (printValue r l curProgamUnitName x.Type (Some gv) v.Value.kind)
                         | None      -> 
                             let chV = 
                                 match x.Optionality with
@@ -169,7 +169,7 @@ let rec printValue (r:DAst.AstRoot)  (l:ProgrammingLanguage)  (curProgamUnitName
                                     | Some v    -> (mapValue v).kind
                                     | None      -> getDefaultValueByType x.Type
                                 | _             -> getDefaultValueByType x.Type
-                            variables_a.PrintSequenceValueChild x.c_name (printValue r l curProgamUnitName x.Type None chV) )
+                            variables_a.PrintSequenceValueChild (x.getBackendName l) (printValue r l curProgamUnitName x.Type None chV) )
                 let allChildren = match Seq.isEmpty optChildren with
                                   | true     -> arrChildren
                                   | false    -> arrChildren @ [variables_a.PrintSequenceValue_Exists typeDefName optChildren]
@@ -349,8 +349,8 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn
                     optChildren |>
                     List.map(fun x ->
                         match v |> Seq.tryFind(fun chv -> chv.name = x.Name.Value) with
-                        | Some _    -> PrintSequenceValue_child_exists x.c_name "1"
-                        | None      -> PrintSequenceValue_child_exists x.c_name "0")
+                        | Some _    -> PrintSequenceValue_child_exists (x.getBackendName l) "1"
+                        | None      -> PrintSequenceValue_child_exists (x.getBackendName l) "0")
                 let arrChildren = 
                     children |>
                     List.choose(fun ch -> match ch with Asn1Child a -> Some a | AcnChild _ -> None) |>
@@ -358,7 +358,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn
                         match v |> Seq.tryFind(fun chv -> chv.name = x.Name.Value) with
                         | Some v    -> 
                             let childValue = x.Type.printValue (Some gv) v.Value.kind
-                            Some (variables_a.PrintSequenceValueChild x.c_name childValue)
+                            Some (variables_a.PrintSequenceValueChild (x.getBackendName l) childValue)
                         | None      -> 
                             let childValue = 
                                 match x.Optionality with
@@ -371,7 +371,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn
                                 | _             -> match l with C -> None | Ada -> Some (x.Type.printValue (Some gv) x.Type.initialValue)
                             match childValue with
                             | None  -> None
-                            | Some childValue -> Some (PrintSequenceValueChild x.c_name childValue) )
+                            | Some childValue -> Some (PrintSequenceValueChild (x.getBackendName l) childValue) )
                                             
                 match l with 
                 | C -> 

@@ -50,7 +50,7 @@ let isEqualBodyBitString (l:ProgrammingLanguage) sMin sMax (v1:CallerScope) (v2:
 *)
 
 let isEqualBodySequenceChild   (l:ProgrammingLanguage)  (o:Asn1AcnAst.Asn1Child) (newChild:Asn1Type) (v1:CallerScope) (v2:CallerScope)  = 
-    let c_name = ToC o.c_name
+    let c_name = o.getBackendName l
     let callChildEqualFunc  = match l with C -> equal_c.callChildEqualFunc | Ada -> equal_a.callChildEqualFunc
     let sInnerStatement = 
         let chp1 = {v1 with arg = v1.arg.getSeqChild l c_name newChild.isIA5String}

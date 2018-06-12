@@ -1066,7 +1066,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
             | Some Asn1AcnAst.AlwaysPresent    -> None
             | Some (Asn1AcnAst.Optional opt)   -> 
                 match opt.acnPresentWhen with
-                | None      -> Some (sequence_presense_optChild p.arg.p (p.arg.getAcces l) child.c_name  errCode.errCodeName codec)
+                | None      -> Some (sequence_presense_optChild p.arg.p (p.arg.getAcces l) (child.getBackendName l)  errCode.errCodeName codec)
                 | Some _    -> None
 
         let localVariables =
@@ -1080,7 +1080,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                 let chFunc = child.Type.getAcnFunction codec
                 let childContentResult, ns1 = 
                     match chFunc with
-                    | Some chFunc   -> chFunc.funcBody us [] ({p with arg = p.arg.getSeqChild l child.c_name child.Type.isIA5String})
+                    | Some chFunc   -> chFunc.funcBody us [] ({p with arg = p.arg.getSeqChild l (child.getBackendName l) child.Type.isIA5String})
                     | None          -> None, us
 
                 //handle present-when acn property
@@ -1095,7 +1095,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                                 | None    -> None
                                 | Some (PresenceWhenBool _)    -> 
                                     let extField = getExternaField r deps child.Type.id
-                                    Some(sequence_presense_optChild_pres_bool p.arg.p (p.arg.getAcces l) child.c_name extField codec)
+                                    Some(sequence_presense_optChild_pres_bool p.arg.p (p.arg.getAcces l) (child.getBackendName l) extField codec)
                             | _                 -> None
                         [(AcnPresenceStatement, acnPresenceStatement, [], [])], ns1
 
@@ -1105,15 +1105,15 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                     | Some childContent ->
                         let childBody, chLocalVars = 
                             match child.Optionality with
-                            | None                             -> sequence_mandatory_child child.c_name childContent.funcBody codec, childContent.localVariables
-                            | Some Asn1AcnAst.AlwaysAbsent     -> sequence_always_absent_child p.arg.p (p.arg.getAcces l) child.c_name childContent.funcBody codec, []
-                            | Some Asn1AcnAst.AlwaysPresent    -> sequence_always_present_child p.arg.p (p.arg.getAcces l) child.c_name childContent.funcBody codec, childContent.localVariables
+                            | None                             -> sequence_mandatory_child (child.getBackendName l) childContent.funcBody codec, childContent.localVariables
+                            | Some Asn1AcnAst.AlwaysAbsent     -> sequence_always_absent_child p.arg.p (p.arg.getAcces l) (child.getBackendName l) childContent.funcBody codec, []
+                            | Some Asn1AcnAst.AlwaysPresent    -> sequence_always_present_child p.arg.p (p.arg.getAcces l) (child.getBackendName l) childContent.funcBody codec, childContent.localVariables
                             | Some (Asn1AcnAst.Optional opt)   -> 
                                 match opt.defaultValue with
-                                | None                   -> sequence_optional_child p.arg.p (p.arg.getAcces l) child.c_name childContent.funcBody codec, childContent.localVariables
+                                | None                   -> sequence_optional_child p.arg.p (p.arg.getAcces l) (child.getBackendName l) childContent.funcBody codec, childContent.localVariables
                                 | Some v                 -> 
-                                    let defInit= child.Type.initFunction.initByAsn1Value ({p with arg = p.arg.getSeqChild l child.c_name child.Type.isIA5String}) (mapValue v).kind
-                                    sequence_default_child p.arg.p (p.arg.getAcces l) child.c_name childContent.funcBody defInit codec, childContent.localVariables
+                                    let defInit= child.Type.initFunction.initByAsn1Value ({p with arg = p.arg.getSeqChild l (child.getBackendName l) child.Type.isIA5String}) (mapValue v).kind
+                                    sequence_default_child p.arg.p (p.arg.getAcces l) (child.getBackendName l) childContent.funcBody defInit codec, childContent.localVariables
                         [(Asn1ChildEncodeStatement, (Some childBody), chLocalVars, childContent.errCodes)], ns2
                 present_when_statements@childEncDecStatement,ns3
             | AcnChild  acnChild    -> 

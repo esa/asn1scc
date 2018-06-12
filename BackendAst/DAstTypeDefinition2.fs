@@ -436,19 +436,19 @@ let createSequenceOf (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (pi : Asn1Fo
 let createSequence (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (pi : Asn1Fold.ParentInfo<ParentInfoData> option) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Sequence)  (children:SeqChildInfo list) (us:State) =
     let children = children |> List.choose (fun c -> match c with Asn1Child z -> Some z | _ -> None)
     let optionalChildren = children |> List.choose(fun c -> match c.Optionality with Some _ -> Some c | None -> None)
-    let optChildNames  = optionalChildren |> List.map(fun c -> c.c_name)
+    let optChildNames  = optionalChildren |> List.map(fun c -> c.getBackendName l)
     let childldrenCompleteDefintions = children |> List.collect (fun c -> getChildDefinition c.Type.typeDefintionOrReference)
     let getCompleteDefinition (programUnit:string) (typeDefinitionName:string) =
         match l with
         | C                      ->
-            let handleChild (o:Asn1Child) = header_c.PrintSeq_ChoiceChild (o.Type.typeDefintionOrReference.longTypedefName l ) o.c_name ""
+            let handleChild (o:Asn1Child) = header_c.PrintSeq_ChoiceChild (o.Type.typeDefintionOrReference.longTypedefName l ) (o.getBackendName l) ""
             let childrenBodies = children |> List.map handleChild
             let typeDefinitionBody = header_c.Declare_Sequence childrenBodies optChildNames
             header_c.Define_Type typeDefinitionBody typeDefinitionName None childldrenCompleteDefintions
         | Ada                    -> 
-            let handleChild (o:Asn1Child) = header_a.SEQUENCE_tas_decl_child o.c_name (o.Type.typeDefintionOrReference.longTypedefName l)
+            let handleChild (o:Asn1Child) = header_a.SEQUENCE_tas_decl_child (o.getBackendName l) (o.Type.typeDefintionOrReference.longTypedefName l)
             let childrenBodies = children |> List.map handleChild
-            let optChildren  = optionalChildren |> List.map(fun c -> header_a.SEQUENCE_tas_decl_child_bit c.ada_name)
+            let optChildren  = optionalChildren |> List.map(fun c -> header_a.SEQUENCE_tas_decl_child_bit (c.getBackendName l))
             header_a.SEQUENCE_tas_decl typeDefinitionName childrenBodies optChildren childldrenCompleteDefintions
     let getExtraSubTypes sTypeDefinitionName soParentTypePackage sParentType =
         match l with
@@ -469,7 +469,7 @@ let createChoice (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (pi : Asn1Fold.P
             let typeDefinitionBody = header_c.Declare_Choice (choiceIDForNone t.id) chEnms childrenBodies 
             header_c.Define_Type typeDefinitionBody typeDefinitionName None childldrenCompleteDefintions
         | Ada                    -> 
-            let handleChild (o:ChChildInfo) = header_a.CHOICE_tas_decl_child o.c_name  (o.chType.typeDefintionOrReference.longTypedefName l) (o.presentWhenName None l)
+            let handleChild (o:ChChildInfo) = header_a.CHOICE_tas_decl_child o.ada_name  (o.chType.typeDefintionOrReference.longTypedefName l) (o.presentWhenName None l)
             let chEnms = children |> List.map(fun c -> c.presentWhenName None l)
             let childrenBodies = children |> List.map handleChild
             let nIndexMax = BigInteger ((Seq.length children)-1)

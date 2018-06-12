@@ -322,6 +322,20 @@ type Sequence with
     member this.Asn1Children =
         this.children |> List.choose(fun c -> match c with Asn1Child c -> Some c | AcnChild _ -> None)
 
+type Asn1Child with
+    member this.getBackendName l = 
+        match l with
+        | C         -> this._c_name
+        | Ada       -> this._ada_name
+
+type Asn1AcnAst.Asn1Child with
+    member this.getBackendName l = 
+        match l with
+        | C         -> this._c_name
+        | Ada       -> this._ada_name
+
+
+
 type Choice with 
     member this.Cons     = this.baseInfo.cons
     member this.WithCons = this.baseInfo.withcons
