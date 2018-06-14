@@ -5,6 +5,7 @@ open System.IO
 
 open FsUtils
 open CommonTypes
+
 open DAst
 open DAstUtilFunctions
 
@@ -85,9 +86,9 @@ let isEqualBodyChoiceChild  (choiceTypeDefName:string) (l:ProgrammingLanguage) (
         let p1,p2 =
             match l with
             | C    ->
-                ({v1 with arg = v1.arg.getChChild l o.c_name newChild.isIA5String}), ({v2 with arg = v2.arg.getChChild l o.c_name newChild.isIA5String})
+                ({v1 with arg = v1.arg.getChChild l (o.getBackendName l) newChild.isIA5String}), ({v2 with arg = v2.arg.getChChild l (o.getBackendName l) newChild.isIA5String})
             | Ada  ->
-                ({v1 with arg = v1.arg.getChChild l o.c_name newChild.isIA5String}), ({v2 with arg = v2.arg.getChChild l o.c_name newChild.isIA5String})
+                ({v1 with arg = v1.arg.getChChild l (o.getBackendName l) newChild.isIA5String}), ({v2 with arg = v2.arg.getChChild l (o.getBackendName l) newChild.isIA5String})
         match newChild.equalFunction.isEqualBody with
         | EqualBodyExpression func  ->  
             match func p1 p2 with

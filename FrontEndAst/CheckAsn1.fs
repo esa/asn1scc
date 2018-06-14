@@ -467,13 +467,13 @@ let rec CheckType(t:Asn1Type) (m:Asn1Module) ast =
             Seq.iter(fun c ->
                 match m.TypeAssignments |> Seq.tryFind(fun tas -> ToC ((ast.args.TypePrefix + tas.Name.Value).ToLower()) = ToC (c.Value.ToLower()) ) with
                 | Some tas -> 
-                    let errMsg = sprintf "component name '%s' conflicts with type assignment '%s'. May cause compilation errors in case insensitive languages.\nTo overcome this problem use the -typePrefix argument to add a prefix to all generated types or\nuse -renamePolicy 1 or renamePolicy 2 to rename the component name." c.Value tas.Name.Value
+                    let errMsg = sprintf "component name '%s' conflicts with type assignment '%s'. May cause compilation errors in case insensitive languages.\nTo overcome this problem use the -typePrefix argument to add a prefix to all generated types or\nuse --field_prefix argument." c.Value tas.Name.Value
                     match checkForAdaKeywords () with
                     | false   -> ()
                     | true      ->
-                        match ast.args.renamePolicy with
-                        | NoRenamePolicy           -> raise(SemanticError(c.Location, errMsg))
-                        | _                        -> ()
+                        match ast.args.fieldPrefix with
+                        | None           -> raise(SemanticError(c.Location, errMsg))
+                        | Some _         -> ()
                     
                 | None     -> ())
         

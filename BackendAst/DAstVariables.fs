@@ -77,7 +77,7 @@ let rec printValue (r:DAst.AstRoot)  (l:ProgrammingLanguage)  (curProgamUnitName
             | Choice s -> 
                 s.children |>
                 List.filter(fun x -> x.Name.Value = v.name)  |>
-                List.map(fun x -> variables_c.PrintChoiceValue (x.presentWhenName (Some t.typeDefintionOrReference) l) x.c_name (printValue r l curProgamUnitName x.chType (Some gv) v.Value.kind)) |>
+                List.map(fun x -> variables_c.PrintChoiceValue (x.presentWhenName (Some t.typeDefintionOrReference) l) (x.getBackendName l) (printValue r l curProgamUnitName x.chType (Some gv) v.Value.kind)) |>
                 List.head
             | _         -> raise(BugErrorException "unexpected type")
         | RefValue ((md,vs),v)         ->
@@ -189,7 +189,7 @@ let rec printValue (r:DAst.AstRoot)  (l:ProgrammingLanguage)  (curProgamUnitName
                             if parentValue.IsSome then s.typeDefinition.typeDefinitionBodyWithinSeq else s.typeDefinition.name*)
                 s.children |>
                 List.filter(fun x -> x.Name.Value = v.name)  |>
-                List.map(fun x -> variables_a.PrintChoiceValue typeDefName x.c_name (printValue r l  curProgamUnitName x.chType (Some gv) v.Value.kind) (x.presentWhenName (Some t.typeDefintionOrReference) l) ) |>
+                List.map(fun x -> variables_a.PrintChoiceValue typeDefName (x.getBackendName l) (printValue r l  curProgamUnitName x.chType (Some gv) v.Value.kind) (x.presentWhenName (Some t.typeDefintionOrReference) l) ) |>
                 List.head
             | _         -> raise(BugErrorException "unexpected type")
 
@@ -395,12 +395,12 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1A
             | C ->
                 children |>
                 List.filter(fun x -> x.Name.Value = chVal.name)  |>
-                List.map(fun x -> variables_c.PrintChoiceValue (x.presentWhenName (Some defOrRef) l) x.c_name (x.chType.printValue (Some gv) chVal.Value.kind)) |>
+                List.map(fun x -> variables_c.PrintChoiceValue (x.presentWhenName (Some defOrRef) l) (x.getBackendName l) (x.chType.printValue (Some gv) chVal.Value.kind)) |>
                 List.head
             | Ada   ->
                 children |>
                 List.filter(fun x -> x.Name.Value = chVal.name)  |>
-                List.map(fun x -> variables_a.PrintChoiceValue typeDefName x.c_name (x.chType.printValue (Some gv) chVal.Value.kind) (x.presentWhenName (Some defOrRef) l)) |>
+                List.map(fun x -> variables_a.PrintChoiceValue typeDefName (x.getBackendName l) (x.chType.printValue (Some gv) chVal.Value.kind) (x.presentWhenName (Some defOrRef) l)) |>
                 List.head
         | RefValue ((md,vs),ov)   -> vs
         | _                 -> raise(BugErrorException "unexpected value")

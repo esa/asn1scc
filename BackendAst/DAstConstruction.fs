@@ -607,8 +607,8 @@ let private createChoiceChild (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (m:
         {
         
             ChChildInfo.Name     = ch.Name
-            c_name             = ch.c_name
-            ada_name           = ch.ada_name
+            _c_name             = ch._c_name
+            _ada_name           = ch._ada_name
             _present_when_name_private  = ch.present_when_name
             acnPresentWhenConditions = ch.acnPresentWhenConditions
             chType              = newChildType

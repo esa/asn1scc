@@ -8,31 +8,31 @@ open System.Resources
 open Antlr
 
 type CliArguments =
-    | [<AltCommandLine("-c")>]C_lang 
-    | [<AltCommandLine("-Ada")>]Ada_Lang
-    | [<AltCommandLine("-uPER")>]UPER_enc
-    | [<AltCommandLine("-XER")>]XER_enc
-    | [<AltCommandLine("-ACN")>]ACN_enc
-    | [<AltCommandLine("-atc")>]Auto_test_cases
-    | [<AltCommandLine("-o")>]Out of dir:string
-    | [<AltCommandLine("-equal")>]Equal_Func 
-    | [<AltCommandLine("-typePrefix")>]Type_Prefix of prefix:string
-    | [<AltCommandLine("-x")>] Xml_Ast of xmlFilename:string
-    | [<AltCommandLine("-renamePolicy")>] Rename_Policy of int
-    | [<AltCommandLine("-gtc")>] Generate_Test_Grammar 
-    | [<AltCommandLine("-customStg")>] Custom_Stg  of custom_stg_colon_outfilename:string
-    | [<AltCommandLine("-customStgAstVersion")>] Custom_Stg_Ast_Version  of astver:int
-    | [<AltCommandLine("-icdUper")>] IcdUper  of uper_icd_output_file:string
-    | [<AltCommandLine("-customIcdUper")>] CustomIcdUper  of custom_stg_colon_out_filename:string
-    | [<AltCommandLine("-icdAcn")>] IcdAcn  of acn_icd_output_file:string
-    | [<AltCommandLine("-customIcdAcn")>] CustomIcdAcn  of custom_stg_colon_out_filename:string
-    | [<AltCommandLine("-AdaUses")>] AdaUses 
-    | [<AltCommandLine("-ACND")>] ACND  
-    | [<AltCommandLine("-wordSize")>] Word_Size  of wordSize:int
-    | [<AltCommandLine("-v")>]   Version
-    | [<AltCommandLine("-asn1")>]   Debug_Asn1 of string option
-    | [<AltCommandLine("-mfm")>]   Mapping_Functions_Module of string 
-    
+    | [<Unique; AltCommandLine("-c")>]C_lang 
+    | [<Unique; AltCommandLine("-Ada")>]Ada_Lang
+    | [<Unique; AltCommandLine("-uPER")>]UPER_enc
+    | [<Unique; AltCommandLine("-XER")>]XER_enc
+    | [<Unique; AltCommandLine("-ACN")>]ACN_enc
+    | [<Unique; AltCommandLine("-atc")>]Auto_test_cases
+    | [<Unique; AltCommandLine("-o")>]Out of dir:string
+    | [<Unique; AltCommandLine("-equal")>]Equal_Func 
+    | [<Unique; AltCommandLine("-x")>] Xml_Ast of xmlFilename:string
+    | [<Unique; AltCommandLine("-typePrefix")>]Type_Prefix of prefix:string
+    | [<Unique; AltCommandLine("-renamePolicy")>] Rename_Policy of int
+    | [<Unique; AltCommandLine("-fp")>]  Field_Prefix of prefix:string
+    | [<Unique; AltCommandLine("-gtc")>] Generate_Test_Grammar 
+    | [<Unique; AltCommandLine("-customStg")>] Custom_Stg  of custom_stg_colon_outfilename:string
+    | [<Unique; AltCommandLine("-customStgAstVersion")>] Custom_Stg_Ast_Version  of astver:int
+    | [<Unique; AltCommandLine("-icdUper")>] IcdUper  of uper_icd_output_file:string
+    | [<Unique; AltCommandLine("-customIcdUper")>] CustomIcdUper  of custom_stg_colon_out_filename:string
+    | [<Unique; AltCommandLine("-icdAcn")>] IcdAcn  of acn_icd_output_file:string
+    | [<Unique; AltCommandLine("-customIcdAcn")>] CustomIcdAcn  of custom_stg_colon_out_filename:string
+    | [<Unique; AltCommandLine("-AdaUses")>] AdaUses 
+    | [<Unique; AltCommandLine("-ACND")>] ACND  
+    | [<Unique; AltCommandLine("-wordSize")>] Word_Size  of wordSize:int
+    | [<Unique; AltCommandLine("-v")>]   Version
+    | [<Unique; AltCommandLine("-asn1")>]   Debug_Asn1 of string option
+    | [<Unique; AltCommandLine("-mfm")>]   Mapping_Functions_Module of string 
     | [<MainCommand; ExactlyOnce; Last>] Files of files:string list
 with
     interface IArgParserTemplate with
@@ -50,8 +50,7 @@ with
             | Type_Prefix _    -> "adds 'prefix' to all generated C or Ada/SPARK data types."
             | Equal_Func       -> "generate functions for testing type equality."
             | Xml_Ast _        -> "dump internal AST in an xml file"
-            | Rename_Policy _  -> """Specify rename policy. 
-  Allowed values are:
+            | Rename_Policy _  -> """Specify rename policy for Enumerated values. Allowed values are:
     0 perform no rename (Ada default).
     1 rename only conflicting enumerants (C default). 
       E.g. In a grammar that contains 
@@ -61,9 +60,12 @@ with
       RGB_red and FavColors_red. 
     2 rename all enumerants of an enumerated type 
       that has least one conflicting enumerant.
-Moreover, if value 1 or 2 is provided then any component or alternative name that conflicts with the one of the target language keywords will be renamed by prefixing it with the name of the parent type. The same renaming will be applied if the target language is Ada (which is case insensitive) and the component or alternative name conflicts with the name of a Type Assignment.
 """
-            | Generate_Test_Grammar -> "generate a sample grammar for testing purposes"
+            | Field_Prefix _     -> """  Apply <prefix> string to any component or alternative fields present in the grammar.
+  If <prefix> is AUTO (i.e. -fp AUTO) then only the conflicting component or alternative names will be prefixed with the type name.
+"""
+
+            | Generate_Test_Grammar -> "generate a sample grammar for testing purposes. Experimental ..."
             | Custom_Stg _   -> "custom_stg_colon_outfilename is expected as stgFile.stg:outputFile where stgFile.stg is an existing custom stg file, while outputFile is the name of the generated file. Invokes the custom stg file 'stgFile.stg' and produces the output file 'outputFile'"
             | Custom_Stg_Ast_Version _ -> "1 = original AST, 4: like version of asn1scc where inner types are replaced with referenced types"
             | IcdUper  _        -> "Produces an Interface Control Document for the input ASN.1 grammar for uPER encoding"    
@@ -136,6 +138,10 @@ let checkArguement arg =
         match rp with
         | 0 | 1 | 2 -> ()
         | _             -> raise (UserException ("invalid value for argument -renamePolicy. Currently only values 0,1,2 are supported"))
+    | Field_Prefix vl ->
+            match vl.ToCharArray().[0] with
+            | _ when (vl.ToCharArray().[0] >= 'A' && vl.ToCharArray().[0] <= 'Z') || (vl.ToCharArray().[0] >= 'a' && vl.ToCharArray().[0] <= 'z')  ||  vl.ToCharArray().[0] = '_' -> ()
+            | _ -> raise (UserException ("invalid prefix value. Prefix value must start with a letter"))
     | Custom_Stg comFile  -> checkCompositeFile comFile "-customStg" "txt"
     | Custom_Stg_Ast_Version v -> 
         match v with
@@ -201,7 +207,15 @@ let constructCommandLineSettings args (parserResults: ParseResults<CliArguments>
                 | _ when rp = 0 -> CommonTypes.EnumRenamePolicy.NoRenamePolicy
                 | _ when rp = 1 -> CommonTypes.EnumRenamePolicy.SelectiveEnumerants
                 | _             -> CommonTypes.EnumRenamePolicy.AllEnumerants
-
+        fieldPrefix =
+            match args |> List.choose(fun a -> match a with Field_Prefix vl -> Some (vl) | _ -> None) with
+            | []    -> None
+            | vl::_  ->
+                match vl with
+                | _ when vl = "AUTO"          -> Some FieldPrefixAuto
+                | _                 -> Some (FieldPrefixUserValue vl)
+        targetLanguages =
+            args |> List.choose(fun a -> match a with C_lang -> Some (CommonTypes.ProgrammingLanguage.C) | Ada_Lang -> Some (CommonTypes.ProgrammingLanguage.Ada) | _ -> None)
     }    
 
 

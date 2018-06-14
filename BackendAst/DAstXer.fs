@@ -310,13 +310,13 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec:C
             let chFunc = child.chType.getXerFunction codec
             let childContentResult = 
                 match l with
-                | C   -> chFunc.funcBody ({p with arg = p.arg.getChChild l child.c_name child.chType.isIA5String}) (Some (XerLiteralConstant child.Name.Value))
-                | Ada when codec = CommonTypes.Decode -> chFunc.funcBody ({p with arg = VALUE (child.c_name + "_tmp")}) (Some (XerLiteralConstant child.Name.Value))
-                | Ada -> chFunc.funcBody ({p with arg = p.arg.getChChild l child.c_name child.chType.isIA5String}) (Some (XerLiteralConstant child.Name.Value))
+                | C   -> chFunc.funcBody ({p with arg = p.arg.getChChild l (child.getBackendName l) child.chType.isIA5String}) (Some (XerLiteralConstant child.Name.Value))
+                | Ada when codec = CommonTypes.Decode -> chFunc.funcBody ({p with arg = VALUE ((child.getBackendName l) + "_tmp")}) (Some (XerLiteralConstant child.Name.Value))
+                | Ada -> chFunc.funcBody ({p with arg = p.arg.getChChild l (child.getBackendName l) child.chType.isIA5String}) (Some (XerLiteralConstant child.Name.Value))
             match childContentResult with
             | None  -> None
             | Some childContent ->
-                let sChildName = child.c_name
+                let sChildName = (child.getBackendName l)
                 let sChildTypeDef = child.chType.typeDefintionOrReference.longTypedefName l 
                 let sChoiceTypeName = typeDefinitionName
                 let childBody = choice_child p.arg.p (p.arg.getAcces l) (child.presentWhenName (Some typeDefinition) l) childContent.funcBody (childIndex = 0) child.Name.Value codec

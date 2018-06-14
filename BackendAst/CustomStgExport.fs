@@ -154,7 +154,7 @@ let rec PrintType (r:AstRoot) (f:Asn1File) (stgFileName:string) modName (deepRec
                     match deepRecursion with
                     |true   -> PrintType r f stgFileName modName  deepRecursion c.chType
                     |false  -> printChildTypeAsReferencedType c.chType
-                gen.ChoiceChild c.Name.Value (ToC c.Name.Value) (BigInteger c.Name.Location.srcLine) (BigInteger c.Name.Location.charPos) childTypeExp (c.presentWhenName (Some c.chType.typeDefintionOrReference) C) stgFileName
+                gen.ChoiceChild c.Name.Value (ToC (c.getBackendName C)) (ToC (c.getBackendName Ada)) (BigInteger c.Name.Location.srcLine) (BigInteger c.Name.Location.charPos) childTypeExp (c.presentWhenName (Some c.chType.typeDefintionOrReference) C) stgFileName
             gen.ChoiceType (chInfo.children |> Seq.map emitChild) stgFileName
         | Sequence(seqInfo)    ->
             let emitChild (c:SeqChildInfo) =
@@ -174,9 +174,9 @@ let rec PrintType (r:AstRoot) (f:Asn1File) (stgFileName:string) modName (deepRec
                             | false -> defValueAsAsn1Value
                             | true  -> 
                                 defValueAsAsn1Value.Substring(1,defValueAsAsn1Value.Length-2)
-                        gen.SequenceChild c.Name.Value (ToC c.Name.Value) true defValueAsAsn1Value (BigInteger c.Name.Location.srcLine) (BigInteger c.Name.Location.charPos) childTypeExp stgFileName
+                        gen.SequenceChild c.Name.Value (ToC (c.getBackendName C)) (ToC (c.getBackendName Ada)) true defValueAsAsn1Value (BigInteger c.Name.Location.srcLine) (BigInteger c.Name.Location.charPos) childTypeExp stgFileName
                         //gen.SequenceChild c.Name.Value (ToC c.Name.Value) true (printAsn1ValueAsXmlAttribute (DAstUtilFunctions.mapValue optVal.defaultValue.Value) stgFileName) (BigInteger c.Name.Location.srcLine) (BigInteger c.Name.Location.charPos) childTypeExp stgFileName
-                    | _ -> gen.SequenceChild c.Name.Value (ToC c.Name.Value) c.Optionality.IsSome null (BigInteger c.Name.Location.srcLine) (BigInteger c.Name.Location.charPos) childTypeExp stgFileName
+                    | _ -> gen.SequenceChild c.Name.Value (ToC (c.getBackendName C)) (ToC (c.getBackendName Ada)) c.Optionality.IsSome null (BigInteger c.Name.Location.srcLine) (BigInteger c.Name.Location.charPos) childTypeExp stgFileName
                 | AcnChild  c -> null
             gen.SequenceType (seqInfo.children |> Seq.map emitChild) stgFileName
         | Enumerated(enmInfo)     ->

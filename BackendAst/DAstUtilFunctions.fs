@@ -334,6 +334,17 @@ type Asn1AcnAst.Asn1Child with
         | C         -> this._c_name
         | Ada       -> this._ada_name
 
+type ChChildInfo with
+    member this.getBackendName l = 
+        match l with
+        | C         -> this._c_name
+        | Ada       -> this._ada_name
+
+type Asn1AcnAst.ChChildInfo with
+    member this.getBackendName l = 
+        match l with
+        | C         -> this._c_name
+        | Ada       -> this._ada_name
 
 
 type Choice with 

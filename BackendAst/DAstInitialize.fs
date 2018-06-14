@@ -587,13 +587,13 @@ let createChoiceInitFunc (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1A
                     | true  ->
                         match l with
                         | C ->
-                            let chContent = chChild.chType.initFunction.initByAsn1Value ({p with arg = p.arg.getChChild l chChild.c_name chChild.chType.isIA5String}) iv.Value.kind
+                            let chContent = chChild.chType.initFunction.initByAsn1Value ({p with arg = p.arg.getChChild l (chChild.getBackendName l) chChild.chType.isIA5String}) iv.Value.kind
                             Some (init_c.initChoice p.arg.p (p.arg.getAcces l) chContent (chChild.presentWhenName (Some typeDefinition) l)) 
                         | Ada ->
                             let sChildTypeName = chChild.chType.typeDefintionOrReference.longTypedefName l
                             let sChildTempVarName = (ToC chChild.chType.id.AsString) + "_tmp"
                             let sChoiceTypeName = typeDefinition.longTypedefName l
-                            let sChildName = chChild.c_name
+                            let sChildName = (chChild.getBackendName l)
                             let chContent = chChild.chType.initFunction.initByAsn1Value ({CallerScope.modName = t.id.ModName; arg = VALUE sChildTempVarName}) iv.Value.kind
                             Some (init_a.initChoice p.arg.p (p.arg.getAcces l) chContent (chChild.presentWhenName (Some typeDefinition) l) sChildTempVarName sChildTypeName sChoiceTypeName sChildName) 
                         ) 
@@ -620,7 +620,7 @@ let createChoiceInitFunc (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1A
 
 
             let len = ch.chType.initFunction.automaticTestCases.Length
-            let sChildName = ch.c_name
+            let sChildName = (ch.getBackendName l)
             let sChildTypeDef = ch.chType.typeDefintionOrReference.longTypedefName l 
             ch.chType.initFunction.automaticTestCases |> Seq.take (min 5 len) |> Seq.toList |>
             List.map(fun atc -> 
@@ -646,7 +646,7 @@ let createChoiceInitFunc (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1A
 
     let initTasFunction (p:CallerScope) =
         let handleChild  (ch:ChChildInfo)  = 
-            let sChildName = ch.c_name
+            let sChildName = (ch.getBackendName l)
             let sChildTypeDef = ch.chType.typeDefintionOrReference.longTypedefName l 
             let chp = {p with arg = p.arg.getChChild l sChildName ch.chType.isIA5String} 
             let childContent_funcBody, childContent_localVariables = 
@@ -659,7 +659,9 @@ let createChoiceInitFunc (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1A
                         | Ada   -> fnc {p with arg = VALUE (sChildName + "_tmp")} 
                     childContent.funcBody, childContent.localVariables
                 | Some fncName  ->
-                    initChildWithInitFunc (chp.arg.getPointer l) fncName, []
+                    match l with
+                    | C     -> initChildWithInitFunc (chp.arg.getPointer l) fncName, []
+                    | Ada   -> initChildWithInitFunc (sChildName + "_tmp") fncName, []
             let funcBody = initTestCase_choice_child p.arg.p (p.arg.getAcces l) (ch.presentWhenName (Some typeDefinition) l) childContent_funcBody sChildName  sChildTypeDef typeDefinitionName
 
             {InitFunctionResult.funcBody = funcBody; localVariables = childContent_localVariables}

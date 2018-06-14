@@ -657,8 +657,8 @@ and Sequence = {
 
 and ChChildInfo = {
     Name                        : StringLoc
-    c_name                      : string
-    ada_name                    : string                     
+    _c_name                      : string
+    _ada_name                    : string                     
     _present_when_name_private  : string // Does not contain the "_PRESENT". Not to be used directly by backends. Backends should use presentWhenName
     acnPresentWhenConditions    : Asn1AcnAst.AcnPresentWhenConditionChoiceChild list
     Comments                    : string array

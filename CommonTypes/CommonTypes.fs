@@ -64,6 +64,9 @@ type Input = {
     contents : Stream
 }
 
+type FieldPrefix =
+    | FieldPrefixAuto   
+    | FieldPrefixUserValue  of string
 
 type CommandLineSettings = {
     asn1Files : Input list
@@ -80,7 +83,8 @@ type CommandLineSettings = {
     mappingFunctionsModule : string option
     integerSizeInBytes : BigInteger            //currently only the value of 8 bytes (64 bits) is supported
     renamePolicy :  EnumRenamePolicy
-    
+    fieldPrefix  : FieldPrefix option
+    targetLanguages : ProgrammingLanguage list
 }
 with 
   member this.SIntMax =

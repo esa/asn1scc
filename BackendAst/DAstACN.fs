@@ -1252,9 +1252,9 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
                         match chFunc with
                         | Some chFunc   -> 
                             match l with
-                            | C   ->  chFunc.funcBody us [] ({p with arg = p.arg.getChChild l child.c_name child.chType.isIA5String})
-                            | Ada when codec = CommonTypes.Decode  ->  chFunc.funcBody us [] ({CallerScope.modName = p.modName; arg = VALUE (child.c_name + "_tmp")})
-                            | Ada   ->  chFunc.funcBody us [] ({p with arg = p.arg.getChChild l child.c_name child.chType.isIA5String})
+                            | C   ->  chFunc.funcBody us [] ({p with arg = p.arg.getChChild l (child.getBackendName l) child.chType.isIA5String})
+                            | Ada when codec = CommonTypes.Decode  ->  chFunc.funcBody us [] ({CallerScope.modName = p.modName; arg = VALUE ((child.getBackendName l) + "_tmp")})
+                            | Ada   ->  chFunc.funcBody us [] ({p with arg = p.arg.getChChild l (child.getBackendName l) child.chType.isIA5String})
                         | None          -> None, us
 
                 let childContent_funcBody, childContent_localVariables, childContent_errCodes =
@@ -1266,7 +1266,7 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
 //                | None              -> [], ns1
 //                | Some childContent ->
                 let childBody = 
-                    let sChildName = child.c_name
+                    let sChildName = (child.getBackendName l)
                     let sChildTypeDef = child.chType.typeDefintionOrReference.longTypedefName l //child.chType.typeDefinition.typeDefinitionBodyWithinSeq
 
                     let sChoiceTypeName = typeDefinitionName

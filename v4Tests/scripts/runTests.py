@@ -79,9 +79,9 @@ def RunTestCase(asn1, acn, behavior, expErrMsg):
     res = mysystem(
         launcher + path_to_asn1scc +
         " -" + language + " -uPER -ACN -typePrefix gmamais_ " +
-        "-renamePolicy 2 " + "-equal -atc -o '" + resolvedir(targetDir) +
+        "-renamePolicy 2 -fp AUTO " + "-equal -atc -o '" + resolvedir(targetDir) +
         "' '" + resolvedir(asn1File) + "' '" + resolvedir(acnFile) +
-        "' >tmp.err"+"_"+language+" 2>&1", True)
+        "' 2>tmp.err"+"_"+language, True)
     ferr = open("tmp.err"+"_"+language, 'r')
     #print("str to replace '" + resolvedir(targetDir) + resolvesep() + "'")
     err_msg = ferr.read().replace("\r\n", "").replace("\n", "").replace(resolvedir(targetDir) +  resolvesep(), "")

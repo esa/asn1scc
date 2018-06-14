@@ -556,18 +556,18 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec:C
                     let chFunc = child.chType.getUperFunction codec
                     let uperChildRes = 
                         match l with
-                        | C   -> chFunc.funcBody ({p with arg = p.arg.getChChild l child.c_name child.chType.isIA5String})
-                        | Ada when codec = CommonTypes.Decode -> chFunc.funcBody ({p with arg = VALUE (child.c_name + "_tmp")})
-                        | Ada -> chFunc.funcBody ({p with arg = p.arg.getChChild l child.c_name child.chType.isIA5String})
+                        | C   -> chFunc.funcBody ({p with arg = p.arg.getChChild l (child.getBackendName l) child.chType.isIA5String})
+                        | Ada when codec = CommonTypes.Decode -> chFunc.funcBody ({p with arg = VALUE ((child.getBackendName l) + "_tmp")})
+                        | Ada -> chFunc.funcBody ({p with arg = p.arg.getChChild l (child.getBackendName l) child.chType.isIA5String})
                     match uperChildRes with
                     | None              -> 
-                        let sChildName = child.c_name
+                        let sChildName = (child.getBackendName l)
                         let sChildTypeDef = child.chType.typeDefintionOrReference.longTypedefName l //child.chType.typeDefinition.typeDefinitionBodyWithinSeq
                         let sChoiceTypeName = typeDefinitionName
                         let noEncodingComment = match l with C ->"/*no encoding/decoding is required*/" | Ada -> "--no encoding/decoding is required"
                         choice_child p.arg.p (p.arg.getAcces l) (child.presentWhenName (Some typeDefinition) l) (BigInteger i) nIndexSizeInBits (BigInteger (children.Length - 1)) noEncodingComment sChildName sChildTypeDef sChoiceTypeName codec,[],[]
                     | Some childContent ->  
-                        let sChildName = child.c_name
+                        let sChildName = (child.getBackendName l)
                         let sChildTypeDef = child.chType.typeDefintionOrReference.longTypedefName l //child.chType.typeDefinition.typeDefinitionBodyWithinSeq
                         let sChoiceTypeName = typeDefinitionName
                         choice_child p.arg.p (p.arg.getAcces l) (child.presentWhenName (Some typeDefinition) l) (BigInteger i) nIndexSizeInBits (BigInteger (children.Length - 1)) childContent.funcBody sChildName sChildTypeDef sChoiceTypeName codec, childContent.localVariables, childContent.errCodes )

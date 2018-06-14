@@ -108,7 +108,7 @@ EnumType(arrsItems) ::= <<
 >>
 
 
-ChoiceChild(sName, sCName, nLine, nPos, sChildContent, sNamePresent ) ::= <<
+ChoiceChild(sName, sCName, sAdaName, nLine, nPos, sChildContent, sNamePresent ) ::= <<
 "$sName$": {
     "Line": $nLine$, "CharPositionInLine": $nPos$, "EnumID": "$sNamePresent$", "type": {
         $sChildContent$
@@ -123,7 +123,7 @@ ChoiceType(arrsChildren) ::= <<
 >>
 
 
-SequenceChild(sName, sCName, bOptional, sDefVal, nLine, nPos, sChildContent ) ::= <<
+SequenceChild(sName, sCName, sAdaName, bOptional, sDefVal, nLine, nPos, sChildContent ) ::= <<
 "$sName$": {
     "Optional": "$bOptional$"$if(sDefVal)$, "DefaultValue": "$sDefVal$"$endif$, "Line": $nLine$, "CharPositionInLine": $nPos$, "type": {
         $sChildContent$

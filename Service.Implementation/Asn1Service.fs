@@ -66,6 +66,8 @@ type Asn1Service() =
             integerSizeInBytes = 8I
             renamePolicy = CommonTypes.EnumRenamePolicy.NoRenamePolicy
             custom_Stg_Ast_Version = 1
+            fieldPrefix = None
+            targetLanguages = [CommonTypes.ProgrammingLanguage.C]
         }
     
     member private this.ConvertInput (input:Dto.FileData) : CommonTypes.Input =

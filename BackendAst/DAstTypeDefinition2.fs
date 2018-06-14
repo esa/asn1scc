@@ -463,13 +463,13 @@ let createChoice (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (pi : Asn1Fold.P
     let getCompleteDefinition (programUnit:string) (typeDefinitionName:string) =
         match l with
         | C                      ->
-            let handleChild (o:ChChildInfo) = header_c.PrintSeq_ChoiceChild (o.chType.typeDefintionOrReference.longTypedefName l) o.c_name ""
+            let handleChild (o:ChChildInfo) = header_c.PrintSeq_ChoiceChild (o.chType.typeDefintionOrReference.longTypedefName l) (o.getBackendName l) ""
             let chEnms = children |> List.map(fun c -> c.presentWhenName None l)
             let childrenBodies = children |> List.map handleChild
             let typeDefinitionBody = header_c.Declare_Choice (choiceIDForNone t.id) chEnms childrenBodies 
             header_c.Define_Type typeDefinitionBody typeDefinitionName None childldrenCompleteDefintions
         | Ada                    -> 
-            let handleChild (o:ChChildInfo) = header_a.CHOICE_tas_decl_child o.ada_name  (o.chType.typeDefintionOrReference.longTypedefName l) (o.presentWhenName None l)
+            let handleChild (o:ChChildInfo) = header_a.CHOICE_tas_decl_child (o.getBackendName l)  (o.chType.typeDefintionOrReference.longTypedefName l) (o.presentWhenName None l)
             let chEnms = children |> List.map(fun c -> c.presentWhenName None l)
             let childrenBodies = children |> List.map handleChild
             let nIndexMax = BigInteger ((Seq.length children)-1)

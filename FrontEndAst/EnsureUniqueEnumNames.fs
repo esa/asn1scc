@@ -68,76 +68,104 @@ let rec private handleEnumChoices (r:AstRoot) (renamePolicy:EnumRenamePolicy)=
         handleEnumChoices newTree  renamePolicy
 
 
-let rec private handleSequencesAndChoices (r:AstRoot) (lang:ProgrammingLanguage) (renamePolicy:EnumRenamePolicy)=
-    let invalidComponentNames = seq {
-        for m in r.Modules do
-            for tas in m.TypeAssignments do
-                for t in GetMySelfAndChildren tas.Type  do
-                    match t.Kind with
-                    | Sequence(children)   
-                    | Choice(children)  -> 
-                        let names = 
-                            children |> 
-                            List.filter(fun x -> 
-                                let isKeyword = lang.keywords |> Seq.exists(lang.cmp (x.CName lang) )
-                                let isTas =
-                                    match lang with
-                                    | ProgrammingLanguage.C     -> false
-                                    | ProgrammingLanguage.Spark
-                                    | ProgrammingLanguage.Ada   ->
-                                        m.TypeAssignments |> Seq.exists(fun tas -> lang.cmp (ToC (x.CName lang)) (ToC r.args.TypePrefix + tas.Name.Value) )
-                                    | _                         -> false
-                                isKeyword || isTas ) |>
-                            List.map(fun x -> x.CName lang)
-                        yield! names
-                    | _                 -> () } |> Seq.toList 
+type FieldPrefixReasonToChange =
+    | FieldIsKeyword
+    | FieldIsAlsoType of string
+
+type FieldPrefState = {
+    curChildName : string
+    reasonToChange : FieldPrefixReasonToChange
+}
+let rec private handleSequencesAndChoices (r:AstRoot) (lang:ProgrammingLanguage) (renamePolicy:FieldPrefix)=
+    match renamePolicy with
+    | FieldPrefixAuto           ->
+        let invalidComponentNames = seq {
+            for m in r.Modules do
+                for tas in m.TypeAssignments do
+                    for t in GetMySelfAndChildren tas.Type  do
+                        match t.Kind with
+                        | Sequence(children)   
+                        | Choice(children)  -> 
+                            let names = 
+                                children |> 
+                                List.choose(fun x -> 
+                                    let isKeyword = lang.keywords |> Seq.exists(lang.cmp (x.CName lang) )
+                                    let conflictingTas =
+                                        match lang with
+                                        | ProgrammingLanguage.C     -> None
+                                        | ProgrammingLanguage.Spark
+                                        | ProgrammingLanguage.Ada   ->
+                                            m.TypeAssignments |> Seq.tryFind(fun tas -> lang.cmp (ToC (x.CName lang)) (ToC r.args.TypePrefix + tas.Name.Value) )
+                                        | _                         -> None
+                                    match isKeyword , conflictingTas with
+                                    | true, _       -> Some {curChildName = (x.CName lang); reasonToChange = FieldIsKeyword}
+                                    | false, (Some tas)   -> Some {curChildName = (x.CName lang); reasonToChange = (FieldIsAlsoType tas.Name.Value)}
+                                    | false, None         -> None ) 
+                                //List.map(fun x -> x.CName lang)
+                            yield! names
+                        | _                 -> () } |> Seq.toList 
 
 
-    match invalidComponentNames with
-    | []    -> r
-    | _     ->
-        let CloneType (old:Asn1Type) m (key:list<string>) (cons:Constructors<State>) (state:State) =
-            let CloneChild s (ch:ChildInfo) =
-                let t,ns = cons.cloneType ch.Type m (key@[ch.Name.Value]) cons s
-                let newUniqueName =
-                    match state |> Seq.exists (lang.cmp (ch.CName lang)) with
-                    | false     -> ch.CName lang
-                    | true      ->
-                        let newPrefix = key |> List.rev |> List.map ToC |> Seq.skipWhile(fun x -> (ch.CName lang).Contains x) |> Seq.head
-                        newPrefix + "_" + (ch.CName lang)
+        match invalidComponentNames with
+        | []    -> r
+        | _     ->
+            let CloneType (old:Asn1Type) m (key:list<string>) (cons:Constructors<List<FieldPrefState>>) (state:List<FieldPrefState>) =
+                let CloneChild s (ch:ChildInfo) =
+                    let parentTypeName = key |> Seq.StrJoin "."
+                    let t,ns = cons.cloneType ch.Type m (key@[ch.Name.Value]) cons s
+                    let newUniqueName =
+                        match state |> Seq.tryFind(fun z -> (lang.cmp (ch.CName lang) z.curChildName) )with
+                        | None     -> ch.CName lang
+                        | Some fps      ->
+                            let newPrefix = key |> List.rev |> List.map ToC |> Seq.skipWhile(fun x -> (ch.CName lang).Contains x) |> Seq.head
+                            let fieldName = newPrefix + "_" + (ch.CName lang)
+                            if r.args.targetLanguages |> Seq.exists ((=) lang) then
+                                match fps.reasonToChange with
+                                | FieldIsKeyword            -> printfn "[INFO] Renamed field \"%s\" in type \"%s\" to \"%s\" (\"%s\" is a %A keyword)" (ch.CName lang) parentTypeName fieldName (ch.CName lang) lang
+                                | FieldIsAlsoType tasName   -> printfn "[INFO] Renamed field \"%s\" in type \"%s\" to \"%s\" (Ada naming conflict with the field type \"%s\")" (ch.CName lang) parentTypeName fieldName tasName
+
+                            fieldName
             
-                match lang with
-                | ProgrammingLanguage.C-> {ch with Type = t; c_name = ToC2 newUniqueName},ns
-                | ProgrammingLanguage.Ada | ProgrammingLanguage.Spark   -> {ch with Type = t; ada_name = ToC2 newUniqueName},ns
-                | _                                                     -> ch, state
+                    match lang with
+                    | ProgrammingLanguage.C-> {ch with Type = t; c_name = ToC2 newUniqueName},ns
+                    | ProgrammingLanguage.Ada | ProgrammingLanguage.Spark   -> {ch with Type = t; ada_name = ToC2 newUniqueName},ns
+                    | _                                                     -> ch, state
 
+                match old.Kind with
+                | Choice(children)    
+                | Sequence(children)    -> 
+                    let newChildren, finalState = children |> foldMap CloneChild state
+                    match old.Kind with
+                    | Choice(children)    -> {old with Kind =  Choice(newChildren)}, finalState
+                    | Sequence(children)  -> {old with Kind =  Sequence(newChildren)}, finalState
+                    | _                   -> raise (BugErrorException "impossible case in handleSequencesAndChoices")
+                | _             -> defaultConstructors.cloneType old m key cons state
+
+            let newTree = CloneTree r {defaultConstructors with cloneType =  CloneType; } invalidComponentNames |> fst
+            handleSequencesAndChoices newTree lang renamePolicy
+    | FieldPrefixUserValue userValue    -> 
+        let CloneType (old:Asn1Type) m (key:list<string>) (cons:Constructors<State>) (state:State) =
             match old.Kind with
             | Choice(children)    
             | Sequence(children)    -> 
                 let newChildren, finalState =
-                    match renamePolicy with
-                    | NoRenamePolicy           -> children, state
-                    | SelectiveEnumerants      -> children |> foldMap CloneChild state
-                    | AllEnumerants            -> 
-                        let newChildren, finalState = children |> foldMap CloneChild state
-                        let newPrefix = newChildren |> List.map(fun itm -> (itm.CName lang).Replace(ToC2 itm.Name.Value,"")) |> List.maxBy(fun prf -> prf.Length)
-                        let newChildren = 
-                            match lang with
-                            | ProgrammingLanguage.C-> 
-                                children |> List.map(fun ch -> {ch with c_name = newPrefix + ch.c_name})
-                            | ProgrammingLanguage.Ada | ProgrammingLanguage.Spark   -> 
-                                children |> List.map(fun ch -> {ch with ada_name = newPrefix + ch.ada_name})
-                            | _                                                     -> raise(BugErrorException "handleSequences")
+                    let newChildren = 
+                        match lang with
+                        | ProgrammingLanguage.C-> 
+                            children |> List.map(fun ch -> {ch with c_name = ToC (userValue + ch.c_name)})
+                        | ProgrammingLanguage.Ada | ProgrammingLanguage.Spark   -> 
+                            children |> List.map(fun ch -> {ch with ada_name = ToC(userValue + ch.ada_name)})
+                        | _                                                     -> raise(BugErrorException "handleSequences")
                             
-                        newChildren, finalState
+                    newChildren, state
                 match old.Kind with
                 | Choice(children)    -> {old with Kind =  Choice(newChildren)}, finalState
                 | Sequence(children)  -> {old with Kind =  Sequence(newChildren)}, finalState
                 | _                   -> raise (BugErrorException "impossible case in handleSequencesAndChoices")
             | _             -> defaultConstructors.cloneType old m key cons state
 
-        let newTree = CloneTree r {defaultConstructors with cloneType =  CloneType; } invalidComponentNames |> fst
-        handleSequencesAndChoices newTree lang renamePolicy
+        let newTree = CloneTree r {defaultConstructors with cloneType =  CloneType; } [] |> fst
+        newTree  //no recursion is allowed in user defined value since the prefix value is constant.
 
 
 
@@ -200,16 +228,19 @@ let rec private handleEnums (r:AstRoot) (renamePolicy:EnumRenamePolicy) (lang:Pr
 
 
 let DoWork (ast:AstRoot)   =
-    let renamePolicy = ast.args.renamePolicy
-    match renamePolicy with
-    | NoRenamePolicy           -> ast
-    | _                                             ->
-        let r1 = handleEnumChoices ast  renamePolicy
-        let r2_c = handleEnums r1 renamePolicy ProgrammingLanguage.C
-        let r2_ada = handleEnums r2_c renamePolicy ProgrammingLanguage.Ada
-        let r3_c = handleSequencesAndChoices r2_ada ProgrammingLanguage.C renamePolicy
-        let r3_ada = handleSequencesAndChoices r3_c ProgrammingLanguage.Ada renamePolicy
-
+    let enumRenamePolicy = ast.args.renamePolicy
+    let r2_ada = 
+        match enumRenamePolicy with
+        | NoRenamePolicy           -> ast
+        | _                                             ->
+            let r1 = handleEnumChoices ast  enumRenamePolicy
+            let r2_c = handleEnums r1 enumRenamePolicy ProgrammingLanguage.C
+            handleEnums r2_c enumRenamePolicy ProgrammingLanguage.Ada
+    match ast.args.fieldPrefix with
+    | None  -> r2_ada
+    | Some fldPrefixPolicy    -> 
+        let r3_c = handleSequencesAndChoices r2_ada ProgrammingLanguage.C fldPrefixPolicy
+        let r3_ada = handleSequencesAndChoices r3_c ProgrammingLanguage.Ada fldPrefixPolicy
         r3_ada
 
 

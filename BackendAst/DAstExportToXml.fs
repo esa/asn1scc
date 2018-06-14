@@ -155,8 +155,8 @@ let private exportType (r:AstRoot) (t:Asn1Type) =
                     XElement(xname "CHOICE_ALTERNATIVE",
                         XAttribute(xname "Name", ch.Name.Value),
                         XAttribute(xname "PresentWhenName", ch.presentWhenName (Some ch.chType.typeDefintionOrReference) Ada),
-                        XAttribute(xname "AdaName", ch.ada_name),
-                        XAttribute(xname "CName", ch.c_name),
+                        XAttribute(xname "AdaName", (ch.getBackendName Ada)),
+                        XAttribute(xname "CName", (ch.getBackendName C)),
                         chType), us )
 
         (fun t ti (children, us) -> 

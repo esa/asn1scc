@@ -352,6 +352,8 @@ let private exportType (t:Asn1Type) =
                             XAttribute(xname "Name", ch.Name.Value),
                             XAttribute(xname "Line", ch.Name.Location.srcLine),
                             XAttribute(xname "CharPositionInLine", ch.Name.Location.charPos),
+                            XAttribute(xname "AdaName", ch._ada_name),
+                            XAttribute(xname "CName", ch._c_name),
                             (exportOptionality ch.Optionality ),
                             nt), us )
         (fun ch us -> 
@@ -416,8 +418,8 @@ let private exportType (t:Asn1Type) =
                             XAttribute(xname "Line", ch.Name.Location.srcLine),
                             XAttribute(xname "CharPositionInLine", ch.Name.Location.charPos),
                             XAttribute(xname "PresentWhenName", ch.present_when_name),
-                            XAttribute(xname "AdaName", ch.ada_name),
-                            XAttribute(xname "CName", ch.c_name),
+                            XAttribute(xname "AdaName", ch._ada_name),
+                            XAttribute(xname "CName", ch._c_name),
                             (exportChoiceOptionality ch.Optionality ),
                             (exportChoiceChildPresentWhenCondition ch.acnPresentWhenConditions),
                             nt), us )

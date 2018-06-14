@@ -1329,10 +1329,10 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (m:Asn1Ast.Asn1Mo
                 match cc with
                 | None      ->  
                     let newChild = mergeType asn1 acn m c.Type (curPath@[CH_CHILD (c.Name.Value, c.present_when_name)]) None None [] childWithCons [] [] None  None
-                    {ChChildInfo.Name = c.Name; c_name = c.c_name; ada_name = c.ada_name; Type  = newChild; acnPresentWhenConditions = acnPresentWhenConditions; Comments = c.Comments;present_when_name = c.present_when_name; Optionality = newOptionality}
+                    {ChChildInfo.Name = c.Name; _c_name = c.c_name; _ada_name = c.ada_name; Type  = newChild; acnPresentWhenConditions = acnPresentWhenConditions; Comments = c.Comments;present_when_name = c.present_when_name; Optionality = newOptionality}
                 | Some cc   ->
                     let newChild = mergeType asn1 acn m c.Type (curPath@[CH_CHILD (c.Name.Value, c.present_when_name)]) (Some cc.childEncodingSpec) None [] childWithCons cc.argumentList [] None  None
-                    {ChChildInfo.Name = c.Name; c_name = c.c_name; ada_name = c.ada_name; Type  = newChild; acnPresentWhenConditions = acnPresentWhenConditions; Comments = c.Comments; present_when_name = c.present_when_name; Optionality = newOptionality}
+                    {ChChildInfo.Name = c.Name; _c_name = c.c_name; _ada_name = c.ada_name; Type  = newChild; acnPresentWhenConditions = acnPresentWhenConditions; Comments = c.Comments; present_when_name = c.present_when_name; Optionality = newOptionality}
             let mergedChildren = 
                 match acnType with
                 | None            -> children |> List.map (mergeChild None)

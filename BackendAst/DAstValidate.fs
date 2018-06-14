@@ -605,7 +605,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn
 
 (*  CHOICE *)
 let isValidChoiceChild   (l:ProgrammingLanguage) (o:Asn1AcnAst.ChChildInfo) (newChild:Asn1Type) (us:State)= 
-    let c_name = ToC o.c_name
+    let c_name = ToC (o.getBackendName l)
     let sInnerStatement = 
         match newChild.isValidFunction with
         | Some (isValidFunction)    ->
