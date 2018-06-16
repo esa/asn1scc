@@ -136,8 +136,8 @@ ChoiceType(arrsChildren) ::= <<
 >>
 
 
-SequenceChild(sName, sCName, bOptional, sDefVal, nLine, nPos, sChildContent ) ::= <<
-<SequenceOrSetChild VarName="$sName$" Optional="$bOptional$"$if(sDefVal)$ DefaultValue="$sDefVal.HtmlEsc$"$endif$ Line="$nLine$" CharPositionInLine="$nPos$">
+SequenceChild(sName, sCName, sAdaName, bOptional, sDefVal, nLine, nPos, sChildContent ) ::= <<
+<SequenceOrSetChild VarName="$sName$" CName="$sCName$" AdaName="$sAdaName$" Optional="$bOptional$"$if(sDefVal)$ DefaultValue="$sDefVal.HtmlEsc$"$endif$ Line="$nLine$" CharPositionInLine="$nPos$">
     $sChildContent$
 </SequenceOrSetChild>
 >>
