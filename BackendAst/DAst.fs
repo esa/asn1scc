@@ -13,9 +13,10 @@ type State = {
     curSeqOfLevel : int
     currErrorCode   : int
     curErrCodeNames : Set<String>
+    allocatedTypeDefNames : (string*string) list        // program unit, typedef name
 }
 
-let emptyState = {curSeqOfLevel=0; currErrorCode=0; curErrCodeNames=Set.empty}
+let emptyState = {curSeqOfLevel=0; currErrorCode=0; curErrCodeNames=Set.empty; allocatedTypeDefNames = []}
 
 type ParentInfoData = {
     program_unit_name : string
@@ -797,6 +798,25 @@ let getNextValidErrorCode (cur:State) (errCodeName:string) =
 
     let errCode = getErroCode (errCodeName.ToUpper())
     errCode, {cur with currErrorCode = cur.currErrorCode + 1; curErrCodeNames = cur.curErrCodeNames.Add errCode.errCodeName}
+
+let getUniqueValidTypeDefName (cur:State) (l:ProgrammingLanguage) (programUnit:string) (proposedTypeDefName:string)  =
+    let rec getValidTypeDefname (proposedTypeDefName:string) = 
+        match l with
+        | C     ->  
+            match cur.allocatedTypeDefNames |> Seq.exists(fun (_,z) -> z = proposedTypeDefName) with
+            | false -> proposedTypeDefName
+            | true  -> 
+                match cur.allocatedTypeDefNames |> Seq.exists(fun (pu,td) -> pu = programUnit && td = proposedTypeDefName) with
+                | false -> getValidTypeDefname (programUnit + "_" + proposedTypeDefName ) 
+                | true  -> getValidTypeDefname (proposedTypeDefName + "_2") 
+        | Ada   ->  
+            match cur.allocatedTypeDefNames |> Seq.exists(fun (pu,td) -> pu = programUnit && td = proposedTypeDefName) with
+            | false -> proposedTypeDefName
+            | true  -> getValidTypeDefname (proposedTypeDefName + "_2" ) 
+
+    let validTypeDefname = getValidTypeDefname proposedTypeDefName 
+
+    validTypeDefname, {cur with allocatedTypeDefNames = (programUnit, validTypeDefname)::cur.allocatedTypeDefNames}
 
 type TypeAssignment = {
     Name:StringLoc

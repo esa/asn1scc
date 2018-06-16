@@ -320,20 +320,20 @@ let foldType2
             | Boolean        ti -> boolFunc pi t ti us
             | Enumerated     ti -> enumFunc pi t ti us
             | SequenceOf     ti -> 
-                let parentData:'T = preSeqOfFunc pi t ti
-                seqOfFunc pi t ti (loopType (Some {ParentInfo.parent = t ; name=None; parentData=parentData}) ti.child us) 
+                let (parentData:'T, ns:'UserState) = preSeqOfFunc pi t ti us
+                seqOfFunc pi t ti (loopType (Some {ParentInfo.parent = t ; name=None; parentData=parentData}) ti.child ns) 
             | Sequence       ti -> 
-                let parentData:'T = preSeqFunc pi t ti
+                let (parentData:'T, ns:'UserState) = preSeqFunc pi t ti us
                 let newChildren = 
                     ti.children |> 
                     foldMap (fun curState ch -> 
                         match ch with
                         | Asn1Child asn1Chlld   -> seqAsn1ChildFunc asn1Chlld (loopType (Some {ParentInfo.parent = t ; name=Some asn1Chlld.Name.Value; parentData=parentData}) asn1Chlld.Type curState)
-                        | AcnChild  acnChild    -> seqAcnChildFunc  acnChild curState) us
+                        | AcnChild  acnChild    -> seqAcnChildFunc  acnChild curState) ns
                 seqFunc pi t ti newChildren 
             | Choice         ti -> 
-                let parentData:'T = preChoiceFunc pi t ti
-                let newChildren = ti.children |> foldMap (fun curState ch -> chChildFunc ch (loopType (Some {ParentInfo.parent = t ; name=Some ch.Name.Value; parentData=parentData}) ch.Type curState)) us
+                let (parentData:'T, ns:'UserState) = preChoiceFunc pi t ti us
+                let newChildren = ti.children |> foldMap (fun curState ch -> chChildFunc ch (loopType (Some {ParentInfo.parent = t ; name=Some ch.Name.Value; parentData=parentData}) ch.Type curState)) ns
                 choiceFunc pi t ti newChildren 
             | ReferenceType  ti -> 
                refType pi t ti (loopType pi ti.resolvedType us)

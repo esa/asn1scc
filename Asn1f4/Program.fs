@@ -55,7 +55,7 @@ with
     1 rename only conflicting enumerants (C default). 
       E.g. In a grammar that contains 
         RGB ::= ENUMERATED {red, green, blue} 
-        FavColors = {red, yellow} 
+        FavColors = ENUMERATED {red, yellow} 
       only the red enumerant will be renamed to 
       RGB_red and FavColors_red. 
     2 rename all enumerants of an enumerated type 

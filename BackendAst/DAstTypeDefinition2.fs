@@ -102,27 +102,28 @@ type typeDefitionKindFunc =
     | GetSubTypeRangeFnc of  (unit-> string )*(string option -> string -> string)     
 
 /// Called before visiting a choice or sequence or sequence of children
-let getParentInfoData (r:Asn1AcnAst.AstRoot) (pi : Asn1Fold.ParentInfo<ParentInfoData> option) (t:Asn1AcnAst.Asn1Type)   =
-    match t.typeAssignmentInfo with
-    | Some (TypeAssignmentInfo tasInfo)       ->  
-        match t.inheritInfo with
-        | Some inhInfo      -> (*I am a reference type*) {ParentInfoData.program_unit_name = ToC inhInfo.modName ;typedefName = ToC2(r.args.TypePrefix + inhInfo.tasName); isRefType= true}
-        | None              -> 
-            {ParentInfoData.program_unit_name = ToC t.id.ModName;  typedefName = ToC2(r.args.TypePrefix + tasInfo.tasName); isRefType= false} // I am a type assignment
-    | Some (ValueAssignmentInfo vasInfo)      ->  
-            {ParentInfoData.program_unit_name = ToC t.id.ModName;  typedefName = ToC2(r.args.TypePrefix + vasInfo.vasName); isRefType= true} // I am a type assignment
-    | None              ->  // I am an inner type
-        match t.inheritInfo with
-        | Some inhInfo      -> (*I am a reference type*) {ParentInfoData.program_unit_name = ToC inhInfo.modName ;typedefName = ToC2(r.args.TypePrefix + inhInfo.tasName); isRefType= true}
-        | None              -> 
-            match pi with
-            | Some parentInfo   ->
-                match parentInfo.name with
-                | Some nm -> {ParentInfoData.program_unit_name = parentInfo.parentData.program_unit_name;  typedefName = ToC2(parentInfo.parentData.typedefName + "_" + nm); isRefType= parentInfo.parentData.isRefType}
-                | None    -> {ParentInfoData.program_unit_name = parentInfo.parentData.program_unit_name;  typedefName = ToC2(parentInfo.parentData.typedefName + "_" + "elem"); isRefType= parentInfo.parentData.isRefType}
-            | None              ->
-                raise(BugErrorException "type has no typeAssignmentInfo and No parent!!!")
-                
+let getParentInfoData (r:Asn1AcnAst.AstRoot) (pi : Asn1Fold.ParentInfo<ParentInfoData> option) (t:Asn1AcnAst.Asn1Type)  (us:State) =
+    let ret = 
+        match t.typeAssignmentInfo with
+        | Some (TypeAssignmentInfo tasInfo)       ->  
+            match t.inheritInfo with
+            | Some inhInfo      -> (*I am a reference type*) {ParentInfoData.program_unit_name = ToC inhInfo.modName ;typedefName = ToC2(r.args.TypePrefix + inhInfo.tasName); isRefType= true}
+            | None              -> 
+                {ParentInfoData.program_unit_name = ToC t.id.ModName;  typedefName = ToC2(r.args.TypePrefix + tasInfo.tasName); isRefType= false} // I am a type assignment
+        | Some (ValueAssignmentInfo vasInfo)      ->  
+                {ParentInfoData.program_unit_name = ToC t.id.ModName;  typedefName = ToC2(r.args.TypePrefix + vasInfo.vasName); isRefType= true} // I am a type assignment
+        | None              ->  // I am an inner type
+            match t.inheritInfo with
+            | Some inhInfo      -> (*I am a reference type*) {ParentInfoData.program_unit_name = ToC inhInfo.modName ;typedefName = ToC2(r.args.TypePrefix + inhInfo.tasName); isRefType= true}
+            | None              -> 
+                match pi with
+                | Some parentInfo   ->
+                    match parentInfo.name with
+                    | Some nm -> {ParentInfoData.program_unit_name = parentInfo.parentData.program_unit_name;  typedefName = ToC2(parentInfo.parentData.typedefName + "_" + nm); isRefType= parentInfo.parentData.isRefType}
+                    | None    -> {ParentInfoData.program_unit_name = parentInfo.parentData.program_unit_name;  typedefName = ToC2(parentInfo.parentData.typedefName + "_" + "elem"); isRefType= parentInfo.parentData.isRefType}
+                | None              ->
+                    raise(BugErrorException "type has no typeAssignmentInfo and No parent!!!")
+    ret, us                
 
 
 let private createTypeGeneric (r:Asn1AcnAst.AstRoot)  l (pi : Asn1Fold.ParentInfo<ParentInfoData> option) (t:Asn1AcnAst.Asn1Type) getExtraSubtypes (defineNewTypeFnc:DefineTypeAux)   =
