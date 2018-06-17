@@ -14,9 +14,10 @@ type State = {
     currErrorCode   : int
     curErrCodeNames : Set<String>
     allocatedTypeDefNames : (string*string) list        // program unit, typedef name
+    allocatedTypeDefNameInTas : Map<TypeAssignmentInfo, (string*string)>
 }
 
-let emptyState = {curSeqOfLevel=0; currErrorCode=0; curErrCodeNames=Set.empty; allocatedTypeDefNames = []}
+let emptyState = {curSeqOfLevel=0; currErrorCode=0; curErrCodeNames=Set.empty; allocatedTypeDefNames = []; allocatedTypeDefNameInTas = Map.empty}
 
 type ParentInfoData = {
     program_unit_name : string
@@ -103,46 +104,6 @@ type LocalVariable =
 
          //Emit_local_variable_SQF_Index(nI, bHasInitalValue)::="I<nI>:Integer<if(bHasInitalValue)>:=1<endif>;"
 
-type TypeOrSubsType =
-    | TYPE
-    | SUBTYPE
-
-
-type TypeDefinitionCommon = {
-    // the name of the type C or Ada type. Defives from ASN.1 Type Assignment name.
-    // Eg. for MyInt4 ::= INTEGER(0..15|20|25)
-    // name will be MyInt4 
-    // In inner types (i.e. types within compound types such as sequence, sequence of, choice) the name
-    // is the name of the parent plus the component name.
-    // For example, MySeq { a INTEGER} the name in the 'a' component will be MySeq_a
-    name                : string            
-
-    // used only in Ada backend. 
-    typeOrSubsType      : TypeOrSubsType    
-
-    // Used only for Strings and is the size of the string (plus one for the null terminated character)
-    // It is usefull only in C due to the fact that the size of the array is not part of the type definition body but follows the the type name
-    // i.e. for the ASN.1 type   STRCAPS   ::= IA5String (SIZE(1..100)) (FROM ("A".."Z"))	
-    // the C definition is : typedef char STRCAPS[101];
-    // If the definition was typedef char[101] STRCAPS; (which is the case for all other languages Ada, C#, Java etc) then we wouldn't need it
-    arraySize           : int option      
-    
-    // the complete definition of the type
-    // e.g. C : typedef asn1SccSint MyInt4;
-    // and Ada: SUBTYPE MyInt4 IS adaasn1rtl.Asn1Int range 0..25;    
-    completeDefinition  : string  
-
-
-    // Ada does not allow nested type definitions.
-    // Therefore The following type MySeq { a INTEGER, innerSeq SEQUENCE {b REAL}}
-    // must be declared as if it was defined MySeq_innerSeq SEQUENCE {b REAL} MySeq { a INTEGER, innerSeq MySeq_innerSeq}
-    // in this case it will be : MySeq_innerSeq 
-    typeDefinitionBodyWithinSeq : string
-
-    //the complete deffinition of inner complex types that must be declared
-    //before this type
-    completeDefinitionWithinSeq : string option
-}
 
 type ReferenceToExistingDefinition = {
     /// the module where this type is defined
@@ -152,7 +113,6 @@ type ReferenceToExistingDefinition = {
     typedefName     : string
     definedInRtl    : bool
 }
-
 
 type TypeDefinition = {
     // The program unit where this type is defined.
@@ -178,6 +138,7 @@ type TypeDefintionOrReference =
     | ReferenceToExistingDefinition    of ReferenceToExistingDefinition                
     /// indicates that a new type is defined
     | TypeDefinition                of TypeDefinition       
+
 
 
 type ErroCode = {
@@ -799,7 +760,15 @@ let getNextValidErrorCode (cur:State) (errCodeName:string) =
     let errCode = getErroCode (errCodeName.ToUpper())
     errCode, {cur with currErrorCode = cur.currErrorCode + 1; curErrCodeNames = cur.curErrCodeNames.Add errCode.errCodeName}
 
-let getUniqueValidTypeDefName (cur:State) (l:ProgrammingLanguage) (programUnit:string) (proposedTypeDefName:string)  =
+let getUniqueValidTypeDefName (cur:State) (l:ProgrammingLanguage) (tasInfo:TypeAssignmentInfo option) (programUnit:string) (proposedTypeDefName:string)  =
+    let getNextCount (oldName:string) =
+        match oldName.Split('_') |> Seq.toList |> List.rev with
+        | []    
+        | _::[]     -> oldName + "_1"
+        | curN::oldPart   ->
+            match Int32.TryParse curN with
+            | true, num ->  (oldPart |> List.rev |> Seq.StrJoin "_") + "_" + ((num+1).ToString())
+            | _         -> oldName + "_1"
     let rec getValidTypeDefname (proposedTypeDefName:string) = 
         match l with
         | C     ->  
@@ -808,15 +777,24 @@ let getUniqueValidTypeDefName (cur:State) (l:ProgrammingLanguage) (programUnit:s
             | true  -> 
                 match cur.allocatedTypeDefNames |> Seq.exists(fun (pu,td) -> pu = programUnit && td = proposedTypeDefName) with
                 | false -> getValidTypeDefname (programUnit + "_" + proposedTypeDefName ) 
-                | true  -> getValidTypeDefname (proposedTypeDefName + "_2") 
+                | true  -> getValidTypeDefname (getNextCount proposedTypeDefName ) 
         | Ada   ->  
-            match cur.allocatedTypeDefNames |> Seq.exists(fun (pu,td) -> pu = programUnit && td = proposedTypeDefName) with
+            match cur.allocatedTypeDefNames |> Seq.exists(fun (pu,td) -> pu.ToUpper() = programUnit.ToUpper() && td.ToUpper() = proposedTypeDefName.ToUpper()) with
             | false -> proposedTypeDefName
-            | true  -> getValidTypeDefname (proposedTypeDefName + "_2" ) 
+            | true  -> getValidTypeDefname (getNextCount proposedTypeDefName  ) 
 
-    let validTypeDefname = getValidTypeDefname proposedTypeDefName 
-
-    validTypeDefname, {cur with allocatedTypeDefNames = (programUnit, validTypeDefname)::cur.allocatedTypeDefNames}
+    
+    match tasInfo with
+    | None  ->
+        let validTypeDefname = getValidTypeDefname proposedTypeDefName 
+        validTypeDefname, {cur with allocatedTypeDefNames = (programUnit, validTypeDefname)::cur.allocatedTypeDefNames}
+    | Some tasInfo  ->
+        match cur.allocatedTypeDefNameInTas.TryFind tasInfo with
+        | Some (programUnit, validTypeDefname)  -> validTypeDefname, cur
+        | None  ->
+            let validTypeDefname = getValidTypeDefname proposedTypeDefName 
+            validTypeDefname, {cur with allocatedTypeDefNames = (programUnit, validTypeDefname)::cur.allocatedTypeDefNames; allocatedTypeDefNameInTas = cur.allocatedTypeDefNameInTas.Add(tasInfo, (programUnit,validTypeDefname))}
+            
 
 type TypeAssignment = {
     Name:StringLoc

@@ -102,7 +102,7 @@ type typeDefitionKindFunc =
     | GetSubTypeRangeFnc of  (unit-> string )*(string option -> string -> string)     
 
 /// Called before visiting a choice or sequence or sequence of children
-let getParentInfoData (r:Asn1AcnAst.AstRoot) (pi : Asn1Fold.ParentInfo<ParentInfoData> option) (t:Asn1AcnAst.Asn1Type)  (us:State) =
+let getParentInfoData (r:Asn1AcnAst.AstRoot) l (pi : Asn1Fold.ParentInfo<ParentInfoData> option) (t:Asn1AcnAst.Asn1Type)  (us:State) =
     let ret = 
         match t.typeAssignmentInfo with
         | Some (TypeAssignmentInfo tasInfo)       ->  
@@ -126,44 +126,11 @@ let getParentInfoData (r:Asn1AcnAst.AstRoot) (pi : Asn1Fold.ParentInfo<ParentInf
     ret, us                
 
 
+
 let private createTypeGeneric (r:Asn1AcnAst.AstRoot)  l (pi : Asn1Fold.ParentInfo<ParentInfoData> option) (t:Asn1AcnAst.Asn1Type) getExtraSubtypes (defineNewTypeFnc:DefineTypeAux)   =
     let programUnit = ToC t.id.ModName
     let rtlModuleName  = match l with C -> None                                          | Ada -> Some (header_a.rtlModuleName())
     let defineSubType l = match l with C -> header_c.Define_SubType | Ada -> header_a.Define_SubType
-    if t.id.AsString = "TEST-CASE.T-META.longitude" then
-        let dummy = 0
-        ()
-        (*
-    let defineSubTypeAux (parent_pu_name:string option) (programUnit:string) (typedefName:string) (inheritInfo : InheritanceInfo option) (subAux:DefineSubTypeAux) (innerType:bool) =
-        let soInheritParentTypePackage, sInheritParentType = 
-            match inheritInfo with
-            | None      -> rtlModuleName, subAux.getRtlTypeName()
-            | Some inhInfo  ->
-                let aaa = inhInfo.hasAdditionalConstraints
-                match l with
-                | C     ->  None, (ToC2(r.args.TypePrefix + inhInfo.tasName))
-                | Ada   ->
-                    match ToC(inhInfo.modName) = programUnit with
-                    | true  -> None, (ToC2(r.args.TypePrefix + inhInfo.tasName))
-                    | false -> Some (ToC inhInfo.modName), (ToC2(r.args.TypePrefix + inhInfo.tasName))
-        
-        let soNewRange = subAux.getNewRange soInheritParentTypePackage sInheritParentType
-        match soNewRange with
-        | None when  innerType    -> (*If there is no new range and is an inner type, then just make a reference to existing type*)
-            ReferenceToExistingDefinition {ReferenceToExistingDefinition.programUnit = soInheritParentTypePackage; typedefName=sInheritParentType}         
-        | _     -> (*Otherwise, create a new type which is a subtype of the existing type*)
-            match parent_pu_name with 
-            | None  ->
-                let completeDefintion = defineSubType l typedefName soInheritParentTypePackage sInheritParentType soNewRange None
-                TypeDefinition {TypeDefinition.typedefName = typedefName; typedefBody = (fun () -> completeDefintion)}
-            | Some parent_pu_name  when programUnit =   parent_pu_name -> 
-                let completeDefintion = defineSubType l typedefName soInheritParentTypePackage sInheritParentType soNewRange None
-                TypeDefinition {TypeDefinition.typedefName = typedefName; typedefBody = (fun () -> completeDefintion)}
-            | Some parent_pu_name   ->
-                ReferenceToExistingDefinition {ReferenceToExistingDefinition.programUnit = Some parent_pu_name; typedefName= typedefName}
-    //if t.id.AsString = "Onboard-Monitoring.Transition-Report.value.type-1-0" then
-    //    printfn "%s" t.id.AsString
-    *)
     match t.typeAssignmentInfo with
     | Some (TypeAssignmentInfo tasInfo)      ->  (*I am a type assignmet ==> Always define a new type*)
         let typedefName = (ToC2(r.args.TypePrefix + tasInfo.tasName))

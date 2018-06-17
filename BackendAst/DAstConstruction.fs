@@ -709,9 +709,9 @@ let private mapType (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDepe
 
         (fun pi t ((newKind, newPrms),us)        -> createType r pi t ((newKind, newPrms),us))
 
-        (fun pi t ti us -> DAstTypeDefinition2.getParentInfoData r pi t us)
-        (fun pi t ti us -> DAstTypeDefinition2.getParentInfoData r pi t us)
-        (fun pi t ti us -> DAstTypeDefinition2.getParentInfoData r pi t us)
+        (fun pi t ti us -> DAstTypeDefinition2.getParentInfoData r l pi t us)
+        (fun pi t ti us -> DAstTypeDefinition2.getParentInfoData r l pi t us)
+        (fun pi t ti us -> DAstTypeDefinition2.getParentInfoData r l pi t us)
 
 
         None
@@ -793,7 +793,7 @@ let DoWork (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies)
         | _                             -> raise(System.Exception "Unsupported programming language")
 
     
-    let initialState = {curSeqOfLevel=0; currErrorCode = 1; curErrCodeNames = Set.empty; allocatedTypeDefNames = []}
+    let initialState = {curSeqOfLevel=0; currErrorCode = 1; curErrCodeNames = Set.empty; allocatedTypeDefNames = []; allocatedTypeDefNameInTas = Map.empty}
     //first map all type assignments and then value assignments
     let files0, ns = r.Files |> foldMap (fun cs f -> mapFile r deps l f cs) initialState
     let files, ns = files0 |> foldMap (fun cs f -> reMapFile r files0 deps l f cs) ns
