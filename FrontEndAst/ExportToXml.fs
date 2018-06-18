@@ -33,7 +33,7 @@ let private printOctetStringVal (v:OctetStringValue,_) = XElement(xname "OctetSt
 let rec private printSeqOfValue (v:SeqOfValue) = 
     XElement(xname "SequenceOfValue", (v |> List.map PrintAsn1GenericValue ))
 and private printSeqValue(v:SeqValue) =
-    XElement(xname "SequenceOfValue", 
+    XElement(xname "SequenceValue", 
         (v |> List.map(fun nv -> 
             XElement(xname "NamedValue", 
                 XAttribute(xname "Name", nv.name.Value),
