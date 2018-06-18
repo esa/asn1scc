@@ -68,7 +68,7 @@ TypeGeneric(nLine, nPos, sAsnFile, sSubType) ::= <<
 >>
 
 
-MinMaxType(sName, sMin, sMax, bFixedSize) ::= <<
+MinMaxType(sName, sMin, sMax, bFixedSize, bIsUnsigned, bIsRealType) ::= <<
 "Kind": "$sName$", "Min": "$sMin$", "Max": "$sMax$"
 >>
 

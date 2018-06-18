@@ -20,7 +20,7 @@ let GetMinMax uperRange =
     | Asn1AcnAst.NegInf(max)             -> "MIN", max.ToString()
     | Asn1AcnAst.Full                    -> "MIN", "MAX"
 
-let handTypeWithMinMax name uperRange func stgFileName =
+let handTypeWithMinMax name uperRange func  stgFileName =
     let sMin, sMax = GetMinMax uperRange
     func name sMin sMax (sMin=sMax) stgFileName
 
@@ -140,11 +140,11 @@ let rec PrintType (r:AstRoot) (f:Asn1File) (stgFileName:string) modName (deepRec
                 | None              -> gen.RefType asn1Name sModName (ToC asn1Name) (*typedefName*) sCModName stgFileName
             gen.TypeGeneric (BigInteger t.Location.srcLine) (BigInteger t.Location.charPos) f.FileName refTypeContent stgFileName
     let PrintTypeAux (t:Asn1Type) =
-        match t.Kind with
-        | Integer           i    -> handTypeWithMinMax (gen.IntegerType () stgFileName)         i.baseInfo.uperRange gen.MinMaxType stgFileName
+        match t.Kind with                                                                                            //func name sMin sMax (sMin=sMax) stgFileName
+        | Integer           i    -> handTypeWithMinMax (gen.IntegerType () stgFileName)         i.baseInfo.uperRange (fun name sMin sMax bFixedSize stgFileName -> gen.MinMaxType name sMin sMax bFixedSize i.baseInfo.isUnsigned false stgFileName ) stgFileName
         | BitString         i    -> handTypeWithMinMax (gen.BitStringType () stgFileName)       (Asn1AcnAst.Concrete (i.baseInfo.minSize, i.baseInfo.maxSize)) gen.MinMaxType2 stgFileName
         | OctetString       i    -> handTypeWithMinMax (gen.OctetStringType () stgFileName)     (Asn1AcnAst.Concrete (i.baseInfo.minSize, i.baseInfo.maxSize)) gen.MinMaxType2 stgFileName
-        | Real              i    -> handTypeWithMinMax_real (gen.RealType () stgFileName)       i.baseInfo.uperRange gen.MinMaxType stgFileName
+        | Real              i    -> handTypeWithMinMax_real (gen.RealType () stgFileName)       i.baseInfo.uperRange (fun name sMin sMax bFixedSize stgFileName -> gen.MinMaxType name sMin sMax bFixedSize false true stgFileName ) stgFileName
         | IA5String         i    -> handTypeWithMinMax (gen.IA5StringType () stgFileName)       (Asn1AcnAst.Concrete (i.baseInfo.minSize, i.baseInfo.maxSize)) gen.MinMaxType2 stgFileName
         | Boolean           i    -> gen.BooleanType () stgFileName
         | NullType          i    -> gen.NullType () stgFileName
