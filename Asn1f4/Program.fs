@@ -21,7 +21,7 @@ type CliArguments =
     | [<Unique; AltCommandLine("-renamePolicy")>] Rename_Policy of int
     | [<Unique; AltCommandLine("-fp")>]  Field_Prefix of prefix:string
     | [<Unique; AltCommandLine("-gtc")>] Generate_Test_Grammar 
-    | [<Unique; AltCommandLine("-customStg")>] Custom_Stg  of custom_stg_colon_outfilename:string
+    | [<AltCommandLine("-customStg")>] Custom_Stg  of custom_stg_colon_outfilename:string
     | [<Unique; AltCommandLine("-customStgAstVersion")>] Custom_Stg_Ast_Version  of astver:int
     | [<Unique; AltCommandLine("-icdUper")>] IcdUper  of uper_icd_output_file:string
     | [<Unique; AltCommandLine("-customIcdUper")>] CustomIcdUper  of custom_stg_colon_out_filename:string
