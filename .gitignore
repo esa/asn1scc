@@ -1082,3 +1082,5 @@ v2out
 /StgAda/isvalid_a_impl.stg.fs
 /StgAda/isvalid_new_a.stg.fs
 /CommonTypes/isvalid_if.stg.fs
+/mantis/0000783/c_out
+/mantis/0000783/ada_out

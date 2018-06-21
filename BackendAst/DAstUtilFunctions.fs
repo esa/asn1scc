@@ -967,6 +967,8 @@ let rec mapValue (v:Asn1AcnAst.Asn1Value) =
         | Asn1AcnAst.RefValue     ((md,ts),v) ->  RefValue            ((md.Value, ts.Value), mapValue v)
     {Asn1Value.kind = newVKind; id=v.id; loc = v.loc}
 
+
+
 type Asn1Value with
     member this.getBackendName (l:ProgrammingLanguage) =
         match this.id with
@@ -975,7 +977,24 @@ type Asn1Value with
             let longName = (typePath.Tail |> List.map (fun i -> i.StrValue))@ (vasPath |> List.map (fun i -> i.StrValue))  |> Seq.StrJoin "_"
             ToC2(longName.Replace("#","elem").L1)
 
+    member this.BaseValue =
+        match this.kind with
+        | RefValue(_, bv)   -> bv
+        | _                 -> this
+    member this.ActualValue =
+        match this.kind with
+        | RefValue(_, bv)   -> bv.ActualValue
+        | _                 -> this
 
+type Asn1ValueKind with
+    member this.BaseValue =
+        match this with
+        | RefValue(_, bv)   -> bv.kind
+        | _                 -> this
+    member this.ActualValue =
+        match this with
+        | RefValue(_, bv)   -> bv.kind.ActualValue
+        | _                 -> this
 
 type SeqChildInfo with
     member this.acnInsertetField =
