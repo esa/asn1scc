@@ -81,13 +81,18 @@ let rec printValue (r:DAst.AstRoot)  (l:ProgrammingLanguage)  (curProgamUnitName
                 List.head
             | _         -> raise(BugErrorException "unexpected type")
         | RefValue ((md,vs),v)         ->
-            match t.ActualType.Kind with
-            | Integer _
-            | Real  _   ->
-                printValue r  l  curProgamUnitName t parentValue v.kind
-            | _         ->
-                let vas = r.getValueAssignmentByName md vs
-                vas.c_name
+            printValue r  l  curProgamUnitName t parentValue v.kind
+            //the following code has been commented out because of the following issue
+            //https://stackoverflow.com/questions/3025050/error-initializer-element-is-not-constant-when-trying-to-initialize-variable-w
+            //Error “initializer element is not constant” when trying to initialize variable with const
+
+//            match t.ActualType.Kind with
+//            | Integer _
+//            | Real  _   ->
+//                printValue r  l  curProgamUnitName t parentValue v.kind
+//            | _         ->
+//                let vas = r.getValueAssignmentByName md vs
+//                vas.c_name
     | Ada ->
         match gv with
         | IntegerValue      v -> variables_a.PrintIntValue v
