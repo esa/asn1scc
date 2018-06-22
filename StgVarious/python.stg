@@ -97,7 +97,7 @@ TypeGeneric(nLine, nPos, sAsnFile, sSubType) ::= <<
 /* Type with Min and Max constraint. sName is the type kind
    This template is used for Integer and Real types; for others,
    see MinMaxType2 */
-MinMaxType(sName, sMin, sMax, bFixedSize) ::= <<
+MinMaxType(sName, sMin, sMax, bFixedSize, bIsUnsigned, bIsRealType) ::= <<
 "kind": "$sName$", "Min": "$sMin$", "Max": "$sMax$"
 >>
 
