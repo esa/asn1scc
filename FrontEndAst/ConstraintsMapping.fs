@@ -66,7 +66,6 @@ let private posIntValGetter (r:Asn1Ast.AstRoot) (v:Asn1Ast.Asn1Value) =
             Asn1Ast.Asn1Type.Constraints = []
             Asn1Ast.Asn1Type.Location = FsUtils.emptyLocation
             Asn1Ast.Asn1Type.parameterizedTypeInstance = false
-
         }
     let newValue = ValuesMapping.mapValue r sizeIntegerType v
     match (getBaseValue newValue).kind with

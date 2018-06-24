@@ -11,6 +11,9 @@ open DAstUtilFunctions
 open Asn1Fold
 
 
+/// https://drive.google.com/file/d/1qWX2fUM2e-f4uGcgnHxVZ8Dt3eIx_9d-/view?usp=sharing
+
+
 type PO_ReferenceToExistingDefinition = {
     /// the module where this type is defined
     programUnit     : string
@@ -30,7 +33,6 @@ type PO_TypeDefinition = {
 type PO_TypeDefintionOrReference =
     /// indicates that no extra type definition is required (e.g. INTEGER without constraints or type reference type without new constraints)
     | PO_ReferenceToExistingDefinition      of PO_ReferenceToExistingDefinition                
-    | PO_VirtualReferenceToExistingDefinition      of PO_ReferenceToExistingDefinition                
     | PO_ReferenceToRTLDefinition           
     /// indicates that a new type is defined
     | PO_TypeDefinition                     of PO_TypeDefinition       
@@ -55,16 +57,15 @@ let PreOrder_TypeDefinitionCalculation (r:Asn1AcnAst.AstRoot)  (l:ProgrammingLan
         let programUnit = ToC t.id.ModName
         let po_typeDefintion =     {PO_TypeDefinition.typedefName=typedefName; programUnit= programUnit}
         match t.inheritInfo with
+        | None              ->            PO_TypeDefinition po_typeDefintion
         | Some inheritInfo  ->  
             (*E.g. MyNewType ::= ExistingType*)
             let po_referenceToExistingDefinition = {PO_ReferenceToExistingDefinition.typedefName = ToC2(r.args.TypePrefix + inheritInfo.tasName); programUnit = (ToC inheritInfo.modName)}
             PO_SubTypeDefinition(po_typeDefintion, po_referenceToExistingDefinition)
-        | None              ->
-            PO_TypeDefinition po_typeDefintion
             
     | Some (ValueAssignmentInfo vasInfo)      ->  (*I am a value assignmet ==> Reference an existing or throw a user exception*)
         match t.inheritInfo with
-        | Some inheritInfo   ->  
+        | Some inheritInfo ->  
             let po_referenceToExistingDefinition = {PO_ReferenceToExistingDefinition.typedefName = ToC2(r.args.TypePrefix + inheritInfo.tasName); programUnit = (ToC inheritInfo.modName)}
             PO_ReferenceToExistingDefinition po_referenceToExistingDefinition
         | None   -> PO_ReferenceToRTLDefinition
@@ -72,41 +73,13 @@ let PreOrder_TypeDefinitionCalculation (r:Asn1AcnAst.AstRoot)  (l:ProgrammingLan
         match pi with
         | None              -> raise(BugErrorException "type has no typeAssignmentInfo and No parent!!!")
         | Some parentInfo   -> 
-            match t.inheritInfo with
-            | Some inheritInfo ->            
-                let po_referenceToExistingDefinition = {PO_ReferenceToExistingDefinition.typedefName = ToC2(r.args.TypePrefix + inheritInfo.tasName); programUnit = (ToC inheritInfo.modName)}
-                match parentInfo.parentData with
-                | PO_ReferenceToRTLDefinition           -> raise(BugErrorException "Impossible. Only primitive, not composite types defined in RTL!!!")
-                | PO_ReferenceToExistingDefinition  _   -> PO_ReferenceToExistingDefinition po_referenceToExistingDefinition
-                | PO_SubTypeDefinition _                 -> PO_ReferenceToExistingDefinition po_referenceToExistingDefinition
-                | PO_VirtualReferenceToExistingDefinition _ -> PO_ReferenceToExistingDefinition po_referenceToExistingDefinition
-                | PO_TypeDefinition parentDefinition  when (not inheritInfo.hasAdditionalConstraints)  ->
-                    PO_ReferenceToExistingDefinition po_referenceToExistingDefinition
-                | PO_TypeDefinition parentDefinition    ->
-                    let typedefName =
-                        match parentInfo.name with
-                        | Some nm -> ToC2(parentDefinition.typedefName + "_" + nm)
-                        | None    -> ToC2(parentDefinition.typedefName + "_" + "elem")
-                    let poDef = {PO_TypeDefinition.typedefName = typedefName; programUnit = ToC t.id.ModName}
-                    PO_SubTypeDefinition (poDef, po_referenceToExistingDefinition)
-            | None  ->
-                            (*I am not a referenced type. If my parent is a referenced type then I am also a referenced type.*)
-                            (*Otherwise, define a new type or subtype*)
-                match parentInfo.parentData with
-                | PO_ReferenceToRTLDefinition           -> raise(BugErrorException "Impossible. Only primitive, not composite, types defined in RTL!!!")
-                | PO_ReferenceToExistingDefinition  parentReferenceToExistingDefinition                   
-                | PO_VirtualReferenceToExistingDefinition  parentReferenceToExistingDefinition                   
-                | PO_SubTypeDefinition (_,parentReferenceToExistingDefinition)                 -> 
-                    let typedefName =
-                        match parentInfo.name with
-                        | Some nm -> ToC2(parentReferenceToExistingDefinition.typedefName + "_" + nm)
-                        | None    -> ToC2(parentReferenceToExistingDefinition.typedefName + "_" + "elem")
-                    
-                    let po_referenceToExistingDefinition = {PO_ReferenceToExistingDefinition.typedefName = typedefName; programUnit = parentReferenceToExistingDefinition.programUnit}
-                    PO_VirtualReferenceToExistingDefinition po_referenceToExistingDefinition
-                | PO_TypeDefinition parentDefinition    -> 
-                    (*I am a non referenced child and my parent is not a referenced type*)
-                    (*IF iam BOOLEAN, REAL or NULLTYPE then PO_ReferenceToRTLDefinition*)
+            match parentInfo.parentData with
+            | PO_ReferenceToRTLDefinition           -> raise(BugErrorException "Impossible. Only primitive, not composite, types defined in RTL!!!")
+            | PO_TypeDefinition parentDefinition    ->
+                (* My parent type is a sequence or choice or sequence of - not a referenced type*)
+                match t.inheritInfo with
+                | None             ->
+                    (*I am not not  referenced type*)
                     match rtlDefinedType with
                     | true  -> PO_ReferenceToRTLDefinition
                     | false -> 
@@ -116,7 +89,90 @@ let PreOrder_TypeDefinitionCalculation (r:Asn1AcnAst.AstRoot)  (l:ProgrammingLan
                             | None    -> ToC2(parentDefinition.typedefName + "_" + "elem")
                         let po_typeDefintion =     {PO_TypeDefinition.typedefName=typedefName; programUnit= parentDefinition.programUnit}
                         PO_TypeDefinition po_typeDefintion
-                
+                | Some inheritInfo  when inheritInfo.hasAdditionalConstraints   ->     
+                    let po_referenceToExistingDefinition = {PO_ReferenceToExistingDefinition.typedefName = ToC2(r.args.TypePrefix + inheritInfo.tasName); programUnit = (ToC inheritInfo.modName)}
+                    let typedefName =
+                        match parentInfo.name with
+                        | Some nm -> ToC2(parentDefinition.typedefName + "_" + nm)
+                        | None    -> ToC2(parentDefinition.typedefName + "_" + "elem")
+                    let poDef = {PO_TypeDefinition.typedefName = typedefName; programUnit = ToC t.id.ModName}
+                    PO_SubTypeDefinition (poDef, po_referenceToExistingDefinition)
+                | Some inheritInfo  ->     
+                    let po_referenceToExistingDefinition = {PO_ReferenceToExistingDefinition.typedefName = ToC2(r.args.TypePrefix + inheritInfo.tasName); programUnit = (ToC inheritInfo.modName)}
+                    PO_ReferenceToExistingDefinition po_referenceToExistingDefinition
+            | PO_ReferenceToExistingDefinition  parentReferenceToExistingDefinition                   
+            | PO_SubTypeDefinition (_,parentReferenceToExistingDefinition)                 -> 
+                (*My parent is a referenced type, so in most cases I am also a reference type*)
+                match t.inheritInfo with
+                | None             ->
+                    match rtlDefinedType with
+                    | true  -> PO_ReferenceToRTLDefinition
+                    | false -> 
+                        let typedefName =
+                            match parentInfo.name with
+                            | Some nm -> ToC2(parentReferenceToExistingDefinition.typedefName + "_" + nm)
+                            | None    -> ToC2(parentReferenceToExistingDefinition.typedefName + "_" + "elem")
+                        let po_referenceToExistingDefinition = {PO_ReferenceToExistingDefinition.typedefName = typedefName; programUnit = parentReferenceToExistingDefinition.programUnit}
+                        PO_ReferenceToExistingDefinition po_referenceToExistingDefinition
+                | Some inheritInfo  when inheritInfo.hasAdditionalConstraints   ->     
+                        let typedefName =
+                            match parentInfo.name with
+                            | Some nm -> ToC2(parentReferenceToExistingDefinition.typedefName + "_" + nm)
+                            | None    -> ToC2(parentReferenceToExistingDefinition.typedefName + "_" + "elem")
+                        let po_referenceToExistingDefinition = {PO_ReferenceToExistingDefinition.typedefName = typedefName; programUnit = parentReferenceToExistingDefinition.programUnit}
+                        PO_ReferenceToExistingDefinition po_referenceToExistingDefinition
+                | Some inheritInfo  ->     
+                    let po_referenceToExistingDefinition = {PO_ReferenceToExistingDefinition.typedefName = ToC2(r.args.TypePrefix + inheritInfo.tasName); programUnit = (ToC inheritInfo.modName)}
+                    PO_ReferenceToExistingDefinition po_referenceToExistingDefinition
+
+
+
+//            match t.inheritInfo with
+//            | Some inheritInfo ->     
+//                    (*I am referenced type. In most cases just return a reference to my TAS. 
+//                    However, if I am a reference to a primitive type with additional constraints
+//                    then a new sub type must be defined*)       
+//                let po_referenceToExistingDefinition = {PO_ReferenceToExistingDefinition.typedefName = ToC2(r.args.TypePrefix + inheritInfo.tasName); programUnit = (ToC inheritInfo.modName)}
+//                match parentInfo.parentData with
+//                | PO_ReferenceToRTLDefinition           -> raise(BugErrorException "Impossible. Only primitive, not composite types defined in RTL!!!")
+//                | PO_ReferenceToExistingDefinition  _   -> PO_ReferenceToExistingDefinition po_referenceToExistingDefinition
+//                | PO_SubTypeDefinition _                 -> PO_ReferenceToExistingDefinition po_referenceToExistingDefinition
+//                | PO_TypeDefinition parentDefinition  when (not inheritInfo.hasAdditionalConstraints)  ->
+//                    PO_ReferenceToExistingDefinition po_referenceToExistingDefinition
+//                | PO_TypeDefinition parentDefinition    ->
+//                    let typedefName =
+//                        match parentInfo.name with
+//                        | Some nm -> ToC2(parentDefinition.typedefName + "_" + nm)
+//                        | None    -> ToC2(parentDefinition.typedefName + "_" + "elem")
+//                    let poDef = {PO_TypeDefinition.typedefName = typedefName; programUnit = ToC t.id.ModName}
+//                    PO_SubTypeDefinition (poDef, po_referenceToExistingDefinition)
+//            | None  ->
+//                            (*I am not a referenced type. If my parent is a referenced type then I am also a referenced type.*)
+//                            (*Otherwise, define a new type or subtype*)
+//                match parentInfo.parentData with
+//                | PO_ReferenceToRTLDefinition           -> raise(BugErrorException "Impossible. Only primitive, not composite, types defined in RTL!!!")
+//                | PO_ReferenceToExistingDefinition  parentReferenceToExistingDefinition                   
+//                | PO_SubTypeDefinition (_,parentReferenceToExistingDefinition)                 -> 
+//                    let typedefName =
+//                        match parentInfo.name with
+//                        | Some nm -> ToC2(parentReferenceToExistingDefinition.typedefName + "_" + nm)
+//                        | None    -> ToC2(parentReferenceToExistingDefinition.typedefName + "_" + "elem")
+//                    
+//                    let po_referenceToExistingDefinition = {PO_ReferenceToExistingDefinition.typedefName = typedefName; programUnit = parentReferenceToExistingDefinition.programUnit}
+//                    PO_ReferenceToExistingDefinition po_referenceToExistingDefinition
+//                | PO_TypeDefinition parentDefinition    -> 
+//                    (*I am a non referenced child and my parent is not a referenced type*)
+//                    (*IF iam BOOLEAN, REAL or NULLTYPE then PO_ReferenceToRTLDefinition*)
+//                    match rtlDefinedType with
+//                    | true  -> PO_ReferenceToRTLDefinition
+//                    | false -> 
+//                        let typedefName =
+//                            match parentInfo.name with
+//                            | Some nm -> ToC2(parentDefinition.typedefName + "_" + nm)
+//                            | None    -> ToC2(parentDefinition.typedefName + "_" + "elem")
+//                        let po_typeDefintion =     {PO_TypeDefinition.typedefName=typedefName; programUnit= parentDefinition.programUnit}
+//                        PO_TypeDefinition po_typeDefintion
+//                
 
 let createInteger (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (po : PO_TypeDefintionOrReference) (t:Asn1AcnAst.Asn1Type)  (o:Asn1AcnAst.Integer)   (us:State) =
     let declare_IntegerNoRTL            = match l with C -> header_c.Declare_Integer                    | Ada -> header_a.Declare_IntegerNoRTL

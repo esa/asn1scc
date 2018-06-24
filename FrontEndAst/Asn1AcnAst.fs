@@ -722,4 +722,14 @@ type AcnInsertedFieldDependencies = {
 }
 
 
+type TypeDefintionName = {
+    typeId : ReferenceToType
+    l : ProgrammingLanguage
+    programUnit : string
+    typedefName : string
+}
+
+type TypeDefintionNames = {
+    typeDefinitionNames : TypeDefintionName list
+}
 

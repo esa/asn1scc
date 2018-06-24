@@ -11,6 +11,7 @@
 
 module AcnCreateFromAntlr
 
+open System
 open System.Linq
 open System.Numerics
 open Antlr.Acn
@@ -1458,7 +1459,52 @@ let private mergeFile (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (f:Asn1Ast.Asn1File) :
     }
 
 
+let getUniqueValidTypeDefName (typeDefinitionNames : TypeDefintionName list) (l:ProgrammingLanguage)  (id:ReferenceToType) (programUnit:string) (proposedTypeDefName:string)  =
+    let getNextCount (oldName:string) =
+        match oldName.Split('_') |> Seq.toList |> List.rev with
+        | []    
+        | _::[]     -> oldName + "_1"
+        | curN::oldPart   ->
+            match Int32.TryParse curN with
+            | true, num ->  (oldPart |> List.rev |> Seq.StrJoin "_") + "_" + ((num+1).ToString())
+            | _         -> oldName + "_1"
+    let rec getValidTypeDefname (proposedTypeDefName:string) = 
+        match l with
+        | C     ->  
+            match typeDefinitionNames |> Seq.exists(fun (z) -> z.l = l && z.typedefName = proposedTypeDefName) with
+            | false -> proposedTypeDefName
+            | true  -> 
+                match typeDefinitionNames |> Seq.exists(fun z -> z.l = l && z.programUnit = programUnit && z.typedefName = proposedTypeDefName) with
+                | false -> getValidTypeDefname (programUnit + "_" + proposedTypeDefName ) 
+                | true  -> getValidTypeDefname (getNextCount proposedTypeDefName ) 
+        | Spark
+        | Ada   ->  
+            match typeDefinitionNames  |> Seq.exists(fun z -> z.l = l && z.programUnit.ToUpper() = programUnit.ToUpper() && z.typedefName.ToUpper() = proposedTypeDefName.ToUpper()) with
+            | false -> proposedTypeDefName
+            | true  -> getValidTypeDefname (getNextCount proposedTypeDefName  ) 
+        | _     -> proposedTypeDefName
+    
+    match typeDefinitionNames  |> Seq.tryFind(fun z -> z.l = l && z.typeId = id) with
+    | Some r -> r.typedefName, typeDefinitionNames
+    | None   ->
+        let validTypeDefname = getValidTypeDefname proposedTypeDefName 
+        let r = {TypeDefintionName.typeId = id; l= l; programUnit = programUnit; typedefName = validTypeDefname}
+        r.typedefName, r::typeDefinitionNames
+
+
 let mergeAsn1WithAcnAst (asn1:Asn1Ast.AstRoot) (acnParseResults:ParameterizedAsn1Ast.AntlrParserResult list) defaultStgLang =
+    let allocatedTopLevelTypedefnames =
+        seq {
+            for l in [C;Ada] do           
+                for f in asn1.Files do
+                    for m in f.Modules do
+                        for tas in m.TypeAssignments do
+                            let id = ReferenceToType [MD m.Name.Value; TA tas.Name.Value]
+                            let programUnit = ToC m.Name.Value
+                            let proposedTypedefName = ToC (asn1.args.TypePrefix + tas.Name.Value)
+                            yield (l, id, programUnit, proposedTypedefName)
+        } |> Seq.toList 
+        |> foldMap (fun st (l, id, programUnit, proposedTypedefName) -> getUniqueValidTypeDefName st l id programUnit proposedTypedefName) [] |> snd
     let acn = CreateAcnAst acnParseResults
     let files = asn1.Files |> List.map (mergeFile asn1 acn)
     {AstRoot.Files = files; args = asn1.args; acnConstants = acn.acnConstants; acnParseResults=acnParseResults; stg=defaultStgLang}, acn

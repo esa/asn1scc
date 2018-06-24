@@ -182,7 +182,8 @@ let private createTypeGeneric (r:Asn1AcnAst.AstRoot)  l (pi : Asn1Fold.ParentInf
             | None    -> ToC2(parentInfo.parentData.typedefName + "_" + "elem")
         
         match t.inheritInfo with
-        | Some inheritInfo -> (*I am referenced type. In most cases just return a reference to my TAS. However, if I a reference to a primitive type with additional constraints*)
+        | Some inheritInfo -> (*I am referenced type. In most cases just return a reference to my TAS. However, 
+                                if I a reference to a primitive type with additional constraints*)
                               (*then a new sub type must be defined*)
             let baseTypeProgramUnit = if programUnit = ToC inheritInfo.modName then None else Some (ToC inheritInfo.modName)
             let referenceToExistingDefinition = ReferenceToExistingDefinition {ReferenceToExistingDefinition.programUnit = baseTypeProgramUnit; typedefName=ToC2(r.args.TypePrefix + inheritInfo.tasName) ; definedInRtl = false}

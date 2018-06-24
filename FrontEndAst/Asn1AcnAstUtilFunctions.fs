@@ -91,14 +91,14 @@ type Asn1Type with
         | Sequence     _ -> this
         | Choice       _ -> this
 
-    member this.tasInfo =
-        match this.typeAssignmentInfo with
-        | Some (TypeAssignmentInfo tasInfo)  -> Some tasInfo
-        | Some (ValueAssignmentInfo tasInfo)  -> None
-        | None          ->
-            match this.inheritInfo with
-            | Some tasInfo  -> Some tasInfo.AsTasInfo
-            | None          -> None
+//    member this.tasInfo =
+//        match this.typeAssignmentInfo with
+//        | Some (TypeAssignmentInfo tasInfo)  -> Some tasInfo
+//        | Some (ValueAssignmentInfo tasInfo)  -> None
+//        | None          ->
+//            match this.inheritInfo with
+//            | Some tasInfo  -> Some tasInfo.AsTasInfo
+//            | None          -> None
 
 type AcnInsertedType with
     member this.acnMinSizeInBits =

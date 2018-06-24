@@ -111,7 +111,7 @@ let isEqualBodyChoiceChild  (choiceTypeDefName:string) (l:ProgrammingLanguage) (
 
 
 
-let getFuncName (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (tasInfo:TypeAssignmentInfo option) (inhInfo: InheritanceInfo option) (typeKind:Asn1AcnAst.Asn1TypeKind) (typeDefinition:TypeDefintionOrReference) =
+let getFuncName (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage)  (typeDefinition:TypeDefintionOrReference) =
     //getFuncNameGeneric r "_Equal" tasInfo inhInfo typeKind typeDefinition
     getFuncNameGeneric  typeDefinition "_Equal"
 
@@ -121,7 +121,7 @@ let createEqualFunction_any (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:As
     let alwaysTrue               = match l with C -> "TRUE" | Ada -> "True"
     let p1 = t.getParamTypeSuffix l "1" CommonTypes.Codec.Encode
     let p2 = t.getParamTypeSuffix l "2" CommonTypes.Codec.Encode
-    let funcName            = getFuncName r l t.id.tasInfo t.inheritInfo t.Kind typeDefinition
+    let funcName            = getFuncName r l  typeDefinition
     let varName1 = p1.arg.p
     let varName2 = p2.arg.p
     let sStar = p1.arg.getStar l
@@ -288,7 +288,7 @@ let createChoiceEqualFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:
 
 let createReferenceTypeEqualFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.ReferenceType)  (defOrRef:TypeDefintionOrReference) (baseType:Asn1Type) =
     //let isEqualFuncName     = getEqualFuncName r l t.id
-    let isEqualFuncName            = getFuncName r l t.id.tasInfo t.inheritInfo t.Kind defOrRef
+    let isEqualFuncName            = getFuncName r l  defOrRef
     let typeDefinitionName = defOrRef.longTypedefName l
     let baseTypeDefName = ToC2(r.args.TypePrefix + o.tasName.Value)
 
