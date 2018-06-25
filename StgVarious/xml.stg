@@ -123,7 +123,7 @@ EnumType(arrsItems) ::= <<
 >>
 
 
-ChoiceChild(sName, sCName, nLine, nPos, sChildContent, sNamePresent ) ::= <<
+ChoiceChild(sName, sCName, sAdaName, nLine, nPos, sChildContent, sNamePresent ) ::= <<
 <ChoiceChild VarName="$sName$" Line="$nLine$" CharPositionInLine="$nPos$" EnumID ="$sNamePresent$">
     $sChildContent$
 </ChoiceChild>

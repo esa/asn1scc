@@ -166,7 +166,7 @@ EnumType(arrsItems) ::= <<
   }
   sNamePresent is an unambiguous name to access the field
 */
-ChoiceChild(sName, sCName, nLine, nPos, sChildContent, sNamePresent ) ::= <<
+ChoiceChild(sName, sCName, sAdaName, nLine, nPos, sChildContent, sNamePresent ) ::= <<
 "$sName$": type("$sNamePresent$", (object,), {
     "Line": $nLine$, "CharPositionInLine": $nPos$, "EnumID": "$sNamePresent$", "type": type("$sNamePresent$_type", (object,), {
         $sChildContent$
