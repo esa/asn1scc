@@ -83,6 +83,7 @@
     <Compile Include="XER.fs" />
     <Compile Include="AcnEncodingClasses.fs" />
     <Compile Include="CheckLongReferences.fs" />
+    <Compile Include="FE_TypeDefinition.fs" />
     <Compile Include="AcnCreateFromAntlr.fs" />
     <Compile Include="TypesEquivalence.fs" />
     <Compile Include="ExportToXml.fs" />

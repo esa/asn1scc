@@ -338,8 +338,62 @@ type SizeableAcnEncodingClass =
     | SZ_EC_ExternalField    of RelativePath
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////// FRONT END TYPE DEFINITIONS   /////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+type FE_TypeDefinitionKind =
+    | FE_NewTypeDefinition                       //type
+    | FE_NewSubTypeDefinition of ReferenceToType    //subtype
+    | FE_Reference2RTL
+    | FE_Reference2OtherType of ReferenceToType
+
+type FE_PrimitiveTypeDefinition = {
+    typeName        : string            //e.g. MyInt, Asn1SccInt, Asn1SccUInt
+    programUnit     : string            //the program unit where this type is defined
+    kind            : FE_TypeDefinitionKind
+}
+
+type FE_SequenceTypeDefinition = {
+    typeName        : string            //e.g. MyInt, Asn1SccInt, Asn1SccUInt
+    existsTypeName  : string
+    programUnit     : string            //the program unit where this type is defined
+    subType         : FE_PrimitiveTypeDefinition option
+    subTypeId       : FE_SequenceTypeDefinition option
+    kind            : FE_TypeDefinitionKind
+}
+
+
+
+
+
+type FE_TypeDefinition = 
+    | FE_PrimitiveTypeDefinition   of FE_PrimitiveTypeDefinition
+    | FE_SequenceTypeDefinition    of FE_SequenceTypeDefinition
+
+    with 
+        member this.typeName = 
+            match this with
+            | FE_PrimitiveTypeDefinition  a    -> a.typeName
+            | FE_SequenceTypeDefinition   a    -> a.typeName
+        member this.programUnit = 
+            match this with
+            | FE_PrimitiveTypeDefinition  a    -> a.programUnit
+            | FE_SequenceTypeDefinition   a    -> a.programUnit
+        member this.kind = 
+            match this with
+            | FE_PrimitiveTypeDefinition  a    -> a.kind
+            | FE_SequenceTypeDefinition   a    -> a.kind
+
+
+
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ////// ASN1 WITH ACN INFORMATION  DEFINITION    /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
 type uperRange<'a> =
     | Concrete      of 'a*'a    // [a, b]
     | NegInf        of 'a       // (-inf, b]
@@ -360,6 +414,7 @@ type Integer = {
     acnMinSizeInBits    : BigInteger
     acnEncodingClass    : IntEncodingClass
     isUnsigned          : bool
+    typeDef             : Map<ProgrammingLanguage, FE_PrimitiveTypeDefinition>
 
 }
 
@@ -375,6 +430,7 @@ type Real = {
     acnMinSizeInBits    : BigInteger
     acnEncodingClass    : RealEncodingClass
 
+    typeDef             : Map<ProgrammingLanguage, FE_PrimitiveTypeDefinition>
 }
 
 type StringType = {
@@ -392,6 +448,7 @@ type StringType = {
     acnMinSizeInBits    : BigInteger
     acnEncodingClass    : StringAcnEncodingClass
     isNumeric           : bool
+    typeDef             : Map<ProgrammingLanguage, FE_PrimitiveTypeDefinition>
 
 }
 
@@ -408,6 +465,7 @@ type OctetString = {
     acnMaxSizeInBits    : BigInteger
     acnMinSizeInBits    : BigInteger
     acnEncodingClass    : SizeableAcnEncodingClass
+    typeDef             : Map<ProgrammingLanguage, FE_PrimitiveTypeDefinition>
 
 }
 
@@ -423,6 +481,7 @@ type BitString = {
     acnMaxSizeInBits    : BigInteger
     acnMinSizeInBits    : BigInteger
     acnEncodingClass    : SizeableAcnEncodingClass
+    typeDef             : Map<ProgrammingLanguage, FE_PrimitiveTypeDefinition>
 
 }
 
@@ -433,6 +492,7 @@ type NullType = {
 
     acnMaxSizeInBits    : BigInteger
     acnMinSizeInBits    : BigInteger
+    typeDef             : Map<ProgrammingLanguage, FE_PrimitiveTypeDefinition>
 
 }
 
@@ -444,6 +504,7 @@ type Boolean = {
     uperMinSizeInBits   : BigInteger
     acnMaxSizeInBits    : BigInteger
     acnMinSizeInBits    : BigInteger
+    typeDef             : Map<ProgrammingLanguage, FE_PrimitiveTypeDefinition>
 
 }
 
@@ -459,6 +520,7 @@ type Enumerated = {
     acnEncodingClass    : IntEncodingClass
     encodeValues        : bool
     userDefinedValues   : bool      //if true, the user has associated at least one item with a value
+    typeDef             : Map<ProgrammingLanguage, FE_PrimitiveTypeDefinition>
 
 }
 
@@ -523,6 +585,8 @@ with
 
 
 
+
+
 type Asn1Type = {
     id              : ReferenceToType
     parameterizedTypeInstance : bool
@@ -570,6 +634,7 @@ and SequenceOf = {
     acnMaxSizeInBits    : BigInteger
     acnMinSizeInBits    : BigInteger
     acnEncodingClass    : SizeableAcnEncodingClass
+    typeDef             : Map<ProgrammingLanguage, FE_PrimitiveTypeDefinition>
 
 }
 
@@ -582,6 +647,7 @@ and Sequence = {
 
     acnMaxSizeInBits        : BigInteger
     acnMinSizeInBits        : BigInteger
+    typeDef                 : Map<ProgrammingLanguage, FE_PrimitiveTypeDefinition>
 }
 
 and AcnChild = {
@@ -618,6 +684,7 @@ and Choice = {
     acnMaxSizeInBits    : BigInteger
     acnMinSizeInBits    : BigInteger
     acnLoc              : SrcLoc option
+    typeDef             : Map<ProgrammingLanguage, FE_PrimitiveTypeDefinition>
 
 }
 
@@ -722,14 +789,8 @@ type AcnInsertedFieldDependencies = {
 }
 
 
-type TypeDefintionName = {
-    typeId : ReferenceToType
-    l : ProgrammingLanguage
-    programUnit : string
-    typedefName : string
-}
 
-type TypeDefintionNames = {
-    typeDefinitionNames : TypeDefintionName list
+type Asn1AcnMergeState = {
+    allocatedTypeNames          : (ProgrammingLanguage*string*string)  list     //language, program unit, type definition name
+    allocatedFE_TypeDefinition  : Map<(ProgrammingLanguage*ReferenceToType), FE_TypeDefinition>
 }
-

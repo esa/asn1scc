@@ -228,6 +228,10 @@ type ReferenceToType with
         member this.getSeqChildId (childName:string) =
             match this with
             | ReferenceToType path -> ReferenceToType (path@[SEQ_CHILD childName])
+        member this.getSeqOfChildId =
+            match this with
+            | ReferenceToType path -> ReferenceToType (path@[SQF])
+
         member this.getChildId (childName:string) (presentWhenName:string)=
             match this with
             | ReferenceToType path -> ReferenceToType (path@[CH_CHILD (childName, presentWhenName)])
