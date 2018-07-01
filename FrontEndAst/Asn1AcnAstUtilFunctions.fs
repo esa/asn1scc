@@ -91,6 +91,23 @@ type Asn1Type with
         | Sequence     _ -> this
         | Choice       _ -> this
 
+    member this.FT_TypeDefintion =
+        match this.Kind with
+        | ReferenceType o-> o.typeDef
+        | Integer      o -> o.typeDef
+        | Real         o ->  o.typeDef
+        | IA5String    o ->  o.typeDef
+        | NumericString o -> o.typeDef
+        | OctetString  o ->  o.typeDef
+        | NullType     o ->  o.typeDef
+        | BitString    o ->  o.typeDef
+        | Boolean      o ->  o.typeDef
+        | Enumerated   o ->  o.typeDef
+        | SequenceOf   o ->  o.typeDef
+        | Sequence     o ->  o.typeDef
+        | Choice       o ->  o.typeDef
+        
+
 //    member this.tasInfo =
 //        match this.typeAssignmentInfo with
 //        | Some (TypeAssignmentInfo tasInfo)  -> Some tasInfo

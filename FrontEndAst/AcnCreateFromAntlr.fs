@@ -1409,14 +1409,17 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (m:Asn1Ast.Asn1Mo
             let mergedAcnEncSpec = mergeAcnEncodingSpecs acnType baseTypeAcnEncSpec
             let hasAdditionalConstraints = restCons.Length > 0
             let inheritanceInfo = (Some {InheritanceInfo.modName = rf.modName.Value; tasName = rf.tasName.Value; hasAdditionalConstraints=hasAdditionalConstraints})
-            //let myTypeDefinition, us1 = None, us
-            let newTypeDefPath =
-                match hasAdditionalConstraints with
-                | false     -> [MD rf.modName.Value; TA rf.tasName.Value]  
-                | true      -> typeDefPath 
 
-            let resolvedType, us2     = mergeType asn1 acn m oldBaseType curPath newTypeDefPath mergedAcnEncSpec (Some t.Location) restCons withCompCons acnArgs baseTypeAcnParams inheritanceInfo typeAssignmentInfo  us
-            let newRef       = {ReferenceType.modName = rf.modName; tasName = rf.tasName; tabularized = rf.tabularized; acnArguments = acnArguments; resolvedType=resolvedType; hasConstraints = hasAdditionalConstraints}
+            //The current type definition path changes to this referenced type path, if this referenced type has no constraints (with component constraints are ignored)
+            let newTypeDefPath =
+                match t.Constraints |> List.choose(fun c -> match c with Asn1Ast.WithComponentConstraint _ -> None | Asn1Ast.WithComponentsConstraint _ -> None | _ -> Some c) with
+                | []     -> [MD rf.modName.Value; TA rf.tasName.Value]  
+                | _      -> typeDefPath 
+
+            let typeDef, us1 = getTypeDifition {tfdArg with typeDefPath = newTypeDefPath} us
+
+            let resolvedType, us2     = mergeType asn1 acn m oldBaseType curPath newTypeDefPath mergedAcnEncSpec (Some t.Location) restCons withCompCons acnArgs baseTypeAcnParams inheritanceInfo typeAssignmentInfo  us1
+            let newRef       = {ReferenceType.modName = rf.modName; tasName = rf.tasName; tabularized = rf.tabularized; acnArguments = acnArguments; resolvedType=resolvedType; hasConstraints = hasAdditionalConstraints; typeDef=typeDef}
             ReferenceType newRef, us2
     //let dummy = sprintf "%A" typeAssignmentInfo
     //let dummy2 = dummy
@@ -1497,7 +1500,7 @@ let private mergeFile (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (f:Asn1Ast.Asn1File) (
 
 //let rec registerPrimitiveTypeDefinition (us:Asn1AcnMergeState) l (id : ReferenceToType) (kind : FE_TypeDefinitionKind) getRtlDefinitionFunc : (FE_PrimitiveTypeDefinition*Asn1AcnMergeState)=
 let mergeAsn1WithAcnAst (asn1:Asn1Ast.AstRoot) (acnParseResults:ParameterizedAsn1Ast.AntlrParserResult list) defaultStgLang =
-    let initialState = {Asn1AcnMergeState.allocatedTypeNames = []; allocatedFE_TypeDefinition= Map.empty} 
+    let initialState = {Asn1AcnMergeState.allocatedTypeNames = []; allocatedFE_TypeDefinition= Map.empty; args = asn1.args} 
     let state =
         seq {
             for l in [C;Ada] do           

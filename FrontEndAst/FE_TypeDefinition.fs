@@ -40,6 +40,7 @@ let private reserveTypeDefinitionName (allocatedTypeNames : (ProgrammingLanguage
     validTypeDefname, (l, programUnit, validTypeDefname)::allocatedTypeNames
 
 
+/// Register the typeId 
 let rec registerPrimitiveTypeDefinition (us:Asn1AcnMergeState) l (id : ReferenceToType) (kind : FE_TypeDefinitionKind) getRtlDefinitionFunc : (FE_PrimitiveTypeDefinition*Asn1AcnMergeState)=
     let programUnit = ToC id.ModName
     let getProposedTypeDefName (id:ReferenceToType) =
@@ -49,7 +50,7 @@ let rec registerPrimitiveTypeDefinition (us:Asn1AcnMergeState) l (id : Reference
                 match path |> List.rev |> List.head with
                 | SEQ_CHILD name       -> name
                 | CH_CHILD (name,_)    -> name
-                | TA name              -> name
+                | TA name              -> us.args.TypePrefix + name
                 | SQF                   -> "elem"
                 | _                             -> raise (BugErrorException "error in lastitem")
         let parentDef =
@@ -97,7 +98,8 @@ let rec registerPrimitiveTypeDefinition (us:Asn1AcnMergeState) l (id : Reference
                 // initially we register the base type as FE_NewTypeDefinition. It may a be FE_NewSubTypeDefinition though. This will be corrected when
                 let actDef, ns = registerPrimitiveTypeDefinition us l refId FE_NewTypeDefinition getRtlDefinitionFunc
                 let itm = {actDef with kind = kind}
-                itm, {ns with allocatedFE_TypeDefinition = us.allocatedFE_TypeDefinition.Add((l,id), (FE_PrimitiveTypeDefinition itm))}
+                itm, ns
+                //itm, {ns with allocatedFE_TypeDefinition = us.allocatedFE_TypeDefinition.Add((l,id), (FE_PrimitiveTypeDefinition itm))}
                 
         ret, ns
 
@@ -113,10 +115,13 @@ type GetTypeDifition_arg = {
 }
 
 let getTypeDifition (arg:GetTypeDifition_arg) (us:Asn1AcnMergeState)=
+    //first determine the type definition kind (i.e. if it is a new type definition or reference to rtl, referece to other type etc)
     let typedefKind =
+        // first check if the type id is under a value assignment or type assignment
         match arg.curPath with
         | (MD _)::(VA _)::_ -> 
-            //value assignment
+            //value assignment: The possible results are either reference to RTL or reference to other type (i.e. new types cannot be defined here)
+            //There is a case where the typeDefPath is not correct (top level value assignments) to primitive types (see the mergeValueAssignment)
             match arg.typeDefPath   with
             | (MD _)::(VA _)::_ -> 
                 match arg.asn1TypeKind with
@@ -125,18 +130,29 @@ let getTypeDifition (arg:GetTypeDifition_arg) (us:Asn1AcnMergeState)=
             | _     -> 
                 FE_Reference2OtherType (ReferenceToType arg.typeDefPath)
         | _                 ->
+            // type under a type assignment
+            // when curPath  = typeDefPath then in most case it means a new type definition (or new subtype definition).
+            // however if curpath is greater than 2 (i.e. child type) and type has rtlFnc then it a reference to RTL 
             match arg.curPath = arg.typeDefPath with
             | true  ->
                 match arg.inferitInfo with
-                | None  -> FE_NewTypeDefinition
+                | None  -> 
+                    match arg.curPath.Length > 2 && arg.rtlFnc.IsSome with
+                    | true  -> FE_Reference2RTL
+                    | false -> FE_NewTypeDefinition
                 | Some inh -> FE_NewSubTypeDefinition (ReferenceToType [MD inh.modName; TA inh.tasName])
             | false ->
-                //normally this is a reference to another type case.
-                //however,  for type assignments A::=B we must define a new type (A) which has a subtype (B)
+                //In this case the curPath is different to typedefPath.
+                //Normally this is a reference to another type. However, there are two exceptions
+                //  (a) if type is child type and rtlFnc is some and inferitInfo.IsNone then is reference to RTL (instead of reference to other type)
+                //  (b) if this type is type assignment (the case is A::=B) then we must define a new type (A) which has a subtype (B)
                 match arg.typeAssignmentInfo with
-                | Some (TypeAssignmentInfo    tsInfo)   -> FE_NewSubTypeDefinition (ReferenceToType arg.typeDefPath)
                 | Some (ValueAssignmentInfo   _)   
-                | None  -> FE_Reference2OtherType (ReferenceToType arg.typeDefPath)
+                | None  -> 
+                    match arg.curPath.Length > 2 && arg.rtlFnc.IsSome && arg.inferitInfo.IsNone with
+                    | false -> FE_Reference2OtherType (ReferenceToType arg.typeDefPath)
+                    | true  -> FE_Reference2RTL
+                | Some (TypeAssignmentInfo    tsInfo)   -> FE_NewSubTypeDefinition (ReferenceToType arg.typeDefPath)
     let lanDefs, us1 =
         [C;Ada] |> foldMap (fun us l -> 
             let itm, ns = registerPrimitiveTypeDefinition us l (ReferenceToType arg.curPath) typedefKind arg.rtlFnc 

@@ -348,6 +348,13 @@ type FE_TypeDefinitionKind =
     | FE_NewSubTypeDefinition of ReferenceToType    //subtype
     | FE_Reference2RTL
     | FE_Reference2OtherType of ReferenceToType
+    override this.ToString() = 
+        match this with
+        | FE_NewTypeDefinition                       -> "NewTypeDefinition"
+        | FE_NewSubTypeDefinition subId              -> sprintf "NewSubTypeDefinition %s" subId.AsString
+        | FE_Reference2RTL                           -> "FE_Reference2RTL"
+        | FE_Reference2OtherType otherId             -> sprintf "FE_Reference2OtherType %s" otherId.AsString
+
 
 type FE_PrimitiveTypeDefinition = {
     typeName        : string            //e.g. MyInt, Asn1SccInt, Asn1SccUInt
@@ -706,6 +713,7 @@ and ReferenceType = {
     acnArguments: RelativePath list
     resolvedType: Asn1Type
     hasConstraints : bool
+    typeDef             : Map<ProgrammingLanguage, FE_PrimitiveTypeDefinition>
 
 }
 
@@ -791,6 +799,7 @@ type AcnInsertedFieldDependencies = {
 
 
 type Asn1AcnMergeState = {
+    args:CommandLineSettings    
     allocatedTypeNames          : (ProgrammingLanguage*string*string)  list     //language, program unit, type definition name
     allocatedFE_TypeDefinition  : Map<(ProgrammingLanguage*ReferenceToType), FE_TypeDefinition>
 }

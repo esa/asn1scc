@@ -469,6 +469,8 @@ with
         | Sequence     _ -> this
         | Choice       _ -> this
     
+
+
     member this.ActualType =
         match this.Kind with
         | ReferenceType t-> t.resolvedType.ActualType
@@ -484,20 +486,20 @@ with
         | Sequence     _ -> this
         | Choice       _ -> this
         
-//    member this.typeDefinition =
-//        match this.Kind with
-//        | Integer      t -> t.typeDefinition
-//        | Real         t -> t.typeDefinition
-//        | IA5String    t -> t.typeDefinition
-//        | OctetString  t -> t.typeDefinition
-//        | NullType     t -> t.typeDefinition
-//        | BitString    t -> t.typeDefinition
-//        | Boolean      t -> t.typeDefinition
-//        | Enumerated   t -> t.typeDefinition
-//        | SequenceOf   t -> t.typeDefinition
-//        | Sequence     t -> t.typeDefinition
-//        | Choice       t -> t.typeDefinition
-//        | ReferenceType t-> t.typeDefinition
+    member this.FT_TypeDefintion =
+        match this.Kind with
+        | Integer      t -> t.baseInfo.typeDef
+        | Real         t -> t.baseInfo.typeDef
+        | IA5String    t -> t.baseInfo.typeDef
+        | OctetString  t -> t.baseInfo.typeDef
+        | NullType     t -> t.baseInfo.typeDef
+        | BitString    t -> t.baseInfo.typeDef
+        | Boolean      t -> t.baseInfo.typeDef
+        | Enumerated   t -> t.baseInfo.typeDef
+        | SequenceOf   t -> t.baseInfo.typeDef
+        | Sequence     t -> t.baseInfo.typeDef
+        | Choice       t -> t.baseInfo.typeDef
+        | ReferenceType t-> t.baseInfo.typeDef
 
     member this.printValue =
         match this.Kind with
