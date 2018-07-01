@@ -93,20 +93,19 @@ type Asn1Type with
 
     member this.FT_TypeDefintion =
         match this.Kind with
-        | ReferenceType o-> o.typeDef
-        | Integer      o -> o.typeDef
-        | Real         o ->  o.typeDef
-        | IA5String    o ->  o.typeDef
-        | NumericString o -> o.typeDef
-        | OctetString  o ->  o.typeDef
-        | NullType     o ->  o.typeDef
-        | BitString    o ->  o.typeDef
-        | Boolean      o ->  o.typeDef
-        | Enumerated   o ->  o.typeDef
-        | SequenceOf   o ->  o.typeDef
-        | Sequence     o ->  o.typeDef
-        | Choice       o ->  o.typeDef
-        
+        | Integer      o  -> o.typeDef |> Map.toList |> List.map (fun (l, d) -> (l, FE_PrimitiveTypeDefinition d)) |> Map.ofList
+        | Real         o  -> o.typeDef |> Map.toList |> List.map (fun (l, d) -> (l, FE_PrimitiveTypeDefinition d)) |> Map.ofList
+        | IA5String    o  -> o.typeDef |> Map.toList |> List.map (fun (l, d) -> (l, FE_StringTypeDefinition d)) |> Map.ofList
+        | NumericString o -> o.typeDef |> Map.toList |> List.map (fun (l, d) -> (l, FE_StringTypeDefinition d)) |> Map.ofList
+        | OctetString  o  -> o.typeDef |> Map.toList |> List.map (fun (l, d) -> (l, FE_SizeableTypeDefinition d)) |> Map.ofList
+        | NullType     o  -> o.typeDef |> Map.toList |> List.map (fun (l, d) -> (l, FE_PrimitiveTypeDefinition d)) |> Map.ofList
+        | BitString    o  -> o.typeDef |> Map.toList |> List.map (fun (l, d) -> (l, FE_SizeableTypeDefinition d)) |> Map.ofList
+        | Boolean      o  -> o.typeDef |> Map.toList |> List.map (fun (l, d) -> (l, FE_PrimitiveTypeDefinition d)) |> Map.ofList
+        | Enumerated   o  -> o.typeDef |> Map.toList |> List.map (fun (l, d) -> (l, FE_PrimitiveTypeDefinition d)) |> Map.ofList
+        | SequenceOf   o  -> o.typeDef |> Map.toList |> List.map (fun (l, d) -> (l, FE_SizeableTypeDefinition d)) |> Map.ofList
+        | Sequence     o  -> o.typeDef |> Map.toList |> List.map (fun (l, d) -> (l, FE_PrimitiveTypeDefinition d)) |> Map.ofList
+        | Choice       o  -> o.typeDef |> Map.toList |> List.map (fun (l, d) -> (l, FE_PrimitiveTypeDefinition d)) |> Map.ofList
+        | ReferenceType o->  o.typeDef 
 
 //    member this.tasInfo =
 //        match this.typeAssignmentInfo with

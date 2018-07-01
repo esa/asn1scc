@@ -488,19 +488,19 @@ with
         
     member this.FT_TypeDefintion =
         match this.Kind with
-        | Integer      t -> t.baseInfo.typeDef
-        | Real         t -> t.baseInfo.typeDef
-        | IA5String    t -> t.baseInfo.typeDef
-        | OctetString  t -> t.baseInfo.typeDef
-        | NullType     t -> t.baseInfo.typeDef
-        | BitString    t -> t.baseInfo.typeDef
-        | Boolean      t -> t.baseInfo.typeDef
-        | Enumerated   t -> t.baseInfo.typeDef
-        | SequenceOf   t -> t.baseInfo.typeDef
-        | Sequence     t -> t.baseInfo.typeDef
-        | Choice       t -> t.baseInfo.typeDef
-        | ReferenceType t-> t.baseInfo.typeDef
-
+        | Integer      t -> t.baseInfo.typeDef   |> Map.toList |> List.map (fun (l, d) -> (l, FE_PrimitiveTypeDefinition d)) |> Map.ofList
+        | Real         t -> t.baseInfo.typeDef   |> Map.toList |> List.map (fun (l, d) -> (l, FE_PrimitiveTypeDefinition d)) |> Map.ofList
+        | IA5String    t -> t.baseInfo.typeDef   |> Map.toList |> List.map (fun (l, d) -> (l, FE_StringTypeDefinition d)) |> Map.ofList
+        | OctetString  t -> t.baseInfo.typeDef   |> Map.toList |> List.map (fun (l, d) -> (l, FE_SizeableTypeDefinition d)) |> Map.ofList
+        | NullType     t -> t.baseInfo.typeDef   |> Map.toList |> List.map (fun (l, d) -> (l, FE_PrimitiveTypeDefinition d)) |> Map.ofList
+        | BitString    t -> t.baseInfo.typeDef   |> Map.toList |> List.map (fun (l, d) -> (l, FE_SizeableTypeDefinition d)) |> Map.ofList
+        | Boolean      t -> t.baseInfo.typeDef   |> Map.toList |> List.map (fun (l, d) -> (l, FE_PrimitiveTypeDefinition d)) |> Map.ofList
+        | Enumerated   t -> t.baseInfo.typeDef   |> Map.toList |> List.map (fun (l, d) -> (l, FE_PrimitiveTypeDefinition d)) |> Map.ofList
+        | SequenceOf   t -> t.baseInfo.typeDef   |> Map.toList |> List.map (fun (l, d) -> (l, FE_SizeableTypeDefinition d)) |> Map.ofList
+        | Sequence     t -> t.baseInfo.typeDef   |> Map.toList |> List.map (fun (l, d) -> (l, FE_PrimitiveTypeDefinition d)) |> Map.ofList
+        | Choice       t -> t.baseInfo.typeDef   |> Map.toList |> List.map (fun (l, d) -> (l, FE_PrimitiveTypeDefinition d)) |> Map.ofList
+        | ReferenceType t-> t.baseInfo.typeDef   
+                                                 
     member this.printValue =
         match this.Kind with
         | Integer      t -> t.printValue

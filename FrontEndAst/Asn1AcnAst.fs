@@ -362,12 +362,33 @@ type FE_PrimitiveTypeDefinition = {
     kind            : FE_TypeDefinitionKind
 }
 
+
+type FE_StringTypeDefinition = {
+    programUnit     : string            //the program unit where this type is defined
+    typeName        : string            //e.g. MyInt, Asn1SccInt, Asn1SccUInt
+    encoding_range  : string
+    index           : string
+    alpha_set       : string
+    subType         : FE_StringTypeDefinition option
+    kind            : FE_TypeDefinitionKind
+}
+
+type FE_SizeableTypeDefinition = {
+    programUnit     : string            //the program unit where this type is defined
+    typeName        : string            //e.g. MyInt, Asn1SccInt, Asn1SccUInt
+    index           : string
+    array           : string
+    length          : string
+    subType         : FE_SizeableTypeDefinition option
+    kind            : FE_TypeDefinitionKind
+}
+
+
 type FE_SequenceTypeDefinition = {
     typeName        : string            //e.g. MyInt, Asn1SccInt, Asn1SccUInt
     existsTypeName  : string
     programUnit     : string            //the program unit where this type is defined
-    subType         : FE_PrimitiveTypeDefinition option
-    subTypeId       : FE_SequenceTypeDefinition option
+    subType         : FE_SequenceTypeDefinition option
     kind            : FE_TypeDefinitionKind
 }
 
@@ -378,20 +399,28 @@ type FE_SequenceTypeDefinition = {
 type FE_TypeDefinition = 
     | FE_PrimitiveTypeDefinition   of FE_PrimitiveTypeDefinition
     | FE_SequenceTypeDefinition    of FE_SequenceTypeDefinition
+    | FE_StringTypeDefinition      of FE_StringTypeDefinition
+    | FE_SizeableTypeDefinition    of FE_SizeableTypeDefinition
 
     with 
         member this.typeName = 
             match this with
             | FE_PrimitiveTypeDefinition  a    -> a.typeName
             | FE_SequenceTypeDefinition   a    -> a.typeName
+            | FE_StringTypeDefinition     a    -> a.typeName
+            | FE_SizeableTypeDefinition   a    -> a.typeName
         member this.programUnit = 
             match this with
             | FE_PrimitiveTypeDefinition  a    -> a.programUnit
             | FE_SequenceTypeDefinition   a    -> a.programUnit
+            | FE_StringTypeDefinition     a    -> a.programUnit
+            | FE_SizeableTypeDefinition   a    -> a.programUnit
         member this.kind = 
             match this with
             | FE_PrimitiveTypeDefinition  a    -> a.kind
             | FE_SequenceTypeDefinition   a    -> a.kind
+            | FE_StringTypeDefinition     a    -> a.kind
+            | FE_SizeableTypeDefinition   a    -> a.kind
 
 
 
@@ -455,7 +484,7 @@ type StringType = {
     acnMinSizeInBits    : BigInteger
     acnEncodingClass    : StringAcnEncodingClass
     isNumeric           : bool
-    typeDef             : Map<ProgrammingLanguage, FE_PrimitiveTypeDefinition>
+    typeDef             : Map<ProgrammingLanguage, FE_StringTypeDefinition>
 
 }
 
@@ -472,7 +501,7 @@ type OctetString = {
     acnMaxSizeInBits    : BigInteger
     acnMinSizeInBits    : BigInteger
     acnEncodingClass    : SizeableAcnEncodingClass
-    typeDef             : Map<ProgrammingLanguage, FE_PrimitiveTypeDefinition>
+    typeDef             : Map<ProgrammingLanguage, FE_SizeableTypeDefinition>
 
 }
 
@@ -488,7 +517,7 @@ type BitString = {
     acnMaxSizeInBits    : BigInteger
     acnMinSizeInBits    : BigInteger
     acnEncodingClass    : SizeableAcnEncodingClass
-    typeDef             : Map<ProgrammingLanguage, FE_PrimitiveTypeDefinition>
+    typeDef             : Map<ProgrammingLanguage, FE_SizeableTypeDefinition>
 
 }
 
@@ -641,7 +670,7 @@ and SequenceOf = {
     acnMaxSizeInBits    : BigInteger
     acnMinSizeInBits    : BigInteger
     acnEncodingClass    : SizeableAcnEncodingClass
-    typeDef             : Map<ProgrammingLanguage, FE_PrimitiveTypeDefinition>
+    typeDef             : Map<ProgrammingLanguage, FE_SizeableTypeDefinition>
 
 }
 
@@ -713,7 +742,7 @@ and ReferenceType = {
     acnArguments: RelativePath list
     resolvedType: Asn1Type
     hasConstraints : bool
-    typeDef             : Map<ProgrammingLanguage, FE_PrimitiveTypeDefinition>
+    typeDef             : Map<ProgrammingLanguage, FE_TypeDefinition>
 
 }
 

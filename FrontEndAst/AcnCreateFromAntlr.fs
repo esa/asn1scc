@@ -631,7 +631,7 @@ let private mergeInteger (asn1:Asn1Ast.AstRoot) (loc:SrcLoc) (acnErrLoc: SrcLoc 
         | Full    _                         -> (asn1.args.SIntMin, asn1.args.SIntMax)
 
     checkIntHasEnoughSpace acnEncodingClass acnProperties.mappingFunction.IsSome acnErrLoc0 asn1Min asn1Max
-    let typeDef, us1 = getTypeDifition {tdarg with rtlFnc = rtlFnc} us
+    let typeDef, us1 = getPrimitiveTypeDifition {tdarg with rtlFnc = rtlFnc} us
     {Integer.acnProperties = acnProperties; cons = cons; withcons = withcons; uperRange = uperRange;uperMinSizeInBits=uperMinSizeInBits; uperMaxSizeInBits=uperMaxSizeInBits; acnEncodingClass = acnEncodingClass;  acnMinSizeInBits=acnMinSizeInBits; acnMaxSizeInBits = acnMaxSizeInBits; isUnsigned= isUnsigned; typeDef=typeDef}, us1
 
 let private mergeReal (asn1:Asn1Ast.AstRoot) (loc:SrcLoc) (acnErrLoc: SrcLoc option) (props:GenericAcnProperty list) cons withcons (tdarg:GetTypeDifition_arg) (us:Asn1AcnMergeState) =
@@ -658,7 +658,7 @@ let private mergeReal (asn1:Asn1Ast.AstRoot) (loc:SrcLoc) (acnErrLoc: SrcLoc opt
     let uperMinSizeInBits=8I
     let aligment = tryGetProp props (fun x -> match x with ALIGNTONEXT e -> Some e | _ -> None)
     let acnEncodingClass,  acnMinSizeInBits, acnMaxSizeInBits= AcnEncodingClasses.GetRealEncodingClass aligment loc acnProperties uperMinSizeInBits uperMaxSizeInBits 
-    let typeDef, us1 = getTypeDifition {tdarg with rtlFnc = Some getRtlTypeName} us
+    let typeDef, us1 = getPrimitiveTypeDifition {tdarg with rtlFnc = Some getRtlTypeName} us
     {Real.acnProperties = acnProperties; cons = cons; withcons = withcons; uperRange=uperRange; uperMaxSizeInBits=uperMaxSizeInBits; uperMinSizeInBits=uperMinSizeInBits; acnEncodingClass = acnEncodingClass;  acnMinSizeInBits=acnMinSizeInBits; acnMaxSizeInBits = acnMaxSizeInBits; typeDef=typeDef}, us1
 
 type EnmStrGetTypeDifition_arg =
@@ -700,11 +700,11 @@ let private mergeStringType (asn1:Asn1Ast.AstRoot) (loc:SrcLoc) (acnErrLoc: SrcL
 
     let typeDef, us1 = 
         match tdarg with
-        | EnmStrGetTypeDifition_arg tdarg   -> getTypeDifition tdarg us
+        | EnmStrGetTypeDifition_arg tdarg   -> getStringTypeDifition tdarg us
         | AcnPrmGetTypeDefinition (curPath, md, ts)   -> 
             let lanDefs, us1 =
                 [C;Ada] |> foldMap (fun us l -> 
-                    let itm, ns = registerPrimitiveTypeDefinition us l (ReferenceToType curPath) (FE_Reference2OtherType (ReferenceToType [MD md; TA ts])) None
+                    let itm, ns = registerStringTypeDefinition us l (ReferenceToType curPath) (FE_Reference2OtherType (ReferenceToType [MD md; TA ts])) 
                     (l,itm), ns) us
             lanDefs |> Map.ofList, us1
 
@@ -725,7 +725,7 @@ let private mergeOctetStringType (asn1:Asn1Ast.AstRoot) (loc:SrcLoc) (acnErrLoc:
     let aligment = tryGetProp props (fun x -> match x with ALIGNTONEXT e -> Some e | _ -> None)
     let acnEncodingClass,  acnMinSizeInBits, acnMaxSizeInBits= AcnEncodingClasses.GetOctetStringEncodingClass aligment loc acnProperties uperMinSizeInBits uperMaxSizeInBits minSize maxSize 
 
-    let typeDef, us1 = getTypeDifition tdarg us
+    let typeDef, us1 = getSizeableTypeDifition tdarg us
     {OctetString.acnProperties = acnProperties; cons = cons; withcons = withcons; minSize=minSize; maxSize =maxSize; uperMaxSizeInBits = uperMaxSizeInBits; uperMinSizeInBits=uperMinSizeInBits; acnEncodingClass = acnEncodingClass;  acnMinSizeInBits=acnMinSizeInBits; acnMaxSizeInBits = acnMaxSizeInBits; typeDef=typeDef}, us1
 
 let private mergeBitStringType (asn1:Asn1Ast.AstRoot) (loc:SrcLoc) (acnErrLoc: SrcLoc option) (props:GenericAcnProperty list) cons withcons (tdarg:GetTypeDifition_arg) (us:Asn1AcnMergeState) =
@@ -742,7 +742,7 @@ let private mergeBitStringType (asn1:Asn1Ast.AstRoot) (loc:SrcLoc) (acnErrLoc: S
     let aligment = tryGetProp props (fun x -> match x with ALIGNTONEXT e -> Some e | _ -> None)
     let acnEncodingClass,  acnMinSizeInBits, acnMaxSizeInBits= AcnEncodingClasses.GetBitStringEncodingClass aligment loc acnProperties uperMinSizeInBits uperMaxSizeInBits minSize maxSize 
 
-    let typeDef, us1 = getTypeDifition tdarg us
+    let typeDef, us1 = getSizeableTypeDifition tdarg us
     {BitString.acnProperties = acnProperties; cons = cons; withcons = withcons; minSize=minSize; maxSize =maxSize; uperMaxSizeInBits = uperMaxSizeInBits; uperMinSizeInBits=uperMinSizeInBits; acnEncodingClass = acnEncodingClass;  acnMinSizeInBits=acnMinSizeInBits; acnMaxSizeInBits = acnMaxSizeInBits; typeDef=typeDef}, us1
 
 let private mergeNullType (acnErrLoc: SrcLoc option) (props:GenericAcnProperty list) (tdarg:GetTypeDifition_arg) (us:Asn1AcnMergeState) =
@@ -754,7 +754,7 @@ let private mergeNullType (acnErrLoc: SrcLoc option) (props:GenericAcnProperty l
 
     let aligment = tryGetProp props (fun x -> match x with ALIGNTONEXT e -> Some e | _ -> None)
     let acnMinSizeInBits, acnMaxSizeInBits= AcnEncodingClasses.GetNullEncodingClass aligment loc acnProperties
-    let typeDef, us1 = getTypeDifition {tdarg with rtlFnc = Some getRtlTypeName} us
+    let typeDef, us1 = getPrimitiveTypeDifition {tdarg with rtlFnc = Some getRtlTypeName} us
     {NullType.acnProperties = acnProperties; uperMaxSizeInBits = 0I; uperMinSizeInBits=0I;  acnMinSizeInBits=acnMinSizeInBits; acnMaxSizeInBits = acnMaxSizeInBits; typeDef=typeDef}, us1
 
 let private mergeBooleanType (acnErrLoc: SrcLoc option) (props:GenericAcnProperty list) cons withcons  (tdarg:GetTypeDifition_arg) (us:Asn1AcnMergeState)=
@@ -771,7 +771,7 @@ let private mergeBooleanType (acnErrLoc: SrcLoc option) (props:GenericAcnPropert
         | None              -> {BooleanAcnProperties.encodingPattern = None }
     let aligment = tryGetProp props (fun x -> match x with ALIGNTONEXT e -> Some e | _ -> None)
     let acnMinSizeInBits, acnMaxSizeInBits= AcnEncodingClasses.GetBooleanEncodingClass aligment loc acnProperties
-    let typeDef, us1 = getTypeDifition {tdarg with rtlFnc = Some getRtlTypeName} us
+    let typeDef, us1 = getPrimitiveTypeDifition {tdarg with rtlFnc = Some getRtlTypeName} us
     {Boolean.acnProperties = acnProperties; cons = cons; withcons = withcons;uperMaxSizeInBits = 1I; uperMinSizeInBits=1I; acnMinSizeInBits=acnMinSizeInBits; acnMaxSizeInBits = acnMaxSizeInBits; typeDef=typeDef}, us1
 
 
@@ -841,7 +841,7 @@ let private mergeEnumerated (asn1:Asn1Ast.AstRoot) (items: Asn1Ast.NamedItem lis
     let acnEncodingClass,  acnMinSizeInBits, acnMaxSizeInBits= AcnEncodingClasses.GetEnumeratedEncodingClass asn1.args.integerSizeInBytes items aligment loc acnProperties uperSizeInBits uperSizeInBits endodeValues
     let typeDef, us1 = 
         match tdarg with
-        | EnmStrGetTypeDifition_arg tdarg   -> getTypeDifition tdarg us
+        | EnmStrGetTypeDifition_arg tdarg   -> getPrimitiveTypeDifition tdarg us
         | AcnPrmGetTypeDefinition (curPath, md, ts)   -> 
             let lanDefs, us1 =
                 [C;Ada] |> foldMap (fun us l -> 
@@ -1135,7 +1135,7 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (m:Asn1Ast.Asn1Mo
             
 
 
-            let typeDef, us1 = getTypeDifition tfdArg us
+            let typeDef, us1 = getSizeableTypeDifition tfdArg us
                         
 
             let newChType, us2  = mergeType asn1 acn m chType (curPath@[SQF]) (typeDefPath@[SQF]) childEncSpec None [] childWithCons  acnArgs [] None None  us1
@@ -1165,7 +1165,7 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (m:Asn1Ast.Asn1Mo
             let cons =  myVisibleConstraints|> List.collect fixConstraint |> List.map (ConstraintsMapping.getSequenceConstraint asn1 t)
             let wcons = myNonVisibleConstraints |> List.collect fixConstraint |> List.map (ConstraintsMapping.getSequenceConstraint asn1 t)
 
-            let typeDef, us1 = getTypeDifition tfdArg us
+            let typeDef, us1 = getPrimitiveTypeDifition tfdArg us
 
             let mergeChild (cc:ChildSpec option) (c:Asn1Ast.ChildInfo) (us:Asn1AcnMergeState)  =
                 let childNamedConstraints = childrenNameConstraints |> List.filter(fun x -> x.Name = c.Name)
@@ -1295,7 +1295,7 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (m:Asn1Ast.Asn1Mo
 
             let cons =  myVisibleConstraints |> List.collect fixConstraint |> List.map (ConstraintsMapping.getChoiceConstraint asn1 t)
             let wcons = myNonVisibleConstraints |> List.collect fixConstraint |> List.map (ConstraintsMapping.getChoiceConstraint asn1 t)
-            let typeDef, us1 = getTypeDifition tfdArg us
+            let typeDef, us1 = getPrimitiveTypeDifition tfdArg us
             
 
             let mergeChild (cc:ChildSpec option) (c:Asn1Ast.ChildInfo)  (us:Asn1AcnMergeState)=
@@ -1416,7 +1416,7 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (m:Asn1Ast.Asn1Mo
                 | []     -> [MD rf.modName.Value; TA rf.tasName.Value]  
                 | _      -> typeDefPath 
 
-            let typeDef, us1 = getTypeDifition {tfdArg with typeDefPath = newTypeDefPath} us
+            let typeDef, us1 = getRefereceTypeDefinition asn1 t {tfdArg with typeDefPath = newTypeDefPath} us
 
             let resolvedType, us2     = mergeType asn1 acn m oldBaseType curPath newTypeDefPath mergedAcnEncSpec (Some t.Location) restCons withCompCons acnArgs baseTypeAcnParams inheritanceInfo typeAssignmentInfo  us1
             let newRef       = {ReferenceType.modName = rf.modName; tasName = rf.tasName; tabularized = rf.tabularized; acnArguments = acnArguments; resolvedType=resolvedType; hasConstraints = hasAdditionalConstraints; typeDef=typeDef}
@@ -1498,6 +1498,7 @@ let private mergeFile (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (f:Asn1Ast.Asn1File) (
     newFile, us1
 
 
+
 //let rec registerPrimitiveTypeDefinition (us:Asn1AcnMergeState) l (id : ReferenceToType) (kind : FE_TypeDefinitionKind) getRtlDefinitionFunc : (FE_PrimitiveTypeDefinition*Asn1AcnMergeState)=
 let mergeAsn1WithAcnAst (asn1:Asn1Ast.AstRoot) (acnParseResults:ParameterizedAsn1Ast.AntlrParserResult list) defaultStgLang =
     let initialState = {Asn1AcnMergeState.allocatedTypeNames = []; allocatedFE_TypeDefinition= Map.empty; args = asn1.args} 
@@ -1514,8 +1515,8 @@ let mergeAsn1WithAcnAst (asn1:Asn1Ast.AstRoot) (acnParseResults:ParameterizedAsn
         } |> Seq.toList 
         |> foldMap (fun st (l, id, t, programUnit, proposedTypedefName) -> 
             match t.Kind with
-            | Asn1Ast.ReferenceType rf  -> registerPrimitiveTypeDefinition st l id (FE_NewSubTypeDefinition (ReferenceToType [MD rf.modName.Value; TA rf.tasName.Value])) None
-            | _                         -> registerPrimitiveTypeDefinition st l id FE_NewTypeDefinition None ) initialState |> snd
+            | Asn1Ast.ReferenceType rf  -> registerAnyTypeDefinition asn1 t st l id (FE_NewSubTypeDefinition (ReferenceToType [MD rf.modName.Value; TA rf.tasName.Value])) 
+            | _                         -> registerAnyTypeDefinition asn1 t st l id FE_NewTypeDefinition ) initialState |> snd
     let acn = CreateAcnAst acnParseResults
     let files, finalState = asn1.Files |> foldMap (fun st f -> mergeFile asn1 acn f st) state
     {AstRoot.Files = files; args = asn1.args; acnConstants = acn.acnConstants; acnParseResults=acnParseResults; stg=defaultStgLang}, acn
