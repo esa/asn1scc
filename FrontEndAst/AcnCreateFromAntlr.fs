@@ -841,11 +841,11 @@ let private mergeEnumerated (asn1:Asn1Ast.AstRoot) (items: Asn1Ast.NamedItem lis
     let acnEncodingClass,  acnMinSizeInBits, acnMaxSizeInBits= AcnEncodingClasses.GetEnumeratedEncodingClass asn1.args.integerSizeInBytes items aligment loc acnProperties uperSizeInBits uperSizeInBits endodeValues
     let typeDef, us1 = 
         match tdarg with
-        | EnmStrGetTypeDifition_arg tdarg   -> getPrimitiveTypeDifition tdarg us
+        | EnmStrGetTypeDifition_arg tdarg   -> getEnumeratedTypeDifition tdarg us
         | AcnPrmGetTypeDefinition (curPath, md, ts)   -> 
             let lanDefs, us1 =
                 [C;Ada] |> foldMap (fun us l -> 
-                    let itm, ns = registerPrimitiveTypeDefinition us l (ReferenceToType curPath) (FE_Reference2OtherType (ReferenceToType [MD md; TA ts])) None
+                    let itm, ns = registerEnumeratedTypeDefinition us l (ReferenceToType curPath) (FE_Reference2OtherType (ReferenceToType [MD md; TA ts])) 
                     (l,itm), ns) us
             lanDefs |> Map.ofList, us1
         
@@ -1165,7 +1165,7 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (m:Asn1Ast.Asn1Mo
             let cons =  myVisibleConstraints|> List.collect fixConstraint |> List.map (ConstraintsMapping.getSequenceConstraint asn1 t)
             let wcons = myNonVisibleConstraints |> List.collect fixConstraint |> List.map (ConstraintsMapping.getSequenceConstraint asn1 t)
 
-            let typeDef, us1 = getPrimitiveTypeDifition tfdArg us
+            let typeDef, us1 = getSequenceTypeDifition tfdArg us
 
             let mergeChild (cc:ChildSpec option) (c:Asn1Ast.ChildInfo) (us:Asn1AcnMergeState)  =
                 let childNamedConstraints = childrenNameConstraints |> List.filter(fun x -> x.Name = c.Name)
@@ -1295,7 +1295,7 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (m:Asn1Ast.Asn1Mo
 
             let cons =  myVisibleConstraints |> List.collect fixConstraint |> List.map (ConstraintsMapping.getChoiceConstraint asn1 t)
             let wcons = myNonVisibleConstraints |> List.collect fixConstraint |> List.map (ConstraintsMapping.getChoiceConstraint asn1 t)
-            let typeDef, us1 = getPrimitiveTypeDifition tfdArg us
+            let typeDef, us1 = getChoiceTypeDifition tfdArg us
             
 
             let mergeChild (cc:ChildSpec option) (c:Asn1Ast.ChildInfo)  (us:Asn1AcnMergeState)=

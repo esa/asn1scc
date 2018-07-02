@@ -152,7 +152,7 @@ let rec registerStringTypeDefinition (us:Asn1AcnMergeState) l (id : ReferenceToT
         ret, ns
 
 
-
+(* Sizeable (OCTET STRING, BIT STRING, SEQUENCE OF)*)
 let rec registerSizeableTypeDefinition (us:Asn1AcnMergeState) l (id : ReferenceToType) (kind : FE_TypeDefinitionKind) : (FE_SizeableTypeDefinition*Asn1AcnMergeState)=
     let programUnit = ToC id.ModName
     match us.allocatedFE_TypeDefinition |> Map.tryFind(l,id) with
@@ -167,9 +167,7 @@ let rec registerSizeableTypeDefinition (us:Asn1AcnMergeState) l (id : ReferenceT
                 let itm = {v with kind = kind}
                 itm, {us with allocatedFE_TypeDefinition = newMap.Add((l,id),(FE_SizeableTypeDefinition itm))}
         | _                             -> v, us
-    | Some (FE_PrimitiveTypeDefinition p)    -> raise (BugErrorException "bug in registerPrimitiveTypeDefinition")
-    | Some (FE_SequenceTypeDefinition p)    -> raise (BugErrorException "bug in registerPrimitiveTypeDefinition")
-    | Some (FE_StringTypeDefinition p)    -> raise (BugErrorException "bug in registerPrimitiveTypeDefinition")
+    | Some (_)    -> raise (BugErrorException "bug in registerPrimitiveTypeDefinition")
     | None      -> 
         let ret, ns =
             match kind with
@@ -199,21 +197,148 @@ let rec registerSizeableTypeDefinition (us:Asn1AcnMergeState) l (id : ReferenceT
                 itm, ns
         ret, ns
 
-//let rec registerPrimitiveTypeDefinition (us:Asn1AcnMergeState) l (id : ReferenceToType) (kind : FE_TypeDefinitionKind) getRtlDefinitionFunc : (FE_PrimitiveTypeDefinition*Asn1AcnMergeState)=
+
+
+let rec registerSequenceTypeDefinition (us:Asn1AcnMergeState) l (id : ReferenceToType) (kind : FE_TypeDefinitionKind) : (FE_SequenceTypeDefinition*Asn1AcnMergeState)=
+    let programUnit = ToC id.ModName
+    match us.allocatedFE_TypeDefinition |> Map.tryFind(l,id) with
+    | Some (FE_SequenceTypeDefinition v)    -> 
+        match kind with
+        | FE_NewSubTypeDefinition  _   -> 
+            match kind = v.kind with
+            | true  -> v, us
+            | false ->
+                // fix early main type allocation
+                let newMap = us.allocatedFE_TypeDefinition.Remove (l,id)
+                let itm = {v with kind = kind}
+                itm, {us with allocatedFE_TypeDefinition = newMap.Add((l,id),(FE_SequenceTypeDefinition itm))}
+        | _                             -> v, us
+    | Some (_)    -> raise (BugErrorException "bug in registerPrimitiveTypeDefinition")
+    | None      -> 
+        let ret, ns =
+            match kind with
+            | FE_Reference2RTL          -> raise(BugErrorException "String types are not defined in RTL")
+            | FE_NewTypeDefinition      ->
+                let proposedTypeDefName = getProposedTypeDefName us l id
+                let typeName, newAllocatedTypeNames = reserveTypeDefinitionName us.allocatedTypeNames l programUnit proposedTypeDefName
+                let exist, newAllocatedTypeNames = reserveTypeDefinitionName newAllocatedTypeNames l programUnit (proposedTypeDefName + "_exist")
+                let itm = {FE_SequenceTypeDefinition.programUnit = programUnit; typeName = typeName; kind=kind; exist=exist; subType=None}
+                itm, {us with allocatedTypeNames = newAllocatedTypeNames; allocatedFE_TypeDefinition = us.allocatedFE_TypeDefinition.Add((l,id), (FE_SequenceTypeDefinition itm))}
+            | FE_NewSubTypeDefinition subId ->
+                let subType, ns1 = registerSequenceTypeDefinition us l subId FE_NewTypeDefinition 
+                let proposedTypeDefName = getProposedTypeDefName ns1 l id
+                let typeName, newAllocatedTypeNames = reserveTypeDefinitionName ns1.allocatedTypeNames l programUnit proposedTypeDefName
+                let exist, newAllocatedTypeNames = reserveTypeDefinitionName newAllocatedTypeNames l programUnit (proposedTypeDefName + "_exist")
+                let itm = {FE_SequenceTypeDefinition.programUnit = programUnit; typeName = typeName; kind=kind; exist=exist; subType=None}
+                let ns2 = {ns1 with allocatedTypeNames = newAllocatedTypeNames; allocatedFE_TypeDefinition = ns1.allocatedFE_TypeDefinition.Add((l,id), (FE_SequenceTypeDefinition itm))}
+                itm, ns2
+            | FE_Reference2OtherType refId  -> 
+                // initially we register the base type as FE_NewTypeDefinition. It may a be FE_NewSubTypeDefinition though. This will be corrected when
+                let actDef, ns = registerSequenceTypeDefinition us l refId FE_NewTypeDefinition 
+                let itm = {actDef with kind = kind}
+                itm, ns
+        ret, ns
+
+
+let rec registerChoiceTypeDefinition (us:Asn1AcnMergeState) l (id : ReferenceToType) (kind : FE_TypeDefinitionKind) : (FE_ChoiceTypeDefinition*Asn1AcnMergeState)=
+    let programUnit = ToC id.ModName
+    match us.allocatedFE_TypeDefinition |> Map.tryFind(l,id) with
+    | Some (FE_ChoiceTypeDefinition v)    -> 
+        match kind with
+        | FE_NewSubTypeDefinition  _   -> 
+            match kind = v.kind with
+            | true  -> v, us
+            | false ->
+                // fix early main type allocation
+                let newMap = us.allocatedFE_TypeDefinition.Remove (l,id)
+                let itm = {v with kind = kind}
+                itm, {us with allocatedFE_TypeDefinition = newMap.Add((l,id),(FE_ChoiceTypeDefinition itm))}
+        | _                             -> v, us
+    | Some (_)    -> raise (BugErrorException "bug in registerPrimitiveTypeDefinition")
+    | None      -> 
+        let ret, ns =
+            match kind with
+            | FE_Reference2RTL          -> raise(BugErrorException "String types are not defined in RTL")
+            | FE_NewTypeDefinition      ->
+                let proposedTypeDefName = getProposedTypeDefName us l id
+                let typeName, newAllocatedTypeNames = reserveTypeDefinitionName us.allocatedTypeNames l programUnit proposedTypeDefName
+                let index_range, newAllocatedTypeNames = reserveTypeDefinitionName newAllocatedTypeNames l programUnit (proposedTypeDefName + "_index_range")
+                let selection, newAllocatedTypeNames = reserveTypeDefinitionName newAllocatedTypeNames l programUnit (proposedTypeDefName + "_selection")
+                let itm = {FE_ChoiceTypeDefinition.programUnit = programUnit; typeName = typeName; kind=kind; index_range=index_range; selection=selection; subType=None}
+                itm, {us with allocatedTypeNames = newAllocatedTypeNames; allocatedFE_TypeDefinition = us.allocatedFE_TypeDefinition.Add((l,id), (FE_ChoiceTypeDefinition itm))}
+            | FE_NewSubTypeDefinition subId ->
+                let subType, ns1 = registerChoiceTypeDefinition us l subId FE_NewTypeDefinition 
+                let proposedTypeDefName = getProposedTypeDefName ns1 l id
+                let typeName, newAllocatedTypeNames = reserveTypeDefinitionName ns1.allocatedTypeNames l programUnit proposedTypeDefName
+                let index_range, newAllocatedTypeNames = reserveTypeDefinitionName newAllocatedTypeNames l programUnit (proposedTypeDefName + "_index_range")
+                let selection, newAllocatedTypeNames = reserveTypeDefinitionName newAllocatedTypeNames l programUnit (proposedTypeDefName + "_selection")
+                let itm = {FE_ChoiceTypeDefinition.programUnit = programUnit; typeName = typeName; kind=kind; index_range=index_range; selection=selection; subType=None}
+                let ns2 = {ns1 with allocatedTypeNames = newAllocatedTypeNames; allocatedFE_TypeDefinition = ns1.allocatedFE_TypeDefinition.Add((l,id), (FE_ChoiceTypeDefinition itm))}
+                itm, ns2
+            | FE_Reference2OtherType refId  -> 
+                // initially we register the base type as FE_NewTypeDefinition. It may a be FE_NewSubTypeDefinition though. This will be corrected when
+                let actDef, ns = registerChoiceTypeDefinition us l refId FE_NewTypeDefinition 
+                let itm = {actDef with kind = kind}
+                itm, ns
+        ret, ns
+
+
+let rec registerEnumeratedTypeDefinition (us:Asn1AcnMergeState) l (id : ReferenceToType) (kind : FE_TypeDefinitionKind) : (FE_EnumeratedTypeDefinition*Asn1AcnMergeState)=
+    let programUnit = ToC id.ModName
+    match us.allocatedFE_TypeDefinition |> Map.tryFind(l,id) with
+    | Some (FE_EnumeratedTypeDefinition v)    -> 
+        match kind with
+        | FE_NewSubTypeDefinition  _   -> 
+            match kind = v.kind with
+            | true  -> v, us
+            | false ->
+                // fix early main type allocation
+                let newMap = us.allocatedFE_TypeDefinition.Remove (l,id)
+                let itm = {v with kind = kind}
+                itm, {us with allocatedFE_TypeDefinition = newMap.Add((l,id),(FE_EnumeratedTypeDefinition itm))}
+        | _                             -> v, us
+    | Some (_)    -> raise (BugErrorException "bug in registerPrimitiveTypeDefinition")
+    | None      -> 
+        let ret, ns =
+            match kind with
+            | FE_Reference2RTL          -> raise(BugErrorException "String types are not defined in RTL")
+            | FE_NewTypeDefinition      ->
+                let proposedTypeDefName = getProposedTypeDefName us l id
+                let typeName, newAllocatedTypeNames = reserveTypeDefinitionName us.allocatedTypeNames l programUnit proposedTypeDefName
+                let index_range, newAllocatedTypeNames = reserveTypeDefinitionName newAllocatedTypeNames l programUnit (proposedTypeDefName + "_index_range")
+                let itm = {FE_EnumeratedTypeDefinition.programUnit = programUnit; typeName = typeName; kind=kind; index_range=index_range; subType=None}
+                itm, {us with allocatedTypeNames = newAllocatedTypeNames; allocatedFE_TypeDefinition = us.allocatedFE_TypeDefinition.Add((l,id), (FE_EnumeratedTypeDefinition itm))}
+            | FE_NewSubTypeDefinition subId ->
+                let subType, ns1 = registerEnumeratedTypeDefinition us l subId FE_NewTypeDefinition 
+                let proposedTypeDefName = getProposedTypeDefName ns1 l id
+                let typeName, newAllocatedTypeNames = reserveTypeDefinitionName ns1.allocatedTypeNames l programUnit proposedTypeDefName
+                let index_range, newAllocatedTypeNames = reserveTypeDefinitionName newAllocatedTypeNames l programUnit (proposedTypeDefName + "_index_range")
+                let itm = {FE_EnumeratedTypeDefinition.programUnit = programUnit; typeName = typeName; kind=kind; index_range=index_range; subType=None}
+                let ns2 = {ns1 with allocatedTypeNames = newAllocatedTypeNames; allocatedFE_TypeDefinition = ns1.allocatedFE_TypeDefinition.Add((l,id), (FE_EnumeratedTypeDefinition itm))}
+                itm, ns2
+            | FE_Reference2OtherType refId  -> 
+                // initially we register the base type as FE_NewTypeDefinition. It may a be FE_NewSubTypeDefinition though. This will be corrected when
+                let actDef, ns = registerEnumeratedTypeDefinition us l refId FE_NewTypeDefinition 
+                let itm = {actDef with kind = kind}
+                itm, ns
+        ret, ns
+
+
+
 let rec registerAnyTypeDefinition (asn1:Asn1Ast.AstRoot) (t:Asn1Ast.Asn1Type) (us:Asn1AcnMergeState) l (id : ReferenceToType) (kind : FE_TypeDefinitionKind) : (FE_TypeDefinition*Asn1AcnMergeState)=
     match (Asn1Ast.GetActualType t asn1).Kind with
     | Asn1Ast.Integer                  -> registerPrimitiveTypeDefinition us l id kind None  |> (fun (a,b) -> FE_PrimitiveTypeDefinition a, b)
     | Asn1Ast.Real                     -> registerPrimitiveTypeDefinition us l id kind None  |> (fun (a,b) -> FE_PrimitiveTypeDefinition a, b)
     | Asn1Ast.NullType                 -> registerPrimitiveTypeDefinition us l id kind None  |> (fun (a,b) -> FE_PrimitiveTypeDefinition a, b)
     | Asn1Ast.Boolean                  -> registerPrimitiveTypeDefinition us l id kind None  |> (fun (a,b) -> FE_PrimitiveTypeDefinition a, b)
-    | Asn1Ast.Enumerated        _      -> registerPrimitiveTypeDefinition us l id kind None  |> (fun (a,b) -> FE_PrimitiveTypeDefinition a, b)
+    | Asn1Ast.Enumerated        _      -> registerEnumeratedTypeDefinition us l id kind      |> (fun (a,b) -> FE_EnumeratedTypeDefinition a, b)
     | Asn1Ast.OctetString              -> registerSizeableTypeDefinition us l id kind        |> (fun (a,b) -> FE_SizeableTypeDefinition a, b)
     | Asn1Ast.BitString                -> registerSizeableTypeDefinition us l id kind        |> (fun (a,b) -> FE_SizeableTypeDefinition a, b)
     | Asn1Ast.SequenceOf        _      -> registerSizeableTypeDefinition us l id kind        |> (fun (a,b) -> FE_SizeableTypeDefinition a, b)
     | Asn1Ast.NumericString            -> registerStringTypeDefinition us l id kind          |> (fun (a,b) -> FE_StringTypeDefinition a, b)
     | Asn1Ast.IA5String                -> registerStringTypeDefinition us l id kind          |> (fun (a,b) -> FE_StringTypeDefinition a, b)
-    | Asn1Ast.Sequence          _      -> registerPrimitiveTypeDefinition us l id kind None  |> (fun (a,b) -> FE_PrimitiveTypeDefinition a, b)
-    | Asn1Ast.Choice            _      -> registerPrimitiveTypeDefinition us l id kind None  |> (fun (a,b) -> FE_PrimitiveTypeDefinition a, b)
+    | Asn1Ast.Sequence          _      -> registerSequenceTypeDefinition us l id kind        |> (fun (a,b) -> FE_SequenceTypeDefinition a, b)
+    | Asn1Ast.Choice            _      -> registerChoiceTypeDefinition us l id kind          |> (fun (a,b) -> FE_ChoiceTypeDefinition a, b)
     | Asn1Ast.ReferenceType     _      -> raise(BugErrorException "registerAnyTypeDefinition")
 
 
@@ -296,6 +421,33 @@ let getSizeableTypeDifition (arg:GetTypeDifition_arg) (us:Asn1AcnMergeState)=
     lanDefs |> Map.ofList, us1
 
 
+let getSequenceTypeDifition (arg:GetTypeDifition_arg) (us:Asn1AcnMergeState)=
+    //first determine the type definition kind (i.e. if it is a new type definition or reference to rtl, referece to other type etc)
+    let typedefKind = getTypedefKind arg
+    let lanDefs, us1 =
+        [C;Ada] |> foldMap (fun us l -> 
+            let itm, ns = registerSequenceTypeDefinition us l (ReferenceToType arg.curPath) typedefKind 
+            (l,itm), ns) us
+    lanDefs |> Map.ofList, us1
+
+let getChoiceTypeDifition (arg:GetTypeDifition_arg) (us:Asn1AcnMergeState)=
+    //first determine the type definition kind (i.e. if it is a new type definition or reference to rtl, referece to other type etc)
+    let typedefKind = getTypedefKind arg
+    let lanDefs, us1 =
+        [C;Ada] |> foldMap (fun us l -> 
+            let itm, ns = registerChoiceTypeDefinition us l (ReferenceToType arg.curPath) typedefKind 
+            (l,itm), ns) us
+    lanDefs |> Map.ofList, us1
+
+let getEnumeratedTypeDifition (arg:GetTypeDifition_arg) (us:Asn1AcnMergeState)=
+    //first determine the type definition kind (i.e. if it is a new type definition or reference to rtl, referece to other type etc)
+    let typedefKind = getTypedefKind arg
+    let lanDefs, us1 =
+        [C;Ada] |> foldMap (fun us l -> 
+            let itm, ns = registerEnumeratedTypeDefinition us l (ReferenceToType arg.curPath) typedefKind 
+            (l,itm), ns) us
+    lanDefs |> Map.ofList, us1
+
 let getRefereceTypeDefinition (asn1:Asn1Ast.AstRoot) (t:Asn1Ast.Asn1Type) (arg:GetTypeDifition_arg) (us:Asn1AcnMergeState) =
     
     match (Asn1Ast.GetActualType t asn1).Kind with
@@ -303,12 +455,12 @@ let getRefereceTypeDefinition (asn1:Asn1Ast.AstRoot) (t:Asn1Ast.Asn1Type) (arg:G
     | Asn1Ast.Real                     -> getPrimitiveTypeDifition arg us   |> (fun (a,b) -> a |> Map.toList |> List.map (fun (l, d) -> (l, FE_PrimitiveTypeDefinition d)) |> Map.ofList,b)
     | Asn1Ast.NullType                 -> getPrimitiveTypeDifition arg us   |> (fun (a,b) -> a |> Map.toList |> List.map (fun (l, d) -> (l, FE_PrimitiveTypeDefinition d)) |> Map.ofList,b)
     | Asn1Ast.Boolean                  -> getPrimitiveTypeDifition arg us   |> (fun (a,b) -> a |> Map.toList |> List.map (fun (l, d) -> (l, FE_PrimitiveTypeDefinition d)) |> Map.ofList,b)
-    | Asn1Ast.Enumerated        _      -> getPrimitiveTypeDifition arg us   |> (fun (a,b) -> a |> Map.toList |> List.map (fun (l, d) -> (l, FE_PrimitiveTypeDefinition d)) |> Map.ofList,b)
+    | Asn1Ast.Enumerated        _      -> getEnumeratedTypeDifition arg us  |> (fun (a,b) -> a |> Map.toList |> List.map (fun (l, d) -> (l, FE_EnumeratedTypeDefinition d)) |> Map.ofList,b)
     | Asn1Ast.OctetString              -> getSizeableTypeDifition arg us    |> (fun (a,b) -> a |> Map.toList |> List.map (fun (l, d) -> (l, FE_SizeableTypeDefinition d)) |> Map.ofList,b)
     | Asn1Ast.BitString                -> getSizeableTypeDifition arg us    |> (fun (a,b) -> a |> Map.toList |> List.map (fun (l, d) -> (l, FE_SizeableTypeDefinition d)) |> Map.ofList,b)
     | Asn1Ast.SequenceOf        _      -> getSizeableTypeDifition arg us    |> (fun (a,b) -> a |> Map.toList |> List.map (fun (l, d) -> (l, FE_SizeableTypeDefinition d)) |> Map.ofList,b)
     | Asn1Ast.NumericString            -> getStringTypeDifition arg us      |> (fun (a,b) -> a |> Map.toList |> List.map (fun (l, d) -> (l, FE_StringTypeDefinition d)) |> Map.ofList,b)
     | Asn1Ast.IA5String                -> getStringTypeDifition arg us      |> (fun (a,b) -> a |> Map.toList |> List.map (fun (l, d) -> (l, FE_StringTypeDefinition d)) |> Map.ofList,b)
-    | Asn1Ast.Sequence          _      -> getPrimitiveTypeDifition arg us   |> (fun (a,b) -> a |> Map.toList |> List.map (fun (l, d) -> (l, FE_PrimitiveTypeDefinition d)) |> Map.ofList,b)
-    | Asn1Ast.Choice            _      -> getPrimitiveTypeDifition arg us   |> (fun (a,b) -> a |> Map.toList |> List.map (fun (l, d) -> (l, FE_PrimitiveTypeDefinition d)) |> Map.ofList,b)
+    | Asn1Ast.Sequence          _      -> getSequenceTypeDifition arg us    |> (fun (a,b) -> a |> Map.toList |> List.map (fun (l, d) -> (l, FE_SequenceTypeDefinition d)) |> Map.ofList,b)
+    | Asn1Ast.Choice            _      -> getChoiceTypeDifition arg us      |> (fun (a,b) -> a |> Map.toList |> List.map (fun (l, d) -> (l, FE_ChoiceTypeDefinition d)) |> Map.ofList,b)
     | Asn1Ast.ReferenceType     _      -> raise(BugErrorException "getRefereceTypeDefinition")

@@ -101,10 +101,10 @@ type Asn1Type with
         | NullType     o  -> o.typeDef |> Map.toList |> List.map (fun (l, d) -> (l, FE_PrimitiveTypeDefinition d)) |> Map.ofList
         | BitString    o  -> o.typeDef |> Map.toList |> List.map (fun (l, d) -> (l, FE_SizeableTypeDefinition d)) |> Map.ofList
         | Boolean      o  -> o.typeDef |> Map.toList |> List.map (fun (l, d) -> (l, FE_PrimitiveTypeDefinition d)) |> Map.ofList
-        | Enumerated   o  -> o.typeDef |> Map.toList |> List.map (fun (l, d) -> (l, FE_PrimitiveTypeDefinition d)) |> Map.ofList
+        | Enumerated   o  -> o.typeDef |> Map.toList |> List.map (fun (l, d) -> (l, FE_EnumeratedTypeDefinition d)) |> Map.ofList
         | SequenceOf   o  -> o.typeDef |> Map.toList |> List.map (fun (l, d) -> (l, FE_SizeableTypeDefinition d)) |> Map.ofList
-        | Sequence     o  -> o.typeDef |> Map.toList |> List.map (fun (l, d) -> (l, FE_PrimitiveTypeDefinition d)) |> Map.ofList
-        | Choice       o  -> o.typeDef |> Map.toList |> List.map (fun (l, d) -> (l, FE_PrimitiveTypeDefinition d)) |> Map.ofList
+        | Sequence     o  -> o.typeDef |> Map.toList |> List.map (fun (l, d) -> (l, FE_SequenceTypeDefinition d)) |> Map.ofList
+        | Choice       o  -> o.typeDef |> Map.toList |> List.map (fun (l, d) -> (l, FE_ChoiceTypeDefinition d)) |> Map.ofList
         | ReferenceType o->  o.typeDef 
 
 //    member this.tasInfo =

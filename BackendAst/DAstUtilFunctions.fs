@@ -495,10 +495,10 @@ with
         | NullType     t -> t.baseInfo.typeDef   |> Map.toList |> List.map (fun (l, d) -> (l, FE_PrimitiveTypeDefinition d)) |> Map.ofList
         | BitString    t -> t.baseInfo.typeDef   |> Map.toList |> List.map (fun (l, d) -> (l, FE_SizeableTypeDefinition d)) |> Map.ofList
         | Boolean      t -> t.baseInfo.typeDef   |> Map.toList |> List.map (fun (l, d) -> (l, FE_PrimitiveTypeDefinition d)) |> Map.ofList
-        | Enumerated   t -> t.baseInfo.typeDef   |> Map.toList |> List.map (fun (l, d) -> (l, FE_PrimitiveTypeDefinition d)) |> Map.ofList
+        | Enumerated   t -> t.baseInfo.typeDef   |> Map.toList |> List.map (fun (l, d) -> (l, FE_EnumeratedTypeDefinition d)) |> Map.ofList
         | SequenceOf   t -> t.baseInfo.typeDef   |> Map.toList |> List.map (fun (l, d) -> (l, FE_SizeableTypeDefinition d)) |> Map.ofList
-        | Sequence     t -> t.baseInfo.typeDef   |> Map.toList |> List.map (fun (l, d) -> (l, FE_PrimitiveTypeDefinition d)) |> Map.ofList
-        | Choice       t -> t.baseInfo.typeDef   |> Map.toList |> List.map (fun (l, d) -> (l, FE_PrimitiveTypeDefinition d)) |> Map.ofList
+        | Sequence     t -> t.baseInfo.typeDef   |> Map.toList |> List.map (fun (l, d) -> (l, FE_SequenceTypeDefinition d)) |> Map.ofList
+        | Choice       t -> t.baseInfo.typeDef   |> Map.toList |> List.map (fun (l, d) -> (l, FE_ChoiceTypeDefinition d)) |> Map.ofList
         | ReferenceType t-> t.baseInfo.typeDef   
                                                  
     member this.printValue =

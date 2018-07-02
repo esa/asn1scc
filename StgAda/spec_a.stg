@@ -160,10 +160,12 @@ TYPE <sName> IS RECORD
 
     <endif>
 END RECORD;
+
 <else>
 TYPE <sName> IS RECORD 
     null;
 END RECORD;
+
 <endif>
 >>
 

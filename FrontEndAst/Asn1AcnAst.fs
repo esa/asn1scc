@@ -385,14 +385,29 @@ type FE_SizeableTypeDefinition = {
 
 
 type FE_SequenceTypeDefinition = {
-    typeName        : string            //e.g. MyInt, Asn1SccInt, Asn1SccUInt
-    existsTypeName  : string
     programUnit     : string            //the program unit where this type is defined
+    typeName        : string            //e.g. MyInt, Asn1SccInt, Asn1SccUInt
+    exist           : string
     subType         : FE_SequenceTypeDefinition option
     kind            : FE_TypeDefinitionKind
 }
 
+type FE_ChoiceTypeDefinition = {
+    programUnit     : string            //the program unit where this type is defined
+    typeName        : string            //e.g. MyInt, Asn1SccInt, Asn1SccUInt
+    index_range     : string
+    selection       : string
+    subType         : FE_ChoiceTypeDefinition option
+    kind            : FE_TypeDefinitionKind
+}
 
+type FE_EnumeratedTypeDefinition = {
+    programUnit     : string            //the program unit where this type is defined
+    typeName        : string            //e.g. MyInt, Asn1SccInt, Asn1SccUInt
+    index_range     : string
+    subType         : FE_EnumeratedTypeDefinition option
+    kind            : FE_TypeDefinitionKind
+}
 
 
 
@@ -401,6 +416,8 @@ type FE_TypeDefinition =
     | FE_SequenceTypeDefinition    of FE_SequenceTypeDefinition
     | FE_StringTypeDefinition      of FE_StringTypeDefinition
     | FE_SizeableTypeDefinition    of FE_SizeableTypeDefinition
+    | FE_ChoiceTypeDefinition      of FE_ChoiceTypeDefinition
+    | FE_EnumeratedTypeDefinition  of FE_EnumeratedTypeDefinition
 
     with 
         member this.typeName = 
@@ -409,18 +426,24 @@ type FE_TypeDefinition =
             | FE_SequenceTypeDefinition   a    -> a.typeName
             | FE_StringTypeDefinition     a    -> a.typeName
             | FE_SizeableTypeDefinition   a    -> a.typeName
+            | FE_ChoiceTypeDefinition     a    -> a.typeName
+            | FE_EnumeratedTypeDefinition a    -> a.typeName
         member this.programUnit = 
             match this with
             | FE_PrimitiveTypeDefinition  a    -> a.programUnit
             | FE_SequenceTypeDefinition   a    -> a.programUnit
             | FE_StringTypeDefinition     a    -> a.programUnit
             | FE_SizeableTypeDefinition   a    -> a.programUnit
+            | FE_ChoiceTypeDefinition     a    -> a.programUnit
+            | FE_EnumeratedTypeDefinition a    -> a.programUnit
         member this.kind = 
             match this with
             | FE_PrimitiveTypeDefinition  a    -> a.kind
             | FE_SequenceTypeDefinition   a    -> a.kind
             | FE_StringTypeDefinition     a    -> a.kind
             | FE_SizeableTypeDefinition   a    -> a.kind
+            | FE_ChoiceTypeDefinition     a    -> a.kind
+            | FE_EnumeratedTypeDefinition a    -> a.kind
 
 
 
@@ -556,7 +579,7 @@ type Enumerated = {
     acnEncodingClass    : IntEncodingClass
     encodeValues        : bool
     userDefinedValues   : bool      //if true, the user has associated at least one item with a value
-    typeDef             : Map<ProgrammingLanguage, FE_PrimitiveTypeDefinition>
+    typeDef             : Map<ProgrammingLanguage, FE_EnumeratedTypeDefinition>
 
 }
 
@@ -683,7 +706,7 @@ and Sequence = {
 
     acnMaxSizeInBits        : BigInteger
     acnMinSizeInBits        : BigInteger
-    typeDef                 : Map<ProgrammingLanguage, FE_PrimitiveTypeDefinition>
+    typeDef                 : Map<ProgrammingLanguage, FE_SequenceTypeDefinition>
 }
 
 and AcnChild = {
@@ -720,7 +743,7 @@ and Choice = {
     acnMaxSizeInBits    : BigInteger
     acnMinSizeInBits    : BigInteger
     acnLoc              : SrcLoc option
-    typeDef             : Map<ProgrammingLanguage, FE_PrimitiveTypeDefinition>
+    typeDef             : Map<ProgrammingLanguage, FE_ChoiceTypeDefinition>
 
 }
 
