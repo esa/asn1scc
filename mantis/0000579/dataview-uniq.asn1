@@ -1,0 +1,11 @@
+TASTE-BasicTypes DEFINITIONS ::=
+BEGIN
+
+T-Int ::= INTEGER (0..4)
+
+T-SeqOf ::= SEQUENCE (SIZE (1..4)) OF T-Int
+
+END
+ 
+
+

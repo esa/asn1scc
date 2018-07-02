@@ -1,0 +1,4 @@
+A DEFINITIONS ::=
+BEGIN
+T-A ::= T-NotExists
+END

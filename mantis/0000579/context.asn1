@@ -1,0 +1,13 @@
+Context DEFINITIONS ::= 
+BEGIN
+
+--IMPORTS T-Int, T-SeqOf FROM TASTE-BasicTypes;
+
+Orchestrator-State ::= SEQUENCE {
+    state     ENUMERATED {running, wait},
+    initDone  BOOLEAN,
+    counter   TASTE-BasicTypes.T-Int,
+    seqof     TASTE-BasicTypes.T-SeqOf,
+    t         TASTE-BasicTypes.T-Int
+}
+END

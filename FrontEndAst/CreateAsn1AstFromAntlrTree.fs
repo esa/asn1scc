@@ -459,7 +459,7 @@ let CreateValueAssignment (astRoot:list<ITree>) (tree:ITree) =
         ada_name = ToC2 name.Value
     }
 
-let CreateAsn1Module (astRoot:list<ITree>) (tree:ITree)   (fileTokens:array<IToken>) (alreadyTakenComments:System.Collections.Generic.List<IToken>)= 
+let CreateAsn1Module (astRoot:list<ITree>) (implicitlyImportedTypes: (string*ImportedModule list) list) (tree:ITree)   (fileTokens:array<IToken>) (alreadyTakenComments:System.Collections.Generic.List<IToken>)= 
     let createImport  (tree:ITree) = 
         {   ImportedModule.Name = tree.GetChild(0).TextL;
             Types = getChildrenByType(tree, asn1Parser.UID) |> List.tail |> List.map (fun x -> x.TextL)
@@ -506,14 +506,27 @@ let CreateAsn1Module (astRoot:list<ITree>) (tree:ITree)   (fileTokens:array<ITok
           match getOptionChildByType(tree, asn1Parser.EXTENSIBILITY) with
           | Some(_) -> raise (SemanticError(tree.Location, "Unsupported ASN.1 feature: EXTENSIBILIY IMPLED. Extensibility is incompatible with embedded systems"))
           | None ->
+          let modName = getChildByType(tree, asn1Parser.UID).TextL
           { 
-                Name=  getChildByType(tree, asn1Parser.UID).TextL
+                Name=  modName
                 TypeAssignments= getChildrenByType(tree, asn1Parser.TYPE_ASSIG) |> List.map(fun x -> CreateTypeAssignment astRoot x fileTokens alreadyTakenComments)
                 ValueAssignments = 
                     let globalValueAssignments = getChildrenByType(tree, asn1Parser.VAL_ASSIG) |> List.map(fun x -> CreateValueAssignment astRoot x)
                     let typeScopedValueAssignments = handleIntegerValues tree
                     globalValueAssignments@typeScopedValueAssignments
-                Imports = getChildrenByType(tree, asn1Parser.IMPORTS_FROM_MODULE) |> List.map createImport
+                Imports = 
+                    let explicitImports = getChildrenByType(tree, asn1Parser.IMPORTS_FROM_MODULE) |> List.map createImport
+                    let implicitlyImports = implicitlyImportedTypes |> List.filter(fun (m,_) -> m = modName.Value) |> List.collect snd
+                    let mergedImports =
+                        implicitlyImports |> 
+                        List.fold (fun (curImps:ImportedModule list)  iimp -> 
+                            match curImps |> List.tryFind (fun z -> z.Name.Value = iimp.Name.Value) with
+                            | Some eimp        -> 
+                                let rest = curImps |> List.filter (fun z -> z.Name.Value <> eimp.Name.Value)
+                                let mergedImport = {eimp with Types = (eimp.Types @ iimp.Types) |> List.distinctBy(fun z -> z.Value) }
+                                mergedImport::rest
+                            | None          -> iimp::curImps ) explicitImports
+                    mergedImports
                 Exports = HandleExports()
                 Comments = Antlr.Comment.GetComments(fileTokens, alreadyTakenComments, fileTokens.[tree.TokenStopIndex].Line, tree.TokenStartIndex - 1, tree.TokenStopIndex + 2)
           }
@@ -521,16 +534,18 @@ let CreateAsn1Module (astRoot:list<ITree>) (tree:ITree)   (fileTokens:array<ITok
 
 
 
-let CreateAsn1File (astRoot:list<ITree>) (tree:ITree, file, tokens)   = 
+let CreateAsn1File (astRoot:list<ITree>) (implicitlyImportedTypes: (string*ImportedModule list) list) (tree:ITree, file, tokens)   = 
     match tree.Type with
     | asn1Parser.ASN1_FILE ->  
         let alreadyTakenComments = new System.Collections.Generic.List<IToken>();
         { 
                 Asn1File.FileName=file;  
-                Modules= getTreeChildren(tree) |> List.map(fun t-> CreateAsn1Module astRoot t tokens alreadyTakenComments) 
+                Modules= getTreeChildren(tree) |> List.map(fun t-> CreateAsn1Module astRoot implicitlyImportedTypes t tokens alreadyTakenComments) 
                 Tokens = tokens
         }
     | _ -> raise (BugErrorException("Bug in CreateAsn1File"))
+
+
 
 
 let rootCheckCyclicDeps (astRoot:list<ITree>) =
@@ -548,8 +563,30 @@ let rootCheckCyclicDeps (astRoot:list<ITree>) =
                                 let refTypeName = getReftypeName x
                                 not (paramsSet.Contains( refTypeName.Value)  )) |>
                             List.map(fun r -> CreateRefTypeContent r )
-                        ((md,ts), children)
-                    )
+                        ((md,ts), children) )
+
+    let tasses = allTasses |> List.map fst
+    let refTypes = allTasses |> List.collect snd
+    let orphanRefTypes = 
+        refTypes |> 
+        List.choose(fun (rfm, rft)  ->
+            match tasses |> List.tryFind( fun (m,t) -> m.Value = rfm.Value && t.Value = rft.Value)  with
+            | Some _    -> None
+            | None      -> Some (rft.Location, sprintf "No type assignemt with name %s exists (or exported) in module %s" rft.Value  rfm.Value) )
+    match orphanRefTypes with
+    | []    -> ()
+    | (l,msg)::_-> raise(SemanticError(l,msg))
+
+    let implicitlyImportedTypes = 
+        allTasses |> 
+        List.map (fun ((md,ts), rfList) ->  ((md,ts), rfList |> List.filter(fun (rm, rt) -> rm.Value <> md.Value) ) ) |>
+        List.filter (fun (_, rfList) ->  not rfList.IsEmpty) |>
+        List.map(fun ((md,ts), rfList) -> (md, rfList) ) |>
+        List.groupBy (fun (md,list) -> md.Value)    |>
+        List.map(fun (md, grp) ->  
+            let impModules = grp |> List.collect snd |> List.groupBy fst |> List.map(fun (rfm, rfTypes) -> {ImportedModule.Name = rfm; Types=rfTypes |> List.map snd |> List.distinctBy (fun a -> a.Value); Values=[]} )
+            md, impModules)
+            
 
     let independentNodes = allTasses |> List.filter(fun (_,lst) -> lst.IsEmpty)  |> List.map fst
     let dependentNodes = allTasses |> List.filter(fun (_,lst) -> not lst.IsEmpty)    
@@ -567,12 +604,15 @@ let rootCheckCyclicDeps (astRoot:list<ITree>) =
     let comparer (m1:StringLoc, t1:StringLoc) (m2:StringLoc, t2:StringLoc) = m1.Value = m2.Value && t1.Value=t2.Value
     DoTopologicalSort2 independentNodes dependentNodes comparer excToThrow |> ignore
 
+    implicitlyImportedTypes
+
+
 let CreateAstRoot (list:ParameterizedAsn1Ast.AntlrParserResult list) (args:CommandLineSettings) =  
     let astRoot = list |> List.map (fun r -> r.rootItem)
     ITree.RegisterFiles(list |> Seq.map (fun x -> (x.rootItem, x.fileName)))
-    rootCheckCyclicDeps astRoot
+    let implicitlyImportedTypes = rootCheckCyclicDeps astRoot
     {
-        AstRoot.Files = list |> Seq.toList  |> List.map(fun x -> CreateAsn1File astRoot (x.rootItem,x.fileName, x.tokens))
+        AstRoot.Files = list |> Seq.toList  |> List.map(fun x -> CreateAsn1File astRoot implicitlyImportedTypes (x.rootItem,x.fileName, x.tokens))
         args = args
     }
 
