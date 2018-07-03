@@ -1,0 +1,17 @@
+A DEFINITIONS ::=
+BEGIN
+
+T-Point ::= SEQUENCE {
+      x REAL,
+      y REAL
+   }
+
+HK-T ::= SEQUENCE {
+   value-to-plot INTEGER (0..16535) DEFAULT 42,
+   another-value-to-plot INTEGER DEFAULT 99,
+   
+   point T-Point DEFAULT {x 3.14, y 2.7},
+   destination BOOLEAN
+}
+
+END
