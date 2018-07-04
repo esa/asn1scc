@@ -580,7 +580,7 @@ let checkIntHasEnoughSpace acnEncodingClass (hasMappingFunction:bool) acnErrLoc0
 
 
 
-let private mergeInteger (asn1:Asn1Ast.AstRoot) (loc:SrcLoc) (acnErrLoc: SrcLoc option) (props:GenericAcnProperty list) cons withcons (tdarg:GetTypeDifition_arg) (us:Asn1AcnMergeState) =
+let private mergeInteger (asn1:Asn1Ast.AstRoot) (loc:SrcLoc) (typeAssignmentInfo : AssignmentInfo option) (acnErrLoc: SrcLoc option) (props:GenericAcnProperty list) cons withcons (tdarg:GetTypeDifition_arg) (us:Asn1AcnMergeState) =
     let declare_IntegerNoRTL       l     = match l with C -> header_c.Declare_Integer  ()                  | Ada |Spark -> header_a.Declare_IntegerNoRTL     () | _ -> ""
     let declare_PosIntegerNoRTL    l     = match l with C -> header_c.Declare_PosInteger ()                | Ada |Spark -> header_a.Declare_PosIntegerNoRTL  () | _ -> ""
     let acnErrLoc0 = match acnErrLoc with Some a -> a | None -> loc
@@ -613,11 +613,6 @@ let private mergeInteger (asn1:Asn1Ast.AstRoot) (loc:SrcLoc) (acnErrLoc: SrcLoc 
         | PosInf  _                    -> false    //[a, +inf)
         | Full    _                    -> false    // (-inf, +inf)
 
-    let rtlFnc = 
-        match uperRange with
-        | Full                        -> Some declare_IntegerNoRTL
-        | PosInf (a)  when a=0I       -> Some declare_PosIntegerNoRTL
-        | _                           -> None
 
     let aligment = tryGetProp props (fun x -> match x with ALIGNTONEXT e -> Some e | _ -> None)
     let acnEncodingClass,  acnMinSizeInBits, acnMaxSizeInBits= AcnEncodingClasses.GetIntEncodingClass asn1.args.integerSizeInBytes aligment acnErrLoc0 acnProperties uperMinSizeInBits uperMaxSizeInBits isUnsigned
@@ -629,6 +624,21 @@ let private mergeInteger (asn1:Asn1Ast.AstRoot) (loc:SrcLoc) (acnErrLoc: SrcLoc 
         | PosInf   a    when a >= 0I        -> (a, asn1.args.UIntMax)     //[a, +inf)
         | PosInf   a                        -> (a, asn1.args.SIntMax)
         | Full    _                         -> (asn1.args.SIntMin, asn1.args.SIntMax)
+
+
+    let rtlFnc = 
+        match uperRange with
+        | Full                        -> Some declare_IntegerNoRTL
+        | PosInf (a)  when a=0I       -> Some declare_PosIntegerNoRTL
+        | _                           -> 
+            match typeAssignmentInfo with
+            | Some (ValueAssignmentInfo _)  -> 
+                //this is a case where a new type should have been defined. However, the type is under a value assignment e.g. max-Instr INTEGER (12 .. 504) ::= 12
+                //and currently, we do not declare a new type
+                match asn1Min >= 0I with
+                | true                       -> Some declare_PosIntegerNoRTL
+                | false                      -> Some declare_IntegerNoRTL
+            | _                             -> None
 
     checkIntHasEnoughSpace acnEncodingClass acnProperties.mappingFunction.IsSome acnErrLoc0 asn1Min asn1Max
     let typeDef, us1 = getPrimitiveTypeDifition {tdarg with rtlFnc = rtlFnc} us
@@ -1071,7 +1081,7 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (m:Asn1Ast.Asn1Mo
             
             let cons =  t.Constraints@refTypeCons |> List.collect fixConstraint |> List.map (ConstraintsMapping.getIntegerTypeConstraint asn1 t)
             let wcons = withCons |> List.collect fixConstraint |> List.map (ConstraintsMapping.getIntegerTypeConstraint asn1 t)
-            let o, us1  = mergeInteger asn1 t.Location acnErrLoc combinedProperties cons wcons tfdArg us
+            let o, us1  = mergeInteger asn1 t.Location typeAssignmentInfo  acnErrLoc combinedProperties cons wcons tfdArg us
             Integer o, us1
 
         | Asn1Ast.Real                     -> 

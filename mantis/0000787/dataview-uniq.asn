@@ -1,0 +1,131 @@
+-- Generic PUS Constructs
+PUS-Implicit-Knowledge DEFINITIONS ::=
+BEGIN
+
+Secondary-Header {APID} ::= SEQUENCE {
+    ack-successful-completion BOOLEAN,
+    ack-successful-progress   BOOLEAN,
+    ack-successful-start      BOOLEAN,
+    ack-successful-acceptance BOOLEAN,
+    source-id                 APID
+}
+
+Telecommand-ty {APID, SEQ-COUNT-OR-NAME, PROJECT-TC} ::= SEQUENCE {
+    dest-apid        APID,
+    packet-seq-count SEQ-COUNT-OR-NAME,
+    secondary-header Secondary-Header {APID},
+    packet-data      PROJECT-TC
+}
+
+Telemetry-ty {APID, PROJECT-TM} ::= SEQUENCE {
+    from-apid    APID,
+    content      PROJECT-TM
+}
+
+END
+
+
+-- Service type device commanding
+-- Subservice type CPDU
+-- Message types
+-- TC 2-4
+-- This module contains the generic definition of the telecommand (2,4)
+-- from the PUS-C standard.
+Distribute-CPDU-Commands-Generic DEFINITIONS ::=
+BEGIN
+
+Pulse-Instruction {CPDU-OUTPUT-IDENTIFIER} ::= SEQUENCE {
+    output-line-id CPDU-OUTPUT-IDENTIFIER,
+    duration-value INTEGER (0..7)
+}
+
+Pulse-Instructions {Pulse-Instr, INTEGER: max} ::=
+    SEQUENCE (SIZE (1..max)) OF Pulse-Instr
+
+CPDU-Command {CPDU-Identifier,
+              Pulse-Instrs} ::=
+    SEQUENCE {
+        cpdu-id          CPDU-Identifier OPTIONAL,
+        cmd-pulse-instr  Pulse-Instrs
+}
+
+-- Content of a TC (2,4)
+Distribute-CPDU-Commands { CPDU-Cmd, INTEGER:max-Cpdu-Cmds } ::=
+    SEQUENCE (SIZE (1..max-Cpdu-Cmds)) OF CPDU-Cmd
+END
+
+
+
+
+My-Project DEFINITIONS ::=
+BEGIN
+IMPORTS Pulse-Instruction,
+        Pulse-Instructions,
+        CPDU-Command,
+        Distribute-CPDU-Commands
+FROM Distribute-CPDU-Commands-Generic
+        Telecommand-ty,
+        Telemetry-ty
+FROM PUS-Implicit-Knowledge;
+
+-- Need support for TC Type/Subtype in secondary header
+TYPE-ID ::= INTEGER (0..255)
+
+-- Packet sequence count or name (defined in 7.4.1) - project-specific type
+SEQ-COUNT-OR-NAME ::= INTEGER  (0..16383)
+
+-- APID: use an ENUMERATED, and let ACN manage the "11 bits" constraint
+APID ::= ENUMERATED {
+    ground(2047),
+    flight(2046)
+}
+
+-- CPDU output Identifier defined in 9.2.1d
+CPDU-OUTPUT-ID ::= INTEGER { output-1 (42), output-2 (4090) } (0..4095)
+
+-- The CPDU identifier is mentioned in 6.2.6.2c.1 and then in 9.2.2b but the associated type
+-- is not specified (enumerated? bounds?) - contrary to the CPDU output identifier
+CPDU-Identifiers    ::= ENUMERATED { cpdu-id-1, cpdu-id-2 }
+PULSE-INST          ::= Pulse-Instruction { CPDU-OUTPUT-ID }
+
+-- 9.2.1.g Maximum number of command pulse instructions (project specific)
+max-Instr INTEGER (12 .. 504) ::= 12
+Seq-Pulse-Inst      ::= Pulse-Instructions {PULSE-INST, max-Instr}
+
+-- Max nb of CPDU commands (bounds constraints not found in PUS-C)
+max-Cpdu-Cmds INTEGER (1..128) ::= 2
+CPDU-Index ::= INTEGER (0..1)
+
+CPDU-Cmd ::= CPDU-Command {CPDU-Identifiers, Seq-Pulse-Inst}
+                 (WITH COMPONENTS {..., cpdu-id PRESENT})
+
+
+-- Instantiate the TC-2-4 for my project:
+TC-2-4 ::= Distribute-CPDU-Commands {CPDU-Cmd, max-Cpdu-Cmds}
+
+-- Create the full list of TCs used in my project
+TCs ::= CHOICE {
+   tc2-4 TC-2-4
+}
+
+-- Finally instantiate the Telecommand type
+Telecommand ::= Telecommand-ty { APID, SEQ-COUNT-OR-NAME, TCs }
+
+END
+TASTE-BasicTypes DEFINITIONS ::=
+BEGIN
+
+-- Set of TASTE predefined basic types
+
+T-Int32 ::=  INTEGER (-2147483648 .. 2147483647)
+
+T-UInt32 ::= INTEGER (0 .. 4294967295)
+
+T-Int8 ::= INTEGER (-128 .. 127)
+
+T-UInt8 ::= INTEGER (0 .. 255)
+
+T-Boolean ::= BOOLEAN
+
+END
+
