@@ -714,7 +714,7 @@ let private mergeStringType (asn1:Asn1Ast.AstRoot) (loc:SrcLoc) (acnErrLoc: SrcL
         | AcnPrmGetTypeDefinition (curPath, md, ts)   -> 
             let lanDefs, us1 =
                 [C;Ada] |> foldMap (fun us l -> 
-                    let itm, ns = registerStringTypeDefinition us l (ReferenceToType curPath) (FE_Reference2OtherType (ReferenceToType [MD md; TA ts])) 
+                    let itm, ns = registerStringTypeDefinition us l (ReferenceToType curPath) (FEI_Reference2OtherType (ReferenceToType [MD md; TA ts])) 
                     (l,itm), ns) us
             lanDefs |> Map.ofList, us1
 
@@ -855,7 +855,7 @@ let private mergeEnumerated (asn1:Asn1Ast.AstRoot) (items: Asn1Ast.NamedItem lis
         | AcnPrmGetTypeDefinition (curPath, md, ts)   -> 
             let lanDefs, us1 =
                 [C;Ada] |> foldMap (fun us l -> 
-                    let itm, ns = registerEnumeratedTypeDefinition us l (ReferenceToType curPath) (FE_Reference2OtherType (ReferenceToType [MD md; TA ts])) 
+                    let itm, ns = registerEnumeratedTypeDefinition us l (ReferenceToType curPath) (FEI_Reference2OtherType (ReferenceToType [MD md; TA ts])) 
                     (l,itm), ns) us
             lanDefs |> Map.ofList, us1
         
@@ -1525,8 +1525,8 @@ let mergeAsn1WithAcnAst (asn1:Asn1Ast.AstRoot) (acnParseResults:ParameterizedAsn
         } |> Seq.toList 
         |> foldMap (fun st (l, id, t, programUnit, proposedTypedefName) -> 
             match t.Kind with
-            | Asn1Ast.ReferenceType rf  -> registerAnyTypeDefinition asn1 t st l id (FE_NewSubTypeDefinition (ReferenceToType [MD rf.modName.Value; TA rf.tasName.Value])) 
-            | _                         -> registerAnyTypeDefinition asn1 t st l id FE_NewTypeDefinition ) initialState |> snd
+            | Asn1Ast.ReferenceType rf  -> registerAnyTypeDefinition asn1 t st l id (FEI_NewSubTypeDefinition (ReferenceToType [MD rf.modName.Value; TA rf.tasName.Value])) 
+            | _                         -> registerAnyTypeDefinition asn1 t st l id FEI_NewTypeDefinition ) initialState |> snd
     let acn = CreateAcnAst acnParseResults
     let files, finalState = asn1.Files |> foldMap (fun st f -> mergeFile asn1 acn f st) state
     {AstRoot.Files = files; args = asn1.args; acnConstants = acn.acnConstants; acnParseResults=acnParseResults; stg=defaultStgLang}, acn

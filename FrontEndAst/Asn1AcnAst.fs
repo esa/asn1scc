@@ -343,24 +343,49 @@ type SizeableAcnEncodingClass =
 
 
 
-type FE_TypeDefinitionKind =
-    | FE_NewTypeDefinition                       //type
-    | FE_NewSubTypeDefinition of ReferenceToType    //subtype
-    | FE_Reference2RTL
-    | FE_Reference2OtherType of ReferenceToType
+type FE_TypeDefinitionKindInternal =
+    | FEI_NewTypeDefinition                       //type
+    | FEI_NewSubTypeDefinition of ReferenceToType    //subtype
+    | FEI_Reference2RTL
+    | FEI_Reference2OtherType of ReferenceToType
     override this.ToString() = 
         match this with
-        | FE_NewTypeDefinition                       -> "NewTypeDefinition"
-        | FE_NewSubTypeDefinition subId              -> sprintf "NewSubTypeDefinition %s" subId.AsString
-        | FE_Reference2RTL                           -> "FE_Reference2RTL"
-        | FE_Reference2OtherType otherId             -> sprintf "FE_Reference2OtherType %s" otherId.AsString
+        | FEI_NewTypeDefinition                       -> "NewTypeDefinition"
+        | FEI_NewSubTypeDefinition subId              -> sprintf "NewSubTypeDefinition %s" subId.AsString
+        | FEI_Reference2RTL                           -> "FE_Reference2RTL"
+        | FEI_Reference2OtherType otherId             -> sprintf "FE_Reference2OtherType %s" otherId.AsString
 
 
-type FE_PrimitiveTypeDefinition = {
+
+
+
+type FE_PrimitiveTypeDefinitionKind =
+    | PrimitiveNewTypeDefinition                       //type
+    | PrimitiveNewSubTypeDefinition of FE_PrimitiveTypeDefinition    //subtype
+    | PrimitiveReference2RTL
+    | PrimitiveReference2OtherType 
+    override this.ToString() = 
+        match this with
+        | PrimitiveNewTypeDefinition            -> "NewTypeDefinition"
+        | PrimitiveNewSubTypeDefinition   sub   -> sprintf "NewSubTypeDefinition %s.%s" sub.programUnit sub.typeName
+        | PrimitiveReference2RTL                -> "FE_Reference2RTL"
+        | PrimitiveReference2OtherType          -> "FE_Reference2OtherType" 
+
+and FE_PrimitiveTypeDefinition = {
     typeName        : string            //e.g. MyInt, Asn1SccInt, Asn1SccUInt
     programUnit     : string            //the program unit where this type is defined
-    kind            : FE_TypeDefinitionKind
+    kind            : FE_PrimitiveTypeDefinitionKind
 }
+
+type FE_NonPrimitiveTypeDefinitionKind<'SUBTYPE> =
+    | NonPrimitiveNewTypeDefinition                       //type
+    | NonPrimitiveNewSubTypeDefinition of 'SUBTYPE    //subtype
+    | NonPrimitiveReference2OtherType 
+    override this.ToString() = 
+        match this with
+        | NonPrimitiveNewTypeDefinition                       -> "NewTypeDefinition"
+        | NonPrimitiveNewSubTypeDefinition subId              -> sprintf "NewSubTypeDefinition %s" (subId.ToString())
+        | NonPrimitiveReference2OtherType                     -> "FE_Reference2OtherType"
 
 
 type FE_StringTypeDefinition = {
@@ -369,8 +394,7 @@ type FE_StringTypeDefinition = {
     encoding_range  : string
     index           : string
     alpha_set       : string
-    subType         : FE_StringTypeDefinition option
-    kind            : FE_TypeDefinitionKind
+    kind            : FE_NonPrimitiveTypeDefinitionKind<FE_StringTypeDefinition>
 }
 
 type FE_SizeableTypeDefinition = {
@@ -379,8 +403,7 @@ type FE_SizeableTypeDefinition = {
     index           : string
     array           : string
     length          : string
-    subType         : FE_SizeableTypeDefinition option
-    kind            : FE_TypeDefinitionKind
+    kind            : FE_NonPrimitiveTypeDefinitionKind<FE_SizeableTypeDefinition>
 }
 
 
@@ -388,8 +411,7 @@ type FE_SequenceTypeDefinition = {
     programUnit     : string            //the program unit where this type is defined
     typeName        : string            //e.g. MyInt, Asn1SccInt, Asn1SccUInt
     exist           : string
-    subType         : FE_SequenceTypeDefinition option
-    kind            : FE_TypeDefinitionKind
+    kind            : FE_NonPrimitiveTypeDefinitionKind<FE_SequenceTypeDefinition>
 }
 
 type FE_ChoiceTypeDefinition = {
@@ -397,16 +419,14 @@ type FE_ChoiceTypeDefinition = {
     typeName        : string            //e.g. MyInt, Asn1SccInt, Asn1SccUInt
     index_range     : string
     selection       : string
-    subType         : FE_ChoiceTypeDefinition option
-    kind            : FE_TypeDefinitionKind
+    kind            : FE_NonPrimitiveTypeDefinitionKind<FE_ChoiceTypeDefinition>
 }
 
 type FE_EnumeratedTypeDefinition = {
     programUnit     : string            //the program unit where this type is defined
     typeName        : string            //e.g. MyInt, Asn1SccInt, Asn1SccUInt
     index_range     : string
-    subType         : FE_EnumeratedTypeDefinition option
-    kind            : FE_TypeDefinitionKind
+    kind            : FE_NonPrimitiveTypeDefinitionKind<FE_EnumeratedTypeDefinition>
 }
 
 
@@ -438,12 +458,12 @@ type FE_TypeDefinition =
             | FE_EnumeratedTypeDefinition a    -> a.programUnit
         member this.kind = 
             match this with
-            | FE_PrimitiveTypeDefinition  a    -> a.kind
-            | FE_SequenceTypeDefinition   a    -> a.kind
-            | FE_StringTypeDefinition     a    -> a.kind
-            | FE_SizeableTypeDefinition   a    -> a.kind
-            | FE_ChoiceTypeDefinition     a    -> a.kind
-            | FE_EnumeratedTypeDefinition a    -> a.kind
+            | FE_PrimitiveTypeDefinition  a    -> a.kind.ToString()
+            | FE_SequenceTypeDefinition   a    -> a.kind.ToString()
+            | FE_StringTypeDefinition     a    -> a.kind.ToString()
+            | FE_SizeableTypeDefinition   a    -> a.kind.ToString()
+            | FE_ChoiceTypeDefinition     a    -> a.kind.ToString()
+            | FE_EnumeratedTypeDefinition a    -> a.kind.ToString()
 
 
 
