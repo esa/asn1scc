@@ -12,6 +12,7 @@ ret := <rtlModuleName()>.ASN1_RESULT'(Success => false, ErrorCode => <sErrorCode
 >>
 
 
+
 JoinTwoIfFirstOk(sStr1,sStr2) ::=<<
 <sStr1>
 if ret.Success then

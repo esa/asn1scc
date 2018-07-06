@@ -102,6 +102,11 @@ namespace parseStg2
                 return new Parameter { name = name1, type = type1 };
             }
 
+            public override string ToString()
+            {
+                return name;
+            }
+
         }
 
         class Function
@@ -109,7 +114,7 @@ namespace parseStg2
             public string name { get; set; }
             public IEnumerable<Parameter> prms { get; set; }
             public string name2 { get { return name.Replace("_decode", "").Replace("_encode", ""); } }
-            public string ID { get { return name2 + prms.Join(""); } }
+            public string ID { get { return name2 + prms.Select(z => z.name).Join(""); } }
 
             public static IEnumerable<Function> readFromFile(String inpFileName)
             {
