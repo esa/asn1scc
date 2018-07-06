@@ -32,6 +32,11 @@ using System.Text.RegularExpressions;
 
 
 
+    
+//    let Define_subType_ia5string(td:FE_StringTypeDefinition) (prTd:FE_StringTypeDefinition) =
+//    ST.lang<- CommonTypes.ProgrammingLanguage.Ada
+//    ST.call "spec_a" "Define_subType_ia5string" [("t", td :> Object);("prTd", prTd :>Object)]
+
 
 namespace parseStg2
 {
@@ -78,10 +83,31 @@ namespace parseStg2
             return "Object";
         }
         
+        class Parameter
+        {
+            public string name { get; set; }
+            public string type { get; set; }
+
+            public static Parameter create(string l)
+            {
+                var name1 = l;
+                var type1 = detectTypeByParam(l);
+
+                if (l.Contains("/*:"))
+                {
+                    var tmp = l.Replace("/*", "").Replace("*/", "");
+                    name1 = tmp.Split(':')[0];
+                    type1 = tmp.Split(':')[1];
+                }
+                return new Parameter { name = name1, type = type1 };
+            }
+
+        }
+
         class Function
         {
             public string name { get; set; }
-            public IEnumerable<string> prms { get; set; }
+            public IEnumerable<Parameter> prms { get; set; }
             public string name2 { get { return name.Replace("_decode", "").Replace("_encode", ""); } }
             public string ID { get { return name2 + prms.Join(""); } }
 
@@ -90,9 +116,9 @@ namespace parseStg2
                 var functions =
                         from line in skipComments(File.ReadAllLines(inpFileName).Skip(1))
                         where line.Contains("::=") && !line.Contains("/*nogen*/") && !line.Contains("DEFINITIONS AUTOMATIC TAGS")
-                        let declPart = line.Split(':')[0].Trim()
+                        let declPart = line.Split(new[] { "::=" }, StringSplitOptions.None)[0].Trim()
                         let Name = declPart.Split('(')[0].Trim()
-                        let Prms = declPart.Split('(')[1].Split(')')[0].Split(',').Select(s => s.Trim()).Where(s => s != "")
+                        let Prms = declPart.Split('(')[1].Split(')')[0].Split(',').Select(s => s.Trim()).Where(s => s != "").Select(l => Parameter.create(l))
                         select new Function { name = Name, prms = Prms };
                 return functions;
             }
@@ -159,8 +185,14 @@ namespace parseStg2
 
                 if (l.Contains("/*nogen*/"))
                     yield return l;
+
                 else if (Regex.IsMatch(l, "/\\*.*\\*/"))
-                    yield return Regex.Replace(l, "/\\*.*\\*/", "");
+                {
+                    if (l.Contains("/*:"))
+                        yield return l;
+                    else
+                        yield return Regex.Replace(l, "/\\*.*\\*/", "");
+                }
                 else if (l.Contains("/*"))
                 {
                     inComment = true;
@@ -231,10 +263,10 @@ namespace parseStg2
                     {
                         
                         //var prms = func.prms.Select(p => "(\"" + p + "\"," + (p.StartsWith("arr") ? p + "|>Seq.toArray" : p) + " :>Object)").Join(";");
-                        var prms = func.prms.Select(p => MapParamName(p)).Join(";");
+                        var prms = func.prms.Select(p => MapParamName(p.name)).Join(";");
                         var paramerters =
                                 func.prms.Count() > 0 ?
-                                func.prms.Select(p => "(" + p + ":" + detectTypeByParam(p) + ")").Join(" ") :
+                                func.prms.Select(p => "(" + p.name + ":" + p.type + ")").Join(" ") :
                                 "()";
                         if (groupedFunc.Count() == 1)
                         {
@@ -319,7 +351,7 @@ namespace parseStg2
                         //var prms = func.prms.Select(p => MapParamName(p)).Join(";");
                         var paramerters =
                                 func.prms.Count() > 0 ?
-                                func.prms.Select(p => p + ":" + detectTypeByParam(p) ).Join(" -> ") :
+                                func.prms.Select(p => p.name + ":" + detectTypeByParam(p.name) ).Join(" -> ") :
                                 "unit";
 
                         if (groupedFunc.Count() == 1)  {
@@ -388,7 +420,7 @@ namespace parseStg2
                         //var prms = func.prms.Select(p => MapParamName(p)).Join(";");
                         var paramerters =
                                 func.prms.Count() > 0 ?
-                                func.prms.Select(p => "(" + p + ":" + detectTypeByParam(p) +")").Join(" ") :
+                                func.prms.Select(p => "(" + p + ":" + detectTypeByParam(p.name) +")").Join(" ") :
                                 "()";
                         var args =
                                 func.prms.Count() > 0 ?

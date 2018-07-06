@@ -422,3 +422,35 @@ Define_SubType(sTypeDefinitionName, soParentTypePackage, sParentType, soNewRange
 SUBTYPE <sTypeDefinitionName> is <if(soParentTypePackage)><soParentTypePackage>.<endif><sParentType><if(soNewRange)> <soNewRange><endif>;
 <soExtraDefs>
 >>
+
+
+/***********************************************************************************************/
+Define_new_ia5string(td/*:FE_StringTypeDefinition*/, nMin, nMax, nCMax, arrnAlphaChars) ::= <<
+SUBTYPE <td.encoding_range> is integer range <nMin>..<nMax>;
+SUBTYPE <td.index> is integer range 1..<nCMax>;
+SUBTYPE <td.typeName> IS String(<td.index>);
+<if(arrnAlphaChars)>
+SUBTYPE <td.alpha_index> is integer range 1..<arrnAlphaChars.Length>;
+SUBTYPE <td.alpha> IS String(<td.alpha_index>);
+<td.alpha_set> : constant <td.alpha> := <td.alpha>'(<arrnAlphaChars:{c|<i>=>Character'Val(<c>)}; wrap, anchor,  separator=", ">);
+
+<endif>
+>>
+
+
+
+
+Define_subType_ia5string(td/*:FE_StringTypeDefinition*/, prTd/*:FE_StringTypeDefinition*/, soParentTypePackage) ::= <<
+
+SUBTYPE <td.typeName> is <if(soParentTypePackage)><soParentTypePackage>.<endif><prTd.typeName>
+
+SUBTYPE <td.encoding_range> is <if(soParentTypePackage)><soParentTypePackage>.<endif><prTd.encoding_range>;
+SUBTYPE <td.index> is <if(soParentTypePackage)><soParentTypePackage>.<endif><prTd.index>;
+<if(arrnAlphaChars)>
+SUBTYPE <td.alpha_index> is <if(soParentTypePackage)><soParentTypePackage>.<endif><prTd.alpha_index>;
+SUBTYPE <td.alpha> <if(soParentTypePackage)><soParentTypePackage>.<endif><prTd.alpha>;
+<td.alpha_set> : constant := <if(soParentTypePackage)><soParentTypePackage>.<endif><prTd.alpha_set>;
+
+<endif>
+
+>>

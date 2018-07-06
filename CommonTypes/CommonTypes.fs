@@ -283,3 +283,132 @@ let rec foldMap func state lst =
         let procItem, newState = func state h
         let restList, finalState = tail |> foldMap func newState
         procItem::restList, finalState
+
+
+
+type FE_TypeDefinitionKindInternal =
+    | FEI_NewTypeDefinition                       //type
+    | FEI_NewSubTypeDefinition of ReferenceToType    //subtype
+    | FEI_Reference2RTL
+    | FEI_Reference2OtherType of ReferenceToType
+    override this.ToString() = 
+        match this with
+        | FEI_NewTypeDefinition                       -> "NewTypeDefinition"
+        | FEI_NewSubTypeDefinition subId              -> sprintf "NewSubTypeDefinition %s" subId.AsString
+        | FEI_Reference2RTL                           -> "FE_Reference2RTL"
+        | FEI_Reference2OtherType otherId             -> sprintf "FE_Reference2OtherType %s" otherId.AsString
+
+
+
+
+
+type FE_PrimitiveTypeDefinitionKind =
+    | PrimitiveNewTypeDefinition                       //type
+    | PrimitiveNewSubTypeDefinition of FE_PrimitiveTypeDefinition    //subtype
+    | PrimitiveReference2RTL
+    | PrimitiveReference2OtherType 
+    override this.ToString() = 
+        match this with
+        | PrimitiveNewTypeDefinition            -> "NewTypeDefinition"
+        | PrimitiveNewSubTypeDefinition   sub   -> sprintf "NewSubTypeDefinition %s.%s" sub.programUnit sub.typeName
+        | PrimitiveReference2RTL                -> "FE_Reference2RTL"
+        | PrimitiveReference2OtherType          -> "FE_Reference2OtherType" 
+
+and FE_PrimitiveTypeDefinition = {
+    typeName        : string            //e.g. MyInt, Asn1SccInt, Asn1SccUInt
+    programUnit     : string            //the program unit where this type is defined
+    kind            : FE_PrimitiveTypeDefinitionKind
+}
+
+type FE_NonPrimitiveTypeDefinitionKind<'SUBTYPE> =
+    | NonPrimitiveNewTypeDefinition                       //type
+    | NonPrimitiveNewSubTypeDefinition of 'SUBTYPE    //subtype
+    | NonPrimitiveReference2OtherType 
+    override this.ToString() = 
+        match this with
+        | NonPrimitiveNewTypeDefinition                       -> "NewTypeDefinition"
+        | NonPrimitiveNewSubTypeDefinition subId              -> sprintf "NewSubTypeDefinition %s" (subId.ToString())
+        | NonPrimitiveReference2OtherType                     -> "FE_Reference2OtherType"
+
+
+type FE_StringTypeDefinition = {
+    programUnit     : string            //the program unit where this type is defined
+    typeName        : string            //e.g. MyInt, Asn1SccInt, Asn1SccUInt
+    encoding_range  : string
+    index           : string
+    alpha           : string
+    alpha_set       : string
+    alpha_index     : string
+    kind            : FE_NonPrimitiveTypeDefinitionKind<FE_StringTypeDefinition>
+}
+
+type FE_SizeableTypeDefinition = {
+    programUnit     : string            //the program unit where this type is defined
+    typeName        : string            //e.g. MyInt, Asn1SccInt, Asn1SccUInt
+    index           : string
+    array           : string
+    length          : string
+    kind            : FE_NonPrimitiveTypeDefinitionKind<FE_SizeableTypeDefinition>
+}
+
+
+type FE_SequenceTypeDefinition = {
+    programUnit     : string            //the program unit where this type is defined
+    typeName        : string            //e.g. MyInt, Asn1SccInt, Asn1SccUInt
+    exist           : string
+    kind            : FE_NonPrimitiveTypeDefinitionKind<FE_SequenceTypeDefinition>
+}
+
+type FE_ChoiceTypeDefinition = {
+    programUnit     : string            //the program unit where this type is defined
+    typeName        : string            //e.g. MyInt, Asn1SccInt, Asn1SccUInt
+    index_range     : string
+    selection       : string
+    kind            : FE_NonPrimitiveTypeDefinitionKind<FE_ChoiceTypeDefinition>
+}
+
+type FE_EnumeratedTypeDefinition = {
+    programUnit     : string            //the program unit where this type is defined
+    typeName        : string            //e.g. MyInt, Asn1SccInt, Asn1SccUInt
+    index_range     : string
+    kind            : FE_NonPrimitiveTypeDefinitionKind<FE_EnumeratedTypeDefinition>
+}
+
+
+
+type FE_TypeDefinition = 
+    | FE_PrimitiveTypeDefinition   of FE_PrimitiveTypeDefinition
+    | FE_SequenceTypeDefinition    of FE_SequenceTypeDefinition
+    | FE_StringTypeDefinition      of FE_StringTypeDefinition
+    | FE_SizeableTypeDefinition    of FE_SizeableTypeDefinition
+    | FE_ChoiceTypeDefinition      of FE_ChoiceTypeDefinition
+    | FE_EnumeratedTypeDefinition  of FE_EnumeratedTypeDefinition
+
+    with 
+        member this.typeName = 
+            match this with
+            | FE_PrimitiveTypeDefinition  a    -> a.typeName
+            | FE_SequenceTypeDefinition   a    -> a.typeName
+            | FE_StringTypeDefinition     a    -> a.typeName
+            | FE_SizeableTypeDefinition   a    -> a.typeName
+            | FE_ChoiceTypeDefinition     a    -> a.typeName
+            | FE_EnumeratedTypeDefinition a    -> a.typeName
+        member this.programUnit = 
+            match this with
+            | FE_PrimitiveTypeDefinition  a    -> a.programUnit
+            | FE_SequenceTypeDefinition   a    -> a.programUnit
+            | FE_StringTypeDefinition     a    -> a.programUnit
+            | FE_SizeableTypeDefinition   a    -> a.programUnit
+            | FE_ChoiceTypeDefinition     a    -> a.programUnit
+            | FE_EnumeratedTypeDefinition a    -> a.programUnit
+        member this.kind = 
+            match this with
+            | FE_PrimitiveTypeDefinition  a    -> a.kind.ToString()
+            | FE_SequenceTypeDefinition   a    -> a.kind.ToString()
+            | FE_StringTypeDefinition     a    -> a.kind.ToString()
+            | FE_SizeableTypeDefinition   a    -> a.kind.ToString()
+            | FE_ChoiceTypeDefinition     a    -> a.kind.ToString()
+            | FE_EnumeratedTypeDefinition a    -> a.kind.ToString()
+
+
+

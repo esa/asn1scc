@@ -142,3 +142,14 @@ Define_TAS(sTypeDefinition, arrsProcs) ::= <<
 
 
 PrintValueAssignment(sTypeDecl, sName) ::= "extern const <sTypeDecl> <sName>;"
+
+
+
+Define_new_ia5string(td/*:FE_StringTypeDefinition*/, nMin, nMax, nCMax, arrnAlphaChars) ::= <<
+typedef char <td.typeName>[<nCMax>];
+>>
+
+
+Define_subType_ia5string(td/*:FE_StringTypeDefinition*/, prTd/*:FE_StringTypeDefinition*/, soParentTypePackage) ::= <<
+typedef <prTd.typeName> <td.typeName>;
+>>

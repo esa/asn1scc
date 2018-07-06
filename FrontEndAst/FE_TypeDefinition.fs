@@ -141,8 +141,10 @@ let rec registerStringTypeDefinition (us:Asn1AcnMergeState) l (id : ReferenceToT
                 let typeName, newAllocatedTypeNames = reserveTypeDefinitionName us.allocatedTypeNames l programUnit proposedTypeDefName
                 let encoding_range, newAllocatedTypeNames = reserveTypeDefinitionName newAllocatedTypeNames l programUnit (proposedTypeDefName + "_alpha_index")
                 let index, newAllocatedTypeNames = reserveTypeDefinitionName newAllocatedTypeNames l programUnit (proposedTypeDefName + "_index")
+                let alpha, newAllocatedTypeNames = reserveTypeDefinitionName newAllocatedTypeNames l programUnit (proposedTypeDefName + "_alpha")
                 let alpha_set, newAllocatedTypeNames = reserveTypeDefinitionName newAllocatedTypeNames l programUnit (proposedTypeDefName + "_alpha_set")
-                let itm = {FE_StringTypeDefinition.programUnit = programUnit; typeName = typeName; kind=NonPrimitiveNewTypeDefinition; encoding_range=encoding_range; index=index; alpha_set=alpha_set}
+                let alpha_index, newAllocatedTypeNames = reserveTypeDefinitionName newAllocatedTypeNames l programUnit (proposedTypeDefName + "_alpha_index")
+                let itm = {FE_StringTypeDefinition.programUnit = programUnit; typeName = typeName; kind=NonPrimitiveNewTypeDefinition; encoding_range=encoding_range; index=index; alpha_set=alpha_set; alpha=alpha; alpha_index=alpha_index}
                 itm, {us with allocatedTypeNames = newAllocatedTypeNames; allocatedFE_TypeDefinition = us.allocatedFE_TypeDefinition.Add((l,id), (FE_StringTypeDefinition itm))}
             | FEI_NewSubTypeDefinition subId ->
                 let subType, ns1 = registerStringTypeDefinition us l subId FEI_NewTypeDefinition 
@@ -150,8 +152,10 @@ let rec registerStringTypeDefinition (us:Asn1AcnMergeState) l (id : ReferenceToT
                 let typeName, newAllocatedTypeNames = reserveTypeDefinitionName ns1.allocatedTypeNames l programUnit proposedTypeDefName
                 let encoding_range, newAllocatedTypeNames = reserveTypeDefinitionName newAllocatedTypeNames l programUnit (proposedTypeDefName + "_alpha_index")
                 let index, newAllocatedTypeNames = reserveTypeDefinitionName newAllocatedTypeNames l programUnit (proposedTypeDefName + "_index")
+                let alpha, newAllocatedTypeNames = reserveTypeDefinitionName newAllocatedTypeNames l programUnit (proposedTypeDefName + "_alpha")
                 let alpha_set, newAllocatedTypeNames = reserveTypeDefinitionName newAllocatedTypeNames l programUnit (proposedTypeDefName + "_alpha_set")
-                let itm = {FE_StringTypeDefinition.programUnit = programUnit; typeName = typeName; kind=(NonPrimitiveNewSubTypeDefinition subType); encoding_range=encoding_range; index=index; alpha_set=alpha_set}
+                let alpha_index, newAllocatedTypeNames = reserveTypeDefinitionName newAllocatedTypeNames l programUnit (proposedTypeDefName + "_alpha_index")
+                let itm = {FE_StringTypeDefinition.programUnit = programUnit; typeName = typeName; kind=(NonPrimitiveNewSubTypeDefinition subType); encoding_range=encoding_range; index=index; alpha_set=alpha_set; alpha=alpha; alpha_index=alpha_index}
                 let ns2 = {ns1 with allocatedTypeNames = newAllocatedTypeNames; allocatedFE_TypeDefinition = ns1.allocatedFE_TypeDefinition.Add((l,id), (FE_StringTypeDefinition itm))}
                 itm, ns2
             | FEI_Reference2OtherType refId  -> 
