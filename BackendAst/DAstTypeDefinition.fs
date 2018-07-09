@@ -114,3 +114,17 @@ let createString (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (pi : Asn1Fold.P
         let completeDefintion = define_subType_ia5string td subDef otherProgramUnit
         Some completeDefintion
     | NonPrimitiveReference2OtherType            -> None
+
+let createString_u (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (pi : Asn1Fold.ParentInfo<ParentInfoData> option) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.StringType)  (us:State) =
+    let aaa = createString r l pi t o us
+    let programUnit = ToC t.id.ModName
+    let td = o.typeDef.[ll l]
+    match td.kind with
+    | NonPrimitiveNewTypeDefinition              -> 
+        TypeDefinition {TypeDefinition.typedefName = td.typeName; typedefBody = (fun () -> aaa.Value); baseType=None}
+    | NonPrimitiveNewSubTypeDefinition subDef     -> 
+        let baseType = {ReferenceToExistingDefinition.programUnit = (if subDef.programUnit = programUnit then None else Some subDef.programUnit); typedefName=subDef.typeName ; definedInRtl = false}
+        TypeDefinition {TypeDefinition.typedefName = td.typeName; typedefBody = (fun () -> aaa.Value); baseType=None}
+    | NonPrimitiveReference2OtherType            -> 
+        ReferenceToExistingDefinition {ReferenceToExistingDefinition.programUnit =  (if td.programUnit = programUnit then None else Some td.programUnit); typedefName= td.typeName; definedInRtl = false}
+

@@ -1,0 +1,12 @@
+TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
+
+	MyPDU ::= NULL
+	
+	pdu1 MyPDU ::= NULL
+	
+END
+
+
+--TCLS     MyPDU[]
+--TCLS     MyPDU[pattern '001'B]
+--TCLS     MyPDU[pattern 'AAFF'H]

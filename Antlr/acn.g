@@ -199,7 +199,7 @@ trueValProp 	: TRUE_VALUE^	  BitStringLiteral
 falseValProp 	: FALSE_VALUE^  BitStringLiteral
 	;
 
-patternProp 	: PATTERN^  BitStringLiteral
+patternProp 	: PATTERN^  (BitStringLiteral | OctectStringLiteral)
 	;
 
 presentWhenProp	

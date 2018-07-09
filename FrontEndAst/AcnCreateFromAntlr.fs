@@ -54,12 +54,13 @@ type  GenericAcnProperty =
     | PRESENT_WHEN      of GenericAcnPresentWhenCondition list
     | TRUE_VALUE        of StringLoc
     | FALSE_VALUE       of StringLoc
-    | PATTERN           of StringLoc
+    | PATTERN           of Asn1AcnAst.PATERN_PROP_VALUE
     | CHOICE_DETERMINANT of Asn1AcnAst.RelativePath
     | ENDIANNES         of Asn1AcnAst.AcnEndianness
     | ENUM_SET_VALUE    of IntLoc
     | TERMINATION_PATTERN of byte
     | MAPPING_FUNCTION  of StringLoc
+
 
 
 
@@ -289,8 +290,18 @@ let private creareAcnProperty (acnConstants : Map<string, BigInteger>) (t:ITree)
         let v = { StringLoc.Value = GetActualString(t.GetChild(0).Text); Location = t.GetChild(0).Location}
         FALSE_VALUE v
     | acnParser.PATTERN                 -> 
-        let v = { StringLoc.Value = GetActualString(t.GetChild(0).Text); Location = t.GetChild(0).Location}
-        PATTERN v
+        //let tp = t
+        match t.GetChild(0).Type with
+        | acnParser.BitStringLiteral    ->
+            let v = { StringLoc.Value = GetActualString(t.GetChild(0).Text); Location = t.GetChild(0).Location}
+            PATTERN (Asn1AcnAst.PATERN_PROP_BITSTR_VALUE v)
+        | acnParser.OctectStringLiteral ->
+            let strVal = GetActualString(t.GetChild(0).Text)
+            let chars = strVal.ToCharArray() 
+            let bytes = CreateAsn1AstFromAntlrTree.getAsTupples chars '0' |> List.map (fun (x1,x2)-> t.GetValueL (System.Byte.Parse(x1.ToString()+x2.ToString(), System.Globalization.NumberStyles.AllowHexSpecifier))) 
+            PATTERN (Asn1AcnAst.PATERN_PROP_OCTSTR_VALUE bytes)
+        | _     ->  raise(BugErrorException("creareAcnProperty_PATTERN"))
+                    
     | acnParser.DETERMINANT             -> CHOICE_DETERMINANT (CreateLongField(t.GetChild 0))
     | acnParser.ENDIANNES               -> 
         match t.GetChild(0).Type with 

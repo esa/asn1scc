@@ -28,7 +28,7 @@ let private printEnumVal (v:String) = XElement(xname "EnumValue", v)
 let private printBoolVal (v:bool) = XElement(xname "BooleanValue", v)
 
 let private printBitStringVal (v:BitStringValue,_) = XElement(xname "BitStringValue", v.Value)
-let private printOctetStringVal (v:OctetStringValue,_) = XElement(xname "OctetStringValue", (v |> List.map(fun b -> b.Value)))
+let private printOctetStringVal (v:OctetStringValue,_) = XElement(xname "OctetStringValue", (v |> List.map(fun b -> System.String.Format("{0:X2}", b.Value)) |> Seq.StrJoin "" ))
 
 let rec private printSeqOfValue (v:SeqOfValue) = 
     XElement(xname "SequenceOfValue", (v |> List.map PrintAsn1GenericValue ))
@@ -222,10 +222,11 @@ let exportAcnBooleanEncoding (a:AcnBooleanEncoding option) =
     | Some (TrueValue  pat)    -> [XAttribute(xname "true-value", pat.Value )]
     | Some (FalseValue pat)    -> [XAttribute(xname "false-value", pat.Value )]
 
-let exportAcnNullType (a:StringLoc option) =
+let exportAcnNullType (a:PATERN_PROP_VALUE option) =
     match a with
     | None        -> []
-    | Some pat    -> [XAttribute(xname "pattern", pat.Value )]
+    | Some (Asn1AcnAst.PATERN_PROP_BITSTR_VALUE pat)    -> [XAttribute(xname "pattern", pat.Value )]
+    | Some (Asn1AcnAst.PATERN_PROP_OCTSTR_VALUE v)      -> [XAttribute(xname "pattern", (v |> List.map(fun b -> System.String.Format("{0:X2}", b.Value)) |> Seq.StrJoin "" ) )]
                          
 let exportAcnParameter (a:AcnParameter) =
     XElement(xname "AcnParameter", 

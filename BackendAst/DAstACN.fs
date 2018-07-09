@@ -496,9 +496,18 @@ let createAcnNullTypeFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (co
         match o.acnProperties.encodingPattern with
         | None      -> None
         | Some encPattern   ->
-            let arrsBits = encPattern.Value.ToCharArray() |> Seq.mapi(fun i x -> ((i+1).ToString()) + "=>" + if x='0' then "0" else "1") |> Seq.toList
-            let arrBytes = bitStringValueToByteArray encPattern
-            let ret = nullType pp arrBytes (BigInteger encPattern.Value.Length) arrsBits errCode.errCodeName codec
+            let arrsBits, arrBytes, nBitsSize =
+                match encPattern with
+                | PATERN_PROP_BITSTR_VALUE bitStringPattern ->
+                    let arrsBits = bitStringPattern.Value.ToCharArray() |> Seq.mapi(fun i x -> ((i+1).ToString()) + "=>" + if x='0' then "0" else "1") |> Seq.toList
+                    let arrBytes = bitStringValueToByteArray bitStringPattern
+                    arrsBits, arrBytes, (BigInteger bitStringPattern.Value.Length)
+                | PATERN_PROP_OCTSTR_VALUE octStringBytes   ->
+                    let arrBytes = octStringBytes |> Seq.map(fun z -> z.Value) |> Seq.toArray
+                    let bitStringPattern = byteArrayToBitStringValue arrBytes
+                    let arrsBits = bitStringPattern.ToCharArray() |> Seq.mapi(fun i x -> ((i+1).ToString()) + "=>" + if x='0' then "0" else "1") |> Seq.toList
+                    arrsBits,arrBytes,(BigInteger bitStringPattern.Length)
+            let ret = nullType pp arrBytes nBitsSize arrsBits errCode.errCodeName codec
             Some ({AcnFuncBodyResult.funcBody = ret; errCodes = [errCode]; localVariables = []})
     (funcBody errCode), ns
 
@@ -509,9 +518,18 @@ let createNullTypeFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec
         match o.acnProperties.encodingPattern with
         | None      -> None
         | Some encPattern   ->
-            let arrsBits = encPattern.Value.ToCharArray() |> Seq.mapi(fun i x -> ((i+1).ToString()) + "=>" + if x='0' then "0" else "1") |> Seq.toList
-            let arrBytes = bitStringValueToByteArray encPattern
-            let ret = nullType pp arrBytes (BigInteger encPattern.Value.Length) arrsBits errCode.errCodeName codec
+            let arrsBits, arrBytes, nBitsSize =
+                match encPattern with
+                | PATERN_PROP_BITSTR_VALUE bitStringPattern ->
+                    let arrsBits = bitStringPattern.Value.ToCharArray() |> Seq.mapi(fun i x -> ((i+1).ToString()) + "=>" + if x='0' then "0" else "1") |> Seq.toList
+                    let arrBytes = bitStringValueToByteArray bitStringPattern
+                    arrsBits, arrBytes, (BigInteger bitStringPattern.Value.Length)
+                | PATERN_PROP_OCTSTR_VALUE octStringBytes   ->
+                    let arrBytes = octStringBytes |> Seq.map(fun z -> z.Value) |> Seq.toArray
+                    let bitStringPattern = byteArrayToBitStringValue arrBytes
+                    let arrsBits = bitStringPattern.ToCharArray() |> Seq.mapi(fun i x -> ((i+1).ToString()) + "=>" + if x='0' then "0" else "1") |> Seq.toList
+                    arrsBits,arrBytes,(BigInteger bitStringPattern.Length)
+            let ret = nullType pp arrBytes nBitsSize arrsBits errCode.errCodeName codec
             Some ({AcnFuncBodyResult.funcBody = ret; errCodes = [errCode]; localVariables = []})
     let soSparkAnnotations = None
     createAcnFunction r l codec t typeDefinition  isValidFunc  (fun us e acnArgs p -> funcBody e acnArgs p, us) (fun atc -> true) soSparkAnnotations us

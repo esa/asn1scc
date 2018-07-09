@@ -171,7 +171,10 @@ let private createReal (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (m:Asn1Acn
 let private createStringType (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (l:ProgrammingLanguage) (m:Asn1AcnAst.Asn1Module) (pi : Asn1Fold.ParentInfo<ParentInfoData> option) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.StringType) (us:State) =
     let newPrms, us0 = t.acnParameters |> foldMap(fun ns p -> mapAcnParameter r deps l m t p ns) us
     //let typeDefinition = DAstTypeDefinition.createString  r l t o us0
+    
     let defOrRef            =  DAstTypeDefinition2.createString r l pi t o us0
+    //let defOrRef            =  DAstTypeDefinition.createString_u r l pi t o us0
+    
     let equalFunction       = DAstEqual.createStringEqualFunction r l t o defOrRef 
     let initialValue        =
         let ch = 

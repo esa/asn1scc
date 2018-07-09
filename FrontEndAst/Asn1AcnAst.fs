@@ -95,9 +95,13 @@ type SizeableAcnProperties = {
     sizeProp        : RelativePath          option
 }
 
+type PATERN_PROP_VALUE =
+    | PATERN_PROP_BITSTR_VALUE of StringLoc
+    | PATERN_PROP_OCTSTR_VALUE of ByteLoc list
+
 
 type NullTypeAcnProperties = {
-    encodingPattern     : StringLoc             option
+    encodingPattern     : PATERN_PROP_VALUE             option
 }
 
 type AcnBooleanEncoding =

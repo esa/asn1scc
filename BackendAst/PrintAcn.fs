@@ -58,7 +58,12 @@ let rec printTypeEncSpec (t:AcnTypeEncodingSpec) =
                 stg_acn.PP_PresentWhen prCons
             | TRUE_VALUE         trueVal        -> stg_acn.PP_TrueValue trueVal.Value
             | FALSE_VALUE        falseVal       -> stg_acn.PP_FalseValue falseVal.Value
-            | PATTERN            pattern        -> stg_acn.PP_NullValue pattern.Value
+            | PATTERN            pattern        -> 
+                match pattern with
+                | Asn1AcnAst.PATERN_PROP_BITSTR_VALUE pat    -> stg_acn.PP_NullValue pat.Value
+                | Asn1AcnAst.PATERN_PROP_OCTSTR_VALUE v      -> 
+                    let octStr = v |> List.map(fun b -> System.String.Format("{0:X2}", b.Value) ) |> Seq.StrJoin "" 
+                    stg_acn.PP_NullValue octStr 
             | CHOICE_DETERMINANT  relPath       -> stg_acn.PP_ChoiceDeterminant relPath.AsString
             | ENDIANNES          endian         -> 
                 match endian with
