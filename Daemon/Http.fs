@@ -5,8 +5,13 @@ open System.Text
 open Newtonsoft.Json
 open System.IO
 
+let private serializer = 
+    let settings = new JsonSerializerSettings()
+    settings.Converters.Add(new Converters.StringEnumConverter())
+    settings.Converters.Add(new Converters.DiscriminatedUnionConverter())
+    JsonSerializer.Create(settings)
+
 let ReadJson<'T> (request:HttpListenerRequest) =
-    let serializer = JsonSerializer()
     use reader = new StreamReader(request.InputStream)
     serializer.Deserialize(reader, typeof<'T>) :?> 'T
 
@@ -16,7 +21,6 @@ let SendJson<'T> (response:HttpListenerResponse) (obj:'T) =
     response.ContentType <- "application/json"
     response.ContentEncoding <- Encoding.UTF8
 
-    let serializer = JsonSerializer()
     use writer = new StreamWriter(response.OutputStream)
     serializer.Serialize(writer, obj) 
 
