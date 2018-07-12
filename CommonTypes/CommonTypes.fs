@@ -315,6 +315,8 @@ type FE_PrimitiveTypeDefinitionKind =
         | PrimitiveReference2OtherType          -> "FE_Reference2OtherType" 
 
 and FE_PrimitiveTypeDefinition = {
+    asn1Name        : string
+    asn1Module      : string option
     typeName        : string            //e.g. MyInt, Asn1SccInt, Asn1SccUInt
     programUnit     : string            //the program unit where this type is defined
     kind            : FE_PrimitiveTypeDefinitionKind
@@ -332,6 +334,8 @@ type FE_NonPrimitiveTypeDefinitionKind<'SUBTYPE> =
 
 
 type FE_StringTypeDefinition = {
+    asn1Name        : string
+    asn1Module      : string option
     programUnit     : string            //the program unit where this type is defined
     typeName        : string            //e.g. MyInt, Asn1SccInt, Asn1SccUInt
     encoding_range  : string
@@ -343,6 +347,8 @@ type FE_StringTypeDefinition = {
 }
 
 type FE_SizeableTypeDefinition = {
+    asn1Name        : string
+    asn1Module      : string option
     programUnit     : string            //the program unit where this type is defined
     typeName        : string            //e.g. MyInt, Asn1SccInt, Asn1SccUInt
     index           : string
@@ -353,6 +359,8 @@ type FE_SizeableTypeDefinition = {
 
 
 type FE_SequenceTypeDefinition = {
+    asn1Name        : string
+    asn1Module      : string option
     programUnit     : string            //the program unit where this type is defined
     typeName        : string            //e.g. MyInt, Asn1SccInt, Asn1SccUInt
     exist           : string
@@ -360,6 +368,8 @@ type FE_SequenceTypeDefinition = {
 }
 
 type FE_ChoiceTypeDefinition = {
+    asn1Name        : string
+    asn1Module      : string option
     programUnit     : string            //the program unit where this type is defined
     typeName        : string            //e.g. MyInt, Asn1SccInt, Asn1SccUInt
     index_range     : string
@@ -368,6 +378,8 @@ type FE_ChoiceTypeDefinition = {
 }
 
 type FE_EnumeratedTypeDefinition = {
+    asn1Name        : string
+    asn1Module      : string option
     programUnit     : string            //the program unit where this type is defined
     typeName        : string            //e.g. MyInt, Asn1SccInt, Asn1SccUInt
     index_range     : string
@@ -410,5 +422,21 @@ type FE_TypeDefinition =
             | FE_ChoiceTypeDefinition     a    -> a.kind.ToString()
             | FE_EnumeratedTypeDefinition a    -> a.kind.ToString()
 
+        member this.asn1Name = 
+            match this with
+            | FE_PrimitiveTypeDefinition  a    -> a.asn1Name
+            | FE_SequenceTypeDefinition   a    -> a.asn1Name
+            | FE_StringTypeDefinition     a    -> a.asn1Name
+            | FE_SizeableTypeDefinition   a    -> a.asn1Name
+            | FE_ChoiceTypeDefinition     a    -> a.asn1Name
+            | FE_EnumeratedTypeDefinition a    -> a.asn1Name
 
+        member this.asn1Module = 
+            match this with
+            | FE_PrimitiveTypeDefinition  a    -> a.asn1Module
+            | FE_SequenceTypeDefinition   a    -> a.asn1Module
+            | FE_StringTypeDefinition     a    -> a.asn1Module
+            | FE_SizeableTypeDefinition   a    -> a.asn1Module
+            | FE_ChoiceTypeDefinition     a    -> a.asn1Module
+            | FE_EnumeratedTypeDefinition a    -> a.asn1Module
 
