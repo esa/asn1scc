@@ -353,7 +353,7 @@ type FE_SizeableTypeDefinition = {
     typeName        : string            //e.g. MyInt, Asn1SccInt, Asn1SccUInt
     index           : string
     array           : string
-    length          : string
+    length_index          : string
     kind            : FE_NonPrimitiveTypeDefinitionKind<FE_SizeableTypeDefinition>
 }
 

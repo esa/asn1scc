@@ -143,13 +143,138 @@ Define_TAS(sTypeDefinition, arrsProcs) ::= <<
 
 PrintValueAssignment(sTypeDecl, sName) ::= "extern const <sTypeDecl> <sName>;"
 
+/******************************************************************************************************************************/
+/***********************************       NEW TYPE DEFINITIONS    ************************************************************/
+/******************************************************************************************************************************/
 
+/***********************************       ENUMERATED    ************************************************************/
+
+Define_new_enumerated_item(sName, nValue) ::= "<sName> = <nValue>"
+
+Define_new_enumerated(td/*:FE_EnumeratedTypeDefinition*/, arrsEnumNames, arrsEnumNamesAndValues, nIndexMax) ::= <<
+typedef enum {
+    <arrsEnumNamesAndValues:{it|<it>}; separator=",\n">
+} <td.typeName>;
+>>
+
+Define_subType_enumerated(td/*:FE_EnumeratedTypeDefinition*/, prTd/*:FE_EnumeratedTypeDefinition*/, soParentTypePackage) ::= <<
+typedef <prTd.typeName> <td.typeName>;
+>>
+
+/***********************************       STRING    ************************************************************/
 
 Define_new_ia5string(td/*:FE_StringTypeDefinition*/, nMin, nMax, nCMax, arrnAlphaChars) ::= <<
 typedef char <td.typeName>[<nCMax>];
 >>
 
-
 Define_subType_ia5string(td/*:FE_StringTypeDefinition*/, prTd/*:FE_StringTypeDefinition*/, soParentTypePackage) ::= <<
 typedef <prTd.typeName> <td.typeName>;
 >>
+
+/***********************************       OCTET STRING    ************************************************************/
+
+Define_new_octet_string(td/*:FE_SizeableTypeDefinition*/, nMin, nMax, bFixedSize) ::= <<
+typedef struct {
+<if(!bFixedSize)>
+    int nCount; 
+
+<endif>    
+    byte arr[<nMax>];
+} <td.typeName>;
+
+>>
+
+Define_subType_octet_string(td/*:FE_SizeableTypeDefinition*/, prTd/*:FE_SizeableTypeDefinition*/, soParentTypePackage, bFixedSize) ::= <<
+typedef <prTd.typeName> <td.typeName>;
+>>
+
+/***********************************       BIT STRING    ************************************************************/
+Define_new_bit_string(td/*:FE_SizeableTypeDefinition*/, nMin, nMax, bFixedSize, nMaxOctets) ::= <<
+typedef struct {
+<if(!bFixedSize)>
+    int nCount; /*Number of bits in the array. Max value is : <nMax> */
+
+<endif>    
+    byte arr[<nMaxOctets>];
+} <td.typeName>;
+>>
+
+Define_subType_bit_string(td/*:FE_SizeableTypeDefinition*/, prTd/*:FE_SizeableTypeDefinition*/, soParentTypePackage, bFixedSize) ::= <<
+typedef <prTd.typeName> <td.typeName>;
+>>
+
+/***********************************       SEQUENCE OF    ************************************************************/
+
+
+Define_new_sequence_of(td/*:FE_SizeableTypeDefinition*/, nMin, nMax, bFixedSize, sChildType, soChildDefintion) ::= <<
+
+<soChildDefintion>
+
+typedef struct {
+<if(!bFixedSize)>
+    int nCount; 
+
+<endif>    
+    <sChildType> arr[<nMax>];
+} <td.typeName>;
+>>
+
+
+
+Define_subType_sequence_of(td/*:FE_SizeableTypeDefinition*/, prTd/*:FE_SizeableTypeDefinition*/, soParentTypePackage, bFixedSize) ::= <<
+typedef <prTd.typeName> <td.typeName>;
+>>
+
+
+/***********************************       SEQUENCE OF    ************************************************************/
+
+Define_new_sequence_child_bit(sName) ::= "unsigned int <sName>:1;"
+Define_new_sequence_child(sName, sType) ::= "<sType> <sName>;"
+
+Define_new_sequence(td/*:FE_SequenceTypeDefinition*/, arrsChildren, arrsOptionalChildren, arrsChildldrenDefintions) ::= <<
+/*-- <td.typeName> --------------------------------------------*/
+<arrsChildldrenDefintions; separator= "\n">
+
+typedef struct {
+    <arrsChildren; separator="\n">
+
+    <if (arrsOptionalChildren)>
+    struct {
+        <arrsOptionalChildren; separator="\n">
+    } exist;
+
+    <endif>
+} <td.typeName>;
+>>
+
+Define_subType_sequence(td/*:FE_SequenceTypeDefinition*/, prTd/*:FE_SequenceTypeDefinition*/, soParentTypePackage, arrsOptionalChildren) ::= <<
+typedef <prTd.typeName> <td.typeName>;
+>>
+
+/***********************************       CHOICE    ************************************************************/
+
+
+Define_new_choice_child(sName, sType, sPresent) ::=<<
+<sType> <sName>;
+>>
+
+Define_new_choice(td/*:FE_ChoiceTypeDefinition*/, sChoiceIDForNone, sFirstChildNamePresent, arrsChildren, arrsPresent, nIndexMax, arrsChildldrenDefintions) ::= <<
+/*-- <td.typeName> --------------------------------------------*/
+<arrsChildldrenDefintions; separator= "\n">
+
+typedef struct {
+    enum {
+        <sChoiceIDForNone>,
+        <arrsPresent:{ch|<ch>}; separator=",\n"> 
+    } kind;
+    
+    union {
+        <arrsChildren:{ch|<ch>}; separator="\n">
+    } u; 
+} <td.typeName>;
+>>
+
+Define_subType_choice(td/*:FE_ChoiceTypeDefinition*/, prTd/*:FE_ChoiceTypeDefinition*/, soParentTypePackage) ::= <<
+typedef <prTd.typeName> <td.typeName>;
+>>
+

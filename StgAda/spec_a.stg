@@ -423,8 +423,35 @@ SUBTYPE <sTypeDefinitionName> is <if(soParentTypePackage)><soParentTypePackage>.
 <soExtraDefs>
 >>
 
+/******************************************************************************************************************************/
+/***********************************       NEW TYPE DEFINITIONS    ************************************************************/
+/******************************************************************************************************************************/
 
-/***********************************************************************************************/
+define_subtype(thisType, parentType, soParentTypePackage) ::= /*nogen*/<<
+SUBTYPE <thisType> is <if(soParentTypePackage)><soParentTypePackage>.<endif><parentType>;
+>>
+
+/***********************************       ENUMERATED    ************************************************************/
+
+
+Define_new_enumerated_item(sName, nValue) ::= "<sName> => <nValue>"
+
+Define_new_enumerated(td/*:FE_EnumeratedTypeDefinition*/, arrsEnumNames, arrsEnumNamesAndValues, nIndexMax) ::= <<
+subtype <td.index_range> is integer range 0..<nIndexMax>;
+type <td.typeName> is (<arrsEnumNames; separator=", ">) with Convention => C;
+for <td.typeName> use
+    (<arrsEnumNamesAndValues; separator=", ">);
+>>
+
+Define_subType_enumerated(td/*:FE_EnumeratedTypeDefinition*/, prTd/*:FE_EnumeratedTypeDefinition*/, soParentTypePackage) ::= <<
+<define_subtype(thisType=td.typeName, parentType=prTd.typeName, soParentTypePackage=soParentTypePackage)>
+<define_subtype(thisType=td.index_range, parentType=prTd.index_range, soParentTypePackage=soParentTypePackage)>
+>>
+
+
+
+/***********************************       STRING    ************************************************************/
+
 Define_new_ia5string(td/*:FE_StringTypeDefinition*/, nMin, nMax, nCMax, arrnAlphaChars) ::= <<
 SUBTYPE <td.encoding_range> is integer range <nMin>..<nMax>;
 SUBTYPE <td.index> is integer range 1..<nCMax>;
@@ -438,12 +465,8 @@ SUBTYPE <td.alpha> IS String(<td.alpha_index>);
 >>
 
 
-
-
 Define_subType_ia5string(td/*:FE_StringTypeDefinition*/, prTd/*:FE_StringTypeDefinition*/, soParentTypePackage) ::= <<
-
 SUBTYPE <td.typeName> is <if(soParentTypePackage)><soParentTypePackage>.<endif><prTd.typeName>
-
 SUBTYPE <td.encoding_range> is <if(soParentTypePackage)><soParentTypePackage>.<endif><prTd.encoding_range>;
 SUBTYPE <td.index> is <if(soParentTypePackage)><soParentTypePackage>.<endif><prTd.index>;
 <if(arrnAlphaChars)>
@@ -452,5 +475,156 @@ SUBTYPE <td.alpha> <if(soParentTypePackage)><soParentTypePackage>.<endif><prTd.a
 <td.alpha_set> : constant := <if(soParentTypePackage)><soParentTypePackage>.<endif><prTd.alpha_set>;
 
 <endif>
-
 >>
+
+
+/***********************************       OCTET STRING    ************************************************************/
+Define_new_octet_string(td/*:FE_SizeableTypeDefinition*/, nMin, nMax, bFixedSize) ::= <<
+SUBTYPE <td.index> is integer range 1..<nMax>;
+SUBTYPE <td.array> IS <rtlModuleName()>.OctetBuffer(<td.index>);
+<if(!bFixedSize)>SUBTYPE <td.length_index> is integer range <nMin>..<nMax>;<endif>
+type <td.typeName> is  record
+<if(!bFixedSize)>    Length : <td.length_index>;<endif>
+    Data  : <td.array>;
+end record;
+>>
+
+Define_subType_octet_string(td/*:FE_SizeableTypeDefinition*/, prTd/*:FE_SizeableTypeDefinition*/, soParentTypePackage, bFixedSize) ::= <<
+<define_subtype(thisType=td.typeName, parentType=prTd.typeName, soParentTypePackage=soParentTypePackage)>
+<define_subtype(thisType=td.index, parentType=prTd.index, soParentTypePackage=soParentTypePackage)>
+<define_subtype(thisType=td.array, parentType=prTd.array, soParentTypePackage=soParentTypePackage)>
+<if(!bFixedSize)>
+<define_subtype(thisType=td.length_index, parentType=prTd.length_index, soParentTypePackage=soParentTypePackage)>
+
+<endif>
+>>
+
+
+/***********************************       BIT STRING    ************************************************************/
+Define_new_bit_string(td/*:FE_SizeableTypeDefinition*/, nMin, nMax, bFixedSize, nMaxOctets) ::= <<
+SUBTYPE <td.index> is integer range 1..<nMax>;
+SUBTYPE <td.array> IS <rtlModuleName()>.BitArray(<td.index>);
+<if(!bFixedSize)>SUBTYPE <td.length_index> is integer range <nMin>..<nMax>;<endif>
+type <td.typeName> is  record
+<if(!bFixedSize)>    Length : <td.length_index>;<endif>
+    Data  : <td.array>;
+end record;
+>>
+
+Define_subType_bit_string(td/*:FE_SizeableTypeDefinition*/, prTd/*:FE_SizeableTypeDefinition*/, soParentTypePackage, bFixedSize) ::= <<
+<define_subtype(thisType=td.typeName, parentType=prTd.typeName, soParentTypePackage=soParentTypePackage)>
+<define_subtype(thisType=td.index, parentType=prTd.index, soParentTypePackage=soParentTypePackage)>
+<define_subtype(thisType=td.array, parentType=prTd.array, soParentTypePackage=soParentTypePackage)>
+<if(!bFixedSize)>
+<define_subtype(thisType=td.length_index, parentType=prTd.length_index, soParentTypePackage=soParentTypePackage)>
+
+<endif>
+>>
+
+
+/***********************************       SEQUENCE OF    ************************************************************/
+
+Define_new_sequence_of(td/*:FE_SizeableTypeDefinition*/, nMin, nMax, bFixedSize, sChildType, soChildDefintion) ::= <<
+-- <td.typeName> --------------------------------------------
+
+<soChildDefintion>
+
+subtype <td.index> is integer range 1..<nMax>;
+type <td.array> is array (<td.index>) of <sChildType>;
+<if(!bFixedSize)>subtype <td.length_index> is integer range <nMin>..<nMax>;<endif>
+type <td.typeName> is  record
+<if(!bFixedSize)>    Length : <td.length_index>;<endif>
+    Data  : <td.array>;
+end record;
+>>
+
+Define_subType_sequence_of(td/*:FE_SizeableTypeDefinition*/, prTd/*:FE_SizeableTypeDefinition*/, soParentTypePackage, bFixedSize) ::= <<
+<define_subtype(thisType=td.typeName, parentType=prTd.typeName, soParentTypePackage=soParentTypePackage)>
+<define_subtype(thisType=td.index, parentType=prTd.index, soParentTypePackage=soParentTypePackage)>
+<define_subtype(thisType=td.array, parentType=prTd.array, soParentTypePackage=soParentTypePackage)>
+<if(!bFixedSize)>
+<define_subtype(thisType=td.length_index, parentType=prTd.length_index, soParentTypePackage=soParentTypePackage)>
+
+<endif>
+>>
+
+/***********************************       SEQUENCE    ************************************************************/
+
+Define_new_sequence_child_bit(sName) ::= "<sName>:<rtlModuleName()>.bit;"
+
+Define_new_sequence_child(sName, sType) ::= "<sName> : <sType>;"
+
+Define_new_sequence(td/*:FE_SequenceTypeDefinition*/, arrsChildren, arrsOptionalChildren, arrsChildldrenDefintions) ::= <<
+-- <td.typeName> --------------------------------------------
+<arrsChildldrenDefintions; separator= "\n">
+
+<if(arrsChildren)>
+<if (arrsOptionalChildren)>
+type <td.exist> is record
+    <arrsOptionalChildren; separator="\n">
+end record;
+
+<endif>
+type <td.typeName> is record 
+    <arrsChildren; separator="\n">
+    <if (arrsOptionalChildren)>
+    
+    Exist : <td.exist>;
+
+    <endif>
+end record;
+
+<else>
+type <td.typeName> is record 
+    null;
+end record;
+
+<endif>
+>>
+
+Define_subType_sequence(td/*:FE_SequenceTypeDefinition*/, prTd/*:FE_SequenceTypeDefinition*/, soParentTypePackage, arrsOptionalChildren) ::= <<
+<define_subtype(thisType=td.typeName, parentType=prTd.typeName, soParentTypePackage=soParentTypePackage)>
+<if(arrsOptionalChildren)>
+<define_subtype(thisType=td.exist, parentType=prTd.exist, soParentTypePackage=soParentTypePackage)>
+
+<endif>
+>>
+
+
+/***********************************       CHOICE    ************************************************************/
+
+Define_new_choice_child(sName, sType, sPresent) ::=<<
+when <sPresent> =>
+        <sName>: <sType>;
+>>
+
+Define_new_choice(td/*:FE_ChoiceTypeDefinition*/, sChoiceIDForNone, sFirstChildNamePresent, arrsChildren, arrsPresent, nIndexMax, arrsChildldrenDefintions) ::= <<
+-- <td.typeName> --------------------------------------------
+<arrsChildldrenDefintions; separator= "\n">
+
+subtype <td.index_range> is integer range 0..<nIndexMax>;
+
+type <td.selection> is (<arrsPresent; separator=", ">);
+for <td.selection> use
+    (<arrsPresent:{c|<c> => <i>}; separator=", ">);
+for <td.selection>'Size use 32;
+
+type <td.typeName>(kind : <td.selection>:= <sFirstChildNamePresent>) is 
+record
+    case kind is
+    <arrsChildren; separator="\n">
+    end case;
+end record;
+
+for <td.typeName> use 
+record
+    kind at 0 range 0..31;
+end record;
+>>
+
+Define_subType_choice(td/*:FE_ChoiceTypeDefinition*/, prTd/*:FE_ChoiceTypeDefinition*/, soParentTypePackage) ::= <<
+<define_subtype(thisType=td.typeName, parentType=prTd.typeName, soParentTypePackage=soParentTypePackage)>
+<define_subtype(thisType=td.index_range, parentType=prTd.index_range, soParentTypePackage=soParentTypePackage)>
+<define_subtype(thisType=td.selection, parentType=prTd.selection, soParentTypePackage=soParentTypePackage)>
+>>
+
