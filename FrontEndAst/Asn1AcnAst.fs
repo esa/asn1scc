@@ -509,6 +509,7 @@ type AcnInteger = {
     uperRange           : uperRange<BigInteger>
     isUnsigned          : bool
     checkIntHasEnoughSpace  : BigInteger -> BigInteger -> unit
+    inheritInfo          : InheritanceInfo option
 }
 
 type AcnBoolean = {

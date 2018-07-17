@@ -175,14 +175,18 @@ let rec printType stgFileName (tas:GenerateUperIcd.IcdTypeAssignment) (t:Asn1Typ
 //                            | TypeDefinition                   r -> icd_acn.EmmitSeqChild_RefType stgFileName r.typedefName (ToC r.typedefName) //Kind2Name stgFileName ch.Type
                     sType, GetCommentLine ch.Comments ch.Type, ch.Type.ConstraintsAsn1Str |> Seq.StrJoin ""
                 | AcnChild ch   ->
-                    let sType = 
+                    let sType,consAsStt = 
                         match ch.Type with
-                        | Asn1AcnAst.AcnInteger                o -> icd_acn.Integer           stgFileName ()
-                        | Asn1AcnAst.AcnNullType               o -> icd_acn.NullType           stgFileName ()
-                        | Asn1AcnAst.AcnBoolean                o -> icd_acn.Boolean           stgFileName ()
-                        | Asn1AcnAst.AcnReferenceToEnumerated  o -> icd_acn.EmmitSeqChild_RefType stgFileName o.tasName.Value (ToC o.tasName.Value)
-                        | Asn1AcnAst.AcnReferenceToIA5String   o -> icd_acn.EmmitSeqChild_RefType stgFileName o.tasName.Value (ToC o.tasName.Value)
-                    sType, "", ""
+                        | Asn1AcnAst.AcnInteger                o -> 
+                            let constAsStr = DAstAsn1.createAcnInteger (o.cons@o.withcons) |> Seq.StrJoin ""
+                            match o.inheritInfo with
+                            | None                              ->  icd_acn.Integer           stgFileName ()    , constAsStr
+                            | Some inhInfo                      ->  icd_acn.EmmitSeqChild_RefType stgFileName inhInfo.tasName (ToC inhInfo.tasName) , constAsStr
+                        | Asn1AcnAst.AcnNullType               o -> icd_acn.NullType           stgFileName (), ""
+                        | Asn1AcnAst.AcnBoolean                o -> icd_acn.Boolean           stgFileName (), ""
+                        | Asn1AcnAst.AcnReferenceToEnumerated  o -> icd_acn.EmmitSeqChild_RefType stgFileName o.tasName.Value (ToC o.tasName.Value), ""
+                        | Asn1AcnAst.AcnReferenceToIA5String   o -> icd_acn.EmmitSeqChild_RefType stgFileName o.tasName.Value (ToC o.tasName.Value), ""
+                    sType, "", consAsStt
             let name = ch.Name
             let sMaxBits, sMaxBytes = ch.acnMaxSizeInBits.ToString(), BigInteger(System.Math.Ceiling(double(ch.acnMaxSizeInBits)/8.0)).ToString()
             let sMinBits, sMinBytes = ch.acnMinSizeInBits.ToString(), BigInteger(System.Math.Ceiling(double(ch.acnMinSizeInBits)/8.0)).ToString()

@@ -85,6 +85,9 @@ let foldStringCon    (c:IA5StringConstraint)  =
         0 |> fst
 
 
+let createAcnInteger (cons:IntegerTypeConstraint list) =
+    let conToStrFunc = foldRangeCon  stg_asn1.Print_IntegerValue stg_asn1.Print_IntegerValue
+    cons |> List.map conToStrFunc 
 
 let createIntegerFunction (r:Asn1AcnAst.AstRoot) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Integer)  =
     let conToStrFunc = foldRangeCon  stg_asn1.Print_IntegerValue stg_asn1.Print_IntegerValue
