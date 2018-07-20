@@ -400,6 +400,8 @@ let private CreateModule (allAcnFiles: ParameterizedAsn1Ast.AntlrParserResult li
 
 
 let private LoadAcnFile (allAcnFiles: ParameterizedAsn1Ast.AntlrParserResult list) (acnConstants : Map<string, BigInteger>) (thisAcnFile: ParameterizedAsn1Ast.AntlrParserResult)   : AcnFile = 
+    let alreadyTakenComments = new System.Collections.Generic.List<IToken>();
+
     let modules = thisAcnFile.rootItem.Children |> List.map (CreateModule allAcnFiles acnConstants thisAcnFile)
     {AcnFile.antlrResult = thisAcnFile; modules = modules}
 
