@@ -565,6 +565,7 @@ and AcnChild = {
     typeDefinitionBodyWithinSeq : string
     funcBody                    : CommonTypes.Codec -> ((Asn1AcnAst.RelativePath*Asn1AcnAst.AcnParameter) list) -> CallerScope -> (AcnFuncBodyResult option)            // returns a list of validations statements
     funcUpdateStatement         : AcnChildUpdateResult option                                    // vTarget,  pSrcRoot, return the update statement 
+    Comments                    : string array
 }
 
 and SeqChildInfo = 

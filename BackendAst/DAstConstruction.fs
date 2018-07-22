@@ -69,6 +69,7 @@ let private createAcnChild (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
             typeDefinitionBodyWithinSeq = DAstACN.getDeterminantTypeDefinitionBodyWithinSeq r l (Asn1AcnAst.AcnChildDeterminant ch)
             funcBody = DAstACN.handleAlignemntForAcnTypes r l acnAligment funcBody
             funcUpdateStatement = funcUpdateStatement
+            Comments = ch.Comments
         }
     AcnChild ret, ns3
 

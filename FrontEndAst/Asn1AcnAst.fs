@@ -614,6 +614,7 @@ and AcnChild = {
     Name                        : StringLoc
     id                          : ReferenceToType
     Type                        : AcnInsertedType
+    Comments                    : string array
 }
 
 and SeqChildInfo = 

@@ -29,8 +29,8 @@
     <PlatformTarget>AnyCPU</PlatformTarget>
     <DocumentationFile>bin\Debug\Asn1f4.XML</DocumentationFile>
     <Prefer32Bit>true</Prefer32Bit>
-    <StartWorkingDirectory>C:\prj\GitHub\asn1scc\mantis\0000787</StartWorkingDirectory>
-    <StartArguments>-c -uPER -o c_out/ -atc dataview-uniq.asn</StartArguments>
+    <StartWorkingDirectory>C:\prj\GitHub\asn1scc\tmp\icd3</StartWorkingDirectory>
+    <StartArguments>-icdAcn v4b.html  Comments.asn Comments.acn</StartArguments>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>

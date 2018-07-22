@@ -68,6 +68,7 @@ type  AcnTypeEncodingSpec = {
     acnProperties   : GenericAcnProperty list
     children        : ChildSpec list
     loc             : SrcLoc
+    comments        : string list
 }
 
 and  ChildSpec = {
@@ -75,12 +76,14 @@ and  ChildSpec = {
     childEncodingSpec : AcnTypeEncodingSpec
     asn1Type        : Asn1AcnAst.AcnParamType option    // if present then it indicates an ACN inserted type
     argumentList    : Asn1AcnAst.RelativePath list
+    comments        : string list
 }
 
 type  AcnTypeAssignment = {
     name            : StringLoc
     acnParameters   : Asn1AcnAst.AcnParameter list
     typeEncodingSpec: AcnTypeEncodingSpec
+    comments        : string list
 }
 
 type  AcnModule = {
@@ -331,7 +334,7 @@ let private creareAcnProperty (acnConstants : Map<string, BigInteger>) (t:ITree)
         | _     ->  raise(BugErrorException("creareAcnProperty_TERMINATION_PATTERN"))
     | _                             -> raise(BugErrorException("creareAcnProperty"))
 
-let rec  private createTypeEncodingSpec (allAcnFiles: ParameterizedAsn1Ast.AntlrParserResult list) (acnConstants : Map<string, BigInteger>) (thisAcnFile: ParameterizedAsn1Ast.AntlrParserResult)  (encSpecITree:ITree) : AcnTypeEncodingSpec =
+let rec  private createTypeEncodingSpec (allAcnFiles: ParameterizedAsn1Ast.AntlrParserResult list) (acnConstants : Map<string, BigInteger>) (thisAcnFile: ParameterizedAsn1Ast.AntlrParserResult)  (alreadyTakenComments:System.Collections.Generic.List<IToken>) (encSpecITree:ITree) : AcnTypeEncodingSpec =
     let acnProperties = 
         match encSpecITree.GetOptChild(acnParser.ENCODING_PROPERTIES) with
         | None              -> []
@@ -350,18 +353,19 @@ let rec  private createTypeEncodingSpec (allAcnFiles: ParameterizedAsn1Ast.Antlr
                         match t.GetOptChild(acnParser.ARGUMENTS) with
                         | None            -> []
                         | Some(argList)   -> argList.Children |> List.map CreateLongField
-                let childEncodingSpec = createTypeEncodingSpec allAcnFiles acnConstants thisAcnFile (t.GetChildByType acnParser.ENCODING_SPEC) 
+                let comments = Antlr.Comment.GetComments(thisAcnFile.tokens, alreadyTakenComments, thisAcnFile.tokens.[t.TokenStopIndex].Line, t.TokenStartIndex - 1, t.TokenStopIndex + 2, true)
+                let childEncodingSpec = createTypeEncodingSpec allAcnFiles acnConstants thisAcnFile alreadyTakenComments (t.GetChildByType acnParser.ENCODING_SPEC) 
                 let asn1Type  =
                     match t.Type with
                     | acnParser.CHILD       -> None
                     | acnParser.CHILD_NEW   -> Some (CreateAcnParamType (t.GetChild 1) ) 
                     | _     ->  raise(BugErrorException("createTypeEncodingSpec_CHILD"))
 
-                {ChildSpec.name = name; childEncodingSpec= childEncodingSpec; asn1Type=asn1Type; argumentList=argumentList}
+                {ChildSpec.name = name; childEncodingSpec= childEncodingSpec; asn1Type=asn1Type; argumentList=argumentList; comments = comments |> Seq.toList}
             childrenList.Children |> List.map createChild
-    {AcnTypeEncodingSpec.acnProperties = acnProperties; children = children; loc = encSpecITree.Location}
+    {AcnTypeEncodingSpec.acnProperties = acnProperties; children = children; loc = encSpecITree.Location; comments=[]}
 
-let private CreateTypeAssignment (allAcnFiles: ParameterizedAsn1Ast.AntlrParserResult list) (acnConstants : Map<string, BigInteger>) (thisAcnFile: ParameterizedAsn1Ast.AntlrParserResult)  (tasTree:ITree) : AcnTypeAssignment =
+let private CreateTypeAssignment (allAcnFiles: ParameterizedAsn1Ast.AntlrParserResult list) (acnConstants : Map<string, BigInteger>) (thisAcnFile: ParameterizedAsn1Ast.AntlrParserResult)  (alreadyTakenComments:System.Collections.Generic.List<IToken>) (tasTree:ITree) : AcnTypeAssignment =
     let tasNameL = tasTree.GetChildByType(acnParser.UID).TextL
 
     let encSpecITree = tasTree.GetChildByType(acnParser.ENCODING_SPEC)
@@ -382,11 +386,13 @@ let private CreateTypeAssignment (allAcnFiles: ParameterizedAsn1Ast.AntlrParserR
                 | None      -> raise(SemanticError(loc, sprintf "unreferenced parameter '%s'" prmName))
             paramList.Children |> List.map CreateParam
 
-    let typeEncodingSpec = createTypeEncodingSpec allAcnFiles acnConstants thisAcnFile encSpecITree
-    {AcnTypeAssignment.name = tasNameL; acnParameters = prms; typeEncodingSpec = typeEncodingSpec}
+    let comments = Antlr.Comment.GetComments(thisAcnFile.tokens, alreadyTakenComments, thisAcnFile.tokens.[tasTree.TokenStopIndex].Line, tasTree.TokenStartIndex - 1, tasTree.TokenStopIndex + 1, true)
+    let typeEncodingSpec = createTypeEncodingSpec allAcnFiles acnConstants thisAcnFile alreadyTakenComments encSpecITree
+
+    {AcnTypeAssignment.name = tasNameL; acnParameters = prms; typeEncodingSpec = typeEncodingSpec; comments = comments |> Seq.toList}
 
 
-let private CreateModule (allAcnFiles: ParameterizedAsn1Ast.AntlrParserResult list) (acnConstants : Map<string, BigInteger>) (thisAcnFile: ParameterizedAsn1Ast.AntlrParserResult)   (modTree : ITree) : AcnModule =
+let private CreateModule (allAcnFiles: ParameterizedAsn1Ast.AntlrParserResult list) (acnConstants : Map<string, BigInteger>) (thisAcnFile: ParameterizedAsn1Ast.AntlrParserResult)   (alreadyTakenComments:System.Collections.Generic.List<IToken>)  (modTree : ITree) : AcnModule =
     let modNameL = modTree.GetChildByType(acnParser.UID).TextL
 
     let tasITreeList = modTree.GetChildrenByType(acnParser.TYPE_ENCODING)
@@ -394,7 +400,7 @@ let private CreateModule (allAcnFiles: ParameterizedAsn1Ast.AntlrParserResult li
     //check for duplicate type assignments in the ACN module
     tasITreeList |> List.map(fun x -> x.GetChildByType(acnParser.UID).TextL) |> CheckForDuplicates
 
-    let newTasses = tasITreeList |> List.map(fun tasTree -> CreateTypeAssignment allAcnFiles acnConstants thisAcnFile tasTree) 
+    let newTasses = tasITreeList |> List.map(fun tasTree -> CreateTypeAssignment allAcnFiles acnConstants thisAcnFile alreadyTakenComments tasTree) 
     
     {AcnModule.name = modNameL; typeAssignments = newTasses}
 
@@ -402,7 +408,7 @@ let private CreateModule (allAcnFiles: ParameterizedAsn1Ast.AntlrParserResult li
 let private LoadAcnFile (allAcnFiles: ParameterizedAsn1Ast.AntlrParserResult list) (acnConstants : Map<string, BigInteger>) (thisAcnFile: ParameterizedAsn1Ast.AntlrParserResult)   : AcnFile = 
     let alreadyTakenComments = new System.Collections.Generic.List<IToken>();
 
-    let modules = thisAcnFile.rootItem.Children |> List.map (CreateModule allAcnFiles acnConstants thisAcnFile)
+    let modules = thisAcnFile.rootItem.Children |> List.map (CreateModule allAcnFiles acnConstants thisAcnFile alreadyTakenComments)
     {AcnFile.antlrResult = thisAcnFile; modules = modules}
 
 let private CreateAcnAst (allAcnFiles: ParameterizedAsn1Ast.AntlrParserResult list) : AcnAst =  
@@ -911,10 +917,10 @@ let rec private mergeAcnEncodingSpecs (thisType:AcnTypeEncodingSpec option) (bas
                     | Some thisChild, Some baseChild    ->
                         match mergeAcnEncodingSpecs (Some thisChild.childEncodingSpec) (Some baseChild.childEncodingSpec) with
                         | Some combinedEncoingSpec  ->
-                            Some ({name = nm; childEncodingSpec = combinedEncoingSpec; asn1Type = thisChild.asn1Type; argumentList = thisChild.argumentList})
+                            Some ({name = nm; childEncodingSpec = combinedEncoingSpec; asn1Type = thisChild.asn1Type; argumentList = thisChild.argumentList; comments=thisChild.comments})
                         | None                      -> None)
 
-        Some {AcnTypeEncodingSpec.acnProperties = mergedProperties; children = mergedChildren; loc = thisType.loc}        
+        Some {AcnTypeEncodingSpec.acnProperties = mergedProperties; children = mergedChildren; loc = thisType.loc; comments = thisType.comments}        
 
 (*
     match asn1Type with
@@ -1014,7 +1020,7 @@ let rec private mapAcnParamTypeToAcnAcnInsertedType (asn1:Asn1Ast.AstRoot) (acn:
         match asn1Type0.Kind with
         | Asn1Ast.Enumerated nmItems    ->
             let cons =  asn1Type0.Constraints |> List.collect (fixConstraint asn1) |> List.map (ConstraintsMapping.getEnumConstraint asn1 asn1Type0)
-            let enumerated, ns = mergeEnumerated asn1 nmItems ts.Location (Some ts.Location) (Some {AcnTypeEncodingSpec.acnProperties = props; children = []; loc=ts.Location}) props cons [] (AcnPrmGetTypeDefinition (curPath,md.Value,ts.Value)) us
+            let enumerated, ns = mergeEnumerated asn1 nmItems ts.Location (Some ts.Location) (Some {AcnTypeEncodingSpec.acnProperties = props; children = []; loc=ts.Location; comments = []}) props cons [] (AcnPrmGetTypeDefinition (curPath,md.Value,ts.Value)) us
             AcnReferenceToEnumerated({AcnReferenceToEnumerated.modName = md; tasName = ts; enumerated = enumerated; acnAligment= acnAligment}), ns
         | Asn1Ast.IA5String    
         | Asn1Ast.NumericString  ->
@@ -1268,11 +1274,11 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (m:Asn1Ast.Asn1Mo
                     match cc.asn1Type with
                     | None  -> 
                         let newChild, us1 = mergeType asn1 acn m c.Type (curPath@[SEQ_CHILD c.Name.Value]) (typeDefPath@[SEQ_CHILD c.Name.Value]) (Some cc.childEncodingSpec) None [] childWithCons cc.argumentList [] None  None us
-                        Asn1Child ({Asn1Child.Name = c.Name; _c_name = c.c_name; _ada_name = c.ada_name; Type  = newChild; Optionality = newOptionality; Comments = c.Comments}), us1
+                        Asn1Child ({Asn1Child.Name = c.Name; _c_name = c.c_name; _ada_name = c.ada_name; Type  = newChild; Optionality = newOptionality; Comments = ((c.Comments |> Seq.toList) @  cc.comments) |> Seq.toArray}), us1
                     | Some xx  ->
                         //let tdprm = {GetTypeDifition_arg.asn1TypeKind = t.Kind; loc = t.Location; curPath = (curPath@[SEQ_CHILD c.Name.Value]); typeDefPath = (typeDefPath@[SEQ_CHILD c.Name.Value]); inferitInfo =None ; typeAssignmentInfo = None; rtlFnc = None}
                         let newType, us1 = mapAcnParamTypeToAcnAcnInsertedType asn1 acn xx cc.childEncodingSpec.acnProperties  (curPath@[SEQ_CHILD c.Name.Value]) us
-                        AcnChild({AcnChild.Name = c.Name; id = ReferenceToType(curPath@[SEQ_CHILD c.Name.Value]); Type = newType}), us1
+                        AcnChild({AcnChild.Name = c.Name; id = ReferenceToType(curPath@[SEQ_CHILD c.Name.Value]); Type = newType; Comments = cc.comments |> Seq.toArray}), us1
 
             let mergedChildren, chus = 
                 match acnType with
@@ -1292,7 +1298,7 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (m:Asn1Ast.Asn1Mo
                                 match acnChild.asn1Type with
                                 | Some xx ->
                                     let newType, nest = mapAcnParamTypeToAcnAcnInsertedType asn1 acn xx acnChild.childEncodingSpec.acnProperties (curPath@[SEQ_CHILD acnChild.name.Value]) st
-                                    AcnChild({AcnChild.Name = acnChild.name; id = ReferenceToType(curPath@[SEQ_CHILD acnChild.name.Value]); Type = newType}), nest
+                                    AcnChild({AcnChild.Name = acnChild.name; id = ReferenceToType(curPath@[SEQ_CHILD acnChild.name.Value]); Type = newType; Comments = acnChild.comments |> Seq.toArray}), nest
                                 | None ->
                                     raise(SemanticError(acnChild.name.Location, (sprintf "invalid name %s" acnChild.name.Value)))) us1
             

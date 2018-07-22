@@ -176,8 +176,8 @@ let rec printType stgFileName (tas:GenerateUperIcd.IcdTypeAssignment) (t:Asn1Typ
                     sType, GetCommentLine ch.Comments ch.Type, ch.Type.ConstraintsAsn1Str |> Seq.StrJoin ""
                 | AcnChild ch   ->
                     let commentLine =
-                        //let singleComment = ch. |> Seq.StrJoin (stgs.NewLine stgFileName ()) 
-                        ""
+                        ch.Comments |> Seq.StrJoin (enumStg.NewLine stgFileName ()) 
+                        
 
                     let sType,consAsStt = 
                         match ch.Type with
