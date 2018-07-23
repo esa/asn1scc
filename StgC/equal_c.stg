@@ -162,10 +162,6 @@ for(<i> = 0; ret && <i> \< <if(!bIsFixedSize)><p1><sAcc>nCount<else><nFixedSize>
 >>
 
 
-isEqual_ReferenceType(sPtr1, sPtr2, sName) ::= <<
-ret = <sName>_Equal(<sPtr1>, <sPtr2>);
->>
-
 
 call_base_type_func(p1, p2, sFuncName) ::= "<sFuncName>(<p1>, <p2>)"
 

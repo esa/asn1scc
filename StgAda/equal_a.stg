@@ -66,13 +66,6 @@ end <sFuncName>;
 
 
 
-PrintTypeAssignment(sName, sInitBody, bContainsChoice) ::= <<
-FUNCTION <sName>_Init return <sName>
-IS <if(bContainsChoice)>--#hide <sName>_Init;<endif>
-BEGIN
-    RETURN <sInitBody>;
-END <sName>_Init;
->>
 
 /*
  *****************************************************************************************
@@ -154,10 +147,6 @@ end if;
 >>
 
 
-isEqual_ReferenceType(sPtr1, sPtr2, sName) ::= <<
-begin
-    return <sName>_Equal(<sPtr1>, <sPtr2>);
->>
 
 
 call_base_type_func(p1, p2, sFuncName) ::= "<sFuncName>(<p1>, <p2>)"

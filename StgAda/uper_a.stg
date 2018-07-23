@@ -178,7 +178,6 @@ if <sRootBaseConstraint> THEN
 end if;
 >>
 
-Declare_ExtensionBit()::="extBit:<rtlModuleName()>.BIT;"
 
 IntRootExt_decode(p, nMin, sRootBaseConstraint, sIntBody, sErrCode) ::=<<
 result.ErrorCode := <sErrCode>;
@@ -213,13 +212,6 @@ end if;
 IntRootExt2_decode(p, nMin, sRootBaseConstraint, sIntBody, sErrCode) ::= "<IntRootExt_decode(p=p, nMin=nMin, sIntBody = sIntBody, sErrCode=sErrCode)>"
 
 
-Null_encode(p) ::= <<
-<rtlModuleName()>.Acn_Enc_NullType(S, K, <p>);
->>
-
-Null_decode(p) ::= <<
-<rtlModuleName()>.Acn_Dec_NullType(S, K, <p>, result);
->>
 
 Boolean_encode(p, sErrCode) ::= "<rtlModuleName()>.UPER_Enc_Boolean(S, K, <p>);"
 
@@ -234,9 +226,7 @@ Real_decode(p, sErrCode) ::= <<
 >>
 
 
-Declare_EnumIndex()::="intVal:<rtlModuleName()>.Asn1Int;"
 
-Declare_AsnIntForMappingFuncion()::="mapFuncIntVal:<rtlModuleName()>.Asn1Int;"
 
 /* ENUMERATED START */
 
@@ -415,17 +405,9 @@ end if;
 
 
 
-ChoiceChild_tmpVar(sName, sTypeDecl) ::= "<sName>_tmp:<sTypeDecl>;"
 
 
-Declare_ChoiceIndex()::="index:<rtlModuleName()>.Asn1Int;"
 
-
-ReferenceType1_encode(p, sName, bAcnEncodeFuncRequiresResult) ::= "<sName>_uPER_Encode_aux(<p>, S, K<if(bAcnEncodeFuncRequiresResult)>, result<endif>);"
-ReferenceType1_decode(p, sName, bAcnEncodeFuncRequiresResult) ::= "<sName>_uPER_Decode_aux(<p>, S, K, result);"
-
-ReferenceType2_encode(p, sTasName, sName, bAcnEncodeFuncRequiresResult) ::= "<sTasName>.<sName>_uPER_Encode_aux(<p>, S, K<if(bAcnEncodeFuncRequiresResult)>, result<endif>);"
-ReferenceType2_decode(p, sTasName, sName, bAcnEncodeFuncRequiresResult) ::= "<sTasName>.<sName>_uPER_Decode_aux(<p>, S, K, result);"
 
 
 loopFixedItem_enc (i, fixedSize, nfixedSizeUperLimit, sInternalItem, nCurOffset, nAlignSize, nIntItemMinSize, nIntItemMaxSize)::= /*nogen*/<<    
@@ -454,39 +436,13 @@ end loop;
 
 
 
-oct_sqf_FixedSize_encode(p, i, sInternalItem, nFixedSize, sTasName, nIntItemMinSize, nIntItemMaxSize, nAlignSize) ::= <<
-<loopFixedItem_enc(i=i, sInternalItem=sInternalItem, fixedSize=nFixedSize, nfixedSizeUperLimit = nFixedSize, nCurOffset="0", nAlignSize=nAlignSize, nIntItemMinSize=nIntItemMinSize, nIntItemMaxSize=nIntItemMaxSize)>
->>
 
-oct_sqf_FixedSize_decode(p, i, sInternalItem, nFixedSize, sTasName, nIntItemMinSize, nIntItemMaxSize, nAlignSize) ::= <<
-val := <sTasName>_Init;
-result := <rtlModuleName()>.ASN1_RESULT'(Success => TRUE, ErrorCode => 0);
-<loopFixedItem_dec(i=i, sInternalItem=sInternalItem, fixedSize=nFixedSize, nfixedSizeUperLimit = nFixedSize, nCurOffset="0", nAlignSize=nAlignSize, nIntItemMinSize=nIntItemMinSize, nIntItemMaxSize=nIntItemMaxSize)>
->>
-
-
-oct_sqf_VarSize_encode(sTasName, p, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize) ::= <<
-<rtlModuleName()>.UPER_Enc_ConstraintWholeNumber(S, K, <rtlModuleName()>.Asn1Int(<p>.Length), <nSizeMin>, <nSizeInBits>);
-<loopFixedItem_enc(i=i, sInternalItem=sInternalItem, fixedSize=[p,".Length"], nfixedSizeUperLimit = nSizeMax, nCurOffset=nSizeInBits, nAlignSize=nAlignSize, nIntItemMinSize=nIntItemMinSize, nIntItemMaxSize=nIntItemMaxSize)>
->>
-
-
-Declare_Length()::="length:Integer;"
-
-oct_sqf_VarSize_decode(sTasName, p, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize) ::= <<
-val := <sTasName>_Init;
-result.ErrorCode := <rtlModuleName()>.ERR_INSUFFICIENT_DATA; 
-<rtlModuleName()>.UPER_Dec_ConstraintWholeNumberInt(S, K, length, <nSizeMin>, <nSizeMax>, <nSizeInBits>, result.Success);
-<p>.Length := length;
-<loopFixedItem_dec(i=i, sInternalItem=sInternalItem, fixedSize=[p,".Length"], nfixedSizeUperLimit = nSizeMax, nCurOffset=nSizeInBits, nAlignSize=nAlignSize, nIntItemMinSize=nIntItemMinSize, nIntItemMaxSize=nIntItemMaxSize)>
->>
 
 
 
 
 
 /* IA5String & Numeric String */
-Declare_CharValue() ::= "charIndex:Integer;"
 
 
 InternalItem_string_no_alpha_encode(p, sErrCode, i) ::=<<
@@ -555,8 +511,7 @@ end loop;
 >>
 
 
-str_length(p) ::= "<rtlModuleName()>.getStringSize(<p>)"
-bit_oct_sqof_length(p) ::= "<p>.Length"
+
 
 
 /* OCTET AND BIT STRING*/
@@ -616,32 +571,8 @@ result.errorCode := <sErrCode>;
 
 
 
-Declare_nCount()::="nCount:Integer;"
-Declare_curBlockSize()::="curBlockSize:Integer;"
-Declare_curItem()::="curOffset:Integer:=1;"
-Declare_len2()::="len2:Integer;"
 
 
-
-/*
-    -- set1
-    --# assert  K~+1>= S'First and K~ + <nRequiredBitsForUPerEncoding> \<= S'Last and <if(bIsVariableSize)><p><sAcc>Length<else><nSizeMax><endif>\<=<nSizeMax> and
-    --#         <sCurOffset> = <if(bIsVariableSize)><p><sAcc>Length<else><nSizeMax><endif> - <sRemainingItemsVar> + 1  and <sRemainingItemsVar>>= <sCurBlockSize> and <sCurOffset>+<sCurBlockSize>-1\<=<nSizeMax> and
-    --#         K >= K~ and K\<=K~+<sBlockIndex>*8+ (<sCurOffset>-1)*<nIntItemMaxSize>;
-        
-        --set2
-		--# assert  <sCurBlockSize>>=0 and <sCurOffset> >= 1 and <sCurOffset>+<sCurBlockSize>-1\<=<nSizeMax> and
-		--#         K~+1 >= S'First and K~ + (<sCurOffset>+<sCurBlockSize>-1)*<nIntItemMaxSize> \<= S'Last and
-		--#         <sBLI> >=<sCurOffset> and <sBLI>\<=<sCurOffset> + <sCurBlockSize>-1  and 
-		--#         K>=K~ and K\<=K~+ <nIntItemMaxSize>*<sBLJ> and <sBLI>= <sCurOffset> + <sBLJ>;
-
-    --set3
-	--# assert  <sCurBlockSize>>=0 and <sCurOffset>>=1 and <sCurOffset>+<sCurBlockSize>-1\<=<nSizeMax> and
-	--#         K~+1 >= S'First and K~ + (<sCurOffset>+<sCurBlockSize>-1)*<nIntItemMaxSize> \<= S'Last and
-	--#         <sBLI> >=<sCurOffset> and <sBLI>\<=<sCurOffset> + <sCurBlockSize>-1  and 
-	--#         K>=K~ and K\<=K~+ <nIntItemMaxSize>*<sBLJ> and <sBLI>= <sCurOffset> + <sBLJ>;
-
-*/
 
 Fragmentation_sqf_encode(p, sAcc, sInternalItem, nIntItemMaxSize, nSizeMin, nSizeMax, nRequiredBitsForUPerEncoding, bIsVariableSize, sErrCodeName, sRemainingItemsVar, sCurBlockSize, sBlockIndex, sCurOffset, sBLJ, sBLI, sLengthTmp, bIsBitStringType, bIsAsciiString) ::= <<
 <sCurOffset> := 1;
