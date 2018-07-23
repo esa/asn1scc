@@ -226,15 +226,22 @@ let rec printType stgFileName (tas:GenerateUperIcd.IcdTypeAssignment) (t:Asn1Typ
                     //let optChild = chInfo.children |> Seq.mapi(fun i c -> icd_uper.EmmitChoiceIndexSingleComment stgFileName (BigInteger (i+1)) c.Name.Value)
                     let sComment = icd_acn.EmmitChoiceIndexComment stgFileName ()
                     let indexSize = (GetChoiceUperDeterminantLengthInBits(BigInteger(Seq.length chInfo.children))).ToString()
-                    icd_acn.EmmitChoiceChild stgFileName (icd_acn.OddRow stgFileName ()) (BigInteger 1) "ChoiceIndex" sComment    "unsigned int" "N.A." indexSize indexSize
+                    icd_acn.EmmitSeqOrChoiceRow stgFileName (icd_acn.OddRow stgFileName ()) (BigInteger 1) "ChoiceIndex" sComment  "always"  "unsigned int" "N.A." indexSize indexSize
+                    //icd_acn.EmmitSeqOrChoiceRow stgFileName sClass nIndex ch.Name.Value sComment  sPresentWhen  sType sAsn1Constraints sMinBits sMaxBits
                 let getPresenceWhenNone_uper (i:int) (ch:ChChildInfo) =
-                    sprintf "ChoiceIndex = %d" i
+                    let index = children |> Seq.findIndex (fun z -> z.Name.Value = ch.Name.Value) 
+                    sprintf "ChoiceIndex = %d" index
+                    //sprintf "ChoiceIndex = %d" i
                 let EmitChild (i:int) (ch:ChChildInfo) = EmitSeqOrChoiceChild i ch  getPresenceWhenNone_uper
                 let arChildren = children |> Seq.mapi(fun i ch -> EmitChild (2 + i) ch) |> Seq.toList
                 ChIndex::arChildren
             | CEC_enum    (r,d)     -> 
                 let getPresence (i:int) (ch:ChChildInfo) =
-                    sprintf "%s = %s" d.id.AsString ch.Name.Value
+                    let refToStr id =
+                        match id with
+                        | ReferenceToType sn -> sn |> List.rev |> List.head |> (fun x -> x.AsString) 
+
+                    sprintf "%s = %s" (refToStr d.id) ch.Name.Value
                 let EmitChild (i:int) (ch:ChChildInfo) = EmitSeqOrChoiceChild i ch  getPresence
                 children |> Seq.mapi(fun i ch -> EmitChild (1 + i) ch) |> Seq.toList
             | CEC_presWhen      -> 
@@ -342,7 +349,7 @@ let rec printType stgFileName (tas:GenerateUperIcd.IcdTypeAssignment) (t:Asn1Typ
                         | Asn1AcnAst.NegInf(_)                     -> raise(BugErrorException "")
                         | Asn1AcnAst.PosInf(b)                     ->  8I, 16I
                         | Asn1AcnAst.Full                          -> 8I, 16I
-                    let comment = "Special field used by PER to indicate the number of items present in the array."
+                    let comment = "Special field used by ACN to indicate the number of items present in the array."
                     let ret = t.ConstraintsAsn1Str |> Seq.StrJoin "" //+++ t.Constraints |> Seq.map PrintAsn1.PrintConstraint |> Seq.StrJoin "" 
                     let sCon = ( if ret.Trim() ="" then "N.A." else ret)
 

@@ -219,6 +219,7 @@ EmmitChoiceChild(sCssClass, nIndex, sName, sComment,  sType, sConstraint, sMin, 
 <td class="no">$nIndex$</td>
 <td class="field">$sName$</td>
 <td class="comment">$sComment$</td>
+<td class="optional">always</td>
 <td class="type">$sType$</td>
 <td class="constraint">$sConstraint$</td>
 <td class="min">$sMin$</td>
