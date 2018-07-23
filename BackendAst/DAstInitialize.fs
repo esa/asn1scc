@@ -127,11 +127,12 @@ let createIA5StringInitFunc (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:As
     let i = sprintf "i%d" ii
     //let visibleChars = o.uperCharSet |> Seq.filter(fun c -> not (System.Char.IsControl c))
     let bAlpha = o.uperCharSet.Length < 128
+    let td = o.typeDef.[l]
     let arrAsciiCodes = o.uperCharSet |> Array.map(fun x -> BigInteger (System.Convert.ToInt32 x))
     let testCaseFuncs = 
         let seqOfCase (nSize:BigInteger)  = 
             let initTestCaseFunc (p:CallerScope) = 
-                let funcBody = initTestCaseIA5String p.arg.p (p.arg.getAcces l) (nSize) ((o.maxSize+1I)) i (typeDefinition.longTypedefName l) bAlpha arrAsciiCodes (BigInteger arrAsciiCodes.Length) false
+                let funcBody = initTestCaseIA5String p.arg.p (p.arg.getAcces l) (nSize) ((o.maxSize+1I)) i td bAlpha arrAsciiCodes (BigInteger arrAsciiCodes.Length) false
                 {InitFunctionResult.funcBody = funcBody; localVariables=[SequenceOfIndex (ii, None)]}
             {AutomaticTestCase.initTestCaseFunc = initTestCaseFunc; testCase = Map.ofList [(t.id, TcvSizeableTypeValue nSize)] }
         seq {
@@ -142,7 +143,7 @@ let createIA5StringInitFunc (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:As
                 yield seqOfCase o.maxSize 
         } |> Seq.toList
     let zero (p:CallerScope) = 
-        let funcBody = initTestCaseIA5String p.arg.p (p.arg.getAcces l) ( (o.maxSize+1I)) ( (o.maxSize+1I)) i (typeDefinition.longTypedefName l) bAlpha arrAsciiCodes (BigInteger arrAsciiCodes.Length) true
+        let funcBody = initTestCaseIA5String p.arg.p (p.arg.getAcces l) ( (o.maxSize+1I)) ( (o.maxSize+1I)) i td bAlpha arrAsciiCodes (BigInteger arrAsciiCodes.Length) true
         let lvars = match l with C -> [] | Ada -> [SequenceOfIndex (ii, None)]
         {InitFunctionResult.funcBody = funcBody; localVariables=lvars}
     createInitFunctionCommon r l t typeDefinition funcBody iv zero testCaseFuncs

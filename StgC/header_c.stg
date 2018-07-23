@@ -35,16 +35,27 @@ extern "C" {
 #endif
 >>
 
+Define_TAS(sTypeDefinition, arrsProcs) ::= <<
+<sTypeDefinition>
+
+<arrsProcs; separator="\n\n">
+>>
+
+PrintValueAssignment(sTypeDecl, sName) ::= "extern const <sTypeDecl> <sName>;"
+
+
 /*
 C TYPES 
 */
 
+Declare_Integer() ::="asn1SccSint"
+Declare_PosInteger() ::="asn1SccUint"
 
-Define_Type(sTypeDefinitionBody, sTypeDefinitionName, noArrLength, arrsChildldrenDefintions) ::= <<
-<arrsChildldrenDefintions; separator= "\n">
-
-typedef <sTypeDefinitionBody> <sTypeDefinitionName><if(noArrLength)>[<noArrLength>]<endif>;
->>
+Declare_Boolean() ::= "flag"
+Declare_Real() ::= "double"
+Declare_IA5String() ::= "char"
+Declare_NumericString() ::= "char"
+Declare_NullType() ::= "NullType"
 
 
 Define_SubType(sTypeDefinitionName, soParentTypePackage, sParentType, soNewRange, soExtraDefs) ::= <<
@@ -53,95 +64,8 @@ typedef <sParentType> <sTypeDefinitionName>;
 >>
 
 
-Declare_Integer() ::="asn1SccSint"
-Declare_PosInteger() ::="asn1SccUint"
-
-Declare_Boolean() ::= "flag"
-
-Declare_Real() ::= "double"
-
-Declare_IA5String() ::= "char"
-Declare_NumericString() ::= "char"
-
-Declare_NullType() ::= "NullType"
 
 
-
-Declare_BitString(bIsFixeSize, nMaxOctets, nMaxBits) ::= <<
-struct {
-<if(!bIsFixeSize)>
-    int nCount; /*Number of bits in the array. Max value is : <nMaxBits> */
-
-<endif>    
-    byte arr[<nMaxOctets>];
-}
->>
-
-Declare_OctetString(bIsFixeSize, nMaxOctets) ::= <<
-struct {
-<if(!bIsFixeSize)>
-    int nCount; 
-
-<endif>    
-    byte arr[<nMaxOctets>];
-}
->>
-
-PrintNamedItem(sName, nValue) ::= "<sName> = <nValue>"
-
-Declare_Enumerated(arrsItems) ::= <<
-enum {
-    <arrsItems:{it|<it>}; separator=",\n">
-}
->>
-
-
-PrintSeq_ChoiceChild(sTypeDecl, sName, sArrayPostfix) ::= "<sTypeDecl> <sName><sArrayPostfix>;"
-
-Declare_Choice(sChoiceIDForNone, arrsEnmItems, arrsChildren) ::= <<
-struct {
-    enum {
-        <sChoiceIDForNone>,
-        <arrsEnmItems:{ch|<ch>}; separator=",\n"> 
-    } kind;
-    union {
-        <arrsChildren:{ch|<ch>}; separator="\n">
-    } u; 
-}
->>
-
-Declare_Sequence(arrsChildren, arrsOptionalChildren) ::= <<
-struct {
-    <arrsChildren:{ch|<ch>}; separator="\n">
-    <if (arrsOptionalChildren)>
-    struct {
-        <arrsOptionalChildren:{ch|unsigned int <ch>:1;}; separator="\n">
-    } exist;
-    <endif>
-}
->>
-
-
-
-Declare_SequenceOf(bIsFixedSize, sTypeDecl, nLength, sArrayPostfix) ::= <<
-struct {<if(!bIsFixedSize)>
-    int nCount; 
-
-<endif>    
-    <sTypeDecl> arr[<nLength>]<sArrayPostfix>;
-}
->>
-
-
-
-Define_TAS(sTypeDefinition, arrsProcs) ::= <<
-<sTypeDefinition>
-
-<arrsProcs; separator="\n\n">
->>
-
-
-PrintValueAssignment(sTypeDecl, sName) ::= "extern const <sTypeDecl> <sName>;"
 
 /******************************************************************************************************************************/
 /***********************************       NEW TYPE DEFINITIONS    ************************************************************/

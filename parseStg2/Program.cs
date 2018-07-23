@@ -219,19 +219,19 @@ namespace parseStg2
             switch (run.Element("lang").Value.ToUpper())
             {
                 case "SPARK":
-                    lng = "ST.lang <- CommonTypes.ProgrammingLanguage.Spark";
+                    lng = "ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- false";
                     break;
                 case "C":
-                    lng = "ST.lang <- CommonTypes.ProgrammingLanguage.C";
+                    lng = "ST.lang <- CommonTypes.ProgrammingLanguage.C; ST.double2StringPlain <- false";
                     break;
                 case "ADA":
-                    lng = "ST.lang <- CommonTypes.ProgrammingLanguage.Ada";
+                    lng = "ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- false";
                     break;
                 case "HTML":
-                    lng = "ST.lang <- CommonTypes.ProgrammingLanguage.Html";
+                    lng = "ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true";
                     break;
                 default:
-                    lng = "ST.lang <- CommonTypes.ProgrammingLanguage.Unknown";
+                    lng = "ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true";
                     break;
             }
 
@@ -243,11 +243,11 @@ namespace parseStg2
                 return 1;
             }
 
-            if (File.Exists(outFileName) && File.GetLastWriteTimeUtc(outFileName) > File.GetLastWriteTimeUtc(inpFileName))
-            {
-                Console.WriteLine("Processing of file '{0}' skiped", inpFileName);
-                return 0;
-            }
+            //if (File.Exists(outFileName) && File.GetLastWriteTimeUtc(outFileName) > File.GetLastWriteTimeUtc(inpFileName))
+            //{
+            //    Console.WriteLine("Processing of file '{0}' skiped", inpFileName);
+            //    return 0;
+            //}
 
             var functions = Function.readFromFile(inpFileName);
 

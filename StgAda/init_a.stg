@@ -2,17 +2,34 @@ group a_init;
 
 rtlModuleName() ::= "adaasn1rtl"
 
+initTypeAssignment_def(sVarName, sStar, sFuncName, sTypeDefName) ::= <<
+function <sFuncName> return <sTypeDefName>;
+>>
+
+initTypeAssignment(sVarName, sStar, sFuncName, sTypeDefName, sContent, arrsLocalVariables) ::= <<
+function <sFuncName> return <sTypeDefName>
+is
+    <sVarName>: <sTypeDefName>;
+    <arrsLocalVariables; separator="\n">
+begin
+    <sContent>
+    return <sVarName>;
+end <sFuncName>;
+>>
+
+
+
 
 initInteger(p, nValue) ::= "<p> := <nValue>;"
 initReal(p, dValue) ::= "<p> := <dValue>;"
 initBoolean(p, bValue) ::= "<p> := <if(bValue)>TRUE<else>FALSE<endif>;"
 
-PrintStringValue(sValue, arrsNullChars)	::= "\"<sValue>\"<if(arrsNullChars)> & <arrsNullChars; wrap, anchor, separator=\" & \"><endif>"
 initIA5String(sPtr, sValue, arrsNullChars) ::= "<sPtr> := \"<sValue>\"<if(arrsNullChars)> & <arrsNullChars; wrap, anchor, separator=\" & \"><endif>;" 
 initEnumerated(sVal, sValue) ::= "<sVal> := <sValue>;"
 initNull(sVal)    ::= "<sVal> := 0;"
 
-initTestCaseIA5String(p, sAcc, nSize, nMaxSizePlusOne, i, sTasName, bAlpha, arrnAlphabetAsciiCodes, nAlphabetLength, bZero) ::= <<
+
+initTestCaseIA5String(p, sAcc, nSize, nMaxSizePlusOne, i, td/*:FE_StringTypeDefinition*/, bAlpha, arrnAlphabetAsciiCodes, nAlphabetLength, bZero) ::= <<
 <i> := 1;
 while <i>\<= <nMaxSizePlusOne> loop
     pragma Loop_Invariant (<i> >=1 and <i>\<=<nMaxSizePlusOne>);
@@ -22,7 +39,7 @@ while <i>\<= <nMaxSizePlusOne> loop
     <else>
     if <i> \<= <nSize> then
     <if(bAlpha)>
-        <p>(<i>) := <sTasName>_alpha_set( ((<i>-1) mod <sTasName>_alpha_set'Last) + 1 );
+        <p>(<i>) := <td.alpha_set>( ((<i>-1) mod <td.alpha_set>'Last) + 1 );
 
     <else>
         <p>(<i>) := Character'Val(Integer'Pos( if ((<i>-1) mod 128) = 0 then 65 else (<i>-1) mod 128));
@@ -151,21 +168,6 @@ begin
 end;
 >>
 
-
-initTypeAssignment_def(sVarName, sStar, sFuncName, sTypeDefName) ::= <<
-function <sFuncName> return <sTypeDefName>;
->>
-
-initTypeAssignment(sVarName, sStar, sFuncName, sTypeDefName, sContent, arrsLocalVariables) ::= <<
-function <sFuncName> return <sTypeDefName>
-is
-    <sVarName>: <sTypeDefName>;
-    <arrsLocalVariables; separator="\n">
-begin
-    <sContent>
-    return <sVarName>;
-end <sFuncName>;
->>
 
 
 initChildWithInitFunc(p, sChildInitFuncName) ::= <<

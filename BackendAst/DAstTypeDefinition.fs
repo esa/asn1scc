@@ -11,10 +11,6 @@ open DAstUtilFunctions
 open Asn1Fold
 
 
-let ll l =
-    match l with
-    |C      -> CommonTypes.ProgrammingLanguage.C
-    |Ada    -> CommonTypes.ProgrammingLanguage.Ada
 
     
 let createInteger (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1AcnAst.Asn1Type)  (o:Asn1AcnAst.Integer)   (us:State) =
@@ -33,7 +29,7 @@ let createInteger (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1AcnAst.A
         | PosInf (a)                  ->  Some (define_SubType_int_range soInheritParentTypePackage sInheritParentType (Some a) None)
         | Full                        ->  None
 
-    let td = o.typeDef.[ll l]
+    let td = o.typeDef.[l]
     match td.kind with
     | PrimitiveNewTypeDefinition              -> //TypeDefinition {TypeDefinition.typedefName=td.typeName; (*programUnitName = Some programUnit;*) typedefBody = (fun () -> typedefBody); baseType= None}
         let baseType = if o.isUnsigned then declare_PosIntegerNoRTL() else declare_IntegerNoRTL()
@@ -51,7 +47,7 @@ let createBoolean (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1AcnAst.A
     let getRtlTypeName  = match l with C -> header_c.Declare_Boolean  | Ada -> header_a.Declare_BOOLEANNoRTL 
     let defineSubType l = match l with C -> header_c.Define_SubType | Ada -> header_a.Define_SubType
     let rtlModuleName  = match l with C -> None                                          | Ada -> Some (header_a.rtlModuleName())
-    let td = o.typeDef.[ll l]
+    let td = o.typeDef.[l]
     match td.kind with
     | PrimitiveNewTypeDefinition              -> 
         let baseType = getRtlTypeName()
@@ -68,7 +64,7 @@ let createReal (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1AcnAst.Asn1
     let getRtlTypeName  = match l with C -> header_c.Declare_Real  | Ada -> header_a.Declare_REALNoRTL 
     let defineSubType l = match l with C -> header_c.Define_SubType | Ada -> header_a.Define_SubType
     let rtlModuleName  = match l with C -> None                                          | Ada -> Some (header_a.rtlModuleName())
-    let td = o.typeDef.[ll l]
+    let td = o.typeDef.[l]
     match td.kind with
     | PrimitiveNewTypeDefinition              -> 
         let baseType = getRtlTypeName()
@@ -86,7 +82,7 @@ let createNull (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage)  (t:Asn1AcnAst.Asn
     let getRtlTypeName  = match l with C -> header_c.Declare_NullType  | Ada -> header_a.Declare_NULLNoRTL 
     let defineSubType l = match l with C -> header_c.Define_SubType | Ada -> header_a.Define_SubType
     let rtlModuleName  = match l with C -> None                                          | Ada -> Some (header_a.rtlModuleName())
-    let td = o.typeDef.[ll l]
+    let td = o.typeDef.[l]
     match td.kind with
     | PrimitiveNewTypeDefinition              -> 
         let baseType = getRtlTypeName()
@@ -104,7 +100,7 @@ let createString (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage)  (t:Asn1AcnAst.A
     let define_new_ia5string        = match l with C -> header_c.Define_new_ia5string | Ada -> header_a.Define_new_ia5string
     let define_subType_ia5string    = match l with C -> header_c.Define_subType_ia5string | Ada -> header_a.Define_subType_ia5string
 
-    let td = o.typeDef.[ll l]
+    let td = o.typeDef.[l]
     match td.kind with
     | NonPrimitiveNewTypeDefinition              -> 
         let completeDefintion = define_new_ia5string td (o.minSize) (o.maxSize) ((o.maxSize + 1I)) arrnAlphaChars
@@ -116,7 +112,7 @@ let createString (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage)  (t:Asn1AcnAst.A
     | NonPrimitiveReference2OtherType            -> None
 
 let createOctetString (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage)  (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.OctetString)  (us:State) =
-    let td = o.typeDef.[ll l]
+    let td = o.typeDef.[l]
     let define_new_octet_string        = match l with C -> header_c.Define_new_octet_string | Ada -> header_a.Define_new_octet_string
     let define_subType_octet_string    = match l with C -> header_c.Define_subType_octet_string | Ada -> header_a.Define_subType_octet_string
     match td.kind with
@@ -132,7 +128,7 @@ let createOctetString (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage)  (t:Asn1Acn
 
 
 let createBitString (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage)  (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.BitString)  (us:State) =
-    let td = o.typeDef.[ll l]
+    let td = o.typeDef.[l]
     let define_new_bit_string        = match l with C -> header_c.Define_new_bit_string | Ada -> header_a.Define_new_bit_string
     let define_subType_bit_string    = match l with C -> header_c.Define_subType_bit_string | Ada -> header_a.Define_subType_bit_string
     match td.kind with
@@ -148,7 +144,7 @@ let createBitString (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage)  (t:Asn1AcnAs
 
 
 let createEnumerated (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage)  (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Enumerated)  (us:State) =
-    let td = o.typeDef.[ll l]
+    let td = o.typeDef.[l]
     let define_new_enumerated_item        = match l with C -> header_c.Define_new_enumerated_item | Ada -> header_a.Define_new_enumerated_item
     let define_new_enumerated        = match l with C -> header_c.Define_new_enumerated | Ada -> header_a.Define_new_enumerated
     let define_subType_enumerated    = match l with C -> header_c.Define_subType_enumerated | Ada -> header_a.Define_subType_enumerated
@@ -176,7 +172,7 @@ let internal getChildDefinition (childDefinition:TypeDefintionOrReference) =
 let createSequenceOf (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.SequenceOf)  (childDefinition:TypeDefintionOrReference) (us:State) =
     let define_new_sequence_of        = match l with C -> header_c.Define_new_sequence_of | Ada -> header_a.Define_new_sequence_of
     let define_subType_sequence_of    = match l with C -> header_c.Define_subType_sequence_of | Ada -> header_a.Define_subType_sequence_of
-    let td = o.typeDef.[ll l]
+    let td = o.typeDef.[l]
 
     match td.kind with
     | NonPrimitiveNewTypeDefinition              -> 
@@ -200,7 +196,7 @@ let createSequence (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1AcnAst.
     let optionalChildren = children |> List.choose(fun c -> match c.Optionality with Some _ -> Some c | None -> None)
     let optChildNames  = optionalChildren |> List.map(fun c -> c.getBackendName l)
     let childldrenCompleteDefintions = children |> List.choose (fun c -> getChildDefinition c.Type.typeDefintionOrReference)
-    let td = o.typeDef.[ll l]
+    let td = o.typeDef.[l]
 
     let arrsChildren = children |> List.map (fun o -> define_new_sequence_child (o.getBackendName l) (o.Type.typeDefintionOrReference.longTypedefName l))
     let arrsOptionalChildren  = optionalChildren |> List.map(fun c -> define_new_sequence_child_bit (c.getBackendName l))
@@ -225,7 +221,7 @@ let createChoice (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1AcnAst.As
     let define_subType_choice         = match l with C -> header_c.Define_subType_choice        | Ada -> header_a.Define_subType_choice
 
 
-    let td = o.typeDef.[ll l]
+    let td = o.typeDef.[l]
     let childldrenCompleteDefintions = children |> List.choose (fun c -> getChildDefinition c.chType.typeDefintionOrReference)
     let arrsPresent = children |> List.map(fun c -> c.presentWhenName None l)
     let arrsChildren = children |> List.map (fun o -> define_new_choice_child (o.getBackendName l)  (o.chType.typeDefintionOrReference.longTypedefName l) (o.presentWhenName None l))
@@ -245,10 +241,10 @@ let createChoice (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1AcnAst.As
 ////////////////////////////////
 
 
-let createInteger_u (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage)  (pi : Asn1Fold.ParentInfo<ParentInfoData> option) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Integer)  (us:State) =
+let createInteger_u (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage)   (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Integer)  (us:State) =
     let aaa = createInteger r l t o us
     let programUnit = ToC t.id.ModName
-    let td = o.typeDef.[ll l]
+    let td = o.typeDef.[l]
     match td.kind with
     | PrimitiveNewTypeDefinition              -> 
         TypeDefinition {TypeDefinition.typedefName = td.typeName; typedefBody = (fun () -> aaa.Value); baseType=None}
@@ -260,10 +256,10 @@ let createInteger_u (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage)  (pi : Asn1Fo
     | PrimitiveReference2OtherType            -> 
         ReferenceToExistingDefinition {ReferenceToExistingDefinition.programUnit =  (if td.programUnit = programUnit then None else Some td.programUnit); typedefName= td.typeName; definedInRtl = false}
 
-let createReal_u (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage)  (pi : Asn1Fold.ParentInfo<ParentInfoData> option) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Real)  (us:State) =
+let createReal_u (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage)   (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Real)  (us:State) =
     let aaa = createReal r l t o us
     let programUnit = ToC t.id.ModName
-    let td = o.typeDef.[ll l]
+    let td = o.typeDef.[l]
     match td.kind with
     | PrimitiveNewTypeDefinition              -> 
         TypeDefinition {TypeDefinition.typedefName = td.typeName; typedefBody = (fun () -> aaa.Value); baseType=None}
@@ -275,10 +271,10 @@ let createReal_u (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage)  (pi : Asn1Fold.
     | PrimitiveReference2OtherType            -> 
         ReferenceToExistingDefinition {ReferenceToExistingDefinition.programUnit =  (if td.programUnit = programUnit then None else Some td.programUnit); typedefName= td.typeName; definedInRtl = false}
 
-let createBoolean_u (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage)  (pi : Asn1Fold.ParentInfo<ParentInfoData> option) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Boolean)  (us:State) =
+let createBoolean_u (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage)   (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Boolean)  (us:State) =
     let aaa = createBoolean r l t o us
     let programUnit = ToC t.id.ModName
-    let td = o.typeDef.[ll l]
+    let td = o.typeDef.[l]
     match td.kind with
     | PrimitiveNewTypeDefinition              -> 
         TypeDefinition {TypeDefinition.typedefName = td.typeName; typedefBody = (fun () -> aaa.Value); baseType=None}
@@ -290,10 +286,10 @@ let createBoolean_u (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage)  (pi : Asn1Fo
     | PrimitiveReference2OtherType            -> 
         ReferenceToExistingDefinition {ReferenceToExistingDefinition.programUnit =  (if td.programUnit = programUnit then None else Some td.programUnit); typedefName= td.typeName; definedInRtl = false}
 
-let createNull_u (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage)  (pi : Asn1Fold.ParentInfo<ParentInfoData> option) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.NullType)  (us:State) =
+let createNull_u (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage)   (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.NullType)  (us:State) =
     let aaa = createNull r l t o us
     let programUnit = ToC t.id.ModName
-    let td = o.typeDef.[ll l]
+    let td = o.typeDef.[l]
     match td.kind with
     | PrimitiveNewTypeDefinition              -> 
         TypeDefinition {TypeDefinition.typedefName = td.typeName; typedefBody = (fun () -> aaa.Value); baseType=None}
@@ -305,10 +301,10 @@ let createNull_u (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage)  (pi : Asn1Fold.
     | PrimitiveReference2OtherType            -> 
         ReferenceToExistingDefinition {ReferenceToExistingDefinition.programUnit =  (if td.programUnit = programUnit then None else Some td.programUnit); typedefName= td.typeName; definedInRtl = false}
 
-let createOctetString_u (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage)  (pi : Asn1Fold.ParentInfo<ParentInfoData> option) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.OctetString)  (us:State) =
+let createOctetString_u (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage)   (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.OctetString)  (us:State) =
     let aaa = createOctetString r l t o us
     let programUnit = ToC t.id.ModName
-    let td = o.typeDef.[ll l]
+    let td = o.typeDef.[l]
     match td.kind with
     | NonPrimitiveNewTypeDefinition              -> 
         TypeDefinition {TypeDefinition.typedefName = td.typeName; typedefBody = (fun () -> aaa.Value); baseType=None}
@@ -319,10 +315,10 @@ let createOctetString_u (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage)  (pi : As
         ReferenceToExistingDefinition {ReferenceToExistingDefinition.programUnit =  (if td.programUnit = programUnit then None else Some td.programUnit); typedefName= td.typeName; definedInRtl = false}
 
 
-let createBitString_u (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage)  (pi : Asn1Fold.ParentInfo<ParentInfoData> option) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.BitString)  (us:State) =
+let createBitString_u (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage)   (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.BitString)  (us:State) =
     let aaa = createBitString r l t o us
     let programUnit = ToC t.id.ModName
-    let td = o.typeDef.[ll l]
+    let td = o.typeDef.[l]
     match td.kind with
     | NonPrimitiveNewTypeDefinition              -> 
         TypeDefinition {TypeDefinition.typedefName = td.typeName; typedefBody = (fun () -> aaa.Value); baseType=None}
@@ -333,10 +329,10 @@ let createBitString_u (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage)  (pi : Asn1
         ReferenceToExistingDefinition {ReferenceToExistingDefinition.programUnit =  (if td.programUnit = programUnit then None else Some td.programUnit); typedefName= td.typeName; definedInRtl = false}
     
 
-let createString_u (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (pi : Asn1Fold.ParentInfo<ParentInfoData> option) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.StringType)  (us:State) =
+let createString_u (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage)  (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.StringType)  (us:State) =
     let aaa = createString r l t o us
     let programUnit = ToC t.id.ModName
-    let td = o.typeDef.[ll l]
+    let td = o.typeDef.[l]
     match td.kind with
     | NonPrimitiveNewTypeDefinition              -> 
         TypeDefinition {TypeDefinition.typedefName = td.typeName; typedefBody = (fun () -> aaa.Value); baseType=None}
@@ -347,10 +343,10 @@ let createString_u (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (pi : Asn1Fold
         ReferenceToExistingDefinition {ReferenceToExistingDefinition.programUnit =  (if td.programUnit = programUnit then None else Some td.programUnit); typedefName= td.typeName; definedInRtl = false}
 
 
-let createEnumerated_u (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (pi : Asn1Fold.ParentInfo<ParentInfoData> option) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Enumerated)  (us:State) =
+let createEnumerated_u (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage)  (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Enumerated)  (us:State) =
     let aaa = createEnumerated r l t o us
     let programUnit = ToC t.id.ModName
-    let td = o.typeDef.[ll l]
+    let td = o.typeDef.[l]
     match td.kind with
     | NonPrimitiveNewTypeDefinition              -> 
         TypeDefinition {TypeDefinition.typedefName = td.typeName; typedefBody = (fun () -> aaa.Value); baseType=None}
@@ -361,10 +357,10 @@ let createEnumerated_u (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (pi : Asn1
         ReferenceToExistingDefinition {ReferenceToExistingDefinition.programUnit =  (if td.programUnit = programUnit then None else Some td.programUnit); typedefName= td.typeName; definedInRtl = false}
 
 
-let createSequenceOf_u (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (pi : Asn1Fold.ParentInfo<ParentInfoData> option) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.SequenceOf)  (childDefinition:TypeDefintionOrReference) (us:State) =
+let createSequenceOf_u (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage)  (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.SequenceOf)  (childDefinition:TypeDefintionOrReference) (us:State) =
     let aaa = createSequenceOf r l t o  childDefinition us
     let programUnit = ToC t.id.ModName
-    let td = o.typeDef.[ll l]
+    let td = o.typeDef.[l]
     match td.kind with
     | NonPrimitiveNewTypeDefinition              -> 
         TypeDefinition {TypeDefinition.typedefName = td.typeName; typedefBody = (fun () -> aaa.Value); baseType=None}
@@ -375,10 +371,10 @@ let createSequenceOf_u (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (pi : Asn1
         ReferenceToExistingDefinition {ReferenceToExistingDefinition.programUnit =  (if td.programUnit = programUnit then None else Some td.programUnit); typedefName= td.typeName; definedInRtl = false}
 
 
-let createSequence_u (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (pi : Asn1Fold.ParentInfo<ParentInfoData> option) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Sequence)  (children:SeqChildInfo list) (us:State) =
+let createSequence_u (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage)  (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Sequence)  (children:SeqChildInfo list) (us:State) =
     let aaa = createSequence r l t o  children us
     let programUnit = ToC t.id.ModName
-    let td = o.typeDef.[ll l]
+    let td = o.typeDef.[l]
     match td.kind with
     | NonPrimitiveNewTypeDefinition              -> 
         TypeDefinition {TypeDefinition.typedefName = td.typeName; typedefBody = (fun () -> aaa.Value); baseType=None}
@@ -388,10 +384,10 @@ let createSequence_u (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (pi : Asn1Fo
     | NonPrimitiveReference2OtherType            -> 
         ReferenceToExistingDefinition {ReferenceToExistingDefinition.programUnit =  (if td.programUnit = programUnit then None else Some td.programUnit); typedefName= td.typeName; definedInRtl = false}
 
-let createChoice_u (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (pi : Asn1Fold.ParentInfo<ParentInfoData> option) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Choice)  (children:ChChildInfo list) (us:State) =
+let createChoice_u (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage)  (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Choice)  (children:ChChildInfo list) (us:State) =
     let aaa = createChoice r l t o  children us
     let programUnit = ToC t.id.ModName
-    let td = o.typeDef.[ll l]
+    let td = o.typeDef.[l]
     match td.kind with
     | NonPrimitiveNewTypeDefinition              -> 
         TypeDefinition {TypeDefinition.typedefName = td.typeName; typedefBody = (fun () -> aaa.Value); baseType=None}

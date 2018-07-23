@@ -22,7 +22,9 @@ open System.IO
 type dummy = 
     | Dummy1 
 
-let mutable lang:CommonTypes.ProgrammingLanguage = CommonTypes.ProgrammingLanguage.Unknown
+let mutable lang:CommonTypes.ProgrammingLanguage = CommonTypes.ProgrammingLanguage.Ada
+let mutable double2StringPlain :bool = false 
+
 type StrHelper =
     StrHelper of string
     with 
@@ -81,9 +83,9 @@ type RealFormatRenderer() =
         member this.ToString (o:Object) = 
             let v = o :?> double
             let result = 
-                match lang with
-                | CommonTypes.Html  -> v.ToString()
-                | _         -> v.ToString("E20", NumberFormatInfo.InvariantInfo)
+                match double2StringPlain with
+                | true      -> v.ToString()
+                | false     -> v.ToString("E20", NumberFormatInfo.InvariantInfo)
 //            String.Format(NumberFormatInfo.InvariantInfo, "{0}", o)
 //            if ((v%1.0) = 0.0) && not(result.Contains("E")) then
 //                result + ".0"

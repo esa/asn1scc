@@ -30,12 +30,10 @@ let private reserveTypeDefinitionName (allocatedTypeNames : (ProgrammingLanguage
                 match allocatedTypeNames |> Seq.exists(fun (cl, cp, ct) -> cl = l && cp = programUnit && ct = proposedTypeDefName) with
                 | false -> getValidTypeDefname (programUnit + "_" + proposedTypeDefName ) 
                 | true  -> getValidTypeDefname (getNextCount proposedTypeDefName ) 
-        | Spark
         | Ada   ->  
             match allocatedTypeNames  |> Seq.exists(fun (cl, cp, ct) -> cl = l && cp.ToUpper() = programUnit.ToUpper() && ct.ToUpper() = proposedTypeDefName.ToUpper()) with
             | false -> proposedTypeDefName
             | true  -> getValidTypeDefname (getNextCount proposedTypeDefName  ) 
-        | _     -> proposedTypeDefName
     
     let validTypeDefname = getValidTypeDefname proposedTypeDefName 
     validTypeDefname, (l, programUnit, validTypeDefname)::allocatedTypeNames

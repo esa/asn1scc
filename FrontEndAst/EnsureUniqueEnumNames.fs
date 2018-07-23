@@ -93,10 +93,8 @@ let rec private handleSequencesAndChoices (r:AstRoot) (lang:ProgrammingLanguage)
                                     let conflictingTas =
                                         match lang with
                                         | ProgrammingLanguage.C     -> None
-                                        | ProgrammingLanguage.Spark
                                         | ProgrammingLanguage.Ada   ->
                                             m.TypeAssignments |> Seq.tryFind(fun tas -> lang.cmp (ToC (x.CName lang)) (ToC r.args.TypePrefix + tas.Name.Value) )
-                                        | _                         -> None
                                     match isKeyword , conflictingTas with
                                     | true, _       -> Some {curChildName = (x.CName lang); reasonToChange = FieldIsKeyword}
                                     | false, (Some tas)   -> Some {curChildName = (x.CName lang); reasonToChange = (FieldIsAlsoType tas.Name.Value)}
@@ -127,9 +125,8 @@ let rec private handleSequencesAndChoices (r:AstRoot) (lang:ProgrammingLanguage)
                             fieldName
             
                     match lang with
-                    | ProgrammingLanguage.C-> {ch with Type = t; c_name = ToC2 newUniqueName},ns
-                    | ProgrammingLanguage.Ada | ProgrammingLanguage.Spark   -> {ch with Type = t; ada_name = ToC2 newUniqueName},ns
-                    | _                                                     -> ch, state
+                    | ProgrammingLanguage.C     -> {ch with Type = t; c_name = ToC2 newUniqueName},ns
+                    | ProgrammingLanguage.Ada   -> {ch with Type = t; ada_name = ToC2 newUniqueName},ns
 
                 match old.Kind with
                 | Choice(children)    
@@ -153,9 +150,8 @@ let rec private handleSequencesAndChoices (r:AstRoot) (lang:ProgrammingLanguage)
                         match lang with
                         | ProgrammingLanguage.C-> 
                             children |> List.map(fun ch -> {ch with c_name = ToC (userValue + ch.c_name)})
-                        | ProgrammingLanguage.Ada | ProgrammingLanguage.Spark   -> 
+                        | ProgrammingLanguage.Ada   -> 
                             children |> List.map(fun ch -> {ch with ada_name = ToC(userValue + ch.ada_name)})
-                        | _                                                     -> raise(BugErrorException "handleSequences")
                             
                     newChildren, state
                 match old.Kind with
@@ -186,9 +182,7 @@ let rec private handleEnums (r:AstRoot) (renamePolicy:EnumRenamePolicy) (lang:Pr
     let doubleEnumNames = 
         match lang with
         | ProgrammingLanguage.C     -> doubleEnumNames0 @ CheckAsn1.c_keywords|> List.keepDuplicates
-        | ProgrammingLanguage.Ada   
-        | ProgrammingLanguage.Spark -> doubleEnumNames0 @ CheckAsn1.ada_keywords |> List.keepDuplicatesI
-        | _                         -> doubleEnumNames0
+        | ProgrammingLanguage.Ada   -> doubleEnumNames0 @ CheckAsn1.ada_keywords |> List.keepDuplicatesI
 
 
     match doubleEnumNames with
@@ -206,8 +200,7 @@ let rec private handleEnums (r:AstRoot) (renamePolicy:EnumRenamePolicy) (lang:Pr
                             newPrefix + "_" + (old.EnumName lang)
                     match lang with
                     | ProgrammingLanguage.C     ->      {old with c_name=newUniqueName}
-                    | ProgrammingLanguage.Ada | ProgrammingLanguage.Spark   -> {old with ada_name=newUniqueName}
-                    | _                                                     -> raise(BugErrorException "handleEnums")
+                    | ProgrammingLanguage.Ada   -> {old with ada_name=newUniqueName}
                 let newItems = 
                     match renamePolicy with
                     | NoRenamePolicy           -> itesm
@@ -216,9 +209,8 @@ let rec private handleEnums (r:AstRoot) (renamePolicy:EnumRenamePolicy) (lang:Pr
                         let newPrefix = itesm|> List.map copyItem |> List.map(fun itm -> (itm.EnumName lang).Replace(ToC2 itm.Name.Value,"")) |> List.maxBy(fun prf -> prf.Length)
                         match lang with
                         | ProgrammingLanguage.C->  itesm|> List.map (fun itm -> {itm with c_name = newPrefix + itm.c_name})
-                        | ProgrammingLanguage.Ada | ProgrammingLanguage.Spark   -> 
+                        | ProgrammingLanguage.Ada -> 
                             itesm|> List.map (fun itm -> {itm with ada_name = newPrefix + itm.ada_name})
-                        | _ -> raise(BugErrorException "handleEnums")
 
                 {old with Kind =  Enumerated(newItems)}, state
             | _             -> defaultConstructors.cloneType old m key cons state

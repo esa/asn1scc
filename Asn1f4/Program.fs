@@ -219,12 +219,12 @@ let constructCommandLineSettings args (parserResults: ParseResults<CliArguments>
     }    
 
 
-let exportRTL outDir  (l:DAst.ProgrammingLanguage) (args:CommandLineSettings)=
+let exportRTL outDir  (l:ProgrammingLanguage) (args:CommandLineSettings)=
     let writeTextFile fileName (content:String) =
         System.IO.File.WriteAllText(fileName, content.Replace("\r",""))
     let rm = new ResourceManager("Resource1", System.Reflection.Assembly.GetExecutingAssembly());
     match l with
-    | DAst.ProgrammingLanguage.C ->
+    | ProgrammingLanguage.C ->
                 writeTextFile (Path.Combine(outDir, "asn1crt.c")) (rm.GetString("asn1crt",null)) 
                 writeTextFile (Path.Combine(outDir, "asn1crt.h")) (rm.GetString("asn1crt1",null)) 
                 writeTextFile (Path.Combine(outDir, "acn.c"))     (rm.GetString("Acn",null)) 
@@ -232,7 +232,7 @@ let exportRTL outDir  (l:DAst.ProgrammingLanguage) (args:CommandLineSettings)=
                 match args.encodings |> Seq.exists ((=) Asn1Encoding.XER) with
                 | true  -> writeTextFile (Path.Combine(outDir, "xer.c"))  (rm.GetString("xer",null)) 
                 | false -> ()
-    | DAst.ProgrammingLanguage.Ada ->
+    | ProgrammingLanguage.Ada ->
                 writeTextFile (Path.Combine(outDir, "adaasn1rtl.adb")) (rm.GetString("adaasn1rtl_adb",null)) 
                 writeTextFile (Path.Combine(outDir, "adaasn1rtl.ads")) (rm.GetString("adaasn1rtl_ads",null)) 
                 writeTextFile (Path.Combine(outDir, "IgnoredExaminerWarnings.wrn"))     (rm.GetString("IgnoredExaminerWarnings",null)) 

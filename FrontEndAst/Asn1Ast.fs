@@ -365,24 +365,18 @@ let rec GetMySelfAndChildren (t:Asn1Type) =
 type ChildInfo with
     member c.CName (lang:ProgrammingLanguage) = 
         match lang with
-        | Ada   | Spark     -> c.ada_name
+        | Ada               -> c.ada_name
         | C                 -> c.c_name
-        | Html              -> raise(BugErrorException "invalid language")
-        | Unknown           -> raise(BugErrorException "invalid language")
 
 type NamedItem with
     member c.CEnumName (r:AstRoot) (lang:ProgrammingLanguage) = 
         match lang with
-        |Ada
-        |Spark  -> ToC2 (r.args.TypePrefix + c.ada_name)
+        |Ada    -> ToC2 (r.args.TypePrefix + c.ada_name)
         |C      -> ToC2 (r.args.TypePrefix + c.c_name)
-        | _     -> raise(BugErrorException "invalid language")
     member c.EnumName (lang:ProgrammingLanguage) = 
         match lang with
-        |Ada
-        |Spark  -> c.ada_name
+        |Ada    -> c.ada_name
         |C      -> c.c_name
-        | _     -> raise(BugErrorException "invalid language")
 
 let foldConstraint 
     singleValueFunc rangeContraintFunc rangeContraint_val_MAX rangeContraint_MIN_val rangeContraint_MIN_MAX

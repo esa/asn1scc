@@ -10,31 +10,19 @@ let ada_keyworkds =  [ "abort"; "else"; "new"; "return"; "abs"; "elsif"; "not"; 
 type ProgrammingLanguage =
     |C
     |Ada
-    |Spark
-    |Html
-    |Unknown
     with 
         member l.cmp (s1:string) (s2:string) =
             match l with
             |C          -> s1 = s2
-            |Ada
-            |Spark      -> s1.icompare s2
-            |Html       -> s1 = s2
-            |Unknown    -> s1 = s2
+            |Ada        -> s1.icompare s2
         member l.DefinitionsFileExt = 
             match l with
             |C          -> ".h"
-            |Ada
-            |Spark      -> ".ads"
-            |Html       -> ""
-            |Unknown    -> ""
+            |Ada        -> ".ads"
         member l.keywords = 
             match l with
             |C          -> c_keyworkds
-            |Ada
-            |Spark      -> ada_keyworkds
-            |Html       -> []
-            |Unknown    -> []
+            |Ada        -> ada_keyworkds
 
 type Codec =
     |Encode

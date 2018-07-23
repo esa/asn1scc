@@ -15,15 +15,15 @@ void <sFuncName>(<sTypeDefName><sStar> <sVarName>)
 >>
 
 
-
 initInteger(sVal, nValue) ::= "<sVal> = <nValue>;"
 initReal(sVal, dValue) ::= "<sVal> = <dValue>;"
 initBoolean(sVal, bValue) ::= "<sVal> = <if(bValue)>TRUE<else>FALSE<endif>;"
+
 initIA5String(sPtr, sValue, arrsNullChars) ::= "strcpy(<sPtr>,\"<sValue>\");"
 initEnumerated(sVal, sValue) ::= "<sVal> = <sValue>;"
 initNull(sVal)    ::= "<sVal> = 0;"
 
-initTestCaseIA5String(p, sAcc, nSize, nMaxSizePlusOne, i, sTasName, bAlpha, arrnAlphabetAsciiCodes, nAlphabetLength, bZero) ::= <<
+initTestCaseIA5String(p, sAcc, nSize, nMaxSizePlusOne, i, td/*:FE_StringTypeDefinition*/, bAlpha, arrnAlphabetAsciiCodes, nAlphabetLength, bZero) ::= <<
 <if(bZero)>
 memset(<p>, 0x0, <nMaxSizePlusOne>);
 

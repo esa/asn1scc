@@ -19,11 +19,6 @@ type State = {
 
 let emptyState = {curSeqOfLevel=0; currErrorCode=0; curErrCodeNames=Set.empty; allocatedTypeDefNames = []; allocatedTypeDefNameInTas = Map.empty}
 
-type ParentInfoData = {
-    program_unit_name : string
-    typedefName       : string
-    isRefType         : bool
-}
 
 
 
@@ -70,10 +65,6 @@ and Asn1ValueKind =
     | RefValue              of RefValue   
 
 //type Asn1GenericValue = Asn1Value
-
-type ProgrammingLanguage =
-    |C
-    |Ada
 
     
 type FuncParamType =
@@ -725,7 +716,7 @@ and Asn1Type = {
     typeAssignmentInfo  : AssignmentInfo option
 
     Kind            : Asn1TypeKind
-    parInfoData : Asn1Fold.ParentInfo<ParentInfoData> option
+    //parInfoData : Asn1Fold.ParentInfo<ParentInfoData> option
     //newTypeDefName  : string
 }
 

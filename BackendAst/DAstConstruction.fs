@@ -73,9 +73,11 @@ let private createAcnChild (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
         }
     AcnChild ret, ns3
 
+type ParentInfoData = unit
+
 let private createInteger (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (m:Asn1AcnAst.Asn1Module) (pi : Asn1Fold.ParentInfo<ParentInfoData> option) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Integer) (us:State) =
     //let typeDefinition = DAstTypeDefinition.createInteger  r l t o us
-    let defOrRef =  DAstTypeDefinition.createInteger_u r l pi t o us
+    let defOrRef =  DAstTypeDefinition.createInteger_u r l t o us
     let automaticTestCasesIntValues      = EncodeDecodeTestCase.IntegerAutomaticTestCaseValues r t o 
     let initialValue        = 
         match automaticTestCasesIntValues with
@@ -126,7 +128,7 @@ let private createInteger (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (m:Asn1
 
 let private createReal (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (m:Asn1AcnAst.Asn1Module) (pi : Asn1Fold.ParentInfo<ParentInfoData> option) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Real) (us:State) =
     //let typeDefinition = DAstTypeDefinition.createReal  r l t o us
-    let defOrRef            =  DAstTypeDefinition.createReal_u r l pi t o us
+    let defOrRef            =  DAstTypeDefinition.createReal_u r l t o us
     let equalFunction       = DAstEqual.createRealEqualFunction r l t o defOrRef 
     let initialValue        = getValueByUperRange o.uperRange 0.0
     let initFunction        = DAstInitialize.createRealInitFunc r l t o defOrRef (RealValue initialValue)
@@ -173,8 +175,8 @@ let private createStringType (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserted
     let newPrms, us0 = t.acnParameters |> foldMap(fun ns p -> mapAcnParameter r deps l m t p ns) us
     //let typeDefinition = DAstTypeDefinition.createString  r l t o us0
     
-    let defOrRef            =  DAstTypeDefinition.createString_u r l pi t o us0
-    //let defOrRef            =  DAstTypeDefinition.createString_u r l pi t o us0
+    let defOrRef            =  DAstTypeDefinition.createString_u r l t o us0
+    //let defOrRef            =  DAstTypeDefinition.createString_u r l t o us0
     
     let equalFunction       = DAstEqual.createStringEqualFunction r l t o defOrRef 
     let initialValue        =
@@ -224,7 +226,7 @@ let private createStringType (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserted
 let private createOctetString (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (l:ProgrammingLanguage) (m:Asn1AcnAst.Asn1Module) (pi : Asn1Fold.ParentInfo<ParentInfoData> option) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.OctetString) (us:State) =
     let newPrms, us0 = t.acnParameters |> foldMap(fun ns p -> mapAcnParameter r deps l m t p ns) us
     //let typeDefinition = DAstTypeDefinition.createOctet  r l t o us0
-    let defOrRef            =  DAstTypeDefinition.createOctetString_u r l pi t o us0
+    let defOrRef            =  DAstTypeDefinition.createOctetString_u r l t o us0
     let initialValue        =
         [1 .. int o.minSize] |> List.map(fun i -> 0uy)
     let equalFunction       = DAstEqual.createOctetStringEqualFunction r l t o defOrRef 
@@ -271,7 +273,7 @@ let private createOctetString (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserte
 
 let private createNullType (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (m:Asn1AcnAst.Asn1Module) (pi : Asn1Fold.ParentInfo<ParentInfoData> option) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.NullType) (us:State) =
     //let typeDefinition = DAstTypeDefinition.createNull  r l t o us
-    let defOrRef            =  DAstTypeDefinition.createNull_u r l pi t o us
+    let defOrRef            =  DAstTypeDefinition.createNull_u r l t o us
     let equalFunction       = DAstEqual.createNullTypeEqualFunction r l  t o defOrRef
     let initialValue        = ()
     let initFunction        = DAstInitialize.createNullTypeInitFunc r l t o defOrRef (NullValue initialValue)
@@ -311,7 +313,7 @@ let private createNullType (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (m:Asn
 let private createBitString (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (l:ProgrammingLanguage) (m:Asn1AcnAst.Asn1Module) (pi : Asn1Fold.ParentInfo<ParentInfoData> option) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.BitString) (us:State) =
     let newPrms, us0 = t.acnParameters |> foldMap(fun ns p -> mapAcnParameter r deps l m t p ns) us
     //let typeDefinition = DAstTypeDefinition.createBitString  r l t o us0
-    let defOrRef            =  DAstTypeDefinition.createBitString_u r l pi t o us
+    let defOrRef            =  DAstTypeDefinition.createBitString_u r l t o us
     let initialValue        =
         System.String('0', int o.minSize)
         
@@ -357,7 +359,7 @@ let private createBitString (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
 
 let private createBoolean (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (m:Asn1AcnAst.Asn1Module) (pi : Asn1Fold.ParentInfo<ParentInfoData> option) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Boolean) (us:State) =
     //let typeDefinition = DAstTypeDefinition.createBoolean  r l t o us
-    let defOrRef            =  DAstTypeDefinition.createBoolean_u r l pi t o us
+    let defOrRef            =  DAstTypeDefinition.createBoolean_u r l t o us
     let equalFunction       = DAstEqual.createBooleanEqualFunction r l t o defOrRef 
     let initialValue        = false
     let initFunction        = DAstInitialize.createBooleanInitFunc r l t o defOrRef (BooleanValue initialValue)
@@ -399,12 +401,9 @@ let private createBoolean (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (m:Asn1
 
 let private createEnumerated (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (m:Asn1AcnAst.Asn1Module) (pi : Asn1Fold.ParentInfo<ParentInfoData> option) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Enumerated) (us:State) =
     //let typeDefinition = DAstTypeDefinition.createEnumerated  r l t o us
-    let defOrRef            =  DAstTypeDefinition.createEnumerated_u r l pi t o us
+    let defOrRef            =  DAstTypeDefinition.createEnumerated_u r l t o us
     let equalFunction       = DAstEqual.createEnumeratedEqualFunction r l t o defOrRef 
-    let items = 
-        match o.userDefinedValues with
-        | true  -> o.items |> List.map( fun i -> header_c.PrintNamedItem (i.getBackendName (Some defOrRef) l) i.definitionValue)
-        | false ->o.items |> List.map( fun i -> i.getBackendName (Some defOrRef) l)
+
     let initialValue  =o.items.Head.Name.Value
     let initFunction        = DAstInitialize.createEnumeratedInitFunc r l t o  defOrRef (EnumValue initialValue)
     let isValidFunction, s1     = DAstValidate.createEnumeratedFunction r l t o defOrRef defOrRef us
@@ -448,7 +447,7 @@ let private createEnumerated (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (m:A
 
 let private createSequenceOf (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (l:ProgrammingLanguage) (m:Asn1AcnAst.Asn1Module) (pi : Asn1Fold.ParentInfo<ParentInfoData> option) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.SequenceOf) (childType:Asn1Type, us:State) =
     let newPrms, us0 = t.acnParameters |> foldMap(fun ns p -> mapAcnParameter r deps l m t p ns) us
-    let defOrRef            =  DAstTypeDefinition.createSequenceOf_u r l pi t o  childType.typeDefintionOrReference us0
+    let defOrRef            =  DAstTypeDefinition.createSequenceOf_u r l t o  childType.typeDefintionOrReference us0
     //let typeDefinition = DAstTypeDefinition.createSequenceOf r l t o childType.typeDefinition us0
     let equalFunction       = DAstEqual.createSequenceOfEqualFunction r l t o defOrRef childType
     let initialValue =
@@ -513,7 +512,7 @@ let private createAsn1Child (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (m:As
 let private createSequence (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (l:ProgrammingLanguage) (m:Asn1AcnAst.Asn1Module) (pi : Asn1Fold.ParentInfo<ParentInfoData> option) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Sequence) (children:SeqChildInfo list, us:State) =
     let newPrms, us0 = t.acnParameters |> foldMap(fun ns p -> mapAcnParameter r deps l m t p ns) us
     //let typeDefinition = DAstTypeDefinition.createSequence r l t o children us0
-    let defOrRef            =  DAstTypeDefinition.createSequence_u r l pi t o  children us
+    let defOrRef            =  DAstTypeDefinition.createSequence_u r l t o  children us
     let equalFunction       = DAstEqual.createSequenceEqualFunction r l t o defOrRef children
     let initialValue =
         children |> 
@@ -561,7 +560,7 @@ let private createSequence (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
 let private createChoice (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (l:ProgrammingLanguage) (m:Asn1AcnAst.Asn1Module) (pi : Asn1Fold.ParentInfo<ParentInfoData> option) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Choice) (children:ChChildInfo list, us:State) =
     let newPrms, us0 = t.acnParameters |> foldMap(fun ns p -> mapAcnParameter r deps l m t p ns) us
     //let typeDefinition = DAstTypeDefinition.createChoice r l t o children us0
-    let defOrRef            =  DAstTypeDefinition.createChoice_u r l pi t o  children us
+    let defOrRef            =  DAstTypeDefinition.createChoice_u r l t o  children us
     let equalFunction       = DAstEqual.createChoiceEqualFunction r l t o defOrRef children
     let initialValue =
         children |> Seq.map(fun o -> {NamedValue.name = o.Name.Value; Value={Asn1Value.kind=o.chType.initialValue;id=ReferenceToValue([],[]);loc=emptyLocation}}) |> Seq.head
@@ -677,7 +676,6 @@ let private createType (r:Asn1AcnAst.AstRoot) pi (t:Asn1AcnAst.Asn1Type) ((newKi
         Location      = t.Location
         inheritInfo = t.inheritInfo
         typeAssignmentInfo = t.typeAssignmentInfo
-        parInfoData = pi
         //newTypeDefName = DAstTypeDefinition2.getTypedefName r pi t
     }, us
 
@@ -713,9 +711,9 @@ let private mapType (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDepe
 
         (fun pi t ((newKind, newPrms),us)        -> createType r pi t ((newKind, newPrms),us))
 
-        (fun pi t ti us -> DAstTypeDefinition2.getParentInfoData r l pi t us)
-        (fun pi t ti us -> DAstTypeDefinition2.getParentInfoData r l pi t us)
-        (fun pi t ti us -> DAstTypeDefinition2.getParentInfoData r l pi t us)
+        (fun pi t ti us -> (),us)
+        (fun pi t ti us -> (),us)
+        (fun pi t ti us -> (),us)
 
 
         None
@@ -789,12 +787,12 @@ let private reMapFile (r:Asn1AcnAst.AstRoot) (files0:Asn1File list) (deps:Asn1Ac
     {f with Modules = newModules}, ns
 
 let DoWork (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (lang:CommonTypes.ProgrammingLanguage) (encodings: CommonTypes.Asn1Encoding list) : AstRoot=
-    let l =
-        match lang with
-        | CommonTypes.ProgrammingLanguage.C     -> DAst.ProgrammingLanguage.C
-        | CommonTypes.ProgrammingLanguage.Ada   
-        | CommonTypes.ProgrammingLanguage.Spark -> DAst.ProgrammingLanguage.Ada
-        | _                             -> raise(System.Exception "Unsupported programming language")
+    let l = lang
+//        match lang with
+//        | CommonTypes.ProgrammingLanguage.C     -> DAst.ProgrammingLanguage.C
+//        | CommonTypes.ProgrammingLanguage.Ada   
+//        | CommonTypes.ProgrammingLanguage.Spark -> DAst.ProgrammingLanguage.Ada
+//        | _                             -> raise(System.Exception "Unsupported programming language")
 
     
     let initialState = {curSeqOfLevel=0; currErrorCode = 1; curErrCodeNames = Set.empty; allocatedTypeDefNames = []; allocatedTypeDefNameInTas = Map.empty}

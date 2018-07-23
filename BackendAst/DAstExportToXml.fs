@@ -5,6 +5,7 @@ open System.Numerics
 open System.IO
 open System.Xml.Linq
 open FsUtils
+open CommonTypes
 open DAst
 open DastFold
 open DAstUtilFunctions
@@ -33,7 +34,7 @@ let private exportType (r:AstRoot) (t:Asn1Type) =
         (fun t ti us -> 
                     XElement(xname "INTEGER",
                         XAttribute(xname "id", t.id.AsString),
-                        (match t.parInfoData with Some pi-> (XAttribute(xname "parentData.typedefName",pi.parentData.typedefName)) | None -> null),
+                        //(match t.parInfoData with Some pi-> (XAttribute(xname "parentData.typedefName",pi.parentData.typedefName)) | None -> null),
 //                        XAttribute(xname "typeDefinition.name", ti.typeDefinition.name),
 //                        XAttribute(xname "typeDefinition.typeDefinitionBodyWithinSeq", ti.typeDefinition.typeDefinitionBodyWithinSeq),
                         XAttribute(xname "newTypedefName", (t.typeDefintionOrReference.longTypedefName Ada)),
@@ -46,7 +47,7 @@ let private exportType (r:AstRoot) (t:Asn1Type) =
         (fun t ti us -> 
                     XElement(xname "REAL",
                         XAttribute(xname "id", t.id.AsString),
-                        (match t.parInfoData with Some pi-> (XAttribute(xname "parentData.typedefName",pi.parentData.typedefName)) | None -> null),
+                        //(match t.parInfoData with Some pi-> (XAttribute(xname "parentData.typedefName",pi.parentData.typedefName)) | None -> null),
 //                        XAttribute(xname "typeDefinition.name", ti.typeDefinition.name),
 //                        XAttribute(xname "typeDefinition.typeDefinitionBodyWithinSeq", ti.typeDefinition.typeDefinitionBodyWithinSeq),
                         XAttribute(xname "newTypedefName", (t.typeDefintionOrReference.longTypedefName Ada)),
@@ -59,7 +60,7 @@ let private exportType (r:AstRoot) (t:Asn1Type) =
         (fun t ti us -> 
                     XElement(xname "IA5STRING",
                         XAttribute(xname "id", t.id.AsString),
-                        (match t.parInfoData with Some pi-> (XAttribute(xname "parentData.typedefName",pi.parentData.typedefName)) | None -> null),
+                        //(match t.parInfoData with Some pi-> (XAttribute(xname "parentData.typedefName",pi.parentData.typedefName)) | None -> null),
 //                        XAttribute(xname "typeDefinition.name", ti.typeDefinition.name),
 //                        XAttribute(xname "typeDefinition.typeDefinitionBodyWithinSeq", ti.typeDefinition.typeDefinitionBodyWithinSeq),
                         XAttribute(xname "newTypedefName", (t.typeDefintionOrReference.longTypedefName Ada)),
@@ -72,7 +73,7 @@ let private exportType (r:AstRoot) (t:Asn1Type) =
         (fun t ti us -> 
                     XElement(xname "OctetString",
                         XAttribute(xname "id", t.id.AsString),
-                        (match t.parInfoData with Some pi-> (XAttribute(xname "parentData.typedefName",pi.parentData.typedefName)) | None -> null),
+                        //(match t.parInfoData with Some pi-> (XAttribute(xname "parentData.typedefName",pi.parentData.typedefName)) | None -> null),
 //                        XAttribute(xname "typeDefinition.name", ti.typeDefinition.name),
 //                        XAttribute(xname "typeDefinition.typeDefinitionBodyWithinSeq", ti.typeDefinition.typeDefinitionBodyWithinSeq),
                         XAttribute(xname "newTypedefName", (t.typeDefintionOrReference.longTypedefName Ada)),
@@ -85,7 +86,7 @@ let private exportType (r:AstRoot) (t:Asn1Type) =
         (fun t ti us -> 
                     XElement(xname "Null",
                         XAttribute(xname "id", t.id.AsString),
-                        (match t.parInfoData with Some pi-> (XAttribute(xname "parentData.typedefName",pi.parentData.typedefName)) | None -> null),
+                        //(match t.parInfoData with Some pi-> (XAttribute(xname "parentData.typedefName",pi.parentData.typedefName)) | None -> null),
 //                        XAttribute(xname "typeDefinition.name", ti.typeDefinition.name),
 //                        XAttribute(xname "typeDefinition.typeDefinitionBodyWithinSeq", ti.typeDefinition.typeDefinitionBodyWithinSeq),
                         XAttribute(xname "newTypedefName", (t.typeDefintionOrReference.longTypedefName Ada)),
@@ -98,7 +99,7 @@ let private exportType (r:AstRoot) (t:Asn1Type) =
         (fun t ti us -> 
                     XElement(xname "BitString",
                         XAttribute(xname "id", t.id.AsString),
-                        (match t.parInfoData with Some pi-> (XAttribute(xname "parentData.typedefName",pi.parentData.typedefName)) | None -> null),
+                        //(match t.parInfoData with Some pi-> (XAttribute(xname "parentData.typedefName",pi.parentData.typedefName)) | None -> null),
 //                        XAttribute(xname "typeDefinition.name", ti.typeDefinition.name),
 //                        XAttribute(xname "typeDefinition.typeDefinitionBodyWithinSeq", ti.typeDefinition.typeDefinitionBodyWithinSeq),
                         XAttribute(xname "newTypedefName", (t.typeDefintionOrReference.longTypedefName Ada)),
@@ -111,7 +112,7 @@ let private exportType (r:AstRoot) (t:Asn1Type) =
         (fun t ti us -> 
                     XElement(xname "Boolean",
                         XAttribute(xname "id", t.id.AsString),
-                        (match t.parInfoData with Some pi-> (XAttribute(xname "parentData.typedefName",pi.parentData.typedefName)) | None -> null),
+                        //(match t.parInfoData with Some pi-> (XAttribute(xname "parentData.typedefName",pi.parentData.typedefName)) | None -> null),
 //                        XAttribute(xname "typeDefinition.name", ti.typeDefinition.name),
 //                        XAttribute(xname "typeDefinition.typeDefinitionBodyWithinSeq", ti.typeDefinition.typeDefinitionBodyWithinSeq),
                         XAttribute(xname "newTypedefName", (t.typeDefintionOrReference.longTypedefName Ada)),
@@ -124,7 +125,7 @@ let private exportType (r:AstRoot) (t:Asn1Type) =
         (fun t ti us -> 
                     XElement(xname "Enumerated",
                         XAttribute(xname "id", t.id.AsString),
-                        (match t.parInfoData with Some pi-> (XAttribute(xname "parentData.typedefName",pi.parentData.typedefName)) | None -> null),
+                        //(match t.parInfoData with Some pi-> (XAttribute(xname "parentData.typedefName",pi.parentData.typedefName)) | None -> null),
 //                        XAttribute(xname "typeDefinition.name", ti.typeDefinition.name),
 //                        XAttribute(xname "typeDefinition.typeDefinitionBodyWithinSeq", ti.typeDefinition.typeDefinitionBodyWithinSeq),
                         XAttribute(xname "newTypedefName", (t.typeDefintionOrReference.longTypedefName Ada)),
@@ -137,7 +138,7 @@ let private exportType (r:AstRoot) (t:Asn1Type) =
         (fun t ti (child,us) ->                     
                      XElement(xname "SEQUENCEOF",
                         XAttribute(xname "id", t.id.AsString),
-                        (match t.parInfoData with Some pi-> (XAttribute(xname "parentData.typedefName",pi.parentData.typedefName)) | None -> null),
+                        //(match t.parInfoData with Some pi-> (XAttribute(xname "parentData.typedefName",pi.parentData.typedefName)) | None -> null),
 //                        XAttribute(xname "typeDefinition.name", ti.typeDefinition.name),
 //                        XAttribute(xname "typeDefinition.typeDefinitionBodyWithinSeq", ti.typeDefinition.typeDefinitionBodyWithinSeq),
                         XAttribute(xname "newTypedefName", (t.typeDefintionOrReference.longTypedefName Ada)),
@@ -160,7 +161,7 @@ let private exportType (r:AstRoot) (t:Asn1Type) =
         (fun t ti (children,us) -> 
                     XElement(xname "SEQUENCE",
                         XAttribute(xname "id", t.id.AsString),
-                        (match t.parInfoData with Some pi-> (XAttribute(xname "parentData.typedefName",pi.parentData.typedefName)) | None -> null),
+                        //(match t.parInfoData with Some pi-> (XAttribute(xname "parentData.typedefName",pi.parentData.typedefName)) | None -> null),
 //                        XAttribute(xname "typeDefinition.name", ti.typeDefinition.name),
 //                        XAttribute(xname "typeDefinition.typeDefinitionBodyWithinSeq", ti.typeDefinition.typeDefinitionBodyWithinSeq),
                         XAttribute(xname "newTypedefName", (t.typeDefintionOrReference.longTypedefName Ada)),
@@ -182,7 +183,7 @@ let private exportType (r:AstRoot) (t:Asn1Type) =
         (fun t ti (children, us) -> 
                     XElement(xname "CHOICE",
                         XAttribute(xname "id", t.id.AsString),
-                        (match t.parInfoData with Some pi-> (XAttribute(xname "parentData.typedefName",pi.parentData.typedefName)) | None -> null),
+                        //(match t.parInfoData with Some pi-> (XAttribute(xname "parentData.typedefName",pi.parentData.typedefName)) | None -> null),
 //                        XAttribute(xname "typeDefinition.name", ti.typeDefinition.name),
 //                        XAttribute(xname "typeDefinition.typeDefinitionBodyWithinSeq", ti.typeDefinition.typeDefinitionBodyWithinSeq),
                         XAttribute(xname "newTypedefName", (t.typeDefintionOrReference.longTypedefName Ada)),
@@ -196,7 +197,7 @@ let private exportType (r:AstRoot) (t:Asn1Type) =
         (fun t ti (baseType,us) -> 
                     XElement(xname "REFERENCE_TYPE",
                         XAttribute(xname "id", t.id.AsString),
-                        (match t.parInfoData with Some pi-> (XAttribute(xname "parentData.typedefName",pi.parentData.typedefName)) | None -> null),
+                        //(match t.parInfoData with Some pi-> (XAttribute(xname "parentData.typedefName",pi.parentData.typedefName)) | None -> null),
 //                        XAttribute(xname "typeDefinition.name", ti.typeDefinition.name),
 //                        XAttribute(xname "typeDefinition.typeDefinitionBodyWithinSeq", ti.typeDefinition.typeDefinitionBodyWithinSeq),
                         XAttribute(xname "newTypedefName", (t.typeDefintionOrReference.longTypedefName Ada)),

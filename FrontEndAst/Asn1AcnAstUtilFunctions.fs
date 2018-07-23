@@ -234,7 +234,6 @@ type Asn1Child with
         match l with
         | CommonTypes.C         -> this._c_name
         | CommonTypes.Ada       -> this._ada_name
-        | _                     -> this.Name.Value
 
 
 
