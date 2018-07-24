@@ -952,22 +952,22 @@ typedef union _double_tag
     return TRUE;            \
 
 
-void Acn_Enc_Real_IEEE754_32_big_endian(BitStream* pBitStrm, double realValue)
+void Acn_Enc_Real_IEEE754_32_big_endian(BitStream* pBitStrm, asn1Real realValue)
 {
     Acn_enc_real_big_endian(float)
 }
 
-flag Acn_Dec_Real_IEEE754_32_big_endian(BitStream* pBitStrm, double* pRealValue)
+flag Acn_Dec_Real_IEEE754_32_big_endian(BitStream* pBitStrm, asn1Real* pRealValue)
 {
     Acn_dec_real_big_endian(float)
 }
 
-void Acn_Enc_Real_IEEE754_64_big_endian(BitStream* pBitStrm, double realValue)
+void Acn_Enc_Real_IEEE754_64_big_endian(BitStream* pBitStrm, asn1Real realValue)
 {
     Acn_enc_real_big_endian(double)
 }
 
-flag Acn_Dec_Real_IEEE754_64_big_endian(BitStream* pBitStrm, double* pRealValue)
+flag Acn_Dec_Real_IEEE754_64_big_endian(BitStream* pBitStrm, asn1Real* pRealValue)
 {
     Acn_dec_real_big_endian(double)
 }
@@ -1007,22 +1007,22 @@ flag Acn_Dec_Real_IEEE754_64_big_endian(BitStream* pBitStrm, double* pRealValue)
     return TRUE;            \
 
 
-void Acn_Enc_Real_IEEE754_32_little_endian(BitStream* pBitStrm, double realValue)
+void Acn_Enc_Real_IEEE754_32_little_endian(BitStream* pBitStrm, asn1Real realValue)
 {
     Acn_enc_real_little_endian(float)
 }
 
-flag Acn_Dec_Real_IEEE754_32_little_endian(BitStream* pBitStrm, double* pRealValue)
+flag Acn_Dec_Real_IEEE754_32_little_endian(BitStream* pBitStrm, asn1Real* pRealValue)
 {
     Acn_dec_real_little_endian(float)
 }
 
-void Acn_Enc_Real_IEEE754_64_little_endian(BitStream* pBitStrm, double realValue)
+void Acn_Enc_Real_IEEE754_64_little_endian(BitStream* pBitStrm, asn1Real realValue)
 {
     Acn_enc_real_little_endian(double)
 }
 
-flag Acn_Dec_Real_IEEE754_64_little_endian(BitStream* pBitStrm, double* pRealValue)
+flag Acn_Dec_Real_IEEE754_64_little_endian(BitStream* pBitStrm, asn1Real* pRealValue)
 {
     Acn_dec_real_little_endian(double)
 }

@@ -5,64 +5,104 @@
 
 #ifndef FREXP_UNSUPPORTED
 
+#if FP_WORD_SIZE==8
+
 #define ExpoBitMask  0x7FF0000000000000ULL
 #define MantBitMask  0x000FFFFFFFFFFFFFULL
 #define MantBitMask2 0xFFE0000000000000ULL
+#define MantisaExtraBit 0x0010000000000000ULL
+#else				 
 
-void CalculateMantissaAndExponent(double d, int* exponent, asn1SccUint64* mantissa)
+#define ExpoBitMask  0x7F800000U
+#define MantBitMask  0x007FFFFFU
+#define MantBitMask2 0xF0000000U
+#define MantisaExtraBit 0x00800000U
+
+#endif
+
+
+void CalculateMantissaAndExponent(asn1Real d, int* exponent, asn1SccUint64* mantissa)
 {
-    union {
-       double in;
-       asn1SccUint64 out;
-    } double2uint;
 
-    asn1SccUint64 ll = 0;
+#if FP_WORD_SIZE==8
+	union {
+		asn1Real in;
+		asn1SccUint64 out;
+	} double2uint;
+	asn1SccUint64 ll = 0;
+#else
+	union {
+		asn1Real in;
+		asn1SccUint32 out;
+	} double2uint;
+	asn1SccUint32 ll = 0;
+#endif
 
-    double2uint.in = d;
-    ll = double2uint.out;
 
-    *exponent = 0;
-    *mantissa = 0;
 
-    *exponent = (int)(((ll & ExpoBitMask)>>52) - 1023 - 52);
+	double2uint.in = d;
+	ll = double2uint.out;
 
-    *mantissa = ll & MantBitMask;
-    (*mantissa) |= 0x0010000000000000ULL;
+	*exponent = 0;
+	*mantissa = 0;
+
+#if FP_WORD_SIZE==8
+	* exponent = (int)(((ll & ExpoBitMask) >> 52) - 1023);
+	*mantissa = ll & MantBitMask;
+	(*mantissa) |= MantisaExtraBit;
+#else
+	*exponent = (int)(((ll & ExpoBitMask) >> 23) - 127);
+
+	*mantissa = ll & MantBitMask;
+	(*mantissa) |= MantisaExtraBit;
+#endif
 }
 
-double GetDoubleByMantissaAndExp(asn1SccUint mantissa, int exponent)
+asn1Real GetDoubleByMantissaAndExp(asn1SccUint mantissa, int exponent)
 {
-    union {
-        double ret;
-        asn1SccUint64 u64;
-    } u;
 
-    asn1SccUint64 ll = 0;
-    asn1SccUint64 exponent2 = 0;
+#if FP_WORD_SIZE==8
+	union {
+		asn1Real ret;
+		asn1SccUint64 in;
+	} u;
+#else
+	union {
+		asn1Real ret;
+		asn1SccUint32 in;
+	} u;
+#endif
+	asn1SccUint64 ll = 0;
+	asn1SccUint64 exponent2 = 0;
 
-    if (mantissa == 0)
-        return 0.0;
-
-
-    while ( (mantissa & MantBitMask2)>0) {
-        mantissa>>=1;
-        exponent += 1;
-    }
-    while ( (mantissa & 0x0010000000000000ULL) == 0) {
-        mantissa<<=1;
-        exponent += -1;
-    }
+	if (mantissa == 0)
+		return 0.0;
 
 
-    exponent2 = exponent + 1023 + 52;
+	while ((mantissa & MantBitMask2)>0) {
+		mantissa >>= 1;
+		exponent += 1;
+	}
+	while ((mantissa & MantisaExtraBit) == 0) {
+		mantissa <<= 1;
+		exponent += -1;
+	}
 
 
-    ll |= mantissa & MantBitMask;
-    ll |= (exponent2<<52);
 
-    u.u64 = ll;
+#if FP_WORD_SIZE==8
+	exponent2 = exponent + 1023;
+	ll |= mantissa & MantBitMask;
+	ll |= (exponent2 << 52);
+	u.in = ll;
+#else
+	exponent2 = exponent + 127;
+	ll |= mantissa & MantBitMask;
+	ll |= (exponent2 << 23);
+	u.in = (asn1SccUint32)ll;
+#endif
 
-    return u.ret;
+	return u.ret;
 }
 
 
@@ -71,7 +111,7 @@ double GetDoubleByMantissaAndExp(asn1SccUint mantissa, int exponent)
 
 #define MAX_MANTISSA 4503599627370496
 
-double pospow2[] = {
+asn1Real pospow2[] = {
 1, 2, 4, 8, 16, 32, 64, 128, 
 256, 512, 1024, 2048, 4096, 8192, 16384, 32768, 
 65536, 131072, 262144, 524288, 1048576, 2097152, 4194304, 8388608, 
@@ -202,7 +242,7 @@ double pospow2[] = {
 7.02223880805592E+305, 1.40444776161118E+306, 2.80889552322237E+306, 5.61779104644474E+306, 1.12355820928895E+307, 2.24711641857789E+307, 4.49423283715579E+307
 };
 
-double negpow2[] = {
+asn1Real negpow2[] = {
 1, 0.5, 0.25, 0.125, 0.0625, 0.03125, 0.015625, 0.0078125, 
 0.00390625, 0.001953125, 0.0009765625, 0.00048828125, 0.000244140625, 0.0001220703125, 6.103515625E-05, 3.0517578125E-05, 
 1.52587890625E-05, 7.62939453125E-06, 3.814697265625E-06, 1.9073486328125E-06, 9.5367431640625E-07, 4.76837158203125E-07, 2.38418579101563E-07, 1.19209289550781E-07, 
@@ -334,7 +374,7 @@ double negpow2[] = {
 };
 
 //int GetNumberOfBitsForNonNegativeInteger(asn1SccUint v) 
-int mylog2(double v)
+int mylog2(asn1Real v)
 {
     if (v<2) {
         v=1.0/v;
@@ -345,12 +385,12 @@ int mylog2(double v)
 }
 
 
-double log2(double v) 
+asn1Real log2(asn1Real v) 
 {
     return log(v)/log(2.0);
 }
 
-double mypow2(int exp)
+asn1Real mypow2(int exp)
 {
     asn1SccUint ret=1;
     if (exp>=0) {
@@ -367,27 +407,27 @@ double mypow2(int exp)
             ret<<=1;
             exp--;
         }
-        return 1.0/(double)ret;*/
+        return 1.0/(asn1Real)ret;*/
         return negpow2[exp];
     }
 }
 
-double pow2(double v)
+asn1Real pow2(asn1Real v)
 {
     return pow(2.0, v);
 }
 
-double myReal(asn1SccUint* mantissa, int exp) 
+asn1Real myReal(asn1SccUint* mantissa, int exp) 
 {
     return (*mantissa) * mypow2(exp);
 //  return (*mantissa) * pow2(exp);
 }
 
 
-void CalculateMantissaAndExponent(double d, int* exp, asn1SccUint64* mantissa)
+void CalculateMantissaAndExponent(asn1Real d, int* exp, asn1SccUint64* mantissa)
 {
-    double error;
-    double dmantissa;
+    asn1Real error;
+    asn1Real dmantissa;
     int nCount=100;
 
     assert(d>0.0);
@@ -396,7 +436,7 @@ void CalculateMantissaAndExponent(double d, int* exp, asn1SccUint64* mantissa)
     Let mantissa be 1
     then exponent is the logarithm of the input value.
     However, since we need the exponent to be stored in an INT we get the Floor 
-    Floor return the largest integer less than or equal to the specified double-precision floating-point number
+    Floor return the largest integer less than or equal to the specified asn1Real-precision floating-point number
     */
     *exp = mylog2(d);
 
@@ -407,13 +447,13 @@ void CalculateMantissaAndExponent(double d, int* exp, asn1SccUint64* mantissa)
     dmantissa = d/mypow2(*exp);
     *mantissa = (asn1SccUint64)dmantissa;
 
-    error = fabs((double)(d-myReal(mantissa,*exp)))/d;
+    error = fabs((asn1Real)(d-myReal(mantissa,*exp)))/d;
     while ( (*mantissa <= MAX_MANTISSA) && (error > DBL_EPSILON) && nCount--)
     {
         dmantissa *=2;
         *mantissa = (asn1SccUint64)dmantissa;
         (*exp)--;
-        error = fabs((double)(d-myReal(mantissa,*exp)))/d;
+        error = fabs((asn1Real)(d-myReal(mantissa,*exp)))/d;
     }
 }
 

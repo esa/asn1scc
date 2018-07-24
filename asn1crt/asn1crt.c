@@ -717,7 +717,7 @@ flag BitStream_DecodeUnConstraintWholeNumber(BitStream* pBitStrm, asn1SccSint* v
 */
 
 
-void BitStream_EncodeReal(BitStream* pBitStrm, double v)
+void BitStream_EncodeReal(BitStream* pBitStrm, asn1Real v)
 {
     byte header=0x80;
     int nExpLen;
@@ -783,9 +783,9 @@ void BitStream_EncodeReal(BitStream* pBitStrm, double v)
 
 }
 
-flag DecodeRealAsBinaryEncoding(BitStream* pBitStrm, int length, byte header, double* v);
+flag DecodeRealAsBinaryEncoding(BitStream* pBitStrm, int length, byte header, asn1Real* v);
 
-flag BitStream_DecodeReal(BitStream* pBitStrm, double* v)
+flag BitStream_DecodeReal(BitStream* pBitStrm, asn1Real* v)
 {
     byte header;
     byte length;
@@ -817,7 +817,7 @@ flag BitStream_DecodeReal(BitStream* pBitStrm, double* v)
 }
 
 
-flag DecodeRealAsBinaryEncoding(BitStream* pBitStrm, int length, byte header, double* v)
+flag DecodeRealAsBinaryEncoding(BitStream* pBitStrm, int length, byte header, asn1Real* v)
 {
     int sign=1;
     /*int base=2;*/

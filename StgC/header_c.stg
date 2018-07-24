@@ -52,7 +52,7 @@ Declare_Integer() ::="asn1SccSint"
 Declare_PosInteger() ::="asn1SccUint"
 
 Declare_Boolean() ::= "flag"
-Declare_Real() ::= "double"
+Declare_Real() ::= "asn1Real"
 Declare_IA5String() ::= "char"
 Declare_NumericString() ::= "char"
 Declare_NullType() ::= "NullType"

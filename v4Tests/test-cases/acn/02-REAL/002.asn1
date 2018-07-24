@@ -9,6 +9,6 @@ END
 
 --TCLS     MyPDU[encoding IEEE754-1985-64, endianness little]
 --TCLS     MyPDU[encoding IEEE754-1985-64, endianness big]
---TCLS     MyPDU[]
 --TCLS     MyPDU[encoding IEEE754-1985-64]
+--TCLS     MyPDU[]
 --  TCLS     MyPDU[encoding IEEE754-1985-32]   /*In this test cases the final comparison failes due to conversion from double to float*/

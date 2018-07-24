@@ -31,11 +31,21 @@ extern "C" {
 #define WORD_SIZE	8
 #endif
 
+#ifndef FP_WORD_SIZE
+#define FP_WORD_SIZE	8
+#endif
+
+
+
+typedef float asn1Real32;
+typedef double asn1Real64;
+
+
+
+typedef unsigned char byte;
 
 typedef int asn1SccSint32;
 typedef unsigned int asn1SccUint32;
-
-typedef unsigned char byte;
 
 typedef long long asn1SccSint64;
 typedef unsigned long long asn1SccUint64;
@@ -47,6 +57,13 @@ typedef asn1SccSint64 asn1SccSint;
 typedef asn1SccUint32 asn1SccUint;
 typedef asn1SccSint32 asn1SccSint;
 #endif
+
+#if FP_WORD_SIZE==8
+typedef asn1Real64 asn1Real;
+#else
+typedef asn1Real32 asn1Real;
+#endif
+
 
 #ifdef _MSC_VER
 #  ifndef INFINITY
@@ -140,13 +157,13 @@ flag BitStream_DecodeConstraintPosWholeNumber(BitStream* pBitStrm, asn1SccUint* 
 
 
 
-void BitStream_EncodeReal(BitStream* pBitStrm, double v);
-flag BitStream_DecodeReal(BitStream* pBitStrm, double* v);
+void BitStream_EncodeReal(BitStream* pBitStrm, asn1Real v);
+flag BitStream_DecodeReal(BitStream* pBitStrm, asn1Real* v);
 
 
 
-void CalculateMantissaAndExponent(double d, int* exp, asn1SccUint64* mantissa);
-double GetDoubleByMantissaAndExp(asn1SccUint mantissa, int exp);
+void CalculateMantissaAndExponent(asn1Real d, int* exp, asn1SccUint64* mantissa);
+asn1Real GetDoubleByMantissaAndExp(asn1SccUint mantissa, int exp);
 
 int GetNumberOfBitsForNonNegativeInteger(asn1SccUint v);
 
@@ -245,15 +262,15 @@ flag Acn_Dec_UInt_ASCII_VarSize_NullTerminated(BitStream* pBitStrm, asn1SccUint*
 flag BitStream_ReadBitPattern(BitStream* pBitStrm, const byte* patternToRead, int nBitsToRead, flag* pBoolValue);
 
 /*Real encoding functions*/
-void Acn_Enc_Real_IEEE754_32_big_endian(BitStream* pBitStrm, double realValue);
-void Acn_Enc_Real_IEEE754_64_big_endian(BitStream* pBitStrm, double realValue);
-void Acn_Enc_Real_IEEE754_32_little_endian(BitStream* pBitStrm, double realValue);
-void Acn_Enc_Real_IEEE754_64_little_endian(BitStream* pBitStrm, double realValue);
+void Acn_Enc_Real_IEEE754_32_big_endian(BitStream* pBitStrm, asn1Real realValue);
+void Acn_Enc_Real_IEEE754_64_big_endian(BitStream* pBitStrm, asn1Real realValue);
+void Acn_Enc_Real_IEEE754_32_little_endian(BitStream* pBitStrm, asn1Real realValue);
+void Acn_Enc_Real_IEEE754_64_little_endian(BitStream* pBitStrm, asn1Real realValue);
 
-flag Acn_Dec_Real_IEEE754_32_big_endian(BitStream* pBitStrm, double* pRealValue);
-flag Acn_Dec_Real_IEEE754_64_big_endian(BitStream* pBitStrm, double* pRealValue);
-flag Acn_Dec_Real_IEEE754_32_little_endian(BitStream* pBitStrm, double* pRealValue);
-flag Acn_Dec_Real_IEEE754_64_little_endian(BitStream* pBitStrm, double* pRealValue);
+flag Acn_Dec_Real_IEEE754_32_big_endian(BitStream* pBitStrm, asn1Real* pRealValue);
+flag Acn_Dec_Real_IEEE754_64_big_endian(BitStream* pBitStrm, asn1Real* pRealValue);
+flag Acn_Dec_Real_IEEE754_32_little_endian(BitStream* pBitStrm, asn1Real* pRealValue);
+flag Acn_Dec_Real_IEEE754_64_little_endian(BitStream* pBitStrm, asn1Real* pRealValue);
 
 /*String functions*/
 void Acn_Enc_String_Ascii_FixSize                       (BitStream* pBitStrm, asn1SccSint max, const char* strVal); 
@@ -305,7 +322,7 @@ flag Xer_EncodeInteger(ByteStream* pByteStrm, const char* elementTag, asn1SccSin
 flag Xer_EncodePosInteger(ByteStream* pByteStrm, const char* elementTag, asn1SccUint value, int *pErrCode, int level);
 flag Xer_EncodeBoolean(ByteStream* pByteStrm, const char* elementTag, flag value, int *pErrCode, int level);
 flag Xer_EncodeEnumerated(ByteStream* pByteStrm, const char* elementTag, const char* value, int *pErrCode, int level);
-flag Xer_EncodeReal(ByteStream* pByteStrm, const char* elementTag, double value, int *pErrCode, int level);
+flag Xer_EncodeReal(ByteStream* pByteStrm, const char* elementTag, asn1Real value, int *pErrCode, int level);
 flag Xer_EncodeString(ByteStream* pByteStrm, const char* elementTag, const char* value, int *pErrCode, int level);
 flag Xer_EncodeOctetString(ByteStream* pByteStrm, const char* elementTag, const byte value[], int nCount, int *pErrCode, int level);
 flag Xer_EncodeBitString(ByteStream* pByteStrm, const char* elementTag, const byte value[], int nCount, int *pErrCode, int level);
@@ -316,7 +333,7 @@ flag Xer_DecodeInteger(ByteStream* pByteStrm, const char* elementTag, asn1SccSin
 flag Xer_DecodePosInteger(ByteStream* pByteStrm, const char* elementTag, asn1SccUint* value, int *pErrCode);
 flag Xer_DecodeBoolean(ByteStream* pByteStrm, const char* elementTag, flag* value, int *pErrCode);
 flag Xer_DecodeEnumerated(ByteStream* pByteStrm, const char* elementTag, char* value, int *pErrCode);
-flag Xer_DecodeReal(ByteStream* pByteStrm, const char* elementTag, double* value, int *pErrCode);
+flag Xer_DecodeReal(ByteStream* pByteStrm, const char* elementTag, asn1Real* value, int *pErrCode);
 flag Xer_DecodeString(ByteStream* pByteStrm, const char* elementTag, char* value, int *pErrCode);
 flag Xer_DecodeOctetString(ByteStream* pByteStrm, const char* elementTag, byte value[], int bufferMaxSize, int* nCount, int *pErrCode);
 flag Xer_DecodeBitString(ByteStream* pByteStrm, const char* elementTag, byte value[], int bufferMaxSize, int* nCount, int *pErrCode);
@@ -353,8 +370,8 @@ flag BerDecodeInteger(ByteStream* pByteStrm, BerTag tag, asn1SccSint *value, int
 flag BerEncodeBoolean(ByteStream* pByteStrm, BerTag tag, flag value, int *pErrCode);
 flag BerDecodeBoolean(ByteStream* pByteStrm, BerTag tag, flag *value, int *pErrCode);
 
-flag BerEncodeReal(ByteStream* pByteStrm, BerTag tag, double value, int *pErrCode);
-flag BerDecodeReal(ByteStream* pByteStrm, BerTag tag, double *value, int *pErrCode);
+flag BerEncodeReal(ByteStream* pByteStrm, BerTag tag, asn1Real value, int *pErrCode);
+flag BerDecodeReal(ByteStream* pByteStrm, BerTag tag, asn1Real *value, int *pErrCode);
 
 flag BerEncodeIA5String(ByteStream* pByteStrm, BerTag tag, const char* value, int length, int *pErrCode);
 flag BerDecodeIA5String(ByteStream* pByteStrm, BerTag tag, char* value, int maxLength, int *pErrCode);

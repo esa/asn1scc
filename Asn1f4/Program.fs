@@ -30,6 +30,7 @@ type CliArguments =
     | [<Unique; AltCommandLine("-AdaUses")>] AdaUses 
     | [<Unique; AltCommandLine("-ACND")>] ACND  
     | [<Unique; AltCommandLine("-wordSize")>] Word_Size  of wordSize:int
+    | [<Unique; AltCommandLine("-fpWordSize")>]  Fp_Word_Size of fpWordSize:int
     | [<Unique; AltCommandLine("-v")>]   Version
     | [<Unique; AltCommandLine("-asn1")>]   Debug_Asn1 of string option
     | [<Unique; AltCommandLine("-mfm")>]   Mapping_Functions_Module of string 
@@ -76,6 +77,7 @@ with
             | ACND              -> "creates ACN grammars for the input ASN.1 grammars using the default encoding properties"
             | Debug_Asn1  _     -> "Prints all input ASN.1 grammars in a single module/single file and with parameterized types removed. Used for debugging purposes"
             | Word_Size _       -> "Applicable only to C.Defines the size of asn1SccSint and asn1SccUint types. Valid values are 8 bytes (default) and 4 bytes. If you pass 4 then you should compile the C code -DWORD_SIZE=4."
+            | Fp_Word_Size _     -> "Applicable only to C.Defines the size of asasn1Real type. Valid values are 8 bytes (default) which corresponds to double and 4 bytes which corresponds to float. If you pass 4 then you should compile the C code -DFP_WORD_SIZE=4."
             | Mapping_Functions_Module _    -> "The name of Ada module or name of C header file (without extension) containing the definitins of mapping functions"
 
 let getCustmStgFileNames (compositeFile:string) =
@@ -160,6 +162,11 @@ let checkArguement arg =
         | _ when ws = 4 -> ()
         | _ when ws = 8 -> ()
         | _  -> raise (UserException ("invalid value for argument -wordSize. Currently only values 4 and 8 are supported"))
+    | Fp_Word_Size ws           ->
+        match ws with
+        | _ when ws = 4 -> ()
+        | _ when ws = 8 -> ()
+        | _  -> raise (UserException ("invalid value for argument -fpWordSize. Currently only values 4 and 8 are supported"))
     | Mapping_Functions_Module mfm  -> ()
 
 let createInput (fileName:string) : Input = 
@@ -194,6 +201,10 @@ let constructCommandLineSettings args (parserResults: ParseResults<CliArguments>
         integerSizeInBytes = 
             let ws = parserResults.GetResult(<@Word_Size@>, defaultValue = 8)
             BigInteger ws
+        floatingPointSizeInBytes =
+            let fws = parserResults.GetResult(<@Fp_Word_Size@>, defaultValue = 8)
+            BigInteger fws
+            
         renamePolicy = 
             match args |> List.choose (fun a -> match a with Rename_Policy rp -> Some rp | _ -> None) with
             | []    ->
