@@ -244,8 +244,12 @@ let exportRTL outDir  (l:ProgrammingLanguage) (args:CommandLineSettings)=
                 | true  -> writeTextFile (Path.Combine(outDir, "xer.c"))  (rm.GetString("xer",null)) 
                 | false -> ()
     | ProgrammingLanguage.Ada ->
-                writeTextFile (Path.Combine(outDir, "adaasn1rtl.adb")) (rm.GetString("adaasn1rtl_adb",null)) 
-                writeTextFile (Path.Combine(outDir, "adaasn1rtl.ads")) (rm.GetString("adaasn1rtl_ads",null)) 
+                writeTextFile (Path.Combine(outDir, "adaasn1rtl.adb")) (rm.GetString("adaasn1rtl_adb",null))
+                let adaasn1rtl_ads = rm.GetString("adaasn1rtl_ads",null)
+                match args.floatingPointSizeInBytes  = 4I with 
+                | true  -> writeTextFile (Path.Combine(outDir, "adaasn1rtl.ads")) (adaasn1rtl_ads.Replace("subtype Asn1Real is Standard.Long_Float;","subtype Asn1Real is Standard.Float;"))
+                | false -> writeTextFile (Path.Combine(outDir, "adaasn1rtl.ads")) (adaasn1rtl_ads) 
+
                 writeTextFile (Path.Combine(outDir, "IgnoredExaminerWarnings.wrn"))     (rm.GetString("IgnoredExaminerWarnings",null)) 
                 writeTextFile (Path.Combine(outDir, "gnat.cfg"))    (rm.GetString("gnat",null)) 
                 writeTextFile (Path.Combine(outDir, "runSpark.sh"))    (rm.GetString("run",null)) 
