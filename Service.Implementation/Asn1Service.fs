@@ -68,6 +68,7 @@ type Asn1Service() =
             custom_Stg_Ast_Version = 1
             fieldPrefix = None
             targetLanguages = [CommonTypes.ProgrammingLanguage.C]
+            floatingPointSizeInBytes = 8I
         }
     
     member private this.ConvertInput (input:Dto.FileData) : CommonTypes.Input =
