@@ -402,8 +402,9 @@ let exlcudeSizeConstraintIfFixedSize minSize maxSize allCons =
     | false -> allCons
     | true  -> allCons |> List.filter(fun x -> match x with SizeContraint al-> false | _ -> true)
 
-let createOctetStringFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.OctetString) (typeDefinition:TypeDefintionOrReference) (equalFunc:EqualFunction) (printValue  : (Asn1ValueKind option) -> (Asn1ValueKind) -> string) (us:State)  =
+let createOctetStringFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.OctetString) (typeDefinition:TypeDefintionOrReference) (equalFunc:EqualFunction) (printValue  : string -> (Asn1ValueKind option) -> (Asn1ValueKind) -> string) (us:State)  =
     let allCons = exlcudeSizeConstraintIfFixedSize o.minSize o.maxSize o.AllCons
+    let curProgramUnit = ToC t.id.ModName
     let anonymousVariables =
         allCons |> 
         List.map DastFold.getValueFromSizeableConstraint 
@@ -418,7 +419,7 @@ let createOctetStringFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:
                             //match t.tasInfo with
                             //| Some tasInfo    -> ToC2(r.args.TypePrefix + tasInfo.tasName)
                             //| None            -> typeDefinition.typeDefinitionBodyWithinSeq
-                        Some ({AnonymousVariable.valueName = (recValue.getBackendName l); valueExpresion = (printValue None recValue.kind); typeDefinitionName = typeDefinitionName; valKind=valKind}))
+                        Some ({AnonymousVariable.valueName = (recValue.getBackendName l); valueExpresion = (printValue curProgramUnit None recValue.kind); typeDefinitionName = typeDefinitionName; valKind=valKind}))
     let compareSingValueFunc (p:CallerScope) (v:Asn1AcnAst.OctetStringValue, (id,loc)) =
         let recValue = {Asn1Value.kind = OctetStringValue (v |> List.map(fun z -> z.Value)); id=id;loc=loc}
         let vstr = {CallerScope.modName = id.ModName; arg = VALUE (recValue.getBackendName l)}
@@ -435,8 +436,9 @@ let createOctetStringFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:
     createBitOrOctetStringFunction r l t allCons foldSizeCon typeDefinition [] anonymousVariables us
 
 
-let createBitStringFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.BitString) (typeDefinition:TypeDefintionOrReference) (defOrRef:TypeDefintionOrReference) (equalFunc:EqualFunction) (printValue  : (Asn1ValueKind option) -> (Asn1ValueKind) -> string) (us:State)  =
+let createBitStringFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.BitString) (typeDefinition:TypeDefintionOrReference) (defOrRef:TypeDefintionOrReference) (equalFunc:EqualFunction) (printValue  : string -> (Asn1ValueKind option) -> (Asn1ValueKind) -> string) (us:State)  =
     let allCons = exlcudeSizeConstraintIfFixedSize o.minSize o.maxSize o.AllCons
+    let curProgramUnit = ToC t.id.ModName
     let anonymousVariables =
         allCons |> 
         List.map DastFold.getValueFromSizeableConstraint 
@@ -451,7 +453,7 @@ let createBitStringFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:As
                             //match t.tasInfo with
                             //| Some tasInfo    -> ToC2(r.args.TypePrefix + tasInfo.tasName)
                             //| None            -> typeDefinition.typeDefinitionBodyWithinSeq
-                        Some ({AnonymousVariable.valueName = (recValue.getBackendName l); valueExpresion = (printValue None recValue.kind); typeDefinitionName = typeDefinitionName; valKind = valKind}))
+                        Some ({AnonymousVariable.valueName = (recValue.getBackendName l); valueExpresion = (printValue curProgramUnit None recValue.kind); typeDefinitionName = typeDefinitionName; valKind = valKind}))
     let compareSingValueFunc (p:CallerScope) (v:Asn1AcnAst.BitStringValue, (id,loc)) =
         let recValue = {Asn1Value.kind = BitStringValue (v.Value ); id=id;loc=loc}
         //let vstr = VALUE (recValue.getBackendName l)

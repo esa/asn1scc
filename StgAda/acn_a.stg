@@ -522,31 +522,6 @@ result.ErrorCode := <sErrCode>;
 
 
 
-PrintType_encode(sMainBody, bAligmentApplied, nAligmentValue, bHasDependencies, sDependencyUpdates) ::= <<
-<if(bAligmentApplied)>
-IF (K MOD <nAligmentValue>) /= 0 THEN
-    K := K + (<nAligmentValue> - (K MOD <nAligmentValue>));
-END IF;
-
-<endif>
-<if(bHasDependencies)>
-<sDependencyUpdates>
-
-<endif>
-<sMainBody>
->>
-
-
-PrintType_decode(sMainBody, bAligmentApplied, nAligmentValue, bHasDependencies, sDependencyUpdates) ::= <<
-<if(bAligmentApplied)>
-IF (K.K MOD <nAligmentValue>) /= 0 THEN
-    K.K := K.K + (<nAligmentValue> - (K.K MOD <nAligmentValue>));
-END IF;
-
-<endif>
-<sMainBody>
->>
-
 
 Real_32_big_endian_encode(p, sErrCode) ::= "<rtlModuleName()>.Acn_Enc_Real_IEEE754_32_big_endian(S, K, <p>);"
 Real_32_big_endian_decode(p, sErrCode) ::= <<
@@ -642,29 +617,29 @@ Enumerated_item_encode(p, sName, nItemIdxOrVal) ::= "when <sName>    => intVal :
 
 Enumerated_item_decode(p, sName, nItemIdxOrVal) ::= "when <nItemIdxOrVal> => <p> := <sName>;"
 
-EnumeratedEncIdx_encode(p, sTasName, arrsItem, sActualCodecFunc) ::= <<
+EnumeratedEncIdx_encode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, sActualCodecFunc) ::= <<
 case <p> is 
     <arrsItem; separator="\n">
 end case;
 <sActualCodecFunc>
 >>
 
-EnumeratedEncIdx_decode(p, sTasName, arrsItem, sActualCodecFunc) ::= <<
-<p> := <sTasName>_Init;
+EnumeratedEncIdx_decode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, sActualCodecFunc) ::= <<
+<p> := <td.typeName>_Init;
 <sActualCodecFunc>
 IF result.Success THEN
-    case <sTasName>_index_range(intVal) is
+    case <td.index_range>(intVal) is
         <arrsItem; separator="\n">
     end case;
 END IF;
 >>
 
 
-EnumeratedEncValues_encode(p, sTasName, arrsItem, sActualCodecFunc, sErrCode, sFirstItemName) ::= <<
-<EnumeratedEncIdx_encode(p=p, sTasName=sTasName, arrsItem=arrsItem, sActualCodecFunc=sActualCodecFunc)>
+EnumeratedEncValues_encode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, sActualCodecFunc, sErrCode, sFirstItemName) ::= <<
+<EnumeratedEncIdx_encode(p=p, td=td, arrsItem=arrsItem, sActualCodecFunc=sActualCodecFunc)>
 >>
 
-EnumeratedEncValues_decode(p, sTasName, arrsItem, sActualCodecFunc, sErrCode, sFirstItemName) ::= <<
+EnumeratedEncValues_decode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, sActualCodecFunc, sErrCode, sFirstItemName) ::= <<
 <sActualCodecFunc>
 if result.Success then
     case intVal is
@@ -712,44 +687,38 @@ result.ErrorCode := <sErrCode>;
 
 
 
-Acn_String_CharIndex_FixSize_encode(p, sErrCode, nAsn1Max, arrnAlphabetAsciiCodes, nCharSetSize, sTasName, nCharSize) ::= "<rtlModuleName()>.Acn_Enc_String_CharIndex_FixSize(S, K, <sTasName>_alpha_set, <nCharSize>, <p>);"
-Acn_String_CharIndex_FixSize_decode(p, sErrCode, nAsn1Max, arrnAlphabetAsciiCodes, nCharSetSize, sTasName, nCharSize) ::= <<
-<rtlModuleName()>.Acn_Dec_String_CharIndex_FixSize(S, K, <sTasName>_alpha_set, <nCharSize>, <p>, result);
+Acn_String_CharIndex_FixSize_encode(p, sErrCode, nAsn1Max, arrnAlphabetAsciiCodes, nCharSetSize, td/*:FE_StringTypeDefinition*/, nCharSize) ::= "<rtlModuleName()>.Acn_Enc_String_CharIndex_FixSize(S, K, <td.alpha_set>, <nCharSize>, <p>);"
+Acn_String_CharIndex_FixSize_decode(p, sErrCode, nAsn1Max, arrnAlphabetAsciiCodes, nCharSetSize, td/*:FE_StringTypeDefinition*/, nCharSize) ::= <<
+<rtlModuleName()>.Acn_Dec_String_CharIndex_FixSize(S, K, <td.alpha_set>, <nCharSize>, <p>, result);
 result.ErrorCode := <sErrCode>;
 >>
 
 
-Acn_String_CharIndex_External_Field_Determinant_encode(p, sErrCode, nAsn1Max, arrnAlphabetAsciiCodes, nCharSetSize, sExtFld, sTasName, nCharSize) ::= "<rtlModuleName()>.Acn_Enc_String_CharIndex_External_Field_Determinant(S, K, <sTasName>_alpha_set, <nCharSize>, <p>);"
-Acn_String_CharIndex_External_Field_Determinant_decode(p, sErrCode, nAsn1Max, arrnAlphabetAsciiCodes, nCharSetSize, sExtFld, sTasName, nCharSize) ::= <<
-<rtlModuleName()>.Acn_Dec_String_CharIndex_External_Field_Determinant(S, K, <sTasName>_alpha_set, <nCharSize>, <rtlModuleName()>.Asn1Int(<sExtFld>), <p>, result);
+Acn_String_CharIndex_External_Field_Determinant_encode(p, sErrCode, nAsn1Max, arrnAlphabetAsciiCodes, nCharSetSize, sExtFld, td/*:FE_StringTypeDefinition*/, nCharSize) ::= "<rtlModuleName()>.Acn_Enc_String_CharIndex_External_Field_Determinant(S, K, <td.alpha_set>, <nCharSize>, <p>);"
+Acn_String_CharIndex_External_Field_Determinant_decode(p, sErrCode, nAsn1Max, arrnAlphabetAsciiCodes, nCharSetSize, sExtFld, td/*:FE_StringTypeDefinition*/, nCharSize) ::= <<
+<rtlModuleName()>.Acn_Dec_String_CharIndex_External_Field_Determinant(S, K, <td.alpha_set>, <nCharSize>, <rtlModuleName()>.Asn1Int(<sExtFld>), <p>, result);
 result.ErrorCode := <sErrCode>;
 >>
 
 
-Acn_IA5String_CharIndex_External_Field_Determinant_encode(p, sErrCode, nAsn1Max, sExtFld, sTasName, nCharSize) ::= "<rtlModuleName()>.Acn_Enc_String_CharIndex_External_Field_Determinant(S, K, <sTasName>_alpha_set, <nCharSize>, <p>);"
-Acn_IA5String_CharIndex_External_Field_Determinant_decode(p, sErrCode, nAsn1Max, sExtFld, sTasName, nCharSize) ::= <<
-<rtlModuleName()>.Acn_Dec_String_CharIndex_External_Field_Determinant(S, K, <sTasName>_alpha_set, <nCharSize>, <rtlModuleName()>.Asn1Int(<sExtFld>), <p>, result);
-result.ErrorCode := <sErrCode>;
->>
-
-
-
-Acn_String_CharIndex_Internal_Field_Determinant_encode(p, sErrCode, sTasName, nCharSize, nAsn1Max, nAsn1Min, nInternalLengthDeterminantSizeInBits) ::= "<rtlModuleName()>.Acn_Enc_String_CharIndex_Internal_Field_Determinant(S, K, <sTasName>_alpha_set, <nCharSize>, <nAsn1Min>, <nInternalLengthDeterminantSizeInBits>, <p>);"
-Acn_String_CharIndex_Internal_Field_Determinant_decode(p, sErrCode, sTasName, nCharSize, nAsn1Max, nAsn1Min, nInternalLengthDeterminantSizeInBits) ::= <<
-<rtlModuleName()>.Acn_Dec_String_CharIndex_Internal_Field_Determinant(S, K, <sTasName>_alpha_set, <nCharSize>, <nAsn1Min>, <nAsn1Max>, <nInternalLengthDeterminantSizeInBits>, <p>, result);
+Acn_IA5String_CharIndex_External_Field_Determinant_encode(p, sErrCode, nAsn1Max, sExtFld, td/*:FE_StringTypeDefinition*/, nCharSize) ::= "<rtlModuleName()>.Acn_Enc_String_CharIndex_External_Field_Determinant(S, K, <td.alpha_set>, <nCharSize>, <p>);"
+Acn_IA5String_CharIndex_External_Field_Determinant_decode(p, sErrCode, nAsn1Max, sExtFld, td/*:FE_StringTypeDefinition*/, nCharSize) ::= <<
+<rtlModuleName()>.Acn_Dec_String_CharIndex_External_Field_Determinant(S, K, <td.alpha_set>, <nCharSize>, <rtlModuleName()>.Asn1Int(<sExtFld>), <p>, result);
 result.ErrorCode := <sErrCode>;
 >>
 
 
 
+Acn_String_CharIndex_Internal_Field_Determinant_encode(p, sErrCode, td/*:FE_StringTypeDefinition*/, nCharSize, nAsn1Max, nAsn1Min, nInternalLengthDeterminantSizeInBits) ::= "<rtlModuleName()>.Acn_Enc_String_CharIndex_Internal_Field_Determinant(S, K, <td.alpha_set>, <nCharSize>, <nAsn1Min>, <nInternalLengthDeterminantSizeInBits>, <p>);"
+Acn_String_CharIndex_Internal_Field_Determinant_decode(p, sErrCode, td/*:FE_StringTypeDefinition*/, nCharSize, nAsn1Max, nAsn1Min, nInternalLengthDeterminantSizeInBits) ::= <<
+<rtlModuleName()>.Acn_Dec_String_CharIndex_Internal_Field_Determinant(S, K, <td.alpha_set>, <nCharSize>, <nAsn1Min>, <nAsn1Max>, <nInternalLengthDeterminantSizeInBits>, <p>, result);
+result.ErrorCode := <sErrCode>;
+>>
 
 
-PrintTypeNoUpdate_encode(sMainBody, bAligmentApplied, nAligmentValue) ::= <<
-<PrintType_encode(sMainBody=sMainBody, bAligmentApplied=bAligmentApplied, nAligmentValue=nAligmentValue)>
->>
-PrintTypeNoUpdate_decode(sMainBody, bAligmentApplied, nAligmentValue) ::= <<
-<PrintType_decode(sMainBody=sMainBody, bAligmentApplied=bAligmentApplied, nAligmentValue=nAligmentValue)>
->>
+
+
+
 
 loopFixedItem_enc (i, fixedSize, nfixedSizeUperLimit, sInternalItem, nCurOffset, nAlignSize, nIntItemMinSize, nIntItemMaxSize)::= /*nogen*/<<    
 <i> := 1;
@@ -799,19 +768,6 @@ END IF;
 >>
 
 
-bit_oct_sqf_external_field_encode(sTasName, sErrCode, p, i, sInternalItem, nSizeMin, nSizeMax, nIntItemMinSize, nIntItemMaxSize, sExtFld, nAlignSize) ::= <<
-<loopFixedItem_enc(i=i, sInternalItem=sInternalItem, fixedSize=[p,".Length"], nfixedSizeUperLimit = nSizeMax, nCurOffset="0", nAlignSize=nAlignSize, nIntItemMinSize=nIntItemMinSize, nIntItemMaxSize=nIntItemMaxSize)>
->>
-
-
-bit_oct_sqf_external_field_decode(sTasName, sErrCode, p, i, sInternalItem, nSizeMin, nSizeMax, nIntItemMinSize, nIntItemMaxSize, sExtFld, nAlignSize) ::= <<
-val := <sTasName>_Init;
-result := <rtlModuleName()>.ASN1_RESULT'(Success => <nSizeMin>\<=<sExtFld> AND <sExtFld>\<=<nSizeMax>, ErrorCode => 0);
-IF result.Success THEN
-    <p>.Length := Integer(<sExtFld>);
-    <loopFixedItem_dec(i=i, sInternalItem=sInternalItem, fixedSize=[p,".Length"], nfixedSizeUperLimit = nSizeMax, nCurOffset="0", nAlignSize=nAlignSize, nIntItemMinSize=nIntItemMinSize, nIntItemMaxSize=nIntItemMaxSize)>
-END IF;
->>
 
 
 RefTypeParam_tmpVar(sName, sTypeDecl) ::= "<sName>:<sTypeDecl>;"
@@ -1017,17 +973,17 @@ END IF;
 
 /* Choice like uper*/
 
-Choice_encode(p, sAcc, arrsChildren, nLastItemIndex, sChoiceIndexName, sChoiceTypeDef, nIndexSizeInBits, sErrCode) ::= <<
+Choice_encode(p, sAcc, arrsChildren, nLastItemIndex, sChoiceIndexName, td/*:FE_ChoiceTypeDefinition*/, nIndexSizeInBits, sErrCode) ::= <<
 case <p><sAcc>kind IS
     <arrsChildren; separator="\n">
 end case;
 >>
 
-Choice_decode(p, sAcc, arrsChildren, nLastItemIndex, sChoiceIndexName, sChoiceTypeDef, nIndexSizeInBits, sErrCode) ::= <<
+Choice_decode(p, sAcc, arrsChildren, nLastItemIndex, sChoiceIndexName, td/*:FE_ChoiceTypeDefinition*/, nIndexSizeInBits, sErrCode) ::= <<
 result.ErrorCode := <sErrCode>;
 <rtlModuleName()>.UPER_Dec_ConstraintWholeNumber(S, K, <sChoiceIndexName>, 0, <nLastItemIndex>, <nIndexSizeInBits>, result.Success);
 if result.Success AND <sChoiceIndexName> \>= 0 AND  <sChoiceIndexName> \<= <nLastItemIndex> THEN
-    case <sChoiceTypeDef>_index_range(<sChoiceIndexName>) IS
+    case <td.index_range>(<sChoiceIndexName>) IS
         <arrsChildren; separator="\n">
     end case;
 end if;

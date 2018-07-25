@@ -334,6 +334,13 @@ type FE_StringTypeDefinition = {
     alpha_index     : string
     kind            : FE_NonPrimitiveTypeDefinitionKind<FE_StringTypeDefinition>
 }
+with
+    member this.longTypedefName l callerProgramUnit =
+        let z n = this.programUnit + "." + n
+        match l with
+        | C             -> this
+        | Ada   when this.programUnit = callerProgramUnit   -> this
+        | Ada           -> {this with typeName = z this.typeName; encoding_range = z this.encoding_range; index = z this.index; alpha = z this.alpha; alpha_set = z this.alpha_set; alpha_index = z this.alpha_index}
 
 type FE_SizeableTypeDefinition = {
     asn1Name        : string
@@ -345,6 +352,13 @@ type FE_SizeableTypeDefinition = {
     length_index          : string
     kind            : FE_NonPrimitiveTypeDefinitionKind<FE_SizeableTypeDefinition>
 }
+with
+    member this.longTypedefName l callerProgramUnit =
+        let z n = this.programUnit + "." + n
+        match l with
+        | C             -> this
+        | Ada   when this.programUnit = callerProgramUnit   -> this
+        | Ada           -> {this with typeName = z this.typeName; index = z this.index; array = z this.array; length_index = z this.length_index}
 
 
 type FE_SequenceTypeDefinition = {
@@ -355,6 +369,13 @@ type FE_SequenceTypeDefinition = {
     exist           : string
     kind            : FE_NonPrimitiveTypeDefinitionKind<FE_SequenceTypeDefinition>
 }
+with
+    member this.longTypedefName l callerProgramUnit =
+        let z n = this.programUnit + "." + n
+        match l with
+        | C             -> this
+        | Ada   when this.programUnit = callerProgramUnit   -> this
+        | Ada           -> {this with typeName = z this.typeName; exist = z this.exist}
 
 type FE_ChoiceTypeDefinition = {
     asn1Name        : string
@@ -365,6 +386,13 @@ type FE_ChoiceTypeDefinition = {
     selection       : string
     kind            : FE_NonPrimitiveTypeDefinitionKind<FE_ChoiceTypeDefinition>
 }
+with
+    member this.longTypedefName l callerProgramUnit =
+        let z n = this.programUnit + "." + n
+        match l with
+        | C             -> this
+        | Ada   when this.programUnit = callerProgramUnit   -> this
+        | Ada           -> {this with typeName = z this.typeName; index_range = z this.index_range; selection = z this.selection}
 
 type FE_EnumeratedTypeDefinition = {
     asn1Name        : string
@@ -374,6 +402,13 @@ type FE_EnumeratedTypeDefinition = {
     index_range     : string
     kind            : FE_NonPrimitiveTypeDefinitionKind<FE_EnumeratedTypeDefinition>
 }
+with
+    member this.longTypedefName l callerProgramUnit =
+        let z n = this.programUnit + "." + n
+        match l with
+        | C             -> this
+        | Ada   when this.programUnit = callerProgramUnit   -> this
+        | Ada           -> {this with typeName = z this.typeName; index_range = z this.index_range}
 
 
 

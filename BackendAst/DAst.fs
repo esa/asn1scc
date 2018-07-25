@@ -289,7 +289,7 @@ type Integer = {
 
     //typeDefinition      : TypeDefinitionCommon
     definitionOrRef     : TypeDefintionOrReference
-    printValue          : (Asn1ValueKind option) -> (Asn1ValueKind) -> string
+    printValue          : string -> (Asn1ValueKind option) -> (Asn1ValueKind) -> string
     initialValue        : IntegerValue
     initFunction        : InitFunction
     equalFunction       : EqualFunction
@@ -317,7 +317,7 @@ type Enumerated = {
     //baseTypeEquivalence: BaseTypesEquivalence<Enumerated>
     //typeDefinition      : TypeDefinitionCommon
     definitionOrRef     : TypeDefintionOrReference
-    printValue          : (Asn1ValueKind option) -> (Asn1ValueKind) -> string
+    printValue          : string -> (Asn1ValueKind option) -> (Asn1ValueKind) -> string
     initialValue        : EnumValue
     initFunction        : InitFunction
     equalFunction       : EqualFunction
@@ -345,7 +345,7 @@ type Real = {
     //baseTypeEquivalence: BaseTypesEquivalence<Real>
     //typeDefinition      : TypeDefinitionCommon
     definitionOrRef     : TypeDefintionOrReference
-    printValue          : (Asn1ValueKind option) -> (Asn1ValueKind) -> string
+    printValue          : string -> (Asn1ValueKind option) -> (Asn1ValueKind) -> string
     initialValue        : RealValue
     initFunction        : InitFunction
     equalFunction       : EqualFunction
@@ -372,7 +372,7 @@ type Boolean = {
     //baseTypeEquivalence: BaseTypesEquivalence<Boolean>
     //typeDefinition      : TypeDefinitionCommon
     definitionOrRef     : TypeDefintionOrReference
-    printValue          : (Asn1ValueKind option) -> (Asn1ValueKind) -> string
+    printValue          : string -> (Asn1ValueKind option) -> (Asn1ValueKind) -> string
     initialValue        : BooleanValue
     initFunction        : InitFunction
     equalFunction       : EqualFunction
@@ -399,7 +399,7 @@ type NullType = {
     //baseTypeEquivalence: BaseTypesEquivalence<NullType>
     //typeDefinition      : TypeDefinitionCommon
     definitionOrRef     : TypeDefintionOrReference
-    printValue          : (Asn1ValueKind option) -> (Asn1ValueKind) -> string
+    printValue          : string -> (Asn1ValueKind option) -> (Asn1ValueKind) -> string
     initFunction        : InitFunction
     initialValue        : NullValue
     equalFunction       : EqualFunction
@@ -423,7 +423,7 @@ type StringType = {
     //baseTypeEquivalence: BaseTypesEquivalence<StringType>
     //typeDefinition      : TypeDefinitionCommon
     definitionOrRef     : TypeDefintionOrReference
-    printValue          : (Asn1ValueKind option) -> (Asn1ValueKind) -> string
+    printValue          : string -> (Asn1ValueKind option) -> (Asn1ValueKind) -> string
     initialValue        :  StringValue
     initFunction        : InitFunction
     equalFunction       : EqualFunction
@@ -451,7 +451,7 @@ type OctetString = {
     //baseTypeEquivalence: BaseTypesEquivalence<OctetString>
     //typeDefinition      : TypeDefinitionCommon
     definitionOrRef     : TypeDefintionOrReference
-    printValue          : (Asn1ValueKind option) -> (Asn1ValueKind) -> string
+    printValue          : string -> (Asn1ValueKind option) -> (Asn1ValueKind) -> string
     initialValue        : OctetStringValue
     initFunction        : InitFunction
     equalFunction       : EqualFunction
@@ -479,7 +479,7 @@ type BitString = {
     //baseTypeEquivalence: BaseTypesEquivalence<BitString>
     //typeDefinition      : TypeDefinitionCommon
     definitionOrRef     : TypeDefintionOrReference
-    printValue          : (Asn1ValueKind option) -> (Asn1ValueKind) -> string
+    printValue          : string -> (Asn1ValueKind option) -> (Asn1ValueKind) -> string
     initialValue        : BitStringValue
     initFunction        : InitFunction
     equalFunction       : EqualFunction
@@ -507,7 +507,7 @@ type SequenceOf = {
     //baseTypeEquivalence: BaseTypesEquivalence<SequenceOf>
     //typeDefinition      : TypeDefinitionCommon
     definitionOrRef     : TypeDefintionOrReference
-    printValue          : (Asn1ValueKind option) -> (Asn1ValueKind) -> string
+    printValue          : string -> (Asn1ValueKind option) -> (Asn1ValueKind) -> string
     initialValue        : SeqOfValue
     initFunction        : InitFunction
     equalFunction       : EqualFunction
@@ -587,7 +587,7 @@ and Sequence = {
     //baseTypeEquivalence: BaseTypesEquivalence<Sequence>
     //typeDefinition      : TypeDefinitionCommon
     definitionOrRef     : TypeDefintionOrReference
-    printValue          : (Asn1ValueKind option) -> (Asn1ValueKind) -> string
+    printValue          : string -> (Asn1ValueKind option) -> (Asn1ValueKind) -> string
     initialValue        : SeqValue
     initFunction        : InitFunction
     equalFunction       : EqualFunction
@@ -640,7 +640,7 @@ and Choice = {
     //baseTypeEquivalence: BaseTypesEquivalence<Choice>
     //typeDefinition      : TypeDefinitionCommon
     definitionOrRef     : TypeDefintionOrReference
-    printValue          : (Asn1ValueKind option) -> (Asn1ValueKind) -> string
+    printValue          : string -> (Asn1ValueKind option) -> (Asn1ValueKind) -> string
     initialValue        : ChValue
     initFunction        : InitFunction
     equalFunction       : EqualFunction
@@ -666,7 +666,7 @@ and ReferenceType = {
     //typeDefinition      : TypeDefinitionCommon
     constraintsAsn1Str  : string list   //an ASN.1 representation of the constraints
     definitionOrRef     : TypeDefintionOrReference
-    printValue          : (Asn1ValueKind option) -> (Asn1ValueKind) -> string
+    printValue          : string -> (Asn1ValueKind option) -> (Asn1ValueKind) -> string
     initialValue        : Asn1Value
     initFunction        : InitFunction
     equalFunction       : EqualFunction

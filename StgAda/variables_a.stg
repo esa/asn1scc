@@ -29,12 +29,12 @@ PrintBooleanValue(bValue)	::= "<if(bValue)>TRUE<else>FALSE<endif>"
 
 PrintNullValue()	::= "0"
 
-PrintOctetStringValue(sTasName,bIsFixedSize, arruBytes, nCount) ::= <<
-<sTasName>'(<if(!bIsFixedSize)>Length => <nCount>,<endif>Data => <sTasName>_array'(<if(arruBytes)><arruBytes:{b|<i>=>16#<b;format="X2">#}; wrap, anchor, separator=", ">,<endif> others=> 16#0#)) 
+PrintOctetStringValue(td/*:FE_SizeableTypeDefinition*/,bIsFixedSize, arruBytes, nCount) ::= <<
+<td.typeName>'(<if(!bIsFixedSize)>Length => <nCount>,<endif>Data => <td.array>'(<if(arruBytes)><arruBytes:{b|<i>=>16#<b;format="X2">#}; wrap, anchor, separator=", ">,<endif> others=> 16#0#)) 
 >>
 
-PrintBitStringValue(sTasName,bIsFixedSize, arrsBits, nCount) ::= <<
-<sTasName>'(<if(!bIsFixedSize)>Length => <nCount>,<endif>Data => <sTasName>_array'(<if(arrsBits)><arrsBits:{b|<i>=><b>}; wrap, anchor, separator=", ">,<endif> others=> 0)) 
+PrintBitStringValue(td/*:FE_SizeableTypeDefinition*/,bIsFixedSize, arrsBits, nCount) ::= <<
+<td.typeName>'(<if(!bIsFixedSize)>Length => <nCount>,<endif>Data => <td.array>'(<if(arrsBits)><arrsBits:{b|<i>=><b>}; wrap, anchor, separator=", ">,<endif> others=> 0)) 
 >>
 
 
@@ -58,8 +58,8 @@ PrintChoiceValue_setters(sTasName, sChildName, sChildVal) ::= <<
 <sTasName>_<sChildName>_set(<sChildVal>)
 >>
 
-PrintSequenceOfValue(sTasName, bIsFixedSize, nLength, arrsInnerValues, sDefValue) ::= <<
-<sTasName>'(<if(!bIsFixedSize)>Length => <nLength>,<endif>Data => <sTasName>_array'(<if(arrsInnerValues)><arrsInnerValues:{b|<i>=><b>}; wrap, anchor, separator=", ">,<endif> others => <sDefValue>))
+PrintSequenceOfValue(td/*:FE_SizeableTypeDefinition*/, bIsFixedSize, nLength, arrsInnerValues, sDefValue) ::= <<
+<td.typeName>'(<if(!bIsFixedSize)>Length => <nLength>,<endif>Data => <td.array>'(<if(arrsInnerValues)><arrsInnerValues:{b|<i>=><b>}; wrap, anchor, separator=", ">,<endif> others => <sDefValue>))
 >>
 
 

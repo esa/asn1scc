@@ -370,6 +370,7 @@ let createEnumComn (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec:CommonT
         | false -> Asn1SIntLocalVariable (intVal,None)
     let pVal = {CallerScope.modName = typeId.ModName; arg = VALUE intVal}
     let funcBody (errCode:ErroCode) (acnArgs: (Asn1AcnAst.RelativePath*Asn1AcnAst.AcnParameter) list) (p:CallerScope)        = 
+        let td = (o.typeDef.[l]).longTypedefName l (ToC p.modName)
         let intFuncBody = 
             let uperInt (errCode:ErroCode) (p:CallerScope) = 
                 let pp = match codec with CommonTypes.Encode -> p.arg.getValue l | CommonTypes.Decode -> p.arg.getPointer l
@@ -381,7 +382,7 @@ let createEnumComn (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec:CommonT
             | None      -> None
             | Some(intAcnFuncBdResult) ->
                 let arrItems = o.items |> List.map(fun it -> Enumerated_item (p.arg.getValue l) (it.getBackendName (Some defOrRef) l) it.acnEncodeValue codec)
-                Some (EnumeratedEncValues (p.arg.getValue l) typeDefinitionName arrItems intAcnFuncBdResult.funcBody errCode.errCodeName sFirstItemName codec, intAcnFuncBdResult.errCodes, localVar::intAcnFuncBdResult.localVariables)
+                Some (EnumeratedEncValues (p.arg.getValue l) td arrItems intAcnFuncBdResult.funcBody errCode.errCodeName sFirstItemName codec, intAcnFuncBdResult.errCodes, localVar::intAcnFuncBdResult.localVariables)
         match funcBodyContent with
         | None -> None
         | Some (funcBodyContent,errCodes, localVariables) -> Some ({AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = errCodes; localVariables = localVariables})
@@ -576,6 +577,7 @@ let createStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
     
     let funcBody (errCode:ErroCode) (acnArgs: (Asn1AcnAst.RelativePath*Asn1AcnAst.AcnParameter) list) (p:CallerScope)        = 
         let pp = match codec with CommonTypes.Encode -> p.arg.getValue l | CommonTypes.Decode -> p.arg.getPointer l
+        let td = (o.typeDef.[l]).longTypedefName l (ToC p.modName)
         let funcBodyContent = 
             match o.acnEncodingClass with
             | Acn_Enc_String_uPER  _                                           -> uperFunc.funcBody_e errCode p |> Option.map(fun x -> x.funcBody, x.errCodes, x.localVariables)
@@ -597,8 +599,8 @@ let createStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
                     match o.uperCharSet.Length = 128 with
                     | false -> 
                         let arrAsciiCodes = o.uperCharSet |> Array.map(fun x -> BigInteger (System.Convert.ToInt32 x))
-                        Acn_String_CharIndex_External_Field_Determinant pp errCode.errCodeName ( o.maxSize) arrAsciiCodes (BigInteger o.uperCharSet.Length) extField typeDefinitionName nBits codec 
-                    | true  -> Acn_IA5String_CharIndex_External_Field_Determinant pp errCode.errCodeName ( o.maxSize)  extField typeDefinitionName nBits codec
+                        Acn_String_CharIndex_External_Field_Determinant pp errCode.errCodeName ( o.maxSize) arrAsciiCodes (BigInteger o.uperCharSet.Length) extField td nBits codec 
+                    | true  -> Acn_IA5String_CharIndex_External_Field_Determinant pp errCode.errCodeName ( o.maxSize)  extField td nBits codec
                 Some(encDecStatement, [errCode], [])
         match funcBodyContent with
         | None -> None
@@ -617,9 +619,18 @@ let createAcnStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
     let Acn_String_CharIndex_External_Field_Determinant     = match l with C -> acn_c.Acn_String_CharIndex_External_Field_Determinant   | Ada -> acn_a.Acn_String_CharIndex_External_Field_Determinant
     let Acn_IA5String_CharIndex_External_Field_Determinant  = match l with C -> acn_c.Acn_IA5String_CharIndex_External_Field_Determinant   | Ada -> acn_c.Acn_IA5String_CharIndex_External_Field_Determinant
     let typeDefinitionName = ToC2(r.args.TypePrefix + t.tasName.Value)
-
+    let callerProgramUnit = ToC typeId.ModName
+    
+    //let td = o.
     let o = t.str
     let uper_funcBody (errCode:ErroCode) (p:CallerScope) = 
+        let td =
+            let md = r.GetModuleByName t.modName
+            let tas = md.GetTypeAssignmentByName t.tasName r
+            match tas.Type.ActualType.Kind with
+            | Asn1AcnAst.IA5String     z -> z.typeDef.[l].longTypedefName l (ToC p.modName)
+            | Asn1AcnAst.NumericString z -> z.typeDef.[l].longTypedefName l (ToC p.modName)
+            | _                           -> raise(SemanticError(t.tasName.Location, (sprintf "Type assignemt %s.%s does not point to a string type" t.modName.Value t.modName.Value)))
         let ii = typeId.SeqeuenceOfLevel + 1
         let i = sprintf "i%d" ii
         let lv = SequenceOfIndex (typeId.SeqeuenceOfLevel + 1, None)
@@ -647,7 +658,7 @@ let createAcnStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
             | false -> 
                 let nBits = GetNumberOfBitsForNonNegativeInteger (BigInteger (o.uperCharSet.Length-1))
                 let arrAsciiCodes = o.uperCharSet |> Array.map(fun x -> BigInteger (System.Convert.ToInt32 x))
-                InternalItem_string_with_alpha p.arg.p errCode.errCodeName typeDefinitionName i (BigInteger (o.uperCharSet.Length-1)) arrAsciiCodes (BigInteger (o.uperCharSet.Length)) nBits  codec
+                InternalItem_string_with_alpha p.arg.p errCode.errCodeName td i (BigInteger (o.uperCharSet.Length-1)) arrAsciiCodes (BigInteger (o.uperCharSet.Length)) nBits  codec
         let nSizeInBits = GetNumberOfBitsForNonNegativeInteger ( (o.maxSize - o.minSize))
         let funcBodyContent, localVariables = 
             match o.minSize with
@@ -664,6 +675,7 @@ let createAcnStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
 
 
     let funcBody (errCode:ErroCode) (acnArgs: (Asn1AcnAst.RelativePath*Asn1AcnAst.AcnParameter) list) (p:CallerScope)        = 
+        let td = (o.typeDef.[l]).longTypedefName l (ToC p.modName)
         let pp = match codec with CommonTypes.Encode -> p.arg.getValue l | CommonTypes.Decode -> p.arg.getPointer l
         let funcBodyContent = 
             match t.str.acnEncodingClass with
@@ -684,8 +696,8 @@ let createAcnStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
                     match t.str.uperCharSet.Length = 128 with
                     | false -> 
                         let arrAsciiCodes = t.str.uperCharSet |> Array.map(fun x -> BigInteger (System.Convert.ToInt32 x))
-                        Acn_String_CharIndex_External_Field_Determinant pp errCode.errCodeName ( t.str.maxSize) arrAsciiCodes (BigInteger t.str.uperCharSet.Length) extField typeDefinitionName nBits codec
-                    | true  -> Acn_IA5String_CharIndex_External_Field_Determinant pp errCode.errCodeName ( t.str.maxSize) extField typeDefinitionName nBits codec
+                        Acn_String_CharIndex_External_Field_Determinant pp errCode.errCodeName ( t.str.maxSize) arrAsciiCodes (BigInteger t.str.uperCharSet.Length) extField td nBits codec
+                    | true  -> Acn_IA5String_CharIndex_External_Field_Determinant pp errCode.errCodeName ( t.str.maxSize) extField td nBits codec
                 Some(encDecStatement, [], [])
             | Acn_Enc_String_uPER    _                                         -> 
                 let x = (uper_funcBody errCode) p 
@@ -1237,7 +1249,6 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
     //let nBits = (GetNumberOfBitsForNonNegativeInteger (nMax-nMin))
     let nIndexSizeInBits = (GetNumberOfBitsForNonNegativeInteger (BigInteger (children.Length - 1)))
     let sChoiceIndexName = (ToC t.id.AsString) + "_index_tmp"
-
     let ec =  
         match o.acnProperties.enumDeterminant with
         | Some _            -> 
@@ -1260,6 +1271,7 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
     let typeDefinitionName = defOrRef.longTypedefName l//getTypeDefinitionName t.id.tasInfo typeDefinition
 
     let funcBody (us:State) (errCode:ErroCode) (acnArgs: (Asn1AcnAst.RelativePath*Asn1AcnAst.AcnParameter) list) (p:CallerScope) = 
+        let td = (o.typeDef.[l]).longTypedefName l (ToC p.modName)
         let handleChild (us:State) (idx:int) (child:ChChildInfo) =
                 let chFunc = child.chType.getAcnFunction codec
                 let childContentResult, ns1 = 
@@ -1337,7 +1349,7 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
             match ec with
             | CEC_uper        -> 
                 //let ret = choice p.arg.p (p.arg.getAcces l) childrenContent (BigInteger (children.Length - 1)) sChoiceIndexName errCode.errCodeName typeDefinitionName nBits  codec
-                choice_uper p.arg.p (p.arg.getAcces l) childrenStatements nMax sChoiceIndexName typeDefinitionName nIndexSizeInBits errCode.errCodeName codec
+                choice_uper p.arg.p (p.arg.getAcces l) childrenStatements nMax sChoiceIndexName td nIndexSizeInBits errCode.errCodeName codec
             | CEC_enum   enm  -> 
                 let extField = getExternaField r deps t.id
                 choice_Enum p.arg.p (p.arg.getAcces l) childrenStatements extField errCode.errCodeName codec

@@ -235,7 +235,7 @@ Enumerated_item_encode(p, sName, nIndex, nLastItemIndex) ::= "when <sName>    =>
 Enumerated_item_decode(p, sName, nIndex, nLastItemIndex) ::= "when <nIndex> => <p> := <sName>;"
 
 
-Enumerated_encode(p, sTypeName, arrsItem, nMin, nMax, nBits, sErrCode, nLastItemIndex, sFirstItemName) ::= <<
+Enumerated_encode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, nMin, nMax, nBits, sErrCode, nLastItemIndex, sFirstItemName) ::= <<
 declare
     intVal:Asn1Int;
 begin
@@ -246,13 +246,13 @@ begin
 end;
 >>
 
-Enumerated_decode(p, sTypeName, arrsItem, nMin, nMax, nBits, sErrCode, nLastItemIndex, sFirstItemName) ::= <<
+Enumerated_decode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, nMin, nMax, nBits, sErrCode, nLastItemIndex, sFirstItemName) ::= <<
 declare
     intVal:Asn1Int;
 begin
     <rtlModuleName()>.UPER_Dec_ConstraintWholeNumber(S, K, intVal, <nMin>, <nMax>, <nBits>, result.Success);
     if result.Success THEN
-        case <sTypeName>_index_range(intVal) is
+        case <td.index_range>(intVal) is
             <arrsItem; separator="\n">
         end case;
         result.ErrorCode := 0;
@@ -385,17 +385,17 @@ when <nChildIndex> =>
 >>
 
 
-choice_encode(p, sAcc, arrsChildren, nLastItemIndex, sChoiceIndexName, sErrCode, sChoiceTypeDef, nIndexSizeInBits) ::= <<
+choice_encode(p, sAcc, arrsChildren, nLastItemIndex, sChoiceIndexName, sErrCode, td/*:FE_ChoiceTypeDefinition*/, nIndexSizeInBits) ::= <<
 case <p><sAcc>kind IS
     <arrsChildren; separator="\n">
 end case;
 >>
 
-choice_decode(p, sAcc, arrsChildren, nLastItemIndex, sChoiceIndexName, sErrCode, sChoiceTypeDef, nIndexSizeInBits) ::= <<
+choice_decode(p, sAcc, arrsChildren, nLastItemIndex, sChoiceIndexName, sErrCode, td/*:FE_ChoiceTypeDefinition*/, nIndexSizeInBits) ::= <<
 result.ErrorCode := <sErrCode>;
 <rtlModuleName()>.UPER_Dec_ConstraintWholeNumber(S, K, <sChoiceIndexName>, 0, <nLastItemIndex>, <nIndexSizeInBits>, result.Success);
 if result.Success AND <sChoiceIndexName> \>= 0 AND  <sChoiceIndexName> \<= <nLastItemIndex> THEN
-    case <sChoiceTypeDef>_index_range(<sChoiceIndexName>) IS
+    case <td.index_range>(<sChoiceIndexName>) IS
         <arrsChildren; separator="\n">
     end case;
 end if;
@@ -458,15 +458,15 @@ result.ErrorCode := <sErrCode>;
 >>
 
 
-InternalItem_string_with_alpha_encode(p, sErrCode, sTasName, i, nLastItemIndex, arrnAlphabetAsciiCodes, nAlphabetLength, nCharIndexSize) ::=<<
-charIndex := <rtlModuleName()>.GetZeroBasedCharIndex(<p>(<i>), <sTasName>_alpha_set);
+InternalItem_string_with_alpha_encode(p, sErrCode, td/*:FE_StringTypeDefinition*/, i, nLastItemIndex, arrnAlphabetAsciiCodes, nAlphabetLength, nCharIndexSize) ::=<<
+charIndex := <rtlModuleName()>.GetZeroBasedCharIndex(<p>(<i>), <td.alpha_set>);
 <rtlModuleName()>.UPER_Enc_ConstraintWholeNumber(S, K, <rtlModuleName()>.Asn1Int(charIndex), 0, <nCharIndexSize>);
 >>
 
-InternalItem_string_with_alpha_decode(p, sErrCode, sTasName, i, nLastItemIndex, arrnAlphabetAsciiCodes, nAlphabetLength, nCharIndexSize) ::=<<
+InternalItem_string_with_alpha_decode(p, sErrCode, td/*:FE_StringTypeDefinition*/, i, nLastItemIndex, arrnAlphabetAsciiCodes, nAlphabetLength, nCharIndexSize) ::=<<
 <rtlModuleName()>.UPER_Dec_ConstraintWholeNumberInt(S, K, charIndex, 0, <nLastItemIndex>, <nCharIndexSize>, result.Success);
 result.ErrorCode := <sErrCode>;
-<p>(<i>) := <sTasName>_alpha_set(charIndex+1);
+<p>(<i>) := <td.alpha_set>(charIndex+1);
 >>
 
 
