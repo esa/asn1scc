@@ -237,9 +237,15 @@ let exportRTL outDir  (l:ProgrammingLanguage) (args:CommandLineSettings)=
     match l with
     | ProgrammingLanguage.C ->
                 writeTextFile (Path.Combine(outDir, "asn1crt.c")) (rm.GetString("asn1crt",null)) 
-                writeTextFile (Path.Combine(outDir, "asn1crt.h")) (rm.GetString("asn1crt1",null)) 
+                
+                let asn1crt_h = rm.GetString("asn1crt1",null)
+                let intSize = sprintf "#define WORD_SIZE	%d" (int args.integerSizeInBytes)
+                let fpSize = sprintf "#define FP_WORD_SIZE	%d" (int args.floatingPointSizeInBytes)
+                writeTextFile (Path.Combine(outDir, "asn1crt.h")) (asn1crt_h.Replace("#define WORD_SIZE	8", intSize).Replace("#define FP_WORD_SIZE	8", fpSize) )
+                
                 writeTextFile (Path.Combine(outDir, "acn.c"))     (rm.GetString("Acn",null)) 
                 writeTextFile (Path.Combine(outDir, "real.c"))    (rm.GetString("real",null)) 
+
                 match args.encodings |> Seq.exists ((=) Asn1Encoding.XER) with
                 | true  -> writeTextFile (Path.Combine(outDir, "xer.c"))  (rm.GetString("xer",null)) 
                 | false -> ()
