@@ -211,7 +211,7 @@ let constructCommandLineSettings args (parserResults: ParseResults<CliArguments>
                 match args |> List.filter(fun a -> a = C_lang || a = Ada_Lang) with
                 | C_lang::[] ->  CommonTypes.EnumRenamePolicy.SelectiveEnumerants
                 | Ada_Lang::[]  -> CommonTypes.EnumRenamePolicy.NoRenamePolicy
-                | []            -> CommonTypes.EnumRenamePolicy.NoRenamePolicy
+                | []            -> CommonTypes.EnumRenamePolicy.SelectiveEnumerants
                 | _             -> raise (UserException ("Please select only one of target languages, not both."))
             | rp::_    ->
                 match rp with
