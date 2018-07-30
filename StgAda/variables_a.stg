@@ -40,7 +40,7 @@ PrintBitStringValue(td/*:FE_SizeableTypeDefinition*/,bIsFixedSize, arrsBits, nCo
 
 PrintSequenceValueChild(sName, sInnerValue) ::= "<sName> => <sInnerValue>"
 PrintSequenceValue_child_exists(sName, sExistsBit) ::= "<sName> => <sExistsBit>"
-PrintSequenceValue_Exists(sTasName, arrsOptionalPresentFields) ::="Exist => <sTasName>_EXIST'(<arrsOptionalPresentFields; wrap, anchor,  separator=\",\">)"
+PrintSequenceValue_Exists(td/*:FE_SequenceTypeDefinition*/, arrsOptionalPresentFields) ::="Exist => <td.exist>'(<arrsOptionalPresentFields; wrap, anchor,  separator=\",\">)"
 
 PrintSequenceValue(sTasName,arrsChildren) ::= <<
 <sTasName>'(

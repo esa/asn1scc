@@ -156,6 +156,7 @@ let rec printValue (r:DAst.AstRoot)  (l:ProgrammingLanguage)  (curProgamUnitName
         | SeqValue          v -> 
             match t.ActualType.Kind with
             | Sequence s -> 
+                let td = (s.baseInfo.typeDef.[l]).longTypedefName l curProgamUnitName
                 let typeDefName  = t.typeDefintionOrReference.longTypedefName l//if parentValue.IsSome then s.typeDefinition.typeDefinitionBodyWithinSeq else s.typeDefinition.name
                 let optChildren = 
                     s.children |>
@@ -182,7 +183,7 @@ let rec printValue (r:DAst.AstRoot)  (l:ProgrammingLanguage)  (curProgamUnitName
                             variables_a.PrintSequenceValueChild (x.getBackendName l) (printValue r l curProgamUnitName x.Type None chV) )
                 let allChildren = match Seq.isEmpty optChildren with
                                   | true     -> arrChildren
-                                  | false    -> arrChildren @ [variables_a.PrintSequenceValue_Exists typeDefName optChildren]
+                                  | false    -> arrChildren @ [variables_a.PrintSequenceValue_Exists td optChildren]
                 variables_a.PrintSequenceValue typeDefName allChildren
             | _         -> raise(BugErrorException "unexpected type")
         | ChValue           v -> 
@@ -359,6 +360,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn
     let printValue (curProgamUnitName:string) (parentValue:Asn1ValueKind option) (gv:Asn1ValueKind) =
         match gv with
         | SeqValue  v -> 
+                let td = (o.typeDef.[l]).longTypedefName l curProgamUnitName
                 let typeDefName  = defOrRef.longTypedefName l//if parentValue.IsSome then typeDefinition.typeDefinitionBodyWithinSeq else typeDefinition.name
                 let optChildren = 
                     optChildren |>
@@ -394,7 +396,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn
                 | Ada -> 
                     let allChildren = match Seq.isEmpty optChildren with
                                       | true     -> arrChildren
-                                      | false    -> arrChildren @ [variables_a.PrintSequenceValue_Exists typeDefName optChildren]
+                                      | false    -> arrChildren @ [variables_a.PrintSequenceValue_Exists td optChildren]
                     variables_a.PrintSequenceValue typeDefName allChildren
         | RefValue ((md,vs),ov)   -> vs
         | _                 -> raise(BugErrorException "unexpected value")
