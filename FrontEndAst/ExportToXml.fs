@@ -323,9 +323,12 @@ let private exportType (t:Asn1Type) =
                         XElement(xname "Items", ti.items |> List.map(fun c ->  
                                                                 XElement(xname "Item", 
                                                                     XAttribute(xname "Name", c.Name.Value), 
+                                                                    XAttribute(xname "CName", c.c_name), 
+                                                                    XAttribute(xname "AdaName", c.ada_name), 
                                                                     XAttribute(xname "Value", c.definitionValue),   
                                                                     XAttribute(xname "Line", c.Name.Location.srcLine),
                                                                     XAttribute(xname "acnEncodeValue", c.acnEncodeValue),
+
                                                                     XAttribute(xname "CharPositionInLine", c.Name.Location.charPos)
                                                                 ))),
                         XElement(xname constraintsTag, ti.cons |> List.map(printGenericConstraint printEnumVal )),
@@ -457,6 +460,8 @@ let private exportType (t:Asn1Type) =
 let private exportTas (tas:TypeAssignment) =
     XElement(xname "TypeAssignment",
         XAttribute(xname "Name", tas.Name.Value),
+        XAttribute(xname "CName", tas.Type.FT_TypeDefintion.[CommonTypes.C].typeName),
+        XAttribute(xname "AdaName", tas.Type.FT_TypeDefintion.[CommonTypes.Ada].typeName),
         XAttribute(xname "Line", tas.Name.Location.srcLine),
         XAttribute(xname "CharPositionInLine", tas.Name.Location.charPos),
         (exportType tas.Type)
@@ -465,6 +470,8 @@ let private exportTas (tas:TypeAssignment) =
 let private exportVas (vas:ValueAssignment) =
     XElement(xname "ValueAssignment",
         XAttribute(xname "Name", vas.Name.Value),
+        XAttribute(xname "CName", vas.c_name),
+        XAttribute(xname "AdaName", vas.ada_name),
         XAttribute(xname "Line", vas.Name.Location.srcLine),
         XAttribute(xname "CharPositionInLine", vas.Name.Location.charPos),
         (exportType vas.Type),
