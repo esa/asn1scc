@@ -13,8 +13,12 @@ open DAst
 open DAstUtilFunctions
 
 
-let getFuncName (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (sEncoding:string) (typeId:ReferenceToType) =
-    typeId.tasInfo |> Option.map (fun x -> ToC2(r.args.TypePrefix + x.tasName + "_" + sEncoding + "enc_dec"))
+let getFuncName (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (sEncoding:string) (typeId:ReferenceToType) (td:FE_TypeDefinition)=
+    //typeId.tasInfo |> Option.map (fun x -> ToC2(r.args.TypePrefix + x.tasName + "_" + sEncoding + "enc_dec"))
+    match typeId.tasInfo with
+    | None -> None
+    | Some _ -> Some (td.typeName + "_" + sEncoding + "enc_dec")
+
 
 
 type StatementKind =
@@ -42,7 +46,7 @@ let rec getAmberDecode (t:Asn1AcnAst.Asn1Type) =
 
 let createUperEncDecFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1AcnAst.Asn1Type) (typeDefinition:TypeDefintionOrReference) (eqFunc:EqualFunction) (isValidFunc: IsValidFunction option) (encFunc : UPerFunction option) (decFunc : UPerFunction option)   (us:State)  =
     let sEnc = match l with C -> "" | Ada -> "UPER_"
-    let funcName            = getFuncName r l sEnc t.id
+    let funcName            = getFuncName r l sEnc t.id (t.FT_TypeDefintion.[l])
     let modName = ToC t.id.AcnAbsPath.Head
 
     let printCodec_body = match l with C -> test_cases_c.PrintCodec_body   | Ada -> test_cases_a.PrintCodec_body
@@ -116,7 +120,7 @@ let createUperEncDecFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:A
 let createAcnEncDecFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1AcnAst.Asn1Type) (typeDefinition:TypeDefintionOrReference) (eqFunc:EqualFunction) (isValidFunc: IsValidFunction option) (encFunc : AcnFunction option) (decFunc : AcnFunction option)   (us:State)  =
     let sEnc = "ACN_"
 
-    let funcName            = getFuncName r l sEnc t.id
+    let funcName            = getFuncName r l sEnc t.id (t.FT_TypeDefintion.[l])
     let modName             = ToC t.id.AcnAbsPath.Head
 
     let printCodec_body = match l with C -> test_cases_c.PrintCodec_body   | Ada -> test_cases_a.PrintCodec_body
@@ -196,7 +200,7 @@ let createAcnEncDecFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:As
 
 let createXerEncDecFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1AcnAst.Asn1Type) (typeDefinition:TypeDefintionOrReference) (eqFunc:EqualFunction) (isValidFunc: IsValidFunction option) (encFunc : XerFunction option) (decFunc : XerFunction option)   (us:State)  =
     let sEnc = "XER_"
-    let funcName            = getFuncName r l sEnc t.id
+    let funcName            = getFuncName r l sEnc t.id (t.FT_TypeDefintion.[l])
     let modName = ToC t.id.AcnAbsPath.Head
 
     let printCodec_body = match l with C -> test_cases_c.PrintCodec_body_XER   | Ada -> test_cases_a.PrintCodec_body_XER

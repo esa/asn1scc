@@ -25,8 +25,10 @@ open DAstUtilFunctions
 
 
 
-let getFuncName (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (typeId:ReferenceToType) =
-    typeId.tasInfo |> Option.map (fun x -> ToC2(r.args.TypePrefix + x.tasName + "_IsConstraintValid"))
+let getFuncName (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (typeId:ReferenceToType) (td:FE_TypeDefinition) =
+    match typeId.tasInfo with
+    | None -> None
+    | Some _ -> Some (td.typeName + "_IsConstraintValid")
 
 let Lte (l:ProgrammingLanguage) eqIsInc  e1 e2 =
     match eqIsInc with
@@ -214,7 +216,7 @@ let createPrimitiveFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage)  (t:A
 //    match allCons with
 //    | []            -> None, us
 //    | _         ->
-    let funcName            = getFuncName r l t.id
+    let funcName            = getFuncName r l t.id (t.FT_TypeDefintion.[l])
     let errCodeName         = ToC ("ERR_" + ((t.id.AcnAbsPath |> Seq.skip 1 |> Seq.StrJoin("-")).Replace("#","elm")))
     let errCode, ns = getNextValidErrorCode us errCodeName
     let funcExp (p:CallerScope) = 
@@ -264,7 +266,7 @@ let createBitOrOctetStringFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage
     match allCons with
     | []            -> None, us
     | _             ->
-        let funcName            = getFuncName r l t.id
+        let funcName            = getFuncName r l t.id (t.FT_TypeDefintion.[l])
         let errCodeName         = ToC ("ERR_" + ((t.id.AcnAbsPath |> Seq.skip 1 |> Seq.StrJoin("-")).Replace("#","elm")))
         let errCode, ns = getNextValidErrorCode us errCodeName
 
@@ -416,9 +418,6 @@ let createOctetStringFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:
                     | ReferenceToValue (typePath,(VA2 vasName)::[]) -> None
                     | ReferenceToValue(ts,vs)                       ->
                         let typeDefinitionName = typeDefinition.longTypedefName l
-                            //match t.tasInfo with
-                            //| Some tasInfo    -> ToC2(r.args.TypePrefix + tasInfo.tasName)
-                            //| None            -> typeDefinition.typeDefinitionBodyWithinSeq
                         Some ({AnonymousVariable.valueName = (recValue.getBackendName l); valueExpresion = (printValue curProgramUnit None recValue.kind); typeDefinitionName = typeDefinitionName; valKind=valKind}))
     let compareSingValueFunc (p:CallerScope) (v:Asn1AcnAst.OctetStringValue, (id,loc)) =
         let recValue = {Asn1Value.kind = OctetStringValue (v |> List.map(fun z -> z.Value)); id=id;loc=loc}
@@ -450,9 +449,6 @@ let createBitStringFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:As
                     | ReferenceToValue (typePath,(VA2 vasName)::[]) -> None
                     | ReferenceToValue(ts,vs)                       ->
                         let typeDefinitionName = defOrRef.longTypedefName l
-                            //match t.tasInfo with
-                            //| Some tasInfo    -> ToC2(r.args.TypePrefix + tasInfo.tasName)
-                            //| None            -> typeDefinition.typeDefinitionBodyWithinSeq
                         Some ({AnonymousVariable.valueName = (recValue.getBackendName l); valueExpresion = (printValue curProgramUnit None recValue.kind); typeDefinitionName = typeDefinitionName; valKind = valKind}))
     let compareSingValueFunc (p:CallerScope) (v:Asn1AcnAst.BitStringValue, (id,loc)) =
         let recValue = {Asn1Value.kind = BitStringValue (v.Value ); id=id;loc=loc}
@@ -529,7 +525,7 @@ let isValidSequenceChild   (l:ProgrammingLanguage) (o:Asn1AcnAst.Asn1Child) (new
 
 let createSequenceFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Sequence) (typeDefinition:TypeDefintionOrReference) (children:SeqChildInfo list)  (us:State)  =
 
-    let funcName     = getFuncName r l t.id
+    let funcName     = getFuncName r l t.id (t.FT_TypeDefintion.[l])
     let asn1Children = children |> List.choose(fun c -> match c with Asn1Child x -> Some x | AcnChild _ -> None)
     let body =
         let childrenConent, finalState =   
@@ -621,7 +617,7 @@ let isValidChoiceChild   (l:ProgrammingLanguage) (o:Asn1AcnAst.ChChildInfo) (new
         Some({SeqChoiceChildInfoIsValid.isValidStatement = isValid; localVars = chFunc.localVariables; alphaFuncs = chFunc.alphaFuncs; errCode = chFunc.errCodes}), us
 
 let createChoiceFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Choice) (typeDefinition:TypeDefintionOrReference) (defOrRef:TypeDefintionOrReference) (children:ChChildInfo list) (baseTypeValFunc : IsValidFunction option) (us:State)  =
-    let funcName            = getFuncName r l t.id
+    let funcName            = getFuncName r l t.id (t.FT_TypeDefintion.[l])
     let choice                  = match l with C    -> isvalid_c.choice              |Ada   -> isvalid_a.choice 
     let choice_child            = match l with C -> isvalid_c.choice_child           | Ada -> isvalid_a.choice_child
     let always_true_statement   = match l with C -> isvalid_c.always_true_statement  | Ada -> isvalid_a.always_true_statement
@@ -707,7 +703,7 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1A
 
 
 let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.SequenceOf) (typeDefinition:TypeDefintionOrReference) (childType:Asn1Type) (baseTypeValFunc : IsValidFunction option) (us:State)  =
-    let funcName            = getFuncName r l t.id
+    let funcName            = getFuncName r l t.id (t.FT_TypeDefintion.[l])
     let bIsFixedSize = o.minSize = o.maxSize
     let hasValidationFunc = 
         match bIsFixedSize with
@@ -810,29 +806,3 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:A
 
 let createReferenceTypeFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.ReferenceType) (typeDefinition:TypeDefintionOrReference) (baseType:Asn1Type)  (us:State)  =
     baseType.isValidFunction, us    
-(*
-    let typeDefinitionName = 
-        match t.tasInfo with
-        | Some tasInfo    -> ToC2(r.args.TypePrefix + tasInfo.tasName)
-        | None            -> ToC2(r.args.TypePrefix + o.tasName.Value)
-    let baseFncName = typeDefinitionName + "_IsConstraintValid"
-    let baseCallStatement l p baseFncName =
-        callBaseTypeFunc l (getAddres l p) baseFncName
-
-    let funcBody (p:String) (childAccess:string)  = 
-        baseCallStatement l p baseFncName
-
-    let ret = 
-        {
-            IsValidFunction.funcName    = None
-            errCodes                    = []
-            func                        = None
-            funcDef                     = None
-            funcExp                     = None
-            funcBody                    = (fun p -> funcBody p ".")
-            funcBody2                   = funcBody
-            alphaFuncs                  = []
-            localVariables              = []
-        }    
-    Some ret, {us with currErrCode = us.currErrCode + 0}
-*)

@@ -490,6 +490,7 @@ type AcnReferenceToEnumerated = {
     acnAligment         : AcnAligment option
 }
 
+
 type AcnReferenceToIA5String = {
     modName             : StringLoc
     tasName             : StringLoc
@@ -756,4 +757,5 @@ type Asn1AcnMergeState = {
     args:CommandLineSettings    
     allocatedTypeNames          : (ProgrammingLanguage*string*string)  list     //language, program unit, type definition name
     allocatedFE_TypeDefinition  : Map<(ProgrammingLanguage*ReferenceToType), FE_TypeDefinition>
+    temporaryTypesAllocation    : Map<(ProgrammingLanguage*ReferenceToType), string>
 }

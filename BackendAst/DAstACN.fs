@@ -13,14 +13,11 @@ open DAstUtilFunctions
 
 let foldMap = Asn1Fold.foldMap
 
-let getFuncName (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec:CommonTypes.Codec) (typeId:ReferenceToType) =
-    typeId.tasInfo |> Option.map (fun x -> ToC2(r.args.TypePrefix + x.tasName + "_ACN" + codec.suffix))
-(*
-let getTypeDefinitionName (tasInfo:TypeAssignmentInfo option) (typeDefinition:TypeDefintionOrReference) =
-    match tasInfo with
-    | Some _                -> typeDefinition.name
-    | None (*inner type*)   -> typeDefinition.typeDefinitionBodyWithinSeq
-*)
+let getFuncName (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec:CommonTypes.Codec) (typeId:ReferenceToType) (td:FE_TypeDefinition) =
+    match typeId.tasInfo with
+    | None -> None
+    | Some _ -> Some (td.typeName + "_ACN"  + codec.suffix)
+
 let callBaseTypeFunc l = match l with C -> uper_c.call_base_type_func | Ada -> uper_a.call_base_type_func
 
 
@@ -170,7 +167,7 @@ let handleAlignemntForAcnTypes (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage)  (
 
 
 let private createAcnFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (typeDefinition:TypeDefintionOrReference) (isValidFunc: IsValidFunction option)  (funcBody:State-> ErroCode->((Asn1AcnAst.RelativePath*Asn1AcnAst.AcnParameter) list) -> CallerScope -> ((AcnFuncBodyResult option)*State)) isTestVaseValid soSparkAnnotations (us:State)  =
-    let funcNameAndtasInfo   = getFuncName r l codec t.id
+    let funcNameAndtasInfo   = getFuncName r l codec t.id (t.FT_TypeDefintion.[l])
     let errCodeName         = ToC ("ERR_ACN" + (codec.suffix.ToUpper()) + "_" + ((t.id.AcnAbsPath |> Seq.skip 1 |> Seq.StrJoin("-")).Replace("#","elm")))
     let errCode, ns = getNextValidErrorCode us errCodeName
 
@@ -398,7 +395,7 @@ let createEnumeratedFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (cod
 let createAcnEnumeratedFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec:CommonTypes.Codec) (typeId : ReferenceToType) (t:Asn1AcnAst.AcnReferenceToEnumerated)  (defOrRef:TypeDefintionOrReference) (us:State)  =
     let errCodeName         = ToC ("ERR_ACN" + (codec.suffix.ToUpper()) + "_" + ((typeId.AcnAbsPath |> Seq.skip 1 |> Seq.StrJoin("-")).Replace("#","elm")))
     let errCode, ns = getNextValidErrorCode us errCodeName
-    let typeDefinitionName = ToC2(r.args.TypePrefix + t.tasName.Value)
+    let typeDefinitionName = (t.getType r).FT_TypeDefintion.[l].typeName
     let funcBody = createEnumComn r l codec typeId t.enumerated defOrRef typeDefinitionName
     (funcBody errCode), ns
 

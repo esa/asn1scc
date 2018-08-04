@@ -191,6 +191,16 @@ let rec getASN1Name  (t:Asn1Type) =
     | Choice        _  -> "CHOICE"
     | ReferenceType r  -> getASN1Name r.resolvedType
 
+
+type AcnReferenceToEnumerated with
+    member this.getType (r:AstRoot) =
+        match r.Files |> Seq.collect(fun f -> f.Modules) |> Seq.tryFind (fun m -> m.Name.Value = this.modName.Value) with
+        | None  -> raise (SemanticError(this.modName.Location, (sprintf "No module defined with name '%s'" this.modName.Value)))
+        | Some m ->
+            match m.TypeAssignments |> Seq.tryFind(fun ts -> ts.Name.Value = this.tasName.Value) with
+            | None -> raise (SemanticError(this.modName.Location, (sprintf "No type assignment with name '%s' is defined in mode '%s'" this.tasName.Value this.modName.Value)))
+            | Some tas -> tas.Type
+
 type Integer with
     member this.AllCons  = this.cons@this.withcons
 

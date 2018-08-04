@@ -1091,13 +1091,4 @@ let getFuncNameGeneric2 (typeDefinition:TypeDefintionOrReference) =
     | ReferenceToExistingDefinition  refEx  -> None
     | TypeDefinition   td                   -> Some (td.typedefName)
 
-//    match tasInfo with
-//    | Some tasInfo  -> Some (ToC2 (args.TypePrefix + tasInfo.tasName ))
-//    | None          -> 
-//        match inhInfo, rtlPrimitve with
-//        | None, true -> None
-//        | _     ->
-//            match typeDefinition with
-//            | ReferenceToExistingDefinition  refEx  -> None
-//            | TypeDefinition   td                   -> Some (td.typedefName)
 

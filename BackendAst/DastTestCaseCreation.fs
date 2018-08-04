@@ -145,7 +145,7 @@ let printAllTestCases (r:DAst.AstRoot) l outDir =
                                             let p = {CallerScope.modName = ToC "MainProgram"; arg = VALUE "tc_data"}
                                             let initStatement = atc.initTestCaseFunc p
                                             let initFuncName = t.Type.initFunction.initFuncName
-                                            PrintAutomaticTestCase r l e initStatement.funcBody initStatement.localVariables  m t.Type (ToC2(r.args.TypePrefix + t.Name.Value) ) idx initFuncName 
+                                            PrintAutomaticTestCase r l e initStatement.funcBody initStatement.localVariables  m t.Type (t.Type.FT_TypeDefintion.[l].typeName) idx initFuncName 
                                         yield generateTcFun
                         | None  -> () 
         } |> Seq.toList

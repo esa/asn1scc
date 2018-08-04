@@ -190,14 +190,6 @@ let rec printValue (r:DAst.AstRoot)  (l:ProgrammingLanguage)  (curProgamUnitName
             match t.ActualType.Kind with
             | Choice s -> 
                 let typeDefName  = t.typeDefintionOrReference.longTypedefName l
-                    (*
-                    match t.tasInfo with
-                    | Some tasInfo  -> ToC2(r.args.TypePrefix + tasInfo.tasName)
-                    | None          ->
-                        match t.Kind with
-                        | ReferenceType ref ->     ToC2(r.args.TypePrefix + ref.baseInfo.tasName.Value)
-                        | _                 ->
-                            if parentValue.IsSome then s.typeDefinition.typeDefinitionBodyWithinSeq else s.typeDefinition.name*)
                 s.children |>
                 List.filter(fun x -> x.Name.Value = v.name)  |>
                 List.map(fun x -> variables_a.PrintChoiceValue typeDefName (x.getBackendName l) (printValue r l  curProgamUnitName x.chType (Some gv) v.Value.kind) (x.presentWhenName (Some t.typeDefintionOrReference) l) ) |>

@@ -106,8 +106,6 @@ let isEqualBodyChoiceChild  (choiceTypeDefName:string) (l:ProgrammingLanguage) (
         equal_a.isEqual_Choice_Child o.presentWhenName sInnerStatement, lvars
 
 
-//let getEqualFuncName (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (id : ReferenceToType) =
-//    id.tasInfo |> Option.map (fun x -> ToC2(r.args.TypePrefix + x.tasName + "_Equal"))
 
 
 
@@ -290,6 +288,9 @@ let createReferenceTypeEqualFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLangua
     //let isEqualFuncName     = getEqualFuncName r l t.id
     let isEqualFuncName            = getFuncName r l  defOrRef
     let typeDefinitionName = defOrRef.longTypedefName l
+    let aaa
+        = 0
+
     let baseTypeDefName = ToC2(r.args.TypePrefix + o.tasName.Value)
 
     
