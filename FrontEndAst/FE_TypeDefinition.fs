@@ -351,7 +351,7 @@ let rec registerEnumeratedTypeDefinition (us:Asn1AcnMergeState) l (id : Referenc
         ret, ns
 
 
-
+(*
 let rec registerAnyTypeDefinition (asn1:Asn1Ast.AstRoot) (t:Asn1Ast.Asn1Type) (us:Asn1AcnMergeState) l (id : ReferenceToType) (kind : FE_TypeDefinitionKindInternal) : (FE_TypeDefinition*Asn1AcnMergeState)=
     match (Asn1Ast.GetActualType t asn1).Kind with
     | Asn1Ast.Integer                  -> registerPrimitiveTypeDefinition us l id kind None  |> (fun (a,b) -> FE_PrimitiveTypeDefinition a, b)
@@ -367,7 +367,7 @@ let rec registerAnyTypeDefinition (asn1:Asn1Ast.AstRoot) (t:Asn1Ast.Asn1Type) (u
     | Asn1Ast.Sequence          _      -> registerSequenceTypeDefinition us l id kind        |> (fun (a,b) -> FE_SequenceTypeDefinition a, b)
     | Asn1Ast.Choice            _      -> registerChoiceTypeDefinition us l id kind          |> (fun (a,b) -> FE_ChoiceTypeDefinition a, b)
     | Asn1Ast.ReferenceType     _      -> raise(BugErrorException "registerAnyTypeDefinition")
-
+    *)
 
 type GetTypeDifition_arg = {
     asn1TypeKind : Asn1Ast.Asn1TypeKind

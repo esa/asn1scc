@@ -353,7 +353,9 @@ let RealAutomaticTestCaseValues (r:Asn1AcnAst.AstRoot)  (t:Asn1AcnAst.Asn1Type) 
     match allCons with
     | []    -> [min; 0.0; max] 
     | _     -> 
-        allCons |> List.collect (foldRangeCon id id min max 0.0 ) |> Seq.distinct |> Seq.toList
+        let ret = allCons |> List.collect (foldRangeCon id id min max 0.0 ) |> Seq.distinct |> Seq.toList
+        let aaa = ret |> List.filter (isValidValueRanged allCons)
+        aaa
 
 let EnumeratedAutomaticTestCaseValues (r:Asn1AcnAst.AstRoot)  (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Enumerated) =
     let allItems = o.items |> List.map(fun z -> z.Name.Value)

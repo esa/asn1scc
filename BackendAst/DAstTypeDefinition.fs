@@ -36,9 +36,25 @@ let createInteger (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1AcnAst.A
         let typedefBody = defineSubType l td.typeName rtlModuleName baseType (getNewRange rtlModuleName baseType) None
         Some typedefBody
     | PrimitiveNewSubTypeDefinition subDef     -> 
-        let otherProgramUnit = if td.programUnit = subDef.programUnit then None else (Some subDef.programUnit)
-        let typedefBody = defineSubType l td.typeName otherProgramUnit subDef.typeName (getNewRange otherProgramUnit subDef.typeName) None
-        Some typedefBody
+        let rec hasSameSignWithBase (t:Asn1AcnAst.Asn1Type) =
+            match t.inheritInfo with
+            | None  -> false
+            | Some inhInf ->
+                let baseMod = r.GetModuleByName inhInf.modName.AsLoc
+                let baseTas = baseMod.GetTypeAssignmentByName inhInf.tasName.AsLoc r
+                match  baseTas.Type.Kind with
+                | Asn1AcnAst.Integer bo -> bo.isUnsigned = o.isUnsigned
+                | Asn1AcnAst.ReferenceType br -> hasSameSignWithBase br.resolvedType
+                | _                           -> false
+        match hasSameSignWithBase t with
+        | true  ->
+            let otherProgramUnit = if td.programUnit = subDef.programUnit then None else (Some subDef.programUnit)
+            let typedefBody = defineSubType l td.typeName otherProgramUnit subDef.typeName (getNewRange otherProgramUnit subDef.typeName) None
+            Some typedefBody
+        | false     ->
+            let baseType = if o.isUnsigned then declare_PosIntegerNoRTL() else declare_IntegerNoRTL()
+            let typedefBody = defineSubType l td.typeName rtlModuleName baseType (getNewRange rtlModuleName baseType) None
+            Some typedefBody
     | PrimitiveReference2RTL                  -> None
     | PrimitiveReference2OtherType            -> None
 

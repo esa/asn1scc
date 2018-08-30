@@ -1,0 +1,262 @@
+TASTE-BasicTypes DEFINITIONS ::=
+BEGIN
+
+-- Set of TASTE predefined basic types
+
+T-Int32 ::=  INTEGER (-2147483648 .. 2147483647)
+
+T-UInt32 ::= INTEGER (0 .. 4294967295)
+
+T-Int8 ::= INTEGER (-128 .. 127)
+
+T-UInt8 ::= INTEGER (0 .. 255)
+
+T-Boolean ::= BOOLEAN
+
+Check-Type ::= ENUMERATED { limit-check, expected-value-check, delta-check }
+
+END
+
+
+
+TASTE-Dataview DEFINITIONS ::=
+BEGIN
+IMPORTS T-Int32, T-UInt32, T-Int8, T-UInt8, T-Boolean FROM TASTE-BasicTypes;
+
+TASTE-Boolean ::= BOOLEAN
+
+T-Int16 ::= INTEGER (-32768 .. 32767)
+T-Uint16 ::= INTEGER (0 .. 65535)
+T-Int64 ::= INTEGER (-9223372036854775808 .. 9223372036854775807)
+T-UInt64 ::= INTEGER (0 .. 18446744073709551615)
+
+MyFloat ::= REAL (-1000000000.0 .. 1000000000.0)
+
+MyRange ::= MyFloat (0.0 .. 3.0)
+
+Debug-PrintableString ::= OCTET STRING (SIZE (0..12))
+
+-- ASN.1 Type definitions must start with an uppercase
+-- Field names in records (SEQUENCE) must start with a lowercase
+-- Underscores are not allowed: use dash (hyphen) 
+
+-- Complex types:
+LoggedValues       ::= SEQUENCE {
+    value1 T-Int32,
+    value2 T-Int32
+}
+
+LoggedValuesf       ::= SEQUENCE {
+    value1 MyFloat,
+    value2 MyFloat
+}
+
+-------------------------------------------------------------
+--For Kalman
+-------------------------------------------------------------
+--Coordinates in [m]
+
+Axis3f ::= SEQUENCE {
+    x MyFloat, 
+    y MyFloat,
+    z MyFloat
+}
+
+Vec3 ::= SEQUENCE{
+    timestamp T-UInt32, --Timestamp when the data was computed
+    x MyFloat, 
+    y MyFloat,
+    z MyFloat
+}
+
+-- Point-T    ::= Vec3
+-- Velocity-T ::= Vec3
+-- Acc-T      ::= Vec3
+Point-T    ::= Axis3f
+Velocity-T ::= Axis3f
+Acc-T      ::= Axis3f
+
+Attitude-T ::= SEQUENCE{
+    --timestamp T-UInt32, --Timestamp when the data was computed
+    roll MyFloat,
+    pitch MyFloat,
+    yaw MyFloat
+}
+
+Quaternion-T ::= SEQUENCE{
+    x MyFloat,
+    y MyFloat,
+    z MyFloat,
+    w MyFloat
+}
+
+-- Baro-T ::= SEQUENCE{
+--     pressure MyFloat,
+--     temperature MyFloat,
+--     asl MyFloat
+-- }
+
+-- ZDistance-T ::= SEQUENCE {
+--     --timestamp T-UInt32,
+--     distance MyFloat
+-- }
+
+SensorData-T ::= SEQUENCE{
+    acc Axis3f,
+    gyro Axis3f,
+    mag Axis3f,
+    --baro Baro-T,
+    --zrange ZDistance-T,
+    position Point-T
+}
+
+State-T ::= SEQUENCE{
+    attitude Attitude-T,
+    attitudeQuaternion Quaternion-T,
+    position Point-T,
+    velocity Velocity-T,
+    velocityBody Velocity-T,
+    acc Acc-T
+}
+
+Control-T::= SEQUENCE {
+    roll T-Int16,
+    pitch T-Int16,
+    yaw T-Int16,
+    thrust MyFloat
+}
+
+-- StabMode-T::= ENUMERATED  {
+--     modeDiasble, --ASSIGN VALUE ZERO TO THIS, CANT ASSIGN HERE.
+--     modeAbs,
+--     modeVelocity
+-- }
+
+-- Mode-T ::= SEQUENCE{
+--     x StabMode-T,
+--     y StabMode-T,
+--     z StabMode-T,
+--     roll StabMode-T,
+--     pitch StabMode-T,
+--     yaw StabMode-T,
+--     quat StabMode-T
+-- }
+
+-- Setpoint-T ::= SEQUENCE{
+--     timestamp T-UInt32,
+--     attitude Attitude-T, 
+--     attitudeRate Attitude-T, 
+--     quat Quaternion-T,
+--     thrust MyFloat,
+--     position Point-T,
+--     velocity Velocity-T,
+--     acc Acc-T,
+--     velocityBody TASTE-Boolean,
+--     mode Mode-T
+-- }
+
+-- ESITMATE OF POSITION
+-- Estimate-T ::= SEQUENCE {
+--     timestamp T-UInt32,
+--     position Point-T
+-- }
+
+--  SET POINT FOR ALT HOLD
+--  SetpointZ-T ::= SEQUENCE{
+--      z MyFloat,
+--      isUpdate TASTE-Boolean
+--  }
+
+-- External Position Measurement
+PositionMeasurement-T ::= SEQUENCE{
+    x MyFloat, 
+    y MyFloat,
+    z MyFloat,
+    stdDev MyFloat
+}
+
+-- Flow Measurement
+FlowMeasurement-T ::= SEQUENCE{
+    --timestamp T-UInt32,
+    dpixelX MyFloat,
+    dpixelY MyFloat,
+    stdDevX MyFloat,
+    stdDevY MyFloat,
+    dt MyFloat
+}
+
+-- TOF Measurement
+TOFMeasurement-T ::= SEQUENCE {
+    --timestamp  T-UInt32,
+    distance MyRange,
+    stdDev MyFloat
+}
+
+--  Position Controller Inputs
+PositionControllerInputs-T ::= SEQUENCE {
+    position Point-T,
+    positionRef Point-T,
+    yaw MyFloat,
+    yawRef MyFloat,
+    velocity Velocity-T,
+    velocityBody Velocity-T,
+    resetFlag TASTE-Boolean
+}
+
+--  Position Controller Outputs
+PositionControllerOutputs-T ::= SEQUENCE {
+    thrust MyFloat,
+    rollRef MyFloat,
+    pitchRef MyFloat,
+    scopeZ MyFloat,
+    scopeVZ MyFloat,
+    scopeX MyFloat,
+    scopeVX MyFloat,
+    scopeY MyFloat,
+    scopeVY MyFloat
+}
+
+--  Attitude Controller Inputs
+AttitudeControllerInputs-T ::= SEQUENCE {
+    attitude Attitude-T,
+    attitudeRef Attitude-T,
+    gyro Axis3f,
+    resetFlag TASTE-Boolean
+}
+
+AttitudeControllerOutputs-T ::= SEQUENCE {
+    roll T-Int16,
+    pitch T-Int16,
+    yaw T-Int16,
+    scopeDrollRef MyFloat,
+    scopeDpitchRef MyFloat,
+    scopeDyawRef MyFloat
+}
+
+Setpoint-T ::= SEQUENCE{
+    positionRef Point-T,
+    yawRef MyFloat
+} 
+
+--  For the high level command
+Hover ::= T-Int32 (0 .. 3000)
+
+Circle ::= T-Int32 (0 .. 3000)
+
+Command-T ::= CHOICE {
+    height Hover,
+    radius Circle
+}
+
+END
+
+
+
+
+
+
+
+
+
+
+
