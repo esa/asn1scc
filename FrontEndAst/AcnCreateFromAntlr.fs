@@ -771,7 +771,7 @@ let private mergeOctetStringType (asn1:Asn1Ast.AstRoot) (loc:SrcLoc) (acnErrLoc:
 let private mergeBitStringType (asn1:Asn1Ast.AstRoot) (loc:SrcLoc) (acnErrLoc: SrcLoc option) (props:GenericAcnProperty list) cons withcons (tdarg:GetTypeDifition_arg) (us:Asn1AcnMergeState) =
     let sizeUperRange = uPER.getBitStringUperRange cons loc
     let minSize, maxSize = uPER.getSizeMinAndMaxValue loc sizeUperRange
-    let uperMinSizeInBits, uperMaxSizeInBits = uPER.getSizeableTypeSize minSize maxSize 8I
+    let uperMinSizeInBits, uperMaxSizeInBits = uPER.getSizeableTypeSize minSize maxSize 1I
     let fixAsn1Size = match minSize = maxSize with true -> Some minSize | false -> None
 
     let acnProperties = 

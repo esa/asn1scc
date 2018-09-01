@@ -1,0 +1,5 @@
+MyModel DEFINITIONS ::= BEGIN
+
+OOO ::= BIT STRING (SIZE(20)) 
+
+END
