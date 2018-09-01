@@ -234,6 +234,13 @@ let exportAcnParameter (a:AcnParameter) =
         XAttribute(xname "Name", a.name),
         XAttribute(xname "Type", (a.asn1Type.ToString())))    
 
+let exportReferenceTypeArg (inh:CommonTypes.InheritanceInfo option)=
+    match inh with
+    | None  -> []
+    | Some ref ->            [XAttribute(xname "Module", ref.modName); XAttribute(xname "TypeAssignment", ref.tasName)]
+    
+    
+
 let private exportType (t:Asn1Type) = 
     Asn1Fold.foldType
         (fun ti us -> 
@@ -367,6 +374,7 @@ let private exportType (t:Asn1Type) =
                     XAttribute(xname "Id", ch.id.AsString),
                     XAttribute(xname "Name", ch.Name.Value),
                     XAttribute(xname "Type", "INTEGER"), 
+                    (exportReferenceTypeArg a.inheritInfo),
                     (exportAcnEndianness a.acnProperties.endiannessProp),
                     (exportAcnIntSizeProperty a.acnProperties.sizeProp),
                     (exportAcnIntEncoding a.acnProperties.encodingProp),
@@ -384,6 +392,8 @@ let private exportType (t:Asn1Type) =
                     XAttribute(xname "Id", ch.id.AsString),
                     XAttribute(xname "Name", ch.Name.Value),
                     XAttribute(xname "Type", "ENUMERATED"),    
+                    XAttribute(xname "Module", a.modName.Value),
+                    XAttribute(xname "TypeAssignment", a.tasName.Value),
                     (exportAcnAligment a.acnAligment),
                     (exportAcnEndianness a.enumerated.acnProperties.endiannessProp),
                     (exportAcnIntSizeProperty a.enumerated.acnProperties.sizeProp),
@@ -397,6 +407,8 @@ let private exportType (t:Asn1Type) =
                     XAttribute(xname "Id", ch.id.AsString),
                     XAttribute(xname "Name", ch.Name.Value),
                     XAttribute(xname "Type", "IA5String"),    
+                    XAttribute(xname "Module", a.modName.Value),
+                    XAttribute(xname "TypeAssignment", a.tasName.Value),
                     (exportAcnAligment a.acnAligment) ), us 
 
 

@@ -1,0 +1,176 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<AstRoot xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="asn1sccAst.xsd" rename_policy="SelectiveEnumerants">
+  <Asn1File FileName="a.asn1">
+    <Modules>
+      <Module Name="MyModel" Line="1" CharPositionInLine="0">
+        <ExportedTypes>
+          <ExportedType Name="FirstEnum" />
+          <ExportedType Name="SecondEnum" />
+          <ExportedType Name="MyChoice" />
+          <ExportedType Name="MySeq" />
+        </ExportedTypes>
+        <ExportedValues />
+        <ImportedModules />
+        <TypeAssignments>
+          <TypeAssignment Name="FirstEnum" CName="FirstEnum" AdaName="FirstEnum" Line="3" CharPositionInLine="0">
+            <Asn1Type id="MyModel.FirstEnum" Line="3" CharPositionInLine="14" ParameterizedTypeInstance="false">
+              <ENUMERATED acnMaxSizeInBits="1" acnMinSizeInBits="1" uperMaxSizeInBits="1" uperMinSizeInBits="1" encode-values="false">
+                <Items>
+                  <Item Name="i1" CName="FirstEnum_i1" AdaName="FirstEnum_i1" Value="0" Line="3" acnEncodeValue="0" CharPositionInLine="27" />
+                  <Item Name="i2" CName="FirstEnum_i2" AdaName="FirstEnum_i2" Value="1" Line="3" acnEncodeValue="1" CharPositionInLine="31" />
+                </Items>
+                <Constraints>
+                  <OR>
+                    <EnumValue>i1</EnumValue>
+                    <EnumValue>i2</EnumValue>
+                  </OR>
+                </Constraints>
+                <WithComponentConstraints />
+              </ENUMERATED>
+            </Asn1Type>
+          </TypeAssignment>
+          <TypeAssignment Name="SecondEnum" CName="SecondEnum" AdaName="SecondEnum" Line="4" CharPositionInLine="0">
+            <Asn1Type id="MyModel.SecondEnum" Line="4" CharPositionInLine="15" ParameterizedTypeInstance="false">
+              <ENUMERATED acnMaxSizeInBits="1" acnMinSizeInBits="1" uperMaxSizeInBits="1" uperMinSizeInBits="1" encode-values="false">
+                <Items>
+                  <Item Name="i1" CName="SecondEnum_i1" AdaName="SecondEnum_i1" Value="0" Line="4" acnEncodeValue="0" CharPositionInLine="28" />
+                  <Item Name="i2" CName="SecondEnum_i2" AdaName="SecondEnum_i2" Value="1" Line="4" acnEncodeValue="1" CharPositionInLine="32" />
+                </Items>
+                <Constraints>
+                  <OR>
+                    <EnumValue>i1</EnumValue>
+                    <EnumValue>i2</EnumValue>
+                  </OR>
+                </Constraints>
+                <WithComponentConstraints />
+              </ENUMERATED>
+            </Asn1Type>
+          </TypeAssignment>
+          <TypeAssignment Name="MyChoice" CName="MyChoice" AdaName="MyChoice" Line="6" CharPositionInLine="0">
+            <Asn1Type id="MyModel.MyChoice" Line="6" CharPositionInLine="13" ParameterizedTypeInstance="false">
+              <CHOICE acnMaxSizeInBits="73" acnMinSizeInBits="73" uperMaxSizeInBits="73" uperMinSizeInBits="9">
+                <CHOICE_ALTERNATIVE Name="i1" Line="8" CharPositionInLine="4" PresentWhenName="i1" AdaName="i1" CName="i1">
+                  <Asn1Type id="MyModel.MyChoice.i1" Line="8" CharPositionInLine="7" ParameterizedTypeInstance="false">
+                    <INTEGER acnMaxSizeInBits="72" acnMinSizeInBits="8" uperMaxSizeInBits="72" uperMinSizeInBits="8">
+                      <Constraints />
+                      <WithComponentConstraints />
+                    </INTEGER>
+                  </Asn1Type>
+                </CHOICE_ALTERNATIVE>
+                <CHOICE_ALTERNATIVE Name="i2" Line="9" CharPositionInLine="4" PresentWhenName="i2" AdaName="i2" CName="i2">
+                  <Asn1Type id="MyModel.MyChoice.i2" Line="9" CharPositionInLine="7" ParameterizedTypeInstance="false">
+                    <INTEGER acnMaxSizeInBits="72" acnMinSizeInBits="8" uperMaxSizeInBits="72" uperMinSizeInBits="8">
+                      <Constraints />
+                      <WithComponentConstraints />
+                    </INTEGER>
+                  </Asn1Type>
+                </CHOICE_ALTERNATIVE>
+                <Constraints />
+                <WithComponentConstraints />
+              </CHOICE>
+            </Asn1Type>
+          </TypeAssignment>
+          <TypeAssignment Name="MySeq" CName="MySeq" AdaName="MySeq" Line="12" CharPositionInLine="0">
+            <Asn1Type id="MyModel.MySeq" Line="12" CharPositionInLine="10" ParameterizedTypeInstance="false">
+              <SEQUENCE acnMaxSizeInBits="146" acnMinSizeInBits="146" uperMaxSizeInBits="146" uperMinSizeInBits="18">
+                <ACN_COMPONENT Id="MyModel.MySeq.firstDeter" Name="firstDeter" Type="ENUMERATED" Module="MyModel" TypeAssignment="FirstEnum">
+                  <Items>
+                    <Item Name="i1" Value="0" />
+                    <Item Name="i2" Value="1" />
+                  </Items>
+                  <Constraints>
+                    <OR>
+                      <EnumValue>i1</EnumValue>
+                      <EnumValue>i2</EnumValue>
+                    </OR>
+                  </Constraints>
+                  <WithComponentConstraints />
+                </ACN_COMPONENT>
+                <ACN_COMPONENT Id="MyModel.MySeq.secondDeter" Name="secondDeter" Type="ENUMERATED" Module="MyModel" TypeAssignment="SecondEnum">
+                  <Items>
+                    <Item Name="i1" Value="0" />
+                    <Item Name="i2" Value="1" />
+                  </Items>
+                  <Constraints>
+                    <OR>
+                      <EnumValue>i1</EnumValue>
+                      <EnumValue>i2</EnumValue>
+                    </OR>
+                  </Constraints>
+                  <WithComponentConstraints />
+                </ACN_COMPONENT>
+                <SEQUENCE_COMPONENT Name="ch1" Line="14" CharPositionInLine="4" AdaName="ch1" CName="ch1">
+                  <Asn1Type id="MyModel.MySeq.ch1" Line="14" CharPositionInLine="8" ParameterizedTypeInstance="false">
+                    <REFERENCE_TYPE Module="MyModel" TypeAssignment="MyChoice">
+                      <Asn1Type id="MyModel.MySeq.ch1" Line="6" CharPositionInLine="13" ParameterizedTypeInstance="false" tasInfoModule="MyModel" tasInfoName="MyChoice">
+                        <CHOICE acnMaxSizeInBits="72" acnMinSizeInBits="72" uperMaxSizeInBits="73" uperMinSizeInBits="9" determinant="firstDeter">
+                          <CHOICE_ALTERNATIVE Name="i1" Line="8" CharPositionInLine="4" PresentWhenName="i1" AdaName="i1" CName="i1">
+                            <Asn1Type id="MyModel.MySeq.ch1.i1" Line="8" CharPositionInLine="7" ParameterizedTypeInstance="false">
+                              <INTEGER acnMaxSizeInBits="72" acnMinSizeInBits="8" uperMaxSizeInBits="72" uperMinSizeInBits="8">
+                                <Constraints />
+                                <WithComponentConstraints />
+                              </INTEGER>
+                            </Asn1Type>
+                          </CHOICE_ALTERNATIVE>
+                          <CHOICE_ALTERNATIVE Name="i2" Line="9" CharPositionInLine="4" PresentWhenName="i2" AdaName="i2" CName="i2">
+                            <Asn1Type id="MyModel.MySeq.ch1.i2" Line="9" CharPositionInLine="7" ParameterizedTypeInstance="false">
+                              <INTEGER acnMaxSizeInBits="72" acnMinSizeInBits="8" uperMaxSizeInBits="72" uperMinSizeInBits="8">
+                                <Constraints />
+                                <WithComponentConstraints />
+                              </INTEGER>
+                            </Asn1Type>
+                          </CHOICE_ALTERNATIVE>
+                          <Constraints />
+                          <WithComponentConstraints />
+                        </CHOICE>
+                      </Asn1Type>
+                    </REFERENCE_TYPE>
+                  </Asn1Type>
+                </SEQUENCE_COMPONENT>
+                <SEQUENCE_COMPONENT Name="ch2" Line="15" CharPositionInLine="4" AdaName="ch2" CName="ch2">
+                  <Asn1Type id="MyModel.MySeq.ch2" Line="15" CharPositionInLine="8" ParameterizedTypeInstance="false">
+                    <REFERENCE_TYPE Module="MyModel" TypeAssignment="MyChoice">
+                      <Asn1Type id="MyModel.MySeq.ch2" Line="6" CharPositionInLine="13" ParameterizedTypeInstance="false" tasInfoModule="MyModel" tasInfoName="MyChoice">
+                        <CHOICE acnMaxSizeInBits="72" acnMinSizeInBits="72" uperMaxSizeInBits="73" uperMinSizeInBits="9" determinant="secondDeter">
+                          <CHOICE_ALTERNATIVE Name="i1" Line="8" CharPositionInLine="4" PresentWhenName="i1" AdaName="i1" CName="i1">
+                            <Asn1Type id="MyModel.MySeq.ch2.i1" Line="8" CharPositionInLine="7" ParameterizedTypeInstance="false">
+                              <INTEGER acnMaxSizeInBits="72" acnMinSizeInBits="8" uperMaxSizeInBits="72" uperMinSizeInBits="8">
+                                <Constraints />
+                                <WithComponentConstraints />
+                              </INTEGER>
+                            </Asn1Type>
+                          </CHOICE_ALTERNATIVE>
+                          <CHOICE_ALTERNATIVE Name="i2" Line="9" CharPositionInLine="4" PresentWhenName="i2" AdaName="i2" CName="i2">
+                            <Asn1Type id="MyModel.MySeq.ch2.i2" Line="9" CharPositionInLine="7" ParameterizedTypeInstance="false">
+                              <INTEGER acnMaxSizeInBits="72" acnMinSizeInBits="8" uperMaxSizeInBits="72" uperMinSizeInBits="8">
+                                <Constraints />
+                                <WithComponentConstraints />
+                              </INTEGER>
+                            </Asn1Type>
+                          </CHOICE_ALTERNATIVE>
+                          <Constraints />
+                          <WithComponentConstraints />
+                        </CHOICE>
+                      </Asn1Type>
+                    </REFERENCE_TYPE>
+                  </Asn1Type>
+                </SEQUENCE_COMPONENT>
+                <Constraints />
+                <WithComponentConstraints />
+              </SEQUENCE>
+            </Asn1Type>
+          </TypeAssignment>
+        </TypeAssignments>
+        <ValueAssignments />
+      </Module>
+    </Modules>
+  </Asn1File>
+  <AcnDependencies>
+    <AcnDependency Asn1TypeID="MyModel.MySeq.ch2" DeterminantId="MyModel.MySeq.secondDeter">
+      <ChoiceEnumDependency />
+    </AcnDependency>
+    <AcnDependency Asn1TypeID="MyModel.MySeq.ch1" DeterminantId="MyModel.MySeq.firstDeter">
+      <ChoiceEnumDependency />
+    </AcnDependency>
+  </AcnDependencies>
+</AstRoot>

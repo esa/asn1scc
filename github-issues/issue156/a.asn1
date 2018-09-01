@@ -1,0 +1,18 @@
+MyModel DEFINITIONS ::= BEGIN
+
+FirstEnum ::= ENUMERATED { i1, i2 }
+SecondEnum ::= ENUMERATED { i1, i2 }
+
+MyChoice ::= CHOICE
+{
+    i1 INTEGER,
+    i2 INTEGER
+}
+
+MySeq ::= SEQUENCE
+{
+    ch1 MyChoice,
+    ch2 MyChoice
+}
+
+END

@@ -1,0 +1,12 @@
+MyModel DEFINITIONS ::= BEGIN
+
+MySeq []
+{
+    firstDeter FirstEnum [],
+    secondDeter SecondEnum [],
+
+    ch1 [determinant firstDeter],
+    ch2 [determinant secondDeter]
+}
+
+END
