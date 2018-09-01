@@ -76,7 +76,9 @@ let private printUnit (r:DAst.AstRoot) (l:ProgrammingLanguage) (encodings: Commo
 
 
             let equal_defs      = //collectEqualFuncs tas.Type |> List.choose(fun ef -> ef.isEqualFuncDef)
-                GetMySelfAndChildren tas.Type |> List.choose(fun t -> t.equalFunction.isEqualFuncDef ) 
+                match r.args.GenerateEqualFunctions with
+                | true  -> GetMySelfAndChildren tas.Type |> List.choose(fun t -> t.equalFunction.isEqualFuncDef ) 
+                | false -> []
             let isValid        = 
                 match tas.Type.isValidFunction with
                 | None      -> None
@@ -181,7 +183,9 @@ let private printUnit (r:DAst.AstRoot) (l:ProgrammingLanguage) (encodings: Commo
 
             //let eqFuncs = collectEqualDeffinitions t |> List.choose(fun ef -> ef.isEqualFunc)
             let eqFuncs = //collectEqualFuncs t.Type |> List.choose(fun ef -> ef.isEqualFunc)
-                GetMySelfAndChildren t.Type |> List.choose(fun y -> y.equalFunction.isEqualFunc)
+                match r.args.GenerateEqualFunctions with
+                | true  -> GetMySelfAndChildren t.Type |> List.choose(fun y -> y.equalFunction.isEqualFunc)
+                | false -> []
 
             let isValid = match t.Type.isValidFunction with None -> None | Some isVal -> isVal.func
             let uperEncDec codec         =  
