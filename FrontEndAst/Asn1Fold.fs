@@ -172,8 +172,8 @@ let foldStringTypeConstraint unionFunc intersectionFunc allExceptFunc exceptFunc
             let nc2, s2 = loopRecursiveConstraint c2 s1
             rootFunc2 nc1 nc2 s2
         | StrSingleValueConstraint (v)    -> singleValueFunc v s0
-        | StrSizeContraint        intCon   -> foldRangeTypeConstraint sunionFunc sintersectionFunc sallExceptFunc sexceptFunc srootFunc srootFunc2 ssingleValueFunc srangeFunc srange_val_max_func srange_min_val_func intCon s
-        | AlphabetContraint       alphaCon -> foldRangeTypeConstraint aunionFunc aintersectionFunc aallExceptFunc aexceptFunc arootFunc arootFunc2 asingleValueFunc arangeFunc arange_val_max_func arange_min_val_func alphaCon s        
+        | StrSizeContraint        intCon   -> foldRangeTypeConstraint sunionFunc sintersectionFunc sallExceptFunc sexceptFunc srootFunc srootFunc2 ssingleValueFunc srangeFunc srange_val_max_func srange_min_val_func intCon s0
+        | AlphabetContraint       alphaCon -> foldRangeTypeConstraint aunionFunc aintersectionFunc aallExceptFunc aexceptFunc arootFunc arootFunc2 asingleValueFunc arangeFunc arange_val_max_func arange_min_val_func alphaCon s0
     loopRecursiveConstraint c s
 
 
@@ -206,8 +206,8 @@ let foldStringTypeConstraint2 unionFunc intersectionFunc allExceptFunc exceptFun
             let nc2, s2 = loopRecursiveConstraint c2 s1
             rootFunc2 nc1 nc2 s2
         | StrSingleValueConstraint (v)     -> singleValueFunc v s0
-        | StrSizeContraint        intCon   -> foldRangeSizeConstraint  intCon s
-        | AlphabetContraint       alphaCon -> foldRangeAlphaConstraint alphaCon s        
+        | StrSizeContraint        intCon   -> foldRangeSizeConstraint  intCon s0
+        | AlphabetContraint       alphaCon -> foldRangeAlphaConstraint alphaCon s0        
     loopRecursiveConstraint c s
 
 
