@@ -181,7 +181,12 @@ let foldSizableConstraint (l:ProgrammingLanguage) compareSingValueFunc  getSizeF
 
 
 
-let foldStringCon (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) alphaFuncName (p:CallerScope)  (c:IA5StringConstraint)  =
+
+type FoldStringCon23State = {
+    alphaIndex : int
+    alphaFuncs : AlphaFunc list //func name, func body
+}
+let foldStringCon (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) alphaFuncName (p:CallerScope)  (c:IA5StringConstraint) (us0:FoldStringCon23State) =
     foldStringTypeConstraint2
         (fun e1 e2 b s      -> l.ExpOr e1 e2, s)
         (fun e1 e2 s        -> l.ExpAnd e1 e2, s)
@@ -194,9 +199,21 @@ let foldStringCon (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) alphaFuncName (
             let aaa = [intCon] |> List.map (fun c -> simplifytIntegerTypeConstraint (UintHandleEqual r 0u) (UintHandleRangeContraint_val_MAX r 0u) (UintHandleRangeContraint_MIN_val r 0u UInt32.MaxValue) c) |> List.choose (fun sc -> match sc with SicAlwaysTrue -> None | SciConstraint c -> Some c)
             let bbb = aaa |> List.map (fun intCon -> foldSizeRangeTypeConstraint l (fun l p -> l.StrLen p.arg.p) p intCon |> fst)
             l.ExpAndMulti bbb, s)
-        (fun alphcon s      -> sprintf "%s(%s)" alphaFuncName p.arg.p,s) 
+        (fun alphcon s      -> 
+            let foldAlpha = (foldRangeCon l (fun v -> v.ToString().ISQ) (fun v -> v.ToString().ISQ))
+            let alphaBody = foldAlpha ({CallerScope.modName = p.modName; arg = VALUE (sprintf "str%s" (l.ArrayAccess "i"))}) alphcon
+            let alphaFuncName = sprintf "%s_%d" alphaFuncName s.alphaIndex
+            let funcBody =
+                match l with
+                | C    -> isvalid_c.Print_AlphabetCheckFunc alphaFuncName [alphaBody]
+                | Ada  -> isvalid_a.Print_AlphabetCheckFunc alphaFuncName [alphaBody]
+            let alphFunc = {AlphaFunc.funcName = alphaFuncName; funcBody = funcBody }
+
+            let newState = {FoldStringCon23State.alphaIndex = s.alphaIndex + 1; alphaFuncs = alphFunc::s.alphaFuncs}
+            sprintf "%s(%s)" alphaFuncName p.arg.p, newState) 
         c
-        0 |> fst
+        us0 
+
 
 let hasValidationFunc allCons =
     match allCons with
@@ -210,6 +227,11 @@ let joinTwoIfFirstOk l = match l with C -> isvalid_c.JoinTwoIfFirstOk | Ada -> i
 
 //let getAddres = DAstEqual.getAddres
 
+type ConstraintToStringFunc<'c,'state> =
+    | StatelessConstraintToStringFunc of (CallerScope->'c->string)
+    | StatefullConstraintToStringFunc of 'state * (CallerScope -> 'c -> 'state -> string*'state)
+
+
 let createPrimitiveFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage)  (t:Asn1AcnAst.Asn1Type) allCons  conToStrFunc (typeDefinition:TypeDefintionOrReference) (alphaFuncs : AlphaFunc list) (us:State)  =
     let hasValidationFunc= hasValidationFunc allCons
     
@@ -220,10 +242,10 @@ let createPrimitiveFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage)  (t:A
     let errCodeName         = ToC ("ERR_" + ((t.id.AcnAbsPath |> Seq.skip 1 |> Seq.StrJoin("-")).Replace("#","elm")))
     let errCode, ns = getNextValidErrorCode us errCodeName
     let funcExp (p:CallerScope) = 
-        let allCons = allCons |> List.map (conToStrFunc p)
-        match allCons with
-        | []     -> "TRUE"//raise(BugErrorException("Invalid case"))
-        | c::cs  -> l.ExpAndMulti allCons 
+            let allCons = allCons |> List.map (conToStrFunc p)
+            match allCons with
+            | []     -> "TRUE"
+            | c::cs  -> l.ExpAndMulti allCons 
 
     let funcBody (p:CallerScope) = 
         r.stg.is_valid.makeExpressionToStatement (funcExp p) errCode.errCodeName
@@ -261,6 +283,8 @@ let createPrimitiveFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage)  (t:A
             anonymousVariables          = []
         }    
     Some ret, ns
+
+
 
 let createBitOrOctetStringFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage)  (t:Asn1AcnAst.Asn1Type) allCons  conToStrFunc (typeDefinition:TypeDefintionOrReference) (alphaFuncs : AlphaFunc list)  anonymousVariables (us:State)  =
     match allCons with
@@ -357,23 +381,62 @@ let createRealFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1Acn
     createPrimitiveFunction r l t o.AllCons (foldRangeCon l (fun v -> v.ToString("E20", NumberFormatInfo.InvariantInfo)) (fun v -> v.ToString("E20", NumberFormatInfo.InvariantInfo))) typeDefinition [] us
 
 let createStringFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.StringType) (typeDefinition:TypeDefintionOrReference) (us:State)  =
+    let allCons = o.AllCons
     let alphafuncName = ToC (((t.id.AcnAbsPath |> Seq.skip 1 |> Seq.StrJoin("-")).Replace("#","elm")) + "_CharsAreValid")
-    let foldAlpha = (foldRangeCon l (fun v -> v.ToString().ISQ) (fun v -> v.ToString().ISQ))
-    let alpaCons = 
-        o.AllCons |> 
-        List.choose(fun x -> match x with AlphabetContraint al-> Some al | _ -> None) |> 
-        List.map (fun z -> foldAlpha ({CallerScope.modName = t.id.ModName; arg = VALUE (sprintf "str%s" (l.ArrayAccess "i"))}) z)
-    let alphaFuncs = 
-        match alpaCons with
-        | []    -> []
-        | _     ->
-            let funcBody =
+    let initialState = {FoldStringCon23State. alphaIndex = 0; alphaFuncs = [] }
+
+    let funcName            = getFuncName r l t.id (t.FT_TypeDefintion.[l])
+    let errCodeName         = ToC ("ERR_" + ((t.id.AcnAbsPath |> Seq.skip 1 |> Seq.StrJoin("-")).Replace("#","elm")))
+    let errCode, ns = getNextValidErrorCode us errCodeName
+    let funcExp (p:CallerScope) = 
+        match allCons with
+        | []     -> "TRUE", []
+        | c::cs  -> 
+            let allCons,fs = allCons |> foldMap (fun st c -> foldStringCon r l alphafuncName p c st) initialState
+            l.ExpAndMulti allCons, fs.alphaFuncs 
+
+    let funcBody (p:CallerScope) = 
+        let exp, alphaFuncs = funcExp p
+        r.stg.is_valid.makeExpressionToStatement exp errCode.errCodeName, alphaFuncs
+
+    let funcExp2 (p:CallerScope) = funcExp p |> fst
+    let funcBody2 (p:CallerScope) =  funcBody p |> fst
+
+    let p  = t.getParamType l Encode
+    let varName = p.arg.p
+    let sStar = p.arg.getStar l
+    let exp, alphaFuncs = funcBody p  
+    let  func  = 
+            match funcName  with
+            | None              -> None
+            | Some funcName     -> 
                 match l with
-                | C    -> isvalid_c.Print_AlphabetCheckFunc alphafuncName alpaCons
-                | Ada  -> isvalid_a.Print_AlphabetCheckFunc alphafuncName alpaCons
-            let alphFunc = {AlphaFunc.funcName = alphafuncName; funcBody = funcBody }
-            [alphFunc]
-    createPrimitiveFunction r l t o.AllCons (foldStringCon r l alphafuncName) typeDefinition alphaFuncs us
+                |C     -> Some(isvalid_c.EmitTypeAssignment_primitive varName sStar funcName  (typeDefinition.longTypedefName l) exp  (alphaFuncs |> List.map(fun x -> x.funcBody)) ) 
+                |Ada   -> Some(isvalid_a.EmitTypeAssignment_primitive varName sStar funcName  (typeDefinition.longTypedefName l) exp  (alphaFuncs |> List.map(fun x -> x.funcBody)) ) 
+    let  funcDef  = 
+            match funcName with
+            | None              -> None
+            | Some funcName     -> 
+                match l with
+                |C     ->  Some(isvalid_c.EmitTypeAssignment_primitive_def varName sStar funcName  (typeDefinition.longTypedefName l) errCode.errCodeName (BigInteger errCode.errCodeValue))
+                |Ada   ->  Some(isvalid_a.EmitTypeAssignment_primitive_def varName sStar funcName  (typeDefinition.longTypedefName l) errCode.errCodeName (BigInteger errCode.errCodeValue))
+        
+    let ret = 
+        {
+            IsValidFunction.funcName    = funcName
+            errCodes                    = [errCode]
+            func                        = func
+            funcDef                     = funcDef
+            funcExp                     = Some funcExp2
+            funcBody                    = funcBody2 
+            //funcBody2                   = (fun p acc -> funcBody p)
+            alphaFuncs                  = alphaFuncs
+            localVariables              = []
+            anonymousVariables          = []
+        }    
+    Some ret, ns
+
+
 
 let createBoolFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Boolean) (typeDefinition:TypeDefintionOrReference) (us:State)  =
     createPrimitiveFunction r l t (o.cons@o.withcons) (foldGenericCon l  (fun p v -> v.ToString().ToLower())) typeDefinition [] us

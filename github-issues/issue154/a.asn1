@@ -1,0 +1,10 @@
+MyModel DEFINITIONS ::= BEGIN
+
+Str ::= IA5String ((SIZE(1 .. 5) ^ FROM("a" .. "z")) | (SIZE(50 .. 100) ^ FROM ("A" .. "Z")))
+Str2 ::= IA5String (SIZE(10) ^(FROM("a" .."z") | FROM("1" .. "3")))
+
+myTc Str2 ::= "1112223331"
+
+myTc2 Str2 ::= "abcdefghij"
+
+END

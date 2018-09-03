@@ -211,7 +211,7 @@ let getStringConstraintAlphabetUperRange (c:IA5StringConstraint) (defaultCharSet
         (fun r1 r2 s        -> r1, s)
         (fun r s            -> defaultCharSet, s)       
         (fun r1 r2 s        -> defaultCharSet, s)
-        (fun v  s         -> defaultCharSet,s)
+        (fun v  s           -> defaultCharSet, s)
         
         (fun r1 r2 b s      -> defaultCharSet, s)
         (fun r1 r2 s        -> defaultCharSet, s)
@@ -219,7 +219,7 @@ let getStringConstraintAlphabetUperRange (c:IA5StringConstraint) (defaultCharSet
         (fun r1 r2 s        -> defaultCharSet, s)
         (fun r s            -> defaultCharSet, s)       
         (fun r1 r2 s        -> defaultCharSet, s)
-        (fun v  s         -> defaultCharSet,s)
+        (fun v  s           -> defaultCharSet,s)
         (fun v1 v2  minIsIn maxIsIn s  ->defaultCharSet, s)
         (fun v1 minIsIn  s  -> defaultCharSet ,s )
         (fun v2 maxIsIn s   -> defaultCharSet, s)

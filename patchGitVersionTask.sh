@@ -1,6 +1,6 @@
 #!/bin/bash
 nuget restore || exit 1
-sudo apt-get install -y --force-yes libgit2-24 libgit2-dev libssl-dev
+sudo apt-get install -y --force-yes libgit2-dev libssl-dev
 ARCH=$(uname -m)
 cd packages/GitVersionTask.3.6.5/lib/linux || exit 1
 mkdir -p ${ARCH}
