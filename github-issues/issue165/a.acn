@@ -1,0 +1,5 @@
+MyModel DEFINITIONS ::= BEGIN
+
+MyEnum [encode-values]
+
+END

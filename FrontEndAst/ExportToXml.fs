@@ -459,6 +459,13 @@ let private exportType (t:Asn1Type) =
                              |Some ts -> XAttribute(xname "tasInfoName",ts.tasName)
                              |None     -> null
                             ),
+                            (match t.acnLocation with
+                             | None  -> null
+                             | Some loc ->
+                                XElement(xname "AcnFileInfo",
+                                    XAttribute(xname "File", loc.srcFilename),
+                                    XAttribute(xname "Line", loc.srcLine),
+                                    XAttribute(xname "CharPositionInLine", loc.charPos))),
                             (exportAcnAligment t.acnAligment),
                             (match t.acnParameters with
                             | []    -> []

@@ -555,6 +555,7 @@ type Asn1Type = {
     acnAligment     : AcnAligment option
     acnParameters   : AcnParameter list
     Location        : SrcLoc //Line no, Char pos
+    acnLocation     : SrcLoc option
 
     /// Indicates that this type
     /// is a subclass (or inherits) from referencType

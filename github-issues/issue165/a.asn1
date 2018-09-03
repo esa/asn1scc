@@ -1,0 +1,5 @@
+MyModel DEFINITIONS ::= BEGIN
+
+MyEnum ::= ENUMERATED { i1 (10), i2 (20)}
+
+END

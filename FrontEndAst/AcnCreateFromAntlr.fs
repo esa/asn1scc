@@ -1468,6 +1468,7 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (m:Asn1Ast.Asn1Mo
         id              = ReferenceToType curPath
         acnAligment     = tryGetProp combinedProperties (fun x -> match x with ALIGNTONEXT e -> Some e | _ -> None)
         Location        = t.Location
+        acnLocation     = acnErrLoc
         acnParameters   = acnParameters |> List.map(fun prm -> {prm with id = (ReferenceToType (curPath@[(PRM prm.name)]))})
         inheritInfo   = inferitInfo
         typeAssignmentInfo = typeAssignmentInfo

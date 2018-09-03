@@ -1,0 +1,36 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<AstRoot xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="asn1sccAst.xsd" rename_policy="SelectiveEnumerants">
+  <Asn1File FileName="a.asn1">
+    <Modules>
+      <Module Name="MyModel" Line="1" CharPositionInLine="0">
+        <ExportedTypes>
+          <ExportedType Name="MyEnum" />
+        </ExportedTypes>
+        <ExportedValues />
+        <ImportedModules />
+        <TypeAssignments>
+          <TypeAssignment Name="MyEnum" CName="MyEnum" AdaName="MyEnum" Line="3" CharPositionInLine="0">
+            <Asn1Type id="MyModel.MyEnum" Line="3" CharPositionInLine="11" ParameterizedTypeInstance="false">
+              <AcnFileInfo File="a.acn" Line="3" CharPositionInLine="7" />
+              <ENUMERATED acnMaxSizeInBits="4" acnMinSizeInBits="4" uperMaxSizeInBits="1" uperMinSizeInBits="1" encode-values="true">
+                <Items>
+                  <Item Name="i1" CName="i1" AdaName="i1" Value="10" Line="3" acnEncodeValue="10" CharPositionInLine="24" />
+                  <Item Name="i2" CName="i2" AdaName="i2" Value="20" Line="3" acnEncodeValue="20" CharPositionInLine="33" />
+                </Items>
+                <Constraints>
+                  <OR>
+                    <EnumValue>i1</EnumValue>
+                    <EnumValue>i2</EnumValue>
+                  </OR>
+                </Constraints>
+                <WithComponentConstraints />
+              </ENUMERATED>
+            </Asn1Type>
+          </TypeAssignment>
+        </TypeAssignments>
+        <ValueAssignments />
+      </Module>
+    </Modules>
+  </Asn1File>
+  <AcnDependencies />
+</AstRoot>
