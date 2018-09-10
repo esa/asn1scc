@@ -80,6 +80,14 @@ with
             | Fp_Word_Size _     -> "Defines the size of the REAL type. Valid values are 8 bytes (default) which corresponds to double and 4 bytes which corresponds to float. If you pass 4 then you should compile the C code -DFP_WORD_SIZE=4."
             | Mapping_Functions_Module _    -> "The name of Ada module or name of C header file (without extension) containing the definitins of mapping functions"
 
+
+let printVersion () =
+    let assembly = System.Reflection.Assembly.GetExecutingAssembly();
+    let fvi = System.Diagnostics.FileVersionInfo.GetVersionInfo(assembly.Location);
+    let version = fvi.FileVersion;
+    printfn "asn1scc version %s\n" version
+    ()    
+
 let getCustmStgFileNames (compositeFile:string) =
     let files = compositeFile.Split ':' |> Seq.toList
     match files  with
@@ -350,7 +358,7 @@ let main0 argv =
                     | None  -> ()
                 | AdaUses   -> DAstUtilFunctions.AdaUses r
                 | ACND      -> GenerateFiles.EmmitDefaultACNGrammar r outDir
-                | Version   -> Antlr.VersionInformation.printGitVersion()
+                | Version   -> printVersion () //Antlr.VersionInformation.printGitVersion()
                 | _ -> ())
 
         cliArgs |> 
@@ -362,7 +370,8 @@ let main0 argv =
         | :? Argu.ArguParseException as ex -> 
             match argv.Length = 1 && (argv.[0] = "-v" || argv.[0] = "--version") with
             | true -> 
-                Antlr.VersionInformation.printGitVersion ()
+                //Antlr.VersionInformation.printGitVersion ()
+                printVersion ()
                 0
             | false ->
                 Console.Error.WriteLine(ex.Message)
@@ -381,7 +390,7 @@ let main0 argv =
             Console.Error.WriteLine(ex.StackTrace)
             4
 
-    
+
 
 [<EntryPoint>]
 let main argv = 
