@@ -46,45 +46,27 @@ Install:
 
 ## Under Linux
 
-1. Install the [mono](http://www.mono-project.com) development tools. Under
-   Debian Jessie for example (as of Sep/2014):
+1. Install the [mono](http://www.mono-project.com) development tools, 
+   as well as the FSharp compiler itself. Under Debian-based distributions,
+   as of September 2018, the packages below cover all dependencies:
 
     ```
-    $ mono -V
-    Mono JIT compiler version 3.2.8 (Debian 3.2.8+dfsg-7)
-    Copyright (C) 2002-2014 Novell, Inc, Xamarin Inc and Contributors.
-            TLS:           __thread
-            SIGSEGV:       altstack
-            Notifications: epoll
-            Architecture:  x86
-            Disabled:      none
-            Misc:          softdebug 
-            LLVM:          supported, not enabled.
-            GC:            sgen
+    sudo apt-get install -y mono-devel mono-complete fsharp mono-xbuild \
+       python3 gnat-6 gcc g++ make openjdk-8-jre nuget libgit2-24 \
+       libgit2-dev libssl-dev
+    
     ```
 
-2. Use the `fsharpc` compiler inside your distro, or just checkout and compile
-   the Open Source F# compiler...
-
-    ```
-    git clone https://github.com/fsharp/fsharp && \
-        cd fsharp && \
-        ./configure && \
-        make && sudo make install 
-    ```
-
-3. Install `nuget` package.
-
-4. Execute
+2. Build the compiler, via...
 
     ```
     make
     ```
 
-5. Run tests (if you want to):
+3. Then run the tests - if you want to:
 
     ```
-    cd Tests
+    cd v4Tests
     make
     ```
 
