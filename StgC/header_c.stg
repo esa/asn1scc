@@ -187,11 +187,14 @@ Define_new_choice(td/*:FE_ChoiceTypeDefinition*/, sChoiceIDForNone, sFirstChildN
 /*-- <td.typeName> --------------------------------------------*/
 <arrsChildldrenDefintions; separator= "\n">
 
+typedef enum {
+    <sChoiceIDForNone>,
+    <arrsPresent:{ch|<ch>}; separator=",\n"> 
+} <td.selection>;
+
+
 typedef struct {
-    enum {
-        <sChoiceIDForNone>,
-        <arrsPresent:{ch|<ch>}; separator=",\n"> 
-    } kind;
+    <td.selection> kind;
     
     union {
         <arrsChildren:{ch|<ch>}; separator="\n">
