@@ -1,0 +1,9 @@
+D DEFINITIONS ::=
+BEGIN
+ T1 {INTEGER : max-size} ::= SEQUENCE {
+    a SEQUENCE (SIZE (1..max-size)) OF BOOLEAN OPTIONAL,
+    b BOOLEAN
+ }
+ T3 ::= T1 {10}
+ T2 ::= T1 {10} (WITH COMPONENTS { a ABSENT })
+END
