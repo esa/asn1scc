@@ -853,6 +853,7 @@ sequence_always_present_child_decode(p, sAcc, sChName, sChildContent) ::= <<
 sequence_always_absent_child_encode(p, sAcc, sChName, sChildContent) ::= <<
 -- Encode <sChName>
 -- marked as ALWAYS ABSENT, so do not encode anything
+null;
 >>
 
 sequence_always_absent_child_decode(p, sAcc, sChName, sChildContent) ::= <<

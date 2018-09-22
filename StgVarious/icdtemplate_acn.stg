@@ -36,7 +36,7 @@ SequenceOf()    ::= "SEQUENCE-OF"
 
 EmitRowWith3Dots() ::= <<
 <tr class="CommentRow">
-<td class="threeDots" colspan="7"> <p>. . .</p> </td>
+<td class="threeDots" colspan="8"> <p>. . .</p> </td>
 </tr>
 >>
 
@@ -292,7 +292,7 @@ EmitSizeable(bIsAnonymousType, sTasName, sTasNameC, bHasAcnDef, sKind, sMinBytes
 <tbody>
 
 <tr  class="typeRow">
-<td colspan="5">
+<td colspan="6">
 $sTasName$ <font size="-1">($if(bIsAnonymousType)$<i>anonymous </i>$endif$$sKind$)</font>
 <font size="-2"><a href="#ASN1_$sTasNameC$" class="fileLink">ASN.1</a>$if(bHasAcnDef)$  <a href="#ACN_$sTasNameC$" class="fileLink">ACN</a>$endif$</font>
 </td>
@@ -308,7 +308,7 @@ $sTasName$ <font size="-1">($if(bIsAnonymousType)$<i>anonymous </i>$endif$$sKind
 
 $if(sCommentLine)$
 <tr class="CommentRow">
-<td class="comment2" colspan="7">$sCommentLine$</td>
+<td class="comment2" colspan="8">$sCommentLine$</td>
 </tr>
 $endif$
 
@@ -326,6 +326,7 @@ $endif$
 <td class="hrNo">No</td>
 <td class="hrField">Field</td>
 <td class="hrComment">Comment</td>
+<td class="hrOptional">Present</td>
 <td class="hrType">Type</td>
 <td class="hrConstraint">Constraint</td>
 <td class="hrMin">Min Length (bits)</td>

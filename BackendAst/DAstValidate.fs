@@ -534,6 +534,7 @@ let createBitStringFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:As
 (*  SEQUENCE *)
 
 let isValidSequenceChild   (l:ProgrammingLanguage) (o:Asn1AcnAst.Asn1Child) (newChild:Asn1Type) (us:State)= 
+    let JoinTwoIfFirstOk                  = match l with C    -> isvalid_c.JoinTwoIfFirstOk              |Ada   -> isvalid_a.JoinTwoIfFirstOk 
     let c_name = o.getBackendName l
     let sInnerStatement = 
         match newChild.isValidFunction with
@@ -581,8 +582,7 @@ let isValidSequenceChild   (l:ProgrammingLanguage) (o:Asn1AcnAst.Asn1Child) (new
     | Some(isValid, chFunc), None                      -> 
         Some({SeqChoiceChildInfoIsValid.isValidStatement = isValid; localVars = chFunc.localVariables; alphaFuncs = chFunc.alphaFuncs; errCode = chFunc.errCodes}), finalState
     | Some(isValid1, chFunc), Some(isValid2, errCode)    -> 
-        // isvalid_c.JoinTwo is language independent so it is used for both C and Ada
-        let isValid = (fun (p:CallerScope) -> isvalid_c.JoinTwo (isValid2 p )  (isValid1 p )) 
+        let isValid = (fun (p:CallerScope) -> JoinTwoIfFirstOk (isValid2 p )  (isValid1 p )) 
         Some({SeqChoiceChildInfoIsValid.isValidStatement = isValid; localVars = chFunc.localVariables; alphaFuncs = chFunc.alphaFuncs; errCode = errCode::chFunc.errCodes}), finalState
 
 

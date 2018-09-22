@@ -159,11 +159,21 @@ type SeqChildInfo with
 
     member this.acnMinSizeInBits =
         match this with
-        | Asn1Child x   -> x.Type.acnMinSizeInBits
+        | Asn1Child x   -> 
+            match x.Optionality with
+            | None                  ->  x.Type.acnMinSizeInBits
+            | Some(AlwaysAbsent)    ->  0I
+            | Some(AlwaysPresent)   ->  x.Type.acnMinSizeInBits
+            | Some(Optional o)      ->  x.Type.acnMinSizeInBits
         | AcnChild  x   -> x.Type.acnMinSizeInBits
     member this.acnMaxSizeInBits =
         match this with
-        | Asn1Child x   -> x.Type.acnMaxSizeInBits
+        | Asn1Child x   -> 
+            match x.Optionality with
+            | None                  ->  x.Type.acnMaxSizeInBits
+            | Some(AlwaysAbsent)    ->  0I
+            | Some(AlwaysPresent)   ->  x.Type.acnMaxSizeInBits
+            | Some(Optional o)      ->  x.Type.acnMaxSizeInBits
         | AcnChild  x   -> x.Type.acnMaxSizeInBits
     member this.acnAligment =
         match this with

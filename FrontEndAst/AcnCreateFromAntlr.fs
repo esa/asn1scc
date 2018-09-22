@@ -1315,6 +1315,7 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (m:Asn1Ast.Asn1Mo
                 mergedChildren |> 
                 List.filter(fun c ->
                     match c.Optionality with
+                    | Some AlwaysAbsent                                 -> false
                     | Some (Optional p) when p.acnPresentWhen.IsNone    -> true
                     | _                                                 -> false) |> Seq.length |> BigInteger
             let minChildrenSize = 
