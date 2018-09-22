@@ -1447,7 +1447,13 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (m:Asn1Ast.Asn1Mo
                 match acnTypeAssig with
                 | None      -> None
                 | Some x    -> Some x.typeEncodingSpec
-            let mergedAcnEncSpec = mergeAcnEncodingSpecs acnType baseTypeAcnEncSpec
+            let mergedAcnEncSpec = 
+                //if a reference type has a component constraint (i.e. it is actually a SEQUENCE, CHOICE or SEQUENCE OF) then we should not merge the ACN spec
+                //We must take the the ACN specification only from this type and not the base type. The reason is that with the WITH COMONENTS constraints you can
+                //change the definition of the type (i.e. make child as always absent). 
+                match t.Constraints@refTypeCons |> Seq.exists(fun c -> match c with Asn1Ast.WithComponentConstraint _ -> true | Asn1Ast.WithComponentsConstraint _ -> true | _ -> false) with
+                | true  -> acnType
+                | false -> mergeAcnEncodingSpecs acnType baseTypeAcnEncSpec
             let hasAdditionalConstraints = restCons.Length > 0
             let inheritanceInfo = (Some {InheritanceInfo.modName = rf.modName.Value; tasName = rf.tasName.Value; hasAdditionalConstraints=hasAdditionalConstraints})
 
