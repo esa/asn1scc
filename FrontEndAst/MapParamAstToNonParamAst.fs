@@ -301,6 +301,8 @@ and MapAsn1Type (r:ParameterizedAsn1Ast.AstRoot) typeScope (t:ParameterizedAsn1A
     | ParameterizedAsn1Ast.NullType         -> aux Asn1Ast.NullType
     | ParameterizedAsn1Ast.BitString        -> aux Asn1Ast.BitString
     | ParameterizedAsn1Ast.Boolean          -> aux Asn1Ast.Boolean
+    | ParameterizedAsn1Ast.ObjectIdentifier         -> aux Asn1Ast.ObjectIdentifier
+    | ParameterizedAsn1Ast.RelativeObjectIdentifier -> aux Asn1Ast.RelativeObjectIdentifier
     | ParameterizedAsn1Ast.Enumerated(items)-> aux (Asn1Ast.Enumerated(items |> List.map (MapNamedItem r typeScope)))
     | ParameterizedAsn1Ast.SequenceOf(child)-> aux (Asn1Ast.SequenceOf(MapAsn1Type r (visitSeqOfChild typeScope) child))
     | ParameterizedAsn1Ast.Sequence(children)   -> 

@@ -132,6 +132,8 @@ and Asn1TypeKind =
     | NullType
     | BitString
     | Boolean 
+    | ObjectIdentifier
+    | RelativeObjectIdentifier
     | Enumerated        of list<NamedItem>
     | SequenceOf        of Asn1Type
     | Sequence          of list<ChildInfo>
@@ -349,6 +351,8 @@ let rec getASN1Name (r:AstRoot) (t:Asn1Type) =
     | SequenceOf   _  -> "SEQUENCE OF"
     | Sequence     _  -> "SEQUENCE"
     | Choice       _  -> "CHOICE"
+    | ObjectIdentifier          -> "OBJECT IDENTIFIER"
+    | RelativeObjectIdentifier  -> "RELATIVE-OID"
     | ReferenceType _ -> getASN1Name r (GetActualType t r)
 
 let rec GetMySelfAndChildren (t:Asn1Type) = 

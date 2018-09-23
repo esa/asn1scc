@@ -124,7 +124,8 @@ let rec CreateType (tasParameters : TemplateParameter list) (astRoot:list<ITree>
         | asn1Parser.OCTECT_STING       -> OctetString
         | asn1Parser.IA5String          -> IA5String
         | asn1Parser.NumericString      -> NumericString
-        | asn1Parser.OBJECT_TYPE        -> raise (SemanticError (tree.Location, "OBJECT IDs not supported"))
+        | asn1Parser.OBJECT_TYPE        -> ObjectIdentifier
+        | asn1Parser.RELATIVE_OID       -> RelativeObjectIdentifier
         | asn1Parser.VisibleString      -> 
             raise (SemanticError (tree.Location, "VisibleString is not supported - please use IA5String"))
         | asn1Parser.PrintableString      -> 

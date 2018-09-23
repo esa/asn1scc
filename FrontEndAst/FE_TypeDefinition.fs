@@ -479,6 +479,8 @@ let getRefereceTypeDefinition (asn1:Asn1Ast.AstRoot) (t:Asn1Ast.Asn1Type) (arg:G
     
     match (Asn1Ast.GetActualType t asn1).Kind with
     | Asn1Ast.Integer                  -> getPrimitiveTypeDifition arg us   |> (fun (a,b) -> a |> Map.toList |> List.map (fun (l, d) -> (l, FE_PrimitiveTypeDefinition d)) |> Map.ofList,b)
+    | Asn1Ast.ObjectIdentifier         -> getPrimitiveTypeDifition arg us   |> (fun (a,b) -> a |> Map.toList |> List.map (fun (l, d) -> (l, FE_PrimitiveTypeDefinition d)) |> Map.ofList,b)
+    | Asn1Ast.RelativeObjectIdentifier -> getPrimitiveTypeDifition arg us   |> (fun (a,b) -> a |> Map.toList |> List.map (fun (l, d) -> (l, FE_PrimitiveTypeDefinition d)) |> Map.ofList,b)
     | Asn1Ast.Real                     -> getPrimitiveTypeDifition arg us   |> (fun (a,b) -> a |> Map.toList |> List.map (fun (l, d) -> (l, FE_PrimitiveTypeDefinition d)) |> Map.ofList,b)
     | Asn1Ast.NullType                 -> getPrimitiveTypeDifition arg us   |> (fun (a,b) -> a |> Map.toList |> List.map (fun (l, d) -> (l, FE_PrimitiveTypeDefinition d)) |> Map.ofList,b)
     | Asn1Ast.Boolean                  -> getPrimitiveTypeDifition arg us   |> (fun (a,b) -> a |> Map.toList |> List.map (fun (l, d) -> (l, FE_PrimitiveTypeDefinition d)) |> Map.ofList,b)

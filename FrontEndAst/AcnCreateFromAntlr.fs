@@ -1156,6 +1156,8 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (m:Asn1Ast.Asn1Mo
             let wcons = withCons |> List.collect fixConstraint |> List.map (ConstraintsMapping.getEnumConstraint asn1 t)
             let o, us1 = mergeEnumerated asn1 items t.Location acnErrLoc acnType combinedProperties cons wcons (EnmStrGetTypeDifition_arg tfdArg) us
             Enumerated o, us1
+        | Asn1Ast.ObjectIdentifier                 -> raise(SemanticError(t.Location, "OBJECT IDENTIFIER not yet supported"))
+        | Asn1Ast.RelativeObjectIdentifier         -> raise(SemanticError(t.Location, "RELATIVE-OID not yet supported"))
         | Asn1Ast.SequenceOf  chType       -> 
             let childWithCons = allCons |> List.choose(fun c -> match c with Asn1Ast.WithComponentConstraint w -> Some w| _ -> None)
             let myVisibleConstraints = t.Constraints@refTypeCons |> List.choose(fun c -> match c with Asn1Ast.WithComponentConstraint _ -> None | _ -> Some c)

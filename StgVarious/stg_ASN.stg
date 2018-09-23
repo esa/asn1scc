@@ -59,6 +59,9 @@ Print_NullType(arrsConstraints) ::= "NULL <arrsConstraints>"
 Print_BitString(arrsConstraints) ::= "BIT STRING <arrsConstraints>"
 Print_Boolean(arrsConstraints) ::= "BOOLEAN <arrsConstraints>"
 
+Print_ObjectIdenitifier(arrsConstraints) ::= "OBJECT IDENTIFIER <arrsConstraints>"
+Print_RelativeObjectIdenitifier(arrsConstraints) ::= "RELATIVE-OID <arrsConstraints>"
+
 Print_Enumerated_child(sName, bHasValue, sValue) ::= "<sName><if(bHasValue)>(<sValue>)<endif>"
 
 Print_Enumerated(arrsItems, arrsConstraints) ::= <<

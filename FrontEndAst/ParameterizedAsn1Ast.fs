@@ -92,6 +92,8 @@ and Asn1TypeKind =
     | IA5String 
     | NumericString
     | OctetString 
+    | ObjectIdentifier
+    | RelativeObjectIdentifier
     | NullType
     | BitString         
     | Boolean 

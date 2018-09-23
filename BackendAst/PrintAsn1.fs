@@ -77,6 +77,8 @@ let rec PrintType (t:Asn1Type) (m:Asn1Module) (bPrintInSignleModule:bool) =
     |NullType   -> stg_asn1.Print_NullType cons
     |IA5String  -> stg_asn1.Print_IA5String cons
     |NumericString -> stg_asn1.Print_NumericString cons
+    |ObjectIdentifier -> stg_asn1.Print_ObjectIdenitifier cons
+    |RelativeObjectIdentifier -> stg_asn1.Print_RelativeObjectIdenitifier cons
     |Enumerated(items)  ->
         let printItem (it:NamedItem) = stg_asn1.Print_Enumerated_child it.Name.Value it._value.IsSome (if it._value.IsSome then (PrintAsn1Value it._value.Value) else "")
         stg_asn1.Print_Enumerated (items |> Seq.map printItem |> Seq.toArray) cons
@@ -142,6 +144,8 @@ let printInASignleFile (r:AstRoot) outDir newFile (pdu:string option)=
         | BitString    _             -> []
         | Boolean      _             -> []
         | Enumerated   _             -> []
+        | ObjectIdentifier           -> []
+        | RelativeObjectIdentifier   -> []
         | SequenceOf    sqof         -> (getTypeDependencies2 tsMap deep sqof) 
         | Sequence      children     -> (children |> List.collect (fun ch -> getTypeDependencies2 tsMap deep ch.Type))
         | Choice        children     -> (children |> List.collect (fun ch -> getTypeDependencies2 tsMap deep ch.Type))
