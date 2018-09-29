@@ -34,6 +34,21 @@ type Codec =
         | Decode    -> "_Decode"
 
 
+type ObjectIdentifierValueCompoent =
+    | ObjInteger            of IntLoc                               //integer form
+    | ObjNamedDefValue      of StringLoc*(StringLoc*StringLoc)      //named form, points to an integer value
+    | ObjNamedIntValue      of StringLoc*IntLoc                     //name form
+    | ObjRegisteredKeyword  of StringLoc*BigInteger
+    | ObjDefinedValue       of StringLoc*StringLoc                  //value assignment to Integer value or ObjectIdentifier or RelativeObject
+
+type ResolvedObjectIdentifierValueCompoent =
+    | ResObjInteger            of IntLoc                               //integer form
+    | ResObjNamedDefValue      of StringLoc*(StringLoc*StringLoc)*BigInteger      //named form, int VAS, int value
+    | ResObjNamedIntValue      of StringLoc*IntLoc                     //name form
+    | ResObjRegisteredKeyword  of StringLoc*BigInteger
+    | ResObjDefinedValue       of StringLoc*StringLoc*BigInteger        //value assignment to Integer value or ObjectIdentifier or RelativeObject
+
+
 type Asn1Encoding =
     | UPER
     | ACN

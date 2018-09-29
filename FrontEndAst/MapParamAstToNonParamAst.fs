@@ -165,6 +165,8 @@ let rec MapAsn1Value (r:ParameterizedAsn1Ast.AstRoot) (kind: ParameterizedAsn1As
             | _                 -> raise(SemanticError(v.Location, "Expecting a CHOICE value"))
             
         |ParameterizedAsn1Ast.NullValue             -> Asn1Ast.NullValue
+        |ParameterizedAsn1Ast.ObjOrRelObjIdValue  items  -> Asn1Ast.ObjOrRelObjIdValue items
+
         |ParameterizedAsn1Ast.EmptyList             ->
             match actKind with
             |ParameterizedAsn1Ast.Sequence(_)       -> Asn1Ast.SeqValue []

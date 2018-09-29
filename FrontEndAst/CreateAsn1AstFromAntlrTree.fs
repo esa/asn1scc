@@ -88,6 +88,47 @@ let rec GetActualTypeKind (astRoot:list<ITree>) (kind:Asn1TypeKind)  =
     
 *)
 
+type RegisterObjIDKeyword =
+    | LEAF  of (string list*int*RegisterObjIDKeyword list)
+let registeredObjectIdentifierKeywords =
+    let letters = ['a' .. 'z'] |> List.mapi (fun i l -> LEAF([l.ToString()],i+1, []))
+    [
+        LEAF (["itu-t";"ccitt"],0, [
+                    LEAF(["recommendation"],0, letters)
+                    LEAF(["question"],1, [])
+                    LEAF(["administration"],2, [])
+                    LEAF(["network-operator"],3, [])
+                    LEAF(["identified-organization"],4, [])
+                ])
+        LEAF (["iso"],1, [
+                    LEAF(["standard"],0, [])
+                    LEAF(["member-body"],2, [])
+                    LEAF(["identified-organization"],3, [])
+                ])
+        LEAF (["joint-iso-itu-t";"joint-iso-ccitt"],2, [])
+    ]
+
+let rec isRegisterObjIDKeyword (curLevelKeywords: RegisterObjIDKeyword list) (path:string list) =
+    match path with
+    | []        -> raise(BugErrorException "expecting non empty list")
+    | x1::xs    ->
+        let curLevelKeyword =
+            curLevelKeywords |> List.tryFind(fun (LEAF(names,nVal,  _)) -> names |> Seq.exists ((=) x1) ) 
+        match xs with
+        | []    -> curLevelKeyword|> Option.map(fun (LEAF(_,nVal,  _)) -> nVal)
+        | _     -> 
+            match curLevelKeyword with
+            | None  -> None
+            | Some (LEAF(_,_,nextLevelKeywords))    -> isRegisterObjIDKeyword nextLevelKeywords xs
+
+
+let rec isRegisterObjIDKeyword2 (parentKeyword: RegisterObjIDKeyword option) (curName:string) =
+    match parentKeyword with
+    | None  -> 
+            registeredObjectIdentifierKeywords |> List.tryFind(fun (LEAF(names,nVal,  _)) -> names |> Seq.exists ((=) curName) ) 
+    | Some (LEAF(_,_,curLevelKeywords)) ->
+        curLevelKeywords |> List.tryFind(fun (LEAF(names,nVal,  _)) -> names |> Seq.exists ((=) curName) ) 
+
 let createDefaultConstraintsForEnumeratedTypes (tree:ITree) (namedItems:NamedItem list) =
     let mdTree = tree.GetAncestor(asn1Parser.MODULE_DEF)
     let mdName = mdTree.GetChild(0).TextL
@@ -199,6 +240,19 @@ and CreateChoiceChild (tasParameters : TemplateParameter list) (astRoot:list<ITr
     )
 
 and CreateValue (astRoot:list<ITree>) (tree:ITree ) : Asn1Value=
+    let singleReference2DoubleReference (tree:ITree) =
+        let strVal = tree.GetChild(0).TextL
+        let modl = tree.GetAncestor(asn1Parser.MODULE_DEF)
+        let modName = modl.GetChild(0).TextL
+        let imports = modl.GetChildrenByType(asn1Parser.IMPORTS_FROM_MODULE)
+        let importedFromModule = imports |> List.tryFind(fun imp-> imp.GetChildrenByType(asn1Parser.LID) |> Seq.exists(fun impTypeName -> impTypeName.Text = strVal.Value ))
+        let valToReturn = 
+            match importedFromModule with
+            |Some(imp)  -> ( imp.GetChild(0).TextL,  strVal)
+            |None       -> ( modName,  strVal)
+        valToReturn
+        
+
     let GetActualString (str:string) = 
         let strVal = str.Substring(1)
         strVal.Remove(strVal.Length-2).Replace("\r", "").Replace("\n", "").Replace("\t", "").Replace(" ", "")
@@ -216,17 +270,7 @@ and CreateValue (astRoot:list<ITree>) (tree:ITree ) : Asn1Value=
                 StringValue({ StringLoc.Value = text; Location = tree.Location})
             | asn1Parser.NULL                   -> NullValue
             | asn1Parser.BitStringLiteral       -> BitStringValue(tree.GetValueL(GetActualString(tree.Text)))
-            | asn1Parser.VALUE_REFERENCE        -> 
-                let strVal = tree.GetChild(0).TextL
-                let modl = tree.GetAncestor(asn1Parser.MODULE_DEF)
-                let modName = modl.GetChild(0).TextL
-                let imports = modl.GetChildrenByType(asn1Parser.IMPORTS_FROM_MODULE)
-                let importedFromModule = imports |> List.tryFind(fun imp-> imp.GetChildrenByType(asn1Parser.LID) |> Seq.exists(fun impTypeName -> impTypeName.Text = strVal.Value ))
-                let valToReturn = 
-                    match importedFromModule with
-                    |Some(imp)  -> RefValue( imp.GetChild(0).TextL,  strVal)
-                    |None       -> RefValue( modName,  strVal)
-                valToReturn
+            | asn1Parser.VALUE_REFERENCE        -> RefValue (singleReference2DoubleReference tree)
 //                let actType, newModName = GetActualTypeKind astRoot  typeKind
 //                match actType, newModName with
 //                | Enumerated(enmItems), Some(modName) -> 
@@ -234,6 +278,46 @@ and CreateValue (astRoot:list<ITree>) (tree:ITree ) : Asn1Value=
 //                    | Some(it)      ->   RefValue(modName, strVal)
 //                    | None          ->   valToReturn
 //                | _                    -> valToReturn
+            | asn1Parser.OBJECT_ID_VALUE        ->
+                let handleObjectIdComponent (rootComponent:bool) (parentKeyword: RegisterObjIDKeyword option) (tree:ITree ) =
+                    match tree.Type with
+                    | asn1Parser.OBJ_LST_ITEM2  -> ObjInteger (tree.GetChild(0).BigIntL) , None
+                    | asn1Parser.OBJ_LST_ITEM1  -> 
+                        let name = tree.GetChild(0).TextL
+                        match tree.ChildCount with
+                        | 2  ->
+                            let secChild = tree.GetChild(1)
+                            match secChild.Type with
+                            | asn1Parser.INT            -> ObjNamedIntValue (name, secChild.BigIntL), None
+                            | asn1Parser.DEFINED_VALUE  ->
+                                match secChild.ChildCount with
+                                | 2     -> ObjNamedDefValue(name, (secChild.GetChild(0).TextL, secChild.GetChild(1).TextL)), None
+                                | 1     -> ObjNamedDefValue(name, ((singleReference2DoubleReference secChild))), None
+                                | _     -> raise (BugErrorException("Bug in CreateValue asn1Parser.OBJECT_ID_VALUE 1"))
+                            | _         -> raise (BugErrorException("Bug in CreateValue asn1Parser.OBJECT_ID_VALUE 2"))
+                        | 1 ->
+                            let regKeyWord = 
+                                match rootComponent with
+                                | true  -> isRegisterObjIDKeyword2 parentKeyword name.Value
+                                | false ->
+                                    match parentKeyword with
+                                    | Some _    -> isRegisterObjIDKeyword2 parentKeyword name.Value
+                                    | None      -> None
+
+                            match regKeyWord with
+                            | Some (LEAF(_,nVal,_)) -> ObjRegisteredKeyword(name,BigInteger nVal), regKeyWord
+                            | None                  -> ObjDefinedValue (singleReference2DoubleReference tree) , None
+
+                        | _ -> raise (BugErrorException("Bug in CreateValue asn1Parser.OBJECT_ID_VALUE 3"))
+                    | _ -> raise (BugErrorException("Bug in CreateValue asn1Parser.OBJECT_ID_VALUE 4"))
+
+
+                let _,components,_ =                    
+                    tree.Children |> 
+                    List.fold (fun (rootComponent, curComponents, parentKeyword) curTree -> 
+                        let compent, regKeyword = handleObjectIdComponent rootComponent parentKeyword curTree
+                        (false, curComponents@[compent], regKeyword) ) (true, [],None) 
+                ObjOrRelObjIdValue components
             | asn1Parser.VALUE_LIST             -> 
                 SeqOfValue(getTreeChildren(tree)|> List.map (fun x -> CreateValue astRoot (x) ))
 //                match (GetActualTypeKind  astRoot typeKind |> fst) with

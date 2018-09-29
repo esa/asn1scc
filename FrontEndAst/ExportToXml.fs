@@ -64,6 +64,7 @@ and private PrintAsn1GenericValue (v:Asn1Value) =
     |SeqValue(v)             -> printSeqValue v
     |ChValue(nv)             -> printChoiceValue nv
     |NullValue   _           -> XElement(xname "NullValue")
+    |ObjOrRelObjIdValue _    -> XElement(xname "ObjectIdentifierValue")
     |RefValue ((md,ts), v)   -> printRefValue ((md,ts), v)
 
 let private printGenericConstraint printValue (c:GenericConstraint<'v>)  = 

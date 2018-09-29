@@ -140,6 +140,9 @@ and Asn1Value = {
 }
 
 
+
+    
+
 and Asn1ValueKind =
     |   IntegerValue        of IntLoc
     |   RealValue           of DoubleLoc
@@ -153,6 +156,7 @@ and Asn1ValueKind =
     |   ChValue             of StringLoc*Asn1Value
     |   NullValue
     |   EmptyList
+    |   ObjOrRelObjIdValue  of ObjectIdentifierValueCompoent list
 
 
 and Asn1Constraint = 

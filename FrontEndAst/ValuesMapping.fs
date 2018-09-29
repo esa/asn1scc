@@ -108,5 +108,6 @@ let rec mapValue
                 | None        -> raise (SemanticError(v.Location, (sprintf "No child exists with name %s" cnm.Value))) 
             | _                         -> raise (SemanticError(v.Location, (sprintf "Expecting a %s value but found a SEQUENCE value" (Asn1Ast.getASN1Name r actualType))))
         | Asn1Ast.NullValue           -> NullValue ()
+        | Asn1Ast.ObjOrRelObjIdValue  comps ->   ObjOrRelObjIdValue  comps
 
     {Asn1Value.kind = valueKind; id = v.id; loc = v.Location}    

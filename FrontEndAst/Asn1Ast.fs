@@ -40,6 +40,7 @@ and Asn1ValueKind =
     |   SeqValue            of list<StringLoc*Asn1Value>
     |   ChValue             of StringLoc*Asn1Value
     |   NullValue
+    |   ObjOrRelObjIdValue  of ObjectIdentifierValueCompoent list
 
 
 

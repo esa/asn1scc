@@ -138,6 +138,7 @@ let rec printValue (v:Asn1Value) : string =
     |   SeqValue            vals    -> stg_asn1.Print_SeqValue (vals |> List.map (fun (nm, v) -> stg_asn1.Print_SeqValue_Child nm.Value (printValue v)))
     |   ChValue             (nm,v)  -> stg_asn1.Print_ChValue nm.Value (printValue v)
     |   NullValue                   -> stg_asn1.Print_NullValue ()
+    |   ObjOrRelObjIdValue comps    -> sprintf "{}"
     |   EmptyList                   -> sprintf "{}"
 
 let generatedAsn1Grammar (outDir:string) (ast:GenFile list) =
