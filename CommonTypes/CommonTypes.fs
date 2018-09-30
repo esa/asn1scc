@@ -46,7 +46,7 @@ type ResolvedObjectIdentifierValueCompoent =
     | ResObjNamedDefValue      of StringLoc*(StringLoc*StringLoc)*BigInteger      //named form, int VAS, int value
     | ResObjNamedIntValue      of StringLoc*IntLoc                     //name form
     | ResObjRegisteredKeyword  of StringLoc*BigInteger
-    | ResObjDefinedValue       of StringLoc*StringLoc*BigInteger        //value assignment to Integer value or ObjectIdentifier or RelativeObject
+    | ResObjDefinedValue       of StringLoc*StringLoc*BigInteger        //BigInteger value originates from int value assignment or ObjectIdentifier or RelativeObject value assignment
 
 
 type Asn1Encoding =

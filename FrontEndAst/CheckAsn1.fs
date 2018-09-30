@@ -83,6 +83,8 @@ let rec TypeValueMatch (t:Asn1Type) (typeNames:(StringLoc*StringLoc)list) (v:Asn
         | BitString(_), OctetStringValue(_)                 -> true
         | OctetString, OctetStringValue(_)                  -> true
         | OctetString, BitStringValue(bitVal)               -> true
+        | ObjectIdentifier, ObjOrRelObjIdValue _            -> true
+        | RelativeObjectIdentifier, ObjOrRelObjIdValue _    -> true
         | Enumerated(enItems), RefValue(modName,vasName)      -> 
             if  enItems |> Seq.exists(fun en -> en.Name = vasName) then 
                 true

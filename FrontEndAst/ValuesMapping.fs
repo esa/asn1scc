@@ -108,6 +108,27 @@ let rec mapValue
                 | None        -> raise (SemanticError(v.Location, (sprintf "No child exists with name %s" cnm.Value))) 
             | _                         -> raise (SemanticError(v.Location, (sprintf "Expecting a %s value but found a SEQUENCE value" (Asn1Ast.getASN1Name r actualType))))
         | Asn1Ast.NullValue           -> NullValue ()
-        | Asn1Ast.ObjOrRelObjIdValue  comps ->   ObjOrRelObjIdValue  comps
+        | Asn1Ast.ObjOrRelObjIdValue  comps ->  
+            let rec mapComponents (comps:CommonTypes.ObjectIdentifierValueCompoent list) = 
+                let mapComponent (c:CommonTypes.ObjectIdentifierValueCompoent)=
+                    match c with
+                    | CommonTypes.ObjInteger o  -> [CommonTypes.ResObjInteger o]
+                    | CommonTypes.ObjNamedIntValue(nm,vl) -> [CommonTypes.ResObjNamedIntValue  (nm, vl)]
+                    | CommonTypes.ObjRegisteredKeyword(nm,vl) -> [CommonTypes.ResObjRegisteredKeyword  (nm, vl)]
+                    | CommonTypes.ObjNamedDefValue(nm, (md,ts)) ->
+                        let vl = Asn1Ast.GetActualValue md ts r
+                        match vl.Kind with
+                        | Asn1Ast.IntegerValue vl   -> [CommonTypes.ResObjNamedDefValue (nm, (md,ts), vl.Value)]
+                        | _                         -> raise(SemanticError (ts.Location, "Expecting INTEGER value or INTEGER value assignment"))
+                    | CommonTypes.ObjDefinedValue (md,ts)  ->
+                        let vl = Asn1Ast.GetActualValue md ts r
+                        match vl.Kind with
+                        | Asn1Ast.ObjOrRelObjIdValue  comps ->  mapComponents comps
+                        | _                         -> raise(SemanticError (ts.Location, "Expecting OBJECT IDENTIFIER or RELATIVE-OID value or OBJECT IDENTIFIER or RELATIVE-OID value assignment"))
+
+                            
+                comps |> List.collect mapComponent
+
+            ObjOrRelObjIdValue  (mapComponents comps )
 
     {Asn1Value.kind = valueKind; id = v.id; loc = v.Location}    

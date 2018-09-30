@@ -201,7 +201,7 @@ and Asn1ValueKind =
     | ChValue               of ChValue         
     | NullValue             of NullValue
     | RefValue              of RefValue   
-    | ObjOrRelObjIdValue    of ObjectIdentifierValueCompoent list
+    | ObjOrRelObjIdValue    of ResolvedObjectIdentifierValueCompoent list
 
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
