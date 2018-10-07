@@ -129,6 +129,6 @@ let rec mapValue
                             
                 comps |> List.collect mapComponent
 
-            ObjOrRelObjIdValue  (mapComponents comps )
+            ObjOrRelObjIdValue  (mapComponents comps, comps )
 
     {Asn1Value.kind = valueKind; id = v.id; loc = v.Location}    

@@ -27,6 +27,10 @@ let isEqualBodyString (l:ProgrammingLanguage) (v1:CallerScope) (v2:CallerScope) 
     | C         -> Some (sprintf "strcmp(%s, %s) == 0" v1.arg.p v2.arg.p  , [])
     | Ada       -> Some (sprintf "%s = %s" v1.arg.p v2.arg.p   , [])
 
+let isEqualBodyObjectIdentifier (l:ProgrammingLanguage) (v1:CallerScope) (v2:CallerScope) =
+    Some (sprintf "ObjectIdentifier_equal(%s, %s)" v1.arg.p v2.arg.p  , [])
+
+
 let isEqualBodyOctetString (l:ProgrammingLanguage) sMin sMax (v1:CallerScope) (v2:CallerScope) =
     let v1 = sprintf "%s%s" v1.arg.p (v1.arg.getAcces l)
     let v2 = sprintf "%s%s" v2.arg.p (v2.arg.getAcces l)
@@ -182,6 +186,10 @@ let createBooleanEqualFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t
 
 let createEnumeratedEqualFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Enumerated) (typeDefinition:TypeDefintionOrReference)  =
     let isEqualBody         = EqualBodyExpression (isEqualBodyPrimitive l)
+    createEqualFunction_any r l t typeDefinition isEqualBody //(stgPrintEqualPrimitive l) (stgMacroPrimDefFunc l) 
+
+let createObjectIdentifierEqualFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.ObjectIdentifier) (typeDefinition:TypeDefintionOrReference)  =
+    let isEqualBody         = EqualBodyExpression (isEqualBodyObjectIdentifier l)
     createEqualFunction_any r l t typeDefinition isEqualBody //(stgPrintEqualPrimitive l) (stgMacroPrimDefFunc l) 
 
 let createStringEqualFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.StringType) (typeDefinition:TypeDefintionOrReference)  =

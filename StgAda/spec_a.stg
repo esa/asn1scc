@@ -96,6 +96,8 @@ Declare_NULL() ::= "<rtlModuleName()>.Asn1NullType"
 
 Declare_BOOLEANNoRTL() ::= "Asn1Boolean"
 Declare_REALNoRTL() ::= "Asn1Real"
+
+Declare_ObjectIdentifierNoRTL() ::= "Asn1ObjectIdentifier"
 Declare_NULLNoRTL() ::= "Asn1NullType"
 
 Declare_Reference1(sName) ::= "<sName>"

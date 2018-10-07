@@ -30,6 +30,8 @@ let rec PrintAsn1Value (v:Asn1Value) =
     |SeqValue(vals)          -> stg_asn1.Print_SeqValue (vals |> Seq.map(fun (nm, v) -> stg_asn1.Print_SeqValue_Child nm.Value (PrintAsn1Value v) ) |> Seq.toArray)
     |ChValue(nm,v)           -> stg_asn1.Print_ChValue nm.Value (PrintAsn1Value v)
     |NullValue               -> stg_asn1.Print_NullValue()
+    |ObjOrRelObjIdValue coms    -> 
+        stg_asn1.Print_ObjOrRelObjIdValue (coms |> List.map DAstAsn1.printComponent)
 
 
 let rec PrintConstraint (c:Asn1Constraint) = 

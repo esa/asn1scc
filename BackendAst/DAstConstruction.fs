@@ -445,6 +445,67 @@ let private createEnumerated (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (m:A
     ((Enumerated ret),[]), s10
 
 
+
+
+
+
+
+
+let private createObjectIdentifier (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (m:Asn1AcnAst.Asn1Module) (pi : Asn1Fold.ParentInfo<ParentInfoData> option) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.ObjectIdentifier) (us:State) =
+    //let typeDefinition = DAstTypeDefinition.createEnumerated  r l t o us
+    let defOrRef            =  DAstTypeDefinition.createObjectIdentifier_u r l t o us
+    let equalFunction       = DAstEqual.createObjectIdentifierEqualFunction r l t o defOrRef 
+
+    let initialValue  = InternalObjectIdentifierValue([])
+    let initFunction        = DAstInitialize.createObjectIdentifierInitFunc r l t o  defOrRef (ObjOrRelObjIdValue initialValue)
+    let isValidFunction, s1     = None, us
+    let uperEncFunction, s2     = DAstUPer.createObjectIdentifierFunction r l Codec.Encode t o  defOrRef None isValidFunction s1
+    let uperDecFunction, s3     = DAstUPer.createObjectIdentifierFunction r l Codec.Decode t o  defOrRef None isValidFunction s2
+
+    let acnEncFunction, s4      = DAstACN.createObjectIdentifierFunction r l Codec.Encode t o defOrRef  isValidFunction uperEncFunction s3
+    let acnDecFunction, s5      = DAstACN.createObjectIdentifierFunction r l Codec.Decode t o defOrRef  isValidFunction uperDecFunction s4
+
+    let uperEncDecTestFunc,s6         = EncodeDecodeTestCase.createUperEncDecFunction r l t defOrRef equalFunction isValidFunction (Some uperEncFunction) (Some uperDecFunction) s5
+    let acnEncDecTestFunc ,s7         = EncodeDecodeTestCase.createAcnEncDecFunction r l t defOrRef equalFunction isValidFunction (Some acnEncFunction) (Some acnDecFunction) s6
+    let automaticTestCasesValues      = EncodeDecodeTestCase.ObjectIdentifierAutomaticTestCaseValues r t o |> List.mapi (fun i x -> createAsn1ValueFromValueKind t i (ObjOrRelObjIdValue (InternalObjectIdentifierValue x))) 
+    let xerEncFunction, s8      = DAstXer.createObjectIdentifierFunction  r l Codec.Encode t o defOrRef isValidFunction s7
+    let xerDecFunction, s9      = DAstXer.createObjectIdentifierFunction  r l Codec.Decode t o defOrRef isValidFunction s8       
+    let xerEncDecTestFunc,s10   = EncodeDecodeTestCase.createXerEncDecFunction r l t defOrRef equalFunction isValidFunction (Some xerEncFunction) (Some xerDecFunction) s9
+
+    let ret =
+        {
+            ObjectIdentifier.baseInfo = o
+            //typeDefinition      = typeDefinition
+            definitionOrRef     = defOrRef
+            printValue          = DAstVariables.createObjectIdentifierFunction r l t o defOrRef  
+            initialValue        = initialValue
+            initFunction        = initFunction
+            equalFunction       = equalFunction
+            isValidFunction     = isValidFunction
+            uperEncFunction     = uperEncFunction
+            uperDecFunction     = uperDecFunction 
+            acnEncFunction      = acnEncFunction
+            acnDecFunction      = acnDecFunction
+            uperEncDecTestFunc  = uperEncDecTestFunc
+            acnEncDecTestFunc   = acnEncDecTestFunc
+            xerEncFunction      = xerEncFunction
+            xerDecFunction      = xerDecFunction
+            automaticTestCasesValues = automaticTestCasesValues
+            constraintsAsn1Str = DAstAsn1.createObjectIdentifierFunction r t o
+            xerEncDecTestFunc   = xerEncDecTestFunc
+        }
+    ((ObjectIdentifier ret),[]), s10
+
+
+
+
+
+
+
+
+
+
+
 let private createSequenceOf (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (l:ProgrammingLanguage) (m:Asn1AcnAst.Asn1Module) (pi : Asn1Fold.ParentInfo<ParentInfoData> option) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.SequenceOf) (childType:Asn1Type, us:State) =
     let newPrms, us0 = t.acnParameters |> foldMap(fun ns p -> mapAcnParameter r deps l m t p ns) us
     let defOrRef            =  DAstTypeDefinition.createSequenceOf_u r l t o  childType.typeDefintionOrReference us0
@@ -695,6 +756,7 @@ let private mapType (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDepe
         
         (fun pi t ti us -> createBoolean r l m pi t ti us)
         (fun pi t ti us -> createEnumerated r l m pi t ti us)
+        (fun pi t ti us -> createObjectIdentifier r l m pi t ti us)
 
         (fun pi t ti newChild -> createSequenceOf r deps l m pi t ti newChild)
 

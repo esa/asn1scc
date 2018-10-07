@@ -272,6 +272,7 @@ let rec private checkType (r:AstRoot) (parents: Asn1Type list) (curentPath : Sco
     | NullType       _
     | Boolean        _
     | Enumerated     _      -> curState
+    | ObjectIdentifier   _ -> curState
     | IA5String      a
     | NumericString  a      ->
         match a.acnProperties.sizeProp with

@@ -286,6 +286,9 @@ let createBooleanInitFunc (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1
             | BooleanValue iv   -> iv
             | _                 -> raise(BugErrorException "UnexpectedValue")
         initBoolean (p.arg.getValue l) vl
+
+
+
     let testCaseFuncs = 
         EncodeDecodeTestCase.BooleanAutomaticTestCaseValues r t o |> 
         List.map (fun vl -> {AutomaticTestCase.initTestCaseFunc = (fun (p:CallerScope) -> {InitFunctionResult.funcBody = initBoolean (p.arg.getValue l) vl; localVariables = []}); testCase = Map.ofList [(t.id, TcvAnyValue)] })
@@ -296,6 +299,42 @@ let createBooleanInitFunc (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1
         | false     -> {InitFunctionResult.funcBody = initBoolean (p.arg.getValue l) true; localVariables = []}
 
     createInitFunctionCommon r l t typeDefinition funcBody iv tasInitFunc testCaseFuncs
+
+
+
+
+
+
+
+let createObjectIdentifierInitFunc (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1AcnAst.Asn1Type) (o :Asn1AcnAst.ObjectIdentifier     ) (typeDefinition:TypeDefintionOrReference) iv = 
+    let initObjectIdentifier_vali = match l with C -> init_c.initObjectIdentifier_vali | Ada -> init_a.initObjectIdentifier_vali
+    let initObjectIdentifier = match l with C -> init_c.initObjectIdentifier | Ada -> init_a.initObjectIdentifier
+    let funcBody (p:CallerScope) (v:Asn1ValueKind) = 
+        let bytes = 
+            match v.ActualValue with
+            | ObjOrRelObjIdValue iv   -> iv.Values |> List.map fst
+            | _                 -> raise(BugErrorException "UnexpectedValue")
+        let arrsBytes = bytes |> List.mapi(fun i b -> initObjectIdentifier_vali p.arg.p (p.arg.getAcces l) ((i+l.ArrayStartIndex).ToString()) b)
+        initObjectIdentifier p.arg.p (p.arg.getAcces l) (BigInteger arrsBytes.Length) arrsBytes
+    let testCaseFuncs = 
+        EncodeDecodeTestCase.ObjectIdentifierAutomaticTestCaseValues r t o |> 
+        List.map (fun vl -> 
+            {AutomaticTestCase.initTestCaseFunc = (fun (p:CallerScope) -> 
+                let arrsBytes = vl |> List.mapi(fun i b -> initObjectIdentifier_vali p.arg.p (p.arg.getAcces l) ((i+l.ArrayStartIndex).ToString()) b)
+                {InitFunctionResult.funcBody = initObjectIdentifier (p.arg.getValue l) (p.arg.getAcces l) (BigInteger vl.Length)  arrsBytes; localVariables = []}); testCase = Map.ofList [(t.id, TcvAnyValue)] })
+
+    let tasInitFunc (p:CallerScope)  = 
+        {InitFunctionResult.funcBody = initObjectIdentifier (p.arg.getValue l) (p.arg.getAcces l) 0I []; localVariables = []}
+
+    createInitFunctionCommon r l t typeDefinition funcBody iv tasInitFunc testCaseFuncs
+
+
+
+
+
+
+
+
 
 let mergeMaps (m1:Map<'key,'value>) (m2:Map<'key,'value>) =
     Map.fold (fun (nm:Map<'key,'value>) key value -> match nm.ContainsKey key with false -> nm.Add(key,value) | true -> nm) m1 m2

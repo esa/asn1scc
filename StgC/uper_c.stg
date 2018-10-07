@@ -233,6 +233,11 @@ ret = BitStream_DecodeReal(pBitStrm, <p>);
 *pErrCode = ret ? 0 : <sErrCode>;
 >>
 
+ObjectIdentifier_encode(p, sErrCode) ::= "ObjectIdentifier_uper_encode(pBitStrm, <p>);"
+ObjectIdentifier_decode(p, sErrCode) ::= <<
+ret = ObjectIdentifier_uper_decode(pBitStrm, <p>);
+*pErrCode = ret ? 0 : <sErrCode>;
+>>
 
 
 Enumerated_item_encode(p, sName, nIndex, nLastItemIndex) ::= <<

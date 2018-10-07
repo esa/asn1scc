@@ -69,6 +69,7 @@ type Asn1Service() =
             fieldPrefix = None
             targetLanguages = [CommonTypes.ProgrammingLanguage.C]
             floatingPointSizeInBytes = 8I
+            objectIdentifierMaxLength = 8I
         }
     
     member private this.ConvertInput (input:Dto.FileData) : CommonTypes.Input =

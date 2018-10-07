@@ -13,6 +13,14 @@ open Asn1Fold
 open DAst
 open DAstUtilFunctions
 
+let printComponent (c:ObjectIdentifierValueCompoent) =
+    match c with
+    | ObjInteger            nVal                    -> nVal.Value.ToString()
+    | ObjNamedDefValue      (label,(md,ts))         -> sprintf "%s(%s.%s)" label.Value md.Value ts.Value //named form, points to an integer value
+    | ObjNamedIntValue      (label, nVal)           -> sprintf "%s(%s)" label.Value (nVal.Value.ToString())                     //name form
+    | ObjRegisteredKeyword  (label, nVal)           -> sprintf "%s(%s)" label.Value (nVal.ToString())                     //
+    | ObjDefinedValue       (md,ts)                 -> sprintf "%s.%s" md.Value ts.Value //named form, points to an integer value                  //value assignment to Integer value or ObjectIdentifier or RelativeObject
+
 let rec printAsn1Value (v:Asn1AcnAst.Asn1Value) = 
     match v.kind with
     | Asn1AcnAst.IntegerValue        v       -> stg_asn1.Print_IntegerValue v.Value
@@ -27,6 +35,9 @@ let rec printAsn1Value (v:Asn1AcnAst.Asn1Value) =
     | Asn1AcnAst.SeqValue            vals    -> stg_asn1.Print_SeqValue (vals |> List.map (fun nmv -> stg_asn1.Print_SeqValue_Child nmv.name.Value (printAsn1Value nmv.Value)))
     | Asn1AcnAst.ChValue             nmv     -> stg_asn1.Print_ChValue nmv.name.Value (printAsn1Value nmv.Value)
     | Asn1AcnAst.NullValue           _       -> stg_asn1.Print_NullValue ()
+    | Asn1AcnAst.ObjOrRelObjIdValue (_,coms) ->
+        stg_asn1.Print_ObjOrRelObjIdValue (coms |> List.map printComponent)
+
 
 let foldGenericCon valToStrFunc  (c:GenericConstraint<'v>)  =
     foldGenericConstraint
@@ -96,6 +107,12 @@ let createIntegerFunction (r:Asn1AcnAst.AstRoot) (t:Asn1AcnAst.Asn1Type) (o:Asn1
 let createRealFunction (r:Asn1AcnAst.AstRoot) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Real)  =
     let conToStrFunc = foldRangeCon  stg_asn1.Print_RealValue stg_asn1.Print_RealValue
     o.AllCons |> List.map conToStrFunc 
+
+let createObjectIdentifierFunction (r:Asn1AcnAst.AstRoot) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.ObjectIdentifier)  =
+    
+    let conToStrFunc = 
+        foldGenericCon (fun (_,coms) -> stg_asn1.Print_ObjOrRelObjIdValue (coms |> List.map printComponent))
+    o.AllCons |> List.map conToStrFunc
 
 
 let createStringFunction (r:Asn1AcnAst.AstRoot) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.StringType)  =

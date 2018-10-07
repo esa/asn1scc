@@ -204,6 +204,17 @@ let createRealFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec:Com
     let soSparkAnnotations = None
     createUperFunction r l codec t typeDefinition baseTypeUperFunc  isValidFunc  (fun e p -> Some (funcBody e p)) soSparkAnnotations us
 
+let createObjectIdentifierFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.ObjectIdentifier) (typeDefinition:TypeDefintionOrReference) (baseTypeUperFunc : UPerFunction option) (isValidFunc: IsValidFunction option) (us:State)  =
+    let funcBody (errCode:ErroCode) (p:CallerScope) = 
+        let pp = match codec with CommonTypes.Encode -> p.arg.getValue l | CommonTypes.Decode -> p.arg.getPointer l
+        let ObjectIdentifier         = match l with C -> uper_c.ObjectIdentifier          | Ada -> uper_a.ObjectIdentifier
+        let funcBodyContent = ObjectIdentifier pp errCode.errCodeName codec
+        {UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = []}    
+    let soSparkAnnotations = None
+    createUperFunction r l codec t typeDefinition baseTypeUperFunc  isValidFunc  (fun e p -> Some (funcBody e p)) soSparkAnnotations us
+
+
+
 let createNullTypeFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.NullType) (typeDefinition:TypeDefintionOrReference) (baseTypeUperFunc : UPerFunction option) (isValidFunc: IsValidFunction option) (us:State)  =
     let soSparkAnnotations = None
     createUperFunction r l codec t typeDefinition baseTypeUperFunc  isValidFunc  (fun e p -> None) soSparkAnnotations us

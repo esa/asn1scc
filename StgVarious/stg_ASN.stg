@@ -110,6 +110,8 @@ Print_SeqValue(arrsValues) ::= "{<arrsValues: {ch|<ch>}; separator=\", \">}"
 Print_ChValue(sAltName,sAltValue) ::= "<sAltName>:<sAltValue>"         
 Print_NullValue() ::= "NULL"       
 
+Print_ObjOrRelObjIdValue(arrsValues) ::= "{<arrsValues: {ch|<ch>}; separator=\" \">}"        
+
 
 /* Print Constraints */
 

@@ -89,6 +89,7 @@ type CommandLineSettings = {
     renamePolicy :  EnumRenamePolicy
     fieldPrefix  : FieldPrefix option
     targetLanguages : ProgrammingLanguage list
+    objectIdentifierMaxLength : BigInteger
 }
 with 
   member this.SIntMax =

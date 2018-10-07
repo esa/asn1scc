@@ -954,3 +954,52 @@ asn1SccSint uint2int(asn1SccUint v, int uintSizeInBytes) {
         v |= ber_aux[i];
     return -(asn1SccSint)(~v) - 1;
 }
+
+
+
+/*
+
+#######                                      ###
+#     # #####       # ######  ####  #####     #  #####  ###### #    # ##### # ###### # ###### #####
+#     # #    #      # #      #    #   #       #  #    # #      ##   #   #   # #      # #      #    #
+#     # #####       # #####  #        #       #  #    # #####  # #  #   #   # #####  # #####  #    #
+#     # #    #      # #      #        #       #  #    # #      #  # #   #   # #      # #      #####
+#     # #    # #    # #      #    #   #       #  #    # #      #   ##   #   # #      # #      #   #
+####### #####   ####  ######  ####    #      ### #####  ###### #    #   #   # #      # ###### #    #
+
+Object Identifier
+
+*/
+
+void ObjectIdentifier_Init(Asn1ObjectIdentifier *pVal) {
+	int i;
+	for (i = 0; i < OBJECT_IDENTIFIER_MAX_LENGTH; i++) {
+		pVal->values[i] = 0;
+	}
+	pVal->nCount = 0;
+}
+
+flag ObjectIdentifier_equal(const Asn1ObjectIdentifier *pVal1, const Asn1ObjectIdentifier *pVal2) {
+	int i;
+	if ((pVal1 != NULL) && (pVal2 != NULL) && pVal1->nCount == pVal2->nCount && pVal1->nCount <= OBJECT_IDENTIFIER_MAX_LENGTH) {
+		flag ret = true;
+		for (i = 0; i < pVal1->nCount && ret; i++)
+		{
+			ret = (pVal1->values[i] == pVal2->values[i]);
+		}
+		return ret;
+	}
+	else {
+		return FALSE;
+	}
+}
+
+void ObjectIdentifier_uper_encode(BitStream* pBitStrm, const Asn1ObjectIdentifier *pVal) {
+
+
+}
+
+void ObjectIdentifier_uper_decode(const BitStream* pBitStrm, Asn1ObjectIdentifier *pVal) {
+	ObjectIdentifier_Init(pVal);
+
+}

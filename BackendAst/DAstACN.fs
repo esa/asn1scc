@@ -423,6 +423,18 @@ let createRealrFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec:Co
     createAcnFunction r l codec t typeDefinition isValidFunc  (fun us e acnArgs p -> funcBody e acnArgs p, us) (fun atc -> true) soSparkAnnotations us
 
 
+let createObjectIdentifierFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.ObjectIdentifier) (typeDefinition:TypeDefintionOrReference)  (isValidFunc: IsValidFunction option) (uperFunc: UPerFunction) (us:State)  =
+    let funcBody (errCode:ErroCode) (acnArgs: (Asn1AcnAst.RelativePath*Asn1AcnAst.AcnParameter) list) (p:CallerScope)        = 
+        let pp = match codec with CommonTypes.Encode -> p.arg.getValue l | CommonTypes.Decode -> p.arg.getPointer l
+        let funcBodyContent = 
+            uperFunc.funcBody_e errCode p |> Option.map(fun x -> x.funcBody, x.errCodes)
+        match funcBodyContent with
+        | None -> None
+        | Some (funcBodyContent,errCodes) -> Some ({AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = errCodes; localVariables = []})
+    let soSparkAnnotations = None
+    createAcnFunction r l codec t typeDefinition isValidFunc  (fun us e acnArgs p -> funcBody e acnArgs p, us) (fun atc -> true) soSparkAnnotations us
+
+
 let nestChildItems (l:ProgrammingLanguage) (codec:CommonTypes.Codec) children = 
     let printChild (content:string) (sNestedContent:string option) = 
         match sNestedContent with

@@ -124,6 +124,12 @@ let private boolGetter (r:Asn1Ast.AstRoot) (t:Asn1Ast.Asn1Type) (v:Asn1Ast.Asn1V
     | BooleanValue vl            -> vl.Value
     | _                             -> raise(BugErrorException "Value is not of expected type")
 
+let private objectIdentifierGetter (r:Asn1Ast.AstRoot) (t:Asn1Ast.Asn1Type) (v:Asn1Ast.Asn1Value) =
+    let newValue = ValuesMapping.mapValue r t v
+    match (getBaseValue newValue).kind with
+    | ObjOrRelObjIdValue z            -> z
+    | _                             -> raise(BugErrorException "Value is not of expected type")
+
 let private enumGetter (r:Asn1Ast.AstRoot) (t:Asn1Ast.Asn1Type)  (v:Asn1Ast.Asn1Value) =
     let newValue = ValuesMapping.mapValue r t v
     match (getBaseValue newValue).kind with
@@ -295,6 +301,7 @@ let getBitStringConstraint   (r:Asn1Ast.AstRoot) (t:Asn1Ast.Asn1Type) = getSizeT
 let getBoolConstraint        (r:Asn1Ast.AstRoot) (t:Asn1Ast.Asn1Type) = getRecursiveTypeConstraint (boolGetter r t)
 let getEnumConstraint        (r:Asn1Ast.AstRoot) (t:Asn1Ast.Asn1Type) = getRecursiveTypeConstraint (enumGetter r t)
 let getSequenceOfConstraint  (r:Asn1Ast.AstRoot) (t:Asn1Ast.Asn1Type) = getSizeTypeConstraint r (seqOfValueGetter r t)
+let getObjectIdConstraint    (r:Asn1Ast.AstRoot) (t:Asn1Ast.Asn1Type) = getRecursiveTypeConstraint (objectIdentifierGetter r t)
 let getSequenceConstraint    (r:Asn1Ast.AstRoot) (t:Asn1Ast.Asn1Type) = getRecursiveTypeConstraint (seqValueGetter r t)
 let getChoiceConstraint      (r:Asn1Ast.AstRoot) (t:Asn1Ast.Asn1Type) = getRecursiveTypeConstraint (chValueGetter r t)
 

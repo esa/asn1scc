@@ -129,6 +129,18 @@ Xer_DecodeReal(Strm, "<sTag>", <p>, result);
 result := <rtlModuleName()>.ASN1_RESULT'(Success => result.Success <if(soCheckExp)>and then (<soCheckExp>)<endif>, ErrorCode => <sErrCode>);
 >>
 
+ObjectIdentifier_encode(p, sTag, nLevel, soCheckExp, sErrCode) ::= <<
+Xer_EncodeObjectIdentifier(Strm, "<sTag>", <p>, result, <nLevel>);
+>>
+
+ObjectIdentifier_decode(p, sTag, nLevel, soCheckExp, sErrCode) ::= <<
+Xer_DecodeObjectIdentifier(Strm, "<sTag>", <p>, result);
+result := <rtlModuleName()>.ASN1_RESULT'(Success => result.Success <if(soCheckExp)>and then (<soCheckExp>)<endif>, ErrorCode => <sErrCode>);
+>>
+
+
+
+
 String_encode(p, sTag, nLevel, soCheckExp, sErrCode) ::= <<
 Xer_EncodeString(Strm, "<sTag>", <p>, result, <nLevel>);
 result.ErrorCode := <sErrCode>;

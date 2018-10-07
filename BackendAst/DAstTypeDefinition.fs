@@ -93,6 +93,24 @@ let createReal (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1AcnAst.Asn1
     | PrimitiveReference2RTL                  -> None
     | PrimitiveReference2OtherType            -> None
 
+let createObjectIdentifier (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1AcnAst.Asn1Type)  (o:Asn1AcnAst.ObjectIdentifier)   (us:State) =
+    let getRtlTypeName  = match l with C -> header_c.Declare_ObjectIdentifier  | Ada -> header_a.Declare_ObjectIdentifierNoRTL 
+    let defineSubType l = match l with C -> header_c.Define_SubType | Ada -> header_a.Define_SubType
+    let rtlModuleName  = match l with C -> None                                          | Ada -> Some (header_a.rtlModuleName())
+    let td = o.typeDef.[l]
+    match td.kind with
+    | PrimitiveNewTypeDefinition              -> 
+        let baseType = getRtlTypeName()
+        let typedefBody = defineSubType l td.typeName rtlModuleName baseType None None
+        Some typedefBody
+    | PrimitiveNewSubTypeDefinition subDef     -> 
+        let otherProgramUnit = if td.programUnit = subDef.programUnit then None else (Some subDef.programUnit)
+        let typedefBody = defineSubType l td.typeName otherProgramUnit subDef.typeName None None
+        Some typedefBody
+    | PrimitiveReference2RTL                  -> None
+    | PrimitiveReference2OtherType            -> None
+
+
 
 let createNull (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage)  (t:Asn1AcnAst.Asn1Type)  (o:Asn1AcnAst.NullType)   (us:State) =
     let getRtlTypeName  = match l with C -> header_c.Declare_NullType  | Ada -> header_a.Declare_NULLNoRTL 
@@ -286,6 +304,22 @@ let createReal_u (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage)   (t:Asn1AcnAst.
         ReferenceToExistingDefinition {ReferenceToExistingDefinition.programUnit =  (if td.programUnit = programUnit then None else Some td.programUnit); typedefName= td.typeName; definedInRtl = true}
     | PrimitiveReference2OtherType            -> 
         ReferenceToExistingDefinition {ReferenceToExistingDefinition.programUnit =  (if td.programUnit = programUnit then None else Some td.programUnit); typedefName= td.typeName; definedInRtl = false}
+
+let createObjectIdentifier_u (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage)   (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.ObjectIdentifier)  (us:State) =
+    let aaa = createObjectIdentifier r l t o us
+    let programUnit = ToC t.id.ModName
+    let td = o.typeDef.[l]
+    match td.kind with
+    | PrimitiveNewTypeDefinition              -> 
+        TypeDefinition {TypeDefinition.typedefName = td.typeName; typedefBody = (fun () -> aaa.Value); baseType=None}
+    | PrimitiveNewSubTypeDefinition subDef     -> 
+        let baseType = {ReferenceToExistingDefinition.programUnit = (if subDef.programUnit = programUnit then None else Some subDef.programUnit); typedefName=subDef.typeName ; definedInRtl = false}
+        TypeDefinition {TypeDefinition.typedefName = td.typeName; typedefBody = (fun () -> aaa.Value); baseType=Some baseType}
+    | PrimitiveReference2RTL                  ->
+        ReferenceToExistingDefinition {ReferenceToExistingDefinition.programUnit =  (if td.programUnit = programUnit then None else Some td.programUnit); typedefName= td.typeName; definedInRtl = true}
+    | PrimitiveReference2OtherType            -> 
+        ReferenceToExistingDefinition {ReferenceToExistingDefinition.programUnit =  (if td.programUnit = programUnit then None else Some td.programUnit); typedefName= td.typeName; definedInRtl = false}
+
 
 let createBoolean_u (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage)   (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Boolean)  (us:State) =
     let aaa = createBoolean r l t o us

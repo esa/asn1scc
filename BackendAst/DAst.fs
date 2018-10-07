@@ -38,6 +38,9 @@ type SeqOfValue           = list<Asn1Value>
 and SeqValue              = list<NamedValue>
 and ChValue               = NamedValue
 and RefValue              = ((string*string)*Asn1Value)
+and ObjectIdenfierValue   = 
+    | Asn1DefinedObjectIdentifierValue of ((ResolvedObjectIdentifierValueCompoent list)*(ObjectIdentifierValueCompoent list))
+    | InternalObjectIdentifierValue of BigInteger list
 
 and NamedValue = {
     name        : string
@@ -63,6 +66,7 @@ and Asn1ValueKind =
     | ChValue               of ChValue         
     | NullValue             of NullValue
     | RefValue              of RefValue   
+    | ObjOrRelObjIdValue    of ObjectIdenfierValue
 
 //type Asn1GenericValue = Asn1Value
 
@@ -334,6 +338,30 @@ type Enumerated = {
 
     automaticTestCasesValues     : Asn1Value list
 }
+
+type ObjectIdentifier = {
+    baseInfo             : Asn1AcnAst.ObjectIdentifier
+
+    constraintsAsn1Str  : string list   //an ASN.1 representation of the constraints
+    definitionOrRef     : TypeDefintionOrReference
+    printValue          : string -> (Asn1ValueKind option) -> (Asn1ValueKind) -> string
+    initialValue        : ObjectIdenfierValue
+    initFunction        : InitFunction
+    equalFunction       : EqualFunction
+    isValidFunction     : IsValidFunction option      // it is optional because some types do not require an IsValid function (e.g. an unconstraint integer)
+    uperEncFunction     : UPerFunction
+    uperDecFunction     : UPerFunction
+    acnEncFunction      : AcnFunction
+    acnDecFunction      : AcnFunction
+    xerEncFunction      : XerFunction
+    xerDecFunction      : XerFunction
+    uperEncDecTestFunc  : EncodeDecodeTestFunc option
+    acnEncDecTestFunc   : EncodeDecodeTestFunc option
+    xerEncDecTestFunc   : EncodeDecodeTestFunc option
+
+    automaticTestCasesValues     : Asn1Value list
+}
+
 
 type Real = {
     baseInfo             : Asn1AcnAst.Real
@@ -730,6 +758,7 @@ and Asn1TypeKind =
     | BitString         of BitString
     | Boolean           of Boolean
     | Enumerated        of Enumerated
+    | ObjectIdentifier  of ObjectIdentifier
     | SequenceOf        of SequenceOf
     | Sequence          of Sequence
     | Choice            of Choice

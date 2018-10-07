@@ -225,6 +225,11 @@ Real_decode(p, sErrCode) ::= <<
 <rtlModuleName()>.UPER_Dec_Real(S, K, <p>, result);
 >>
 
+ObjectIdentifier_encode(p, sErrCode) ::= "<rtlModuleName()>.ObjectIdentifier_uper_encode(S, K, <p>);"
+ObjectIdentifier_decode(p, sErrCode) ::= <<
+<rtlModuleName()>.ObjectIdentifier_uper_decode(S, K, <p>, result);
+>>
+
 
 
 

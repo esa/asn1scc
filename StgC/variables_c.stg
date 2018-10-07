@@ -28,6 +28,14 @@ PrintBitOrOctetStringValue(bIsFixedSize, arruBytes, nCount) ::= <<
 }
 >>
 
+PrintObjectIdentifierValue(td/*:FE_PrimitiveTypeDefinition*/, arrnValues, nCount) ::= <<
+{	<nCount>,
+    {
+        <arrnValues; separator=",\n">
+    }
+}
+>>
+
 
 PrintSequenceValueChild(sName, sInnerValue) ::= ".<sName> = <sInnerValue>"
 PrintSequenceValue_child_exists(sName, sExistsBit) ::= ".<sName> = <sExistsBit>"

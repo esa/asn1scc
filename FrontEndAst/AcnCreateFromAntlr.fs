@@ -701,6 +701,56 @@ let private mergeReal (asn1:Asn1Ast.AstRoot) (loc:SrcLoc) (acnErrLoc: SrcLoc opt
     let typeDef, us1 = getPrimitiveTypeDifition {tdarg with rtlFnc = Some getRtlTypeName} us
     {Real.acnProperties = acnProperties; cons = cons; withcons = withcons; uperRange=uperRange; uperMaxSizeInBits=uperMaxSizeInBits; uperMinSizeInBits=uperMinSizeInBits; acnEncodingClass = acnEncodingClass;  acnMinSizeInBits=acnMinSizeInBits; acnMaxSizeInBits = acnMaxSizeInBits; typeDef=typeDef}, us1
 
+
+
+
+
+
+
+
+
+
+
+
+let private mergeObjectIdentifier (asn1:Asn1Ast.AstRoot) (relativeId:bool) (loc:SrcLoc) (acnErrLoc: SrcLoc option) (props:GenericAcnProperty list) cons withcons (tdarg:GetTypeDifition_arg) (us:Asn1AcnMergeState) =
+    let acnErrLoc0 = match acnErrLoc with Some a -> a | None -> loc
+    let getRtlTypeName  l = 
+        let asn1Name = if relativeId then "RELATIVE-OID" else "OBJECT IDENTIFIER"
+        match l with 
+        | C     -> "",           header_c.Declare_ObjectIdentifier  (), asn1Name
+        | Ada   -> "adaasn1rtl", header_a.Declare_ObjectIdentifierNoRTL (), asn1Name
+    
+    //check for invalid properties
+    props |> Seq.iter(fun pr -> raise(SemanticError(acnErrLoc0, "Acn property cannot be applied to OBJECT IDENTIFIER types")))
+
+    let acnProperties =  {ObjectIdTypeAcnProperties.sizeProperties = None; itemProperties = None }
+
+    let lengthSize = 1I //+++ SOS, must be valiader
+    let compUperMinSizeInBits, compUperMaxSizeInBits = uPER.getRequiredBitsForIntUperEncoding asn1.args.integerSizeInBytes Full
+    let uperMaxSizeInBits= compUperMaxSizeInBits*asn1.args.objectIdentifierMaxLength + lengthSize
+    let uperMinSizeInBits= lengthSize
+    let aligment = tryGetProp props (fun x -> match x with ALIGNTONEXT e -> Some e | _ -> None)
+    let acnMinSizeInBits, acnMaxSizeInBits= uperMinSizeInBits, uperMaxSizeInBits
+    let typeDef, us1 = getPrimitiveTypeDifition {tdarg with rtlFnc = Some getRtlTypeName} us
+    {ObjectIdentifier.acnProperties = acnProperties; cons = cons; withcons = withcons; relativeObjectId=relativeId; uperMaxSizeInBits=uperMaxSizeInBits; uperMinSizeInBits=uperMinSizeInBits; acnMinSizeInBits=acnMinSizeInBits; acnMaxSizeInBits = acnMaxSizeInBits; typeDef=typeDef}, us1
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 type EnmStrGetTypeDifition_arg =
     | EnmStrGetTypeDifition_arg of GetTypeDifition_arg
     | AcnPrmGetTypeDefinition of ((ScopeNode list)* string*string)
@@ -1108,17 +1158,21 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (m:Asn1Ast.Asn1Mo
     let asn1Kind, kindState =
         match t.Kind with
         | Asn1Ast.Integer                  -> 
-            
             let cons =  t.Constraints@refTypeCons |> List.collect fixConstraint |> List.map (ConstraintsMapping.getIntegerTypeConstraint asn1 t)
             let wcons = withCons |> List.collect fixConstraint |> List.map (ConstraintsMapping.getIntegerTypeConstraint asn1 t)
             let o, us1  = mergeInteger asn1 t.Location typeAssignmentInfo  acnErrLoc combinedProperties cons wcons tfdArg us
             Integer o, us1
-
         | Asn1Ast.Real                     -> 
             let cons =  t.Constraints@refTypeCons |> List.collect fixConstraint |> List.map (ConstraintsMapping.getRealTypeConstraint asn1 t)
             let wcons = withCons |> List.collect fixConstraint |> List.map (ConstraintsMapping.getRealTypeConstraint asn1 t)
             let o, us1 = mergeReal asn1 t.Location acnErrLoc combinedProperties cons wcons tfdArg us
             Real o, us1
+        | Asn1Ast.ObjectIdentifier                 
+        | Asn1Ast.RelativeObjectIdentifier         -> 
+            let cons =  t.Constraints@refTypeCons |> List.collect fixConstraint |> List.map (ConstraintsMapping.getObjectIdConstraint asn1 t)
+            let wcons = withCons |> List.collect fixConstraint |> List.map (ConstraintsMapping.getObjectIdConstraint asn1 t)
+            let o, us1 = mergeObjectIdentifier asn1 (t.Kind=Asn1Ast.RelativeObjectIdentifier) t.Location acnErrLoc combinedProperties cons wcons tfdArg us
+            ObjectIdentifier o, us1
         | Asn1Ast.IA5String                ->  
             let defaultCharSet = [|for i in 0..127 -> System.Convert.ToChar(i) |]
             let cons =  t.Constraints@refTypeCons |> List.collect fixConstraint |> List.map (ConstraintsMapping.getIA5StringConstraint asn1 t)
@@ -1156,8 +1210,6 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (m:Asn1Ast.Asn1Mo
             let wcons = withCons |> List.collect fixConstraint |> List.map (ConstraintsMapping.getEnumConstraint asn1 t)
             let o, us1 = mergeEnumerated asn1 items t.Location acnErrLoc acnType combinedProperties cons wcons (EnmStrGetTypeDifition_arg tfdArg) us
             Enumerated o, us1
-        | Asn1Ast.ObjectIdentifier                 -> raise(SemanticError(t.Location, "OBJECT IDENTIFIER not yet supported"))
-        | Asn1Ast.RelativeObjectIdentifier         -> raise(SemanticError(t.Location, "RELATIVE-OID not yet supported"))
         | Asn1Ast.SequenceOf  chType       -> 
             let childWithCons = allCons |> List.choose(fun c -> match c with Asn1Ast.WithComponentConstraint w -> Some w| _ -> None)
             let myVisibleConstraints = t.Constraints@refTypeCons |> List.choose(fun c -> match c with Asn1Ast.WithComponentConstraint _ -> None | _ -> Some c)

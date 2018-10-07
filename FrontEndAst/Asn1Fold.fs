@@ -221,6 +221,7 @@ let foldType
     bitStringFunc
     boolFunc
     enumFunc 
+    objectIdFunc
     seqOfFunc
     seqFunc
     seqAsn1ChildFunc
@@ -244,6 +245,7 @@ let foldType
             | BitString      ti -> bitStringFunc ti us
             | Boolean        ti -> boolFunc ti us
             | Enumerated     ti -> enumFunc ti us
+            | ObjectIdentifier ti -> objectIdFunc ti us
             | SequenceOf     ti -> 
                 let newChild, newState = loopType ti.child us
                 seqOfFunc ti newChild newState
@@ -291,7 +293,8 @@ let foldType2
     nullTypeFunc
     bitStringFunc
     boolFunc
-    enumFunc 
+    enumFunc
+    objectIdFunc 
     seqOfFunc
     seqFunc
     seqAsn1ChildFunc
@@ -319,6 +322,7 @@ let foldType2
             | BitString      ti -> bitStringFunc pi t ti us
             | Boolean        ti -> boolFunc pi t ti us
             | Enumerated     ti -> enumFunc pi t ti us
+            | ObjectIdentifier ti -> objectIdFunc pi t ti us
             | SequenceOf     ti -> 
                 let (parentData:'T, ns:'UserState) = preSeqOfFunc pi t ti us
                 seqOfFunc pi t ti (loopType (Some {ParentInfo.parent = t ; name=None; parentData=parentData}) ti.child ns) 

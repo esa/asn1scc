@@ -315,6 +315,12 @@ type SequenceOf with
     member this.WithCons = this.baseInfo.withcons
     member this.AllCons  = this.baseInfo.cons@this.baseInfo.withcons
 
+type ObjectIdentifier with 
+    member this.Cons     = this.baseInfo.cons
+    member this.WithCons = this.baseInfo.withcons
+    member this.AllCons  = this.baseInfo.cons@this.baseInfo.withcons
+
+
 type Sequence with 
     member this.Cons     = this.baseInfo.cons
     member this.WithCons = this.baseInfo.withcons
@@ -402,6 +408,7 @@ type Asn1AcnAst.Asn1Type with
                 | Asn1AcnAst.SequenceOf      _ -> {CallerScope.modName = this.id.ModName; arg= POINTER ("pVal" + suf) }
                 | Asn1AcnAst.Sequence        _ -> {CallerScope.modName = this.id.ModName; arg= POINTER ("pVal" + suf) }
                 | Asn1AcnAst.Choice          _ -> {CallerScope.modName = this.id.ModName; arg= POINTER ("pVal" + suf) }
+                | Asn1AcnAst.ObjectIdentifier _ -> {CallerScope.modName = this.id.ModName; arg= POINTER ("pVal" + suf) }
                 | Asn1AcnAst.ReferenceType r -> r.resolvedType.getParamTypeSuffix l suf c
             | Decode  ->
                 match this.Kind with
@@ -417,6 +424,7 @@ type Asn1AcnAst.Asn1Type with
                 | Asn1AcnAst.SequenceOf         _ -> {CallerScope.modName = this.id.ModName; arg= POINTER ("pVal" + suf) }
                 | Asn1AcnAst.Sequence           _ -> {CallerScope.modName = this.id.ModName; arg= POINTER ("pVal" + suf) }
                 | Asn1AcnAst.Choice             _ -> {CallerScope.modName = this.id.ModName; arg= POINTER ("pVal" + suf) }
+                | Asn1AcnAst.ObjectIdentifier _ -> {CallerScope.modName = this.id.ModName; arg= POINTER ("pVal" + suf) }
                 | Asn1AcnAst.ReferenceType r -> r.resolvedType.getParamTypeSuffix l suf c
     member this.getParamType (l:ProgrammingLanguage) (c:Codec) =
         this.getParamTypeSuffix l "" c
@@ -439,6 +447,7 @@ type Asn1AcnAst.Asn1Type with
                 | Asn1AcnAst.SequenceOf   _ -> p.getPointer l
                 | Asn1AcnAst.Sequence     _ -> p.getPointer l
                 | Asn1AcnAst.Choice       _ -> p.getPointer l
+                | Asn1AcnAst.ObjectIdentifier _ -> p.getPointer l
                 | Asn1AcnAst.ReferenceType r -> r.resolvedType.getParamValue p l c
             | Decode  ->
                 match this.Kind with
@@ -598,6 +607,7 @@ with
         | BitString    t -> t.isValidFunction
         | Boolean      t -> t.isValidFunction
         | Enumerated   t -> t.isValidFunction
+        | ObjectIdentifier t-> t.isValidFunction
         | SequenceOf   t -> t.isValidFunction
         | Sequence     t -> t.isValidFunction
         | Choice       t -> t.isValidFunction
@@ -967,9 +977,24 @@ let rec mapValue (v:Asn1AcnAst.Asn1Value) =
         | Asn1AcnAst.ChValue          n ->  ChValue             {NamedValue.name = n.name.Value; Value = mapValue n.Value}
         | Asn1AcnAst.NullValue        v ->  NullValue           v
         | Asn1AcnAst.RefValue     ((md,ts),v) ->  RefValue            ((md.Value, ts.Value), mapValue v)
+        | Asn1AcnAst.ObjOrRelObjIdValue (a,b)   -> ObjOrRelObjIdValue (Asn1DefinedObjectIdentifierValue(a,b))
     {Asn1Value.kind = newVKind; id=v.id; loc = v.loc}
 
 
+
+type ObjectIdenfierValue with
+    member this.Values =
+        match this with
+        | InternalObjectIdentifierValue intList      -> intList |> List.map(fun i -> (i, None))
+        | Asn1DefinedObjectIdentifierValue (resolvedComponents, _)  ->
+            let emitComponent (c:ResolvedObjectIdentifierValueCompoent) =
+                match c with
+                | ResObjInteger            nVal             -> (nVal.Value, None)
+                | ResObjNamedDefValue      (label,_,nVal)   -> (nVal, Some label.Value)
+                | ResObjNamedIntValue      (label,nVal)   -> (nVal.Value, Some label.Value)
+                | ResObjRegisteredKeyword  (label,nVal)   -> (nVal, Some label.Value)
+                | ResObjDefinedValue       (_,_,nVal)     -> (nVal, None)
+            resolvedComponents |> List.map emitComponent
 
 type Asn1Value with
     member this.getBackendName (l:ProgrammingLanguage) =

@@ -100,6 +100,19 @@ ret = Xer_DecodeReal(pByteStrm, <sTag>, <p>, pErrCode);
 >>
 
 
+ObjectIdentifier_encode(p, sTag, nLevel, soCheckExp, sErrCode) ::= <<
+ret = Xer_EncodeObjectIdentifier(pByteStrm, <sTag>, <p>, pErrCode, <nLevel>);
+*pErrCode = ret ? 0 : <sErrCode>;
+>>
+
+ObjectIdentifier_decode(p, sTag, nLevel, soCheckExp, sErrCode) ::= <<
+ret = Xer_DecodeObjectIdentifier(pByteStrm, <sTag>, <p>, pErrCode);
+*pErrCode = (ret <if(soCheckExp)> && (<soCheckExp>)<endif>) ? 0 : <sErrCode>;
+>>
+
+
+
+
 String_encode(p, sTag, nLevel, soCheckExp, sErrCode) ::= <<
 ret = Xer_EncodeString(pByteStrm, <sTag>, <p>, pErrCode, <nLevel>);
 *pErrCode = ret ? 0 : <sErrCode>;

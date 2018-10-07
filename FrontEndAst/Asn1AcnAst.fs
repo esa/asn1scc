@@ -104,6 +104,12 @@ type NullTypeAcnProperties = {
     encodingPattern     : PATERN_PROP_VALUE             option
 }
 
+type ObjectIdTypeAcnProperties = {
+    sizeProperties     : SizeableAcnProperties          option
+    itemProperties     : IntegerAcnProperties           option
+}
+
+
 type AcnBooleanEncoding =
     | TrueValue    of StringLoc    
     | FalseValue   of StringLoc
@@ -177,6 +183,7 @@ type SeqOfValue           = list<Asn1Value>
 and SeqValue              = list<NamedValue>
 and ChValue               = NamedValue
 and RefValue              = ((StringLoc*StringLoc)*Asn1Value)
+and ObjectIdenfierValue   = ((ResolvedObjectIdentifierValueCompoent list)*(ObjectIdentifierValueCompoent list))
 
 and NamedValue = {
     name        : StringLoc
@@ -201,7 +208,7 @@ and Asn1ValueKind =
     | ChValue               of ChValue         
     | NullValue             of NullValue
     | RefValue              of RefValue   
-    | ObjOrRelObjIdValue    of ResolvedObjectIdentifierValueCompoent list
+    | ObjOrRelObjIdValue    of ObjectIdenfierValue
 
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -262,6 +269,7 @@ type OctetStringConstraint  =    SizableTypeConstraint<OctetStringValue*(Referen
 type BitStringConstraint    =    SizableTypeConstraint<BitStringValue*(ReferenceToValue*SrcLoc)>
 type BoolConstraint         =    GenericConstraint<bool>
 type EnumConstraint         =    GenericConstraint<string>
+type ObjectIdConstraint     =    GenericConstraint<ObjectIdenfierValue>
 
 
 type SequenceOfConstraint   =     SizableTypeConstraint<SeqOfValue>
@@ -465,8 +473,20 @@ type Boolean = {
     acnMaxSizeInBits    : BigInteger
     acnMinSizeInBits    : BigInteger
     typeDef             : Map<ProgrammingLanguage, FE_PrimitiveTypeDefinition>
-
 }
+
+type ObjectIdentifier = {    
+    acnProperties       : ObjectIdTypeAcnProperties
+    cons                : ObjectIdConstraint list
+    withcons            : ObjectIdConstraint list
+    relativeObjectId    : bool
+    uperMaxSizeInBits   : BigInteger
+    uperMinSizeInBits   : BigInteger
+    acnMaxSizeInBits    : BigInteger
+    acnMinSizeInBits    : BigInteger
+    typeDef             : Map<ProgrammingLanguage, FE_PrimitiveTypeDefinition>
+}
+
 
 type Enumerated = {
     items               : NamedItem list
@@ -582,6 +602,7 @@ and Asn1TypeKind =
     | SequenceOf        of SequenceOf
     | Sequence          of Sequence
     | Choice            of Choice
+    | ObjectIdentifier  of ObjectIdentifier
     | ReferenceType     of ReferenceType
 
 and SequenceOf = {

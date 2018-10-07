@@ -33,8 +33,15 @@ PrintOctetStringValue(td/*:FE_SizeableTypeDefinition*/,bIsFixedSize, arruBytes, 
 <td.typeName>'(<if(!bIsFixedSize)>Length => <nCount>,<endif>Data => <td.array>'(<if(arruBytes)><arruBytes:{b|<i>=>16#<b;format="X2">#}; wrap, anchor, separator=", ">,<endif> others=> 16#0#)) 
 >>
 
+
+
 PrintBitStringValue(td/*:FE_SizeableTypeDefinition*/,bIsFixedSize, arrsBits, nCount) ::= <<
 <td.typeName>'(<if(!bIsFixedSize)>Length => <nCount>,<endif>Data => <td.array>'(<if(arrsBits)><arrsBits:{b|<i>=><b>}; wrap, anchor, separator=", ">,<endif> others=> 0)) 
+>>
+
+
+PrintObjectIdentifierValue(td/*:FE_PrimitiveTypeDefinition*/, arrnValues, nCount) ::= <<
+<td.typeName>'(Length => <nCount>, Data => <rtlModuleName()>.ObjectIdentifier_array'(<if(arrnValues)><arrnValues; wrap, anchor, separator=", ">,<endif> others=> 0)) 
 >>
 
 

@@ -44,6 +44,16 @@ and private printChoiceValue (v:ChValue) =
                     XElement(xname "NamedValue", 
                         XAttribute(xname "Name", nv.name.Value),
                         PrintAsn1GenericValue nv.Value                ))))    
+and private printObjectIdentifierValue (resCompList:CommonTypes.ResolvedObjectIdentifierValueCompoent list, compList:CommonTypes.ObjectIdentifierValueCompoent list) =
+    let printComponent (comp: CommonTypes.ObjectIdentifierValueCompoent) =
+        match comp with
+        | CommonTypes.ObjInteger            nVal            ->  XElement(xname "ObjIdComponent", XAttribute(xname "IntValue", nVal.Value))                           //integer form
+        | CommonTypes.ObjNamedDefValue      (label,(md,ts)) ->  XElement(xname "ObjIdComponent", XAttribute(xname "label", label.Value), XAttribute(xname "Module", md.Value), XAttribute(xname "TypeAssignment", ts.Value))     //named form, points to an integer value
+        | CommonTypes.ObjNamedIntValue      (label,nVal)    ->  XElement(xname "ObjIdComponent", XAttribute(xname "label", label.Value), XAttribute(xname "IntValue", nVal.Value))                 //name form
+        | CommonTypes.ObjRegisteredKeyword  (label,nVal)    ->  XElement(xname "ObjIdComponent", XAttribute(xname "label", label.Value), XAttribute(xname "IntValue", nVal))
+        | CommonTypes.ObjDefinedValue       (md,ts)         ->  XElement(xname "ObjIdComponent", XAttribute(xname "Module", md.Value), XAttribute(xname "TypeAssignment", ts.Value))      //value assignment to Integer value or ObjectIdentifier or RelativeObject
+    XElement(xname "ReferenceValue", (compList |> List.map printComponent))
+
 and private printRefValue ((md:StringLoc,ts:StringLoc), v:Asn1Value) =    
         XElement(xname "ReferenceValue", 
             XAttribute(xname "Module", md.Value),
@@ -64,7 +74,7 @@ and private PrintAsn1GenericValue (v:Asn1Value) =
     |SeqValue(v)             -> printSeqValue v
     |ChValue(nv)             -> printChoiceValue nv
     |NullValue   _           -> XElement(xname "NullValue")
-    |ObjOrRelObjIdValue _    -> XElement(xname "ObjectIdentifierValue")
+    |ObjOrRelObjIdValue (a,b)    -> printObjectIdentifierValue (a,b)
     |RefValue ((md,ts), v)   -> printRefValue ((md,ts), v)
 
 let private printGenericConstraint printValue (c:GenericConstraint<'v>)  = 
@@ -341,6 +351,12 @@ let private exportType (t:Asn1Type) =
                                                                 ))),
                         XElement(xname constraintsTag, ti.cons |> List.map(printGenericConstraint printEnumVal )),
                         XElement(xname withCompConstraintsTag, ti.withcons |> List.map(printGenericConstraint printEnumVal ))
+                        ), us )
+        (fun ti us -> XElement(xname "ObjectIdentifier",
+                        (XAttribute(xname "acnMaxSizeInBits", ti.acnMaxSizeInBits )),
+                        (XAttribute(xname "acnMinSizeInBits", ti.acnMinSizeInBits )),
+                        (XAttribute(xname "uperMaxSizeInBits", ti.uperMaxSizeInBits )),
+                        (XAttribute(xname "uperMinSizeInBits", ti.uperMinSizeInBits ))
                         ), us )
         (fun ti nc us -> XElement(xname "SEQUENCE_OF",
                             (XAttribute(xname "acnMaxSizeInBits", ti.acnMaxSizeInBits )),

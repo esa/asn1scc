@@ -25,6 +25,7 @@ type Asn1Type with
         | SequenceOf     x -> x.uperMinSizeInBits
         | Sequence       x -> x.uperMinSizeInBits
         | Choice         x -> x.uperMinSizeInBits
+        | ObjectIdentifier x -> x.uperMinSizeInBits
         | ReferenceType  x -> x.resolvedType.uperMinSizeInBits
 
     member this.uperMaxSizeInBits =
@@ -41,6 +42,7 @@ type Asn1Type with
         | SequenceOf     x -> x.uperMaxSizeInBits
         | Sequence       x -> x.uperMaxSizeInBits
         | Choice         x -> x.uperMaxSizeInBits
+        | ObjectIdentifier x -> x.uperMaxSizeInBits
         | ReferenceType  x -> x.resolvedType.uperMaxSizeInBits
 
     member this.acnMinSizeInBits =
@@ -57,6 +59,7 @@ type Asn1Type with
         | SequenceOf     x -> x.acnMinSizeInBits
         | Sequence       x -> x.acnMinSizeInBits
         | Choice         x -> x.acnMinSizeInBits
+        | ObjectIdentifier x -> x.acnMinSizeInBits
         | ReferenceType  x -> x.resolvedType.acnMinSizeInBits
 
     member this.acnMaxSizeInBits =
@@ -73,6 +76,7 @@ type Asn1Type with
         | SequenceOf     x -> x.acnMaxSizeInBits
         | Sequence       x -> x.acnMaxSizeInBits
         | Choice         x -> x.acnMaxSizeInBits
+        | ObjectIdentifier x -> x.acnMaxSizeInBits
         | ReferenceType  x -> x.resolvedType.acnMaxSizeInBits
 
     member this.ActualType =
@@ -90,10 +94,11 @@ type Asn1Type with
         | SequenceOf   _ -> this
         | Sequence     _ -> this
         | Choice       _ -> this
-
+        | ObjectIdentifier _ -> this
     member this.FT_TypeDefintion =
         match this.Kind with
         | Integer      o  -> o.typeDef |> Map.toList |> List.map (fun (l, d) -> (l, FE_PrimitiveTypeDefinition d)) |> Map.ofList
+        | ObjectIdentifier      o  -> o.typeDef |> Map.toList |> List.map (fun (l, d) -> (l, FE_PrimitiveTypeDefinition d)) |> Map.ofList
         | Real         o  -> o.typeDef |> Map.toList |> List.map (fun (l, d) -> (l, FE_PrimitiveTypeDefinition d)) |> Map.ofList
         | IA5String    o  -> o.typeDef |> Map.toList |> List.map (fun (l, d) -> (l, FE_StringTypeDefinition d)) |> Map.ofList
         | NumericString o -> o.typeDef |> Map.toList |> List.map (fun (l, d) -> (l, FE_StringTypeDefinition d)) |> Map.ofList
@@ -199,6 +204,8 @@ let rec getASN1Name  (t:Asn1Type) =
     | SequenceOf    _  -> "SEQUENCE OF"
     | Sequence      _  -> "SEQUENCE"
     | Choice        _  -> "CHOICE"
+    | ObjectIdentifier o when o.relativeObjectId    -> "RELATIVE-OID"
+    | ObjectIdentifier _    -> "OBJECT IDENTIFIER"
     | ReferenceType r  -> getASN1Name r.resolvedType
 
 
@@ -212,6 +219,9 @@ type AcnReferenceToEnumerated with
             | Some tas -> tas.Type
 
 type Integer with
+    member this.AllCons  = this.cons@this.withcons
+
+type ObjectIdentifier with 
     member this.AllCons  = this.cons@this.withcons
 
 type Real             with
@@ -417,3 +427,4 @@ let GetActualTypeByName (r:AstRoot) modName tasName  =
     let mdl = r.GetModuleByName(modName)
     let tas = mdl.GetTypeAssignmentByName tasName r
     GetActualType tas.Type r
+

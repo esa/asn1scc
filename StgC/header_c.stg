@@ -57,6 +57,7 @@ Declare_Real() ::= "asn1Real"
 Declare_IA5String() ::= "char"
 Declare_NumericString() ::= "char"
 Declare_NullType() ::= "NullType"
+Declare_ObjectIdentifier() ::= "Asn1ObjectIdentifier"
 
 
 Define_SubType(sTypeDefinitionName, soParentTypePackage, sParentType, soNewRange, soExtraDefs) ::= <<

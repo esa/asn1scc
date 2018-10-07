@@ -236,6 +236,8 @@ let constructCommandLineSettings args (parserResults: ParseResults<CliArguments>
                 | _                 -> Some (FieldPrefixUserValue vl)
         targetLanguages =
             args |> List.choose(fun a -> match a with C_lang -> Some (CommonTypes.ProgrammingLanguage.C) | Ada_Lang -> Some (CommonTypes.ProgrammingLanguage.Ada) | _ -> None)
+    
+        objectIdentifierMaxLength = 20I
     }    
 
 

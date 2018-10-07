@@ -54,6 +54,11 @@ while <i>\<= <nMaxSizePlusOne> loop
 end loop;
 >>
 
+initObjectIdentifier_vali(p, sAcc, sI, nIntVal) ::= "<p><sAcc>values(<sI>) = <nIntVal>;"
+initObjectIdentifier(p, sAcc, nSize, arrsValues) ::= <<
+<p><sAcc>nCount := <nSize>;
+<arrsValues; separator="\n">
+>>
 
 
 /* BIT AND OCTET STRINGS */

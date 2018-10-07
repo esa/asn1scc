@@ -296,6 +296,22 @@ let createOctetStringFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:
     printValue
 
 
+let createObjectIdentifierFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.ObjectIdentifier) (defOrRef:TypeDefintionOrReference) =
+    let printValue (curProgamUnitName:string) (parentValue:Asn1ValueKind option) (v:Asn1ValueKind) =
+        let td = o.typeDef.[l]
+        match v with
+        | ObjOrRelObjIdValue  v -> 
+            match l with 
+            | C ->  variables_c.PrintObjectIdentifierValue td (v.Values |> List.map fst) (BigInteger v.Values.Length)
+            | Ada -> 
+                let typeDefName  = defOrRef.longTypedefName l//if parentValue.IsSome then typeDefinition.typeDefinitionBodyWithinSeq else typeDefinition.name
+                variables_a.PrintObjectIdentifierValue  td (v.Values |> List.map fst) (BigInteger v.Values.Length)
+        | RefValue ((md,vs),ov)   -> vs
+        | _                 -> raise(BugErrorException "unexpected value")
+    printValue
+
+
+
 let createBitStringFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.BitString) (defOrRef:TypeDefintionOrReference) =
     let printValue (curProgamUnitName:string) (parentValue:Asn1ValueKind option) (v:Asn1ValueKind) =
         match v with

@@ -168,6 +168,21 @@ let createRealFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec:Com
     let soSparkAnnotations = None
     createXerFunction_any r l codec t typeDefinition  isValidFunc  funcBody  soSparkAnnotations us
 
+
+let createObjectIdentifierFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.ObjectIdentifier) (typeDefinition:TypeDefintionOrReference)  (isValidFunc: IsValidFunction option) (us:State)  =
+    let ObjectIdentifier = match l with C -> xer_c.ObjectIdentifier   | Ada -> xer_a.ObjectIdentifier
+    let funcBody (errCode:ErroCode) (p:CallerScope) (xmlTag:XerTag option) = 
+        let xmlTag = xmlTag |> orElse (XerLiteralConstant "ObjectIdentifier")
+        let pp = match codec with CommonTypes.Encode -> p.arg.getValue l | CommonTypes.Decode -> p.arg.getPointer l
+        let nLevel = BigInteger (t.id.AcnAbsPath.Length - 2)
+        let contentSize = getMaxSizeInBytesForXER_Real 
+        let totalSize = getMaxSizeInBytesForXER xmlTag contentSize
+        let bodyStm = ObjectIdentifier pp xmlTag.p nLevel (checkExp isValidFunc p) errCode.errCodeName codec
+        Some {XERFuncBodyResult.funcBody = bodyStm; errCodes= [errCode]; localVariables=[];encodingSizeInBytes=totalSize}
+    let soSparkAnnotations = None
+    createXerFunction_any r l codec t typeDefinition  isValidFunc  funcBody  soSparkAnnotations us
+
+
 let createNullTypeFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.NullType) (typeDefinition:TypeDefintionOrReference)  (isValidFunc: IsValidFunction option) (us:State)  =
     let funcBody (errCode:ErroCode) (p:CallerScope) (xmlTag:XerTag option) = 
         let xmlTag = xmlTag |> orElse (XerLiteralConstant "NULL")

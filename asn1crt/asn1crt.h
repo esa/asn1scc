@@ -35,7 +35,7 @@ extern "C" {
 #define FP_WORD_SIZE	8
 #endif
 
-
+#define OBJECT_IDENTIFIER_MAX_LENGTH	20
 
 typedef float asn1Real32;
 typedef double asn1Real64;
@@ -108,6 +108,10 @@ typedef struct {
 	int nCount;
 } XmlAttributeArray;
 
+typedef struct {
+	int nCount;
+	asn1SccSint values[OBJECT_IDENTIFIER_MAX_LENGTH];
+} Asn1ObjectIdentifier;
 
 #define ERR_INSUFFICIENT_DATA	101
 #define ERR_INCORRECT_PER_STREAM	102

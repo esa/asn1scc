@@ -376,6 +376,9 @@ let BooleanAutomaticTestCaseValues (r:Asn1AcnAst.AstRoot)  (t:Asn1AcnAst.Asn1Typ
     | _  -> allItems |> List.filter (isValidValueGeneric o.AllCons (=))
     
 
+let ObjectIdentifierAutomaticTestCaseValues (r:Asn1AcnAst.AstRoot)  (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.ObjectIdentifier) =
+    [[]; [1I .. r.args.objectIdentifierMaxLength]]
+
 
 let StringAutomaticTestCaseValues (r:Asn1AcnAst.AstRoot)  (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.StringType) =
     let maxItems = 32767I

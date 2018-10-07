@@ -462,6 +462,8 @@ let createEnumeratedFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:A
     createPrimitiveFunction r l t o.AllCons (foldGenericCon l  printNamedItem) typeDefinition [] us
 
 
+
+
 let exlcudeSizeConstraintIfFixedSize minSize maxSize allCons = 
     match minSize = maxSize with
     | false -> allCons
