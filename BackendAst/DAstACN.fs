@@ -425,7 +425,7 @@ let createRealrFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec:Co
 
 let createObjectIdentifierFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.ObjectIdentifier) (typeDefinition:TypeDefintionOrReference)  (isValidFunc: IsValidFunction option) (uperFunc: UPerFunction) (us:State)  =
     let funcBody (errCode:ErroCode) (acnArgs: (Asn1AcnAst.RelativePath*Asn1AcnAst.AcnParameter) list) (p:CallerScope)        = 
-        let pp = match codec with CommonTypes.Encode -> p.arg.getValue l | CommonTypes.Decode -> p.arg.getPointer l
+        let pp = match codec with CommonTypes.Encode -> p.arg.getPointer l | CommonTypes.Decode -> p.arg.getPointer l
         let funcBodyContent = 
             uperFunc.funcBody_e errCode p |> Option.map(fun x -> x.funcBody, x.errCodes)
         match funcBodyContent with

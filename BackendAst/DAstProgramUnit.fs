@@ -48,6 +48,7 @@ let rec private  getTypeDependencies2 (t:Asn1Type) : (TypeAssignmentInfo list ) 
     | BitString    _             -> prms
     | Boolean      _             -> prms
     | Enumerated   _             -> prms
+    | ObjectIdentifier _         -> prms
     | SequenceOf    sqof         -> prms@(getTypeDependencies2 sqof.childType) 
     | Sequence      children     -> prms@(children.Asn1Children |> List.collect (fun ch -> getTypeDependencies2 ch.Type))
     | Choice        children     -> prms@(children.children |> List.collect (fun ch -> getTypeDependencies2 ch.chType))

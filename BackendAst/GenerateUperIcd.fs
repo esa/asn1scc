@@ -64,6 +64,8 @@ let Kind2Name (stgFileName:string) (t:Asn1Type) =
     | Boolean           _           -> icd_uper.Boolean           stgFileName ()
     | Choice            _           -> icd_uper.Choice            stgFileName ()
     | Enumerated        _           -> icd_uper.Enumerated        stgFileName ()
+    | ObjectIdentifier a     when a.baseInfo.relativeObjectId   -> icd_uper.RelativeOid stgFileName ()
+    | ObjectIdentifier _                                        -> icd_uper.ObjectIdentifier stgFileName ()
     | IA5String         s           -> 
         match s.baseInfo.isNumeric with
         | true  -> icd_uper.NumericString     stgFileName ()
@@ -161,6 +163,9 @@ let rec printType (stgFileName:string) (m:Asn1Module) (tas:IcdTypeAssignment) (t
         let sAsn1Constraints = o.AllCons |> List.map (foldGenericCon (fun z -> z.ToString().ToUpper() )) |> Seq.StrJoin ""
         handlePrimitive sAsn1Constraints
     | NullType  o   ->
+        let sAsn1Constraints = ""
+        handlePrimitive sAsn1Constraints
+    | ObjectIdentifier  o   ->
         let sAsn1Constraints = ""
         handlePrimitive sAsn1Constraints
     | Enumerated  o   ->

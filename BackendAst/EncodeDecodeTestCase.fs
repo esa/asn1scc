@@ -377,7 +377,7 @@ let BooleanAutomaticTestCaseValues (r:Asn1AcnAst.AstRoot)  (t:Asn1AcnAst.Asn1Typ
     
 
 let ObjectIdentifierAutomaticTestCaseValues (r:Asn1AcnAst.AstRoot)  (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.ObjectIdentifier) =
-    [[]; [1I .. r.args.objectIdentifierMaxLength]]
+    [[0I; 1I]; [0I .. r.args.objectIdentifierMaxLength - 1I]]
 
 
 let StringAutomaticTestCaseValues (r:Asn1AcnAst.AstRoot)  (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.StringType) =

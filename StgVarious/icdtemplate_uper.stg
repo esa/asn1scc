@@ -36,6 +36,8 @@ NullType()      ::= "NULL"
 Real()          ::= "REAL"
 Sequence()      ::= "SEQUENCE"
 SequenceOf()    ::= "SEQUENCE-OF"
+ObjectIdentifier()       ::= "OBJECT IDENTIFIER"
+RelativeOid()       ::= "RELATIVE-OID"
 
 
 // HTML formatting for the input ASN.1 grammar (new in version 3.2.x)

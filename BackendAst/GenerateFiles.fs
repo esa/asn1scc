@@ -32,6 +32,7 @@ let rec collectEqualFuncs (t:Asn1Type) =
         | NullType         _
         | BitString        _
         | Boolean          _
+        | ObjectIdentifier _
         | Enumerated       _ -> ()
         | SequenceOf        ch -> 
             yield! collectEqualFuncs ch.childType

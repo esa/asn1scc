@@ -111,6 +111,9 @@ let rec printType stgFileName (tas:GenerateUperIcd.IcdTypeAssignment) (t:Asn1Typ
     | Enumerated  o   ->
         let sAsn1Constraints = ""
         handlePrimitive sAsn1Constraints
+    | ObjectIdentifier  o   ->
+        let sAsn1Constraints = ""
+        handlePrimitive sAsn1Constraints
     |ReferenceType o ->
         printType stgFileName tas t.ActualType m r isAnonymousType
     |Sequence seq   -> 

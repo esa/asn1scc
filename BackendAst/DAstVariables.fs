@@ -84,7 +84,7 @@ let rec printValue (r:DAst.AstRoot)  (l:ProgrammingLanguage)  (curProgamUnitName
             match t.ActualType.Kind with
             | ObjectIdentifier oi   ->
                 let aa = oi.baseInfo.typeDef.[l]
-                variables_a.PrintObjectIdentifierValue aa (v.Values |> List.map fst) (BigInteger v.Values.Length)
+                variables_c.PrintObjectIdentifierValue aa (v.Values |> List.map fst) (BigInteger v.Values.Length)
             | _         -> raise(BugErrorException "unexpected type")
             
         | RefValue ((md,vs),v)         ->

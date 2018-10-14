@@ -35,6 +35,7 @@ let rec XerTagFnc (t:Asn1AcnAst.Asn1Type) (r:Asn1AcnAst.AstRoot) =
         | Asn1AcnAst.Real      _          -> Some (XerLiteralConstant "REAL")
         | Asn1AcnAst.Sequence(_)          -> Some (XerLiteralConstant "SEQUENCE")
         | Asn1AcnAst.SequenceOf(_)        -> Some (XerLiteralConstant "SEQUENCE-OF")
+        | Asn1AcnAst.ObjectIdentifier _   -> Some (XerLiteralConstant "OBJECT-IDENTIFIER")
 
 let private aux (s:string) = 2 * (s.Length + 1) + 1 |> BigInteger
 

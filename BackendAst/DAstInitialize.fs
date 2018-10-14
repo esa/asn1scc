@@ -321,10 +321,10 @@ let createObjectIdentifierInitFunc (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage
         List.map (fun vl -> 
             {AutomaticTestCase.initTestCaseFunc = (fun (p:CallerScope) -> 
                 let arrsBytes = vl |> List.mapi(fun i b -> initObjectIdentifier_vali p.arg.p (p.arg.getAcces l) ((i+l.ArrayStartIndex).ToString()) b)
-                {InitFunctionResult.funcBody = initObjectIdentifier (p.arg.getValue l) (p.arg.getAcces l) (BigInteger vl.Length)  arrsBytes; localVariables = []}); testCase = Map.ofList [(t.id, TcvAnyValue)] })
+                {InitFunctionResult.funcBody = initObjectIdentifier (p.arg.p) (p.arg.getAcces l) (BigInteger vl.Length)  arrsBytes; localVariables = []}); testCase = Map.ofList [(t.id, TcvAnyValue)] })
 
     let tasInitFunc (p:CallerScope)  = 
-        {InitFunctionResult.funcBody = initObjectIdentifier (p.arg.getValue l) (p.arg.getAcces l) 0I []; localVariables = []}
+        {InitFunctionResult.funcBody = initObjectIdentifier (p.arg.p) (p.arg.getAcces l) 0I []; localVariables = []}
 
     createInitFunctionCommon r l t typeDefinition funcBody iv tasInitFunc testCaseFuncs
 

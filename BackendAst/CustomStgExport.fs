@@ -60,6 +60,7 @@ let internal PrintCustomAsn1Value_aux (bPrintAsAttr:bool) (v: Asn1Value) stgFile
         |SeqValue(vals)          -> gen.Print_SeqValue (vals |> Seq.map(fun nmv -> gen.Print_SeqValue_Child nmv.name (PrintValue true nmv.Value) stgFileName ) |> Seq.toArray) stgFileName
         |ChValue(nmv)            -> gen.Print_ChValue nmv.name (PrintValue true nmv.Value) stgFileName
         |NullValue _             -> gen.Print_NullValue() stgFileName
+        |ObjOrRelObjIdValue v    -> gen.Print_ObjectIdentifierValue((v.Values |> List.map fst)) stgFileName
     PrintValue false v
 
 let PrintCustomAsn1Value  (vas: ValueAssignment) stgFileName =
@@ -72,7 +73,7 @@ let PrintContract (r:AstRoot) (stgFileName:string) (asn1Name:string) (backendNam
     let PrintPattern () =
         //let t = tas.Type
         match t.Kind with
-        | Integer _ | BitString _ | OctetString _ | Real _ | IA5String _ |  SequenceOf(_)     -> gen.TypePatternCommonTypes () stgFileName
+        | Integer _ | BitString _ | OctetString _ | Real _ | IA5String _ |  SequenceOf(_)  | ObjectIdentifier _    -> gen.TypePatternCommonTypes () stgFileName
         | Boolean _ | NullType  _ | Enumerated(_)      | Choice(_)                                     -> null
         | Sequence seqInfo    ->
             let emitChild (c:SeqChildInfo) =
@@ -88,6 +89,7 @@ let PrintContract (r:AstRoot) (stgFileName:string) (asn1Name:string) (backendNam
         | OctetString info      -> handTypeWithMinMax pattern (Asn1AcnAst.Concrete (info.baseInfo.minSize, info.baseInfo.maxSize)) gen.ContractExprSize stgFileName
         | IA5String   info      -> handTypeWithMinMax pattern (Asn1AcnAst.Concrete (info.baseInfo.minSize, info.baseInfo.maxSize)) gen.ContractExprSize stgFileName  
         | BitString   info      -> handTypeWithMinMax pattern (Asn1AcnAst.Concrete (info.baseInfo.minSize, info.baseInfo.maxSize)) gen.ContractExprSize stgFileName
+        | ObjectIdentifier _
         | Boolean   _
         | NullType  _
         | Choice _
@@ -124,7 +126,7 @@ let rec PrintType (r:AstRoot) (f:Asn1File) (stgFileName:string) modName (deepRec
                 | IA5String     i         -> Some (i.baseInfo.minSize.ToString(), i.baseInfo.maxSize.ToString())
                 | SequenceOf    i         -> Some (i.baseInfo.minSize.ToString(), i.baseInfo.maxSize.ToString())
                 | Real          i         -> Some (GetMinMax i.baseInfo.uperRange)
-                | Boolean _ | NullType _ | Choice _ | Enumerated _ | Sequence _ | ReferenceType _       -> None
+                | Boolean _ | NullType _ | Choice _ | Enumerated _ | Sequence _ | ReferenceType _     | ObjectIdentifier _  -> None
             let sModName=
                 match t.typeDefintionOrReference with
                 | ReferenceToExistingDefinition  refEx  -> 
@@ -148,6 +150,7 @@ let rec PrintType (r:AstRoot) (f:Asn1File) (stgFileName:string) modName (deepRec
         | IA5String         i    -> handTypeWithMinMax (gen.IA5StringType () stgFileName)       (Asn1AcnAst.Concrete (i.baseInfo.minSize, i.baseInfo.maxSize)) gen.MinMaxType2 stgFileName
         | Boolean           i    -> gen.BooleanType () stgFileName
         | NullType          i    -> gen.NullType () stgFileName
+        | ObjectIdentifier i     -> gen.ObjectIdentifierType () stgFileName
         | Choice(chInfo)      ->
             let emitChild (c:ChChildInfo) =
                 let childTypeExp =
@@ -200,7 +203,7 @@ let rec PrintType (r:AstRoot) (f:Asn1File) (stgFileName:string) modName (deepRec
                 | IA5String     i         -> Some (i.baseInfo.minSize.ToString(), i.baseInfo.maxSize.ToString())
                 | SequenceOf    i         -> Some (i.baseInfo.minSize.ToString(), i.baseInfo.maxSize.ToString())
                 | Real          i         -> Some (GetMinMax i.baseInfo.uperRange)
-                | Boolean _ | NullType _ | Choice _ | Enumerated _ | Sequence _ | ReferenceType _       -> None
+                | Boolean _ | NullType _ | Choice _ | Enumerated _ | Sequence _ | ReferenceType _   | ObjectIdentifier _    -> None
             let sModName = if info.baseInfo.modName.Value=modName then null else info.baseInfo.modName.Value
             let sCModName = if sModName <> null then (ToC sModName) else null
             match uperRange with

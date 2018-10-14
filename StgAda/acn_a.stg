@@ -1125,7 +1125,7 @@ MultiAcnUpdate_get_first_init_value_str(sV0, sVi, bIsFirst) ::= <<
 MultiAcnUpdate_checkEqual_pri(sV0, sVi) ::= "((<sVi>_is_initialized and <sV0> = <sVi>) or not <sVi>_is_initialized)"
 MultiAcnUpdate_checkEqual_str(sV0, sVi) ::= "((<sVi>_is_initialized and <sV0> = <sVi>) or not <sVi>_is_initialized)"
 
-MultiAcnUpdate(v, v0, sErrCode, arrsLocalDeclarations, arrsLocalUpdateStatements, arrsGetFirstIntValue, arrsLocalCheckEquality) ::= <<
+MultiAcnUpdate(v, sV0, sErrCode, arrsLocalDeclarations, arrsLocalUpdateStatements, arrsGetFirstIntValue, arrsLocalCheckEquality) ::= <<
 declare
     <arrsLocalDeclarations; separator="\n">
 begin
