@@ -314,6 +314,7 @@ let createReferenceTypeEqualFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLangua
         createEqualFunction_any r l t defOrRef bs.isEqualBody
     | OctetString _
     | BitString  _      
+    | ObjectIdentifier _
 //        let    isEqualBody                   = 
 //            match baseType.equalFunction.isEqualFuncName with
 //            | None  -> (fun b c -> None)

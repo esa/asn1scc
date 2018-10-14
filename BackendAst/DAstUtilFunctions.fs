@@ -477,6 +477,7 @@ with
         | SequenceOf   _ -> this
         | Sequence     _ -> this
         | Choice       _ -> this
+        | ObjectIdentifier _ -> this
     
 
 
@@ -494,11 +495,13 @@ with
         | SequenceOf   _ -> this
         | Sequence     _ -> this
         | Choice       _ -> this
+        | ObjectIdentifier _ -> this
         
     member this.FT_TypeDefintion =
         match this.Kind with
         | Integer      t -> t.baseInfo.typeDef   |> Map.toList |> List.map (fun (l, d) -> (l, FE_PrimitiveTypeDefinition d)) |> Map.ofList
         | Real         t -> t.baseInfo.typeDef   |> Map.toList |> List.map (fun (l, d) -> (l, FE_PrimitiveTypeDefinition d)) |> Map.ofList
+        | ObjectIdentifier t -> t.baseInfo.typeDef   |> Map.toList |> List.map (fun (l, d) -> (l, FE_PrimitiveTypeDefinition d)) |> Map.ofList
         | IA5String    t -> t.baseInfo.typeDef   |> Map.toList |> List.map (fun (l, d) -> (l, FE_StringTypeDefinition d)) |> Map.ofList
         | OctetString  t -> t.baseInfo.typeDef   |> Map.toList |> List.map (fun (l, d) -> (l, FE_SizeableTypeDefinition d)) |> Map.ofList
         | NullType     t -> t.baseInfo.typeDef   |> Map.toList |> List.map (fun (l, d) -> (l, FE_PrimitiveTypeDefinition d)) |> Map.ofList
@@ -524,6 +527,7 @@ with
         | Sequence     t -> t.printValue
         | Choice       t -> t.printValue
         | ReferenceType t-> t.printValue
+        | ObjectIdentifier t -> t.printValue
 
     member this.initialValue =
         match this.Kind with
@@ -539,6 +543,8 @@ with
         | Sequence     t -> SeqValue t.initialValue
         | Choice       t -> ChValue t.initialValue
         | ReferenceType t-> t.initialValue.kind
+        | ObjectIdentifier t -> ObjOrRelObjIdValue  t.initialValue
+
     member this.ConstraintsAsn1Str = 
         match this.Kind with
         | Integer      t -> t.constraintsAsn1Str
@@ -553,6 +559,7 @@ with
         | Sequence     t -> t.constraintsAsn1Str
         | Choice       t -> t.constraintsAsn1Str
         | ReferenceType t-> t.constraintsAsn1Str
+        | ObjectIdentifier t -> t.constraintsAsn1Str
 
 
 
@@ -581,6 +588,7 @@ with
         | Sequence     t -> t.initFunction
         | Choice       t -> t.initFunction
         | ReferenceType t-> t.initFunction
+        | ObjectIdentifier t -> t.initFunction
 
     member this.equalFunction =
         match this.Kind with
@@ -596,6 +604,7 @@ with
         | Sequence     t -> t.equalFunction
         | Choice       t -> t.equalFunction
         | ReferenceType t-> t.equalFunction
+        | ObjectIdentifier t -> t.equalFunction
 
     member this.isValidFunction =
         match this.Kind with
@@ -636,6 +645,7 @@ with
          | Sequence     t ->t.uperEncFunction
          | Choice       t ->t.uperEncFunction
          | ReferenceType t->t.uperEncFunction
+         | ObjectIdentifier t -> t.uperEncFunction
 
     member this.uperDecFunction =
          match this.Kind with
@@ -651,6 +661,7 @@ with
          | Sequence     t -> t.uperDecFunction
          | Choice       t -> t.uperDecFunction
          | ReferenceType t-> t.uperDecFunction
+         | ObjectIdentifier t -> t.uperDecFunction
 
 
     member this.xerEncFunction =
@@ -667,6 +678,7 @@ with
          | Sequence     t ->t.xerEncFunction
          | Choice       t ->t.xerEncFunction
          | ReferenceType t->t.xerEncFunction
+         | ObjectIdentifier t -> t.xerEncFunction
 
     member this.xerDecFunction =
          match this.Kind with
@@ -682,6 +694,7 @@ with
          | Sequence     t -> t.xerDecFunction
          | Choice       t -> t.xerDecFunction
          | ReferenceType t-> t.xerDecFunction
+         | ObjectIdentifier t -> t.xerDecFunction
 
 
     member this.uperMaxSizeInBits =
@@ -698,6 +711,8 @@ with
         | Sequence     t -> t.baseInfo.uperMaxSizeInBits
         | Choice       t -> t.baseInfo.uperMaxSizeInBits
         | ReferenceType ref -> ref.baseInfo.resolvedType.uperMaxSizeInBits
+        | ObjectIdentifier t -> t.baseInfo.uperMaxSizeInBits
+
     member this.uperMinSizeInBits =
         match this.Kind with
         | Integer      t -> t.baseInfo.uperMinSizeInBits
@@ -711,6 +726,7 @@ with
         | SequenceOf   t -> t.baseInfo.uperMinSizeInBits
         | Sequence     t -> t.baseInfo.uperMinSizeInBits
         | Choice       t -> t.baseInfo.uperMinSizeInBits
+        | ObjectIdentifier t -> t.baseInfo.uperMinSizeInBits
         | ReferenceType ref -> ref.baseInfo.resolvedType.uperMinSizeInBits
 
 
@@ -727,6 +743,7 @@ with
         | SequenceOf   t -> t.baseInfo.acnMaxSizeInBits
         | Sequence     t -> t.baseInfo.acnMaxSizeInBits
         | Choice       t -> t.baseInfo.acnMaxSizeInBits
+        | ObjectIdentifier t -> t.baseInfo.acnMaxSizeInBits
         | ReferenceType ref -> ref.baseInfo.resolvedType.acnMaxSizeInBits
 
     member this.acnMinSizeInBits =
@@ -742,6 +759,7 @@ with
         | SequenceOf   t -> t.baseInfo.acnMinSizeInBits
         | Sequence     t -> t.baseInfo.acnMinSizeInBits
         | Choice       t -> t.baseInfo.acnMinSizeInBits
+        | ObjectIdentifier t -> t.baseInfo.acnMinSizeInBits
         | ReferenceType ref -> ref.baseInfo.resolvedType.acnMinSizeInBits
 
     member this.acnEncFunction : AcnFunction option =
@@ -758,6 +776,7 @@ with
         | Sequence     t -> Some (t.acnEncFunction)
         | Choice       t -> Some (t.acnEncFunction)
         | ReferenceType t-> Some (t.acnEncFunction)
+        | ObjectIdentifier t -> Some (t.acnEncFunction)
 
     member this.acnDecFunction : AcnFunction option =
         match this.Kind with
@@ -772,7 +791,9 @@ with
         | SequenceOf   t -> Some (t.acnDecFunction)
         | Sequence     t -> Some (t.acnDecFunction)
         | Choice       t -> Some (t.acnDecFunction)
+        | ObjectIdentifier t -> Some (t.acnDecFunction)
         | ReferenceType t-> Some (t.acnDecFunction)
+
     member this.getAcnFunction (l:CommonTypes.Codec) =
         match l with
         | CommonTypes.Encode   -> this.acnEncFunction
@@ -793,6 +814,7 @@ with
         | SequenceOf   t -> t.uperEncDecTestFunc
         | Sequence     t -> t.uperEncDecTestFunc
         | Choice       t -> t.uperEncDecTestFunc
+        | ObjectIdentifier t -> t.uperEncDecTestFunc
         | ReferenceType t-> t.uperEncDecTestFunc
 
     member this.acnEncDecTestFunc =
@@ -808,6 +830,7 @@ with
         | SequenceOf   t -> t.acnEncDecTestFunc
         | Sequence     t -> t.acnEncDecTestFunc
         | Choice       t -> t.acnEncDecTestFunc
+        | ObjectIdentifier t -> t.acnEncDecTestFunc
         | ReferenceType t-> t.acnEncDecTestFunc
     member this.xerEncDecTestFunc =
         match this.Kind with
@@ -822,6 +845,7 @@ with
         | SequenceOf   t -> t.xerEncDecTestFunc
         | Sequence     t -> t.xerEncDecTestFunc
         | Choice       t -> t.xerEncDecTestFunc
+        | ObjectIdentifier t -> t.xerEncDecTestFunc
         | ReferenceType t-> t.xerEncDecTestFunc
     member this.getEncDecTestFunc (e:Asn1Encoding) =
         match e with
@@ -843,6 +867,7 @@ with
         | SequenceOf   t -> t.automaticTestCasesValues
         | Sequence     t -> t.automaticTestCasesValues
         | Choice       t -> t.automaticTestCasesValues
+        | ObjectIdentifier t -> t.automaticTestCasesValues
         | ReferenceType t-> t.automaticTestCasesValues
 
     member this.typeDefintionOrReference : TypeDefintionOrReference =
@@ -858,6 +883,7 @@ with
         | SequenceOf   t -> t.definitionOrRef
         | Sequence     t -> t.definitionOrRef
         | Choice       t -> t.definitionOrRef
+        | ObjectIdentifier t -> t.definitionOrRef
         | ReferenceType t-> t.definitionOrRef
 
     member this.isIA5String =
@@ -889,6 +915,7 @@ with
                 | SequenceOf   _ -> POINTER "pVal"
                 | Sequence     _ -> POINTER "pVal"
                 | Choice       _ -> POINTER "pVal"
+                | ObjectIdentifier t -> POINTER "pVal"
                 | ReferenceType r -> r.resolvedType.getParamType l c
             | Decode  ->
                 match this.Kind with
@@ -903,6 +930,7 @@ with
                 | SequenceOf   _ -> POINTER "pVal"
                 | Sequence     _ -> POINTER "pVal"
                 | Choice       _ -> POINTER "pVal"
+                | ObjectIdentifier t -> POINTER "pVal"
                 | ReferenceType r -> r.resolvedType.getParamType l c
     member this.tasInfo =
         match this.typeAssignmentInfo with

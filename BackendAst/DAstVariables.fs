@@ -80,6 +80,13 @@ let rec printValue (r:DAst.AstRoot)  (l:ProgrammingLanguage)  (curProgamUnitName
                 List.map(fun x -> variables_c.PrintChoiceValue (x.presentWhenName (Some t.typeDefintionOrReference) l) (x.getBackendName l) (printValue r l curProgamUnitName x.chType (Some gv) v.Value.kind)) |>
                 List.head
             | _         -> raise(BugErrorException "unexpected type")
+        | ObjOrRelObjIdValue v  ->
+            match t.ActualType.Kind with
+            | ObjectIdentifier oi   ->
+                let aa = oi.baseInfo.typeDef.[l]
+                variables_a.PrintObjectIdentifierValue aa (v.Values |> List.map fst) (BigInteger v.Values.Length)
+            | _         -> raise(BugErrorException "unexpected type")
+            
         | RefValue ((md,vs),v)         ->
             printValue r  l  curProgamUnitName t parentValue v.kind
             //the following code has been commented out because of the following issue
@@ -143,6 +150,12 @@ let rec printValue (r:DAst.AstRoot)  (l:ProgrammingLanguage)  (curProgamUnitName
                 | false -> variables_a.PrintEnumValue  ((ToC typeModName) + "." + (ToC itm.ada_name))
             | _         -> raise(BugErrorException "unexpected type")
         | NullValue         v -> variables_a.PrintNullValue ()
+        | ObjOrRelObjIdValue v  ->
+            match t.ActualType.Kind with
+            | ObjectIdentifier oi   ->
+                let aa = oi.baseInfo.typeDef.[l]
+                variables_a.PrintObjectIdentifierValue aa (v.Values |> List.map fst) (BigInteger v.Values.Length)
+            | _         -> raise(BugErrorException "unexpected type")
         | SeqOfValue        v -> 
             match t.ActualType.Kind with
             | SequenceOf so -> 

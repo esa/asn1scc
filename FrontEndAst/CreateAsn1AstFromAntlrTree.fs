@@ -281,14 +281,22 @@ and CreateValue (astRoot:list<ITree>) (tree:ITree ) : Asn1Value=
             | asn1Parser.OBJECT_ID_VALUE        ->
                 let handleObjectIdComponent (rootComponent:bool) (parentKeyword: RegisterObjIDKeyword option) (tree:ITree ) =
                     match tree.Type with
-                    | asn1Parser.OBJ_LST_ITEM2  -> ObjInteger (tree.GetChild(0).BigIntL) , None
+                    | asn1Parser.OBJ_LST_ITEM2  -> 
+                        let nVal = tree.GetChild(0).BigIntL.Value
+                        match nVal >= 0I with
+                        | true  -> ObjInteger (tree.GetChild(0).BigIntL) , None
+                        | false -> raise (SemanticError(tree.GetChild(0).Location, "Negative values are not permitted in OJECT-IDENTIFIER"))
+
                     | asn1Parser.OBJ_LST_ITEM1  -> 
                         let name = tree.GetChild(0).TextL
                         match tree.ChildCount with
                         | 2  ->
                             let secChild = tree.GetChild(1)
                             match secChild.Type with
-                            | asn1Parser.INT            -> ObjNamedIntValue (name, secChild.BigIntL), None
+                            | asn1Parser.INT            -> 
+                                match secChild.BigIntL.Value >= 0I with
+                                | true  -> ObjNamedIntValue (name, secChild.BigIntL), None
+                                | false -> raise (SemanticError(secChild.Location, "Negative values are not permitted in OJECT-IDENTIFIER"))
                             | asn1Parser.DEFINED_VALUE  ->
                                 match secChild.ChildCount with
                                 | 2     -> ObjNamedDefValue(name, (secChild.GetChild(0).TextL, secChild.GetChild(1).TextL)), None

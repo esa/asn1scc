@@ -994,12 +994,89 @@ flag ObjectIdentifier_equal(const Asn1ObjectIdentifier *pVal1, const Asn1ObjectI
 	}
 }
 
-void ObjectIdentifier_uper_encode(BitStream* pBitStrm, const Asn1ObjectIdentifier *pVal) {
 
+
+void ObjectIdentifier_subidentifiers_uper_encode(byte* encodingBuf, int* pSize , asn1SccUint siValue) {
+	flag lastOctet = FALSE;
+	byte tmp[16];
+	int nSize = 0;
+	int i;
+	while (!lastOctet)
+	{
+		byte curByte = siValue % 128;
+		siValue = siValue / 128;
+		lastOctet = (siValue == 0);
+//		if (!lastOctet) {	//not the last octet
+//			curByte = curByte | 0x80;
+//		}
+		tmp[nSize] = curByte;
+		nSize++;
+	}
+	for (i = 0; i < nSize; i++) {
+		byte curByte = (i == nSize - 1) ? tmp[nSize - i - 1] : tmp[nSize - i - 1] | 0x80;
+		
+		encodingBuf[*pSize] = curByte;
+		(*pSize)++;
+	}
+}
+
+
+void ObjectIdentifier_uper_encode(BitStream* pBitStrm, const Asn1ObjectIdentifier *pVal) {
+	byte tmp[1024];
+	int totalSize = 0;
+
+	int i = 0;
+	ObjectIdentifier_subidentifiers_uper_encode(tmp, &totalSize, pVal->values[0]*40 + pVal->values[1]);
+	for (i = 2; i < pVal->nCount; i++) {
+		ObjectIdentifier_subidentifiers_uper_encode(tmp, &totalSize, pVal->values[i]);
+	}
+
+	assert(totalSize <= 127);
+	BitStream_AppendByte0(pBitStrm, (byte)totalSize);
+	for (i = 0; i < totalSize; i++) {
+		BitStream_AppendByte0(pBitStrm, tmp[i]);
+	}
 
 }
 
-void ObjectIdentifier_uper_decode(const BitStream* pBitStrm, Asn1ObjectIdentifier *pVal) {
+flag ObjectIdentifier_subidentifiers_uper_decode(BitStream* pBitStrm, byte* pRemainingOctets, asn1SccUint* siValue) {
+	byte curByte;
+	flag bLastOctet = FALSE;
+	asn1SccUint curOctetValue = 0;
+	*siValue = 0;
+	while (*pRemainingOctets > 0 && !bLastOctet)
+	{
+		curByte = 0;
+		if (!BitStream_ReadByte(pBitStrm, &curByte))
+			return FALSE;
+		(*pRemainingOctets)--;
+
+		bLastOctet = ((curByte & 0x80) == 0);
+		curOctetValue = curByte & 0x7F;
+		(*siValue) <<= 7;
+		(*siValue) |= curOctetValue;
+	}
+	return TRUE;
+}
+flag ObjectIdentifier_uper_decode(BitStream* pBitStrm, Asn1ObjectIdentifier *pVal) {
+	asn1SccUint si;
+	byte totalSize;
 	ObjectIdentifier_Init(pVal);
 
+	if (!BitStream_ReadByte(pBitStrm, &totalSize))
+		return FALSE;
+
+	if (!ObjectIdentifier_subidentifiers_uper_decode(pBitStrm, &totalSize, &si))
+		return FALSE;
+	pVal->nCount = 2;
+	pVal->values[0] = si/40;
+	pVal->values[1] = si%40;
+	while (totalSize > 0)
+	{
+		if (!ObjectIdentifier_subidentifiers_uper_decode(pBitStrm, &totalSize, &si))
+			return FALSE;
+		pVal->values[pVal->nCount] = si;
+		pVal->nCount++;
+	}
+	return TRUE;
 }

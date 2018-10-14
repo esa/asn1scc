@@ -18,6 +18,7 @@ let foldAsn1Type
     bitStringFunc
     booleanFunc
     enumeratedFunc
+    objectIdentifierFunc
     seqOfTypeFunc
     
     seqAsn1ChildFunc
@@ -40,6 +41,7 @@ let foldAsn1Type
             | BitString         cnt -> bitStringFunc t cnt us
             | Boolean           cnt -> booleanFunc t cnt us
             | Enumerated        cnt -> enumeratedFunc t cnt us
+            | ObjectIdentifier  cnt -> objectIdentifierFunc t cnt us
             | SequenceOf        cnt -> 
                 let newChildType = loopType cnt.childType us
                 seqOfTypeFunc t cnt newChildType 
