@@ -1159,7 +1159,163 @@ package body adaasn1rtl with
          ret := 0;
       end if;
       return ret;
-   end CharacterPos;
+    end CharacterPos;
+
+
+
+--    OBJECT_IDENTIFIER_MAX_LENGTH : constant Integer       := 20;        -- the maximum number of components for Object Identifier
+--    SUBTYPE ObjectIdentifier_length_index is integer range 0..OBJECT_IDENTIFIER_MAX_LENGTH;
+--    SUBTYPE ObjectIdentifier_index is integer range 1..OBJECT_IDENTIFIER_MAX_LENGTH;
+--    type ObjectIdentifier_array is array (ObjectIdentifier_index) of Asn1UInt;
+
+--    type Asn1ObjectIdentifier is  record
+--        Length : ObjectIdentifier_length_index;
+--        values  : ObjectIdentifier_array;
+--    end record;
+
+
+
+
+
+
+    procedure ObjectIdentifier_Init(val:out Asn1ObjectIdentifier)
+    is
+    begin
+        val.Length :=0;
+        val.values := ObjectIdentifier_array'(others => 0);
+    end ObjectIdentifier_Init;
+
+
+
+    function ObjectIdentifier_equal(val1 : in Asn1ObjectIdentifier; val2 : in Asn1ObjectIdentifier) return boolean
+    is
+        ret : boolean;
+        i : integer;
+    begin
+        ret := val1.Length = val2.length;
+        i := 1;
+        while ret and i <= val1.Length loop
+            ret := ret and val1.values(i) = val2.values(i);
+            i := i + 1;
+        end loop;
+
+        return ret;
+    end ObjectIdentifier_equal;
+
+
+
+    procedure ObjectIdentifier_subidentifiers_uper_encode(encodingBuf:in out OctetArray1K; curSize : in out integer; siValue0 : in Asn1UInt)
+    is
+        lastOctet : boolean := FALSE;
+        tmp : OctetBuffer_16 := OctetBuffer_16'(others => 0);
+        nSize : integer:=OctetBuffer_16'First;
+        curByte : Asn1Byte;
+        siValue : Asn1UInt := siValue0;
+    begin
+        while not lastOctet loop
+            curByte := Asn1Byte(siValue mod 128);
+            siValue := siValue / 128;
+            lastOctet := (siValue = 0);
+            tmp(nSize) := curByte;
+            nSize := nSize + 1;
+        end loop;
+
+        for i in Integer range OctetBuffer_16'First .. nSize loop
+            curByte := (if i = nSize then tmp(nSize - i + 1) else tmp(nSize - i + 1) or 16#80#);
+            curSize := curSize + 1;
+            encodingBuf(curSize) := curByte;
+        end loop;
+
+
+
+    end ObjectIdentifier_subidentifiers_uper_encode;
+
+
+    procedure ObjectIdentifier_uper_encode(S      : in out BitArray;  K      : in out Natural; val : Asn1ObjectIdentifier)
+    is
+        tmp : OctetArray1K := OctetArray1K'(others => 0);
+        totalSize : integer := 0;
+    begin
+        ObjectIdentifier_subidentifiers_uper_encode(tmp, totalSize, val.values(1)*40 + val.values(2));
+        for i in integer range 3 .. val.Length loop
+            ObjectIdentifier_subidentifiers_uper_encode(tmp, totalSize, val.values(i));
+        end loop;
+
+        BitStream_AppendByte(S, K , Asn1Byte(totalSize), false);
+        for i in integer range 1 .. totalSize loop
+            BitStream_AppendByte(S, K , tmp(i), false);
+        end loop;
+
+    end ObjectIdentifier_uper_encode;
+
+
+
+    procedure ObjectIdentifier_subidentifiers_uper_decode
+     (S       : in     BitArray;
+      K       : in out DECODE_PARAMS;
+      remainingOctets : in out Asn1Byte;
+      siValue : out Asn1UInt;
+      Result  :    out ASN1_RESULT)
+    is
+    	curByte : Asn1Byte;
+	bLastOctet : boolean  := false;
+	curOctetValue : Asn1UInt := 0;
+    begin
+        siValue := 0;
+        Result := ASN1_RESULT'(Success => true,ErrorCode => 0);
+
+        while Result.Success and remainingOctets > 0 and not bLastOctet loop
+            curByte := 0;
+            BitStream_DecodeByte (S, K, curByte, Result.Success);
+            if Result.Success then
+		remainingOctets := remainingOctets - 1;
+
+		bLastOctet := (curByte and 16#80#) = 0;
+                curOctetValue := Asn1UInt(curByte and 16#7F#);
+                siValue := Shift_Left(siValue, 7);
+
+		siValue := siValue or curOctetValue;
+            end if;
+
+        end loop;
+
+
+    end ObjectIdentifier_subidentifiers_uper_decode;
+
+
+    procedure ObjectIdentifier_uper_decode
+     (S       : in     BitArray;
+      K       : in out DECODE_PARAMS;
+      val :    out Asn1ObjectIdentifier;
+      Result  :    out ASN1_RESULT)
+    is
+        totalSize : Asn1Byte;
+        si : Asn1UInt;
+    begin
+      ObjectIdentifier_Init(val);
+      BitStream_DecodeByte (S, K, totalSize, Result.Success);
+        if Result.Success then
+            ObjectIdentifier_subidentifiers_uper_decode(S,K, totalSize, si, Result);
+            if result.Success then
+                val.Length := 2;
+                val.values(1) := si/40;
+                val.values(2) := si mod 40;
+
+                while totalSize > 0 loop
+                    ObjectIdentifier_subidentifiers_uper_decode(S,K, totalSize, si, Result);
+                    val.Length := val.Length + 1;
+                    val.values(val.Length) := si;
+                end loop;
+
+            end if;
+      end if;
+    end ObjectIdentifier_uper_decode;
+
+
+
+
+
+
 
 -- ACN Functions
 

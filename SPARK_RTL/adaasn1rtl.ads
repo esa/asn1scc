@@ -10,7 +10,9 @@ package adaasn1rtl with
    subtype RANGE_1_2 is Natural range 1 .. 2;
    subtype RANGE_1_4 is Natural range 1 .. 4;
    subtype RANGE_1_8 is Natural range 1 .. 8;
+   subtype RANGE_1_16 is Natural range 1 .. 16;
    subtype RANGE_1_100 is Natural range 1 .. 100;
+   subtype RANGE_1_1K is Natural range 1 .. 1024;
 
    type BIT is mod 2**1;
    type BitArray is array (Natural range <>) of BIT;
@@ -26,12 +28,26 @@ package adaasn1rtl with
 
    subtype Asn1Boolean is Boolean;
    subtype OctetBuffer_8 is OctetBuffer (RANGE_1_8);
+   subtype OctetBuffer_16 is OctetBuffer (RANGE_1_16);
    subtype Asn1NullType is Interfaces.Unsigned_8;
 
    subtype OctetArray2 is OctetBuffer (RANGE_1_2);
    subtype OctetArray4 is OctetBuffer (RANGE_1_4);
    subtype OctetArray8 is OctetBuffer (RANGE_1_8);
    subtype OctetArray100 is OctetBuffer (RANGE_1_100);
+   subtype OctetArray1K is OctetBuffer (RANGE_1_1K);
+
+    OBJECT_IDENTIFIER_MAX_LENGTH : constant Integer       := 20;        -- the maximum number of components for Object Identifier
+    SUBTYPE ObjectIdentifier_length_index is integer range 0..OBJECT_IDENTIFIER_MAX_LENGTH;
+    SUBTYPE ObjectIdentifier_index is integer range 1..OBJECT_IDENTIFIER_MAX_LENGTH;
+    type ObjectIdentifier_array is array (ObjectIdentifier_index) of Asn1UInt;
+
+    type Asn1ObjectIdentifier is  record
+        Length : ObjectIdentifier_length_index;
+        values  : ObjectIdentifier_array;
+    end record;
+
+
 
    function PLUS_INFINITY return Asn1Real;
    function MINUS_INFINITY return Asn1Real;
@@ -390,6 +406,12 @@ package adaasn1rtl with
       Depends => (K => (S, K), RealVal => (S, K), Result => (S, K)),
       Pre     => K.K + 1 >= S'First and K.K + 104 <= S'Last,
       Post    => K.K >= K'Old.K and K.K <= K'Old.K + 104;
+
+
+    procedure ObjectIdentifier_Init(val:out Asn1ObjectIdentifier);
+    function ObjectIdentifier_equal(val1 : in Asn1ObjectIdentifier; val2 : in Asn1ObjectIdentifier) return boolean;
+    procedure ObjectIdentifier_uper_encode(S : in out BitArray;  K : in out Natural; val : Asn1ObjectIdentifier);
+    procedure ObjectIdentifier_uper_decode(S : in     BitArray;  K : in out DECODE_PARAMS;  val :    out Asn1ObjectIdentifier;  Result  :    out ASN1_RESULT);
 
    procedure Acn_Enc_Int_PositiveInteger_ConstSize
      (S      : in out BitArray;

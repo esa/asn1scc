@@ -41,7 +41,7 @@ PrintBitStringValue(td/*:FE_SizeableTypeDefinition*/,bIsFixedSize, arrsBits, nCo
 
 
 PrintObjectIdentifierValue(td/*:FE_PrimitiveTypeDefinition*/, arrnValues, nCount) ::= <<
-<td.typeName>'(Length => <nCount>, Data => <rtlModuleName()>.ObjectIdentifier_array'(<if(arrnValues)><arrnValues; wrap, anchor, separator=", ">,<endif> others=> 0)) 
+<td.typeName>'(Length => <nCount>, values => <rtlModuleName()>.ObjectIdentifier_array'(<if(arrnValues)><arrnValues; wrap, anchor, separator=", ">,<endif> others=> 0)) 
 >>
 
 
