@@ -239,6 +239,13 @@ ret = ObjectIdentifier_uper_decode(pBitStrm, <p>);
 *pErrCode = ret ? 0 : <sErrCode>;
 >>
 
+RelativeOID_encode(p, sErrCode) ::= "RelativeOID_uper_encode(pBitStrm, <p>);"
+RelativeOID_decode(p, sErrCode) ::= <<
+ret = RelativeOID_uper_decode(pBitStrm, <p>);
+*pErrCode = ret ? 0 : <sErrCode>;
+>>
+
+
 
 Enumerated_item_encode(p, sName, nIndex, nLastItemIndex) ::= <<
 case <sName>:   

@@ -441,6 +441,24 @@ let createStringFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1A
 let createBoolFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Boolean) (typeDefinition:TypeDefintionOrReference) (us:State)  =
     createPrimitiveFunction r l t (o.cons@o.withcons) (foldGenericCon l  (fun p v -> v.ToString().ToLower())) typeDefinition [] us
 
+type ObjectIdConstraintOrBasicValidation =
+    | ObjectIdConstraint_basic
+    | ObjectIdConstraint_const of ObjectIdConstraint
+let createObjectIdentifierFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.ObjectIdentifier) (typeDefinition:TypeDefintionOrReference) (us:State)  =
+    let conToStrFunc_basic (p:CallerScope)  = 
+        match o.relativeObjectId with
+        | false -> sprintf "ObjectIdentifier_isValid(%s)" (p.arg.getPointer l) 
+        | true -> sprintf "RelativeOID_isValid(%s)" (p.arg.getPointer l)  
+    let conToStrFunc_c = (foldGenericCon l  (fun p v -> v.ToString().ToLower()))
+    let conToStrFunc (p:CallerScope) (mc:ObjectIdConstraintOrBasicValidation) =
+        match mc with
+        | ObjectIdConstraint_basic      -> conToStrFunc_basic p
+        | ObjectIdConstraint_const oc   -> conToStrFunc_c p oc
+
+    let newCons = ObjectIdConstraint_basic :: (o.cons@o.withcons |> List.map ObjectIdConstraint_const)
+    createPrimitiveFunction r l t newCons conToStrFunc typeDefinition [] us
+
+
 let createEnumeratedFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Enumerated) (typeDefinition:TypeDefintionOrReference) (defOrDer:TypeDefintionOrReference) (us:State)  =
     let printNamedItem (p:CallerScope) (v:string) =
         let itm = o.items |> Seq.find (fun x -> x.Name.Value = v)

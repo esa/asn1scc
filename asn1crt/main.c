@@ -1,3 +1,5 @@
+
+
 #include <string.h>
 #include <assert.h>
 #include <math.h>
@@ -6,6 +8,13 @@
 
 #include "asn1crt.h"
 
+void ObjectIdentifier_subidentifiers_uper_encode(byte* encodingBuf, int* pSize, asn1SccUint siValue);
+
+void testObjectIdentifier_subidentifiers_uper_encode() {
+	byte buf[1024];
+	int size;
+	ObjectIdentifier_subidentifiers_uper_encode(buf, &size, 18446744073709551615UL);
+}
 
 int main(char* argv, int* argc) {
 
@@ -15,6 +24,11 @@ int main(char* argv, int* argc) {
 	byte buf[1024];
 	Asn1ObjectIdentifier oi;
 	Asn1ObjectIdentifier oi2;
+
+	testObjectIdentifier_subidentifiers_uper_encode();
+	return 1;
+
+
 
 
 	//byte buf2[1024];
@@ -55,3 +69,5 @@ int main(char* argv, int* argc) {
 
 	return 0;
 }
+
+

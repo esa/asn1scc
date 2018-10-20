@@ -458,7 +458,7 @@ let private createObjectIdentifier (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage
 
     let initialValue  = InternalObjectIdentifierValue([])
     let initFunction        = DAstInitialize.createObjectIdentifierInitFunc r l t o  defOrRef (ObjOrRelObjIdValue initialValue)
-    let isValidFunction, s1     = None, us
+    let isValidFunction, s1     = DAstValidate.createObjectIdentifierFunction r l t o defOrRef us
     let uperEncFunction, s2     = DAstUPer.createObjectIdentifierFunction r l Codec.Encode t o  defOrRef None isValidFunction s1
     let uperDecFunction, s3     = DAstUPer.createObjectIdentifierFunction r l Codec.Decode t o  defOrRef None isValidFunction s2
 

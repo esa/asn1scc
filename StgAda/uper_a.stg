@@ -230,6 +230,10 @@ ObjectIdentifier_decode(p, sErrCode) ::= <<
 <rtlModuleName()>.ObjectIdentifier_uper_decode(S, K, <p>, result);
 >>
 
+RelativeOID_encode(p, sErrCode) ::= "<rtlModuleName()>.RelativeOID_uper_encode(S, K, <p>);"
+RelativeOID_decode(p, sErrCode) ::= <<
+<rtlModuleName()>.RelativeOID_uper_decode(S, K, <p>, result);
+>>
 
 
 

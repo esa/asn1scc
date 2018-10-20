@@ -409,9 +409,15 @@ package adaasn1rtl with
 
 
     procedure ObjectIdentifier_Init(val:out Asn1ObjectIdentifier);
+    function ObjectIdentifier_isValid(val : in Asn1ObjectIdentifier) return boolean;
+    function RelativeOID_isValid(val : in Asn1ObjectIdentifier) return boolean;
+
     function ObjectIdentifier_equal(val1 : in Asn1ObjectIdentifier; val2 : in Asn1ObjectIdentifier) return boolean;
     procedure ObjectIdentifier_uper_encode(S : in out BitArray;  K : in out Natural; val : Asn1ObjectIdentifier);
     procedure ObjectIdentifier_uper_decode(S : in     BitArray;  K : in out DECODE_PARAMS;  val :    out Asn1ObjectIdentifier;  Result  :    out ASN1_RESULT);
+
+    procedure RelativeOID_uper_encode(S : in out BitArray;  K : in out Natural; val : Asn1ObjectIdentifier);
+    procedure RelativeOID_uper_decode(S : in     BitArray;  K : in out DECODE_PARAMS;  val :    out Asn1ObjectIdentifier;  Result  :    out ASN1_RESULT);
 
    procedure Acn_Enc_Int_PositiveInteger_ConstSize
      (S      : in out BitArray;

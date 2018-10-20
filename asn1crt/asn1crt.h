@@ -169,6 +169,12 @@ flag ObjectIdentifier_uper_decode(BitStream* pBitStrm, Asn1ObjectIdentifier *pVa
 void ObjectIdentifier_Init(Asn1ObjectIdentifier *pVal);
 flag ObjectIdentifier_equal(const Asn1ObjectIdentifier *pVal1, const Asn1ObjectIdentifier *pVal2);
 
+flag ObjectIdentifier_isValid(const Asn1ObjectIdentifier *pVal);
+flag RelativeOID_isValid(const Asn1ObjectIdentifier *pVal);
+void RelativeOID_uper_encode(BitStream* pBitStrm, const Asn1ObjectIdentifier *pVal);
+flag RelativeOID_uper_decode(BitStream* pBitStrm, Asn1ObjectIdentifier *pVal);
+
+
 void CalculateMantissaAndExponent(asn1Real d, int* exp, asn1SccUint64* mantissa);
 asn1Real GetDoubleByMantissaAndExp(asn1SccUint mantissa, int exp);
 

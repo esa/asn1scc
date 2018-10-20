@@ -1186,6 +1186,17 @@ package body adaasn1rtl with
     end ObjectIdentifier_Init;
 
 
+    function ObjectIdentifier_isValid(val : in Asn1ObjectIdentifier) return boolean
+    is
+    begin
+        return val.Length >=2 and then val.values(1)<=2 and then val.values(2)<=39;
+    end ObjectIdentifier_isValid;
+
+    function RelativeOID_isValid(val : in Asn1ObjectIdentifier) return boolean
+    is
+    begin
+        return val.Length >=0;
+    end RelativeOID_isValid;
 
     function ObjectIdentifier_equal(val1 : in Asn1ObjectIdentifier; val2 : in Asn1ObjectIdentifier) return boolean
     is
@@ -1241,19 +1252,67 @@ package body adaasn1rtl with
             ObjectIdentifier_subidentifiers_uper_encode(tmp, totalSize, val.values(i));
         end loop;
 
-        BitStream_AppendByte(S, K , Asn1Byte(totalSize), false);
+        --encode length determinant
+        if totalSize <= 16#7F# then
+            UPER_Enc_ConstraintWholeNumber(S, K, Asn1Int(totalSize), 0, 8);
+        else
+            BitStream_AppendBit(S, K, 1);
+            UPER_Enc_ConstraintWholeNumber(S, K, Asn1Int(totalSize), 0, 15);
+        end if;
+
+        --encode contents
         for i in integer range 1 .. totalSize loop
             BitStream_AppendByte(S, K , tmp(i), false);
         end loop;
 
     end ObjectIdentifier_uper_encode;
 
+    procedure RelativeOID_uper_encode(S      : in out BitArray;  K      : in out Natural; val : Asn1ObjectIdentifier)
+    is
+        tmp : OctetArray1K := OctetArray1K'(others => 0);
+        totalSize : integer := 0;
+    begin
+        for i in integer range 1 .. val.Length loop
+            ObjectIdentifier_subidentifiers_uper_encode(tmp, totalSize, val.values(i));
+        end loop;
+
+        --encode length determinant
+        if totalSize <= 16#7F# then
+            UPER_Enc_ConstraintWholeNumber(S, K, Asn1Int(totalSize), 0, 8);
+        else
+            BitStream_AppendBit(S, K, 1);
+            UPER_Enc_ConstraintWholeNumber(S, K, Asn1Int(totalSize), 0, 15);
+        end if;
+
+        --encode contents
+        for i in integer range 1 .. totalSize loop
+            BitStream_AppendByte(S, K , tmp(i), false);
+        end loop;
+
+    end RelativeOID_uper_encode;
+
+    procedure ObjectIdentifier_uper_decode_length(S : in BitArray;  K : in out DECODE_PARAMS; length : out integer; result  :    out ASN1_RESULT)
+    is
+        len2:Integer;
+    begin
+        result := ASN1_RESULT'(ErrorCode => 0,Success => true);
+        UPER_Dec_ConstraintWholeNumberInt(S, K, length, 0, 255, 8, result.Success);
+        if result.Success then
+            if length > 16#80# then
+                length := (length - 16#80#) * 16#100#;
+                UPER_Dec_ConstraintWholeNumberInt(S, K, len2, 0, 255, 8, result.Success);
+                if result.Success THEN
+                    length := length + len2;
+                end if;
+            end if;
+        end if;
+    end ObjectIdentifier_uper_decode_length;
 
 
     procedure ObjectIdentifier_subidentifiers_uper_decode
      (S       : in     BitArray;
       K       : in out DECODE_PARAMS;
-      remainingOctets : in out Asn1Byte;
+      remainingOctets : in out Integer;
       siValue : out Asn1UInt;
       Result  :    out ASN1_RESULT)
     is
@@ -1289,11 +1348,11 @@ package body adaasn1rtl with
       val :    out Asn1ObjectIdentifier;
       Result  :    out ASN1_RESULT)
     is
-        totalSize : Asn1Byte;
+        totalSize : Integer;
         si : Asn1UInt;
     begin
-      ObjectIdentifier_Init(val);
-      BitStream_DecodeByte (S, K, totalSize, Result.Success);
+        ObjectIdentifier_Init(val);
+        ObjectIdentifier_uper_decode_length (S, K, totalSize, Result);
         if Result.Success then
             ObjectIdentifier_subidentifiers_uper_decode(S,K, totalSize, si, Result);
             if result.Success then
@@ -1301,17 +1360,38 @@ package body adaasn1rtl with
                 val.values(1) := si/40;
                 val.values(2) := si mod 40;
 
-                while totalSize > 0 loop
+                while Result.Success and totalSize > 0 and val.Length <= OBJECT_IDENTIFIER_MAX_LENGTH loop
                     ObjectIdentifier_subidentifiers_uper_decode(S,K, totalSize, si, Result);
                     val.Length := val.Length + 1;
                     val.values(val.Length) := si;
                 end loop;
+                result.Success := result.Success and totalSize = 0;
 
             end if;
       end if;
     end ObjectIdentifier_uper_decode;
 
 
+    procedure RelativeOID_uper_decode
+     (S       : in     BitArray;
+      K       : in out DECODE_PARAMS;
+      val :    out Asn1ObjectIdentifier;
+      Result  :    out ASN1_RESULT)
+    is
+        totalSize : Integer;
+        si : Asn1UInt;
+    begin
+        ObjectIdentifier_Init(val);
+        ObjectIdentifier_uper_decode_length (S, K, totalSize, Result);
+        if Result.Success then
+            while Result.Success and totalSize > 0 and val.Length <= OBJECT_IDENTIFIER_MAX_LENGTH loop
+                ObjectIdentifier_subidentifiers_uper_decode(S,K, totalSize, si, Result);
+                val.Length := val.Length + 1;
+                val.values(val.Length) := si;
+            end loop;
+            result.Success := result.Success and totalSize = 0;
+      end if;
+    end RelativeOID_uper_decode;
 
 
 
