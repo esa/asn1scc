@@ -126,7 +126,7 @@ ChoiceType(arrsChildren) ::= <<
 >>
 
 
-SequenceChild(sName, sCName, sAdaName, bOptional, sDefVal, nLine, nPos, sChildContent ) ::= <<
+SequenceChild(sName, sCName, sAdaName, bOptional, sDefVal, nLine, nPos, sChildContent, bAlwaysPresent, bAlwaysAbsent) ::= <<
 "$sName$": {
     "Optional": "$bOptional$"$if(sDefVal)$, "DefaultValue": "$sDefVal$"$endif$, "Line": $nLine$, "CharPositionInLine": $nPos$, "type": {
         $sChildContent$
@@ -147,11 +147,11 @@ SequenceOfType(sMin, sMax, sChild, bFixedSize) ::= <<
 }
 >>
 
-RefTypeMinMax(sMin, sMax, sName, sModName, sCName, sCModName, bFixedSize) ::= <<
+RefTypeMinMax(sMin, sMax, sName, sModName, sCName, sCModName, bFixedSize, soResolvedType) ::= <<
 "Kind": "ReferenceType", "ReferencedTypeName": "$sName$", "Min": "$sMin$", "Max": "$sMax$"$if(sModName)$, "ReferencedModName": "$sModName$"$endif$
 >>
 
-RefType(sName, sModName, sCName, sCModName) ::= <<
+RefType(sName, sModName, sCName, sCModName, soResolvedType) ::= <<
 "Kind": "ReferenceType", "ReferencedTypeName": "$sName$"$if(sModName)$, "ReferencedModName": "$sModName$"$endif$
 >>
 

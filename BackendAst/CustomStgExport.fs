@@ -136,10 +136,11 @@ let rec PrintType (r:AstRoot) (f:Asn1File) (stgFileName:string) modName (deepRec
                 | TypeDefinition   td                   -> null
             let asn1Name = t.typeDefintionOrReference.getAsn1Name r.args.TypePrefix
             let sCModName = if sModName <> null then (ToC sModName) else null
+            let sResolvedType = None
             let refTypeContent = 
                 match uperRange with
-                | Some(sMin, sMax)  -> gen.RefTypeMinMax sMin sMax asn1Name sModName (ToC asn1Name) (*typedefName*) sCModName (sMin = sMax) stgFileName
-                | None              -> gen.RefType asn1Name sModName (ToC asn1Name) (*typedefName*) sCModName stgFileName
+                | Some(sMin, sMax)  -> gen.RefTypeMinMax sMin sMax asn1Name sModName (ToC asn1Name) (*typedefName*) sCModName (sMin = sMax) sResolvedType stgFileName
+                | None              -> gen.RefType asn1Name sModName (ToC asn1Name) (*typedefName*) sCModName sResolvedType stgFileName
             gen.TypeGeneric (BigInteger t.Location.srcLine) (BigInteger t.Location.charPos) f.FileName refTypeContent stgFileName
     let PrintTypeAux (t:Asn1Type) =
         match t.Kind with                                                                                            //func name sMin sMax (sMin=sMax) stgFileName
@@ -168,7 +169,12 @@ let rec PrintType (r:AstRoot) (f:Asn1File) (stgFileName:string) modName (deepRec
                         match deepRecursion with
                         |true   -> PrintType r f stgFileName modName  deepRecursion c.Type
                         |false  -> printChildTypeAsReferencedType c.Type
-
+                    let bAlwaysPresent, bAlwaysAbsent =
+                        match c.Optionality with
+                        | None  -> true, false
+                        | Some (Asn1AcnAst.AlwaysAbsent)    -> false, true
+                        | Some (Asn1AcnAst.AlwaysPresent)   -> true, false
+                        | Some (Asn1AcnAst.Optional _)      -> false, false
                     match c.Optionality with
                     | Some(Asn1AcnAst.Optional(optVal)) when optVal.defaultValue.IsSome -> 
                         let defValueAsAsn1Value = DAstAsn1.printAsn1Value optVal.defaultValue.Value
@@ -177,9 +183,9 @@ let rec PrintType (r:AstRoot) (f:Asn1File) (stgFileName:string) modName (deepRec
                             | false -> defValueAsAsn1Value
                             | true  -> 
                                 defValueAsAsn1Value.Substring(1,defValueAsAsn1Value.Length-2)
-                        gen.SequenceChild c.Name.Value (ToC (c.getBackendName C)) (ToC (c.getBackendName Ada)) true defValueAsAsn1Value (BigInteger c.Name.Location.srcLine) (BigInteger c.Name.Location.charPos) childTypeExp stgFileName
+                        gen.SequenceChild c.Name.Value (ToC (c.getBackendName C)) (ToC (c.getBackendName Ada)) true defValueAsAsn1Value (BigInteger c.Name.Location.srcLine) (BigInteger c.Name.Location.charPos) childTypeExp bAlwaysPresent bAlwaysAbsent stgFileName
                         //gen.SequenceChild c.Name.Value (ToC c.Name.Value) true (printAsn1ValueAsXmlAttribute (DAstUtilFunctions.mapValue optVal.defaultValue.Value) stgFileName) (BigInteger c.Name.Location.srcLine) (BigInteger c.Name.Location.charPos) childTypeExp stgFileName
-                    | _ -> gen.SequenceChild c.Name.Value (ToC (c.getBackendName C)) (ToC (c.getBackendName Ada)) c.Optionality.IsSome null (BigInteger c.Name.Location.srcLine) (BigInteger c.Name.Location.charPos) childTypeExp stgFileName
+                    | _ -> gen.SequenceChild c.Name.Value (ToC (c.getBackendName C)) (ToC (c.getBackendName Ada)) c.Optionality.IsSome null (BigInteger c.Name.Location.srcLine) (BigInteger c.Name.Location.charPos) childTypeExp bAlwaysPresent bAlwaysAbsent  stgFileName
                 | AcnChild  c -> null
             gen.SequenceType (seqInfo.children |> Seq.map emitChild) stgFileName
         | Enumerated(enmInfo)     ->
@@ -206,9 +212,10 @@ let rec PrintType (r:AstRoot) (f:Asn1File) (stgFileName:string) modName (deepRec
                 | Boolean _ | NullType _ | Choice _ | Enumerated _ | Sequence _ | ReferenceType _   | ObjectIdentifier _    -> None
             let sModName = if info.baseInfo.modName.Value=modName then null else info.baseInfo.modName.Value
             let sCModName = if sModName <> null then (ToC sModName) else null
+            let resolvedType = PrintType r f stgFileName modName deepRecursion info.resolvedType
             match uperRange with
-            | Some(sMin, sMax)  -> gen.RefTypeMinMax sMin sMax info.baseInfo.tasName.Value sModName (ToC info.baseInfo.tasName.Value) sCModName  (sMin=sMax) stgFileName
-            | None              -> gen.RefType info.baseInfo.tasName.Value sModName (ToC info.baseInfo.tasName.Value) sCModName stgFileName
+            | Some(sMin, sMax)  -> gen.RefTypeMinMax sMin sMax info.baseInfo.tasName.Value sModName (ToC info.baseInfo.tasName.Value) sCModName  (sMin=sMax) (Some resolvedType) stgFileName
+            | None              -> gen.RefType info.baseInfo.tasName.Value sModName (ToC info.baseInfo.tasName.Value) sCModName (Some resolvedType) stgFileName
 
     gen.TypeGeneric (BigInteger t.Location.srcLine) (BigInteger t.Location.charPos) f.FileName (PrintTypeAux t) stgFileName
 

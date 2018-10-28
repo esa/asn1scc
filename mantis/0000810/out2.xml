@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ASN1AST>
+    <Asn1File FileName="a.asn1">
+        <Asn1Module ID="D">
+        <ExportedTypes>
+            <ExportedType Name="T1" />
+            <ExportedType Name="T2" /> 
+        </ExportedTypes>
+        <ExportedVariables>
+         
+        </ExportedVariables>
+        <ImportedModules>
+        </ImportedModules>
+        <TypeAssignments>
+            <TypeAssignment Name="T1" Line="3" CharPositionInLine="9">
+                <Type Line="3" CharPositionInLine="9" Asn1File="a.asn1">
+                    <SequenceType>
+                        <SequenceOrSetChild VarName="a" CName="a" AdaName="a" Optional="True" Line="4" CharPositionInLine="4" bAlwaysPresent = "False" bAlwaysAbsent="False">
+                            <Type Line="4" CharPositionInLine="6" Asn1File="a.asn1">
+                                <IntegerType Min="1" Max="20"/>
+                            </Type>
+                        </SequenceOrSetChild>
+                        <SequenceOrSetChild VarName="b" CName="b" AdaName="b" Optional="True" Line="5" CharPositionInLine="4" bAlwaysPresent = "False" bAlwaysAbsent="False">
+                            <Type Line="5" CharPositionInLine="6" Asn1File="a.asn1">
+                                <IntegerType Min="MIN" Max="MAX"/>
+                            </Type>
+                        </SequenceOrSetChild>
+                        <SequenceOrSetChild VarName="c" CName="c" AdaName="c" Optional="True" Line="6" CharPositionInLine="4" bAlwaysPresent = "False" bAlwaysAbsent="False">
+                            <Type Line="6" CharPositionInLine="6" Asn1File="a.asn1">
+                                <RealType Min="MIN" Max="MAX"/>
+                            </Type>
+                        </SequenceOrSetChild>
+                        <SequenceOrSetChild VarName="d" CName="d" AdaName="d" Optional="False" Line="7" CharPositionInLine="4" bAlwaysPresent = "True" bAlwaysAbsent="False">
+                            <Type Line="7" CharPositionInLine="6" Asn1File="a.asn1">
+                                <RealType Min="MIN" Max="MAX"/>
+                            </Type>
+                        </SequenceOrSetChild>
+                    </SequenceType>
+                </Type>
+            </TypeAssignment>
+            <TypeAssignment Name="T2" Line="9" CharPositionInLine="8">
+                <Type Line="9" CharPositionInLine="8" Asn1File="a.asn1">
+                    <ReferenceType ReferencedTypeName="T1">
+                        <Type Line="3" CharPositionInLine="9" Asn1File="a.asn1">
+                            <SequenceType>
+                                <SequenceOrSetChild VarName="a" CName="a" AdaName="a" Optional="True" Line="4" CharPositionInLine="4" bAlwaysPresent = "False" bAlwaysAbsent="True">
+                                    <Type Line="4" CharPositionInLine="6" Asn1File="a.asn1">
+                                        <IntegerType Min="1" Max="20"/>
+                                    </Type>
+                                </SequenceOrSetChild>
+                                <SequenceOrSetChild VarName="b" CName="b" AdaName="b" Optional="True" Line="5" CharPositionInLine="4" bAlwaysPresent = "True" bAlwaysAbsent="False">
+                                    <Type Line="5" CharPositionInLine="6" Asn1File="a.asn1">
+                                        <IntegerType Min="MIN" Max="MAX"/>
+                                    </Type>
+                                </SequenceOrSetChild>
+                                <SequenceOrSetChild VarName="c" CName="c" AdaName="c" Optional="True" Line="6" CharPositionInLine="4" bAlwaysPresent = "False" bAlwaysAbsent="False">
+                                    <Type Line="6" CharPositionInLine="6" Asn1File="a.asn1">
+                                        <RealType Min="MIN" Max="MAX"/>
+                                    </Type>
+                                </SequenceOrSetChild>
+                                <SequenceOrSetChild VarName="d" CName="d" AdaName="d" Optional="False" Line="7" CharPositionInLine="4" bAlwaysPresent = "True" bAlwaysAbsent="False">
+                                    <Type Line="7" CharPositionInLine="6" Asn1File="a.asn1">
+                                        <RealType Min="MIN" Max="MAX"/>
+                                    </Type>
+                                </SequenceOrSetChild>
+                            </SequenceType>
+                        </Type>
+                    </ReferenceType>
+                
+                </Type>
+            </TypeAssignment>
+        </TypeAssignments>
+        <VariablesAssignments>
+        </VariablesAssignments>
+        </Asn1Module>
+    </Asn1File>
+</ASN1AST>
