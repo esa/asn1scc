@@ -182,9 +182,10 @@ ChoiceType(arrsChildren) ::= <<
 
 
 /* Sequence (record) field. May be optional and may have a default value */
-SequenceChild(sName, sCName, sAdaName, bOptional, sDefVal, nLine, nPos, sChildContent ) ::= <<
+/* NOTE: Optional is a string ("True" or "False") - changing to native boolean would break Opengeode and asn1-value-editor
+SequenceChild(sName, sCName, sAdaName, bOptional, sDefVal, nLine, nPos, sChildContent, bAlwaysPresent, bAlwaysAbsent ) ::= <<
 "$sName$": type("$sName$", (object,), {
-    "CName": "$sCName$", "AdaName": "$sAdaName$", "Optional": "$bOptional$"$if(sDefVal)$, "DefaultValue": "$sDefVal.EDQ$"$endif$, "Line": $nLine$, "CharPositionInLine": $nPos$, "type": type("$sName$_type", (object,), {
+    "CName": "$sCName$", "AdaName": "$sAdaName$", "Optional": "$bOptional$", "alwaysPresent": $bAlwaysPresent$, "alwaysAbsent": $bAlwaysAbsent$$if(sDefVal)$, "DefaultValue": "$sDefVal.EDQ$"$endif$, "Line": $nLine$, "CharPositionInLine": $nPos$, "type": type("$sName$_type", (object,), {
         $sChildContent$
     })
 })
@@ -207,12 +208,12 @@ SequenceOfType(sMin, sMax, sChild, bFixedSize) ::= <<
 >>
 
 
-RefTypeMinMax(sMin, sMax, sName, sModName, sCName, sCModName, bFixedSize) ::= <<
+RefTypeMinMax(sMin, sMax, sName, sModName, sCName, sCModName, bFixedSize, soResolvedType) ::= <<
 "kind": "ReferenceType", "ReferencedTypeName": "$sName$", "Min": "$sMin$", "Max": "$sMax$"$if(sModName)$, "ReferencedModName": "$sModName$"$endif$
 >>
 
 
-RefType(sName, sModName, sCName, sCModName) ::= <<
+RefType(sName, sModName, sCName, sCModName, soResolvedType) ::= <<
 "kind": "ReferenceType", "ReferencedTypeName": "$sName$"$if(sModName)$, "ReferencedModName": "$sModName$"$endif$
 >>
 
