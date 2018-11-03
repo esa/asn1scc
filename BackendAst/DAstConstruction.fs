@@ -14,11 +14,11 @@ let foldMap = Asn1Fold.foldMap
 let createAsn1ValueFromValueKind (t:Asn1AcnAst.Asn1Type) i (v:Asn1ValueKind)  =
     {Asn1Value.kind = v;  loc  = t.Location; id  = (ReferenceToValue (t.id.ToScopeNodeList,[IMG i]))}
 
-let private mapAcnParameter (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (l:ProgrammingLanguage) (m:Asn1AcnAst.Asn1Module) (t:Asn1AcnAst.Asn1Type) (prm:Asn1AcnAst.AcnParameter) (us:State) =
+let private mapAcnParameter (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (l:ProgrammingLanguage) (m:Asn1AcnAst.Asn1Module) (t:Asn1AcnAst.Asn1Type) (prm:AcnGenericTypes.AcnParameter) (us:State) =
     //let funcUpdateStatement, ns1 = DAstACN.getUpdateFunctionUsedInEncoding r deps l m prm.id us
     let ns1 = us
     {
-        AcnParameter.asn1Type = prm.asn1Type; 
+        DastAcnParameter.asn1Type = prm.asn1Type; 
         name = prm.name; 
         loc = prm.loc
         id = prm.id

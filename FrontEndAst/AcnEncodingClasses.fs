@@ -6,7 +6,7 @@ open FsUtils
 open Asn1AcnAst
 open Asn1Fold
 open Asn1AcnAstUtilFunctions
-
+open AcnGenericTypes
 
 let getAlignmentSize (aligment: AcnAligment option) =
     match aligment with

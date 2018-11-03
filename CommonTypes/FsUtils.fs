@@ -145,6 +145,18 @@ type ITree with
     
 
 
+let rec getAsTupples<'T> (list:array<'T>) (empty:'T) =
+    let mutable x = 0
+    seq {
+        while x < list.Length do
+            let a = list.[x]
+            let b = if x+1 < list.Length then list.[x+1] else empty
+            yield (a,b)
+            x <- x + 2
+    } |> Seq.toList
+
+
+
 let getOptionalChildByType (tree:ITree, childType) = 
     match getChildrenByType(tree, childType) with
         | head::tail    -> Some(head)

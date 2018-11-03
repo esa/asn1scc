@@ -7,10 +7,10 @@ open System.IO
 open System.Xml.Linq
 open FsUtils
 open CommonTypes
+open AcnGenericTypes
 open Asn1AcnAst
 open Asn1Fold
 open Asn1AcnAstUtilFunctions
-
 
 
 let private addParameter (cur:AcnInsertedFieldDependencies) (asn1Type:Asn1Type) (p:AcnParameter) (d:AcnDependencyKind) =

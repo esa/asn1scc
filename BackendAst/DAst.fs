@@ -267,7 +267,7 @@ type AcnFunction = {
 
     // takes as input (a) any acn arguments and (b) the field where the encoding/decoding takes place
     // returns a list of acn encoding statements
-    funcBody            : State->((Asn1AcnAst.RelativePath*Asn1AcnAst.AcnParameter) list) -> CallerScope -> ((AcnFuncBodyResult option)*State)            
+    funcBody            : State->((AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) -> CallerScope -> ((AcnFuncBodyResult option)*State)            
     isTestVaseValid     : AutomaticTestCase -> bool
 }
 
@@ -582,7 +582,7 @@ and AcnChild = {
     id                          : ReferenceToType
     Type                        : Asn1AcnAst.AcnInsertedType
     typeDefinitionBodyWithinSeq : string
-    funcBody                    : CommonTypes.Codec -> ((Asn1AcnAst.RelativePath*Asn1AcnAst.AcnParameter) list) -> CallerScope -> (AcnFuncBodyResult option)            // returns a list of validations statements
+    funcBody                    : CommonTypes.Codec -> ((AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) -> CallerScope -> (AcnFuncBodyResult option)            // returns a list of validations statements
     funcUpdateStatement         : AcnChildUpdateResult option                                    // vTarget,  pSrcRoot, return the update statement 
     Comments                    : string array
 }
@@ -642,7 +642,7 @@ and ChChildInfo = {
     _c_name                      : string
     _ada_name                    : string                     
     _present_when_name_private  : string // Does not contain the "_PRESENT". Not to be used directly by backends. Backends should use presentWhenName
-    acnPresentWhenConditions    : Asn1AcnAst.AcnPresentWhenConditionChoiceChild list
+    acnPresentWhenConditions    : AcnGenericTypes.AcnPresentWhenConditionChoiceChild list
     Comments                    : string array
 
     chType              :Asn1Type
@@ -718,10 +718,10 @@ and AcnChildUpdateResult = {
     errCodes    : ErroCode list
 }
 
-and AcnParameter = {
+and DastAcnParameter = {
     name        : string
     c_name      : string
-    asn1Type    : Asn1AcnAst.AcnParamType
+    asn1Type    : AcnGenericTypes.AcnParamType
     loc         : SrcLoc
     id          : ReferenceToType
     typeDefinitionBodyWithinSeq : string
@@ -732,8 +732,8 @@ and AcnParameter = {
 
 and Asn1Type = {
     id              : ReferenceToType
-    acnAligment     : Asn1AcnAst.AcnAligment option
-    acnParameters   : AcnParameter list
+    acnAligment     : AcnGenericTypes.AcnAligment option
+    acnParameters   : DastAcnParameter list
     Location        : SrcLoc //Line no, Char pos
 
     //when inheritInfo has a value it indicates that this type is
@@ -872,6 +872,6 @@ type AstRoot = {
     args         : CommandLineSettings
     programUnits : ProgramUnit list
     lang         : ProgrammingLanguage
-    acnParseResults:ParameterizedAsn1Ast.AntlrParserResult list //used in ICDs to regenerate with collors the initial ACN input
+    acnParseResults:CommonTypes.AntlrParserResult list //used in ICDs to regenerate with collors the initial ACN input
 }
 

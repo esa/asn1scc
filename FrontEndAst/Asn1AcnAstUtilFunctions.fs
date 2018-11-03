@@ -267,23 +267,6 @@ type Asn1Child with
 
 
 
-type AcnPresentWhenConditionChoiceChild with
-    member this.valueAsString = 
-        match this with
-        | PresenceInt   (_,v)  -> v.Value.ToString()
-        | PresenceStr   (_,v)  -> v.Value
-    member this.relativePath = 
-        match this with
-        | PresenceInt   (rp,_)
-        | PresenceStr   (rp,_)  -> rp
-    member this.location = 
-        match this with
-        | PresenceInt   (rp,intLoc) -> intLoc.Location
-        | PresenceStr   (rp,strLoc) -> strLoc.Location
-    member this.kind = 
-        match this with
-        | PresenceInt   _ -> 1
-        | PresenceStr   _ -> 2
 
 
 
@@ -296,7 +279,7 @@ type Asn1Value with
 type Asn1OrAcnOrPrmType =
     | ACN_INSERTED_TYPE of AcnInsertedType
     | ASN1_TYPE         of Asn1Type
-    | ACN_PARAMETER     of Asn1Type*AcnParameter
+    | ACN_PARAMETER     of Asn1Type*AcnGenericTypes.AcnParameter
 
 
 let locateTypeByRefId (r:AstRoot) (ReferenceToType nodes) =

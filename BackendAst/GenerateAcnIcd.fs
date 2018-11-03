@@ -84,10 +84,10 @@ let rec printType stgFileName (tas:GenerateUperIcd.IcdTypeAssignment) (t:Asn1Typ
         t.acnParameters |>
         List.mapi(fun i x -> 
             let sType = match x.asn1Type with
-                            | Asn1AcnAst.AcnParamType.AcnPrmInteger    _         -> "INTEGER"
-                            | Asn1AcnAst.AcnParamType.AcnPrmBoolean    _         -> "BOOLEAN"
-                            | Asn1AcnAst.AcnParamType.AcnPrmNullType   _         -> "NULL"
-                            | Asn1AcnAst.AcnParamType.AcnPrmRefType(_,ts)     -> icd_acn.EmmitSeqChild_RefType stgFileName ts.Value (ToC ts.Value)
+                            | AcnGenericTypes.AcnParamType.AcnPrmInteger    _         -> "INTEGER"
+                            | AcnGenericTypes.AcnParamType.AcnPrmBoolean    _         -> "BOOLEAN"
+                            | AcnGenericTypes.AcnParamType.AcnPrmNullType   _         -> "NULL"
+                            | AcnGenericTypes.AcnParamType.AcnPrmRefType(_,ts)     -> icd_acn.EmmitSeqChild_RefType stgFileName ts.Value (ToC ts.Value)
 
             icd_acn.PrintParam stgFileName (i+1).AsBigInt x.name sType colSpan)
 
@@ -124,7 +124,7 @@ let rec printType stgFileName (tas:GenerateUperIcd.IcdTypeAssignment) (t:Asn1Typ
                 | None  -> false
                 | Some (Asn1AcnAst.Optional opt)  ->
                     match opt.acnPresentWhen with
-                    | Some (Asn1AcnAst.PresenceWhenBool _) -> false
+                    | Some (AcnGenericTypes.PresenceWhenBool _) -> false
                     | None                      -> true
                 | _                               -> false) 
             |> Seq.toList
@@ -160,7 +160,7 @@ let rec printType stgFileName (tas:GenerateUperIcd.IcdTypeAssignment) (t:Asn1Typ
                         | None  ->  
                             let nBit =  optionalLikeUperChildren |> Seq.findIndex(fun x -> x.Name.Value = ch.Name.Value) |> (+) 1
                             sprintf "when the %d%s bit of the bit mask is set" nBit (aux1 nBit)
-                        | Some (Asn1AcnAst.PresenceWhenBool presWhen)     ->
+                        | Some (AcnGenericTypes.PresenceWhenBool presWhen)     ->
                             let dependency = r.deps.acnDependencies |> List.find(fun d -> d.asn1Type = ch.Type.id )
                             //match dependency.dependencyKind with
                             sprintf "when %s is true" presWhen.AsString 
@@ -249,10 +249,10 @@ let rec printType stgFileName (tas:GenerateUperIcd.IcdTypeAssignment) (t:Asn1Typ
                 children |> Seq.mapi(fun i ch -> EmitChild (1 + i) ch) |> Seq.toList
             | CEC_presWhen      -> 
                 let getPresence (i:int) (ch:ChChildInfo) =
-                    let getPresenceSingle (pc:Asn1AcnAst.AcnPresentWhenConditionChoiceChild) = 
+                    let getPresenceSingle (pc:AcnGenericTypes.AcnPresentWhenConditionChoiceChild) = 
                         match pc with
-                        | Asn1AcnAst.PresenceInt   (rp, intLoc) -> sprintf "%s=%A" rp.AsString intLoc.Value
-                        | Asn1AcnAst.PresenceStr   (rp, strLoc) -> sprintf "%s=%A" rp.AsString strLoc.Value
+                        | AcnGenericTypes.PresenceInt   (rp, intLoc) -> sprintf "%s=%A" rp.AsString intLoc.Value
+                        | AcnGenericTypes.PresenceStr   (rp, strLoc) -> sprintf "%s=%A" rp.AsString strLoc.Value
                     ch.acnPresentWhenConditions |> Seq.map getPresenceSingle |> Seq.StrJoin " AND " 
                 let EmitChild (i:int) (ch:ChChildInfo) = EmitSeqOrChoiceChild i ch  getPresence
                 children |> Seq.mapi(fun i ch -> EmitChild (1 + i) ch) |> Seq.toList

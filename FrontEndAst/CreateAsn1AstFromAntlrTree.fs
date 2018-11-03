@@ -24,23 +24,6 @@ open CommonTypes
 
 //#nowarn "40"
 
-(*
-let rec getAsTupples<'T> (list:list<'T>) (empty:'T) =
-    match list with
-    | [] ->  []
-    | head::[]  -> [(head,empty)]
-    | a1::a2::tail -> (a1,a2)::getAsTupples tail empty
-*)
-
-let rec getAsTupples<'T> (list:array<'T>) (empty:'T) =
-    let mutable x = 0
-    seq {
-        while x < list.Length do
-            let a = list.[x]
-            let b = if x+1 < list.Length then list.[x+1] else empty
-            yield (a,b)
-            x <- x + 2
-    } |> Seq.toList
 
 let ConstraintNodes = [ asn1Parser.EXT_MARK; asn1Parser.UnionMark; asn1Parser.ALL_EXCEPT; asn1Parser.IntersectionMark; asn1Parser.EXCEPT;
                         asn1Parser.VALUE_RANGE_EXPR; asn1Parser.SUBTYPE_EXPR; asn1Parser.SIZE_EXPR; asn1Parser.PERMITTED_ALPHABET_EXPR;
@@ -700,7 +683,7 @@ let rootCheckCyclicDeps (astRoot:list<ITree>) =
     implicitlyImportedTypes
 
 
-let CreateAstRoot (list:ParameterizedAsn1Ast.AntlrParserResult list) (args:CommandLineSettings) =  
+let CreateAstRoot (list:CommonTypes.AntlrParserResult list) (args:CommandLineSettings) =  
     let astRoot = list |> List.map (fun r -> r.rootItem)
     ITree.RegisterFiles(list |> Seq.map (fun x -> (x.rootItem, x.fileName)))
     let implicitlyImportedTypes = rootCheckCyclicDeps astRoot

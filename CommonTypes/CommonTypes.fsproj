@@ -58,6 +58,7 @@
     <Compile Include="CommonTypes.fs" />
     <Compile Include="isvalid_if.stg.fs" />
     <Compile Include="AbstractMacros.fs" />
+    <Compile Include="AcnGenericTypes.fs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="antlr.runtime">
@@ -82,7 +83,6 @@
     <Reference Include="System" />
     <Reference Include="System.Numerics" />
   </ItemGroup>
-
   <Choose>
     <When Condition="$(OS) == 'Unix'">
       <PropertyGroup>
@@ -95,7 +95,6 @@
       </PropertyGroup>
     </Otherwise>
   </Choose>
-  
   <PropertyGroup>
     <PreBuildEvent>$(MonoCallPrefix) $(ProjectDir)..\parseStg2\bin\Debug\parseStg2.exe $(ProjectDir)../StgC/backends.xml 2</PreBuildEvent>
   </PropertyGroup>

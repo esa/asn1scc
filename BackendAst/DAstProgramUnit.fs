@@ -13,7 +13,7 @@ open DAstUtilFunctions
 
 let private getTypeDependencies (t:Asn1Type) : (TypeAssignmentInfo list )  
     =
-    let prms = t.acnParameters |> List.choose(fun z -> match z.asn1Type with Asn1AcnAst.AcnPrmRefType (mdName,tsName) -> Some ({TypeAssignmentInfo.modName = mdName.Value; tasName = tsName.Value}) | _ -> None )    
+    let prms = t.acnParameters |> List.choose(fun z -> match z.asn1Type with AcnGenericTypes.AcnPrmRefType (mdName,tsName) -> Some ({TypeAssignmentInfo.modName = mdName.Value; tasName = tsName.Value}) | _ -> None )    
     DastFold.foldAsn1Type
         t
         ()
@@ -38,7 +38,7 @@ let private getTypeDependencies (t:Asn1Type) : (TypeAssignmentInfo list )
 
         
 let rec private  getTypeDependencies2 (t:Asn1Type) : (TypeAssignmentInfo list )    =
-    let prms = t.acnParameters |> List.choose(fun z -> match z.asn1Type with Asn1AcnAst.AcnPrmRefType (mdName,tsName) -> Some ({TypeAssignmentInfo.modName = mdName.Value; tasName = tsName.Value}) | _ -> None )    
+    let prms = t.acnParameters |> List.choose(fun z -> match z.asn1Type with AcnGenericTypes.AcnPrmRefType (mdName,tsName) -> Some ({TypeAssignmentInfo.modName = mdName.Value; tasName = tsName.Value}) | _ -> None )    
     match t.Kind with
     | Integer      _             -> prms
     | Real         _             -> prms

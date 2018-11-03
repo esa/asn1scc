@@ -8,6 +8,7 @@ open CommonTypes
 open FsUtils
 open AcnCreateFromAntlr
 open System.IO
+open AcnGenericCreateFromAntlr
 open AcnCreateFromAntlr
 open ParameterizedAsn1Ast
 
@@ -36,9 +37,9 @@ let genrateAcnIntProps (c:ParameterizedAsn1Ast.Asn1Constraint Option)  =
         for encoding in [GP_PosInt; GP_TwosComplement; GP_Ascii; GP_BCD] do
             for sizeProp in [GP_Fixed (IntLoc.ByValue 64I); GP_NullTerminated ] do
                 yield [ENCODING encoding; SIZE sizeProp]
-                for endianess in [Asn1AcnAst.LittleEndianness; Asn1AcnAst.BigEndianness] do
+                for endianess in [AcnGenericTypes.LittleEndianness; AcnGenericTypes.BigEndianness] do
                     yield [ENCODING encoding; SIZE sizeProp; ENDIANNES endianess]
-                    for align in [Asn1AcnAst.NextByte; Asn1AcnAst.NextWord; Asn1AcnAst.NextDWord] do
+                    for align in [AcnGenericTypes.NextByte; AcnGenericTypes.NextWord; AcnGenericTypes.NextDWord] do
                         yield [ENCODING encoding; SIZE sizeProp; ENDIANNES endianess; ALIGNTONEXT align]
 
     } |> Seq.toList
@@ -189,11 +190,11 @@ let generatedAcnGrammar (outDir:string) (ast:GenFile list) =
         | SIZE (GP_Fixed i)                     -> stg_acn.PP_Size_Fixed (i.Value)
         | SIZE (GP_SizeDeterminant  fld)        -> stg_acn.PP_Sixe_Fld (fld.AsString)
         | SIZE GP_NullTerminated                -> stg_acn.PP_Size_NullTerminated ()
-        | ALIGNTONEXT Asn1AcnAst.NextByte       -> stg_acn.PP_Aligment_byte ()
-        | ALIGNTONEXT Asn1AcnAst.NextWord       -> stg_acn.PP_Aligment_word ()
-        | ALIGNTONEXT Asn1AcnAst.NextDWord      -> stg_acn.PP_Aligment_dword ()
-        | ENDIANNES Asn1AcnAst.LittleEndianness -> stg_acn.PP_Endianness_little ()
-        | ENDIANNES Asn1AcnAst.BigEndianness    -> stg_acn.PP_Endianness_big ()
+        | ALIGNTONEXT AcnGenericTypes.NextByte       -> stg_acn.PP_Aligment_byte ()
+        | ALIGNTONEXT AcnGenericTypes.NextWord       -> stg_acn.PP_Aligment_word ()
+        | ALIGNTONEXT AcnGenericTypes.NextDWord      -> stg_acn.PP_Aligment_dword ()
+        | ENDIANNES AcnGenericTypes.LittleEndianness -> stg_acn.PP_Endianness_little ()
+        | ENDIANNES AcnGenericTypes.BigEndianness    -> stg_acn.PP_Endianness_big ()
         | _         -> raise(BugErrorException "Not Implemented yet")
 
     let printAcnType (t:ParameterizedAsn1Ast.Asn1Type) (acnProps: GenericAcnProperty list): string =

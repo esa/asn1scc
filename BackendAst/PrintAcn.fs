@@ -4,19 +4,19 @@ open System
 open System.IO
 open FsUtils
 open CommonTypes
-
+open AcnGenericCreateFromAntlr
 open AcnCreateFromAntlr
 
 
 
-let printAcnParamType (pt:Asn1AcnAst.AcnParamType) =
+let printAcnParamType (pt:AcnGenericTypes.AcnParamType) =
         match pt with
-        | Asn1AcnAst.AcnPrmInteger   _         -> "INTEGER"
-        | Asn1AcnAst.AcnPrmBoolean   _         -> "BOOLEAN"
-        | Asn1AcnAst.AcnPrmNullType  _         -> "NULL"
-        | Asn1AcnAst.AcnPrmRefType    (md,ts)  -> sprintf "%s" ts.Value
+        |AcnGenericTypes.AcnPrmInteger   _         -> "INTEGER"
+        |AcnGenericTypes.AcnPrmBoolean   _         -> "BOOLEAN"
+        |AcnGenericTypes.AcnPrmNullType  _         -> "NULL"
+        |AcnGenericTypes.AcnPrmRefType    (md,ts)  -> sprintf "%s" ts.Value
 
-let printAcnParam (p:Asn1AcnAst.AcnParameter) =
+let printAcnParam (p:AcnGenericTypes.AcnParameter) =
     stg_acn.PrintParam p.name (printAcnParamType p.asn1Type) 
 
 
@@ -43,9 +43,9 @@ let rec printTypeEncSpec (t:AcnTypeEncodingSpec) =
 
             | ALIGNTONEXT        al             -> 
                 match al with
-                | Asn1AcnAst.NextByte    -> stg_acn.PP_Aligment_byte()
-                | Asn1AcnAst.NextWord    -> stg_acn.PP_Aligment_word()
-                | Asn1AcnAst.NextDWord   -> stg_acn.PP_Aligment_dword()
+                | AcnGenericTypes.NextByte    -> stg_acn.PP_Aligment_byte()
+                | AcnGenericTypes.NextWord    -> stg_acn.PP_Aligment_word()
+                | AcnGenericTypes.NextDWord   -> stg_acn.PP_Aligment_dword()
             | ENCODE_VALUES                     -> stg_acn.PP_EncodeValues ()
             | PRESENT_WHEN       prWhenList     -> 
                 let prCons =
@@ -60,15 +60,15 @@ let rec printTypeEncSpec (t:AcnTypeEncodingSpec) =
             | FALSE_VALUE        falseVal       -> stg_acn.PP_FalseValue falseVal.Value
             | PATTERN            pattern        -> 
                 match pattern with
-                | Asn1AcnAst.PATERN_PROP_BITSTR_VALUE pat    -> stg_acn.PP_NullValue pat.Value
-                | Asn1AcnAst.PATERN_PROP_OCTSTR_VALUE v      -> 
+                | AcnGenericTypes.PATERN_PROP_BITSTR_VALUE pat    -> stg_acn.PP_NullValue pat.Value
+                | AcnGenericTypes.PATERN_PROP_OCTSTR_VALUE v      -> 
                     let octStr = v |> List.map(fun b -> System.String.Format("{0:X2}", b.Value) ) |> Seq.StrJoin "" 
                     stg_acn.PP_NullValue octStr 
             | CHOICE_DETERMINANT  relPath       -> stg_acn.PP_ChoiceDeterminant relPath.AsString
             | ENDIANNES          endian         -> 
                 match endian with
-                | Asn1AcnAst.LittleEndianness   -> stg_acn.PP_Endianness_little ()
-                | Asn1AcnAst.BigEndianness      -> stg_acn.PP_Endianness_big ()
+                | AcnGenericTypes.LittleEndianness   -> stg_acn.PP_Endianness_little ()
+                | AcnGenericTypes.BigEndianness      -> stg_acn.PP_Endianness_big ()
 
             | ENUM_SET_VALUE     newVal         -> newVal.Value.ToString()
             | TERMINATION_PATTERN  nullByte     -> nullByte.ToString()

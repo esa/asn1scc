@@ -67,6 +67,7 @@
   <ItemGroup>
     <None Include="Script.fsx" />
     <Compile Include="ParameterizedAsn1Ast.fs" />
+    <Compile Include="AcnGenericCreateFromAntlr.fs" />
     <Compile Include="CreateAsn1AstFromAntlrTree.fs" />
     <Compile Include="RemoveParamterizedTypes.fs" />
     <Compile Include="Asn1Ast.fs" />

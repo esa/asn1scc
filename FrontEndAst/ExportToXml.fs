@@ -5,6 +5,7 @@ open System.Numerics
 open System.IO
 open System.Xml.Linq
 open FsUtils
+open AcnGenericTypes
 open Asn1AcnAst
 open Asn1Fold
 open Asn1AcnAstUtilFunctions
@@ -236,8 +237,8 @@ let exportAcnBooleanEncoding (a:AcnBooleanEncoding option) =
 let exportAcnNullType (a:PATERN_PROP_VALUE option) =
     match a with
     | None        -> []
-    | Some (Asn1AcnAst.PATERN_PROP_BITSTR_VALUE pat)    -> [XAttribute(xname "pattern", pat.Value )]
-    | Some (Asn1AcnAst.PATERN_PROP_OCTSTR_VALUE v)      -> [XAttribute(xname "pattern", (v |> List.map(fun b -> System.String.Format("{0:X2}", b.Value)) |> Seq.StrJoin "" ) )]
+    | Some (AcnGenericTypes.PATERN_PROP_BITSTR_VALUE pat)    -> [XAttribute(xname "pattern", pat.Value )]
+    | Some (AcnGenericTypes.PATERN_PROP_OCTSTR_VALUE v)      -> [XAttribute(xname "pattern", (v |> List.map(fun b -> System.String.Format("{0:X2}", b.Value)) |> Seq.StrJoin "" ) )]
                          
 let exportAcnParameter (a:AcnParameter) =
     XElement(xname "AcnParameter", 
