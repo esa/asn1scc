@@ -293,6 +293,7 @@ and MapAsn1Type (r:ParameterizedAsn1Ast.AstRoot) typeScope (t:ParameterizedAsn1A
                    newC, newSs) (visitConstraint []) |> fst
             Location = t.Location
             parameterizedTypeInstance = t.parameterizedTypeInstance
+            acnInfo = t.acnInfo
         }        
     match t.Kind with
     | ParameterizedAsn1Ast.Integer          -> aux Asn1Ast.Integer
@@ -325,6 +326,7 @@ let MapTypeAssignment (r:ParameterizedAsn1Ast.AstRoot) (m:ParameterizedAsn1Ast.A
         c_name = ToC2 tas.Name.Value
         ada_name = ToC2 tas.Name.Value
         Comments = tas.Comments
+        acnInfo = tas.acnInfo
     }
 
 let MapValueAssignment (r:ParameterizedAsn1Ast.AstRoot) (m:ParameterizedAsn1Ast.Asn1Module) (vas:ParameterizedAsn1Ast.ValueAssignment) :Asn1Ast.ValueAssignment =

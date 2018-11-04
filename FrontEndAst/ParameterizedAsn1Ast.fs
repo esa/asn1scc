@@ -15,7 +15,7 @@ open System.Numerics
 open Antlr.Runtime.Tree
 open Antlr.Runtime
 open CommonTypes
-
+open AcnGenericTypes
 open FsUtils
 
 
@@ -50,11 +50,18 @@ and  ImportedModule = {
     Values:list<StringLoc>
 }
 
+and AcnTypeAssignmentExtraInfo = {
+    loc : SrcLoc
+    acnParameters   : AcnParameter list
+    comments        : string list
+}
+
 and TypeAssignment = {
     Name:StringLoc
     Type:Asn1Type
     Parameters : TemplateParameter list
     Comments: string array
+    acnInfo   : AcnTypeAssignmentExtraInfo option
 }
 
 and TemplateParameter =
@@ -74,11 +81,14 @@ and ValueScope =
     | GlobalScope
     | TypeScope  of StringLoc*StringLoc     
 
+
+
 and Asn1Type = {
     Kind:Asn1TypeKind;
     Constraints:list<Asn1Constraint>;
     Location: SrcLoc   //Line no, Char pos
     parameterizedTypeInstance : bool
+    acnInfo     : AcnTypeEncodingSpec option
 }
 
 and Asn1TypeKind =

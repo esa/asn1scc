@@ -121,6 +121,7 @@ type Asn1Type = {
     Constraints     : Asn1Constraint list
     Location        : SrcLoc //Line no, Char pos
     parameterizedTypeInstance : bool
+    acnInfo     :    AcnGenericTypes.AcnTypeEncodingSpec option
 }
 
 
@@ -165,6 +166,7 @@ type TypeAssignment = {
     ada_name:string
     Type:Asn1Type
     Comments: string array
+    acnInfo   : ParameterizedAsn1Ast.AcnTypeAssignmentExtraInfo option
 }
 
 type ValueAssignment = {

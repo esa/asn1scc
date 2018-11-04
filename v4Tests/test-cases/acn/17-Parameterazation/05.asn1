@@ -16,4 +16,5 @@ TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
 						}
 END
 
---TCLFC    MyPDU[MyPDU]          $$$ sample1.asn1:8:31: error: Expecting a 'Integer' value
+--TCLFC    MyPDU[MyPDU]          $$$ sample1.acn:4:7: error: Unexpected token 'MyPDU'
+--TCLFC    MyPDU[]          $$$ sample1.asn1:8:31: error: Expecting a 'Integer' value

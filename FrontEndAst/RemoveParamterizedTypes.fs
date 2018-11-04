@@ -94,6 +94,7 @@ let rec CloneType  (r:AstRoot)  (curModule:Asn1Module) (oldModName:string) (name
             Constraints = newCons
             Location = old.Location
             parameterizedTypeInstance = false
+            acnInfo = old.acnInfo
         }
     retType, (implicitImports@newImports |> Seq.distinct |> Seq.toList)
 
@@ -212,25 +213,26 @@ and DoAsn1Type (r:AstRoot) (curModule:Asn1Module) (implicitImports : List<string
             ChildInfo newType, newImports
         | ComponentsOf (m,t) -> ComponentsOf (m,t), implicitImports
 
-    let aux kind : Asn1Type=
+    let aux kind acnInfo : Asn1Type=
         {
             Asn1Type.Kind = kind
             Constraints = t.Constraints 
             Location = t.Location
             parameterizedTypeInstance = false
+            acnInfo = acnInfo
         }        
     match t.Kind with
     | SequenceOf(child) -> 
         let newType, newImports = DoAsn1Type r curModule implicitImports child 
-        aux (SequenceOf(newType)), newImports
+        aux (SequenceOf(newType)) t.acnInfo, newImports
     | Sequence(children)-> 
         let newChildren, newImports = children |>  foldMap (DoSeqChildInof r) implicitImports
-        aux (Sequence(newChildren)), newImports
+        aux (Sequence(newChildren)) t.acnInfo, newImports
     | Choice(children)  -> 
         let newChildren, newImports = children |>  foldMap (DoChildInfo r) implicitImports
-        aux (Choice(newChildren)), newImports
+        aux (Choice(newChildren)) t.acnInfo, newImports
     | ReferenceType(_)  -> SpecializeType r curModule implicitImports t
-    | _                 -> aux t.Kind, implicitImports
+    | _                 -> aux t.Kind t.acnInfo, implicitImports
 
     
 
@@ -241,6 +243,7 @@ let DoTypeAssignment (r:AstRoot) (curModule:Asn1Module) (implicitImports : List<
         Type = newType
         Comments = tas.Comments
         Parameters = []
+        acnInfo = tas.acnInfo
     }, newImports
 
 let DoValueAssignment (r:AstRoot) (curModule:Asn1Module) (implicitImports : List<string*string>) (vas:ValueAssignment) :(ValueAssignment*List<string*string>) =

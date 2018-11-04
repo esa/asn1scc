@@ -7,6 +7,7 @@ open Antlr.Runtime.Tree
 open Antlr.Runtime
 open CommonTypes
 open FsUtils
+open AcnGenericTypes
 //open FE_TypeDefinition
 
 
@@ -15,81 +16,7 @@ open FsUtils
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
-type  GenericAcnPresentWhenCondition =
-    | GP_PresenceBool  of AcnGenericTypes.RelativePath                         
-    | GP_PresenceInt   of AcnGenericTypes.RelativePath*IntLoc
-    | GP_PresenceStr   of AcnGenericTypes.RelativePath*StringLoc          
-    
-type  GenAcnEncodingProp =
-    | GP_PosInt
-    | GP_TwosComplement
-    | GP_Ascii
-    | GP_BCD
-    | GP_IEEE754_32
-    | GP_IEEE754_64
 
-type  GenSizeProperty = 
-    | GP_Fixed                 of IntLoc
-    | GP_NullTerminated        
-    | GP_SizeDeterminant       of AcnGenericTypes.RelativePath
-
-
-
-type  GenericAcnProperty = 
-    | ENCODING          of GenAcnEncodingProp
-    | SIZE              of GenSizeProperty
-    | ALIGNTONEXT       of AcnGenericTypes.AcnAligment
-    | ENCODE_VALUES   
-    | PRESENT_WHEN      of GenericAcnPresentWhenCondition list
-    | TRUE_VALUE        of StringLoc
-    | FALSE_VALUE       of StringLoc
-    | PATTERN           of AcnGenericTypes.PATERN_PROP_VALUE
-    | CHOICE_DETERMINANT of AcnGenericTypes.RelativePath
-    | ENDIANNES         of AcnGenericTypes.AcnEndianness
-    | ENUM_SET_VALUE    of IntLoc
-    | TERMINATION_PATTERN of byte
-    | MAPPING_FUNCTION  of StringLoc
-
-
-
-
-type  AcnTypeEncodingSpec = {
-    acnProperties   : GenericAcnProperty list
-    children        : ChildSpec list
-    loc             : SrcLoc
-    comments        : string list
-}
-
-and  ChildSpec = {
-    name            : StringLoc
-    childEncodingSpec : AcnTypeEncodingSpec
-    asn1Type        : AcnGenericTypes.AcnParamType option    // if present then it indicates an ACN inserted type
-    argumentList    : AcnGenericTypes.RelativePath list
-    comments        : string list
-}
-
-type  AcnTypeAssignment = {
-    name            : StringLoc
-    acnParameters   : AcnGenericTypes.AcnParameter list
-    typeEncodingSpec: AcnTypeEncodingSpec
-    comments        : string list
-}
-
-type  AcnModule = {
-    name            : StringLoc
-    typeAssignments : AcnTypeAssignment list
-}
-
-
-type  AcnFile = {
-    antlrResult : CommonTypes.AntlrParserResult
-    modules     : AcnModule list
-}
-
-type  AcnAst = {
-    files : AcnFile list
-    acnConstants : Map<string, BigInteger>
-}
 
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -321,7 +248,7 @@ let private creareAcnProperty (acnConstants : Map<string, BigInteger>) (t:ITree)
             | false ->
                 TERMINATION_PATTERN (System.Byte.Parse(bitPattern, System.Globalization.NumberStyles.AllowHexSpecifier))
         | _     ->  raise(BugErrorException("creareAcnProperty_TERMINATION_PATTERN"))
-    | _                             -> raise(BugErrorException("creareAcnProperty"))
+    | _                             -> raise(SemanticError(t.Location, (sprintf "Unexpected token '%s'" t.Text)))
 
 let rec  private createTypeEncodingSpec (allAcnFiles: CommonTypes.AntlrParserResult list) (acnConstants : Map<string, BigInteger>) (thisAcnFile: CommonTypes.AntlrParserResult)  (alreadyTakenComments:System.Collections.Generic.List<IToken>) (encSpecITree:ITree) : AcnTypeEncodingSpec =
     let acnProperties = 

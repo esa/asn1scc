@@ -35,9 +35,13 @@ let antlrParse (lexer: ICharStream -> #ITokenSource ) parser treeParser (name: s
     let tree = treeParser(parser(tokenStream));
     {CommonTypes.AntlrParserResult.fileName = name; CommonTypes.AntlrParserResult.rootItem=tree; CommonTypes.AntlrParserResult.tokens=tokens}
 
-let constructAst (args:CommandLineSettings) (debugFnc : Asn1Ast.AstRoot -> AcnGenericCreateFromAntlr.AcnAst-> unit)  =
+let constructAst (args:CommandLineSettings) (debugFnc : Asn1Ast.AstRoot -> AcnGenericTypes.AcnAst-> unit)  =
     let asn1ParseTrees = args.asn1Files |> Seq.groupBy(fun f -> f.name) |> Seq.map (antlrParse (fun f -> new asn1Lexer(f)) (fun ts -> new asn1Parser(ts))  (fun p -> p.moduleDefinitions().Tree :?> ITree)  ) |> Seq.toList
     let acnParseTrees = args.acnFiles |> Seq.groupBy(fun f -> f.name) |> Seq.map (antlrParse (fun f -> new acnLexer(f)) (fun ts -> new acnParser(ts))  (fun p -> p.moduleDefinitions().Tree :?> ITree)  ) |> Seq.toList
+
+
+    let acnAst = AcnGenericCreateFromAntlr.CreateAcnAst acnParseTrees
+
 
     (*
         * constructs a parameterized (templatized) ASN.1 AST by antlr trees.
@@ -51,7 +55,7 @@ let constructAst (args:CommandLineSettings) (debugFnc : Asn1Ast.AstRoot -> AcnGe
         * 
     *)
 
-    let parameterized_ast = CreateAsn1AstFromAntlrTree.CreateAstRoot asn1ParseTrees args
+    let parameterized_ast = CreateAsn1AstFromAntlrTree.CreateAstRoot asn1ParseTrees acnAst args
 
     (*
         *  Removes parameterized types by resolving them. In the example above
@@ -82,7 +86,7 @@ let constructAst (args:CommandLineSettings) (debugFnc : Asn1Ast.AstRoot -> AcnGe
         - Updates ASN.1 AST with ACN information
         - Creates the expanded tree (i.e reference types are now resolved)
     *)
-    let acnAst,acn0 = AcnCreateFromAntlr.mergeAsn1WithAcnAst uniqueEnumNamesAst acnParseTrees TargetLanguageStgMacros.c_StgMacros
+    let acnAst,acn0 = AcnCreateFromAntlr.mergeAsn1WithAcnAst uniqueEnumNamesAst (acnAst, acnParseTrees) TargetLanguageStgMacros.c_StgMacros
     debugFnc uniqueEnumNamesAst acn0
 
     (*

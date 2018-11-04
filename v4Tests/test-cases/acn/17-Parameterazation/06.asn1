@@ -1,0 +1,29 @@
+TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
+
+
+    MyTemplate {SomeType} ::= SEQUENCE {
+        version     INTEGER (0 .. 10),
+        someReal    REAL,
+        innerType   SomeType
+    }
+    
+    MyMissionSpecificType ::= SEQUENCE {
+        red     INTEGER (0..255),
+        green   INTEGER (0..255),
+        blue    INTEGER (0..255)
+    }
+    
+	
+	
+	MyPDU ::= MyTemplate{MyMissionSpecificType}
+	
+	testPDU MyPDU ::= {version 10, someReal 3.14, innerType {red 0, green 0, blue 255}}
+    
+    
+END
+
+--TCLS     MyTemplate[] {version [encoding pos-int, size 4], someReal[encoding IEEE754-1985-64, endianness little], innerType []} MyMissionSpecificType [] {red [encoding pos-int, size 8], green [encoding pos-int, size 8],blue [encoding pos-int, size 8]}
+
+
+
+

@@ -176,3 +176,78 @@ with
     member this.c_name = ToC this.name
 
 
+type  GenericAcnPresentWhenCondition =
+    | GP_PresenceBool  of RelativePath                         
+    | GP_PresenceInt   of RelativePath*IntLoc
+    | GP_PresenceStr   of RelativePath*StringLoc          
+    
+type  GenAcnEncodingProp =
+    | GP_PosInt
+    | GP_TwosComplement
+    | GP_Ascii
+    | GP_BCD
+    | GP_IEEE754_32
+    | GP_IEEE754_64
+
+type  GenSizeProperty = 
+    | GP_Fixed                 of IntLoc
+    | GP_NullTerminated        
+    | GP_SizeDeterminant       of RelativePath
+
+
+
+type  GenericAcnProperty = 
+    | ENCODING          of GenAcnEncodingProp
+    | SIZE              of GenSizeProperty
+    | ALIGNTONEXT       of AcnAligment
+    | ENCODE_VALUES   
+    | PRESENT_WHEN      of GenericAcnPresentWhenCondition list
+    | TRUE_VALUE        of StringLoc
+    | FALSE_VALUE       of StringLoc
+    | PATTERN           of PATERN_PROP_VALUE
+    | CHOICE_DETERMINANT of RelativePath
+    | ENDIANNES         of AcnEndianness
+    | ENUM_SET_VALUE    of IntLoc
+    | TERMINATION_PATTERN of byte
+    | MAPPING_FUNCTION  of StringLoc
+
+
+
+
+type  AcnTypeEncodingSpec = {
+    acnProperties   : GenericAcnProperty list
+    children        : ChildSpec list
+    loc             : SrcLoc
+    comments        : string list
+}
+
+and  ChildSpec = {
+    name            : StringLoc
+    childEncodingSpec : AcnTypeEncodingSpec
+    asn1Type        : AcnParamType option    // if present then it indicates an ACN inserted type
+    argumentList    : RelativePath list
+    comments        : string list
+}
+
+type  AcnTypeAssignment = {
+    name            : StringLoc
+    acnParameters   : AcnParameter list
+    typeEncodingSpec: AcnTypeEncodingSpec
+    comments        : string list
+}
+
+type  AcnModule = {
+    name            : StringLoc
+    typeAssignments : AcnTypeAssignment list
+}
+
+
+type  AcnFile = {
+    antlrResult : CommonTypes.AntlrParserResult
+    modules     : AcnModule list
+}
+
+type  AcnAst = {
+    files : AcnFile list
+    acnConstants : Map<string, BigInteger>
+}

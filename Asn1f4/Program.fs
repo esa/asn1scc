@@ -290,7 +290,7 @@ let main0 argv =
         
         // create front ent ast
 
-        let debugFunc (r:Asn1Ast.AstRoot) (acn:AcnGenericCreateFromAntlr.AcnAst) = 
+        let debugFunc (r:Asn1Ast.AstRoot) (acn:AcnGenericTypes.AcnAst) = 
             match parserResults.Contains<@ Debug_Asn1 @> with
             | true  -> 
                 let pdu = parserResults.GetResult(<@Debug_Asn1@>, defaultValue = None)

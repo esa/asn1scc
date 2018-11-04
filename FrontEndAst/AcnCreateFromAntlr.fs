@@ -1124,15 +1124,16 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (m:Asn1Ast.Asn1Mo
     }, kindState
 
 let private mergeTAS (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (m:Asn1Ast.Asn1Module) (am:AcnModule option)  (tas:Asn1Ast.TypeAssignment) (us:Asn1AcnMergeState) : (TypeAssignment*Asn1AcnMergeState) =
-    let acnTas = 
-        match am with
-        | None  -> None
-        | Some x -> x.typeAssignments |> Seq.tryFind(fun z -> z.name = tas.Name)
+//    let acnTas = 
+//        match am with
+//        | None  -> None
+//        | Some x -> x.typeAssignments |> Seq.tryFind(fun z -> z.name = tas.Name)
     let acnParameters  = 
-            match acnTas with 
+            match tas.acnInfo with 
             | None -> [] 
             | Some acnTas -> acnTas.acnParameters
-    let newType, us1 = mergeType asn1 acn m tas.Type [MD m.Name.Value; TA tas.Name.Value] [MD m.Name.Value; TA tas.Name.Value] (acnTas |> Option.map(fun x -> x.typeEncodingSpec)) None [] [] [] acnParameters None (Some (TypeAssignmentInfo {TypeAssignmentInfo.modName = m.Name.Value; tasName = tas.Name.Value}))  us
+    let typeEncodingSpec = tas.Type.acnInfo
+    let newType, us1 = mergeType asn1 acn m tas.Type [MD m.Name.Value; TA tas.Name.Value] [MD m.Name.Value; TA tas.Name.Value] typeEncodingSpec (*(acnTas |> Option.map(fun x -> x.typeEncodingSpec))*) None [] [] [] acnParameters None (Some (TypeAssignmentInfo {TypeAssignmentInfo.modName = m.Name.Value; tasName = tas.Name.Value}))  us
     let newTas = 
         {
             TypeAssignment.Name = tas.Name
@@ -1187,7 +1188,7 @@ let private mergeFile (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (f:Asn1Ast.Asn1File) (
 
 
 //let rec registerPrimitiveTypeDefinition (us:Asn1AcnMergeState) l (id : ReferenceToType) (kind : FE_TypeDefinitionKind) getRtlDefinitionFunc : (FE_PrimitiveTypeDefinition*Asn1AcnMergeState)=
-let mergeAsn1WithAcnAst (asn1:Asn1Ast.AstRoot) (acnParseResults:CommonTypes.AntlrParserResult list) defaultStgLang =
+let mergeAsn1WithAcnAst (asn1:Asn1Ast.AstRoot) (acn:AcnGenericTypes.AcnAst ,acnParseResults:CommonTypes.AntlrParserResult list) defaultStgLang =
     let initialState = {Asn1AcnMergeState.allocatedTypeNames = []; allocatedFE_TypeDefinition= Map.empty; args = asn1.args; temporaryTypesAllocation = Map.empty} 
     let state =
         seq {
@@ -1206,6 +1207,6 @@ let mergeAsn1WithAcnAst (asn1:Asn1Ast.AstRoot) (acnParseResults:CommonTypes.Antl
             //| Asn1Ast.ReferenceType rf  -> registerAnyTypeDefinition asn1 t st l id (FEI_NewSubTypeDefinition (ReferenceToType [MD rf.modName.Value; TA rf.tasName.Value])) 
             //| _                         -> registerAnyTypeDefinition asn1 t st l id FEI_NewTypeDefinition 
             ) initialState |> snd
-    let acn = CreateAcnAst acnParseResults
+    //let acn = CreateAcnAst acnParseResults
     let files, finalState = asn1.Files |> foldMap (fun st f -> mergeFile asn1 acn f st) state
     {AstRoot.Files = files; args = asn1.args; acnConstants = acn.acnConstants; acnParseResults=acnParseResults; stg=defaultStgLang}, acn
