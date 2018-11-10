@@ -29,8 +29,8 @@
     <PlatformTarget>AnyCPU</PlatformTarget>
     <DocumentationFile>bin\Debug\Asn1f4.XML</DocumentationFile>
     <Prefer32Bit>true</Prefer32Bit>
-    <StartWorkingDirectory>C:\prj\GitHub\asn1scc\github-issues\issue154</StartWorkingDirectory>
-    <StartArguments>-v</StartArguments>
+    <StartWorkingDirectory>C:\prj\GitHub\asn1scc\mantis\0000811</StartWorkingDirectory>
+    <StartArguments>-c -uPER -atc -o cout a.asn1</StartArguments>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>

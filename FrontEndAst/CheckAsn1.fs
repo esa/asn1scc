@@ -21,7 +21,8 @@ let c_keywords =  CommonTypes.c_keyworkds
 let ada_keywords =  CommonTypes.ada_keyworkds
 
 let all_keywords =
-    let cmn_keys = c_keywords @ ada_keywords |> List.distinct
+    let ada_set = ada_keywords |> Set.ofList
+    let cmn_keys = c_keywords |> List.filter(fun ck -> ada_set.Contains ck)
     let cmn_set = cmn_keys |> Set.ofList
     let cmn_keys = cmn_keys  |> List.map(fun k -> (k, "is a C and Ada"))
     let c_keys = c_keywords |> List.filter(fun z -> not (cmn_set.Contains z))  |> List.map(fun k -> (k, "is a C"))
@@ -32,7 +33,7 @@ let checkAgainstKeywords (strLc : StringLoc) =
     match all_keywords.TryFind(strLc.Value.ToLower()) with
     | None      -> ()
     | Some langMsg ->
-        let errMsg = sprintf "'%s' %s  keyword." strLc.Value langMsg
+        let errMsg = sprintf "'%s' %s keyword." strLc.Value langMsg
         match checkForAdaKeywords () with
         | false   -> ()
         | true      ->raise (SemanticError (strLc.Location, errMsg))
@@ -466,7 +467,11 @@ let rec isConstraintValid (t:Asn1Type) (c:Asn1Constraint) ast =
 /// raises a user exception if an error is found.
 let rec CheckType(t:Asn1Type) (m:Asn1Module) ast =
     let CheckSeqChoiceChildren (children:seq<ChildInfo>) =
-        children |> Seq.map(fun c -> c.Name) |> CheckForDuplicates 
+        let childrenNames = children |> Seq.map(fun c -> c.Name) |> Seq.toList
+        childrenNames |> CheckForDuplicates 
+        match ast.args.fieldPrefix with
+        | None      ->  childrenNames |> Seq.iter checkAgainstKeywords
+        | Some _    ->  ()
         
         //check that component name does not conflict with a type assignment
         children |> 

@@ -1,0 +1,9 @@
+D DEFINITIONS ::=
+BEGIN
+
+Main ::=  SEQUENCE (SIZE (2)) OF BOOLEAN
+
+Foo ::= SEQUENCE {
+    register Main
+}
+END
