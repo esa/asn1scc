@@ -150,10 +150,45 @@ and CloneValue  (r:AstRoot) (curModule:Asn1Module) (oldModName:string) (namedArg
     | _                                         -> v
 
 and SpecializeType (r:AstRoot) (curModule:Asn1Module) (implicitImports : List<string*string>) (t:Asn1Type) : (Asn1Type * List<string*string>) =
+    let  mergeAcnInfo (refTypeSpec:AcnGenericTypes.AcnTypeEncodingSpec option) (genTypeSpec:AcnGenericTypes.AcnTypeEncodingSpec option) =
+        let rec mergeAcnInfo_aux (refTypeSpec:AcnGenericTypes.AcnTypeEncodingSpec ) (genTypeSpec:AcnGenericTypes.AcnTypeEncodingSpec) =
+            let allChildNames = 
+                //if ref refTypeSpec children is a subset of genTypeSpec return genTypeSpec children
+                //if genTypeSpec children is a subset of  of refTypeSpec children  return refTypeSpec children
+                //else emit user error. User must provide child spec in all children
+                let refTypeChildrenNames = refTypeSpec.children |> List.map(fun z -> z.name.Value) 
+                let getTypeChildrenNames = genTypeSpec.children |> List.map(fun z -> z.name.Value)
+                let refTypeSet = Set.ofList refTypeChildrenNames
+                let genTypeSet = Set.ofList getTypeChildrenNames
+                match refTypeSet.IsSubsetOf genTypeSet with
+                | true  -> getTypeChildrenNames
+                | false -> refTypeChildrenNames
+
+                //(refTypeChildrenNames@getTypeChildrenNames) |> List.distinct
+            let combinedChildren =
+                allChildNames |> 
+                List.map(fun name ->
+                    let refTypeChild = refTypeSpec.children |> Seq.tryFind (fun c -> c.name.Value = name)
+                    let genTypeChild = genTypeSpec.children |> Seq.tryFind (fun c -> c.name.Value = name)
+                    match refTypeChild, genTypeChild with
+                    | None, None        -> raise(BugErrorException(sprintf "SpecializeType no child with name :%s found" name))
+                    | None, Some a      -> a
+                    | Some a, None      -> a //reference type wins over generalized type
+                    | Some refChild, Some genChild         -> 
+                        let childEncodingSpec = mergeAcnInfo_aux refChild.childEncodingSpec genChild.childEncodingSpec
+                        {refChild with childEncodingSpec = childEncodingSpec})
+            //reference type properties wins over generalized type (put at before genType properties)
+            {refTypeSpec with acnProperties = refTypeSpec.acnProperties@genTypeSpec.acnProperties; children = combinedChildren}
+
+        match refTypeSpec, genTypeSpec with
+        | None, None    -> None
+        | Some a1, None -> Some a1
+        | None, Some a2 -> Some a2
+        | Some refTypeSpec, Some genTypeSpec  -> Some (mergeAcnInfo_aux refTypeSpec genTypeSpec)
     match t.Kind with
     | ReferenceType(md,ts, args)   when args.Length>0 -> 
         let (newType, implImps) = SpecializeRefType r curModule md ts args [] implicitImports
-        ({newType with Constraints = newType.Constraints@t.Constraints}, implImps)
+        ({newType with Constraints = newType.Constraints@t.Constraints; acnInfo=mergeAcnInfo t.acnInfo newType.acnInfo}, implImps)
     | ReferenceType(md,ts, args)    -> 
         let parmTas = getModuleByName r md |> getTasByName ts
         match parmTas.Parameters with

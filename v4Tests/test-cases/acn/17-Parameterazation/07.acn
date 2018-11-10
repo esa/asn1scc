@@ -1,0 +1,26 @@
+
+TEST-CASE DEFINITIONS ::= BEGIN
+
+/*
+Super{T} ::= SEQUENCE {
+    a INTEGER (0..255),
+    b T
+}
+
+Flux ::= Super {BOOLEAN}
+
+*/
+
+Super[] {
+    a [size 64, encoding pos-int],
+    foo NULL [pattern '0001'B],
+    b []
+}
+
+Flux[] {
+    b [size 4, true-value '1111'B]
+}
+
+
+END
+
