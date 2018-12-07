@@ -1203,7 +1203,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
         let existsAcnChildWithNoUpdates =
             acnChildren |>
             List.filter (fun acnChild -> match acnChild.Type with Asn1AcnAst.AcnNullType _ -> false | _ -> true) |>
-            List.exists(fun acnChild -> 
+            List.filter(fun acnChild -> 
                 let childP = {CallerScope.modName = p.modName; arg = VALUE (getAcnDeterminantName acnChild.id)}
                 let pRoot : CallerScope = t.getParamType l codec  
                 let updateStatement = 
@@ -1220,11 +1220,25 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
         let childrenErrCodes = childrenStatements0 |> List.collect(fun (_, _,_,s) -> s)
         let seqContent =  (presenseBits@childrenStatements) |> nestChildItems l codec 
         match existsAcnChildWithNoUpdates with
-        | true      -> None, ns
-        | false     ->
+        | []     ->
             match seqContent with
             | None  -> None, ns
             | Some ret -> Some ({AcnFuncBodyResult.funcBody = ret; errCodes = errCode::childrenErrCodes; localVariables = localVariables@childrenLocalvars}), ns    
+        | errChild::_      -> 
+            let determinantUsage =
+                match errChild.Type with
+                | Asn1AcnAst.AcnInteger               _-> "legth"
+                | Asn1AcnAst.AcnNullType              _-> raise(BugErrorException "existsAcnChildWithNoUpdates")
+                | Asn1AcnAst.AcnBoolean               _-> "presence"
+                | Asn1AcnAst.AcnReferenceToEnumerated _-> "presence"
+                | Asn1AcnAst.AcnReferenceToIA5String  _-> "presence"
+            let errMessage = sprintf "Unused ACN inserted field.
+All fields inserted at ACN level (except NULL fields) must act as decoding determinants of other types.
+The field '%s' must either be removed or used as %s determinant of another ASN.1 type." errChild.Name.Value determinantUsage
+            //raise(SemanticError(errChild.Name.Location, errMessage))
+            let loc = errChild.Name.Location
+            Console.Out.WriteLine (FrontEntMain.formatSemanticWarning loc errMessage)
+            None, ns
         
     let isTestVaseValid (atc:AutomaticTestCase) =
         acnChildren |>
