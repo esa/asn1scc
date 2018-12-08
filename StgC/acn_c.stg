@@ -709,6 +709,7 @@ ChoiceChildAlwaysAbsent_encode(p, sAcc, sChildID, nChildIndex, sErrorCodeName) :
 case <sChildID>:
     ret = FALSE;
     *pErrCode = <sErrorCodeName>;
+	break;
 >>
 
 ChoiceChildAlwaysAbsent_decode(p, sAcc, sChildID, nChildIndex, sErrorCodeName) ::= <<

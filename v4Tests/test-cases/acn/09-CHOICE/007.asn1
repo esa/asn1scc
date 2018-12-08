@@ -38,5 +38,5 @@ TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
 
 END
 
---TCLS     MyPDU[] {header[], payload<header.chSelector>[]}   HeaderType[] {a1[], chSelector ChoiceSelector[]} ChoiceSelector[]  ChoiceType<ChoiceSelector:sel>[determinant sel]
+--TCLS     MyPDU[] {header[] {a1[], chSelector ChoiceSelector[]} , payload<header.chSelector>[]}   HeaderType[] ChoiceSelector[]  ChoiceType<ChoiceSelector:sel>[determinant sel]
 

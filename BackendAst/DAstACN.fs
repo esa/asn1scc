@@ -1235,10 +1235,10 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
             let errMessage = sprintf "Unused ACN inserted field.
 All fields inserted at ACN level (except NULL fields) must act as decoding determinants of other types.
 The field '%s' must either be removed or used as %s determinant of another ASN.1 type." errChild.Name.Value determinantUsage
-            //raise(SemanticError(errChild.Name.Location, errMessage))
-            let loc = errChild.Name.Location
-            Console.Out.WriteLine (FrontEntMain.formatSemanticWarning loc errMessage)
-            None, ns
+            raise(SemanticError(errChild.Name.Location, errMessage))
+            //let loc = errChild.Name.Location
+            //Console.Out.WriteLine (FrontEntMain.formatSemanticWarning loc errMessage)
+            //None, ns
         
     let isTestVaseValid (atc:AutomaticTestCase) =
         acnChildren |>

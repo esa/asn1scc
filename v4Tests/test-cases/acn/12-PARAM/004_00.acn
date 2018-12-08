@@ -7,15 +7,15 @@ TEST-CASE DEFINITIONS ::= BEGIN
     
     
     TAP3File[]{
-         header [],  
-         data <header.nrCalls,header.nrCalls2> []
+         header [] {
+            operatorID[],
+            nrCalls CallsSize[],
+            nrCalls2 CallsSize[]
+        } ,  
+        data <header.nrCalls,header.nrCalls2> []
     }
     
-    HeaderType[]{
-        operatorID[],
-        nrCalls CallsSize[],
-		nrCalls2 CallsSize[]
-    }          
+    HeaderType[] 
              
     SourceData<INTEGER:nElements,INTEGER:nElements2>[]
     {

@@ -44,5 +44,5 @@ TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
 
 END
 
---TCLS     MyPDU-a[] {a1[], b ChoiceSelector[]} MyPDU[] {a[], b<a.b>[]}   ChoiceSelector[]  ChoiceType<ChoiceSelector:sel>[determinant sel] MySequence<ChoiceSelector:sel>[]{b<sel>[]}
+--TCLS     MyPDU-a[] MyPDU[] {a[] {a1[], b ChoiceSelector[]}, b<a.b>[]}   ChoiceSelector[]  ChoiceType<ChoiceSelector:sel>[determinant sel] MySequence<ChoiceSelector:sel>[]{b<sel>[]}
 
