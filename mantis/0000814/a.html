@@ -1,0 +1,113 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"> 
+<html xmlns="http://www.w3.org/1999/xhtml" >
+<head>
+    <title>ICD</title>
+    <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+    <link rel="stylesheet" href="a.css" /> 
+</head>
+<body>
+<em>The following tables describe the binary encodings of the data model using the ACN Encoding Rules.
+</em><br/><br/>
+  <div style="width: 100%">
+  <h1>Module D</h1>
+  <i>Defined in: a.asn1, a.acn.</i><p>
+  </p>
+  <a name="ICD_MyType"></a> 
+  <table width="100%" >
+  <tbody>
+  
+  <tr class="typeRow">
+  <td colspan="6">
+  MyType <font size="-1">(SEQUENCE)</font>
+  <font size="-2"><a href="#ASN1_MyType" class="fileLink">ASN.1</a>  <a href="#ACN_MyType" class="fileLink">ACN</a></font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Min:&nbsp;5&nbsp;bytes</font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Max:&nbsp;5&nbsp;bytes</font>
+  </td>
+  </tr>
+  
+  <tr class="CommentRow">
+  <td class="comment2" colspan="8"></td>
+  </tr>
+  
+  
+  <tr class="headerRow">
+  <td class="hrNo">No</td>
+  <td class="hrField">Field</td>
+  <td class="hrComment">Comment</td>
+  <td class="hrOptional">Present</td>
+  <td class="hrType">Type</td>
+  <td class="hrConstraint">Constraint</td>
+  <td class="hrMin">Min Bits</td>
+  <td class="hrMax">Max Bits</td>
+  </tr>
+  
+  <tr class="OddRow">
+  <td class="no">1</td>
+  <td class="field">version1</td>
+  <td class="comment"></td>
+  <td class="optional">always</td>
+  <td class="type">fixed pattern: sPattern</td>
+  <td class="constraint"></td>
+  <td class="min">3</td>
+  <td class="max">3</td>
+  </tr>
+  <tr class="EvenRow">
+  <td class="no">2</td>
+  <td class="field">version2</td>
+  <td class="comment"></td>
+  <td class="optional">always</td>
+  <td class="type">fixed pattern: sPattern</td>
+  <td class="constraint"></td>
+  <td class="min">32</td>
+  <td class="max">32</td>
+  </tr>
+  
+  </tbody>
+  </table>
+  &nbsp;<br/>
+  </div>
+
+  <hr />
+    <a name="ACN_PARAMS_EXPLAINED123"></a>
+    <em>ACN Parameters</em><br/>
+    In the standard ASN.1 encodings such as uPER, BER etc, the encoding and decoding of any type has no external dependencies. For example, the encoded data for a SEQUENCE OF depends on the number of items in the SEQUENCE OF (the length determinant) and the type of item contained in the SEQUENCE. On the other hand, ACN allows types to be parameterized. For instance, the length of a SEQUENCE OF may be determined by the value of an external field. In this case, the SEQUENCE OF is parameterized and the input parameter is the field providing the length.
+  <hr />
+    <br/>
+  <div style="width: 100%">
+  <h1 >File : a.asn1</h1>
+  <div style="width: 100%; white-space:pre; font-family:Courier New; font-size:small">
+  D <b><font color="#5F9EA0">DEFINITIONS</font></b> ::=
+  <b><font color="#5F9EA0">BEGIN</font></b>
+  
+  <a name="ACN_MyType"></a><a href="#ICD_MyType"><font color="#B8860B"><b>MyType</b></font></a> ::= <b><font color="#5F9EA0">SEQUENCE</font></b> {
+     version1 <b><font color="#5F9EA0">NULL</font></b>, 
+     version2 <b><font color="#5F9EA0">NULL</font></b> 
+  }
+  
+  <b><font color="#5F9EA0">END</font></b>
+  </div>
+  </div>
+
+  <div style="width: 100%">
+  <h1 >File : a.acn</h1>
+  <div style="width: 100%; white-space:pre; font-family:Courier New; font-size:small">
+  D <b><font color="#5F9EA0">DEFINITIONS</font></b> ::=
+  <b><font color="#5F9EA0">BEGIN</font></b>
+  
+  <a name="ACN_MyType"></a><a href="#ICD_MyType"><font color="#B8860B"><b>MyType</b></font></a> [] {
+     version1 <b><font color="#5F9EA0">NULL</font></b> [<b><font color="#5F9EA0">pattern</font></b> <font color="#A31515">'010'B</font>],
+     version2 <b><font color="#5F9EA0">NULL</font></b> [<b><font color="#5F9EA0">pattern</font></b> 'AABBCCDD'H]
+  }
+  
+  <b><font color="#5F9EA0">END</font></b>
+  </div>
+  </div>
+
+</body>
+</html>

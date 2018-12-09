@@ -1,0 +1,9 @@
+D DEFINITIONS ::=
+BEGIN
+
+MyType ::= SEQUENCE {
+   version1 NULL, 
+   version2 NULL 
+}
+
+END

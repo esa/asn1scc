@@ -1,0 +1,9 @@
+D DEFINITIONS ::=
+BEGIN
+
+MyType [] {
+   version1 NULL [pattern '010'B],
+   version2 NULL [pattern 'AABBCCDD'H]
+}
+
+END

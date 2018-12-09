@@ -28,7 +28,11 @@ Choice()        ::= "CHOICE"
 Enumerated()    ::= "ENUMERATED"
 IA5String()     ::= "IA5String"
 NumericString() ::= "NumericString"
-NullType()      ::= "NULL"
+NullType() ::= "NULL"
+NullTypeWithBitPattern(sPattern) ::= "fixed pattern: '$sPattern$'B"
+NullTypeWithBytePattern(arruOctets) ::= "fixed pattern:  '$arruOctets:{b|$b;format=\"X2\"$}$'H"
+
+
 Real()          ::= "REAL"
 Sequence()      ::= "SEQUENCE"
 SequenceOf()    ::= "SEQUENCE-OF"

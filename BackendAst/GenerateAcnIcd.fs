@@ -71,6 +71,12 @@ let rec printType stgFileName (tas:GenerateUperIcd.IcdTypeAssignment) (t:Asn1Typ
             EmitEnumItemWithComment  = icd_acn.EmitEnumItemWithComment 
             EmitEnumInternalContents = icd_acn.EmitEnumInternalContents
         } 
+    let handleNullType (encodingPattern : AcnGenericTypes.PATERN_PROP_VALUE option) defaultRetValue =
+        match encodingPattern with
+        | Some(AcnGenericTypes.PATERN_PROP_BITSTR_VALUE bitStr)       -> icd_acn.NullTypeWithBitPattern  stgFileName  bitStr.Value
+        | Some(AcnGenericTypes.PATERN_PROP_OCTSTR_VALUE byteList     )-> icd_acn.NullTypeWithBytePattern stgFileName  (byteList |> List.map (fun z -> z.Value)) 
+        | None                                                        -> defaultRetValue
+        
     let GetCommentLine = GenerateUperIcd.GetCommentLineFactory stgFileName enumStg
     let hasAcnDef = r.acnParseResults |> Seq.collect (fun p -> p.tokens) |> Seq.exists(fun x -> x.Text = tas.name)
 
@@ -169,7 +175,12 @@ let rec printType stgFileName (tas:GenerateUperIcd.IcdTypeAssignment) (t:Asn1Typ
                 match ch with
                 | Asn1Child ch  ->
                     let sType = 
-                        icd_acn.EmmitSeqChild_RefType stgFileName ch.Type.FT_TypeDefintion.[CommonTypes.C].asn1Name (ToC ch.Type.FT_TypeDefintion.[CommonTypes.C].asn1Name)
+                        let defaultRetValue = icd_acn.EmmitSeqChild_RefType stgFileName ch.Type.FT_TypeDefintion.[CommonTypes.C].asn1Name (ToC ch.Type.FT_TypeDefintion.[CommonTypes.C].asn1Name)
+                        match ch.Type.ActualType.Kind with
+                        | DAst.NullType       o  when o.baseInfo.acnProperties.encodingPattern.IsSome  -> 
+                                                     handleNullType o.baseInfo.acnProperties.encodingPattern defaultRetValue
+                        | _                       -> defaultRetValue
+                            
 //                        match ch.Type.Kind with
 //                        | ReferenceType ref -> icd_acn.EmmitSeqChild_RefType stgFileName ref.baseInfo.tasName.Value (ToC ref.baseInfo.tasName.Value)
 //                        | _                       -> 
@@ -189,7 +200,9 @@ let rec printType stgFileName (tas:GenerateUperIcd.IcdTypeAssignment) (t:Asn1Typ
                             match o.inheritInfo with
                             | None                              ->  icd_acn.Integer           stgFileName ()    , constAsStr
                             | Some inhInfo                      ->  icd_acn.EmmitSeqChild_RefType stgFileName inhInfo.tasName (ToC inhInfo.tasName) , constAsStr
-                        | Asn1AcnAst.AcnNullType               o -> icd_acn.NullType           stgFileName (), ""
+                        | Asn1AcnAst.AcnNullType               o -> 
+                            let sType = handleNullType o.acnProperties.encodingPattern (icd_acn.NullType           stgFileName ())
+                            sType, ""
                         | Asn1AcnAst.AcnBoolean                o -> icd_acn.Boolean           stgFileName (), ""
                         | Asn1AcnAst.AcnReferenceToEnumerated  o -> icd_acn.EmmitSeqChild_RefType stgFileName o.tasName.Value (ToC o.tasName.Value), ""
                         | Asn1AcnAst.AcnReferenceToIA5String   o -> icd_acn.EmmitSeqChild_RefType stgFileName o.tasName.Value (ToC o.tasName.Value), ""
@@ -213,7 +226,12 @@ let rec printType stgFileName (tas:GenerateUperIcd.IcdTypeAssignment) (t:Asn1Typ
             let sPresentWhen = getPresence i ch
 
             let sType = 
-                icd_acn.EmmitSeqChild_RefType stgFileName ch.chType.FT_TypeDefintion.[CommonTypes.C].asn1Name (ToC ch.chType.FT_TypeDefintion.[CommonTypes.C].asn1Name)
+                let defaultRetValue = icd_acn.EmmitSeqChild_RefType stgFileName ch.chType.FT_TypeDefintion.[CommonTypes.C].asn1Name (ToC ch.chType.FT_TypeDefintion.[CommonTypes.C].asn1Name)
+                match ch.chType.ActualType.Kind with
+                | DAst.NullType       o  when o.baseInfo.acnProperties.encodingPattern.IsSome  -> 
+                                                handleNullType o.baseInfo.acnProperties.encodingPattern defaultRetValue
+                | _                       -> defaultRetValue
+
 //                match ch.chType.Kind with
 //                | ReferenceType ref -> icd_acn.EmmitSeqChild_RefType stgFileName ref.baseInfo.tasName.Value (ToC ref.baseInfo.tasName.Value)
 //                | _                       -> Kind2Name stgFileName ch.chType
