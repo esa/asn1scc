@@ -1,0 +1,6 @@
+all:
+	nuget restore
+	xbuild /p:Configuration=Release /p:TargetFrameworkVersion="v4.5" || exit 1
+	chmod +x Asn1f?/bin/Release/*.exe
+	rm -f Asn1f4/bin/Release/asn1.exe 
+	cp -al Asn1f4/bin/Release/Asn1f4.exe Asn1f4/bin/Release/asn1.exe 
