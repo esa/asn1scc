@@ -39,7 +39,7 @@ let rec XerTagFnc (t:Asn1AcnAst.Asn1Type) (r:Asn1AcnAst.AstRoot) =
 
 let private aux (s:string) = 2 * (s.Length + 1) + 1 |> BigInteger
 
-let getMaxSizeInBytesForXER_boolean ()  =  aux "False"
+let getMaxSizeInBytesForXER_boolean ()  =  BigInteger ("<false/>".Length)  //<>
 let getMaxSizeInBytesForXER_Integer ()  =  BigInteger (System.Int64.MinValue.ToString().Length)
 let getMaxSizeInBytesForXER_Enumerated (itemNames : string list) =
     let maxName = itemNames |>  Seq.max
@@ -255,7 +255,19 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (cod
         let pp =  p.arg.getPointer l
         let nLevel = BigInteger (t.id.AcnAbsPath.Length - 2)
         let chFunc = child.getXerFunction codec
-        let internalItem =  chFunc.funcBody ({p with arg = p.arg.getArrayItem l i child.isIA5String}) None
+
+        let childTag = 
+            let definedInRTL = 
+                match child.typeDefintionOrReference with
+                | TypeDefinition  td -> false
+                | ReferenceToExistingDefinition ref -> ref.definedInRtl
+            match definedInRTL with
+            | false ->
+                let childTagName = (child.typeDefintionOrReference).getAsn1Name r.args.TypePrefix
+                (Some (XerLiteralConstant childTagName))
+            | true  ->
+                None
+        let internalItem =  chFunc.funcBody ({p with arg = p.arg.getArrayItem l i child.isIA5String}) childTag
         let internalItem_str, chLocalVars, chErrCodes, chSize = match internalItem with Some x -> x.funcBody, x.localVariables, x.errCodes, x.encodingSizeInBytes | None -> "",[],[],0I
         let contentSize = o.maxSize * chSize
         let totalSize = getMaxSizeInBytesForXER xmlTag contentSize
@@ -366,6 +378,7 @@ let createReferenceFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (code
 
     let t1              = Asn1AcnAstUtilFunctions.GetActualTypeByName r o.modName o.tasName
     let t1WithExtensios = o.resolvedType;
+    
     match TypesEquivalence.uperEquivalence t1 t1WithExtensios with
     | true  ->
         let funcBody (errCode:ErroCode) (p:CallerScope) (xmlTag:XerTag option) = 

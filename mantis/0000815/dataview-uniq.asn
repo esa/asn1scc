@@ -1,0 +1,17 @@
+TASTE-Dataview DEFINITIONS ::=
+BEGIN
+IMPORTS T-Boolean FROM TASTE-BasicTypes;
+
+T-Boolean-SeqOf2 ::= SEQUENCE (SIZE (1)) OF BOOLEAN
+
+
+T-Boolean-Seq ::= SEQUENCE (SIZE (1)) OF T-Boolean
+
+
+END
+
+TASTE-BasicTypes DEFINITIONS ::=
+BEGIN
+T-Boolean ::= BOOLEAN
+END
+

@@ -1,0 +1,10 @@
+The computation of the size of buffers for XER encoding seems to be wrong.
+
+For T_Boolean, it is 36 (31 should be enough)
+
+Worse, size of a sequence is lower than needed: in the example, size
+for T_Boolean_Seq is computed to be 49, when it should be 62.
+
+The provided test shows it.
+Change ALLOW_BUG_SHOW_UP in test.c to enable/disable the wrong behaviour.
+

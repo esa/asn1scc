@@ -7,5 +7,10 @@ BEGIN
     d REAL
  }
  T2 ::= T1 (WITH COMPONENTS { a ABSENT, b PRESENT })
+ 
+ MySuperSeq ::= SEQUENCE {
+	child1 T2,
+	child2 REAL
+ }
 
 END
