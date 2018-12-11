@@ -42,7 +42,7 @@ Install:
 
 1. Install the [Mono MDK](http://www.mono-project.com).
 
-2. Execute ASN1SCC's `./build.sh` - and the compiler will be built.
+2. Execute `make` - and the compiler will be built.
 
 ## Under Linux
 
