@@ -1,8 +1,8 @@
 
 package body adaasn1rtl with Spark_Mode is
 
-   MASKS : constant OctetBuffer_0_7 := OctetBuffer_0_7'(0 => 16#80#, 1=> 16#40#, 2=>16#20#, 3=>16#10#, 4=>16#08#, 5=>16#04#, 6=>16#02#, 7=>16#01#);
-   
+   MASKS  : constant OctetBuffer_0_7 := OctetBuffer_0_7'(0 => 16#80#, 1=> 16#40#, 2=>16#20#, 3=>16#10#, 4=>16#08#, 5=>16#04#, 6=>16#02#, 7=>16#01#);
+   MASKSB : constant OctetBuffer_0_7 := OctetBuffer_0_7'(0 => 16#00#, 1=> 16#01#, 2=>16#03#, 3=>16#07#, 4=>16#1F#, 5=>16#3F#, 6=>16#7F#, 7=>16#FF#);
    
    function BitStream_init(bitStreamSizeInBytes : Positive) return BitStream
    is
@@ -41,12 +41,13 @@ package body adaasn1rtl with Spark_Mode is
       end if;
       
       if bs.currentBitPos = 7 then
+         result := true;
          bs.currentBitPos := 0;
          bs.currentBytePos := bs.currentBytePos + 1;
       else
+         result := true;
          bs.currentBitPos := bs.currentBitPos + 1;
       end if;
-      result := true;
    end;
    
    
@@ -87,15 +88,85 @@ package body adaasn1rtl with Spark_Mode is
          ret := Shift_left(bs.buffer(bs.currentBytePos), cb);
          bs.currentBytePos := bs.currentBytePos + 1;
          ret := ret or Shift_right(bs.buffer(bs.currentBytePos), ncb);
+         success := true;
       else
          ret := bs.buffer(bs.currentBytePos);
          bs.currentBytePos := bs.currentBytePos + 1;
+         success := true;
       end if;
       byteValue := ret;
-      success := true;
       
    end;
    
+   procedure BitStream_ReadNibble(bs : in out BitStream; byteValue : out Asn1Byte; success   :    out Boolean)
+   is
+      cb: BIT_RANGE;
+      totalBitsForNextByte : BIT_RANGE;
+   begin
+      cb := bs.currentBitPos;
+      if cb < 4 then
+         byteValue := Shift_right(bs.buffer(bs.currentBytePos), 4 - cb) and 16#0F#;
+         bs.currentBitPos := bs.currentBitPos + 4;
+         success := true;
+      else
+         totalBitsForNextByte := cb - 4;
+         byteValue := Shift_left(bs.buffer(bs.currentBytePos), totalBitsForNextByte);
+         bs.currentBytePos := bs.currentBytePos + 1;
+         byteValue := byteValue or (Shift_right(bs.buffer(bs.currentBytePos), 8 - totalBitsForNextByte));
+         byteValue := byteValue and 16#0F#;
+         bs.currentBitPos := bs.currentBitPos - 4;
+         success := true;
+      end if;
+   end;
+   
+   
+   procedure BitStream_AppendPartialByte(bs : in out BitStream; byteValueIn : in Asn1Byte; nBits : in BIT_RANGE; negate : in Boolean)
+   is
+      cb: BIT_RANGE;
+      totalBits : BIT_RANGE;
+      totalBitsForNextByte : BIT_RANGE;
+      byteValue : Asn1Byte;
+   begin
+      cb := bs.currentBitPos;
+      
+      byteValue := (if negate then (masksb(nBits) and  not byteValueIn) else byteValueIn);
+         
+      if cb < 8 - nbits then
+         totalBits := cb + nBits;
+         bs.buffer(bs.currentBytePos) := bs.buffer(bs.currentBytePos) or Shift_left(byteValue, 8 -totalBits);
+         bs.currentBitPos := bs.currentBitPos + nBits;
+      else
+         totalBitsForNextByte := cb+nbits - 8;
+         bs.buffer(bs.currentBytePos) := bs.buffer(bs.currentBytePos) or Shift_right(byteValue, totalBitsForNextByte);
+         bs.currentBytePos := bs.currentBytePos + 1;
+         
+         bs.buffer(bs.currentBytePos) := bs.buffer(bs.currentBytePos) or Shift_left(byteValue, 8 - totalBitsForNextByte);
+           
+         bs.currentBitPos := totalBitsForNextByte;
+      end if;
+      
+   end;
+   
+--     procedure BitStream_Encode_Non_Negative_Integer(bs : in out BitStream; intValue   : in Asn1UInt; nBitsRange : in Integer) 
+--     is
+--        cc    : Integer range 0 .. Asn1UInt'Size-1;
+--        byteValue : Asn1Byte;
+--     begin
+--        cc := nBitsRange;
+--        while cc > 8 loop
+--           pragma Loop_Invariant (cc - 8 > 0 and bs.currentBytePos  < );
+--           
+--           byteValue := Asn1Byte (Shift_left(intValue, cc-8));
+--           BitStream_AppendByte(bs, byteValue, false);
+--           cc := cc - 8;
+--        end loop;
+--        if cc > 0 then
+--           byteValue := MASKSB(cc) and Asn1Byte(intValue);
+--           BitStream_AppendPartialByte(bs, byteValue, cc, False);
+--        end if;
+--  
+--     end;
+--     
    
 
 end adaasn1rtl;

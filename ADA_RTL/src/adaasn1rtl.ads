@@ -65,7 +65,7 @@ package adaasn1rtl with Spark_Mode is
    
    procedure BitStream_AppendBit(bs : in out BitStream; bitValue : in BIT) with
      Depends => (bs => (bs, bitValue)),
-     Pre     => (bs.currentBitPos = 7 and bs.currentBytePos < bs.bitStreamSizeInBytes) or (bs.currentBytePos = bs.bitStreamSizeInBytes and  bs.currentBitPos < 7),
+     Pre     => (bs.currentBitPos = 7 and bs.currentBytePos < bs.bitStreamSizeInBytes) or (bs.currentBytePos <= bs.bitStreamSizeInBytes and  bs.currentBitPos < 7),
      Post    => 
        (bs'Old.currentBitPos < 7 and then (bs.currentBitPos = bs'Old.currentBitPos + 1 and bs.currentBytePos = bs'Old.currentBytePos)) or
        (bs'Old.currentBitPos = 7 and then (bs.currentBitPos = 0 and bs.currentBytePos = bs'Old.currentBytePos + 1)) ;
@@ -73,21 +73,61 @@ package adaasn1rtl with Spark_Mode is
    --BitStream_ReadBit
    procedure BitStream_ReadBit(bs : in out BitStream; bitValue : out BIT; result :    out Boolean) with
      Depends => (bs => (bs), bitValue => bs, result => bs),
-     Pre     => (bs.currentBitPos = 7 and bs.currentBytePos < bs.bitStreamSizeInBytes) or (bs.currentBytePos = bs.bitStreamSizeInBytes and  bs.currentBitPos < 7),
+     Pre     => (bs.currentBitPos = 7 and bs.currentBytePos < bs.bitStreamSizeInBytes) or (bs.currentBytePos <= bs.bitStreamSizeInBytes and  bs.currentBitPos < 7),
      Post    => 
-       (bs'Old.currentBitPos < 7 and then (bs.currentBitPos = bs'Old.currentBitPos + 1 and bs.currentBytePos = bs'Old.currentBytePos)) or
-       (bs'Old.currentBitPos = 7 and then (bs.currentBitPos = 0 and bs.currentBytePos = bs'Old.currentBytePos + 1)) ;
+       result  and (
+                          (bs'Old.currentBitPos < 7 and then (bs.currentBitPos = bs'Old.currentBitPos + 1 and bs.currentBytePos = bs'Old.currentBytePos)) or
+                          (bs'Old.currentBitPos = 7 and then (bs.currentBitPos = 0 and bs.currentBytePos = bs'Old.currentBytePos + 1)) 
+                         );
    
    procedure BitStream_AppendByte(bs : in out BitStream; ByteValue : in Asn1Byte; negate : in Boolean) with
      Depends => (bs => (bs, byteValue, negate)),
-     Pre     => bs.currentBytePos < bs.bitStreamSizeInBytes,
+     Pre     => ((bs.currentBitPos = 0 and bs.currentBytePos <= bs.bitStreamSizeInBytes) or (bs.currentBitPos > 0 and bs.currentBytePos < bs.bitStreamSizeInBytes)) and bs.currentBytePos < Positive'Last,
      Post    => bs.currentBytePos = bs'Old.currentBytePos + 1;     
    
    
    procedure BitStream_DecodeByte(bs : in out BitStream; byteValue : out Asn1Byte; success   :    out Boolean) with
      Depends => (bs => (bs), byteValue => bs, success => bs),
-     Pre     => bs.currentBytePos < bs.bitStreamSizeInBytes,
+     Pre     => (
+                 (bs.currentBitPos = 0 and bs.currentBytePos <= bs.bitStreamSizeInBytes) or 
+                     (bs.currentBitPos > 0 and bs.currentBytePos < bs.bitStreamSizeInBytes)
+                ) and bs.currentBytePos < Positive'Last,
      Post    => bs.currentBytePos = bs'Old.currentBytePos + 1;     
+   
+   
+   
+   procedure BitStream_ReadNibble(bs : in out BitStream; byteValue : out Asn1Byte; success   :    out Boolean) with
+     Depends => (bs => (bs), byteValue => bs, success => bs),
+     Pre     => (bs.currentBitPos >= 4 and bs.currentBytePos < bs.bitStreamSizeInBytes) or (bs.currentBytePos <= bs.bitStreamSizeInBytes and  bs.currentBitPos < 4),
+     Post    => success  and (
+                          (bs'Old.currentBitPos < 4 and then (bs.currentBitPos = bs'Old.currentBitPos + 4 and bs.currentBytePos = bs'Old.currentBytePos)) or
+                          (bs'Old.currentBitPos >= 4 and then (bs.currentBitPos = bs'Old.currentBitPos - 4 and bs.currentBytePos = bs'Old.currentBytePos + 1)) 
+                         );     
+     
+   
+   procedure BitStream_AppendPartialByte(bs : in out BitStream; byteValueIn : in Asn1Byte; nBits : in BIT_RANGE; negate : in Boolean) with
+     Depends => (bs => (bs, byteValueIn, negate, nBits)),
+     Pre     => bs.currentBytePos < Positive'Last 
+               and (
+                    (bs.currentBitPos >= (8-nBits) and bs.currentBytePos < bs.bitStreamSizeInBytes) or 
+                    (bs.currentBytePos <= bs.bitStreamSizeInBytes and  bs.currentBitPos < (8-nBits))
+               ),
+     Post    => 
+               (bs'Old.currentBitPos < (8-nBits) and then (bs.currentBitPos = bs'Old.currentBitPos + nBits and bs.currentBytePos = bs'Old.currentBytePos)) or
+               (bs'Old.currentBitPos >= (8-nBits) and then (bs.currentBitPos = bs'Old.currentBitPos - (8-nBits) and bs.currentBytePos = bs'Old.currentBytePos + 1)) 
+                         ;     
+     
+   
+--     procedure BitStream_Encode_Non_Negative_Integer(bs : in out BitStream; intValue   : in Asn1UInt; nBitsRange : in Integer) with
+--       Depends => (bs => (bs, intValue, nBitsRange)),
+--       Pre     => nBitsRange >= 0 and nBitsRange < Asn1UInt'Size and  
+--                  (
+--                     (bs.currentBitPos >= (8-(nBitsRange mod 8)) and bs.currentBytePos <= bs.bitStreamSizeInBytes - (nBitsRange/8)) or (bs.currentBytePos <= bs.bitStreamSizeInBytes and  bs.currentBitPos < (8-(nBitsRange mod 8)))
+--                  ),
+--       Post    => 
+--                 (bs'Old.currentBitPos < (8-(nBitsRange mod 8)) and then (bs.currentBitPos = bs'Old.currentBitPos + (nBitsRange mod 8) and bs.currentBytePos = bs'Old.currentBytePos + (nBitsRange/8) )) or
+--                 (bs'Old.currentBitPos >= (8-(nBitsRange mod 8)) and then (bs.currentBitPos = bs'Old.currentBitPos - (8-((nBitsRange mod 8))) and bs.currentBytePos = bs'Old.currentBytePos + (nBitsRange/8) + 1)) 
+--     ;
    
    
 
