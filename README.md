@@ -132,15 +132,12 @@ time. The develop-test cycles are therefore as fast as they can be.
 Usage
 =====
 
-The compiler has many features - it is documented in
+The compiler has many features - documented in
 [Chapter 10 of the TASTE manual](http://download.tuxfamily.org/taste/snapshots/doc/taste-documentation-current.pdf),
 and you can see some simple usage examples in a related
 [blog post](https://www.thanassis.space/asn1.html).
 
-You can also read about
-[how the compiler has been used in the TASTE project](http://www.semantix.gr/assert/)
-to target safety-critical systems - and maybe also check out the
-official [TASTE project site](http://taste.tuxfamily.org).
+You can also check out the official [TASTE project site](https://taste.tools).
 
 Credits
 =======
