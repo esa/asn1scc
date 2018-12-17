@@ -17,6 +17,19 @@ package body adaasn1rtl with Spark_Mode is
       return ret;
    end To_UInt;
    
+   function To_Int (IntVal : Asn1UInt) return Asn1Int is
+      ret : Asn1Int;
+      c   : Asn1UInt;
+   begin
+      if IntVal > Asn1UInt (Asn1Int'Last) then
+         c   := not IntVal;
+         ret := -Asn1Int (c) - 1;
+      else
+         ret := Asn1Int (IntVal);
+      end if;
+      return ret;
+   end To_Int;
+   
    
    function Sub (A : in Asn1Int; B : in Asn1Int) return Asn1UInt
    is
@@ -247,6 +260,27 @@ package body adaasn1rtl with Spark_Mode is
       
    end Enc_UInt;
    
+   procedure Dec_UInt (bs : in out BitStream; total_bytes : Integer; Ret: out Asn1UInt; Result :    out Boolean)
+   is
+      ByteVal : Asn1Byte;
+   begin
+      Ret    := 0;
+      Result := total_bytes >= 0 and then 
+                total_bytes <= Asn1UInt'Size/8 and then 
+                bs.Current_Bit_Pos < Natural'Last - total_bytes*8 and then  
+                bs.Size_In_Bytes < Positive'Last/8 and  then
+                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - total_bytes*8;
+      
+      for i in 1 .. total_bytes loop
+         pragma Loop_Invariant (bs.Current_Bit_Pos = bs.Current_Bit_Pos'Loop_Entry + (i-1)*8);
+
+         BitStream_DecodeByte(bs, ByteVal, Result);
+         Ret := (Ret * 256) or Asn1UInt(ByteVal);
+
+      end loop;
+   end Dec_UInt;
+   
+   
    
    
    
@@ -268,10 +302,63 @@ package body adaasn1rtl with Spark_Mode is
    
    
    
+   procedure UPER_Dec_SemiConstraintWholeNumber (bs : in out BitStream; IntVal : out Asn1Int; MinVal : in Asn1Int; Result :    out Boolean)
+   is
+      NBytes : Asn1Byte;
+      Ret : Asn1UInt;
+   begin
+
+      IntVal := MinVal;
+      BitStream_DecodeByte(bs, NBytes, Result) ;
+      if Result and NBytes >= 1 and NBytes <= 8 then
+         Dec_UInt (bs, Integer (NBytes), Ret, Result);
+         IntVal := To_Int (Ret + To_UInt (MinVal));
+         Result := IntVal >= MinVal;
+         if not Result then
+            IntVal := MinVal;
+         end if;
+      else
+         Result := False;
+      end if;
+
+   end UPER_Dec_SemiConstraintWholeNumber;
    
    
-   
-   
+   procedure UPER_Enc_SemiConstraintPosWholeNumber (bs : in out BitStream; IntVal : in Asn1UInt; MinVal : in     Asn1UInt)   
+   is
+      nBytes             : Asn1Byte;
+      ActualEncodedValue : Asn1UInt;
+   begin
+      ActualEncodedValue := IntVal - MinVal;
+
+      nBytes := GetBytes (ActualEncodedValue);
+
+      -- encode length
+      BitStream_AppendByte (bs, nBytes, False);
+      --Encode number
+      Enc_UInt (bs, ActualEncodedValue, Integer(nBytes));
+   end UPER_Enc_SemiConstraintPosWholeNumber;
+
+   procedure UPER_Dec_SemiConstraintPosWholeNumber (bs : in out BitStream; IntVal : out Asn1UInt; MinVal : in     Asn1UInt; Result :    out Boolean) 
+   is
+      NBytes : Asn1Byte;
+      Ret : Asn1UInt;
+   begin
+
+      IntVal := MinVal;
+      pragma Assert(IntVal >= MinVal);
+      BitStream_DecodeByte(bs, NBytes, Result) ;
+      Result := Result and NBytes >= 1 and NBytes <= 8;
+      if Result  then
+         Dec_UInt (bs, Integer (NBytes), Ret, Result);
+         IntVal := Ret + MinVal;
+         pragma Assert(Ret >= 0);
+         pragma Assert(IntVal = Ret + MinVal);
+         pragma Assert(IntVal >= MinVal);
+      end if;
+      pragma Assert(IntVal >= MinVal);
+
+   end UPER_Dec_SemiConstraintPosWholeNumber;
    
    
    
