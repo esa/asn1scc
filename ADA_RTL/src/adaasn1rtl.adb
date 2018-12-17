@@ -76,6 +76,43 @@ package body adaasn1rtl with Spark_Mode is
       return Ret;
    end GetBytes;
    
+   function GetLengthInBytesOfSIntAux (V : Asn1UInt) return Asn1Byte
+   is
+      Ret : Asn1Byte;
+   begin
+      if V < 16#80# then
+         Ret := 1;
+      elsif V < 16#8000# then
+         Ret := 2;
+      elsif V < 16#800000# then
+         Ret := 3;
+      elsif V < 16#80000000# then
+         Ret := 4;
+      elsif V < 16#8000000000# then
+         Ret := 5;
+      elsif V < 16#800000000000# then
+         Ret := 6;
+      elsif V < 16#80000000000000# then
+         Ret := 7;
+      else
+         Ret := 8;
+      end if;
+
+      return Ret;
+   end GetLengthInBytesOfSIntAux;
+
+   function GetLengthInBytesOfSInt (V : Asn1Int) return Asn1Byte
+   is
+      Ret : Asn1Byte;
+   begin
+      if V >= 0 then
+         Ret := GetLengthInBytesOfSIntAux (Asn1UInt (V));
+      else
+         Ret := GetLengthInBytesOfSIntAux (Asn1UInt (-(V + 1)));
+      end if;
+      return Ret;
+   end GetLengthInBytesOfSInt;
+   
    
    
    function BitStream_init (Bitstream_Size_In_Bytes : Positive) return Bitstream
@@ -204,7 +241,6 @@ package body adaasn1rtl with Spark_Mode is
          else
             totalBitsForNextByte := cb+nbits - 8;
             bs.buffer(Current_Byte) := bs.buffer(Current_Byte) or Shift_right(byteValue, totalBitsForNextByte);
-         --bs.currentBytePos := bs.currentBytePos + 1;
             Current_Byte := Current_Byte + 1;
             bs.buffer(Current_Byte) := bs.buffer(Current_Byte) or Shift_left(byteValue, 8 - totalBitsForNextByte);
            
@@ -212,6 +248,27 @@ package body adaasn1rtl with Spark_Mode is
       bs.Current_Bit_Pos := bs.Current_Bit_Pos + nBits;
       
    end;
+   
+   procedure BitStream_ReadPartialByte(bs : in out BitStream; Byte_Value : out Asn1Byte; nBits : in BIT_RANGE)   
+   is
+      Current_Byte :  Integer   := bs.Buffer'First + bs.Current_Bit_Pos / 8;
+      cb  : constant BIT_RANGE := bs.Current_Bit_Pos mod 8;
+      totalBits : BIT_RANGE;
+      totalBitsForNextByte : BIT_RANGE;
+   begin
+         if cb < 8 - nbits then
+            totalBits := cb + nBits;
+            Byte_Value := Shift_Right(bs.buffer(Current_Byte), 8 -totalBits) and MASKSB(nBits);
+         else
+            totalBitsForNextByte := cb+nbits - 8;
+            Byte_Value := Shift_left(bs.buffer(Current_Byte), totalBitsForNextByte);
+            Current_Byte := Current_Byte + 1;
+            Byte_Value := Byte_Value or Shift_right(bs.buffer(Current_Byte), 8 - totalBitsForNextByte);
+            Byte_Value := Byte_Value and MASKSB(nBits);
+      end if;
+      bs.Current_Bit_Pos := bs.Current_Bit_Pos + nBits;
+   end;
+   
    
    procedure BitStream_Encode_Non_Negative_Integer(bs : in out BitStream; intValue   : in Asn1UInt; nBits : in Integer) 
    is
@@ -237,6 +294,35 @@ package body adaasn1rtl with Spark_Mode is
       end if;
 
    end;
+   
+   procedure BitStream_Decode_Non_Negative_Integer (bs : in out BitStream; IntValue : out Asn1UInt; nBits : in Integer;  result : out Boolean)
+   is
+      byteValue : Asn1Byte;
+      total_bytes : constant Integer := nBits/8;
+      cc : constant BIT_RANGE := nBits mod 8;
+   begin
+      result :=
+                nBits >= 0 and then 
+                nBits < Asn1UInt'Size and then 
+                bs.Current_Bit_Pos < Natural'Last - nBits and then  
+                bs.Size_In_Bytes < Positive'Last/8 and  then
+                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - nBits;      
+      IntValue := 0;
+      
+      for i in 1 .. total_bytes loop
+         pragma Loop_Invariant (bs.Current_Bit_Pos = bs.Current_Bit_Pos'Loop_Entry + (i-1)*8);
+
+         BitStream_DecodeByte(bs, byteValue, Result);
+         IntValue := (IntValue * 256) or Asn1UInt(byteValue);
+      end loop;
+      
+      if cc > 0 then
+         BitStream_ReadPartialByte(bs, byteValue, cc);
+         
+         IntValue := Shift_left(IntValue,cc) or Asn1UInt(byteValue);
+      end if;
+      
+   end BitStream_Decode_Non_Negative_Integer;
    
    
 

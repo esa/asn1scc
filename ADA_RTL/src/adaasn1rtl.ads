@@ -67,6 +67,9 @@ package adaasn1rtl with Spark_Mode is
    function GetBytes (V : Asn1UInt) return Asn1Byte with
      Post    => GetBytes'Result >=1 and GetBytes'Result<=8;
    
+   function GetLengthInBytesOfSInt (V : Asn1Int) return Asn1Byte with
+     Post    => GetLengthInBytesOfSInt'Result >=1 and GetLengthInBytesOfSInt'Result<=8;
+   
    --Bit strean functions
    
    function BitStream_init (Bitstream_Size_In_Bytes : Positive) return Bitstream  with
@@ -121,6 +124,12 @@ package adaasn1rtl with Spark_Mode is
                 bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - nBits,
      Post    => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + nBits;
      
+   procedure BitStream_ReadPartialByte(bs : in out BitStream; Byte_Value : out Asn1Byte; nBits : in BIT_RANGE)  with
+     Depends => ((bs,Byte_Value) => (bs, nBits) ),
+     Pre     => bs.Current_Bit_Pos < Natural'Last - nBits and then  
+                bs.Size_In_Bytes < Positive'Last/8 and  then
+                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - nBits,
+     Post    => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + nBits;   
    
    procedure BitStream_Encode_Non_Negative_Integer(bs : in out BitStream; intValue   : in Asn1UInt; nBits : in Integer) with
      Depends => (bs => (bs, intValue, nBits)),
@@ -130,6 +139,15 @@ package adaasn1rtl with Spark_Mode is
                 bs.Size_In_Bytes < Positive'Last/8 and  then
                 bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - nBits,
      Post    => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + nBits;
+   
+   procedure BitStream_Decode_Non_Negative_Integer (bs : in out BitStream; IntValue : out Asn1UInt; nBits : in Integer;  result : out Boolean) with
+     Depends => ((bs,IntValue, result) => (bs, nBits)),
+     Pre     => nBits >= 0 and then 
+                nBits < Asn1UInt'Size and then 
+                bs.Current_Bit_Pos < Natural'Last - nBits and then  
+                bs.Size_In_Bytes < Positive'Last/8 and  then
+                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - nBits,
+     Post    => result and bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + nBits;
    
    procedure Enc_UInt (bs : in out BitStream;  intValue : in     Asn1UInt;  total_bytes : in     Integer) with
      Depends => (bs => (bs, intValue, total_bytes)),
