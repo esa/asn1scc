@@ -134,6 +134,16 @@ package adaasn1rtl with Spark_Mode is
                 bs.Size_In_Bytes < Positive'Last/8 and  then
                 bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - total_bytes*8,
      Post    => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + total_bytes*8;
+
+   
+   --UPER encode functions 
+   procedure UPER_Enc_SemiConstraintWholeNumber(bs : in out BitStream; IntVal : in Asn1Int; MinVal : in     Asn1Int) with
+     Depends => (bs => (bs, IntVal, MinVal)),
+     Pre     => IntVal >= MinVal and then
+                bs.Current_Bit_Pos < Natural'Last - (Asn1UInt'Size + 8) and then  
+                bs.Size_In_Bytes < Positive'Last/8 and  then
+                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - (Asn1UInt'Size + 8),
+     Post    => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + (Asn1UInt'Size + 8);
    
 
 end adaasn1rtl;

@@ -209,7 +209,7 @@ package body adaasn1rtl with Spark_Mode is
       bits_to_shift :Integer;
    begin
       for i in 1 .. total_bytes loop
-         bits_to_shift := nBits - (total_bytes- (i - 1))*8;
+         bits_to_shift := (total_bytes- i)*8 + cc;
          tmp := 16#FF# and Shift_right(intValue, bits_to_shift);
          byteValue := Asn1Byte (tmp);
 
@@ -235,7 +235,7 @@ package body adaasn1rtl with Spark_Mode is
    begin
 
       for i in 1 .. total_bytes loop
-         bits_to_shift := total_bytes*8 - (total_bytes-i + 1)*8;
+         bits_to_shift := (total_bytes- i)*8;
          tmp := 16#FF# and Shift_right(intValue, bits_to_shift);
          byteValue := Asn1Byte (tmp);
 
@@ -251,10 +251,7 @@ package body adaasn1rtl with Spark_Mode is
    
    
    -- UPER FUNCTIONS
-   procedure UPER_Enc_SemiConstraintWholeNumber
-     (bs : in out BitStream;
-      IntVal : in     Asn1Int;
-      MinVal : in     Asn1Int)
+   procedure UPER_Enc_SemiConstraintWholeNumber(bs : in out BitStream; IntVal : in Asn1Int; MinVal : in     Asn1Int)
    is
       nBytes             : Asn1Byte;
       ActualEncodedValue : Asn1UInt;
