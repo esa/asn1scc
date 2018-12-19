@@ -4,6 +4,7 @@ package body adaasn1rtl with Spark_Mode is
    MASKS  : constant OctetBuffer_0_7 := OctetBuffer_0_7'(0 => 16#80#, 1=> 16#40#, 2=>16#20#, 3=>16#10#, 4=>16#08#, 5=>16#04#, 6=>16#02#, 7=>16#01#);
    MASKSB : constant OctetBuffer_0_7 := OctetBuffer_0_7'(0 => 16#00#, 1=> 16#01#, 2=>16#03#, 3=>16#07#, 4=>16#1F#, 5=>16#3F#, 6=>16#7F#, 7=>16#FF#);
    
+   MantissaFactor : constant Asn1Real :=  Asn1Real (Interfaces.Unsigned_64 (2)**Asn1Real'Machine_Mantissa);
    
    function To_UInt (IntVal : Asn1Int) return Asn1UInt is
       ret : Asn1UInt;
@@ -361,16 +362,86 @@ package body adaasn1rtl with Spark_Mode is
          pragma Loop_Invariant (bs.Current_Bit_Pos = bs.Current_Bit_Pos'Loop_Entry + (i-1)*8);
 
          BitStream_DecodeByte(bs, ByteVal, Result);
+         Ret := Ret * 256; --shift left one byte
+         Ret := Ret + Asn1UInt(ByteVal);
+
+      end loop;
+
+   end Dec_UInt;
+   
+
+   
+   procedure Dec_Int (bs : in out BitStream; total_bytes : Integer; int_value: out Asn1Int; Result :    out Boolean)
+   is
+      Current_Byte : constant Integer   := bs.Buffer'First + bs.Current_Bit_Pos / 8;
+      Current_Bit  : constant BIT_RANGE := bs.Current_Bit_Pos mod 8;
+      ByteVal : Asn1Byte;
+      Ret:  Asn1UInt;
+   begin
+      Result := total_bytes >= 0 and then 
+                total_bytes <= Asn1UInt'Size/8 and then 
+                bs.Current_Bit_Pos < Natural'Last - total_bytes*8 and then  
+                bs.Size_In_Bytes < Positive'Last/8 and  then
+                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - total_bytes*8;
+      
+      if (bs.buffer(Current_Byte) and MASKS(Current_Bit)) > 0 then
+         Ret := 0;
+      else
+         Ret := Asn1UInt'Last;
+      end if;
+      
+      for i in 1 .. total_bytes loop
+         pragma Loop_Invariant (bs.Current_Bit_Pos = bs.Current_Bit_Pos'Loop_Entry + (i-1)*8);
+
+         BitStream_DecodeByte(bs, ByteVal, Result);
          Ret := (Ret * 256) or Asn1UInt(ByteVal);
 
       end loop;
-   end Dec_UInt;
+      int_value := To_Int(Ret);
+   end Dec_Int;
    
    
    
+   function GetExponent (V : Asn1Real) return Asn1Int is
+      pragma SPARK_Mode (Off);
+   --due to the fact that Examiner has not yet implement the Exponent attribute
+   begin
+      return Asn1Int (Asn1Real'Exponent (V) - Asn1Real'Machine_Mantissa);
+   end GetExponent;
+
+   function GetMantissa (V : Asn1Real) return Asn1UInt is
+      pragma SPARK_Mode (Off);
+   --due to the fact that Examiner has not yet implement the Fraction attribute
+   begin
+      return Asn1UInt (Asn1Real'Fraction (V) * MantissaFactor);
+   end GetMantissa;
    
    
    
+   function Zero return Asn1Real is
+   begin
+      return 0.0;
+   end Zero;
+
+   function PLUS_INFINITY return Asn1Real is
+      pragma SPARK_Mode (Off);
+   begin
+      return 1.0 / Zero;
+   end PLUS_INFINITY;
+
+   function MINUS_INFINITY return Asn1Real is
+      pragma SPARK_Mode (Off);
+   begin
+      return -1.0 / Zero;
+   end MINUS_INFINITY;
    
+   function RequiresReverse (dummy : Boolean) return Boolean is
+      pragma SPARK_Mode (Off);
+      dword : Integer := 16#00000001#;
+      arr   : aliased OctetArray4;
+      for arr'Address use dword'Address;
+   begin
+      return arr (arr'First) = 1;
+   end RequiresReverse;   
    
 end adaasn1rtl;

@@ -3,6 +3,9 @@ use Interfaces;
 
 package adaasn1rtl with Spark_Mode is
 
+   ERR_END_OF_STREAM        : constant Integer := 1001;
+   ERR_UNSUPPORTED_ENCODING : constant Integer := 1002;  --  Returned when the uPER encoding for REALs is not binary encoding
+   
 
    --basic asn1scc type definitions
    type BIT is mod 2**1;
@@ -47,6 +50,7 @@ package adaasn1rtl with Spark_Mode is
    
    
    type OctetBuffer is array (Natural range <>) of Asn1Byte;
+   subtype OctetArray4 is OctetBuffer (1 .. 4);
    
    subtype OctetBuffer_0_7 is OctetBuffer (BIT_RANGE);
       
@@ -69,6 +73,15 @@ package adaasn1rtl with Spark_Mode is
    
    function GetLengthInBytesOfSInt (V : Asn1Int) return Asn1Byte with
      Post    => GetLengthInBytesOfSInt'Result >=1 and GetLengthInBytesOfSInt'Result<=8;
+   
+   
+   function PLUS_INFINITY return Asn1Real;
+   function MINUS_INFINITY return Asn1Real;
+
+   function GetExponent (V : Asn1Real) return Asn1Int;
+   function GetMantissa (V : Asn1Real) return Asn1UInt;
+   function RequiresReverse (dummy : Boolean) return Boolean;
+   
    
    --Bit strean functions
    
@@ -157,6 +170,8 @@ package adaasn1rtl with Spark_Mode is
                 bs.Size_In_Bytes < Positive'Last/8 and  then
                 bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - total_bytes*8,
      Post    => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + total_bytes*8;
+   
+   
 
    procedure Dec_UInt (bs : in out BitStream; total_bytes : Integer; Ret: out Asn1UInt; Result :    out Boolean)  with
      Depends => (Ret => (bs,total_bytes), Result => (bs,total_bytes),  bs => (bs, total_bytes)),
@@ -165,8 +180,18 @@ package adaasn1rtl with Spark_Mode is
                 bs.Current_Bit_Pos < Natural'Last - total_bytes*8 and then  
                 bs.Size_In_Bytes < Positive'Last/8 and  then
                 bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - total_bytes*8,
-     Post    => Result and bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + total_bytes*8;
+     Post    => Result and bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + total_bytes*8
+                and Ret >= 0 and Ret < 256**total_bytes;
 
    
+   procedure Dec_Int (bs : in out BitStream; total_bytes : Integer; int_value: out Asn1Int; Result :    out Boolean)  with
+     Depends => (int_value => (bs,total_bytes), Result => (bs,total_bytes),  bs => (bs, total_bytes)),
+     Pre     => total_bytes >= 0 and then 
+                total_bytes <= Asn1UInt'Size/8 and then 
+                bs.Current_Bit_Pos < Natural'Last - total_bytes*8 and then  
+                bs.Size_In_Bytes < Positive'Last/8 and  then
+                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - total_bytes*8,
+     Post    => Result and bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + total_bytes*8;
+
 
 end adaasn1rtl;

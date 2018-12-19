@@ -5,6 +5,21 @@ use adaasn1rtl;
 
 
 package uper_asn1_rtl with Spark_Mode is
+   
+   procedure UPER_Enc_Boolean (bs : in out BitStream; Val : in  Asn1Boolean) with
+     Depends => (bs => (bs, Val)),
+     Pre     => bs.Current_Bit_Pos < Natural'Last and then  
+                bs.Size_In_Bytes < Positive'Last/8 and  then
+                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8,
+     Post    => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 1;
+
+   procedure UPER_Dec_boolean (bs : in out BitStream; val: out Asn1Boolean; result : out Boolean) with
+     Depends => (bs => (bs), val => bs, result => bs),
+     Pre     => bs.Current_Bit_Pos < Natural'Last and then  
+                bs.Size_In_Bytes < Positive'Last/8 and then
+                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8,
+     Post    => result  and bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 1;
+   
 
    --UPER encode functions 
    procedure UPER_Enc_SemiConstraintWholeNumber (bs : in out BitStream; IntVal : in Asn1Int; MinVal : in     Asn1Int) with
@@ -108,4 +123,41 @@ package uper_asn1_rtl with Spark_Mode is
      Post    => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + (Asn1UInt'Size + 8);  
 
 
+   procedure UPER_Dec_UnConstraintWholeNumber (bs : in out BitStream; IntVal :    out Asn1Int; Result :    out Boolean) with
+     Depends => ((IntVal, bs, Result) => bs),
+     Pre     => bs.Current_Bit_Pos < Natural'Last - (Asn1UInt'Size + 8) and then  
+                bs.Size_In_Bytes < Positive'Last/8 and  then
+                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - (Asn1UInt'Size + 8),
+     Post    => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + (Asn1UInt'Size + 8);  
+   
+   procedure UPER_Dec_UnConstraintWholeNumberMax (bs : in out BitStream; IntVal : out Asn1Int;  MaxVal : in Asn1Int; Result : out Boolean) with
+     Depends => ((IntVal, bs, Result) => (bs, MaxVal)),
+     Pre     => bs.Current_Bit_Pos < Natural'Last - (Asn1UInt'Size + 8) and then  
+                bs.Size_In_Bytes < Positive'Last/8 and  then
+                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - (Asn1UInt'Size + 8),
+     Post    => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + (Asn1UInt'Size + 8);  
+   
+   -- REAL FUNCTIONS
+   
+   function CalcReal (Factor : Asn1UInt; N : Asn1UInt; base : Integer;Exp : Integer) return Asn1Real 
+   with
+       Pre => 
+         (Factor = 1 or Factor=2 or Factor=4 or Factor=8) and then
+         (base = 2 or base = 8 or base = 16);
+   
+   procedure UPER_Enc_Real (bs : in out BitStream;  RealVal : in     Asn1Real) with
+     Depends => (bs => (bs, RealVal)),
+     Pre     => bs.Current_Bit_Pos < Natural'Last - (Asn1UInt'Size + 40) and then  
+                bs.Size_In_Bytes < Positive'Last/8 and  then
+                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - (Asn1UInt'Size + 40),
+     Post    => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + (Asn1UInt'Size + 40);  
+   
+   procedure UPER_Dec_Real (bs : in out BitStream; RealVal : out Asn1Real; Result  : out ASN1_RESULT) with
+     Depends => ((bs, RealVal, Result) => (bs)),
+     Pre     => bs.Current_Bit_Pos < Natural'Last - (Asn1UInt'Size + 40) and then  
+                bs.Size_In_Bytes < Positive'Last/8 and  then
+                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - (Asn1UInt'Size + 40),
+     Post    => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + (Asn1UInt'Size + 40);  
+   
+     
 end uper_asn1_rtl;
