@@ -366,6 +366,8 @@ package body adaasn1rtl with Spark_Mode is
          Ret := Ret + Asn1UInt(ByteVal);
 
       end loop;
+      
+      pragma Assume( Ret < 256**total_bytes);
 
    end Dec_UInt;
    
