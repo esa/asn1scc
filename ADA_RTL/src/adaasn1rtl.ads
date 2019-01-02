@@ -64,7 +64,7 @@ package adaasn1rtl with Spark_Mode is
    
    function To_Int (IntVal : Asn1UInt) return Asn1Int;
    
-   
+     
    function Sub (A : in Asn1Int; B : in Asn1Int) return Asn1UInt with
      Pre  => A >= B;
    
@@ -82,6 +82,17 @@ package adaasn1rtl with Spark_Mode is
    function GetMantissa (V : Asn1Real) return Asn1UInt;
    function RequiresReverse (dummy : Boolean) return Boolean;
    
+   
+   
+   function GetZeroBasedCharIndex (CharToSearch   :    Character;   AllowedCharSet : in String) return Integer 
+     with
+      Pre => AllowedCharSet'First <= AllowedCharSet'Last and
+      AllowedCharSet'Last <= Integer'Last - 1,
+      Post =>
+       (GetZeroBasedCharIndex'Result >= 0 and   GetZeroBasedCharIndex'Result <=  AllowedCharSet'Last - AllowedCharSet'First);
+
+   function CharacterPos (C : Character) return Integer with
+      Post => (CharacterPos'Result >= 0 and CharacterPos'Result <= 127);
    
    --Bit strean functions
    
