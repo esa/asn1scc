@@ -1,7 +1,5 @@
-with Interfaces; 
-use Interfaces;
---with uper_asn1_rtl;
---use uper_asn1_rtl;
+with uper_asn1_rtl;
+use uper_asn1_rtl;
 
 package body acn_asn1_rtl with Spark_Mode is
 
@@ -14,7 +12,7 @@ package body acn_asn1_rtl with Spark_Mode is
    procedure Acn_Enc_Int_PositiveInteger_ConstSize_8(bs : in out BitStream; IntVal : in     Asn1UInt)
    is
    begin
-      BitStream_AppendByte(bs, Asn1Byte(IntVal and 16#FF#) , false);
+      BitStream_AppendByte(bs, Asn1Byte(IntVal) , false);
    end Acn_Enc_Int_PositiveInteger_ConstSize_8;
 
    procedure Acn_Enc_Int_PositiveInteger_ConstSize_big_endian_16 (bs : in out BitStream; IntVal : in     Asn1UInt)
@@ -74,6 +72,45 @@ package body acn_asn1_rtl with Spark_Mode is
    begin
       Acn_Enc_Int_PositiveInteger_ConstSize_little_endian_N(bs, IntVal, 8);
    end Acn_Enc_Int_PositiveInteger_ConstSize_little_endian_64;
+   
+   procedure Acn_Enc_Int_PositiveInteger_VarSize_LengthEmbedded  (bs : in out BitStream;  IntVal : in     Asn1UInt)
+   is
+   begin
+      UPER_Enc_SemiConstraintPosWholeNumber (bs, IntVal, 0);
+   end Acn_Enc_Int_PositiveInteger_VarSize_LengthEmbedded;
+   
+   procedure Acn_Enc_Int_TwosComplement_ConstSize (bs : in out BitStream; IntVal : in Asn1Int; sizeInBits   : in  Natural)
+   is
+   begin
+      BitStream_Encode_Non_Negative_Integer (bs, To_UInt (IntVal), sizeInBits);
+   end Acn_Enc_Int_TwosComplement_ConstSize;
+   
+
+   procedure Acn_Enc_Int_TwosComplement_ConstSize_8(bs : in out BitStream; IntVal : in     Asn1Int)
+   is
+   begin
+      --Acn_Enc_Int_TwosComplement_ConstSize (bs, IntVal, 8);
+      BitStream_AppendByte(bs, Asn1Byte(To_UInt(IntVal) and 16#FF#) , false);
+   end Acn_Enc_Int_TwosComplement_ConstSize_8;
+   
+   
+   procedure Acn_Enc_Int_TwosComplement_ConstSize_big_endian_16 (bs : in out BitStream; IntVal : in     Asn1Int)
+   is
+   begin
+      Enc_UInt (bs, To_UInt(IntVal), 2);
+   end Acn_Enc_Int_TwosComplement_ConstSize_big_endian_16;
+
+   procedure Acn_Enc_Int_TwosComplement_ConstSize_big_endian_32 (bs : in out BitStream; IntVal : in     Asn1Int)
+   is
+   begin
+      Enc_UInt (bs, To_UInt(IntVal), 4);
+   end Acn_Enc_Int_TwosComplement_ConstSize_big_endian_32;
+
+   procedure Acn_Enc_Int_TwosComplement_ConstSize_big_endian_64 (bs : in out BitStream; IntVal : in     Asn1Int)
+   is
+   begin
+      Enc_UInt (bs, To_UInt(IntVal), 8);
+   end Acn_Enc_Int_TwosComplement_ConstSize_big_endian_64;
    
 
 end acn_asn1_rtl;
