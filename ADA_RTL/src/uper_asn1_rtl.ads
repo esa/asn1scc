@@ -6,6 +6,9 @@ use adaasn1rtl;
 
 package uper_asn1_rtl with Spark_Mode is
    
+   subtype OctetArray1K is OctetBuffer (1 .. 1024);
+   
+   
    procedure UPER_Enc_Boolean (bs : in out BitStream; Val : in  Asn1Boolean) with
      Depends => (bs => (bs, Val)),
      Pre     => bs.Current_Bit_Pos < Natural'Last and then  
@@ -73,7 +76,7 @@ package uper_asn1_rtl with Spark_Mode is
    
    procedure UPER_Dec_ConstraintWholeNumber (bs : in out BitStream; IntVal : out Asn1Int; MinVal : in Asn1Int; MaxVal : in Asn1Int; nBits : in Integer; Result : out Boolean) with
      Depends => ((bs, IntVal, Result) => (bs, MinVal, MaxVal, nBits)),
-     Pre     => MinVal >= MaxVal and then
+     Pre     => MinVal <= MaxVal and then
                 nBits >= 0 and then nBits < Asn1UInt'Size and then 
                 bs.Current_Bit_Pos < Natural'Last - nBits and then  
                 bs.Size_In_Bytes < Positive'Last/8 and  then
@@ -86,7 +89,7 @@ package uper_asn1_rtl with Spark_Mode is
    
    procedure UPER_Dec_ConstraintPosWholeNumber (bs : in out BitStream; IntVal : out Asn1UInt; MinVal : in Asn1UInt; MaxVal : in Asn1UInt; nBits : in Integer; Result : out Boolean) with
      Depends => ((bs, IntVal, Result) => (bs, MinVal, MaxVal, nBits)),
-     Pre     => MinVal >= MaxVal and then
+     Pre     => MinVal <= MaxVal and then
                 nBits >= 0 and then nBits < Asn1UInt'Size and then 
                 bs.Current_Bit_Pos < Natural'Last - nBits and then  
                 bs.Size_In_Bytes < Positive'Last/8 and  then
@@ -104,7 +107,7 @@ package uper_asn1_rtl with Spark_Mode is
       nBits : in     Integer;
       Result      :    out Boolean) with
      Depends => ((bs, IntVal, Result) => (bs, MinVal, MaxVal, nBits)),
-     Pre     => MinVal >= MaxVal and then
+     Pre     => MinVal <= MaxVal and then
                 nBits >= 0 and then nBits < Asn1UInt'Size and then 
                 bs.Current_Bit_Pos < Natural'Last - nBits and then  
                 bs.Size_In_Bytes < Positive'Last/8 and  then
@@ -159,5 +162,48 @@ package uper_asn1_rtl with Spark_Mode is
                 bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - (Asn1UInt'Size + 40),
      Post    => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + (Asn1UInt'Size + 40);  
    
+
+   
+   
+   procedure ObjectIdentifier_uper_encode(bs : in out BitStream; val : Asn1ObjectIdentifier) with
+     Depends => (bs => (bs, val)),
+     Pre     => bs.Current_Bit_Pos < Natural'Last - (16 + 8*OBJECT_IDENTIFIER_MAX_LENGTH * OctetBuffer_16'Last) and then  
+                bs.Size_In_Bytes < Positive'Last/8 and  then
+                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - (16 + 8*OBJECT_IDENTIFIER_MAX_LENGTH * OctetBuffer_16'Last),
+     Post    => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + (16 + 8*OBJECT_IDENTIFIER_MAX_LENGTH * OctetBuffer_16'Last)  
+   ;
+  
+   procedure RelativeOID_uper_encode(bs : in out BitStream; val : Asn1ObjectIdentifier) with
+     Depends => (bs => (bs, val)),
+     Pre     => bs.Current_Bit_Pos < Natural'Last - (16 + 8*OBJECT_IDENTIFIER_MAX_LENGTH * OctetBuffer_16'Last) and then  
+                bs.Size_In_Bytes < Positive'Last/8 and  then
+                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - (16 + 8*OBJECT_IDENTIFIER_MAX_LENGTH * OctetBuffer_16'Last),
+     Post    => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + (16 + 8*OBJECT_IDENTIFIER_MAX_LENGTH * OctetBuffer_16'Last)  
+   ;
+   
+   
+   
+   
+   procedure ObjectIdentifier_uper_decode(bs : in out BitStream;  val :    out Asn1ObjectIdentifier;  Result  :    out ASN1_RESULT) with
+     Depends => ((bs, val, Result) => (bs)),
+     Pre     => bs.Current_Bit_Pos < Natural'Last - (16 + 8*OBJECT_IDENTIFIER_MAX_LENGTH * OctetBuffer_16'Last) and then  
+                bs.Size_In_Bytes < Positive'Last/8 and  then
+                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - (16 + 8*OBJECT_IDENTIFIER_MAX_LENGTH * OctetBuffer_16'Last),
+     Post    => 
+       bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + (16 + 8*OBJECT_IDENTIFIER_MAX_LENGTH * OctetBuffer_16'Last)  
+       and 
+       bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos ;
+   
+   procedure RelativeOID_uper_decode(bs : in out BitStream;  val :    out Asn1ObjectIdentifier;  Result  :    out ASN1_RESULT) with
+     Depends => ((bs, val, Result) => (bs)),
+     Pre     => bs.Current_Bit_Pos < Natural'Last - (16 + 8*OBJECT_IDENTIFIER_MAX_LENGTH * OctetBuffer_16'Last) and then  
+                bs.Size_In_Bytes < Positive'Last/8 and  then
+                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - (16 + 8*OBJECT_IDENTIFIER_MAX_LENGTH * OctetBuffer_16'Last),
+     Post    => 
+       bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + (16 + 8*OBJECT_IDENTIFIER_MAX_LENGTH * OctetBuffer_16'Last)  
+       and 
+       bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos 
+   ;
      
+   
 end uper_asn1_rtl;

@@ -123,8 +123,7 @@ package body adaasn1rtl with Spark_Mode is
       ret := 0;
       for I in Integer range AllowedCharSet'Range loop
          ret := I - AllowedCharSet'First;
-         pragma Loop_Invariant  ( I >= AllowedCharSet'First and
-            I <= AllowedCharSet'Last and
+         pragma Loop_Invariant  ( 
             AllowedCharSet'Last >= AllowedCharSet'First and
             AllowedCharSet'Last <= Integer'Last - 1 and
             ret = I - AllowedCharSet'First);
@@ -186,6 +185,45 @@ package body adaasn1rtl with Spark_Mode is
    begin
       return arr (arr'First) = 1;
    end RequiresReverse;   
+   
+   
+   
+    procedure ObjectIdentifier_Init(val:out Asn1ObjectIdentifier)
+    is
+    begin
+        val.Length :=0;
+        val.values := ObjectIdentifier_array'(others => 0);
+    end ObjectIdentifier_Init;
+
+
+    function ObjectIdentifier_isValid(val : in Asn1ObjectIdentifier) return boolean
+    is
+    begin
+        return val.Length >=2 and then val.values(1)<=2 and then val.values(2)<=39;
+    end ObjectIdentifier_isValid;
+
+    function RelativeOID_isValid(val : in Asn1ObjectIdentifier) return boolean
+    is
+    begin
+        return val.Length > 0;
+    end RelativeOID_isValid;
+
+    function ObjectIdentifier_equal(val1 : in Asn1ObjectIdentifier; val2 : in Asn1ObjectIdentifier) return boolean
+    is
+        ret : boolean;
+        i : integer;
+    begin
+        ret := val1.Length = val2.length;
+        i := 1;
+        while ret and i <= val1.Length loop
+            pragma Loop_Invariant(i>=1 and i <= val1.Length and val1.Length = val2.length);
+            ret := val1.values(i) = val2.values(i);
+            i := i + 1;
+        end loop;
+
+        return ret;
+    end ObjectIdentifier_equal;
+   
    
    
    function BitStream_init (Bitstream_Size_In_Bytes : Positive) return Bitstream
@@ -475,6 +513,8 @@ package body adaasn1rtl with Spark_Mode is
    end Dec_Int;
    
    
+   
+
    
    
    

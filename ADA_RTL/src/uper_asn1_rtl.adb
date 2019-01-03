@@ -1,4 +1,3 @@
- 
 package body uper_asn1_rtl with Spark_Mode  is
 
    -- UPER FUNCTIONS
@@ -392,7 +391,243 @@ package body uper_asn1_rtl with Spark_Mode  is
       end if;
    end UPER_Dec_Real;
    
+
    
+   
+
+
+
+   procedure ObjectIdentifier_uper_decode_length(bs : in out BitStream; length : out integer; result  :    out ASN1_RESULT)
+   with
+     Depends => ((bs, length, result) => (bs)),
+       Pre     => 
+                bs.Current_Bit_Pos < Natural'Last - 16 and then  
+                bs.Size_In_Bytes < Positive'Last/8 and  then
+                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - 16,
+     Post    => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + 16    
+    is
+        len2:Integer;
+    begin
+        result := ASN1_RESULT'(ErrorCode => 0,Success => true);
+        UPER_Dec_ConstraintWholeNumberInt(bs, length, 0, 255, 8, result.Success);
+        if result.Success then
+            if length > 16#80# then
+                length := (length - 16#80#) * 16#100#;
+                UPER_Dec_ConstraintWholeNumberInt(bs, len2, 0, 255, 8, result.Success);
+                if result.Success THEN
+                    length := length + len2;
+                end if;
+            end if;
+        end if;
+    end ObjectIdentifier_uper_decode_length;
+
+
+   
+--  Each subidentifier is represented as a series of (one or more) octets. 
+--      Bit 8 of each octet indicates whether it is the last in the series:  bit 8 of the last octet is zero; bit 8 of each preceding octet is one. 
+--      Bits 7 to 1 of the octets in the series collectively encode the subidentifier. Conceptually, these groups of bits are concatenated to form 
+--      an unsigned binary number whose most significant bit is bit 7 of the first octet and whose least significant bit is bit 1 of the last octet. 
+--      The subidentifier shall be encoded in the fewest possible octets, that is, the leading octet of the subidentifier shall not have the value 8016.
+
+    procedure ObjectIdentifier_subidentifiers_uper_encode(encodingBuf:in out OctetArray1K; curSize : in out integer; siValue0 : in Asn1UInt) with
+     Depends => (curSize => (curSize, siValue0), encodingBuf => (encodingBuf, curSize, siValue0)),
+     Pre     => curSize>=OctetArray1K'First - 1 and curSize < OctetArray1K'Last - OctetBuffer_16'Last,
+     Post    => curSize >= curSize'Old + 1 and curSize<= curSize'Old + OctetBuffer_16'Last and curSize<= OctetArray1K'Last
+    is
+        lastOctet : boolean := FALSE;
+        tmp : OctetBuffer_16 := OctetBuffer_16'(others => 0);
+        nSize : integer:= 0;
+        curByte : Asn1Byte;
+        siValue : Asn1UInt := siValue0;
+    begin
+        while not lastOctet and nSize < OctetBuffer_16'Last loop
+            pragma Loop_Invariant(nSize >= 0 and nSize < OctetBuffer_16'Last);
+            curByte := Asn1Byte(siValue mod 128);
+            siValue := siValue / 128;
+            lastOctet := (siValue = 0);
+            tmp(OctetBuffer_16'First + nSize) := curByte;
+            nSize := nSize + 1;
+        end loop;
+
+        pragma Assert(nSize>=1);
+        pragma Assert(nSize <= OctetBuffer_16'Last);
+
+        for i in Integer range 1 .. nSize loop
+            pragma Loop_Invariant (
+                                nSize <= OctetBuffer_16'Last and 
+                                nSize - i + 1 >= OctetBuffer_16'First and 
+                                nSize - i + 1 <= OctetBuffer_16'Last and
+                                curSize + i >=OctetArray1K'First and
+                                curSize + i  < OctetArray1K'Last 
+                                );        
+            curByte := (if i = nSize then tmp(1) else tmp(nSize - i + 1) or 16#80#);
+            --curSize := curSize + 1;
+            encodingBuf(curSize + i) := curByte;
+        end loop;
+        curSize := curSize + nSize;
+
+
+    end ObjectIdentifier_subidentifiers_uper_encode;
+   
+   
+    procedure ObjectIdentifier_subidentifiers_uper_decode (bs : in out BitStream; remainingOctets : in out Integer; siValue : out Asn1UInt; Result  :    out ASN1_RESULT) with
+     Depends => ((remainingOctets,bs) => (remainingOctets, bs), (siValue, Result) => (remainingOctets, bs)),
+     Pre     => 
+                remainingOctets > 0 and then
+                bs.Current_Bit_Pos < Natural'Last - (8*OctetBuffer_16'Last) and then  
+                bs.Size_In_Bytes < Positive'Last/8 and  then
+                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - (8*OctetBuffer_16'Last),
+     Post    => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + (8*OctetBuffer_16'Last) 
+                and remainingOctets <= remainingOctets'Old and remainingOctets >= remainingOctets'Old - OctetBuffer_16'Last  
+    is
+    	curByte : Asn1Byte;
+	bLastOctet : boolean  := false;
+      curOctetValue : Asn1UInt := 0;
+      i : Integer := 1;
+    begin
+        siValue := 0;
+        Result := ASN1_RESULT'(Success => true,ErrorCode => 0);
+
+        while Result.Success and remainingOctets > 0 and not bLastOctet and bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - 8  and  i <= OctetBuffer_16'Last loop
+            curByte := 0;
+            pragma Loop_Invariant (i>=1 and i <= OctetBuffer_16'Last and remainingOctets > 0 
+                                and bs.Current_Bit_Pos = bs.Current_Bit_Pos'Loop_Entry + (i-1)*8 and 
+                                  remainingOctets = remainingOctets'Loop_Entry - (i-1));
+            BitStream_DecodeByte (bs, curByte, Result.Success);
+            
+            remainingOctets := remainingOctets - 1;
+            bLastOctet := (curByte and 16#80#) = 0;
+            curOctetValue := Asn1UInt(curByte and 16#7F#);
+            siValue := Shift_Left(siValue, 7);
+
+	    siValue := siValue or curOctetValue;
+            i:=i+1; 
+
+        end loop;
+
+
+    end ObjectIdentifier_subidentifiers_uper_decode;
+
+
+    procedure ObjectIdentifier_uper_encode(bs : in out BitStream; val : Asn1ObjectIdentifier)
+    is
+        tmp : OctetArray1K := OctetArray1K'(others => 0);
+        totalSize : integer := 0;
+    begin
+        ObjectIdentifier_subidentifiers_uper_encode(tmp, totalSize, val.values(1)*40 + val.values(2));
+        pragma Assert(totalSize >= 1 and totalSize <= OctetBuffer_16'Last);
+      
+        for i in integer range 3 .. val.Length loop
+         pragma Loop_Invariant(
+                               val.Length <= OBJECT_IDENTIFIER_MAX_LENGTH and
+                               totalSize >= 1 and totalSize <=  totalSize'Loop_Entry + (i-3)*OctetBuffer_16'Last);
+            ObjectIdentifier_subidentifiers_uper_encode(tmp, totalSize, val.values(i));
+        end loop;
+
+      pragma Assert(totalSize <= OctetBuffer_16'Last*OBJECT_IDENTIFIER_MAX_LENGTH);
+      
+
+        --encode length determinant
+        if totalSize <= 16#7F# then
+            UPER_Enc_ConstraintWholeNumber(bs, Asn1Int(totalSize), 0, 8);
+        else
+            BitStream_AppendBit(bs, 1);
+            UPER_Enc_ConstraintWholeNumber(bs, Asn1Int(totalSize), 0, 15);
+        end if;
+      
+
+
+        --encode contents
+        for i in integer range 1 .. totalSize loop
+            pragma Loop_Invariant(bs.Current_Bit_Pos = bs.Current_Bit_Pos'Loop_Entry + (i-1)*8);
+            BitStream_AppendByte(bs , tmp(i), false);
+        end loop;
+
+    end ObjectIdentifier_uper_encode;
+
+   
+   
+    procedure ObjectIdentifier_uper_decode
+     (bs : in out BitStream;
+      val :    out Asn1ObjectIdentifier;
+      Result  :    out ASN1_RESULT)
+    is
+      totalSize : Integer;
+      si : Asn1UInt;
+      
+    begin
+      ObjectIdentifier_Init(val);
+      
+         ObjectIdentifier_uper_decode_length (bs, totalSize, Result);
+      
+        if Result.Success and totalSize > 0 then
+            ObjectIdentifier_subidentifiers_uper_decode(bs, totalSize, si, Result);
+            if result.Success then
+                val.Length := 2;
+                val.values(1) := si/40;
+                val.values(2) := si mod 40;
+
+                while Result.Success and totalSize > 0  and val.Length < OBJECT_IDENTIFIER_MAX_LENGTH loop
+                    pragma Loop_Invariant (bs.Current_Bit_Pos >= bs.Current_Bit_Pos'Loop_Entry and bs.Current_Bit_Pos <= bs.Current_Bit_Pos'Loop_Entry + (val.Length - val.Length'Loop_Entry)*8*OctetBuffer_16'Last ); 
+                    ObjectIdentifier_subidentifiers_uper_decode(bs, totalSize, si, Result);
+                    val.Length := val.Length + 1;
+                    val.values(val.Length) := si;
+                end loop;
+                result.Success := result.Success and totalSize = 0;
+
+            end if;
+        end if;
+    end ObjectIdentifier_uper_decode;
+
+    procedure RelativeOID_uper_encode(bs : in out BitStream; val : Asn1ObjectIdentifier)
+    is
+        tmp : OctetArray1K := OctetArray1K'(others => 0);
+        totalSize : integer := 0;
+    begin
+        for i in integer range 1 .. val.Length loop
+         pragma Loop_Invariant(
+                               val.Length <= OBJECT_IDENTIFIER_MAX_LENGTH and
+                               totalSize >= 0 and totalSize <=  totalSize'Loop_Entry + (i-1)*OctetBuffer_16'Last);
+            ObjectIdentifier_subidentifiers_uper_encode(tmp, totalSize, val.values(i));
+        end loop;
+      pragma Assert(totalSize <= OctetBuffer_16'Last*OBJECT_IDENTIFIER_MAX_LENGTH);
+
+        --encode length determinant
+        if totalSize <= 16#7F# then
+            UPER_Enc_ConstraintWholeNumber(bs, Asn1Int(totalSize), 0, 8);
+        else
+            BitStream_AppendBit(bs, 1);
+            UPER_Enc_ConstraintWholeNumber(bs, Asn1Int(totalSize), 0, 15);
+        end if;
+
+        --encode contents
+        for i in integer range 1 .. totalSize loop
+            pragma Loop_Invariant(bs.Current_Bit_Pos = bs.Current_Bit_Pos'Loop_Entry + (i-1)*8);
+            BitStream_AppendByte(bs , tmp(i), false);
+        end loop;
+
+    end RelativeOID_uper_encode;
+
+    procedure RelativeOID_uper_decode
+     (bs : in out BitStream;
+      val :    out Asn1ObjectIdentifier;
+      Result  :    out ASN1_RESULT)
+    is
+        totalSize : Integer;
+        si : Asn1UInt;
+    begin
+        ObjectIdentifier_Init(val);
+        ObjectIdentifier_uper_decode_length (bs, totalSize, Result);
+        if Result.Success then
+            while Result.Success and totalSize > 0  and val.Length < OBJECT_IDENTIFIER_MAX_LENGTH loop
+                pragma Loop_Invariant (bs.Current_Bit_Pos >= bs.Current_Bit_Pos'Loop_Entry and bs.Current_Bit_Pos <= bs.Current_Bit_Pos'Loop_Entry + (val.Length - val.Length'Loop_Entry)*8*OctetBuffer_16'Last ); 
+                ObjectIdentifier_subidentifiers_uper_decode(bs, totalSize, si, Result);
+                val.Length := val.Length + 1;
+                val.values(val.Length) := si;
+            end loop;
+            result.Success := result.Success and totalSize = 0;
+      end if;
+    end RelativeOID_uper_decode;
    
    
 end uper_asn1_rtl;

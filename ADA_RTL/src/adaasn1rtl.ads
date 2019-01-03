@@ -50,6 +50,7 @@ package adaasn1rtl with Spark_Mode is
    
    
    type OctetBuffer is array (Natural range <>) of Asn1Byte;
+   subtype OctetBuffer_16 is OctetBuffer (1 .. 16);
    subtype OctetArray4 is OctetBuffer (1 .. 4);
    
    subtype OctetBuffer_0_7 is OctetBuffer (BIT_RANGE);
@@ -82,6 +83,11 @@ package adaasn1rtl with Spark_Mode is
    function GetMantissa (V : Asn1Real) return Asn1UInt;
    function RequiresReverse (dummy : Boolean) return Boolean;
    
+   
+    procedure ObjectIdentifier_Init(val:out Asn1ObjectIdentifier);
+    function ObjectIdentifier_isValid(val : in Asn1ObjectIdentifier) return boolean;
+    function RelativeOID_isValid(val : in Asn1ObjectIdentifier) return boolean;
+    function ObjectIdentifier_equal(val1 : in Asn1ObjectIdentifier; val2 : in Asn1ObjectIdentifier) return boolean;
    
    
    function GetZeroBasedCharIndex (CharToSearch   :    Character;   AllowedCharSet : in String) return Integer 
