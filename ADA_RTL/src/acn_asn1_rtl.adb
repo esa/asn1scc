@@ -275,5 +275,23 @@ package body acn_asn1_rtl with Spark_Mode is
     end Acn_Enc_UInt_ASCII_VarSize_NullTerminated;
    
    
+   ---------------------- Decoding functions ------------------------------------------
+   
+   procedure Acn_Dec_Int_PositiveInteger_ConstSize (bs : in out BitStream; IntVal :out Asn1UInt; minVal : in Asn1UInt; maxVal : in Asn1UInt; nSizeInBits : in Integer; Result: out ASN1_RESULT)
+   is
+      encVal : Asn1UInt;
+   begin
+      Result.ErrorCode := 0;
+      BitStream_Decode_Non_Negative_Integer (bs,  encVal,  nSizeInBits,    Result.Success);
+      pragma Assert(Result.Success);
+      IntVal := encVal;
+
+      Result.Success := IntVal >= minVal and IntVal <= maxVal;
+      if not Result.Success then
+         IntVal           := minVal;
+         Result.ErrorCode := ERR_INCORRECT_STREAM;
+      end if;
+   end Acn_Dec_Int_PositiveInteger_ConstSize;
+   
    
 end acn_asn1_rtl;

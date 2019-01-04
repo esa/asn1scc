@@ -223,6 +223,16 @@ package acn_asn1_rtl with Spark_Mode is
                 bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - 8*(19+1),
      Post    => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + 8*(19+1)  ;
 
+   procedure Acn_Dec_Int_PositiveInteger_ConstSize (bs : in out BitStream; IntVal :out Asn1UInt; minVal : in Asn1UInt; maxVal : in Asn1UInt; nSizeInBits : in Integer; Result: out ASN1_RESULT) with
+     Pre     => nSizeInBits >= 0 and then 
+                nSizeInBits < Asn1UInt'Size and then 
+                bs.Current_Bit_Pos < Natural'Last - nSizeInBits and then  
+                bs.Size_In_Bytes < Positive'Last/8 and  then
+                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - nSizeInBits,
+     Post    => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + nSizeInBits  and 
+     ( (Result.Success and IntVal >= minVal and IntVal <= maxVal) or
+       (not Result.Success and IntVal = minVal))
+   ;
 
 
 end acn_asn1_rtl;
