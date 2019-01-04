@@ -115,40 +115,6 @@ package body adaasn1rtl with Spark_Mode is
    end GetLengthInBytesOfSInt;
    
    
---     function Get_number_of_digits (Int_value : Asn1UInt) return Integer
---     is
---        totalNibbles : Integer:=1;
---     begin
---        
---        while  Int_value >= Powers_of_10(totalNibbles) loop
---           pragma Loop_Invariant (totalNibbles>=1 and totalNibbles <= 19);
---           totalNibbles:= totalNibbles + 1;
---        end loop;
---        return totalNibbles;
---       end Get_number_of_digits;
-      
-   
-   function Get_number_of_digits (Int_value : Asn1UInt) return Integer
-   is (
-      if Int_value < Powers_of_10(1) then 1
-      elsif Int_value >= Powers_of_10(1) and Int_value < Powers_of_10(2)    then 2 
-      elsif Int_value >= Powers_of_10(2) and Int_value < Powers_of_10(3)    then 3 
-      elsif Int_value >= Powers_of_10(3) and Int_value < Powers_of_10(4)    then 4 
-      elsif Int_value >= Powers_of_10(4) and Int_value < Powers_of_10(5)    then 5 
-      elsif Int_value >= Powers_of_10(5) and Int_value < Powers_of_10(6)    then 6 
-      elsif Int_value >= Powers_of_10(6) and Int_value < Powers_of_10(7)    then 7 
-      elsif Int_value >= Powers_of_10(7) and Int_value < Powers_of_10(8)    then 8 
-      elsif Int_value >= Powers_of_10(8) and Int_value < Powers_of_10(9)    then 9 
-      elsif Int_value >= Powers_of_10(9) and Int_value < Powers_of_10(10)   then 10 
-      elsif Int_value >= Powers_of_10(10) and Int_value < Powers_of_10(11)  then 11 
-      elsif Int_value >= Powers_of_10(11) and Int_value < Powers_of_10(12)  then 12 
-      elsif Int_value >= Powers_of_10(12) and Int_value < Powers_of_10(13)  then 13 
-      elsif Int_value >= Powers_of_10(13) and Int_value < Powers_of_10(14)  then 14 
-      elsif Int_value >= Powers_of_10(14) and Int_value < Powers_of_10(15)  then 15 
-      elsif Int_value >= Powers_of_10(15) and Int_value < Powers_of_10(16)  then 16 
-      elsif Int_value >= Powers_of_10(16) and Int_value < Powers_of_10(17)  then 17 
-      elsif Int_value >= Powers_of_10(17) and Int_value < Powers_of_10(18)  then 18 
-       else 19 );
    
    
    function GetZeroBasedCharIndex (CharToSearch   :    Character;  AllowedCharSet : in String) return Integer

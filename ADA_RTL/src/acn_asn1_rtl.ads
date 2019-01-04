@@ -197,9 +197,31 @@ package acn_asn1_rtl with Spark_Mode is
 
 
 
+   procedure Acn_Enc_UInt_ASCII_VarSize_LengthEmbedded (bs : in out BitStream;  IntVal : in     Asn1UInt) with
+     Depends => (bs => (bs, IntVal)),
+     Pre     => IntVal < Powers_of_10(19) and then
+                bs.Current_Bit_Pos < Natural'Last - 8*(19+1) and then  
+                bs.Size_In_Bytes < Positive'Last/8 and  then
+                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - 8*(19+1),
+     Post    => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + 8*(19+1)  ;
 
 
+   procedure Acn_Enc_Int_ASCII_VarSize_NullTerminated (bs : in out BitStream; IntVal : in Asn1Int; nullChar : in Asn1Byte) with
+     Depends => (bs => (bs, IntVal, nullChar)),
+     Pre     => IntVal > -Asn1Int(Powers_of_10(18)) and then
+                Asn1Uint(abs IntVal) < Powers_of_10(18) and then
+                bs.Current_Bit_Pos < Natural'Last - 8*(18+1+1) and then  
+                bs.Size_In_Bytes < Positive'Last/8 and  then
+                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - 8*(18+1+1),
+     Post    => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + 8*(18+1+1)  ;
 
+   procedure Acn_Enc_UInt_ASCII_VarSize_NullTerminated (bs : in out BitStream; IntVal : in Asn1UInt; nullChar : in Asn1Byte)  with
+     Depends => (bs => (bs, IntVal, nullChar)),
+     Pre     => IntVal < Powers_of_10(19) and then
+                bs.Current_Bit_Pos < Natural'Last - 8*(19+1) and then  
+                bs.Size_In_Bytes < Positive'Last/8 and  then
+                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - 8*(19+1),
+     Post    => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + 8*(19+1)  ;
 
 
 

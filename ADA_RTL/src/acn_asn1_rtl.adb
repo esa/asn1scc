@@ -193,25 +193,86 @@ package body acn_asn1_rtl with Spark_Mode is
         absIntVal : Asn1Uint;
 
    begin
-        absIntVal := Asn1Uint(abs IntVal);
-        sing := (if intVal >= 0  then Character'Pos('+') else Character'Pos('-'));
-        Get_integer_digits(absIntVal,digits_array, nChars);
-        pragma Assert(nChars <= 18);
+      
+      absIntVal := Asn1Uint(abs IntVal);
+      sing := (if intVal >= 0  then Character'Pos('+') else Character'Pos('-'));
+      Get_integer_digits(absIntVal,digits_array, nChars);
+      pragma Assert(nChars <= 18);
 
-        -- encode length, plus 1 for sign
-        BitStream_AppendByte(bs, nChars+1, False);
+      -- encode length, plus 1 for sign
+      BitStream_AppendByte(bs, nChars+1, False);
 
         -- encode sign
-        BitStream_AppendByte(bs, sing, False);
+      BitStream_AppendByte(bs, sing, False);
 
       for i in 1..Integer(nChars) loop
          pragma Loop_Invariant (bs.Current_Bit_Pos = bs.Current_Bit_Pos'Loop_Entry + (i-1)*8);
-             BitStream_AppendByte(bs, digits_array(i), False);
-        end loop;
+         BitStream_AppendByte(bs, digits_array(i), False);
+      end loop;
 
 
    end Acn_Enc_Int_ASCII_VarSize_LengthEmbedded;
    
+   procedure Acn_Enc_UInt_ASCII_VarSize_LengthEmbedded (bs : in out BitStream;  IntVal : in     Asn1UInt)
+   is
+        digits_array: Digits_Buffer;
+        nChars : Asn1Byte;
+   begin
+        Get_integer_digits(IntVal,digits_array, nChars);
+
+        -- encode length
+        BitStream_AppendByte(bs, nChars, False);
+
+        for i in 1..Integer(nChars) loop
+             pragma Loop_Invariant (bs.Current_Bit_Pos = bs.Current_Bit_Pos'Loop_Entry + (i-1)*8);
+             BitStream_AppendByte(bs, digits_array(i), False);
+        end loop;
+      
+   end Acn_Enc_UInt_ASCII_VarSize_LengthEmbedded;
+   
+   procedure Acn_Enc_Int_ASCII_VarSize_NullTerminated (bs : in out BitStream; IntVal : in Asn1Int; nullChar : in Asn1Byte)
+   is
+        digits_array: Digits_Buffer;
+        nChars : Asn1Byte;
+        sing : Asn1Byte;
+        absIntVal : Asn1Uint;
+   begin
+        absIntVal := (if intVal >= 0  then Asn1Uint(intVal) else (Asn1Uint(-(intVal+1))+1));
+        sing := (if intVal >= 0  then Character'Pos('+') else Character'Pos('-'));
+        Get_integer_digits(absIntVal,digits_array, nChars);
+
+        -- encode sign
+        BitStream_AppendByte(bs, sing, False);
+
+        -- encode digits
+        for i in 1..Integer(nChars) loop
+             pragma Loop_Invariant (bs.Current_Bit_Pos = bs.Current_Bit_Pos'Loop_Entry + (i-1)*8);
+             BitStream_AppendByte(bs, digits_array(i), False);
+        end loop;
+
+        -- encode nullChar
+        BitStream_AppendByte(bs, nullChar, False);
+
+   end Acn_Enc_Int_ASCII_VarSize_NullTerminated;
+
+
+   procedure Acn_Enc_UInt_ASCII_VarSize_NullTerminated (bs : in out BitStream; IntVal : in Asn1UInt; nullChar : in Asn1Byte)
+   is
+        digits_array: Digits_Buffer;
+        nChars : Asn1Byte;
+   begin
+        Get_integer_digits(IntVal,digits_array, nChars);
+
+        -- encode digits
+        for i in 1..Integer(nChars) loop
+             pragma Loop_Invariant (bs.Current_Bit_Pos = bs.Current_Bit_Pos'Loop_Entry + (i-1)*8);
+             BitStream_AppendByte(bs, digits_array(i), False);
+        end loop;
+
+        -- encode nullChar
+        BitStream_AppendByte(bs, nullChar, False);
+
+    end Acn_Enc_UInt_ASCII_VarSize_NullTerminated;
    
    
    

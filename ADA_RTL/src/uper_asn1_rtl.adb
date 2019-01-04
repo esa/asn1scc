@@ -261,7 +261,7 @@ package body uper_asn1_rtl with Spark_Mode  is
 
    function CalcReal (Factor : Asn1UInt; N : Asn1UInt; base : Integer;Exp : Integer) return Asn1Real 
    is
-      pragma SPARK_Mode(Off);
+     pragma SPARK_Mode(Off);
    begin
      return (Asn1Real (Factor * N) * Asn1Real (base)**Exp);
    end;
