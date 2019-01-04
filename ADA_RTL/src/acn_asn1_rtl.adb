@@ -112,5 +112,107 @@ package body acn_asn1_rtl with Spark_Mode is
       Enc_UInt (bs, To_UInt(IntVal), 8);
    end Acn_Enc_Int_TwosComplement_ConstSize_big_endian_64;
    
+   
+   procedure Acn_Enc_Int_TwosComplement_ConstSize_little_endian_16 (bs : in out BitStream; IntVal : in Asn1Int)
+   is
+   begin
+      Acn_Enc_Int_PositiveInteger_ConstSize_little_endian_N(bs, To_UInt(IntVal), 2);
+   end Acn_Enc_Int_TwosComplement_ConstSize_little_endian_16;
+   
+   procedure Acn_Enc_Int_TwosComplement_ConstSize_little_endian_32 (bs : in out BitStream; IntVal : in Asn1Int)
+   is
+   begin
+      Acn_Enc_Int_PositiveInteger_ConstSize_little_endian_N(bs, To_UInt(IntVal), 4);
+   end Acn_Enc_Int_TwosComplement_ConstSize_little_endian_32;
+   
+   procedure Acn_Enc_Int_TwosComplement_ConstSize_little_endian_64 (bs : in out BitStream; IntVal : in Asn1Int)
+   is
+   begin
+      Acn_Enc_Int_PositiveInteger_ConstSize_little_endian_N(bs, To_UInt(IntVal), 8);
+   end Acn_Enc_Int_TwosComplement_ConstSize_little_endian_64;
+   
+   procedure Acn_Enc_Int_TwosComplement_VarSize_LengthEmbedded  (bs : in out BitStream; IntVal : in Asn1Int)
+   is
+   begin
+      UPER_Enc_UnConstraintWholeNumber (bs, IntVal);
+   end Acn_Enc_Int_TwosComplement_VarSize_LengthEmbedded;
+   
 
+--   subtype OctetArray100 is OctetBuffer (1..100);
+     
+   procedure Acn_Enc_Int_BCD_ConstSize (bs : in out BitStream; IntVal : in Asn1UInt; nNibbles : in Integer) 
+     
+   is
+      intValCopy   : Asn1UInt := IntVal;
+      powOf10      : Asn1UInt;
+      curNibble    : Asn1Byte;
+   begin
+      for i in 1 .. nNibbles loop
+         pragma Loop_Invariant (bs.Current_Bit_Pos = bs.Current_Bit_Pos'Loop_Entry + (i-1)*4);
+         powOf10 := Powers_of_10(nNibbles - i);
+         curNibble := Asn1Byte(intValCopy/powOf10 and 16#FF#);
+         intValCopy := intValCopy mod powOf10;
+         BitStream_AppendPartialByte (bs, curNibble, 4, False);
+      end loop;
+   end Acn_Enc_Int_BCD_ConstSize;
+   
+   
+   procedure Acn_Enc_Int_BCD_VarSize_NullTerminated (bs : in out BitStream; IntVal : in     Asn1UInt)
+   is
+      totalNibbles : Integer;
+   begin
+      totalNibbles := Get_number_of_digits(IntVal);
+      Acn_Enc_Int_BCD_ConstSize(bs, IntVal, totalNibbles);
+      BitStream_AppendPartialByte (bs, 16#F#, 4, False);
+   end Acn_Enc_Int_BCD_VarSize_NullTerminated;
+   
+   
+    procedure Get_integer_digits(IntVal :in Asn1Uint; digits_array: out Digits_Buffer; totalDigits : out Asn1Byte) with
+     Pre     => IntVal < Powers_of_10(19),
+     Post    => totalDigits >=1 and totalDigits<=19 and IntVal < Powers_of_10(Integer(totalDigits)) and totalDigits = Asn1Byte(Get_number_of_digits(IntVal))
+    is
+      intValCopy   : Asn1UInt := IntVal;
+      powOf10      : Asn1UInt;
+      curNibble    : Asn1Byte;
+    begin
+      digits_array := (others => 0);
+      totalDigits := Asn1Byte(Get_number_of_digits(IntVal));
+      for i in 1 .. Integer(totalDigits) loop
+         powOf10 := Powers_of_10(Integer(totalDigits) - i);
+         curNibble := Asn1Byte(intValCopy/powOf10 and 16#F#);
+         intValCopy := intValCopy mod powOf10;
+         digits_array(i) := Asn1Byte(Character'Pos ('0') + curNibble);
+      end loop;
+    end Get_integer_digits;
+   
+   procedure Acn_Enc_Int_ASCII_VarSize_LengthEmbedded (bs : in out BitStream; IntVal : in     Asn1Int)
+   is
+        digits_array: Digits_Buffer;
+        nChars : Asn1Byte;
+        sing : Asn1Byte;
+        absIntVal : Asn1Uint;
+
+   begin
+        absIntVal := Asn1Uint(abs IntVal);
+        sing := (if intVal >= 0  then Character'Pos('+') else Character'Pos('-'));
+        Get_integer_digits(absIntVal,digits_array, nChars);
+        pragma Assert(nChars <= 18);
+
+        -- encode length, plus 1 for sign
+        BitStream_AppendByte(bs, nChars+1, False);
+
+        -- encode sign
+        BitStream_AppendByte(bs, sing, False);
+
+      for i in 1..Integer(nChars) loop
+         pragma Loop_Invariant (bs.Current_Bit_Pos = bs.Current_Bit_Pos'Loop_Entry + (i-1)*8);
+             BitStream_AppendByte(bs, digits_array(i), False);
+        end loop;
+
+
+   end Acn_Enc_Int_ASCII_VarSize_LengthEmbedded;
+   
+   
+   
+   
 end acn_asn1_rtl;

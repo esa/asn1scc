@@ -130,15 +130,70 @@ package acn_asn1_rtl with Spark_Mode is
                 bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - 64,
      Post    => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 64     ;
 
+   procedure Acn_Enc_Int_TwosComplement_ConstSize_little_endian_16 (bs : in out BitStream; IntVal : in     Asn1Int) with
+     Depends => (bs => (bs, IntVal)),
+     Pre     => bs.Current_Bit_Pos < Natural'Last - 16 and then  
+                IntVal <= Asn1Int(Interfaces.Unsigned_16'Last) and then
+                bs.Size_In_Bytes < Positive'Last/8 and  then
+                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - 16,
+     Post    => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 16;
+   
+   procedure Acn_Enc_Int_TwosComplement_ConstSize_little_endian_32 (bs : in out BitStream;  IntVal : in     Asn1Int) with
+     Depends => (bs => (bs, IntVal)),
+     Pre     => bs.Current_Bit_Pos < Natural'Last - 32 and then  
+                IntVal <= Asn1Int(Interfaces.Unsigned_32'Last) and then
+                bs.Size_In_Bytes < Positive'Last/8 and  then
+                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - 32,
+     Post    => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 32;
+
+   procedure Acn_Enc_Int_TwosComplement_ConstSize_little_endian_64 (bs : in out BitStream;   IntVal : in     Asn1Int) with
+     Depends => (bs => (bs, IntVal)),
+     Pre     => bs.Current_Bit_Pos < Natural'Last - 64 and then  
+                bs.Size_In_Bytes < Positive'Last/8 and  then
+                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - 64,
+     Post    => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 64;
+   
+   procedure Acn_Enc_Int_TwosComplement_VarSize_LengthEmbedded  (bs : in out BitStream;  IntVal : in     Asn1Int) with
+     Depends => (bs => (bs, IntVal)),
+     Pre     => bs.Current_Bit_Pos < Natural'Last - (Asn1Int'Size + 8) and then  
+                bs.Size_In_Bytes < Positive'Last/8 and  then
+                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - (Asn1Int'Size + 8),
+     Post    => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + (Asn1Int'Size + 8);  
+
+
+   
+   procedure Acn_Enc_Int_BCD_ConstSize (bs : in out BitStream; IntVal : in Asn1UInt; nNibbles : in Integer) with
+     Depends => (bs => (bs, IntVal, nNibbles)),
+     Pre     => nNibbles >= 1
+     and then
+                nNibbles <= 19 and then
+                IntVal < Powers_of_10(nNibbles) and then
+                bs.Current_Bit_Pos < Natural'Last - 4*nNibbles and then  
+                bs.Size_In_Bytes < Positive'Last/8 and  then
+                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - 4*nNibbles,
+     Post    => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 4*nNibbles  ;
+
+
+   procedure Acn_Enc_Int_BCD_VarSize_NullTerminated (bs : in out BitStream; IntVal : in     Asn1UInt) with
+     Depends => (bs => (bs, IntVal)),
+     Pre     => IntVal < Powers_of_10(19) and then
+                bs.Current_Bit_Pos < Natural'Last - 4*(19+1) and then  
+                bs.Size_In_Bytes < Positive'Last/8 and  then
+                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - 4*(19+1),
+     Post    => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + 4*(19+1)  ;
 
 
 
 
 
-
-
-
-
+   procedure Acn_Enc_Int_ASCII_VarSize_LengthEmbedded (bs : in out BitStream; IntVal : in     Asn1Int) with
+     Depends => (bs => (bs, IntVal)),
+     Pre     => IntVal > -Asn1Int(Powers_of_10(18)) and then
+                Asn1Uint(abs IntVal) < Powers_of_10(18) and then
+                bs.Current_Bit_Pos < Natural'Last - 8*(18+1+1) and then  
+                bs.Size_In_Bytes < Positive'Last/8 and  then
+                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - 8*(18+1+1),
+     Post    => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + 8*(18+1+1)  ;
 
 
 

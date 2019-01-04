@@ -18,6 +18,9 @@ package adaasn1rtl with Spark_Mode is
 
    subtype Asn1Boolean is Boolean;
    
+   type Asn1Int_ARRAY_0_19 is array (0 .. 19) of Asn1UInt;
+   Powers_of_10 : constant Asn1Int_ARRAY_0_19 := Asn1Int_ARRAY_0_19'(0 => 1, 1 => 10, 2 => 100, 3 => 1000, 4 => 10000, 5 => 100000, 6 => 1000000, 7 => 10000000, 8 => 100000000, 9 => 1000000000, 10 => 10000000000, 11 => 100000000000, 12 => 1000000000000, 13 => 10000000000000, 14 => 100000000000000, 15 => 1000000000000000, 16 => 10000000000000000, 17 => 100000000000000000, 18 => 1000000000000000000, 19 => 10000000000000000000);
+   
    
    -- OBJECT IDENTIFIER
    OBJECT_IDENTIFIER_MAX_LENGTH : constant Integer       := 20;        -- the maximum number of components for Object Identifier
@@ -54,7 +57,9 @@ package adaasn1rtl with Spark_Mode is
    subtype OctetArray4 is OctetBuffer (1 .. 4);
    
    subtype OctetBuffer_0_7 is OctetBuffer (BIT_RANGE);
-      
+
+   subtype Digits_Buffer is OctetBuffer (1 .. 19);
+   
    type Bitstream  (Size_In_Bytes:Positive) is record
       Buffer           : OctetBuffer(1 .. Size_In_Bytes) ; 
       Current_Bit_Pos  : Natural;  --current bit for writing or reading in the bitsteam
@@ -74,6 +79,32 @@ package adaasn1rtl with Spark_Mode is
    
    function GetLengthInBytesOfSInt (V : Asn1Int) return Asn1Byte with
      Post    => GetLengthInBytesOfSInt'Result >=1 and GetLengthInBytesOfSInt'Result<=8;
+   
+   function Get_number_of_digits (Int_value : Asn1UInt) return Integer with
+     Pre     => Int_value < Powers_of_10(19),
+     Post    => (
+      if Int_value < Powers_of_10(1) then Get_number_of_digits'Result = 1
+      elsif Int_value >= Powers_of_10(1) and Int_value < Powers_of_10(2)    then Get_number_of_digits'Result = 2 
+      elsif Int_value >= Powers_of_10(2) and Int_value < Powers_of_10(3)    then Get_number_of_digits'Result = 3 
+      elsif Int_value >= Powers_of_10(3) and Int_value < Powers_of_10(4)    then Get_number_of_digits'Result = 4 
+      elsif Int_value >= Powers_of_10(4) and Int_value < Powers_of_10(5)    then Get_number_of_digits'Result = 5 
+      elsif Int_value >= Powers_of_10(5) and Int_value < Powers_of_10(6)    then Get_number_of_digits'Result = 6 
+      elsif Int_value >= Powers_of_10(6) and Int_value < Powers_of_10(7)    then Get_number_of_digits'Result = 7 
+      elsif Int_value >= Powers_of_10(7) and Int_value < Powers_of_10(8)    then Get_number_of_digits'Result = 8 
+      elsif Int_value >= Powers_of_10(8) and Int_value < Powers_of_10(9)    then Get_number_of_digits'Result = 9 
+      elsif Int_value >= Powers_of_10(9) and Int_value < Powers_of_10(10)   then Get_number_of_digits'Result = 10 
+      elsif Int_value >= Powers_of_10(10) and Int_value < Powers_of_10(11)  then Get_number_of_digits'Result = 11 
+      elsif Int_value >= Powers_of_10(11) and Int_value < Powers_of_10(12)  then Get_number_of_digits'Result = 12 
+      elsif Int_value >= Powers_of_10(12) and Int_value < Powers_of_10(13)  then Get_number_of_digits'Result = 13 
+      elsif Int_value >= Powers_of_10(13) and Int_value < Powers_of_10(14)  then Get_number_of_digits'Result = 14 
+      elsif Int_value >= Powers_of_10(14) and Int_value < Powers_of_10(15)  then Get_number_of_digits'Result = 15 
+      elsif Int_value >= Powers_of_10(15) and Int_value < Powers_of_10(16)  then Get_number_of_digits'Result = 16 
+      elsif Int_value >= Powers_of_10(16) and Int_value < Powers_of_10(17)  then Get_number_of_digits'Result = 17 
+      elsif Int_value >= Powers_of_10(17) and Int_value < Powers_of_10(18)  then Get_number_of_digits'Result = 18 
+      else Get_number_of_digits'Result = 19                
+                )
+   ;
+     
    
    
    function PLUS_INFINITY return Asn1Real;
