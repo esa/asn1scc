@@ -234,5 +234,75 @@ package acn_asn1_rtl with Spark_Mode is
        (not Result.Success and IntVal = minVal))
    ;
 
+   procedure Acn_Dec_Int_PositiveInteger_ConstSize_8 (bs : in out BitStream; IntVal :out Asn1UInt; minVal : in Asn1UInt; maxVal : in Asn1UInt; Result: out ASN1_RESULT) with
+     Pre     => bs.Current_Bit_Pos < Natural'Last - 8 and then  
+                bs.Size_In_Bytes < Positive'Last/8 and  then
+                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - 8,
+     Post    => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 8  and 
+     ( (Result.Success and IntVal >= minVal and IntVal <= maxVal) or
+       (not Result.Success and IntVal = minVal))
+   ;
 
+   procedure Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_16 (bs : in out BitStream; IntVal :out Asn1UInt; minVal : in Asn1UInt; maxVal : in Asn1UInt; Result: out ASN1_RESULT) with
+     Pre     => bs.Current_Bit_Pos < Natural'Last - 16 and then  
+                bs.Size_In_Bytes < Positive'Last/8 and  then
+                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - 16,
+     Post    => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 16  and 
+     ( (Result.Success and IntVal >= minVal and IntVal <= maxVal) or
+       (not Result.Success and IntVal = minVal))
+   ;
+
+   procedure Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_32 (bs : in out BitStream; IntVal :out Asn1UInt; minVal : in Asn1UInt; maxVal : in Asn1UInt; Result: out ASN1_RESULT) with
+     Pre     => bs.Current_Bit_Pos < Natural'Last - 32 and then  
+                bs.Size_In_Bytes < Positive'Last/8 and  then
+                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - 32,
+     Post    => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 32  and 
+     ( (Result.Success and IntVal >= minVal and IntVal <= maxVal) or
+       (not Result.Success and IntVal = minVal))
+   ;
+
+   procedure Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_64 (bs : in out BitStream; IntVal :out Asn1UInt; minVal : in Asn1UInt; maxVal : in Asn1UInt; Result: out ASN1_RESULT) with
+     Pre     => bs.Current_Bit_Pos < Natural'Last - 64 and then  
+                bs.Size_In_Bytes < Positive'Last/8 and  then
+                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - 64,
+     Post    => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 64  and 
+     ( (Result.Success and IntVal >= minVal and IntVal <= maxVal) or
+       (not Result.Success and IntVal = minVal))
+   ;
+   
+   procedure Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_16 (bs : in out BitStream; IntVal: out Asn1UInt; minVal:in Asn1UInt; maxVal : in Asn1UInt; Result : out ASN1_RESULT) with
+     Pre     => bs.Current_Bit_Pos < Natural'Last - 16 and then  
+                bs.Size_In_Bytes < Positive'Last/8 and  then
+                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - 16,
+     Post    => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 16  and 
+     ( (Result.Success and IntVal >= minVal and IntVal <= maxVal) or
+       (not Result.Success and IntVal = minVal))
+   ;
+   
+   procedure Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_32 (bs : in out BitStream; IntVal: out Asn1UInt; minVal:in Asn1UInt; maxVal : in Asn1UInt; Result : out ASN1_RESULT) with
+     Pre     => bs.Current_Bit_Pos < Natural'Last - 32 and then  
+                bs.Size_In_Bytes < Positive'Last/8 and  then
+                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - 32,
+     Post    => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 32  and 
+     ( (Result.Success and IntVal >= minVal and IntVal <= maxVal) or
+       (not Result.Success and IntVal = minVal))
+   ;
+
+   procedure Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_64 (bs : in out BitStream; IntVal: out Asn1UInt; minVal:in Asn1UInt; maxVal : in Asn1UInt; Result : out ASN1_RESULT) with
+     Pre     => bs.Current_Bit_Pos < Natural'Last - 64 and then  
+                bs.Size_In_Bytes < Positive'Last/8 and  then
+                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - 64,
+     Post    => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 64  and 
+     ( (Result.Success and IntVal >= minVal and IntVal <= maxVal) or
+       (not Result.Success and IntVal = minVal))
+   ;
+   procedure Acn_Dec_Int_PositiveInteger_VarSize_LengthEmbedded (bs : in out BitStream; IntVal : out Asn1UInt; minVal : in Asn1UInt; Result : out ASN1_RESULT) with
+     Pre     => bs.Current_Bit_Pos < Natural'Last - (8*8+8) and then  
+                bs.Size_In_Bytes < Positive'Last/8 and  then
+                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - (8*8+8),
+     Post    => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + (8*8+8)  and 
+     ( (Result.Success and IntVal >= minVal ) or
+       (not Result.Success and IntVal = minVal));
+   
+   
 end acn_asn1_rtl;

@@ -294,4 +294,111 @@ package body acn_asn1_rtl with Spark_Mode is
    end Acn_Dec_Int_PositiveInteger_ConstSize;
    
    
+   
+   procedure Acn_Dec_Int_PositiveInteger_ConstSize_8 (bs : in out BitStream; IntVal : out Asn1UInt; minVal : in Asn1UInt; maxVal : in Asn1UInt; Result :    out ASN1_RESULT)
+   is
+   begin
+      Acn_Dec_Int_PositiveInteger_ConstSize(bs, IntVal, minVal, maxVal, 8,    Result);
+   end Acn_Dec_Int_PositiveInteger_ConstSize_8;
+   
+
+   procedure Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_16 (bs : in out BitStream; IntVal : out Asn1UInt; minVal : in Asn1UInt; maxVal : in Asn1UInt; Result :    out ASN1_RESULT)
+   is
+   begin
+      Acn_Dec_Int_PositiveInteger_ConstSize(bs, IntVal, minVal, maxVal, 16,    Result);
+   end Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_16;
+
+   procedure Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_32 (bs : in out BitStream; IntVal : out Asn1UInt; minVal : in Asn1UInt; maxVal : in Asn1UInt; Result :    out ASN1_RESULT)
+   is
+   begin
+      Acn_Dec_Int_PositiveInteger_ConstSize(bs, IntVal, minVal, maxVal, 32,    Result);
+   end Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_32;
+   
+   procedure Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_64 (bs : in out BitStream; IntVal : out Asn1UInt; minVal : in Asn1UInt; maxVal : in Asn1UInt; Result :    out ASN1_RESULT)
+   is
+   begin
+      Result.ErrorCode := 0;
+      Dec_UInt(bs, 8, IntVal, Result.Success);
+      Result.Success := IntVal >= minVal and IntVal <= maxVal;
+      if not Result.Success then
+         IntVal           := minVal;
+         Result.ErrorCode := ERR_INCORRECT_STREAM;
+      end if;
+   end Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_64;
+   
+   
+   procedure Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_N (bs : in out BitStream; IntVal : out Asn1UInt; minVal : in Asn1UInt; maxVal : in Asn1UInt; Result : out ASN1_RESULT; total_bytes : in Integer) with
+     Pre     => total_bytes >= 0 and then 
+                total_bytes <= Asn1UInt'Size/8 and then 
+                bs.Current_Bit_Pos < Natural'Last - total_bytes*8 and then  
+                bs.Size_In_Bytes < Positive'Last/8 and  then
+                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - total_bytes*8,
+     Post    => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + total_bytes*8 and 
+             ( (Result.Success and IntVal >= minVal and IntVal <= maxVal) or
+               (not Result.Success and IntVal = minVal))
+   is
+      byteValue : Asn1Byte;
+   begin
+      IntVal := 0;
+      Result.ErrorCode := 0;
+      for i in  1..total_bytes loop
+         pragma Loop_Invariant (bs.Current_Bit_Pos = bs.Current_Bit_Pos'Loop_Entry + (i-1)*8);
+         BitStream_DecodeByte(bs, byteValue, Result.Success);
+         pragma Assert(Result.Success);
+         IntVal := IntVal or Shift_Left(Asn1UInt(byteValue), (total_bytes-i)*8);
+      end loop;
+      Result.Success := IntVal >= minVal and IntVal <= maxVal;
+      if not Result.Success then
+         IntVal           := minVal;
+         Result.ErrorCode := ERR_INCORRECT_STREAM;
+      end if;
+   end Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_N;
+   
+
+   procedure Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_16 (bs : in out BitStream; IntVal: out Asn1UInt; minVal:in Asn1UInt; maxVal : in Asn1UInt; Result : out ASN1_RESULT) 
+   is
+   begin
+      Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_N(bs, IntVal, minVal, maxVal, Result, 2);
+   end Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_16;
+     
+   procedure Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_32 (bs : in out BitStream; IntVal: out Asn1UInt; minVal:in Asn1UInt; maxVal : in Asn1UInt; Result : out ASN1_RESULT) 
+   is
+   begin
+      Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_N(bs, IntVal, minVal, maxVal, Result, 4);
+   end Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_32;
+
+   procedure Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_64 (bs : in out BitStream; IntVal: out Asn1UInt; minVal:in Asn1UInt; maxVal : in Asn1UInt; Result : out ASN1_RESULT) 
+   is
+   begin
+      Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_N(bs, IntVal, minVal, maxVal, Result, 8);
+   end Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_64;
+   
+   
+   
+   procedure Acn_Dec_Int_PositiveInteger_VarSize_LengthEmbedded (bs : in out BitStream; IntVal : out Asn1UInt; minVal : in Asn1UInt; Result : out ASN1_RESULT)
+   is
+      NBytes : Asn1Byte;
+      Ret    : Asn1UInt;
+   begin
+
+      IntVal           := minVal;
+      Result.ErrorCode := 0;
+      BitStream_DecodeByte(bs, NBytes, Result.Success);
+      
+      if Result.Success and NBytes >= 1 and NBytes <= 8 then
+         Dec_UInt (bs, Integer (NBytes), Ret, Result.Success);
+         pragma Assert(Result.Success);
+         IntVal         := Ret;
+         Result.Success := IntVal >= minVal;
+         if not Result.Success then
+            IntVal           := minVal;
+            Result.ErrorCode := ERR_INCORRECT_STREAM;
+         end if;
+      else
+         Result.ErrorCode := ERR_INCORRECT_STREAM;
+         Result.Success   := False;
+      end if;
+   end Acn_Dec_Int_PositiveInteger_VarSize_LengthEmbedded;
+   
+   
 end acn_asn1_rtl;
