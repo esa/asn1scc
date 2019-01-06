@@ -69,9 +69,29 @@ package adaasn1rtl with Spark_Mode is
    
    function To_UInt (IntVal : Asn1Int) return Asn1UInt;
    
-   function To_Int (IntVal : Asn1UInt) return Asn1Int;
+   --function To_Int (IntVal : Asn1UInt) return Asn1Int;
+   function To_Int (IntVal : Asn1UInt) return Asn1Int is
+   (
+      if IntVal > Asn1UInt (Asn1Int'Last) then
+          -Asn1Int (not IntVal) - 1 
+      else
+         Asn1Int (IntVal) );
+
+   
    
      
+   function To_Int_n (IntVal : Asn1UInt; nBits : Integer) return Asn1Int
+   is (
+       if IntVal > Asn1UInt(Shift_Left(Asn1UInt(1), nBits - 1) - 1) then  -- is given value greater than the maximum pos value in nBits space?
+          --Asn1Int ( ((not (Shift_Left(Asn1UInt(1), nBits) - 1)) or IntVal)) -- in this case the number is negative ==> prefix with 1111 
+          -Asn1Int ( not( (not (Shift_Left(Asn1UInt(1), nBits) - 1)) or IntVal)) - 1 -- in this case the number is negative ==> prefix with 1111 
+       else
+          Asn1Int (IntVal)
+      )
+     with 
+       Pre => nBits > 0 and nBits < Asn1UInt'Size;
+   
+   
    function Sub (A : in Asn1Int; B : in Asn1Int) return Asn1UInt with
      Pre  => A >= B;
    

@@ -18,20 +18,37 @@ package body adaasn1rtl with Spark_Mode is
       return ret;
    end To_UInt;
    
-   function To_Int (IntVal : Asn1UInt) return Asn1Int is
-      ret : Asn1Int;
-      c   : Asn1UInt;
-   begin
-      if IntVal > Asn1UInt (Asn1Int'Last) then
-         c   := not IntVal;
-         ret := -Asn1Int (c) - 1;
-      else
-         ret := Asn1Int (IntVal);
-      end if;
-      return ret;
-   end To_Int;
+--     function To_Int (IntVal : Asn1UInt) return Asn1Int is
+--        ret : Asn1Int;
+--        c   : Asn1UInt;
+--     begin
+--        if IntVal > Asn1UInt (Asn1Int'Last) then
+--           c   := not IntVal;
+--           ret := -Asn1Int (c) - 1;
+--        else
+--           ret := Asn1Int (IntVal);
+--        end if;
+--        return ret;
+--     end To_Int;
+
+
    
+--       function To_Int_n (IntVal : Asn1UInt; nBits : Integer) return Asn1Int with
+--       is
+--        maxPosValue : Asn1UInt := Shift_Left(1, nBits - 1) - 1;             --eg. for nBits = 8, pow2n = 2^7 - 1 = 127
+--        ret : Asn1Int;
+--        c   : Asn1UInt;
+--       begin
+--           if IntVal > maxPosValue then
+--              null;
+--           else
+--              null;
+--           end ifl
+--       
+--       end;
    
+      
+      
    function Sub (A : in Asn1Int; B : in Asn1Int) return Asn1UInt
    is
       ret : Asn1UInt;

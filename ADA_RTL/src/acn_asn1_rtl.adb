@@ -326,6 +326,27 @@ package body acn_asn1_rtl with Spark_Mode is
       end if;
    end Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_64;
    
+
+   procedure Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_N0 (bs : in out BitStream; IntVal : out Asn1UInt; total_bytes : in Integer) with
+     Pre     => total_bytes >= 0 and then 
+                total_bytes <= Asn1UInt'Size/8 and then 
+                bs.Current_Bit_Pos < Natural'Last - total_bytes*8 and then  
+                bs.Size_In_Bytes < Positive'Last/8 and  then
+                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - total_bytes*8,
+     Post    => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + total_bytes*8 
+   is
+      byteValue : Asn1Byte;
+      result : Asn1Boolean;
+   begin
+      IntVal := 0;
+      for i in  1..total_bytes loop
+         pragma Loop_Invariant (bs.Current_Bit_Pos = bs.Current_Bit_Pos'Loop_Entry + (i-1)*8);
+         BitStream_DecodeByte(bs, byteValue, result);
+         pragma Assert(result);
+         IntVal := IntVal or Shift_Left(Asn1UInt(byteValue), (total_bytes-i)*8);
+      end loop;
+   end Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_N0;
+
    
    procedure Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_N (bs : in out BitStream; IntVal : out Asn1UInt; minVal : in Asn1UInt; maxVal : in Asn1UInt; Result : out ASN1_RESULT; total_bytes : in Integer) with
      Pre     => total_bytes >= 0 and then 
@@ -337,16 +358,10 @@ package body acn_asn1_rtl with Spark_Mode is
              ( (Result.Success and IntVal >= minVal and IntVal <= maxVal) or
                (not Result.Success and IntVal = minVal))
    is
-      byteValue : Asn1Byte;
    begin
       IntVal := 0;
       Result.ErrorCode := 0;
-      for i in  1..total_bytes loop
-         pragma Loop_Invariant (bs.Current_Bit_Pos = bs.Current_Bit_Pos'Loop_Entry + (i-1)*8);
-         BitStream_DecodeByte(bs, byteValue, Result.Success);
-         pragma Assert(Result.Success);
-         IntVal := IntVal or Shift_Left(Asn1UInt(byteValue), (total_bytes-i)*8);
-      end loop;
+      Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_N0(bs, IntVal, total_bytes);
       Result.Success := IntVal >= minVal and IntVal <= maxVal;
       if not Result.Success then
          IntVal           := minVal;
@@ -400,5 +415,168 @@ package body acn_asn1_rtl with Spark_Mode is
       end if;
    end Acn_Dec_Int_PositiveInteger_VarSize_LengthEmbedded;
    
+   procedure Acn_Dec_Int_TwosComplement_ConstSize (bs : in out BitStream;  IntVal : out Asn1Int;  minVal : in Asn1Int; maxVal : in Asn1Int; nSizeInBits : in Integer; Result : out ASN1_RESULT)
+   is
+      encVal : Asn1UInt;
+   begin
+      Result.ErrorCode := 0;
+      BitStream_Decode_Non_Negative_Integer (bs,  encVal, nSizeInBits,   Result.Success);
+      if Result.Success then
+         IntVal         := (if nSizeInBits = 0 then 0 else To_Int_n (encVal, nSizeInBits));
+         Result.Success := IntVal >= minVal and IntVal <= maxVal;
+         if not Result.Success then
+            IntVal           := minVal;
+            Result.ErrorCode := ERR_INCORRECT_STREAM;
+         end if;
+      else
+         IntVal           := minVal;
+         Result.ErrorCode := ERR_INCORRECT_STREAM;
+      end if;
+   end Acn_Dec_Int_TwosComplement_ConstSize;
    
+   
+   procedure Acn_Dec_Int_TwosComplement_ConstSize_8 (bs : in out BitStream; IntVal : out Asn1Int; minVal : in Asn1Int;  maxVal : in Asn1Int; Result :    out ASN1_RESULT)
+   is
+   begin
+      Acn_Dec_Int_TwosComplement_ConstSize (bs, IntVal,  minVal,  maxVal,  8, Result);
+   end Acn_Dec_Int_TwosComplement_ConstSize_8;
+
+ procedure Acn_Dec_Int_TwosComplement_ConstSize_big_endian_16 (bs : in out BitStream; IntVal :out Asn1Int; minVal : in Asn1Int; maxVal : in Asn1Int; Result :out ASN1_RESULT)
+   is
+   begin
+      Acn_Dec_Int_TwosComplement_ConstSize (bs, IntVal, minVal, maxVal, 16, Result);
+   end Acn_Dec_Int_TwosComplement_ConstSize_big_endian_16;
+
+   procedure Acn_Dec_Int_TwosComplement_ConstSize_big_endian_32 (bs : in out BitStream; IntVal :out Asn1Int; minVal : in Asn1Int; maxVal : in Asn1Int; Result :out ASN1_RESULT)
+   is
+   begin
+      Acn_Dec_Int_TwosComplement_ConstSize (bs, IntVal, minVal, maxVal, 32, Result);
+   end Acn_Dec_Int_TwosComplement_ConstSize_big_endian_32;
+
+   procedure Acn_Dec_Int_TwosComplement_ConstSize_big_endian_64 (bs : in out BitStream; IntVal :out Asn1Int; minVal : in Asn1Int; maxVal : in Asn1Int; Result :out ASN1_RESULT)
+   is
+      encVal : Asn1UInt;
+   begin
+      Result.ErrorCode := 0;
+      Dec_UInt(bs, 8, encVal, Result.Success);
+      pragma Assert(Result.Success);
+      IntVal         := To_Int (encVal);
+      Result.Success := IntVal >= minVal and IntVal <= maxVal;
+      if not Result.Success then
+         IntVal           := minVal;
+         Result.ErrorCode := ERR_INCORRECT_STREAM;
+      end if;
+   end Acn_Dec_Int_TwosComplement_ConstSize_big_endian_64;   
+   
+   
+   procedure Acn_Dec_Int_TwosComplement_ConstSize_little_endian_N (bs : in out BitStream; IntVal : out Asn1Int; minVal : in Asn1Int; maxVal : in Asn1Int; Result : out ASN1_RESULT; total_bytes : in Integer) with
+     Pre     => total_bytes > 0 and then 
+                total_bytes <= Asn1Int'Size/8 and then 
+                bs.Current_Bit_Pos < Natural'Last - total_bytes*8 and then  
+                bs.Size_In_Bytes < Positive'Last/8 and  then
+                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - total_bytes*8,
+     Post    => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + total_bytes*8 and 
+             ( (Result.Success and IntVal >= minVal and IntVal <= maxVal) or
+               (not Result.Success and IntVal = minVal))
+   is
+      encValue :Asn1UInt;
+        
+   begin
+      Result.ErrorCode := 0;
+      Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_N0(bs, encValue, total_bytes);
+      IntVal := (if total_bytes=8 then To_Int(encValue) else To_Int_n(encValue, total_bytes*8));
+      Result.Success := IntVal >= minVal and IntVal <= maxVal;
+      if not Result.Success then
+         IntVal           := minVal;
+         Result.ErrorCode := ERR_INCORRECT_STREAM;
+      end if;
+   end Acn_Dec_Int_TwosComplement_ConstSize_little_endian_N;
+   
+
+   procedure Acn_Dec_Int_TwosComplement_ConstSize_little_endian_16 (bs : in out BitStream; IntVal: out Asn1Int; minVal:in Asn1Int; maxVal : in Asn1Int; Result : out ASN1_RESULT) 
+   is
+   begin
+      Acn_Dec_Int_TwosComplement_ConstSize_little_endian_N(bs, IntVal, minVal, maxVal, Result, 2);
+   end Acn_Dec_Int_TwosComplement_ConstSize_little_endian_16;
+     
+   procedure Acn_Dec_Int_TwosComplement_ConstSize_little_endian_32 (bs : in out BitStream; IntVal: out Asn1Int; minVal:in Asn1Int; maxVal : in Asn1Int; Result : out ASN1_RESULT) 
+   is
+   begin
+      Acn_Dec_Int_TwosComplement_ConstSize_little_endian_N(bs, IntVal, minVal, maxVal, Result, 4);
+   end Acn_Dec_Int_TwosComplement_ConstSize_little_endian_32;
+
+   procedure Acn_Dec_Int_TwosComplement_ConstSize_little_endian_64 (bs : in out BitStream; IntVal: out Asn1Int; minVal:in Asn1Int; maxVal : in Asn1Int; Result : out ASN1_RESULT) 
+   is
+   begin
+      Acn_Dec_Int_TwosComplement_ConstSize_little_endian_N(bs, IntVal, minVal, maxVal, Result, 8);
+   end Acn_Dec_Int_TwosComplement_ConstSize_little_endian_64;
+   
+   procedure Acn_Dec_Int_TwosComplement_VarSize_LengthEmbedded  (bs : in out BitStream; IntVal :out Asn1Int; Result : out ASN1_RESULT)
+   is
+   begin
+      Result.ErrorCode := ERR_INCORRECT_STREAM;
+      UPER_Dec_UnConstraintWholeNumber (bs, IntVal, Result.Success);
+   end Acn_Dec_Int_TwosComplement_VarSize_LengthEmbedded;
+   
+   
+   procedure Acn_Dec_Int_BCD_ConstSize (bs : in out BitStream; IntVal: out Asn1UInt; minVal : in Asn1UInt; maxVal : in Asn1UInt; nNibbles : in Integer;  Result : out ASN1_RESULT)
+   is
+      digit   : Asn1Byte;
+   begin
+      IntVal := 0;
+      Result :=   ASN1_RESULT'(Success => True, ErrorCode => 0);
+      
+      for i in 1..nNibbles loop
+         pragma Loop_Invariant (bs.Current_Bit_Pos = bs.Current_Bit_Pos'Loop_Entry + (i-1)*4);
+         BitStream_ReadNibble (bs, digit, Result.Success);
+         pragma Assert (Result.Success);
+         Result.Success :=  digit <= 9;
+         if Result.Success then
+            IntVal := IntVal * 10;
+            IntVal := IntVal + Asn1UInt (digit);
+         end if;
+         exit when not Result.Success;
+      end loop;
+      
+      Result.Success :=    Result.Success and then ((IntVal >= minVal) and (IntVal <= maxVal));
+      if not Result.Success then
+         result.ErrorCode := ERR_INCORRECT_STREAM;
+         IntVal := minVal;
+      end if;
+   end Acn_Dec_Int_BCD_ConstSize;
+   
+
+   procedure Acn_Dec_Int_BCD_VarSize_NullTerminated (bs : in out BitStream; IntVal: out Asn1UInt; minVal : in Asn1UInt; maxVal : in Asn1UInt; Result : out ASN1_RESULT)
+   is
+      digit   : Asn1Byte;
+   begin
+      IntVal := 0;
+      Result :=   ASN1_RESULT'(Success => True, ErrorCode => 0);
+      
+      for i in 1..19 loop
+         pragma Loop_Invariant (bs.Current_Bit_Pos = bs.Current_Bit_Pos'Loop_Entry + (i-1)*4);
+         BitStream_ReadNibble (bs, digit, Result.Success);
+         pragma Assert (Result.Success);
+         Result.Success :=  digit <= 9 or digit = 16#F#;
+         if Result.Success and digit /= 16#F# then
+            IntVal := IntVal * 10;
+            IntVal := IntVal + Asn1UInt (digit);
+         end if;
+         exit when digit = 16#F# or not Result.Success;
+      end loop;
+      
+      if Result.Success and (not (digit = 16#F#)) then
+         BitStream_ReadNibble (bs, digit, Result.Success);
+         Result.Success :=    digit = 16#F# and then ((IntVal >= minVal) and (IntVal <= maxVal));
+      else
+         Result.Success :=    Result.Success and then ((IntVal >= minVal) and (IntVal <= maxVal));
+      end if;
+      
+      
+      if not Result.Success then
+         result.ErrorCode := ERR_INCORRECT_STREAM;
+         IntVal := minVal;
+      end if;
+   end Acn_Dec_Int_BCD_VarSize_NullTerminated;
+
 end acn_asn1_rtl;

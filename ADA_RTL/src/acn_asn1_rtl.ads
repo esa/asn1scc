@@ -304,5 +304,106 @@ package acn_asn1_rtl with Spark_Mode is
      ( (Result.Success and IntVal >= minVal ) or
        (not Result.Success and IntVal = minVal));
    
+
+   procedure Acn_Dec_Int_TwosComplement_ConstSize (bs : in out BitStream;  IntVal : out Asn1Int;  minVal : in Asn1Int; maxVal : in Asn1Int; nSizeInBits : in Integer; Result : out ASN1_RESULT) with
+     Pre     => nSizeInBits >= 0 and then 
+                nSizeInBits < Asn1UInt'Size and then 
+                bs.Current_Bit_Pos < Natural'Last - nSizeInBits and then  
+                bs.Size_In_Bytes < Positive'Last/8 and  then
+                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - nSizeInBits,
+     Post    => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + nSizeInBits  and 
+     ( (Result.Success and IntVal >= minVal and IntVal <= maxVal) or
+       (not Result.Success and IntVal = minVal))
+   ;
+
+      
+
+   procedure Acn_Dec_Int_TwosComplement_ConstSize_8 (bs : in out BitStream; IntVal :out Asn1Int; minVal : in Asn1Int; maxVal : in Asn1Int; Result: out ASN1_RESULT) with
+     Pre     => bs.Current_Bit_Pos < Natural'Last - 8 and then  
+                bs.Size_In_Bytes < Positive'Last/8 and  then
+                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - 8,
+     Post    => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 8  and 
+     ( (Result.Success and IntVal >= minVal and IntVal <= maxVal) or
+       (not Result.Success and IntVal = minVal))
+   ;
+
+   procedure Acn_Dec_Int_TwosComplement_ConstSize_big_endian_16 (bs : in out BitStream; IntVal :out Asn1Int; minVal : in Asn1Int; maxVal : in Asn1Int; Result: out ASN1_RESULT) with
+     Pre     => bs.Current_Bit_Pos < Natural'Last - 16 and then  
+                bs.Size_In_Bytes < Positive'Last/8 and  then
+                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - 16,
+     Post    => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 16  and 
+     ( (Result.Success and IntVal >= minVal and IntVal <= maxVal) or
+       (not Result.Success and IntVal = minVal))
+   ;
+
+   procedure Acn_Dec_Int_TwosComplement_ConstSize_big_endian_32 (bs : in out BitStream; IntVal :out Asn1Int; minVal : in Asn1Int; maxVal : in Asn1Int; Result: out ASN1_RESULT) with
+     Pre     => bs.Current_Bit_Pos < Natural'Last - 32 and then  
+                bs.Size_In_Bytes < Positive'Last/8 and  then
+                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - 32,
+     Post    => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 32  and 
+     ( (Result.Success and IntVal >= minVal and IntVal <= maxVal) or
+       (not Result.Success and IntVal = minVal))
+   ;
+
+   procedure Acn_Dec_Int_TwosComplement_ConstSize_big_endian_64 (bs : in out BitStream; IntVal :out Asn1Int; minVal : in Asn1Int; maxVal : in Asn1Int; Result: out ASN1_RESULT) with
+     Pre     => bs.Current_Bit_Pos < Natural'Last - 64 and then  
+                bs.Size_In_Bytes < Positive'Last/8 and  then
+                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - 64,
+     Post    => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 64  and 
+     ( (Result.Success and IntVal >= minVal and IntVal <= maxVal) or
+       (not Result.Success and IntVal = minVal))
+   ;
    
+   procedure Acn_Dec_Int_TwosComplement_ConstSize_little_endian_16 (bs : in out BitStream; IntVal: out Asn1Int; minVal:in Asn1Int; maxVal : in Asn1Int; Result : out ASN1_RESULT) with
+     Pre     => bs.Current_Bit_Pos < Natural'Last - 16 and then  
+                bs.Size_In_Bytes < Positive'Last/8 and  then
+                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - 16,
+     Post    => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 16  and 
+     ( (Result.Success and IntVal >= minVal and IntVal <= maxVal) or
+       (not Result.Success and IntVal = minVal))
+   ;
+     
+   procedure Acn_Dec_Int_TwosComplement_ConstSize_little_endian_32 (bs : in out BitStream; IntVal: out Asn1Int; minVal:in Asn1Int; maxVal : in Asn1Int; Result : out ASN1_RESULT) with
+     Pre     => bs.Current_Bit_Pos < Natural'Last - 32 and then  
+                bs.Size_In_Bytes < Positive'Last/8 and  then
+                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - 32,
+     Post    => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 32  and 
+     ( (Result.Success and IntVal >= minVal and IntVal <= maxVal) or
+       (not Result.Success and IntVal = minVal))
+   ;
+
+   procedure Acn_Dec_Int_TwosComplement_ConstSize_little_endian_64 (bs : in out BitStream; IntVal: out Asn1Int; minVal:in Asn1Int; maxVal : in Asn1Int; Result : out ASN1_RESULT) with
+     Pre     => bs.Current_Bit_Pos < Natural'Last - 64 and then  
+                bs.Size_In_Bytes < Positive'Last/8 and  then
+                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - 64,
+     Post    => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 64  and 
+     ( (Result.Success and IntVal >= minVal and IntVal <= maxVal) or
+       (not Result.Success and IntVal = minVal))
+   ;
+
+   procedure Acn_Dec_Int_TwosComplement_VarSize_LengthEmbedded  (bs : in out BitStream;  IntVal : out Asn1Int; Result : out ASN1_RESULT) with
+     Pre     => bs.Current_Bit_Pos < Natural'Last - (Asn1Int'Size + 8) and then  
+                bs.Size_In_Bytes < Positive'Last/8 and  then
+                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - (Asn1Int'Size + 8),
+     Post    => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + (Asn1Int'Size + 8);  
+
+   procedure Acn_Dec_Int_BCD_ConstSize (bs : in out BitStream; IntVal: out Asn1UInt; minVal : in Asn1UInt; maxVal : in Asn1UInt; nNibbles : in Integer;  Result : out ASN1_RESULT) with
+     Pre     => nNibbles >= 1  and then
+                nNibbles <= 19 and then
+                minVal <= maxVal and then
+                maxVal <= Powers_of_10(nNibbles) - 1 and then
+                bs.Current_Bit_Pos < Natural'Last - 4*nNibbles and then  
+                bs.Size_In_Bytes < Positive'Last/8 and  then
+                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - 4*nNibbles,
+     Post    => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos  and  bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + 4*nNibbles  and 
+               ( (Result.Success and IntVal >= minVal and IntVal <= maxVal) or (not Result.Success and IntVal = minVal));
+   
+   procedure Acn_Dec_Int_BCD_VarSize_NullTerminated (bs : in out BitStream; IntVal: out Asn1UInt; minVal : in Asn1UInt; maxVal : in Asn1UInt; Result : out ASN1_RESULT) with
+     Pre     => minVal <= maxVal and then
+                maxVal <= Powers_of_10(19) - 1 and then
+                bs.Current_Bit_Pos < Natural'Last - 4*(19+1) and then  
+                bs.Size_In_Bytes < Positive'Last/8 and  then
+                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - 4*(19+1),
+     Post    => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos  and  bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + 4*(19+1)  and 
+               ( (Result.Success and IntVal >= minVal and IntVal <= maxVal) or (not Result.Success and IntVal = minVal));
 end acn_asn1_rtl;
