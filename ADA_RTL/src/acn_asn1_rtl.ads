@@ -405,5 +405,17 @@ package acn_asn1_rtl with Spark_Mode is
                 bs.Size_In_Bytes < Positive'Last/8 and  then
                 bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - 4*(19+1),
      Post    => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos  and  bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + 4*(19+1)  and 
-               ( (Result.Success and IntVal >= minVal and IntVal <= maxVal) or (not Result.Success and IntVal = minVal));
+     ( (Result.Success and IntVal >= minVal and IntVal <= maxVal) or (not Result.Success and IntVal = minVal));
+   
+   
+   procedure Acn_Enc_Int_ASCII_ConstSize (bs : in out BitStream; IntVal : in     Asn1Int; nChars : in     Integer) with
+     Depends => (bs => (bs, IntVal, nChars)),
+     Pre     => nChars >= 2 and then nChars <=18 and then 
+                IntVal > -Asn1Int(Powers_of_10(nChars)) and then
+                Asn1Uint(abs IntVal) < Powers_of_10(nChars) and then
+                bs.Current_Bit_Pos < Natural'Last - 8*(nChars+1) and then  
+                bs.Size_In_Bytes < Positive'Last/8 and  then
+                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - 8*(nChars+1),
+     Post    => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + 8*(nChars+1)  ;
+   
 end acn_asn1_rtl;

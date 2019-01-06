@@ -578,5 +578,34 @@ package body acn_asn1_rtl with Spark_Mode is
          IntVal := minVal;
       end if;
    end Acn_Dec_Int_BCD_VarSize_NullTerminated;
+   
+   
+   procedure Acn_Enc_Int_ASCII_ConstSize (bs : in out BitStream; IntVal : in     Asn1Int; nChars : in     Integer)
+   is
+        digits_array: Digits_Buffer;
+        nDigits : Asn1Byte;
+        sing : Asn1Byte;
+        absIntVal : Asn1Uint;
+   begin
+        absIntVal :=  Asn1Uint(abs IntVal); --(if intVal >= 0  then Asn1Uint(intVal) else (Asn1Uint(-(intVal+1))+1));
+        sing := (if intVal >= 0  then Character'Pos('+') else Character'Pos('-'));
+        Get_integer_digits(absIntVal,digits_array, nDigits);
+        pragma assert(Integer(nDigits) <= nChars);
+        -- encode sign
+        BitStream_AppendByte(bs, sing, False);
+
+        -- encode trailing zeros
+        for i in 1.. (nChars - Integer(nDigits)) loop
+             pragma Loop_Invariant (bs.Current_Bit_Pos = bs.Current_Bit_Pos'Loop_Entry + (i-1)*8);
+             BitStream_AppendByte(bs, 0, False);
+        end loop;
+      
+        -- encode digits
+        for i in 1..Integer(nDigits) loop
+             pragma Loop_Invariant (bs.Current_Bit_Pos = bs.Current_Bit_Pos'Loop_Entry + (i-1)*8);
+             BitStream_AppendByte(bs, digits_array(i), False);
+        end loop;
+   end Acn_Enc_Int_ASCII_ConstSize;
+   
 
 end acn_asn1_rtl;
