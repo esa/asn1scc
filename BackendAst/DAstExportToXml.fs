@@ -197,6 +197,8 @@ let private exportType (r:AstRoot) (t:Asn1Type) =
                         XAttribute(xname "newTypedefName", (t.typeDefintionOrReference.longTypedefName Ada)),
                         XAttribute(xname "newTypedefName2", (ti.baseInfo.typeDef.[CommonTypes.ProgrammingLanguage.C].typeName)),
                         XAttribute(xname "newTypedefName2_kind", t.FT_TypeDefintion.[CommonTypes.ProgrammingLanguage.C].kind),
+                        XAttribute(xname "ancEncClass", ti.ancEncClass.ToString()),
+
                         //(exportElement "CompleteDefinition" ti.typeDefinition.completeDefinition),
                         //(exportOptionalElement "CompleteDefinitionWithinSeq" ti.typeDefinition.completeDefinitionWithinSeq),
                         children

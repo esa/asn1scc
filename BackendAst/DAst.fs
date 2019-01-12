@@ -657,6 +657,13 @@ and AcnChoiceEncClass =
     | CEC_uper
     | CEC_enum          of (Asn1AcnAst.ReferenceToEnumerated * Asn1AcnAst.Determinant)
     | CEC_presWhen
+    with
+        override this.ToString () = 
+            match this with
+            | CEC_uper           -> "CEC_uper"
+            | CEC_enum  (a,b)    -> sprintf "CEC_enum(%s)" b.id.AsString
+            | CEC_presWhen       -> "CEC_presWhen"
+    
 
 
 and Choice = {

@@ -217,7 +217,7 @@ let GetBooleanEncodingClass (aligment: AcnAligment option) errLoc (p  : BooleanA
 
 let GetChoiceEncodingClass  (children : ChChildInfo list) (aligment: AcnAligment option) errLoc (p  : ChoiceAcnProperties) =
     let maxChildSize = children |> List.map(fun c -> c.Type.acnMaxSizeInBits) |> Seq.max
-    let minChildSize = children |> List.map(fun c -> c.Type.acnMaxSizeInBits) |> Seq.min
+    let minChildSize = children |> List.map(fun c -> c.Type.acnMinSizeInBits) |> Seq.min
     let alignmentSize = getAlignmentSize aligment
 
     let presenceDeterminentByAcn =

@@ -1,0 +1,38 @@
+D DEFINITIONS ::=
+BEGIN
+
+T-NID-Packet ::= ENUMERATED
+{
+    stm-0 (0),
+    stm-5      (5),
+    stm-8      (8),
+    stm-9      (9),
+    stm-13    (13),
+    stm-14    (14),
+    stm-15    (15),
+    stm-32    (32),
+    stm-35    (35),
+    stm-45    (45),
+    stm-199  (199)
+}
+
+
+T-Packet-Body ::= CHOICE
+{
+    stm-0   REAL,
+    stm-5   REAL,
+    stm-8   REAL,
+    stm-9   REAL,
+    stm-13  REAL,
+    stm-14  REAL,
+    stm-15  REAL,
+    stm-32  REAL,
+    stm-35  REAL,
+    stm-45  REAL,
+    stm-199 REAL
+}
+
+T-Packet ::= SEQUENCE {
+    pbody  T-Packet-Body
+}
+END

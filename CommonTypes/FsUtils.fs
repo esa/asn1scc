@@ -192,6 +192,9 @@ type System.String with
     member this.RDA =
         if this.IsEmptyOrNull then ""
         else this.Replace('.','_')
+    member this.RDD =
+        if this.IsEmptyOrNull then ""
+        else this.Replace('.','-')
     member this.JSEsc =
         if this.IsEmptyOrNull then ""
         else this.Replace("'","\\'").Replace("\"","\\\"")
