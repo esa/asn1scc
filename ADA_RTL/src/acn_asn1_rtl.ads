@@ -418,4 +418,46 @@ package acn_asn1_rtl with Spark_Mode is
                 bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - 8*(nChars+1),
      Post    => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + 8*(nChars+1)  ;
    
+   procedure Acn_Dec_Int_ASCII_ConstSize (bs : in out BitStream; IntVal: out Asn1Int; minVal : in Asn1Int; maxVal : in Asn1Int; nChars : in Integer;  Result : out ASN1_RESULT) with
+     Pre     => nChars >= 2 and then nChars <=18 and then 
+                minVal <= maxVal and then
+                minVal > -Asn1Int(Powers_of_10(18)) and then
+                maxVal < Asn1Int(Powers_of_10(18)) and then     
+                bs.Current_Bit_Pos < Natural'Last - 8*(nChars+1) and then  
+                bs.Size_In_Bytes < Positive'Last/8 and  then
+                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - 8*(nChars+1),
+     Post    => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + 8*(nChars+1)  and 
+     ( (Result.Success and IntVal >= minVal and IntVal <= maxVal) or (not Result.Success and IntVal = minVal));  
+   
+   procedure Acn_Enc_UInt_ASCII_ConstSize (bs : in out BitStream; IntVal : in     Asn1UInt; nChars : in     Integer) with
+     Depends => (bs => (bs, IntVal, nChars)),
+     Pre     => nChars >= 1 and then nChars <=19 and then 
+                IntVal < Powers_of_10(nChars) and then
+                bs.Current_Bit_Pos < Natural'Last - 8*(nChars) and then  
+                bs.Size_In_Bytes < Positive'Last/8 and  then
+                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - 8*(nChars),
+     Post    => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + 8*(nChars)  ;
+   
+   procedure Acn_Dec_UInt_ASCII_ConstSize (bs : in out BitStream; IntVal: out Asn1UInt; minVal : in Asn1UInt; maxVal : in Asn1UInt; nChars : in Integer;  Result : out ASN1_RESULT)   with
+     Pre     => nChars >= 2 and then nChars <=19 and then 
+                minVal <= maxVal and then
+                maxVal < Powers_of_10(19) and then     
+                bs.Current_Bit_Pos < Natural'Last - 8*(nChars) and then  
+                bs.Size_In_Bytes < Positive'Last/8 and  then
+                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - 8*(nChars),
+     Post    => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + 8*(nChars)  and 
+     ( (Result.Success and IntVal >= minVal and IntVal <= maxVal) or (not Result.Success and IntVal = minVal));  
+   
+   procedure Acn_Dec_UInt_ASCII_VarSize_NullTerminated (bs : in out BitStream; IntVal: out Asn1UInt; nullChar: in Asn1Byte; Result : out ASN1_RESULT)   with
+     Pre     => bs.Current_Bit_Pos < Natural'Last - 8*(19+1) and then  
+                bs.Size_In_Bytes < Positive'Last/8 and  then
+                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - 8*(19+1),
+     Post    => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos  and  bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + 8*(19+1)  ;
+   
+   procedure Acn_Dec_Int_ASCII_VarSize_NullTerminated (bs : in out BitStream; IntVal: out Asn1Int; nullChar: in Asn1Byte; Result : out ASN1_RESULT) with
+     Pre     => bs.Current_Bit_Pos < Natural'Last - 8*(19+1+1) and then  
+                bs.Size_In_Bytes < Positive'Last/8 and  then
+                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - 8*(19+1+1),
+     Post    => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos  and  bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + 8*(19+1+1)  ;
+   
 end acn_asn1_rtl;

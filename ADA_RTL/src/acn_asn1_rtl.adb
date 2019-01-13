@@ -587,9 +587,16 @@ package body acn_asn1_rtl with Spark_Mode is
         sing : Asn1Byte;
         absIntVal : Asn1Uint;
    begin
-        absIntVal :=  Asn1Uint(abs IntVal); --(if intVal >= 0  then Asn1Uint(intVal) else (Asn1Uint(-(intVal+1))+1));
+        pragma assert (intVal > -Asn1Int(Powers_of_10(nChars)));
+        pragma assert (intVal <  Asn1Int(Powers_of_10(nChars)));
+        pragma assert (abs IntVal <  Asn1Int(Powers_of_10(nChars)));
+                                      
+        absIntVal :=  (if intVal >= 0  then Asn1Uint(intVal) else Asn1Uint(-intVal));
+        pragma assert (absIntVal < Powers_of_10(nChars));               
         sing := (if intVal >= 0  then Character'Pos('+') else Character'Pos('-'));
         Get_integer_digits(absIntVal,digits_array, nDigits);
+        pragma assert(absIntVal < Powers_of_10(nChars));
+        pragma assert(Integer(nDigits) = Get_number_of_digits(absIntVal));
         pragma assert(Integer(nDigits) <= nChars);
         -- encode sign
         BitStream_AppendByte(bs, sing, False);
@@ -606,6 +613,180 @@ package body acn_asn1_rtl with Spark_Mode is
              BitStream_AppendByte(bs, digits_array(i), False);
         end loop;
    end Acn_Enc_Int_ASCII_ConstSize;
+   
+
+   procedure Acn_Dec_Int_ASCII_ConstSize (bs : in out BitStream; IntVal: out Asn1Int; minVal : in Asn1Int; maxVal : in Asn1Int; nChars : in Integer;  Result : out ASN1_RESULT)
+   is
+      digit   : Asn1Byte;
+      intDigit : Integer;
+      Ch    : Character;
+      negative : Boolean;
+   begin
+      IntVal := 0;
+      BitStream_DecodeByte (bs, digit, Result.Success);
+
+      Result :=   ASN1_RESULT'(Success => digit = Character'Pos ('+') or digit = Character'Pos ('-'), ErrorCode => ERR_INCORRECT_STREAM);
+      if result.Success then
+      
+         negative := digit = Character'Pos ('-');
+         for i in 1..nChars loop
+            pragma Loop_Invariant (bs.Current_Bit_Pos = bs.Current_Bit_Pos'Loop_Entry + (i-1)*8 and IntVal >= 0 );
+            BitStream_DecodeByte (bs, digit, Result.Success);
+            pragma Assert (Result.Success);
+            Ch    := Character'Val (digit);
+            intDigit := Character'Pos (Ch) - Character'Pos ('0');
+   
+            Result.Success := intDigit >=0 and intDigit <= 9 and IntVal <Asn1Int(Powers_of_10(i-1));
+            if Result.Success then
+               IntVal := IntVal * 10;
+               IntVal := IntVal + Asn1Int (intDigit);
+            end if;
+            exit when not Result.Success;
+         end loop;
+         
+         IntVal := (if negative then -IntVal else IntVal);
+         
+         Result.Success :=    Result.Success and then ((IntVal >= minVal) and (IntVal <= maxVal));
+         
+      end if;
+      
+      if not Result.Success then
+         result.ErrorCode := ERR_INCORRECT_STREAM;
+         IntVal := minVal;
+      end if;
+      
+      
+   end Acn_Dec_Int_ASCII_ConstSize;
+   
+   
+   procedure Acn_Enc_UInt_ASCII_ConstSize (bs : in out BitStream; IntVal : in     Asn1Uint; nChars : in     Integer)
+   is
+        digits_array: Digits_Buffer;
+        nDigits : Asn1Byte;
+   begin
+        Get_integer_digits(IntVal,digits_array, nDigits);
+        pragma assert(IntVal < Powers_of_10(nChars));
+        pragma assert(Integer(nDigits) = Get_number_of_digits(IntVal));
+        pragma assert(Integer(nDigits) <= nChars);
+
+        -- encode trailing zeros
+        for i in 1.. (nChars - Integer(nDigits)) loop
+             pragma Loop_Invariant (bs.Current_Bit_Pos = bs.Current_Bit_Pos'Loop_Entry + (i-1)*8);
+             BitStream_AppendByte(bs, 0, False);
+        end loop;
+      
+        -- encode digits
+        for i in 1..Integer(nDigits) loop
+             pragma Loop_Invariant (bs.Current_Bit_Pos = bs.Current_Bit_Pos'Loop_Entry + (i-1)*8);
+             BitStream_AppendByte(bs, digits_array(i), False);
+        end loop;
+   end Acn_Enc_UInt_ASCII_ConstSize;
+   
+   
+   procedure Acn_Dec_UInt_ASCII_ConstSize (bs : in out BitStream; IntVal: out Asn1UInt; minVal : in Asn1UInt; maxVal : in Asn1UInt; nChars : in Integer;  Result : out ASN1_RESULT)
+   is
+      digit   : Asn1Byte;
+      intDigit : Integer;
+      Ch    : Character;
+   begin
+      IntVal := 0;
+      Result :=   ASN1_RESULT'(Success => True, ErrorCode => 0);
+
+      for i in 1..nChars loop
+         pragma Loop_Invariant (bs.Current_Bit_Pos = bs.Current_Bit_Pos'Loop_Entry + (i-1)*8 and IntVal >= 0 );
+         BitStream_DecodeByte (bs, digit, Result.Success);
+         pragma Assert (Result.Success);
+         Ch    := Character'Val (digit);
+         intDigit := Character'Pos (Ch) - Character'Pos ('0');
+
+         Result.Success := intDigit >=0 and intDigit <= 9 and IntVal <Powers_of_10(i-1);
+         if Result.Success then
+            IntVal := IntVal * 10;
+            IntVal := IntVal + Asn1UInt (intDigit);
+         end if;
+         exit when not Result.Success;
+      end loop;
+      
+         
+      Result.Success :=    Result.Success and then ((IntVal >= minVal) and (IntVal <= maxVal));
+         
+      
+      if not Result.Success then
+         result.ErrorCode := ERR_INCORRECT_STREAM;
+         IntVal := minVal;
+      end if;
+      
+      
+   end Acn_Dec_UInt_ASCII_ConstSize;
+   
+
+   procedure Acn_Dec_UInt_ASCII_VarSize_NullTerminated (bs : in out BitStream; IntVal: out Asn1UInt; nullChar: in Asn1Byte; Result : out ASN1_RESULT)
+   is
+      digit   : Asn1Byte;
+      intDigit : Integer;
+      Ch    : Character;
+   begin
+      IntVal := 0;
+      Result :=   ASN1_RESULT'(Success => True, ErrorCode => 0);
+      
+      for i in 1..19 loop
+         pragma Loop_Invariant (bs.Current_Bit_Pos = bs.Current_Bit_Pos'Loop_Entry + (i-1)*8);
+         BitStream_DecodeByte (bs, digit, Result.Success);
+         pragma Assert (Result.Success);
+         exit when digit = nullChar;
+         Ch    := Character'Val (digit);
+         intDigit := Character'Pos (Ch) - Character'Pos ('0');
+
+         Result.Success := intDigit >=0 and intDigit <= 9 and IntVal <Powers_of_10(i-1);
+         if Result.Success then
+            IntVal := IntVal * 10;
+            IntVal := IntVal + Asn1UInt (intDigit);
+         end if;
+         exit when not Result.Success;
+      end loop;
+      
+      if Result.Success and (not (digit = nullChar)) then
+         BitStream_DecodeByte (bs, digit, Result.Success);
+         Result.Success :=    digit = nullChar;
+      end if;
+      
+      
+      if not Result.Success then
+         result.ErrorCode := ERR_INCORRECT_STREAM;
+      end if;
+   end Acn_Dec_UInt_ASCII_VarSize_NullTerminated;
+
+   procedure Acn_Dec_Int_ASCII_VarSize_NullTerminated (bs : in out BitStream; IntVal: out Asn1Int; nullChar: in Asn1Byte; Result : out ASN1_RESULT)
+   is
+      digitAscii : Asn1Byte;
+      Ch    : Character;
+      absIntVal : Asn1UInt;
+   begin
+      IntVal := 0;
+      Result := ASN1_RESULT'(Success => True, ErrorCode => ERR_INCORRECT_STREAM);
+      --decode sign
+      BitStream_DecodeByte (bs, digitAscii, Result.Success);
+      
+      Ch    := Character'Val (digitAscii);
+
+      Result.Success := Result.Success and (Ch = '+' or Ch = '-');
+      if result.Success then
+         Acn_Dec_UInt_ASCII_VarSize_NullTerminated(bs, absIntVal, nullChar, result);
+
+         if result.Success then
+
+             if Ch= '+' and absIntVal <= Asn1UInt(Asn1Int'Last) then
+                 IntVal := Asn1Int(absIntVal);
+             elsif Ch = '-' and absIntVal <= Asn1UInt(Asn1Int'Last) then
+                IntVal := -Asn1Int(absIntVal);
+             else 
+               Result := ASN1_RESULT'(Success => False, ErrorCode => ERR_INCORRECT_STREAM);
+             end if;
+         end if;
+      end if;
+      
+      
+   end Acn_Dec_Int_ASCII_VarSize_NullTerminated;
    
 
 end acn_asn1_rtl;
