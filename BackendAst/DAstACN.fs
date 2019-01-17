@@ -640,7 +640,7 @@ let createAcnStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
             match tas.Type.ActualType.Kind with
             | Asn1AcnAst.IA5String     z -> z.typeDef.[l].longTypedefName l (ToC p.modName)
             | Asn1AcnAst.NumericString z -> z.typeDef.[l].longTypedefName l (ToC p.modName)
-            | _                           -> raise(SemanticError(t.tasName.Location, (sprintf "Type assignemt %s.%s does not point to a string type" t.modName.Value t.modName.Value)))
+            | _                           -> raise(SemanticError(t.tasName.Location, (sprintf "Type assignment %s.%s does not point to a string type" t.modName.Value t.modName.Value)))
         let ii = typeId.SeqeuenceOfLevel + 1
         let i = sprintf "i%d" ii
         let lv = SequenceOfIndex (typeId.SeqeuenceOfLevel + 1, None)
@@ -1227,7 +1227,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
         | errChild::_      -> 
             let determinantUsage =
                 match errChild.Type with
-                | Asn1AcnAst.AcnInteger               _-> "legth"
+                | Asn1AcnAst.AcnInteger               _-> "length"
                 | Asn1AcnAst.AcnNullType              _-> raise(BugErrorException "existsAcnChildWithNoUpdates")
                 | Asn1AcnAst.AcnBoolean               _-> "presence"
                 | Asn1AcnAst.AcnReferenceToEnumerated _-> "presence"

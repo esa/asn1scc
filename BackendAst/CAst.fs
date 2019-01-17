@@ -184,10 +184,10 @@ type StringAcnEncodingClass =
     | Acn_Enc_String_Ascii_FixSize                          of int                      //int = the size of the fixed ascii string
     | Acn_Enc_String_Ascii_Null_Teminated                   of byte                     //byte = the null character
     | Acn_Enc_String_Ascii_External_Field_Determinant                                   //the determinant is exists withinh acnLinks
-    | Acn_Enc_String_Ascii_Internal_Field_Determinant       of int                      //int = size in bits of legth determinant. This case is like uPER except that the ASCII value (8 bits) of the character is encoded and also no fragmentation     
+    | Acn_Enc_String_Ascii_Internal_Field_Determinant       of int                      //int = size in bits of length determinant. This case is like uPER except that the ASCII value (8 bits) of the character is encoded and also no fragmentation     
     | Acn_Enc_String_CharIndex_FixSize                      of int                      //int = the size of the fixed string
     | Acn_Enc_String_CharIndex_External_Field_Determinant                               //external field
-    | Acn_Enc_String_CharIndex_Internal_Field_Determinant   of int                      //int = size in bits of legth determinant : this case is almost like uPER (except of fragmentation)
+    | Acn_Enc_String_CharIndex_Internal_Field_Determinant   of int                      //int = size in bits of length determinant : this case is almost like uPER (except of fragmentation)
 
 
 
