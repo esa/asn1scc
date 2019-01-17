@@ -203,8 +203,8 @@ let GetNullEncodingClass (aligment: AcnAligment option) errLoc (p  : NullTypeAcn
     let alignmentSize = getAlignmentSize aligment
     match  p.encodingPattern with
     | None                                  -> alignmentSize, alignmentSize
-    | Some (PATERN_PROP_BITSTR_VALUE p)     -> alignmentSize + p.Value.Length.AsBigInt, alignmentSize  + p.Value.Length.AsBigInt
-    | Some (PATERN_PROP_OCTSTR_VALUE p)     -> alignmentSize + (p.Length*8).AsBigInt, alignmentSize  + (p.Length*8).AsBigInt
+    | Some (PATTERN_PROP_BITSTR_VALUE p)    -> alignmentSize + p.Value.Length.AsBigInt, alignmentSize  + p.Value.Length.AsBigInt
+    | Some (PATTERN_PROP_OCTSTR_VALUE p)    -> alignmentSize + (p.Length*8).AsBigInt, alignmentSize  + (p.Length*8).AsBigInt
 
 let GetBooleanEncodingClass (aligment: AcnAligment option) errLoc (p  : BooleanAcnProperties) =
     let alignmentSize = getAlignmentSize aligment

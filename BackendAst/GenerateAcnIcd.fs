@@ -73,10 +73,10 @@ let rec printType stgFileName (tas:GenerateUperIcd.IcdTypeAssignment) (t:Asn1Typ
             EmitEnumItemWithComment  = icd_acn.EmitEnumItemWithComment 
             EmitEnumInternalContents = icd_acn.EmitEnumInternalContents
         } 
-    let handleNullType (encodingPattern : AcnGenericTypes.PATERN_PROP_VALUE option) defaultRetValue =
+    let handleNullType (encodingPattern : AcnGenericTypes.PATTERN_PROP_VALUE option) defaultRetValue =
         match encodingPattern with
-        | Some(AcnGenericTypes.PATERN_PROP_BITSTR_VALUE bitStr)       -> icd_acn.NullTypeWithBitPattern  stgFileName  bitStr.Value
-        | Some(AcnGenericTypes.PATERN_PROP_OCTSTR_VALUE byteList     )-> icd_acn.NullTypeWithBytePattern stgFileName  (byteList |> List.map (fun z -> z.Value)) 
+        | Some(AcnGenericTypes.PATTERN_PROP_BITSTR_VALUE bitStr)       -> icd_acn.NullTypeWithBitPattern  stgFileName  bitStr.Value
+        | Some(AcnGenericTypes.PATTERN_PROP_OCTSTR_VALUE byteList     )-> icd_acn.NullTypeWithBytePattern stgFileName  (byteList |> List.map (fun z -> z.Value)) 
         | None                                                        -> defaultRetValue
         
     let GetCommentLine = GenerateUperIcd.GetCommentLineFactory stgFileName enumStg

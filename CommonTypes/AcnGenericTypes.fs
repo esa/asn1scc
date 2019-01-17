@@ -102,13 +102,13 @@ type SizeableAcnProperties = {
     sizeProp        : RelativePath          option
 }
 
-type PATERN_PROP_VALUE =
-    | PATERN_PROP_BITSTR_VALUE of StringLoc
-    | PATERN_PROP_OCTSTR_VALUE of ByteLoc list
+type PATTERN_PROP_VALUE =
+    | PATTERN_PROP_BITSTR_VALUE of StringLoc
+    | PATTERN_PROP_OCTSTR_VALUE of ByteLoc list
 
 
 type NullTypeAcnProperties = {
-    encodingPattern     : PATERN_PROP_VALUE             option
+    encodingPattern     : PATTERN_PROP_VALUE            option
 }
 
 type ObjectIdTypeAcnProperties = {
@@ -204,7 +204,7 @@ type  GenericAcnProperty =
     | PRESENT_WHEN      of GenericAcnPresentWhenCondition list
     | TRUE_VALUE        of StringLoc
     | FALSE_VALUE       of StringLoc
-    | PATTERN           of PATERN_PROP_VALUE
+    | PATTERN           of PATTERN_PROP_VALUE
     | CHOICE_DETERMINANT of RelativePath
     | ENDIANNES         of AcnEndianness
     | ENUM_SET_VALUE    of IntLoc

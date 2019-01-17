@@ -376,14 +376,14 @@ and HandleAcnProperty(t:ITree) (rest:List<ITree>) (asn1Type: Asn1Type) absPath (
                         match tp.GetChild(0).Type with
                         | acnParser.BitStringLiteral    ->
                             match bitPattern.Length <> 8 with
-                            | true  -> raise(SemanticError(tp.Location, sprintf "ternination-patern value must be a byte"  ))
+                            | true  -> raise(SemanticError(tp.Location, sprintf "termination-pattern value must be a byte"  ))
                             | false ->
                                 bitPattern.ToCharArray() |> 
                                 Seq.fold(fun (p,cs) c -> if c='0' then (p/2,cs) else (p/2,p+cs) ) (128, 0) 
                                 |> snd |> byte
                         | acnParser.OctectStringLiteral ->
                             match bitPattern.Length <> 2 with
-                            | true  -> raise(SemanticError(tp.Location, sprintf "ternination-patern value must be a byte"  ))
+                            | true  -> raise(SemanticError(tp.Location, sprintf "termination-pattern value must be a byte"  ))
                             | false ->
                                 System.Byte.Parse(bitPattern, System.Globalization.NumberStyles.AllowHexSpecifier)
                         | _     ->  raise(BugErrorException("HandleAcnProperty: Neither BitStringLiteral or OctectStringLiteral"))
