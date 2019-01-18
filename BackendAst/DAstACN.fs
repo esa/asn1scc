@@ -509,11 +509,11 @@ let createAcnNullTypeFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (co
         | Some encPattern   ->
             let arrsBits, arrBytes, nBitsSize =
                 match encPattern with
-                | PATERN_PROP_BITSTR_VALUE bitStringPattern ->
+                | PATTERN_PROP_BITSTR_VALUE bitStringPattern ->
                     let arrsBits = bitStringPattern.Value.ToCharArray() |> Seq.mapi(fun i x -> ((i+1).ToString()) + "=>" + if x='0' then "0" else "1") |> Seq.toList
                     let arrBytes = bitStringValueToByteArray bitStringPattern
                     arrsBits, arrBytes, (BigInteger bitStringPattern.Value.Length)
-                | PATERN_PROP_OCTSTR_VALUE octStringBytes   ->
+                | PATTERN_PROP_OCTSTR_VALUE octStringBytes   ->
                     let arrBytes = octStringBytes |> Seq.map(fun z -> z.Value) |> Seq.toArray
                     let bitStringPattern = byteArrayToBitStringValue arrBytes
                     let arrsBits = bitStringPattern.ToCharArray() |> Seq.mapi(fun i x -> ((i+1).ToString()) + "=>" + if x='0' then "0" else "1") |> Seq.toList
@@ -531,11 +531,11 @@ let createNullTypeFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec
         | Some encPattern   ->
             let arrsBits, arrBytes, nBitsSize =
                 match encPattern with
-                | PATERN_PROP_BITSTR_VALUE bitStringPattern ->
+                | PATTERN_PROP_BITSTR_VALUE bitStringPattern ->
                     let arrsBits = bitStringPattern.Value.ToCharArray() |> Seq.mapi(fun i x -> ((i+1).ToString()) + "=>" + if x='0' then "0" else "1") |> Seq.toList
                     let arrBytes = bitStringValueToByteArray bitStringPattern
                     arrsBits, arrBytes, (BigInteger bitStringPattern.Value.Length)
-                | PATERN_PROP_OCTSTR_VALUE octStringBytes   ->
+                | PATTERN_PROP_OCTSTR_VALUE octStringBytes   ->
                     let arrBytes = octStringBytes |> Seq.map(fun z -> z.Value) |> Seq.toArray
                     let bitStringPattern = byteArrayToBitStringValue arrBytes
                     let arrsBits = bitStringPattern.ToCharArray() |> Seq.mapi(fun i x -> ((i+1).ToString()) + "=>" + if x='0' then "0" else "1") |> Seq.toList
@@ -640,7 +640,7 @@ let createAcnStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
             match tas.Type.ActualType.Kind with
             | Asn1AcnAst.IA5String     z -> z.typeDef.[l].longTypedefName l (ToC p.modName)
             | Asn1AcnAst.NumericString z -> z.typeDef.[l].longTypedefName l (ToC p.modName)
-            | _                           -> raise(SemanticError(t.tasName.Location, (sprintf "Type assignemt %s.%s does not point to a string type" t.modName.Value t.modName.Value)))
+            | _                           -> raise(SemanticError(t.tasName.Location, (sprintf "Type assignment %s.%s does not point to a string type" t.modName.Value t.modName.Value)))
         let ii = typeId.SeqeuenceOfLevel + 1
         let i = sprintf "i%d" ii
         let lv = SequenceOfIndex (typeId.SeqeuenceOfLevel + 1, None)
@@ -1227,7 +1227,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
         | errChild::_      -> 
             let determinantUsage =
                 match errChild.Type with
-                | Asn1AcnAst.AcnInteger               _-> "legth"
+                | Asn1AcnAst.AcnInteger               _-> "length"
                 | Asn1AcnAst.AcnNullType              _-> raise(BugErrorException "existsAcnChildWithNoUpdates")
                 | Asn1AcnAst.AcnBoolean               _-> "presence"
                 | Asn1AcnAst.AcnReferenceToEnumerated _-> "presence"

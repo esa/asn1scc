@@ -234,11 +234,11 @@ let exportAcnBooleanEncoding (a:AcnBooleanEncoding option) =
     | Some (TrueValue  pat)    -> [XAttribute(xname "true-value", pat.Value )]
     | Some (FalseValue pat)    -> [XAttribute(xname "false-value", pat.Value )]
 
-let exportAcnNullType (a:PATERN_PROP_VALUE option) =
+let exportAcnNullType (a:PATTERN_PROP_VALUE option) =
     match a with
     | None        -> []
-    | Some (AcnGenericTypes.PATERN_PROP_BITSTR_VALUE pat)    -> [XAttribute(xname "pattern", pat.Value )]
-    | Some (AcnGenericTypes.PATERN_PROP_OCTSTR_VALUE v)      -> [XAttribute(xname "pattern", (v |> List.map(fun b -> System.String.Format("{0:X2}", b.Value)) |> Seq.StrJoin "" ) )]
+    | Some (AcnGenericTypes.PATTERN_PROP_BITSTR_VALUE pat)    -> [XAttribute(xname "pattern", pat.Value )]
+    | Some (AcnGenericTypes.PATTERN_PROP_OCTSTR_VALUE v)      -> [XAttribute(xname "pattern", (v |> List.map(fun b -> System.String.Format("{0:X2}", b.Value)) |> Seq.StrJoin "" ) )]
                          
 let exportAcnParameter (a:AcnParameter) =
     XElement(xname "AcnParameter", 

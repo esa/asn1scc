@@ -549,7 +549,7 @@ let rec CheckType(t:Asn1Type) (m:Asn1Module) ast =
         let impMod = ast.GetModuleByName impRef.modName
         match impMod.ExportedTypes |> Seq.tryFind ( (=) impRef.tasName.Value) with
         | Some _    -> ()
-        | None      -> raise(SemanticError(impRef.tasName.Location, sprintf "No type assignemt with name %s exists (or exported) in module %s" impRef.tasName.Value  impMod.Name.Value))
+        | None      -> raise(SemanticError(impRef.tasName.Location, sprintf "No type assignment with name %s exists (or exported) in module %s" impRef.tasName.Value  impMod.Name.Value))
     t.Constraints |> Seq.iter(fun c -> isConstraintValid t c ast)
 
 
@@ -606,15 +606,15 @@ let CheckModule (m:Asn1Module) ast (pass :int)=
                 | Some(_) -> 
                     match im.ExportedTypes |> Seq.tryFind((=) tasName.Value ) with
                     | Some (_)  -> ()
-                    | None      -> raise(SemanticError(tasName.Location, sprintf "Type assignemt '%s' is privately defined in module '%s'. Use EXPORT keyword to make it visible to other modules." tasName.Value  imp.Name.Value))
-                | None    -> raise(SemanticError(tasName.Location, sprintf "No type assignemt with name %s exists in module %s" tasName.Value  imp.Name.Value))
+                    | None      -> raise(SemanticError(tasName.Location, sprintf "Type assignment '%s' is privately defined in module '%s'. Use EXPORT keyword to make it visible to other modules." tasName.Value  imp.Name.Value))
+                | None    -> raise(SemanticError(tasName.Location, sprintf "No type assignment with name %s exists in module %s" tasName.Value  imp.Name.Value))
             let checkVasName vasName =
                 match im.ValueAssignments |> Seq.tryFind(fun x-> x.Name.Value = vasName.Value ) with
                 | Some(_) -> 
                     match im.ExportedVars |> Seq.tryFind( (=) vasName.Value ) with
                     | Some (_)  -> ()
-                    | None      -> raise(SemanticError(vasName.Location, sprintf "Value assignemt %s is privately defined in module '%s'. Use EXPORT keyword to make it visible to other modules" vasName.Value  imp.Name.Value))
-                | None    -> raise(SemanticError(vasName.Location, sprintf "No value assignemt with name %s exists in module %s" vasName.Value  imp.Name.Value))
+                    | None      -> raise(SemanticError(vasName.Location, sprintf "Value assignment %s is privately defined in module '%s'. Use EXPORT keyword to make it visible to other modules" vasName.Value  imp.Name.Value))
+                | None    -> raise(SemanticError(vasName.Location, sprintf "No value assignment with name %s exists in module %s" vasName.Value  imp.Name.Value))
             imp.Types |> Seq.iter checkTasName
             imp.Values |> Seq.iter checkVasName
     m.Imports |> Seq.iter checkImport

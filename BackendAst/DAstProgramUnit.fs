@@ -61,7 +61,7 @@ let private sortTypes (typesToSort: Asn1Type list) (imports :TypeAssignmentInfo 
             match tas.typeAssignmentInfo with
             | Some (TypeAssignmentInfo tasInfo)  -> Some ( (tasInfo, getTypeDependencies2 tas ))
             | Some (ValueAssignmentInfo _)  
-            | None          -> raise (BugErrorException "All TypeAssignemts must have tasInfo") )
+            | None          -> raise (BugErrorException "All TypeAssignments must have tasInfo") )
     let independentNodes = allNodes |> List.filter(fun (_,list) -> List.isEmpty list) |> List.map(fun (n,l) -> n)
     let dependentNodes = allNodes |> List.filter(fun (_,list) -> not (List.isEmpty list) )
     let sortedTypeAss = 

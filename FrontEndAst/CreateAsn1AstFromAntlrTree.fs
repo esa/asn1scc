@@ -702,7 +702,7 @@ let rootCheckCyclicDeps (astRoot:list<ITree>) =
         List.choose(fun (rfm, rft)  ->
             match tasses |> List.tryFind( fun (m,t) -> m.Value = rfm.Value && t.Value = rft.Value)  with
             | Some _    -> None
-            | None      -> Some (rft.Location, sprintf "No type assignemt with name %s exists (or exported) in module %s" rft.Value  rfm.Value) )
+            | None      -> Some (rft.Location, sprintf "No type assignment with name %s exists (or exported) in module %s" rft.Value  rfm.Value) )
     match orphanRefTypes with
     | []    -> ()
     | (l,msg)::_-> raise(SemanticError(l,msg))

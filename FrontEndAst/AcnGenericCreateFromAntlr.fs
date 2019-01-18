@@ -213,12 +213,12 @@ let private creareAcnProperty (acnConstants : Map<string, BigInteger>) (t:ITree)
         match t.GetChild(0).Type with
         | acnParser.BitStringLiteral    ->
             let v = { StringLoc.Value = GetActualString(t.GetChild(0).Text); Location = t.GetChild(0).Location}
-            PATTERN (AcnGenericTypes.PATERN_PROP_BITSTR_VALUE v)
+            PATTERN (AcnGenericTypes.PATTERN_PROP_BITSTR_VALUE v)
         | acnParser.OctectStringLiteral ->
             let strVal = GetActualString(t.GetChild(0).Text)
             let chars = strVal.ToCharArray() 
             let bytes = FsUtils.getAsTupples chars '0' |> List.map (fun (x1,x2)-> t.GetValueL (System.Byte.Parse(x1.ToString()+x2.ToString(), System.Globalization.NumberStyles.AllowHexSpecifier))) 
-            PATTERN (AcnGenericTypes.PATERN_PROP_OCTSTR_VALUE bytes)
+            PATTERN (AcnGenericTypes.PATTERN_PROP_OCTSTR_VALUE bytes)
         | _     ->  raise(BugErrorException("creareAcnProperty_PATTERN"))
                     
     | acnParser.DETERMINANT             -> CHOICE_DETERMINANT (CreateLongField(t.GetChild 0))
@@ -235,7 +235,7 @@ let private creareAcnProperty (acnConstants : Map<string, BigInteger>) (t:ITree)
         match tp.GetChild(0).Type with
         | acnParser.BitStringLiteral    ->
             match bitPattern.Length <> 8 with
-            | true  -> raise(SemanticError(tp.Location, sprintf "ternination-patern value must be a byte"  ))
+            | true  -> raise(SemanticError(tp.Location, sprintf "termination-pattern value must be a byte"  ))
             | false ->
                 let byteVal = 
                     bitPattern.ToCharArray() |> 
@@ -244,7 +244,7 @@ let private creareAcnProperty (acnConstants : Map<string, BigInteger>) (t:ITree)
                 TERMINATION_PATTERN byteVal
         | acnParser.OctectStringLiteral ->
             match bitPattern.Length <> 2 with
-            | true  -> raise(SemanticError(tp.Location, sprintf "ternination-patern value must be a byte"  ))
+            | true  -> raise(SemanticError(tp.Location, sprintf "termination-pattern value must be a byte"  ))
             | false ->
                 TERMINATION_PATTERN (System.Byte.Parse(bitPattern, System.Globalization.NumberStyles.AllowHexSpecifier))
         | _     ->  raise(BugErrorException("creareAcnProperty_TERMINATION_PATTERN"))

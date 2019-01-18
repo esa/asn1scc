@@ -60,8 +60,8 @@ let rec printTypeEncSpec (t:AcnTypeEncodingSpec) =
             | FALSE_VALUE        falseVal       -> stg_acn.PP_FalseValue falseVal.Value
             | PATTERN            pattern        -> 
                 match pattern with
-                | AcnGenericTypes.PATERN_PROP_BITSTR_VALUE pat    -> stg_acn.PP_NullValue pat.Value
-                | AcnGenericTypes.PATERN_PROP_OCTSTR_VALUE v      -> 
+                | AcnGenericTypes.PATTERN_PROP_BITSTR_VALUE pat    -> stg_acn.PP_NullValue pat.Value
+                | AcnGenericTypes.PATTERN_PROP_OCTSTR_VALUE v      -> 
                     let octStr = v |> List.map(fun b -> System.String.Format("{0:X2}", b.Value) ) |> Seq.StrJoin "" 
                     stg_acn.PP_NullValue octStr 
             | CHOICE_DETERMINANT  relPath       -> stg_acn.PP_ChoiceDeterminant relPath.AsString
