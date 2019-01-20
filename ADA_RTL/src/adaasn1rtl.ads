@@ -86,7 +86,9 @@ package adaasn1rtl with Spark_Mode is
          Asn1Int (IntVal) );
 
    
-   
+   -- In some cases, SPARK cannot prove the following function
+   -- This seems to be a bug since the function is proved if comment
+   -- some irrelevant code e.g. the getStringSize function
      
    function To_Int_n (IntVal : Asn1UInt; nBits : Integer) return Asn1Int
    is (
@@ -149,6 +151,14 @@ package adaasn1rtl with Spark_Mode is
     function ObjectIdentifier_equal(val1 : in Asn1ObjectIdentifier; val2 : in Asn1ObjectIdentifier) return boolean;
    
    
+   
+   function milbus_encode (IntVal : in Asn1Int) return Asn1Int 
+   is ( if IntVal = 32 then 0  else IntVal);
+
+   function milbus_decode (IntVal : in Asn1Int) return Asn1Int 
+   is (if IntVal = 0 then 32   else IntVal);
+   
+   
    function GetZeroBasedCharIndex (CharToSearch   :    Character;   AllowedCharSet : in String) return Integer 
      with
       Pre => AllowedCharSet'First <= AllowedCharSet'Last and
@@ -157,7 +167,12 @@ package adaasn1rtl with Spark_Mode is
        (GetZeroBasedCharIndex'Result >= 0 and   GetZeroBasedCharIndex'Result <=  AllowedCharSet'Last - AllowedCharSet'First);
 
    function CharacterPos (C : Character) return Integer with
-      Post => (CharacterPos'Result >= 0 and CharacterPos'Result <= 127);
+     Post => (CharacterPos'Result >= 0 and CharacterPos'Result <= 127);
+   
+   function getStringSize (str : String) return Integer with
+     Pre     => str'Last < Natural'Last and then
+                str'Last >= str'First, 
+     Post => getStringSize'Result >= 0 and getStringSize'Result <= (str'Last - str'First + 1);
    
    --Bit strean functions
    

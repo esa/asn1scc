@@ -130,6 +130,19 @@ package body adaasn1rtl with Spark_Mode is
       end if;
       return Ret;
    end GetLengthInBytesOfSInt;
+
+   
+   function getStringSize (str : String) return Integer is
+      length : Integer :=0;
+   begin
+      for i in str'Range loop
+         pragma Loop_Invariant (length = length'Loop_Entry + (i - str'First));
+         exit when str (I) = Standard.ASCII.NUL;
+         length := length + 1;
+      end loop;
+      
+      return length;
+   end getStringSize;
    
    
    
