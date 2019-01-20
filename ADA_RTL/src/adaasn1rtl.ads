@@ -11,6 +11,10 @@ package adaasn1rtl with Spark_Mode is
    --basic asn1scc type definitions
    type BIT is mod 2**1;
    
+   type BitArray is array (Natural range <>) of BIT;
+   for BitArray'Component_Size use 1;
+   --pragma Pack (BitArray);
+   
    subtype Asn1Byte is Interfaces.Unsigned_8;
 
    subtype Asn1Int is Interfaces.Integer_64;
@@ -18,6 +22,7 @@ package adaasn1rtl with Spark_Mode is
    subtype Asn1Real is Standard.Long_Float;
 
    subtype Asn1Boolean is Boolean;
+   subtype Asn1NullType is Interfaces.Unsigned_8;
    
    type Asn1Int_ARRAY_0_19 is array (0 .. 19) of Asn1UInt;
    Powers_of_10 : constant Asn1Int_ARRAY_0_19 := Asn1Int_ARRAY_0_19'(0 => 1, 1 => 10, 2 => 100, 3 => 1000, 4 => 10000, 5 => 100000, 6 => 1000000, 7 => 10000000, 8 => 100000000, 9 => 1000000000, 10 => 10000000000, 11 => 100000000000, 12 => 1000000000000, 13 => 10000000000000, 14 => 100000000000000, 15 => 1000000000000000, 16 => 10000000000000000, 17 => 100000000000000000, 18 => 1000000000000000000, 19 => 10000000000000000000);
@@ -56,6 +61,7 @@ package adaasn1rtl with Spark_Mode is
    type OctetBuffer is array (Natural range <>) of Asn1Byte;
    subtype OctetBuffer_16 is OctetBuffer (1 .. 16);
    subtype OctetArray4 is OctetBuffer (1 .. 4);
+   subtype OctetArray8 is OctetBuffer (1 .. 8);
    
    subtype OctetBuffer_0_7 is OctetBuffer (BIT_RANGE);
 
@@ -66,7 +72,9 @@ package adaasn1rtl with Spark_Mode is
       Current_Bit_Pos  : Natural;  --current bit for writing or reading in the bitsteam
    end record;
    
-   
+   function RequiresReverse  return Boolean;
+   function Long_Float_to_Float (x : Asn1Real) return Float;
+
    function To_UInt (IntVal : Asn1Int) return Asn1UInt;
    
    --function To_Int (IntVal : Asn1UInt) return Asn1Int;
@@ -262,4 +270,5 @@ package adaasn1rtl with Spark_Mode is
      Post    => Result and bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + total_bytes*8;
 
 
+   
 end adaasn1rtl;

@@ -534,8 +534,21 @@ package body adaasn1rtl with Spark_Mode is
    
 
    
+   function RequiresReverse  return Boolean is
+      pragma SPARK_Mode (Off);
+      dword : Integer := 16#00000001#;
+      arr   : aliased OctetArray4;
+      for arr'Address use dword'Address;
+   begin
+      return arr (arr'First) = 1;
+   end RequiresReverse;
    
    
    
-   
+   function Long_Float_to_Float (x : Asn1Real) return Float is
+      pragma SPARK_Mode (Off);
+   begin
+      return Float (x);
+   end Long_Float_to_Float;
+
 end adaasn1rtl;

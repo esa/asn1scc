@@ -1,3 +1,4 @@
+with Ada.Unchecked_Conversion;
 with uper_asn1_rtl;
 use uper_asn1_rtl;
 
@@ -788,5 +789,355 @@ package body acn_asn1_rtl with Spark_Mode is
       
    end Acn_Dec_Int_ASCII_VarSize_NullTerminated;
    
+   
+   
+   function Float_to_OctetArray4 (x : Float) return OctetArray4 is
+      function do_it is new Ada.Unchecked_Conversion (Float, OctetArray4);
+   begin
+      return do_it (x);
+   end Float_to_OctetArray4;
+   
+   function OctetArray4_to_Float (x : OctetArray4) return Float is
+      function do_it is new Ada.Unchecked_Conversion (OctetArray4, Float);
+   begin
+      return do_it (x);
+   end OctetArray4_to_Float;
+   
+   
+   function Long_Float_to_OctetArray8 (x : Asn1Real) return OctetArray8 is
+      function do_it is new Ada.Unchecked_Conversion (Asn1Real, OctetArray8);
+   begin
+      return do_it (x);
+   end Long_Float_to_OctetArray8;
 
+   function OctetArray8_to_Long_Float (x : OctetArray8) return Asn1Real is
+      function do_it is new Ada.Unchecked_Conversion (OctetArray8, Asn1Real);
+   begin
+      return do_it (x);
+   end OctetArray8_to_Long_Float;
+
+   
+   procedure Acn_Enc_Real_IEEE754_32_big_endian (bs : in out BitStream;   RealVal : in     Asn1Real)
+   is
+      tmp : OctetArray4;
+   begin
+      tmp := Float_to_OctetArray4 (Long_Float_to_Float (RealVal));
+      if RequiresReverse  then
+         for i in reverse 1..4 loop
+            pragma Loop_Invariant (bs.Current_Bit_Pos = bs.Current_Bit_Pos'Loop_Entry + (4-i)*8);
+            BitStream_AppendByte (bs, tmp (i), False);
+         end loop;
+      else
+         for i in 1..4 loop
+            pragma Loop_Invariant (bs.Current_Bit_Pos = bs.Current_Bit_Pos'Loop_Entry + (i-1)*8);
+            BitStream_AppendByte (bs, tmp (i), False);
+         end loop;
+      end if;
+   end Acn_Enc_Real_IEEE754_32_big_endian;
+   
+   procedure Acn_Dec_Real_IEEE754_32_big_endian (bs : in out BitStream; RealVal : out Asn1Real;  Result  : out ASN1_RESULT)
+   is
+      tmp : OctetArray4 := OctetArray4'(others => 0);
+   begin
+      Result :=   ASN1_RESULT'(Success => True, ErrorCode => 0);
+      RealVal := 0.0;
+      if RequiresReverse  then
+         for i in reverse 1..4 loop
+            pragma Loop_Invariant (bs.Current_Bit_Pos = bs.Current_Bit_Pos'Loop_Entry + (4-i)*8);
+            BitStream_DecodeByte (bs, tmp (I), Result.Success);
+            pragma assert(Result.Success);
+         end loop;
+      else
+         for i in 1..4 loop
+            pragma Loop_Invariant (bs.Current_Bit_Pos = bs.Current_Bit_Pos'Loop_Entry + (i-1)*8);
+            BitStream_DecodeByte (bs, tmp (I), Result.Success);
+            pragma assert(Result.Success);
+         end loop;
+      end if;
+      RealVal := Asn1Real (OctetArray4_to_Float (tmp));
+   end Acn_Dec_Real_IEEE754_32_big_endian;
+   
+   procedure Acn_Enc_Real_IEEE754_64_big_endian (bs : in out BitStream;  RealVal : in     Asn1Real)
+   is
+      tmp : OctetArray8;
+   begin
+      tmp := Long_Float_to_OctetArray8 (RealVal);
+      if RequiresReverse  then
+         for I in reverse 1..8 loop
+            pragma Loop_Invariant (bs.Current_Bit_Pos = bs.Current_Bit_Pos'Loop_Entry + (8-i)*8);
+            BitStream_AppendByte (bs, tmp (I), False);
+         end loop;
+      else
+         for I in 1..8 loop
+            pragma Loop_Invariant (bs.Current_Bit_Pos = bs.Current_Bit_Pos'Loop_Entry + (i-1)*8);
+            BitStream_AppendByte (bs, tmp (I), False);
+         end loop;
+      end if;
+   end Acn_Enc_Real_IEEE754_64_big_endian;
+
+   procedure Acn_Dec_Real_IEEE754_64_big_endian (bs : in out BitStream; RealVal : out Asn1Real; Result  :    out ASN1_RESULT)
+   is
+      tmp : OctetArray8 := OctetArray8'(others => 0);
+   begin
+      Result := ASN1_RESULT'(Success => True, ErrorCode => 0);
+      RealVal := 0.0;
+      if RequiresReverse  then
+         for I in reverse 1..8 loop
+            pragma Loop_Invariant (bs.Current_Bit_Pos = bs.Current_Bit_Pos'Loop_Entry + (8-i)*8);
+            BitStream_DecodeByte (bs, tmp (I), Result.Success);
+         end loop;
+      else
+         for I in 1..8 loop
+            pragma Loop_Invariant (bs.Current_Bit_Pos = bs.Current_Bit_Pos'Loop_Entry + (i-1)*8);
+            BitStream_DecodeByte (bs, tmp (I), Result.Success);
+         end loop;
+      end if;
+      pragma assert(Result.Success);
+      RealVal := OctetArray8_to_Long_Float (tmp);
+   end Acn_Dec_Real_IEEE754_64_big_endian;
+   
+   
+   procedure Acn_Enc_Real_IEEE754_32_little_endian (bs : in out BitStream;   RealVal : in     Asn1Real)
+   is
+      tmp : OctetArray4;
+   begin
+      tmp := Float_to_OctetArray4 (Long_Float_to_Float (RealVal));
+      if not RequiresReverse  then
+         for i in reverse 1..4 loop
+            pragma Loop_Invariant (bs.Current_Bit_Pos = bs.Current_Bit_Pos'Loop_Entry + (4-i)*8);
+            BitStream_AppendByte (bs, tmp (i), False);
+         end loop;
+      else
+         for i in 1..4 loop
+            pragma Loop_Invariant (bs.Current_Bit_Pos = bs.Current_Bit_Pos'Loop_Entry + (i-1)*8);
+            BitStream_AppendByte (bs, tmp (i), False);
+         end loop;
+      end if;
+   end Acn_Enc_Real_IEEE754_32_little_endian;
+   
+   procedure Acn_Dec_Real_IEEE754_32_little_endian (bs : in out BitStream; RealVal : out Asn1Real;  Result  : out ASN1_RESULT)
+   is
+      tmp : OctetArray4 := OctetArray4'(others => 0);
+   begin
+      Result :=   ASN1_RESULT'(Success => True, ErrorCode => 0);
+      RealVal := 0.0;
+      if not RequiresReverse  then
+         for i in reverse 1..4 loop
+            pragma Loop_Invariant (bs.Current_Bit_Pos = bs.Current_Bit_Pos'Loop_Entry + (4-i)*8);
+            BitStream_DecodeByte (bs, tmp (I), Result.Success);
+            pragma assert(Result.Success);
+         end loop;
+      else
+         for i in 1..4 loop
+            pragma Loop_Invariant (bs.Current_Bit_Pos = bs.Current_Bit_Pos'Loop_Entry + (i-1)*8);
+            BitStream_DecodeByte (bs, tmp (I), Result.Success);
+            pragma assert(Result.Success);
+         end loop;
+      end if;
+      RealVal := Asn1Real (OctetArray4_to_Float (tmp));
+   end Acn_Dec_Real_IEEE754_32_little_endian;
+   
+   procedure Acn_Enc_Real_IEEE754_64_little_endian (bs : in out BitStream;  RealVal : in     Asn1Real)
+   is
+      tmp : OctetArray8;
+   begin
+      tmp := Long_Float_to_OctetArray8 (RealVal);
+      if not RequiresReverse  then
+         for I in reverse 1..8 loop
+            pragma Loop_Invariant (bs.Current_Bit_Pos = bs.Current_Bit_Pos'Loop_Entry + (8-i)*8);
+            BitStream_AppendByte (bs, tmp (I), False);
+         end loop;
+      else
+         for I in 1..8 loop
+            pragma Loop_Invariant (bs.Current_Bit_Pos = bs.Current_Bit_Pos'Loop_Entry + (i-1)*8);
+            BitStream_AppendByte (bs, tmp (I), False);
+         end loop;
+      end if;
+   end Acn_Enc_Real_IEEE754_64_little_endian;
+
+   procedure Acn_Dec_Real_IEEE754_64_little_endian (bs : in out BitStream; RealVal : out Asn1Real; Result  :    out ASN1_RESULT)
+   is
+      tmp : OctetArray8 := OctetArray8'(others => 0);
+   begin
+      Result := ASN1_RESULT'(Success => True, ErrorCode => 0);
+      RealVal := 0.0;
+      if not RequiresReverse  then
+         for I in reverse 1..8 loop
+            pragma Loop_Invariant (bs.Current_Bit_Pos = bs.Current_Bit_Pos'Loop_Entry + (8-i)*8);
+            BitStream_DecodeByte (bs, tmp (I), Result.Success);
+         end loop;
+      else
+         for I in 1..8 loop
+            pragma Loop_Invariant (bs.Current_Bit_Pos = bs.Current_Bit_Pos'Loop_Entry + (i-1)*8);
+            BitStream_DecodeByte (bs, tmp (I), Result.Success);
+         end loop;
+      end if;
+      pragma assert(Result.Success);
+      RealVal := OctetArray8_to_Long_Float (tmp);
+   end Acn_Dec_Real_IEEE754_64_little_endian;   
+   
+   
+   
+   procedure Acn_Enc_Boolean_true_pattern (bs : in out BitStream; BoolVal : in Asn1Boolean; pattern : in     BitArray)
+   is
+   begin
+      for I in Integer range pattern'Range loop
+         pragma Loop_Invariant (bs.Current_Bit_Pos = bs.Current_Bit_Pos'Loop_Entry + (i-pattern'First));
+         BitStream_AppendBit(bs, ( if BoolVal then pattern (I) else not pattern (I)));
+      end loop;
+   end Acn_Enc_Boolean_true_pattern;
+
+   procedure Acn_Dec_Boolean_true_pattern (bs : in out BitStream;  BoolVal :    out Asn1Boolean;  pattern : in     BitArray; Result  :    out ASN1_RESULT)
+   is
+      bit_val : BIT;
+   begin
+      BoolVal := True;
+      for I in Integer range pattern'Range loop
+         pragma Loop_Invariant (bs.Current_Bit_Pos = bs.Current_Bit_Pos'Loop_Entry + (i-pattern'First));
+         BitStream_ReadBit(bs, bit_val, Result.Success);
+         BoolVal := BoolVal and bit_val = pattern (I);
+      end loop;
+      Result :=  ASN1_RESULT'(Success => true, ErrorCode => 0);
+   end Acn_Dec_Boolean_true_pattern;
+
+   
+   procedure Acn_Enc_Boolean_false_pattern (bs : in out BitStream; BoolVal : in Asn1Boolean; pattern : in     BitArray)
+   is
+   begin
+      for I in Integer range pattern'Range loop
+         pragma Loop_Invariant (bs.Current_Bit_Pos = bs.Current_Bit_Pos'Loop_Entry + (i-pattern'First));
+         BitStream_AppendBit(bs, ( if not BoolVal then pattern (I) else not pattern (I)));
+      end loop;
+   end Acn_Enc_Boolean_false_pattern;
+
+  
+  
+   procedure Acn_Dec_Boolean_false_pattern (bs : in out BitStream; BoolVal :    out Asn1Boolean;  pattern : in     BitArray;  Result  :    out ASN1_RESULT)
+   is
+   begin
+      Acn_Dec_Boolean_true_pattern (bs, BoolVal, pattern, Result);
+      BoolVal := not BoolVal;
+   end Acn_Dec_Boolean_false_pattern;
+
+   
+   procedure Acn_Enc_NullType_pattern (bs : in out BitStream; encVal  : in     Asn1NullType;  pattern : in     BitArray)
+   is
+      pragma Unreferenced (encVal);
+   begin
+      Acn_Enc_Boolean_true_pattern(bs, true, pattern);
+   end Acn_Enc_NullType_pattern;
+
+   procedure Acn_Dec_NullType_pattern (bs : in out BitStream; decValue :    out Asn1NullType; pattern  : in     BitArray;  Result   :    out ASN1_RESULT)
+   is
+      BoolVal : Boolean := True;
+   begin
+      Acn_Dec_Boolean_true_pattern(bs, BoolVal, pattern, Result);
+      Result.Success := BoolVal;
+      decValue := (if BoolVal then 0 else 1);
+   end Acn_Dec_NullType_pattern;
+   
+
+   procedure Acn_Enc_NullType_pattern2 (bs : in out BitStream;   pattern : in     BitArray)
+   is
+   begin
+      Acn_Enc_Boolean_true_pattern(bs, true, pattern);
+   end Acn_Enc_NullType_pattern2;
+
+   procedure Acn_Dec_NullType_pattern2 (bs : in out BitStream;  pattern : in     BitArray;   Result  :    out ASN1_RESULT)
+   is
+      BoolVal : Boolean := True;
+   begin
+      Acn_Dec_Boolean_true_pattern(bs, BoolVal, pattern, Result);
+      Result.Success := BoolVal;
+   end Acn_Dec_NullType_pattern2;
+   
+  
+   procedure Acn_Enc_NullType(bs : in out BitStream;  encVal : in     Asn1NullType)
+   is
+      pragma Unreferenced (bs);
+      pragma Unreferenced (encVal);
+   begin
+      null;
+   end Acn_Enc_NullType;
+
+   procedure Acn_Dec_NullType (bs : in out BitStream; decValue :    out Asn1NullType;   Result   :    out ASN1_RESULT)
+   is
+      pragma Unreferenced (bs);
+   begin
+      decValue := 0;
+      Result   := ASN1_RESULT'(Success => True, ErrorCode => 0);
+   end Acn_Dec_NullType;
+   
+
+   
+   
+   procedure Acn_Enc_String_Ascii_FixSize (bs : in out BitStream; strVal : in String)
+   is
+   begin
+      for i in strVal'Range loop
+         pragma Loop_Invariant (bs.Current_Bit_Pos = bs.Current_Bit_Pos'Loop_Entry + (i-strVal'First)*8);
+         BitStream_AppendByte (bs, Asn1Byte (CharacterPos (strVal (I))),  false);
+      end loop;
+
+   end Acn_Enc_String_Ascii_FixSize;
+
+   procedure Acn_Dec_String_Ascii_FixSize (bs : in out BitStream;  strVal : in out String; Result :    out ASN1_RESULT)
+   is
+      charIndex : Asn1Byte;
+   begin
+      Result :=    ASN1_RESULT'(Success => True, ErrorCode => 0);
+      for i in strVal'Range loop
+         pragma Loop_Invariant (bs.Current_Bit_Pos = bs.Current_Bit_Pos'Loop_Entry + (i-strVal'First)*8);
+         BitStream_DecodeByte (bs, charIndex, Result.Success);
+         pragma assert(Result.Success);
+         strVal (I) := Character'Val (Integer(charIndex));
+      end loop;
+      strVal (strVal'Last) := Standard.ASCII.NUL;
+   end Acn_Dec_String_Ascii_FixSize;   
+   
+   
+   
+   procedure Acn_Enc_String_Ascii_Null_Teminated (bs : in out BitStream; null_character : in     Integer;  strVal : in String)
+   is
+      i : Integer := strVal'First;
+   begin
+      while I <= strVal'Last - 1 and then strVal (I) /= Standard.ASCII.NUL loop
+         pragma Loop_Invariant (i>=strVal'First and i <=strVal'Last -1 and bs.Current_Bit_Pos = bs.Current_Bit_Pos'Loop_Entry + (i-strVal'First)*8);
+         BitStream_AppendByte (bs, Asn1Byte (CharacterPos (strVal (I))),  false);
+         i := i + 1;
+      end loop;
+      BitStream_AppendByte (bs, Asn1Byte (null_character), false);
+
+   end Acn_Enc_String_Ascii_Null_Teminated;
+
+   procedure Acn_Dec_String_Ascii_Null_Teminated (bs : in out BitStream; null_character : in Integer; strVal : in out String; Result : out ASN1_RESULT)
+   is
+      I         : Integer := strVal'First;
+      charIndex : Asn1Byte := 65; -- ascii code of 'A'. Let's hope that 'A' will never be null Character
+   begin
+      Result :=  ASN1_RESULT'(Success => True, ErrorCode => 0);
+      while  I <= strVal'Last and then charIndex /= Asn1Byte(null_character)   loop
+         pragma Loop_Invariant (i >= strVal'First and i <= strVal'Last and bs.Current_Bit_Pos = bs.Current_Bit_Pos'Loop_Entry + (i-strVal'First)*8);
+         BitStream_DecodeByte (bs, charIndex, Result.Success);
+         if charIndex /= Asn1Byte(null_character) then
+            strVal (I) := Character'Val (Integer(charIndex));
+         else
+            strVal (I) := Standard.ASCII.NUL;
+         end if;
+
+         i := i + 1;
+      end loop;
+      while i <= strVal'Last loop
+         pragma Loop_Invariant (i >= strVal'First and i <= strVal'Last);
+         strVal (i) := Standard.ASCII.NUL;
+         i          := i + 1;
+      end loop;
+
+   end Acn_Dec_String_Ascii_Null_Teminated;
+   
+   
 end acn_asn1_rtl;
+
+
+
+
