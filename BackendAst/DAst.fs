@@ -594,8 +594,8 @@ and SeqChildInfo =
 
 and Asn1Child = {
     Name                        : StringLoc
-    _c_name                      : string
-    _ada_name                    : string                     
+    _c_name                     : string
+    _ada_name                   : string                     
     isEqualBodyStats            : CallerScope -> CallerScope -> (string*(LocalVariable list)) option  // 
     isValidBodyStats            : State -> (SeqChoiceChildInfoIsValid option * State)
     Type                        : Asn1Type

@@ -610,88 +610,110 @@ sequence_presense_optChild_pres_str_decode(p, sAcc, sChName, sExtFldName, sVal) 
 >>
 
 
-sequence_acn_child_encode(sChName, sChildContent, sErrCode) ::= <<
+sequence_save_bitstream_encode(sBitStreamPositionsLocalVar, sChName) ::=<<
+<sBitStreamPositionsLocalVar>.<sChName> = *pBitStrm; //save position of the bit stream
+>>
+
+sequence_save_bitstream_decode(sBitStreamPositionsLocalVar, sChName) ::=<<
+<sBitStreamPositionsLocalVar>.<sChName> = *pBitStrm; //save position of the bit stream
+>>
+
+sequence_acn_child_encode(sChName, sChildContent, sErrCode, soSaveBitStrmPosStatement) ::= <<
 /*Encode <sChName> */
 if (<sChName>_is_initialized) {
     ret = TRUE;
+    <soSaveBitStrmPosStatement>
     <sChildContent>
 } else {
     *pErrCode = <sErrCode>;         /*COVERAGE_IGNORE*/
     ret = FALSE;                    /*COVERAGE_IGNORE*/
 }
 >>
-sequence_acn_child_decode(sChName, sChildContent, sErrCode) ::= <<
+sequence_acn_child_decode(sChName, sChildContent, sErrCode, soSaveBitStrmPosStatement) ::= <<
 /*Decode <sChName> */
+<soSaveBitStrmPosStatement>
 <sChildContent>
 >>
 
 
-sequence_mandatory_child_encode(sChName, sChildContent) ::= <<
+sequence_mandatory_child_encode(sChName, sChildContent, soSaveBitStrmPosStatement) ::= <<
 /*Encode <sChName> */
+<soSaveBitStrmPosStatement>
 <sChildContent>
 >>
-sequence_mandatory_child_decode(sChName, sChildContent) ::= <<
+sequence_mandatory_child_decode(sChName, sChildContent, soSaveBitStrmPosStatement) ::= <<
 /*Decode <sChName> */
+<soSaveBitStrmPosStatement>
 <sChildContent>
 >>
 
-sequence_always_present_child_encode(p, sAcc, sChName, sChildContent) ::= <<
+sequence_always_present_child_encode(p, sAcc, sChName, sChildContent, soSaveBitStrmPosStatement) ::= <<
 /*Encode <sChName> */
 /* marked as ALWAYS PRESENT, so do not look in exist */
+<soSaveBitStrmPosStatement>
 <sChildContent>
 >>
-sequence_always_present_child_decode(p, sAcc, sChName, sChildContent) ::= <<
+sequence_always_present_child_decode(p, sAcc, sChName, sChildContent, soSaveBitStrmPosStatement) ::= <<
 /*Decode <sChName> */
 /* marked as ALWAYS PRESENT */
 <p><sAcc>exist.<sChName> = 1;
+<soSaveBitStrmPosStatement>
 <sChildContent>
 >>
 
-sequence_always_absent_child_encode(p, sAcc, sChName, sChildContent) ::= <<
+sequence_always_absent_child_encode(p, sAcc, sChName, sChildContent, soSaveBitStrmPosStatement) ::= <<
 /*Encode <sChName> */
 /* marked as ALWAYS ABSENT, so do not encode anything */
+<soSaveBitStrmPosStatement>
 >>
-sequence_always_absent_child_decode(p, sAcc, sChName, sChildContent) ::= <<
+sequence_always_absent_child_decode(p, sAcc, sChName, sChildContent, soSaveBitStrmPosStatement) ::= <<
 /*Decode <sChName> */
 /* marked as ALWAYS ABSENT, so do not decode anything */
+<soSaveBitStrmPosStatement>
 <p><sAcc>exist.<sChName> = 0;
 >>
 
 
-sequence_optional_child_encode(p, sAcc, sChName, sChildContent) ::= <<
+sequence_optional_child_encode(p, sAcc, sChName, sChildContent, soSaveBitStrmPosStatement) ::= <<
 /*Encode <sChName> */
+<soSaveBitStrmPosStatement>
 if (<p><sAcc>exist.<sChName>) {
 	<sChildContent>
 }
 >>
 
-sequence_optional_child_decode(p, sAcc, sChName, sChildContent) ::= <<
+sequence_optional_child_decode(p, sAcc, sChName, sChildContent, soSaveBitStrmPosStatement) ::= <<
 /*Decode <sChName> */
+<soSaveBitStrmPosStatement>
 if (<p><sAcc>exist.<sChName>) {
 	<sChildContent>
 }
 >>
 
 
-sequence_optional_always_present_child_encode(p, sAcc, sChName, sChildContent) ::= <<
+sequence_optional_always_present_child_encode(p, sAcc, sChName, sChildContent, soSaveBitStrmPosStatement) ::= <<
 /*Encode <sChName> */
+<soSaveBitStrmPosStatement>
 <sChildContent>
 >>
 
-sequence_optional_always_present_child_decode(p, sAcc, sChName, sChildContent) ::= <<
+sequence_optional_always_present_child_decode(p, sAcc, sChName, sChildContent, soSaveBitStrmPosStatement) ::= <<
 /*Decode <sChName> (always present) */
+<soSaveBitStrmPosStatement>
 <p><sAcc>exist.<sChName> = 1;
 <sChildContent>
 >>
 
 
-sequence_default_child_encode(p, sAcc, sChName, sChildContent, sInitWithDefaultValue) ::= <<
-<sequence_optional_child_encode(p=p, sAcc=sAcc, sChName=sChName, sChildContent=sChildContent)>
+sequence_default_child_encode(p, sAcc, sChName, sChildContent, sInitWithDefaultValue, soSaveBitStrmPosStatement) ::= <<
+<soSaveBitStrmPosStatement>
+<sequence_optional_child_encode(p=p, sAcc=sAcc, sChName=sChName, sChildContent=sChildContent, soSaveBitStrmPosStatement=soSaveBitStrmPosStatement)>
 >>
 
 
-sequence_default_child_decode(p, sAcc, sChName, sChildContent, sInitWithDefaultValue) ::= <<
+sequence_default_child_decode(p, sAcc, sChName, sChildContent, sInitWithDefaultValue, soSaveBitStrmPosStatement) ::= <<
 /*Decode <sChName> */
+<soSaveBitStrmPosStatement>
 if (<p><sAcc>exist.<sChName>) {
 	<sChildContent>
 } else {
@@ -700,6 +722,9 @@ if (<p><sAcc>exist.<sChName>) {
 >>
 
 
+sequence_call_post_encoding_function(p, sFncName, sBitStreamStartPos, sBitStreamPositionsNullPos) ::= <<
+<sFncName>(<p>, &<sBitStreamStartPos>, &<sBitStreamPositionsNullPos>, pBitStrm);
+>>
 
 /* SEQUENCE END */
 

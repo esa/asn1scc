@@ -18,6 +18,7 @@ open Antlr.Runtime
 
 
 
+
 type OptionBuilder() =
     member x.Bind(opt, f) =
         match opt with
@@ -547,3 +548,36 @@ let replaceErrorCodes (initialString:string) (patternToSearch:string) generalErr
     sw.Dispose()
     ret
     
+
+let inline getX (x: ^TX) : ^X = 
+    (^TX : (member get_X : unit -> ^X) (x))
+
+type T1 = {
+    X : int
+}
+
+type T2 = {
+    X : int
+    Y : int
+}
+
+type T3 = {
+    X : int
+    Y : int
+    Z : int
+}
+
+let inline someFunc (x: ^REC) : int = 
+    let xF = (^REC : (member get_X : unit -> int) (x))
+    let yF = (^REC : (member get_Y : unit -> int) (x))
+    xF+yF
+
+let test (a:T1) (b:T2) (c:T3)=
+    let aa = getX a
+    let zz = getX b
+    let e = someFunc b
+    let e2 = someFunc c
+    0
+
+
+

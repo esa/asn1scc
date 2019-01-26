@@ -64,6 +64,13 @@ type AcnIntEncoding =
 type MappingFunction  = 
     | MappingFunction of StringLoc
 
+type PostEncodingFunction  = 
+    | PostEncodingFunction of StringLoc
+
+type PreDecodingFunction  = 
+    | PreDecodingFunction of StringLoc
+
+
 type IntegerAcnProperties = {
     encodingProp    : AcnIntEncoding        option
     sizeProp        : AcnIntSizeProperty    option
@@ -109,6 +116,7 @@ type PATTERN_PROP_VALUE =
 
 type NullTypeAcnProperties = {
     encodingPattern     : PATTERN_PROP_VALUE            option
+    savePosition        : bool
 }
 
 type ObjectIdTypeAcnProperties = {
@@ -127,6 +135,11 @@ type BooleanAcnProperties = {
 
 type ChoiceAcnProperties = {
     enumDeterminant     : RelativePath              option
+}
+
+type SequenceAcnProperties = {
+    postEncodingFunction    : PostEncodingFunction option
+    preDecodingFunction     : PreDecodingFunction option
 }
 
 
@@ -201,6 +214,7 @@ type  GenericAcnProperty =
     | SIZE              of GenSizeProperty
     | ALIGNTONEXT       of AcnAligment
     | ENCODE_VALUES   
+    | SAVE_POSITION   
     | PRESENT_WHEN      of GenericAcnPresentWhenCondition list
     | TRUE_VALUE        of StringLoc
     | FALSE_VALUE       of StringLoc
@@ -210,6 +224,8 @@ type  GenericAcnProperty =
     | ENUM_SET_VALUE    of IntLoc
     | TERMINATION_PATTERN of byte
     | MAPPING_FUNCTION  of StringLoc
+    | POST_ENCODING_FUNCTION of StringLoc
+    | PRE_DECODING_FUNCTION of StringLoc
 
 
 

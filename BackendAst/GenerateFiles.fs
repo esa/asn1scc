@@ -224,12 +224,12 @@ let private printUnit (r:DAst.AstRoot) (l:ProgrammingLanguage) (encodings: Commo
             let arrsSourceAnonymousValues = 
                 arrsAnonymousValues |>
                 List.map (fun av -> variables_c.PrintValueAssignment av.typeDefinitionName av.valueName av.valueExpresion)
-            Some (body_c.printSourceFile pu.name arrsUnnamedVariables (arrsValueAssignments@arrsSourceAnonymousValues) arrsTypeAssignments)
+            Some (body_c.printSourceFile pu.name arrsUnnamedVariables (arrsValueAssignments@arrsSourceAnonymousValues) arrsTypeAssignments r.args.mappingFunctionsModule)
         | Ada   ->
             let arrsNegativeReals = []
             let arrsBoolPatterns = []
             let arrsChoiceValueAssignments = []
-            let rtl = [body_a.rtlModuleName()]
+            let rtl = [body_a.rtlModuleName()]@(r.args.mappingFunctionsModule |> Option.toList)
             match arrsTypeAssignments with
             | []    -> None
             | _     -> Some (body_a.PrintPackageBody pu.name  (rtl@pu.importedProgramUnits) arrsNegativeReals arrsBoolPatterns arrsTypeAssignments arrsChoiceValueAssignments pu.importedTypes)

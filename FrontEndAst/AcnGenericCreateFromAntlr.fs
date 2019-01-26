@@ -190,6 +190,8 @@ let private creareAcnProperty (acnConstants : Map<string, BigInteger>) (t:ITree)
         | acnParser.DWORD               -> ALIGNTONEXT AcnGenericTypes.NextDWord
         | _                             -> raise(BugErrorException("creareAcnProperty_ALIGNTONEXT"))
     | acnParser.ENCODE_VALUES           -> ENCODE_VALUES
+    | acnParser.SAVE_POSITION           -> SAVE_POSITION
+
     | acnParser.PRESENT_WHEN            -> 
         let CreateAcnPresenseCondition(t:ITree) = 
             match t.Type with
@@ -228,6 +230,8 @@ let private creareAcnProperty (acnConstants : Map<string, BigInteger>) (t:ITree)
         | acnParser.LITTLE              -> ENDIANNES AcnGenericTypes.LittleEndianness
         | _                             -> raise(BugErrorException("creareAcnProperty_ENDIANNES"))
     | acnParser.MAPPING_FUNCTION        -> MAPPING_FUNCTION (t.GetChild(0).TextL)
+    | acnParser.POST_ENCODING_FUNCTION  -> POST_ENCODING_FUNCTION (t.GetChild(0).TextL)
+    | acnParser.PRE_DECODING_FUNCTION   -> PRE_DECODING_FUNCTION (t.GetChild(0).TextL)
     | acnParser.INT                     -> ENUM_SET_VALUE t.BigIntL
     | acnParser.TERMINATION_PATTERN     -> 
         let tp = t

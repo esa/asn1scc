@@ -1079,6 +1079,9 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
     let sequence_optional_always_present        = match l with C -> acn_c.sequence_optional_always_present_child | Ada -> acn_a.sequence_optional_always_present_child
     let sequence_default_child                  = match l with C -> acn_c.sequence_default_child                 | Ada -> acn_a.sequence_default_child              
     let sequence_acn_child                      = match l with C -> acn_c.sequence_acn_child                     | Ada -> acn_a.sequence_acn_child              
+    let sequence_call_post_encoding_function                      = match l with C -> acn_c.sequence_call_post_encoding_function                     | Ada -> acn_a.sequence_call_post_encoding_function              
+    let sequence_save_bitstream                 = match l with C -> acn_c.sequence_save_bitstream                     | Ada -> acn_a.sequence_save_bitstream              
+    
     //let baseFuncName =  match baseTypeUperFunc  with None -> None | Some baseFunc -> baseFunc.funcName
 
     let acnChildren = children |>  List.choose(fun x -> match x with AcnChild z -> Some z | Asn1Child _ -> None)
@@ -1113,8 +1116,31 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
             match asn1Children |> List.choose  printPresenceBit with
             | x::_  when l = C  && codec = CommonTypes.Decode -> (FlagLocalVariable ("presenceBit", None))::acnlocalVariables
             | _        -> acnlocalVariables
-                    
+        
+        let td = o.typeDef.[l]
+
+
+        let localVariables, post_encoding_function, soBitStreamPositionsLocalVar =
+            let bitStreamPositionsLocalVar = sprintf "bitStreamPositions_%d" (t.id.SeqeuenceOfLevel + 1)
+            let bsPosStart = sprintf "bitStreamPositions_start%d" (t.id.SeqeuenceOfLevel + 1)
+            match o.acnProperties.postEncodingFunction with
+            | Some (PostEncodingFunction fncName) when codec = Encode  ->
+                let fncCall = sequence_call_post_encoding_function (p.arg.getPointer l) (ToC fncName.Value) bsPosStart  bitStreamPositionsLocalVar
+                [AcnInsertedChild(bitStreamPositionsLocalVar, td.extention_function_potisions); AcnInsertedChild(bsPosStart, "BitStream")]@localVariables, Some fncCall, Some bitStreamPositionsLocalVar
+            | _ ->
+                match o.acnProperties.preDecodingFunction with
+                | Some (PreDecodingFunction fncName) when codec = Decode  ->
+                    let fncCall = sequence_call_post_encoding_function (p.arg.getPointer l) (ToC fncName.Value) bsPosStart  bitStreamPositionsLocalVar
+                    [AcnInsertedChild(bitStreamPositionsLocalVar, td.extention_function_potisions); AcnInsertedChild(bsPosStart, "BitStream")]@localVariables, Some fncCall, Some bitStreamPositionsLocalVar
+                | _ ->  localVariables, None, None
+
+            
+
         let handleChild (us:State) (child:SeqChildInfo) =
+            let soSaveBitStrmPosStatement = 
+                match soBitStreamPositionsLocalVar with
+                | Some lvName when child.savePosition ->  Some (sequence_save_bitstream lvName (child.getBackendName l) codec)
+                | _                                    -> None
             match child with
             | Asn1Child child   -> 
                 let chFunc = child.Type.getAcnFunction codec
@@ -1145,15 +1171,15 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                     | Some childContent ->
                         let childBody, chLocalVars = 
                             match child.Optionality with
-                            | None                             -> sequence_mandatory_child (child.getBackendName l) childContent.funcBody codec, childContent.localVariables
-                            | Some Asn1AcnAst.AlwaysAbsent     -> sequence_always_absent_child p.arg.p (p.arg.getAcces l) (child.getBackendName l) childContent.funcBody codec, []
-                            | Some Asn1AcnAst.AlwaysPresent    -> sequence_always_present_child p.arg.p (p.arg.getAcces l) (child.getBackendName l) childContent.funcBody codec, childContent.localVariables
+                            | None                             -> sequence_mandatory_child (child.getBackendName l) childContent.funcBody soSaveBitStrmPosStatement codec, childContent.localVariables
+                            | Some Asn1AcnAst.AlwaysAbsent     -> sequence_always_absent_child p.arg.p (p.arg.getAcces l) (child.getBackendName l) childContent.funcBody soSaveBitStrmPosStatement codec, []
+                            | Some Asn1AcnAst.AlwaysPresent    -> sequence_always_present_child p.arg.p (p.arg.getAcces l) (child.getBackendName l) childContent.funcBody soSaveBitStrmPosStatement codec, childContent.localVariables
                             | Some (Asn1AcnAst.Optional opt)   -> 
                                 match opt.defaultValue with
-                                | None                   -> sequence_optional_child p.arg.p (p.arg.getAcces l) (child.getBackendName l) childContent.funcBody codec, childContent.localVariables
+                                | None                   -> sequence_optional_child p.arg.p (p.arg.getAcces l) (child.getBackendName l) childContent.funcBody soSaveBitStrmPosStatement codec, childContent.localVariables
                                 | Some v                 -> 
                                     let defInit= child.Type.initFunction.initByAsn1Value ({p with arg = p.arg.getSeqChild l (child.getBackendName l) child.Type.isIA5String}) (mapValue v).kind
-                                    sequence_default_child p.arg.p (p.arg.getAcces l) (child.getBackendName l) childContent.funcBody defInit codec, childContent.localVariables
+                                    sequence_default_child p.arg.p (p.arg.getAcces l) (child.getBackendName l) childContent.funcBody defInit soSaveBitStrmPosStatement codec, childContent.localVariables
                         [(Asn1ChildEncodeStatement, (Some childBody), chLocalVars, childContent.errCodes)], ns2
                 present_when_statements@childEncDecStatement,ns3
             | AcnChild  acnChild    -> 
@@ -1184,16 +1210,16 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                         | Encode   ->
                             match acnChild.Type with
                             | Asn1AcnAst.AcnNullType _   ->
-                                let childBody = Some (sequence_mandatory_child acnChild.c_name childContent.funcBody codec)
+                                let childBody = Some (sequence_mandatory_child acnChild.c_name childContent.funcBody soSaveBitStrmPosStatement codec)
                                 [(AcnChildEncodeStatement, childBody, childContent.localVariables, childContent.errCodes)], ns1
                             | _             ->
                                 let _errCodeName         = ToC ("ERR_ACN" + (codec.suffix.ToUpper()) + "_" + ((acnChild.id.AcnAbsPath |> Seq.skip 1 |> Seq.StrJoin("-")).Replace("#","elm")) + "_UNITIALIZED")
                                 let errCode, ns1a = getNextValidErrorCode ns1 _errCodeName
                         
-                                let childBody = Some (sequence_acn_child acnChild.c_name childContent.funcBody errCode.errCodeName codec)
+                                let childBody = Some (sequence_acn_child acnChild.c_name childContent.funcBody errCode.errCodeName soSaveBitStrmPosStatement codec)
                                 [(AcnChildEncodeStatement, childBody, childContent.localVariables, errCode::childContent.errCodes)], ns1a
                         | Decode    ->
-                            let childBody = Some (sequence_mandatory_child acnChild.c_name childContent.funcBody codec)
+                            let childBody = Some (sequence_mandatory_child acnChild.c_name childContent.funcBody soSaveBitStrmPosStatement codec)
                             [(AcnChildEncodeStatement, childBody, childContent.localVariables, childContent.errCodes)], ns1
                 updtateStatement@childEncDecStatement, ns2
 
@@ -1218,7 +1244,8 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
         let childrenStatements = childrenStatements0 |> List.choose(fun (_, s,_,_) -> s)
         let childrenLocalvars = childrenStatements0 |> List.collect(fun (_, _,s,_) -> s)
         let childrenErrCodes = childrenStatements0 |> List.collect(fun (_, _,_,s) -> s)
-        let seqContent =  (presenseBits@childrenStatements) |> nestChildItems l codec 
+        
+        let seqContent =  (presenseBits@childrenStatements@(post_encoding_function |> Option.toList)) |> nestChildItems l codec 
         match existsAcnChildWithNoUpdates with
         | []     ->
             match seqContent with

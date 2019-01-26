@@ -474,6 +474,7 @@ and SequenceOf = {
 
 and Sequence = {
     children                : SeqChildInfo list
+    acnProperties           : SequenceAcnProperties
     cons                    : SequenceConstraint list
     withcons                : SequenceConstraint list
     uperMaxSizeInBits       : BigInteger

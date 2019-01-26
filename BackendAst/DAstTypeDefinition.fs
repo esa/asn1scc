@@ -220,16 +220,26 @@ let createSequenceOf (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1AcnAs
 
 
 
-let createSequence (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Sequence)  (children:SeqChildInfo list) (us:State) =
+let createSequence (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Sequence)  (allchildren:SeqChildInfo list) (us:State) =
     let define_new_sequence             = match l with C -> header_c.Define_new_sequence            | Ada -> header_a.Define_new_sequence
     let define_new_sequence_child       = match l with C -> header_c.Define_new_sequence_child      | Ada -> header_a.Define_new_sequence_child
     let define_new_sequence_child_bit   = match l with C -> header_c.Define_new_sequence_child_bit  | Ada -> header_a.Define_new_sequence_child_bit
     let define_subType_sequence         = match l with C -> header_c.Define_subType_sequence        | Ada -> header_a.Define_subType_sequence
 
-    let children = children |> List.choose (fun c -> match c with Asn1Child z -> Some z | _ -> None)
+    let define_new_sequence_save_pos_child         = match l with C -> header_c.Define_new_sequence_save_pos_child        | Ada -> header_a.Define_new_sequence_save_pos_child
+    
+    let children = allchildren |> List.choose (fun c -> match c with Asn1Child z -> Some z | _ -> None)
     let optionalChildren = children |> List.choose(fun c -> match c.Optionality with Some _ -> Some c | None -> None)
     let optChildNames  = optionalChildren |> List.map(fun c -> c.getBackendName l)
     let childldrenCompleteDefintions = children |> List.choose (fun c -> getChildDefinition c.Type.typeDefintionOrReference)
+    let arrsNullFieldsSavePos =
+        match o.acnProperties.postEncodingFunction.IsNone && o.acnProperties.preDecodingFunction.IsNone with
+        | true -> []
+        | false  -> 
+            allchildren |> 
+            List.choose (fun c -> if c.savePosition then Some (c.getBackendName l) else None ) |>
+            List.map define_new_sequence_save_pos_child
+
     let td = o.typeDef.[l]
 
     let arrsChildren = children |> List.map (fun o -> define_new_sequence_child (o.getBackendName l) (o.Type.typeDefintionOrReference.longTypedefName l))
@@ -238,7 +248,7 @@ let createSequence (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1AcnAst.
 
     match td.kind with
     | NonPrimitiveNewTypeDefinition              -> 
-        let completeDefintion = define_new_sequence td arrsChildren arrsOptionalChildren childldrenCompleteDefintions
+        let completeDefintion = define_new_sequence td arrsChildren arrsOptionalChildren childldrenCompleteDefintions arrsNullFieldsSavePos
         Some completeDefintion
     | NonPrimitiveNewSubTypeDefinition subDef     -> 
         let otherProgramUnit = if td.programUnit = subDef.programUnit then None else (Some subDef.programUnit)

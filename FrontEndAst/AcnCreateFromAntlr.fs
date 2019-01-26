@@ -94,6 +94,17 @@ let private getMappingFunctionProperty acnErrLoc (props:GenericAcnProperty list)
     | None  -> None
     | Some mapFuncName  -> Some (AcnGenericTypes.MappingFunction mapFuncName)
 
+let private getPostEncodingFunction (props:GenericAcnProperty list) = 
+    match tryGetProp props (fun x -> match x with POST_ENCODING_FUNCTION e -> Some e | _ -> None) with
+    | None  -> None
+    | Some mapFuncName  -> Some (AcnGenericTypes.POST_ENCODING_FUNCTION mapFuncName)
+
+let private getPreDecodingFunction  (props:GenericAcnProperty list) = 
+    match tryGetProp props (fun x -> match x with PRE_DECODING_FUNCTION e -> Some e | _ -> None) with
+    | None  -> None
+    | Some mapFuncName  -> Some (AcnGenericTypes.PRE_DECODING_FUNCTION mapFuncName)
+
+
 let private getRealEncodingProperty errLoc (props:GenericAcnProperty list) = 
     match tryGetProp props (fun x -> match x with ENCODING e -> Some e | _ -> None) with
     | None  -> None
@@ -424,8 +435,8 @@ let private mergeNullType (acnErrLoc: SrcLoc option) (props:GenericAcnProperty l
     let getRtlTypeName  l = match l with C -> "", header_c.Declare_NullType  (), "NULL" | Ada -> "adaasn1rtl", header_a.Declare_NULLNoRTL  (), "NULL" 
     let acnProperties = 
         match acnErrLoc with
-        | Some acnErrLoc    -> { NullTypeAcnProperties.encodingPattern  = tryGetProp props (fun x -> match x with PATTERN e -> Some e | _ -> None)}
-        | None              -> {NullTypeAcnProperties.encodingPattern = None }
+        | Some acnErrLoc    -> { NullTypeAcnProperties.encodingPattern  = tryGetProp props (fun x -> match x with PATTERN e -> Some e | _ -> None); savePosition = props |> Seq.exists(fun z -> match z with SAVE_POSITION -> true | _ -> false )}
+        | None              -> {NullTypeAcnProperties.encodingPattern = None; savePosition = false }
 
     let aligment = tryGetProp props (fun x -> match x with ALIGNTONEXT e -> Some e | _ -> None)
     let acnMinSizeInBits, acnMaxSizeInBits= AcnEncodingClasses.GetNullEncodingClass aligment loc acnProperties
@@ -649,7 +660,7 @@ let rec private mapAcnParamTypeToAcnAcnInsertedType (asn1:Asn1Ast.AstRoot) (acn:
         let acnMinSizeInBits, acnMaxSizeInBits= AcnEncodingClasses.GetBooleanEncodingClass acnAligment acnErrLoc acnProperties
         AcnBoolean ({AcnBoolean.acnProperties=acnProperties; acnAligment=acnAligment; Location = acnErrLoc; acnMinSizeInBits=acnMinSizeInBits; acnMaxSizeInBits = acnMaxSizeInBits}), us
     | AcnPrmNullType acnErrLoc ->
-        let acnProperties = { NullTypeAcnProperties.encodingPattern  = tryGetProp props (fun x -> match x with PATTERN e -> Some e | _ -> None)}
+        let acnProperties = { NullTypeAcnProperties.encodingPattern  = tryGetProp props (fun x -> match x with PATTERN e -> Some e | _ -> None); savePosition = props |> Seq.exists(fun z -> match z with SAVE_POSITION -> true | _ -> false )}
         let acnMinSizeInBits, acnMaxSizeInBits= AcnEncodingClasses.GetNullEncodingClass acnAligment acnErrLoc acnProperties
         AcnNullType ({AcnNullType.acnProperties=acnProperties; acnAligment=acnAligment; Location = acnErrLoc; acnMinSizeInBits=acnMinSizeInBits; acnMaxSizeInBits = acnMaxSizeInBits}), us
     | AcnPrmRefType (md,ts)->
@@ -966,8 +977,13 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (m:Asn1Ast.Asn1Mo
             let maxChildrenSize = mergedChildren |> List.map(fun c -> c.acnMaxSizeInBits) |> Seq.sum
             let acnMaxSizeInBits = alignmentSize + acnBitMaskSize + maxChildrenSize
             let acnMinSizeInBits = alignmentSize + acnBitMaskSize + minChildrenSize
+            let acnProperties = 
+                {
+                    SequenceAcnProperties.postEncodingFunction = tryGetProp combinedProperties (fun x -> match x with POST_ENCODING_FUNCTION e -> Some (PostEncodingFunction e) | _ -> None);
+                    preDecodingFunction = tryGetProp combinedProperties (fun x -> match x with PRE_DECODING_FUNCTION e -> Some (PreDecodingFunction e) | _ -> None)
+                }
 
-            Sequence ({Sequence.children = mergedChildren;    cons=cons; withcons = wcons;uperMaxSizeInBits=uperBitMaskSize+uperMaxChildrenSize; uperMinSizeInBits=uperBitMaskSize+uperMinChildrenSize;acnMaxSizeInBits=acnMaxSizeInBits;acnMinSizeInBits=acnMinSizeInBits; typeDef=typeDef}), chus
+            Sequence ({Sequence.children = mergedChildren;  acnProperties=acnProperties;  cons=cons; withcons = wcons;uperMaxSizeInBits=uperBitMaskSize+uperMaxChildrenSize; uperMinSizeInBits=uperBitMaskSize+uperMinChildrenSize;acnMaxSizeInBits=acnMaxSizeInBits;acnMinSizeInBits=acnMinSizeInBits; typeDef=typeDef}), chus
         | Asn1Ast.Choice      children     -> 
             let childrenNameConstraints = t.Constraints@refTypeCons |> List.choose(fun c -> match c with Asn1Ast.WithComponentsConstraint w -> Some w| _ -> None) |> List.collect id
             let myVisibleConstraints = t.Constraints@refTypeCons |> List.choose(fun c -> match c with Asn1Ast.WithComponentsConstraint _ -> None | _ -> Some c)

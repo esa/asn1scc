@@ -152,15 +152,22 @@ typedef <prTd.typeName> <td.typeName>;
 >>
 
 
-/***********************************       SEQUENCE OF    ************************************************************/
+/***********************************       SEQUENCE     ************************************************************/
 
 Define_new_sequence_child_bit(sName) ::= "unsigned int <sName>:1;"
 Define_new_sequence_child(sName, sType) ::= "<sType> <sName>;"
 
-Define_new_sequence(td/*:FE_SequenceTypeDefinition*/, arrsChildren, arrsOptionalChildren, arrsChildldrenDefintions) ::= <<
+Define_new_sequence_save_pos_child(sName) ::= "BitStream <sName>;"
+
+Define_new_sequence(td/*:FE_SequenceTypeDefinition*/, arrsChildren, arrsOptionalChildren, arrsChildldrenDefintions, arrsNullFieldsSavePos) ::= <<
 /*-- <td.typeName> --------------------------------------------*/
 <arrsChildldrenDefintions; separator= "\n">
+<if (arrsNullFieldsSavePos)>
+typedef struct {
+    <arrsNullFieldsSavePos; separator="\n">
+} <td.extention_function_potisions>;
 
+<endif>
 typedef struct {
     <arrsChildren; separator="\n">
 
@@ -175,6 +182,10 @@ typedef struct {
 
 Define_subType_sequence(td/*:FE_SequenceTypeDefinition*/, prTd/*:FE_SequenceTypeDefinition*/, soParentTypePackage, arrsOptionalChildren) ::= <<
 typedef <prTd.typeName> <td.typeName>;
+<if (arrsNullFieldsSavePos)>
+typedef <prTd.extention_function_potisions> <td.extention_function_potisions>;
+
+<endif>
 >>
 
 /***********************************       CHOICE    ************************************************************/

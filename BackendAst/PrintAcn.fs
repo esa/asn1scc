@@ -47,6 +47,7 @@ let rec printTypeEncSpec (t:AcnTypeEncodingSpec) =
                 | AcnGenericTypes.NextWord    -> stg_acn.PP_Aligment_word()
                 | AcnGenericTypes.NextDWord   -> stg_acn.PP_Aligment_dword()
             | ENCODE_VALUES                     -> stg_acn.PP_EncodeValues ()
+            | SAVE_POSITION                     -> stg_acn.PP_SavePosition ()
             | PRESENT_WHEN       prWhenList     -> 
                 let prCons =
                     prWhenList |>
@@ -73,6 +74,8 @@ let rec printTypeEncSpec (t:AcnTypeEncodingSpec) =
             | ENUM_SET_VALUE     newVal         -> newVal.Value.ToString()
             | TERMINATION_PATTERN  nullByte     -> nullByte.ToString()
             | MAPPING_FUNCTION   fncName        -> fncName.Value
+            | POST_ENCODING_FUNCTION fncName    -> fncName.Value
+            | PRE_DECODING_FUNCTION fncName     -> fncName.Value
         )
     
     let children =

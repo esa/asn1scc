@@ -385,6 +385,7 @@ type FE_SequenceTypeDefinition = {
     programUnit     : string            //the program unit where this type is defined
     typeName        : string            //e.g. MyInt, Asn1SccInt, Asn1SccUInt
     exist           : string
+    extention_function_potisions : string
     kind            : FE_NonPrimitiveTypeDefinitionKind<FE_SequenceTypeDefinition>
 }
 with

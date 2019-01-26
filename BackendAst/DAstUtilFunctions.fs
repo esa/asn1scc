@@ -1061,7 +1061,20 @@ type SeqChildInfo with
         match this with
         | Asn1Child x    -> x.Name.Value
         | AcnChild x     -> x.Name.Value
-
+    member this.getBackendName l =
+        match this with 
+        | AcnChild z    -> z.c_name
+        | Asn1Child z   -> z.getBackendName l
+    member this.savePosition =
+        match this with 
+        | AcnChild z -> 
+            match z.Type with
+            | Asn1AcnAst.AcnNullType nt when nt.acnProperties.savePosition   ->  true
+            | _     -> false
+        | Asn1Child z ->
+            match z.Type.Kind with
+            | NullType nt when nt.baseInfo.acnProperties.savePosition         -> true
+            | _                     -> false
     member this.Optionality =
         match this with
         | Asn1Child x    -> x.Optionality

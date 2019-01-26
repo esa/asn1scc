@@ -246,8 +246,9 @@ Define_subType_sequence_of(td/*:FE_SizeableTypeDefinition*/, prTd/*:FE_SizeableT
 Define_new_sequence_child_bit(sName) ::= "<sName>:<rtlModuleName()>.bit;"
 
 Define_new_sequence_child(sName, sType) ::= "<sName> : <sType>;"
+Define_new_sequence_save_pos_child(sName) ::= "BitStream <sName>"
 
-Define_new_sequence(td/*:FE_SequenceTypeDefinition*/, arrsChildren, arrsOptionalChildren, arrsChildldrenDefintions) ::= <<
+Define_new_sequence(td/*:FE_SequenceTypeDefinition*/, arrsChildren, arrsOptionalChildren, arrsChildldrenDefintions, arrsNullFieldsSavePos) ::= <<
 -- <td.typeName> --------------------------------------------
 <arrsChildldrenDefintions; separator= "\n">
 
@@ -258,6 +259,12 @@ type <td.exist> is record
 end record with Pack;
 
 for <td.exist>'Size use ((<length(arrsOptionalChildren)> - 1) / System.Word_Size + 1) * System.Word_Size;
+
+<endif>
+<if (arrsNullFieldsSavePos)>
+type <td.extention_function_potisions> is record
+    <arrsNullFieldsSavePos; separator="\n">
+end record;
 
 <endif>
 type <td.typeName> is record 
@@ -283,6 +290,11 @@ Define_subType_sequence(td/*:FE_SequenceTypeDefinition*/, prTd/*:FE_SequenceType
 <define_subtype(thisType=td.exist, parentType=prTd.exist, soParentTypePackage=soParentTypePackage)>
 
 <endif>
+<if (arrsNullFieldsSavePos)>
+<define_subtype(thisType=td.extention_function_potisions, parentType=prTd.extention_function_potisions, soParentTypePackage=soParentTypePackage)>
+
+<endif>
+
 >>
 
 
