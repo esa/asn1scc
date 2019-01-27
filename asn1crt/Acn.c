@@ -1202,12 +1202,12 @@ flag Acn_Dec_String_Ascii_Null_Teminated(BitStream* pBitStrm, asn1SccSint max, c
 
 flag Acn_Dec_String_Ascii_Null_Teminated_mult(BitStream* pBitStrm, asn1SccSint max, const char* null_character, size_t null_character_size,   char* strVal)
 {
-    char tmp[10];
+    byte tmp[10];
     size_t sz = null_character_size < 10 ? null_character_size : 10;
     memset(tmp, 0x0, 10);
     memset(strVal, 0x0, (size_t)max + 1);
     //read null_character_size characters into the tmp buffer
-    for (int j = 0; j < null_character_size; j++) {
+    for (int j = 0; j < (int)null_character_size; j++) {
         if (!BitStream_ReadByte(pBitStrm, &(tmp[j])))
             return FALSE;
     }
@@ -1216,7 +1216,7 @@ flag Acn_Dec_String_Ascii_Null_Teminated_mult(BitStream* pBitStrm, asn1SccSint m
     while (i <= max && (memcmp(null_character, tmp, sz) != 0)) {
         strVal[i] = tmp[0];
         i++;
-        for (int j = 0; j < null_character_size - 1; j++)
+        for (int j = 0; j < (int)null_character_size - 1; j++)
             tmp[j] = tmp[j + 1];
         if (!BitStream_ReadByte(pBitStrm, &(tmp[null_character_size - 1])))
             return FALSE;
