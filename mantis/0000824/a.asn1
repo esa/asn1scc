@@ -1,0 +1,20 @@
+D DEFINITIONS ::=
+BEGIN
+
+T-NID-Packet ::= ENUMERATED
+{
+    stm-13    (13),
+    stm-15    (15)
+}
+
+
+T-Packet-Body ::= CHOICE
+{
+    stm-13  REAL,
+    stm-15  INTEGER (0 .. 65535)
+}
+
+T-Packet ::= SEQUENCE {
+    pbody  T-Packet-Body
+}
+END
