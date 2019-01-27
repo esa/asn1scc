@@ -1058,6 +1058,11 @@ void Acn_Enc_String_Ascii_Null_Teminated                (BitStream* pBitStrm, as
     BitStream_AppendByte(pBitStrm, null_character, FALSE);
 }
 
+void Acn_Enc_String_Ascii_Null_Teminated_mult(BitStream* pBitStrm, asn1SccSint max, const char* null_character, size_t null_character_size, const char* strVal) {
+    Acn_Enc_String_Ascii_private(pBitStrm, max, strVal);
+    Acn_Enc_String_Ascii_private(pBitStrm, null_character_size, null_character);
+}
+
 
 void Acn_Enc_String_Ascii_External_Field_Determinant    (BitStream* pBitStrm, asn1SccSint max, const char* strVal)
 {
@@ -1194,6 +1199,34 @@ flag Acn_Dec_String_Ascii_Null_Teminated(BitStream* pBitStrm, asn1SccSint max, c
     return FALSE;
 
 }
+
+flag Acn_Dec_String_Ascii_Null_Teminated_mult(BitStream* pBitStrm, asn1SccSint max, const char* null_character, size_t null_character_size,   char* strVal)
+{
+    char tmp[10];
+    size_t sz = null_character_size < 10 ? null_character_size : 10;
+    memset(tmp, 0x0, 10);
+    memset(strVal, 0x0, (size_t)max + 1);
+    //read null_character_size characters into the tmp buffer
+    for (int j = 0; j < null_character_size; j++) {
+        if (!BitStream_ReadByte(pBitStrm, &(tmp[j])))
+            return FALSE;
+    }
+    
+    asn1SccSint i = 0;
+    while (i <= max && (memcmp(null_character, tmp, sz) != 0)) {
+        strVal[i] = tmp[0];
+        i++;
+        for (int j = 0; j < null_character_size - 1; j++)
+            tmp[j] = tmp[j + 1];
+        if (!BitStream_ReadByte(pBitStrm, &(tmp[null_character_size - 1])))
+            return FALSE;
+    }
+    
+    strVal[i] = 0x0;
+    return memcmp(null_character, tmp, sz) == 0;
+
+}
+
 
 flag Acn_Dec_String_Ascii_External_Field_Determinant    (BitStream* pBitStrm, asn1SccSint max, asn1SccSint extSizeDeterminatFld, char* strVal)
 {
