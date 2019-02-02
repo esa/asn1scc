@@ -1,0 +1,199 @@
+--with Ada.Unchecked_Conversion;
+with uper_asn1_rtl;
+use uper_asn1_rtl;
+
+--with acn_asn1_rtl;
+--use acn_asn1_rtl;
+
+
+package body FAST_SPARK with Spark_Mode is
+
+--     procedure Acn_Enc_String_Ascii_Internal_Field_Determinant (bs : in out BitStream; asn1Min : Asn1Int;  nLengthDeterminantSizeInBits : in     Integer; strVal : in     String)
+--     is
+--        I : Integer := strVal'First;
+--     begin
+--        UPER_Enc_ConstraintWholeNumber (bs, Asn1Int (getStringSize (strVal)), asn1Min,  nLengthDeterminantSizeInBits);
+--        while I <= strVal'Last  and then strVal (I) /= Standard.ASCII.NUL loop
+--           pragma Loop_Invariant (I >= strVal'First and I <= strVal'Last and bs.Current_Bit_Pos = bs.Current_Bit_Pos'Loop_Entry + (i-strVal'First)*8);
+--            BitStream_AppendByte (bs, Asn1Byte (CharacterPos (strVal (I))),  false);
+--  
+--           I := I + 1;
+--        end loop;
+--  
+--     end Acn_Enc_String_Ascii_Internal_Field_Determinant;
+--  
+--     procedure Acn_Dec_String_Ascii_Internal_Field_Determinant (bs : in out BitStream; asn1Min : Asn1Int; asn1Max : Asn1Int; nLengthDeterminantSizeInBits : in Integer; strVal : in out String; Result : out ASN1_RESULT)
+--     is
+--        I         : Integer := strVal'First;
+--        nSize     : Integer;
+--        charIndex : Asn1Byte;
+--     begin
+--        Result := ASN1_RESULT'(Success => True, ErrorCode => ERR_INCORRECT_STREAM);
+--  
+--        UPER_Dec_ConstraintWholeNumberInt (bs, nSize, Integer (asn1Min), Integer (asn1Max), nLengthDeterminantSizeInBits, Result.Success);
+--        
+--        while Result.Success and then I <= strVal'Last  and then I <= nSize  loop
+--           pragma Loop_Invariant (i >= strVal'First and i <= strVal'Last and bs.Current_Bit_Pos = bs.Current_Bit_Pos'Loop_Entry + (i-strVal'First)*8);
+--           BitStream_DecodeByte (bs, charIndex, Result.Success);
+--           strVal (I) := Character'Val (charIndex);
+--  
+--           I := I + 1;
+--        end loop;
+--        while I <= strVal'Last loop
+--           pragma Loop_Invariant (i >= strVal'First and i <= strVal'Last);
+--           strVal (I) := Standard.ASCII.NUL;
+--           I          := I + 1;
+--        end loop;
+--  
+--     end Acn_Dec_String_Ascii_Internal_Field_Determinant;   
+--  
+--     
+--     
+--     procedure Acn_Enc_String_Ascii_External_Field_Determinant(bs : in out BitStream;  strVal : in     String)
+--     is
+--        I : Integer := strVal'First;
+--     begin
+--        while I <= strVal'Last  and then strVal (I) /= Standard.ASCII.NUL loop
+--           pragma Loop_Invariant (I >= strVal'First and I <= strVal'Last and bs.Current_Bit_Pos = bs.Current_Bit_Pos'Loop_Entry + (i-strVal'First)*8);
+--            BitStream_AppendByte (bs, Asn1Byte (CharacterPos (strVal (I))),  false);
+--  
+--           I := I + 1;
+--        end loop;
+--  
+--     end Acn_Enc_String_Ascii_External_Field_Determinant;
+--  
+--     procedure Acn_Dec_String_Ascii_External_Field_Determinant (bs : in out BitStream; extSizeDeterminatFld : in     Asn1Int; strVal               : in out String;  Result               :    out ASN1_RESULT)
+--     is
+--        I         : Integer := strVal'First;
+--        charIndex : Asn1Byte;
+--     begin
+--        Result :=    ASN1_RESULT'(Success => True, ErrorCode => ERR_INCORRECT_STREAM);
+--  
+--        while Result.Success and then I <= strVal'Last  and then I <= Integer(extSizeDeterminatFld)  loop
+--           pragma Loop_Invariant (i >= strVal'First and i <= strVal'Last and bs.Current_Bit_Pos = bs.Current_Bit_Pos'Loop_Entry + (i-strVal'First)*8);
+--           BitStream_DecodeByte (bs, charIndex, Result.Success);
+--           strVal (I) := Character'Val (Integer(charIndex));
+--  
+--           I := I + 1;
+--        end loop;
+--        while I <= strVal'Last loop
+--           pragma Loop_Invariant (i >= strVal'First and i <= strVal'Last);
+--           strVal (I) := Standard.ASCII.NUL;
+--           I          := I + 1;
+--        end loop;
+--  
+--     end Acn_Dec_String_Ascii_External_Field_Determinant;
+--     
+--     
+--     
+--     
+--     
+--     
+--     
+--     
+--     
+--     procedure Acn_Enc_String_CharIndex_External_Field_Determinant (bs : in out BitStream; charSet : String; nCharSize : Integer;  strVal    : in     String)
+--     is
+--        I         : Integer := strVal'First;
+--        charIndex : Integer;
+--     begin
+--        while I <= strVal'Last  and then strVal (I) /= Standard.ASCII.NUL loop
+--           pragma Loop_Invariant (I >= strVal'First and I <= strVal'Last and bs.Current_Bit_Pos = bs.Current_Bit_Pos'Loop_Entry + (i-strVal'First)*nCharSize);
+--  
+--           charIndex := GetZeroBasedCharIndex (strVal (I), charSet);
+--           UPER_Enc_ConstraintWholeNumber (bs, Asn1Int (charIndex), 0, nCharSize);
+--  
+--           I := I + 1;
+--        end loop;
+--  
+--     end Acn_Enc_String_CharIndex_External_Field_Determinant;
+--  
+--     procedure Acn_Dec_String_CharIndex_External_Field_Determinant (bs : in out BitStream; charSet : String; nCharSize :Integer; extSizeDeterminatFld : in Asn1Int; strVal : in out String; Result : out ASN1_RESULT)
+--     is
+--        I         : Integer          := strVal'First;
+--        charIndex : Integer;
+--        asn1Max   : constant Integer := charSet'Last - charSet'First;
+--     begin
+--        Result :=  ASN1_RESULT'(Success => True, ErrorCode => ERR_INCORRECT_STREAM);
+--  
+--        while Result.Success  and then I <= strVal'Last - 1   and then I <= Integer (extSizeDeterminatFld)   loop
+--           pragma Loop_Invariant (i >= strVal'First and i <= strVal'Last and bs.Current_Bit_Pos = bs.Current_Bit_Pos'Loop_Entry + (i-strVal'First)*nCharSize);
+--  
+--           UPER_Dec_ConstraintWholeNumberInt (bs, charIndex, 0, asn1Max, nCharSize, Result.Success);
+--           strVal (I) := charSet (charIndex + charSet'First);
+--  
+--           I := I + 1;
+--        end loop;
+--  
+--        while I <= strVal'Last loop
+--           pragma Loop_Invariant (i >= strVal'First and i <= strVal'Last);
+--           strVal (I) := Standard.ASCII.NUL;
+--           I          := I + 1;
+--        end loop;
+--  
+--     end Acn_Dec_String_CharIndex_External_Field_Determinant;
+--     
+--     
+--     
+--     procedure Acn_Enc_String_CharIndex_Internal_Field_Determinant (bs : in out BitStream; charSet : String; nCharSize : Integer; asn1Min : Asn1Int; nLengthDeterminantSizeInBits : in Integer; strVal: in String)
+--     is
+--        I         : Integer := strVal'First;
+--        charIndex : Integer;
+--     begin
+--        UPER_Enc_ConstraintWholeNumber (bs, Asn1Int (getStringSize (strVal)), asn1Min,  nLengthDeterminantSizeInBits);
+--  
+--        while I <= strVal'Last  and then strVal (I) /= Standard.ASCII.NUL loop
+--           pragma Loop_Invariant (I >= strVal'First and I <= strVal'Last and bs.Current_Bit_Pos = bs.Current_Bit_Pos'Loop_Entry + (i-strVal'First)*nCharSize);
+--  
+--           charIndex := GetZeroBasedCharIndex (strVal (I), charSet);
+--           UPER_Enc_ConstraintWholeNumber (bs, Asn1Int (charIndex), 0, nCharSize);
+--  
+--           I := I + 1;
+--        end loop;
+--  
+--     end Acn_Enc_String_CharIndex_Internal_Field_Determinant;
+--  
+--     procedure Acn_Dec_String_CharIndex_Internal_Field_Determinant (bs : in out BitStream;  charSet : String;  nCharSize : Integer;
+--                                                                    asn1Min : Asn1Int; asn1Max: Asn1Int; nLengthDeterminantSizeInBits : in Integer; strVal : in out String; Result : out ASN1_RESULT)
+--     is
+--        I         : Integer := strVal'First;
+--        nSize     : Integer;
+--        charIndex : Integer;
+--     begin
+--        Result := ASN1_RESULT'(Success => True, ErrorCode => ERR_INCORRECT_STREAM);
+--  
+--        UPER_Dec_ConstraintWholeNumberInt (bs, nSize, Integer (asn1Min), Integer (asn1Max), nLengthDeterminantSizeInBits, Result.Success);
+--        
+--        while Result.Success  and then I <= strVal'Last - 1   and then I <= nSize   loop
+--           pragma Loop_Invariant (i >= strVal'First and i <= strVal'Last and bs.Current_Bit_Pos = bs.Current_Bit_Pos'Loop_Entry + (i-strVal'First)*nCharSize);
+--  
+--           UPER_Dec_ConstraintWholeNumberInt (bs, charIndex, 0, Integer(asn1Max), nCharSize, Result.Success);
+--           if result.Success and charIndex + charSet'First <= charSet'Last then
+--              strVal (I) := charSet (charIndex + charSet'First);
+--           else
+--              result.Success := false;
+--              strVal (I) := Standard.ASCII.NUL;
+--           end if;
+--           
+--           I := I + 1;
+--        end loop;
+--  
+--        while I <= strVal'Last loop
+--           pragma Loop_Invariant (i >= strVal'First and i <= strVal'Last);
+--           strVal (I) := Standard.ASCII.NUL;
+--           I          := I + 1;
+--        end loop;
+--  
+--     end Acn_Dec_String_CharIndex_Internal_Field_Determinant;
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+
+end FAST_SPARK;

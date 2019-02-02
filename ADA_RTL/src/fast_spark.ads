@@ -1,0 +1,119 @@
+with Interfaces; 
+use Interfaces;
+with adaasn1rtl;
+use adaasn1rtl;
+--with acn_asn1_rtl;
+--use acn_asn1_rtl;
+
+
+package FAST_SPARK with Spark_Mode is
+
+--     procedure Acn_Enc_String_Ascii_Internal_Field_Determinant (bs : in out BitStream; asn1Min : Asn1Int;  nLengthDeterminantSizeInBits : in     Integer; strVal : in     String) with
+--       Depends => (bs => (bs, asn1Min, strVal, nLengthDeterminantSizeInBits)),
+--       Pre     => nLengthDeterminantSizeInBits >= 0 and then nLengthDeterminantSizeInBits < Asn1UInt'Size and then 
+--                  asn1Min >= 0 and then 
+--                  strVal'Last < Natural'Last and then
+--                  strVal'Last >= strVal'First and then
+--                  strVal'Last - strVal'First < Natural'Last/8 - 8 and then
+--                  asn1Min <= Asn1Int(getStringSize (strVal)) and then
+--                  bs.Current_Bit_Pos < Natural'Last - ((strVal'Last - strVal'First + 1)*8 + nLengthDeterminantSizeInBits) and then  
+--                  bs.Size_In_Bytes < Positive'Last/8 and  then
+--                  bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - ((strVal'Last - strVal'First + 1)*8 + nLengthDeterminantSizeInBits),
+--       Post    => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + ((strVal'Last - strVal'First + 1)*8 + nLengthDeterminantSizeInBits);
+--     
+--     procedure Acn_Dec_String_Ascii_Internal_Field_Determinant (bs : in out BitStream; asn1Min : Asn1Int; asn1Max : Asn1Int; nLengthDeterminantSizeInBits : in Integer; strVal : in out String; Result : out ASN1_RESULT) with
+--       Depends => ( (bs, strVal, Result) => (bs, asn1Min, asn1Max, nLengthDeterminantSizeInBits)),
+--       Pre     => asn1Min >= 0 and then 
+--                  asn1Max <= Asn1Int(Integer'Last) and then
+--                  asn1Min <= asn1Max and then
+--                  nLengthDeterminantSizeInBits >= 0 and then nLengthDeterminantSizeInBits < Asn1UInt'Size and then 
+--                  strVal'Last < Natural'Last and then
+--                  strVal'Last >= strVal'First and then
+--                  strVal'Last - strVal'First < Natural'Last/8 - 8 and then
+--                  bs.Current_Bit_Pos < Natural'Last - ((strVal'Last - strVal'First + 1)*8 + nLengthDeterminantSizeInBits) and then  
+--                  bs.Size_In_Bytes < Positive'Last/8 and  then
+--                  bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - ((strVal'Last - strVal'First + 1)*8 + nLengthDeterminantSizeInBits),
+--       Post    => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + ((strVal'Last - strVal'First + 1)*8 + nLengthDeterminantSizeInBits);
+--     
+--  
+--     
+--     
+--     procedure Acn_Enc_String_Ascii_External_Field_Determinant(bs : in out BitStream;  strVal : in     String) with
+--       Depends => (bs => (bs, strVal)),
+--       Pre     => strVal'Last < Natural'Last and then
+--                  strVal'Last >= strVal'First and then
+--                  strVal'Last - strVal'First < Natural'Last/8 - 8 and then
+--                  bs.Current_Bit_Pos < Natural'Last - ((strVal'Last - strVal'First + 1)*8 ) and then  
+--                  bs.Size_In_Bytes < Positive'Last/8 and  then
+--                  bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - ((strVal'Last - strVal'First + 1)*8 ),
+--       Post    => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + ((strVal'Last - strVal'First + 1)*8);
+--  
+--     procedure Acn_Dec_String_Ascii_External_Field_Determinant (bs : in out BitStream; extSizeDeterminatFld : in Asn1Int; strVal : in out String;  Result : out ASN1_RESULT)  with
+--       Depends => ( (bs, strVal, Result) => (bs, extSizeDeterminatFld)),
+--       Pre     => extSizeDeterminatFld >= 0 and then 
+--                  extSizeDeterminatFld <= Asn1Int(Integer'Last) and then 
+--                  strVal'Last < Natural'Last and then
+--                  strVal'Last >= strVal'First and then
+--                  strVal'Last - strVal'First < Natural'Last/8 - 8 and then
+--                  bs.Current_Bit_Pos < Natural'Last - ((strVal'Last - strVal'First + 1)*8) and then  
+--                  bs.Size_In_Bytes < Positive'Last/8 and  then
+--                  bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - ((strVal'Last - strVal'First + 1)*8),
+--       Post    => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + ((strVal'Last - strVal'First + 1)*8);
+--     
+--     
+--     procedure Acn_Enc_String_CharIndex_External_Field_Determinant (bs : in out BitStream; charSet : String; nCharSize : Integer;  strVal : in String) with
+--       Depends => (bs => (bs, strVal, nCharSize, charSet)),
+--       Pre     => nCharSize >=1 and then nCharSize <= 8 and then 
+--                  strVal'Last < Natural'Last and then strVal'Last >= strVal'First and then
+--                  charSet'Last < Natural'Last and then charSet'Last >= charSet'First and then charSet'Last-charSet'First <= 255 and then
+--                  strVal'Last - strVal'First < Natural'Last/8 - nCharSize and then
+--                  bs.Current_Bit_Pos < Natural'Last - ((strVal'Last - strVal'First + 1)*nCharSize ) and then  
+--                  bs.Size_In_Bytes < Positive'Last/8 and  then
+--                  bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - ((strVal'Last - strVal'First + 1)*nCharSize ),
+--       Post    => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + ((strVal'Last - strVal'First + 1)*nCharSize);
+--  
+--  
+--     procedure Acn_Dec_String_CharIndex_External_Field_Determinant (bs : in out BitStream; charSet : String; nCharSize :Integer; extSizeDeterminatFld : in Asn1Int; strVal : in out String; Result : out ASN1_RESULT) with
+--       Depends => ( (bs, strVal, Result) => (bs, extSizeDeterminatFld, charSet, nCharSize)),
+--       Pre     => extSizeDeterminatFld >= 0 and then        extSizeDeterminatFld <= Asn1Int(Integer'Last) and then 
+--                  nCharSize >=1 and then nCharSize <= 8 and then 
+--                  strVal'Last < Natural'Last and then       strVal'Last >= strVal'First and then
+--                  charSet'Last < Natural'Last and then charSet'Last >= charSet'First and then charSet'Last-charSet'First <= 255 and then
+--                  strVal'Last - strVal'First < Natural'Last/8 - nCharSize and then
+--                  bs.Current_Bit_Pos < Natural'Last - ((strVal'Last - strVal'First + 1)*nCharSize) and then  
+--                  bs.Size_In_Bytes < Positive'Last/8 and  then
+--                  bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - ((strVal'Last - strVal'First + 1)*nCharSize),
+--       Post    => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + ((strVal'Last - strVal'First + 1)*nCharSize);
+--     
+--     
+--     procedure Acn_Enc_String_CharIndex_Internal_Field_Determinant (bs : in out BitStream; charSet : String; nCharSize : Integer; asn1Min : Asn1Int; nLengthDeterminantSizeInBits : in Integer; strVal: in String) with
+--       Pre     => nLengthDeterminantSizeInBits >= 0 and then nLengthDeterminantSizeInBits < Asn1UInt'Size and then 
+--                  asn1Min >= 0 and then 
+--                  nCharSize >=1 and then nCharSize <= 8 and then 
+--                  strVal'Last < Natural'Last and then strVal'Last >= strVal'First and then
+--                  charSet'Last < Natural'Last and then charSet'Last >= charSet'First and then charSet'Last-charSet'First <= 255 and then
+--                  strVal'Last - strVal'First < Natural'Last/8 - nCharSize and then
+--                  asn1Min <= Asn1Int(getStringSize (strVal)) and then
+--                  bs.Current_Bit_Pos < Natural'Last - ((strVal'Last - strVal'First + 1)*nCharSize + nLengthDeterminantSizeInBits) and then  
+--                  bs.Size_In_Bytes < Positive'Last/8 and  then
+--                  bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - ((strVal'Last - strVal'First + 1)*nCharSize + nLengthDeterminantSizeInBits ),
+--       Post    => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + ((strVal'Last - strVal'First + 1)*nCharSize + nLengthDeterminantSizeInBits);
+--  
+--     procedure Acn_Dec_String_CharIndex_Internal_Field_Determinant (bs : in out BitStream;  charSet : String;  nCharSize : Integer;
+--                                                                    asn1Min : Asn1Int; asn1Max: Asn1Int; nLengthDeterminantSizeInBits : in Integer; strVal : in out String; Result : out ASN1_RESULT) with
+--       Pre     => asn1Min >= 0 and then 
+--                  asn1Max <= Asn1Int(Integer'Last) and then
+--                  asn1Min <= asn1Max and then
+--                  nLengthDeterminantSizeInBits >= 0 and then nLengthDeterminantSizeInBits < Asn1UInt'Size and then 
+--                  nCharSize >=1 and then nCharSize <= 8 and then 
+--                  strVal'Last < Natural'Last and then       strVal'Last >= strVal'First and then
+--                  charSet'Last < Natural'Last and then charSet'Last >= charSet'First and then charSet'Last-charSet'First <= 255 and then Asn1Int(charSet'First) + asn1Max < Asn1Int(Integer'Last) and then
+--                  strVal'Last - strVal'First < Natural'Last/8 - nCharSize and then
+--                  bs.Current_Bit_Pos < Natural'Last - ((strVal'Last - strVal'First + 1)*nCharSize + nLengthDeterminantSizeInBits) and then  
+--                  bs.Size_In_Bytes < Positive'Last/8 and  then
+--                  bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - ((strVal'Last - strVal'First + 1)*nCharSize + nLengthDeterminantSizeInBits),
+--       Post    => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + ((strVal'Last - strVal'First + 1)*nCharSize + nLengthDeterminantSizeInBits);
+--     
+   
+   
+end FAST_SPARK;
