@@ -229,7 +229,7 @@ let private printUnit (r:DAst.AstRoot) (l:ProgrammingLanguage) (encodings: Commo
             let arrsNegativeReals = []
             let arrsBoolPatterns = []
             let arrsChoiceValueAssignments = []
-            let rtl = [body_a.rtlModuleName()]@(r.args.mappingFunctionsModule |> Option.toList)
+            let rtl = [body_a.rtlModuleName(); "uper_asn1_rtl"; "acn_asn1_rtl"]@(r.args.mappingFunctionsModule |> Option.toList)
             match arrsTypeAssignments with
             | []    -> None
             | _     -> Some (body_a.PrintPackageBody pu.name  (rtl@pu.importedProgramUnits) arrsNegativeReals arrsBoolPatterns arrsTypeAssignments arrsChoiceValueAssignments pu.importedTypes)

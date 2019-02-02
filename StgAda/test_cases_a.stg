@@ -84,6 +84,7 @@ ret := <rtlModuleName()>.TEST_CASE_RESULT'(Step => <rtlModuleName()>.TC_ENCODE, 
 Codec_Decode(sModName, sFuncName, sTasName, sEnc, sAmber) ::= <<
 -- Decode value
 --at this point stream contains the <sEnc> data
+stream.Current_Bit_Pos :=0;
 <sModName>.<sFuncName>(decodedPDU, stream, result);
 ret := <rtlModuleName()>.TEST_CASE_RESULT'(Step => <rtlModuleName()>.TC_DECODE, Success => result.Success, ErrorCode => result.ErrorCode);
 >>
@@ -134,7 +135,7 @@ PrintCodec_body(sModName, sFuncName, sTasName, sStar,  sVal, sEnc, sNestedStatem
 FUNCTION <sFuncName>(<sVal>:<sModName>.<sTasName>) RETURN <rtlModuleName()>.TEST_CASE_RESULT
 IS
     decodedPDU  : <sModName>.<sTasName>;
-    stream      : <sModName>.<sTasName>_<sEnc>Stream;
+    stream      : adaasn1rtl.Bitstream := adaasn1rtl.BitStream_init(<sModName>.<sTasName>_REQUIRED_BYTES_FOR_ENCODING);
     result      : <rtlModuleName()>.ASN1_RESULT;
     ret         : <rtlModuleName()>.TEST_CASE_RESULT;
 BEGIN

@@ -137,6 +137,16 @@ package adaasn1rtl with Spark_Mode is
      Pre => Int_value < Powers_of_10(19)   ;   
    
    
+   function Asn1Real_Equal (Left, Right : in Asn1Real) return Boolean
+   is (
+      if Left = Right then True
+      elsif Left = 0.0 then Right = 0.0
+      else 
+          abs ((Left - Right) / Left) < 0.00001
+   );
+   
+   
+   
    function PLUS_INFINITY return Asn1Real;
    function MINUS_INFINITY return Asn1Real;
 

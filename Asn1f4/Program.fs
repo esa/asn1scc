@@ -267,6 +267,11 @@ let exportRTL outDir  (l:ProgrammingLanguage) (args:CommandLineSettings)=
                 | true  -> writeTextFile (Path.Combine(outDir, "adaasn1rtl.ads")) (adaasn1rtl_ads.Replace("subtype Asn1Real is Standard.Long_Float;","subtype Asn1Real is Standard.Float;"))
                 | false -> writeTextFile (Path.Combine(outDir, "adaasn1rtl.ads")) (adaasn1rtl_ads) 
 
+                writeTextFile (Path.Combine(outDir, "uper_asn1_rtl.adb")) (rm.GetString("uper_asn1_rtl_adb",null))
+                writeTextFile (Path.Combine(outDir, "uper_asn1_rtl.ads")) (rm.GetString("uper_asn1_rtl_ads",null))
+                writeTextFile (Path.Combine(outDir, "acn_asn1_rtl.adb")) (rm.GetString("acn_asn1_rtl_adb",null))
+                writeTextFile (Path.Combine(outDir, "acn_asn1_rtl.ads")) (rm.GetString("acn_asn1_rtl_ads",null))
+
                 writeTextFile (Path.Combine(outDir, "IgnoredExaminerWarnings.wrn"))     (rm.GetString("IgnoredExaminerWarnings",null)) 
                 writeTextFile (Path.Combine(outDir, "gnat.cfg"))    (rm.GetString("gnat",null)) 
                 writeTextFile (Path.Combine(outDir, "runSpark.sh"))    (rm.GetString("run",null)) 
