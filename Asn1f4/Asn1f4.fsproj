@@ -136,7 +136,9 @@
   </ItemGroup>
   <Target Name="BeforeBuild">
     <ItemGroup>
-      <ResourceFilesToCopy Include="$(SolutionDir)SPARK_RTL/adaasn1rtl.*" />
+      <ResourceFilesToCopy Include="$(SolutionDir)ADA_RTL/src/adaasn1rtl.*" />
+      <ResourceFilesToCopy Include="$(SolutionDir)ADA_RTL/src/uper_asn1_rtl.*" />
+      <ResourceFilesToCopy Include="$(SolutionDir)ADA_RTL/src/acn_asn1_rtl.*" />
       <ResourceFilesToCopy Include="$(SolutionDir)SPARK_RTL/xer_rtl.*" />
       <ResourceFilesToCopy Include="$(SolutionDir)SPARK_RTL/IgnoredExaminerWarnings.wrn" />
       <ResourceFilesToCopy Include="$(SolutionDir)SPARK_RTL/gnat.cfg" />
