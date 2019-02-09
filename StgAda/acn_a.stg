@@ -686,8 +686,8 @@ loopFixedItem_enc (i, fixedSize, nfixedSizeUperLimit, sInternalItem, nCurOffset,
 <i> := 1;
 while <i>\<= <fixedSize> loop
     pragma Loop_Invariant (<i> >=1 and <i>\<=<fixedSize>);
-    pragma Loop_Invariant (K >= K'Loop_Entry);
-    pragma Loop_Invariant (K\<=K'Loop_Entry + <nIntItemMaxSize>*(<i>-1));
+    --pragma Loop_Invariant (K >= K'Loop_Entry);
+    --pragma Loop_Invariant (K\<=K'Loop_Entry + <nIntItemMaxSize>*(<i>-1));
     <sInternalItem>
     <i> := <i> + 1;
 end loop;
@@ -697,8 +697,8 @@ loopFixedItem_dec (i, fixedSize, nfixedSizeUperLimit, sInternalItem, nCurOffset,
 <i> := 1;
 while <i>\<= <fixedSize> AND result.Success loop
     pragma Loop_Invariant (<i> >=1 and <i>\<=<fixedSize>);
-    pragma Loop_Invariant (K.K >= K'Loop_Entry.K);
-    pragma Loop_Invariant (K.K \<= K'Loop_Entry.K + <nIntItemMaxSize>*(<i>-1));
+    --pragma Loop_Invariant (K.K >= K'Loop_Entry.K);
+    --pragma Loop_Invariant (K.K \<= K'Loop_Entry.K + <nIntItemMaxSize>*(<i>-1));
     <sInternalItem>
     <i> := <i> + 1;
 end loop;
