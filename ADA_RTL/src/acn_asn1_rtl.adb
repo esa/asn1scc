@@ -731,7 +731,7 @@ package body acn_asn1_rtl with Spark_Mode is
       IntVal := 0;
       Result :=   ASN1_RESULT'(Success => True, ErrorCode => 0);
       
-      for i in 1..19 loop
+      for i in 1..20 loop
          pragma Loop_Invariant (bs.Current_Bit_Pos = bs.Current_Bit_Pos'Loop_Entry + (i-1)*8);
          BitStream_DecodeByte (bs, digit, Result.Success);
          pragma Assert (Result.Success);

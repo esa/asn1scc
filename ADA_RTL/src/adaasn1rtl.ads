@@ -65,7 +65,7 @@ package adaasn1rtl with Spark_Mode is
    
    subtype OctetBuffer_0_7 is OctetBuffer (BIT_RANGE);
 
-   subtype Digits_Buffer is OctetBuffer (1 .. 19);
+   subtype Digits_Buffer is OctetBuffer (1 .. 20);
    
    type Bitstream  (Size_In_Bytes:Positive) is record
       Buffer           : OctetBuffer(1 .. Size_In_Bytes) ; 
@@ -132,7 +132,8 @@ package adaasn1rtl with Spark_Mode is
       elsif Int_value >= Powers_of_10(15) and Int_value < Powers_of_10(16)  then 16 
       elsif Int_value >= Powers_of_10(16) and Int_value < Powers_of_10(17)  then 17 
       elsif Int_value >= Powers_of_10(17) and Int_value < Powers_of_10(18)  then 18 
-      else 19 )
+      elsif Int_value >= Powers_of_10(18) and Int_value < Powers_of_10(19)  then 19 
+      else 20 )
    with
      Pre => Int_value < Powers_of_10(19)   ;   
    
