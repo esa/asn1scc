@@ -330,7 +330,7 @@ package body adaasn1rtl with Spark_Mode is
    begin
       success := bs.Current_Bit_Pos < Natural'Last - 8 and then  
                 bs.Size_In_Bytes < Positive'Last/8 and  then
-        bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - 8;
+        bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 8;
       
       if Current_Bit > 0 then
          ncb := 8 - Current_Bit;
@@ -352,7 +352,7 @@ package body adaasn1rtl with Spark_Mode is
    begin
       success := bs.Current_Bit_Pos < Natural'Last - 4 and then  
                 bs.Size_In_Bytes < Positive'Last/8 and  then
-        bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - 4;
+        bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 4;
 
       if Current_Bit < 4 then
          Byte_Value := Shift_right(bs.buffer(Current_Byte), 4 - Current_Bit) and 16#0F#;
@@ -504,7 +504,7 @@ package body adaasn1rtl with Spark_Mode is
                 total_bytes <= Asn1UInt'Size/8 and then 
                 bs.Current_Bit_Pos < Natural'Last - total_bytes*8 and then  
                 bs.Size_In_Bytes < Positive'Last/8 and  then
-                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - total_bytes*8;
+                bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - total_bytes*8;
       
       for i in 1 .. total_bytes loop
          pragma Loop_Invariant (bs.Current_Bit_Pos = bs.Current_Bit_Pos'Loop_Entry + (i-1)*8);
@@ -532,9 +532,9 @@ package body adaasn1rtl with Spark_Mode is
                 total_bytes <= Asn1UInt'Size/8 and then 
                 bs.Current_Bit_Pos < Natural'Last - total_bytes*8 and then  
                 bs.Size_In_Bytes < Positive'Last/8 and  then
-                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - total_bytes*8;
+                bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - total_bytes*8;
       
-      if (bs.buffer(Current_Byte) and MASKS(Current_Bit)) > 0 then
+      if (bs.buffer(Current_Byte) and MASKS(Current_Bit)) = 0 then
          Ret := 0;
       else
          Ret := Asn1UInt'Last;

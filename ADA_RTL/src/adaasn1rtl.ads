@@ -210,7 +210,7 @@ package adaasn1rtl with Spark_Mode is
      Depends => (bs => (bs, Byte_Value, Negate)),
      Pre     => bs.Current_Bit_Pos < Natural'Last - 8 and then  
                 bs.Size_In_Bytes < Positive'Last/8 and  then
-                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - 8,
+                bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 8,
      Post    => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 8;
    
    
@@ -218,7 +218,7 @@ package adaasn1rtl with Spark_Mode is
      Depends => (bs => (bs), Byte_Value => bs, success => bs),
      Pre     => bs.Current_Bit_Pos < Natural'Last - 8 and then  
                 bs.Size_In_Bytes < Positive'Last/8 and  then
-                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - 8,
+                bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 8,
      Post    => success and bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 8;
    
    
@@ -227,7 +227,7 @@ package adaasn1rtl with Spark_Mode is
      Depends => (bs => (bs), Byte_Value => bs, success => bs),
      Pre     => bs.Current_Bit_Pos < Natural'Last - 4 and then  
                 bs.Size_In_Bytes < Positive'Last/8 and  then
-                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - 4,
+                bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 4,
      Post    => success and bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 4;
      
    
@@ -235,14 +235,14 @@ package adaasn1rtl with Spark_Mode is
      Depends => (bs => (bs, Byte_Value, negate, nBits)),
      Pre     => bs.Current_Bit_Pos < Natural'Last - nBits and then  
                 bs.Size_In_Bytes < Positive'Last/8 and  then
-                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - nBits,
+                bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - nBits,
      Post    => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + nBits;
      
    procedure BitStream_ReadPartialByte(bs : in out BitStream; Byte_Value : out Asn1Byte; nBits : in BIT_RANGE)  with
      Depends => ((bs,Byte_Value) => (bs, nBits) ),
      Pre     => bs.Current_Bit_Pos < Natural'Last - nBits and then  
                 bs.Size_In_Bytes < Positive'Last/8 and  then
-                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - nBits,
+                bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - nBits,
      Post    => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + nBits;   
    
    procedure BitStream_Encode_Non_Negative_Integer(bs : in out BitStream; intValue   : in Asn1UInt; nBits : in Integer) with
@@ -251,7 +251,7 @@ package adaasn1rtl with Spark_Mode is
                 nBits < Asn1UInt'Size and then 
                 bs.Current_Bit_Pos < Natural'Last - nBits and then  
                 bs.Size_In_Bytes < Positive'Last/8 and  then
-                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - nBits,
+                bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - nBits,
      Post    => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + nBits;
    
    procedure BitStream_Decode_Non_Negative_Integer (bs : in out BitStream; IntValue : out Asn1UInt; nBits : in Integer;  result : out Boolean) with
@@ -260,7 +260,7 @@ package adaasn1rtl with Spark_Mode is
                 nBits < Asn1UInt'Size and then 
                 bs.Current_Bit_Pos < Natural'Last - nBits and then  
                 bs.Size_In_Bytes < Positive'Last/8 and  then
-                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - nBits,
+                bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - nBits,
      Post    => result and bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + nBits;
    
    procedure Enc_UInt (bs : in out BitStream;  intValue : in     Asn1UInt;  total_bytes : in     Integer) with
@@ -269,7 +269,7 @@ package adaasn1rtl with Spark_Mode is
                 total_bytes <= Asn1UInt'Size/8 and then 
                 bs.Current_Bit_Pos < Natural'Last - total_bytes*8 and then  
                 bs.Size_In_Bytes < Positive'Last/8 and  then
-                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - total_bytes*8,
+                bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - total_bytes*8,
      Post    => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + total_bytes*8;
    
    
@@ -280,7 +280,7 @@ package adaasn1rtl with Spark_Mode is
                 total_bytes <= Asn1UInt'Size/8 and then 
                 bs.Current_Bit_Pos < Natural'Last - total_bytes*8 and then  
                 bs.Size_In_Bytes < Positive'Last/8 and  then
-                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - total_bytes*8,
+                bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - total_bytes*8,
      Post    => Result and bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + total_bytes*8
                 and Ret >= 0 and Ret < 256**total_bytes;
 
@@ -291,7 +291,7 @@ package adaasn1rtl with Spark_Mode is
                 total_bytes <= Asn1UInt'Size/8 and then 
                 bs.Current_Bit_Pos < Natural'Last - total_bytes*8 and then  
                 bs.Size_In_Bytes < Positive'Last/8 and  then
-                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - total_bytes*8,
+                bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - total_bytes*8,
      Post    => Result and bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + total_bytes*8;
 
 
