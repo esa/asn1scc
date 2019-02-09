@@ -135,7 +135,7 @@ PrintCodec_body(sModName, sFuncName, sTasName, sStar,  sVal, sEnc, sNestedStatem
 FUNCTION <sFuncName>(<sVal>:<sModName>.<sTasName>) RETURN <rtlModuleName()>.TEST_CASE_RESULT
 IS
     decodedPDU  : <sModName>.<sTasName>;
-    stream      : adaasn1rtl.Bitstream := adaasn1rtl.BitStream_init(<sModName>.<sTasName>_REQUIRED_BYTES_FOR_ENCODING);
+    stream      : adaasn1rtl.Bitstream := adaasn1rtl.BitStream_init(<sModName>.<sTasName>_REQUIRED_BYTES_FOR_<sEnc>ENCODING);
     result      : <rtlModuleName()>.ASN1_RESULT;
     ret         : <rtlModuleName()>.TEST_CASE_RESULT;
 BEGIN

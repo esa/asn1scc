@@ -106,7 +106,8 @@ let createUperEncDecFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:A
                         | Some childrenCont    -> Some (printStatement x  (Some childrenCont))
                 printStatements [Encode_input; Decode_output; Validate_output; Compare_input_output]
 
-            let func = printCodec_body modName funcName (typeDefinition.longTypedefName l) sStar varName sEnc (sNestedStatements.orElse "")
+            let func = 
+                printCodec_body modName funcName (typeDefinition.longTypedefName l) sStar varName "" (sNestedStatements.orElse "")
             let funcDef = printCodec_body_header funcName  modName (typeDefinition.longTypedefName l) sStar varName
             let ret = 
                 {

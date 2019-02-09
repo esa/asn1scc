@@ -1075,7 +1075,7 @@ package body acn_asn1_rtl with Spark_Mode is
    procedure Acn_Enc_String_Ascii_FixSize (bs : in out BitStream; strVal : in String)
    is
    begin
-      for i in strVal'Range loop
+      for i in strVal'First .. strVal'Last - 1 loop
          pragma Loop_Invariant (bs.Current_Bit_Pos = bs.Current_Bit_Pos'Loop_Entry + (i-strVal'First)*8);
          BitStream_AppendByte (bs, Asn1Byte (CharacterPos (strVal (I))),  false);
       end loop;
@@ -1087,7 +1087,7 @@ package body acn_asn1_rtl with Spark_Mode is
       charIndex : Asn1Byte;
    begin
       Result :=    ASN1_RESULT'(Success => True, ErrorCode => 0);
-      for i in strVal'Range loop
+      for i in strVal'First .. strVal'Last - 1 loop
          pragma Loop_Invariant (bs.Current_Bit_Pos = bs.Current_Bit_Pos'Loop_Entry + (i-strVal'First)*8);
          BitStream_DecodeByte (bs, charIndex, Result.Success);
          pragma assert(Result.Success);
