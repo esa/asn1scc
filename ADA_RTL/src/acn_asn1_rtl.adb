@@ -592,7 +592,7 @@ package body acn_asn1_rtl with Spark_Mode is
         pragma assert (intVal <  Asn1Int(Powers_of_10(nChars)));
         pragma assert (abs IntVal <  Asn1Int(Powers_of_10(nChars)));
                                       
-        absIntVal :=  (if intVal >= 0  then Asn1Uint(intVal) else Asn1Uint(-intVal));
+        absIntVal :=  (if intVal >= 0  then Asn1Uint(intVal) else (Asn1Uint(-(intVal+1))+1));
         pragma assert (absIntVal < Powers_of_10(nChars));               
         sing := (if intVal >= 0  then Character'Pos('+') else Character'Pos('-'));
         Get_integer_digits(absIntVal,digits_array, nDigits);
@@ -603,9 +603,9 @@ package body acn_asn1_rtl with Spark_Mode is
         BitStream_AppendByte(bs, sing, False);
 
         -- encode trailing zeros
-        for i in 1.. (nChars - Integer(nDigits)) loop
+        for i in 1.. (nChars - Integer(nDigits)) - 1 loop
              pragma Loop_Invariant (bs.Current_Bit_Pos = bs.Current_Bit_Pos'Loop_Entry + (i-1)*8);
-             BitStream_AppendByte(bs, 0, False);
+             BitStream_AppendByte(bs, Character'Pos ('0'), False);
         end loop;
       
         -- encode digits
@@ -622,30 +622,31 @@ package body acn_asn1_rtl with Spark_Mode is
       intDigit : Integer;
       Ch    : Character;
       negative : Boolean;
+      uval : Asn1UInt;
    begin
-      IntVal := 0;
+      uval := 0;
       BitStream_DecodeByte (bs, digit, Result.Success);
 
       Result :=   ASN1_RESULT'(Success => digit = Character'Pos ('+') or digit = Character'Pos ('-'), ErrorCode => ERR_INCORRECT_STREAM);
       if result.Success then
       
          negative := digit = Character'Pos ('-');
-         for i in 1..nChars loop
-            pragma Loop_Invariant (bs.Current_Bit_Pos = bs.Current_Bit_Pos'Loop_Entry + (i-1)*8 and IntVal >= 0 );
+         for i in 1..nChars-1 loop
+            pragma Loop_Invariant (bs.Current_Bit_Pos = bs.Current_Bit_Pos'Loop_Entry + (i-1)*8 );
             BitStream_DecodeByte (bs, digit, Result.Success);
             pragma Assert (Result.Success);
             Ch    := Character'Val (digit);
             intDigit := Character'Pos (Ch) - Character'Pos ('0');
    
-            Result.Success := intDigit >=0 and intDigit <= 9 and IntVal <Asn1Int(Powers_of_10(i-1));
+            Result.Success := intDigit >=0 and intDigit <= 9; --and IntVal <Asn1Int(Powers_of_10(18));
             if Result.Success then
-               IntVal := IntVal * 10;
-               IntVal := IntVal + Asn1Int (intDigit);
+               uval := uval * 10;
+               uval := uval + Asn1UInt (intDigit);
             end if;
             exit when not Result.Success;
          end loop;
          
-         IntVal := (if negative then -IntVal else IntVal);
+         IntVal := (if negative then (-Asn1Int(uval-1) - 1) else Asn1Int(uval));
          
          Result.Success :=    Result.Success and then ((IntVal >= minVal) and (IntVal <= maxVal));
          
