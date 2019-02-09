@@ -45,7 +45,7 @@ package acn_asn1_rtl with Spark_Mode is
      Depends => (bs => (bs, IntVal)),
      Pre     => bs.Current_Bit_Pos < Natural'Last - 64 and then  
                 bs.Size_In_Bytes < Positive'Last/8 and  then
-                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - 64,
+                bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 64,
      Post    => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 64;
    
    procedure Acn_Enc_Int_PositiveInteger_ConstSize_little_endian_16 (bs : in out BitStream; IntVal : in     Asn1UInt) with
@@ -457,7 +457,7 @@ package acn_asn1_rtl with Spark_Mode is
    procedure Acn_Dec_Int_ASCII_VarSize_NullTerminated (bs : in out BitStream; IntVal: out Asn1Int; nullChar: in Asn1Byte; Result : out ASN1_RESULT) with
      Pre     => bs.Current_Bit_Pos < Natural'Last - 8*(19+1+1) and then  
                 bs.Size_In_Bytes < Positive'Last/8 and  then
-                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - 8*(19+1+1),
+                bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 8*(19+1+1),
      Post    => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos  and  bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + 8*(19+1+1)  ;
    
    procedure Acn_Enc_Real_IEEE754_32_big_endian (bs : in out BitStream;   RealVal : in     Asn1Real) with
@@ -624,7 +624,7 @@ package acn_asn1_rtl with Spark_Mode is
                 strVal'Last - strVal'First < Natural'Last/8 - 8 and then
                 bs.Current_Bit_Pos < Natural'Last - (strVal'Last - strVal'First + 1)*8 and then  
                 bs.Size_In_Bytes < Positive'Last/8 and  then
-                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - (strVal'Last - strVal'First + 1)*8,
+                bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - (strVal'Last - strVal'First + 1)*8,
      Post    => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + (strVal'Last - strVal'First + 1)*8;
 
    procedure Acn_Dec_String_Ascii_Null_Teminated (bs : in out BitStream; null_character : in Integer; strVal : in out String; Result : out ASN1_RESULT) with

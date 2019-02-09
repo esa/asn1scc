@@ -2,7 +2,7 @@
 package body adaasn1rtl with Spark_Mode is
 
    MASKS  : constant OctetBuffer_0_7 := OctetBuffer_0_7'(0 => 16#80#, 1=> 16#40#, 2=>16#20#, 3=>16#10#, 4=>16#08#, 5=>16#04#, 6=>16#02#, 7=>16#01#);
-   MASKSB : constant OctetBuffer_0_7 := OctetBuffer_0_7'(0 => 16#00#, 1=> 16#01#, 2=>16#03#, 3=>16#07#, 4=>16#1F#, 5=>16#3F#, 6=>16#7F#, 7=>16#FF#);
+   MASKSB : constant OctetBuffer_0_7 := OctetBuffer_0_7'(0 => 16#00#, 1=> 16#01#, 2=>16#03#, 3=>16#07#, 4=>16#0F#, 5=>16#1F#, 6=>16#3F#, 7=>16#7F#);
    
    MantissaFactor : constant Asn1Real :=  Asn1Real (Interfaces.Unsigned_64 (2)**Asn1Real'Machine_Mantissa);
    
@@ -455,7 +455,7 @@ package body adaasn1rtl with Spark_Mode is
                 nBits < Asn1UInt'Size and then 
                 bs.Current_Bit_Pos < Natural'Last - nBits and then  
                 bs.Size_In_Bytes < Positive'Last/8 and  then
-                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - nBits;      
+                bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - nBits;      
       IntValue := 0;
       
       for i in 1 .. total_bytes loop

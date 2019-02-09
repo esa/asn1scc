@@ -286,7 +286,7 @@ package body uper_asn1_rtl with Spark_Mode  is
                 (Sign = 1 or Sign = -1) and then
                 bs.Current_Bit_Pos < Natural'Last - (Asn1UInt'Size + 24) and then  
                 bs.Size_In_Bytes < Positive'Last/8 and  then
-                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - (Asn1UInt'Size + 24),
+                bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - (Asn1UInt'Size + 24),
      Post    => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + (Asn1UInt'Size + 24)  
        
    is
@@ -325,7 +325,7 @@ package body uper_asn1_rtl with Spark_Mode  is
                 EncLength >=0 and then EncLength <=11 and then
                 bs.Current_Bit_Pos < (Natural'Last - (Asn1UInt'Size + 24)) and then  
                 bs.Size_In_Bytes < Positive'Last/8 and  then
-                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - (Asn1UInt'Size + 24),
+                bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - (Asn1UInt'Size + 24),
      Post    => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + (Asn1UInt'Size + 24)  
 
    is
@@ -403,7 +403,7 @@ package body uper_asn1_rtl with Spark_Mode  is
        Pre     => 
                 bs.Current_Bit_Pos < Natural'Last - 16 and then  
                 bs.Size_In_Bytes < Positive'Last/8 and  then
-                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - 16,
+                bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 16,
      Post    => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + 16    
     is
         len2:Integer;
@@ -476,7 +476,7 @@ package body uper_asn1_rtl with Spark_Mode  is
                 remainingOctets > 0 and then
                 bs.Current_Bit_Pos < Natural'Last - (8*OctetBuffer_16'Last) and then  
                 bs.Size_In_Bytes < Positive'Last/8 and  then
-                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - (8*OctetBuffer_16'Last),
+                bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - (8*OctetBuffer_16'Last),
      Post    => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + (8*OctetBuffer_16'Last) 
                 and remainingOctets <= remainingOctets'Old and remainingOctets >= remainingOctets'Old - OctetBuffer_16'Last  
     is
@@ -488,7 +488,7 @@ package body uper_asn1_rtl with Spark_Mode  is
         siValue := 0;
         Result := ASN1_RESULT'(Success => true,ErrorCode => 0);
 
-        while Result.Success and remainingOctets > 0 and not bLastOctet and bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - 8  and  i <= OctetBuffer_16'Last loop
+        while Result.Success and remainingOctets > 0 and not bLastOctet and bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 8  and  i <= OctetBuffer_16'Last loop
             curByte := 0;
             pragma Loop_Invariant (i>=1 and i <= OctetBuffer_16'Last and remainingOctets > 0 
                                 and bs.Current_Bit_Pos = bs.Current_Bit_Pos'Loop_Entry + (i-1)*8 and 
