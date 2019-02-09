@@ -30,14 +30,14 @@ package uper_asn1_rtl with Spark_Mode is
      Pre     => IntVal >= MinVal and then
                 bs.Current_Bit_Pos < Natural'Last - (Asn1UInt'Size + 8) and then  
                 bs.Size_In_Bytes < Positive'Last/8 and  then
-                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - (Asn1UInt'Size + 8),
+                bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - (Asn1UInt'Size + 8),
      Post    => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + (Asn1UInt'Size + 8);
    
    procedure UPER_Dec_SemiConstraintWholeNumber (bs : in out BitStream; IntVal : out Asn1Int; MinVal : in  Asn1Int;  Result :    out Boolean) with
       Depends => ((IntVal, Result) => (bs, MinVal), bs => (bs, MinVal)),
      Pre     => bs.Current_Bit_Pos < Natural'Last - (Asn1UInt'Size + 8) and then  
                 bs.Size_In_Bytes < Positive'Last/8 and  then
-                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - (Asn1UInt'Size + 8),
+                bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - (Asn1UInt'Size + 8),
      Post    => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + (Asn1UInt'Size + 8) and IntVal >= MinVal ;
    
    procedure UPER_Enc_SemiConstraintPosWholeNumber (bs : in out BitStream; IntVal : in Asn1UInt; MinVal : in     Asn1UInt) with
@@ -45,14 +45,14 @@ package uper_asn1_rtl with Spark_Mode is
      Pre     => IntVal >= MinVal and then
                 bs.Current_Bit_Pos < Natural'Last - (Asn1UInt'Size + 8) and then  
                 bs.Size_In_Bytes < Positive'Last/8 and  then
-                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - (Asn1UInt'Size + 8),
+                bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - (Asn1UInt'Size + 8),
      Post    => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + (Asn1UInt'Size + 8);  
    
    procedure UPER_Dec_SemiConstraintPosWholeNumber (bs : in out BitStream; IntVal : out Asn1UInt; MinVal : in     Asn1UInt; Result :    out Boolean)  with
      Depends => ((IntVal, Result) => (bs, MinVal), bs => (bs, MinVal)),
      Pre     => bs.Current_Bit_Pos < Natural'Last - (Asn1UInt'Size + 8) and then  
                 bs.Size_In_Bytes < Positive'Last/8 and  then
-                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - (Asn1UInt'Size + 8),
+                bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - (Asn1UInt'Size + 8),
      Post    => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + (Asn1UInt'Size + 8) and IntVal >= MinVal ;   
    
    
@@ -62,7 +62,7 @@ package uper_asn1_rtl with Spark_Mode is
                 nBits >= 0 and then nBits < Asn1UInt'Size and then 
                 bs.Current_Bit_Pos < Natural'Last - nBits and then  
                 bs.Size_In_Bytes < Positive'Last/8 and  then
-                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - nBits,
+                bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - nBits,
      Post    => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + nBits;
    
    procedure UPER_Enc_ConstraintPosWholeNumber (bs : in out BitStream; IntVal: in Asn1UInt; MinVal : in Asn1UInt; nBits : in Integer) with
@@ -71,7 +71,7 @@ package uper_asn1_rtl with Spark_Mode is
                 nBits >= 0 and then nBits < Asn1UInt'Size and then 
                 bs.Current_Bit_Pos < Natural'Last - nBits and then  
                 bs.Size_In_Bytes < Positive'Last/8 and  then
-                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - nBits,
+                bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - nBits,
      Post    => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + nBits;
    
    procedure UPER_Dec_ConstraintWholeNumber (bs : in out BitStream; IntVal : out Asn1Int; MinVal : in Asn1Int; MaxVal : in Asn1Int; nBits : in Integer; Result : out Boolean) with
@@ -80,7 +80,7 @@ package uper_asn1_rtl with Spark_Mode is
                 nBits >= 0 and then nBits < Asn1UInt'Size and then 
                 bs.Current_Bit_Pos < Natural'Last - nBits and then  
                 bs.Size_In_Bytes < Positive'Last/8 and  then
-                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - nBits,
+                bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - nBits,
      Post    => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + nBits and
                 (
                      (Result   and  (((IntVal >= MinVal) and (IntVal <= MaxVal)))) or
@@ -93,7 +93,7 @@ package uper_asn1_rtl with Spark_Mode is
                 nBits >= 0 and then nBits < Asn1UInt'Size and then 
                 bs.Current_Bit_Pos < Natural'Last - nBits and then  
                 bs.Size_In_Bytes < Positive'Last/8 and  then
-                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - nBits,
+                bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - nBits,
      Post    => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + nBits and
                 (
                      (Result   and  (((IntVal >= MinVal) and (IntVal <= MaxVal)))) or
@@ -111,7 +111,7 @@ package uper_asn1_rtl with Spark_Mode is
                 nBits >= 0 and then nBits < Asn1UInt'Size and then 
                 bs.Current_Bit_Pos < Natural'Last - nBits and then  
                 bs.Size_In_Bytes < Positive'Last/8 and  then
-                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - nBits,
+                bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - nBits,
      Post    => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + nBits and
                 (
                      (Result   and  (((IntVal >= MinVal) and (IntVal <= MaxVal)))) or
@@ -122,7 +122,7 @@ package uper_asn1_rtl with Spark_Mode is
      Depends => (bs => (bs, IntVal)),
      Pre     => bs.Current_Bit_Pos < Natural'Last - (Asn1UInt'Size + 8) and then  
                 bs.Size_In_Bytes < Positive'Last/8 and  then
-                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - (Asn1UInt'Size + 8),
+                bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - (Asn1UInt'Size + 8),
      Post    => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + (Asn1UInt'Size + 8);  
 
 
@@ -130,14 +130,14 @@ package uper_asn1_rtl with Spark_Mode is
      Depends => ((IntVal, bs, Result) => bs),
      Pre     => bs.Current_Bit_Pos < Natural'Last - (Asn1UInt'Size + 8) and then  
                 bs.Size_In_Bytes < Positive'Last/8 and  then
-                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - (Asn1UInt'Size + 8),
+                bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - (Asn1UInt'Size + 8),
      Post    => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + (Asn1UInt'Size + 8);  
    
    procedure UPER_Dec_UnConstraintWholeNumberMax (bs : in out BitStream; IntVal : out Asn1Int;  MaxVal : in Asn1Int; Result : out Boolean) with
      Depends => ((IntVal, bs, Result) => (bs, MaxVal)),
      Pre     => bs.Current_Bit_Pos < Natural'Last - (Asn1UInt'Size + 8) and then  
                 bs.Size_In_Bytes < Positive'Last/8 and  then
-                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - (Asn1UInt'Size + 8),
+                bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - (Asn1UInt'Size + 8),
      Post    => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + (Asn1UInt'Size + 8);  
    
    -- REAL FUNCTIONS
@@ -152,14 +152,14 @@ package uper_asn1_rtl with Spark_Mode is
      Depends => (bs => (bs, RealVal)),
      Pre     => bs.Current_Bit_Pos < Natural'Last - (Asn1UInt'Size + 40) and then  
                 bs.Size_In_Bytes < Positive'Last/8 and  then
-                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - (Asn1UInt'Size + 40),
+                bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - (Asn1UInt'Size + 40),
      Post    => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + (Asn1UInt'Size + 40);  
    
    procedure UPER_Dec_Real (bs : in out BitStream; RealVal : out Asn1Real; Result  : out ASN1_RESULT) with
      Depends => ((bs, RealVal, Result) => (bs)),
      Pre     => bs.Current_Bit_Pos < Natural'Last - (Asn1UInt'Size + 40) and then  
                 bs.Size_In_Bytes < Positive'Last/8 and  then
-                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - (Asn1UInt'Size + 40),
+                bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - (Asn1UInt'Size + 40),
      Post    => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + (Asn1UInt'Size + 40);  
    
 
@@ -169,7 +169,7 @@ package uper_asn1_rtl with Spark_Mode is
      Depends => (bs => (bs, val)),
      Pre     => bs.Current_Bit_Pos < Natural'Last - (16 + 8*OBJECT_IDENTIFIER_MAX_LENGTH * OctetBuffer_16'Last) and then  
                 bs.Size_In_Bytes < Positive'Last/8 and  then
-                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - (16 + 8*OBJECT_IDENTIFIER_MAX_LENGTH * OctetBuffer_16'Last),
+                bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - (16 + 8*OBJECT_IDENTIFIER_MAX_LENGTH * OctetBuffer_16'Last),
      Post    => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + (16 + 8*OBJECT_IDENTIFIER_MAX_LENGTH * OctetBuffer_16'Last)  
    ;
   
@@ -177,7 +177,7 @@ package uper_asn1_rtl with Spark_Mode is
      Depends => (bs => (bs, val)),
      Pre     => bs.Current_Bit_Pos < Natural'Last - (16 + 8*OBJECT_IDENTIFIER_MAX_LENGTH * OctetBuffer_16'Last) and then  
                 bs.Size_In_Bytes < Positive'Last/8 and  then
-                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - (16 + 8*OBJECT_IDENTIFIER_MAX_LENGTH * OctetBuffer_16'Last),
+                bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - (16 + 8*OBJECT_IDENTIFIER_MAX_LENGTH * OctetBuffer_16'Last),
      Post    => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + (16 + 8*OBJECT_IDENTIFIER_MAX_LENGTH * OctetBuffer_16'Last)  
    ;
    
@@ -188,7 +188,7 @@ package uper_asn1_rtl with Spark_Mode is
      Depends => ((bs, val, Result) => (bs)),
      Pre     => bs.Current_Bit_Pos < Natural'Last - (16 + 8*OBJECT_IDENTIFIER_MAX_LENGTH * OctetBuffer_16'Last) and then  
                 bs.Size_In_Bytes < Positive'Last/8 and  then
-                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - (16 + 8*OBJECT_IDENTIFIER_MAX_LENGTH * OctetBuffer_16'Last),
+                bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - (16 + 8*OBJECT_IDENTIFIER_MAX_LENGTH * OctetBuffer_16'Last),
      Post    => 
        bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + (16 + 8*OBJECT_IDENTIFIER_MAX_LENGTH * OctetBuffer_16'Last)  
        and 
@@ -198,7 +198,7 @@ package uper_asn1_rtl with Spark_Mode is
      Depends => ((bs, val, Result) => (bs)),
      Pre     => bs.Current_Bit_Pos < Natural'Last - (16 + 8*OBJECT_IDENTIFIER_MAX_LENGTH * OctetBuffer_16'Last) and then  
                 bs.Size_In_Bytes < Positive'Last/8 and  then
-                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - (16 + 8*OBJECT_IDENTIFIER_MAX_LENGTH * OctetBuffer_16'Last),
+                bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - (16 + 8*OBJECT_IDENTIFIER_MAX_LENGTH * OctetBuffer_16'Last),
      Post    => 
        bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + (16 + 8*OBJECT_IDENTIFIER_MAX_LENGTH * OctetBuffer_16'Last)  
        and 

@@ -13,7 +13,7 @@ package acn_asn1_rtl with Spark_Mode is
                 IntVal <= 2**sizeInBits - 1 and then
                 bs.Current_Bit_Pos < Natural'Last - sizeInBits and then  
                 bs.Size_In_Bytes < Positive'Last/8 and  then
-                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - sizeInBits,
+                bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - sizeInBits,
      Post    => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + sizeInBits     ;
    
 
@@ -22,7 +22,7 @@ package acn_asn1_rtl with Spark_Mode is
      Pre     => bs.Current_Bit_Pos < Natural'Last - 8 and then  
                 IntVal <= Asn1UInt(Asn1Byte'Last) and then
                 bs.Size_In_Bytes < Positive'Last/8 and  then
-                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - 8,
+                bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 8,
      Post    => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 8;
 
    procedure Acn_Enc_Int_PositiveInteger_ConstSize_big_endian_16 (bs : in out BitStream; IntVal : in     Asn1UInt) with
@@ -30,7 +30,7 @@ package acn_asn1_rtl with Spark_Mode is
      Pre     => bs.Current_Bit_Pos < Natural'Last - 16 and then  
                 IntVal <= Asn1UInt(Interfaces.Unsigned_16'Last) and then
                 bs.Size_In_Bytes < Positive'Last/8 and  then
-                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - 16,
+                bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 16,
      Post    => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 16;
 
    procedure Acn_Enc_Int_PositiveInteger_ConstSize_big_endian_32 (bs : in out BitStream;  IntVal : in     Asn1UInt) with
@@ -38,7 +38,7 @@ package acn_asn1_rtl with Spark_Mode is
      Pre     => bs.Current_Bit_Pos < Natural'Last - 32 and then  
                 IntVal <= Asn1UInt(Interfaces.Unsigned_32'Last) and then
                 bs.Size_In_Bytes < Positive'Last/8 and  then
-                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - 32,
+                bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 32,
      Post    => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 32;
 
    procedure Acn_Enc_Int_PositiveInteger_ConstSize_big_endian_64 (bs : in out BitStream;   IntVal : in     Asn1UInt) with
@@ -53,7 +53,7 @@ package acn_asn1_rtl with Spark_Mode is
      Pre     => bs.Current_Bit_Pos < Natural'Last - 16 and then  
                 IntVal <= Asn1UInt(Interfaces.Unsigned_16'Last) and then
                 bs.Size_In_Bytes < Positive'Last/8 and  then
-                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - 16,
+                bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 16,
      Post    => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 16;
    
    procedure Acn_Enc_Int_PositiveInteger_ConstSize_little_endian_32 (bs : in out BitStream;  IntVal : in     Asn1UInt) with
@@ -61,21 +61,21 @@ package acn_asn1_rtl with Spark_Mode is
      Pre     => bs.Current_Bit_Pos < Natural'Last - 32 and then  
                 IntVal <= Asn1UInt(Interfaces.Unsigned_32'Last) and then
                 bs.Size_In_Bytes < Positive'Last/8 and  then
-                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - 32,
+                bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 32,
      Post    => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 32;
 
    procedure Acn_Enc_Int_PositiveInteger_ConstSize_little_endian_64 (bs : in out BitStream;   IntVal : in     Asn1UInt) with
      Depends => (bs => (bs, IntVal)),
      Pre     => bs.Current_Bit_Pos < Natural'Last - 64 and then  
                 bs.Size_In_Bytes < Positive'Last/8 and  then
-                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - 64,
+                bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 64,
      Post    => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 64;
    
    procedure Acn_Enc_Int_PositiveInteger_VarSize_LengthEmbedded  (bs : in out BitStream;  IntVal : in     Asn1UInt) with
      Depends => (bs => (bs, IntVal)),
      Pre     => bs.Current_Bit_Pos < Natural'Last - (Asn1UInt'Size + 8) and then  
                 bs.Size_In_Bytes < Positive'Last/8 and  then
-                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - (Asn1UInt'Size + 8),
+                bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - (Asn1UInt'Size + 8),
      Post    => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + (Asn1UInt'Size + 8);  
      
    
@@ -92,7 +92,7 @@ package acn_asn1_rtl with Spark_Mode is
                 IntVal <=  PV(sizeInBits) and then
                 bs.Current_Bit_Pos < Natural'Last - sizeInBits and then  
                 bs.Size_In_Bytes < Positive'Last/8 and  then
-                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - sizeInBits,
+                bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - sizeInBits,
      Post    => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + sizeInBits     ;
    
    procedure Acn_Enc_Int_TwosComplement_ConstSize_8(bs : in out BitStream; IntVal : in     Asn1Int) with
@@ -101,7 +101,7 @@ package acn_asn1_rtl with Spark_Mode is
                 IntVal <=  PV(8) and then
                 bs.Current_Bit_Pos < Natural'Last - 8 and then  
                 bs.Size_In_Bytes < Positive'Last/8 and  then
-                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - 8,
+                bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 8,
      Post    => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 8     ;
    
    procedure Acn_Enc_Int_TwosComplement_ConstSize_big_endian_16(bs : in out BitStream; IntVal : in     Asn1Int) with
@@ -110,7 +110,7 @@ package acn_asn1_rtl with Spark_Mode is
                 IntVal <=  PV(16) and then
                 bs.Current_Bit_Pos < Natural'Last - 8 and then  
                 bs.Size_In_Bytes < Positive'Last/8 and  then
-                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - 16,
+                bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 16,
      Post    => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 16     ;
 
 
@@ -120,14 +120,14 @@ package acn_asn1_rtl with Spark_Mode is
                 IntVal <=  PV(32) and then
                 bs.Current_Bit_Pos < Natural'Last - 32 and then  
                 bs.Size_In_Bytes < Positive'Last/8 and  then
-                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - 32,
+                bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 32,
      Post    => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 32     ;
    
    procedure Acn_Enc_Int_TwosComplement_ConstSize_big_endian_64(bs : in out BitStream; IntVal : in     Asn1Int) with
      Depends => (bs => (bs, IntVal)),
      Pre     => bs.Current_Bit_Pos < Natural'Last - 64 and then  
                 bs.Size_In_Bytes < Positive'Last/8 and  then
-                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - 64,
+                bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 64,
      Post    => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 64     ;
 
    procedure Acn_Enc_Int_TwosComplement_ConstSize_little_endian_16 (bs : in out BitStream; IntVal : in     Asn1Int) with
@@ -135,7 +135,7 @@ package acn_asn1_rtl with Spark_Mode is
      Pre     => bs.Current_Bit_Pos < Natural'Last - 16 and then  
                 IntVal <= Asn1Int(Interfaces.Unsigned_16'Last) and then
                 bs.Size_In_Bytes < Positive'Last/8 and  then
-                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - 16,
+                bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 16,
      Post    => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 16;
    
    procedure Acn_Enc_Int_TwosComplement_ConstSize_little_endian_32 (bs : in out BitStream;  IntVal : in     Asn1Int) with
@@ -143,21 +143,21 @@ package acn_asn1_rtl with Spark_Mode is
      Pre     => bs.Current_Bit_Pos < Natural'Last - 32 and then  
                 IntVal <= Asn1Int(Interfaces.Unsigned_32'Last) and then
                 bs.Size_In_Bytes < Positive'Last/8 and  then
-                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - 32,
+                bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 32,
      Post    => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 32;
 
    procedure Acn_Enc_Int_TwosComplement_ConstSize_little_endian_64 (bs : in out BitStream;   IntVal : in     Asn1Int) with
      Depends => (bs => (bs, IntVal)),
      Pre     => bs.Current_Bit_Pos < Natural'Last - 64 and then  
                 bs.Size_In_Bytes < Positive'Last/8 and  then
-                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - 64,
+                bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 64,
      Post    => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 64;
    
    procedure Acn_Enc_Int_TwosComplement_VarSize_LengthEmbedded  (bs : in out BitStream;  IntVal : in     Asn1Int) with
      Depends => (bs => (bs, IntVal)),
      Pre     => bs.Current_Bit_Pos < Natural'Last - (Asn1Int'Size + 8) and then  
                 bs.Size_In_Bytes < Positive'Last/8 and  then
-                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - (Asn1Int'Size + 8),
+                bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - (Asn1Int'Size + 8),
      Post    => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + (Asn1Int'Size + 8);  
 
 
@@ -170,7 +170,7 @@ package acn_asn1_rtl with Spark_Mode is
                 IntVal < Powers_of_10(nNibbles) and then
                 bs.Current_Bit_Pos < Natural'Last - 4*nNibbles and then  
                 bs.Size_In_Bytes < Positive'Last/8 and  then
-                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - 4*nNibbles,
+                bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 4*nNibbles,
      Post    => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 4*nNibbles  ;
 
 
@@ -179,7 +179,7 @@ package acn_asn1_rtl with Spark_Mode is
      Pre     => IntVal < Powers_of_10(19) and then
                 bs.Current_Bit_Pos < Natural'Last - 4*(19+1) and then  
                 bs.Size_In_Bytes < Positive'Last/8 and  then
-                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - 4*(19+1),
+                bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 4*(19+1),
      Post    => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + 4*(19+1)  ;
 
 
@@ -192,7 +192,7 @@ package acn_asn1_rtl with Spark_Mode is
                 Asn1Uint(abs IntVal) < Powers_of_10(18) and then
                 bs.Current_Bit_Pos < Natural'Last - 8*(18+1+1) and then  
                 bs.Size_In_Bytes < Positive'Last/8 and  then
-                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - 8*(18+1+1),
+                bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 8*(18+1+1),
      Post    => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + 8*(18+1+1)  ;
 
 
@@ -202,7 +202,7 @@ package acn_asn1_rtl with Spark_Mode is
      Pre     => IntVal < Powers_of_10(19) and then
                 bs.Current_Bit_Pos < Natural'Last - 8*(19+1) and then  
                 bs.Size_In_Bytes < Positive'Last/8 and  then
-                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - 8*(19+1),
+                bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 8*(19+1),
      Post    => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + 8*(19+1)  ;
 
 
@@ -212,7 +212,7 @@ package acn_asn1_rtl with Spark_Mode is
                 Asn1Uint(abs IntVal) < Powers_of_10(18) and then
                 bs.Current_Bit_Pos < Natural'Last - 8*(18+1+1) and then  
                 bs.Size_In_Bytes < Positive'Last/8 and  then
-                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - 8*(18+1+1),
+                bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 8*(18+1+1),
      Post    => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + 8*(18+1+1)  ;
 
    procedure Acn_Enc_UInt_ASCII_VarSize_NullTerminated (bs : in out BitStream; IntVal : in Asn1UInt; nullChar : in Asn1Byte)  with
@@ -220,7 +220,7 @@ package acn_asn1_rtl with Spark_Mode is
      Pre     => IntVal < Powers_of_10(19) and then
                 bs.Current_Bit_Pos < Natural'Last - 8*(19+1) and then  
                 bs.Size_In_Bytes < Positive'Last/8 and  then
-                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - 8*(19+1),
+                bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 8*(19+1),
      Post    => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + 8*(19+1)  ;
 
    procedure Acn_Dec_Int_PositiveInteger_ConstSize (bs : in out BitStream; IntVal :out Asn1UInt; minVal : in Asn1UInt; maxVal : in Asn1UInt; nSizeInBits : in Integer; Result: out ASN1_RESULT) with
@@ -228,7 +228,7 @@ package acn_asn1_rtl with Spark_Mode is
                 nSizeInBits < Asn1UInt'Size and then 
                 bs.Current_Bit_Pos < Natural'Last - nSizeInBits and then  
                 bs.Size_In_Bytes < Positive'Last/8 and  then
-                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - nSizeInBits,
+                bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - nSizeInBits,
      Post    => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + nSizeInBits  and 
      ( (Result.Success and IntVal >= minVal and IntVal <= maxVal) or
        (not Result.Success and IntVal = minVal))
@@ -237,7 +237,7 @@ package acn_asn1_rtl with Spark_Mode is
    procedure Acn_Dec_Int_PositiveInteger_ConstSize_8 (bs : in out BitStream; IntVal :out Asn1UInt; minVal : in Asn1UInt; maxVal : in Asn1UInt; Result: out ASN1_RESULT) with
      Pre     => bs.Current_Bit_Pos < Natural'Last - 8 and then  
                 bs.Size_In_Bytes < Positive'Last/8 and  then
-                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - 8,
+                bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 8,
      Post    => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 8  and 
      ( (Result.Success and IntVal >= minVal and IntVal <= maxVal) or
        (not Result.Success and IntVal = minVal))
@@ -246,7 +246,7 @@ package acn_asn1_rtl with Spark_Mode is
    procedure Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_16 (bs : in out BitStream; IntVal :out Asn1UInt; minVal : in Asn1UInt; maxVal : in Asn1UInt; Result: out ASN1_RESULT) with
      Pre     => bs.Current_Bit_Pos < Natural'Last - 16 and then  
                 bs.Size_In_Bytes < Positive'Last/8 and  then
-                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - 16,
+                bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 16,
      Post    => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 16  and 
      ( (Result.Success and IntVal >= minVal and IntVal <= maxVal) or
        (not Result.Success and IntVal = minVal))
@@ -255,7 +255,7 @@ package acn_asn1_rtl with Spark_Mode is
    procedure Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_32 (bs : in out BitStream; IntVal :out Asn1UInt; minVal : in Asn1UInt; maxVal : in Asn1UInt; Result: out ASN1_RESULT) with
      Pre     => bs.Current_Bit_Pos < Natural'Last - 32 and then  
                 bs.Size_In_Bytes < Positive'Last/8 and  then
-                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - 32,
+                bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 32,
      Post    => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 32  and 
      ( (Result.Success and IntVal >= minVal and IntVal <= maxVal) or
        (not Result.Success and IntVal = minVal))
@@ -264,7 +264,7 @@ package acn_asn1_rtl with Spark_Mode is
    procedure Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_64 (bs : in out BitStream; IntVal :out Asn1UInt; minVal : in Asn1UInt; maxVal : in Asn1UInt; Result: out ASN1_RESULT) with
      Pre     => bs.Current_Bit_Pos < Natural'Last - 64 and then  
                 bs.Size_In_Bytes < Positive'Last/8 and  then
-                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - 64,
+                bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 64,
      Post    => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 64  and 
      ( (Result.Success and IntVal >= minVal and IntVal <= maxVal) or
        (not Result.Success and IntVal = minVal))
@@ -273,7 +273,7 @@ package acn_asn1_rtl with Spark_Mode is
    procedure Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_16 (bs : in out BitStream; IntVal: out Asn1UInt; minVal:in Asn1UInt; maxVal : in Asn1UInt; Result : out ASN1_RESULT) with
      Pre     => bs.Current_Bit_Pos < Natural'Last - 16 and then  
                 bs.Size_In_Bytes < Positive'Last/8 and  then
-                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - 16,
+                bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 16,
      Post    => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 16  and 
      ( (Result.Success and IntVal >= minVal and IntVal <= maxVal) or
        (not Result.Success and IntVal = minVal))
@@ -282,7 +282,7 @@ package acn_asn1_rtl with Spark_Mode is
    procedure Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_32 (bs : in out BitStream; IntVal: out Asn1UInt; minVal:in Asn1UInt; maxVal : in Asn1UInt; Result : out ASN1_RESULT) with
      Pre     => bs.Current_Bit_Pos < Natural'Last - 32 and then  
                 bs.Size_In_Bytes < Positive'Last/8 and  then
-                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - 32,
+                bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 32,
      Post    => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 32  and 
      ( (Result.Success and IntVal >= minVal and IntVal <= maxVal) or
        (not Result.Success and IntVal = minVal))
@@ -291,7 +291,7 @@ package acn_asn1_rtl with Spark_Mode is
    procedure Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_64 (bs : in out BitStream; IntVal: out Asn1UInt; minVal:in Asn1UInt; maxVal : in Asn1UInt; Result : out ASN1_RESULT) with
      Pre     => bs.Current_Bit_Pos < Natural'Last - 64 and then  
                 bs.Size_In_Bytes < Positive'Last/8 and  then
-                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - 64,
+                bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 64,
      Post    => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 64  and 
      ( (Result.Success and IntVal >= minVal and IntVal <= maxVal) or
        (not Result.Success and IntVal = minVal))
@@ -299,7 +299,7 @@ package acn_asn1_rtl with Spark_Mode is
    procedure Acn_Dec_Int_PositiveInteger_VarSize_LengthEmbedded (bs : in out BitStream; IntVal : out Asn1UInt; minVal : in Asn1UInt; Result : out ASN1_RESULT) with
      Pre     => bs.Current_Bit_Pos < Natural'Last - (8*8+8) and then  
                 bs.Size_In_Bytes < Positive'Last/8 and  then
-                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - (8*8+8),
+                bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - (8*8+8),
      Post    => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + (8*8+8)  and 
      ( (Result.Success and IntVal >= minVal ) or
        (not Result.Success and IntVal = minVal));
@@ -310,7 +310,7 @@ package acn_asn1_rtl with Spark_Mode is
                 nSizeInBits < Asn1UInt'Size and then 
                 bs.Current_Bit_Pos < Natural'Last - nSizeInBits and then  
                 bs.Size_In_Bytes < Positive'Last/8 and  then
-                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - nSizeInBits,
+                bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - nSizeInBits,
      Post    => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + nSizeInBits  and 
      ( (Result.Success and IntVal >= minVal and IntVal <= maxVal) or
        (not Result.Success and IntVal = minVal))
@@ -321,7 +321,7 @@ package acn_asn1_rtl with Spark_Mode is
    procedure Acn_Dec_Int_TwosComplement_ConstSize_8 (bs : in out BitStream; IntVal :out Asn1Int; minVal : in Asn1Int; maxVal : in Asn1Int; Result: out ASN1_RESULT) with
      Pre     => bs.Current_Bit_Pos < Natural'Last - 8 and then  
                 bs.Size_In_Bytes < Positive'Last/8 and  then
-                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - 8,
+                bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 8,
      Post    => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 8  and 
      ( (Result.Success and IntVal >= minVal and IntVal <= maxVal) or
        (not Result.Success and IntVal = minVal))
@@ -330,7 +330,7 @@ package acn_asn1_rtl with Spark_Mode is
    procedure Acn_Dec_Int_TwosComplement_ConstSize_big_endian_16 (bs : in out BitStream; IntVal :out Asn1Int; minVal : in Asn1Int; maxVal : in Asn1Int; Result: out ASN1_RESULT) with
      Pre     => bs.Current_Bit_Pos < Natural'Last - 16 and then  
                 bs.Size_In_Bytes < Positive'Last/8 and  then
-                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - 16,
+                bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 16,
      Post    => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 16  and 
      ( (Result.Success and IntVal >= minVal and IntVal <= maxVal) or
        (not Result.Success and IntVal = minVal))
@@ -339,7 +339,7 @@ package acn_asn1_rtl with Spark_Mode is
    procedure Acn_Dec_Int_TwosComplement_ConstSize_big_endian_32 (bs : in out BitStream; IntVal :out Asn1Int; minVal : in Asn1Int; maxVal : in Asn1Int; Result: out ASN1_RESULT) with
      Pre     => bs.Current_Bit_Pos < Natural'Last - 32 and then  
                 bs.Size_In_Bytes < Positive'Last/8 and  then
-                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - 32,
+                bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 32,
      Post    => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 32  and 
      ( (Result.Success and IntVal >= minVal and IntVal <= maxVal) or
        (not Result.Success and IntVal = minVal))
@@ -348,7 +348,7 @@ package acn_asn1_rtl with Spark_Mode is
    procedure Acn_Dec_Int_TwosComplement_ConstSize_big_endian_64 (bs : in out BitStream; IntVal :out Asn1Int; minVal : in Asn1Int; maxVal : in Asn1Int; Result: out ASN1_RESULT) with
      Pre     => bs.Current_Bit_Pos < Natural'Last - 64 and then  
                 bs.Size_In_Bytes < Positive'Last/8 and  then
-                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - 64,
+                bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 64,
      Post    => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 64  and 
      ( (Result.Success and IntVal >= minVal and IntVal <= maxVal) or
        (not Result.Success and IntVal = minVal))
@@ -357,7 +357,7 @@ package acn_asn1_rtl with Spark_Mode is
    procedure Acn_Dec_Int_TwosComplement_ConstSize_little_endian_16 (bs : in out BitStream; IntVal: out Asn1Int; minVal:in Asn1Int; maxVal : in Asn1Int; Result : out ASN1_RESULT) with
      Pre     => bs.Current_Bit_Pos < Natural'Last - 16 and then  
                 bs.Size_In_Bytes < Positive'Last/8 and  then
-                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - 16,
+                bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 16,
      Post    => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 16  and 
      ( (Result.Success and IntVal >= minVal and IntVal <= maxVal) or
        (not Result.Success and IntVal = minVal))
@@ -366,7 +366,7 @@ package acn_asn1_rtl with Spark_Mode is
    procedure Acn_Dec_Int_TwosComplement_ConstSize_little_endian_32 (bs : in out BitStream; IntVal: out Asn1Int; minVal:in Asn1Int; maxVal : in Asn1Int; Result : out ASN1_RESULT) with
      Pre     => bs.Current_Bit_Pos < Natural'Last - 32 and then  
                 bs.Size_In_Bytes < Positive'Last/8 and  then
-                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - 32,
+                bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 32,
      Post    => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 32  and 
      ( (Result.Success and IntVal >= minVal and IntVal <= maxVal) or
        (not Result.Success and IntVal = minVal))
@@ -375,7 +375,7 @@ package acn_asn1_rtl with Spark_Mode is
    procedure Acn_Dec_Int_TwosComplement_ConstSize_little_endian_64 (bs : in out BitStream; IntVal: out Asn1Int; minVal:in Asn1Int; maxVal : in Asn1Int; Result : out ASN1_RESULT) with
      Pre     => bs.Current_Bit_Pos < Natural'Last - 64 and then  
                 bs.Size_In_Bytes < Positive'Last/8 and  then
-                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - 64,
+                bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 64,
      Post    => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 64  and 
      ( (Result.Success and IntVal >= minVal and IntVal <= maxVal) or
        (not Result.Success and IntVal = minVal))
@@ -384,7 +384,7 @@ package acn_asn1_rtl with Spark_Mode is
    procedure Acn_Dec_Int_TwosComplement_VarSize_LengthEmbedded  (bs : in out BitStream;  IntVal : out Asn1Int; Result : out ASN1_RESULT) with
      Pre     => bs.Current_Bit_Pos < Natural'Last - (Asn1Int'Size + 8) and then  
                 bs.Size_In_Bytes < Positive'Last/8 and  then
-                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - (Asn1Int'Size + 8),
+                bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - (Asn1Int'Size + 8),
      Post    => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + (Asn1Int'Size + 8);  
 
    procedure Acn_Dec_Int_BCD_ConstSize (bs : in out BitStream; IntVal: out Asn1UInt; minVal : in Asn1UInt; maxVal : in Asn1UInt; nNibbles : in Integer;  Result : out ASN1_RESULT) with
@@ -394,7 +394,7 @@ package acn_asn1_rtl with Spark_Mode is
                 maxVal <= Powers_of_10(nNibbles) - 1 and then
                 bs.Current_Bit_Pos < Natural'Last - 4*nNibbles and then  
                 bs.Size_In_Bytes < Positive'Last/8 and  then
-                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - 4*nNibbles,
+                bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 4*nNibbles,
      Post    => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos  and  bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + 4*nNibbles  and 
                ( (Result.Success and IntVal >= minVal and IntVal <= maxVal) or (not Result.Success and IntVal = minVal));
    
@@ -403,7 +403,7 @@ package acn_asn1_rtl with Spark_Mode is
                 maxVal <= Powers_of_10(19) - 1 and then
                 bs.Current_Bit_Pos < Natural'Last - 4*(19+1) and then  
                 bs.Size_In_Bytes < Positive'Last/8 and  then
-                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - 4*(19+1),
+                bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 4*(19+1),
      Post    => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos  and  bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + 4*(19+1)  and 
      ( (Result.Success and IntVal >= minVal and IntVal <= maxVal) or (not Result.Success and IntVal = minVal));
    
@@ -415,7 +415,7 @@ package acn_asn1_rtl with Spark_Mode is
                 Asn1Uint(abs IntVal) < Powers_of_10(nChars) and then
                 bs.Current_Bit_Pos < Natural'Last - 8*(nChars+1) and then  
                 bs.Size_In_Bytes < Positive'Last/8 and  then
-                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - 8*(nChars+1),
+                bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 8*(nChars+1),
      Post    => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + 8*(nChars+1)  ;
    
    procedure Acn_Dec_Int_ASCII_ConstSize (bs : in out BitStream; IntVal: out Asn1Int; minVal : in Asn1Int; maxVal : in Asn1Int; nChars : in Integer;  Result : out ASN1_RESULT) with
@@ -425,7 +425,7 @@ package acn_asn1_rtl with Spark_Mode is
                 maxVal < Asn1Int(Powers_of_10(18)) and then     
                 bs.Current_Bit_Pos < Natural'Last - 8*(nChars+1) and then  
                 bs.Size_In_Bytes < Positive'Last/8 and  then
-                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - 8*(nChars+1),
+                bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 8*(nChars+1),
      Post    => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + 8*(nChars+1)  and 
      ( (Result.Success and IntVal >= minVal and IntVal <= maxVal) or (not Result.Success and IntVal = minVal));  
    
@@ -435,7 +435,7 @@ package acn_asn1_rtl with Spark_Mode is
                 IntVal < Powers_of_10(nChars) and then
                 bs.Current_Bit_Pos < Natural'Last - 8*(nChars) and then  
                 bs.Size_In_Bytes < Positive'Last/8 and  then
-                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - 8*(nChars),
+                bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 8*(nChars),
      Post    => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + 8*(nChars)  ;
    
    procedure Acn_Dec_UInt_ASCII_ConstSize (bs : in out BitStream; IntVal: out Asn1UInt; minVal : in Asn1UInt; maxVal : in Asn1UInt; nChars : in Integer;  Result : out ASN1_RESULT)   with
@@ -444,14 +444,14 @@ package acn_asn1_rtl with Spark_Mode is
                 maxVal < Powers_of_10(19) and then     
                 bs.Current_Bit_Pos < Natural'Last - 8*(nChars) and then  
                 bs.Size_In_Bytes < Positive'Last/8 and  then
-                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - 8*(nChars),
+                bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 8*(nChars),
      Post    => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + 8*(nChars)  and 
      ( (Result.Success and IntVal >= minVal and IntVal <= maxVal) or (not Result.Success and IntVal = minVal));  
    
    procedure Acn_Dec_UInt_ASCII_VarSize_NullTerminated (bs : in out BitStream; IntVal: out Asn1UInt; nullChar: in Asn1Byte; Result : out ASN1_RESULT)   with
      Pre     => bs.Current_Bit_Pos < Natural'Last - 8*(19+1) and then  
                 bs.Size_In_Bytes < Positive'Last/8 and  then
-                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - 8*(19+1),
+                bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 8*(19+1),
      Post    => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos  and  bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + 8*(19+1)  ;
    
    procedure Acn_Dec_Int_ASCII_VarSize_NullTerminated (bs : in out BitStream; IntVal: out Asn1Int; nullChar: in Asn1Byte; Result : out ASN1_RESULT) with
@@ -464,56 +464,56 @@ package acn_asn1_rtl with Spark_Mode is
      Depends => (bs => (bs, RealVal)),
      Pre     => bs.Current_Bit_Pos < Natural'Last - 32 and then  
                 bs.Size_In_Bytes < Positive'Last/8 and  then
-                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - 32,
+                bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 32,
      Post    => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 32;
    
    procedure Acn_Dec_Real_IEEE754_32_big_endian (bs : in out BitStream; RealVal : out Asn1Real;  Result  : out ASN1_RESULT) with
      Depends => ((Result,bs, RealVal) => bs),
      Pre     => bs.Current_Bit_Pos < Natural'Last - 32 and then  
                 bs.Size_In_Bytes < Positive'Last/8 and  then
-                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - 32,
+                bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 32,
      Post    => Result.Success and bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 32 ;
    
    procedure Acn_Enc_Real_IEEE754_64_big_endian (bs : in out BitStream;   RealVal : in     Asn1Real) with
      Depends => (bs => (bs, RealVal)),
      Pre     => bs.Current_Bit_Pos < Natural'Last - 64 and then  
                 bs.Size_In_Bytes < Positive'Last/8 and  then
-                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - 64,
+                bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 64,
      Post    => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 64;
    
    procedure Acn_Dec_Real_IEEE754_64_big_endian (bs : in out BitStream; RealVal : out Asn1Real;  Result  : out ASN1_RESULT) with
      Depends => ((Result,bs, RealVal) => bs),
      Pre     => bs.Current_Bit_Pos < Natural'Last - 64 and then  
                 bs.Size_In_Bytes < Positive'Last/8 and  then
-                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - 64,
+                bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 64,
      Post    => Result.Success and bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 64 ;
 
    procedure Acn_Enc_Real_IEEE754_32_little_endian (bs : in out BitStream;   RealVal : in     Asn1Real) with
      Depends => (bs => (bs, RealVal)),
      Pre     => bs.Current_Bit_Pos < Natural'Last - 32 and then  
                 bs.Size_In_Bytes < Positive'Last/8 and  then
-                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - 32,
+                bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 32,
      Post    => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 32;
    
    procedure Acn_Dec_Real_IEEE754_32_little_endian (bs : in out BitStream; RealVal : out Asn1Real;  Result  : out ASN1_RESULT) with
      Depends => ((Result,bs, RealVal) => bs),
      Pre     => bs.Current_Bit_Pos < Natural'Last - 32 and then  
                 bs.Size_In_Bytes < Positive'Last/8 and  then
-                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - 32,
+                bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 32,
      Post    => Result.Success and bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 32 ;
    
    procedure Acn_Enc_Real_IEEE754_64_little_endian (bs : in out BitStream;   RealVal : in     Asn1Real) with
      Depends => (bs => (bs, RealVal)),
      Pre     => bs.Current_Bit_Pos < Natural'Last - 64 and then  
                 bs.Size_In_Bytes < Positive'Last/8 and  then
-                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - 64,
+                bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 64,
      Post    => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 64;
    
    procedure Acn_Dec_Real_IEEE754_64_little_endian (bs : in out BitStream; RealVal : out Asn1Real;  Result  : out ASN1_RESULT) with
      Depends => ((Result,bs, RealVal) => bs),
      Pre     => bs.Current_Bit_Pos < Natural'Last - 64 and then  
                 bs.Size_In_Bytes < Positive'Last/8 and  then
-                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - 64,
+                bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 64,
      Post    => Result.Success and bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 64 ;
    
    procedure Acn_Enc_Boolean_true_pattern (bs : in out BitStream; BoolVal : in Asn1Boolean; pattern : in     BitArray) with
@@ -522,7 +522,7 @@ package acn_asn1_rtl with Spark_Mode is
                 pattern'Last - pattern'First < Natural'Last and then
                 bs.Current_Bit_Pos < Natural'Last - (pattern'Last - pattern'First + 1) and then  
                 bs.Size_In_Bytes < Positive'Last/8 and  then
-                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - (pattern'Last - pattern'First + 1),
+                bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - (pattern'Last - pattern'First + 1),
      Post    => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + (pattern'Last - pattern'First + 1);
 
    procedure Acn_Dec_Boolean_true_pattern (bs : in out BitStream;  BoolVal :    out Asn1Boolean;  pattern : in     BitArray; Result  :    out ASN1_RESULT) with
@@ -531,7 +531,7 @@ package acn_asn1_rtl with Spark_Mode is
                 pattern'Last - pattern'First < Natural'Last and then
                 bs.Current_Bit_Pos < Natural'Last - (pattern'Last - pattern'First + 1) and then  
                 bs.Size_In_Bytes < Positive'Last/8 and  then
-                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - (pattern'Last - pattern'First + 1),
+                bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - (pattern'Last - pattern'First + 1),
      Post    => Result.Success and bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + (pattern'Last - pattern'First + 1);
    
    procedure Acn_Enc_Boolean_false_pattern (bs : in out BitStream; BoolVal : in Asn1Boolean; pattern : in     BitArray) with
@@ -540,7 +540,7 @@ package acn_asn1_rtl with Spark_Mode is
                 pattern'Last - pattern'First < Natural'Last and then
                 bs.Current_Bit_Pos < Natural'Last - (pattern'Last - pattern'First + 1) and then  
                 bs.Size_In_Bytes < Positive'Last/8 and  then
-                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - (pattern'Last - pattern'First + 1),
+                bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - (pattern'Last - pattern'First + 1),
      Post    => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + (pattern'Last - pattern'First + 1);
 
    procedure Acn_Dec_Boolean_false_pattern (bs : in out BitStream;  BoolVal :    out Asn1Boolean;  pattern : in     BitArray; Result  :    out ASN1_RESULT) with
@@ -549,7 +549,7 @@ package acn_asn1_rtl with Spark_Mode is
                 pattern'Last - pattern'First < Natural'Last and then
                 bs.Current_Bit_Pos < Natural'Last - (pattern'Last - pattern'First + 1) and then  
                 bs.Size_In_Bytes < Positive'Last/8 and  then
-                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - (pattern'Last - pattern'First + 1),
+                bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - (pattern'Last - pattern'First + 1),
      Post    => Result.Success and bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + (pattern'Last - pattern'First + 1);
 
    
@@ -559,7 +559,7 @@ package acn_asn1_rtl with Spark_Mode is
                 pattern'Last - pattern'First < Natural'Last and then
                 bs.Current_Bit_Pos < Natural'Last - (pattern'Last - pattern'First + 1) and then  
                 bs.Size_In_Bytes < Positive'Last/8 and  then
-                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - (pattern'Last - pattern'First + 1),
+                bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - (pattern'Last - pattern'First + 1),
      Post    => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + (pattern'Last - pattern'First + 1);
 
 
@@ -569,7 +569,7 @@ package acn_asn1_rtl with Spark_Mode is
                 pattern'Last - pattern'First < Natural'Last and then
                 bs.Current_Bit_Pos < Natural'Last - (pattern'Last - pattern'First + 1) and then  
                 bs.Size_In_Bytes < Positive'Last/8 and  then
-                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - (pattern'Last - pattern'First + 1),
+                bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - (pattern'Last - pattern'First + 1),
      Post    => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + (pattern'Last - pattern'First + 1);
    
 
@@ -579,7 +579,7 @@ package acn_asn1_rtl with Spark_Mode is
                 pattern'Last - pattern'First < Natural'Last and then
                 bs.Current_Bit_Pos < Natural'Last - (pattern'Last - pattern'First + 1) and then  
                 bs.Size_In_Bytes < Positive'Last/8 and  then
-                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - (pattern'Last - pattern'First + 1),
+                bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - (pattern'Last - pattern'First + 1),
      Post    => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + (pattern'Last - pattern'First + 1);
 
 
@@ -589,7 +589,7 @@ package acn_asn1_rtl with Spark_Mode is
                 pattern'Last - pattern'First < Natural'Last and then
                 bs.Current_Bit_Pos < Natural'Last - (pattern'Last - pattern'First + 1) and then  
                 bs.Size_In_Bytes < Positive'Last/8 and  then
-                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - (pattern'Last - pattern'First + 1),
+                bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - (pattern'Last - pattern'First + 1),
      Post    => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + (pattern'Last - pattern'First + 1);
    
    procedure Acn_Enc_NullType(bs : in out BitStream;  encVal : in     Asn1NullType) with
@@ -604,7 +604,7 @@ package acn_asn1_rtl with Spark_Mode is
                 strVal'Last - strVal'First < Natural'Last/8 - 8 and then
                 bs.Current_Bit_Pos < Natural'Last - (strVal'Last - strVal'First + 1)*8 and then  
                 bs.Size_In_Bytes < Positive'Last/8 and  then
-                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - (strVal'Last - strVal'First + 1)*8,
+                bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - (strVal'Last - strVal'First + 1)*8,
      Post    => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + (strVal'Last - strVal'First + 1)*8;
 
 
@@ -614,7 +614,7 @@ package acn_asn1_rtl with Spark_Mode is
                 strVal'Last - strVal'First < Natural'Last/8 - 8 and then
                 bs.Current_Bit_Pos < Natural'Last - (strVal'Last - strVal'First + 1)*8 and then  
                 bs.Size_In_Bytes < Positive'Last/8 and  then
-                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - (strVal'Last - strVal'First + 1)*8,
+                bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - (strVal'Last - strVal'First + 1)*8,
      Post    => Result.Success and bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + (strVal'Last - strVal'First + 1)*8;
    
    procedure Acn_Enc_String_Ascii_Null_Teminated (bs : in out BitStream; null_character : in     Integer;  strVal : in String) with
@@ -636,7 +636,7 @@ package acn_asn1_rtl with Spark_Mode is
                 strVal'Last - strVal'First < Natural'Last/8 - 8 and then
                 bs.Current_Bit_Pos < Natural'Last - (strVal'Last - strVal'First + 1)*8 and then  
                 bs.Size_In_Bytes < Positive'Last/8 and  then
-                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - (strVal'Last - strVal'First + 1)*8,
+                bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - (strVal'Last - strVal'First + 1)*8,
      Post    => Result.Success and bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + (strVal'Last - strVal'First + 1)*8;
    
 
@@ -650,7 +650,7 @@ package acn_asn1_rtl with Spark_Mode is
                 asn1Min <= Asn1Int(getStringSize (strVal)) and then
                 bs.Current_Bit_Pos < Natural'Last - ((strVal'Last - strVal'First + 1)*8 + nLengthDeterminantSizeInBits) and then  
                 bs.Size_In_Bytes < Positive'Last/8 and  then
-                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - ((strVal'Last - strVal'First + 1)*8 + nLengthDeterminantSizeInBits),
+                bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - ((strVal'Last - strVal'First + 1)*8 + nLengthDeterminantSizeInBits),
      Post    => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + ((strVal'Last - strVal'First + 1)*8 + nLengthDeterminantSizeInBits);
    
    procedure Acn_Dec_String_Ascii_Internal_Field_Determinant (bs : in out BitStream; asn1Min : Asn1Int; asn1Max : Asn1Int; nLengthDeterminantSizeInBits : in Integer; strVal : in out String; Result : out ASN1_RESULT) with
@@ -664,7 +664,7 @@ package acn_asn1_rtl with Spark_Mode is
                 strVal'Last - strVal'First < Natural'Last/8 - 8 and then
                 bs.Current_Bit_Pos < Natural'Last - ((strVal'Last - strVal'First + 1)*8 + nLengthDeterminantSizeInBits) and then  
                 bs.Size_In_Bytes < Positive'Last/8 and  then
-                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - ((strVal'Last - strVal'First + 1)*8 + nLengthDeterminantSizeInBits),
+                bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - ((strVal'Last - strVal'First + 1)*8 + nLengthDeterminantSizeInBits),
      Post    => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + ((strVal'Last - strVal'First + 1)*8 + nLengthDeterminantSizeInBits);
    
 
@@ -677,7 +677,7 @@ package acn_asn1_rtl with Spark_Mode is
                 strVal'Last - strVal'First < Natural'Last/8 - 8 and then
                 bs.Current_Bit_Pos < Natural'Last - ((strVal'Last - strVal'First + 1)*8 ) and then  
                 bs.Size_In_Bytes < Positive'Last/8 and  then
-                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - ((strVal'Last - strVal'First + 1)*8 ),
+                bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - ((strVal'Last - strVal'First + 1)*8 ),
      Post    => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + ((strVal'Last - strVal'First + 1)*8);
 
    procedure Acn_Dec_String_Ascii_External_Field_Determinant (bs : in out BitStream; extSizeDeterminatFld : in Asn1Int; strVal : in out String;  Result : out ASN1_RESULT)  with
@@ -689,7 +689,7 @@ package acn_asn1_rtl with Spark_Mode is
                 strVal'Last - strVal'First < Natural'Last/8 - 8 and then
                 bs.Current_Bit_Pos < Natural'Last - ((strVal'Last - strVal'First + 1)*8) and then  
                 bs.Size_In_Bytes < Positive'Last/8 and  then
-                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - ((strVal'Last - strVal'First + 1)*8),
+                bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - ((strVal'Last - strVal'First + 1)*8),
      Post    => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + ((strVal'Last - strVal'First + 1)*8);
    
    
@@ -701,7 +701,7 @@ package acn_asn1_rtl with Spark_Mode is
                 strVal'Last - strVal'First < Natural'Last/8 - nCharSize and then
                 bs.Current_Bit_Pos < Natural'Last - ((strVal'Last - strVal'First + 1)*nCharSize ) and then  
                 bs.Size_In_Bytes < Positive'Last/8 and  then
-                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - ((strVal'Last - strVal'First + 1)*nCharSize ),
+                bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - ((strVal'Last - strVal'First + 1)*nCharSize ),
      Post    => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + ((strVal'Last - strVal'First + 1)*nCharSize);
 
 
@@ -714,7 +714,7 @@ package acn_asn1_rtl with Spark_Mode is
                 strVal'Last - strVal'First < Natural'Last/8 - nCharSize and then
                 bs.Current_Bit_Pos < Natural'Last - ((strVal'Last - strVal'First + 1)*nCharSize) and then  
                 bs.Size_In_Bytes < Positive'Last/8 and  then
-                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - ((strVal'Last - strVal'First + 1)*nCharSize),
+                bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - ((strVal'Last - strVal'First + 1)*nCharSize),
      Post    => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + ((strVal'Last - strVal'First + 1)*nCharSize);
    
    
@@ -728,7 +728,7 @@ package acn_asn1_rtl with Spark_Mode is
                 asn1Min <= Asn1Int(getStringSize (strVal)) and then
                 bs.Current_Bit_Pos < Natural'Last - ((strVal'Last - strVal'First + 1)*nCharSize + nLengthDeterminantSizeInBits) and then  
                 bs.Size_In_Bytes < Positive'Last/8 and  then
-                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - ((strVal'Last - strVal'First + 1)*nCharSize + nLengthDeterminantSizeInBits ),
+                bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - ((strVal'Last - strVal'First + 1)*nCharSize + nLengthDeterminantSizeInBits ),
      Post    => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + ((strVal'Last - strVal'First + 1)*nCharSize + nLengthDeterminantSizeInBits);
 
    procedure Acn_Dec_String_CharIndex_Internal_Field_Determinant (bs : in out BitStream;  charSet : String;  nCharSize : Integer;
@@ -743,7 +743,7 @@ package acn_asn1_rtl with Spark_Mode is
                 strVal'Last - strVal'First < Natural'Last/8 - nCharSize and then
                 bs.Current_Bit_Pos < Natural'Last - ((strVal'Last - strVal'First + 1)*nCharSize + nLengthDeterminantSizeInBits) and then  
                 bs.Size_In_Bytes < Positive'Last/8 and  then
-                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - ((strVal'Last - strVal'First + 1)*nCharSize + nLengthDeterminantSizeInBits),
+                bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - ((strVal'Last - strVal'First + 1)*nCharSize + nLengthDeterminantSizeInBits),
      Post    => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + ((strVal'Last - strVal'First + 1)*nCharSize + nLengthDeterminantSizeInBits);
    
 end acn_asn1_rtl;
