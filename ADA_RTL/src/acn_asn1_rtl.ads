@@ -415,7 +415,7 @@ package acn_asn1_rtl with Spark_Mode is
                 Asn1Uint(abs IntVal) < Powers_of_10(nChars) and then
                 bs.Current_Bit_Pos < Natural'Last - 8*(nChars+1) and then  
                 bs.Size_In_Bytes < Positive'Last/8 and  then
-                bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 8*(nChars+1),
+                bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 8*(nChars),
      Post    => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + 8*(nChars+1)  ;
    
    procedure Acn_Dec_Int_ASCII_ConstSize (bs : in out BitStream; IntVal: out Asn1Int; minVal : in Asn1Int; maxVal : in Asn1Int; nChars : in Integer;  Result : out ASN1_RESULT) with
@@ -425,7 +425,7 @@ package acn_asn1_rtl with Spark_Mode is
                 maxVal < Asn1Int(Powers_of_10(18)) and then     
                 bs.Current_Bit_Pos < Natural'Last - 8*(nChars+1) and then  
                 bs.Size_In_Bytes < Positive'Last/8 and  then
-                bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 8*(nChars+1),
+                bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 8*(nChars),
      Post    => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + 8*(nChars+1)  and 
      ( (Result.Success and IntVal >= minVal and IntVal <= maxVal) or (not Result.Success and IntVal = minVal));  
    
