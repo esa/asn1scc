@@ -1,12 +1,15 @@
+with Ada.Characters.Latin_1;
 with Interfaces; 
 use Interfaces;
 
 package adaasn1rtl with Spark_Mode is
 
    ERR_END_OF_STREAM        : constant Integer := 1001;
+   ERR_INSUFFICIENT_DATA          : constant Integer := 101;
    ERR_UNSUPPORTED_ENCODING : constant Integer := 1002;  --  Returned when the uPER encoding for REALs is not binary encoding
    ERR_INCORRECT_STREAM           : constant Integer := 104;
    
+   NUL : constant Standard.Character := Ada.Characters.Latin_1.NUL;
 
    --basic asn1scc type definitions
    type BIT is mod 2**1;

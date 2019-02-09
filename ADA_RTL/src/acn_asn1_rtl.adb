@@ -41,7 +41,7 @@ package body acn_asn1_rtl with Spark_Mode is
                 total_bytes <= Asn1UInt'Size/8 and then 
                 bs.Current_Bit_Pos < Natural'Last - total_bytes*8 and then  
                 bs.Size_In_Bytes < Positive'Last/8 and  then
-                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - total_bytes*8,
+                bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - total_bytes*8,
      Post    => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + total_bytes*8
    is
       byteValue : Asn1Byte;
@@ -333,7 +333,7 @@ package body acn_asn1_rtl with Spark_Mode is
                 total_bytes <= Asn1UInt'Size/8 and then 
                 bs.Current_Bit_Pos < Natural'Last - total_bytes*8 and then  
                 bs.Size_In_Bytes < Positive'Last/8 and  then
-                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - total_bytes*8,
+                bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - total_bytes*8,
      Post    => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + total_bytes*8 
    is
       byteValue : Asn1Byte;
@@ -354,7 +354,7 @@ package body acn_asn1_rtl with Spark_Mode is
                 total_bytes <= Asn1UInt'Size/8 and then 
                 bs.Current_Bit_Pos < Natural'Last - total_bytes*8 and then  
                 bs.Size_In_Bytes < Positive'Last/8 and  then
-                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - total_bytes*8,
+                bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - total_bytes*8,
      Post    => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + total_bytes*8 and 
              ( (Result.Success and IntVal >= minVal and IntVal <= maxVal) or
                (not Result.Success and IntVal = minVal))
@@ -475,7 +475,7 @@ package body acn_asn1_rtl with Spark_Mode is
                 total_bytes <= Asn1Int'Size/8 and then 
                 bs.Current_Bit_Pos < Natural'Last - total_bytes*8 and then  
                 bs.Size_In_Bytes < Positive'Last/8 and  then
-                bs.Current_Bit_Pos < bs.Size_In_Bytes * 8 - total_bytes*8,
+                bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - total_bytes*8,
      Post    => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + total_bytes*8 and 
              ( (Result.Success and IntVal >= minVal and IntVal <= maxVal) or
                (not Result.Success and IntVal = minVal))
@@ -674,7 +674,7 @@ package body acn_asn1_rtl with Spark_Mode is
         -- encode trailing zeros
         for i in 1.. (nChars - Integer(nDigits)) loop
              pragma Loop_Invariant (bs.Current_Bit_Pos = bs.Current_Bit_Pos'Loop_Entry + (i-1)*8);
-             BitStream_AppendByte(bs, 0, False);
+             BitStream_AppendByte(bs, Character'Pos ('0'), False);
         end loop;
       
         -- encode digits
@@ -701,7 +701,7 @@ package body acn_asn1_rtl with Spark_Mode is
          Ch    := Character'Val (digit);
          intDigit := Character'Pos (Ch) - Character'Pos ('0');
 
-         Result.Success := intDigit >=0 and intDigit <= 9 and IntVal <Powers_of_10(i-1);
+         Result.Success := intDigit >=0 and intDigit <= 9; --and IntVal <Powers_of_10(i-1);
          if Result.Success then
             IntVal := IntVal * 10;
             IntVal := IntVal + Asn1UInt (intDigit);
