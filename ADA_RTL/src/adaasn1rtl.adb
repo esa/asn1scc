@@ -360,7 +360,10 @@ package body adaasn1rtl with Spark_Mode is
          totalBitsForNextByte := Current_Bit - 4;
          Byte_Value := Shift_left(bs.buffer(Current_Byte), totalBitsForNextByte);
          --bs.currentBytePos := bs.currentBytePos + 1;
-         Byte_Value := Byte_Value or (Shift_right(bs.buffer(Current_Byte + 1), 8 - totalBitsForNextByte));
+         if totalBitsForNextByte > 0 then
+            Byte_Value := Byte_Value or (Shift_right(bs.buffer(Current_Byte + 1), 8 - totalBitsForNextByte));
+         end if;
+         
          Byte_Value := Byte_Value and 16#0F#;
       end if;
       bs.Current_Bit_Pos := bs.Current_Bit_Pos + 4;
@@ -383,8 +386,10 @@ package body adaasn1rtl with Spark_Mode is
          else
             totalBitsForNextByte := cb+nbits - 8;
             bs.buffer(Current_Byte) := bs.buffer(Current_Byte) or Shift_right(byteValue, totalBitsForNextByte);
-            Current_Byte := Current_Byte + 1;
-            bs.buffer(Current_Byte) := bs.buffer(Current_Byte) or Shift_left(byteValue, 8 - totalBitsForNextByte);
+            if totalBitsForNextByte > 0 then
+               Current_Byte := Current_Byte + 1;
+               bs.buffer(Current_Byte) := bs.buffer(Current_Byte) or Shift_left(byteValue, 8 - totalBitsForNextByte);
+            end if;
            
       end if;
       bs.Current_Bit_Pos := bs.Current_Bit_Pos + nBits;
@@ -404,8 +409,10 @@ package body adaasn1rtl with Spark_Mode is
          else
             totalBitsForNextByte := cb+nbits - 8;
             Byte_Value := Shift_left(bs.buffer(Current_Byte), totalBitsForNextByte);
-            Current_Byte := Current_Byte + 1;
-            Byte_Value := Byte_Value or Shift_right(bs.buffer(Current_Byte), 8 - totalBitsForNextByte);
+            if totalBitsForNextByte > 0 then
+               Current_Byte := Current_Byte + 1;
+               Byte_Value := Byte_Value or Shift_right(bs.buffer(Current_Byte), 8 - totalBitsForNextByte);
+            end if;
             Byte_Value := Byte_Value and MASKSB(nBits);
       end if;
       bs.Current_Bit_Pos := bs.Current_Bit_Pos + nBits;
