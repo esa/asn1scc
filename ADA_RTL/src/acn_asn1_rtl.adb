@@ -778,8 +778,8 @@ package body acn_asn1_rtl with Spark_Mode is
 
              if Ch= '+' and absIntVal <= Asn1UInt(Asn1Int'Last) then
                  IntVal := Asn1Int(absIntVal);
-             elsif Ch = '-' and absIntVal <= Asn1UInt(Asn1Int'Last) then
-                IntVal := -Asn1Int(absIntVal);
+             elsif Ch = '-' and absIntVal <= Asn1UInt(Asn1Int'Last)+1 then
+                IntVal := -Asn1Int(absIntVal-1)-1;
              else 
                Result := ASN1_RESULT'(Success => False, ErrorCode => ERR_INCORRECT_STREAM);
              end if;
