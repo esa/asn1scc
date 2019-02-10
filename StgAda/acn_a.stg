@@ -76,8 +76,8 @@ MFen(soMF, soMFM, p) ::= "<if(soMF)><soMFM>.<soMF>_encode(<p>)<else><p><endif>"
 
 alignToNext_encode(sMainBody, sAligmentValue, nAligmentValue) ::= <<
 --align to next <sAligmentValue>
-if (K mod <nAligmentValue>) /= 0 then
-    K := K + (<nAligmentValue> - (K mod <nAligmentValue>));
+if (bs.Current_Bit_Pos mod <nAligmentValue>) /= 0 then
+    bs.Current_Bit_Pos := bs.Current_Bit_Pos + (<nAligmentValue> - (bs.Current_Bit_Pos mod <nAligmentValue>));
 end if;
 <sMainBody>
 >>
@@ -85,8 +85,8 @@ end if;
 
 alignToNext_decode(sMainBody, sAligmentValue, nAligmentValue) ::= <<
 --align to next <sAligmentValue>
-if (K.K mod <nAligmentValue>) /= 0 then
-    K.K := K.K + (<nAligmentValue> - (K.K mod <nAligmentValue>));
+if (bs.Current_Bit_Pos mod <nAligmentValue>) /= 0 then
+    bs.Current_Bit_Pos := bs.Current_Bit_Pos + (<nAligmentValue> - (bs.Current_Bit_Pos mod <nAligmentValue>));
 end if;
 <sMainBody>
 >>
@@ -970,7 +970,7 @@ end case;
 
 Choice_decode(p, sAcc, arrsChildren, nLastItemIndex, sChoiceIndexName, td/*:FE_ChoiceTypeDefinition*/, nIndexSizeInBits, sErrCode) ::= <<
 result.ErrorCode := <sErrCode>;
-<rtlModuleName()>.UPER_Dec_ConstraintWholeNumber(bs, <sChoiceIndexName>, 0, <nLastItemIndex>, <nIndexSizeInBits>, result.Success);
+uper_asn1_rtl.UPER_Dec_ConstraintWholeNumber(bs, <sChoiceIndexName>, 0, <nLastItemIndex>, <nIndexSizeInBits>, result.Success);
 if result.Success AND <sChoiceIndexName> \>= 0 AND  <sChoiceIndexName> \<= <nLastItemIndex> THEN
     case <td.index_range>(<sChoiceIndexName>) IS
         <arrsChildren; separator="\n">
@@ -991,7 +991,7 @@ when <nChildIndex> =>
 
 ChoiceChild_encode(p, sAcc, sChildID, nChildIndex, nIndexSizeInBits, nLastItemIndex, sChildContent, sChildName, sChildTypeDef, sChoiceTypeName) ::= <<
 when <sChildID> =>
-    <rtlModuleName()>.UPER_Enc_ConstraintWholeNumber(bs, <nChildIndex>, 0, <nIndexSizeInBits>);
+    uper_asn1_rtl.UPER_Enc_ConstraintWholeNumber(bs, <nChildIndex>, 0, <nIndexSizeInBits>);
 	<sChildContent>
 >>
 
