@@ -338,13 +338,15 @@ package body acn_asn1_rtl with Spark_Mode is
    is
       byteValue : Asn1Byte;
       result : Asn1Boolean;
+      tmp : Asn1UInt;
    begin
       IntVal := 0;
       for i in  1..total_bytes loop
          pragma Loop_Invariant (bs.Current_Bit_Pos = bs.Current_Bit_Pos'Loop_Entry + (i-1)*8);
          BitStream_DecodeByte(bs, byteValue, result);
          pragma Assert(result);
-         IntVal := IntVal or Shift_Left(Asn1UInt(byteValue), (total_bytes-i)*8);
+         tmp := Shift_Left(Asn1UInt(byteValue), (i-1)*8);
+         IntVal := IntVal or tmp;
       end loop;
    end Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_N0;
 
