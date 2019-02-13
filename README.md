@@ -36,7 +36,7 @@ Install:
 
 1. A version of Visual Studio with support for F# .
 
-2. Open `Asn1.sln` and build the `Asn1f2` project (right-click/build)
+2. Open `Asn1.sln` and build the `Asn1f4` project (right-click/build)
 
 ## Under OSX
 
