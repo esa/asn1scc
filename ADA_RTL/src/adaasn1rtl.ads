@@ -86,7 +86,12 @@ package adaasn1rtl with Spark_Mode is
       if IntVal > Asn1UInt (Asn1Int'Last) then
           -Asn1Int (not IntVal) - 1 
       else
-         Asn1Int (IntVal) );
+       Asn1Int (IntVal) );
+   
+   function abs_value(intVal: Asn1Int) return Asn1UInt is
+     (
+      if intVal >= 0  then Asn1Uint(intVal) else (Asn1Uint(-(intVal+1))+1)
+     );
 
    
    -- In some cases, SPARK cannot prove the following function
@@ -137,16 +142,15 @@ package adaasn1rtl with Spark_Mode is
       elsif Int_value >= Powers_of_10(17) and Int_value < Powers_of_10(18)  then 18 
       elsif Int_value >= Powers_of_10(18) and Int_value < Powers_of_10(19)  then 19 
       else 20 )
-   with
-     Pre => Int_value < Powers_of_10(19)   ;   
+      ;   
    
    
    function Asn1Real_Equal (Left, Right : in Asn1Real) return Boolean
    is (
       if Left = Right then True
       elsif Left = 0.0 then Right = 0.0
-      else 
-          abs ((Left - Right) / Left) < 0.00001
+      elsif Left > Right then   ((Left - Right) / Left) < 0.00001
+      else  ((Right - Left) / Left) < 0.00001
    );
    
    
