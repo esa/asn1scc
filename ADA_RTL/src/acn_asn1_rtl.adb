@@ -644,7 +644,7 @@ package body acn_asn1_rtl with Spark_Mode is
                uval := uval * 10;
                uval := uval + Asn1UInt (intDigit);
             end if;
-            Result.Success := Result.Success and then  uval <= abs_value(Asn1Int'Last);
+            Result.Success := Result.Success and then  uval <= abs_value(Asn1Int'First);
             exit when not Result.Success;
          end loop;
          if Result.Success then
