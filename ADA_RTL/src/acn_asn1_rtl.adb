@@ -169,8 +169,7 @@ package body acn_asn1_rtl with Spark_Mode is
    
    
     procedure Get_integer_digits(IntVal :in Asn1Uint; digits_array: out Digits_Buffer; totalDigits : out Asn1Byte) with
-     Pre     => IntVal < Powers_of_10(19),
-     Post    => totalDigits >=1 and totalDigits<=19 and IntVal < Powers_of_10(Integer(totalDigits)) and totalDigits = Asn1Byte(Get_number_of_digits(IntVal))
+     Post    => totalDigits >=1 and totalDigits<=20 and totalDigits = Asn1Byte(Get_number_of_digits(IntVal))
     is
       intValCopy   : Asn1UInt := IntVal;
       powOf10      : Asn1UInt;
@@ -590,15 +589,15 @@ package body acn_asn1_rtl with Spark_Mode is
         sing : Asn1Byte;
         absIntVal : Asn1Uint;
    begin
-        pragma assert (intVal > -Asn1Int(Powers_of_10(nChars)));
-        pragma assert (intVal <  Asn1Int(Powers_of_10(nChars)));
-        pragma assert (abs IntVal <  Asn1Int(Powers_of_10(nChars)));
+        --pragma assert (intVal > -Asn1Int(Powers_of_10(nChars)));
+        --pragma assert (intVal <  Asn1Int(Powers_of_10(nChars)));
+        --pragma assert (abs IntVal <  Asn1Int(Powers_of_10(nChars)));
                                       
-        absIntVal :=  (if intVal >= 0  then Asn1Uint(intVal) else (Asn1Uint(-(intVal+1))+1));
-        pragma assert (absIntVal < Powers_of_10(nChars));               
+        absIntVal :=  abs_value(IntVal);
+        --pragma assert (absIntVal < Powers_of_10(nChars));               
         sing := (if intVal >= 0  then Character'Pos('+') else Character'Pos('-'));
         Get_integer_digits(absIntVal,digits_array, nDigits);
-        pragma assert(absIntVal < Powers_of_10(nChars));
+        --pragma assert(absIntVal < Powers_of_10(nChars));
         pragma assert(Integer(nDigits) = Get_number_of_digits(absIntVal));
         pragma assert(Integer(nDigits) <= nChars);
         -- encode sign
@@ -640,21 +639,27 @@ package body acn_asn1_rtl with Spark_Mode is
             Ch    := Character'Val (digit);
             intDigit := Character'Pos (Ch) - Character'Pos ('0');
    
-            Result.Success := intDigit >=0 and intDigit <= 9; --and IntVal <Asn1Int(Powers_of_10(18));
+            Result.Success := intDigit >=0 and intDigit <= 9;
             if Result.Success then
                uval := uval * 10;
                uval := uval + Asn1UInt (intDigit);
             end if;
+            Result.Success := Result.Success and then  uval <= abs_value(Asn1Int'Last);
             exit when not Result.Success;
          end loop;
+         if Result.Success then
+            IntVal := (if negative and uval > 0 then (-Asn1Int(uval-1) - 1) else Asn1Int(uval));
          
-         IntVal := (if negative then (-Asn1Int(uval-1) - 1) else Asn1Int(uval));
-         
-         Result.Success :=    Result.Success and then ((IntVal >= minVal) and (IntVal <= maxVal));
-         
-      end if;
-      
-      if not Result.Success then
+            Result.Success :=    Result.Success and then ((IntVal >= minVal) and (IntVal <= maxVal));
+            if not Result.Success then
+               result.ErrorCode := ERR_INCORRECT_STREAM;
+               IntVal := minVal;
+            end if;
+         else
+            result.ErrorCode := ERR_INCORRECT_STREAM;
+            IntVal := minVal;
+         end if;
+      else
          result.ErrorCode := ERR_INCORRECT_STREAM;
          IntVal := minVal;
       end if;
@@ -778,14 +783,15 @@ package body acn_asn1_rtl with Spark_Mode is
          Acn_Dec_UInt_ASCII_VarSize_NullTerminated(bs, absIntVal, nullChar, result);
 
          if result.Success then
-
-             if Ch= '+' and absIntVal <= Asn1UInt(Asn1Int'Last) then
+            if absIntVal = 0 then
+               IntVal := 0;
+            elsif Ch= '+' and absIntVal <= Asn1UInt(Asn1Int'Last) then
                  IntVal := Asn1Int(absIntVal);
-             elsif Ch = '-' and absIntVal <= Asn1UInt(Asn1Int'Last)+1 then
+            elsif Ch = '-' and absIntVal <= Asn1UInt(Asn1Int'Last)+1 then
                 IntVal := -Asn1Int(absIntVal-1)-1;
-             else 
+            else 
                Result := ASN1_RESULT'(Success => False, ErrorCode => ERR_INCORRECT_STREAM);
-             end if;
+            end if;
          end if;
       end if;
       

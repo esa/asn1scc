@@ -378,6 +378,7 @@ package body adaasn1rtl with Spark_Mode is
       totalBitsForNextByte : BIT_RANGE;
       byteValue : Asn1Byte;
    begin
+      if nBits > 0 then
          byteValue := (if negate then (masksb(nBits) and  not Byte_Value) else Byte_Value);
          
          if cb < 8 - nbits then
@@ -391,8 +392,10 @@ package body adaasn1rtl with Spark_Mode is
                bs.buffer(Current_Byte) := bs.buffer(Current_Byte) or Shift_left(byteValue, 8 - totalBitsForNextByte);
             end if;
            
+         end if;
+         bs.Current_Bit_Pos := bs.Current_Bit_Pos + nBits;
       end if;
-      bs.Current_Bit_Pos := bs.Current_Bit_Pos + nBits;
+      
       
    end;
    
@@ -533,21 +536,25 @@ package body adaasn1rtl with Spark_Mode is
                 bs.Current_Bit_Pos < Natural'Last - total_bytes*8 and then  
                 bs.Size_In_Bytes < Positive'Last/8 and  then
                 bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - total_bytes*8;
-      
-      if (bs.buffer(Current_Byte) and MASKS(Current_Bit)) = 0 then
-         Ret := 0;
+      if total_bytes > 0 then
+        if (bs.buffer(Current_Byte) and MASKS(Current_Bit)) = 0 then
+           Ret := 0;
+        else
+           Ret := Asn1UInt'Last;
+        end if;
+        
+        for i in 1 .. total_bytes loop
+           pragma Loop_Invariant (bs.Current_Bit_Pos = bs.Current_Bit_Pos'Loop_Entry + (i-1)*8);
+  
+           BitStream_DecodeByte(bs, ByteVal, Result);
+           Ret := (Ret * 256) or Asn1UInt(ByteVal);
+  
+        end loop;
+        int_value := To_Int(Ret);
       else
-         Ret := Asn1UInt'Last;
+         int_value := 0;
       end if;
       
-      for i in 1 .. total_bytes loop
-         pragma Loop_Invariant (bs.Current_Bit_Pos = bs.Current_Bit_Pos'Loop_Entry + (i-1)*8);
-
-         BitStream_DecodeByte(bs, ByteVal, Result);
-         Ret := (Ret * 256) or Asn1UInt(ByteVal);
-
-      end loop;
-      int_value := To_Int(Ret);
    end Dec_Int;
    
    
