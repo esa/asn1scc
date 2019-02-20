@@ -287,9 +287,9 @@ let createPrimitiveFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage)  (t:A
 
 
 let createBitOrOctetStringFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage)  (t:Asn1AcnAst.Asn1Type) allCons  conToStrFunc (typeDefinition:TypeDefintionOrReference) (alphaFuncs : AlphaFunc list)  anonymousVariables (us:State)  =
-    match allCons with
-    | []            -> None, us
-    | _             ->
+//    match allCons with
+//    | []            -> None, us
+//    | _             ->
         let funcName            = getFuncName r l t.id (t.FT_TypeDefintion.[l])
         let errCodeName         = ToC ("ERR_" + ((t.id.AcnAbsPath |> Seq.skip 1 |> Seq.StrJoin("-")).Replace("#","elm")))
         let errCode, ns = getNextValidErrorCode us errCodeName
@@ -297,7 +297,8 @@ let createBitOrOctetStringFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage
         let funcExp (p:CallerScope) = 
             let allCons = allCons |> List.map (conToStrFunc p)
             match allCons with
-            | []    -> raise(BugErrorException("Invalid case"))
+            //| []    -> raise(BugErrorException("Invalid case"))
+            | []    -> "TRUE"
             | c::cs -> l.ExpAndMulti allCons
 
         let funcBody (p:CallerScope)  = 
