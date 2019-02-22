@@ -13,12 +13,22 @@ EmitTypeAssignment_primitive_def_encode(sVarName, sStar, sFuncName, sTypeDefName
 <sTypeDefName>_REQUIRED_BYTES_FOR_ACN_ENCODING:CONSTANT INTEGER := <nMaxBytesInACN>;
 <sTypeDefName>_REQUIRED_BITS_FOR_ACN_ENCODING:CONSTANT INTEGER := <nMaxBitsInACN>;
 
-procedure <sFuncName>(<sVarName>:in <sTypeDefName>; bs : in out <rtlModuleName()>.Bitstream; result : OUT <rtlModuleName()>.ASN1_RESULT);
+subtype <sTypeDefName>_ACN_Stream is adaasn1rtl.Bitstream(<sTypeDefName>_REQUIRED_BYTES_FOR_ACN_ENCODING);
+
+procedure <sFuncName>(<sVarName>:in <sTypeDefName>; Stream : out <sTypeDefName>_ACN_Stream; result : OUT <rtlModuleName()>.ASN1_RESULT);
 >>
 
+EmitTypeAssignment_primitive_encodeMain(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitilialExp, arrsAcnPrms, arrsAcnParamNames) ::= /*nogen*/<<
+PROCEDURE <sFuncName>(<sVarName>:in <sTypeDefName>; Stream : out <sTypeDefName>_ACN_Stream; result : OUT <rtlModuleName()>.ASN1_RESULT)
+IS
+BEGIN
+    Stream := <sTypeDefName>_ACN_Stream'(Size_In_Bytes => <sTypeDefName>_REQUIRED_BYTES_FOR_ACN_ENCODING, Current_Bit_Pos  => 0, Buffer => (others => 0));
+    <sTypeDefName>_ACN_Encode_aux(<sVarName>, Stream, result);
+END <sFuncName>;
+>>
 
 EmitTypeAssignment_primitive_encode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitilialExp, arrsAcnPrms, arrsAcnParamNames) ::= <<
-procedure <sFuncName>(<sVarName>:in <sTypeDefName>; bs : in out <rtlModuleName()>.Bitstream; result : OUT <rtlModuleName()>.ASN1_RESULT)
+procedure <sFuncName>_aux(<sVarName>:in <sTypeDefName>; bs : in out <rtlModuleName()>.Bitstream; result : OUT <rtlModuleName()>.ASN1_RESULT)
 <soSparkAnnotations>
 IS
     <arrsLocalVariables; separator="\n">
@@ -32,28 +42,46 @@ BEGIN
     result := <rtlModuleName()>.ASN1_RESULT'(Success => true, ErrorCode => 0);
     <sContent>
     <endif>
-END <sFuncName>;
+END <sFuncName>_aux;
+
+
+<EmitTypeAssignment_primitive_encodeMain(sVarName=sVarName, sStar=sStar, sFuncName=sFuncName, soIValidFuncName=soIValidFuncName, sTypeDefName=sTypeDefName, arrsLocalVariables=arrsLocalVariables, sContent=sContent, soSparkAnnotations=soSparkAnnotations, sInitilialExp=sInitilialExp, arrsAcnPrms=arrsAcnPrms, arrsAcnParamNames=arrsAcnParamNames)>
 >>
 
 
 
 EmitTypeAssignment_primitive_def_decode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes, bEmptyEncodingSpace, nMaxBytesInACN, nMaxBitsInACN, arrsAcnPrms) ::= <<
 <arrsErrcodes; separator="\n">
-procedure <sFuncName>(<sVarName>: out <sTypeDefName>; bs : in out <rtlModuleName()>.Bitstream; result : OUT <rtlModuleName()>.ASN1_RESULT<if(arrsAcnPrms)>; <arrsAcnPrms; separator="; "><endif>);
+procedure <sFuncName>(<sVarName>: out <sTypeDefName>; Stream : in out <sTypeDefName>_ACN_Stream; result : OUT <rtlModuleName()>.ASN1_RESULT<if(arrsAcnPrms)>; <arrsAcnPrms; separator="; "><endif>);
 >>
 
+EmitTypeAssignment_primitive_decodeMain(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitilialExp, arrsAcnPrms, arrsAcnParamNames) ::= /*nogen*/<<
+PROCEDURE <sFuncName>(<sVarName>: out <sTypeDefName>; Stream : in out <sTypeDefName>_ACN_Stream; result : OUT <rtlModuleName()>.ASN1_RESULT<if(arrsAcnPrms)>; <arrsAcnPrms; separator="; "><endif>)
+IS
+BEGIN
+    Stream.Current_Bit_Pos :=0;
+    <sFuncName>_aux(<sVarName>, Stream, result<if(arrsAcnParamNames)>, <arrsAcnParamNames; separator=","><endif>);
+    <if(soIValidFuncName)>
+    if result.success then
+        result := <soIValidFuncName>(<sVarName>);
+    end if;
+
+    <endif>
+END <sFuncName>;
+>>
 
 EmitTypeAssignment_primitive_decode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitilialExp, arrsAcnPrms, arrsAcnParamNames) ::= <<
 pragma Warnings (Off, "unused initial value of ""<sVarName>""");
-PROCEDURE <sFuncName>(<sVarName>:out <sTypeDefName>; bs : in out <rtlModuleName()>.Bitstream; result : OUT <rtlModuleName()>.ASN1_RESULT<if(arrsAcnPrms)>; <arrsAcnPrms; separator="; "><endif>)
+PROCEDURE <sFuncName>_aux(<sVarName>:out <sTypeDefName>; bs : in out <rtlModuleName()>.Bitstream; result : OUT <rtlModuleName()>.ASN1_RESULT<if(arrsAcnPrms)>; <arrsAcnPrms; separator="; "><endif>)
 <soSparkAnnotations>
 IS
     <arrsLocalVariables; separator="\n">
 BEGIN
     <sContent>
-END <sFuncName>;
+END <sFuncName>_aux;
 pragma Warnings (On, "unused initial value of ""<sVarName>""");
 
+<EmitTypeAssignment_primitive_decodeMain(sVarName=sVarName, sStar=sStar, sFuncName=sFuncName, soIValidFuncName=soIValidFuncName, sTypeDefName=sTypeDefName, arrsLocalVariables=arrsLocalVariables, sContent=sContent, soSparkAnnotations=soSparkAnnotations, sInitilialExp=sInitilialExp, arrsAcnPrms=arrsAcnPrms, arrsAcnParamNames=arrsAcnParamNames)>
 >>
 
 

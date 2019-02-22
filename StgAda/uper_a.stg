@@ -2,8 +2,8 @@ group a_uper;
 
 rtlModuleName() ::= "adaasn1rtl"
 
-call_base_type_func_encode(p, sFuncName) ::= "<sFuncName>(<p>, bs, result);"
-call_base_type_func_decode(p, sFuncName) ::= "<sFuncName>(<p>, bs, result);"
+call_base_type_func_encode(p, sFuncName) ::= "<sFuncName>_aux(<p>, bs, result);"
+call_base_type_func_decode(p, sFuncName) ::= "<sFuncName>_aux(<p>, bs, result);"
 
 
 EmitTypeAssignment_def_err_code(sErrCode, nErrValue) ::= <<
@@ -15,22 +15,33 @@ EmitTypeAssignment_def_encode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrc
 <sTypeDefName>_REQUIRED_BYTES_FOR_ENCODING:CONSTANT INTEGER := <nMaxBytesInPER>;
 <sTypeDefName>_REQUIRED_BITS_FOR_ENCODING:CONSTANT INTEGER := <nMaxBitsInPER>;
 
+subtype <sTypeDefName>_uPER_Stream is adaasn1rtl.Bitstream(<sTypeDefName>_REQUIRED_BYTES_FOR_ENCODING);
 
-procedure <sFuncName>(<sVarName>:in <sTypeDefName>; bs : in out <rtlModuleName()>.Bitstream; result : OUT <rtlModuleName()>.ASN1_RESULT)
+procedure <sFuncName>(val:in <sTypeDefName>; Stream : out <sTypeDefName>_uPER_Stream; result : OUT <rtlModuleName()>.ASN1_RESULT);
+procedure <sFuncName>_aux(<sVarName>:in <sTypeDefName>; bs : in out <rtlModuleName()>.Bitstream; result : OUT <rtlModuleName()>.ASN1_RESULT)
 <soSparkAnnotations>
 ;
 >>
 
 EmitTypeAssignment_def_decode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes, bEmptyEncodingSpace, nMaxBytesInPER, nMaxBitsInPER, soSparkAnnotations) ::= <<
 <arrsErrcodes; separator="\n">
-procedure <sFuncName>(<sVarName>: out <sTypeDefName>; bs : in out <rtlModuleName()>.Bitstream; result : OUT <rtlModuleName()>.ASN1_RESULT)
+procedure <sFuncName>(<sVarName>: out <sTypeDefName>; Stream : in out <sTypeDefName>_uPER_Stream; result : OUT <rtlModuleName()>.ASN1_RESULT);
+procedure <sFuncName>_aux(<sVarName>: out <sTypeDefName>; bs : in out <rtlModuleName()>.Bitstream; result : OUT <rtlModuleName()>.ASN1_RESULT)
 <soSparkAnnotations>
 ;
 >>
 
+TasEncodeMain(sVarName, sFuncName, sTypeDefName) ::= /*nogen*/<<
+procedure <sFuncName>(<sVarName>:in <sTypeDefName>; Stream : out <sTypeDefName>_uPER_Stream; result : OUT <rtlModuleName()>.ASN1_RESULT)
+IS
+begin
+    Stream := <sTypeDefName>_uPER_Stream'(Size_In_Bytes => <sTypeDefName>_REQUIRED_BYTES_FOR_ENCODING, Current_Bit_Pos  => 0, Buffer => (others => 0));
+    <sFuncName>_aux(<sVarName>, Stream, result);
+end <sFuncName>;
+>>
 
 EmitTypeAssignment_encode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitilialExp) ::= <<
-procedure <sFuncName>(<sVarName>:in <sTypeDefName>; bs : in out <rtlModuleName()>.Bitstream; result : OUT <rtlModuleName()>.ASN1_RESULT)
+procedure <sFuncName>_aux(<sVarName>:in <sTypeDefName>; bs : in out <rtlModuleName()>.Bitstream; result : OUT <rtlModuleName()>.ASN1_RESULT)
 is
     <arrsLocalVariables; separator="\n">
 begin
@@ -43,18 +54,35 @@ begin
     result := <rtlModuleName()>.ASN1_RESULT'(Success => true, ErrorCode => 0);
     <sContent>
     <endif>
-end <sFuncName>;
+end <sFuncName>_aux;
+
+<TasEncodeMain(sVarName=sVarName, sFuncName=sFuncName, sTypeDefName=sTypeDefName)>
 >>
 
+TasDecodeMain(sVarName, sFuncName, sTypeDefName, sInitilialExp) ::= /*nogen*/<<
+procedure <sFuncName>(<sVarName>:out <sTypeDefName>; Stream : IN OUT <sTypeDefName>_uPER_Stream; result : OUT <rtlModuleName()>.ASN1_RESULT)
+IS
+begin
+    Stream.Current_Bit_Pos :=0;
+    <sFuncName>_aux(<sVarName>, Stream, result);
+    <if(soIValidFuncName)>
+    if result.success then
+        result := <soIValidFuncName>(<sVarName>);
+    end if;
+
+    <endif>
+end <sFuncName>;
+>>
 EmitTypeAssignment_decode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitilialExp) ::= <<
 pragma Warnings (Off, "unused initial value of ""val""");
-procedure <sFuncName>(<sVarName>: out <sTypeDefName>; bs : in out <rtlModuleName()>.Bitstream; result : OUT <rtlModuleName()>.ASN1_RESULT)
+procedure <sFuncName>_aux(<sVarName>: out <sTypeDefName>; bs : in out <rtlModuleName()>.Bitstream; result : OUT <rtlModuleName()>.ASN1_RESULT)
 IS
     <arrsLocalVariables; separator="\n">
 begin
     <sContent>
-end <sFuncName>;
+end <sFuncName>_aux;
 pragma Warnings (On, "unused initial value of ""val""");
+<TasDecodeMain(sVarName=sVarName, sFuncName=sFuncName, sTypeDefName=sTypeDefName, sInitilialExp=sInitilialExp)>
 >>
 
 
