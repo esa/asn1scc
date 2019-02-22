@@ -19,7 +19,7 @@ EmitTypeAssignment_primitive_def_encode(sVarName, sStar, sFuncName, sTypeDefName
 flag <sFuncName>(const <sTypeDefName><sStar> <sVarName>, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints);
 >>
 
-EmitTypeAssignment_primitive_encode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitilialExp, arrsAcnPrms, arrsAcnParamNames) ::= <<
+EmitTypeAssignment_primitive_encode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitilialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace) ::= <<
 flag <sFuncName>(const <sTypeDefName><sStar> <sVarName>, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints)
 {
     flag ret = TRUE;
@@ -46,7 +46,7 @@ EmitTypeAssignment_primitive_def_decode(sVarName, sStar, sFuncName, sTypeDefName
 flag <sFuncName>(<sTypeDefName><sStar> <sVarName>, BitStream* pBitStrm, int* pErrCode<if(arrsAcnPrms)>, <arrsAcnPrms; separator=", "><endif>);
 >>
 
-EmitTypeAssignment_primitive_decode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitilialExp, arrsAcnPrms, arrsAcnParamNames) ::= <<
+EmitTypeAssignment_primitive_decode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitilialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace) ::= <<
 flag <sFuncName>(<sTypeDefName><sStar> <sVarName>, BitStream* pBitStrm, int* pErrCode<if(arrsAcnPrms)>, <arrsAcnPrms; separator=", "><endif>)
 {
     flag ret = TRUE;

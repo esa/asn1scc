@@ -218,7 +218,7 @@ let private createAcnFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (co
                 let lvars = bodyResult_localVariables |> List.map(fun (lv:LocalVariable) -> lv.GetDeclaration l) |> Seq.distinct
                 let prms = t.acnParameters |> List.map handleAcnParameter
                 let prmNames = t.acnParameters |> List.map (fun p -> p.c_name)
-                let func = Some(EmitTypeAssignment_primitive varName sStar funcName isValidFuncName  (typeDefinition.longTypedefName l) lvars  bodyResult_funcBody soSparkAnnotations sInitilialExp prms prmNames codec)
+                let func = Some(EmitTypeAssignment_primitive varName sStar funcName isValidFuncName  (typeDefinition.longTypedefName l) lvars  bodyResult_funcBody soSparkAnnotations sInitilialExp prms prmNames (t.acnMaxSizeInBits = 0I) codec)
                 
                 //let errCodes = bodyResult.errCodes
                 let errCodStr = errCodes |> List.map(fun x -> (EmitTypeAssignment_def_err_code x.errCodeName) (BigInteger x.errCodeValue))

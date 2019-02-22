@@ -10,12 +10,12 @@ EmitTypeAssignment_def_err_code(sErrCode, nErrValue) ::= <<
 <sErrCode>:CONSTANT INTEGER := <nErrValue>; 
 >>
 
-EmitTypeAssignment_def_encode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes, bEmptyEncodingSpace, nMaxBytesInPER, nMaxBitsInPER, soSparkAnnotations) ::= <<
+EmitTypeAssignment_def_encode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes, bEmptyEncodingSpace, nMaxBytesInPER, nMaxBitsInPER, soSparkAnnotations, bReqBytesForEncodingIsZero) ::= <<
 <arrsErrcodes; separator="\n">
 <sTypeDefName>_REQUIRED_BYTES_FOR_ENCODING:CONSTANT INTEGER := <nMaxBytesInPER>;
 <sTypeDefName>_REQUIRED_BITS_FOR_ENCODING:CONSTANT INTEGER := <nMaxBitsInPER>;
 
-subtype <sTypeDefName>_uPER_Stream is adaasn1rtl.Bitstream(<sTypeDefName>_REQUIRED_BYTES_FOR_ENCODING);
+subtype <sTypeDefName>_uPER_Stream is adaasn1rtl.Bitstream(<if(bReqBytesForEncodingIsZero)>1<else><sTypeDefName>_REQUIRED_BYTES_FOR_ENCODING<endif>);
 
 procedure <sFuncName>(val:in <sTypeDefName>; Stream : out <sTypeDefName>_uPER_Stream; result : OUT <rtlModuleName()>.ASN1_RESULT);
 procedure <sFuncName>_aux(<sVarName>:in <sTypeDefName>; bs : in out <rtlModuleName()>.Bitstream; result : OUT <rtlModuleName()>.ASN1_RESULT)
@@ -23,7 +23,7 @@ procedure <sFuncName>_aux(<sVarName>:in <sTypeDefName>; bs : in out <rtlModuleNa
 ;
 >>
 
-EmitTypeAssignment_def_decode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes, bEmptyEncodingSpace, nMaxBytesInPER, nMaxBitsInPER, soSparkAnnotations) ::= <<
+EmitTypeAssignment_def_decode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes, bEmptyEncodingSpace, nMaxBytesInPER, nMaxBitsInPER, soSparkAnnotations, bReqBytesForEncodingIsZero) ::= <<
 <arrsErrcodes; separator="\n">
 procedure <sFuncName>(<sVarName>: out <sTypeDefName>; Stream : in out <sTypeDefName>_uPER_Stream; result : OUT <rtlModuleName()>.ASN1_RESULT);
 procedure <sFuncName>_aux(<sVarName>: out <sTypeDefName>; bs : in out <rtlModuleName()>.Bitstream; result : OUT <rtlModuleName()>.ASN1_RESULT)
@@ -31,16 +31,16 @@ procedure <sFuncName>_aux(<sVarName>: out <sTypeDefName>; bs : in out <rtlModule
 ;
 >>
 
-TasEncodeMain(sVarName, sFuncName, sTypeDefName) ::= /*nogen*/<<
+TasEncodeMain(sVarName, sFuncName, sTypeDefName, bReqBytesForEncodingIsZero) ::= /*nogen*/<<
 procedure <sFuncName>(<sVarName>:in <sTypeDefName>; Stream : out <sTypeDefName>_uPER_Stream; result : OUT <rtlModuleName()>.ASN1_RESULT)
 IS
 begin
-    Stream := <sTypeDefName>_uPER_Stream'(Size_In_Bytes => <sTypeDefName>_REQUIRED_BYTES_FOR_ENCODING, Current_Bit_Pos  => 0, Buffer => (others => 0));
+    Stream := <sTypeDefName>_uPER_Stream'(Size_In_Bytes => <if(bReqBytesForEncodingIsZero)>1<else><sTypeDefName>_REQUIRED_BYTES_FOR_ENCODING<endif>, Current_Bit_Pos  => 0, Buffer => (others => 0));
     <sFuncName>_aux(<sVarName>, Stream, result);
 end <sFuncName>;
 >>
 
-EmitTypeAssignment_encode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitilialExp) ::= <<
+EmitTypeAssignment_encode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitilialExp, bReqBytesForEncodingIsZero) ::= <<
 procedure <sFuncName>_aux(<sVarName>:in <sTypeDefName>; bs : in out <rtlModuleName()>.Bitstream; result : OUT <rtlModuleName()>.ASN1_RESULT)
 is
     <arrsLocalVariables; separator="\n">
@@ -56,7 +56,7 @@ begin
     <endif>
 end <sFuncName>_aux;
 
-<TasEncodeMain(sVarName=sVarName, sFuncName=sFuncName, sTypeDefName=sTypeDefName)>
+<TasEncodeMain(sVarName=sVarName, sFuncName=sFuncName, sTypeDefName=sTypeDefName, bReqBytesForEncodingIsZero=bReqBytesForEncodingIsZero)>
 >>
 
 TasDecodeMain(sVarName, sFuncName, sTypeDefName, sInitilialExp) ::= /*nogen*/<<
@@ -73,7 +73,7 @@ begin
     <endif>
 end <sFuncName>;
 >>
-EmitTypeAssignment_decode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitilialExp) ::= <<
+EmitTypeAssignment_decode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitilialExp, bReqBytesForEncodingIsZero) ::= <<
 pragma Warnings (Off, "unused initial value of ""val""");
 procedure <sFuncName>_aux(<sVarName>: out <sTypeDefName>; bs : in out <rtlModuleName()>.Bitstream; result : OUT <rtlModuleName()>.ASN1_RESULT)
 IS

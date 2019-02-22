@@ -29,7 +29,7 @@ EmitTypeAssignment_def_err_code(sErrCode, nErrValue) ::= <<
 >>
 
 
-EmitTypeAssignment_primitive_def_encode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes, bEmptyEncodingSpace, nMaxBytesInPER, nMaxBitsInPER, soSparkAnnotations) ::= <<
+EmitTypeAssignment_primitive_def_encode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes, bEmptyEncodingSpace, nMaxBytesInPER, nMaxBitsInPER, soSparkAnnotations, bReqBytesForEncodingIsZero) ::= <<
 <arrsErrcodes; separator="\n">
 #define <sTypeDefName>_REQUIRED_BYTES_FOR_ENCODING       <nMaxBytesInPER> 
 #define <sTypeDefName>_REQUIRED_BITS_FOR_ENCODING        <nMaxBitsInPER>
@@ -37,7 +37,7 @@ EmitTypeAssignment_primitive_def_encode(sVarName, sStar, sFuncName, sTypeDefName
 flag <sFuncName>(const <sTypeDefName><sStar> <sVarName>, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints);
 >>
 
-EmitTypeAssignment_primitive_encode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitilialExp) ::= <<
+EmitTypeAssignment_primitive_encode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitilialExp, bReqBytesForEncodingIsZero) ::= <<
 flag <sFuncName>(const <sTypeDefName><sStar> <sVarName>, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints)
 {
     flag ret = TRUE;
@@ -59,12 +59,12 @@ flag <sFuncName>(const <sTypeDefName><sStar> <sVarName>, BitStream* pBitStrm, in
 }
 >>
 
-EmitTypeAssignment_primitive_def_decode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes, bEmptyEncodingSpace, nMaxBytesInPER, nMaxBitsInPER, soSparkAnnotations) ::= <<
+EmitTypeAssignment_primitive_def_decode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes, bEmptyEncodingSpace, nMaxBytesInPER, nMaxBitsInPER, soSparkAnnotations, bReqBytesForEncodingIsZero) ::= <<
 <arrsErrcodes; separator="\n">
 flag <sFuncName>(<sTypeDefName><sStar> <sVarName>, BitStream* pBitStrm, int* pErrCode);
 >>
 
-EmitTypeAssignment_primitive_decode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitilialExp) ::= <<
+EmitTypeAssignment_primitive_decode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitilialExp, bReqBytesForEncodingIsZero) ::= <<
 flag <sFuncName>(<sTypeDefName><sStar> <sVarName>, BitStream* pBitStrm, int* pErrCode)
 {
     flag ret = TRUE;
