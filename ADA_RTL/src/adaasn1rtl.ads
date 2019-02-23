@@ -302,6 +302,6 @@ package adaasn1rtl with Spark_Mode is
                 bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - total_bytes*8,
      Post    => Result and bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + total_bytes*8;
 
-
+    pragma Inline (BitStream_AppendByte);
    
 end adaasn1rtl;
