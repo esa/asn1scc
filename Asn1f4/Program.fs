@@ -272,6 +272,12 @@ let exportRTL outDir  (l:ProgrammingLanguage) (args:CommandLineSettings)=
                 writeTextFile (Path.Combine(outDir, "acn_asn1_rtl.adb")) (rm.GetString("acn_asn1_rtl_adb",null))
                 writeTextFile (Path.Combine(outDir, "acn_asn1_rtl.ads")) (rm.GetString("acn_asn1_rtl_ads",null))
 
+                match args.generateAutomaticTestCases with
+                | true  ->
+                    writeTextFile (Path.Combine(outDir, "test_cases_aux.adb")) (rm.GetString("test_cases_aux_adb",null))
+                    writeTextFile (Path.Combine(outDir, "test_cases_aux.ads")) (rm.GetString("test_cases_aux_ads",null))
+                | false -> ()
+
                 writeTextFile (Path.Combine(outDir, "IgnoredExaminerWarnings.wrn"))     (rm.GetString("IgnoredExaminerWarnings",null)) 
                 writeTextFile (Path.Combine(outDir, "gnat.cfg"))    (rm.GetString("gnat",null)) 
                 writeTextFile (Path.Combine(outDir, "runSpark.sh"))    (rm.GetString("run",null)) 

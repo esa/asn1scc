@@ -27,6 +27,7 @@ type StatementKind =
     |Decode_output
     |Validate_output
     |Compare_input_output
+    |Write_bitstream_to_file
 
 
 let OptFlatMap fun1 u =
@@ -68,6 +69,7 @@ let createUperEncDecFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:A
             let decode = match l with C -> test_cases_c.Codec_Decode   | Ada -> test_cases_a.Codec_Decode
             let validateOutput = match l with C -> test_cases_c.Codec_validate_output   | Ada -> test_cases_a.Codec_validate_output
             let compareInputWithOutput = match l with C -> test_cases_c.Codec_compare_input_with_output   | Ada -> test_cases_a.Codec_compare_input_with_output
+            let write_bitstreamToFile = match l with C -> test_cases_c.Codec_write_bitstreamToFile   | Ada -> test_cases_a.Codec_write_bitstreamToFile
             let content= 
                 match stm with
                 |Encode_input           -> option {
@@ -91,7 +93,10 @@ let createUperEncDecFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:A
                                            option {
                                                 let! fname = eqFunc.isEqualFuncName
                                                 return compareInputWithOutput modName fname varName sAmberIsValid
-                                           }                
+                                           }    
+                |Write_bitstream_to_file -> option {
+                                                return write_bitstreamToFile ()
+                                            }            
             joinItems (content.orElse "") sNestedContent
 
         match hasUperEncodeFunction encFunc with
@@ -104,7 +109,7 @@ let createUperEncDecFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:A
                         match printStatements xs with
                         | None                 -> Some (printStatement x  None)
                         | Some childrenCont    -> Some (printStatement x  (Some childrenCont))
-                printStatements [Encode_input; Decode_output; Validate_output; Compare_input_output]
+                printStatements [Encode_input; Decode_output; Validate_output; Compare_input_output; Write_bitstream_to_file]
 
             let func = 
                 printCodec_body modName funcName (typeDefinition.longTypedefName l) sStar varName "" (sNestedStatements.orElse "")
@@ -145,6 +150,7 @@ let createAcnEncDecFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:As
                 let decode = match l with C -> test_cases_c.Codec_Decode   | Ada -> test_cases_a.Codec_Decode
                 let validateOutput = match l with C -> test_cases_c.Codec_validate_output   | Ada -> test_cases_a.Codec_validate_output
                 let compareInputWithOutput = match l with C -> test_cases_c.Codec_compare_input_with_output   | Ada -> test_cases_a.Codec_compare_input_with_output
+                let write_bitstreamToFile = match l with C -> test_cases_c.Codec_write_bitstreamToFile   | Ada -> test_cases_a.Codec_write_bitstreamToFile
                 let content= 
                     match stm with
                     |Encode_input           -> option {
@@ -169,6 +175,9 @@ let createAcnEncDecFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:As
                                                     let! fname = eqFunc.isEqualFuncName
                                                     return compareInputWithOutput modName fname varName sAmberIsValid
                                                }                
+                    |Write_bitstream_to_file -> option {
+                                                    return write_bitstreamToFile ()
+                                                }            
                 joinItems (content.orElse "") sNestedContent
 
             match hasAcnEncodeFunction encFunc t.acnParameters with
@@ -182,7 +191,7 @@ let createAcnEncDecFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:As
                             | None                 -> Some (printStatement x  None)
                             | Some childrenCont    -> Some (printStatement x  (Some childrenCont))
 
-                    printStatements [Encode_input; Decode_output; Validate_output; Compare_input_output]
+                    printStatements [Encode_input; Decode_output; Validate_output; Compare_input_output; Write_bitstream_to_file]
 
                 let func = printCodec_body modName funcName (typeDefinition.longTypedefName l) sStar varName sEnc (sNestedStatements.orElse "")
                 let funcDef = printCodec_body_header funcName modName (typeDefinition.longTypedefName l) sStar varName

@@ -111,24 +111,6 @@ let printAllTestCases (r:DAst.AstRoot) l outDir =
         seq {
             for m in r.Files |> List.collect(fun f -> f.Modules) do
                 for e in r.args.encodings do
-                    for v in m.ValueAssignments do
-                        let encDecTestFunc, tasName = 
-                            //does not work for Ada (tasname is not calculated correctly, needs to be fixed)
-                            match l with
-                            | C ->
-                                match v.Type.Kind with
-                                | ReferenceType   ref ->
-                                    ref.resolvedType.getEncDecTestFunc e, (ToC2(r.args.TypePrefix + ref.baseInfo.tasName.Value) )
-                                | _                  -> v.Type.getEncDecTestFunc e, v.Type.typeDefintionOrReference.longTypedefName l
-                            | Ada ->
-                                v.Type.getEncDecTestFunc e, (getTypeDecl r (ToC m.Name.Value) l v )
-                        match encDecTestFunc with
-                        | Some _    ->
-                            let generateTcFun idx = 
-                                let initFuncName = v.Type.initFunction.initFuncName
-                                PrintValueAssignmentAsTestCase r l e v m tasName (*(getTypeDecl r (ToC m.Name.Value) l v )*)  idx initFuncName 
-                            yield generateTcFun
-                        | None         -> ()
                     for t in m.TypeAssignments do
                         let encDecTestFunc = t.Type.getEncDecTestFunc e
                         match encDecTestFunc with
@@ -149,6 +131,24 @@ let printAllTestCases (r:DAst.AstRoot) l outDir =
                                             PrintAutomaticTestCase r l e initStatement.funcBody initStatement.localVariables  m t.Type (t.Type.FT_TypeDefintion.[l].typeName) idx initFuncName 
                                         yield generateTcFun
                         | None  -> () 
+                    for v in m.ValueAssignments do
+                        let encDecTestFunc, tasName = 
+                            //does not work for Ada (tasname is not calculated correctly, needs to be fixed)
+//                            match l with
+//                            | C ->
+                                match v.Type.Kind with
+                                | ReferenceType   ref ->
+                                    ref.resolvedType.getEncDecTestFunc e, (ToC2(r.args.TypePrefix + ref.baseInfo.tasName.Value) )
+                                | _                  -> v.Type.getEncDecTestFunc e, v.Type.typeDefintionOrReference.longTypedefName l
+//                            | Ada ->
+//                                v.Type.getEncDecTestFunc e, (getTypeDecl r (ToC m.Name.Value) l v )
+                        match encDecTestFunc with
+                        | Some _    ->
+                            let generateTcFun idx = 
+                                let initFuncName = v.Type.initFunction.initFuncName
+                                PrintValueAssignmentAsTestCase r l e v m tasName (*(getTypeDecl r (ToC m.Name.Value) l v )*)  idx initFuncName 
+                            yield generateTcFun
+                        | None         -> ()
         } |> Seq.toList
     let maxTestCasesPerFile = 100.0
     let nMaxTestCasesPerFile = int maxTestCasesPerFile
