@@ -309,17 +309,40 @@ let WordSize() = 8I*IntegerSize()
 let MaxInt() = if WordSize()=64I then BigInteger(System.Int64.MaxValue) else BigInteger(System.Int32.MaxValue)
 let MinInt() = if WordSize()=64I then BigInteger(System.Int64.MinValue) else BigInteger(System.Int32.MinValue)
 
+let powersof2 = [1..100] |> List.map(fun i -> (i, BigInteger.Pow(2I,i) - 1I ))
+
+(* 
 let GetNumberOfBitsForNonNegativeInteger(a:BigInteger) = 
-    BigInteger( System.Math.Ceiling(BigInteger.Log(a+BigInteger(1),2.0)) )
+    let vl = a + 1I
+    let lg = BigInteger.Log(vl, 2.0)
+    BigInteger( System.Math.Ceiling(lg) )
+*)
+
+let GetNumberOfBitsForNonNegativeInteger(a:BigInteger) = 
+    if a > 0I then
+        let aaa = powersof2 |> List.skipWhile(fun (i,pow2) -> a > pow2 )
+        match aaa with
+        | []          -> raise(BugErrorException("Number :" + a.ToString() + "to big to calculate the number of bits"))
+        | (i,pow2)::_ -> BigInteger(i)
+    else
+        0I
+
+
+(*
+let GetNumberOfBitsForNonNegativeInteger2(a:BigInteger) = 
+    let a = System.Decimal.Parse( a.ToString())
+    let lg = Math.Log(a+1m, 2.0)
+    System.Math.Ceiling() 
+*)
 
 let GetChoiceUperDeterminantLengthInBits(nChoiceAlternatives:BigInteger) = 
     match nChoiceAlternatives with
-    | _ when nChoiceAlternatives > 0I   -> BigInteger( System.Math.Ceiling(BigInteger.Log(nChoiceAlternatives,2.0)) )
+    | _ when nChoiceAlternatives > 1I   -> GetNumberOfBitsForNonNegativeInteger (nChoiceAlternatives - 1I)  //BigInteger( System.Math.Ceiling(BigInteger.Log(nChoiceAlternatives,2.0)) )
     | _                                 -> 0I
 
 
-let GetNumberOfBitsForNonNegativeInt(a:int) = 
-    int (System.Math.Ceiling(BigInteger.Log(BigInteger(a)+1I,2.0)) )
+//let GetNumberOfBitsForNonNegativeInt(a:int) = 
+//    int (System.Math.Ceiling(BigInteger.Log(BigInteger(a)+1I,2.0)) )
 
 let toString x = (sprintf "%A" x).Split(' ').[0].Trim()
 
