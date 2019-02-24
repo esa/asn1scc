@@ -25,12 +25,12 @@ let rec printValue (r:DAst.AstRoot)  (l:ProgrammingLanguage)  (curProgamUnitName
             let bytes = bitStringValueToByteArray (StringLoc.ByValue v)
             match t.ActualType.Kind with
             | OctetString os    -> variables_c.PrintBitOrOctetStringValue (os.baseInfo.minSize = os.baseInfo.maxSize) bytes (BigInteger bytes.Length)
-            | BitString   bs    -> variables_c.PrintBitOrOctetStringValue (bs.baseInfo.minSize = bs.baseInfo.maxSize) bytes (BigInteger bytes.Length)
+            | BitString   bs    -> variables_c.PrintBitOrOctetStringValue (bs.baseInfo.minSize = bs.baseInfo.maxSize) bytes (BigInteger v.Length)
             | _         -> raise(BugErrorException "unexpected type")
         | OctetStringValue  v -> 
             match t.ActualType.Kind with
             | OctetString os    -> variables_c.PrintBitOrOctetStringValue (os.baseInfo.minSize = os.baseInfo.maxSize) v (BigInteger v.Length)
-            | BitString   bs    -> variables_c.PrintBitOrOctetStringValue (bs.baseInfo.minSize = bs.baseInfo.maxSize) v (BigInteger v.Length)
+            | BitString   bs    -> variables_c.PrintBitOrOctetStringValue (bs.baseInfo.minSize = bs.baseInfo.maxSize) v (BigInteger (v.Length*8))
             | _         -> raise(BugErrorException "unexpected type")
         | EnumValue         v -> 
             match t.ActualType.Kind with

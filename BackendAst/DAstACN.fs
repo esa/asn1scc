@@ -487,7 +487,7 @@ let createBooleanFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec:
                 let arrsBits = bitVal.Value.ToCharArray() |> Seq.mapi(fun i x -> ((i+1).ToString()) + "=>" + if x='0' then "0" else "1") |> Seq.toList
                 let arrBytes = bitStringValueToByteArray bitVal
                 let bEncValIsTrue, arruTrueValueAsByteArray, arruFalseValueAsByteArray, nSize =
-                    false, arrBytes, (arrBytes |> Array.map (~~~)), bitVal.Value.Length
+                    false, (arrBytes |> Array.map (~~~)), arrBytes, bitVal.Value.Length
                 acnBoolean pvalue ptr bEncValIsTrue (BigInteger nSize) arruTrueValueAsByteArray arruFalseValueAsByteArray arrsBits errCode.errCodeName codec
                 
         {AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = []}    
