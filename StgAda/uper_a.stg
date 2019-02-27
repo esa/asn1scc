@@ -560,6 +560,52 @@ result.errorCode := <sErrCode>;
 
 
 
+
+FixedSize_Fragmentation_sqf_64K_encode(p, sAcc,sCurOffset, sCurBlockSize, sBlockIndex, nBlocks64K, sInternalItem, sBLI, sRemainingItemsVar, bIsBitStringType, sErrCodeName) ::=<<
+--encode <nBlocks64K> x 64K Blocks
+<sCurBlockSize> := 16#10000#;
+<sCurOffset> := 1;
+for <sBlockIndex> in 1 .. <nBlocks64K> loop
+    uper_asn1_rtl.UPER_Enc_ConstraintWholeNumber(bs, 16#C4#, 0, 8);
+	for <sBLI> in <sCurOffset> .. <sCurOffset> + <sCurBlockSize> -1 loop
+		<sInternalItem>
+	end loop;
+
+    <sCurOffset> := <sCurOffset> + <sCurBlockSize>;
+end loop;
+>>
+
+FixedSize_Fragmentation_sqf_small_block_encode(p, sAcc,sInternalItem, nBlockSize, sBlockId, sCurOffset, sCurBlockSize, sBLI, sRemainingItemsVar, bIsBitStringType, sErrCodeName) ::=<<
+--encode <nBlockSize> Block
+<sCurBlockSize> := <nBlockSize>;
+uper_asn1_rtl.UPER_Enc_ConstraintWholeNumber(bs, <sBlockId>, 0, 8);
+for <sBLI> in <sCurOffset> .. <sCurOffset> + <sCurBlockSize> -1 loop
+	<sInternalItem>
+end loop;
+<sCurOffset> := <sCurOffset> + <sCurBlockSize>;
+>>
+
+
+FixedSize_Fragmentation_sqf_remaining_encode(p, sAcc,sInternalItem, bRemainingItemsWithinByte, nRemainingItemsVar, sCurOffset, sBLI, sRemainingItemsVar, bIsBitStringType, sErrCodeName) ::= <<
+--encoding remaining <nRemainingItemsVar> items
+<if(bRemainingItemsWithinByte)>
+uper_asn1_rtl.UPER_Enc_ConstraintWholeNumber(bs, <rtlModuleName()>.Asn1Int(<nRemainingItemsVar>), 0, 8);
+
+<else>
+<rtlModuleName()>.BitStream_AppendBit(bs, 1);
+uper_asn1_rtl.UPER_Enc_ConstraintWholeNumber(bs, <rtlModuleName()>.Asn1Int(<nRemainingItemsVar>), 0, 15);
+
+<endif>
+for <sBLI> in <sCurOffset> .. <sCurOffset> + <nRemainingItemsVar> -1 loop
+	<sInternalItem>
+end loop;
+>>
+
+FixedSize_Fragmentation_sqf_encode(arrsEncodingParts) ::= <<
+<arrsEncodingParts; separator="\n">
+>>
+
+
 Fragmentation_sqf_encode(p, sAcc, sInternalItem, nIntItemMaxSize, nSizeMin, nSizeMax, nRequiredBitsForUPerEncoding, bIsVariableSize, sErrCodeName, sRemainingItemsVar, sCurBlockSize, sBlockIndex, sCurOffset, sBLJ, sBLI, sLengthTmp, bIsBitStringType, bIsAsciiString) ::= <<
 <sCurOffset> := 1;
 <sRemainingItemsVar> := <if(bIsAsciiString)><rtlModuleName()>.getStringSize(<p>)<else><if(bIsVariableSize)><p><sAcc>Length<else><nSizeMax><endif><endif>;
@@ -612,6 +658,71 @@ end loop;
 
 >>
 
+
+
+
+
+
+
+
+FixedSize_Fragmentation_sqf_decode(arrsEncodingParts) ::= <<
+<arrsEncodingParts; separator="\n">
+>>
+
+FixedSize_Fragmentation_sqf_64K_decode(p, sAcc,sCurOffset, sCurBlockSize, sBlockIndex, nBlocks64K, sInternalItem, sBLI, sRemainingItemsVar, bIsBitStringType, sErrCodeName) ::=<<
+--we expect to decode <nBlocks64K> Blocks and each block must contain 64K elements. Each block must begin with the byte 0xC4
+<sCurBlockSize> := 16#10000#;
+<sCurOffset> := 1;
+result.ErrorCode := <sErrCodeName>; 
+for <sBlockIndex> in 1 .. <nBlocks64K>  loop
+    uper_asn1_rtl.UPER_Dec_ConstraintWholeNumberInt(bs, <sRemainingItemsVar>, 0, 255, 8, result.Success);
+    result.Success := result.Success AND (<sRemainingItemsVar> = 16#C4#);
+    exit when not Result.Success;
+
+	for <sBLI> in <sCurOffset> .. <sCurOffset> + <sCurBlockSize> -1 loop
+		<sInternalItem>
+        exit when not Result.Success;
+	end loop;
+
+    <sCurOffset> := <sCurOffset> + <sCurBlockSize>;
+     exit when not Result.Success;
+end loop;
+>>
+
+
+FixedSize_Fragmentation_sqf_small_block_decode(p, sAcc,sInternalItem, nBlockSize, sBlockId, sCurOffset, sCurBlockSize, sBLI, sRemainingItemsVar, bIsBitStringType, sErrCodeName) ::=<<
+--decode a single Block with <nBlockSize> items
+<sCurBlockSize> := <nBlockSize>;
+uper_asn1_rtl.UPER_Dec_ConstraintWholeNumberInt(bs, <sRemainingItemsVar>, 0, 255, 8, result.Success);
+result.Success  := result.Success AND (<sRemainingItemsVar> = <sBlockId>);
+if result.Success then
+    for <sBLI> in <sCurOffset> .. <sCurOffset> + <sCurBlockSize> -1 loop
+	    <sInternalItem>
+        exit when not Result.Success;
+    end loop;
+
+    <sCurOffset> := <sCurOffset> + <sCurBlockSize>;
+end if;
+>>
+
+FixedSize_Fragmentation_sqf_remaining_decode(p, sAcc,sInternalItem, bRemainingItemsWithinByte, nRemainingItemsVar, sCurOffset, sBLI, sRemainingItemsVar, bIsBitStringType, sErrCodeName) ::= <<
+--decode remaining <nRemainingItemsVar> items
+<if(bRemainingItemsWithinByte)>
+uper_asn1_rtl.UPER_Dec_ConstraintWholeNumberInt(bs, <sRemainingItemsVar>, 0, 255, 8, result.Success);
+result.Success  := result.Success AND (<sRemainingItemsVar> = <nRemainingItemsVar>);
+
+<else>
+uper_asn1_rtl.UPER_Dec_ConstraintWholeNumberInt(bs, <sRemainingItemsVar>, 0, 16#FFFF#, 16, result.Success);
+result.Success := result.Success AND ((adaasn1rtl.Asn1UInt(16#8000#) AND adaasn1rtl.Asn1UInt(<sRemainingItemsVar>)) > 0) AND ( (adaasn1rtl.Asn1UInt(16#7FFF#) AND adaasn1rtl.Asn1UInt(<sRemainingItemsVar>)) = adaasn1rtl.Asn1UInt(<nRemainingItemsVar>));
+
+<endif>
+if result.Success then
+    for <sBLI> in <sCurOffset> .. <sCurOffset> + <nRemainingItemsVar> -1 loop
+	    <sInternalItem>
+        exit when not Result.Success;
+    end loop;
+end if;
+>>
 
 
 
