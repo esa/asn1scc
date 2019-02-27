@@ -115,7 +115,7 @@ def RunTestCase(asn1, acn, behavior, expErrMsg):
                 if ("####" in l) and ("COVERAGE_IGNORE" not in l)]
             if len(lines) > 0:
                 PrintWarning("coverage failed. (less than 100%)")
-                #sys.exit(1)
+                sys.exit(1)
         except FileNotFoundError as err:
             pass;
     else:

@@ -227,7 +227,7 @@ let handleFixedSizeFragmentation (l:ProgrammingLanguage) (p:CallerScope) (codec:
     let sBlockIndex        = sprintf "%s%d" "nBlockIndex" ii
     let sCurOffset         = sprintf "%s%d" "nCurOffset" ii
     let sBLI               = sprintf "i%d" ii
-    let lv = SequenceOfIndex (ii, None)
+    //let lv = SequenceOfIndex (ii, None)
     let nBlocks64K = fixSize / C64K
     let parts =
         let part = fixedSize_Fragmentation_sqf_64K p.arg.p (p.arg.getAcces l) sCurOffset sCurBlockSize sBlockIndex nBlocks64K internalItem_funcBody sBLI sRemainingItemsVar bIsBitStringType errCode.errCodeName codec
@@ -280,33 +280,33 @@ let handleFixedSizeFragmentation (l:ProgrammingLanguage) (p:CallerScope) (codec:
     let fragmentationVars = [createLv sCurBlockSize; createLv sCurOffset]
     let fragmentationVars = fragmentationVars |> List.addIf (codec = Decode) (createLv sRemainingItemsVar)
     let fragmentationVars = fragmentationVars |> List.addIf (l = C) (createLv sBlockIndex)
-    let fragmentationVars = fragmentationVars |> List.addIf (l = C) (lv)
+    //let fragmentationVars = fragmentationVars |> List.addIf (l = C) (lv)
     let singleNestedPart  = nestChildItems l codec parts |> Option.toList
     fixedSize_Fragmentation_sqf singleNestedPart  codec, fragmentationVars
 
 let handleFragmentation (l:ProgrammingLanguage) (p:CallerScope) (codec:CommonTypes.Codec) (errCode:ErroCode) ii uperMaxSizeInBits (minSize:BigInteger) (maxSize:BigInteger) internalItem_funcBody nIntItemMaxSize bIsBitStringType bIsAsciiString=
-    let fragmentation   = match l with C -> uper_c.Fragmentation_sqf       | Ada -> uper_a.Fragmentation_sqf
-    let sRemainingItemsVar = sprintf "%s%d" "nRemainingItemsVar" ii
-    let sCurBlockSize      = sprintf "%s%d" "nCurBlockSize" ii
-    let sBlockIndex        = sprintf "%s%d" "nBlockIndex" ii
-    let sCurOffset         = sprintf "%s%d" "nCurOffset" ii
-    let sBLJ               = sprintf "%s%d" "nBLJ" ii
-    let sLengthTmp         = sprintf "%s%d" "nLengthTmp" ii
-    let sBLI               = sprintf "i%d" ii
-    let lv = SequenceOfIndex (ii, None)
-
-    let createLv name =
-        match l with Ada -> IntegerLocalVariable(name ,None) | C -> Asn1SIntLocalVariable(name,None)
-
-    let fragmentationVars = [lv; createLv sRemainingItemsVar; createLv sCurBlockSize; createLv sCurOffset ]
-
-    let fragmentationVars = fragmentationVars |> List.addIf (codec = Encode && l = Ada) (createLv sBLJ)
-    let fragmentationVars = fragmentationVars |> List.addIf (codec = Encode) (createLv sBlockIndex)
-    let fragmentationVars = fragmentationVars |> List.addIf (codec = Decode && minSize <> maxSize) (createLv sLengthTmp)
     match minSize = maxSize with
     | true ->
         handleFixedSizeFragmentation l p codec errCode ii uperMaxSizeInBits minSize internalItem_funcBody nIntItemMaxSize bIsBitStringType bIsAsciiString
     | false ->
+        let fragmentation   = match l with C -> uper_c.Fragmentation_sqf       | Ada -> uper_a.Fragmentation_sqf
+        let sRemainingItemsVar = sprintf "%s%d" "nRemainingItemsVar" ii
+        let sCurBlockSize      = sprintf "%s%d" "nCurBlockSize" ii
+        let sBlockIndex        = sprintf "%s%d" "nBlockIndex" ii
+        let sCurOffset         = sprintf "%s%d" "nCurOffset" ii
+        let sBLJ               = sprintf "%s%d" "nBLJ" ii
+        let sLengthTmp         = sprintf "%s%d" "nLengthTmp" ii
+        let sBLI               = sprintf "i%d" ii
+        //let lv = SequenceOfIndex (ii, None)
+
+        let createLv name =
+            match l with Ada -> IntegerLocalVariable(name ,None) | C -> Asn1SIntLocalVariable(name,None)
+
+        let fragmentationVars = [createLv sRemainingItemsVar; createLv sCurBlockSize; createLv sCurOffset ]
+
+        let fragmentationVars = fragmentationVars |> List.addIf (codec = Encode && l = Ada) (createLv sBLJ)
+        let fragmentationVars = fragmentationVars |> List.addIf (codec = Encode) (createLv sBlockIndex)
+        let fragmentationVars = fragmentationVars |> List.addIf (codec = Decode && minSize <> maxSize) (createLv sLengthTmp)
         fragmentation p.arg.p (p.arg.getAcces l) internalItem_funcBody  nIntItemMaxSize ( minSize) ( maxSize) uperMaxSizeInBits (minSize <> maxSize) errCode.errCodeName sRemainingItemsVar sCurBlockSize sBlockIndex sCurOffset sBLJ sBLI sLengthTmp bIsBitStringType bIsAsciiString codec, fragmentationVars
 
 let createIA5StringFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.StringType) (typeDefinition:TypeDefintionOrReference)   (baseTypeUperFunc : UPerFunction option) (isValidFunc: IsValidFunction option) (us:State)  =
@@ -348,7 +348,7 @@ let createIA5StringFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (code
             | _ when o.maxSize < 65536I && o.maxSize<>o.minSize  -> str_VarSize p.arg.p typeDefinitionName i internalItem ( o.minSize) ( o.maxSize) nSizeInBits nBits nBits 0I codec , lv::charIndex@nStringLength
             | _                                                -> 
                 let funcBodyContent,localVariables = handleFragmentation l p codec errCode ii ( o.uperMaxSizeInBits) o.minSize o.maxSize internalItem nBits false true
-                let localVariables = match l with C -> lv::localVariables | Ada -> localVariables
+                let localVariables = localVariables |> List.addIf (l = C || o.maxSize<>o.minSize) (lv)
 
                 funcBodyContent, charIndex@localVariables
 
