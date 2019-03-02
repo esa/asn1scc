@@ -137,7 +137,7 @@ flag isPartOfID(char c) {
 
 Token NT(ByteStream* pByteStrm) {
     Token ret;
-    char spChrs[] = { '<', '>', '/', '=', '"'};
+    char spChrs[] = { '<', '>', '/', '=', '"', 0 };
     char *tmp;
     memset(&ret, 0x0, sizeof(Token));
 
