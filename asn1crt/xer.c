@@ -43,7 +43,7 @@ char* UInt2String(asn1SccUint v) {
 }
 
 char* Double2String(double v) {
-    if (v == 0)
+    if (fabs(v) < 1e-17)
         return "0";
 
     static char tmp[256];
