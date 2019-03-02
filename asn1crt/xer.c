@@ -16,12 +16,12 @@ char* Int2String(asn1SccSint v) {
     static char tmp[256];
 #if WORD_SIZE==8
 #ifdef __MINGW32__
-    sprintf(tmp,"%I64d",v);
+    snprintf(tmp, sizeof(tmp), "%I64d", v);
 #else
-    sprintf(tmp,"%lld",v);
-#endif	
+    snprintf(tmp, sizeof(tmp), "%lld", v);
+#endif
 #else
-    sprintf(tmp,"%ld",v);
+    snprintf(tmp, sizeof(tmp), "%ld", v);
 #endif
 
     return tmp;
@@ -31,12 +31,12 @@ char* UInt2String(asn1SccUint v) {
     static char tmp[256];
 #if WORD_SIZE==8
 #ifdef __MINGW32__
-    sprintf(tmp, "%I64u", v);
+    snprintf(tmp, sizeof(tmp), "%I64u", v);
 #else
-    sprintf(tmp, "%llu", v);
-#endif	
+    snprintf(tmp, sizeof(tmp), "%llu", v);
+#endif
 #else
-    sprintf(tmp, "%ld", v);
+    snprintf(tmp, sizeof(tmp), "%ld", v);
 #endif
 
     return tmp;
@@ -45,14 +45,13 @@ char* UInt2String(asn1SccUint v) {
 char* Double2String(double v) {
     static char tmp[256];
     char* pos1 = NULL;
-    sprintf(tmp,"%#.24E",v);
+    snprintf(tmp, sizeof(tmp), "%#.24E", v);
 
     pos1 = strchr(tmp,'+');
     if (pos1!=NULL) {
         *pos1=0x0;
         strcat(tmp, ++pos1);
     }
-
 
     return tmp;
 }
@@ -590,7 +589,7 @@ flag Xer_EncodeOctetString(ByteStream* pByteStrm, const char* elementTag, const 
 
     for(i=0;i<nCount;i++) {
         char tmp[3];
-        sprintf(tmp,"%02X", value[i]);
+        snprintf(tmp, sizeof(tmp), "%02X", value[i]);
         if (!ByteStream_AppendString(pByteStrm,tmp))
             return FALSE;
 
