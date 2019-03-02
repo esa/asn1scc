@@ -57,7 +57,7 @@ char* Double2String(double v) {
 }
 
 flag GetNextChar(ByteStream* pStrm, char* c) {
-    if (pStrm->currentByte+1>pStrm->count+1)
+    if (pStrm->currentByte >= pStrm->count)
         return FALSE;
     *c = (char) pStrm->buf[pStrm->currentByte];
     pStrm->currentByte++;
@@ -67,7 +67,7 @@ flag GetNextChar(ByteStream* pStrm, char* c) {
 void PushBackChar(ByteStream* pStrm)
 {
     pStrm->currentByte--;
-    assert(pStrm->currentByte>=0);
+    assert(pStrm->currentByte >= 0);
 }
 
 flag ByteStream_PutSpace(ByteStream* pStrm, int level) 
@@ -80,7 +80,7 @@ flag ByteStream_PutSpace(ByteStream* pStrm, int level)
 
     if (level<0)
         return TRUE;
-    if (pStrm->currentByte+len>pStrm->count+1)
+    if (pStrm->currentByte + len >= pStrm->count)
         return FALSE;
 
     for(i=0; i< len; i++) {
@@ -95,7 +95,7 @@ flag ByteStream_PutNL(ByteStream* pStrm)
     if (!pStrm->EncodeWhiteSpace)
         return TRUE;
 
-    if (pStrm->currentByte+1>pStrm->count+1)
+    if (pStrm->currentByte >= pStrm->count)
         return FALSE;
 
     pStrm->buf[pStrm->currentByte] = '\n';
@@ -106,7 +106,7 @@ flag ByteStream_PutNL(ByteStream* pStrm)
 flag ByteStream_AppendString(ByteStream* pStrm, const char* v) 
 {
     int len = (int)strlen(v);
-    if (pStrm->currentByte+len>pStrm->count+1)
+    if (pStrm->currentByte + len >= pStrm->count)
         return FALSE;
     
     strcat((char*)&pStrm->buf[pStrm->currentByte],v);
@@ -972,11 +972,11 @@ XmlState PreviousState = XmlStart;
 
 flag ByteStream_AppendChar(ByteStream* pStrm, const char v) 
 {
-    if (pStrm->currentByte > pStrm->count)
+    if (pStrm->currentByte >= pStrm->count)
         return FALSE;
-    
+
     pStrm->buf[pStrm->currentByte] = (byte) v;
-    pStrm->currentByte+=1;
+    pStrm->currentByte++;
     return TRUE;
 }
 
