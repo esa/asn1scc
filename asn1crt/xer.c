@@ -43,14 +43,26 @@ char* UInt2String(asn1SccUint v) {
 }
 
 char* Double2String(double v) {
-    static char tmp[256];
-    char* pos1 = NULL;
-    snprintf(tmp, sizeof(tmp), "%#.24E", v);
+    if (fabs(v) < 1e-17)
+        return "0";
 
-    pos1 = strchr(tmp,'+');
-    if (pos1!=NULL) {
-        *pos1=0x0;
-        strcat(tmp, ++pos1);
+    static char tmp[256];
+    int exponent = 0;
+
+    while (fabs(v) >= 10) {
+        v /= 10;
+        exponent++;
+    }
+
+    while (fabs(v) < 1) {
+        v *= 10;
+        exponent--;
+    }
+
+    if (fabs(fabs(v) - llabs((asn1SccSint) v)) < 1e-17) {
+        snprintf(tmp, sizeof(tmp), "%.1fE%d", v, exponent);
+    } else {
+        snprintf(tmp, sizeof(tmp), "%.17gE%d", v, exponent);
     }
 
     return tmp;
