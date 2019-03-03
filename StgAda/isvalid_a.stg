@@ -89,8 +89,9 @@ FUNCTION <sFuncName>(str : in String) return boolean
 IS
     ret:BOOLEAN:=true;
     I:INTEGER:=1;
+    strLen :constant Integer := <rtlModuleName()>.getStringSize(str);
 BEGIN
-    WHILE I\<=<rtlModuleName()>.getStringSize(str) and ret LOOP
+    WHILE I\<= strLen and ret LOOP
         pragma Loop_Invariant (I>=1 AND I\<=str'Last);
         ret := ret AND <arrsAlphaConBody; separator=" AND ">;
         I := I + 1;
