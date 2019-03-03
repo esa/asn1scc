@@ -217,6 +217,30 @@ let C32K = BigInteger 0x8000
 let C16K = BigInteger 0x4000
 let C_127 = BigInteger 0x7F
 
+type FragmentationParts = {
+    nBlocks64K :  BigInteger
+    has48KBlock : bool
+    has32KBlock : bool
+    has16KBlock : bool
+    nRemainingItemsVar : BigInteger
+}
+
+let FragmentationParts (size:BigInteger) =
+    let nBlocks64K = size / C64K
+    let nRemainingItemsVar1 = size % C64K
+    let has48KBlock = nRemainingItemsVar1 >= C48K
+
+    let nRemainingItemsVar2 = if has48KBlock then (nRemainingItemsVar1 - C48K) else nRemainingItemsVar1
+    let has32KBlock = nRemainingItemsVar2 >= C32K
+
+    let nRemainingItemsVar3 = if has32KBlock then (nRemainingItemsVar2 - C32K) else nRemainingItemsVar2
+    let has16KBlock = nRemainingItemsVar3 >= C16K
+
+    let nRemainingItemsVar = if has16KBlock then (nRemainingItemsVar3 - C16K) else nRemainingItemsVar3
+
+    { nBlocks64K = nBlocks64K; has48KBlock = has48KBlock; has32KBlock = has32KBlock; has16KBlock = has16KBlock; nRemainingItemsVar = nRemainingItemsVar}
+
+
 let handleFixedSizeFragmentation (l:ProgrammingLanguage) (p:CallerScope) (codec:CommonTypes.Codec) (errCode:ErroCode) ii uperMaxSizeInBits (fixSize:BigInteger) internalItem_funcBody nIntItemMaxSize bIsBitStringType bIsAsciiString=
     let fixedSize_Fragmentation_sqf_64K          = match l with C -> uper_c.FixedSize_Fragmentation_sqf_64K       | Ada -> uper_a.FixedSize_Fragmentation_sqf_64K
     let fixedSize_Fragmentation_sqf_small_block  = match l with C -> uper_c.FixedSize_Fragmentation_sqf_small_block       | Ada -> uper_a.FixedSize_Fragmentation_sqf_small_block
@@ -228,49 +252,55 @@ let handleFixedSizeFragmentation (l:ProgrammingLanguage) (p:CallerScope) (codec:
     let sCurOffset         = sprintf "%s%d" "nCurOffset" ii
     let sBLI               = sprintf "i%d" ii
     //let lv = SequenceOfIndex (ii, None)
-    let nBlocks64K = fixSize / C64K
+    let r = FragmentationParts fixSize
+    //let nBlocks64K = fixSize / C64K
     let parts =
-        let part = fixedSize_Fragmentation_sqf_64K p.arg.p (p.arg.getAcces l) sCurOffset sCurBlockSize sBlockIndex nBlocks64K internalItem_funcBody sBLI sRemainingItemsVar bIsBitStringType errCode.errCodeName codec
+        let part = fixedSize_Fragmentation_sqf_64K p.arg.p (p.arg.getAcces l) sCurOffset sCurBlockSize sBlockIndex r.nBlocks64K internalItem_funcBody sBLI sRemainingItemsVar bIsBitStringType errCode.errCodeName codec
         [part]
+    let smallBlockParts = 
+        [(r.has48KBlock, l.toHex 195, C48K);(r.has32KBlock, l.toHex 194, C32K);(r.has16KBlock, l.toHex 193, C16K)] |>  //0xC3, 0xC2, 0xC1
+        List.filter (fun (a,_,_) -> a) |>
+        List.map (fun (_, sBlockId, nBlockSize) -> fixedSize_Fragmentation_sqf_small_block p.arg.p (p.arg.getAcces l) internalItem_funcBody nBlockSize sBlockId sCurOffset sCurBlockSize sBLI sRemainingItemsVar bIsBitStringType errCode.errCodeName codec)
+    let parts = parts@smallBlockParts
 
-    let nRemainingItemsVar1 = fixSize % C64K
-    let has48KBlock = nRemainingItemsVar1 >= C48K
-    let parts = 
-        match has48KBlock with
-        | true  -> 
-            let sBlockId           = if l = C then "0xC3" else "16#C3#"
-            let part = fixedSize_Fragmentation_sqf_small_block p.arg.p (p.arg.getAcces l) internalItem_funcBody C48K sBlockId sCurOffset sCurBlockSize sBLI sRemainingItemsVar bIsBitStringType errCode.errCodeName codec
-            parts@[part]
-        | false  -> parts
+    //let nRemainingItemsVar1 = fixSize % C64K
+    //let has48KBlock = nRemainingItemsVar1 >= C48K
+//    let parts = 
+//        match r.has48KBlock with
+//        | true  -> 
+//            let sBlockId           = if l = C then "0xC3" else "16#C3#"
+//            let part = fixedSize_Fragmentation_sqf_small_block p.arg.p (p.arg.getAcces l) internalItem_funcBody C48K sBlockId sCurOffset sCurBlockSize sBLI sRemainingItemsVar bIsBitStringType errCode.errCodeName codec
+//            parts@[part]
+//        | false  -> parts
+//
+//    //let nRemainingItemsVar2 = if has48KBlock then (nRemainingItemsVar1 - C48K) else nRemainingItemsVar1
+//    //let has32KBlock = nRemainingItemsVar2 >= C32K
+//    let parts = 
+//        match r.has32KBlock with
+//        | true  -> 
+//            let sBlockId           = if l = C then "0xC2" else "16#C2#"
+//            let part = fixedSize_Fragmentation_sqf_small_block p.arg.p (p.arg.getAcces l) internalItem_funcBody C32K sBlockId sCurOffset sCurBlockSize sBLI sRemainingItemsVar bIsBitStringType errCode.errCodeName codec
+//            parts@[part]
+//        | false  -> parts
+//
+//
+//    //let nRemainingItemsVar3 = if has32KBlock then (nRemainingItemsVar2 - C32K) else nRemainingItemsVar2
+//    //let has16KBlock = nRemainingItemsVar3 >= C16K
+//    let parts = 
+//        match r.has16KBlock with
+//        | true  -> 
+//            let sBlockId           = if l = C then "0xC1" else "16#C1#"
+//            let part = fixedSize_Fragmentation_sqf_small_block p.arg.p (p.arg.getAcces l) internalItem_funcBody C16K sBlockId sCurOffset sCurBlockSize sBLI sRemainingItemsVar bIsBitStringType errCode.errCodeName codec
+//            parts@[part]
+//        | false  -> parts
+//
 
-    let nRemainingItemsVar2 = if has48KBlock then (nRemainingItemsVar1 - C48K) else nRemainingItemsVar1
-    let has32KBlock = nRemainingItemsVar2 >= C32K
-    let parts = 
-        match has32KBlock with
-        | true  -> 
-            let sBlockId           = if l = C then "0xC2" else "16#C2#"
-            let part = fixedSize_Fragmentation_sqf_small_block p.arg.p (p.arg.getAcces l) internalItem_funcBody C32K sBlockId sCurOffset sCurBlockSize sBLI sRemainingItemsVar bIsBitStringType errCode.errCodeName codec
-            parts@[part]
-        | false  -> parts
-
-
-    let nRemainingItemsVar3 = if has32KBlock then (nRemainingItemsVar2 - C32K) else nRemainingItemsVar2
-    let has16KBlock = nRemainingItemsVar3 >= C16K
-    let parts = 
-        match has16KBlock with
-        | true  -> 
-            let sBlockId           = if l = C then "0xC1" else "16#C1#"
-            let part = fixedSize_Fragmentation_sqf_small_block p.arg.p (p.arg.getAcces l) internalItem_funcBody C16K sBlockId sCurOffset sCurBlockSize sBLI sRemainingItemsVar bIsBitStringType errCode.errCodeName codec
-            parts@[part]
-        | false  -> parts
-
-
-    let nRemainingItemsVar = if has16KBlock then (nRemainingItemsVar3 - C16K) else nRemainingItemsVar3
-    let bRemainingItemsWithinByte = nRemainingItemsVar <= C_127
+    //let nRemainingItemsVar = if has16KBlock then (nRemainingItemsVar3 - C16K) else nRemainingItemsVar3
+    let bRemainingItemsWithinByte = r.nRemainingItemsVar <= C_127
     let parts=
-        match nRemainingItemsVar > 0I with
+        match r.nRemainingItemsVar > 0I with
         | true  ->
-            let part = fixedSize_Fragmentation_sqf_remaining p.arg.p (p.arg.getAcces l) internalItem_funcBody bRemainingItemsWithinByte nRemainingItemsVar sCurOffset sBLI sRemainingItemsVar bIsBitStringType errCode.errCodeName codec
+            let part = fixedSize_Fragmentation_sqf_remaining p.arg.p (p.arg.getAcces l) internalItem_funcBody bRemainingItemsWithinByte r.nRemainingItemsVar sCurOffset sBLI sRemainingItemsVar bIsBitStringType errCode.errCodeName codec
             parts@[part]
         | false -> parts
 
@@ -349,7 +379,6 @@ let createIA5StringFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (code
             | _                                                -> 
                 let funcBodyContent,localVariables = handleFragmentation l p codec errCode ii ( o.uperMaxSizeInBits) o.minSize o.maxSize internalItem nBits false true
                 let localVariables = localVariables |> List.addIf (l = C || o.maxSize<>o.minSize) (lv)
-
                 funcBodyContent, charIndex@localVariables
 
         {UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = localVariables}    

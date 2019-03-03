@@ -46,7 +46,7 @@ flag <sFuncName>(const <sTypeDefName><sStar> <sVarName>, BitStream* pBitStrm, in
 	ret = bCheckConstraints ? <soIValidFuncName>(<sVarName>, pErrCode) : TRUE ;
 	if (ret) {
 	    <sContent>
-    }
+    } /*COVERAGE_IGNORE*/
 
     <else>
     *pErrCode = 0;
@@ -263,7 +263,7 @@ Enumerated_encode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, nMin, nMax, n
 switch(<p>) 
 {
     <arrsItem; separator="\n">
-    default:
+    default:                    /*COVERAGE_IGNORE*/
 	    *pErrCode = <sErrCode>; /*COVERAGE_IGNORE*/
 	    ret = FALSE;            /*COVERAGE_IGNORE*/
 }
@@ -278,7 +278,7 @@ Enumerated_decode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, nMin, nMax, n
         switch(enumIndex) 
         {
             <arrsItem; separator="\n">
-            default:
+            default:                        /*COVERAGE_IGNORE*/
 	            *pErrCode = <sErrCode>;     /*COVERAGE_IGNORE*/
 	            ret = FALSE;                /*COVERAGE_IGNORE*/
         }
@@ -310,7 +310,7 @@ choice_encode(p, sAcc, arrsChildren, nLastItemIndex, sChoiceIndexName, sErrCode,
 switch(<p><sAcc>kind) 
 {
 <arrsChildren: {ch|<ch>}; separator="\n">
-default:
+default:                            /*COVERAGE_IGNORE*/
     *pErrCode = <sErrCode>;         /*COVERAGE_IGNORE*/
     ret = FALSE;                    /*COVERAGE_IGNORE*/
 }
@@ -323,11 +323,11 @@ if (ret) {
     switch(<sChoiceIndexName>) 
     {
     <arrsChildren: {ch|<ch>}; separator="\n">
-    default:
+    default:                        /*COVERAGE_IGNORE*/
         *pErrCode = <sErrCode>;     /*COVERAGE_IGNORE*/
         ret = FALSE;                /*COVERAGE_IGNORE*/
     }
-}
+}  /*COVERAGE_IGNORE*/
 >>
 
 /* CHOICE END*/
@@ -691,13 +691,13 @@ if (ret) {
 		else if (<sRemainingItemsVar> == 0xC1)
 			<sCurBlockSize> = 0x4000;
 		else {
-			*pErrCode = <sErrCodeName>;
-			return FALSE;
+			*pErrCode = <sErrCodeName>; /*COVERAGE_IGNORE*/
+			return FALSE; /*COVERAGE_IGNORE*/
 		}
 		if (<sCurOffset> + <sCurBlockSize> > <nSizeMax>)
 		{
-			*pErrCode = <sErrCodeName>;
-			return FALSE;
+			*pErrCode = <sErrCodeName>; /*COVERAGE_IGNORE*/
+			return FALSE; /*COVERAGE_IGNORE*/
 		}
 
 		<if(bIsBitStringType)>
@@ -754,8 +754,8 @@ if (ret) {
 
 	                <endif>
                 } else {
-                    ret = FALSE;
-                    *pErrCode = <sErrCodeName>;
+                    ret = FALSE;  /*COVERAGE_IGNORE*/
+                    *pErrCode = <sErrCodeName>; /*COVERAGE_IGNORE*/
                 }
 
                 <else>

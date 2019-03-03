@@ -1,5 +1,9 @@
 group c_header;
 
+indentation(sStatement) ::=<<
+    <sStatement>
+>>
+
 PrintHeaderFile(sFileNameWithNoExtUpperCase, arrsIncludedModules, arrsTypeAssignments, arrsValueAssignments, arrsPrototypes, arrsUtilityDefines) ::= <<
 #ifndef GENERATED_ASN1SCC_<sFileNameWithNoExtUpperCase>_H
 #define GENERATED_ASN1SCC_<sFileNameWithNoExtUpperCase>_H

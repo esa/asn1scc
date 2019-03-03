@@ -15,7 +15,7 @@ JoinTwoIfFirstOk(sStr1,sStr2) ::=<<
 <sStr1>
 if (ret) {
     <sStr2>
-}
+}   /*COVERAGE_IGNORE*/
 >>
 
 
@@ -233,7 +233,7 @@ case <sChPresent> :
 choice(p, sAccess, arrsChildren, sErrCodeForInvalidCase) ::= <<
 switch (<p><sAccess>kind) {
     <arrsChildren; separator="\n">
-    default:
+    default: /*COVERAGE_IGNORE*/
 	    *pErrCode = <sErrCodeForInvalidCase>;      /*COVERAGE_IGNORE*/
 	    ret = FALSE;                               /*COVERAGE_IGNORE*/
 }

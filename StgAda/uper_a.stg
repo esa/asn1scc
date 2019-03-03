@@ -758,7 +758,7 @@ while result.Success AND (<sRemainingItemsVar> = 16#C4# OR <sRemainingItemsVar> 
     uper_asn1_rtl.UPER_Dec_ConstraintWholeNumberInt(bs, <sRemainingItemsVar>, 0, 255, 8, result.Success);
 end loop;
 
-if <sRemainingItemsVar> > 16#80# THEN
+if <sRemainingItemsVar> >= 16#80# THEN
     declare
         len2:Integer;
     begin

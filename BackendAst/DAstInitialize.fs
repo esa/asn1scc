@@ -29,7 +29,11 @@ let getFuncName2 (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage)  (typeDefinition
 
 
 let createInitFunctionCommon (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage)   (o:Asn1AcnAst.Asn1Type) (typeDefinition:TypeDefintionOrReference) initByAsn1Value (iv:Asn1ValueKind) (initTasFunction:CallerScope  -> InitFunctionResult) automaticTestCases =
-    let funcName            = getFuncName2 r l typeDefinition
+    let funcName            = 
+        //match o.id.tasInfo with
+        //| None -> None
+        //| Some _ -> 
+            getFuncName2 r l typeDefinition
     let p = o.getParamType l CommonTypes.Codec.Decode
     let initTypeAssignment = match l with C -> init_c.initTypeAssignment | Ada -> init_a.initTypeAssignment
     let initTypeAssignment_def = match l with C -> init_c.initTypeAssignment_def | Ada -> init_a.initTypeAssignment_def
@@ -109,6 +113,17 @@ let createRealInitFunc (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1Acn
 
     createInitFunctionCommon r l t typeDefinition funcBody iv tasInitFunc testCaseFuncs
 
+let fragmentationCases seqOfCase maxSize =
+    [
+        seqOfCase (65535I + 1I)
+        seqOfCase (min (65535I + 150I) maxSize)
+        seqOfCase (49152I + 1I)
+        seqOfCase (49152I + 150I)
+        seqOfCase (32768I + 1I)
+        seqOfCase (32768I + 150I)
+        seqOfCase (16384I + 1I)
+        seqOfCase (16384I + 150I)
+    ]
 let createIA5StringInitFunc (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1AcnAst.Asn1Type) (o :Asn1AcnAst.StringType   ) (typeDefinition:TypeDefintionOrReference) iv = 
     let initIA5String = match l with C -> init_c.initIA5String | Ada -> init_a.initIA5String
     let initTestCaseIA5String = match l with C -> init_c.initTestCaseIA5String | Ada -> init_a.initTestCaseIA5String
@@ -141,6 +156,10 @@ let createIA5StringInitFunc (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:As
             | false -> 
                 yield seqOfCase o.minSize 
                 yield seqOfCase o.maxSize 
+                match o.maxSize > 65536I with  //fragmentation cases
+                | true ->
+                      yield! fragmentationCases seqOfCase o.maxSize
+                | false -> ()
         } |> Seq.toList
     let zero (p:CallerScope) = 
         let td = (o.typeDef.[l]).longTypedefName l (ToC p.modName)
@@ -191,6 +210,10 @@ let createOctetStringInitFunc (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:
                     | false -> 
                         yield seqOfCase o.minSize 
                         yield seqOfCase o.maxSize 
+                        match o.maxSize > 65536I with  //fragmentation cases
+                        | true ->
+                              yield! fragmentationCases seqOfCase o.maxSize
+                        | false -> ()
                 } |> Seq.toList
             let zero (p:CallerScope) = 
                 let funcBody = initTestCaseOctetString p.arg.p (p.arg.getAcces l) o.maxSize i (o.minSize = o.maxSize) true
@@ -259,6 +282,10 @@ let createBitStringInitFunc (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:As
                     | false -> 
                         yield seqOfCase o.minSize 
                         yield seqOfCase o.maxSize 
+                        match o.maxSize > 65536I with  //fragmentation cases
+                        | true ->
+                              yield! fragmentationCases seqOfCase o.maxSize
+                        | false -> ()
                 } |> Seq.toList
             let zero (p:CallerScope) = 
                 let nSize = o.maxSize
@@ -425,6 +452,10 @@ let createSequenceOfInitFunc (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:A
             | false -> 
                 yield seqOfCase o.maxSize 
                 yield seqOfCase o.minSize 
+                match o.maxSize > 65536I with  //fragmentation cases
+                | true ->
+                        yield! fragmentationCases seqOfCase o.maxSize
+                | false -> ()
         } |> Seq.toList
     let initTasFunction (p:CallerScope) =
         let initCountValue = Some o.minSize
@@ -494,14 +525,14 @@ let createSequenceInitFunc (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn
 
         let maxCasesPerChild = 
             match asn1Children.Length with
-            | _ when asn1Children.Length <= 3 -> 5   //max 3^5 --> 125 cases
-            | _ when asn1Children.Length <= 6 -> 2   // max 2^6 = 128 cases
-            | _                               -> 1   
+            | _ when asn1Children.Length <= 3 -> 15   
+            | _ when asn1Children.Length <= 6 -> 10   
+            | _                               -> 5   
         let handleChild  (ch:Asn1Child)  = 
             let len = ch.Type.initFunction.automaticTestCases.Length
 
             ch.Type.initFunction.automaticTestCases |> 
-            Seq.take (min maxCasesPerChild len) |> Seq.toList |>
+            //Seq.take (min maxCasesPerChild len) |> Seq.toList |>
             List.collect(fun atc -> 
                 let presentFunc  = 
                     let initTestCaseFunc (p:CallerScope) = 
@@ -529,34 +560,66 @@ let createSequenceInitFunc (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn
                 | Some (Asn1AcnAst.AlwaysAbsent)    -> [nonPresenceFunc] 
                 | Some (Asn1AcnAst.AlwaysPresent)   -> [presentFunc] )
 
-        let rec generateCases   (children : Asn1Child list) : AutomaticTestCase list=
-            match children with
-            | []        -> []
-            | x1::xs    -> 
-                // generate this component test cases (x1) and the rest and the join them.
-                let rest = generateCases  xs
-                let childCases  = 
-                    let ths =  handleChild  x1 
-                    match ths with
-                    | []    -> rest
-                    | _     ->
-                        seq {
-                            for i1 in ths do   
-                                match rest with
-                                | []    ->  yield i1
-                                | _     ->
-                                    for lst in rest do
-                                        let ret = 
-                                            let combineFnc (p:CallerScope) = 
-                                                let partA = i1.initTestCaseFunc p
-                                                let partB = lst.initTestCaseFunc p
-                                                let funcBody = [partA.funcBody; partB.funcBody] |> Seq.StrJoin "\n"
-                                                {InitFunctionResult.funcBody = funcBody; localVariables = partA.localVariables@partB.localVariables }
-                                            let combinedTestCases = mergeMaps i1.testCase lst.testCase
-                                            {AutomaticTestCase.initTestCaseFunc = combineFnc; testCase = combinedTestCases }
-                                        yield ret
-                            } |> Seq.toList
-                childCases
+        let generateCases   (children : Asn1Child list) : AutomaticTestCase list=
+            let childrenATCs =
+                children |> 
+                List.map(fun c -> 
+                    let childAtcs = handleChild c |> Seq.toArray
+                    (c, childAtcs, childAtcs.Length)) |>
+                List.filter(fun (_,_,ln) -> ln > 0)
+            match childrenATCs with
+            | []    -> []
+            | _     ->
+                let (_,_,mxAtcs) = childrenATCs |> List.maxBy(fun (_,_,len) -> len) 
+                let tesCases =
+                    [0 .. mxAtcs - 1] |>
+                    List.map(fun seqTestCaseIndex ->
+                        let children_ith_testCase = 
+                            childrenATCs  |> 
+                            List.map(fun (c,childCases,ln) -> childCases.[seqTestCaseIndex % ln]) 
+                        match children_ith_testCase with
+                        | []        -> raise(BugErrorException "")
+                        | c1::[]    -> c1
+                        | c1::cs    ->
+                            cs |> List.fold(fun (st:AutomaticTestCase) (cur:AutomaticTestCase) ->
+                                    let combineFnc (p:CallerScope) = 
+                                        let partA = st.initTestCaseFunc p
+                                        let partB = cur.initTestCaseFunc p
+                                        let funcBody = [partA.funcBody; partB.funcBody] |> Seq.StrJoin "\n"
+                                        {InitFunctionResult.funcBody = funcBody; localVariables = partA.localVariables@partB.localVariables }
+                                    let combinedTestCases = mergeMaps st.testCase cur.testCase
+                                    {AutomaticTestCase.initTestCaseFunc = combineFnc; testCase = combinedTestCases } ) c1 )
+
+                tesCases
+
+//        let rec generateCases   (children : Asn1Child list) : AutomaticTestCase list=
+//            match children with
+//            | []        -> []
+//            | x1::xs    -> 
+//                // generate this component test cases (x1) and the rest and the join them.
+//                let rest = generateCases  xs
+//                let childCases  = 
+//                    let ths =  handleChild  x1 
+//                    match ths with
+//                    | []    -> rest
+//                    | _     ->
+//                        seq {
+//                            for i1 in ths do   
+//                                match rest with
+//                                | []    ->  yield i1
+//                                | _     ->
+//                                    for lst in rest do
+//                                        let ret = 
+//                                            let combineFnc (p:CallerScope) = 
+//                                                let partA = i1.initTestCaseFunc p
+//                                                let partB = lst.initTestCaseFunc p
+//                                                let funcBody = [partA.funcBody; partB.funcBody] |> Seq.StrJoin "\n"
+//                                                {InitFunctionResult.funcBody = funcBody; localVariables = partA.localVariables@partB.localVariables }
+//                                            let combinedTestCases = mergeMaps i1.testCase lst.testCase
+//                                            {AutomaticTestCase.initTestCaseFunc = combineFnc; testCase = combinedTestCases }
+//                                        yield ret
+//                            } |> Seq.toList
+//                childCases
         let tesCases = generateCases  asn1Children 
         tesCases 
 

@@ -87,6 +87,65 @@ type ProgrammingLanguage with
         match this with
         |C      -> "flag"
         |Ada    -> "Boolean"
+    member this.toHex n =
+        match this with
+        |C      -> sprintf "0x%x" n
+        |Ada    -> sprintf "16#%x#" n
+        
+
+(*
+    if <sRemainingItemsVar> >= 16#10000# then
+        <sCurBlockSize> := 16#10000#;
+        uper_asn1_rtl.UPER_Enc_ConstraintWholeNumber(bs, 16#C4#, 0, 8);
+    elsif <sRemainingItemsVar> >= 16#C000# then
+        <sCurBlockSize> := 16#C000#;
+        uper_asn1_rtl.UPER_Enc_ConstraintWholeNumber(bs, 16#C3#, 0, 8);
+    elsif <sRemainingItemsVar> >= 16#8000# then
+        <sCurBlockSize> := 16#8000#;
+        uper_asn1_rtl.UPER_Enc_ConstraintWholeNumber(bs, 16#C2#, 0, 8);
+    else 
+        <sCurBlockSize> := 16#4000#;
+        uper_asn1_rtl.UPER_Enc_ConstraintWholeNumber(bs, 16#C1#, 0, 8);
+    end if;
+
+*)
+    
+    member l.multiIf (ifParts : List<string*string>) (elsePart : string option) =
+    //    let tst = [("a==1","do1"); ("a==2","do2")]
+    //let test (l:ProgrammingLanguage) (ifParts : List<string*string>) (elsePart : string option) = 
+        let if_ i l bExp =
+            match l with
+            | Ada -> if i=0 then (sprintf "if %s then" bExp) else (sprintf "elsif %s then" bExp)
+            | C   -> if i=0 then (sprintf "if (%s) {" bExp) else (sprintf "} else if (%s) {" bExp)
+        let else_ l =
+            match l with
+            | Ada -> "else"
+            | C   -> "} else {"
+        let endif l =
+            match l with
+            | Ada -> "end if;"
+            | C   -> "}"
+        match ifParts with
+        | _::_  ->
+            let ifParts = ifParts |> List.mapi(fun i (a,b) -> (i,a,b))
+            let aaa = 
+                seq {
+                    for (i, bExp, statemnt) in ifParts do
+                        yield if_ i l bExp
+                        yield header_c.indentation statemnt
+                    match elsePart with
+                    | Some elsePart ->
+                        yield else_ l
+                        yield header_c.indentation elsePart
+                    | None          -> ()
+                    yield endif l
+                } |> Seq.toList
+            aaa
+        | []    ->
+            match elsePart with
+            | Some elsePart ->
+                [elsePart]
+            | None          -> []
 
 
 
@@ -166,7 +225,6 @@ type FuncParamType  with
             sprintf "%s.kind = %s_PRESENT" this.p childPresentName
         | C     -> 
             sprintf "%s%skind == %s_PRESENT" this.p (this.getAcces l) childPresentName
-
 
 let getAccessFromScopeNodeList (ReferenceToType nodes)  (childTypeIsString: bool) (l:ProgrammingLanguage) (pVal : CallerScope) =
     let handleNode zeroBasedSeqeuenceOfLevel (pVal : CallerScope) (n:ScopeNode) (childTypeIsString: bool) = 
@@ -1156,5 +1214,7 @@ let getFuncNameGeneric2 (typeDefinition:TypeDefintionOrReference) =
     match typeDefinition with
     | ReferenceToExistingDefinition  refEx  -> None
     | TypeDefinition   td                   -> Some (td.typedefName)
+
+
 
 

@@ -124,10 +124,10 @@ if (ret) {
 	switch(<p1><sAccess>kind) 
 	{
 	<arrsChildren: {ch|<ch>}; separator="\n">
-	default:
+	default: /*COVERAGE_IGNORE*/
 		ret = FALSE;    /*COVERAGE_IGNORE*/
 	}
-}
+} /*COVERAGE_IGNORE*/
 >>
 
 isEqual_Sequence_child(p1, p2, sAcc,  bIsOptional, sChName, soInnerStatement) ::= <<

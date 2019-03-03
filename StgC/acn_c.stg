@@ -28,7 +28,7 @@ flag <sFuncName>(const <sTypeDefName><sStar> <sVarName>, BitStream* pBitStrm, in
 	ret = bCheckConstraints ? <soIValidFuncName>(<sVarName>, pErrCode) : TRUE ;
 	if (ret) {
 	    <sContent>
-    }
+    } /*COVERAGE_IGNORE*/
 
     <else>
     *pErrCode = 0;
@@ -446,7 +446,7 @@ EnumeratedEncIdx_decode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, sActual
 EnumeratedEncValues_encode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, sActualCodecFunc, sErrCode, sFirstItemName) ::= <<
 switch(<p>) { 
     <arrsItem; separator="\n">
-    default:
+    default:                                    /*COVERAGE_IGNORE*/
         ret = FALSE;                            /*COVERAGE_IGNORE*/
         *pErrCode = <sErrCode>;                 /*COVERAGE_IGNORE*/
 }
@@ -458,11 +458,11 @@ EnumeratedEncValues_decode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, sAct
 if (ret) {
     switch (intVal) {
         <arrsItem; separator="\n">
-    default:
+    default:                                    /*COVERAGE_IGNORE*/
         ret = FALSE;                            /*COVERAGE_IGNORE*/
         *pErrCode = <sErrCode>;                 /*COVERAGE_IGNORE*/
     }
-}
+} /*COVERAGE_IGNORE*/
 >>
 
 
@@ -761,10 +761,10 @@ Choice_encode(p, sAcc, arrsChildren, nLastItemIndex, sChoiceIndexName, td/*:FE_C
 switch(<p><sAcc>kind) 
 {
 <arrsChildren: {ch|<ch>}; separator="\n">
-default:
+default: /*COVERAGE_IGNORE*/
     *pErrCode = <sErrCode>;         /*COVERAGE_IGNORE*/
     ret = FALSE;                    /*COVERAGE_IGNORE*/
-}
+} /*COVERAGE_IGNORE*/
 >>
 
 Choice_decode(p, sAcc, arrsChildren, nLastItemIndex, sChoiceIndexName, td/*:FE_ChoiceTypeDefinition*/, nIndexSizeInBits, sErrCode) ::= <<
@@ -774,11 +774,11 @@ if (ret) {
     switch(<sChoiceIndexName>) 
     {
     <arrsChildren: {ch|<ch>}; separator="\n">
-    default:
+    default: /*COVERAGE_IGNORE*/
         *pErrCode = <sErrCode>;     /*COVERAGE_IGNORE*/
         ret = FALSE;                /*COVERAGE_IGNORE*/
-    }
-}
+    } 
+} /*COVERAGE_IGNORE*/
 >>
 
 /* Choice with presense determinants */
