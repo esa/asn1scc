@@ -43,7 +43,7 @@ let private getIntSizeProperty  errLoc (props:GenericAcnProperty list) =
     | Some (GP_NullTerminated   )   -> 
         match tryGetProp props (fun x -> match x with TERMINATION_PATTERN e -> Some e | _ -> None) with
         | Some b    -> Some(AcnGenericTypes.IntNullTerminated b)
-        | None      -> Some(AcnGenericTypes.IntNullTerminated (byte 0))
+        | None      -> Some(AcnGenericTypes.IntNullTerminated ([byte 0]))
     | Some (GP_SizeDeterminant _)   -> raise(SemanticError(errLoc ,"Expecting an Integer value or an ACN constant as value for the size property"))
 
 let private getStringSizeProperty (minSize:BigInteger) (maxSize:BigInteger) errLoc (props:GenericAcnProperty list) = 
@@ -61,7 +61,7 @@ let private getStringSizeProperty (minSize:BigInteger) (maxSize:BigInteger) errL
     | Some (GP_NullTerminated   )   -> 
         match tryGetProp props (fun x -> match x with TERMINATION_PATTERN e -> Some e | _ -> None) with
         | Some b    -> Some(AcnGenericTypes.StrNullTerminated b)
-        | None      -> Some(AcnGenericTypes.StrNullTerminated (byte 0))
+        | None      -> Some(AcnGenericTypes.StrNullTerminated ([byte 0]))
     | Some (GP_SizeDeterminant fld)   -> (Some (AcnGenericTypes.StrExternalField fld))
 
 let private getSizeableSizeProperty (minSize:BigInteger) (maxSize:BigInteger) errLoc (props:GenericAcnProperty list) = 
@@ -374,10 +374,13 @@ let private mergeStringType (asn1:Asn1Ast.AstRoot) (loc:SrcLoc) (acnErrLoc: SrcL
     match acnEncodingClass with                                          
     | Acn_Enc_String_uPER                                _                -> ()
     | Acn_Enc_String_uPER_Ascii                          _                -> ()
-    | Acn_Enc_String_Ascii_Null_Teminated                (_, nullChar)     -> 
-        match uperCharSet |> Seq.exists ((=) (System.Convert.ToChar nullChar)) with
-        | true  when nullChar <> (byte 0) -> raise(SemanticError(acnErrLoc0, "The termination-pattern defines a character which belongs to the allowed values of the ASN.1 type. Use another value in the termination-pattern or apply different constraints in the ASN.1 type."))
-        | _ -> ()
+    | Acn_Enc_String_Ascii_Null_Teminated                (_, nullChars)     -> 
+        match nullChars with
+        | nullChar::[] -> 
+            match uperCharSet |> Seq.exists ((=) (System.Convert.ToChar nullChar)) with
+            | true  when nullChar <> (byte 0) -> raise(SemanticError(acnErrLoc0, "The termination-pattern defines a character which belongs to the allowed values of the ASN.1 type. Use another value in the termination-pattern or apply different constraints in the ASN.1 type."))
+            | _ -> ()
+        | _            -> ()
     | Acn_Enc_String_Ascii_External_Field_Determinant       (_,relativePath) -> ()
     | Acn_Enc_String_CharIndex_External_Field_Determinant   (_,relativePath) -> ()
 

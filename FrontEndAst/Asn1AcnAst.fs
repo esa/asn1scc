@@ -175,11 +175,11 @@ type IntEncodingClass =
     |TwosComplement_ConstSize_little_endian_64
     |TwosComplement_ConstSize of BigInteger
     |ASCII_ConstSize of BigInteger
-    |ASCII_VarSize_NullTerminated of byte
+    |ASCII_VarSize_NullTerminated of byte list
     |ASCII_UINT_ConstSize of BigInteger
-    |ASCII_UINT_VarSize_NullTerminated of byte
+    |ASCII_UINT_VarSize_NullTerminated of byte  list
     |BCD_ConstSize of BigInteger
-    |BCD_VarSize_NullTerminated of byte
+    |BCD_VarSize_NullTerminated of byte  list
 
 
 type RealEncodingClass =
@@ -192,7 +192,7 @@ type RealEncodingClass =
 type StringAcnEncodingClass =
     | Acn_Enc_String_uPER                                   of BigInteger                          //char size in bits, as in uper 
     | Acn_Enc_String_uPER_Ascii                             of BigInteger                          //char size in bits, as in uper but with charset (0..255)
-    | Acn_Enc_String_Ascii_Null_Teminated                   of BigInteger*byte                     //char size in bits, byte = the null character
+    | Acn_Enc_String_Ascii_Null_Teminated                   of BigInteger*(byte  list)             //char size in bits, byte = the null character
     | Acn_Enc_String_Ascii_External_Field_Determinant       of BigInteger*RelativePath             //char size in bits, encode ascii, size is provided by an external length determinant
     | Acn_Enc_String_CharIndex_External_Field_Determinant   of BigInteger*RelativePath             //char size in bits, encode char index, size is provided by an external length determinant
 

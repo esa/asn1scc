@@ -53,7 +53,7 @@ with
 // Integer acn properties
 type AcnIntSizeProperty =
     | Fixed                 of BigInteger
-    | IntNullTerminated     of byte      //termination character when encoding is ASCII
+    | IntNullTerminated     of byte list      //termination character when encoding is ASCII
 
 type AcnIntEncoding =
     | PosInt
@@ -94,7 +94,7 @@ type RealAcnProperties = {
 // String acn properties
 type AcnStringSizeProperty =
     | StrExternalField   of RelativePath
-    | StrNullTerminated  of byte      //termination character when encoding is ASCII
+    | StrNullTerminated  of byte list     //termination character when encoding is ASCII
 
 type AcnStringEncoding =
     | StrAscii
@@ -222,7 +222,7 @@ type  GenericAcnProperty =
     | CHOICE_DETERMINANT of RelativePath
     | ENDIANNES         of AcnEndianness
     | ENUM_SET_VALUE    of IntLoc
-    | TERMINATION_PATTERN of byte
+    | TERMINATION_PATTERN of byte list
     | MAPPING_FUNCTION  of StringLoc
     | POST_ENCODING_FUNCTION of StringLoc
     | PRE_DECODING_FUNCTION of StringLoc

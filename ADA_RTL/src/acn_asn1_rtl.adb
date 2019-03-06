@@ -230,7 +230,7 @@ package body acn_asn1_rtl with Spark_Mode is
       
    end Acn_Enc_UInt_ASCII_VarSize_LengthEmbedded;
    
-   procedure Acn_Enc_Int_ASCII_VarSize_NullTerminated (bs : in out BitStream; IntVal : in Asn1Int; nullChar : in Asn1Byte)
+   procedure Acn_Enc_Int_ASCII_VarSize_NullTerminated (bs : in out BitStream; IntVal : in Asn1Int; nullChars : in OctetBuffer)
    is
         digits_array: Digits_Buffer;
         nChars : Asn1Byte;
@@ -251,12 +251,15 @@ package body acn_asn1_rtl with Spark_Mode is
         end loop;
 
         -- encode nullChar
-        BitStream_AppendByte(bs, nullChar, False);
+        for i in nullChars'Range loop
+           pragma Loop_Invariant (bs.Current_Bit_Pos = bs.Current_Bit_Pos'Loop_Entry + (i-nullChars'First)*8); 
+           BitStream_AppendByte(bs, nullChars(i), False);
+        end loop;
 
    end Acn_Enc_Int_ASCII_VarSize_NullTerminated;
 
 
-   procedure Acn_Enc_UInt_ASCII_VarSize_NullTerminated (bs : in out BitStream; IntVal : in Asn1UInt; nullChar : in Asn1Byte)
+   procedure Acn_Enc_UInt_ASCII_VarSize_NullTerminated (bs : in out BitStream; IntVal : in Asn1UInt; nullChars : in OctetBuffer)
    is
         digits_array: Digits_Buffer;
         nChars : Asn1Byte;
@@ -270,7 +273,10 @@ package body acn_asn1_rtl with Spark_Mode is
         end loop;
 
         -- encode nullChar
-        BitStream_AppendByte(bs, nullChar, False);
+        for i in nullChars'Range loop
+           pragma Loop_Invariant (bs.Current_Bit_Pos = bs.Current_Bit_Pos'Loop_Entry + (i-nullChars'First)*8); 
+           BitStream_AppendByte(bs, nullChars(i), False);
+        end loop;
 
     end Acn_Enc_UInt_ASCII_VarSize_NullTerminated;
    
@@ -729,20 +735,40 @@ package body acn_asn1_rtl with Spark_Mode is
    end Acn_Dec_UInt_ASCII_ConstSize;
    
 
-   procedure Acn_Dec_UInt_ASCII_VarSize_NullTerminated (bs : in out BitStream; IntVal: out Asn1UInt; nullChar: in Asn1Byte; Result : out ASN1_RESULT)
+   procedure Acn_Dec_UInt_ASCII_VarSize_NullTerminated (bs : in out BitStream; IntVal: out Asn1UInt; nullChars: in OctetBuffer; Result : out ASN1_RESULT)
    is
       digit   : Asn1Byte;
       intDigit : Integer;
       Ch    : Character;
+      tmp   : OctetBuffer := OctetBuffer'(1=> 0, 2=> 0, 3=> 0, 4=> 0, 5=> 0, 6=> 0, 7=> 0, 8=> 0, 9=> 0, 10=> 0);
    begin
       IntVal := 0;
       Result :=   ASN1_RESULT'(Success => True, ErrorCode => 0);
-      
-      for i in 1..20 loop
-         pragma Loop_Invariant (bs.Current_Bit_Pos = bs.Current_Bit_Pos'Loop_Entry + (i-1)*8);
+      --read null_character_size characters into the tmp buffer
+      for i in nullChars'Range loop
+         pragma Loop_Invariant (bs.Current_Bit_Pos = bs.Current_Bit_Pos'Loop_Entry + (i-nullChars'First)*8);
          BitStream_DecodeByte (bs, digit, Result.Success);
          pragma Assert (Result.Success);
-         exit when digit = nullChar;
+         tmp(i + tmp'First - nullChars'First) := digit;
+      end loop;
+      
+      pragma Assert (tmp'First = 1);
+      pragma Assert (tmp'Last = 10);
+        
+      for i in 1..20 loop
+         pragma Loop_Invariant (bs.Current_Bit_Pos = bs.Current_Bit_Pos'Loop_Entry + (i-1)*8 and nullChars'First=1 and tmp'First = 1);
+         digit := tmp(tmp'First);
+         
+         for j in nullChars'First .. nullChars'Last - 1 loop
+            pragma Loop_Invariant (j>= nullChars'First);
+            tmp(j + tmp'First - nullChars'First) := tmp(j + 1 + tmp'First - nullChars'First);
+         end loop;
+         
+         --BitStream_DecodeByte (bs, digit, Result.Success);
+         BitStream_DecodeByte (bs, tmp(tmp'First + (nullChars'Last - nullChars'First)), Result.Success);
+         pragma Assert (Result.Success);
+         
+         
          Ch    := Character'Val (digit);
          intDigit := Character'Pos (Ch) - Character'Pos ('0');
 
@@ -752,12 +778,8 @@ package body acn_asn1_rtl with Spark_Mode is
             IntVal := IntVal + Asn1UInt (intDigit);
          end if;
          exit when not Result.Success;
+         exit when nullChars(nullChars'First .. nullChars'Last) = tmp(tmp'First .. tmp'First + (nullChars'Last - nullChars'First) );
       end loop;
-      
-      if Result.Success and (not (digit = nullChar)) then
-         BitStream_DecodeByte (bs, digit, Result.Success);
-         Result.Success :=    digit = nullChar;
-      end if;
       
       
       if not Result.Success then
@@ -765,7 +787,7 @@ package body acn_asn1_rtl with Spark_Mode is
       end if;
    end Acn_Dec_UInt_ASCII_VarSize_NullTerminated;
 
-   procedure Acn_Dec_Int_ASCII_VarSize_NullTerminated (bs : in out BitStream; IntVal: out Asn1Int; nullChar: in Asn1Byte; Result : out ASN1_RESULT)
+   procedure Acn_Dec_Int_ASCII_VarSize_NullTerminated (bs : in out BitStream; IntVal: out Asn1Int; nullChars: in OctetBuffer; Result : out ASN1_RESULT)
    is
       digitAscii : Asn1Byte;
       Ch    : Character;
@@ -780,7 +802,7 @@ package body acn_asn1_rtl with Spark_Mode is
 
       Result.Success := Result.Success and (Ch = '+' or Ch = '-');
       if result.Success then
-         Acn_Dec_UInt_ASCII_VarSize_NullTerminated(bs, absIntVal, nullChar, result);
+         Acn_Dec_UInt_ASCII_VarSize_NullTerminated(bs, absIntVal, nullChars, result);
 
          if result.Success then
             if absIntVal = 0 then
@@ -1106,8 +1128,10 @@ package body acn_asn1_rtl with Spark_Mode is
    
    
    
-   procedure Acn_Enc_String_Ascii_Null_Teminated (bs : in out BitStream; null_character : in     Integer;  strVal : in String)
-   is
+
+
+   procedure Acn_Enc_String_Ascii_Null_Teminated (bs : in out BitStream; null_characters : in OctetBuffer;  strVal : in String)
+     is
       i : Integer := strVal'First;
    begin
       while I <= strVal'Last - 1 and then strVal (I) /= Standard.ASCII.NUL loop
@@ -1115,27 +1139,59 @@ package body acn_asn1_rtl with Spark_Mode is
          BitStream_AppendByte (bs, Asn1Byte (CharacterPos (strVal (I))),  false);
          i := i + 1;
       end loop;
-      BitStream_AppendByte (bs, Asn1Byte (null_character), false);
-
-   end Acn_Enc_String_Ascii_Null_Teminated;
-
-   procedure Acn_Dec_String_Ascii_Null_Teminated (bs : in out BitStream; null_character : in Integer; strVal : in out String; Result : out ASN1_RESULT)
+      -- encode nullChar
+      for i in null_characters'Range loop
+         pragma Loop_Invariant (bs.Current_Bit_Pos = bs.Current_Bit_Pos'Loop_Entry + (i-null_characters'First)*8); 
+         BitStream_AppendByte(bs, null_characters(i), False);
+      end loop;
+   end Acn_Enc_String_Ascii_Null_Teminated;   
+   
+   
+   procedure Acn_Dec_String_Ascii_Null_Teminated (bs : in out BitStream; null_characters : in OctetBuffer; strVal : in out String; Result : out ASN1_RESULT)
    is
       I         : Integer := strVal'First;
       charIndex : Asn1Byte := 65; -- ascii code of 'A'. Let's hope that 'A' will never be null Character
+      tmp   : OctetBuffer := OctetBuffer'(1=> 0, 2=> 0, 3=> 0, 4=> 0, 5=> 0, 6=> 0, 7=> 0, 8=> 0, 9=> 0, 10=> 0);
    begin
       Result :=  ASN1_RESULT'(Success => True, ErrorCode => 0);
-      while  I <= strVal'Last and then charIndex /= Asn1Byte(null_character)   loop
-         pragma Loop_Invariant (i >= strVal'First and i <= strVal'Last and bs.Current_Bit_Pos = bs.Current_Bit_Pos'Loop_Entry + (i-strVal'First)*8);
+      
+      
+      --read null_character_size characters into the tmp buffer
+      pragma Assert (tmp'First = 1);
+      pragma Assert (tmp'Last = 10);
+      pragma Assert (null_characters'First = 1);
+      pragma Assert(null_characters'Last <= 10);
+      
+      
+      for i in null_characters'Range loop
+         pragma Loop_Invariant (bs.Current_Bit_Pos = bs.Current_Bit_Pos'Loop_Entry + (i-null_characters'First)*8 and i>=1 and i<=10);
          BitStream_DecodeByte (bs, charIndex, Result.Success);
-         if charIndex /= Asn1Byte(null_character) then
-            strVal (I) := Character'Val (Integer(charIndex));
-         else
-            strVal (I) := Standard.ASCII.NUL;
-         end if;
+         pragma Assert (Result.Success);
+         tmp(i + tmp'First - null_characters'First) := charIndex;
+      end loop;
+      
+      
+      while  i <= strVal'Last and then null_characters(null_characters'First .. null_characters'Last) /= tmp(tmp'First .. tmp'First + (null_characters'Last - null_characters'First) )   loop
+         pragma Loop_Invariant (i >= strVal'First and i <= strVal'Last and bs.Current_Bit_Pos = bs.Current_Bit_Pos'Loop_Entry + (i-strVal'First)*8);
+         
+         charIndex := tmp(tmp'First);
+         for j in null_characters'First .. null_characters'Last - 1 loop
+            pragma Loop_Invariant (j>= null_characters'First);
+            tmp(j + tmp'First - null_characters'First) := tmp(j + 1 + tmp'First - null_characters'First);
+         end loop;
+         
+         --BitStream_DecodeByte (bs, digit, Result.Success);
+         pragma Assert(null_characters'Last - null_characters'First <= 9);
+         BitStream_DecodeByte (bs, tmp(tmp'First + (null_characters'Last - null_characters'First)), Result.Success);
+         pragma Assert (Result.Success);
+         
+         --exit when null_characters(null_characters'First .. null_characters'Last) = tmp(tmp'First .. tmp'First + (null_characters'Last - null_characters'First) );
+         
+         strVal (i) := Character'Val (Integer(charIndex));
 
          i := i + 1;
       end loop;
+      
       while i <= strVal'Last loop
          pragma Loop_Invariant (i >= strVal'First and i <= strVal'Last);
          strVal (i) := Standard.ASCII.NUL;

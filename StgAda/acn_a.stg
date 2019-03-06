@@ -483,30 +483,30 @@ result.ErrorCode := <sErrCode>;
 <endif>
 >>
 
-ASCII_VarSize_NullTerminated_encode(p, sErrCode, soMF, soMFM, nUperMin, nUperMax, sNullChar) ::= "acn_asn1_rtl.Acn_Enc_Int_ASCII_VarSize_NullTerminated(bs, <MFen(soMF=soMF, soMFM=soMFM, p=p)>, <sNullChar>);"
-ASCII_VarSize_NullTerminated_decode(p, sErrCode, soMF, soMFM, nUperMin, nUperMax, sNullChar) ::= <<
+ASCII_VarSize_NullTerminated_encode(p, sErrCode, soMF, soMFM, nUperMin, nUperMax, arruNullBytes) ::= "acn_asn1_rtl.Acn_Enc_Int_ASCII_VarSize_NullTerminated(bs, <MFen(soMF=soMF, soMFM=soMFM, p=p)>, adaasn1rtl.OctetBuffer'(<arruNullBytes : {b|<i>=><b>}; separator=\", \">));"
+ASCII_VarSize_NullTerminated_decode(p, sErrCode, soMF, soMFM, nUperMin, nUperMax, arruNullBytes) ::= <<
 <if(soMF)>
-acn_asn1_rtl.Acn_Dec_Int_ASCII_VarSize_NullTerminated(bs, mapFuncIntVal, <sNullChar>, result);
+acn_asn1_rtl.Acn_Dec_Int_ASCII_VarSize_NullTerminated(bs, mapFuncIntVal, adaasn1rtl.OctetBuffer'(<arruNullBytes : {b|<i>=><b>}; separator=", ">), result);
 result.ErrorCode := <sErrCode>;
 <MF(p=p, soMF=soMF, soMFM=soMFM, nUperMin=nUperMin, nUperMax=nUperMax)>
 
 <else>
-acn_asn1_rtl.Acn_Dec_Int_ASCII_VarSize_NullTerminated(bs, <p>, <sNullChar>, result);
+acn_asn1_rtl.Acn_Dec_Int_ASCII_VarSize_NullTerminated(bs, <p>, adaasn1rtl.OctetBuffer'(<arruNullBytes : {b|<i>=><b>}; separator=", ">), result);
 result.ErrorCode := <sErrCode>;
 
 <endif>
 >>
 
 
-ASCII_UINT_VarSize_NullTerminated_encode(p, sErrCode, soMF, soMFM, nUperMin, nUperMax, sNullCharacter) ::= "acn_asn1_rtl.Acn_Enc_UInt_ASCII_VarSize_NullTerminated(bs, <MFen(soMF=soMF, soMFM=soMFM, p=p)>, <sNullCharacter>);"
-ASCII_UINT_VarSize_NullTerminated_decode(p, sErrCode, soMF, soMFM, nUperMin, nUperMax, sNullCharacter) ::= <<
+ASCII_UINT_VarSize_NullTerminated_encode(p, sErrCode, soMF, soMFM, nUperMin, nUperMax, arruNullBytes) ::= "acn_asn1_rtl.Acn_Enc_UInt_ASCII_VarSize_NullTerminated(bs, <MFen(soMF=soMF, soMFM=soMFM, p=p)>, adaasn1rtl.OctetBuffer'(<arruNullBytes : {b|<i>=><b>}; separator=\", \">));"
+ASCII_UINT_VarSize_NullTerminated_decode(p, sErrCode, soMF, soMFM, nUperMin, nUperMax, arruNullBytes) ::= <<
 <if(soMF)>
-acn_asn1_rtl.Acn_Dec_UInt_ASCII_VarSize_NullTerminated(bs, mapFuncIntVal, <sNullCharacter>, result);
+acn_asn1_rtl.Acn_Dec_UInt_ASCII_VarSize_NullTerminated(bs, mapFuncIntVal, adaasn1rtl.OctetBuffer'(<arruNullBytes : {b|<i>=><b>}; separator=", ">), result);
 result.ErrorCode := <sErrCode>;
 <MF(p=p, soMF=soMF, soMFM=soMFM, nUperMin=nUperMin, nUperMax=nUperMax)>
 
 <else>
-acn_asn1_rtl.Acn_Dec_UInt_ASCII_VarSize_NullTerminated(bs, <p>, <sNullCharacter>, result);
+acn_asn1_rtl.Acn_Dec_UInt_ASCII_VarSize_NullTerminated(bs, <p>, adaasn1rtl.OctetBuffer'(<arruNullBytes : {b|<i>=><b>}; separator=", ">), result);
 result.ErrorCode := <sErrCode>;
 
 <endif>
@@ -661,9 +661,9 @@ acn_asn1_rtl.Acn_Dec_String_Ascii_FixSize(bs, <p>, result);
 result.ErrorCode := <sErrCode>;
 >>
 
-Acn_String_Ascii_Null_Teminated_encode(p, sErrCode, nAsn1Max, sNull) ::= "acn_asn1_rtl.Acn_Enc_String_Ascii_Null_Teminated(bs, <sNull>, <p>);"
-Acn_String_Ascii_Null_Teminated_decode(p, sErrCode, nAsn1Max, sNull) ::= <<
-acn_asn1_rtl.Acn_Dec_String_Ascii_Null_Teminated(bs, <sNull>, <p>, result);
+Acn_String_Ascii_Null_Teminated_encode(p, sErrCode, nAsn1Max, arruNullBytes) ::= "acn_asn1_rtl.Acn_Enc_String_Ascii_Null_Teminated(bs, adaasn1rtl.OctetBuffer'(<arruNullBytes : {b|<i>=><b>}; separator=\", \">), <p>);"
+Acn_String_Ascii_Null_Teminated_decode(p, sErrCode, nAsn1Max, arruNullBytes) ::= <<
+acn_asn1_rtl.Acn_Dec_String_Ascii_Null_Teminated(bs, adaasn1rtl.OctetBuffer'(<arruNullBytes : {b|<i>=><b>}; separator=", ">), <p>, result);
 result.ErrorCode := <sErrCode>;
 >>
 

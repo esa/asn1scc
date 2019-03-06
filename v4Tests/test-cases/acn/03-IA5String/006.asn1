@@ -15,3 +15,5 @@ END
 -- char index encodings
 --TCLS     MyPDU[]
 --TCLS     MyPDU[size 20]
+-- mulitbyte null character
+--TCLS     MyPDU[encoding ASCII, size null-terminated, termination-pattern '010203'H]

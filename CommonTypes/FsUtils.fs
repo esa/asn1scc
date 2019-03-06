@@ -415,6 +415,12 @@ let byteArrayToBitStringValue (bytes: byte seq)  =
     bytes |> Seq.map handleOctet  |> Seq.StrJoin ""
 
 
+let octetStringLiteralToByteArray (octLiteral:string) =
+    let chars = octLiteral.ToCharArray() 
+    let bytes = getAsTupples chars '0' |> List.map (fun (x1,x2)-> System.Byte.Parse(x1.ToString()+x2.ToString(), System.Globalization.NumberStyles.AllowHexSpecifier)) 
+    bytes
+
+
 
 //let rec DoTopologicalSort2 independentNodes dependentNodes  comparer excToThrow =
 //let rec DoTopologicalSort2 

@@ -306,11 +306,11 @@ let private createAcnIntegerFunctionInternal (r:Asn1AcnAst.AstRoot) (l:Programmi
             |Asn1AcnAst.TwosComplement_ConstSize bitSize                   ->  Some(TwosComplement_ConstSize pp errCode.errCodeName soMF soMFM ( bitSize) (sIntActualMin (int bitSize)) (sIntActualMax (int bitSize)) codec, [errCode])
 
             |Asn1AcnAst.ASCII_ConstSize size                               ->  Some(ASCII_ConstSize pp errCode.errCodeName soMF soMFM nUperMin nUperMax (( size)/8I) codec, [errCode])
-            |Asn1AcnAst.ASCII_VarSize_NullTerminated nullByte              ->  Some(ASCII_VarSize_NullTerminated pp errCode.errCodeName soMF soMFM nUperMin nUperMax (nullByte.ToString()) codec, [errCode])
+            |Asn1AcnAst.ASCII_VarSize_NullTerminated nullBytes             ->  Some(ASCII_VarSize_NullTerminated pp errCode.errCodeName soMF soMFM nUperMin nUperMax nullBytes codec, [errCode])
             |Asn1AcnAst.ASCII_UINT_ConstSize size                          ->  Some(ASCII_UINT_ConstSize pp errCode.errCodeName soMF soMFM nUperMin nUperMax (( size)/8I) codec, [errCode])
-            |Asn1AcnAst.ASCII_UINT_VarSize_NullTerminated nullByte         ->  Some(ASCII_UINT_VarSize_NullTerminated pp errCode.errCodeName  soMF soMFM nUperMin nUperMax (nullByte.ToString()) codec, [errCode])
+            |Asn1AcnAst.ASCII_UINT_VarSize_NullTerminated nullBytes         ->  Some(ASCII_UINT_VarSize_NullTerminated pp errCode.errCodeName  soMF soMFM nUperMin nUperMax nullBytes codec, [errCode])
             |Asn1AcnAst.BCD_ConstSize size                                 ->  Some(BCD_ConstSize pp errCode.errCodeName soMF soMFM nUperMin nUperMax (( size)/4I) codec, [errCode])
-            |Asn1AcnAst.BCD_VarSize_NullTerminated nullByte                ->  Some(BCD_VarSize_NullTerminated pp errCode.errCodeName soMF soMFM nUperMin nUperMax codec, [errCode])
+            |Asn1AcnAst.BCD_VarSize_NullTerminated nullBytes                ->  Some(BCD_VarSize_NullTerminated pp errCode.errCodeName soMF soMFM nUperMin nUperMax codec, [errCode])
         match funcBodyContent with
         | None -> None
         | Some (funcBodyContent,errCodes) -> Some ({AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = errCodes; localVariables = []})
@@ -597,7 +597,7 @@ let createStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
                 | false     ->  
                     let nSizeInBits = GetNumberOfBitsForNonNegativeInteger ( (o.maxSize - o.minSize))
                     Some (Acn_String_Ascii_Internal_Field_Determinant pp errCode.errCodeName ( o.maxSize) ( o.minSize) nSizeInBits codec , [errCode], [])
-            | Acn_Enc_String_Ascii_Null_Teminated                   (_,nullChar)   -> Some (Acn_String_Ascii_Null_Teminated pp errCode.errCodeName ( o.maxSize) (nullChar.ToString()) codec, [errCode], [])
+            | Acn_Enc_String_Ascii_Null_Teminated                   (_,nullChars)   -> Some (Acn_String_Ascii_Null_Teminated pp errCode.errCodeName ( o.maxSize) nullChars codec, [errCode], [])
             | Acn_Enc_String_Ascii_External_Field_Determinant       _    -> 
                 let extField = getExternaField r deps t.id
                 Some(Acn_String_Ascii_External_Field_Determinant pp errCode.errCodeName ( o.maxSize) extField codec, [errCode], [])
@@ -695,7 +695,7 @@ let createAcnStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
                 | false     ->  
                     let nSizeInBits = GetNumberOfBitsForNonNegativeInteger ( (o.maxSize - o.minSize))
                     Some (Acn_String_Ascii_Internal_Field_Determinant pp errCode.errCodeName ( t.str.maxSize) ( t.str.minSize) nSizeInBits codec , [], [])
-            | Acn_Enc_String_Ascii_Null_Teminated                  (_, nullChar)   -> Some (Acn_String_Ascii_Null_Teminated pp errCode.errCodeName ( t.str.maxSize) (nullChar.ToString()) codec, [], [])
+            | Acn_Enc_String_Ascii_Null_Teminated                  (_, nullChars)   -> Some (Acn_String_Ascii_Null_Teminated pp errCode.errCodeName ( t.str.maxSize) nullChars codec, [], [])
             | Acn_Enc_String_Ascii_External_Field_Determinant       _    -> 
                 let extField = getExternaField r deps typeId
                 Some(Acn_String_Ascii_External_Field_Determinant pp errCode.errCodeName ( t.str.maxSize) extField codec, [], [])

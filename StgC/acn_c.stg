@@ -308,9 +308,9 @@ ret = Acn_Dec_SInt_ASCII_VarSize_LengthEmbedded(pBitStrm, <p>);
 <A(sErrCode)>
 >>
 
-ASCII_VarSize_NullTerminated_encode(p, sErrCode, soMF, soMFM, nUperMin, nUperMax, sNullChar) ::= "Acn_Enc_SInt_ASCII_VarSize_NullTerminated(pBitStrm, <if(soMF)><soMF>_encode(<p>)<else><p><endif>, <sNullChar>);"
-ASCII_VarSize_NullTerminated_decode(p, sErrCode, soMF, soMFM, nUperMin, nUperMax, sNullChar) ::= <<
-ret = Acn_Dec_SInt_ASCII_VarSize_NullTerminated(pBitStrm, <p>, <sNullChar>);
+ASCII_VarSize_NullTerminated_encode(p, sErrCode, soMF, soMFM, nUperMin, nUperMax, arruNullBytes) ::= "Acn_Enc_SInt_ASCII_VarSize_NullTerminated(pBitStrm, <if(soMF)><soMF>_encode(<p>)<else><p><endif>, (byte[]){<arruNullBytes; separator=\", \">}, <arruNullBytes.Length>);"
+ASCII_VarSize_NullTerminated_decode(p, sErrCode, soMF, soMFM, nUperMin, nUperMax, arruNullBytes) ::= <<
+ret = Acn_Dec_SInt_ASCII_VarSize_NullTerminated(pBitStrm, <p>, (byte[]){<arruNullBytes; separator=", ">}, <arruNullBytes.Length>);
 <MF(soMF)>
 <A(sErrCode)>
 >>
@@ -329,9 +329,9 @@ ret = Acn_Dec_UInt_ASCII_VarSize_LengthEmbedded(pBitStrm, <p>);
 <A(sErrCode)>
 >>
 
-ASCII_UINT_VarSize_NullTerminated_encode(p, sErrCode, soMF, soMFM, nUperMin, nUperMax, sNullCharacter) ::= "Acn_Enc_UInt_ASCII_VarSize_NullTerminated(pBitStrm, <if(soMF)><soMF>_encode(<p>)<else><p><endif>, <sNullCharacter>);"
-ASCII_UINT_VarSize_NullTerminated_decode(p, sErrCode, soMF, soMFM, nUperMin, nUperMax, sNullCharacter) ::= <<
-ret = Acn_Dec_UInt_ASCII_VarSize_NullTerminated(pBitStrm, <p>, <sNullCharacter>);
+ASCII_UINT_VarSize_NullTerminated_encode(p, sErrCode, soMF, soMFM, nUperMin, nUperMax, arruNullBytes) ::= "Acn_Enc_UInt_ASCII_VarSize_NullTerminated(pBitStrm, <if(soMF)><soMF>_encode(<p>)<else><p><endif>, (byte[]){<arruNullBytes; separator=\", \">}, <arruNullBytes.Length>);"
+ASCII_UINT_VarSize_NullTerminated_decode(p, sErrCode, soMF, soMFM, nUperMin, nUperMax, arruNullBytes) ::= <<
+ret = Acn_Dec_UInt_ASCII_VarSize_NullTerminated(pBitStrm, <p>, (byte[]){<arruNullBytes; separator=", ">}, <arruNullBytes.Length>);
 <MF(soMF)>
 <A(sErrCode)>
 >>
@@ -474,9 +474,9 @@ ret = Acn_Dec_String_Ascii_FixSize(pBitStrm, <nAsn1Max>, <p>);
 <A(sErrCode)>
 >>
 
-Acn_String_Ascii_Null_Teminated_encode(p, sErrCode, nAsn1Max, sNull) ::= "Acn_Enc_String_Ascii_Null_Teminated(pBitStrm, <nAsn1Max>, <sNull>, <p>);"
-Acn_String_Ascii_Null_Teminated_decode(p, sErrCode, nAsn1Max, sNull) ::= <<
-ret = Acn_Dec_String_Ascii_Null_Teminated(pBitStrm, <nAsn1Max>, <sNull>, <p>);
+Acn_String_Ascii_Null_Teminated_encode(p, sErrCode, nAsn1Max, arruNullBytes) ::= "Acn_Enc_String_Ascii_Null_Teminated_mult(pBitStrm, <nAsn1Max>, (byte[]){<arruNullBytes; separator=\", \">}, <arruNullBytes.Length>, <p>);"
+Acn_String_Ascii_Null_Teminated_decode(p, sErrCode, nAsn1Max, arruNullBytes) ::= <<
+ret = Acn_Dec_String_Ascii_Null_Teminated_mult(pBitStrm, <nAsn1Max>, (byte[]){<arruNullBytes; separator=", ">}, <arruNullBytes.Length>, <p>);
 <A(sErrCode)>
 >>
 
