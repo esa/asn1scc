@@ -165,7 +165,7 @@ let PropID_to_Text = function
 
 let CheckConsistencyOfAsn1TypeWithAcnProperty (r:AstRoot) asn1Kind (t:ITree) =
     match BalladerProperties |> Seq.exists(fun x -> x = t.Type) with
-    | true  -> ()   //ballader propery, so it can be applied to any type
+    | true  -> ()   //ballader property, so it can be applied to any type
     | false ->
         //1. Is it allowed
         match (AllowedPropertiesPerType r asn1Kind) |> Seq.exists(fun x -> x = t.Type) with
