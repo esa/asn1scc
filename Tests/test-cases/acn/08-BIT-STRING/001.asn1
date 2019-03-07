@@ -7,4 +7,4 @@ TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
 END
 
 --TCLS     MyPDU[]
---TCLFC    MyPDU[size null-terminated]      $$$ sample1.acn:4:12: error: Acn proporty 'size null-terminated' is supported only in IA5String and NumericString string types and in Integer types and when encoding is ASCII
+--TCLFC    MyPDU[size null-terminated]      $$$ sample1.acn:4:12: error: Acn property 'size null-terminated' is supported only in IA5String and NumericString string types and in Integer types and when encoding is ASCII
