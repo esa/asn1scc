@@ -67,7 +67,7 @@ let private getStringSizeProperty (minSize:BigInteger) (maxSize:BigInteger) errL
 let private getSizeableSizeProperty (minSize:BigInteger) (maxSize:BigInteger) errLoc (props:GenericAcnProperty list) = 
     match tryGetProp props (fun x -> match x with SIZE e -> Some e | _ -> None) with
     | None  -> None
-    | Some (GP_NullTerminated   )        -> raise(SemanticError(errLoc ,"Acn proporty 'size null-terminated' is supported only in IA5String and NumericString string types and in Integer types and when encoding is ASCII"))
+    | Some (GP_NullTerminated   )        -> raise(SemanticError(errLoc ,"Acn property 'size null-terminated' is supported only in IA5String and NumericString string types and in Integer types and when encoding is ASCII"))
     | Some (GP_Fixed           v)   ->
         match minSize = maxSize with
         | false ->

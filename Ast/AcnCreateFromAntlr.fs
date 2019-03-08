@@ -295,7 +295,7 @@ and CreateAcnChild (files:seq<ITree*string*array<IToken>>) (t:ITree)  (asn1Paren
 
     let Handle_ExistingChild children =
         //Check that name exists within children
-        CheckChild children CheckExists (SemanticError(t.Location, (sprintf "'%s' Unknwon field name" name)))
+        CheckChild children CheckExists (SemanticError(t.Location, (sprintf "'%s' Unknown field name" name)))
 
         let asn1Child = children |> Seq.find(fun x -> x.Name.Value = name)
         let args= GetArgumentList asn1Child.Type.Kind
@@ -443,7 +443,7 @@ and HandleAcnProperty(t:ITree) (rest:List<ITree>) (asn1Type: Asn1Type) absPath (
 
 and CheckConsistencyOfAsn1TypeWithAcnProperty (r:Ast.AstRoot) asn1Kind (t:ITree) =
     match BalladerProperties |> Seq.exists(fun x -> x = t.Type) with
-    | true  -> ()   //ballader propery, so it can be applied to any type
+    | true  -> ()   //ballader property, so it can be applied to any type
     | false ->
         //1. Is it allowed
         match (AllowedPropertiesPerType r asn1Kind) |> Seq.exists(fun x -> x = t.Type) with
@@ -477,15 +477,15 @@ and CheckConsistencyOfAsn1TypeWithAcnProperties (t:ITree) asn1Type absPath (prop
                                 | Full                      -> MinInt(), MaxInt()
 
         let sz = GetSizeProperty props ast.Constants
-        let enc = GetEncodingPropery props
+        let enc = GetEncodingProperty props
         let hasMappingFunction = props |> Seq.exists(fun p -> p.Type = acnParser.MAPPING_FUNCTION)
         match sz,enc with
         | None, None    -> 
             match hasMappingFunction with
             | false         -> ()
             | true          -> raise(SemanticError(t.Location,"ACN property 'mapping-function' can be applied only when 'encoding' property is present"))
-        | Some(_,l), None                               -> raise(SemanticError(l,"'encoding' propery missing"))
-        | None, Some(_,l)                               -> raise(SemanticError(l,"'size' propery missing"))
+        | Some(_,l), None                               -> raise(SemanticError(l,"'encoding' property missing"))
+        | None, Some(_,l)                               -> raise(SemanticError(l,"'size' property missing"))
         | Some(SizeField(_),l), Some(_)                 -> raise(SemanticError(l,"Expecting an Integer value or an ACN constant as value for the size property"))
         | Some(_), Some(IEEE754_32,l)                   -> raise(SemanticError(l,"Invalid encoding property value. Expecting 'pos-int', or 'twos-complement', or 'BCD' or 'ASCII'"))
         | Some(_), Some(IEEE754_64,l)                   -> raise(SemanticError(l,"Invalid encoding property value. Expecting 'pos-int', or 'twos-complement', or 'BCD' or 'ASCII'"))
@@ -572,7 +572,7 @@ and CheckConsistencyOfAsn1TypeWithAcnProperties (t:ITree) asn1Type absPath (prop
         //let uperRange = uPER.GetTypeUperRange asn1Type.Kind asn1Type.Constraints r
         match GetSizeProperty props ast.Constants with
         | None  -> ()
-        | Some(SizeNullTerminated, l)   -> raise(SemanticError(l, "Acn proporty 'size null-terminated' is supported only in IA5String and NumericString string types and in Integer types and when encoding is ASCII"))
+        | Some(SizeNullTerminated, l)   -> raise(SemanticError(l, "Acn property 'size null-terminated' is supported only in IA5String and NumericString string types and in Integer types and when encoding is ASCII"))
         | Some(SizeFixed(nItems), l)    ->
             let asn1Min, asn1Max = uPER.GetSizebaleMinMax asn1Type.Kind asn1Type.Constraints r
             match asn1Min = asn1Max, asn1Max = nItems with
@@ -583,7 +583,7 @@ and CheckConsistencyOfAsn1TypeWithAcnProperties (t:ITree) asn1Type absPath (prop
     | Ast.IA5String | Ast.NumericString | Ast.OctetString | Ast.BitString | Ast.SequenceOf(_)  ->
         let asn1Min, asn1Max = uPER.GetSizebaleMinMax asn1Type.Kind asn1Type.Constraints r
         let bAsn1FixedSize = asn1Min = asn1Max
-        let characterEncoding =  GetEncodingPropery props
+        let characterEncoding =  GetEncodingProperty props
         let bAsciiEncoding, loc =
             match characterEncoding with
             | Some (Ascii, loc)     -> true, loc
@@ -691,7 +691,7 @@ and GetSizeProperty (props:List<ITree>) (constants:list<AcnConstant>) =
 
 
 
-and GetEncodingPropery (props:List<ITree>) =
+and GetEncodingProperty (props:List<ITree>) =
     match props |> Seq.tryFind(fun x -> x.Type = acnParser.ENCODING) with
     | None      -> None
     | Some(enc)  -> 
@@ -703,7 +703,7 @@ and GetEncodingPropery (props:List<ITree>) =
         | acnParser.ASCII               -> Some (Ascii, loc)
         | acnParser.IEEE754_1985_32     -> Some (IEEE754_32, loc)
         | acnParser.IEEE754_1985_64     -> Some (IEEE754_64, loc)
-        | _                             -> raise(BugErrorException "GetEncodingPropery")
+        | _                             -> raise(BugErrorException "GetEncodingProperty")
         
 and GetEncodeValuesProperty (props:List<ITree>) =
     match props |> Seq.tryFind(fun x -> x.Type = acnParser.ENCODE_VALUES) with
