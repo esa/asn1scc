@@ -872,6 +872,7 @@ sequence_always_absent_child_decode(p, sAcc, sChName, sChildContent, soSaveBitSt
 -- Decode <sChName>
 -- marked as ALWAYS ABSENT, so do not decode anything
 <p>.Exist.<sChName> := 0;
+result := <rtlModuleName()>.ASN1_RESULT'(Success => true, ErrorCode => 0);
 <soSaveBitStrmPosStatement>
 >>
 

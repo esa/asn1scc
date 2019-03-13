@@ -102,7 +102,10 @@ annotations_decode(sName, bKDependsOnValue, bAcnEncodeFuncRequiresResult, bResDe
 
 
 
-
+null_decode(p) ::= <<
+<p> := 0;
+result := <rtlModuleName()>.ASN1_RESULT'(Success => true, ErrorCode => 0);
+>>
 
 /*case: A:: = INTEGER (5..20) */
 IntFullyConstraint_encode(p, nMin, nMax, nBits, sErrCode) ::= "uper_asn1_rtl.UPER_Enc_ConstraintWholeNumber(bs, <p>, <nMin>, <nBits>);"

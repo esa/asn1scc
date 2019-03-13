@@ -525,9 +525,9 @@ let createAcnNullTypeFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (co
 let createNullTypeFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.NullType) (typeDefinition:TypeDefintionOrReference) (isValidFunc: IsValidFunction option) (us:State)  =
     let funcBody (errCode:ErroCode) (acnArgs: (AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) (p:CallerScope) = 
         let pp = match codec with CommonTypes.Encode -> p.arg.getValue l | CommonTypes.Decode -> p.arg.getPointer l
-        let nullType         = match l with C -> acn_c.Null          | Ada -> acn_a.Null_pattern2
+        let nullType         = match l with C -> acn_c.Null          | Ada -> acn_a.Null_pattern
         match o.acnProperties.encodingPattern with
-        | None      -> None
+        | None      ->  None
         | Some encPattern   ->
             let arrsBits, arrBytes, nBitsSize =
                 match encPattern with
@@ -735,10 +735,10 @@ let createOctetStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserte
                 let extField = getExternaField r deps t.id
                 let internalItem = InternalItem_oct_str p.arg.p (p.arg.getAcces l) i  errCode.errCodeName codec 
                 let fncBody = oct_sqf_external_field p.arg.p (p.arg.getAcces l) i internalItem (if o.minSize=0I then None else Some ( o.minSize)) ( o.maxSize) extField nAlignSize errCode.errCodeName 8I 8I codec
-                Some(fncBody, [errCode],[])
+                Some(fncBody, [errCode],[lv])
         match funcBodyContent with
         | None -> None
-        | Some (funcBodyContent,errCodes, localVariables) -> Some ({AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = errCodes; localVariables = lv::localVariables})
+        | Some (funcBodyContent,errCodes, localVariables) -> Some ({AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = errCodes; localVariables = localVariables})
     let soSparkAnnotations = None
     createAcnFunction r l codec t typeDefinition  isValidFunc  (fun us e acnArgs p -> funcBody e acnArgs p, us) (fun atc -> true) soSparkAnnotations us
 
@@ -1340,7 +1340,14 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
 
                 let childContent_funcBody, childContent_localVariables, childContent_errCodes =
                     match childContentResult with
-                    | None              -> (match l with C -> "" | Ada -> "null;"),[],[]
+                    | None              -> 
+                        match l with 
+                        | C -> "",[],[] 
+                        | Ada when codec = CommonTypes.Decode -> 
+                            let childp = ({CallerScope.modName = p.modName; arg = VALUE ((child.getBackendName l) + "_tmp")})
+                            let ret = uper_a.null_decode childp.arg.p
+                            ret ,[],[]
+                        | Ada  -> "null;",[],[]
                     | Some childContent -> childContent.funcBody,  childContent.localVariables, childContent.errCodes
 
 //                match childContentResult with

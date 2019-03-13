@@ -188,7 +188,8 @@ let createObjectIdentifierFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage
 
 let createNullTypeFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.NullType) (typeDefinition:TypeDefintionOrReference) (baseTypeUperFunc : UPerFunction option) (isValidFunc: IsValidFunction option) (us:State)  =
     let soSparkAnnotations = None
-    createUperFunction r l codec t typeDefinition baseTypeUperFunc  isValidFunc  (fun e p -> None) soSparkAnnotations us
+    let funcBody (errCode:ErroCode) (p:CallerScope) = None
+    createUperFunction r l codec t typeDefinition baseTypeUperFunc  isValidFunc  funcBody soSparkAnnotations us
 
 
 let createEnumeratedFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Enumerated) (typeDefinition:TypeDefintionOrReference)  (baseTypeUperFunc : UPerFunction option) (isValidFunc: IsValidFunction option) (us:State)  =
@@ -410,17 +411,20 @@ let createOctetStringFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (co
             let nStringLength =
                 match o.minSize = o.maxSize,  l, codec with
                 | true , _,_    -> []
-                | false, Ada, _ -> [IntegerLocalVariable ("nStringLength", None)]
+                | false, Ada, Encode -> []
+                | false, Ada, Decode -> [IntegerLocalVariable ("nStringLength", None)]
                 | false, C, Encode -> []
                 | false, C, Decode -> [Asn1SIntLocalVariable ("nCount", None)]
 
             match o.minSize with
-            | _ when o.maxSize < 65536I && o.maxSize=o.minSize  ->  fixedSize p.arg.p typeDefinitionName i internalItem ( o.minSize) nIntItemMaxSize nIntItemMaxSize 0I codec , nStringLength
-            | _ when o.maxSize < 65536I && o.maxSize<>o.minSize  -> varSize p.arg.p (p.arg.getAcces l)  typeDefinitionName i internalItem ( o.minSize) ( o.maxSize) nSizeInBits nIntItemMaxSize nIntItemMaxSize 0I errCode.errCodeName codec , nStringLength
+            | _ when o.maxSize < 65536I && o.maxSize=o.minSize  ->  fixedSize p.arg.p typeDefinitionName i internalItem ( o.minSize) nIntItemMaxSize nIntItemMaxSize 0I codec , lv::nStringLength
+            | _ when o.maxSize < 65536I && o.maxSize<>o.minSize  -> varSize p.arg.p (p.arg.getAcces l)  typeDefinitionName i internalItem ( o.minSize) ( o.maxSize) nSizeInBits nIntItemMaxSize nIntItemMaxSize 0I errCode.errCodeName codec , lv::nStringLength
             | _                                                -> 
-                handleFragmentation l p codec errCode ii ( o.uperMaxSizeInBits) o.minSize o.maxSize internalItem nIntItemMaxSize false false
+                let funcBodyContent,localVariables = handleFragmentation l p codec errCode ii ( o.uperMaxSizeInBits) o.minSize o.maxSize internalItem nIntItemMaxSize false false
+                let localVariables = localVariables |> List.addIf (l = C || o.maxSize<>o.minSize) (lv)
+                funcBodyContent, localVariables
 
-        {UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = lv::localVariables}    
+        {UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = localVariables}    
     let soSparkAnnotations = 
         match l with
         | C     -> None
@@ -446,7 +450,13 @@ let createBitStringFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (code
         let funcBodyContent, localVariables = 
             match l with
             | Ada ->
-                let nStringLength = match o.minSize = o.maxSize with  true  -> [] | false -> [IntegerLocalVariable ("nStringLength", None)]
+                let nStringLength = 
+                    match o.minSize = o.maxSize with  
+                    | true  -> [] 
+                    | false -> 
+                        match codec with
+                        | Encode    -> []
+                        | Decode    -> [IntegerLocalVariable ("nStringLength", None)]
                 let iVar = SequenceOfIndex (t.id.SeqeuenceOfLevel + 1, None)
 
                 let typeDefinitionName = typeDefinition.longTypedefName l //getTypeDefinitionName t.id.tasInfo typeDefinition
@@ -458,7 +468,8 @@ let createBitStringFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (code
                 | _ when o.maxSize < 65536I && o.maxSize<>o.minSize -> uper_a.octect_VarSize p.arg.p (p.arg.getAcces l)  typeDefinitionName i internalItem ( o.minSize) ( o.maxSize) nSizeInBits nBits nBits 0I errCode.errCodeName codec , iVar::nStringLength
                 | _                                                -> 
                     let funcBodyContent, fragmentationLvars = handleFragmentation l p codec errCode ii ( o.uperMaxSizeInBits) o.minSize o.maxSize internalItem nBits true false
-                    (funcBodyContent,iVar::fragmentationLvars)
+                    let fragmentationLvars = fragmentationLvars |> List.addIf (o.maxSize<>o.minSize) (iVar)
+                    (funcBodyContent,fragmentationLvars)
 
             | C ->
                 let nStringLength =
@@ -637,17 +648,20 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec:C
                         | C   -> chFunc.funcBody ({p with arg = p.arg.getChChild l (child.getBackendName l) child.chType.isIA5String})
                         | Ada when codec = CommonTypes.Decode -> chFunc.funcBody ({p with arg = VALUE ((child.getBackendName l) + "_tmp")})
                         | Ada -> chFunc.funcBody ({p with arg = p.arg.getChChild l (child.getBackendName l) child.chType.isIA5String})
+                    let sChildName = (child.getBackendName l)
+                    let sChildTypeDef = child.chType.typeDefintionOrReference.longTypedefName l //child.chType.typeDefinition.typeDefinitionBodyWithinSeq
+                    let sChoiceTypeName = typeDefinitionName
                     match uperChildRes with
                     | None              -> 
-                        let sChildName = (child.getBackendName l)
-                        let sChildTypeDef = child.chType.typeDefintionOrReference.longTypedefName l //child.chType.typeDefinition.typeDefinitionBodyWithinSeq
-                        let sChoiceTypeName = typeDefinitionName
-                        let noEncodingComment = match l with C ->"/*no encoding/decoding is required*/" | Ada -> "--no encoding/decoding is required"
-                        choice_child p.arg.p (p.arg.getAcces l) (child.presentWhenName (Some typeDefinition) l) (BigInteger i) nIndexSizeInBits (BigInteger (children.Length - 1)) noEncodingComment sChildName sChildTypeDef sChoiceTypeName codec,[],[]
+                        let childContent = 
+                            match l with 
+                            | C ->"/*no encoding/decoding is required*/" 
+                            | Ada when codec=Decode -> 
+                                let childp = ({p with arg = VALUE ((child.getBackendName l) + "_tmp")})
+                                uper_a.null_decode childp.arg.p
+                            | Ada   -> "--no encoding/decoding is required"
+                        choice_child p.arg.p (p.arg.getAcces l) (child.presentWhenName (Some typeDefinition) l) (BigInteger i) nIndexSizeInBits (BigInteger (children.Length - 1)) childContent sChildName sChildTypeDef sChoiceTypeName codec,[],[]
                     | Some childContent ->  
-                        let sChildName = (child.getBackendName l)
-                        let sChildTypeDef = child.chType.typeDefintionOrReference.longTypedefName l //child.chType.typeDefinition.typeDefinitionBodyWithinSeq
-                        let sChoiceTypeName = typeDefinitionName
                         choice_child p.arg.p (p.arg.getAcces l) (child.presentWhenName (Some typeDefinition) l) (BigInteger i) nIndexSizeInBits (BigInteger (children.Length - 1)) childContent.funcBody sChildName sChildTypeDef sChoiceTypeName codec, childContent.localVariables, childContent.errCodes )
             let childrenContent = childrenContent3 |> List.map(fun (s,_,_) -> s)
             let childrenLocalvars = childrenContent3 |> List.collect(fun (_,s,_) -> s)

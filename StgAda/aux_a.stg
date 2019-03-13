@@ -40,12 +40,12 @@ PrintIndexFile(arrsModules) ::= <<
 
 PrintMakeFile(arrsModuleList) ::=<<
 all:
-	gnatmake -gnat2012 -d -P GPS_project.gpr mainprogram.adb --subdirs=debug -cargs -g -O0
+	gnatmake -gnat2012 -P GPS_project.gpr mainprogram.adb --subdirs=debug -cargs -g -O0 -gnatwe
 	touch builtWithoutCoverage
 	
 coverage:
 	if [ -f builtWithoutCoverage ] ; then make clean ; fi
-	gnatmake -gnat2012 -d -P GPS_project.gpr mainprogram.adb --subdirs=debug -cargs -g -O0 -fprofile-arcs -ftest-coverage -largs -fprofile-arcs
+	gnatmake -gnat2012 -P GPS_project.gpr mainprogram.adb --subdirs=debug -cargs -g -O0 -gnatwe -fprofile-arcs -ftest-coverage -largs -fprofile-arcs
 	cd bin/debug ; ./mainprogram
 	cd bin/debug ; gcov <arrsModuleList; separator=" ">
 	

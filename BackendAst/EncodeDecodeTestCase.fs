@@ -256,6 +256,7 @@ let createXerEncDecFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:As
                                                 let! fname = eqFunc.isEqualFuncName
                                                 return compareInputWithOutput modName fname varName sAmberIsValid
                                            }                
+                |Write_bitstream_to_file -> None            
             joinItems (content.orElse "") sNestedContent
 
         match hasXerEncodeFunction encFunc with
