@@ -139,7 +139,7 @@ PrintCodec_body(sModName, sFuncName, sTasName, sStar,  sVal, sEnc, sNestedStatem
 FUNCTION <sFuncName>(<sVal>:<sModName>.<sTasName>; Filename : in String) RETURN <rtlModuleName()>.TEST_CASE_RESULT
 IS
     decodedPDU  : <sModName>.<sTasName>;
-    stream      : adaasn1rtl.Bitstream := adaasn1rtl.BitStream_init(<sModName>.<sTasName>_REQUIRED_BYTES_FOR_<sEnc>ENCODING);
+    stream      : adaasn1rtl.Bitstream := adaasn1rtl.BitStream_init((if <sModName>.<sTasName>_REQUIRED_BYTES_FOR_<sEnc>ENCODING = 0 then 1 else <sModName>.<sTasName>_REQUIRED_BYTES_FOR_<sEnc>ENCODING));
     result      : <rtlModuleName()>.ASN1_RESULT;
     ret         : <rtlModuleName()>.TEST_CASE_RESULT;
 BEGIN
@@ -322,7 +322,14 @@ emitTestCaseAsFunc_h(sFuncName) ::= <<
 procedure <sFuncName>( totalErrors : in out integer);
 >>
 
-emitTestCaseAsFunc(sFuncName, arrsVars, sModName, sTasName, sAmber, sEnc, bValueAssignment, sInitializeTcData, bStatic, sGenerateDatFile, soInitFunction, sInitAmber) ::= <<
+emitTestCaseAsFunc_dummy_init(sTypeName, sFuncName, sDummyVarname) ::= <<
+declare
+   dummy : constant <sTypeName> := <sFuncName>;
+   pragma Unreferenced (dummy);
+begin null; end;
+>>
+
+emitTestCaseAsFunc(sFuncName, arrsVars, sModName, sTasName, sAmber, sEnc, bValueAssignment, sInitializeTcData, bStatic, sGenerateDatFile, arrsDummyInitStatementsNeededForStatementCoverage, sInitAmber) ::= <<
 procedure <sFuncName>( totalErrors : in out integer)
 is
     use Ada.Text_IO;
@@ -331,9 +338,10 @@ is
     <arrsVars; separator="\n">
     tc_data : <sTasName><if(bValueAssignment)> := <sInitializeTcData><endif>;
 begin
-    <if(soInitFunction)>
+    <if(arrsDummyInitStatementsNeededForStatementCoverage)>
     -- dummy statement used for calling init functions
-    tc_data := <soInitFunction>;
+    
+    <arrsDummyInitStatementsNeededForStatementCoverage; separator="\n">
     <endif>
     --the actual initialization with the test case data is made here.
     <if(!bValueAssignment)>

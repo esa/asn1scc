@@ -1205,6 +1205,24 @@ let rec GetMySelfAndChildren (t:Asn1Type) =
         yield t
     } |> Seq.toList
 
+let rec GetMySelfAndChildren2 l (t:Asn1Type) (p:CallerScope)= 
+    seq {
+        match t.Kind with
+        | SequenceOf(conType) ->  
+            let ii = t.id.SeqeuenceOfLevel + 1
+            let i = "0" //sprintf "i%d" ii
+            yield! GetMySelfAndChildren2 l conType.childType ({p with arg = p.arg.getArrayItem l i conType.childType.isIA5String})
+        | Sequence seq ->
+            for ch in seq.Asn1Children do 
+                yield! GetMySelfAndChildren2 l ch.Type ({p with arg = p.arg.getSeqChild l (ch.getBackendName l) ch.Type.isIA5String})
+        | Choice(ch)-> 
+            for ch in ch.children do 
+                yield! GetMySelfAndChildren2 l ch.chType ({p with arg = p.arg.getChChild l (ch.getBackendName l) ch.chType.isIA5String})
+        |_ -> ()    
+        yield (t,p)
+    } |> Seq.toList
+
+
 let getFuncNameGeneric (typeDefinition:TypeDefintionOrReference) nameSuffix  =
     match typeDefinition with
     | ReferenceToExistingDefinition  refEx  -> None
