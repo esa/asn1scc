@@ -214,7 +214,7 @@ let createIA5StringFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (code
         let xmlTag = xmlTag |> orElse (XerLiteralConstant (if o.isNumeric then "NumericString" else "IA5String"))
         let pp = match codec with CommonTypes.Encode -> p.arg.getValue l | CommonTypes.Decode -> p.arg.getPointer l
         let nLevel = BigInteger (t.id.AcnAbsPath.Length - 2)
-        let contentSize = getMaxSizeInBytesForXER_IA5String o.maxSize
+        let contentSize = getMaxSizeInBytesForXER_IA5String o.maxSize.uper
         let totalSize = getMaxSizeInBytesForXER xmlTag contentSize
         let bodyStm = String pp xmlTag.p nLevel (checkExp isValidFunc p) errCode.errCodeName codec
         Some {XERFuncBodyResult.funcBody = bodyStm; errCodes= [errCode]; localVariables=[];encodingSizeInBytes=totalSize}
@@ -226,9 +226,9 @@ let createOctetStringFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (co
     let funcBody (errCode:ErroCode) (p:CallerScope) (xmlTag:XerTag option) = 
         let xmlTag = xmlTag |> orElse (XerLiteralConstant "OCTET-STRING")
         let nLevel = BigInteger (t.id.AcnAbsPath.Length - 2)
-        let contentSize = getMaxSizeInBytesForXER_OctetString o.maxSize
+        let contentSize = getMaxSizeInBytesForXER_OctetString o.maxSize.uper
         let totalSize = getMaxSizeInBytesForXER xmlTag contentSize
-        let bodyStm = OctetString p.arg.p (p.arg.getAcces l) xmlTag.p nLevel o.maxSize (o.minSize=o.maxSize) (checkExp isValidFunc p) errCode.errCodeName codec
+        let bodyStm = OctetString p.arg.p (p.arg.getAcces l) xmlTag.p nLevel o.maxSize.uper (o.minSize.uper=o.maxSize.uper) (checkExp isValidFunc p) errCode.errCodeName codec
         Some {XERFuncBodyResult.funcBody = bodyStm; errCodes= [errCode]; localVariables=[];encodingSizeInBytes=totalSize}
     let soSparkAnnotations = None
     createXerFunction_any r l codec t typeDefinition  isValidFunc  funcBody  soSparkAnnotations us
@@ -238,9 +238,9 @@ let createBitStringFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (code
     let funcBody (errCode:ErroCode) (p:CallerScope) (xmlTag:XerTag option) = 
         let xmlTag = xmlTag |> orElse (XerLiteralConstant "BIT-STRING")
         let nLevel = BigInteger (t.id.AcnAbsPath.Length - 2)
-        let contentSize = getMaxSizeInBytesForXER_BitString o.maxSize
+        let contentSize = getMaxSizeInBytesForXER_BitString o.maxSize.uper
         let totalSize = getMaxSizeInBytesForXER xmlTag contentSize
-        let bodyStm = BitString p.arg.p (p.arg.getAcces l) xmlTag.p nLevel o.maxSize (o.minSize=o.maxSize) (checkExp isValidFunc p) errCode.errCodeName codec
+        let bodyStm = BitString p.arg.p (p.arg.getAcces l) xmlTag.p nLevel o.maxSize.uper (o.minSize.uper=o.maxSize.uper) (checkExp isValidFunc p) errCode.errCodeName codec
         Some {XERFuncBodyResult.funcBody = bodyStm; errCodes= [errCode]; localVariables=[];encodingSizeInBytes=totalSize}
     let soSparkAnnotations = None
     createXerFunction_any r l codec t typeDefinition  isValidFunc  funcBody  soSparkAnnotations us
@@ -269,9 +269,9 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (cod
                 None
         let internalItem =  chFunc.funcBody ({p with arg = p.arg.getArrayItem l i child.isIA5String}) childTag
         let internalItem_str, chLocalVars, chErrCodes, chSize = match internalItem with Some x -> x.funcBody, x.localVariables, x.errCodes, x.encodingSizeInBytes | None -> "",[],[],0I
-        let contentSize = o.maxSize * chSize
+        let contentSize = o.maxSize.uper * chSize
         let totalSize = getMaxSizeInBytesForXER xmlTag contentSize
-        let bodyStm = SequenceOf p.arg.p (p.arg.getAcces l) xmlTag.p nLevel i o.maxSize internalItem_str (o.minSize=o.maxSize) (checkExp isValidFunc p) errCode.errCodeName codec
+        let bodyStm = SequenceOf p.arg.p (p.arg.getAcces l) xmlTag.p nLevel i o.maxSize.uper internalItem_str (o.minSize.uper=o.maxSize.uper) (checkExp isValidFunc p) errCode.errCodeName codec
         Some {XERFuncBodyResult.funcBody = bodyStm; errCodes= errCode::chErrCodes; localVariables=lv::chLocalVars;encodingSizeInBytes=totalSize}
     let soSparkAnnotations = None
     createXerFunction_any r l codec t typeDefinition  isValidFunc  funcBody  soSparkAnnotations us

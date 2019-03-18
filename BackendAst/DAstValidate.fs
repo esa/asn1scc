@@ -489,7 +489,7 @@ let exlcudeSizeConstraintIfFixedSize minSize maxSize allCons =
     | true  -> allCons |> List.filter(fun x -> match x with SizeContraint al-> false | _ -> true)
 
 let createOctetStringFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.OctetString) (typeDefinition:TypeDefintionOrReference) (equalFunc:EqualFunction) (printValue  : string -> (Asn1ValueKind option) -> (Asn1ValueKind) -> string) (us:State)  =
-    let allCons = exlcudeSizeConstraintIfFixedSize o.minSize o.maxSize o.AllCons
+    let allCons = exlcudeSizeConstraintIfFixedSize o.minSize.uper o.maxSize.uper o.AllCons
     let curProgramUnit = ToC t.id.ModName
     let anonymousVariables =
         allCons |> 
@@ -520,7 +520,7 @@ let createOctetStringFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:
 
 
 let createBitStringFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.BitString) (typeDefinition:TypeDefintionOrReference) (defOrRef:TypeDefintionOrReference) (equalFunc:EqualFunction) (printValue  : string -> (Asn1ValueKind option) -> (Asn1ValueKind) -> string) (us:State)  =
-    let allCons = exlcudeSizeConstraintIfFixedSize o.minSize o.maxSize o.AllCons
+    let allCons = exlcudeSizeConstraintIfFixedSize o.minSize.uper o.maxSize.uper o.AllCons
     let curProgramUnit = ToC t.id.ModName
     let anonymousVariables =
         allCons |> 
@@ -788,7 +788,7 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1A
 
 let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.SequenceOf) (typeDefinition:TypeDefintionOrReference) (childType:Asn1Type) (baseTypeValFunc : IsValidFunction option) (us:State)  =
     let funcName            = getFuncName r l t.id (t.FT_TypeDefintion.[l])
-    let bIsFixedSize = o.minSize = o.maxSize
+    let bIsFixedSize = o.minSize.uper = o.maxSize.uper
     let hasValidationFunc = 
         match bIsFixedSize with
         | false     -> true
@@ -826,8 +826,8 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:A
                 //let childAccesPath = p + childAccess + l.ArrName + (l.ArrayAccess i) //"[" + i + "]"
                 let innerStatement = Some(cvf.funcBody ({p with arg = p.arg.getArrayItem l i childType.isIA5String}) )
                 match l with
-                | C   -> isvalid_c.sequenceOf p.arg.p (p.arg.getAcces l) i bIsFixedSize ( o.minSize) None None innerStatement
-                | Ada -> isvalid_a.sequenceOf p.arg.p (p.arg.getAcces l) i bIsFixedSize ( o.minSize) None None innerStatement
+                | C   -> isvalid_c.sequenceOf p.arg.p (p.arg.getAcces l) i bIsFixedSize ( o.minSize.uper) None None innerStatement
+                | Ada -> isvalid_a.sequenceOf p.arg.p (p.arg.getAcces l) i bIsFixedSize ( o.minSize.uper) None None innerStatement
             Some(cvf.alphaFuncs, lv::cvf.localVariables , cvf.errCodes, funcBody, us)
         | None, Some(errCode, sIsValidSizeExpFunc, ns) ->
             let funcBody (p:CallerScope)  = 
@@ -838,8 +838,8 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:A
                 //let childAccesPath = p + childAccess + l.ArrName + (l.ArrayAccess i) //"[" + i + "]"
                 let innerStatement = Some(cvf.funcBody ({p with arg = p.arg.getArrayItem l i childType.isIA5String}))
                 match l with
-                | C   -> isvalid_c.sequenceOf p.arg.p (p.arg.getAcces l) i bIsFixedSize ( o.minSize) (Some (sIsValidSizeExpFunc p )) (Some errCode.errCodeName) innerStatement
-                | Ada -> isvalid_a.sequenceOf p.arg.p (p.arg.getAcces l) i bIsFixedSize ( o.minSize) (Some (sIsValidSizeExpFunc p )) (Some errCode.errCodeName) innerStatement
+                | C   -> isvalid_c.sequenceOf p.arg.p (p.arg.getAcces l) i bIsFixedSize ( o.minSize.uper) (Some (sIsValidSizeExpFunc p )) (Some errCode.errCodeName) innerStatement
+                | Ada -> isvalid_a.sequenceOf p.arg.p (p.arg.getAcces l) i bIsFixedSize ( o.minSize.uper) (Some (sIsValidSizeExpFunc p )) (Some errCode.errCodeName) innerStatement
             Some(cvf.alphaFuncs, lv::cvf.localVariables , cvf.errCodes@[errCode], funcBody, ns)
 
 

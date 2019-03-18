@@ -197,7 +197,7 @@ type StringAcnEncodingClass =
     | Acn_Enc_String_CharIndex_External_Field_Determinant   of BigInteger*RelativePath             //char size in bits, encode char index, size is provided by an external length determinant
 
 type SizeableAcnEncodingClass =
-    | SZ_EC_uPER
+    | SZ_EC_uPER              
     | SZ_EC_ExternalField    of RelativePath
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -256,8 +256,8 @@ type StringType = {
     cons                : IA5StringConstraint list
     withcons            : IA5StringConstraint list
 
-    minSize             : BigInteger
-    maxSize             : BigInteger
+    minSize             : SIZE
+    maxSize             : SIZE
     uperMaxSizeInBits   : BigInteger
     uperMinSizeInBits   : BigInteger
     uperCharSet         : char array
@@ -275,8 +275,8 @@ type OctetString = {
     acnProperties       : SizeableAcnProperties
     cons                : OctetStringConstraint list
     withcons            : OctetStringConstraint list
-    minSize             : BigInteger
-    maxSize             : BigInteger
+    minSize             : SIZE
+    maxSize             : SIZE
     uperMaxSizeInBits   : BigInteger
     uperMinSizeInBits   : BigInteger
 
@@ -291,8 +291,8 @@ type BitString = {
     acnProperties   : SizeableAcnProperties
     cons                : BitStringConstraint list
     withcons            : BitStringConstraint list
-    minSize             : BigInteger
-    maxSize             : BigInteger
+    minSize             : SIZE
+    maxSize             : SIZE
     uperMaxSizeInBits   : BigInteger
     uperMinSizeInBits   : BigInteger
 
@@ -460,8 +460,8 @@ and SequenceOf = {
     acnProperties   : SizeableAcnProperties
     cons                : SequenceOfConstraint list
     withcons            : SequenceOfConstraint list
-    minSize             : BigInteger
-    maxSize             : BigInteger
+    minSize             : SIZE
+    maxSize             : SIZE
     uperMaxSizeInBits   : BigInteger
     uperMinSizeInBits   : BigInteger
 

@@ -135,7 +135,7 @@ let createIA5StringInitFunc (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:As
             | StringValue iv   -> 
                 iv
             | _                 -> raise(BugErrorException "UnexpectedValue")
-        let arrNuls = [0 .. (int o.maxSize- vl.Length)]|>Seq.map(fun x -> variables_a.PrintStringValueNull())
+        let arrNuls = [0 .. (int o.maxSize.uper- vl.Length)]|>Seq.map(fun x -> variables_a.PrintStringValueNull())
         initIA5String (p.arg.getValue l) (vl.Replace("\"","\"\"")) arrNuls
 
     let ii = t.id.SeqeuenceOfLevel + 1
@@ -147,23 +147,23 @@ let createIA5StringInitFunc (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:As
         let seqOfCase (nSize:BigInteger)  = 
             let initTestCaseFunc (p:CallerScope) = 
                 let td = (o.typeDef.[l]).longTypedefName l (ToC p.modName)
-                let funcBody = initTestCaseIA5String p.arg.p (p.arg.getAcces l) (nSize) ((o.maxSize+1I)) i td bAlpha arrAsciiCodes (BigInteger arrAsciiCodes.Length) false
+                let funcBody = initTestCaseIA5String p.arg.p (p.arg.getAcces l) (nSize) ((o.maxSize.uper+1I)) i td bAlpha arrAsciiCodes (BigInteger arrAsciiCodes.Length) false
                 {InitFunctionResult.funcBody = funcBody; localVariables=[SequenceOfIndex (ii, None)]}
             {AutomaticTestCase.initTestCaseFunc = initTestCaseFunc; testCase = Map.ofList [(t.id, TcvSizeableTypeValue nSize)] }
         seq {
-            match o.minSize = o.maxSize with
-            | true  -> yield seqOfCase o.minSize 
+            match o.minSize.uper = o.maxSize.uper with
+            | true  -> yield seqOfCase o.minSize.uper 
             | false -> 
-                yield seqOfCase o.minSize 
-                yield seqOfCase o.maxSize 
-                match o.maxSize > 65536I with  //fragmentation cases
+                yield seqOfCase o.minSize.uper 
+                yield seqOfCase o.maxSize.uper
+                match o.maxSize.uper > 65536I with  //fragmentation cases
                 | true ->
-                      yield! fragmentationCases seqOfCase o.maxSize
+                      yield! fragmentationCases seqOfCase o.maxSize.uper
                 | false -> ()
         } |> Seq.toList
     let zero (p:CallerScope) = 
         let td = (o.typeDef.[l]).longTypedefName l (ToC p.modName)
-        let funcBody = initTestCaseIA5String p.arg.p (p.arg.getAcces l) ( (o.maxSize+1I)) ( (o.maxSize+1I)) i td bAlpha arrAsciiCodes (BigInteger arrAsciiCodes.Length) true
+        let funcBody = initTestCaseIA5String p.arg.p (p.arg.getAcces l) ( (o.maxSize.uper+1I)) ( (o.maxSize.uper+1I)) i td bAlpha arrAsciiCodes (BigInteger arrAsciiCodes.Length) true
         let lvars = match l with C -> [] | Ada -> [SequenceOfIndex (ii, None)]
         {InitFunctionResult.funcBody = funcBody; localVariables=lvars}
     createInitFunctionCommon r l t typeDefinition funcBody iv zero testCaseFuncs
@@ -180,7 +180,7 @@ let createOctetStringInitFunc (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:
             | BitStringValue iv   -> bitStringValueToByteArray (StringLoc.ByValue iv) |> Seq.toList
             | _                 -> raise(BugErrorException "UnexpectedValue")
         let arrsBytes = bytes |> List.mapi(fun i b -> initFixSizeBitOrOctString_bytei p.arg.p (p.arg.getAcces l) ((i+l.ArrayStartIndex).ToString()) (sprintf "%x" b))
-        match o.minSize = o.maxSize with
+        match o.isFixedSize with
         | true  -> initFixSizeBitOrOctString p.arg.p (p.arg.getAcces l) arrsBytes
         | false -> initFixVarSizeBitOrOctString p.arg.p (p.arg.getAcces l) (BigInteger arrsBytes.Length) arrsBytes
     let anonymousValues =
@@ -200,23 +200,23 @@ let createOctetStringInitFunc (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:
             let i = sprintf "i%d" ii
             let seqOfCase (nSize:BigInteger) = 
                 let initTestCaseFunc (p:CallerScope) = 
-                    let funcBody = initTestCaseOctetString p.arg.p (p.arg.getAcces l) nSize i (o.minSize = o.maxSize) false
+                    let funcBody = initTestCaseOctetString p.arg.p (p.arg.getAcces l) nSize i (o.minSize.uper = o.maxSize.uper) false
                     {InitFunctionResult.funcBody = funcBody; localVariables=[SequenceOfIndex (ii, None)]}
                 {AutomaticTestCase.initTestCaseFunc = initTestCaseFunc; testCase = Map.ofList [(t.id, TcvSizeableTypeValue nSize)] }
             let testCaseFuncs = 
                 seq {
-                    match o.minSize = o.maxSize with
-                    | true  -> yield seqOfCase o.minSize 
+                    match o.minSize.acn = o.maxSize.acn with
+                    | true  -> yield seqOfCase o.minSize.acn
                     | false -> 
-                        yield seqOfCase o.minSize 
-                        yield seqOfCase o.maxSize 
-                        match o.maxSize > 65536I with  //fragmentation cases
+                        yield seqOfCase o.minSize.acn 
+                        yield seqOfCase o.maxSize.acn 
+                        match o.maxSize.acn > 65536I with  //fragmentation cases
                         | true ->
-                              yield! fragmentationCases seqOfCase o.maxSize
+                              yield! fragmentationCases seqOfCase o.maxSize.acn
                         | false -> ()
                 } |> Seq.toList
             let zero (p:CallerScope) = 
-                let funcBody = initTestCaseOctetString p.arg.p (p.arg.getAcces l) o.maxSize i (o.minSize = o.maxSize) true
+                let funcBody = initTestCaseOctetString p.arg.p (p.arg.getAcces l) o.maxSize.uper i (o.minSize.uper = o.maxSize.uper) true
                 let lvars = match l with C -> [] | Ada -> [SequenceOfIndex (ii, None)]
                 {InitFunctionResult.funcBody = funcBody; localVariables=lvars}
 
@@ -250,7 +250,7 @@ let createBitStringInitFunc (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:As
             | OctetStringValue iv   -> iv
             | _                     -> raise(BugErrorException "UnexpectedValue")
         let arrsBytes = bytes |> List.mapi(fun i b -> initFixSizeBitOrOctString_bytei p.arg.p (p.arg.getAcces l) ((i+l.ArrayStartIndex).ToString()) (sprintf "%x" b))
-        match o.minSize = o.maxSize with
+        match o.minSize.uper = o.maxSize.uper with
         | true  -> initFixSizeBitOrOctString p.arg.p (p.arg.getAcces l) arrsBytes
         | false -> initFixVarSizeBitOrOctString p.arg.p (p.arg.getAcces l) (BigInteger arrsBytes.Length) arrsBytes
 
@@ -271,26 +271,26 @@ let createBitStringInitFunc (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:As
             let seqOfCase (nSize:BigInteger) = 
                 let initTestCaseFunc (p:CallerScope) = 
                     let nSizeCeiled =  if nSize % 8I = 0I then nSize else (nSize + (8I - nSize % 8I)) 
-                    let funcBody = initTestCaseBitString p.arg.p (p.arg.getAcces l) nSize (nSizeCeiled) i (o.minSize = o.maxSize) false
+                    let funcBody = initTestCaseBitString p.arg.p (p.arg.getAcces l) nSize (nSizeCeiled) i (o.minSize.uper = o.maxSize.uper) false
                     {InitFunctionResult.funcBody = funcBody; localVariables=[SequenceOfIndex (ii, None)]}
                 {AutomaticTestCase.initTestCaseFunc = initTestCaseFunc; testCase = Map.ofList [(t.id, TcvSizeableTypeValue nSize)] }
 
             let testCaseFuncs = 
                 seq {
-                    match o.minSize = o.maxSize with
-                    | true  -> yield seqOfCase o.minSize 
+                    match o.minSize.acn = o.maxSize.acn with
+                    | true  -> yield seqOfCase o.minSize.acn 
                     | false -> 
-                        yield seqOfCase o.minSize 
-                        yield seqOfCase o.maxSize 
-                        match o.maxSize > 65536I with  //fragmentation cases
+                        yield seqOfCase o.minSize.acn 
+                        yield seqOfCase o.maxSize.acn 
+                        match o.maxSize.acn > 65536I with  //fragmentation cases
                         | true ->
-                              yield! fragmentationCases seqOfCase o.maxSize
+                              yield! fragmentationCases seqOfCase o.maxSize.acn
                         | false -> ()
                 } |> Seq.toList
             let zero (p:CallerScope) = 
-                let nSize = o.maxSize
+                let nSize = o.maxSize.uper
                 let nSizeCeiled =  if nSize % 8I = 0I then nSize else (nSize + (8I - nSize % 8I)) 
-                let funcBody = initTestCaseBitString p.arg.p (p.arg.getAcces l) nSize (nSizeCeiled) i (o.minSize = o.maxSize) true
+                let funcBody = initTestCaseBitString p.arg.p (p.arg.getAcces l) nSize (nSizeCeiled) i (o.minSize.uper = o.maxSize.uper) true
                 let lvars = match l with C -> [] | Ada -> [SequenceOfIndex (ii, None)]
                 {InitFunctionResult.funcBody = funcBody; localVariables=lvars}
             testCaseFuncs, zero
@@ -406,7 +406,7 @@ let createSequenceOfInitFunc (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:A
                         ret + pragma
                     )
             | _               -> raise(BugErrorException "UnexpectedValue")
-        match o.minSize = o.maxSize with
+        match o.isFixedSize with
         | true  -> initFixedSequenceOf vl
         | false -> initVarSizeSequenceOf p.arg.p (p.arg.getAcces l) (BigInteger vl.Length) vl
 
@@ -426,7 +426,7 @@ let createSequenceOfInitFunc (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:A
                 | atc::[] -> 
                     let initTestCaseFunc (p:CallerScope) = 
                         let childCase = atc.initTestCaseFunc ({p with arg = p.arg.getArrayItem l i childType.isIA5String})
-                        let funcBody = initTestCaseSizeSequenceOf p.arg.p (p.arg.getAcces l) None nSize (o.minSize = o.maxSize) [childCase.funcBody] false i
+                        let funcBody = initTestCaseSizeSequenceOf p.arg.p (p.arg.getAcces l) None nSize (o.minSize.uper = o.maxSize.uper) [childCase.funcBody] false i
                         {InitFunctionResult.funcBody = funcBody; localVariables= (SequenceOfIndex (ii, None))::childCase.localVariables }
                     let combinedTestCase = atc.testCase.Add(t.id, TcvSizeableTypeValue nSize)
                     {AutomaticTestCase.initTestCaseFunc = initTestCaseFunc; testCase = combinedTestCase }
@@ -439,7 +439,7 @@ let createSequenceOfInitFunc (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:A
                                 let funcBody = initTestCaseSizeSequenceOf_innerItem (idx=0) (idx = childTestCases.Length-1) idx.AsBigInt sChildItem.funcBody i (BigInteger childTestCases.Length)
                                 (funcBody, (SequenceOfIndex (ii, None))::sChildItem.localVariables)) |>
                             List.unzip
-                        let funcBody = initTestCaseSizeSequenceOf p.arg.p (p.arg.getAcces l) None  nSize (o.minSize = o.maxSize) arrsInnerItems true i 
+                        let funcBody = initTestCaseSizeSequenceOf p.arg.p (p.arg.getAcces l) None  nSize (o.minSize.uper = o.maxSize.uper) arrsInnerItems true i 
                         {InitFunctionResult.funcBody = funcBody; localVariables= (SequenceOfIndex (ii, None))::(childLocalVars |> List.collect id)}
                     let combinedTestCase =
                         let thisCase = Map.ofList [(t.id, TcvSizeableTypeValue nSize)]
@@ -447,18 +447,18 @@ let createSequenceOfInitFunc (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:A
                     {AutomaticTestCase.initTestCaseFunc = initTestCaseFunc; testCase = combinedTestCase }
 
         seq {
-            match o.minSize = o.maxSize with
-            | true  -> yield seqOfCase o.minSize 
+            match o.minSize.acn = o.maxSize.acn with
+            | true  -> yield seqOfCase o.minSize.acn
             | false -> 
-                yield seqOfCase o.maxSize 
-                yield seqOfCase o.minSize 
-                match o.maxSize > 65536I with  //fragmentation cases
+                yield seqOfCase o.maxSize.acn 
+                yield seqOfCase o.minSize.acn 
+                match o.maxSize.acn > 65536I with  //fragmentation cases
                 | true ->
-                        yield! fragmentationCases seqOfCase o.maxSize
+                        yield! fragmentationCases seqOfCase o.maxSize.acn
                 | false -> ()
         } |> Seq.toList
     let initTasFunction (p:CallerScope) =
-        let initCountValue = Some o.minSize
+        let initCountValue = Some o.minSize.uper
         let chp = {p with arg = p.arg.getArrayItem l i childType.isIA5String}
         let childInitRes_funcBody, childInitRes_localVariables = 
             match childType.initFunction.initFuncName with
@@ -467,7 +467,7 @@ let createSequenceOfInitFunc (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:A
                 childInitRes.funcBody, childInitRes.localVariables
             | Some fncName  ->
                 initChildWithInitFunc (chp.arg.getPointer l) fncName, []
-        let funcBody = initTestCaseSizeSequenceOf p.arg.p (p.arg.getAcces l) initCountValue o.maxSize (o.minSize = o.maxSize) [childInitRes_funcBody] false i
+        let funcBody = initTestCaseSizeSequenceOf p.arg.p (p.arg.getAcces l) initCountValue o.maxSize.uper (o.minSize.uper = o.maxSize.uper) [childInitRes_funcBody] false i
         {InitFunctionResult.funcBody = funcBody; localVariables= (SequenceOfIndex (ii, None))::childInitRes_localVariables }
         
     createInitFunctionCommon r l t typeDefinition funcBody iv  initTasFunction testCaseFuncs

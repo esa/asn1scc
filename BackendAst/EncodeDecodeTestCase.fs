@@ -393,16 +393,16 @@ let ObjectIdentifierAutomaticTestCaseValues (r:Asn1AcnAst.AstRoot)  (t:Asn1AcnAs
 
 let StringAutomaticTestCaseValues (r:Asn1AcnAst.AstRoot)  (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.StringType) =
     let maxItems = 32767I
-    match o.minSize > maxItems with
+    match o.minSize.uper > maxItems with
     | true  -> []   // the generated string will be very large
     | false ->  
         match o.uperCharSet |> Seq.filter(fun c -> not (System.Char.IsControl c)) |> Seq.toList with
         | chr::_    -> 
-            let s1 = System.String(chr, int o.minSize) 
-            match o.minSize = o.maxSize  || o.maxSize > maxItems with
+            let s1 = System.String(chr, int o.minSize.uper) 
+            match o.minSize.uper = o.maxSize.uper || o.maxSize.uper > maxItems with
             | true  -> [s1] 
             | false ->
-                let s2 = System.String(chr, int o.maxSize) 
+                let s2 = System.String(chr, int o.maxSize.uper) 
                 [s1;s2]
         | []        -> []
 
@@ -411,14 +411,14 @@ let OctetStringAutomaticTestCaseValues (r:Asn1AcnAst.AstRoot)  (t:Asn1AcnAst.Asn
     let maxItems = 70000I
     match valsFromSingleValueConstraints with
     | []    ->
-        match o.minSize > maxItems with
+        match o.minSize.uper > maxItems with
         | true  -> []   // the generated string will be very large
         | false ->  
-            let s1 = [1 .. int o.minSize] |> List.map (fun i -> 0uy)
-            match o.minSize = o.maxSize  || o.maxSize > maxItems with
+            let s1 = [1 .. int o.minSize.uper] |> List.map (fun i -> 0uy)
+            match o.minSize.uper = o.maxSize.uper  || o.maxSize.uper > maxItems with
             | true  -> [s1] 
             | false ->
-                let s2 = [1 .. int o.maxSize] |> List.map (fun i -> 0uy)
+                let s2 = [1 .. int o.maxSize.uper] |> List.map (fun i -> 0uy)
                 [s1;s2]
     | _     -> valsFromSingleValueConstraints
 
@@ -427,27 +427,27 @@ let BitStringAutomaticTestCaseValues (r:Asn1AcnAst.AstRoot)  (t:Asn1AcnAst.Asn1T
     let maxItems = 70000I
     match valsFromSingleValueConstraints with
     | []    ->
-        match o.minSize > maxItems with
+        match o.minSize.uper > maxItems with
         | true  -> []   // the generated string will be very large
         | false ->  
-            let s1 = System.String('0', int o.minSize)
-            match o.minSize = o.maxSize  || o.maxSize > maxItems with
+            let s1 = System.String('0', int o.minSize.uper)
+            match o.minSize.uper = o.maxSize.uper  || o.maxSize.uper > maxItems with
             | true  -> [s1] 
             | false ->
-                let s2 = System.String('0', int o.maxSize)
+                let s2 = System.String('0', int o.maxSize.uper)
                 [s1;s2]
     | _     -> valsFromSingleValueConstraints
 let SequenceOfAutomaticTestCaseValues (r:Asn1AcnAst.AstRoot)  (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.SequenceOf) (childType:Asn1Type) =
     let maxItems = 1000I
-    match o.minSize > maxItems with
+    match o.minSize.uper > maxItems with
     | true  -> []   // the generated string will be very large
     | false ->  
         let generateValue (childVal:Asn1Value) =
-            let s1 = [1 .. int o.minSize] |> List.map (fun i -> childVal)
-            match o.minSize = o.maxSize  || o.maxSize > maxItems with
+            let s1 = [1 .. int o.minSize.uper] |> List.map (fun i -> childVal)
+            match o.minSize.uper = o.maxSize.uper  || o.maxSize.uper > maxItems with
             | true  -> [s1] 
             | false ->
-                let s2 = [1 .. int o.maxSize] |> List.map (fun i -> childVal)
+                let s2 = [1 .. int o.maxSize.uper] |> List.map (fun i -> childVal)
                 [s1;s2]
         childType.automaticTestCasesValues |> List.collect generateValue
 (*

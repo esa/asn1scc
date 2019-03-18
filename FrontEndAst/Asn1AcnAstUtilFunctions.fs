@@ -152,7 +152,7 @@ type AcnInsertedType with
         | AcnReferenceToIA5String x -> x.tasName.Location
        
 type BitString with
-    member this.MaxOctets = int (ceil ((double this.maxSize)/8.0))
+    member this.MaxOctets = int (ceil ((double this.maxSize.uper)/8.0))
 
 
 
@@ -229,16 +229,22 @@ type Real             with
 
 type StringType       with
     member this.AllCons  = this.cons@this.withcons
+    member this.isFixedSize = this.minSize.uper = this.maxSize.uper
+    member this.isVariableSize = not this.isFixedSize
 
 
 type OctetString      with
     member this.AllCons  = this.cons@this.withcons
+    member this.isFixedSize = this.minSize.uper = this.maxSize.uper
+    member this.isVariableSize = not this.isFixedSize
 
 type NullType         with
     member this.AllCons  = []
 
 type BitString        with
     member this.AllCons  = this.cons@this.withcons
+    member this.isFixedSize = this.minSize.uper = this.maxSize.uper
+    member this.isVariableSize = not this.isFixedSize
 
 type Boolean          with
     member this.AllCons  = this.cons@this.withcons
@@ -248,6 +254,8 @@ type Enumerated       with
 
 type SequenceOf       with
     member this.AllCons  = this.cons@this.withcons
+    member this.isFixedSize = this.minSize.uper = this.maxSize.uper
+    member this.isVariableSize = not this.isFixedSize
 
 type Sequence         with
     member this.AllCons  = this.cons@this.withcons

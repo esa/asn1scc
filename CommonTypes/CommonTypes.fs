@@ -63,6 +63,11 @@ type EnumRenamePolicy =
     | SelectiveEnumerants
     | AllEnumerants
 
+[<NoEquality; NoComparison>]
+type SIZE = {
+    uper    : BigInteger
+    acn     : BigInteger
+}
 
 type Input = {
     name : string

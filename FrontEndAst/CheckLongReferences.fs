@@ -205,7 +205,7 @@ let checkChoicePresentWhen (r:AstRoot) (curState:AcnInsertedFieldDependencies) (
                             let actType = GetActualTypeByName r md ts 
                             match actType.Kind with
                             | IA5String str ->  
-                                match  str.minSize <= strVal.Value.Length.AsBigInt && strVal.Value.Length.AsBigInt <= str.maxSize with
+                                match  str.minSize.acn <= strVal.Value.Length.AsBigInt && strVal.Value.Length.AsBigInt <= str.maxSize.acn with
                                 | true  -> AcnDepPresenceStr ((RelativePath path), ch, str)
                                 | false -> raise(SemanticError(strVal.Location, (sprintf "Length of value '%s' is not within the expected range: i.e. %d not in (%A .. %A)"  strVal.Value  strVal.Value.Length str.minSize str.maxSize)))
 
@@ -214,7 +214,7 @@ let checkChoicePresentWhen (r:AstRoot) (curState:AcnInsertedFieldDependencies) (
                     let rec checkAcnType (c:AcnChild) =
                         match c.Type with
                         | AcnReferenceToIA5String    str -> 
-                            match  str.str.minSize <= strVal.Value.Length.AsBigInt && strVal.Value.Length.AsBigInt <= str.str.maxSize with
+                            match  str.str.minSize.acn <= strVal.Value.Length.AsBigInt && strVal.Value.Length.AsBigInt <= str.str.maxSize.acn with
                             | true  -> AcnDepPresenceStr ((RelativePath path), ch, str.str)
                             | false -> raise(SemanticError(strVal.Location, (sprintf "Length of value '%s' is not within the expected range: i.e. %d not in (%A .. %A)"  strVal.Value  strVal.Value.Length str.str.minSize str.str.maxSize)))
                         | _              -> raise(SemanticError(loc, (sprintf "Invalid argument type. Expecting STRING got %s "  (c.Type.AsString))))
@@ -277,14 +277,14 @@ let rec private checkType (r:AstRoot) (parents: Asn1Type list) (curentPath : Sco
     | NumericString  a      ->
         match a.acnProperties.sizeProp with
         | Some (StrExternalField   relPath)    ->
-            sizeReference r curState parents t a.minSize a.maxSize visibleParameters (Some relPath) AcnDepIA5StringSizeDeterminant
+            sizeReference r curState parents t a.minSize.acn a.maxSize.acn visibleParameters (Some relPath) AcnDepIA5StringSizeDeterminant
         | _          -> curState
     | OctetString    a      -> 
-        sizeReference r curState parents t a.minSize a.maxSize visibleParameters a.acnProperties.sizeProp AcnDepSizeDeterminant
+        sizeReference r curState parents t a.minSize.acn a.maxSize.acn visibleParameters a.acnProperties.sizeProp AcnDepSizeDeterminant
     | BitString      a      -> 
-        sizeReference r curState parents t a.minSize a.maxSize visibleParameters a.acnProperties.sizeProp AcnDepSizeDeterminant
+        sizeReference r curState parents t a.minSize.acn a.maxSize.acn visibleParameters a.acnProperties.sizeProp AcnDepSizeDeterminant
     | SequenceOf   seqOf    ->
-        let ns = sizeReference r curState (parents) t seqOf.minSize seqOf.maxSize visibleParameters seqOf.acnProperties.sizeProp AcnDepSizeDeterminant
+        let ns = sizeReference r curState (parents) t seqOf.minSize.acn seqOf.maxSize.acn visibleParameters seqOf.acnProperties.sizeProp AcnDepSizeDeterminant
         checkType r (parents@[t]) (curentPath@[SQF]) seqOf.child ns
     | Sequence   seq        ->
         seq.children |>

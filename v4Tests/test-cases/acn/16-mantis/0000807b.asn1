@@ -1,0 +1,32 @@
+TEST-CASE DEFINITIONS ::=
+BEGIN
+
+ Non-Generic ::= SEQUENCE {
+      cmds SEQUENCE (SIZE (0 .. 10)) OF BOOLEAN,
+	  buf  OCTET STRING (SIZE(0..200)),
+	  bit BIT STRING  (SIZE(0..200))
+ }
+ 
+ Another-One ::= Non-Generic (WITH COMPONENTS { cmds (SIZE (1)), buf (SIZE(10)), bit (SIZE(20)) })
+
+ Choice-Generic ::= CHOICE {
+   a BOOLEAN,
+   b INTEGER (0..255),
+   c REAL,
+   e INTEGER (0 .. 16),
+   f REAL
+ }
+ 
+ 
+ 
+ Sub-Choice ::= Choice-Generic (WITH COMPONENTS { a ABSENT, c ABSENT })
+
+ T1 ::= SEQUENCE {
+    a SEQUENCE (SIZE (1..10)) OF BOOLEAN OPTIONAL,
+    b BOOLEAN
+ }
+ T2 ::= T1 (WITH COMPONENTS { a ABSENT })
+END
+
+--TCFS     0000807b.acn
+

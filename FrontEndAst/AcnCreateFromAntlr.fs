@@ -354,22 +354,27 @@ type EnmStrGetTypeDifition_arg =
 let private mergeStringType (asn1:Asn1Ast.AstRoot) (loc:SrcLoc) (acnErrLoc: SrcLoc option) (props:GenericAcnProperty list) cons withcons defaultCharSet isNumeric (tdarg:EnmStrGetTypeDifition_arg) (us:Asn1AcnMergeState) =
     let acnErrLoc0 = match acnErrLoc with Some a -> a | None -> loc
     let sizeUperRange = uPER.getSrtingSizeUperRange cons loc
+    let sizeUperAcnRange = uPER.getSrtingSizeUperRange (cons@withcons) loc
     let uperCharSet = uPER.getSrtingAlphaUperRange cons defaultCharSet loc
-    let minSize, maxSize = uPER.getSizeMinAndMaxValue loc sizeUperRange
+    let uminSize, umaxSize = uPER.getSizeMinAndMaxValue loc sizeUperRange
+    let aminSize, amaxSize = uPER.getSizeMinAndMaxValue loc sizeUperAcnRange
+    let minSize = {SIZE.uper = uminSize; acn = aminSize }
+    let maxSize = {SIZE.uper = umaxSize; acn = amaxSize }
     let acnProperties = 
         match acnErrLoc with
         | Some acnErrLoc    ->
             {
                 StringAcnProperties.encodingProp    = getStringEncodingProperty acnErrLoc props
-                sizeProp                            = getStringSizeProperty minSize maxSize acnErrLoc props
+                sizeProp                            = getStringSizeProperty minSize.acn maxSize.acn acnErrLoc props
             }
         | None  -> {StringAcnProperties.encodingProp = None; sizeProp = None }
     
     let charSize =  GetNumberOfBitsForNonNegativeInteger (BigInteger (uperCharSet.Length-1))
-    let uperMinSizeInBits, uperMaxSizeInBits = uPER.getSizeableTypeSize minSize maxSize charSize
+    let uperMinSizeInBits, uperMaxSizeInBits = uPER.getSizeableTypeSize minSize.uper maxSize.uper charSize
+    let acnUperMinSizeInBits, acnUperMaxSizeInBits = uPER.getSizeableTypeSize minSize.acn maxSize.acn charSize
     let aligment = tryGetProp props (fun x -> match x with ALIGNTONEXT e -> Some e | _ -> None)
 
-    let acnEncodingClass,  acnMinSizeInBits, acnMaxSizeInBits= AcnEncodingClasses.GetStringEncodingClass aligment loc acnProperties uperMinSizeInBits uperMaxSizeInBits minSize maxSize uperCharSet
+    let acnEncodingClass,  acnMinSizeInBits, acnMaxSizeInBits= AcnEncodingClasses.GetStringEncodingClass aligment loc acnProperties acnUperMinSizeInBits acnUperMaxSizeInBits minSize.acn maxSize.acn uperCharSet
 
     match acnEncodingClass with                                          
     | Acn_Enc_String_uPER                                _                -> ()
@@ -401,35 +406,51 @@ let private mergeStringType (asn1:Asn1Ast.AstRoot) (loc:SrcLoc) (acnErrLoc: SrcL
 
 let private mergeOctetStringType (asn1:Asn1Ast.AstRoot) (loc:SrcLoc) (acnErrLoc: SrcLoc option) (props:GenericAcnProperty list) cons withcons (tdarg:GetTypeDifition_arg) (us:Asn1AcnMergeState) =
     let sizeUperRange = uPER.getOctetStringUperRange cons loc
-    let minSize, maxSize = uPER.getSizeMinAndMaxValue loc sizeUperRange
-    let uperMinSizeInBits, uperMaxSizeInBits = uPER.getSizeableTypeSize minSize maxSize 8I
-    let fixAsn1Size = match minSize = maxSize with true -> Some minSize | false -> None
+    let sizeUperAcnRange = uPER.getOctetStringUperRange (cons@withcons) loc
+
+    let uminSize, umaxSize = uPER.getSizeMinAndMaxValue loc sizeUperRange
+    let aminSize, amaxSize = uPER.getSizeMinAndMaxValue loc sizeUperAcnRange
+    let minSize = {SIZE.uper = uminSize; acn = aminSize }
+    let maxSize = {SIZE.uper = umaxSize; acn = amaxSize }
+
+    //let minSize, maxSize = uPER.getSizeMinAndMaxValue loc sizeUperRange
+    let uperMinSizeInBits, uperMaxSizeInBits = uPER.getSizeableTypeSize minSize.uper maxSize.uper 8I
+    let acnUperMinSizeInBits, acnUperMaxSizeInBits = uPER.getSizeableTypeSize minSize.acn maxSize.acn 8I
+    //let fixAsn1Size = match minSize = maxSize with true -> Some minSize | false -> None
 
     let acnProperties = 
         match acnErrLoc with
-        | Some acnErrLoc    -> {SizeableAcnProperties.sizeProp = getSizeableSizeProperty minSize maxSize acnErrLoc props}
+        | Some acnErrLoc    -> {SizeableAcnProperties.sizeProp = getSizeableSizeProperty minSize.acn maxSize.acn acnErrLoc props}
         | None              -> {SizeableAcnProperties.sizeProp = None }
 
 
     let aligment = tryGetProp props (fun x -> match x with ALIGNTONEXT e -> Some e | _ -> None)
-    let acnEncodingClass,  acnMinSizeInBits, acnMaxSizeInBits= AcnEncodingClasses.GetOctetStringEncodingClass aligment loc acnProperties uperMinSizeInBits uperMaxSizeInBits minSize maxSize 
+    let acnEncodingClass,  acnMinSizeInBits, acnMaxSizeInBits= AcnEncodingClasses.GetOctetStringEncodingClass aligment loc acnProperties acnUperMinSizeInBits acnUperMaxSizeInBits minSize.acn maxSize.acn 
 
     let typeDef, us1 = getSizeableTypeDifition tdarg us
     {OctetString.acnProperties = acnProperties; cons = cons; withcons = withcons; minSize=minSize; maxSize =maxSize; uperMaxSizeInBits = uperMaxSizeInBits; uperMinSizeInBits=uperMinSizeInBits; acnEncodingClass = acnEncodingClass;  acnMinSizeInBits=acnMinSizeInBits; acnMaxSizeInBits = acnMaxSizeInBits; typeDef=typeDef}, us1
 
 let private mergeBitStringType (asn1:Asn1Ast.AstRoot) (loc:SrcLoc) (acnErrLoc: SrcLoc option) (props:GenericAcnProperty list) cons withcons (tdarg:GetTypeDifition_arg) (us:Asn1AcnMergeState) =
     let sizeUperRange = uPER.getBitStringUperRange cons loc
-    let minSize, maxSize = uPER.getSizeMinAndMaxValue loc sizeUperRange
-    let uperMinSizeInBits, uperMaxSizeInBits = uPER.getSizeableTypeSize minSize maxSize 1I
-    let fixAsn1Size = match minSize = maxSize with true -> Some minSize | false -> None
+    let sizeUperAcnRange = uPER.getBitStringUperRange (cons@withcons) loc
+    //let minSize, maxSize = uPER.getSizeMinAndMaxValue loc sizeUperRange
+
+    let uminSize, umaxSize = uPER.getSizeMinAndMaxValue loc sizeUperRange
+    let aminSize, amaxSize = uPER.getSizeMinAndMaxValue loc sizeUperAcnRange
+    let minSize = {SIZE.uper = uminSize; acn = aminSize }
+    let maxSize = {SIZE.uper = umaxSize; acn = amaxSize }
+
+    let uperMinSizeInBits, uperMaxSizeInBits = uPER.getSizeableTypeSize minSize.uper maxSize.uper 1I
+    let acnUperMinSizeInBits, uperMaxSizeInBits = uPER.getSizeableTypeSize minSize.acn maxSize.acn 1I
+    //let fixAsn1Size = match minSize = maxSize with true -> Some minSize | false -> None
 
     let acnProperties = 
         match acnErrLoc with
-        | Some acnErrLoc    -> { SizeableAcnProperties.sizeProp  = getSizeableSizeProperty minSize maxSize acnErrLoc props}
+        | Some acnErrLoc    -> { SizeableAcnProperties.sizeProp  = getSizeableSizeProperty minSize.acn maxSize.acn acnErrLoc props}
         | None              -> {SizeableAcnProperties.sizeProp = None }
 
     let aligment = tryGetProp props (fun x -> match x with ALIGNTONEXT e -> Some e | _ -> None)
-    let acnEncodingClass,  acnMinSizeInBits, acnMaxSizeInBits= AcnEncodingClasses.GetBitStringEncodingClass aligment loc acnProperties uperMinSizeInBits uperMaxSizeInBits minSize maxSize 
+    let acnEncodingClass,  acnMinSizeInBits, acnMaxSizeInBits= AcnEncodingClasses.GetBitStringEncodingClass aligment loc acnProperties acnUperMinSizeInBits uperMaxSizeInBits minSize.acn maxSize.acn 
 
     let typeDef, us1 = getSizeableTypeDifition tdarg us
     {BitString.acnProperties = acnProperties; cons = cons; withcons = withcons; minSize=minSize; maxSize =maxSize; uperMaxSizeInBits = uperMaxSizeInBits; uperMinSizeInBits=uperMinSizeInBits; acnEncodingClass = acnEncodingClass;  acnMinSizeInBits=acnMinSizeInBits; acnMaxSizeInBits = acnMaxSizeInBits; typeDef=typeDef}, us1
@@ -834,19 +855,30 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (m:Asn1Ast.Asn1Mo
             let newChType, us2  = mergeType asn1 acn m chType (curPath@[SQF]) (typeDefPath@[SQF]) childEncSpec None [] childWithCons  acnArgs [] None None  us1
 
             let sizeUperRange = uPER.getSequenceOfUperRange cons t.Location
-            let minSize, maxSize = uPER.getSizeMinAndMaxValue t.Location sizeUperRange
-            let fixAsn1Size = match minSize = maxSize with true -> Some minSize | false -> None
+            let sizeUperAcnRange = uPER.getSequenceOfUperRange (cons@wcons) t.Location
+
+            let uminSize, umaxSize = uPER.getSizeMinAndMaxValue t.Location sizeUperRange
+            let aminSize, amaxSize = uPER.getSizeMinAndMaxValue t.Location sizeUperAcnRange
+            let minSize = {SIZE.uper = uminSize; acn = aminSize }
+            let maxSize = {SIZE.uper = umaxSize; acn = amaxSize }
+
+
+            //let minSize, maxSize = uPER.getSizeMinAndMaxValue t.Location sizeUperRange
+            //let fixAsn1Size = match minSize = maxSize with true -> Some minSize | false -> None
 
             let acnProperties = 
                 match acnErrLoc with
-                | Some acnErrLoc    -> { SizeableAcnProperties.sizeProp  = getSizeableSizeProperty minSize maxSize acnErrLoc combinedProperties}
+                | Some acnErrLoc    -> { SizeableAcnProperties.sizeProp  = getSizeableSizeProperty minSize.acn maxSize.acn acnErrLoc combinedProperties}
                 | None              -> {SizeableAcnProperties.sizeProp = None }
 
-            let uperMinSizeInBits, _ = uPER.getSizeableTypeSize minSize maxSize newChType.uperMinSizeInBits
-            let _, uperMaxSizeInBits = uPER.getSizeableTypeSize minSize maxSize newChType.uperMaxSizeInBits
+            let uperMinSizeInBits, _ = uPER.getSizeableTypeSize minSize.uper maxSize.uper newChType.uperMinSizeInBits
+            let _, uperMaxSizeInBits = uPER.getSizeableTypeSize minSize.uper maxSize.uper newChType.uperMaxSizeInBits
+
+            let acnUperMinSizeInBits, _ =uPER.getSizeableTypeSize minSize.acn maxSize.acn newChType.acnMinSizeInBits
+            let _, acnUperMaxSizeInBits = uPER.getSizeableTypeSize minSize.acn maxSize.acn newChType.acnMinSizeInBits
 
             let aligment = tryGetProp combinedProperties (fun x -> match x with ALIGNTONEXT e -> Some e | _ -> None)
-            let acnEncodingClass,  acnMinSizeInBits, acnMaxSizeInBits= AcnEncodingClasses.GetSequenceOfEncodingClass aligment loc acnProperties uperMinSizeInBits uperMaxSizeInBits minSize maxSize newChType.acnMinSizeInBits newChType.acnMaxSizeInBits
+            let acnEncodingClass,  acnMinSizeInBits, acnMaxSizeInBits= AcnEncodingClasses.GetSequenceOfEncodingClass aligment loc acnProperties uperMinSizeInBits uperMaxSizeInBits minSize.acn maxSize.acn newChType.acnMinSizeInBits newChType.acnMaxSizeInBits
 
             let newKind = {SequenceOf.child=newChType; acnProperties   = acnProperties; cons = cons; withcons = wcons;minSize=minSize; maxSize =maxSize; uperMaxSizeInBits = uperMaxSizeInBits; uperMinSizeInBits=uperMinSizeInBits; acnEncodingClass = acnEncodingClass;  acnMinSizeInBits = acnMinSizeInBits; acnMaxSizeInBits=acnMaxSizeInBits; typeDef=typeDef}
             SequenceOf newKind, us2

@@ -36,13 +36,13 @@ let getIA5String (t:Asn1AcnAst.StringType) (bo:StringType option) =
     let typedefBase  =
         match bo with
         | None                                          -> None
-        | Some bo   when t.maxSize = bo.baseInfo.maxSize  && t.minSize = bo.baseInfo.minSize    -> Some bo
+        | Some bo   when t.maxSize.uper = bo.baseInfo.maxSize.uper  && t.minSize.uper = bo.baseInfo.minSize.uper    -> Some bo
         | Some _                                        -> None
 
     let uperBase  =
         match bo with
         | None                 -> None
-        | Some bo   when t.maxSize = bo.baseInfo.maxSize  && t.minSize = bo.baseInfo.minSize  && t.uperCharSet = bo.baseInfo.uperCharSet
+        | Some bo   when t.maxSize.uper = bo.baseInfo.maxSize.uper  && t.minSize.uper = bo.baseInfo.minSize.uper  && t.uperCharSet = bo.baseInfo.uperCharSet
             -> Some bo
         | Some _                                        -> None
     {BaseTypesEquivalence.typeDefinition = typedefBase; uper = uperBase; acn = None}
@@ -52,7 +52,7 @@ let getOctetString (t:Asn1AcnAst.OctetString) (bo:OctetString option) =
     let typedefBase  =
         match bo with
         | None                                          -> None
-        | Some bo   when t.maxSize = bo.baseInfo.maxSize  && t.minSize = bo.baseInfo.minSize    -> Some bo
+        | Some bo   when t.maxSize.uper = bo.baseInfo.maxSize.uper  && t.minSize.uper = bo.baseInfo.minSize.uper    -> Some bo
         | Some _                                        -> None
     let uperBase  = typedefBase
     {BaseTypesEquivalence.typeDefinition = typedefBase; uper = uperBase; acn = None}
@@ -63,7 +63,7 @@ let getBitString (t:Asn1AcnAst.BitString) (bo:BitString option) =
     let typedefBase  =
         match bo with
         | None                                          -> None
-        | Some bo   when t.maxSize = bo.baseInfo.maxSize  && t.minSize = bo.baseInfo.minSize    -> Some bo
+        | Some bo   when t.maxSize.uper = bo.baseInfo.maxSize.uper  && t.minSize.uper = bo.baseInfo.minSize.uper    -> Some bo
         | Some _                                        -> None
     let uperBase  = typedefBase
     {BaseTypesEquivalence.typeDefinition = typedefBase; uper = uperBase; acn = None}
@@ -82,7 +82,7 @@ let getSequenceOf    (t:Asn1AcnAst.SequenceOf ) (bo:SequenceOf option) =
     let typedefBase  =
         match bo with
         | None                                          -> None
-        | Some bo   when t.maxSize = bo.baseInfo.maxSize  && t.minSize = bo.baseInfo.minSize    -> Some bo
+        | Some bo   when t.maxSize.uper = bo.baseInfo.maxSize.uper  && t.minSize.uper = bo.baseInfo.minSize.uper    -> Some bo
         | Some _                                        -> None
     let uperBase  = typedefBase
     {BaseTypesEquivalence.typeDefinition = typedefBase; uper = uperBase; acn = None}
