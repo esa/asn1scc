@@ -212,7 +212,7 @@ END IF;
 /*CHOICE start*/
 
 
-choice_child(sChPresent, sChildBody) ::= <<
+choice_child(sChPresent, sChildBody, bAlwaysAbsent) ::= <<
 WHEN <sChPresent> =>
     <sChildBody>
 >>

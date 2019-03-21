@@ -1,3 +1,4 @@
+--NOCOVERAGE
 MYMOD DEFINITIONS ::=  -- Data types shared by several services
 BEGIN
 

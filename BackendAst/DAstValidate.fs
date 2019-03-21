@@ -730,16 +730,16 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1A
             let childrenContent =
                 childrenConent |> 
                 List.map(fun (cc, vc) -> 
-                    let chBody =  
+                    let chBody, bAlwaysAbsent =  
                         match cc.Optionality with
                         | None  
                         | Some (Asn1AcnAst.ChoiceAlwaysPresent) ->
                             match vc with
-                            | Some vc -> vc.isValidStatement p
-                            | None    -> always_true_statement ()
+                            | Some vc -> vc.isValidStatement p    ,false
+                            | None    -> always_true_statement () ,false
                         | Some (Asn1AcnAst.ChoiceAlwaysAbsent)  ->
-                            always_false_statement errCode.errCodeName
-                    choice_child (cc.presentWhenName (Some defOrRef) l) chBody )
+                            always_false_statement errCode.errCodeName, true
+                    choice_child (cc.presentWhenName (Some defOrRef) l) chBody bAlwaysAbsent)
 
             choice p.arg.p (p.arg.getAcces l) childrenContent errCode.errCodeName
         Some(alphaFuncs, localVars, ercCodes, funcBody, finalState)

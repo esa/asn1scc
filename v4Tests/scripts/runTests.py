@@ -73,6 +73,7 @@ def RunTestCase(asn1, acn, behavior, expErrMsg):
     print(asn1, acn)
 
     asn1File = targetDir + os.sep + "sample1.asn1"
+    bRunCodeCoverage = "NOCOVERAGE" not in open(resolvedir(asn1File)).readline()
     acnFile = targetDir + os.sep + "sample1.acn"
     launcher = '' if sys.platform == 'cygwin' else 'mono '
     path_to_asn1scc = spawn.find_executable('Asn1f4.exe')
@@ -109,11 +110,14 @@ def RunTestCase(asn1, acn, behavior, expErrMsg):
             res = mysystem(
                 "cd " + targetDir + os.sep + "; CC=gcc make coverage", False)
             f = open(targetDir + os.sep + "sample1.c.gcov", 'r')
-            lines = [
-                l
-                for l in f.readlines()
-                if ("####" in l) and ("COVERAGE_IGNORE" not in l)]
-            if len(lines) > 0:
+            lines = f.readlines()
+            lines = filter(lambda x : "####" in x, lines)
+            lines = filter(lambda x : "COVERAGE_IGNORE" not in x, lines)
+            lines = filter(lambda l : ":".join(l.split(":")[2:]).strip() != '}', lines)
+            lines = filter(lambda l : ":".join(l.split(":")[2:]).strip() != "default:", lines)
+            lines = filter(lambda l : ":".join(l.split(":")[2:]).strip() != "break;", lines)
+            lines = list(lines)
+            if bRunCodeCoverage and len(lines) > 0:
                 PrintWarning("coverage failed. (less than 100%)")
                 #sys.exit(1)
         except FileNotFoundError as err:

@@ -24,8 +24,8 @@ ret = TRUE;
 >>
 
 always_false_statement(sErrorCodeName)::= <<
-ret = FALSE;
-*pErrCode = <sErrorCodeName>;
+ret = FALSE;                        /*COVERAGE_IGNORE*/
+*pErrCode = <sErrorCodeName>;       /*COVERAGE_IGNORE*/
 >>
  
 
@@ -223,10 +223,10 @@ if (ret) {
 /* CHOICE start*/
 
 
-choice_child(sChPresent, sChildBody) ::= <<
-case <sChPresent> :
+choice_child(sChPresent, sChildBody, bAlwaysAbsent) ::= <<
+case <sChPresent> : <if(bAlwaysAbsent)>/*COVERAGE_IGNORE*/<endif>
     <sChildBody>
-    break;
+    break;          <if(bAlwaysAbsent)>/*COVERAGE_IGNORE*/<endif>
 >>
 
 
