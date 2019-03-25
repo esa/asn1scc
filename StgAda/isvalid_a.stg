@@ -12,6 +12,28 @@ ret := <rtlModuleName()>.ASN1_RESULT'(Success => false, ErrorCode => <sErrorCode
 >>
 
 
+makeExpressionToStatement0(sIsValidExp) ::= <<
+ret.Success := <sIsValidExp>;
+>>
+
+convertVCBExpressionToStatementAndUpdateErrCode(sIsValidExp, sErrCode) ::= <<
+ret.Success := <sIsValidExp>;
+ret.ErrorCode := (if ret.Success then 0 else <sErrCode>);
+>>
+
+convertVCBStatementToStatementAndUpdateErrCode(sExp, sErrCode) ::= <<
+<sExp>
+ret.ErrorCode := (if ret.Success then 0 else <sErrCode>);
+>>
+
+convertVCBTRUEToStatementAndUpdateErrCode() ::= <<
+ret := <rtlModuleName()>.ASN1_RESULT'(Success => true, ErrorCode => 0);
+>>
+
+convertVCBFalseToStatementAndUpdateErrCode(sErrCode) ::= <<
+ret := <rtlModuleName()>.ASN1_RESULT'(Success => false, ErrorCode => <sErrCode>);
+>>
+
 
 JoinTwoIfFirstOk(sStr1,sStr2) ::=<<
 <sStr1>
@@ -19,6 +41,9 @@ if ret.Success then
     <sStr2>
 end if;
 >>
+
+
+
 
 ExpEqual(sExp1, sExp2) ::= "(<sExp1> = <sExp2>)"
 ExpStringEqual(sExp1, sExp2) ::= "(<sExp1> = <sExp2>)"
@@ -34,6 +59,79 @@ ExpAndMulit(arrsExp) ::= <<
 ExpNot(sExp) ::= "(NOT <sExp>)"
 StrLen(sExp) ::= "<rtlModuleName()>.getStringSize(<sExp>)"
 ArrayLen(sExp, sAcc) ::= "<sExp><sAcc>Length"
+
+
+
+
+StatementOrStament(sStat1, sStat2) ::= <<
+<sStat1>
+if not ret.Success then
+    <sStat2>
+end if;
+>>
+
+ExpressionOrStament(sExp1, sStat2) ::= <<
+ret := <sExp1>;
+if not ret.Success then
+    <sStat2>
+end if;
+>>
+
+StatementOrExpression(sStat1, sExp2) ::= <<
+<sStat1>;
+if not ret.Success then
+    ret.Success := <sExp2>;
+end if;
+>>
+
+StatementAndStament(sStat1, sStat2) ::= <<
+<sStat1>
+if ret.Success then
+    <sStat2>
+end if;
+>>
+
+ExpressionAndStament(sExp1, sStat2) ::= <<
+ret.Success := <sExp1>;
+if ret.Success then
+    <sStat2>
+end if;
+>>
+
+StatementAndExpression(sStat1, sExp2) ::= <<
+<sStat1>;
+if ret.Success then
+    ret.Success := <sExp2>;
+end if;
+>>
+
+StatementNot(sStat) ::= <<
+<sStat>;
+ret.Success := not ret.Success;
+>>
+
+StatementExceptStament(sStat1, sStat2) ::= <<
+<sStat1>
+if ret.Success then
+    <sStat2>
+    ret.Success := not ret.Success;
+end if;
+>>
+
+ExpressionExceptStament(sExp1, sStat2) ::= <<
+ret.Success := <sExp1>;
+if ret.Success then
+    <sStat2>
+    ret.Success := not ret.Success;
+end if;
+>>
+
+StatementExceptExpression(sStat1, sExp2) ::= <<
+<sStat1>;
+if ret.Success then
+    ret.Success := not (<sExp2>);
+end if;
+>>
 
 
 

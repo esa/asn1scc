@@ -211,6 +211,39 @@ let foldStringTypeConstraint2 unionFunc intersectionFunc allExceptFunc exceptFun
     loopRecursiveConstraint c s
 
 
+
+let foldSeqConstraint unionFunc intersectionFunc allExceptFunc exceptFunc rootFunc rootFunc2 singleValueFunc withComponentsFunc
+    (c:SeqConstraint) 
+    (s:'UserState) =
+    let rec loopRecursiveConstraint (c:SeqConstraint) (s0:'UserState) =
+        match c with
+        | SeqUnionConstraint(c1,c2,b)         -> 
+            let nc1, s1 = loopRecursiveConstraint c1 s0
+            let nc2, s2 = loopRecursiveConstraint c2 s1
+            unionFunc nc1 nc2 b s2
+        | SeqIntersectionConstraint(c1,c2)    -> 
+            let nc1, s1 = loopRecursiveConstraint c1 s0
+            let nc2, s2 = loopRecursiveConstraint c2 s1
+            intersectionFunc nc1 nc2 s2
+        | SeqAllExceptConstraint(c1)          -> 
+            let nc1, s1 = loopRecursiveConstraint c1 s0
+            allExceptFunc nc1 s1
+        | SeqExceptConstraint(c1,c2)          -> 
+            let nc1, s1 = loopRecursiveConstraint c1 s0
+            let nc2, s2 = loopRecursiveConstraint c2 s1
+            exceptFunc nc1 nc2 s2
+        | SeqRootConstraint(c1)               -> 
+            let nc1, s1 = loopRecursiveConstraint c1 s0
+            rootFunc nc1 s1
+        | SeqRootConstraint2(c1,c2)           -> 
+            let nc1, s1 = loopRecursiveConstraint c1 s0
+            let nc2, s2 = loopRecursiveConstraint c2 s1
+            rootFunc2 nc1 nc2 s2
+        | SeqSingleValueConstraint (v)    -> singleValueFunc v s0
+        | SeqWithComponentsConstraint nitms -> withComponentsFunc nitms s0
+    loopRecursiveConstraint c s
+
+
 let foldType
     intFunc
     realFunc

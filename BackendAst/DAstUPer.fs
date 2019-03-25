@@ -20,22 +20,22 @@ let getFuncName (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec:CommonType
 let callBaseTypeFunc l = match l with C -> uper_c.call_base_type_func | Ada -> uper_a.call_base_type_func
 
 
-let nestChildItems (l:ProgrammingLanguage) (codec:CommonTypes.Codec) children = 
-    let printChild (content:string) (sNestedContent:string option) = 
-        match sNestedContent with
-        | None  -> content
-        | Some c-> 
-            match l with
-            | C        -> equal_c.JoinItems content sNestedContent
-            | Ada      -> uper_a.JoinItems content sNestedContent
-    let rec printChildren children : Option<string> = 
-        match children with
-        |[]     -> None
-        |x::xs  -> 
-            match printChildren xs with
-            | None                 -> Some (printChild x  None)
-            | Some childrenCont    -> Some (printChild x  (Some childrenCont))
-    printChildren children
+let nestChildItems (l:ProgrammingLanguage) (codec:CommonTypes.Codec) children = DAstUtilFunctions.nestItems l "result" children
+//    let printChild (content:string) (sNestedContent:string option) = 
+//        match sNestedContent with
+//        | None  -> content
+//        | Some c-> 
+//            match l with
+//            | C        -> equal_c.JoinItems content sNestedContent
+//            | Ada      -> uper_a.JoinItems content sNestedContent
+//    let rec printChildren children : Option<string> = 
+//        match children with
+//        |[]     -> None
+//        |x::xs  -> 
+//            match printChildren xs with
+//            | None                 -> Some (printChild x  None)
+//            | Some childrenCont    -> Some (printChild x  (Some childrenCont))
+//    printChildren children
 
 //TODO
 //1.Decode functions (and perhaps encode function) muct check if the decode value is within the constraints (currently, implemented only for Integers and for case IntUnconstraintMax )

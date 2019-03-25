@@ -63,6 +63,7 @@ let foldRangeCon (l:ProgrammingLanguage) valToStrFunc1 valToStrFunc2 (p:CallerSc
         c
         0 |> fst
 
+
 // constraint simplification started here
 type SimplifiedIntegerConstraint<'a> =
     | SicAlwaysTrue
@@ -213,6 +214,16 @@ let foldStringCon (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) alphaFuncName (
             sprintf "%s(%s)" alphaFuncName p.arg.p, newState) 
         c
         us0 
+
+
+
+
+
+type ValueGetters = {
+    intVal : BigInteger -> string
+    realVal : double -> string
+}
+
 
 
 let hasValidationFunc allCons =
@@ -612,36 +623,53 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn
     let funcName     = getFuncName r l t.id (t.FT_TypeDefintion.[l])
     let asn1Children = children |> List.choose(fun c -> match c with Asn1Child x -> Some x | AcnChild _ -> None)
     let body =
+        let errCodeName         = ToC ("ERR_" + ((t.id.AcnAbsPath |> Seq.skip 1 |> Seq.StrJoin("-")).Replace("#","elm")))
+        let errCode, ns = getNextValidErrorCode us errCodeName
+
         let childrenConent, finalState =   
             asn1Children |>
-            Asn1Fold.foldMap (fun errCode cc -> cc.isValidBodyStats errCode) us
+            Asn1Fold.foldMap (fun errCode cc -> cc.isValidBodyStats errCode) ns
         let childrenConent = childrenConent |> List.choose id
-
         match childrenConent with
         | []    -> None
         | x::xs ->
             let alphaFuncs = childrenConent |> List.collect(fun x -> x.alphaFuncs)
             let localVars = childrenConent |> List.collect(fun x -> x.localVars)
-            let ercCodes = childrenConent |> List.collect(fun x -> x.errCode)
-            let funcBody  (p:CallerScope) = 
-                let printChild (content:string) (sNestedContent:string option) = 
-                    match sNestedContent with
-                    | None  -> content
-                    | Some c-> 
-                        match l with
-                        | C        -> equal_c.JoinItems content sNestedContent
-                        | Ada      -> isvalid_a.JoinItems content sNestedContent
-                let rec printChildren children : string option = 
-                    match children with
-                    |[]     -> None
-                    |x::xs  -> 
-                        match printChildren xs with
-                        | None                 -> Some (printChild x  None)
-                        | Some childrenCont    -> Some (printChild x  (Some childrenCont))
+            let ercCodes = errCode::(childrenConent |> List.collect(fun x -> x.errCode))
 
-                let isValidStatementX = x.isValidStatement p  
-                let isValidStatementXS = xs |> List.map(fun x -> x.isValidStatement  p )
-                printChild isValidStatementX (printChildren isValidStatementXS)
+
+            let funcBody  (p:CallerScope) = 
+//                let printChild (content:string) (sNestedContent:string option) = 
+//                    match sNestedContent with
+//                    | None  -> content
+//                    | Some c-> 
+//                        match l with
+//                        | C        -> equal_c.JoinItems content sNestedContent
+//                        | Ada      -> isvalid_a.JoinItems content sNestedContent
+//                let rec printChildren children : string option = 
+//                    match children with
+//                    |[]     -> None
+//                    |x::xs  -> 
+//                        match printChildren xs with
+//                        | None                 -> Some (printChild x  None)
+//                        | Some childrenCont    -> Some (printChild x  (Some childrenCont))
+//
+//                let isValidStatementX = x.isValidStatement p  
+//                let isValidStatementXS = xs |> List.map(fun x -> x.isValidStatement  p )
+//                printChild isValidStatementX (printChildren isValidStatementXS)
+
+                let seqValidationStatement  = 
+                    match o.cons2 with
+                    | []    -> None
+                    | _     ->
+                        let vcbs =  o.cons2 |> List.map(fun c -> DastValidate2.sequenceConstraint2ValidationCodeBlock r l t.id asn1Children () p c 0) |> List.map fst
+                        let vcb = DastValidate2.ValidationCodeBlock_Multiple_And l vcbs
+                        Some (DastValidate2.convertVCBToStatementAndAssigneErrCode l vcb errCode.errCodeName)
+
+                let aaa =
+                    let childrenCheckStatements = x::xs |> List.map(fun x -> x.isValidStatement  p) 
+                    (childrenCheckStatements@(seqValidationStatement |> Option.toList)) |> DAstUtilFunctions.nestItems l "ret"
+                aaa.Value
             Some(alphaFuncs, localVars, ercCodes, funcBody, finalState)
     match body with
     | None    -> None, us

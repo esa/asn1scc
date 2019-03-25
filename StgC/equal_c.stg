@@ -7,8 +7,17 @@ JoinItems(sPart, soNestedPart) ::= <<
 if (ret) {
     <soNestedPart>
 }
+
 <endif>
 >>
+
+JoinItems2(sPart, sNestedPart) ::= <<
+<sPart>
+if (ret) {
+    <sNestedPart>
+}
+>>
+
 
 
 /*

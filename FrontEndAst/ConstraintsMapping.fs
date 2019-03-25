@@ -24,7 +24,9 @@ let foldBConstraint
     allExceptConstraintFunc   
     exceptConstraintFunc      
     rootConstraintFunc        
-    rootConstraint2Func       
+    rootConstraint2Func  
+    withComponentConstraintFunc     
+    withComponentsConstraintFunc     
     (c:Asn1Ast.Asn1Constraint) =
     match c with
     | Asn1Ast.SingleValueContraint       rv                -> singleValueContraintFunc rv 
@@ -41,8 +43,8 @@ let foldBConstraint
     | Asn1Ast.RootConstraint2            (c1,c2)           -> rootConstraint2Func c1 c2      
     | Asn1Ast.RangeContraint_MIN_MAX            _          -> raise(BugErrorException "Unexpected constraint type")
     | Asn1Ast.TypeInclusionConstraint           _          -> raise(BugErrorException "Unexpected constraint type")   
-    | Asn1Ast.WithComponentConstraint           _          -> raise(BugErrorException "Unexpected constraint type")
-    | Asn1Ast.WithComponentsConstraint          _          -> raise(BugErrorException "Unexpected constraint type")
+    | Asn1Ast.WithComponentConstraint    c                 -> withComponentConstraintFunc  c //raise(BugErrorException "Unexpected constraint type")
+    | Asn1Ast.WithComponentsConstraint   ncs               -> withComponentsConstraintFunc ncs   //raise(BugErrorException "Unexpected constraint type")
 
 
 
@@ -187,7 +189,9 @@ let rec private getRecursiveTypeConstraint valueGetter   (c:Asn1Ast.Asn1Constrai
         (fun c1 c2             -> 
             let c1 = getRecursiveTypeConstraint valueGetter c1 
             let c2 = getRecursiveTypeConstraint valueGetter c2 
-            RootConstraint2 (c1,c2))           
+            RootConstraint2 (c1,c2))  
+        (fun c  -> raise(BugErrorException "Unexpected constraint type"))         
+        (fun c  -> raise(BugErrorException "Unexpected constraint type"))         
         c
 
 
@@ -221,6 +225,8 @@ let rec private getRangeTypeConstraint valueGetter  valueGetter2 (c:Asn1Ast.Asn1
             let c1 = getRangeTypeConstraint valueGetter valueGetter2 c1 
             let c2 = getRangeTypeConstraint valueGetter valueGetter2 c2 
             RangeRootConstraint2 (c1,c2))           
+        (fun c  -> raise(BugErrorException "Unexpected constraint type"))         
+        (fun c  -> raise(BugErrorException "Unexpected constraint type"))         
         c
 
 
@@ -256,6 +262,8 @@ let rec private getSizeTypeConstraint (r:Asn1Ast.AstRoot) valueGetter  (c:Asn1As
             let c1 = getSizeTypeConstraint r valueGetter c1
             let c2 = getSizeTypeConstraint r valueGetter c2
             SizeRootConstraint2 (c1,c2))           
+        (fun c  -> raise(BugErrorException "Unexpected constraint type"))         
+        (fun c  -> raise(BugErrorException "Unexpected constraint type"))         
         c
 
 
@@ -293,6 +301,8 @@ let rec private getStringTypeConstraint (r:Asn1Ast.AstRoot) valueGetter  (c:Asn1
             let c1 = getStringTypeConstraint r valueGetter c1
             let c2 = getStringTypeConstraint r valueGetter c2
             StrRootConstraint2 (c1,c2))           
+        (fun c  -> raise(BugErrorException "Unexpected constraint type"))         
+        (fun c  -> raise(BugErrorException "Unexpected constraint type"))         
         c
 
 
@@ -307,5 +317,75 @@ let getSequenceOfConstraint  (r:Asn1Ast.AstRoot) (t:Asn1Ast.Asn1Type) = getSizeT
 let getObjectIdConstraint    (r:Asn1Ast.AstRoot) (t:Asn1Ast.Asn1Type) = getRecursiveTypeConstraint (objectIdentifierGetter r t)
 let getSequenceConstraint    (r:Asn1Ast.AstRoot) (t:Asn1Ast.Asn1Type) = getRecursiveTypeConstraint (seqValueGetter r t)
 let getChoiceConstraint      (r:Asn1Ast.AstRoot) (t:Asn1Ast.Asn1Type) = getRecursiveTypeConstraint (chValueGetter r t)
+
+let rec getAnyConstraint (r:Asn1Ast.AstRoot) (t:Asn1Ast.Asn1Type) (c:Asn1Ast.Asn1Constraint) =
+    match t.Kind with
+    |Asn1Ast.Integer             -> IntegerTypeConstraint (getIntegerTypeConstraint r t c)
+    |Asn1Ast.Real                -> RealTypeConstraint (getRealTypeConstraint r t c)
+    |Asn1Ast.IA5String                  -> IA5StringConstraint (getIA5StringConstraint r t c)
+    |Asn1Ast.NumericString              -> IA5StringConstraint (getIA5StringConstraint r t c)
+    |Asn1Ast.OctetString                -> OctetStringConstraint (getOctetStringConstraint r t c)
+    |Asn1Ast.NullType                   -> NullConstraint
+    |Asn1Ast.BitString                  -> BitStringConstraint (getBitStringConstraint r t c)
+    |Asn1Ast.Boolean                    -> BoolConstraint (getBoolConstraint r t c)
+    |Asn1Ast.ObjectIdentifier           -> ObjectIdConstraint(getObjectIdConstraint r t c)
+    |Asn1Ast.RelativeObjectIdentifier   -> ObjectIdConstraint(getObjectIdConstraint r t c)
+    |Asn1Ast.Enumerated        (_)      -> EnumConstraint(getEnumConstraint r t c)
+    |Asn1Ast.SequenceOf        (_)      -> SequenceOfConstraint(getSequenceOfConstraint r t c)
+    |Asn1Ast.Sequence      children     -> SeqConstraint(getSeqConstraint r t children c)
+    |Asn1Ast.Choice            (_)      -> ChoiceConstraint(getChoiceConstraint r t c)
+    |Asn1Ast.ReferenceType     (_)      -> getAnyConstraint r (Asn1Ast.GetActualType t r) c
+
+
+and getSeqConstraint (r:Asn1Ast.AstRoot) (t:Asn1Ast.Asn1Type) (children:Asn1Ast.ChildInfo list)   =
+    
+//    let children =
+//        match (Asn1Ast.GetActualType t r).Kind with
+//        | Asn1Ast.Sequence ch   -> ch
+//        | _                     -> raise(BugErrorException "")
+
+    let rec getRecursiveTypeSeqConstraint valueGetter   (c:Asn1Ast.Asn1Constraint)   =
+        foldBConstraint
+            (fun rv                 -> SeqSingleValueConstraint (valueGetter rv )) 
+            (fun rv1 rv2 b1 b2      -> raise(BugErrorException "range constraint is not expected here"))
+            (fun rv b               -> raise(BugErrorException "range constraint is not expected here"))
+            (fun rv b               -> raise(BugErrorException "range constraint is not expected here"))
+            (fun c                  -> raise(BugErrorException "SizeContraint is not expected here"))
+            (fun c                  -> raise(BugErrorException "AlphabetContraint is not expected here"))
+            (fun c1 c2 b            -> 
+                let c1 = getRecursiveTypeSeqConstraint valueGetter c1 
+                let c2 = getRecursiveTypeSeqConstraint valueGetter c2 
+                SeqUnionConstraint (c1,c2,b))           
+            (fun c1 c2             -> 
+                let c1 = getRecursiveTypeSeqConstraint valueGetter c1 
+                let c2 = getRecursiveTypeSeqConstraint valueGetter c2 
+                SeqIntersectionConstraint (c1,c2))           
+            (fun c             -> 
+                let c = getRecursiveTypeSeqConstraint valueGetter c 
+                SeqAllExceptConstraint c)           
+            (fun c1 c2             -> 
+                let c1 = getRecursiveTypeSeqConstraint valueGetter c1 
+                let c2 = getRecursiveTypeSeqConstraint valueGetter c2 
+                SeqExceptConstraint (c1,c2))           
+            (fun c             -> 
+                let c = getRecursiveTypeSeqConstraint valueGetter c 
+                SeqRootConstraint c)           
+            (fun c1 c2             -> 
+                let c1 = getRecursiveTypeSeqConstraint valueGetter c1 
+                let c2 = getRecursiveTypeSeqConstraint valueGetter c2 
+                SeqRootConstraint2 (c1,c2))  
+            (fun c  -> raise(BugErrorException "Unexpected constraint type"))         
+            (fun ncs  -> 
+                let newItems = 
+                    ncs |> 
+                    List.map(fun nc -> 
+                        let ch = children |> Seq.find(fun x -> x.Name.Value = nc.Name.Value)
+                        let newCon = nc.Contraint |> Option.map (getAnyConstraint r ch.Type)
+                        {NamedConstraint.Name = nc.Name; Mark = nc.Mark; Contraint = newCon})
+                SeqWithComponentsConstraint newItems )         
+            c
+    getRecursiveTypeSeqConstraint (seqValueGetter r t)
+
+
 
 

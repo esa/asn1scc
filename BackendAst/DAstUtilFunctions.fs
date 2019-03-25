@@ -1236,3 +1236,19 @@ let getFuncNameGeneric2 (typeDefinition:TypeDefintionOrReference) =
 
 
 
+let nestItems (l:ProgrammingLanguage) (retVarName:string (*ret or result*)) children = 
+    let joinItems2 =  
+        match l with  
+        | C -> equal_c.JoinItems2  
+        | Ada  when retVarName = "result"    -> uper_a.JoinItems2
+        | Ada  -> isvalid_a.JoinTwoIfFirstOk
+
+    let printChild (content:string) (soNestedContent:string option) = 
+        match soNestedContent with
+        | None                -> content
+        | Some sNestedContent -> joinItems2 content sNestedContent
+    let rec printChildren children : Option<string> = 
+        match children with
+        |[]     -> None
+        |x::xs  -> Some (printChild x (printChildren xs))
+    printChildren children

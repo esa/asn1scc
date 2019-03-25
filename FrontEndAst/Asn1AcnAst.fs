@@ -115,6 +115,7 @@ type IA5StringConstraint =
     | StrSizeContraint                 of PosIntTypeConstraint               
     | AlphabetContraint                of CharTypeConstraint           
 
+
 type OctetStringConstraint  =    SizableTypeConstraint<OctetStringValue*(ReferenceToValue*SrcLoc)>
 type BitStringConstraint    =    SizableTypeConstraint<BitStringValue*(ReferenceToValue*SrcLoc)>
 type BoolConstraint         =    GenericConstraint<bool>
@@ -125,6 +126,37 @@ type ObjectIdConstraint     =    GenericConstraint<ObjectIdenfierValue>
 type SequenceOfConstraint   =     SizableTypeConstraint<SeqOfValue>
 type SequenceConstraint     =     GenericConstraint<SeqValue>
 type ChoiceConstraint       =     GenericConstraint<ChValue>
+
+
+type SeqConstraint =
+    | SeqUnionConstraint                   of SeqConstraint*SeqConstraint*bool //left,righ, virtual constraint
+    | SeqIntersectionConstraint            of SeqConstraint*SeqConstraint
+    | SeqAllExceptConstraint               of SeqConstraint
+    | SeqExceptConstraint                  of SeqConstraint*SeqConstraint
+    | SeqRootConstraint                    of SeqConstraint
+    | SeqRootConstraint2                   of SeqConstraint*SeqConstraint
+    | SeqSingleValueConstraint             of SeqValue
+    | SeqWithComponentsConstraint          of NamedConstraint list       
+
+and AnyConstraint =
+    | IntegerTypeConstraint of IntegerTypeConstraint
+    | IA5StringConstraint   of IA5StringConstraint   
+    | RealTypeConstraint    of RealTypeConstraint   
+    | OctetStringConstraint of OctetStringConstraint
+    | BitStringConstraint   of BitStringConstraint
+    | BoolConstraint        of BoolConstraint    
+    | EnumConstraint        of EnumConstraint    
+    | ObjectIdConstraint    of ObjectIdConstraint
+    | SequenceOfConstraint  of SequenceOfConstraint
+    | SeqConstraint         of SeqConstraint
+    | ChoiceConstraint      of ChoiceConstraint
+    | NullConstraint        
+
+and NamedConstraint = {
+    Name: StringLoc
+    Contraint:AnyConstraint option
+    Mark:Asn1Ast.NamedConstraintMark
+}
 
 
 type NamedItem = {
@@ -477,6 +509,8 @@ and Sequence = {
     acnProperties           : SequenceAcnProperties
     cons                    : SequenceConstraint list
     withcons                : SequenceConstraint list
+    cons2                   : SeqConstraint list
+    withcons2               : SeqConstraint list
     uperMaxSizeInBits       : BigInteger
     uperMinSizeInBits       : BigInteger
 

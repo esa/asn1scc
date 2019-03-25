@@ -29,6 +29,29 @@ ret = FALSE;                        /*COVERAGE_IGNORE*/
 >>
  
 
+makeExpressionToStatement0(sIsValidExp) ::= <<
+ret = <sIsValidExp>;
+>>
+
+convertVCBExpressionToStatementAndUpdateErrCode(sIsValidExp, sErrCode) ::= <<
+ret = <sIsValidExp>;
+*pErrCode = ret ? 0 :  <sErrCode>;
+>>
+
+convertVCBStatementToStatementAndUpdateErrCode(sExp, sErrCode) ::= <<
+<sExp>;
+*pErrCode = ret ? 0 :  <sErrCode>;
+>>
+
+convertVCBTRUEToStatementAndUpdateErrCode() ::= <<
+ret = TRUE;
+*pErrCode = 0;
+>>
+convertVCBFalseToStatementAndUpdateErrCode(sErrCode) ::= <<
+ret = FALSE;
+*pErrCode = <sErrCode>;
+>>
+
 
 /*
 *****************************************************************************************
@@ -99,6 +122,8 @@ flag <sFuncName>(const <sTypeDefName> *pVal, int* pErrCode)
 >>
 
 
+
+
 ExpEqual(sExp1, sExp2) ::= "(<sExp1> == <sExp2>)"
 ExpStringEqual(sExp1, sExp2) ::= "(strcmp(<sExp1>,<sExp2>)  == 0)"
 ExpGt(sExp1, sExp2) ::= "(<sExp1> \> <sExp2>)"
@@ -113,6 +138,78 @@ ExpAndMulit(arrsExp) ::= <<
 ExpNot(sExp) ::= "(!<sExp>)"
 StrLen(sExp) ::= "strlen(<sExp>)"
 ArrayLen(sExp, sAcc) ::= "<sExp><sAcc>nCount"
+
+
+StatementOrStament(sStat1, sStat2) ::= <<
+<sStat1>
+if (!ret) {
+    <sStat2>
+}
+>>
+
+ExpressionOrStament(sExp1, sStat2) ::= <<
+ret = <sExp1>;
+if (!ret) {
+    <sStat2>
+}
+>>
+
+StatementOrExpression(sStat1, sExp2) ::= <<
+<sStat1>;
+if (!ret) {
+    ret = <sExp2>;
+}
+>>
+
+StatementAndStament(sStat1, sStat2) ::= <<
+<sStat1>
+if (ret) {
+    <sStat2>
+}
+>>
+
+ExpressionAndStament(sExp1, sStat2) ::= <<
+ret = <sExp1>;
+if (ret) {
+    <sStat2>
+}
+>>
+
+StatementAndExpression(sStat1, sExp2) ::= <<
+<sStat1>;
+if (ret) {
+    ret = <sExp2>;
+}
+>>
+
+StatementNot(sStat) ::= <<
+<sStat>;
+ret = !ret;
+>>
+
+StatementExceptStament(sStat1, sStat2) ::= <<
+<sStat1>
+if (ret) {
+    <sStat2>
+    ret = !ret;
+}
+>>
+
+ExpressionExceptStament(sExp1, sStat2) ::= <<
+ret = <sExp1>;
+if (ret) {
+    <sStat2>
+    ret = !ret;
+}
+>>
+
+StatementExceptExpression(sStat1, sExp2) ::= <<
+<sStat1>;
+if (ret) {
+    ret = !(<sExp2>);
+}
+>>
+
 
 
 Print_AlphabetCheckFunc(sFuncName, arrsAlphaConBody) ::= <<
