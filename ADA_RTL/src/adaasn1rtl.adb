@@ -217,6 +217,20 @@ package body adaasn1rtl with Spark_Mode is
       return arr (arr'First) = 1;
    end RequiresReverse;   
    
+
+   function stringContainsChar (str : String; ch : Character) return Boolean is
+      I      : Integer;
+      bFound : Boolean := False;
+   begin
+      I := str'First;
+      while I <= str'Last and not bFound loop
+         pragma Loop_Invariant (I >= str'First and I <= str'Last);
+         bFound := str (I) = ch;
+         I      := I + 1;
+      end loop;
+      return bFound;
+   end stringContainsChar;
+   
    
    
     procedure ObjectIdentifier_Init(val:out Asn1ObjectIdentifier)

@@ -109,9 +109,27 @@ package adaasn1rtl with Spark_Mode is
      with 
        Pre => nBits > 0 and nBits < Asn1UInt'Size;
    
+   function OctetString_equal(len1 : in Integer;len2 : in Integer; arr1 : in OctetBuffer; arr2 : in OctetBuffer) return boolean
+   is
+   (
+      len1 = len2 and then arr1(arr1'First .. arr1'First + (len1 - 1)) = arr2(arr2'First .. arr2'First + (len1 - 1))
+   )
+       with 
+         Pre => len1 > 0 and len2 > 0 and arr1'First + (len1-1) <= arr1'Last and arr2'First + (len2-1) <= arr1'Last;
+   
+
+   function BitString_equal(len1 : in Integer;len2 : in Integer; arr1 : in BitArray; arr2 : in BitArray) return boolean
+   is
+   (
+      len1 = len2 and then arr1(arr1'First .. arr1'First + (len1 - 1)) = arr2(arr2'First .. arr2'First + (len1 - 1))
+   )
+       with 
+         Pre => len1 > 0 and len2 > 0 and arr1'First + (len1-1) <= arr1'Last and arr2'First + (len2-1) <= arr1'Last;
    
    function Sub (A : in Asn1Int; B : in Asn1Int) return Asn1UInt with
      Pre  => A >= B;
+   
+   function stringContainsChar (str : String; ch : Character) return Boolean;
    
    function GetBytes (V : Asn1UInt) return Asn1Byte with
      Post    => GetBytes'Result >=1 and GetBytes'Result<=8;

@@ -104,7 +104,7 @@ let getIntfuncBodyByCons (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec:C
     let rootCons = cons |> List.choose(fun x -> match x with RangeRootConstraint(a) |RangeRootConstraint2(a,_) -> Some(x) |_ -> None) 
 
     let checkExp = 
-        match (DAstValidate.createIntegerFunctionByCons r l isUnsigned allCons) with
+        match (DastValidate2.createIntegerFunctionByCons r l isUnsigned allCons) with
         | None  ->  None
         | Some expFunc -> Some (expFunc p)
 
@@ -130,11 +130,15 @@ let getIntfuncBodyByCons (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec:C
         | []                            -> IntBod uperRange false
         | (RangeRootConstraint a)::rest      -> 
             let uperR    = uPER.getIntTypeConstraintUperRange [a]  errLoc
-            let cc = DAstValidate.foldRangeCon l (fun v -> v.ToString()) (fun v -> v.ToString()) p a
+            let cc,_ = DastValidate2.integerConstraint2ValidationCodeBlock l isUnsigned a 0
+            let cc = DastValidate2.ValidationBlockAsStringExpr (cc p) 
+            //let cc = DAstValidate.foldRangeCon l (fun v -> v.ToString()) (fun v -> v.ToString()) p a
             IntRootExt pp (getValueByConstraint uperR) cc (IntBod uperR true) errCode.errCodeName codec
         | (RangeRootConstraint2(a,_))::rest  -> 
             let uperR    = uPER.getIntTypeConstraintUperRange [a]  errLoc
-            let cc = DAstValidate.foldRangeCon l (fun v -> v.ToString()) (fun v -> v.ToString()) p a
+            //let cc = DAstValidate.foldRangeCon l (fun v -> v.ToString()) (fun v -> v.ToString()) p a
+            let cc,_ = DastValidate2.integerConstraint2ValidationCodeBlock l isUnsigned a 0
+            let cc = DastValidate2.ValidationBlockAsStringExpr (cc p) 
             IntRootExt2 pp (getValueByConstraint uperR) cc (IntBod uperR true) errCode.errCodeName codec 
         | _                             -> raise(BugErrorException "")
     {UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = []}    

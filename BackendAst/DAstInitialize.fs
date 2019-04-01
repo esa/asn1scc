@@ -69,7 +69,7 @@ let createIntegerInitFunc (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1
 
     let integerVals = EncodeDecodeTestCase.IntegerAutomaticTestCaseValues r t o
     
-    let allCons = DAstValidate.getIntSimplifiedConstraints r o.isUnsigned o.AllCons
+    let allCons = DastValidate2.getIntSimplifiedConstraints r o.isUnsigned o.AllCons
     let tasInitFunc (p:CallerScope)  = 
         match isValidValueRanged allCons 0I  with
         | false    -> 

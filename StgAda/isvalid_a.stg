@@ -157,14 +157,14 @@ EmitTypeAssignment_composite_def_err_code(sErrCode, nErrValue) ::= <<
 <sErrCode>:CONSTANT INTEGER := <nErrValue>; 
 >>
 
-EmitTypeAssignment_composite_def(sFuncName, sTypeDefName, arrsErrcodes) ::= <<
+EmitTypeAssignment_composite_def(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes) ::= <<
 <arrsErrcodes; separator="\n">
-FUNCTION <sFuncName>(val : in <sTypeDefName>) return <rtlModuleName()>.ASN1_RESULT;
+FUNCTION <sFuncName>(<sVarName> : in <sTypeDefName>) return <rtlModuleName()>.ASN1_RESULT;
 >>
 
-EmitTypeAssignment_composite(sFuncName, sTypeDefName, sContent, arrsAlphaFuncs, arrsLocalVars) ::= <<
+EmitTypeAssignment_composite(sVarName, sStar, sFuncName, sTypeDefName, sContent, arrsAlphaFuncs, arrsLocalVars) ::= <<
 <arrsAlphaFuncs; separator="\n">
-FUNCTION <sFuncName>(val : in <sTypeDefName>) return <rtlModuleName()>.ASN1_RESULT
+FUNCTION <sFuncName>(<sVarName> : in <sTypeDefName>) return <rtlModuleName()>.ASN1_RESULT
 IS
     pragma Warnings (Off, "initialization of ret has no effect");        
     ret : <rtlModuleName()>.ASN1_RESULT := <rtlModuleName()>.ASN1_RESULT'(Success => true, ErrorCode => 0);
@@ -322,3 +322,25 @@ end case;
 >>
 
 /*CHOICE end */
+
+
+octet_var_string_equal(p, sAccess, nVarLength, sOctArrayLiteral )::=<<
+<rtlModuleName()>.OctetString_equal(<p><sAccess>Length, <nVarLength>, <p><sAccess>Data, <sOctArrayLiteral>)
+>>
+
+octet_fix_string_equal(p, sAccess, nFixedSize, nVarLength, sOctArrayLiteral )::=<<
+<rtlModuleName()>.OctetString_equal(<nFixedSize>, <nVarLength>, <p><sAccess>Data, <sOctArrayLiteral>)
+>>
+
+bit_var_string_equal(p, sAccess, nVarLength, sOctArrayLiteral, sBitArrayLiteral )::=<<
+<rtlModuleName()>.BitString_equal(<p><sAccess>Length, <nVarLength>, <p><sAccess>Data, <sBitArrayLiteral>)
+>>
+
+bit_fix_string_equal(p, sAccess, nFixedSize, nVarLength, sOctArrayLiteral, sBitArrayLiteral  )::=<<
+<rtlModuleName()>.BitString_equal(<nFixedSize>, <nVarLength>, <p><sAccess>Data, <sBitArrayLiteral>)
+>>
+
+
+objId_equal(p, sObjIdLiteral)::=<<
+<rtlModuleName()>.ObjectIdentifier_equal(<p>, <sObjIdLiteral>)
+>>
