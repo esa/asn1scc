@@ -21,8 +21,8 @@ ret.Success := <sIsValidExp>;
 ret.ErrorCode := (if ret.Success then 0 else <sErrCode>);
 >>
 
-convertVCBStatementToStatementAndUpdateErrCode(sExp, sErrCode) ::= <<
-<sExp>
+convertVCBStatementToStatementAndUpdateErrCode(sStatement, sErrCode) ::= <<
+<sStatement>
 ret.ErrorCode := (if ret.Success then 0 else <sErrCode>);
 >>
 
@@ -276,6 +276,10 @@ end loop;
 
 Sequence_optional_child_always_present_or_absent(p, sAcc,  sChName, sErrCode, sPresOrAbs) ::= <<
 ret:= <rtlModuleName()>.ASN1_RESULT'(Success => <p>.Exist.<sChName>=<sPresOrAbs>, ErrorCode => <sErrCode>);
+>>
+
+Sequence_optional_child_always_present_or_absent_expr(p, sAcc,  sChName, sPresOrAbs) ::= <<
+<p>.Exist.<sChName>=<sPresOrAbs>
 >>
 
 Sequence_OptionalChild(p, sAcc, sChName, sInnerStatement) ::= <<

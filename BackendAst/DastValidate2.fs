@@ -85,10 +85,10 @@ let convertVCBToStatementAndAssigneErrCode (l:ProgrammingLanguage) vp  sErrCode 
     let convertVCBTRUEToStatementAndUpdateErrCode  = match l with C -> isvalid_c.convertVCBTRUEToStatementAndUpdateErrCode | Ada -> isvalid_a.convertVCBTRUEToStatementAndUpdateErrCode
     let convertVCBFalseToStatementAndUpdateErrCode  = match l with C -> isvalid_c.convertVCBFalseToStatementAndUpdateErrCode | Ada -> isvalid_a.convertVCBFalseToStatementAndUpdateErrCode
     match vp with
-    | VCBTrue        -> convertVCBTRUEToStatementAndUpdateErrCode ()
-    | VCBFalse       -> convertVCBFalseToStatementAndUpdateErrCode sErrCode
-    | VCBExpression sExp -> convertVCBExpressionToStatementAndUpdateErrCode sExp sErrCode
-    | VCBStatement sStat -> convertVCBStatementToStatementAndUpdateErrCode sStat sErrCode
+    | VCBTrue        -> ValidationStatementTrue (convertVCBTRUEToStatementAndUpdateErrCode ())
+    | VCBFalse       -> ValidationStatementFalse (convertVCBFalseToStatementAndUpdateErrCode sErrCode)
+    | VCBExpression sExp -> ValidationStatement (convertVCBExpressionToStatementAndUpdateErrCode sExp sErrCode)
+    | VCBStatement sStat -> ValidationStatement (convertVCBStatementToStatementAndUpdateErrCode sStat sErrCode)
 
 
 let ValidationCodeBlock_Except (l:ProgrammingLanguage) vp1 vp2 =
@@ -416,6 +416,7 @@ let bitStringConstraint2ValidationCodeBlock (r:Asn1AcnAst.AstRoot) (l:Programmin
     fnc, ns
 
 let rec sequenceConstraint2ValidationCodeBlock (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (typeId:ReferenceToType) (children:Asn1Child list) valToStrFunc    (c:SeqConstraint)  st =
+    let child_always_present_or_absentExp   = match l with C -> isvalid_c.Sequence_optional_child_always_present_or_absent_expr  | Ada -> isvalid_a.Sequence_optional_child_always_present_or_absent_expr
     foldSeqConstraint
         (fun (e1 : CallerScope -> ValidationCodeBlock) e2 b s      ->(fun p -> ValidationCodeBlock_OR l (e1 p) (e2 p)), s)
         (fun e1 e2 s        ->(fun p -> ValidationCodeBlock_AND l (e1 p) (e2 p)), s)
@@ -433,40 +434,57 @@ let rec sequenceConstraint2ValidationCodeBlock (r:Asn1AcnAst.AstRoot) (l:Program
                 Asn1Fold.foldMap(fun curState nc -> 
                     let ch = children |> Seq.find(fun x -> x.Name.Value = nc.Name.Value)
                     let chp p = {p with arg = p.arg.getSeqChild l (ch.getBackendName l) ch.Type.isIA5String}
-                    match (ch.Type.ActualType).Kind, nc.Contraint with
-                    | Integer o, (Some (IntegerTypeConstraint c))   -> 
-                        let fnc, ns = integerConstraint2ValidationCodeBlock l o.baseInfo.isUnsigned c curState
-                        (fun p -> fnc (chp p) ), ns
-                    | Real o, (Some (RealTypeConstraint    c))      -> 
-                        let fnc, ns = realConstraint2ValidationCodeBlock l c st
-                        (fun p -> fnc (chp p) ), ns
-                    | IA5String  o, (Some (IA5StringConstraint c))  -> 
-                        let alphafuncName = ToC (((ch.Type.id.AcnAbsPath |> Seq.skip 1 |> Seq.StrJoin("-")).Replace("#","elm")) + "_CharsAreValid")
-                        let fnc, ns = foldStringCon r l ch.Type.id  c curState
-                        (fun p -> fnc(chp p)) , ns
-                    | OctetString o, (Some (OctetStringConstraint c))    -> 
-                        let fnc, ns = octetStringConstraint2ValidationCodeBlock r l  ch.Type.id o.baseInfo  o.equalFunction c curState
-                        (fun p -> fnc (chp p) ), ns
-                    | BitString o, (Some (BitStringConstraint c))        -> 
-                        let fnc, ns = bitStringConstraint2ValidationCodeBlock r l  ch.Type.id o.baseInfo o.equalFunction c curState
-                        (fun p -> fnc (chp p) ), ns
-                    | NullType o, (Some NullConstraint)                  -> (fun p -> VCBTrue), curState
-                    | Boolean o, (Some (BoolConstraint c))               -> 
-                        let fnc, ns = booleanConstraint2ValidationCodeBlock l c curState
-                        (fun p -> fnc (chp p) ), ns
-                    | Enumerated o, (Some (EnumConstraint c))            -> 
-                        let fnc, ns = enumeratedConstraint2ValidationCodeBlock  l  o.baseInfo o.definitionOrRef c curState
-                        (fun p -> VCBTrue), ns
-                    | ObjectIdentifier o, (Some (ObjectIdConstraint c))  -> 
-                        let fnc, ns = objIdConstraint2ValidationCodeBlock l c curState
-                        (fun p -> VCBTrue), ns
-                    | Sequence o, (Some (SeqConstraint c))               -> 
-                        let fnc, ns = sequenceConstraint2ValidationCodeBlock r l (typeId.getSeqChildId ch.Name.Value) o.Asn1Children valToStrFunc  c curState
-                        (fun p -> fnc (chp p) ), ns
-                    | SequenceOf o, (Some (SequenceOfConstraint c))      -> (fun p -> VCBTrue), curState
-                    | Choice o, (Some (ChoiceConstraint c))              -> (fun p -> VCBTrue), curState
-                    | _                                               -> raise(SemanticError(nc.Name.Location, "Invalid combination of type/constraint type"))
+                    let childCheck, ns =
+                        match (ch.Type.ActualType).Kind, nc.Contraint with
+                        | _, None       -> (fun p -> VCBTrue), curState
+                        | Integer o, (Some (IntegerTypeConstraint c))   -> 
+                            let fnc, ns = integerConstraint2ValidationCodeBlock l o.baseInfo.isUnsigned c curState
+                            (fun p -> fnc (chp p) ), ns
+                        | Real o, (Some (RealTypeConstraint    c))      -> 
+                            let fnc, ns = realConstraint2ValidationCodeBlock l c st
+                            (fun p -> fnc (chp p) ), ns
+                        | IA5String  o, (Some (IA5StringConstraint c))  -> 
+                            let alphafuncName = ToC (((ch.Type.id.AcnAbsPath |> Seq.skip 1 |> Seq.StrJoin("-")).Replace("#","elm")) + "_CharsAreValid")
+                            let fnc, ns = foldStringCon r l ch.Type.id  c curState
+                            (fun p -> fnc(chp p)) , ns
+                        | OctetString o, (Some (OctetStringConstraint c))    -> 
+                            let fnc, ns = octetStringConstraint2ValidationCodeBlock r l  ch.Type.id o.baseInfo  o.equalFunction c curState
+                            (fun p -> fnc (chp p) ), ns
+                        | BitString o, (Some (BitStringConstraint c))        -> 
+                            let fnc, ns = bitStringConstraint2ValidationCodeBlock r l  ch.Type.id o.baseInfo o.equalFunction c curState
+                            (fun p -> fnc (chp p) ), ns
+                        | NullType o, (Some NullConstraint)                  -> (fun p -> VCBTrue), curState
+                        | Boolean o, (Some (BoolConstraint c))               -> 
+                            let fnc, ns = booleanConstraint2ValidationCodeBlock l c curState
+                            (fun p -> fnc (chp p) ), ns
+                        | Enumerated o, (Some (EnumConstraint c))            -> 
+                            let fnc, ns = enumeratedConstraint2ValidationCodeBlock  l  o.baseInfo o.definitionOrRef c curState
+                            (fun p -> fnc (chp p)), ns
+                        | ObjectIdentifier o, (Some (ObjectIdConstraint c))  -> 
+                            let fnc, ns = objIdConstraint2ValidationCodeBlock l c curState
+                            (fun p -> fnc (chp p)), ns
+                        | Sequence o, (Some (SeqConstraint c))               -> 
+                            let fnc, ns = sequenceConstraint2ValidationCodeBlock r l (typeId.getSeqChildId ch.Name.Value) o.Asn1Children valToStrFunc  c curState
+                            (fun p -> fnc (chp p) ), ns
+                        | SequenceOf o, (Some (SequenceOfConstraint c))      -> (fun p -> VCBTrue), curState
+                        | Choice o, (Some (ChoiceConstraint c))              -> (fun p -> VCBTrue), curState
+                        | _                                               -> raise(SemanticError(nc.Name.Location, "Invalid combination of type/constraint type"))
+                    
+                    let presentAbsent =
+                        match nc.Mark with
+                        | Asn1Ast.NoMark        -> []
+                        | Asn1Ast.MarkOptional  -> []
+                        | Asn1Ast.MarkAbsent    -> 
+                            let isExp = (fun (p:CallerScope) -> VCBExpression (child_always_present_or_absentExp p.arg.p (p.arg.getAcces l) (ch.getBackendName l)  "0"))
+                            [isExp]
+                        | Asn1Ast.MarkPresent    -> 
+                            let isExp = (fun (p:CallerScope) -> VCBExpression (child_always_present_or_absentExp p.arg.p (p.arg.getAcces l) (ch.getBackendName l)  "1"))
+                            [isExp]
+                        
+                    
+                    presentAbsent@[childCheck], ns
                 ) s 
+            let withComponentItems = withComponentItems |> List.collect id
             let fnc p = 
                 ValidationCodeBlock_Multiple_And l (withComponentItems |> List.map (fun fnc -> fnc p))
             fnc, ns)
@@ -566,14 +584,14 @@ let getFuncName (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (typeId:Reference
 let str_p (l:ProgrammingLanguage) (typeid:ReferenceToType) = ({CallerScope.modName = typeid.ModName; arg = VALUE (sprintf "str%s" (l.ArrayAccess "i"))})
 
 type IsValidAux = {
-    isValidStatement  : CallerScope -> string
+    isValidStatement  : CallerScope -> ValidationStatement
     localVars         : LocalVariable list
     alphaFuncs        : AlphaFunc list
     childErrCodes     : ErroCode list
 }
 
 
-let createIsValidFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage)  (t:Asn1AcnAst.Asn1Type)  (fncBodyE : ErroCode->CallerScope->string) (typeDefinition:TypeDefintionOrReference) (alphaFuncs : AlphaFunc list) (localVars : LocalVariable list) (childErrCodes : ErroCode list) (us:State)  =
+let createIsValidFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage)  (t:Asn1AcnAst.Asn1Type)  (fncBodyE : ErroCode->CallerScope->ValidationStatement) (typeDefinition:TypeDefintionOrReference) (alphaFuncs : AlphaFunc list) (localVars : LocalVariable list) (childErrCodes : ErroCode list) (us:State)  =
     //let hasValidationFunc= hasValidationFunc allCons
     let emitTasFnc    = match l with C -> isvalid_c.EmitTypeAssignment_composite                | Ada -> isvalid_a.EmitTypeAssignment_composite
     let emitTasFncDef = match l with C -> isvalid_c.EmitTypeAssignment_composite_def            | Ada -> isvalid_a.EmitTypeAssignment_composite_def
@@ -592,9 +610,13 @@ let createIsValidFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage)  (t:Asn
             match funcName  with
             | None              -> None, None
             | Some funcName     -> 
-                let exp = funcBody p  
+                let statement = 
+                    match funcBody p with
+                    | ValidationStatementTrue   st
+                    | ValidationStatementFalse  st
+                    | ValidationStatement       st  -> st
                 let lvars = localVars |> List.map(fun (lv:LocalVariable) -> lv.GetDeclaration l) |> Seq.distinct
-                let fnc = emitTasFnc varName sStar funcName  (typeDefinition.longTypedefName l) exp  (alphaFuncs |> List.map(fun x -> x.funcBody (str_p l t.id))) lvars
+                let fnc = emitTasFnc varName sStar funcName  (typeDefinition.longTypedefName l) statement  (alphaFuncs |> List.map(fun x -> x.funcBody (str_p l t.id))) lvars
                 let arrsErrcodes = errCodes |> List.map(fun s -> defErrCode s.errCodeName (BigInteger s.errCodeValue))
                 let fncH = emitTasFncDef varName sStar funcName  (typeDefinition.longTypedefName l) arrsErrcodes
                 Some fnc, Some fncH
@@ -681,44 +703,56 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn
     let asn1Children = children |> List.choose(fun c -> match c with Asn1Child x -> Some x | AcnChild _ -> None)
     let handleChild (child:Asn1Child) (us:State) =
         let c_name = child.getBackendName l
-        let sInnerStatement = 
-            match child.Type.isValidFunction with
-            | Some (isValidFunction)    ->
-                Some((fun (p:CallerScope)  ->
-                        isValidFunction.funcBody ({p with arg = p.arg.getSeqChild l c_name child.Type.isIA5String})), isValidFunction)
-            | None      -> None
-        let sInnerStatement =
-            match sInnerStatement with
-            | None                  -> None
-            | Some (func, isValid)  ->
+        match child.Type.isValidFunction with
+        | None                      -> None, us
+        | Some (isValidFunction)    ->
+            let func = fun (p:CallerScope)  -> isValidFunction.funcBody ({p with arg = p.arg.getSeqChild l c_name child.Type.isIA5String})
+            let childFnc = 
                 match child.Optionality with
                 | Some _    -> 
-                    let newFunc = (fun (p:CallerScope) -> sequence_OptionalChild p.arg.p (p.arg.getAcces l) c_name (func p ))
-                    Some (newFunc, isValid)
-                | None      -> Some (func, isValid)
-        let isAlwaysPresentStatement, finalState =
-            match child.Optionality with
-            | Some(Asn1AcnAst.AlwaysAbsent)                     -> 
-                let errCodeName = ToC ("ERR_" + ((child.Type.id.AcnAbsPath |> Seq.skip 1 |> Seq.StrJoin("-")).Replace("#","elm"))) + "_IS_PRESENT"
-                let errCode, ns = getNextValidErrorCode us errCodeName
-                let isValidStatement = (fun (p:CallerScope) -> child_always_present_or_absent p.arg.p (p.arg.getAcces l) c_name errCode.errCodeName "0")
-                Some(isValidStatement, errCode), ns
-            | Some(Asn1AcnAst.AlwaysPresent)                    -> 
-                let errCodeName = ToC ("ERR_" + ((child.Type.id.AcnAbsPath |> Seq.skip 1 |> Seq.StrJoin("-")).Replace("#","elm"))) + "_IS_ABSENT"
-                let errCode, ns = getNextValidErrorCode us errCodeName
-                let isValidStatement = (fun (p:CallerScope) -> child_always_present_or_absent p.arg.p (p.arg.getAcces l) c_name errCode.errCodeName "1")
-                Some(isValidStatement, errCode), ns
-            | _         -> None, us
-
-        match sInnerStatement, isAlwaysPresentStatement with
-        | None, None                                       -> None , finalState
-        | None, Some(isValid, errCode)                     -> 
-            Some({IsValidAux.isValidStatement = isValid; localVars = []; alphaFuncs = []; childErrCodes = [errCode]}), finalState
-        | Some(isValid, chFunc), None                      -> 
-            Some({IsValidAux.isValidStatement = isValid; localVars = chFunc.localVariables; alphaFuncs = chFunc.alphaFuncs; childErrCodes = chFunc.errCodes}), finalState
-        | Some(isValid1, chFunc), Some(isValid2, errCode)    -> 
-            let isValid = (fun (p:CallerScope) -> JoinTwoIfFirstOk (isValid2 p )  (isValid1 p )) 
-            Some({IsValidAux.isValidStatement = isValid; localVars = chFunc.localVariables; alphaFuncs = chFunc.alphaFuncs; childErrCodes = errCode::chFunc.errCodes}), finalState
+                    let newFunc = 
+                        (fun (p:CallerScope) -> 
+                            match func p with
+                            | ValidationStatementTrue   st  -> ValidationStatementTrue (sequence_OptionalChild p.arg.p (p.arg.getAcces l) c_name st)
+                            | ValidationStatementFalse  st  -> ValidationStatement (sequence_OptionalChild p.arg.p (p.arg.getAcces l) c_name st)
+                            | ValidationStatement       st  -> ValidationStatement (sequence_OptionalChild p.arg.p (p.arg.getAcces l) c_name st) )
+                    newFunc
+                | None      -> func
+            Some({IsValidAux.isValidStatement = childFnc; localVars = isValidFunction.localVariables; alphaFuncs = isValidFunction.alphaFuncs; childErrCodes = isValidFunction.errCodes}), us
+        
+//        let sInnerStatement =
+//            match sInnerStatement with
+//            | None                  -> None
+//            | Some (func, isValid)  ->
+//                match child.Optionality with
+//                | Some _    -> 
+//                    let newFunc = (fun (p:CallerScope) -> sequence_OptionalChild p.arg.p (p.arg.getAcces l) c_name (func p ))
+//                    Some (newFunc, isValid)
+//                | None      -> Some (func, isValid)
+//
+//        let isAlwaysPresentStatement, finalState =
+//            match child.Optionality with
+//            | Some(Asn1AcnAst.AlwaysAbsent)                     -> 
+//                let errCodeName = ToC ("ERR_" + ((child.Type.id.AcnAbsPath |> Seq.skip 1 |> Seq.StrJoin("-")).Replace("#","elm"))) + "_IS_PRESENT"
+//                let errCode, ns = getNextValidErrorCode us errCodeName
+//                let isValidStatement = (fun (p:CallerScope) -> child_always_present_or_absent p.arg.p (p.arg.getAcces l) c_name errCode.errCodeName "0")
+//                Some(isValidStatement, errCode), ns
+//            | Some(Asn1AcnAst.AlwaysPresent)                    -> 
+//                let errCodeName = ToC ("ERR_" + ((child.Type.id.AcnAbsPath |> Seq.skip 1 |> Seq.StrJoin("-")).Replace("#","elm"))) + "_IS_ABSENT"
+//                let errCode, ns = getNextValidErrorCode us errCodeName
+//                let isValidStatement = (fun (p:CallerScope) -> child_always_present_or_absent p.arg.p (p.arg.getAcces l) c_name errCode.errCodeName "1")
+//                Some(isValidStatement, errCode), ns
+//            | _         -> None, us
+//
+//        match sInnerStatement, isAlwaysPresentStatement with
+//        | None, None                                       -> None , finalState
+//        | None, Some(isValid, errCode)                     -> 
+//            Some({IsValidAux.isValidStatement = isValid; localVars = []; alphaFuncs = []; childErrCodes = [errCode]}), finalState
+//        | Some(isValid, chFunc), None                      -> 
+//            Some({IsValidAux.isValidStatement = isValid; localVars = chFunc.localVariables; alphaFuncs = chFunc.alphaFuncs; childErrCodes = chFunc.errCodes}), finalState
+//        | Some(isValid1, chFunc), Some(isValid2, errCode)    -> 
+//            let isValid = (fun (p:CallerScope) -> JoinTwoIfFirstOk (isValid2 p )  (isValid1 p )) 
+//            Some({IsValidAux.isValidStatement = isValid; localVars = chFunc.localVariables; alphaFuncs = chFunc.alphaFuncs; childErrCodes = errCode::chFunc.errCodes}), finalState
         
     let childrenConent, ns1 =  asn1Children |> Asn1Fold.foldMap (fun us child -> handleChild child us) us
     let childrenConent = childrenConent |> List.choose id
@@ -729,9 +763,34 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn
     let vcbs, ns2 =  o.cons2 |> Asn1Fold.foldMap(fun cs c -> sequenceConstraint2ValidationCodeBlock r l t.id asn1Children ()  c cs) ns1
 
     let funBody (errCode: ErroCode) (p:CallerScope) = 
-        let childrenChecks = childrenConent |> List.map(fun c -> VCBStatement (c.isValidStatement p)) 
-        let combinedVcb = childrenChecks @ (vcbs |> List.map (fun fnc -> fnc p)) |> (ValidationCodeBlock_Multiple_And l)
-        convertVCBToStatementAndAssigneErrCode l combinedVcb errCode.errCodeName
+        let childrenChecks = 
+            childrenConent |> 
+            List.choose(fun z -> 
+                match z.isValidStatement p with 
+                | ValidationStatementTrue _ -> None 
+                | ValidationStatementFalse  st 
+                | ValidationStatement       st -> Some st) |> DAstUtilFunctions.nestItems l "ret" |> Option.toList
+
+        let with_component_check = 
+            let combinedVcb = 
+                vcbs |> 
+                List.map (fun fnc -> fnc p) |>
+                List.filter(fun vcb ->
+                    match vcb with
+                    | VCBTrue        -> false
+                    | VCBFalse       -> true
+                    | VCBExpression sExp -> true
+                    | VCBStatement sStat -> true) |> 
+                ValidationCodeBlock_Multiple_And l
+            let st = convertVCBToStatementAndAssigneErrCode l combinedVcb errCode.errCodeName
+            match st with 
+            | ValidationStatementTrue _ -> None 
+            | ValidationStatementFalse  st 
+            | ValidationStatement       st -> Some st
+        match (childrenChecks@ (Option.toList with_component_check)) |> DAstUtilFunctions.nestItems l "ret" with
+        | None   -> convertVCBToStatementAndAssigneErrCode l VCBTrue errCode.errCodeName
+        | Some s ->ValidationStatement s
+        
         
     createIsValidFunction r l t funBody  typeDefinition alphaFuncs localVars childrenErrCodes ns2
 

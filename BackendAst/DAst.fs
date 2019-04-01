@@ -105,11 +105,19 @@ type LocalVariable =
 
 
 
+(*an expression or statement that checks if a constraint is met or not. IT DOES NOT ASSIGNG the error code field*)
 type ValidationCodeBlock =
     | VCBTrue                                // always true
     | VCBFalse                               // always false
     | VCBExpression of string                // single expression
     | VCBStatement  of string                // statement that updates ret or Result.Success
+
+(*a statement that checks if a constraint is met or not and which assigns the error code*)
+type ValidationStatement =
+    | ValidationStatementTrue   of string
+    | ValidationStatementFalse  of string
+    | ValidationStatement       of string
+
 
          //Emit_local_variable_SQF_Index(nI, bHasInitalValue)::="I<nI>:Integer<if(bHasInitalValue)>:=1<endif>;"
 
@@ -220,7 +228,7 @@ type IsValidFunction = {
     func                : string option               // the body of the function
     funcDef             : string option               // function definition in header file
     //funcExp             : (CallerScope -> ValidationCodeBlock)    // return a single boolean expression
-    funcBody            : CallerScope -> string            //returns a list of validations statements
+    funcBody            : CallerScope -> ValidationStatement            //returns a list of validations statements
     //funcBody2           : string -> string -> string  //like funBody but with two arguement p and accessOper ( i.e. '->' or '.')
     
     alphaFuncs          : AlphaFunc list  

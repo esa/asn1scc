@@ -34,12 +34,12 @@ ret = <sIsValidExp>;
 >>
 
 convertVCBExpressionToStatementAndUpdateErrCode(sIsValidExp, sErrCode) ::= <<
-ret = <sIsValidExp>;
+ret = <sIsValidExp>; 
 *pErrCode = ret ? 0 :  <sErrCode>; 
 >>
 
-convertVCBStatementToStatementAndUpdateErrCode(sExp, sErrCode) ::= <<
-<sExp>;
+convertVCBStatementToStatementAndUpdateErrCode(sStatement, sErrCode) ::= <<
+<sStatement>
 *pErrCode = ret ? 0 :  <sErrCode>; 
 >>
 
@@ -150,14 +150,14 @@ if (!ret) {
 >>
 
 ExpressionOrStament(sExp1, sStat2) ::= <<
-ret = <sExp1>;
+ret = <sExp1>; 
 if (!ret) {
     <sStat2>
 }
 >>
 
 StatementOrExpression(sStat1, sExp2) ::= <<
-<sStat1>;
+<sStat1>
 if (!ret) {
     ret = <sExp2>;
 }
@@ -178,14 +178,14 @@ if (ret) {
 >>
 
 StatementAndExpression(sStat1, sExp2) ::= <<
-<sStat1>;
+<sStat1>
 if (ret) {
     ret = <sExp2>;
 }
 >>
 
 StatementNot(sStat) ::= <<
-<sStat>;
+<sStat>
 ret = !ret;
 >>
 
@@ -305,6 +305,9 @@ ret= <p><sAcc>exist.<sChName> == <sPresOrAbs>;
 *pErrCode = ret ? 0 : <sErrCode>;
 >>
 
+Sequence_optional_child_always_present_or_absent_expr(p, sAcc,  sChName, sPresOrAbs) ::= <<
+<p><sAcc>exist.<sChName> == <sPresOrAbs>
+>>
 
 
 JoinItems(sPart, sNestedPart) ::= <<
