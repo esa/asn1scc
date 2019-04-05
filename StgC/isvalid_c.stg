@@ -142,12 +142,17 @@ StrLen(sExp) ::= "strlen(<sExp>)"
 ArrayLen(sExp, sAcc) ::= "<sExp><sAcc>nCount"
 
 
+ExpressionToStament(sExp1) ::=<<
+ret = <sExp1>;
+>>
+
 StatementOrStament(sStat1, sStat2) ::= <<
 <sStat1>
 if (!ret) {
     <sStat2>
 }
 >>
+
 
 ExpressionOrStament(sExp1, sStat2) ::= <<
 ret = <sExp1>; 
@@ -209,6 +214,13 @@ StatementExceptExpression(sStat1, sExp2) ::= <<
 <sStat1>;
 if (ret) {
     ret = !(<sExp2>);
+}
+>>
+
+StatementForLoop(p, sAcc, i, bIsFixedSize, nFixedSize, sInnerStatement) ::= <<
+for(<i> = 0; ret && <i> \< <if(!bIsFixedSize)><p><sAcc>nCount<else><nFixedSize><endif>; <i>++) 
+{
+	<sInnerStatement>
 }
 >>
 
@@ -324,6 +336,19 @@ if (ret) {
 
 /* CHOICE start*/
 
+Choice_OptionalChild(p, sAcc,  sChPresent, sInnerStatement) ::= <<
+if (<p><sAcc>kind == <sChPresent>) {
+	<sInnerStatement>
+}
+>>
+
+Choice_child_always_present_Exp(p, sAcc, sChPresent) ::= <<
+<p><sAcc>kind == <sChPresent>
+>>
+
+Choice_child_always_absent_Exp(p, sAcc, sChPresent) ::= <<
+<p><sAcc>kind != <sChPresent>
+>>
 
 choice_child(sChPresent, sChildBody, bAlwaysAbsent) ::= <<
 case <sChPresent> : <if(bAlwaysAbsent)>/*COVERAGE_IGNORE*/<endif>
@@ -374,6 +399,12 @@ for(<i> = 0; ret && <i> \< <if(!bIsFixedSize)><p><sAcc>nCount<else><nFixedSize><
 <endif>
 >>
 
+sequenceOf2(p,sAcc, i, bIsFixedSize, nFixedSize, sInnerStatement) ::= <<
+for(<i> = 0; ret && <i> \< <if(!bIsFixedSize)><p><sAcc>nCount<else><nFixedSize><endif>; <i>++) 
+{
+	<sInnerStatement>
+}
+>>
 
 
 octet_var_string_equal(p, sAccess, nVarLength, sOctArrayLiteral )::=<<

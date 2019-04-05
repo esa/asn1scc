@@ -514,7 +514,7 @@ let private createSequenceOf (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserted
     let initialValue =
         [1 .. int o.minSize.uper] |> List.map(fun i -> childType.initialValue) |> List.map(fun x -> {Asn1Value.kind=x;id=ReferenceToValue([],[]);loc=emptyLocation}) 
     let initFunction        = DAstInitialize.createSequenceOfInitFunc r l t o defOrRef childType (SeqOfValue initialValue)
-    let isValidFunction, s1     = DastValidate2.createSequenceOfFunction r l t o defOrRef childType None us0
+    let isValidFunction, s1     = DastValidate2.createSequenceOfFunction r l t o defOrRef childType equalFunction us0
     let uperEncFunction, s2     = DAstUPer.createSequenceOfFunction r l Codec.Encode t o  defOrRef None isValidFunction childType s1
     let uperDecFunction, s3     = DAstUPer.createSequenceOfFunction r l Codec.Decode t o  defOrRef None isValidFunction childType s2
     let acnEncFunction, s4      = DAstACN.createSequenceOfFunction r deps l Codec.Encode t o defOrRef defOrRef isValidFunction childType s3

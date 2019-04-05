@@ -142,6 +142,54 @@ let private printAlphaConstraint printValue (c:IA5StringConstraint)  =
         c 
         0 |> fst
 
+let private printSequenceOfConstraint printValue (c:SequenceOfConstraint)  = 
+    foldSequenceOfTypeConstraint2
+        (fun r1 r2 b s      -> XElement(xname "OR", r1, r2), s)
+        (fun r1 r2 s        -> XElement(xname "AND", r1, r2) , s)
+        (fun r s            -> XElement(xname "ALL_EXCEPT", r), s)       
+        (fun r1 r2 s        -> XElement(xname "EXCEPT", r1, r2), s)
+        (fun r s            -> XElement(xname "ROOTC_CONSTRAINT", r), s)       
+        (fun r1 r2 s        -> XElement(xname "ROOTC_CONSTRAINT_WITH_EXTENSION", r1, r2), s)
+        (fun v  s           -> printValue v,s)
+        (fun sc s           -> 
+            let sizeCon = printRangeConstraint0 printUInt printUInt sc 
+            XElement(xname "SIZE", sizeCon), s)
+        (fun c l s           -> 
+            //generate warning to remember the missing functionality (i.e. print the constaint within the nc
+            let b = true
+            match b with true -> ()
+            null,s)
+        c 
+        0 |> fst
+
+let private printSeqOrChoiceConstraint printValue (c:SeqOrChoiceConstraint<'v>)  = 
+    let printNamedConstaintItem (nc:NamedConstraint) =
+        let nc_mark =
+            match nc.Mark with
+            | Asn1Ast.MarkPresent   -> XAttribute(xname "present", "always" )
+            | Asn1Ast.MarkAbsent    -> XAttribute(xname "present", "never" )
+            | Asn1Ast.MarkOptional  -> XAttribute(xname "present", "optional" )
+            | Asn1Ast.NoMark        -> null
+        //generate warning to remember the missing functionality (i.e. print the constaint within the nc
+        let b = true
+        match b with true -> ()
+
+        XElement(xname "WithComponent", 
+            XAttribute(xname "Name", nc.Name.Value),
+            nc_mark)
+    foldSeqOrChConstraint
+        (fun r1 r2 b s      -> XElement(xname "OR", r1, r2) , s)
+        (fun r1 r2 s        -> XElement(xname "AND", r1, r2) , s)
+        (fun r s            -> XElement(xname "ALL_EXCEPT", r), s)       
+        (fun r1 r2 s        -> XElement(xname "EXCEPT", r1, r2), s)
+        (fun r s            -> XElement(xname "ROOTC_CONSTRAINT", r), s)       
+        (fun r1 r2 s        -> XElement(xname "ROOTC_CONSTRAINT_WITH_EXTENSION", r1, r2), s)
+        (fun v  s           -> printValue v, s)
+        (fun nitms s        -> XElement(xname withCompConstraintsTag, nitms |> List.map(printNamedConstaintItem )), s)
+        c 
+        0 |> fst
+
+
 let exportChoiceOptionality (opt:Asn1ChoiceOptionality option) =
     match opt with
     | None  -> []
@@ -365,8 +413,8 @@ let private exportType (t:Asn1Type) =
                             (XAttribute(xname "uperMaxSizeInBits", ti.uperMaxSizeInBits )),
                             (XAttribute(xname "uperMinSizeInBits", ti.uperMinSizeInBits )),
                             (exportSizeableSizeProp ti.acnProperties.sizeProp),
-                            XElement(xname constraintsTag, ti.cons |> List.map(printSizableConstraint printSeqOfValue )),
-                            XElement(xname withCompConstraintsTag, ti.withcons |> List.map(printSizableConstraint printSeqOfValue )),
+                            XElement(xname constraintsTag, ti.cons |> List.map(printSequenceOfConstraint printSeqOfValue )),
+                            XElement(xname withCompConstraintsTag, ti.withcons |> List.map(printSequenceOfConstraint printSeqOfValue )),
                             nc), us )
         (fun ti children us -> XElement(xname "SEQUENCE",
                                 (XAttribute(xname "acnMaxSizeInBits", ti.acnMaxSizeInBits )),
@@ -374,8 +422,8 @@ let private exportType (t:Asn1Type) =
                                 (XAttribute(xname "uperMaxSizeInBits", ti.uperMaxSizeInBits )),
                                 (XAttribute(xname "uperMinSizeInBits", ti.uperMinSizeInBits )),
                                 children,
-                                XElement(xname constraintsTag, ti.cons |> List.map(printGenericConstraint printSeqValue )),
-                                XElement(xname withCompConstraintsTag, ti.withcons |> List.map(printGenericConstraint printSeqValue ))
+                                XElement(xname constraintsTag, ti.cons |> List.map(printSeqOrChoiceConstraint printSeqValue )),
+                                XElement(xname withCompConstraintsTag, ti.withcons |> List.map(printSeqOrChoiceConstraint printSeqValue ))
                                 ), us )
         (fun ch nt us -> XElement(xname "SEQUENCE_COMPONENT",
                             XAttribute(xname "Name", ch.Name.Value),
@@ -444,8 +492,8 @@ let private exportType (t:Asn1Type) =
                                 (XAttribute(xname "uperMinSizeInBits", ti.uperMinSizeInBits )),
                                 (exportChoiceDeterminant ti.acnProperties.enumDeterminant),
                                 children,
-                                XElement(xname constraintsTag, ti.cons |> List.map(printGenericConstraint printChoiceValue )),
-                                XElement(xname withCompConstraintsTag, ti.withcons |> List.map(printGenericConstraint printChoiceValue ))
+                                XElement(xname constraintsTag, ti.cons |> List.map(printSeqOrChoiceConstraint printChoiceValue )),
+                                XElement(xname withCompConstraintsTag, ti.withcons |> List.map(printSeqOrChoiceConstraint printChoiceValue ))
                                 ), us )
         (fun ch nt us -> XElement(xname "CHOICE_ALTERNATIVE",
                             XAttribute(xname "Name", ch.Name.Value),

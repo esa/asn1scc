@@ -54,6 +54,7 @@
   <Import Project="$(FSharpTargetsPath)" />
   <ItemGroup>
     <None Include="Script.fsx" />
+    <Compile Include="SimpleSets.fs" />
     <Compile Include="FsUtils.fs" />
     <Compile Include="CommonTypes.fs" />
     <Compile Include="isvalid_if.stg.fs" />

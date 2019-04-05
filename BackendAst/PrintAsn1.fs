@@ -54,7 +54,7 @@ let rec PrintConstraint (c:Asn1Constraint) =
     | ExceptConstraint(c1,c2)       -> stg_asn1.Print_ExceptConstraint (PrintConstraint c1) (PrintConstraint c2)                 
     | RootConstraint(c)             -> stg_asn1.Print_RootConstraint  (PrintConstraint c)        
     | RootConstraint2(c1,c2)        -> stg_asn1.Print_RootConstraint2 (PrintConstraint c1) (PrintConstraint c2)
-    | WithComponentConstraint(c)    -> stg_asn1.Print_WithComponentConstraint (PrintConstraint c)
+    | WithComponentConstraint(c,_)  -> stg_asn1.Print_WithComponentConstraint (PrintConstraint c)
     | WithComponentsConstraint(ncs) -> 
         let print_nc (nc:NamedConstraint) =
             let sConstraint = match nc.Contraint with

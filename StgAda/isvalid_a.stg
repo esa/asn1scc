@@ -61,6 +61,9 @@ StrLen(sExp) ::= "<rtlModuleName()>.getStringSize(<sExp>)"
 ArrayLen(sExp, sAcc) ::= "<sExp><sAcc>Length"
 
 
+ExpressionToStament(sExp1) ::=<<
+ret.Success := <sExp1>;
+>>
 
 
 StatementOrStament(sStat1, sStat2) ::= <<
@@ -135,6 +138,14 @@ end if;
 
 
 
+StatementForLoop(p, sAcc, i, bIsFixedSize, nFixedSize, sInnerStatement) ::= <<
+<i> := <p>.Data'First;
+while ret.Success and <i> \<= <if(bIsFixedSize)><nFixedSize><else><p>.Length<endif> loop
+    pragma Loop_Invariant (<i> \>= <p>.Data'First and <i> \<= <if(bIsFixedSize)><nFixedSize><else><p>.Length<endif>);
+    <soInnerStatement>
+    <i> := <i>+1;
+end loop;
+>>
 
 
 EmitTypeAssignment_primitive_def(sVarName, sStar, sFuncName, sTypeDefName, sErrCode, nErrValue) ::= <<
@@ -269,6 +280,16 @@ end loop;
 <endif>
 >>
 
+sequenceOf2(p,sAcc, i, bIsFixedSize, nFixedSize, sInnerStatement) ::= <<
+<i> := <p>.Data'First;
+while ret.Success and <i> \<= <if(bIsFixedSize)><nFixedSize><else><p>.Length<endif> loop
+    pragma Loop_Invariant (<i> \>= <p>.Data'First and <i> \<= <if(bIsFixedSize)><nFixedSize><else><p>.Length<endif>);
+    <sInnerStatement>
+    <i> := <i>+1;
+end loop;
+>>
+
+
 /* SEQUENCE OF end*/
 
 
@@ -312,6 +333,20 @@ END IF;
 /* SEQUENCE end*/
 
 /*CHOICE start*/
+
+Choice_OptionalChild(p, sAcc,  sChPresent, sInnerStatement) ::= <<
+if <p><sAcc>kind = <sChPresent> then
+	<sInnerStatement>
+end if;
+>>
+
+Choice_child_always_present_Exp(p, sAcc, sChPresent) ::= <<
+<p><sAcc>kind = <sChPresent>
+>>
+
+Choice_child_always_absent_Exp(p, sAcc, sChPresent) ::= <<
+<p><sAcc>kind /= <sChPresent>
+>>
 
 
 choice_child(sChPresent, sChildBody, bAlwaysAbsent) ::= <<

@@ -491,7 +491,7 @@ and CreateConstraint (astRoot:list<ITree>) (tree:ITree) : Asn1Constraint option=
         |asn1Parser.WITH_COMPONENT_CONSTR   -> 
             let c1 = CreateConstraint astRoot (tree.GetChild(0)) 
             match c1 with
-            | Some k1   -> Some(WithComponentConstraint(k1))
+            | Some k1   -> Some(WithComponentConstraint(k1, tree.Location))
             | None      -> None
 
         |asn1Parser.WITH_COMPONENTS_CONSTR -> 

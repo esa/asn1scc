@@ -1252,3 +1252,22 @@ let nestItems (l:ProgrammingLanguage) (retVarName:string (*ret or result*)) chil
         |[]     -> None
         |x::xs  -> Some (printChild x (printChildren xs))
     printChildren children
+#if false
+let nestItems_dbg  children = 
+    let joinItems2 =  sprintf """
+    %s
+    if (ret) {
+        %s
+    }
+    """
+
+    let printChild (content:string) (soNestedContent:string option) = 
+        match soNestedContent with
+        | None                -> content
+        | Some sNestedContent -> joinItems2 content sNestedContent
+    let rec printChildren children : Option<string> = 
+        match children with
+        |[]     -> None
+        |x::xs  -> Some (printChild x (printChildren xs))
+    printChildren children
+#endif

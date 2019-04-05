@@ -632,7 +632,7 @@ let rec fixConstraint (asn1:Asn1Ast.AstRoot) (c:Asn1Ast.Asn1Constraint) =
             actTypeAllCons.Constraints |> List.collect (fixConstraint asn1))     
         (fun sc         -> mergeConstraints sc (fun c -> Asn1Ast.SizeContraint c) )        
         (fun sc         -> mergeConstraints sc (fun c -> Asn1Ast.AlphabetContraint c) )        
-        (fun sc         -> mergeConstraints sc (fun c -> Asn1Ast.WithComponentConstraint c) )        
+        (fun sc l       -> mergeConstraints sc (fun c -> Asn1Ast.WithComponentConstraint(c, l)) )        
         (fun ni cons    -> 
             match cons with
             | None          -> [{ni with Contraint = None}]
@@ -831,12 +831,12 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (m:Asn1Ast.Asn1Mo
             let o, us1 = mergeEnumerated asn1 items t.Location acnErrLoc acnType combinedProperties cons wcons (EnmStrGetTypeDifition_arg tfdArg) us
             Enumerated o, us1
         | Asn1Ast.SequenceOf  chType       -> 
-            let childWithCons = allCons |> List.choose(fun c -> match c with Asn1Ast.WithComponentConstraint w -> Some w| _ -> None)
+            let childWithCons = allCons |> List.choose(fun c -> match c with Asn1Ast.WithComponentConstraint (w,_) -> Some w| _ -> None)
             let myVisibleConstraints = t.Constraints@refTypeCons |> List.choose(fun c -> match c with Asn1Ast.WithComponentConstraint _ -> None | _ -> Some c)
             let myNonVisibleConstraints = withCons |> List.choose(fun c -> match c with Asn1Ast.WithComponentConstraint _ -> None | _ -> Some c)
 
-            let cons =  myVisibleConstraints |> List.collect fixConstraint |> List.map (ConstraintsMapping.getSequenceOfConstraint asn1 t)
-            let wcons = myNonVisibleConstraints |> List.collect fixConstraint |> List.map (ConstraintsMapping.getSequenceOfConstraint asn1 t)
+            let cons =  myVisibleConstraints |> List.collect fixConstraint |> List.map (ConstraintsMapping.getSequenceOfConstraint asn1 t chType)
+            let wcons = myNonVisibleConstraints |> List.collect fixConstraint |> List.map (ConstraintsMapping.getSequenceOfConstraint asn1 t chType)
 
             let childEncSpec, acnArgs = 
                 match acnType with
@@ -887,11 +887,9 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (m:Asn1Ast.Asn1Mo
             let myVisibleConstraints = refTypeCons@t.Constraints |> List.choose(fun c -> match c with Asn1Ast.WithComponentsConstraint _ -> None | _ -> Some c)
             let myNonVisibleConstraints = withCons |> List.choose(fun c -> match c with Asn1Ast.WithComponentsConstraint _ -> None | _ -> Some c)
 
-            let cons =  [] //myVisibleConstraints|> List.collect fixConstraint |> List.map (ConstraintsMapping.getSequenceConstraint asn1 t)
-            let wcons = [] //myNonVisibleConstraints |> List.collect fixConstraint |> List.map (ConstraintsMapping.getSequenceConstraint asn1 t)
 
-            let cons2 =  myVisibleConstraints|> List.collect fixConstraint |> List.map (ConstraintsMapping.getSeqConstraint asn1 t children)
-            let wcons2 = myNonVisibleConstraints |> List.collect fixConstraint |> List.map (ConstraintsMapping.getSeqConstraint asn1 t children)
+            let cons =  myVisibleConstraints|> List.collect fixConstraint |> List.map (ConstraintsMapping.getSeqConstraint asn1 t children)
+            let wcons = myNonVisibleConstraints |> List.collect fixConstraint |> List.map (ConstraintsMapping.getSeqConstraint asn1 t children)
 
             let typeDef, us1 = getSequenceTypeDifition tfdArg us
 
@@ -1021,14 +1019,14 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (m:Asn1Ast.Asn1Mo
                     preDecodingFunction = tryGetProp combinedProperties (fun x -> match x with PRE_DECODING_FUNCTION e -> Some (PreDecodingFunction e) | _ -> None)
                 }
 
-            Sequence ({Sequence.children = mergedChildren;  acnProperties=acnProperties;  cons2=cons2; withcons2 = wcons2; cons=cons; withcons = wcons;uperMaxSizeInBits=uperBitMaskSize+uperMaxChildrenSize; uperMinSizeInBits=uperBitMaskSize+uperMinChildrenSize;acnMaxSizeInBits=acnMaxSizeInBits;acnMinSizeInBits=acnMinSizeInBits; typeDef=typeDef}), chus
+            Sequence ({Sequence.children = mergedChildren;  acnProperties=acnProperties;  cons=cons; withcons = wcons;uperMaxSizeInBits=uperBitMaskSize+uperMaxChildrenSize; uperMinSizeInBits=uperBitMaskSize+uperMinChildrenSize;acnMaxSizeInBits=acnMaxSizeInBits;acnMinSizeInBits=acnMinSizeInBits; typeDef=typeDef}), chus
         | Asn1Ast.Choice      children     -> 
             let childrenNameConstraints = t.Constraints@refTypeCons |> List.choose(fun c -> match c with Asn1Ast.WithComponentsConstraint w -> Some w| _ -> None) |> List.collect id
             let myVisibleConstraints = t.Constraints@refTypeCons |> List.choose(fun c -> match c with Asn1Ast.WithComponentsConstraint _ -> None | _ -> Some c)
             let myNonVisibleConstraints = withCons |> List.choose(fun c -> match c with Asn1Ast.WithComponentsConstraint _ -> None | _ -> Some c)
 
-            let cons =  myVisibleConstraints |> List.collect fixConstraint |> List.map (ConstraintsMapping.getChoiceConstraint asn1 t)
-            let wcons = myNonVisibleConstraints |> List.collect fixConstraint |> List.map (ConstraintsMapping.getChoiceConstraint asn1 t)
+            let cons =  myVisibleConstraints |> List.collect fixConstraint |> List.map (ConstraintsMapping.getChoiceConstraint asn1 t children)
+            let wcons = myNonVisibleConstraints |> List.collect fixConstraint |> List.map (ConstraintsMapping.getChoiceConstraint asn1 t children)
             let typeDef, us1 = getChoiceTypeDifition tfdArg us
             
 

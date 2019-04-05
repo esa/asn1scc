@@ -143,19 +143,37 @@ let createBitStringFunction (r:Asn1AcnAst.AstRoot)  (t:Asn1AcnAst.Asn1Type) (o:A
     let conToStrFunc = foldSizableConstraint (fun (bits:Asn1AcnAst.BitStringValue, _) -> stg_asn1.Print_BitStringValue ("'" + bits.Value + "'H" ))
     o.AllCons |> List.map conToStrFunc
 
+
 let createSequenceFunction (r:Asn1AcnAst.AstRoot)  (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Sequence) (children:SeqChildInfo list)   =
+    //generate warning to remember the missing functionality
+    let b = true
+    match b with true -> ()
+    (*
     let printSeqValue (nameItems:Asn1AcnAst.NamedValue list) =
         let arrsValues = nameItems |> List.map(fun ni -> stg_asn1.Print_SeqValue_Child ni.name.Value (printAsn1Value ni.Value))
         stg_asn1.Print_SeqValue arrsValues
     let conToStrFunc = foldGenericCon printSeqValue
     o.AllCons |> List.map conToStrFunc
+    *)
+    []
     
 let createChoiceFunction (r:Asn1AcnAst.AstRoot)  (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Choice) (children:ChChildInfo list)   =
+    //generate warning to remember the missing functionality
+    let b = true
+    match b with true -> ()
+    (*
     let printChValue (ni:Asn1AcnAst.NamedValue) =
         stg_asn1.Print_ChValue ni.name.Value (printAsn1Value ni.Value)
     let conToStrFunc = foldGenericCon printChValue
     o.AllCons |> List.map conToStrFunc
+    *)
+    []
 
 let createSequenceOfFunction (r:Asn1AcnAst.AstRoot)  (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.SequenceOf)  =
+    let b = true
+    match b with true -> ()
+    (*
     let conToStrFunc = foldSizableConstraint (fun (vals:Asn1AcnAst.Asn1Value list) -> vals |> List.map printAsn1Value |> stg_asn1.Print_SeqOfValue )
     o.AllCons |> List.map conToStrFunc
+    *)
+    []

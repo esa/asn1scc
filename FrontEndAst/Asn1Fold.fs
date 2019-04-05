@@ -212,35 +212,116 @@ let foldStringTypeConstraint2 unionFunc intersectionFunc allExceptFunc exceptFun
 
 
 
-let foldSeqConstraint unionFunc intersectionFunc allExceptFunc exceptFunc rootFunc rootFunc2 singleValueFunc withComponentsFunc
-    (c:SeqConstraint) 
+let foldSeqOrChConstraint unionFunc intersectionFunc allExceptFunc exceptFunc rootFunc rootFunc2 singleValueFunc withComponentsFunc
+    (c:SeqOrChoiceConstraint<'v>) 
     (s:'UserState) =
-    let rec loopRecursiveConstraint (c:SeqConstraint) (s0:'UserState) =
+    let rec loopRecursiveConstraint (c:SeqOrChoiceConstraint<'v>) (s0:'UserState) =
         match c with
-        | SeqUnionConstraint(c1,c2,b)         -> 
+        | SeqOrChUnionConstraint(c1,c2,b)         -> 
             let nc1, s1 = loopRecursiveConstraint c1 s0
             let nc2, s2 = loopRecursiveConstraint c2 s1
             unionFunc nc1 nc2 b s2
-        | SeqIntersectionConstraint(c1,c2)    -> 
+        | SeqOrChIntersectionConstraint(c1,c2)    -> 
             let nc1, s1 = loopRecursiveConstraint c1 s0
             let nc2, s2 = loopRecursiveConstraint c2 s1
             intersectionFunc nc1 nc2 s2
-        | SeqAllExceptConstraint(c1)          -> 
+        | SeqOrChAllExceptConstraint(c1)          -> 
             let nc1, s1 = loopRecursiveConstraint c1 s0
             allExceptFunc nc1 s1
-        | SeqExceptConstraint(c1,c2)          -> 
+        | SeqOrChExceptConstraint(c1,c2)          -> 
             let nc1, s1 = loopRecursiveConstraint c1 s0
             let nc2, s2 = loopRecursiveConstraint c2 s1
             exceptFunc nc1 nc2 s2
-        | SeqRootConstraint(c1)               -> 
+        | SeqOrChRootConstraint(c1)               -> 
             let nc1, s1 = loopRecursiveConstraint c1 s0
             rootFunc nc1 s1
-        | SeqRootConstraint2(c1,c2)           -> 
+        | SeqOrChRootConstraint2(c1,c2)           -> 
             let nc1, s1 = loopRecursiveConstraint c1 s0
             let nc2, s2 = loopRecursiveConstraint c2 s1
             rootFunc2 nc1 nc2 s2
-        | SeqSingleValueConstraint (v)    -> singleValueFunc v s0
-        | SeqWithComponentsConstraint nitms -> withComponentsFunc nitms s0
+        | SeqOrChSingleValueConstraint (v)    -> singleValueFunc v s0
+        | SeqOrChWithComponentsConstraint nitms -> withComponentsFunc nitms s0
+    loopRecursiveConstraint c s
+
+
+let foldSeqConstraint unionFunc intersectionFunc allExceptFunc exceptFunc rootFunc rootFunc2 singleValueFunc withComponentsFunc
+    (c:SeqConstraint) 
+    (s:'UserState) =
+    foldSeqOrChConstraint unionFunc intersectionFunc allExceptFunc exceptFunc rootFunc rootFunc2 singleValueFunc withComponentsFunc c s
+
+let foldChoiceConstraint unionFunc intersectionFunc allExceptFunc exceptFunc rootFunc rootFunc2 singleValueFunc withComponentsFunc
+    (c:ChoiceConstraint) 
+    (s:'UserState) =
+    foldSeqOrChConstraint unionFunc intersectionFunc allExceptFunc exceptFunc rootFunc rootFunc2 singleValueFunc withComponentsFunc c s
+
+let foldSequenceOfTypeConstraint unionFunc intersectionFunc allExceptFunc exceptFunc rootFunc rootFunc2 singleValueFunc 
+    sunionFunc sintersectionFunc sallExceptFunc sexceptFunc srootFunc srootFunc2 ssingleValueFunc 
+    srangeFunc srange_val_max_func srange_min_val_func
+    withComponentFunc
+    (c:SequenceOfConstraint) 
+    (s:'UserState) =
+    let rec loopRecursiveConstraint (c:SequenceOfConstraint) (s0:'UserState) =
+        match c with
+        | SeqOfSizeUnionConstraint(c1,c2,b)         -> 
+            let nc1, s1 = loopRecursiveConstraint c1 s0
+            let nc2, s2 = loopRecursiveConstraint c2 s1
+            unionFunc nc1 nc2 b s2
+        | SeqOfSizeIntersectionConstraint(c1,c2)    -> 
+            let nc1, s1 = loopRecursiveConstraint c1 s0
+            let nc2, s2 = loopRecursiveConstraint c2 s1
+            intersectionFunc nc1 nc2 s2
+        | SeqOfSizeAllExceptConstraint(c1)          -> 
+            let nc1, s1 = loopRecursiveConstraint c1 s0
+            allExceptFunc nc1 s1
+        | SeqOfSizeExceptConstraint(c1,c2)          -> 
+            let nc1, s1 = loopRecursiveConstraint c1 s0
+            let nc2, s2 = loopRecursiveConstraint c2 s1
+            exceptFunc nc1 nc2 s2
+        | SeqOfSizeRootConstraint(c1)               -> 
+            let nc1, s1 = loopRecursiveConstraint c1 s0
+            rootFunc nc1 s1
+        | SeqOfSizeRootConstraint2(c1,c2)           -> 
+            let nc1, s1 = loopRecursiveConstraint c1 s0
+            let nc2, s2 = loopRecursiveConstraint c2 s1
+            rootFunc2 nc1 nc2 s2
+        | SeqOfSizeSingleValueConstraint (v)    -> singleValueFunc v s0
+        | SeqOfSizeContraint    intCon   -> foldRangeTypeConstraint sunionFunc sintersectionFunc sallExceptFunc sexceptFunc srootFunc srootFunc2 ssingleValueFunc srangeFunc srange_val_max_func srange_min_val_func intCon s
+        | SeqOfSeqWithComponentConstraint (c,l) -> withComponentFunc c l s0
+    loopRecursiveConstraint c s
+
+
+let foldSequenceOfTypeConstraint2 unionFunc intersectionFunc allExceptFunc exceptFunc rootFunc rootFunc2 singleValueFunc 
+    foldRangeTypeConstraint
+    withComponentFunc
+    (c:SequenceOfConstraint) 
+    (s:'UserState) =
+    let rec loopRecursiveConstraint (c:SequenceOfConstraint) (s0:'UserState) =
+        match c with
+        | SeqOfSizeUnionConstraint(c1,c2,b)         -> 
+            let nc1, s1 = loopRecursiveConstraint c1 s0
+            let nc2, s2 = loopRecursiveConstraint c2 s1
+            unionFunc nc1 nc2 b s2
+        | SeqOfSizeIntersectionConstraint(c1,c2)    -> 
+            let nc1, s1 = loopRecursiveConstraint c1 s0
+            let nc2, s2 = loopRecursiveConstraint c2 s1
+            intersectionFunc nc1 nc2 s2
+        | SeqOfSizeAllExceptConstraint(c1)          -> 
+            let nc1, s1 = loopRecursiveConstraint c1 s0
+            allExceptFunc nc1 s1
+        | SeqOfSizeExceptConstraint(c1,c2)          -> 
+            let nc1, s1 = loopRecursiveConstraint c1 s0
+            let nc2, s2 = loopRecursiveConstraint c2 s1
+            exceptFunc nc1 nc2 s2
+        | SeqOfSizeRootConstraint(c1)               -> 
+            let nc1, s1 = loopRecursiveConstraint c1 s0
+            rootFunc nc1 s1
+        | SeqOfSizeRootConstraint2(c1,c2)           -> 
+            let nc1, s1 = loopRecursiveConstraint c1 s0
+            let nc2, s2 = loopRecursiveConstraint c2 s1
+            rootFunc2 nc1 nc2 s2
+        | SeqOfSizeSingleValueConstraint (v)    -> singleValueFunc v s0
+        | SeqOfSizeContraint    intCon   -> foldRangeTypeConstraint intCon s0
+        | SeqOfSeqWithComponentConstraint (c,l) -> withComponentFunc c l s0
     loopRecursiveConstraint c s
 
 

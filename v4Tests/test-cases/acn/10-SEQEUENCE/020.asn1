@@ -18,8 +18,8 @@ TEST-CASE  DEFINITIONS AUTOMATIC TAGS::= BEGIN
 			buf	[APPLICATION 104]	OCTET STRING (SIZE(10))
 		} OPTIONAL
 	} (
-		WITH COMPONENTS {..., int1 (4..12),	enm ABSENT} |
-		WITH COMPONENTS {..., int1 (1..3) ,	enm PRESENT}
+		WITH COMPONENTS {..., int1 (4..12) PRESENT,	int2 (200 .. 400), enm ABSENT} |
+		WITH COMPONENTS {..., int1 (0..3) ,	enm PRESENT}
 	   )
 	
 
