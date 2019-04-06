@@ -1067,19 +1067,19 @@ let rec mapValue (v:Asn1AcnAst.Asn1Value) =
     {Asn1Value.kind = newVKind; id=v.id; loc = v.loc}
 
 
+let emitComponent (c:ResolvedObjectIdentifierValueCompoent) =
+    match c with
+    | ResObjInteger            nVal             -> (nVal.Value, None)
+    | ResObjNamedDefValue      (label,_,nVal)   -> (nVal, Some label.Value)
+    | ResObjNamedIntValue      (label,nVal)   -> (nVal.Value, Some label.Value)
+    | ResObjRegisteredKeyword  (label,nVal)   -> (nVal, Some label.Value)
+    | ResObjDefinedValue       (_,_,nVal)     -> (nVal, None)
 
 type ObjectIdenfierValue with
     member this.Values =
         match this with
         | InternalObjectIdentifierValue intList      -> intList |> List.map(fun i -> (i, None))
         | Asn1DefinedObjectIdentifierValue (resolvedComponents, _)  ->
-            let emitComponent (c:ResolvedObjectIdentifierValueCompoent) =
-                match c with
-                | ResObjInteger            nVal             -> (nVal.Value, None)
-                | ResObjNamedDefValue      (label,_,nVal)   -> (nVal, Some label.Value)
-                | ResObjNamedIntValue      (label,nVal)   -> (nVal.Value, Some label.Value)
-                | ResObjRegisteredKeyword  (label,nVal)   -> (nVal, Some label.Value)
-                | ResObjDefinedValue       (_,_,nVal)     -> (nVal, None)
             resolvedComponents |> List.map emitComponent
 
 type Asn1Value with

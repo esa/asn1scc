@@ -173,6 +173,7 @@ let createOctetStringInitFunc (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:
     let initFixSizeBitOrOctString       = match l with C -> init_c.initFixSizeBitOrOctString        | Ada -> init_a.initFixSizeBitOrOctString
     let initFixVarSizeBitOrOctString    = match l with C -> init_c.initFixVarSizeBitOrOctString     | Ada -> init_a.initFixVarSizeBitOrOctString
     let initTestCaseOctetString         = match l with C -> init_c.initTestCaseOctetString     | Ada -> init_a.initTestCaseOctetString
+
     let funcBody (p:CallerScope) (v:Asn1ValueKind) = 
         let bytes = 
             match v.ActualValue with
@@ -183,18 +184,15 @@ let createOctetStringInitFunc (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:
         match o.isFixedSize with
         | true  -> initFixSizeBitOrOctString p.arg.p (p.arg.getAcces l) arrsBytes
         | false -> initFixVarSizeBitOrOctString p.arg.p (p.arg.getAcces l) (BigInteger arrsBytes.Length) arrsBytes
-    let anonymousValues =
-        match isValidFunction with
-        | None  -> []
-        | Some isV -> 
-            isV.anonymousVariables |> 
-                List.choose(fun iv ->
-                    match iv.valKind with
-                    | OctetStringValue bytes    -> Some(iv, bytes)
-                    | _                         -> None ) 
+
+    let anonyms =
+        o.AllCons |> 
+        List.map DastFold.getValueFromSizeableConstraint |> 
+        List.collect id |>
+        List.map(fun (v,_) -> DAstVariables.printOctetStringValueAsCompoundLitteral l "" o (v|>List.map(fun bl -> bl.Value)))
 
     let testCaseFuncs, tasInitFunc =
-        match anonymousValues with
+        match anonyms with
         | []  ->
             let ii = t.id.SeqeuenceOfLevel + 1
             let i = sprintf "i%d" ii
@@ -223,12 +221,12 @@ let createOctetStringInitFunc (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:
             testCaseFuncs, zero
         | _ ->
             let ret = 
-                anonymousValues |> 
-                List.map(fun (iv, bytes) ->
+                anonyms |> 
+                List.map(fun (compLit) ->
                     let initTestCaseFunc (p:CallerScope) =
-                        let ret = sprintf "%s%s%s;" (p.arg.getValue l) l.AssignOperator iv.valueName
+                        let ret = sprintf "%s%s%s;" (p.arg.getValue l) l.AssignOperator compLit
                         {InitFunctionResult.funcBody = ret; localVariables=[]}
-                    {AutomaticTestCase.initTestCaseFunc = initTestCaseFunc; testCase = Map.ofList [(t.id, TcvSizeableTypeValue bytes.Length.AsBigInt)] })
+                    {AutomaticTestCase.initTestCaseFunc = initTestCaseFunc; testCase = Map.ofList [(t.id, TcvAnyValue)] })
             ret, ret.Head.initTestCaseFunc
     createInitFunctionCommon r l t typeDefinition funcBody iv tasInitFunc testCaseFuncs
 
@@ -254,17 +252,14 @@ let createBitStringInitFunc (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:As
         | true  -> initFixSizeBitOrOctString p.arg.p (p.arg.getAcces l) arrsBytes
         | false -> initFixVarSizeBitOrOctString p.arg.p (p.arg.getAcces l) (BigInteger arrsBytes.Length) arrsBytes
 
-    let anonymousValues =
-        match isValidFunction with
-        | None  -> []
-        | Some isV -> 
-            isV.anonymousVariables |>
-                List.choose(fun iv ->
-                    match iv.valKind with
-                    | BitStringValue bitVal    -> Some(iv, bitVal)
-                    | _                         -> None )
+    let anonyms =
+        o.AllCons |> 
+        List.map DastFold.getValueFromSizeableConstraint |> 
+        List.collect id |>
+        List.map(fun (v,_) -> DAstVariables.printBitStringValueAsCompoundLitteral l "" o v.Value)
+
     let testCaseFuncs, tasInitFunc =
-        match anonymousValues with
+        match anonyms with
         | []  ->
             let ii = t.id.SeqeuenceOfLevel + 1
             let i = sprintf "i%d" ii
@@ -296,12 +291,12 @@ let createBitStringInitFunc (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:As
             testCaseFuncs, zero
         | _ ->
             let ret = 
-                anonymousValues |> 
-                List.map(fun (iv, bitVal) ->
+                anonyms |> 
+                List.map(fun compLit ->
                     let retFunc (p:CallerScope) =
-                        let ret = sprintf "%s%s%s;" (p.arg.getValue l) l.AssignOperator iv.valueName
+                        let ret = sprintf "%s%s%s;" (p.arg.getValue l) l.AssignOperator compLit
                         {InitFunctionResult.funcBody = ret; localVariables=[]}
-                    {AutomaticTestCase.initTestCaseFunc = retFunc; testCase = Map.ofList [(t.id, TcvSizeableTypeValue bitVal.Length.AsBigInt)] })
+                    {AutomaticTestCase.initTestCaseFunc = retFunc; testCase = Map.ofList [(t.id, TcvAnyValue)] })
             ret, ret.Head.initTestCaseFunc
     createInitFunctionCommon r l t typeDefinition funcBody iv tasInitFunc testCaseFuncs
 

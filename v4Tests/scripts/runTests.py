@@ -105,6 +105,11 @@ def RunTestCase(asn1, acn, behavior, expErrMsg):
             nTests += 1
             return
 
+    no_automatic_test_cases = "NO_AUTOMATIC_TEST_CASES" in open(asn1File, 'r').readlines()[0]
+    if no_automatic_test_cases:
+        res = mysystem("cd " + targetDir + os.sep + "; CC=gcc make", False)
+        return
+
     if language == "c":
         try:
             res = mysystem(
@@ -152,8 +157,7 @@ def RunTestCase(asn1, acn, behavior, expErrMsg):
             sys.exit(1)
         elif behavior == 0 and res == 0:
             # -- NOCOVERAGE
-            doCoverage = "-- NOCOVERAGE" not in \
-                open("sample1.asn1", 'r').readlines()[0]
+            doCoverage = "-- NOCOVERAGE" not in open("sample1.asn1", 'r').readlines()[0]
             if doCoverage:
 
                 def hunt_signature(l):

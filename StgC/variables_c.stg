@@ -29,7 +29,7 @@ PrintBitOrOctetStringValue(bIsFixedSize, arruBytes, nCount) ::= <<
 >>
 
 PrintBitOrOctetStringValueAsCompoundLitteral(td/*:FE_SizeableTypeDefinition*/, bIsFixedSize, arruBytes, nCount) ::= <<
-(<td.typeName>){<if(!bFixedSize)>.nCount = <nCount>, <endif>.arr = {<arruBytes:{b|0x<b;format="X2">}; separator=", ">}}
+(<td.typeName>){<if(!bIsFixedSize)>.nCount = <nCount>, <endif>.arr = {<arruBytes:{b|0x<b;format="X2">}; separator=", ">}}
 >>
 
 
