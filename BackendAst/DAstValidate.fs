@@ -13,6 +13,8 @@ open Asn1Fold
 open DAst
 open DAstUtilFunctions
 
+
+#if false
 // TODO
 // 1 single value constraints for composite types (SEQUENCE, SEQUENCE OF, CHOICE) by using the generated value and _equal function (like bit and octet strings)
 // 2 simpify constraints. For example the constrains of the following type
@@ -626,9 +628,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn
         let errCodeName         = ToC ("ERR_" + ((t.id.AcnAbsPath |> Seq.skip 1 |> Seq.StrJoin("-")).Replace("#","elm")))
         let errCode, ns = getNextValidErrorCode us errCodeName
 
-        let childrenConent, finalState =   
-            asn1Children |>
-            Asn1Fold.foldMap (fun errCode cc -> cc.isValidBodyStats errCode) ns
+        let childrenConent, ns1 =  asn1Children |> Asn1Fold.foldMap (fun errCode cc -> cc.isValidBodyStats errCode) ns
         let childrenConent = childrenConent |> List.choose id
         match childrenConent with
         | []    -> None
@@ -636,41 +636,25 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn
             let alphaFuncs = childrenConent |> List.collect(fun x -> x.alphaFuncs)
             let localVars = childrenConent |> List.collect(fun x -> x.localVars)
             let ercCodes = errCode::(childrenConent |> List.collect(fun x -> x.errCode))
+            let vcbs,retstate =  
+                o.cons2 |> Asn1Fold.foldMap(fun cs c -> DastValidate2.sequenceConstraint2ValidationCodeBlock r l t.id asn1Children ()  c cs) {DastValidate2.alphaIndex = 0; DastValidate2.alphaFuncs = alphaFuncs}
 
 
+            //let eee p =  o.cons2 |> Asn1Fold.foldMap(fun cc c -> DastValidate2.sequenceConstraint2ValidationCodeBlock r l t.id asn1Children () p c cc) ns1
             let funcBody  (p:CallerScope) = 
-//                let printChild (content:string) (sNestedContent:string option) = 
-//                    match sNestedContent with
-//                    | None  -> content
-//                    | Some c-> 
-//                        match l with
-//                        | C        -> equal_c.JoinItems content sNestedContent
-//                        | Ada      -> isvalid_a.JoinItems content sNestedContent
-//                let rec printChildren children : string option = 
-//                    match children with
-//                    |[]     -> None
-//                    |x::xs  -> 
-//                        match printChildren xs with
-//                        | None                 -> Some (printChild x  None)
-//                        | Some childrenCont    -> Some (printChild x  (Some childrenCont))
-//
-//                let isValidStatementX = x.isValidStatement p  
-//                let isValidStatementXS = xs |> List.map(fun x -> x.isValidStatement  p )
-//                printChild isValidStatementX (printChildren isValidStatementXS)
-
                 let seqValidationStatement  = 
                     match o.cons2 with
                     | []    -> None
                     | _     ->
-                        let vcbs =  o.cons2 |> List.map(fun c -> DastValidate2.sequenceConstraint2ValidationCodeBlock r l t.id asn1Children () p c 0) |> List.map fst
+                        //let vcbs,retstate =  o.cons2 |> Asn1Fold.foldMap(fun cs c -> DastValidate2.sequenceConstraint2ValidationCodeBlock r l t.id asn1Children () p c cs) initialState
+                        let vcbs = vcbs |> List.map(fun fnc -> fnc p)
                         let vcb = DastValidate2.ValidationCodeBlock_Multiple_And l vcbs
                         Some (DastValidate2.convertVCBToStatementAndAssigneErrCode l vcb errCode.errCodeName)
-
                 let aaa =
                     let childrenCheckStatements = x::xs |> List.map(fun x -> x.isValidStatement  p) 
                     (childrenCheckStatements@(seqValidationStatement |> Option.toList)) |> DAstUtilFunctions.nestItems l "ret"
                 aaa.Value
-            Some(alphaFuncs, localVars, ercCodes, funcBody, finalState)
+            Some(alphaFuncs@retstate.alphaFuncs, localVars, ercCodes, funcBody, ns1)
     match body with
     | None    -> None, us
     | Some(alphaFuncs, localVars, ercCodes, funcBody, finalState) ->
@@ -918,3 +902,5 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:A
 
 let createReferenceTypeFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.ReferenceType) (typeDefinition:TypeDefintionOrReference) (baseType:Asn1Type)  (us:State)  =
     baseType.isValidFunction, us    
+
+#endif

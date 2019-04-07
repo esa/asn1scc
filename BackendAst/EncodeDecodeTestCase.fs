@@ -291,7 +291,7 @@ Automatic Test case values
 
 
 
-let foldGenericCon (l:ProgrammingLanguage) (c:GenericConstraint<'v>)  =
+let foldGenericCon  (c:GenericConstraint<'v>)  =
     foldGenericConstraint
         (fun e1 e2 b s      -> e1@e2, s)
         (fun e1 e2 s        -> e1@e2, s)
@@ -338,7 +338,7 @@ let foldSizableConstraint  (c:SizableTypeConstraint<'v>) =
 
 let IntegerAutomaticTestCaseValues (r:Asn1AcnAst.AstRoot)  (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Integer) =
     let orig = o.AllCons
-    let allCons = DAstValidate.getIntSimplifiedConstraints r o.isUnsigned o.AllCons
+    let allCons = DastValidate2.getIntSimplifiedConstraints r o.isUnsigned o.AllCons
     let min = r.args.IntMin o.isUnsigned
     let max = r.args.IntMax o.isUnsigned
     let getNext a = match a < max with true -> a + 1I | false -> max
@@ -388,7 +388,11 @@ let BooleanAutomaticTestCaseValues (r:Asn1AcnAst.AstRoot)  (t:Asn1AcnAst.Asn1Typ
     
 
 let ObjectIdentifierAutomaticTestCaseValues (r:Asn1AcnAst.AstRoot)  (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.ObjectIdentifier) =
-    [[0I; 1I]; [0I .. r.args.objectIdentifierMaxLength - 1I]]
+    let sv = o.AllCons |> List.map(fun c -> foldGenericCon  c ) |> List.collect id
+    match sv with
+    | []    -> [[0I; 1I]; [0I .. r.args.objectIdentifierMaxLength - 1I]]
+    | _     -> sv |> List.map (fun (resLis,_) -> resLis |> List.map(fun c -> DAstUtilFunctions.emitComponent c |> fst))
+    
 
 
 let StringAutomaticTestCaseValues (r:Asn1AcnAst.AstRoot)  (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.StringType) =

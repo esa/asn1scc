@@ -34,13 +34,13 @@ ret = <sIsValidExp>;
 >>
 
 convertVCBExpressionToStatementAndUpdateErrCode(sIsValidExp, sErrCode) ::= <<
-ret = <sIsValidExp>;
-*pErrCode = ret ? 0 :  <sErrCode>;
+ret = <sIsValidExp>; 
+*pErrCode = ret ? 0 :  <sErrCode>; 
 >>
 
-convertVCBStatementToStatementAndUpdateErrCode(sExp, sErrCode) ::= <<
-<sExp>;
-*pErrCode = ret ? 0 :  <sErrCode>;
+convertVCBStatementToStatementAndUpdateErrCode(sStatement, sErrCode) ::= <<
+<sStatement>
+*pErrCode = ret ? 0 :  <sErrCode>; 
 >>
 
 convertVCBTRUEToStatementAndUpdateErrCode() ::= <<
@@ -103,14 +103,16 @@ flag <sFuncName>(const <sTypeDefName><sStar> <sVarName>, int* pErrCode)
 EmitTypeAssignment_composite_def_err_code(sErrCode, nErrValue) ::= <<
 #define <sErrCode>		<nErrValue>  /**/
 >>
-EmitTypeAssignment_composite_def(sFuncName, sTypeDefName, arrsErrcodes) ::= <<
+EmitTypeAssignment_composite_def(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes) ::= <<
 <arrsErrcodes; separator="\n">
-flag <sFuncName>(const <sTypeDefName>* pVal, int* pErrCode);
+flag <sFuncName>(const <sTypeDefName><sStar> <sVarName>, int* pErrCode);
 >>
 
-EmitTypeAssignment_composite(sFuncName, sTypeDefName, sContent, arrsAlphaFuncs, arrsLocalVars) ::= <<
+
+
+EmitTypeAssignment_composite(sVarName, sStar, sFuncName, sTypeDefName, sContent, arrsAlphaFuncs, arrsLocalVars) ::= <<
 <arrsAlphaFuncs; separator="\n">
-flag <sFuncName>(const <sTypeDefName> *pVal, int* pErrCode)
+flag <sFuncName>(const <sTypeDefName><sStar> <sVarName>, int* pErrCode)
 {
     flag ret = TRUE;
     <arrsLocalVars; separator="\n">
@@ -140,6 +142,10 @@ StrLen(sExp) ::= "strlen(<sExp>)"
 ArrayLen(sExp, sAcc) ::= "<sExp><sAcc>nCount"
 
 
+ExpressionToStament(sExp1) ::=<<
+ret = <sExp1>;
+>>
+
 StatementOrStament(sStat1, sStat2) ::= <<
 <sStat1>
 if (!ret) {
@@ -147,15 +153,16 @@ if (!ret) {
 }
 >>
 
+
 ExpressionOrStament(sExp1, sStat2) ::= <<
-ret = <sExp1>;
+ret = <sExp1>; 
 if (!ret) {
     <sStat2>
 }
 >>
 
 StatementOrExpression(sStat1, sExp2) ::= <<
-<sStat1>;
+<sStat1>
 if (!ret) {
     ret = <sExp2>;
 }
@@ -176,14 +183,14 @@ if (ret) {
 >>
 
 StatementAndExpression(sStat1, sExp2) ::= <<
-<sStat1>;
+<sStat1>
 if (ret) {
     ret = <sExp2>;
 }
 >>
 
 StatementNot(sStat) ::= <<
-<sStat>;
+<sStat>
 ret = !ret;
 >>
 
@@ -207,6 +214,13 @@ StatementExceptExpression(sStat1, sExp2) ::= <<
 <sStat1>;
 if (ret) {
     ret = !(<sExp2>);
+}
+>>
+
+StatementForLoop(p, sAcc, i, bIsFixedSize, nFixedSize, sInnerStatement) ::= <<
+for(<i> = 0; ret && <i> \< <if(!bIsFixedSize)><p><sAcc>nCount<else><nFixedSize><endif>; <i>++) 
+{
+	<sInnerStatement>
 }
 >>
 
@@ -303,6 +317,9 @@ ret= <p><sAcc>exist.<sChName> == <sPresOrAbs>;
 *pErrCode = ret ? 0 : <sErrCode>;
 >>
 
+Sequence_optional_child_always_present_or_absent_expr(p, sAcc,  sChName, sPresOrAbs) ::= <<
+<p><sAcc>exist.<sChName> == <sPresOrAbs>
+>>
 
 
 JoinItems(sPart, sNestedPart) ::= <<
@@ -319,6 +336,19 @@ if (ret) {
 
 /* CHOICE start*/
 
+Choice_OptionalChild(p, sAcc,  sChPresent, sInnerStatement) ::= <<
+if (<p><sAcc>kind == <sChPresent>) {
+	<sInnerStatement>
+}
+>>
+
+Choice_child_always_present_Exp(p, sAcc, sChPresent) ::= <<
+<p><sAcc>kind == <sChPresent>
+>>
+
+Choice_child_always_absent_Exp(p, sAcc, sChPresent) ::= <<
+<p><sAcc>kind != <sChPresent>
+>>
 
 choice_child(sChPresent, sChildBody, bAlwaysAbsent) ::= <<
 case <sChPresent> : <if(bAlwaysAbsent)>/*COVERAGE_IGNORE*/<endif>
@@ -369,8 +399,31 @@ for(<i> = 0; ret && <i> \< <if(!bIsFixedSize)><p><sAcc>nCount<else><nFixedSize><
 <endif>
 >>
 
+sequenceOf2(p,sAcc, i, bIsFixedSize, nFixedSize, sInnerStatement) ::= <<
+for(<i> = 0; ret && <i> \< <if(!bIsFixedSize)><p><sAcc>nCount<else><nFixedSize><endif>; <i>++) 
+{
+	<sInnerStatement>
+}
+>>
 
 
+octet_var_string_equal(p, sAccess, nVarLength, sOctArrayLiteral )::=<<
+OctetString_equal(<p><sAccess>nCount, <nVarLength>, <p><sAccess>arr, <sOctArrayLiteral>)
+>>
+
+octet_fix_string_equal(p, sAccess, nFixedSize, nVarLength, sOctArrayLiteral )::=<<
+OctetString_equal(<nFixedSize>, <nVarLength>, <p><sAccess>arr, <sOctArrayLiteral>)
+>>
+
+bit_var_string_equal(p, sAccess, nVarLength, sOctArrayLiteral, sBitArrayLiteral )::=<<
+BitString_equal(<p><sAccess>nCount, <nVarLength>, <p><sAccess>arr, <sOctArrayLiteral>)
+>>
+
+bit_fix_string_equal(p, sAccess, nFixedSize, nVarLength, sOctArrayLiteral, sBitArrayLiteral )::=<<
+BitString_equal(<nFixedSize>, <nVarLength>, <p><sAccess>arr, <sOctArrayLiteral>)
+>>
 
 
-
+objId_equal(p, sObjIdLiteral)::=<<
+ObjectIdentifier_equal(<p>, &<sObjIdLiteral>)
+>>

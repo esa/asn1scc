@@ -270,10 +270,11 @@ and MapAsn1Constraint (r:ParameterizedAsn1Ast.AstRoot) (kind: ParameterizedAsn1A
         let cs1 = visitConstraint cs
         let cs2 = visitSilbingConstraint cs1
         Asn1Ast.RootConstraint2(MapAsn1Constraint r kind typeScope cs2 c1, MapAsn1Constraint r kind typeScope cs2 c2)
-    | ParameterizedAsn1Ast.WithComponentConstraint(c)       -> 
-        match getActualKind r kind with
+    | ParameterizedAsn1Ast.WithComponentConstraint(c, loc)       -> 
+        let akind = getActualKind r kind
+        match akind with
         | ParameterizedAsn1Ast.SequenceOf(child)    ->        
-            Asn1Ast.WithComponentConstraint(MapAsn1Constraint r child.Kind typeScope (visitConstraint cs) c)
+            Asn1Ast.WithComponentConstraint((MapAsn1Constraint r child.Kind typeScope (visitConstraint cs) c), loc)
         | _                                         ->        raise(SemanticError(emptyLocation,"Unexpected constraint type"))
     | ParameterizedAsn1Ast.WithComponentsConstraint(ncs)    -> 
         Asn1Ast.WithComponentsConstraint(ncs|> foldMap (fun cs c -> 

@@ -111,6 +111,8 @@ isEqual_BitString(p1,p2,bIsFixedSize, nFixedSize) ::= <<
 <endif>
 >>
 
+
+
 isEqual_OctetString(p1,p2, bIsFixedSize, nFixedSize) ::= <<
 <if(!bIsFixedSize)>
 (<p1>nCount == <p2>nCount) && (memcmp(<p1>arr, <p2>arr, <p1>nCount) ==0)

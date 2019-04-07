@@ -13,6 +13,22 @@ open DAstUtilFunctions
 
 let getDefaultValueByType  (t:Asn1Type)  =  t.initialValue
 
+let printOctetStringValueAsCompoundLitteral  (l:ProgrammingLanguage) curProgamUnitName  (o:Asn1AcnAst.OctetString) (bytes : byte list) =
+    let printOct = match l with C -> variables_c.PrintBitOrOctetStringValueAsCompoundLitteral | Ada -> variables_a.PrintBitOrOctetStringValueAsCompoundLitteral
+    let td = (o.typeDef.[l]).longTypedefName l curProgamUnitName
+    printOct td (o.minSize.uper = o.maxSize.uper) bytes (BigInteger bytes.Length)
+    
+let printBitStringValueAsCompoundLitteral  (l:ProgrammingLanguage) curProgamUnitName  (o:Asn1AcnAst.BitString) (v : BitStringValue) =
+    let printOct = match l with C -> variables_c.PrintBitOrOctetStringValueAsCompoundLitteral | Ada -> variables_a.PrintBitOrOctetStringValueAsCompoundLitteral
+    let td = (o.typeDef.[l]).longTypedefName l curProgamUnitName
+    match l with
+    | C     ->
+        let bytes = bitStringValueToByteArray (StringLoc.ByValue v)
+        printOct td (o.minSize.uper = o.maxSize.uper) bytes o.minSize.uper
+    | Ada   ->
+        let bits = v.ToCharArray() |> Array.map(fun c -> if c = '0' then 0uy else 1uy)
+        printOct td (o.minSize.uper = o.maxSize.uper) bits o.minSize.uper
+
 let rec printValue (r:DAst.AstRoot)  (l:ProgrammingLanguage)  (curProgamUnitName:string)  (t:Asn1Type) (parentValue:Asn1ValueKind option) (gv:Asn1ValueKind) =
     match l with
     | C ->

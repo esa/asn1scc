@@ -1,0 +1,24 @@
+-- NO_AUTOMATIC_TEST_CASES
+TEST-CASE DEFINITIONS ::=
+BEGIN
+
+MySeq ::= SEQUENCE {
+	field1 INTEGER (1..10) OPTIONAL,
+	field2 INTEGER (1..100) ,
+	point CHOICE {
+        x INTEGER (1..1280),
+        y INTEGER  (1..1024),
+        z INTEGER
+    }
+} (
+	WITH COMPONENTS { field1 (3..10) PRESENT, field2 (30..50), point (WITH COMPONENTS {x (1..200), y(1..400), z ABSENT } ) } | 
+    WITH COMPONENTS { ..., field1 (20 .. 70), field2 (80 .. 90) } |
+    WITH COMPONENTS { ..., field1 ABSENT, field2 (100) }
+   )
+   
+
+
+
+END
+
+--TCLS     MyPDU[] 

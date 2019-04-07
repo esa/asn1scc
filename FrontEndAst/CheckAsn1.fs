@@ -220,13 +220,13 @@ let rec IsValueAllowed (c:Asn1Constraint) (v:Asn1Value) (isOfEnumType:bool) (bit
     | TypeInclusionConstraint(modName,tasName)   ->
         let otherType = GetBaseTypeByName modName tasName ast
         otherType.Constraints |> Seq.forall(fun c -> IsValueAllowed c v isOfEnumType bitOrOctSrt ast)
-    | WithComponentConstraint(innerCon)       ->
+    | WithComponentConstraint(innerCon, loc)       ->
         let rec IsWithComponentConstraintOK (v:Asn1Value) (innerCon:Asn1Constraint) =
             match v.Kind with
             | SeqOfValue(innerValues) ->
                 innerValues |> Seq.forall(fun iv -> IsValueAllowed innerCon iv isOfEnumType bitOrOctSrt ast)
             | RefValue(modName,vasName)      -> IsWithComponentConstraintOK (GetBaseValue modName vasName ast) innerCon
-            | _                             -> raise (BugErrorException(""))
+            | _                             -> raise (SemanticError(loc,"Invalid constraint"))
         IsWithComponentConstraintOK v innerCon
     | WithComponentsConstraint(namedConstraints)    ->
         let rec IsWithComponentsConstraintOK (v:Asn1Value) =
@@ -436,9 +436,9 @@ let rec isConstraintValid (t:Asn1Type) (c:Asn1Constraint) ast =
         let actType = GetActualType t ast
         if not(AreTypesCompatible typeInclusion actType ast) then
             raise (SemanticError(t.Location, "Incompatible types used in type inclusion constraint"))
-    | WithComponentConstraint(c1)       -> 
+    | WithComponentConstraint(c1, loc)       -> 
         match CanHaveWithComponentConstraint t with
-        | None -> raise (SemanticError(t.Location, "Type does not support WITH COMPONENT constraints"))
+        | None -> raise (SemanticError(loc, "Type does not support WITH COMPONENT constraints"))
         | Some(ch)  -> isConstraintValid ch c1 ast
     | WithComponentsConstraint(namedCons)       -> 
         match CanHaveWithComponentsConstraint t with

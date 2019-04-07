@@ -159,7 +159,7 @@ let generatedAsn1Grammar (outDir:string) (ast:GenFile list) =
         | ExceptConstraint          (c1,c2)         -> stg_asn1.Print_ExceptConstraint (printConstraint c1) (printConstraint c2)
         | RootConstraint            c1              -> stg_asn1.Print_RootConstraint (printConstraint c1)
         | RootConstraint2           (c1,c2)         -> stg_asn1.Print_RootConstraint2 (printConstraint c1) (printConstraint c2)
-        | WithComponentConstraint   c1              -> stg_asn1.Print_WithComponentConstraint (printConstraint c1)
+        | WithComponentConstraint   (c1,l)          -> stg_asn1.Print_WithComponentConstraint (printConstraint c1)
         | WithComponentsConstraint  ncs             -> 
             let print nc =
                 stg_asn1.Print_WithComponentsConstraint_child nc.Name.Value (match nc.Contraint with Some c -> printConstraint c | None -> "") (sprintf "%A" nc.Mark)

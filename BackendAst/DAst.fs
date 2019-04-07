@@ -9,15 +9,32 @@ open CommonTypes
 //open Constraints
 
 
+type FuncParamType =
+  | VALUE       of string
+  | POINTER     of string
+  | FIXARRAY    of string
+
+type CallerScope = {
+    modName : string
+    arg     : FuncParamType
+}
+
+type AlphaFunc   = {
+    funcName            : string
+    funcBody            : CallerScope -> string
+}
+
 type State = {
     curSeqOfLevel : int
     currErrorCode   : int
     curErrCodeNames : Set<String>
     allocatedTypeDefNames : (string*string) list        // program unit, typedef name
     allocatedTypeDefNameInTas : Map<TypeAssignmentInfo, (string*string)>
+    alphaIndex : int
+    alphaFuncs : AlphaFunc list //func name, func body
 }
 
-let emptyState = {curSeqOfLevel=0; currErrorCode=0; curErrCodeNames=Set.empty; allocatedTypeDefNames = []; allocatedTypeDefNameInTas = Map.empty}
+let emptyState = {curSeqOfLevel=0; currErrorCode=0; curErrCodeNames=Set.empty; allocatedTypeDefNames = []; allocatedTypeDefNameInTas = Map.empty; alphaIndex=0; alphaFuncs=[]}
 
 
 
@@ -71,15 +88,6 @@ and Asn1ValueKind =
 //type Asn1GenericValue = Asn1Value
 
     
-type FuncParamType =
-  | VALUE       of string
-  | POINTER     of string
-  | FIXARRAY    of string
-
-type CallerScope = {
-    modName : string
-    arg     : FuncParamType
-}
 
 
 type ExpOrStatement =
@@ -95,6 +103,20 @@ type LocalVariable =
     | BooleanLocalVariable  of string*bool option    //variable name, initialValue
     | AcnInsertedChild      of string*string         //variable name, type initialValue
 
+
+
+(*an expression or statement that checks if a constraint is met or not. IT DOES NOT ASSIGNG the error code field*)
+type ValidationCodeBlock =
+    | VCBTrue                                // always true
+    | VCBFalse                               // always false
+    | VCBExpression of string                // single expression
+    | VCBStatement  of string                // statement that updates ret or Result.Success
+
+(*a statement that checks if a constraint is met or not and which assigns the error code*)
+type ValidationStatement =
+    | ValidationStatementTrue   of string
+    | ValidationStatementFalse  of string
+    | ValidationStatement       of string
 
 
          //Emit_local_variable_SQF_Index(nI, bHasInitalValue)::="I<nI>:Integer<if(bHasInitalValue)>:=1<endif>;"
@@ -192,10 +214,6 @@ type EqualFunction = {
     //isEqualBody2        : IsEqualBody2
 }
 
-type AlphaFunc   = {
-    funcName            : string
-    funcBody            : string
-}
 
 type AnonymousVariable = {
     valueName           : string
@@ -209,8 +227,8 @@ type IsValidFunction = {
     funcName            : string option               // the name of the function. Valid only for TASes)
     func                : string option               // the body of the function
     funcDef             : string option               // function definition in header file
-    funcExp             : (CallerScope -> string) option   // return a single boolean expression
-    funcBody            : CallerScope -> string            //returns a list of validations statements
+    //funcExp             : (CallerScope -> ValidationCodeBlock)    // return a single boolean expression
+    funcBody            : CallerScope -> ValidationStatement            //returns a list of validations statements
     //funcBody2           : string -> string -> string  //like funBody but with two arguement p and accessOper ( i.e. '->' or '.')
     
     alphaFuncs          : AlphaFunc list  
@@ -554,12 +572,6 @@ type SequenceOf = {
 }
 
 
-and SeqChoiceChildInfoIsValid = {
-    isValidStatement  : CallerScope -> string
-    localVars         : LocalVariable list
-    alphaFuncs        : AlphaFunc list
-    errCode           : ErroCode list
-}
 
 (*
 and SeqChildInfo = {
@@ -597,7 +609,7 @@ and Asn1Child = {
     _c_name                     : string
     _ada_name                   : string                     
     isEqualBodyStats            : CallerScope -> CallerScope -> (string*(LocalVariable list)) option  // 
-    isValidBodyStats            : State -> (SeqChoiceChildInfoIsValid option * State)
+    //isValidBodyStats            : State -> (SeqChoiceChildInfoIsValid option * State)
     Type                        : Asn1Type
     Optionality                 : Asn1AcnAst.Asn1Optionality option
     Comments                    : string array
@@ -650,7 +662,7 @@ and ChChildInfo = {
     
     //DAst properties
     isEqualBodyStats    : CallerScope -> CallerScope  -> string*(LocalVariable list) // 
-    isValidBodyStats    : State -> (SeqChoiceChildInfoIsValid option * State)
+    //isValidBodyStats    : State -> (SeqChoiceChildInfoIsValid option * State)
 }
 
 and AcnChoiceEncClass =

@@ -120,7 +120,7 @@ let createIntegerFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec:
     let funcBody (errCode:ErroCode) (p:CallerScope) (xmlTag:XerTag option) = 
         let xmlTag = xmlTag |> orElse (XerLiteralConstant "INTEGER")
         let checkExp = 
-            match (DAstValidate.createIntegerFunctionByCons r l o.isUnsigned (o.cons@o.withcons)) with
+            match (DastValidate2.createIntegerFunctionByCons r l o.isUnsigned (o.cons@o.withcons)) with
             | None  ->  None
             | Some expFunc -> Some (expFunc p)
         let pp = match codec with CommonTypes.Encode -> p.arg.getValue l | CommonTypes.Decode -> p.arg.getPointer l
@@ -138,10 +138,10 @@ let createIntegerFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec:
 let checkExp (isValidFunc: IsValidFunction option) p = 
     match isValidFunc with
     | None  ->  None
-    | Some fnc -> 
-        match fnc.funcExp with
-        | None  -> None
-        | Some expFunc -> (Some (expFunc p))
+    | Some fnc -> None
+//        match fnc.funcExp with
+//        | None  -> None
+//        | Some expFunc -> (Some (expFunc p))
 
 let createBooleanFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Boolean) (typeDefinition:TypeDefintionOrReference)  (isValidFunc: IsValidFunction option) (us:State)  =
     let Boolean = match l with C -> xer_c.Boolean   | Ada -> xer_a.Boolean

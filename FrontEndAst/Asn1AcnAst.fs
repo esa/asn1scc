@@ -123,21 +123,35 @@ type EnumConstraint         =    GenericConstraint<string>
 type ObjectIdConstraint     =    GenericConstraint<ObjectIdenfierValue>
 
 
-type SequenceOfConstraint   =     SizableTypeConstraint<SeqOfValue>
-type SequenceConstraint     =     GenericConstraint<SeqValue>
-type ChoiceConstraint       =     GenericConstraint<ChValue>
+//type SequenceOfConstraint   =     SizableTypeConstraint<SeqOfValue>
+//type SequenceConstraint     =     GenericConstraint<SeqValue>
+
+type SeqOrChoiceConstraint<'v> =
+    | SeqOrChUnionConstraint                   of SeqOrChoiceConstraint<'v>*SeqOrChoiceConstraint<'v>*bool //left,righ, virtual constraint
+    | SeqOrChIntersectionConstraint            of SeqOrChoiceConstraint<'v>*SeqOrChoiceConstraint<'v>
+    | SeqOrChAllExceptConstraint               of SeqOrChoiceConstraint<'v>
+    | SeqOrChExceptConstraint                  of SeqOrChoiceConstraint<'v>*SeqOrChoiceConstraint<'v>
+    | SeqOrChRootConstraint                    of SeqOrChoiceConstraint<'v>
+    | SeqOrChRootConstraint2                   of SeqOrChoiceConstraint<'v>*SeqOrChoiceConstraint<'v>
+    | SeqOrChSingleValueConstraint             of 'v
+    | SeqOrChWithComponentsConstraint          of NamedConstraint list       
 
 
-type SeqConstraint =
-    | SeqUnionConstraint                   of SeqConstraint*SeqConstraint*bool //left,righ, virtual constraint
-    | SeqIntersectionConstraint            of SeqConstraint*SeqConstraint
-    | SeqAllExceptConstraint               of SeqConstraint
-    | SeqExceptConstraint                  of SeqConstraint*SeqConstraint
-    | SeqRootConstraint                    of SeqConstraint
-    | SeqRootConstraint2                   of SeqConstraint*SeqConstraint
-    | SeqSingleValueConstraint             of SeqValue
-    | SeqWithComponentsConstraint          of NamedConstraint list       
+and SeqConstraint = SeqOrChoiceConstraint<SeqValue>
 
+and ChoiceConstraint       =     SeqOrChoiceConstraint<ChValue>
+
+and SequenceOfConstraint   =  
+    | SeqOfSizeUnionConstraint               of SequenceOfConstraint*SequenceOfConstraint*bool //left,righ, virtual constraint
+    | SeqOfSizeIntersectionConstraint        of SequenceOfConstraint*SequenceOfConstraint
+    | SeqOfSizeAllExceptConstraint           of SequenceOfConstraint
+    | SeqOfSizeExceptConstraint              of SequenceOfConstraint*SequenceOfConstraint
+    | SeqOfSizeRootConstraint                of SequenceOfConstraint
+    | SeqOfSizeRootConstraint2               of SequenceOfConstraint*SequenceOfConstraint
+    | SeqOfSizeSingleValueConstraint         of SeqOfValue
+    | SeqOfSizeContraint                     of PosIntTypeConstraint               
+    | SeqOfSeqWithComponentConstraint        of AnyConstraint*SrcLoc
+    
 and AnyConstraint =
     | IntegerTypeConstraint of IntegerTypeConstraint
     | IA5StringConstraint   of IA5StringConstraint   
@@ -507,10 +521,8 @@ and SequenceOf = {
 and Sequence = {
     children                : SeqChildInfo list
     acnProperties           : SequenceAcnProperties
-    cons                    : SequenceConstraint list
-    withcons                : SequenceConstraint list
-    cons2                   : SeqConstraint list
-    withcons2               : SeqConstraint list
+    cons                    : SeqConstraint list
+    withcons                : SeqConstraint list
     uperMaxSizeInBits       : BigInteger
     uperMinSizeInBits       : BigInteger
 

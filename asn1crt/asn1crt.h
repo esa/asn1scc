@@ -160,8 +160,8 @@ flag BitStream_DecodeConstraintWholeNumber(BitStream* pBitStrm, asn1SccSint* v, 
 flag BitStream_DecodeConstraintPosWholeNumber(BitStream* pBitStrm, asn1SccUint* v, asn1SccUint min, asn1SccUint max);
 
 
-
-
+flag OctetString_equal(int len1, int len2, const byte arr1[], const byte arr2[]);
+flag BitString_equal(int nBitsLength1, int nBitsLength2, const byte arr1[], const byte arr2[]);
 
 void BitStream_EncodeReal(BitStream* pBitStrm, asn1Real v);
 flag BitStream_DecodeReal(BitStream* pBitStrm, asn1Real* v);
