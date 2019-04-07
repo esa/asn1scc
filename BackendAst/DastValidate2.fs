@@ -387,7 +387,7 @@ and choiceConstraint2ValidationCodeBlock (r:Asn1AcnAst.AstRoot) (l:ProgrammingLa
             | Some ac    ->
                 let fnc, ns = anyConstraint2ValidationCodeBlock r l nc.Name.Location ch.chType ac curState
                 (fun p -> 
-                    let chp = {p with arg = p.arg.getSeqChild l (ch.getBackendName l) ch.chType.isIA5String}
+                    let chp = {p with arg = p.arg.getChChild l (ch.getBackendName l) ch.chType.isIA5String}
                     fnc chp), ns
                     
         let childCheck =
