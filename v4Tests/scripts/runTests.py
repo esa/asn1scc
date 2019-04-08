@@ -75,6 +75,7 @@ def RunTestCase(asn1, acn, behavior, expErrMsg):
     asn1File = targetDir + os.sep + "sample1.asn1"
     bRunCodeCoverage = "NOCOVERAGE" not in open(resolvedir(asn1File)).readline()
     acnFile = targetDir + os.sep + "sample1.acn"
+    astXml  = targetDir + os.sep + "ast.xml"
     launcher = '' if sys.platform == 'cygwin' else 'mono '
     path_to_asn1scc = spawn.find_executable('Asn1f4.exe')
     res = mysystem(

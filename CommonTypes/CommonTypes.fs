@@ -67,9 +67,13 @@ type EnumRenamePolicy =
 
 [<NoEquality; NoComparison>]
 type SIZE = {
-    uper    : BigInteger
-    acn     : BigInteger
-}
+        uper    : BigInteger
+        acn     : BigInteger
+    }
+    with
+        override x.ToString() = 
+            x.uper.ToString()
+
 
 type Input = {
     name : string

@@ -292,7 +292,7 @@ let isUnsigned uperRange =
         | PosInf (a)                    -> false
         | Full                          -> false
 
-let getSizeMinAndMaxValue loc (sizeUperRange:uperRange<uint32>) =
+let getSizeMinAndMaxValue loc (sizeUperRange:UInt32UperRange) =
     match sizeUperRange with
     | Concrete(a,b) -> BigInteger a, BigInteger b
     | _             -> raise(SemanticError(loc,"Declared type may have infinite size. Use size constraints to limit the upper bound"))

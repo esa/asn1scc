@@ -265,6 +265,9 @@ type uperRange<'a> =
     | Full                      // (-inf, +inf)
 
 
+type BigIntegerUperRange = uperRange<BigInteger>
+type DoubleUperRange = uperRange<Double>
+type UInt32UperRange = uperRange<uint32>
 
 type Integer = {
     acnProperties       : IntegerAcnProperties
@@ -272,7 +275,7 @@ type Integer = {
     withcons            : IntegerTypeConstraint list
     uperMaxSizeInBits   : BigInteger
     uperMinSizeInBits   : BigInteger
-    uperRange           : uperRange<BigInteger>
+    uperRange           : BigIntegerUperRange
 
     acnMaxSizeInBits    : BigInteger
     acnMinSizeInBits    : BigInteger
@@ -288,7 +291,7 @@ type Real = {
     withcons            : RealTypeConstraint list
     uperMaxSizeInBits   : BigInteger
     uperMinSizeInBits   : BigInteger
-    uperRange           : uperRange<double>
+    uperRange           : DoubleUperRange
 
     acnMaxSizeInBits    : BigInteger
     acnMinSizeInBits    : BigInteger
@@ -424,7 +427,7 @@ type AcnInteger = {
     acnMinSizeInBits    : BigInteger
     acnEncodingClass    : IntEncodingClass
     Location            : SrcLoc //Line no, Char pos
-    uperRange           : uperRange<BigInteger>
+    uperRange           : BigIntegerUperRange
     isUnsigned          : bool
     checkIntHasEnoughSpace  : BigInteger -> BigInteger -> unit
     inheritInfo          : InheritanceInfo option
