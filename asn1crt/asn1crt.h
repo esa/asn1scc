@@ -1,6 +1,8 @@
 #ifndef ASN1SCC_ASN1CRT_H_
 #define ASN1SCC_ASN1CRT_H_
 
+#include <stddef.h>
+
 #if (!defined(_MSC_VER) || _MSC_VER >= 1800)
 #  ifndef SWIG
 #    include <stdbool.h>
@@ -158,8 +160,8 @@ flag BitStream_DecodeConstraintWholeNumber(BitStream* pBitStrm, asn1SccSint* v, 
 flag BitStream_DecodeConstraintPosWholeNumber(BitStream* pBitStrm, asn1SccUint* v, asn1SccUint min, asn1SccUint max);
 
 
-
-
+flag OctetString_equal(int len1, int len2, const byte arr1[], const byte arr2[]);
+flag BitString_equal(int nBitsLength1, int nBitsLength2, const byte arr1[], const byte arr2[]);
 
 void BitStream_EncodeReal(BitStream* pBitStrm, asn1Real v);
 flag BitStream_DecodeReal(BitStream* pBitStrm, asn1Real* v);
@@ -226,11 +228,11 @@ void Acn_Enc_Int_BCD_VarSize_NullTerminated(BitStream* pBitStrm, asn1SccUint int
 
 void Acn_Enc_SInt_ASCII_ConstSize(BitStream* pBitStrm, asn1SccSint intVal, int encodedSizeInBytes);
 void Acn_Enc_SInt_ASCII_VarSize_LengthEmbedded(BitStream* pBitStrm, asn1SccSint intVal);
-void Acn_Enc_SInt_ASCII_VarSize_NullTerminated(BitStream* pBitStrm, asn1SccSint intVal, byte null_character); /*encoding ends when null_character is reached*/
+void Acn_Enc_SInt_ASCII_VarSize_NullTerminated(BitStream* pBitStrm, asn1SccSint intVal, const byte null_characters[], size_t null_characters_size); /*encoding ends when null_character is reached*/
 
 void Acn_Enc_UInt_ASCII_ConstSize(BitStream* pBitStrm, asn1SccUint intVal, int encodedSizeInBytes);
 void Acn_Enc_UInt_ASCII_VarSize_LengthEmbedded(BitStream* pBitStrm, asn1SccUint intVal);
-void Acn_Enc_UInt_ASCII_VarSize_NullTerminated(BitStream* pBitStrm, asn1SccUint intVal, byte null_character); /*encoding ends when null_character is reached*/
+void Acn_Enc_UInt_ASCII_VarSize_NullTerminated(BitStream* pBitStrm, asn1SccUint intVal, const byte null_characters[], size_t null_characters_size); /*encoding ends when null_character is reached*/
 
 
 /*ACN Decode Integer functions*/
@@ -261,11 +263,11 @@ flag Acn_Dec_Int_BCD_VarSize_NullTerminated(BitStream* pBitStrm, asn1SccUint* pI
 
 flag Acn_Dec_SInt_ASCII_ConstSize(BitStream* pBitStrm, asn1SccSint* pIntVal, int encodedSizeInBytes);
 flag Acn_Dec_SInt_ASCII_VarSize_LengthEmbedded(BitStream* pBitStrm, asn1SccSint* pIntVal);
-flag Acn_Dec_SInt_ASCII_VarSize_NullTerminated(BitStream* pBitStrm, asn1SccSint* pIntVal, byte null_character);
+flag Acn_Dec_SInt_ASCII_VarSize_NullTerminated(BitStream* pBitStrm, asn1SccSint* pIntVal, const byte null_characters[], size_t null_characters_size);
 
 flag Acn_Dec_UInt_ASCII_ConstSize(BitStream* pBitStrm, asn1SccUint* pIntVal, int encodedSizeInBytes);
 flag Acn_Dec_UInt_ASCII_VarSize_LengthEmbedded(BitStream* pBitStrm, asn1SccUint* pIntVal);
-flag Acn_Dec_UInt_ASCII_VarSize_NullTerminated(BitStream* pBitStrm, asn1SccUint* pIntVal, byte null_character);
+flag Acn_Dec_UInt_ASCII_VarSize_NullTerminated(BitStream* pBitStrm, asn1SccUint* pIntVal, const byte null_characters[], size_t null_characters_size);
 
 /*flag Acn_Dec_Int_ASCII_NullTerminated_FormattedInteger(BitStream* pBitStrm, const char* format, asn1SccSint* pIntVal);*/
 
@@ -288,6 +290,7 @@ flag Acn_Dec_Real_IEEE754_64_little_endian(BitStream* pBitStrm, asn1Real* pRealV
 /*String functions*/
 void Acn_Enc_String_Ascii_FixSize                       (BitStream* pBitStrm, asn1SccSint max, const char* strVal); 
 void Acn_Enc_String_Ascii_Null_Teminated                (BitStream* pBitStrm, asn1SccSint max, char null_character, const char* strVal); 
+void Acn_Enc_String_Ascii_Null_Teminated_mult           (BitStream* pBitStrm, asn1SccSint max, const byte null_character[], size_t null_character_size, const char* strVal);
 void Acn_Enc_String_Ascii_External_Field_Determinant    (BitStream* pBitStrm, asn1SccSint max, const char* strVal); 
 void Acn_Enc_String_Ascii_Internal_Field_Determinant    (BitStream* pBitStrm, asn1SccSint max, asn1SccSint min, const char* strVal); 
 void Acn_Enc_String_CharIndex_FixSize                   (BitStream* pBitStrm, asn1SccSint max, byte allowedCharSet[], int charSetSize, const char* strVal); 
@@ -298,7 +301,8 @@ void Acn_Enc_IA5String_CharIndex_Internal_Field_Determinant(BitStream* pBitStrm,
 
 flag Acn_Dec_String_Ascii_FixSize                       (BitStream* pBitStrm, asn1SccSint max, char* strVal); 
 flag Acn_Dec_String_Ascii_Null_Teminated                (BitStream* pBitStrm, asn1SccSint max, char null_character, char* strVal); 
-flag Acn_Dec_String_Ascii_External_Field_Determinant    (BitStream* pBitStrm, asn1SccSint max, asn1SccSint extSizeDeterminatFld, char* strVal); 
+flag Acn_Dec_String_Ascii_Null_Teminated_mult           (BitStream* pBitStrm, asn1SccSint max, const byte null_character[], size_t null_character_size, char* strVal);
+flag Acn_Dec_String_Ascii_External_Field_Determinant    (BitStream* pBitStrm, asn1SccSint max, asn1SccSint extSizeDeterminatFld, char* strVal);
 flag Acn_Dec_String_Ascii_Internal_Field_Determinant    (BitStream* pBitStrm, asn1SccSint max, asn1SccSint min, char* strVal); 
 flag Acn_Dec_String_CharIndex_FixSize                   (BitStream* pBitStrm, asn1SccSint max, byte allowedCharSet[], int charSetSize, char* strVal); 
 flag Acn_Dec_String_CharIndex_External_Field_Determinant(BitStream* pBitStrm, asn1SccSint max, byte allowedCharSet[], int charSetSize, asn1SccSint extSizeDeterminatFld, char* strVal); 

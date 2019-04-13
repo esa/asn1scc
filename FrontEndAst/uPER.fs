@@ -119,8 +119,41 @@ let getOctetStringUperRange (cons:OctetStringConstraint list) (l:SrcLoc) =
 let getBitStringUperRange (cons:BitStringConstraint list) (l:SrcLoc) =
     getSizeableUperRange cons (fun (x,_) -> uint32 x.Value.Length) l
 
+
+
 let getSequenceOfUperRange (cons:SequenceOfConstraint list) (l:SrcLoc) =
-    getSizeableUperRange cons (fun x -> uint32 x.Length) l
+    let getConUperRange (c:SequenceOfConstraint)  (l:SrcLoc) =
+        foldSequenceOfTypeConstraint
+            (fun r1 r2 b s      -> uperUnion r1 r2, s)
+            (fun r1 r2 s        -> uperIntersection r1 r2 l, s)
+            (fun r s            -> Full, s)       
+            (fun r1 r2 s        -> r1, s)
+            (fun r s            -> Full, s)       
+            (fun r1 r2 s        -> Full, s)
+            (fun v  s           -> Concrete (uint32 v.Length,uint32 v.Length ),s)
+        
+            (fun r1 r2 b s      -> uperUnion r1 r2, s)
+            (fun r1 r2 s        -> uperIntersection r1 r2 l, s)
+            (fun r s            -> Full, s)       
+            (fun r1 r2 s        -> r1, s)
+            (fun r s            -> Full, s)       
+            (fun r1 r2 s        -> Full, s)
+            (fun v  s           -> Concrete (v,v),s)
+            (fun v1 v2  minIsIn maxIsIn s  ->
+                let val1 = if minIsIn then v1 else (v1+1u)
+                let val2 = if maxIsIn then v2 else (v2-1u)
+                Concrete(val1 , val2), s)
+            (fun v1 minIsIn  s      -> 
+                let val1 = if minIsIn then v1 else (v1+1u)
+                PosInf(val1) ,s )
+            (fun v2 maxIsIn s      -> 
+                let val2 = if maxIsIn then v2 else (v2-1u)
+                NegInf(val2), s)
+            (fun c l s           -> Full, s)       
+            c 
+            0 |> fst
+
+    cons |> List.fold(fun s c -> uperIntersection s (getConUperRange c l) l) Full
 
 
 let getStringConstraintSizeUperRange (c:IA5StringConstraint) (l:SrcLoc) =
@@ -259,7 +292,7 @@ let isUnsigned uperRange =
         | PosInf (a)                    -> false
         | Full                          -> false
 
-let getSizeMinAndMaxValue loc (sizeUperRange:uperRange<uint32>) =
+let getSizeMinAndMaxValue loc (sizeUperRange:UInt32UperRange) =
     match sizeUperRange with
     | Concrete(a,b) -> BigInteger a, BigInteger b
     | _             -> raise(SemanticError(loc,"Declared type may have infinite size. Use size constraints to limit the upper bound"))

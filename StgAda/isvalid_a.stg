@@ -12,6 +12,28 @@ ret := <rtlModuleName()>.ASN1_RESULT'(Success => false, ErrorCode => <sErrorCode
 >>
 
 
+makeExpressionToStatement0(sIsValidExp) ::= <<
+ret.Success := <sIsValidExp>;
+>>
+
+convertVCBExpressionToStatementAndUpdateErrCode(sIsValidExp, sErrCode) ::= <<
+ret.Success := <sIsValidExp>;
+ret.ErrorCode := (if ret.Success then 0 else <sErrCode>);
+>>
+
+convertVCBStatementToStatementAndUpdateErrCode(sStatement, sErrCode) ::= <<
+<sStatement>
+ret.ErrorCode := (if ret.Success then 0 else <sErrCode>);
+>>
+
+convertVCBTRUEToStatementAndUpdateErrCode() ::= <<
+ret := <rtlModuleName()>.ASN1_RESULT'(Success => true, ErrorCode => 0);
+>>
+
+convertVCBFalseToStatementAndUpdateErrCode(sErrCode) ::= <<
+ret := <rtlModuleName()>.ASN1_RESULT'(Success => false, ErrorCode => <sErrCode>);
+>>
+
 
 JoinTwoIfFirstOk(sStr1,sStr2) ::=<<
 <sStr1>
@@ -19,6 +41,9 @@ if ret.Success then
     <sStr2>
 end if;
 >>
+
+
+
 
 ExpEqual(sExp1, sExp2) ::= "(<sExp1> = <sExp2>)"
 ExpStringEqual(sExp1, sExp2) ::= "(<sExp1> = <sExp2>)"
@@ -36,7 +61,91 @@ StrLen(sExp) ::= "<rtlModuleName()>.getStringSize(<sExp>)"
 ArrayLen(sExp, sAcc) ::= "<sExp><sAcc>Length"
 
 
+ExpressionToStament(sExp1) ::=<<
+ret.Success := <sExp1>;
+>>
 
+
+StatementOrStament(sStat1, sStat2) ::= <<
+<sStat1>
+if not ret.Success then
+    <sStat2>
+end if;
+>>
+
+ExpressionOrStament(sExp1, sStat2) ::= <<
+ret := <sExp1>;
+if not ret.Success then
+    <sStat2>
+end if;
+>>
+
+StatementOrExpression(sStat1, sExp2) ::= <<
+<sStat1>;
+if not ret.Success then
+    ret.Success := <sExp2>;
+end if;
+>>
+
+StatementAndStament(sStat1, sStat2) ::= <<
+<sStat1>
+if ret.Success then
+    <sStat2>
+end if;
+>>
+
+ExpressionAndStament(sExp1, sStat2) ::= <<
+ret.Success := <sExp1>;
+if ret.Success then
+    <sStat2>
+end if;
+>>
+
+StatementAndExpression(sStat1, sExp2) ::= <<
+<sStat1>;
+if ret.Success then
+    ret.Success := <sExp2>;
+end if;
+>>
+
+StatementNot(sStat) ::= <<
+<sStat>;
+ret.Success := not ret.Success;
+>>
+
+StatementExceptStament(sStat1, sStat2) ::= <<
+<sStat1>
+if ret.Success then
+    <sStat2>
+    ret.Success := not ret.Success;
+end if;
+>>
+
+ExpressionExceptStament(sExp1, sStat2) ::= <<
+ret.Success := <sExp1>;
+if ret.Success then
+    <sStat2>
+    ret.Success := not ret.Success;
+end if;
+>>
+
+StatementExceptExpression(sStat1, sExp2) ::= <<
+<sStat1>;
+if ret.Success then
+    ret.Success := not (<sExp2>);
+end if;
+>>
+
+
+
+StatementForLoop(p, sAcc, i, bIsFixedSize, nFixedSize, sInnerStatement) ::= <<
+<i> := <p>.Data'First;
+while ret.Success and <i> \<= <if(bIsFixedSize)><nFixedSize><else><p>.Length<endif> loop
+    pragma Loop_Invariant (<i> \>= <p>.Data'First and <i> \<= <if(bIsFixedSize)><nFixedSize><else><p>.Length<endif>);
+    <soInnerStatement>
+    <i> := <i>+1;
+end loop;
+>>
 
 
 EmitTypeAssignment_primitive_def(sVarName, sStar, sFuncName, sTypeDefName, sErrCode, nErrValue) ::= <<
@@ -59,14 +168,14 @@ EmitTypeAssignment_composite_def_err_code(sErrCode, nErrValue) ::= <<
 <sErrCode>:CONSTANT INTEGER := <nErrValue>; 
 >>
 
-EmitTypeAssignment_composite_def(sFuncName, sTypeDefName, arrsErrcodes) ::= <<
+EmitTypeAssignment_composite_def(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes) ::= <<
 <arrsErrcodes; separator="\n">
-FUNCTION <sFuncName>(val : in <sTypeDefName>) return <rtlModuleName()>.ASN1_RESULT;
+FUNCTION <sFuncName>(<sVarName> : in <sTypeDefName>) return <rtlModuleName()>.ASN1_RESULT;
 >>
 
-EmitTypeAssignment_composite(sFuncName, sTypeDefName, sContent, arrsAlphaFuncs, arrsLocalVars) ::= <<
+EmitTypeAssignment_composite(sVarName, sStar, sFuncName, sTypeDefName, sContent, arrsAlphaFuncs, arrsLocalVars) ::= <<
 <arrsAlphaFuncs; separator="\n">
-FUNCTION <sFuncName>(val : in <sTypeDefName>) return <rtlModuleName()>.ASN1_RESULT
+FUNCTION <sFuncName>(<sVarName> : in <sTypeDefName>) return <rtlModuleName()>.ASN1_RESULT
 IS
     pragma Warnings (Off, "initialization of ret has no effect");        
     ret : <rtlModuleName()>.ASN1_RESULT := <rtlModuleName()>.ASN1_RESULT'(Success => true, ErrorCode => 0);
@@ -89,8 +198,9 @@ FUNCTION <sFuncName>(str : in String) return boolean
 IS
     ret:BOOLEAN:=true;
     I:INTEGER:=1;
+    strLen :constant Integer := <rtlModuleName()>.getStringSize(str);
 BEGIN
-    WHILE I\<=<rtlModuleName()>.getStringSize(str) and ret LOOP
+    WHILE I\<= strLen and ret LOOP
         pragma Loop_Invariant (I>=1 AND I\<=str'Last);
         ret := ret AND <arrsAlphaConBody; separator=" AND ">;
         I := I + 1;
@@ -170,6 +280,16 @@ end loop;
 <endif>
 >>
 
+sequenceOf2(p,sAcc, i, bIsFixedSize, nFixedSize, sInnerStatement) ::= <<
+<i> := <p>.Data'First;
+while ret.Success and <i> \<= <if(bIsFixedSize)><nFixedSize><else><p>.Length<endif> loop
+    pragma Loop_Invariant (<i> \>= <p>.Data'First and <i> \<= <if(bIsFixedSize)><nFixedSize><else><p>.Length<endif>);
+    <sInnerStatement>
+    <i> := <i>+1;
+end loop;
+>>
+
+
 /* SEQUENCE OF end*/
 
 
@@ -177,6 +297,10 @@ end loop;
 
 Sequence_optional_child_always_present_or_absent(p, sAcc,  sChName, sErrCode, sPresOrAbs) ::= <<
 ret:= <rtlModuleName()>.ASN1_RESULT'(Success => <p>.Exist.<sChName>=<sPresOrAbs>, ErrorCode => <sErrCode>);
+>>
+
+Sequence_optional_child_always_present_or_absent_expr(p, sAcc,  sChName, sPresOrAbs) ::= <<
+<p>.Exist.<sChName>=<sPresOrAbs>
 >>
 
 Sequence_OptionalChild(p, sAcc, sChName, sInnerStatement) ::= <<
@@ -210,8 +334,22 @@ END IF;
 
 /*CHOICE start*/
 
+Choice_OptionalChild(p, sAcc,  sChPresent, sInnerStatement) ::= <<
+if <p><sAcc>kind = <sChPresent> then
+	<sInnerStatement>
+end if;
+>>
 
-choice_child(sChPresent, sChildBody) ::= <<
+Choice_child_always_present_Exp(p, sAcc, sChPresent) ::= <<
+<p><sAcc>kind = <sChPresent>
+>>
+
+Choice_child_always_absent_Exp(p, sAcc, sChPresent) ::= <<
+<p><sAcc>kind /= <sChPresent>
+>>
+
+
+choice_child(sChPresent, sChildBody, bAlwaysAbsent) ::= <<
 WHEN <sChPresent> =>
     <sChildBody>
 >>
@@ -223,3 +361,25 @@ end case;
 >>
 
 /*CHOICE end */
+
+
+octet_var_string_equal(p, sAccess, nVarLength, sOctArrayLiteral )::=<<
+<rtlModuleName()>.OctetString_equal(<p><sAccess>Length, <nVarLength>, <p><sAccess>Data, <sOctArrayLiteral>)
+>>
+
+octet_fix_string_equal(p, sAccess, nFixedSize, nVarLength, sOctArrayLiteral )::=<<
+<rtlModuleName()>.OctetString_equal(<nFixedSize>, <nVarLength>, <p><sAccess>Data, <sOctArrayLiteral>)
+>>
+
+bit_var_string_equal(p, sAccess, nVarLength, sOctArrayLiteral, sBitArrayLiteral )::=<<
+<rtlModuleName()>.BitString_equal(<p><sAccess>Length, <nVarLength>, <p><sAccess>Data, <sBitArrayLiteral>)
+>>
+
+bit_fix_string_equal(p, sAccess, nFixedSize, nVarLength, sOctArrayLiteral, sBitArrayLiteral  )::=<<
+<rtlModuleName()>.BitString_equal(<nFixedSize>, <nVarLength>, <p><sAccess>Data, <sBitArrayLiteral>)
+>>
+
+
+objId_equal(p, sObjIdLiteral)::=<<
+<rtlModuleName()>.ObjectIdentifier_equal(<p>, <sObjIdLiteral>)
+>>

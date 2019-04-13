@@ -1,0 +1,17 @@
+D DEFINITIONS ::=
+BEGIN
+
+T-Packet-Body[]
+{
+    stm-13  [encoding IEEE754-1985-64],
+    stm-15  [encoding pos-int, size 16]
+}
+
+T-Packet [post-encoding-function my-encoding-patcher]
+{
+    nid T-NID-Packet [encode-values, size 4, encoding pos-int, save-position],
+    length NULL [pattern '000000000000'B, save-position], -- 12 bits
+    pbody [determinant nid],
+    crc32 NULL [pattern '00000000'H, save-position] -- 32 bits
+}
+END

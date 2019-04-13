@@ -147,6 +147,9 @@ property
 	|   enumSetValue
     |   terminationPatternProp
     |   mappingFunctionProp
+    |   postEncodingFunctionProp
+    |   preDecodingFunctionProp
+    |   savePositionProp
 	;	
 
 endiannessProp 	
@@ -181,7 +184,9 @@ adjustProp
 
 longFld 	:	asn1LID ('.' asn1LID)*		-> ^(LONG_FIELD asn1LID+);
 
-mappingFunctionProp : MAPPING_FUNCTION^ (asn1LID|asn1UID);
+mappingFunctionProp         : MAPPING_FUNCTION^ (asn1LID|asn1UID);
+postEncodingFunctionProp    : POST_ENCODING_FUNCTION^ (asn1LID|asn1UID);
+preDecodingFunctionProp     : PRE_DECODING_FUNCTION^ (asn1LID|asn1UID);
 
 alignToNextProp	
 	:	ALIGNTONEXT^ BYTE
@@ -201,6 +206,8 @@ falseValProp 	: FALSE_VALUE^  BitStringLiteral
 
 patternProp 	: PATTERN^  (BitStringLiteral | OctectStringLiteral)
 	;
+
+savePositionProp    : SAVE_POSITION;
 
 presentWhenProp	
 	:	PRESENT_WHEN^ presentWhenCond+
@@ -336,10 +343,15 @@ DWORD				: 'dword';
 
 ENCODE_VALUES		: 'encode-values';
 
+SAVE_POSITION       : 'save-position';
+
 TRUE_VALUE			: 'true-value';
 FALSE_VALUE			: 'false-value';
 PATTERN				: 'pattern';
 MAPPING_FUNCTION    : 'mapping-function';
+POST_ENCODING_FUNCTION : 'post-encoding-function';
+PRE_DECODING_FUNCTION : 'pre-encoding-function';
+
 PRESENT_WHEN		: 'present-when';
 DETERMINANT			: 'determinant';
 

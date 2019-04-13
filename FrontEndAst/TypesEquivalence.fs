@@ -21,7 +21,7 @@ let rec uperEquivalence (t1:Asn1Type) (t2:Asn1Type) =
         match children1.Length = children2.Length with
         | false -> false
         | true  ->
-            let r1 = sq1.cons = sq2.cons 
+            let r1 = true //sq1.cons = sq2.cons 
             let zipedChildren = List.zip children1 children2
             let r2 = zipedChildren |> Seq.forall (fun (c1,c2) -> c1.Optionality = c2.Optionality &&   uperEquivalence c1.Type c2.Type)
             r1 && r2

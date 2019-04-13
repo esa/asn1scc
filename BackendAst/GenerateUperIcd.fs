@@ -269,8 +269,8 @@ let rec printType (stgFileName:string) (m:Asn1Module) (tas:IcdTypeAssignment) (t
         let LengthRow =
             let nMin, nLengthSize = 
                 match sizeUperRange with
-                | Asn1AcnAst.Concrete(a,b)  when a=b       -> 0I, 0I
-                | Asn1AcnAst.Concrete(a,b)                 -> (GetNumberOfBitsForNonNegativeInteger(b - a)), (GetNumberOfBitsForNonNegativeInteger(b - a))
+                | Asn1AcnAst.Concrete(a,b)  when a.uper=b.uper       -> 0I, 0I
+                | Asn1AcnAst.Concrete(a,b)                 -> (GetNumberOfBitsForNonNegativeInteger(b.uper - a.uper)), (GetNumberOfBitsForNonNegativeInteger(b.uper - a.uper))
                 | Asn1AcnAst.NegInf(_)                     -> raise(BugErrorException "")
                 | Asn1AcnAst.PosInf(b)                     ->  8I, 16I
                 | Asn1AcnAst.Full                          -> 8I, 16I
@@ -288,11 +288,11 @@ let rec printType (stgFileName:string) (m:Asn1Module) (tas:IcdTypeAssignment) (t
 
         let arRows, sExtraComment = 
             match sizeUperRange with
-            | Asn1AcnAst.Concrete(a,b)  when a=b && b<2I     -> [ChildRow 0I 1I], "The array contains a single element."
-            | Asn1AcnAst.Concrete(a,b)  when a=b && b=2I     -> (ChildRow 0I 1I)::(ChildRow 0I 2I)::[], (sFixedLengthComment b)
-            | Asn1AcnAst.Concrete(a,b)  when a=b && b>2I     -> (ChildRow 0I 1I)::(icd_uper.EmitRowWith3Dots stgFileName ())::(ChildRow 0I b)::[], (sFixedLengthComment b)
-            | Asn1AcnAst.Concrete(a,b)  when a<>b && b<2I    -> LengthRow::(ChildRow 1I 1I)::[],""
-            | Asn1AcnAst.Concrete(a,b)                       -> LengthRow::(ChildRow 1I 1I)::(icd_uper.EmitRowWith3Dots stgFileName ())::(ChildRow 1I b)::[], ""
+            | Asn1AcnAst.Concrete(a,b)  when a.uper=b.uper && b.uper<2I     -> [ChildRow 0I 1I], "The array contains a single element."
+            | Asn1AcnAst.Concrete(a,b)  when a.uper=b.uper && b.uper=2I     -> (ChildRow 0I 1I)::(ChildRow 0I 2I)::[], (sFixedLengthComment b.uper)
+            | Asn1AcnAst.Concrete(a,b)  when a.uper=b.uper && b.uper>2I     -> (ChildRow 0I 1I)::(icd_uper.EmitRowWith3Dots stgFileName ())::(ChildRow 0I b.uper)::[], (sFixedLengthComment b.uper)
+            | Asn1AcnAst.Concrete(a,b)  when a.uper<>b.uper && b.uper<2I    -> LengthRow::(ChildRow 1I 1I)::[],""
+            | Asn1AcnAst.Concrete(a,b)                       -> LengthRow::(ChildRow 1I 1I)::(icd_uper.EmitRowWith3Dots stgFileName ())::(ChildRow 1I b.uper)::[], ""
             | Asn1AcnAst.PosInf(_)
             | Asn1AcnAst.Full                                -> LengthRow::(ChildRow 1I 1I)::(icd_uper.EmitRowWith3Dots stgFileName ())::(ChildRow 1I 65535I)::[], ""
             | Asn1AcnAst.NegInf(_)                           -> raise(BugErrorException "")

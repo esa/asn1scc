@@ -87,6 +87,65 @@ type ProgrammingLanguage with
         match this with
         |C      -> "flag"
         |Ada    -> "Boolean"
+    member this.toHex n =
+        match this with
+        |C      -> sprintf "0x%x" n
+        |Ada    -> sprintf "16#%x#" n
+        
+
+(*
+    if <sRemainingItemsVar> >= 16#10000# then
+        <sCurBlockSize> := 16#10000#;
+        uper_asn1_rtl.UPER_Enc_ConstraintWholeNumber(bs, 16#C4#, 0, 8);
+    elsif <sRemainingItemsVar> >= 16#C000# then
+        <sCurBlockSize> := 16#C000#;
+        uper_asn1_rtl.UPER_Enc_ConstraintWholeNumber(bs, 16#C3#, 0, 8);
+    elsif <sRemainingItemsVar> >= 16#8000# then
+        <sCurBlockSize> := 16#8000#;
+        uper_asn1_rtl.UPER_Enc_ConstraintWholeNumber(bs, 16#C2#, 0, 8);
+    else 
+        <sCurBlockSize> := 16#4000#;
+        uper_asn1_rtl.UPER_Enc_ConstraintWholeNumber(bs, 16#C1#, 0, 8);
+    end if;
+
+*)
+    
+    member l.multiIf (ifParts : List<string*string>) (elsePart : string option) =
+    //    let tst = [("a==1","do1"); ("a==2","do2")]
+    //let test (l:ProgrammingLanguage) (ifParts : List<string*string>) (elsePart : string option) = 
+        let if_ i l bExp =
+            match l with
+            | Ada -> if i=0 then (sprintf "if %s then" bExp) else (sprintf "elsif %s then" bExp)
+            | C   -> if i=0 then (sprintf "if (%s) {" bExp) else (sprintf "} else if (%s) {" bExp)
+        let else_ l =
+            match l with
+            | Ada -> "else"
+            | C   -> "} else {"
+        let endif l =
+            match l with
+            | Ada -> "end if;"
+            | C   -> "}"
+        match ifParts with
+        | _::_  ->
+            let ifParts = ifParts |> List.mapi(fun i (a,b) -> (i,a,b))
+            let aaa = 
+                seq {
+                    for (i, bExp, statemnt) in ifParts do
+                        yield if_ i l bExp
+                        yield header_c.indentation statemnt
+                    match elsePart with
+                    | Some elsePart ->
+                        yield else_ l
+                        yield header_c.indentation elsePart
+                    | None          -> ()
+                    yield endif l
+                } |> Seq.toList
+            aaa
+        | []    ->
+            match elsePart with
+            | Some elsePart ->
+                [elsePart]
+            | None          -> []
 
 
 
@@ -166,7 +225,6 @@ type FuncParamType  with
             sprintf "%s.kind = %s_PRESENT" this.p childPresentName
         | C     -> 
             sprintf "%s%skind == %s_PRESENT" this.p (this.getAcces l) childPresentName
-
 
 let getAccessFromScopeNodeList (ReferenceToType nodes)  (childTypeIsString: bool) (l:ProgrammingLanguage) (pVal : CallerScope) =
     let handleNode zeroBasedSeqeuenceOfLevel (pVal : CallerScope) (n:ScopeNode) (childTypeIsString: bool) = 
@@ -1009,19 +1067,19 @@ let rec mapValue (v:Asn1AcnAst.Asn1Value) =
     {Asn1Value.kind = newVKind; id=v.id; loc = v.loc}
 
 
+let emitComponent (c:ResolvedObjectIdentifierValueCompoent) =
+    match c with
+    | ResObjInteger            nVal             -> (nVal.Value, None)
+    | ResObjNamedDefValue      (label,_,nVal)   -> (nVal, Some label.Value)
+    | ResObjNamedIntValue      (label,nVal)   -> (nVal.Value, Some label.Value)
+    | ResObjRegisteredKeyword  (label,nVal)   -> (nVal, Some label.Value)
+    | ResObjDefinedValue       (_,_,nVal)     -> (nVal, None)
 
 type ObjectIdenfierValue with
     member this.Values =
         match this with
         | InternalObjectIdentifierValue intList      -> intList |> List.map(fun i -> (i, None))
         | Asn1DefinedObjectIdentifierValue (resolvedComponents, _)  ->
-            let emitComponent (c:ResolvedObjectIdentifierValueCompoent) =
-                match c with
-                | ResObjInteger            nVal             -> (nVal.Value, None)
-                | ResObjNamedDefValue      (label,_,nVal)   -> (nVal, Some label.Value)
-                | ResObjNamedIntValue      (label,nVal)   -> (nVal.Value, Some label.Value)
-                | ResObjRegisteredKeyword  (label,nVal)   -> (nVal, Some label.Value)
-                | ResObjDefinedValue       (_,_,nVal)     -> (nVal, None)
             resolvedComponents |> List.map emitComponent
 
 type Asn1Value with
@@ -1061,7 +1119,20 @@ type SeqChildInfo with
         match this with
         | Asn1Child x    -> x.Name.Value
         | AcnChild x     -> x.Name.Value
-
+    member this.getBackendName l =
+        match this with 
+        | AcnChild z    -> z.c_name
+        | Asn1Child z   -> z.getBackendName l
+    member this.savePosition =
+        match this with 
+        | AcnChild z -> 
+            match z.Type with
+            | Asn1AcnAst.AcnNullType nt when nt.acnProperties.savePosition   ->  true
+            | _     -> false
+        | Asn1Child z ->
+            match z.Type.Kind with
+            | NullType nt when nt.baseInfo.acnProperties.savePosition         -> true
+            | _                     -> false
     member this.Optionality =
         match this with
         | Asn1Child x    -> x.Optionality
@@ -1134,6 +1205,24 @@ let rec GetMySelfAndChildren (t:Asn1Type) =
         yield t
     } |> Seq.toList
 
+let rec GetMySelfAndChildren2 l (t:Asn1Type) (p:CallerScope)= 
+    seq {
+        match t.Kind with
+        | SequenceOf(conType) ->  
+            let ii = t.id.SeqeuenceOfLevel + 1
+            let i = "0" //sprintf "i%d" ii
+            yield! GetMySelfAndChildren2 l conType.childType ({p with arg = p.arg.getArrayItem l i conType.childType.isIA5String})
+        | Sequence seq ->
+            for ch in seq.Asn1Children do 
+                yield! GetMySelfAndChildren2 l ch.Type ({p with arg = p.arg.getSeqChild l (ch.getBackendName l) ch.Type.isIA5String})
+        | Choice(ch)-> 
+            for ch in ch.children do 
+                yield! GetMySelfAndChildren2 l ch.chType ({p with arg = p.arg.getChChild l (ch.getBackendName l) ch.chType.isIA5String})
+        |_ -> ()    
+        yield (t,p)
+    } |> Seq.toList
+
+
 let getFuncNameGeneric (typeDefinition:TypeDefintionOrReference) nameSuffix  =
     match typeDefinition with
     | ReferenceToExistingDefinition  refEx  -> None
@@ -1145,3 +1234,40 @@ let getFuncNameGeneric2 (typeDefinition:TypeDefintionOrReference) =
     | TypeDefinition   td                   -> Some (td.typedefName)
 
 
+
+
+let nestItems (l:ProgrammingLanguage) (retVarName:string (*ret or result*)) children = 
+    let joinItems2 =  
+        match l with  
+        | C -> equal_c.JoinItems2  
+        | Ada  when retVarName = "result"    -> uper_a.JoinItems2
+        | Ada  -> isvalid_a.JoinTwoIfFirstOk
+
+    let printChild (content:string) (soNestedContent:string option) = 
+        match soNestedContent with
+        | None                -> content
+        | Some sNestedContent -> joinItems2 content sNestedContent
+    let rec printChildren children : Option<string> = 
+        match children with
+        |[]     -> None
+        |x::xs  -> Some (printChild x (printChildren xs))
+    printChildren children
+#if false
+let nestItems_dbg  children = 
+    let joinItems2 =  sprintf """
+    %s
+    if (ret) {
+        %s
+    }
+    """
+
+    let printChild (content:string) (soNestedContent:string option) = 
+        match soNestedContent with
+        | None                -> content
+        | Some sNestedContent -> joinItems2 content sNestedContent
+    let rec printChildren children : Option<string> = 
+        match children with
+        |[]     -> None
+        |x::xs  -> Some (printChild x (printChildren xs))
+    printChildren children
+#endif

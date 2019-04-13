@@ -13,6 +13,8 @@ open Asn1Fold
 open DAst
 open DAstUtilFunctions
 
+
+#if false
 // TODO
 // 1 single value constraints for composite types (SEQUENCE, SEQUENCE OF, CHOICE) by using the generated value and _equal function (like bit and octet strings)
 // 2 simpify constraints. For example the constrains of the following type
@@ -62,6 +64,7 @@ let foldRangeCon (l:ProgrammingLanguage) valToStrFunc1 valToStrFunc2 (p:CallerSc
         (fun v2 maxIsIn s   -> Lte l maxIsIn (p.arg.getValue l) (valToStrFunc1 v2), s)
         c
         0 |> fst
+
 
 // constraint simplification started here
 type SimplifiedIntegerConstraint<'a> =
@@ -215,6 +218,16 @@ let foldStringCon (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) alphaFuncName (
         us0 
 
 
+
+
+
+type ValueGetters = {
+    intVal : BigInteger -> string
+    realVal : double -> string
+}
+
+
+
 let hasValidationFunc allCons =
     match allCons with
     | []      -> false
@@ -287,9 +300,9 @@ let createPrimitiveFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage)  (t:A
 
 
 let createBitOrOctetStringFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage)  (t:Asn1AcnAst.Asn1Type) allCons  conToStrFunc (typeDefinition:TypeDefintionOrReference) (alphaFuncs : AlphaFunc list)  anonymousVariables (us:State)  =
-    match allCons with
-    | []            -> None, us
-    | _             ->
+//    match allCons with
+//    | []            -> None, us
+//    | _             ->
         let funcName            = getFuncName r l t.id (t.FT_TypeDefintion.[l])
         let errCodeName         = ToC ("ERR_" + ((t.id.AcnAbsPath |> Seq.skip 1 |> Seq.StrJoin("-")).Replace("#","elm")))
         let errCode, ns = getNextValidErrorCode us errCodeName
@@ -297,7 +310,8 @@ let createBitOrOctetStringFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage
         let funcExp (p:CallerScope) = 
             let allCons = allCons |> List.map (conToStrFunc p)
             match allCons with
-            | []    -> raise(BugErrorException("Invalid case"))
+            //| []    -> raise(BugErrorException("Invalid case"))
+            | []    -> "TRUE"
             | c::cs -> l.ExpAndMulti allCons
 
         let funcBody (p:CallerScope)  = 
@@ -488,7 +502,7 @@ let exlcudeSizeConstraintIfFixedSize minSize maxSize allCons =
     | true  -> allCons |> List.filter(fun x -> match x with SizeContraint al-> false | _ -> true)
 
 let createOctetStringFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.OctetString) (typeDefinition:TypeDefintionOrReference) (equalFunc:EqualFunction) (printValue  : string -> (Asn1ValueKind option) -> (Asn1ValueKind) -> string) (us:State)  =
-    let allCons = exlcudeSizeConstraintIfFixedSize o.minSize o.maxSize o.AllCons
+    let allCons = exlcudeSizeConstraintIfFixedSize o.minSize.uper o.maxSize.uper o.AllCons
     let curProgramUnit = ToC t.id.ModName
     let anonymousVariables =
         allCons |> 
@@ -519,7 +533,7 @@ let createOctetStringFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:
 
 
 let createBitStringFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.BitString) (typeDefinition:TypeDefintionOrReference) (defOrRef:TypeDefintionOrReference) (equalFunc:EqualFunction) (printValue  : string -> (Asn1ValueKind option) -> (Asn1ValueKind) -> string) (us:State)  =
-    let allCons = exlcudeSizeConstraintIfFixedSize o.minSize o.maxSize o.AllCons
+    let allCons = exlcudeSizeConstraintIfFixedSize o.minSize.uper o.maxSize.uper o.AllCons
     let curProgramUnit = ToC t.id.ModName
     let anonymousVariables =
         allCons |> 
@@ -611,37 +625,36 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn
     let funcName     = getFuncName r l t.id (t.FT_TypeDefintion.[l])
     let asn1Children = children |> List.choose(fun c -> match c with Asn1Child x -> Some x | AcnChild _ -> None)
     let body =
-        let childrenConent, finalState =   
-            asn1Children |>
-            Asn1Fold.foldMap (fun errCode cc -> cc.isValidBodyStats errCode) us
-        let childrenConent = childrenConent |> List.choose id
+        let errCodeName         = ToC ("ERR_" + ((t.id.AcnAbsPath |> Seq.skip 1 |> Seq.StrJoin("-")).Replace("#","elm")))
+        let errCode, ns = getNextValidErrorCode us errCodeName
 
+        let childrenConent, ns1 =  asn1Children |> Asn1Fold.foldMap (fun errCode cc -> cc.isValidBodyStats errCode) ns
+        let childrenConent = childrenConent |> List.choose id
         match childrenConent with
         | []    -> None
         | x::xs ->
             let alphaFuncs = childrenConent |> List.collect(fun x -> x.alphaFuncs)
             let localVars = childrenConent |> List.collect(fun x -> x.localVars)
-            let ercCodes = childrenConent |> List.collect(fun x -> x.errCode)
-            let funcBody  (p:CallerScope) = 
-                let printChild (content:string) (sNestedContent:string option) = 
-                    match sNestedContent with
-                    | None  -> content
-                    | Some c-> 
-                        match l with
-                        | C        -> equal_c.JoinItems content sNestedContent
-                        | Ada      -> isvalid_a.JoinItems content sNestedContent
-                let rec printChildren children : string option = 
-                    match children with
-                    |[]     -> None
-                    |x::xs  -> 
-                        match printChildren xs with
-                        | None                 -> Some (printChild x  None)
-                        | Some childrenCont    -> Some (printChild x  (Some childrenCont))
+            let ercCodes = errCode::(childrenConent |> List.collect(fun x -> x.errCode))
+            let vcbs,retstate =  
+                o.cons2 |> Asn1Fold.foldMap(fun cs c -> DastValidate2.sequenceConstraint2ValidationCodeBlock r l t.id asn1Children ()  c cs) {DastValidate2.alphaIndex = 0; DastValidate2.alphaFuncs = alphaFuncs}
 
-                let isValidStatementX = x.isValidStatement p  
-                let isValidStatementXS = xs |> List.map(fun x -> x.isValidStatement  p )
-                printChild isValidStatementX (printChildren isValidStatementXS)
-            Some(alphaFuncs, localVars, ercCodes, funcBody, finalState)
+
+            //let eee p =  o.cons2 |> Asn1Fold.foldMap(fun cc c -> DastValidate2.sequenceConstraint2ValidationCodeBlock r l t.id asn1Children () p c cc) ns1
+            let funcBody  (p:CallerScope) = 
+                let seqValidationStatement  = 
+                    match o.cons2 with
+                    | []    -> None
+                    | _     ->
+                        //let vcbs,retstate =  o.cons2 |> Asn1Fold.foldMap(fun cs c -> DastValidate2.sequenceConstraint2ValidationCodeBlock r l t.id asn1Children () p c cs) initialState
+                        let vcbs = vcbs |> List.map(fun fnc -> fnc p)
+                        let vcb = DastValidate2.ValidationCodeBlock_Multiple_And l vcbs
+                        Some (DastValidate2.convertVCBToStatementAndAssigneErrCode l vcb errCode.errCodeName)
+                let aaa =
+                    let childrenCheckStatements = x::xs |> List.map(fun x -> x.isValidStatement  p) 
+                    (childrenCheckStatements@(seqValidationStatement |> Option.toList)) |> DAstUtilFunctions.nestItems l "ret"
+                aaa.Value
+            Some(alphaFuncs@retstate.alphaFuncs, localVars, ercCodes, funcBody, ns1)
     match body with
     | None    -> None, us
     | Some(alphaFuncs, localVars, ercCodes, funcBody, finalState) ->
@@ -729,16 +742,16 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1A
             let childrenContent =
                 childrenConent |> 
                 List.map(fun (cc, vc) -> 
-                    let chBody =  
+                    let chBody, bAlwaysAbsent =  
                         match cc.Optionality with
                         | None  
                         | Some (Asn1AcnAst.ChoiceAlwaysPresent) ->
                             match vc with
-                            | Some vc -> vc.isValidStatement p
-                            | None    -> always_true_statement ()
+                            | Some vc -> vc.isValidStatement p    ,false
+                            | None    -> always_true_statement () ,false
                         | Some (Asn1AcnAst.ChoiceAlwaysAbsent)  ->
-                            always_false_statement errCode.errCodeName
-                    choice_child (cc.presentWhenName (Some defOrRef) l) chBody )
+                            always_false_statement errCode.errCodeName, true
+                    choice_child (cc.presentWhenName (Some defOrRef) l) chBody bAlwaysAbsent)
 
             choice p.arg.p (p.arg.getAcces l) childrenContent errCode.errCodeName
         Some(alphaFuncs, localVars, ercCodes, funcBody, finalState)
@@ -787,7 +800,7 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1A
 
 let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.SequenceOf) (typeDefinition:TypeDefintionOrReference) (childType:Asn1Type) (baseTypeValFunc : IsValidFunction option) (us:State)  =
     let funcName            = getFuncName r l t.id (t.FT_TypeDefintion.[l])
-    let bIsFixedSize = o.minSize = o.maxSize
+    let bIsFixedSize = o.minSize.uper = o.maxSize.uper
     let hasValidationFunc = 
         match bIsFixedSize with
         | false     -> true
@@ -825,8 +838,8 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:A
                 //let childAccesPath = p + childAccess + l.ArrName + (l.ArrayAccess i) //"[" + i + "]"
                 let innerStatement = Some(cvf.funcBody ({p with arg = p.arg.getArrayItem l i childType.isIA5String}) )
                 match l with
-                | C   -> isvalid_c.sequenceOf p.arg.p (p.arg.getAcces l) i bIsFixedSize ( o.minSize) None None innerStatement
-                | Ada -> isvalid_a.sequenceOf p.arg.p (p.arg.getAcces l) i bIsFixedSize ( o.minSize) None None innerStatement
+                | C   -> isvalid_c.sequenceOf p.arg.p (p.arg.getAcces l) i bIsFixedSize ( o.minSize.uper) None None innerStatement
+                | Ada -> isvalid_a.sequenceOf p.arg.p (p.arg.getAcces l) i bIsFixedSize ( o.minSize.uper) None None innerStatement
             Some(cvf.alphaFuncs, lv::cvf.localVariables , cvf.errCodes, funcBody, us)
         | None, Some(errCode, sIsValidSizeExpFunc, ns) ->
             let funcBody (p:CallerScope)  = 
@@ -837,8 +850,8 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:A
                 //let childAccesPath = p + childAccess + l.ArrName + (l.ArrayAccess i) //"[" + i + "]"
                 let innerStatement = Some(cvf.funcBody ({p with arg = p.arg.getArrayItem l i childType.isIA5String}))
                 match l with
-                | C   -> isvalid_c.sequenceOf p.arg.p (p.arg.getAcces l) i bIsFixedSize ( o.minSize) (Some (sIsValidSizeExpFunc p )) (Some errCode.errCodeName) innerStatement
-                | Ada -> isvalid_a.sequenceOf p.arg.p (p.arg.getAcces l) i bIsFixedSize ( o.minSize) (Some (sIsValidSizeExpFunc p )) (Some errCode.errCodeName) innerStatement
+                | C   -> isvalid_c.sequenceOf p.arg.p (p.arg.getAcces l) i bIsFixedSize ( o.minSize.uper) (Some (sIsValidSizeExpFunc p )) (Some errCode.errCodeName) innerStatement
+                | Ada -> isvalid_a.sequenceOf p.arg.p (p.arg.getAcces l) i bIsFixedSize ( o.minSize.uper) (Some (sIsValidSizeExpFunc p )) (Some errCode.errCodeName) innerStatement
             Some(cvf.alphaFuncs, lv::cvf.localVariables , cvf.errCodes@[errCode], funcBody, ns)
 
 
@@ -889,3 +902,5 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:A
 
 let createReferenceTypeFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.ReferenceType) (typeDefinition:TypeDefintionOrReference) (baseType:Asn1Type)  (us:State)  =
     baseType.isValidFunction, us    
+
+#endif

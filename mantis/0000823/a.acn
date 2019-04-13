@@ -1,0 +1,10 @@
+D DEFINITIONS ::=
+BEGIN
+
+T-Packet []
+{
+    nid T-NID-Packet [encode-values],
+    length NULL [pattern '0000000000000'B], -- 13 bits
+    pbody [determinant nid]
+}
+END

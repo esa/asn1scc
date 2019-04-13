@@ -137,7 +137,7 @@ let createString (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage)  (t:Asn1AcnAst.A
     let td = o.typeDef.[l]
     match td.kind with
     | NonPrimitiveNewTypeDefinition              -> 
-        let completeDefintion = define_new_ia5string td (o.minSize) (o.maxSize) ((o.maxSize + 1I)) arrnAlphaChars
+        let completeDefintion = define_new_ia5string td (o.minSize.uper) (o.maxSize.uper) ((o.maxSize.uper + 1I)) arrnAlphaChars
         Some completeDefintion
     | NonPrimitiveNewSubTypeDefinition subDef     -> 
         let otherProgramUnit = if td.programUnit = subDef.programUnit then None else (Some subDef.programUnit)
@@ -151,11 +151,11 @@ let createOctetString (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage)  (t:Asn1Acn
     let define_subType_octet_string    = match l with C -> header_c.Define_subType_octet_string | Ada -> header_a.Define_subType_octet_string
     match td.kind with
     | NonPrimitiveNewTypeDefinition              -> 
-        let completeDefintion = define_new_octet_string td (o.minSize) (o.maxSize) (o.minSize = o.maxSize)
+        let completeDefintion = define_new_octet_string td (o.minSize.uper) (o.maxSize.uper) (o.minSize.uper = o.maxSize.uper)
         Some completeDefintion
     | NonPrimitiveNewSubTypeDefinition subDef     -> 
         let otherProgramUnit = if td.programUnit = subDef.programUnit then None else (Some subDef.programUnit)
-        let completeDefintion = define_subType_octet_string td subDef otherProgramUnit (o.minSize = o.maxSize)
+        let completeDefintion = define_subType_octet_string td subDef otherProgramUnit (o.minSize.uper = o.maxSize.uper)
         Some completeDefintion
     | NonPrimitiveReference2OtherType            -> None
 
@@ -167,11 +167,11 @@ let createBitString (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage)  (t:Asn1AcnAs
     let define_subType_bit_string    = match l with C -> header_c.Define_subType_bit_string | Ada -> header_a.Define_subType_bit_string
     match td.kind with
     | NonPrimitiveNewTypeDefinition              -> 
-        let completeDefintion = define_new_bit_string td (o.minSize) (o.maxSize) (o.minSize = o.maxSize) (BigInteger o.MaxOctets)
+        let completeDefintion = define_new_bit_string td (o.minSize.uper) (o.maxSize.uper) (o.minSize.uper = o.maxSize.uper) (BigInteger o.MaxOctets)
         Some completeDefintion
     | NonPrimitiveNewSubTypeDefinition subDef     -> 
         let otherProgramUnit = if td.programUnit = subDef.programUnit then None else (Some subDef.programUnit)
-        let completeDefintion = define_subType_bit_string td subDef otherProgramUnit (o.minSize = o.maxSize)
+        let completeDefintion = define_subType_bit_string td subDef otherProgramUnit (o.minSize.uper = o.maxSize.uper)
         Some completeDefintion
     | NonPrimitiveReference2OtherType            -> None
 
@@ -210,26 +210,36 @@ let createSequenceOf (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1AcnAs
 
     match td.kind with
     | NonPrimitiveNewTypeDefinition              -> 
-        let completeDefintion = define_new_sequence_of td (o.minSize) (o.maxSize) (o.minSize = o.maxSize) (childDefinition.longTypedefName l) (getChildDefinition childDefinition)
+        let completeDefintion = define_new_sequence_of td (o.minSize.uper) (o.maxSize.uper) (o.minSize.uper = o.maxSize.uper) (childDefinition.longTypedefName l) (getChildDefinition childDefinition)
         Some completeDefintion
     | NonPrimitiveNewSubTypeDefinition subDef     -> 
         let otherProgramUnit = if td.programUnit = subDef.programUnit then None else (Some subDef.programUnit)
-        let completeDefintion = define_subType_sequence_of td subDef otherProgramUnit (o.minSize = o.maxSize)
+        let completeDefintion = define_subType_sequence_of td subDef otherProgramUnit (o.minSize.uper = o.maxSize.uper)
         Some completeDefintion
     | NonPrimitiveReference2OtherType            -> None
 
 
 
-let createSequence (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Sequence)  (children:SeqChildInfo list) (us:State) =
+let createSequence (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Sequence)  (allchildren:SeqChildInfo list) (us:State) =
     let define_new_sequence             = match l with C -> header_c.Define_new_sequence            | Ada -> header_a.Define_new_sequence
     let define_new_sequence_child       = match l with C -> header_c.Define_new_sequence_child      | Ada -> header_a.Define_new_sequence_child
     let define_new_sequence_child_bit   = match l with C -> header_c.Define_new_sequence_child_bit  | Ada -> header_a.Define_new_sequence_child_bit
     let define_subType_sequence         = match l with C -> header_c.Define_subType_sequence        | Ada -> header_a.Define_subType_sequence
 
-    let children = children |> List.choose (fun c -> match c with Asn1Child z -> Some z | _ -> None)
+    let define_new_sequence_save_pos_child         = match l with C -> header_c.Define_new_sequence_save_pos_child        | Ada -> header_a.Define_new_sequence_save_pos_child
+    
+    let children = allchildren |> List.choose (fun c -> match c with Asn1Child z -> Some z | _ -> None)
     let optionalChildren = children |> List.choose(fun c -> match c.Optionality with Some _ -> Some c | None -> None)
     let optChildNames  = optionalChildren |> List.map(fun c -> c.getBackendName l)
     let childldrenCompleteDefintions = children |> List.choose (fun c -> getChildDefinition c.Type.typeDefintionOrReference)
+    let arrsNullFieldsSavePos =
+        match o.acnProperties.postEncodingFunction.IsNone && o.acnProperties.preDecodingFunction.IsNone with
+        | true -> []
+        | false  -> 
+            allchildren |> 
+            List.choose (fun c -> if c.savePosition then Some (c.getBackendName l) else None ) |>
+            List.map define_new_sequence_save_pos_child
+
     let td = o.typeDef.[l]
 
     let arrsChildren = children |> List.map (fun o -> define_new_sequence_child (o.getBackendName l) (o.Type.typeDefintionOrReference.longTypedefName l))
@@ -238,7 +248,7 @@ let createSequence (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1AcnAst.
 
     match td.kind with
     | NonPrimitiveNewTypeDefinition              -> 
-        let completeDefintion = define_new_sequence td arrsChildren arrsOptionalChildren childldrenCompleteDefintions
+        let completeDefintion = define_new_sequence td arrsChildren arrsOptionalChildren childldrenCompleteDefintions arrsNullFieldsSavePos
         Some completeDefintion
     | NonPrimitiveNewSubTypeDefinition subDef     -> 
         let otherProgramUnit = if td.programUnit = subDef.programUnit then None else (Some subDef.programUnit)

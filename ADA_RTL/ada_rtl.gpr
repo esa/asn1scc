@@ -7,8 +7,18 @@ project Ada_Rtl is
    package Prove is
       for Switches use ("--mode=prove");
    end Prove;
- package Compiler is
-      for Default_Switches ("Ada") use ("-gnatwa");
+
+   package Compiler is
+      for Default_Switches ("ada") use ("-gnatwa", "-g");
    end Compiler;
+
+   package Builder is
+      for Switches ("ada") use ("-g");
+   end Builder;
+
+   package Linker is
+      for Switches ("ada") use ("-g");
+   end Linker;
+
 end Ada_Rtl;
 

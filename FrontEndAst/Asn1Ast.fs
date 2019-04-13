@@ -67,7 +67,7 @@ type Asn1Constraint =
     | ExceptConstraint                  of Asn1Constraint*Asn1Constraint
     | RootConstraint                    of Asn1Constraint
     | RootConstraint2                   of Asn1Constraint*Asn1Constraint
-    | WithComponentConstraint           of Asn1Constraint
+    | WithComponentConstraint           of Asn1Constraint*SrcLoc
     | WithComponentsConstraint          of list<NamedConstraint>
 
 and NamedConstraint = {
@@ -402,7 +402,7 @@ let foldConstraint
         | TypeInclusionConstraint  (md,ts)       -> typeInclusionConstraint md ts
         | SizeContraint c                        -> sizeContraint (loopRecursiveConstraint c)
         | AlphabetContraint  c                   -> alphabetContraint (loopRecursiveConstraint c)
-        | WithComponentConstraint  c             -> withComponentConstraint (loopRecursiveConstraint c)
+        | WithComponentConstraint  (c,l)          -> withComponentConstraint (loopRecursiveConstraint c) l
         | WithComponentsConstraint nitems        -> 
             let newItems = nitems |> List.map(fun ni -> namedItemConstraint ni   (ni.Contraint |> Option.map loopRecursiveConstraint))
             withComponentsConstraint newItems

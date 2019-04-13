@@ -1,0 +1,1 @@
+ Asn1f4.exe -mfm postEncoding -c -ACN -atc -o c_out/ a.a* && (cd c_out/ ; make coverage; cd ..)

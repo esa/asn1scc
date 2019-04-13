@@ -73,7 +73,9 @@ def RunTestCase(asn1, acn, behavior, expErrMsg):
     print(asn1, acn)
 
     asn1File = targetDir + os.sep + "sample1.asn1"
+    bRunCodeCoverage = "NOCOVERAGE" not in open(resolvedir(asn1File)).readline()
     acnFile = targetDir + os.sep + "sample1.acn"
+    astXml  = targetDir + os.sep + "ast.xml"
     launcher = '' if sys.platform == 'cygwin' else 'mono '
     path_to_asn1scc = spawn.find_executable('Asn1f4.exe')
     res = mysystem(
@@ -104,16 +106,24 @@ def RunTestCase(asn1, acn, behavior, expErrMsg):
             nTests += 1
             return
 
+    no_automatic_test_cases = "NO_AUTOMATIC_TEST_CASES" in open(asn1File, 'r').readlines()[0]
+    if no_automatic_test_cases:
+        res = mysystem("cd " + targetDir + os.sep + "; CC=gcc make", False)
+        return
+
     if language == "c":
         try:
             res = mysystem(
                 "cd " + targetDir + os.sep + "; CC=gcc make coverage", False)
             f = open(targetDir + os.sep + "sample1.c.gcov", 'r')
-            lines = [
-                l
-                for l in f.readlines()
-                if ("####" in l) and ("COVERAGE_IGNORE" not in l)]
-            if len(lines) > 0:
+            lines = f.readlines()
+            lines = filter(lambda x : "####" in x, lines)
+            lines = filter(lambda x : "COVERAGE_IGNORE" not in x, lines)
+            lines = filter(lambda l : ":".join(l.split(":")[2:]).strip() != '}', lines)
+            lines = filter(lambda l : ":".join(l.split(":")[2:]).strip() != "default:", lines)
+            lines = filter(lambda l : ":".join(l.split(":")[2:]).strip() != "break;", lines)
+            lines = list(lines)
+            if bRunCodeCoverage and len(lines) > 0:
                 PrintWarning("coverage failed. (less than 100%)")
                 #sys.exit(1)
         except FileNotFoundError as err:
@@ -148,8 +158,7 @@ def RunTestCase(asn1, acn, behavior, expErrMsg):
             sys.exit(1)
         elif behavior == 0 and res == 0:
             # -- NOCOVERAGE
-            doCoverage = "-- NOCOVERAGE" not in \
-                open("sample1.asn1", 'r').readlines()[0]
+            doCoverage = "-- NOCOVERAGE" not in open("sample1.asn1", 'r').readlines()[0]
             if doCoverage:
 
                 def hunt_signature(l):

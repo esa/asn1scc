@@ -75,10 +75,11 @@ let GetIntEncodingClass (integerSizeInBytes:BigInteger) (aligment: AcnAligment o
             | BCD, Fixed(fxVal) , BigEndianness   when fxVal % 4I <> 0I       ->  raise(SemanticError(errLoc, "size value should be multiple of 4"))
             | BCD, Fixed(fxVal) , BigEndianness                 ->  BCD_ConstSize fxVal, fxVal, fxVal
             | BCD, IntNullTerminated b, BigEndianness           ->  BCD_VarSize_NullTerminated b, 4I, maxDigitsInInteger*4I
-            | IntAscii, IntNullTerminated b, BigEndianness         ->  
+            | IntAscii, IntNullTerminated nullBytes, BigEndianness         ->  
+                let nullBytesLength = BigInteger (nullBytes.Length*8)
                 match bUINT with
-                | true                                                            -> ASCII_UINT_VarSize_NullTerminated b, 8I, 8I+ maxDigitsInInteger*8I
-                | false                                                           -> ASCII_VarSize_NullTerminated b, 8I, 8I+8I+maxDigitsInInteger*8I
+                | true                                                            -> ASCII_UINT_VarSize_NullTerminated nullBytes, nullBytesLength, nullBytesLength + maxDigitsInInteger*8I
+                | false                                                           -> ASCII_VarSize_NullTerminated nullBytes, nullBytesLength, nullBytesLength+8I+maxDigitsInInteger*8I
             | _, IntNullTerminated _, _                                  ->  raise(SemanticError(errLoc, "null-terminated can be applied only for ASCII or BCD encodings"))
             | _, _ , LittleEndianness                           ->  raise(SemanticError(errLoc, "Little endian can be applied only for fixed size encodings and size must be 16 or 32 or 64"))
 
@@ -162,7 +163,7 @@ let GetStringEncodingClass (aligment: AcnAligment option) errLoc (p  : StringAcn
         | false, Some (StrNullTerminated b)            ->       raise(BugErrorException(sprintf "when a string type has the acn property 'size null-terminated' it must also have the acn property 'encoding ASCII'" ))
         | true, None                                   ->       Acn_Enc_String_uPER_Ascii charSizeInBits, lengthDeterminantSize + asn1Min*charSizeInBits, lengthDeterminantSize + asn1Max*charSizeInBits
         | true, Some (StrExternalField longField)      ->       Acn_Enc_String_Ascii_External_Field_Determinant (charSizeInBits, longField), asn1Min*charSizeInBits,  asn1Max*charSizeInBits
-        | true, Some (StrNullTerminated b)             ->       Acn_Enc_String_Ascii_Null_Teminated (charSizeInBits, b), asn1Min*charSizeInBits + 8I,  asn1Max*charSizeInBits + 8I
+        | true, Some (StrNullTerminated nullChars)             ->       Acn_Enc_String_Ascii_Null_Teminated (charSizeInBits, nullChars), asn1Min*charSizeInBits + (BigInteger (nullChars.Length * 8)),  asn1Max*charSizeInBits + (BigInteger (nullChars.Length * 8))
 
     encClass,  minSizeInBits+alignmentSize, maxSizeInBits+alignmentSize
 
@@ -203,8 +204,8 @@ let GetNullEncodingClass (aligment: AcnAligment option) errLoc (p  : NullTypeAcn
     let alignmentSize = getAlignmentSize aligment
     match  p.encodingPattern with
     | None                                  -> alignmentSize, alignmentSize
-    | Some (PATERN_PROP_BITSTR_VALUE p)     -> alignmentSize + p.Value.Length.AsBigInt, alignmentSize  + p.Value.Length.AsBigInt
-    | Some (PATERN_PROP_OCTSTR_VALUE p)     -> alignmentSize + (p.Length*8).AsBigInt, alignmentSize  + (p.Length*8).AsBigInt
+    | Some (PATTERN_PROP_BITSTR_VALUE p)    -> alignmentSize + p.Value.Length.AsBigInt, alignmentSize  + p.Value.Length.AsBigInt
+    | Some (PATTERN_PROP_OCTSTR_VALUE p)    -> alignmentSize + (p.Length*8).AsBigInt, alignmentSize  + (p.Length*8).AsBigInt
 
 let GetBooleanEncodingClass (aligment: AcnAligment option) errLoc (p  : BooleanAcnProperties) =
     let alignmentSize = getAlignmentSize aligment
@@ -217,7 +218,7 @@ let GetBooleanEncodingClass (aligment: AcnAligment option) errLoc (p  : BooleanA
 
 let GetChoiceEncodingClass  (children : ChChildInfo list) (aligment: AcnAligment option) errLoc (p  : ChoiceAcnProperties) =
     let maxChildSize = children |> List.map(fun c -> c.Type.acnMaxSizeInBits) |> Seq.max
-    let minChildSize = children |> List.map(fun c -> c.Type.acnMaxSizeInBits) |> Seq.min
+    let minChildSize = children |> List.map(fun c -> c.Type.acnMinSizeInBits) |> Seq.min
     let alignmentSize = getAlignmentSize aligment
 
     let presenceDeterminentByAcn =

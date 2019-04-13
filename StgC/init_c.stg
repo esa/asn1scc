@@ -53,6 +53,8 @@ while (<i>\< <nSize>) {
 >>
 
 /* BIT AND OCTET STRINGS */
+initBitOrOctStringFromCompoundLiteral(p, sCompLiteral) ::= "<p> = <sCompLiteral>;"
+
 initFixSizeBitOrOctString_bytei(p, sAcc, sI, sByteHexVal) ::= "<p><sAcc>arr[<sI>] = 0x<sByteHexVal>;"
 initFixSizeBitOrOctString(p, sAcc,arrsBytes) ::= <<
 <arrsBytes; separator="\n">

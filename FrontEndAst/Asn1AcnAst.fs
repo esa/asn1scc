@@ -115,6 +115,7 @@ type IA5StringConstraint =
     | StrSizeContraint                 of PosIntTypeConstraint               
     | AlphabetContraint                of CharTypeConstraint           
 
+
 type OctetStringConstraint  =    SizableTypeConstraint<OctetStringValue*(ReferenceToValue*SrcLoc)>
 type BitStringConstraint    =    SizableTypeConstraint<BitStringValue*(ReferenceToValue*SrcLoc)>
 type BoolConstraint         =    GenericConstraint<bool>
@@ -122,9 +123,54 @@ type EnumConstraint         =    GenericConstraint<string>
 type ObjectIdConstraint     =    GenericConstraint<ObjectIdenfierValue>
 
 
-type SequenceOfConstraint   =     SizableTypeConstraint<SeqOfValue>
-type SequenceConstraint     =     GenericConstraint<SeqValue>
-type ChoiceConstraint       =     GenericConstraint<ChValue>
+//type SequenceOfConstraint   =     SizableTypeConstraint<SeqOfValue>
+//type SequenceConstraint     =     GenericConstraint<SeqValue>
+
+type SeqOrChoiceConstraint<'v> =
+    | SeqOrChUnionConstraint                   of SeqOrChoiceConstraint<'v>*SeqOrChoiceConstraint<'v>*bool //left,righ, virtual constraint
+    | SeqOrChIntersectionConstraint            of SeqOrChoiceConstraint<'v>*SeqOrChoiceConstraint<'v>
+    | SeqOrChAllExceptConstraint               of SeqOrChoiceConstraint<'v>
+    | SeqOrChExceptConstraint                  of SeqOrChoiceConstraint<'v>*SeqOrChoiceConstraint<'v>
+    | SeqOrChRootConstraint                    of SeqOrChoiceConstraint<'v>
+    | SeqOrChRootConstraint2                   of SeqOrChoiceConstraint<'v>*SeqOrChoiceConstraint<'v>
+    | SeqOrChSingleValueConstraint             of 'v
+    | SeqOrChWithComponentsConstraint          of NamedConstraint list       
+
+
+and SeqConstraint = SeqOrChoiceConstraint<SeqValue>
+
+and ChoiceConstraint       =     SeqOrChoiceConstraint<ChValue>
+
+and SequenceOfConstraint   =  
+    | SeqOfSizeUnionConstraint               of SequenceOfConstraint*SequenceOfConstraint*bool //left,righ, virtual constraint
+    | SeqOfSizeIntersectionConstraint        of SequenceOfConstraint*SequenceOfConstraint
+    | SeqOfSizeAllExceptConstraint           of SequenceOfConstraint
+    | SeqOfSizeExceptConstraint              of SequenceOfConstraint*SequenceOfConstraint
+    | SeqOfSizeRootConstraint                of SequenceOfConstraint
+    | SeqOfSizeRootConstraint2               of SequenceOfConstraint*SequenceOfConstraint
+    | SeqOfSizeSingleValueConstraint         of SeqOfValue
+    | SeqOfSizeContraint                     of PosIntTypeConstraint               
+    | SeqOfSeqWithComponentConstraint        of AnyConstraint*SrcLoc
+    
+and AnyConstraint =
+    | IntegerTypeConstraint of IntegerTypeConstraint
+    | IA5StringConstraint   of IA5StringConstraint   
+    | RealTypeConstraint    of RealTypeConstraint   
+    | OctetStringConstraint of OctetStringConstraint
+    | BitStringConstraint   of BitStringConstraint
+    | BoolConstraint        of BoolConstraint    
+    | EnumConstraint        of EnumConstraint    
+    | ObjectIdConstraint    of ObjectIdConstraint
+    | SequenceOfConstraint  of SequenceOfConstraint
+    | SeqConstraint         of SeqConstraint
+    | ChoiceConstraint      of ChoiceConstraint
+    | NullConstraint        
+
+and NamedConstraint = {
+    Name: StringLoc
+    Contraint:AnyConstraint option
+    Mark:Asn1Ast.NamedConstraintMark
+}
 
 
 type NamedItem = {
@@ -175,11 +221,11 @@ type IntEncodingClass =
     |TwosComplement_ConstSize_little_endian_64
     |TwosComplement_ConstSize of BigInteger
     |ASCII_ConstSize of BigInteger
-    |ASCII_VarSize_NullTerminated of byte
+    |ASCII_VarSize_NullTerminated of byte list
     |ASCII_UINT_ConstSize of BigInteger
-    |ASCII_UINT_VarSize_NullTerminated of byte
+    |ASCII_UINT_VarSize_NullTerminated of byte  list
     |BCD_ConstSize of BigInteger
-    |BCD_VarSize_NullTerminated of byte
+    |BCD_VarSize_NullTerminated of byte  list
 
 
 type RealEncodingClass =
@@ -192,12 +238,12 @@ type RealEncodingClass =
 type StringAcnEncodingClass =
     | Acn_Enc_String_uPER                                   of BigInteger                          //char size in bits, as in uper 
     | Acn_Enc_String_uPER_Ascii                             of BigInteger                          //char size in bits, as in uper but with charset (0..255)
-    | Acn_Enc_String_Ascii_Null_Teminated                   of BigInteger*byte                     //char size in bits, byte = the null character
+    | Acn_Enc_String_Ascii_Null_Teminated                   of BigInteger*(byte  list)             //char size in bits, byte = the null character
     | Acn_Enc_String_Ascii_External_Field_Determinant       of BigInteger*RelativePath             //char size in bits, encode ascii, size is provided by an external length determinant
     | Acn_Enc_String_CharIndex_External_Field_Determinant   of BigInteger*RelativePath             //char size in bits, encode char index, size is provided by an external length determinant
 
 type SizeableAcnEncodingClass =
-    | SZ_EC_uPER
+    | SZ_EC_uPER              
     | SZ_EC_ExternalField    of RelativePath
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -219,6 +265,9 @@ type uperRange<'a> =
     | Full                      // (-inf, +inf)
 
 
+type BigIntegerUperRange = uperRange<BigInteger>
+type DoubleUperRange = uperRange<Double>
+type UInt32UperRange = uperRange<uint32>
 
 type Integer = {
     acnProperties       : IntegerAcnProperties
@@ -226,7 +275,7 @@ type Integer = {
     withcons            : IntegerTypeConstraint list
     uperMaxSizeInBits   : BigInteger
     uperMinSizeInBits   : BigInteger
-    uperRange           : uperRange<BigInteger>
+    uperRange           : BigIntegerUperRange
 
     acnMaxSizeInBits    : BigInteger
     acnMinSizeInBits    : BigInteger
@@ -242,7 +291,7 @@ type Real = {
     withcons            : RealTypeConstraint list
     uperMaxSizeInBits   : BigInteger
     uperMinSizeInBits   : BigInteger
-    uperRange           : uperRange<double>
+    uperRange           : DoubleUperRange
 
     acnMaxSizeInBits    : BigInteger
     acnMinSizeInBits    : BigInteger
@@ -256,8 +305,8 @@ type StringType = {
     cons                : IA5StringConstraint list
     withcons            : IA5StringConstraint list
 
-    minSize             : BigInteger
-    maxSize             : BigInteger
+    minSize             : SIZE
+    maxSize             : SIZE
     uperMaxSizeInBits   : BigInteger
     uperMinSizeInBits   : BigInteger
     uperCharSet         : char array
@@ -275,8 +324,8 @@ type OctetString = {
     acnProperties       : SizeableAcnProperties
     cons                : OctetStringConstraint list
     withcons            : OctetStringConstraint list
-    minSize             : BigInteger
-    maxSize             : BigInteger
+    minSize             : SIZE
+    maxSize             : SIZE
     uperMaxSizeInBits   : BigInteger
     uperMinSizeInBits   : BigInteger
 
@@ -291,8 +340,8 @@ type BitString = {
     acnProperties   : SizeableAcnProperties
     cons                : BitStringConstraint list
     withcons            : BitStringConstraint list
-    minSize             : BigInteger
-    maxSize             : BigInteger
+    minSize             : SIZE
+    maxSize             : SIZE
     uperMaxSizeInBits   : BigInteger
     uperMinSizeInBits   : BigInteger
 
@@ -378,7 +427,7 @@ type AcnInteger = {
     acnMinSizeInBits    : BigInteger
     acnEncodingClass    : IntEncodingClass
     Location            : SrcLoc //Line no, Char pos
-    uperRange           : uperRange<BigInteger>
+    uperRange           : BigIntegerUperRange
     isUnsigned          : bool
     checkIntHasEnoughSpace  : BigInteger -> BigInteger -> unit
     inheritInfo          : InheritanceInfo option
@@ -460,8 +509,8 @@ and SequenceOf = {
     acnProperties   : SizeableAcnProperties
     cons                : SequenceOfConstraint list
     withcons            : SequenceOfConstraint list
-    minSize             : BigInteger
-    maxSize             : BigInteger
+    minSize             : SIZE
+    maxSize             : SIZE
     uperMaxSizeInBits   : BigInteger
     uperMinSizeInBits   : BigInteger
 
@@ -474,8 +523,9 @@ and SequenceOf = {
 
 and Sequence = {
     children                : SeqChildInfo list
-    cons                    : SequenceConstraint list
-    withcons                : SequenceConstraint list
+    acnProperties           : SequenceAcnProperties
+    cons                    : SeqConstraint list
+    withcons                : SeqConstraint list
     uperMaxSizeInBits       : BigInteger
     uperMinSizeInBits       : BigInteger
 

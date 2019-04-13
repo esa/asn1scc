@@ -81,6 +81,20 @@ let foldSizableConstraint printSingValueFunc   (c:SizableTypeConstraint<'v>) =
         c
         0 |> fst
 
+let foldSequenceOfConstraint printSingValueFunc   (c:SequenceOfConstraint) =
+    foldSequenceOfTypeConstraint2
+        (fun e1 e2 b s      -> stg_asn1.Print_UnionConstraint e1 e2, s)
+        (fun e1 e2 s        -> stg_asn1.Print_IntersectionConstraint e1 e2, s)
+        (fun e s            -> stg_asn1.Print_AllExceptConstraint e, s)
+        (fun e1 e2 s        -> stg_asn1.Print_ExceptConstraint e1 e2, s)
+        (fun e s            -> stg_asn1.Print_RootConstraint e, s)
+        (fun e1 e2 s        -> stg_asn1.Print_RootConstraint2 e1 e2, s)
+        (fun v  s           -> stg_asn1.Print_SingleValueContraint (printSingValueFunc v) ,s)
+        (fun intCon s       -> foldRangeCon (fun i -> i.ToString()) (fun i -> i.ToString()) intCon, s)
+        (fun c l s          -> "", s)
+        c
+        0 |> fst
+
 let foldStringCon    (c:IA5StringConstraint)  =
     foldStringTypeConstraint2
         (fun e1 e2 b s      -> stg_asn1.Print_UnionConstraint e1 e2, s)
@@ -95,6 +109,31 @@ let foldStringCon    (c:IA5StringConstraint)  =
         c
         0 |> fst
 
+let foldSequenceCon valToStrFunc  (c:SeqConstraint)  =
+    foldSeqConstraint
+        (fun e1 e2 b s      -> stg_asn1.Print_UnionConstraint e1 e2, s)
+        (fun e1 e2 s        -> stg_asn1.Print_IntersectionConstraint e1 e2, s)
+        (fun e s            -> stg_asn1.Print_AllExceptConstraint e, s)
+        (fun e1 e2 s        -> stg_asn1.Print_ExceptConstraint e1 e2, s)
+        (fun e s            -> stg_asn1.Print_RootConstraint e, s)
+        (fun e1 e2 s        -> stg_asn1.Print_RootConstraint2 e1 e2, s)
+        (fun v  s           -> stg_asn1.Print_SingleValueContraint (valToStrFunc v) ,s)
+        (fun nc s           -> "", s)
+        c
+        0 |> fst
+
+let foldChoiceCon valToStrFunc  (c:ChoiceConstraint)  =
+    foldChoiceConstraint
+        (fun e1 e2 b s      -> stg_asn1.Print_UnionConstraint e1 e2, s)
+        (fun e1 e2 s        -> stg_asn1.Print_IntersectionConstraint e1 e2, s)
+        (fun e s            -> stg_asn1.Print_AllExceptConstraint e, s)
+        (fun e1 e2 s        -> stg_asn1.Print_ExceptConstraint e1 e2, s)
+        (fun e s            -> stg_asn1.Print_RootConstraint e, s)
+        (fun e1 e2 s        -> stg_asn1.Print_RootConstraint2 e1 e2, s)
+        (fun v  s           -> stg_asn1.Print_SingleValueContraint (valToStrFunc v) ,s)
+        (fun nc s           -> "", s)
+        c
+        0 |> fst
 
 let createAcnInteger (cons:IntegerTypeConstraint list) =
     let conToStrFunc = foldRangeCon  stg_asn1.Print_IntegerValue stg_asn1.Print_IntegerValue
@@ -143,19 +182,21 @@ let createBitStringFunction (r:Asn1AcnAst.AstRoot)  (t:Asn1AcnAst.Asn1Type) (o:A
     let conToStrFunc = foldSizableConstraint (fun (bits:Asn1AcnAst.BitStringValue, _) -> stg_asn1.Print_BitStringValue ("'" + bits.Value + "'H" ))
     o.AllCons |> List.map conToStrFunc
 
+
 let createSequenceFunction (r:Asn1AcnAst.AstRoot)  (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Sequence) (children:SeqChildInfo list)   =
     let printSeqValue (nameItems:Asn1AcnAst.NamedValue list) =
         let arrsValues = nameItems |> List.map(fun ni -> stg_asn1.Print_SeqValue_Child ni.name.Value (printAsn1Value ni.Value))
         stg_asn1.Print_SeqValue arrsValues
-    let conToStrFunc = foldGenericCon printSeqValue
+    let conToStrFunc = foldSequenceCon printSeqValue
     o.AllCons |> List.map conToStrFunc
+    
     
 let createChoiceFunction (r:Asn1AcnAst.AstRoot)  (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Choice) (children:ChChildInfo list)   =
     let printChValue (ni:Asn1AcnAst.NamedValue) =
         stg_asn1.Print_ChValue ni.name.Value (printAsn1Value ni.Value)
-    let conToStrFunc = foldGenericCon printChValue
+    let conToStrFunc = foldChoiceCon printChValue
     o.AllCons |> List.map conToStrFunc
 
 let createSequenceOfFunction (r:Asn1AcnAst.AstRoot)  (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.SequenceOf)  =
-    let conToStrFunc = foldSizableConstraint (fun (vals:Asn1AcnAst.Asn1Value list) -> vals |> List.map printAsn1Value |> stg_asn1.Print_SeqOfValue )
+    let conToStrFunc = foldSequenceOfConstraint (fun (vals:Asn1AcnAst.Asn1Value list) -> vals |> List.map printAsn1Value |> stg_asn1.Print_SeqOfValue )
     o.AllCons |> List.map conToStrFunc

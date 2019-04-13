@@ -165,7 +165,7 @@ let PropID_to_Text = function
 
 let CheckConsistencyOfAsn1TypeWithAcnProperty (r:AstRoot) asn1Kind (t:ITree) =
     match BalladerProperties |> Seq.exists(fun x -> x = t.Type) with
-    | true  -> ()   //ballader propery, so it can be applied to any type
+    | true  -> ()   //ballader property, so it can be applied to any type
     | false ->
         //1. Is it allowed
         match (AllowedPropertiesPerType r asn1Kind) |> Seq.exists(fun x -> x = t.Type) with
@@ -235,14 +235,14 @@ let handlNullTerminate (t:ITree) =
         match tp.GetChild(0).Type with
         | acnParser.BitStringLiteral    ->
             match bitPattern.Length <> 8 with
-            | true  -> raise(SemanticError(tp.Location, sprintf "ternination-patern value must be a byte"  ))
+            | true  -> raise(SemanticError(tp.Location, sprintf "termination-pattern value must be a byte"  ))
             | false ->
                 bitPattern.ToCharArray() |> 
                 Seq.fold(fun (p,cs) c -> if c='0' then (p/2,cs) else (p/2,p+cs) ) (128, 0) 
                 |> snd |> byte
         | acnParser.OctectStringLiteral ->
             match bitPattern.Length <> 2 with
-            | true  -> raise(SemanticError(tp.Location, sprintf "ternination-patern value must be a byte"  ))
+            | true  -> raise(SemanticError(tp.Location, sprintf "termination-pattern value must be a byte"  ))
             | false ->
                 System.Byte.Parse(bitPattern, System.Globalization.NumberStyles.AllowHexSpecifier)
         | _     ->  raise(BugErrorException("HandleAcnProperty: Neither BitStringLiteral or OctectStringLiteral"))

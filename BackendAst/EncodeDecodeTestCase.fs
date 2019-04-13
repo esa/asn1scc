@@ -27,6 +27,7 @@ type StatementKind =
     |Decode_output
     |Validate_output
     |Compare_input_output
+    |Write_bitstream_to_file
 
 
 let OptFlatMap fun1 u =
@@ -68,6 +69,7 @@ let createUperEncDecFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:A
             let decode = match l with C -> test_cases_c.Codec_Decode   | Ada -> test_cases_a.Codec_Decode
             let validateOutput = match l with C -> test_cases_c.Codec_validate_output   | Ada -> test_cases_a.Codec_validate_output
             let compareInputWithOutput = match l with C -> test_cases_c.Codec_compare_input_with_output   | Ada -> test_cases_a.Codec_compare_input_with_output
+            let write_bitstreamToFile = match l with C -> test_cases_c.Codec_write_bitstreamToFile   | Ada -> test_cases_a.Codec_write_bitstreamToFile
             let content= 
                 match stm with
                 |Encode_input           -> option {
@@ -91,7 +93,10 @@ let createUperEncDecFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:A
                                            option {
                                                 let! fname = eqFunc.isEqualFuncName
                                                 return compareInputWithOutput modName fname varName sAmberIsValid
-                                           }                
+                                           }    
+                |Write_bitstream_to_file -> option {
+                                                return write_bitstreamToFile ()
+                                            }            
             joinItems (content.orElse "") sNestedContent
 
         match hasUperEncodeFunction encFunc with
@@ -104,9 +109,10 @@ let createUperEncDecFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:A
                         match printStatements xs with
                         | None                 -> Some (printStatement x  None)
                         | Some childrenCont    -> Some (printStatement x  (Some childrenCont))
-                printStatements [Encode_input; Decode_output; Validate_output; Compare_input_output]
+                printStatements [Encode_input; Decode_output; Validate_output; Compare_input_output; Write_bitstream_to_file]
 
-            let func = printCodec_body modName funcName (typeDefinition.longTypedefName l) sStar varName sEnc (sNestedStatements.orElse "")
+            let func = 
+                printCodec_body modName funcName (typeDefinition.longTypedefName l) sStar varName "" (sNestedStatements.orElse "")
             let funcDef = printCodec_body_header funcName  modName (typeDefinition.longTypedefName l) sStar varName
             let ret = 
                 {
@@ -144,6 +150,7 @@ let createAcnEncDecFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:As
                 let decode = match l with C -> test_cases_c.Codec_Decode   | Ada -> test_cases_a.Codec_Decode
                 let validateOutput = match l with C -> test_cases_c.Codec_validate_output   | Ada -> test_cases_a.Codec_validate_output
                 let compareInputWithOutput = match l with C -> test_cases_c.Codec_compare_input_with_output   | Ada -> test_cases_a.Codec_compare_input_with_output
+                let write_bitstreamToFile = match l with C -> test_cases_c.Codec_write_bitstreamToFile   | Ada -> test_cases_a.Codec_write_bitstreamToFile
                 let content= 
                     match stm with
                     |Encode_input           -> option {
@@ -168,6 +175,9 @@ let createAcnEncDecFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:As
                                                     let! fname = eqFunc.isEqualFuncName
                                                     return compareInputWithOutput modName fname varName sAmberIsValid
                                                }                
+                    |Write_bitstream_to_file -> option {
+                                                    return write_bitstreamToFile ()
+                                                }            
                 joinItems (content.orElse "") sNestedContent
 
             match hasAcnEncodeFunction encFunc t.acnParameters with
@@ -181,7 +191,7 @@ let createAcnEncDecFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:As
                             | None                 -> Some (printStatement x  None)
                             | Some childrenCont    -> Some (printStatement x  (Some childrenCont))
 
-                    printStatements [Encode_input; Decode_output; Validate_output; Compare_input_output]
+                    printStatements [Encode_input; Decode_output; Validate_output; Compare_input_output; Write_bitstream_to_file]
 
                 let func = printCodec_body modName funcName (typeDefinition.longTypedefName l) sStar varName sEnc (sNestedStatements.orElse "")
                 let funcDef = printCodec_body_header funcName modName (typeDefinition.longTypedefName l) sStar varName
@@ -246,6 +256,7 @@ let createXerEncDecFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:As
                                                 let! fname = eqFunc.isEqualFuncName
                                                 return compareInputWithOutput modName fname varName sAmberIsValid
                                            }                
+                |Write_bitstream_to_file -> None            
             joinItems (content.orElse "") sNestedContent
 
         match hasXerEncodeFunction encFunc with
@@ -280,7 +291,7 @@ Automatic Test case values
 
 
 
-let foldGenericCon (l:ProgrammingLanguage) (c:GenericConstraint<'v>)  =
+let foldGenericCon  (c:GenericConstraint<'v>)  =
     foldGenericConstraint
         (fun e1 e2 b s      -> e1@e2, s)
         (fun e1 e2 s        -> e1@e2, s)
@@ -327,7 +338,7 @@ let foldSizableConstraint  (c:SizableTypeConstraint<'v>) =
 
 let IntegerAutomaticTestCaseValues (r:Asn1AcnAst.AstRoot)  (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Integer) =
     let orig = o.AllCons
-    let allCons = DAstValidate.getIntSimplifiedConstraints r o.isUnsigned o.AllCons
+    let allCons = DastValidate2.getIntSimplifiedConstraints r o.isUnsigned o.AllCons
     let min = r.args.IntMin o.isUnsigned
     let max = r.args.IntMax o.isUnsigned
     let getNext a = match a < max with true -> a + 1I | false -> max
@@ -377,21 +388,25 @@ let BooleanAutomaticTestCaseValues (r:Asn1AcnAst.AstRoot)  (t:Asn1AcnAst.Asn1Typ
     
 
 let ObjectIdentifierAutomaticTestCaseValues (r:Asn1AcnAst.AstRoot)  (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.ObjectIdentifier) =
-    [[0I; 1I]; [0I .. r.args.objectIdentifierMaxLength - 1I]]
+    let sv = o.AllCons |> List.map(fun c -> foldGenericCon  c ) |> List.collect id
+    match sv with
+    | []    -> [[0I; 1I]; [0I .. r.args.objectIdentifierMaxLength - 1I]]
+    | _     -> sv |> List.map (fun (resLis,_) -> resLis |> List.map(fun c -> DAstUtilFunctions.emitComponent c |> fst))
+    
 
 
 let StringAutomaticTestCaseValues (r:Asn1AcnAst.AstRoot)  (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.StringType) =
     let maxItems = 32767I
-    match o.minSize > maxItems with
+    match o.minSize.uper > maxItems with
     | true  -> []   // the generated string will be very large
     | false ->  
         match o.uperCharSet |> Seq.filter(fun c -> not (System.Char.IsControl c)) |> Seq.toList with
         | chr::_    -> 
-            let s1 = System.String(chr, int o.minSize) 
-            match o.minSize = o.maxSize  || o.maxSize > maxItems with
+            let s1 = System.String(chr, int o.minSize.uper) 
+            match o.minSize.uper = o.maxSize.uper || o.maxSize.uper > maxItems with
             | true  -> [s1] 
             | false ->
-                let s2 = System.String(chr, int o.maxSize) 
+                let s2 = System.String(chr, int o.maxSize.uper) 
                 [s1;s2]
         | []        -> []
 
@@ -400,14 +415,14 @@ let OctetStringAutomaticTestCaseValues (r:Asn1AcnAst.AstRoot)  (t:Asn1AcnAst.Asn
     let maxItems = 70000I
     match valsFromSingleValueConstraints with
     | []    ->
-        match o.minSize > maxItems with
+        match o.minSize.uper > maxItems with
         | true  -> []   // the generated string will be very large
         | false ->  
-            let s1 = [1 .. int o.minSize] |> List.map (fun i -> 0uy)
-            match o.minSize = o.maxSize  || o.maxSize > maxItems with
+            let s1 = [1 .. int o.minSize.uper] |> List.map (fun i -> 0uy)
+            match o.minSize.uper = o.maxSize.uper  || o.maxSize.uper > maxItems with
             | true  -> [s1] 
             | false ->
-                let s2 = [1 .. int o.maxSize] |> List.map (fun i -> 0uy)
+                let s2 = [1 .. int o.maxSize.uper] |> List.map (fun i -> 0uy)
                 [s1;s2]
     | _     -> valsFromSingleValueConstraints
 
@@ -416,27 +431,27 @@ let BitStringAutomaticTestCaseValues (r:Asn1AcnAst.AstRoot)  (t:Asn1AcnAst.Asn1T
     let maxItems = 70000I
     match valsFromSingleValueConstraints with
     | []    ->
-        match o.minSize > maxItems with
+        match o.minSize.uper > maxItems with
         | true  -> []   // the generated string will be very large
         | false ->  
-            let s1 = System.String('0', int o.minSize)
-            match o.minSize = o.maxSize  || o.maxSize > maxItems with
+            let s1 = System.String('0', int o.minSize.uper)
+            match o.minSize.uper = o.maxSize.uper  || o.maxSize.uper > maxItems with
             | true  -> [s1] 
             | false ->
-                let s2 = System.String('0', int o.maxSize)
+                let s2 = System.String('0', int o.maxSize.uper)
                 [s1;s2]
     | _     -> valsFromSingleValueConstraints
 let SequenceOfAutomaticTestCaseValues (r:Asn1AcnAst.AstRoot)  (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.SequenceOf) (childType:Asn1Type) =
     let maxItems = 1000I
-    match o.minSize > maxItems with
+    match o.minSize.uper > maxItems with
     | true  -> []   // the generated string will be very large
     | false ->  
         let generateValue (childVal:Asn1Value) =
-            let s1 = [1 .. int o.minSize] |> List.map (fun i -> childVal)
-            match o.minSize = o.maxSize  || o.maxSize > maxItems with
+            let s1 = [1 .. int o.minSize.uper] |> List.map (fun i -> childVal)
+            match o.minSize.uper = o.maxSize.uper  || o.maxSize.uper > maxItems with
             | true  -> [s1] 
             | false ->
-                let s2 = [1 .. int o.maxSize] |> List.map (fun i -> childVal)
+                let s2 = [1 .. int o.maxSize.uper] |> List.map (fun i -> childVal)
                 [s1;s2]
         childType.automaticTestCasesValues |> List.collect generateValue
 (*

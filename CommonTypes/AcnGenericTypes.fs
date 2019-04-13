@@ -53,7 +53,7 @@ with
 // Integer acn properties
 type AcnIntSizeProperty =
     | Fixed                 of BigInteger
-    | IntNullTerminated     of byte      //termination character when encoding is ASCII
+    | IntNullTerminated     of byte list      //termination character when encoding is ASCII
 
 type AcnIntEncoding =
     | PosInt
@@ -63,6 +63,13 @@ type AcnIntEncoding =
 
 type MappingFunction  = 
     | MappingFunction of StringLoc
+
+type PostEncodingFunction  = 
+    | PostEncodingFunction of StringLoc
+
+type PreDecodingFunction  = 
+    | PreDecodingFunction of StringLoc
+
 
 type IntegerAcnProperties = {
     encodingProp    : AcnIntEncoding        option
@@ -87,7 +94,7 @@ type RealAcnProperties = {
 // String acn properties
 type AcnStringSizeProperty =
     | StrExternalField   of RelativePath
-    | StrNullTerminated  of byte      //termination character when encoding is ASCII
+    | StrNullTerminated  of byte list     //termination character when encoding is ASCII
 
 type AcnStringEncoding =
     | StrAscii
@@ -102,13 +109,14 @@ type SizeableAcnProperties = {
     sizeProp        : RelativePath          option
 }
 
-type PATERN_PROP_VALUE =
-    | PATERN_PROP_BITSTR_VALUE of StringLoc
-    | PATERN_PROP_OCTSTR_VALUE of ByteLoc list
+type PATTERN_PROP_VALUE =
+    | PATTERN_PROP_BITSTR_VALUE of StringLoc
+    | PATTERN_PROP_OCTSTR_VALUE of ByteLoc list
 
 
 type NullTypeAcnProperties = {
-    encodingPattern     : PATERN_PROP_VALUE             option
+    encodingPattern     : PATTERN_PROP_VALUE            option
+    savePosition        : bool
 }
 
 type ObjectIdTypeAcnProperties = {
@@ -127,6 +135,11 @@ type BooleanAcnProperties = {
 
 type ChoiceAcnProperties = {
     enumDeterminant     : RelativePath              option
+}
+
+type SequenceAcnProperties = {
+    postEncodingFunction    : PostEncodingFunction option
+    preDecodingFunction     : PreDecodingFunction option
 }
 
 
@@ -201,15 +214,18 @@ type  GenericAcnProperty =
     | SIZE              of GenSizeProperty
     | ALIGNTONEXT       of AcnAligment
     | ENCODE_VALUES   
+    | SAVE_POSITION   
     | PRESENT_WHEN      of GenericAcnPresentWhenCondition list
     | TRUE_VALUE        of StringLoc
     | FALSE_VALUE       of StringLoc
-    | PATTERN           of PATERN_PROP_VALUE
+    | PATTERN           of PATTERN_PROP_VALUE
     | CHOICE_DETERMINANT of RelativePath
     | ENDIANNES         of AcnEndianness
     | ENUM_SET_VALUE    of IntLoc
-    | TERMINATION_PATTERN of byte
+    | TERMINATION_PATTERN of byte list
     | MAPPING_FUNCTION  of StringLoc
+    | POST_ENCODING_FUNCTION of StringLoc
+    | PRE_DECODING_FUNCTION of StringLoc
 
 
 

@@ -20,6 +20,22 @@ let getFuncName (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec:CommonType
 let callBaseTypeFunc l = match l with C -> uper_c.call_base_type_func | Ada -> uper_a.call_base_type_func
 
 
+let nestChildItems (l:ProgrammingLanguage) (codec:CommonTypes.Codec) children = DAstUtilFunctions.nestItems l "result" children
+//    let printChild (content:string) (sNestedContent:string option) = 
+//        match sNestedContent with
+//        | None  -> content
+//        | Some c-> 
+//            match l with
+//            | C        -> equal_c.JoinItems content sNestedContent
+//            | Ada      -> uper_a.JoinItems content sNestedContent
+//    let rec printChildren children : Option<string> = 
+//        match children with
+//        |[]     -> None
+//        |x::xs  -> 
+//            match printChildren xs with
+//            | None                 -> Some (printChild x  None)
+//            | Some childrenCont    -> Some (printChild x  (Some childrenCont))
+//    printChildren children
 
 //TODO
 //1.Decode functions (and perhaps encode function) muct check if the decode value is within the constraints (currently, implemented only for Integers and for case IntUnconstraintMax )
@@ -55,11 +71,11 @@ let internal createUperFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (
                     | Some bodyResult   -> bodyResult.funcBody, bodyResult.errCodes, bodyResult.localVariables
 
                 let lvars = bodyResult_localVariables |> List.map(fun (lv:LocalVariable) -> lv.GetDeclaration l) |> Seq.distinct
-                let func = Some(EmitTypeAssignment_primitive varName sStar funcName isValidFuncName  (typeDefinition.longTypedefName l) lvars  bodyResult_funcBody soSparkAnnotations sInitilialExp codec)
+                let func = Some(EmitTypeAssignment_primitive varName sStar funcName isValidFuncName  (typeDefinition.longTypedefName l) lvars  bodyResult_funcBody soSparkAnnotations sInitilialExp (t.uperMaxSizeInBits = 0I) codec)
                 
                 //let errCodes = bodyResult.errCodes
                 let errCodStr = errCodes |> List.map(fun x -> (EmitTypeAssignment_def_err_code x.errCodeName) (BigInteger x.errCodeValue))
-                let funcDef = Some(EmitTypeAssignment_primitive_def varName sStar funcName  (typeDefinition.longTypedefName l) errCodStr (t.uperMaxSizeInBits = 0I) (BigInteger (ceil ((double t.uperMaxSizeInBits)/8.0))) ( t.uperMaxSizeInBits) soSparkAnnotations codec)
+                let funcDef = Some(EmitTypeAssignment_primitive_def varName sStar funcName  (typeDefinition.longTypedefName l) errCodStr (t.uperMaxSizeInBits = 0I) (BigInteger (ceil ((double t.uperMaxSizeInBits)/8.0))) ( t.uperMaxSizeInBits) soSparkAnnotations (t.uperMaxSizeInBits = 0I) codec)
                 func, funcDef
 
 
@@ -88,7 +104,7 @@ let getIntfuncBodyByCons (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec:C
     let rootCons = cons |> List.choose(fun x -> match x with RangeRootConstraint(a) |RangeRootConstraint2(a,_) -> Some(x) |_ -> None) 
 
     let checkExp = 
-        match (DAstValidate.createIntegerFunctionByCons r l isUnsigned allCons) with
+        match (DastValidate2.createIntegerFunctionByCons r l isUnsigned allCons) with
         | None  ->  None
         | Some expFunc -> Some (expFunc p)
 
@@ -114,11 +130,15 @@ let getIntfuncBodyByCons (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec:C
         | []                            -> IntBod uperRange false
         | (RangeRootConstraint a)::rest      -> 
             let uperR    = uPER.getIntTypeConstraintUperRange [a]  errLoc
-            let cc = DAstValidate.foldRangeCon l (fun v -> v.ToString()) (fun v -> v.ToString()) p a
+            let cc,_ = DastValidate2.integerConstraint2ValidationCodeBlock r l isUnsigned a 0
+            let cc = DastValidate2.ValidationBlockAsStringExpr (cc p) 
+            //let cc = DAstValidate.foldRangeCon l (fun v -> v.ToString()) (fun v -> v.ToString()) p a
             IntRootExt pp (getValueByConstraint uperR) cc (IntBod uperR true) errCode.errCodeName codec
         | (RangeRootConstraint2(a,_))::rest  -> 
             let uperR    = uPER.getIntTypeConstraintUperRange [a]  errLoc
-            let cc = DAstValidate.foldRangeCon l (fun v -> v.ToString()) (fun v -> v.ToString()) p a
+            //let cc = DAstValidate.foldRangeCon l (fun v -> v.ToString()) (fun v -> v.ToString()) p a
+            let cc,_ = DastValidate2.integerConstraint2ValidationCodeBlock r l isUnsigned a 0
+            let cc = DastValidate2.ValidationBlockAsStringExpr (cc p) 
             IntRootExt2 pp (getValueByConstraint uperR) cc (IntBod uperR true) errCode.errCodeName codec 
         | _                             -> raise(BugErrorException "")
     {UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = []}    
@@ -133,55 +153,6 @@ let createIntegerFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec:
             let dummy = 0
             ()
         getIntfuncBodyByCons r l codec o.uperRange t.Location o.isUnsigned o.cons o.AllCons errCode p
-        (*
-        let pp = match codec with CommonTypes.Encode -> p.getValue l | CommonTypes.Decode -> p.arg.getPointer l
-        let IntNoneRequired         = match l with C -> uper_c.IntNoneRequired          | Ada -> (fun p min   errCode codec -> uper_a.IntFullyConstraint p min min 0I errCode codec)
-        let IntFullyConstraintPos   = match l with C -> uper_c.IntFullyConstraintPos    | Ada -> uper_a.IntFullyConstraint
-        let IntFullyConstraint      = match l with C -> uper_c.IntFullyConstraint       | Ada -> uper_a.IntFullyConstraint
-        let IntSemiConstraintPos    = match l with C -> uper_c.IntSemiConstraintPos     | Ada -> uper_a.IntSemiConstraint
-        let IntSemiConstraint       = match l with C -> uper_c.IntSemiConstraint        | Ada -> uper_a.IntSemiConstraint
-        let IntUnconstraint         = match l with C -> uper_c.IntUnconstraint          | Ada -> uper_a.IntUnconstraint
-        let IntUnconstraintMax      = match l with C -> uper_c.IntUnconstraintMax       | Ada -> uper_a.IntUnconstraintMax
-        let IntRootExt              = match l with C -> uper_c.IntRootExt               | Ada -> uper_a.IntRootExt
-        let IntRootExt2             = match l with C -> uper_c.IntRootExt2              | Ada -> uper_a.IntRootExt2
-        let rootCons = o.cons |> List.choose(fun x -> match x with RangeRootConstraint(a) |RangeRootConstraint2(a,_) -> Some(x) |_ -> None) 
-        let checkExp = 
-            match isValidFunc with
-            | None  ->  None
-            | Some fnc -> 
-                match fnc.funcExp with
-                | None  -> None
-                | Some expFunc -> (Some (expFunc (p.getValue l)))
-        let IntBod uperRange extCon =
-            match uperRange with
-            | Concrete(min, max) when min=max                    -> IntNoneRequired (p.getValue l) min   errCode.errCodeName codec 
-            | Concrete(min, max) when min>=0I && (not extCon)    -> IntFullyConstraintPos pp min max (GetNumberOfBitsForNonNegativeInteger (max-min))  errCode.errCodeName codec
-            | Concrete(min, max)                                 -> IntFullyConstraint pp min max (GetNumberOfBitsForNonNegativeInteger (max-min))  errCode.errCodeName codec
-            | PosInf(a)  when a>=0I && (not extCon)  -> IntSemiConstraintPos pp a  errCode.errCodeName codec
-            | PosInf(a)               -> IntSemiConstraint pp a  errCode.errCodeName codec
-            | NegInf(max)             -> IntUnconstraintMax pp max checkExp errCode.errCodeName codec
-            | Full                    -> IntUnconstraint pp errCode.errCodeName false codec
-
-        let getValueByConstraint uperRange =
-            match uperRange with
-            | Concrete(a, _)  -> a
-            | PosInf(a)       -> a
-            | NegInf(b)       -> b
-            | Full            -> 0I
-        let funcBodyContent = 
-            match rootCons with
-            | []                            -> IntBod o.uperRange false
-            | (RangeRootConstraint a)::rest      -> 
-                let uperR    = uPER.getIntTypeConstraintUperRange [a]  t.Location
-                let cc = DAstValidate.foldRangeCon l (fun v -> v.ToString()) (fun v -> v.ToString()) (p.getValue l) a
-                IntRootExt pp (getValueByConstraint uperR) cc (IntBod uperR true) errCode.errCodeName codec
-            | (RangeRootConstraint2(a,_))::rest  -> 
-                let uperR    = uPER.getIntTypeConstraintUperRange [a]  t.Location
-                let cc = DAstValidate.foldRangeCon l (fun v -> v.ToString()) (fun v -> v.ToString()) (p.getValue l) a
-                IntRootExt2 pp (getValueByConstraint uperR) cc (IntBod uperR true) errCode.errCodeName codec 
-            | _                             -> raise(BugErrorException "")
-        {UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = []}    
-        *)
     let soSparkAnnotations = None
     createUperFunction r l codec t typeDefinition baseTypeUperFunc  isValidFunc  (fun e p -> Some (funcBody e p)) soSparkAnnotations us
 
@@ -221,7 +192,8 @@ let createObjectIdentifierFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage
 
 let createNullTypeFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.NullType) (typeDefinition:TypeDefintionOrReference) (baseTypeUperFunc : UPerFunction option) (isValidFunc: IsValidFunction option) (us:State)  =
     let soSparkAnnotations = None
-    createUperFunction r l codec t typeDefinition baseTypeUperFunc  isValidFunc  (fun e p -> None) soSparkAnnotations us
+    let funcBody (errCode:ErroCode) (p:CallerScope) = None
+    createUperFunction r l codec t typeDefinition baseTypeUperFunc  isValidFunc  funcBody soSparkAnnotations us
 
 
 let createEnumeratedFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Enumerated) (typeDefinition:TypeDefintionOrReference)  (baseTypeUperFunc : UPerFunction option) (isValidFunc: IsValidFunction option) (us:State)  =
@@ -244,37 +216,144 @@ let createEnumeratedFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (cod
     createUperFunction r l codec t typeDefinition baseTypeUperFunc  isValidFunc  (fun e p -> Some (funcBody e p)) soSparkAnnotations us
 
 
-let handleFragmentation (l:ProgrammingLanguage) (p:CallerScope) (codec:CommonTypes.Codec) (errCode:ErroCode) ii uperMaxSizeInBits (minSize:BigInteger) (maxSize:BigInteger) internalItem_funcBody nIntItemMaxSize bIsBitStringType bIsAsciiString=
-    let fragmentation   = match l with C -> uper_c.Fragmentation_sqf       | Ada -> uper_a.Fragmentation_sqf
+let C64K = BigInteger 0x10000
+let C48K = BigInteger 0xC000
+let C32K = BigInteger 0x8000
+let C16K = BigInteger 0x4000
+let C_127 = BigInteger 0x7F
+
+type FragmentationParts = {
+    nBlocks64K :  BigInteger
+    has48KBlock : bool
+    has32KBlock : bool
+    has16KBlock : bool
+    nRemainingItemsVar : BigInteger
+}
+
+let FragmentationParts (size:BigInteger) =
+    let nBlocks64K = size / C64K
+    let nRemainingItemsVar1 = size % C64K
+    let has48KBlock = nRemainingItemsVar1 >= C48K
+
+    let nRemainingItemsVar2 = if has48KBlock then (nRemainingItemsVar1 - C48K) else nRemainingItemsVar1
+    let has32KBlock = nRemainingItemsVar2 >= C32K
+
+    let nRemainingItemsVar3 = if has32KBlock then (nRemainingItemsVar2 - C32K) else nRemainingItemsVar2
+    let has16KBlock = nRemainingItemsVar3 >= C16K
+
+    let nRemainingItemsVar = if has16KBlock then (nRemainingItemsVar3 - C16K) else nRemainingItemsVar3
+
+    { nBlocks64K = nBlocks64K; has48KBlock = has48KBlock; has32KBlock = has32KBlock; has16KBlock = has16KBlock; nRemainingItemsVar = nRemainingItemsVar}
+
+
+let handleFixedSizeFragmentation (l:ProgrammingLanguage) (p:CallerScope) (codec:CommonTypes.Codec) (errCode:ErroCode) ii uperMaxSizeInBits (fixSize:BigInteger) internalItem_funcBody nIntItemMaxSize bIsBitStringType bIsAsciiString=
+    let fixedSize_Fragmentation_sqf_64K          = match l with C -> uper_c.FixedSize_Fragmentation_sqf_64K       | Ada -> uper_a.FixedSize_Fragmentation_sqf_64K
+    let fixedSize_Fragmentation_sqf_small_block  = match l with C -> uper_c.FixedSize_Fragmentation_sqf_small_block       | Ada -> uper_a.FixedSize_Fragmentation_sqf_small_block
+    let fixedSize_Fragmentation_sqf_remaining  = match l with C -> uper_c.FixedSize_Fragmentation_sqf_remaining       | Ada -> uper_a.FixedSize_Fragmentation_sqf_remaining
+    let fixedSize_Fragmentation_sqf            = match l with C -> uper_c.FixedSize_Fragmentation_sqf       | Ada -> uper_a.FixedSize_Fragmentation_sqf  
     let sRemainingItemsVar = sprintf "%s%d" "nRemainingItemsVar" ii
     let sCurBlockSize      = sprintf "%s%d" "nCurBlockSize" ii
     let sBlockIndex        = sprintf "%s%d" "nBlockIndex" ii
     let sCurOffset         = sprintf "%s%d" "nCurOffset" ii
-    let sBLJ               = sprintf "%s%d" "nBLJ" ii
-    let sLengthTmp         = sprintf "%s%d" "nLengthTmp" ii
     let sBLI               = sprintf "i%d" ii
+    //let lv = SequenceOfIndex (ii, None)
+    let r = FragmentationParts fixSize
+    //let nBlocks64K = fixSize / C64K
+    let parts =
+        let part = fixedSize_Fragmentation_sqf_64K p.arg.p (p.arg.getAcces l) sCurOffset sCurBlockSize sBlockIndex r.nBlocks64K internalItem_funcBody sBLI sRemainingItemsVar bIsBitStringType errCode.errCodeName codec
+        [part]
+    let smallBlockParts = 
+        [(r.has48KBlock, l.toHex 195, C48K);(r.has32KBlock, l.toHex 194, C32K);(r.has16KBlock, l.toHex 193, C16K)] |>  //0xC3, 0xC2, 0xC1
+        List.filter (fun (a,_,_) -> a) |>
+        List.map (fun (_, sBlockId, nBlockSize) -> fixedSize_Fragmentation_sqf_small_block p.arg.p (p.arg.getAcces l) internalItem_funcBody nBlockSize sBlockId sCurOffset sCurBlockSize sBLI sRemainingItemsVar bIsBitStringType errCode.errCodeName codec)
+    let parts = parts@smallBlockParts
+
+    //let nRemainingItemsVar1 = fixSize % C64K
+    //let has48KBlock = nRemainingItemsVar1 >= C48K
+//    let parts = 
+//        match r.has48KBlock with
+//        | true  -> 
+//            let sBlockId           = if l = C then "0xC3" else "16#C3#"
+//            let part = fixedSize_Fragmentation_sqf_small_block p.arg.p (p.arg.getAcces l) internalItem_funcBody C48K sBlockId sCurOffset sCurBlockSize sBLI sRemainingItemsVar bIsBitStringType errCode.errCodeName codec
+//            parts@[part]
+//        | false  -> parts
+//
+//    //let nRemainingItemsVar2 = if has48KBlock then (nRemainingItemsVar1 - C48K) else nRemainingItemsVar1
+//    //let has32KBlock = nRemainingItemsVar2 >= C32K
+//    let parts = 
+//        match r.has32KBlock with
+//        | true  -> 
+//            let sBlockId           = if l = C then "0xC2" else "16#C2#"
+//            let part = fixedSize_Fragmentation_sqf_small_block p.arg.p (p.arg.getAcces l) internalItem_funcBody C32K sBlockId sCurOffset sCurBlockSize sBLI sRemainingItemsVar bIsBitStringType errCode.errCodeName codec
+//            parts@[part]
+//        | false  -> parts
+//
+//
+//    //let nRemainingItemsVar3 = if has32KBlock then (nRemainingItemsVar2 - C32K) else nRemainingItemsVar2
+//    //let has16KBlock = nRemainingItemsVar3 >= C16K
+//    let parts = 
+//        match r.has16KBlock with
+//        | true  -> 
+//            let sBlockId           = if l = C then "0xC1" else "16#C1#"
+//            let part = fixedSize_Fragmentation_sqf_small_block p.arg.p (p.arg.getAcces l) internalItem_funcBody C16K sBlockId sCurOffset sCurBlockSize sBLI sRemainingItemsVar bIsBitStringType errCode.errCodeName codec
+//            parts@[part]
+//        | false  -> parts
+//
+
+    //let nRemainingItemsVar = if has16KBlock then (nRemainingItemsVar3 - C16K) else nRemainingItemsVar3
+    let bRemainingItemsWithinByte = r.nRemainingItemsVar <= C_127
+    let parts=
+        match r.nRemainingItemsVar > 0I with
+        | true  ->
+            let part = fixedSize_Fragmentation_sqf_remaining p.arg.p (p.arg.getAcces l) internalItem_funcBody bRemainingItemsWithinByte r.nRemainingItemsVar sCurOffset sBLI sRemainingItemsVar bIsBitStringType errCode.errCodeName codec
+            parts@[part]
+        | false -> parts
 
     let createLv name =
         match l with Ada -> IntegerLocalVariable(name ,None) | C -> Asn1SIntLocalVariable(name,None)
 
-    let fragmentationVars = [createLv sRemainingItemsVar; createLv sCurBlockSize; createLv sCurOffset ]
+    let fragmentationVars = [createLv sCurBlockSize; createLv sCurOffset]
+    let fragmentationVars = fragmentationVars |> List.addIf (codec = Decode) (createLv sRemainingItemsVar)
+    let fragmentationVars = fragmentationVars |> List.addIf (l = C) (createLv sBlockIndex)
+    //let fragmentationVars = fragmentationVars |> List.addIf (l = C) (lv)
+    let singleNestedPart  = nestChildItems l codec parts |> Option.toList
+    fixedSize_Fragmentation_sqf singleNestedPart  codec, fragmentationVars
 
-    let fragmentationVars = fragmentationVars |> List.addIf (codec = Encode && l = Ada) (createLv sBLJ)
-    let fragmentationVars = fragmentationVars |> List.addIf (codec = Encode) (createLv sBlockIndex)
-    let fragmentationVars = fragmentationVars |> List.addIf (codec = Decode && minSize <> maxSize) (createLv sLengthTmp)
-    fragmentation p.arg.p (p.arg.getAcces l) internalItem_funcBody  nIntItemMaxSize ( minSize) ( maxSize) uperMaxSizeInBits (minSize <> maxSize) errCode.errCodeName sRemainingItemsVar sCurBlockSize sBlockIndex sCurOffset sBLJ sBLI sLengthTmp bIsBitStringType bIsAsciiString codec, fragmentationVars
+let handleFragmentation (l:ProgrammingLanguage) (p:CallerScope) (codec:CommonTypes.Codec) (errCode:ErroCode) ii uperMaxSizeInBits (minSize:BigInteger) (maxSize:BigInteger) internalItem_funcBody nIntItemMaxSize bIsBitStringType bIsAsciiString=
+    match minSize = maxSize with
+    | true ->
+        handleFixedSizeFragmentation l p codec errCode ii uperMaxSizeInBits minSize internalItem_funcBody nIntItemMaxSize bIsBitStringType bIsAsciiString
+    | false ->
+        let fragmentation   = match l with C -> uper_c.Fragmentation_sqf       | Ada -> uper_a.Fragmentation_sqf
+        let sRemainingItemsVar = sprintf "%s%d" "nRemainingItemsVar" ii
+        let sCurBlockSize      = sprintf "%s%d" "nCurBlockSize" ii
+        let sBlockIndex        = sprintf "%s%d" "nBlockIndex" ii
+        let sCurOffset         = sprintf "%s%d" "nCurOffset" ii
+        let sBLJ               = sprintf "%s%d" "nBLJ" ii
+        let sLengthTmp         = sprintf "%s%d" "nLengthTmp" ii
+        let sBLI               = sprintf "i%d" ii
+        //let lv = SequenceOfIndex (ii, None)
 
+        let createLv name =
+            match l with Ada -> IntegerLocalVariable(name ,None) | C -> Asn1SIntLocalVariable(name,None)
+
+        let fragmentationVars = [createLv sRemainingItemsVar; createLv sCurBlockSize; createLv sCurOffset ]
+
+        let fragmentationVars = fragmentationVars |> List.addIf (codec = Encode && l = Ada) (createLv sBLJ)
+        let fragmentationVars = fragmentationVars |> List.addIf (codec = Encode) (createLv sBlockIndex)
+        let fragmentationVars = fragmentationVars |> List.addIf (codec = Decode && minSize <> maxSize) (createLv sLengthTmp)
+        fragmentation p.arg.p (p.arg.getAcces l) internalItem_funcBody  nIntItemMaxSize ( minSize) ( maxSize) uperMaxSizeInBits (minSize <> maxSize) errCode.errCodeName sRemainingItemsVar sCurBlockSize sBlockIndex sCurOffset sBLJ sBLI sLengthTmp bIsBitStringType bIsAsciiString codec, fragmentationVars
 
 let createIA5StringFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.StringType) (typeDefinition:TypeDefintionOrReference)   (baseTypeUperFunc : UPerFunction option) (isValidFunc: IsValidFunction option) (us:State)  =
     let ii = t.id.SeqeuenceOfLevel + 1
     let i = sprintf "i%d" ii
-    let lv = SequenceOfIndex (t.id.SeqeuenceOfLevel + 1, None)
+    let lv = SequenceOfIndex (ii, None)
     let charIndex =
         match l with
         | C     -> []
         | Ada   -> [IntegerLocalVariable ("charIndex", None)]
     let nStringLength =
-        match o.minSize = o.maxSize with
+        match o.minSize.uper = o.maxSize.uper with
         | true  -> []
         | false ->
             match l with
@@ -297,107 +376,119 @@ let createIA5StringFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (code
                 let nBits = GetNumberOfBitsForNonNegativeInteger (BigInteger (o.uperCharSet.Length-1))
                 let arrAsciiCodes = o.uperCharSet |> Array.map(fun x -> BigInteger (System.Convert.ToInt32 x))
                 InternalItem_string_with_alpha p.arg.p errCode.errCodeName td i (BigInteger (o.uperCharSet.Length-1)) arrAsciiCodes (BigInteger (o.uperCharSet.Length)) nBits  codec
-        let nSizeInBits = GetNumberOfBitsForNonNegativeInteger ( (o.maxSize - o.minSize))
+        let nSizeInBits = GetNumberOfBitsForNonNegativeInteger ( (o.maxSize.uper - o.minSize.uper))
         let funcBodyContent,localVariables = 
             match o.minSize with
-            | _ when o.maxSize < 65536I && o.maxSize=o.minSize  -> str_FixedSize p.arg.p typeDefinitionName i internalItem ( o.minSize) nBits nBits 0I codec , charIndex@nStringLength
-            | _ when o.maxSize < 65536I && o.maxSize<>o.minSize  -> str_VarSize p.arg.p typeDefinitionName i internalItem ( o.minSize) ( o.maxSize) nSizeInBits nBits nBits 0I codec , charIndex@nStringLength
+            | _ when o.maxSize.uper < 65536I && o.maxSize.uper=o.minSize.uper  -> str_FixedSize p.arg.p typeDefinitionName i internalItem ( o.minSize.uper) nBits nBits 0I codec , lv::charIndex@nStringLength
+            | _ when o.maxSize.uper < 65536I && o.maxSize.uper<>o.minSize.uper  -> str_VarSize p.arg.p typeDefinitionName i internalItem ( o.minSize.uper) ( o.maxSize.uper) nSizeInBits nBits nBits 0I codec , lv::charIndex@nStringLength
             | _                                                -> 
-                let funcBodyContent,localVariables = handleFragmentation l p codec errCode ii ( o.uperMaxSizeInBits) o.minSize o.maxSize internalItem nBits false true
-                funcBodyContent,charIndex@localVariables
+                let funcBodyContent,localVariables = handleFragmentation l p codec errCode ii ( o.uperMaxSizeInBits) o.minSize.uper o.maxSize.uper internalItem nBits false true
+                let localVariables = localVariables |> List.addIf (l = C || o.maxSize.uper<>o.minSize.uper) (lv)
+                funcBodyContent, charIndex@localVariables
 
-        {UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = lv::localVariables}    
+        {UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = localVariables}    
     let soSparkAnnotations = 
         match l with
         | C     -> None
         | Ada   ->
             Some(uper_a.annotations (typeDefinition.longTypedefName l) true isValidFunc.IsSome true true codec)
     createUperFunction r l codec t typeDefinition baseTypeUperFunc  isValidFunc  (fun e p -> Some (funcBody e p)) soSparkAnnotations  us
+
+
+let createOctetStringFunction_funcBody (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec:CommonTypes.Codec) (id : ReferenceToType) (typeDefinition:TypeDefintionOrReference) isFixedSize  uperMaxSizeInBits minSize maxSize (errCode:ErroCode) (p:CallerScope) = 
+    let ii = id.SeqeuenceOfLevel + 1;
+    let i = sprintf "i%d" ii
+    let lv = SequenceOfIndex (id.SeqeuenceOfLevel + 1, None)
+
+    let typeDefinitionName = typeDefinition.longTypedefName l //getTypeDefinitionName t.id.tasInfo typeDefinition
+
+    let InternalItem_oct_str = match l with C -> uper_c.InternalItem_oct_str        | Ada -> uper_a.InternalItem_oct_str
+    let fixedSize       = match l with C -> uper_c.octect_FixedSize        | Ada -> uper_a.octect_FixedSize
+    let varSize         = match l with C -> uper_c.octect_VarSize          | Ada -> uper_a.octect_VarSize
+    let fragmentation   = match l with C -> uper_a.Fragmentation_sqf       | Ada -> uper_a.Fragmentation_sqf
+
+    let nIntItemMaxSize = 8I
+    let internalItem = InternalItem_oct_str p.arg.p (p.arg.getAcces l) i  errCode.errCodeName codec 
+    let nSizeInBits = GetNumberOfBitsForNonNegativeInteger ( (maxSize - minSize))
+    let funcBodyContent, localVariables = 
+        let nStringLength =
+            match isFixedSize,  l, codec with
+            | true , _,_    -> []
+            | false, Ada, Encode -> []
+            | false, Ada, Decode -> [IntegerLocalVariable ("nStringLength", None)]
+            | false, C, Encode -> []
+            | false, C, Decode -> [Asn1SIntLocalVariable ("nCount", None)]
+
+        match minSize with
+        | _ when maxSize < 65536I && isFixedSize  ->  fixedSize p.arg.p typeDefinitionName i internalItem ( minSize) nIntItemMaxSize nIntItemMaxSize 0I codec , lv::nStringLength
+        | _ when maxSize < 65536I && (not isFixedSize)  -> varSize p.arg.p (p.arg.getAcces l)  typeDefinitionName i internalItem ( minSize) ( maxSize) nSizeInBits nIntItemMaxSize nIntItemMaxSize 0I errCode.errCodeName codec , lv::nStringLength
+        | _                                                -> 
+            let funcBodyContent,localVariables = handleFragmentation l p codec errCode ii ( uperMaxSizeInBits) minSize maxSize internalItem nIntItemMaxSize false false
+            let localVariables = localVariables |> List.addIf (l = C || (not isFixedSize)) (lv)
+            funcBodyContent, localVariables
+
+    {UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = localVariables}    
 
 let createOctetStringFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type)  (o:Asn1AcnAst.OctetString) (typeDefinition:TypeDefintionOrReference)  (baseTypeUperFunc : UPerFunction option) (isValidFunc: IsValidFunction option) (us:State)  =
-    let ii = t.id.SeqeuenceOfLevel + 1;
-    let i = sprintf "i%d" ii
-    let lv = SequenceOfIndex (t.id.SeqeuenceOfLevel + 1, None)
 
+    let funcBody (errCode:ErroCode) (p:CallerScope) =
+        createOctetStringFunction_funcBody r l codec t.id  typeDefinition o.isFixedSize  o.uperMaxSizeInBits o.minSize.uper o.maxSize.uper (errCode:ErroCode) (p:CallerScope) 
 
-    let funcBody (errCode:ErroCode) (p:CallerScope) = 
-        let typeDefinitionName = typeDefinition.longTypedefName l //getTypeDefinitionName t.id.tasInfo typeDefinition
-
-        let InternalItem_oct_str = match l with C -> uper_c.InternalItem_oct_str        | Ada -> uper_a.InternalItem_oct_str
-        let fixedSize       = match l with C -> uper_c.octect_FixedSize        | Ada -> uper_a.octect_FixedSize
-        let varSize         = match l with C -> uper_c.octect_VarSize          | Ada -> uper_a.octect_VarSize
-        let fragmentation   = match l with C -> uper_a.Fragmentation_sqf       | Ada -> uper_a.Fragmentation_sqf
-
-        let nIntItemMaxSize = 8I
-        let internalItem = InternalItem_oct_str p.arg.p (p.arg.getAcces l) i  errCode.errCodeName codec 
-        let nSizeInBits = GetNumberOfBitsForNonNegativeInteger ( (o.maxSize - o.minSize))
-        let funcBodyContent, localVariables = 
-            let nStringLength =
-                match o.minSize = o.maxSize,  l, codec with
-                | true , _,_    -> []
-                | false, Ada, _ -> [IntegerLocalVariable ("nStringLength", None)]
-                | false, C, Encode -> []
-                | false, C, Decode -> [Asn1SIntLocalVariable ("nCount", None)]
-
-            match o.minSize with
-            | _ when o.maxSize < 65536I && o.maxSize=o.minSize  ->  fixedSize p.arg.p typeDefinitionName i internalItem ( o.minSize) nIntItemMaxSize nIntItemMaxSize 0I codec , nStringLength
-            | _ when o.maxSize < 65536I && o.maxSize<>o.minSize  -> varSize p.arg.p (p.arg.getAcces l)  typeDefinitionName i internalItem ( o.minSize) ( o.maxSize) nSizeInBits nIntItemMaxSize nIntItemMaxSize 0I errCode.errCodeName codec , nStringLength
-            | _                                                -> 
-                handleFragmentation l p codec errCode ii ( o.uperMaxSizeInBits) o.minSize o.maxSize internalItem nIntItemMaxSize false false
-
-        {UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = lv::localVariables}    
     let soSparkAnnotations = 
         match l with
         | C     -> None
         | Ada   ->
             Some(uper_a.annotations (typeDefinition.longTypedefName l) true isValidFunc.IsSome true true codec)
-    createUperFunction r l codec t typeDefinition baseTypeUperFunc  isValidFunc  (fun e p -> Some (funcBody e p)) soSparkAnnotations  us
+    createUperFunction r l codec t typeDefinition baseTypeUperFunc  isValidFunc  (fun e p -> Some (funcBody  e p)) soSparkAnnotations  us
+
+
+let createBitStringFunction_funcBody (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec:CommonTypes.Codec) (id : ReferenceToType) (typeDefinition:TypeDefintionOrReference) isFixedSize  uperMaxSizeInBits minSize maxSize (errCode:ErroCode) (p:CallerScope) = 
+    let ii = id.SeqeuenceOfLevel + 1;
+    let i = sprintf "i%d" (id.SeqeuenceOfLevel + 1)
+    let funcBodyContent, localVariables = 
+        match l with
+        | Ada ->
+            let nStringLength = 
+                match isFixedSize with  
+                | true  -> [] 
+                | false -> 
+                    match codec with
+                    | Encode    -> []
+                    | Decode    -> [IntegerLocalVariable ("nStringLength", None)]
+            let iVar = SequenceOfIndex (id.SeqeuenceOfLevel + 1, None)
+
+            let typeDefinitionName = typeDefinition.longTypedefName l //getTypeDefinitionName t.id.tasInfo typeDefinition
+            let nBits = 1I
+            let internalItem = uper_a.InternalItem_bit_str p.arg.p i  errCode.errCodeName codec 
+            let nSizeInBits = GetNumberOfBitsForNonNegativeInteger ( (maxSize - minSize))
+            match minSize with
+            | _ when maxSize < 65536I && isFixedSize  -> uper_a.octect_FixedSize p.arg.p typeDefinitionName i internalItem (minSize) nBits nBits 0I codec, iVar::nStringLength 
+            | _ when maxSize < 65536I && (not isFixedSize) -> uper_a.octect_VarSize p.arg.p (p.arg.getAcces l)  typeDefinitionName i internalItem ( minSize) (maxSize) nSizeInBits nBits nBits 0I errCode.errCodeName codec , iVar::nStringLength
+            | _                                                -> 
+                let funcBodyContent, fragmentationLvars = handleFragmentation l p codec errCode ii (uperMaxSizeInBits) minSize maxSize internalItem nBits true false
+                let fragmentationLvars = fragmentationLvars |> List.addIf (not isFixedSize) (iVar)
+                (funcBodyContent,fragmentationLvars)
+
+        | C ->
+            let nStringLength =
+                match isFixedSize,  codec with
+                | true , _    -> []
+                | false, Encode -> []
+                | false, Decode -> [Asn1SIntLocalVariable ("nCount", None)]
+
+            match minSize with
+            | _ when maxSize < 65536I && isFixedSize   -> uper_c.bitString_FixSize p.arg.p (p.arg.getAcces l) (minSize) errCode.errCodeName codec , nStringLength
+            | _ when maxSize < 65536I && (not isFixedSize)  -> uper_c.bitString_VarSize p.arg.p (p.arg.getAcces l) (minSize) (maxSize) errCode.errCodeName codec, nStringLength
+            | _                                                -> 
+                handleFragmentation l p codec errCode ii (uperMaxSizeInBits) minSize maxSize "" 1I true false
+    {UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = localVariables}    
+
 
 let createBitStringFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.BitString) (typeDefinition:TypeDefintionOrReference)  (baseTypeUperFunc : UPerFunction option) (isValidFunc: IsValidFunction option) (us:State)  =
-    let ii = t.id.SeqeuenceOfLevel + 1;
-    let i = sprintf "i%d" (t.id.SeqeuenceOfLevel + 1)
 
-    
-(*
-        match o.minSize <> o.maxSize && codec = Codec.Decode with
-        | false  -> []
-        | true ->
-            match l with
-            | Ada  -> 
-                let lv = SequenceOfIndex (t.id.SeqeuenceOfLevel + 1, None)
-                lv::[IntegerLocalVariable ("nStringLength", None)]
-            | C    -> [Asn1SIntLocalVariable ("nCount", None)]*)
-    let funcBody (errCode:ErroCode) (p:CallerScope) = 
-        let funcBodyContent, localVariables = 
-            match l with
-            | Ada ->
-                let nStringLength = match o.minSize = o.maxSize with  true  -> [] | false -> [IntegerLocalVariable ("nStringLength", None)]
-                let iVar = SequenceOfIndex (t.id.SeqeuenceOfLevel + 1, None)
+    let funcBody  (errCode:ErroCode) (p:CallerScope) =
+        createBitStringFunction_funcBody r l codec t.id typeDefinition o.isFixedSize  o.uperMaxSizeInBits o.minSize.uper o.maxSize.uper (errCode:ErroCode) (p:CallerScope)
 
-                let typeDefinitionName = typeDefinition.longTypedefName l //getTypeDefinitionName t.id.tasInfo typeDefinition
-                let nBits = 1I
-                let internalItem = uper_a.InternalItem_bit_str p.arg.p i  errCode.errCodeName codec 
-                let nSizeInBits = GetNumberOfBitsForNonNegativeInteger ( (o.maxSize - o.minSize))
-                match o.minSize with
-                | _ when o.maxSize < 65536I && o.maxSize=o.minSize  -> uper_a.octect_FixedSize p.arg.p typeDefinitionName i internalItem ( o.minSize) nBits nBits 0I codec, iVar::nStringLength 
-                | _ when o.maxSize < 65536I && o.maxSize<>o.minSize -> uper_a.octect_VarSize p.arg.p (p.arg.getAcces l)  typeDefinitionName i internalItem ( o.minSize) ( o.maxSize) nSizeInBits nBits nBits 0I errCode.errCodeName codec , iVar::nStringLength
-                | _                                                -> 
-                    let funcBodyContent, fragmentationLvars = handleFragmentation l p codec errCode ii ( o.uperMaxSizeInBits) o.minSize o.maxSize internalItem nBits true false
-                    (funcBodyContent,iVar::fragmentationLvars)
-
-            | C ->
-                let nStringLength =
-                    match o.minSize = o.maxSize,  codec with
-                    | true , _    -> []
-                    | false, Encode -> []
-                    | false, Decode -> [Asn1SIntLocalVariable ("nCount", None)]
-
-                match o.minSize with
-                | _ when o.maxSize < 65536I && o.maxSize=o.minSize   -> uper_c.bitString_FixSize p.arg.p (p.arg.getAcces l) ( o.minSize) errCode.errCodeName codec , nStringLength
-                | _ when o.maxSize < 65536I && o.maxSize<>o.minSize  -> uper_c.bitString_VarSize p.arg.p (p.arg.getAcces l) ( o.minSize) ( o.maxSize) errCode.errCodeName codec, nStringLength
-                | _                                                -> 
-                    handleFragmentation l p codec errCode ii ( o.uperMaxSizeInBits) o.minSize o.maxSize "" 1I true false
-        {UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = localVariables}    
     let soSparkAnnotations = 
         match l with
         | C     -> None
@@ -411,7 +502,7 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (cod
     let fixedSize       = match l with C -> uper_c.octect_FixedSize        | Ada -> uper_a.octect_FixedSize
     let varSize         = match l with C -> uper_c.octect_VarSize          | Ada -> uper_a.octect_VarSize
     let typeDefinitionName = typeDefinition.longTypedefName l //getTypeDefinitionName t.id.tasInfo typeDefinition
-    let nSizeInBits = GetNumberOfBitsForNonNegativeInteger ( (o.maxSize - o.minSize))
+    let nSizeInBits = GetNumberOfBitsForNonNegativeInteger ( (o.maxSize.uper - o.minSize.uper))
     let nIntItemMaxSize = ( child.uperMaxSizeInBits)
 
 
@@ -425,7 +516,7 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (cod
 
 
             let nStringLength =
-                match o.minSize = o.maxSize,  l, codec with
+                match o.minSize.uper = o.maxSize.uper,  l, codec with
                 | true , _,_    -> []
                 | false, Ada, Encode -> []
                 | false, Ada, Decode -> [IntegerLocalVariable ("nStringLength", None)]
@@ -441,20 +532,20 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (cod
             match internalItem with
             | None  -> 
                     match o.minSize with
-                    | _ when o.maxSize < 65536I && o.maxSize=o.minSize  -> None
-                    | _ when o.maxSize < 65536I && o.maxSize<>o.minSize -> 
-                        let funcBody = varSize p.arg.p (p.arg.getAcces l)  typeDefinitionName i "" ( o.minSize) ( o.maxSize) nSizeInBits ( child.uperMinSizeInBits) nIntItemMaxSize 0I errCode.errCodeName codec
+                    | _ when o.maxSize.uper < 65536I && o.maxSize.uper=o.minSize.uper  -> None
+                    | _ when o.maxSize.uper < 65536I && o.maxSize.uper<>o.minSize.uper -> 
+                        let funcBody = varSize p.arg.p (p.arg.getAcces l)  typeDefinitionName i "" ( o.minSize.uper) ( o.maxSize.uper) nSizeInBits ( child.uperMinSizeInBits) nIntItemMaxSize 0I errCode.errCodeName codec
                         Some ({UPERFuncBodyResult.funcBody = funcBody; errCodes = [errCode]; localVariables = lv::nStringLength})    
                     | _                                                -> 
-                        let funcBody, localVariables = handleFragmentation l p codec errCode ii ( o.uperMaxSizeInBits) o.minSize o.maxSize "" nIntItemMaxSize false false
+                        let funcBody, localVariables = handleFragmentation l p codec errCode ii ( o.uperMaxSizeInBits) o.minSize.uper o.maxSize.uper "" nIntItemMaxSize false false
                         Some ({UPERFuncBodyResult.funcBody = funcBody; errCodes = [errCode]; localVariables = localVariables})    
             | Some internalItem -> 
                 let childErrCodes =  internalItem.errCodes
                 let ret,localVariables = 
                     match o.minSize with
-                    | _ when o.maxSize < 65536I && o.maxSize=o.minSize  -> fixedSize p.arg.p typeDefinitionName i internalItem.funcBody ( o.minSize) ( child.uperMinSizeInBits) nIntItemMaxSize 0I codec, nStringLength 
-                    | _ when o.maxSize < 65536I && o.maxSize<>o.minSize  -> varSize p.arg.p (p.arg.getAcces l)  typeDefinitionName i internalItem.funcBody ( o.minSize) ( o.maxSize) nSizeInBits ( child.uperMinSizeInBits) nIntItemMaxSize 0I errCode.errCodeName codec , nStringLength
-                    | _                                                -> handleFragmentation l p codec errCode ii ( o.uperMaxSizeInBits) o.minSize o.maxSize internalItem.funcBody nIntItemMaxSize false false
+                    | _ when o.maxSize.uper < 65536I && o.maxSize.uper=o.minSize.uper  -> fixedSize p.arg.p typeDefinitionName i internalItem.funcBody ( o.minSize.uper) ( child.uperMinSizeInBits) nIntItemMaxSize 0I codec, nStringLength 
+                    | _ when o.maxSize.uper < 65536I && o.maxSize.uper<>o.minSize.uper  -> varSize p.arg.p (p.arg.getAcces l)  typeDefinitionName i internalItem.funcBody ( o.minSize.uper) ( o.maxSize.uper) nSizeInBits ( child.uperMinSizeInBits) nIntItemMaxSize 0I errCode.errCodeName codec , nStringLength
+                    | _                                                -> handleFragmentation l p codec errCode ii ( o.uperMaxSizeInBits) o.minSize.uper o.maxSize.uper internalItem.funcBody nIntItemMaxSize false false
 
                 Some ({UPERFuncBodyResult.funcBody = ret; errCodes = errCode::childErrCodes; localVariables = lv::(localVariables@internalItem.localVariables)})    
         | Some baseFuncName ->
@@ -464,22 +555,6 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (cod
     createUperFunction r l codec t typeDefinition baseTypeUperFunc  isValidFunc  funcBody soSparkAnnotations  us
 
 
-let nestChildItems (l:ProgrammingLanguage) (codec:CommonTypes.Codec) children = 
-    let printChild (content:string) (sNestedContent:string option) = 
-        match sNestedContent with
-        | None  -> content
-        | Some c-> 
-            match l with
-            | C        -> equal_c.JoinItems content sNestedContent
-            | Ada      -> uper_a.JoinItems content sNestedContent
-    let rec printChildren children : Option<string> = 
-        match children with
-        |[]     -> None
-        |x::xs  -> 
-            match printChildren xs with
-            | None                 -> Some (printChild x  None)
-            | Some childrenCont    -> Some (printChild x  (Some childrenCont))
-    printChildren children
 
 let createSequenceFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Sequence) (typeDefinition:TypeDefintionOrReference) (isValidFunc: IsValidFunction option) (children:SeqChildInfo list) (us:State)  =
     // stg macros
@@ -578,17 +653,20 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec:C
                         | C   -> chFunc.funcBody ({p with arg = p.arg.getChChild l (child.getBackendName l) child.chType.isIA5String})
                         | Ada when codec = CommonTypes.Decode -> chFunc.funcBody ({p with arg = VALUE ((child.getBackendName l) + "_tmp")})
                         | Ada -> chFunc.funcBody ({p with arg = p.arg.getChChild l (child.getBackendName l) child.chType.isIA5String})
+                    let sChildName = (child.getBackendName l)
+                    let sChildTypeDef = child.chType.typeDefintionOrReference.longTypedefName l //child.chType.typeDefinition.typeDefinitionBodyWithinSeq
+                    let sChoiceTypeName = typeDefinitionName
                     match uperChildRes with
                     | None              -> 
-                        let sChildName = (child.getBackendName l)
-                        let sChildTypeDef = child.chType.typeDefintionOrReference.longTypedefName l //child.chType.typeDefinition.typeDefinitionBodyWithinSeq
-                        let sChoiceTypeName = typeDefinitionName
-                        let noEncodingComment = match l with C ->"/*no encoding/decoding is required*/" | Ada -> "--no encoding/decoding is required"
-                        choice_child p.arg.p (p.arg.getAcces l) (child.presentWhenName (Some typeDefinition) l) (BigInteger i) nIndexSizeInBits (BigInteger (children.Length - 1)) noEncodingComment sChildName sChildTypeDef sChoiceTypeName codec,[],[]
+                        let childContent = 
+                            match l with 
+                            | C ->"/*no encoding/decoding is required*/" 
+                            | Ada when codec=Decode -> 
+                                let childp = ({p with arg = VALUE ((child.getBackendName l) + "_tmp")})
+                                uper_a.null_decode childp.arg.p
+                            | Ada   -> "--no encoding/decoding is required"
+                        choice_child p.arg.p (p.arg.getAcces l) (child.presentWhenName (Some typeDefinition) l) (BigInteger i) nIndexSizeInBits (BigInteger (children.Length - 1)) childContent sChildName sChildTypeDef sChoiceTypeName codec,[],[]
                     | Some childContent ->  
-                        let sChildName = (child.getBackendName l)
-                        let sChildTypeDef = child.chType.typeDefintionOrReference.longTypedefName l //child.chType.typeDefinition.typeDefinitionBodyWithinSeq
-                        let sChoiceTypeName = typeDefinitionName
                         choice_child p.arg.p (p.arg.getAcces l) (child.presentWhenName (Some typeDefinition) l) (BigInteger i) nIndexSizeInBits (BigInteger (children.Length - 1)) childContent.funcBody sChildName sChildTypeDef sChoiceTypeName codec, childContent.localVariables, childContent.errCodes )
             let childrenContent = childrenContent3 |> List.map(fun (s,_,_) -> s)
             let childrenLocalvars = childrenContent3 |> List.collect(fun (_,s,_) -> s)

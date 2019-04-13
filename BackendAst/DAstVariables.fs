@@ -13,6 +13,22 @@ open DAstUtilFunctions
 
 let getDefaultValueByType  (t:Asn1Type)  =  t.initialValue
 
+let printOctetStringValueAsCompoundLitteral  (l:ProgrammingLanguage) curProgamUnitName  (o:Asn1AcnAst.OctetString) (bytes : byte list) =
+    let printOct = match l with C -> variables_c.PrintBitOrOctetStringValueAsCompoundLitteral | Ada -> variables_a.PrintBitOrOctetStringValueAsCompoundLitteral
+    let td = (o.typeDef.[l]).longTypedefName l curProgamUnitName
+    printOct td (o.minSize.uper = o.maxSize.uper) bytes (BigInteger bytes.Length)
+    
+let printBitStringValueAsCompoundLitteral  (l:ProgrammingLanguage) curProgamUnitName  (o:Asn1AcnAst.BitString) (v : BitStringValue) =
+    let printOct = match l with C -> variables_c.PrintBitOrOctetStringValueAsCompoundLitteral | Ada -> variables_a.PrintBitOrOctetStringValueAsCompoundLitteral
+    let td = (o.typeDef.[l]).longTypedefName l curProgamUnitName
+    match l with
+    | C     ->
+        let bytes = bitStringValueToByteArray (StringLoc.ByValue v)
+        printOct td (o.minSize.uper = o.maxSize.uper) bytes o.minSize.uper
+    | Ada   ->
+        let bits = v.ToCharArray() |> Array.map(fun c -> if c = '0' then 0uy else 1uy)
+        printOct td (o.minSize.uper = o.maxSize.uper) bits o.minSize.uper
+
 let rec printValue (r:DAst.AstRoot)  (l:ProgrammingLanguage)  (curProgamUnitName:string)  (t:Asn1Type) (parentValue:Asn1ValueKind option) (gv:Asn1ValueKind) =
     match l with
     | C ->
@@ -24,13 +40,13 @@ let rec printValue (r:DAst.AstRoot)  (l:ProgrammingLanguage)  (curProgamUnitName
         | BitStringValue    v -> 
             let bytes = bitStringValueToByteArray (StringLoc.ByValue v)
             match t.ActualType.Kind with
-            | OctetString os    -> variables_c.PrintBitOrOctetStringValue (os.baseInfo.minSize = os.baseInfo.maxSize) bytes (BigInteger bytes.Length)
-            | BitString   bs    -> variables_c.PrintBitOrOctetStringValue (bs.baseInfo.minSize = bs.baseInfo.maxSize) bytes (BigInteger bytes.Length)
+            | OctetString os    -> variables_c.PrintBitOrOctetStringValue (os.baseInfo.minSize.uper = os.baseInfo.maxSize.uper) bytes (BigInteger bytes.Length)
+            | BitString   bs    -> variables_c.PrintBitOrOctetStringValue (bs.baseInfo.minSize.uper = bs.baseInfo.maxSize.uper) bytes (BigInteger v.Length)
             | _         -> raise(BugErrorException "unexpected type")
         | OctetStringValue  v -> 
             match t.ActualType.Kind with
-            | OctetString os    -> variables_c.PrintBitOrOctetStringValue (os.baseInfo.minSize = os.baseInfo.maxSize) v (BigInteger v.Length)
-            | BitString   bs    -> variables_c.PrintBitOrOctetStringValue (bs.baseInfo.minSize = bs.baseInfo.maxSize) v (BigInteger v.Length)
+            | OctetString os    -> variables_c.PrintBitOrOctetStringValue (os.baseInfo.minSize.uper = os.baseInfo.maxSize.uper) v (BigInteger v.Length)
+            | BitString   bs    -> variables_c.PrintBitOrOctetStringValue (bs.baseInfo.minSize.uper = bs.baseInfo.maxSize.uper) v (BigInteger (v.Length*8))
             | _         -> raise(BugErrorException "unexpected type")
         | EnumValue         v -> 
             match t.ActualType.Kind with
@@ -43,7 +59,7 @@ let rec printValue (r:DAst.AstRoot)  (l:ProgrammingLanguage)  (curProgamUnitName
             match t.ActualType.Kind with
             | SequenceOf so -> 
                 let childVals = v |> List.map (fun chv -> printValue r l curProgamUnitName so.childType (Some gv) chv.kind)
-                variables_c.PrintSequenceOfValue (so.baseInfo.minSize = so.baseInfo.maxSize) childVals
+                variables_c.PrintSequenceOfValue (so.baseInfo.minSize.uper = so.baseInfo.maxSize.uper) childVals
             | _         -> raise(BugErrorException "unexpected type")
         | SeqValue          v -> 
             match t.ActualType.Kind with
@@ -107,7 +123,7 @@ let rec printValue (r:DAst.AstRoot)  (l:ProgrammingLanguage)  (curProgamUnitName
         | StringValue       v -> 
             match t.ActualType.Kind with
             | IA5String st  ->
-                let arrNuls = [0 .. ((int st.baseInfo.maxSize) - v.Length)]|>Seq.map(fun x -> variables_a.PrintStringValueNull())
+                let arrNuls = [0 .. ((int st.baseInfo.maxSize.uper) - v.Length)]|>Seq.map(fun x -> variables_a.PrintStringValueNull())
                 variables_a.PrintStringValue (v.Replace("\"","\"\"")) arrNuls
             | _             -> raise(BugErrorException "unexpected type")
         | BooleanValue      v -> variables_a.PrintBooleanValue v
@@ -117,27 +133,27 @@ let rec printValue (r:DAst.AstRoot)  (l:ProgrammingLanguage)  (curProgamUnitName
                 let td = (os.baseInfo.typeDef.[l]).longTypedefName l curProgamUnitName
                 let typeDefName  = t.typeDefintionOrReference.longTypedefName l//if parentValue.IsSome then os.typeDefinition.typeDefinitionBodyWithinSeq else os.typeDefinition.name
                 let bytes = bitStringValueToByteArray (StringLoc.ByValue v)
-                variables_a.PrintOctetStringValue td (os.baseInfo.minSize = os.baseInfo.maxSize) bytes (BigInteger bytes.Length)
+                variables_a.PrintOctetStringValue td (os.baseInfo.minSize.uper = os.baseInfo.maxSize.uper) bytes (BigInteger bytes.Length)
             | BitString   bs    -> 
                 let td = (bs.baseInfo.typeDef.[l]).longTypedefName l curProgamUnitName
                 let typeDefName  = t.typeDefintionOrReference.longTypedefName l //if parentValue.IsSome then bs.typeDefinition.typeDefinitionBodyWithinSeq else bs.typeDefinition.name
                 let arBits = v.ToCharArray() |> Array.map(fun x -> x.ToString())
-                variables_a.PrintBitStringValue td (bs.baseInfo.minSize = bs.baseInfo.maxSize) arBits (BigInteger arBits.Length)
+                variables_a.PrintBitStringValue td (bs.baseInfo.minSize.uper = bs.baseInfo.maxSize.uper) arBits (BigInteger arBits.Length)
             | _         -> raise(BugErrorException "unexpected type")
         | OctetStringValue  v -> 
             match t.ActualType.Kind with
             | OctetString os    -> 
                 let td = (os.baseInfo.typeDef.[l]).longTypedefName l curProgamUnitName
                 let typeDefName  = t.typeDefintionOrReference.longTypedefName l//if parentValue.IsSome then os.typeDefinition.typeDefinitionBodyWithinSeq else os.typeDefinition.name
-                variables_a.PrintOctetStringValue td (os.baseInfo.minSize = os.baseInfo.maxSize) v (BigInteger v.Length)
+                variables_a.PrintOctetStringValue td (os.baseInfo.minSize.uper = os.baseInfo.maxSize.uper) v (BigInteger v.Length)
             | BitString   bs    -> 
                 let td = (bs.baseInfo.typeDef.[l]).longTypedefName l curProgamUnitName
                 let typeDefName  = t.typeDefintionOrReference.longTypedefName l//if parentValue.IsSome then bs.typeDefinition.typeDefinitionBodyWithinSeq else bs.typeDefinition.name
                 let bittring = byteArrayToBitStringValue v
                 let arBits = bittring.ToCharArray() |> Array.map(fun x -> x.ToString()) 
-                let maxLen = if (arBits.Length > int bs.baseInfo.maxSize) then ((int bs.baseInfo.maxSize)-1) else (arBits.Length-1)
+                let maxLen = if (arBits.Length > int bs.baseInfo.maxSize.uper) then ((int bs.baseInfo.maxSize.uper)-1) else (arBits.Length-1)
                 let arBits = arBits.[0 .. maxLen]
-                variables_a.PrintBitStringValue td (bs.baseInfo.minSize = bs.baseInfo.maxSize) arBits (BigInteger arBits.Length)
+                variables_a.PrintBitStringValue td (bs.baseInfo.minSize.uper = bs.baseInfo.maxSize.uper) arBits (BigInteger arBits.Length)
             | _         -> raise(BugErrorException "unexpected type")
         | EnumValue         v -> 
             match t.ActualType.Kind with
@@ -163,7 +179,7 @@ let rec printValue (r:DAst.AstRoot)  (l:ProgrammingLanguage)  (curProgamUnitName
                 let typeDefName  = t.typeDefintionOrReference.longTypedefName l //if parentValue.IsSome then so.typeDefinition.typeDefinitionBodyWithinSeq else so.typeDefinition.name
                 let childVals = v |> List.map (fun chv -> printValue r l curProgamUnitName so.childType (Some gv) chv.kind)
                 let sDefValue = printValue r l curProgamUnitName so.childType None (getDefaultValueByType so.childType)
-                variables_a.PrintSequenceOfValue td (so.baseInfo.minSize = so.baseInfo.maxSize) (BigInteger v.Length) childVals sDefValue
+                variables_a.PrintSequenceOfValue td (so.baseInfo.minSize.uper = so.baseInfo.maxSize.uper) (BigInteger v.Length) childVals sDefValue
             | _         -> raise(BugErrorException "unexpected type")
 
         | SeqValue          v -> 
@@ -277,7 +293,7 @@ let createStringFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1A
             match l with 
             | C ->  variables_c.PrintStringValue v
             | Ada ->
-                let arrNuls = [0 .. (int o.maxSize - v.Length)] |> Seq.map(fun x -> variables_a.PrintStringValueNull())
+                let arrNuls = [0 .. (int o.maxSize.uper - v.Length)] |> Seq.map(fun x -> variables_a.PrintStringValueNull())
                 variables_a.PrintStringValue (v.Replace("\"","\"\"")) arrNuls
 
         | RefValue ((md,vs),ov)   -> vs
@@ -290,20 +306,20 @@ let createOctetStringFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:
         match v with
         | OctetStringValue  v -> 
             match l with 
-            | C ->  variables_c.PrintBitOrOctetStringValue (o.minSize = o.maxSize) v (BigInteger v.Length)
+            | C ->  variables_c.PrintBitOrOctetStringValue (o.minSize.uper = o.maxSize.uper) v (BigInteger v.Length)
             | Ada -> 
                 let td = (o.typeDef.[l]).longTypedefName l curProgamUnitName
                 let typeDefName  = defOrRef.longTypedefName l//if parentValue.IsSome then typeDefinition.typeDefinitionBodyWithinSeq else typeDefinition.name
-                variables_a.PrintOctetStringValue td (o.minSize = o.maxSize) v (BigInteger v.Length)
+                variables_a.PrintOctetStringValue td (o.minSize.uper = o.maxSize.uper) v (BigInteger v.Length)
         | BitStringValue    v -> 
             let bytes = bitStringValueToByteArray (StringLoc.ByValue v)
             match l with 
             | C ->  
-                variables_c.PrintBitOrOctetStringValue (o.minSize = o.maxSize) bytes (BigInteger bytes.Length)
+                variables_c.PrintBitOrOctetStringValue (o.minSize.uper = o.maxSize.uper) bytes (BigInteger bytes.Length)
             | Ada -> 
                 let td = (o.typeDef.[l]).longTypedefName l curProgamUnitName
                 let typeDefName  = defOrRef.longTypedefName l//if parentValue.IsSome then typeDefinition.typeDefinitionBodyWithinSeq else typeDefinition.name
-                variables_a.PrintOctetStringValue td (o.minSize = o.maxSize) bytes (BigInteger bytes.Length)
+                variables_a.PrintOctetStringValue td (o.minSize.uper = o.maxSize.uper) bytes (BigInteger bytes.Length)
         | RefValue ((md,vs),ov)   -> vs
         | _                 -> raise(BugErrorException "unexpected value")
     printValue
@@ -332,20 +348,20 @@ let createBitStringFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:As
             let bytes = bitStringValueToByteArray (StringLoc.ByValue v)
             match l with 
             | C ->  
-                variables_c.PrintBitOrOctetStringValue (o.minSize = o.maxSize) bytes (BigInteger bytes.Length)
+                variables_c.PrintBitOrOctetStringValue (o.minSize.uper = o.maxSize.uper) bytes (BigInteger bytes.Length)
             | Ada -> 
                 let td = (o.typeDef.[l]).longTypedefName l curProgamUnitName
                 let typeDefName  = defOrRef.longTypedefName l//if parentValue.IsSome then typeDefinition.typeDefinitionBodyWithinSeq else typeDefinition.name
                 let arBits = v.ToCharArray() |> Array.map(fun x -> x.ToString())
-                variables_a.PrintBitStringValue td (o.minSize = o.maxSize) arBits (BigInteger arBits.Length)
+                variables_a.PrintBitStringValue td (o.minSize.uper = o.maxSize.uper) arBits (BigInteger arBits.Length)
 
         | OctetStringValue  v -> 
             match l with 
-            | C ->  variables_c.PrintBitOrOctetStringValue (o.minSize = o.maxSize) v (BigInteger v.Length)
+            | C ->  variables_c.PrintBitOrOctetStringValue (o.minSize.uper = o.maxSize.uper) v (BigInteger v.Length)
             | Ada -> 
                 let td = (o.typeDef.[l]).longTypedefName l curProgamUnitName
                 let typeDefName  = defOrRef.longTypedefName l //if parentValue.IsSome then typeDefinition.typeDefinitionBodyWithinSeq else typeDefinition.name
-                variables_a.PrintOctetStringValue td (o.minSize = o.maxSize) v (BigInteger v.Length)
+                variables_a.PrintOctetStringValue td (o.minSize.uper = o.maxSize.uper) v (BigInteger v.Length)
         | RefValue ((md,vs),ov)   -> vs
         | _                 -> raise(BugErrorException "unexpected value")
     printValue
@@ -358,12 +374,12 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:A
         | SeqOfValue chVals    -> 
             let childVals = chVals |> List.map (fun chv -> childType.printValue curProgamUnitName (Some gv) chv.kind)
             match l with 
-            | C ->   variables_c.PrintSequenceOfValue (o.minSize = o.maxSize)childVals
+            | C ->   variables_c.PrintSequenceOfValue (o.minSize.uper = o.maxSize.uper) childVals
             | Ada ->
                 let typeDefName  = defOrRef.longTypedefName l//if parentValue.IsSome then typeDefinition.typeDefinitionBodyWithinSeq else typeDefinition.name
                 let sDefValue =  childType.printValue curProgamUnitName  None childType.initialValue 
                 let td = (o.typeDef.[l]).longTypedefName l curProgamUnitName
-                variables_a.PrintSequenceOfValue td (o.minSize = o.maxSize) (BigInteger chVals.Length) childVals sDefValue
+                variables_a.PrintSequenceOfValue td (o.minSize.uper = o.maxSize.uper) (BigInteger chVals.Length) childVals sDefValue
         | RefValue ((md,vs),ov)   -> vs
         | _                 -> raise(BugErrorException "unexpected value")
     printValue

@@ -29,8 +29,8 @@
     <PlatformTarget>AnyCPU</PlatformTarget>
     <DocumentationFile>bin\Debug\Asn1f4.XML</DocumentationFile>
     <Prefer32Bit>true</Prefer32Bit>
-    <StartWorkingDirectory>C:\prj\GitHub\asn1scc\mantis\0000815</StartWorkingDirectory>
-    <StartArguments>-c -XER -o out/ -atc dataview-uniq.asn</StartArguments>
+    <StartWorkingDirectory>C:\prj\GitHub\asn1scc\v4Tests\tmp_c</StartWorkingDirectory>
+    <StartArguments>-c -uPER -atc sample1.asn1 sample1.acn</StartArguments>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
@@ -136,7 +136,10 @@
   </ItemGroup>
   <Target Name="BeforeBuild">
     <ItemGroup>
-      <ResourceFilesToCopy Include="$(SolutionDir)SPARK_RTL/adaasn1rtl.*" />
+      <ResourceFilesToCopy Include="$(SolutionDir)ADA_RTL/src/test_cases_aux.*" />
+      <ResourceFilesToCopy Include="$(SolutionDir)ADA_RTL/src/adaasn1rtl.*" />
+      <ResourceFilesToCopy Include="$(SolutionDir)ADA_RTL/src/uper_asn1_rtl.*" />
+      <ResourceFilesToCopy Include="$(SolutionDir)ADA_RTL/src/acn_asn1_rtl.*" />
       <ResourceFilesToCopy Include="$(SolutionDir)SPARK_RTL/xer_rtl.*" />
       <ResourceFilesToCopy Include="$(SolutionDir)SPARK_RTL/IgnoredExaminerWarnings.wrn" />
       <ResourceFilesToCopy Include="$(SolutionDir)SPARK_RTL/gnat.cfg" />

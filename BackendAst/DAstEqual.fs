@@ -93,15 +93,20 @@ let isEqualBodyChoiceChild  (choiceTypeDefName:string) (l:ProgrammingLanguage) (
                 ({v1 with arg = v1.arg.getChChild l (o.getBackendName l) newChild.isIA5String}), ({v2 with arg = v2.arg.getChChild l (o.getBackendName l) newChild.isIA5String})
             | Ada  ->
                 ({v1 with arg = v1.arg.getChChild l (o.getBackendName l) newChild.isIA5String}), ({v2 with arg = v2.arg.getChChild l (o.getBackendName l) newChild.isIA5String})
-        match newChild.equalFunction.isEqualBody with
-        | EqualBodyExpression func  ->  
-            match func p1 p2 with
-            | Some (exp, lvars)     -> sprintf "ret %s (%s);" l.AssignOperator exp, lvars
-            | None                  -> sprintf "ret %s TRUE;" l.AssignOperator, []
-        | EqualBodyStatementList  func   -> 
-            match func p1 p2 with
-            | Some a    -> a
-            | None      -> sprintf "ret %s TRUE;" l.AssignOperator, []
+        match newChild.equalFunction.isEqualFuncName with
+        | None  ->
+            match newChild.equalFunction.isEqualBody with
+            | EqualBodyExpression func  ->  
+                match func p1 p2 with
+                | Some (exp, lvars)     -> sprintf "ret %s (%s);" l.AssignOperator exp, lvars
+                | None                  -> sprintf "ret %s TRUE;" l.AssignOperator, []
+            | EqualBodyStatementList  func   -> 
+                match func p1 p2 with
+                | Some a    -> a
+                | None      -> sprintf "ret %s TRUE;" l.AssignOperator, []
+        | Some fncName  ->
+            let exp = callBaseTypeFunc l (p1.arg.getPointer l) (p2.arg.getPointer l) fncName
+            makeExpressionToStatement l exp, []
 
     match l with
     | C         -> 
@@ -201,12 +206,12 @@ let createNullTypeEqualFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (
     createEqualFunction_any r l t typeDefinition isEqualBody //(stgPrintEqualPrimitive l) (stgMacroPrimDefFunc l) 
 
 let createOctetStringEqualFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.OctetString) (typeDefinition:TypeDefintionOrReference)  =
-    let isEqualBody = isEqualBodyOctetString l ( o.minSize) ( o.maxSize)
+    let isEqualBody = isEqualBodyOctetString l ( o.minSize.uper) ( o.maxSize.uper)
     createEqualFunction_any r l t typeDefinition (EqualBodyExpression isEqualBody)
     //createOctetOrBitStringEqualFunction r l  t typeDefinition isEqualBody (stgMacroCompDefFunc l) 
 
 let createBitStringEqualFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.BitString) (typeDefinition:TypeDefintionOrReference)  =
-    let isEqualBody = isEqualBodyBitString l ( o.minSize) ( o.maxSize)
+    let isEqualBody = isEqualBodyBitString l ( o.minSize.uper) ( o.maxSize.uper)
     createEqualFunction_any r l t typeDefinition (EqualBodyExpression isEqualBody)
     //createOctetOrBitStringEqualFunction r l t typeDefinition isEqualBody (stgMacroCompDefFunc l) 
 
@@ -216,27 +221,34 @@ let createSequenceOfEqualFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage)
     let isEqualBodySequenceOf  (childType:Asn1Type) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.SequenceOf)  (l:ProgrammingLanguage) (v1:CallerScope) (v2:CallerScope)  =
         let getInnerStatement i = 
             let childAccesPath (p:CallerScope) =  {p with arg = p.arg.getArrayItem l i childType.isIA5String} //v + childAccess + l.ArrName + (l.ArrayAccess i) //"[" + i + "]"
-            match childType.equalFunction.isEqualBody with
-            | EqualBodyExpression func  ->  
-                match func (childAccesPath v1) (childAccesPath v2) with
-                | Some (exp, lvars)  -> Some (sprintf "ret %s (%s);" l.AssignOperator exp, lvars)       // ret = (boolExp);
-                | None      -> None
-            | EqualBodyStatementList  func   -> func (childAccesPath v1) (childAccesPath v2)
+            match childType.equalFunction.isEqualFuncName with
+            | None  ->
+                match childType.equalFunction.isEqualBody with
+                | EqualBodyExpression func  ->  
+                    match func (childAccesPath v1) (childAccesPath v2) with
+                    | Some (exp, lvars)  -> Some (sprintf "ret %s (%s);" l.AssignOperator exp, lvars)       // ret = (boolExp);
+                    | None      -> None
+                | EqualBodyStatementList  func   -> func (childAccesPath v1) (childAccesPath v2)
+            | Some fncName  ->
+                let p1 = childAccesPath v1
+                let p2 = childAccesPath v2
+                let exp = callBaseTypeFunc l (p1.arg.getPointer l) (p2.arg.getPointer l) fncName
+                Some(makeExpressionToStatement l exp, [])
 
         let i = sprintf "i%d" (t.id.SeqeuenceOfLevel + 1)
         let lv = SequenceOfIndex (t.id.SeqeuenceOfLevel + 1, None)
         match getInnerStatement i with
-        | None when o.minSize = o.maxSize        -> None
+        | None when o.minSize.uper = o.maxSize.uper        -> None
         | None                                   ->
             match l with
-            | C    -> Some (equal_c.isEqual_SequenceOf v1.arg.p v2.arg.p (v1.arg.getAcces l) i (o.minSize = o.maxSize) ( o.minSize) None, [])
+            | C    -> Some (equal_c.isEqual_SequenceOf v1.arg.p v2.arg.p (v1.arg.getAcces l) i (o.minSize.uper = o.maxSize.uper) ( o.minSize.uper) None, [])
             | Ada  -> Some (equal_a.isEqual_SequenceOf_var_size v1.arg.p v2.arg.p i None, [])
         | Some (innerStatement, lvars)           ->
             match l with
-            | C    -> Some (equal_c.isEqual_SequenceOf v1.arg.p v2.arg.p (v1.arg.getAcces l) i (o.minSize = o.maxSize) ( o.minSize) (Some innerStatement), lv::lvars)
+            | C    -> Some (equal_c.isEqual_SequenceOf v1.arg.p v2.arg.p (v1.arg.getAcces l) i (o.minSize.uper = o.maxSize.uper) ( o.minSize.uper) (Some innerStatement), lv::lvars)
             | Ada  -> 
-                match (o.minSize = o.maxSize) with
-                | true  -> Some (equal_a.isEqual_SequenceOf_fix_size v1.arg.p v2.arg.p i  ( o.minSize) innerStatement, lv::lvars)
+                match (o.minSize.uper = o.maxSize.uper) with
+                | true  -> Some (equal_a.isEqual_SequenceOf_fix_size v1.arg.p v2.arg.p i  ( o.minSize.uper) innerStatement, lv::lvars)
                 | false -> Some (equal_a.isEqual_SequenceOf_var_size v1.arg.p v2.arg.p i  (Some innerStatement), lv::lvars)
 
 
@@ -300,6 +312,13 @@ let createReferenceTypeEqualFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLangua
         = 0
 
     let baseTypeDefName = ToC2(r.args.TypePrefix + o.tasName.Value)
+    let baseEqName = 
+        match l with
+        | C     -> baseTypeDefName + "_Equal"
+        | Ada   -> 
+            match t.id.ModName = o.modName.Value with
+            | true  -> baseTypeDefName + "_Equal"
+            | false -> (ToC o.modName.Value) + "." + baseTypeDefName + "_Equal"
 
     
     match baseType.Kind with
@@ -315,40 +334,11 @@ let createReferenceTypeEqualFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLangua
     | OctetString _
     | BitString  _      
     | ObjectIdentifier _
-//        let    isEqualBody                   = 
-//            match baseType.equalFunction.isEqualFuncName with
-//            | None  -> (fun b c -> None)
-//            | Some _    ->
-//                let eqBody (p1:CallerScope) (p2:CallerScope) : (string*(LocalVariable list)) option = 
-//                    let exp = callBaseTypeFunc l (p1.arg.getPointer l) (p2.arg.getPointer l) baseEqName
-//                    Some(makeExpressionToStatement l exp, [])
-//                eqBody
-//        let val1, val2 =  
-//            match l with 
-//            | C     -> {CallerScope.modName = t.id.ModName; arg = POINTER "pVal1"}, {CallerScope.modName = t.id.ModName; arg = POINTER "pVal2"}
-//            | Ada   -> {CallerScope.modName = t.id.ModName; arg = VALUE "val1"}, {CallerScope.modName = t.id.ModName; arg = VALUE "val2"}
-//
-//        {
-//            EqualFunction.isEqualFuncName  = isEqualFuncName
-//            isEqualBody                    = EqualBodyStatementList (isEqualBody )
-//            isEqualFunc                    = None
-//            isEqualFuncDef                 = None
-//        }    
     | SequenceOf _
     | Sequence _
     | Choice   _      ->
-        let baseEqName = //typeDefinitionName + "_Equal"
-            match l with
-            | C     -> baseTypeDefName + "_Equal"
-            | Ada   -> 
-                match t.id.ModName = o.modName.Value with
-                | true  -> baseTypeDefName + "_Equal"
-                | false -> (ToC o.modName.Value) + "." + baseTypeDefName + "_Equal"
 
         let    isEqualBody                   = 
-//                match baseType.equalFunction.isEqualFuncName with
-//                | None  -> (fun b c -> None)
-//                | Some _    ->
                     let eqBody (p1:CallerScope) (p2:CallerScope) = 
                         let exp = callBaseTypeFunc l (p1.arg.getPointer l) (p2.arg.getPointer l) baseEqName
                         Some(makeExpressionToStatement l exp, [])

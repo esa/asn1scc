@@ -24,6 +24,20 @@ static asn1SccUint32 masks2[] = { 0x0,
 /*   Bit Stream Functions                                                                      */
 /***********************************************************************************************/
 
+flag OctetString_equal(int len1, int len2, const byte arr1[], const byte arr2[])
+{
+    return (len1 == len2) && (memcmp(arr1, arr2, len1)==0);
+}
+
+flag BitString_equal(int nBitsLength1, int nBitsLength2, const byte arr1[], const byte arr2[])
+{
+    return
+        (nBitsLength1 == nBitsLength2) &&
+        (nBitsLength1 / 8 == 0 || memcmp(arr1, arr2, nBitsLength1 / 8) == 0) &&
+        (nBitsLength1 % 8 > 0 ? (arr1[nBitsLength1 / 8] >> (8 - nBitsLength1 % 8) == arr2[nBitsLength1 / 8] >> (8 - nBitsLength1 % 8)) : TRUE);
+}
+
+
 void BitStream_Init(BitStream* pBitStrm, byte* buf, long count) 
 {
     pBitStrm->count = count;

@@ -157,10 +157,31 @@
   <data name="adaasn1rtl_ads" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>Resources\adaasn1rtl.ads;System.String, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089;windows-1253</value>
   </data>
+  <data name="uper_asn1_rtl_adb" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>Resources\uper_asn1_rtl.adb;System.String, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089;windows-1253</value>
+  </data>
+  <data name="uper_asn1_rtl_ads" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>Resources\uper_asn1_rtl.ads;System.String, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089;windows-1253</value>
+  </data>
+
+  <data name="acn_asn1_rtl_adb" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>Resources\acn_asn1_rtl.adb;System.String, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089;windows-1253</value>
+  </data>
+  <data name="acn_asn1_rtl_ads" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>Resources\acn_asn1_rtl.ads;System.String, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089;windows-1253</value>
+  </data>
   <data name="xer_rtl_adb" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>Resources\xer_rtl.adb;System.String, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089;windows-1253</value>
   </data>
   <data name="xer_rtl_ads" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>Resources\xer_rtl.ads;System.String, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089;windows-1253</value>
   </data>
+
+  <data name="test_cases_aux_adb" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>Resources\test_cases_aux.adb;System.String, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089;windows-1253</value>
+  </data>
+  <data name="test_cases_aux_ads" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>Resources\test_cases_aux.ads;System.String, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089;windows-1253</value>
+  </data>
+  
 </root>

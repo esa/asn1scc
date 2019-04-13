@@ -247,14 +247,18 @@ let rec registerSequenceTypeDefinition (us:Asn1AcnMergeState) l (id : ReferenceT
                 let proposedTypeDefName, asn1Name = getProposedTypeDefName us l id
                 let typeName, newAllocatedTypeNames = reserveMasterTypeDefinitionName us id l programUnit proposedTypeDefName
                 let exist, newAllocatedTypeNames = reserveTypeDefinitionName newAllocatedTypeNames l programUnit (proposedTypeDefName + "_exist")
-                let itm = {FE_SequenceTypeDefinition.programUnit = programUnit; typeName = typeName; asn1Name = asn1Name; asn1Module =  Some id.ModName; kind=NonPrimitiveNewTypeDefinition; exist=exist}
+                let extention_function_potisions, newAllocatedTypeNames =
+                    reserveTypeDefinitionName newAllocatedTypeNames l programUnit (proposedTypeDefName + "_extention_function_potisions")
+                let itm = {FE_SequenceTypeDefinition.programUnit = programUnit; typeName = typeName; asn1Name = asn1Name; asn1Module =  Some id.ModName; kind=NonPrimitiveNewTypeDefinition; exist=exist; extention_function_potisions=extention_function_potisions}
                 itm, {us with allocatedTypeNames = newAllocatedTypeNames; allocatedFE_TypeDefinition = us.allocatedFE_TypeDefinition.Add((l,id), (FE_SequenceTypeDefinition itm))}
             | FEI_NewSubTypeDefinition subId ->
                 let subType, ns1 = registerSequenceTypeDefinition us l subId FEI_NewTypeDefinition 
                 let proposedTypeDefName, asn1Name = getProposedTypeDefName ns1 l id
                 let typeName, newAllocatedTypeNames = reserveMasterTypeDefinitionName ns1 id l programUnit proposedTypeDefName
                 let exist, newAllocatedTypeNames = reserveTypeDefinitionName newAllocatedTypeNames l programUnit (proposedTypeDefName + "_exist")
-                let itm = {FE_SequenceTypeDefinition.programUnit = programUnit; typeName = typeName; asn1Name = asn1Name; asn1Module =  Some id.ModName; kind=(NonPrimitiveNewSubTypeDefinition subType); exist=exist}
+                let extention_function_potisions, newAllocatedTypeNames =
+                    reserveTypeDefinitionName newAllocatedTypeNames l programUnit (proposedTypeDefName + "_extention_function_potisions")
+                let itm = {FE_SequenceTypeDefinition.programUnit = programUnit; typeName = typeName; asn1Name = asn1Name; asn1Module =  Some id.ModName; kind=(NonPrimitiveNewSubTypeDefinition subType); exist=exist; extention_function_potisions=extention_function_potisions}
                 let ns2 = {ns1 with allocatedTypeNames = newAllocatedTypeNames; allocatedFE_TypeDefinition = ns1.allocatedFE_TypeDefinition.Add((l,id), (FE_SequenceTypeDefinition itm))}
                 itm, ns2
             | FEI_Reference2OtherType refId  -> 

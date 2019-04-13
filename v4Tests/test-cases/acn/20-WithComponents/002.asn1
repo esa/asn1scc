@@ -1,0 +1,31 @@
+-- NO_AUTOMATIC_TEST_CASES
+TEST-CASE  DEFINITIONS AUTOMATIC TAGS::= BEGIN
+
+	MyPDU ::= SEQUENCE {
+		int1	INTEGER(0..15) OPTIONAL,
+		int2	INTEGER(0..65535) OPTIONAL,
+		enm		ENUMERATED {
+					one(1), two(2), three(3),
+					 four(4), thousand(1000)
+				} OPTIONAL,
+		buf	 OCTET STRING (SIZE(10)) OPTIONAL,
+		gg  SEQUENCE {
+			int1	INTEGER(0..15),
+			int2	INTEGER(0..65535),
+			enm	ENUMERATED {
+					pone(1), ptwo(2), pthree(3),
+					 pfour(4), pthousand(1000)
+				},
+			buf	[APPLICATION 104]	OCTET STRING (SIZE(10))
+		} OPTIONAL
+	} (
+		WITH COMPONENTS {..., int1 (4..12) PRESENT,	int2 (200 .. 400), enm ABSENT} |
+		WITH COMPONENTS {..., int1 (0..3) ,	enm PRESENT, gg (WITH COMPONENTS{..., int2 (20 .. 200)}) }
+	   )
+	
+
+	
+END
+
+
+--TCLS     MyPDU[] 

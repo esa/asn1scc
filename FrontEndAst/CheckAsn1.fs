@@ -220,13 +220,13 @@ let rec IsValueAllowed (c:Asn1Constraint) (v:Asn1Value) (isOfEnumType:bool) (bit
     | TypeInclusionConstraint(modName,tasName)   ->
         let otherType = GetBaseTypeByName modName tasName ast
         otherType.Constraints |> Seq.forall(fun c -> IsValueAllowed c v isOfEnumType bitOrOctSrt ast)
-    | WithComponentConstraint(innerCon)       ->
+    | WithComponentConstraint(innerCon, loc)       ->
         let rec IsWithComponentConstraintOK (v:Asn1Value) (innerCon:Asn1Constraint) =
             match v.Kind with
             | SeqOfValue(innerValues) ->
                 innerValues |> Seq.forall(fun iv -> IsValueAllowed innerCon iv isOfEnumType bitOrOctSrt ast)
             | RefValue(modName,vasName)      -> IsWithComponentConstraintOK (GetBaseValue modName vasName ast) innerCon
-            | _                             -> raise (BugErrorException(""))
+            | _                             -> raise (SemanticError(loc,"Invalid constraint"))
         IsWithComponentConstraintOK v innerCon
     | WithComponentsConstraint(namedConstraints)    ->
         let rec IsWithComponentsConstraintOK (v:Asn1Value) =
@@ -436,9 +436,9 @@ let rec isConstraintValid (t:Asn1Type) (c:Asn1Constraint) ast =
         let actType = GetActualType t ast
         if not(AreTypesCompatible typeInclusion actType ast) then
             raise (SemanticError(t.Location, "Incompatible types used in type inclusion constraint"))
-    | WithComponentConstraint(c1)       -> 
+    | WithComponentConstraint(c1, loc)       -> 
         match CanHaveWithComponentConstraint t with
-        | None -> raise (SemanticError(t.Location, "Type does not support WITH COMPONENT constraints"))
+        | None -> raise (SemanticError(loc, "Type does not support WITH COMPONENT constraints"))
         | Some(ch)  -> isConstraintValid ch c1 ast
     | WithComponentsConstraint(namedCons)       -> 
         match CanHaveWithComponentsConstraint t with
@@ -549,7 +549,7 @@ let rec CheckType(t:Asn1Type) (m:Asn1Module) ast =
         let impMod = ast.GetModuleByName impRef.modName
         match impMod.ExportedTypes |> Seq.tryFind ( (=) impRef.tasName.Value) with
         | Some _    -> ()
-        | None      -> raise(SemanticError(impRef.tasName.Location, sprintf "No type assignemt with name %s exists (or exported) in module %s" impRef.tasName.Value  impMod.Name.Value))
+        | None      -> raise(SemanticError(impRef.tasName.Location, sprintf "No type assignment with name %s exists (or exported) in module %s" impRef.tasName.Value  impMod.Name.Value))
     t.Constraints |> Seq.iter(fun c -> isConstraintValid t c ast)
 
 
@@ -606,15 +606,15 @@ let CheckModule (m:Asn1Module) ast (pass :int)=
                 | Some(_) -> 
                     match im.ExportedTypes |> Seq.tryFind((=) tasName.Value ) with
                     | Some (_)  -> ()
-                    | None      -> raise(SemanticError(tasName.Location, sprintf "Type assignemt '%s' is privately defined in module '%s'. Use EXPORT keyword to make it visible to other modules." tasName.Value  imp.Name.Value))
-                | None    -> raise(SemanticError(tasName.Location, sprintf "No type assignemt with name %s exists in module %s" tasName.Value  imp.Name.Value))
+                    | None      -> raise(SemanticError(tasName.Location, sprintf "Type assignment '%s' is privately defined in module '%s'. Use EXPORT keyword to make it visible to other modules." tasName.Value  imp.Name.Value))
+                | None    -> raise(SemanticError(tasName.Location, sprintf "No type assignment with name %s exists in module %s" tasName.Value  imp.Name.Value))
             let checkVasName vasName =
                 match im.ValueAssignments |> Seq.tryFind(fun x-> x.Name.Value = vasName.Value ) with
                 | Some(_) -> 
                     match im.ExportedVars |> Seq.tryFind( (=) vasName.Value ) with
                     | Some (_)  -> ()
-                    | None      -> raise(SemanticError(vasName.Location, sprintf "Value assignemt %s is privately defined in module '%s'. Use EXPORT keyword to make it visible to other modules" vasName.Value  imp.Name.Value))
-                | None    -> raise(SemanticError(vasName.Location, sprintf "No value assignemt with name %s exists in module %s" vasName.Value  imp.Name.Value))
+                    | None      -> raise(SemanticError(vasName.Location, sprintf "Value assignment %s is privately defined in module '%s'. Use EXPORT keyword to make it visible to other modules" vasName.Value  imp.Name.Value))
+                | None    -> raise(SemanticError(vasName.Location, sprintf "No value assignment with name %s exists in module %s" vasName.Value  imp.Name.Value))
             imp.Types |> Seq.iter checkTasName
             imp.Values |> Seq.iter checkVasName
     m.Imports |> Seq.iter checkImport

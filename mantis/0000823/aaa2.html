@@ -1,0 +1,513 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"> 
+<html xmlns="http://www.w3.org/1999/xhtml" >
+<head>
+    <title>ICD</title>
+    <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+    <link rel="stylesheet" href="aaa2.css" /> 
+</head>
+<body>
+<em>The following tables describe the binary encodings of the data model using the ACN Encoding Rules.
+</em><br/><br/>
+  <div style="width: 100%">
+  <h1>Module D</h1>
+  <i>Defined in: a.asn1, a.acn.</i><p>
+  </p>
+  <a name="ICD_T_NID_Packet"></a> 
+  <table width="100%" >
+  <tbody>
+  
+  <tr class="typeRow">
+  <td colspan="2"  >
+  T-NID-Packet <font size="-1">(ENUMERATED)</font>
+  <font size="-2"><a href="#ASN1_T_NID_Packet" class="fileLink">ASN.1</a>  <a href="#ACN_T_NID_Packet" class="fileLink">ACN</a> </font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Min:&nbsp;1&nbsp;bytes</font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Max:&nbsp;1&nbsp;bytes</font>
+  </td>
+  </tr>
+  
+  <tr class="CommentRow">
+  <td class="comment2" colspan="4">Possible values:<br/>
+  <ul class="enumeration">
+  <li><font class="enumeration_name">stm-0</font> (0)</li>
+  <li><font class="enumeration_name">stm-5</font> (5)</li>
+  <li><font class="enumeration_name">stm-8</font> (8)</li>
+  <li><font class="enumeration_name">stm-9</font> (9)</li>
+  <li><font class="enumeration_name">stm-13</font> (13)</li>
+  <li><font class="enumeration_name">stm-14</font> (14)</li>
+  <li><font class="enumeration_name">stm-15</font> (15)</li>
+  <li><font class="enumeration_name">stm-32</font> (32)</li>
+  <li><font class="enumeration_name">stm-35</font> (35)</li>
+  <li><font class="enumeration_name">stm-45</font> (45)</li>
+  <li><font class="enumeration_name">stm-199</font> (199)</li>
+  </ul></td>
+  </tr>
+  
+  <tr class="headerRow">
+  <td class="hrConstraint2" colspan="2">Constraints</td>
+  <td class="hrMin">Min Length (bits)</td>
+  <td class="hrMax">Max Length (bits)</td>
+  </tr>
+  
+  <tr class="OddRow">
+      <td class="constraint" colspan="2">N.A.</td>
+      <td class="min" >4</td>
+      <td class="max" >4</td>
+  </tr>
+  
+  </tbody>
+  </table>
+  &nbsp;<br/>
+  <a name="ICD_T_Packet_Body"></a> 
+  <table width="100%" >
+  <tbody>
+  
+  <tr class="typeRow">
+  <td colspan="6">
+  T-Packet-Body <font size="-1">(CHOICE)</font>
+  <font size="-2"><a href="#ASN1_T_Packet_Body" class="fileLink">ASN.1</a></font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Min:&nbsp;2&nbsp;bytes</font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Max:&nbsp;14&nbsp;bytes</font>
+  </td>
+  </tr>
+  
+  <tr class="CommentRow">
+  <td class="comment2" colspan="8"></td>
+  </tr>
+  
+  
+  <tr class="headerRow">
+  <td class="hrNo">No</td>
+  <td class="hrField">Field</td>
+  <td class="hrComment">Comment</td>
+  <td class="hrOptional">Present</td>
+  <td class="hrType">Type</td>
+  <td class="hrConstraint">Constraint</td>
+  <td class="hrMin">Min Bits</td>
+  <td class="hrMax">Max Bits</td>
+  </tr>
+  
+  <tr class="OddRow">
+  <td class="no">1</td>
+  <td class="field">ChoiceIndex</td>
+  <td class="comment">Special field used by ACN to indicate which choice alternative is present.</td>
+  <td class="optional">always</td>
+  <td class="type">unsigned int</td>
+  <td class="constraint">N.A.</td>
+  <td class="min">4</td>
+  <td class="max">4</td>
+  </tr>
+  <tr class="EvenRow">
+  <td class="no">2</td>
+  <td class="field">stm-0</td>
+  <td class="comment"></td>
+  <td class="optional">ChoiceIndex = 0</td>
+  <td class="type"><a href="#ICD_REAL">REAL</a></td>
+  <td class="constraint"></td>
+  <td class="min">8</td>
+  <td class="max">104</td>
+  </tr>
+  <tr class="OddRow">
+  <td class="no">3</td>
+  <td class="field">stm-5</td>
+  <td class="comment"></td>
+  <td class="optional">ChoiceIndex = 1</td>
+  <td class="type"><a href="#ICD_REAL">REAL</a></td>
+  <td class="constraint"></td>
+  <td class="min">8</td>
+  <td class="max">104</td>
+  </tr>
+  <tr class="EvenRow">
+  <td class="no">4</td>
+  <td class="field">stm-8</td>
+  <td class="comment"></td>
+  <td class="optional">ChoiceIndex = 2</td>
+  <td class="type"><a href="#ICD_REAL">REAL</a></td>
+  <td class="constraint"></td>
+  <td class="min">8</td>
+  <td class="max">104</td>
+  </tr>
+  <tr class="OddRow">
+  <td class="no">5</td>
+  <td class="field">stm-9</td>
+  <td class="comment"></td>
+  <td class="optional">ChoiceIndex = 3</td>
+  <td class="type"><a href="#ICD_REAL">REAL</a></td>
+  <td class="constraint"></td>
+  <td class="min">8</td>
+  <td class="max">104</td>
+  </tr>
+  <tr class="EvenRow">
+  <td class="no">6</td>
+  <td class="field">stm-13</td>
+  <td class="comment"></td>
+  <td class="optional">ChoiceIndex = 4</td>
+  <td class="type"><a href="#ICD_REAL">REAL</a></td>
+  <td class="constraint"></td>
+  <td class="min">8</td>
+  <td class="max">104</td>
+  </tr>
+  <tr class="OddRow">
+  <td class="no">7</td>
+  <td class="field">stm-14</td>
+  <td class="comment"></td>
+  <td class="optional">ChoiceIndex = 5</td>
+  <td class="type"><a href="#ICD_REAL">REAL</a></td>
+  <td class="constraint"></td>
+  <td class="min">8</td>
+  <td class="max">104</td>
+  </tr>
+  <tr class="EvenRow">
+  <td class="no">8</td>
+  <td class="field">stm-15</td>
+  <td class="comment"></td>
+  <td class="optional">ChoiceIndex = 6</td>
+  <td class="type"><a href="#ICD_REAL">REAL</a></td>
+  <td class="constraint"></td>
+  <td class="min">8</td>
+  <td class="max">104</td>
+  </tr>
+  <tr class="OddRow">
+  <td class="no">9</td>
+  <td class="field">stm-32</td>
+  <td class="comment"></td>
+  <td class="optional">ChoiceIndex = 7</td>
+  <td class="type"><a href="#ICD_REAL">REAL</a></td>
+  <td class="constraint"></td>
+  <td class="min">8</td>
+  <td class="max">104</td>
+  </tr>
+  <tr class="EvenRow">
+  <td class="no">10</td>
+  <td class="field">stm-35</td>
+  <td class="comment"></td>
+  <td class="optional">ChoiceIndex = 8</td>
+  <td class="type"><a href="#ICD_REAL">REAL</a></td>
+  <td class="constraint"></td>
+  <td class="min">8</td>
+  <td class="max">104</td>
+  </tr>
+  <tr class="OddRow">
+  <td class="no">11</td>
+  <td class="field">stm-45</td>
+  <td class="comment"></td>
+  <td class="optional">ChoiceIndex = 9</td>
+  <td class="type"><a href="#ICD_REAL">REAL</a></td>
+  <td class="constraint"></td>
+  <td class="min">8</td>
+  <td class="max">104</td>
+  </tr>
+  <tr class="EvenRow">
+  <td class="no">12</td>
+  <td class="field">stm-199</td>
+  <td class="comment"></td>
+  <td class="optional">ChoiceIndex = 10</td>
+  <td class="type"><a href="#ICD_REAL">REAL</a></td>
+  <td class="constraint"></td>
+  <td class="min">8</td>
+  <td class="max">104</td>
+  </tr>
+  
+  </tbody>
+  </table>
+  &nbsp;<br/>
+  <a name="ICD_T_Packet"></a> 
+  <table width="100%" >
+  <tbody>
+  
+  <tr class="typeRow">
+  <td colspan="6">
+  T-Packet <font size="-1">(SEQUENCE)</font>
+  <font size="-2"><a href="#ASN1_T_Packet" class="fileLink">ASN.1</a>  <a href="#ACN_T_Packet" class="fileLink">ACN</a></font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Min:&nbsp;4&nbsp;bytes</font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Max:&nbsp;16&nbsp;bytes</font>
+  </td>
+  </tr>
+  
+  <tr class="CommentRow">
+  <td class="comment2" colspan="8"></td>
+  </tr>
+  
+  
+  <tr class="headerRow">
+  <td class="hrNo">No</td>
+  <td class="hrField">Field</td>
+  <td class="hrComment">Comment</td>
+  <td class="hrOptional">Present</td>
+  <td class="hrType">Type</td>
+  <td class="hrConstraint">Constraint</td>
+  <td class="hrMin">Min Bits</td>
+  <td class="hrMax">Max Bits</td>
+  </tr>
+  
+  <tr class="OddRow">
+  <td class="no">1</td>
+  <td class="field">nid</td>
+  <td class="comment"></td>
+  <td class="optional">always</td>
+  <td class="type"><a href="#ICD_T_NID_Packet">T-NID-Packet</a></td>
+  <td class="constraint"></td>
+  <td class="min">8</td>
+  <td class="max">8</td>
+  </tr>
+  <tr class="EvenRow">
+  <td class="no">2</td>
+  <td class="field">length</td>
+  <td class="comment">-- 13 bits
+  </td>
+  <td class="optional">always</td>
+  <td class="type">fixed pattern: '0000000000000'B</td>
+  <td class="constraint"></td>
+  <td class="min">13</td>
+  <td class="max">13</td>
+  </tr>
+  <tr class="OddRow">
+  <td class="no">3</td>
+  <td class="field">pbody</td>
+  <td class="comment"></td>
+  <td class="optional">always</td>
+  <td class="type"><a href="#ICD_T_Packet_Body">D-T-Packet-pbody</a></td>
+  <td class="constraint"></td>
+  <td class="min">8</td>
+  <td class="max">104</td>
+  </tr>
+  
+  </tbody>
+  </table>
+  &nbsp;<br/>
+  <a name="ICD_D_T_Packet_pbody"></a> 
+  <table width="100%" >
+  <tbody>
+  
+  <tr class="typeRow">
+  <td colspan="6">
+  D-T-Packet-pbody <font size="-1">(CHOICE)</font>
+  <font size="-2"><a href="#ASN1_D_T_Packet_pbody" class="fileLink">ASN.1</a></font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Min:&nbsp;1&nbsp;bytes</font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Max:&nbsp;13&nbsp;bytes</font>
+  </td>
+  </tr>
+  
+  <tr class="CommentRow">
+  <td class="comment2" colspan="8">Acn inline encoding in the context of T-Packet type and pbody component</td>
+  </tr>
+  
+  
+  <tr class="headerRow">
+  <td class="hrNo">No</td>
+  <td class="hrField">Field</td>
+  <td class="hrComment">Comment</td>
+  <td class="hrOptional">Present</td>
+  <td class="hrType">Type</td>
+  <td class="hrConstraint">Constraint</td>
+  <td class="hrMin">Min Bits</td>
+  <td class="hrMax">Max Bits</td>
+  </tr>
+  
+  <tr class="OddRow">
+  <td class="no">1</td>
+  <td class="field">stm-0</td>
+  <td class="comment"></td>
+  <td class="optional">nid = stm-0</td>
+  <td class="type"><a href="#ICD_REAL">REAL</a></td>
+  <td class="constraint"></td>
+  <td class="min">8</td>
+  <td class="max">104</td>
+  </tr>
+  <tr class="EvenRow">
+  <td class="no">2</td>
+  <td class="field">stm-5</td>
+  <td class="comment"></td>
+  <td class="optional">nid = stm-5</td>
+  <td class="type"><a href="#ICD_REAL">REAL</a></td>
+  <td class="constraint"></td>
+  <td class="min">8</td>
+  <td class="max">104</td>
+  </tr>
+  <tr class="OddRow">
+  <td class="no">3</td>
+  <td class="field">stm-8</td>
+  <td class="comment"></td>
+  <td class="optional">nid = stm-8</td>
+  <td class="type"><a href="#ICD_REAL">REAL</a></td>
+  <td class="constraint"></td>
+  <td class="min">8</td>
+  <td class="max">104</td>
+  </tr>
+  <tr class="EvenRow">
+  <td class="no">4</td>
+  <td class="field">stm-9</td>
+  <td class="comment"></td>
+  <td class="optional">nid = stm-9</td>
+  <td class="type"><a href="#ICD_REAL">REAL</a></td>
+  <td class="constraint"></td>
+  <td class="min">8</td>
+  <td class="max">104</td>
+  </tr>
+  <tr class="OddRow">
+  <td class="no">5</td>
+  <td class="field">stm-13</td>
+  <td class="comment"></td>
+  <td class="optional">nid = stm-13</td>
+  <td class="type"><a href="#ICD_REAL">REAL</a></td>
+  <td class="constraint"></td>
+  <td class="min">8</td>
+  <td class="max">104</td>
+  </tr>
+  <tr class="EvenRow">
+  <td class="no">6</td>
+  <td class="field">stm-14</td>
+  <td class="comment"></td>
+  <td class="optional">nid = stm-14</td>
+  <td class="type"><a href="#ICD_REAL">REAL</a></td>
+  <td class="constraint"></td>
+  <td class="min">8</td>
+  <td class="max">104</td>
+  </tr>
+  <tr class="OddRow">
+  <td class="no">7</td>
+  <td class="field">stm-15</td>
+  <td class="comment"></td>
+  <td class="optional">nid = stm-15</td>
+  <td class="type"><a href="#ICD_REAL">REAL</a></td>
+  <td class="constraint"></td>
+  <td class="min">8</td>
+  <td class="max">104</td>
+  </tr>
+  <tr class="EvenRow">
+  <td class="no">8</td>
+  <td class="field">stm-32</td>
+  <td class="comment"></td>
+  <td class="optional">nid = stm-32</td>
+  <td class="type"><a href="#ICD_REAL">REAL</a></td>
+  <td class="constraint"></td>
+  <td class="min">8</td>
+  <td class="max">104</td>
+  </tr>
+  <tr class="OddRow">
+  <td class="no">9</td>
+  <td class="field">stm-35</td>
+  <td class="comment"></td>
+  <td class="optional">nid = stm-35</td>
+  <td class="type"><a href="#ICD_REAL">REAL</a></td>
+  <td class="constraint"></td>
+  <td class="min">8</td>
+  <td class="max">104</td>
+  </tr>
+  <tr class="EvenRow">
+  <td class="no">10</td>
+  <td class="field">stm-45</td>
+  <td class="comment"></td>
+  <td class="optional">nid = stm-45</td>
+  <td class="type"><a href="#ICD_REAL">REAL</a></td>
+  <td class="constraint"></td>
+  <td class="min">8</td>
+  <td class="max">104</td>
+  </tr>
+  <tr class="OddRow">
+  <td class="no">11</td>
+  <td class="field">stm-199</td>
+  <td class="comment"></td>
+  <td class="optional">nid = stm-199</td>
+  <td class="type"><a href="#ICD_REAL">REAL</a></td>
+  <td class="constraint"></td>
+  <td class="min">8</td>
+  <td class="max">104</td>
+  </tr>
+  
+  </tbody>
+  </table>
+  &nbsp;<br/>
+  </div>
+
+  <hr />
+    <a name="ACN_PARAMS_EXPLAINED123"></a>
+    <em>ACN Parameters</em><br/>
+    In the standard ASN.1 encodings such as uPER, BER etc, the encoding and decoding of any type has no external dependencies. For example, the encoded data for a SEQUENCE OF depends on the number of items in the SEQUENCE OF (the length determinant) and the type of item contained in the SEQUENCE. On the other hand, ACN allows types to be parameterized. For instance, the length of a SEQUENCE OF may be determined by the value of an external field. In this case, the SEQUENCE OF is parameterized and the input parameter is the field providing the length.
+  <hr />
+    <br/>
+  <div style="width: 100%">
+  <h1 >File : a.asn1</h1>
+  <div style="width: 100%; white-space:pre; font-family:Courier New; font-size:small">
+  D <b><font color="#5F9EA0">DEFINITIONS</font></b> ::=
+  <b><font color="#5F9EA0">BEGIN</font></b>
+  
+  <a name="ACN_T_NID_Packet"></a><a href="#ICD_T_NID_Packet"><font color="#B8860B"><b>T-NID-Packet</b></font></a> ::= <b><font color="#5F9EA0">ENUMERATED</font></b>
+  {
+      stm-0 (0),
+      stm-5      (5),
+      stm-8      (8),
+      stm-9      (9),
+      stm-13    (13),
+      stm-14    (14),
+      stm-15    (15),
+      stm-32    (32),
+      stm-35    (35),
+      stm-45    (45),
+      stm-199  (199)
+  }
+  
+  
+  <a name="ACN_T_Packet_Body"></a><a href="#ICD_T_Packet_Body"><font color="#B8860B"><b>T-Packet-Body</b></font></a> ::= <a name="ASN1_T_Packet_Body">CHOICE</a>
+  {
+      stm-0   <b><font color="#5F9EA0">REAL</font></b>,
+      stm-5   <b><font color="#5F9EA0">REAL</font></b>,
+      stm-8   <b><font color="#5F9EA0">REAL</font></b>,
+      stm-9   <b><font color="#5F9EA0">REAL</font></b>,
+      stm-13  <b><font color="#5F9EA0">REAL</font></b>,
+      stm-14  <b><font color="#5F9EA0">REAL</font></b>,
+      stm-15  <b><font color="#5F9EA0">REAL</font></b>,
+      stm-32  <b><font color="#5F9EA0">REAL</font></b>,
+      stm-35  <b><font color="#5F9EA0">REAL</font></b>,
+      stm-45  <b><font color="#5F9EA0">REAL</font></b>,
+      stm-199 <b><font color="#5F9EA0">REAL</font></b>
+  }
+  
+  <a name="ACN_T_Packet"></a><a href="#ICD_T_Packet"><font color="#B8860B"><b>T-Packet</b></font></a> ::= <b><font color="#5F9EA0">SEQUENCE</font></b> {
+      pbody  <a href="#ASN1_T_Packet_Body"><font color="#000000">T-Packet-Body</font></a>
+  }
+  <b><font color="#5F9EA0">END</font></b>
+  </div>
+  </div>
+
+  <div style="width: 100%">
+  <h1 >File : a.acn</h1>
+  <div style="width: 100%; white-space:pre; font-family:Courier New; font-size:small">
+  D <b><font color="#5F9EA0">DEFINITIONS</font></b> ::=
+  <b><font color="#5F9EA0">BEGIN</font></b>
+  
+  <a name="ACN_T_Packet"></a><a href="#ICD_T_Packet"><font color="#B8860B"><b>T-Packet</b></font></a> []
+  {
+      nid <a name="ACN_T_NID_Packet"></a><a href="#ICD_T_NID_Packet"><font color="#B8860B"><b>T-NID-Packet</b></font></a> [<b><font color="#5F9EA0">encode-values</font></b>],
+      length <b><font color="#5F9EA0">NULL</font></b> [<b><font color="#5F9EA0">pattern</font></b> <font color="#A31515">'0000000000000'B</font>], <font color="#008000"><i>-- 13 bits
+  </i></font>    pbody [<b><font color="#5F9EA0">determinant</font></b> nid]
+  }
+  <b><font color="#5F9EA0">END</font></b>
+  </div>
+  </div>
+
+</body>
+</html>

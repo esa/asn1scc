@@ -16,12 +16,12 @@ char* Int2String(asn1SccSint v) {
     static char tmp[256];
 #if WORD_SIZE==8
 #ifdef __MINGW32__
-    sprintf(tmp,"%I64d",v);
+    snprintf(tmp, sizeof(tmp), "%I64d", v);
 #else
-    sprintf(tmp,"%lld",v);
-#endif	
+    snprintf(tmp, sizeof(tmp), "%lld", v);
+#endif
 #else
-    sprintf(tmp,"%ld",v);
+    snprintf(tmp, sizeof(tmp), "%ld", v);
 #endif
 
     return tmp;
@@ -31,34 +31,45 @@ char* UInt2String(asn1SccUint v) {
     static char tmp[256];
 #if WORD_SIZE==8
 #ifdef __MINGW32__
-    sprintf(tmp, "%I64u", v);
+    snprintf(tmp, sizeof(tmp), "%I64u", v);
 #else
-    sprintf(tmp, "%llu", v);
-#endif	
+    snprintf(tmp, sizeof(tmp), "%llu", v);
+#endif
 #else
-    sprintf(tmp, "%ld", v);
+    snprintf(tmp, sizeof(tmp), "%ld", v);
 #endif
 
     return tmp;
 }
 
 char* Double2String(double v) {
-    static char tmp[256];
-    char* pos1 = NULL;
-    sprintf(tmp,"%#.24E",v);
+    if (fabs(v) < 1e-17)
+        return "0";
 
-    pos1 = strchr(tmp,'+');
-    if (pos1!=NULL) {
-        *pos1=0x0;
-        strcat(tmp, ++pos1);
+    static char tmp[256];
+    int exponent = 0;
+
+    while (fabs(v) >= 10) {
+        v /= 10;
+        exponent++;
     }
 
+    while (fabs(v) < 1) {
+        v *= 10;
+        exponent--;
+    }
+
+    if (fabs(fabs(v) - llabs((asn1SccSint) v)) < 1e-17) {
+        snprintf(tmp, sizeof(tmp), "%.1fE%d", v, exponent);
+    } else {
+        snprintf(tmp, sizeof(tmp), "%.17gE%d", v, exponent);
+    }
 
     return tmp;
 }
 
 flag GetNextChar(ByteStream* pStrm, char* c) {
-    if (pStrm->currentByte+1>pStrm->count+1)
+    if (pStrm->currentByte >= pStrm->count)
         return FALSE;
     *c = (char) pStrm->buf[pStrm->currentByte];
     pStrm->currentByte++;
@@ -68,7 +79,7 @@ flag GetNextChar(ByteStream* pStrm, char* c) {
 void PushBackChar(ByteStream* pStrm)
 {
     pStrm->currentByte--;
-    assert(pStrm->currentByte>=0);
+    assert(pStrm->currentByte >= 0);
 }
 
 flag ByteStream_PutSpace(ByteStream* pStrm, int level) 
@@ -81,7 +92,7 @@ flag ByteStream_PutSpace(ByteStream* pStrm, int level)
 
     if (level<0)
         return TRUE;
-    if (pStrm->currentByte+len>pStrm->count+1)
+    if (pStrm->currentByte + len >= pStrm->count)
         return FALSE;
 
     for(i=0; i< len; i++) {
@@ -96,7 +107,7 @@ flag ByteStream_PutNL(ByteStream* pStrm)
     if (!pStrm->EncodeWhiteSpace)
         return TRUE;
 
-    if (pStrm->currentByte+1>pStrm->count+1)
+    if (pStrm->currentByte >= pStrm->count)
         return FALSE;
 
     pStrm->buf[pStrm->currentByte] = '\n';
@@ -107,7 +118,7 @@ flag ByteStream_PutNL(ByteStream* pStrm)
 flag ByteStream_AppendString(ByteStream* pStrm, const char* v) 
 {
     int len = (int)strlen(v);
-    if (pStrm->currentByte+len>pStrm->count+1)
+    if (pStrm->currentByte + len >= pStrm->count)
         return FALSE;
     
     strcat((char*)&pStrm->buf[pStrm->currentByte],v);
@@ -138,7 +149,7 @@ flag isPartOfID(char c) {
 
 Token NT(ByteStream* pByteStrm) {
     Token ret;
-    char spChrs[] = { '<', '>', '/', '=', '"'};
+    char spChrs[] = { '<', '>', '/', '=', '"', 0 };
     char *tmp;
     memset(&ret, 0x0, sizeof(Token));
 
@@ -590,7 +601,7 @@ flag Xer_EncodeOctetString(ByteStream* pByteStrm, const char* elementTag, const 
 
     for(i=0;i<nCount;i++) {
         char tmp[3];
-        sprintf(tmp,"%02X", value[i]);
+        snprintf(tmp, sizeof(tmp), "%02X", value[i]);
         if (!ByteStream_AppendString(pByteStrm,tmp))
             return FALSE;
 
@@ -973,11 +984,11 @@ XmlState PreviousState = XmlStart;
 
 flag ByteStream_AppendChar(ByteStream* pStrm, const char v) 
 {
-    if (pStrm->currentByte > pStrm->count)
+    if (pStrm->currentByte >= pStrm->count)
         return FALSE;
-    
+
     pStrm->buf[pStrm->currentByte] = (byte) v;
-    pStrm->currentByte+=1;
+    pStrm->currentByte++;
     return TRUE;
 }
 

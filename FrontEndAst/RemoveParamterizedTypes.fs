@@ -113,7 +113,7 @@ and CloneConstraint (r:AstRoot) (curModule:Asn1Module) (oldModName:string) (name
     | ExceptConstraint(c1,c2)          -> ExceptConstraint(CloneConstraint r curModule oldModName namedArgs t c1, CloneConstraint r curModule oldModName namedArgs t c2)
     | RootConstraint(c1)               -> RootConstraint(CloneConstraint r curModule oldModName namedArgs t c)
     | RootConstraint2(c1,c2)           -> RootConstraint2(CloneConstraint r curModule oldModName namedArgs t c1, CloneConstraint r curModule oldModName namedArgs t c2)
-    | WithComponentConstraint(c)       -> WithComponentConstraint(CloneConstraint r curModule oldModName namedArgs None c)
+    | WithComponentConstraint(c,l)     -> WithComponentConstraint((CloneConstraint r curModule oldModName namedArgs None c),l)
     | WithComponentsConstraint(ncs)    -> WithComponentsConstraint(ncs|> List.map (CloneNamedConstraint r curModule oldModName namedArgs))
 
 and CloneNamedConstraint (r:AstRoot) (curModule:Asn1Module) (oldModName:string) (namedArgs:list<StringLoc*TemplateArgument>) (x:NamedConstraint) :NamedConstraint =

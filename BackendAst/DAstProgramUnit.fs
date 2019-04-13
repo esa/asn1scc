@@ -61,7 +61,7 @@ let private sortTypes (typesToSort: Asn1Type list) (imports :TypeAssignmentInfo 
             match tas.typeAssignmentInfo with
             | Some (TypeAssignmentInfo tasInfo)  -> Some ( (tasInfo, getTypeDependencies2 tas ))
             | Some (ValueAssignmentInfo _)  
-            | None          -> raise (BugErrorException "All TypeAssignemts must have tasInfo") )
+            | None          -> raise (BugErrorException "All TypeAssignments must have tasInfo") )
     let independentNodes = allNodes |> List.filter(fun (_,list) -> List.isEmpty list) |> List.map(fun (n,l) -> n)
     let dependentNodes = allNodes |> List.filter(fun (_,list) -> not (List.isEmpty list) )
     let sortedTypeAss = 
@@ -105,7 +105,7 @@ let internal createProgramUnits (args:CommandLineSettings) (files: Asn1File list
                     let impFile = files |> Seq.find(fun f -> f.Modules |> Seq.exists (fun md -> md.Name.Value = imp.Name.Value) )
                     impFile.FileNameWithoutExtension) |> 
                 Seq.distinct |> Seq.toList
-            let importedProgramUnits = (args.mappingFunctionsModule |> Option.toList) @ importedProgramUnits
+            let importedProgramUnits = importedProgramUnits
             let importedTypes = 
                 importedModules |>
                 Seq.collect(fun imp -> imp.Types |> List.map (fun impType ->{TypeAssignmentInfo.modName = imp.Name.Value; tasName = impType.Value}  )) |> 
@@ -164,7 +164,7 @@ let internal createProgramUnits (args:CommandLineSettings) (files: Asn1File list
                     | _                -> None)
             let importedProgramUnitsFromTasses = 
                 depTypesFromOtherModules |> Seq.map(fun ti -> ToC ti.modName) |> Seq.distinct |> Seq.toList
-            let importedProgramUnits = (args.mappingFunctionsModule |> Option.toList)@importedProgramUnitsFromTasses@importedProgramUnitsFromVases |> Seq.distinct |> Seq.toList
+            let importedProgramUnits = importedProgramUnitsFromTasses@importedProgramUnitsFromVases |> Seq.distinct |> Seq.toList
 
 
             let importedTypes = 

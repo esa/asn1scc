@@ -63,6 +63,7 @@ PP_Aligment_word() ::= "align-to-next word"
 PP_Aligment_dword() ::= "align-to-next dword"
 
 PP_EncodeValues() ::= "encode-values"
+PP_SavePosition() ::= "save-position"
 
 PP_TrueValue(sVal) ::= "true-value '<sVal>'B"
 PP_FalseValue(sVal) ::= "false-value '<sVal>'B"

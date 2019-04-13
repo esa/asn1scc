@@ -28,12 +28,26 @@ PrintBitOrOctetStringValue(bIsFixedSize, arruBytes, nCount) ::= <<
 }
 >>
 
+PrintBitOrOctetStringValueAsCompoundLitteral(td/*:FE_SizeableTypeDefinition*/, bIsFixedSize, arruBytes, nCount) ::= <<
+(<td.typeName>){<if(!bIsFixedSize)>.nCount = <nCount>, <endif>.arr = {<arruBytes:{b|0x<b;format="X2">}; separator=", ">}}
+>>
+
+
+PrintOctetArrayAsCompoundLitteral(arruBytes) ::= <<
+(const byte[]){<arruBytes:{b|0x<b;format="X2">}; wrap, anchor, separator=", ">}
+>>
+
+
 PrintObjectIdentifierValue(td/*:FE_PrimitiveTypeDefinition*/, arrnValues, nCount) ::= <<
 {	<nCount>,
     {
         <arrnValues; separator=",\n">
     }
 }
+>>
+
+PrintObjectIdentifierValueAsCompoundLiteral(arrnValues, nCount) ::= <<
+(Asn1ObjectIdentifier){	.nCount = <nCount>, .values = {<arrnValues; wrap, anchor, separator=", ">} }
 >>
 
 

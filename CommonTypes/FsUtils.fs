@@ -18,6 +18,7 @@ open Antlr.Runtime
 
 
 
+
 type OptionBuilder() =
     member x.Bind(opt, f) =
         match opt with
@@ -192,6 +193,9 @@ type System.String with
     member this.RDA =
         if this.IsEmptyOrNull then ""
         else this.Replace('.','_')
+    member this.RDD =
+        if this.IsEmptyOrNull then ""
+        else this.Replace('.','-')
     member this.JSEsc =
         if this.IsEmptyOrNull then ""
         else this.Replace("'","\\'").Replace("\"","\\\"")
@@ -305,17 +309,40 @@ let WordSize() = 8I*IntegerSize()
 let MaxInt() = if WordSize()=64I then BigInteger(System.Int64.MaxValue) else BigInteger(System.Int32.MaxValue)
 let MinInt() = if WordSize()=64I then BigInteger(System.Int64.MinValue) else BigInteger(System.Int32.MinValue)
 
+let powersof2 = [1..100] |> List.map(fun i -> (i, BigInteger.Pow(2I,i) - 1I ))
+
+(* 
 let GetNumberOfBitsForNonNegativeInteger(a:BigInteger) = 
-    BigInteger( System.Math.Ceiling(BigInteger.Log(a+BigInteger(1),2.0)) )
+    let vl = a + 1I
+    let lg = BigInteger.Log(vl, 2.0)
+    BigInteger( System.Math.Ceiling(lg) )
+*)
+
+let GetNumberOfBitsForNonNegativeInteger(a:BigInteger) = 
+    if a > 0I then
+        let aaa = powersof2 |> List.skipWhile(fun (i,pow2) -> a > pow2 )
+        match aaa with
+        | []          -> raise(BugErrorException("Number :" + a.ToString() + "to big to calculate the number of bits"))
+        | (i,pow2)::_ -> BigInteger(i)
+    else
+        0I
+
+
+(*
+let GetNumberOfBitsForNonNegativeInteger2(a:BigInteger) = 
+    let a = System.Decimal.Parse( a.ToString())
+    let lg = Math.Log(a+1m, 2.0)
+    System.Math.Ceiling() 
+*)
 
 let GetChoiceUperDeterminantLengthInBits(nChoiceAlternatives:BigInteger) = 
     match nChoiceAlternatives with
-    | _ when nChoiceAlternatives > 0I   -> BigInteger( System.Math.Ceiling(BigInteger.Log(nChoiceAlternatives,2.0)) )
+    | _ when nChoiceAlternatives > 1I   -> GetNumberOfBitsForNonNegativeInteger (nChoiceAlternatives - 1I)  //BigInteger( System.Math.Ceiling(BigInteger.Log(nChoiceAlternatives,2.0)) )
     | _                                 -> 0I
 
 
-let GetNumberOfBitsForNonNegativeInt(a:int) = 
-    int (System.Math.Ceiling(BigInteger.Log(BigInteger(a)+1I,2.0)) )
+//let GetNumberOfBitsForNonNegativeInt(a:int) = 
+//    int (System.Math.Ceiling(BigInteger.Log(BigInteger(a)+1I,2.0)) )
 
 let toString x = (sprintf "%A" x).Split(' ').[0].Trim()
 
@@ -386,6 +413,12 @@ let byteArrayToBitStringValue (bytes: byte seq)  =
         let octStr = sprintf "%02X" oct
         (handleNibble octStr.[0]) + (handleNibble octStr.[1])
     bytes |> Seq.map handleOctet  |> Seq.StrJoin ""
+
+
+let octetStringLiteralToByteArray (octLiteral:string) =
+    let chars = octLiteral.ToCharArray() 
+    let bytes = getAsTupples chars '0' |> List.map (fun (x1,x2)-> System.Byte.Parse(x1.ToString()+x2.ToString(), System.Globalization.NumberStyles.AllowHexSpecifier)) 
+    bytes
 
 
 
@@ -544,3 +577,36 @@ let replaceErrorCodes (initialString:string) (patternToSearch:string) generalErr
     sw.Dispose()
     ret
     
+
+let inline getX (x: ^TX) : ^X = 
+    (^TX : (member get_X : unit -> ^X) (x))
+
+type T1 = {
+    X : int
+}
+
+type T2 = {
+    X : int
+    Y : int
+}
+
+type T3 = {
+    X : int
+    Y : int
+    Z : int
+}
+
+let inline someFunc (x: ^REC) : int = 
+    let xF = (^REC : (member get_X : unit -> int) (x))
+    let yF = (^REC : (member get_Y : unit -> int) (x))
+    xF+yF
+
+let test (a:T1) (b:T2) (c:T3)=
+    let aa = getX a
+    let zz = getX b
+    let e = someFunc b
+    let e2 = someFunc c
+    0
+
+
+

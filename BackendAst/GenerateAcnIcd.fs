@@ -64,17 +64,19 @@ let PrintAcnAsHTML stgFileName (r:AstRoot)  =
 let foldGenericCon = GenerateUperIcd.foldGenericCon
 let foldRangeCon   = GenerateUperIcd.foldRangeCon
 
-let rec printType stgFileName (tas:GenerateUperIcd.IcdTypeAssignment) (t:Asn1Type) (m:Asn1Module) (r:AstRoot)  isAnonymousType =
+    
+
+let rec printType stgFileName (tas:GenerateUperIcd.IcdTypeAssignment) (t:Asn1Type) (m:Asn1Module) (r:AstRoot)  isAnonymousType : string list=
     let enumStg : GenerateUperIcd.StgCommentLineMacros = {
             NewLine                  = icd_acn.NewLine                 
             EmitEnumItem             = icd_acn.EmitEnumItem            
             EmitEnumItemWithComment  = icd_acn.EmitEnumItemWithComment 
             EmitEnumInternalContents = icd_acn.EmitEnumInternalContents
         } 
-    let handleNullType (encodingPattern : AcnGenericTypes.PATERN_PROP_VALUE option) defaultRetValue =
+    let handleNullType (encodingPattern : AcnGenericTypes.PATTERN_PROP_VALUE option) defaultRetValue =
         match encodingPattern with
-        | Some(AcnGenericTypes.PATERN_PROP_BITSTR_VALUE bitStr)       -> icd_acn.NullTypeWithBitPattern  stgFileName  bitStr.Value
-        | Some(AcnGenericTypes.PATERN_PROP_OCTSTR_VALUE byteList     )-> icd_acn.NullTypeWithBytePattern stgFileName  (byteList |> List.map (fun z -> z.Value)) 
+        | Some(AcnGenericTypes.PATTERN_PROP_BITSTR_VALUE bitStr)       -> icd_acn.NullTypeWithBitPattern  stgFileName  bitStr.Value
+        | Some(AcnGenericTypes.PATTERN_PROP_OCTSTR_VALUE byteList     )-> icd_acn.NullTypeWithBytePattern stgFileName  (byteList |> List.map (fun z -> z.Value)) 
         | None                                                        -> defaultRetValue
         
     let GetCommentLine = GenerateUperIcd.GetCommentLineFactory stgFileName enumStg
@@ -100,7 +102,8 @@ let rec printType stgFileName (tas:GenerateUperIcd.IcdTypeAssignment) (t:Asn1Typ
 
 
     let handlePrimitive (sAsn1Constraints:string) =
-        icd_acn.EmitPrimitiveType stgFileName isAnonymousType sTasName (ToC sTasName) hasAcnDef sKind sMinBytes sMaxBytes sMaxBitsExplained sCommentLine ( if sAsn1Constraints.Trim() ="" then "N.A." else sAsn1Constraints) sMinBits sMaxBits (myParams 2I) (sCommentLine.Split [|'\n'|])
+        let ret = icd_acn.EmitPrimitiveType stgFileName isAnonymousType sTasName (ToC sTasName) hasAcnDef sKind sMinBytes sMaxBytes sMaxBitsExplained sCommentLine ( if sAsn1Constraints.Trim() ="" then "N.A." else sAsn1Constraints) sMinBits sMaxBits (myParams 2I) (sCommentLine.Split [|'\n'|])
+        [ret]
     match t.Kind with
     | Integer    o   ->
         let sAsn1Constraints = o.AllCons |> List.map (foldRangeCon (fun z -> z.ToString())) |> Seq.StrJoin ""
@@ -175,18 +178,18 @@ let rec printType stgFileName (tas:GenerateUperIcd.IcdTypeAssignment) (t:Asn1Typ
                 match ch with
                 | Asn1Child ch  ->
                     let sType = 
-                        let defaultRetValue = icd_acn.EmmitSeqChild_RefType stgFileName ch.Type.FT_TypeDefintion.[CommonTypes.C].asn1Name (ToC ch.Type.FT_TypeDefintion.[CommonTypes.C].asn1Name)
+                        let defaultRetValue = 
+                            match ch.Type.ActualType.Kind with
+                            | Sequence _
+                            | Choice _
+                            | SequenceOf _ -> 
+                                icd_acn.EmmitSeqChild_RefType stgFileName ch.Type.id.AsString.RDD (ToC ch.Type.FT_TypeDefintion.[CommonTypes.C].asn1Name)
+                            | _            ->
+                                icd_acn.EmmitSeqChild_RefType stgFileName ch.Type.FT_TypeDefintion.[CommonTypes.C].asn1Name (ToC ch.Type.FT_TypeDefintion.[CommonTypes.C].asn1Name)
                         match ch.Type.ActualType.Kind with
                         | DAst.NullType       o  when o.baseInfo.acnProperties.encodingPattern.IsSome  -> 
                                                      handleNullType o.baseInfo.acnProperties.encodingPattern defaultRetValue
                         | _                       -> defaultRetValue
-                            
-//                        match ch.Type.Kind with
-//                        | ReferenceType ref -> icd_acn.EmmitSeqChild_RefType stgFileName ref.baseInfo.tasName.Value (ToC ref.baseInfo.tasName.Value)
-//                        | _                       -> 
-//                            match ch.Type.typeDefintionOrReference with
-//                            | ReferenceToExistingDefinition    r -> icd_acn.EmmitSeqChild_RefType stgFileName r.typedefName (ToC r.typedefName)
-//                            | TypeDefinition                   r -> icd_acn.EmmitSeqChild_RefType stgFileName r.typedefName (ToC r.typedefName) //Kind2Name stgFileName ch.Type
                     sType, GetCommentLine ch.Comments ch.Type, ch.Type.ConstraintsAsn1Str |> Seq.StrJoin ""
                 | AcnChild ch   ->
                     let commentLine =
@@ -211,12 +214,27 @@ let rec printType stgFileName (tas:GenerateUperIcd.IcdTypeAssignment) (t:Asn1Typ
             let sMaxBits, sMaxBytes = ch.acnMaxSizeInBits.ToString(), BigInteger(System.Math.Ceiling(double(ch.acnMaxSizeInBits)/8.0)).ToString()
             let sMinBits, sMinBytes = ch.acnMinSizeInBits.ToString(), BigInteger(System.Math.Ceiling(double(ch.acnMinSizeInBits)/8.0)).ToString()
             icd_acn.EmmitSeqOrChoiceRow stgFileName sClass nIndex ch.Name sComment  sPresentWhen  sType sAsn1Constraints sMinBits sMaxBits
-        let arChildren idx = seq.children |> Seq.mapi(fun i ch -> emitSeqChild (idx + i) ch ) |> Seq.toList
+        let arChildren idx = seq.children |> Seq.mapi(fun i ch -> emitSeqChild (idx + i) ch )  |> Seq.toList
+        let childTasses = 
+            seq.children |> 
+            Seq.map(fun ch -> 
+                    match ch with
+                    | Asn1Child ch  ->
+                        match ch.Type.ActualType.Kind with
+                        | Sequence _
+                        | Choice _
+                        | SequenceOf _ -> 
+                            let chTas = {tas with name=ch.Type.id.AsString.RDD; t=ch.Type.ActualType; comments = Array.concat [ tas.comments; [|sprintf "Acn inline encoding in the context of %s type and %s component" tas.name ch.Name.Value|]]; isBlue = true }
+                            printType stgFileName chTas ch.Type.ActualType m r isAnonymousType
+                        | _            -> []
+                    | AcnChild _       -> [])|> 
+            Seq.collect id |> Seq.toList
         let arRows =
             match SeqPreamble with 
             | None          -> arChildren 1
             | Some(prm)     -> prm::(arChildren 2)
-        icd_acn.EmitSequenceOrChoice stgFileName isAnonymousType sTasName (ToC sTasName) hasAcnDef "SEQUENCE" sMinBytes sMaxBytes sMaxBitsExplained sCommentLine arRows (myParams 3I) (sCommentLine.Split [|'\n'|])
+        let seqRet = icd_acn.EmitSequenceOrChoice stgFileName isAnonymousType sTasName (ToC sTasName) hasAcnDef "SEQUENCE" sMinBytes sMaxBytes sMaxBitsExplained sCommentLine arRows (myParams 3I) (sCommentLine.Split [|'\n'|])
+        [seqRet] @ childTasses
     |Choice chInfo   ->
         let EmitSeqOrChoiceChild (i:int) (ch:ChChildInfo)  getPresence =
             let sClass = if i % 2 = 0 then (icd_acn.EvenRow stgFileName ()) else (icd_acn.OddRow stgFileName ())
@@ -232,30 +250,35 @@ let rec printType stgFileName (tas:GenerateUperIcd.IcdTypeAssignment) (t:Asn1Typ
                                                 handleNullType o.baseInfo.acnProperties.encodingPattern defaultRetValue
                 | _                       -> defaultRetValue
 
-//                match ch.chType.Kind with
-//                | ReferenceType ref -> icd_acn.EmmitSeqChild_RefType stgFileName ref.baseInfo.tasName.Value (ToC ref.baseInfo.tasName.Value)
-//                | _                       -> Kind2Name stgFileName ch.chType
             let sAsn1Constraints = ch.chType.ConstraintsAsn1Str |> Seq.StrJoin ""
             let sMaxBits, sMaxBytes = ch.chType.acnMaxSizeInBits.ToString(), BigInteger(System.Math.Ceiling(double(ch.chType.acnMaxSizeInBits)/8.0)).ToString()
             let sMinBits, sMinBytes = ch.chType.acnMinSizeInBits.ToString(), BigInteger(System.Math.Ceiling(double(ch.chType.acnMinSizeInBits)/8.0)).ToString()
             icd_acn.EmmitSeqOrChoiceRow stgFileName sClass nIndex ch.Name.Value sComment  sPresentWhen  sType sAsn1Constraints sMinBits sMaxBits
         let children = chInfo.children
+        let children = children |> List.filter(fun ch -> match ch.Optionality with  Some (Asn1AcnAst.ChoiceAlwaysAbsent) -> false | _ -> true)
         let arrRows = 
             match chInfo.ancEncClass with
             | CEC_uper          -> 
-                let ChIndex =
+                let ChIndex, curI =
                     //let optChild = chInfo.children |> Seq.mapi(fun i c -> icd_uper.EmmitChoiceIndexSingleComment stgFileName (BigInteger (i+1)) c.Name.Value)
-                    let sComment = icd_acn.EmmitChoiceIndexComment stgFileName ()
-                    let indexSize = (GetChoiceUperDeterminantLengthInBits(BigInteger(Seq.length chInfo.children))).ToString()
-                    icd_acn.EmmitSeqOrChoiceRow stgFileName (icd_acn.OddRow stgFileName ()) (BigInteger 1) "ChoiceIndex" sComment  "always"  "unsigned int" "N.A." indexSize indexSize
+                    match children.Length <= 1 with
+                    | true    -> [], 1
+                    | false     ->
+                        let sComment = icd_acn.EmmitChoiceIndexComment stgFileName ()
+                        let indexSize = (GetChoiceUperDeterminantLengthInBits(BigInteger(Seq.length children))).ToString()
+                        let ret = icd_acn.EmmitSeqOrChoiceRow stgFileName (icd_acn.OddRow stgFileName ()) (BigInteger 1) "ChoiceIndex" sComment  "always"  "unsigned int" "N.A." indexSize indexSize
+                        [ret], 2
                     //icd_acn.EmmitSeqOrChoiceRow stgFileName sClass nIndex ch.Name.Value sComment  sPresentWhen  sType sAsn1Constraints sMinBits sMaxBits
                 let getPresenceWhenNone_uper (i:int) (ch:ChChildInfo) =
-                    let index = children |> Seq.findIndex (fun z -> z.Name.Value = ch.Name.Value) 
-                    sprintf "ChoiceIndex = %d" index
+                    match children.Length <= 1 with
+                    | true  -> "always"
+                    | false ->
+                        let index = children |> Seq.findIndex (fun z -> z.Name.Value = ch.Name.Value) 
+                        sprintf "ChoiceIndex = %d" index
                     //sprintf "ChoiceIndex = %d" i
                 let EmitChild (i:int) (ch:ChChildInfo) = EmitSeqOrChoiceChild i ch  getPresenceWhenNone_uper
-                let arChildren = children |> Seq.mapi(fun i ch -> EmitChild (2 + i) ch) |> Seq.toList
-                ChIndex::arChildren
+                let arChildren = children |> Seq.mapi(fun i ch -> EmitChild (curI + i) ch) |> Seq.toList
+                ChIndex@arChildren
             | CEC_enum    (r,d)     -> 
                 let getPresence (i:int) (ch:ChChildInfo) =
                     let refToStr id =
@@ -274,14 +297,15 @@ let rec printType stgFileName (tas:GenerateUperIcd.IcdTypeAssignment) (t:Asn1Typ
                     ch.acnPresentWhenConditions |> Seq.map getPresenceSingle |> Seq.StrJoin " AND " 
                 let EmitChild (i:int) (ch:ChChildInfo) = EmitSeqOrChoiceChild i ch  getPresence
                 children |> Seq.mapi(fun i ch -> EmitChild (1 + i) ch) |> Seq.toList
-        icd_acn.EmitSequenceOrChoice stgFileName isAnonymousType sTasName (ToC sTasName) hasAcnDef "CHOICE" sMinBytes sMaxBytes sMaxBitsExplained sCommentLine arrRows (myParams 3I) (sCommentLine.Split [|'\n'|])
+        let chRet = icd_acn.EmitSequenceOrChoice stgFileName isAnonymousType sTasName (ToC sTasName) hasAcnDef "CHOICE" sMinBytes sMaxBytes sMaxBitsExplained sCommentLine arrRows (myParams 3I) (sCommentLine.Split [|'\n'|])
+        [chRet]
     | IA5String  o  ->
-        let nMin, nMax, encClass = o.baseInfo.minSize, o.baseInfo.maxSize, o.baseInfo.acnEncodingClass
+        let nMin, nMax, encClass = o.baseInfo.minSize.acn, o.baseInfo.maxSize.acn, o.baseInfo.acnEncodingClass
         let sType, characterSizeInBits = 
             match encClass with
             | Asn1AcnAst.Acn_Enc_String_uPER                                   characterSizeInBits             -> "NUMERIC CHARACTER" , characterSizeInBits.ToString()
             | Asn1AcnAst.Acn_Enc_String_uPER_Ascii                             characterSizeInBits             -> "ASCII CHARACTER"   , characterSizeInBits.ToString()
-            | Asn1AcnAst.Acn_Enc_String_Ascii_Null_Teminated                  (characterSizeInBits, nullChar)  -> "ASCII CHARACTER"   , characterSizeInBits.ToString()
+            | Asn1AcnAst.Acn_Enc_String_Ascii_Null_Teminated                  (characterSizeInBits, nullChars)  -> "ASCII CHARACTER"  , characterSizeInBits.ToString()
             | Asn1AcnAst.Acn_Enc_String_Ascii_External_Field_Determinant      (characterSizeInBits, rp)        -> "ASCII CHARACTER"   , characterSizeInBits.ToString()
             | Asn1AcnAst.Acn_Enc_String_CharIndex_External_Field_Determinant  (characterSizeInBits, rp)        -> "NUMERIC CHARACTER" , characterSizeInBits.ToString()
         let ChildRow (lineFrom:BigInteger) (i:BigInteger) =
@@ -300,7 +324,7 @@ let rec printType stgFileName (tas:GenerateUperIcd.IcdTypeAssignment) (t:Asn1Typ
         let comment = "Special field used by ACN indicating the number of items."
         let sCon = t.ConstraintsAsn1Str |> Seq.StrJoin ""
         let sCon =  if sCon.Trim() ="" then "N.A." else sCon
-        let lenDetSize = GetNumberOfBitsForNonNegativeInteger ( (o.baseInfo.maxSize - o.baseInfo.minSize))
+        let lenDetSize = GetNumberOfBitsForNonNegativeInteger ( (o.baseInfo.maxSize.acn - o.baseInfo.minSize.acn))
         let arRows, sExtraComment =
             match encClass with
             | Asn1AcnAst.Acn_Enc_String_uPER                                  nSizeInBits              -> 
@@ -309,7 +333,7 @@ let rec printType stgFileName (tas:GenerateUperIcd.IcdTypeAssignment) (t:Asn1Typ
             | Asn1AcnAst.Acn_Enc_String_uPER_Ascii                            nSizeInBits              -> 
                 let lengthLine = icd_acn.EmmitChoiceChild stgFileName (icd_acn.OddRow stgFileName ()) 1I "Length" comment    "unsigned int" sCon (lenDetSize.ToString()) (lenDetSize.ToString())
                 lengthLine::(ChildRow 1I 1I)::(icd_acn.EmitRowWith3Dots stgFileName ())::(ChildRow 1I ( nMax))::[], ""
-            | Asn1AcnAst.Acn_Enc_String_Ascii_Null_Teminated                  (nSizeInBits, nullChar)  -> 
+            | Asn1AcnAst.Acn_Enc_String_Ascii_Null_Teminated                  (nSizeInBits, nullChars)  -> 
                 (ChildRow 0I 1I)::(icd_acn.EmitRowWith3Dots stgFileName ())::(ChildRow 0I ( nMax))::(NullRow 0I ( (nMax+1I)))::[],""
             | Asn1AcnAst.Acn_Enc_String_Ascii_External_Field_Determinant      (nSizeInBits, rp)        -> 
                 (ChildRow 0I 1I)::(icd_acn.EmitRowWith3Dots stgFileName ())::(ChildRow 0I ( nMax))::[], sprintf "Length determined by external field %s" (rp.AsString)
@@ -319,18 +343,19 @@ let rec printType stgFileName (tas:GenerateUperIcd.IcdTypeAssignment) (t:Asn1Typ
                            | null | ""  -> sExtraComment
                            | _          -> sprintf "%s%s%s" sCommentLine (icd_acn.NewLine stgFileName ()) sExtraComment
 
-        icd_acn.EmitSizeable stgFileName isAnonymousType sTasName  (ToC sTasName) hasAcnDef (Kind2Name stgFileName t) sMinBytes sMaxBytes sMaxBitsExplained (makeEmptyNull sCommentLine) arRows (myParams 2I) (sCommentLine.Split [|'\n'|])
+        let strRet = icd_acn.EmitSizeable stgFileName isAnonymousType sTasName  (ToC sTasName) hasAcnDef (Kind2Name stgFileName t) sMinBytes sMaxBytes sMaxBitsExplained (makeEmptyNull sCommentLine) arRows (myParams 2I) (sCommentLine.Split [|'\n'|])
+        [strRet]
     | OctetString _
     | BitString  _
     | SequenceOf _   ->
         let nMin, nMax, encClass =
             match t.Kind with
             | OctetString o   ->
-               o.baseInfo.minSize, o.baseInfo.maxSize, o.baseInfo.acnEncodingClass
+               o.baseInfo.minSize.acn, o.baseInfo.maxSize.acn, o.baseInfo.acnEncodingClass
             | BitString   o   ->
-                o.baseInfo.minSize, o.baseInfo.maxSize, o.baseInfo.acnEncodingClass
+                o.baseInfo.minSize.acn, o.baseInfo.maxSize.acn, o.baseInfo.acnEncodingClass
             | SequenceOf  o   ->
-                o.baseInfo.minSize, o.baseInfo.maxSize, o.baseInfo.acnEncodingClass
+                o.baseInfo.minSize.acn, o.baseInfo.maxSize.acn, o.baseInfo.acnEncodingClass
             | _                            -> raise(BugErrorException "")
         let ChildRow (lineFrom:BigInteger) (i:BigInteger) =
             let sClass = if i % 2I = 0I then icd_acn.EvenRow stgFileName () else icd_acn.OddRow stgFileName ()
@@ -395,11 +420,13 @@ let rec printType stgFileName (tas:GenerateUperIcd.IcdTypeAssignment) (t:Asn1Typ
                            | null | ""  -> sExtraComment
                            | _          -> sprintf "%s%s%s" sCommentLine (icd_acn.NewLine stgFileName ()) sExtraComment
 
-        icd_acn.EmitSizeable stgFileName isAnonymousType sTasName  (ToC sTasName) hasAcnDef (Kind2Name stgFileName t) sMinBytes sMaxBytes sMaxBitsExplained (makeEmptyNull sCommentLine) arRows (myParams 2I) (sCommentLine.Split [|'\n'|])
+        let sizeRet = icd_acn.EmitSizeable stgFileName isAnonymousType sTasName  (ToC sTasName) hasAcnDef (Kind2Name stgFileName t) sMinBytes sMaxBytes sMaxBitsExplained (makeEmptyNull sCommentLine) arRows (myParams 2I) (sCommentLine.Split [|'\n'|])
+        [sizeRet]
 
 let PrintTas stgFileName (tas:GenerateUperIcd.IcdTypeAssignment) (m:Asn1Module) (r:AstRoot)   =
     //let isAnonymousType = blueTasses |> Seq.exists (fun x -> x = tas.Name.Value)
-    icd_acn.EmmitTass stgFileName (printType stgFileName tas tas.t  m r  tas.isBlue)
+    let tasses = printType stgFileName tas tas.t  m r  tas.isBlue
+    tasses |> List.map (icd_acn.EmmitTass stgFileName ) |> Seq.StrJoin "\n"
 
 
 let PrintModule stgFileName (m:Asn1Module) (f:Asn1File) (r:AstRoot)   =
