@@ -78,34 +78,20 @@ Continuous integration and Docker image
 =======================================
 
 ASN1SCC is setup to use CircleCI for continuous integration. Upon every
-commit or merge request, the packaged circle.yml instructs CircleCI to...
+commit or merge request, [we instruct CircleCI](.circleci/config.yml) to...
 
-    (a) build ASN1SCC with the new code
-    (b) then run all the tests and check the coverage results.
-
-But where is that build being made? Inside what environment?
-
-CircleCI offers only 3 build environments: OSX, Ubuntu 12 and Ubuntu 14.
-Till recently (March/2017) Ubuntu 14 met all the dependencies that were
-needed to build and run the tests. But the work being done to enhance the
-Ada backend with the new SPARK annotations, requires the latest GNAT;
-which is simply not installable in Ubuntu 14.
-
-Thankfully, CircleCI also supports Docker images.
-
-We have therefore setup the build, so that it creates (on the fly)
-a Debian Docker image based on the latest version of Debian stable
-(the soon to be announced Debian Stretch). Both the ASN1SCC build and
-the test run are then executed inside the Docker image.
+- create on the fly [a Docker image](Dockerfile) based on Debian Stretch
+- [build ASN1SCC](circleci-build.sh) with the new code inside that image
+- then run all the tests and check the coverage results.
 
 Needless to say, the Docker image can be used for development as well;
-simply execute...
+to build it you just need to execute...
 
     docker build -t asn1scc .    # Don't forget the dot!
 
-...and your Docker install will build an "asn1scc" Docker image, pre-setup
+...and your Docker will build an "asn1scc" Docker image, pre-setup
 with all the build-time dependencies to compile ASN1SCC and run its 
-test suite. To do so, you'll need to run this:
+test suite. You can then enter it and proceed with your development:
 
     $ docker run -it -v $(pwd):/root/asn1scc asn1scc
 
@@ -122,12 +108,13 @@ test suite. To do so, you'll need to run this:
     ...
 
 This same sequence of commands is executed in CircleCI to check for
-regressions; with the added benefit that after building the image for
-the first time, CircleCI is configured to cache the Docker image (see
-circle.yml for details). This means that upon new commits in ASN1SCC,
-CircleCI will re-use the Docker image that was made in previous runs,
+regressions; with the added benefit that after building the base Debian
+for the first time, CircleCI is configured to cache the Docker image.
+This means that upon new commits in ASN1SCC, CircleCI will re-use the 
+baseline Debian with all development tools that was made in previous runs,
 and therefore avoid re-installing all the build environment tools every
-time. The develop-test cycles are therefore as fast as they can be.
+time. Only ASN1SCC is rebuilt from scratch every time - and the
+develop-test cycles are therefore as fast as possible.
 
 Usage
 =====
