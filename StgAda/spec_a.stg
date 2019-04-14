@@ -130,7 +130,9 @@ SUBTYPE <thisType> is <if(soParentTypePackage)><soParentTypePackage>.<endif><par
 
 Define_new_enumerated_item(sName, nValue) ::= "<sName> => <nValue>"
 
-Define_new_enumerated(td/*:FE_EnumeratedTypeDefinition*/, arrsEnumNames, arrsEnumNamesAndValues, nIndexMax) ::= <<
+Define_new_enumerated_item_macro(td/*:FE_EnumeratedTypeDefinition*/, sAsn1Name, sCName) ::= ""
+
+Define_new_enumerated(td/*:FE_EnumeratedTypeDefinition*/, arrsEnumNames, arrsEnumNamesAndValues, nIndexMax, arrsResolvingMacros) ::= <<
 subtype <td.index_range> is integer range 0..<nIndexMax>;
 type <td.typeName> is (<arrsEnumNames; separator=", ">) with Convention => C;
 for <td.typeName> use

@@ -180,16 +180,18 @@ let createBitString (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage)  (t:Asn1AcnAs
 let createEnumerated (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage)  (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Enumerated)  (us:State) =
     let td = o.typeDef.[l]
     let define_new_enumerated_item        = match l with C -> header_c.Define_new_enumerated_item | Ada -> header_a.Define_new_enumerated_item
+    let define_new_enumerated_item_macro  = match l with C -> header_c.Define_new_enumerated_item_macro | Ada -> header_a.Define_new_enumerated_item_macro
     let define_new_enumerated        = match l with C -> header_c.Define_new_enumerated | Ada -> header_a.Define_new_enumerated
     let define_subType_enumerated    = match l with C -> header_c.Define_subType_enumerated | Ada -> header_a.Define_subType_enumerated
     let orderedItems = o.items |> List.sortBy(fun i -> i.definitionValue)
     let arrsEnumNames = orderedItems |> List.map( fun i -> i.getBackendName None l)
     let arrsEnumNamesAndValues = orderedItems |> List.map( fun i -> define_new_enumerated_item (i.getBackendName None l) i.definitionValue)
+    let macros = orderedItems |> List.map( fun i -> define_new_enumerated_item_macro td (ToC i.Name.Value) (i.getBackendName None l) )
     let nIndexMax = BigInteger ((Seq.length o.items)-1)
 
     match td.kind with
     | NonPrimitiveNewTypeDefinition              -> 
-        let completeDefintion = define_new_enumerated td arrsEnumNames arrsEnumNamesAndValues nIndexMax
+        let completeDefintion = define_new_enumerated td arrsEnumNames arrsEnumNamesAndValues nIndexMax macros
         Some completeDefintion
     | NonPrimitiveNewSubTypeDefinition subDef     -> 
         let otherProgramUnit = if td.programUnit = subDef.programUnit then None else (Some subDef.programUnit)

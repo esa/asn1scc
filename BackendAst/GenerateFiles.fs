@@ -48,6 +48,7 @@ let rec collectEqualFuncs (t:Asn1Type) =
         yield t.equalFunction
     } |> Seq.toList
 
+
 let private printUnit (r:DAst.AstRoot) (l:ProgrammingLanguage) (encodings: CommonTypes.Asn1Encoding list) outDir (pu:ProgramUnit)  =
     let tases = pu.sortedTypeAssignments
     

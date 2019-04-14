@@ -7,14 +7,18 @@ type SiRange<'v> = {
     b : 'v
 }
 
-type SiSet<'v> = 
-    | SiSet of SiRange<'v> list
 
 type SetDefinition<'v> = {
     universe : SiRange<'v>
     prefFunc : 'v->'v
     nextFunc : 'v->'v
 }
+
+type SiSet<'v> = {
+    ranges : SiRange<'v> list
+    setDef : SetDefinition<'v>
+}
+
 //let fullIntegerSet = {Range<'v>.a = bigint Int64.MinValue; b = bigint Int64.MaxValue}
 
 let range_within (r:SiRange<'v>) v = 
@@ -119,36 +123,36 @@ let range_difference (d:SetDefinition<'v>) (r1:SiRange<'v>) (r2:SiRange<'v>) =
         | None, Some x  -> Some x, None
         | Some a, Some b ->range_union a b 
     
-let set_add_range (d:SetDefinition<'v>) (SiSet s1) (r2: SiRange<'v>) =
-    let before = s1 |> List.filter(fun r1 -> r1.b < r2.a)
-    let after = s1 |> List.filter(fun r1 -> r2.b < r1.a)
-    let middleRanges = s1 |> List.filter(fun r1 -> not (r1.b < r2.a)) |> List.filter(fun r1 -> not (r2.b < r1.a))
+let set_add_range (s1:SiSet<'v> ) (r2: SiRange<'v>) =
+    let before = s1.ranges |> List.filter(fun r1 -> r1.b < r2.a)
+    let after = s1.ranges |> List.filter(fun r1 -> r2.b < r1.a)
+    let middleRanges = s1.ranges |> List.filter(fun r1 -> not (r1.b < r2.a)) |> List.filter(fun r1 -> not (r2.b < r1.a))
     let midleRange =
         middleRanges |> 
         List.fold(fun st r -> (range_union2 st r).Head ) r2
-    SiSet(before@[midleRange]@after)
+    {s1 with ranges = (before@[midleRange]@after)}
 
-let set_intersect (d:SetDefinition<'v>) (SiSet s1) (SiSet s2) =
+let set_intersect (s1:SiSet<'v>) (s2:SiSet<'v>) =
     let ranges =
         seq {
-            for r1 in s1 do
-                for r2 in s2 do
+            for r1 in s1.ranges do
+                for r2 in s2.ranges do
                     yield range_intersect r1 r2
         } |> Seq.toList
-    ranges |> List.choose id |> List.fold(fun set r -> set_add_range d set r ) (SiSet [])
+    ranges |> List.choose id |> List.fold(fun set r -> set_add_range set r ) ({s1 with ranges = []})
     
-let set_union (d:SetDefinition<'v>) (SiSet s1) (SiSet s2) =
-    s1 |> List.fold(fun set r -> set_add_range d set r) (SiSet s2)
+let set_union  (s1:SiSet<'v>) (s2:SiSet<'v>) =
+    s1.ranges |> List.fold(fun set r -> set_add_range set r) s2
 
-let set_complement (d:SetDefinition<'v>) (SiSet ranges)  =
-    ranges |> 
+let set_complement (s:SiSet<'v>)  =
+    s.ranges |> 
     List.fold(fun set r -> 
-        let comp = range_complement2 d r
-        set_intersect d set (SiSet comp)) (SiSet [d.universe])
+        let comp = {s with ranges = range_complement2 set.setDef r}
+        set_intersect set comp) ({s with ranges = [s.setDef.universe]})
 
-let set_difference (d:SetDefinition<'v>) s1 s2= 
+let set_difference s1 s2= 
     // A - B = A intersection (Complement B)
-    set_intersect d s1 (set_complement d s2)    
+    set_intersect s1 (set_complement s2)    
 
 let Int64Def = { universe = {SiRange.a= bigint Int64.MinValue ;b= bigint Int64.MaxValue}; prefFunc = (fun x -> x-1I);    nextFunc = (fun x -> x+1I)}
 let UInt64Def = { universe = {SiRange.a= 0I ;b= bigint UInt64.MaxValue}; prefFunc = (fun x -> x-1I);    nextFunc = (fun x -> x+1I)}
@@ -159,6 +163,15 @@ let UInt32Def = { universe = {SiRange.a= 0I ;b= bigint UInt32.MaxValue}; prefFun
 let PosInt32Def = { universe = {SiRange.a= 0u ;b= UInt32.MaxValue}; prefFunc = (fun x -> x-1u);    nextFunc = (fun x -> x+1u)}
 
 
+let nextChar (c:System.Char) =
+    System.Convert.ToChar(System.Convert.ToInt32(c)+1)
+let prevChar (c:System.Char) =
+    System.Convert.ToChar(System.Convert.ToInt32(c)-1)
+
+let CharDef  = 
+    { universe = {SiRange.a= System.Convert.ToChar(0) ;b= System.Convert.ToChar(127)}; prefFunc = prevChar;    nextFunc = nextChar}
+
+
 let nextDoubleValue (d:double) =
     let rec nextDoubleValue (d:double) (e:double) =
         let ret = d+e
@@ -167,11 +180,35 @@ let nextDoubleValue (d:double) =
 
 let prevDoubleValue (d:double) =
     let rec prevDoubleValue (d:double) (e:double) =
-        let ret = d+e
+        let ret = d-e
         if ret < d then ret else (prevDoubleValue d (e+e))
     prevDoubleValue d Double.Epsilon
 
 let RealDef = { universe = {SiRange.a= Double.MinValue ;b= Double.MinValue}; prefFunc = prevDoubleValue;    nextFunc = nextDoubleValue}
+
+
+type IntSet = SiSet<BigInteger>
+let createDefaultIntSet () = {IntSet.ranges = [Int64Def.universe]; setDef = Int64Def}
+
+type RealSet = SiSet<double>
+let createDefaultRealSet () = {RealSet.ranges = [RealDef.universe]; setDef = RealDef}
+
+type CharSet = SiSet<char>
+let createDefaultCharSet () = {CharSet.ranges = [CharDef.universe]; setDef = CharDef}
+
+type SizeSet = SiSet<uint32>
+let createDefaultSizeSet () = {SizeSet.ranges = [PosInt32Def.universe]; setDef = PosInt32Def}
+let createSizeDet minSize maxSize = 
+    let newUniverse = {SiRange.a=minSize; b=maxSize}
+    {SizeSet.ranges = [newUniverse]; setDef = {PosInt32Def with universe = newUniverse} }
+
+
+type AltStringConstraint = {
+    sizeRange : SizeSet
+    charSet   : CharSet
+}
+    
+
 
 (*
 let def1 = { universe = {SiRange.a=0;b=100}; prefFunc = (fun x -> x-1);    nextFunc = (fun x -> x+1)}
