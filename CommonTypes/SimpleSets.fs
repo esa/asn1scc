@@ -15,10 +15,12 @@ type SsRangeSetDefinition<'v> = {
     nextFunc : 'v->'v
 }
 
-type SsRangeSet<'v> = {
+type SsRangeSet<'v when 'v : comparison> = {
     ranges : SsRange<'v> list
     setDef : SsRangeSetDefinition<'v>
-}
+} 
+with
+  member this.isEmpty = this.ranges.IsEmpty
 
 //let fullIntegerSet = {Range<'v>.a = bigint Int64.MinValue; b = bigint Int64.MaxValue}
 
@@ -151,9 +153,19 @@ let range_set_complement (s:SsRangeSet<'v>)  =
         let comp = {s with ranges = range_complement2 set.setDef r}
         range_set_intersect set comp) ({s with ranges = [s.setDef.universe]})
 
+
 let range_set_difference s1 s2= 
     // A - B = A intersection (Complement B)
     range_set_intersect s1 (range_set_complement s2)    
+
+type SsRangeSet<'v when 'v : equality> with
+    member this.Complement = range_set_complement this
+    member this.union  other      = range_set_union this other
+    member this.intersect other   = range_set_intersect this other
+    member this.difference other  = range_set_difference this other
+    member this.isUniverse        = this.ranges |> List.exists (fun r -> this.setDef.universe = r)
+
+
 
 //SIMPLE VALUE SETs
 type SsValueSet<'v when 'v : comparison> =
@@ -161,6 +173,9 @@ type SsValueSet<'v when 'v : comparison> =
     | SsEmpty
     | SsValues of Set<'v>
     | SsExceptValues of (Set<'v>)
+with 
+    member this.isEmpty = this = SsEmpty
+    member this.isUniverse = this = SsUniverse
 
 
 let fixSet (s:SsValueSet<'v>)  =
@@ -240,6 +255,12 @@ let value_set_union s1 s2=
         //Union (Complement(B), A ) = Complement (B -A)
         value_set_complement (value_set_difference (SsValues B) s2)
 
+type SsValueSet<'v when 'v : comparison>  with 
+    member this.Complement = value_set_complement this
+    member this.union  other      = value_set_union this other
+    member this.intersect other   = value_set_intersection this other
+    member this.difference other  = value_set_difference this other
+    
 
 (*
 let s1 = SsValues(set [1;2;3;4] )
@@ -365,13 +386,84 @@ let createSizeDet minSize maxSize =
     let newUniverse = {SsRange.a=minSize; b=maxSize}
     {SizeSet.ranges = [newUniverse]; setDef = {posInt32RangeSetDef with universe = newUniverse} }
 
-
-type StringSet = {
-    sizeRange : SizeSet
-    charSet   : CharSet
-    values    : SsValueSet<string>
+type SingleStringSet = {
+    sizeRange : SizeSet option
+    charSet   : CharSet option
+    values    : SsValueSet<string> option
 }
+with 
+ member this.isEmpty = 
+    match this.sizeRange, this.charSet, this.values with
+    | Some s, Some c, Some v    -> s.isEmpty && c.isEmpty && v.isEmpty
+    | _                         -> false
+
+type MultiStringSet =  SingleStringSet list // union
+
+
+let SingleStringSet_set_complement (ss:SingleStringSet)  = 
+    {
+        SingleStringSet.sizeRange = ss.sizeRange |> Option.map (fun sr -> sr.Complement)
+        charSet = ss.charSet |> Option.map (fun sr -> sr.Complement)
+        values = ss.values |> Option.map (fun sr -> sr.Complement)
+    }
+
+let SingleStringSet_set_intersection (s1:SingleStringSet) (s2:SingleStringSet) = 
+
+    let newSizeRange =
+        match s1.sizeRange, s2.sizeRange with
+        | None, None    -> None
+        | Some _, None  -> s1.sizeRange
+        | None, Some _  -> s2.sizeRange
+        | Some s1, Some s2 -> Some(s1.intersect s2)
+
+    let newCharSet =
+        match s1.charSet, s2.charSet with
+        | None, None    -> None
+        | Some _, None  -> s1.charSet
+        | None, Some _  -> s2.charSet
+        | Some s1, Some s2 -> Some(s1.intersect s2)
+
+    let newValues =
+        match s1.values, s2.values with
+        | None, None    -> None
+        | Some _, None  -> s1.values
+        | None, Some _  -> s2.values
+        | Some s1, Some s2 -> Some(s1.intersect s2)
+
+    {SingleStringSet.sizeRange = newSizeRange; charSet = newCharSet; values = newValues}
+
+
+let SingleStringSet_set_union (s1:SingleStringSet) (s2:SingleStringSet) : MultiStringSet= 
+    match s1.sizeRange, s1.charSet, s1.values, s2.sizeRange, s2.charSet, s2.values with
+    | None, None, None, _,_,_   -> [s2]
+    | _, _,_, None, None, None  -> [s1]
+    | Some sa, None, None, Some sb, None, None  -> [{s1 with sizeRange = Some(range_set_intersect sa sb)}]
+    | None, Some c1, None, None, Some c2, None  -> [{s1 with charSet = Some(range_set_intersect c1 c2)}]
+    | None, None, Some v1, None, None, Some v2  -> [{s1 with values = Some (value_set_intersection v1 v2)} ]
+    | _                                         -> [s1;s2]
+
+let MultiStringSet_set_add_SingleStringSet (ms:MultiStringSet) (ss:SingleStringSet) =
+    match ms |> List.tryFindIndex(fun s0 -> List.length (SingleStringSet_set_union s0 ss) = 1) with
+    | None      -> ss::ms
+    | Some idx  -> 
+        let arr = ms |> List.toArray
+        let p1 = (arr.[0..idx-1]) |> Seq.toList
+        let p2 = SingleStringSet_set_union (arr.[idx-1]) ss
+        let p3 = 
+            match idx+1 <= arr.Length with
+            | true  ->  arr.[idx+1 .. arr.Length] |> Seq.toList
+            | false ->  []
+        p1@p2@p3
+
+let MultiStringSet_set_intersect_SingleStringSet (ms:MultiStringSet) (ss:SingleStringSet) : MultiStringSet=
+    ms |> List.map(fun mss0 -> SingleStringSet_set_intersection mss0 ss) |> List.filter (fun z -> not z.isEmpty)
+
+let MultiStringSet_set_union (s1:MultiStringSet) (s2:MultiStringSet) : MultiStringSet= 
+    s1 |> List.fold(fun newSet sss -> MultiStringSet_set_add_SingleStringSet newSet sss) s2
     
+let MultiStringSet_set_intersect (s1:MultiStringSet) (s2:MultiStringSet) : MultiStringSet= 
+    s1 |> List.fold(fun newSet sss -> MultiStringSet_set_intersect_SingleStringSet newSet sss) s2
+
 
 
 (*
