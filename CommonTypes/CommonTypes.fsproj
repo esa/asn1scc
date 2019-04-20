@@ -54,12 +54,14 @@
   <Import Project="$(FSharpTargetsPath)" />
   <ItemGroup>
     <None Include="Script.fsx" />
-    <Compile Include="SimpleSets.fs" />
     <Compile Include="FsUtils.fs" />
+    <Compile Include="RangeSets.fs" />
+    <Compile Include="SimpleSets.fs" />
     <Compile Include="CommonTypes.fs" />
     <Compile Include="isvalid_if.stg.fs" />
     <Compile Include="AbstractMacros.fs" />
     <Compile Include="AcnGenericTypes.fs" />
+    <Compile Include="RangeSets0.fs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="antlr.runtime">

@@ -34,12 +34,14 @@ type CliArguments =
     | [<Unique; AltCommandLine("-v")>]   Version
     | [<Unique; AltCommandLine("-asn1")>]   Debug_Asn1 of string option
     | [<Unique; AltCommandLine("-mfm")>]   Mapping_Functions_Module of string 
+    | [<Unique; AltCommandLine("-debug")>]   Debug
     | [<MainCommand; ExactlyOnce; Last>] Files of files:string list
 with
     interface IArgParserTemplate with
         member this.Usage =
             match this with
             | Version          -> "displays version information"
+            | Debug            -> "Option used internally for debugging"
             | C_lang           -> "generate code for the C/C++ programming language"
             | Ada_Lang         -> "generate code for the Ada/SPARK programming language"
             | UPER_enc         -> "generates encoding and decoding functions for unaligned Packed Encoding Rules (uPER)"
@@ -123,6 +125,7 @@ let checkCompositeFile comFile cmdoption extention=
 let checkArguement arg =
     match arg with
     | Version          -> ()
+    | Debug            -> ()
     | C_lang           -> ()
     | Ada_Lang         -> ()
     | UPER_enc         -> ()
@@ -295,7 +298,9 @@ let main0 argv =
     try
         let parserResults = parser.Parse argv
         let cliArgs = parserResults.GetAllResults()
+        cliArgs |> Seq.iter(fun arg -> match arg with Debug -> RangeSets.debug () | _ -> ())
         cliArgs |> Seq.iter checkArguement 
+
         let args = constructCommandLineSettings cliArgs parserResults
         let outDir = parserResults.GetResult(<@Out@>, defaultValue = ".")
         
@@ -373,6 +378,7 @@ let main0 argv =
                 | AdaUses   -> DAstUtilFunctions.AdaUses r
                 | ACND      -> GenerateFiles.EmmitDefaultACNGrammar r outDir
                 | Version   -> printVersion () //Antlr.VersionInformation.printGitVersion()
+                | Debug     -> RangeSets.debug ()
                 | _ -> ())
 
         cliArgs |> 
@@ -408,5 +414,6 @@ let main0 argv =
 
 [<EntryPoint>]
 let main argv = 
+    
     main0 argv
     
