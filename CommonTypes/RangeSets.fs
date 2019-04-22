@@ -2,6 +2,14 @@
 
 open FsUtils
 
+
+//type ISet =
+//    abstract member Intersect : ISet -> ISet
+//    abstract member Union : ISet -> ISet
+//    abstract member Difference : ISet -> ISet
+//    abstract member Complement : unit -> ISet
+
+
 type V_CMP =
     | V_LT
     | V_EQ
@@ -92,6 +100,14 @@ with
         |Range_NI_A a                         -> p <= RPoint a 
         |Range_B_PI b                         -> LPoint b <= p
         |Range_AB  (a,b)                      -> LPoint a <= p && p <= RPoint b
+
+    member this.complement = 
+        match this with
+        | Range_Empty                          -> One(Range_Universe)
+        | Range_Universe                       -> One(Range_Empty)
+        | Range_NI_A (RP (a,inc))              -> One(Range_B_PI(LP (a, not inc)))
+        | Range_B_PI (LP (b,inc))              -> One(Range_NI_A(RP (b, not inc)))
+        | Range_AB  (LP(a,inc1), RP(b,inc2))   -> Two ( (Range_NI_A (RP(a, not inc1))), (Range_B_PI(LP(b,not inc2))))
 
     member this.intersect (other:Range<'v>) =
         match this, other with
@@ -258,6 +274,32 @@ with
             | Two (first, sec) -> first = other && sec = this
 
 
+type RangeCompareResult<'v when 'v : comparison> =
+    | NonIntersectedRanges of (Range<'v>*Range<'v>)             // low, higher
+    | IntersectedRanges    of (Range<'v>*Range<'v>*Range<'v>)   // lower uncommonr part, common part,  higher part
+
+(*
+
+    member this.complement = 
+        match this with
+        | Range_Empty                          -> One(Range_Universe)
+        | Range_Universe                       -> One(Range_Empty)
+        | Range_NI_A (RP (a,inc))              -> One(Range_B_PI(LP (a, not inc)))
+        | Range_B_PI (LP (b,inc))              -> One(Range_NI_A(RP (b, not inc)))
+        | Range_AB  (LP(a,inc1), RP(b,inc2))   -> Two ( (Range_NI_A (RP(a, not inc1))), (Range_B_PI(LP(b,not inc2))))
+
+*)
+
+let rec compareRanges (r1:Range<'v>) (r2:Range<'v>) =   
+        match r1, r2 with
+        | Range_Empty, _                                        -> NonIntersectedRanges (r1, r2)
+        | _, Range_Empty                                        -> compareRanges r2 r1
+        | Range_Universe, Range_Universe                        -> IntersectedRanges (Range_Empty, Range_Universe, Range_Empty)
+        | Range_Universe, Range_NI_A (RP (a,inc))               -> IntersectedRanges (Range_Empty, Range_B_PI (LP (a, not inc)), Range_Empty)
+        | Range_Universe, Range_B_PI (LP (b,inc))               -> IntersectedRanges (Range_Empty, Range_NI_A(RP (b, not inc)), Range_Empty)
+        | Range_Universe, Range_AB ((LP (b,inc1)), (RP (a,inc2))) -> IntersectedRanges ((Range_NI_A (RP(a, not inc1))), r2, (Range_B_PI(LP(b,not inc2))))
+
+
 let create_range v1  v2  =
     match v1 , v2 with
     | Some v1, Some v2  when v1 <= v2 -> Range_AB ( LP (v1, true), RP(v2, true))
@@ -284,6 +326,29 @@ with
             | r1::[] -> Range r1
             | r1::r2::rest -> RangeCollection (r1,r2,rest)
         
+    member this.isEmpty = 
+        match this with
+        | Range r                           -> r = Range_Empty
+        | RangeCollection (r1,r2,rest)      -> r1 = Range_Empty && r2 = Range_Empty && rest.Length = 0
+
+    member this.isUniverse = 
+        match this with
+        | Range r                           -> r = Range_Universe
+        | RangeCollection (r1,r2,rest)      -> 
+            let a1 = r1 = Range_Universe || r2 = Range_Universe || (rest |> List.exists(fun r -> r = Range_Universe))
+            let b = 
+                r1::r2::rest |> 
+                List.fold(fun (ns) r -> 
+                    match ns with
+                    | One (cr:Range<'v>)        -> cr.union r
+                    | Two _         -> ns) (One Range_Empty)
+            let b2 = 
+                match b with
+                | One r -> r = Range_Universe
+                | _     -> false
+            a1 || b2
+
+
     member this.isInSet (vl:Point<'v>) : bool =
         match this with
         | Range(r )                         -> r.isWithin vl 
@@ -300,11 +365,10 @@ with
             RangeSet<'v>.createFromRangeList ranges
     member this.complement = 
         match this with
-        | Range(Range_Empty )                         -> Range(Range_Universe)
-        | Range(Range_Universe)                       -> Range(Range_Empty)
-        | Range(Range_NI_A (RP (a,inc)))              -> Range(Range_B_PI(LP (a, not inc)))
-        | Range(Range_B_PI (LP (b,inc)))              -> Range(Range_NI_A(RP (b, not inc)))
-        | Range(Range_AB  (LP(a,inc1), RP(b,inc2)))   -> RangeCollection ( (Range_NI_A (RP(a, not inc1))), (Range_B_PI(LP(b,not inc2))), [])
+        | Range(r )                         -> 
+            match r.complement with
+            | One rc -> Range rc
+            | Two (r1,r2)   -> RangeCollection(r1,r2,[])
         | RangeCollection (r1,r2,rest)                            -> 
             r1::r2::rest |> 
             List.map(fun r -> (Range r).complement) |> 
@@ -342,8 +406,17 @@ with
             a1::a2::aRest |> 
             List.fold(fun (ret:RangeSet<'v>) r -> ret.union (Range r) ) other
 
+
+
+//    abstract member Intersect : ISet -> ISet
+//    abstract member Union : ISet -> ISet
+//    abstract member Difference : ISet -> ISet
+//    abstract member Complement : unit -> ISet
+
 let create_set v1  v2  =
     Range (create_range v1 v2)
+
+
 
 
 let db r =
