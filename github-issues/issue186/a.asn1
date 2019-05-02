@@ -1,0 +1,9 @@
+MyModel DEFINITIONS ::= BEGIN
+
+T-UInt32 ::= INTEGER (0..4294967295)
+
+maxSize-T-String T-UInt32 ::= 256
+
+T-String ::= OCTET STRING (SIZE(0..maxSize-T-String))
+
+END

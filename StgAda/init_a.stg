@@ -72,24 +72,24 @@ initFixVarSizeBitOrOctString(p, sAcc, nSize, arrsBytes) ::= <<
 <arrsBytes; separator="\n">
 >>
 
-initTestCaseOctetString(p, sAcc, nSize, i, bIsFixedSize, bZero) ::= <<
+initTestCaseOctetString(p, sAcc, nSize, i, bIsFixedSize, bZero, nMinSize) ::= <<
 <i> := 1;
 while <i>\<= <nSize> loop
     pragma Loop_Invariant (<i> >=1 and <i>\<=<nSize>);
     <p><sAcc>Data(<i>) := <rtlModuleName()>.Asn1Byte(<if(bZero)>0<else>(<i>-1) mod 256<endif>);
     <i> := <i> + 1;
 end loop;
-<if(!bIsFixedSize)><p><sAcc>Length := <if(bZero)><nSize><else><nSize><endif>;<endif>
+<if(!bIsFixedSize)><p><sAcc>Length := <if(bZero)><nMinSize><else><nSize><endif>;<endif>
 >>
 
-initTestCaseBitString(p, sAcc, nSize, nSizeCeiled, i, bIsFixedSize, bZero) ::= <<
+initTestCaseBitString(p, sAcc, nSize, nSizeCeiled, i, bIsFixedSize, bZero, nMinSize) ::= <<
 <i> := 1;
 while <i>\<= <nSize> loop
     pragma Loop_Invariant (<i> >=1 and <i>\<=<nSize>);
     <p><sAcc>Data(<i>) := <rtlModuleName()>.BIT(<if(bZero)>0<else>(<i>-1) mod 2<endif>);
     <i> := <i> + 1;
 end loop;
-<if(!bIsFixedSize)><p><sAcc>Length := <if(bZero)><nSize><else><nSize><endif>;<endif>
+<if(!bIsFixedSize)><p><sAcc>Length := <if(bZero)><nMinSize><else><nSize><endif>;<endif>
 >>
 
 

@@ -65,7 +65,7 @@ initFixVarSizeBitOrOctString(p, sAcc, nSize, arrsBytes) ::= <<
 <arrsBytes; separator="\n">
 >>
 
-initTestCaseOctetString(p, sAcc, nSize, i, bIsFixedSize, bZero) ::= <<
+initTestCaseOctetString(p, sAcc, nSize, i, bIsFixedSize, bZero, nMinSize) ::= <<
 <if(bZero)>
 memset(<p><sAcc>arr, 0x0, <nSize>);
 
@@ -75,12 +75,13 @@ while (<i>\< <nSize>) {
     <p><sAcc>arr[<i>] = (byte)(<i>%256);
     <i> = <i> + 1;
 }
-<if(!bIsFixedSize)><p><sAcc>nCount = <if(bZero)>0<else><nSize><endif>;<endif>
 
 <endif>
+<if(!bIsFixedSize)><p><sAcc>nCount = <if(bZero)><nMinSize><else><nSize><endif>;<endif>
+
 >>
 
-initTestCaseBitString(p, sAcc, nSize, nSizeCeiled,  i, bIsFixedSize, bZero) ::= <<
+initTestCaseBitString(p, sAcc, nSize, nSizeCeiled,  i, bIsFixedSize, bZero, nMinSize) ::= <<
 <if(bZero)>
 memset(<p><sAcc>arr, 0x0, <nSizeCeiled>/8);
 
@@ -90,9 +91,10 @@ while (<i>\< <nSizeCeiled>/8) {
     <p><sAcc>arr[<i>] = 0x55; /* --> 0101 0101 as in Ada*/
     <i> = <i> + 1;
 }
-<if(!bIsFixedSize)><p><sAcc>nCount = <if(bZero)>0<else><nSize><endif>;<endif>
 
 <endif>
+
+<if(!bIsFixedSize)><p><sAcc>nCount = <if(bZero)><nMinSize><else><nSize><endif>;<endif>
 >>
 
 
