@@ -84,37 +84,45 @@ commit or merge request, [we instruct CircleCI](.circleci/config.yml) to...
 - [build ASN1SCC](circleci-build.sh) with the new code inside that image
 - then run all the tests and check the coverage results.
 
-Needless to say, the Docker image can be used for development as well;
-to build it you just need to execute...
+In addition, a runtime docker image can be build with the following command
+which can then be used instead of installing ASN1SCC on the host (or any of
+the dependencies or build tools).
+```
+DOCKER_BUILDKIT=1 docker build -t asn1scc-runtime -f Dockerfile.asn1scc-runtime .
+```
 
-    docker build -t asn1scc .    # Don't forget the dot!
+...and your Docker will build an "asn1scc-runtime" Docker image. This image can be
+used as if the ASN1SCC is installed on the host system. The [asn1-docker.sh](asn1-docker.sh)
+bash script can be used to wrap the `docker run ...` call into a easy to use compiler command.
+For example, let's assume your ASN.1 files are in a folder as `/tmp/myasnfiles/`. You can use 
+this script file like calling `asn1.exe` file as if it is on your host system. The ASN1SCC will
+be executed inside a docker container and the generated files will appear in the folder
+where the script was called. Assuming that the ASN.1 file is named `sample.asn`, here is a sample
+call of the script (`asn1-docker.sh` script is inside `/opt/asn1scc` folder and the docker image
+named `asn1scc-runtime` is already built.)
 
-...and your Docker will build an "asn1scc" Docker image, pre-setup
-with all the build-time dependencies to compile ASN1SCC and run its 
-test suite. You can then enter it and proceed with your development:
+```bash
+$ pwd
+/tmp/myasnfiles
+$ cat sample.asn 
+MY-MODULE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
 
-    $ docker run -it -v $(pwd):/root/asn1scc asn1scc
+Message ::= SEQUENCE {
+    msgId INTEGER,
+    myflag INTEGER,
+    value REAL,
+    szDescription OCTET STRING (SIZE(10)),
+    isReady BOOLEAN
+}
 
-    (Your Docker image starts up)
+END
+$ /opt/asn1scc/asn1-docker.sh -c -uPER sample.asn
+$ ls 
+acn.c  asn1crt.c  asn1crt.h  real.c  sample.asn  sample.c  sample.h
+```
 
-    # cd /root/asn1scc 
-    # xbuild /p:TargetFrameworkVersion="v4.5"
-    ...
-
-    ASN1SCC is built at this point - and if you want to run the tests:
-
-    # cd Tests
-    # make
-    ...
-
-This same sequence of commands is executed in CircleCI to check for
-regressions; with the added benefit that after building the base Debian
-for the first time, CircleCI is configured to cache the Docker image.
-This means that upon new commits in ASN1SCC, CircleCI will re-use the 
-baseline Debian with all development tools that was made in previous runs,
-and therefore avoid re-installing all the build environment tools every
-time. Only ASN1SCC is rebuilt from scratch every time - and the
-develop-test cycles are therefore as fast as possible.
+As can be seen above, the host does not have the ASN1SCC installation, but only
+the asn1scc-runtime docker image.
 
 Usage
 =====
