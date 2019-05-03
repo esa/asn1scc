@@ -9,6 +9,7 @@ type ValueSet<'v when 'v : equality> =
 with 
     member this.isEmpty = this = SsEmpty
     member this.isUniverse = this = SsUniverse
+    static member createFromSingleValue v = SsValues [v]
 
 
 let fixSet (s:ValueSet<'v>)  =
@@ -93,12 +94,13 @@ let value_set_union s1 s2=
         //Union (Complement(B), A ) = Complement (B -A)
         value_set_complement (value_set_difference (SsValues B) s2)
 
-type ValueSet<'v when 'v : comparison>  with 
+type ValueSet<'v when 'v : equality>  with 
     member this.complement = value_set_complement this
     member this.union  other      = value_set_union this other
     member this.intersect other   = value_set_intersection this other
     member this.difference other  = value_set_difference this other
     
 
+type BooleanSet = ValueSet<bool>
 
-
+type EnumeratedSet = ValueSet<string>

@@ -1,6 +1,7 @@
 ﻿module RangeSets
 
 open FsUtils
+open System.Numerics
 
 
 //type ISet =
@@ -459,7 +460,27 @@ with
             | []     -> Range Range_Empty
             | r1::[] -> Range r1
             | r1::r2::rest -> RangeCollection (r1,r2,rest)
-        
+    static member createFromSingleValue v =
+        Range(Range_AB (LP(v,true), RP(v,true)))
+
+    static member createFromMultipleValues vList =
+        match vList with
+        | []        -> Range (Range_Empty)
+        | v1::[]    -> Range(Range_AB (LP(v1,true), RP(v1,true)))
+        | v1::v2::vrest ->
+            let r1 = Range_AB (LP(v1,true), RP(v1,true))
+            let r2 = Range_AB (LP(v2,true), RP(v2,true))
+            let rest = vrest |> List.map(fun v -> Range_AB (LP(v,true), RP(v,true)) )
+            RangeCollection(r1, r2,rest) 
+    static member createFromValuePair v1 v2  minIsIn maxIsIn =
+        Range(Range_AB (LP(v1,minIsIn), RP(v2,maxIsIn)))
+
+    static member createPosInfinite v1 minIsIn =
+        Range(Range_B_PI (LP(v1,minIsIn)))
+
+    static member createNegInfinite v2 maxIsIn =
+        Range(Range_NI_A (RP(v2,maxIsIn)))
+
     member this.isEmpty = 
         match this with
         | Range r                           -> r = Range_Empty
@@ -508,7 +529,7 @@ with
             List.map(fun r -> (Range r).complement) |> 
             List.fold(fun newRange curR -> 
                 newRange.intersect curR ) (Range Range_Universe)
-    member this.differece (other:RangeSet<'v>) =
+    member this.difference (other:RangeSet<'v>) =
         other.complement.intersect this
     
     member this.union (other:RangeSet<'v>) =
@@ -551,6 +572,8 @@ let create_set v1  v2  =
     Range (create_range v1 v2)
 
 
+type BigIntegerSet = RangeSet<BigInteger>
+type DoubleSet = RangeSet<double>
 
 
 let db r =
@@ -570,10 +593,10 @@ let debug () =
 
     let C_R0_200_U_300_400_U_500_600 = R0_200_U_300_400_U_500_600.complement
     
-    let R0_200_U_300_350 = R0_200_U_300_400_U_500_600.differece(create_set (Some 350) None)
+    let R0_200_U_300_350 = R0_200_U_300_400_U_500_600.difference(create_set (Some 350) None)
     let dd = R0_200_U_300_350.ToString()
 
-    let zzz = R0_200_U_300_400_U_500_600.differece(create_set (Some 100) (Some 100))
+    let zzz = R0_200_U_300_400_U_500_600.difference(create_set (Some 100) (Some 100))
     let dd = zzz.ToString()
 
     let ddc = zzz.complement.ToString()

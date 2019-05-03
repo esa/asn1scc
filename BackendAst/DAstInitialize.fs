@@ -6,6 +6,9 @@ open System.IO
 
 open FsUtils
 open CommonTypes
+open RangeSets
+open ValueSets
+open SizeableSet
 open Asn1AcnAstUtilFunctions
 open Asn1Fold
 open DAst
@@ -20,6 +23,212 @@ create c and Ada procedures that initialize an ASN.1 type.
 
 
 *)
+
+
+
+
+
+let rangeConstraint2RangeSet (r:Asn1AcnAst.AstRoot)  (c:Asn1AcnAst.RangeTypeConstraint<'v,'v>) st =
+    foldRangeTypeConstraint 
+        (fun (e1:RangeSet<'v>) e2 b s -> e1.union e2, s) 
+        (fun e1 e2 s -> e1.intersect e2, s) 
+        (fun e s -> e.complement, s) 
+        (fun e1 e2 s -> e1.difference e2, s) 
+        (fun e s -> e,s) 
+        (fun e1 e2 s -> e1.union e2, s) 
+        (fun v  s         -> RangeSet<'v>.createFromSingleValue v ,s)
+        (fun v1 v2  minIsIn maxIsIn s   -> RangeSet<'v>.createFromValuePair v1 v2  minIsIn maxIsIn, s)
+        (fun v1 minIsIn s   -> RangeSet<'v>.createPosInfinite v1 minIsIn, s)
+        (fun v2 maxIsIn s   -> RangeSet<'v>.createNegInfinite v2 maxIsIn, s)
+        c
+        st
+
+
+
+
+let genericConstraint2ValueSet  (r:Asn1AcnAst.AstRoot) (c:Asn1AcnAst.GenericConstraint<'v>)  st =
+    foldGenericConstraint 
+        (fun (e1:ValueSet<'v>) e2 b s -> e1.union e2, s) 
+        (fun e1 e2 s -> e1.intersect e2, s) 
+        (fun e s -> e.complement, s) 
+        (fun e1 e2 s -> e1.difference e2, s) 
+        (fun e s -> e,s) 
+        (fun e1 e2 s -> e1.union e2, s) 
+        (fun v  s         -> ValueSet<'v>.createFromSingleValue v ,s)
+        c
+        st
+
+//range types
+let integerConstraint2BigIntSet r (c:Asn1AcnAst.IntegerTypeConstraint) = rangeConstraint2RangeSet r c
+let realConstraint2DoubleSet r (c:Asn1AcnAst.RealTypeConstraint) = rangeConstraint2RangeSet r c
+
+//single value types
+let boolConstraint2BoolSet r (c:Asn1AcnAst.BoolConstraint) = genericConstraint2ValueSet r c
+let enumConstraint2StringSet r (c:Asn1AcnAst.EnumConstraint) = genericConstraint2ValueSet r c
+let objectIdConstraint2StringSet r (c:Asn1AcnAst.ObjectIdConstraint) = genericConstraint2ValueSet r c
+
+
+
+let foldSizeRangeTypeConstraint (r:Asn1AcnAst.AstRoot)  (c:Asn1AcnAst.PosIntTypeConstraint) st = 
+    rangeConstraint2RangeSet r c st
+
+//SizeableSet
+let foldSizableConstraint (r:Asn1AcnAst.AstRoot)  (c:Asn1AcnAst.SizableTypeConstraint<'v>) st =
+    foldSizableTypeConstraint2 
+        (fun (e1:SizeableSet<'v>) e2 b s -> e1.union e2, s) 
+        (fun e1 e2 s -> e1.intersect e2, s) 
+        (fun e s -> e.complement, s) 
+        (fun e1 e2 s -> e1.difference e2, s) 
+        (fun e s -> e,s) 
+        (fun e1 e2 s -> e1.union e2, s) 
+        (fun v  s         -> SizeableSet<'v>.createFromSingleValue v ,s)
+        (fun intCon s       -> 
+            let sizeRange, ns = foldSizeRangeTypeConstraint r intCon s
+            SizeableSet<'v>.createFromSizeRange sizeRange, ns)
+        c
+        st
+
+
+
+let octetConstraint2Set r (c:Asn1AcnAst.OctetStringConstraint) = foldSizableConstraint r c
+let bitConstraint2Set r (c:Asn1AcnAst.BitStringConstraint) = foldSizableConstraint r c
+
+
+
+
+let ia5StringConstraint2Set  (r:Asn1AcnAst.AstRoot)    (c:Asn1AcnAst.IA5StringConstraint) (us0:State) =
+    let foldRangeCharCon (l:ProgrammingLanguage)   (c:Asn1AcnAst.CharTypeConstraint)  st = 
+        foldRangeTypeConstraint 
+            (fun (e1:RangeSet<char>) e2 b s -> e1.union e2, s) 
+            (fun e1 e2 s -> e1.intersect e2, s) 
+            (fun e s -> e.complement, s) 
+            (fun e1 e2 s -> e1.difference e2, s) 
+            (fun e s -> e,s) 
+            (fun e1 e2 s -> e1.union e2, s) 
+            (fun (strVal:string)  s         -> RangeSet<char>.createFromMultipleValues (strVal.ToCharArray() |> Seq.toList) ,s)
+            (fun v1 v2  minIsIn maxIsIn s   -> RangeSet<char>.createFromValuePair v1 v2  minIsIn maxIsIn, s)
+            (fun v1 minIsIn s   -> RangeSet<char>.createPosInfinite v1 minIsIn, s)
+            (fun v2 maxIsIn s   -> RangeSet<char>.createNegInfinite v2 maxIsIn, s)
+            c
+            st
+    foldStringTypeConstraint2 
+        (fun (e1:SizeableSet<string>) e2 b s -> e1.union e2, s) 
+        (fun e1 e2 s -> e1.intersect e2, s) 
+        (fun e s -> e.complement, s) 
+        (fun e1 e2 s -> e1.difference e2, s) 
+        (fun e s -> e,s) 
+        (fun e1 e2 s -> e1.union e2, s) 
+        (fun v  s         -> SizeableSet<string>.createFromSingleValue v ,s)
+        (fun intCon s       -> 
+            let sizeRange, ns = foldSizeRangeTypeConstraint r intCon s
+            SizeableSet<string>.createFromSizeRange sizeRange, ns)
+        (fun alphcon s      -> 
+            let b = true
+            match b with true -> ()
+            //currently the alphabet constraints are ignored ...
+            Range2D ({sizeSet  = Range_Universe;  valueSet = SsUniverse}) , s) 
+        c
+        us0 
+
+
+type AnySet =
+    | IntSet of RangeSet<BigInteger>
+    | RealSet of RangeSet<double>
+    | StrSet of SizeableSet<string>
+    | OctSet of SizeableSet<Asn1AcnAst.OctetStringValue * (ReferenceToValue * SrcLoc)>
+    | BitSet of SizeableSet<Asn1AcnAst.BitStringValue * (ReferenceToValue * SrcLoc)>
+    | NulSet
+    | BoolSet of ValueSet<bool>
+    | EnumSet of ValueSet<string>
+    | ObjIdSet of ValueSet<Asn1AcnAst.ObjectIdenfierValue>
+    | SeqOfSet  of SizeableSet<Asn1AcnAst.SeqOfValue>
+
+and SequenceOfSet = {
+    sizeableSet : SizeableSet<Asn1AcnAst.SeqOfValue>
+    childSet    : AnySet option
+}
+
+type SequenceOfSet with
+    member this.intersect (other:SequenceOfSet) =
+        {this with sizeableSet = this.sizeableSet.intersect other.sizeableSet}
+
+
+let rec anyConstraint2GenericSet (r:Asn1AcnAst.AstRoot)  (erLoc:SrcLoc) (t:Asn1Type) (ac:Asn1AcnAst.AnyConstraint) st =
+    match t.ActualType.Kind, ac with
+    | Integer o, Asn1AcnAst.IntegerTypeConstraint c        -> 
+        let set, ns = integerConstraint2BigIntSet r c st
+        IntSet set, ns
+    | Real o, Asn1AcnAst.RealTypeConstraint   c            -> 
+        let set, ns = realConstraint2DoubleSet r c st
+        RealSet set, ns
+    | IA5String  o, Asn1AcnAst.IA5StringConstraint c       -> 
+        let set, ns = ia5StringConstraint2Set r c st
+        StrSet set, ns
+    | OctetString o, Asn1AcnAst.OctetStringConstraint c    -> 
+        let set, ns = octetConstraint2Set r c st
+        OctSet set, ns
+    | BitString o, Asn1AcnAst.BitStringConstraint c        -> 
+        let set, ns = bitConstraint2Set r c st
+        BitSet set, ns
+    | NullType o, Asn1AcnAst.NullConstraint                -> NulSet, st
+    | Boolean o, Asn1AcnAst.BoolConstraint c               -> 
+        let set, ns = boolConstraint2BoolSet r c st
+        BoolSet set, ns
+    | Enumerated o, Asn1AcnAst.EnumConstraint c            -> 
+        let set, ns = enumConstraint2StringSet r c st
+        EnumSet set, ns
+    | ObjectIdentifier o, Asn1AcnAst.ObjectIdConstraint c  -> 
+        let set, ns = objectIdConstraint2StringSet r c st
+        ObjIdSet set, ns
+//    | Sequence o, Asn1AcnAst.SeqConstraint c               -> 
+//        let valToStrFunc (p:CallerScope) (v:Asn1AcnAst.SeqValue) = VCBTrue //currently single value constraints are ignored.
+//        sequenceConstraint2ValidationCodeBlock r l t.id o.Asn1Children valToStrFunc  c st
+//    | SequenceOf o, Asn1AcnAst.SequenceOfConstraint c      -> sequenceOfConstraint2ValidationCodeBlock r l t.id o.baseInfo o.childType o.equalFunction c st
+//    | Choice o, Asn1AcnAst.ChoiceConstraint c              -> 
+//        let valToStrFunc (p:CallerScope) (v:Asn1AcnAst.ChValue) = VCBTrue //currently single value constraints are ignored.
+//        choiceConstraint2ValidationCodeBlock r l t.id o.children valToStrFunc o.definitionOrRef c st
+    | _                                         -> raise(SemanticError(erLoc, "Invalid combination of type/constraint type"))
+
+
+
+
+
+
+
+
+//and sequenceOfConstraint2ValidationCodeBlock (r:Asn1AcnAst.AstRoot) (child:Asn1Type)  (c:Asn1AcnAst.SequenceOfConstraint) st =
+//    foldSequenceOfTypeConstraint2 
+//        (fun (e1:SizeableSet<'v>) e2 b s -> e1.union e2, s) 
+//        (fun e1 e2 s -> e1.intersect e2, s) 
+//        (fun e s -> e.complement, s) 
+//        (fun e1 e2 s -> e1.difference e2, s) 
+//        (fun e s -> e,s) 
+//        (fun e1 e2 s -> e1.union e2, s) 
+//        (fun v  s         -> SizeableSet<'v>.createFromSingleValue v ,s)
+//        (fun intCon s       -> 
+//            let sizeRange, ns = foldSizeRangeTypeConstraint r intCon s
+//            SizeableSet<'v>.createFromSizeRange sizeRange, ns)
+//        (fun c loc s -> 
+//             let fnc, ns = anyConstraint2GenericSet r loc child c s
+//
+//             0, s) 
+//        c
+//        st
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 let nameSuffix l = match l with C -> "_Initialize" | Ada -> "_Init"

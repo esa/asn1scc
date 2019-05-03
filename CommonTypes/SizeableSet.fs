@@ -62,6 +62,16 @@ with
             | []     -> (Range2D (Range2d<'v>.createEmptySet ()))
             | r1::[] -> Range2D r1
             | r1::r2::rest -> Range2DCollection (r1,r2,rest)
+    static member createUniverse  = 
+        Range2D ({sizeSet  = Range_Universe;  valueSet = SsUniverse})
+    static member createFromSingleValue v = 
+        Range2D ({sizeSet  = Range_Universe;  valueSet = ValueSet<'v>.createFromSingleValue v})
+    static member createFromSizeRange rangeSet = 
+        match rangeSet with
+        | Range r                   -> Range2D ({sizeSet  = r;  valueSet = SsUniverse})
+        | RangeCollection(r1,r2,rs) -> Range2DCollection( ({sizeSet  = r1;  valueSet = SsUniverse}, {sizeSet  = r2;  valueSet = SsUniverse}, rs |> List.map(fun r -> {sizeSet  = r;  valueSet = SsUniverse})))
+        
+
 
     member this.intersect (other:SizeableSet<'v>) =
         match this, other with
@@ -87,5 +97,12 @@ with
             List.fold(fun newRange curR -> 
                 newRange.intersect curR ) (Range2D (Range2d<'v>.createUniverse ()))
 
-    member this.differece (other:SizeableSet<'v>) =
+    member this.difference (other:SizeableSet<'v>) =
         other.complement.intersect this
+
+    member this.union (other:SizeableSet<'v>) =
+        let b = true
+        match b with true -> ()
+        //not implemented yet
+        this
+    
