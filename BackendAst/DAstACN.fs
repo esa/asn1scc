@@ -877,7 +877,7 @@ let rec handleSingleUpdateDependency (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.Acn
             | []    -> updateStatement
             | _     -> checkAccessPath checkPath updateStatement
         let testCaseFnc (atc:AutomaticTestCase) : TestCaseValue option =
-            atc.testCase.TryFind d.asn1Type
+            atc.testCaseTypeIDsMap.TryFind d.asn1Type
         Some ({AcnChildUpdateResult.updateAcnChildFnc = updateFunc; errCodes=[]; testCaseFnc=testCaseFnc}), us
     | AcnDepIA5StringSizeDeterminant    ->
         let updateFunc (typedefName :string) (vTarget : CallerScope) (pSrcRoot : CallerScope)  = 
@@ -887,7 +887,7 @@ let rec handleSingleUpdateDependency (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.Acn
             | []    -> updateStatement
             | _     -> checkAccessPath checkPath updateStatement
         let testCaseFnc (atc:AutomaticTestCase) : TestCaseValue option =
-            atc.testCase.TryFind d.asn1Type
+            atc.testCaseTypeIDsMap.TryFind d.asn1Type
         Some ({AcnChildUpdateResult.updateAcnChildFnc = updateFunc; errCodes=[]; testCaseFnc=testCaseFnc}), us
     | AcnDepPresenceBool              -> 
         let updateFunc (typedefName :string) (vTarget : CallerScope) (pSrcRoot : CallerScope)  = 
@@ -901,7 +901,7 @@ let rec handleSingleUpdateDependency (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.Acn
             | []    -> updateStatement
             | _     -> checkAccessPath checkPath updateStatement
         let testCaseFnc (atc:AutomaticTestCase) : TestCaseValue option =
-            match atc.testCase.TryFind(d.asn1Type) with
+            match atc.testCaseTypeIDsMap.TryFind(d.asn1Type) with
             | Some _    -> Some TcvComponentPresent
             | None      -> Some TcvComponentAbsent
         Some ({AcnChildUpdateResult.updateAcnChildFnc = updateFunc; errCodes=[]; testCaseFnc=testCaseFnc}), us
@@ -923,7 +923,7 @@ let rec handleSingleUpdateDependency (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.Acn
         let testCaseFnc (atc:AutomaticTestCase) : TestCaseValue option =
             let updateValues = 
                 chc.children |> 
-                List.filter(fun ch -> atc.testCase.ContainsKey ch.Type.id) |>
+                List.filter(fun ch -> atc.testCaseTypeIDsMap.ContainsKey ch.Type.id) |>
                 List.choose(fun ch -> 
                     let pres = ch.acnPresentWhenConditions |> Seq.find(fun x -> x.relativePath = relPath)
                     match pres with
@@ -955,7 +955,7 @@ let rec handleSingleUpdateDependency (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.Acn
         let testCaseFnc (atc:AutomaticTestCase) : TestCaseValue option =
             let updateValues = 
                 chc.children |> 
-                List.filter(fun ch -> atc.testCase.ContainsKey ch.Type.id) |>
+                List.filter(fun ch -> atc.testCaseTypeIDsMap.ContainsKey ch.Type.id) |>
                 List.choose(fun ch -> 
                     let pres = ch.acnPresentWhenConditions |> Seq.find(fun x -> x.relativePath = relPath)
                     match pres with
@@ -984,7 +984,7 @@ let rec handleSingleUpdateDependency (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.Acn
             | []    -> updateStatement
             | _     -> checkAccessPath checkPath updateStatement
         let testCaseFnc (atc:AutomaticTestCase) : TestCaseValue option =
-            atc.testCase.TryFind d.asn1Type
+            atc.testCaseTypeIDsMap.TryFind d.asn1Type
         Some ({AcnChildUpdateResult.updateAcnChildFnc = updateFunc; errCodes=[] ; testCaseFnc=testCaseFnc}), us
 
 and getUpdateFunctionUsedInEncoding (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (l:ProgrammingLanguage) (m:Asn1AcnAst.Asn1Module) (acnChildOrAcnParameterId) (us:State) : (AcnChildUpdateResult option*State)=
@@ -1278,6 +1278,8 @@ The field '%s' must either be removed or used as %s determinant of another ASN.1
             //None, ns
         
     let isTestVaseValid (atc:AutomaticTestCase) =
+        //an automatic test case value is valid
+        //if all ach children can be update during the encoding from the value
         acnChildren |>
         List.filter (fun acnChild -> match acnChild.Type with Asn1AcnAst.AcnNullType _ -> false | _ -> true) |>
         Seq.forall(fun acnChild -> 

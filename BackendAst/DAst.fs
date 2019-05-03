@@ -186,9 +186,16 @@ type TestCaseValue =
     | TcvChoiceAlternativePresentWhenInt of BigInteger            
     | TcvChoiceAlternativePresentWhenStr of String
 
+(*
+In general, an automatic test involves many types (e.g. in sequences, choices etc). It consists of function (initTestCaseFunc) that returns
+a string with the statements than initialize all involved types plus the local variavles needed.
+The id of the types that are involved in this automatic test case are stored within a map with name testCaseTypeIDsMap. The need for this map
+is in order to generate valid ACN test cases. I.e. the ACN checks that test case provides values for all ACN inserted fields. Otherwise is invalid and not 
+generated.
+*)
 type AutomaticTestCase = {
     initTestCaseFunc : CallerScope  -> InitFunctionResult //returns a list of set the statement(s) that initialize this type accordingly
-    testCase         : Map<ReferenceToType, TestCaseValue>
+    testCaseTypeIDsMap         : Map<ReferenceToType, TestCaseValue>    //used by ACN to produce valid test cases
 }
 
 type InitFunction = {
@@ -733,6 +740,11 @@ and ReferenceType = {
 
 and AcnChildUpdateResult = {
     updateAcnChildFnc        : (*typedef name*)string -> CallerScope -> CallerScope -> string
+    //Given an automatic test case (which includes a map with the IDs of the involved types), this function
+    //checks if the automatic test case contains a type which depends on this acn Child. If this is true
+    // it returns the value of the depenendency, otherwise none
+    //if the acn child depends on multiple ASN.1 types then this function (multi ACN update) checks that all ASN.1 types
+    //have value and the value is the same. In this case the value is returned. Otherwise none
     testCaseFnc : AutomaticTestCase -> TestCaseValue option 
     errCodes    : ErroCode list
 }
