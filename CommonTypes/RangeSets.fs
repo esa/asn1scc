@@ -20,11 +20,28 @@ type V_CMP =
 
 type LPoint<'v when 'v : comparison> =
     | LP of ('v*bool)
+with 
+    member this.not =
+        match this with
+        | LP(vl, b) -> LP(vl, not b)
 
 type RPoint<'v when 'v : comparison> =
     | RP of ('v*bool)
+with 
+    member this.not =
+        match this with
+        | RP(vl, b) -> RP(vl, not b)
+    member this.toLP =
+        match this with
+        | RP(vl, b) -> LP(vl, b)
 
-    
+type LPoint<'v when 'v : comparison> 
+with 
+    member this.toRP =
+        match this with
+        | LP(vl, b) -> RP(vl, b)
+
+
 [<CustomEquality; CustomComparison>]
 type Point<'v when 'v : comparison>  = 
     | LPoint of LPoint<'v>
@@ -93,6 +110,127 @@ with
         |Range_AB  ((LP (a, inc_a)),(RP (b, inc_b)))   -> 
             (if (inc_a) then "[" else "(") + (a.ToString()) +  ".." + (b.ToString()) + (if (inc_b) then "]" else ")")
 
+
+
+
+type RangeCompareResult<'v when 'v : comparison> =
+    | NonIntersectedRanges of (Range<'v>*Range<'v>)             // low, higher
+    | IntersectedRanges    of (Range<'v>*Range<'v>*Range<'v>)   // lower uncommonr part, common part,  higher part
+
+
+let rec compareRanges (r1:Range<'v>) (r2:Range<'v>) =   
+        match r1, r2 with
+        | Range_Empty, _                                            -> NonIntersectedRanges (r1, r2)
+        | _, Range_Empty                                            -> compareRanges r2 r1
+        | Range_Universe, Range_Universe                            -> IntersectedRanges (Range_Empty, Range_Universe, Range_Empty)
+        | Range_Universe, Range_NI_A (RP (a,inc))                   -> IntersectedRanges (Range_Empty, Range_B_PI (LP (a, not inc)), Range_Empty)
+        | Range_Universe, Range_B_PI (LP (b,inc))                   -> IntersectedRanges (Range_Empty, Range_NI_A(RP (b, not inc)), Range_Empty)
+        | Range_Universe, Range_AB (a,b)                            -> IntersectedRanges ((Range_NI_A a.not.toRP), r2, (Range_B_PI b.not.toLP))
+        | _, Range_Universe                                         -> compareRanges r2 r1
+        | Range_NI_A (RP(a1, inc1)), Range_NI_A (RP(a2, inc2))      -> 
+            let mn = min a1 a2
+            let mx = max a1 a2
+            let mninc = if a1 < a2 then inc1 else inc2
+            let mxinc = if a1 > a2 then inc1 else inc2
+            let rightRange =
+                match mn<mx with
+                | true  -> Range_AB((LP(mn, not mninc)),(RP(mx, mxinc)))
+                | false (*mn = mx*) ->
+                    if not mninc && mxinc then Range_AB((LP(mn, true)),(RP(mx, true))) else Range_Empty
+            IntersectedRanges (Range_Empty, Range_NI_A(RP (mn, mninc)), rightRange)
+        | Range_NI_A a, (Range_B_PI b )  -> 
+            // case 1 : OO ---- a   b --------- OO
+            // case 2 : OO ---- a   
+            //                  b --------- OO
+            // case 3 : OO ---- a   
+            //               b --------- OO
+             match Point<'v>.v_comp (RPoint a) (LPoint b) with
+             | V_LT      -> NonIntersectedRanges (r1, r2)             
+             | V_EQ      -> IntersectedRanges((Range_NI_A a.not), Range_AB(b, a), Range_B_PI b.not )
+             | V_GT      -> IntersectedRanges((Range_NI_A a.not), Range_AB(b, a), Range_B_PI b.not )
+        | Range_NI_A x0, Range_AB (a, b)   ->
+            // -oo --------x0
+            //         a--------b
+            match Point<'v>.v_comp (RPoint x0) (LPoint a) with
+            | V_LT      -> NonIntersectedRanges (r1, r2)             
+            | V_EQ      -> IntersectedRanges(Range_NI_A x0.not, Range_AB (a, x0), Range_AB (a.not, b))
+            | V_GT      -> 
+                match Point<'v>.v_comp (RPoint x0) (RPoint b) with
+                | V_LT  -> IntersectedRanges(Range_NI_A x0.not, Range_AB (a, x0), Range_AB (a.not, b))
+                | V_EQ  -> IntersectedRanges(Range_NI_A x0.not, Range_AB (a, x0), Range_AB (a.not, b))
+                | V_GT  -> 
+                    // -oo -----------------x0
+                    //         a--------b
+                    IntersectedRanges(Range_NI_A x0.not, r2, Range_AB (b.not.toLP, x0))
+        | Range_B_PI _, Range_NI_A _      -> compareRanges r2 r1
+        | Range_B_PI (LP (b1, inc1)), Range_B_PI(LP (b2, inc2))       -> 
+            let mx = max b1 b2
+            let mxi = if b1 > b2 then inc1 else inc2
+            let mn = min b1 b2
+            let mni = if b1 < b2 then inc1 else inc2
+            let rcommon = Range_B_PI(LP (mx, mxi) )
+            let leftRange =
+                match mn<mx with
+                | true  -> Range_AB((LP(mn, mni)),(RP(mx, not mxi)))
+                | false (*mn = mx*) ->
+                    if not mxi && mni then Range_AB((LP(mn, true)),(RP(mx, true))) else Range_Empty
+            IntersectedRanges(leftRange, rcommon, Range_Empty)
+        | Range_B_PI x0,  Range_AB (a, b)   ->
+            //      x0 -------------- +oo
+            //   a-------b         
+            match Point<'v>.v_comp (RPoint b) (LPoint x0) with
+            | V_LT      -> NonIntersectedRanges (r1, r2)
+            | V_EQ      -> IntersectedRanges(Range_AB(a, b.not), Range_AB( x0, b), Range_B_PI x0.not)
+            | V_GT      ->
+                match Point<'v>.v_comp (LPoint a) (LPoint x0) with
+                | V_GT -> 
+                    //      x0 -------------- +oo
+                    //          a-------b         
+                    IntersectedRanges(Range_AB(x0, a.not.toRP), r2, Range_B_PI b.not.toLP)
+                | V_EQ 
+                | V_LT -> 
+                    //               x0 -------------- +oo
+                    //          a---------b         
+                    IntersectedRanges(Range_AB (a, x0.not.toRP), Range_AB (x0, b), Range_B_PI b.not.toLP)
+        | Range_AB _, Range_NI_A _      -> compareRanges r2 r1
+        | Range_AB _, Range_B_PI _      -> compareRanges r2 r1
+        | Range_AB (A1,A2), Range_AB (B1,B2) -> 
+            let a1 = LPoint A1
+            let b1 = LPoint B1
+            let a2 = RPoint A2
+            let b2 = RPoint B2
+              // case 1 :    a1------a2             , condition a2 < b1,         --> empty set
+              //                         b1-----b2 
+              // case 2 :    a1------a2
+              //                     b1------b2     , condition a2 = b1,         --> [a2,a2]
+              // case 3 :    a1------a2
+              //                  b1------b2        , condition a1 <= b1 && a2 <= b2,          --> [b1,a2]
+              // case 4 :    a1-------------a2
+              //                  b1------b2        , condition a1 <= b1 && b2 <= a2,          --> other
+              // case 5 :       a1-----a2
+              //              b1----------b2        , condition b1 <= a1 && a2 <= b2,          --> this
+              
+              // case 6 :       a1--------a2
+              //              b1--------b2          , condition b1 <= a1 && b2 <= a2,          --> [a1,v2]
+              
+              // case 7 :               a1--------a2
+              //              b1--------b2          , condition a1 = b2 ,                      --> [a1,a1]
+              
+              // case 8 :               a1--------a2
+              //              b1-----b2             , condition b2 < a1,                       --> empty set
+
+            if   a2 < b1 then NonIntersectedRanges (r1, r2)
+            elif a2 = b1 then IntersectedRanges(Range_AB (A1,A2.not), Range_AB (B1,A2), Range_AB (B1.not,B2))
+            elif a1 <= b1 && a2 <= b2 then IntersectedRanges(Range_AB (A1,B1.not.toRP), Range_AB (B1,A2), Range_AB (A2.not.toLP,B2))
+            elif a1 <= b1 && b2 <= a2 then IntersectedRanges(Range_AB (A1,B1.not.toRP), r2, Range_AB (B2.not.toLP,A2))
+            elif b1 <= a1 && a2 <= b2 then IntersectedRanges(Range_AB (B1,A1.not.toRP), r1, Range_AB (A2.not.toLP,B2))
+            elif b1 <= a1 && b2 <= a2 then IntersectedRanges(Range_AB (B1,A1.not.toRP), Range_AB(A1,B2), Range_AB (B2.not.toLP,A2))
+            elif a1 = b2 then IntersectedRanges(Range_AB (B1,A1.not.toRP), Range_AB(A1,B2), Range_AB (B2.not.toLP,A2))
+            else NonIntersectedRanges(r2,r1)
+
+
+
+type Range<'v when 'v : comparison> with
     member this.isWithin (p:Point<'v>) =
         match this with
         |Range_Empty                          -> false
@@ -110,6 +248,14 @@ with
         | Range_AB  (LP(a,inc1), RP(b,inc2))   -> Two ( (Range_NI_A (RP(a, not inc1))), (Range_B_PI(LP(b,not inc2))))
 
     member this.intersect (other:Range<'v>) =
+        match compareRanges this other with
+        | NonIntersectedRanges _                -> Range_Empty
+        | IntersectedRanges    (_,ret,_)        -> ret
+
+
+
+
+    #if false
         match this, other with
         | Range_Empty, _                                -> Range_Empty
         | _, Range_Empty                                -> Range_Empty
@@ -185,7 +331,7 @@ with
             elif b1 <= a1 && b2 <= a2 then Range_AB(A1,B2)
             elif a1 = b2 then Range_AB(A1,B2)
             else Range_Empty
-
+    #endif
     member this.union (other:Range<'v>) =
         match this, other with
         | Range_Empty, _                                -> One other
@@ -274,10 +420,6 @@ with
             | Two (first, sec) -> first = other && sec = this
 
 
-type RangeCompareResult<'v when 'v : comparison> =
-    | NonIntersectedRanges of (Range<'v>*Range<'v>)             // low, higher
-    | IntersectedRanges    of (Range<'v>*Range<'v>*Range<'v>)   // lower uncommonr part, common part,  higher part
-
 (*
 
     member this.complement = 
@@ -290,14 +432,6 @@ type RangeCompareResult<'v when 'v : comparison> =
 
 *)
 
-let rec compareRanges (r1:Range<'v>) (r2:Range<'v>) =   
-        match r1, r2 with
-        | Range_Empty, _                                        -> NonIntersectedRanges (r1, r2)
-        | _, Range_Empty                                        -> compareRanges r2 r1
-        | Range_Universe, Range_Universe                        -> IntersectedRanges (Range_Empty, Range_Universe, Range_Empty)
-        | Range_Universe, Range_NI_A (RP (a,inc))               -> IntersectedRanges (Range_Empty, Range_B_PI (LP (a, not inc)), Range_Empty)
-        | Range_Universe, Range_B_PI (LP (b,inc))               -> IntersectedRanges (Range_Empty, Range_NI_A(RP (b, not inc)), Range_Empty)
-        | Range_Universe, Range_AB ((LP (b,inc1)), (RP (a,inc2))) -> IntersectedRanges ((Range_NI_A (RP(a, not inc1))), r2, (Range_B_PI(LP(b,not inc2))))
 
 
 let create_range v1  v2  =

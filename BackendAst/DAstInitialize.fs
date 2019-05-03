@@ -473,13 +473,8 @@ let createSequenceInitFunc (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn
     let initTestCase_sequence_child = match l with C -> init_c.initTestCase_sequence_child | Ada -> init_a.initTestCase_sequence_child
     let initTestCase_sequence_child_opt = match l with C -> init_c.initTestCase_sequence_child_opt | Ada -> init_a.initTestCase_sequence_child_opt
     let initChildWithInitFunc       = match l with C -> init_c.initChildWithInitFunc | Ada -> init_a.initChildWithInitFunc
-    let dummy =
-        let aaa = typeDefinition.longTypedefName l
-        match aaa = "MySuperSeqOf_elem" with
-        | true  -> 1
-        | false -> 0
 
-    let funcBody (p:CallerScope) (v:Asn1ValueKind) = 
+    let initByAsn1ValueFnc (p:CallerScope) (v:Asn1ValueKind) = 
 
         let childrenRet = 
             match v.ActualValue with
@@ -502,6 +497,7 @@ let createSequenceInitFunc (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn
 
             | _               -> raise(BugErrorException "UnexpectedValue")
         initSequence childrenRet
+
     let testCaseFuncs = 
         let asn1Children = 
             children |> 
@@ -518,16 +514,9 @@ let createSequenceInitFunc (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn
                 | _                                                             -> false
             ) |> Seq.length 
 
-        let maxCasesPerChild = 
-            match asn1Children.Length with
-            | _ when asn1Children.Length <= 3 -> 15   
-            | _ when asn1Children.Length <= 6 -> 10   
-            | _                               -> 5   
         let handleChild  (ch:Asn1Child)  = 
             let len = ch.Type.initFunction.automaticTestCases.Length
-
             ch.Type.initFunction.automaticTestCases |> 
-            //Seq.take (min maxCasesPerChild len) |> Seq.toList |>
             List.collect(fun atc -> 
                 let presentFunc  = 
                     let initTestCaseFunc (p:CallerScope) = 
@@ -545,13 +534,8 @@ let createSequenceInitFunc (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn
                         {InitFunctionResult.funcBody = funcBody; localVariables = [] }
                     {AutomaticTestCase.initTestCaseFunc = initTestCaseFunc; testCase = Map.empty }
                 match ch.Optionality with
-                | None                              ->  [presentFunc]
-//                | Some (Asn1AcnAst.Optional opt) when optChildCount > 1 && opt.acnPresentWhen.IsSome ->
-//                       [nonPresenceFunc] //if child is optional with present-when conditions then no test case is generated for this component because we might generated wrong test cases 
-                | Some (Asn1AcnAst.Optional opt)    -> 
-                    
-                    [presentFunc; nonPresenceFunc] 
-                    
+                | None                              -> [presentFunc]
+                | Some (Asn1AcnAst.Optional opt)    -> [presentFunc; nonPresenceFunc] 
                 | Some (Asn1AcnAst.AlwaysAbsent)    -> [nonPresenceFunc] 
                 | Some (Asn1AcnAst.AlwaysPresent)   -> [presentFunc] )
 
@@ -587,34 +571,6 @@ let createSequenceInitFunc (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn
 
                 tesCases
 
-//        let rec generateCases   (children : Asn1Child list) : AutomaticTestCase list=
-//            match children with
-//            | []        -> []
-//            | x1::xs    -> 
-//                // generate this component test cases (x1) and the rest and the join them.
-//                let rest = generateCases  xs
-//                let childCases  = 
-//                    let ths =  handleChild  x1 
-//                    match ths with
-//                    | []    -> rest
-//                    | _     ->
-//                        seq {
-//                            for i1 in ths do   
-//                                match rest with
-//                                | []    ->  yield i1
-//                                | _     ->
-//                                    for lst in rest do
-//                                        let ret = 
-//                                            let combineFnc (p:CallerScope) = 
-//                                                let partA = i1.initTestCaseFunc p
-//                                                let partB = lst.initTestCaseFunc p
-//                                                let funcBody = [partA.funcBody; partB.funcBody] |> Seq.StrJoin "\n"
-//                                                {InitFunctionResult.funcBody = funcBody; localVariables = partA.localVariables@partB.localVariables }
-//                                            let combinedTestCases = mergeMaps i1.testCase lst.testCase
-//                                            {AutomaticTestCase.initTestCaseFunc = combineFnc; testCase = combinedTestCases }
-//                                        yield ret
-//                            } |> Seq.toList
-//                childCases
         let tesCases = generateCases  asn1Children 
         tesCases 
 
@@ -676,7 +632,7 @@ let createSequenceInitFunc (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn
                     ) {InitFunctionResult.funcBody = ""; localVariables = [] }
         ret
         
-    createInitFunctionCommon r l t typeDefinition funcBody iv initTasFunction testCaseFuncs
+    createInitFunctionCommon r l t typeDefinition initByAsn1ValueFnc iv initTasFunction testCaseFuncs
 
 let createChoiceInitFunc (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1AcnAst.Asn1Type) (o :Asn1AcnAst.Choice) (typeDefinition:TypeDefintionOrReference) (children:ChChildInfo list) iv =     
     //let initChoice = match l with C -> init_c.initChoice | Ada -> init_a.initChoice
