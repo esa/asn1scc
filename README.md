@@ -84,12 +84,14 @@ commit or merge request, [we instruct CircleCI](.circleci/config.yml) to...
 - [build ASN1SCC](circleci-build.sh) with the new code inside that image
 - then run all the tests and check the coverage results.
 
-Needless to say, the Docker image can be used for development as well;
-to build it you just need to execute...
+In addition, a runtime docker image can be build with the following command
+which can then be used instead of installing ASN1SCC on the host (or any of
+the dependencies or build tools).
+```
+DOCKER_BUILDKIT=1 docker build -t asn1scc-runtime -f Dockerfile.asn1scc-runtime .
+```
 
-    docker build -t asn1scc .    # Don't forget the dot!
-
-...and your Docker will build an "asn1scc" Docker image. This image can be
+...and your Docker will build an "asn1scc-runtime" Docker image. This image can be
 used as if the ASN1SCC is installed on the host system. The [asn1-docker.sh](asn1-docker.sh)
 bash script can be used to wrap the `docker run ...` call into a easy to use compiler command.
 For example, let's assume your ASN files are in a folder as `/tmp/myasnfiles/`. You can use 
@@ -97,7 +99,7 @@ this script file like calling `asn1.exe` file as if it is on your host system. T
 be executed inside a docker container and the generated files will appear in the folder
 where the script was called. Assuming that the ASN file is named `sample.asn`, here is a sample
 call of the script (`asn1-docker.sh` script is inside `/opt/asn1scc` folder and the docker image
-named `asn1scc` is already built.)
+named `asn1scc-runtime` is already built.)
 
 ```bash
 $ pwd
