@@ -249,7 +249,7 @@ Define_subType_sequence_of(td/*:FE_SizeableTypeDefinition*/, prTd/*:FE_SizeableT
 Define_new_sequence_child_bit(sName) ::= "<sName>:<rtlModuleName()>.bit;"
 
 Define_new_sequence_child(sName, sType) ::= "<sName> : <sType>;"
-Define_new_sequence_save_pos_child(sName) ::= "BitStream <sName>"
+Define_new_sequence_save_pos_child(td/*:FE_SequenceTypeDefinition*/, sName, nMaxBytesInACN) ::= "<sName> : <rtlModuleName()>.BitstreamPtr;"
 
 Define_new_sequence(td/*:FE_SequenceTypeDefinition*/, arrsChildren, arrsOptionalChildren, arrsChildldrenDefintions, arrsNullFieldsSavePos) ::= <<
 -- <td.typeName> --------------------------------------------

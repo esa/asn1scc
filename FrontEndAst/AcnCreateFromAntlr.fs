@@ -1018,6 +1018,21 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (m:Asn1Ast.Asn1Mo
                     SequenceAcnProperties.postEncodingFunction = tryGetProp combinedProperties (fun x -> match x with POST_ENCODING_FUNCTION e -> Some (PostEncodingFunction e) | _ -> None);
                     preDecodingFunction = tryGetProp combinedProperties (fun x -> match x with PRE_DECODING_FUNCTION e -> Some (PreDecodingFunction e) | _ -> None)
                 }
+            
+            match asn1.args.mappingFunctionsModule with
+            | Some _    -> ()
+            | None      ->
+                let fncName = 
+                    match acnProperties.postEncodingFunction with
+                    | Some (PostEncodingFunction fncName)    -> Some fncName
+                    | None                                   ->
+                        match acnProperties.preDecodingFunction with
+                        | Some (PreDecodingFunction fncName)    -> Some fncName
+                        | None                               -> None
+                match fncName with
+                | None          -> ()
+                | Some fncName  ->
+                    raise(SemanticError(fncName.Location, (sprintf "Usage of ACN attributes 'post-encoding-function' or 'post-decoding-validator' requires the -mfm argument")))
 
             Sequence ({Sequence.children = mergedChildren;  acnProperties=acnProperties;  cons=cons; withcons = wcons;uperMaxSizeInBits=uperBitMaskSize+uperMaxChildrenSize; uperMinSizeInBits=uperBitMaskSize+uperMinChildrenSize;acnMaxSizeInBits=acnMaxSizeInBits;acnMinSizeInBits=acnMinSizeInBits; typeDef=typeDef}), chus
         | Asn1Ast.Choice      children     -> 

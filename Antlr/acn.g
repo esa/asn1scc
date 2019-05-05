@@ -186,7 +186,7 @@ longFld 	:	asn1LID ('.' asn1LID)*		-> ^(LONG_FIELD asn1LID+);
 
 mappingFunctionProp         : MAPPING_FUNCTION^ (asn1LID|asn1UID);
 postEncodingFunctionProp    : POST_ENCODING_FUNCTION^ (asn1LID|asn1UID);
-preDecodingFunctionProp     : PRE_DECODING_FUNCTION^ (asn1LID|asn1UID);
+preDecodingFunctionProp     : POST_DECODING_VALIDATOR^ (asn1LID|asn1UID);
 
 alignToNextProp	
 	:	ALIGNTONEXT^ BYTE
@@ -350,7 +350,7 @@ FALSE_VALUE			: 'false-value';
 PATTERN				: 'pattern';
 MAPPING_FUNCTION    : 'mapping-function';
 POST_ENCODING_FUNCTION : 'post-encoding-function';
-PRE_DECODING_FUNCTION : 'pre-encoding-function';
+POST_DECODING_VALIDATOR : 'post-decoding-validator';
 
 PRESENT_WHEN		: 'present-when';
 DETERMINANT			: 'determinant';

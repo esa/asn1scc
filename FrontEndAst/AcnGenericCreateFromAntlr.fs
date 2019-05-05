@@ -231,7 +231,7 @@ let private creareAcnProperty (acnConstants : Map<string, BigInteger>) (t:ITree)
         | _                             -> raise(BugErrorException("creareAcnProperty_ENDIANNES"))
     | acnParser.MAPPING_FUNCTION        -> MAPPING_FUNCTION (t.GetChild(0).TextL)
     | acnParser.POST_ENCODING_FUNCTION  -> POST_ENCODING_FUNCTION (t.GetChild(0).TextL)
-    | acnParser.PRE_DECODING_FUNCTION   -> PRE_DECODING_FUNCTION (t.GetChild(0).TextL)
+    | acnParser.POST_DECODING_VALIDATOR -> PRE_DECODING_FUNCTION (t.GetChild(0).TextL)
     | acnParser.INT                     -> ENUM_SET_VALUE t.BigIntL
     | acnParser.TERMINATION_PATTERN     -> 
         let tp = t

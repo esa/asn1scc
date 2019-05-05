@@ -809,12 +809,26 @@ sequence_presense_optChild_pres_str_decode(p, sAcc, sChName, sExtFldName, sVal) 
 result.Success := true;
 >>
 
+sequence_save_bitStream_start_encode(sBitStreamPositionsLocalVar) ::=<<
+<sBitStreamPositionsLocalVar>.Size_In_Bytes := bs.Size_In_Bytes; --save the size of the bit stream
+<sBitStreamPositionsLocalVar>.Current_Bit_Pos := bs.Current_Bit_Pos; --save position of the bit stream
+>>
+
+sequence_save_bitStream_start_decode(sBitStreamPositionsLocalVar) ::=<<
+result.Success := True;
+<sBitStreamPositionsLocalVar>.Size_In_Bytes := bs.Size_In_Bytes; --save the size of the bit stream
+<sBitStreamPositionsLocalVar>.Current_Bit_Pos := bs.Current_Bit_Pos; --save position of the bit stream
+>>
+
+
 sequence_save_bitstream_encode(sBitStreamPositionsLocalVar, sChName) ::=<<
-<sBitStreamPositionsLocalVar>.<sChName> := bitStrm; --save position of the bit stream
+<sBitStreamPositionsLocalVar>.<sChName>.Size_In_Bytes := bs.Size_In_Bytes; --save the size of the bit stream
+<sBitStreamPositionsLocalVar>.<sChName>.Current_Bit_Pos := bs.Current_Bit_Pos; --save position of the bit stream
 >>
 
 sequence_save_bitstream_decode(sBitStreamPositionsLocalVar, sChName) ::=<<
-<sBitStreamPositionsLocalVar>.<sChName> := bitStrm; --save position of the bit stream
+<sBitStreamPositionsLocalVar>.<sChName>.Size_In_Bytes := bs.Size_In_Bytes; --save the size of the bit stream
+<sBitStreamPositionsLocalVar>.<sChName>.Current_Bit_Pos := bs.Current_Bit_Pos; --save position of the bit stream
 >>
 
 
@@ -950,9 +964,12 @@ result := <rtlModuleName()>.ASN1_RESULT'(Success => TRUE, ErrorCode => 0);
 >>
 
 sequence_call_post_encoding_function(p, sFncName, sBitStreamStartPos, sBitStreamPositionsNullPos) ::= <<
-<sFncName>(<p>, <sBitStreamStartPos>, <sBitStreamPositionsNullPos>, bitStrm);
+<sFncName>(<p>, <sBitStreamStartPos>, <sBitStreamPositionsNullPos>, bs);
 >>
 
+sequence_call_post_decoding_validator(p, sFncName, sBitStreamStartPos, sBitStreamPositionsNullPos) ::= <<
+result := <sFncName>(<p>, <sBitStreamStartPos>, <sBitStreamPositionsNullPos>, bs);
+>>
 
 
 JoinItems_encode(sTasName, sPart, sNestedPart, nRequiredBitsSoFar, bRequiresAssert,  bReqResultCheck) ::= <<

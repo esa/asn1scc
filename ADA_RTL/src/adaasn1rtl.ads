@@ -75,6 +75,12 @@ package adaasn1rtl with Spark_Mode is
       Current_Bit_Pos  : Natural;  --current bit for writing or reading in the bitsteam
    end record;
    
+   type BitstreamPtr  is record
+      Size_In_Bytes    :   Positive;
+      Current_Bit_Pos  : Natural;  --current bit for writing or reading in the bitsteam
+   end record;
+
+   
    function RequiresReverse  return Boolean;
    function Long_Float_to_Float (x : Asn1Real) return Float;
 

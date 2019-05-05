@@ -7,7 +7,7 @@ T-Packet-Body[]
     stm-15  [encoding pos-int, size 16]
 }
 
-T-Packet [post-encoding-function my-encoding-patcher]
+T-Packet [post-encoding-function my-encoding-patcher, post-decoding-validator crc-validator]
 {
     nid T-NID-Packet [encode-values, size 4, encoding pos-int, save-position],
     length NULL [pattern '000000000000'B, save-position], -- 12 bits

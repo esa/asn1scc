@@ -1089,8 +1089,12 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
     let sequence_optional_always_present        = match l with C -> acn_c.sequence_optional_always_present_child | Ada -> acn_a.sequence_optional_always_present_child
     let sequence_default_child                  = match l with C -> acn_c.sequence_default_child                 | Ada -> acn_a.sequence_default_child              
     let sequence_acn_child                      = match l with C -> acn_c.sequence_acn_child                     | Ada -> acn_a.sequence_acn_child              
-    let sequence_call_post_encoding_function                      = match l with C -> acn_c.sequence_call_post_encoding_function                     | Ada -> acn_a.sequence_call_post_encoding_function              
+    let sequence_call_post_encoding_function    = match l with C -> acn_c.sequence_call_post_encoding_function                     | Ada -> acn_a.sequence_call_post_encoding_function              
+    let sequence_call_post_decoding_validator   = match l with C -> acn_c.sequence_call_post_decoding_validator                     | Ada -> acn_a.sequence_call_post_decoding_validator              
     let sequence_save_bitstream                 = match l with C -> acn_c.sequence_save_bitstream                     | Ada -> acn_a.sequence_save_bitstream              
+    let sequence_save_bitStream_start                 = match l with C -> acn_c.sequence_save_bitStream_start                     | Ada -> acn_a.sequence_save_bitStream_start              
+    
+    let bitStreamName                           = match l with C -> "BitStream"                                  | Ada -> "adaasn1rtl.BitStreamPtr"
     
     //let baseFuncName =  match baseTypeUperFunc  with None -> None | Some baseFunc -> baseFunc.funcName
 
@@ -1130,19 +1134,23 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
         let td = o.typeDef.[l]
 
 
-        let localVariables, post_encoding_function, soBitStreamPositionsLocalVar =
+        let localVariables, post_encoding_function, soBitStreamPositionsLocalVar, soSaveInitialBitStrmStatement =
             let bitStreamPositionsLocalVar = sprintf "bitStreamPositions_%d" (t.id.SeqeuenceOfLevel + 1)
             let bsPosStart = sprintf "bitStreamPositions_start%d" (t.id.SeqeuenceOfLevel + 1)
             match o.acnProperties.postEncodingFunction with
             | Some (PostEncodingFunction fncName) when codec = Encode  ->
-                let fncCall = sequence_call_post_encoding_function (p.arg.getPointer l) (ToC fncName.Value) bsPosStart  bitStreamPositionsLocalVar
-                [AcnInsertedChild(bitStreamPositionsLocalVar, td.extention_function_potisions); AcnInsertedChild(bsPosStart, "BitStream")]@localVariables, Some fncCall, Some bitStreamPositionsLocalVar
+                let actualFncName = match l with C -> (ToC fncName.Value) | Ada -> (ToC (r.args.mappingFunctionsModule.orElse "")) + "." + (ToC fncName.Value)
+                let fncCall = sequence_call_post_encoding_function (p.arg.getPointer l) (actualFncName) bsPosStart  bitStreamPositionsLocalVar
+                let initialBitStrmStatement = sequence_save_bitStream_start bsPosStart codec
+                [AcnInsertedChild(bitStreamPositionsLocalVar, td.extention_function_potisions); AcnInsertedChild(bsPosStart, bitStreamName)]@localVariables, Some fncCall, Some bitStreamPositionsLocalVar, Some initialBitStrmStatement
             | _ ->
                 match o.acnProperties.preDecodingFunction with
                 | Some (PreDecodingFunction fncName) when codec = Decode  ->
-                    let fncCall = sequence_call_post_encoding_function (p.arg.getPointer l) (ToC fncName.Value) bsPosStart  bitStreamPositionsLocalVar
-                    [AcnInsertedChild(bitStreamPositionsLocalVar, td.extention_function_potisions); AcnInsertedChild(bsPosStart, "BitStream")]@localVariables, Some fncCall, Some bitStreamPositionsLocalVar
-                | _ ->  localVariables, None, None
+                    let actualFncName = match l with C -> (ToC fncName.Value) | Ada -> (ToC (r.args.mappingFunctionsModule.orElse "")) + "." + (ToC fncName.Value)
+                    let fncCall = sequence_call_post_decoding_validator (p.arg.getPointer l) (actualFncName) bsPosStart  bitStreamPositionsLocalVar
+                    let initialBitStrmStatement = sequence_save_bitStream_start bsPosStart codec
+                    [AcnInsertedChild(bitStreamPositionsLocalVar, td.extention_function_potisions); AcnInsertedChild(bsPosStart, bitStreamName)]@localVariables, Some fncCall, Some bitStreamPositionsLocalVar, Some initialBitStrmStatement
+                | _ ->  localVariables, None, None, None
 
             
 
@@ -1247,7 +1255,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                     | Some funcUpdateStatement -> Some (funcUpdateStatement.updateAcnChildFnc acnChild.typeDefinitionBodyWithinSeq childP pRoot)
                     | None                     -> None
                 updateStatement.IsNone)
-
+        let saveInitialBitStrmStatements = soSaveInitialBitStrmStatement |> Option.toList
         let presenseBits = asn1Children |> List.choose printPresenceBit
         let childrenStatements00, ns = children |> foldMap handleChild us
         let childrenStatements0 = childrenStatements00 |> List.collect id 
@@ -1255,7 +1263,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
         let childrenLocalvars = childrenStatements0 |> List.collect(fun (_, _,s,_) -> s)
         let childrenErrCodes = childrenStatements0 |> List.collect(fun (_, _,_,s) -> s)
         
-        let seqContent =  (presenseBits@childrenStatements@(post_encoding_function |> Option.toList)) |> nestChildItems l codec 
+        let seqContent =  (saveInitialBitStrmStatements@presenseBits@childrenStatements@(post_encoding_function |> Option.toList)) |> nestChildItems l codec 
         match existsAcnChildWithNoUpdates with
         | []     ->
             match seqContent with

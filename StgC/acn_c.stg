@@ -609,6 +609,14 @@ sequence_presense_optChild_pres_str_decode(p, sAcc, sChName, sExtFldName, sVal) 
 <p><sAcc>exist.<sChName> = (strcmp(<sExtFldName>, "<sVal>") == 0) ? 1 : 0;
 >>
 
+sequence_save_bitStream_start_encode(sBitStreamPositionsLocalVar) ::=<<
+<sBitStreamPositionsLocalVar> = *pBitStrm; //save the initial position of the bit stream at 
+>>
+
+sequence_save_bitStream_start_decode(sBitStreamPositionsLocalVar) ::=<<
+ret = TRUE;
+<sBitStreamPositionsLocalVar> = *pBitStrm; //save the initial position of the bit stream
+>>
 
 sequence_save_bitstream_encode(sBitStreamPositionsLocalVar, sChName) ::=<<
 <sBitStreamPositionsLocalVar>.<sChName> = *pBitStrm; //save position of the bit stream
@@ -724,6 +732,10 @@ if (<p><sAcc>exist.<sChName>) {
 
 sequence_call_post_encoding_function(p, sFncName, sBitStreamStartPos, sBitStreamPositionsNullPos) ::= <<
 <sFncName>(<p>, &<sBitStreamStartPos>, &<sBitStreamPositionsNullPos>, pBitStrm);
+>>
+
+sequence_call_post_decoding_validator(p, sFncName, sBitStreamStartPos, sBitStreamPositionsNullPos) ::= <<
+ret = <sFncName>(<p>, &<sBitStreamStartPos>, &<sBitStreamPositionsNullPos>, pBitStrm, pErrCode);
 >>
 
 /* SEQUENCE END */

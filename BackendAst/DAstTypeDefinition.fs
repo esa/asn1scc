@@ -234,15 +234,15 @@ let createSequence (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1AcnAst.
     let optionalChildren = children |> List.choose(fun c -> match c.Optionality with Some _ -> Some c | None -> None)
     let optChildNames  = optionalChildren |> List.map(fun c -> c.getBackendName l)
     let childldrenCompleteDefintions = children |> List.choose (fun c -> getChildDefinition c.Type.typeDefintionOrReference)
+    let td = o.typeDef.[l]
     let arrsNullFieldsSavePos =
         match o.acnProperties.postEncodingFunction.IsNone && o.acnProperties.preDecodingFunction.IsNone with
         | true -> []
         | false  -> 
             allchildren |> 
             List.choose (fun c -> if c.savePosition then Some (c.getBackendName l) else None ) |>
-            List.map define_new_sequence_save_pos_child
+            List.map(fun childName -> define_new_sequence_save_pos_child td childName o.acnMaxSizeInBits)
 
-    let td = o.typeDef.[l]
 
     let arrsChildren = children |> List.map (fun o -> define_new_sequence_child (o.getBackendName l) (o.Type.typeDefintionOrReference.longTypedefName l))
     let arrsOptionalChildren  = optionalChildren |> List.map(fun c -> define_new_sequence_child_bit (c.getBackendName l))
