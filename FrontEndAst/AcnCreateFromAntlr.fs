@@ -558,7 +558,10 @@ let private mergeEnumerated (asn1:Asn1Ast.AstRoot) (items: Asn1Ast.NamedItem lis
                     let itm, ns = registerEnumeratedTypeDefinition us l (ReferenceToType curPath) (FEI_Reference2OtherType (ReferenceToType [MD md; TA ts])) 
                     (l,itm), ns) us
             lanDefs |> Map.ofList, us1
-        
+    let items = 
+        match asn1.args.renamePolicy with
+        | AlwaysPrefixTypeName      -> items |> List.map(fun itm -> {itm with c_name = typeDef.[C].typeName + "_" + itm.c_name; ada_name = typeDef.[Ada].typeName + "_" + itm.ada_name})
+        | _                         -> items 
     {Enumerated.acnProperties = acnProperties; items=items; cons = cons; withcons = withcons;uperMaxSizeInBits = uperSizeInBits; uperMinSizeInBits=uperSizeInBits;encodeValues=endodeValues; acnEncodingClass = acnEncodingClass;  acnMinSizeInBits=acnMinSizeInBits; acnMaxSizeInBits = acnMaxSizeInBits;userDefinedValues=userDefinedValues; typeDef=typeDef}, us1
 
 let rec private mergeAcnEncodingSpecs (thisType:AcnTypeEncodingSpec option) (baseType:AcnTypeEncodingSpec option) =
@@ -1135,6 +1138,15 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (m:Asn1Ast.Asn1Mo
 
             let aligment = tryGetProp combinedProperties (fun x -> match x with ALIGNTONEXT e -> Some e | _ -> None)
             let acnMinSizeInBits, acnMaxSizeInBits = AcnEncodingClasses.GetChoiceEncodingClass  mergedChildren aligment t.Location acnProperties
+            let mergedChildren =
+                match asn1.args.renamePolicy with
+                | AlwaysPrefixTypeName -> mergedChildren
+                | _                    -> 
+                    let activeLang =
+                        match asn1.args.targetLanguages |> List.exists ((=) C) with
+                        | true    -> C
+                        | false   -> Ada
+                    mergedChildren |> List.map(fun x -> {x with present_when_name = typeDef.[activeLang].typeName + "_" + x.present_when_name})
 
             Choice ({Choice.children = mergedChildren; acnProperties = acnProperties;   cons=cons; withcons = wcons;uperMaxSizeInBits=indexSize+maxChildSize; uperMinSizeInBits=indexSize+minChildSize; acnMinSizeInBits =acnMinSizeInBits; acnMaxSizeInBits=acnMaxSizeInBits; acnLoc = acnLoc; typeDef=typeDef}), chus
         | Asn1Ast.ReferenceType rf    -> 

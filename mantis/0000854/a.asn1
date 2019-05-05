@@ -1,0 +1,9 @@
+D DEFINITIONS ::=
+BEGIN
+
+T1 ::= ENUMERATED { hello, world } 
+
+T2 ::= ENUMERATED { hello, foo } 
+
+
+END

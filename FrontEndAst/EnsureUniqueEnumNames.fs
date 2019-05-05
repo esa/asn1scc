@@ -52,6 +52,7 @@ let rec private handleEnumChoices (r:AstRoot) (renamePolicy:EnumRenamePolicy)=
                 //let newChildren, finalState = children |> foldMap CloneChild state
                 let newChildren, finalState =
                     match renamePolicy with
+                    | AlwaysPrefixTypeName      
                     | NoRenamePolicy           -> children, state
                     | SelectiveEnumerants      -> children |> foldMap CloneChild state
                     | AllEnumerants            -> 
@@ -166,6 +167,7 @@ let rec private handleSequencesAndChoices (r:AstRoot) (lang:ProgrammingLanguage)
 
 
 let rec private handleEnums (r:AstRoot) (renamePolicy:EnumRenamePolicy) (lang:ProgrammingLanguage) =
+    
     let doubleEnumNames0 = 
         seq {
             for m in r.Modules do
@@ -203,6 +205,7 @@ let rec private handleEnums (r:AstRoot) (renamePolicy:EnumRenamePolicy) (lang:Pr
                     | ProgrammingLanguage.Ada   -> {old with ada_name=newUniqueName}
                 let newItems = 
                     match renamePolicy with
+                    | AlwaysPrefixTypeName     (* to be handled later when typedefname is known*)
                     | NoRenamePolicy           -> itesm
                     | SelectiveEnumerants      -> itesm|> List.map copyItem
                     | AllEnumerants            -> 
@@ -223,6 +226,7 @@ let DoWork (ast:AstRoot)   =
     let enumRenamePolicy = ast.args.renamePolicy
     let r2_ada = 
         match enumRenamePolicy with
+        | AlwaysPrefixTypeName     (* to be handled later when typedefname is known*)
         | NoRenamePolicy           -> ast
         | _                                             ->
             let r1 = handleEnumChoices ast  enumRenamePolicy

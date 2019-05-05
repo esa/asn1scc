@@ -64,6 +64,7 @@ type EnumRenamePolicy =
     | NoRenamePolicy
     | SelectiveEnumerants
     | AllEnumerants
+    | AlwaysPrefixTypeName
 
 [<NoEquality; NoComparison>]
 type SIZE = {

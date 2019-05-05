@@ -63,6 +63,8 @@ with
       RGB_red and FavColors_red. 
     2 rename all enumerants of an enumerated type 
       that has least one conflicting enumerant.
+    3 all enumerants of all of an enumerated types
+      are renamed.
 """
             | Field_Prefix _     -> """  Apply <prefix> string to any component or alternative fields present in the grammar.
   If <prefix> is AUTO (i.e. -fp AUTO) then only the conflicting component or alternative names will be prefixed with the type name.
@@ -87,7 +89,7 @@ let printVersion () =
     //let assembly = System.Reflection.Assembly.GetExecutingAssembly();
     //let fvi = System.Diagnostics.FileVersionInfo.GetVersionInfo(assembly.Location);
     //let version = fvi.FileVersion;
-    let version = "4.1.0.11f"
+    let version = "4.1.0.12f"
     printfn "asn1scc version %s\n" version
     ()    
 
@@ -150,8 +152,8 @@ let checkArguement arg =
     | Type_Prefix _    -> ()
     | Rename_Policy rp   -> 
         match rp with
-        | 0 | 1 | 2 -> ()
-        | _             -> raise (UserException ("invalid value for argument -renamePolicy. Currently only values 0,1,2 are supported"))
+        | 0 | 1 | 2 | 3-> ()
+        | _             -> raise (UserException ("invalid value for argument -renamePolicy. Currently only values 0,1,2,3 are supported"))
     | Field_Prefix vl ->
             match vl.ToCharArray().[0] with
             | _ when (vl.ToCharArray().[0] >= 'A' && vl.ToCharArray().[0] <= 'Z') || (vl.ToCharArray().[0] >= 'a' && vl.ToCharArray().[0] <= 'z')  ||  vl.ToCharArray().[0] = '_' -> ()
@@ -229,7 +231,9 @@ let constructCommandLineSettings args (parserResults: ParseResults<CliArguments>
                 match rp with
                 | _ when rp = 0 -> CommonTypes.EnumRenamePolicy.NoRenamePolicy
                 | _ when rp = 1 -> CommonTypes.EnumRenamePolicy.SelectiveEnumerants
-                | _             -> CommonTypes.EnumRenamePolicy.AllEnumerants
+                | _ when rp = 2 -> CommonTypes.EnumRenamePolicy.AllEnumerants
+                | _ when rp = 3 -> CommonTypes.EnumRenamePolicy.AlwaysPrefixTypeName
+                | _             -> raise (UserException ("invalid value for argument -renamePolicy. Currently only values 0,1,2,3 are supported"))
         fieldPrefix =
             match args |> List.choose(fun a -> match a with Field_Prefix vl -> Some (vl) | _ -> None) with
             | []    -> None
