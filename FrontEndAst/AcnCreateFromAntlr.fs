@@ -1140,13 +1140,13 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (m:Asn1Ast.Asn1Mo
             let acnMinSizeInBits, acnMaxSizeInBits = AcnEncodingClasses.GetChoiceEncodingClass  mergedChildren aligment t.Location acnProperties
             let mergedChildren =
                 match asn1.args.renamePolicy with
-                | AlwaysPrefixTypeName -> mergedChildren
-                | _                    -> 
+                | AlwaysPrefixTypeName -> 
                     let activeLang =
                         match asn1.args.targetLanguages |> List.exists ((=) C) with
                         | true    -> C
                         | false   -> Ada
                     mergedChildren |> List.map(fun x -> {x with present_when_name = typeDef.[activeLang].typeName + "_" + x.present_when_name})
+                | _                    ->  mergedChildren
 
             Choice ({Choice.children = mergedChildren; acnProperties = acnProperties;   cons=cons; withcons = wcons;uperMaxSizeInBits=indexSize+maxChildSize; uperMinSizeInBits=indexSize+minChildSize; acnMinSizeInBits =acnMinSizeInBits; acnMaxSizeInBits=acnMaxSizeInBits; acnLoc = acnLoc; typeDef=typeDef}), chus
         | Asn1Ast.ReferenceType rf    -> 
