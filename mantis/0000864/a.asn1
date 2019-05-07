@@ -1,0 +1,54 @@
+Common DEFINITIONS ::=
+BEGIN
+
+T-UINT16 ::= INTEGER(0..65535)
+
+END
+
+Module1 DEFINITIONS ::=
+BEGIN
+
+IMPORTS
+T-UINT16 FROM Common;
+
+T-Module1-Choice ::= CHOICE {
+a T-UINT16,
+b T-UINT16,
+c T-UINT16
+}
+
+T-Module1-Record{ParamType} ::= SEQUENCE {
+d T-UINT16,
+e ParamType
+}
+
+T-Module1-Object ::= T-Module1-Record{T-Module1-Choice}
+
+END
+
+Module2 DEFINITIONS ::=
+BEGIN
+
+IMPORTS
+T-Module1-Object FROM Module1
+T-UINT16 FROM Common;
+
+T-Module2-Choice ::= CHOICE {
+f T-UINT16,
+g T-UINT16,
+h T-UINT16
+}
+
+T-Module2-Record{ParamType} ::= SEQUENCE {
+k T-UINT16,
+l ParamType
+}
+
+T-Module2-Object ::= T-Module2-Record{T-Module2-Choice}
+
+T-Grouped-Object ::= CHOICE {
+module1 T-Module1-Object,
+module2 T-Module2-Object
+}
+
+END

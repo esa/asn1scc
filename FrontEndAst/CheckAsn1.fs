@@ -477,17 +477,25 @@ let rec CheckType(t:Asn1Type) (m:Asn1Module) ast =
         children |> 
             Seq.map(fun c -> c.Name) |>
             Seq.iter(fun c ->
-                match m.TypeAssignments |> Seq.tryFind(fun tas -> ToC ((ast.args.TypePrefix + tas.Name.Value).ToLower()) = ToC (c.Value.ToLower()) ) with
-                | Some tas -> 
-                    let errMsg = sprintf "component name '%s' conflicts with type assignment '%s'. May cause compilation errors in case insensitive languages.\nTo overcome this problem use the -typePrefix argument to add a prefix to all generated types or\nuse --field-prefix argument." c.Value tas.Name.Value
-                    match checkForAdaKeywords () with
-                    | false   -> ()
-                    | true      ->
-                        match ast.args.fieldPrefix with
-                        | None           -> raise(SemanticError(c.Location, errMsg))
-                        | Some _         -> ()
+                match ast.Modules |> Seq.tryFind(fun m -> m.Name.Value.ToLower() = ToC (c.Value.ToLower())) with
+                | Some m    -> 
+                    let errMsg = sprintf "component name '%s' conflicts with module '%s'. May cause compilation errors in case insensitive languages.\nTo overcome this problem use --field-prefix argument." c.Value m.Name.Value
+                    match ast.args.fieldPrefix with
+                    | None           -> raise(SemanticError(c.Location, errMsg))
+                    | Some _         -> ()
+
+                | None      ->
+                    match m.TypeAssignments |> Seq.tryFind(fun tas -> ToC ((ast.args.TypePrefix + tas.Name.Value).ToLower()) = ToC (c.Value.ToLower()) ) with
+                    | Some tas -> 
+                        let errMsg = sprintf "component name '%s' conflicts with type assignment '%s'. May cause compilation errors in case insensitive languages.\nTo overcome this problem use the -typePrefix argument to add a prefix to all generated types or\nuse --field-prefix argument." c.Value tas.Name.Value
+                        match checkForAdaKeywords () with
+                        | false   -> ()
+                        | true      ->
+                            match ast.args.fieldPrefix with
+                            | None           -> raise(SemanticError(c.Location, errMsg))
+                            | Some _         -> ()
                     
-                | None     -> ())
+                    | None     -> ())
         
         children |> Seq.map(fun c -> c.Type) |> Seq.iter (fun x -> CheckType x m ast)
         children |> 

@@ -89,7 +89,7 @@ let printVersion () =
     //let assembly = System.Reflection.Assembly.GetExecutingAssembly();
     //let fvi = System.Diagnostics.FileVersionInfo.GetVersionInfo(assembly.Location);
     //let version = fvi.FileVersion;
-    let version = "4.1.0.12f"
+    let version = "4.1.0.14f"
     printfn "asn1scc version %s\n" version
     ()    
 

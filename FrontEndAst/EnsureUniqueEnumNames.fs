@@ -72,6 +72,7 @@ let rec private handleEnumChoices (r:AstRoot) (renamePolicy:EnumRenamePolicy)=
 type FieldPrefixReasonToChange =
     | FieldIsKeyword
     | FieldIsAlsoType of string
+    | FieldIsAlsoModule of string
 
 type FieldPrefState = {
     curChildName : string
@@ -96,10 +97,17 @@ let rec private handleSequencesAndChoices (r:AstRoot) (lang:ProgrammingLanguage)
                                         | ProgrammingLanguage.C     -> None
                                         | ProgrammingLanguage.Ada   ->
                                             m.TypeAssignments |> Seq.tryFind(fun tas -> lang.cmp (ToC (x.CName lang)) (ToC r.args.TypePrefix + tas.Name.Value) )
-                                    match isKeyword , conflictingTas with
-                                    | true, _       -> Some {curChildName = (x.CName lang); reasonToChange = FieldIsKeyword}
-                                    | false, (Some tas)   -> Some {curChildName = (x.CName lang); reasonToChange = (FieldIsAlsoType tas.Name.Value)}
-                                    | false, None         -> None ) 
+                                    let confilectingModuleName =
+                                        match lang with
+                                        | ProgrammingLanguage.C     -> None
+                                        | ProgrammingLanguage.Ada   ->
+                                            r.Modules |> Seq.tryFind(fun m -> lang.cmp (ToC (x.CName lang)) (ToC m.Name.Value) )
+                                        
+                                    match isKeyword , conflictingTas, confilectingModuleName with
+                                    | true, _, _       -> Some {curChildName = (x.CName lang); reasonToChange = FieldIsKeyword}
+                                    | false, (Some tas), _   -> Some {curChildName = (x.CName lang); reasonToChange = (FieldIsAlsoType tas.Name.Value)}
+                                    | false, None, Some m    -> Some {curChildName = (x.CName lang); reasonToChange = (FieldIsAlsoModule m.Name.Value)}
+                                    | false, None, None    -> None  ) 
                                 //List.map(fun x -> x.CName lang)
                             yield! names
                         | _                 -> () } |> Seq.toList 
@@ -122,6 +130,7 @@ let rec private handleSequencesAndChoices (r:AstRoot) (lang:ProgrammingLanguage)
                                 match fps.reasonToChange with
                                 | FieldIsKeyword            -> printfn "[INFO] Renamed field \"%s\" in type \"%s\" to \"%s\" (\"%s\" is a %A keyword)" (ch.CName lang) parentTypeName fieldName (ch.CName lang) lang
                                 | FieldIsAlsoType tasName   -> printfn "[INFO] Renamed field \"%s\" in type \"%s\" to \"%s\" (Ada naming conflict with the field type \"%s\")" (ch.CName lang) parentTypeName fieldName tasName
+                                | FieldIsAlsoModule modName   -> printfn "[INFO] Renamed field \"%s\" in type \"%s\" to \"%s\" (Ada naming conflict with the Module \"%s\")" (ch.CName lang) parentTypeName fieldName modName
 
                             fieldName
             
