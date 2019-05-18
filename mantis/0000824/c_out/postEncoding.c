@@ -5,7 +5,7 @@
 
  
 
-void my_encoding_patcher(const T_Packet * pPacket, BitStream* pStartBitStrm, T_Packet_extention_function_potisions* pNullPos, BitStream* pEndBitStrm) {
+void my_encoding_patcher(const T_Packet * pPacket, BitStream* pStartBitStrm, T_Packet_extension_function_positions* pNullPos, BitStream* pEndBitStrm) {
     long endPosIBits =
         pNullPos->T_Packet_crc32.currentByte * 8 + pNullPos->T_Packet_crc32.currentBit;
     long startPosInBits =
@@ -19,7 +19,7 @@ void my_encoding_patcher(const T_Packet * pPacket, BitStream* pStartBitStrm, T_P
 }    
 
 
-flag crc_validator(const T_Packet * pPacket, BitStream* pStartBitStrm, T_Packet_extention_function_potisions* pNullPos, BitStream* pEndBitStrm, int* pErrCode) {
+flag crc_validator(const T_Packet * pPacket, BitStream* pStartBitStrm, T_Packet_extension_function_positions* pNullPos, BitStream* pEndBitStrm, int* pErrCode) {
     *pErrCode = 0;
     return TRUE;
 }    

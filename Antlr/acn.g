@@ -15,6 +15,7 @@ grammar acn;
 options {
 	output=AST;
 	language=CSharp2;
+    backtrack=true;
 }
 
 tokens {
@@ -33,6 +34,9 @@ tokens {
 	LONG_FIELD;
 	REFERENCED_TYPE;
     PRESENT_WHEN_STR_EQUAL;
+	LTE;
+	GTE;
+	PRESENT_WHEN_EXP;
 }
 
 @parser::namespace { Antlr.Acn } // Or just @namespace { ... }
@@ -210,7 +214,8 @@ patternProp 	: PATTERN^  (BitStringLiteral | OctectStringLiteral)
 savePositionProp    : SAVE_POSITION;
 
 presentWhenProp	
-	:	PRESENT_WHEN^ presentWhenCond+
+	:	  PRESENT_WHEN^ presentWhenCond+
+		| PRESENT_WHEN 	conditionalOrExpression		-> ^(PRESENT_WHEN_EXP conditionalOrExpression)
 	;
 
 terminationPatternProp
@@ -244,6 +249,75 @@ childSpec
 argumentList
 	:	'<' longFld (',' longFld)*'>' ->^(ARGUMENTS longFld+);
 		
+
+/* *************************************************************************************************************************** */
+/* ******************************  ACN PRESENT WHEN EXPRESSIONS*************************************************************** */
+/* *************************************************************************************************************************** */
+
+conditionalOrExpression
+    :   conditionalAndExpression (OR^ conditionalAndExpression)*
+    ;
+
+conditionalAndExpression
+    :   equalityExpression (AND^ equalityExpression)*
+    ;
+
+equalityExpression
+    :   relationalExpression (
+			   EQUAL^	relationalExpression
+            |  NOTEQUAL^ relationalExpression )*
+    ;
+    
+relationalExpression
+    :    additiveExpression (
+		  LT^   additiveExpression 
+		| LTE^  additiveExpression 
+		| GT^   additiveExpression 
+		| GTE^  additiveExpression 
+		)?
+    ;
+
+    
+additiveExpression
+    :   multiplicativeExpression
+        (
+              PLUS^	multiplicativeExpression
+            | MINUS^   multiplicativeExpression  
+		)*
+    ;
+
+multiplicativeExpression
+    :
+        unaryExpression
+        (
+               MULTIPLICATION^ unaryExpression
+            |  DIVISION^	unaryExpression
+            |  MODULO^ unaryExpression
+        )*
+    ;
+    
+unaryExpression
+    :   PLUS  unaryExpression
+    |   MINUS unaryExpression
+    |   BANG unaryExpression
+    |   primaryExpression
+    ;
+    
+    
+    
+primaryExpression
+    :   '('! conditionalOrExpression ')'!	
+    |   INT	
+	|   UID			//UID referes to a constant declared in the constant section
+    |   longFld
+    ;
+
+	
+
+
+/* *************************************************************************************************************************** */
+/* ******************************  ACN INTEGER EXPRESSIONS  USED IN ACN CONSTANTS ******************************************** */
+/* *************************************************************************************************************************** */
 
 
 intExpression 	:	multiplicative_expression (PLUS^ multiplicative_expression  | MINUS^ multiplicative_expression )*
@@ -355,17 +429,30 @@ POST_DECODING_VALIDATOR : 'post-decoding-validator';
 PRESENT_WHEN		: 'present-when';
 DETERMINANT			: 'determinant';
 
+OR					: 'or';
+AND					: 'and';
+NOT					: 'not';
+NOTEQUAL     		: '!=';
+EQUAL 				:	'==';
+
+BANG				: '!';
+
+GT 				    :	'>';
+GTE 				    :	'>=';
+
+LT 				    :	'<';
+LTE 				    :	'<=';
+
+
 DEFINITIONS 	:	'DEFINITIONS';
 BEGIN	:	'BEGIN';
 END	:	'END';
 CONSTANT 	:	'CONSTANT';
-NOT 	:	'NOT';
 
 INTEGER				: 'INTEGER';
 BOOLEAN				: 'BOOLEAN';
 NULL				: 'NULL';
 
-EQUAL 	:	'==';
 
 
 

@@ -28,6 +28,36 @@ type AcnAligment =
 type PresenceWhenBool  = 
     | PresenceWhenBool of RelativePath                         
 
+
+(*  PRESENT WHEN EXPRESSIONS *)
+
+
+type AcnExpression =
+    | IntegerConstantExp            of IntLoc
+    | AcnIntegerConstExp            of StringLoc
+    | RealConstantExp               of DoubleLoc
+    | BooleanConstantExp            of BoolLoc
+    | Asn1LongField                 of RelativePath
+    | NotUnaryExpression            of SrcLoc*AcnExpression
+    | MinusUnaryExpression          of SrcLoc*AcnExpression
+    | AdditionExpression            of SrcLoc*AcnExpression*AcnExpression
+    | SubtractionExpression         of SrcLoc*AcnExpression*AcnExpression
+    | MultipicationExpression       of SrcLoc*AcnExpression*AcnExpression
+    | DivisionExpression            of SrcLoc*AcnExpression*AcnExpression
+    | ModuloExpression              of SrcLoc*AcnExpression*AcnExpression
+    | LessThanEqualExpression       of SrcLoc*AcnExpression*AcnExpression
+    | LessThanExpression            of SrcLoc*AcnExpression*AcnExpression
+    | GreaterThanEqualExpression    of SrcLoc*AcnExpression*AcnExpression
+    | GreaterThanExpression         of SrcLoc*AcnExpression*AcnExpression
+    | EqualExpression               of SrcLoc*AcnExpression*AcnExpression
+    | NotEqualExpression            of SrcLoc*AcnExpression*AcnExpression
+    | AndExpression                 of SrcLoc*AcnExpression*AcnExpression
+    | OrExpression                  of SrcLoc*AcnExpression*AcnExpression
+
+
+    
+    
+
 type AcnPresentWhenConditionChoiceChild =
     | PresenceInt   of RelativePath*IntLoc
     | PresenceStr   of RelativePath*StringLoc
@@ -216,6 +246,7 @@ type  GenericAcnProperty =
     | ENCODE_VALUES   
     | SAVE_POSITION   
     | PRESENT_WHEN      of GenericAcnPresentWhenCondition list
+    | PRESENT_WHEN_EXP  of AcnExpression    
     | TRUE_VALUE        of StringLoc
     | FALSE_VALUE       of StringLoc
     | PATTERN           of PATTERN_PROP_VALUE

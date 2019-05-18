@@ -12,14 +12,14 @@ PACKAGE BODY postencoding with SPARK_Mode IS
 
 
 
-   procedure my_encoding_patcher(val:in T_Packet; bitStreamPositions_start1 : adaasn1rtl.BitStreamPtr; bitStreamPositions_1:T_Packet_extention_function_potisions; bs : in out adaasn1rtl.Bitstream)
+   procedure my_encoding_patcher(val:in T_Packet; bitStreamPositions_start1 : adaasn1rtl.BitStreamPtr; bitStreamPositions_1:T_Packet_extension_function_positions; bs : in out adaasn1rtl.Bitstream)
    is
    begin
       null;
    end;
    
 
-   FUNCTION crc_validator(val:in T_Packet; bitStreamPositions_start1 : adaasn1rtl.BitStreamPtr; bitStreamPositions_1:T_Packet_extention_function_potisions; bs : in out adaasn1rtl.Bitstream) return adaasn1rtl.ASN1_RESULT
+   FUNCTION crc_validator(val:in T_Packet; bitStreamPositions_start1 : adaasn1rtl.BitStreamPtr; bitStreamPositions_1:T_Packet_extension_function_positions; bs : in out adaasn1rtl.Bitstream) return adaasn1rtl.ASN1_RESULT
    is 
    begin
       return adaasn1rtl.ASN1_RESULT'(Success => True, ErrorCode => 0);

@@ -103,7 +103,65 @@ let private GetParams (files:CommonTypes.AntlrParserResult list) modName tasName
     files |>  List.map (fun pr -> GetParamsAux pr.rootItem) |> List.collect(fun x -> x)
 
 
+let rec createPresentWhenBoooExpresssion (t:ITree) : AcnExpression =
+    match t.Type with
+        | acnParser.INT                 -> IntegerConstantExp(t.BigIntL)
+        | acnParser.UID                 -> AcnIntegerConstExp(t.TextL)
+        | acnParser.LONG_FIELD          -> Asn1LongField (CreateLongField t)
+        | acnParser.OR                  -> OrExpression(t.Location, createPresentWhenBoooExpresssion  (t.GetChild 0), createPresentWhenBoooExpresssion (t.GetChild 1))
+        | acnParser.AND                 -> AndExpression(t.Location, createPresentWhenBoooExpresssion  (t.GetChild 0), createPresentWhenBoooExpresssion (t.GetChild 1))
+        | acnParser.EQUAL               -> EqualExpression(t.Location, createPresentWhenBoooExpresssion  (t.GetChild 0), createPresentWhenBoooExpresssion (t.GetChild 1))
+        | acnParser.NOTEQUAL            -> NotEqualExpression(t.Location, createPresentWhenBoooExpresssion  (t.GetChild 0), createPresentWhenBoooExpresssion (t.GetChild 1))
+        | acnParser.LTE                 -> LessThanEqualExpression(t.Location, createPresentWhenBoooExpresssion  (t.GetChild 0), createPresentWhenBoooExpresssion (t.GetChild 1))
+        | acnParser.LT                  -> LessThanExpression(t.Location, createPresentWhenBoooExpresssion  (t.GetChild 0), createPresentWhenBoooExpresssion (t.GetChild 1))
+        | acnParser.GTE                 -> GreaterThanEqualExpression(t.Location, createPresentWhenBoooExpresssion  (t.GetChild 0), createPresentWhenBoooExpresssion (t.GetChild 1))
+        | acnParser.GT                  -> GreaterThanExpression(t.Location, createPresentWhenBoooExpresssion  (t.GetChild 0), createPresentWhenBoooExpresssion (t.GetChild 1))
+        | acnParser.PLUS   when t.Children.Length > 1             -> AdditionExpression(t.Location, createPresentWhenBoooExpresssion  (t.GetChild 0), createPresentWhenBoooExpresssion (t.GetChild 1))
+        | acnParser.MINUS  when t.Children.Length > 1             -> SubtractionExpression(t.Location, createPresentWhenBoooExpresssion  (t.GetChild 0), createPresentWhenBoooExpresssion (t.GetChild 1))
+        | acnParser.PLUS   (*unary*)    -> createPresentWhenBoooExpresssion  (t.GetChild 0)
+        | acnParser.MINUS  (*unary*)    -> MinusUnaryExpression(t.Location, createPresentWhenBoooExpresssion  (t.GetChild 0))
+        | acnParser.BANG   (*unary*)    -> NotUnaryExpression(t.Location, createPresentWhenBoooExpresssion  (t.GetChild 0))
+
+
+        | acnParser.MULTIPLICATION      -> MultipicationExpression(t.Location, createPresentWhenBoooExpresssion  (t.GetChild 0), createPresentWhenBoooExpresssion (t.GetChild 1))
+        | acnParser.DIVISION            -> DivisionExpression(t.Location, createPresentWhenBoooExpresssion  (t.GetChild 0), createPresentWhenBoooExpresssion (t.GetChild 1))
+        | acnParser.MODULO              -> ModuloExpression(t.Location, createPresentWhenBoooExpresssion  (t.GetChild 0), createPresentWhenBoooExpresssion (t.GetChild 1))
+        | _                             -> raise(BugErrorException("createPresentWhenBoooExpresssion Unsupported operation"))
+
+
+let rec printDebug (exp:AcnExpression) : (int*string) =
+    let printUnary op e1 mp = 
+        let cp, ct = printDebug e1
+        mp, if cp > mp then sprintf "%s(%s)" op ct else sprintf "%s%s" op ct
+    let printBinary op e1 e2 mp =
+        let cp1, ct1 = printDebug e1
+        let cp2, ct2 = printDebug e2
+        mp, (if cp1 > mp then "(" + ct1 + ")" else ct1 ) + " " + op + " " + (if cp2 > mp then "(" + ct2 + ")" else ct2 )
+    match exp with
+    | IntegerConstantExp            x      -> 0, x.Value.ToString()
+    | AcnIntegerConstExp            x      -> 0, x.Value.ToString()
+    | RealConstantExp               x      -> 0, x.Value.ToString()
+    | BooleanConstantExp            x      -> 0, x.Value.ToString()
+    | Asn1LongField                 x      -> 0, x.AsString
+    | NotUnaryExpression            (_,e1)     -> printUnary "!" e1 1
+    | MinusUnaryExpression          (_,e1)     -> printUnary "-" e1 1
+    | AdditionExpression            (_,e1, e2) -> printBinary "+" e1 e2 1 // 1, sprintf "(%s) + (%s)" (printDebug e1) (printDebug e2)
+    | SubtractionExpression         (_,e1, e2) -> printBinary "-" e1 e2 2 //3, sprintf "(%s) - (%s)" (printDebug e1) (printDebug e2)
+    | MultipicationExpression       (_,e1, e2) -> printBinary "*" e1 e2 3 //3, sprintf "(%s) * (%s)" (printDebug e1) (printDebug e2)
+    | DivisionExpression            (_,e1, e2) -> printBinary "/" e1 e2 2 //2, sprintf "(%s) / (%s)" (printDebug e1) (printDebug e2)
+    | ModuloExpression              (_,e1, e2) -> printBinary "%" e1 e2 2 //2, sprintf "(%s) %% (%s)" (printDebug e1) (printDebug e2)
+    | LessThanEqualExpression       (_,e1, e2) -> printBinary "<=" e1 e2 4 //4, sprintf "(%s) <= (%s)" (printDebug e1) (printDebug e2)
+    | LessThanExpression            (_,e1, e2) -> printBinary "<" e1 e2 4 //4, sprintf "(%s) < (%s)" (printDebug e1) (printDebug e2)
+    | GreaterThanEqualExpression    (_,e1, e2) -> printBinary ">=" e1 e2 4 //4, sprintf "(%s) >= (%s)" (printDebug e1) (printDebug e2)
+    | GreaterThanExpression         (_,e1, e2) -> printBinary ">" e1 e2 4 //4, sprintf "(%s) > (%s)" (printDebug e1) (printDebug e2)
+    | EqualExpression               (_,e1, e2) -> printBinary "==" e1 e2 5 //5, sprintf "(%s) == (%s)" (printDebug e1) (printDebug e2)
+    | NotEqualExpression            (_,e1, e2) -> printBinary "!=" e1 e2 5 //5, sprintf "(%s) != (%s)" (printDebug e1) (printDebug e2)
+    | AndExpression                 (_,e1, e2) -> printBinary "and" e1 e2 6 //6, sprintf "(%s) and (%s)" (printDebug e1) (printDebug e2)
+    | OrExpression                  (_,e1, e2) -> printBinary "or" e1 e2 6 //6, sprintf "(%s) or (%s)" (printDebug e1) (printDebug e2)
+
+
 let private CreateNamedExpression (t:ITree) : AcnConstant= 
+
     let CreateAcnIntegerConstant  (t:ITree) = 
         match t.Type with
         | acnParser.INT                 -> IntConst(t.BigIntL)
@@ -203,7 +261,10 @@ let private creareAcnProperty (acnConstants : Map<string, BigInteger>) (t:ITree)
                 GP_PresenceStr ((CreateLongField(t.GetChild 0)), txtL )
             | _                     -> raise(BugErrorException("creareAcnProperty_PRESENT_WHEN"))
         PRESENT_WHEN (t.Children |> List.map CreateAcnPresenseCondition )
-
+    | acnParser.PRESENT_WHEN_EXP            -> 
+        let retExp = createPresentWhenBoooExpresssion (t.GetChild 0)
+        let _, debugStr = printDebug retExp
+        PRESENT_WHEN_EXP retExp
     | acnParser.TRUE_VALUE              -> 
         let v = { StringLoc.Value = GetActualString(t.GetChild(0).Text); Location = t.GetChild(0).Location}
         TRUE_VALUE v
