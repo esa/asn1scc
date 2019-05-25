@@ -11,6 +11,7 @@ open Asn1AcnAst
 open Asn1AcnAstUtilFunctions
 open DAst
 open DAstUtilFunctions
+open System.Globalization
 
 let foldMap = Asn1Fold.foldMap
 
@@ -1095,6 +1096,67 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
     let sequence_save_bitStream_start                 = match l with C -> acn_c.sequence_save_bitStream_start                     | Ada -> acn_a.sequence_save_bitStream_start              
     
     let bitStreamName                           = match l with C -> "BitStream"                                  | Ada -> "adaasn1rtl.BitStreamPtr"
+
+    let acnExpressionToBackendExpression (seq:Asn1AcnAst.Sequence) (pSeq:CallerScope) (exp:AcnExpression) =
+        let unaryNotOperator = match l with C -> "!" | Ada -> "not"
+        let modOp = match l with C -> "%" | Ada -> "mod"
+        let eqOp = match l with C -> "==" | Ada -> "="
+        let neqOp = match l with C -> "!=" | Ada -> "<>"
+        let andOp = match l with C -> "&&" | Ada -> "and"
+        let orOp = match l with C -> "||" | Ada -> "or"
+
+        let printUnary op chExpPriority expStr minePriority = 
+            minePriority, if chExpPriority > minePriority then sprintf "%s(%s)" op expStr else sprintf "%s%s" op expStr
+        let printBinary op (chExpPriority1, expStr1) (chExpPriority2, expStr2) minePriority =
+            minePriority, (if chExpPriority1 > minePriority then "(" + expStr1 + ")" else expStr1 ) + " " + op + " " + (if chExpPriority2 > minePriority then "(" + expStr2 + ")" else expStr2 )
+
+
+        let rec getChildResult (seq:Asn1AcnAst.Sequence) (pSeq:CallerScope) (RelativePath lp) =
+            match lp with
+            | []    -> raise(BugErrorException "empty relative path")
+            | x1::xs ->
+                match seq.children |> Seq.tryFind(fun c -> c.Name = x1) with
+                | None -> 
+                    raise (SemanticError(x1.Location, (sprintf "Invalid reference '%s'" (lp |> Seq.StrJoin "."))))
+                | Some ch -> 
+                    match ch with
+                    | Asn1AcnAst.AcnChild ch  -> raise (SemanticError(x1.Location, (sprintf "Invalid reference '%s'. Expecting an ASN.1 child" (lp |> Seq.StrJoin "."))))
+                    | Asn1AcnAst.Asn1Child ch  -> 
+                        match ch.Type.ActualType.Kind with
+                        | Asn1AcnAst.Integer        _  
+                        | Asn1AcnAst.Real           _  
+                        | Asn1AcnAst.Boolean        _  -> {pSeq with arg = pSeq.arg.getSeqChild l (ch.getBackendName l) false} 
+                        | Asn1AcnAst.Sequence s when xs.Length > 1 -> getChildResult s {pSeq with arg = pSeq.arg.getSeqChild l (ch.getBackendName l) false} (RelativePath xs)
+                        | _                 -> raise (SemanticError(x1.Location, (sprintf "Invalid reference '%s'" (lp |> Seq.StrJoin "."))))
+
+
+        let ret =
+            AcnGenericTypes.foldAcnExpression
+                (fun i s -> ( (0, i.Value.ToString()) , 0))
+                (fun i s -> ( (0,"") , 0))
+                (fun i s -> ( (0, i.Value.ToString("E20", NumberFormatInfo.InvariantInfo)) , 0))
+                (fun i s -> ( (0, i.Value.ToString().ToLower()) , 0))
+                (fun lf s ->
+                    let plf = getChildResult seq pSeq lf
+                    (0, plf.arg.p) , 0)
+                (fun loc (chExpPriority, expStr) s -> printUnary unaryNotOperator chExpPriority expStr 1, 0) //NotUnaryExpression
+                (fun loc (chExpPriority, expStr) s -> printUnary "-" chExpPriority expStr 1, 0)//MinusUnaryExpression
+                (fun l e1 e2  s -> printBinary "+" e1 e2 1, 0 ) 
+                (fun l e1 e2  s -> printBinary "-" e1 e2 2, 0 ) 
+                (fun l e1 e2  s -> printBinary "*" e1 e2 3, 0 ) 
+                (fun l e1 e2  s -> printBinary "/" e1 e2 2, 0 ) 
+                (fun l e1 e2  s -> printBinary modOp e1 e2 2, 0 ) 
+                (fun l e1 e2  s -> printBinary "<=" e1 e2 4, 0 ) 
+                (fun l e1 e2  s -> printBinary "<" e1 e2 4, 0 ) 
+                (fun l e1 e2  s -> printBinary ">=" e1 e2 4, 0 ) 
+                (fun l e1 e2  s -> printBinary ">" e1 e2 4, 0 ) 
+                (fun l e1 e2  s -> printBinary eqOp e1 e2 5, 0 ) 
+                (fun l e1 e2  s -> printBinary neqOp e1 e2 5, 0 ) 
+                (fun lc e1 e2  s -> printBinary andOp  e1 e2 6, 0 ) 
+                (fun lc e1 e2  s -> printBinary orOp e1 e2 6, 0 ) 
+                exp 0 |> fst |> snd
+
+        ret
     
     //let baseFuncName =  match baseTypeUperFunc  with None -> None | Some baseFunc -> baseFunc.funcName
 
@@ -1180,6 +1242,9 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                                 | Some (PresenceWhenBool _)    -> 
                                     let extField = getExternaField r deps child.Type.id
                                     Some(sequence_presense_optChild_pres_bool p.arg.p (p.arg.getAcces l) (child.getBackendName l) extField codec)
+                                | Some (PresenceWhenBoolExpression exp)    -> 
+                                    let retExp = acnExpressionToBackendExpression o p exp
+                                    Some(sequence_presense_optChild_pres_bool p.arg.p (p.arg.getAcces l) (child.getBackendName l) ("(" + retExp + ")") codec)
                             | _                 -> None
                         [(AcnPresenceStatement, acnPresenceStatement, [], [])], ns1
 

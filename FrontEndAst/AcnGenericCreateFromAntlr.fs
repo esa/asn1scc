@@ -107,6 +107,7 @@ let rec createPresentWhenBoooExpresssion (t:ITree) : AcnExpression =
     match t.Type with
         | acnParser.INT                 -> IntegerConstantExp(t.BigIntL)
         | acnParser.UID                 -> AcnIntegerConstExp(t.TextL)
+        | acnParser.REAL                -> RealConstantExp(t.DoubleL)
         | acnParser.LONG_FIELD          -> Asn1LongField (CreateLongField t)
         | acnParser.OR                  -> OrExpression(t.Location, createPresentWhenBoooExpresssion  (t.GetChild 0), createPresentWhenBoooExpresssion (t.GetChild 1))
         | acnParser.AND                 -> AndExpression(t.Location, createPresentWhenBoooExpresssion  (t.GetChild 0), createPresentWhenBoooExpresssion (t.GetChild 1))
@@ -263,6 +264,12 @@ let private creareAcnProperty (acnConstants : Map<string, BigInteger>) (t:ITree)
         PRESENT_WHEN (t.Children |> List.map CreateAcnPresenseCondition )
     | acnParser.PRESENT_WHEN_EXP            -> 
         let retExp = createPresentWhenBoooExpresssion (t.GetChild 0)
+        (*
+        let valResult = AcnGenericTypes.validateAcnExpression (fun lf -> ValResultOK (NonBooleanExpression RealExpType)) retExp
+        match valResult with
+        | ValResultOK   expType -> printfn "OK %s" (expType.ToString())
+        | ValResultError (l,errMsg) -> printfn "Error at line %d, %s" l.srcLine errMsg
+        *)
         let _, debugStr = printDebug retExp
         PRESENT_WHEN_EXP retExp
     | acnParser.TRUE_VALUE              -> 

@@ -23,10 +23,6 @@ type AcnAligment =
     | NextWord
     | NextDWord
 
-// present when property defintion
-// this property is not part of the ACN type itself but part of the AcnChildInfo
-type PresenceWhenBool  = 
-    | PresenceWhenBool of RelativePath                         
 
 
 (*  PRESENT WHEN EXPRESSIONS *)
@@ -55,7 +51,195 @@ type AcnExpression =
     | OrExpression                  of SrcLoc*AcnExpression*AcnExpression
 
 
-    
+let foldAcnExpression intConstFnc acnIntConstFnc realConstFnc boolConstFnc asn1LongFldFnc notUnExpFnc mnUnExpFnc 
+        addFnc subFnc mulFnc divFnc modFnc lteFnc ltFnc gteFnc gtFnc eqFnc neqFnc andFnc orFnc (exp:AcnExpression) (s:'UserState) = 
+    let rec loopExpression (exp:AcnExpression) (s:'UserState) =
+        match exp with
+        | IntegerConstantExp            x      -> intConstFnc x s
+        | AcnIntegerConstExp            x      -> acnIntConstFnc x s
+        | RealConstantExp               x      -> realConstFnc x s
+        | BooleanConstantExp            x      -> boolConstFnc x s
+        | Asn1LongField                 x      -> asn1LongFldFnc x s
+        | NotUnaryExpression            (l,e1)     -> 
+            let re1, s1 = loopExpression e1 s
+            notUnExpFnc l re1 s1
+        | MinusUnaryExpression          (l,e1)     -> 
+            let re1, s1 = loopExpression e1 s
+            mnUnExpFnc l re1 s1
+        | AdditionExpression            (l,e1, e2) -> 
+            let re1, s1 = loopExpression e1 s
+            let re2, s2 = loopExpression e2 s1
+            addFnc l re1 re2 s2
+        | SubtractionExpression         (l,e1, e2) -> 
+            let re1, s1 = loopExpression e1 s
+            let re2, s2 = loopExpression e2 s1
+            subFnc l re1 re2 s2
+        | MultipicationExpression       (l,e1, e2) -> 
+            let re1, s1 = loopExpression e1 s
+            let re2, s2 = loopExpression e2 s1
+            mulFnc l re1 re2 s2
+        | DivisionExpression            (l,e1, e2) -> 
+            let re1, s1 = loopExpression e1 s
+            let re2, s2 = loopExpression e2 s1
+            divFnc l re1 re2 s2
+        | ModuloExpression              (l,e1, e2) -> 
+            let re1, s1 = loopExpression e1 s
+            let re2, s2 = loopExpression e2 s1
+            modFnc l re1 re2 s2
+        | LessThanEqualExpression       (l,e1, e2) -> 
+            let re1, s1 = loopExpression e1 s
+            let re2, s2 = loopExpression e2 s1
+            lteFnc l re1 re2 s2
+        | LessThanExpression            (l,e1, e2) -> 
+            let re1, s1 = loopExpression e1 s
+            let re2, s2 = loopExpression e2 s1
+            ltFnc l re1 re2 s2
+        | GreaterThanEqualExpression    (l,e1, e2) -> 
+            let re1, s1 = loopExpression e1 s
+            let re2, s2 = loopExpression e2 s1
+            gteFnc l re1 re2 s2
+        | GreaterThanExpression         (l,e1, e2) -> 
+            let re1, s1 = loopExpression e1 s
+            let re2, s2 = loopExpression e2 s1
+            gtFnc l re1 re2 s2
+        | EqualExpression               (l,e1, e2) -> 
+            let re1, s1 = loopExpression e1 s
+            let re2, s2 = loopExpression e2 s1
+            eqFnc l re1 re2 s2
+        | NotEqualExpression            (l,e1, e2) -> 
+            let re1, s1 = loopExpression e1 s
+            let re2, s2 = loopExpression e2 s1
+            neqFnc l re1 re2 s2
+        | AndExpression                 (l,e1, e2) -> 
+            let re1, s1 = loopExpression e1 s
+            let re2, s2 = loopExpression e2 s1
+            andFnc l re1 re2 s2
+        | OrExpression                  (l,e1, e2) -> 
+            let re1, s1 = loopExpression e1 s
+            let re2, s2 = loopExpression e2 s1
+            orFnc l re1 re2 s2
+
+    loopExpression exp s
+
+type NonBooleanExpressionType =
+    | IntExpType
+    | RealExpType
+with 
+    override this.ToString() =
+        match this with
+        | IntExpType    -> "integer expression"
+        | RealExpType   -> "real expression"
+
+type ExpressionType =
+    | BoolExpression
+    | NonBooleanExpression of NonBooleanExpressionType
+with 
+    override this.ToString() =
+        match this with
+        | BoolExpression    -> "boolean expression"
+        | NonBooleanExpression z -> z.ToString()
+
+type ValidationResult =
+    | ValResultOK   of ExpressionType
+    | ValResultError of (SrcLoc*String)
+
+
+let validateAcnExpression handleLongField (exp:AcnExpression) =
+    let numericBinaryOperator l e1 e2  s =
+        match e1 with
+        | ValResultError _  -> (e1,s)
+        | ValResultOK   expType    ->
+            match expType with
+            | BoolExpression    -> (ValResultError (l, "Expecting numeric expression"), 0)
+            | NonBooleanExpression net1-> 
+                match e2 with
+                | ValResultError _  -> (e2,s)
+                | ValResultOK   expType    ->
+                    match expType with
+                    | BoolExpression    -> (ValResultError (l, "Expecting numeric expression"), 0)
+                    | NonBooleanExpression net2 -> 
+                        match net1 = net2 with
+                        | true  -> (ValResultOK (NonBooleanExpression net1), 0) 
+                        | false -> (ValResultError (l, (sprintf "Expecting %s expression" (net1.ToString()))), 0)
+        
+    let numericComparativeBinaryOperator l e1 e2  s = 
+        match e1 with
+        | ValResultError _  -> (e1,s)
+        | ValResultOK   expType    ->
+            match expType with
+            | BoolExpression    -> (ValResultError (l, "Expecting numeric expression"), 0)
+            | NonBooleanExpression net1-> 
+                match e2 with
+                | ValResultError _  -> (e2,s)
+                | ValResultOK   expType    ->
+                    match expType with
+                    | BoolExpression    -> (ValResultError (l, "Expecting numeric expression"), 0)
+                    | NonBooleanExpression net2 -> (ValResultOK BoolExpression, 0) 
+    let eqNeqOperator l e1 e2  s = 
+        match e1 with
+        | ValResultError _  -> (e1,s)
+        | ValResultOK   expType1    ->
+            match e2 with
+            | ValResultError _  -> (e2,s)
+            | ValResultOK   expType2    ->
+                match expType1 = expType2 with
+                | true  -> (ValResultOK BoolExpression , 0) 
+                | false -> (ValResultError (l, (sprintf "Expecting %s expression" (expType1.ToString()))), 0)
+                
+    let andOrBinaryOperator l e1 e2  s = 
+        match e1 with
+        | ValResultError _  -> (e1,s)
+        | ValResultOK   expType    ->
+            match expType with
+            | NonBooleanExpression _    -> (ValResultError (l, "Expecting boolean expression"), 0)
+            | BoolExpression -> 
+                match e2 with
+                | ValResultError _  -> (e2,s)
+                | ValResultOK   expType    ->
+                    match expType with
+                    | NonBooleanExpression _    -> (ValResultError (l, "Expecting boolean expression"), 0)
+                    | BoolExpression -> (ValResultOK BoolExpression, 0) 
+
+    foldAcnExpression
+        (fun i s -> (ValResultOK (NonBooleanExpression IntExpType)) , 0)
+        (fun i s -> (ValResultOK (NonBooleanExpression IntExpType)) , 0)
+        (fun i s -> (ValResultOK (NonBooleanExpression RealExpType)) , 0)
+        (fun i s -> (ValResultOK BoolExpression) , 0)
+        (fun lf s -> (handleLongField lf) , 0)     //we have to resolve the lf path and decide if its numeric or boolean expression. 
+        (fun l (e1) s ->        //NotUnaryExpression
+            match e1 with
+            | ValResultError _  -> (e1,s)
+            | ValResultOK   expType    ->
+                match expType with
+                | BoolExpression    -> (ValResultOK BoolExpression, 0)
+                | NonBooleanExpression _ -> (ValResultError (l, "Expecting boolean expression"), 0) )
+        (fun l (e1) s ->        //MinusUnaryExpression
+            match e1 with
+            | ValResultError _  -> (e1,s)
+            | ValResultOK   expType    ->
+                match expType with
+                | BoolExpression    -> (ValResultError (l, "Expecting numeric expression"), 0)
+                | NonBooleanExpression z-> (ValResultOK (NonBooleanExpression z), 0) )
+        numericBinaryOperator   (*add*)
+        numericBinaryOperator   (*sub*)
+        numericBinaryOperator   (*mul*)
+        numericBinaryOperator   (*div*)
+        numericBinaryOperator   (*mod*)
+        numericComparativeBinaryOperator (*lte*)
+        numericComparativeBinaryOperator (*lt*)
+        numericComparativeBinaryOperator (*gte*)
+        numericComparativeBinaryOperator (*gt*)
+        eqNeqOperator (*equal*)
+        eqNeqOperator (*not equal*)
+        andOrBinaryOperator (*and*) 
+        andOrBinaryOperator (*or*) 
+        exp 0 |> fst
+
+// present when property defintion
+// this property is not part of the ACN type itself but part of the AcnChildInfo
+type PresenceWhenBool  = 
+    | PresenceWhenBool of RelativePath                         
+    | PresenceWhenBoolExpression of AcnExpression                         
     
 
 type AcnPresentWhenConditionChoiceChild =

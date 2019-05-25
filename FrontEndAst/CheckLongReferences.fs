@@ -306,6 +306,29 @@ let rec private checkType (r:AstRoot) (parents: Asn1Type list) (curentPath : Sco
                             | AcnBoolean    _ -> AcnDepPresenceBool
                             | _              -> raise(SemanticError(loc, (sprintf "Invalid argument type. Expecting BOOLEAN got %s "  (c.Type.AsString))))
                         checkRelativePath ns (parents@[t]) ac.Type visibleParameters   (RelativePath path)  checkParameter checkAcnType 
+                    | Some (PresenceWhenBoolExpression exp)  -> 
+                        let rec getChildResult (seq:Sequence) (RelativePath lp) =
+                            match lp with
+                            | []    -> raise(BugErrorException "empty relative path")
+                            | x1::xs ->
+                                match seq.children |> Seq.tryFind(fun c -> c.Name = x1) with
+                                | None -> 
+                                    ValResultError(x1.Location, (sprintf "Invalid reference '%s'" (lp |> Seq.StrJoin ".")))
+                                | Some ch -> 
+                                    match ch with
+                                    | AcnChild ch  -> ValResultError(x1.Location, (sprintf "Invalid reference '%s'. Expecting an ASN.1 child" (lp |> Seq.StrJoin ".")))
+                                    | Asn1Child ch  -> 
+                                        match ch.Type.ActualType.Kind with
+                                        | Integer        _  -> ValResultOK (NonBooleanExpression IntExpType)
+                                        | Real           _  -> ValResultOK (NonBooleanExpression RealExpType)
+                                        | Boolean        _  -> ValResultOK (BoolExpression)
+                                        | Sequence s when xs.Length > 1 -> getChildResult s (RelativePath xs)
+                                        | _                 -> ValResultError(x1.Location, (sprintf "Invalid reference '%s'" (lp |> Seq.StrJoin ".")))
+                        
+                        let valResult = AcnGenericTypes.validateAcnExpression (fun lf -> getChildResult seq lf) exp
+                        match valResult with
+                        | ValResultOK   expType -> ns
+                        | ValResultError (l,errMsg) -> raise(SemanticError(l, errMsg))
                 | _                     -> ns
             checkType r (parents@[t]) (curentPath@[SEQ_CHILD ac.Name.Value])  ac.Type ns1
         ) curState

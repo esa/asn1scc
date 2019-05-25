@@ -937,7 +937,10 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (m:Asn1Ast.Asn1Mo
                         | None      -> []
                         | Some cc   -> 
                             match tryGetProp cc.childEncodingSpec.acnProperties (fun x -> match x with PRESENT_WHEN e -> Some e | _ -> None) with
-                            | None      -> []
+                            | None      -> 
+                                match tryGetProp cc.childEncodingSpec.acnProperties (fun x -> match x with PRESENT_WHEN_EXP e -> Some e | _ -> None) with                                
+                                | None  -> []
+                                | Some acnExp -> [PresenceWhenBoolExpression acnExp]
                             | Some lst  -> lst |> List.choose(fun gp -> match gp with GP_PresenceBool l -> Some (PresenceWhenBool l) | _ -> None)
                     let checkForPresentWhenConditions () =
                         match acnPresentWhenConditions with

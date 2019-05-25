@@ -297,9 +297,9 @@ multiplicativeExpression
     ;
     
 unaryExpression
-    :   PLUS  unaryExpression
-    |   MINUS unaryExpression
-    |   BANG unaryExpression
+    :   PLUS^  unaryExpression
+    |   MINUS^ unaryExpression
+    |   BANG^ unaryExpression
     |   primaryExpression
     ;
     
@@ -308,6 +308,7 @@ unaryExpression
 primaryExpression
     :   '('! conditionalOrExpression ')'!	
     |   INT	
+	|   REAL
 	|   UID			//UID referes to a constant declared in the constant section
     |   longFld
     ;
