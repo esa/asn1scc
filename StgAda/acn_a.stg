@@ -791,6 +791,15 @@ result.ErrorCode := <sErrCode>;
 <rtlModuleName()>.BitStream_ReadBit(bs,<p>.Exist.<sChName>, result.Success);
 >>
 
+sequence_presense_optChild_pres_acn_expression_encode(p, sAcc, sChName, sAcnExpression, sErrCode) ::= <<
+result := <rtlModuleName()>.ASN1_RESULT'(Success => <p>.Exist.<sChName> = (if (<sAcnExpression>) then 1 else 0), ErrorCode => <sErrCode>);
+>>
+sequence_presense_optChild_pres_acn_expression_decode(p, sAcc, sChName, sAcnExpression, sErrCode) ::= <<
+<p>.Exist.<sChName> := (if (<sAcnExpression>) then 1 else 0);
+result.Success := true;
+>>
+
+
 sequence_presense_optChild_pres_bool_encode(p, sAcc, sChName, sExtFldName) ::= ""
 sequence_presense_optChild_pres_bool_decode(p, sAcc, sChName, sExtFldName) ::= <<
 <p>.Exist.<sChName> := (if <sExtFldName> then 1 else 0);

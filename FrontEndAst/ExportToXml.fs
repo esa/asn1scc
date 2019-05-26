@@ -205,8 +205,15 @@ let exportOptionality (opt:Asn1Optionality option) =
         match opt.acnPresentWhen, opt.defaultValue with
         | Some (PresenceWhenBool( RelativePath  rp)), Some v -> [XAttribute(xname "Optional", "TRUE" ); XAttribute(xname "present-when", (rp |> Seq.StrJoin ".") ); XElement(xname "Default",(PrintAsn1GenericValue v))]
         | Some (PresenceWhenBool( RelativePath  rp)), None  ->  [XAttribute(xname "Optional", "TRUE" ); XAttribute(xname "present-when", (rp |> Seq.StrJoin ".") )]
+        | Some (PresenceWhenBoolExpression acnExp), Some v     ->  
+            let _, debugStr = AcnGenericCreateFromAntlr.printDebug acnExp
+            [XAttribute(xname "Optional", "TRUE" ); XAttribute(xname "present-when", debugStr ); XElement(xname "Default",(PrintAsn1GenericValue v))]
+        | Some (PresenceWhenBoolExpression acnExp), None     ->  
+            let _, debugStr = AcnGenericCreateFromAntlr.printDebug acnExp
+            [XAttribute(xname "Optional", "TRUE" ); XAttribute(xname "present-when", debugStr )]
         | None, Some v      -> [XElement(xname "Default",(PrintAsn1GenericValue v))]
         | None, None        -> [XAttribute(xname "Optional", "TRUE" );]
+    
 
 let exportChoiceChildPresentWhenCondition (presentConditions:AcnPresentWhenConditionChoiceChild list) =
     let attrValue (aa:AcnPresentWhenConditionChoiceChild) = 

@@ -1081,6 +1081,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
     // stg macros
     let sequence_presense_optChild              = match l with C -> acn_c.sequence_presense_optChild             | Ada -> acn_a.sequence_presense_optChild          
     let sequence_presense_optChild_pres_bool    = match l with C -> acn_c.sequence_presense_optChild_pres_bool   | Ada -> acn_a.sequence_presense_optChild_pres_bool
+    let sequence_presense_optChild_pres_acn_expression  = match l with C -> acn_c.sequence_presense_optChild_pres_acn_expression   | Ada -> acn_a.sequence_presense_optChild_pres_acn_expression
     let sequence_presense_optChild_pres_int     = match l with C -> acn_c.sequence_presense_optChild_pres_int    | Ada -> acn_a.sequence_presense_optChild_pres_int 
     let sequence_presense_optChild_pres_str     = match l with C -> acn_c.sequence_presense_optChild_pres_str    | Ada -> acn_a.sequence_presense_optChild_pres_str 
     let sequence_mandatory_child                = match l with C -> acn_c.sequence_mandatory_child               | Ada -> acn_a.sequence_mandatory_child            
@@ -1106,9 +1107,9 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
         let orOp = match l with C -> "||" | Ada -> "or"
 
         let printUnary op chExpPriority expStr minePriority = 
-            minePriority, if chExpPriority > minePriority then sprintf "%s(%s)" op expStr else sprintf "%s%s" op expStr
+            minePriority, if chExpPriority >= minePriority then sprintf "%s(%s)" op expStr else sprintf "%s%s" op expStr
         let printBinary op (chExpPriority1, expStr1) (chExpPriority2, expStr2) minePriority =
-            minePriority, (if chExpPriority1 > minePriority then "(" + expStr1 + ")" else expStr1 ) + " " + op + " " + (if chExpPriority2 > minePriority then "(" + expStr2 + ")" else expStr2 )
+            minePriority, (if chExpPriority1 >= minePriority then "(" + expStr1 + ")" else expStr1 ) + " " + op + " " + (if chExpPriority2 >= minePriority then "(" + expStr2 + ")" else expStr2 )
 
 
         let rec getChildResult (seq:Asn1AcnAst.Sequence) (pSeq:CallerScope) (RelativePath lp) =
@@ -1141,9 +1142,9 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                     (0, plf.arg.p) , 0)
                 (fun loc (chExpPriority, expStr) s -> printUnary unaryNotOperator chExpPriority expStr 1, 0) //NotUnaryExpression
                 (fun loc (chExpPriority, expStr) s -> printUnary "-" chExpPriority expStr 1, 0)//MinusUnaryExpression
-                (fun l e1 e2  s -> printBinary "+" e1 e2 1, 0 ) 
-                (fun l e1 e2  s -> printBinary "-" e1 e2 2, 0 ) 
-                (fun l e1 e2  s -> printBinary "*" e1 e2 3, 0 ) 
+                (fun l e1 e2  s -> printBinary "+" e1 e2 3, 0 ) 
+                (fun l e1 e2  s -> printBinary "-" e1 e2 3, 0 ) 
+                (fun l e1 e2  s -> printBinary "*" e1 e2 2, 0 ) 
                 (fun l e1 e2  s -> printBinary "/" e1 e2 2, 0 ) 
                 (fun l e1 e2  s -> printBinary modOp e1 e2 2, 0 ) 
                 (fun l e1 e2  s -> printBinary "<=" e1 e2 4, 0 ) 
@@ -1231,22 +1232,24 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
 
                 //handle present-when acn property
                 let present_when_statements, ns2 =
-                    match codec with
-                    | Codec.Encode  -> [],ns1
-                    | Codec.Decode  ->
-                        let acnPresenceStatement = 
+                        let acnPresenceStatement, errCodes, ns1b = 
                             match child.Optionality with
                             | Some (Asn1AcnAst.Optional opt)   -> 
                                 match opt.acnPresentWhen with
-                                | None    -> None
+                                | None    -> None, [], ns1
                                 | Some (PresenceWhenBool _)    -> 
-                                    let extField = getExternaField r deps child.Type.id
-                                    Some(sequence_presense_optChild_pres_bool p.arg.p (p.arg.getAcces l) (child.getBackendName l) extField codec)
+                                    match codec with
+                                    | Codec.Encode  -> None, [], ns1
+                                    | Codec.Decode  ->
+                                        let extField = getExternaField r deps child.Type.id
+                                        Some(sequence_presense_optChild_pres_bool p.arg.p (p.arg.getAcces l) (child.getBackendName l) extField codec), [], ns1
                                 | Some (PresenceWhenBoolExpression exp)    -> 
+                                    let _errCodeName         = ToC ("ERR_ACN" + (codec.suffix.ToUpper()) + "_" + ((child.Type.id.AcnAbsPath |> Seq.skip 1 |> Seq.StrJoin("-")).Replace("#","elm")) + "_PRESENT_WHEN_EXP_FAILED")
+                                    let errCode, ns1a = getNextValidErrorCode ns1 _errCodeName
                                     let retExp = acnExpressionToBackendExpression o p exp
-                                    Some(sequence_presense_optChild_pres_bool p.arg.p (p.arg.getAcces l) (child.getBackendName l) ("(" + retExp + ")") codec)
-                            | _                 -> None
-                        [(AcnPresenceStatement, acnPresenceStatement, [], [])], ns1
+                                    Some(sequence_presense_optChild_pres_acn_expression p.arg.p (p.arg.getAcces l) (child.getBackendName l) retExp errCode.errCodeName codec), [errCode], ns1a
+                            | _                 -> None, [], ns1
+                        [(AcnPresenceStatement, acnPresenceStatement, [], errCodes)], ns1b
 
                 let childEncDecStatement, ns3 = 
                     match childContentResult with

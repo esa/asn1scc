@@ -133,11 +133,11 @@ let rec createPresentWhenBoooExpresssion (t:ITree) : AcnExpression =
 let rec printDebug (exp:AcnExpression) : (int*string) =
     let printUnary op e1 mp = 
         let cp, ct = printDebug e1
-        mp, if cp > mp then sprintf "%s(%s)" op ct else sprintf "%s%s" op ct
+        mp, if cp >= mp then sprintf "%s(%s)" op ct else sprintf "%s%s" op ct
     let printBinary op e1 e2 mp =
         let cp1, ct1 = printDebug e1
         let cp2, ct2 = printDebug e2
-        mp, (if cp1 > mp then "(" + ct1 + ")" else ct1 ) + " " + op + " " + (if cp2 > mp then "(" + ct2 + ")" else ct2 )
+        mp, (if cp1 >= mp then "(" + ct1 + ")" else ct1 ) + " " + op + " " + (if cp2 >= mp then "(" + ct2 + ")" else ct2 )
     match exp with
     | IntegerConstantExp            x      -> 0, x.Value.ToString()
     | AcnIntegerConstExp            x      -> 0, x.Value.ToString()
@@ -146,9 +146,9 @@ let rec printDebug (exp:AcnExpression) : (int*string) =
     | Asn1LongField                 x      -> 0, x.AsString
     | NotUnaryExpression            (_,e1)     -> printUnary "!" e1 1
     | MinusUnaryExpression          (_,e1)     -> printUnary "-" e1 1
-    | AdditionExpression            (_,e1, e2) -> printBinary "+" e1 e2 1 // 1, sprintf "(%s) + (%s)" (printDebug e1) (printDebug e2)
-    | SubtractionExpression         (_,e1, e2) -> printBinary "-" e1 e2 2 //3, sprintf "(%s) - (%s)" (printDebug e1) (printDebug e2)
-    | MultipicationExpression       (_,e1, e2) -> printBinary "*" e1 e2 3 //3, sprintf "(%s) * (%s)" (printDebug e1) (printDebug e2)
+    | AdditionExpression            (_,e1, e2) -> printBinary "+" e1 e2 3 // 1, sprintf "(%s) + (%s)" (printDebug e1) (printDebug e2)
+    | SubtractionExpression         (_,e1, e2) -> printBinary "-" e1 e2 3 //3, sprintf "(%s) - (%s)" (printDebug e1) (printDebug e2)
+    | MultipicationExpression       (_,e1, e2) -> printBinary "*" e1 e2 2 //3, sprintf "(%s) * (%s)" (printDebug e1) (printDebug e2)
     | DivisionExpression            (_,e1, e2) -> printBinary "/" e1 e2 2 //2, sprintf "(%s) / (%s)" (printDebug e1) (printDebug e2)
     | ModuloExpression              (_,e1, e2) -> printBinary "%" e1 e2 2 //2, sprintf "(%s) %% (%s)" (printDebug e1) (printDebug e2)
     | LessThanEqualExpression       (_,e1, e2) -> printBinary "<=" e1 e2 4 //4, sprintf "(%s) <= (%s)" (printDebug e1) (printDebug e2)

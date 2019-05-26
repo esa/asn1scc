@@ -134,6 +134,7 @@ let rec printType stgFileName (tas:GenerateUperIcd.IcdTypeAssignment) (t:Asn1Typ
                 | Some (Asn1AcnAst.Optional opt)  ->
                     match opt.acnPresentWhen with
                     | Some (AcnGenericTypes.PresenceWhenBool _) -> false
+                    | Some (AcnGenericTypes.PresenceWhenBoolExpression _) -> false
                     | None                      -> true
                 | _                               -> false) 
             |> Seq.toList
@@ -173,6 +174,9 @@ let rec printType stgFileName (tas:GenerateUperIcd.IcdTypeAssignment) (t:Asn1Typ
                             let dependency = r.deps.acnDependencies |> List.find(fun d -> d.asn1Type = ch.Type.id )
                             //match dependency.dependencyKind with
                             sprintf "when %s is true" presWhen.AsString 
+                        | Some (AcnGenericTypes.PresenceWhenBoolExpression acnExp)  ->
+                            let _, debugStr = AcnGenericCreateFromAntlr.printDebug acnExp
+                            sprintf "when %s is true" debugStr
 
             let sType, sComment, sAsn1Constraints  = 
                 match ch with

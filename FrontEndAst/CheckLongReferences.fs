@@ -318,12 +318,15 @@ let rec private checkType (r:AstRoot) (parents: Asn1Type list) (curentPath : Sco
                                     match ch with
                                     | AcnChild ch  -> ValResultError(x1.Location, (sprintf "Invalid reference '%s'. Expecting an ASN.1 child" (lp |> Seq.StrJoin ".")))
                                     | Asn1Child ch  -> 
-                                        match ch.Type.ActualType.Kind with
-                                        | Integer        _  -> ValResultOK (NonBooleanExpression IntExpType)
-                                        | Real           _  -> ValResultOK (NonBooleanExpression RealExpType)
-                                        | Boolean        _  -> ValResultOK (BoolExpression)
-                                        | Sequence s when xs.Length > 1 -> getChildResult s (RelativePath xs)
-                                        | _                 -> ValResultError(x1.Location, (sprintf "Invalid reference '%s'" (lp |> Seq.StrJoin ".")))
+                                        match ch.Optionality with
+                                        | None  ->
+                                            match ch.Type.ActualType.Kind with
+                                            | Integer        _  -> ValResultOK (NonBooleanExpression IntExpType)
+                                            | Real           _  -> ValResultOK (NonBooleanExpression RealExpType)
+                                            | Boolean        _  -> ValResultOK (BoolExpression)
+                                            | Sequence s when xs.Length > 1 -> getChildResult s (RelativePath xs)
+                                            | _                 -> ValResultError(x1.Location, (sprintf "Invalid reference '%s'" (lp |> Seq.StrJoin ".")))
+                                        | Some _        -> ValResultError(x1.Location, (sprintf "Optional component '%s' cannot be used in ACN present-when expressions" (lp |> Seq.StrJoin ".")))
                         
                         let valResult = AcnGenericTypes.validateAcnExpression (fun lf -> getChildResult seq lf) exp
                         match valResult with

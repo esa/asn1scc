@@ -1,0 +1,16 @@
+
+TEST-CASE DEFINITIONS ::= BEGIN
+/*
+the present-when attribyte can be followed by a boolean expression which can contain one or more non optional ASN.1 fields (not ACN inserted fields).
+The ACN expression can use int and real constants, non optional ASN.1 fields as well as the following operattos
+ + - * / % <= < >= > and or
+ 
+*/
+
+	MyPDU[]  {
+		int1	[size 8, encoding pos-int],
+		enm		[present-when (int1 <10 and int1%2 == 0) or (int1>=10 and int1 <=14) ]
+	} 
+
+END
+

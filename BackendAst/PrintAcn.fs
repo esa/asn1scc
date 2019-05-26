@@ -57,6 +57,9 @@ let rec printTypeEncSpec (t:AcnTypeEncodingSpec) =
                         | GP_PresenceInt   (repPath, intVal)  -> stg_acn.PP_PresentWhenConditionInt repPath.AsString intVal.Value
                         | GP_PresenceStr   (repPath, strVal)  -> stg_acn.PP_PresentWhenConditionStr repPath.AsString strVal.Value)
                 stg_acn.PP_PresentWhen prCons
+            | PRESENT_WHEN_EXP acnExp   ->
+                let _, debugStr = AcnGenericCreateFromAntlr.printDebug acnExp
+                stg_acn.PP_PresentWhen [debugStr]
             | TRUE_VALUE         trueVal        -> stg_acn.PP_TrueValue trueVal.Value
             | FALSE_VALUE        falseVal       -> stg_acn.PP_FalseValue falseVal.Value
             | PATTERN            pattern        -> 
