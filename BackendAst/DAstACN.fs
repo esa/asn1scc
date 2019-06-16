@@ -15,10 +15,6 @@ open System.Globalization
 
 let foldMap = Asn1Fold.foldMap
 
-let getFuncName (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec:CommonTypes.Codec) (typeId:ReferenceToType) (td:FE_TypeDefinition) =
-    match typeId.tasInfo with
-    | None -> None
-    | Some _ -> Some (td.typeName + "_ACN"  + codec.suffix)
 
 let callBaseTypeFunc l = match l with C -> uper_c.call_base_type_func | Ada -> uper_a.call_base_type_func
 
@@ -170,6 +166,11 @@ let handleAlignemntForAcnTypes (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage)  (
 
 let private createAcnFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (typeDefinition:TypeDefintionOrReference) (isValidFunc: IsValidFunction option)  (funcBody:State-> ErroCode->((AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) -> CallerScope -> ((AcnFuncBodyResult option)*State)) isTestVaseValid soSparkAnnotations (us:State)  =
     let funcNameAndtasInfo   = 
+        let getFuncName (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec:CommonTypes.Codec) (typeId:ReferenceToType) (td:FE_TypeDefinition) =
+            match typeId.tasInfo with
+            | None -> None
+            | Some _ -> Some (td.typeName + "_ACN"  + codec.suffix)
+
         match t.acnParameters with
         | []    -> getFuncName r l codec t.id (t.FT_TypeDefintion.[l])
         | _     -> None

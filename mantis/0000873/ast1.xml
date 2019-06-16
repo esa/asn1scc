@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ASN1AST>
+    <Asn1File FileName="a.asn1">
+        <Asn1Module ID="D">
+        <ExportedTypes>
+            <ExportedType Name="Circle" /> 
+        </ExportedTypes>
+        <ExportedVariables>
+         
+        </ExportedVariables>
+        <ImportedModules>
+        </ImportedModules>
+        <TypeAssignments>
+            <TypeAssignment Name="Circle" Line="4" CharPositionInLine="11"  AddedType = "False">
+                <Type Line="4" CharPositionInLine="11" Asn1File="a.asn1" HasAcnEncDecFunction = "True">
+                    <SequenceType>
+                        <SequenceOrSetChild VarName="center" CName="center" AdaName="center" Optional="False" Line="5" CharPositionInLine="4" bAlwaysPresent = "True" bAlwaysAbsent="False">
+                            <Type Line="5" CharPositionInLine="11" Asn1File="a.asn1" HasAcnEncDecFunction = "False">
+                                <SequenceType>
+                                    <SequenceOrSetChild VarName="x" CName="x" AdaName="x" Optional="False" Line="6" CharPositionInLine="8" bAlwaysPresent = "True" bAlwaysAbsent="False">
+                                        <Type Line="6" CharPositionInLine="10" Asn1File="a.asn1" HasAcnEncDecFunction = "False">
+                                            <RealType Min="MIN" Max="MAX"/>
+                                        </Type>
+                                    </SequenceOrSetChild>
+                                    <SequenceOrSetChild VarName="y" CName="y" AdaName="y" Optional="False" Line="7" CharPositionInLine="8" bAlwaysPresent = "True" bAlwaysAbsent="False">
+                                        <Type Line="7" CharPositionInLine="10" Asn1File="a.asn1" HasAcnEncDecFunction = "False">
+                                            <RealType Min="MIN" Max="MAX"/>
+                                        </Type>
+                                    </SequenceOrSetChild>
+                                </SequenceType>
+                            </Type>
+                        </SequenceOrSetChild>
+                        <SequenceOrSetChild VarName="radious" CName="radious" AdaName="radious" Optional="False" Line="9" CharPositionInLine="4" bAlwaysPresent = "True" bAlwaysAbsent="False">
+                            <Type Line="9" CharPositionInLine="12" Asn1File="a.asn1" HasAcnEncDecFunction = "False">
+                                <RealType Min="MIN" Max="MAX"/>
+                            </Type>
+                        </SequenceOrSetChild>
+                    </SequenceType>
+                </Type>
+            </TypeAssignment>
+        </TypeAssignments>
+        <VariablesAssignments>
+        </VariablesAssignments>
+        </Asn1Module>
+    </Asn1File>
+</ASN1AST>

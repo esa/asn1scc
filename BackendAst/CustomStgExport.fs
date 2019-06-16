@@ -110,7 +110,7 @@ let PrintContract (r:AstRoot) (stgFileName:string) (asn1Name:string) (backendNam
     gen.Contract pattern (if String.length(expression) > 0 then expression else null) stgFileName
 
 
-let rec PrintType (r:AstRoot) (f:Asn1File) (stgFileName:string) modName (deepRecursion:bool) (t:Asn1Type)    =
+let rec PrintType (r:AstRoot) (f:Asn1File) (stgFileName:string) modName (deepRecursion:bool) (t:Asn1Type)  : string  =
     let printChildTypeAsReferencedType (t:Asn1Type) =
         match t.typeDefintionOrReference, t.inheritInfo, t.Kind with
         | ReferenceToExistingDefinition _, None, Integer _ 
@@ -141,7 +141,7 @@ let rec PrintType (r:AstRoot) (f:Asn1File) (stgFileName:string) modName (deepRec
                 match uperRange with
                 | Some(sMin, sMax)  -> gen.RefTypeMinMax sMin sMax asn1Name sModName (ToC asn1Name) (*typedefName*) sCModName (sMin = sMax) sResolvedType stgFileName
                 | None              -> gen.RefType asn1Name sModName (ToC asn1Name) (*typedefName*) sCModName sResolvedType stgFileName
-            gen.TypeGeneric (BigInteger t.Location.srcLine) (BigInteger t.Location.charPos) f.FileName refTypeContent stgFileName
+            gen.TypeGeneric (BigInteger t.Location.srcLine) (BigInteger t.Location.charPos) f.FileName refTypeContent (t.acnDecFunction.IsSome && t.acnDecFunction.Value.funcName.IsSome) stgFileName
     let PrintTypeAux (t:Asn1Type) =
         match t.Kind with                                                                                            //func name sMin sMax (sMin=sMax) stgFileName
         | Integer           i    -> handTypeWithMinMax (gen.IntegerType () stgFileName)         i.baseInfo.uperRange (fun name sMin sMax bFixedSize stgFileName -> gen.MinMaxType name sMin sMax bFixedSize i.baseInfo.isUnsigned false stgFileName ) stgFileName
@@ -216,8 +216,7 @@ let rec PrintType (r:AstRoot) (f:Asn1File) (stgFileName:string) modName (deepRec
             match uperRange with
             | Some(sMin, sMax)  -> gen.RefTypeMinMax sMin sMax info.baseInfo.tasName.Value sModName (ToC info.baseInfo.tasName.Value) sCModName  (sMin=sMax) (Some resolvedType) stgFileName
             | None              -> gen.RefType info.baseInfo.tasName.Value sModName (ToC info.baseInfo.tasName.Value) sCModName (Some resolvedType) stgFileName
-
-    gen.TypeGeneric (BigInteger t.Location.srcLine) (BigInteger t.Location.charPos) f.FileName (PrintTypeAux t) stgFileName
+    gen.TypeGeneric (BigInteger t.Location.srcLine) (BigInteger t.Location.charPos) f.FileName  (PrintTypeAux t) (t.acnDecFunction.IsSome && t.acnDecFunction.Value.funcName.IsSome) stgFileName
 
 
 
@@ -243,7 +242,7 @@ let exportFile (r:AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (stgFi
                 | ReferenceToExistingDefinition _ -> None
                 | TypeDefinition td               -> 
                     let asn1Name = t.typeDefintionOrReference.getAsn1Name r.args.TypePrefix
-                    let ret = gen.TasXml asn1Name t.Location.srcLine.AsBigInt t.Location.charPos.AsBigInt (PrintType r f stgFileName modName deepRecursion t ) (ToC asn1Name) (*td.typedefName*) (AssigOp t) (PrintContract r stgFileName asn1Name td.typedefName t) stgFileName
+                    let ret = gen.TasXml asn1Name t.Location.srcLine.AsBigInt t.Location.charPos.AsBigInt (PrintType r f stgFileName modName deepRecursion t ) (ToC asn1Name) (*td.typedefName*) (AssigOp t) (PrintContract r stgFileName asn1Name td.typedefName t) (t.id <> tas.Type.id) stgFileName
                     Some ret) |> Seq.StrJoin "\n"
         innerTypeDef
     let PrintModule (f:Asn1File) (m:Asn1Module) =

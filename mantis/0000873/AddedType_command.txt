@@ -1,0 +1,1 @@
+Asn1f4 -customStgAstVersion 4 -customStg xml.stg:ast4.xml a.asn1

@@ -1,0 +1,1 @@
+Asn1f4 -customStg xml.stg:ast.xml HasAcnEncDecFunction.acn HasAcnEncDecFunction.asn1

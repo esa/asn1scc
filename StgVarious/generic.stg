@@ -46,9 +46,9 @@ ImportedMod(sName, sCName, arrsTypes, arrsVars) ::= <<
 {"$sName$":{"ImportedTypes": [$arrsTypes:{t|"$t$"};separator=","$], "ImportedVariables": [$arrsVars:{t|"$t$"};separator=","$]}}
 >>
 
-TasXml(sName, nLine, nPos, sType, sCName, sAssigOp, sContract) ::= <<
+TasXml(sName, nLine, nPos, sType, sCName, sAssigOp, sContract, bAddedType) ::= <<
 types["$sName$"] = {
-    "Line": $nLine$, "CharPositionInLine": $nPos$, "type": {
+    "Line": $nLine$, "CharPositionInLine": $nPos$, "AddedType":$bAddedType$,  "type": {
         $sType$
     }
 }
@@ -64,8 +64,8 @@ variables["$sName$"] = {
 
 >>
 
-TypeGeneric(nLine, nPos, sAsnFile, sSubType) ::= <<
-"Line": $nLine$, "CharPositionInLine": $nPos$, "Asn1File":"$sAsnFile$", $sSubType$
+TypeGeneric(nLine, nPos, sAsnFile, sSubType, bHasAcnEncDecFunction) ::= <<
+"Line": $nLine$, "CharPositionInLine": $nPos$, "Asn1File":"$sAsnFile$", $sSubType$, "HasAcnEncodeDecodeFunction":$bHasAcnEncDecFunction$
 >>
 
 

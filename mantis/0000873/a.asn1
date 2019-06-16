@@ -1,0 +1,15 @@
+D DEFINITIONS ::=
+BEGIN
+
+Circle ::= SEQUENCE {
+    center SEQUENCE {
+        x REAL,
+        y REAL
+    },
+    radious REAL
+}
+
+
+
+
+END

@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ASN1AST>
+    <Asn1File FileName="HasAcnEncDecFunction.asn1">
+        <Asn1Module ID="MYMOD">
+        <ExportedTypes>
+            <ExportedType Name="COLOR-TYPE" />
+            <ExportedType Name="COLOR-DATA" />
+            <ExportedType Name="MySeq" /> 
+        </ExportedTypes>
+        <ExportedVariables>
+         
+        </ExportedVariables>
+        <ImportedModules>
+        </ImportedModules>
+        <TypeAssignments>
+            <TypeAssignment Name="COLOR-TYPE" Line="3" CharPositionInLine="19"  AddedType = "False">
+                <Type Line="3" CharPositionInLine="19" Asn1File="HasAcnEncDecFunction.asn1" HasAcnEncDecFunction = "True">
+                    <IntegerType Min="0" Max="255"/>
+                </Type>
+            </TypeAssignment>
+            <TypeAssignment Name="COLOR-DATA" Line="4" CharPositionInLine="19"  AddedType = "False">
+                <Type Line="4" CharPositionInLine="19" Asn1File="HasAcnEncDecFunction.asn1" HasAcnEncDecFunction = "False">
+                    <ChoiceType>
+                        <ChoiceChild VarName="green" Line="5" CharPositionInLine="8" EnumID ="green_PRESENT">
+                            <Type Line="5" CharPositionInLine="14" Asn1File="HasAcnEncDecFunction.asn1" HasAcnEncDecFunction = "False">
+                                <IntegerType Min="1" Max="10"/>
+                            </Type>
+                        </ChoiceChild>
+                        <ChoiceChild VarName="red" Line="6" CharPositionInLine="8" EnumID ="red_PRESENT">
+                            <Type Line="6" CharPositionInLine="12" Asn1File="HasAcnEncDecFunction.asn1" HasAcnEncDecFunction = "False">
+                                <IntegerType Min="1" Max="1000"/>
+                            </Type>
+                        </ChoiceChild>
+                        <ChoiceChild VarName="blue" Line="7" CharPositionInLine="8" EnumID ="blue_PRESENT">
+                            <Type Line="7" CharPositionInLine="13" Asn1File="HasAcnEncDecFunction.asn1" HasAcnEncDecFunction = "False">
+                                <IA5StringType Min="1" Max="20">
+                                </IA5StringType>
+                            </Type>
+                        </ChoiceChild>
+                    </ChoiceType>
+                </Type>
+            </TypeAssignment>
+            <TypeAssignment Name="MySeq" Line="9" CharPositionInLine="14"  AddedType = "False">
+                <Type Line="9" CharPositionInLine="14" Asn1File="HasAcnEncDecFunction.asn1" HasAcnEncDecFunction = "True">
+                    <SequenceType>
+                        <SequenceOrSetChild VarName="colorData" CName="colorData" AdaName="colorData" Optional="False" Line="10" CharPositionInLine="8" bAlwaysPresent = "True" bAlwaysAbsent="False">
+                            <Type Line="10" CharPositionInLine="18" Asn1File="HasAcnEncDecFunction.asn1" HasAcnEncDecFunction = "False">
+                                <ReferenceType ReferencedTypeName="COLOR-DATA">
+                                    <Type Line="4" CharPositionInLine="19" Asn1File="HasAcnEncDecFunction.asn1" HasAcnEncDecFunction = "False">
+                                        <ChoiceType>
+                                            <ChoiceChild VarName="green" Line="5" CharPositionInLine="8" EnumID ="green_PRESENT">
+                                                <Type Line="5" CharPositionInLine="14" Asn1File="HasAcnEncDecFunction.asn1" HasAcnEncDecFunction = "False">
+                                                    <IntegerType Min="1" Max="10"/>
+                                                </Type>
+                                            </ChoiceChild>
+                                            <ChoiceChild VarName="red" Line="6" CharPositionInLine="8" EnumID ="red_PRESENT">
+                                                <Type Line="6" CharPositionInLine="12" Asn1File="HasAcnEncDecFunction.asn1" HasAcnEncDecFunction = "False">
+                                                    <IntegerType Min="1" Max="1000"/>
+                                                </Type>
+                                            </ChoiceChild>
+                                            <ChoiceChild VarName="blue" Line="7" CharPositionInLine="8" EnumID ="blue_PRESENT">
+                                                <Type Line="7" CharPositionInLine="13" Asn1File="HasAcnEncDecFunction.asn1" HasAcnEncDecFunction = "False">
+                                                    <IA5StringType Min="1" Max="20">
+                                                    </IA5StringType>
+                                                </Type>
+                                            </ChoiceChild>
+                                        </ChoiceType>
+                                    </Type>
+                                </ReferenceType>
+                            
+                            </Type>
+                        </SequenceOrSetChild>
+                    </SequenceType>
+                </Type>
+            </TypeAssignment>
+        </TypeAssignments>
+        <VariablesAssignments>
+        </VariablesAssignments>
+        </Asn1Module>
+    </Asn1File>
+</ASN1AST>
