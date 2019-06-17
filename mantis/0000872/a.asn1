@@ -1,0 +1,7 @@
+D DEFINITIONS ::=
+BEGIN
+
+-- Units: volts
+Volt ::= BOOLEAN
+
+END

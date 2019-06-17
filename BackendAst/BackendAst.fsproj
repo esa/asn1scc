@@ -26,6 +26,8 @@
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <WarningLevel>3</WarningLevel>
     <DocumentationFile>bin\Debug\BackendAst.XML</DocumentationFile>
+    <StartWorkingDirectory>C:\prj\GitHub\asn1scc\mantis\0000872</StartWorkingDirectory>
+    <StartArguments>-icdUper out2.html a.asn1</StartArguments>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>

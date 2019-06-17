@@ -314,14 +314,21 @@ let PrintTas (stgFileName:string) (m:Asn1Module) (tas:IcdTypeAssignment) (r:AstR
 let getModuleIcdTasses (m:Asn1Module) =
 
     m.TypeAssignments |> 
-    Seq.collect(fun x -> GetMySelfAndChildren x.Type) |>
+    Seq.collect(fun x ->  GetMySelfAndChildren x.Type) |>
     //Seq.choose(fun x -> match x.Kind with ReferenceType ref -> Some (ref.baseInfo.modName.Value,ref.baseInfo.tasName.Value) |_ -> None) |> Seq.toList
     Seq.choose(fun x -> 
+        let comments =
+            match x.tasInfo with
+            | Some tas -> 
+                match m.TypeAssignments |> List.tryFind(fun ts -> ts.Name.Value = tas.tasName) with
+                | Some tas -> tas.Comments
+                | None     -> [||]
+            | None         -> [||]
         let td = x.FT_TypeDefintion.[CommonTypes.C]
         match td.kind with 
         | "FE_Reference2OtherType" | "FE_Reference2RTL"   -> None
-        | "NewTypeDefinition"           -> Some {IcdTypeAssignment.name = td.asn1Name; comments=[||]; t=x; isBlue = false}
-        | _ (*NewSubTypeDefinition*)    -> Some {IcdTypeAssignment.name = td.asn1Name; comments=[||]; t=x; isBlue = true}         ) 
+        | "NewTypeDefinition"           -> Some {IcdTypeAssignment.name = td.asn1Name; comments=comments; t=x; isBlue = false}
+        | _ (*NewSubTypeDefinition*)    -> Some {IcdTypeAssignment.name = td.asn1Name; comments=comments; t=x; isBlue = true}         ) 
     |> Seq.toList
 
 let PrintModule (stgFileName:string) (m:Asn1Module) (f:Asn1File) (r:AstRoot) =

@@ -1,0 +1,4 @@
+-- Units: volts
+Volt ::= BOOLEAN
+
+It used to appear on the ICD in the table, but it does not anymore
