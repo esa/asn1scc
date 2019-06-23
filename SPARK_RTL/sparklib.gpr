@@ -1,8 +1,0 @@
-project SparkLib is
-
-   package Ide is
-      for Default_Switches ("examiner") use ("-sparklib", "-output_directory=examiner", "-index_file=spark.idx", "-vcg", "-dpc", "-config=gnat.cfg", "-warning_file=IgnoredExaminerWarnings.wrn");
-   end Ide;
-
-end SparkLib;
-
