@@ -140,11 +140,11 @@
       <ResourceFilesToCopy Include="$(SolutionDir)ADA_RTL/src/adaasn1rtl.*" />
       <ResourceFilesToCopy Include="$(SolutionDir)ADA_RTL/src/uper_asn1_rtl.*" />
       <ResourceFilesToCopy Include="$(SolutionDir)ADA_RTL/src/acn_asn1_rtl.*" />
-      <ResourceFilesToCopy Include="$(SolutionDir)SPARK_RTL/xer_rtl.*" />
-      <ResourceFilesToCopy Include="$(SolutionDir)SPARK_RTL/IgnoredExaminerWarnings.wrn" />
-      <ResourceFilesToCopy Include="$(SolutionDir)SPARK_RTL/gnat.cfg" />
-      <ResourceFilesToCopy Include="$(SolutionDir)SPARK_RTL/run.sh" />
-      <ResourceFilesToCopy Include="$(SolutionDir)SPARK_RTL/GPS_project.gpr" />
+      <ResourceFilesToCopy Include="$(SolutionDir)ADA_RTL/src/xer_rtl.*" />
+      <ResourceFilesToCopy Include="$(SolutionDir)ADA_RTL/aux_files/IgnoredExaminerWarnings.wrn" />
+      <ResourceFilesToCopy Include="$(SolutionDir)ADA_RTL/aux_files/gnat.cfg" />
+      <ResourceFilesToCopy Include="$(SolutionDir)ADA_RTL/aux_files/run.sh" />
+      <ResourceFilesToCopy Include="$(SolutionDir)ADA_RTL/aux_files/GPS_project.gpr" />
       <ResourceFilesToCopy Include="$(SolutionDir)asn1crt/asn1crt.c" />
       <ResourceFilesToCopy Include="$(SolutionDir)asn1crt/asn1crt.h" />
       <ResourceFilesToCopy Include="$(SolutionDir)asn1crt/Acn.c" />
