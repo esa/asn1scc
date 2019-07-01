@@ -183,5 +183,32 @@
   <data name="test_cases_aux_ads" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>Resources\test_cases_aux.ads;System.String, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089;windows-1253</value>
   </data>
+
+  <data name="adaasn1rtl_encoding_adb" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>Resources\adaasn1rtl-encoding.adb;System.String, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089;windows-1253</value>
+  </data>
+  <data name="adaasn1rtl_encoding_ads" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>Resources\adaasn1rtl-encoding.ads;System.String, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089;windows-1253</value>
+  </data>
+  <data name="adaasn1rtl_encoding_acn_adb" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>Resources\adaasn1rtl-encoding-acn.adb;System.String, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089;windows-1253</value>
+  </data>
+  <data name="adaasn1rtl_encoding_acn_ads" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>Resources\adaasn1rtl-encoding-acn.ads;System.String, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089;windows-1253</value>
+  </data>
+  <data name="adaasn1rtl_encoding_test_cases_aux_adb" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>Resources\adaasn1rtl-encoding-test_cases_aux.adb;System.String, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089;windows-1253</value>
+  </data>
+  <data name="adaasn1rtl_encoding_test_cases_aux_ads" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>Resources\adaasn1rtl-encoding-test_cases_aux.ads;System.String, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089;windows-1253</value>
+  </data>
+  <data name="adaasn1rtl_encoding_uper_adb" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>Resources\adaasn1rtl-encoding-uper.adb;System.String, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089;windows-1253</value>
+  </data>
+  <data name="adaasn1rtl_encoding_uper_ads" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>Resources\adaasn1rtl-encoding-uper.ads;System.String, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089;windows-1253</value>
+  </data>
+
+
   
 </root>

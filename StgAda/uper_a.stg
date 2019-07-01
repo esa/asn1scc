@@ -15,10 +15,10 @@ EmitTypeAssignment_def_encode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrc
 <sTypeDefName>_REQUIRED_BYTES_FOR_ENCODING:CONSTANT INTEGER := <nMaxBytesInPER>;
 <sTypeDefName>_REQUIRED_BITS_FOR_ENCODING:CONSTANT INTEGER := <nMaxBitsInPER>;
 
-subtype <sTypeDefName>_uPER_Stream is adaasn1rtl.Bitstream(<if(bReqBytesForEncodingIsZero)>1<else><sTypeDefName>_REQUIRED_BYTES_FOR_ENCODING<endif>);
+subtype <sTypeDefName>_uPER_Stream is adaasn1rtl.encoding.Bitstream(<if(bReqBytesForEncodingIsZero)>1<else><sTypeDefName>_REQUIRED_BYTES_FOR_ENCODING<endif>);
 
 procedure <sFuncName>(val:in <sTypeDefName>; Stream : out <sTypeDefName>_uPER_Stream; result : OUT <rtlModuleName()>.ASN1_RESULT);
-procedure <sFuncName>_aux(<sVarName>:in <sTypeDefName>; bs : in out <rtlModuleName()>.Bitstream; result : OUT <rtlModuleName()>.ASN1_RESULT)
+procedure <sFuncName>_aux(<sVarName>:in <sTypeDefName>; bs : in out <rtlModuleName()>.encoding.Bitstream; result : OUT <rtlModuleName()>.ASN1_RESULT)
 <soSparkAnnotations>
 ;
 >>
@@ -26,7 +26,7 @@ procedure <sFuncName>_aux(<sVarName>:in <sTypeDefName>; bs : in out <rtlModuleNa
 EmitTypeAssignment_def_decode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes, bEmptyEncodingSpace, nMaxBytesInPER, nMaxBitsInPER, soSparkAnnotations, bReqBytesForEncodingIsZero) ::= <<
 <arrsErrcodes; separator="\n">
 procedure <sFuncName>(<sVarName>: out <sTypeDefName>; Stream : in out <sTypeDefName>_uPER_Stream; result : OUT <rtlModuleName()>.ASN1_RESULT);
-procedure <sFuncName>_aux(<sVarName>: out <sTypeDefName>; bs : in out <rtlModuleName()>.Bitstream; result : OUT <rtlModuleName()>.ASN1_RESULT)
+procedure <sFuncName>_aux(<sVarName>: out <sTypeDefName>; bs : in out <rtlModuleName()>.encoding.Bitstream; result : OUT <rtlModuleName()>.ASN1_RESULT)
 <soSparkAnnotations>
 ;
 >>
@@ -41,7 +41,7 @@ end <sFuncName>;
 >>
 
 EmitTypeAssignment_encode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitilialExp, bReqBytesForEncodingIsZero) ::= <<
-procedure <sFuncName>_aux(<sVarName>:in <sTypeDefName>; bs : in out <rtlModuleName()>.Bitstream; result : OUT <rtlModuleName()>.ASN1_RESULT)
+procedure <sFuncName>_aux(<sVarName>:in <sTypeDefName>; bs : in out <rtlModuleName()>.encoding.Bitstream; result : OUT <rtlModuleName()>.ASN1_RESULT)
 is
     <arrsLocalVariables; separator="\n">
 begin
@@ -75,7 +75,7 @@ end <sFuncName>;
 >>
 EmitTypeAssignment_decode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitilialExp, bReqBytesForEncodingIsZero) ::= <<
 pragma Warnings (Off, "unused initial value of ""val""");
-procedure <sFuncName>_aux(<sVarName>: out <sTypeDefName>; bs : in out <rtlModuleName()>.Bitstream; result : OUT <rtlModuleName()>.ASN1_RESULT)
+procedure <sFuncName>_aux(<sVarName>: out <sTypeDefName>; bs : in out <rtlModuleName()>.encoding.Bitstream; result : OUT <rtlModuleName()>.ASN1_RESULT)
 IS
     <arrsLocalVariables; separator="\n">
 begin
@@ -108,52 +108,52 @@ result := <rtlModuleName()>.ASN1_RESULT'(Success => true, ErrorCode => 0);
 >>
 
 /*case: A:: = INTEGER (5..20) */
-IntFullyConstraint_encode(p, nMin, nMax, nBits, sErrCode) ::= "uper_asn1_rtl.UPER_Enc_ConstraintWholeNumber(bs, <p>, <nMin>, <nBits>);"
+IntFullyConstraint_encode(p, nMin, nMax, nBits, sErrCode) ::= "adaasn1rtl.encoding.uper.UPER_Enc_ConstraintWholeNumber(bs, <p>, <nMin>, <nBits>);"
 IntFullyConstraint_decode(p, nMin, nMax, nBits, sErrCode) ::= <<
 result.ErrorCode := <sErrCode>;
-uper_asn1_rtl.UPER_Dec_ConstraintWholeNumber(bs, <p>, <nMin>, <nMax>, <nBits>, result.Success);
+adaasn1rtl.encoding.uper.UPER_Dec_ConstraintWholeNumber(bs, <p>, <nMin>, <nMax>, <nBits>, result.Success);
 >>
 
-IntFullyConstraintPos_encode(p, nMin, nMax, nBits, sErrCode) ::= "uper_asn1_rtl.UPER_Enc_ConstraintPosWholeNumber(bs, <p>, <nMin>, <nBits>);"
+IntFullyConstraintPos_encode(p, nMin, nMax, nBits, sErrCode) ::= "adaasn1rtl.encoding.uper.UPER_Enc_ConstraintPosWholeNumber(bs, <p>, <nMin>, <nBits>);"
 IntFullyConstraintPos_decode(p, nMin, nMax, nBits, sErrCode) ::= <<
 result.ErrorCode := <sErrCode>;
-uper_asn1_rtl.UPER_Dec_ConstraintPosWholeNumber(bs, <p>, <nMin>, <nMax>, <nBits>, result.Success);
+adaasn1rtl.encoding.uper.UPER_Dec_ConstraintPosWholeNumber(bs, <p>, <nMin>, <nMax>, <nBits>, result.Success);
 >>
 
 /*case: A :: = INTEGER */
-IntUnconstraint_encode(p, sErrCode, bCoverageIgnore) ::= "uper_asn1_rtl.UPER_Enc_UnConstraintWholeNumber(bs, <p>);"
+IntUnconstraint_encode(p, sErrCode, bCoverageIgnore) ::= "adaasn1rtl.encoding.uper.UPER_Enc_UnConstraintWholeNumber(bs, <p>);"
 IntUnconstraint_decode(p, sErrCode, bCoverageIgnore) ::= <<
 result.ErrorCode := <sErrCode>;
-uper_asn1_rtl.UPER_Dec_UnConstraintWholeNumber(bs, <p>, result.Success);
+adaasn1rtl.encoding.uper.UPER_Dec_UnConstraintWholeNumber(bs, <p>, result.Success);
 >>
 
 /*case: A :: = INTEGER(MIN..5) */
-IntUnconstraintMax_encode(p, nMax, soCheckExp, sErrCode) ::= "uper_asn1_rtl.UPER_Enc_UnConstraintWholeNumber(bs, <p>);"
+IntUnconstraintMax_encode(p, nMax, soCheckExp, sErrCode) ::= "adaasn1rtl.encoding.uper.UPER_Enc_UnConstraintWholeNumber(bs, <p>);"
 IntUnconstraintMax_decode(p, nMax, soCheckExp, sErrCode) ::= <<
 result.ErrorCode := <sErrCode>;
-uper_asn1_rtl.UPER_Dec_UnConstraintWholeNumberMax(bs, <p>, <nMax>, result.Success);
+adaasn1rtl.encoding.uper.UPER_Dec_UnConstraintWholeNumberMax(bs, <p>, <nMax>, result.Success);
 --result.Success := result.Success and then (<soCheckExp>);
 >>
 
 
 /*case: A:: = INTEGER (5..MAX) */
-IntSemiConstraint_encode(p, nMin, sErrCode) ::= "uper_asn1_rtl.UPER_Enc_SemiConstraintWholeNumber(bs, <p>, <nMin>);"
+IntSemiConstraint_encode(p, nMin, sErrCode) ::= "adaasn1rtl.encoding.uper.UPER_Enc_SemiConstraintWholeNumber(bs, <p>, <nMin>);"
 IntSemiConstraint_decode(p, nMin, sErrCode) ::= <<
 result.ErrorCode := <sErrCode>;
-uper_asn1_rtl.UPER_Dec_SemiConstraintWholeNumber(bs, <p>, <nMin>, result.Success);
+adaasn1rtl.encoding.uper.UPER_Dec_SemiConstraintWholeNumber(bs, <p>, <nMin>, result.Success);
 >>
 
-IntSemiConstraintPos_encode(p, nMin, sErrCode) ::= "uper_asn1_rtl.UPER_Enc_SemiConstraintPosWholeNumber(bs, <p>, <nMin>);"
+IntSemiConstraintPos_encode(p, nMin, sErrCode) ::= "adaasn1rtl.encoding.uper.UPER_Enc_SemiConstraintPosWholeNumber(bs, <p>, <nMin>);"
 IntSemiConstraintPos_decode(p, nMin, sErrCode) ::= <<
 result.ErrorCode := <sErrCode>;
-uper_asn1_rtl.UPER_Dec_SemiConstraintPosWholeNumber(bs, <p>, <nMin>, result.Success);
+adaasn1rtl.encoding.uper.UPER_Dec_SemiConstraintPosWholeNumber(bs, <p>, <nMin>, result.Success);
 >>
 
 
 /*case: A:: = INTEGER (5..40,...) */
 IntRootExt_encode(p, nMin, sRootBaseConstraint, sIntBody, sErrCode) ::=<<
 if <sRootBaseConstraint> THEN
-    <rtlModuleName()>.BitStream_AppendBit(bs, 0); -- write extension bit
+    <rtlModuleName()>.encoding.BitStream_AppendBit(bs, 0); -- write extension bit
     <sIntBody>
 end if;
 >>
@@ -165,7 +165,7 @@ result.ErrorCode := <sErrCode>;
 declare
     extBit:<rtlModuleName()>.BIT;
 begin
-    <rtlModuleName()>.BitStream_ReadBit(bs, extBit, result.Success); -- read extension bit
+    <rtlModuleName()>.encoding.BitStream_ReadBit(bs, extBit, result.Success); -- read extension bit
     if result.Success THEN
         if extBit=0 THEN --extBit is zero ==> value is expecteted within root range
             <sIntBody>
@@ -180,11 +180,11 @@ end;
 /*case: A:: = INTEGER (5..40,..., 60..70) */
 IntRootExt2_encode(p, nMin, sRootBaseConstraint, sIntBody, sErrCode) ::=<<
 if <sRootBaseConstraint> THEN
-    <rtlModuleName()>.BitStream_AppendBit(bs, 0); -- value within root range, so ext bit is zero
+    <rtlModuleName()>.encoding.BitStream_AppendBit(bs, 0); -- value within root range, so ext bit is zero
     <sIntBody>
 else
     -- value is not within root range, so ext bit is one and value is encoded as uncostraint
-    <rtlModuleName()>.BitStream_AppendBit(bs, 1);
+    <rtlModuleName()>.encoding.BitStream_AppendBit(bs, 1);
     <IntUnconstraint_encode(p=p, sErrCode=sErrCode)>
 end if;
 >>
@@ -193,26 +193,26 @@ IntRootExt2_decode(p, nMin, sRootBaseConstraint, sIntBody, sErrCode) ::= "<IntRo
 
 
 
-Boolean_encode(p, sErrCode) ::= "uper_asn1_rtl.UPER_Enc_Boolean(bs, <p>);"
+Boolean_encode(p, sErrCode) ::= "adaasn1rtl.encoding.uper.UPER_Enc_Boolean(bs, <p>);"
 
 Boolean_decode(p, sErrCode) ::= <<
 result.ErrorCode := <sErrCode>;
-uper_asn1_rtl.UPER_Dec_boolean(bs, <p>, result.Success);
+adaasn1rtl.encoding.uper.UPER_Dec_boolean(bs, <p>, result.Success);
 >>
 
-Real_encode(p, sErrCode) ::= "uper_asn1_rtl.UPER_Enc_Real(bs, <p>);"
+Real_encode(p, sErrCode) ::= "adaasn1rtl.encoding.uper.UPER_Enc_Real(bs, <p>);"
 Real_decode(p, sErrCode) ::= <<
-uper_asn1_rtl.UPER_Dec_Real(bs, <p>, result);
+adaasn1rtl.encoding.uper.UPER_Dec_Real(bs, <p>, result);
 >>
 
-ObjectIdentifier_encode(p, sErrCode) ::= "uper_asn1_rtl.ObjectIdentifier_uper_encode(bs, <p>);"
+ObjectIdentifier_encode(p, sErrCode) ::= "adaasn1rtl.encoding.uper.ObjectIdentifier_uper_encode(bs, <p>);"
 ObjectIdentifier_decode(p, sErrCode) ::= <<
-uper_asn1_rtl.ObjectIdentifier_uper_decode(bs, <p>, result);
+adaasn1rtl.encoding.uper.ObjectIdentifier_uper_decode(bs, <p>, result);
 >>
 
-RelativeOID_encode(p, sErrCode) ::= "uper_asn1_rtl.RelativeOID_uper_encode(bs, <p>);"
+RelativeOID_encode(p, sErrCode) ::= "adaasn1rtl.encoding.uper.RelativeOID_uper_encode(bs, <p>);"
 RelativeOID_decode(p, sErrCode) ::= <<
-uper_asn1_rtl.RelativeOID_uper_decode(bs, <p>, result);
+adaasn1rtl.encoding.uper.RelativeOID_uper_decode(bs, <p>, result);
 >>
 
 
@@ -231,7 +231,7 @@ begin
     case <p> is 
         <arrsItem; separator="\n">
     end case;
-    uper_asn1_rtl.UPER_Enc_ConstraintWholeNumber(bs, intVal, <nMin>, <nBits>);
+    adaasn1rtl.encoding.uper.UPER_Enc_ConstraintWholeNumber(bs, intVal, <nMin>, <nBits>);
 end;
 >>
 
@@ -239,7 +239,7 @@ Enumerated_decode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, nMin, nMax, n
 declare
     intVal:Asn1Int;
 begin
-    uper_asn1_rtl.UPER_Dec_ConstraintWholeNumber(bs, intVal, <nMin>, <nMax>, <nBits>, result.Success);
+    adaasn1rtl.encoding.uper.UPER_Dec_ConstraintWholeNumber(bs, intVal, <nMin>, <nMax>, <nBits>, result.Success);
     if result.Success THEN
         case <td.index_range>(intVal) is
             <arrsItem; separator="\n">
@@ -257,14 +257,14 @@ end;
 /* SEQUENCE START */
 
 
-sequence_presence_bit_encode(p, sAcc, sChName, sErrCode) ::= "<rtlModuleName()>.BitStream_AppendBit(bs,<p>.Exist.<sChName>);"
+sequence_presence_bit_encode(p, sAcc, sChName, sErrCode) ::= "<rtlModuleName()>.encoding.BitStream_AppendBit(bs,<p>.Exist.<sChName>);"
 sequence_presence_bit_decode(p, sAcc, sChName, sErrCode) ::= <<
 result.ErrorCode := <sErrCode>;
-<rtlModuleName()>.BitStream_ReadBit(bs,<p>.Exist.<sChName>, result.Success);
+<rtlModuleName()>.encoding.BitStream_ReadBit(bs,<p>.Exist.<sChName>, result.Success);
 >>
 
 
-sequence_presence_bit_fix_encode(p, sAcc, sChName, sErrCode, sVal) ::= "<rtlModuleName()>.BitStream_AppendBit(bs, <sVal>);"
+sequence_presence_bit_fix_encode(p, sAcc, sChName, sErrCode, sVal) ::= "<rtlModuleName()>.encoding.BitStream_AppendBit(bs, <sVal>);"
 sequence_presence_bit_fix_decode(p, sAcc, sChName, sErrCode, sVal) ::= <<
 <sequence_presence_bit_decode(p=p, sAcc=sAcc, sChName=sChName, sErrCode=sErrCode)>
 >>
@@ -363,7 +363,7 @@ end if;
 
 choice_child_encode(p, sAcc, sChildID, nChildIndex, nIndexSizeInBits, nLastItemIndex, sChildContent, sChildName, sChildTypeDef, sChoiceTypeName) ::= <<
 when <sChildID> =>
-    uper_asn1_rtl.UPER_Enc_ConstraintWholeNumber(bs, <nChildIndex>, 0, <nIndexSizeInBits>);
+    adaasn1rtl.encoding.uper.UPER_Enc_ConstraintWholeNumber(bs, <nChildIndex>, 0, <nIndexSizeInBits>);
     <sChildContent>
 >>
 
@@ -389,7 +389,7 @@ end case;
 
 choice_decode(p, sAcc, arrsChildren, nLastItemIndex, sChoiceIndexName, sErrCode, td/*:FE_ChoiceTypeDefinition*/, nIndexSizeInBits) ::= <<
 result.ErrorCode := <sErrCode>;
-uper_asn1_rtl.UPER_Dec_ConstraintWholeNumber(bs, <sChoiceIndexName>, 0, <nLastItemIndex>, <nIndexSizeInBits>, result.Success);
+adaasn1rtl.encoding.uper.UPER_Dec_ConstraintWholeNumber(bs, <sChoiceIndexName>, 0, <nLastItemIndex>, <nIndexSizeInBits>, result.Success);
 if result.Success AND <sChoiceIndexName> \>= 0 AND  <sChoiceIndexName> \<= <nLastItemIndex> THEN
     case <td.index_range>(<sChoiceIndexName>) IS
         <arrsChildren; separator="\n">
@@ -442,25 +442,25 @@ end loop;
 
 
 InternalItem_string_no_alpha_encode(p, sErrCode, i) ::=<<
-charIndex := <rtlModuleName()>.CharacterPos(<p>(<i>));
-uper_asn1_rtl.UPER_Enc_ConstraintWholeNumber(bs, <rtlModuleName()>.Asn1Int(charIndex), 0, 7);
+charIndex := <rtlModuleName()>.encoding.CharacterPos(<p>(<i>));
+adaasn1rtl.encoding.uper.UPER_Enc_ConstraintWholeNumber(bs, <rtlModuleName()>.Asn1Int(charIndex), 0, 7);
 >>
 
 
 InternalItem_string_no_alpha_decode(p, sErrCode, i) ::=<<
-uper_asn1_rtl.UPER_Dec_ConstraintWholeNumberInt(bs, charIndex, 0, 127, 7, result.Success);
+adaasn1rtl.encoding.uper.UPER_Dec_ConstraintWholeNumberInt(bs, charIndex, 0, 127, 7, result.Success);
 result.ErrorCode := <sErrCode>;
 <p>(<i>) := Character'Val(charIndex);
 >>
 
 
 InternalItem_string_with_alpha_encode(p, sErrCode, td/*:FE_StringTypeDefinition*/, i, nLastItemIndex, arrnAlphabetAsciiCodes, nAlphabetLength, nCharIndexSize) ::=<<
-charIndex := <rtlModuleName()>.GetZeroBasedCharIndex(<p>(<i>), <td.alpha_set>);
-uper_asn1_rtl.UPER_Enc_ConstraintWholeNumber(bs, <rtlModuleName()>.Asn1Int(charIndex), 0, <nCharIndexSize>);
+charIndex := <rtlModuleName()>.encoding.GetZeroBasedCharIndex(<p>(<i>), <td.alpha_set>);
+adaasn1rtl.encoding.uper.UPER_Enc_ConstraintWholeNumber(bs, <rtlModuleName()>.Asn1Int(charIndex), 0, <nCharIndexSize>);
 >>
 
 InternalItem_string_with_alpha_decode(p, sErrCode, td/*:FE_StringTypeDefinition*/, i, nLastItemIndex, arrnAlphabetAsciiCodes, nAlphabetLength, nCharIndexSize) ::=<<
-uper_asn1_rtl.UPER_Dec_ConstraintWholeNumberInt(bs, charIndex, 0, <nLastItemIndex>, <nCharIndexSize>, result.Success);
+adaasn1rtl.encoding.uper.UPER_Dec_ConstraintWholeNumberInt(bs, charIndex, 0, <nLastItemIndex>, <nCharIndexSize>, result.Success);
 result.ErrorCode := <sErrCode>;
 <p>(<i>) := <td.alpha_set>(charIndex+1);
 >>
@@ -482,11 +482,11 @@ result := <rtlModuleName()>.ASN1_RESULT'(Success => TRUE, ErrorCode => 0);
 >>
 
 str_VarSize_encode(p, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize) ::= <<
-nStringLength := <rtlModuleName()>.getStringSize(<p>);
+nStringLength := <rtlModuleName()>.encoding.getStringSize(<p>);
 result.Success := nStringLength >= <nSizeMin> AND nStringLength \<= <nSizeMax>;
 <i> := 1; 
 if result.Success THEN
-    uper_asn1_rtl.UPER_Enc_ConstraintWholeNumber(bs, <rtlModuleName()>.Asn1Int(nStringLength), <nSizeMin>, <nSizeInBits>);
+    adaasn1rtl.encoding.uper.UPER_Enc_ConstraintWholeNumber(bs, <rtlModuleName()>.Asn1Int(nStringLength), <nSizeMin>, <nSizeInBits>);
     <loopFixedItem_enc(i=i, sInternalItem=sInternalItem, fixedSize="nStringLength", nfixedSizeUperLimit = nSizeMax, nCurOffset=nSizeInBits, nAlignSize=nAlignSize, nIntItemMinSize=nIntItemMinSize, nIntItemMaxSize=nIntItemMaxSize)>
 end if;
 >>
@@ -494,7 +494,7 @@ end if;
 str_VarSize_decode(p, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize) ::= <<
 --val := <sTasName>_Init;
 result.ErrorCode := <rtlModuleName()>.ERR_INSUFFICIENT_DATA; 
-uper_asn1_rtl.UPER_Dec_ConstraintWholeNumberInt(bs, nStringLength, <nSizeMin>, <nSizeMax>, <nSizeInBits>, result.Success);
+adaasn1rtl.encoding.uper.UPER_Dec_ConstraintWholeNumberInt(bs, nStringLength, <nSizeMin>, <nSizeMax>, <nSizeInBits>, result.Success);
 <i> := 1; 
 <loopFixedItem_dec(i=i, sInternalItem=sInternalItem, fixedSize="nStringLength", nfixedSizeUperLimit = nSizeMax, nCurOffset=nSizeInBits, nAlignSize=nAlignSize, nIntItemMinSize=nIntItemMinSize, nIntItemMaxSize=nIntItemMaxSize)>
 
@@ -513,22 +513,22 @@ end loop;
 /* OCTET AND BIT STRING*/
 
 InternalItem_bit_str_encode(p, i, sErrCode) ::=<<
-<rtlModuleName()>.BitStream_AppendBit(bs, <p>.Data(<i>));
+<rtlModuleName()>.encoding.BitStream_AppendBit(bs, <p>.Data(<i>));
 >>
 
 InternalItem_bit_str_decode(p, i, sErrCode) ::=<<
-<rtlModuleName()>.BitStream_ReadBit(bs, <p>.Data(<i>), result.Success);
+<rtlModuleName()>.encoding.BitStream_ReadBit(bs, <p>.Data(<i>), result.Success);
 if not result.Success then
     result.errorcode := <sErrCode>;
 end if;
 >>
 
 InternalItem_oct_str_encode(p, sAcc, i, sErrCode) ::=<<
-<rtlModuleName()>.BitStream_AppendByte(bs, <p>.Data(<i>), FALSE);
+<rtlModuleName()>.encoding.BitStream_AppendByte(bs, <p>.Data(<i>), FALSE);
 >>
 
 InternalItem_oct_str_decode(p, sAcc, i, sErrCode) ::=<<
-<rtlModuleName()>.BitStream_DecodeByte(bs, <p>.Data(<i>), result.Success);
+<rtlModuleName()>.encoding.BitStream_DecodeByte(bs, <p>.Data(<i>), result.Success);
 if not result.Success then
     result.errorcode := <sErrCode>;
 end if;
@@ -550,13 +550,13 @@ result.Success := <p><sAcc>Length >= <nSizeMin> AND <p><sAcc>Length \<= <nSizeMa
 result.errorCode := <sErrCode>;
 <i> := 1; 
 if result.Success THEN
-    uper_asn1_rtl.UPER_Enc_ConstraintWholeNumber(bs, <rtlModuleName()>.Asn1Int(<p><sAcc>Length), <nSizeMin>, <nSizeInBits>);
+    adaasn1rtl.encoding.uper.UPER_Enc_ConstraintWholeNumber(bs, <rtlModuleName()>.Asn1Int(<p><sAcc>Length), <nSizeMin>, <nSizeInBits>);
     <loopFixedItem_enc(i=i, sInternalItem=sInternalItem, fixedSize=[p, sAcc, "Length"], nfixedSizeUperLimit = nSizeMax, nCurOffset=nSizeInBits, nAlignSize=nAlignSize, nIntItemMinSize=nIntItemMinSize, nIntItemMaxSize=nIntItemMaxSize)>
 end if;
 >>
 
 octect_VarSize_decode(p, sAcc, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, sErrCode) ::= <<
-uper_asn1_rtl.UPER_Dec_ConstraintWholeNumberInt(bs, nStringLength, <nSizeMin>, <nSizeMax>, <nSizeInBits>, result.Success);
+adaasn1rtl.encoding.uper.UPER_Dec_ConstraintWholeNumberInt(bs, nStringLength, <nSizeMin>, <nSizeMax>, <nSizeInBits>, result.Success);
 result.errorCode := <sErrCode>;
 <i> := 1; 
 <p>.Length := nStringLength;
@@ -576,7 +576,7 @@ FixedSize_Fragmentation_sqf_64K_encode(p, sAcc,sCurOffset, sCurBlockSize, sBlock
 <sCurBlockSize> := 16#10000#;
 <sCurOffset> := 1;
 for <sBlockIndex> in 1 .. <nBlocks64K> loop
-    uper_asn1_rtl.UPER_Enc_ConstraintWholeNumber(bs, 16#C4#, 0, 8);
+    adaasn1rtl.encoding.uper.UPER_Enc_ConstraintWholeNumber(bs, 16#C4#, 0, 8);
 	for <sBLI> in <sCurOffset> .. <sCurOffset> + <sCurBlockSize> -1 loop
 		<sInternalItem>
 	end loop;
@@ -588,7 +588,7 @@ end loop;
 FixedSize_Fragmentation_sqf_small_block_encode(p, sAcc,sInternalItem, nBlockSize, sBlockId, sCurOffset, sCurBlockSize, sBLI, sRemainingItemsVar, bIsBitStringType, sErrCodeName) ::=<<
 --encode <nBlockSize> Block
 <sCurBlockSize> := <nBlockSize>;
-uper_asn1_rtl.UPER_Enc_ConstraintWholeNumber(bs, <sBlockId>, 0, 8);
+adaasn1rtl.encoding.uper.UPER_Enc_ConstraintWholeNumber(bs, <sBlockId>, 0, 8);
 for <sBLI> in <sCurOffset> .. <sCurOffset> + <sCurBlockSize> -1 loop
 	<sInternalItem>
 end loop;
@@ -599,11 +599,11 @@ end loop;
 FixedSize_Fragmentation_sqf_remaining_encode(p, sAcc,sInternalItem, bRemainingItemsWithinByte, nRemainingItemsVar, sCurOffset, sBLI, sRemainingItemsVar, bIsBitStringType, sErrCodeName) ::= <<
 --encoding remaining <nRemainingItemsVar> items
 <if(bRemainingItemsWithinByte)>
-uper_asn1_rtl.UPER_Enc_ConstraintWholeNumber(bs, <rtlModuleName()>.Asn1Int(<nRemainingItemsVar>), 0, 8);
+adaasn1rtl.encoding.uper.UPER_Enc_ConstraintWholeNumber(bs, <rtlModuleName()>.Asn1Int(<nRemainingItemsVar>), 0, 8);
 
 <else>
-<rtlModuleName()>.BitStream_AppendBit(bs, 1);
-uper_asn1_rtl.UPER_Enc_ConstraintWholeNumber(bs, <rtlModuleName()>.Asn1Int(<nRemainingItemsVar>), 0, 15);
+<rtlModuleName()>.encoding.BitStream_AppendBit(bs, 1);
+adaasn1rtl.encoding.uper.UPER_Enc_ConstraintWholeNumber(bs, <rtlModuleName()>.Asn1Int(<nRemainingItemsVar>), 0, 15);
 
 <endif>
 for <sBLI> in <sCurOffset> .. <sCurOffset> + <nRemainingItemsVar> -1 loop
@@ -618,21 +618,21 @@ FixedSize_Fragmentation_sqf_encode(arrsEncodingParts) ::= <<
 
 Fragmentation_sqf_encode(p, sAcc, sInternalItem, nIntItemMaxSize, nSizeMin, nSizeMax, nRequiredBitsForUPerEncoding, bIsVariableSize, sErrCodeName, sRemainingItemsVar, sCurBlockSize, sBlockIndex, sCurOffset, sBLJ, sBLI, sLengthTmp, bIsBitStringType, bIsAsciiString) ::= <<
 <sCurOffset> := 1;
-<sRemainingItemsVar> := <if(bIsAsciiString)><rtlModuleName()>.getStringSize(<p>)<else><if(bIsVariableSize)><p><sAcc>Length<else><nSizeMax><endif><endif>;
+<sRemainingItemsVar> := <if(bIsAsciiString)><rtlModuleName()>.encoding.getStringSize(<p>)<else><if(bIsVariableSize)><p><sAcc>Length<else><nSizeMax><endif><endif>;
 <sBlockIndex>:=1;
-while <sRemainingItemsVar> >= 16#4000# and <sBlockIndex> \< <if(bIsAsciiString)><rtlModuleName()>.getStringSize(<p>)<else><if(bIsVariableSize)><p><sAcc>Length<else><nSizeMax><endif><endif> loop
+while <sRemainingItemsVar> >= 16#4000# and <sBlockIndex> \< <if(bIsAsciiString)><rtlModuleName()>.encoding.getStringSize(<p>)<else><if(bIsVariableSize)><p><sAcc>Length<else><nSizeMax><endif><endif> loop
     if <sRemainingItemsVar> >= 16#10000# then
         <sCurBlockSize> := 16#10000#;
-        uper_asn1_rtl.UPER_Enc_ConstraintWholeNumber(bs, 16#C4#, 0, 8);
+        adaasn1rtl.encoding.uper.UPER_Enc_ConstraintWholeNumber(bs, 16#C4#, 0, 8);
     elsif <sRemainingItemsVar> >= 16#C000# then
         <sCurBlockSize> := 16#C000#;
-        uper_asn1_rtl.UPER_Enc_ConstraintWholeNumber(bs, 16#C3#, 0, 8);
+        adaasn1rtl.encoding.uper.UPER_Enc_ConstraintWholeNumber(bs, 16#C3#, 0, 8);
     elsif <sRemainingItemsVar> >= 16#8000# then
         <sCurBlockSize> := 16#8000#;
-        uper_asn1_rtl.UPER_Enc_ConstraintWholeNumber(bs, 16#C2#, 0, 8);
+        adaasn1rtl.encoding.uper.UPER_Enc_ConstraintWholeNumber(bs, 16#C2#, 0, 8);
     else 
         <sCurBlockSize> := 16#4000#;
-        uper_asn1_rtl.UPER_Enc_ConstraintWholeNumber(bs, 16#C1#, 0, 8);
+        adaasn1rtl.encoding.uper.UPER_Enc_ConstraintWholeNumber(bs, 16#C1#, 0, 8);
     end if;
 
     -- set1
@@ -651,10 +651,10 @@ while <sRemainingItemsVar> >= 16#4000# and <sBlockIndex> \< <if(bIsAsciiString)>
 end loop;
 
 if <sRemainingItemsVar> \<= 16#7F# then
-    uper_asn1_rtl.UPER_Enc_ConstraintWholeNumber(bs, <rtlModuleName()>.Asn1Int(<sRemainingItemsVar>), 0, 8);
+    adaasn1rtl.encoding.uper.UPER_Enc_ConstraintWholeNumber(bs, <rtlModuleName()>.Asn1Int(<sRemainingItemsVar>), 0, 8);
 else
-    <rtlModuleName()>.BitStream_AppendBit(bs, 1);
-    uper_asn1_rtl.UPER_Enc_ConstraintWholeNumber(bs, <rtlModuleName()>.Asn1Int(<sRemainingItemsVar>), 0, 15);
+    <rtlModuleName()>.encoding.BitStream_AppendBit(bs, 1);
+    adaasn1rtl.encoding.uper.UPER_Enc_ConstraintWholeNumber(bs, <rtlModuleName()>.Asn1Int(<sRemainingItemsVar>), 0, 15);
 end if;
 
 <sBLJ> := 0;
@@ -685,7 +685,7 @@ FixedSize_Fragmentation_sqf_64K_decode(p, sAcc,sCurOffset, sCurBlockSize, sBlock
 <sCurOffset> := 1;
 result.ErrorCode := <sErrCodeName>; 
 for <sBlockIndex> in 1 .. <nBlocks64K>  loop
-    uper_asn1_rtl.UPER_Dec_ConstraintWholeNumberInt(bs, <sRemainingItemsVar>, 0, 255, 8, result.Success);
+    adaasn1rtl.encoding.uper.UPER_Dec_ConstraintWholeNumberInt(bs, <sRemainingItemsVar>, 0, 255, 8, result.Success);
     result.Success := result.Success AND (<sRemainingItemsVar> = 16#C4#);
     exit when not Result.Success;
 
@@ -703,7 +703,7 @@ end loop;
 FixedSize_Fragmentation_sqf_small_block_decode(p, sAcc,sInternalItem, nBlockSize, sBlockId, sCurOffset, sCurBlockSize, sBLI, sRemainingItemsVar, bIsBitStringType, sErrCodeName) ::=<<
 --decode a single Block with <nBlockSize> items
 <sCurBlockSize> := <nBlockSize>;
-uper_asn1_rtl.UPER_Dec_ConstraintWholeNumberInt(bs, <sRemainingItemsVar>, 0, 255, 8, result.Success);
+adaasn1rtl.encoding.uper.UPER_Dec_ConstraintWholeNumberInt(bs, <sRemainingItemsVar>, 0, 255, 8, result.Success);
 result.Success  := result.Success AND (<sRemainingItemsVar> = <sBlockId>);
 if result.Success then
     for <sBLI> in <sCurOffset> .. <sCurOffset> + <sCurBlockSize> -1 loop
@@ -718,11 +718,11 @@ end if;
 FixedSize_Fragmentation_sqf_remaining_decode(p, sAcc,sInternalItem, bRemainingItemsWithinByte, nRemainingItemsVar, sCurOffset, sBLI, sRemainingItemsVar, bIsBitStringType, sErrCodeName) ::= <<
 --decode remaining <nRemainingItemsVar> items
 <if(bRemainingItemsWithinByte)>
-uper_asn1_rtl.UPER_Dec_ConstraintWholeNumberInt(bs, <sRemainingItemsVar>, 0, 255, 8, result.Success);
+adaasn1rtl.encoding.uper.UPER_Dec_ConstraintWholeNumberInt(bs, <sRemainingItemsVar>, 0, 255, 8, result.Success);
 result.Success  := result.Success AND (<sRemainingItemsVar> = <nRemainingItemsVar>);
 
 <else>
-uper_asn1_rtl.UPER_Dec_ConstraintWholeNumberInt(bs, <sRemainingItemsVar>, 0, 16#FFFF#, 16, result.Success);
+adaasn1rtl.encoding.uper.UPER_Dec_ConstraintWholeNumberInt(bs, <sRemainingItemsVar>, 0, 16#FFFF#, 16, result.Success);
 result.Success := result.Success AND ((adaasn1rtl.Asn1UInt(16#8000#) AND adaasn1rtl.Asn1UInt(<sRemainingItemsVar>)) > 0) AND ( (adaasn1rtl.Asn1UInt(16#7FFF#) AND adaasn1rtl.Asn1UInt(<sRemainingItemsVar>)) = adaasn1rtl.Asn1UInt(<nRemainingItemsVar>));
 
 <endif>
@@ -741,7 +741,7 @@ Fragmentation_sqf_decode(p, sAcc, sInternalItem, nIntItemMaxSize, nSizeMin, nSiz
 <sCurBlockSize> := 0;
 result.ErrorCode := <sErrCodeName>; 
 -- decode blockSize
-uper_asn1_rtl.UPER_Dec_ConstraintWholeNumberInt(bs, <sRemainingItemsVar>, 0, 255, 8, result.Success);
+adaasn1rtl.encoding.uper.UPER_Dec_ConstraintWholeNumberInt(bs, <sRemainingItemsVar>, 0, 255, 8, result.Success);
 <sCurOffset> := 1;
 
 while result.Success AND (<sRemainingItemsVar> = 16#C4# OR <sRemainingItemsVar> = 16#C3# OR <sRemainingItemsVar> = 16#C2# OR <sRemainingItemsVar> = 16#C1#)  loop
@@ -765,7 +765,7 @@ while result.Success AND (<sRemainingItemsVar> = 16#C4# OR <sRemainingItemsVar> 
     end loop;
     <if(bIsVariableSize)><sLengthTmp> := <sLengthTmp> + <sCurBlockSize>;<endif>
     <sCurOffset> := <sCurOffset> + <sCurBlockSize>;
-    uper_asn1_rtl.UPER_Dec_ConstraintWholeNumberInt(bs, <sRemainingItemsVar>, 0, 255, 8, result.Success);
+    adaasn1rtl.encoding.uper.UPER_Dec_ConstraintWholeNumberInt(bs, <sRemainingItemsVar>, 0, 255, 8, result.Success);
 end loop;
 
 if <sRemainingItemsVar> >= 16#80# THEN
@@ -773,7 +773,7 @@ if <sRemainingItemsVar> >= 16#80# THEN
         len2:Integer;
     begin
         <sRemainingItemsVar> := (<sRemainingItemsVar> - 16#80#) * 16#100#;
-        uper_asn1_rtl.UPER_Dec_ConstraintWholeNumberInt(bs, len2, 0, 255, 8, result.Success);
+        adaasn1rtl.encoding.uper.UPER_Dec_ConstraintWholeNumberInt(bs, len2, 0, 255, 8, result.Success);
         if result.Success THEN
              <sRemainingItemsVar> := <sRemainingItemsVar> + len2;
         end if;

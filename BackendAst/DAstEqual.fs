@@ -28,7 +28,8 @@ let isEqualBodyString (l:ProgrammingLanguage) (v1:CallerScope) (v2:CallerScope) 
     | Ada       -> Some (sprintf "%s = %s" v1.arg.p v2.arg.p   , [])
 
 let isEqualBodyObjectIdentifier (l:ProgrammingLanguage) (v1:CallerScope) (v2:CallerScope) =
-    Some (sprintf "ObjectIdentifier_equal(%s, %s)" (v1.arg.getPointer l) (v2.arg.getPointer l)  , [])
+    let namespacePrefix = match l with C -> "" | Ada -> "adaasn1rtl.encoding."
+    Some (sprintf "%sObjectIdentifier_equal(%s, %s)" namespacePrefix (v1.arg.getPointer l) (v2.arg.getPointer l)  , [])
 
 
 let isEqualBodyOctetString (l:ProgrammingLanguage) sMin sMax (v1:CallerScope) (v2:CallerScope) =
@@ -181,7 +182,7 @@ let createRealEqualFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:As
     let isEqualBodyPrimitive (l:ProgrammingLanguage) (v1:CallerScope) (v2:CallerScope) =
         match l with
         | C         -> Some (sprintf "%s == %s" (v1.arg.getValue l) (v2.arg.getValue l)  , [])
-        | Ada       -> Some (sprintf "adaasn1rtl.Asn1Real_Equal(%s, %s)" v1.arg.p v2.arg.p   , [])
+        | Ada       -> Some (sprintf "adaasn1rtl.encoding.Asn1Real_Equal(%s, %s)" v1.arg.p v2.arg.p   , [])
     let isEqualBody         = EqualBodyExpression (isEqualBodyPrimitive l)
     createEqualFunction_any r l t typeDefinition isEqualBody //(stgPrintEqualPrimitive l) (stgMacroPrimDefFunc l) 
 

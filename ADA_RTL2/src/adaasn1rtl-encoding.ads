@@ -1,42 +1,16 @@
-with Ada.Characters.Latin_1;
+package adaasn1rtl.encoding with Spark_Mode is
 
-package asn1_core.encoding with Spark_Mode is
-
-   ERR_END_OF_STREAM              : constant Integer := 1001;
-   ERR_INSUFFICIENT_DATA          : constant Integer := 101;
-   ERR_UNSUPPORTED_ENCODING       : constant Integer := 1002;  --  Returned when the uPER encoding for REALs is not binary encoding
-   ERR_INCORRECT_STREAM           : constant Integer := 104;
    
-   NUL : constant Standard.Character := Ada.Characters.Latin_1.NUL;
 
-   type BitArray is array (Natural range <>) of BIT;
-   for BitArray'Component_Size use 1;
-   --pragma Pack (BitArray);
 
    type Asn1Int_ARRAY_0_19 is array (0 .. 19) of Asn1UInt;
    Powers_of_10 : constant Asn1Int_ARRAY_0_19 := Asn1Int_ARRAY_0_19'(0 => 1, 1 => 10, 2 => 100, 3 => 1000, 4 => 10000, 5 => 100000, 6 => 1000000, 7 => 10000000, 8 => 100000000, 9 => 1000000000, 10 => 10000000000, 11 => 100000000000, 12 => 1000000000000, 13 => 10000000000000, 14 => 100000000000000, 15 => 1000000000000000, 16 => 10000000000000000, 17 => 100000000000000000, 18 => 1000000000000000000, 19 => 10000000000000000000);
 
    
-   type ASN1_RESULT is record
-      Success   : Boolean;
-      ErrorCode : Integer;
-   end record;
-   
-   
-   type TEST_CASE_STEP is
-     (TC_VALIDATE, TC_ENCODE, TC_DECODE, TC_VALIDATE_DECODED, TC_EQUAL);
-
-   type TEST_CASE_RESULT is record
-      Step      : TEST_CASE_STEP;
-      Success   : Boolean;
-      ErrorCode : Integer;
-   end record;
-
    
    subtype BIT_RANGE is Natural range 0 .. 7;
    
    
-   type OctetBuffer is array (Natural range <>) of Asn1Byte;
    subtype OctetBuffer_16 is OctetBuffer (1 .. 16);
    subtype OctetArray4 is OctetBuffer (1 .. 4);
    subtype OctetArray8 is OctetBuffer (1 .. 8);
@@ -415,4 +389,4 @@ package asn1_core.encoding with Spark_Mode is
                 );
 
    
-end asn1_core.encoding;
+end adaasn1rtl.encoding;

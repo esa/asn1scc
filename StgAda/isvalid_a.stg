@@ -57,7 +57,7 @@ ExpAndMulit(arrsExp) ::= <<
 <arrsExp; separator=" AND ">
 >>
 ExpNot(sExp) ::= "(NOT <sExp>)"
-StrLen(sExp) ::= "<rtlModuleName()>.getStringSize(<sExp>)"
+StrLen(sExp) ::= "<rtlModuleName()>.encoding.getStringSize(<sExp>)"
 ArrayLen(sExp, sAcc) ::= "<sExp><sAcc>Length"
 
 
@@ -198,7 +198,7 @@ FUNCTION <sFuncName>(str : in String) return boolean
 IS
     ret:BOOLEAN:=true;
     I:INTEGER:=1;
-    strLen :constant Integer := <rtlModuleName()>.getStringSize(str);
+    strLen :constant Integer := <rtlModuleName()>.encoding.getStringSize(str);
 BEGIN
     WHILE I\<= strLen and ret LOOP
         pragma Loop_Invariant (I>=1 AND I\<=str'Last);
@@ -216,11 +216,11 @@ PrintMultipleConstraints(arrsConstraints) ::= "<arrsConstraints; separator=\" AN
 
 callAlphaFunc(sFuncName, p) ::= "<sFuncName>_CharsAreValid(<p>)"
 
-getStringSize(p) ::= "<rtlModuleName()>.getStringSize(<p>)"
+getStringSize(p) ::= "<rtlModuleName()>.encoding.getStringSize(<p>)"
 
 getSizeableSize(p) ::= "<p>.Length"
 
-stringContainsChar(sStrVal, p) ::= "<rtlModuleName()>.stringContainsChar(<sStrVal>, <p>)"
+stringContainsChar(sStrVal, p) ::= "<rtlModuleName()>.encoding.stringContainsChar(<sStrVal>, <p>)"
 
 PrintReference1(p, sName) ::= "<sName>_IsConstraintValid(<p>)"
 
@@ -364,22 +364,22 @@ end case;
 
 
 octet_var_string_equal(p, sAccess, nVarLength, sOctArrayLiteral )::=<<
-<rtlModuleName()>.OctetString_equal(<p><sAccess>Length, <nVarLength>, <p><sAccess>Data, <sOctArrayLiteral>)
+<rtlModuleName()>.encoding.OctetString_equal(<p><sAccess>Length, <nVarLength>, <p><sAccess>Data, <sOctArrayLiteral>)
 >>
 
 octet_fix_string_equal(p, sAccess, nFixedSize, nVarLength, sOctArrayLiteral )::=<<
-<rtlModuleName()>.OctetString_equal(<nFixedSize>, <nVarLength>, <p><sAccess>Data, <sOctArrayLiteral>)
+<rtlModuleName()>.encoding.OctetString_equal(<nFixedSize>, <nVarLength>, <p><sAccess>Data, <sOctArrayLiteral>)
 >>
 
 bit_var_string_equal(p, sAccess, nVarLength, sOctArrayLiteral, sBitArrayLiteral )::=<<
-<rtlModuleName()>.BitString_equal(<p><sAccess>Length, <nVarLength>, <p><sAccess>Data, <sBitArrayLiteral>)
+<rtlModuleName()>.encoding.BitString_equal(<p><sAccess>Length, <nVarLength>, <p><sAccess>Data, <sBitArrayLiteral>)
 >>
 
 bit_fix_string_equal(p, sAccess, nFixedSize, nVarLength, sOctArrayLiteral, sBitArrayLiteral  )::=<<
-<rtlModuleName()>.BitString_equal(<nFixedSize>, <nVarLength>, <p><sAccess>Data, <sBitArrayLiteral>)
+<rtlModuleName()>.encoding.BitString_equal(<nFixedSize>, <nVarLength>, <p><sAccess>Data, <sBitArrayLiteral>)
 >>
 
 
 objId_equal(p, sObjIdLiteral)::=<<
-<rtlModuleName()>.ObjectIdentifier_equal(<p>, <sObjIdLiteral>)
+<rtlModuleName()>.encoding.ObjectIdentifier_equal(<p>, <sObjIdLiteral>)
 >>

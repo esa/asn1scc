@@ -1,4 +1,4 @@
-package asn1_core.encoding.acn with Spark_Mode is
+package adaasn1rtl.encoding.acn with Spark_Mode is
 
    procedure Acn_Enc_Int_PositiveInteger_ConstSize(bs : in out BitStream;  IntVal : in     Asn1UInt;   sizeInBits   : in     Integer) with
      Depends => (bs => (bs, IntVal, sizeInBits)),
@@ -748,4 +748,4 @@ package asn1_core.encoding.acn with Spark_Mode is
      Post    => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + ((strVal'Last - strVal'First + 1)*nCharSize + nLengthDeterminantSizeInBits);
    
 
-end asn1_core.encoding.acn;
+end adaasn1rtl.encoding.acn;

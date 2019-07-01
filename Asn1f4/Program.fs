@@ -268,21 +268,33 @@ let exportRTL outDir  (l:ProgrammingLanguage) (args:CommandLineSettings)=
                 | true  -> writeTextFile (Path.Combine(outDir, "xer.c"))  (rm.GetString("xer",null)) 
                 | false -> ()
     | ProgrammingLanguage.Ada ->
-                writeTextFile (Path.Combine(outDir, "adaasn1rtl.adb")) (rm.GetString("adaasn1rtl_adb",null))
                 let adaasn1rtl_ads = rm.GetString("adaasn1rtl_ads",null)
                 match args.floatingPointSizeInBytes  = 4I with 
                 | true  -> writeTextFile (Path.Combine(outDir, "adaasn1rtl.ads")) (adaasn1rtl_ads.Replace("subtype Asn1Real is Standard.Long_Float;","subtype Asn1Real is Standard.Float;"))
                 | false -> writeTextFile (Path.Combine(outDir, "adaasn1rtl.ads")) (adaasn1rtl_ads) 
 
-                writeTextFile (Path.Combine(outDir, "uper_asn1_rtl.adb")) (rm.GetString("uper_asn1_rtl_adb",null))
-                writeTextFile (Path.Combine(outDir, "uper_asn1_rtl.ads")) (rm.GetString("uper_asn1_rtl_ads",null))
-                writeTextFile (Path.Combine(outDir, "acn_asn1_rtl.adb")) (rm.GetString("acn_asn1_rtl_adb",null))
-                writeTextFile (Path.Combine(outDir, "acn_asn1_rtl.ads")) (rm.GetString("acn_asn1_rtl_ads",null))
+                match args.encodings with
+                | []    -> ()
+                | _     ->
+                    writeTextFile (Path.Combine(outDir, "adaasn1rtl-encoding.adb")) (rm.GetString("adaasn1rtl_encoding_adb",null))
+                    writeTextFile (Path.Combine(outDir, "adaasn1rtl-encoding.ads")) (rm.GetString("adaasn1rtl_encoding_ads",null))
+
+                    if args.encodings |> Seq.exists(fun e -> e = UPER)  then
+                        writeTextFile (Path.Combine(outDir, "adaasn1rtl-encoding-uper.adb")) (rm.GetString("adaasn1rtl_encoding_uper_adb",null))
+                        writeTextFile (Path.Combine(outDir, "adaasn1rtl-encoding-uper.ads")) (rm.GetString("adaasn1rtl_encoding_uper_ads",null))
+                
+                    if args.encodings |> Seq.exists(fun e -> e = ACN)  then
+                        writeTextFile (Path.Combine(outDir, "adaasn1rtl-encoding-acn.adb")) (rm.GetString("adaasn1rtl_encoding_acn_adb",null))
+                        writeTextFile (Path.Combine(outDir, "adaasn1rtl-encoding-acn.ads")) (rm.GetString("adaasn1rtl_encoding_acn_ads",null))
+
+                    if args.encodings |> Seq.exists(fun e -> e = XER)  then
+                        writeTextFile (Path.Combine(outDir, "adaasn1rtl-encoding-xer.adb")) (rm.GetString("adaasn1rtl_encoding_xer_adb",null))
+                        writeTextFile (Path.Combine(outDir, "adaasn1rtl-encoding-xer.ads")) (rm.GetString("adaasn1rtl_encoding_xer_ads",null))
 
                 match args.generateAutomaticTestCases with
                 | true  ->
-                    writeTextFile (Path.Combine(outDir, "test_cases_aux.adb")) (rm.GetString("test_cases_aux_adb",null))
-                    writeTextFile (Path.Combine(outDir, "test_cases_aux.ads")) (rm.GetString("test_cases_aux_ads",null))
+                    writeTextFile (Path.Combine(outDir, "adaasn1rtl-encoding-test_cases_aux.adb")) (rm.GetString("adaasn1rtl_encoding_test_cases_aux_adb",null))
+                    writeTextFile (Path.Combine(outDir, "adaasn1rtl-encoding-test_cases_aux.ads")) (rm.GetString("adaasn1rtl_encoding_test_cases_aux_ads",null))
                 | false -> ()
 
                 writeTextFile (Path.Combine(outDir, "IgnoredExaminerWarnings.wrn"))     (rm.GetString("IgnoredExaminerWarnings",null)) 

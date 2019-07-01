@@ -1,6 +1,6 @@
 with Ada.Unchecked_Conversion;
 
-package body asn1_core.encoding.acn with Spark_Mode is
+package body adaasn1rtl.encoding.acn with Spark_Mode is
 
    procedure Acn_Enc_Int_PositiveInteger_ConstSize  (bs : in out BitStream; IntVal : in Asn1UInt;  sizeInBits: in Integer)
    is
@@ -1373,4 +1373,4 @@ package body asn1_core.encoding.acn with Spark_Mode is
    
    
 
-end asn1_core.encoding.acn;
+end adaasn1rtl.encoding.acn;

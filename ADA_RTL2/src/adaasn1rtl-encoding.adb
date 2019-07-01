@@ -1,4 +1,4 @@
-package body asn1_core.encoding with Spark_Mode is
+package body adaasn1rtl.encoding with Spark_Mode is
 
    MASKS  : constant OctetBuffer_0_7 := OctetBuffer_0_7'(0 => 16#80#, 1=> 16#40#, 2=>16#20#, 3=>16#10#, 4=>16#08#, 5=>16#04#, 6=>16#02#, 7=>16#01#);
    MASKSB : constant OctetBuffer_0_7 := OctetBuffer_0_7'(0 => 16#00#, 1=> 16#01#, 2=>16#03#, 3=>16#07#, 4=>16#0F#, 5=>16#1F#, 6=>16#3F#, 7=>16#7F#);
@@ -736,4 +736,4 @@ package body asn1_core.encoding with Spark_Mode is
       IntVal := Integer (Ret);
    end Dec_ConstraintWholeNumberInt;
    
-end asn1_core.encoding;
+end adaasn1rtl.encoding;

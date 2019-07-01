@@ -136,11 +136,14 @@
   </ItemGroup>
   <Target Name="BeforeBuild">
     <ItemGroup>
+    <!--
       <ResourceFilesToCopy Include="$(SolutionDir)ADA_RTL/src/test_cases_aux.*" />
       <ResourceFilesToCopy Include="$(SolutionDir)ADA_RTL/src/adaasn1rtl.*" />
       <ResourceFilesToCopy Include="$(SolutionDir)ADA_RTL/src/uper_asn1_rtl.*" />
       <ResourceFilesToCopy Include="$(SolutionDir)ADA_RTL/src/acn_asn1_rtl.*" />
       <ResourceFilesToCopy Include="$(SolutionDir)ADA_RTL/src/xer_rtl.*" />
+      -->
+      <ResourceFilesToCopy Include="$(SolutionDir)ADA_RTL2/src/*.*" />
       <ResourceFilesToCopy Include="$(SolutionDir)ADA_RTL/aux_files/IgnoredExaminerWarnings.wrn" />
       <ResourceFilesToCopy Include="$(SolutionDir)ADA_RTL/aux_files/gnat.cfg" />
       <ResourceFilesToCopy Include="$(SolutionDir)ADA_RTL/aux_files/run.sh" />
