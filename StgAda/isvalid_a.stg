@@ -57,7 +57,7 @@ ExpAndMulit(arrsExp) ::= <<
 <arrsExp; separator=" AND ">
 >>
 ExpNot(sExp) ::= "(NOT <sExp>)"
-StrLen(sExp) ::= "<rtlModuleName()>.encoding.getStringSize(<sExp>)"
+StrLen(sExp) ::= "<rtlModuleName()>.getStringSize(<sExp>)"
 ArrayLen(sExp, sAcc) ::= "<sExp><sAcc>Length"
 
 
@@ -198,7 +198,7 @@ FUNCTION <sFuncName>(str : in String) return boolean
 IS
     ret:BOOLEAN:=true;
     I:INTEGER:=1;
-    strLen :constant Integer := <rtlModuleName()>.encoding.getStringSize(str);
+    strLen :constant Integer := <rtlModuleName()>.getStringSize(str);
 BEGIN
     WHILE I\<= strLen and ret LOOP
         pragma Loop_Invariant (I>=1 AND I\<=str'Last);
@@ -216,7 +216,7 @@ PrintMultipleConstraints(arrsConstraints) ::= "<arrsConstraints; separator=\" AN
 
 callAlphaFunc(sFuncName, p) ::= "<sFuncName>_CharsAreValid(<p>)"
 
-getStringSize(p) ::= "<rtlModuleName()>.encoding.getStringSize(<p>)"
+getStringSize(p) ::= "<rtlModuleName()>.getStringSize(<p>)"
 
 getSizeableSize(p) ::= "<p>.Length"
 

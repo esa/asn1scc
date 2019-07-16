@@ -1,3 +1,6 @@
+with Interfaces;
+use Interfaces;
+
 package adaasn1rtl.encoding with Spark_Mode is
 
    
@@ -150,20 +153,6 @@ package adaasn1rtl.encoding with Spark_Mode is
    is (if IntVal = 0 then 32   else IntVal);
    
    
-   function GetZeroBasedCharIndex (CharToSearch   :    Character;   AllowedCharSet : in String) return Integer 
-     with
-      Pre => AllowedCharSet'First <= AllowedCharSet'Last and
-      AllowedCharSet'Last <= Integer'Last - 1,
-      Post =>
-       (GetZeroBasedCharIndex'Result >= 0 and   GetZeroBasedCharIndex'Result <=  AllowedCharSet'Last - AllowedCharSet'First);
-
-   function CharacterPos (C : Character) return Integer with
-     Post => (CharacterPos'Result >= 0 and CharacterPos'Result <= 127);
-   
-   function getStringSize (str : String) return Integer with
-     Pre     => str'Last < Natural'Last and then
-                str'Last >= str'First, 
-     Post => getStringSize'Result >= 0 and getStringSize'Result <= (str'Last - str'First + 1);
    
    --Bit strean functions
    

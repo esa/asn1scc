@@ -86,6 +86,11 @@
   <ItemGroup>
     <ClCompile Include="Acn.c" />
     <ClCompile Include="asn1crt.c" />
+    <ClCompile Include="asn1crt_encoding.c" />
+    <ClCompile Include="asn1crt_encoding_acn.c" />
+    <ClCompile Include="asn1crt_encoding_ber.c" />
+    <ClCompile Include="asn1crt_encoding_uper.c" />
+    <ClCompile Include="asn1crt_encoding_xer.c" />
     <ClCompile Include="ber.c" />
     <ClCompile Include="main.c" />
     <ClCompile Include="real.c" />
@@ -96,6 +101,11 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="asn1crt.h" />
+    <ClInclude Include="asn1crt_encoding.h" />
+    <ClInclude Include="asn1crt_encoding_acn.h" />
+    <ClInclude Include="asn1crt_encoding_ber.h" />
+    <ClInclude Include="asn1crt_encoding_uper.h" />
+    <ClInclude Include="asn1crt_encoding_xer.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="ReadMe.txt" />

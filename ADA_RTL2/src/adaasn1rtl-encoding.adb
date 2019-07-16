@@ -1,3 +1,4 @@
+
 package body adaasn1rtl.encoding with Spark_Mode is
 
    MASKS  : constant OctetBuffer_0_7 := OctetBuffer_0_7'(0 => 16#80#, 1=> 16#40#, 2=>16#20#, 3=>16#10#, 4=>16#08#, 5=>16#04#, 6=>16#02#, 7=>16#01#);
@@ -101,47 +102,6 @@ package body adaasn1rtl.encoding with Spark_Mode is
       return Ret;
    end GetLengthInBytesOfSInt;
 
-   
-   function getStringSize (str : String) return Integer is
-      length : Integer :=0;
-   begin
-      for i in str'Range loop
-         pragma Loop_Invariant (length = length'Loop_Entry + (i - str'First));
-         exit when str (I) = Standard.ASCII.NUL;
-         length := length + 1;
-      end loop;
-      
-      return length;
-   end getStringSize;
-   
-   
-   
-   
-   function GetZeroBasedCharIndex (CharToSearch   :    Character;  AllowedCharSet : in String) return Integer
-   is
-      ret : Integer;
-   begin
-      ret := 0;
-      for I in Integer range AllowedCharSet'Range loop
-         ret := I - AllowedCharSet'First;
-         pragma Loop_Invariant  ( 
-            AllowedCharSet'Last >= AllowedCharSet'First and
-            AllowedCharSet'Last <= Integer'Last - 1 and
-            ret = I - AllowedCharSet'First);
-         exit when CharToSearch = AllowedCharSet (I);
-      end loop;
-      return ret;
-   end GetZeroBasedCharIndex;
-
-   function CharacterPos (C : Character) return Integer is
-      ret : Integer;
-   begin
-      ret := Character'Pos (C);
-      if not (ret >= 0 and ret <= 127) then
-         ret := 0;
-      end if;
-      return ret;
-    end CharacterPos;
    
    
 

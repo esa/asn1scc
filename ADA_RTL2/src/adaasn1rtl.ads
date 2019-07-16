@@ -1,5 +1,4 @@
 with Interfaces; 
-use Interfaces;
 with Ada.Characters.Latin_1;
 
 package adaasn1rtl with Spark_Mode is
@@ -54,5 +53,22 @@ package adaasn1rtl with Spark_Mode is
    ERR_INSUFFICIENT_DATA          : constant Integer := 101;
    ERR_UNSUPPORTED_ENCODING       : constant Integer := 1002;  --  Returned when the uPER encoding for REALs is not binary encoding
    ERR_INCORRECT_STREAM           : constant Integer := 104;
+   
+   
+   function GetZeroBasedCharIndex (CharToSearch   :    Character;   AllowedCharSet : in String) return Integer 
+     with
+      Pre => AllowedCharSet'First <= AllowedCharSet'Last and
+      AllowedCharSet'Last <= Integer'Last - 1,
+      Post =>
+       (GetZeroBasedCharIndex'Result >= 0 and   GetZeroBasedCharIndex'Result <=  AllowedCharSet'Last - AllowedCharSet'First);
+
+   function CharacterPos (C : Character) return Integer with
+     Post => (CharacterPos'Result >= 0 and CharacterPos'Result <= 127);
+   
+   function getStringSize (str : String) return Integer with
+     Pre     => str'Last < Natural'Last and then
+                str'Last >= str'First, 
+     Post => getStringSize'Result >= 0 and getStringSize'Result <= (str'Last - str'First + 1);
+   
    
 end adaasn1rtl;

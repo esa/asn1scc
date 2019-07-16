@@ -442,7 +442,7 @@ end loop;
 
 
 InternalItem_string_no_alpha_encode(p, sErrCode, i) ::=<<
-charIndex := <rtlModuleName()>.encoding.CharacterPos(<p>(<i>));
+charIndex := <rtlModuleName()>.CharacterPos(<p>(<i>));
 adaasn1rtl.encoding.uper.UPER_Enc_ConstraintWholeNumber(bs, <rtlModuleName()>.Asn1Int(charIndex), 0, 7);
 >>
 
@@ -455,7 +455,7 @@ result.ErrorCode := <sErrCode>;
 
 
 InternalItem_string_with_alpha_encode(p, sErrCode, td/*:FE_StringTypeDefinition*/, i, nLastItemIndex, arrnAlphabetAsciiCodes, nAlphabetLength, nCharIndexSize) ::=<<
-charIndex := <rtlModuleName()>.encoding.GetZeroBasedCharIndex(<p>(<i>), <td.alpha_set>);
+charIndex := <rtlModuleName()>.GetZeroBasedCharIndex(<p>(<i>), <td.alpha_set>);
 adaasn1rtl.encoding.uper.UPER_Enc_ConstraintWholeNumber(bs, <rtlModuleName()>.Asn1Int(charIndex), 0, <nCharIndexSize>);
 >>
 
@@ -482,7 +482,7 @@ result := <rtlModuleName()>.ASN1_RESULT'(Success => TRUE, ErrorCode => 0);
 >>
 
 str_VarSize_encode(p, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize) ::= <<
-nStringLength := <rtlModuleName()>.encoding.getStringSize(<p>);
+nStringLength := <rtlModuleName()>.getStringSize(<p>);
 result.Success := nStringLength >= <nSizeMin> AND nStringLength \<= <nSizeMax>;
 <i> := 1; 
 if result.Success THEN
@@ -618,9 +618,9 @@ FixedSize_Fragmentation_sqf_encode(arrsEncodingParts) ::= <<
 
 Fragmentation_sqf_encode(p, sAcc, sInternalItem, nIntItemMaxSize, nSizeMin, nSizeMax, nRequiredBitsForUPerEncoding, bIsVariableSize, sErrCodeName, sRemainingItemsVar, sCurBlockSize, sBlockIndex, sCurOffset, sBLJ, sBLI, sLengthTmp, bIsBitStringType, bIsAsciiString) ::= <<
 <sCurOffset> := 1;
-<sRemainingItemsVar> := <if(bIsAsciiString)><rtlModuleName()>.encoding.getStringSize(<p>)<else><if(bIsVariableSize)><p><sAcc>Length<else><nSizeMax><endif><endif>;
+<sRemainingItemsVar> := <if(bIsAsciiString)><rtlModuleName()>.getStringSize(<p>)<else><if(bIsVariableSize)><p><sAcc>Length<else><nSizeMax><endif><endif>;
 <sBlockIndex>:=1;
-while <sRemainingItemsVar> >= 16#4000# and <sBlockIndex> \< <if(bIsAsciiString)><rtlModuleName()>.encoding.getStringSize(<p>)<else><if(bIsVariableSize)><p><sAcc>Length<else><nSizeMax><endif><endif> loop
+while <sRemainingItemsVar> >= 16#4000# and <sBlockIndex> \< <if(bIsAsciiString)><rtlModuleName()>.getStringSize(<p>)<else><if(bIsVariableSize)><p><sAcc>Length<else><nSizeMax><endif><endif> loop
     if <sRemainingItemsVar> >= 16#10000# then
         <sCurBlockSize> := 16#10000#;
         adaasn1rtl.encoding.uper.UPER_Enc_ConstraintWholeNumber(bs, 16#C4#, 0, 8);

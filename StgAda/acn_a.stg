@@ -1208,7 +1208,7 @@ SizeDependency(v, sCount) ::= <<
 >>
 
 
-getStringSize(p) ::= "<rtlModuleName()>.encoding.getStringSize(<p>)"
+getStringSize(p) ::= "<rtlModuleName()>.getStringSize(<p>)"
 getSizeableSize(p, sAcc) ::= "<p>.Length"
 
 

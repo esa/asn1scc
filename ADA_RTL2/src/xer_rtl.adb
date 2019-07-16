@@ -1,7 +1,7 @@
 pragma Style_Checks (Off); -- turn off style checks
 with Ada.Strings; use Ada.Strings;
 
-with Ada.Text_IO; use Ada.Text_IO;
+--with Ada.Text_IO; use Ada.Text_IO;
 
 with Ada.Characters.Handling; use Ada.Characters.Handling;
 
@@ -9,12 +9,12 @@ with Ada.Direct_IO;
 
 with Ada.Characters.Latin_1;
 
-with Interfaces; use Interfaces;
+--with Interfaces; use Interfaces;
 
 with Ada.Strings.Fixed; use Ada.Strings.Fixed;
 
 with Ada.Characters.Latin_1; use Ada.Characters.Latin_1;
-with adaasn1rtl;             use adaasn1rtl;
+--with adaasn1rtl;             use adaasn1rtl;
 
 with Ada.Strings.Maps; use Ada.Strings.Maps;
 
@@ -367,7 +367,7 @@ package body XER_RTL is
    end Is_Space;
 
    procedure NT (Strm : in out CharStream; tok : out Token) is
-      spTokens : String := "<>/=""";
+      spTokens : constant String := "<>/=""";
       s1       : String := " ";
    begin
       while Is_Space (Strm.Data (Strm.CurrentByte)) loop

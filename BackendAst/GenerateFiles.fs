@@ -150,7 +150,7 @@ let private printUnit (r:DAst.AstRoot) (l:ProgrammingLanguage) (encodings: Commo
             header_c.PrintHeaderFile (ToC pu.name) pu.importedProgramUnits typeDefs (arrsValues@arrsHeaderAnonymousValues) arrsPrototypes arrsUtilityDefines
         | Ada   -> 
             let arrsPrivateChoices = []
-            header_a.PrintPackageSpec pu.name pu.importedProgramUnits typeDefs (arrsValues@arrsHeaderAnonymousValues) arrsPrivateChoices
+            header_a.PrintPackageSpec pu.name pu.importedProgramUnits typeDefs (arrsValues@arrsHeaderAnonymousValues) arrsPrivateChoices (not r.args.encodings.IsEmpty)
 
     let fileName = Path.Combine(outDir, pu.specFileName)
     File.WriteAllText(fileName, defintionsContntent.Replace("\r",""))
