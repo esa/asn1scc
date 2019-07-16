@@ -73,6 +73,7 @@ EmitTypeAssignment_primitive(sVarName, sStar, sFuncName, sTypeDefName, sContent,
 flag <sFuncName>(const <sTypeDefName><sStar> <sVarName>, int* pErrCode)
 {
     flag ret = TRUE;
+	(void)<sVarName>;
 	
     <sContent>
 
@@ -91,6 +92,7 @@ EmitTypeAssignment_oct_or_bit_string(sVarName, sStar, sFuncName, sTypeDefName, s
 flag <sFuncName>(const <sTypeDefName><sStar> <sVarName>, int* pErrCode)
 {
     flag ret = TRUE;
+	(void)<sVarName>;
 	
     <sContent>
 
@@ -116,6 +118,7 @@ flag <sFuncName>(const <sTypeDefName><sStar> <sVarName>, int* pErrCode)
 {
     flag ret = TRUE;
     <arrsLocalVars; separator="\n">
+	(void)<sVarName>;
 	
     <sContent>
 
