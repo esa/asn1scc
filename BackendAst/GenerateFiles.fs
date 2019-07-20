@@ -240,7 +240,7 @@ let private printUnit (r:DAst.AstRoot) (l:ProgrammingLanguage) (encodings: Commo
             let encRtl = match r.args.encodings |> Seq.exists(fun e -> e = UPER || e = ACN ) with true -> ["adaasn1rtl.encoding"] | false -> []
             let acnRtl = match r.args.encodings |> Seq.exists(fun e -> e = UPER || e = ACN) with true -> ["adaasn1rtl.encoding.acn"] | false -> []
             let uperRtl = match r.args.encodings |> Seq.exists(fun e -> e = UPER) with true -> ["adaasn1rtl.encoding.uper"] | false -> []
-            let xerRtl = match r.args.encodings |> Seq.exists(fun e -> e = UPER) with true -> ["adaasn1rtl.encoding.xer"] | false -> []
+            let xerRtl = match r.args.encodings |> Seq.exists(fun e -> e = XER) with true -> ["adaasn1rtl.encoding.xer"] | false -> []
             let rtl = [body_a.rtlModuleName()]@encRtl@uperRtl@acnRtl@xerRtl@(r.args.mappingFunctionsModule |> Option.toList) |> List.distinct
             match arrsTypeAssignments with
             | []    -> None
