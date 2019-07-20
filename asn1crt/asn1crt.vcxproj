@@ -64,6 +64,7 @@
       <WarningLevel>EnableAllWarnings</WarningLevel>
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
       <SDLCheck>true</SDLCheck>
+      <AdditionalOptions>/D _CRT_SECURE_NO_WARNINGS %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <PostBuildEvent>
       <Command>
@@ -84,20 +85,13 @@
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="Acn.c" />
     <ClCompile Include="asn1crt.c" />
     <ClCompile Include="asn1crt_encoding.c" />
     <ClCompile Include="asn1crt_encoding_acn.c" />
     <ClCompile Include="asn1crt_encoding_ber.c" />
     <ClCompile Include="asn1crt_encoding_uper.c" />
     <ClCompile Include="asn1crt_encoding_xer.c" />
-    <ClCompile Include="ber.c" />
     <ClCompile Include="main.c" />
-    <ClCompile Include="real.c" />
-    <ClCompile Include="xer.c">
-      <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="asn1crt.h" />

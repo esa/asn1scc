@@ -147,7 +147,7 @@ let private printUnit (r:DAst.AstRoot) (l:ProgrammingLanguage) (encodings: Commo
         match l with
         | C     -> 
             let arrsUtilityDefines = []
-            header_c.PrintHeaderFile (ToC pu.name) pu.importedProgramUnits typeDefs (arrsValues@arrsHeaderAnonymousValues) arrsPrototypes arrsUtilityDefines
+            header_c.PrintHeaderFile (ToC pu.name) pu.importedProgramUnits typeDefs (arrsValues@arrsHeaderAnonymousValues) arrsPrototypes arrsUtilityDefines (not r.args.encodings.IsEmpty)
         | Ada   -> 
             let arrsPrivateChoices = []
             header_a.PrintPackageSpec pu.name pu.importedProgramUnits typeDefs (arrsValues@arrsHeaderAnonymousValues) arrsPrivateChoices (not r.args.encodings.IsEmpty)
@@ -225,7 +225,14 @@ let private printUnit (r:DAst.AstRoot) (l:ProgrammingLanguage) (encodings: Commo
             let arrsSourceAnonymousValues = 
                 arrsAnonymousValues |>
                 List.map (fun av -> variables_c.PrintValueAssignment av.typeDefinitionName av.valueName av.valueExpresion)
-            Some (body_c.printSourceFile pu.name arrsUnnamedVariables (arrsValueAssignments@arrsSourceAnonymousValues) arrsTypeAssignments r.args.mappingFunctionsModule)
+
+            let encRtl = match r.args.encodings |> Seq.exists(fun e -> e = UPER || e = ACN ) with true -> ["asn1crt_encoding"] | false -> []
+            let acnRtl = match r.args.encodings |> Seq.exists(fun e -> e = UPER || e = ACN) with true -> ["asn1crt_encoding_acn"] | false -> []
+            let uperRtl = match r.args.encodings |> Seq.exists(fun e -> e = UPER) with true -> ["asn1crt_encoding_uper"] | false -> []
+            let xerRtl = match r.args.encodings |> Seq.exists(fun e -> e = XER) with true -> ["asn1crt_encoding_xer"] | false -> []
+            let arrsImportedRtlFiles = encRtl@uperRtl@acnRtl@xerRtl
+
+            Some (body_c.printSourceFile pu.name arrsImportedRtlFiles arrsUnnamedVariables (arrsValueAssignments@arrsSourceAnonymousValues) arrsTypeAssignments r.args.mappingFunctionsModule)
         | Ada   ->
             let arrsNegativeReals = []
             let arrsBoolPatterns = []
@@ -233,7 +240,8 @@ let private printUnit (r:DAst.AstRoot) (l:ProgrammingLanguage) (encodings: Commo
             let encRtl = match r.args.encodings |> Seq.exists(fun e -> e = UPER || e = ACN ) with true -> ["adaasn1rtl.encoding"] | false -> []
             let acnRtl = match r.args.encodings |> Seq.exists(fun e -> e = UPER || e = ACN) with true -> ["adaasn1rtl.encoding.acn"] | false -> []
             let uperRtl = match r.args.encodings |> Seq.exists(fun e -> e = UPER) with true -> ["adaasn1rtl.encoding.uper"] | false -> []
-            let rtl = [body_a.rtlModuleName()]@encRtl@uperRtl@acnRtl@(r.args.mappingFunctionsModule |> Option.toList) |> List.distinct
+            let xerRtl = match r.args.encodings |> Seq.exists(fun e -> e = UPER) with true -> ["adaasn1rtl.encoding.xer"] | false -> []
+            let rtl = [body_a.rtlModuleName()]@encRtl@uperRtl@acnRtl@xerRtl@(r.args.mappingFunctionsModule |> Option.toList) |> List.distinct
             match arrsTypeAssignments with
             | []    -> None
             | _     -> Some (body_a.PrintPackageBody pu.name  (rtl@pu.importedProgramUnits) arrsNegativeReals arrsBoolPatterns arrsTypeAssignments arrsChoiceValueAssignments pu.importedTypes)

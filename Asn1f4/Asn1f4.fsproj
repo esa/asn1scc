@@ -61,6 +61,7 @@
   <Import Project="$(FSharpTargetsPath)" />
   <ItemGroup>
     <Compile Include="AssemblyInfo.fs" />
+    <Compile Include="GenerateRTL.fs" />
     <Compile Include="Program.fs" />
     <None Include="App.config" />
     <Content Include="packages.config" />
@@ -136,7 +137,7 @@
   </ItemGroup>
   <Target Name="BeforeBuild">
     <ItemGroup>
-    <!--
+      <!--
       <ResourceFilesToCopy Include="$(SolutionDir)ADA_RTL/src/test_cases_aux.*" />
       <ResourceFilesToCopy Include="$(SolutionDir)ADA_RTL/src/adaasn1rtl.*" />
       <ResourceFilesToCopy Include="$(SolutionDir)ADA_RTL/src/uper_asn1_rtl.*" />
@@ -150,10 +151,16 @@
       <ResourceFilesToCopy Include="$(SolutionDir)ADA_RTL/aux_files/GPS_project.gpr" />
       <ResourceFilesToCopy Include="$(SolutionDir)asn1crt/asn1crt.c" />
       <ResourceFilesToCopy Include="$(SolutionDir)asn1crt/asn1crt.h" />
-      <ResourceFilesToCopy Include="$(SolutionDir)asn1crt/Acn.c" />
-      <ResourceFilesToCopy Include="$(SolutionDir)asn1crt/ber.c" />
-      <ResourceFilesToCopy Include="$(SolutionDir)asn1crt/xer.c" />
-      <ResourceFilesToCopy Include="$(SolutionDir)asn1crt/real.c" />
+      <ResourceFilesToCopy Include="$(SolutionDir)asn1crt/asn1crt_encoding.c" />
+      <ResourceFilesToCopy Include="$(SolutionDir)asn1crt/asn1crt_encoding.h" />
+      <ResourceFilesToCopy Include="$(SolutionDir)asn1crt/asn1crt_encoding_acn.c" />
+      <ResourceFilesToCopy Include="$(SolutionDir)asn1crt/asn1crt_encoding_acn.h" />
+      <ResourceFilesToCopy Include="$(SolutionDir)asn1crt/asn1crt_encoding_ber.c" />
+      <ResourceFilesToCopy Include="$(SolutionDir)asn1crt/asn1crt_encoding_ber.h" />
+      <ResourceFilesToCopy Include="$(SolutionDir)asn1crt/asn1crt_encoding_uper.c" />
+      <ResourceFilesToCopy Include="$(SolutionDir)asn1crt/asn1crt_encoding_uper.h" />
+      <ResourceFilesToCopy Include="$(SolutionDir)asn1crt/asn1crt_encoding_xer.c" />
+      <ResourceFilesToCopy Include="$(SolutionDir)asn1crt/asn1crt_encoding_xer.h" />
     </ItemGroup>
     <PropertyGroup>
       <ResourcesDir>$(ProjectDir)/Resources</ResourcesDir>
