@@ -66,6 +66,9 @@ flag <sFuncName>(const <sTypeDefName><sStar> <sVarName1>, const <sTypeDefName><s
 equalTypeAssignment(sVarName1, sVarName2, sStar, sFuncName, sTypeDefName, sContent, arrsLocalVars, bExpression) ::= <<
 flag <sFuncName>(const <sTypeDefName><sStar> <sVarName1>, const <sTypeDefName><sStar> <sVarName2>)
 {
+	(void)<sVarName1>;
+	(void)<sVarName2>;
+
     <if(bExpression)>
 	return <sContent>;
 

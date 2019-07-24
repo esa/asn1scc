@@ -8,6 +8,8 @@ void <sFuncName>(<sTypeDefName><sStar> <sVarName>);
 initTypeAssignment(sVarName, sStar, sFuncName, sTypeDefName, sContent, arrsLocalVariables) ::= <<
 void <sFuncName>(<sTypeDefName><sStar> <sVarName>)
 {
+	(void)<sVarName>;
+
     <arrsLocalVariables; separator="\n">
 
 	<sContent>

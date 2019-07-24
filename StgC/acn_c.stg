@@ -23,6 +23,9 @@ EmitTypeAssignment_primitive_encode(sVarName, sStar, sFuncName, soIValidFuncName
 flag <sFuncName>(const <sTypeDefName><sStar> <sVarName>, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints)
 {
     flag ret = TRUE;
+	(void)<sVarName>;
+	(void)pBitStrm;
+
 	<arrsLocalVariables:{lv|<lv>}; separator="\n">
     <if(soIValidFuncName)>
 	ret = bCheckConstraints ? <soIValidFuncName>(<sVarName>, pErrCode) : TRUE ;
@@ -50,6 +53,10 @@ EmitTypeAssignment_primitive_decode(sVarName, sStar, sFuncName, soIValidFuncName
 flag <sFuncName>(<sTypeDefName><sStar> <sVarName>, BitStream* pBitStrm, int* pErrCode<if(arrsAcnPrms)>, <arrsAcnPrms; separator=", "><endif>)
 {
     flag ret = TRUE;
+	(void)<sVarName>;
+	(void)pBitStrm;
+	*pErrCode = 0;
+
 	<arrsLocalVariables:{lv|<lv>}; separator="\n">
 
 	<sContent>
@@ -88,6 +95,9 @@ TasPrimitive_encode(sFuncName, sTypeDefName, arrsLocalVariables, sContent,  arrs
 flag <sFuncName>(const <sTypeDefName> val1, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints<if(arrsExtraParams)>, <arrsExtraParams; separator=", "><endif>)
 {
     flag ret = TRUE;
+	(void)val1;
+	(void)pBitStrm;
+
     <arrsLocalVariables; separator="\n">
 
     /*ret = bCheckConstraints ? <sName>_IsConstraintValid(pVal, pErrCode) : TRUE ;*/
@@ -107,6 +117,9 @@ TasPrimitive_decode(sFuncName, sTypeDefName, arrsLocalVariables, sContent, arrsE
 flag <sFuncName>(<sTypeDefName>* pVal1, BitStream* pBitStrm, int* pErrCode<if(arrsExtraParams)>, <arrsExtraParams; separator=", "><endif>)
 {
     flag ret = TRUE;
+	(void)val1;
+	(void)pBitStrm;
+
     <arrsLocalVariables; separator="\n">
     <sContent>
     return ret;
