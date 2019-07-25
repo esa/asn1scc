@@ -38,11 +38,9 @@ emitVisualStudioProject(arrsSrcFiles, arrsHdrFiles, arrsSrcTstFiles, arrsHdrTstF
   </ItemGroup>
   <ItemGroup>
     $arrsSrcFiles:{f|<ClCompile Include="$f$" />}; separator="\n"$
-    <ClCompile Include="acn.c" />
     <ClCompile Include="asn1crt.c" />
     $arrsSrcTstFiles:{f|<ClCompile Include="$f$" />}; separator="\n"$
     <ClCompile Include="mainprogram.c" />
-    <ClCompile Include="real.c" />
     <ClCompile Include="testsuite.c" />
   </ItemGroup>
   <ItemGroup>

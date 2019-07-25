@@ -5,9 +5,8 @@ with Ada.Strings; use Ada.Strings;
 
 with Ada.Characters.Handling; use Ada.Characters.Handling;
 
-with Ada.Direct_IO;
+--with Ada.Direct_IO;
 
-with Ada.Characters.Latin_1;
 
 --with Interfaces; use Interfaces;
 
@@ -20,7 +19,7 @@ with Ada.Strings.Maps; use Ada.Strings.Maps;
 
 with Ada.Integer_Text_IO;
 
-package body XER_RTL is
+package body adaasn1rtl.encoding.xer is
 
    WORD_ID : constant Character := Character'Val (1);
 
@@ -41,7 +40,7 @@ package body XER_RTL is
       str    : in     XString;
       Result :    out ASN1_RESULT)
    is
-      len : Integer := Strlen (str);
+      len : constant Integer := Strlen (str);
    begin
       Result := (Success => False, ErrorCode => ERR_INSUFFICIENT_DATA);
       if (Strm.CurrentByte + len - 1 > Strm.Data'Last) then
@@ -433,12 +432,12 @@ package body XER_RTL is
 
    end NT;
 
-   procedure LA (Strm : in out CharStream; tok : out Token) is
-      I : Integer := Strm.CurrentByte;
-   begin
-      NT (Strm, tok);
-      Strm.CurrentByte := I;
-   end LA;
+--   procedure LA (Strm : in out CharStream; tok : out Token) is
+--      I : Integer := Strm.CurrentByte;
+--   begin
+--      NT (Strm, tok);
+--      Strm.CurrentByte := I;
+--   end LA;
 
    procedure Xer_DecodePrimitiveElement
      (Strm       : in out CharStream;
@@ -980,297 +979,297 @@ package body XER_RTL is
 --         Put_Line(Numeric_String & " is not a float");
 --   end;
 
-   BER_AUX : constant array (Integer range 1 .. 8) of Asn1UInt :=
-     (16#FF#,
-      16#FF00#,
-      16#FF0000#,
-      16#FF000000#,
-      16#FF00000000#,
-      16#FF0000000000#,
-      16#FF000000000000#,
-      16#FF00000000000000#);
+--     BER_AUX : constant array (Integer range 1 .. 8) of Asn1UInt :=
+--       (16#FF#,
+--        16#FF00#,
+--        16#FF0000#,
+--        16#FF000000#,
+--        16#FF00000000#,
+--        16#FF0000000000#,
+--        16#FF000000000000#,
+--        16#FF00000000000000#);
 
    -- The following functions are used to load an XML file (by removing white spaces) into an ByteStream
 
-   package Ran_IO is new Ada.Direct_IO (Character);
+--     package Ran_IO is new Ada.Direct_IO (Character);
+--
+--     type STATE_ID is
+--       (XmlStart,
+--        XmlHeader,
+--        XmlStartTag,
+--        XmlContent,
+--        XmlEndTag,
+--        XmlMixedContent,
+--        XmlComment);
+--
+--     PreviousState : STATE_ID := XmlStart;
+--
+--     type FunType is access procedure
+--       (c       : in     Character;
+--        l1      : in     Character;
+--        Strm    : in out CharStream;
+--        tmpStrm : in out CharStream;
+--        I       : in out Ran_IO.Count;
+--        state   :    out STATE_ID;
+--        success :    out Boolean);
+--
+--     procedure ByteStream_AppendChar
+--       (Strm    : in out CharStream;
+--        c       : in     Character;
+--        success :    out Boolean)
+--     is
+--        Result : ASN1_RESULT;
+--     begin
+--        BS_Append_String (Strm, "" & c, Result);
+--        success := Result.Success;
+--     end ByteStream_AppendChar;
+--
+--     procedure OnXmlStart
+--       (c       : in     Character;
+--        l1      : in     Character;
+--        Strm    : in out CharStream;
+--        tmpStrm : in out CharStream;
+--        I       : in out Ran_IO.Count;
+--        state   :    out STATE_ID;
+--        success :    out Boolean)
+--     is
+--     begin
+--        success := True;
+--
+--        if c /= '<' then
+--           state := XmlStart;
+--           return;
+--        end if;
+--
+--        if l1 = '!' then
+--           state         := XmlComment;
+--           PreviousState := XmlStart;
+--           return;
+--        end if;
+--
+--        if l1 = '?' then
+--           state := XmlHeader;
+--           return;
+--        end if;
+--
+--        state := XmlStartTag;
+--        ByteStream_AppendChar (Strm, c, success);
+--
+--     end OnXmlStart;
+--
+--     procedure OnXmlHeader
+--       (c       : in     Character;
+--        l1      : in     Character;
+--        Strm    : in out CharStream;
+--        tmpStrm : in out CharStream;
+--        I       : in out Ran_IO.Count;
+--        state   :    out STATE_ID;
+--        success :    out Boolean)
+--     is
+--        use Ran_IO;
+--     begin
+--        success := True;
+--        if c = '?' and l1 = '>' then
+--           I     := I + 1;
+--           state := XmlStart;
+--        else
+--           state := XmlHeader;
+--        end if;
+--
+--     end OnXmlHeader;
+--
+--     procedure OnXmlStartTag
+--       (c       : in     Character;
+--        l1      : in     Character;
+--        Strm    : in out CharStream;
+--        tmpStrm : in out CharStream;
+--        I       : in out Ran_IO.Count;
+--        state   :    out STATE_ID;
+--        success :    out Boolean)
+--     is
+--     begin
+--        if c = '>' then
+--           state := XmlContent;
+--        else
+--           state := XmlStartTag;
+--        end if;
+--
+--        ByteStream_AppendChar (Strm, c, success);
+--     end OnXmlStartTag;
+--
+--     procedure OnXmlContent
+--       (c       : in     Character;
+--        l1      : in     Character;
+--        Strm    : in out CharStream;
+--        tmpStrm : in out CharStream;
+--        I       : in out Ran_IO.Count;
+--        state   :    out STATE_ID;
+--        success :    out Boolean)
+--     is
+--     begin
+--        success := True;
+--        if c /= '<' then
+--           state := XmlContent;
+--           ByteStream_AppendChar (tmpStrm, c, success);
+--        else
+--           if l1 = '!' then
+--              state         := XmlComment;
+--              PreviousState := XmlContent;
+--              return;
+--           end if;
+--
+--           if l1 = '/' then
+--              state := XmlEndTag;
+--              --copy data from tmp buf to main steam
+--              for J in 1 .. tmpStrm.CurrentByte - 1 loop
+--                 ByteStream_AppendChar (Strm, tmpStrm.Data (J), success);
+--                 if not success then
+--                    return;
+--                 end if;
+--              end loop;
+--
+--              --Discard tmp buf
+--              tmpStrm.CurrentByte := 1;
+--
+--           else
+--              state := XmlStartTag;
+--              -- Discard tmp buf
+--              tmpStrm.CurrentByte := 1;
+--           end if;
+--
+--           ByteStream_AppendChar (Strm, c, success);
+--        end if;
+--     end OnXmlContent;
+--
+--     procedure OnXmlEndTag
+--       (c       : in     Character;
+--        l1      : in     Character;
+--        Strm    : in out CharStream;
+--        tmpStrm : in out CharStream;
+--        I       : in out Ran_IO.Count;
+--        state   :    out STATE_ID;
+--        success :    out Boolean)
+--     is
+--     begin
+--        if c = '>' then
+--           state := XmlMixedContent;
+--        else
+--           state := XmlEndTag;
+--        end if;
+--
+--        ByteStream_AppendChar (Strm, c, success);
+--
+--     end OnXmlEndTag;
+--
+--     procedure OnXmlMixedContent
+--       (c       : in     Character;
+--        l1      : in     Character;
+--        Strm    : in out CharStream;
+--        tmpStrm : in out CharStream;
+--        I       : in out Ran_IO.Count;
+--        state   :    out STATE_ID;
+--        success :    out Boolean)
+--     is
+--     begin
+--        success := True;
+--        if c /= '<' then
+--           state := XmlMixedContent;
+--        else
+--           if l1 = '!' then
+--              state         := XmlComment;
+--              PreviousState := XmlMixedContent;
+--              return;
+--           end if;
+--
+--           if l1 = '/' then
+--              state := XmlEndTag;
+--           else
+--              state := XmlStartTag;
+--           end if;
+--
+--           ByteStream_AppendChar (Strm, c, success);
+--        end if;
+--     end OnXmlMixedContent;
+--
+--     procedure OnXmlComment
+--       (c       : in     Character;
+--        l1      : in     Character;
+--        Strm    : in out CharStream;
+--        tmpStrm : in out CharStream;
+--        I       : in out Ran_IO.Count;
+--        state   :    out STATE_ID;
+--        success :    out Boolean)
+--     is
+--        use Ran_IO;
+--     begin
+--        success := True;
+--        if c = '-' and l1 = '>' then
+--           I     := I + 1;
+--           state := PreviousState;
+--        else
+--           state := XmlComment;
+--        end if;
+--
+--     end OnXmlComment;
 
-   type STATE_ID is
-     (XmlStart,
-      XmlHeader,
-      XmlStartTag,
-      XmlContent,
-      XmlEndTag,
-      XmlMixedContent,
-      XmlComment);
+--     procedure LoadXmlFile
+--       (fileName    : in     XString;
+--        Strm        :    out CharStream;
+--        BytesLoaded :    out Integer;
+--        success     :    out Boolean)
+--     is
+--        use Ran_IO;
+--
+--        file         : Ran_IO.File_Type;
+--        c            : Character;     -- current character
+--        l1           : Character;    -- next character (look ahead 1)
+--        I            : Ran_IO.Count                := 0;
+--        StateMachine : array (STATE_ID) of FunType :=
+--          (OnXmlStart'Access,
+--           OnXmlHeader'Access,
+--           OnXmlStartTag'Access,
+--           OnXmlContent'Access,
+--           OnXmlEndTag'Access,
+--           OnXmlMixedContent'Access,
+--           OnXmlComment'Access);
+--        curFunction : FunType;
+--        state       : STATE_ID := XmlStart;
+--        tmpStrm     : CharStream (16384);
+--
+--        eofReached : Boolean := False;
+--
+--     begin
+--        success     := True;
+--        BytesLoaded := 0;
+--        Ran_IO.Open (file, Ran_IO.In_File, fileName);
+--
+--        while not Ran_IO.End_Of_File (file) loop
+--           Ran_IO.Read (file, c);
+--           if Ran_IO.End_Of_File (file) then
+--              l1         := c;
+--              eofReached := True;
+--           else
+--              I := Ran_IO.Index (file);
+--              Ran_IO.Read (file, l1); -- read look ahead character
+--              Ran_IO.Set_Index (file, I);
+--           end if;
+--
+--           curFunction := StateMachine (state);
+--           curFunction (c, l1, Strm, tmpStrm, I, state, success);
+--           if not success then
+--              Ran_IO.Close (file);
+--              return;
+--           else
+--              if not eofReached then
+--                 Ran_IO.Set_Index (file, I);
+--              end if;
+--           end if;
+--
+--        end loop;
+--
+--        BytesLoaded      := Strm.CurrentByte - 1;
+--        Strm.CurrentByte := 1;
+--        Ran_IO.Close (file);
+--     end LoadXmlFile;
 
-   PreviousState : STATE_ID := XmlStart;
-
-   type FunType is access procedure
-     (c       : in     Character;
-      l1      : in     Character;
-      Strm    : in out CharStream;
-      tmpStrm : in out CharStream;
-      I       : in out Ran_IO.Count;
-      state   :    out STATE_ID;
-      success :    out Boolean);
-
-   procedure ByteStream_AppendChar
-     (Strm    : in out CharStream;
-      c       : in     Character;
-      success :    out Boolean)
-   is
-      Result : ASN1_RESULT;
-   begin
-      BS_Append_String (Strm, "" & c, Result);
-      success := Result.Success;
-   end ByteStream_AppendChar;
-
-   procedure OnXmlStart
-     (c       : in     Character;
-      l1      : in     Character;
-      Strm    : in out CharStream;
-      tmpStrm : in out CharStream;
-      I       : in out Ran_IO.Count;
-      state   :    out STATE_ID;
-      success :    out Boolean)
-   is
-   begin
-      success := True;
-
-      if c /= '<' then
-         state := XmlStart;
-         return;
-      end if;
-
-      if l1 = '!' then
-         state         := XmlComment;
-         PreviousState := XmlStart;
-         return;
-      end if;
-
-      if l1 = '?' then
-         state := XmlHeader;
-         return;
-      end if;
-
-      state := XmlStartTag;
-      ByteStream_AppendChar (Strm, c, success);
-
-   end OnXmlStart;
-
-   procedure OnXmlHeader
-     (c       : in     Character;
-      l1      : in     Character;
-      Strm    : in out CharStream;
-      tmpStrm : in out CharStream;
-      I       : in out Ran_IO.Count;
-      state   :    out STATE_ID;
-      success :    out Boolean)
-   is
-      use Ran_IO;
-   begin
-      success := True;
-      if c = '?' and l1 = '>' then
-         I     := I + 1;
-         state := XmlStart;
-      else
-         state := XmlHeader;
-      end if;
-
-   end OnXmlHeader;
-
-   procedure OnXmlStartTag
-     (c       : in     Character;
-      l1      : in     Character;
-      Strm    : in out CharStream;
-      tmpStrm : in out CharStream;
-      I       : in out Ran_IO.Count;
-      state   :    out STATE_ID;
-      success :    out Boolean)
-   is
-   begin
-      if c = '>' then
-         state := XmlContent;
-      else
-         state := XmlStartTag;
-      end if;
-
-      ByteStream_AppendChar (Strm, c, success);
-   end OnXmlStartTag;
-
-   procedure OnXmlContent
-     (c       : in     Character;
-      l1      : in     Character;
-      Strm    : in out CharStream;
-      tmpStrm : in out CharStream;
-      I       : in out Ran_IO.Count;
-      state   :    out STATE_ID;
-      success :    out Boolean)
-   is
-   begin
-      success := True;
-      if c /= '<' then
-         state := XmlContent;
-         ByteStream_AppendChar (tmpStrm, c, success);
-      else
-         if l1 = '!' then
-            state         := XmlComment;
-            PreviousState := XmlContent;
-            return;
-         end if;
-
-         if l1 = '/' then
-            state := XmlEndTag;
-            --copy data from tmp buf to main steam
-            for J in 1 .. tmpStrm.CurrentByte - 1 loop
-               ByteStream_AppendChar (Strm, tmpStrm.Data (J), success);
-               if not success then
-                  return;
-               end if;
-            end loop;
-
-            --Discard tmp buf
-            tmpStrm.CurrentByte := 1;
-
-         else
-            state := XmlStartTag;
-            -- Discard tmp buf
-            tmpStrm.CurrentByte := 1;
-         end if;
-
-         ByteStream_AppendChar (Strm, c, success);
-      end if;
-   end OnXmlContent;
-
-   procedure OnXmlEndTag
-     (c       : in     Character;
-      l1      : in     Character;
-      Strm    : in out CharStream;
-      tmpStrm : in out CharStream;
-      I       : in out Ran_IO.Count;
-      state   :    out STATE_ID;
-      success :    out Boolean)
-   is
-   begin
-      if c = '>' then
-         state := XmlMixedContent;
-      else
-         state := XmlEndTag;
-      end if;
-
-      ByteStream_AppendChar (Strm, c, success);
-
-   end OnXmlEndTag;
-
-   procedure OnXmlMixedContent
-     (c       : in     Character;
-      l1      : in     Character;
-      Strm    : in out CharStream;
-      tmpStrm : in out CharStream;
-      I       : in out Ran_IO.Count;
-      state   :    out STATE_ID;
-      success :    out Boolean)
-   is
-   begin
-      success := True;
-      if c /= '<' then
-         state := XmlMixedContent;
-      else
-         if l1 = '!' then
-            state         := XmlComment;
-            PreviousState := XmlMixedContent;
-            return;
-         end if;
-
-         if l1 = '/' then
-            state := XmlEndTag;
-         else
-            state := XmlStartTag;
-         end if;
-
-         ByteStream_AppendChar (Strm, c, success);
-      end if;
-   end OnXmlMixedContent;
-
-   procedure OnXmlComment
-     (c       : in     Character;
-      l1      : in     Character;
-      Strm    : in out CharStream;
-      tmpStrm : in out CharStream;
-      I       : in out Ran_IO.Count;
-      state   :    out STATE_ID;
-      success :    out Boolean)
-   is
-      use Ran_IO;
-   begin
-      success := True;
-      if c = '-' and l1 = '>' then
-         I     := I + 1;
-         state := PreviousState;
-      else
-         state := XmlComment;
-      end if;
-
-   end OnXmlComment;
-
-   procedure LoadXmlFile
-     (fileName    : in     XString;
-      Strm        :    out CharStream;
-      BytesLoaded :    out Integer;
-      success     :    out Boolean)
-   is
-      use Ran_IO;
-
-      file         : Ran_IO.File_Type;
-      c            : Character;     -- current character
-      l1           : Character;    -- next character (look ahead 1)
-      I            : Ran_IO.Count                := 0;
-      StateMachine : array (STATE_ID) of FunType :=
-        (OnXmlStart'Access,
-         OnXmlHeader'Access,
-         OnXmlStartTag'Access,
-         OnXmlContent'Access,
-         OnXmlEndTag'Access,
-         OnXmlMixedContent'Access,
-         OnXmlComment'Access);
-      curFunction : FunType;
-      state       : STATE_ID := XmlStart;
-      tmpStrm     : CharStream (16384);
-
-      eofReached : Boolean := False;
-
-   begin
-      success     := True;
-      BytesLoaded := 0;
-      Ran_IO.Open (file, Ran_IO.In_File, fileName);
-
-      while not Ran_IO.End_Of_File (file) loop
-         Ran_IO.Read (file, c);
-         if Ran_IO.End_Of_File (file) then
-            l1         := c;
-            eofReached := True;
-         else
-            I := Ran_IO.Index (file);
-            Ran_IO.Read (file, l1); -- read look ahead character
-            Ran_IO.Set_Index (file, I);
-         end if;
-
-         curFunction := StateMachine (state);
-         curFunction (c, l1, Strm, tmpStrm, I, state, success);
-         if not success then
-            Ran_IO.Close (file);
-            return;
-         else
-            if not eofReached then
-               Ran_IO.Set_Index (file, I);
-            end if;
-         end if;
-
-      end loop;
-
-      BytesLoaded      := Strm.CurrentByte - 1;
-      Strm.CurrentByte := 1;
-      Ran_IO.Close (file);
-   end LoadXmlFile;
-
-end XER_RTL;
+end adaasn1rtl.encoding.xer;

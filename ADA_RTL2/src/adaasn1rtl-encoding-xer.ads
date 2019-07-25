@@ -1,11 +1,11 @@
 pragma Style_Checks (Off); -- turn off style checks
-with Interfaces; use Interfaces;
+--with Interfaces; use Interfaces;
 
-with adaasn1rtl; use adaasn1rtl;
+--with adaasn1rtl; use adaasn1rtl;
 
-with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
+--with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 
-package XER_RTL is
+package adaasn1rtl.encoding.xer is
 
    subtype XString is String;
 
@@ -137,10 +137,10 @@ package XER_RTL is
       elementTag :    out XString;
       Result     :    out ASN1_RESULT);
 
-   procedure LoadXmlFile
-     (fileName    : in     XString;
-      Strm        :    out CharStream;
-      BytesLoaded :    out Integer;
-      success     :    out Boolean);
+--     procedure LoadXmlFile
+--       (fileName    : in     XString;
+--        Strm        :    out CharStream;
+--        BytesLoaded :    out Integer;
+--        success     :    out Boolean);
 
-end XER_RTL;
+end adaasn1rtl.encoding.xer;

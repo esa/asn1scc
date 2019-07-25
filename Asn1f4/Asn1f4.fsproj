@@ -29,8 +29,8 @@
     <PlatformTarget>AnyCPU</PlatformTarget>
     <DocumentationFile>bin\Debug\Asn1f4.XML</DocumentationFile>
     <Prefer32Bit>true</Prefer32Bit>
-    <StartWorkingDirectory>C:\prj\GitHub\asn1scc\mantis\0000872</StartWorkingDirectory>
-    <StartArguments>-icdUper out2.html a.asn1</StartArguments>
+    <StartWorkingDirectory>C:\prj\GitHub\asn1scc\tmp\xer</StartWorkingDirectory>
+    <StartArguments>-c -XER -o c_out/ -atc Directive-function0.asn TASTE-Directives.asn</StartArguments>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>

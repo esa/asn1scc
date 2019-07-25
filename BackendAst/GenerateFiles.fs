@@ -319,10 +319,24 @@ let private CreateAdaIndexFile (r:AstRoot) bGenTestCases outDir =
 
 let generateVisualStudtioProject (r:DAst.AstRoot) outDir (arrsSrcTstFilesX, arrsHdrTstFilesX) =
     //generate Visual Studio project file
+//    let extrSrcFiles, extrHdrFiles = 
+//        match r.args.encodings |> List.exists ((=) Asn1Encoding.XER) with
+//        | false     -> [],[]
+//        | true      -> ["xer.c"],["xer.h"]
+
     let extrSrcFiles, extrHdrFiles = 
-        match r.args.encodings |> List.exists ((=) Asn1Encoding.XER) with
-        | false     -> [],[]
-        | true      -> ["xer.c"],["xer.h"]
+        r.args.encodings |> 
+        List.collect(fun e -> 
+            match e with
+            | Asn1Encoding.UPER -> ["asn1crt_encoding";"asn1crt_encoding_uper"]
+            | Asn1Encoding.ACN  -> ["asn1crt_encoding";"asn1crt_encoding_uper"; "asn1crt_encoding_acn"]
+            | Asn1Encoding.BER  -> ["asn1crt_encoding";"asn1crt_encoding_ber"]
+            | Asn1Encoding.XER  -> ["asn1crt_encoding";"asn1crt_encoding_xer"]
+        ) |> 
+        List.distinct |>
+        List.map(fun a -> a + ".c", a + ".h") |>
+        List.unzip
+
     let arrsSrcTstFiles = (r.programUnits |> List.map (fun z -> z.tetscase_bodyFileName))
     let arrsHdrTstFiles = (r.programUnits |> List.map (fun z -> z.tetscase_specFileName))
     let vcprjContent = xml_outputs.emitVisualStudioProject 

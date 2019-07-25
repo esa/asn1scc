@@ -150,7 +150,7 @@ flag <sFuncName>(const <sTasName><sStar> <sVal>, int* pErrCode, const char* file
 >>
 
 PrintCodec_body_XER(sModName, sFuncName, sTasName, sStar,  sVal, sEnc, sNestedStatements) ::= <<
-flag <sFuncName>(const <sTasName><sStar> <sVal>, int* pErrCode)
+flag <sFuncName>(const <sTasName><sStar> <sVal>, int* pErrCode, const char* filename)
 {
     static <sTasName> decodedPDU;
     static byte encBuff[<sTasName>_REQUIRED_BYTES_FOR_<sEnc>ENCODING + 1]; /* +1 for zerosized types */

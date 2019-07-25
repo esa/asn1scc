@@ -137,14 +137,8 @@
     <value>Resources\adaasn1rtl.adb;System.String, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089;windows-1253</value>
   </data>
   
-  <data name="xer_rtl_adb" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>Resources\xer_rtl.adb;System.String, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089;windows-1253</value>
-  </data>
-  <data name="xer_rtl_ads" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>Resources\xer_rtl.ads;System.String, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089;windows-1253</value>
-  </data>
 
-    <data name="adaasn1rtl_encoding_adb" type="System.Resources.ResXFileRef, System.Windows.Forms">
+  <data name="adaasn1rtl_encoding_adb" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>Resources\adaasn1rtl-encoding.adb;System.String, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089;windows-1253</value>
   </data>
   <data name="adaasn1rtl_encoding_ads" type="System.Resources.ResXFileRef, System.Windows.Forms">
@@ -168,6 +162,14 @@
   <data name="adaasn1rtl_encoding_uper_ads" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>Resources\adaasn1rtl-encoding-uper.ads;System.String, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089;windows-1253</value>
   </data>
+  
+  <data name="adaasn1rtl_encoding_xer_adb" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>Resources\adaasn1rtl-encoding-xer.adb;System.String, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089;windows-1253</value>
+  </data>
+  <data name="adaasn1rtl_encoding_xer_ads" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>Resources\adaasn1rtl-encoding-xer.ads;System.String, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089;windows-1253</value>
+  </data>
+  
 
   <data name="asn1crt_h" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>Resources\asn1crt.h;System.String, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089;windows-1253</value>
