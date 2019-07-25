@@ -67,22 +67,6 @@ package adaasn1rtl.encoding with Spark_Mode is
      with 
        Pre => nBits > 0 and nBits < Asn1UInt'Size;
    
-   function OctetString_equal(len1 : in Integer;len2 : in Integer; arr1 : in OctetBuffer; arr2 : in OctetBuffer) return boolean
-   is
-   (
-      len1 = len2 and then arr1(arr1'First .. arr1'First + (len1 - 1)) = arr2(arr2'First .. arr2'First + (len1 - 1))
-   )
-       with 
-         Pre => len1 > 0 and len2 > 0 and arr1'First + (len1-1) <= arr1'Last and arr2'First + (len2-1) <= arr1'Last;
-   
-
-   function BitString_equal(len1 : in Integer;len2 : in Integer; arr1 : in BitArray; arr2 : in BitArray) return boolean
-   is
-   (
-      len1 = len2 and then arr1(arr1'First .. arr1'First + (len1 - 1)) = arr2(arr2'First .. arr2'First + (len1 - 1))
-   )
-       with 
-         Pre => len1 > 0 and len2 > 0 and arr1'First + (len1-1) <= arr1'Last and arr2'First + (len2-1) <= arr1'Last;
    
    function Sub (A : in Asn1Int; B : in Asn1Int) return Asn1UInt with
      Pre  => A >= B;
@@ -121,15 +105,6 @@ package adaasn1rtl.encoding with Spark_Mode is
       ;   
    
    
-   function Asn1Real_Equal (Left, Right : in Asn1Real) return Boolean
-   is (
-      if Left = Right then True
-      elsif Left = 0.0 then Right = 0.0
-      elsif Left > Right then   ((Left - Right) / Left) < 0.00001
-      else  ((Right - Left) / Left) < 0.00001
-   );
-   
-   
    
    function PLUS_INFINITY return Asn1Real;
    function MINUS_INFINITY return Asn1Real;
@@ -139,10 +114,6 @@ package adaasn1rtl.encoding with Spark_Mode is
    function RequiresReverse (dummy : Boolean) return Boolean;
    
    
-    procedure ObjectIdentifier_Init(val:out Asn1ObjectIdentifier);
-    function ObjectIdentifier_isValid(val : in Asn1ObjectIdentifier) return boolean;
-    function RelativeOID_isValid(val : in Asn1ObjectIdentifier) return boolean;
-    function ObjectIdentifier_equal(val1 : in Asn1ObjectIdentifier; val2 : in Asn1ObjectIdentifier) return boolean;
    
    
    

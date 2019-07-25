@@ -70,5 +70,38 @@ package adaasn1rtl with Spark_Mode is
                 str'Last >= str'First, 
      Post => getStringSize'Result >= 0 and getStringSize'Result <= (str'Last - str'First + 1);
    
+
+   
+   function Asn1Real_Equal (Left, Right : in Asn1Real) return Boolean
+   is (
+      if Left = Right then True
+      elsif Left = 0.0 then Right = 0.0
+      elsif Left > Right then   ((Left - Right) / Left) < 0.00001
+      else  ((Right - Left) / Left) < 0.00001
+   );
+   
+   
+   function OctetString_equal(len1 : in Integer;len2 : in Integer; arr1 : in OctetBuffer; arr2 : in OctetBuffer) return boolean
+   is
+   (
+      len1 = len2 and then arr1(arr1'First .. arr1'First + (len1 - 1)) = arr2(arr2'First .. arr2'First + (len1 - 1))
+   )
+       with 
+         Pre => len1 > 0 and len2 > 0 and arr1'First + (len1-1) <= arr1'Last and arr2'First + (len2-1) <= arr1'Last;
+   
+
+   function BitString_equal(len1 : in Integer;len2 : in Integer; arr1 : in BitArray; arr2 : in BitArray) return boolean
+   is
+   (
+      len1 = len2 and then arr1(arr1'First .. arr1'First + (len1 - 1)) = arr2(arr2'First .. arr2'First + (len1 - 1))
+   )
+       with 
+         Pre => len1 > 0 and len2 > 0 and arr1'First + (len1-1) <= arr1'Last and arr2'First + (len2-1) <= arr1'Last;
+
+    procedure ObjectIdentifier_Init(val:out Asn1ObjectIdentifier);
+    function ObjectIdentifier_isValid(val : in Asn1ObjectIdentifier) return boolean;
+    function RelativeOID_isValid(val : in Asn1ObjectIdentifier) return boolean;
+    function ObjectIdentifier_equal(val1 : in Asn1ObjectIdentifier; val2 : in Asn1ObjectIdentifier) return boolean;
+   
    
 end adaasn1rtl;

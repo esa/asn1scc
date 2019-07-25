@@ -364,22 +364,22 @@ end case;
 
 
 octet_var_string_equal(p, sAccess, nVarLength, sOctArrayLiteral )::=<<
-<rtlModuleName()>.encoding.OctetString_equal(<p><sAccess>Length, <nVarLength>, <p><sAccess>Data, <sOctArrayLiteral>)
+<rtlModuleName()>.OctetString_equal(<p><sAccess>Length, <nVarLength>, <p><sAccess>Data, <sOctArrayLiteral>)
 >>
 
 octet_fix_string_equal(p, sAccess, nFixedSize, nVarLength, sOctArrayLiteral )::=<<
-<rtlModuleName()>.encoding.OctetString_equal(<nFixedSize>, <nVarLength>, <p><sAccess>Data, <sOctArrayLiteral>)
+<rtlModuleName()>.OctetString_equal(<nFixedSize>, <nVarLength>, <p><sAccess>Data, <sOctArrayLiteral>)
 >>
 
 bit_var_string_equal(p, sAccess, nVarLength, sOctArrayLiteral, sBitArrayLiteral )::=<<
-<rtlModuleName()>.encoding.BitString_equal(<p><sAccess>Length, <nVarLength>, <p><sAccess>Data, <sBitArrayLiteral>)
+<rtlModuleName()>.BitString_equal(<p><sAccess>Length, <nVarLength>, <p><sAccess>Data, <sBitArrayLiteral>)
 >>
 
 bit_fix_string_equal(p, sAccess, nFixedSize, nVarLength, sOctArrayLiteral, sBitArrayLiteral  )::=<<
-<rtlModuleName()>.encoding.BitString_equal(<nFixedSize>, <nVarLength>, <p><sAccess>Data, <sBitArrayLiteral>)
+<rtlModuleName()>.BitString_equal(<nFixedSize>, <nVarLength>, <p><sAccess>Data, <sBitArrayLiteral>)
 >>
 
 
 objId_equal(p, sObjIdLiteral)::=<<
-<rtlModuleName()>.encoding.ObjectIdentifier_equal(<p>, <sObjIdLiteral>)
+<rtlModuleName()>.ObjectIdentifier_equal(<p>, <sObjIdLiteral>)
 >>

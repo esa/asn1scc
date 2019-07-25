@@ -568,7 +568,7 @@ let createStringFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1A
 
 let createObjectIdentifierFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.ObjectIdentifier) (typeDefinition:TypeDefintionOrReference) (us:State)  =
     let conToStrFunc_basic (p:CallerScope)  = 
-        let namespacePrefix = match l with C -> "" | Ada -> "adaasn1rtl.encoding."
+        let namespacePrefix = match l with C -> "" | Ada -> "adaasn1rtl."
         match o.relativeObjectId with
         | false -> VCBExpression (sprintf "%sObjectIdentifier_isValid(%s)" namespacePrefix (p.arg.getPointer l))
         | true  -> VCBExpression (sprintf "%sRelativeOID_isValid(%s)" namespacePrefix (p.arg.getPointer l))
