@@ -29,8 +29,8 @@
     <PlatformTarget>AnyCPU</PlatformTarget>
     <DocumentationFile>bin\Debug\Asn1f4.XML</DocumentationFile>
     <Prefer32Bit>true</Prefer32Bit>
-    <StartWorkingDirectory>C:\prj\GitHub\asn1scc\mantis\0000872</StartWorkingDirectory>
-    <StartArguments>-icdUper out2.html a.asn1</StartArguments>
+    <StartWorkingDirectory>C:\prj\GitHub\asn1scc\tmp\xer</StartWorkingDirectory>
+    <StartArguments>-c -XER -o c_out/ -atc Directive-function0.asn TASTE-Directives.asn</StartArguments>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
@@ -61,6 +61,7 @@
   <Import Project="$(FSharpTargetsPath)" />
   <ItemGroup>
     <Compile Include="AssemblyInfo.fs" />
+    <Compile Include="GenerateRTL.fs" />
     <Compile Include="Program.fs" />
     <None Include="App.config" />
     <Content Include="packages.config" />
@@ -136,21 +137,30 @@
   </ItemGroup>
   <Target Name="BeforeBuild">
     <ItemGroup>
+      <!--
       <ResourceFilesToCopy Include="$(SolutionDir)ADA_RTL/src/test_cases_aux.*" />
       <ResourceFilesToCopy Include="$(SolutionDir)ADA_RTL/src/adaasn1rtl.*" />
       <ResourceFilesToCopy Include="$(SolutionDir)ADA_RTL/src/uper_asn1_rtl.*" />
       <ResourceFilesToCopy Include="$(SolutionDir)ADA_RTL/src/acn_asn1_rtl.*" />
       <ResourceFilesToCopy Include="$(SolutionDir)ADA_RTL/src/xer_rtl.*" />
+      -->
+      <ResourceFilesToCopy Include="$(SolutionDir)ADA_RTL2/src/*.*" />
       <ResourceFilesToCopy Include="$(SolutionDir)ADA_RTL/aux_files/IgnoredExaminerWarnings.wrn" />
       <ResourceFilesToCopy Include="$(SolutionDir)ADA_RTL/aux_files/gnat.cfg" />
       <ResourceFilesToCopy Include="$(SolutionDir)ADA_RTL/aux_files/run.sh" />
       <ResourceFilesToCopy Include="$(SolutionDir)ADA_RTL/aux_files/GPS_project.gpr" />
       <ResourceFilesToCopy Include="$(SolutionDir)asn1crt/asn1crt.c" />
       <ResourceFilesToCopy Include="$(SolutionDir)asn1crt/asn1crt.h" />
-      <ResourceFilesToCopy Include="$(SolutionDir)asn1crt/Acn.c" />
-      <ResourceFilesToCopy Include="$(SolutionDir)asn1crt/ber.c" />
-      <ResourceFilesToCopy Include="$(SolutionDir)asn1crt/xer.c" />
-      <ResourceFilesToCopy Include="$(SolutionDir)asn1crt/real.c" />
+      <ResourceFilesToCopy Include="$(SolutionDir)asn1crt/asn1crt_encoding.c" />
+      <ResourceFilesToCopy Include="$(SolutionDir)asn1crt/asn1crt_encoding.h" />
+      <ResourceFilesToCopy Include="$(SolutionDir)asn1crt/asn1crt_encoding_acn.c" />
+      <ResourceFilesToCopy Include="$(SolutionDir)asn1crt/asn1crt_encoding_acn.h" />
+      <ResourceFilesToCopy Include="$(SolutionDir)asn1crt/asn1crt_encoding_ber.c" />
+      <ResourceFilesToCopy Include="$(SolutionDir)asn1crt/asn1crt_encoding_ber.h" />
+      <ResourceFilesToCopy Include="$(SolutionDir)asn1crt/asn1crt_encoding_uper.c" />
+      <ResourceFilesToCopy Include="$(SolutionDir)asn1crt/asn1crt_encoding_uper.h" />
+      <ResourceFilesToCopy Include="$(SolutionDir)asn1crt/asn1crt_encoding_xer.c" />
+      <ResourceFilesToCopy Include="$(SolutionDir)asn1crt/asn1crt_encoding_xer.h" />
     </ItemGroup>
     <PropertyGroup>
       <ResourcesDir>$(ProjectDir)/Resources</ResourcesDir>

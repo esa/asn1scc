@@ -216,6 +216,7 @@ let createXerEncDecFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:As
     let printCodec_body = match l with C -> test_cases_c.PrintCodec_body_XER   | Ada -> test_cases_a.PrintCodec_body_XER
     let printCodec_body_header = match l with C -> test_cases_c.PrintCodec_body_header   | Ada -> test_cases_a.PrintCodec_spec
     let joinItems = match l with C -> test_cases_c.JoinItems   | Ada -> test_cases_a.JoinItems
+    let write_bitstreamToFile = match l with C -> test_cases_c.Codec_write_bitstreamToFile   | Ada -> test_cases_a.Codec_write_bitstreamToFile
 
     let p   = t.getParamType l Encode
     let varName = p.arg.p
@@ -256,7 +257,9 @@ let createXerEncDecFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:As
                                                 let! fname = eqFunc.isEqualFuncName
                                                 return compareInputWithOutput modName fname varName sAmberIsValid
                                            }                
-                |Write_bitstream_to_file -> None            
+                |Write_bitstream_to_file -> option {
+                                                    return write_bitstreamToFile ()
+                                                }                        
             joinItems (content.orElse "") sNestedContent
 
         match hasXerEncodeFunction encFunc with
@@ -269,7 +272,7 @@ let createXerEncDecFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:As
                         match printStatements xs with
                         | None                 -> Some (printStatement x  None)
                         | Some childrenCont    -> Some (printStatement x  (Some childrenCont))
-                printStatements [Encode_input; Decode_output; Validate_output; Compare_input_output]
+                printStatements [Encode_input; Decode_output; Validate_output; Compare_input_output; Write_bitstream_to_file]
 
             let func = printCodec_body modName funcName (typeDefinition.longTypedefName l) sStar varName sEnc (sNestedStatements.orElse "")
             let funcDef = printCodec_body_header funcName  modName (typeDefinition.longTypedefName l) sStar varName

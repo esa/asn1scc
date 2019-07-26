@@ -1,42 +1,19 @@
-with Ada.Characters.Latin_1;
+with Interfaces;
+use Interfaces;
 
-package asn1_core.encoding with Spark_Mode is
+package adaasn1rtl.encoding with Spark_Mode is
 
-   ERR_END_OF_STREAM              : constant Integer := 1001;
-   ERR_INSUFFICIENT_DATA          : constant Integer := 101;
-   ERR_UNSUPPORTED_ENCODING       : constant Integer := 1002;  --  Returned when the uPER encoding for REALs is not binary encoding
-   ERR_INCORRECT_STREAM           : constant Integer := 104;
    
-   NUL : constant Standard.Character := Ada.Characters.Latin_1.NUL;
 
-   type BitArray is array (Natural range <>) of BIT;
-   for BitArray'Component_Size use 1;
-   --pragma Pack (BitArray);
 
    type Asn1Int_ARRAY_0_19 is array (0 .. 19) of Asn1UInt;
    Powers_of_10 : constant Asn1Int_ARRAY_0_19 := Asn1Int_ARRAY_0_19'(0 => 1, 1 => 10, 2 => 100, 3 => 1000, 4 => 10000, 5 => 100000, 6 => 1000000, 7 => 10000000, 8 => 100000000, 9 => 1000000000, 10 => 10000000000, 11 => 100000000000, 12 => 1000000000000, 13 => 10000000000000, 14 => 100000000000000, 15 => 1000000000000000, 16 => 10000000000000000, 17 => 100000000000000000, 18 => 1000000000000000000, 19 => 10000000000000000000);
 
    
-   type ASN1_RESULT is record
-      Success   : Boolean;
-      ErrorCode : Integer;
-   end record;
-   
-   
-   type TEST_CASE_STEP is
-     (TC_VALIDATE, TC_ENCODE, TC_DECODE, TC_VALIDATE_DECODED, TC_EQUAL);
-
-   type TEST_CASE_RESULT is record
-      Step      : TEST_CASE_STEP;
-      Success   : Boolean;
-      ErrorCode : Integer;
-   end record;
-
    
    subtype BIT_RANGE is Natural range 0 .. 7;
    
    
-   type OctetBuffer is array (Natural range <>) of Asn1Byte;
    subtype OctetBuffer_16 is OctetBuffer (1 .. 16);
    subtype OctetArray4 is OctetBuffer (1 .. 4);
    subtype OctetArray8 is OctetBuffer (1 .. 8);
@@ -90,22 +67,6 @@ package asn1_core.encoding with Spark_Mode is
      with 
        Pre => nBits > 0 and nBits < Asn1UInt'Size;
    
-   function OctetString_equal(len1 : in Integer;len2 : in Integer; arr1 : in OctetBuffer; arr2 : in OctetBuffer) return boolean
-   is
-   (
-      len1 = len2 and then arr1(arr1'First .. arr1'First + (len1 - 1)) = arr2(arr2'First .. arr2'First + (len1 - 1))
-   )
-       with 
-         Pre => len1 > 0 and len2 > 0 and arr1'First + (len1-1) <= arr1'Last and arr2'First + (len2-1) <= arr1'Last;
-   
-
-   function BitString_equal(len1 : in Integer;len2 : in Integer; arr1 : in BitArray; arr2 : in BitArray) return boolean
-   is
-   (
-      len1 = len2 and then arr1(arr1'First .. arr1'First + (len1 - 1)) = arr2(arr2'First .. arr2'First + (len1 - 1))
-   )
-       with 
-         Pre => len1 > 0 and len2 > 0 and arr1'First + (len1-1) <= arr1'Last and arr2'First + (len2-1) <= arr1'Last;
    
    function Sub (A : in Asn1Int; B : in Asn1Int) return Asn1UInt with
      Pre  => A >= B;
@@ -144,15 +105,6 @@ package asn1_core.encoding with Spark_Mode is
       ;   
    
    
-   function Asn1Real_Equal (Left, Right : in Asn1Real) return Boolean
-   is (
-      if Left = Right then True
-      elsif Left = 0.0 then Right = 0.0
-      elsif Left > Right then   ((Left - Right) / Left) < 0.00001
-      else  ((Right - Left) / Left) < 0.00001
-   );
-   
-   
    
    function PLUS_INFINITY return Asn1Real;
    function MINUS_INFINITY return Asn1Real;
@@ -162,10 +114,6 @@ package asn1_core.encoding with Spark_Mode is
    function RequiresReverse (dummy : Boolean) return Boolean;
    
    
-    procedure ObjectIdentifier_Init(val:out Asn1ObjectIdentifier);
-    function ObjectIdentifier_isValid(val : in Asn1ObjectIdentifier) return boolean;
-    function RelativeOID_isValid(val : in Asn1ObjectIdentifier) return boolean;
-    function ObjectIdentifier_equal(val1 : in Asn1ObjectIdentifier; val2 : in Asn1ObjectIdentifier) return boolean;
    
    
    
@@ -176,20 +124,6 @@ package asn1_core.encoding with Spark_Mode is
    is (if IntVal = 0 then 32   else IntVal);
    
    
-   function GetZeroBasedCharIndex (CharToSearch   :    Character;   AllowedCharSet : in String) return Integer 
-     with
-      Pre => AllowedCharSet'First <= AllowedCharSet'Last and
-      AllowedCharSet'Last <= Integer'Last - 1,
-      Post =>
-       (GetZeroBasedCharIndex'Result >= 0 and   GetZeroBasedCharIndex'Result <=  AllowedCharSet'Last - AllowedCharSet'First);
-
-   function CharacterPos (C : Character) return Integer with
-     Post => (CharacterPos'Result >= 0 and CharacterPos'Result <= 127);
-   
-   function getStringSize (str : String) return Integer with
-     Pre     => str'Last < Natural'Last and then
-                str'Last >= str'First, 
-     Post => getStringSize'Result >= 0 and getStringSize'Result <= (str'Last - str'First + 1);
    
    --Bit strean functions
    
@@ -415,4 +349,4 @@ package asn1_core.encoding with Spark_Mode is
                 );
 
    
-end asn1_core.encoding;
+end adaasn1rtl.encoding;

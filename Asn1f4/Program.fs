@@ -248,53 +248,6 @@ let constructCommandLineSettings args (parserResults: ParseResults<CliArguments>
     }    
 
 
-let exportRTL outDir  (l:ProgrammingLanguage) (args:CommandLineSettings)=
-    let writeTextFile fileName (content:String) =
-        System.IO.File.WriteAllText(fileName, content.Replace("\r",""))
-    let rm = new ResourceManager("Resource1", System.Reflection.Assembly.GetExecutingAssembly());
-    match l with
-    | ProgrammingLanguage.C ->
-                writeTextFile (Path.Combine(outDir, "asn1crt.c")) (rm.GetString("asn1crt",null)) 
-                
-                let asn1crt_h = rm.GetString("asn1crt1",null)
-                let intSize = sprintf "#define WORD_SIZE	%d" (int args.integerSizeInBytes)
-                let fpSize = sprintf "#define FP_WORD_SIZE	%d" (int args.floatingPointSizeInBytes)
-                writeTextFile (Path.Combine(outDir, "asn1crt.h")) (asn1crt_h.Replace("#define WORD_SIZE	8", intSize).Replace("#define FP_WORD_SIZE	8", fpSize) )
-                
-                writeTextFile (Path.Combine(outDir, "acn.c"))     (rm.GetString("Acn",null)) 
-                writeTextFile (Path.Combine(outDir, "real.c"))    (rm.GetString("real",null)) 
-
-                match args.encodings |> Seq.exists ((=) Asn1Encoding.XER) with
-                | true  -> writeTextFile (Path.Combine(outDir, "xer.c"))  (rm.GetString("xer",null)) 
-                | false -> ()
-    | ProgrammingLanguage.Ada ->
-                writeTextFile (Path.Combine(outDir, "adaasn1rtl.adb")) (rm.GetString("adaasn1rtl_adb",null))
-                let adaasn1rtl_ads = rm.GetString("adaasn1rtl_ads",null)
-                match args.floatingPointSizeInBytes  = 4I with 
-                | true  -> writeTextFile (Path.Combine(outDir, "adaasn1rtl.ads")) (adaasn1rtl_ads.Replace("subtype Asn1Real is Standard.Long_Float;","subtype Asn1Real is Standard.Float;"))
-                | false -> writeTextFile (Path.Combine(outDir, "adaasn1rtl.ads")) (adaasn1rtl_ads) 
-
-                writeTextFile (Path.Combine(outDir, "uper_asn1_rtl.adb")) (rm.GetString("uper_asn1_rtl_adb",null))
-                writeTextFile (Path.Combine(outDir, "uper_asn1_rtl.ads")) (rm.GetString("uper_asn1_rtl_ads",null))
-                writeTextFile (Path.Combine(outDir, "acn_asn1_rtl.adb")) (rm.GetString("acn_asn1_rtl_adb",null))
-                writeTextFile (Path.Combine(outDir, "acn_asn1_rtl.ads")) (rm.GetString("acn_asn1_rtl_ads",null))
-
-                match args.generateAutomaticTestCases with
-                | true  ->
-                    writeTextFile (Path.Combine(outDir, "test_cases_aux.adb")) (rm.GetString("test_cases_aux_adb",null))
-                    writeTextFile (Path.Combine(outDir, "test_cases_aux.ads")) (rm.GetString("test_cases_aux_ads",null))
-                | false -> ()
-
-                writeTextFile (Path.Combine(outDir, "IgnoredExaminerWarnings.wrn"))     (rm.GetString("IgnoredExaminerWarnings",null)) 
-                writeTextFile (Path.Combine(outDir, "gnat.cfg"))    (rm.GetString("gnat",null)) 
-                writeTextFile (Path.Combine(outDir, "runSpark.sh"))    (rm.GetString("run",null)) 
-                writeTextFile (Path.Combine(outDir, "GPS_project.gpr"))    (rm.GetString("GPS_project",null)) 
-                match args.encodings |> Seq.exists ((=) Asn1Encoding.XER) with
-                | true  -> 
-                    writeTextFile (Path.Combine(outDir, "xer_rtl.adb")) (rm.GetString("xer_rtl_adb",null)) 
-                    writeTextFile (Path.Combine(outDir, "xer_rtl.ads")) (rm.GetString("xer_rtl_ads",null)) 
-                | false -> ()
-
 
 let main0 argv =
     
@@ -343,7 +296,7 @@ let main0 argv =
         backends |> 
             Seq.iter (fun r -> 
                 GenerateFiles.generateAll outDir r args.encodings
-                exportRTL outDir r.lang args
+                GenerateRTL.exportRTL outDir r.lang args
                 match args.AstXmlAbsFileName with
                 | ""    -> ()
                 | _     -> DAstExportToXml.exportFile r acnDeps ("backend_" + args.AstXmlAbsFileName)

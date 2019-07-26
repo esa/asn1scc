@@ -28,7 +28,8 @@ let isEqualBodyString (l:ProgrammingLanguage) (v1:CallerScope) (v2:CallerScope) 
     | Ada       -> Some (sprintf "%s = %s" v1.arg.p v2.arg.p   , [])
 
 let isEqualBodyObjectIdentifier (l:ProgrammingLanguage) (v1:CallerScope) (v2:CallerScope) =
-    Some (sprintf "ObjectIdentifier_equal(%s, %s)" (v1.arg.getPointer l) (v2.arg.getPointer l)  , [])
+    let namespacePrefix = match l with C -> "" | Ada -> "adaasn1rtl."
+    Some (sprintf "%sObjectIdentifier_equal(%s, %s)" namespacePrefix (v1.arg.getPointer l) (v2.arg.getPointer l)  , [])
 
 
 let isEqualBodyOctetString (l:ProgrammingLanguage) sMin sMax (v1:CallerScope) (v2:CallerScope) =

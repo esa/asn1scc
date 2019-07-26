@@ -1,4 +1,4 @@
-package body asn1_core.encoding.uper with Spark_Mode is
+package body adaasn1rtl.encoding.uper with Spark_Mode is
 
    procedure UPER_Enc_Boolean (bs : in out BitStream; Val : in  Asn1Boolean)
    is
@@ -537,4 +537,4 @@ package body asn1_core.encoding.uper with Spark_Mode is
     end RelativeOID_uper_decode;
 
 
-end asn1_core.encoding.uper;
+end adaasn1rtl.encoding.uper;

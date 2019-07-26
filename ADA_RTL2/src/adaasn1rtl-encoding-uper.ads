@@ -1,4 +1,4 @@
-package asn1_core.encoding.uper with Spark_Mode is
+package adaasn1rtl.encoding.uper with Spark_Mode is
 
    subtype OctetArray1K is OctetBuffer (1 .. 1024);
    
@@ -201,4 +201,4 @@ package asn1_core.encoding.uper with Spark_Mode is
    
    
 
-end asn1_core.encoding.uper;
+end adaasn1rtl.encoding.uper;

@@ -220,7 +220,7 @@ getStringSize(p) ::= "<rtlModuleName()>.getStringSize(<p>)"
 
 getSizeableSize(p) ::= "<p>.Length"
 
-stringContainsChar(sStrVal, p) ::= "<rtlModuleName()>.stringContainsChar(<sStrVal>, <p>)"
+stringContainsChar(sStrVal, p) ::= "<rtlModuleName()>.encoding.stringContainsChar(<sStrVal>, <p>)"
 
 PrintReference1(p, sName) ::= "<sName>_IsConstraintValid(<p>)"
 

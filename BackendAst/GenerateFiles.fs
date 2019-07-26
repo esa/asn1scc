@@ -147,10 +147,10 @@ let private printUnit (r:DAst.AstRoot) (l:ProgrammingLanguage) (encodings: Commo
         match l with
         | C     -> 
             let arrsUtilityDefines = []
-            header_c.PrintHeaderFile (ToC pu.name) pu.importedProgramUnits typeDefs (arrsValues@arrsHeaderAnonymousValues) arrsPrototypes arrsUtilityDefines
+            header_c.PrintHeaderFile (ToC pu.name) pu.importedProgramUnits typeDefs (arrsValues@arrsHeaderAnonymousValues) arrsPrototypes arrsUtilityDefines (not r.args.encodings.IsEmpty)
         | Ada   -> 
             let arrsPrivateChoices = []
-            header_a.PrintPackageSpec pu.name pu.importedProgramUnits typeDefs (arrsValues@arrsHeaderAnonymousValues) arrsPrivateChoices
+            header_a.PrintPackageSpec pu.name pu.importedProgramUnits typeDefs (arrsValues@arrsHeaderAnonymousValues) arrsPrivateChoices (not r.args.encodings.IsEmpty)
 
     let fileName = Path.Combine(outDir, pu.specFileName)
     File.WriteAllText(fileName, defintionsContntent.Replace("\r",""))
@@ -225,12 +225,23 @@ let private printUnit (r:DAst.AstRoot) (l:ProgrammingLanguage) (encodings: Commo
             let arrsSourceAnonymousValues = 
                 arrsAnonymousValues |>
                 List.map (fun av -> variables_c.PrintValueAssignment av.typeDefinitionName av.valueName av.valueExpresion)
-            Some (body_c.printSourceFile pu.name arrsUnnamedVariables (arrsValueAssignments@arrsSourceAnonymousValues) arrsTypeAssignments r.args.mappingFunctionsModule)
+
+            let encRtl = match r.args.encodings |> Seq.exists(fun e -> e = UPER || e = ACN ) with true -> ["asn1crt_encoding"] | false -> []
+            let acnRtl = match r.args.encodings |> Seq.exists(fun e -> e = UPER || e = ACN) with true -> ["asn1crt_encoding_acn"] | false -> []
+            let uperRtl = match r.args.encodings |> Seq.exists(fun e -> e = UPER) with true -> ["asn1crt_encoding_uper"] | false -> []
+            let xerRtl = match r.args.encodings |> Seq.exists(fun e -> e = XER) with true -> ["asn1crt_encoding_xer"] | false -> []
+            let arrsImportedRtlFiles = encRtl@uperRtl@acnRtl@xerRtl
+
+            Some (body_c.printSourceFile pu.name arrsImportedRtlFiles arrsUnnamedVariables (arrsValueAssignments@arrsSourceAnonymousValues) arrsTypeAssignments r.args.mappingFunctionsModule)
         | Ada   ->
             let arrsNegativeReals = []
             let arrsBoolPatterns = []
             let arrsChoiceValueAssignments = []
-            let rtl = [body_a.rtlModuleName(); "uper_asn1_rtl"; "acn_asn1_rtl"]@(r.args.mappingFunctionsModule |> Option.toList)
+            let encRtl = match r.args.encodings |> Seq.exists(fun e -> e = UPER || e = ACN ) with true -> ["adaasn1rtl.encoding"] | false -> []
+            let acnRtl = match r.args.encodings |> Seq.exists(fun e -> e = UPER || e = ACN) with true -> ["adaasn1rtl.encoding.acn"] | false -> []
+            let uperRtl = match r.args.encodings |> Seq.exists(fun e -> e = UPER) with true -> ["adaasn1rtl.encoding.uper"] | false -> []
+            let xerRtl = match r.args.encodings |> Seq.exists(fun e -> e = XER) with true -> ["adaasn1rtl.encoding.xer"] | false -> []
+            let rtl = [body_a.rtlModuleName()]@encRtl@uperRtl@acnRtl@xerRtl@(r.args.mappingFunctionsModule |> Option.toList) |> List.distinct
             match arrsTypeAssignments with
             | []    -> None
             | _     -> Some (body_a.PrintPackageBody pu.name  (rtl@pu.importedProgramUnits) arrsNegativeReals arrsBoolPatterns arrsTypeAssignments arrsChoiceValueAssignments pu.importedTypes)
@@ -308,10 +319,24 @@ let private CreateAdaIndexFile (r:AstRoot) bGenTestCases outDir =
 
 let generateVisualStudtioProject (r:DAst.AstRoot) outDir (arrsSrcTstFilesX, arrsHdrTstFilesX) =
     //generate Visual Studio project file
+//    let extrSrcFiles, extrHdrFiles = 
+//        match r.args.encodings |> List.exists ((=) Asn1Encoding.XER) with
+//        | false     -> [],[]
+//        | true      -> ["xer.c"],["xer.h"]
+
     let extrSrcFiles, extrHdrFiles = 
-        match r.args.encodings |> List.exists ((=) Asn1Encoding.XER) with
-        | false     -> [],[]
-        | true      -> ["xer.c"],["xer.h"]
+        r.args.encodings |> 
+        List.collect(fun e -> 
+            match e with
+            | Asn1Encoding.UPER -> ["asn1crt_encoding";"asn1crt_encoding_uper"]
+            | Asn1Encoding.ACN  -> ["asn1crt_encoding";"asn1crt_encoding_uper"; "asn1crt_encoding_acn"]
+            | Asn1Encoding.BER  -> ["asn1crt_encoding";"asn1crt_encoding_ber"]
+            | Asn1Encoding.XER  -> ["asn1crt_encoding";"asn1crt_encoding_xer"]
+        ) |> 
+        List.distinct |>
+        List.map(fun a -> a + ".c", a + ".h") |>
+        List.unzip
+
     let arrsSrcTstFiles = (r.programUnits |> List.map (fun z -> z.tetscase_bodyFileName))
     let arrsHdrTstFiles = (r.programUnits |> List.map (fun z -> z.tetscase_specFileName))
     let vcprjContent = xml_outputs.emitVisualStudioProject 
