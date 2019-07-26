@@ -216,7 +216,7 @@ let createXerEncDecFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:As
     let printCodec_body = match l with C -> test_cases_c.PrintCodec_body_XER   | Ada -> test_cases_a.PrintCodec_body_XER
     let printCodec_body_header = match l with C -> test_cases_c.PrintCodec_body_header   | Ada -> test_cases_a.PrintCodec_spec
     let joinItems = match l with C -> test_cases_c.JoinItems   | Ada -> test_cases_a.JoinItems
-    let write_bitstreamToFile = match l with C -> test_cases_c.Codec_write_bitstreamToFile   | Ada -> test_cases_a.Codec_write_bitstreamToFile
+    let write_bitstreamToFile = match l with C -> test_cases_c.Codec_write_bitstreamToFile   | Ada -> test_cases_a.Codec_write_CharstreamToFile
 
     let p   = t.getParamType l Encode
     let varName = p.arg.p

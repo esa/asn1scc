@@ -67,7 +67,7 @@ let getFuncName (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage)  (codec:CommonTyp
 
 let createXerFunction_any (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (typeDefinition:TypeDefintionOrReference) (isValidFunc: IsValidFunction option) xerFuncBody_e  soSparkAnnotations (us:State)  =
 
-    let emitTypeAssignment      = match l with C -> xer_c.EmitTypeAssignment    | Ada -> xer_c.EmitTypeAssignment
+    let emitTypeAssignment      = match l with C -> xer_c.EmitTypeAssignment    | Ada -> xer_a.EmitTypeAssignment
     let emitTypeAssignment_def  = match l with C -> xer_c.EmitTypeAssignment_def    | Ada -> xer_a.EmitTypeAssignment_def
     let EmitTypeAssignment_def_err_code  = match l with C -> uper_c.EmitTypeAssignment_def_err_code    | Ada -> uper_a.EmitTypeAssignment_def_err_code
 

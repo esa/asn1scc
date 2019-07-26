@@ -19,9 +19,30 @@ with Ada.Strings.Maps; use Ada.Strings.Maps;
 
 with Ada.Integer_Text_IO;
 
+with Ada.Sequential_IO;
+
 package body adaasn1rtl.encoding.xer is
 
+   package Seq_IO is new Ada.Sequential_IO(Character);
+
    WORD_ID : constant Character := Character'Val (1);
+
+
+
+   procedure Write_CharStream_To_File (bs : in CharStream; Filename : in String) is
+      Out_File : Seq_IO.File_Type;
+      --Current_Bit  : constant BIT_RANGE := bs.Current_Bit_Pos mod 8;
+      --End_Byte : constant Integer   := bs.Buffer'First + bs.Current_Bit_Pos / 8 + (if Current_Bit > 0 then 1 else 0);
+   begin
+      Seq_IO.Create(Out_File, Seq_IO.Out_File, Filename);
+      for i in  bs.Data'Range loop
+         Seq_IO.Write(Out_File, bs.Data(i));
+      end loop;
+
+
+      Seq_IO.Close(Out_File);
+   end;
+
 
    function Strlen (Str : in String) return Integer is
       ret : Integer := 0;
@@ -163,6 +184,23 @@ package body adaasn1rtl.encoding.xer is
          Result,
          level);
    end Xer_EncodeInteger;
+
+   procedure Xer_EncodePosInteger
+     (Strm       : in out CharStream;
+      elementTag : in     XString;
+      value      : in     Asn1UInt;
+      Result     :    out ASN1_RESULT;
+      level      : in     Integer)
+   is
+   begin
+      Xer_EncodePrimitiveElement
+        (Strm,
+         elementTag,
+         Trim (value'Img, Ada.Strings.Both),
+         Result,
+         level);
+   end Xer_EncodePosInteger;
+
 
    procedure Xer_EncodeBoolean
      (Strm       : in out CharStream;
@@ -610,6 +648,25 @@ package body adaasn1rtl.encoding.xer is
       value  := Asn1Int'Value (str);
       Result := (Success => True, ErrorCode => 0);
    end Xer_DecodeInteger;
+
+
+   procedure Xer_DecodePosInteger
+     (Strm       : in out CharStream;
+      elementTag : in     XString;
+      value      :    out Asn1UInt;
+      Result     :    out ASN1_RESULT)
+   is
+      str : XString (1 .. 100) := (1 .. 100 => ' ');
+      len : Integer;
+   begin
+      value := 0;
+      Xer_DecodePrimitiveElement (Strm, elementTag, str, len, Result);
+      if not Result.Success then
+         return;
+      end if;
+      value  := Asn1UInt'Value (str);
+      Result := (Success => True, ErrorCode => 0);
+   end Xer_DecodePosInteger;
 
    procedure Xer_DecodeBoolean
      (Strm       : in out CharStream;

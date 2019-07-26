@@ -15,6 +15,9 @@ package adaasn1rtl.encoding.xer is
       EncodeWhiteSpace : Boolean          := False;
    end record;
 
+   procedure Write_CharStream_To_File (bs : in CharStream; Filename : in String);
+
+
    procedure Xer_EncodeXmlHeader
      (Strm      : in out CharStream;
       XmlHeader : in     XString;
@@ -30,6 +33,15 @@ package adaasn1rtl.encoding.xer is
       value      : in     Asn1Int;
       Result     :    out ASN1_RESULT;
       level      : in     Integer);
+
+   procedure Xer_EncodePosInteger
+     (Strm       : in out CharStream;
+      elementTag : in     XString;
+      value      : in     Asn1UInt;
+      Result     :    out ASN1_RESULT;
+      level      : in     Integer);
+
+
    procedure Xer_EncodeBoolean
      (Strm       : in out CharStream;
       elementTag : in     XString;
@@ -74,6 +86,14 @@ package adaasn1rtl.encoding.xer is
       elementTag : in     XString;
       value      :    out Asn1Int;
       Result     :    out ASN1_RESULT);
+
+   procedure Xer_DecodePosInteger
+     (Strm       : in out CharStream;
+      elementTag : in     XString;
+      value      :    out Asn1UInt;
+      Result     :    out ASN1_RESULT);
+
+
    procedure Xer_DecodeBoolean
      (Strm       : in out CharStream;
       elementTag : in     XString;

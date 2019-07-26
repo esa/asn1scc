@@ -150,7 +150,7 @@ let private printUnit (r:DAst.AstRoot) (l:ProgrammingLanguage) (encodings: Commo
             header_c.PrintHeaderFile (ToC pu.name) pu.importedProgramUnits typeDefs (arrsValues@arrsHeaderAnonymousValues) arrsPrototypes arrsUtilityDefines (not r.args.encodings.IsEmpty)
         | Ada   -> 
             let arrsPrivateChoices = []
-            header_a.PrintPackageSpec pu.name pu.importedProgramUnits typeDefs (arrsValues@arrsHeaderAnonymousValues) arrsPrivateChoices (not r.args.encodings.IsEmpty)
+            header_a.PrintPackageSpec pu.name pu.importedProgramUnits typeDefs (arrsValues@arrsHeaderAnonymousValues) arrsPrivateChoices (not r.args.encodings.IsEmpty) (r.args.encodings |> Seq.exists ((=) XER) )
 
     let fileName = Path.Combine(outDir, pu.specFileName)
     File.WriteAllText(fileName, defintionsContntent.Replace("\r",""))
@@ -275,7 +275,7 @@ let private printUnit (r:DAst.AstRoot) (l:ProgrammingLanguage) (encodings: Commo
             | Ada   -> 
                 match encDecFuncs with
                 | []    -> None
-                | _     -> Some (test_cases_a.PrintCodecsFile_body pu.name pu.importedProgramUnits [] encDecFuncs)
+                | _     -> Some (test_cases_a.PrintCodecsFile_body pu.name pu.importedProgramUnits [] encDecFuncs (r.args.encodings |> Seq.exists((=) XER)))
         
         tstCasesHdrContent |> Option.iter(fun tstCasesHdrContent -> File.WriteAllText(tetscase_SrcFileName, tstCasesHdrContent.Replace("\r","")))
 

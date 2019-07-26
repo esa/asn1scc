@@ -15,147 +15,149 @@ EmitTypeAssignment_def_encode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrc
 SUBTYPE <sTypeDefName>_XER_byte_array_range is Natural range 1..<if(bEmptyEncodingSpace)>1<else><sTypeDefName>_REQUIRED_BYTES_FOR_XER_ENCODING<endif>;
 SUBTYPE <sTypeDefName>_XER_byte_array is <rtlModuleName()>.OctetBuffer(<sTypeDefName>_XER_byte_array_range);
 
-TYPE <sTypeDefName>_XER_Stream IS RECORD
-    K	: Natural;
-    DataLen	: Natural;
-    Data : <sTypeDefName>_XER_byte_array;
-end RECORD;
+--TYPE <sTypeDefName>_XER_Stream IS RECORD
+--    K	: Natural;
+--    DataLen	: Natural;
+--    Data : <sTypeDefName>_XER_byte_array;
+--end RECORD;
 
-procedure <sFuncName>(val:in <sTypeDefName>; Stream : OUT <sTypeDefName>_XER_Stream; result : OUT <rtlModuleName()>.ASN1_RESULT);
-procedure <sFuncName>_aux(<sVarName>:in <sTypeDefName>; S : in out <rtlModuleName()>.OctetBuffer; K : in out Natural; result : OUT <rtlModuleName()>.ASN1_RESULT)
+subtype <sTypeDefName>_XER_Stream is adaasn1rtl.encoding.xer.CharStream(<if(bEmptyEncodingSpace)>1<else><sTypeDefName>_REQUIRED_BYTES_FOR_XER_ENCODING<endif>);
+
+procedure <sFuncName>(val:in <sTypeDefName>; Stream : OUT <sTypeDefName>_XER_Stream; ret : OUT <rtlModuleName()>.ASN1_RESULT);
+procedure <sFuncName>_aux(<sVarName>:in <sTypeDefName>; xmlTag : in <rtlModuleName()>.encoding.xer.XString; bs : in out <rtlModuleName()>.encoding.xer.CharStream; ret : OUT <rtlModuleName()>.ASN1_RESULT)
 <soSparkAnnotations>;
 >>
 
-EmitTypeAssignment_def_decode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes, bEmptyEncodingSpace, nMaxBytesInXER, soSparkAnnotations) ::= <<
-<arrsErrcodes; separator="\n">
-procedure <sFuncName>(<sVarName>: out <sTypeDefName>; Stream : IN <sTypeDefName>_XER_Stream; result : OUT <rtlModuleName()>.ASN1_RESULT);
-procedure <sFuncName>_aux(<sVarName>: out <sTypeDefName>; S : in <rtlModuleName()>.OctetBuffer; K : in out <rtlModuleName()>.DECODE_PARAMS; result : OUT <rtlModuleName()>.ASN1_RESULT)
-<soSparkAnnotations>;
->>
-
-TasEncodeMain(sVarName, sFuncName, sTypeDefName) ::= /*nogen*/<<
-procedure <sFuncName>(<sVarName>:in <sTypeDefName>; Stream : OUT <sTypeDefName>_XER_Stream; result : OUT <rtlModuleName()>.ASN1_RESULT)
-IS
-begin
-    Stream := <sTypeDefName>_XER_Stream'(K => 0, DataLen => 0, Data => <sTypeDefName>_XER_byte_array'(others => 0));
-    <sFuncName>_aux(<sVarName>, Stream.Data, Stream.DataLen, result);
-end <sFuncName>;
->>
-
-EmitTypeAssignment_encode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitilialExp) ::= <<
-procedure <sFuncName>_aux(<sVarName>:in <sTypeDefName>; S : in out <rtlModuleName()>.OctetBuffer; K : in out Natural; result : OUT <rtlModuleName()>.ASN1_RESULT)
+EmitTypeAssignment_encode(sTasName, sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitilialExp) ::= <<
+procedure <sFuncName>_aux(<sVarName>:in <sTypeDefName>; xmlTag : in <rtlModuleName()>.encoding.xer.XString; bs : in out <rtlModuleName()>.encoding.xer.CharStream; ret : OUT <rtlModuleName()>.ASN1_RESULT)
 is
     <arrsLocalVariables; separator="\n">
 begin
     <if(soIValidFuncName)>
-    result := <soIValidFuncName>(<sVarName>);
-    if result.success THEN
+    ret := <soIValidFuncName>(<sVarName>);
+    if ret.success THEN
         <sContent>
     end if;
     <else>
-    result := <rtlModuleName()>.ASN1_RESULT'(Success => true, ErrorCode => 0);
+    ret := <rtlModuleName()>.ASN1_RESULT'(Success => true, ErrorCode => 0);
     <sContent>
     <endif>
 end <sFuncName>_aux;
 
-<TasEncodeMain(sVarName=sVarName, sFuncName=sFuncName, sTypeDefName=sTypeDefName)>
+procedure <sFuncName>(<sVarName>:in <sTypeDefName>; Stream : OUT <sTypeDefName>_XER_Stream; ret : OUT <rtlModuleName()>.ASN1_RESULT)
+is
+begin
+    Stream := <sTypeDefName>_XER_Stream'(N => <if(bEmptyEncodingSpace)>1<else><sTypeDefName>_REQUIRED_BYTES_FOR_XER_ENCODING<endif>,
+										 CurrentByte => 1,
+										 Data      => (others => Character'Val (0)),
+                                         EncodeWhiteSpace => False);
+    <sFuncName>_aux(<sVarName>, "<sTasName>", Stream,  ret);
+end <sFuncName>;
+
 >>
 
-TasDecodeMain(sVarName, sFuncName, sTypeDefName, sInitilialExp) ::= /*nogen*/<<
-procedure <sFuncName>(<sVarName>:out <sTypeDefName>; Stream : IN <sTypeDefName>_XER_Stream; result : OUT <rtlModuleName()>.ASN1_RESULT)
-IS
-    iter:<rtlModuleName()>.DECODE_PARAMS;
-begin
-    iter := <rtlModuleName()>.DECODE_PARAMS'(K => 0, DataLen => Stream.DataLen);
-    --<sVarName> := <sInitilialExp>;
-    <sFuncName>_aux(<sVarName>, Stream.Data, iter, result);
-    result.Success := result.Success AND iter.K\<=iter.DataLen;
-end <sFuncName>;
+
+EmitTypeAssignment_def_decode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes, bEmptyEncodingSpace, nMaxBytesInXER, soSparkAnnotations) ::= <<
+<arrsErrcodes; separator="\n">
+procedure <sFuncName>(<sVarName>: out <sTypeDefName>; Stream : in out <sTypeDefName>_XER_Stream; ret : OUT <rtlModuleName()>.ASN1_RESULT);
+procedure <sFuncName>_aux(<sVarName>: out <sTypeDefName>; xmlTag : in <rtlModuleName()>.encoding.xer.XString; bs : in out <rtlModuleName()>.encoding.xer.CharStream; ret : OUT <rtlModuleName()>.ASN1_RESULT)
+<soSparkAnnotations>;
 >>
-EmitTypeAssignment_decode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitilialExp) ::= <<
+
+
+
+EmitTypeAssignment_decode(sTasName, sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitilialExp) ::= <<
 pragma Warnings (Off, "unused initial value of ""val""");
-procedure <sFuncName>_aux(<sVarName>: out <sTypeDefName>; S : in <rtlModuleName()>.OctetBuffer; K : in out <rtlModuleName()>.DECODE_PARAMS; result : OUT <rtlModuleName()>.ASN1_RESULT)
+procedure <sFuncName>_aux(<sVarName>: out <sTypeDefName>; xmlTag : in <rtlModuleName()>.encoding.xer.XString; bs : in out <rtlModuleName()>.encoding.xer.CharStream; ret : OUT <rtlModuleName()>.ASN1_RESULT)
 IS
     <arrsLocalVariables; separator="\n">
 begin
     <sContent>
 end <sFuncName>_aux;
 pragma Warnings (On, "unused initial value of ""val""");
-<TasDecodeMain(sVarName=sVarName, sFuncName=sFuncName, sTypeDefName=sTypeDefName, sInitilialExp=sInitilialExp)>
+
+procedure <sFuncName>(<sVarName>: out <sTypeDefName>; Stream : in out <sTypeDefName>_XER_Stream; ret : OUT <rtlModuleName()>.ASN1_RESULT)
+is
+begin
+    <sFuncName>_aux(<sVarName>, "<sTasName>", Stream, ret);
+end <sFuncName>;
+
 >>
 
 
 
 Integer_encode(p, sTag, nLevel, soCheckExp, sErrCode) ::= <<
-Xer_EncodeInteger(Strm, "<sTag>", <p>, result, <nLevel>);
-result.ErrorCode := <sErrCode>;
+adaasn1rtl.encoding.xer.Xer_EncodeInteger(bs, <sTag>, <p>, ret, <nLevel>);
+ret.ErrorCode := <sErrCode>;
 >>
 
 Integer_decode(p, sTag, nLevel, soCheckExp, sErrCode) ::= <<
-Xer_DecodeInteger(Strm, "<sTag>", <p>, result);
-result := <rtlModuleName()>.ASN1_RESULT'(Success => result.Success <if(soCheckExp)>and then (<soCheckExp>)<endif>, ErrorCode => <sErrCode>);
+adaasn1rtl.encoding.xer.Xer_DecodeInteger(bs, <sTag>, <p>, ret);
+<if(soCheckExp)><soCheckExp><endif>
+ret.ErrorCode := (if ret.Success then 0 else <sErrCode>);
 >>
 
 
 IntegerPos_encode(p, sTag, nLevel, soCheckExp, sErrCode) ::= <<
-Xer_EncodePosInteger(Strm, "<sTag>", <p>, result, <nLevel>);
-result.ErrorCode := <sErrCode>;
+adaasn1rtl.encoding.xer.Xer_EncodePosInteger(bs, <sTag>, <p>, ret, <nLevel>);
+ret.ErrorCode := <sErrCode>;
 >>
 
 IntegerPos_decode(p, sTag, nLevel, soCheckExp, sErrCode) ::= <<
-Xer_DecodePosInteger(Strm, "<sTag>", <p>, result);
-result := <rtlModuleName()>.ASN1_RESULT'(Success => result.Success <if(soCheckExp)>and then (<soCheckExp>)<endif>, ErrorCode => <sErrCode>);
+adaasn1rtl.encoding.xer.Xer_DecodePosInteger(bs, <sTag>, <p>, ret);
+<if(soCheckExp)><soCheckExp><endif>
+ret.ErrorCode := (if ret.Success then 0 else <sErrCode>);
 >>
 
 
 Boolean_encode(p, sTag, nLevel, soCheckExp, sErrCode) ::= <<
-Xer_EncodeBoolean(Strm, "<sTag>", <p>, result, <nLevel>);
-result.ErrorCode := <sErrCode>;
+Xer_EncodeBoolean(Strm, "<sTag>", <p>, ret, <nLevel>);
+ret.ErrorCode := <sErrCode>;
 >>
 
 
 Boolean_decode(p, sTag, nLevel, soCheckExp, sErrCode) ::= <<
-Xer_DecodeBoolean(Strm, "<sTag>", <p>, result);
-result := <rtlModuleName()>.ASN1_RESULT'(Success => result.Success <if(soCheckExp)>and then (<soCheckExp>)<endif>, ErrorCode => <sErrCode>);
+Xer_DecodeBoolean(Strm, "<sTag>", <p>, ret);
+ret := <rtlModuleName()>.ASN1_RESULT'(Success => ret.Success <if(soCheckExp)>and then (<soCheckExp>)<endif>, ErrorCode => <sErrCode>);
 >>
 
 Real_encode(p, sTag, nLevel, soCheckExp, sErrCode) ::= <<
-Xer_EncodeReal(Strm, "<sTag>", <p>, result, <nLevel>);
-result.ErrorCode := <sErrCode>;
+Xer_EncodeReal(Strm, "<sTag>", <p>, ret, <nLevel>);
+ret.ErrorCode := <sErrCode>;
 >>
 
 Real_decode(p, sTag, nLevel, soCheckExp, sErrCode) ::= <<
-Xer_DecodeReal(Strm, "<sTag>", <p>, result);
-result := <rtlModuleName()>.ASN1_RESULT'(Success => result.Success <if(soCheckExp)>and then (<soCheckExp>)<endif>, ErrorCode => <sErrCode>);
+Xer_DecodeReal(Strm, "<sTag>", <p>, ret);
+ret := <rtlModuleName()>.ASN1_RESULT'(Success => ret.Success <if(soCheckExp)>and then (<soCheckExp>)<endif>, ErrorCode => <sErrCode>);
 >>
 
 ObjectIdentifier_encode(p, sTag, nLevel, soCheckExp, sErrCode) ::= <<
-Xer_EncodeObjectIdentifier(Strm, "<sTag>", <p>, result, <nLevel>);
+Xer_EncodeObjectIdentifier(Strm, "<sTag>", <p>, ret, <nLevel>);
 >>
 
 ObjectIdentifier_decode(p, sTag, nLevel, soCheckExp, sErrCode) ::= <<
-Xer_DecodeObjectIdentifier(Strm, "<sTag>", <p>, result);
-result := <rtlModuleName()>.ASN1_RESULT'(Success => result.Success <if(soCheckExp)>and then (<soCheckExp>)<endif>, ErrorCode => <sErrCode>);
+Xer_DecodeObjectIdentifier(Strm, "<sTag>", <p>, ret);
+ret := <rtlModuleName()>.ASN1_RESULT'(Success => ret.Success <if(soCheckExp)>and then (<soCheckExp>)<endif>, ErrorCode => <sErrCode>);
 >>
 
 
 
 
 String_encode(p, sTag, nLevel, soCheckExp, sErrCode) ::= <<
-Xer_EncodeString(Strm, "<sTag>", <p>, result, <nLevel>);
-result.ErrorCode := <sErrCode>;
+Xer_EncodeString(Strm, "<sTag>", <p>, ret, <nLevel>);
+ret.ErrorCode := <sErrCode>;
 >>
 
 String_decode(p, sTag, nLevel, soCheckExp, sErrCode) ::= <<
-Xer_DecodeString(Strm, "<sTag>", <p>, result);
-result := <rtlModuleName()>.ASN1_RESULT'(Success => result.Success <if(soCheckExp)>and then (<soCheckExp>)<endif>, ErrorCode => <sErrCode>);
+Xer_DecodeString(Strm, "<sTag>", <p>, ret);
+ret := <rtlModuleName()>.ASN1_RESULT'(Success => ret.Success <if(soCheckExp)>and then (<soCheckExp>)<endif>, ErrorCode => <sErrCode>);
 >>
 
 
 Enumerated_item_encode(p, sTag, nLevel, sItemID, sXerValue, sErrCode, bFirst) ::= <<
 when <sItemID>    => 
 	Xer_EncodeEnumerated(Strm, "<sTag>", "<sXerValue>", pErrCode, <nLevel>);
-    result.ErrorCode := <sErrCode>;
+    ret.ErrorCode := <sErrCode>;
 >>
 
 Enumerated_encode(p, sTag, nLevel, arrsItems, soCheckExp, sErrCode) ::= <<
