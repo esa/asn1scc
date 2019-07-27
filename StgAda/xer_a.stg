@@ -15,12 +15,6 @@ EmitTypeAssignment_def_encode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrc
 SUBTYPE <sTypeDefName>_XER_byte_array_range is Natural range 1..<if(bEmptyEncodingSpace)>1<else><sTypeDefName>_REQUIRED_BYTES_FOR_XER_ENCODING<endif>;
 SUBTYPE <sTypeDefName>_XER_byte_array is <rtlModuleName()>.OctetBuffer(<sTypeDefName>_XER_byte_array_range);
 
---TYPE <sTypeDefName>_XER_Stream IS RECORD
---    K	: Natural;
---    DataLen	: Natural;
---    Data : <sTypeDefName>_XER_byte_array;
---end RECORD;
-
 subtype <sTypeDefName>_XER_Stream is adaasn1rtl.encoding.xer.CharStream(<if(bEmptyEncodingSpace)>1<else><sTypeDefName>_REQUIRED_BYTES_FOR_XER_ENCODING<endif>);
 
 procedure <sFuncName>(val:in <sTypeDefName>; Stream : OUT <sTypeDefName>_XER_Stream; ret : OUT <rtlModuleName()>.ASN1_RESULT);
@@ -111,52 +105,56 @@ ret.ErrorCode := (if ret.Success then 0 else <sErrCode>);
 
 
 Boolean_encode(p, sTag, nLevel, soCheckExp, sErrCode) ::= <<
-Xer_EncodeBoolean(Strm, "<sTag>", <p>, ret, <nLevel>);
+adaasn1rtl.encoding.xer.Xer_EncodeBoolean(bs, <sTag>, <p>, ret, <nLevel>);
 ret.ErrorCode := <sErrCode>;
 >>
 
 
 Boolean_decode(p, sTag, nLevel, soCheckExp, sErrCode) ::= <<
-Xer_DecodeBoolean(Strm, "<sTag>", <p>, ret);
-ret := <rtlModuleName()>.ASN1_RESULT'(Success => ret.Success <if(soCheckExp)>and then (<soCheckExp>)<endif>, ErrorCode => <sErrCode>);
+adaasn1rtl.encoding.xer.Xer_DecodeBoolean(bs, <sTag>, <p>, ret);
+<if(soCheckExp)><soCheckExp><endif>
+ret.ErrorCode := (if ret.Success then 0 else <sErrCode>);
 >>
 
 Real_encode(p, sTag, nLevel, soCheckExp, sErrCode) ::= <<
-Xer_EncodeReal(Strm, "<sTag>", <p>, ret, <nLevel>);
+adaasn1rtl.encoding.xer.Xer_EncodeReal(bs, <sTag>, <p>, ret, <nLevel>);
 ret.ErrorCode := <sErrCode>;
 >>
 
 Real_decode(p, sTag, nLevel, soCheckExp, sErrCode) ::= <<
-Xer_DecodeReal(Strm, "<sTag>", <p>, ret);
-ret := <rtlModuleName()>.ASN1_RESULT'(Success => ret.Success <if(soCheckExp)>and then (<soCheckExp>)<endif>, ErrorCode => <sErrCode>);
+adaasn1rtl.encoding.xer.Xer_DecodeReal(bs, <sTag>, <p>, ret);
+<if(soCheckExp)><soCheckExp><endif>
+ret.ErrorCode := (if ret.Success then 0 else <sErrCode>);
 >>
 
 ObjectIdentifier_encode(p, sTag, nLevel, soCheckExp, sErrCode) ::= <<
-Xer_EncodeObjectIdentifier(Strm, "<sTag>", <p>, ret, <nLevel>);
+adaasn1rtl.encoding.xer.Xer_EncodeObjectIdentifier(bs, <sTag>, <p>, ret, <nLevel>);
 >>
 
 ObjectIdentifier_decode(p, sTag, nLevel, soCheckExp, sErrCode) ::= <<
-Xer_DecodeObjectIdentifier(Strm, "<sTag>", <p>, ret);
-ret := <rtlModuleName()>.ASN1_RESULT'(Success => ret.Success <if(soCheckExp)>and then (<soCheckExp>)<endif>, ErrorCode => <sErrCode>);
+adaasn1rtl.encoding.xer.Xer_DecodeObjectIdentifier(bs, <sTag>, <p>, ret);
+<if(soCheckExp)><soCheckExp><endif>
+ret.ErrorCode := (if ret.Success then 0 else <sErrCode>);
 >>
 
 
 
 
 String_encode(p, sTag, nLevel, soCheckExp, sErrCode) ::= <<
-Xer_EncodeString(Strm, "<sTag>", <p>, ret, <nLevel>);
+adaasn1rtl.encoding.xer.Xer_EncodeString(bs, <sTag>, <p>, ret, <nLevel>);
 ret.ErrorCode := <sErrCode>;
 >>
 
 String_decode(p, sTag, nLevel, soCheckExp, sErrCode) ::= <<
-Xer_DecodeString(Strm, "<sTag>", <p>, ret);
-ret := <rtlModuleName()>.ASN1_RESULT'(Success => ret.Success <if(soCheckExp)>and then (<soCheckExp>)<endif>, ErrorCode => <sErrCode>);
+adaasn1rtl.encoding.xer.Xer_DecodeString(bs, <sTag>, <p>, ret);
+<if(soCheckExp)><soCheckExp><endif>
+ret.ErrorCode := (if ret.Success then 0 else <sErrCode>);
 >>
 
 
 Enumerated_item_encode(p, sTag, nLevel, sItemID, sXerValue, sErrCode, bFirst) ::= <<
 when <sItemID>    => 
-	Xer_EncodeEnumerated(Strm, "<sTag>", "<sXerValue>", pErrCode, <nLevel>);
+	adaasn1rtl.encoding.xer.Xer_EncodeEnumerated(bs, <sTag>, "<sXerValue>", ret, <nLevel>);
     ret.ErrorCode := <sErrCode>;
 >>
 
@@ -168,23 +166,23 @@ end case;
 
 
 Enumerated_item_decode(p, sTag, nLevel, sItemID, sXerValue, sErrCode, bFirst) ::= <<
-<if(!bFirst)>else <endif>if(strcmp(enmLabel,"<sXerValue>") == 0)
-    <p> = <sItemID>;
+<if(!bFirst)>els<endif>if enmLabel = <sXerValue> then
+    <p> := <sItemID>;
 >>
 
 Enumerated_decode(p, sTag, nLevel, arrsItems, soCheckExp, sErrCode) ::= <<
 declare
 	enmLabel : char [200];
 begin
-	ret = Xer_DecodeEnumerated(Strm, <sTag>, enmLabel, pErrCode);
-    if (ret) {
+	ret = adaasn1rtl.encoding.xer.Xer_DecodeEnumerated(bs, <sTag>, enmLabel, ret);
+    if ret.ErrorCode then
         <arrsItems; separator="\n">
-	    else {
-		    *pErrCode = <sErrCode>;
-	    }
-    } else {
-        *pErrCode = <sErrCode>;
-    }
+	    else 
+		    ret.ErrorCode := <sErrCode>;
+	    endif;
+    else
+	    ret.ErrorCode := <sErrCode>;
+    endif;
 
 end;
 >>
@@ -192,23 +190,67 @@ end;
 
 
 OctetString_encode(p, sAcc, sTag, nLevel, nSizeMax, bIsFixedSize, soCheckExp, sErrCode) ::= <<
-ret = Xer_EncodeOctetString(pByteStrm, <sTag>, <p><sAcc>arr, <if(!bIsFixedSize)><p><sAcc>nCount<else><nSizeMax><endif>, pErrCode, <nLevel>);
-*pErrCode = ret ? 0 : <sErrCode>;
+ret = adaasn1rtl.encoding.xer.Xer_EncodeOctetString(bs, <sTag>, <p><sAcc>arr, <if(!bIsFixedSize)><p><sAcc>nCount<else><nSizeMax><endif>, ret, <nLevel>);
+ret.ErrorCode := (if ret.Success then 0 else <sErrCode>);
 >>
 
 OctetString_decode(p, sAcc, sTag, nLevel, nSizeMax, bIsFixedSize, soCheckExp, sErrCode) ::= <<
-ret = Xer_DecodeOctetString(pByteStrm, <sTag>, <p><sAcc>arr, <if(!bIsFixedSize)>&<p><sAcc>nCount<else>NULL<endif>, pErrCode);
-*pErrCode = (ret <if(soCheckExp)> && (<soCheckExp>)<endif>) ? 0 : <sErrCode>;
+ret = adaasn1rtl.encoding.xer.Xer_DecodeOctetString(bs, <sTag>, <p><sAcc>arr, <if(!bIsFixedSize)><p><sAcc>nCount<else>NULL<endif>, ret);
+<if(soCheckExp)><soCheckExp><endif>
+ret.ErrorCode := (if ret.Success then 0 else <sErrCode>);
 >>
 
 
 BitString_encode(p, sAcc, sTag, nLevel, nSizeMax, bIsFixedSize, soCheckExp, sErrCode) ::= <<
-ret = Xer_EncodeBitString(pByteStrm, <sTag>, <p><sAcc>arr, <if(!bIsFixedSize)><p><sAcc>nCount<else><nSizeMax><endif>, pErrCode, <nLevel>);
-*pErrCode = ret ? 0 : <sErrCode>;
+ret = adaasn1rtl.encoding.xer.Xer_EncodeBitString(bs, <sTag>, <p><sAcc>arr, <if(!bIsFixedSize)><p><sAcc>nCount<else><nSizeMax><endif>, ret, <nLevel>);
+ret.ErrorCode := (if ret.Success then 0 else <sErrCode>);
 >>
 
 BitString_decode(p, sAcc, sTag, nLevel, nSizeMax, bIsFixedSize, soCheckExp, sErrCode) ::= <<
-ret = Xer_DecodeBitString(pByteStrm, <sTag>, <p><sAcc>arr, <if(!bIsFixedSize)>&<p><sAcc>nCount<else>NULL<endif>, pErrCode);
-*pErrCode = (ret <if(soCheckExp)> && (<soCheckExp>)<endif>) ? 0 : <sErrCode>;
+ret = adaasn1rtl.encoding.xer.Xer_DecodeBitString(bs, <sTag>, <p><sAcc>arr, <if(!bIsFixedSize)>&<p><sAcc>nCount<else>NULL<endif>, pErrCode);
+<if(soCheckExp)><soCheckExp><endif>
+ret.ErrorCode := (if ret.Success then 0 else <sErrCode>);
 >>
 
+
+SequenceOf_encode(p, sAcc, sTag, nLevel, sI, nSizeMax, sChildBody, bFixedSize, soCheckExp, sErrCode) ::= <<
+/* SEQUENCE OF Encode*/
+ret := adaasn1rtl.encoding.xer.Xer_EncodeComplexElementStart(bs, <sTag>, ret, <nLevel>);
+if (ret.ErrorCode) then
+    for(<sI>=0;((<sI> \< <if(!bFixedSize)><p><sAcc>nCount<else><nSizeMax><endif>) && ret);<sI>++) 
+    {
+	    <sChildBody>
+    }
+    if (ret) {
+        ret = adaasn1rtl.encoding.xer.Xer_EncodeComplexElementEnd(bs, <sTag>, ret, <nLevel>);
+		ret.ErrorCode := (if ret.Success then 0 else <sErrCode>);
+    }
+endif;
+>>
+
+
+SequenceOf_decode(p, sAcc, sTag, nLevel, sI, nSizeMax, sChildBody, bFixedSize, soCheckExp, sErrCode) ::= <<
+/* SEQUENCE OF Decode*/
+ret = Xer_DecodeComplexElementStart(bs, <sTag>, NULL, pErrCode);
+if (ret) {
+    <if(!bFixedSize)><p><sAcc>nCount = 0;<endif>
+    <sI> = 0;
+    while(ret && !Xer_NextEndElementIs(bs, <sTag>))
+    {
+	    <sChildBody>
+	    <sI>++;
+	    <if(!bFixedSize)><p><sAcc>nCount++;<endif>
+    }
+    if (ret) {
+        ret = Xer_DecodeComplexElementEnd(bs, <sTag>, pErrCode);
+    }
+}
+<if(bFixedSize)>
+*pErrCode = (ret && <sI> == <nSizeMax>) ? 0 : <sErrCode>;
+
+<else>
+<if(soCheckExp)><soCheckExp><endif>
+*pErrCode = ret  ? 0 : <sErrCode>;
+
+<endif>
+>>
