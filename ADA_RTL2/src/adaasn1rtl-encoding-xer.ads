@@ -41,6 +41,8 @@ package adaasn1rtl.encoding.xer is
       Result     :    out ASN1_RESULT;
       level      : in     Integer);
 
+   procedure Xer_EncodeNull (Strm : in out CharStream; elementTag : in XString; value: Asn1NullType; Result : out ASN1_RESULT; level : in Integer);
+
 
    procedure Xer_EncodeBoolean
      (Strm       : in out CharStream;
@@ -81,6 +83,15 @@ package adaasn1rtl.encoding.xer is
       Result     :    out ASN1_RESULT;
       level      : in     Integer);
 
+   procedure Xer_EncodeObjectIdentifier
+     (Strm       : in out CharStream;
+      elementTag : in     XString;
+      value      : in     Asn1ObjectIdentifier;
+      Result     :    out ASN1_RESULT;
+      level      : in     Integer);
+
+
+
    procedure Xer_DecodeInteger
      (Strm       : in out CharStream;
       elementTag : in     XString;
@@ -93,6 +104,7 @@ package adaasn1rtl.encoding.xer is
       value      :    out Asn1UInt;
       Result     :    out ASN1_RESULT);
 
+   procedure Xer_DecodeNull (Strm : in out CharStream; elementTag : in XString; value: out Asn1NullType; Result : out ASN1_RESULT);
 
    procedure Xer_DecodeBoolean
      (Strm       : in out CharStream;
@@ -126,6 +138,9 @@ package adaasn1rtl.encoding.xer is
       value      :    out BitArray;
       len        :    out Integer;
       Result     :    out ASN1_RESULT);
+
+   procedure Xer_DecodeObjectIdentifier(Strm : in out CharStream; elementTag : in XString; value : out Asn1ObjectIdentifier; Result : out ASN1_RESULT);
+
 
    procedure Xer_EncodeComplexElementStart
      (Strm       : in out CharStream;

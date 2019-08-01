@@ -71,6 +71,13 @@ package adaasn1rtl with Spark_Mode is
      Post => getStringSize'Result >= 0 and getStringSize'Result <= (str'Last - str'First + 1);
    
 
+   function String_Equal (Left, Right : in String) return Boolean with
+     Pre     => Left'Last < Natural'Last and then
+                Left'Last >= Left'First  and then 
+                Right'Last < Natural'Last and then
+                Right'Last >= Right'First;
+     
+   
    
    function Asn1Real_Equal (Left, Right : in Asn1Real) return Boolean
    is (

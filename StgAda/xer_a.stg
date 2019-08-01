@@ -166,23 +166,23 @@ end case;
 
 
 Enumerated_item_decode(p, sTag, nLevel, sItemID, sXerValue, sErrCode, bFirst) ::= <<
-<if(!bFirst)>els<endif>if enmLabel = <sXerValue> then
+<if(!bFirst)>els<endif>if String_Equal(enmLabel,  "<sXerValue>") then
     <p> := <sItemID>;
 >>
 
 Enumerated_decode(p, sTag, nLevel, arrsItems, soCheckExp, sErrCode) ::= <<
 declare
-	enmLabel : char [200];
+	enmLabel : adaasn1rtl.encoding.xer.XString (1 .. 200) := (1 .. 200 => adaasn1rtl.NUL);
 begin
-	ret = adaasn1rtl.encoding.xer.Xer_DecodeEnumerated(bs, <sTag>, enmLabel, ret);
-    if ret.ErrorCode then
+	adaasn1rtl.encoding.xer.Xer_DecodeEnumerated(bs, <sTag>, enmLabel, ret);
+    if ret.Success then
         <arrsItems; separator="\n">
 	    else 
 		    ret.ErrorCode := <sErrCode>;
-	    endif;
+	    end if;
     else
 	    ret.ErrorCode := <sErrCode>;
-    endif;
+    end if;
 
 end;
 >>
@@ -190,67 +190,266 @@ end;
 
 
 OctetString_encode(p, sAcc, sTag, nLevel, nSizeMax, bIsFixedSize, soCheckExp, sErrCode) ::= <<
-ret = adaasn1rtl.encoding.xer.Xer_EncodeOctetString(bs, <sTag>, <p><sAcc>arr, <if(!bIsFixedSize)><p><sAcc>nCount<else><nSizeMax><endif>, ret, <nLevel>);
+adaasn1rtl.encoding.xer.Xer_EncodeOctetString(bs, <sTag>, <p><sAcc>Data, <if(!bIsFixedSize)><p><sAcc>Length<else><nSizeMax><endif>, ret, <nLevel>);
 ret.ErrorCode := (if ret.Success then 0 else <sErrCode>);
 >>
 
 OctetString_decode(p, sAcc, sTag, nLevel, nSizeMax, bIsFixedSize, soCheckExp, sErrCode) ::= <<
-ret = adaasn1rtl.encoding.xer.Xer_DecodeOctetString(bs, <sTag>, <p><sAcc>arr, <if(!bIsFixedSize)><p><sAcc>nCount<else>NULL<endif>, ret);
+<if(bIsFixedSize)>
+declare
+	fixed_length : integer;
+begin
+	adaasn1rtl.encoding.xer.Xer_DecodeOctetString(bs, <sTag>, <p><sAcc>Data, fixed_length, ret);
+	<if(soCheckExp)><soCheckExp><endif>
+	ret.ErrorCode := (if ret.Success and then fixed_length = <nSizeMax> then 0 else <sErrCode>);
+end;
+
+<else>
+adaasn1rtl.encoding.xer.Xer_DecodeOctetString(bs, <sTag>, <p><sAcc>Data, <p><sAcc>Length, ret);
 <if(soCheckExp)><soCheckExp><endif>
 ret.ErrorCode := (if ret.Success then 0 else <sErrCode>);
+
+<endif>
 >>
 
 
 BitString_encode(p, sAcc, sTag, nLevel, nSizeMax, bIsFixedSize, soCheckExp, sErrCode) ::= <<
-ret = adaasn1rtl.encoding.xer.Xer_EncodeBitString(bs, <sTag>, <p><sAcc>arr, <if(!bIsFixedSize)><p><sAcc>nCount<else><nSizeMax><endif>, ret, <nLevel>);
+adaasn1rtl.encoding.xer.Xer_EncodeBitString(bs, <sTag>, <p><sAcc>Data, <if(!bIsFixedSize)><p><sAcc>Length<else><nSizeMax><endif>, ret, <nLevel>);
 ret.ErrorCode := (if ret.Success then 0 else <sErrCode>);
 >>
 
 BitString_decode(p, sAcc, sTag, nLevel, nSizeMax, bIsFixedSize, soCheckExp, sErrCode) ::= <<
-ret = adaasn1rtl.encoding.xer.Xer_DecodeBitString(bs, <sTag>, <p><sAcc>arr, <if(!bIsFixedSize)>&<p><sAcc>nCount<else>NULL<endif>, pErrCode);
+<if(bIsFixedSize)>
+declare
+	fixed_length : integer;
+begin
+	adaasn1rtl.encoding.xer.Xer_DecodeBitString(bs, <sTag>, <p><sAcc>Data, fixed_length, ret);
+	<if(soCheckExp)><soCheckExp><endif>
+	ret.ErrorCode := (if ret.Success and then fixed_length = <nSizeMax> then 0 else <sErrCode>);
+end;
+
+<else>
+adaasn1rtl.encoding.xer.Xer_DecodeBitString(bs, <sTag>, <p><sAcc>Data, <p><sAcc>Length, ret);
+<if(soCheckExp)><soCheckExp><endif>
+ret.ErrorCode := (if ret.Success then 0 else <sErrCode>);
+
+<endif>
+>>
+
+
+Null_encode(p, sTag, nLevel, soCheckExp, sErrCode) ::= <<
+adaasn1rtl.encoding.xer.Xer_EncodeNull(bs, <sTag>, <p>, ret, <nLevel>);
+ret.ErrorCode := (if ret.Success then 0 else <sErrCode>);
+>>
+
+Null_decode(p, sTag, nLevel, soCheckExp, sErrCode) ::= <<
+adaasn1rtl.encoding.xer.Xer_DecodeNull(bs, <sTag>, <p>, ret);
 <if(soCheckExp)><soCheckExp><endif>
 ret.ErrorCode := (if ret.Success then 0 else <sErrCode>);
 >>
 
 
 SequenceOf_encode(p, sAcc, sTag, nLevel, sI, nSizeMax, sChildBody, bFixedSize, soCheckExp, sErrCode) ::= <<
-/* SEQUENCE OF Encode*/
-ret := adaasn1rtl.encoding.xer.Xer_EncodeComplexElementStart(bs, <sTag>, ret, <nLevel>);
-if (ret.ErrorCode) then
-    for(<sI>=0;((<sI> \< <if(!bFixedSize)><p><sAcc>nCount<else><nSizeMax><endif>) && ret);<sI>++) 
-    {
-	    <sChildBody>
-    }
-    if (ret) {
-        ret = adaasn1rtl.encoding.xer.Xer_EncodeComplexElementEnd(bs, <sTag>, ret, <nLevel>);
+-- SEQUENCE OF Encode
+adaasn1rtl.encoding.xer.Xer_EncodeComplexElementStart(bs, <sTag>, ret, <nLevel>);
+if ret.Success then
+	<sI> := 1;
+	while <sI>\<= <if(!bFixedSize)><p><sAcc>Length<else><nSizeMax><endif> and ret.Success loop
+		<sChildBody>
+		<sI> := <sI> + 1;
+	end loop;
+    if ret.Success then
+        adaasn1rtl.encoding.xer.Xer_EncodeComplexElementEnd(bs, <sTag>, ret, <nLevel>);
 		ret.ErrorCode := (if ret.Success then 0 else <sErrCode>);
-    }
-endif;
+    end if;
+end if;
 >>
 
 
 SequenceOf_decode(p, sAcc, sTag, nLevel, sI, nSizeMax, sChildBody, bFixedSize, soCheckExp, sErrCode) ::= <<
-/* SEQUENCE OF Decode*/
-ret = Xer_DecodeComplexElementStart(bs, <sTag>, NULL, pErrCode);
-if (ret) {
-    <if(!bFixedSize)><p><sAcc>nCount = 0;<endif>
-    <sI> = 0;
-    while(ret && !Xer_NextEndElementIs(bs, <sTag>))
-    {
+-- SEQUENCE OF Decode
+adaasn1rtl.encoding.xer.Xer_DecodeComplexElementStart(bs, <sTag>, ret);
+if ret.Success then
+    <sI> := 1;
+    while ret.Success and  adaasn1rtl.encoding.xer.Xer_NextEndElementIs(bs, <sTag>) loop
 	    <sChildBody>
-	    <sI>++;
-	    <if(!bFixedSize)><p><sAcc>nCount++;<endif>
-    }
-    if (ret) {
-        ret = Xer_DecodeComplexElementEnd(bs, <sTag>, pErrCode);
-    }
-}
+	    <sI> := <sI> + 1;
+    end loop;
+    <if(!bFixedSize)><p><sAcc>Length := <sI> - 1;<endif>
+    if ret.Success then
+		adaasn1rtl.encoding.xer.Xer_DecodeComplexElementEnd(bs, <sTag>, ret);
+		ret.ErrorCode := (if ret.Success then 0 else <sErrCode>);
+    end if;
+end if;
+
+<if(soCheckExp)><soCheckExp><endif>
+
 <if(bFixedSize)>
-*pErrCode = (ret && <sI> == <nSizeMax>) ? 0 : <sErrCode>;
+ret.ErrorCode := ( if ret.Success and then <sI> + 1 = <nSizeMax> then  0 else <sErrCode>);
 
 <else>
-<if(soCheckExp)><soCheckExp><endif>
-*pErrCode = ret  ? 0 : <sErrCode>;
+ret.ErrorCode := (if ret.Success then 0 else <sErrCode>);
 
 <endif>
 >>
+
+
+
+/* SEQUENCE Start*/
+
+Sequence_mandatory_child_encode(sChName, sChildContent, sChildTag) ::= <<
+--Encode <sChName> 
+<sChildContent>
+>>
+
+Sequence_mandatory_child_decode(sChName, sChildContent, sChildTag) ::= <<
+--Decode <sChName> 
+ret.Success := adaasn1rtl.encoding.xer.Xer_NextStartElementIs(bs, "<sChildTag>");
+if ret.Success then
+	<sChildContent>
+end if;
+>>
+
+Sequence_optional_child_encode(p, sAcc, sChName, sChildContent, sChildTag) ::= <<
+--Encode <sChName> 
+if <p>.Exist.<sChName> = 1 then
+	<sChildContent>
+end if;
+>>
+
+Sequence_optional_child_decode(p, sAcc, sChName, sChildContent, sChildTag) ::= <<
+--Decode <sChName> 
+<p>.Exist.<sChName> := 0;
+if adaasn1rtl.encoding.xer.Xer_NextStartElementIs(bs, "<sChildTag>") then
+	<p>.Exist.<sChName> := 1;
+	<sChildContent>
+end if;
+>>
+
+Sequence_default_child_encode(p, sAcc, sChName, sChildContent, sChildTag, sInitWithDefaultValue) ::= <<
+<Sequence_optional_child_encode(p=p, sAcc=sAcc, sChName=sChName, sChildContent=sChildContent, sChildTag=sChildTag)>
+>>
+
+
+Sequence_default_child_decode(p, sAcc, sChName, sChildContent, sChildTag, sInitWithDefaultValue) ::= <<
+--Decode <sChName> 
+<p>.Exist.<sChName> := 0;
+if adaasn1rtl.encoding.xer.Xer_NextStartElementIs(bs, "<sChildTag>") then
+	<p>.Exist.<sChName> := 1;
+	<sChildContent>
+else
+    <sInitWithDefaultValue>
+end if;
+>>
+
+
+SEQUENCE_start_encode(p, sTag, nLevel, sErrCode, bEmptySequence) ::= <<
+adaasn1rtl.encoding.xer.Xer_EncodeComplexElementStart(bs, <sTag>, ret, <nLevel>);
+ret.ErrorCode := (if ret.Success then 0 else <sErrCode>);
+>>
+
+SEQUENCE_start_decode(p, sTag, nLevel, sErrCode, bEmptySequence) ::= <<
+<if(bEmptySequence)><p> := (null record);<endif>
+adaasn1rtl.encoding.xer.Xer_DecodeComplexElementStart(bs, <sTag>, ret);
+ret.ErrorCode := (if ret.Success then 0 else <sErrCode>);
+>>
+
+
+SEQUENCE_end_encode(sTag, nLevel, sErrCode) ::= <<
+adaasn1rtl.encoding.xer.Xer_EncodeComplexElementEnd(bs, <sTag>, ret, <nLevel>);
+ret.ErrorCode := (if ret.Success then 0 else <sErrCode>);
+>>
+
+SEQUENCE_end_decode(sTag, nLevel, sErrCode) ::= <<
+adaasn1rtl.encoding.xer.Xer_DecodeComplexElementEnd(bs, <sTag>, ret);
+ret.ErrorCode := (if ret.Success then 0 else <sErrCode>);
+>>
+
+
+SEQUENCE_xer_encode(sChildren) ::= <<
+-- SEQUENCE Encode
+<sChildren>
+>>
+
+SEQUENCE_xer_decode(sChildren) ::= <<
+-- SEQUENCE Decode
+<sChildren>
+>>
+
+
+
+CHOICE_child_encode(p, sAcc, sChID, sChildBody, bFirst, sChildTag, sChildName, sChildTypeDef, sChoiceTypeName) ::= <<
+when <sChID> =>
+	<sChildBody>
+>>
+
+
+CHOICE_child_decode(p, sAcc, sChID, sChildBody, bFirst, sChildTag, sChildName, sChildTypeDef, sChoiceTypeName) ::= <<
+<if(!bFirst)>els<endif>if String_Equal(nextTag, "<sChildTag>") then
+  declare
+     <sChildName>_tmp:<sChildTypeDef>;
+  begin
+    <sChildBody>
+    if ret.Success THEN
+        <p> := <sChoiceTypeName>'(kind => <sChID>, <sChildName> => <sChildName>_tmp);
+    end if;
+  end;
+>>
+
+
+CHOICE_no_tag_encode(p, sAcc, arrsChildren, sErrCode) ::= <<
+case <p><sAcc>kind IS
+    <arrsChildren; separator="\n">
+end case;
+>>
+
+CHOICE_no_tag_decode(p, sAcc, arrsChildren, sErrCode) ::=<<
+declare
+    nextTag  : adaasn1rtl.encoding.xer.XString (1 .. 256) := (1 .. 256 => adaasn1rtl.NUL);
+begin
+	adaasn1rtl.encoding.xer.Xer_LA_NextElementTag(bs, nextTag, ret);
+	ret.ErrorCode := (if ret.Success then 0 else <sErrCode>);
+	if ret.Success THEN
+		<arrsChildren; separator="\n"> 
+        else
+			ret.Success := False;
+			ret.ErrorCode := <sErrCode>;
+        end if;
+	end if;
+end;
+>>
+
+CHOICE_encode(p, sAcc, sTag, nLevel, sMainBody, sErrCode) ::= <<
+--CHOICE Encode
+adaasn1rtl.encoding.xer.Xer_EncodeComplexElementStart(bs, <sTag>, ret, <nLevel>);
+if ret.Success THEN
+    <sMainBody>
+    if ret.Success THEN
+        adaasn1rtl.encoding.xer.Xer_EncodeComplexElementEnd(bs, <sTag>, ret, <nLevel>);
+    end if;
+end if;
+>>
+
+
+CHOICE_decode(p, sAcc, sTag, nLevel, sMainBody, sErrCode) ::= <<
+--CHOICE Decode
+adaasn1rtl.encoding.xer.Xer_DecodeComplexElementStart(bs, <sTag>, ret);
+ret.ErrorCode := (if ret.Success then 0 else <sErrCode>);
+if ret.Success then
+    <sMainBody>
+	if ret.Success then
+		adaasn1rtl.encoding.xer.Xer_DecodeComplexElementEnd(bs, <sTag>, ret);
+		ret.ErrorCode := (if ret.Success then 0 else <sErrCode>);
+	end if;
+end if;
+>>
+
+
+
+
+
+
+
+
+call_base_type_func_encode(p, sXmlTag, sFuncName) ::= "<sFuncName>_aux(<p>, <sXmlTag>, bs, ret);"
+call_base_type_func_decode(p, sXmlTag, sFuncName) ::= "<sFuncName>_aux(<p>, <sXmlTag>, bs, ret);"

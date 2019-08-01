@@ -539,11 +539,12 @@ let createIntegerFunctionByCons (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) i
     | _         ->
         let funcExp (p:CallerScope) = 
             let vp = fncs |> List.map (fun fnc -> fnc p) |> (ValidationCodeBlock_Multiple_And l)        
-            match vp with
-            | VCBTrue        -> "true"
-            | VCBFalse       -> "false"
-            | VCBExpression sExp -> sExp
-            | VCBStatement sStat -> sStat
+            vp
+//            match vp with
+//            | VCBTrue        -> "true"
+//            | VCBFalse       -> "false"
+//            | VCBExpression sExp -> sExp
+//            | VCBStatement sStat -> sStat
         Some funcExp
 
 let createRealFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Real) (typeDefinition:TypeDefintionOrReference)  (us:State)  =

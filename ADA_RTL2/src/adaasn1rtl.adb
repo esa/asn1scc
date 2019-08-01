@@ -81,5 +81,15 @@ package body  adaasn1rtl with Spark_Mode is
         return ret;
     end ObjectIdentifier_equal;
    
+   function String_Equal (Left, Right : in String) return Boolean 
+   is
+      len1 : constant integer := getStringSize(Left);
+      len2 : constant integer := getStringSize(Right);
+   begin
+      return len1 = len2 and then Left(Left'First .. Left'First + (len1 - 1)) = Right(Right'First .. Right'First + (len1 - 1));
+   end;
+   
+      
+   
    
 end adaasn1rtl;

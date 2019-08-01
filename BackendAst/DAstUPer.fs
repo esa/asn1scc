@@ -104,9 +104,10 @@ let getIntfuncBodyByCons (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec:C
     let rootCons = cons |> List.choose(fun x -> match x with RangeRootConstraint(a) |RangeRootConstraint2(a,_) -> Some(x) |_ -> None) 
 
     let checkExp = 
-        match (DastValidate2.createIntegerFunctionByCons r l isUnsigned allCons) with
-        | None  ->  None
-        | Some expFunc -> Some (expFunc p)
+        //match (DastValidate2.createIntegerFunctionByCons r l isUnsigned allCons) with
+        //| None  ->  None
+        //| Some expFunc -> Some (expFunc p)
+        None
 
     let IntBod uperRange extCon =
         

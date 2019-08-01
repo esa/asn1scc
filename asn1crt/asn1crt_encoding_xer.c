@@ -653,6 +653,53 @@ flag Xer_EncodeBitString(ByteStream* pByteStrm, const char* elementTag, const by
 }
 
 
+flag Xer_EncodeObjectIdentifier(ByteStream* pByteStrm, const char* elementTag, const Asn1ObjectIdentifier *pVal, int *pErrCode, int level)
+{
+	int i;
+	*pErrCode = 44444;//++++
+
+	if (!ByteStream_PutSpace(pByteStrm, level))
+		return FALSE;
+
+	if (!Xer_EncodeComplexElementStart(pByteStrm, elementTag, NULL, pErrCode, -1))
+		return FALSE;
+	if (pVal->nCount > 0) {
+		char tmp[40];
+		snprintf(tmp, sizeof(tmp), "%d", pVal->values[0]);
+		if (!ByteStream_AppendString(pByteStrm, tmp))
+			return FALSE;
+	}
+
+	for (i = 1; i<pVal->nCount; i++) {
+		char tmp[40];
+		snprintf(tmp, sizeof(tmp), ".%d", pVal->values[i]);
+		if (!ByteStream_AppendString(pByteStrm, tmp))
+			return FALSE;
+
+	}
+	if (!Xer_EncodeComplexElementEnd(pByteStrm, elementTag, pErrCode, -1))
+		return FALSE;
+
+	if (!ByteStream_PutNL(pByteStrm))
+		return FALSE;
+
+	return TRUE;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 flag Xer_DecodeInteger(ByteStream* pByteStrm, const char* elementTag, asn1SccSint* value, int *pErrCode)
 {
 	char tmp[256];
@@ -797,6 +844,58 @@ flag Xer_DecodeOctetString(ByteStream* pByteStrm, const char* elementTag, byte v
 
 	return TRUE;
 }
+
+
+
+
+flag Xer_DecodeObjectIdentifier(ByteStream* pByteStrm, const char* elementTag, Asn1ObjectIdentifier *pVal, int *pErrCode)
+{
+	char tmp[1024];
+	int len = 0;
+	int i;
+	int j = 0;
+	char delim[] = ".";
+	memset(tmp, 0x0, sizeof(tmp));
+	if (!Xer_DecodePrimitiveElement(pByteStrm, elementTag, tmp, pErrCode))
+		return FALSE;
+
+	len = (int)strlen(tmp);
+
+	for (i = 0; i<len; i++) {
+		if (isspace(tmp[i]))
+			continue;
+		tmp[j++] = tmp[i];
+	}
+
+	len = j;
+
+	char *ptr = strtok(tmp, delim);
+	i = 0;
+	while (ptr != NULL && i < OBJECT_IDENTIFIER_MAX_LENGTH)
+	{
+		pVal->values[i++] = atoll(tmp);
+
+		ptr = strtok(NULL, delim);
+	}
+
+	return TRUE;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
