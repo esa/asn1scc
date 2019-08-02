@@ -241,7 +241,7 @@ ret = Xer_DecodeComplexElementStart(pByteStrm, <sTag>, NULL, pErrCode);
 if (ret) {
     <if(!bFixedSize)><p><sAcc>nCount = 0;<endif>
     <sI> = 0;
-    while(ret && Xer_NextEndElementIs(pByteStrm, <sTag>))
+    while(ret && !Xer_NextEndElementIs(pByteStrm, <sTag>))
     {
 	    <sChildBody>
 	    <sI>++;

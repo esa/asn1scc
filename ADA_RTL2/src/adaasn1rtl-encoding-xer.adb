@@ -549,9 +549,8 @@ package body adaasn1rtl.encoding.xer is
       if tok.TokenID /= WORD_ID or tok.ValueLength = 0 then
          return;
       end if;
-      if Trim (tok.Value, Ada.Strings.Both) /=
-        Trim (elementTag, Ada.Strings.Both)
-      then
+      --if Trim (tok.Value, Ada.Strings.Both) /= Trim (elementTag, Ada.Strings.Both)
+      if not String_Equal(Trim (tok.Value, Ada.Strings.Both),  Trim (elementTag, Ada.Strings.Both))  then
          return;
       end if;
 
@@ -591,9 +590,8 @@ package body adaasn1rtl.encoding.xer is
       if tok.TokenID /= WORD_ID or tok.ValueLength = 0 then
          return;
       end if;
-      if Trim (tok.Value, Ada.Strings.Both) /=
-        Trim (elementTag, Ada.Strings.Both)
-      then
+      --if Trim (tok.Value, Ada.Strings.Both) /=   Trim (elementTag, Ada.Strings.Both)  then
+      if not String_Equal(Trim (tok.Value, Ada.Strings.Both), Trim (elementTag, Ada.Strings.Both))  then
          return;
       end if;
 
@@ -934,7 +932,7 @@ package body adaasn1rtl.encoding.xer is
 
    procedure Xer_DecodeObjectIdentifier(Strm : in out CharStream; elementTag : in XString; value : out Asn1ObjectIdentifier; Result : out ASN1_RESULT)
    is
-      str  : XString (1 .. 32768) := (1 .. 32768 => ' ');
+      str  : XString (1 .. 200) := (1 .. 200 => NUL);
       len2 : Integer;
       J    : Integer              := str'First;
       current : Positive := str'First;
@@ -957,7 +955,7 @@ package body adaasn1rtl.encoding.xer is
       for i in 1 .. len2 loop
          if str(i) = '.' or i = len2 then
             value.Length := value.Length + 1;
-            value.values(value.Length) := Asn1UInt'Value (str (current .. i-1));
+            value.values(value.Length) := Asn1UInt'Value (str (current .. (if i = len2 then len2 else i-1)));
 
             current := i + 1;
          end if;
