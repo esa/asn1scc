@@ -366,11 +366,30 @@ Example
     beta BOOLEAN [],
     gamma [present-when beta, encoding IEEE754-1985-64]
  }
-
+ 
 Listing 4: ACN grammar for ASN.1 grammar of Listing 3
 
 In the above example, gamma field is present only when beta is TRUE.
 
+In the case of optional sequence components, the present-when attibute can be followed by a boolean expression.
+
+Syntax
+
+ Present-when ''booleanExpression''
+
+where ''booleanExpression'' is a boolean expression which can contain one or more non optional ASN.1 fields (not ACN inserted fields). 
+The expression can use int and real constants, non optional ASN.1 fields as well as the following operators:
+ + - * / % <= < >= > and or
+
+Example
+
+ MyPDU[]  {
+    int1	[size 8, encoding pos-int],
+    enm		[present-when (int1 <10 and int1%2 == 0) or (int1>=10 and int1 <=14) ]
+ } 
+
+In the above example, enm is present when int1 is less than 10 and even number or when it is within range 10..14.
+ 
 In the case of CHOICE alternatives the syntax is as follows
 
 Syntax
@@ -470,37 +489,37 @@ The mapping-function property allows to apply a filter to integer values, with t
 
 <span id="_Ref2634229891" class="anchor"></span>Listing 9: Sample ASN.1 grammar
 
-MYMOD '''DEFINITIONS''' ::= '''BEGIN'''
+ MYMOD '''DEFINITIONS''' ::= '''BEGIN'''
 
-LENG-DET ['''encoding''' pos-int, '''size''' 5, '''mapping-function''' milbus2]
+ LENG-DET ['''encoding''' pos-int, '''size''' 5, '''mapping-function''' milbus2]
 
-WORD[]
+ WORD[]
 
-Milbus[] {
+ Milbus[] {
 
-length LENG-DET [],
+ length LENG-DET [],
 
-words32 ['''size''' length]
+ words32 ['''size''' length]
 
-}
+ }
 
-END
+ END
 
 Listing 10: ACN grammar
 
 The user in that case has to provide the code for the filter function milbus2 (either in C or in Ada):
 
-asn1SccSint milbus2_encode(asn1SccSint val) {
+ asn1SccSint milbus2_encode(asn1SccSint val) {
 
-return val == 32 ? 0 : val;
+     return val == 32 ? 0 : val;
 
-}
+ }
 
-asn1SccSint milbus2_decode(asn1SccSint val) {
+ asn1SccSint milbus2_decode(asn1SccSint val) {
 
-return val == 0 ? 32 : val;
+    return val == 0 ? 32 : val;
 
-}
+ }
 
 Listing 11: C filter function for milbus2 encoding
 
@@ -520,47 +539,63 @@ For convenience, the ASN1SCC runtime provides pre-defined filter functions. In p
 </li></ol>
 </li></ol>
 
-In some cases, the value for the encoding properties “size”, “present-when” and “determinant-tag” may be another field. These fields do not carry semantic (i.e. application specific) information but are used only in the decoding and encoding processes. Therefore these fields may not exist in the ASN.1 grammar but introduced only in the ACN one. For example, Listing 3 can be modified as follows:
+In some cases, the value for the encoding properties “size”, “present-when” and “determinant-tag” may provided by be another field. 
+These fields do not carry semantic (i.e. application specific) information but are used only in the decoding and encoding processes. 
+Therefore these fields may not exist in the ASN.1 grammar but introduced only in the ACN one. 
+For example, Listing 3 can be modified as follows:
 
-MySeq ::= SEQUENCE {
-
-alpha INTEGER,
-
-gamma REAL OPTIONAL
-
-}
+ MySeq ::= SEQUENCE {
+    alpha INTEGER,
+    gamma REAL OPTIONAL
+ }
 
 Listing 13: The revised ASN.1 grammar of Listing 3. Field ‘beta’ is missing.
 
-Seq[] {
-
-alpha [],
-
-beta BOOLEAN [], -- exists only in the ACN file, not the ASN.1 one
-
-gamma [present-when beta, encoding IEEE754-1985-64]
-
-}
+ Seq[] {
+    alpha [],
+    beta BOOLEAN [], -- exists only in the ACN file, not the ASN.1 one
+    gamma [present-when beta, encoding IEEE754-1985-64]
+ }
 
 <span id="_Ref263423135" class="anchor"></span>Listing 14: Revised ACN grammar for the ASN.1 grammar of Listing 14. Field ‘beta’ along with the type (BOOLEAN) is introduced.
 
 Please notice that field ‘beta’ does not exist in the ASN.1 grammar but it was introduced only in the ACN grammar.
 
-Another way to introduce fields (e.g. for alignment, or to add a standard-imposed data pattern in the encoding) is to use the NULL construct with the “pattern” encoding:
+Another way to introduce fields (e.g. for alignment, or to add a standard-imposed data pattern in the encoding) 
+is to use the NULL construct with the “pattern” encoding:
 
-T-tc-packetID []
+ T-tc-packetID []
+ {
+    ccsds-version-number NULL [pattern '000'B],
+    packet-type NULL [pattern '1'B] ,
+    has-data-fieldhdr NULL [pattern '1'B],
+    apid []
+ }
 
-{
+== Endoding fields that depend on the encoding binary stream ==
+There are cases where the value of some special purpose fields depend on the value of the encoding stream. 
+For example, the CRC (Cyclic Redundancy Check) fields commonly used in digital networks so that the recipient 
+can validate the correctness of the data. The problem though with a CRC field is that its value cannot 
+be provided in advance, as with normal fields, but only when the encoding of the bitstream is completed. 
+To address this issue, ACN introduces three special attributes:
+* post-encoding-function
+* post-decoding-validator
+* save-position
 
-ccsds-version-number NULL [pattern '000'B],
+The first two attributes (post-encoding-function, post-decoding-validator) are applicable only to 
+SEQUENCE types while the save-position attribute to SEQUENCE components of NULL type.
 
-packet-type NULL [pattern '1'B] ,
+Example
+ T-Packet [post-encoding-function my-encoding-patcher, post-decoding-validator crc-validator]
+ {
+     header [save-position],   --variable length header
+     header-length NULL [pattern '000000000000'B, save-position], -- header length in bits
+     body [determinant nid],   -- main packet body
+     crc32 NULL [pattern '00000000'H, save-position] -- 32 crc  bits
+ }
 
-has-data-fieldhdr NULL [pattern '1'B],
-
-apid []
-
-}
+T-Packet consists of a variable size header, a 12 bits field that contains the size in bits of the 
+header, the main packet body, and a 32-bit CRC field.
 
 == <span id="__RefHeading___Toc2064_1804207684" class="anchor"><span id="_Toc432432502" class="anchor"></span></span>Parameterized encodings and deep field access ==
 
@@ -585,39 +620,28 @@ The corresponding ASN.1 / ACN grammar is:
 
 --ASN.1 DEFINITION
 
-Packet ::= SEQUENCE {
-
-primaryHeader SEQUENCE {
-
-version INTEGER,
-
-seqNr INTEGER,
-
-secHeaderFlag BOOLEAN
-
-},
-
-secondaryHeader SEQUENCE {...} OPTIONAL
-
-}
+ Packet ::= SEQUENCE {
+    primaryHeader SEQUENCE {
+        version INTEGER,
+        seqNr INTEGER,
+        secHeaderFlag BOOLEAN
+    },
+    secondaryHeader SEQUENCE {...} OPTIONAL
+ }
 
 -- Encodings definition
 
-Packet {
+ Packet [] {
 
-primaryHeader[] {
+     primaryHeader[] {
+        version [],
+        seqNr [],
+        secHeaderFlag []
+     }
 
-version [],
+     secondaryHeader [present-when '''primaryHeader.secHeaderFlag''']
 
-seqNr [],
-
-secHeaderFlag []
-
-}
-
-secondaryHeader [present-when '''primaryHeader.secHeaderFlag''']
-
-}
+ }
 
 Listing 15: ACN grammar demonstrating access to fields at different levels
 
@@ -635,45 +659,31 @@ The corresponding ASN.1 / ACN grammar is:
 
 --ASN.1 DEFINITION
 
-TAP2File ::= SEQUENCE {
+ TAP2File ::= SEQUENCE {
+    nrCalls INTEGER,
+    data SourceData
+ }
 
-nrCalls INTEGER,
-
-data SourceData
-
-}
-
-SourceData ::= SEQUENCE {
-
-operatorID IA5String,
-
-calls SEQUENCE (SIZE(1..100))OF Call
-
-}
+ SourceData ::= SEQUENCE {
+    operatorID IA5String,
+    calls SEQUENCE (SIZE(1..100))OF Call
+ }
 
 --ACN DEFINITION
 
-TAP2File {
+ TAP2File [] {
+    nrCalls [],
+    data &lt;nrCalls&gt; [ ] -- nrCalls is passed as a parameter in SourceData
+ }
 
-nrCalls [],
+ SourceData&lt;INTEGER:nElements&gt;
+    -- nElements is a parameter used in encoding/decoding
+    -- passed in from the levels above (in this case, TAP2File level)
 
-data &lt;nrCalls&gt; [ ] -- nrCalls is passed as a parameter in SourceData
-
-}
-
-SourceData&lt;INTEGER:nElements&gt;
-
--- nElements is a parameter used in encoding/decoding
-
--- passed in from the levels above (in this case, TAP2File level)
-
-{
-
-operatorID [],
-
-calls[size nElements] -- points to a parameter not a field
-
-}
+ {
+    operatorID [],
+    calls[size nElements] -- points to a parameter not a field
+ }
 
 Listing 16: ACN grammar demonstrating parameterized encodings
 
@@ -693,54 +703,37 @@ To handle this case, we must apply the techniques of both previous cases. The co
 
 --ASN.1 DEFINITION
 
-TAP3File ::= SEQUENCE {
+ TAP3File ::= SEQUENCE {
+    header Header,
+    data SourceData
+ }
 
-header Header,
+ Header ::= SEQUENCE {
+    operatorID IA5String,
+    nCalls INTEGER
+ }
 
-data SourceData
-
-}
-
-Header ::= SEQUENCE {
-
-operatorID IA5String,
-
-nCalls INTEGER
-
-}
-
-SourceData ::= SEQUENCE {
-
-calls SEQUENCE (SIZE(1..100)) OF Call -- length field is contained in the header.nCalls
-
-}
+ SourceData ::= SEQUENCE {
+    calls SEQUENCE (SIZE(1..100)) OF Call -- length field is contained in the header.nCalls
+ }
 
 --ACN DEFINITION
 
-TAP3File {
+ TAP3File [] {
+    header [] {},
+    data &lt;header.nCalls&gt; [ ] -– header.nCalls is passed as a parameter
+    -- in SourceData
+ }
 
-header [] {},
+ Header[]{
+    operatorID[],
+    nCalls[]
+ }
 
-data &lt;header.nCalls&gt; [ ] -– header.nCalls is passed as a parameter
-
--- in SourceData
-
-}
-
-Header[]{
-
-operatorID[],
-
-nCalls[]
-
-}
-
-SourceData&lt;INTEGER:nElements&gt; -- parameters
-
-{
-
-calls[size nElements] – “size” points to a parameter, not a field
-
-<span id="_Ref243465359" class="anchor"></span>}
+ SourceData&lt;INTEGER:nElements&gt; -- parameters
+ {
+    calls[size nElements] – “size” points to a parameter, not a field
+    <span id="_Ref243465359" class="anchor"></span>
+ }
 
 Listing 17: ACN grammar demonstrating parameterized encodings and deep field access
