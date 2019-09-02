@@ -11,7 +11,7 @@ let exportRTL outDir  (l:ProgrammingLanguage) (args:CommandLineSettings)=
         System.IO.File.WriteAllText(fileName, content.Replace("\r",""))
     let rm = new ResourceManager("Resource1", System.Reflection.Assembly.GetExecutingAssembly());
     let hasUper = args.encodings |> Seq.exists(fun e -> e = UPER)
-    let hasAcn = args.encodings |> Seq.exists(fun e -> e = UPER)
+    let hasAcn = args.encodings |> Seq.exists(fun e -> e = ACN)
     let hasXer = args.encodings |> Seq.exists(fun e -> e = XER)
     let hasBer = args.encodings |> Seq.exists(fun e -> e = BER)
     match l with

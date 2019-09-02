@@ -523,7 +523,7 @@ let createAcnNullTypeFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (co
                     let bitStringPattern = byteArrayToBitStringValue arrBytes
                     let arrsBits = bitStringPattern.ToCharArray() |> Seq.mapi(fun i x -> ((i+1).ToString()) + "=>" + if x='0' then "0" else "1") |> Seq.toList
                     arrsBits,arrBytes,(BigInteger bitStringPattern.Length)
-            let ret = nullType pp arrBytes nBitsSize arrsBits errCode.errCodeName codec
+            let ret = nullType pp arrBytes nBitsSize arrsBits errCode.errCodeName o.acnProperties.savePosition codec
             Some ({AcnFuncBodyResult.funcBody = ret; errCodes = [errCode]; localVariables = []})
     (funcBody errCode), ns
 
@@ -545,7 +545,7 @@ let createNullTypeFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec
                     let bitStringPattern = byteArrayToBitStringValue arrBytes
                     let arrsBits = bitStringPattern.ToCharArray() |> Seq.mapi(fun i x -> ((i+1).ToString()) + "=>" + if x='0' then "0" else "1") |> Seq.toList
                     arrsBits,arrBytes,(BigInteger bitStringPattern.Length)
-            let ret = nullType pp arrBytes nBitsSize arrsBits errCode.errCodeName codec
+            let ret = nullType pp arrBytes nBitsSize arrsBits errCode.errCodeName o.acnProperties.savePosition codec
             Some ({AcnFuncBodyResult.funcBody = ret; errCodes = [errCode]; localVariables = []})
     let soSparkAnnotations = None
     createAcnFunction r l codec t typeDefinition  isValidFunc  (fun us e acnArgs p -> funcBody e acnArgs p, us) (fun atc -> true) soSparkAnnotations us
@@ -1097,7 +1097,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
     let sequence_save_bitstream                 = match l with C -> acn_c.sequence_save_bitstream                     | Ada -> acn_a.sequence_save_bitstream              
     let sequence_save_bitStream_start                 = match l with C -> acn_c.sequence_save_bitStream_start                     | Ada -> acn_a.sequence_save_bitStream_start              
     
-    let bitStreamName                           = match l with C -> "BitStream"                                  | Ada -> "adaasn1rtl.BitStreamPtr"
+    let bitStreamName                           = match l with C -> "BitStream"                                  | Ada -> "adaasn1rtl.encoding.BitStreamPtr"
 
     let acnExpressionToBackendExpression (seq:Asn1AcnAst.Sequence) (pSeq:CallerScope) (exp:AcnExpression) =
         let unaryNotOperator = match l with C -> "!" | Ada -> "not"

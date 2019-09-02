@@ -568,24 +568,40 @@ result.ErrorCode := <sErrCode>;
 >>
 
 
-Null_pattern_encode(p, arruNullValueAsByteArray, nSize, arrsBits, sErrCode) ::= <<
+Null_pattern_encode(p, arruNullValueAsByteArray, nSize, arrsBits, sErrCode, bSavePosition) ::= <<
 adaasn1rtl.encoding.acn.Acn_Enc_NullType_pattern(bs, <p>, BitArray'(<arrsBits; separator=",">));
 >>
 
-Null_pattern_decode(p, arruNullValueAsByteArray, nSize, arrsBits, sErrCode) ::= <<
+Null_pattern_decode(p, arruNullValueAsByteArray, nSize, arrsBits, sErrCode, bSavePosition) ::= <<
+<if(bSavePosition)>
+result.ErrorCode := <sErrCode>;
+result.Success := TRUE;
+bs.Current_Bit_Pos := bs.Current_Bit_Pos + <nSize>;
+
+<else>
 adaasn1rtl.encoding.acn.Acn_Dec_NullType_pattern(bs, <p>, BitArray'(<arrsBits; separator=",">), result);
 result.ErrorCode := <sErrCode>;
+
+<endif>
 >>
 
 
 
-Null_pattern2_encode(p, arruNullValueAsByteArray, nSize, arrsBits, sErrCode) ::= <<
+Null_pattern2_encode(p, arruNullValueAsByteArray, nSize, arrsBits, sErrCode, bSavePosition) ::= <<
 adaasn1rtl.encoding.acn.Acn_Enc_NullType_pattern2(bs, BitArray'(<arrsBits; separator=",">));
 >>
 
-Null_pattern2_decode(p, arruNullValueAsByteArray, nSize, arrsBits, sErrCode) ::= <<
+Null_pattern2_decode(p, arruNullValueAsByteArray, nSize, arrsBits, sErrCode, bSavePosition) ::= <<
+<if(bSavePosition)>
+result.ErrorCode := <sErrCode>;
+result.Success := TRUE;
+bs.Current_Bit_Pos := bs.Current_Bit_Pos + <nSize>;
+
+<else>
 adaasn1rtl.encoding.acn.Acn_Dec_NullType_pattern2(bs, BitArray'(<arrsBits; separator=",">), result);
 result.ErrorCode := <sErrCode>;
+
+<endif>
 >>
 
 

@@ -1,0 +1,4 @@
+adaasn1rtl    specification is in adaasn1rtl.ads
+adaasn1rtl    body          is in adaasn1rtl.adb
+mymodule    specification is in mymodule.ads
+mymodule    body          is in mymodule.adb

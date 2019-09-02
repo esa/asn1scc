@@ -404,7 +404,7 @@ Boolean_decode(p, ptr, bEncValIsTrue, nSize, arruTrueValueAsByteArray, arruFalse
 
 
 
-Null_encode(p, arruNullValueAsByteArray, nSize, arrsBits, sErrCode) ::= <<
+Null_encode(p, arruNullValueAsByteArray, nSize, arrsBits, sErrCode, bSavePosition) ::= <<
 <if(arruNullValueAsByteArray)>
 {
 	static byte tmp[] = {<arruNullValueAsByteArray:{b|0x<b;format="X2">}; separator=",">};
@@ -413,7 +413,11 @@ Null_encode(p, arruNullValueAsByteArray, nSize, arrsBits, sErrCode) ::= <<
 <endif>
 >>
 
-Null_decode(p, arruNullValueAsByteArray, nSize, arrsBits, sErrCode) ::= <<
+Null_decode(p, arruNullValueAsByteArray, nSize, arrsBits, sErrCode, bSavePosition) ::= <<
+<if(bSavePosition)>
+ret = BitStream_ReadBitPattern_ignore_value(pBitStrm, <nSize>);
+
+<else>
 <if(arruNullValueAsByteArray)>
 {
 	static byte tmp[] = {<arruNullValueAsByteArray:{b|0x<b;format="X2">}; separator=",">};
@@ -421,6 +425,8 @@ Null_decode(p, arruNullValueAsByteArray, nSize, arrsBits, sErrCode) ::= <<
 	ret = BitStream_ReadBitPattern(pBitStrm, tmp, <nSize>, &dummy);
     <A(sErrCode)>
 }
+
+<endif>
 
 <endif>
 >>
