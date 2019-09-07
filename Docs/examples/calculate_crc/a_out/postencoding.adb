@@ -19,17 +19,17 @@ PACKAGE BODY postencoding with SPARK_Mode IS
 
    procedure my_encoding_patcher(val:in Packet; bitStreamPositions_start1 : adaasn1rtl.encoding.BitStreamPtr; bitStreamPositions_1:Packet_extension_function_positions; bs : in out adaasn1rtl.encoding.Bitstream)
    is
-      startPosInBits : adaasn1rtl.Asn1UInt := adaasn1rtl.Asn1UInt (bitStreamPositions_start1.Current_Bit_Pos); 
+      startPosInBits : adaasn1rtl.Asn1UInt := adaasn1rtl.Asn1UInt (bitStreamPositions_1.Packet_body_length_in_bytes.Current_Bit_Pos); 
       endPosIBits    : adaasn1rtl.Asn1UInt := adaasn1rtl.Asn1UInt (bitStreamPositions_1.Packet_packet_crc32.Current_Bit_Pos);
-      lengthInBytes  : adaasn1rtl.Asn1UInt :=  (endPosIBits - startPosInBits - 12)/8;
+      lengthInBytes  : adaasn1rtl.Asn1UInt :=  (endPosIBits - startPosInBits - 16)/8;
       crc32          : adaasn1rtl.Asn1UInt;
       orignalBit_Pos : constant Natural := bs.Current_Bit_Pos;
    begin
       
       --use the ACN function to encode the length value. Please note that we use the Packet_packet_length_in_bytes field in the
       -- Packet_extension_function_positions to encode the length in the correct position.
-      bs.Current_Bit_Pos := bitStreamPositions_1.Packet_packet_length_in_bytes.Current_Bit_Pos;
-      adaasn1rtl.encoding.acn.Acn_Enc_Int_PositiveInteger_ConstSize(bs, lengthInBytes, 12);
+      bs.Current_Bit_Pos := bitStreamPositions_1.Packet_body_length_in_bytes.Current_Bit_Pos;
+      adaasn1rtl.encoding.acn.Acn_Enc_Int_PositiveInteger_ConstSize(bs, lengthInBytes, 16);
 	
       --calculate crc
       crc32 := adaasn1rtl.Asn1UInt (calc_crc_32(bs.Buffer, bitStreamPositions_1.Packet_packet_crc32.Current_Bit_Pos/8));
@@ -43,9 +43,9 @@ PACKAGE BODY postencoding with SPARK_Mode IS
 
    FUNCTION crc_validator(val:in Packet; bitStreamPositions_start1 : adaasn1rtl.encoding.BitStreamPtr; bitStreamPositions_1:Packet_extension_function_positions; bs : in out adaasn1rtl.encoding.Bitstream) return adaasn1rtl.ASN1_RESULT
    is 
-      startPosInBits : adaasn1rtl.Asn1UInt := adaasn1rtl.Asn1UInt (bitStreamPositions_start1.Current_Bit_Pos); 
+      startPosInBits : adaasn1rtl.Asn1UInt := adaasn1rtl.Asn1UInt (bitStreamPositions_1.Packet_body_length_in_bytes.Current_Bit_Pos); 
       endPosIBits    : adaasn1rtl.Asn1UInt := adaasn1rtl.Asn1UInt (bitStreamPositions_1.Packet_packet_crc32.Current_Bit_Pos);
-      lengthInBytes  : adaasn1rtl.Asn1UInt :=  (endPosIBits - startPosInBits - 12)/8;
+      lengthInBytes  : adaasn1rtl.Asn1UInt :=  (endPosIBits - startPosInBits - 16)/8;
       decLenInBytes  : adaasn1rtl.Asn1UInt := 0;
       crc32          : adaasn1rtl.Asn1UInt;
       decodeCrc32    : adaasn1rtl.Asn1UInt;
@@ -56,8 +56,8 @@ PACKAGE BODY postencoding with SPARK_Mode IS
    begin
       --use the ACN function to decode the length value. Please note that we use the Packet_packet_length_in_bytes field in the
       -- Packet_extension_function_positions to encode the length in the correct position.
-      bs.Current_Bit_Pos := bitStreamPositions_1.Packet_packet_length_in_bytes.Current_Bit_Pos;
-      adaasn1rtl.encoding.acn.Acn_Dec_Int_PositiveInteger_ConstSize(bs, decLenInBytes, 0, 4095, 12, ret1);
+      bs.Current_Bit_Pos := bitStreamPositions_1.Packet_body_length_in_bytes.Current_Bit_Pos;
+      adaasn1rtl.encoding.acn.Acn_Dec_Int_PositiveInteger_ConstSize(bs, decLenInBytes, 0, 65535, 16, ret1);
       
       --calculate crc
       crc32 := adaasn1rtl.Asn1UInt (calc_crc_32(bs.Buffer, bitStreamPositions_1.Packet_packet_crc32.Current_Bit_Pos/8));
@@ -65,7 +65,10 @@ PACKAGE BODY postencoding with SPARK_Mode IS
       bs.Current_Bit_Pos := bitStreamPositions_1.Packet_packet_crc32.Current_Bit_Pos;
       adaasn1rtl.encoding.acn.Acn_Dec_Int_PositiveInteger_ConstSize(bs, decodeCrc32, 0, 4294967295, 32, ret2);
       
-      ret := adaasn1rtl.ASN1_RESULT'(Success => ret1.Success and ret2.Success and lengthInBytes = decLenInBytes and crc32 = decodeCrc32, ErrorCode => 0);
+      ret := adaasn1rtl.ASN1_RESULT'(Success => 
+                                       ret1.Success and ret2.Success 
+                                       and lengthInBytes = decLenInBytes and crc32 = decodeCrc32
+                                     , ErrorCode => 0);
       if not ret.Success then
          ret.ErrorCode := 3141592; -- assign custom error code
       end if;

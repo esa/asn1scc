@@ -550,11 +550,11 @@ flag Packet_ACN_Encode(const Packet* pVal, BitStream* pBitStrm, int* pErrCode, f
 	        }
 	        
 	        if (ret) {
-	            /*Encode Packet_packet_length_in_bytes */
-	            bitStreamPositions_1.Packet_packet_length_in_bytes = *pBitStrm; //save position of the bit stream
+	            /*Encode Packet_body_length_in_bytes */
+	            bitStreamPositions_1.Packet_body_length_in_bytes = *pBitStrm; //save position of the bit stream
 	            {
 	            	static byte tmp[] = {0x00,0x00};
-	            	BitStream_AppendBits(pBitStrm, tmp, 12);
+	            	BitStream_AppendBits(pBitStrm, tmp, 16);
 	            }
 	            if (ret) {
 	                /*Encode p_body */
@@ -646,9 +646,9 @@ flag Packet_ACN_Decode(Packet* pVal, BitStream* pBitStrm, int* pErrCode)
 	    }
 	    
 	    if (ret) {
-	        /*Decode Packet_packet_length_in_bytes */
-	        bitStreamPositions_1.Packet_packet_length_in_bytes = *pBitStrm; //save position of the bit stream
-	        ret = BitStream_ReadBitPattern_ignore_value(pBitStrm, 12);
+	        /*Decode Packet_body_length_in_bytes */
+	        bitStreamPositions_1.Packet_body_length_in_bytes = *pBitStrm; //save position of the bit stream
+	        ret = BitStream_ReadBitPattern_ignore_value(pBitStrm, 16);
 	        
 	        if (ret) {
 	            /*Decode p_body */

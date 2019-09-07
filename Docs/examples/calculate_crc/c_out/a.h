@@ -141,7 +141,7 @@ flag PacketBody_ACN_Encode(const PacketBody* pVal, BitStream* pBitStrm, int* pEr
 flag PacketBody_ACN_Decode(PacketBody* pVal, BitStream* pBitStrm, int* pErrCode);
 /*-- Packet --------------------------------------------*/
 typedef struct {
-    BitStream Packet_packet_length_in_bytes;
+    BitStream Packet_body_length_in_bytes;
     BitStream Packet_packet_crc32;
 } Packet_extension_function_positions;
 typedef struct {
@@ -173,7 +173,7 @@ flag Packet_IsConstraintValid(const Packet* pVal, int* pErrCode);
 #define ERR_ACN_ENCODE_PACKET_P_HEADER_RELEASE		81  /**/
 #define ERR_ACN_ENCODE_PACKET_P_HEADER_VARSIZEARRAY		95  /**/
 #define ERR_ACN_ENCODE_PACKET_P_HEADER_VARSIZEARRAY_ELM		88  /**/
-#define ERR_ACN_ENCODE_PACKET_PACKET_LENGTH_IN_BYTES		110  /**/
+#define ERR_ACN_ENCODE_PACKET_BODY_LENGTH_IN_BYTES		110  /**/
 #define ERR_ACN_ENCODE_PACKET_P_BODY		143  /**/
 #define ERR_ACN_ENCODE_PACKET_P_BODY_AREAL		115  /**/
 #define ERR_ACN_ENCODE_PACKET_P_BODY_ANINTEGER		122  /**/
@@ -181,7 +181,7 @@ flag Packet_IsConstraintValid(const Packet* pVal, int* pErrCode);
 #define ERR_ACN_ENCODE_PACKET_P_BODY_ANOTHERSIZEARRAY_ELM		129  /**/
 #define ERR_ACN_ENCODE_PACKET_PACKET_CRC32		151  /**/
 #define Packet_REQUIRED_BYTES_FOR_ACN_ENCODING       122 
-#define Packet_REQUIRED_BITS_FOR_ACN_ENCODING        972
+#define Packet_REQUIRED_BITS_FOR_ACN_ENCODING        976
 
 flag Packet_ACN_Encode(const Packet* pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints);
 
@@ -191,7 +191,7 @@ flag Packet_ACN_Encode(const Packet* pVal, BitStream* pBitStrm, int* pErrCode, f
 #define ERR_ACN_DECODE_PACKET_P_HEADER_RELEASE		82  /**/
 #define ERR_ACN_DECODE_PACKET_P_HEADER_VARSIZEARRAY		96  /**/
 #define ERR_ACN_DECODE_PACKET_P_HEADER_VARSIZEARRAY_ELM		89  /**/
-#define ERR_ACN_DECODE_PACKET_PACKET_LENGTH_IN_BYTES		111  /**/
+#define ERR_ACN_DECODE_PACKET_BODY_LENGTH_IN_BYTES		111  /**/
 #define ERR_ACN_DECODE_PACKET_P_BODY		144  /**/
 #define ERR_ACN_DECODE_PACKET_P_BODY_AREAL		116  /**/
 #define ERR_ACN_DECODE_PACKET_P_BODY_ANINTEGER		123  /**/

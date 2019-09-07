@@ -4,7 +4,7 @@ MYMODULE DEFINITIONS ::= BEGIN
 Packet [post-encoding-function my-encoding-patcher, post-decoding-validator crc-validator]
 {
 	p-header [],
-    packet-length-in-bytes NULL [pattern '000000000000'B, save-position], -- 12 bits
+    body-length-in-bytes NULL [pattern '0000000000000000'B, save-position], -- 16 bits
     p-body   [],
     packet-crc32 NULL [pattern '00000000'H, save-position] -- 32 bits
 }

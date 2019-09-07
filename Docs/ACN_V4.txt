@@ -574,9 +574,12 @@ is to use the NULL construct with the “pattern” encoding:
 
 == Endoding fields that depend on the encoding binary stream ==
 There are cases where the value of some special purpose fields depend on the value of the encoding stream. 
-For example, the CRC (Cyclic Redundancy Check) fields commonly used in digital networks so that the recipient 
-can validate the correctness of the data. The problem though with a CRC field is that its value cannot 
-be provided in advance, as with normal fields, but only when the encoding of the bitstream is completed. 
+For example, the CRC (Cyclic Redundancy Check) fields are commonly used in digital networks and provide a 
+mechanism to the recipient to validate the correctness of the data. 
+The problem though with a CRC field is that its value cannot be provided in advance, as with normal fields, 
+but only when the encoding of the bitstream is completed. Another case is the length in bytes of the encoded
+packet or parts of the encoded packet.
+
 To address this issue, ACN introduces three special attributes:
 * post-encoding-function
 * post-decoding-validator
@@ -586,6 +589,10 @@ The first two attributes (post-encoding-function, post-decoding-validator) are a
 SEQUENCE types while the save-position attribute to SEQUENCE components of NULL type.
 
 Example
+The complete code the example is at the following location
+https://github.com/ttsiodras/asn1scc/tree/master/Docs/examples/calculate_crc
+
+
  T-Packet [post-encoding-function my-encoding-patcher, post-decoding-validator crc-validator]
  {
      header [save-position],   --variable length header

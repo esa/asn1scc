@@ -605,10 +605,10 @@ BEGIN
                 end if;
             end if;
             if result.Success then
-                -- Encode Packet_packet_length_in_bytes 
-                bitStreamPositions_1.Packet_packet_length_in_bytes.Size_In_Bytes := bs.Size_In_Bytes; --save the size of the bit stream
-                bitStreamPositions_1.Packet_packet_length_in_bytes.Current_Bit_Pos := bs.Current_Bit_Pos; --save position of the bit stream
-                adaasn1rtl.encoding.acn.Acn_Enc_NullType_pattern2(bs, BitArray'(1=>0,2=>0,3=>0,4=>0,5=>0,6=>0,7=>0,8=>0,9=>0,10=>0,11=>0,12=>0));
+                -- Encode Packet_body_length_in_bytes 
+                bitStreamPositions_1.Packet_body_length_in_bytes.Size_In_Bytes := bs.Size_In_Bytes; --save the size of the bit stream
+                bitStreamPositions_1.Packet_body_length_in_bytes.Current_Bit_Pos := bs.Current_Bit_Pos; --save position of the bit stream
+                adaasn1rtl.encoding.acn.Acn_Enc_NullType_pattern2(bs, BitArray'(1=>0,2=>0,3=>0,4=>0,5=>0,6=>0,7=>0,8=>0,9=>0,10=>0,11=>0,12=>0,13=>0,14=>0,15=>0,16=>0));
                 if result.Success then
                     -- Encode p_body 
                     case val.p_body.kind IS
@@ -697,12 +697,12 @@ BEGIN
             end if;
         end if;
         if result.Success then
-            -- Decode Packet_packet_length_in_bytes 
-            bitStreamPositions_1.Packet_packet_length_in_bytes.Size_In_Bytes := bs.Size_In_Bytes; --save the size of the bit stream
-            bitStreamPositions_1.Packet_packet_length_in_bytes.Current_Bit_Pos := bs.Current_Bit_Pos; --save position of the bit stream
-            result.ErrorCode := ERR_ACN_DECODE_PACKET_PACKET_LENGTH_IN_BYTES;
+            -- Decode Packet_body_length_in_bytes 
+            bitStreamPositions_1.Packet_body_length_in_bytes.Size_In_Bytes := bs.Size_In_Bytes; --save the size of the bit stream
+            bitStreamPositions_1.Packet_body_length_in_bytes.Current_Bit_Pos := bs.Current_Bit_Pos; --save position of the bit stream
+            result.ErrorCode := ERR_ACN_DECODE_PACKET_BODY_LENGTH_IN_BYTES;
             result.Success := TRUE;
-            bs.Current_Bit_Pos := bs.Current_Bit_Pos + 12;
+            bs.Current_Bit_Pos := bs.Current_Bit_Pos + 16;
             
             if result.Success then
                 -- Decode p_body 

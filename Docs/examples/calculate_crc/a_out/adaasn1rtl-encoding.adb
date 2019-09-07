@@ -223,7 +223,7 @@ package body adaasn1rtl.encoding with Spark_Mode is
       if Current_Bit > 0 then
          ncb := 8 - Current_Bit;
          bs.buffer(Current_Byte) := bs.buffer(Current_Byte) or Shift_right(ByteVal, Current_Bit);
-         bs.buffer(Current_Byte+1) := Shift_left(ByteVal, ncb);
+         bs.buffer(Current_Byte+1) := bs.buffer(Current_Byte+1) or Shift_left(ByteVal, ncb);
       else
          bs.buffer(Current_Byte) := ByteVal;
       end if;
