@@ -589,20 +589,34 @@ The first two attributes (post-encoding-function, post-decoding-validator) are a
 SEQUENCE types while the save-position attribute to SEQUENCE components of NULL type.
 
 Example
+
+
+ Packet [post-encoding-function my-encoding-patcher, post-decoding-validator crc-validator]
+ {
+	p-header [],
+    body-length-in-bytes NULL [pattern '0000000000000000'B, save-position], -- 16 bits
+    p-body   [],
+    packet-crc32 NULL [pattern '00000000'H, save-position] -- 32 bits
+ }
+ 
+The packet consists of a header and a body. Between the header and the body, there is
+a length field that contains the size in bytes of the body. At the end of the packet, 
+there is a 32 bit CRC field which has been calculated over the complete packet.
+To fulfill the above requirements, the length field (body-length-in-bytes) and CRC field (packet-crc32)
+are declared as ACN inserted fields. In both fields, the save-position attribute is used. This attribute 
+instructs the ASN.1 compiler to generate code that will save the current position in the encoding/decoding 
+bitstream. The current position refers to the beginning of the field. This information is kept is special 
+structure called Packet_extension_function_positions. This structure along with bitstream is passed as an argument
+to two user-defined functions:
+ - in the my-encoding-patcher at the end of the encoding (defined via the post-encoding-function attribute)
+ - in the crc-validator at the end of decoding (defined via the post-decoding-validator attribute)
+
+The first function my-encoding-patcher will provide values in these two fields. The second function reads these
+two fields and compares these values with values calculated via the bitstream.
+
 The complete code the example is at the following location
 https://github.com/ttsiodras/asn1scc/tree/master/Docs/examples/calculate_crc
 
-
- T-Packet [post-encoding-function my-encoding-patcher, post-decoding-validator crc-validator]
- {
-     header [save-position],   --variable length header
-     header-length NULL [pattern '000000000000'B, save-position], -- header length in bits
-     body [determinant nid],   -- main packet body
-     crc32 NULL [pattern '00000000'H, save-position] -- 32 crc  bits
- }
-
-T-Packet consists of a variable size header, a 12 bits field that contains the size in bits of the 
-header, the main packet body, and a 32-bit CRC field.
 
 == <span id="__RefHeading___Toc2064_1804207684" class="anchor"><span id="_Toc432432502" class="anchor"></span></span>Parameterized encodings and deep field access ==
 
