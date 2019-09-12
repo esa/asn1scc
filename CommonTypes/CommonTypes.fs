@@ -293,8 +293,7 @@ type ReferenceToType with
 
 
 
-
-
+(*
 let rec foldMap func state lst =
     match lst with
     | []        -> [],state
@@ -303,7 +302,20 @@ let rec foldMap func state lst =
         let restList, finalState = tail |> foldMap func newState
         procItem::restList, finalState
 
+let foldMap = RemoveParamterizedTypes.foldMap
+*)
 
+
+let foldMap func state lst =
+    let rec loop acc func state lst =
+        match lst with
+        | []        -> acc |> List.rev , state
+        | h::tail   -> 
+            let procItem, newState = func state h
+            //let restList, finalState = tail |> loop func newState
+            //procItem::restList, finalState
+            loop (procItem::acc) func newState tail
+    loop [] func state lst
 
 type FE_TypeDefinitionKindInternal =
     | FEI_NewTypeDefinition                       //type

@@ -89,7 +89,7 @@ let printVersion () =
     //let assembly = System.Reflection.Assembly.GetExecutingAssembly();
     //let fvi = System.Diagnostics.FileVersionInfo.GetVersionInfo(assembly.Location);
     //let version = fvi.FileVersion;
-    let version = "4.2.0.1f"
+    let version = "4.2.0.2f"
     printfn "asn1scc version %s\n" version
     ()    
 
@@ -271,7 +271,9 @@ let main0 argv =
                 PrintAcn.printInASignleFile acn outDir "SingleAsn1FileDbg.acn" tastToPrint
             | false -> ()
 
+
         let frontEntAst, acnDeps = FrontEntMain.constructAst args debugFunc 
+
         
         // print front ent ast as xml 
         match args.AstXmlAbsFileName with
@@ -292,6 +294,7 @@ let main0 argv =
                     Some (DAstConstruction.DoWork {frontEntAst with stg=TargetLanguageStgMacros.a_StgMacros} acnDeps CommonTypes.ProgrammingLanguage.Ada  args.encodings)
                 | _             -> None)
 
+
         //generate code
         backends |> 
             Seq.iter (fun r -> 
@@ -302,6 +305,7 @@ let main0 argv =
                 | _     -> DAstExportToXml.exportFile r acnDeps ("backend_" + args.AstXmlAbsFileName)
                 )
         
+
         //custom stgs code generation
         
         // let AST for custom STGs

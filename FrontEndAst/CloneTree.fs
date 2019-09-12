@@ -13,7 +13,7 @@ module CloneTree
 open Asn1Ast
 
 
-
+(*
 let rec foldMap func state lst =
     match lst with
     | []        -> [],state
@@ -21,8 +21,8 @@ let rec foldMap func state lst =
         let procItem, newState = func state h
         let restList, finalState = tail |> foldMap func newState
         procItem::restList, finalState
-
-
+*)
+let foldMap = RemoveParamterizedTypes.foldMap
 
 type Constructors<'state> = {
     createFile : AstRoot-> Asn1File -> Constructors<'state> -> 'state -> Asn1File*'state

@@ -533,10 +533,10 @@ let createIntegerFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1
 
 let createIntegerFunctionByCons (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) isUnsigned (allCons  : IntegerTypeConstraint list) =
     //let allCons = getIntSimplifiedConstraints r isUnsigned allCons
-    let fncs, ns = allCons |> Asn1Fold.foldMap (fun us c -> integerConstraint2ValidationCodeBlock r l isUnsigned c us) 0
     match allCons with
     | []        -> None
     | _         ->
+        let fncs, ns = allCons |> Asn1Fold.foldMap (fun us c -> integerConstraint2ValidationCodeBlock r l isUnsigned c us) 0
         let funcExp (p:CallerScope) = 
             let vp = fncs |> List.map (fun fnc -> fnc p) |> (ValidationCodeBlock_Multiple_And l)        
             vp
@@ -733,5 +733,27 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1A
     createIsValidFunction r l t funBody  typeDefinition alphaFuncs localVars childrenErrCodes ns2
 
 let createReferenceTypeFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.ReferenceType) (typeDefinition:TypeDefintionOrReference) (baseType:Asn1Type)  (us:State)  =
-    baseType.isValidFunction, us    
+    match o.hasConstraints with
+    | true  -> baseType.isValidFunction, us    
+    | false -> 
+        let typeDefinitionName = ToC2(r.args.TypePrefix + o.tasName.Value)
+        let baseFncName = 
+            match l with
+            | C     -> typeDefinitionName + "_IsConstraintValid"
+            | Ada   -> 
+                match t.id.ModName = o.modName.Value with
+                | true  -> typeDefinitionName + "_IsConstraintValid"
+                | false -> (ToC o.modName.Value) + "." + typeDefinitionName + "_IsConstraintValid"
+
+        let funBody (errCode: ErroCode) (p:CallerScope) = 
+            let callBaseTypeFunc = match l with C -> isvalid_c.call_base_type_func | Ada -> isvalid_a.call_base_type_func
+
+            match baseType.isValidFunction with
+            | Some _    -> 
+                let funcBodyContent = callBaseTypeFunc (t.getParamValue p.arg l Encode) baseFncName 
+                ValidationStatement funcBodyContent    
+            | None      -> convertVCBToStatementAndAssigneErrCode l VCBTrue errCode.errCodeName
+
+
+        createIsValidFunction r l t funBody  typeDefinition [] [] [] us
 

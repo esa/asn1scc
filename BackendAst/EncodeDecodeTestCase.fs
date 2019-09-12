@@ -45,7 +45,7 @@ let rec getAmberDecode (t:Asn1AcnAst.Asn1Type) =
     | Asn1AcnAst.ReferenceType z -> getAmberDecode z.resolvedType
     | _                          -> "&"
 
-let createUperEncDecFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1AcnAst.Asn1Type) (typeDefinition:TypeDefintionOrReference) (eqFunc:EqualFunction) (isValidFunc: IsValidFunction option) (encFunc : UPerFunction option) (decFunc : UPerFunction option)   (us:State)  =
+let _createUperEncDecFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1AcnAst.Asn1Type) (typeDefinition:TypeDefintionOrReference) (eqFunc:EqualFunction) (isValidFunc: IsValidFunction option) (encFunc : UPerFunction option) (decFunc : UPerFunction option)   (us:State)  =
     let sEnc = match l with C -> "" | Ada -> "UPER_"
     let funcName            = getFuncName r l sEnc t.id (t.FT_TypeDefintion.[l])
     let modName = ToC t.id.AcnAbsPath.Head
@@ -123,7 +123,13 @@ let createUperEncDecFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:A
             Some ret, us
         | false -> None, us
 
-let createAcnEncDecFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1AcnAst.Asn1Type) (typeDefinition:TypeDefintionOrReference) (eqFunc:EqualFunction) (isValidFunc: IsValidFunction option) (encFunc : AcnFunction option) (decFunc : AcnFunction option)   (us:State)  =
+let createUperEncDecFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1AcnAst.Asn1Type) (typeDefinition:TypeDefintionOrReference) (eqFunc:EqualFunction) (isValidFunc: IsValidFunction option) (encFunc : UPerFunction option) (decFunc : UPerFunction option)   (us:State)  =
+    match r.args.generateAutomaticTestCases with
+    | true  -> _createUperEncDecFunction r l t typeDefinition eqFunc isValidFunc encFunc decFunc  us
+    | false -> None, us
+
+
+let _createAcnEncDecFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1AcnAst.Asn1Type) (typeDefinition:TypeDefintionOrReference) (eqFunc:EqualFunction) (isValidFunc: IsValidFunction option) (encFunc : AcnFunction option) (decFunc : AcnFunction option)   (us:State)  =
     let sEnc = "ACN_"
 
     let funcName            = getFuncName r l sEnc t.id (t.FT_TypeDefintion.[l])
@@ -206,9 +212,12 @@ let createAcnEncDecFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:As
             | false -> None, us
 
 
+let createAcnEncDecFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1AcnAst.Asn1Type) (typeDefinition:TypeDefintionOrReference) (eqFunc:EqualFunction) (isValidFunc: IsValidFunction option) (encFunc : AcnFunction option) (decFunc : AcnFunction option)   (us:State)  =
+    match r.args.generateAutomaticTestCases with
+    | true  -> _createAcnEncDecFunction r l t typeDefinition eqFunc isValidFunc encFunc decFunc  us
+    | false -> None, us
 
-
-let createXerEncDecFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1AcnAst.Asn1Type) (typeDefinition:TypeDefintionOrReference) (eqFunc:EqualFunction) (isValidFunc: IsValidFunction option) (encFunc : XerFunction option) (decFunc : XerFunction option)   (us:State)  =
+let _createXerEncDecFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1AcnAst.Asn1Type) (typeDefinition:TypeDefintionOrReference) (eqFunc:EqualFunction) (isValidFunc: IsValidFunction option) (encFunc : XerFunction option) (decFunc : XerFunction option)   (us:State)  =
     let sEnc = "XER_"
     let funcName            = getFuncName r l sEnc t.id (t.FT_TypeDefintion.[l])
     let modName = ToC t.id.AcnAbsPath.Head
@@ -285,6 +294,11 @@ let createXerEncDecFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:As
             Some ret, us
         | false -> None, us
 
+
+let createXerEncDecFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1AcnAst.Asn1Type) (typeDefinition:TypeDefintionOrReference) (eqFunc:EqualFunction) (isValidFunc: IsValidFunction option) (encFunc : XerFunction option) (decFunc : XerFunction option)   (us:State)  =
+    match r.args.generateAutomaticTestCases with
+    | true  -> _createXerEncDecFunction r l t typeDefinition eqFunc isValidFunc encFunc decFunc  us
+    | false -> None, us
 
 (*
 Automatic Test case values

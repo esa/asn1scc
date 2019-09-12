@@ -25,16 +25,15 @@ type AlphaFunc   = {
 }
 
 type State = {
-    curSeqOfLevel : int
     currErrorCode   : int
     curErrCodeNames : Set<String>
-    allocatedTypeDefNames : (string*string) list        // program unit, typedef name
-    allocatedTypeDefNameInTas : Map<TypeAssignmentInfo, (string*string)>
+    //allocatedTypeDefNames : (string*string) list        // program unit, typedef name
+    //allocatedTypeDefNameInTas : Map<TypeAssignmentInfo, (string*string)>
     alphaIndex : int
     alphaFuncs : AlphaFunc list //func name, func body
 }
 
-let emptyState = {curSeqOfLevel=0; currErrorCode=0; curErrCodeNames=Set.empty; allocatedTypeDefNames = []; allocatedTypeDefNameInTas = Map.empty; alphaIndex=0; alphaFuncs=[]}
+let emptyState = {currErrorCode=0; curErrCodeNames=Set.empty; (*allocatedTypeDefNames = []; allocatedTypeDefNameInTas = Map.empty;*) alphaIndex=0; alphaFuncs=[]}
 
 
 
@@ -811,7 +810,7 @@ let getNextValidErrorCode (cur:State) (errCodeName:string) =
 
     let errCode = getErroCode (errCodeName.ToUpper())
     errCode, {cur with currErrorCode = cur.currErrorCode + 1; curErrCodeNames = cur.curErrCodeNames.Add errCode.errCodeName}
-
+(*
 let getUniqueValidTypeDefName (cur:State) (l:ProgrammingLanguage) (tasInfo:TypeAssignmentInfo option) (programUnit:string) (proposedTypeDefName:string)  =
     let getNextCount (oldName:string) =
         match oldName.Split('_') |> Seq.toList |> List.rev with
@@ -846,7 +845,7 @@ let getUniqueValidTypeDefName (cur:State) (l:ProgrammingLanguage) (tasInfo:TypeA
         | None  ->
             let validTypeDefname = getValidTypeDefname proposedTypeDefName 
             validTypeDefname, {cur with allocatedTypeDefNames = (programUnit, validTypeDefname)::cur.allocatedTypeDefNames; allocatedTypeDefNameInTas = cur.allocatedTypeDefNameInTas.Add(tasInfo, (programUnit,validTypeDefname))}
-            
+            *)
 
 type TypeAssignment = {
     Name:StringLoc
