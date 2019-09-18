@@ -186,7 +186,20 @@ $arrsChildren;separator="\n"$
 >>
 
 
-EmmitSeqOrChoiceRow(sCssClass, nIndex, sName, sComment, sPresentWhen, sType, sConstraint, sMin, sMax) ::= <<
+EmmitSeqOrChoiceRow(sCssClass, nIndex, sName, sComment, sPresentWhen, sType, sConstraint, sMin, sMax, noAlignToNextSize) ::= <<
+$if(noAlignToNextSize)$
+<tr class="$sCssClass$">
+<td class="no"></td>
+<td class="field">padding field</td>
+<td class="comment">present due to align-to-next property</td>
+<td class="optional"></td>
+<td class="type">padding bits</td>
+<td class="constraint"></td>
+<td class="min">0</td>
+<td class="max">$noAlignToNextSize$</td>
+</tr>
+
+$endif$
 <tr class="$sCssClass$">
 <td class="no">$nIndex$</td>
 <td class="field">$sName$</td>

@@ -292,6 +292,7 @@ type AcnFunction = {
     // takes as input (a) any acn arguments and (b) the field where the encoding/decoding takes place
     // returns a list of acn encoding statements
     funcBody            : State->((AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) -> CallerScope -> ((AcnFuncBodyResult option)*State)            
+    funcBodyAsSeqComp   : State->((AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) -> CallerScope -> string -> ((AcnFuncBodyResult option)*State)            
     isTestVaseValid     : AutomaticTestCase -> bool
 }
 

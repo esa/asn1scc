@@ -11,9 +11,9 @@ open AcnGenericTypes
 let getAlignmentSize (aligment: AcnAligment option) =
     match aligment with
     | None              -> 0I
-    | Some NextByte     -> 8I
-    | Some NextWord     -> 16I
-    | Some NextDWord    -> 32I
+    | Some NextByte     -> 7I
+    | Some NextWord     -> 15I
+    | Some NextDWord    -> 31I
 
 
 let GetIntEncodingClass (integerSizeInBytes:BigInteger) (aligment: AcnAligment option) errLoc (p  : IntegerAcnProperties) (uperMinSizeInBits:BigInteger) (uperMaxSizeInBits:BigInteger) isUnsigned=

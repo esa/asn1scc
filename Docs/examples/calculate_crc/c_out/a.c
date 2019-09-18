@@ -475,44 +475,11 @@ void Packet_Initialize(Packet* pVal)
 flag Packet_IsConstraintValid(const Packet* pVal, int* pErrCode)
 {
     flag ret = TRUE;
-    int i1;
 	(void)pVal;
 	
-    ret = ((1UL <= pVal->p_header.version) && (pVal->p_header.version <= 100UL));
-    *pErrCode = ret ? 0 :  ERR_PACKET_P_HEADER_VERSION; 
+    ret = PacketHeader_IsConstraintValid((&(pVal->p_header)), pErrCode);
     if (ret) {
-        ret = ((1UL <= pVal->p_header.release) && (pVal->p_header.release <= 100UL));
-        *pErrCode = ret ? 0 :  ERR_PACKET_P_HEADER_RELEASE; 
-        if (ret) {
-            ret = ((1 <= pVal->p_header.varSizeArray.nCount) && (pVal->p_header.varSizeArray.nCount <= 20));
-            *pErrCode = ret ? 0 :  ERR_PACKET_P_HEADER_VARSIZEARRAY; 
-            if (ret) {
-                for(i1 = 0; ret && i1 < pVal->p_header.varSizeArray.nCount; i1++) 
-                {
-                	ret = ((1UL <= pVal->p_header.varSizeArray.arr[i1]) && (pVal->p_header.varSizeArray.arr[i1] <= 20UL));
-                	*pErrCode = ret ? 0 :  ERR_PACKET_P_HEADER_VARSIZEARRAY_ELM; 
-                }
-            }
-        }
-    }
-    if (ret) {
-        if (pVal->p_body.kind == anInteger_PRESENT) {
-        	ret = (pVal->p_body.u.anInteger <= 65535UL);
-        	*pErrCode = ret ? 0 :  ERR_PACKET_P_BODY_ANINTEGER; 
-        }
-        if (ret) {
-            if (pVal->p_body.kind == anotherSizeArray_PRESENT) {
-            	ret = ((1 <= pVal->p_body.u.anotherSizeArray.nCount) && (pVal->p_body.u.anotherSizeArray.nCount <= 100));
-            	*pErrCode = ret ? 0 :  ERR_PACKET_P_BODY_ANOTHERSIZEARRAY; 
-            	if (ret) {
-            	    for(i1 = 0; ret && i1 < pVal->p_body.u.anotherSizeArray.nCount; i1++) 
-            	    {
-            	    	ret = ((1UL <= pVal->p_body.u.anotherSizeArray.arr[i1]) && (pVal->p_body.u.anotherSizeArray.arr[i1] <= 200UL));
-            	    	*pErrCode = ret ? 0 :  ERR_PACKET_P_BODY_ANOTHERSIZEARRAY_ELM; 
-            	    }
-            	}
-            }
-        }
+        ret = PacketBody_IsConstraintValid((&(pVal->p_body)), pErrCode);
     }
 
 	return ret;

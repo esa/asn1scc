@@ -524,47 +524,10 @@ IS
     pragma Warnings (Off, "initialization of ret has no effect");        
     ret : adaasn1rtl.ASN1_RESULT := adaasn1rtl.ASN1_RESULT'(Success => true, ErrorCode => 0);
     pragma Warnings (On, "initialization of ret has no effect");        
-    i1:Integer;
 BEGIN
-    ret.Success := ((1 <= val.p_header.version) AND (val.p_header.version <= 100));
-    ret.ErrorCode := (if ret.Success then 0 else ERR_PACKET_P_HEADER_VERSION);
+    ret := PacketHeader_IsConstraintValid(val.p_header);
     if ret.Success then
-        ret.Success := ((1 <= val.p_header.release) AND (val.p_header.release <= 100));
-        ret.ErrorCode := (if ret.Success then 0 else ERR_PACKET_P_HEADER_RELEASE);
-        if ret.Success then
-            ret.Success := ((1 <= val.p_header.varSizeArray.Length) AND (val.p_header.varSizeArray.Length <= 20));
-            ret.ErrorCode := (if ret.Success then 0 else ERR_PACKET_P_HEADER_VARSIZEARRAY);
-            if ret.Success then
-                i1 := val.p_header.varSizeArray.Data'First;
-                while ret.Success and i1 <= val.p_header.varSizeArray.Length loop
-                    pragma Loop_Invariant (i1 >= val.p_header.varSizeArray.Data'First and i1 <= val.p_header.varSizeArray.Length);
-                    ret.Success := ((1 <= val.p_header.varSizeArray.Data(i1)) AND (val.p_header.varSizeArray.Data(i1) <= 20));
-                    ret.ErrorCode := (if ret.Success then 0 else ERR_PACKET_P_HEADER_VARSIZEARRAY_ELM);
-                    i1 := i1+1;
-                end loop;
-            end if;
-        end if;
-    end if;
-    if ret.Success then
-        if val.p_body.kind = anInteger_PRESENT then
-        	ret.Success := (val.p_body.anInteger <= 65535);
-        	ret.ErrorCode := (if ret.Success then 0 else ERR_PACKET_P_BODY_ANINTEGER);
-        end if;
-        if ret.Success then
-            if val.p_body.kind = anotherSizeArray_PRESENT then
-            	ret.Success := ((1 <= val.p_body.anotherSizeArray.Length) AND (val.p_body.anotherSizeArray.Length <= 100));
-            	ret.ErrorCode := (if ret.Success then 0 else ERR_PACKET_P_BODY_ANOTHERSIZEARRAY);
-            	if ret.Success then
-            	    i1 := val.p_body.anotherSizeArray.Data'First;
-            	    while ret.Success and i1 <= val.p_body.anotherSizeArray.Length loop
-            	        pragma Loop_Invariant (i1 >= val.p_body.anotherSizeArray.Data'First and i1 <= val.p_body.anotherSizeArray.Length);
-            	        ret.Success := ((1 <= val.p_body.anotherSizeArray.Data(i1)) AND (val.p_body.anotherSizeArray.Data(i1) <= 200));
-            	        ret.ErrorCode := (if ret.Success then 0 else ERR_PACKET_P_BODY_ANOTHERSIZEARRAY_ELM);
-            	        i1 := i1+1;
-            	    end loop;
-            	end if;
-            end if;
-        end if;
+        ret := PacketBody_IsConstraintValid(val.p_body);
     end if;
     RETURN ret;
 END Packet_IsConstraintValid;

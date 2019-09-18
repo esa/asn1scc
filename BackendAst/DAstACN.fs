@@ -117,6 +117,26 @@ let getDeterminantTypeCheckEqual (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) 
         | Asn1AcnAst.AcnPrmRefType (md,ts)  -> multiAcnUpdate_checkEqual_pri
         *)
 
+let handleSavePostion (funcBody:State-> ErroCode->((AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) -> CallerScope -> ((AcnFuncBodyResult option)*State)) savePosition c_name (typeId:ReferenceToType) l (codec:CommonTypes.Codec) prms p =
+    match savePosition with
+    | false -> funcBody
+    | true  -> 
+        let newFuncBody st errCode prms p =
+            let content, ns1a = funcBody st errCode prms p  
+            let sequence_save_bitstream                 = match l with C -> acn_c.sequence_save_bitstream                     | Ada -> acn_a.sequence_save_bitstream              
+            let lvName = sprintf "bitStreamPositions_%d" (typeId.SeqeuenceOfLevel + 1)
+            let savePositionStatement = sequence_save_bitstream lvName c_name codec
+            let newContent = 
+                match content with
+                | Some bodyResult   -> 
+                    let funcBodyStr = sprintf "%s\n%s" savePositionStatement bodyResult.funcBody
+                    Some {bodyResult with funcBody  = funcBodyStr}
+                | None              ->
+                    let funcBodyStr = savePositionStatement 
+                    Some {funcBody = funcBodyStr; errCodes =[]; localVariables = []}                        
+            newContent, ns1a
+        newFuncBody
+
 let handleAlignemntForAsn1Types (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec:CommonTypes.Codec) (acnAligment     : AcnAligment option ) (funcBody:State-> ErroCode->((AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) -> CallerScope -> ((AcnFuncBodyResult option)*State))  =
     let alignToNext                      =  match l with C -> acn_c.alignToNext                         | Ada -> acn_a.alignToNext
     match acnAligment with
@@ -183,6 +203,13 @@ let private createAcnFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (co
 
     
 
+
+    let funcBodyAsSeqComp st prms p c_name : ((AcnFuncBodyResult option)*State) =
+        let funcBody = handleSavePostion funcBody t.SaveBitStreamPosition c_name t.id l codec prms p
+        let ret = handleAlignemntForAsn1Types r l codec t.acnAligment funcBody
+        ret st  errCode prms p 
+        
+
     let funcBody = handleAlignemntForAsn1Types r l codec t.acnAligment funcBody
 
     let p : CallerScope = t.getParamType l codec
@@ -237,6 +264,7 @@ let private createAcnFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (co
             func                       = func 
             funcDef                    = funcDef
             funcBody                   = (fun us acnArgs p -> funcBody us errCode acnArgs p )
+            funcBodyAsSeqComp          = funcBodyAsSeqComp
             isTestVaseValid            = isTestVaseValid
         }
     ret, ns2
@@ -355,7 +383,7 @@ let createIntegerFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec:
     let soMapFunMod = getMappingFunctionModule r l soMapFunc
     let funcBody = createAcnIntegerFunctionInternal r l codec o.uperRange o.acnEncodingClass uperFunc.funcBody_e (soMapFunc, soMapFunMod)
     let soSparkAnnotations = None
-    createAcnFunction r l codec t typeDefinition isValidFunc  (fun us e acnArgs p -> funcBody e acnArgs p, us) (fun atc -> true) soSparkAnnotations  us
+    createAcnFunction r l codec t typeDefinition isValidFunc  (fun us e acnArgs p -> funcBody e acnArgs p, us) (fun atc -> true) soSparkAnnotations us
 
 
 let createEnumComn (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec:CommonTypes.Codec) (typeId : ReferenceToType) (o:Asn1AcnAst.Enumerated) (defOrRef:TypeDefintionOrReference ) (typeDefinitionName:string)  =
@@ -531,6 +559,7 @@ let createNullTypeFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec
     let funcBody (errCode:ErroCode) (acnArgs: (AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) (p:CallerScope) = 
         let pp = match codec with CommonTypes.Encode -> p.arg.getValue l | CommonTypes.Decode -> p.arg.getPointer l
         let nullType         = match l with C -> acn_c.Null          | Ada -> acn_a.Null_pattern
+        
         match o.acnProperties.encodingPattern with
         | None      ->  None
         | Some encPattern   ->
@@ -1219,16 +1248,16 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
             
 
         let handleChild (us:State) (child:SeqChildInfo) =
-            let soSaveBitStrmPosStatement = 
-                match soBitStreamPositionsLocalVar with
-                | Some lvName when child.savePosition ->  Some (sequence_save_bitstream lvName (child.getBackendName l) codec)
-                | _                                    -> None
+            let soSaveBitStrmPosStatement = None
+//                match soBitStreamPositionsLocalVar with
+//                | Some lvName when child.savePosition ->  Some (sequence_save_bitstream lvName (child.getBackendName l) codec)
+//                | _                                    -> None
             match child with
             | Asn1Child child   -> 
                 let chFunc = child.Type.getAcnFunction codec
                 let childContentResult, ns1 = 
                     match chFunc with
-                    | Some chFunc   -> chFunc.funcBody us [] ({p with arg = p.arg.getSeqChild l (child.getBackendName l) child.Type.isIA5String})
+                    | Some chFunc   -> chFunc.funcBodyAsSeqComp us [] ({p with arg = p.arg.getSeqChild l (child.getBackendName l) child.Type.isIA5String}) (child.getBackendName l)
                     | None          -> None, us
 
                 //handle present-when acn property
@@ -1515,7 +1544,7 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
         match l with
         | C     -> None
         | Ada   -> None
-    createAcnFunction r l codec t typeDefinition  isValidFunc  funcBody (fun atc -> true) soSparkAnnotations  us, ec
+    createAcnFunction r l codec t typeDefinition  isValidFunc  funcBody (fun atc -> true) soSparkAnnotations us, ec
 
 let createReferenceFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.ReferenceType) (typeDefinition:TypeDefintionOrReference) (isValidFunc: IsValidFunction option) (baseType:Asn1Type) (us:State)  =
     match codec with

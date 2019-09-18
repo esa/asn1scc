@@ -112,6 +112,24 @@ type Asn1Type with
         | Choice       o  -> o.typeDef |> Map.toList |> List.map (fun (l, d) -> (l, FE_ChoiceTypeDefinition d)) |> Map.ofList
         | ReferenceType o->  o.typeDef 
 
+    member this.SaveBitStreamPosition =
+        match this.Kind with
+        | ReferenceType t-> t.resolvedType.SaveBitStreamPosition
+        | Integer      _ -> false
+        | Real         _ -> false
+        | IA5String    _ -> false
+        | NumericString _ ->false
+        | OctetString  _ -> false
+        | NullType     o -> o.acnProperties.savePosition
+        | BitString    _ -> false
+        | Boolean      _ -> false
+        | Enumerated   _ -> false
+        | SequenceOf   _ -> false
+        | Sequence     _ -> false
+        | Choice       _ -> false
+        | ObjectIdentifier _ -> false
+
+
 //    member this.tasInfo =
 //        match this.typeAssignmentInfo with
 //        | Some (TypeAssignmentInfo tasInfo)  -> Some tasInfo

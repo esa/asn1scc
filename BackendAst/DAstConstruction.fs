@@ -58,16 +58,25 @@ let private createAcnChild (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
         | Asn1AcnAst.AcnReferenceToIA5String a -> DAstACN.createAcnStringFunction r deps l Codec.Decode ch.id a ns1
         
     let funcUpdateStatement, ns3 = DAstACN.getUpdateFunctionUsedInEncoding r deps l m ch.id ns2
-    let funcBody = fun codec -> match codec with Codec.Encode -> funcBodyEncode | Codec.Decode -> funcBodyDecode
+    let c_name         = DAstACN.getAcnDeterminantName ch.id
+    
+    let newFuncBody (codec:Codec) (prms:((AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list)) (p:CallerScope) : (AcnFuncBodyResult option)=
+        let funBodyWithState st errCode prms p = 
+            let funcBody codec = match codec with Codec.Encode -> funcBodyEncode | Codec.Decode -> funcBodyDecode
+            funcBody codec prms p, st
+        let retFunc = DAstACN.handleSavePostion funBodyWithState ch.Type.savePosition c_name ch.id l codec prms p
+        retFunc emptyState {ErroCode.errCodeName = ""; ErroCode.errCodeValue=0} prms p |> fst
+        
+
     let ret = 
         {
         
             AcnChild.Name  = ch.Name
             id             = ch.id
-            c_name         = DAstACN.getAcnDeterminantName ch.id
+            c_name         = c_name
             Type           = ch.Type
             typeDefinitionBodyWithinSeq = DAstACN.getDeterminantTypeDefinitionBodyWithinSeq r l (Asn1AcnAst.AcnChildDeterminant ch)
-            funcBody = DAstACN.handleAlignemntForAcnTypes r l acnAligment funcBody
+            funcBody = DAstACN.handleAlignemntForAcnTypes r l acnAligment newFuncBody
             funcUpdateStatement = funcUpdateStatement
             Comments = ch.Comments
         }

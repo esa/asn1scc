@@ -463,7 +463,20 @@ with
         | AcnBoolean  _                 -> "BOOLEAN"
         | AcnReferenceToEnumerated o    -> sprintf "%s.%s" o.modName.Value o.tasName.Value
         | AcnReferenceToIA5String  o    -> sprintf "%s.%s" o.modName.Value o.tasName.Value
-
+    member this.acnAligment =
+        match this with
+        | AcnInteger  o                 -> o.acnAligment
+        | AcnNullType o                 -> o.acnAligment
+        | AcnBoolean  o                 -> o.acnAligment
+        | AcnReferenceToEnumerated o    -> o.acnAligment
+        | AcnReferenceToIA5String  o    -> o.acnAligment
+    member this.savePosition  =
+        match this with            
+        | AcnInteger  a                 -> false
+        | AcnBoolean  a                 -> false
+        | AcnNullType a                 -> a.acnProperties.savePosition 
+        | AcnReferenceToEnumerated a    -> false
+        | AcnReferenceToIA5String a     -> false
 
 
 
