@@ -227,8 +227,8 @@ let private printUnit (r:DAst.AstRoot) (l:ProgrammingLanguage) (encodings: Commo
                 List.map (fun av -> variables_c.PrintValueAssignment av.typeDefinitionName av.valueName av.valueExpresion)
 
             let encRtl = match r.args.encodings |> Seq.exists(fun e -> e = UPER || e = ACN ) with true -> ["asn1crt_encoding"] | false -> []
-            let acnRtl = match r.args.encodings |> Seq.exists(fun e -> e = UPER || e = ACN) with true -> ["asn1crt_encoding_acn"] | false -> []
-            let uperRtl = match r.args.encodings |> Seq.exists(fun e -> e = UPER) with true -> ["asn1crt_encoding_uper"] | false -> []
+            let uperRtl = match r.args.encodings |> Seq.exists(fun e -> e = UPER || e = ACN) with true -> ["asn1crt_encoding_uper"] | false -> []
+            let acnRtl = match r.args.encodings |> Seq.exists(fun e -> e = ACN) with true -> ["asn1crt_encoding_acn"] | false -> []
             let xerRtl = match r.args.encodings |> Seq.exists(fun e -> e = XER) with true -> ["asn1crt_encoding_xer"] | false -> []
             let arrsImportedRtlFiles = encRtl@uperRtl@acnRtl@xerRtl
 
