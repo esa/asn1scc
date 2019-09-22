@@ -186,7 +186,7 @@ let internal createProgramUnits (args:CommandLineSettings) (files: Asn1File list
                                 | _     -> false
                             getFuncNameGeneric2 t.typeDefintionOrReference) |>
                             //getFuncNameGeneric2 args t.tasInfo t.inheritInfo rtlPrimitve t.typeDefintionOrReference) |>
-                        List.map(fun td -> (ToC ts.modName) + "." + td)
+                        List.map(fun td -> (ToC ts.modName) + "." + td) |> List.distinct
 
                     aaa) 
                 //Seq.map(fun ti -> (ToC ti.modName) + "." + (ToC (args.TypePrefix + ti.tasName)) ) |> Seq.distinct |> Seq.toList

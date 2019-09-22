@@ -237,14 +237,18 @@ let private printUnit (r:DAst.AstRoot) (l:ProgrammingLanguage) (encodings: Commo
             let arrsNegativeReals = []
             let arrsBoolPatterns = []
             let arrsChoiceValueAssignments = []
-            let encRtl = match r.args.encodings |> Seq.exists(fun e -> e = UPER || e = ACN ) with true -> ["adaasn1rtl.encoding"] | false -> []
             let uperRtl = match r.args.encodings |> Seq.exists(fun e -> e = UPER || e = ACN) with true -> ["adaasn1rtl.encoding.uper"] | false -> []
-            let acnRtl = match r.args.encodings |> Seq.exists(fun e -> e = ACN) with true -> ["adaasn1rtl.encoding.acn"] | false -> []
+            let acnRtl = 
+                //match r.args.encodings |> Seq.exists(fun e -> e = ACN) with true -> ["adaasn1rtl.encoding.acn"] | false -> []
+                match arrsTypeAssignments |> Seq.exists(fun s -> s.Contains "adaasn1rtl.encoding.acn") with true -> ["adaasn1rtl.encoding.acn"] | false -> []
             let xerRtl = match r.args.encodings |> Seq.exists(fun e -> e = XER) with true -> ["adaasn1rtl.encoding.xer"] | false -> []
-            let rtl = [body_a.rtlModuleName()]@encRtl@uperRtl@acnRtl@xerRtl@(r.args.mappingFunctionsModule |> Option.toList) |> List.distinct
+
+            //adaasn1rtl.encoding is included by .uper or .acn or .xer. So, do not include it otherwise you get a warning
+            let encRtl = match r.args.encodings |> Seq.exists(fun e -> e = UPER || e = ACN || e = XER) with true -> [] | false -> ["adaasn1rtl.encoding"]
+            let rtl = (*[body_a.rtlModuleName()]@*)encRtl@uperRtl@acnRtl@xerRtl@(r.args.mappingFunctionsModule |> Option.toList) |> List.distinct
             match arrsTypeAssignments with
             | []    -> None
-            | _     -> Some (body_a.PrintPackageBody pu.name  (rtl@pu.importedProgramUnits) arrsNegativeReals arrsBoolPatterns arrsTypeAssignments arrsChoiceValueAssignments pu.importedTypes)
+            | _     -> Some (body_a.PrintPackageBody pu.name  (rtl@pu.importedProgramUnits) arrsNegativeReals arrsBoolPatterns arrsTypeAssignments arrsChoiceValueAssignments (pu.importedTypes |> List.distinct))
     match eqContntent with
     | Some eqContntent ->
         let fileName = Path.Combine(outDir, pu.bodyFileName)

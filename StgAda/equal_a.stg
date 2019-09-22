@@ -42,6 +42,8 @@ function <sFuncName>(<sVarName1>, <sVarName2>: in <sTypeDefName>) return Boolean
 >>
 
 equalTypeAssignment(sVarName1, sVarName2, sStar, sFuncName, sTypeDefName, sContent, arrsLocalVars, bExpression) ::= <<
+pragma Warnings (Off, "formal parameter ""<sVarName1>"" is not referenced");
+pragma Warnings (Off, "formal parameter ""<sVarName2>"" is not referenced");
 function <sFuncName>(<sVarName1>, <sVarName2>: in <sTypeDefName>)
     return Boolean 
 is
@@ -53,6 +55,8 @@ is
 
     <endif>
 begin
+    pragma Warnings (Off, "condition can only be False if invalid values present");        
+    pragma Warnings (Off, "condition can only be True if invalid values present");        
     <if(bExpression)>
 	return <sContent>;
 
@@ -61,7 +65,11 @@ begin
 	return ret;
 
     <endif>
+    pragma Warnings (On, "condition can only be False if invalid values present");        
+    pragma Warnings (On, "condition can only be True if invalid values present");        
 end <sFuncName>;
+pragma Warnings (On, "formal parameter ""<sVarName1>"" is not referenced");
+pragma Warnings (On, "formal parameter ""<sVarName2>"" is not referenced");
 >>
 
 

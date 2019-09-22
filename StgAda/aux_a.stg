@@ -3,30 +3,6 @@ group a_aux;
 rtlModuleName() ::= "adaasn1rtl"
 
 
-PrintMain(arrsIncludedModules) ::= <<
-WITH Ada.Text_IO;
-WITH <rtlModuleName()>; 
-use type <rtlModuleName()>.Asn1UInt; 
-use type <rtlModuleName()>.Asn1Int;
-use type <rtlModuleName()>.BIT;
-
-<arrsIncludedModules:{inc| WITH <inc>;}; separator="\n">
---# inherit <rtlModuleName()>, <arrsIncludedModules; separator=", ">;
---# main_program;
-
-
-FUNCTION MainProgram RETURN INTEGER
-IS --# hide MainProgram
-    USE Ada.Text_IO;
-    result      : <rtlModuleName()>.TEST_CASE_RESULT;
-    totalErrors  : INTEGER:=0;
-    
-BEGIN
-    Put_Line ("Hello."); 
-    RETURN 0;
-END MainProgram;
->>
-
 
 PrintLineInIndexFile(sModName, sOutDir) ::= <<
 <sModName>    specification is in <sModName>.ads
@@ -40,12 +16,12 @@ PrintIndexFile(arrsModules) ::= <<
 
 PrintMakeFile(arrsModuleList) ::=<<
 all:
-	gnatmake -gnat2012 -P GPS_project.gpr mainprogram.adb --subdirs=debug -cargs -g -O0 -gnatwe
+	gnatmake -gnat2012 -P GPS_project.gpr mainprogram.adb --subdirs=debug -cargs -g -O0 -gnatwe -gnatwa
 	touch builtWithoutCoverage
 	
 coverage:
 	if [ -f builtWithoutCoverage ] ; then make clean ; fi
-	gnatmake -gnat2012 -P GPS_project.gpr mainprogram.adb --subdirs=debug -cargs -g -O0 -gnatwe -fprofile-arcs -ftest-coverage -largs -fprofile-arcs
+	gnatmake -gnat2012 -P GPS_project.gpr mainprogram.adb --subdirs=debug -cargs -g -O0 -gnatwe -gnatwa -fprofile-arcs -ftest-coverage -largs -fprofile-arcs
 	cd bin/debug ; ./mainprogram
 	cd bin/debug ; gcov <arrsModuleList; separator=" ">
 	

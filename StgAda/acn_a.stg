@@ -34,23 +34,28 @@ END <sFuncName>;
 >>
 
 EmitTypeAssignment_primitive_encode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitilialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace) ::= <<
+--stg macro EmitTypeAssignment_primitive_encode
+pragma Warnings (Off, "formal parameter ""bs"" is not referenced");
+pragma Warnings (Off, "formal parameter ""<sVarName>"" is not referenced");
 procedure <sFuncName>_aux(<sVarName>:in <sTypeDefName>; bs : in out <rtlModuleName()>.encoding.Bitstream; result : OUT <rtlModuleName()>.ASN1_RESULT)
 <soSparkAnnotations>
-IS
+is
     <arrsLocalVariables; separator="\n">
-BEGIN
+begin
+	pragma Warnings (Off, "condition can only be False if invalid values present");
     <if(soIValidFuncName)>
     result := <soIValidFuncName>(<sVarName>);
-    IF result.success THEN
+    if result.success then
         <sContent>
-    END IF;
+    end if;
     <else>
     result := <rtlModuleName()>.ASN1_RESULT'(Success => true, ErrorCode => 0);
     <sContent>
     <endif>
-END <sFuncName>_aux;
-
-
+	pragma Warnings (On, "condition can only be False if invalid values present");
+end <sFuncName>_aux;
+pragma Warnings (On, "formal parameter ""bs"" is not referenced");
+pragma Warnings (On, "formal parameter ""<sVarName>"" is not referenced");
 <EmitTypeAssignment_primitive_encodeMain(sVarName=sVarName, sStar=sStar, sFuncName=sFuncName, soIValidFuncName=soIValidFuncName, sTypeDefName=sTypeDefName, arrsLocalVariables=arrsLocalVariables, sContent=sContent, soSparkAnnotations=soSparkAnnotations, sInitilialExp=sInitilialExp, arrsAcnPrms=arrsAcnPrms, arrsAcnParamNames=arrsAcnParamNames, bEmptyEncodingSpace=bEmptyEncodingSpace)>
 >>
 
@@ -78,6 +83,7 @@ END <sFuncName>;
 
 EmitTypeAssignment_primitive_decode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitilialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace) ::= <<
 pragma Warnings (Off, "unused initial value of ""<sVarName>""");
+pragma Warnings (Off, "formal parameter ""bs"" is not referenced");
 PROCEDURE <sFuncName>_aux(<sVarName>:out <sTypeDefName>; bs : in out <rtlModuleName()>.encoding.Bitstream; result : OUT <rtlModuleName()>.ASN1_RESULT<if(arrsAcnPrms)>; <arrsAcnPrms; separator="; "><endif>)
 <soSparkAnnotations>
 IS
@@ -86,6 +92,7 @@ BEGIN
     <sContent>
 END <sFuncName>_aux;
 pragma Warnings (On, "unused initial value of ""<sVarName>""");
+pragma Warnings (On, "formal parameter ""bs"" is not referenced");
 
 <EmitTypeAssignment_primitive_decodeMain(sVarName=sVarName, sStar=sStar, sFuncName=sFuncName, soIValidFuncName=soIValidFuncName, sTypeDefName=sTypeDefName, arrsLocalVariables=arrsLocalVariables, sContent=sContent, soSparkAnnotations=soSparkAnnotations, sInitilialExp=sInitilialExp, arrsAcnPrms=arrsAcnPrms, arrsAcnParamNames=arrsAcnParamNames, bEmptyEncodingSpace=bEmptyEncodingSpace)>
 >>

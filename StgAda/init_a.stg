@@ -13,7 +13,9 @@ is
     <arrsLocalVariables; separator="\n">
 begin
     <sContent>
+	pragma Warnings (Off, "object ""val"" is always");
     return <sVarName>;
+	pragma Warnings (On, "object ""val"" is always");
 end <sFuncName>;
 >>
 
@@ -159,7 +161,9 @@ declare
     <sChildName>_tmp:<sChildTypeDef>;
 begin
     <sChildContent>
+	pragma Warnings (Off, "object ""<sChildName>_tmp"" is always False at this point");
     <p> := <sChoiceTypeName>'(kind => <sChildID>, <sChildName> => <sChildName>_tmp);
+	pragma Warnings (On, "object ""<sChildName>_tmp"" is always False at this point");
 end;
 >>
 

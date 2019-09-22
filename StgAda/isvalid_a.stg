@@ -175,16 +175,22 @@ FUNCTION <sFuncName>(<sVarName> : in <sTypeDefName>) return <rtlModuleName()>.AS
 
 EmitTypeAssignment_composite(sVarName, sStar, sFuncName, sTypeDefName, sContent, arrsAlphaFuncs, arrsLocalVars) ::= <<
 <arrsAlphaFuncs; separator="\n">
-FUNCTION <sFuncName>(<sVarName> : in <sTypeDefName>) return <rtlModuleName()>.ASN1_RESULT
-IS
+	pragma Warnings (Off, "formal parameter ""val"" is not referenced");
+function <sFuncName>(<sVarName> : in <sTypeDefName>) return <rtlModuleName()>.ASN1_RESULT
+is
+	pragma Warnings (On, "formal parameter ""val"" is not referenced");
     pragma Warnings (Off, "initialization of ret has no effect");        
     ret : <rtlModuleName()>.ASN1_RESULT := <rtlModuleName()>.ASN1_RESULT'(Success => true, ErrorCode => 0);
     pragma Warnings (On, "initialization of ret has no effect");        
     <arrsLocalVars; separator="\n">
-BEGIN
+begin
+	pragma Warnings (Off, "condition can only be False if invalid values present");
+	pragma Warnings (Off, "condition can only be True if invalid values present");
     <sContent>
-    RETURN ret;
-END <sFuncName>;
+	pragma Warnings (On, "condition can only be False if invalid values present");
+	pragma Warnings (On, "condition can only be True if invalid values present");
+    return ret;
+end <sFuncName>;
 >>
 
 
@@ -192,21 +198,21 @@ END <sFuncName>;
 Print_AlphabetCheckFunc_str() ::= "str(I)"
 
 Print_AlphabetCheckFunc(sFuncName, arrsAlphaConBody) ::= <<
-FUNCTION <sFuncName>(str : in String) return boolean 
+function <sFuncName>(str : in String) return boolean 
   with
       pre =\> STR'First=1 AND STR'Last\>=STR'First AND STR'Last\<=INTEGER'LAST-1
-IS
-    ret:BOOLEAN:=true;
-    I:INTEGER:=1;
+is
+    ret:boolean:=true;
+    I:integer:=1;
     strLen :constant Integer := <rtlModuleName()>.getStringSize(str);
-BEGIN
-    WHILE I\<= strLen and ret LOOP
-        pragma Loop_Invariant (I>=1 AND I\<=str'Last);
-        ret := ret AND <arrsAlphaConBody; separator=" AND ">;
+begin
+    while I\<= strLen and ret loop
+        pragma Loop_Invariant (I>=1 and I\<=str'Last);
+        ret := <arrsAlphaConBody; separator=" and ">;
         I := I + 1;
-    END LOOP;
+    end loop;
     return ret;
-END <sFuncName>;
+end <sFuncName>;
 >>
 
 

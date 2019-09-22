@@ -20,15 +20,31 @@ with <rtlModuleName()>.encoding.xer;
 <endif>
 
 
+pragma Warnings (Off, "unit ""system"" is not referenced");
 with system;
+pragma Warnings (On, "unit ""system"" is not referenced");
+
+pragma Warnings (Off, "use clause for package ""<rtlModuleName()>"" has no effect");
 use <rtlModuleName()>;
+pragma Warnings (On, "use clause for package ""<rtlModuleName()>"" has no effect");
+
+pragma Warnings (Off, "use clause for type");
+pragma Warnings (Off, "is already use-visible through package use clause at line");
 use type <rtlModuleName()>.OctetBuffer;
 use type <rtlModuleName()>.BitArray;
 use type <rtlModuleName()>.Asn1UInt;
 use type <rtlModuleName()>.Asn1Int;
 use type <rtlModuleName()>.BIT;
-<arrsIncludedModules:{inc| WITH <inc>; use <inc>;}; separator="\n">
---# inherit <arrsIncludedModules:{inc| <inc>}; separator=",">;
+pragma Warnings (On, "use clause for type");
+pragma Warnings (On, "is already use-visible through package use clause at line");
+
+<arrsIncludedModules:{inc| 
+pragma Warnings (Off, "no entities of ""<inc>"" are referenced");
+pragma Warnings (Off, "use clause for package ""<inc>"" has no effect");
+WITH <inc>; use <inc>;
+pragma Warnings (On, "no entities of ""<inc>"" are referenced");
+pragma Warnings (On, "use clause for package ""<inc>"" has no effect");
+}; separator="\n">
 
 
 PACKAGE <sPackageName> with SPARK_Mode
@@ -36,9 +52,9 @@ IS
 
 
 <arrsTypeAssignments:{tas|<tas>}; separator="\n">
-
+pragma Warnings (Off, "there are no others");
 <arrsValueAssignments:{vas|<vas>}; separator="\n"> 
-
+pragma Warnings (On, "there are no others");
 private
    --# hide <sPackageName>;
 
