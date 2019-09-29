@@ -1,0 +1,14 @@
+TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
+
+	MyPDU ::= BOOLEAN
+	
+	pdu1 MyPDU ::= TRUE
+	
+END
+
+
+--TCLS     MyPDU[]
+----TCLS     MyPDU[true-value '001'B]
+----TCLS     MyPDU[false-value '1001'B]
+----TCLS     MyPDU[false-value '00000000000000000000000000000000'B]
+----TCLS     MyPDU[true-value '00000000000000000000000000000001'B]

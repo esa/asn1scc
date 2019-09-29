@@ -405,10 +405,10 @@ and choiceConstraint2ValidationCodeBlock (r:Asn1AcnAst.AstRoot) (l:ProgrammingLa
             | Asn1Ast.NoMark        -> []
             | Asn1Ast.MarkOptional  -> []
             | Asn1Ast.MarkAbsent    -> 
-                let isExp = (fun (p:CallerScope) -> VCBExpression (choice_child_always_present_Exp p.arg.p (p.arg.getAcces l) presentWhenName  ))
+                let isExp = (fun (p:CallerScope) -> VCBExpression (choice_child_always_absent_Exp p.arg.p (p.arg.getAcces l) presentWhenName  ))
                 [isExp]
             | Asn1Ast.MarkPresent    -> 
-                let isExp = (fun (p:CallerScope) -> VCBExpression (choice_child_always_absent_Exp p.arg.p (p.arg.getAcces l) presentWhenName ))
+                let isExp = (fun (p:CallerScope) -> VCBExpression (choice_child_always_present_Exp p.arg.p (p.arg.getAcces l) presentWhenName ))
                 [isExp]
 
         presentAbsent@[childCheck], ns
@@ -692,6 +692,7 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1A
     let expressionToStament               = match l with C -> isvalid_c.ExpressionToStament                                   | Ada -> isvalid_a.ExpressionToStament
     let handleChild (child:ChChildInfo) (us:State) =
         let c_name = child.getBackendName l
+        let alwaysAbsent = child.Optionality = (Some Asn1AcnAst.Asn1ChoiceOptionality.ChoiceAlwaysAbsent)
         let presentWhenName = child.presentWhenName (Some defOrRef) l
         match child.chType.isValidFunction with
         | None                      -> None, us
@@ -725,7 +726,7 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1A
                 | ValidationStatementFalse  st 
                 | ValidationStatement       st -> Some st) |> DAstUtilFunctions.nestItems l "ret" |> Option.toList
         let with_component_check = convertMultipleVCBsToStatementAndSetErrorCode l p errCode vcbs
-        match (childrenChecks@with_component_check) |> DAstUtilFunctions.nestItems l "ret" with
+        match (with_component_check@childrenChecks) |> DAstUtilFunctions.nestItems l "ret" with
         | None   -> convertVCBToStatementAndAssigneErrCode l VCBTrue errCode.errCodeName
         | Some s ->ValidationStatement s
         

@@ -620,7 +620,7 @@ let createSequenceOfInitFunc (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:A
         let seqOfCase (nSize:BigInteger)  = 
                 let len = childType.initFunction.automaticTestCases.Length
                 let childTestCases = 
-                    childType.initFunction.automaticTestCases |> Seq.take (min 5 len) |> Seq.toList //|>
+                    childType.initFunction.automaticTestCases (*|> Seq.take (min 5 len)*) |> Seq.toList //|>
                     //List.map(fun fnc -> fnc.initTestCaseFunc ({p with arg = p.arg.getArrayItem l i childType.isIA5String}))
                 match childTestCases with
                 | []    -> 
@@ -894,7 +894,7 @@ let createChoiceInitFunc (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1A
             let len = ch.chType.initFunction.automaticTestCases.Length
             let sChildName = (ch.getBackendName l)
             let sChildTypeDef = ch.chType.typeDefintionOrReference.longTypedefName l 
-            ch.chType.initFunction.automaticTestCases |> Seq.take (min 5 len) |> Seq.toList |>
+            ch.chType.initFunction.automaticTestCases (*|> Seq.take (min 5 len)*) |> Seq.toList |>
             List.map(fun atc -> 
                 let fnc = atc.initTestCaseFunc
                 let presentFunc (p:CallerScope) = 

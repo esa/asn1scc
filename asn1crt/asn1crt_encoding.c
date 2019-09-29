@@ -790,6 +790,9 @@ void CalculateMantissaAndExponent(asn1Real d, int* exponent, asn1SccUint64* mant
 
 asn1Real GetDoubleByMantissaAndExp(asn1SccUint mantissa, int exponent)
 {
+#ifdef USE_LDEXP
+	return (asn1Real)ldexp((double)mantissa, exponent);
+#else
 	asn1Real ret = 1.0;
 	if (mantissa == 0)
 		return 0.0;
@@ -809,6 +812,7 @@ asn1Real GetDoubleByMantissaAndExp(asn1SccUint mantissa, int exponent)
 		}
 		return ((asn1Real)mantissa) / ret;
 	}
+#endif
 }
 
 

@@ -513,7 +513,11 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (cod
         | None ->
             let ii = t.id.SeqeuenceOfLevel + 1
             let i = sprintf "i%d" ii
-            let lv = SequenceOfIndex (t.id.SeqeuenceOfLevel + 1, None)
+            let lv = 
+                match l with 
+                | C           -> [SequenceOfIndex (t.id.SeqeuenceOfLevel + 1, None)]
+                | Ada   when o.maxSize.uper >= 65536I && o.maxSize.uper=o.minSize.uper   -> []      //fixed size fragmentation does not need the i variable
+                | Ada         -> [SequenceOfIndex (t.id.SeqeuenceOfLevel + 1, None)]
 
 
             let nStringLength =
@@ -536,7 +540,7 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (cod
                     | _ when o.maxSize.uper < 65536I && o.maxSize.uper=o.minSize.uper  -> None
                     | _ when o.maxSize.uper < 65536I && o.maxSize.uper<>o.minSize.uper -> 
                         let funcBody = varSize p.arg.p (p.arg.getAcces l)  typeDefinitionName i "" ( o.minSize.uper) ( o.maxSize.uper) nSizeInBits ( child.uperMinSizeInBits) nIntItemMaxSize 0I errCode.errCodeName codec
-                        Some ({UPERFuncBodyResult.funcBody = funcBody; errCodes = [errCode]; localVariables = lv::nStringLength})    
+                        Some ({UPERFuncBodyResult.funcBody = funcBody; errCodes = [errCode]; localVariables = lv@nStringLength})    
                     | _                                                -> 
                         let funcBody, localVariables = handleFragmentation l p codec errCode ii ( o.uperMaxSizeInBits) o.minSize.uper o.maxSize.uper "" nIntItemMaxSize false false
                         Some ({UPERFuncBodyResult.funcBody = funcBody; errCodes = [errCode]; localVariables = localVariables})    
@@ -548,7 +552,7 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (cod
                     | _ when o.maxSize.uper < 65536I && o.maxSize.uper<>o.minSize.uper  -> varSize p.arg.p (p.arg.getAcces l)  typeDefinitionName i internalItem.funcBody ( o.minSize.uper) ( o.maxSize.uper) nSizeInBits ( child.uperMinSizeInBits) nIntItemMaxSize 0I errCode.errCodeName codec , nStringLength
                     | _                                                -> handleFragmentation l p codec errCode ii ( o.uperMaxSizeInBits) o.minSize.uper o.maxSize.uper internalItem.funcBody nIntItemMaxSize false false
 
-                Some ({UPERFuncBodyResult.funcBody = ret; errCodes = errCode::childErrCodes; localVariables = lv::(localVariables@internalItem.localVariables)})    
+                Some ({UPERFuncBodyResult.funcBody = ret; errCodes = errCode::childErrCodes; localVariables = lv@(localVariables@internalItem.localVariables)})    
         | Some baseFuncName ->
             let funcBodyContent =  callBaseTypeFunc l (p.arg.getPointer l) baseFuncName codec
             Some ({UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = []})

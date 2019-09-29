@@ -106,8 +106,8 @@ IF Result.Success THEN
     <p> := <soMFM>.<soMF>_decode(mapFuncIntVal);
     Result.Success := <p> \>= <nUperMin> AND <p> \<= <nUperMax>;
     IF NOT Result.Success THEN
-        <p> := <nUperMin>;
-        Result.ErrorCode := ERR_INCORRECT_STREAM;
+        <p> := <nUperMin>;							-- COVERAGE_IGNORE
+        Result.ErrorCode := ERR_INCORRECT_STREAM;	-- COVERAGE_IGNORE
     END IF;
 END IF;
 >>
@@ -257,8 +257,8 @@ IF Result.Success THEN
     <p> := <soMFM>.<soMF>_decode(mapFuncIntVal);
     Result.Success := <p> \>= <nUperMin>;
     IF NOT Result.Success THEN
-        <p> := <nUperMin>;
-        result.ErrorCode := <sErrCode>;
+        <p> := <nUperMin>;					-- COVERAGE_IGNORE
+        result.ErrorCode := <sErrCode>;		-- COVERAGE_IGNORE
     END IF;
 END IF;
 
@@ -663,13 +663,13 @@ EnumeratedEncValues_decode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, sAct
 if result.Success then
     case intVal is
         <arrsItem; separator="\n">
-    when others =>
-        <p> := <sFirstItemName>;
-        result := <rtlModuleName()>.ASN1_RESULT'(Success => False, ErrorCode => <sErrCode>);
+    when others =>																				-- COVERAGE_IGNORE
+        <p> := <sFirstItemName>;																-- COVERAGE_IGNORE
+        result := <rtlModuleName()>.ASN1_RESULT'(Success => False, ErrorCode => <sErrCode>);	-- COVERAGE_IGNORE
     end case;
 else
-    <p> := <sFirstItemName>;
-    result.ErrorCode := <sErrCode>;
+    <p> := <sFirstItemName>;																	-- COVERAGE_IGNORE
+    result.ErrorCode := <sErrCode>;																-- COVERAGE_IGNORE
 end if;
 >>
 
@@ -871,7 +871,7 @@ if <sChName>_is_initialized then
     <soSaveBitStrmPosStatement>
     <sChildContent>
 else
-    result := <rtlModuleName()>.ASN1_RESULT'(Success => False, ErrorCode => <sErrCode>);
+    result := <rtlModuleName()>.ASN1_RESULT'(Success => False, ErrorCode => <sErrCode>); --COVERAGE_IGNORE
 end if;
 >>
 sequence_acn_child_decode(sChName, sChildContent, sErrCode, soSaveBitStrmPosStatement) ::= <<
@@ -1064,12 +1064,12 @@ end if;
 
 ChoiceChildAlwaysAbsent_encode(p, sAcc, sChildID, nChildIndex, sErrorCodeName) ::= <<
 when <sChildID> =>
-    result := <rtlModuleName()>.ASN1_RESULT'(Success => false, ErrorCode => <sErrorCodeName>);
+    result := <rtlModuleName()>.ASN1_RESULT'(Success => false, ErrorCode => <sErrorCodeName>);		-- COVERAGE_IGNORE
 >>
 
 ChoiceChildAlwaysAbsent_decode(p, sAcc, sChildID, nChildIndex, sErrorCodeName) ::= <<
 when <nChildIndex> =>
-    result := <rtlModuleName()>.ASN1_RESULT'(Success => false, ErrorCode => <sErrorCodeName>);
+    result := <rtlModuleName()>.ASN1_RESULT'(Success => false, ErrorCode => <sErrorCodeName>);		-- COVERAGE_IGNORE
 >>
 
 
@@ -1151,7 +1151,7 @@ Choice_preWhen_decode(p, sAcc, arrsChildren, sErrCode) ::= <<
 result := <rtlModuleName()>.ASN1_RESULT'(Success => true, ErrorCode => 0);
 <arrsChildren; separator="\n">
 else
-    result := <rtlModuleName()>.ASN1_RESULT'(Success => false, ErrorCode => <sErrCode>); 
+    result := <rtlModuleName()>.ASN1_RESULT'(Success => false, ErrorCode => <sErrCode>);		-- COVERAGE_IGNORE
 end if;
 >>
 
@@ -1186,8 +1186,8 @@ MultiAcnUpdate_checkEqual_pri0(p1,p2) ::= "(<p1> = <p2>)"
 MultiAcnUpdate_checkEqual_str0(p1,p2) ::= "(<p1> = <p2>)"
 
 MultiAcnUpdate_get_first_init_value_pri(sV0, sVi, bIsFirst) ::= <<
-<if(bIsFirst)>if<else>elsif<endif> <sVi>_is_initialized then
-    <sV0> := <sVi>;
+<if(bIsFirst)>if<else>elsif<endif> <sVi>_is_initialized then		--COVERAGE_IGNORE
+    <sV0> := <sVi>;													--COVERAGE_IGNORE
 >>
 
 MultiAcnUpdate_get_first_init_value_str(sV0, sVi, bIsFirst) ::= <<
@@ -1206,7 +1206,7 @@ begin
     
     <arrsGetFirstIntValue; separator="\n"> 
     else 
-        result := <rtlModuleName()>.ASN1_RESULT'(Success => False, ErrorCode => <sErrCode>);
+        result := <rtlModuleName()>.ASN1_RESULT'(Success => False, ErrorCode => <sErrCode>);		--COVERAGE_IGNORE 
     end if;
 
     result := <rtlModuleName()>.ASN1_RESULT'(Success => result.Success and (<arrsLocalCheckEquality; separator=" and ">), ErrorCode => <sErrCode>);

@@ -31,7 +31,7 @@ let rec uperEquivalence (t1:Asn1Type) (t2:Asn1Type) =
         | true  ->
             let zipedChildren = List.zip ch1.children ch2.children
             let r1 = zipedChildren |> Seq.forall (fun (c1,c2) -> uperEquivalence c1.Type c2.Type)
-            let r2 = ch1.cons = ch2.cons
+            let r2 = true //ch1.cons = ch2.cons
             r1 && r2
     | ReferenceType r1, _       -> uperEquivalence r1.resolvedType t2
     | _ , ReferenceType r2       -> uperEquivalence t1 r2.resolvedType 

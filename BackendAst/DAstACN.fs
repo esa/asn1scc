@@ -819,7 +819,11 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserted
     let ii = t.id.SeqeuenceOfLevel + 1
 
     let i = sprintf "i%d" ii
-    let lv = SequenceOfIndex (t.id.SeqeuenceOfLevel + 1, None)
+    let lv = 
+        match l with 
+        | C           -> [SequenceOfIndex (t.id.SeqeuenceOfLevel + 1, None)]
+        | Ada   when o.acnEncodingClass = SZ_EC_uPER && o.maxSize.uper >= 65536I && o.maxSize.uper=o.minSize.uper   -> []      //fixed size fragmentation does not need the i variable
+        | Ada         -> [SequenceOfIndex (t.id.SeqeuenceOfLevel + 1, None)]
     let nAlignSize = 0I;
     let typeDefinitionName = defOrRef.longTypedefName l 
     let nIntItemMaxSize = ( child.acnMaxSizeInBits)
@@ -846,7 +850,7 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserted
                             | _ when o.maxSize.acn < 65536I && o.isFixedSize  -> None
                             | _ when o.maxSize.acn < 65536I && o.isVariableSize -> 
                                 let funcBody = varSize p.arg.p (p.arg.getAcces l)  typeDefinitionName i "" ( o.minSize.acn) ( o.maxSize.acn) nSizeInBits ( child.acnMinSizeInBits) nIntItemMaxSize 0I errCode.errCodeName codec
-                                Some ({AcnFuncBodyResult.funcBody = funcBody; errCodes = [errCode]; localVariables = lv::nStringLength})    
+                                Some ({AcnFuncBodyResult.funcBody = funcBody; errCodes = [errCode]; localVariables = lv@nStringLength})    
                             | _                                                -> 
                                 let funcBody, localVariables = DAstUPer.handleFragmentation l p codec errCode ii ( o.acnMaxSizeInBits) o.minSize.acn o.maxSize.acn "" nIntItemMaxSize false false
                                 Some ({AcnFuncBodyResult.funcBody = funcBody; errCodes = [errCode]; localVariables = localVariables})    
@@ -860,7 +864,7 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserted
                             | _ when o.maxSize.acn < 65536I && o.isVariableSize  -> varSize p.arg.p (p.arg.getAcces l)  typeDefinitionName i internalItem.funcBody ( o.minSize.acn) ( o.maxSize.acn) nSizeInBits ( child.acnMinSizeInBits) nIntItemMaxSize 0I errCode.errCodeName codec , nStringLength 
                             | _                                                -> 
                                 DAstUPer.handleFragmentation l p codec errCode ii ( o.acnMaxSizeInBits) o.minSize.acn o.maxSize.acn internalItem.funcBody nIntItemMaxSize false false
-                        Some ({AcnFuncBodyResult.funcBody = ret; errCodes = errCode::childErrCodes; localVariables = lv::(internalItem.localVariables@localVariables)})    
+                        Some ({AcnFuncBodyResult.funcBody = ret; errCodes = errCode::childErrCodes; localVariables = lv@(internalItem.localVariables@localVariables)})    
 
                 | SZ_EC_ExternalField   _    -> 
                     match internalItem with
@@ -871,7 +875,7 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserted
                         let internalItem    = internalItem.funcBody
                         let extField        = getExternaField r deps t.id
                         let funcBodyContent = external_field p.arg.p (p.arg.getAcces l) i internalItem (if o.minSize.acn=0I then None else Some ( o.minSize.acn)) ( o.maxSize.acn) extField nAlignSize errCode.errCodeName o.child.acnMinSizeInBits o.child.acnMaxSizeInBits  codec
-                        Some ({AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = errCode::childErrCodes; localVariables = lv::localVariables})
+                        Some ({AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = errCode::childErrCodes; localVariables = lv@localVariables})
             ret,ns
     let soSparkAnnotations = None
     createAcnFunction r l codec t typeDefinition  isValidFunc  funcBody (fun atc -> true) soSparkAnnotations us

@@ -207,11 +207,22 @@ let rec IsValueAllowed (c:Asn1Constraint) (v:Asn1Value) (isOfEnumType:bool) (bit
         let rec IsAlphabetConstraintOK (v:Asn1Value) (ac:Asn1Constraint) =
             match v.Kind with
             | StringValue(s)    -> 
-                s.Value.ToCharArray() |> Seq.forall(fun c -> IsValueAllowed ac (CreateDummyValueByKind (StringValue(StringLoc.ByValue (c.ToString())) )) isOfEnumType bitOrOctSrt ast)
+                match ac with
+                | SingleValueContraint setVal   ->
+                    match setVal.Kind with
+                    | StringValue setvaluesstr     ->
+                        let setvals = setvaluesstr.Value.ToCharArray() |> Set.ofArray
+                        s.Value.ToCharArray() |> Seq.forall(fun c -> setvals.Contains c)
+                    | _                         -> false
+                | _     ->
+                    s.Value.ToCharArray() |> Seq.forall(fun c -> IsValueAllowed ac (CreateDummyValueByKind (StringValue(StringLoc.ByValue (c.ToString())) )) isOfEnumType bitOrOctSrt ast)
             | RefValue(modName,vasName)      -> IsAlphabetConstraintOK (GetBaseValue modName vasName ast) ac
             | _                             -> raise (BugErrorException(""))
         IsAlphabetConstraintOK v ac 
-    | UnionConstraint(c1,c2,_)            -> IsValueAllowed c1 v isOfEnumType bitOrOctSrt ast || IsValueAllowed c2 v isOfEnumType bitOrOctSrt ast
+    | UnionConstraint(c1,c2,_)            -> 
+        let ret1 = IsValueAllowed c1 v isOfEnumType bitOrOctSrt ast  
+        let ret2 = IsValueAllowed c2 v isOfEnumType bitOrOctSrt ast
+        ret1 || ret2
     | IntersectionConstraint(c1,c2)     -> IsValueAllowed c1 v isOfEnumType bitOrOctSrt ast && IsValueAllowed c2 v isOfEnumType bitOrOctSrt ast
     | AllExceptConstraint(c1)           -> not (IsValueAllowed c1 v isOfEnumType bitOrOctSrt ast)
     | ExceptConstraint(c1,c2)           -> IsValueAllowed c1 v isOfEnumType bitOrOctSrt ast && not(IsValueAllowed c2 v isOfEnumType bitOrOctSrt ast)

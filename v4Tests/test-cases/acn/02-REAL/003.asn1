@@ -1,0 +1,13 @@
+TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
+
+    
+    MyPDU   ::= REAL (1 .. 5.0)
+
+	pdu1 MyPDU ::= 3.14159265
+	
+END
+
+-- TCLS     MyPDU[encoding IEEE754-1985-32, endianness little]
+-- TCLS     MyPDU[encoding IEEE754-1985-32, endianness big]
+-- TCLS     MyPDU[encoding IEEE754-1985-32]
+--TCLS     MyPDU[]

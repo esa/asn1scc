@@ -125,7 +125,7 @@ def RunTestCase(asn1, acn, behavior, expErrMsg):
             lines = list(lines)
             if bRunCodeCoverage and len(lines) > 0:
                 PrintWarning("coverage failed. (less than 100%)")
-                #sys.exit(1)
+                sys.exit(1)
         except FileNotFoundError as err:
             pass;
     else:
@@ -160,24 +160,38 @@ def RunTestCase(asn1, acn, behavior, expErrMsg):
             # -- NOCOVERAGE
             doCoverage = "-- NOCOVERAGE" not in open("sample1.asn1", 'r').readlines()[0]
             if doCoverage:
-
-                def hunt_signature(l):
-                    return "test_case.adb" not in l and "mymod.adb" not in l
-                lines = list(
-                    itertools.dropwhile(
-                        hunt_signature, open("covlog.txt", 'r').readlines()))
-                lines = list(itertools.dropwhile(hunt_signature, lines[1:]))
-                excecLines = [l for l in list(lines) if "executed" in l]
-                #print (excecLines)
-                if excecLines:
-                    excLine = excecLines[0]
-                    if "executed:100.00" not in excLine:
-                        PrintWarning("coverage error (less than 100%): {}".format('\n'.join(lines)))
-                        #sys.exit(-1)
-                    else:
-                        PrintSucceededAsExpected(excLine)
-                else:
-                    PrintWarning("No line executed !!!: {}".format('\n'.join(lines)))
+                try:
+                    f = open(targetDir + os.sep + "bin" + os.sep + "debug" + os.sep + "test_case.adb.gcov", 'r')
+                    lines = f.readlines()
+                    lines = filter(lambda x : "####" in x, lines)
+                    lines = filter(lambda x : "COVERAGE_IGNORE" not in x, lines)
+                    lines = filter(lambda l : ":".join(l.split(":")[2:]).strip() != '}', lines)
+                    lines = filter(lambda l : ":".join(l.split(":")[2:]).strip() != "default:", lines)
+                    lines = filter(lambda l : ":".join(l.split(":")[2:]).strip() != "break;", lines)
+                    lines = list(lines)
+                    if bRunCodeCoverage and len(lines) > 0:
+                        PrintWarning("coverage failed. (less than 100%)")
+                        sys.exit(1)
+                except FileNotFoundError as err:
+                    pass;
+            
+            #   def hunt_signature(l):
+            #       return "test_case.adb" not in l and "mymod.adb" not in l
+            #   lines = list(
+            #       itertools.dropwhile(
+            #           hunt_signature, open("covlog.txt", 'r').readlines()))
+            #   lines = list(itertools.dropwhile(hunt_signature, lines[1:]))
+            #   excecLines = [l for l in list(lines) if "executed" in l]
+            #   #print (excecLines)
+            #   if excecLines:
+            #       excLine = excecLines[0]
+            #       if "executed:100.00" not in excLine:
+            #           PrintWarning("coverage error (less than 100%): {}".format('\n'.join(lines)))
+            #           sys.exit(-1)
+            #       else:
+            #           PrintSucceededAsExpected(excLine)
+            #   else:
+            #       PrintWarning("No line executed !!!: {}".format('\n'.join(lines)))
         else:
             print(res, behavior)
             PrintWarning(

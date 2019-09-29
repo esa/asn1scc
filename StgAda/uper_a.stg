@@ -252,8 +252,8 @@ begin
         end case;
         result.ErrorCode := 0;
     else
-        <p> := <sFirstItemName>;
-        result.ErrorCode := <sErrCode>;
+        <p> := <sFirstItemName>;					-- COVERAGE_IGNORE
+        result.ErrorCode := <sErrCode>;				-- COVERAGE_IGNORE
     end if;
 end;
 >>
@@ -525,7 +525,7 @@ InternalItem_bit_str_encode(p, i, sErrCode) ::=<<
 InternalItem_bit_str_decode(p, i, sErrCode) ::=<<
 <rtlModuleName()>.encoding.BitStream_ReadBit(bs, <p>.Data(<i>), result.Success);
 if not result.Success then
-    result.errorcode := <sErrCode>;
+    result.errorcode := <sErrCode>;		-- COVERAGE_IGNORE
 end if;
 >>
 
@@ -536,7 +536,7 @@ InternalItem_oct_str_encode(p, sAcc, i, sErrCode) ::=<<
 InternalItem_oct_str_decode(p, sAcc, i, sErrCode) ::=<<
 <rtlModuleName()>.encoding.BitStream_DecodeByte(bs, <p>.Data(<i>), result.Success);
 if not result.Success then
-    result.errorcode := <sErrCode>;
+    result.errorcode := <sErrCode>; -- COVERAGE_IGNORE
 end if;
 >>
 
@@ -816,7 +816,7 @@ if <sLengthTmp> >= <nSizeMin> and <sLengthTmp> \<= <nSizeMax> then
 
     <endif>
 else
-    result.Success := false;
+    result.Success := false;	--COVERAGE_IGNORE
 end if;
 
 <else>

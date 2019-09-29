@@ -1,0 +1,19 @@
+TEST-CASE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+
+   MyOctStr ::= OCTET STRING (SIZE(2))
+
+
+   MySeq ::= SEQUENCE {
+      octStrFld MyOctStr
+   }
+   
+   MyWithCompSeq ::= SEQUENCE {
+		seqField   MySeq (WITH COMPONENTS {..., 
+					octStrFld (('AABB'H))})
+   }
+
+
+
+END
+
+--TCLS     MyOctStr[]
