@@ -386,32 +386,32 @@ let rec isConstraintValid (t:Asn1Type) (c:Asn1Constraint) ast =
         | Integer | Real | IA5String | NumericString                    -> true
         | ObjectIdentifier          | RelativeObjectIdentifier          -> false
         | NullType | Boolean | Enumerated(_) | Sequence(_) | Choice(_)  -> false
-        | OctetString | BitString(_) | SequenceOf(_)                    -> false
+        | OctetString | BitString(_) | SequenceOf(_)  | TimeType _      -> false
         | ReferenceType(_)                                              -> CanHaveRangeContraint (GetActualType t ast)
 
     let rec CanHaveSizeContraint (t:Asn1Type) =
         match t.Kind with
         | Integer | Real | NullType | Boolean | Enumerated(_) | Sequence(_) | Choice(_)     -> false
-        | ObjectIdentifier          | RelativeObjectIdentifier                              -> false
+        | ObjectIdentifier          | RelativeObjectIdentifier  | TimeType _                -> false
         | IA5String | NumericString | OctetString | BitString(_) | SequenceOf(_)            -> true
         | ReferenceType(_)                                                                  -> CanHaveSizeContraint (GetActualType t ast)
     let rec CanHaveFromContraint (t:Asn1Type) =
         match t.Kind with
         | Integer | Real | NullType | Boolean | Enumerated(_) | Sequence(_) | Choice(_) | OctetString | BitString(_) | SequenceOf(_)   -> false
-        | ObjectIdentifier          | RelativeObjectIdentifier                              -> false
+        | ObjectIdentifier          | RelativeObjectIdentifier   | TimeType _                           -> false
         | IA5String | NumericString                                                                   -> true
         | ReferenceType(_)                                                                            -> CanHaveFromContraint (GetActualType t ast)
     let rec CanHaveWithComponentConstraint (t:Asn1Type) =
         match t.Kind with
         | Integer | Real | NullType | Boolean | Enumerated(_) | Choice(_) | Sequence(_)   -> None
-        | ObjectIdentifier          | RelativeObjectIdentifier                            -> None
+        | ObjectIdentifier          | RelativeObjectIdentifier    | TimeType _            -> None
         | OctetString | BitString(_) | IA5String | NumericString                          -> None
         | SequenceOf(ch)                                                                  -> Some(ch)
         | ReferenceType(_)                                                                -> CanHaveWithComponentConstraint (GetActualType t ast)
     let rec CanHaveWithComponentsConstraint (t:Asn1Type) =
         match t.Kind with
         | Integer | Real | NullType | Boolean | Enumerated(_) | SequenceOf(_)  -> None
-        | ObjectIdentifier          | RelativeObjectIdentifier                            -> None
+        | ObjectIdentifier          | RelativeObjectIdentifier    | TimeType _ -> None
         | OctetString | BitString(_) | IA5String | NumericString               -> None
         | Sequence(children) | Choice(children)                                -> Some(children)
         | ReferenceType(_)                                                     -> CanHaveWithComponentsConstraint (GetActualType t ast)
@@ -550,6 +550,7 @@ let rec CheckType(t:Asn1Type) (m:Asn1Module) ast =
 
     | BitString            ->   ()
     | Integer               ->  ()
+    | TimeType _           -> ()
     (*  ++++
         match (uPER.GetTypeUperRange t.Kind t.Constraints ast) with
         | Empty                   -> raise(SemanticError(t.Location, "The constraints defined for this type do not allow any value"))

@@ -157,6 +157,19 @@ let rec getAsTupples<'T> (list:array<'T>) (empty:'T) =
     } |> Seq.toList
 
 
+let rec combinations arr = 
+    seq {
+        let nLength = Array.length arr
+        for i=0 to nLength - 1 do
+            let subArray = Array.concat [arr.[0 .. i - 1];  arr.[i+1 .. nLength-1]]
+            let rightPartComb = combinations subArray
+            match rightPartComb with
+            | []    -> yield [arr.[i]]
+            | _     ->
+                for rightPart in rightPartComb do
+                    yield  (arr.[i]) :: rightPart 
+    } |> Seq.toList |> List.filter(fun l -> List.length l = Array.length arr)
+
 
 let getOptionalChildByType (tree:ITree, childType) = 
     match getChildrenByType(tree, childType) with

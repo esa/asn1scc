@@ -302,6 +302,7 @@ and MapAsn1Type (r:ParameterizedAsn1Ast.AstRoot) typeScope (t:ParameterizedAsn1A
     | ParameterizedAsn1Ast.IA5String        -> aux Asn1Ast.IA5String
     | ParameterizedAsn1Ast.NumericString    -> aux Asn1Ast.NumericString
     | ParameterizedAsn1Ast.OctetString      -> aux Asn1Ast.OctetString
+    | ParameterizedAsn1Ast.TimeType cl        -> aux (Asn1Ast.TimeType cl)
     | ParameterizedAsn1Ast.NullType         -> aux Asn1Ast.NullType
     | ParameterizedAsn1Ast.BitString        -> aux Asn1Ast.BitString
     | ParameterizedAsn1Ast.Boolean          -> aux Asn1Ast.Boolean

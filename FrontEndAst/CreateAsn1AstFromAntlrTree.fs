@@ -29,6 +29,22 @@ let ConstraintNodes = [ asn1Parser.EXT_MARK; asn1Parser.UnionMark; asn1Parser.AL
                         asn1Parser.VALUE_RANGE_EXPR; asn1Parser.SUBTYPE_EXPR; asn1Parser.SIZE_EXPR; asn1Parser.PERMITTED_ALPHABET_EXPR;
                         asn1Parser.WITH_COMPONENT_CONSTR; asn1Parser.WITH_COMPONENTS_CONSTR ]
 
+
+let TimeClassMap  =
+    [
+        ("Basic=Time Time=HMS Local-or-UTC=L"                            , Asn1LocalTime   )
+        ("Basic=Time Time=HMS Local-or-UTC=Z"                            , Asn1UtcTime   )
+        ("Basic=Time Time=HMS Local-or-UTC=LD"                           , Asn1LocalTimeWithTimeZone   )
+        ("Basic=Date Date=YMD Year=Basic"                                , Asn1Date   )
+        ("Basic=Date-Time Date=YMD Year=Basic Time=HMS Local-or-UTC=L"   , Asn1Date_LocalTime   )
+        ("Basic=Date-Time Date=YMD Year=Basic Time=HMS Local-or-UTC=Z"   , Asn1Date_UtcTime   )
+        ("Basic=Date-Time Date=YMD Year=Basic Time=HMS Local-or-UTC=LD"  , Asn1Date_LocalTimeWithTimeZone   ) ] |> 
+    List.collect (fun (str, cl) -> 
+        let arr = str.Split ' '
+        let combs = combinations arr |> List.map (fun l -> l.StrJoin "") |> List.map (fun s -> (s,cl))
+        combs) |> Map.ofList
+
+
 let getReftypeName (tree:ITree) = 
     match getTreeChildren(tree) |> List.filter(fun x -> x.Type<> asn1Parser.ACTUAL_PARAM_LIST) with
     | refTypeName::[]           ->  refTypeName.TextL
@@ -150,6 +166,7 @@ let rec CreateType (tasParameters : TemplateParameter list) (acnTypeEncodingSpec
         | asn1Parser.NumericString      -> NumericString
         | asn1Parser.OBJECT_TYPE        -> ObjectIdentifier
         | asn1Parser.RELATIVE_OID       -> RelativeObjectIdentifier
+        | asn1Parser.TIME_TYPE          -> TimeType (CreateTimeClass astRoot  typeNode fileTokens alreadyTakenComments)
         | asn1Parser.VisibleString      -> 
             raise (SemanticError (tree.Location, "VisibleString is not supported - please use IA5String"))
         | asn1Parser.PrintableString      -> 
@@ -431,6 +448,15 @@ and CreateNamedItems (astRoot:list<ITree>) (tree:ITree) (fileTokens:array<IToken
         | _                 -> raise (BugErrorException("Bug in CreateNamedItems.CreateItem")) 
     let enumItes = getChildrenByType(tree, asn1Parser.NUMBER_LST_ITEM)
     enumItes |> List.map CreateItem
+
+and CreateTimeClass (astRoot:list<ITree>) (tree:ITree) (fileTokens:array<IToken>) (alreadyTakenComments:System.Collections.Generic.List<IToken>)=
+    let strItem = getChildByType(tree, asn1Parser.StringLiteral)
+    let text = strItem.Text.Substring(1, strItem.Text.Length-2)
+    let text_no_space = text.Replace(" ", "")
+    match TimeClassMap.TryFind text_no_space with
+    | Some cl   -> cl
+    | None      -> raise(SemanticError(tree.Location, (sprintf "Invalid SETTINGS definition '%s'" text)))
+    
 
 and CreateConstraint (astRoot:list<ITree>) (tree:ITree) : Asn1Constraint option=
         match tree.Type with

@@ -99,6 +99,7 @@ and Asn1TypeKind =
     | OctetString 
     | ObjectIdentifier
     | RelativeObjectIdentifier
+    | TimeType         of TimeTypeClass
     | NullType
     | BitString         
     | Boolean 

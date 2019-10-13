@@ -46,6 +46,7 @@ tokens {
 	SEQUENCE_OF_TYPE;
 	SET_OF_TYPE;
 	STRING_TYPE;
+	TIME_TYPE;
 	REFERENCED_TYPE;
 	OBJ_LST_ITEM1;
 	OBJ_LST_ITEM2;
@@ -308,6 +309,7 @@ type	: typeTag?
     |objectIdentifier constraint*	                -> ^(TYPE_DEF typeTag? objectIdentifier constraint* )
     |relativeOID	constraint*		        -> ^(TYPE_DEF typeTag? relativeOID constraint* )
     |selectionType					-> ^(TYPE_DEF typeTag? selectionType)
+	|timeType								-> ^(TYPE_DEF typeTag? timeType)
 )
 ;
 
@@ -470,6 +472,9 @@ stringType	:
 	|UTCTime
 	;
 	
+timeType : a=TIME L_PAREN SETTINGS StringLiteral R_PAREN  -> ^(TIME_TYPE[$a] StringLiteral)
+	;
+
 referencedType
 	:	str1=UID ('.' str2=UID)?						 -> ^(REFERENCED_TYPE[$str1] $str1 $str2? )
 	|	str1=UID ('.' str2=UID)?	actualParameterList  -> ^(PREFERENCED_TYPE[$str1] $str1 $str2? actualParameterList?)
@@ -693,6 +698,8 @@ STRING	:	'STRING';
 BOOLEAN :	'BOOLEAN';
 ENUMERATED	:'ENUMERATED';
 INTEGER	:	'INTEGER';
+TIME	:	'TIME';
+SETTINGS :	'SETTINGS';
 REAL	:	'REAL';
 CHOICE	:	'CHOICE';
 SEQUENCE	:'SEQUENCE';

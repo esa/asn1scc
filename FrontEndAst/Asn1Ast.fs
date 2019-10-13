@@ -132,6 +132,7 @@ and Asn1TypeKind =
     | NumericString
     | OctetString 
     | NullType
+    | TimeType         of TimeTypeClass
     | BitString
     | Boolean 
     | ObjectIdentifier

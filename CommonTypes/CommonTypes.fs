@@ -11,6 +11,20 @@ let ada_keyworkds =  [ "abort"; "else"; "new"; "return"; "abs"; "elsif"; "not"; 
 
 
 
+
+
+
+type TimeTypeClass =
+    |Asn1LocalTime
+    |Asn1UtcTime
+    |Asn1LocalTimeWithTimeZone
+    |Asn1Date
+    |Asn1Date_LocalTime
+    |Asn1Date_UtcTime
+    |Asn1Date_LocalTimeWithTimeZone
+
+
+
 type ProgrammingLanguage =
     |C
     |Ada

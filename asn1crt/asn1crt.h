@@ -136,8 +136,69 @@ flag RelativeOID_isValid(const Asn1ObjectIdentifier *pVal);
 int GetCharIndex(char ch, byte allowedCharSet[], int setLen);
 
 
+/* Time Classes
+	Asn1LocalTime,					// TIME-OF-DAY  ::= TIME(SETTINGS "Basic=Time Time=HMS Local-or-UTC=L")
+	Asn1UtcTime,					//                  TIME(SETTINGS "Basic=Time Time=HMS Local-or-UTC=Z")
+	Asn1LocalTimeWithTimeZone,		//                  TIME(SETTINGS "Basic=Time Time=HMS Local-or-UTC=LD")
+	Asn1Date,						//  DATE ::=        TIME(SETTINGS "Basic=Date Date=YMD Year=Basic")
+	Asn1Date_LocalTime,				//  DATE-TIME   ::= TIME(SETTINGS "Basic=Date-Time Date=YMD Year=Basic Time=HMS Local-or-UTC=L")
+	Asn1Date_UtcTime,				// 			        TIME(SETTINGS "Basic=Date-Time Date=YMD Year=Basic Time=HMS Local-or-UTC=Z")
+	Asn1Date_LocalTimeWithTimeZone	//                  TIME(SETTINGS "Basic=Date-Time Date=YMD Year=Basic Time=HMS Local-or-UTC=LD")
+*/
+typedef struct {
+	int sign;		//-1 or +1
+	int hours;
+	int mins;
+} Asn1TimeZone;
 
+typedef struct {
+	int hours;
+	int mins;
+	int secs;
+	int fraction;
+	Asn1TimeZone tz;
+} Asn1TimeWithTimeZone;
 
+typedef struct {
+	int hours;
+	int mins;
+	int secs;
+	int fraction;
+} Asn1UtcTime;
+
+typedef struct {
+	int hours;
+	int mins;
+	int secs;
+	int fraction;
+} Asn1LocalTime;
+
+typedef struct {
+	int years;
+	int months;
+	int days;
+} Asn1Date;
+
+typedef struct {
+	Asn1Date	   date;
+	Asn1LocalTime  time;
+} Asn1DateLocalTime;
+
+typedef struct {
+	Asn1Date	 date;
+	Asn1UtcTime  time;
+} Asn1DateUtcTime;
+
+typedef struct {
+	Asn1Date	 date;
+	Asn1TimeWithTimeZone  time;
+} Asn1DateTimeWithTimeZone;
+
+typedef enum {
+	Asn1TC_LocalTimeStamp,
+	Asn1TC_UtcTimeStamp,
+	Asn1TC_LocalTimeTZStamp
+} Asn1TimeZoneClass;
 
 
 
