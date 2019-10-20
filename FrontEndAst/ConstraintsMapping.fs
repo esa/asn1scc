@@ -129,6 +129,12 @@ let private boolGetter (r:Asn1Ast.AstRoot) (t:Asn1Ast.Asn1Type) (v:Asn1Ast.Asn1V
     | BooleanValue vl            -> vl.Value
     | _                             -> raise(BugErrorException "Value is not of expected type")
 
+let private timeGetter (r:Asn1Ast.AstRoot) (t:Asn1Ast.Asn1Type) (v:Asn1Ast.Asn1Value) =
+    let newValue = ValuesMapping.mapValue r t v
+    match (getBaseValue newValue).kind with
+    | TimeValue vl            -> vl.Value
+    | _                             -> raise(BugErrorException "Value is not of expected type")
+
 let private objectIdentifierGetter (r:Asn1Ast.AstRoot) (t:Asn1Ast.Asn1Type) (v:Asn1Ast.Asn1Value) =
     let newValue = ValuesMapping.mapValue r t v
     match (getBaseValue newValue).kind with
@@ -312,6 +318,7 @@ let getIA5StringConstraint   (r:Asn1Ast.AstRoot) (t:Asn1Ast.Asn1Type) = getStrin
 let getOctetStringConstraint (r:Asn1Ast.AstRoot) (t:Asn1Ast.Asn1Type) = getSizeTypeConstraint r (octGetter r t)
 let getBitStringConstraint   (r:Asn1Ast.AstRoot) (t:Asn1Ast.Asn1Type) = getSizeTypeConstraint r (bitGetter r t)
 let getBoolConstraint        (r:Asn1Ast.AstRoot) (t:Asn1Ast.Asn1Type) = getRecursiveTypeConstraint (boolGetter r t)
+let getTimeConstraint        (r:Asn1Ast.AstRoot) (t:Asn1Ast.Asn1Type) = getRecursiveTypeConstraint (timeGetter r t)
 let getEnumConstraint        (r:Asn1Ast.AstRoot) (t:Asn1Ast.Asn1Type) = getRecursiveTypeConstraint (enumGetter r t)
 //let getSequenceOfConstraint  (r:Asn1Ast.AstRoot) (t:Asn1Ast.Asn1Type) = getSizeTypeConstraint r (seqOfValueGetter r t)
 let getObjectIdConstraint    (r:Asn1Ast.AstRoot) (t:Asn1Ast.Asn1Type) = getRecursiveTypeConstraint (objectIdentifierGetter r t)
@@ -326,6 +333,7 @@ let rec getAnyConstraint (r:Asn1Ast.AstRoot) (t:Asn1Ast.Asn1Type) (c:Asn1Ast.Asn
     |Asn1Ast.NumericString              -> IA5StringConstraint (getIA5StringConstraint r t c)
     |Asn1Ast.OctetString                -> OctetStringConstraint (getOctetStringConstraint r t c)
     |Asn1Ast.NullType                   -> NullConstraint
+    |Asn1Ast.TimeType        _          -> TimeConstraint (getTimeConstraint r t c)
     |Asn1Ast.BitString                  -> BitStringConstraint (getBitStringConstraint r t c)
     |Asn1Ast.Boolean                    -> BoolConstraint (getBoolConstraint r t c)
     |Asn1Ast.ObjectIdentifier           -> ObjectIdConstraint(getObjectIdConstraint r t c)

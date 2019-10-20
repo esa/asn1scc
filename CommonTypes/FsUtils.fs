@@ -83,6 +83,7 @@ type PrimitiveWithLocation<'T when 'T :equality>  =
 let loc<'T when 'T :equality> v = PrimitiveWithLocation<'T>.ByValue v
 
 type StringLoc = PrimitiveWithLocation<string>
+type DateTimeLoc = PrimitiveWithLocation<DateTime>
 type IntLoc = PrimitiveWithLocation<BigInteger>
 type DoubleLoc = PrimitiveWithLocation<double>
 type BoolLoc = PrimitiveWithLocation<bool>

@@ -18,6 +18,7 @@ type Asn1Type with
         | IA5String      x -> x.uperMinSizeInBits
         | NumericString  x -> x.uperMinSizeInBits
         | OctetString    x -> x.uperMinSizeInBits
+        | TimeType       x -> x.uperMinSizeInBits
         | NullType       x -> x.uperMinSizeInBits
         | BitString      x -> x.uperMinSizeInBits
         | Boolean        x -> x.uperMinSizeInBits
@@ -35,6 +36,7 @@ type Asn1Type with
         | IA5String      x -> x.uperMaxSizeInBits
         | NumericString  x -> x.uperMaxSizeInBits
         | OctetString    x -> x.uperMaxSizeInBits
+        | TimeType       x -> x.uperMaxSizeInBits
         | NullType       x -> x.uperMaxSizeInBits
         | BitString      x -> x.uperMaxSizeInBits
         | Boolean        x -> x.uperMaxSizeInBits
@@ -52,6 +54,7 @@ type Asn1Type with
         | IA5String      x -> x.acnMinSizeInBits
         | NumericString  x -> x.acnMinSizeInBits
         | OctetString    x -> x.acnMinSizeInBits
+        | TimeType       x -> x.acnMinSizeInBits
         | NullType       x -> x.acnMinSizeInBits
         | BitString      x -> x.acnMinSizeInBits
         | Boolean        x -> x.acnMinSizeInBits
@@ -69,6 +72,7 @@ type Asn1Type with
         | IA5String      x -> x.acnMaxSizeInBits
         | NumericString  x -> x.acnMaxSizeInBits
         | OctetString    x -> x.acnMaxSizeInBits
+        | TimeType       x -> x.acnMaxSizeInBits
         | NullType       x -> x.acnMaxSizeInBits
         | BitString      x -> x.acnMaxSizeInBits
         | Boolean        x -> x.acnMaxSizeInBits
@@ -88,6 +92,7 @@ type Asn1Type with
         | NumericString _ -> this
         | OctetString  _ -> this
         | NullType     _ -> this
+        | TimeType     _ -> this
         | BitString    _ -> this
         | Boolean      _ -> this
         | Enumerated   _ -> this
@@ -103,6 +108,7 @@ type Asn1Type with
         | IA5String    o  -> o.typeDef |> Map.toList |> List.map (fun (l, d) -> (l, FE_StringTypeDefinition d)) |> Map.ofList
         | NumericString o -> o.typeDef |> Map.toList |> List.map (fun (l, d) -> (l, FE_StringTypeDefinition d)) |> Map.ofList
         | OctetString  o  -> o.typeDef |> Map.toList |> List.map (fun (l, d) -> (l, FE_SizeableTypeDefinition d)) |> Map.ofList
+        | TimeType     o  -> o.typeDef |> Map.toList |> List.map (fun (l, d) -> (l, FE_PrimitiveTypeDefinition d)) |> Map.ofList
         | NullType     o  -> o.typeDef |> Map.toList |> List.map (fun (l, d) -> (l, FE_PrimitiveTypeDefinition d)) |> Map.ofList
         | BitString    o  -> o.typeDef |> Map.toList |> List.map (fun (l, d) -> (l, FE_SizeableTypeDefinition d)) |> Map.ofList
         | Boolean      o  -> o.typeDef |> Map.toList |> List.map (fun (l, d) -> (l, FE_PrimitiveTypeDefinition d)) |> Map.ofList
@@ -120,6 +126,7 @@ type Asn1Type with
         | IA5String    _ -> false
         | NumericString _ ->false
         | OctetString  _ -> false
+        | TimeType     _ -> false
         | NullType     o -> o.acnProperties.savePosition
         | BitString    _ -> false
         | Boolean      _ -> false
@@ -222,6 +229,7 @@ let rec getASN1Name  (t:Asn1Type) =
     | SequenceOf    _  -> "SEQUENCE OF"
     | Sequence      _  -> "SEQUENCE"
     | Choice        _  -> "CHOICE"
+    | TimeType      _  -> "TIME"
     | ObjectIdentifier o when o.relativeObjectId    -> "RELATIVE-OID"
     | ObjectIdentifier _    -> "OBJECT IDENTIFIER"
     | ReferenceType r  -> getASN1Name r.resolvedType

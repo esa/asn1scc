@@ -76,6 +76,7 @@ and private PrintAsn1GenericValue (v:Asn1Value) =
     |ChValue(nv)             -> printChoiceValue nv
     |NullValue   _           -> XElement(xname "NullValue")
     |ObjOrRelObjIdValue (a,b)    -> printObjectIdentifierValue (a,b)
+    |TimeValue dt            -> XElement(xname "IntegerValue", dt.Value)
     |RefValue ((md,ts), v)   -> printRefValue ((md,ts), v)
 
 let private printGenericConstraint printValue (c:GenericConstraint<'v>)  = 
@@ -361,6 +362,11 @@ let private exportType (t:Asn1Type) =
                         XElement(xname constraintsTag, ti.cons |> List.map(printSizableConstraint printOctetStringVal )),
                         XElement(xname withCompConstraintsTag, ti.withcons |> List.map(printSizableConstraint printOctetStringVal ))
                         ), us )
+        (fun ti us -> XElement(xname "TIME", 
+                        (XAttribute(xname "acnMaxSizeInBits", ti.acnMaxSizeInBits )),
+                        (XAttribute(xname "acnMinSizeInBits", ti.acnMinSizeInBits )),
+                        (XAttribute(xname "uperMaxSizeInBits", ti.uperMaxSizeInBits )),
+                        (XAttribute(xname "uperMinSizeInBits", ti.uperMinSizeInBits ))), us)
         (fun ti us -> XElement(xname "NULL", 
                         (XAttribute(xname "acnMaxSizeInBits", ti.acnMaxSizeInBits )),
                         (XAttribute(xname "acnMinSizeInBits", ti.acnMinSizeInBits )),

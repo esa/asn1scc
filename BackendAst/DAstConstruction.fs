@@ -771,6 +771,7 @@ let private mapType (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDepe
             let (strtype, prms), ns = createStringType r deps l m pi t ti us
             ((IA5String strtype),prms), ns)
         (fun pi t ti us -> createOctetString r deps l m pi t ti us)
+        (fun pi t ti us -> (TimeType,[]), us)
         (fun pi t ti us -> createNullType r l m pi t ti us)
         (fun pi t ti us -> createBitString r deps l m pi t ti us)
         

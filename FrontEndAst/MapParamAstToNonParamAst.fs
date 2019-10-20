@@ -11,12 +11,12 @@
 
 module MapParamAstToNonParamAst
 
+open System
 open System.Numerics
 open Antlr.Runtime.Tree
 open Antlr.Runtime
 open CommonTypes
 open FsUtils
-
 
 
 
@@ -126,11 +126,34 @@ let rec MapAsn1Value (r:ParameterizedAsn1Ast.AstRoot) (kind: ParameterizedAsn1As
         getActualaux r kind None
 
     let MapAsn1ValueKind (r:ParameterizedAsn1Ast.AstRoot) (kind: ParameterizedAsn1Ast.Asn1TypeKind) (vk:ParameterizedAsn1Ast.Asn1ValueKind) :Asn1Ast.Asn1ValueKind =
+        
+        //generate warning to remember the missing functionality 
+        let b = true
+        match b with true -> ()
+        let getDateTimeFromString timeClass (str:StringLoc) =
+            let dt = 
+                match timeClass with
+                |Asn1LocalTime
+                |Asn1UtcTime
+                |Asn1LocalTimeWithTimeZone
+                |Asn1Date
+                |Asn1Date_LocalTime
+                |Asn1Date_UtcTime
+                |Asn1Date_LocalTimeWithTimeZone -> DateTime.Now
+            {DateTimeLoc.Value = dt; Location = str.Location}
+
+
         let actKind = getActualKind r kind
         match vk with
         |ParameterizedAsn1Ast.IntegerValue(v)       -> Asn1Ast.IntegerValue v
         |ParameterizedAsn1Ast.RealValue(v)          -> Asn1Ast.RealValue v
-        |ParameterizedAsn1Ast.StringValue(v)        -> Asn1Ast.StringValue v
+        |ParameterizedAsn1Ast.StringValue(v)        -> 
+            let actKind, mdName = getActualKindAndModule r kind
+            match actKind with
+            | ParameterizedAsn1Ast.IA5String    
+            | ParameterizedAsn1Ast.NumericString    -> Asn1Ast.StringValue v
+            | ParameterizedAsn1Ast.TimeType tmClss  -> Asn1Ast.TimeValue (getDateTimeFromString tmClss v)
+            | _                                     -> raise(SemanticError(v.Location, (sprintf "Unexpected String Literal '%s'" v.Value)))
         |ParameterizedAsn1Ast.BooleanValue(v)       -> Asn1Ast.BooleanValue v
         |ParameterizedAsn1Ast.BitStringValue(v)     -> Asn1Ast.BitStringValue v
         |ParameterizedAsn1Ast.OctetStringValue v    -> Asn1Ast.OctetStringValue v

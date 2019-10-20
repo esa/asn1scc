@@ -49,7 +49,8 @@ let rec mapValue
             | Asn1Ast.IA5String     ->  StringValue v
             | Asn1Ast.NumericString ->  StringValue v
             | _                 -> raise (SemanticError(v.Location, (sprintf "Expecting a %s value but found a STRING value" (Asn1Ast.getASN1Name r actualType))))
-        | Asn1Ast.BooleanValue      v -> 
+        | Asn1Ast.TimeValue       v ->  TimeValue v
+        | Asn1Ast.BooleanValue    v -> 
             match actualType.Kind with
             | Asn1Ast.Boolean     ->      BooleanValue v
             | _                 -> raise (SemanticError(v.Location, (sprintf "Expecting a %s value but found a BOOLEAN value" (Asn1Ast.getASN1Name r actualType))))

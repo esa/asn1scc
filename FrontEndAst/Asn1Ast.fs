@@ -41,6 +41,7 @@ and Asn1ValueKind =
     |   ChValue             of StringLoc*Asn1Value
     |   NullValue
     |   ObjOrRelObjIdValue  of ObjectIdentifierValueCompoent list
+    |   TimeValue           of DateTimeLoc
 
 
 
@@ -357,6 +358,7 @@ let rec getASN1Name (r:AstRoot) (t:Asn1Type) =
     | Choice       _  -> "CHOICE"
     | ObjectIdentifier          -> "OBJECT IDENTIFIER"
     | RelativeObjectIdentifier  -> "RELATIVE-OID"
+    | TimeType     _  -> "TIME"
     | ReferenceType _ -> getASN1Name r (GetActualType t r)
 
 let rec GetMySelfAndChildren (t:Asn1Type) = 

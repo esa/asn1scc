@@ -24,6 +24,7 @@ open AcnGenericTypes
 type IntegerValue         = IntLoc
 type RealValue            = DoubleLoc
 type StringValue          = StringLoc
+type TimeValue            = DateTimeLoc
 type BooleanValue         = BoolLoc
 type BitStringValue       = StringLoc
 type OctetStringValue     = list<ByteLoc>
@@ -51,6 +52,7 @@ and Asn1ValueKind =
     | StringValue           of StringValue     
     | BooleanValue          of BooleanValue    
     | BitStringValue        of BitStringValue  
+    | TimeValue             of TimeValue
     | OctetStringValue      of OctetStringValue
     | EnumValue             of EnumValue       
     | SeqOfValue            of SeqOfValue      
@@ -121,6 +123,7 @@ type BitStringConstraint    =    SizableTypeConstraint<BitStringValue*(Reference
 type BoolConstraint         =    GenericConstraint<bool>
 type EnumConstraint         =    GenericConstraint<string>
 type ObjectIdConstraint     =    GenericConstraint<ObjectIdenfierValue>
+type TimeConstraint         =    GenericConstraint<DateTime>
 
 
 //type SequenceOfConstraint   =     SizableTypeConstraint<SeqOfValue>
@@ -165,6 +168,8 @@ and AnyConstraint =
     | SeqConstraint         of SeqConstraint
     | ChoiceConstraint      of ChoiceConstraint
     | NullConstraint        
+    | TimeConstraint        of TimeConstraint
+    
 
 and NamedConstraint = {
     Name: StringLoc
@@ -352,6 +357,16 @@ type BitString = {
 
 }
 
+type TimeType = {
+    timeClass       :   TimeTypeClass
+    uperMaxSizeInBits   : BigInteger
+    uperMinSizeInBits   : BigInteger
+
+    acnMaxSizeInBits    : BigInteger
+    acnMinSizeInBits    : BigInteger
+    typeDef             : Map<ProgrammingLanguage, FE_PrimitiveTypeDefinition>
+}
+
 type NullType = {
     acnProperties       : NullTypeAcnProperties
     uperMaxSizeInBits   : BigInteger
@@ -508,6 +523,7 @@ and Asn1TypeKind =
     | NumericString     of StringType
     | OctetString       of OctetString
     | NullType          of NullType
+    | TimeType          of TimeType
     | BitString         of BitString
     | Boolean           of Boolean
     | Enumerated        of Enumerated
@@ -516,6 +532,7 @@ and Asn1TypeKind =
     | Choice            of Choice
     | ObjectIdentifier  of ObjectIdentifier
     | ReferenceType     of ReferenceType
+
 
 and SequenceOf = {
     child           : Asn1Type

@@ -794,6 +794,7 @@ and Asn1TypeKind =
     | Sequence          of Sequence
     | Choice            of Choice
     | ReferenceType     of ReferenceType
+    | TimeType
 
 
 

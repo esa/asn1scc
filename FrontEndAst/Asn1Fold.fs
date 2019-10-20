@@ -345,6 +345,7 @@ let foldType
     ia5StringFunc 
     numStringFunc 
     octStringFunc 
+    timeFunc
     nullTypeFunc
     bitStringFunc
     boolFunc
@@ -369,6 +370,7 @@ let foldType
             | IA5String      ti -> ia5StringFunc ti us
             | NumericString  ti -> numStringFunc ti us
             | OctetString    ti -> octStringFunc ti us
+            | TimeType       ti -> timeFunc ti us
             | NullType       ti -> nullTypeFunc ti us
             | BitString      ti -> bitStringFunc ti us
             | Boolean        ti -> boolFunc ti us
@@ -418,6 +420,7 @@ let foldType2
     ia5StringFunc 
     numStringFunc 
     octStringFunc 
+    timeFunc
     nullTypeFunc
     bitStringFunc
     boolFunc
@@ -446,6 +449,7 @@ let foldType2
             | IA5String      ti -> ia5StringFunc pi t ti us
             | NumericString  ti -> numStringFunc pi t ti us
             | OctetString    ti -> octStringFunc pi t ti us
+            | TimeType       ti -> timeFunc pi t ti us
             | NullType       ti -> nullTypeFunc pi t ti us
             | BitString      ti -> bitStringFunc pi t ti us
             | Boolean        ti -> boolFunc pi t ti us
