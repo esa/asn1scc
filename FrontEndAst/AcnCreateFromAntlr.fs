@@ -330,6 +330,35 @@ let private mergeObjectIdentifier (asn1:Asn1Ast.AstRoot) (relativeId:bool) (loc:
     let typeDef, us1 = getPrimitiveTypeDifition {tdarg with rtlFnc = Some getRtlTypeName} us
     {ObjectIdentifier.acnProperties = acnProperties; cons = cons; withcons = withcons; relativeObjectId=relativeId; uperMaxSizeInBits=uperMaxSizeInBits; uperMinSizeInBits=uperMinSizeInBits; acnMinSizeInBits=acnMinSizeInBits; acnMaxSizeInBits = acnMaxSizeInBits; typeDef=typeDef}, us1
 
+let private mergeTimeType (asn1:Asn1Ast.AstRoot) (timeClass:TimeTypeClass) (loc:SrcLoc) (acnErrLoc: SrcLoc option) (props:GenericAcnProperty list) cons withcons (tdarg:GetTypeDifition_arg) (us:Asn1AcnMergeState) =
+    let acnErrLoc0 = match acnErrLoc with Some a -> a | None -> loc
+    let getRtlTypeName  l = 
+        let asn1Name = "TIME"
+        match l, timeClass with 
+        | C, Asn1LocalTime                      -> "", "Asn1LocalTime", asn1Name
+        | C, Asn1UtcTime                        -> "", "Asn1UtcTime", asn1Name
+        | C, Asn1LocalTimeWithTimeZone          -> "", "Asn1TimeWithTimeZone", asn1Name
+        | C, Asn1Date                           -> "", "Asn1Date", asn1Name
+        | C, Asn1Date_LocalTime                 -> "", "Asn1DateLocalTime", asn1Name
+        | C, Asn1Date_UtcTime                   -> "", "Asn1DateUtcTime", asn1Name
+        | C, Asn1Date_LocalTimeWithTimeZone     -> "", "Asn1DateTimeWithTimeZone", asn1Name
+        | Ada, Asn1LocalTime                    -> "adaasn1rtl", "Asn1LocalTime", asn1Name
+        | Ada, Asn1UtcTime                      -> "adaasn1rtl", "Asn1UtcTime", asn1Name
+        | Ada, Asn1LocalTimeWithTimeZone        -> "adaasn1rtl", "Asn1TimeWithTimeZone", asn1Name
+        | Ada, Asn1Date                         -> "adaasn1rtl", "Asn1Date", asn1Name
+        | Ada, Asn1Date_LocalTime               -> "adaasn1rtl", "Asn1DateLocalTime", asn1Name
+        | Ada, Asn1Date_UtcTime                 -> "adaasn1rtl", "Asn1DateUtcTime", asn1Name
+        | Ada, Asn1Date_LocalTimeWithTimeZone   -> "adaasn1rtl", "Asn1DateTimeWithTimeZone", asn1Name
+
+    //check for invalid properties
+    props |> Seq.iter(fun pr -> raise(SemanticError(acnErrLoc0, "Acn property cannot be applied to TIME types")))
+
+
+    let uperMaxSizeInBits= 1I
+    let uperMinSizeInBits= 400I  //+++
+    let acnMinSizeInBits, acnMaxSizeInBits= uperMinSizeInBits, uperMaxSizeInBits
+    let typeDef, us1 = getPrimitiveTypeDifition {tdarg with rtlFnc = Some getRtlTypeName} us
+    {TimeType.timeClass = timeClass; uperMaxSizeInBits=uperMaxSizeInBits; uperMinSizeInBits=uperMinSizeInBits; acnMinSizeInBits=acnMinSizeInBits; acnMaxSizeInBits = acnMaxSizeInBits; typeDef=typeDef; cons = cons; withcons = withcons }, us1
 
 
 
@@ -796,6 +825,11 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (m:Asn1Ast.Asn1Mo
             let wcons = withCons |> List.collect fixConstraint |> List.map (ConstraintsMapping.getObjectIdConstraint asn1 t)
             let o, us1 = mergeObjectIdentifier asn1 (t.Kind=Asn1Ast.RelativeObjectIdentifier) t.Location acnErrLoc combinedProperties cons wcons tfdArg us
             ObjectIdentifier o, us1
+        | Asn1Ast.TimeType   tc      -> 
+            let cons =  t.Constraints@refTypeCons |> List.collect fixConstraint |> List.map (ConstraintsMapping.getTimeConstraint asn1 t)
+            let wcons = withCons |> List.collect fixConstraint |> List.map (ConstraintsMapping.getTimeConstraint asn1 t)
+            let o, us1 = mergeTimeType asn1 tc t.Location acnErrLoc combinedProperties cons wcons tfdArg us
+            TimeType o, us1
         | Asn1Ast.IA5String                ->  
             let defaultCharSet = [|for i in 0..127 -> System.Convert.ToChar(i) |]
             let cons =  t.Constraints@refTypeCons |> List.collect fixConstraint |> List.map (ConstraintsMapping.getIA5StringConstraint asn1 t)

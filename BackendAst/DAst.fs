@@ -54,6 +54,7 @@ type SeqOfValue           = list<Asn1Value>
 and SeqValue              = list<NamedValue>
 and ChValue               = NamedValue
 and RefValue              = ((string*string)*Asn1Value)
+and TimeValue             = DateTime
 and ObjectIdenfierValue   = 
     | Asn1DefinedObjectIdentifierValue of ((ResolvedObjectIdentifierValueCompoent list)*(ObjectIdentifierValueCompoent list))
     | InternalObjectIdentifierValue of BigInteger list
@@ -73,6 +74,7 @@ and Asn1ValueKind =
     | IntegerValue          of IntegerValue    
     | RealValue             of RealValue       
     | StringValue           of StringValue     
+    | TimeValue             of TimeValue
     | BooleanValue          of BooleanValue    
     | BitStringValue        of BitStringValue  
     | OctetStringValue      of OctetStringValue
@@ -387,6 +389,28 @@ type ObjectIdentifier = {
     automaticTestCasesValues     : Asn1Value list
 }
 
+type TimeType = {
+    baseInfo             : Asn1AcnAst.TimeType
+
+    constraintsAsn1Str  : string list   //an ASN.1 representation of the constraints
+    definitionOrRef     : TypeDefintionOrReference
+    printValue          : string -> (Asn1ValueKind option) -> (Asn1ValueKind) -> string
+    initialValue        : TimeValue
+    initFunction        : InitFunction
+    equalFunction       : EqualFunction
+    isValidFunction     : IsValidFunction option      // it is optional because some types do not require an IsValid function (e.g. an unconstraint integer)
+    uperEncFunction     : UPerFunction
+    uperDecFunction     : UPerFunction
+    acnEncFunction      : AcnFunction
+    acnDecFunction      : AcnFunction
+    xerEncFunction      : XerFunction
+    xerDecFunction      : XerFunction
+    uperEncDecTestFunc  : EncodeDecodeTestFunc option
+    acnEncDecTestFunc   : EncodeDecodeTestFunc option
+    xerEncDecTestFunc   : EncodeDecodeTestFunc option
+
+    automaticTestCasesValues     : Asn1Value list
+}
 
 type Real = {
     baseInfo             : Asn1AcnAst.Real

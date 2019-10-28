@@ -359,6 +359,8 @@ type BitString = {
 
 type TimeType = {
     timeClass       :   TimeTypeClass
+    cons                : TimeConstraint list
+    withcons            : TimeConstraint list
     uperMaxSizeInBits   : BigInteger
     uperMinSizeInBits   : BigInteger
 

@@ -1,6 +1,7 @@
 ﻿module CommonTypes
 open FsUtils
 open System
+open System.Globalization
 open System.Numerics
 open System.IO
 open Antlr.Runtime.Tree
@@ -22,6 +23,22 @@ type TimeTypeClass =
     |Asn1Date_LocalTime
     |Asn1Date_UtcTime
     |Asn1Date_LocalTimeWithTimeZone
+
+let getDateTimeFromAsn1TimeStringValue timeClass (str:StringLoc) =
+    try
+        let dt = 
+            match timeClass with
+            |Asn1LocalTime                  -> DateTime.ParseExact(str.Value, "HH:mm:ss.FFF", CultureInfo.InvariantCulture) 
+            |Asn1UtcTime                    -> DateTime.Parse(str.Value) (*.ToUniversalTime ()*)
+            |Asn1LocalTimeWithTimeZone      -> DateTime.ParseExact(str.Value, "HH:mm:ss.FFFK", CultureInfo.InvariantCulture) 
+            |Asn1Date                       -> DateTime.ParseExact(str.Value, "yyyy-MM-dd", CultureInfo.InvariantCulture) 
+            |Asn1Date_LocalTime             -> DateTime.ParseExact(str.Value, "yyyy-MM-dd'T'HH:mm:ss.FFF", CultureInfo.InvariantCulture) 
+            |Asn1Date_UtcTime               -> DateTime.Parse(str.Value) (*.ToUniversalTime ()*)
+            |Asn1Date_LocalTimeWithTimeZone -> DateTime.ParseExact(str.Value, "yyyy-MM-dd'T'HH:mm:ss.FFFK", CultureInfo.InvariantCulture) 
+        {DateTimeLoc.Value = dt; Location = str.Location}
+    with
+        | :? System.FormatException as e -> raise(SemanticError(str.Location, "Invalid TIME VALUE"))
+
 
 
 

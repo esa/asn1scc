@@ -467,6 +467,7 @@ type Asn1AcnAst.Asn1Type with
                 | Asn1AcnAst.Sequence        _ -> {CallerScope.modName = this.id.ModName; arg= POINTER ("pVal" + suf) }
                 | Asn1AcnAst.Choice          _ -> {CallerScope.modName = this.id.ModName; arg= POINTER ("pVal" + suf) }
                 | Asn1AcnAst.ObjectIdentifier _ -> {CallerScope.modName = this.id.ModName; arg= POINTER ("pVal" + suf) }
+                | Asn1AcnAst.TimeType _         -> {CallerScope.modName = this.id.ModName; arg= POINTER ("pVal" + suf) }
                 | Asn1AcnAst.ReferenceType r -> r.resolvedType.getParamTypeSuffix l suf c
             | Decode  ->
                 match this.Kind with
@@ -483,6 +484,7 @@ type Asn1AcnAst.Asn1Type with
                 | Asn1AcnAst.Sequence           _ -> {CallerScope.modName = this.id.ModName; arg= POINTER ("pVal" + suf) }
                 | Asn1AcnAst.Choice             _ -> {CallerScope.modName = this.id.ModName; arg= POINTER ("pVal" + suf) }
                 | Asn1AcnAst.ObjectIdentifier _ -> {CallerScope.modName = this.id.ModName; arg= POINTER ("pVal" + suf) }
+                | Asn1AcnAst.TimeType _ -> {CallerScope.modName = this.id.ModName; arg= POINTER ("pVal" + suf) }
                 | Asn1AcnAst.ReferenceType r -> r.resolvedType.getParamTypeSuffix l suf c
     member this.getParamType (l:ProgrammingLanguage) (c:Codec) =
         this.getParamTypeSuffix l "" c
@@ -506,6 +508,7 @@ type Asn1AcnAst.Asn1Type with
                 | Asn1AcnAst.Sequence     _ -> p.getPointer l
                 | Asn1AcnAst.Choice       _ -> p.getPointer l
                 | Asn1AcnAst.ObjectIdentifier _ -> p.getPointer l
+                | Asn1AcnAst.TimeType _ -> p.getPointer l
                 | Asn1AcnAst.ReferenceType r -> r.resolvedType.getParamValue p l c
             | Decode  ->
                 match this.Kind with
@@ -536,6 +539,7 @@ with
         | Sequence     _ -> this
         | Choice       _ -> this
         | ObjectIdentifier _ -> this
+        | TimeType     _  -> this
     
 
 
@@ -554,12 +558,14 @@ with
         | Sequence     _ -> this
         | Choice       _ -> this
         | ObjectIdentifier _ -> this
+        | TimeType     _  -> this
         
     member this.FT_TypeDefintion =
         match this.Kind with
         | Integer      t -> t.baseInfo.typeDef   |> Map.toList |> List.map (fun (l, d) -> (l, FE_PrimitiveTypeDefinition d)) |> Map.ofList
         | Real         t -> t.baseInfo.typeDef   |> Map.toList |> List.map (fun (l, d) -> (l, FE_PrimitiveTypeDefinition d)) |> Map.ofList
         | ObjectIdentifier t -> t.baseInfo.typeDef   |> Map.toList |> List.map (fun (l, d) -> (l, FE_PrimitiveTypeDefinition d)) |> Map.ofList
+        //| TimeType t -> t.baseInfo.typeDef   |> Map.toList |> List.map (fun (l, d) -> (l, FE_PrimitiveTypeDefinition d)) |> Map.ofList
         | IA5String    t -> t.baseInfo.typeDef   |> Map.toList |> List.map (fun (l, d) -> (l, FE_StringTypeDefinition d)) |> Map.ofList
         | OctetString  t -> t.baseInfo.typeDef   |> Map.toList |> List.map (fun (l, d) -> (l, FE_SizeableTypeDefinition d)) |> Map.ofList
         | NullType     t -> t.baseInfo.typeDef   |> Map.toList |> List.map (fun (l, d) -> (l, FE_PrimitiveTypeDefinition d)) |> Map.ofList

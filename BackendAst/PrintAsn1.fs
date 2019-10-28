@@ -22,6 +22,9 @@ let rec PrintAsn1Value (v:Asn1Value) =
     |IntegerValue(v)         -> stg_asn1.Print_IntegerValue v.Value
     |RealValue(v)            -> stg_asn1.Print_RealValue v.Value
     |StringValue(v)          -> stg_asn1.Print_StringValue v.Value
+    |TimeValue v             -> 
+        
+        stg_asn1.Print_TimeValue (v.Value.ToString())
     |BooleanValue(v)         -> stg_asn1.Print_BooleanValue v.Value
     |BitStringValue(v)       -> stg_asn1.Print_BitStringValue v.Value
     |OctetStringValue(v)     -> stg_asn1.Print_OctetStringValue (v |> Seq.map(fun x -> x.Value) |> Seq.toArray)
