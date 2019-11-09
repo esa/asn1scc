@@ -111,6 +111,34 @@ let createObjectIdentifier (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn
     | PrimitiveReference2OtherType            -> None
 
 
+let createTimeType (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1AcnAst.Asn1Type)  (o:Asn1AcnAst.TimeType)   (us:State) =
+    
+    let getRtlTypeName  = 
+        match o.timeClass with
+        |Asn1LocalTime                      _ -> match l with C -> header_c.Declare_Asn1LocalTime                   | Ada -> header_a.Declare_Asn1LocalTimeNoRTL                  
+        |Asn1UtcTime                        _ -> match l with C -> header_c.Declare_Asn1UtcTime                     | Ada -> header_a.Declare_Asn1UtcTimeNoRTL                    
+        |Asn1LocalTimeWithTimeZone          _ -> match l with C -> header_c.Declare_Asn1LocalTimeWithTimeZone       | Ada -> header_a.Declare_Asn1LocalTimeWithTimeZoneNoRTL      
+        |Asn1Date                             -> match l with C -> header_c.Declare_Asn1Date                        | Ada -> header_a.Declare_Asn1DateNoRTL                     
+        |Asn1Date_LocalTime                 _ -> match l with C -> header_c.Declare_Asn1Date_LocalTime              | Ada -> header_a.Declare_Asn1Date_LocalTimeNoRTL             
+        |Asn1Date_UtcTime                   _ -> match l with C -> header_c.Declare_Asn1Date_UtcTime                | Ada -> header_a.Declare_Asn1Date_UtcTimeNoRTL               
+        |Asn1Date_LocalTimeWithTimeZone     _ -> match l with C -> header_c.Declare_Asn1Date_LocalTimeWithTimeZone  | Ada -> header_a.Declare_Asn1Date_LocalTimeWithTimeZoneNoRTL 
+        
+
+    let defineSubType l = match l with C -> header_c.Define_SubType | Ada -> header_a.Define_SubType
+    let rtlModuleName  = match l with C -> None                                          | Ada -> Some (header_a.rtlModuleName())
+    let td = o.typeDef.[l]
+    match td.kind with
+    | PrimitiveNewTypeDefinition              -> 
+        let baseType = getRtlTypeName()
+        let typedefBody = defineSubType l td.typeName rtlModuleName baseType None None
+        Some typedefBody
+    | PrimitiveNewSubTypeDefinition subDef     -> 
+        let otherProgramUnit = if td.programUnit = subDef.programUnit then None else (Some subDef.programUnit)
+        let typedefBody = defineSubType l td.typeName otherProgramUnit subDef.typeName None None
+        Some typedefBody
+    | PrimitiveReference2RTL                  -> None
+    | PrimitiveReference2OtherType            -> None
+
 
 let createNull (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage)  (t:Asn1AcnAst.Asn1Type)  (o:Asn1AcnAst.NullType)   (us:State) =
     let getRtlTypeName  = match l with C -> header_c.Declare_NullType  | Ada -> header_a.Declare_NULLNoRTL 
@@ -319,6 +347,22 @@ let createReal_u (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage)   (t:Asn1AcnAst.
 
 let createObjectIdentifier_u (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage)   (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.ObjectIdentifier)  (us:State) =
     let aaa = createObjectIdentifier r l t o us
+    let programUnit = ToC t.id.ModName
+    let td = o.typeDef.[l]
+    match td.kind with
+    | PrimitiveNewTypeDefinition              -> 
+        TypeDefinition {TypeDefinition.typedefName = td.typeName; typedefBody = (fun () -> aaa.Value); baseType=None}
+    | PrimitiveNewSubTypeDefinition subDef     -> 
+        let baseType = {ReferenceToExistingDefinition.programUnit = (if subDef.programUnit = programUnit then None else Some subDef.programUnit); typedefName=subDef.typeName ; definedInRtl = false}
+        TypeDefinition {TypeDefinition.typedefName = td.typeName; typedefBody = (fun () -> aaa.Value); baseType=Some baseType}
+    | PrimitiveReference2RTL                  ->
+        ReferenceToExistingDefinition {ReferenceToExistingDefinition.programUnit =  (if td.programUnit = programUnit then None else Some td.programUnit); typedefName= td.typeName; definedInRtl = true}
+    | PrimitiveReference2OtherType            -> 
+        ReferenceToExistingDefinition {ReferenceToExistingDefinition.programUnit =  (if td.programUnit = programUnit then None else Some td.programUnit); typedefName= td.typeName; definedInRtl = false}
+
+
+let createTimeType_u (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage)   (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.TimeType)  (us:State) =
+    let aaa = createTimeType r l t o us
     let programUnit = ToC t.id.ModName
     let td = o.typeDef.[l]
     match td.kind with

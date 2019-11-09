@@ -142,6 +142,13 @@ let private exportType (r:AstRoot) (t:Asn1Type) =
                         XAttribute(xname "newTypedefName2", (ti.baseInfo.typeDef.[CommonTypes.ProgrammingLanguage.C].typeName)),
                         XAttribute(xname "newTypedefName2_kind", t.FT_TypeDefintion.[CommonTypes.ProgrammingLanguage.C].kind)
                         ), us )
+        (fun t ti us -> 
+                    XElement(xname "TIME",
+                        XAttribute(xname "id", t.id.AsString),
+                        XAttribute(xname "newTypedefName", (t.typeDefintionOrReference.longTypedefName Ada)),
+                        XAttribute(xname "newTypedefName2", (ti.baseInfo.typeDef.[CommonTypes.ProgrammingLanguage.C].typeName)),
+                        XAttribute(xname "newTypedefName2_kind", t.FT_TypeDefintion.[CommonTypes.ProgrammingLanguage.C].kind)
+                        ), us )
 
         (fun t ti (child,us) ->                     
                      XElement(xname "SEQUENCEOF",

@@ -24,7 +24,7 @@ open AcnGenericTypes
 type IntegerValue         = IntLoc
 type RealValue            = DoubleLoc
 type StringValue          = StringLoc
-type TimeValue            = DateTimeLoc
+type TimeValue            = Asn1DateTimeValueLoc
 type BooleanValue         = BoolLoc
 type BitStringValue       = StringLoc
 type OctetStringValue     = list<ByteLoc>
@@ -123,7 +123,7 @@ type BitStringConstraint    =    SizableTypeConstraint<BitStringValue*(Reference
 type BoolConstraint         =    GenericConstraint<bool>
 type EnumConstraint         =    GenericConstraint<string>
 type ObjectIdConstraint     =    GenericConstraint<ObjectIdenfierValue>
-type TimeConstraint         =    GenericConstraint<DateTime>
+type TimeConstraint         =    GenericConstraint<Asn1DateTimeValue>
 
 
 //type SequenceOfConstraint   =     SizableTypeConstraint<SeqOfValue>

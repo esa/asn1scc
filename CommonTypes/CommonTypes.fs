@@ -16,31 +16,203 @@ let ada_keyworkds =  [ "abort"; "else"; "new"; "return"; "abs"; "elsif"; "not"; 
 
 
 type TimeTypeClass =
-    |Asn1LocalTime
-    |Asn1UtcTime
-    |Asn1LocalTimeWithTimeZone
+    |Asn1LocalTime                      of int
+    |Asn1UtcTime                        of int
+    |Asn1LocalTimeWithTimeZone          of int
+    |Asn1Date
+    |Asn1Date_LocalTime                 of int
+    |Asn1Date_UtcTime                   of int
+    |Asn1Date_LocalTimeWithTimeZone     of int
+
+type Asn1DateValue = {
+    years  : BigInteger
+    months : BigInteger
+    days   : BigInteger 
+}
+
+type Asn1TimeValue = {
+    hours : BigInteger
+    mins  : BigInteger
+    secs  : BigInteger
+    secsFraction : (BigInteger*BigInteger) option
+}
+
+
+
+type Asn1TimeZoneValue = {
+    sign : BigInteger
+    hours : BigInteger
+    mins  : BigInteger
+}
+
+type Asn1DateTimeValue =
+    |Asn1LocalTimeValue                     of Asn1TimeValue
+    |Asn1UtcTimeValue                       of Asn1TimeValue
+    |Asn1LocalTimeWithTimeZoneValue         of Asn1TimeValue*Asn1TimeZoneValue
+    |Asn1DateValue                          of Asn1DateValue
+    |Asn1Date_LocalTimeValue                of Asn1DateValue*Asn1TimeValue
+    |Asn1Date_UtcTimeValue                  of Asn1DateValue*Asn1TimeValue
+    |Asn1Date_LocalTimeWithTimeZoneValue    of Asn1DateValue*Asn1TimeValue*Asn1TimeZoneValue
+
+type Asn1DateTimeValueLoc = PrimitiveWithLocation<Asn1DateTimeValue>
+
+
+let timeTypeToAsn1Str tmcl = 
+    match tmcl with
+    |Asn1LocalTime                      _ -> "TIME"
+    |Asn1UtcTime                        _ -> "TIME"
+    |Asn1LocalTimeWithTimeZone          _ -> "TIME"
+    |Asn1Date                             -> "TIME"
+    |Asn1Date_LocalTime                 _ -> "TIME"
+    |Asn1Date_UtcTime                   _ -> "TIME"
+    |Asn1Date_LocalTimeWithTimeZone     _ -> "TIME"
+
+let createTimeValueFromString timeClass (strL:StringLoc) =
+    let pow b e = BigInteger.Pow (b,e)
+    let str = strL.Value
+    let pr (s:string) size mn mx = 
+        if s.Length <> size then
+            raise(SemanticError(strL.Location, "Invalid TIME VALUE"))
+        match BigInteger.TryParse s with
+        | true, num when num >= mn && num <=mx -> num
+        | _         -> raise(SemanticError(strL.Location, "Invalid TIME VALUE"))
+    let checkForInvalidCharacters (str:string) (charSet: Set<char> ) =
+        let invalidChars = str.ToCharArray() |> Seq.filter (fun c -> not (charSet.Contains c)) |> Seq.toList
+        match invalidChars with
+        | []    -> ()
+        | c::_  -> raise(SemanticError(strL.Location, (sprintf "Invalid character '%c'" c)))
+    (*16:53:49.0123+02:00*)
+    let parseTimeValue (str:string) = 
+        let parseSeconds (secStr:string) =
+            match secStr.Contains(".") with
+            | false -> pr secStr 2 0I 59I, None
+            | true  ->
+                let p = secStr.Split('.')
+                let s = pr p.[0] 2 0I 59I
+                let fraction = 
+                    match p.[1].Length with
+                    | 0 -> None
+                    | _ ->
+                        let mx = (pow 10I p.[1].Length) - 1I
+                        Some (pr p.[1] p.[1].Length 0I mx, mx)
+                s,fraction
+
+        let validChars = ['0'..'9']@[':';'.'] |> Set.ofList
+        checkForInvalidCharacters str validChars
+        let parts = str.Split(':')
+        if parts.Length <> 3 then
+            raise(SemanticError(strL.Location, "Invalid TIME VALUE"))
+        let scs, fraction = parseSeconds parts.[2]
+        {Asn1TimeValue.hours = pr parts.[0] 2 0I 23I; mins = pr parts.[1] 2 0I 59I; secs = scs; secsFraction = fraction}
+    let parseUtcTimeValue (str:string) = 
+        match str.EndsWith("Z") with
+        | false -> raise(SemanticError(strL.Location, "Invalid TIME VALUE. Expecting a 'Z' at the end"))
+        | true  ->                        parseTimeValue (str.Substring(0, str.Length-1))
+    let parseDateValue (str:string) =
+        (*expecting 2020-05-16*)
+        let validChars = ['0'..'9']@['-'] |> Set.ofList
+        checkForInvalidCharacters str validChars
+        let parts = str.Split('-')
+        {Asn1DateValue.years = pr parts.[0] parts.[0].Length 0I 9999999999I; months = pr parts.[1] 2 1I 12I; days = pr parts.[2] 2 1I 31I}
+
+    let parseTimeValueWithTimeZone (str:string) =
+        //let str = "2020-05-16T16:53:49+02:00"
+        if str.Length <= 6 then
+            raise(SemanticError(strL.Location, "Invalid TIME VALUE."))
+        let tm = str.Substring(0, str.Length-6)
+        let sign = str.Chars (str.Length-6)
+        if not (sign = '-' || sign = '+') then
+            raise(SemanticError(strL.Location, "Invalid TIME VALUE."))
+        let tz = str.Substring(str.Length-5)
+        if (tz.Length <> 5) then
+            raise(SemanticError(strL.Location, "Invalid TIME VALUE."))
+        let time = parseTimeValue tm 
+        let parts =tz.Split(':')
+        let tz = {Asn1TimeZoneValue.sign = (if sign = '+' then 1I else (-1I)); hours = pr parts.[0] 2 0I 23I; mins = pr parts.[1] 2 0I 59I}
+        (time, tz)
+    let splitDateTimeString (str:string) fnc =
+        let parts = str.Split('T')
+        if parts.Length <> 2 then
+            raise(SemanticError(strL.Location, "Invalid DATE TIME VALUE."))
+        (parseDateValue parts.[0], fnc parts.[1])
+    let ret = 
+        match timeClass with
+        |Asn1LocalTime               _   -> Asn1LocalTimeValue (parseTimeValue str)
+        |Asn1UtcTime                 _   -> Asn1UtcTimeValue  (parseUtcTimeValue str)
+        |Asn1LocalTimeWithTimeZone   _   -> Asn1LocalTimeWithTimeZoneValue (parseTimeValueWithTimeZone str)
+        |Asn1Date                       -> Asn1DateValue (parseDateValue str)
+        |Asn1Date_LocalTime          _   -> Asn1Date_LocalTimeValue(splitDateTimeString str  parseTimeValue)
+        |Asn1Date_UtcTime            _   -> Asn1Date_UtcTimeValue(splitDateTimeString str  parseUtcTimeValue)
+        |Asn1Date_LocalTimeWithTimeZone _ -> 
+            let (a,(b,c)) = splitDateTimeString str  parseTimeValueWithTimeZone
+            Asn1Date_LocalTimeWithTimeZoneValue (a,b,c)
+    {Asn1DateTimeValueLoc.Value = ret; Location = strL.Location}
+
+(*
+       myDate   "2020-05-16",
+       myTime   "16:53:49",
+       myTimeZ  "16:53:49Z",
+       myTimeOfDayLD "16:53:49+02:00",
+       myTimeFrac   "16:53:49.123",
+       myDateTime  "2020-05-16T16:53:49",
+       myDateTimeZ   "2020-05-16T16:53:49Z",
+       myDateTimeLD   "2020-05-16T16:53:49+02:00"
+*)
+let asn1DateTimeValueToString (tv:Asn1DateTimeValue) =
+    let asn1TimeValueToString (tv:Asn1TimeValue) =
+        match tv.secsFraction with
+        | None          -> sprintf "%A:%A:%A" tv.hours tv.mins tv.secs
+        | Some (f,_)    -> sprintf "%A:%A:%A.%A" tv.hours tv.mins tv.secs f
+    let timeZoneToString (tz:Asn1TimeZoneValue) =
+        sprintf "%c%A:%A" (if tz.sign = 1I then '+' else '-') tz.hours tz.mins
+    let asn1DateValueToString (dt:Asn1DateValue) =
+        sprintf "%A-%A-%A" dt.years dt.months dt.days
+    match tv with
+    |Asn1LocalTimeValue                     tv         -> asn1TimeValueToString tv
+    |Asn1UtcTimeValue                       tv         -> (asn1TimeValueToString tv) + "Z"
+    |Asn1LocalTimeWithTimeZoneValue        (tv,tz)     -> (asn1TimeValueToString tv) + (timeZoneToString tz)
+    |Asn1DateValue                          dt         -> asn1DateValueToString dt
+    |Asn1Date_LocalTimeValue                (dt,tv)    -> (asn1DateValueToString dt) + (asn1TimeValueToString tv)
+    |Asn1Date_UtcTimeValue                  (dt,tv)    -> (asn1DateValueToString dt) + (asn1TimeValueToString tv) + "Z"
+    |Asn1Date_LocalTimeWithTimeZoneValue    (dt,tv, tz)-> (asn1DateValueToString dt) + (asn1TimeValueToString tv) + (timeZoneToString tz)
+
+
+let someTests () =
+(*
     |Asn1Date
     |Asn1Date_LocalTime
     |Asn1Date_UtcTime
     |Asn1Date_LocalTimeWithTimeZone
 
+*)
+    let loc str = { StringLoc.Value = str; Location = {srcFilename = "a.asn1"; srcLine = 20; charPos = 5    }}
+    let a1 = createTimeValueFromString  (Asn1LocalTime 3) (loc "23:53:49.234")
+    let a1 = createTimeValueFromString  (Asn1UtcTime 0) (loc "23:53:49Z")
+    let a1 = createTimeValueFromString  (Asn1LocalTimeWithTimeZone 3) (loc "23:53:49.234+02:00")
+    let a1 = createTimeValueFromString  Asn1Date  (loc "2020-05-16")
+    let a1 = createTimeValueFromString  (Asn1Date_LocalTime 2) (loc "2020-05-16T16:53:49.21")
+    let a1 = createTimeValueFromString  (Asn1Date_UtcTime 2) (loc "2020-05-16T16:53:59.21Z")
+    let a1 = createTimeValueFromString  (Asn1Date_LocalTimeWithTimeZone 2) (loc "2020-05-16T16:53:59.21-11:30")
+    0
+
+(*
 let getDateTimeFromAsn1TimeStringValue timeClass (str:StringLoc) =
     try
         let dt = 
             match timeClass with
-            |Asn1LocalTime                  -> DateTime.ParseExact(str.Value, "HH:mm:ss.FFF", CultureInfo.InvariantCulture) 
-            |Asn1UtcTime                    -> DateTime.Parse(str.Value) (*.ToUniversalTime ()*)
-            |Asn1LocalTimeWithTimeZone      -> DateTime.ParseExact(str.Value, "HH:mm:ss.FFFK", CultureInfo.InvariantCulture) 
+            |Asn1LocalTime                  _ -> DateTime.ParseExact(str.Value, "HH:mm:ss.FFF", CultureInfo.InvariantCulture) 
+            |Asn1UtcTime                    _ -> DateTime.Parse(str.Value) (*.ToUniversalTime ()*)
+            |Asn1LocalTimeWithTimeZone      _ -> DateTime.ParseExact(str.Value, "HH:mm:ss.FFFK", CultureInfo.InvariantCulture) 
             |Asn1Date                       -> DateTime.ParseExact(str.Value, "yyyy-MM-dd", CultureInfo.InvariantCulture) 
-            |Asn1Date_LocalTime             -> DateTime.ParseExact(str.Value, "yyyy-MM-dd'T'HH:mm:ss.FFF", CultureInfo.InvariantCulture) 
-            |Asn1Date_UtcTime               -> DateTime.Parse(str.Value) (*.ToUniversalTime ()*)
-            |Asn1Date_LocalTimeWithTimeZone -> DateTime.ParseExact(str.Value, "yyyy-MM-dd'T'HH:mm:ss.FFFK", CultureInfo.InvariantCulture) 
+            |Asn1Date_LocalTime             _ -> DateTime.ParseExact(str.Value, "yyyy-MM-dd'T'HH:mm:ss.FFF", CultureInfo.InvariantCulture) 
+            |Asn1Date_UtcTime               _ -> DateTime.Parse(str.Value) (*.ToUniversalTime ()*)
+            |Asn1Date_LocalTimeWithTimeZone _ -> DateTime.ParseExact(str.Value, "yyyy-MM-dd'T'HH:mm:ss.FFFK", CultureInfo.InvariantCulture) 
         {DateTimeLoc.Value = dt; Location = str.Location}
     with
         | :? System.FormatException as e -> raise(SemanticError(str.Location, "Invalid TIME VALUE"))
 
 
-
+*)
 
 type ProgrammingLanguage =
     |C

@@ -565,7 +565,7 @@ with
         | Integer      t -> t.baseInfo.typeDef   |> Map.toList |> List.map (fun (l, d) -> (l, FE_PrimitiveTypeDefinition d)) |> Map.ofList
         | Real         t -> t.baseInfo.typeDef   |> Map.toList |> List.map (fun (l, d) -> (l, FE_PrimitiveTypeDefinition d)) |> Map.ofList
         | ObjectIdentifier t -> t.baseInfo.typeDef   |> Map.toList |> List.map (fun (l, d) -> (l, FE_PrimitiveTypeDefinition d)) |> Map.ofList
-        //| TimeType t -> t.baseInfo.typeDef   |> Map.toList |> List.map (fun (l, d) -> (l, FE_PrimitiveTypeDefinition d)) |> Map.ofList
+        | TimeType t -> t.baseInfo.typeDef   |> Map.toList |> List.map (fun (l, d) -> (l, FE_PrimitiveTypeDefinition d)) |> Map.ofList
         | IA5String    t -> t.baseInfo.typeDef   |> Map.toList |> List.map (fun (l, d) -> (l, FE_StringTypeDefinition d)) |> Map.ofList
         | OctetString  t -> t.baseInfo.typeDef   |> Map.toList |> List.map (fun (l, d) -> (l, FE_SizeableTypeDefinition d)) |> Map.ofList
         | NullType     t -> t.baseInfo.typeDef   |> Map.toList |> List.map (fun (l, d) -> (l, FE_PrimitiveTypeDefinition d)) |> Map.ofList
@@ -592,6 +592,7 @@ with
         | Choice       t -> t.printValue
         | ReferenceType t-> t.printValue
         | ObjectIdentifier t -> t.printValue
+        | TimeType  t       -> t.printValue
 
     member this.initialValue =
         match this.Kind with
@@ -608,6 +609,7 @@ with
         | Choice       t -> ChValue t.initialValue
         | ReferenceType t-> t.initialValue.kind
         | ObjectIdentifier t -> ObjOrRelObjIdValue  t.initialValue
+        | TimeType t        -> TimeValue t.initialValue
 
     member this.ConstraintsAsn1Str = 
         match this.Kind with
@@ -624,6 +626,7 @@ with
         | Choice       t -> t.constraintsAsn1Str
         | ReferenceType t-> t.constraintsAsn1Str
         | ObjectIdentifier t -> t.constraintsAsn1Str
+        | TimeType t        -> t.constraintsAsn1Str
 
 
 
@@ -653,6 +656,7 @@ with
         | Choice       t -> t.initFunction
         | ReferenceType t-> t.initFunction
         | ObjectIdentifier t -> t.initFunction
+        | TimeType t        -> t.initFunction
 
     member this.equalFunction =
         match this.Kind with
@@ -669,6 +673,7 @@ with
         | Choice       t -> t.equalFunction
         | ReferenceType t-> t.equalFunction
         | ObjectIdentifier t -> t.equalFunction
+        | TimeType t        -> t.equalFunction
 
     member this.isValidFunction =
         match this.Kind with
@@ -685,6 +690,7 @@ with
         | Sequence     t -> t.isValidFunction
         | Choice       t -> t.isValidFunction
         | ReferenceType t-> t.isValidFunction
+        | TimeType t        -> t.isValidFunction
     
     member this.getUperFunction (l:CommonTypes.Codec) =
         match l with
@@ -710,6 +716,7 @@ with
          | Choice       t ->t.uperEncFunction
          | ReferenceType t->t.uperEncFunction
          | ObjectIdentifier t -> t.uperEncFunction
+         | TimeType t        -> t.uperEncFunction
 
     member this.uperDecFunction =
          match this.Kind with
@@ -726,6 +733,7 @@ with
          | Choice       t -> t.uperDecFunction
          | ReferenceType t-> t.uperDecFunction
          | ObjectIdentifier t -> t.uperDecFunction
+         | TimeType t        -> t.uperDecFunction
 
 
     member this.xerEncFunction =
@@ -743,6 +751,7 @@ with
          | Choice       t ->t.xerEncFunction
          | ReferenceType t->t.xerEncFunction
          | ObjectIdentifier t -> t.xerEncFunction
+         | TimeType t        -> t.xerEncFunction
 
     member this.xerDecFunction =
          match this.Kind with
@@ -759,6 +768,7 @@ with
          | Choice       t -> t.xerDecFunction
          | ReferenceType t-> t.xerDecFunction
          | ObjectIdentifier t -> t.xerDecFunction
+         | TimeType t        -> t.xerDecFunction
 
 
     member this.uperMaxSizeInBits =
@@ -776,6 +786,7 @@ with
         | Choice       t -> t.baseInfo.uperMaxSizeInBits
         | ReferenceType ref -> ref.baseInfo.resolvedType.uperMaxSizeInBits
         | ObjectIdentifier t -> t.baseInfo.uperMaxSizeInBits
+        | TimeType t        -> t.baseInfo.uperMaxSizeInBits
 
     member this.uperMinSizeInBits =
         match this.Kind with
@@ -792,6 +803,7 @@ with
         | Choice       t -> t.baseInfo.uperMinSizeInBits
         | ObjectIdentifier t -> t.baseInfo.uperMinSizeInBits
         | ReferenceType ref -> ref.baseInfo.resolvedType.uperMinSizeInBits
+        | TimeType t        -> t.baseInfo.uperMinSizeInBits
 
 
     member this.acnMaxSizeInBits =
@@ -809,6 +821,7 @@ with
         | Choice       t -> t.baseInfo.acnMaxSizeInBits
         | ObjectIdentifier t -> t.baseInfo.acnMaxSizeInBits
         | ReferenceType ref -> ref.baseInfo.resolvedType.acnMaxSizeInBits
+        | TimeType t        -> t.baseInfo.acnMaxSizeInBits
 
     member this.acnMinSizeInBits =
         match this.Kind with
@@ -825,6 +838,7 @@ with
         | Choice       t -> t.baseInfo.acnMinSizeInBits
         | ObjectIdentifier t -> t.baseInfo.acnMinSizeInBits
         | ReferenceType ref -> ref.baseInfo.resolvedType.acnMinSizeInBits
+        | TimeType t        -> t.baseInfo.acnMinSizeInBits
 
     member this.acnEncFunction : AcnFunction option =
         match this.Kind with
@@ -841,6 +855,7 @@ with
         | Choice       t -> Some (t.acnEncFunction)
         | ReferenceType t-> Some (t.acnEncFunction)
         | ObjectIdentifier t -> Some (t.acnEncFunction)
+        | TimeType t        -> Some (t.acnEncFunction)
 
     member this.acnDecFunction : AcnFunction option =
         match this.Kind with
@@ -857,6 +872,7 @@ with
         | Choice       t -> Some (t.acnDecFunction)
         | ObjectIdentifier t -> Some (t.acnDecFunction)
         | ReferenceType t-> Some (t.acnDecFunction)
+        | TimeType t        -> Some (t.acnDecFunction)
 
     member this.getAcnFunction (l:CommonTypes.Codec) =
         match l with
@@ -880,6 +896,7 @@ with
         | Choice       t -> t.uperEncDecTestFunc
         | ObjectIdentifier t -> t.uperEncDecTestFunc
         | ReferenceType t-> t.uperEncDecTestFunc
+        | TimeType t        -> t.uperEncDecTestFunc
 
     member this.acnEncDecTestFunc =
         match this.Kind with
@@ -896,6 +913,8 @@ with
         | Choice       t -> t.acnEncDecTestFunc
         | ObjectIdentifier t -> t.acnEncDecTestFunc
         | ReferenceType t-> t.acnEncDecTestFunc
+        | TimeType t        -> t.acnEncDecTestFunc
+
     member this.xerEncDecTestFunc =
         match this.Kind with
         | Integer      t -> t.xerEncDecTestFunc
@@ -911,6 +930,8 @@ with
         | Choice       t -> t.xerEncDecTestFunc
         | ObjectIdentifier t -> t.xerEncDecTestFunc
         | ReferenceType t-> t.xerEncDecTestFunc
+        | TimeType t        -> t.xerEncDecTestFunc
+
     member this.getEncDecTestFunc (e:Asn1Encoding) =
         match e with
         | Asn1Encoding.UPER  -> this.uperEncDecTestFunc
@@ -933,6 +954,7 @@ with
         | Choice       t -> t.automaticTestCasesValues
         | ObjectIdentifier t -> t.automaticTestCasesValues
         | ReferenceType t-> t.automaticTestCasesValues
+        | TimeType t        -> t.automaticTestCasesValues
 
     member this.typeDefintionOrReference : TypeDefintionOrReference =
         match this.Kind with
@@ -949,6 +971,7 @@ with
         | Choice       t -> t.definitionOrRef
         | ObjectIdentifier t -> t.definitionOrRef
         | ReferenceType t-> t.definitionOrRef
+        | TimeType t        -> t.definitionOrRef
 
     member this.isIA5String =
         match this.Kind with
@@ -981,6 +1004,7 @@ with
                 | Choice       _ -> POINTER "pVal"
                 | ObjectIdentifier t -> POINTER "pVal"
                 | ReferenceType r -> r.resolvedType.getParamType l c
+                | TimeType _        -> POINTER "pVal"
             | Decode  ->
                 match this.Kind with
                 | Integer      _ -> POINTER "pVal"
@@ -995,6 +1019,7 @@ with
                 | Sequence     _ -> POINTER "pVal"
                 | Choice       _ -> POINTER "pVal"
                 | ObjectIdentifier t -> POINTER "pVal"
+                | TimeType _        -> POINTER "pVal"
                 | ReferenceType r -> r.resolvedType.getParamType l c
     member this.tasInfo =
         match this.typeAssignmentInfo with
@@ -1070,6 +1095,7 @@ let rec mapValue (v:Asn1AcnAst.Asn1Value) =
         | Asn1AcnAst.NullValue        v ->  NullValue           v
         | Asn1AcnAst.RefValue     ((md,ts),v) ->  RefValue            ((md.Value, ts.Value), mapValue v)
         | Asn1AcnAst.ObjOrRelObjIdValue (a,b)   -> ObjOrRelObjIdValue (Asn1DefinedObjectIdentifierValue(a,b))
+        | Asn1AcnAst.TimeValue        r  -> TimeValue r.Value
     {Asn1Value.kind = newVKind; id=v.id; loc = v.loc}
 
 

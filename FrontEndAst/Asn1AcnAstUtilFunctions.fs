@@ -250,6 +250,10 @@ type Integer with
 type ObjectIdentifier with 
     member this.AllCons  = this.cons@this.withcons
 
+type TimeType with 
+    member this.AllCons  = this.cons@this.withcons
+
+
 type Real             with
     member this.AllCons  = this.cons@this.withcons
 

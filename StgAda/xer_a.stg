@@ -139,6 +139,17 @@ ret.ErrorCode := (if ret.Success then 0 else <sErrCode>);
 
 
 
+TimeType_encode(p, sTimeSubType, sTag, nLevel, soCheckExp, sErrCode) ::= <<
+adaasn1rtl.encoding.xer.Xer_Encode_<sTimeSubType>(bs, <sTag>, <p>, ret, <nLevel>);
+>>
+
+TimeType_decode(p, sTimeSubType, sTag, nLevel, soCheckExp, sErrCode) ::= <<
+adaasn1rtl.encoding.xer.Xer_Decode_<sTimeSubType>(bs, <sTag>, <p>, ret);
+<if(soCheckExp)><soCheckExp><endif>
+ret.ErrorCode := (if ret.Success then 0 else <sErrCode>);
+>>
+
+
 
 String_encode(p, sTag, nLevel, soCheckExp, sErrCode) ::= <<
 adaasn1rtl.encoding.xer.Xer_EncodeString(bs, <sTag>, <p>, ret, <nLevel>);

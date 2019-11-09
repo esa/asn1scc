@@ -54,7 +54,7 @@ type SeqOfValue           = list<Asn1Value>
 and SeqValue              = list<NamedValue>
 and ChValue               = NamedValue
 and RefValue              = ((string*string)*Asn1Value)
-and TimeValue             = DateTime
+and TimeValue             = Asn1DateTimeValue
 and ObjectIdenfierValue   = 
     | Asn1DefinedObjectIdentifierValue of ((ResolvedObjectIdentifierValueCompoent list)*(ObjectIdentifierValueCompoent list))
     | InternalObjectIdentifierValue of BigInteger list
@@ -818,7 +818,7 @@ and Asn1TypeKind =
     | Sequence          of Sequence
     | Choice            of Choice
     | ReferenceType     of ReferenceType
-    | TimeType
+    | TimeType          of TimeType
 
 
 

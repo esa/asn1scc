@@ -26,6 +26,7 @@ let private getTypeDependencies (t:Asn1Type) : (TypeAssignmentInfo list )
         (fun o newBase us -> prms)
         (fun o newBase us -> prms)
         (fun o newBase us -> prms)
+        (fun o newBase us -> prms)
         (fun o sqo child ->  child@prms)
         (fun _ _ ch newChild -> newChild@prms, ())
         (fun _ _ _ _ -> prms, ())
@@ -53,6 +54,7 @@ let rec private  getTypeDependencies2 (t:Asn1Type) : (TypeAssignmentInfo list ) 
     | Sequence      children     -> prms@(children.Asn1Children |> List.collect (fun ch -> getTypeDependencies2 ch.Type))
     | Choice        children     -> prms@(children.children |> List.collect (fun ch -> getTypeDependencies2 ch.chType))
     | ReferenceType ref          -> ref.AsTypeAssignmentInfo::prms
+    | TimeType  _                -> prms
 
 let private sortTypes (typesToSort: Asn1Type list) (imports :TypeAssignmentInfo list) =
     let allNodes = 

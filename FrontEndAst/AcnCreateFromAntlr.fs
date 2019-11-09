@@ -335,20 +335,20 @@ let private mergeTimeType (asn1:Asn1Ast.AstRoot) (timeClass:TimeTypeClass) (loc:
     let getRtlTypeName  l = 
         let asn1Name = "TIME"
         match l, timeClass with 
-        | C, Asn1LocalTime                      -> "", "Asn1LocalTime", asn1Name
-        | C, Asn1UtcTime                        -> "", "Asn1UtcTime", asn1Name
-        | C, Asn1LocalTimeWithTimeZone          -> "", "Asn1TimeWithTimeZone", asn1Name
+        | C, Asn1LocalTime                    _ -> "", "Asn1LocalTime", asn1Name
+        | C, Asn1UtcTime                      _ -> "", "Asn1UtcTime", asn1Name
+        | C, Asn1LocalTimeWithTimeZone        _ -> "", "Asn1TimeWithTimeZone", asn1Name
         | C, Asn1Date                           -> "", "Asn1Date", asn1Name
-        | C, Asn1Date_LocalTime                 -> "", "Asn1DateLocalTime", asn1Name
-        | C, Asn1Date_UtcTime                   -> "", "Asn1DateUtcTime", asn1Name
-        | C, Asn1Date_LocalTimeWithTimeZone     -> "", "Asn1DateTimeWithTimeZone", asn1Name
-        | Ada, Asn1LocalTime                    -> "adaasn1rtl", "Asn1LocalTime", asn1Name
-        | Ada, Asn1UtcTime                      -> "adaasn1rtl", "Asn1UtcTime", asn1Name
-        | Ada, Asn1LocalTimeWithTimeZone        -> "adaasn1rtl", "Asn1TimeWithTimeZone", asn1Name
+        | C, Asn1Date_LocalTime               _ -> "", "Asn1DateLocalTime", asn1Name
+        | C, Asn1Date_UtcTime                 _ -> "", "Asn1DateUtcTime", asn1Name
+        | C, Asn1Date_LocalTimeWithTimeZone   _ -> "", "Asn1DateTimeWithTimeZone", asn1Name
+        | Ada, Asn1LocalTime                  _ -> "adaasn1rtl", "Asn1LocalTime", asn1Name
+        | Ada, Asn1UtcTime                    _ -> "adaasn1rtl", "Asn1UtcTime", asn1Name
+        | Ada, Asn1LocalTimeWithTimeZone      _ -> "adaasn1rtl", "Asn1TimeWithTimeZone", asn1Name
         | Ada, Asn1Date                         -> "adaasn1rtl", "Asn1Date", asn1Name
-        | Ada, Asn1Date_LocalTime               -> "adaasn1rtl", "Asn1DateLocalTime", asn1Name
-        | Ada, Asn1Date_UtcTime                 -> "adaasn1rtl", "Asn1DateUtcTime", asn1Name
-        | Ada, Asn1Date_LocalTimeWithTimeZone   -> "adaasn1rtl", "Asn1DateTimeWithTimeZone", asn1Name
+        | Ada, Asn1Date_LocalTime             _ -> "adaasn1rtl", "Asn1DateLocalTime", asn1Name
+        | Ada, Asn1Date_UtcTime               _ -> "adaasn1rtl", "Asn1DateUtcTime", asn1Name
+        | Ada, Asn1Date_LocalTimeWithTimeZone _ -> "adaasn1rtl", "Asn1DateTimeWithTimeZone", asn1Name
 
     //check for invalid properties
     props |> Seq.iter(fun pr -> raise(SemanticError(acnErrLoc0, "Acn property cannot be applied to TIME types")))

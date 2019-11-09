@@ -17,6 +17,24 @@ let printOctetStringValueAsCompoundLitteral  (l:ProgrammingLanguage) curProgamUn
     let printOct = match l with C -> variables_c.PrintBitOrOctetStringValueAsCompoundLitteral | Ada -> variables_a.PrintBitOrOctetStringValueAsCompoundLitteral
     let td = (o.typeDef.[l]).longTypedefName l curProgamUnitName
     printOct td (o.minSize.uper = o.maxSize.uper) bytes (BigInteger bytes.Length)
+
+let printTimeValue (l:ProgrammingLanguage) (td) (v:TimeValue) =
+    match l, v with
+    |C, Asn1LocalTimeValue                  tv        -> variables_c.PrintTimeValue_Asn1LocalTime td tv
+    |C, Asn1UtcTimeValue                    tv        -> variables_c.PrintTimeValue_Asn1UtcTime td tv
+    |C, Asn1LocalTimeWithTimeZoneValue      (tv,tz)   -> variables_c.PrintTimeValue_Asn1LocalTimeWithTimeZone td tv tz
+    |C, Asn1DateValue                       dt        -> variables_c.PrintTimeValue_Asn1Date td dt
+    |C, Asn1Date_LocalTimeValue             (dt,tv)   -> variables_c.PrintTimeValue_Asn1Date_LocalTime td dt tv
+    |C, Asn1Date_UtcTimeValue               (dt,tv)   -> variables_c.PrintTimeValue_Asn1Date_UtcTime td dt tv
+    |C, Asn1Date_LocalTimeWithTimeZoneValue (dt,tv,tz)-> variables_c.PrintTimeValue_Asn1Date_LocalTimeWithTimeZone td dt tv tz
+    |Ada, Asn1LocalTimeValue                  tv        -> variables_a.PrintTimeValue_Asn1LocalTime td tv
+    |Ada, Asn1UtcTimeValue                    tv        -> variables_a.PrintTimeValue_Asn1UtcTime td tv
+    |Ada, Asn1LocalTimeWithTimeZoneValue      (tv,tz)   -> variables_a.PrintTimeValue_Asn1LocalTimeWithTimeZone td tv tz
+    |Ada, Asn1DateValue                       dt        -> variables_a.PrintTimeValue_Asn1Date td dt
+    |Ada, Asn1Date_LocalTimeValue             (dt,tv)   -> variables_a.PrintTimeValue_Asn1Date_LocalTime td dt tv
+    |Ada, Asn1Date_UtcTimeValue               (dt,tv)   -> variables_a.PrintTimeValue_Asn1Date_UtcTime td dt tv
+    |Ada, Asn1Date_LocalTimeWithTimeZoneValue (dt,tv,tz)-> variables_a.PrintTimeValue_Asn1Date_LocalTimeWithTimeZone td dt tv tz
+
     
 let printBitStringValueAsCompoundLitteral  (l:ProgrammingLanguage) curProgamUnitName  (o:Asn1AcnAst.BitString) (v : BitStringValue) =
     let printOct = match l with C -> variables_c.PrintBitOrOctetStringValueAsCompoundLitteral | Ada -> variables_a.PrintBitOrOctetStringValueAsCompoundLitteral
@@ -102,7 +120,12 @@ let rec printValue (r:DAst.AstRoot)  (l:ProgrammingLanguage)  (curProgamUnitName
                 let aa = oi.baseInfo.typeDef.[l]
                 variables_c.PrintObjectIdentifierValue aa (v.Values |> List.map fst) (BigInteger v.Values.Length)
             | _         -> raise(BugErrorException "unexpected type")
-            
+        | TimeValue v       ->
+            match t.ActualType.Kind with
+            | TimeType tt   ->
+                let td = tt.baseInfo.typeDef.[l]
+                printTimeValue l td v
+            | _         -> raise(BugErrorException "unexpected type")
         | RefValue ((md,vs),v)         ->
             printValue r  l  curProgamUnitName t parentValue v.kind
             //the following code has been commented out because of the following issue
@@ -171,6 +194,12 @@ let rec printValue (r:DAst.AstRoot)  (l:ProgrammingLanguage)  (curProgamUnitName
             | ObjectIdentifier oi   ->
                 let aa = oi.baseInfo.typeDef.[l]
                 variables_a.PrintObjectIdentifierValue aa (v.Values |> List.map fst) (BigInteger v.Values.Length)
+            | _         -> raise(BugErrorException "unexpected type")
+        | TimeValue v       ->
+            match t.ActualType.Kind with
+            | TimeType tt   ->
+                let td = tt.baseInfo.typeDef.[l]
+                printTimeValue l td v
             | _         -> raise(BugErrorException "unexpected type")
         | SeqOfValue        v -> 
             match t.ActualType.Kind with
@@ -339,6 +368,15 @@ let createObjectIdentifierFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage
         | _                 -> raise(BugErrorException "unexpected value")
     printValue
 
+
+let createTimeTypeFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.TimeType) (defOrRef:TypeDefintionOrReference) =
+    let printValue (curProgamUnitName:string) (parentValue:Asn1ValueKind option) (v:Asn1ValueKind) =
+        let td = o.typeDef.[l]
+        match v with
+        | TimeValue  v            -> printTimeValue l td v
+        | RefValue ((md,vs),ov)   -> vs
+        | _                 -> raise(BugErrorException "unexpected value")
+    printValue
 
 
 let createBitStringFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.BitString) (defOrRef:TypeDefintionOrReference) =

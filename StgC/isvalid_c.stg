@@ -430,3 +430,5 @@ BitString_equal(<nFixedSize>, <nVarLength>, <p><sAccess>arr, <sOctArrayLiteral>)
 objId_equal(p, sObjIdLiteral)::=<<
 ObjectIdentifier_equal(<p>, &<sObjIdLiteral>)
 >>
+
+

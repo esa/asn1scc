@@ -222,6 +222,12 @@ adaasn1rtl.encoding.uper.RelativeOID_uper_decode(bs, <p>, result);
 >>
 
 
+Time_encode(p, sTimeSubType, sErrCode) ::= "adaasn1rtl.encoding.uper.<sTimeSubType>_uper_encode(bs, <p>);"
+Time_decode(p, sTimeSubType, sErrCode) ::= <<
+adaasn1rtl.encoding.uper.<sTimeSubType>_uper_decode(bs, <p>, result);
+>>
+
+
 
 /* ENUMERATED START */
 

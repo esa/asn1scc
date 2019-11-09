@@ -36,6 +36,8 @@ let rec XerTagFnc (t:Asn1AcnAst.Asn1Type) (r:Asn1AcnAst.AstRoot) =
         | Asn1AcnAst.Sequence(_)          -> Some (XerLiteralConstant "SEQUENCE")
         | Asn1AcnAst.SequenceOf(_)        -> Some (XerLiteralConstant "SEQUENCE-OF")
         | Asn1AcnAst.ObjectIdentifier _   -> Some (XerLiteralConstant "OBJECT-IDENTIFIER")
+        | Asn1AcnAst.TimeType tc          -> Some (XerLiteralConstant (CommonTypes.timeTypeToAsn1Str tc.timeClass))
+            
 
 let private aux (s:string) = 2 * (s.Length + 1) + 1 |> BigInteger
 
@@ -191,6 +193,18 @@ let createObjectIdentifierFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage
     let soSparkAnnotations = None
     createXerFunction_any r l codec t typeDefinition  isValidFunc  funcBody  soSparkAnnotations us
 
+let createTimeTypeFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.TimeType) (typeDefinition:TypeDefintionOrReference)  (isValidFunc: IsValidFunction option) (us:State)  =
+    let TimeType = match l with C -> xer_c.TimeType   | Ada -> xer_a.TimeType
+    let funcBody (errCode:ErroCode) (p:CallerScope) (xmlTag:XerTag option) = 
+        let xmlTag = xmlTag |> orElse (XerLiteralConstant "TIME")
+        let pp = match codec with CommonTypes.Encode -> p.arg.getPointer l | CommonTypes.Decode -> p.arg.getPointer l
+        let nLevel = BigInteger (t.id.AcnAbsPath.Length - 2)
+        let contentSize = getMaxSizeInBytesForXER_Real 
+        let totalSize = getMaxSizeInBytesForXER xmlTag contentSize
+        let bodyStm = TimeType pp (DAstUPer.getTimeSubTypeByClass o.timeClass) xmlTag.p nLevel (checkExp isValidFunc p) errCode.errCodeName codec
+        Some {XERFuncBodyResult.funcBody = bodyStm; errCodes= [errCode]; localVariables=[];encodingSizeInBytes=totalSize}
+    let soSparkAnnotations = None
+    createXerFunction_any r l codec t typeDefinition  isValidFunc  funcBody  soSparkAnnotations us
 
 let createNullTypeFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.NullType) (typeDefinition:TypeDefintionOrReference)  (isValidFunc: IsValidFunction option) (us:State)  =
     let nullFunc = match l with C -> xer_c.Null   | Ada -> xer_a.Null

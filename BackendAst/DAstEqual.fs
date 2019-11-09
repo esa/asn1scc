@@ -31,6 +31,20 @@ let isEqualBodyObjectIdentifier (l:ProgrammingLanguage) (v1:CallerScope) (v2:Cal
     let namespacePrefix = match l with C -> "" | Ada -> "adaasn1rtl."
     Some (sprintf "%sObjectIdentifier_equal(%s, %s)" namespacePrefix (v1.arg.getPointer l) (v2.arg.getPointer l)  , [])
 
+let isEqualBodyTimeType (o:Asn1AcnAst.TimeType) (l:ProgrammingLanguage) (v1:CallerScope) (v2:CallerScope) =
+    let namespacePrefix = match l with C -> "" | Ada -> "adaasn1rtl."
+    let getRtlTypeName  = 
+        match o.timeClass with
+        |Asn1LocalTime                      _ -> match l with C -> header_c.Declare_Asn1LocalTime                   | Ada -> header_a.Declare_Asn1LocalTimeNoRTL                  
+        |Asn1UtcTime                        _ -> match l with C -> header_c.Declare_Asn1UtcTime                     | Ada -> header_a.Declare_Asn1UtcTimeNoRTL                    
+        |Asn1LocalTimeWithTimeZone          _ -> match l with C -> header_c.Declare_Asn1LocalTimeWithTimeZone       | Ada -> header_a.Declare_Asn1LocalTimeWithTimeZoneNoRTL      
+        |Asn1Date                             -> match l with C -> header_c.Declare_Asn1Date                        | Ada -> header_a.Declare_Asn1DateNoRTL                     
+        |Asn1Date_LocalTime                 _ -> match l with C -> header_c.Declare_Asn1Date_LocalTime              | Ada -> header_a.Declare_Asn1Date_LocalTimeNoRTL             
+        |Asn1Date_UtcTime                   _ -> match l with C -> header_c.Declare_Asn1Date_UtcTime                | Ada -> header_a.Declare_Asn1Date_UtcTimeNoRTL               
+        |Asn1Date_LocalTimeWithTimeZone     _ -> match l with C -> header_c.Declare_Asn1Date_LocalTimeWithTimeZone  | Ada -> header_a.Declare_Asn1Date_LocalTimeWithTimeZoneNoRTL 
+    let timeTypeName = getRtlTypeName ()
+    Some (sprintf "%s%s_equal(%s, %s)" namespacePrefix timeTypeName (v1.arg.getPointer l) (v2.arg.getPointer l)  , [])
+
 
 let isEqualBodyOctetString (l:ProgrammingLanguage) sMin sMax (v1:CallerScope) (v2:CallerScope) =
     let v1 = sprintf "%s%s" v1.arg.p (v1.arg.getAcces l)
@@ -198,6 +212,11 @@ let createObjectIdentifierEqualFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLan
     let isEqualBody         = EqualBodyExpression (isEqualBodyObjectIdentifier l)
     createEqualFunction_any r l t typeDefinition isEqualBody //(stgPrintEqualPrimitive l) (stgMacroPrimDefFunc l) 
 
+let createTimeTypeEqualFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.TimeType) (typeDefinition:TypeDefintionOrReference)  =
+    let isEqualBody         = EqualBodyExpression (isEqualBodyTimeType o l)
+    createEqualFunction_any r l t typeDefinition isEqualBody //(stgPrintEqualPrimitive l) (stgMacroPrimDefFunc l) 
+
+
 let createStringEqualFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.StringType) (typeDefinition:TypeDefintionOrReference)  =
     let isEqualBody = EqualBodyExpression (isEqualBodyString l)
     createEqualFunction_any r l t typeDefinition isEqualBody //(stgPrintEqualPrimitive l) (stgMacroPrimDefFunc l) 
@@ -335,6 +354,7 @@ let createReferenceTypeEqualFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLangua
     | OctetString _
     | BitString  _      
     | ObjectIdentifier _
+    | TimeType _
     | SequenceOf _
     | Sequence _
     | Choice   _      ->

@@ -32,13 +32,13 @@ let ConstraintNodes = [ asn1Parser.EXT_MARK; asn1Parser.UnionMark; asn1Parser.AL
 
 let TimeClassMap  =
     [
-        ("Basic=Time Time=HMS Local-or-UTC=L"                            , Asn1LocalTime   )
-        ("Basic=Time Time=HMS Local-or-UTC=Z"                            , Asn1UtcTime   )
-        ("Basic=Time Time=HMS Local-or-UTC=LD"                           , Asn1LocalTimeWithTimeZone   )
+        ("Basic=Time Time=HMS Local-or-UTC=L"                            , Asn1LocalTime 0  )
+        ("Basic=Time Time=HMS Local-or-UTC=Z"                            , Asn1UtcTime  0 )
+        ("Basic=Time Time=HMS Local-or-UTC=LD"                           , Asn1LocalTimeWithTimeZone  0 )
         ("Basic=Date Date=YMD Year=Basic"                                , Asn1Date   )
-        ("Basic=Date-Time Date=YMD Year=Basic Time=HMS Local-or-UTC=L"   , Asn1Date_LocalTime   )
-        ("Basic=Date-Time Date=YMD Year=Basic Time=HMS Local-or-UTC=Z"   , Asn1Date_UtcTime   )
-        ("Basic=Date-Time Date=YMD Year=Basic Time=HMS Local-or-UTC=LD"  , Asn1Date_LocalTimeWithTimeZone   ) ] |> 
+        ("Basic=Date-Time Date=YMD Year=Basic Time=HMS Local-or-UTC=L"   , Asn1Date_LocalTime  0 )
+        ("Basic=Date-Time Date=YMD Year=Basic Time=HMS Local-or-UTC=Z"   , Asn1Date_UtcTime  0 )
+        ("Basic=Date-Time Date=YMD Year=Basic Time=HMS Local-or-UTC=LD"  , Asn1Date_LocalTimeWithTimeZone 0  ) ] |> 
     List.collect (fun (str, cl) -> 
         let arr = str.Split ' '
         let combs = combinations arr |> List.map (fun l -> l.StrJoin "") |> List.map (fun s -> (s,cl))
@@ -450,11 +450,40 @@ and CreateNamedItems (astRoot:list<ITree>) (tree:ITree) (fileTokens:array<IToken
     enumItes |> List.map CreateItem
 
 and CreateTimeClass (astRoot:list<ITree>) (tree:ITree) (fileTokens:array<IToken>) (alreadyTakenComments:System.Collections.Generic.List<IToken>)=
+    let rec removeSpaceArountEqual (str:string) =
+        let rs = [" =";"\t=";"\r\n=";"\r=";"\n=";"= ";"=\t";"=\r\n";"=\r";"=\n"]
+        match rs |> Seq.tryFind(fun s -> str.Contains s) with
+        | None   -> str
+        | Some s -> removeSpaceArountEqual (str.Replace(s,"="))
+
     let strItem = getChildByType(tree, asn1Parser.StringLiteral)
+    let text = "Basic=Time Time= HMSF4 Local-or-UTC=L"
+
     let text = strItem.Text.Substring(1, strItem.Text.Length-2)
-    let text_no_space = text.Replace(" ", "")
+
+    let text_no_space_around_eq =  removeSpaceArountEqual text   
+    let text_no_space_around_eq, Fraction =
+        let keyWord = "Time=HMSF"
+        let i = text_no_space_around_eq.IndexOf(keyWord)
+        if i > 0 then
+            let ss = text_no_space_around_eq.Substring(i+keyWord.Length)
+            let fr = ss.ToCharArray() |> Seq.takeWhile(fun c -> Char.IsDigit c) |> Seq.toArray |> string |> Int32.Parse
+            let retStr = text_no_space_around_eq.Replace(keyWord + fr.ToString(),"Time=HMS")
+            retStr , fr
+        else
+            text_no_space_around_eq, 0
+    let text_no_space = text_no_space_around_eq.Replace(" ", "")
     match TimeClassMap.TryFind text_no_space with
-    | Some cl   -> cl
+    | Some cl   -> 
+        match cl with
+            |Asn1LocalTime                  _ -> Asn1LocalTime                  Fraction
+            |Asn1UtcTime                    _ -> Asn1UtcTime                    Fraction
+            |Asn1LocalTimeWithTimeZone      _ -> Asn1LocalTimeWithTimeZone      Fraction
+            |Asn1Date                         -> Asn1Date                       
+            |Asn1Date_LocalTime             _ -> Asn1Date_LocalTime             Fraction
+            |Asn1Date_UtcTime               _ -> Asn1Date_UtcTime               Fraction
+            |Asn1Date_LocalTimeWithTimeZone _ -> Asn1Date_LocalTimeWithTimeZone Fraction 
+
     | None      -> raise(SemanticError(tree.Location, (sprintf "Invalid SETTINGS definition '%s'" text)))
     
 

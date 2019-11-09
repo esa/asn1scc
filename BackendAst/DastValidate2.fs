@@ -258,6 +258,33 @@ let objIdConstraint2ValidationCodeBlock (l:ProgrammingLanguage) (c:ObjectIdConst
         c
         st
     
+let timeConstraint2ValidationCodeBlock (l:ProgrammingLanguage) (td) (c:TimeConstraint) st =
+    let print_Asn1LocalTime                  = match l with C -> variables_c.PrintTimeValueAsCompoundLiteral_Asn1LocalTime                   | Ada -> variables_a.PrintTimeValueAsCompoundLiteral_Asn1LocalTime
+    let print_Asn1UtcTime                    = match l with C -> variables_c.PrintTimeValueAsCompoundLiteral_Asn1UtcTime                     | Ada -> variables_a.PrintTimeValueAsCompoundLiteral_Asn1UtcTime
+    let print_Asn1LocalTimeWithTimeZone      = match l with C -> variables_c.PrintTimeValueAsCompoundLiteral_Asn1LocalTimeWithTimeZone       | Ada -> variables_a.PrintTimeValueAsCompoundLiteral_Asn1LocalTimeWithTimeZone
+    let print_Asn1Date                       = match l with C -> variables_c.PrintTimeValueAsCompoundLiteral_Asn1Date                        | Ada -> variables_a.PrintTimeValueAsCompoundLiteral_Asn1Date
+    let print_Asn1Date_LocalTime             = match l with C -> variables_c.PrintTimeValueAsCompoundLiteral_Asn1Date_LocalTime              | Ada -> variables_a.PrintTimeValueAsCompoundLiteral_Asn1Date_LocalTime
+    let print_Asn1Date_UtcTime               = match l with C -> variables_c.PrintTimeValueAsCompoundLiteral_Asn1Date_UtcTime                | Ada -> variables_a.PrintTimeValueAsCompoundLiteral_Asn1Date_UtcTime
+    let print_Asn1Date_LocalTimeWithTimeZone = match l with C -> variables_c.PrintTimeValueAsCompoundLiteral_Asn1Date_LocalTimeWithTimeZone  | Ada -> variables_a.PrintTimeValueAsCompoundLiteral_Asn1Date_LocalTimeWithTimeZone
+
+    let printValueAsLiteral  (iv:Asn1DateTimeValue) = 
+        match iv with
+        |Asn1LocalTimeValue                  tv        -> print_Asn1LocalTime td tv
+        |Asn1UtcTimeValue                    tv        -> print_Asn1UtcTime td tv
+        |Asn1LocalTimeWithTimeZoneValue      (tv,tz)   -> print_Asn1LocalTimeWithTimeZone td tv tz
+        |Asn1DateValue                       dt        -> print_Asn1Date td dt
+        |Asn1Date_LocalTimeValue             (dt,tv)   -> print_Asn1Date_LocalTime td dt tv
+        |Asn1Date_UtcTimeValue               (dt,tv)   -> print_Asn1Date_UtcTime  td dt tv
+        |Asn1Date_LocalTimeWithTimeZoneValue (dt,tv,tz)-> print_Asn1Date_LocalTimeWithTimeZone td dt tv tz
+
+    foldGenericConstraint (con_or l) (con_and l) (con_not l) (con_ecxept l) con_root (con_root2 l)
+        (fun v  s           -> 
+            (fun (p:CallerScope) -> 
+                let lit = printValueAsLiteral v
+                VCBExpression (l.ExpEqual p.arg.p lit)) ,s)
+        c
+        st
+
 
 let enumeratedConstraint2ValidationCodeBlock (l:ProgrammingLanguage) (o:Asn1AcnAst.Enumerated) (typeDefinition:TypeDefintionOrReference) (c:EnumConstraint) st =
     let printNamedItem  (v:string) =
@@ -305,6 +332,7 @@ let rec anyConstraint2ValidationCodeBlock (r:Asn1AcnAst.AstRoot) (l:ProgrammingL
     | Boolean o, BoolConstraint c               -> booleanConstraint2ValidationCodeBlock l c st
     | Enumerated o, EnumConstraint c            -> enumeratedConstraint2ValidationCodeBlock  l  o.baseInfo o.definitionOrRef c st
     | ObjectIdentifier o, ObjectIdConstraint c  -> objIdConstraint2ValidationCodeBlock l c st
+    | TimeType o, TimeConstraint c              -> timeConstraint2ValidationCodeBlock l (o.baseInfo.typeDef.[l]) c st
     | Sequence o, SeqConstraint c               -> 
         let valToStrFunc (p:CallerScope) (v:Asn1AcnAst.SeqValue) = VCBTrue //currently single value constraints are ignored.
         sequenceConstraint2ValidationCodeBlock r l t.id o.Asn1Children valToStrFunc  c st
@@ -577,6 +605,17 @@ let createObjectIdentifierFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage
     let fnc, ns = o.AllCons |> Asn1Fold.foldMap (fun us c -> objIdConstraint2ValidationCodeBlock l c us) us
     let fncs = conToStrFunc_basic::fnc
     createIsValidFunction r l t (funcBody l fncs)  typeDefinition [] [] [] ns
+
+
+let createTimeTypeFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.TimeType) (typeDefinition:TypeDefintionOrReference) (us:State)  =
+    let conToStrFunc_basic (p:CallerScope)  = 
+        let namespacePrefix = match l with C -> "" | Ada -> "adaasn1rtl."
+        VCBExpression (sprintf "%sTimeType_isValid(%s)" namespacePrefix (p.arg.getPointer l))
+    let fnc, ns = o.AllCons |> Asn1Fold.foldMap (fun us c -> timeConstraint2ValidationCodeBlock l (o.typeDef.[l]) c us) us
+    let fncs = conToStrFunc_basic::fnc
+    createIsValidFunction r l t (funcBody l fncs)  typeDefinition [] [] [] ns
+
+
 
 let createEnumeratedFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Enumerated) (typeDefinition:TypeDefintionOrReference)  (us:State)  =
     let fncs, ns = o.AllCons |> Asn1Fold.foldMap (fun us c -> enumeratedConstraint2ValidationCodeBlock  l  o typeDefinition c us) us

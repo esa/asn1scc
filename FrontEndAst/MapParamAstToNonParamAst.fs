@@ -134,10 +134,8 @@ let rec MapAsn1Value (r:ParameterizedAsn1Ast.AstRoot) (kind: ParameterizedAsn1As
         |ParameterizedAsn1Ast.StringValue(v)        -> 
             let actKind, mdName = getActualKindAndModule r kind
             match actKind with
-            | ParameterizedAsn1Ast.IA5String    
-            | ParameterizedAsn1Ast.NumericString    -> Asn1Ast.StringValue v
-            | ParameterizedAsn1Ast.TimeType tmClss  -> Asn1Ast.TimeValue (CommonTypes.getDateTimeFromAsn1TimeStringValue tmClss v)
-            | _                                     -> raise(SemanticError(v.Location, (sprintf "Unexpected String Literal '%s'" v.Value)))
+            | ParameterizedAsn1Ast.TimeType tmClss  -> Asn1Ast.TimeValue (CommonTypes.createTimeValueFromString tmClss v)
+            | _                                     -> Asn1Ast.StringValue v
         |ParameterizedAsn1Ast.BooleanValue(v)       -> Asn1Ast.BooleanValue v
         |ParameterizedAsn1Ast.BitStringValue(v)     -> Asn1Ast.BitStringValue v
         |ParameterizedAsn1Ast.OctetStringValue v    -> Asn1Ast.OctetStringValue v

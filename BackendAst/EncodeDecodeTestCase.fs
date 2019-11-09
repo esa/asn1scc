@@ -411,6 +411,24 @@ let ObjectIdentifierAutomaticTestCaseValues (r:Asn1AcnAst.AstRoot)  (t:Asn1AcnAs
     | _     -> sv |> List.map (fun (resLis,_) -> resLis |> List.map(fun c -> DAstUtilFunctions.emitComponent c |> fst))
     
 
+let TimeTypeAutomaticTestCaseValues (r:Asn1AcnAst.AstRoot)  (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.TimeType) =
+    let sv = o.AllCons |> List.map(fun c -> foldGenericCon  c ) |> List.collect id
+    match sv with
+    | []    -> 
+        let tv = {Asn1TimeValue.hours = 0I; mins=0I; secs=0I; secsFraction = None}
+        let tz = {Asn1TimeZoneValue.sign = 1I; hours = 2I; mins=0I}
+        let dt = {Asn1DateValue.years = 2019I; months = 12I; days = 25I}
+        match o.timeClass with
+        |Asn1LocalTime                      (fr) -> [Asn1LocalTimeValue (tv)]
+        |Asn1UtcTime                        (fr) -> [Asn1UtcTimeValue (tv)]
+        |Asn1LocalTimeWithTimeZone          (fr) -> [Asn1LocalTimeWithTimeZoneValue (tv,tz)]
+        |Asn1Date                                -> [Asn1DateValue dt]
+        |Asn1Date_LocalTime                 (fr) -> [Asn1Date_LocalTimeValue (dt,tv)]
+        |Asn1Date_UtcTime                   (fr) -> [Asn1Date_UtcTimeValue(dt,tv)]
+        |Asn1Date_LocalTimeWithTimeZone     (fr) -> [Asn1Date_LocalTimeWithTimeZoneValue(dt,tv,tz)]
+
+    | _     -> sv |> List.filter (isValidValueGeneric o.AllCons (=))
+
 
 let StringAutomaticTestCaseValues (r:Asn1AcnAst.AstRoot)  (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.StringType) =
     let maxItems = 32767I

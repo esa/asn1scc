@@ -559,6 +559,44 @@ let createObjectIdentifierInitFunc (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage
 
     createInitFunctionCommon r l t typeDefinition funcBody iv tasInitFunc testCaseFuncs
 
+let createTimeTypeInitFunc (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1AcnAst.Asn1Type) (o :Asn1AcnAst.TimeType     ) (typeDefinition:TypeDefintionOrReference) iv = 
+    let init_Asn1LocalTime                  = match l with C -> init_c.init_Asn1LocalTime                   | Ada -> init_a.init_Asn1LocalTime
+    let init_Asn1UtcTime                    = match l with C -> init_c.init_Asn1UtcTime                     | Ada -> init_a.init_Asn1UtcTime
+    let init_Asn1LocalTimeWithTimeZone      = match l with C -> init_c.init_Asn1LocalTimeWithTimeZone       | Ada -> init_a.init_Asn1LocalTimeWithTimeZone
+    let init_Asn1Date                       = match l with C -> init_c.init_Asn1Date                        | Ada -> init_a.init_Asn1Date
+    let init_Asn1Date_LocalTime             = match l with C -> init_c.init_Asn1Date_LocalTime              | Ada -> init_a.init_Asn1Date_LocalTime
+    let init_Asn1Date_UtcTime               = match l with C -> init_c.init_Asn1Date_UtcTime                | Ada -> init_a.init_Asn1Date_UtcTime
+    let init_Asn1Date_LocalTimeWithTimeZone = match l with C -> init_c.init_Asn1Date_LocalTimeWithTimeZone  | Ada -> init_a.init_Asn1Date_LocalTimeWithTimeZone
+
+    let initByBalue (p:CallerScope) (iv:Asn1DateTimeValue) = 
+        match iv with
+        |Asn1LocalTimeValue                  tv        -> init_Asn1LocalTime p.arg.p (p.arg.getAcces l) tv
+        |Asn1UtcTimeValue                    tv        -> init_Asn1UtcTime p.arg.p (p.arg.getAcces l) tv
+        |Asn1LocalTimeWithTimeZoneValue      (tv,tz)   -> init_Asn1LocalTimeWithTimeZone p.arg.p (p.arg.getAcces l) tv tz
+        |Asn1DateValue                       dt        -> init_Asn1Date p.arg.p (p.arg.getAcces l) dt
+        |Asn1Date_LocalTimeValue             (dt,tv)   -> init_Asn1Date_LocalTime p.arg.p (p.arg.getAcces l) dt tv
+        |Asn1Date_UtcTimeValue               (dt,tv)   -> init_Asn1Date_UtcTime  p.arg.p (p.arg.getAcces l) dt tv
+        |Asn1Date_LocalTimeWithTimeZoneValue (dt,tv,tz)-> init_Asn1Date_LocalTimeWithTimeZone p.arg.p (p.arg.getAcces l) dt tv tz
+
+    let funcBody (p:CallerScope) (v:Asn1ValueKind) = 
+        match v.ActualValue with
+        | TimeValue iv   -> initByBalue p iv
+        | _              -> raise(BugErrorException "UnexpectedValue")
+
+    let atvs = EncodeDecodeTestCase.TimeTypeAutomaticTestCaseValues r t o
+    let testCaseFuncs = 
+        atvs |> 
+        List.map (fun vl -> 
+            {AutomaticTestCase.initTestCaseFunc = (fun (p:CallerScope) -> 
+                {InitFunctionResult.funcBody = initByBalue p vl; localVariables = []}); testCaseTypeIDsMap = Map.ofList [(t.id, TcvAnyValue)] })
+
+    let tasInitFunc (p:CallerScope)  = 
+        {InitFunctionResult.funcBody = initByBalue p atvs.Head; localVariables = []}
+
+    createInitFunctionCommon r l t typeDefinition funcBody iv tasInitFunc testCaseFuncs
+
+
+
 
 
 

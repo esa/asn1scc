@@ -37,6 +37,7 @@ let rec printAsn1Value (v:Asn1AcnAst.Asn1Value) =
     | Asn1AcnAst.NullValue           _       -> stg_asn1.Print_NullValue ()
     | Asn1AcnAst.ObjOrRelObjIdValue (_,coms) ->
         stg_asn1.Print_ObjOrRelObjIdValue (coms |> List.map printComponent)
+    | Asn1AcnAst.TimeValue v                 -> stg_asn1.Print_StringValue (CommonTypes.asn1DateTimeValueToString v.Value)
 
 
 let foldGenericCon valToStrFunc  (c:GenericConstraint<'v>)  =
@@ -148,9 +149,14 @@ let createRealFunction (r:Asn1AcnAst.AstRoot) (t:Asn1AcnAst.Asn1Type) (o:Asn1Acn
     o.AllCons |> List.map conToStrFunc 
 
 let createObjectIdentifierFunction (r:Asn1AcnAst.AstRoot) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.ObjectIdentifier)  =
-    
     let conToStrFunc = 
         foldGenericCon (fun (_,coms) -> stg_asn1.Print_ObjOrRelObjIdValue (coms |> List.map printComponent))
+    o.AllCons |> List.map conToStrFunc
+
+
+let createTimeTypeFunction (r:Asn1AcnAst.AstRoot) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.TimeType)  =
+    let conToStrFunc = 
+        foldGenericCon (fun (v:TimeValue) -> stg_asn1.Print_TimeValue (asn1DateTimeValueToString v))
     o.AllCons |> List.map conToStrFunc
 
 

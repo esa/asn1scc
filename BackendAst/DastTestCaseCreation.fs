@@ -36,6 +36,7 @@ let rec gAmber (t:Asn1Type) =
     | Sequence     _ -> "&" , "&"
     | Choice       _ -> "&" , "&"
     | ObjectIdentifier _ -> "&" , "&"
+    | TimeType      _   -> "&" , "&"
     | ReferenceType r -> gAmber r.resolvedType
 
 let emitTestCaseAsFunc l    =         match l with C -> test_cases_c.emitTestCaseAsFunc                   | Ada -> test_cases_a.emitTestCaseAsFunc

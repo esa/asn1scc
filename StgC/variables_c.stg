@@ -51,6 +51,88 @@ PrintObjectIdentifierValueAsCompoundLiteral(arrnValues, nCount) ::= <<
 >>
 
 
+
+
+PrintTimeValueAsCompoundLiteral_Asn1LocalTime(td/*:FE_PrimitiveTypeDefinition*/, tv/*:Asn1TimeValue*/) ::= <<
+(Asn1LocalTime){ .hours = <tv.hours>, .mins = <tv.mins>, .secs = <tv.secs>, .secsFraction = <tv.secsFraction>}
+>>
+
+PrintTimeValueAsCompoundLiteral_Asn1UtcTime(td/*:FE_PrimitiveTypeDefinition*/, tv/*:Asn1TimeValue*/) ::= <<
+(Asn1UtcTime){ .hours = <tv.hours>, .mins = <tv.mins>, .secs = <tv.secs>, .secsFraction = <tv.secsFraction>}
+>>
+
+
+PrintTimeValueAsCompoundLiteral_Asn1LocalTimeWithTimeZone(td/*:FE_PrimitiveTypeDefinition*/, tv/*:Asn1TimeValue*/, tz/*:Asn1TimeZoneValue*/) ::= <<
+(Asn1TimeWithTimeZone){ .hours = <tv.hours>, .mins = <tv.mins>, .secs = <tv.secs>, .secsFraction = <tv.secsFraction>, .tz= {<tz.sign>, <tz.hours>, <tz.mins>}}
+>>
+
+PrintTimeValueAsCompoundLiteral_Asn1Date(td/*:FE_PrimitiveTypeDefinition*/, dt/*:Asn1DateValue*/) ::= <<
+(Asn1Date){ .years = <dt.years>, .months = <dt.months>, .days = <dt.days>}
+>>
+
+PrintTimeValueAsCompoundLiteral_Asn1Date_LocalTime(td/*:FE_PrimitiveTypeDefinition*/, dt/*:Asn1DateValue*/, tv/*:Asn1TimeValue*/) ::= <<
+(Asn1DateLocalTime){ .date = <PrintTimeValueAsCompoundLiteral_Asn1Date(td=td,dt=dt)>, .time = <PrintTimeValueAsCompoundLiteral_Asn1LocalTime(td=td,tv=tv)>}
+>>
+
+PrintTimeValueAsCompoundLiteral_Asn1Date_UtcTime(td/*:FE_PrimitiveTypeDefinition*/, dt/*:Asn1DateValue*/, tv/*:Asn1TimeValue*/) ::= <<
+(Asn1DateUtcTime){ .date = <PrintTimeValueAsCompoundLiteral_Asn1Date(td=td,dt=dt)>, .time = <PrintTimeValueAsCompoundLiteral_Asn1UtcTime(td=td,tv=tv)>}
+>>
+
+PrintTimeValueAsCompoundLiteral_Asn1Date_LocalTimeWithTimeZone(td/*:FE_PrimitiveTypeDefinition*/, dt/*:Asn1DateValue*/, tv/*:Asn1TimeValue*/, tz/*:Asn1TimeZoneValue*/) ::= <<
+(Asn1DateTimeWithTimeZone){ .date = <PrintTimeValueAsCompoundLiteral_Asn1Date(td=td,dt=dt)>, .time = <PrintTimeValueAsCompoundLiteral_Asn1LocalTimeWithTimeZone(td=td,tv=tv)>}
+>>
+
+
+
+
+
+
+PrintTimeValue_Asn1LocalTime(td/*:FE_PrimitiveTypeDefinition*/, tv/*:Asn1TimeValue*/) ::= <<
+{ <tv.hours>, <tv.mins>, <tv.secs>, <tv.secsFraction>}
+>>
+
+PrintTimeValue_Asn1UtcTime(td/*:FE_PrimitiveTypeDefinition*/, tv/*:Asn1TimeValue*/) ::= <<
+{ <tv.hours>, <tv.mins>, <tv.secs>, <tv.secsFraction>}
+>>
+
+
+PrintTimeValue_Asn1LocalTimeWithTimeZone(td/*:FE_PrimitiveTypeDefinition*/, tv/*:Asn1TimeValue*/, tz/*:Asn1TimeZoneValue*/) ::= <<
+{ <tv.hours>, <tv.mins>, <tv.secs>, <tv.secsFraction>, {<tz.sign>, <tz.hours>, <tz.mins>} }
+>>
+
+PrintTimeValue_Asn1Date(td/*:FE_PrimitiveTypeDefinition*/, dt/*:Asn1DateValue*/) ::= <<
+{<dt.years>, <dt.months>, <dt.days>}
+>>
+
+PrintTimeValue_Asn1Date_LocalTime(td/*:FE_PrimitiveTypeDefinition*/, dt/*:Asn1DateValue*/, tv/*:Asn1TimeValue*/) ::= <<
+{ {<dt.years>, <dt.months>, <dt.days>}, { <tv.hours>, <tv.mins>, <tv.secs>, <tv.secsFraction>}}
+>>
+
+PrintTimeValue_Asn1Date_UtcTime(td/*:FE_PrimitiveTypeDefinition*/, dt/*:Asn1DateValue*/, tv/*:Asn1TimeValue*/) ::= <<
+{ {<dt.years>, <dt.months>, <dt.days>}, { <tv.hours>, <tv.mins>, <tv.secs>, <tv.secsFraction>}}
+>>
+
+PrintTimeValue_Asn1Date_LocalTimeWithTimeZone(td/*:FE_PrimitiveTypeDefinition*/, dt/*:Asn1DateValue*/, tv/*:Asn1TimeValue*/, tz/*:Asn1TimeZoneValue*/) ::= <<
+{ {<dt.years>, <dt.months>, <dt.days>}, { <tv.hours>, <tv.mins>, <tv.secs>, <tv.secsFraction>, {<tz.sign>, <tz.hours>, <tz.mins>} } }
+>>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 PrintSequenceValueChild(sName, sInnerValue) ::= ".<sName> = <sInnerValue>"
 PrintSequenceValue_child_exists(sName, sExistsBit) ::= ".<sName> = <sExistsBit>"
 

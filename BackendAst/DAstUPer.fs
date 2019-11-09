@@ -189,6 +189,26 @@ let createObjectIdentifierFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage
     let soSparkAnnotations = None
     createUperFunction r l codec t typeDefinition baseTypeUperFunc  isValidFunc  (fun e p -> Some (funcBody e p)) soSparkAnnotations us
 
+let getTimeSubTypeByClass (tc) =
+    match tc with
+    |Asn1LocalTime                      _ -> "Asn1LocalTime"
+    |Asn1UtcTime                        _ -> "Asn1UtcTime"
+    |Asn1LocalTimeWithTimeZone          _ -> "Asn1TimeWithTimeZone"
+    |Asn1Date                             -> "Asn1Date"
+    |Asn1Date_LocalTime                 _ -> "Asn1DateLocalTime"
+    |Asn1Date_UtcTime                   _ -> "Asn1DateUtcTime"
+    |Asn1Date_LocalTimeWithTimeZone     _ -> "Asn1DateTimeWithTimeZone"
+
+
+let createTimeTypeFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.TimeType) (typeDefinition:TypeDefintionOrReference) (baseTypeUperFunc : UPerFunction option) (isValidFunc: IsValidFunction option) (us:State)  =
+    let funcBody (errCode:ErroCode) (p:CallerScope) = 
+        let pp = match codec with CommonTypes.Encode -> p.arg.getPointer l | CommonTypes.Decode -> p.arg.getPointer l
+        let TimeType         =  match l with C -> uper_c.Time          | Ada -> uper_a.Time
+        let funcBodyContent = TimeType pp (getTimeSubTypeByClass o.timeClass) errCode.errCodeName codec
+        {UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = []}    
+    let soSparkAnnotations = None
+    createUperFunction r l codec t typeDefinition baseTypeUperFunc  isValidFunc  (fun e p -> Some (funcBody e p)) soSparkAnnotations us
+
 
 
 let createNullTypeFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.NullType) (typeDefinition:TypeDefintionOrReference) (baseTypeUperFunc : UPerFunction option) (isValidFunc: IsValidFunction option) (us:State)  =

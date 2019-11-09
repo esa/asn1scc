@@ -127,6 +127,15 @@ Declare_REALNoRTL() ::= "Asn1Real"
 Declare_ObjectIdentifierNoRTL() ::= "Asn1ObjectIdentifier"
 Declare_NULLNoRTL() ::= "Asn1NullType"
 
+Declare_Asn1LocalTimeNoRTL                 	()::= "Asn1LocalTime"
+Declare_Asn1UtcTimeNoRTL                   	()::= "Asn1UtcTime"
+Declare_Asn1LocalTimeWithTimeZoneNoRTL     	()::= "Asn1TimeWithTimeZone"
+Declare_Asn1DateNoRTL                      	()::= "Asn1Date"
+Declare_Asn1Date_LocalTimeNoRTL            	()::= "Asn1DateLocalTime"
+Declare_Asn1Date_UtcTimeNoRTL              	()::= "Asn1DateUtcTime"
+Declare_Asn1Date_LocalTimeWithTimeZoneNoRTL	()::= "Asn1DateTimeWithTimeZone"
+
+
 Declare_Reference1(sName) ::= "<sName>"
 Declare_Reference2(sModName,sName) ::= "<sModName>.<sName>"
 

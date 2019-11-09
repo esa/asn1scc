@@ -49,7 +49,7 @@ PrintType(sTypeSpecific) ::= "<sTypeSpecific>"
 
 Print_Integer(sUPER, arrsConstraints) ::= "INTEGER /*<sUPER>*/ <arrsConstraints>"
 Print_Real(arrsConstraints) ::= "REAL <arrsConstraints>"
-Print_TimeType(arrsConstraints) ::= "TIME (SETTINGS "") <arrsConstraints>"
+Print_TimeType(arrsConstraints) ::= "TIME (SETTINGS \"\") <arrsConstraints>"
 Print_IA5String(arrsConstraints) ::= "IA5String <arrsConstraints>"
 Print_IA5String2(sSizeUper, sAlphaUper, arrsConstraints) ::= "IA5String [Size <sSizeUper>] [FROM <sAlphaUper>] <arrsConstraints>"
 

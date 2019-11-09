@@ -62,6 +62,53 @@ initObjectIdentifier(p, sAcc, nSize, arrsValues) ::= <<
 <arrsValues; separator="\n">
 >>
 
+init_Asn1LocalTime(p, sAcc, tv/*:Asn1TimeValue*/) ::= <<
+<p><sAcc>hours := <tv.hours>;
+<p><sAcc>mins := <tv.mins>;
+<p><sAcc>sec := <tv.secs>;  
+<p><sAcc>fraction := <tv.secsFraction>;
+>>
+
+init_Asn1UtcTime(p, sAcc, tv/*:Asn1TimeValue*/) ::= <<
+<p><sAcc>hours := <tv.hours>;
+<p><sAcc>mins := <tv.mins>;
+<p><sAcc>sec := <tv.secs>;  
+<p><sAcc>fraction := <tv.secsFraction>;
+>>
+
+
+init_Asn1LocalTimeWithTimeZone(p, sAcc, tv/*:Asn1TimeValue*/, tz/*:Asn1TimeZoneValue*/) ::= <<
+<p><sAcc>hours := <tv.hours>;
+<p><sAcc>mins := <tv.mins>;
+<p><sAcc>sec := <tv.secs>;  
+<p><sAcc>fraction := <tv.secsFraction>;
+<p><sAcc>tz.sign := <tz.sign>;
+<p><sAcc>tz.hours := <tz.hours>;
+<p><sAcc>tz.mins := <tz.mins>;
+>>
+
+init_Asn1Date(p, sAcc, dt/*:Asn1DateValue*/) ::= <<
+<p><sAcc>years := <dt.years>;
+<p><sAcc>months := <dt.months>;
+<p><sAcc>days := <dt.days>;  
+>>
+
+init_Asn1Date_LocalTime(p, sAcc, dt/*:Asn1DateValue*/, tv/*:Asn1TimeValue*/) ::= <<
+<init_Asn1Date(p=p, sAcc=sAcc, dt=dt)>
+<init_Asn1LocalTime(p=p, sAcc=sAcc, tv=tv)>
+>>
+
+init_Asn1Date_UtcTime(p, sAcc, dt/*:Asn1DateValue*/, tv/*:Asn1TimeValue*/) ::= <<
+<init_Asn1Date(p=p, sAcc=sAcc, dt=dt)>
+<init_Asn1UtcTime(p=p, sAcc=sAcc, tv=tv)>
+>>
+
+init_Asn1Date_LocalTimeWithTimeZone(p, sAcc, dt/*:Asn1DateValue*/, tv/*:Asn1TimeValue*/, tz/*:Asn1TimeZoneValue*/) ::= <<
+<init_Asn1Date(p=p, sAcc=sAcc, dt=dt)>
+<init_Asn1UtcTime(p=p, sAcc=sAcc, tv=tv, tz=tz)>
+>>
+
+
 
 /* BIT AND OCTET STRINGS */
 initBitOrOctStringFromCompoundLiteral(p, sCompLiteral) ::= "<p> := <sCompLiteral>;"

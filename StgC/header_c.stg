@@ -68,6 +68,14 @@ Declare_NumericString() ::= "char"
 Declare_NullType() ::= "NullType"
 Declare_ObjectIdentifier() ::= "Asn1ObjectIdentifier"
 
+Declare_Asn1LocalTime                 	()::= "Asn1LocalTime"
+Declare_Asn1UtcTime                   	()::= "Asn1UtcTime"
+Declare_Asn1LocalTimeWithTimeZone     	()::= "Asn1TimeWithTimeZone"
+Declare_Asn1Date                      	()::= "Asn1Date"
+Declare_Asn1Date_LocalTime            	()::= "Asn1DateLocalTime"
+Declare_Asn1Date_UtcTime              	()::= "Asn1DateUtcTime"
+Declare_Asn1Date_LocalTimeWithTimeZone	()::= "Asn1DateTimeWithTimeZone"
+
 
 Define_SubType(sTypeDefinitionName, soParentTypePackage, sParentType, soNewRange, soExtraDefs) ::= <<
 typedef <sParentType> <sTypeDefinitionName>;

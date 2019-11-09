@@ -253,6 +253,12 @@ ret = RelativeOID_uper_decode(pBitStrm, <p>);
 *pErrCode = ret ? 0 : <sErrCode>;
 >>
 
+Time_encode(p, sTimeSubType, sErrCode) ::= "<sTimeSubType>_uper_encode(pBitStrm, <p>);"
+Time_decode(p, sTimeSubType, sErrCode) ::= <<
+ret = <sTimeSubType>_uper_decode(pBitStrm, <p>);
+*pErrCode = ret ? 0 : <sErrCode>;
+>>
+
 
 
 Enumerated_item_encode(p, sName, nIndex, nLastItemIndex) ::= <<

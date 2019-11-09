@@ -506,6 +506,51 @@ let private createObjectIdentifier (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage
     ((ObjectIdentifier ret),[]), s10
 
 
+let private createTimeType (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (m:Asn1AcnAst.Asn1Module) (pi : Asn1Fold.ParentInfo<ParentInfoData> option) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.TimeType) (us:State) =
+    let defOrRef            =  DAstTypeDefinition.createTimeType_u r l t o us
+    let equalFunction       = DAstEqual.createTimeTypeEqualFunction r l t o defOrRef 
+
+    let initialValue  = (EncodeDecodeTestCase.TimeTypeAutomaticTestCaseValues r t o).Head
+    let initFunction        = DAstInitialize.createTimeTypeInitFunc r l t o  defOrRef (TimeValue initialValue)
+    let isValidFunction, s1     = DastValidate2.createTimeTypeFunction r l t o defOrRef us
+    
+    let uperEncFunction, s2     = DAstUPer.createTimeTypeFunction r l Codec.Encode t o  defOrRef None isValidFunction s1
+    let uperDecFunction, s3     = DAstUPer.createTimeTypeFunction r l Codec.Decode t o  defOrRef None isValidFunction s2
+
+    let acnEncFunction, s4      = DAstACN.createTimeTypeFunction r l Codec.Encode t o defOrRef  isValidFunction uperEncFunction s3
+    let acnDecFunction, s5      = DAstACN.createTimeTypeFunction r l Codec.Decode t o defOrRef  isValidFunction uperDecFunction s4
+
+    let uperEncDecTestFunc,s6         = EncodeDecodeTestCase.createUperEncDecFunction r l t defOrRef equalFunction isValidFunction (Some uperEncFunction) (Some uperDecFunction) s5
+    let acnEncDecTestFunc ,s7         = EncodeDecodeTestCase.createAcnEncDecFunction r l t defOrRef equalFunction isValidFunction (Some acnEncFunction) (Some acnDecFunction) s6
+    let automaticTestCasesValues      = EncodeDecodeTestCase.TimeTypeAutomaticTestCaseValues r t o |> List.mapi (fun i x -> createAsn1ValueFromValueKind t i (TimeValue x)) 
+    let xerEncFunction, s8      = DAstXer.createTimeTypeFunction  r l Codec.Encode t o defOrRef isValidFunction s7
+    let xerDecFunction, s9      = DAstXer.createTimeTypeFunction  r l Codec.Decode t o defOrRef isValidFunction s8       
+    let xerEncDecTestFunc,s10   = EncodeDecodeTestCase.createXerEncDecFunction r l t defOrRef equalFunction isValidFunction (Some xerEncFunction) (Some xerDecFunction) s9
+
+    let ret =
+        {
+            TimeType.baseInfo = o
+            //typeDefinition      = typeDefinition
+            definitionOrRef     = defOrRef
+            printValue          = DAstVariables.createTimeTypeFunction r l t o defOrRef  
+            initialValue        = initialValue
+            initFunction        = initFunction
+            equalFunction       = equalFunction
+            isValidFunction     = isValidFunction
+            uperEncFunction     = uperEncFunction
+            uperDecFunction     = uperDecFunction 
+            acnEncFunction      = acnEncFunction
+            acnDecFunction      = acnDecFunction
+            uperEncDecTestFunc  = uperEncDecTestFunc
+            acnEncDecTestFunc   = acnEncDecTestFunc
+            xerEncFunction      = xerEncFunction
+            xerDecFunction      = xerDecFunction
+            automaticTestCasesValues = automaticTestCasesValues
+            constraintsAsn1Str = DAstAsn1.createTimeTypeFunction r t o
+            xerEncDecTestFunc   = xerEncDecTestFunc
+        }
+    ((TimeType ret),[]), s10
+
 
 
 
@@ -771,7 +816,7 @@ let private mapType (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDepe
             let (strtype, prms), ns = createStringType r deps l m pi t ti us
             ((IA5String strtype),prms), ns)
         (fun pi t ti us -> createOctetString r deps l m pi t ti us)
-        (fun pi t ti us -> (TimeType,[]), us)
+        (fun pi t ti us -> createTimeType r l m pi t ti us)
         (fun pi t ti us -> createNullType r l m pi t ti us)
         (fun pi t ti us -> createBitString r deps l m pi t ti us)
         

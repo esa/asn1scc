@@ -41,7 +41,7 @@ and Asn1ValueKind =
     |   ChValue             of StringLoc*Asn1Value
     |   NullValue
     |   ObjOrRelObjIdValue  of ObjectIdentifierValueCompoent list
-    |   TimeValue           of DateTimeLoc
+    |   TimeValue           of Asn1DateTimeValueLoc
 
 
 

@@ -59,6 +59,67 @@ PrintObjectIdentifierValueAsCompoundLiteral(arrnValues, nCount) ::= <<
 >>
 
 
+PrintTimeValueAsCompoundLiteral_Asn1LocalTime(td/*:FE_PrimitiveTypeDefinition*/, tv/*:Asn1TimeValue*/) ::= <<
+<rtlModuleName()>.Asn1LocalTime'(hours => <tv.hours>, mins => <tv.mins>, secs => <tv.secs>, secsFraction => <tv.secsFraction>)
+>>
+
+PrintTimeValueAsCompoundLiteral_Asn1UtcTime(td/*:FE_PrimitiveTypeDefinition*/, tv/*:Asn1TimeValue*/) ::= <<
+<rtlModuleName()>.Asn1UtcTime'( hours => <tv.hours>, mins => <tv.mins>, secs => <tv.secs>, secsFraction => <tv.secsFraction>)
+>>
+
+
+PrintTimeValueAsCompoundLiteral_Asn1LocalTimeWithTimeZone(td/*:FE_PrimitiveTypeDefinition*/, tv/*:Asn1TimeValue*/, tz/*:Asn1TimeZoneValue*/) ::= <<
+<rtlModuleName()>.Asn1TimeWithTimeZone'( hours => <tv.hours>, mins => <tv.mins>, secs => <tv.secs>, secsFraction> = <tv.secsFraction>, tz => Asn1TimeWithTimeZone'(sign => <tz.sign>, hours => <tz.hours>, mins => <tz.mins>))
+>>
+
+PrintTimeValueAsCompoundLiteral_Asn1Date(td/*:FE_PrimitiveTypeDefinition*/, dt/*:Asn1DateValue*/) ::= <<
+<rtlModuleName()>.Asn1Date'( years => <dt.years>, months => <dt.months>, days => <dt.days>)
+>>
+
+PrintTimeValueAsCompoundLiteral_Asn1Date_LocalTime(td/*:FE_PrimitiveTypeDefinition*/, dt/*:Asn1DateValue*/, tv/*:Asn1TimeValue*/) ::= <<
+<rtlModuleName()>.Asn1DateLocalTime'( date => <PrintTimeValueAsCompoundLiteral_Asn1Date(td=td,dt=dt)>, time => <PrintTimeValueAsCompoundLiteral_Asn1LocalTime(td=td,tv=tv)>)
+>>
+
+PrintTimeValueAsCompoundLiteral_Asn1Date_UtcTime(td/*:FE_PrimitiveTypeDefinition*/, dt/*:Asn1DateValue*/, tv/*:Asn1TimeValue*/) ::= <<
+<rtlModuleName()>.Asn1DateUtcTime'( date => <PrintTimeValueAsCompoundLiteral_Asn1Date(td=td,dt=dt)>, time => <PrintTimeValueAsCompoundLiteral_Asn1UtcTime(td=td,tv=tv)>)
+>>
+
+PrintTimeValueAsCompoundLiteral_Asn1Date_LocalTimeWithTimeZone(td/*:FE_PrimitiveTypeDefinition*/, dt/*:Asn1DateValue*/, tv/*:Asn1TimeValue*/, tz/*:Asn1TimeZoneValue*/) ::= <<
+<rtlModuleName()>.Asn1DateTimeWithTimeZone'( date => <PrintTimeValueAsCompoundLiteral_Asn1Date(td=td,dt=dt)>, time => <PrintTimeValueAsCompoundLiteral_Asn1LocalTimeWithTimeZone(td=td,tv=tv)>)
+>>
+
+
+
+PrintTimeValue_Asn1LocalTime(td/*:FE_PrimitiveTypeDefinition*/, tv/*:Asn1TimeValue*/) ::= <<
+<td.typeName>'(hours => <tv.hours>, mins => <tv.mins>, secs => <tv.secs>, fraction => <tv.secsFraction>)
+>>
+
+PrintTimeValue_Asn1UtcTime(td/*:FE_PrimitiveTypeDefinition*/, tv/*:Asn1TimeValue*/) ::= <<
+<td.typeName>'(hours => <tv.hours>, mins => <tv.mins>, secs => <tv.secs>, fraction => <tv.secsFraction>)
+>>
+
+
+PrintTimeValue_Asn1LocalTimeWithTimeZone(td/*:FE_PrimitiveTypeDefinition*/, tv/*:Asn1TimeValue*/, tz/*:Asn1TimeZoneValue*/) ::= <<
+<td.typeName>'(hours => <tv.hours>, mins => <tv.mins>, secs => <tv.secs>, fraction => <tv.secsFraction>, tz => Asn1TimeZone'(sign => <tz.sign>, hours => <tz.hours>, mins => <tz.mins>))
+>>
+
+PrintTimeValue_Asn1Date(td/*:FE_PrimitiveTypeDefinition*/, dt/*:Asn1DateValue*/) ::= <<
+<td.typeName>'(years => <dt.years>, months => <dt.months>, days => <dt.days>)
+>>
+
+PrintTimeValue_Asn1Date_LocalTime(td/*:FE_PrimitiveTypeDefinition*/, dt/*:Asn1DateValue*/, tv/*:Asn1TimeValue*/) ::= <<
+<td.typeName>'( date => Asn1Date'(years => <dt.years>, months => <dt.months>, days => <dt.days>), time => Asn1LocalTime'(hours => <tv.hours>, mins => <tv.mins>, secs => <tv.secs>, fraction => <tv.secsFraction>) )
+>>
+
+PrintTimeValue_Asn1Date_UtcTime(td/*:FE_PrimitiveTypeDefinition*/, dt/*:Asn1DateValue*/, tv/*:Asn1TimeValue*/) ::= <<
+<td.typeName>'( date => Asn1Date'(years => <dt.years>, months => <dt.months>, days => <dt.days>), time => Asn1UtcTime'(hours => <tv.hours>, mins => <tv.mins>, secs => <tv.secs>, fraction => <tv.secsFraction>) )
+>>
+
+PrintTimeValue_Asn1Date_LocalTimeWithTimeZone(td/*:FE_PrimitiveTypeDefinition*/, dt/*:Asn1DateValue*/, tv/*:Asn1TimeValue*/, tz/*:Asn1TimeZoneValue*/) ::= <<
+<td.typeName>'( date => Asn1Date'(years => <dt.years>, months => <dt.months>, days => <dt.days>), time => Asn1TimeWithTimeZone'(hours => <tv.hours>, mins => <tv.mins>, secs => <tv.secs>, fraction => <tv.secsFraction>, tz => Asn1TimeZone'(sign => <tz.sign>, hours => <tz.hours>, mins => <tz.mins>)) )
+>>
+
+
 PrintSequenceValueChild(sName, sInnerValue) ::= "<sName> => <sInnerValue>"
 PrintSequenceValue_child_exists(sName, sExistsBit) ::= "<sName> => <sExistsBit>"
 PrintSequenceValue_Exists(td/*:FE_SequenceTypeDefinition*/, arrsOptionalPresentFields) ::="Exist => <td.exist>'(<arrsOptionalPresentFields; wrap, anchor,  separator=\",\">)"

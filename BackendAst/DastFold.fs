@@ -19,6 +19,7 @@ let foldAsn1Type
     booleanFunc
     enumeratedFunc
     objectIdentifierFunc
+    timeTypeFunc
     seqOfTypeFunc
     
     seqAsn1ChildFunc
@@ -42,6 +43,7 @@ let foldAsn1Type
             | Boolean           cnt -> booleanFunc t cnt us
             | Enumerated        cnt -> enumeratedFunc t cnt us
             | ObjectIdentifier  cnt -> objectIdentifierFunc t cnt us
+            | TimeType          cnt -> timeTypeFunc t cnt us
             | SequenceOf        cnt -> 
                 let newChildType = loopType cnt.childType us
                 seqOfTypeFunc t cnt newChildType 

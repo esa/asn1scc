@@ -127,6 +127,19 @@ ret = Xer_DecodeObjectIdentifier(pByteStrm, <sTag>, <p>, pErrCode);
 >>
 
 
+TimeType_encode(p, sTimeSubType, sTag, nLevel, soCheckExp, sErrCode) ::= <<
+ret = Xer_Encode_<sTimeSubType>(pByteStrm, <sTag>, <p>, pErrCode, <nLevel>);
+*pErrCode = ret ? 0 : <sErrCode>;
+>>
+
+TimeType_decode(p, sTimeSubType, sTag, nLevel, soCheckExp, sErrCode) ::= <<
+ret = Xer_Decode_<sTimeSubType>(pByteStrm, <sTag>, <p>, pErrCode);
+<if(soCheckExp)><soCheckExp><endif>
+*pErrCode = ret  ? 0 : <sErrCode>;
+>>
+
+
+
 Null_encode(p, sTag, nLevel, soCheckExp, sErrCode) ::= <<
 ret = Xer_EncodeNull(pByteStrm, <sTag>, <p>, pErrCode, <nLevel>);
 *pErrCode = ret ? 0 : <sErrCode>;
