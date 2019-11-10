@@ -59,6 +59,20 @@ asn1SccSint BitStream_GetLength(BitStream* pBitStrm)
 	return ret;
 }
 
+/*
+Append bit one.
+
+Example
+      cur bit = 3
+   x x x |
+  |_|_|_|_|_|_|_|_|
+   0 1 2 3 4 5 6 7
+
+    xxxy???? 
+or  00010000
+------------
+    xxx1????
+*/
 
 void BitStream_AppendBitOne(BitStream* pBitStrm)
 {
@@ -73,8 +87,25 @@ void BitStream_AppendBitOne(BitStream* pBitStrm)
 	assert(pBitStrm->currentByte * 8 + pBitStrm->currentBit <= pBitStrm->count * 8);
 }
 
+/*
+	Append bit zero.
+
+	Example
+	cur bit = 3
+	x x x |
+	|_|_|_|_|_|_|_|_|
+	0 1 2 3 4 5 6 7
+
+	    xxxy????
+	and 11101111
+	    ------------
+	    xxx0????
+*/
+
 void BitStream_AppendBitZero(BitStream* pBitStrm)
 {
+	byte nmask = (byte)~masks[pBitStrm->currentBit];
+	pBitStrm->buf[pBitStrm->currentByte] &= nmask;
 	if (pBitStrm->currentBit<7)
 		pBitStrm->currentBit++;
 	else {
@@ -122,8 +153,13 @@ void BitStream_AppendBits(BitStream* pBitStrm, const byte* srcBuffer, int nbits)
 
 void BitStream_AppendBit(BitStream* pBitStrm, flag v)
 {
-	if (v)
+	if (v) {
 		pBitStrm->buf[pBitStrm->currentByte] |= masks[pBitStrm->currentBit];
+	}
+	else {
+		byte nmask = (byte)~masks[pBitStrm->currentBit];
+		pBitStrm->buf[pBitStrm->currentByte] &= nmask;
+	}
 
 	if (pBitStrm->currentBit<7)
 		pBitStrm->currentBit++;
@@ -148,18 +184,47 @@ flag BitStream_ReadBit(BitStream* pBitStrm, flag* v)
 	return pBitStrm->currentByte * 8 + pBitStrm->currentBit <= pBitStrm->count * 8;
 }
 
+/*
+Append byte.
+
+Example
+cur bit = 3
+       |
+ x x x b b b b b b b b
+|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|
+ 0 1 2 3 4 5 6 7 0 1 2 3 4 5 6 7
+
+first byte
+    xxx?????
+and 11100000 (mask)
+------------
+    xxx00000
+or  000bbbbb
+------------
+    xxxbbbbb
+
+*/
+
+
 void BitStream_AppendByte(BitStream* pBitStrm, byte v, flag negate)
 {
+	//static byte masksb[] = { 0x0, 0x1, 0x3, 0x7, 0xF, 0x1F, 0x3F, 0x7F, 0xFF };
 	int cb = pBitStrm->currentBit;
 	int ncb = 8 - cb;
 	if (negate)
 		v = (byte)~v;
+	byte mask = (byte)~masksb[ncb];
+	
+	pBitStrm->buf[pBitStrm->currentByte] &= mask;
 	pBitStrm->buf[pBitStrm->currentByte++] |= (byte)(v >> cb);
 
 	assert(pBitStrm->currentByte * 8 + pBitStrm->currentBit <= pBitStrm->count * 8);
 
-	if (cb)
+	if (cb) {
+		mask = (byte)~mask;
+		pBitStrm->buf[pBitStrm->currentByte] &= mask;
 		pBitStrm->buf[pBitStrm->currentByte] |= (byte)(v << ncb);
+	}
 
 }
 
@@ -168,12 +233,18 @@ void BitStream_AppendByte0(BitStream* pBitStrm, byte v)
 	int cb = pBitStrm->currentBit;
 	int ncb = 8 - cb;
 
+	byte mask = (byte)~masksb[ncb];
+
+	pBitStrm->buf[pBitStrm->currentByte] &= mask;
 	pBitStrm->buf[pBitStrm->currentByte++] |= (byte)(v >> cb);
 
 	assert(pBitStrm->currentByte * 8 + pBitStrm->currentBit <= pBitStrm->count * 8);
 
-	if (cb)
+	if (cb) {
+		mask = (byte)~mask;
+		pBitStrm->buf[pBitStrm->currentByte] &= mask;
 		pBitStrm->buf[pBitStrm->currentByte] |= (byte)(v << ncb);
+	}
 
 }
 
@@ -216,11 +287,23 @@ void BitStream_AppendPartialByte(BitStream* pBitStrm, byte v, byte nbits, flag n
 {
 	int cb = pBitStrm->currentBit;
 	int totalBits = cb + nbits;
+	int ncb = 8 - cb;
 	int totalBitsForNextByte;
 	if (negate)
 		v = masksb[nbits] & ((byte)~v);
+	byte mask1 = (byte)~masksb[ncb];
 
 	if (totalBits <= 8) {
+		//static byte masksb[] = { 0x0, 0x1, 0x3, 0x7, 0xF, 0x1F, 0x3F, 0x7F, 0xFF };
+		byte mask2 = masksb[8 - totalBits];
+		byte mask = mask1 | mask2;
+		//e.g. current bit = 3 --> mask =  1110 0000
+		//nbits = 3 --> totalBits = 6
+		//                         mask=   1110 0000
+		//                         and     0000 0011 <- masks[totalBits - 1]
+        //	                              -----------
+		//					final mask     1110 0011
+		pBitStrm->buf[pBitStrm->currentByte] &= mask;
 		pBitStrm->buf[pBitStrm->currentByte] |= (byte)(v << (8 - totalBits));
 		pBitStrm->currentBit += nbits;
 		if (pBitStrm->currentBit == 8) {
@@ -230,7 +313,11 @@ void BitStream_AppendPartialByte(BitStream* pBitStrm, byte v, byte nbits, flag n
 	}
 	else {
 		totalBitsForNextByte = totalBits - 8;
+		pBitStrm->buf[pBitStrm->currentByte] &= mask1;
 		pBitStrm->buf[pBitStrm->currentByte++] |= (byte)(v >> totalBitsForNextByte);
+
+		byte mask = (byte)~masksb[8 - totalBitsForNextByte];
+		pBitStrm->buf[pBitStrm->currentByte] &= mask;
 		pBitStrm->buf[pBitStrm->currentByte] |= (byte)(v << (8 - totalBitsForNextByte));
 		pBitStrm->currentBit = totalBitsForNextByte;
 	}

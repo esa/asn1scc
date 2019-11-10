@@ -212,6 +212,7 @@ package body adaasn1rtl.encoding with Spark_Mode is
       Current_Byte : constant Integer   := bs.Buffer'First + bs.Current_Bit_Pos / 8;
       Current_Bit  : constant BIT_RANGE := bs.Current_Bit_Pos mod 8;
       byteVal : Asn1Byte;
+      mask : Asn1Byte;
       ncb :BIT_RANGE;
    begin
       if Negate then
@@ -222,7 +223,11 @@ package body adaasn1rtl.encoding with Spark_Mode is
       
       if Current_Bit > 0 then
          ncb := 8 - Current_Bit;
+         mask := not MASKSB(ncb);
+         bs.buffer(Current_Byte) := bs.buffer(Current_Byte) and mask;
          bs.buffer(Current_Byte) := bs.buffer(Current_Byte) or Shift_right(ByteVal, Current_Bit);
+         mask := not mask;
+         bs.buffer(Current_Byte+1) := bs.buffer(Current_Byte+1) and mask;
          bs.buffer(Current_Byte+1) := bs.buffer(Current_Byte+1) or Shift_left(ByteVal, ncb);
       else
          bs.buffer(Current_Byte) := ByteVal;
@@ -286,18 +291,32 @@ package body adaasn1rtl.encoding with Spark_Mode is
       totalBits : BIT_RANGE;
       totalBitsForNextByte : BIT_RANGE;
       byteValue : Asn1Byte;
+      mask1 : Asn1Byte;
+      mask2 : Asn1Byte;
+      mask  : Asn1Byte;
    begin
       if nBits > 0 then
          byteValue := (if negate then (masksb(nBits) and  not Byte_Value) else Byte_Value);
+         mask1 := (if cb > 0 then not MASKSB(8-cb) else 0);
          
          if cb < 8 - nbits then
             totalBits := cb + nBits;
+            
+            mask2 := MASKSB(8 -totalBits);
+            mask := mask1 or mask2;
+            bs.buffer(Current_Byte) := bs.buffer(Current_Byte) and mask;
             bs.buffer(Current_Byte) := bs.buffer(Current_Byte) or Shift_left(byteValue, 8 -totalBits);
          else
             totalBitsForNextByte := cb+nbits - 8;
+            bs.buffer(Current_Byte) := bs.buffer(Current_Byte) and mask1;
             bs.buffer(Current_Byte) := bs.buffer(Current_Byte) or Shift_right(byteValue, totalBitsForNextByte);
+            
             if totalBitsForNextByte > 0 then
                Current_Byte := Current_Byte + 1;
+               
+               mask := not MASKSB(8 - totalBitsForNextByte);
+               
+               bs.buffer(Current_Byte) := bs.buffer(Current_Byte) and mask;
                bs.buffer(Current_Byte) := bs.buffer(Current_Byte) or Shift_left(byteValue, 8 - totalBitsForNextByte);
             end if;
            
