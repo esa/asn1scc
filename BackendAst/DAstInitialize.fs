@@ -423,7 +423,14 @@ let createOctetStringInitFunc (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:
                         | false -> ()
                 } |> Seq.toList
             let zero (p:CallerScope) = 
-                let funcBody = initTestCaseOctetString p.arg.p (p.arg.getAcces l) o.maxSize.uper i (o.minSize.uper = o.maxSize.uper) true o.minSize.uper
+                let isFixedSize =
+                    match t.getBaseType r with
+                    | None      -> o.isFixedSize
+                    | Some bs  -> 
+                        match bs.Kind with
+                        | Asn1AcnAst.OctetString bo -> bo.isFixedSize
+                        | _                        -> raise(BugErrorException "UnexpectedType")
+                let funcBody = initTestCaseOctetString p.arg.p (p.arg.getAcces l) o.maxSize.uper i (isFixedSize) true o.minSize.uper
                 let lvars = match l with C -> [] | Ada -> [SequenceOfIndex (ii, None)]
                 {InitFunctionResult.funcBody = funcBody; localVariables=lvars}
 
@@ -494,7 +501,15 @@ let createBitStringInitFunc (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:As
             let zero (p:CallerScope) = 
                 let nSize = o.maxSize.uper
                 let nSizeCeiled =  if nSize % 8I = 0I then nSize else (nSize + (8I - nSize % 8I)) 
-                let funcBody = initTestCaseBitString p.arg.p (p.arg.getAcces l) nSize (nSizeCeiled) i (o.minSize.uper = o.maxSize.uper) true o.minSize.uper
+                let isFixedSize =
+                    match t.getBaseType r with
+                    | None      -> o.isFixedSize
+                    | Some bs  -> 
+                        match bs.Kind with
+                        | Asn1AcnAst.BitString bo -> bo.isFixedSize
+                        | _                        -> raise(BugErrorException "UnexpectedType")
+
+                let funcBody = initTestCaseBitString p.arg.p (p.arg.getAcces l) nSize (nSizeCeiled) i (isFixedSize) true o.minSize.uper
                 let lvars = match l with C -> [] | Ada -> [SequenceOfIndex (ii, None)]
                 {InitFunctionResult.funcBody = funcBody; localVariables=lvars}
             testCaseFuncs, zero
@@ -709,7 +724,15 @@ let createSequenceOfInitFunc (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:A
                 childInitRes.funcBody, childInitRes.localVariables
             | Some fncName  ->
                 initChildWithInitFunc (chp.arg.getPointer l) fncName, []
-        let funcBody = initTestCaseSizeSequenceOf p.arg.p (p.arg.getAcces l) initCountValue o.maxSize.uper (o.minSize.uper = o.maxSize.uper) [childInitRes_funcBody] false i
+        let isFixedSize =
+            match t.getBaseType r with
+            | None      -> o.isFixedSize
+            | Some bs  -> 
+                match bs.Kind with
+                | Asn1AcnAst.SequenceOf bo -> bo.isFixedSize
+                | _                        -> raise(BugErrorException "UnexpectedType")
+
+        let funcBody = initTestCaseSizeSequenceOf p.arg.p (p.arg.getAcces l) initCountValue o.maxSize.uper (isFixedSize) [childInitRes_funcBody] false i
         {InitFunctionResult.funcBody = funcBody; localVariables= (SequenceOfIndex (ii, None))::childInitRes_localVariables }
         
     createInitFunctionCommon r l t typeDefinition funcBody iv  initTasFunction testCaseFuncs

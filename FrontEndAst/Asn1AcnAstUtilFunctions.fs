@@ -100,6 +100,8 @@ type Asn1Type with
         | Sequence     _ -> this
         | Choice       _ -> this
         | ObjectIdentifier _ -> this
+
+
     member this.FT_TypeDefintion =
         match this.Kind with
         | Integer      o  -> o.typeDef |> Map.toList |> List.map (fun (l, d) -> (l, FE_PrimitiveTypeDefinition d)) |> Map.ofList
@@ -448,4 +450,15 @@ let GetActualTypeByName (r:AstRoot) modName tasName  =
     let mdl = r.GetModuleByName(modName)
     let tas = mdl.GetTypeAssignmentByName tasName r
     GetActualType tas.Type r
+
+type Asn1Type with
+    member this.getBaseType  (r:AstRoot) =
+        match this.inheritInfo with
+        | None          -> None
+        | Some inf      ->
+            let mdl = r.GetModuleByName(inf.modName.AsLoc)
+            let tas = mdl.GetTypeAssignmentByName inf.tasName.AsLoc r
+            match tas.Type.inheritInfo with
+            | None  -> Some tas.Type
+            | Some _ -> tas.Type.getBaseType r
 

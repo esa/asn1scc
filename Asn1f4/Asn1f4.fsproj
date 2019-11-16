@@ -29,8 +29,8 @@
     <PlatformTarget>AnyCPU</PlatformTarget>
     <DocumentationFile>bin\Debug\Asn1f4.XML</DocumentationFile>
     <Prefer32Bit>true</Prefer32Bit>
-    <StartWorkingDirectory>C:\prj\GitHub\asn1scc\v4Tests\tmp_c</StartWorkingDirectory>
-    <StartArguments>-c -x ast.xml -uPER -ACN -typePrefix gmamais_ -renamePolicy 2 -fp AUTO -equal -atc  sample1.asn1 sample1.acn</StartArguments>
+    <StartWorkingDirectory>C:\prj\GitHub\asn1scc\mantis\0000890</StartWorkingDirectory>
+    <StartArguments>-c -uPER -o c_out -atc a.asn1</StartArguments>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>

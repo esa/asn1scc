@@ -349,6 +349,7 @@ type ReferenceToType =
 type InheritanceInfo = {
     modName : string
     tasName : string
+
     hasAdditionalConstraints : bool //indicates that the new type has additional constraints e.g. BaseType(200..400) vs BaseType
 }
 

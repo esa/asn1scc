@@ -1,0 +1,7 @@
+Test DEFINITIONS ::=
+BEGIN
+
+MyType ::= SEQUENCE (SIZE(1..128)) OF INTEGER
+MySubtype ::= MyType(SIZE(4))
+
+END
