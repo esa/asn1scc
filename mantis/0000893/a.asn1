@@ -1,0 +1,11 @@
+Test DEFINITIONS ::=
+BEGIN
+
+Bar ::= SEQUENCE  {
+  a BOOLEAN OPTIONAL,
+  b INTEGER (0 .. 255)
+}
+
+SubBar ::= Bar (WITH COMPONENTS {a ABSENT})
+
+END

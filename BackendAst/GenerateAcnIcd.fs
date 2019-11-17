@@ -152,9 +152,9 @@ let rec printType stgFileName (tas:GenerateUperIcd.IcdTypeAssignment) (t:Asn1Typ
         let emitSeqChild (i:int) (ch:SeqChildInfo)  =
             let sClass = if i % 2 = 0 then (icd_acn.EvenRow stgFileName ()) else (icd_acn.OddRow stgFileName ())
             let nIndex = BigInteger i
-            let sPresentWhen = 
+            let sPresentWhen, bAlwaysAbsent = 
                 match ch with
-                | AcnChild  _ -> "always"
+                | AcnChild  _ -> "always", false
                 | Asn1Child ch  ->
                     let aux1 = function
                         | 1 -> "st"
@@ -162,21 +162,21 @@ let rec printType stgFileName (tas:GenerateUperIcd.IcdTypeAssignment) (t:Asn1Typ
                         | 3 -> "rd"
                         | _ -> "th"
                     match ch.Optionality with
-                    | None                      -> "always"
-                    | Some(Asn1AcnAst.AlwaysPresent)   -> "always"
-                    | Some(Asn1AcnAst.AlwaysAbsent)    -> "never"
+                    | None                      -> "always", false
+                    | Some(Asn1AcnAst.AlwaysPresent)   -> "always", false
+                    | Some(Asn1AcnAst.AlwaysAbsent)    -> "never", true
                     | Some(Asn1AcnAst.Optional opt)    ->
                         match opt.acnPresentWhen with
                         | None  ->  
                             let nBit =  optionalLikeUperChildren |> Seq.findIndex(fun x -> x.Name.Value = ch.Name.Value) |> (+) 1
-                            sprintf "when the %d%s bit of the bit mask is set" nBit (aux1 nBit)
+                            sprintf "when the %d%s bit of the bit mask is set" nBit (aux1 nBit), false
                         | Some (AcnGenericTypes.PresenceWhenBool presWhen)     ->
                             let dependency = r.deps.acnDependencies |> List.find(fun d -> d.asn1Type = ch.Type.id )
                             //match dependency.dependencyKind with
-                            sprintf "when %s is true" presWhen.AsString 
+                            sprintf "when %s is true" presWhen.AsString , false
                         | Some (AcnGenericTypes.PresenceWhenBoolExpression acnExp)  ->
                             let _, debugStr = AcnGenericCreateFromAntlr.printDebug acnExp
-                            sprintf "when %s is true" debugStr
+                            sprintf "when %s is true" debugStr, false
 
             let sType, sComment, sAsn1Constraints, nAlignToNextSize  = 
                 match ch with
@@ -217,7 +217,7 @@ let rec printType stgFileName (tas:GenerateUperIcd.IcdTypeAssignment) (t:Asn1Typ
             let name = ch.Name
             let noAlignToNextSize = if nAlignToNextSize = 0I then None else (Some nAlignToNextSize)
             let acnMaxSizeInBits = ch.acnMaxSizeInBits - nAlignToNextSize
-            let acnMinSizeInBits = ch.acnMinSizeInBits - nAlignToNextSize
+            let acnMinSizeInBits = (if bAlwaysAbsent then 0I else ch.acnMinSizeInBits) - nAlignToNextSize
             let sMaxBits, sMaxBytes = acnMaxSizeInBits.ToString(), BigInteger(System.Math.Ceiling(double(acnMaxSizeInBits)/8.0)).ToString()
             let sMinBits, sMinBytes = acnMinSizeInBits.ToString(), BigInteger(System.Math.Ceiling(double(acnMinSizeInBits)/8.0)).ToString()
             icd_acn.EmmitSeqOrChoiceRow stgFileName sClass nIndex ch.Name sComment  sPresentWhen  sType sAsn1Constraints sMinBits sMaxBits noAlignToNextSize
