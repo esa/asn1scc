@@ -1237,6 +1237,7 @@ let rec GetMySelfAndChildren (t:Asn1Type) =
         yield t
     } |> Seq.toList
 
+
 let rec GetMySelfAndChildren2 l (t:Asn1Type) (p:CallerScope)= 
     seq {
         match t.Kind with

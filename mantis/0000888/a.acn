@@ -1,0 +1,19 @@
+Test DEFINITIONS ::= BEGIN
+
+T-ThingHolder [] {
+  random [],
+  thing<selector> [],
+  selector INTEGER [encoding pos-int, size 32]
+}
+
+
+
+
+
+T-Thing<INTEGER:selector> [] {
+  alt1 [present-when selector == 1],
+  alt2 [present-when selector == 10]
+}
+
+
+END

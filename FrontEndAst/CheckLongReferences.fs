@@ -16,10 +16,26 @@ open Asn1AcnAstUtilFunctions
 let private addParameter (cur:AcnInsertedFieldDependencies) (asn1Type:Asn1Type) (p:AcnParameter) (d:AcnDependencyKind) =
     {cur with acnDependencies = {AcnDependency.asn1Type = asn1Type.id; determinant = (AcnParameterDeterminant p); dependencyKind = d}::cur.acnDependencies }
 
-let private addAcnChild (cur:AcnInsertedFieldDependencies) (asn1Type:Asn1Type) (acnChild:AcnChild) (d:AcnDependencyKind) =
+let private addAcnChild (tasPositions:Map<ReferenceToType,int>) (cur:AcnInsertedFieldDependencies) (asn1Type:Asn1Type) (acnChild:AcnChild) (d:AcnDependencyKind) =
+    let determinantPos = 
+        match tasPositions.ContainsKey acnChild.id with
+        | true  -> tasPositions.[acnChild.id]
+        | false -> 
+            let errMsg = sprintf "ACN determinant field '%s' not found in the dictionary" acnChild.id.AsString 
+            raise(SemanticError(acnChild.Name.Location, errMsg))
+
+    let asn1TypePos    = 
+        match tasPositions.ContainsKey asn1Type.id with
+        | true  -> tasPositions.[asn1Type.id]
+        | false ->
+            let errMsg = sprintf "ASN.1 TYPE '%s' not found in the dictionary" asn1Type.id.AsString 
+            raise(SemanticError(acnChild.Name.Location, errMsg))
+    if asn1TypePos < determinantPos then
+        let errMsg = sprintf "ACN determinant field '%s' must appear before ASN.1 type '%s'" acnChild.id.AsString asn1Type.id.AsString
+        raise(SemanticError(acnChild.Name.Location, errMsg))
     {cur with acnDependencies = {AcnDependency.asn1Type = asn1Type.id; determinant = (AcnChildDeterminant acnChild); dependencyKind = d}::cur.acnDependencies }
 
-let private checkRelativePath (curState:AcnInsertedFieldDependencies) (parents: Asn1Type list) (asn1TypeWithDependency:Asn1Type ) (visibleParameters:(ReferenceToType*AcnParameter) list) (RelativePath path : RelativePath) checkParameter checkAcnType =
+let private checkRelativePath (tasPositions:Map<ReferenceToType,int>) (curState:AcnInsertedFieldDependencies) (parents: Asn1Type list) (asn1TypeWithDependency:Asn1Type ) (visibleParameters:(ReferenceToType*AcnParameter) list) (RelativePath path : RelativePath) checkParameter checkAcnType =
     match path with
     | []        -> raise (BugErrorException("Invalid Argument"))
     | x1::[]    ->
@@ -41,7 +57,7 @@ let private checkRelativePath (curState:AcnInsertedFieldDependencies) (parents: 
                         | Asn1Child ch  -> raise(SemanticError(x1.Location, (sprintf "ASN.1 fields cannot act as encoding determinants. Remove field '%s' from the ASN.1 grammar and introduce it in the ACN grammar" x1.Value)))
                         | AcnChild ch  -> 
                             let d = checkAcnType ch
-                            addAcnChild curState asn1TypeWithDependency ch d
+                            addAcnChild tasPositions curState asn1TypeWithDependency ch d
                     | None      -> raise(SemanticError(x1.Location, (sprintf "Invalid reference '%s'" x1.Value)))
                 | _                 -> raise(SemanticError(x1.Location, (sprintf "Invalid reference '%s'" x1.Value)))
     | x1::_  -> 
@@ -68,7 +84,7 @@ let private checkRelativePath (curState:AcnInsertedFieldDependencies) (parents: 
                         | Asn1Child ch  -> raise(SemanticError(x1.Location, (sprintf "ASN.1 fields cannot act as encoding determinants. Remove field '%s' from the ASN.1 grammar and introduce it in the ACN grammar" x1.Value)))
                         | AcnChild ch  -> 
                             let d = checkAcnType ch
-                            addAcnChild curState asn1TypeWithDependency ch d
+                            addAcnChild tasPositions curState asn1TypeWithDependency ch d
                 | x1::xs     ->
                     match seq.children |> Seq.tryFind(fun c -> c.Name = x1) with
                     | None -> raise(SemanticError(x1.Location, (sprintf "Invalid reference '%s'" (path |> Seq.StrJoin "."))))
@@ -100,7 +116,7 @@ let checkParamIsActuallyInteger (r:AstRoot) (prmMod0:StringLoc) (tasName0:String
                     raise(SemanticError (tasName.Location, (sprintf "Type assignment '%s' defined in module '%s' does not resolve to an Integer"  tasName.Value prmMod.Value)))
     checkParamIsActuallyInteger_aux r prmMod0 tasName0
 
-let sizeReference (r:AstRoot) (curState:AcnInsertedFieldDependencies) (parents: Asn1Type list) (t:Asn1Type) (sizeMin:BigInteger) (sizeMax:BigInteger) (visibleParameters:(ReferenceToType*AcnParameter) list)  (rp :RelativePath  option) (d:AcnDependencyKind) =
+let sizeReference (r:AstRoot) (tasPositions:Map<ReferenceToType,int>) (curState:AcnInsertedFieldDependencies) (parents: Asn1Type list) (t:Asn1Type) (sizeMin:BigInteger) (sizeMax:BigInteger) (visibleParameters:(ReferenceToType*AcnParameter) list)  (rp :RelativePath  option) (d:AcnDependencyKind) =
     match rp with
     | None      -> curState
     | Some (RelativePath path) -> 
@@ -126,10 +142,10 @@ let sizeReference (r:AstRoot) (curState:AcnInsertedFieldDependencies) (parents: 
         match sizeMin = sizeMax with
         | true  -> raise(SemanticError(loc, (sprintf "size acn property cannot be assigned to fixed size types. To fix this error remove 'size %s'." (path |> Seq.StrJoin "."))))
         | false ->
-                checkRelativePath curState parents t visibleParameters   (RelativePath path) checkParameter checkAcnType
+                checkRelativePath tasPositions curState parents t visibleParameters   (RelativePath path) checkParameter checkAcnType
 
 
-let checkChoicePresentWhen (r:AstRoot) (curState:AcnInsertedFieldDependencies) (parents: Asn1Type list) (t:Asn1Type)  (ch:Choice) (visibleParameters:(ReferenceToType*AcnParameter) list)    =
+let checkChoicePresentWhen (r:AstRoot) (tasPositions:Map<ReferenceToType,int>) (curState:AcnInsertedFieldDependencies) (parents: Asn1Type list) (t:Asn1Type)  (ch:Choice) (visibleParameters:(ReferenceToType*AcnParameter) list)    =
     match ch.acnProperties.enumDeterminant with
     | Some _        -> 
         //1 check that there is no child with present-when property
@@ -196,7 +212,7 @@ let checkChoicePresentWhen (r:AstRoot) (curState:AcnInsertedFieldDependencies) (
                             | false -> raise(SemanticError(intVal.Location, (sprintf "Value '%A' is not within the allowed limits"  intVal.Value )))
                             AcnDepPresence ((RelativePath path), ch)
                         | _              -> raise(SemanticError(loc, (sprintf "Invalid argument type. Expecting INTEGER got %s "  (c.Type.AsString))))
-                    checkRelativePath curState parents t visibleParameters   (RelativePath path)  checkParameter checkAcnType
+                    checkRelativePath tasPositions curState parents t visibleParameters   (RelativePath path)  checkParameter checkAcnType
                 | PresenceStr   ((RelativePath path), strVal)-> 
                     let loc = path.Head.Location
                     let checkParameter (p:AcnParameter) = 
@@ -218,7 +234,7 @@ let checkChoicePresentWhen (r:AstRoot) (curState:AcnInsertedFieldDependencies) (
                             | true  -> AcnDepPresenceStr ((RelativePath path), ch, str.str)
                             | false -> raise(SemanticError(strVal.Location, (sprintf "Length of value '%s' is not within the expected range: i.e. %d not in (%A .. %A)"  strVal.Value  strVal.Value.Length str.str.minSize str.str.maxSize)))
                         | _              -> raise(SemanticError(loc, (sprintf "Invalid argument type. Expecting STRING got %s "  (c.Type.AsString))))
-                    checkRelativePath curState parents t visibleParameters   (RelativePath path)  checkParameter checkAcnType
+                    checkRelativePath tasPositions curState parents t visibleParameters   (RelativePath path)  checkParameter checkAcnType
 
             
 
@@ -226,7 +242,7 @@ let checkChoicePresentWhen (r:AstRoot) (curState:AcnInsertedFieldDependencies) (
             
 
     
-let choiceEnumReference (r:AstRoot) (curState:AcnInsertedFieldDependencies) (parents: Asn1Type list) (t:Asn1Type) (ch:Choice) (visibleParameters:(ReferenceToType*AcnParameter) list)  (rp :RelativePath  option)  =
+let choiceEnumReference (r:AstRoot) (tasPositions:Map<ReferenceToType,int>) (curState:AcnInsertedFieldDependencies) (parents: Asn1Type list) (t:Asn1Type) (ch:Choice) (visibleParameters:(ReferenceToType*AcnParameter) list)  (rp :RelativePath  option)  =
     let children = ch.children
     let checkEnumNamesConsistency loc (nmItems:NamedItem list) =
         match children.Length <> nmItems.Length with
@@ -257,9 +273,9 @@ let choiceEnumReference (r:AstRoot) (curState:AcnInsertedFieldDependencies) (par
                 checkEnumNamesConsistency c.Name.Location enm.enumerated.items
                 AcnDepChoiceDeteterminant ({ReferenceToEnumerated.modName = enm.modName.Value; tasName = enm.tasName.Value; enm = enm.enumerated},ch)
             | _              -> raise(SemanticError(loc, (sprintf "Invalid argument type. Expecting ENUMERATED got %s "  (c.Type.AsString))))
-        checkRelativePath curState parents t visibleParameters   (RelativePath path) checkParameter checkAcnType
+        checkRelativePath tasPositions curState parents t visibleParameters   (RelativePath path) checkParameter checkAcnType
 
-let rec private checkType (r:AstRoot) (parents: Asn1Type list) (curentPath : ScopeNode list) (t:Asn1Type) (curState:AcnInsertedFieldDependencies) = 
+let rec private checkType (r:AstRoot) (tasPositions:Map<ReferenceToType,int>) (parents: Asn1Type list) (curentPath : ScopeNode list) (t:Asn1Type) (curState:AcnInsertedFieldDependencies) = 
     //the visible parameters of a type are this type parameters if type has parameters or the 
     //next parent with parameters
     let visibleParameters = 
@@ -278,15 +294,15 @@ let rec private checkType (r:AstRoot) (parents: Asn1Type list) (curentPath : Sco
     | NumericString  a      ->
         match a.acnProperties.sizeProp with
         | Some (StrExternalField   relPath)    ->
-            sizeReference r curState parents t a.minSize.acn a.maxSize.acn visibleParameters (Some relPath) AcnDepIA5StringSizeDeterminant
+            sizeReference r tasPositions curState parents t a.minSize.acn a.maxSize.acn visibleParameters (Some relPath) AcnDepIA5StringSizeDeterminant
         | _          -> curState
     | OctetString    a      -> 
-        sizeReference r curState parents t a.minSize.acn a.maxSize.acn visibleParameters a.acnProperties.sizeProp AcnDepSizeDeterminant
+        sizeReference r tasPositions curState parents t a.minSize.acn a.maxSize.acn visibleParameters a.acnProperties.sizeProp AcnDepSizeDeterminant
     | BitString      a      -> 
-        sizeReference r curState parents t a.minSize.acn a.maxSize.acn visibleParameters a.acnProperties.sizeProp AcnDepSizeDeterminant
+        sizeReference r tasPositions curState parents t a.minSize.acn a.maxSize.acn visibleParameters a.acnProperties.sizeProp AcnDepSizeDeterminant
     | SequenceOf   seqOf    ->
-        let ns = sizeReference r curState (parents) t seqOf.minSize.acn seqOf.maxSize.acn visibleParameters seqOf.acnProperties.sizeProp AcnDepSizeDeterminant
-        checkType r (parents@[t]) (curentPath@[SQF]) seqOf.child ns
+        let ns = sizeReference r tasPositions curState (parents) t seqOf.minSize.acn seqOf.maxSize.acn visibleParameters seqOf.acnProperties.sizeProp AcnDepSizeDeterminant
+        checkType r tasPositions (parents@[t]) (curentPath@[SQF]) seqOf.child ns
     | Sequence   seq        ->
         seq.children |>
         List.choose (fun c -> match c with Asn1Child ac -> Some ac | AcnChild _ -> None) |>
@@ -306,7 +322,7 @@ let rec private checkType (r:AstRoot) (parents: Asn1Type list) (curentPath : Sco
                             match c.Type with
                             | AcnBoolean    _ -> AcnDepPresenceBool
                             | _              -> raise(SemanticError(loc, (sprintf "Invalid argument type. Expecting BOOLEAN got %s "  (c.Type.AsString))))
-                        checkRelativePath ns (parents@[t]) ac.Type visibleParameters   (RelativePath path)  checkParameter checkAcnType 
+                        checkRelativePath tasPositions ns (parents@[t]) ac.Type visibleParameters   (RelativePath path)  checkParameter checkAcnType 
                     | Some (PresenceWhenBoolExpression exp)  -> 
                         let rec getChildResult (seq:Sequence) (RelativePath lp) =
                             match lp with
@@ -334,13 +350,13 @@ let rec private checkType (r:AstRoot) (parents: Asn1Type list) (curentPath : Sco
                         | ValResultOK   expType -> ns
                         | ValResultError (l,errMsg) -> raise(SemanticError(l, errMsg))
                 | _                     -> ns
-            checkType r (parents@[t]) (curentPath@[SEQ_CHILD ac.Name.Value])  ac.Type ns1
+            checkType r tasPositions (parents@[t]) (curentPath@[SEQ_CHILD ac.Name.Value])  ac.Type ns1
         ) curState
     | Choice ch ->
-        let ns0 = checkChoicePresentWhen r curState (parents) t ch visibleParameters 
-        let ns1 = choiceEnumReference r ns0 (parents) t ch visibleParameters ch.acnProperties.enumDeterminant
+        let ns0 = checkChoicePresentWhen r tasPositions curState (parents) t ch visibleParameters 
+        let ns1 = choiceEnumReference r tasPositions ns0 (parents) t ch visibleParameters ch.acnProperties.enumDeterminant
         ch.children|>
-        List.fold (fun ns ac -> checkType r (parents@[t]) (curentPath@[SEQ_CHILD ac.Name.Value])  ac.Type ns ) ns1
+        List.fold (fun ns ac -> checkType r tasPositions (parents@[t]) (curentPath@[SEQ_CHILD ac.Name.Value])  ac.Type ns ) ns1
     | ReferenceType ref -> 
         let checkArgument (curState:AcnInsertedFieldDependencies) ((RelativePath path : RelativePath), (prm:AcnParameter)) =
             let loc = path.Head.Location
@@ -355,7 +371,7 @@ let rec private checkType (r:AstRoot) (parents: Asn1Type list) (curentPath : Sco
                 | AcnBoolean    _, AcnPrmBoolean _   -> AcnDepRefTypeArgument prm
                 | _             , AcnPrmRefType (md,ts)    -> AcnDepRefTypeArgument prm    //WARNING NOT CHECKED
                 | _                                  -> raise(SemanticError(loc, (sprintf "Invalid argument type. Expecting %s got %s " (prm.asn1Type.ToString()) (c.Type.AsString))))
-            checkRelativePath curState parents t visibleParameters   (RelativePath path)  checkParameter checkAcnType
+            checkRelativePath tasPositions  curState parents t visibleParameters   (RelativePath path)  checkParameter checkAcnType
 
         let acnLoc =
             match ref.acnArguments with
@@ -369,16 +385,41 @@ let rec private checkType (r:AstRoot) (parents: Asn1Type list) (curentPath : Sco
             raise(SemanticError(acnLoc, errMgs))
         let ziped = List.zip ref.acnArguments ref.resolvedType.acnParameters
         let ns = ziped |> List.fold(fun s c -> checkArgument s c) curState
-        checkType r parents curentPath ref.resolvedType ns
+        checkType r tasPositions parents curentPath ref.resolvedType ns
 
 
 let checkAst (r:AstRoot) =
+    let rec GetReferences (t:Asn1Type) : ReferenceToType list = 
+        seq {
+            yield t.id
+            match t.ActualType.Kind with
+            | SequenceOf(conType) ->  yield! GetReferences conType.child
+            | Sequence seq ->
+                for ch in seq.children do 
+                    match ch with
+                    | Asn1Child a   -> yield! GetReferences a.Type
+                    | AcnChild  a   -> yield a.id
+                
+            | Choice(ch)-> 
+                for ch in ch.children do 
+                    yield! GetReferences ch.Type
+            |_ -> ()    
+        } |> Seq.toList
+
+    let allTasses = 
+        r.Files |>
+            List.collect (fun f -> f.Modules) |>
+            List.map (fun m -> m.TypeAssignments |> List.map(fun tas -> (m,tas)) ) |>
+            List.collect id
+
+    let positions =  allTasses 
+
     let emptyState = {AcnInsertedFieldDependencies.acnDependencies=[]}
 
-    r.Files |>
-        List.collect (fun f -> f.Modules) |>
-        List.map (fun m -> m.TypeAssignments |> List.map(fun tas -> (m,tas)) ) |>
-        List.collect id |>
-        List.fold (fun ns (m,tas) -> checkType r [] [MD m.Name.Value; TA tas.Name.Value] tas.Type ns) emptyState
+    let result = 
+        allTasses |>
+        List.fold (fun ns (m,tas) -> 
+            let tasPositions = GetReferences tas.Type |> List.mapi(fun i ref -> (ref,i)) |> Map.ofList
+            checkType r tasPositions [] [MD m.Name.Value; TA tas.Name.Value] tas.Type ns) emptyState
 
-
+    result

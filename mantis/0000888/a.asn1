@@ -1,0 +1,16 @@
+Test DEFINITIONS ::=
+BEGIN
+
+MyEnum ::= ENUMERATED {a,b,c}
+
+T-Thing ::= CHOICE {
+alt1 INTEGER,
+alt2 MyEnum
+}
+
+T-ThingHolder ::= SEQUENCE {
+random INTEGER,
+thing T-Thing
+}
+
+END
