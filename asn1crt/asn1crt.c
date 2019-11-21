@@ -5,21 +5,6 @@
 
 #include "asn1crt.h"
 
-
-
-
-
-int GetCharIndex(char ch, byte Set[], int setLen)
-{
-    int i=0;
-    for(i=0; i<setLen; i++)
-        if (ch == Set[i])
-            return i;
-    return 0;
-}
-
-
-
 #if WORD_SIZE==8
 const asn1SccUint64 ber_aux[] = { 
     0xFF,
@@ -37,8 +22,6 @@ const asn1SccUint32 ber_aux[] = {
     0xFF0000,
     0xFF000000 };
 #endif
-
-
 
 asn1SccUint int2uint(asn1SccSint v) {
     asn1SccUint ret = 0;
@@ -63,7 +46,14 @@ asn1SccSint uint2int(asn1SccUint v, int uintSizeInBytes) {
     return -(asn1SccSint)(~v) - 1;
 }
 
-
+int GetCharIndex(char ch, byte Set[], int setLen)
+{
+    int i=0;
+    for(i=0; i<setLen; i++)
+        if (ch == Set[i])
+            return i;
+    return 0;
+}
 
 /*
 
@@ -109,7 +99,3 @@ flag ObjectIdentifier_equal(const Asn1ObjectIdentifier *pVal1, const Asn1ObjectI
 		return FALSE;
 	}
 }
-
-
-
-

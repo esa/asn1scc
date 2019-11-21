@@ -42,8 +42,6 @@ extern "C" {
 typedef float asn1Real32;
 typedef double asn1Real64;
 
-
-
 typedef unsigned char byte;
 
 typedef int asn1SccSint32;
@@ -126,16 +124,12 @@ typedef struct {
 #define ERR_INVALID_BER_FILE	201
 #define ERR_BER_LENGTH_MISMATCH	202
 
-flag OctetString_equal(int len1, int len2, const byte arr1[], const byte arr2[]);
-flag BitString_equal(int nBitsLength1, int nBitsLength2, const byte arr1[], const byte arr2[]);
+int GetCharIndex(char ch, byte allowedCharSet[], int setLen);
 
 void ObjectIdentifier_Init(Asn1ObjectIdentifier *pVal);
 flag ObjectIdentifier_equal(const Asn1ObjectIdentifier *pVal1, const Asn1ObjectIdentifier *pVal2);
 flag ObjectIdentifier_isValid(const Asn1ObjectIdentifier *pVal);
 flag RelativeOID_isValid(const Asn1ObjectIdentifier *pVal);
-
-int GetCharIndex(char ch, byte allowedCharSet[], int setLen);
-
 
 /* Time Classes
 	Asn1LocalTime,					// TIME-OF-DAY  ::= TIME(SETTINGS "Basic=Time Time=HMS Local-or-UTC=L")
@@ -201,23 +195,13 @@ typedef enum {
 	Asn1TC_LocalTimeTZStamp
 } Asn1TimeZoneClass;
 
-
-
 typedef asn1SccUint BerTag;
-
-
-
-
-
 
 #if WORD_SIZE==8
 extern const asn1SccUint64 ber_aux[];
 #else
 extern const asn1SccUint32 ber_aux[];
 #endif
-
-
-
 
 #define CHECK_BIT_STREAM(pBitStrm)	assert((pBitStrm)->currentByte*8+(pBitStrm)->currentBit<=(pBitStrm)->count*8)
 

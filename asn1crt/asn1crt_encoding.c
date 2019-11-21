@@ -16,6 +16,11 @@ static asn1SccUint32 masks2[] = { 0x0,
 0xFF0000,
 0xFF000000 };
 
+flag OctetString_equal(int len1, int len2, const byte arr1[], const byte arr2[])
+{
+	return (len1 == len2) && (memcmp(arr1, arr2, len1) == 0);
+}
+
 /***********************************************************************************************/
 /*   Byte Stream Functions                                                                      */
 /***********************************************************************************************/
