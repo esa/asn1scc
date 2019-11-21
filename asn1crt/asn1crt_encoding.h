@@ -7,6 +7,11 @@
 extern "C" {
 #endif
 
+/* Byte strean functions */
+void ByteStream_Init(ByteStream* pStrm, byte* buf, long count);
+void ByteStream_AttachBuffer(ByteStream* pStrm, unsigned char* buf, long count);
+asn1SccSint ByteStream_GetLength(ByteStream* pStrm);
+
 /* Bit strean functions */
 
 void BitStream_AppendNBitZero(BitStream* pBitStrm, int nbits);
@@ -27,11 +32,6 @@ void BitStream_AppendBit(BitStream* pBitStrm, flag v);
 void BitStream_AppendBits(BitStream* pBitStrm, const byte* srcBuffer, int nBitsToWrite);
 void BitStream_AppendByte(BitStream* pBitStrm, byte v, flag negate);
 void BitStream_AppendByte0(BitStream* pBitStrm, byte v);
-
-
-void ByteStream_Init(ByteStream* pStrm, byte* buf, long count);
-void ByteStream_AttachBuffer(ByteStream* pStrm, unsigned char* buf, long count);
-asn1SccSint ByteStream_GetLength(ByteStream* pStrm);
 
 asn1SccSint BitStream_GetLength(BitStream* pBitStrm);
 void BitStream_AppendBitOne(BitStream* pBitStrm);
