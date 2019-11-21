@@ -60,6 +60,9 @@ typedef asn1SccUint32 asn1SccUint;
 typedef asn1SccSint32 asn1SccSint;
 #endif
 
+asn1SccUint int2uint(asn1SccSint v);
+asn1SccSint uint2int(asn1SccUint v, int uintSizeInBytes);
+
 #if FP_WORD_SIZE==8
 typedef asn1Real64 asn1Real;
 #else
@@ -123,15 +126,13 @@ typedef struct {
 #define ERR_INVALID_BER_FILE	201
 #define ERR_BER_LENGTH_MISMATCH	202
 
-
-
 flag OctetString_equal(int len1, int len2, const byte arr1[], const byte arr2[]);
 flag BitString_equal(int nBitsLength1, int nBitsLength2, const byte arr1[], const byte arr2[]);
+
 void ObjectIdentifier_Init(Asn1ObjectIdentifier *pVal);
 flag ObjectIdentifier_equal(const Asn1ObjectIdentifier *pVal1, const Asn1ObjectIdentifier *pVal2);
 flag ObjectIdentifier_isValid(const Asn1ObjectIdentifier *pVal);
 flag RelativeOID_isValid(const Asn1ObjectIdentifier *pVal);
-
 
 int GetCharIndex(char ch, byte allowedCharSet[], int setLen);
 

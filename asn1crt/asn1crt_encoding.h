@@ -55,9 +55,6 @@ flag BitStream_DecodeSemiConstraintPosWholeNumber(BitStream* pBitStrm, asn1SccUi
 flag BitStream_DecodeConstraintWholeNumber(BitStream* pBitStrm, asn1SccSint* v, asn1SccSint min, asn1SccSint max);
 flag BitStream_DecodeConstraintPosWholeNumber(BitStream* pBitStrm, asn1SccUint* v, asn1SccUint min, asn1SccUint max);
 
-asn1SccUint int2uint(asn1SccSint v);
-asn1SccSint uint2int(asn1SccUint v, int uintSizeInBytes);
-
 int GetNumberOfBitsForNonNegativeInteger(asn1SccUint v);
 
 void CalculateMantissaAndExponent(asn1Real d, int* exp, asn1SccUint64* mantissa);
