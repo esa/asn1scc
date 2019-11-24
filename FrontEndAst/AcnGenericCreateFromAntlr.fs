@@ -303,7 +303,16 @@ let private creareAcnProperty (acnConstants : Map<string, BigInteger>) (t:ITree)
     | acnParser.INT                     -> ENUM_SET_VALUE t.BigIntL
     | acnParser.TERMINATION_PATTERN     -> 
         let tp = t
-        let bitPattern = GetActualString (tp.GetChild(0).Text)
+        let bitPattern = 
+            let literal = GetActualString (tp.GetChild(0).Text)
+            match tp.GetChild(0).Type with
+            | acnParser.BitStringLiteral    ->
+                { StringLoc.Value = literal; Location = tp.GetChild(0).Location}
+            | acnParser.OctectStringLiteral ->
+                let byteArr = octetStringLiteralToByteArray literal
+                { StringLoc.Value = byteArrayToBitStringValue byteArr; Location = tp.GetChild(0).Location}
+            | _     ->  raise(BugErrorException("creareAcnProperty_TERMINATION_PATTERN"))
+        (*
         let terminationBytes = 
             match tp.GetChild(0).Type with
             | acnParser.BitStringLiteral    ->
@@ -323,7 +332,8 @@ let private creareAcnProperty (acnConstants : Map<string, BigInteger>) (t:ITree)
                     octetStringLiteralToByteArray bitPattern
                     //TERMINATION_PATTERN (System.Byte.Parse(bitPattern, System.Globalization.NumberStyles.AllowHexSpecifier))
             | _     ->  raise(BugErrorException("creareAcnProperty_TERMINATION_PATTERN"))
-        TERMINATION_PATTERN terminationBytes
+            *)
+        TERMINATION_PATTERN bitPattern
     | _                             -> raise(SemanticError(t.Location, (sprintf "Unexpected token '%s'" t.Text)))
 
 let rec  private createTypeEncodingSpec (allAcnFiles: CommonTypes.AntlrParserResult list) (acnConstants : Map<string, BigInteger>) (thisAcnFile: CommonTypes.AntlrParserResult)  (alreadyTakenComments:System.Collections.Generic.List<IToken>) (encSpecITree:ITree) : AcnTypeEncodingSpec =

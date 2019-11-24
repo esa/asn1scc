@@ -186,7 +186,10 @@ let GetOctetBitSeqofEncodingClass (aligment: AcnAligment option) errLoc (p  : Si
         | None                  -> 
                 let minSizeInBits, maxSizeInBits = uPER.getSizeableTypeSize asn1Min asn1Max internalMaxSize
                 SZ_EC_uPER, minSizeInBits, maxSizeInBits
-        | Some p                -> SZ_EC_ExternalField p, asn1Min*internalMinSize, asn1Max*internalMaxSize
+        | Some p                -> 
+            match p with
+            | SzExternalField p     -> SZ_EC_ExternalField p, asn1Min*internalMinSize, asn1Max*internalMaxSize
+            | SzNullTerminated tp   -> SZ_EC_TerminationPattern tp,  (BigInteger tp.Value.Length) +  asn1Min*internalMinSize, (BigInteger tp.Value.Length) +  asn1Max*internalMaxSize
 
     encClass, minSizeInBits+alignmentSize, maxSizeInBits+alignmentSize
 

@@ -6,4 +6,4 @@ TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
 	
 END
 
---TCLS     MyPDU[]
+--TCLS     MyPDU[size null-terminated, termination-pattern '0F0F'H]

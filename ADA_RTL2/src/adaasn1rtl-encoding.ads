@@ -71,7 +71,8 @@ package adaasn1rtl.encoding with Spark_Mode is
    function Sub (A : in Asn1Int; B : in Asn1Int) return Asn1UInt with
      Pre  => A >= B;
    
-   function stringContainsChar (str : String; ch : Character) return Boolean;
+   function stringContainsChar (str : String; ch : Character) return Boolean with
+      Pre => str'Last < Natural'Last;
    
    function GetBytes (V : Asn1UInt) return Asn1Byte with
      Post    => GetBytes'Result >=1 and GetBytes'Result<=8;
@@ -162,6 +163,39 @@ package adaasn1rtl.encoding with Spark_Mode is
                 bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 8,
      Post    => success and bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 8;
    
+   function BitStream_PeekByte(bs : in Bitstream; offset : Natural) return Asn1Byte   with
+     Pre     => bs.Current_Bit_Pos   < Natural'Last - offset - 8 and then  
+                bs.Size_In_Bytes < Positive'Last/8 and  then
+                bs.Current_Bit_Pos  <= bs.Size_In_Bytes * 8 - offset - 8;
+   
+   
+   procedure BitStream_AppendBits(bs : in out BitStream; bitMaskAsByteArray : in OctetBuffer; bits_to_write : in Natural ) with
+     Depends => (bs => (bs, bitMaskAsByteArray, bits_to_write)),
+     Pre     => bitMaskAsByteArray'First >= 0 and then
+                bitMaskAsByteArray'Last < Natural'Last/8 and then
+                bits_to_write >= (bitMaskAsByteArray'Length - 1) * 8 and then
+                bits_to_write <= (bitMaskAsByteArray'Length) * 8 and then
+                bs.Current_Bit_Pos < Natural'Last - bits_to_write and then  
+                bs.Size_In_Bytes < Positive'Last/8 and  then
+                bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - bits_to_write,
+     Post    => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + bits_to_write;
+   
+   procedure  BitStream_ReadBits   (bs : in out BitStream; bitMaskAsByteArray : in out OctetBuffer; bits_to_read : in Natural; success : out boolean) with   
+    Depends => ( (bs, bitMaskAsByteArray, success) => (bs, bits_to_read)),
+     Pre     => bitMaskAsByteArray'First >= 0 and then
+                bitMaskAsByteArray'Last < Natural'Last/8 and then
+                bits_to_read >= (bitMaskAsByteArray'Length - 1) * 8 and then
+                bits_to_read <= (bitMaskAsByteArray'Length) * 8 and then
+                bs.Current_Bit_Pos < Natural'Last - bits_to_read and then  
+                bs.Size_In_Bytes < Positive'Last/8 and  then
+                bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - bits_to_read,
+     Post    => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + bits_to_read;
+     
+   procedure  BitStream_SkipBits   (bs : in out BitStream; bits_to_skip : in Natural) with
+    Depends => ( (bs) => (bs, bits_to_skip)),
+     Pre     => 
+                bs.Current_Bit_Pos < Natural'Last - bits_to_skip,
+     Post    => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + bits_to_skip;
    
    
    procedure BitStream_ReadNibble (bs : in out BitStream; Byte_Value : out Asn1Byte; success   :    out Boolean) with
@@ -185,6 +219,11 @@ package adaasn1rtl.encoding with Spark_Mode is
                 bs.Size_In_Bytes < Positive'Last/8 and  then
                 bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - nBits,
      Post    => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + nBits;   
+     
+   function BitStream_PeekPartialByte(bs : in BitStream; offset : Natural; nBits : in BIT_RANGE) return Asn1Byte with
+     Pre     => bs.Current_Bit_Pos < Natural'Last - nBits - offset and then  
+                bs.Size_In_Bytes < Positive'Last/8 and  then
+                bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - nBits - offset;  
    
    procedure BitStream_Encode_Non_Negative_Integer(bs : in out BitStream; intValue   : in Asn1UInt; nBits : in Integer) with
      Depends => (bs => (bs, intValue, nBits)),
@@ -348,5 +387,14 @@ package adaasn1rtl.encoding with Spark_Mode is
                      (not Result  and  (IntVal = MinVal))
                 );
 
+    function BitStream_bitPatternMatches (bs : in BitStream; bit_terminated_pattern : in OctetBuffer; bit_terminated_pattern_size_in_bits : natural) return boolean with
+     Pre     => 
+                bit_terminated_pattern'First >= 0 and then
+                bit_terminated_pattern'Last < Natural'Last/8 and then
+                bit_terminated_pattern_size_in_bits <= (bit_terminated_pattern'Length) * 8 and then     
+                bs.Current_Bit_Pos   < Natural'Last - bit_terminated_pattern_size_in_bits and then  
+                bs.Size_In_Bytes < Positive'Last/8 and  then
+                bs.Current_Bit_Pos  <= bs.Size_In_Bytes * 8 - bit_terminated_pattern_size_in_bits;
+    
    
 end adaasn1rtl.encoding;

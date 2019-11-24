@@ -768,6 +768,7 @@ let createAcnStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
 
 let createOctetStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (l:ProgrammingLanguage) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.OctetString) (typeDefinition:TypeDefintionOrReference) (isValidFunc: IsValidFunction option) (uperFunc: UPerFunction) (us:State)  =
     let oct_sqf_external_field                          = match l with C -> acn_c.oct_sqf_external_field       | Ada -> acn_a.oct_sqf_external_field
+    let oct_sqf_null_terminated = match l with C -> acn_c.oct_sqf_null_terminated       | Ada -> acn_a.oct_sqf_null_terminated
     let InternalItem_oct_str                            = match l with C -> uper_c.InternalItem_oct_str        | Ada -> uper_a.InternalItem_oct_str
     let i = sprintf "i%d" (t.id.SeqeuenceOfLevel + 1)
     let lv = SequenceOfIndex (t.id.SeqeuenceOfLevel + 1, None)
@@ -786,6 +787,22 @@ let createOctetStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserte
                 let internalItem = InternalItem_oct_str p.arg.p (p.arg.getAcces l) i  errCode.errCodeName codec 
                 let fncBody = oct_sqf_external_field p.arg.p (p.arg.getAcces l) i internalItem (if o.minSize.acn=0I then None else Some ( o.minSize.acn)) ( o.maxSize.acn) extField nAlignSize errCode.errCodeName 8I 8I codec
                 Some(fncBody, [errCode],[lv])
+            | SZ_EC_TerminationPattern bitPattern   ->
+                let mod8 = bitPattern.Value.Length % 8
+                let suffix = [1 .. mod8] |> Seq.map(fun _ -> "0") |> Seq.StrJoin ""
+                let bitPatten8 = bitPattern.Value + suffix
+                let byteArray = bitStringValueToByteArray bitPatten8.AsLoc
+                let internalItem = InternalItem_oct_str p.arg.p (p.arg.getAcces l) i  errCode.errCodeName codec 
+                let noSizeMin = if o.minSize.acn=0I then None else Some ( o.minSize.acn)
+                let fncBody = oct_sqf_null_terminated p.arg.p (p.arg.getAcces l) i internalItem noSizeMin o.maxSize.acn byteArray bitPattern.Value.Length.AsBigInt errCode.errCodeName  codec
+                let lv2 = 
+                    match codec, l with
+                    | Decode, C    -> [IntegerLocalVariable ("checkBitPatternPresentResult", Some 0)]
+                    | _            -> []
+                Some(fncBody, [errCode],lv::lv2)
+                
+
+
         match funcBodyContent with
         | None -> None
         | Some (funcBodyContent,errCodes, localVariables) -> Some ({AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = errCodes; localVariables = localVariables})
@@ -797,6 +814,7 @@ let createBitStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
 
     let funcBody (errCode:ErroCode) (acnArgs: (AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) (p:CallerScope)        = 
         //let pp = match codec with CommonTypes.Encode -> p.arg.getValue l | CommonTypes.Decode -> p.arg.getPointer l
+        //let bit_string_null_terminated = match l with C -> acn_c.bit_string_null_terminated | Ada -> acn_a.bit_string_null_terminated
         let funcBodyContent = 
             match o.acnEncodingClass with
             | SZ_EC_uPER                                              -> 
@@ -815,6 +833,23 @@ let createBitStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
                     let internalItem = uper_a.InternalItem_bit_str p.arg.p i  errCode.errCodeName codec 
                     let fncBody = acn_a.oct_sqf_external_field p.arg.p (p.arg.getAcces l) i internalItem (if o.minSize.acn=0I then None else Some ( o.minSize.acn)) ( o.maxSize.acn) extField nAlignSize errCode.errCodeName 1I 1I codec
                     Some(fncBody, [errCode], [lv])
+            | SZ_EC_TerminationPattern   bitPattern    -> 
+                let mod8 = bitPattern.Value.Length % 8
+                let suffix = [1 .. mod8] |> Seq.map(fun _ -> "0") |> Seq.StrJoin ""
+                let bitPatten8 = bitPattern.Value + suffix
+                let byteArray = bitStringValueToByteArray bitPatten8.AsLoc
+                match l with
+                | C     ->
+                    let fncBody = acn_c.bit_string_null_terminated p.arg.p errCode.errCodeName (p.arg.getAcces l) (if o.minSize.acn=0I then None else Some ( o.minSize.acn)) ( o.maxSize.acn) byteArray bitPattern.Value.Length.AsBigInt codec
+                    Some(fncBody, [errCode], [])
+                | Ada   ->
+                    let i = sprintf "i%d" (t.id.SeqeuenceOfLevel + 1)
+                    let lv = SequenceOfIndex (t.id.SeqeuenceOfLevel + 1, None)
+                    let internalItem = uper_a.InternalItem_bit_str p.arg.p i  errCode.errCodeName codec 
+                    let noSizeMin = if o.minSize.acn=0I then None else Some ( o.minSize.acn)
+                    let fncBody = acn_a.oct_sqf_null_terminated p.arg.p (p.arg.getAcces l) i internalItem noSizeMin o.maxSize.acn byteArray bitPattern.Value.Length.AsBigInt errCode.errCodeName  codec
+                    Some(fncBody, [errCode], [lv])
+                    
         match funcBodyContent with
         | None -> None
         | Some (funcBodyContent,errCodes, localVariables) -> Some ({AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = errCodes; localVariables = localVariables})
@@ -824,6 +859,7 @@ let createBitStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
 
 
 let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (l:ProgrammingLanguage) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.SequenceOf) (typeDefinition:TypeDefintionOrReference) (defOrRef:TypeDefintionOrReference) (isValidFunc: IsValidFunction option)  (child:Asn1Type) (us:State)  =
+    let oct_sqf_null_terminated = match l with C -> acn_c.oct_sqf_null_terminated       | Ada -> acn_a.oct_sqf_null_terminated
     let external_field          = match l with C -> acn_c.oct_sqf_external_field       | Ada -> acn_a.oct_sqf_external_field
     let fixedSize               = match l with C -> uper_c.octect_FixedSize            | Ada -> uper_a.octect_FixedSize
     let varSize                 = match l with C -> uper_c.octect_VarSize              | Ada -> uper_a.octect_VarSize
@@ -888,6 +924,24 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserted
                         let extField        = getExternaField r deps t.id
                         let funcBodyContent = external_field p.arg.p (p.arg.getAcces l) i internalItem (if o.minSize.acn=0I then None else Some ( o.minSize.acn)) ( o.maxSize.acn) extField nAlignSize errCode.errCodeName o.child.acnMinSizeInBits o.child.acnMaxSizeInBits  codec
                         Some ({AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = errCode::childErrCodes; localVariables = lv@localVariables})
+                | SZ_EC_TerminationPattern   bitPattern    -> 
+                    match internalItem with
+                    | None  -> None
+                    | Some internalItem ->
+                        let mod8 = bitPattern.Value.Length % 8
+                        let suffix = [1 .. mod8] |> Seq.map(fun _ -> "0") |> Seq.StrJoin ""
+                        let bitPatten8 = bitPattern.Value + suffix
+                        let byteArray = bitStringValueToByteArray bitPatten8.AsLoc
+                        let localVariables  = internalItem.localVariables
+                        let childErrCodes   = internalItem.errCodes
+                        let internalItem    = internalItem.funcBody
+                        let noSizeMin = if o.minSize.acn=0I then None else Some ( o.minSize.acn)
+                        let funcBodyContent = oct_sqf_null_terminated p.arg.p (p.arg.getAcces l) i internalItem noSizeMin o.maxSize.acn byteArray bitPattern.Value.Length.AsBigInt errCode.errCodeName  codec
+                        let lv2 = 
+                            match codec, l with
+                            | Decode, C    -> [IntegerLocalVariable ("checkBitPatternPresentResult", Some 0)]
+                            | _            -> []
+                        Some ({AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = errCode::childErrCodes; localVariables = lv2@lv@localVariables})
             ret,ns
     let soSparkAnnotations = None
     createAcnFunction r l codec t typeDefinition  isValidFunc  funcBody (fun atc -> true) soSparkAnnotations us

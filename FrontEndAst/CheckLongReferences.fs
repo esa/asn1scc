@@ -297,11 +297,27 @@ let rec private checkType (r:AstRoot) (tasPositions:Map<ReferenceToType,int>) (p
             sizeReference r tasPositions curState parents t a.minSize.acn a.maxSize.acn visibleParameters (Some relPath) AcnDepIA5StringSizeDeterminant
         | _          -> curState
     | OctetString    a      -> 
-        sizeReference r tasPositions curState parents t a.minSize.acn a.maxSize.acn visibleParameters a.acnProperties.sizeProp AcnDepSizeDeterminant
+        let rp = 
+            match a.acnProperties.sizeProp with 
+            | None -> None
+            | Some (SzExternalField ef) -> Some ef
+            | Some (SzNullTerminated _) -> None
+        sizeReference r tasPositions curState parents t a.minSize.acn a.maxSize.acn visibleParameters rp AcnDepSizeDeterminant
     | BitString      a      -> 
-        sizeReference r tasPositions curState parents t a.minSize.acn a.maxSize.acn visibleParameters a.acnProperties.sizeProp AcnDepSizeDeterminant
+        let rp = 
+            match a.acnProperties.sizeProp with 
+            | None -> None
+            | Some (SzExternalField ef) -> Some ef
+            | Some (SzNullTerminated _) -> None
+        sizeReference r tasPositions curState parents t a.minSize.acn a.maxSize.acn visibleParameters rp AcnDepSizeDeterminant
     | SequenceOf   seqOf    ->
-        let ns = sizeReference r tasPositions curState (parents) t seqOf.minSize.acn seqOf.maxSize.acn visibleParameters seqOf.acnProperties.sizeProp AcnDepSizeDeterminant
+        let rp = 
+            match seqOf.acnProperties.sizeProp with 
+            | None -> None
+            | Some (SzExternalField ef) -> Some ef
+            | Some (SzNullTerminated _) -> None
+
+        let ns = sizeReference r tasPositions curState (parents) t seqOf.minSize.acn seqOf.maxSize.acn visibleParameters rp AcnDepSizeDeterminant
         checkType r tasPositions (parents@[t]) (curentPath@[SQF]) seqOf.child ns
     | Sequence   seq        ->
         seq.children |>

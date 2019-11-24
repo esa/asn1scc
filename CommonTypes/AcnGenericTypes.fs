@@ -318,9 +318,13 @@ type StringAcnProperties = {
     sizeProp        : AcnStringSizeProperty option
 }
 
+type AcnSizeableSizeProperty =
+    | SzExternalField   of RelativePath
+    | SzNullTerminated  of StringLoc     //termination pattern
+
 
 type SizeableAcnProperties = {
-    sizeProp        : RelativePath          option
+    sizeProp        : AcnSizeableSizeProperty          option
 }
 
 type PATTERN_PROP_VALUE =
@@ -437,7 +441,7 @@ type  GenericAcnProperty =
     | CHOICE_DETERMINANT of RelativePath
     | ENDIANNES         of AcnEndianness
     | ENUM_SET_VALUE    of IntLoc
-    | TERMINATION_PATTERN of byte list
+    | TERMINATION_PATTERN of StringLoc //bit pattern
     | MAPPING_FUNCTION  of StringLoc
     | POST_ENCODING_FUNCTION of StringLoc
     | PRE_DECODING_FUNCTION of StringLoc

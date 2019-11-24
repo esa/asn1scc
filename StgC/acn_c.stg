@@ -575,6 +575,37 @@ if (ret) {
 >>
 
 
+oct_sqf_null_terminated_encode(p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength, sErrCode) ::= <<
+<loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize=[p, sAcc, "nCount"])>
+BitStream_AppendBits(pBitStrm, (byte[]){<arruNullBytes; separator=", ">}, <nBitPatternLength>);
+>>
+
+oct_sqf_null_terminated_decode(p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength, sErrCode) ::= <<
+<i>=0;
+ret = TRUE;
+while(ret && <i> \< <nSizeMax> && ( (checkBitPatternPresentResult = BitStream_checkBitPatternPresent(pBitStrm, (byte[]){<arruNullBytes; separator=", ">}, <nBitPatternLength>)) == 1))
+{
+	<sInternalItem>
+	<i>++;
+}
+
+if (ret && (<i> == <nSizeMax>) && (checkBitPatternPresentResult == 1)) {
+	checkBitPatternPresentResult = BitStream_checkBitPatternPresent(pBitStrm, (byte[]){<arruNullBytes; separator=", ">}, <nBitPatternLength>);
+}
+
+
+if (ret && (checkBitPatternPresentResult == 0)) {
+	ret = FALSE;			/*COVERAGE_IGNORE*/
+	*pErrCode = <sErrCode>;	/*COVERAGE_IGNORE*/
+} else if (ret && (checkBitPatternPresentResult == 2)) {
+	<p><sAcc>nCount = <i>;
+	ret = true;
+	*pErrCode = 0;
+}
+
+>>
+
+
 bit_string_external_field_encode(p, sErrCode, sAcc, noSizeMin, nSizeMax, sExtFld) ::= <<
 BitStream_AppendBits(pBitStrm, <p><sAcc>arr, <p><sAcc>nCount);
 >>
@@ -587,6 +618,19 @@ if (ret) {
     *pErrCode = ret ? 0 : <sErrCode>;
 }
 >>
+
+
+bit_string_null_terminated_encode(p, sErrCode, sAcc, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength) ::= <<
+BitStream_AppendBits(pBitStrm, <p><sAcc>arr, <p><sAcc>nCount);
+BitStream_AppendBits(pBitStrm, (byte[]){<arruNullBytes; separator=", ">}, <nBitPatternLength>);
+>>
+
+bit_string_null_terminated_decode(p, sErrCode, sAcc, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength) ::= <<
+ret = BitStream_ReadBits_nullterminated(pBitStrm, (byte[]){<arruNullBytes; separator=", ">}, <nBitPatternLength>, <p><sAcc>arr, <nSizeMax>, &<p><sAcc>nCount);
+*pErrCode = ret ? 0 : <sErrCode>;
+>>
+
+
 
 RefTypeParam_tmpVar(sName, sTypeDecl) ::= "<sTypeDecl> <sName>;"
 

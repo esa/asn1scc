@@ -1,0 +1,19 @@
+TEST-CASE { iso member-body(2) f(250) type-org(1) taste(16) asn1scc(9) testmodule(1) }
+DEFINITIONS AUTOMATIC TAGS::= BEGIN
+
+	MyPDU ::= INTEGER
+	
+END
+
+TEST-CASE2 { iso member-body(2) f(250) type-org(1) taste(16) asn1scc(9) testmodule(1) }
+DEFINITIONS AUTOMATIC TAGS::= 
+BEGIN
+   IMPORTS MyPDU FROM TEST-CASE { iso member-body(2) f(250) type-org(1) taste(16) asn1scc(9) testmodule(1) };
+
+   MyAnotherPDU ::= MyPDU
+	
+END
+
+
+--TCLS     MyPDU[]
+

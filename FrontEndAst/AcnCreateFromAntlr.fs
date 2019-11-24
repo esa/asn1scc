@@ -42,7 +42,12 @@ let private getIntSizeProperty  errLoc (props:GenericAcnProperty list) =
     | Some (GP_Fixed           v)   -> Some(AcnGenericTypes.Fixed (v.Value))
     | Some (GP_NullTerminated   )   -> 
         match tryGetProp props (fun x -> match x with TERMINATION_PATTERN e -> Some e | _ -> None) with
-        | Some b    -> Some(AcnGenericTypes.IntNullTerminated b)
+        | Some bitPattern    -> 
+            match bitPattern.Value.Length % 8 <> 0 with
+            | true  -> raise(SemanticError(bitPattern.Location, sprintf "termination-pattern value must be a sequence of bytes"  ))
+            | false ->
+                let ba = bitStringValueToByteArray bitPattern |> Seq.toList
+                Some(AcnGenericTypes.IntNullTerminated ba)
         | None      -> Some(AcnGenericTypes.IntNullTerminated ([byte 0]))
     | Some (GP_SizeDeterminant _)   -> raise(SemanticError(errLoc ,"Expecting an Integer value or an ACN constant as value for the size property"))
 
@@ -60,14 +65,18 @@ let private getStringSizeProperty (minSize:BigInteger) (maxSize:BigInteger) errL
             | false -> raise(SemanticError(errLoc , (sprintf "The size property must either be ommited or have the fixed value %A" minSize)))
     | Some (GP_NullTerminated   )   -> 
         match tryGetProp props (fun x -> match x with TERMINATION_PATTERN e -> Some e | _ -> None) with
-        | Some b    -> Some(AcnGenericTypes.StrNullTerminated b)
+        | Some bitPattern    -> 
+            match bitPattern.Value.Length % 8 <> 0 with
+            | true  -> raise(SemanticError(bitPattern.Location, sprintf "termination-pattern value must be a sequence of bytes"  ))
+            | false ->
+                let ba = bitStringValueToByteArray bitPattern |> Seq.toList
+                Some(AcnGenericTypes.StrNullTerminated ba)
         | None      -> Some(AcnGenericTypes.StrNullTerminated ([byte 0]))
     | Some (GP_SizeDeterminant fld)   -> (Some (AcnGenericTypes.StrExternalField fld))
 
 let private getSizeableSizeProperty (minSize:BigInteger) (maxSize:BigInteger) errLoc (props:GenericAcnProperty list) = 
     match tryGetProp props (fun x -> match x with SIZE e -> Some e | _ -> None) with
     | None  -> None
-    | Some (GP_NullTerminated   )        -> raise(SemanticError(errLoc ,"Acn property 'size null-terminated' is supported only in IA5String and NumericString string types and in Integer types and when encoding is ASCII"))
     | Some (GP_Fixed           v)   ->
         match minSize = maxSize with
         | false ->
@@ -77,7 +86,11 @@ let private getSizeableSizeProperty (minSize:BigInteger) (maxSize:BigInteger) er
             match minSize = v.Value with
             | true  -> None
             | false -> raise(SemanticError(errLoc , (sprintf "The size property must either be ommited or have the fixed value %A" minSize)))
-    | Some (GP_SizeDeterminant fld)   -> (Some fld)
+    | Some (GP_SizeDeterminant fld)   -> (Some (SzExternalField fld))
+    | Some (GP_NullTerminated   )   -> 
+        match tryGetProp props (fun x -> match x with TERMINATION_PATTERN e -> Some e | _ -> None) with
+        | Some b    -> Some(AcnGenericTypes.SzNullTerminated b)
+        | None      -> raise(SemanticError(errLoc , (sprintf "No 'termination-pattern' was provided")))
 
 let private getIntEncodingProperty errLoc (props:GenericAcnProperty list) = 
     match tryGetProp props (fun x -> match x with ENCODING e -> Some e | _ -> None) with
@@ -450,7 +463,7 @@ let private mergeOctetStringType (asn1:Asn1Ast.AstRoot) (loc:SrcLoc) (acnErrLoc:
     let acnProperties = 
         match acnErrLoc with
         | Some acnErrLoc    -> {SizeableAcnProperties.sizeProp = getSizeableSizeProperty minSize.acn maxSize.acn acnErrLoc props}
-        | None              -> {SizeableAcnProperties.sizeProp = None }
+        | None              -> {SizeableAcnProperties.sizeProp = None}
 
 
     let aligment = tryGetProp props (fun x -> match x with ALIGNTONEXT e -> Some e | _ -> None)

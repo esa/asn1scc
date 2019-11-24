@@ -39,6 +39,7 @@ extern "C" {
 
 #define OBJECT_IDENTIFIER_MAX_LENGTH	20
 
+
 typedef float asn1Real32;
 typedef double asn1Real64;
 

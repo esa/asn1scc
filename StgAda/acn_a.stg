@@ -743,8 +743,6 @@ loopFixedItem_enc (i, fixedSize, nfixedSizeUperLimit, sInternalItem, nCurOffset,
 <i> := 1;
 while <i>\<= <fixedSize> loop
     pragma Loop_Invariant (<i> >=1 and <i>\<=<fixedSize>);
-    --pragma Loop_Invariant (K >= K'Loop_Entry);
-    --pragma Loop_Invariant (K\<=K'Loop_Entry + <nIntItemMaxSize>*(<i>-1));
     <sInternalItem>
     <i> := <i> + 1;
 end loop;
@@ -754,8 +752,6 @@ loopFixedItem_dec (i, fixedSize, nfixedSizeUperLimit, sInternalItem, nCurOffset,
 <i> := 1;
 while <i>\<= <fixedSize> AND result.Success loop
     pragma Loop_Invariant (<i> >=1 and <i>\<=<fixedSize>);
-    --pragma Loop_Invariant (K.K >= K'Loop_Entry.K);
-    --pragma Loop_Invariant (K.K \<= K'Loop_Entry.K + <nIntItemMaxSize>*(<i>-1));
     <sInternalItem>
     <i> := <i> + 1;
 end loop;
@@ -784,6 +780,40 @@ IF result.Success THEN
     <p>.Length := Integer(<sExtFld>);
     <loopFixedItem_dec(i=i, sInternalItem=sInternalItem, fixedSize=[p,".Length"], nfixedSizeUperLimit = nSizeMax, nCurOffset="0", nAlignSize=nAlignSize, nIntItemMinSize=nIntItemMinSize, nIntItemMaxSize=nIntItemMaxSize)>
 END IF;
+>>
+
+
+oct_sqf_null_terminated_encode(p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength, sErrCode) ::= <<
+<loopFixedItem_enc(i=i, sInternalItem=sInternalItem, fixedSize=[p,".Length"], nfixedSizeUperLimit = nSizeMax, nCurOffset="0", nAlignSize="", nIntItemMinSize="", nIntItemMaxSize="")>
+<rtlModuleName()>.encoding.BitStream_AppendBits(bs, <rtlModuleName()>.OctetBuffer'(<arruNullBytes:{b|<i>=>16#<b;format="X2">#}; wrap, anchor, separator=", ">), <nBitPatternLength>);
+>>
+
+oct_sqf_null_terminated_decode(p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength, sErrCode) ::= <<
+<i> := 1;
+result := <rtlModuleName()>.ASN1_RESULT'(Success => true, ErrorCode => 0);
+while result.Success and then <i>\<= <nSizeMax> and then not <rtlModuleName()>.encoding.BitStream_bitPatternMatches(bs,<rtlModuleName()>.OctetBuffer'(<arruNullBytes:{b|<i>=>16#<b;format="X2">#}; wrap, anchor, separator=", ">), <nBitPatternLength>)  loop
+    pragma Loop_Invariant (<i> >=1 and <i>\<=<nSizeMax>);
+    <sInternalItem>
+    <i> := <i> + 1;
+end loop;
+
+if result.Success and <i> = <nSizeMax>+1  then
+	-- maximum number of elements was decoded. Makesure that the following bits is the termination pattern
+	result.Success := <rtlModuleName()>.encoding.BitStream_bitPatternMatches(bs,<rtlModuleName()>.OctetBuffer'(<arruNullBytes:{b|<i>=>16#<b;format="X2">#}; wrap, anchor, separator=", ">), <nBitPatternLength>);	
+	if result.Success then
+		<rtlModuleName()>.encoding.BitStream_SkipBits(bs, <nBitPatternLength>);
+		<p>.Length := <i>-1;
+	end if;
+	result := <rtlModuleName()>.ASN1_RESULT'(Success => result.Success, ErrorCode => <sErrCode>);
+elsif result.Success and <i> \< <nSizeMax>+1 then
+	<p>.Length := <i>-1;
+	<rtlModuleName()>.encoding.BitStream_SkipBits(bs, <nBitPatternLength>);
+	result := <rtlModuleName()>.ASN1_RESULT'(Success => true, ErrorCode => 0);
+else
+	result := <rtlModuleName()>.ASN1_RESULT'(Success => false, ErrorCode => <sErrCode>); --COVERAGE_IGNORE
+end if;
+
+
 >>
 
 
@@ -1339,8 +1369,5 @@ RefTypeArgument1(v, sTasName, sParamName, sRefTypePath, bHasSuccess) ::= <<
 RefTypeArgument2(v, sModName, sTasName, sParamName, sRefTypePath, bHasSuccess) ::= <<
 <sModName>.<RefTypeArgument1(v=v, sTasName=sTasName, sParamName=sParamName, sRefTypePath=sRefTypePath, bHasSuccess=bHasSuccess)>
 >>
-
-
-
 
 

@@ -1066,5 +1066,67 @@ flag DecodeRealAsBinaryEncoding(BitStream* pBitStrm, int length, byte header, as
 	return TRUE;
 }
 
+int BitStream_checkBitPatternPresent(BitStream* pBitStrm, const byte bit_terminated_pattern[], size_t bit_terminated_pattern_size_in_bits)
+{
+	long tmp_currentByte = pBitStrm->currentByte;
+	int tmp_currentBit = pBitStrm->currentBit;
+	byte tmp_byte;
 
 
+	int i = 0;
+
+	if (pBitStrm->currentByte * 8 + pBitStrm->currentBit + (long)bit_terminated_pattern_size_in_bits > pBitStrm->count * 8)
+		return 0;
+
+	while (bit_terminated_pattern_size_in_bits >= 8) {
+		if (!BitStream_ReadByte(pBitStrm, &tmp_byte))
+			return 0;
+		bit_terminated_pattern_size_in_bits -= 8;
+		if (bit_terminated_pattern[i] != tmp_byte) {
+			pBitStrm->currentByte = tmp_currentByte;
+			pBitStrm->currentBit = tmp_currentBit;
+			return 1;
+		}
+
+		i++;
+	}
+
+	if (bit_terminated_pattern_size_in_bits > 0) {
+		if (!BitStream_ReadPartialByte(pBitStrm, &tmp_byte, (byte)bit_terminated_pattern_size_in_bits))
+			return FALSE;
+		tmp_byte = (byte)(tmp_byte << (8 - bit_terminated_pattern_size_in_bits));
+
+		if (bit_terminated_pattern[i] != tmp_byte) {
+			pBitStrm->currentByte = tmp_currentByte;
+			pBitStrm->currentBit = tmp_currentBit;
+			return 1;
+		}
+	}
+
+	return 2;
+}
+
+
+flag BitStream_ReadBits_nullterminated(BitStream* pBitStrm, const byte bit_terminated_pattern[], size_t bit_terminated_pattern_size_in_bits, byte* BuffToWrite, int nMaxReadBits, int *bitsRead)
+{
+
+	int checkBitPatternPresentResult = 0;
+	*bitsRead = 0;
+	int ret = TRUE;
+	flag bitVal;
+	BitStream tmpStrm;
+	BitStream_Init(&tmpStrm, BuffToWrite, nMaxReadBits % 8 == 0 ? nMaxReadBits / 8 : nMaxReadBits / 8 + 1);
+	while (ret && (*bitsRead < nMaxReadBits) && ((checkBitPatternPresentResult = BitStream_checkBitPatternPresent(pBitStrm, bit_terminated_pattern, bit_terminated_pattern_size_in_bits)) == 1))
+	{
+		ret = BitStream_ReadBit(pBitStrm, &bitVal);
+		if (ret) {
+			BitStream_AppendBit(&tmpStrm, bitVal);
+			*bitsRead += 1;
+		}
+	}
+	if (ret && (*bitsRead == nMaxReadBits) && (checkBitPatternPresentResult == 1)) {
+		checkBitPatternPresentResult = BitStream_checkBitPatternPresent(pBitStrm, bit_terminated_pattern, bit_terminated_pattern_size_in_bits);
+	}
+
+	return ret && (checkBitPatternPresentResult == 2);
+}

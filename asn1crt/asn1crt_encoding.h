@@ -71,6 +71,27 @@ flag BitStream_DecodeReal(BitStream* pBitStrm, asn1Real* v);
 
 
 
+/*
+Checks if the bit pattern is (immediatelly) present in the bit stream.
+
+bit_terminated_pattern: the bit pattern to check
+bit_terminated_pattern_size_in_bits: the size of the bit pattern in bits
+
+example: the bit pattern 'FFF'H is passed as follows
+bit_terminated_pattern (byte[]){0xFF, 0xF0}
+bit_terminated_pattern_size_in_bits = 12
+
+returns
+0 = Error - end of bit stream. The bit stream does not contains at least bit_terminated_pattern_size_in_bits
+1 = when bit pattern doesn't match.
+2 = when bit pattern matches.
+In this case the bit_pattern is consumed (i.e. the currentByte and currentBit are moved)
+
+*/
+int BitStream_checkBitPatternPresent(BitStream* pBitStrm, const byte bit_terminated_pattern[], size_t bit_terminated_pattern_size_in_bits);
+
+flag BitStream_ReadBits_nullterminated(BitStream* pBitStrm, const byte bit_terminated_pattern[], size_t bit_terminated_pattern_size_in_bits, byte* BuffToWrite, int nMaxReadBits, int *bitsRead);
+
 #ifdef  __cplusplus
 }
 #endif
