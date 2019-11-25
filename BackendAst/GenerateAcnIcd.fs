@@ -422,6 +422,12 @@ let rec printType stgFileName (tas:GenerateUperIcd.IcdTypeAssignment) (t:Asn1Typ
                 (ChildRow 0I 1I)::[], sprintf "Length is determined by the external field: %s" relPath.AsString
             | Asn1AcnAst.SZ_EC_ExternalField relPath,true     -> 
                 (ChildRow 0I 1I)::(icd_acn.EmitRowWith3Dots stgFileName ())::(ChildRow 0I (nMax))::[], sprintf "Length determined by external field %s" relPath.AsString
+            | Asn1AcnAst.SZ_EC_TerminationPattern bitPattern, false ->
+                (ChildRow 0I 1I)::[], sprintf "Length is determined by the stop marker '%s'" bitPattern.Value
+            | Asn1AcnAst.SZ_EC_TerminationPattern bitPattern, true ->
+                (ChildRow 0I 1I)::(icd_acn.EmitRowWith3Dots stgFileName ())::(ChildRow 0I (nMax))::[], sprintf "Length is determined by the stop marker '%s'" bitPattern.Value
+
+                
 
         let sCommentLine = match sCommentLine with
                            | null | ""  -> sExtraComment

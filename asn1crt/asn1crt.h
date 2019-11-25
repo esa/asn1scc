@@ -88,7 +88,17 @@ typedef struct {
 	/* Next available bit for writting. Possible vallues 0..7, 0 is most significant bit of current byte*/
 	int currentBit; 
 } BitStream;
+/*
+typedef struct {
+	byte* buf;
+	long count;
+	long currentByte;
+	// Next available bit for writting. Possible vallues 0..7, 0 is most significant bit of current byte
+	int currentBit;
+	void(*fetch)(BitStream2* pThis, int testsCount, int failedCount);
+} BitStream2;
 
+*/
 typedef struct {
 	byte* buf;
 	long count;
