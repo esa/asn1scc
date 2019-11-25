@@ -261,6 +261,25 @@ flag BitStream_ReadByte(BitStream* pBitStrm, byte* v)
 
 	return pBitStrm->currentByte * 8 + pBitStrm->currentBit <= pBitStrm->count * 8;
 }
+/*
+flag BitStream_ReadByte2(BitStream2* pBitStrm, byte* v)
+{
+	int cb = pBitStrm->currentBit;
+	int ncb = 8 - pBitStrm->currentBit;
+	*v = (byte)(pBitStrm->buf[pBitStrm->currentByte++] << cb);
+	
+	if (pBitStrm->currentByte == pBitStrm->count && pBitStrm->fetchData != NULL) {
+		pBitStrm->fetchData(pBitStrm);
+	}
+
+	if (cb) {
+		*v |= (byte)(pBitStrm->buf[pBitStrm->currentByte] >> ncb);
+	}
+
+	return pBitStrm->currentByte * 8 + pBitStrm->currentBit <= pBitStrm->count * 8;
+}
+
+*/
 
 flag BitStream_ReadBits(BitStream* pBitStrm, byte* BuffToWrite, int nbits)
 {

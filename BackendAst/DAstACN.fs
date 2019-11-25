@@ -1092,7 +1092,8 @@ and getUpdateFunctionUsedInEncoding (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnI
     let multiAcnUpdate       = match l with C -> acn_c.MultiAcnUpdate          | Ada -> acn_a.MultiAcnUpdate
 
     match deps.acnDependencies |> List.filter(fun d -> d.determinant.id = acnChildOrAcnParameterId) with
-    | []  -> None, us
+    | []  -> 
+        None, us
     | d1::[]    -> 
         let ret, ns = handleSingleUpdateDependency r deps l m d1 us
         ret, ns
@@ -1115,7 +1116,7 @@ and getUpdateFunctionUsedInEncoding (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnI
             List.fold(fun (updates, ns) d1 -> 
                 let f1, nns = handleSingleUpdateDependency r deps l m d1 ns 
                 updates@[f1], nns) ([],us)
-
+        let restErrCodes = localUpdateFuns |> List.choose id |> List.collect(fun z -> z.errCodes)
         let multiUpdateFunc (typedefName :string) (vTarget : CallerScope) (pSrcRoot : CallerScope)  = 
             let v = vTarget.arg.getValue l
             let arrsLocalUpdateStatements = 
@@ -1140,7 +1141,7 @@ and getUpdateFunctionUsedInEncoding (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnI
                     let cmp = getDeterminantTypeCheckEqual r l d.determinant
                     let vi = sprintf "%s%02d" (getAcnDeterminantName acnChildOrAcnParameterId) i
                     cmp v vi )
-            let updateStatement = multiAcnUpdate vTarget.arg.p c_name0 errCode.errCodeName (localVars typedefName) arrsLocalUpdateStatements arrsGetFirstIntValue arrsLocalCheckEquality
+            let updateStatement = multiAcnUpdate vTarget.arg.p c_name0 (errCode.errCodeName ) (localVars typedefName) arrsLocalUpdateStatements arrsGetFirstIntValue arrsLocalCheckEquality
             updateStatement
         let testCaseFnc (atc:AutomaticTestCase) : TestCaseValue option =
             let updateValues =
@@ -1155,7 +1156,7 @@ and getUpdateFunctionUsedInEncoding (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnI
                     | true  -> None
                     | false -> Some u1
                     
-        let ret = Some(({AcnChildUpdateResult.updateAcnChildFnc = multiUpdateFunc; errCodes=[errCode] ; testCaseFnc = testCaseFnc}))
+        let ret = Some(({AcnChildUpdateResult.updateAcnChildFnc = multiUpdateFunc; errCodes=errCode::restErrCodes ; testCaseFnc = testCaseFnc}))
         ret, ns
 
 type private AcnSequenceStatement =

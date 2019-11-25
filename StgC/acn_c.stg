@@ -1069,6 +1069,7 @@ MultiAcnUpdate(v, sV0, sErrCode, arrsLocalDeclarations, arrsLocalUpdateStatement
     <arrsLocalUpdateStatements; separator="\n">
     
     if (ret) {
+	
         *pErrCode = <sErrCode>;
         <arrsGetFirstIntValue; separator=" "> else {
             ret = FALSE; /*COVERAGE_IGNORE*/

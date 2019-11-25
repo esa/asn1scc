@@ -988,7 +988,18 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (m:Asn1Ast.Asn1Mo
                                 match tryGetProp cc.childEncodingSpec.acnProperties (fun x -> match x with PRESENT_WHEN_EXP e -> Some e | _ -> None) with                                
                                 | None  -> []
                                 | Some acnExp -> [PresenceWhenBoolExpression acnExp]
-                            | Some lst  -> lst |> List.choose(fun gp -> match gp with GP_PresenceBool l -> Some (PresenceWhenBool l) | _ -> None)
+                            | Some lst  -> 
+                                lst |> 
+                                List.iter( fun gp -> 
+                                    match gp with 
+                                    | GP_PresenceBool l -> () 
+                                    | GP_PresenceInt (l,v) ->
+                                        let errMsg = sprintf "expecting a single boolean ACN field, or signle ACN boolean parameter or a boolean expression composed by ASN.1 fields. The present-when attribute in the form %s==%A can be used only in choice alternatives" l.AsString v.Value
+                                        raise(SemanticError(l.location, errMsg))
+                                    | GP_PresenceStr (l,s) -> 
+                                        let errMsg = sprintf "expecting a single boolean ACN field, or signle ACN boolean parameter or a boolean expression composed by ASN.1 fields. The present-when attribute in the form %s==%s can be used only in choice alternatives" l.AsString s.Value
+                                        raise(SemanticError(l.location, errMsg))         )
+                                lst |> List.choose(fun gp -> match gp with GP_PresenceBool l -> Some (PresenceWhenBool l) | _ -> None)
                     let checkForPresentWhenConditions () =
                         match acnPresentWhenConditions with
                         | []    -> ()
