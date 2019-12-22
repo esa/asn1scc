@@ -7,7 +7,7 @@
 
 
 
-void ObjectIdentifier_subidentifiers_uper_encode(byte* encodingBuf, int* pSize, asn1SccUint siValue) {
+static void ObjectIdentifier_subidentifiers_uper_encode(byte* encodingBuf, int* pSize, asn1SccUint siValue) {
 	flag lastOctet = FALSE;
 	byte tmp[16];
 	int nSize = 0;
@@ -81,7 +81,7 @@ void RelativeOID_uper_encode(BitStream* pBitStrm, const Asn1ObjectIdentifier *pV
 	}
 }
 
-flag ObjectIdentifier_subidentifiers_uper_decode(BitStream* pBitStrm, asn1SccSint* pRemainingOctets, asn1SccUint* siValue) {
+static flag ObjectIdentifier_subidentifiers_uper_decode(BitStream* pBitStrm, asn1SccSint* pRemainingOctets, asn1SccUint* siValue) {
 	byte curByte;
 	flag bLastOctet = FALSE;
 	asn1SccUint curOctetValue = 0;
@@ -101,7 +101,7 @@ flag ObjectIdentifier_subidentifiers_uper_decode(BitStream* pBitStrm, asn1SccSin
 	return TRUE;
 }
 
-flag ObjectIdentifier_uper_decode_lentg(BitStream* pBitStrm, asn1SccSint* totalSize) {
+static flag ObjectIdentifier_uper_decode_lentg(BitStream* pBitStrm, asn1SccSint* totalSize) {
 	asn1SccSint len2;
 	if (!BitStream_DecodeConstraintWholeNumber(pBitStrm, totalSize, 0, 0xFF))
 		return FALSE;
@@ -114,6 +114,7 @@ flag ObjectIdentifier_uper_decode_lentg(BitStream* pBitStrm, asn1SccSint* totalS
 	}
 	return true;
 }
+
 flag ObjectIdentifier_uper_decode(BitStream* pBitStrm, Asn1ObjectIdentifier *pVal) {
 	asn1SccUint si;
 	asn1SccSint totalSize;

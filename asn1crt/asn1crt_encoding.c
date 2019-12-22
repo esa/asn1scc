@@ -16,14 +16,39 @@ static asn1SccUint32 masks2[] = { 0x0,
 0xFF0000,
 0xFF000000 };
 
-/***********************************************************************************************/
-/*   Bit Stream Functions                                                                      */
-/***********************************************************************************************/
-
 flag OctetString_equal(int len1, int len2, const byte arr1[], const byte arr2[])
 {
 	return (len1 == len2) && (memcmp(arr1, arr2, len1) == 0);
 }
+
+/***********************************************************************************************/
+/*   Byte Stream Functions                                                                      */
+/***********************************************************************************************/
+void ByteStream_Init(ByteStream* pStrm, byte* buf, long count) 
+{
+    pStrm->count = count;
+    pStrm->buf = buf;
+    memset(pStrm->buf,0x0,(size_t)count);
+    pStrm->currentByte = 0;
+    pStrm->EncodeWhiteSpace = FALSE;
+}
+
+void ByteStream_AttachBuffer(ByteStream* pStrm, unsigned char* buf, long count)
+{
+    pStrm->count = count;
+    pStrm->buf = buf;
+    pStrm->currentByte = 0;
+}
+
+asn1SccSint ByteStream_GetLength(ByteStream* pStrm)
+{
+    return pStrm->currentByte;
+}
+
+
+/***********************************************************************************************/
+/*   Bit Stream Functions                                                                      */
+/***********************************************************************************************/
 
 flag BitString_equal(int nBitsLength1, int nBitsLength2, const byte arr1[], const byte arr2[])
 {

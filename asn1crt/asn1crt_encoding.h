@@ -7,8 +7,16 @@
 extern "C" {
 #endif
 
+flag OctetString_equal(int len1, int len2, const byte arr1[], const byte arr2[]);
+
+/* Byte strean functions */
+void ByteStream_Init(ByteStream* pStrm, byte* buf, long count);
+void ByteStream_AttachBuffer(ByteStream* pStrm, unsigned char* buf, long count);
+asn1SccSint ByteStream_GetLength(ByteStream* pStrm);
+
 /* Bit strean functions */
 
+flag BitString_equal(int nBitsLength1, int nBitsLength2, const byte arr1[], const byte arr2[]);
 void BitStream_AppendNBitZero(BitStream* pBitStrm, int nbits);
 void BitStream_EncodeNonNegativeInteger(BitStream* pBitStrm, asn1SccUint v);
 void BitStream_AppendNBitOne(BitStream* pBitStrm, int nbits);
@@ -17,21 +25,12 @@ flag BitStream_DecodeNonNegativeInteger(BitStream* pBitStrm, asn1SccUint* v, int
 flag BitStream_ReadPartialByte(BitStream* pBitStrm, byte *v, byte nbits);
 void BitStream_AppendPartialByte(BitStream* pBitStrm, byte v, byte nbits, flag negate);
 
-
-
-
-
 void BitStream_Init(BitStream* pBitStrm, unsigned char* buf, long count);
 void BitStream_AttachBuffer(BitStream* pBitStrm, unsigned char* buf, long count);
 void BitStream_AppendBit(BitStream* pBitStrm, flag v);
 void BitStream_AppendBits(BitStream* pBitStrm, const byte* srcBuffer, int nBitsToWrite);
 void BitStream_AppendByte(BitStream* pBitStrm, byte v, flag negate);
 void BitStream_AppendByte0(BitStream* pBitStrm, byte v);
-
-
-void ByteStream_Init(ByteStream* pStrm, byte* buf, long count);
-void ByteStream_AttachBuffer(ByteStream* pStrm, unsigned char* buf, long count);
-asn1SccSint ByteStream_GetLength(ByteStream* pStrm);
 
 asn1SccSint BitStream_GetLength(BitStream* pBitStrm);
 void BitStream_AppendBitOne(BitStream* pBitStrm);
@@ -41,8 +40,6 @@ flag BitStream_ReadBits(BitStream* pBitStrm, byte* BuffToWrite, int nBitsToRead)
 flag BitStream_ReadByte(BitStream* pBitStrm, byte* v);
 
 /* Integer functions */
-
-
 void BitStream_EncodeUnConstraintWholeNumber(BitStream* pBitStrm, asn1SccSint v);
 void BitStream_EncodeSemiConstraintWholeNumber(BitStream* pBitStrm, asn1SccSint v, asn1SccSint min);
 void BitStream_EncodeSemiConstraintPosWholeNumber(BitStream* pBitStrm, asn1SccUint v, asn1SccUint min);
@@ -54,9 +51,6 @@ flag BitStream_DecodeSemiConstraintWholeNumber(BitStream* pBitStrm, asn1SccSint*
 flag BitStream_DecodeSemiConstraintPosWholeNumber(BitStream* pBitStrm, asn1SccUint* v, asn1SccUint min);
 flag BitStream_DecodeConstraintWholeNumber(BitStream* pBitStrm, asn1SccSint* v, asn1SccSint min, asn1SccSint max);
 flag BitStream_DecodeConstraintPosWholeNumber(BitStream* pBitStrm, asn1SccUint* v, asn1SccUint min, asn1SccUint max);
-
-asn1SccUint int2uint(asn1SccSint v);
-asn1SccSint uint2int(asn1SccUint v, int uintSizeInBytes);
 
 int GetNumberOfBitsForNonNegativeInteger(asn1SccUint v);
 
