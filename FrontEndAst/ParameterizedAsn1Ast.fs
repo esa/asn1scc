@@ -89,6 +89,7 @@ and Asn1Type = {
     Location: SrcLoc   //Line no, Char pos
     parameterizedTypeInstance : bool
     acnInfo     : AcnTypeEncodingSpec option
+    encodeAsContainedInOctetString : bool
 }
 
 and Asn1TypeKind =

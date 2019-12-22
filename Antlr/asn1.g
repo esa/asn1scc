@@ -294,6 +294,7 @@ values for this type are those of the intersection of constraints .
 */
 type	: typeTag?
 (   nULL						-> ^(TYPE_DEF typeTag? nULL)
+    |octetStringContainingType				-> ^(TYPE_DEF typeTag? octetStringContainingType )
     |bitStringType constraint*				-> ^(TYPE_DEF typeTag? bitStringType constraint* )
     |booleanType constraint*				-> ^(TYPE_DEF typeTag? booleanType constraint* )
     |enumeratedType constraint*				-> ^(TYPE_DEF typeTag? enumeratedType constraint* )
@@ -325,6 +326,10 @@ sizeShortConstraint
 	;
 
 nULL:	NULL;
+
+octetStringContainingType :
+	: a=OCTET STRING L_PAREN CONTAINING type R_PAREN -> ^(CONTAINING type)
+	;
 
 bitStringType
 	:	a=BIT STRING (L_BRACKET (bitStringItem (COMMA bitStringItem )* )? R_BRACKET )?	-> ^(BIT_STRING_TYPE[$a] bitStringItem*)
@@ -707,6 +712,7 @@ OPTIONAL	:'OPTIONAL';
 SIZE	:	'SIZE';
 OF	:	'OF';
 OCTET	:	'OCTET';
+CONTAINING : 'CONTAINING';
 MIN	: 	'MIN';
 MAX	:	'MAX';
 TRUE	:	'TRUE';
