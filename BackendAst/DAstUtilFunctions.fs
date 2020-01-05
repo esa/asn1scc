@@ -267,6 +267,7 @@ type LocalVariable with
         | FlagLocalVariable(name,_)       -> name
         | AcnInsertedChild(name,_)        -> name
         | BooleanLocalVariable(name,_)    -> name
+        | GenericLocalVariable lv         -> lv.name
     member this.GetDeclaration (l:ProgrammingLanguage) =
         match l, this with
         | C,    SequenceOfIndex (i,None)                  -> sprintf "int i%d;" i
@@ -295,6 +296,12 @@ type LocalVariable with
         | Ada,  BooleanLocalVariable (name,Some iv)       -> sprintf "%s:Boolean:=%s;" name (if iv then "True" else "False")
         | C,    AcnInsertedChild(name, vartype)           -> sprintf "%s %s;" vartype name
         | Ada,    AcnInsertedChild(name, vartype)         -> sprintf "%s:%s;" name vartype
+        | C,    GenericLocalVariable lv                   ->
+            sprintf "%s%s %s%s;" (if lv.isStatic then "static " else "") lv.varType lv.name (if lv.arrSize.IsNone then "" else "["+lv.arrSize.Value+"]")
+        | Ada,    GenericLocalVariable lv                   ->
+            match lv.initExp with
+            | Some initExp  -> sprintf "%s : %s := %s;" lv.name lv.varType  initExp
+            | None          -> sprintf "%s : %s;" lv.name lv.varType  
 
 
 type TypeDefintionOrReference with 

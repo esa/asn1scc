@@ -1371,3 +1371,36 @@ RefTypeArgument2(v, sModName, sTasName, sParamName, sRefTypePath, bHasSuccess) :
 >>
 
 
+
+SizeDependency_oct_str_containing(p, sFuncName, sReqBytesForUperEncoding, v) ::= <<
+--first encode containing type to a temporary bitstream. That's the only way to learn in advance the size of the encoding octet string
+<sFuncName>_aux(<p>, tmpBs, result);
+if result.success then
+	<v> := <rtlModuleName()>.Asn1UInt(adaasn1rtl.encoding.BitStream_current_length_in_bytes(tmpBs));
+	<v>_is_initialized := TRUE;
+end if;
+>>
+
+
+octet_string_containing_ext_field_func_encode(p, sFuncName, sReqBytesForUperEncoding, sExtField, sErrCode) ::= <<
+adaasn1rtl.encoding.uper.BitStream_EncodeOctetString_no_length(bs, tmpBs.Buffer, Integer(<sExtField>));
+>>
+
+octet_string_containing_ext_field_func_decode(p, sFuncName, sReqBytesForUperEncoding, sExtField, sErrCode) ::= <<
+--open new scope to declare some variables
+declare
+    tmpBs : adaasn1rtl.encoding.Bitstream := adaasn1rtl.encoding.BitStream_init(<sReqBytesForUperEncoding>);
+begin
+	--decode to a temporary bitstream
+	result := <rtlModuleName()>.ASN1_RESULT'(Success => Integer(<sExtField>) \<= <sReqBytesForUperEncoding>, ErrorCode => <sErrCode>);
+	if result.success then
+		adaasn1rtl.encoding.uper.BitStream_DecodeOctetString_no_length(bs, tmpBs.Buffer, Integer(<sExtField>), result.success);
+		if result.success then
+			<sFuncName>_aux(<p>, tmpBs, result);
+		end if;
+	end if;
+
+end;
+	
+>>
+

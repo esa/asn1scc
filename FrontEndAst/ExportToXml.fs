@@ -610,6 +610,7 @@ let private exportAcnDependencyKind (d:AcnDependencyKind) =
     | AcnDepPresence   _           -> XElement(xname "ChoicePresenseDependency")
     | AcnDepPresenceStr   _           -> XElement(xname "ChoicePresenseStrDependency")
     | AcnDepChoiceDeteterminant _  -> XElement(xname "ChoiceEnumDependency")
+    | AcnDepSizeDeterminant_bit_oct_str_containt _ -> XElement(xname "SizeDependency2")
                                    
 let private exportAcnDependency (d:AcnDependency) =
     XElement(xname "AcnDependency",

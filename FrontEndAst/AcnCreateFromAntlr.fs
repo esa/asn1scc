@@ -446,6 +446,36 @@ let private mergeStringType (asn1:Asn1Ast.AstRoot) (loc:SrcLoc) (acnErrLoc: SrcL
 
     {StringType.acnProperties = acnProperties; cons = cons; withcons = withcons; minSize=minSize; maxSize =maxSize; uperMaxSizeInBits = uperMaxSizeInBits; uperMinSizeInBits=uperMinSizeInBits; uperCharSet=uperCharSet; acnEncodingClass = acnEncodingClass;  acnMinSizeInBits=acnMinSizeInBits; acnMaxSizeInBits = acnMaxSizeInBits;isNumeric=isNumeric; typeDef=typeDef}, us1
 
+
+
+
+let private mergeOctetStringType_aux (asn1:Asn1Ast.AstRoot) (loc:SrcLoc) (acnErrLoc: SrcLoc option) (props:GenericAcnProperty list) cons withcons (tdarg:GetTypeDifition_arg) (us:Asn1AcnMergeState) =
+    let sizeUperRange = uPER.getOctetStringUperRange cons loc
+    let sizeUperAcnRange = uPER.getOctetStringUperRange (cons@withcons) loc
+
+    let uminSize, umaxSize = uPER.getSizeMinAndMaxValue loc sizeUperRange
+    let aminSize, amaxSize = uPER.getSizeMinAndMaxValue loc sizeUperAcnRange
+    let minSize = {SIZE.uper = uminSize; acn = aminSize }
+    let maxSize = {SIZE.uper = umaxSize; acn = amaxSize }
+
+    //let minSize, maxSize = uPER.getSizeMinAndMaxValue loc sizeUperRange
+    let uperMinSizeInBits, uperMaxSizeInBits = uPER.getSizeableTypeSize minSize.uper maxSize.uper 8I
+    let acnUperMinSizeInBits, acnUperMaxSizeInBits = uPER.getSizeableTypeSize minSize.acn maxSize.acn 8I
+    //let fixAsn1Size = match minSize = maxSize with true -> Some minSize | false -> None
+
+    let acnProperties = 
+        match acnErrLoc with
+        | Some acnErrLoc    -> {SizeableAcnProperties.sizeProp = getSizeableSizeProperty minSize.acn maxSize.acn acnErrLoc props}
+        | None              -> {SizeableAcnProperties.sizeProp = None}
+
+
+    let aligment = tryGetProp props (fun x -> match x with ALIGNTONEXT e -> Some e | _ -> None)
+    let acnEncodingClass,  acnMinSizeInBits, acnMaxSizeInBits= AcnEncodingClasses.GetOctetStringEncodingClass aligment loc acnProperties acnUperMinSizeInBits acnUperMaxSizeInBits minSize.acn maxSize.acn 
+
+    let typeDef, us1 = getSizeableTypeDifition tdarg us
+    {OctetString.acnProperties = acnProperties; cons = cons; withcons = withcons; minSize=minSize; maxSize =maxSize; uperMaxSizeInBits = uperMaxSizeInBits; uperMinSizeInBits=uperMinSizeInBits; acnEncodingClass = acnEncodingClass;  acnMinSizeInBits=acnMinSizeInBits; acnMaxSizeInBits = acnMaxSizeInBits; typeDef=typeDef}, us1
+
+
 let private mergeOctetStringType (asn1:Asn1Ast.AstRoot) (loc:SrcLoc) (acnErrLoc: SrcLoc option) (props:GenericAcnProperty list) cons withcons (tdarg:GetTypeDifition_arg) (us:Asn1AcnMergeState) =
     let sizeUperRange = uPER.getOctetStringUperRange cons loc
     let sizeUperAcnRange = uPER.getOctetStringUperRange (cons@withcons) loc
@@ -1245,10 +1275,44 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (m:Asn1Ast.Asn1Mo
             let typeDef, us1 = getRefereceTypeDefinition asn1 t {tfdArg with typeDefPath = newTypeDefPath} us
 
             let resolvedType, us2     = mergeType asn1 acn m oldBaseType curPath newTypeDefPath mergedAcnEncSpec (Some t.Location) restCons withCompCons acnArgs baseTypeAcnParams inheritanceInfo typeAssignmentInfo  us1
-            let newRef       = {ReferenceType.modName = rf.modName; tasName = rf.tasName; tabularized = rf.tabularized; acnArguments = acnArguments; resolvedType=resolvedType; hasConstraints = hasAdditionalConstraints; typeDef=typeDef}
+
+
+
+            let toByte sizeInBits =
+                sizeInBits/8I + (if sizeInBits % 8I = 0I then 0I else 1I)
+            
+            let aligment = tryGetProp combinedProperties (fun x -> match x with ALIGNTONEXT e -> Some e | _ -> None)
+
+            let uperMinSizeInBits, uperMaxSizeInBits, acnMinSizeInBits, acnMaxSizeInBits, encodingOptions = 
+                match rf.refEnc with
+                | None          -> 
+                    resolvedType.uperMinSizeInBits, resolvedType.uperMaxSizeInBits, resolvedType.acnMinSizeInBits, resolvedType.acnMaxSizeInBits, None
+                | Some  ContainedInBitString -> 
+                    let uperMinSizeInBits, uperMaxSizeInBits = uPER.getSizeableTypeSize 0I resolvedType.uperMaxSizeInBits 1I
+                    let acnProperties = 
+                        match acnErrLoc with
+                        | Some acnErrLoc    -> { SizeableAcnProperties.sizeProp  = getSizeableSizeProperty 0I resolvedType.uperMaxSizeInBits acnErrLoc combinedProperties}
+                        | None              -> {SizeableAcnProperties.sizeProp = None }
+
+                    let acnEncodingClass,  acnMinSizeInBits, acnMaxSizeInBits= AcnEncodingClasses.GetBitStringEncodingClass aligment loc acnProperties uperMinSizeInBits uperMaxSizeInBits 0I resolvedType.uperMaxSizeInBits 
+
+                    uperMinSizeInBits, uperMaxSizeInBits, acnMinSizeInBits, acnMaxSizeInBits, (Some  {EncodeWithinOctetOrBitStringProperties.acnEncodingClass = acnEncodingClass; octOrBitStr = ContainedInBitString; maxSize=resolvedType.uperMaxSizeInBits})
+                | Some  ContainedInOctString  -> 
+                    let maxSize = (toByte resolvedType.uperMaxSizeInBits)
+                    let uperMinSizeInBits, uperMaxSizeInBits = uPER.getSizeableTypeSize 0I maxSize 8I
+
+                    let acnProperties = 
+                        match acnErrLoc with
+                        | Some acnErrLoc    -> {SizeableAcnProperties.sizeProp = getSizeableSizeProperty 0I (toByte resolvedType.uperMaxSizeInBits) acnErrLoc combinedProperties}
+                        | None              -> {SizeableAcnProperties.sizeProp = None}
+
+                    let acnEncodingClass,  acnMinSizeInBits, acnMaxSizeInBits= AcnEncodingClasses.GetOctetStringEncodingClass aligment loc acnProperties uperMinSizeInBits uperMaxSizeInBits 0I (toByte resolvedType.uperMaxSizeInBits)
+
+                    uperMinSizeInBits, uperMaxSizeInBits, acnMinSizeInBits, acnMaxSizeInBits, (Some  {EncodeWithinOctetOrBitStringProperties.acnEncodingClass = acnEncodingClass; octOrBitStr = ContainedInOctString; maxSize=maxSize})
+
+            let newRef       = {ReferenceType.modName = rf.modName; tasName = rf.tasName; tabularized = rf.tabularized; acnArguments = acnArguments; resolvedType=resolvedType; hasConstraints = hasAdditionalConstraints; typeDef=typeDef; uperMaxSizeInBits = uperMaxSizeInBits; uperMinSizeInBits = uperMinSizeInBits; acnMaxSizeInBits  = acnMaxSizeInBits; acnMinSizeInBits  = acnMinSizeInBits; encodingOptions=encodingOptions}
             ReferenceType newRef, us2
-    //let dummy = sprintf "%A" typeAssignmentInfo
-    //let dummy2 = dummy
+    
     {
         Asn1Type.Kind   = asn1Kind
         id              = ReferenceToType curPath

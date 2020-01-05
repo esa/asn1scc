@@ -537,4 +537,176 @@ package body adaasn1rtl.encoding.uper with Spark_Mode is
     end RelativeOID_uper_decode;
 
 
+    procedure BitStream_EncodeOctetString_no_length(bs : in out Bitstream; data : in OctetBuffer; data_length : integer) is
+    begin
+        for i in  data'First .. (data'First + data_length -1 ) loop
+           pragma Loop_Invariant(bs.Current_Bit_Pos = bs.Current_Bit_Pos'Loop_Entry + (i-data'First)*8);
+           BitStream_AppendByte(bs, Data(i), FALSE);
+        end loop;
+    end;
+
+    procedure BitStream_DecodeOctetString_no_length(bs : in out Bitstream; data : in out OctetBuffer; data_length : integer; success   :    out Boolean) is
+    begin
+        success := True;
+        for i in  data'First .. (data'First + data_length -1 ) loop
+           pragma Loop_Invariant(bs.Current_Bit_Pos = bs.Current_Bit_Pos'Loop_Entry + (i-data'First)*8);
+           BitStream_DecodeByte(bs, Data(i), success);
+           exit when not success;
+        end loop;
+    end;
+    
+    
+    
+    procedure BitStream_EncodeOctetString_fragmentation(bs : in out Bitstream; data : in OctetBuffer; data_length : integer) is
+        i1:Integer;
+        nBLJ1:Integer;
+        nRemainingItemsVar1:Integer;
+        nCurBlockSize1:Integer;
+        nCurOffset1:Integer;
+    
+    begin
+        nCurOffset1 := 1;
+        nRemainingItemsVar1 := data_length;
+        while nRemainingItemsVar1 >= 16#4000#  loop
+            if nRemainingItemsVar1 >= 16#10000# then
+                nCurBlockSize1 := 16#10000#;
+                UPER_Enc_ConstraintWholeNumber(bs, 16#C4#, 0, 8);
+            elsif nRemainingItemsVar1 >= 16#C000# then
+                nCurBlockSize1 := 16#C000#;
+                UPER_Enc_ConstraintWholeNumber(bs, 16#C3#, 0, 8);
+            elsif nRemainingItemsVar1 >= 16#8000# then
+                nCurBlockSize1 := 16#8000#;
+                UPER_Enc_ConstraintWholeNumber(bs, 16#C2#, 0, 8);
+            else 
+                nCurBlockSize1 := 16#4000#;
+                UPER_Enc_ConstraintWholeNumber(bs, 16#C1#, 0, 8);
+            end if;
+        
+        
+            nBLJ1 := 0;
+            while nBLJ1 <= nCurBlockSize1-1 loop
+                i1 := nCurOffset1 + nBLJ1;
+                BitStream_AppendByte(bs, data(i1), FALSE);
+                nBLJ1 := nBLJ1 + 1;
+            end loop;
+            nCurOffset1 := nCurOffset1 + nCurBlockSize1;
+            nRemainingItemsVar1 := nRemainingItemsVar1 - nCurBlockSize1;
+        
+        end loop;
+        
+        if nRemainingItemsVar1 <= 16#7F# then
+            UPER_Enc_ConstraintWholeNumber(bs, adaasn1rtl.Asn1Int(nRemainingItemsVar1), 0, 8);
+        else
+            BitStream_AppendBit(bs, 1);
+            uper.UPER_Enc_ConstraintWholeNumber(bs, adaasn1rtl.Asn1Int(nRemainingItemsVar1), 0, 15);
+        end if;
+        
+        nBLJ1 := 0;
+        nCurBlockSize1 := nRemainingItemsVar1;
+        while nBLJ1 <= nCurBlockSize1-1 loop
+            i1 := nCurOffset1 + nBLJ1;
+            --set3
+            BitStream_AppendByte(bs, data(i1), FALSE);
+            nBLJ1 := nBLJ1 + 1;
+        end loop;
+    
+    end; 
+    
+    
+    
+    procedure BitStream_EncodeOctetString(bs : in out Bitstream; data : in OctetBuffer; data_length : integer; nBits : in Integer; asn1SizeMin : Integer; asn1SizeMax : Integer) is
+    begin
+        if asn1SizeMax < 65536 then
+            if asn1SizeMax /= asn1SizeMin then
+                UPER_Enc_ConstraintWholeNumber(bs, Asn1Int(data_length), Asn1Int(asn1SizeMin), nBits);
+            end if;
+            BitStream_EncodeOctetString_no_length(bs, data, data_length);
+        else
+            BitStream_EncodeOctetString_fragmentation(bs, data, data_length);
+        end if;
+    end;
+    
+    procedure BitStream_DecodeOctetString_fragmentation(bs : in out Bitstream; data : in out OctetBuffer; data_length : out integer; asn1SizeMin : Integer; asn1SizeMax : Integer; success   :    out Boolean) is
+        i1:Integer;
+        nLengthTmp1:Integer := 0;
+        nRemainingItemsVar1:Integer;
+        nCurBlockSize1:Integer :=0;
+        nCurOffset1:Integer;
+    begin
+        -- decode blockSize
+        data_length := asn1SizeMin;
+        UPER_Dec_ConstraintWholeNumberInt(bs, nRemainingItemsVar1, 0, 255, 8, success);
+        nCurOffset1 := 1;
+    
+        while success AND (nRemainingItemsVar1 = 16#C4# OR nRemainingItemsVar1 = 16#C3# OR nRemainingItemsVar1 = 16#C2# OR nRemainingItemsVar1 = 16#C1#)  loop
+            if nRemainingItemsVar1 = 16#C4# THEN
+                nCurBlockSize1 := 16#10000#;
+            elsif nRemainingItemsVar1 = 16#C3# THEN
+                nCurBlockSize1 := 16#C000#;
+            elsif nRemainingItemsVar1 = 16#C2# THEN
+                nCurBlockSize1 := 16#8000#;
+            else 
+                nCurBlockSize1 := 16#4000#;
+            end if;
+    
+            nLengthTmp1 := nLengthTmp1 + nCurBlockSize1;
+            success := nLengthTmp1 <= asn1SizeMax;
+            i1 := nCurOffset1;
+            while i1<= nCurOffset1 + nCurBlockSize1 - 1 AND success loop
+                BitStream_DecodeByte(bs, data(i1), success);
+                i1 := i1 + 1;
+            end loop;
+            nCurOffset1 := nCurOffset1 + nCurBlockSize1;
+            UPER_Dec_ConstraintWholeNumberInt(bs, nRemainingItemsVar1, 0, 255, 8, success);
+        end loop;
+    
+        if nRemainingItemsVar1 >= 16#80# THEN
+            declare
+                len2:Integer;
+            begin
+                nRemainingItemsVar1 := (nRemainingItemsVar1 - 16#80#) * 16#100#;
+                UPER_Dec_ConstraintWholeNumberInt(bs, len2, 0, 255, 8, success);
+                if success THEN
+                    nRemainingItemsVar1 := nRemainingItemsVar1 + len2;
+                end if;
+            end;
+        end if;
+    
+        if nCurOffset1 + nRemainingItemsVar1 -1 <= asn1SizeMax THEN
+            i1 := nCurOffset1;
+            while i1<= nCurOffset1 + nRemainingItemsVar1 -1 loop
+                BitStream_DecodeByte(bs, data(i1), success);
+                i1 := i1 + 1;
+            end loop;
+            nLengthTmp1 := nLengthTmp1 + nRemainingItemsVar1;
+        end if;
+    
+        
+        if nLengthTmp1 >= asn1SizeMin and nLengthTmp1 <= asn1SizeMax then
+            data_length := nLengthTmp1;
+    
+        else
+            Success := false;	--COVERAGE_IGNORE
+        end if;
+    
+    end;
+    
+    procedure BitStream_DecodeOctetString(bs : in out Bitstream; data : in out OctetBuffer; data_length : out integer; nBits : in Integer; asn1SizeMin : Integer; asn1SizeMax : Integer; success   :    out Boolean) is
+    begin
+        success := True;
+        data_length := asn1SizeMin;
+        if asn1SizeMax < 65536 then
+            if asn1SizeMax /= asn1SizeMin then
+                UPER_Dec_ConstraintWholeNumberInt(bs, data_length, asn1SizeMin, asn1SizeMax, nBits, success);
+            end if;
+            if success then
+                BitStream_DecodeOctetString_no_length(bs, data, data_length, success);
+            end if;
+        else
+            BitStream_DecodeOctetString_fragmentation(bs, data, data_length, asn1SizeMin, asn1SizeMax, success);
+        end if;
+        
+    end;
+
+
 end adaasn1rtl.encoding.uper;

@@ -18,6 +18,7 @@ call_base_type_func_decode(p, sFuncName) ::= "ret = <sFuncName>(<p>, pBitStrm, p
 
 
 
+
 /*******************************************************/
 /*   U P E R                                           */
 /*******************************************************/
@@ -790,4 +791,37 @@ PrintDefaultAcnModule(sModName, arrsTypeAssignments, sAssignOperator) ::= <<
 <sModName> DEFINITIONS <sAssignOperator> BEGIN
     <arrsTypeAssignments; separator="\n">
 END
+>>
+
+
+
+octet_string_containing_func_encode(p, sFuncName, sReqBytesForUperEncoding, nBits) ::= <<
+/*open new scope to declare some variables*/
+{
+	/*encode to a temporary bitstream*/
+	static byte arr[<sReqBytesForUperEncoding>];
+	BitStream bitStrm;
+	BitStream_Init(&bitStrm, arr, sizeof(arr));
+
+	ret = <sFuncName>(<p>, &bitStrm, pErrCode, FALSE);
+	if (ret) {
+		int nCount = bitStrm.currentBit == 0 ? bitStrm.currentByte : (bitStrm.currentByte + 1);
+		ret = BitStream_EncodeOctetString(pBitStrm, arr, nCount, 0, <sReqBytesForUperEncoding>);
+	}
+}
+>>
+
+octet_string_containing_func_decode(p, sFuncName, sReqBytesForUperEncoding, nBits) ::= <<
+/*open new scope to declare some variables*/
+{	
+	/*decode to a temporary bitstream*/
+	static byte arr[<sReqBytesForUperEncoding>];
+	BitStream bitStrm;
+	BitStream_Init(&bitStrm, arr, sizeof(arr));
+	int nCount;
+	ret = BitStream_DecodeOctetString(pBitStrm, arr, &nCount, 0, <sReqBytesForUperEncoding>);
+	if (ret) {
+		ret = <sFuncName>(<p>, &bitStrm, pErrCode);
+	}
+}
 >>

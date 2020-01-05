@@ -199,6 +199,80 @@ package adaasn1rtl.encoding.uper with Spark_Mode is
        bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos 
    ;
    
-   
+
+    procedure BitStream_EncodeOctetString_no_length(bs : in out Bitstream; data : in OctetBuffer; data_length : integer) with
+     Pre     => 
+        data_length >= 0 and then
+        data'Last  >=  data'First and then
+        data'Last < Positive'Last/8 and then
+        data'Last  - data'First < Positive'Last/8  and then
+        data_length <= data'Last  - data'First + 1 and then
+        data_length < Positive'Last/8 and  then
+        bs.Size_In_Bytes < Positive'Last/8 and  then
+        bs.Current_Bit_Pos < Natural'Last - 8*data_length and then  
+        bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 8*data_length,
+     Post    => 
+       bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 8*data_length  
+       ;
+
+
+     procedure BitStream_DecodeOctetString_no_length(bs : in out Bitstream; data : in out OctetBuffer; data_length : integer; success   :    out Boolean) with
+     Pre     => 
+        data_length >= 0 and then
+        data'Last  >=  data'First and then
+        data'Last < Positive'Last/8 and then
+        data'Last  - data'First < Positive'Last/8  and then
+        data_length <= data'Last  - data'First + 1 and then
+        data_length < Positive'Last/8 and  then
+        bs.Size_In_Bytes < Positive'Last/8 and  then
+        bs.Current_Bit_Pos < Natural'Last - 8*data_length and then  
+        bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 8*data_length,
+     Post    => 
+       bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 8*data_length  
+       ;
+
+
+    procedure BitStream_EncodeOctetString(bs : in out Bitstream; data : in OctetBuffer; data_length : integer; nBits : in Integer; asn1SizeMin : Integer; asn1SizeMax : Integer) with
+     Pre     => 
+        asn1SizeMin >= 0 and then asn1SizeMin <= asn1SizeMax and then
+        nBits >= 0 and then nBits < Asn1UInt'Size and then
+        data_length >= 0 and then
+        data_length >= asn1SizeMin and then
+        data'Last  >=  data'First and then
+        data'Last < Positive'Last/8 and then
+        data'Last  - data'First < Positive'Last/8  and then
+        data_length <= data'Last  - data'First + 1 and then
+        data_length < Positive'Last/8 - nBits and  then
+        bs.Size_In_Bytes < Positive'Last/8 and  then
+        bs.Current_Bit_Pos < Natural'Last - (8*data_length + nBits)  and then  
+        bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - (8*data_length + nBits),
+     Post    => 
+       bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + (8*data_length + nBits)  
+       and 
+       bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos      
+       ;
+       
+    procedure BitStream_DecodeOctetString(bs : in out Bitstream; data : in out OctetBuffer; data_length : out integer; nBits : in Integer; asn1SizeMin : Integer; asn1SizeMax : Integer; success   :    out Boolean) with
+     Pre     => 
+        asn1SizeMin >= 0 and then asn1SizeMin <= asn1SizeMax and then
+        asn1SizeMax < Positive'Last and then
+        
+        nBits >= 0 and then nBits < Asn1UInt'Size and then
+        data'Last  >=  data'First and then
+        data'Last < Positive'Last/8 and then
+        data'Last  - data'First < Positive'Last/8  and then
+        asn1SizeMax <= data'Last  - data'First + 1 and then
+        asn1SizeMax  < Positive'Last/8 - nBits and  then
+        bs.Size_In_Bytes < Positive'Last/8 and  then
+        bs.Current_Bit_Pos < Natural'Last - (8*asn1SizeMax + nBits)  and then  
+        bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - (8*asn1SizeMax + nBits),
+     Post    => 
+       bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + (8*asn1SizeMax + nBits)  
+       and 
+       bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos      
+       and
+       data_length >= asn1SizeMin  and data_length <= asn1SizeMax
+       ;
+    
 
 end adaasn1rtl.encoding.uper;

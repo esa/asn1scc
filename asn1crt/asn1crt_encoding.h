@@ -30,7 +30,7 @@ void BitStream_AttachBuffer(BitStream* pBitStrm, unsigned char* buf, long count)
 void BitStream_AppendBit(BitStream* pBitStrm, flag v);
 void BitStream_AppendBits(BitStream* pBitStrm, const byte* srcBuffer, int nBitsToWrite);
 void BitStream_AppendByte(BitStream* pBitStrm, byte v, flag negate);
-void BitStream_AppendByte0(BitStream* pBitStrm, byte v);
+flag BitStream_AppendByte0(BitStream* pBitStrm, byte v);
 
 asn1SccSint BitStream_GetLength(BitStream* pBitStrm);
 void BitStream_AppendBitOne(BitStream* pBitStrm);
@@ -63,7 +63,11 @@ int GetLengthInBytesOfUInt(asn1SccUint64 v);
 void BitStream_EncodeReal(BitStream* pBitStrm, asn1Real v);
 flag BitStream_DecodeReal(BitStream* pBitStrm, asn1Real* v);
 
+flag BitStream_EncodeOctetString_no_length(BitStream* pBitStrm, const byte* arr, int nCount);
+flag BitStream_DecodeOctetString_no_length(BitStream* pBitStrm, byte* arr, int nCount);
 
+flag BitStream_EncodeOctetString(BitStream* pBitStrm, const byte* arr, int nCount, asn1SccSint min, asn1SccSint max);
+flag BitStream_DecodeOctetString(BitStream* pBitStrm, byte* arr, int* nCount, asn1SccSint min, asn1SccSint max);
 
 /*
 Checks if the bit pattern is (immediatelly) present in the bit stream.

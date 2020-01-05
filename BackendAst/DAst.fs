@@ -95,6 +95,15 @@ type ExpOrStatement =
     | Expression 
     | Statement  
 
+type GenericLocalVariable = 
+    {
+        name     : string
+        varType  : string
+        arrSize  : string option     //if none then it is not an array
+        isStatic : bool
+        initExp  : string option
+    }
+
 type LocalVariable =
     | SequenceOfIndex       of int*int option        //i index, initialValue
     | IntegerLocalVariable  of string*int option     //variable name, initialValue
@@ -103,6 +112,7 @@ type LocalVariable =
     | FlagLocalVariable     of string*int option     //variable name, initialValue
     | BooleanLocalVariable  of string*bool option    //variable name, initialValue
     | AcnInsertedChild      of string*string         //variable name, type initialValue
+    | GenericLocalVariable  of GenericLocalVariable
 
 
 
@@ -771,6 +781,7 @@ and AcnChildUpdateResult = {
     //have value and the value is the same. In this case the value is returned. Otherwise none
     testCaseFnc : AutomaticTestCase -> TestCaseValue option 
     errCodes    : ErroCode list
+    localVariables      : LocalVariable list
 }
 
 and DastAcnParameter = {

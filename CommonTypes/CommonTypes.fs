@@ -718,3 +718,7 @@ type AntlrParserResult = {
     tokens      : IToken array
 }
 
+
+type ContainedInOctOrBitString =
+    | ContainedInOctString
+    | ContainedInBitString

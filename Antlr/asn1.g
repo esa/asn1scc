@@ -34,6 +34,8 @@ tokens {
 	INTEGER_TYPE;
 	INTEGER_LST_ITEM;
 	CHOICE_TYPE;
+	OCT_STR_CONTAINING;
+	BIT_STR_CONTAINING;
 	CHOICE_EXT_BODY;
 	CHOICE_ITEM;
 	CHOICE_EXT_ITEM;
@@ -294,6 +296,7 @@ values for this type are those of the intersection of constraints .
 */
 type	: typeTag?
 (   nULL						-> ^(TYPE_DEF typeTag? nULL)
+    |bitStringContainingType				-> ^(TYPE_DEF typeTag? bitStringContainingType )
     |octetStringContainingType				-> ^(TYPE_DEF typeTag? octetStringContainingType )
     |bitStringType constraint*				-> ^(TYPE_DEF typeTag? bitStringType constraint* )
     |booleanType constraint*				-> ^(TYPE_DEF typeTag? booleanType constraint* )
@@ -328,8 +331,12 @@ sizeShortConstraint
 nULL:	NULL;
 
 octetStringContainingType :
-	: a=OCTET STRING L_PAREN CONTAINING type R_PAREN -> ^(CONTAINING type)
+	: a=OCTET STRING L_PAREN CONTAINING referencedType R_PAREN -> ^(OCT_STR_CONTAINING[$a] referencedType)
 	;
+bitStringContainingType :
+	: a=BIT STRING L_PAREN CONTAINING referencedType R_PAREN -> ^(BIT_STR_CONTAINING[$a] referencedType)
+	;
+
 
 bitStringType
 	:	a=BIT STRING (L_BRACKET (bitStringItem (COMMA bitStringItem )* )? R_BRACKET )?	-> ^(BIT_STRING_TYPE[$a] bitStringItem*)

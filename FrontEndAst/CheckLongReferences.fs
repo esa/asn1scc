@@ -374,34 +374,44 @@ let rec private checkType (r:AstRoot) (tasPositions:Map<ReferenceToType,int>) (p
         ch.children|>
         List.fold (fun ns ac -> checkType r tasPositions (parents@[t]) (curentPath@[SEQ_CHILD ac.Name.Value])  ac.Type ns ) ns1
     | ReferenceType ref -> 
-        let checkArgument (curState:AcnInsertedFieldDependencies) ((RelativePath path : RelativePath), (prm:AcnParameter)) =
-            let loc = path.Head.Location
-            let checkParameter (p:AcnParameter) = 
-                match p.asn1Type = prm.asn1Type with
-                | true  -> AcnDepRefTypeArgument prm
-                | false -> raise(SemanticError(loc, (sprintf "Invalid argument type. Expecting %s got %s " (prm.asn1Type.ToString()) (p.asn1Type.ToString()))))
-            let rec checkAcnType (c:AcnChild) =
-                match c.Type, prm.asn1Type with
-                | AcnInteger    _, AcnPrmInteger _   -> AcnDepRefTypeArgument prm
-                | AcnNullType   _, AcnPrmNullType _  -> AcnDepRefTypeArgument prm
-                | AcnBoolean    _, AcnPrmBoolean _   -> AcnDepRefTypeArgument prm
-                | _             , AcnPrmRefType (md,ts)    -> AcnDepRefTypeArgument prm    //WARNING NOT CHECKED
-                | _                                  -> raise(SemanticError(loc, (sprintf "Invalid argument type. Expecting %s got %s " (prm.asn1Type.ToString()) (c.Type.AsString))))
-            checkRelativePath tasPositions  curState parents t visibleParameters   (RelativePath path)  checkParameter checkAcnType
+        match ref.encodingOptions with
+        | None ->
+            let checkArgument (curState:AcnInsertedFieldDependencies) ((RelativePath path : RelativePath), (prm:AcnParameter)) =
+                let loc = path.Head.Location
+                let checkParameter (p:AcnParameter) = 
+                    match p.asn1Type = prm.asn1Type with
+                    | true  -> AcnDepRefTypeArgument prm
+                    | false -> raise(SemanticError(loc, (sprintf "Invalid argument type. Expecting %s got %s " (prm.asn1Type.ToString()) (p.asn1Type.ToString()))))
+                let rec checkAcnType (c:AcnChild) =
+                    match c.Type, prm.asn1Type with
+                    | AcnInteger    _, AcnPrmInteger _   -> AcnDepRefTypeArgument prm
+                    | AcnNullType   _, AcnPrmNullType _  -> AcnDepRefTypeArgument prm
+                    | AcnBoolean    _, AcnPrmBoolean _   -> AcnDepRefTypeArgument prm
+                    | _             , AcnPrmRefType (md,ts)    -> AcnDepRefTypeArgument prm    //WARNING NOT CHECKED
+                    | _                                  -> raise(SemanticError(loc, (sprintf "Invalid argument type. Expecting %s got %s " (prm.asn1Type.ToString()) (c.Type.AsString))))
+                checkRelativePath tasPositions  curState parents t visibleParameters   (RelativePath path)  checkParameter checkAcnType
 
-        let acnLoc =
-            match ref.acnArguments with
-            | []        -> t.Location
-            | arg1::_   -> arg1.location
+            let acnLoc =
+                match ref.acnArguments with
+                | []        -> t.Location
+                | arg1::_   -> arg1.location
 
-        match ref.acnArguments.Length = ref.resolvedType.acnParameters.Length with
-        | true  -> ()
-        | false -> 
-            let errMgs = sprintf "Expecting %d ACN arguments, provide %d" ref.resolvedType.acnParameters.Length ref.acnArguments.Length
-            raise(SemanticError(acnLoc, errMgs))
-        let ziped = List.zip ref.acnArguments ref.resolvedType.acnParameters
-        let ns = ziped |> List.fold(fun s c -> checkArgument s c) curState
-        checkType r tasPositions parents curentPath ref.resolvedType ns
+            match ref.acnArguments.Length = ref.resolvedType.acnParameters.Length with
+            | true  -> ()
+            | false -> 
+                let errMgs = sprintf "Expecting %d ACN arguments, provide %d" ref.resolvedType.acnParameters.Length ref.acnArguments.Length
+                raise(SemanticError(acnLoc, errMgs))
+            let ziped = List.zip ref.acnArguments ref.resolvedType.acnParameters
+            let ns = ziped |> List.fold(fun s c -> checkArgument s c) curState
+            checkType r tasPositions parents curentPath ref.resolvedType ns
+        | Some props  ->
+            
+            let rp = 
+                match props.acnEncodingClass with
+                | SZ_EC_uPER                    -> None 
+                | SZ_EC_ExternalField ef        -> Some ef
+                | SZ_EC_TerminationPattern _    -> None
+            sizeReference r tasPositions curState parents t 0I props.maxSize visibleParameters rp (AcnDepSizeDeterminant_bit_oct_str_containt ref)
 
 
 let checkAst (r:AstRoot) =

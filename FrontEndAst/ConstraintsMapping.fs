@@ -69,7 +69,6 @@ let private posIntValGetter (r:Asn1Ast.AstRoot) (v:Asn1Ast.Asn1Value) =
             Asn1Ast.Asn1Type.Location = FsUtils.emptyLocation
             Asn1Ast.Asn1Type.parameterizedTypeInstance = false
             Asn1Ast.Asn1Type.acnInfo = None
-            Asn1Ast.Asn1Type.encodeAsContainedInOctetString = false
         }
     let newValue = ValuesMapping.mapValue r sizeIntegerType v
     match (getBaseValue newValue).kind with
@@ -85,7 +84,6 @@ let private charGetter (r:Asn1Ast.AstRoot)  (v:Asn1Ast.Asn1Value) =
             Asn1Ast.Asn1Type.Location = FsUtils.emptyLocation
             Asn1Ast.Asn1Type.parameterizedTypeInstance = false
             Asn1Ast.Asn1Type.acnInfo = None
-            Asn1Ast.Asn1Type.encodeAsContainedInOctetString = false
 
         }
     let newValue = ValuesMapping.mapValue r charType v
@@ -101,7 +99,6 @@ let private strGetter (r:Asn1Ast.AstRoot)  (v:Asn1Ast.Asn1Value) =
             Asn1Ast.Asn1Type.Location = FsUtils.emptyLocation
             Asn1Ast.Asn1Type.parameterizedTypeInstance = false
             Asn1Ast.Asn1Type.acnInfo = None
-            Asn1Ast.Asn1Type.encodeAsContainedInOctetString = false
         }
     let newValue = ValuesMapping.mapValue r charType v
     match (getBaseValue newValue).kind with

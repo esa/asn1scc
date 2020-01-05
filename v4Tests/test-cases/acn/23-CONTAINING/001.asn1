@@ -1,0 +1,17 @@
+TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
+
+    MyOctet ::= OCTET STRING (SIZE(1..50))
+
+    MySeqType ::= SEQUENCE { 
+        a INTEGER (0..255), 
+        b INTEGER (0..255)
+    }
+    
+    
+	MyPDU ::= OCTET STRING (CONTAINING MySeqType)
+	
+	
+END
+
+
+--TCLS     MyPDU[]

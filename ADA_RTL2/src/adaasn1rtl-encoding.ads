@@ -131,7 +131,12 @@ package adaasn1rtl.encoding with Spark_Mode is
    function BitStream_init (Bitstream_Size_In_Bytes : Positive) return Bitstream  with
      Pre     => Bitstream_Size_In_Bytes < Positive'Last/8,
      Post    => BitStream_init'Result.Current_Bit_Pos = 0 and BitStream_init'Result.Size_In_Bytes = Bitstream_Size_In_Bytes;
-   
+
+   function BitStream_current_length_in_bytes (bs : in BitStream) return Natural 
+   is
+        ((bs.Current_Bit_Pos + 7)/8)
+        ;
+
    
    procedure BitStream_AppendBit (bs : in out BitStream; Bit_Value : in BIT) with
      Depends => (bs => (bs, Bit_Value)),

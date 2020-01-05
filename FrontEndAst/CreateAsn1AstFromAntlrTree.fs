@@ -143,110 +143,118 @@ let createDefaultConstraintsForEnumeratedTypes (tree:ITree) (namedItems:NamedIte
                             let curCon = createSingleValueConstraintFromNamedItem ni
                             UnionConstraint (accConst, curCon, true) ) initialCon
     
+    
 
 let rec CreateType (tasParameters : TemplateParameter list) (acnTypeEncodingSpec  : AcnTypeEncodingSpec option) (astRoot:list<ITree>) (tree:ITree) (fileTokens:array<IToken>) (alreadyTakenComments:System.Collections.Generic.List<IToken>) : Asn1Type= 
+
+
+    let createReferenceType (typeNode:ITree) refEnc =
+        let (md,ts) = CreateRefTypeContent(typeNode)
+        let templateArgs =
+            match typeNode.GetOptChild asn1Parser.ACTUAL_PARAM_LIST with
+            | None              -> []
+            | Some(argList)     ->
+                argList.Children |> 
+                List.map(fun x -> 
+                    match x.Type with
+                    | asn1Parser.ACTUAL_TYPE_PARAM      ->  
+                        let argTypeTree = x.GetChild(0)
+                        let children = getTreeChildren(argTypeTree)
+                        let typeNodes = children |> List.filter(fun x -> (not (ConstraintNodes |> List.exists(fun y -> y=x.Type) ) ) && (x.Type <> asn1Parser.TYPE_TAG) )
+                        let typeNode = List.head(typeNodes)
+                        match typeNode.Type with
+                        | asn1Parser.REFERENCED_TYPE    ->
+                            let (md,ts) = CreateRefTypeContent(typeNode)
+                            match tasParameters |> Seq.tryFind (fun tp -> match tp with TypeParameter prmName | ValueParameter (_,prmName)  -> prmName.Value = ts.Value) with
+                            | Some _   -> TemplateParameter ts
+                            | None                  -> ArgType (CreateType tasParameters None astRoot (x.GetChild(0)) fileTokens alreadyTakenComments)
+                        | _                             -> ArgType (CreateType tasParameters None astRoot (x.GetChild(0)) fileTokens alreadyTakenComments)
+                    | asn1Parser.ACTUAL_VALUE_PARAM     ->  ArgValue (CreateValue astRoot (x.GetChild(0)) )    
+                    | _                         ->  raise (BugErrorException("Bug in CrateType(refType)"))  )
+
+        ReferenceType(md, ts, refEnc, templateArgs)
+
+
+
     let children = getTreeChildren(tree)
     let typeNodes = children |> List.filter(fun x -> (not (ConstraintNodes |> List.exists(fun y -> y=x.Type) ) ) && (x.Type <> asn1Parser.TYPE_TAG) )
     let typeNode = List.head(typeNodes)
     let children_cons = if typeNode.Type=asn1Parser.SEQUENCE_OF_TYPE || typeNode.Type=asn1Parser.SET_OF_TYPE then getTreeChildren(typeNode) 
                         else children
     let contraintNodes = children_cons |> List.filter(fun x -> ConstraintNodes |> List.exists(fun y -> y=x.Type) )
-    match typeNode.Type with
-    | asn1Parser.CONTAINING       -> 
-        let containingType = CreateType tasParameters acnTypeEncodingSpec astRoot (getChildByType (typeNode, asn1Parser.TYPE_DEF)) fileTokens alreadyTakenComments        
-        {containingType with encodeAsContainedInOctetString = true}
-    | _                         ->
-        let asn1Kind =
-            match typeNode.Type with
-            | asn1Parser.INTEGER_TYPE       -> Integer
-            | asn1Parser.REAL               -> Real
-            | asn1Parser.BOOLEAN            -> Boolean
-            | asn1Parser.CHOICE_TYPE        -> Choice(CreateChoiceChild  tasParameters acnTypeEncodingSpec astRoot typeNode fileTokens alreadyTakenComments )
-            | asn1Parser.SEQUENCE_TYPE      -> Sequence(CreateSequenceChild  tasParameters acnTypeEncodingSpec astRoot typeNode fileTokens alreadyTakenComments )
-            | asn1Parser.SET_TYPE           -> Sequence(CreateSequenceChild  tasParameters acnTypeEncodingSpec astRoot typeNode fileTokens alreadyTakenComments )
-            | asn1Parser.ENUMERATED_TYPE    -> Enumerated(CreateNamedItems astRoot  typeNode fileTokens alreadyTakenComments)
-            | asn1Parser.BIT_STRING_TYPE    -> BitString
-            | asn1Parser.OCTECT_STING       -> OctetString
-            | asn1Parser.IA5String          -> IA5String
-            | asn1Parser.NumericString      -> NumericString
-            | asn1Parser.OBJECT_TYPE        -> ObjectIdentifier
-            | asn1Parser.RELATIVE_OID       -> RelativeObjectIdentifier
-            | asn1Parser.TIME_TYPE          -> TimeType (CreateTimeClass astRoot  typeNode fileTokens alreadyTakenComments)
-            | asn1Parser.VisibleString      -> 
-                raise (SemanticError (tree.Location, "VisibleString is not supported - please use IA5String"))
-            | asn1Parser.PrintableString      -> 
-                raise (SemanticError (tree.Location, "PrintableString is not supported - please use IA5String"))
-            | asn1Parser.NULL               -> NullType
-            | asn1Parser.REFERENCED_TYPE    
-            | asn1Parser.PREFERENCED_TYPE   -> 
-                let (md,ts) = CreateRefTypeContent(typeNode)
-                let templateArgs =
-                    match typeNode.GetOptChild asn1Parser.ACTUAL_PARAM_LIST with
-                    | None              -> []
-                    | Some(argList)     ->
-                        argList.Children |> 
-                        List.map(fun x -> 
-                            match x.Type with
-                            | asn1Parser.ACTUAL_TYPE_PARAM      ->  
-                                let argTypeTree = x.GetChild(0)
-                                let children = getTreeChildren(argTypeTree)
-                                let typeNodes = children |> List.filter(fun x -> (not (ConstraintNodes |> List.exists(fun y -> y=x.Type) ) ) && (x.Type <> asn1Parser.TYPE_TAG) )
-                                let typeNode = List.head(typeNodes)
-                                match typeNode.Type with
-                                | asn1Parser.REFERENCED_TYPE    ->
-                                    let (md,ts) = CreateRefTypeContent(typeNode)
-                                    match tasParameters |> Seq.tryFind (fun tp -> match tp with TypeParameter prmName | ValueParameter (_,prmName)  -> prmName.Value = ts.Value) with
-                                    | Some _   -> TemplateParameter ts
-                                    | None                  -> ArgType (CreateType tasParameters None astRoot (x.GetChild(0)) fileTokens alreadyTakenComments)
-                                | _                             -> ArgType (CreateType tasParameters None astRoot (x.GetChild(0)) fileTokens alreadyTakenComments)
-                            | asn1Parser.ACTUAL_VALUE_PARAM     ->  ArgValue (CreateValue astRoot (x.GetChild(0)) )    
-                            | _                         ->  raise (BugErrorException("Bug in CrateType(refType)"))  )
+    //match typeNode.Type with
+    //| asn1Parser.CONTAINING       -> 
+    //    let containingType = CreateType tasParameters acnTypeEncodingSpec astRoot (getChildByType (typeNode, asn1Parser.TYPE_DEF)) fileTokens alreadyTakenComments        
+    //    {containingType with encodeAsContainedInOctetString = true}
+    //| _                         ->
+    let asn1Kind =
+        match typeNode.Type with
+        | asn1Parser.INTEGER_TYPE       -> Integer
+        | asn1Parser.REAL               -> Real
+        | asn1Parser.BOOLEAN            -> Boolean
+        | asn1Parser.CHOICE_TYPE        -> Choice(CreateChoiceChild  tasParameters acnTypeEncodingSpec astRoot typeNode fileTokens alreadyTakenComments )
+        | asn1Parser.SEQUENCE_TYPE      -> Sequence(CreateSequenceChild  tasParameters acnTypeEncodingSpec astRoot typeNode fileTokens alreadyTakenComments )
+        | asn1Parser.SET_TYPE           -> Sequence(CreateSequenceChild  tasParameters acnTypeEncodingSpec astRoot typeNode fileTokens alreadyTakenComments )
+        | asn1Parser.ENUMERATED_TYPE    -> Enumerated(CreateNamedItems astRoot  typeNode fileTokens alreadyTakenComments)
+        | asn1Parser.BIT_STRING_TYPE    -> BitString
+        | asn1Parser.OCTECT_STING       -> OctetString
+        | asn1Parser.IA5String          -> IA5String
+        | asn1Parser.NumericString      -> NumericString
+        | asn1Parser.OBJECT_TYPE        -> ObjectIdentifier
+        | asn1Parser.RELATIVE_OID       -> RelativeObjectIdentifier
+        | asn1Parser.TIME_TYPE          -> TimeType (CreateTimeClass astRoot  typeNode fileTokens alreadyTakenComments)
+        | asn1Parser.VisibleString      -> 
+            raise (SemanticError (tree.Location, "VisibleString is not supported - please use IA5String"))
+        | asn1Parser.PrintableString      -> 
+            raise (SemanticError (tree.Location, "PrintableString is not supported - please use IA5String"))
+        | asn1Parser.NULL               -> NullType
+        | asn1Parser.REFERENCED_TYPE    
+        | asn1Parser.PREFERENCED_TYPE   -> createReferenceType typeNode None
+        | asn1Parser.OCT_STR_CONTAINING -> createReferenceType (typeNode.GetChild(0)) (Some ContainedInOctString)
+        | asn1Parser.BIT_STR_CONTAINING -> createReferenceType (typeNode.GetChild(0)) (Some ContainedInBitString)
+        | asn1Parser.SEQUENCE_OF_TYPE   -> 
+            let childAcnEncodingSpec = 
+                match acnTypeEncodingSpec with
+                | None      -> None
+                | Some sqe  -> 
+                    match sqe.children with
+                    | []    -> None
+                    | z::_  -> Some z.childEncodingSpec
 
-                ReferenceType(md, ts, templateArgs)
-            | asn1Parser.SEQUENCE_OF_TYPE   -> 
-                let childAcnEncodingSpec = 
-                    match acnTypeEncodingSpec with
-                    | None      -> None
-                    | Some sqe  -> 
-                        match sqe.children with
-                        | []    -> None
-                        | z::_  -> Some z.childEncodingSpec
-
-                SequenceOf(CreateType tasParameters childAcnEncodingSpec astRoot (getChildByType (typeNode, asn1Parser.TYPE_DEF)) fileTokens alreadyTakenComments )
-            | asn1Parser.SET_OF_TYPE        -> 
-                let childAcnEncodingSpec = 
-                    match acnTypeEncodingSpec with
-                    | None      -> None
-                    | Some sqe  -> 
-                        match sqe.children with
-                        | []    -> None
-                        | z::_  -> Some z.childEncodingSpec
-                SequenceOf(CreateType tasParameters acnTypeEncodingSpec astRoot (getChildByType (typeNode, asn1Parser.TYPE_DEF)) fileTokens alreadyTakenComments )
-            | asn1Parser.UTF8String         -> raise (SemanticError (tree.Location, "UTF8String is not supported, use IA5String"))
-            | asn1Parser.TeletexString      -> raise (SemanticError (tree.Location, "TeletexString is not supported, use IA5String"))
-            | asn1Parser.VideotexString     -> raise (SemanticError (tree.Location, "VideotexString is not supported"))
-            | asn1Parser.GraphicString      -> raise (SemanticError (tree.Location, "GraphicString is not supported"))
-            | asn1Parser.GeneralString      -> raise (SemanticError (tree.Location, "GeneralString is not supported"))
-            | asn1Parser.BMPString          -> raise (SemanticError (tree.Location, "BMPString is not supported"))
-            | asn1Parser.UniversalString    -> raise (SemanticError (tree.Location, "UniversalString is not supported"))
-            | asn1Parser.UTCTime            -> raise (SemanticError (tree.Location, "UTCTime type is not supported (contact us for DATE-TIME support)"))
-            | asn1Parser.GeneralizedTime    -> raise (SemanticError (tree.Location, "GeneralizedTime type is not supported"))
-            | _                             -> raise (BugErrorException("Bug in CreateType"))
-        {
-            Asn1Type.Kind = asn1Kind
-            Constraints= 
-                let userConstraints = contraintNodes |> List.map(fun x-> CreateConstraint  astRoot x ) |> List.choose(fun x -> x)
-                match asn1Kind with
-                | Enumerated(itms)  -> 
-                    match userConstraints with
-                    | []    -> [createDefaultConstraintsForEnumeratedTypes tree itms]
-                    | _     -> userConstraints
-                | _                 -> userConstraints
-            Location = tree.Location
-            parameterizedTypeInstance = false
-            acnInfo = acnTypeEncodingSpec 
-            encodeAsContainedInOctetString = false
-        }
+            SequenceOf(CreateType tasParameters childAcnEncodingSpec astRoot (getChildByType (typeNode, asn1Parser.TYPE_DEF)) fileTokens alreadyTakenComments )
+        | asn1Parser.SET_OF_TYPE        -> 
+            let childAcnEncodingSpec = 
+                match acnTypeEncodingSpec with
+                | None      -> None
+                | Some sqe  -> 
+                    match sqe.children with
+                    | []    -> None
+                    | z::_  -> Some z.childEncodingSpec
+            SequenceOf(CreateType tasParameters acnTypeEncodingSpec astRoot (getChildByType (typeNode, asn1Parser.TYPE_DEF)) fileTokens alreadyTakenComments )
+        | asn1Parser.UTF8String         -> raise (SemanticError (tree.Location, "UTF8String is not supported, use IA5String"))
+        | asn1Parser.TeletexString      -> raise (SemanticError (tree.Location, "TeletexString is not supported, use IA5String"))
+        | asn1Parser.VideotexString     -> raise (SemanticError (tree.Location, "VideotexString is not supported"))
+        | asn1Parser.GraphicString      -> raise (SemanticError (tree.Location, "GraphicString is not supported"))
+        | asn1Parser.GeneralString      -> raise (SemanticError (tree.Location, "GeneralString is not supported"))
+        | asn1Parser.BMPString          -> raise (SemanticError (tree.Location, "BMPString is not supported"))
+        | asn1Parser.UniversalString    -> raise (SemanticError (tree.Location, "UniversalString is not supported"))
+        | asn1Parser.UTCTime            -> raise (SemanticError (tree.Location, "UTCTime type is not supported (contact us for DATE-TIME support)"))
+        | asn1Parser.GeneralizedTime    -> raise (SemanticError (tree.Location, "GeneralizedTime type is not supported"))
+        | _                             -> raise (BugErrorException("Bug in CreateType"))
+    {
+        Asn1Type.Kind = asn1Kind
+        Constraints= 
+            let userConstraints = contraintNodes |> List.map(fun x-> CreateConstraint  astRoot x ) |> List.choose(fun x -> x)
+            match asn1Kind with
+            | Enumerated(itms)  -> 
+                match userConstraints with
+                | []    -> [createDefaultConstraintsForEnumeratedTypes tree itms]
+                | _     -> userConstraints
+            | _                 -> userConstraints
+        Location = tree.Location
+        parameterizedTypeInstance = false
+        acnInfo = acnTypeEncodingSpec 
+    }
 
 and CreateChoiceChild (tasParameters : TemplateParameter list) (chAcnTypeEncodingSpec  : AcnTypeEncodingSpec option) (astRoot:list<ITree>) (tree:ITree) (fileTokens:array<IToken>) (alreadyTakenComments:System.Collections.Generic.List<IToken>) = 
     getChildrenByType(tree, asn1Parser.CHOICE_ITEM) |> 
@@ -666,7 +674,7 @@ let CreateAsn1Module (astRoot:list<ITree>) (acnAst:AcnAst) (implicitlyImportedTy
         List.filter(fun x -> x.Type = asn1Parser.INTEGER_TYPE && not (x.Children.IsEmpty) && x.Parent.Parent.Type = asn1Parser.TYPE_ASSIG) |>
         List.collect(fun x -> 
             let tas = x.Parent.Parent.GetChild(0).TextL
-            let Type = { Asn1Type.Kind =  ReferenceType(mdName, tas, []); Constraints= []; Location = tas.Location; parameterizedTypeInstance = false; acnInfo = None; encodeAsContainedInOctetString = false}
+            let Type = { Asn1Type.Kind =  ReferenceType(mdName, tas, None, []); Constraints= []; Location = tas.Location; parameterizedTypeInstance = false; acnInfo = None}
             
             //CreateType astRoot x.Parent fileTokens alreadyTakenComments 
 

@@ -67,7 +67,7 @@ let rec CloneType  (r:AstRoot)  (curModule:Asn1Module) (oldModName:string) (name
         | SequenceOf(child)   ->   
             let newType, newImports = CloneType r curModule oldModName  namedArgs child implicitImports
             SequenceOf newType, cons, newImports
-        | ReferenceType(md,ts,args)    ->
+        | ReferenceType(md,ts,refEnc, args)    ->
             match args with
             | []        -> 
                 match namedArgs |> Seq.tryFind (fun (nm, _) -> nm = ts) with
@@ -95,7 +95,6 @@ let rec CloneType  (r:AstRoot)  (curModule:Asn1Module) (oldModName:string) (name
             Location = old.Location
             parameterizedTypeInstance = false
             acnInfo = old.acnInfo
-            encodeAsContainedInOctetString = old.encodeAsContainedInOctetString
         }
     retType, (implicitImports@newImports |> Seq.distinct |> Seq.toList)
 
@@ -187,10 +186,10 @@ and SpecializeType (r:AstRoot) (curModule:Asn1Module) (implicitImports : List<st
         | None, Some a2 -> Some a2
         | Some refTypeSpec, Some genTypeSpec  -> Some (mergeAcnInfo_aux refTypeSpec genTypeSpec)
     match t.Kind with
-    | ReferenceType(md,ts, args)   when args.Length>0 -> 
+    | ReferenceType(md,ts, refEnc, args)   when args.Length>0 -> 
         let (newType, implImps) = SpecializeRefType r curModule md ts args [] implicitImports
         ({newType with Constraints = newType.Constraints@t.Constraints; acnInfo=mergeAcnInfo t.acnInfo newType.acnInfo}, implImps)
-    | ReferenceType(md,ts, args)    -> 
+    | ReferenceType(md,ts, refEnc, args)    -> 
         let parmTas = getModuleByName r md |> getTasByName ts
         match parmTas.Parameters with
         | []    -> t, implicitImports
@@ -249,27 +248,26 @@ and DoAsn1Type (r:AstRoot) (curModule:Asn1Module) (implicitImports : List<string
             ChildInfo newType, newImports
         | ComponentsOf (m,t) -> ComponentsOf (m,t), implicitImports
 
-    let aux kind acnInfo cnt : Asn1Type=
+    let aux kind acnInfo : Asn1Type=
         {
             Asn1Type.Kind = kind
             Constraints = t.Constraints 
             Location = t.Location
             parameterizedTypeInstance = false
             acnInfo = acnInfo
-            encodeAsContainedInOctetString = cnt
         }        
     match t.Kind with
     | SequenceOf(child) -> 
         let newType, newImports = DoAsn1Type r curModule implicitImports child 
-        aux (SequenceOf(newType)) t.acnInfo t.encodeAsContainedInOctetString, newImports
+        aux (SequenceOf(newType)) t.acnInfo , newImports
     | Sequence(children)-> 
         let newChildren, newImports = children |>  foldMap (DoSeqChildInof r) implicitImports
-        aux (Sequence(newChildren)) t.acnInfo t.encodeAsContainedInOctetString, newImports
+        aux (Sequence(newChildren)) t.acnInfo , newImports
     | Choice(children)  -> 
         let newChildren, newImports = children |>  foldMap (DoChildInfo r) implicitImports
-        aux (Choice(newChildren)) t.acnInfo t.encodeAsContainedInOctetString, newImports
+        aux (Choice(newChildren)) t.acnInfo , newImports
     | ReferenceType(_)  -> SpecializeType r curModule implicitImports t
-    | _                 -> aux t.Kind t.acnInfo t.encodeAsContainedInOctetString, implicitImports
+    | _                 -> aux t.Kind t.acnInfo , implicitImports
 
     
 

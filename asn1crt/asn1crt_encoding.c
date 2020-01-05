@@ -253,8 +253,11 @@ void BitStream_AppendByte(BitStream* pBitStrm, byte v, flag negate)
 
 }
 
-void BitStream_AppendByte0(BitStream* pBitStrm, byte v)
+flag BitStream_AppendByte0(BitStream* pBitStrm, byte v)
 {
+	if (!((pBitStrm->currentByte+1) * 8 + pBitStrm->currentBit <= pBitStrm->count * 8))
+		return FALSE;
+
 	int cb = pBitStrm->currentBit;
 	int ncb = 8 - cb;
 
@@ -263,14 +266,14 @@ void BitStream_AppendByte0(BitStream* pBitStrm, byte v)
 	pBitStrm->buf[pBitStrm->currentByte] &= mask;
 	pBitStrm->buf[pBitStrm->currentByte++] |= (byte)(v >> cb);
 
-	assert(pBitStrm->currentByte * 8 + pBitStrm->currentBit <= pBitStrm->count * 8);
+	//assert(pBitStrm->currentByte * 8 + pBitStrm->currentBit <= pBitStrm->count * 8);
 
 	if (cb) {
 		mask = (byte)~mask;
 		pBitStrm->buf[pBitStrm->currentByte] &= mask;
 		pBitStrm->buf[pBitStrm->currentByte] |= (byte)(v << ncb);
 	}
-
+	return TRUE;
 }
 
 
@@ -1173,4 +1176,192 @@ flag BitStream_ReadBits_nullterminated(BitStream* pBitStrm, const byte bit_termi
 	}
 
 	return ret && (checkBitPatternPresentResult == 2);
+}
+
+
+flag BitStream_EncodeOctetString_no_length (BitStream* pBitStrm, const byte* arr, int nCount) {
+	int i1;
+	flag ret = TRUE;
+	for (i1 = 0; (i1 < (int)nCount) && ret; i1++)
+	{
+		ret = BitStream_AppendByte0(pBitStrm, arr[i1]);
+	}
+
+	return TRUE;
+}
+
+flag BitStream_DecodeOctetString_no_length(BitStream* pBitStrm, byte* arr, int nCount) {
+	int i1;
+	flag ret=TRUE;
+	for (i1 = 0; (i1 < nCount) && ret; i1++)
+	{
+		ret = BitStream_ReadByte(pBitStrm, &arr[i1]);
+	}
+
+	return ret;
+}
+
+
+
+flag BitStream_EncodeOctetString_fragmentation(BitStream* pBitStrm, const byte* arr, int nCount) {
+	int i1;
+	int nRemainingItemsVar1 = nCount;
+	int nCurBlockSize1 = 0;
+	int nCurOffset1 = 0;
+	flag ret = nCount >= 0;
+
+	while (nRemainingItemsVar1 >= 0x4000 && ret)
+	{
+		if (nRemainingItemsVar1 >= 0x10000)
+		{
+			nCurBlockSize1 = 0x10000;
+			BitStream_EncodeConstraintWholeNumber(pBitStrm, 0xC4, 0, 0xFF);
+		}
+		else if (nRemainingItemsVar1 >= 0xC000)
+		{
+			nCurBlockSize1 = 0xC000;
+			BitStream_EncodeConstraintWholeNumber(pBitStrm, 0xC3, 0, 0xFF);
+		}
+		else if (nRemainingItemsVar1 >= 0x8000)
+		{
+			nCurBlockSize1 = 0x8000;
+			BitStream_EncodeConstraintWholeNumber(pBitStrm, 0xC2, 0, 0xFF);
+		}
+		else
+		{
+			nCurBlockSize1 = 0x4000;
+			BitStream_EncodeConstraintWholeNumber(pBitStrm, 0xC1, 0, 0xFF);
+		}
+
+		for (i1 = nCurOffset1; (i1 < nCurBlockSize1 + nCurOffset1) && ret; i1++)
+		{
+			ret = BitStream_AppendByte0(pBitStrm, arr[i1]);
+		}
+		nCurOffset1 += nCurBlockSize1;
+		nRemainingItemsVar1 -= nCurBlockSize1;
+	}
+	if (ret) {
+		if (nRemainingItemsVar1 <= 0x7F)
+			BitStream_EncodeConstraintWholeNumber(pBitStrm, nRemainingItemsVar1, 0, 0xFF);
+		else
+		{
+			BitStream_AppendBit(pBitStrm, 1);
+			BitStream_EncodeConstraintWholeNumber(pBitStrm, nRemainingItemsVar1, 0, 0x7FFF);
+		}
+
+		for (i1 = nCurOffset1; i1 < (nCurOffset1 + nRemainingItemsVar1) && ret; i1++)
+		{
+			ret = BitStream_AppendByte0(pBitStrm, arr[i1]);
+		}
+	}
+	return ret;
+}
+
+flag BitStream_DecodeOctetString_fragmentation(BitStream* pBitStrm, byte* arr, int* nCount, asn1SccSint asn1SizeMax) {
+	flag ret = TRUE;
+
+	int i1;
+	asn1SccSint nLengthTmp1 = 0;
+	asn1SccSint nRemainingItemsVar1 = 0;
+	asn1SccSint nCurBlockSize1 = 0;
+	asn1SccSint nCurOffset1 = 0;
+
+	ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, &nRemainingItemsVar1, 0, 0xFF);
+	if (ret) {
+		while (ret && (nRemainingItemsVar1 & 0xC0) == 0xC0)
+		{
+			if (nRemainingItemsVar1 == 0xC4)
+				nCurBlockSize1 = 0x10000;
+			else if (nRemainingItemsVar1 == 0xC3)
+				nCurBlockSize1 = 0xC000;
+			else if (nRemainingItemsVar1 == 0xC2)
+				nCurBlockSize1 = 0x8000;
+			else if (nRemainingItemsVar1 == 0xC1)
+				nCurBlockSize1 = 0x4000;
+			else {
+				ret =  FALSE;
+			}
+			if (ret) {
+				ret = nCurOffset1 + nCurBlockSize1 <= asn1SizeMax;
+				for (i1 = (int)nCurOffset1; ret && (i1 < (int)(nCurOffset1 + nCurBlockSize1)); i1++)
+				{
+					ret = BitStream_ReadByte(pBitStrm, &(arr[i1]));
+				}
+
+				if (ret) {
+					nLengthTmp1 += (long)nCurBlockSize1;
+					nCurOffset1 += nCurBlockSize1;
+					ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, &nRemainingItemsVar1, 0, 0xFF);
+				}
+			}
+		}
+		if (ret) {
+			if ((nRemainingItemsVar1 & 0x80)>0)
+			{
+				asn1SccSint len2;
+				nRemainingItemsVar1 <<= 8;
+				ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, &len2, 0, 0xFF);
+				if (ret) {
+					nRemainingItemsVar1 |= len2;
+					nRemainingItemsVar1 &= 0x7FFF;
+				}
+			}
+			ret = ret && (nCurOffset1 + nRemainingItemsVar1 <= asn1SizeMax);
+			if (ret) {
+				for (i1 = (int)nCurOffset1; ret && (i1 < (int)(nCurOffset1 + nRemainingItemsVar1)); i1++)
+				{
+					ret = BitStream_ReadByte(pBitStrm, &(arr[i1]));
+				}
+				if (ret) {
+					nLengthTmp1 += (long)nRemainingItemsVar1;
+
+					if ((nLengthTmp1 >= 1) && (nLengthTmp1 <= asn1SizeMax)) {
+						*nCount = (int)nLengthTmp1;
+
+					}
+					else {
+						ret = FALSE;  /*COVERAGE_IGNORE*/
+					}
+
+				}
+			}
+		}
+	}
+
+	return ret;
+}
+
+
+
+flag BitStream_EncodeOctetString(BitStream* pBitStrm, const byte* arr, int nCount, asn1SccSint asn1SizeMin, asn1SccSint asn1SizeMax) {
+	flag ret= TRUE;
+	if (asn1SizeMax < 65536) {
+		if (asn1SizeMin != asn1SizeMax) {
+			BitStream_EncodeConstraintWholeNumber(pBitStrm, nCount, asn1SizeMin, asn1SizeMax);
+			ret = BitStream_EncodeOctetString_no_length(pBitStrm, arr, nCount);
+		}
+	}
+	else {
+		ret = BitStream_EncodeOctetString_fragmentation(pBitStrm, arr, nCount);
+	}
+	
+	
+	return ret;
+}
+
+flag BitStream_DecodeOctetString(BitStream* pBitStrm, byte* arr, int* nCount, asn1SccSint asn1SizeMin, asn1SccSint asn1SizeMax) {
+	flag ret = TRUE;
+	if (asn1SizeMax < 65536) {
+		asn1SccSint nCountL;
+		ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, &nCountL, asn1SizeMin, asn1SizeMax);
+		*nCount = (int)nCountL;
+		ret = ret && (nCountL >= 0 && nCountL <= asn1SizeMax);
+		if (ret) {
+			BitStream_DecodeOctetString_no_length(pBitStrm, arr, *nCount);
+		}
+	}
+	else {
+		ret = BitStream_DecodeOctetString_fragmentation(pBitStrm, arr, nCount, asn1SizeMax);
+	}
+	return ret;
 }

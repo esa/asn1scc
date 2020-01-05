@@ -825,6 +825,10 @@ package body adaasn1rtl.encoding with Spark_Mode is
 --        return 2;
 --     end BitStream_checkBitPatternPresent;
    
-   
+
+
+
+
+
    
 end adaasn1rtl.encoding;

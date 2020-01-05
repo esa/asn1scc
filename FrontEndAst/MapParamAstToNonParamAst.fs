@@ -109,7 +109,7 @@ let rec getSequenceChildren (r:ParameterizedAsn1Ast.AstRoot) (input:list<Paramet
 
 let rec getActualKind r kind =
     match kind with
-    | ParameterizedAsn1Ast.ReferenceType(md, ts,_) -> 
+    | ParameterizedAsn1Ast.ReferenceType(md, ts,_, _) -> 
         let newTas = ParameterizedAsn1Ast.getTypeAssignment r md ts
         getActualKind r newTas.Type.Kind
     | _                                            -> kind
@@ -119,7 +119,7 @@ let rec MapAsn1Value (r:ParameterizedAsn1Ast.AstRoot) (kind: ParameterizedAsn1As
     let rec getActualKindAndModule r kind =
         let rec getActualaux r kind modName=
             match kind with
-            | ParameterizedAsn1Ast.ReferenceType(md, ts,_) -> 
+            | ParameterizedAsn1Ast.ReferenceType(md, ts,_, _) -> 
                 let mdl = ParameterizedAsn1Ast.getModuleByName  r md
                 let newTas = ParameterizedAsn1Ast.getTypeAssignment r md ts
                 getActualaux r newTas.Type.Kind (Some mdl.Name)
@@ -300,7 +300,6 @@ and MapAsn1Type (r:ParameterizedAsn1Ast.AstRoot) typeScope (t:ParameterizedAsn1A
             Location = t.Location
             parameterizedTypeInstance = t.parameterizedTypeInstance
             acnInfo = t.acnInfo
-            encodeAsContainedInOctetString = t.encodeAsContainedInOctetString
         }        
     match t.Kind with
     | ParameterizedAsn1Ast.Integer          -> aux Asn1Ast.Integer
@@ -320,9 +319,9 @@ and MapAsn1Type (r:ParameterizedAsn1Ast.AstRoot) typeScope (t:ParameterizedAsn1A
         let children = getSequenceChildren r children
         aux (Asn1Ast.Sequence(children |> List.map (MapChildInfo r typeScope true) ))
     | ParameterizedAsn1Ast.Choice(children)     -> aux (Asn1Ast.Choice(children |> List.map (MapChildInfo r typeScope false) ))
-    | ParameterizedAsn1Ast.ReferenceType(mdName,ts, args)   ->
+    | ParameterizedAsn1Ast.ReferenceType(mdName,ts,refEnc,  args)   ->
         match args with
-        | []    ->  aux (Asn1Ast.ReferenceType({Asn1Ast.ReferenceType.modName = mdName; tasName = ts; tabularized = false}))
+        | []    ->  aux (Asn1Ast.ReferenceType({Asn1Ast.ReferenceType.modName = mdName; tasName = ts; tabularized = false; refEnc= refEnc}))
         | _     ->  raise(BugErrorException "")
 
     
@@ -340,7 +339,7 @@ let MapTypeAssignment (r:ParameterizedAsn1Ast.AstRoot) (m:ParameterizedAsn1Ast.A
 let MapValueAssignment (r:ParameterizedAsn1Ast.AstRoot) (m:ParameterizedAsn1Ast.Asn1Module) (vas:ParameterizedAsn1Ast.ValueAssignment) :Asn1Ast.ValueAssignment =
     let typeScope =
         match vas.Type.Kind with
-        | ParameterizedAsn1Ast.ReferenceType(md,ts,_)  -> [MD md.Value; TA ts.Value]
+        | ParameterizedAsn1Ast.ReferenceType(md,ts,_,_)  -> [MD md.Value; TA ts.Value]
         | _                                            -> []//raise (SemanticError (vas.Name.Location, "Unnamed types are not currently supported."))
     let varScope = [VA2 vas.Name.Value]
     {

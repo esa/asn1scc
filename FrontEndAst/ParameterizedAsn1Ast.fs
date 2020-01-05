@@ -89,7 +89,6 @@ and Asn1Type = {
     Location: SrcLoc   //Line no, Char pos
     parameterizedTypeInstance : bool
     acnInfo     : AcnTypeEncodingSpec option
-    encodeAsContainedInOctetString : bool
 }
 
 and Asn1TypeKind =
@@ -108,7 +107,7 @@ and Asn1TypeKind =
     | SequenceOf        of Asn1Type    
     | Sequence          of list<SequenceChild>
     | Choice            of list<ChildInfo>
-    | ReferenceType     of StringLoc*StringLoc*list<TemplateArgument>
+    | ReferenceType     of StringLoc*StringLoc*(ContainedInOctOrBitString option)*list<TemplateArgument>
 
 and TemplateArgument =
     | ArgType of Asn1Type
@@ -213,7 +212,7 @@ let getTypeAssignment r m t = m |> getModuleByName r |> getTasByName t
 
 let rec TryGetActualType (t:Asn1Type) (r:AstRoot) =
     match t.Kind with
-    | ReferenceType(mn,tasname, _) ->
+    | ReferenceType(mn,tasname, _, _) ->
         let mods = r.Files |> List.collect (fun x -> x.Modules) 
         match  mods |> Seq.tryFind(fun m -> m.Name = mn) with
         | Some newmod ->
@@ -226,7 +225,7 @@ let rec TryGetActualType (t:Asn1Type) (r:AstRoot) =
 
 let rec GetActualType (t:Asn1Type) (r:AstRoot) =
     match t.Kind with
-    | ReferenceType(mn,tasname, _) ->
+    | ReferenceType(mn,tasname, _, _) ->
         match TryGetActualType t r with
         | Some t    -> t
         | None      -> raise(SemanticError(tasname.Location, sprintf "Reference type: %s.%s can not be resolved" mn.Value tasname.Value ))

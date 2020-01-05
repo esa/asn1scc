@@ -123,7 +123,6 @@ type Asn1Type = {
     Location        : SrcLoc //Line no, Char pos
     parameterizedTypeInstance : bool
     acnInfo     :    AcnGenericTypes.AcnTypeEncodingSpec option
-    encodeAsContainedInOctetString : bool
 }
 
 
@@ -149,6 +148,7 @@ and ReferenceType = {
     modName     : StringLoc
     tasName     : StringLoc
     tabularized : bool
+    refEnc      : ContainedInOctOrBitString option
 }
 
 

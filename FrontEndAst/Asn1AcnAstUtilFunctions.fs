@@ -10,6 +10,9 @@ open Asn1AcnAst
 
 
 
+let toByte sizeInBits =
+    sizeInBits/8I + (if sizeInBits % 8I = 0I then 0I else 1I)
+
 type Asn1Type with
     member this.uperMinSizeInBits =
         match this.Kind with
@@ -27,7 +30,8 @@ type Asn1Type with
         | Sequence       x -> x.uperMinSizeInBits
         | Choice         x -> x.uperMinSizeInBits
         | ObjectIdentifier x -> x.uperMinSizeInBits
-        | ReferenceType  x -> x.resolvedType.uperMinSizeInBits
+        | ReferenceType  x -> x.uperMinSizeInBits
+            
 
     member this.uperMaxSizeInBits =
         match this.Kind with
@@ -45,7 +49,7 @@ type Asn1Type with
         | Sequence       x -> x.uperMaxSizeInBits
         | Choice         x -> x.uperMaxSizeInBits
         | ObjectIdentifier x -> x.uperMaxSizeInBits
-        | ReferenceType  x -> x.resolvedType.uperMaxSizeInBits
+        | ReferenceType  x -> x.uperMaxSizeInBits
 
     member this.acnMinSizeInBits =
         match this.Kind with
@@ -63,7 +67,7 @@ type Asn1Type with
         | Sequence       x -> x.acnMinSizeInBits
         | Choice         x -> x.acnMinSizeInBits
         | ObjectIdentifier x -> x.acnMinSizeInBits
-        | ReferenceType  x -> x.resolvedType.acnMinSizeInBits
+        | ReferenceType  x -> x.acnMinSizeInBits
 
     member this.acnMaxSizeInBits =
         match this.Kind with
@@ -81,7 +85,7 @@ type Asn1Type with
         | Sequence       x -> x.acnMaxSizeInBits
         | Choice         x -> x.acnMaxSizeInBits
         | ObjectIdentifier x -> x.acnMaxSizeInBits
-        | ReferenceType  x -> x.resolvedType.acnMaxSizeInBits
+        | ReferenceType  x -> x.acnMaxSizeInBits
 
     member this.ActualType =
         match this.Kind with

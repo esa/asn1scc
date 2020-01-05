@@ -709,33 +709,41 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec:C
 
 
 let createReferenceFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.ReferenceType) (typeDefinition:TypeDefintionOrReference) (isValidFunc: IsValidFunction option) (baseType:Asn1Type) (us:State)  =
-    
-    if (t.id.AsString.StartsWith("Onboard-Parameters.Parameter-Value")) then
-        let aaa = t.id.AsString
-        ()
-
-
-    let typeDefinitionName = ToC2(r.args.TypePrefix + o.tasName.Value)
-    let baseFncName = 
+    let baseTypeDefinitionName = 
         match l with
-        | C     -> typeDefinitionName + codec.suffix
+        | C     -> ToC2(r.args.TypePrefix + o.tasName.Value) 
         | Ada   -> 
             match t.id.ModName = o.modName.Value with
-            | true  -> typeDefinitionName + codec.suffix
-            | false -> (ToC o.modName.Value) + "." + typeDefinitionName + codec.suffix
+            | true  -> ToC2(r.args.TypePrefix + o.tasName.Value) 
+            | false -> (ToC o.modName.Value) + "." + ToC2(r.args.TypePrefix + o.tasName.Value) 
+    let baseFncName = baseTypeDefinitionName + codec.suffix
 
-
-    let t1              = Asn1AcnAstUtilFunctions.GetActualTypeByName r o.modName o.tasName
-    let t1WithExtensios = o.resolvedType;
-    match TypesEquivalence.uperEquivalence t1 t1WithExtensios with
-    | true  ->
+    match o.encodingOptions with 
+    | None          -> 
+        let t1              = Asn1AcnAstUtilFunctions.GetActualTypeByName r o.modName o.tasName
+        let t1WithExtensios = o.resolvedType;
+        match TypesEquivalence.uperEquivalence t1 t1WithExtensios with
+        | true  ->
+            let soSparkAnnotations = None
+            let funcBody (errCode:ErroCode) (p:CallerScope) = 
+                match (baseType.getUperFunction codec).funcBody p with
+                | Some _    -> 
+                    let funcBodyContent = callBaseTypeFunc l (t.getParamValue p.arg l codec) baseFncName codec
+                    Some {UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = []}    
+                | None      -> None
+            createUperFunction r l codec t typeDefinition None  isValidFunc  funcBody soSparkAnnotations  us
+        | false -> 
+            baseType.getUperFunction codec, us
+    | Some opts  -> 
+        let octet_string_containing_func  = match l with C -> uper_c.octet_string_containing_func | Ada -> uper_a.octet_string_containing_func
         let soSparkAnnotations = None
         let funcBody (errCode:ErroCode) (p:CallerScope) = 
             match (baseType.getUperFunction codec).funcBody p with
             | Some _    -> 
-                let funcBodyContent = callBaseTypeFunc l (t.getParamValue p.arg l codec) baseFncName codec
+                let nBits = GetNumberOfBitsForNonNegativeInteger opts.maxSize
+                let sReqBytesForUperEncoding = sprintf "%s_REQUIRED_BYTES_FOR_ENCODING" baseTypeDefinitionName
+                let funcBodyContent = octet_string_containing_func  (t.getParamValue p.arg l codec) baseFncName sReqBytesForUperEncoding nBits codec
                 Some {UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = []}    
             | None      -> None
         createUperFunction r l codec t typeDefinition None  isValidFunc  funcBody soSparkAnnotations  us
-    | false -> 
-        baseType.getUperFunction codec, us
+        

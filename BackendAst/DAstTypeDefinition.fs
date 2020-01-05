@@ -505,4 +505,8 @@ let createChoice_u (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage)  (t:Asn1AcnAst
 
 
 let createReferenceType_u (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.ReferenceType)  (baseType:Asn1Type ) (us:State) =
-    baseType.typeDefintionOrReference
+    match o.encodingOptions with
+    | None    -> baseType.typeDefintionOrReference
+    | Some _  -> baseType.typeDefintionOrReference
+
+    
