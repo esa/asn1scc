@@ -481,8 +481,10 @@ BitStream_EncodeConstraintWholeNumber(pBitStrm, <p><sAcc>nCount, <nSizeMin>, <nS
 
 bitString_VarSize_decode(p, sAcc, nSizeMin, nSizeMax, sErrCode) ::= <<
 ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, &nCount, <nSizeMin>, <nSizeMax>);
-<p><sAcc>nCount = (long)nCount;
-<bitString_FixSize_decode(p=p, sAcc=sAcc, nFixedSize=[p,sAcc, "nCount"], sErrCode=sErrCode)>
+if (ret) {
+	<p><sAcc>nCount = (long)nCount;
+	<bitString_FixSize_decode(p=p, sAcc=sAcc, nFixedSize=[p,sAcc, "nCount"], sErrCode=sErrCode)>
+}
 >>
 
 
@@ -820,6 +822,37 @@ octet_string_containing_func_decode(p, sFuncName, sReqBytesForUperEncoding, nBit
 	BitStream_Init(&bitStrm, arr, sizeof(arr));
 	int nCount;
 	ret = BitStream_DecodeOctetString(pBitStrm, arr, &nCount, 0, <sReqBytesForUperEncoding>);
+	if (ret) {
+		ret = <sFuncName>(<p>, &bitStrm, pErrCode);
+	}
+}
+>>
+
+bit_string_containing_func_encode(p, sFuncName, sReqBytesForUperEncoding, sReqBitsForUperEncoding, nBits) ::= <<
+/*open new scope to declare some variables*/
+{
+	/*encode to a temporary bitstream*/
+	static byte arr[<sReqBytesForUperEncoding>];
+	BitStream bitStrm;
+	BitStream_Init(&bitStrm, arr, sizeof(arr));
+
+	ret = <sFuncName>(<p>, &bitStrm, pErrCode, FALSE);
+	if (ret) {
+		int nCount = bitStrm.currentByte*8 + bitStrm.currentBit;
+		ret = BitStream_EncodeBitString(pBitStrm, arr, nCount, 0, <sReqBitsForUperEncoding>);
+	}
+}
+>>
+
+bit_string_containing_func_decode(p, sFuncName, sReqBytesForUperEncoding, sReqBitsForUperEncoding, nBits) ::= <<
+/*open new scope to declare some variables*/
+{	
+	/*decode to a temporary bitstream*/
+	static byte arr[<sReqBytesForUperEncoding>];
+	BitStream bitStrm;
+	BitStream_Init(&bitStrm, arr, sizeof(arr));
+	int nCount;
+	ret = BitStream_DecodeBitString(pBitStrm, arr, &nCount, 0, <sReqBitsForUperEncoding>);
 	if (ret) {
 		ret = <sFuncName>(<p>, &bitStrm, pErrCode);
 	}

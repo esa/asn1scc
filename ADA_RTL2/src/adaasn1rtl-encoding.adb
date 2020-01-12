@@ -375,7 +375,7 @@ package body adaasn1rtl.encoding with Spark_Mode is
            end if;
        end loop;
        if rest_bits > 0 then
-           BitStream_AppendPartialByte(bs, bitMaskAsByteArray(bitMaskAsByteArray'First + total_bytes), rest_bits, false);
+           BitStream_ReadPartialByte(bs, bitMaskAsByteArray(bitMaskAsByteArray'First + total_bytes), rest_bits);
            bitMaskAsByteArray(bitMaskAsByteArray'First + total_bytes) := Shift_Left(bitMaskAsByteArray(bitMaskAsByteArray'First + total_bytes), 8-rest_bits);
        end if;
   end BitStream_ReadBits;

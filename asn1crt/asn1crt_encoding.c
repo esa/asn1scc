@@ -1365,3 +1365,146 @@ flag BitStream_DecodeOctetString(BitStream* pBitStrm, byte* arr, int* nCount, as
 	}
 	return ret;
 }
+
+
+flag BitStream_EncodeBitString(BitStream* pBitStrm, const byte* arr, int nCount, asn1SccSint asn1SizeMin, asn1SccSint asn1SizeMax) {
+	if (asn1SizeMax < 65536) {
+		if (asn1SizeMin != asn1SizeMax) {
+			BitStream_EncodeConstraintWholeNumber(pBitStrm, nCount, asn1SizeMin, asn1SizeMax);
+		}
+		BitStream_AppendBits(pBitStrm, arr, nCount);
+	}
+	else {
+		asn1SccSint nRemainingItemsVar1;
+		asn1SccSint nCurBlockSize1;
+		asn1SccSint nCurOffset1;
+		nRemainingItemsVar1 = nCount;
+		nCurBlockSize1 = 0;
+		nCurOffset1 = 0;
+		while (nRemainingItemsVar1 >= 0x4000 )
+		{
+			if (nRemainingItemsVar1 >= 0x10000)
+			{
+				nCurBlockSize1 = 0x10000;
+				BitStream_EncodeConstraintWholeNumber(pBitStrm, 0xC4, 0, 0xFF);
+			}
+			else if (nRemainingItemsVar1 >= 0xC000)
+			{
+				nCurBlockSize1 = 0xC000;
+				BitStream_EncodeConstraintWholeNumber(pBitStrm, 0xC3, 0, 0xFF);
+			}
+			else if (nRemainingItemsVar1 >= 0x8000)
+			{
+				nCurBlockSize1 = 0x8000;
+				BitStream_EncodeConstraintWholeNumber(pBitStrm, 0xC2, 0, 0xFF);
+			}
+			else
+			{
+				nCurBlockSize1 = 0x4000;
+				BitStream_EncodeConstraintWholeNumber(pBitStrm, 0xC1, 0, 0xFF);
+			}
+
+			BitStream_AppendBits(pBitStrm, &arr[nCurOffset1 / 8], (int)nCurBlockSize1);
+			nCurOffset1 += nCurBlockSize1;
+			nRemainingItemsVar1 -= nCurBlockSize1;
+			
+		}
+
+		if (nRemainingItemsVar1 <= 0x7F)
+			BitStream_EncodeConstraintWholeNumber(pBitStrm, nRemainingItemsVar1, 0, 0xFF);
+		else
+		{
+			BitStream_AppendBit(pBitStrm, 1);
+			BitStream_EncodeConstraintWholeNumber(pBitStrm, nRemainingItemsVar1, 0, 0x7FFF);
+		}
+
+		BitStream_AppendBits(pBitStrm, &arr[nCurOffset1 / 8], (int)nRemainingItemsVar1);
+	}
+
+	return TRUE;
+
+}
+
+flag BitStream_DecodeBitString(BitStream* pBitStrm, byte* arr, int* pCount, asn1SccSint asn1SizeMin, asn1SccSint asn1SizeMax) {
+	flag ret = TRUE;
+	if (asn1SizeMax < 65536) {
+		asn1SccSint nCount;
+		if (asn1SizeMin != asn1SizeMax) {
+			ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, &nCount, asn1SizeMin, asn1SizeMax);
+		}
+		else {
+			nCount = asn1SizeMin;
+		}
+		if (ret) {
+			*pCount = (int)nCount;
+			ret = BitStream_ReadBits(pBitStrm, arr, *pCount);
+		}
+	}
+	else {
+		asn1SccSint nLengthTmp1;
+		asn1SccSint nRemainingItemsVar1;
+		asn1SccSint nCurBlockSize1;
+		asn1SccSint nCurOffset1;
+
+		nRemainingItemsVar1 = 0;
+		nCurBlockSize1 = 0;
+		nCurOffset1 = 0;
+		nLengthTmp1 = 0;
+		ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, &nRemainingItemsVar1, 0, 0xFF);
+		if (ret) {
+			while (ret && (nRemainingItemsVar1 & 0xC0) == 0xC0)
+			{
+				if (nRemainingItemsVar1 == 0xC4)
+					nCurBlockSize1 = 0x10000;
+				else if (nRemainingItemsVar1 == 0xC3)
+					nCurBlockSize1 = 0xC000;
+				else if (nRemainingItemsVar1 == 0xC2)
+					nCurBlockSize1 = 0x8000;
+				else if (nRemainingItemsVar1 == 0xC1)
+					nCurBlockSize1 = 0x4000;
+				else {
+					return FALSE; /*COVERAGE_IGNORE*/
+				}
+				if (nCurOffset1 + nCurBlockSize1 > asn1SizeMax)
+				{
+					return FALSE; /*COVERAGE_IGNORE*/
+				}
+
+				ret = BitStream_ReadBits(pBitStrm, &arr[nCurOffset1 / 8], (int)nCurBlockSize1);
+
+				if (ret) {
+					nLengthTmp1 += (long)nCurBlockSize1;
+					nCurOffset1 += nCurBlockSize1;
+					ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, &nRemainingItemsVar1, 0, 0xFF);
+				}
+			}
+			if (ret) {
+				if ((nRemainingItemsVar1 & 0x80)>0)
+				{
+					asn1SccSint len2;
+					nRemainingItemsVar1 <<= 8;
+					ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, &len2, 0, 0xFF);
+					if (ret) {
+						nRemainingItemsVar1 |= len2;
+						nRemainingItemsVar1 &= 0x7FFF;
+					}
+				}
+				ret = ret && (nCurOffset1 + nRemainingItemsVar1 <= asn1SizeMax);
+				if (ret) {
+					ret = BitStream_ReadBits(pBitStrm, &arr[nCurOffset1 / 8], (int)nRemainingItemsVar1);
+					if (ret) {
+						nLengthTmp1 += (long)nRemainingItemsVar1;
+
+						if ((nLengthTmp1 >= 1) && (nLengthTmp1 <= asn1SizeMax)) {
+							*pCount = (int)nLengthTmp1;
+						} else {
+							ret = FALSE;  /*COVERAGE_IGNORE*/
+						}
+
+					}
+				}
+			}
+		}
+	}
+	return ret;
+}

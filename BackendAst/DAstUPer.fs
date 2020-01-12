@@ -736,13 +736,18 @@ let createReferenceFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (code
             baseType.getUperFunction codec, us
     | Some opts  -> 
         let octet_string_containing_func  = match l with C -> uper_c.octet_string_containing_func | Ada -> uper_a.octet_string_containing_func
+        let bit_string_containing_func  = match l with C -> uper_c.bit_string_containing_func | Ada -> uper_a.bit_string_containing_func
         let soSparkAnnotations = None
         let funcBody (errCode:ErroCode) (p:CallerScope) = 
             match (baseType.getUperFunction codec).funcBody p with
             | Some _    -> 
                 let nBits = GetNumberOfBitsForNonNegativeInteger opts.maxSize
                 let sReqBytesForUperEncoding = sprintf "%s_REQUIRED_BYTES_FOR_ENCODING" baseTypeDefinitionName
-                let funcBodyContent = octet_string_containing_func  (t.getParamValue p.arg l codec) baseFncName sReqBytesForUperEncoding nBits codec
+                let sReqBitForUperEncoding = sprintf "%s_REQUIRED_BITS_FOR_ENCODING" baseTypeDefinitionName
+                let funcBodyContent = 
+                    match opts.octOrBitStr with
+                    | ContainedInOctString  -> octet_string_containing_func  (t.getParamValue p.arg l codec) baseFncName sReqBytesForUperEncoding nBits codec
+                    | ContainedInBitString  -> bit_string_containing_func  (t.getParamValue p.arg l codec) baseFncName sReqBytesForUperEncoding sReqBitForUperEncoding nBits codec
                 Some {UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = []}    
             | None      -> None
         createUperFunction r l codec t typeDefinition None  isValidFunc  funcBody soSparkAnnotations  us

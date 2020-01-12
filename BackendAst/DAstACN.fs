@@ -995,7 +995,7 @@ let rec handleSingleUpdateDependency (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.Acn
         let updateFunc (typedefName :string) (vTarget : CallerScope) (pSrcRoot : CallerScope)  = 
             let pSizeable, checkPath = getAccessFromScopeNodeList d.asn1Type false l pSrcRoot
             
-            let updateStatement = sizeDep_oct_str_containing (o.resolvedType.getParamValue pSizeable.arg l Encode) baseFncName sReqBytesForUperEncoding (vTarget.arg.getValue l)
+            let updateStatement = sizeDep_oct_str_containing (o.resolvedType.getParamValue pSizeable.arg l Encode) baseFncName sReqBytesForUperEncoding (vTarget.arg.getValue l) (match o.encodingOptions with Some eo -> eo.octOrBitStr = ContainedInOctString | None -> false)
             match checkPath with
             | []    -> updateStatement
             | _     -> checkAccessPath checkPath updateStatement
@@ -1681,8 +1681,11 @@ let createReferenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
                 | false -> (ToC o.modName.Value) + "." + ToC2(r.args.TypePrefix + o.tasName.Value) 
         let baseFncName = baseTypeDefinitionName + "_ACN" + codec.suffix
         let sReqBytesForUperEncoding = sprintf "%s_REQUIRED_BYTES_FOR_ACN_ENCODING" baseTypeDefinitionName
+        let sReqBitForUperEncoding = sprintf "%s_REQUIRED_BITS_FOR_ENCODING" baseTypeDefinitionName
         let octet_string_containing_func  = match l with C -> uper_c.octet_string_containing_func | Ada -> uper_a.octet_string_containing_func
+        let bit_string_containing_func  = match l with C -> uper_c.bit_string_containing_func | Ada -> uper_a.bit_string_containing_func
         let octet_string_containing_ext_field_func = match l with C -> acn_c.octet_string_containing_ext_field_func | Ada -> acn_a.octet_string_containing_ext_field_func
+        let bit_string_containing_ext_field_func = match l with C -> acn_c.bit_string_containing_ext_field_func | Ada -> acn_a.bit_string_containing_ext_field_func
 
         let funcBody (errCode:ErroCode) (acnArgs: (AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) (p:CallerScope)        = 
             let funcBodyContent = 
@@ -1692,12 +1695,19 @@ let createReferenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
                     let extField        = getExternaField r deps t.id
                     let fncBody = octet_string_containing_ext_field_func (t.getParamValue p.arg l codec)  baseFncName sReqBytesForUperEncoding extField errCode.errCodeName codec
                     Some(fncBody, [errCode],[])
+                | SZ_EC_ExternalField    relPath    , ContainedInBitString  ->  
+                    let extField        = getExternaField r deps t.id
+                    let fncBody = bit_string_containing_ext_field_func (t.getParamValue p.arg l codec)  baseFncName sReqBytesForUperEncoding sReqBitForUperEncoding extField errCode.errCodeName codec
+                    Some(fncBody, [errCode],[])
+
                 | SZ_EC_uPER                        , ContainedInOctString  ->  
                     let nBits = GetNumberOfBitsForNonNegativeInteger encOptions.maxSize
                     let fncBody = octet_string_containing_func  (t.getParamValue p.arg l codec) baseFncName sReqBytesForUperEncoding nBits codec
                     Some(fncBody, [errCode],[])
-                | SZ_EC_uPER                        , ContainedInBitString  ->  raise(SemanticError (loc, "Invalid type for parameter2"))
-                | SZ_EC_ExternalField    relPath    , ContainedInBitString  ->  raise(SemanticError (loc, "Invalid type for parameter3"))
+                | SZ_EC_uPER                        , ContainedInBitString  ->  
+                    let nBits = GetNumberOfBitsForNonNegativeInteger encOptions.maxSize
+                    let fncBody = bit_string_containing_func  (t.getParamValue p.arg l codec) baseFncName sReqBytesForUperEncoding sReqBitForUperEncoding nBits codec
+                    Some(fncBody, [errCode],[])
                 | SZ_EC_TerminationPattern nullVal  ,  _                    ->  raise(SemanticError (loc, "Invalid type for parameter4"))
 
             match funcBodyContent with
