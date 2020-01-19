@@ -1288,27 +1288,31 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (m:Asn1Ast.Asn1Mo
                 | None          -> 
                     resolvedType.uperMinSizeInBits, resolvedType.uperMaxSizeInBits, resolvedType.acnMinSizeInBits, resolvedType.acnMaxSizeInBits, None
                 | Some  ContainedInBitString -> 
-                    let uperMinSizeInBits, uperMaxSizeInBits = uPER.getSizeableTypeSize 0I resolvedType.uperMaxSizeInBits 1I
+                    let minSize = {SIZE.uper = resolvedType.uperMinSizeInBits; acn = resolvedType.acnMinSizeInBits}
+                    let maxSize = {SIZE.uper = resolvedType.uperMaxSizeInBits; acn = resolvedType.acnMaxSizeInBits}
+                        
+                    let uperMinSizeInBits, uperMaxSizeInBits = uPER.getSizeableTypeSize minSize.uper maxSize.uper 1I
                     let acnProperties = 
                         match acnErrLoc with
-                        | Some acnErrLoc    -> { SizeableAcnProperties.sizeProp  = getSizeableSizeProperty 0I resolvedType.uperMaxSizeInBits acnErrLoc combinedProperties}
+                        | Some acnErrLoc    -> { SizeableAcnProperties.sizeProp  = getSizeableSizeProperty minSize.acn maxSize.acn acnErrLoc combinedProperties}
                         | None              -> {SizeableAcnProperties.sizeProp = None }
 
-                    let acnEncodingClass,  acnMinSizeInBits, acnMaxSizeInBits= AcnEncodingClasses.GetBitStringEncodingClass aligment loc acnProperties uperMinSizeInBits uperMaxSizeInBits 0I resolvedType.uperMaxSizeInBits 
+                    let acnEncodingClass,  acnMinSizeInBits, acnMaxSizeInBits= AcnEncodingClasses.GetBitStringEncodingClass aligment loc acnProperties uperMinSizeInBits uperMaxSizeInBits minSize.acn maxSize.acn
 
-                    uperMinSizeInBits, uperMaxSizeInBits, acnMinSizeInBits, acnMaxSizeInBits, (Some  {EncodeWithinOctetOrBitStringProperties.acnEncodingClass = acnEncodingClass; octOrBitStr = ContainedInBitString; maxSize=resolvedType.uperMaxSizeInBits})
+                    uperMinSizeInBits, uperMaxSizeInBits, acnMinSizeInBits, acnMaxSizeInBits, (Some  {EncodeWithinOctetOrBitStringProperties.acnEncodingClass = acnEncodingClass; octOrBitStr = ContainedInBitString; minSize = minSize; maxSize=maxSize})
                 | Some  ContainedInOctString  -> 
-                    let maxSize = (toByte resolvedType.uperMaxSizeInBits)
-                    let uperMinSizeInBits, uperMaxSizeInBits = uPER.getSizeableTypeSize 0I maxSize 8I
+                    let minSize = {SIZE.uper = toByte resolvedType.uperMinSizeInBits; acn = toByte resolvedType.acnMinSizeInBits}
+                    let maxSize = {SIZE.uper = toByte resolvedType.uperMaxSizeInBits; acn = toByte resolvedType.acnMaxSizeInBits}
+                    let uperMinSizeInBits, uperMaxSizeInBits = uPER.getSizeableTypeSize minSize.uper maxSize.uper 8I
 
                     let acnProperties = 
                         match acnErrLoc with
-                        | Some acnErrLoc    -> {SizeableAcnProperties.sizeProp = getSizeableSizeProperty 0I (toByte resolvedType.uperMaxSizeInBits) acnErrLoc combinedProperties}
+                        | Some acnErrLoc    -> {SizeableAcnProperties.sizeProp = getSizeableSizeProperty minSize.acn maxSize.acn acnErrLoc combinedProperties}
                         | None              -> {SizeableAcnProperties.sizeProp = None}
 
-                    let acnEncodingClass,  acnMinSizeInBits, acnMaxSizeInBits= AcnEncodingClasses.GetOctetStringEncodingClass aligment loc acnProperties uperMinSizeInBits uperMaxSizeInBits 0I (toByte resolvedType.uperMaxSizeInBits)
+                    let acnEncodingClass,  acnMinSizeInBits, acnMaxSizeInBits= AcnEncodingClasses.GetOctetStringEncodingClass aligment loc acnProperties uperMinSizeInBits uperMaxSizeInBits minSize.acn maxSize.acn
 
-                    uperMinSizeInBits, uperMaxSizeInBits, acnMinSizeInBits, acnMaxSizeInBits, (Some  {EncodeWithinOctetOrBitStringProperties.acnEncodingClass = acnEncodingClass; octOrBitStr = ContainedInOctString; maxSize=maxSize})
+                    uperMinSizeInBits, uperMaxSizeInBits, acnMinSizeInBits, acnMaxSizeInBits, (Some  {EncodeWithinOctetOrBitStringProperties.acnEncodingClass = acnEncodingClass; octOrBitStr = ContainedInOctString; minSize = minSize; maxSize=maxSize})
 
             let newRef       = {ReferenceType.modName = rf.modName; tasName = rf.tasName; tabularized = rf.tabularized; acnArguments = acnArguments; resolvedType=resolvedType; hasConstraints = hasAdditionalConstraints; typeDef=typeDef; uperMaxSizeInBits = uperMaxSizeInBits; uperMinSizeInBits = uperMinSizeInBits; acnMaxSizeInBits  = acnMaxSizeInBits; acnMinSizeInBits  = acnMinSizeInBits; encodingOptions=encodingOptions}
             ReferenceType newRef, us2

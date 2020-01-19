@@ -797,7 +797,7 @@ END
 
 
 
-octet_string_containing_func_encode(p, sFuncName, sReqBytesForUperEncoding, nBits) ::= <<
+octet_string_containing_func_encode(p, sFuncName, sReqBytesForUperEncoding, nBits, nMinSize, nMaxSize) ::= <<
 /*open new scope to declare some variables*/
 {
 	/*encode to a temporary bitstream*/
@@ -808,12 +808,12 @@ octet_string_containing_func_encode(p, sFuncName, sReqBytesForUperEncoding, nBit
 	ret = <sFuncName>(<p>, &bitStrm, pErrCode, FALSE);
 	if (ret) {
 		int nCount = bitStrm.currentBit == 0 ? bitStrm.currentByte : (bitStrm.currentByte + 1);
-		ret = BitStream_EncodeOctetString(pBitStrm, arr, nCount, 0, <sReqBytesForUperEncoding>);
+		ret = BitStream_EncodeOctetString(pBitStrm, arr, nCount, <nMinSize>, <nMaxSize>);
 	}
 }
 >>
 
-octet_string_containing_func_decode(p, sFuncName, sReqBytesForUperEncoding, nBits) ::= <<
+octet_string_containing_func_decode(p, sFuncName, sReqBytesForUperEncoding, nBits, nMinSize, nMaxSize) ::= <<
 /*open new scope to declare some variables*/
 {	
 	/*decode to a temporary bitstream*/
@@ -821,14 +821,14 @@ octet_string_containing_func_decode(p, sFuncName, sReqBytesForUperEncoding, nBit
 	BitStream bitStrm;
 	BitStream_Init(&bitStrm, arr, sizeof(arr));
 	int nCount;
-	ret = BitStream_DecodeOctetString(pBitStrm, arr, &nCount, 0, <sReqBytesForUperEncoding>);
+	ret = BitStream_DecodeOctetString(pBitStrm, arr, &nCount, <nMinSize>, <nMaxSize>);
 	if (ret) {
 		ret = <sFuncName>(<p>, &bitStrm, pErrCode);
 	}
 }
 >>
 
-bit_string_containing_func_encode(p, sFuncName, sReqBytesForUperEncoding, sReqBitsForUperEncoding, nBits) ::= <<
+bit_string_containing_func_encode(p, sFuncName, sReqBytesForUperEncoding, sReqBitsForUperEncoding, nBits, nMinSize, nMaxSize) ::= <<
 /*open new scope to declare some variables*/
 {
 	/*encode to a temporary bitstream*/
@@ -839,12 +839,12 @@ bit_string_containing_func_encode(p, sFuncName, sReqBytesForUperEncoding, sReqBi
 	ret = <sFuncName>(<p>, &bitStrm, pErrCode, FALSE);
 	if (ret) {
 		int nCount = bitStrm.currentByte*8 + bitStrm.currentBit;
-		ret = BitStream_EncodeBitString(pBitStrm, arr, nCount, 0, <sReqBitsForUperEncoding>);
+		ret = BitStream_EncodeBitString(pBitStrm, arr, nCount, <nMinSize>, <nMaxSize>);
 	}
 }
 >>
 
-bit_string_containing_func_decode(p, sFuncName, sReqBytesForUperEncoding, sReqBitsForUperEncoding, nBits) ::= <<
+bit_string_containing_func_decode(p, sFuncName, sReqBytesForUperEncoding, sReqBitsForUperEncoding, nBits, nMinSize, nMaxSize) ::= <<
 /*open new scope to declare some variables*/
 {	
 	/*decode to a temporary bitstream*/
@@ -852,7 +852,7 @@ bit_string_containing_func_decode(p, sFuncName, sReqBytesForUperEncoding, sReqBi
 	BitStream bitStrm;
 	BitStream_Init(&bitStrm, arr, sizeof(arr));
 	int nCount;
-	ret = BitStream_DecodeBitString(pBitStrm, arr, &nCount, 0, <sReqBitsForUperEncoding>);
+	ret = BitStream_DecodeBitString(pBitStrm, arr, &nCount, <nMinSize>, <nMaxSize>);
 	if (ret) {
 		ret = <sFuncName>(<p>, &bitStrm, pErrCode);
 	}

@@ -1334,15 +1334,18 @@ flag BitStream_DecodeOctetString_fragmentation(BitStream* pBitStrm, byte* arr, i
 
 
 flag BitStream_EncodeOctetString(BitStream* pBitStrm, const byte* arr, int nCount, asn1SccSint asn1SizeMin, asn1SccSint asn1SizeMax) {
-	flag ret= TRUE;
-	if (asn1SizeMax < 65536) {
-		if (asn1SizeMin != asn1SizeMax) {
-			BitStream_EncodeConstraintWholeNumber(pBitStrm, nCount, asn1SizeMin, asn1SizeMax);
+	flag ret= (nCount >= asn1SizeMin && nCount <= asn1SizeMax);
+	
+	if (ret) {
+		if (asn1SizeMax < 65536) {
+			if (asn1SizeMin != asn1SizeMax) {
+				BitStream_EncodeConstraintWholeNumber(pBitStrm, nCount, asn1SizeMin, asn1SizeMax);
+			}
 			ret = BitStream_EncodeOctetString_no_length(pBitStrm, arr, nCount);
 		}
-	}
-	else {
-		ret = BitStream_EncodeOctetString_fragmentation(pBitStrm, arr, nCount);
+		else {
+			ret = BitStream_EncodeOctetString_fragmentation(pBitStrm, arr, nCount);
+		}
 	}
 	
 	
@@ -1353,9 +1356,15 @@ flag BitStream_DecodeOctetString(BitStream* pBitStrm, byte* arr, int* nCount, as
 	flag ret = TRUE;
 	if (asn1SizeMax < 65536) {
 		asn1SccSint nCountL;
-		ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, &nCountL, asn1SizeMin, asn1SizeMax);
+		if (asn1SizeMin != asn1SizeMax) {
+			ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, &nCountL, asn1SizeMin, asn1SizeMax);
+		}
+		else {
+			ret = TRUE;
+			nCountL = asn1SizeMin;
+		}
 		*nCount = (int)nCountL;
-		ret = ret && (nCountL >= 0 && nCountL <= asn1SizeMax);
+		ret = ret && (nCountL >= asn1SizeMin && nCountL <= asn1SizeMax);
 		if (ret) {
 			BitStream_DecodeOctetString_no_length(pBitStrm, arr, *nCount);
 		}

@@ -791,7 +791,7 @@ with
         | SequenceOf   t -> t.baseInfo.uperMaxSizeInBits
         | Sequence     t -> t.baseInfo.uperMaxSizeInBits
         | Choice       t -> t.baseInfo.uperMaxSizeInBits
-        | ReferenceType ref -> ref.baseInfo.resolvedType.uperMaxSizeInBits
+        | ReferenceType ref -> ref.baseInfo.uperMaxSizeInBits
         | ObjectIdentifier t -> t.baseInfo.uperMaxSizeInBits
         | TimeType t        -> t.baseInfo.uperMaxSizeInBits
 
@@ -809,7 +809,7 @@ with
         | Sequence     t -> t.baseInfo.uperMinSizeInBits
         | Choice       t -> t.baseInfo.uperMinSizeInBits
         | ObjectIdentifier t -> t.baseInfo.uperMinSizeInBits
-        | ReferenceType ref -> ref.baseInfo.resolvedType.uperMinSizeInBits
+        | ReferenceType ref -> ref.baseInfo.uperMinSizeInBits
         | TimeType t        -> t.baseInfo.uperMinSizeInBits
 
 
@@ -827,7 +827,7 @@ with
         | Sequence     t -> t.baseInfo.acnMaxSizeInBits
         | Choice       t -> t.baseInfo.acnMaxSizeInBits
         | ObjectIdentifier t -> t.baseInfo.acnMaxSizeInBits
-        | ReferenceType ref -> ref.baseInfo.resolvedType.acnMaxSizeInBits
+        | ReferenceType ref -> ref.baseInfo.acnMaxSizeInBits
         | TimeType t        -> t.baseInfo.acnMaxSizeInBits
 
     member this.acnMinSizeInBits =
@@ -844,7 +844,7 @@ with
         | Sequence     t -> t.baseInfo.acnMinSizeInBits
         | Choice       t -> t.baseInfo.acnMinSizeInBits
         | ObjectIdentifier t -> t.baseInfo.acnMinSizeInBits
-        | ReferenceType ref -> ref.baseInfo.resolvedType.acnMinSizeInBits
+        | ReferenceType ref -> ref.baseInfo.acnMinSizeInBits
         | TimeType t        -> t.baseInfo.acnMinSizeInBits
 
     member this.acnEncFunction : AcnFunction option =

@@ -534,6 +534,11 @@ type FE_TypeDefinitionKindInternal =
         | FEI_Reference2OtherType otherId             -> sprintf "FE_Reference2OtherType %s" otherId.AsString
 
 
+type TypeDefinitionBaseKind =
+    | NewTypeDefinition                       //type
+    | NewSubTypeDefinition 
+    | Reference2RTL
+    | Reference2OtherType 
 
 
 
@@ -542,6 +547,12 @@ type FE_PrimitiveTypeDefinitionKind =
     | PrimitiveNewSubTypeDefinition of FE_PrimitiveTypeDefinition    //subtype
     | PrimitiveReference2RTL
     | PrimitiveReference2OtherType 
+    member this.BaseKind =
+        match this with
+        | PrimitiveNewTypeDefinition            -> NewTypeDefinition
+        | PrimitiveNewSubTypeDefinition   sub   -> NewTypeDefinition
+        | PrimitiveReference2RTL                -> Reference2RTL
+        | PrimitiveReference2OtherType          -> Reference2OtherType
     override this.ToString() = 
         match this with
         | PrimitiveNewTypeDefinition            -> "NewTypeDefinition"
@@ -561,6 +572,11 @@ type FE_NonPrimitiveTypeDefinitionKind<'SUBTYPE> =
     | NonPrimitiveNewTypeDefinition                       //type
     | NonPrimitiveNewSubTypeDefinition of 'SUBTYPE    //subtype
     | NonPrimitiveReference2OtherType 
+    member this.BaseKind =
+        match this with
+        | NonPrimitiveNewTypeDefinition            -> NewTypeDefinition
+        | NonPrimitiveNewSubTypeDefinition   sub   -> NewTypeDefinition
+        | NonPrimitiveReference2OtherType          -> Reference2OtherType
     override this.ToString() = 
         match this with
         | NonPrimitiveNewTypeDefinition                       -> "NewTypeDefinition"
@@ -692,6 +708,15 @@ type FE_TypeDefinition =
             | FE_SizeableTypeDefinition   a    -> a.kind.ToString()
             | FE_ChoiceTypeDefinition     a    -> a.kind.ToString()
             | FE_EnumeratedTypeDefinition a    -> a.kind.ToString()
+        member this.BaseKind =
+            match this with
+            | FE_PrimitiveTypeDefinition  a    -> a.kind.BaseKind
+            | FE_SequenceTypeDefinition   a    -> a.kind.BaseKind
+            | FE_StringTypeDefinition     a    -> a.kind.BaseKind
+            | FE_SizeableTypeDefinition   a    -> a.kind.BaseKind
+            | FE_ChoiceTypeDefinition     a    -> a.kind.BaseKind
+            | FE_EnumeratedTypeDefinition a    -> a.kind.BaseKind
+
 
         member this.asn1Name = 
             match this with

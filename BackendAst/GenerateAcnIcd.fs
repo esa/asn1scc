@@ -123,8 +123,8 @@ let rec printType stgFileName (tas:GenerateUperIcd.IcdTypeAssignment) (t:Asn1Typ
     | ObjectIdentifier  o   ->
         let sAsn1Constraints = ""
         handlePrimitive sAsn1Constraints
-    |ReferenceType o ->
-        printType stgFileName tas t.ActualType m r isAnonymousType
+    |ReferenceType o when  o.baseInfo.encodingOptions.IsNone ->
+        printType stgFileName tas o.resolvedType m r isAnonymousType
     |Sequence seq   -> 
         let optionalLikeUperChildren = 
             seq.Asn1Children 
@@ -231,8 +231,8 @@ let rec printType stgFileName (tas:GenerateUperIcd.IcdTypeAssignment) (t:Asn1Typ
                         | Sequence _
                         | Choice _
                         | SequenceOf _ -> 
-                            let chTas = {tas with name=ch.Type.id.AsString.RDD; t=ch.Type.ActualType; comments = Array.concat [ tas.comments; [|sprintf "Acn inline encoding in the context of %s type and %s component" tas.name ch.Name.Value|]]; isBlue = true }
-                            printType stgFileName chTas ch.Type.ActualType m r isAnonymousType
+                            let chTas = {tas with name=ch.Type.id.AsString.RDD; t=ch.Type; comments = Array.concat [ tas.comments; [|sprintf "Acn inline encoding in the context of %s type and %s component" tas.name ch.Name.Value|]]; isBlue = true }
+                            printType stgFileName chTas ch.Type m r isAnonymousType
                         | _            -> []
                     | AcnChild _       -> [])|> 
             Seq.collect id |> Seq.toList
@@ -352,6 +352,7 @@ let rec printType stgFileName (tas:GenerateUperIcd.IcdTypeAssignment) (t:Asn1Typ
 
         let strRet = icd_acn.EmitSizeable stgFileName isAnonymousType sTasName  (ToC sTasName) hasAcnDef (Kind2Name stgFileName t) sMinBytes sMaxBytes sMaxBitsExplained (makeEmptyNull sCommentLine) arRows (myParams 2I) (sCommentLine.Split [|'\n'|])
         [strRet]
+    | ReferenceType _
     | OctetString _
     | BitString  _
     | SequenceOf _   ->
@@ -363,6 +364,11 @@ let rec printType stgFileName (tas:GenerateUperIcd.IcdTypeAssignment) (t:Asn1Typ
                 o.baseInfo.minSize.acn, o.baseInfo.maxSize.acn, o.baseInfo.acnEncodingClass
             | SequenceOf  o   ->
                 o.baseInfo.minSize.acn, o.baseInfo.maxSize.acn, o.baseInfo.acnEncodingClass
+            | ReferenceType o   ->
+                match o.baseInfo.encodingOptions with
+                | None      -> raise(BugErrorException "")
+                | Some eo   ->
+                    eo.minSize.acn, eo.maxSize.acn, eo.acnEncodingClass
             | _                            -> raise(BugErrorException "")
         let ChildRow (lineFrom:BigInteger) (i:BigInteger) =
             let sClass = if i % 2I = 0I then icd_acn.EvenRow stgFileName () else icd_acn.OddRow stgFileName ()
@@ -385,6 +391,13 @@ let rec printType stgFileName (tas:GenerateUperIcd.IcdTypeAssignment) (t:Asn1Typ
                     sType, ret, sMinBits, sMaxBits
                 | OctetString        _         -> "OCTET", "", "8", "8"
                 | BitString          _         -> "BIT", "", "1","1"
+                | ReferenceType o   ->
+                    match o.baseInfo.encodingOptions with
+                    | None      -> raise(BugErrorException "")
+                    | Some eo   ->
+                        match eo.octOrBitStr with
+                        | ContainedInOctString  -> "OCTET", "", "8", "8"   
+                        | ContainedInBitString  -> "BIT", "", "1","1"
                 | _                            -> raise(BugErrorException "")
             icd_acn.EmmitChoiceChild stgFileName sClass nIndex sFieldName sComment  sType sAsn1Constraints sMinBits sMaxBits
         let sFixedLengthComment = sprintf "Length is Fixed equal to %A, so no length determinant is encoded." nMax
@@ -432,8 +445,8 @@ let rec printType stgFileName (tas:GenerateUperIcd.IcdTypeAssignment) (t:Asn1Typ
         let sCommentLine = match sCommentLine with
                            | null | ""  -> sExtraComment
                            | _          -> sprintf "%s%s%s" sCommentLine (icd_acn.NewLine stgFileName ()) sExtraComment
-
-        let sizeRet = icd_acn.EmitSizeable stgFileName isAnonymousType sTasName  (ToC sTasName) hasAcnDef (Kind2Name stgFileName t) sMinBytes sMaxBytes sMaxBitsExplained (makeEmptyNull sCommentLine) arRows (myParams 2I) (sCommentLine.Split [|'\n'|])
+        
+        let sizeRet = icd_acn.EmitSizeable stgFileName false (*isAnonymousType*) sTasName  (ToC sTasName) hasAcnDef (Kind2Name stgFileName t) sMinBytes sMaxBytes sMaxBitsExplained (makeEmptyNull sCommentLine) arRows (myParams 2I) (sCommentLine.Split [|'\n'|])
         [sizeRet]
 
 let PrintTas stgFileName (tas:GenerateUperIcd.IcdTypeAssignment) (m:Asn1Module) (r:AstRoot)   =

@@ -618,7 +618,8 @@ and ChChildInfo = {
 }
 
 and EncodeWithinOctetOrBitStringProperties = {
-    maxSize             : BigInteger
+    minSize             : SIZE
+    maxSize             : SIZE
     acnEncodingClass    : SizeableAcnEncodingClass
     octOrBitStr         : ContainedInOctOrBitString
 }
@@ -690,7 +691,7 @@ type ReferenceToEnumerated = {
 
 type AcnDependencyKind = 
     | AcnDepIA5StringSizeDeterminant                  // The asn1Type has a size dependency a SEQUENCE OF, BIT STRINT, OCTET STRING etc
-    | AcnDepSizeDeterminant                  // The asn1Type has a size dependency a SEQUENCE OF, BIT STRINT, OCTET STRING etc
+    | AcnDepSizeDeterminant     of (SIZE*SIZE*SizeableAcnProperties)               // The asn1Type has a size dependency a SEQUENCE OF, BIT STRINT, OCTET STRING etc
     | AcnDepSizeDeterminant_bit_oct_str_containt     of ReferenceType             // The asn1Type has a size dependency a BIT STRINT, OCTET STRING containing another type
     | AcnDepRefTypeArgument       of AcnParameter        // string is the param name
     | AcnDepPresenceBool                     // points to a SEQEUNCE or Choice child

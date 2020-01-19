@@ -574,6 +574,17 @@ if (ret) {
 }
 >>
 
+oct_sqf_external_field_fix_size_encode(p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, sExtFld, nAlignSize, sErrCode, nIntItemMinSize, nIntItemMaxSize) ::= <<
+<loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize=[nSizeMax])>
+>>
+
+
+oct_sqf_external_field_fix_size_decode(p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, sExtFld, nAlignSize, sErrCode, nIntItemMinSize, nIntItemMaxSize) ::= <<
+ret = (<if(noSizeMin)>(<noSizeMin>\<=<sExtFld>) && <endif>(<sExtFld>\<=<nSizeMax>));
+if (ret) {
+    <loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize=[nSizeMax])>
+}
+>>
 
 oct_sqf_null_terminated_encode(p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength, sErrCode) ::= <<
 <loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize=[p, sAcc, "nCount"])>
@@ -619,6 +630,17 @@ if (ret) {
 }
 >>
 
+bit_string_external_field_fixed_size_encode(p, sErrCode, sAcc, noSizeMin, nSizeMax, sExtFld) ::= <<
+BitStream_AppendBits(pBitStrm, <p><sAcc>arr, <nSizeMax>);
+>>
+
+bit_string_external_field_fixed_size_decode(p, sErrCode, sAcc, noSizeMin, nSizeMax, sExtFld) ::= <<
+ret = (<if(noSizeMin)>(<noSizeMin>\<=<sExtFld>) && <endif>(<sExtFld>\<=<nSizeMax>));
+if (ret) {
+    ret = BitStream_ReadBits(pBitStrm, <p><sAcc>arr, <nSizeMax>);
+    *pErrCode = ret ? 0 : <sErrCode>;
+}
+>>
 
 bit_string_null_terminated_encode(p, sErrCode, sAcc, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength) ::= <<
 BitStream_AppendBits(pBitStrm, <p><sAcc>arr, <p><sAcc>nCount);
@@ -996,6 +1018,10 @@ SizeDependency(v, sCount) ::= <<
 <v> = <sCount>;
 >>
 
+SizeDependencyFixedSize(v, nFixedSize) ::= <<
+<v>_is_initialized = TRUE;
+<v> = <nFixedSize>;
+>>
 
 
 

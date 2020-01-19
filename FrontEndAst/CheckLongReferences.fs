@@ -139,10 +139,10 @@ let sizeReference (r:AstRoot) (tasPositions:Map<ReferenceToType,int>) (curState:
             | _              -> raise(SemanticError(loc, (sprintf "Invalid argument type. Expecting INTEGER got %s "  (c.Type.AsString))))
         
         // first check the sizeable type is a fixed size type (i.e. sizeMin = sizeMax). In this case emit a user error
-        match sizeMin = sizeMax with
-        | true  -> raise(SemanticError(loc, (sprintf "size acn property cannot be assigned to fixed size types. To fix this error remove 'size %s'." (path |> Seq.StrJoin "."))))
-        | false ->
-                checkRelativePath tasPositions curState parents t visibleParameters   (RelativePath path) checkParameter checkAcnType
+//        match sizeMin = sizeMax with
+//        | true  -> raise(SemanticError(loc, (sprintf "size acn property cannot be assigned to fixed size types. To fix this error remove 'size %s'." (path |> Seq.StrJoin "."))))
+//        | false ->
+        checkRelativePath tasPositions curState parents t visibleParameters   (RelativePath path) checkParameter checkAcnType
 
 
 let checkChoicePresentWhen (r:AstRoot) (tasPositions:Map<ReferenceToType,int>) (curState:AcnInsertedFieldDependencies) (parents: Asn1Type list) (t:Asn1Type)  (ch:Choice) (visibleParameters:(ReferenceToType*AcnParameter) list)    =
@@ -302,14 +302,14 @@ let rec private checkType (r:AstRoot) (tasPositions:Map<ReferenceToType,int>) (p
             | None -> None
             | Some (SzExternalField ef) -> Some ef
             | Some (SzNullTerminated _) -> None
-        sizeReference r tasPositions curState parents t a.minSize.acn a.maxSize.acn visibleParameters rp AcnDepSizeDeterminant
+        sizeReference r tasPositions curState parents t a.minSize.acn a.maxSize.acn visibleParameters rp (AcnDepSizeDeterminant (a.minSize, a.maxSize, a.acnProperties))
     | BitString      a      -> 
         let rp = 
             match a.acnProperties.sizeProp with 
             | None -> None
             | Some (SzExternalField ef) -> Some ef
             | Some (SzNullTerminated _) -> None
-        sizeReference r tasPositions curState parents t a.minSize.acn a.maxSize.acn visibleParameters rp AcnDepSizeDeterminant
+        sizeReference r tasPositions curState parents t a.minSize.acn a.maxSize.acn visibleParameters rp (AcnDepSizeDeterminant (a.minSize, a.maxSize, a.acnProperties))
     | SequenceOf   seqOf    ->
         let rp = 
             match seqOf.acnProperties.sizeProp with 
@@ -317,7 +317,7 @@ let rec private checkType (r:AstRoot) (tasPositions:Map<ReferenceToType,int>) (p
             | Some (SzExternalField ef) -> Some ef
             | Some (SzNullTerminated _) -> None
 
-        let ns = sizeReference r tasPositions curState (parents) t seqOf.minSize.acn seqOf.maxSize.acn visibleParameters rp AcnDepSizeDeterminant
+        let ns = sizeReference r tasPositions curState (parents) t seqOf.minSize.acn seqOf.maxSize.acn visibleParameters rp (AcnDepSizeDeterminant (seqOf.minSize, seqOf.maxSize, seqOf.acnProperties))
         checkType r tasPositions (parents@[t]) (curentPath@[SQF]) seqOf.child ns
     | Sequence   seq        ->
         seq.children |>
@@ -411,7 +411,7 @@ let rec private checkType (r:AstRoot) (tasPositions:Map<ReferenceToType,int>) (p
                 | SZ_EC_uPER                    -> None 
                 | SZ_EC_ExternalField ef        -> Some ef
                 | SZ_EC_TerminationPattern _    -> None
-            sizeReference r tasPositions curState parents t 0I props.maxSize visibleParameters rp (AcnDepSizeDeterminant_bit_oct_str_containt ref)
+            sizeReference r tasPositions curState parents t props.minSize.acn props.maxSize.acn visibleParameters rp (AcnDepSizeDeterminant_bit_oct_str_containt ref)
 
 
 let checkAst (r:AstRoot) =

@@ -1,0 +1,10 @@
+TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
+
+	MyPDU ::= SEQUENCE {
+        a2 OCTET STRING (SIZE(50))
+    }
+	
+END
+
+
+--TCLS     MyPDU[] {a1 INTEGER[size 8, encoding pos-int], a2[size a1] }

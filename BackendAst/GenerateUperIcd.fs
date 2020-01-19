@@ -57,7 +57,13 @@ let foldRangeCon valToStrFunc   (c:Asn1AcnAst.RangeTypeConstraint<'v1,'v1>)  =
 
 let Kind2Name (stgFileName:string) (t:Asn1Type) =
     match t.Kind with
-    | ReferenceType r               -> r.baseInfo.tasName.Value
+    | ReferenceType r               -> 
+        match r.baseInfo.encodingOptions with
+        | None          -> r.baseInfo.tasName.Value
+        | Some  eo      ->
+            match eo.octOrBitStr with
+            | ContainedInOctString  -> sprintf "%s (CONTAINING %s)" (icd_uper.OctetString  stgFileName ()) r.baseInfo.tasName.Value
+            | ContainedInBitString  -> sprintf "%s (CONTAINING %s)" (icd_uper.BitString   stgFileName ()) r.baseInfo.tasName.Value
     | Integer           _           -> icd_uper.Integer           stgFileName ()
     | BitString         _           -> icd_uper.BitString         stgFileName ()
     | OctetString       _           -> icd_uper.OctetString       stgFileName ()
@@ -171,8 +177,8 @@ let rec printType (stgFileName:string) (m:Asn1Module) (tas:IcdTypeAssignment) (t
     | Enumerated  o   ->
         let sAsn1Constraints = t.ConstraintsAsn1Str |> Seq.StrJoin ""
         handlePrimitive sAsn1Constraints
-    |ReferenceType o ->
-        printType stgFileName m tas t.ActualType r color
+    |ReferenceType o when  o.baseInfo.encodingOptions.IsNone ->
+        printType stgFileName m tas o.resolvedType r color
     |Sequence seq -> 
         let EmitChild (i:int) (ch:Asn1Child) =
             let sClass = if i % 2 = 0 then (icd_uper.EvenRow stgFileName ())  else (icd_uper.OddRow stgFileName ())
@@ -237,6 +243,7 @@ let rec printType (stgFileName:string) (m:Asn1Module) (tas:IcdTypeAssignment) (t
         let arChildren = chInfo.children |> Seq.mapi(fun i ch -> EmitChild (2 + i) ch) |> Seq.toList
         let arRows = ChIndex::arChildren
         icd_uper.EmitChoice stgFileName color sTasName (ToC sTasName) sMinBytes sMaxBytes sMaxBitsExplained sCommentLine arRows (sCommentLine.Split [|'\n'|])
+    | ReferenceType _
     | OctetString _
     | IA5String  _
     | BitString  _
@@ -257,6 +264,14 @@ let rec printType (stgFileName:string) (m:Asn1Module) (tas:IcdTypeAssignment) (t
             | IA5String           o        -> "ASCII CHARACTER", "", getCharSize o.baseInfo.uperCharSet.Length, getCharSize o.baseInfo.uperCharSet.Length, o.baseInfo.minSize, o.baseInfo.maxSize
             | OctetString         o        -> "OCTET", "", "8", "8", o.baseInfo.minSize, o.baseInfo.maxSize
             | BitString           o        -> "BIT", "", "1","1", o.baseInfo.minSize, o.baseInfo.maxSize
+            | ReferenceType o   ->
+                match o.baseInfo.encodingOptions with
+                | None      -> raise(BugErrorException "")
+                | Some eo   ->
+                    match eo.octOrBitStr with
+                    | ContainedInOctString  -> "OCTET", "", "8", "8", eo.minSize, eo.maxSize
+                    | ContainedInBitString  -> "BIT", "", "1","1", eo.minSize, eo.maxSize
+                    
             | _                            -> raise(BugErrorException "")
         let sizeUperRange =  Asn1AcnAst.Concrete(nMinLength, nMaxLength)
         let ChildRow (lineFrom:BigInteger) (i:BigInteger) =
@@ -325,10 +340,13 @@ let getModuleIcdTasses (m:Asn1Module) =
                 | None     -> [||]
             | None         -> [||]
         let td = x.FT_TypeDefintion.[CommonTypes.C]
-        match td.kind with 
-        | "FE_Reference2OtherType" | "FE_Reference2RTL"   -> None
-        | "NewTypeDefinition"           -> Some {IcdTypeAssignment.name = td.asn1Name; comments=comments; t=x; isBlue = false}
-        | _ (*NewSubTypeDefinition*)    -> Some {IcdTypeAssignment.name = td.asn1Name; comments=comments; t=x; isBlue = true}         ) 
+        match td.BaseKind with
+        | NewTypeDefinition       -> Some {IcdTypeAssignment.name = td.asn1Name; comments=comments; t=x; isBlue = x.tasInfo.IsNone}               //type
+        | NewSubTypeDefinition    -> Some {IcdTypeAssignment.name = td.asn1Name; comments=comments; t=x; isBlue = x.tasInfo.IsNone}
+        | Reference2RTL           -> None
+        | Reference2OtherType     -> None
+         
+        ) 
     |> Seq.toList
 
 let PrintModule (stgFileName:string) (m:Asn1Module) (f:Asn1File) (r:AstRoot) =

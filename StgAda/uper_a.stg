@@ -836,7 +836,7 @@ end if;
 
 
 
-octet_string_containing_func_encode(p, sFuncName, sReqBytesForUperEncoding, nBits) ::= <<
+octet_string_containing_func_encode(p, sFuncName, sReqBytesForUperEncoding, nBits, nMinSize, nMaxSize) ::= <<
 --open new scope to declare some variables
 declare
     tmpBs : adaasn1rtl.encoding.Bitstream := adaasn1rtl.encoding.BitStream_init(<sReqBytesForUperEncoding>);
@@ -846,19 +846,19 @@ begin
 	<sFuncName>_aux(<p>, tmpBs, result);
 	if result.success then
 		data_length := adaasn1rtl.encoding.BitStream_current_length_in_bytes(tmpBs);
-		adaasn1rtl.encoding.uper.BitStream_EncodeOctetString(bs, tmpBs.Buffer, data_length, <nBits>, 0, <sReqBytesForUperEncoding>);
+		adaasn1rtl.encoding.uper.BitStream_EncodeOctetString(bs, tmpBs.Buffer, data_length, <nBits>, <nMinSize>, <nMaxSize>);
 	end if;
 end;
 >>
 
-octet_string_containing_func_decode(p, sFuncName, sReqBytesForUperEncoding, nBits) ::= <<
+octet_string_containing_func_decode(p, sFuncName, sReqBytesForUperEncoding, nBits, nMinSize, nMaxSize) ::= <<
 --open new scope to declare some variables
 declare
     tmpBs : adaasn1rtl.encoding.Bitstream := adaasn1rtl.encoding.BitStream_init(<sReqBytesForUperEncoding>);
 	data_length : integer;
 begin
 	--decode to a temporary bitstream
-	adaasn1rtl.encoding.uper.BitStream_DecodeOctetString(bs, tmpBs.Buffer, data_length, <nBits>, 0, <sReqBytesForUperEncoding>, result.success);
+	adaasn1rtl.encoding.uper.BitStream_DecodeOctetString(bs, tmpBs.Buffer, data_length, <nBits>, <nMinSize>, <nMaxSize>, result.success);
 	if result.success then
 		<sFuncName>_aux(<p>, tmpBs, result);
 	end if;
@@ -866,7 +866,7 @@ end;
 >>
 
 
-bit_string_containing_func_encode(p, sFuncName, sReqBytesForUperEncoding, sReqBitsForUperEncoding, nBits) ::= <<
+bit_string_containing_func_encode(p, sFuncName, sReqBytesForUperEncoding, sReqBitsForUperEncoding, nBits, nMinSize, nMaxSize) ::= <<
 --open new scope to declare some variables
 declare
     tmpBs : adaasn1rtl.encoding.Bitstream := adaasn1rtl.encoding.BitStream_init(<sReqBytesForUperEncoding>);
@@ -876,19 +876,19 @@ begin
 	<sFuncName>_aux(<p>, tmpBs, result);
 	if result.success then
 		data_length := tmpBs.Current_Bit_Pos;
-		adaasn1rtl.encoding.uper.BitStream_EncodeBitString(bs, tmpBs.Buffer, data_length, <nBits>, 0, <sReqBitsForUperEncoding>);
+		adaasn1rtl.encoding.uper.BitStream_EncodeBitString(bs, tmpBs.Buffer, data_length, <nBits>, <nMinSize>, <nMaxSize>);
 	end if;
 end;
 >>
 
-bit_string_containing_func_decode(p, sFuncName, sReqBytesForUperEncoding, sReqBitsForUperEncoding, nBits) ::= <<
+bit_string_containing_func_decode(p, sFuncName, sReqBytesForUperEncoding, sReqBitsForUperEncoding, nBits, nMinSize, nMaxSize) ::= <<
 --open new scope to declare some variables
 declare
     tmpBs : adaasn1rtl.encoding.Bitstream := adaasn1rtl.encoding.BitStream_init(<sReqBytesForUperEncoding>);
 	data_length : integer;
 begin
 	--decode to a temporary bitstream
-	adaasn1rtl.encoding.uper.BitStream_DecodeBitString(bs, tmpBs.Buffer, data_length, <nBits>, 0, <sReqBitsForUperEncoding>, result.success);
+	adaasn1rtl.encoding.uper.BitStream_DecodeBitString(bs, tmpBs.Buffer, data_length, <nBits>, <nMinSize>, <nMaxSize>, result.success);
 	if result.success then
 		<sFuncName>_aux(<p>, tmpBs, result);
 	end if;
