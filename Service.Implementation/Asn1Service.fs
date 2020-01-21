@@ -22,6 +22,7 @@ type Asn1Service() =
         Dto.GenerationOptions.TypePrefix = ""
         Dto.GenerationOptions.FieldPrefix = CommonTypes.FieldPrefixAuto
         Dto.GenerationOptions.RenamePolicy = CommonTypes.EnumRenamePolicy.SelectiveEnumerants
+        Dto.GenerationOptions.ObjectIdentifierMaxLength = 8
     }
     
     interface IAsn1Service with
@@ -79,8 +80,7 @@ type Asn1Service() =
             custom_Stg_Ast_Version = 1
             fieldPrefix = match box options.FieldPrefix with | null -> None | _ -> Some(options.FieldPrefix)
             targetLanguages = match box options.TargetLanguage with | null -> [defaultOptions.TargetLanguage] | _ -> [options.TargetLanguage]
-            floatingPointSizeInBytes = 8I
-            objectIdentifierMaxLength = 8I
+            objectIdentifierMaxLength = bigint(match options.ObjectIdentifierMaxLength with | 0 -> defaultOptions.ObjectIdentifierMaxLength | _ -> options.ObjectIdentifierMaxLength)
         }
     
     member private this.ConvertInput (input:Dto.FileData) : CommonTypes.Input =

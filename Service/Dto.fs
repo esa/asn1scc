@@ -10,6 +10,7 @@ type GenerationOptions = {
     TypePrefix: string
     FieldPrefix: CommonTypes.FieldPrefix
     RenamePolicy: CommonTypes.EnumRenamePolicy
+    ObjectIdentifierMaxLength: int
 }
 
 type FileData = {
