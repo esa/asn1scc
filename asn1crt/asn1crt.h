@@ -3,14 +3,24 @@
 
 #include <stddef.h>
 
-#if (!defined(_MSC_VER) || _MSC_VER >= 1800)
-#  ifndef SWIG
-#    include <stdbool.h>
-#  endif
+// C99 check
+#if __STDC_VERSION__ >= 199901L
+#  include <stdbool.h>
+#  include <stdint.h>
 #else
+
 typedef unsigned char bool;
-#define true 1
-#define false 0
+#  define true 1
+#  define false 0
+
+typedef unsigned char uint8_t;
+
+typedef int int32_t;
+typedef unsigned int uint32_t;
+
+typedef long long int64_t;
+typedef unsigned long long uint64_t;
+
 #endif
 
 #ifdef  __cplusplus
@@ -43,13 +53,13 @@ extern "C" {
 typedef float asn1Real32;
 typedef double asn1Real64;
 
-typedef unsigned char byte;
+typedef uint8_t byte;
 
-typedef int asn1SccSint32;
-typedef unsigned int asn1SccUint32;
+typedef int32_t asn1SccSint32;
+typedef uint32_t asn1SccUint32;
 
-typedef long long asn1SccSint64;
-typedef unsigned long long asn1SccUint64;
+typedef int64_t asn1SccSint64;
+typedef uint64_t asn1SccUint64;
 
 #if WORD_SIZE==8
 typedef asn1SccUint64 asn1SccUint;
