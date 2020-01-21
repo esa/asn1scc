@@ -2,4 +2,4 @@ os: osx
 language: csharp
 script: 
   - nuget restore
-  - xbuild /p:TargetFrameworkVersion="v4.5"
+  - xbuild
