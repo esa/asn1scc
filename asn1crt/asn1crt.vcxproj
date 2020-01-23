@@ -24,7 +24,7 @@
     <PlatformToolset>v140</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
     <CharacterSet>Unicode</CharacterSet>
     <PlatformToolset>v140</PlatformToolset>
   </PropertyGroup>
@@ -85,13 +85,16 @@
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Acn.c" />
     <ClCompile Include="asn1crt.c" />
     <ClCompile Include="asn1crt_encoding.c" />
     <ClCompile Include="asn1crt_encoding_acn.c" />
     <ClCompile Include="asn1crt_encoding_ber.c" />
     <ClCompile Include="asn1crt_encoding_uper.c" />
     <ClCompile Include="asn1crt_encoding_xer.c" />
-    <ClCompile Include="main.c" />
+    <ClCompile Include="ber.c" />
+    <ClCompile Include="real.c" />
+    <ClCompile Include="xer.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="asn1crt.h" />
@@ -100,9 +103,6 @@
     <ClInclude Include="asn1crt_encoding_ber.h" />
     <ClInclude Include="asn1crt_encoding_uper.h" />
     <ClInclude Include="asn1crt_encoding_xer.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="ReadMe.txt" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -17,8 +17,8 @@ RUN set -ex ;\
     git clone https://github.com/ttsiodras/asn1scc.git ;\
     cd asn1scc/ ;\
     nuget restore ;\
-    xbuild /p:TargetFrameworkVersion="v4.5" ;\
-    xbuild /p:Configuration=Release /p:TargetFrameworkVersion="v4.5" ;\
+    xbuild ;\
+    xbuild /p:Configuration=Release ;\
     cd /tmp ;\
     mkdir asn1install ;\
     cd asn1install ;\

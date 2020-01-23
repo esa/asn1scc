@@ -9,7 +9,7 @@
     <OutputType>Library</OutputType>
     <RootNamespace>StgVarious</RootNamespace>
     <AssemblyName>StgVarious</AssemblyName>
-    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <TargetFSharpCoreVersion>4.4.0.0</TargetFSharpCoreVersion>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
     <Name>StgVarious</Name>
