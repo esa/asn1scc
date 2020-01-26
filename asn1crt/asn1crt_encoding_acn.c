@@ -14,31 +14,52 @@ static flag RequiresReverse(void)
 
 
 
-void Acn_AlignToNextByte(BitStream* pBitStrm)
+void Acn_AlignToNextByte(BitStream* pBitStrm, flag bEncode)
 {
 	if (pBitStrm->currentBit != 0)
 	{
 		pBitStrm->currentBit = 0;
 		pBitStrm->currentByte++;
-
+		if (bEncode)
+			bitstrean_push_data_if_required(pBitStrm);
+		else
+			bitstrean_push_data_if_required(pBitStrm);
 		CHECK_BIT_STREAM(pBitStrm);
 	}
 }
 
-void Acn_AlignToNextWord(BitStream* pBitStrm)
+void Acn_AlignToNextWord(BitStream* pBitStrm, flag bEncode)
 {
-	Acn_AlignToNextByte(pBitStrm);
+	Acn_AlignToNextByte(pBitStrm, bEncode);
 
 	pBitStrm->currentByte += pBitStrm->currentByte % 2;
+	if (bEncode)
+		bitstrean_push_data_if_required(pBitStrm);
+	else
+		bitstrean_push_data_if_required(pBitStrm);
 
 	CHECK_BIT_STREAM(pBitStrm);
 }
 
-void Acn_AlignToNextDWord(BitStream* pBitStrm)
+void Acn_AlignToNextDWord(BitStream* pBitStrm, flag bEncode)
 {
-	Acn_AlignToNextByte(pBitStrm);
+	Acn_AlignToNextByte(pBitStrm, bEncode);
 
-	pBitStrm->currentByte += pBitStrm->currentByte % 4;
+	//pBitStrm->currentByte += pBitStrm->currentByte % 4;
+	int totalBytes = pBitStrm->currentByte % 4;
+	if (pBitStrm->currentByte + totalBytes < pBitStrm->count) {
+		pBitStrm->currentByte += totalBytes;
+	}
+	else {
+		int extraBytes = pBitStrm->currentByte + totalBytes - pBitStrm->count;
+		pBitStrm->currentByte = pBitStrm->count;
+		if (bEncode)
+			bitstrean_push_data_if_required(pBitStrm);
+		else
+			bitstrean_push_data_if_required(pBitStrm);
+		pBitStrm->currentByte = extraBytes;
+	}
+
 
 	CHECK_BIT_STREAM(pBitStrm);
 }

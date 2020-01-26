@@ -147,13 +147,13 @@ for(<i>=0; (<i> \< (int)<fixedSize>) && ret; <i>++)
 
 
 alignToNext_encode(sMainBody, sAligmentValue, nAligmentValue) ::= <<
-Acn_AlignTo<sAligmentValue>(pBitStrm);
+Acn_AlignTo<sAligmentValue>(pBitStrm, TRUE);
 <sMainBody>
 >>
 
 
 alignToNext_decode(sMainBody, sAligmentValue, nAligmentValue) ::= <<
-Acn_AlignTo<sAligmentValue>(pBitStrm);
+Acn_AlignTo<sAligmentValue>(pBitStrm, FALSE);
 <sMainBody>
 >>
 

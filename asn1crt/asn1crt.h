@@ -3,6 +3,7 @@
 
 #include <stddef.h>
 
+
 // C99 check
 #if __STDC_VERSION__ >= 199901L
 #  include <stdbool.h>
@@ -92,7 +93,12 @@ typedef bool flag;
 
 typedef char NullType;
 
-typedef struct {
+struct BitStream_t;
+
+typedef void(*PushDataFnc)(struct BitStream_t* pThis, void* pushDataPrm);
+typedef void(*FetchDataFnc)(struct BitStream_t* pThis, void* fetchDataPrm);
+
+typedef struct BitStream_t {
 	byte* buf;
 	long count;
 	long currentByte;
@@ -100,21 +106,16 @@ typedef struct {
 	Possible vallues 0..7, 0 is most significant 
 	bit of current byte*/
 	int currentBit; 
+	PushDataFnc pushData;
+	void* pushDataPrm;
+	FetchDataFnc fetchData;
+	void* fetchDataPrm;
 } BitStream;
-/*
-typedef struct BitStream2_t {
-	byte* buf;
-	long count;
-	long currentByte;
-	//Next available bit for writting. 
-	//Possible vallues 0..7, 0 is most significant 
-	//bit of current byte
-	int currentBit;
-	void* udata;
-	void(*fetchData)(struct BitStream2_t* pThis);
-} BitStream2;
 
-*/
+
+
+
+
 typedef struct {
 	byte* buf;
 	long count;

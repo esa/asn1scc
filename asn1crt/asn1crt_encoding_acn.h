@@ -20,9 +20,9 @@ extern "C" {
 d8'          `8b  `"Y8888Y"'   88      `888           88        `"YbbdP'Y8  88       88   `"Ybbd8"'    "Y888  88   `"YbbdP"'   88       88  `"YbbdP"
 */
 
-void Acn_AlignToNextByte(BitStream* pBitStrm);
-void Acn_AlignToNextWord(BitStream* pBitStrm);
-void Acn_AlignToNextDWord(BitStream* pBitStrm);
+void Acn_AlignToNextByte(BitStream* pBitStrm, flag bEncode);
+void Acn_AlignToNextWord(BitStream* pBitStrm, flag bEncode);
+void Acn_AlignToNextDWord(BitStream* pBitStrm, flag bEncode);
 
 /*ACN Integer functions*/
 void Acn_Enc_Int_PositiveInteger_ConstSize(BitStream* pBitStrm, asn1SccUint intVal, int encodedSizeInBits);

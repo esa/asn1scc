@@ -82,7 +82,7 @@ with
             | Debug_Asn1  _     -> "Prints all input ASN.1 grammars in a single module/single file and with parameterized types removed. Used for debugging purposes"
             | Word_Size _       -> "Applicable only to C.Defines the size of asn1SccSint and asn1SccUint types. Valid values are 8 bytes (default) and 4 bytes. If you pass 4 then you should compile the C code -DWORD_SIZE=4."
             | Fp_Word_Size _     -> "Defines the size of the REAL type. Valid values are 8 bytes (default) which corresponds to double and 4 bytes which corresponds to float. If you pass 4 then you should compile the C code -DFP_WORD_SIZE=4."
-            | Mapping_Functions_Module _    -> "The name of Ada module or name of C header file (without extension) containing the definitins of mapping functions"
+            | Mapping_Functions_Module _    -> "The name of Ada module or name of C header file (without extension) containing the definitions of mapping functions"
 
 
 let printVersion () =

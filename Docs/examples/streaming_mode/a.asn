@@ -1,0 +1,14 @@
+TASTE-Dataview DEFINITIONS ::=
+BEGIN
+
+
+
+
+A1 ::= SEQUENCE (SIZE(1000)) OF SEQUENCE {
+  a11  INTEGER (0..65535),
+  a12  INTEGER (0..65535)
+}
+
+
+END
+

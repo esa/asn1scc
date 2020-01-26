@@ -66,6 +66,19 @@ void BitStream_Init(BitStream* pBitStrm, unsigned char* buf, long count)
 	memset(pBitStrm->buf, 0x0, (size_t)count);
 	pBitStrm->currentByte = 0;
 	pBitStrm->currentBit = 0;
+	pBitStrm->fetchData = NULL;
+	pBitStrm->pushData = NULL;
+	pBitStrm->pushDataPrm = NULL;
+	pBitStrm->fetchDataPrm = NULL;
+}
+
+void BitStream_Init2(BitStream* pBitStrm, unsigned char* buf, long count, PushDataFnc pushData, void* pushDataPrm, FetchDataFnc fetchData, void* fetchDataPrm)
+{
+	BitStream_Init(pBitStrm, buf, count);
+	pBitStrm->fetchData = fetchData;
+	pBitStrm->fetchDataPrm = fetchDataPrm;
+	pBitStrm->pushData = pushData;
+	pBitStrm->pushDataPrm = pushDataPrm;
 }
 
 void BitStream_AttachBuffer(BitStream* pBitStrm, unsigned char* buf, long count)
@@ -74,7 +87,21 @@ void BitStream_AttachBuffer(BitStream* pBitStrm, unsigned char* buf, long count)
 	pBitStrm->buf = buf;
 	pBitStrm->currentByte = 0;
 	pBitStrm->currentBit = 0;
+	pBitStrm->fetchData = NULL;
+	pBitStrm->pushData = NULL;
+	pBitStrm->pushDataPrm = NULL;
+	pBitStrm->fetchDataPrm = NULL;
 }
+
+void BitStream_AttachBuffer2(BitStream* pBitStrm, unsigned char* buf, long count, PushDataFnc pushData, void* pushDataPrm, FetchDataFnc fetchData, void* fetchDataPrm)
+{
+	BitStream_AttachBuffer(pBitStrm, buf, count);
+	pBitStrm->pushData = pushData;
+	pBitStrm->pushDataPrm = pushDataPrm;
+	pBitStrm->fetchData = fetchData;
+	pBitStrm->fetchDataPrm = fetchDataPrm;
+}
+
 
 asn1SccSint BitStream_GetLength(BitStream* pBitStrm)
 {
@@ -108,6 +135,7 @@ void BitStream_AppendBitOne(BitStream* pBitStrm)
 	else {
 		pBitStrm->currentBit = 0;
 		pBitStrm->currentByte++;
+		bitstrean_push_data_if_required(pBitStrm);
 	}
 	assert(pBitStrm->currentByte * 8 + pBitStrm->currentBit <= pBitStrm->count * 8);
 }
@@ -136,6 +164,7 @@ void BitStream_AppendBitZero(BitStream* pBitStrm)
 	else {
 		pBitStrm->currentBit = 0;
 		pBitStrm->currentByte++;
+		bitstrean_push_data_if_required(pBitStrm);
 	}
 	assert(pBitStrm->currentByte * 8 + pBitStrm->currentBit <= pBitStrm->count * 8);
 }
@@ -143,8 +172,18 @@ void BitStream_AppendBitZero(BitStream* pBitStrm)
 void BitStream_AppendNBitZero(BitStream* pBitStrm, int nbits)
 {
 	int totalBits = pBitStrm->currentBit + nbits;
+	int totalBytes = totalBits / 8;
 	pBitStrm->currentBit = totalBits % 8;
-	pBitStrm->currentByte += totalBits / 8;
+	//pBitStrm->currentByte += totalBits / 8;
+	if (pBitStrm->currentByte + totalBytes <= pBitStrm->count) {
+		pBitStrm->currentByte += totalBytes;
+		bitstrean_push_data_if_required(pBitStrm);
+	} else {
+		int extraBytes = pBitStrm->currentByte + totalBytes - pBitStrm->count;
+		pBitStrm->currentByte = pBitStrm->count;
+		bitstrean_push_data_if_required(pBitStrm);
+		pBitStrm->currentByte = extraBytes;
+	}
 }
 
 void BitStream_AppendNBitOne(BitStream* pBitStrm, int nbits)
@@ -191,6 +230,7 @@ void BitStream_AppendBit(BitStream* pBitStrm, flag v)
 	else {
 		pBitStrm->currentBit = 0;
 		pBitStrm->currentByte++;
+		bitstrean_push_data_if_required(pBitStrm);
 	}
 	assert(pBitStrm->currentByte * 8 + pBitStrm->currentBit <= pBitStrm->count * 8);
 }
@@ -205,6 +245,7 @@ flag BitStream_ReadBit(BitStream* pBitStrm, flag* v)
 	else {
 		pBitStrm->currentBit = 0;
 		pBitStrm->currentByte++;
+		bitstrean_fetch_data_if_required(pBitStrm);
 	}
 	return pBitStrm->currentByte * 8 + pBitStrm->currentBit <= pBitStrm->count * 8;
 }
@@ -242,7 +283,7 @@ void BitStream_AppendByte(BitStream* pBitStrm, byte v, flag negate)
 	
 	pBitStrm->buf[pBitStrm->currentByte] &= mask;
 	pBitStrm->buf[pBitStrm->currentByte++] |= (byte)(v >> cb);
-
+	bitstrean_push_data_if_required(pBitStrm);
 	assert(pBitStrm->currentByte * 8 + pBitStrm->currentBit <= pBitStrm->count * 8);
 
 	if (cb) {
@@ -265,7 +306,7 @@ flag BitStream_AppendByte0(BitStream* pBitStrm, byte v)
 
 	pBitStrm->buf[pBitStrm->currentByte] &= mask;
 	pBitStrm->buf[pBitStrm->currentByte++] |= (byte)(v >> cb);
-
+	bitstrean_push_data_if_required(pBitStrm);
 	//assert(pBitStrm->currentByte * 8 + pBitStrm->currentBit <= pBitStrm->count * 8);
 
 	if (cb) {
@@ -282,6 +323,7 @@ flag BitStream_ReadByte(BitStream* pBitStrm, byte* v)
 	int cb = pBitStrm->currentBit;
 	int ncb = 8 - pBitStrm->currentBit;
 	*v = (byte)(pBitStrm->buf[pBitStrm->currentByte++] << cb);
+	bitstrean_fetch_data_if_required(pBitStrm);
 
 	if (cb) {
 		*v |= (byte)(pBitStrm->buf[pBitStrm->currentByte] >> ncb);
@@ -356,13 +398,14 @@ void BitStream_AppendPartialByte(BitStream* pBitStrm, byte v, byte nbits, flag n
 		if (pBitStrm->currentBit == 8) {
 			pBitStrm->currentBit = 0;
 			pBitStrm->currentByte++;
+			bitstrean_push_data_if_required(pBitStrm);
 		}
 	}
 	else {
 		totalBitsForNextByte = totalBits - 8;
 		pBitStrm->buf[pBitStrm->currentByte] &= mask1;
 		pBitStrm->buf[pBitStrm->currentByte++] |= (byte)(v >> totalBitsForNextByte);
-
+		bitstrean_push_data_if_required(pBitStrm);
 		byte mask = (byte)~masksb[8 - totalBitsForNextByte];
 		pBitStrm->buf[pBitStrm->currentByte] &= mask;
 		pBitStrm->buf[pBitStrm->currentByte] |= (byte)(v << (8 - totalBitsForNextByte));
@@ -385,11 +428,13 @@ flag BitStream_ReadPartialByte(BitStream* pBitStrm, byte *v, byte nbits)
 		if (pBitStrm->currentBit == 8) {
 			pBitStrm->currentBit = 0;
 			pBitStrm->currentByte++;
+			bitstrean_fetch_data_if_required(pBitStrm);
 		}
 	}
 	else {
 		totalBitsForNextByte = totalBits - 8;
 		*v = (byte)(pBitStrm->buf[pBitStrm->currentByte++] << totalBitsForNextByte);
+		bitstrean_fetch_data_if_required(pBitStrm);
 		*v |= (byte)(pBitStrm->buf[pBitStrm->currentByte] >> (8 - totalBitsForNextByte));
 		*v &= masksb[nbits];
 		pBitStrm->currentBit = totalBitsForNextByte;
@@ -1516,4 +1561,23 @@ flag BitStream_DecodeBitString(BitStream* pBitStrm, byte* arr, int* pCount, asn1
 		}
 	}
 	return ret;
+}
+
+
+
+void bitstrean_fetch_data_if_required(BitStream* pStrm) {
+	if (pStrm->fetchData == NULL)
+		return;
+	if (pStrm->currentByte == pStrm->count) {
+		pStrm->fetchData(pStrm, pStrm->fetchDataPrm);
+		pStrm->currentByte = 0;
+	}
+}
+void bitstrean_push_data_if_required(BitStream* pStrm) {
+	if (pStrm->pushData == NULL)
+		return;
+	if (pStrm->currentByte == pStrm->count) {
+		pStrm->pushData(pStrm, pStrm->pushDataPrm);
+		pStrm->currentByte = 0;
+	}
 }
