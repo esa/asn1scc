@@ -1,34 +1,31 @@
 ﻿namespace Service.Dto
 
-open System.Runtime.Serialization
 open System.Collections.Generic
 
-[<NoEquality;NoComparison;DataContract>]
-type FileData = {
-    [<field : DataMember(Name="Name")>]
-    Name: string
+type GenerationOptions = {
+    Encoding: CommonTypes.Asn1Encoding
+    TargetLanguage: CommonTypes.ProgrammingLanguage
+    IntegerSizeInBytes: int
+    FloatingPointSizeInBytes: int
+    TypePrefix: string
+    FieldPrefix: CommonTypes.FieldPrefix
+    RenamePolicy: CommonTypes.EnumRenamePolicy
+    ObjectIdentifierMaxLength: int
+}
 
-    [<field : DataMember(Name="Contents")>]
+type FileData = {
+    Name: string
     Contents: string
 }
 
-[<NoEquality;NoComparison;DataContract>]
-type InputFiles = {
-    [<field : DataMember(Name="AsnFiles")>]
+type Input = {
     AsnFiles: IEnumerable<FileData>
-
-    [<field : DataMember(Name="AcnFiles")>]
     AcnFiles: IEnumerable<FileData>
+    Options: GenerationOptions
 }
 
-[<NoEquality;NoComparison;DataContract>]
 type Output = {
-    [<field : DataMember(Name="ErrorCode")>]
     ErrorCode: int
-
-    [<field : DataMember(Name="Files")>]
     Files: IEnumerable<FileData>
-
-    [<field : DataMember(Name="Messages")>]
     Messages: IEnumerable<string>
 }

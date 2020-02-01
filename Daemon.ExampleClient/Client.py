@@ -48,7 +48,28 @@ def get_compilation_error(uri):
         'AcnFiles': []
     }
     get_ast(uri, data)
-
+    
+def get_ast_with_options(uri):
+    data = {
+        'AsnFiles': [
+                {
+                    'Name': 'Test.asn',
+                    'Contents': 'Example DEFINITIONS ::= BEGIN MyInt ::= INTEGER(0 .. 10) MySequence ::= SEQUENCE { a MyInt } END'
+                }
+        ],
+        'AcnFiles': [
+                {
+                    'Name': 'Test.acn',
+                    'Contents': 'Example DEFINITIONS ::= BEGIN MyInt [size 32, encoding pos-int] END'
+                }
+        ],
+        'Options' : {
+            'TypePrefix' : 'T',
+            'Encoding' : { 'Case' : 'BER' },
+            'FieldPrefix' : { 'Case' : 'FieldPrefixUserValue', 'Fields' : ['PREF_']}
+        }
+    }
+    get_ast(uri, data)
 
 def run(uri):
     print("asn1scc Daemon Test Client")
@@ -57,6 +78,7 @@ def run(uri):
     get_correct_ast(uri)
     get_compilation_error(uri)
     get_correct_ast_with_acn(uri)
+    get_ast_with_options(uri)
 
 
 if __name__ == "__main__":

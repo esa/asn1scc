@@ -2,11 +2,18 @@
 
 open System.Net
 open System.Text
-open System.Runtime.Serialization.Json
+open Newtonsoft.Json
+open System.IO
+
+let private serializer = 
+    let settings = new JsonSerializerSettings()
+    settings.Converters.Add(new Converters.StringEnumConverter())
+    settings.Converters.Add(new Converters.DiscriminatedUnionConverter())
+    JsonSerializer.Create(settings)
 
 let ReadJson<'T> (request:HttpListenerRequest) =
-    let serializer = new DataContractJsonSerializer(typeof<'T>)
-    serializer.ReadObject(request.InputStream) :?> 'T
+    use reader = new StreamReader(request.InputStream)
+    serializer.Deserialize(reader, typeof<'T>) :?> 'T
 
 let SendJson<'T> (response:HttpListenerResponse) (obj:'T) =
     response.StatusCode <- (int HttpStatusCode.OK)
@@ -14,8 +21,8 @@ let SendJson<'T> (response:HttpListenerResponse) (obj:'T) =
     response.ContentType <- "application/json"
     response.ContentEncoding <- Encoding.UTF8
 
-    let serializer = new DataContractJsonSerializer(typeof<'T>)
-    serializer.WriteObject(response.OutputStream, obj)
+    use writer = new StreamWriter(response.OutputStream)
+    serializer.Serialize(writer, obj) 
 
 let private WriteText (response:HttpListenerResponse) (text:string) =
     let bytes = Encoding.UTF8.GetBytes text

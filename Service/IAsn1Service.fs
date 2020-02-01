@@ -2,4 +2,4 @@
 
 type IAsn1Service =
     abstract member Version : string
-    abstract member BuildAst : Dto.InputFiles -> Dto.Output
+    abstract member BuildAst : Dto.Input -> Dto.Output
