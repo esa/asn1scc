@@ -285,7 +285,7 @@ let rec CheckIfVariableViolatesTypeConstraints (t:Asn1Type) (v:Asn1Value) ast =
         let bitOrOctSrt =
             match (Asn1Ast.GetActualType t  ast).Kind with
             | OctetString       -> Some TP_OCT_STR
-            | BitString         -> Some TP_BIT_STR
+            | BitString  _      -> Some TP_BIT_STR
             | _                 -> None
         let ret = t.Constraints |> Seq.forall(fun c -> IsValueAllowed c v false bitOrOctSrt ast )
         match v.Kind, t.Kind with
@@ -548,7 +548,7 @@ let rec CheckType(t:Asn1Type) (m:Asn1Module) ast =
         | Some itm -> ()
         | None     -> raise(SemanticError(t.Location, "The constraints defined for this type do not allow any value"))
 
-    | BitString            ->   ()
+    | BitString _           ->   ()
     | Integer               ->  ()
     | TimeType _           -> ()
     (*  ++++

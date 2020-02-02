@@ -76,7 +76,7 @@ let rec PrintType (t:Asn1Type) (m:Asn1Module) (bPrintInSignleModule:bool) =
     |Integer    -> stg_asn1.Print_Integer "" cons
     |Real       -> stg_asn1.Print_Real cons
     |Boolean    -> stg_asn1.Print_Boolean cons
-    |BitString  -> stg_asn1.Print_BitString cons
+    |BitString  _-> stg_asn1.Print_BitString cons
     |OctetString-> stg_asn1.Print_OctetString cons
     |NullType   -> stg_asn1.Print_NullType cons
     |IA5String  -> stg_asn1.Print_IA5String cons

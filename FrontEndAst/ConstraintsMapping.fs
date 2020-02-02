@@ -334,7 +334,7 @@ let rec getAnyConstraint (r:Asn1Ast.AstRoot) (t:Asn1Ast.Asn1Type) (c:Asn1Ast.Asn
     |Asn1Ast.OctetString                -> OctetStringConstraint (getOctetStringConstraint r t c)
     |Asn1Ast.NullType                   -> NullConstraint
     |Asn1Ast.TimeType        _          -> TimeConstraint (getTimeConstraint r t c)
-    |Asn1Ast.BitString                  -> BitStringConstraint (getBitStringConstraint r t c)
+    |Asn1Ast.BitString   _              -> BitStringConstraint (getBitStringConstraint r t c)
     |Asn1Ast.Boolean                    -> BoolConstraint (getBoolConstraint r t c)
     |Asn1Ast.ObjectIdentifier           -> ObjectIdConstraint(getObjectIdConstraint r t c)
     |Asn1Ast.RelativeObjectIdentifier   -> ObjectIdConstraint(getObjectIdConstraint r t c)

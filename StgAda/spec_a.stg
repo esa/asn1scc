@@ -231,7 +231,13 @@ Define_subType_octet_string(td/*:FE_SizeableTypeDefinition*/, prTd/*:FE_Sizeable
 
 
 /***********************************       BIT STRING    ************************************************************/
-Define_new_bit_string(td/*:FE_SizeableTypeDefinition*/, nMin, nMax, bFixedSize, nMaxOctets) ::= <<
+Define_new_bit_string_named_bit(td/*:FE_SizeableTypeDefinition*/, sTargetLangBitName, sHexValue, sComment) ::= <<
+<td.typeName>_<sTargetLangBitName> : CONSTANT <rtlModuleName()>.Asn1UInt:= 16#<sHexValue>#;  --<sComment>
+>>
+
+Define_new_bit_string(td/*:FE_SizeableTypeDefinition*/, nMin, nMax, bFixedSize, nMaxOctets, arrsNamedBits) ::= <<
+<arrsNamedBits:{it|<it>}; separator="\n">
+
 SUBTYPE <td.index> is integer range 1..<nMax>;
 SUBTYPE <td.array> IS <rtlModuleName()>.BitArray(<td.index>);
 <if(!bFixedSize)>SUBTYPE <td.length_index> is integer range <nMin>..<nMax>;<endif>

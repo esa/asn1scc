@@ -150,6 +150,26 @@ let rec MapAsn1Value (r:ParameterizedAsn1Ast.AstRoot) (kind: ParameterizedAsn1As
         |ParameterizedAsn1Ast.SeqOfValue(vals)      -> 
             match actKind with
             | ParameterizedAsn1Ast.SequenceOf(ch)    -> Asn1Ast.SeqOfValue(vals |> List.mapi (fun idx v -> MapAsn1Value r ch.Kind typeScope (visitSeqOfValue variableScope idx) v))
+            | ParameterizedAsn1Ast.BitString namedBits      -> 
+                let bitPos = 
+                    vals |>
+                    List.map(fun chV -> 
+                        match chV.Kind    with
+                        | ParameterizedAsn1Ast.RefValue            (_,refVal)    -> 
+                            match namedBits |> Seq.tryFind(fun z -> z.Name.Value = refVal.Value) with
+                            | None      -> raise (SemanticError(v.Location, (sprintf "Expecting a BIT STRING value. '%s' is not defined as a named bit" refVal.Value)))
+                            | Some nb   -> 
+                                match nb._value with
+                                | CommonTypes.IDV_IntegerValue       intVal     -> intVal.Value
+                                | CommonTypes.IDV_DefinedValue   (mdVal, refVal) -> ParameterizedAsn1Ast.GetValueAsInt (ParameterizedAsn1Ast.GetBaseValue mdVal refVal r) r
+
+                        | _                                         -> raise (SemanticError(v.Location, (sprintf "Expecting a BIT STRING value but found a SEQUENCE OF value" )))
+                    ) |> Set.ofList
+                let maxValue = bitPos.MaximumElement
+
+                let bitStrVal = 
+                    [0I .. maxValue] |> List.map(fun bi -> if bitPos.Contains bi then '1' else '0') |> Seq.StrJoin ""
+                Asn1Ast.BitStringValue ({StringLoc.Value = bitStrVal; Location = v.Location})
             | _                                      -> raise(SemanticError(v.Location, "Expecting a SEQUENCE OF value"))
         |ParameterizedAsn1Ast.SeqValue(vals)        -> 
             match actKind with
@@ -309,7 +329,7 @@ and MapAsn1Type (r:ParameterizedAsn1Ast.AstRoot) typeScope (t:ParameterizedAsn1A
     | ParameterizedAsn1Ast.OctetString      -> aux Asn1Ast.OctetString
     | ParameterizedAsn1Ast.TimeType cl        -> aux (Asn1Ast.TimeType cl)
     | ParameterizedAsn1Ast.NullType         -> aux Asn1Ast.NullType
-    | ParameterizedAsn1Ast.BitString        -> aux Asn1Ast.BitString
+    | ParameterizedAsn1Ast.BitString nBits       -> aux (Asn1Ast.BitString nBits)
     | ParameterizedAsn1Ast.Boolean          -> aux Asn1Ast.Boolean
     | ParameterizedAsn1Ast.ObjectIdentifier         -> aux Asn1Ast.ObjectIdentifier
     | ParameterizedAsn1Ast.RelativeObjectIdentifier -> aux Asn1Ast.RelativeObjectIdentifier

@@ -134,7 +134,7 @@ and Asn1TypeKind =
     | OctetString 
     | NullType
     | TimeType         of TimeTypeClass
-    | BitString
+    | BitString        of list<NamedBit0>
     | Boolean 
     | ObjectIdentifier
     | RelativeObjectIdentifier
@@ -351,7 +351,7 @@ let rec getASN1Name (r:AstRoot) (t:Asn1Type) =
     | NumericString   -> "NumericString"
     | OctetString     -> "OCTET STRING"
     | NullType        -> "NULL"
-    | BitString       -> "BIT STRING"
+    | BitString _     -> "BIT STRING"
     | Boolean         -> "BOOLEAN"
     | Enumerated   _  -> "ENUMERATED"
     | SequenceOf   _  -> "SEQUENCE OF"

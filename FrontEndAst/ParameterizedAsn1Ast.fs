@@ -100,14 +100,18 @@ and Asn1TypeKind =
     | ObjectIdentifier
     | RelativeObjectIdentifier
     | TimeType         of TimeTypeClass
-    | NullType
-    | BitString         
+    | NullType          
+    | BitString         of list<NamedBit0>
     | Boolean 
     | Enumerated        of list<NamedItem>
     | SequenceOf        of Asn1Type    
     | Sequence          of list<SequenceChild>
     | Choice            of list<ChildInfo>
     | ReferenceType     of StringLoc*StringLoc*(ContainedInOctOrBitString option)*list<TemplateArgument>
+
+and BitStringPosition = {
+    Name:StringLoc
+}
 
 and TemplateArgument =
     | ArgType of Asn1Type
@@ -231,3 +235,37 @@ let rec GetActualType (t:Asn1Type) (r:AstRoot) =
         | None      -> raise(SemanticError(tasname.Location, sprintf "Reference type: %s.%s can not be resolved" mn.Value tasname.Value ))
     
     | _                         -> t
+
+
+type Asn1Module with
+    member m.GetValueAsigByName(name:StringLoc) (r:AstRoot) =
+        let (n,loc) = name.AsTupple
+        let value = m.ValueAssignments |> Seq.tryFind(fun x -> x.Name = name) 
+        match value with
+        | Some(v)       -> v
+        | None          ->
+            let othMods = m.Imports 
+                          |> Seq.filter(fun imp -> imp.Values |> Seq.exists(fun vname -> vname = name)) 
+                          |> Seq.map(fun imp -> imp.Name) |> Seq.toList
+            match othMods with
+            | firstMod::tail   -> (getModuleByName  r firstMod).GetValueAsigByName name r
+            | []               -> raise (SemanticError(loc, sprintf "No value assignment with name '%s' exists" n))
+
+
+let GetBaseValue  modName vasName  (r:AstRoot) =
+    let mdl = getModuleByName r modName
+    let vas = mdl.GetValueAsigByName vasName r
+    vas.Value
+
+let rec GetActualValue modName vasName  (r:AstRoot) =
+    let baseVal = GetBaseValue  modName vasName  r
+    match baseVal.Kind with
+    |RefValue(newModName, newVasName)   -> GetActualValue newModName newVasName r
+    | _                                 -> baseVal
+
+
+let rec GetValueAsInt (v:Asn1Value) r=
+    match v.Kind with
+    | IntegerValue(a)                       -> a.Value
+    | RefValue(modName,valName)             -> GetValueAsInt (GetActualValue modName valName r) r
+    | _                                     -> raise(SemanticError (v.Location, sprintf "Expecting Integer value"))

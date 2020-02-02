@@ -196,7 +196,7 @@ let rec CreateType (tasParameters : TemplateParameter list) (acnTypeEncodingSpec
         | asn1Parser.SEQUENCE_TYPE      -> Sequence(CreateSequenceChild  tasParameters acnTypeEncodingSpec astRoot typeNode fileTokens alreadyTakenComments )
         | asn1Parser.SET_TYPE           -> Sequence(CreateSequenceChild  tasParameters acnTypeEncodingSpec astRoot typeNode fileTokens alreadyTakenComments )
         | asn1Parser.ENUMERATED_TYPE    -> Enumerated(CreateNamedItems astRoot  typeNode fileTokens alreadyTakenComments)
-        | asn1Parser.BIT_STRING_TYPE    -> BitString
+        | asn1Parser.BIT_STRING_TYPE    -> BitString(CreateNamedBitList astRoot  typeNode fileTokens alreadyTakenComments)
         | asn1Parser.OCTECT_STING       -> OctetString
         | asn1Parser.IA5String          -> IA5String
         | asn1Parser.NumericString      -> NumericString
@@ -276,18 +276,19 @@ and CreateChoiceChild (tasParameters : TemplateParameter list) (chAcnTypeEncodin
         | _ -> raise (BugErrorException("Bug in CreateChoiceChild"))
     )
 
+and singleReference2DoubleReference (tree:ITree) =
+    let strVal = tree.GetChild(0).TextL
+    let modl = tree.GetAncestor(asn1Parser.MODULE_DEF)
+    let modName = modl.GetChild(0).TextL
+    let imports = modl.GetChildrenByType(asn1Parser.IMPORTS_FROM_MODULE)
+    let importedFromModule = imports |> List.tryFind(fun imp-> imp.GetChildrenByType(asn1Parser.LID) |> Seq.exists(fun impTypeName -> impTypeName.Text = strVal.Value ))
+    let valToReturn = 
+        match importedFromModule with
+        |Some(imp)  -> ( imp.GetChild(0).TextL,  strVal)
+        |None       -> ( modName,  strVal)
+    valToReturn
+
 and CreateValue (astRoot:list<ITree>) (tree:ITree ) : Asn1Value=
-    let singleReference2DoubleReference (tree:ITree) =
-        let strVal = tree.GetChild(0).TextL
-        let modl = tree.GetAncestor(asn1Parser.MODULE_DEF)
-        let modName = modl.GetChild(0).TextL
-        let imports = modl.GetChildrenByType(asn1Parser.IMPORTS_FROM_MODULE)
-        let importedFromModule = imports |> List.tryFind(fun imp-> imp.GetChildrenByType(asn1Parser.LID) |> Seq.exists(fun impTypeName -> impTypeName.Text = strVal.Value ))
-        let valToReturn = 
-            match importedFromModule with
-            |Some(imp)  -> ( imp.GetChild(0).TextL,  strVal)
-            |None       -> ( modName,  strVal)
-        valToReturn
         
 
     let GetActualString (str:string) = 
@@ -462,6 +463,28 @@ and CreateNamedItems (astRoot:list<ITree>) (tree:ITree) (fileTokens:array<IToken
         | _                 -> raise (BugErrorException("Bug in CreateNamedItems.CreateItem")) 
     let enumItes = getChildrenByType(tree, asn1Parser.NUMBER_LST_ITEM)
     enumItes |> List.map CreateItem
+
+and CreateNamedBitList (astRoot:list<ITree>) (tree:ITree) (fileTokens:array<IToken>) (alreadyTakenComments:System.Collections.Generic.List<IToken>)=
+    let CreateNamedBit(itemItree:ITree) =
+        let itemChildren = getTreeChildren(itemItree)
+        match itemChildren with
+        | name::vlue::_    -> 
+            let value = 
+                match vlue.Type with
+                | asn1Parser.INT            -> 
+                    match vlue.BigIntL.Value >= 0I with
+                    | true  -> IDV_IntegerValue(vlue.BigIntL)
+                    | false -> raise (SemanticError(vlue.Location, "Negative values are not permitted"))
+                | asn1Parser.DEFINED_VALUE  ->
+                    match vlue.ChildCount with
+                    | 2     -> IDV_DefinedValue(vlue.GetChild(0).TextL, vlue.GetChild(1).TextL)
+                    | 1     -> IDV_DefinedValue(singleReference2DoubleReference vlue)
+                    | _     -> raise (BugErrorException("Bug in CreateValue CreateNamedBit 1"))
+                | _         -> raise (BugErrorException("Bug in CreateValue CreateNamedBit 2"))
+            {NamedBit0.Name=name.TextL; _value=value; Comments = Antlr.Comment.GetComments(fileTokens, alreadyTakenComments, fileTokens.[itemItree.TokenStopIndex].Line, itemItree.TokenStartIndex - 1, itemItree.TokenStopIndex + 2)}
+        | _                 -> raise (BugErrorException("Bug in CreateNamedBitList.CreateItem")) 
+    let namedBits = getChildrenByType(tree, asn1Parser.NUMBER_LST_ITEM)
+    namedBits |> List.map CreateNamedBit
 
 and CreateTimeClass (astRoot:list<ITree>) (tree:ITree) (fileTokens:array<IToken>) (alreadyTakenComments:System.Collections.Generic.List<IToken>)=
     let rec removeSpaceArountEqual (str:string) =

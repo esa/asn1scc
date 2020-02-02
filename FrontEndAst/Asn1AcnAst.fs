@@ -355,7 +355,7 @@ type BitString = {
     acnMinSizeInBits    : BigInteger
     acnEncodingClass    : SizeableAcnEncodingClass
     typeDef             : Map<ProgrammingLanguage, FE_SizeableTypeDefinition>
-
+    namedBitList     : NamedBit1 list
 }
 
 type TimeType = {

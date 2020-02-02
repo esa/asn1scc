@@ -191,11 +191,24 @@ let createOctetString (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage)  (t:Asn1Acn
 
 let createBitString (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage)  (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.BitString)  (us:State) =
     let td = o.typeDef.[l]
-    let define_new_bit_string        = match l with C -> header_c.Define_new_bit_string | Ada -> header_a.Define_new_bit_string
+    let define_new_bit_string   = match l with C -> header_c.Define_new_bit_string | Ada -> header_a.Define_new_bit_string
+    let define_named_bit        = match l with C -> header_c.Define_new_bit_string_named_bit | Ada -> header_a.Define_new_bit_string_named_bit
+    
     let define_subType_bit_string    = match l with C -> header_c.Define_subType_bit_string | Ada -> header_a.Define_subType_bit_string
     match td.kind with
     | NonPrimitiveNewTypeDefinition              -> 
-        let completeDefintion = define_new_bit_string td (o.minSize.uper) (o.maxSize.uper) (o.minSize.uper = o.maxSize.uper) (BigInteger o.MaxOctets)
+        let nblist = 
+            o.namedBitList |> 
+            List.filter(fun nb -> nb.resolvedValue < 64I) |>
+            List.map(fun nb  ->
+                let hexValue =  
+                    let aa = int nb.resolvedValue
+                    let hexVal = ((uint64 1) <<< aa)
+                    hexVal.ToString("X")
+                let sComment = sprintf "(1 << %A)" nb.resolvedValue
+                define_named_bit td (ToC (nb.Name.Value.ToUpper())) hexValue sComment
+            )
+        let completeDefintion = define_new_bit_string td (o.minSize.uper) (o.maxSize.uper) (o.minSize.uper = o.maxSize.uper) (BigInteger o.MaxOctets) nblist
         Some completeDefintion
     | NonPrimitiveNewSubTypeDefinition subDef     -> 
         let otherProgramUnit = if td.programUnit = subDef.programUnit then None else (Some subDef.programUnit)

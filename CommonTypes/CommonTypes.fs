@@ -747,3 +747,21 @@ type AntlrParserResult = {
 type ContainedInOctOrBitString =
     | ContainedInOctString
     | ContainedInBitString
+
+
+type IntegerOrDefinedValue =
+    | IDV_IntegerValue         of IntLoc                    //integer literal i.e. 5
+    | IDV_DefinedValue   of (StringLoc*StringLoc)     // reference to an integer value assignment defined in another module
+
+type NamedBit0 = {
+    Name:StringLoc
+    _value : IntegerOrDefinedValue
+    Comments: string array
+}
+
+type NamedBit1 = {
+    Name:StringLoc
+    resolvedValue : BigInteger
+    _value : IntegerOrDefinedValue
+    Comments: string array
+}

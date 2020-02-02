@@ -56,7 +56,7 @@ let rec mapValue
             | _                 -> raise (SemanticError(v.Location, (sprintf "Expecting a %s value but found a BOOLEAN value" (Asn1Ast.getASN1Name r actualType))))
         | Asn1Ast.BitStringValue    v -> 
             match actualType.Kind with
-            | Asn1Ast.BitString     -> BitStringValue v
+            | Asn1Ast.BitString  _   -> BitStringValue v
             | Asn1Ast.OctetString   -> 
                 let arBytes = bitStringValueToByteArray v |> Seq.map(fun curByte -> {ByteLoc.Value = curByte; Location = v.Location}) |> Seq.toList
                 OctetStringValue arBytes
@@ -64,7 +64,7 @@ let rec mapValue
         | Asn1Ast.OctetStringValue  bv -> 
             match actualType.Kind with
             | Asn1Ast.OctetString ->  OctetStringValue bv
-            | Asn1Ast.BitString     ->
+            | Asn1Ast.BitString  _   ->
                 let bitStrVal = byteArrayToBitStringValue (bv |> List.map (fun z-> z.Value))
                 let location = match bv with [] -> emptyLocation | b1::_    -> b1.Location
                 BitStringValue ({StringLoc.Value = bitStrVal; Location = location})

@@ -502,7 +502,15 @@ let private mergeOctetStringType (asn1:Asn1Ast.AstRoot) (loc:SrcLoc) (acnErrLoc:
     let typeDef, us1 = getSizeableTypeDifition tdarg us
     {OctetString.acnProperties = acnProperties; cons = cons; withcons = withcons; minSize=minSize; maxSize =maxSize; uperMaxSizeInBits = uperMaxSizeInBits; uperMinSizeInBits=uperMinSizeInBits; acnEncodingClass = acnEncodingClass;  acnMinSizeInBits=acnMinSizeInBits; acnMaxSizeInBits = acnMaxSizeInBits; typeDef=typeDef}, us1
 
-let private mergeBitStringType (asn1:Asn1Ast.AstRoot) (loc:SrcLoc) (acnErrLoc: SrcLoc option) (props:GenericAcnProperty list) cons withcons (tdarg:GetTypeDifition_arg) (us:Asn1AcnMergeState) =
+let private mergeBitStringType (asn1:Asn1Ast.AstRoot) (namedBitList: NamedBit0 list) (loc:SrcLoc) (acnErrLoc: SrcLoc option) (props:GenericAcnProperty list) cons withcons (tdarg:GetTypeDifition_arg) (us:Asn1AcnMergeState) =
+    let newNamedBitList =
+        namedBitList |> List.map(fun nb -> 
+            let resolvedValue = 
+                match nb._value with
+                | IDV_IntegerValue       intVal     -> intVal.Value
+                | IDV_DefinedValue   (mdVal, refVal) -> Asn1Ast.GetValueAsInt (Asn1Ast.GetBaseValue mdVal refVal asn1) asn1
+            {NamedBit1.Name = nb.Name;  _value = nb._value; resolvedValue = resolvedValue; Comments = nb.Comments})
+
     let sizeUperRange = uPER.getBitStringUperRange cons loc
     let sizeUperAcnRange = uPER.getBitStringUperRange (cons@withcons) loc
     //let minSize, maxSize = uPER.getSizeMinAndMaxValue loc sizeUperRange
@@ -525,7 +533,7 @@ let private mergeBitStringType (asn1:Asn1Ast.AstRoot) (loc:SrcLoc) (acnErrLoc: S
     let acnEncodingClass,  acnMinSizeInBits, acnMaxSizeInBits= AcnEncodingClasses.GetBitStringEncodingClass aligment loc acnProperties acnUperMinSizeInBits uperMaxSizeInBits minSize.acn maxSize.acn 
 
     let typeDef, us1 = getSizeableTypeDifition tdarg us
-    {BitString.acnProperties = acnProperties; cons = cons; withcons = withcons; minSize=minSize; maxSize =maxSize; uperMaxSizeInBits = uperMaxSizeInBits; uperMinSizeInBits=uperMinSizeInBits; acnEncodingClass = acnEncodingClass;  acnMinSizeInBits=acnMinSizeInBits; acnMaxSizeInBits = acnMaxSizeInBits; typeDef=typeDef}, us1
+    {BitString.acnProperties = acnProperties; cons = cons; withcons = withcons; minSize=minSize; maxSize =maxSize; uperMaxSizeInBits = uperMaxSizeInBits; uperMinSizeInBits=uperMinSizeInBits; acnEncodingClass = acnEncodingClass;  acnMinSizeInBits=acnMinSizeInBits; acnMaxSizeInBits = acnMaxSizeInBits; typeDef=typeDef; namedBitList = newNamedBitList}, us1
 
 let private mergeNullType (acnErrLoc: SrcLoc option) (props:GenericAcnProperty list) (tdarg:GetTypeDifition_arg) (us:Asn1AcnMergeState) =
     let getRtlTypeName  l = match l with C -> "", header_c.Declare_NullType  (), "NULL" | Ada -> "adaasn1rtl", header_a.Declare_NULLNoRTL  (), "NULL" 
@@ -891,10 +899,10 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (m:Asn1Ast.Asn1Mo
             let wcons = withCons |> List.collect fixConstraint |> List.map (ConstraintsMapping.getOctetStringConstraint asn1 t)
             let o, us1 = mergeOctetStringType asn1 t.Location acnErrLoc combinedProperties cons wcons tfdArg us
             OctetString o, us1
-        | Asn1Ast.BitString                ->  
+        | Asn1Ast.BitString    namedBitList            ->  
             let cons =  t.Constraints@refTypeCons |> List.collect fixConstraint |> List.map (ConstraintsMapping.getBitStringConstraint asn1 t)
             let wcons = withCons |> List.collect fixConstraint |> List.map (ConstraintsMapping.getBitStringConstraint asn1 t)
-            let o, us1 = mergeBitStringType asn1 t.Location acnErrLoc combinedProperties cons wcons tfdArg us
+            let o, us1 = mergeBitStringType asn1 namedBitList t.Location acnErrLoc combinedProperties cons wcons tfdArg us
             BitString o, us1
         | Asn1Ast.NullType                 ->  
             let constraints = []

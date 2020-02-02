@@ -139,7 +139,14 @@ typedef <prTd.typeName> <td.typeName>;
 >>
 
 /***********************************       BIT STRING    ************************************************************/
-Define_new_bit_string(td/*:FE_SizeableTypeDefinition*/, nMin, nMax, bFixedSize, nMaxOctets) ::= <<
+
+Define_new_bit_string_named_bit(td/*:FE_SizeableTypeDefinition*/, sTargetLangBitName, sHexValue, sComment) ::= <<
+#define <td.typeName>_<sTargetLangBitName> 0x<sHexValue>  /*<sComment>*/
+>>
+
+Define_new_bit_string(td/*:FE_SizeableTypeDefinition*/, nMin, nMax, bFixedSize, nMaxOctets, arrsNamedBits) ::= <<
+<arrsNamedBits:{it|<it>}; separator="\n">
+
 typedef struct {
 <if(!bFixedSize)>
     int nCount; /*Number of bits in the array. Max value is : <nMax> */

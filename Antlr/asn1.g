@@ -343,7 +343,7 @@ bitStringType
 	;
 
 bitStringItem 
-	:	identifier a=L_PAREN (INT|valuereference) R_PAREN		->  ^(NUMBER_LST_ITEM[$a] identifier INT? valuereference?)
+	:	identifier a=L_PAREN (INT|definedValue) R_PAREN		->  ^(NUMBER_LST_ITEM[$a] identifier INT? definedValue?)
 	;	
 	
 booleanType
