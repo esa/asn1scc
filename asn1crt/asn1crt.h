@@ -4,8 +4,12 @@
 #include <stddef.h>
 
 
+#ifdef  __cplusplus
+extern "C" {
+#include <cstdint>
+#else
 // C99 check
-#if __STDC_VERSION__ >= 199901L
+#if defined(__STDC_VERSION__) && __STDC_VERSION__ >= 199901L
 #  include <stdbool.h>
 #  include <stdint.h>
 #else
@@ -23,10 +27,7 @@ typedef long long int64_t;
 typedef unsigned long long uint64_t;
 
 #endif
-
-#ifdef  __cplusplus
-extern "C" {
-#endif
+#endif	/* __cplusplus */
 
 #ifndef NULL
 #define NULL	0
