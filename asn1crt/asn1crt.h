@@ -8,15 +8,16 @@
 extern "C" {
 #include <cstdint>
 #else
-// C99 check
-#if defined(__STDC_VERSION__) && __STDC_VERSION__ >= 199901L
+/* C99 check */
+#if (defined(__STDC_VERSION__) && __STDC_VERSION__ >= 199901L) || _MSC_VER >= 1900
 #  include <stdbool.h>
 #  include <stdint.h>
 #else
-
+#  ifndef _MSC_VER
 typedef unsigned char bool;
-#  define true 1
-#  define false 0
+#  define true 1u
+#  define false 0u
+#  endif /* _MSC_VER */
 
 typedef unsigned char uint8_t;
 
