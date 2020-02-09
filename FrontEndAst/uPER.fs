@@ -5,43 +5,11 @@ open System.Numerics
 open FsUtils
 open Asn1AcnAst
 open Asn1Fold
+open CommonTypes
 
 let min a b = if a<b then a else b
 let max a b = if a>b then a else b
 
-let emptyTypeError l = raise(SemanticError(l, "The constraints defined for this type do not allow any value"))
-
-let rec uperUnion r1 r2 =
-    match r1,r2 with
-    | (Full,_)                              -> Full
-    | (PosInf(a), PosInf(b))                -> PosInf(min a b)
-    | (PosInf(a), NegInf(b))                -> Full
-    | (PosInf(a1), Concrete(a,b))           -> PosInf(min a1 a)
-    | (NegInf(a), NegInf(b))                -> NegInf(max a b)
-    | (NegInf(a), PosInf(b))                -> Full
-    | (NegInf(a1), Concrete(a,b))           -> NegInf(max a1 b)
-    | (Concrete(a1,b1), Concrete(a2,b2))    -> Concrete(min a1 a2, max b1 b2)
-    | _                                     -> uperUnion r2 r1
-
-let rec uperIntersection r1 r2 (l:SrcLoc) =
-    match r1,r2 with
-    | (Full,_)                      -> r2
-    | (PosInf(a), PosInf(b))        -> PosInf(max a b)
-    | (PosInf(a), NegInf(b))        -> if a<=b then Concrete(a,b) else emptyTypeError l
-    | (PosInf(a1), Concrete(a,b))   -> if a1>b then emptyTypeError l
-                                        elif a1<=a then r1 
-                                        else Concrete(a1,b) 
-    | (NegInf(a), NegInf(b))        -> NegInf(min a b)
-    | (NegInf(a), PosInf(b))        -> if a>=b then Concrete(b,a) else emptyTypeError l
-    | (NegInf(a1), Concrete(a,b))   -> if a1<a then emptyTypeError l
-                                        elif a1<b then Concrete(a1,b)
-                                        else r2
-    | (Concrete(a1,b1), Concrete(a2,b2)) -> if a1<=a2 && a2<=b1 && b1<=b2 then Concrete(a2,b1)
-                                            elif a2<=a1 && a1<=b2 && b2<=b1 then Concrete(a1, b2)
-                                            elif a2<=a1 && b1<=b2 then r1
-                                            elif a1<=a2 && b2<=b1 then r2
-                                            else emptyTypeError l
-    | _                             ->  uperIntersection r2 r1 l
 
 
 let getRangeTypeConstraintUperRange (c:RangeTypeConstraint<'v1,'v1>) funcNext funcPrev (l:SrcLoc) =
@@ -76,6 +44,7 @@ let getRealTypeConstraintUperRange (cons:RealTypeConstraint list) (l:SrcLoc) =
     let getRealTypeConstraintUperRange (c:RealTypeConstraint) (l:SrcLoc) =
         getRangeTypeConstraintUperRange c id id  l |> fst
     cons |> List.fold(fun s c -> uperIntersection s (getRealTypeConstraintUperRange c l) l) Full
+
 
 
 let getSizeableTypeConstraintUperRange (c:SizableTypeConstraint<'v>) funcGetLength (l:SrcLoc) =

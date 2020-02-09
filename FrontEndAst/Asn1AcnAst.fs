@@ -264,11 +264,6 @@ type SizeableAcnEncodingClass =
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
-type uperRange<'a> =
-    | Concrete      of 'a*'a    // [a, b]
-    | NegInf        of 'a       // (-inf, b]
-    | PosInf        of 'a       // [a, +inf)
-    | Full                      // (-inf, +inf)
 
 
 type BigIntegerUperRange = uperRange<BigInteger>

@@ -54,33 +54,32 @@ let generatedIntConstraints (v1:BigInteger option) (v2:BigInteger option)=
         seq {
             match a, b with
             | Some a, Some b ->
-                yield ParameterizedAsn1Ast.SingleValueContraint a
-                yield ParameterizedAsn1Ast.SingleValueContraint b
-                yield ParameterizedAsn1Ast.RangeContraint(a,b,true, true)
-                yield ParameterizedAsn1Ast.RangeContraint(a,b,true, false)
-                yield ParameterizedAsn1Ast.RangeContraint(a,b,false, true)
-                yield ParameterizedAsn1Ast.RangeContraint(a,b,false, false)
-                yield ParameterizedAsn1Ast.RangeContraint_val_MAX(a,true)
-                yield ParameterizedAsn1Ast.RangeContraint_val_MAX(a,false)
-                yield ParameterizedAsn1Ast.RangeContraint_val_MAX(b,true)
-                yield ParameterizedAsn1Ast.RangeContraint_val_MAX(b,false)
-
-                yield ParameterizedAsn1Ast.RangeContraint_MIN_val(a,true)
-                yield ParameterizedAsn1Ast.RangeContraint_MIN_val(a,false)
-                yield ParameterizedAsn1Ast.RangeContraint_MIN_val(b,true)
-                yield ParameterizedAsn1Ast.RangeContraint_MIN_val(b,false)
+                yield ParameterizedAsn1Ast.Asn1Constraint.SingleValueContraint a
+                yield ParameterizedAsn1Ast.Asn1Constraint.SingleValueContraint b
+                yield ParameterizedAsn1Ast.Asn1Constraint.RangeContraint(a,b,true, true)
+                yield ParameterizedAsn1Ast.Asn1Constraint.RangeContraint(a,b,true, false)
+                yield ParameterizedAsn1Ast.Asn1Constraint.RangeContraint(a,b,false, true)
+                yield ParameterizedAsn1Ast.Asn1Constraint.RangeContraint(a,b,false, false)
+                yield ParameterizedAsn1Ast.Asn1Constraint.RangeContraint_val_MAX(a,true)
+                yield ParameterizedAsn1Ast.Asn1Constraint.RangeContraint_val_MAX(a,false)
+                yield ParameterizedAsn1Ast.Asn1Constraint.RangeContraint_val_MAX(b,true)
+                yield ParameterizedAsn1Ast.Asn1Constraint.RangeContraint_val_MAX(b,false)
+                yield ParameterizedAsn1Ast.Asn1Constraint.RangeContraint_MIN_val(a,true)
+                yield ParameterizedAsn1Ast.Asn1Constraint.RangeContraint_MIN_val(a,false)
+                yield ParameterizedAsn1Ast.Asn1Constraint.RangeContraint_MIN_val(b,true)
+                yield ParameterizedAsn1Ast.Asn1Constraint.RangeContraint_MIN_val(b,false)
             | Some a, None  ->
-                yield ParameterizedAsn1Ast.SingleValueContraint a
-                yield ParameterizedAsn1Ast.RangeContraint_val_MAX(a,true)
-                yield ParameterizedAsn1Ast.RangeContraint_val_MAX(a,false)
-                yield ParameterizedAsn1Ast.RangeContraint_MIN_val(a,true)
-                yield ParameterizedAsn1Ast.RangeContraint_MIN_val(a,false)
+                yield ParameterizedAsn1Ast.Asn1Constraint.SingleValueContraint a
+                yield ParameterizedAsn1Ast.Asn1Constraint.RangeContraint_val_MAX(a,true)
+                yield ParameterizedAsn1Ast.Asn1Constraint.RangeContraint_val_MAX(a,false)
+                yield ParameterizedAsn1Ast.Asn1Constraint.RangeContraint_MIN_val(a,true)
+                yield ParameterizedAsn1Ast.Asn1Constraint.RangeContraint_MIN_val(a,false)
             | None, Some b      ->
-                yield ParameterizedAsn1Ast.SingleValueContraint b
-                yield ParameterizedAsn1Ast.RangeContraint_val_MAX(b,true)
-                yield ParameterizedAsn1Ast.RangeContraint_val_MAX(b,false)
-                yield ParameterizedAsn1Ast.RangeContraint_MIN_val(b,true)
-                yield ParameterizedAsn1Ast.RangeContraint_MIN_val(b,false)
+                yield ParameterizedAsn1Ast.Asn1Constraint.SingleValueContraint b
+                yield ParameterizedAsn1Ast.Asn1Constraint.RangeContraint_val_MAX(b,true)
+                yield ParameterizedAsn1Ast.Asn1Constraint.RangeContraint_val_MAX(b,false)
+                yield ParameterizedAsn1Ast.Asn1Constraint.RangeContraint_MIN_val(b,true)
+                yield ParameterizedAsn1Ast.Asn1Constraint.RangeContraint_MIN_val(b,false)
             | None, None        -> ()
 
         } |> Seq.toList

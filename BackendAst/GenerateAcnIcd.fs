@@ -404,17 +404,17 @@ let rec printType stgFileName (tas:GenerateUperIcd.IcdTypeAssignment) (t:Asn1Typ
         let arRows, sExtraComment =
             match encClass, nMax >= 2I with
             | Asn1AcnAst.SZ_EC_uPER, _                     -> 
-                let sizeUperRange =  Asn1AcnAst.Concrete(nMin, nMax)
+                let sizeUperRange =  CommonTypes.Concrete(nMin, nMax)
                 let sFixedLengthComment (nMax: BigInteger) =
                     sprintf "Length is fixed to %A elements (no length determinant is needed)." nMax
                 let LengthRow =
                     let nMin, nLengthSize = 
                         match sizeUperRange with
-                        | Asn1AcnAst.Concrete(a,b)  when a=b       -> 0I, 0I
-                        | Asn1AcnAst.Concrete(a,b)                 -> (GetNumberOfBitsForNonNegativeInteger(b - a)), (GetNumberOfBitsForNonNegativeInteger(b - a))
-                        | Asn1AcnAst.NegInf(_)                     -> raise(BugErrorException "")
-                        | Asn1AcnAst.PosInf(b)                     ->  8I, 16I
-                        | Asn1AcnAst.Full                          -> 8I, 16I
+                        | CommonTypes.Concrete(a,b)  when a=b       -> 0I, 0I
+                        | CommonTypes.Concrete(a,b)                 -> (GetNumberOfBitsForNonNegativeInteger(b - a)), (GetNumberOfBitsForNonNegativeInteger(b - a))
+                        | CommonTypes.NegInf(_)                     -> raise(BugErrorException "")
+                        | CommonTypes.PosInf(b)                     ->  8I, 16I
+                        | CommonTypes.Full                          -> 8I, 16I
                     let comment = "Special field used by ACN to indicate the number of items present in the array."
                     let ret = t.ConstraintsAsn1Str |> Seq.StrJoin "" //+++ t.Constraints |> Seq.map PrintAsn1.PrintConstraint |> Seq.StrJoin "" 
                     let sCon = ( if ret.Trim() ="" then "N.A." else ret)
@@ -422,14 +422,14 @@ let rec printType stgFileName (tas:GenerateUperIcd.IcdTypeAssignment) (t:Asn1Typ
                     icd_acn.EmmitChoiceChild stgFileName (icd_acn.OddRow stgFileName ()) (BigInteger 1) "Length" comment    "unsigned int" sCon (nMin.ToString()) (nLengthSize.ToString())
 
                 match sizeUperRange with
-                | Asn1AcnAst.Concrete(a,b)  when a=b && b<2I     -> [ChildRow 0I 1I], "The array contains a single element."
-                | Asn1AcnAst.Concrete(a,b)  when a=b && b=2I     -> (ChildRow 0I 1I)::(ChildRow 0I 2I)::[], (sFixedLengthComment b)
-                | Asn1AcnAst.Concrete(a,b)  when a=b && b>2I     -> (ChildRow 0I 1I)::(icd_acn.EmitRowWith3Dots stgFileName ())::(ChildRow 0I b)::[], (sFixedLengthComment b)
-                | Asn1AcnAst.Concrete(a,b)  when a<>b && b<2I    -> LengthRow::(ChildRow 1I 1I)::[],""
-                | Asn1AcnAst.Concrete(a,b)                       -> LengthRow::(ChildRow 1I 1I)::(icd_acn.EmitRowWith3Dots stgFileName ())::(ChildRow 1I b)::[], ""
-                | Asn1AcnAst.PosInf(_)
-                | Asn1AcnAst.Full                                -> LengthRow::(ChildRow 1I 1I)::(icd_acn.EmitRowWith3Dots stgFileName ())::(ChildRow 1I 65535I)::[], ""
-                | Asn1AcnAst.NegInf(_)                           -> raise(BugErrorException "")
+                | CommonTypes.Concrete(a,b)  when a=b && b<2I     -> [ChildRow 0I 1I], "The array contains a single element."
+                | CommonTypes.Concrete(a,b)  when a=b && b=2I     -> (ChildRow 0I 1I)::(ChildRow 0I 2I)::[], (sFixedLengthComment b)
+                | CommonTypes.Concrete(a,b)  when a=b && b>2I     -> (ChildRow 0I 1I)::(icd_acn.EmitRowWith3Dots stgFileName ())::(ChildRow 0I b)::[], (sFixedLengthComment b)
+                | CommonTypes.Concrete(a,b)  when a<>b && b<2I    -> LengthRow::(ChildRow 1I 1I)::[],""
+                | CommonTypes.Concrete(a,b)                       -> LengthRow::(ChildRow 1I 1I)::(icd_acn.EmitRowWith3Dots stgFileName ())::(ChildRow 1I b)::[], ""
+                | CommonTypes.PosInf(_)
+                | CommonTypes.Full                                -> LengthRow::(ChildRow 1I 1I)::(icd_acn.EmitRowWith3Dots stgFileName ())::(ChildRow 1I 65535I)::[], ""
+                | CommonTypes.NegInf(_)                           -> raise(BugErrorException "")
 
             | Asn1AcnAst.SZ_EC_ExternalField relPath,false    -> 
                 (ChildRow 0I 1I)::[], sprintf "Length is determined by the external field: %s" relPath.AsString

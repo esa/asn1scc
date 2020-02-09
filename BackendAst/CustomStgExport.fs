@@ -15,10 +15,10 @@ open DAstUtilFunctions
 
 let GetMinMax uperRange =
     match uperRange with
-    | Asn1AcnAst.Concrete(min, max)      -> min.ToString(), max.ToString()
-    | Asn1AcnAst.PosInf(a)               -> a.ToString(), "MAX"
-    | Asn1AcnAst.NegInf(max)             -> "MIN", max.ToString()
-    | Asn1AcnAst.Full                    -> "MIN", "MAX"
+    | CommonTypes.Concrete(min, max)      -> min.ToString(), max.ToString()
+    | CommonTypes.PosInf(a)               -> a.ToString(), "MAX"
+    | CommonTypes.NegInf(max)             -> "MIN", max.ToString()
+    | CommonTypes.Full                    -> "MIN", "MAX"
 
 let handTypeWithMinMax name uperRange func  stgFileName =
     let sMin, sMax = GetMinMax uperRange
@@ -28,10 +28,10 @@ let handTypeWithMinMax name uperRange func  stgFileName =
 let handTypeWithMinMax_real name (uperRange:Asn1AcnAst.DoubleUperRange) func stgFileName =
     let GetMinMax (uperRange:Asn1AcnAst.DoubleUperRange) =
         match uperRange with
-        | Asn1AcnAst.Concrete(min, max)      -> min.ToString("E20", NumberFormatInfo.InvariantInfo), max.ToString("E20", NumberFormatInfo.InvariantInfo)
-        | Asn1AcnAst.PosInf(a)               -> a.ToString("E20", NumberFormatInfo.InvariantInfo), "MAX"
-        | Asn1AcnAst.NegInf(max)             -> "MIN", max.ToString("E20", NumberFormatInfo.InvariantInfo)
-        | Asn1AcnAst.Full                    -> "MIN", "MAX"
+        | CommonTypes.Concrete(min, max)      -> min.ToString("E20", NumberFormatInfo.InvariantInfo), max.ToString("E20", NumberFormatInfo.InvariantInfo)
+        | CommonTypes.PosInf(a)               -> a.ToString("E20", NumberFormatInfo.InvariantInfo), "MAX"
+        | CommonTypes.NegInf(max)             -> "MIN", max.ToString("E20", NumberFormatInfo.InvariantInfo)
+        | CommonTypes.Full                    -> "MIN", "MAX"
     let sMin, sMax = GetMinMax uperRange
     func name sMin sMax (sMin=sMax) stgFileName
 
@@ -86,9 +86,9 @@ let PrintContract (r:AstRoot) (stgFileName:string) (asn1Name:string) (backendNam
         match t.Kind with
         | Integer   intInfo     -> handTypeWithMinMax pattern intInfo.baseInfo.uperRange gen.ContractExprMinMax stgFileName
         | Real      realInfo    -> handTypeWithMinMax_real pattern realInfo.baseInfo.uperRange gen.ContractExprMinMax stgFileName
-        | OctetString info      -> handTypeWithMinMax pattern (Asn1AcnAst.Concrete (info.baseInfo.minSize, info.baseInfo.maxSize)) gen.ContractExprSize stgFileName
-        | IA5String   info      -> handTypeWithMinMax pattern (Asn1AcnAst.Concrete (info.baseInfo.minSize, info.baseInfo.maxSize)) gen.ContractExprSize stgFileName  
-        | BitString   info      -> handTypeWithMinMax pattern (Asn1AcnAst.Concrete (info.baseInfo.minSize, info.baseInfo.maxSize)) gen.ContractExprSize stgFileName
+        | OctetString info      -> handTypeWithMinMax pattern (CommonTypes.Concrete (info.baseInfo.minSize, info.baseInfo.maxSize)) gen.ContractExprSize stgFileName
+        | IA5String   info      -> handTypeWithMinMax pattern (CommonTypes.Concrete (info.baseInfo.minSize, info.baseInfo.maxSize)) gen.ContractExprSize stgFileName  
+        | BitString   info      -> handTypeWithMinMax pattern (CommonTypes.Concrete (info.baseInfo.minSize, info.baseInfo.maxSize)) gen.ContractExprSize stgFileName
         | ObjectIdentifier _
         | Boolean   _
         | NullType  _
@@ -145,10 +145,10 @@ let rec PrintType (r:AstRoot) (f:Asn1File) (stgFileName:string) modName (deepRec
     let PrintTypeAux (t:Asn1Type) =
         match t.Kind with                                                                                            //func name sMin sMax (sMin=sMax) stgFileName
         | Integer           i    -> handTypeWithMinMax (gen.IntegerType () stgFileName)         i.baseInfo.uperRange (fun name sMin sMax bFixedSize stgFileName -> gen.MinMaxType name sMin sMax bFixedSize i.baseInfo.isUnsigned false stgFileName ) stgFileName
-        | BitString         i    -> handTypeWithMinMax (gen.BitStringType () stgFileName)       (Asn1AcnAst.Concrete (i.baseInfo.minSize, i.baseInfo.maxSize)) gen.MinMaxType2 stgFileName
-        | OctetString       i    -> handTypeWithMinMax (gen.OctetStringType () stgFileName)     (Asn1AcnAst.Concrete (i.baseInfo.minSize, i.baseInfo.maxSize)) gen.MinMaxType2 stgFileName
+        | BitString         i    -> handTypeWithMinMax (gen.BitStringType () stgFileName)       (CommonTypes.Concrete (i.baseInfo.minSize, i.baseInfo.maxSize)) gen.MinMaxType2 stgFileName
+        | OctetString       i    -> handTypeWithMinMax (gen.OctetStringType () stgFileName)     (CommonTypes.Concrete (i.baseInfo.minSize, i.baseInfo.maxSize)) gen.MinMaxType2 stgFileName
         | Real              i    -> handTypeWithMinMax_real (gen.RealType () stgFileName)       i.baseInfo.uperRange (fun name sMin sMax bFixedSize stgFileName -> gen.MinMaxType name sMin sMax bFixedSize false true stgFileName ) stgFileName
-        | IA5String         i    -> handTypeWithMinMax (gen.IA5StringType () stgFileName)       (Asn1AcnAst.Concrete (i.baseInfo.minSize, i.baseInfo.maxSize)) gen.MinMaxType2 stgFileName
+        | IA5String         i    -> handTypeWithMinMax (gen.IA5StringType () stgFileName)       (CommonTypes.Concrete (i.baseInfo.minSize, i.baseInfo.maxSize)) gen.MinMaxType2 stgFileName
         | Boolean           i    -> gen.BooleanType () stgFileName
         | NullType          i    -> gen.NullType () stgFileName
         | ObjectIdentifier i     -> gen.ObjectIdentifierType () stgFileName

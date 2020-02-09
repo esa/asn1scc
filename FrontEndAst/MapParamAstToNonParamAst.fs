@@ -115,7 +115,7 @@ let rec getActualKind r kind =
     | _                                            -> kind
 
 
-let rec MapAsn1Value (r:ParameterizedAsn1Ast.AstRoot) (kind: ParameterizedAsn1Ast.Asn1TypeKind) (typeScope : ScopeNode list) (variableScope : VarScopNode list)  (v:ParameterizedAsn1Ast.Asn1Value) :Asn1Ast.Asn1Value =
+let rec MapAsn1Value (r:ParameterizedAsn1Ast.AstRoot) (t: ParameterizedAsn1Ast.Asn1Type) (typeScope : ScopeNode list) (variableScope : VarScopNode list)  (v:ParameterizedAsn1Ast.Asn1Value) :Asn1Ast.Asn1Value =
     let rec getActualKindAndModule r kind =
         let rec getActualaux r kind modName=
             match kind with
@@ -126,13 +126,13 @@ let rec MapAsn1Value (r:ParameterizedAsn1Ast.AstRoot) (kind: ParameterizedAsn1As
             | _                                            -> kind, modName
         getActualaux r kind None
 
-    let MapAsn1ValueKind (r:ParameterizedAsn1Ast.AstRoot) (kind: ParameterizedAsn1Ast.Asn1TypeKind) (vk:ParameterizedAsn1Ast.Asn1ValueKind) :Asn1Ast.Asn1ValueKind =
-        let actKind = getActualKind r kind
+    let MapAsn1ValueKind (r:ParameterizedAsn1Ast.AstRoot) (t: ParameterizedAsn1Ast.Asn1Type) (vk:ParameterizedAsn1Ast.Asn1ValueKind) :Asn1Ast.Asn1ValueKind =
+        let actKind = getActualKind r t.Kind
         match vk with
         |ParameterizedAsn1Ast.IntegerValue(v)       -> Asn1Ast.IntegerValue v
         |ParameterizedAsn1Ast.RealValue(v)          -> Asn1Ast.RealValue v
         |ParameterizedAsn1Ast.StringValue(v)        -> 
-            let actKind, mdName = getActualKindAndModule r kind
+            let actKind, mdName = getActualKindAndModule r t.Kind
             match actKind with
             | ParameterizedAsn1Ast.TimeType tmClss  -> Asn1Ast.TimeValue (CommonTypes.createTimeValueFromString tmClss v)
             | _                                     -> Asn1Ast.StringValue v
@@ -140,7 +140,7 @@ let rec MapAsn1Value (r:ParameterizedAsn1Ast.AstRoot) (kind: ParameterizedAsn1As
         |ParameterizedAsn1Ast.BitStringValue(v)     -> Asn1Ast.BitStringValue v
         |ParameterizedAsn1Ast.OctetStringValue v    -> Asn1Ast.OctetStringValue v
         |ParameterizedAsn1Ast.RefValue(v1,v2)       -> 
-            let actKind, mdName = getActualKindAndModule r kind
+            let actKind, mdName = getActualKindAndModule r t.Kind
             match actKind with
             | ParameterizedAsn1Ast.Enumerated(items)    ->  
                 match mdName with
@@ -149,8 +149,11 @@ let rec MapAsn1Value (r:ParameterizedAsn1Ast.AstRoot) (kind: ParameterizedAsn1As
             | _                                         ->  Asn1Ast.RefValue(v1,v2)
         |ParameterizedAsn1Ast.SeqOfValue(vals)      -> 
             match actKind with
-            | ParameterizedAsn1Ast.SequenceOf(ch)    -> Asn1Ast.SeqOfValue(vals |> List.mapi (fun idx v -> MapAsn1Value r ch.Kind typeScope (visitSeqOfValue variableScope idx) v))
+            | ParameterizedAsn1Ast.SequenceOf(ch)    -> Asn1Ast.SeqOfValue(vals |> List.mapi (fun idx v -> MapAsn1Value r ch typeScope (visitSeqOfValue variableScope idx) v))
             | ParameterizedAsn1Ast.BitString namedBits      -> 
+                let actType = ParameterizedAsn1Ast.GetActualType t r
+                let cons =  actType.Constraints |> List.map (ParameterizedAsn1Ast.getBitStringConstraint r t)
+                let uperRange = ParameterizedAsn1Ast.getBitStringUperRange cons v.Location
                 let bitPos = 
                     vals |>
                     List.map(fun chV -> 
@@ -165,8 +168,16 @@ let rec MapAsn1Value (r:ParameterizedAsn1Ast.AstRoot) (kind: ParameterizedAsn1As
 
                         | _                                         -> raise (SemanticError(v.Location, (sprintf "Expecting a BIT STRING value but found a SEQUENCE OF value" )))
                     ) |> Set.ofList
-                let maxValue = bitPos.MaximumElement
+                
+                printfn "uperRange = %A" uperRange
+                let maxValue = 
+                    match uperRange with
+                    | Concrete(a, b)    -> 
+                        printf "maxValue : %A, %A\n" a b
 
+                        BigInteger (b-1u)
+                    | _                 -> bitPos.MaximumElement
+                printf "maxValue : %A\n" maxValue
                 let bitStrVal = 
                     [0I .. maxValue] |> List.map(fun bi -> if bitPos.Contains bi then '1' else '0') |> Seq.StrJoin ""
                 Asn1Ast.BitStringValue ({StringLoc.Value = bitStrVal; Location = v.Location})
@@ -177,7 +188,7 @@ let rec MapAsn1Value (r:ParameterizedAsn1Ast.AstRoot) (kind: ParameterizedAsn1As
                 let children = getSequenceChildren r children
                 let mapChildVal (nm:StringLoc, chv:ParameterizedAsn1Ast.Asn1Value) =
                     match children |> Seq.tryFind(fun ch -> ch.Name=nm) with
-                    | Some(child)   -> (nm, MapAsn1Value r child.Type.Kind typeScope (visitSeqChildValue variableScope nm.Value) chv)
+                    | Some(child)   -> (nm, MapAsn1Value r child.Type typeScope (visitSeqChildValue variableScope nm.Value) chv)
                     | _             -> raise(SemanticError(nm.Location, sprintf "Unknown component name '%s'" nm.Value))
                 Asn1Ast.SeqValue(vals |> List.map mapChildVal)
             | _                 -> raise(SemanticError(v.Location, "Expecting a SEQUENCE value"))
@@ -185,7 +196,7 @@ let rec MapAsn1Value (r:ParameterizedAsn1Ast.AstRoot) (kind: ParameterizedAsn1As
             match actKind with
             |ParameterizedAsn1Ast.Choice(children) ->
                 match children |> Seq.tryFind(fun x -> x.Name=n) with
-                | Some(child)   -> Asn1Ast.ChValue(n, MapAsn1Value r child.Type.Kind typeScope (visitSeqChildValue variableScope n.Value) v)
+                | Some(child)   -> Asn1Ast.ChValue(n, MapAsn1Value r child.Type typeScope (visitSeqChildValue variableScope n.Value) v)
                 | None          -> raise(SemanticError(n.Location, sprintf "Unknown alternative name '%s'" n.Value))
             | _                 -> raise(SemanticError(v.Location, "Expecting a CHOICE value"))
             
@@ -198,7 +209,7 @@ let rec MapAsn1Value (r:ParameterizedAsn1Ast.AstRoot) (kind: ParameterizedAsn1As
             |ParameterizedAsn1Ast.SequenceOf(_)     -> Asn1Ast.SeqOfValue []
             | _                                     -> raise(SemanticError(v.Location, "Unexpected value"))
     {
-        Asn1Ast.Asn1Value.Kind = MapAsn1ValueKind r kind v.Kind
+        Asn1Ast.Asn1Value.Kind = MapAsn1ValueKind r t v.Kind
         Location = v.Location
         id = ReferenceToValue(typeScope,variableScope)
     }
@@ -206,7 +217,7 @@ let rec MapAsn1Value (r:ParameterizedAsn1Ast.AstRoot) (kind: ParameterizedAsn1As
 
 
 
-and MapAsn1Optionality (r:ParameterizedAsn1Ast.AstRoot) (kind: ParameterizedAsn1Ast.Asn1TypeKind) typeScope (o:ParameterizedAsn1Ast.Asn1Optionality) :Asn1Ast.Asn1Optionality =
+and MapAsn1Optionality (r:ParameterizedAsn1Ast.AstRoot) (kind: ParameterizedAsn1Ast.Asn1Type) typeScope (o:ParameterizedAsn1Ast.Asn1Optionality) :Asn1Ast.Asn1Optionality =
     match o with
     | ParameterizedAsn1Ast.AlwaysAbsent     -> Asn1Ast.AlwaysAbsent
     | ParameterizedAsn1Ast.AlwaysPresent    -> Asn1Ast.AlwaysPresent
@@ -222,7 +233,7 @@ and MapChildInfo (r:ParameterizedAsn1Ast.AstRoot)  typeScope (isSequence) (c:Par
         Type = MapAsn1Type r  (if isSequence then (visitSeqChild typeScope c) else (visitChoiceChild typeScope c)) c.Type
         Optionality = match c.Optionality with
                       |None -> None
-                      |Some(x) -> Some (MapAsn1Optionality r c.Type.Kind typeScope x)
+                      |Some(x) -> Some (MapAsn1Optionality r c.Type typeScope x)
         Comments = c.Comments
     }
 
@@ -233,24 +244,24 @@ and MapNamedItem (r:ParameterizedAsn1Ast.AstRoot) typeScope (n:ParameterizedAsn1
         ada_name = ToC n.Name.Value
         _value = match n._value with
                  | None -> None
-                 | Some(x)  -> Some (MapAsn1Value r ParameterizedAsn1Ast.Integer typeScope (visitNamedItemValue n) x)
+                 | Some(x)  -> Some (MapAsn1Value r {ParameterizedAsn1Ast.Asn1Type.Kind = ParameterizedAsn1Ast.Integer; Constraints = []; Location=n.Name.Location;parameterizedTypeInstance=false;acnInfo=None} typeScope (visitNamedItemValue n) x)
         Comments = n.Comments
     }
 
 
 
-and MapNamedConstraint (r:ParameterizedAsn1Ast.AstRoot) (kind: ParameterizedAsn1Ast.Asn1TypeKind) typeScope cs (x:ParameterizedAsn1Ast.NamedConstraint) :Asn1Ast.NamedConstraint =
-    let childKind = match getActualKind r kind with
+and MapNamedConstraint (r:ParameterizedAsn1Ast.AstRoot) (t: ParameterizedAsn1Ast.Asn1Type) typeScope cs (x:ParameterizedAsn1Ast.NamedConstraint) :Asn1Ast.NamedConstraint =
+    let childType = match getActualKind r t.Kind with
                     | ParameterizedAsn1Ast.Choice(children)     ->
                         match children |> Seq.tryFind(fun ch -> ch.Name = x.Name) with
                         | None      -> raise(SemanticError(x.Name.Location, sprintf "Unknown component name '%s'" x.Name.Value))
-                        | Some(child)   -> child.Type.Kind
+                        | Some(child)   -> child.Type
 
                     | ParameterizedAsn1Ast.Sequence(children)   ->
                         let children = getSequenceChildren r children
                         match children |> Seq.tryFind(fun ch -> ch.Name = x.Name) with
                         | None      -> raise(SemanticError(x.Name.Location, sprintf "Unknown component name '%s'" x.Name.Value))
-                        | Some(child)   -> child.Type.Kind
+                        | Some(child)   -> child.Type
                     | _                                         -> raise(SemanticError(x.Name.Location, sprintf "Unexpected constraint type" ))
     {
         Asn1Ast.NamedConstraint.Name = x.Name; 
@@ -261,49 +272,49 @@ and MapNamedConstraint (r:ParameterizedAsn1Ast.AstRoot) (kind: ParameterizedAsn1
                 | ParameterizedAsn1Ast.MarkOptional  -> Asn1Ast.MarkOptional
         Contraint = match x.Contraint with
                     | None  -> None
-                    | Some(cc)  -> Some (MapAsn1Constraint r childKind typeScope cs cc)
+                    | Some(cc)  -> Some (MapAsn1Constraint r childType typeScope cs cc)
     }
 
-and MapAsn1Constraint (r:ParameterizedAsn1Ast.AstRoot) (kind: ParameterizedAsn1Ast.Asn1TypeKind) typeScope cs (c:ParameterizedAsn1Ast.Asn1Constraint) :Asn1Ast.Asn1Constraint =
+and MapAsn1Constraint (r:ParameterizedAsn1Ast.AstRoot) (t: ParameterizedAsn1Ast.Asn1Type) typeScope cs (c:ParameterizedAsn1Ast.Asn1Constraint) :Asn1Ast.Asn1Constraint =
     match c with
-    | ParameterizedAsn1Ast.SingleValueContraint(v)          -> Asn1Ast.SingleValueContraint (MapAsn1Value r kind typeScope (visitValue cs) v)
-    | ParameterizedAsn1Ast.RangeContraint(v1,v2,b1,b2)      -> 
+    | ParameterizedAsn1Ast.Asn1Constraint.SingleValueContraint(v)          -> Asn1Ast.SingleValueContraint (MapAsn1Value r t typeScope (visitValue cs) v)
+    | ParameterizedAsn1Ast.Asn1Constraint.RangeContraint(v1,v2,b1,b2)      -> 
         let vs1 = visitValue cs
         let vs2 = visitSilbingValue vs1
 
-        Asn1Ast.RangeContraint(MapAsn1Value r kind typeScope vs1 v1, MapAsn1Value r kind typeScope vs2 v2,b1,b2)
-    | ParameterizedAsn1Ast.RangeContraint_val_MAX(v,b)        -> Asn1Ast.RangeContraint_val_MAX (MapAsn1Value r kind typeScope (visitValue cs) v, b)
-    | ParameterizedAsn1Ast.RangeContraint_MIN_val(v,b)        -> Asn1Ast.RangeContraint_MIN_val (MapAsn1Value r kind typeScope (visitValue cs) v, b)
+        Asn1Ast.RangeContraint(MapAsn1Value r t typeScope vs1 v1, MapAsn1Value r t typeScope vs2 v2,b1,b2)
+    | ParameterizedAsn1Ast.Asn1Constraint.RangeContraint_val_MAX(v,b)        -> Asn1Ast.RangeContraint_val_MAX (MapAsn1Value r t typeScope (visitValue cs) v, b)
+    | ParameterizedAsn1Ast.Asn1Constraint.RangeContraint_MIN_val(v,b)        -> Asn1Ast.RangeContraint_MIN_val (MapAsn1Value r t typeScope (visitValue cs) v, b)
     | ParameterizedAsn1Ast.TypeInclusionConstraint(s1,s2)   -> Asn1Ast.TypeInclusionConstraint(s1,s2)
-    | ParameterizedAsn1Ast.SizeContraint(c)                 -> Asn1Ast.SizeContraint(MapAsn1Constraint r ParameterizedAsn1Ast.Integer typeScope (visitConstraint cs) c)
-    | ParameterizedAsn1Ast.AlphabetContraint(c)             -> Asn1Ast.AlphabetContraint(MapAsn1Constraint r ParameterizedAsn1Ast.IA5String typeScope (visitConstraint cs) c)
+    | ParameterizedAsn1Ast.Asn1Constraint.SizeContraint(c)                 -> Asn1Ast.SizeContraint(MapAsn1Constraint r {ParameterizedAsn1Ast.Asn1Type.Kind = ParameterizedAsn1Ast.Integer; Constraints = []; Location=emptyLocation;parameterizedTypeInstance=false;acnInfo=None} typeScope (visitConstraint cs) c)
+    | ParameterizedAsn1Ast.AlphabetContraint(c)             -> Asn1Ast.AlphabetContraint(MapAsn1Constraint r {ParameterizedAsn1Ast.Asn1Type.Kind = ParameterizedAsn1Ast.IA5String; Constraints = []; Location=emptyLocation;parameterizedTypeInstance=false;acnInfo=None} typeScope (visitConstraint cs) c)
     | ParameterizedAsn1Ast.UnionConstraint(c1,c2, b)           -> 
         let cs1 = visitConstraint cs
         let cs2 = visitSilbingConstraint cs1
-        Asn1Ast.UnionConstraint(MapAsn1Constraint r kind typeScope cs1 c1, MapAsn1Constraint r kind typeScope cs2 c2, b)
+        Asn1Ast.UnionConstraint(MapAsn1Constraint r t typeScope cs1 c1, MapAsn1Constraint r t typeScope cs2 c2, b)
     | ParameterizedAsn1Ast.IntersectionConstraint(c1,c2)    -> 
         let cs1 = visitConstraint cs
         let cs2 = visitSilbingConstraint cs1
-        Asn1Ast.IntersectionConstraint(MapAsn1Constraint r kind typeScope cs1 c1, MapAsn1Constraint r kind typeScope cs2 c2)
-    | ParameterizedAsn1Ast.AllExceptConstraint(c)           -> Asn1Ast.AllExceptConstraint(MapAsn1Constraint r kind typeScope (visitConstraint cs) c)
+        Asn1Ast.IntersectionConstraint(MapAsn1Constraint r t typeScope cs1 c1, MapAsn1Constraint r t typeScope cs2 c2)
+    | ParameterizedAsn1Ast.AllExceptConstraint(c)           -> Asn1Ast.AllExceptConstraint(MapAsn1Constraint r t typeScope (visitConstraint cs) c)
     | ParameterizedAsn1Ast.ExceptConstraint(c1,c2)          -> 
         let cs1 = visitConstraint cs
         let cs2 = visitSilbingConstraint cs1
-        Asn1Ast.ExceptConstraint(MapAsn1Constraint r kind typeScope cs1 c1, MapAsn1Constraint r kind typeScope cs2 c2)
-    | ParameterizedAsn1Ast.RootConstraint(c1)               -> Asn1Ast.RootConstraint(MapAsn1Constraint r kind typeScope (visitConstraint cs) c1)
+        Asn1Ast.ExceptConstraint(MapAsn1Constraint r t typeScope cs1 c1, MapAsn1Constraint r t typeScope cs2 c2)
+    | ParameterizedAsn1Ast.RootConstraint(c1)               -> Asn1Ast.RootConstraint(MapAsn1Constraint r t typeScope (visitConstraint cs) c1)
     | ParameterizedAsn1Ast.RootConstraint2(c1,c2)           -> 
         let cs1 = visitConstraint cs
         let cs2 = visitSilbingConstraint cs1
-        Asn1Ast.RootConstraint2(MapAsn1Constraint r kind typeScope cs2 c1, MapAsn1Constraint r kind typeScope cs2 c2)
+        Asn1Ast.RootConstraint2(MapAsn1Constraint r t typeScope cs2 c1, MapAsn1Constraint r t typeScope cs2 c2)
     | ParameterizedAsn1Ast.WithComponentConstraint(c, loc)       -> 
-        let akind = getActualKind r kind
+        let akind = getActualKind r t.Kind
         match akind with
         | ParameterizedAsn1Ast.SequenceOf(child)    ->        
-            Asn1Ast.WithComponentConstraint((MapAsn1Constraint r child.Kind typeScope (visitConstraint cs) c), loc)
+            Asn1Ast.WithComponentConstraint((MapAsn1Constraint r child typeScope (visitConstraint cs) c), loc)
         | _                                         ->        raise(SemanticError(emptyLocation,"Unexpected constraint type"))
     | ParameterizedAsn1Ast.WithComponentsConstraint(ncs)    -> 
         Asn1Ast.WithComponentsConstraint(ncs|> foldMap (fun cs c -> 
-                                                                let newC = MapNamedConstraint r kind typeScope (visitConstraint cs) c
+                                                                let newC = MapNamedConstraint r t typeScope (visitConstraint cs) c
                                                                 let newSs = visitSilbingConstraint cs
                                                                 newC, newSs) cs |> fst  )
 
@@ -314,7 +325,7 @@ and MapAsn1Type (r:ParameterizedAsn1Ast.AstRoot) typeScope (t:ParameterizedAsn1A
             Constraints = 
                 t.Constraints |> 
                 foldMap (fun ss c -> 
-                   let newC = MapAsn1Constraint r t.Kind typeScope ss c
+                   let newC = MapAsn1Constraint r t typeScope ss c
                    let newSs = visitSilbingConstraint ss
                    newC, newSs) (visitConstraint []) |> fst
             Location = t.Location
@@ -365,7 +376,7 @@ let MapValueAssignment (r:ParameterizedAsn1Ast.AstRoot) (m:ParameterizedAsn1Ast.
     {
         Asn1Ast.ValueAssignment.Name = vas.Name
         Type = MapAsn1Type r typeScope vas.Type
-        Value = MapAsn1Value r  vas.Type.Kind typeScope varScope vas.Value
+        Value = MapAsn1Value r  vas.Type typeScope varScope vas.Value
         //Scope = 
         //    match vas.Scope with
         //    | ParameterizedAsn1Ast.GlobalScope      ->  Asn1Ast.GlobalScope

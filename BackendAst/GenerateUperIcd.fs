@@ -93,8 +93,8 @@ let GetWhyExplanation (stgFileName:string) (t:Asn1Type) (r:AstRoot) =
     | Real  r    -> icd_uper.RealSizeExplained stgFileName ()
     | Integer i  ->
         match i.baseInfo.uperRange with
-        | Asn1AcnAst.Concrete(a,b)  when a=b       -> icd_uper.ZeroSizeExplained stgFileName ()
-        | Asn1AcnAst.Full                          -> icd_uper.IntSizeExplained stgFileName ()
+        | CommonTypes.Concrete(a,b)  when a=b       -> icd_uper.ZeroSizeExplained stgFileName ()
+        | CommonTypes.Full                          -> icd_uper.IntSizeExplained stgFileName ()
         | _                             -> ""
     | _         -> ""
 
@@ -273,7 +273,7 @@ let rec printType (stgFileName:string) (m:Asn1Module) (tas:IcdTypeAssignment) (t
                     | ContainedInBitString  -> "BIT", "", "1","1", eo.minSize, eo.maxSize
                     
             | _                            -> raise(BugErrorException "")
-        let sizeUperRange =  Asn1AcnAst.Concrete(nMinLength, nMaxLength)
+        let sizeUperRange =  CommonTypes.Concrete(nMinLength, nMaxLength)
         let ChildRow (lineFrom:BigInteger) (i:BigInteger) =
             let sClass = if i % 2I = 0I then (icd_uper.EvenRow stgFileName ()) else (icd_uper.OddRow stgFileName ())
             let nIndex = lineFrom + i
@@ -284,11 +284,11 @@ let rec printType (stgFileName:string) (m:Asn1Module) (tas:IcdTypeAssignment) (t
         let LengthRow =
             let nMin, nLengthSize = 
                 match sizeUperRange with
-                | Asn1AcnAst.Concrete(a,b)  when a.uper=b.uper       -> 0I, 0I
-                | Asn1AcnAst.Concrete(a,b)                 -> (GetNumberOfBitsForNonNegativeInteger(b.uper - a.uper)), (GetNumberOfBitsForNonNegativeInteger(b.uper - a.uper))
-                | Asn1AcnAst.NegInf(_)                     -> raise(BugErrorException "")
-                | Asn1AcnAst.PosInf(b)                     ->  8I, 16I
-                | Asn1AcnAst.Full                          -> 8I, 16I
+                | CommonTypes.Concrete(a,b)  when a.uper=b.uper       -> 0I, 0I
+                | CommonTypes.Concrete(a,b)                 -> (GetNumberOfBitsForNonNegativeInteger(b.uper - a.uper)), (GetNumberOfBitsForNonNegativeInteger(b.uper - a.uper))
+                | CommonTypes.NegInf(_)                     -> raise(BugErrorException "")
+                | CommonTypes.PosInf(b)                     ->  8I, 16I
+                | CommonTypes.Full                          -> 8I, 16I
             let comment = "Special field used by PER to indicate the number of items present in the array."
             let ret = t.ConstraintsAsn1Str |> Seq.StrJoin "" //+++ t.Constraints |> Seq.map PrintAsn1.PrintConstraint |> Seq.StrJoin "" 
             let sCon = ( if ret.Trim() ="" then "N.A." else ret)
@@ -303,14 +303,14 @@ let rec printType (stgFileName:string) (m:Asn1Module) (tas:IcdTypeAssignment) (t
 
         let arRows, sExtraComment = 
             match sizeUperRange with
-            | Asn1AcnAst.Concrete(a,b)  when a.uper=b.uper && b.uper<2I     -> [ChildRow 0I 1I], "The array contains a single element."
-            | Asn1AcnAst.Concrete(a,b)  when a.uper=b.uper && b.uper=2I     -> (ChildRow 0I 1I)::(ChildRow 0I 2I)::[], (sFixedLengthComment b.uper)
-            | Asn1AcnAst.Concrete(a,b)  when a.uper=b.uper && b.uper>2I     -> (ChildRow 0I 1I)::(icd_uper.EmitRowWith3Dots stgFileName ())::(ChildRow 0I b.uper)::[], (sFixedLengthComment b.uper)
-            | Asn1AcnAst.Concrete(a,b)  when a.uper<>b.uper && b.uper<2I    -> LengthRow::(ChildRow 1I 1I)::[],""
-            | Asn1AcnAst.Concrete(a,b)                       -> LengthRow::(ChildRow 1I 1I)::(icd_uper.EmitRowWith3Dots stgFileName ())::(ChildRow 1I b.uper)::[], ""
-            | Asn1AcnAst.PosInf(_)
-            | Asn1AcnAst.Full                                -> LengthRow::(ChildRow 1I 1I)::(icd_uper.EmitRowWith3Dots stgFileName ())::(ChildRow 1I 65535I)::[], ""
-            | Asn1AcnAst.NegInf(_)                           -> raise(BugErrorException "")
+            | CommonTypes.Concrete(a,b)  when a.uper=b.uper && b.uper<2I     -> [ChildRow 0I 1I], "The array contains a single element."
+            | CommonTypes.Concrete(a,b)  when a.uper=b.uper && b.uper=2I     -> (ChildRow 0I 1I)::(ChildRow 0I 2I)::[], (sFixedLengthComment b.uper)
+            | CommonTypes.Concrete(a,b)  when a.uper=b.uper && b.uper>2I     -> (ChildRow 0I 1I)::(icd_uper.EmitRowWith3Dots stgFileName ())::(ChildRow 0I b.uper)::[], (sFixedLengthComment b.uper)
+            | CommonTypes.Concrete(a,b)  when a.uper<>b.uper && b.uper<2I    -> LengthRow::(ChildRow 1I 1I)::[],""
+            | CommonTypes.Concrete(a,b)                       -> LengthRow::(ChildRow 1I 1I)::(icd_uper.EmitRowWith3Dots stgFileName ())::(ChildRow 1I b.uper)::[], ""
+            | CommonTypes.PosInf(_)
+            | CommonTypes.Full                                -> LengthRow::(ChildRow 1I 1I)::(icd_uper.EmitRowWith3Dots stgFileName ())::(ChildRow 1I 65535I)::[], ""
+            | CommonTypes.NegInf(_)                           -> raise(BugErrorException "")
 
         let sCommentLine = match GetCommentLine tas.comments t with
                            | null | ""  -> sExtraComment
@@ -436,7 +436,7 @@ let DoWork (r:AstRoot) (stgFileName:string)   outFileName =
     let bIntegerSizeMustBeExplained = allTypes |> Seq.exists(fun x -> match x.Kind with 
                                                                       | Integer o-> 
                                                                         match o.baseInfo.uperRange with 
-                                                                        | Asn1AcnAst.Full | Asn1AcnAst.PosInf(_) |  Asn1AcnAst.NegInf(_)  -> true 
+                                                                        | CommonTypes.Full | CommonTypes.PosInf(_) |  CommonTypes.NegInf(_)  -> true 
                                                                         |_                               ->false 
                                                                       | _ -> false)
     let bRealSizeMustBeExplained = allTypes |> Seq.exists(fun x -> match x.Kind with Real _ ->true | _ -> false)
