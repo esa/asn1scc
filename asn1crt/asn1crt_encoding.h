@@ -11,11 +11,14 @@ flag OctetString_equal(int len1, int len2, const byte arr1[], const byte arr2[])
 
 /* Byte strean functions */
 void ByteStream_Init(ByteStream* pStrm, byte* buf, long count);
-void BitStream_Init2(BitStream* pBitStrm, unsigned char* buf, long count, PushDataFnc pushData, void* pushDataPrm, FetchDataFnc fetchData, void* fetchDataPrm);
+void BitStream_Init2(BitStream* pBitStrm, unsigned char* buf, long count, void* pushDataPrm, void* fetchDataPrm);
 
 void ByteStream_AttachBuffer(ByteStream* pStrm, unsigned char* buf, long count);
-void BitStream_AttachBuffer2(BitStream* pBitStrm, unsigned char* buf, long count, PushDataFnc pushData, void* pushDataPrm, FetchDataFnc fetchData, void* fetchDataPrm);
+void BitStream_AttachBuffer2(BitStream* pBitStrm, unsigned char* buf, long count, void* pushDataPrm, void* fetchDataPrm);
 asn1SccSint ByteStream_GetLength(ByteStream* pStrm);
+
+void fetchData(BitStream* pBitStrm, void* param);
+void pushData(BitStream* pBitStrm, void* param);
 
 void bitstrean_fetch_data_if_required(BitStream* pStrm);
 void bitstrean_push_data_if_required(BitStream* pStrm);

@@ -38,14 +38,18 @@ flag encode_no_streaming_mode(const A1* pVal, int* pErrCode, const char* filenam
 	return true;
 }
 
-void fetchDataFromFile(BitStream* pBitStrm, void* pParam) {
+/*
+The following two functions, with these specific names, must be implemented in user code.
+There functions will be called by the asn1crt_encoding.c whenever data are needed.
+*/
+void fetchData(BitStream* pBitStrm, void* pParam) {
 	FILE* fp = (FILE*)pParam;
 	memset(pBitStrm->buf, 0x0, pBitStrm->count);
 	int bytes_read = fread(pBitStrm->buf, 1, pBitStrm->count, fp);
 	printf("fetchDataFromFile called. bytes_read = %d\n", bytes_read);
 }
 
-void pushDataToFile(BitStream* pBitStrm, FILE* fp) {
+void pushData(BitStream* pBitStrm, void* fp) {
 	(void)pBitStrm;
 	(void)fp;
 }
@@ -57,7 +61,7 @@ flag decode_with_streaming_mode(A1* pVal, int* pErrCode, const char* filename) {
 	rsize_t bytes_read;
 	flag ret = FALSE;
 	if ((bytes_read = fread(small_buff, 1, sizeof(small_buff), fp)) > 0) {
-		BitStream_AttachBuffer2(&bitStrm, small_buff, bytes_read, NULL, NULL, fetchDataFromFile, fp);
+		BitStream_AttachBuffer2(&bitStrm, small_buff, bytes_read, NULL, fp);
 		ret = A1_Decode(pVal, &bitStrm, pErrCode);
 		if (ret) {
 			printf("Decoding succeded !!!\n");

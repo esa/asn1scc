@@ -66,18 +66,14 @@ void BitStream_Init(BitStream* pBitStrm, unsigned char* buf, long count)
 	memset(pBitStrm->buf, 0x0, (size_t)count);
 	pBitStrm->currentByte = 0;
 	pBitStrm->currentBit = 0;
-	pBitStrm->fetchData = NULL;
-	pBitStrm->pushData = NULL;
 	pBitStrm->pushDataPrm = NULL;
 	pBitStrm->fetchDataPrm = NULL;
 }
 
-void BitStream_Init2(BitStream* pBitStrm, unsigned char* buf, long count, PushDataFnc pushData, void* pushDataPrm, FetchDataFnc fetchData, void* fetchDataPrm)
+void BitStream_Init2(BitStream* pBitStrm, unsigned char* buf, long count,  void* pushDataPrm, void* fetchDataPrm)
 {
 	BitStream_Init(pBitStrm, buf, count);
-	pBitStrm->fetchData = fetchData;
 	pBitStrm->fetchDataPrm = fetchDataPrm;
-	pBitStrm->pushData = pushData;
 	pBitStrm->pushDataPrm = pushDataPrm;
 }
 
@@ -87,18 +83,14 @@ void BitStream_AttachBuffer(BitStream* pBitStrm, unsigned char* buf, long count)
 	pBitStrm->buf = buf;
 	pBitStrm->currentByte = 0;
 	pBitStrm->currentBit = 0;
-	pBitStrm->fetchData = NULL;
-	pBitStrm->pushData = NULL;
 	pBitStrm->pushDataPrm = NULL;
 	pBitStrm->fetchDataPrm = NULL;
 }
 
-void BitStream_AttachBuffer2(BitStream* pBitStrm, unsigned char* buf, long count, PushDataFnc pushData, void* pushDataPrm, FetchDataFnc fetchData, void* fetchDataPrm)
+void BitStream_AttachBuffer2(BitStream* pBitStrm, unsigned char* buf, long count, void* pushDataPrm, void* fetchDataPrm)
 {
 	BitStream_AttachBuffer(pBitStrm, buf, count);
-	pBitStrm->pushData = pushData;
 	pBitStrm->pushDataPrm = pushDataPrm;
-	pBitStrm->fetchData = fetchData;
 	pBitStrm->fetchDataPrm = fetchDataPrm;
 }
 
@@ -1563,21 +1555,26 @@ flag BitStream_DecodeBitString(BitStream* pBitStrm, byte* arr, int* pCount, asn1
 	return ret;
 }
 
+#define INTERNAL_FETH_DATA
+
+#ifdef INTERNAL_FETH_DATA
+void fetchData(BitStream* pBitStrm, void* param) { (void)pBitStrm; (void)param; }
+void pushData(BitStream* pBitStrm, void* param) { (void)pBitStrm; (void)param; }
+
+#endif // DEBUG
 
 
 void bitstrean_fetch_data_if_required(BitStream* pStrm) {
-	if (pStrm->fetchData == NULL)
-		return;
 	if (pStrm->currentByte == pStrm->count) {
-		pStrm->fetchData(pStrm, pStrm->fetchDataPrm);
+		fetchData(pStrm, pStrm->fetchDataPrm);
 		pStrm->currentByte = 0;
 	}
 }
+
+
 void bitstrean_push_data_if_required(BitStream* pStrm) {
-	if (pStrm->pushData == NULL)
-		return;
 	if (pStrm->currentByte == pStrm->count) {
-		pStrm->pushData(pStrm, pStrm->pushDataPrm);
+		pushData(pStrm, pStrm->pushDataPrm);
 		pStrm->currentByte = 0;
 	}
 }

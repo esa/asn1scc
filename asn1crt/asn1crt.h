@@ -117,8 +117,8 @@ typedef char NullType;
 
 struct BitStream_t;
 
-typedef void(*PushDataFnc)(struct BitStream_t* pThis, void* pushDataPrm);
-typedef void(*FetchDataFnc)(struct BitStream_t* pThis, void* fetchDataPrm);
+//typedef void(*PushDataFnc)(struct BitStream_t* pThis, void* pushDataPrm);
+//typedef void(*FetchDataFnc)(struct BitStream_t* pThis, void* fetchDataPrm);
 
 typedef struct BitStream_t {
 	byte* buf;
@@ -128,9 +128,9 @@ typedef struct BitStream_t {
 	Possible vallues 0..7, 0 is most significant 
 	bit of current byte*/
 	int currentBit; 
-	PushDataFnc pushData;
+	//PushDataFnc pushData;
 	void* pushDataPrm;
-	FetchDataFnc fetchData;
+	//FetchDataFnc fetchData;
 	void* fetchDataPrm;
 } BitStream;
 

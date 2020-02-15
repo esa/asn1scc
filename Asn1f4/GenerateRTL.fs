@@ -26,7 +26,13 @@ let exportRTL outDir  (l:ProgrammingLanguage) (args:CommandLineSettings)=
         match args.encodings with
         | []    -> ()
         | _     ->
-            writeTextFile (Path.Combine(outDir, "asn1crt_encoding.c")) (rm.GetString("asn1crt_encoding_c",null))
+            let asn1crt_encoding_c = rm.GetString("asn1crt_encoding_c",null)
+            let asn1crt_encoding_c = 
+                match args.streamingModeSupport with
+                | false -> asn1crt_encoding_c
+                | true  -> asn1crt_encoding_c.Replace("#define INTERNAL_FETH_DATA","")
+
+            writeTextFile (Path.Combine(outDir, "asn1crt_encoding.c")) asn1crt_encoding_c
             writeTextFile (Path.Combine(outDir, "asn1crt_encoding.h")) (rm.GetString("asn1crt_encoding_h",null))
 
             if hasUper || hasAcn then

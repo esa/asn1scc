@@ -307,6 +307,7 @@ type CommandLineSettings = {
     fieldPrefix  : FieldPrefix option
     targetLanguages : ProgrammingLanguage list
     objectIdentifierMaxLength : BigInteger
+    streamingModeSupport      : bool
 }
 with 
   member this.SIntMax =

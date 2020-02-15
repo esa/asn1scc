@@ -35,6 +35,7 @@ type CliArguments =
     | [<Unique; AltCommandLine("-asn1")>]   Debug_Asn1 of string option
     | [<Unique; AltCommandLine("-mfm")>]   Mapping_Functions_Module of string 
     | [<Unique; AltCommandLine("-debug")>]   Debug
+    | [<Unique; AltCommandLine("-sm")>]   Streaming_Mode
     | [<MainCommand; ExactlyOnce; Last>] Files of files:string list
 with
     interface IArgParserTemplate with
@@ -83,6 +84,7 @@ with
             | Word_Size _       -> "Applicable only to C.Defines the size of asn1SccSint and asn1SccUint types. Valid values are 8 bytes (default) and 4 bytes. If you pass 4 then you should compile the C code -DWORD_SIZE=4."
             | Fp_Word_Size _     -> "Defines the size of the REAL type. Valid values are 8 bytes (default) which corresponds to double and 4 bytes which corresponds to float. If you pass 4 then you should compile the C code -DFP_WORD_SIZE=4."
             | Mapping_Functions_Module _    -> "The name of Ada module or name of C header file (without extension) containing the definitions of mapping functions"
+            | Streaming_Mode    -> "Streaming mode support"
 
 
 let printVersion () =
@@ -182,6 +184,7 @@ let checkArguement arg =
         | _ when ws = 8 -> ()
         | _  -> raise (UserException ("invalid value for argument -fpWordSize. Currently only values 4 and 8 are supported"))
     | Mapping_Functions_Module mfm  -> ()
+    | Streaming_Mode    -> ()
 
 let createInput (fileName:string) : Input = 
     {
@@ -218,7 +221,7 @@ let constructCommandLineSettings args (parserResults: ParseResults<CliArguments>
         floatingPointSizeInBytes =
             let fws = parserResults.GetResult(<@Fp_Word_Size@>, defaultValue = 8)
             BigInteger fws
-            
+        streamingModeSupport = parserResults.Contains<@ Streaming_Mode @>
         renamePolicy = 
             match args |> List.choose (fun a -> match a with Rename_Policy rp -> Some rp | _ -> None) with
             | []    ->
