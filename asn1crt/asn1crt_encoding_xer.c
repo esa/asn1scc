@@ -11,31 +11,13 @@
 
 char* Int2String(asn1SccSint v) {
 	static char tmp[256];
-#if WORD_SIZE==8
-#ifdef __MINGW32__
-	snprintf(tmp, sizeof(tmp), "%I64d", v);
-#else
-	snprintf(tmp, sizeof(tmp), "%lld", v);
-#endif
-#else
-	snprintf(tmp, sizeof(tmp), "%ld", v);
-#endif
-
+	snprintf(tmp, sizeof(tmp), "%" ASN1SCC_PRId, v);
 	return tmp;
 }
 
 char* UInt2String(asn1SccUint v) {
 	static char tmp[256];
-#if WORD_SIZE==8
-#ifdef __MINGW32__
-	snprintf(tmp, sizeof(tmp), "%I64u", v);
-#else
-	snprintf(tmp, sizeof(tmp), "%llu", v);
-#endif
-#else
-	snprintf(tmp, sizeof(tmp), "%ld", v);
-#endif
-
+	snprintf(tmp, sizeof(tmp), "%" ASN1SCC_PRIu, v);
 	return tmp;
 }
 
@@ -665,14 +647,14 @@ flag Xer_EncodeObjectIdentifier(ByteStream* pByteStrm, const char* elementTag, c
 		return FALSE;
 	if (pVal->nCount > 0) {
 		char tmp[40];
-		snprintf(tmp, sizeof(tmp), "%d", pVal->values[0]);
+		snprintf(tmp, sizeof(tmp), "%" ASN1SCC_PRIu, pVal->values[0]);
 		if (!ByteStream_AppendString(pByteStrm, tmp))
 			return FALSE;
 	}
 
 	for (i = 1; i<pVal->nCount; i++) {
 		char tmp[40];
-		snprintf(tmp, sizeof(tmp), ".%d", pVal->values[i]);
+		snprintf(tmp, sizeof(tmp), ".%" ASN1SCC_PRIu, pVal->values[i]);
 		if (!ByteStream_AppendString(pByteStrm, tmp))
 			return FALSE;
 
@@ -1299,4 +1281,3 @@ flag LoadXmlFile(const char* fileName, ByteStream* pStrm, int* nBytesLoaded)
 	return TRUE;
 
 }
-
