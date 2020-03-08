@@ -1565,7 +1565,7 @@ void pushData(BitStream* pBitStrm, void* param) { (void)pBitStrm; (void)param; }
 
 
 void bitstrean_fetch_data_if_required(BitStream* pStrm) {
-	if (pStrm->currentByte == pStrm->count) {
+	if (pStrm->currentByte == pStrm->count && pStrm->fetchDataPrm != NULL) {
 		fetchData(pStrm, pStrm->fetchDataPrm);
 		pStrm->currentByte = 0;
 	}
@@ -1573,7 +1573,7 @@ void bitstrean_fetch_data_if_required(BitStream* pStrm) {
 
 
 void bitstrean_push_data_if_required(BitStream* pStrm) {
-	if (pStrm->currentByte == pStrm->count) {
+	if (pStrm->currentByte == pStrm->count && pStrm->pushDataPrm != NULL) {
 		pushData(pStrm, pStrm->pushDataPrm);
 		pStrm->currentByte = 0;
 	}
