@@ -25,11 +25,16 @@ package adaasn1rtl.encoding with Spark_Mode is
    type Bitstream  (Size_In_Bytes:Positive) is record
       Buffer           : OctetBuffer(1 .. Size_In_Bytes) ; 
       Current_Bit_Pos  : Natural;  --current bit for writing or reading in the bitsteam
+      pushDataPrm : Integer := 0;
+      fetchDataPrm : Integer := 0;
+      
    end record;
    
    type BitstreamPtr  is record
       Size_In_Bytes    :   Positive;
       Current_Bit_Pos  : Natural;  --current bit for writing or reading in the bitsteam
+      pushDataPrm : Integer := 0;
+      fetchDataPrm : Integer := 0;
    end record;
 
    
@@ -400,6 +405,9 @@ package adaasn1rtl.encoding with Spark_Mode is
                 bs.Current_Bit_Pos   < Natural'Last - bit_terminated_pattern_size_in_bits and then  
                 bs.Size_In_Bytes < Positive'Last/8 and  then
                 bs.Current_Bit_Pos  <= bs.Size_In_Bytes * 8 - bit_terminated_pattern_size_in_bits;
-    
+
+    procedure bitstrean_fetch_data_if_required(bs : in out BitStream);
+    procedure bitstrean_push_data_if_required(bs : in out BitStream);
+
    
 end adaasn1rtl.encoding;

@@ -35,7 +35,7 @@ TasEncodeMain(sVarName, sFuncName, sTypeDefName, bReqBytesForEncodingIsZero) ::=
 procedure <sFuncName>(<sVarName>:in <sTypeDefName>; Stream : out <sTypeDefName>_uPER_Stream; result : OUT <rtlModuleName()>.ASN1_RESULT)
 IS
 begin
-    Stream := <sTypeDefName>_uPER_Stream'(Size_In_Bytes => <if(bReqBytesForEncodingIsZero)>1<else><sTypeDefName>_REQUIRED_BYTES_FOR_ENCODING<endif>, Current_Bit_Pos  => 0, Buffer => (others => 0));
+    Stream := <sTypeDefName>_uPER_Stream'(Size_In_Bytes => <if(bReqBytesForEncodingIsZero)>1<else><sTypeDefName>_REQUIRED_BYTES_FOR_ENCODING<endif>, Current_Bit_Pos  => 0, pushDataPrm  => 0, fetchDataPrm => 0, Buffer => (others => 0));
     <sFuncName>_aux(<sVarName>, Stream, result);
 end <sFuncName>;
 >>

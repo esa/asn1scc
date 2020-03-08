@@ -1,3 +1,4 @@
+with user_code;
 
 package body adaasn1rtl.encoding with Spark_Mode is
 
@@ -170,6 +171,8 @@ package body adaasn1rtl.encoding with Spark_Mode is
    is
       (Bitstream'(Size_In_Bytes    => Bitstream_Size_In_Bytes,
                  Current_Bit_Pos  => 0,
+                 pushDataPrm  => 0,
+                 fetchDataPrm => 0,
                  Buffer           => (others => 0)));
    
    
@@ -187,8 +190,9 @@ package body adaasn1rtl.encoding with Spark_Mode is
                bs.buffer(Current_Byte) and (not MASKS(Current_Bit)));
       
       bs.Current_Bit_Pos := bs.Current_Bit_Pos + 1;   
+      bitstrean_push_data_if_required(bs);
 
-      end;
+   end;
    
    procedure BitStream_ReadBit(bs : in out BitStream; Bit_Value : out BIT; result :    out Boolean)
    is
@@ -204,6 +208,7 @@ package body adaasn1rtl.encoding with Spark_Mode is
       end if;
       
       bs.Current_Bit_Pos := bs.Current_Bit_Pos + 1;   
+      bitstrean_fetch_data_if_required(bs);
    end;
    
    
@@ -233,6 +238,7 @@ package body adaasn1rtl.encoding with Spark_Mode is
          bs.buffer(Current_Byte) := ByteVal;
       end if;
        bs.Current_Bit_Pos := bs.Current_Bit_Pos + 8;
+       bitstrean_push_data_if_required(bs);
    end;
    
    
@@ -255,6 +261,8 @@ package body adaasn1rtl.encoding with Spark_Mode is
 --        end if;
       Byte_Value := BitStream_PeekByte(bs, 0);
       bs.Current_Bit_Pos := bs.Current_Bit_Pos + 8;
+      bitstrean_fetch_data_if_required(bs);
+      
       
    end;
    
@@ -299,6 +307,8 @@ package body adaasn1rtl.encoding with Spark_Mode is
          Byte_Value := Byte_Value and 16#0F#;
       end if;
       bs.Current_Bit_Pos := bs.Current_Bit_Pos + 4;
+      bitstrean_fetch_data_if_required(bs);
+      
    end;
    
    
@@ -342,6 +352,8 @@ package body adaasn1rtl.encoding with Spark_Mode is
            
          end if;
          bs.Current_Bit_Pos := bs.Current_Bit_Pos + nBits;
+         bitstrean_push_data_if_required(bs);
+         
       end if;
    end;
    
@@ -406,6 +418,7 @@ package body adaasn1rtl.encoding with Spark_Mode is
 --        end if;
       Byte_Value := BitStream_PeekPartialByte(bs, 0, nBits);
       bs.Current_Bit_Pos := bs.Current_Bit_Pos + nBits;
+      bitstrean_fetch_data_if_required(bs);
    end;
    
    function BitStream_PeekPartialByte(bs : in BitStream; offset : Natural; nBits : in BIT_RANGE) return Asn1Byte
@@ -827,8 +840,46 @@ package body adaasn1rtl.encoding with Spark_Mode is
    
 
 
+--  
+--  void bitstrean_fetch_data_if_required(BitStream* pStrm) {
+--  	if (pStrm->currentByte == pStrm->count) {
+--  		fetchData(pStrm, pStrm->fetchDataPrm);
+--  		pStrm->currentByte = 0;
+--  	}
+--  }
+--  
+--  
+--  void bitstrean_push_data_if_required(BitStream* pStrm) {
+--  	if (pStrm->currentByte == pStrm->count) {
+--  		pushData(pStrm, pStrm->pushDataPrm);
+--  		pStrm->currentByte = 0;
+--  	}
+--  }
 
+pragma Warnings (Off, "formal parameter ""bs"" is not modified");
 
-
+    procedure bitstrean_fetch_data_if_required(bs : in out BitStream) 
+    is
+      Current_Byte : constant Integer   := bs.Buffer'First + bs.Current_Bit_Pos / 8;
+      Current_Bit  : constant BIT_RANGE := bs.Current_Bit_Pos mod 8;
+    begin
+        if Current_Bit = 0 and Current_Byte = bs.Size_In_Bytes+1 and bs.fetchDataPrm > 0 then
+            user_code.fetch_data(bs, bs.fetchDataPrm);
+            bs.Current_Bit_Pos := 0;
+        end if;
+    end;
+    
+    procedure bitstrean_push_data_if_required(bs : in out BitStream) 
+    is
+      Current_Byte : constant Integer   := bs.Buffer'First + bs.Current_Bit_Pos / 8;
+      Current_Bit  : constant BIT_RANGE := bs.Current_Bit_Pos mod 8;
+    begin
+        if Current_Bit = 0 and Current_Byte = bs.Size_In_Bytes+1 and bs.fetchDataPrm > 0 then
+            user_code.push_data(bs, bs.pushDataPrm);
+            bs.Current_Bit_Pos := 0;
+        end if;
+    end;
+    
+pragma Warnings (On, "formal parameter ""bs"" is not modified");
    
 end adaasn1rtl.encoding;

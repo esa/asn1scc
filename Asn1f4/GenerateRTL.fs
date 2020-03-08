@@ -60,7 +60,12 @@ let exportRTL outDir  (l:ProgrammingLanguage) (args:CommandLineSettings)=
         match args.encodings with
         | []    -> ()
         | _     ->
-            writeTextFile (Path.Combine(outDir, "adaasn1rtl-encoding.adb")) (rm.GetString("adaasn1rtl_encoding_adb",null))
+            let adaasn1rtl_encoding_adb = 
+                match args.streamingModeSupport with
+                | false -> rm.GetString("adaasn1rtl_encoding_adb",null).Replace("with user_code;","").Replace("user_code.push_data(bs, bs.pushDataPrm);","").Replace("user_code.fetch_data(bs, bs.fetchDataPrm);","")
+                | true  -> rm.GetString("adaasn1rtl_encoding_adb",null)
+
+            writeTextFile (Path.Combine(outDir, "adaasn1rtl-encoding.adb")) adaasn1rtl_encoding_adb
             writeTextFile (Path.Combine(outDir, "adaasn1rtl-encoding.ads")) (rm.GetString("adaasn1rtl_encoding_ads",null))
 
             if hasUper || hasAcn then
