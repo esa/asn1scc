@@ -99,6 +99,7 @@ procedure decode_with_streaming_mode(decodedPDU : out  A1; Filename : in String;
     stream      : adaasn1rtl.encoding.Bitstream := adaasn1rtl.encoding.BitStream_init(1024);
 
 begin
+    stream.fetchDataPrm := 1;
     Seq_IO.Open(ft,Seq_IO.In_File,Filename);
     read_from_file(stream,ft);
 --    TASTE_Dataview.A1_Decode(decodedPDU, stream, result);
