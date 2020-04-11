@@ -454,6 +454,8 @@ let private exportType (t:Asn1Type) =
                     XAttribute(xname "Id", ch.id.AsString),
                     XAttribute(xname "Name", ch.Name.Value),
                     XAttribute(xname "Type", "INTEGER"), 
+                    (XAttribute(xname "acnMaxSizeInBits", ch.Type.acnMaxSizeInBits )),
+                    (XAttribute(xname "acnMinSizeInBits", ch.Type.acnMinSizeInBits )),
                     (exportReferenceTypeArg a.inheritInfo),
                     (exportAcnEndianness a.acnProperties.endiannessProp),
                     (exportAcnIntSizeProperty a.acnProperties.sizeProp),
@@ -464,6 +466,8 @@ let private exportType (t:Asn1Type) =
                     XAttribute(xname "Id", ch.id.AsString),
                     XAttribute(xname "Name", ch.Name.Value),
                     XAttribute(xname "Type", "NULL"),    
+                    (XAttribute(xname "acnMaxSizeInBits", ch.Type.acnMaxSizeInBits )),
+                    (XAttribute(xname "acnMinSizeInBits", ch.Type.acnMinSizeInBits )),
                     (exportAcnNullType a.acnProperties.encodingPattern),
                     (exportAcnAligment a.acnAligment)), us 
 
@@ -474,6 +478,8 @@ let private exportType (t:Asn1Type) =
                     XAttribute(xname "Type", "ENUMERATED"),    
                     XAttribute(xname "Module", a.modName.Value),
                     XAttribute(xname "TypeAssignment", a.tasName.Value),
+                    (XAttribute(xname "acnMaxSizeInBits", ch.Type.acnMaxSizeInBits )),
+                    (XAttribute(xname "acnMinSizeInBits", ch.Type.acnMinSizeInBits )),
                     (exportAcnAligment a.acnAligment),
                     (exportAcnEndianness a.enumerated.acnProperties.endiannessProp),
                     (exportAcnIntSizeProperty a.enumerated.acnProperties.sizeProp),
@@ -489,6 +495,8 @@ let private exportType (t:Asn1Type) =
                     XAttribute(xname "Type", "IA5String"),    
                     XAttribute(xname "Module", a.modName.Value),
                     XAttribute(xname "TypeAssignment", a.tasName.Value),
+                    (XAttribute(xname "acnMaxSizeInBits", ch.Type.acnMaxSizeInBits )),
+                    (XAttribute(xname "acnMinSizeInBits", ch.Type.acnMinSizeInBits )),
                     (exportAcnAligment a.acnAligment) ), us 
 
 
@@ -497,6 +505,8 @@ let private exportType (t:Asn1Type) =
                     XAttribute(xname "Id", ch.id.AsString),
                     XAttribute(xname "Name", ch.Name.Value),
                     XAttribute(xname "Type", "BOOLEAN"), 
+                    (XAttribute(xname "acnMaxSizeInBits", ch.Type.acnMaxSizeInBits )),
+                    (XAttribute(xname "acnMinSizeInBits", ch.Type.acnMinSizeInBits )),
                     (exportAcnBooleanEncoding a.acnProperties.encodingPattern),
                     (exportAcnAligment a.acnAligment)), us )
         (fun ti children us -> XElement(xname "CHOICE",

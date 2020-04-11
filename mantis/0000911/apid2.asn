@@ -1,0 +1,105 @@
+APID DEFINITIONS ::=
+BEGIN
+
+--  PUS-2-1 has two parameters that may be APID-dependent:
+--    Max number of elements
+--    Values for actual addresses
+--  The definition is the following:
+PUS-2-1-Generic {INTEGER: max-elem, Device-Address-Type} ::=
+   SEQUENCE (SIZE (1 .. max-elem)) OF Device-Address-Type
+
+-- An APID-instance of the PUS service 2 has two parameters:
+--    an instance of PUS-2-1
+--    and instance of PUS-2-2
+-- The definition is the following:
+Service2-Generic {PUS-2-1, PUS-2-2} ::=
+   CHOICE {
+      distribute-On-Off PUS-2-1,
+      whatever-pus-2-2  PUS-2-2
+   }
+
+-- Tailoring part: we create tha APID-specific versions of each service
+
+APID-1-Addresses ::= ENUMERATED { device1, device2 } -- fake devices for the example
+APID-1-PUS-2-1   ::= PUS-2-1-Generic { 1, APID-1-Addresses }
+APID-1-PUS-2-2   ::= NULL   -- Service (2,2) to be defined
+Service2-APID-1  ::= Service2-Generic { APID-1-PUS-2-1, APID-1-PUS-2-2 } -- Tailored service 2 for APID 1
+
+-- Dummy definition for PUS service 3
+Service3-Generic ::= CHOICE {
+  whatever-3-1 NULL
+}
+
+-- Dummy definition for PUS service 4
+Service4-Generic ::= CHOICE {
+  whatever-4-1 NULL
+}
+
+APID-2-Addresses ::= ENUMERATED { device3, device4 }
+APID-2-PUS-2-1   ::= PUS-2-1-Generic { 5, APID-2-Addresses }
+APID-2-PUS-2-2   ::= NULL
+Service2-APID-2  ::= Service2-Generic { APID-2-PUS-2-1, APID-2-PUS-2-2 }
+
+-- Full set of available TCs for APID 1
+APID-1-TC ::= CHOICE {
+   pus-2 Service2-APID-1,
+   pus-3 Service3-Generic
+}
+
+-- Full set of available TCs for APID 2
+APID-2-TC ::= CHOICE {
+   pus-2 Service2-APID-2,
+   pus-4 Service4-Generic
+}
+
+-- System-level set of TCs including all APIDs
+PUS-TC ::= CHOICE {
+  apid-1 APID-1-TC,
+  apid-2 APID-2-TC
+}
+
+-- Define the main telecommand type
+TC ::= SEQUENCE {
+  pus PUS-TC
+}
+
+-------------------
+--  TELEMETRIES  --
+-------------------
+
+Parameter ::= INTEGER (0..255)  -- Type for a parameter (could be generic)
+
+-- I use a choice to indicate that the type for the parameters could by anything,
+-- not always a list of identical types.
+PUS-1-2-Generic ::= SEQUENCE {
+ --code INTEGER { incomplete-packet-length (1), incorrect-checksum (2) } (1..2),
+ parameters CHOICE {
+      one-param  Parameter,
+      two-params SEQUENCE (SIZE (2)) OF Parameter
+    }
+}
+
+Service1-Generic {PUS-1-2} ::= CHOICE {
+   acceptance-failure PUS-1-2
+}
+
+Service1-APID-1 ::= Service1-Generic {PUS-1-2-Generic}
+Service1-APID-2 ::= Service1-Generic {PUS-1-2-Generic}
+
+APID-1-TM ::= CHOICE {
+   pus-1 Service1-APID-1
+}
+
+APID-2-TM ::= CHOICE {
+   pus-1 Service1-APID-2
+}
+
+PUS-TM ::= CHOICE {
+   apid-1 APID-1-TM,
+   apid-2 APID-2-TM
+}
+
+TM ::= SEQUENCE {
+  pus PUS-TM
+}
+END

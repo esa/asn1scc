@@ -6,6 +6,7 @@ open System.IO
 open System.Xml.Linq
 open FsUtils
 open CommonTypes
+open Asn1AcnAstUtilFunctions;
 open DAst
 open DastFold
 open DAstUtilFunctions
@@ -170,7 +171,9 @@ let private exportType (r:AstRoot) (t:Asn1Type) =
                         chType), us )
         (fun t ti ch us -> 
                     XElement(xname "ACN_COMPONENT",
-                        XAttribute(xname "Name", ch.Name.Value)
+                        XAttribute(xname "Name", ch.Name.Value),
+                        (XAttribute(xname "acnMaxSizeInBits", ch.Type.acnMaxSizeInBits )),
+                        (XAttribute(xname "acnMinSizeInBits", ch.Type.acnMinSizeInBits ))
                         ), us )
 
         (fun t ti (children,us) -> 
@@ -193,6 +196,7 @@ let private exportType (r:AstRoot) (t:Asn1Type) =
                         XAttribute(xname "PresentWhenName", ch.presentWhenName (Some ch.chType.typeDefintionOrReference) Ada),
                         XAttribute(xname "AdaName", (ch.getBackendName Ada)),
                         XAttribute(xname "CName", (ch.getBackendName C)),
+                        XAttribute(xname "AcnPresentWhenCont", (ch.acnPresentWhenConditions |> List.map(fun pwc -> sprintf "%s = %s" pwc.relativePath.AsString pwc.valueAsString) |> Seq.StrJoin ", ")),
                         chType), us )
 
         (fun t ti (children, us) -> 

@@ -1,0 +1,101 @@
+APID DEFINITIONS ::=
+BEGIN
+
+--  Define the discriminants of APID 1 for service 2 
+Service2-APID-1 <INTEGER: serviceSubType> [] {
+   distribute-On-Off [present-when serviceSubType == 1],
+   whatever-pus-2-2  [present-when serviceSubType == 2]
+}
+
+--  Define the discriminants of APID 2 for service 2 
+Service2-APID-2 <INTEGER: serviceSubType> [] {
+   distribute-On-Off [present-when serviceSubType == 1],
+   whatever-pus-2-2  [present-when serviceSubType == 2]
+}
+
+-- Define the discriminant for the dummy service 3,1
+Service3-Generic <INTEGER: serviceSubType> [] {
+   whatever-3-1 [present-when serviceSubType == 1]
+}
+
+-- Define the discriminant for the dummy service 4,1
+Service4-Generic <INTEGER: serviceSubType> [] {
+   whatever-4-1 [present-when serviceSubType == 1]
+}
+
+--  APID 1 options for each service
+APID-1-TC <INTEGER: serviceType, INTEGER: serviceSubType> [] {
+  pus-2 <serviceSubType> [present-when serviceType == 2],
+  pus-3 <serviceSubType> [present-when serviceType == 3]
+}
+
+--  APID 2 options for each service
+APID-2-TC <INTEGER: serviceType, INTEGER: serviceSubType> [] {
+  pus-2 <serviceSubType> [present-when serviceType == 2],
+  pus-4 <serviceSubType> [present-when serviceType == 4]
+}
+
+--  Add discrimination based on APID
+PUS-TC <INTEGER: apid, INTEGER: serviceType, INTEGER: serviceSubType> [] {
+   apid-1 <serviceType, serviceSubType> [present-when apid == 1],
+   apid-2 <serviceType, serviceSubType> [present-when apid == 2]
+}
+
+-- The telecommand header is added here, with the 3 TC discriminants 
+TC [] {
+   serviceType    INTEGER [size 4, encoding pos-int],
+   serviceSubType INTEGER [size 4, encoding pos-int],
+   apid           INTEGER [size 8, encoding pos-int],
+   pus <apid, serviceType, serviceSubType> []
+}
+
+
+-------------------
+--  TELEMETRIES  --
+-------------------
+
+--  Define the discriminants of APID 1 for service 1 
+Service1-APID-1 <INTEGER: serviceSubType> [] {
+   acceptance-failure [present-when serviceSubType == 2] {
+      code INTEGER [size 1, encoding pos-int],
+      parameters [] {
+         one-param  [present-when code == 1],
+         two-params [present-when code == 2]
+      }
+   }
+}
+
+Service1-APID-2 <INTEGER: serviceSubType> [] {
+   acceptance-failure [present-when serviceSubType == 2] {
+      code INTEGER [size 1, encoding pos-int],
+      parameters [] {
+         one-param  [present-when code == 2],
+         two-params [present-when code == 1]
+      }
+   }
+}
+
+APID-1-TM <INTEGER: serviceType, INTEGER: serviceSubType> [] {
+  pus-1 <serviceSubType> [present-when serviceType == 1]
+}
+
+APID-2-TM <INTEGER: serviceType, INTEGER: serviceSubType> [] {
+  pus-1 <serviceSubType> [present-when serviceType == 1]
+}
+
+-- TM structure is similar to TC here
+PUS-TM <INTEGER: apid, INTEGER: serviceType, INTEGER: serviceSubType> [] {
+   apid-1 <serviceType, serviceSubType> [present-when apid == 1],
+   apid-2 <serviceType, serviceSubType> [present-when apid == 2]
+}
+
+-- The telemetry header is added here, with the 3 TC discriminants 
+TM [] {
+   serviceType    INTEGER [size 4, encoding pos-int],
+   serviceSubType INTEGER [size 4, encoding pos-int],
+   apid           INTEGER [size 8, encoding pos-int],
+   pus <apid, serviceType, serviceSubType> []
+}
+
+
+END

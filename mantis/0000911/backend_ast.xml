@@ -1,0 +1,972 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<AstRoot xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="asn1sccAst.xsd" rename_policy="SelectiveEnumerants">
+  <Asn1File FileName="apid2.asn">
+    <Modules>
+      <Module Name="APID">
+        <TypeAssignments>
+          <TypeAssignment Name="APID-1-Addresses">
+            <Enumerated id="APID.APID-1-Addresses" newTypedefName="APID_1_Addresses" newTypedefName2="APID_1_Addresses" newTypedefName2_kind="NewTypeDefinition" />
+          </TypeAssignment>
+          <TypeAssignment Name="APID-1-PUS-2-1">
+            <SEQUENCEOF id="APID.APID-1-PUS-2-1" newTypedefName="APID_1_PUS_2_1" newTypedefName2="APID_1_PUS_2_1" newTypedefName2_kind="NewTypeDefinition">
+              <REFERENCE_TYPE id="APID.APID-1-PUS-2-1.#" newTypedefName="APID_1_Addresses" typeDefintionOrReference="ReferenceToExistingDefinition" Module="APID" TypeAssignment="APID-1-Addresses" newTypedefName2="APID_1_Addresses" newTypedefName2_kind="FE_Reference2OtherType">
+                <Enumerated id="APID.APID-1-PUS-2-1.#" newTypedefName="APID_1_Addresses" newTypedefName2="APID_1_Addresses" newTypedefName2_kind="FE_Reference2OtherType" />
+              </REFERENCE_TYPE>
+            </SEQUENCEOF>
+          </TypeAssignment>
+          <TypeAssignment Name="APID-1-PUS-2-2">
+            <Null id="APID.APID-1-PUS-2-2" newTypedefName="APID_1_PUS_2_2" newTypedefName2="APID_1_PUS_2_2" newTypedefName2_kind="NewTypeDefinition" />
+          </TypeAssignment>
+          <TypeAssignment Name="Service2-APID-1">
+            <CHOICE id="APID.Service2-APID-1" newTypedefName="Service2_APID_1" newTypedefName2="Service2_APID_1" newTypedefName2_kind="NewTypeDefinition" ancEncClass="CEC_presWhen">
+              <CHOICE_ALTERNATIVE Name="distribute-On-Off" PresentWhenName="Service2_APID_1_distribute_On_Off_PRESENT" AdaName="distribute_On_Off" CName="distribute_On_Off" AcnPresentWhenCont="serviceSubType = 1">
+                <REFERENCE_TYPE id="APID.Service2-APID-1.distribute-On-Off" newTypedefName="APID_1_PUS_2_1" typeDefintionOrReference="ReferenceToExistingDefinition" Module="APID" TypeAssignment="APID-1-PUS-2-1" newTypedefName2="APID_1_PUS_2_1" newTypedefName2_kind="FE_Reference2OtherType">
+                  <SEQUENCEOF id="APID.Service2-APID-1.distribute-On-Off" newTypedefName="APID_1_PUS_2_1" newTypedefName2="APID_1_PUS_2_1" newTypedefName2_kind="FE_Reference2OtherType">
+                    <REFERENCE_TYPE id="APID.Service2-APID-1.distribute-On-Off.#" newTypedefName="APID_1_Addresses" typeDefintionOrReference="ReferenceToExistingDefinition" Module="APID" TypeAssignment="APID-1-Addresses" newTypedefName2="APID_1_Addresses" newTypedefName2_kind="FE_Reference2OtherType">
+                      <Enumerated id="APID.Service2-APID-1.distribute-On-Off.#" newTypedefName="APID_1_Addresses" newTypedefName2="APID_1_Addresses" newTypedefName2_kind="FE_Reference2OtherType" />
+                    </REFERENCE_TYPE>
+                  </SEQUENCEOF>
+                </REFERENCE_TYPE>
+              </CHOICE_ALTERNATIVE>
+              <CHOICE_ALTERNATIVE Name="whatever-pus-2-2" PresentWhenName="Service2_APID_1_whatever_pus_2_2_PRESENT" AdaName="whatever_pus_2_2" CName="whatever_pus_2_2" AcnPresentWhenCont="serviceSubType = 2">
+                <REFERENCE_TYPE id="APID.Service2-APID-1.whatever-pus-2-2" newTypedefName="APID_1_PUS_2_2" typeDefintionOrReference="ReferenceToExistingDefinition" Module="APID" TypeAssignment="APID-1-PUS-2-2" newTypedefName2="APID_1_PUS_2_2" newTypedefName2_kind="FE_Reference2OtherType">
+                  <Null id="APID.Service2-APID-1.whatever-pus-2-2" newTypedefName="APID_1_PUS_2_2" newTypedefName2="APID_1_PUS_2_2" newTypedefName2_kind="FE_Reference2OtherType" />
+                </REFERENCE_TYPE>
+              </CHOICE_ALTERNATIVE>
+            </CHOICE>
+          </TypeAssignment>
+          <TypeAssignment Name="Service3-Generic">
+            <CHOICE id="APID.Service3-Generic" newTypedefName="Service3_Generic" newTypedefName2="Service3_Generic" newTypedefName2_kind="NewTypeDefinition" ancEncClass="CEC_presWhen">
+              <CHOICE_ALTERNATIVE Name="whatever-3-1" PresentWhenName=".whatever_3_1_PRESENT" AdaName="whatever_3_1" CName="whatever_3_1" AcnPresentWhenCont="serviceSubType = 1">
+                <Null id="APID.Service3-Generic.whatever-3-1" newTypedefName=".NullType" newTypedefName2="NullType" newTypedefName2_kind="FE_Reference2RTL" />
+              </CHOICE_ALTERNATIVE>
+            </CHOICE>
+          </TypeAssignment>
+          <TypeAssignment Name="Service4-Generic">
+            <CHOICE id="APID.Service4-Generic" newTypedefName="Service4_Generic" newTypedefName2="Service4_Generic" newTypedefName2_kind="NewTypeDefinition" ancEncClass="CEC_presWhen">
+              <CHOICE_ALTERNATIVE Name="whatever-4-1" PresentWhenName=".whatever_4_1_PRESENT" AdaName="whatever_4_1" CName="whatever_4_1" AcnPresentWhenCont="serviceSubType = 1">
+                <Null id="APID.Service4-Generic.whatever-4-1" newTypedefName=".NullType" newTypedefName2="NullType" newTypedefName2_kind="FE_Reference2RTL" />
+              </CHOICE_ALTERNATIVE>
+            </CHOICE>
+          </TypeAssignment>
+          <TypeAssignment Name="APID-2-Addresses">
+            <Enumerated id="APID.APID-2-Addresses" newTypedefName="APID_2_Addresses" newTypedefName2="APID_2_Addresses" newTypedefName2_kind="NewTypeDefinition" />
+          </TypeAssignment>
+          <TypeAssignment Name="APID-2-PUS-2-1">
+            <SEQUENCEOF id="APID.APID-2-PUS-2-1" newTypedefName="APID_2_PUS_2_1" newTypedefName2="APID_2_PUS_2_1" newTypedefName2_kind="NewTypeDefinition">
+              <REFERENCE_TYPE id="APID.APID-2-PUS-2-1.#" newTypedefName="APID_2_Addresses" typeDefintionOrReference="ReferenceToExistingDefinition" Module="APID" TypeAssignment="APID-2-Addresses" newTypedefName2="APID_2_Addresses" newTypedefName2_kind="FE_Reference2OtherType">
+                <Enumerated id="APID.APID-2-PUS-2-1.#" newTypedefName="APID_2_Addresses" newTypedefName2="APID_2_Addresses" newTypedefName2_kind="FE_Reference2OtherType" />
+              </REFERENCE_TYPE>
+            </SEQUENCEOF>
+          </TypeAssignment>
+          <TypeAssignment Name="APID-2-PUS-2-2">
+            <Null id="APID.APID-2-PUS-2-2" newTypedefName="APID_2_PUS_2_2" newTypedefName2="APID_2_PUS_2_2" newTypedefName2_kind="NewTypeDefinition" />
+          </TypeAssignment>
+          <TypeAssignment Name="Service2-APID-2">
+            <CHOICE id="APID.Service2-APID-2" newTypedefName="Service2_APID_2" newTypedefName2="Service2_APID_2" newTypedefName2_kind="NewTypeDefinition" ancEncClass="CEC_presWhen">
+              <CHOICE_ALTERNATIVE Name="distribute-On-Off" PresentWhenName="Service2_APID_2_distribute_On_Off_PRESENT" AdaName="distribute_On_Off" CName="distribute_On_Off" AcnPresentWhenCont="serviceSubType = 1">
+                <REFERENCE_TYPE id="APID.Service2-APID-2.distribute-On-Off" newTypedefName="APID_2_PUS_2_1" typeDefintionOrReference="ReferenceToExistingDefinition" Module="APID" TypeAssignment="APID-2-PUS-2-1" newTypedefName2="APID_2_PUS_2_1" newTypedefName2_kind="FE_Reference2OtherType">
+                  <SEQUENCEOF id="APID.Service2-APID-2.distribute-On-Off" newTypedefName="APID_2_PUS_2_1" newTypedefName2="APID_2_PUS_2_1" newTypedefName2_kind="FE_Reference2OtherType">
+                    <REFERENCE_TYPE id="APID.Service2-APID-2.distribute-On-Off.#" newTypedefName="APID_2_Addresses" typeDefintionOrReference="ReferenceToExistingDefinition" Module="APID" TypeAssignment="APID-2-Addresses" newTypedefName2="APID_2_Addresses" newTypedefName2_kind="FE_Reference2OtherType">
+                      <Enumerated id="APID.Service2-APID-2.distribute-On-Off.#" newTypedefName="APID_2_Addresses" newTypedefName2="APID_2_Addresses" newTypedefName2_kind="FE_Reference2OtherType" />
+                    </REFERENCE_TYPE>
+                  </SEQUENCEOF>
+                </REFERENCE_TYPE>
+              </CHOICE_ALTERNATIVE>
+              <CHOICE_ALTERNATIVE Name="whatever-pus-2-2" PresentWhenName="Service2_APID_2_whatever_pus_2_2_PRESENT" AdaName="whatever_pus_2_2" CName="whatever_pus_2_2" AcnPresentWhenCont="serviceSubType = 2">
+                <REFERENCE_TYPE id="APID.Service2-APID-2.whatever-pus-2-2" newTypedefName="APID_2_PUS_2_2" typeDefintionOrReference="ReferenceToExistingDefinition" Module="APID" TypeAssignment="APID-2-PUS-2-2" newTypedefName2="APID_2_PUS_2_2" newTypedefName2_kind="FE_Reference2OtherType">
+                  <Null id="APID.Service2-APID-2.whatever-pus-2-2" newTypedefName="APID_2_PUS_2_2" newTypedefName2="APID_2_PUS_2_2" newTypedefName2_kind="FE_Reference2OtherType" />
+                </REFERENCE_TYPE>
+              </CHOICE_ALTERNATIVE>
+            </CHOICE>
+          </TypeAssignment>
+          <TypeAssignment Name="APID-1-TC">
+            <CHOICE id="APID.APID-1-TC" newTypedefName="APID_1_TC" newTypedefName2="APID_1_TC" newTypedefName2_kind="NewTypeDefinition" ancEncClass="CEC_presWhen">
+              <CHOICE_ALTERNATIVE Name="pus-2" PresentWhenName="APID_1_TC_pus_2_PRESENT" AdaName="pus_2" CName="pus_2" AcnPresentWhenCont="serviceType = 2">
+                <REFERENCE_TYPE id="APID.APID-1-TC.pus-2" newTypedefName="Service2_APID_1" typeDefintionOrReference="ReferenceToExistingDefinition" Module="APID" TypeAssignment="Service2-APID-1" newTypedefName2="Service2_APID_1" newTypedefName2_kind="FE_Reference2OtherType">
+                  <AcnArguments>
+                    <argument>serviceSubType</argument>
+                  </AcnArguments>
+                  <CHOICE id="APID.APID-1-TC.pus-2" newTypedefName="Service2_APID_1" newTypedefName2="Service2_APID_1" newTypedefName2_kind="FE_Reference2OtherType" ancEncClass="CEC_presWhen">
+                    <CHOICE_ALTERNATIVE Name="distribute-On-Off" PresentWhenName="Service2_APID_1_distribute_On_Off_PRESENT" AdaName="distribute_On_Off" CName="distribute_On_Off" AcnPresentWhenCont="serviceSubType = 1">
+                      <REFERENCE_TYPE id="APID.APID-1-TC.pus-2.distribute-On-Off" newTypedefName="APID_1_PUS_2_1" typeDefintionOrReference="ReferenceToExistingDefinition" Module="APID" TypeAssignment="APID-1-PUS-2-1" newTypedefName2="APID_1_PUS_2_1" newTypedefName2_kind="FE_Reference2OtherType">
+                        <SEQUENCEOF id="APID.APID-1-TC.pus-2.distribute-On-Off" newTypedefName="APID_1_PUS_2_1" newTypedefName2="APID_1_PUS_2_1" newTypedefName2_kind="FE_Reference2OtherType">
+                          <REFERENCE_TYPE id="APID.APID-1-TC.pus-2.distribute-On-Off.#" newTypedefName="APID_1_Addresses" typeDefintionOrReference="ReferenceToExistingDefinition" Module="APID" TypeAssignment="APID-1-Addresses" newTypedefName2="APID_1_Addresses" newTypedefName2_kind="FE_Reference2OtherType">
+                            <Enumerated id="APID.APID-1-TC.pus-2.distribute-On-Off.#" newTypedefName="APID_1_Addresses" newTypedefName2="APID_1_Addresses" newTypedefName2_kind="FE_Reference2OtherType" />
+                          </REFERENCE_TYPE>
+                        </SEQUENCEOF>
+                      </REFERENCE_TYPE>
+                    </CHOICE_ALTERNATIVE>
+                    <CHOICE_ALTERNATIVE Name="whatever-pus-2-2" PresentWhenName="Service2_APID_1_whatever_pus_2_2_PRESENT" AdaName="whatever_pus_2_2" CName="whatever_pus_2_2" AcnPresentWhenCont="serviceSubType = 2">
+                      <REFERENCE_TYPE id="APID.APID-1-TC.pus-2.whatever-pus-2-2" newTypedefName="APID_1_PUS_2_2" typeDefintionOrReference="ReferenceToExistingDefinition" Module="APID" TypeAssignment="APID-1-PUS-2-2" newTypedefName2="APID_1_PUS_2_2" newTypedefName2_kind="FE_Reference2OtherType">
+                        <Null id="APID.APID-1-TC.pus-2.whatever-pus-2-2" newTypedefName="APID_1_PUS_2_2" newTypedefName2="APID_1_PUS_2_2" newTypedefName2_kind="FE_Reference2OtherType" />
+                      </REFERENCE_TYPE>
+                    </CHOICE_ALTERNATIVE>
+                  </CHOICE>
+                </REFERENCE_TYPE>
+              </CHOICE_ALTERNATIVE>
+              <CHOICE_ALTERNATIVE Name="pus-3" PresentWhenName="pus_3_PRESENT" AdaName="pus_3" CName="pus_3" AcnPresentWhenCont="serviceType = 3">
+                <REFERENCE_TYPE id="APID.APID-1-TC.pus-3" newTypedefName="Service3_Generic" typeDefintionOrReference="ReferenceToExistingDefinition" Module="APID" TypeAssignment="Service3-Generic" newTypedefName2="Service3_Generic" newTypedefName2_kind="FE_Reference2OtherType">
+                  <AcnArguments>
+                    <argument>serviceSubType</argument>
+                  </AcnArguments>
+                  <CHOICE id="APID.APID-1-TC.pus-3" newTypedefName="Service3_Generic" newTypedefName2="Service3_Generic" newTypedefName2_kind="FE_Reference2OtherType" ancEncClass="CEC_presWhen">
+                    <CHOICE_ALTERNATIVE Name="whatever-3-1" PresentWhenName=".whatever_3_1_PRESENT" AdaName="whatever_3_1" CName="whatever_3_1" AcnPresentWhenCont="serviceSubType = 1">
+                      <Null id="APID.APID-1-TC.pus-3.whatever-3-1" newTypedefName=".NullType" newTypedefName2="NullType" newTypedefName2_kind="FE_Reference2RTL" />
+                    </CHOICE_ALTERNATIVE>
+                  </CHOICE>
+                </REFERENCE_TYPE>
+              </CHOICE_ALTERNATIVE>
+            </CHOICE>
+          </TypeAssignment>
+          <TypeAssignment Name="APID-2-TC">
+            <CHOICE id="APID.APID-2-TC" newTypedefName="APID_2_TC" newTypedefName2="APID_2_TC" newTypedefName2_kind="NewTypeDefinition" ancEncClass="CEC_presWhen">
+              <CHOICE_ALTERNATIVE Name="pus-2" PresentWhenName="APID_2_TC_pus_2_PRESENT" AdaName="pus_2" CName="pus_2" AcnPresentWhenCont="serviceType = 2">
+                <REFERENCE_TYPE id="APID.APID-2-TC.pus-2" newTypedefName="Service2_APID_2" typeDefintionOrReference="ReferenceToExistingDefinition" Module="APID" TypeAssignment="Service2-APID-2" newTypedefName2="Service2_APID_2" newTypedefName2_kind="FE_Reference2OtherType">
+                  <AcnArguments>
+                    <argument>serviceSubType</argument>
+                  </AcnArguments>
+                  <CHOICE id="APID.APID-2-TC.pus-2" newTypedefName="Service2_APID_2" newTypedefName2="Service2_APID_2" newTypedefName2_kind="FE_Reference2OtherType" ancEncClass="CEC_presWhen">
+                    <CHOICE_ALTERNATIVE Name="distribute-On-Off" PresentWhenName="Service2_APID_2_distribute_On_Off_PRESENT" AdaName="distribute_On_Off" CName="distribute_On_Off" AcnPresentWhenCont="serviceSubType = 1">
+                      <REFERENCE_TYPE id="APID.APID-2-TC.pus-2.distribute-On-Off" newTypedefName="APID_2_PUS_2_1" typeDefintionOrReference="ReferenceToExistingDefinition" Module="APID" TypeAssignment="APID-2-PUS-2-1" newTypedefName2="APID_2_PUS_2_1" newTypedefName2_kind="FE_Reference2OtherType">
+                        <SEQUENCEOF id="APID.APID-2-TC.pus-2.distribute-On-Off" newTypedefName="APID_2_PUS_2_1" newTypedefName2="APID_2_PUS_2_1" newTypedefName2_kind="FE_Reference2OtherType">
+                          <REFERENCE_TYPE id="APID.APID-2-TC.pus-2.distribute-On-Off.#" newTypedefName="APID_2_Addresses" typeDefintionOrReference="ReferenceToExistingDefinition" Module="APID" TypeAssignment="APID-2-Addresses" newTypedefName2="APID_2_Addresses" newTypedefName2_kind="FE_Reference2OtherType">
+                            <Enumerated id="APID.APID-2-TC.pus-2.distribute-On-Off.#" newTypedefName="APID_2_Addresses" newTypedefName2="APID_2_Addresses" newTypedefName2_kind="FE_Reference2OtherType" />
+                          </REFERENCE_TYPE>
+                        </SEQUENCEOF>
+                      </REFERENCE_TYPE>
+                    </CHOICE_ALTERNATIVE>
+                    <CHOICE_ALTERNATIVE Name="whatever-pus-2-2" PresentWhenName="Service2_APID_2_whatever_pus_2_2_PRESENT" AdaName="whatever_pus_2_2" CName="whatever_pus_2_2" AcnPresentWhenCont="serviceSubType = 2">
+                      <REFERENCE_TYPE id="APID.APID-2-TC.pus-2.whatever-pus-2-2" newTypedefName="APID_2_PUS_2_2" typeDefintionOrReference="ReferenceToExistingDefinition" Module="APID" TypeAssignment="APID-2-PUS-2-2" newTypedefName2="APID_2_PUS_2_2" newTypedefName2_kind="FE_Reference2OtherType">
+                        <Null id="APID.APID-2-TC.pus-2.whatever-pus-2-2" newTypedefName="APID_2_PUS_2_2" newTypedefName2="APID_2_PUS_2_2" newTypedefName2_kind="FE_Reference2OtherType" />
+                      </REFERENCE_TYPE>
+                    </CHOICE_ALTERNATIVE>
+                  </CHOICE>
+                </REFERENCE_TYPE>
+              </CHOICE_ALTERNATIVE>
+              <CHOICE_ALTERNATIVE Name="pus-4" PresentWhenName="pus_4_PRESENT" AdaName="pus_4" CName="pus_4" AcnPresentWhenCont="serviceType = 4">
+                <REFERENCE_TYPE id="APID.APID-2-TC.pus-4" newTypedefName="Service4_Generic" typeDefintionOrReference="ReferenceToExistingDefinition" Module="APID" TypeAssignment="Service4-Generic" newTypedefName2="Service4_Generic" newTypedefName2_kind="FE_Reference2OtherType">
+                  <AcnArguments>
+                    <argument>serviceSubType</argument>
+                  </AcnArguments>
+                  <CHOICE id="APID.APID-2-TC.pus-4" newTypedefName="Service4_Generic" newTypedefName2="Service4_Generic" newTypedefName2_kind="FE_Reference2OtherType" ancEncClass="CEC_presWhen">
+                    <CHOICE_ALTERNATIVE Name="whatever-4-1" PresentWhenName=".whatever_4_1_PRESENT" AdaName="whatever_4_1" CName="whatever_4_1" AcnPresentWhenCont="serviceSubType = 1">
+                      <Null id="APID.APID-2-TC.pus-4.whatever-4-1" newTypedefName=".NullType" newTypedefName2="NullType" newTypedefName2_kind="FE_Reference2RTL" />
+                    </CHOICE_ALTERNATIVE>
+                  </CHOICE>
+                </REFERENCE_TYPE>
+              </CHOICE_ALTERNATIVE>
+            </CHOICE>
+          </TypeAssignment>
+          <TypeAssignment Name="PUS-TC">
+            <CHOICE id="APID.PUS-TC" newTypedefName="PUS_TC" newTypedefName2="PUS_TC" newTypedefName2_kind="NewTypeDefinition" ancEncClass="CEC_presWhen">
+              <CHOICE_ALTERNATIVE Name="apid-1" PresentWhenName="PUS_TC_apid_1_PRESENT" AdaName="apid_1" CName="apid_1" AcnPresentWhenCont="apid = 1">
+                <REFERENCE_TYPE id="APID.PUS-TC.apid-1" newTypedefName="APID_1_TC" typeDefintionOrReference="ReferenceToExistingDefinition" Module="APID" TypeAssignment="APID-1-TC" newTypedefName2="APID_1_TC" newTypedefName2_kind="FE_Reference2OtherType">
+                  <AcnArguments>
+                    <argument>serviceType</argument>
+                    <argument>serviceSubType</argument>
+                  </AcnArguments>
+                  <CHOICE id="APID.PUS-TC.apid-1" newTypedefName="APID_1_TC" newTypedefName2="APID_1_TC" newTypedefName2_kind="FE_Reference2OtherType" ancEncClass="CEC_presWhen">
+                    <CHOICE_ALTERNATIVE Name="pus-2" PresentWhenName="APID_1_TC_pus_2_PRESENT" AdaName="pus_2" CName="pus_2" AcnPresentWhenCont="serviceType = 2">
+                      <REFERENCE_TYPE id="APID.PUS-TC.apid-1.pus-2" newTypedefName="Service2_APID_1" typeDefintionOrReference="ReferenceToExistingDefinition" Module="APID" TypeAssignment="Service2-APID-1" newTypedefName2="Service2_APID_1" newTypedefName2_kind="FE_Reference2OtherType">
+                        <AcnArguments>
+                          <argument>serviceSubType</argument>
+                        </AcnArguments>
+                        <CHOICE id="APID.PUS-TC.apid-1.pus-2" newTypedefName="Service2_APID_1" newTypedefName2="Service2_APID_1" newTypedefName2_kind="FE_Reference2OtherType" ancEncClass="CEC_presWhen">
+                          <CHOICE_ALTERNATIVE Name="distribute-On-Off" PresentWhenName="Service2_APID_1_distribute_On_Off_PRESENT" AdaName="distribute_On_Off" CName="distribute_On_Off" AcnPresentWhenCont="serviceSubType = 1">
+                            <REFERENCE_TYPE id="APID.PUS-TC.apid-1.pus-2.distribute-On-Off" newTypedefName="APID_1_PUS_2_1" typeDefintionOrReference="ReferenceToExistingDefinition" Module="APID" TypeAssignment="APID-1-PUS-2-1" newTypedefName2="APID_1_PUS_2_1" newTypedefName2_kind="FE_Reference2OtherType">
+                              <SEQUENCEOF id="APID.PUS-TC.apid-1.pus-2.distribute-On-Off" newTypedefName="APID_1_PUS_2_1" newTypedefName2="APID_1_PUS_2_1" newTypedefName2_kind="FE_Reference2OtherType">
+                                <REFERENCE_TYPE id="APID.PUS-TC.apid-1.pus-2.distribute-On-Off.#" newTypedefName="APID_1_Addresses" typeDefintionOrReference="ReferenceToExistingDefinition" Module="APID" TypeAssignment="APID-1-Addresses" newTypedefName2="APID_1_Addresses" newTypedefName2_kind="FE_Reference2OtherType">
+                                  <Enumerated id="APID.PUS-TC.apid-1.pus-2.distribute-On-Off.#" newTypedefName="APID_1_Addresses" newTypedefName2="APID_1_Addresses" newTypedefName2_kind="FE_Reference2OtherType" />
+                                </REFERENCE_TYPE>
+                              </SEQUENCEOF>
+                            </REFERENCE_TYPE>
+                          </CHOICE_ALTERNATIVE>
+                          <CHOICE_ALTERNATIVE Name="whatever-pus-2-2" PresentWhenName="Service2_APID_1_whatever_pus_2_2_PRESENT" AdaName="whatever_pus_2_2" CName="whatever_pus_2_2" AcnPresentWhenCont="serviceSubType = 2">
+                            <REFERENCE_TYPE id="APID.PUS-TC.apid-1.pus-2.whatever-pus-2-2" newTypedefName="APID_1_PUS_2_2" typeDefintionOrReference="ReferenceToExistingDefinition" Module="APID" TypeAssignment="APID-1-PUS-2-2" newTypedefName2="APID_1_PUS_2_2" newTypedefName2_kind="FE_Reference2OtherType">
+                              <Null id="APID.PUS-TC.apid-1.pus-2.whatever-pus-2-2" newTypedefName="APID_1_PUS_2_2" newTypedefName2="APID_1_PUS_2_2" newTypedefName2_kind="FE_Reference2OtherType" />
+                            </REFERENCE_TYPE>
+                          </CHOICE_ALTERNATIVE>
+                        </CHOICE>
+                      </REFERENCE_TYPE>
+                    </CHOICE_ALTERNATIVE>
+                    <CHOICE_ALTERNATIVE Name="pus-3" PresentWhenName="pus_3_PRESENT" AdaName="pus_3" CName="pus_3" AcnPresentWhenCont="serviceType = 3">
+                      <REFERENCE_TYPE id="APID.PUS-TC.apid-1.pus-3" newTypedefName="Service3_Generic" typeDefintionOrReference="ReferenceToExistingDefinition" Module="APID" TypeAssignment="Service3-Generic" newTypedefName2="Service3_Generic" newTypedefName2_kind="FE_Reference2OtherType">
+                        <AcnArguments>
+                          <argument>serviceSubType</argument>
+                        </AcnArguments>
+                        <CHOICE id="APID.PUS-TC.apid-1.pus-3" newTypedefName="Service3_Generic" newTypedefName2="Service3_Generic" newTypedefName2_kind="FE_Reference2OtherType" ancEncClass="CEC_presWhen">
+                          <CHOICE_ALTERNATIVE Name="whatever-3-1" PresentWhenName=".whatever_3_1_PRESENT" AdaName="whatever_3_1" CName="whatever_3_1" AcnPresentWhenCont="serviceSubType = 1">
+                            <Null id="APID.PUS-TC.apid-1.pus-3.whatever-3-1" newTypedefName=".NullType" newTypedefName2="NullType" newTypedefName2_kind="FE_Reference2RTL" />
+                          </CHOICE_ALTERNATIVE>
+                        </CHOICE>
+                      </REFERENCE_TYPE>
+                    </CHOICE_ALTERNATIVE>
+                  </CHOICE>
+                </REFERENCE_TYPE>
+              </CHOICE_ALTERNATIVE>
+              <CHOICE_ALTERNATIVE Name="apid-2" PresentWhenName="PUS_TC_apid_2_PRESENT" AdaName="apid_2" CName="apid_2" AcnPresentWhenCont="apid = 2">
+                <REFERENCE_TYPE id="APID.PUS-TC.apid-2" newTypedefName="APID_2_TC" typeDefintionOrReference="ReferenceToExistingDefinition" Module="APID" TypeAssignment="APID-2-TC" newTypedefName2="APID_2_TC" newTypedefName2_kind="FE_Reference2OtherType">
+                  <AcnArguments>
+                    <argument>serviceType</argument>
+                    <argument>serviceSubType</argument>
+                  </AcnArguments>
+                  <CHOICE id="APID.PUS-TC.apid-2" newTypedefName="APID_2_TC" newTypedefName2="APID_2_TC" newTypedefName2_kind="FE_Reference2OtherType" ancEncClass="CEC_presWhen">
+                    <CHOICE_ALTERNATIVE Name="pus-2" PresentWhenName="APID_2_TC_pus_2_PRESENT" AdaName="pus_2" CName="pus_2" AcnPresentWhenCont="serviceType = 2">
+                      <REFERENCE_TYPE id="APID.PUS-TC.apid-2.pus-2" newTypedefName="Service2_APID_2" typeDefintionOrReference="ReferenceToExistingDefinition" Module="APID" TypeAssignment="Service2-APID-2" newTypedefName2="Service2_APID_2" newTypedefName2_kind="FE_Reference2OtherType">
+                        <AcnArguments>
+                          <argument>serviceSubType</argument>
+                        </AcnArguments>
+                        <CHOICE id="APID.PUS-TC.apid-2.pus-2" newTypedefName="Service2_APID_2" newTypedefName2="Service2_APID_2" newTypedefName2_kind="FE_Reference2OtherType" ancEncClass="CEC_presWhen">
+                          <CHOICE_ALTERNATIVE Name="distribute-On-Off" PresentWhenName="Service2_APID_2_distribute_On_Off_PRESENT" AdaName="distribute_On_Off" CName="distribute_On_Off" AcnPresentWhenCont="serviceSubType = 1">
+                            <REFERENCE_TYPE id="APID.PUS-TC.apid-2.pus-2.distribute-On-Off" newTypedefName="APID_2_PUS_2_1" typeDefintionOrReference="ReferenceToExistingDefinition" Module="APID" TypeAssignment="APID-2-PUS-2-1" newTypedefName2="APID_2_PUS_2_1" newTypedefName2_kind="FE_Reference2OtherType">
+                              <SEQUENCEOF id="APID.PUS-TC.apid-2.pus-2.distribute-On-Off" newTypedefName="APID_2_PUS_2_1" newTypedefName2="APID_2_PUS_2_1" newTypedefName2_kind="FE_Reference2OtherType">
+                                <REFERENCE_TYPE id="APID.PUS-TC.apid-2.pus-2.distribute-On-Off.#" newTypedefName="APID_2_Addresses" typeDefintionOrReference="ReferenceToExistingDefinition" Module="APID" TypeAssignment="APID-2-Addresses" newTypedefName2="APID_2_Addresses" newTypedefName2_kind="FE_Reference2OtherType">
+                                  <Enumerated id="APID.PUS-TC.apid-2.pus-2.distribute-On-Off.#" newTypedefName="APID_2_Addresses" newTypedefName2="APID_2_Addresses" newTypedefName2_kind="FE_Reference2OtherType" />
+                                </REFERENCE_TYPE>
+                              </SEQUENCEOF>
+                            </REFERENCE_TYPE>
+                          </CHOICE_ALTERNATIVE>
+                          <CHOICE_ALTERNATIVE Name="whatever-pus-2-2" PresentWhenName="Service2_APID_2_whatever_pus_2_2_PRESENT" AdaName="whatever_pus_2_2" CName="whatever_pus_2_2" AcnPresentWhenCont="serviceSubType = 2">
+                            <REFERENCE_TYPE id="APID.PUS-TC.apid-2.pus-2.whatever-pus-2-2" newTypedefName="APID_2_PUS_2_2" typeDefintionOrReference="ReferenceToExistingDefinition" Module="APID" TypeAssignment="APID-2-PUS-2-2" newTypedefName2="APID_2_PUS_2_2" newTypedefName2_kind="FE_Reference2OtherType">
+                              <Null id="APID.PUS-TC.apid-2.pus-2.whatever-pus-2-2" newTypedefName="APID_2_PUS_2_2" newTypedefName2="APID_2_PUS_2_2" newTypedefName2_kind="FE_Reference2OtherType" />
+                            </REFERENCE_TYPE>
+                          </CHOICE_ALTERNATIVE>
+                        </CHOICE>
+                      </REFERENCE_TYPE>
+                    </CHOICE_ALTERNATIVE>
+                    <CHOICE_ALTERNATIVE Name="pus-4" PresentWhenName="pus_4_PRESENT" AdaName="pus_4" CName="pus_4" AcnPresentWhenCont="serviceType = 4">
+                      <REFERENCE_TYPE id="APID.PUS-TC.apid-2.pus-4" newTypedefName="Service4_Generic" typeDefintionOrReference="ReferenceToExistingDefinition" Module="APID" TypeAssignment="Service4-Generic" newTypedefName2="Service4_Generic" newTypedefName2_kind="FE_Reference2OtherType">
+                        <AcnArguments>
+                          <argument>serviceSubType</argument>
+                        </AcnArguments>
+                        <CHOICE id="APID.PUS-TC.apid-2.pus-4" newTypedefName="Service4_Generic" newTypedefName2="Service4_Generic" newTypedefName2_kind="FE_Reference2OtherType" ancEncClass="CEC_presWhen">
+                          <CHOICE_ALTERNATIVE Name="whatever-4-1" PresentWhenName=".whatever_4_1_PRESENT" AdaName="whatever_4_1" CName="whatever_4_1" AcnPresentWhenCont="serviceSubType = 1">
+                            <Null id="APID.PUS-TC.apid-2.pus-4.whatever-4-1" newTypedefName=".NullType" newTypedefName2="NullType" newTypedefName2_kind="FE_Reference2RTL" />
+                          </CHOICE_ALTERNATIVE>
+                        </CHOICE>
+                      </REFERENCE_TYPE>
+                    </CHOICE_ALTERNATIVE>
+                  </CHOICE>
+                </REFERENCE_TYPE>
+              </CHOICE_ALTERNATIVE>
+            </CHOICE>
+          </TypeAssignment>
+          <TypeAssignment Name="TC">
+            <SEQUENCE id="APID.TC" newTypedefName="TC" newTypedefName2="TC" newTypedefName2_kind="NewTypeDefinition">
+              <ACN_COMPONENT Name="serviceType" acnMaxSizeInBits="4" acnMinSizeInBits="4" />
+              <ACN_COMPONENT Name="serviceSubType" acnMaxSizeInBits="4" acnMinSizeInBits="4" />
+              <ACN_COMPONENT Name="apid" acnMaxSizeInBits="8" acnMinSizeInBits="8" />
+              <SEQUENCE_COMPONENT Name="pus">
+                <REFERENCE_TYPE id="APID.TC.pus" newTypedefName="PUS_TC" typeDefintionOrReference="ReferenceToExistingDefinition" Module="APID" TypeAssignment="PUS-TC" newTypedefName2="PUS_TC" newTypedefName2_kind="FE_Reference2OtherType">
+                  <AcnArguments>
+                    <argument>apid</argument>
+                    <argument>serviceType</argument>
+                    <argument>serviceSubType</argument>
+                  </AcnArguments>
+                  <CHOICE id="APID.TC.pus" newTypedefName="PUS_TC" newTypedefName2="PUS_TC" newTypedefName2_kind="FE_Reference2OtherType" ancEncClass="CEC_presWhen">
+                    <CHOICE_ALTERNATIVE Name="apid-1" PresentWhenName="PUS_TC_apid_1_PRESENT" AdaName="apid_1" CName="apid_1" AcnPresentWhenCont="apid = 1">
+                      <REFERENCE_TYPE id="APID.TC.pus.apid-1" newTypedefName="APID_1_TC" typeDefintionOrReference="ReferenceToExistingDefinition" Module="APID" TypeAssignment="APID-1-TC" newTypedefName2="APID_1_TC" newTypedefName2_kind="FE_Reference2OtherType">
+                        <AcnArguments>
+                          <argument>serviceType</argument>
+                          <argument>serviceSubType</argument>
+                        </AcnArguments>
+                        <CHOICE id="APID.TC.pus.apid-1" newTypedefName="APID_1_TC" newTypedefName2="APID_1_TC" newTypedefName2_kind="FE_Reference2OtherType" ancEncClass="CEC_presWhen">
+                          <CHOICE_ALTERNATIVE Name="pus-2" PresentWhenName="APID_1_TC_pus_2_PRESENT" AdaName="pus_2" CName="pus_2" AcnPresentWhenCont="serviceType = 2">
+                            <REFERENCE_TYPE id="APID.TC.pus.apid-1.pus-2" newTypedefName="Service2_APID_1" typeDefintionOrReference="ReferenceToExistingDefinition" Module="APID" TypeAssignment="Service2-APID-1" newTypedefName2="Service2_APID_1" newTypedefName2_kind="FE_Reference2OtherType">
+                              <AcnArguments>
+                                <argument>serviceSubType</argument>
+                              </AcnArguments>
+                              <CHOICE id="APID.TC.pus.apid-1.pus-2" newTypedefName="Service2_APID_1" newTypedefName2="Service2_APID_1" newTypedefName2_kind="FE_Reference2OtherType" ancEncClass="CEC_presWhen">
+                                <CHOICE_ALTERNATIVE Name="distribute-On-Off" PresentWhenName="Service2_APID_1_distribute_On_Off_PRESENT" AdaName="distribute_On_Off" CName="distribute_On_Off" AcnPresentWhenCont="serviceSubType = 1">
+                                  <REFERENCE_TYPE id="APID.TC.pus.apid-1.pus-2.distribute-On-Off" newTypedefName="APID_1_PUS_2_1" typeDefintionOrReference="ReferenceToExistingDefinition" Module="APID" TypeAssignment="APID-1-PUS-2-1" newTypedefName2="APID_1_PUS_2_1" newTypedefName2_kind="FE_Reference2OtherType">
+                                    <SEQUENCEOF id="APID.TC.pus.apid-1.pus-2.distribute-On-Off" newTypedefName="APID_1_PUS_2_1" newTypedefName2="APID_1_PUS_2_1" newTypedefName2_kind="FE_Reference2OtherType">
+                                      <REFERENCE_TYPE id="APID.TC.pus.apid-1.pus-2.distribute-On-Off.#" newTypedefName="APID_1_Addresses" typeDefintionOrReference="ReferenceToExistingDefinition" Module="APID" TypeAssignment="APID-1-Addresses" newTypedefName2="APID_1_Addresses" newTypedefName2_kind="FE_Reference2OtherType">
+                                        <Enumerated id="APID.TC.pus.apid-1.pus-2.distribute-On-Off.#" newTypedefName="APID_1_Addresses" newTypedefName2="APID_1_Addresses" newTypedefName2_kind="FE_Reference2OtherType" />
+                                      </REFERENCE_TYPE>
+                                    </SEQUENCEOF>
+                                  </REFERENCE_TYPE>
+                                </CHOICE_ALTERNATIVE>
+                                <CHOICE_ALTERNATIVE Name="whatever-pus-2-2" PresentWhenName="Service2_APID_1_whatever_pus_2_2_PRESENT" AdaName="whatever_pus_2_2" CName="whatever_pus_2_2" AcnPresentWhenCont="serviceSubType = 2">
+                                  <REFERENCE_TYPE id="APID.TC.pus.apid-1.pus-2.whatever-pus-2-2" newTypedefName="APID_1_PUS_2_2" typeDefintionOrReference="ReferenceToExistingDefinition" Module="APID" TypeAssignment="APID-1-PUS-2-2" newTypedefName2="APID_1_PUS_2_2" newTypedefName2_kind="FE_Reference2OtherType">
+                                    <Null id="APID.TC.pus.apid-1.pus-2.whatever-pus-2-2" newTypedefName="APID_1_PUS_2_2" newTypedefName2="APID_1_PUS_2_2" newTypedefName2_kind="FE_Reference2OtherType" />
+                                  </REFERENCE_TYPE>
+                                </CHOICE_ALTERNATIVE>
+                              </CHOICE>
+                            </REFERENCE_TYPE>
+                          </CHOICE_ALTERNATIVE>
+                          <CHOICE_ALTERNATIVE Name="pus-3" PresentWhenName="pus_3_PRESENT" AdaName="pus_3" CName="pus_3" AcnPresentWhenCont="serviceType = 3">
+                            <REFERENCE_TYPE id="APID.TC.pus.apid-1.pus-3" newTypedefName="Service3_Generic" typeDefintionOrReference="ReferenceToExistingDefinition" Module="APID" TypeAssignment="Service3-Generic" newTypedefName2="Service3_Generic" newTypedefName2_kind="FE_Reference2OtherType">
+                              <AcnArguments>
+                                <argument>serviceSubType</argument>
+                              </AcnArguments>
+                              <CHOICE id="APID.TC.pus.apid-1.pus-3" newTypedefName="Service3_Generic" newTypedefName2="Service3_Generic" newTypedefName2_kind="FE_Reference2OtherType" ancEncClass="CEC_presWhen">
+                                <CHOICE_ALTERNATIVE Name="whatever-3-1" PresentWhenName=".whatever_3_1_PRESENT" AdaName="whatever_3_1" CName="whatever_3_1" AcnPresentWhenCont="serviceSubType = 1">
+                                  <Null id="APID.TC.pus.apid-1.pus-3.whatever-3-1" newTypedefName=".NullType" newTypedefName2="NullType" newTypedefName2_kind="FE_Reference2RTL" />
+                                </CHOICE_ALTERNATIVE>
+                              </CHOICE>
+                            </REFERENCE_TYPE>
+                          </CHOICE_ALTERNATIVE>
+                        </CHOICE>
+                      </REFERENCE_TYPE>
+                    </CHOICE_ALTERNATIVE>
+                    <CHOICE_ALTERNATIVE Name="apid-2" PresentWhenName="PUS_TC_apid_2_PRESENT" AdaName="apid_2" CName="apid_2" AcnPresentWhenCont="apid = 2">
+                      <REFERENCE_TYPE id="APID.TC.pus.apid-2" newTypedefName="APID_2_TC" typeDefintionOrReference="ReferenceToExistingDefinition" Module="APID" TypeAssignment="APID-2-TC" newTypedefName2="APID_2_TC" newTypedefName2_kind="FE_Reference2OtherType">
+                        <AcnArguments>
+                          <argument>serviceType</argument>
+                          <argument>serviceSubType</argument>
+                        </AcnArguments>
+                        <CHOICE id="APID.TC.pus.apid-2" newTypedefName="APID_2_TC" newTypedefName2="APID_2_TC" newTypedefName2_kind="FE_Reference2OtherType" ancEncClass="CEC_presWhen">
+                          <CHOICE_ALTERNATIVE Name="pus-2" PresentWhenName="APID_2_TC_pus_2_PRESENT" AdaName="pus_2" CName="pus_2" AcnPresentWhenCont="serviceType = 2">
+                            <REFERENCE_TYPE id="APID.TC.pus.apid-2.pus-2" newTypedefName="Service2_APID_2" typeDefintionOrReference="ReferenceToExistingDefinition" Module="APID" TypeAssignment="Service2-APID-2" newTypedefName2="Service2_APID_2" newTypedefName2_kind="FE_Reference2OtherType">
+                              <AcnArguments>
+                                <argument>serviceSubType</argument>
+                              </AcnArguments>
+                              <CHOICE id="APID.TC.pus.apid-2.pus-2" newTypedefName="Service2_APID_2" newTypedefName2="Service2_APID_2" newTypedefName2_kind="FE_Reference2OtherType" ancEncClass="CEC_presWhen">
+                                <CHOICE_ALTERNATIVE Name="distribute-On-Off" PresentWhenName="Service2_APID_2_distribute_On_Off_PRESENT" AdaName="distribute_On_Off" CName="distribute_On_Off" AcnPresentWhenCont="serviceSubType = 1">
+                                  <REFERENCE_TYPE id="APID.TC.pus.apid-2.pus-2.distribute-On-Off" newTypedefName="APID_2_PUS_2_1" typeDefintionOrReference="ReferenceToExistingDefinition" Module="APID" TypeAssignment="APID-2-PUS-2-1" newTypedefName2="APID_2_PUS_2_1" newTypedefName2_kind="FE_Reference2OtherType">
+                                    <SEQUENCEOF id="APID.TC.pus.apid-2.pus-2.distribute-On-Off" newTypedefName="APID_2_PUS_2_1" newTypedefName2="APID_2_PUS_2_1" newTypedefName2_kind="FE_Reference2OtherType">
+                                      <REFERENCE_TYPE id="APID.TC.pus.apid-2.pus-2.distribute-On-Off.#" newTypedefName="APID_2_Addresses" typeDefintionOrReference="ReferenceToExistingDefinition" Module="APID" TypeAssignment="APID-2-Addresses" newTypedefName2="APID_2_Addresses" newTypedefName2_kind="FE_Reference2OtherType">
+                                        <Enumerated id="APID.TC.pus.apid-2.pus-2.distribute-On-Off.#" newTypedefName="APID_2_Addresses" newTypedefName2="APID_2_Addresses" newTypedefName2_kind="FE_Reference2OtherType" />
+                                      </REFERENCE_TYPE>
+                                    </SEQUENCEOF>
+                                  </REFERENCE_TYPE>
+                                </CHOICE_ALTERNATIVE>
+                                <CHOICE_ALTERNATIVE Name="whatever-pus-2-2" PresentWhenName="Service2_APID_2_whatever_pus_2_2_PRESENT" AdaName="whatever_pus_2_2" CName="whatever_pus_2_2" AcnPresentWhenCont="serviceSubType = 2">
+                                  <REFERENCE_TYPE id="APID.TC.pus.apid-2.pus-2.whatever-pus-2-2" newTypedefName="APID_2_PUS_2_2" typeDefintionOrReference="ReferenceToExistingDefinition" Module="APID" TypeAssignment="APID-2-PUS-2-2" newTypedefName2="APID_2_PUS_2_2" newTypedefName2_kind="FE_Reference2OtherType">
+                                    <Null id="APID.TC.pus.apid-2.pus-2.whatever-pus-2-2" newTypedefName="APID_2_PUS_2_2" newTypedefName2="APID_2_PUS_2_2" newTypedefName2_kind="FE_Reference2OtherType" />
+                                  </REFERENCE_TYPE>
+                                </CHOICE_ALTERNATIVE>
+                              </CHOICE>
+                            </REFERENCE_TYPE>
+                          </CHOICE_ALTERNATIVE>
+                          <CHOICE_ALTERNATIVE Name="pus-4" PresentWhenName="pus_4_PRESENT" AdaName="pus_4" CName="pus_4" AcnPresentWhenCont="serviceType = 4">
+                            <REFERENCE_TYPE id="APID.TC.pus.apid-2.pus-4" newTypedefName="Service4_Generic" typeDefintionOrReference="ReferenceToExistingDefinition" Module="APID" TypeAssignment="Service4-Generic" newTypedefName2="Service4_Generic" newTypedefName2_kind="FE_Reference2OtherType">
+                              <AcnArguments>
+                                <argument>serviceSubType</argument>
+                              </AcnArguments>
+                              <CHOICE id="APID.TC.pus.apid-2.pus-4" newTypedefName="Service4_Generic" newTypedefName2="Service4_Generic" newTypedefName2_kind="FE_Reference2OtherType" ancEncClass="CEC_presWhen">
+                                <CHOICE_ALTERNATIVE Name="whatever-4-1" PresentWhenName=".whatever_4_1_PRESENT" AdaName="whatever_4_1" CName="whatever_4_1" AcnPresentWhenCont="serviceSubType = 1">
+                                  <Null id="APID.TC.pus.apid-2.pus-4.whatever-4-1" newTypedefName=".NullType" newTypedefName2="NullType" newTypedefName2_kind="FE_Reference2RTL" />
+                                </CHOICE_ALTERNATIVE>
+                              </CHOICE>
+                            </REFERENCE_TYPE>
+                          </CHOICE_ALTERNATIVE>
+                        </CHOICE>
+                      </REFERENCE_TYPE>
+                    </CHOICE_ALTERNATIVE>
+                  </CHOICE>
+                </REFERENCE_TYPE>
+              </SEQUENCE_COMPONENT>
+            </SEQUENCE>
+          </TypeAssignment>
+          <TypeAssignment Name="Parameter">
+            <INTEGER id="APID.Parameter" newTypedefName="Parameter" newTypedefName2="Parameter" newTypedefName2_kind="NewTypeDefinition" />
+          </TypeAssignment>
+          <TypeAssignment Name="PUS-1-2-Generic">
+            <SEQUENCE id="APID.PUS-1-2-Generic" newTypedefName="PUS_1_2_Generic" newTypedefName2="PUS_1_2_Generic" newTypedefName2_kind="NewTypeDefinition">
+              <SEQUENCE_COMPONENT Name="parameters">
+                <CHOICE id="APID.PUS-1-2-Generic.parameters" newTypedefName="PUS_1_2_Generic_parameters" newTypedefName2="PUS_1_2_Generic_parameters" newTypedefName2_kind="NewTypeDefinition" ancEncClass="CEC_uper">
+                  <CHOICE_ALTERNATIVE Name="one-param" PresentWhenName="one_param_PRESENT" AdaName="one_param" CName="one_param" AcnPresentWhenCont="">
+                    <REFERENCE_TYPE id="APID.PUS-1-2-Generic.parameters.one-param" newTypedefName="Parameter" typeDefintionOrReference="ReferenceToExistingDefinition" Module="APID" TypeAssignment="Parameter" newTypedefName2="Parameter" newTypedefName2_kind="FE_Reference2OtherType">
+                      <INTEGER id="APID.PUS-1-2-Generic.parameters.one-param" newTypedefName="Parameter" newTypedefName2="Parameter" newTypedefName2_kind="FE_Reference2OtherType" />
+                    </REFERENCE_TYPE>
+                  </CHOICE_ALTERNATIVE>
+                  <CHOICE_ALTERNATIVE Name="two-params" PresentWhenName="two_params_PRESENT" AdaName="two_params" CName="two_params" AcnPresentWhenCont="">
+                    <SEQUENCEOF id="APID.PUS-1-2-Generic.parameters.two-params" newTypedefName="PUS_1_2_Generic_parameters_two_params" newTypedefName2="PUS_1_2_Generic_parameters_two_params" newTypedefName2_kind="NewTypeDefinition">
+                      <REFERENCE_TYPE id="APID.PUS-1-2-Generic.parameters.two-params.#" newTypedefName="Parameter" typeDefintionOrReference="ReferenceToExistingDefinition" Module="APID" TypeAssignment="Parameter" newTypedefName2="Parameter" newTypedefName2_kind="FE_Reference2OtherType">
+                        <INTEGER id="APID.PUS-1-2-Generic.parameters.two-params.#" newTypedefName="Parameter" newTypedefName2="Parameter" newTypedefName2_kind="FE_Reference2OtherType" />
+                      </REFERENCE_TYPE>
+                    </SEQUENCEOF>
+                  </CHOICE_ALTERNATIVE>
+                </CHOICE>
+              </SEQUENCE_COMPONENT>
+            </SEQUENCE>
+          </TypeAssignment>
+          <TypeAssignment Name="Service1-APID-1">
+            <CHOICE id="APID.Service1-APID-1" newTypedefName="Service1_APID_1" newTypedefName2="Service1_APID_1" newTypedefName2_kind="NewTypeDefinition" ancEncClass="CEC_presWhen">
+              <CHOICE_ALTERNATIVE Name="acceptance-failure" PresentWhenName="Service1_APID_1_acceptance_failure_PRESENT" AdaName="acceptance_failure" CName="acceptance_failure" AcnPresentWhenCont="serviceSubType = 2">
+                <REFERENCE_TYPE id="APID.Service1-APID-1.acceptance-failure" newTypedefName="PUS_1_2_Generic" typeDefintionOrReference="ReferenceToExistingDefinition" Module="APID" TypeAssignment="PUS-1-2-Generic" newTypedefName2="PUS_1_2_Generic" newTypedefName2_kind="FE_Reference2OtherType">
+                  <SEQUENCE id="APID.Service1-APID-1.acceptance-failure" newTypedefName="PUS_1_2_Generic" newTypedefName2="PUS_1_2_Generic" newTypedefName2_kind="FE_Reference2OtherType">
+                    <ACN_COMPONENT Name="code" acnMaxSizeInBits="1" acnMinSizeInBits="1" />
+                    <SEQUENCE_COMPONENT Name="parameters">
+                      <CHOICE id="APID.Service1-APID-1.acceptance-failure.parameters" newTypedefName="PUS_1_2_Generic_parameters" newTypedefName2="PUS_1_2_Generic_parameters" newTypedefName2_kind="FE_Reference2OtherType" ancEncClass="CEC_presWhen">
+                        <CHOICE_ALTERNATIVE Name="one-param" PresentWhenName="one_param_PRESENT" AdaName="one_param" CName="one_param" AcnPresentWhenCont="code = 1">
+                          <REFERENCE_TYPE id="APID.Service1-APID-1.acceptance-failure.parameters.one-param" newTypedefName="Parameter" typeDefintionOrReference="ReferenceToExistingDefinition" Module="APID" TypeAssignment="Parameter" newTypedefName2="Parameter" newTypedefName2_kind="FE_Reference2OtherType">
+                            <INTEGER id="APID.Service1-APID-1.acceptance-failure.parameters.one-param" newTypedefName="Parameter" newTypedefName2="Parameter" newTypedefName2_kind="FE_Reference2OtherType" />
+                          </REFERENCE_TYPE>
+                        </CHOICE_ALTERNATIVE>
+                        <CHOICE_ALTERNATIVE Name="two-params" PresentWhenName="two_params_PRESENT" AdaName="two_params" CName="two_params" AcnPresentWhenCont="code = 2">
+                          <SEQUENCEOF id="APID.Service1-APID-1.acceptance-failure.parameters.two-params" newTypedefName="PUS_1_2_Generic_parameters_two_params" newTypedefName2="PUS_1_2_Generic_parameters_two_params" newTypedefName2_kind="FE_Reference2OtherType">
+                            <REFERENCE_TYPE id="APID.Service1-APID-1.acceptance-failure.parameters.two-params.#" newTypedefName="Parameter" typeDefintionOrReference="ReferenceToExistingDefinition" Module="APID" TypeAssignment="Parameter" newTypedefName2="Parameter" newTypedefName2_kind="FE_Reference2OtherType">
+                              <INTEGER id="APID.Service1-APID-1.acceptance-failure.parameters.two-params.#" newTypedefName="Parameter" newTypedefName2="Parameter" newTypedefName2_kind="FE_Reference2OtherType" />
+                            </REFERENCE_TYPE>
+                          </SEQUENCEOF>
+                        </CHOICE_ALTERNATIVE>
+                      </CHOICE>
+                    </SEQUENCE_COMPONENT>
+                  </SEQUENCE>
+                </REFERENCE_TYPE>
+              </CHOICE_ALTERNATIVE>
+            </CHOICE>
+          </TypeAssignment>
+          <TypeAssignment Name="Service1-APID-2">
+            <CHOICE id="APID.Service1-APID-2" newTypedefName="Service1_APID_2" newTypedefName2="Service1_APID_2" newTypedefName2_kind="NewTypeDefinition" ancEncClass="CEC_presWhen">
+              <CHOICE_ALTERNATIVE Name="acceptance-failure" PresentWhenName="Service1_APID_2_acceptance_failure_PRESENT" AdaName="acceptance_failure" CName="acceptance_failure" AcnPresentWhenCont="serviceSubType = 2">
+                <REFERENCE_TYPE id="APID.Service1-APID-2.acceptance-failure" newTypedefName="PUS_1_2_Generic" typeDefintionOrReference="ReferenceToExistingDefinition" Module="APID" TypeAssignment="PUS-1-2-Generic" newTypedefName2="PUS_1_2_Generic" newTypedefName2_kind="FE_Reference2OtherType">
+                  <SEQUENCE id="APID.Service1-APID-2.acceptance-failure" newTypedefName="PUS_1_2_Generic" newTypedefName2="PUS_1_2_Generic" newTypedefName2_kind="FE_Reference2OtherType">
+                    <ACN_COMPONENT Name="code" acnMaxSizeInBits="1" acnMinSizeInBits="1" />
+                    <SEQUENCE_COMPONENT Name="parameters">
+                      <CHOICE id="APID.Service1-APID-2.acceptance-failure.parameters" newTypedefName="PUS_1_2_Generic_parameters" newTypedefName2="PUS_1_2_Generic_parameters" newTypedefName2_kind="FE_Reference2OtherType" ancEncClass="CEC_presWhen">
+                        <CHOICE_ALTERNATIVE Name="one-param" PresentWhenName="one_param_PRESENT" AdaName="one_param" CName="one_param" AcnPresentWhenCont="code = 2">
+                          <REFERENCE_TYPE id="APID.Service1-APID-2.acceptance-failure.parameters.one-param" newTypedefName="Parameter" typeDefintionOrReference="ReferenceToExistingDefinition" Module="APID" TypeAssignment="Parameter" newTypedefName2="Parameter" newTypedefName2_kind="FE_Reference2OtherType">
+                            <INTEGER id="APID.Service1-APID-2.acceptance-failure.parameters.one-param" newTypedefName="Parameter" newTypedefName2="Parameter" newTypedefName2_kind="FE_Reference2OtherType" />
+                          </REFERENCE_TYPE>
+                        </CHOICE_ALTERNATIVE>
+                        <CHOICE_ALTERNATIVE Name="two-params" PresentWhenName="two_params_PRESENT" AdaName="two_params" CName="two_params" AcnPresentWhenCont="code = 1">
+                          <SEQUENCEOF id="APID.Service1-APID-2.acceptance-failure.parameters.two-params" newTypedefName="PUS_1_2_Generic_parameters_two_params" newTypedefName2="PUS_1_2_Generic_parameters_two_params" newTypedefName2_kind="FE_Reference2OtherType">
+                            <REFERENCE_TYPE id="APID.Service1-APID-2.acceptance-failure.parameters.two-params.#" newTypedefName="Parameter" typeDefintionOrReference="ReferenceToExistingDefinition" Module="APID" TypeAssignment="Parameter" newTypedefName2="Parameter" newTypedefName2_kind="FE_Reference2OtherType">
+                              <INTEGER id="APID.Service1-APID-2.acceptance-failure.parameters.two-params.#" newTypedefName="Parameter" newTypedefName2="Parameter" newTypedefName2_kind="FE_Reference2OtherType" />
+                            </REFERENCE_TYPE>
+                          </SEQUENCEOF>
+                        </CHOICE_ALTERNATIVE>
+                      </CHOICE>
+                    </SEQUENCE_COMPONENT>
+                  </SEQUENCE>
+                </REFERENCE_TYPE>
+              </CHOICE_ALTERNATIVE>
+            </CHOICE>
+          </TypeAssignment>
+          <TypeAssignment Name="APID-1-TM">
+            <CHOICE id="APID.APID-1-TM" newTypedefName="APID_1_TM" newTypedefName2="APID_1_TM" newTypedefName2_kind="NewTypeDefinition" ancEncClass="CEC_presWhen">
+              <CHOICE_ALTERNATIVE Name="pus-1" PresentWhenName="APID_1_TM_pus_1_PRESENT" AdaName="pus_1" CName="pus_1" AcnPresentWhenCont="serviceType = 1">
+                <REFERENCE_TYPE id="APID.APID-1-TM.pus-1" newTypedefName="Service1_APID_1" typeDefintionOrReference="ReferenceToExistingDefinition" Module="APID" TypeAssignment="Service1-APID-1" newTypedefName2="Service1_APID_1" newTypedefName2_kind="FE_Reference2OtherType">
+                  <AcnArguments>
+                    <argument>serviceSubType</argument>
+                  </AcnArguments>
+                  <CHOICE id="APID.APID-1-TM.pus-1" newTypedefName="Service1_APID_1" newTypedefName2="Service1_APID_1" newTypedefName2_kind="FE_Reference2OtherType" ancEncClass="CEC_presWhen">
+                    <CHOICE_ALTERNATIVE Name="acceptance-failure" PresentWhenName="Service1_APID_1_acceptance_failure_PRESENT" AdaName="acceptance_failure" CName="acceptance_failure" AcnPresentWhenCont="serviceSubType = 2">
+                      <REFERENCE_TYPE id="APID.APID-1-TM.pus-1.acceptance-failure" newTypedefName="PUS_1_2_Generic" typeDefintionOrReference="ReferenceToExistingDefinition" Module="APID" TypeAssignment="PUS-1-2-Generic" newTypedefName2="PUS_1_2_Generic" newTypedefName2_kind="FE_Reference2OtherType">
+                        <SEQUENCE id="APID.APID-1-TM.pus-1.acceptance-failure" newTypedefName="PUS_1_2_Generic" newTypedefName2="PUS_1_2_Generic" newTypedefName2_kind="FE_Reference2OtherType">
+                          <ACN_COMPONENT Name="code" acnMaxSizeInBits="1" acnMinSizeInBits="1" />
+                          <SEQUENCE_COMPONENT Name="parameters">
+                            <CHOICE id="APID.APID-1-TM.pus-1.acceptance-failure.parameters" newTypedefName="PUS_1_2_Generic_parameters" newTypedefName2="PUS_1_2_Generic_parameters" newTypedefName2_kind="FE_Reference2OtherType" ancEncClass="CEC_presWhen">
+                              <CHOICE_ALTERNATIVE Name="one-param" PresentWhenName="one_param_PRESENT" AdaName="one_param" CName="one_param" AcnPresentWhenCont="code = 1">
+                                <REFERENCE_TYPE id="APID.APID-1-TM.pus-1.acceptance-failure.parameters.one-param" newTypedefName="Parameter" typeDefintionOrReference="ReferenceToExistingDefinition" Module="APID" TypeAssignment="Parameter" newTypedefName2="Parameter" newTypedefName2_kind="FE_Reference2OtherType">
+                                  <INTEGER id="APID.APID-1-TM.pus-1.acceptance-failure.parameters.one-param" newTypedefName="Parameter" newTypedefName2="Parameter" newTypedefName2_kind="FE_Reference2OtherType" />
+                                </REFERENCE_TYPE>
+                              </CHOICE_ALTERNATIVE>
+                              <CHOICE_ALTERNATIVE Name="two-params" PresentWhenName="two_params_PRESENT" AdaName="two_params" CName="two_params" AcnPresentWhenCont="code = 2">
+                                <SEQUENCEOF id="APID.APID-1-TM.pus-1.acceptance-failure.parameters.two-params" newTypedefName="PUS_1_2_Generic_parameters_two_params" newTypedefName2="PUS_1_2_Generic_parameters_two_params" newTypedefName2_kind="FE_Reference2OtherType">
+                                  <REFERENCE_TYPE id="APID.APID-1-TM.pus-1.acceptance-failure.parameters.two-params.#" newTypedefName="Parameter" typeDefintionOrReference="ReferenceToExistingDefinition" Module="APID" TypeAssignment="Parameter" newTypedefName2="Parameter" newTypedefName2_kind="FE_Reference2OtherType">
+                                    <INTEGER id="APID.APID-1-TM.pus-1.acceptance-failure.parameters.two-params.#" newTypedefName="Parameter" newTypedefName2="Parameter" newTypedefName2_kind="FE_Reference2OtherType" />
+                                  </REFERENCE_TYPE>
+                                </SEQUENCEOF>
+                              </CHOICE_ALTERNATIVE>
+                            </CHOICE>
+                          </SEQUENCE_COMPONENT>
+                        </SEQUENCE>
+                      </REFERENCE_TYPE>
+                    </CHOICE_ALTERNATIVE>
+                  </CHOICE>
+                </REFERENCE_TYPE>
+              </CHOICE_ALTERNATIVE>
+            </CHOICE>
+          </TypeAssignment>
+          <TypeAssignment Name="APID-2-TM">
+            <CHOICE id="APID.APID-2-TM" newTypedefName="APID_2_TM" newTypedefName2="APID_2_TM" newTypedefName2_kind="NewTypeDefinition" ancEncClass="CEC_presWhen">
+              <CHOICE_ALTERNATIVE Name="pus-1" PresentWhenName="APID_2_TM_pus_1_PRESENT" AdaName="pus_1" CName="pus_1" AcnPresentWhenCont="serviceType = 1">
+                <REFERENCE_TYPE id="APID.APID-2-TM.pus-1" newTypedefName="Service1_APID_2" typeDefintionOrReference="ReferenceToExistingDefinition" Module="APID" TypeAssignment="Service1-APID-2" newTypedefName2="Service1_APID_2" newTypedefName2_kind="FE_Reference2OtherType">
+                  <AcnArguments>
+                    <argument>serviceSubType</argument>
+                  </AcnArguments>
+                  <CHOICE id="APID.APID-2-TM.pus-1" newTypedefName="Service1_APID_2" newTypedefName2="Service1_APID_2" newTypedefName2_kind="FE_Reference2OtherType" ancEncClass="CEC_presWhen">
+                    <CHOICE_ALTERNATIVE Name="acceptance-failure" PresentWhenName="Service1_APID_2_acceptance_failure_PRESENT" AdaName="acceptance_failure" CName="acceptance_failure" AcnPresentWhenCont="serviceSubType = 2">
+                      <REFERENCE_TYPE id="APID.APID-2-TM.pus-1.acceptance-failure" newTypedefName="PUS_1_2_Generic" typeDefintionOrReference="ReferenceToExistingDefinition" Module="APID" TypeAssignment="PUS-1-2-Generic" newTypedefName2="PUS_1_2_Generic" newTypedefName2_kind="FE_Reference2OtherType">
+                        <SEQUENCE id="APID.APID-2-TM.pus-1.acceptance-failure" newTypedefName="PUS_1_2_Generic" newTypedefName2="PUS_1_2_Generic" newTypedefName2_kind="FE_Reference2OtherType">
+                          <ACN_COMPONENT Name="code" acnMaxSizeInBits="1" acnMinSizeInBits="1" />
+                          <SEQUENCE_COMPONENT Name="parameters">
+                            <CHOICE id="APID.APID-2-TM.pus-1.acceptance-failure.parameters" newTypedefName="PUS_1_2_Generic_parameters" newTypedefName2="PUS_1_2_Generic_parameters" newTypedefName2_kind="FE_Reference2OtherType" ancEncClass="CEC_presWhen">
+                              <CHOICE_ALTERNATIVE Name="one-param" PresentWhenName="one_param_PRESENT" AdaName="one_param" CName="one_param" AcnPresentWhenCont="code = 2">
+                                <REFERENCE_TYPE id="APID.APID-2-TM.pus-1.acceptance-failure.parameters.one-param" newTypedefName="Parameter" typeDefintionOrReference="ReferenceToExistingDefinition" Module="APID" TypeAssignment="Parameter" newTypedefName2="Parameter" newTypedefName2_kind="FE_Reference2OtherType">
+                                  <INTEGER id="APID.APID-2-TM.pus-1.acceptance-failure.parameters.one-param" newTypedefName="Parameter" newTypedefName2="Parameter" newTypedefName2_kind="FE_Reference2OtherType" />
+                                </REFERENCE_TYPE>
+                              </CHOICE_ALTERNATIVE>
+                              <CHOICE_ALTERNATIVE Name="two-params" PresentWhenName="two_params_PRESENT" AdaName="two_params" CName="two_params" AcnPresentWhenCont="code = 1">
+                                <SEQUENCEOF id="APID.APID-2-TM.pus-1.acceptance-failure.parameters.two-params" newTypedefName="PUS_1_2_Generic_parameters_two_params" newTypedefName2="PUS_1_2_Generic_parameters_two_params" newTypedefName2_kind="FE_Reference2OtherType">
+                                  <REFERENCE_TYPE id="APID.APID-2-TM.pus-1.acceptance-failure.parameters.two-params.#" newTypedefName="Parameter" typeDefintionOrReference="ReferenceToExistingDefinition" Module="APID" TypeAssignment="Parameter" newTypedefName2="Parameter" newTypedefName2_kind="FE_Reference2OtherType">
+                                    <INTEGER id="APID.APID-2-TM.pus-1.acceptance-failure.parameters.two-params.#" newTypedefName="Parameter" newTypedefName2="Parameter" newTypedefName2_kind="FE_Reference2OtherType" />
+                                  </REFERENCE_TYPE>
+                                </SEQUENCEOF>
+                              </CHOICE_ALTERNATIVE>
+                            </CHOICE>
+                          </SEQUENCE_COMPONENT>
+                        </SEQUENCE>
+                      </REFERENCE_TYPE>
+                    </CHOICE_ALTERNATIVE>
+                  </CHOICE>
+                </REFERENCE_TYPE>
+              </CHOICE_ALTERNATIVE>
+            </CHOICE>
+          </TypeAssignment>
+          <TypeAssignment Name="PUS-TM">
+            <CHOICE id="APID.PUS-TM" newTypedefName="PUS_TM" newTypedefName2="PUS_TM" newTypedefName2_kind="NewTypeDefinition" ancEncClass="CEC_presWhen">
+              <CHOICE_ALTERNATIVE Name="apid-1" PresentWhenName="PUS_TM_apid_1_PRESENT" AdaName="apid_1" CName="apid_1" AcnPresentWhenCont="apid = 1">
+                <REFERENCE_TYPE id="APID.PUS-TM.apid-1" newTypedefName="APID_1_TM" typeDefintionOrReference="ReferenceToExistingDefinition" Module="APID" TypeAssignment="APID-1-TM" newTypedefName2="APID_1_TM" newTypedefName2_kind="FE_Reference2OtherType">
+                  <AcnArguments>
+                    <argument>serviceType</argument>
+                    <argument>serviceSubType</argument>
+                  </AcnArguments>
+                  <CHOICE id="APID.PUS-TM.apid-1" newTypedefName="APID_1_TM" newTypedefName2="APID_1_TM" newTypedefName2_kind="FE_Reference2OtherType" ancEncClass="CEC_presWhen">
+                    <CHOICE_ALTERNATIVE Name="pus-1" PresentWhenName="APID_1_TM_pus_1_PRESENT" AdaName="pus_1" CName="pus_1" AcnPresentWhenCont="serviceType = 1">
+                      <REFERENCE_TYPE id="APID.PUS-TM.apid-1.pus-1" newTypedefName="Service1_APID_1" typeDefintionOrReference="ReferenceToExistingDefinition" Module="APID" TypeAssignment="Service1-APID-1" newTypedefName2="Service1_APID_1" newTypedefName2_kind="FE_Reference2OtherType">
+                        <AcnArguments>
+                          <argument>serviceSubType</argument>
+                        </AcnArguments>
+                        <CHOICE id="APID.PUS-TM.apid-1.pus-1" newTypedefName="Service1_APID_1" newTypedefName2="Service1_APID_1" newTypedefName2_kind="FE_Reference2OtherType" ancEncClass="CEC_presWhen">
+                          <CHOICE_ALTERNATIVE Name="acceptance-failure" PresentWhenName="Service1_APID_1_acceptance_failure_PRESENT" AdaName="acceptance_failure" CName="acceptance_failure" AcnPresentWhenCont="serviceSubType = 2">
+                            <REFERENCE_TYPE id="APID.PUS-TM.apid-1.pus-1.acceptance-failure" newTypedefName="PUS_1_2_Generic" typeDefintionOrReference="ReferenceToExistingDefinition" Module="APID" TypeAssignment="PUS-1-2-Generic" newTypedefName2="PUS_1_2_Generic" newTypedefName2_kind="FE_Reference2OtherType">
+                              <SEQUENCE id="APID.PUS-TM.apid-1.pus-1.acceptance-failure" newTypedefName="PUS_1_2_Generic" newTypedefName2="PUS_1_2_Generic" newTypedefName2_kind="FE_Reference2OtherType">
+                                <ACN_COMPONENT Name="code" acnMaxSizeInBits="1" acnMinSizeInBits="1" />
+                                <SEQUENCE_COMPONENT Name="parameters">
+                                  <CHOICE id="APID.PUS-TM.apid-1.pus-1.acceptance-failure.parameters" newTypedefName="PUS_1_2_Generic_parameters" newTypedefName2="PUS_1_2_Generic_parameters" newTypedefName2_kind="FE_Reference2OtherType" ancEncClass="CEC_presWhen">
+                                    <CHOICE_ALTERNATIVE Name="one-param" PresentWhenName="one_param_PRESENT" AdaName="one_param" CName="one_param" AcnPresentWhenCont="code = 1">
+                                      <REFERENCE_TYPE id="APID.PUS-TM.apid-1.pus-1.acceptance-failure.parameters.one-param" newTypedefName="Parameter" typeDefintionOrReference="ReferenceToExistingDefinition" Module="APID" TypeAssignment="Parameter" newTypedefName2="Parameter" newTypedefName2_kind="FE_Reference2OtherType">
+                                        <INTEGER id="APID.PUS-TM.apid-1.pus-1.acceptance-failure.parameters.one-param" newTypedefName="Parameter" newTypedefName2="Parameter" newTypedefName2_kind="FE_Reference2OtherType" />
+                                      </REFERENCE_TYPE>
+                                    </CHOICE_ALTERNATIVE>
+                                    <CHOICE_ALTERNATIVE Name="two-params" PresentWhenName="two_params_PRESENT" AdaName="two_params" CName="two_params" AcnPresentWhenCont="code = 2">
+                                      <SEQUENCEOF id="APID.PUS-TM.apid-1.pus-1.acceptance-failure.parameters.two-params" newTypedefName="PUS_1_2_Generic_parameters_two_params" newTypedefName2="PUS_1_2_Generic_parameters_two_params" newTypedefName2_kind="FE_Reference2OtherType">
+                                        <REFERENCE_TYPE id="APID.PUS-TM.apid-1.pus-1.acceptance-failure.parameters.two-params.#" newTypedefName="Parameter" typeDefintionOrReference="ReferenceToExistingDefinition" Module="APID" TypeAssignment="Parameter" newTypedefName2="Parameter" newTypedefName2_kind="FE_Reference2OtherType">
+                                          <INTEGER id="APID.PUS-TM.apid-1.pus-1.acceptance-failure.parameters.two-params.#" newTypedefName="Parameter" newTypedefName2="Parameter" newTypedefName2_kind="FE_Reference2OtherType" />
+                                        </REFERENCE_TYPE>
+                                      </SEQUENCEOF>
+                                    </CHOICE_ALTERNATIVE>
+                                  </CHOICE>
+                                </SEQUENCE_COMPONENT>
+                              </SEQUENCE>
+                            </REFERENCE_TYPE>
+                          </CHOICE_ALTERNATIVE>
+                        </CHOICE>
+                      </REFERENCE_TYPE>
+                    </CHOICE_ALTERNATIVE>
+                  </CHOICE>
+                </REFERENCE_TYPE>
+              </CHOICE_ALTERNATIVE>
+              <CHOICE_ALTERNATIVE Name="apid-2" PresentWhenName="PUS_TM_apid_2_PRESENT" AdaName="apid_2" CName="apid_2" AcnPresentWhenCont="apid = 2">
+                <REFERENCE_TYPE id="APID.PUS-TM.apid-2" newTypedefName="APID_2_TM" typeDefintionOrReference="ReferenceToExistingDefinition" Module="APID" TypeAssignment="APID-2-TM" newTypedefName2="APID_2_TM" newTypedefName2_kind="FE_Reference2OtherType">
+                  <AcnArguments>
+                    <argument>serviceType</argument>
+                    <argument>serviceSubType</argument>
+                  </AcnArguments>
+                  <CHOICE id="APID.PUS-TM.apid-2" newTypedefName="APID_2_TM" newTypedefName2="APID_2_TM" newTypedefName2_kind="FE_Reference2OtherType" ancEncClass="CEC_presWhen">
+                    <CHOICE_ALTERNATIVE Name="pus-1" PresentWhenName="APID_2_TM_pus_1_PRESENT" AdaName="pus_1" CName="pus_1" AcnPresentWhenCont="serviceType = 1">
+                      <REFERENCE_TYPE id="APID.PUS-TM.apid-2.pus-1" newTypedefName="Service1_APID_2" typeDefintionOrReference="ReferenceToExistingDefinition" Module="APID" TypeAssignment="Service1-APID-2" newTypedefName2="Service1_APID_2" newTypedefName2_kind="FE_Reference2OtherType">
+                        <AcnArguments>
+                          <argument>serviceSubType</argument>
+                        </AcnArguments>
+                        <CHOICE id="APID.PUS-TM.apid-2.pus-1" newTypedefName="Service1_APID_2" newTypedefName2="Service1_APID_2" newTypedefName2_kind="FE_Reference2OtherType" ancEncClass="CEC_presWhen">
+                          <CHOICE_ALTERNATIVE Name="acceptance-failure" PresentWhenName="Service1_APID_2_acceptance_failure_PRESENT" AdaName="acceptance_failure" CName="acceptance_failure" AcnPresentWhenCont="serviceSubType = 2">
+                            <REFERENCE_TYPE id="APID.PUS-TM.apid-2.pus-1.acceptance-failure" newTypedefName="PUS_1_2_Generic" typeDefintionOrReference="ReferenceToExistingDefinition" Module="APID" TypeAssignment="PUS-1-2-Generic" newTypedefName2="PUS_1_2_Generic" newTypedefName2_kind="FE_Reference2OtherType">
+                              <SEQUENCE id="APID.PUS-TM.apid-2.pus-1.acceptance-failure" newTypedefName="PUS_1_2_Generic" newTypedefName2="PUS_1_2_Generic" newTypedefName2_kind="FE_Reference2OtherType">
+                                <ACN_COMPONENT Name="code" acnMaxSizeInBits="1" acnMinSizeInBits="1" />
+                                <SEQUENCE_COMPONENT Name="parameters">
+                                  <CHOICE id="APID.PUS-TM.apid-2.pus-1.acceptance-failure.parameters" newTypedefName="PUS_1_2_Generic_parameters" newTypedefName2="PUS_1_2_Generic_parameters" newTypedefName2_kind="FE_Reference2OtherType" ancEncClass="CEC_presWhen">
+                                    <CHOICE_ALTERNATIVE Name="one-param" PresentWhenName="one_param_PRESENT" AdaName="one_param" CName="one_param" AcnPresentWhenCont="code = 2">
+                                      <REFERENCE_TYPE id="APID.PUS-TM.apid-2.pus-1.acceptance-failure.parameters.one-param" newTypedefName="Parameter" typeDefintionOrReference="ReferenceToExistingDefinition" Module="APID" TypeAssignment="Parameter" newTypedefName2="Parameter" newTypedefName2_kind="FE_Reference2OtherType">
+                                        <INTEGER id="APID.PUS-TM.apid-2.pus-1.acceptance-failure.parameters.one-param" newTypedefName="Parameter" newTypedefName2="Parameter" newTypedefName2_kind="FE_Reference2OtherType" />
+                                      </REFERENCE_TYPE>
+                                    </CHOICE_ALTERNATIVE>
+                                    <CHOICE_ALTERNATIVE Name="two-params" PresentWhenName="two_params_PRESENT" AdaName="two_params" CName="two_params" AcnPresentWhenCont="code = 1">
+                                      <SEQUENCEOF id="APID.PUS-TM.apid-2.pus-1.acceptance-failure.parameters.two-params" newTypedefName="PUS_1_2_Generic_parameters_two_params" newTypedefName2="PUS_1_2_Generic_parameters_two_params" newTypedefName2_kind="FE_Reference2OtherType">
+                                        <REFERENCE_TYPE id="APID.PUS-TM.apid-2.pus-1.acceptance-failure.parameters.two-params.#" newTypedefName="Parameter" typeDefintionOrReference="ReferenceToExistingDefinition" Module="APID" TypeAssignment="Parameter" newTypedefName2="Parameter" newTypedefName2_kind="FE_Reference2OtherType">
+                                          <INTEGER id="APID.PUS-TM.apid-2.pus-1.acceptance-failure.parameters.two-params.#" newTypedefName="Parameter" newTypedefName2="Parameter" newTypedefName2_kind="FE_Reference2OtherType" />
+                                        </REFERENCE_TYPE>
+                                      </SEQUENCEOF>
+                                    </CHOICE_ALTERNATIVE>
+                                  </CHOICE>
+                                </SEQUENCE_COMPONENT>
+                              </SEQUENCE>
+                            </REFERENCE_TYPE>
+                          </CHOICE_ALTERNATIVE>
+                        </CHOICE>
+                      </REFERENCE_TYPE>
+                    </CHOICE_ALTERNATIVE>
+                  </CHOICE>
+                </REFERENCE_TYPE>
+              </CHOICE_ALTERNATIVE>
+            </CHOICE>
+          </TypeAssignment>
+          <TypeAssignment Name="TM">
+            <SEQUENCE id="APID.TM" newTypedefName="TM" newTypedefName2="TM" newTypedefName2_kind="NewTypeDefinition">
+              <ACN_COMPONENT Name="serviceType" acnMaxSizeInBits="4" acnMinSizeInBits="4" />
+              <ACN_COMPONENT Name="serviceSubType" acnMaxSizeInBits="4" acnMinSizeInBits="4" />
+              <ACN_COMPONENT Name="apid" acnMaxSizeInBits="8" acnMinSizeInBits="8" />
+              <SEQUENCE_COMPONENT Name="pus">
+                <REFERENCE_TYPE id="APID.TM.pus" newTypedefName="PUS_TM" typeDefintionOrReference="ReferenceToExistingDefinition" Module="APID" TypeAssignment="PUS-TM" newTypedefName2="PUS_TM" newTypedefName2_kind="FE_Reference2OtherType">
+                  <AcnArguments>
+                    <argument>apid</argument>
+                    <argument>serviceType</argument>
+                    <argument>serviceSubType</argument>
+                  </AcnArguments>
+                  <CHOICE id="APID.TM.pus" newTypedefName="PUS_TM" newTypedefName2="PUS_TM" newTypedefName2_kind="FE_Reference2OtherType" ancEncClass="CEC_presWhen">
+                    <CHOICE_ALTERNATIVE Name="apid-1" PresentWhenName="PUS_TM_apid_1_PRESENT" AdaName="apid_1" CName="apid_1" AcnPresentWhenCont="apid = 1">
+                      <REFERENCE_TYPE id="APID.TM.pus.apid-1" newTypedefName="APID_1_TM" typeDefintionOrReference="ReferenceToExistingDefinition" Module="APID" TypeAssignment="APID-1-TM" newTypedefName2="APID_1_TM" newTypedefName2_kind="FE_Reference2OtherType">
+                        <AcnArguments>
+                          <argument>serviceType</argument>
+                          <argument>serviceSubType</argument>
+                        </AcnArguments>
+                        <CHOICE id="APID.TM.pus.apid-1" newTypedefName="APID_1_TM" newTypedefName2="APID_1_TM" newTypedefName2_kind="FE_Reference2OtherType" ancEncClass="CEC_presWhen">
+                          <CHOICE_ALTERNATIVE Name="pus-1" PresentWhenName="APID_1_TM_pus_1_PRESENT" AdaName="pus_1" CName="pus_1" AcnPresentWhenCont="serviceType = 1">
+                            <REFERENCE_TYPE id="APID.TM.pus.apid-1.pus-1" newTypedefName="Service1_APID_1" typeDefintionOrReference="ReferenceToExistingDefinition" Module="APID" TypeAssignment="Service1-APID-1" newTypedefName2="Service1_APID_1" newTypedefName2_kind="FE_Reference2OtherType">
+                              <AcnArguments>
+                                <argument>serviceSubType</argument>
+                              </AcnArguments>
+                              <CHOICE id="APID.TM.pus.apid-1.pus-1" newTypedefName="Service1_APID_1" newTypedefName2="Service1_APID_1" newTypedefName2_kind="FE_Reference2OtherType" ancEncClass="CEC_presWhen">
+                                <CHOICE_ALTERNATIVE Name="acceptance-failure" PresentWhenName="Service1_APID_1_acceptance_failure_PRESENT" AdaName="acceptance_failure" CName="acceptance_failure" AcnPresentWhenCont="serviceSubType = 2">
+                                  <REFERENCE_TYPE id="APID.TM.pus.apid-1.pus-1.acceptance-failure" newTypedefName="PUS_1_2_Generic" typeDefintionOrReference="ReferenceToExistingDefinition" Module="APID" TypeAssignment="PUS-1-2-Generic" newTypedefName2="PUS_1_2_Generic" newTypedefName2_kind="FE_Reference2OtherType">
+                                    <SEQUENCE id="APID.TM.pus.apid-1.pus-1.acceptance-failure" newTypedefName="PUS_1_2_Generic" newTypedefName2="PUS_1_2_Generic" newTypedefName2_kind="FE_Reference2OtherType">
+                                      <ACN_COMPONENT Name="code" acnMaxSizeInBits="1" acnMinSizeInBits="1" />
+                                      <SEQUENCE_COMPONENT Name="parameters">
+                                        <CHOICE id="APID.TM.pus.apid-1.pus-1.acceptance-failure.parameters" newTypedefName="PUS_1_2_Generic_parameters" newTypedefName2="PUS_1_2_Generic_parameters" newTypedefName2_kind="FE_Reference2OtherType" ancEncClass="CEC_presWhen">
+                                          <CHOICE_ALTERNATIVE Name="one-param" PresentWhenName="one_param_PRESENT" AdaName="one_param" CName="one_param" AcnPresentWhenCont="code = 1">
+                                            <REFERENCE_TYPE id="APID.TM.pus.apid-1.pus-1.acceptance-failure.parameters.one-param" newTypedefName="Parameter" typeDefintionOrReference="ReferenceToExistingDefinition" Module="APID" TypeAssignment="Parameter" newTypedefName2="Parameter" newTypedefName2_kind="FE_Reference2OtherType">
+                                              <INTEGER id="APID.TM.pus.apid-1.pus-1.acceptance-failure.parameters.one-param" newTypedefName="Parameter" newTypedefName2="Parameter" newTypedefName2_kind="FE_Reference2OtherType" />
+                                            </REFERENCE_TYPE>
+                                          </CHOICE_ALTERNATIVE>
+                                          <CHOICE_ALTERNATIVE Name="two-params" PresentWhenName="two_params_PRESENT" AdaName="two_params" CName="two_params" AcnPresentWhenCont="code = 2">
+                                            <SEQUENCEOF id="APID.TM.pus.apid-1.pus-1.acceptance-failure.parameters.two-params" newTypedefName="PUS_1_2_Generic_parameters_two_params" newTypedefName2="PUS_1_2_Generic_parameters_two_params" newTypedefName2_kind="FE_Reference2OtherType">
+                                              <REFERENCE_TYPE id="APID.TM.pus.apid-1.pus-1.acceptance-failure.parameters.two-params.#" newTypedefName="Parameter" typeDefintionOrReference="ReferenceToExistingDefinition" Module="APID" TypeAssignment="Parameter" newTypedefName2="Parameter" newTypedefName2_kind="FE_Reference2OtherType">
+                                                <INTEGER id="APID.TM.pus.apid-1.pus-1.acceptance-failure.parameters.two-params.#" newTypedefName="Parameter" newTypedefName2="Parameter" newTypedefName2_kind="FE_Reference2OtherType" />
+                                              </REFERENCE_TYPE>
+                                            </SEQUENCEOF>
+                                          </CHOICE_ALTERNATIVE>
+                                        </CHOICE>
+                                      </SEQUENCE_COMPONENT>
+                                    </SEQUENCE>
+                                  </REFERENCE_TYPE>
+                                </CHOICE_ALTERNATIVE>
+                              </CHOICE>
+                            </REFERENCE_TYPE>
+                          </CHOICE_ALTERNATIVE>
+                        </CHOICE>
+                      </REFERENCE_TYPE>
+                    </CHOICE_ALTERNATIVE>
+                    <CHOICE_ALTERNATIVE Name="apid-2" PresentWhenName="PUS_TM_apid_2_PRESENT" AdaName="apid_2" CName="apid_2" AcnPresentWhenCont="apid = 2">
+                      <REFERENCE_TYPE id="APID.TM.pus.apid-2" newTypedefName="APID_2_TM" typeDefintionOrReference="ReferenceToExistingDefinition" Module="APID" TypeAssignment="APID-2-TM" newTypedefName2="APID_2_TM" newTypedefName2_kind="FE_Reference2OtherType">
+                        <AcnArguments>
+                          <argument>serviceType</argument>
+                          <argument>serviceSubType</argument>
+                        </AcnArguments>
+                        <CHOICE id="APID.TM.pus.apid-2" newTypedefName="APID_2_TM" newTypedefName2="APID_2_TM" newTypedefName2_kind="FE_Reference2OtherType" ancEncClass="CEC_presWhen">
+                          <CHOICE_ALTERNATIVE Name="pus-1" PresentWhenName="APID_2_TM_pus_1_PRESENT" AdaName="pus_1" CName="pus_1" AcnPresentWhenCont="serviceType = 1">
+                            <REFERENCE_TYPE id="APID.TM.pus.apid-2.pus-1" newTypedefName="Service1_APID_2" typeDefintionOrReference="ReferenceToExistingDefinition" Module="APID" TypeAssignment="Service1-APID-2" newTypedefName2="Service1_APID_2" newTypedefName2_kind="FE_Reference2OtherType">
+                              <AcnArguments>
+                                <argument>serviceSubType</argument>
+                              </AcnArguments>
+                              <CHOICE id="APID.TM.pus.apid-2.pus-1" newTypedefName="Service1_APID_2" newTypedefName2="Service1_APID_2" newTypedefName2_kind="FE_Reference2OtherType" ancEncClass="CEC_presWhen">
+                                <CHOICE_ALTERNATIVE Name="acceptance-failure" PresentWhenName="Service1_APID_2_acceptance_failure_PRESENT" AdaName="acceptance_failure" CName="acceptance_failure" AcnPresentWhenCont="serviceSubType = 2">
+                                  <REFERENCE_TYPE id="APID.TM.pus.apid-2.pus-1.acceptance-failure" newTypedefName="PUS_1_2_Generic" typeDefintionOrReference="ReferenceToExistingDefinition" Module="APID" TypeAssignment="PUS-1-2-Generic" newTypedefName2="PUS_1_2_Generic" newTypedefName2_kind="FE_Reference2OtherType">
+                                    <SEQUENCE id="APID.TM.pus.apid-2.pus-1.acceptance-failure" newTypedefName="PUS_1_2_Generic" newTypedefName2="PUS_1_2_Generic" newTypedefName2_kind="FE_Reference2OtherType">
+                                      <ACN_COMPONENT Name="code" acnMaxSizeInBits="1" acnMinSizeInBits="1" />
+                                      <SEQUENCE_COMPONENT Name="parameters">
+                                        <CHOICE id="APID.TM.pus.apid-2.pus-1.acceptance-failure.parameters" newTypedefName="PUS_1_2_Generic_parameters" newTypedefName2="PUS_1_2_Generic_parameters" newTypedefName2_kind="FE_Reference2OtherType" ancEncClass="CEC_presWhen">
+                                          <CHOICE_ALTERNATIVE Name="one-param" PresentWhenName="one_param_PRESENT" AdaName="one_param" CName="one_param" AcnPresentWhenCont="code = 2">
+                                            <REFERENCE_TYPE id="APID.TM.pus.apid-2.pus-1.acceptance-failure.parameters.one-param" newTypedefName="Parameter" typeDefintionOrReference="ReferenceToExistingDefinition" Module="APID" TypeAssignment="Parameter" newTypedefName2="Parameter" newTypedefName2_kind="FE_Reference2OtherType">
+                                              <INTEGER id="APID.TM.pus.apid-2.pus-1.acceptance-failure.parameters.one-param" newTypedefName="Parameter" newTypedefName2="Parameter" newTypedefName2_kind="FE_Reference2OtherType" />
+                                            </REFERENCE_TYPE>
+                                          </CHOICE_ALTERNATIVE>
+                                          <CHOICE_ALTERNATIVE Name="two-params" PresentWhenName="two_params_PRESENT" AdaName="two_params" CName="two_params" AcnPresentWhenCont="code = 1">
+                                            <SEQUENCEOF id="APID.TM.pus.apid-2.pus-1.acceptance-failure.parameters.two-params" newTypedefName="PUS_1_2_Generic_parameters_two_params" newTypedefName2="PUS_1_2_Generic_parameters_two_params" newTypedefName2_kind="FE_Reference2OtherType">
+                                              <REFERENCE_TYPE id="APID.TM.pus.apid-2.pus-1.acceptance-failure.parameters.two-params.#" newTypedefName="Parameter" typeDefintionOrReference="ReferenceToExistingDefinition" Module="APID" TypeAssignment="Parameter" newTypedefName2="Parameter" newTypedefName2_kind="FE_Reference2OtherType">
+                                                <INTEGER id="APID.TM.pus.apid-2.pus-1.acceptance-failure.parameters.two-params.#" newTypedefName="Parameter" newTypedefName2="Parameter" newTypedefName2_kind="FE_Reference2OtherType" />
+                                              </REFERENCE_TYPE>
+                                            </SEQUENCEOF>
+                                          </CHOICE_ALTERNATIVE>
+                                        </CHOICE>
+                                      </SEQUENCE_COMPONENT>
+                                    </SEQUENCE>
+                                  </REFERENCE_TYPE>
+                                </CHOICE_ALTERNATIVE>
+                              </CHOICE>
+                            </REFERENCE_TYPE>
+                          </CHOICE_ALTERNATIVE>
+                        </CHOICE>
+                      </REFERENCE_TYPE>
+                    </CHOICE_ALTERNATIVE>
+                  </CHOICE>
+                </REFERENCE_TYPE>
+              </SEQUENCE_COMPONENT>
+            </SEQUENCE>
+          </TypeAssignment>
+        </TypeAssignments>
+      </Module>
+    </Modules>
+  </Asn1File>
+  <AcnDependencies>
+    <AcnDependency Asn1TypeID="APID.TM.pus.apid-2.pus-1.acceptance-failure.parameters" DeterminantId="APID.TM.pus.apid-2.pus-1.acceptance-failure.code">
+      <ChoicePresenseDependency />
+    </AcnDependency>
+    <AcnDependency Asn1TypeID="APID.TM.pus.apid-2.pus-1" DeterminantId="APID.TM.pus.apid-2.pus-1.serviceSubType">
+      <ChoicePresenseDependency />
+    </AcnDependency>
+    <AcnDependency Asn1TypeID="APID.TM.pus.apid-2.pus-1" DeterminantId="APID.TM.pus.apid-2.serviceSubType">
+      <RefTypeArgumentDependency prmId="APID.TM.pus.apid-2.pus-1.serviceSubType" />
+    </AcnDependency>
+    <AcnDependency Asn1TypeID="APID.TM.pus.apid-2" DeterminantId="APID.TM.pus.apid-2.serviceType">
+      <ChoicePresenseDependency />
+    </AcnDependency>
+    <AcnDependency Asn1TypeID="APID.TM.pus.apid-2" DeterminantId="APID.TM.pus.serviceSubType">
+      <RefTypeArgumentDependency prmId="APID.TM.pus.apid-2.serviceSubType" />
+    </AcnDependency>
+    <AcnDependency Asn1TypeID="APID.TM.pus.apid-2" DeterminantId="APID.TM.pus.serviceType">
+      <RefTypeArgumentDependency prmId="APID.TM.pus.apid-2.serviceType" />
+    </AcnDependency>
+    <AcnDependency Asn1TypeID="APID.TM.pus.apid-1.pus-1.acceptance-failure.parameters" DeterminantId="APID.TM.pus.apid-1.pus-1.acceptance-failure.code">
+      <ChoicePresenseDependency />
+    </AcnDependency>
+    <AcnDependency Asn1TypeID="APID.TM.pus.apid-1.pus-1" DeterminantId="APID.TM.pus.apid-1.pus-1.serviceSubType">
+      <ChoicePresenseDependency />
+    </AcnDependency>
+    <AcnDependency Asn1TypeID="APID.TM.pus.apid-1.pus-1" DeterminantId="APID.TM.pus.apid-1.serviceSubType">
+      <RefTypeArgumentDependency prmId="APID.TM.pus.apid-1.pus-1.serviceSubType" />
+    </AcnDependency>
+    <AcnDependency Asn1TypeID="APID.TM.pus.apid-1" DeterminantId="APID.TM.pus.apid-1.serviceType">
+      <ChoicePresenseDependency />
+    </AcnDependency>
+    <AcnDependency Asn1TypeID="APID.TM.pus.apid-1" DeterminantId="APID.TM.pus.serviceSubType">
+      <RefTypeArgumentDependency prmId="APID.TM.pus.apid-1.serviceSubType" />
+    </AcnDependency>
+    <AcnDependency Asn1TypeID="APID.TM.pus.apid-1" DeterminantId="APID.TM.pus.serviceType">
+      <RefTypeArgumentDependency prmId="APID.TM.pus.apid-1.serviceType" />
+    </AcnDependency>
+    <AcnDependency Asn1TypeID="APID.TM.pus" DeterminantId="APID.TM.pus.apid">
+      <ChoicePresenseDependency />
+    </AcnDependency>
+    <AcnDependency Asn1TypeID="APID.TM.pus" DeterminantId="APID.TM.serviceSubType">
+      <RefTypeArgumentDependency prmId="APID.TM.pus.serviceSubType" />
+    </AcnDependency>
+    <AcnDependency Asn1TypeID="APID.TM.pus" DeterminantId="APID.TM.serviceType">
+      <RefTypeArgumentDependency prmId="APID.TM.pus.serviceType" />
+    </AcnDependency>
+    <AcnDependency Asn1TypeID="APID.TM.pus" DeterminantId="APID.TM.apid">
+      <RefTypeArgumentDependency prmId="APID.TM.pus.apid" />
+    </AcnDependency>
+    <AcnDependency Asn1TypeID="APID.PUS-TM.apid-2.pus-1.acceptance-failure.parameters" DeterminantId="APID.PUS-TM.apid-2.pus-1.acceptance-failure.code">
+      <ChoicePresenseDependency />
+    </AcnDependency>
+    <AcnDependency Asn1TypeID="APID.PUS-TM.apid-2.pus-1" DeterminantId="APID.PUS-TM.apid-2.pus-1.serviceSubType">
+      <ChoicePresenseDependency />
+    </AcnDependency>
+    <AcnDependency Asn1TypeID="APID.PUS-TM.apid-2.pus-1" DeterminantId="APID.PUS-TM.apid-2.serviceSubType">
+      <RefTypeArgumentDependency prmId="APID.PUS-TM.apid-2.pus-1.serviceSubType" />
+    </AcnDependency>
+    <AcnDependency Asn1TypeID="APID.PUS-TM.apid-2" DeterminantId="APID.PUS-TM.apid-2.serviceType">
+      <ChoicePresenseDependency />
+    </AcnDependency>
+    <AcnDependency Asn1TypeID="APID.PUS-TM.apid-2" DeterminantId="APID.PUS-TM.serviceSubType">
+      <RefTypeArgumentDependency prmId="APID.PUS-TM.apid-2.serviceSubType" />
+    </AcnDependency>
+    <AcnDependency Asn1TypeID="APID.PUS-TM.apid-2" DeterminantId="APID.PUS-TM.serviceType">
+      <RefTypeArgumentDependency prmId="APID.PUS-TM.apid-2.serviceType" />
+    </AcnDependency>
+    <AcnDependency Asn1TypeID="APID.PUS-TM.apid-1.pus-1.acceptance-failure.parameters" DeterminantId="APID.PUS-TM.apid-1.pus-1.acceptance-failure.code">
+      <ChoicePresenseDependency />
+    </AcnDependency>
+    <AcnDependency Asn1TypeID="APID.PUS-TM.apid-1.pus-1" DeterminantId="APID.PUS-TM.apid-1.pus-1.serviceSubType">
+      <ChoicePresenseDependency />
+    </AcnDependency>
+    <AcnDependency Asn1TypeID="APID.PUS-TM.apid-1.pus-1" DeterminantId="APID.PUS-TM.apid-1.serviceSubType">
+      <RefTypeArgumentDependency prmId="APID.PUS-TM.apid-1.pus-1.serviceSubType" />
+    </AcnDependency>
+    <AcnDependency Asn1TypeID="APID.PUS-TM.apid-1" DeterminantId="APID.PUS-TM.apid-1.serviceType">
+      <ChoicePresenseDependency />
+    </AcnDependency>
+    <AcnDependency Asn1TypeID="APID.PUS-TM.apid-1" DeterminantId="APID.PUS-TM.serviceSubType">
+      <RefTypeArgumentDependency prmId="APID.PUS-TM.apid-1.serviceSubType" />
+    </AcnDependency>
+    <AcnDependency Asn1TypeID="APID.PUS-TM.apid-1" DeterminantId="APID.PUS-TM.serviceType">
+      <RefTypeArgumentDependency prmId="APID.PUS-TM.apid-1.serviceType" />
+    </AcnDependency>
+    <AcnDependency Asn1TypeID="APID.PUS-TM" DeterminantId="APID.PUS-TM.apid">
+      <ChoicePresenseDependency />
+    </AcnDependency>
+    <AcnDependency Asn1TypeID="APID.APID-2-TM.pus-1.acceptance-failure.parameters" DeterminantId="APID.APID-2-TM.pus-1.acceptance-failure.code">
+      <ChoicePresenseDependency />
+    </AcnDependency>
+    <AcnDependency Asn1TypeID="APID.APID-2-TM.pus-1" DeterminantId="APID.APID-2-TM.pus-1.serviceSubType">
+      <ChoicePresenseDependency />
+    </AcnDependency>
+    <AcnDependency Asn1TypeID="APID.APID-2-TM.pus-1" DeterminantId="APID.APID-2-TM.serviceSubType">
+      <RefTypeArgumentDependency prmId="APID.APID-2-TM.pus-1.serviceSubType" />
+    </AcnDependency>
+    <AcnDependency Asn1TypeID="APID.APID-2-TM" DeterminantId="APID.APID-2-TM.serviceType">
+      <ChoicePresenseDependency />
+    </AcnDependency>
+    <AcnDependency Asn1TypeID="APID.APID-1-TM.pus-1.acceptance-failure.parameters" DeterminantId="APID.APID-1-TM.pus-1.acceptance-failure.code">
+      <ChoicePresenseDependency />
+    </AcnDependency>
+    <AcnDependency Asn1TypeID="APID.APID-1-TM.pus-1" DeterminantId="APID.APID-1-TM.pus-1.serviceSubType">
+      <ChoicePresenseDependency />
+    </AcnDependency>
+    <AcnDependency Asn1TypeID="APID.APID-1-TM.pus-1" DeterminantId="APID.APID-1-TM.serviceSubType">
+      <RefTypeArgumentDependency prmId="APID.APID-1-TM.pus-1.serviceSubType" />
+    </AcnDependency>
+    <AcnDependency Asn1TypeID="APID.APID-1-TM" DeterminantId="APID.APID-1-TM.serviceType">
+      <ChoicePresenseDependency />
+    </AcnDependency>
+    <AcnDependency Asn1TypeID="APID.Service1-APID-2.acceptance-failure.parameters" DeterminantId="APID.Service1-APID-2.acceptance-failure.code">
+      <ChoicePresenseDependency />
+    </AcnDependency>
+    <AcnDependency Asn1TypeID="APID.Service1-APID-2" DeterminantId="APID.Service1-APID-2.serviceSubType">
+      <ChoicePresenseDependency />
+    </AcnDependency>
+    <AcnDependency Asn1TypeID="APID.Service1-APID-1.acceptance-failure.parameters" DeterminantId="APID.Service1-APID-1.acceptance-failure.code">
+      <ChoicePresenseDependency />
+    </AcnDependency>
+    <AcnDependency Asn1TypeID="APID.Service1-APID-1" DeterminantId="APID.Service1-APID-1.serviceSubType">
+      <ChoicePresenseDependency />
+    </AcnDependency>
+    <AcnDependency Asn1TypeID="APID.TC.pus.apid-2.pus-4" DeterminantId="APID.TC.pus.apid-2.pus-4.serviceSubType">
+      <ChoicePresenseDependency />
+    </AcnDependency>
+    <AcnDependency Asn1TypeID="APID.TC.pus.apid-2.pus-4" DeterminantId="APID.TC.pus.apid-2.serviceSubType">
+      <RefTypeArgumentDependency prmId="APID.TC.pus.apid-2.pus-4.serviceSubType" />
+    </AcnDependency>
+    <AcnDependency Asn1TypeID="APID.TC.pus.apid-2.pus-2" DeterminantId="APID.TC.pus.apid-2.pus-2.serviceSubType">
+      <ChoicePresenseDependency />
+    </AcnDependency>
+    <AcnDependency Asn1TypeID="APID.TC.pus.apid-2.pus-2" DeterminantId="APID.TC.pus.apid-2.serviceSubType">
+      <RefTypeArgumentDependency prmId="APID.TC.pus.apid-2.pus-2.serviceSubType" />
+    </AcnDependency>
+    <AcnDependency Asn1TypeID="APID.TC.pus.apid-2" DeterminantId="APID.TC.pus.apid-2.serviceType">
+      <ChoicePresenseDependency />
+    </AcnDependency>
+    <AcnDependency Asn1TypeID="APID.TC.pus.apid-2" DeterminantId="APID.TC.pus.serviceSubType">
+      <RefTypeArgumentDependency prmId="APID.TC.pus.apid-2.serviceSubType" />
+    </AcnDependency>
+    <AcnDependency Asn1TypeID="APID.TC.pus.apid-2" DeterminantId="APID.TC.pus.serviceType">
+      <RefTypeArgumentDependency prmId="APID.TC.pus.apid-2.serviceType" />
+    </AcnDependency>
+    <AcnDependency Asn1TypeID="APID.TC.pus.apid-1.pus-3" DeterminantId="APID.TC.pus.apid-1.pus-3.serviceSubType">
+      <ChoicePresenseDependency />
+    </AcnDependency>
+    <AcnDependency Asn1TypeID="APID.TC.pus.apid-1.pus-3" DeterminantId="APID.TC.pus.apid-1.serviceSubType">
+      <RefTypeArgumentDependency prmId="APID.TC.pus.apid-1.pus-3.serviceSubType" />
+    </AcnDependency>
+    <AcnDependency Asn1TypeID="APID.TC.pus.apid-1.pus-2" DeterminantId="APID.TC.pus.apid-1.pus-2.serviceSubType">
+      <ChoicePresenseDependency />
+    </AcnDependency>
+    <AcnDependency Asn1TypeID="APID.TC.pus.apid-1.pus-2" DeterminantId="APID.TC.pus.apid-1.serviceSubType">
+      <RefTypeArgumentDependency prmId="APID.TC.pus.apid-1.pus-2.serviceSubType" />
+    </AcnDependency>
+    <AcnDependency Asn1TypeID="APID.TC.pus.apid-1" DeterminantId="APID.TC.pus.apid-1.serviceType">
+      <ChoicePresenseDependency />
+    </AcnDependency>
+    <AcnDependency Asn1TypeID="APID.TC.pus.apid-1" DeterminantId="APID.TC.pus.serviceSubType">
+      <RefTypeArgumentDependency prmId="APID.TC.pus.apid-1.serviceSubType" />
+    </AcnDependency>
+    <AcnDependency Asn1TypeID="APID.TC.pus.apid-1" DeterminantId="APID.TC.pus.serviceType">
+      <RefTypeArgumentDependency prmId="APID.TC.pus.apid-1.serviceType" />
+    </AcnDependency>
+    <AcnDependency Asn1TypeID="APID.TC.pus" DeterminantId="APID.TC.pus.apid">
+      <ChoicePresenseDependency />
+    </AcnDependency>
+    <AcnDependency Asn1TypeID="APID.TC.pus" DeterminantId="APID.TC.serviceSubType">
+      <RefTypeArgumentDependency prmId="APID.TC.pus.serviceSubType" />
+    </AcnDependency>
+    <AcnDependency Asn1TypeID="APID.TC.pus" DeterminantId="APID.TC.serviceType">
+      <RefTypeArgumentDependency prmId="APID.TC.pus.serviceType" />
+    </AcnDependency>
+    <AcnDependency Asn1TypeID="APID.TC.pus" DeterminantId="APID.TC.apid">
+      <RefTypeArgumentDependency prmId="APID.TC.pus.apid" />
+    </AcnDependency>
+    <AcnDependency Asn1TypeID="APID.PUS-TC.apid-2.pus-4" DeterminantId="APID.PUS-TC.apid-2.pus-4.serviceSubType">
+      <ChoicePresenseDependency />
+    </AcnDependency>
+    <AcnDependency Asn1TypeID="APID.PUS-TC.apid-2.pus-4" DeterminantId="APID.PUS-TC.apid-2.serviceSubType">
+      <RefTypeArgumentDependency prmId="APID.PUS-TC.apid-2.pus-4.serviceSubType" />
+    </AcnDependency>
+    <AcnDependency Asn1TypeID="APID.PUS-TC.apid-2.pus-2" DeterminantId="APID.PUS-TC.apid-2.pus-2.serviceSubType">
+      <ChoicePresenseDependency />
+    </AcnDependency>
+    <AcnDependency Asn1TypeID="APID.PUS-TC.apid-2.pus-2" DeterminantId="APID.PUS-TC.apid-2.serviceSubType">
+      <RefTypeArgumentDependency prmId="APID.PUS-TC.apid-2.pus-2.serviceSubType" />
+    </AcnDependency>
+    <AcnDependency Asn1TypeID="APID.PUS-TC.apid-2" DeterminantId="APID.PUS-TC.apid-2.serviceType">
+      <ChoicePresenseDependency />
+    </AcnDependency>
+    <AcnDependency Asn1TypeID="APID.PUS-TC.apid-2" DeterminantId="APID.PUS-TC.serviceSubType">
+      <RefTypeArgumentDependency prmId="APID.PUS-TC.apid-2.serviceSubType" />
+    </AcnDependency>
+    <AcnDependency Asn1TypeID="APID.PUS-TC.apid-2" DeterminantId="APID.PUS-TC.serviceType">
+      <RefTypeArgumentDependency prmId="APID.PUS-TC.apid-2.serviceType" />
+    </AcnDependency>
+    <AcnDependency Asn1TypeID="APID.PUS-TC.apid-1.pus-3" DeterminantId="APID.PUS-TC.apid-1.pus-3.serviceSubType">
+      <ChoicePresenseDependency />
+    </AcnDependency>
+    <AcnDependency Asn1TypeID="APID.PUS-TC.apid-1.pus-3" DeterminantId="APID.PUS-TC.apid-1.serviceSubType">
+      <RefTypeArgumentDependency prmId="APID.PUS-TC.apid-1.pus-3.serviceSubType" />
+    </AcnDependency>
+    <AcnDependency Asn1TypeID="APID.PUS-TC.apid-1.pus-2" DeterminantId="APID.PUS-TC.apid-1.pus-2.serviceSubType">
+      <ChoicePresenseDependency />
+    </AcnDependency>
+    <AcnDependency Asn1TypeID="APID.PUS-TC.apid-1.pus-2" DeterminantId="APID.PUS-TC.apid-1.serviceSubType">
+      <RefTypeArgumentDependency prmId="APID.PUS-TC.apid-1.pus-2.serviceSubType" />
+    </AcnDependency>
+    <AcnDependency Asn1TypeID="APID.PUS-TC.apid-1" DeterminantId="APID.PUS-TC.apid-1.serviceType">
+      <ChoicePresenseDependency />
+    </AcnDependency>
+    <AcnDependency Asn1TypeID="APID.PUS-TC.apid-1" DeterminantId="APID.PUS-TC.serviceSubType">
+      <RefTypeArgumentDependency prmId="APID.PUS-TC.apid-1.serviceSubType" />
+    </AcnDependency>
+    <AcnDependency Asn1TypeID="APID.PUS-TC.apid-1" DeterminantId="APID.PUS-TC.serviceType">
+      <RefTypeArgumentDependency prmId="APID.PUS-TC.apid-1.serviceType" />
+    </AcnDependency>
+    <AcnDependency Asn1TypeID="APID.PUS-TC" DeterminantId="APID.PUS-TC.apid">
+      <ChoicePresenseDependency />
+    </AcnDependency>
+    <AcnDependency Asn1TypeID="APID.APID-2-TC.pus-4" DeterminantId="APID.APID-2-TC.pus-4.serviceSubType">
+      <ChoicePresenseDependency />
+    </AcnDependency>
+    <AcnDependency Asn1TypeID="APID.APID-2-TC.pus-4" DeterminantId="APID.APID-2-TC.serviceSubType">
+      <RefTypeArgumentDependency prmId="APID.APID-2-TC.pus-4.serviceSubType" />
+    </AcnDependency>
+    <AcnDependency Asn1TypeID="APID.APID-2-TC.pus-2" DeterminantId="APID.APID-2-TC.pus-2.serviceSubType">
+      <ChoicePresenseDependency />
+    </AcnDependency>
+    <AcnDependency Asn1TypeID="APID.APID-2-TC.pus-2" DeterminantId="APID.APID-2-TC.serviceSubType">
+      <RefTypeArgumentDependency prmId="APID.APID-2-TC.pus-2.serviceSubType" />
+    </AcnDependency>
+    <AcnDependency Asn1TypeID="APID.APID-2-TC" DeterminantId="APID.APID-2-TC.serviceType">
+      <ChoicePresenseDependency />
+    </AcnDependency>
+    <AcnDependency Asn1TypeID="APID.APID-1-TC.pus-3" DeterminantId="APID.APID-1-TC.pus-3.serviceSubType">
+      <ChoicePresenseDependency />
+    </AcnDependency>
+    <AcnDependency Asn1TypeID="APID.APID-1-TC.pus-3" DeterminantId="APID.APID-1-TC.serviceSubType">
+      <RefTypeArgumentDependency prmId="APID.APID-1-TC.pus-3.serviceSubType" />
+    </AcnDependency>
+    <AcnDependency Asn1TypeID="APID.APID-1-TC.pus-2" DeterminantId="APID.APID-1-TC.pus-2.serviceSubType">
+      <ChoicePresenseDependency />
+    </AcnDependency>
+    <AcnDependency Asn1TypeID="APID.APID-1-TC.pus-2" DeterminantId="APID.APID-1-TC.serviceSubType">
+      <RefTypeArgumentDependency prmId="APID.APID-1-TC.pus-2.serviceSubType" />
+    </AcnDependency>
+    <AcnDependency Asn1TypeID="APID.APID-1-TC" DeterminantId="APID.APID-1-TC.serviceType">
+      <ChoicePresenseDependency />
+    </AcnDependency>
+    <AcnDependency Asn1TypeID="APID.Service2-APID-2" DeterminantId="APID.Service2-APID-2.serviceSubType">
+      <ChoicePresenseDependency />
+    </AcnDependency>
+    <AcnDependency Asn1TypeID="APID.Service4-Generic" DeterminantId="APID.Service4-Generic.serviceSubType">
+      <ChoicePresenseDependency />
+    </AcnDependency>
+    <AcnDependency Asn1TypeID="APID.Service3-Generic" DeterminantId="APID.Service3-Generic.serviceSubType">
+      <ChoicePresenseDependency />
+    </AcnDependency>
+    <AcnDependency Asn1TypeID="APID.Service2-APID-1" DeterminantId="APID.Service2-APID-1.serviceSubType">
+      <ChoicePresenseDependency />
+    </AcnDependency>
+  </AcnDependencies>
+</AstRoot>

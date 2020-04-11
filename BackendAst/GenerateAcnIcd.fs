@@ -305,7 +305,18 @@ let rec printType stgFileName (tas:GenerateUperIcd.IcdTypeAssignment) (t:Asn1Typ
                 let EmitChild (i:int) (ch:ChChildInfo) = EmitSeqOrChoiceChild i ch  getPresence
                 children |> Seq.mapi(fun i ch -> EmitChild (1 + i) ch) |> Seq.toList
         let chRet = icd_acn.EmitSequenceOrChoice stgFileName isAnonymousType sTasName (ToC sTasName) hasAcnDef "CHOICE" sMinBytes sMaxBytes sMaxBitsExplained sCommentLine arrRows (myParams 3I) (sCommentLine.Split [|'\n'|])
-        [chRet]
+        let childTasses = 
+            chInfo.children |> 
+            Seq.map(fun ch -> 
+                    match ch.chType.ActualType.Kind with
+                    | Sequence _
+                    | Choice _
+                    | SequenceOf _ -> 
+                        let chTas = {tas with name=ch.chType.id.AsString.RDD; t=ch.chType; comments = Array.concat [ tas.comments; [|sprintf "Acn inline encoding in the context of %s type and %s component" tas.name ch.Name.Value|]]; isBlue = true }
+                        printType stgFileName chTas ch.chType m r isAnonymousType
+                    | _            -> [] )|> 
+            Seq.collect id |> Seq.toList
+        [chRet]@childTasses
     | IA5String  o  ->
         let nMin, nMax, encClass = o.baseInfo.minSize.acn, o.baseInfo.maxSize.acn, o.baseInfo.acnEncodingClass
         let sType, characterSizeInBits = 

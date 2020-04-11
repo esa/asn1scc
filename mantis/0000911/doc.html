@@ -1,0 +1,5611 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"> 
+<html xmlns="http://www.w3.org/1999/xhtml" >
+<head>
+    <title>ICD</title>
+    <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+    <link rel="stylesheet" href="doc.css" /> 
+</head>
+<body>
+<em>The following tables describe the binary encodings of the data model using the ACN Encoding Rules.
+</em><br/><br/>
+  <div style="width: 100%">
+  <h1>Module APID</h1>
+  <i>Defined in: apid2.asn, apid2.acn.</i><p>
+  </p>
+  <a name="ICD_APID_1_Addresses"></a> 
+  <table width="100%" >
+  <tbody>
+  
+  <tr class="typeRow">
+  <td colspan="2"  >
+  APID-1-Addresses <font size="-1">(ENUMERATED)</font>
+  <font size="-2"><a href="#ASN1_APID_1_Addresses" class="fileLink">ASN.1</a>   </font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Min:&nbsp;1&nbsp;bytes</font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Max:&nbsp;1&nbsp;bytes</font>
+  </td>
+  </tr>
+  
+  <tr class="CommentRow">
+  <td class="comment2" colspan="4">fake devices for the example
+  <br/>Possible values:<br/>
+  <ul class="enumeration">
+  <li><font class="enumeration_name">device1</font> (0)</li>
+  <li><font class="enumeration_name">device2</font> (1)</li>
+  </ul></td>
+  </tr>
+  
+  <tr class="headerRow">
+  <td class="hrConstraint2" colspan="2">Constraints</td>
+  <td class="hrMin">Min Length (bits)</td>
+  <td class="hrMax">Max Length (bits)</td>
+  </tr>
+  
+  <tr class="OddRow">
+      <td class="constraint" colspan="2">N.A.</td>
+      <td class="min" >1</td>
+      <td class="max" >1</td>
+  </tr>
+  
+  </tbody>
+  </table>
+  &nbsp;<br/>
+  <a name="ICD_APID_1_PUS_2_1"></a>
+  <table width="100%" >
+  <tbody>
+  
+  <tr  class="typeRow">
+  <td colspan="6">
+  APID-1-PUS-2-1 <font size="-1">(SEQUENCE-OF)</font>
+  <font size="-2"><a href="#ASN1_APID_1_PUS_2_1" class="fileLink">ASN.1</a></font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Min:&nbsp;1&nbsp;bytes</font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Max:&nbsp;1&nbsp;bytes</font>
+  </td>
+  </tr>
+  
+  <tr class="CommentRow">
+  <td class="comment2" colspan="8">The array contains a single element.</td>
+  </tr>
+  
+  <tr class="headerRow">
+  <td class="hrNo">No</td>
+  <td class="hrField">Field</td>
+  <td class="hrComment">Comment</td>
+  <td class="hrOptional">Present</td>
+  <td class="hrType">Type</td>
+  <td class="hrConstraint">Constraint</td>
+  <td class="hrMin">Min Length (bits)</td>
+  <td class="hrMax">Max Length (bits)</td>
+  </tr>
+  
+  <tr class="OddRow">
+  <td class="no">1</td>
+  <td class="field">Item #1</td>
+  <td class="comment"></td>
+  <td class="optional">always</td>
+  <td class="type"><a href="#ICD_APID_1_Addresses">APID-1-Addresses</a></td>
+  <td class="constraint">N.A.</td>
+  <td class="min">1</td>
+  <td class="max">1</td>
+  </tr>
+  
+  </tbody>
+  </table>
+  &nbsp;<br/>
+  <a name="ICD_APID_1_PUS_2_2"></a> 
+  <table width="100%" >
+  <tbody>
+  
+  <tr class="typeRow">
+  <td colspan="2"  >
+  APID-1-PUS-2-2 <font size="-1">(NULL)</font>
+  <font size="-2"><a href="#ASN1_APID_1_PUS_2_2" class="fileLink">ASN.1</a>   </font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Min:&nbsp;0&nbsp;bytes</font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Max:&nbsp;0&nbsp;bytes</font>
+  </td>
+  </tr>
+  
+  <tr class="CommentRow">
+  <td class="comment2" colspan="4">Service (2,2) to be defined</td>
+  </tr>
+  
+  <tr class="headerRow">
+  <td class="hrConstraint2" colspan="2">Constraints</td>
+  <td class="hrMin">Min Length (bits)</td>
+  <td class="hrMax">Max Length (bits)</td>
+  </tr>
+  
+  <tr class="OddRow">
+      <td class="constraint" colspan="2">N.A.</td>
+      <td class="min" >0</td>
+      <td class="max" >0</td>
+  </tr>
+  
+  </tbody>
+  </table>
+  &nbsp;<br/>
+  <a name="ICD_Service2_APID_1"></a> 
+  <table width="100%" >
+  <tbody>
+  
+  <tr class="typeRow">
+  <td colspan="6">
+  Service2-APID-1 <font size="-1">(CHOICE)</font>
+  <font size="-2"><a href="#ASN1_Service2_APID_1" class="fileLink">ASN.1</a>  <a href="#ACN_Service2_APID_1" class="fileLink">ACN</a></font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Min:&nbsp;0&nbsp;bytes</font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Max:&nbsp;1&nbsp;bytes</font>
+  </td>
+  </tr>
+  
+  <tr class="CommentRow">
+  <td class="comment2" colspan="8">Tailored service 2 for APID 1</td>
+  </tr>
+  
+  
+  <tr class="headerRow">
+  <td class="hrNo">No</td>
+  <td class="hrField" colspan="3">ACN Parameters <a href="#ACN_PARAMS_EXPLAINED123" class="acnParamsLink">[?]</a></td>
+  <td class="hrType" colspan="4">Type</td>
+  </tr>
+  <tr class="OddRow">
+      <td class="no" >1</td>
+      <td class="field" colspan="3">serviceSubType</td>
+      <td class="type" colspan="4">INTEGER</td>
+  </tr>
+  <tr class="headerRow">
+  <td class="hrNo">No</td>
+  <td class="hrField">Field</td>
+  <td class="hrComment">Comment</td>
+  <td class="hrOptional">Present</td>
+  <td class="hrType">Type</td>
+  <td class="hrConstraint">Constraint</td>
+  <td class="hrMin">Min Bits</td>
+  <td class="hrMax">Max Bits</td>
+  </tr>
+  
+  <tr class="OddRow">
+  <td class="no">1</td>
+  <td class="field">distribute-On-Off</td>
+  <td class="comment"></td>
+  <td class="optional">serviceSubType=1</td>
+  <td class="type"><a href="#ICD_APID_1_PUS_2_1">APID-1-PUS-2-1</a></td>
+  <td class="constraint">(1 .. 1)</td>
+  <td class="min">1</td>
+  <td class="max">1</td>
+  </tr>
+  <tr class="EvenRow">
+  <td class="no">2</td>
+  <td class="field">whatever-pus-2-2</td>
+  <td class="comment"></td>
+  <td class="optional">serviceSubType=2</td>
+  <td class="type"><a href="#ICD_APID_1_PUS_2_2">APID-1-PUS-2-2</a></td>
+  <td class="constraint"></td>
+  <td class="min">0</td>
+  <td class="max">0</td>
+  </tr>
+  
+  </tbody>
+  </table>
+  &nbsp;<br/>
+  <a name="ICD_APID_Service2_APID_1_distribute_On_Off"></a>
+  <table width="100%" >
+  <tbody>
+  
+  <tr  class="typeRow">
+  <td colspan="6">
+  APID-Service2-APID-1-distribute-On-Off <font size="-1">(SEQUENCE-OF)</font>
+  <font size="-2"><a href="#ASN1_APID_Service2_APID_1_distribute_On_Off" class="fileLink">ASN.1</a></font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Min:&nbsp;1&nbsp;bytes</font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Max:&nbsp;1&nbsp;bytes</font>
+  </td>
+  </tr>
+  
+  <tr class="CommentRow">
+  <td class="comment2" colspan="8">Tailored service 2 for APID 1
+  <br/>Acn inline encoding in the context of Service2-APID-1 type and distribute-On-Off component<br/>The array contains a single element.</td>
+  </tr>
+  
+  <tr class="headerRow">
+  <td class="hrNo">No</td>
+  <td class="hrField">Field</td>
+  <td class="hrComment">Comment</td>
+  <td class="hrOptional">Present</td>
+  <td class="hrType">Type</td>
+  <td class="hrConstraint">Constraint</td>
+  <td class="hrMin">Min Length (bits)</td>
+  <td class="hrMax">Max Length (bits)</td>
+  </tr>
+  
+  <tr class="OddRow">
+  <td class="no">1</td>
+  <td class="field">Item #1</td>
+  <td class="comment"></td>
+  <td class="optional">always</td>
+  <td class="type"><a href="#ICD_APID_1_Addresses">APID-1-Addresses</a></td>
+  <td class="constraint">N.A.</td>
+  <td class="min">1</td>
+  <td class="max">1</td>
+  </tr>
+  
+  </tbody>
+  </table>
+  &nbsp;<br/>
+  <a name="ICD_Service3_Generic"></a> 
+  <table width="100%" >
+  <tbody>
+  
+  <tr class="typeRow">
+  <td colspan="6">
+  Service3-Generic <font size="-1">(CHOICE)</font>
+  <font size="-2"><a href="#ASN1_Service3_Generic" class="fileLink">ASN.1</a>  <a href="#ACN_Service3_Generic" class="fileLink">ACN</a></font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Min:&nbsp;0&nbsp;bytes</font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Max:&nbsp;0&nbsp;bytes</font>
+  </td>
+  </tr>
+  
+  <tr class="CommentRow">
+  <td class="comment2" colspan="8">Dummy definition for PUS service 3</td>
+  </tr>
+  
+  
+  <tr class="headerRow">
+  <td class="hrNo">No</td>
+  <td class="hrField" colspan="3">ACN Parameters <a href="#ACN_PARAMS_EXPLAINED123" class="acnParamsLink">[?]</a></td>
+  <td class="hrType" colspan="4">Type</td>
+  </tr>
+  <tr class="OddRow">
+      <td class="no" >1</td>
+      <td class="field" colspan="3">serviceSubType</td>
+      <td class="type" colspan="4">INTEGER</td>
+  </tr>
+  <tr class="headerRow">
+  <td class="hrNo">No</td>
+  <td class="hrField">Field</td>
+  <td class="hrComment">Comment</td>
+  <td class="hrOptional">Present</td>
+  <td class="hrType">Type</td>
+  <td class="hrConstraint">Constraint</td>
+  <td class="hrMin">Min Bits</td>
+  <td class="hrMax">Max Bits</td>
+  </tr>
+  
+  <tr class="OddRow">
+  <td class="no">1</td>
+  <td class="field">whatever-3-1</td>
+  <td class="comment"></td>
+  <td class="optional">serviceSubType=1</td>
+  <td class="type"><a href="#ICD_NULL">NULL</a></td>
+  <td class="constraint"></td>
+  <td class="min">0</td>
+  <td class="max">0</td>
+  </tr>
+  
+  </tbody>
+  </table>
+  &nbsp;<br/>
+  <a name="ICD_Service4_Generic"></a> 
+  <table width="100%" >
+  <tbody>
+  
+  <tr class="typeRow">
+  <td colspan="6">
+  Service4-Generic <font size="-1">(CHOICE)</font>
+  <font size="-2"><a href="#ASN1_Service4_Generic" class="fileLink">ASN.1</a>  <a href="#ACN_Service4_Generic" class="fileLink">ACN</a></font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Min:&nbsp;0&nbsp;bytes</font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Max:&nbsp;0&nbsp;bytes</font>
+  </td>
+  </tr>
+  
+  <tr class="CommentRow">
+  <td class="comment2" colspan="8">Dummy definition for PUS service 4</td>
+  </tr>
+  
+  
+  <tr class="headerRow">
+  <td class="hrNo">No</td>
+  <td class="hrField" colspan="3">ACN Parameters <a href="#ACN_PARAMS_EXPLAINED123" class="acnParamsLink">[?]</a></td>
+  <td class="hrType" colspan="4">Type</td>
+  </tr>
+  <tr class="OddRow">
+      <td class="no" >1</td>
+      <td class="field" colspan="3">serviceSubType</td>
+      <td class="type" colspan="4">INTEGER</td>
+  </tr>
+  <tr class="headerRow">
+  <td class="hrNo">No</td>
+  <td class="hrField">Field</td>
+  <td class="hrComment">Comment</td>
+  <td class="hrOptional">Present</td>
+  <td class="hrType">Type</td>
+  <td class="hrConstraint">Constraint</td>
+  <td class="hrMin">Min Bits</td>
+  <td class="hrMax">Max Bits</td>
+  </tr>
+  
+  <tr class="OddRow">
+  <td class="no">1</td>
+  <td class="field">whatever-4-1</td>
+  <td class="comment"></td>
+  <td class="optional">serviceSubType=1</td>
+  <td class="type"><a href="#ICD_NULL">NULL</a></td>
+  <td class="constraint"></td>
+  <td class="min">0</td>
+  <td class="max">0</td>
+  </tr>
+  
+  </tbody>
+  </table>
+  &nbsp;<br/>
+  <a name="ICD_APID_2_Addresses"></a> 
+  <table width="100%" >
+  <tbody>
+  
+  <tr class="typeRow">
+  <td colspan="2"  >
+  APID-2-Addresses <font size="-1">(ENUMERATED)</font>
+  <font size="-2"><a href="#ASN1_APID_2_Addresses" class="fileLink">ASN.1</a>   </font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Min:&nbsp;1&nbsp;bytes</font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Max:&nbsp;1&nbsp;bytes</font>
+  </td>
+  </tr>
+  
+  <tr class="CommentRow">
+  <td class="comment2" colspan="4">Possible values:<br/>
+  <ul class="enumeration">
+  <li><font class="enumeration_name">device3</font> (0)</li>
+  <li><font class="enumeration_name">device4</font> (1)</li>
+  </ul></td>
+  </tr>
+  
+  <tr class="headerRow">
+  <td class="hrConstraint2" colspan="2">Constraints</td>
+  <td class="hrMin">Min Length (bits)</td>
+  <td class="hrMax">Max Length (bits)</td>
+  </tr>
+  
+  <tr class="OddRow">
+      <td class="constraint" colspan="2">N.A.</td>
+      <td class="min" >1</td>
+      <td class="max" >1</td>
+  </tr>
+  
+  </tbody>
+  </table>
+  &nbsp;<br/>
+  <a name="ICD_APID_2_PUS_2_1"></a>
+  <table width="100%" >
+  <tbody>
+  
+  <tr  class="typeRow">
+  <td colspan="6">
+  APID-2-PUS-2-1 <font size="-1">(SEQUENCE-OF)</font>
+  <font size="-2"><a href="#ASN1_APID_2_PUS_2_1" class="fileLink">ASN.1</a></font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Min:&nbsp;1&nbsp;bytes</font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Max:&nbsp;1&nbsp;bytes</font>
+  </td>
+  </tr>
+  
+  
+  <tr class="headerRow">
+  <td class="hrNo">No</td>
+  <td class="hrField">Field</td>
+  <td class="hrComment">Comment</td>
+  <td class="hrOptional">Present</td>
+  <td class="hrType">Type</td>
+  <td class="hrConstraint">Constraint</td>
+  <td class="hrMin">Min Length (bits)</td>
+  <td class="hrMax">Max Length (bits)</td>
+  </tr>
+  
+  <tr class="OddRow">
+  <td class="no">1</td>
+  <td class="field">Length</td>
+  <td class="comment">Special field used by ACN to indicate the number of items present in the array.</td>
+  <td class="optional">always</td>
+  <td class="type">unsigned int</td>
+  <td class="constraint">(1 .. 5)</td>
+  <td class="min">3</td>
+  <td class="max">3</td>
+  </tr>
+  <tr class="OddRow">
+  <td class="no">2</td>
+  <td class="field">Item #1</td>
+  <td class="comment"></td>
+  <td class="optional">always</td>
+  <td class="type"><a href="#ICD_APID_2_Addresses">APID-2-Addresses</a></td>
+  <td class="constraint">N.A.</td>
+  <td class="min">1</td>
+  <td class="max">1</td>
+  </tr>
+  <tr class="CommentRow">
+  <td class="threeDots" colspan="8"> <p>. . .</p> </td>
+  </tr>
+  <tr class="OddRow">
+  <td class="no">6</td>
+  <td class="field">Item #5</td>
+  <td class="comment"></td>
+  <td class="optional">always</td>
+  <td class="type"><a href="#ICD_APID_2_Addresses">APID-2-Addresses</a></td>
+  <td class="constraint">N.A.</td>
+  <td class="min">1</td>
+  <td class="max">1</td>
+  </tr>
+  
+  </tbody>
+  </table>
+  &nbsp;<br/>
+  <a name="ICD_APID_2_PUS_2_2"></a> 
+  <table width="100%" >
+  <tbody>
+  
+  <tr class="typeRow">
+  <td colspan="2"  >
+  APID-2-PUS-2-2 <font size="-1">(NULL)</font>
+  <font size="-2"><a href="#ASN1_APID_2_PUS_2_2" class="fileLink">ASN.1</a>   </font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Min:&nbsp;0&nbsp;bytes</font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Max:&nbsp;0&nbsp;bytes</font>
+  </td>
+  </tr>
+  
+  <tr class="CommentRow">
+  <td class="comment2" colspan="4"></td>
+  </tr>
+  
+  <tr class="headerRow">
+  <td class="hrConstraint2" colspan="2">Constraints</td>
+  <td class="hrMin">Min Length (bits)</td>
+  <td class="hrMax">Max Length (bits)</td>
+  </tr>
+  
+  <tr class="OddRow">
+      <td class="constraint" colspan="2">N.A.</td>
+      <td class="min" >0</td>
+      <td class="max" >0</td>
+  </tr>
+  
+  </tbody>
+  </table>
+  &nbsp;<br/>
+  <a name="ICD_Service2_APID_2"></a> 
+  <table width="100%" >
+  <tbody>
+  
+  <tr class="typeRow">
+  <td colspan="6">
+  Service2-APID-2 <font size="-1">(CHOICE)</font>
+  <font size="-2"><a href="#ASN1_Service2_APID_2" class="fileLink">ASN.1</a>  <a href="#ACN_Service2_APID_2" class="fileLink">ACN</a></font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Min:&nbsp;0&nbsp;bytes</font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Max:&nbsp;1&nbsp;bytes</font>
+  </td>
+  </tr>
+  
+  <tr class="CommentRow">
+  <td class="comment2" colspan="8"></td>
+  </tr>
+  
+  
+  <tr class="headerRow">
+  <td class="hrNo">No</td>
+  <td class="hrField" colspan="3">ACN Parameters <a href="#ACN_PARAMS_EXPLAINED123" class="acnParamsLink">[?]</a></td>
+  <td class="hrType" colspan="4">Type</td>
+  </tr>
+  <tr class="OddRow">
+      <td class="no" >1</td>
+      <td class="field" colspan="3">serviceSubType</td>
+      <td class="type" colspan="4">INTEGER</td>
+  </tr>
+  <tr class="headerRow">
+  <td class="hrNo">No</td>
+  <td class="hrField">Field</td>
+  <td class="hrComment">Comment</td>
+  <td class="hrOptional">Present</td>
+  <td class="hrType">Type</td>
+  <td class="hrConstraint">Constraint</td>
+  <td class="hrMin">Min Bits</td>
+  <td class="hrMax">Max Bits</td>
+  </tr>
+  
+  <tr class="OddRow">
+  <td class="no">1</td>
+  <td class="field">distribute-On-Off</td>
+  <td class="comment"></td>
+  <td class="optional">serviceSubType=1</td>
+  <td class="type"><a href="#ICD_APID_2_PUS_2_1">APID-2-PUS-2-1</a></td>
+  <td class="constraint">(1 .. 5)</td>
+  <td class="min">4</td>
+  <td class="max">8</td>
+  </tr>
+  <tr class="EvenRow">
+  <td class="no">2</td>
+  <td class="field">whatever-pus-2-2</td>
+  <td class="comment"></td>
+  <td class="optional">serviceSubType=2</td>
+  <td class="type"><a href="#ICD_APID_2_PUS_2_2">APID-2-PUS-2-2</a></td>
+  <td class="constraint"></td>
+  <td class="min">0</td>
+  <td class="max">0</td>
+  </tr>
+  
+  </tbody>
+  </table>
+  &nbsp;<br/>
+  <a name="ICD_APID_Service2_APID_2_distribute_On_Off"></a>
+  <table width="100%" >
+  <tbody>
+  
+  <tr  class="typeRow">
+  <td colspan="6">
+  APID-Service2-APID-2-distribute-On-Off <font size="-1">(SEQUENCE-OF)</font>
+  <font size="-2"><a href="#ASN1_APID_Service2_APID_2_distribute_On_Off" class="fileLink">ASN.1</a></font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Min:&nbsp;1&nbsp;bytes</font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Max:&nbsp;1&nbsp;bytes</font>
+  </td>
+  </tr>
+  
+  <tr class="CommentRow">
+  <td class="comment2" colspan="8">Acn inline encoding in the context of Service2-APID-2 type and distribute-On-Off component<br/></td>
+  </tr>
+  
+  <tr class="headerRow">
+  <td class="hrNo">No</td>
+  <td class="hrField">Field</td>
+  <td class="hrComment">Comment</td>
+  <td class="hrOptional">Present</td>
+  <td class="hrType">Type</td>
+  <td class="hrConstraint">Constraint</td>
+  <td class="hrMin">Min Length (bits)</td>
+  <td class="hrMax">Max Length (bits)</td>
+  </tr>
+  
+  <tr class="OddRow">
+  <td class="no">1</td>
+  <td class="field">Length</td>
+  <td class="comment">Special field used by ACN to indicate the number of items present in the array.</td>
+  <td class="optional">always</td>
+  <td class="type">unsigned int</td>
+  <td class="constraint">(1 .. 5)</td>
+  <td class="min">3</td>
+  <td class="max">3</td>
+  </tr>
+  <tr class="OddRow">
+  <td class="no">2</td>
+  <td class="field">Item #1</td>
+  <td class="comment"></td>
+  <td class="optional">always</td>
+  <td class="type"><a href="#ICD_APID_2_Addresses">APID-2-Addresses</a></td>
+  <td class="constraint">N.A.</td>
+  <td class="min">1</td>
+  <td class="max">1</td>
+  </tr>
+  <tr class="CommentRow">
+  <td class="threeDots" colspan="8"> <p>. . .</p> </td>
+  </tr>
+  <tr class="OddRow">
+  <td class="no">6</td>
+  <td class="field">Item #5</td>
+  <td class="comment"></td>
+  <td class="optional">always</td>
+  <td class="type"><a href="#ICD_APID_2_Addresses">APID-2-Addresses</a></td>
+  <td class="constraint">N.A.</td>
+  <td class="min">1</td>
+  <td class="max">1</td>
+  </tr>
+  
+  </tbody>
+  </table>
+  &nbsp;<br/>
+  <a name="ICD_APID_1_TC"></a> 
+  <table width="100%" >
+  <tbody>
+  
+  <tr class="typeRow">
+  <td colspan="6">
+  APID-1-TC <font size="-1">(CHOICE)</font>
+  <font size="-2"><a href="#ASN1_APID_1_TC" class="fileLink">ASN.1</a>  <a href="#ACN_APID_1_TC" class="fileLink">ACN</a></font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Min:&nbsp;0&nbsp;bytes</font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Max:&nbsp;1&nbsp;bytes</font>
+  </td>
+  </tr>
+  
+  <tr class="CommentRow">
+  <td class="comment2" colspan="8">Full set of available TCs for APID 1</td>
+  </tr>
+  
+  
+  <tr class="headerRow">
+  <td class="hrNo">No</td>
+  <td class="hrField" colspan="3">ACN Parameters <a href="#ACN_PARAMS_EXPLAINED123" class="acnParamsLink">[?]</a></td>
+  <td class="hrType" colspan="4">Type</td>
+  </tr>
+  <tr class="OddRow">
+      <td class="no" >1</td>
+      <td class="field" colspan="3">serviceType</td>
+      <td class="type" colspan="4">INTEGER</td>
+  </tr><tr class="OddRow">
+      <td class="no" >2</td>
+      <td class="field" colspan="3">serviceSubType</td>
+      <td class="type" colspan="4">INTEGER</td>
+  </tr>
+  <tr class="headerRow">
+  <td class="hrNo">No</td>
+  <td class="hrField">Field</td>
+  <td class="hrComment">Comment</td>
+  <td class="hrOptional">Present</td>
+  <td class="hrType">Type</td>
+  <td class="hrConstraint">Constraint</td>
+  <td class="hrMin">Min Bits</td>
+  <td class="hrMax">Max Bits</td>
+  </tr>
+  
+  <tr class="OddRow">
+  <td class="no">1</td>
+  <td class="field">pus-2</td>
+  <td class="comment"></td>
+  <td class="optional">serviceType=2</td>
+  <td class="type"><a href="#ICD_Service2_APID_1">Service2-APID-1</a></td>
+  <td class="constraint"></td>
+  <td class="min">0</td>
+  <td class="max">1</td>
+  </tr>
+  <tr class="EvenRow">
+  <td class="no">2</td>
+  <td class="field">pus-3</td>
+  <td class="comment"></td>
+  <td class="optional">serviceType=3</td>
+  <td class="type"><a href="#ICD_Service3_Generic">Service3-Generic</a></td>
+  <td class="constraint"></td>
+  <td class="min">0</td>
+  <td class="max">0</td>
+  </tr>
+  
+  </tbody>
+  </table>
+  &nbsp;<br/>
+  <a name="ICD_APID_APID_1_TC_pus_2"></a> 
+  <table width="100%" >
+  <tbody>
+  
+  <tr class="typeRow">
+  <td colspan="6">
+  APID-APID-1-TC-pus-2 <font size="-1">(CHOICE)</font>
+  <font size="-2"><a href="#ASN1_APID_APID_1_TC_pus_2" class="fileLink">ASN.1</a></font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Min:&nbsp;0&nbsp;bytes</font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Max:&nbsp;1&nbsp;bytes</font>
+  </td>
+  </tr>
+  
+  <tr class="CommentRow">
+  <td class="comment2" colspan="8">Full set of available TCs for APID 1
+  <br/>Acn inline encoding in the context of APID-1-TC type and pus-2 component</td>
+  </tr>
+  
+  
+  <tr class="headerRow">
+  <td class="hrNo">No</td>
+  <td class="hrField" colspan="3">ACN Parameters <a href="#ACN_PARAMS_EXPLAINED123" class="acnParamsLink">[?]</a></td>
+  <td class="hrType" colspan="4">Type</td>
+  </tr>
+  <tr class="OddRow">
+      <td class="no" >1</td>
+      <td class="field" colspan="3">serviceSubType</td>
+      <td class="type" colspan="4">INTEGER</td>
+  </tr>
+  <tr class="headerRow">
+  <td class="hrNo">No</td>
+  <td class="hrField">Field</td>
+  <td class="hrComment">Comment</td>
+  <td class="hrOptional">Present</td>
+  <td class="hrType">Type</td>
+  <td class="hrConstraint">Constraint</td>
+  <td class="hrMin">Min Bits</td>
+  <td class="hrMax">Max Bits</td>
+  </tr>
+  
+  <tr class="OddRow">
+  <td class="no">1</td>
+  <td class="field">distribute-On-Off</td>
+  <td class="comment"></td>
+  <td class="optional">serviceSubType=1</td>
+  <td class="type"><a href="#ICD_APID_1_PUS_2_1">APID-1-PUS-2-1</a></td>
+  <td class="constraint">(1 .. 1)</td>
+  <td class="min">1</td>
+  <td class="max">1</td>
+  </tr>
+  <tr class="EvenRow">
+  <td class="no">2</td>
+  <td class="field">whatever-pus-2-2</td>
+  <td class="comment"></td>
+  <td class="optional">serviceSubType=2</td>
+  <td class="type"><a href="#ICD_APID_1_PUS_2_2">APID-1-PUS-2-2</a></td>
+  <td class="constraint"></td>
+  <td class="min">0</td>
+  <td class="max">0</td>
+  </tr>
+  
+  </tbody>
+  </table>
+  &nbsp;<br/>
+  <a name="ICD_APID_APID_1_TC_pus_2_distribute_On_Off"></a>
+  <table width="100%" >
+  <tbody>
+  
+  <tr  class="typeRow">
+  <td colspan="6">
+  APID-APID-1-TC-pus-2-distribute-On-Off <font size="-1">(SEQUENCE-OF)</font>
+  <font size="-2"><a href="#ASN1_APID_APID_1_TC_pus_2_distribute_On_Off" class="fileLink">ASN.1</a></font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Min:&nbsp;1&nbsp;bytes</font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Max:&nbsp;1&nbsp;bytes</font>
+  </td>
+  </tr>
+  
+  <tr class="CommentRow">
+  <td class="comment2" colspan="8">Full set of available TCs for APID 1
+  <br/>Acn inline encoding in the context of APID-1-TC type and pus-2 component<br/>Acn inline encoding in the context of APID-APID-1-TC-pus-2 type and distribute-On-Off component<br/>The array contains a single element.</td>
+  </tr>
+  
+  <tr class="headerRow">
+  <td class="hrNo">No</td>
+  <td class="hrField">Field</td>
+  <td class="hrComment">Comment</td>
+  <td class="hrOptional">Present</td>
+  <td class="hrType">Type</td>
+  <td class="hrConstraint">Constraint</td>
+  <td class="hrMin">Min Length (bits)</td>
+  <td class="hrMax">Max Length (bits)</td>
+  </tr>
+  
+  <tr class="OddRow">
+  <td class="no">1</td>
+  <td class="field">Item #1</td>
+  <td class="comment"></td>
+  <td class="optional">always</td>
+  <td class="type"><a href="#ICD_APID_1_Addresses">APID-1-Addresses</a></td>
+  <td class="constraint">N.A.</td>
+  <td class="min">1</td>
+  <td class="max">1</td>
+  </tr>
+  
+  </tbody>
+  </table>
+  &nbsp;<br/>
+  <a name="ICD_APID_APID_1_TC_pus_3"></a> 
+  <table width="100%" >
+  <tbody>
+  
+  <tr class="typeRow">
+  <td colspan="6">
+  APID-APID-1-TC-pus-3 <font size="-1">(CHOICE)</font>
+  <font size="-2"><a href="#ASN1_APID_APID_1_TC_pus_3" class="fileLink">ASN.1</a></font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Min:&nbsp;0&nbsp;bytes</font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Max:&nbsp;0&nbsp;bytes</font>
+  </td>
+  </tr>
+  
+  <tr class="CommentRow">
+  <td class="comment2" colspan="8">Full set of available TCs for APID 1
+  <br/>Acn inline encoding in the context of APID-1-TC type and pus-3 component</td>
+  </tr>
+  
+  
+  <tr class="headerRow">
+  <td class="hrNo">No</td>
+  <td class="hrField" colspan="3">ACN Parameters <a href="#ACN_PARAMS_EXPLAINED123" class="acnParamsLink">[?]</a></td>
+  <td class="hrType" colspan="4">Type</td>
+  </tr>
+  <tr class="OddRow">
+      <td class="no" >1</td>
+      <td class="field" colspan="3">serviceSubType</td>
+      <td class="type" colspan="4">INTEGER</td>
+  </tr>
+  <tr class="headerRow">
+  <td class="hrNo">No</td>
+  <td class="hrField">Field</td>
+  <td class="hrComment">Comment</td>
+  <td class="hrOptional">Present</td>
+  <td class="hrType">Type</td>
+  <td class="hrConstraint">Constraint</td>
+  <td class="hrMin">Min Bits</td>
+  <td class="hrMax">Max Bits</td>
+  </tr>
+  
+  <tr class="OddRow">
+  <td class="no">1</td>
+  <td class="field">whatever-3-1</td>
+  <td class="comment"></td>
+  <td class="optional">serviceSubType=1</td>
+  <td class="type"><a href="#ICD_NULL">NULL</a></td>
+  <td class="constraint"></td>
+  <td class="min">0</td>
+  <td class="max">0</td>
+  </tr>
+  
+  </tbody>
+  </table>
+  &nbsp;<br/>
+  <a name="ICD_APID_2_TC"></a> 
+  <table width="100%" >
+  <tbody>
+  
+  <tr class="typeRow">
+  <td colspan="6">
+  APID-2-TC <font size="-1">(CHOICE)</font>
+  <font size="-2"><a href="#ASN1_APID_2_TC" class="fileLink">ASN.1</a>  <a href="#ACN_APID_2_TC" class="fileLink">ACN</a></font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Min:&nbsp;0&nbsp;bytes</font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Max:&nbsp;1&nbsp;bytes</font>
+  </td>
+  </tr>
+  
+  <tr class="CommentRow">
+  <td class="comment2" colspan="8">Full set of available TCs for APID 2</td>
+  </tr>
+  
+  
+  <tr class="headerRow">
+  <td class="hrNo">No</td>
+  <td class="hrField" colspan="3">ACN Parameters <a href="#ACN_PARAMS_EXPLAINED123" class="acnParamsLink">[?]</a></td>
+  <td class="hrType" colspan="4">Type</td>
+  </tr>
+  <tr class="OddRow">
+      <td class="no" >1</td>
+      <td class="field" colspan="3">serviceType</td>
+      <td class="type" colspan="4">INTEGER</td>
+  </tr><tr class="OddRow">
+      <td class="no" >2</td>
+      <td class="field" colspan="3">serviceSubType</td>
+      <td class="type" colspan="4">INTEGER</td>
+  </tr>
+  <tr class="headerRow">
+  <td class="hrNo">No</td>
+  <td class="hrField">Field</td>
+  <td class="hrComment">Comment</td>
+  <td class="hrOptional">Present</td>
+  <td class="hrType">Type</td>
+  <td class="hrConstraint">Constraint</td>
+  <td class="hrMin">Min Bits</td>
+  <td class="hrMax">Max Bits</td>
+  </tr>
+  
+  <tr class="OddRow">
+  <td class="no">1</td>
+  <td class="field">pus-2</td>
+  <td class="comment"></td>
+  <td class="optional">serviceType=2</td>
+  <td class="type"><a href="#ICD_Service2_APID_2">Service2-APID-2</a></td>
+  <td class="constraint"></td>
+  <td class="min">0</td>
+  <td class="max">8</td>
+  </tr>
+  <tr class="EvenRow">
+  <td class="no">2</td>
+  <td class="field">pus-4</td>
+  <td class="comment"></td>
+  <td class="optional">serviceType=4</td>
+  <td class="type"><a href="#ICD_Service4_Generic">Service4-Generic</a></td>
+  <td class="constraint"></td>
+  <td class="min">0</td>
+  <td class="max">0</td>
+  </tr>
+  
+  </tbody>
+  </table>
+  &nbsp;<br/>
+  <a name="ICD_APID_APID_2_TC_pus_2"></a> 
+  <table width="100%" >
+  <tbody>
+  
+  <tr class="typeRow">
+  <td colspan="6">
+  APID-APID-2-TC-pus-2 <font size="-1">(CHOICE)</font>
+  <font size="-2"><a href="#ASN1_APID_APID_2_TC_pus_2" class="fileLink">ASN.1</a></font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Min:&nbsp;0&nbsp;bytes</font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Max:&nbsp;1&nbsp;bytes</font>
+  </td>
+  </tr>
+  
+  <tr class="CommentRow">
+  <td class="comment2" colspan="8">Full set of available TCs for APID 2
+  <br/>Acn inline encoding in the context of APID-2-TC type and pus-2 component</td>
+  </tr>
+  
+  
+  <tr class="headerRow">
+  <td class="hrNo">No</td>
+  <td class="hrField" colspan="3">ACN Parameters <a href="#ACN_PARAMS_EXPLAINED123" class="acnParamsLink">[?]</a></td>
+  <td class="hrType" colspan="4">Type</td>
+  </tr>
+  <tr class="OddRow">
+      <td class="no" >1</td>
+      <td class="field" colspan="3">serviceSubType</td>
+      <td class="type" colspan="4">INTEGER</td>
+  </tr>
+  <tr class="headerRow">
+  <td class="hrNo">No</td>
+  <td class="hrField">Field</td>
+  <td class="hrComment">Comment</td>
+  <td class="hrOptional">Present</td>
+  <td class="hrType">Type</td>
+  <td class="hrConstraint">Constraint</td>
+  <td class="hrMin">Min Bits</td>
+  <td class="hrMax">Max Bits</td>
+  </tr>
+  
+  <tr class="OddRow">
+  <td class="no">1</td>
+  <td class="field">distribute-On-Off</td>
+  <td class="comment"></td>
+  <td class="optional">serviceSubType=1</td>
+  <td class="type"><a href="#ICD_APID_2_PUS_2_1">APID-2-PUS-2-1</a></td>
+  <td class="constraint">(1 .. 5)</td>
+  <td class="min">4</td>
+  <td class="max">8</td>
+  </tr>
+  <tr class="EvenRow">
+  <td class="no">2</td>
+  <td class="field">whatever-pus-2-2</td>
+  <td class="comment"></td>
+  <td class="optional">serviceSubType=2</td>
+  <td class="type"><a href="#ICD_APID_2_PUS_2_2">APID-2-PUS-2-2</a></td>
+  <td class="constraint"></td>
+  <td class="min">0</td>
+  <td class="max">0</td>
+  </tr>
+  
+  </tbody>
+  </table>
+  &nbsp;<br/>
+  <a name="ICD_APID_APID_2_TC_pus_2_distribute_On_Off"></a>
+  <table width="100%" >
+  <tbody>
+  
+  <tr  class="typeRow">
+  <td colspan="6">
+  APID-APID-2-TC-pus-2-distribute-On-Off <font size="-1">(SEQUENCE-OF)</font>
+  <font size="-2"><a href="#ASN1_APID_APID_2_TC_pus_2_distribute_On_Off" class="fileLink">ASN.1</a></font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Min:&nbsp;1&nbsp;bytes</font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Max:&nbsp;1&nbsp;bytes</font>
+  </td>
+  </tr>
+  
+  <tr class="CommentRow">
+  <td class="comment2" colspan="8">Full set of available TCs for APID 2
+  <br/>Acn inline encoding in the context of APID-2-TC type and pus-2 component<br/>Acn inline encoding in the context of APID-APID-2-TC-pus-2 type and distribute-On-Off component<br/></td>
+  </tr>
+  
+  <tr class="headerRow">
+  <td class="hrNo">No</td>
+  <td class="hrField">Field</td>
+  <td class="hrComment">Comment</td>
+  <td class="hrOptional">Present</td>
+  <td class="hrType">Type</td>
+  <td class="hrConstraint">Constraint</td>
+  <td class="hrMin">Min Length (bits)</td>
+  <td class="hrMax">Max Length (bits)</td>
+  </tr>
+  
+  <tr class="OddRow">
+  <td class="no">1</td>
+  <td class="field">Length</td>
+  <td class="comment">Special field used by ACN to indicate the number of items present in the array.</td>
+  <td class="optional">always</td>
+  <td class="type">unsigned int</td>
+  <td class="constraint">(1 .. 5)</td>
+  <td class="min">3</td>
+  <td class="max">3</td>
+  </tr>
+  <tr class="OddRow">
+  <td class="no">2</td>
+  <td class="field">Item #1</td>
+  <td class="comment"></td>
+  <td class="optional">always</td>
+  <td class="type"><a href="#ICD_APID_2_Addresses">APID-2-Addresses</a></td>
+  <td class="constraint">N.A.</td>
+  <td class="min">1</td>
+  <td class="max">1</td>
+  </tr>
+  <tr class="CommentRow">
+  <td class="threeDots" colspan="8"> <p>. . .</p> </td>
+  </tr>
+  <tr class="OddRow">
+  <td class="no">6</td>
+  <td class="field">Item #5</td>
+  <td class="comment"></td>
+  <td class="optional">always</td>
+  <td class="type"><a href="#ICD_APID_2_Addresses">APID-2-Addresses</a></td>
+  <td class="constraint">N.A.</td>
+  <td class="min">1</td>
+  <td class="max">1</td>
+  </tr>
+  
+  </tbody>
+  </table>
+  &nbsp;<br/>
+  <a name="ICD_APID_APID_2_TC_pus_4"></a> 
+  <table width="100%" >
+  <tbody>
+  
+  <tr class="typeRow">
+  <td colspan="6">
+  APID-APID-2-TC-pus-4 <font size="-1">(CHOICE)</font>
+  <font size="-2"><a href="#ASN1_APID_APID_2_TC_pus_4" class="fileLink">ASN.1</a></font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Min:&nbsp;0&nbsp;bytes</font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Max:&nbsp;0&nbsp;bytes</font>
+  </td>
+  </tr>
+  
+  <tr class="CommentRow">
+  <td class="comment2" colspan="8">Full set of available TCs for APID 2
+  <br/>Acn inline encoding in the context of APID-2-TC type and pus-4 component</td>
+  </tr>
+  
+  
+  <tr class="headerRow">
+  <td class="hrNo">No</td>
+  <td class="hrField" colspan="3">ACN Parameters <a href="#ACN_PARAMS_EXPLAINED123" class="acnParamsLink">[?]</a></td>
+  <td class="hrType" colspan="4">Type</td>
+  </tr>
+  <tr class="OddRow">
+      <td class="no" >1</td>
+      <td class="field" colspan="3">serviceSubType</td>
+      <td class="type" colspan="4">INTEGER</td>
+  </tr>
+  <tr class="headerRow">
+  <td class="hrNo">No</td>
+  <td class="hrField">Field</td>
+  <td class="hrComment">Comment</td>
+  <td class="hrOptional">Present</td>
+  <td class="hrType">Type</td>
+  <td class="hrConstraint">Constraint</td>
+  <td class="hrMin">Min Bits</td>
+  <td class="hrMax">Max Bits</td>
+  </tr>
+  
+  <tr class="OddRow">
+  <td class="no">1</td>
+  <td class="field">whatever-4-1</td>
+  <td class="comment"></td>
+  <td class="optional">serviceSubType=1</td>
+  <td class="type"><a href="#ICD_NULL">NULL</a></td>
+  <td class="constraint"></td>
+  <td class="min">0</td>
+  <td class="max">0</td>
+  </tr>
+  
+  </tbody>
+  </table>
+  &nbsp;<br/>
+  <a name="ICD_PUS_TC"></a> 
+  <table width="100%" >
+  <tbody>
+  
+  <tr class="typeRow">
+  <td colspan="6">
+  PUS-TC <font size="-1">(CHOICE)</font>
+  <font size="-2"><a href="#ASN1_PUS_TC" class="fileLink">ASN.1</a>  <a href="#ACN_PUS_TC" class="fileLink">ACN</a></font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Min:&nbsp;0&nbsp;bytes</font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Max:&nbsp;1&nbsp;bytes</font>
+  </td>
+  </tr>
+  
+  <tr class="CommentRow">
+  <td class="comment2" colspan="8">System-level set of TCs including all APIDs</td>
+  </tr>
+  
+  
+  <tr class="headerRow">
+  <td class="hrNo">No</td>
+  <td class="hrField" colspan="3">ACN Parameters <a href="#ACN_PARAMS_EXPLAINED123" class="acnParamsLink">[?]</a></td>
+  <td class="hrType" colspan="4">Type</td>
+  </tr>
+  <tr class="OddRow">
+      <td class="no" >1</td>
+      <td class="field" colspan="3">apid</td>
+      <td class="type" colspan="4">INTEGER</td>
+  </tr><tr class="OddRow">
+      <td class="no" >2</td>
+      <td class="field" colspan="3">serviceType</td>
+      <td class="type" colspan="4">INTEGER</td>
+  </tr><tr class="OddRow">
+      <td class="no" >3</td>
+      <td class="field" colspan="3">serviceSubType</td>
+      <td class="type" colspan="4">INTEGER</td>
+  </tr>
+  <tr class="headerRow">
+  <td class="hrNo">No</td>
+  <td class="hrField">Field</td>
+  <td class="hrComment">Comment</td>
+  <td class="hrOptional">Present</td>
+  <td class="hrType">Type</td>
+  <td class="hrConstraint">Constraint</td>
+  <td class="hrMin">Min Bits</td>
+  <td class="hrMax">Max Bits</td>
+  </tr>
+  
+  <tr class="OddRow">
+  <td class="no">1</td>
+  <td class="field">apid-1</td>
+  <td class="comment"></td>
+  <td class="optional">apid=1</td>
+  <td class="type"><a href="#ICD_APID_1_TC">APID-1-TC</a></td>
+  <td class="constraint"></td>
+  <td class="min">0</td>
+  <td class="max">1</td>
+  </tr>
+  <tr class="EvenRow">
+  <td class="no">2</td>
+  <td class="field">apid-2</td>
+  <td class="comment"></td>
+  <td class="optional">apid=2</td>
+  <td class="type"><a href="#ICD_APID_2_TC">APID-2-TC</a></td>
+  <td class="constraint"></td>
+  <td class="min">0</td>
+  <td class="max">8</td>
+  </tr>
+  
+  </tbody>
+  </table>
+  &nbsp;<br/>
+  <a name="ICD_APID_PUS_TC_apid_1"></a> 
+  <table width="100%" >
+  <tbody>
+  
+  <tr class="typeRow">
+  <td colspan="6">
+  APID-PUS-TC-apid-1 <font size="-1">(CHOICE)</font>
+  <font size="-2"><a href="#ASN1_APID_PUS_TC_apid_1" class="fileLink">ASN.1</a></font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Min:&nbsp;0&nbsp;bytes</font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Max:&nbsp;1&nbsp;bytes</font>
+  </td>
+  </tr>
+  
+  <tr class="CommentRow">
+  <td class="comment2" colspan="8">System-level set of TCs including all APIDs
+  <br/>Acn inline encoding in the context of PUS-TC type and apid-1 component</td>
+  </tr>
+  
+  
+  <tr class="headerRow">
+  <td class="hrNo">No</td>
+  <td class="hrField" colspan="3">ACN Parameters <a href="#ACN_PARAMS_EXPLAINED123" class="acnParamsLink">[?]</a></td>
+  <td class="hrType" colspan="4">Type</td>
+  </tr>
+  <tr class="OddRow">
+      <td class="no" >1</td>
+      <td class="field" colspan="3">serviceType</td>
+      <td class="type" colspan="4">INTEGER</td>
+  </tr><tr class="OddRow">
+      <td class="no" >2</td>
+      <td class="field" colspan="3">serviceSubType</td>
+      <td class="type" colspan="4">INTEGER</td>
+  </tr>
+  <tr class="headerRow">
+  <td class="hrNo">No</td>
+  <td class="hrField">Field</td>
+  <td class="hrComment">Comment</td>
+  <td class="hrOptional">Present</td>
+  <td class="hrType">Type</td>
+  <td class="hrConstraint">Constraint</td>
+  <td class="hrMin">Min Bits</td>
+  <td class="hrMax">Max Bits</td>
+  </tr>
+  
+  <tr class="OddRow">
+  <td class="no">1</td>
+  <td class="field">pus-2</td>
+  <td class="comment"></td>
+  <td class="optional">serviceType=2</td>
+  <td class="type"><a href="#ICD_Service2_APID_1">Service2-APID-1</a></td>
+  <td class="constraint"></td>
+  <td class="min">0</td>
+  <td class="max">1</td>
+  </tr>
+  <tr class="EvenRow">
+  <td class="no">2</td>
+  <td class="field">pus-3</td>
+  <td class="comment"></td>
+  <td class="optional">serviceType=3</td>
+  <td class="type"><a href="#ICD_Service3_Generic">Service3-Generic</a></td>
+  <td class="constraint"></td>
+  <td class="min">0</td>
+  <td class="max">0</td>
+  </tr>
+  
+  </tbody>
+  </table>
+  &nbsp;<br/>
+  <a name="ICD_APID_PUS_TC_apid_1_pus_2"></a> 
+  <table width="100%" >
+  <tbody>
+  
+  <tr class="typeRow">
+  <td colspan="6">
+  APID-PUS-TC-apid-1-pus-2 <font size="-1">(CHOICE)</font>
+  <font size="-2"><a href="#ASN1_APID_PUS_TC_apid_1_pus_2" class="fileLink">ASN.1</a></font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Min:&nbsp;0&nbsp;bytes</font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Max:&nbsp;1&nbsp;bytes</font>
+  </td>
+  </tr>
+  
+  <tr class="CommentRow">
+  <td class="comment2" colspan="8">System-level set of TCs including all APIDs
+  <br/>Acn inline encoding in the context of PUS-TC type and apid-1 component<br/>Acn inline encoding in the context of APID-PUS-TC-apid-1 type and pus-2 component</td>
+  </tr>
+  
+  
+  <tr class="headerRow">
+  <td class="hrNo">No</td>
+  <td class="hrField" colspan="3">ACN Parameters <a href="#ACN_PARAMS_EXPLAINED123" class="acnParamsLink">[?]</a></td>
+  <td class="hrType" colspan="4">Type</td>
+  </tr>
+  <tr class="OddRow">
+      <td class="no" >1</td>
+      <td class="field" colspan="3">serviceSubType</td>
+      <td class="type" colspan="4">INTEGER</td>
+  </tr>
+  <tr class="headerRow">
+  <td class="hrNo">No</td>
+  <td class="hrField">Field</td>
+  <td class="hrComment">Comment</td>
+  <td class="hrOptional">Present</td>
+  <td class="hrType">Type</td>
+  <td class="hrConstraint">Constraint</td>
+  <td class="hrMin">Min Bits</td>
+  <td class="hrMax">Max Bits</td>
+  </tr>
+  
+  <tr class="OddRow">
+  <td class="no">1</td>
+  <td class="field">distribute-On-Off</td>
+  <td class="comment"></td>
+  <td class="optional">serviceSubType=1</td>
+  <td class="type"><a href="#ICD_APID_1_PUS_2_1">APID-1-PUS-2-1</a></td>
+  <td class="constraint">(1 .. 1)</td>
+  <td class="min">1</td>
+  <td class="max">1</td>
+  </tr>
+  <tr class="EvenRow">
+  <td class="no">2</td>
+  <td class="field">whatever-pus-2-2</td>
+  <td class="comment"></td>
+  <td class="optional">serviceSubType=2</td>
+  <td class="type"><a href="#ICD_APID_1_PUS_2_2">APID-1-PUS-2-2</a></td>
+  <td class="constraint"></td>
+  <td class="min">0</td>
+  <td class="max">0</td>
+  </tr>
+  
+  </tbody>
+  </table>
+  &nbsp;<br/>
+  <a name="ICD_APID_PUS_TC_apid_1_pus_2_distribute_On_Off"></a>
+  <table width="100%" >
+  <tbody>
+  
+  <tr  class="typeRow">
+  <td colspan="6">
+  APID-PUS-TC-apid-1-pus-2-distribute-On-Off <font size="-1">(SEQUENCE-OF)</font>
+  <font size="-2"><a href="#ASN1_APID_PUS_TC_apid_1_pus_2_distribute_On_Off" class="fileLink">ASN.1</a></font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Min:&nbsp;1&nbsp;bytes</font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Max:&nbsp;1&nbsp;bytes</font>
+  </td>
+  </tr>
+  
+  <tr class="CommentRow">
+  <td class="comment2" colspan="8">System-level set of TCs including all APIDs
+  <br/>Acn inline encoding in the context of PUS-TC type and apid-1 component<br/>Acn inline encoding in the context of APID-PUS-TC-apid-1 type and pus-2 component<br/>Acn inline encoding in the context of APID-PUS-TC-apid-1-pus-2 type and distribute-On-Off component<br/>The array contains a single element.</td>
+  </tr>
+  
+  <tr class="headerRow">
+  <td class="hrNo">No</td>
+  <td class="hrField">Field</td>
+  <td class="hrComment">Comment</td>
+  <td class="hrOptional">Present</td>
+  <td class="hrType">Type</td>
+  <td class="hrConstraint">Constraint</td>
+  <td class="hrMin">Min Length (bits)</td>
+  <td class="hrMax">Max Length (bits)</td>
+  </tr>
+  
+  <tr class="OddRow">
+  <td class="no">1</td>
+  <td class="field">Item #1</td>
+  <td class="comment"></td>
+  <td class="optional">always</td>
+  <td class="type"><a href="#ICD_APID_1_Addresses">APID-1-Addresses</a></td>
+  <td class="constraint">N.A.</td>
+  <td class="min">1</td>
+  <td class="max">1</td>
+  </tr>
+  
+  </tbody>
+  </table>
+  &nbsp;<br/>
+  <a name="ICD_APID_PUS_TC_apid_1_pus_3"></a> 
+  <table width="100%" >
+  <tbody>
+  
+  <tr class="typeRow">
+  <td colspan="6">
+  APID-PUS-TC-apid-1-pus-3 <font size="-1">(CHOICE)</font>
+  <font size="-2"><a href="#ASN1_APID_PUS_TC_apid_1_pus_3" class="fileLink">ASN.1</a></font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Min:&nbsp;0&nbsp;bytes</font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Max:&nbsp;0&nbsp;bytes</font>
+  </td>
+  </tr>
+  
+  <tr class="CommentRow">
+  <td class="comment2" colspan="8">System-level set of TCs including all APIDs
+  <br/>Acn inline encoding in the context of PUS-TC type and apid-1 component<br/>Acn inline encoding in the context of APID-PUS-TC-apid-1 type and pus-3 component</td>
+  </tr>
+  
+  
+  <tr class="headerRow">
+  <td class="hrNo">No</td>
+  <td class="hrField" colspan="3">ACN Parameters <a href="#ACN_PARAMS_EXPLAINED123" class="acnParamsLink">[?]</a></td>
+  <td class="hrType" colspan="4">Type</td>
+  </tr>
+  <tr class="OddRow">
+      <td class="no" >1</td>
+      <td class="field" colspan="3">serviceSubType</td>
+      <td class="type" colspan="4">INTEGER</td>
+  </tr>
+  <tr class="headerRow">
+  <td class="hrNo">No</td>
+  <td class="hrField">Field</td>
+  <td class="hrComment">Comment</td>
+  <td class="hrOptional">Present</td>
+  <td class="hrType">Type</td>
+  <td class="hrConstraint">Constraint</td>
+  <td class="hrMin">Min Bits</td>
+  <td class="hrMax">Max Bits</td>
+  </tr>
+  
+  <tr class="OddRow">
+  <td class="no">1</td>
+  <td class="field">whatever-3-1</td>
+  <td class="comment"></td>
+  <td class="optional">serviceSubType=1</td>
+  <td class="type"><a href="#ICD_NULL">NULL</a></td>
+  <td class="constraint"></td>
+  <td class="min">0</td>
+  <td class="max">0</td>
+  </tr>
+  
+  </tbody>
+  </table>
+  &nbsp;<br/>
+  <a name="ICD_APID_PUS_TC_apid_2"></a> 
+  <table width="100%" >
+  <tbody>
+  
+  <tr class="typeRow">
+  <td colspan="6">
+  APID-PUS-TC-apid-2 <font size="-1">(CHOICE)</font>
+  <font size="-2"><a href="#ASN1_APID_PUS_TC_apid_2" class="fileLink">ASN.1</a></font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Min:&nbsp;0&nbsp;bytes</font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Max:&nbsp;1&nbsp;bytes</font>
+  </td>
+  </tr>
+  
+  <tr class="CommentRow">
+  <td class="comment2" colspan="8">System-level set of TCs including all APIDs
+  <br/>Acn inline encoding in the context of PUS-TC type and apid-2 component</td>
+  </tr>
+  
+  
+  <tr class="headerRow">
+  <td class="hrNo">No</td>
+  <td class="hrField" colspan="3">ACN Parameters <a href="#ACN_PARAMS_EXPLAINED123" class="acnParamsLink">[?]</a></td>
+  <td class="hrType" colspan="4">Type</td>
+  </tr>
+  <tr class="OddRow">
+      <td class="no" >1</td>
+      <td class="field" colspan="3">serviceType</td>
+      <td class="type" colspan="4">INTEGER</td>
+  </tr><tr class="OddRow">
+      <td class="no" >2</td>
+      <td class="field" colspan="3">serviceSubType</td>
+      <td class="type" colspan="4">INTEGER</td>
+  </tr>
+  <tr class="headerRow">
+  <td class="hrNo">No</td>
+  <td class="hrField">Field</td>
+  <td class="hrComment">Comment</td>
+  <td class="hrOptional">Present</td>
+  <td class="hrType">Type</td>
+  <td class="hrConstraint">Constraint</td>
+  <td class="hrMin">Min Bits</td>
+  <td class="hrMax">Max Bits</td>
+  </tr>
+  
+  <tr class="OddRow">
+  <td class="no">1</td>
+  <td class="field">pus-2</td>
+  <td class="comment"></td>
+  <td class="optional">serviceType=2</td>
+  <td class="type"><a href="#ICD_Service2_APID_2">Service2-APID-2</a></td>
+  <td class="constraint"></td>
+  <td class="min">0</td>
+  <td class="max">8</td>
+  </tr>
+  <tr class="EvenRow">
+  <td class="no">2</td>
+  <td class="field">pus-4</td>
+  <td class="comment"></td>
+  <td class="optional">serviceType=4</td>
+  <td class="type"><a href="#ICD_Service4_Generic">Service4-Generic</a></td>
+  <td class="constraint"></td>
+  <td class="min">0</td>
+  <td class="max">0</td>
+  </tr>
+  
+  </tbody>
+  </table>
+  &nbsp;<br/>
+  <a name="ICD_APID_PUS_TC_apid_2_pus_2"></a> 
+  <table width="100%" >
+  <tbody>
+  
+  <tr class="typeRow">
+  <td colspan="6">
+  APID-PUS-TC-apid-2-pus-2 <font size="-1">(CHOICE)</font>
+  <font size="-2"><a href="#ASN1_APID_PUS_TC_apid_2_pus_2" class="fileLink">ASN.1</a></font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Min:&nbsp;0&nbsp;bytes</font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Max:&nbsp;1&nbsp;bytes</font>
+  </td>
+  </tr>
+  
+  <tr class="CommentRow">
+  <td class="comment2" colspan="8">System-level set of TCs including all APIDs
+  <br/>Acn inline encoding in the context of PUS-TC type and apid-2 component<br/>Acn inline encoding in the context of APID-PUS-TC-apid-2 type and pus-2 component</td>
+  </tr>
+  
+  
+  <tr class="headerRow">
+  <td class="hrNo">No</td>
+  <td class="hrField" colspan="3">ACN Parameters <a href="#ACN_PARAMS_EXPLAINED123" class="acnParamsLink">[?]</a></td>
+  <td class="hrType" colspan="4">Type</td>
+  </tr>
+  <tr class="OddRow">
+      <td class="no" >1</td>
+      <td class="field" colspan="3">serviceSubType</td>
+      <td class="type" colspan="4">INTEGER</td>
+  </tr>
+  <tr class="headerRow">
+  <td class="hrNo">No</td>
+  <td class="hrField">Field</td>
+  <td class="hrComment">Comment</td>
+  <td class="hrOptional">Present</td>
+  <td class="hrType">Type</td>
+  <td class="hrConstraint">Constraint</td>
+  <td class="hrMin">Min Bits</td>
+  <td class="hrMax">Max Bits</td>
+  </tr>
+  
+  <tr class="OddRow">
+  <td class="no">1</td>
+  <td class="field">distribute-On-Off</td>
+  <td class="comment"></td>
+  <td class="optional">serviceSubType=1</td>
+  <td class="type"><a href="#ICD_APID_2_PUS_2_1">APID-2-PUS-2-1</a></td>
+  <td class="constraint">(1 .. 5)</td>
+  <td class="min">4</td>
+  <td class="max">8</td>
+  </tr>
+  <tr class="EvenRow">
+  <td class="no">2</td>
+  <td class="field">whatever-pus-2-2</td>
+  <td class="comment"></td>
+  <td class="optional">serviceSubType=2</td>
+  <td class="type"><a href="#ICD_APID_2_PUS_2_2">APID-2-PUS-2-2</a></td>
+  <td class="constraint"></td>
+  <td class="min">0</td>
+  <td class="max">0</td>
+  </tr>
+  
+  </tbody>
+  </table>
+  &nbsp;<br/>
+  <a name="ICD_APID_PUS_TC_apid_2_pus_2_distribute_On_Off"></a>
+  <table width="100%" >
+  <tbody>
+  
+  <tr  class="typeRow">
+  <td colspan="6">
+  APID-PUS-TC-apid-2-pus-2-distribute-On-Off <font size="-1">(SEQUENCE-OF)</font>
+  <font size="-2"><a href="#ASN1_APID_PUS_TC_apid_2_pus_2_distribute_On_Off" class="fileLink">ASN.1</a></font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Min:&nbsp;1&nbsp;bytes</font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Max:&nbsp;1&nbsp;bytes</font>
+  </td>
+  </tr>
+  
+  <tr class="CommentRow">
+  <td class="comment2" colspan="8">System-level set of TCs including all APIDs
+  <br/>Acn inline encoding in the context of PUS-TC type and apid-2 component<br/>Acn inline encoding in the context of APID-PUS-TC-apid-2 type and pus-2 component<br/>Acn inline encoding in the context of APID-PUS-TC-apid-2-pus-2 type and distribute-On-Off component<br/></td>
+  </tr>
+  
+  <tr class="headerRow">
+  <td class="hrNo">No</td>
+  <td class="hrField">Field</td>
+  <td class="hrComment">Comment</td>
+  <td class="hrOptional">Present</td>
+  <td class="hrType">Type</td>
+  <td class="hrConstraint">Constraint</td>
+  <td class="hrMin">Min Length (bits)</td>
+  <td class="hrMax">Max Length (bits)</td>
+  </tr>
+  
+  <tr class="OddRow">
+  <td class="no">1</td>
+  <td class="field">Length</td>
+  <td class="comment">Special field used by ACN to indicate the number of items present in the array.</td>
+  <td class="optional">always</td>
+  <td class="type">unsigned int</td>
+  <td class="constraint">(1 .. 5)</td>
+  <td class="min">3</td>
+  <td class="max">3</td>
+  </tr>
+  <tr class="OddRow">
+  <td class="no">2</td>
+  <td class="field">Item #1</td>
+  <td class="comment"></td>
+  <td class="optional">always</td>
+  <td class="type"><a href="#ICD_APID_2_Addresses">APID-2-Addresses</a></td>
+  <td class="constraint">N.A.</td>
+  <td class="min">1</td>
+  <td class="max">1</td>
+  </tr>
+  <tr class="CommentRow">
+  <td class="threeDots" colspan="8"> <p>. . .</p> </td>
+  </tr>
+  <tr class="OddRow">
+  <td class="no">6</td>
+  <td class="field">Item #5</td>
+  <td class="comment"></td>
+  <td class="optional">always</td>
+  <td class="type"><a href="#ICD_APID_2_Addresses">APID-2-Addresses</a></td>
+  <td class="constraint">N.A.</td>
+  <td class="min">1</td>
+  <td class="max">1</td>
+  </tr>
+  
+  </tbody>
+  </table>
+  &nbsp;<br/>
+  <a name="ICD_APID_PUS_TC_apid_2_pus_4"></a> 
+  <table width="100%" >
+  <tbody>
+  
+  <tr class="typeRow">
+  <td colspan="6">
+  APID-PUS-TC-apid-2-pus-4 <font size="-1">(CHOICE)</font>
+  <font size="-2"><a href="#ASN1_APID_PUS_TC_apid_2_pus_4" class="fileLink">ASN.1</a></font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Min:&nbsp;0&nbsp;bytes</font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Max:&nbsp;0&nbsp;bytes</font>
+  </td>
+  </tr>
+  
+  <tr class="CommentRow">
+  <td class="comment2" colspan="8">System-level set of TCs including all APIDs
+  <br/>Acn inline encoding in the context of PUS-TC type and apid-2 component<br/>Acn inline encoding in the context of APID-PUS-TC-apid-2 type and pus-4 component</td>
+  </tr>
+  
+  
+  <tr class="headerRow">
+  <td class="hrNo">No</td>
+  <td class="hrField" colspan="3">ACN Parameters <a href="#ACN_PARAMS_EXPLAINED123" class="acnParamsLink">[?]</a></td>
+  <td class="hrType" colspan="4">Type</td>
+  </tr>
+  <tr class="OddRow">
+      <td class="no" >1</td>
+      <td class="field" colspan="3">serviceSubType</td>
+      <td class="type" colspan="4">INTEGER</td>
+  </tr>
+  <tr class="headerRow">
+  <td class="hrNo">No</td>
+  <td class="hrField">Field</td>
+  <td class="hrComment">Comment</td>
+  <td class="hrOptional">Present</td>
+  <td class="hrType">Type</td>
+  <td class="hrConstraint">Constraint</td>
+  <td class="hrMin">Min Bits</td>
+  <td class="hrMax">Max Bits</td>
+  </tr>
+  
+  <tr class="OddRow">
+  <td class="no">1</td>
+  <td class="field">whatever-4-1</td>
+  <td class="comment"></td>
+  <td class="optional">serviceSubType=1</td>
+  <td class="type"><a href="#ICD_NULL">NULL</a></td>
+  <td class="constraint"></td>
+  <td class="min">0</td>
+  <td class="max">0</td>
+  </tr>
+  
+  </tbody>
+  </table>
+  &nbsp;<br/>
+  <a name="ICD_TC"></a> 
+  <table width="100%" >
+  <tbody>
+  
+  <tr class="typeRow">
+  <td colspan="6">
+  TC <font size="-1">(SEQUENCE)</font>
+  <font size="-2"><a href="#ASN1_TC" class="fileLink">ASN.1</a>  <a href="#ACN_TC" class="fileLink">ACN</a></font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Min:&nbsp;2&nbsp;bytes</font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Max:&nbsp;3&nbsp;bytes</font>
+  </td>
+  </tr>
+  
+  <tr class="CommentRow">
+  <td class="comment2" colspan="8">Define the main telecommand type</td>
+  </tr>
+  
+  
+  <tr class="headerRow">
+  <td class="hrNo">No</td>
+  <td class="hrField">Field</td>
+  <td class="hrComment">Comment</td>
+  <td class="hrOptional">Present</td>
+  <td class="hrType">Type</td>
+  <td class="hrConstraint">Constraint</td>
+  <td class="hrMin">Min Bits</td>
+  <td class="hrMax">Max Bits</td>
+  </tr>
+  
+  <tr class="OddRow">
+  <td class="no">1</td>
+  <td class="field">serviceType</td>
+  <td class="comment"></td>
+  <td class="optional">always</td>
+  <td class="type">INTEGER</td>
+  <td class="constraint"></td>
+  <td class="min">4</td>
+  <td class="max">4</td>
+  </tr>
+  <tr class="EvenRow">
+  <td class="no">2</td>
+  <td class="field">serviceSubType</td>
+  <td class="comment"></td>
+  <td class="optional">always</td>
+  <td class="type">INTEGER</td>
+  <td class="constraint"></td>
+  <td class="min">4</td>
+  <td class="max">4</td>
+  </tr>
+  <tr class="OddRow">
+  <td class="no">3</td>
+  <td class="field">apid</td>
+  <td class="comment"></td>
+  <td class="optional">always</td>
+  <td class="type">INTEGER</td>
+  <td class="constraint"></td>
+  <td class="min">8</td>
+  <td class="max">8</td>
+  </tr>
+  <tr class="EvenRow">
+  <td class="no">4</td>
+  <td class="field">pus</td>
+  <td class="comment"></td>
+  <td class="optional">always</td>
+  <td class="type"><a href="#ICD_PUS_TC">APID-TC-pus</a></td>
+  <td class="constraint"></td>
+  <td class="min">0</td>
+  <td class="max">8</td>
+  </tr>
+  
+  </tbody>
+  </table>
+  &nbsp;<br/>
+  <a name="ICD_APID_TC_pus"></a> 
+  <table width="100%" >
+  <tbody>
+  
+  <tr class="typeRow">
+  <td colspan="6">
+  APID-TC-pus <font size="-1">(CHOICE)</font>
+  <font size="-2"><a href="#ASN1_APID_TC_pus" class="fileLink">ASN.1</a></font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Min:&nbsp;0&nbsp;bytes</font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Max:&nbsp;1&nbsp;bytes</font>
+  </td>
+  </tr>
+  
+  <tr class="CommentRow">
+  <td class="comment2" colspan="8">Define the main telecommand type
+  <br/>Acn inline encoding in the context of TC type and pus component</td>
+  </tr>
+  
+  
+  <tr class="headerRow">
+  <td class="hrNo">No</td>
+  <td class="hrField" colspan="3">ACN Parameters <a href="#ACN_PARAMS_EXPLAINED123" class="acnParamsLink">[?]</a></td>
+  <td class="hrType" colspan="4">Type</td>
+  </tr>
+  <tr class="OddRow">
+      <td class="no" >1</td>
+      <td class="field" colspan="3">apid</td>
+      <td class="type" colspan="4">INTEGER</td>
+  </tr><tr class="OddRow">
+      <td class="no" >2</td>
+      <td class="field" colspan="3">serviceType</td>
+      <td class="type" colspan="4">INTEGER</td>
+  </tr><tr class="OddRow">
+      <td class="no" >3</td>
+      <td class="field" colspan="3">serviceSubType</td>
+      <td class="type" colspan="4">INTEGER</td>
+  </tr>
+  <tr class="headerRow">
+  <td class="hrNo">No</td>
+  <td class="hrField">Field</td>
+  <td class="hrComment">Comment</td>
+  <td class="hrOptional">Present</td>
+  <td class="hrType">Type</td>
+  <td class="hrConstraint">Constraint</td>
+  <td class="hrMin">Min Bits</td>
+  <td class="hrMax">Max Bits</td>
+  </tr>
+  
+  <tr class="OddRow">
+  <td class="no">1</td>
+  <td class="field">apid-1</td>
+  <td class="comment"></td>
+  <td class="optional">apid=1</td>
+  <td class="type"><a href="#ICD_APID_1_TC">APID-1-TC</a></td>
+  <td class="constraint"></td>
+  <td class="min">0</td>
+  <td class="max">1</td>
+  </tr>
+  <tr class="EvenRow">
+  <td class="no">2</td>
+  <td class="field">apid-2</td>
+  <td class="comment"></td>
+  <td class="optional">apid=2</td>
+  <td class="type"><a href="#ICD_APID_2_TC">APID-2-TC</a></td>
+  <td class="constraint"></td>
+  <td class="min">0</td>
+  <td class="max">8</td>
+  </tr>
+  
+  </tbody>
+  </table>
+  &nbsp;<br/>
+  <a name="ICD_APID_TC_pus_apid_1"></a> 
+  <table width="100%" >
+  <tbody>
+  
+  <tr class="typeRow">
+  <td colspan="6">
+  APID-TC-pus-apid-1 <font size="-1">(CHOICE)</font>
+  <font size="-2"><a href="#ASN1_APID_TC_pus_apid_1" class="fileLink">ASN.1</a></font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Min:&nbsp;0&nbsp;bytes</font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Max:&nbsp;1&nbsp;bytes</font>
+  </td>
+  </tr>
+  
+  <tr class="CommentRow">
+  <td class="comment2" colspan="8">Define the main telecommand type
+  <br/>Acn inline encoding in the context of TC type and pus component<br/>Acn inline encoding in the context of APID-TC-pus type and apid-1 component</td>
+  </tr>
+  
+  
+  <tr class="headerRow">
+  <td class="hrNo">No</td>
+  <td class="hrField" colspan="3">ACN Parameters <a href="#ACN_PARAMS_EXPLAINED123" class="acnParamsLink">[?]</a></td>
+  <td class="hrType" colspan="4">Type</td>
+  </tr>
+  <tr class="OddRow">
+      <td class="no" >1</td>
+      <td class="field" colspan="3">serviceType</td>
+      <td class="type" colspan="4">INTEGER</td>
+  </tr><tr class="OddRow">
+      <td class="no" >2</td>
+      <td class="field" colspan="3">serviceSubType</td>
+      <td class="type" colspan="4">INTEGER</td>
+  </tr>
+  <tr class="headerRow">
+  <td class="hrNo">No</td>
+  <td class="hrField">Field</td>
+  <td class="hrComment">Comment</td>
+  <td class="hrOptional">Present</td>
+  <td class="hrType">Type</td>
+  <td class="hrConstraint">Constraint</td>
+  <td class="hrMin">Min Bits</td>
+  <td class="hrMax">Max Bits</td>
+  </tr>
+  
+  <tr class="OddRow">
+  <td class="no">1</td>
+  <td class="field">pus-2</td>
+  <td class="comment"></td>
+  <td class="optional">serviceType=2</td>
+  <td class="type"><a href="#ICD_Service2_APID_1">Service2-APID-1</a></td>
+  <td class="constraint"></td>
+  <td class="min">0</td>
+  <td class="max">1</td>
+  </tr>
+  <tr class="EvenRow">
+  <td class="no">2</td>
+  <td class="field">pus-3</td>
+  <td class="comment"></td>
+  <td class="optional">serviceType=3</td>
+  <td class="type"><a href="#ICD_Service3_Generic">Service3-Generic</a></td>
+  <td class="constraint"></td>
+  <td class="min">0</td>
+  <td class="max">0</td>
+  </tr>
+  
+  </tbody>
+  </table>
+  &nbsp;<br/>
+  <a name="ICD_APID_TC_pus_apid_1_pus_2"></a> 
+  <table width="100%" >
+  <tbody>
+  
+  <tr class="typeRow">
+  <td colspan="6">
+  APID-TC-pus-apid-1-pus-2 <font size="-1">(CHOICE)</font>
+  <font size="-2"><a href="#ASN1_APID_TC_pus_apid_1_pus_2" class="fileLink">ASN.1</a></font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Min:&nbsp;0&nbsp;bytes</font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Max:&nbsp;1&nbsp;bytes</font>
+  </td>
+  </tr>
+  
+  <tr class="CommentRow">
+  <td class="comment2" colspan="8">Define the main telecommand type
+  <br/>Acn inline encoding in the context of TC type and pus component<br/>Acn inline encoding in the context of APID-TC-pus type and apid-1 component<br/>Acn inline encoding in the context of APID-TC-pus-apid-1 type and pus-2 component</td>
+  </tr>
+  
+  
+  <tr class="headerRow">
+  <td class="hrNo">No</td>
+  <td class="hrField" colspan="3">ACN Parameters <a href="#ACN_PARAMS_EXPLAINED123" class="acnParamsLink">[?]</a></td>
+  <td class="hrType" colspan="4">Type</td>
+  </tr>
+  <tr class="OddRow">
+      <td class="no" >1</td>
+      <td class="field" colspan="3">serviceSubType</td>
+      <td class="type" colspan="4">INTEGER</td>
+  </tr>
+  <tr class="headerRow">
+  <td class="hrNo">No</td>
+  <td class="hrField">Field</td>
+  <td class="hrComment">Comment</td>
+  <td class="hrOptional">Present</td>
+  <td class="hrType">Type</td>
+  <td class="hrConstraint">Constraint</td>
+  <td class="hrMin">Min Bits</td>
+  <td class="hrMax">Max Bits</td>
+  </tr>
+  
+  <tr class="OddRow">
+  <td class="no">1</td>
+  <td class="field">distribute-On-Off</td>
+  <td class="comment"></td>
+  <td class="optional">serviceSubType=1</td>
+  <td class="type"><a href="#ICD_APID_1_PUS_2_1">APID-1-PUS-2-1</a></td>
+  <td class="constraint">(1 .. 1)</td>
+  <td class="min">1</td>
+  <td class="max">1</td>
+  </tr>
+  <tr class="EvenRow">
+  <td class="no">2</td>
+  <td class="field">whatever-pus-2-2</td>
+  <td class="comment"></td>
+  <td class="optional">serviceSubType=2</td>
+  <td class="type"><a href="#ICD_APID_1_PUS_2_2">APID-1-PUS-2-2</a></td>
+  <td class="constraint"></td>
+  <td class="min">0</td>
+  <td class="max">0</td>
+  </tr>
+  
+  </tbody>
+  </table>
+  &nbsp;<br/>
+  <a name="ICD_APID_TC_pus_apid_1_pus_2_distribute_On_Off"></a>
+  <table width="100%" >
+  <tbody>
+  
+  <tr  class="typeRow">
+  <td colspan="6">
+  APID-TC-pus-apid-1-pus-2-distribute-On-Off <font size="-1">(SEQUENCE-OF)</font>
+  <font size="-2"><a href="#ASN1_APID_TC_pus_apid_1_pus_2_distribute_On_Off" class="fileLink">ASN.1</a></font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Min:&nbsp;1&nbsp;bytes</font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Max:&nbsp;1&nbsp;bytes</font>
+  </td>
+  </tr>
+  
+  <tr class="CommentRow">
+  <td class="comment2" colspan="8">Define the main telecommand type
+  <br/>Acn inline encoding in the context of TC type and pus component<br/>Acn inline encoding in the context of APID-TC-pus type and apid-1 component<br/>Acn inline encoding in the context of APID-TC-pus-apid-1 type and pus-2 component<br/>Acn inline encoding in the context of APID-TC-pus-apid-1-pus-2 type and distribute-On-Off component<br/>The array contains a single element.</td>
+  </tr>
+  
+  <tr class="headerRow">
+  <td class="hrNo">No</td>
+  <td class="hrField">Field</td>
+  <td class="hrComment">Comment</td>
+  <td class="hrOptional">Present</td>
+  <td class="hrType">Type</td>
+  <td class="hrConstraint">Constraint</td>
+  <td class="hrMin">Min Length (bits)</td>
+  <td class="hrMax">Max Length (bits)</td>
+  </tr>
+  
+  <tr class="OddRow">
+  <td class="no">1</td>
+  <td class="field">Item #1</td>
+  <td class="comment"></td>
+  <td class="optional">always</td>
+  <td class="type"><a href="#ICD_APID_1_Addresses">APID-1-Addresses</a></td>
+  <td class="constraint">N.A.</td>
+  <td class="min">1</td>
+  <td class="max">1</td>
+  </tr>
+  
+  </tbody>
+  </table>
+  &nbsp;<br/>
+  <a name="ICD_APID_TC_pus_apid_1_pus_3"></a> 
+  <table width="100%" >
+  <tbody>
+  
+  <tr class="typeRow">
+  <td colspan="6">
+  APID-TC-pus-apid-1-pus-3 <font size="-1">(CHOICE)</font>
+  <font size="-2"><a href="#ASN1_APID_TC_pus_apid_1_pus_3" class="fileLink">ASN.1</a></font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Min:&nbsp;0&nbsp;bytes</font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Max:&nbsp;0&nbsp;bytes</font>
+  </td>
+  </tr>
+  
+  <tr class="CommentRow">
+  <td class="comment2" colspan="8">Define the main telecommand type
+  <br/>Acn inline encoding in the context of TC type and pus component<br/>Acn inline encoding in the context of APID-TC-pus type and apid-1 component<br/>Acn inline encoding in the context of APID-TC-pus-apid-1 type and pus-3 component</td>
+  </tr>
+  
+  
+  <tr class="headerRow">
+  <td class="hrNo">No</td>
+  <td class="hrField" colspan="3">ACN Parameters <a href="#ACN_PARAMS_EXPLAINED123" class="acnParamsLink">[?]</a></td>
+  <td class="hrType" colspan="4">Type</td>
+  </tr>
+  <tr class="OddRow">
+      <td class="no" >1</td>
+      <td class="field" colspan="3">serviceSubType</td>
+      <td class="type" colspan="4">INTEGER</td>
+  </tr>
+  <tr class="headerRow">
+  <td class="hrNo">No</td>
+  <td class="hrField">Field</td>
+  <td class="hrComment">Comment</td>
+  <td class="hrOptional">Present</td>
+  <td class="hrType">Type</td>
+  <td class="hrConstraint">Constraint</td>
+  <td class="hrMin">Min Bits</td>
+  <td class="hrMax">Max Bits</td>
+  </tr>
+  
+  <tr class="OddRow">
+  <td class="no">1</td>
+  <td class="field">whatever-3-1</td>
+  <td class="comment"></td>
+  <td class="optional">serviceSubType=1</td>
+  <td class="type"><a href="#ICD_NULL">NULL</a></td>
+  <td class="constraint"></td>
+  <td class="min">0</td>
+  <td class="max">0</td>
+  </tr>
+  
+  </tbody>
+  </table>
+  &nbsp;<br/>
+  <a name="ICD_APID_TC_pus_apid_2"></a> 
+  <table width="100%" >
+  <tbody>
+  
+  <tr class="typeRow">
+  <td colspan="6">
+  APID-TC-pus-apid-2 <font size="-1">(CHOICE)</font>
+  <font size="-2"><a href="#ASN1_APID_TC_pus_apid_2" class="fileLink">ASN.1</a></font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Min:&nbsp;0&nbsp;bytes</font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Max:&nbsp;1&nbsp;bytes</font>
+  </td>
+  </tr>
+  
+  <tr class="CommentRow">
+  <td class="comment2" colspan="8">Define the main telecommand type
+  <br/>Acn inline encoding in the context of TC type and pus component<br/>Acn inline encoding in the context of APID-TC-pus type and apid-2 component</td>
+  </tr>
+  
+  
+  <tr class="headerRow">
+  <td class="hrNo">No</td>
+  <td class="hrField" colspan="3">ACN Parameters <a href="#ACN_PARAMS_EXPLAINED123" class="acnParamsLink">[?]</a></td>
+  <td class="hrType" colspan="4">Type</td>
+  </tr>
+  <tr class="OddRow">
+      <td class="no" >1</td>
+      <td class="field" colspan="3">serviceType</td>
+      <td class="type" colspan="4">INTEGER</td>
+  </tr><tr class="OddRow">
+      <td class="no" >2</td>
+      <td class="field" colspan="3">serviceSubType</td>
+      <td class="type" colspan="4">INTEGER</td>
+  </tr>
+  <tr class="headerRow">
+  <td class="hrNo">No</td>
+  <td class="hrField">Field</td>
+  <td class="hrComment">Comment</td>
+  <td class="hrOptional">Present</td>
+  <td class="hrType">Type</td>
+  <td class="hrConstraint">Constraint</td>
+  <td class="hrMin">Min Bits</td>
+  <td class="hrMax">Max Bits</td>
+  </tr>
+  
+  <tr class="OddRow">
+  <td class="no">1</td>
+  <td class="field">pus-2</td>
+  <td class="comment"></td>
+  <td class="optional">serviceType=2</td>
+  <td class="type"><a href="#ICD_Service2_APID_2">Service2-APID-2</a></td>
+  <td class="constraint"></td>
+  <td class="min">0</td>
+  <td class="max">8</td>
+  </tr>
+  <tr class="EvenRow">
+  <td class="no">2</td>
+  <td class="field">pus-4</td>
+  <td class="comment"></td>
+  <td class="optional">serviceType=4</td>
+  <td class="type"><a href="#ICD_Service4_Generic">Service4-Generic</a></td>
+  <td class="constraint"></td>
+  <td class="min">0</td>
+  <td class="max">0</td>
+  </tr>
+  
+  </tbody>
+  </table>
+  &nbsp;<br/>
+  <a name="ICD_APID_TC_pus_apid_2_pus_2"></a> 
+  <table width="100%" >
+  <tbody>
+  
+  <tr class="typeRow">
+  <td colspan="6">
+  APID-TC-pus-apid-2-pus-2 <font size="-1">(CHOICE)</font>
+  <font size="-2"><a href="#ASN1_APID_TC_pus_apid_2_pus_2" class="fileLink">ASN.1</a></font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Min:&nbsp;0&nbsp;bytes</font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Max:&nbsp;1&nbsp;bytes</font>
+  </td>
+  </tr>
+  
+  <tr class="CommentRow">
+  <td class="comment2" colspan="8">Define the main telecommand type
+  <br/>Acn inline encoding in the context of TC type and pus component<br/>Acn inline encoding in the context of APID-TC-pus type and apid-2 component<br/>Acn inline encoding in the context of APID-TC-pus-apid-2 type and pus-2 component</td>
+  </tr>
+  
+  
+  <tr class="headerRow">
+  <td class="hrNo">No</td>
+  <td class="hrField" colspan="3">ACN Parameters <a href="#ACN_PARAMS_EXPLAINED123" class="acnParamsLink">[?]</a></td>
+  <td class="hrType" colspan="4">Type</td>
+  </tr>
+  <tr class="OddRow">
+      <td class="no" >1</td>
+      <td class="field" colspan="3">serviceSubType</td>
+      <td class="type" colspan="4">INTEGER</td>
+  </tr>
+  <tr class="headerRow">
+  <td class="hrNo">No</td>
+  <td class="hrField">Field</td>
+  <td class="hrComment">Comment</td>
+  <td class="hrOptional">Present</td>
+  <td class="hrType">Type</td>
+  <td class="hrConstraint">Constraint</td>
+  <td class="hrMin">Min Bits</td>
+  <td class="hrMax">Max Bits</td>
+  </tr>
+  
+  <tr class="OddRow">
+  <td class="no">1</td>
+  <td class="field">distribute-On-Off</td>
+  <td class="comment"></td>
+  <td class="optional">serviceSubType=1</td>
+  <td class="type"><a href="#ICD_APID_2_PUS_2_1">APID-2-PUS-2-1</a></td>
+  <td class="constraint">(1 .. 5)</td>
+  <td class="min">4</td>
+  <td class="max">8</td>
+  </tr>
+  <tr class="EvenRow">
+  <td class="no">2</td>
+  <td class="field">whatever-pus-2-2</td>
+  <td class="comment"></td>
+  <td class="optional">serviceSubType=2</td>
+  <td class="type"><a href="#ICD_APID_2_PUS_2_2">APID-2-PUS-2-2</a></td>
+  <td class="constraint"></td>
+  <td class="min">0</td>
+  <td class="max">0</td>
+  </tr>
+  
+  </tbody>
+  </table>
+  &nbsp;<br/>
+  <a name="ICD_APID_TC_pus_apid_2_pus_2_distribute_On_Off"></a>
+  <table width="100%" >
+  <tbody>
+  
+  <tr  class="typeRow">
+  <td colspan="6">
+  APID-TC-pus-apid-2-pus-2-distribute-On-Off <font size="-1">(SEQUENCE-OF)</font>
+  <font size="-2"><a href="#ASN1_APID_TC_pus_apid_2_pus_2_distribute_On_Off" class="fileLink">ASN.1</a></font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Min:&nbsp;1&nbsp;bytes</font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Max:&nbsp;1&nbsp;bytes</font>
+  </td>
+  </tr>
+  
+  <tr class="CommentRow">
+  <td class="comment2" colspan="8">Define the main telecommand type
+  <br/>Acn inline encoding in the context of TC type and pus component<br/>Acn inline encoding in the context of APID-TC-pus type and apid-2 component<br/>Acn inline encoding in the context of APID-TC-pus-apid-2 type and pus-2 component<br/>Acn inline encoding in the context of APID-TC-pus-apid-2-pus-2 type and distribute-On-Off component<br/></td>
+  </tr>
+  
+  <tr class="headerRow">
+  <td class="hrNo">No</td>
+  <td class="hrField">Field</td>
+  <td class="hrComment">Comment</td>
+  <td class="hrOptional">Present</td>
+  <td class="hrType">Type</td>
+  <td class="hrConstraint">Constraint</td>
+  <td class="hrMin">Min Length (bits)</td>
+  <td class="hrMax">Max Length (bits)</td>
+  </tr>
+  
+  <tr class="OddRow">
+  <td class="no">1</td>
+  <td class="field">Length</td>
+  <td class="comment">Special field used by ACN to indicate the number of items present in the array.</td>
+  <td class="optional">always</td>
+  <td class="type">unsigned int</td>
+  <td class="constraint">(1 .. 5)</td>
+  <td class="min">3</td>
+  <td class="max">3</td>
+  </tr>
+  <tr class="OddRow">
+  <td class="no">2</td>
+  <td class="field">Item #1</td>
+  <td class="comment"></td>
+  <td class="optional">always</td>
+  <td class="type"><a href="#ICD_APID_2_Addresses">APID-2-Addresses</a></td>
+  <td class="constraint">N.A.</td>
+  <td class="min">1</td>
+  <td class="max">1</td>
+  </tr>
+  <tr class="CommentRow">
+  <td class="threeDots" colspan="8"> <p>. . .</p> </td>
+  </tr>
+  <tr class="OddRow">
+  <td class="no">6</td>
+  <td class="field">Item #5</td>
+  <td class="comment"></td>
+  <td class="optional">always</td>
+  <td class="type"><a href="#ICD_APID_2_Addresses">APID-2-Addresses</a></td>
+  <td class="constraint">N.A.</td>
+  <td class="min">1</td>
+  <td class="max">1</td>
+  </tr>
+  
+  </tbody>
+  </table>
+  &nbsp;<br/>
+  <a name="ICD_APID_TC_pus_apid_2_pus_4"></a> 
+  <table width="100%" >
+  <tbody>
+  
+  <tr class="typeRow">
+  <td colspan="6">
+  APID-TC-pus-apid-2-pus-4 <font size="-1">(CHOICE)</font>
+  <font size="-2"><a href="#ASN1_APID_TC_pus_apid_2_pus_4" class="fileLink">ASN.1</a></font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Min:&nbsp;0&nbsp;bytes</font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Max:&nbsp;0&nbsp;bytes</font>
+  </td>
+  </tr>
+  
+  <tr class="CommentRow">
+  <td class="comment2" colspan="8">Define the main telecommand type
+  <br/>Acn inline encoding in the context of TC type and pus component<br/>Acn inline encoding in the context of APID-TC-pus type and apid-2 component<br/>Acn inline encoding in the context of APID-TC-pus-apid-2 type and pus-4 component</td>
+  </tr>
+  
+  
+  <tr class="headerRow">
+  <td class="hrNo">No</td>
+  <td class="hrField" colspan="3">ACN Parameters <a href="#ACN_PARAMS_EXPLAINED123" class="acnParamsLink">[?]</a></td>
+  <td class="hrType" colspan="4">Type</td>
+  </tr>
+  <tr class="OddRow">
+      <td class="no" >1</td>
+      <td class="field" colspan="3">serviceSubType</td>
+      <td class="type" colspan="4">INTEGER</td>
+  </tr>
+  <tr class="headerRow">
+  <td class="hrNo">No</td>
+  <td class="hrField">Field</td>
+  <td class="hrComment">Comment</td>
+  <td class="hrOptional">Present</td>
+  <td class="hrType">Type</td>
+  <td class="hrConstraint">Constraint</td>
+  <td class="hrMin">Min Bits</td>
+  <td class="hrMax">Max Bits</td>
+  </tr>
+  
+  <tr class="OddRow">
+  <td class="no">1</td>
+  <td class="field">whatever-4-1</td>
+  <td class="comment"></td>
+  <td class="optional">serviceSubType=1</td>
+  <td class="type"><a href="#ICD_NULL">NULL</a></td>
+  <td class="constraint"></td>
+  <td class="min">0</td>
+  <td class="max">0</td>
+  </tr>
+  
+  </tbody>
+  </table>
+  &nbsp;<br/>
+  <a name="ICD_Parameter"></a> 
+  <table width="100%" >
+  <tbody>
+  
+  <tr class="typeRow">
+  <td colspan="2"  >
+  Parameter <font size="-1">(INTEGER)</font>
+  <font size="-2"><a href="#ASN1_Parameter" class="fileLink">ASN.1</a>   </font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Min:&nbsp;1&nbsp;bytes</font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Max:&nbsp;1&nbsp;bytes</font>
+  </td>
+  </tr>
+  
+  <tr class="CommentRow">
+  <td class="comment2" colspan="4">Type for a parameter (could be generic)</td>
+  </tr>
+  
+  <tr class="headerRow">
+  <td class="hrConstraint2" colspan="2">Constraints</td>
+  <td class="hrMin">Min Length (bits)</td>
+  <td class="hrMax">Max Length (bits)</td>
+  </tr>
+  
+  <tr class="OddRow">
+      <td class="constraint" colspan="2">(0 .. 255)</td>
+      <td class="min" >8</td>
+      <td class="max" >8</td>
+  </tr>
+  
+  </tbody>
+  </table>
+  &nbsp;<br/>
+  <a name="ICD_PUS_1_2_Generic"></a> 
+  <table width="100%" >
+  <tbody>
+  
+  <tr class="typeRow">
+  <td colspan="6">
+  PUS-1-2-Generic <font size="-1">(SEQUENCE)</font>
+  <font size="-2"><a href="#ASN1_PUS_1_2_Generic" class="fileLink">ASN.1</a></font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Min:&nbsp;2&nbsp;bytes</font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Max:&nbsp;3&nbsp;bytes</font>
+  </td>
+  </tr>
+  
+  <tr class="CommentRow">
+  <td class="comment2" colspan="8">I use a choice to indicate that the type for the parameters could by anything,
+  <br/> not always a list of identical types.</td>
+  </tr>
+  
+  
+  <tr class="headerRow">
+  <td class="hrNo">No</td>
+  <td class="hrField">Field</td>
+  <td class="hrComment">Comment</td>
+  <td class="hrOptional">Present</td>
+  <td class="hrType">Type</td>
+  <td class="hrConstraint">Constraint</td>
+  <td class="hrMin">Min Bits</td>
+  <td class="hrMax">Max Bits</td>
+  </tr>
+  
+  <tr class="OddRow">
+  <td class="no">1</td>
+  <td class="field">parameters</td>
+  <td class="comment">code INTEGER { incomplete-packet-length (1), incorrect-checksum (2) } (1..2),</td>
+  <td class="optional">always</td>
+  <td class="type"><a href="#ICD_PUS_1_2_Generic_parameters">APID-PUS-1-2-Generic-parameters</a></td>
+  <td class="constraint"></td>
+  <td class="min">9</td>
+  <td class="max">17</td>
+  </tr>
+  
+  </tbody>
+  </table>
+  &nbsp;<br/>
+  <a name="ICD_APID_PUS_1_2_Generic_parameters"></a> 
+  <table width="100%" >
+  <tbody>
+  
+  <tr class="typeRow">
+  <td colspan="6">
+  APID-PUS-1-2-Generic-parameters <font size="-1">(CHOICE)</font>
+  <font size="-2"><a href="#ASN1_APID_PUS_1_2_Generic_parameters" class="fileLink">ASN.1</a></font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Min:&nbsp;2&nbsp;bytes</font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Max:&nbsp;3&nbsp;bytes</font>
+  </td>
+  </tr>
+  
+  <tr class="CommentRow">
+  <td class="comment2" colspan="8">I use a choice to indicate that the type for the parameters could by anything,
+  <br/> not always a list of identical types.
+  <br/>Acn inline encoding in the context of PUS-1-2-Generic type and parameters component</td>
+  </tr>
+  
+  
+  <tr class="headerRow">
+  <td class="hrNo">No</td>
+  <td class="hrField">Field</td>
+  <td class="hrComment">Comment</td>
+  <td class="hrOptional">Present</td>
+  <td class="hrType">Type</td>
+  <td class="hrConstraint">Constraint</td>
+  <td class="hrMin">Min Bits</td>
+  <td class="hrMax">Max Bits</td>
+  </tr>
+  
+  <tr class="OddRow">
+  <td class="no">1</td>
+  <td class="field">ChoiceIndex</td>
+  <td class="comment">Special field used by ACN to indicate which choice alternative is present.</td>
+  <td class="optional">always</td>
+  <td class="type">unsigned int</td>
+  <td class="constraint">N.A.</td>
+  <td class="min">1</td>
+  <td class="max">1</td>
+  </tr>
+  <tr class="EvenRow">
+  <td class="no">2</td>
+  <td class="field">one-param</td>
+  <td class="comment"></td>
+  <td class="optional">ChoiceIndex = 0</td>
+  <td class="type"><a href="#ICD_Parameter">Parameter</a></td>
+  <td class="constraint">(0 .. 255)</td>
+  <td class="min">8</td>
+  <td class="max">8</td>
+  </tr>
+  <tr class="OddRow">
+  <td class="no">3</td>
+  <td class="field">two-params</td>
+  <td class="comment"></td>
+  <td class="optional">ChoiceIndex = 1</td>
+  <td class="type"><a href="#ICD_PUS_1_2_Generic_parameters_two_params">PUS-1-2-Generic-parameters-two-params</a></td>
+  <td class="constraint">(2)</td>
+  <td class="min">16</td>
+  <td class="max">16</td>
+  </tr>
+  
+  </tbody>
+  </table>
+  &nbsp;<br/>
+  <a name="ICD_APID_PUS_1_2_Generic_parameters_two_params"></a>
+  <table width="100%" >
+  <tbody>
+  
+  <tr  class="typeRow">
+  <td colspan="6">
+  APID-PUS-1-2-Generic-parameters-two-params <font size="-1">(SEQUENCE-OF)</font>
+  <font size="-2"><a href="#ASN1_APID_PUS_1_2_Generic_parameters_two_params" class="fileLink">ASN.1</a></font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Min:&nbsp;2&nbsp;bytes</font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Max:&nbsp;2&nbsp;bytes</font>
+  </td>
+  </tr>
+  
+  <tr class="CommentRow">
+  <td class="comment2" colspan="8">I use a choice to indicate that the type for the parameters could by anything,
+  <br/> not always a list of identical types.
+  <br/>Acn inline encoding in the context of PUS-1-2-Generic type and parameters component<br/>Acn inline encoding in the context of APID-PUS-1-2-Generic-parameters type and two-params component<br/>Length is fixed to 2 elements (no length determinant is needed).</td>
+  </tr>
+  
+  <tr class="headerRow">
+  <td class="hrNo">No</td>
+  <td class="hrField">Field</td>
+  <td class="hrComment">Comment</td>
+  <td class="hrOptional">Present</td>
+  <td class="hrType">Type</td>
+  <td class="hrConstraint">Constraint</td>
+  <td class="hrMin">Min Length (bits)</td>
+  <td class="hrMax">Max Length (bits)</td>
+  </tr>
+  
+  <tr class="OddRow">
+  <td class="no">1</td>
+  <td class="field">Item #1</td>
+  <td class="comment"></td>
+  <td class="optional">always</td>
+  <td class="type"><a href="#ICD_Parameter">Parameter</a></td>
+  <td class="constraint">(0 .. 255)</td>
+  <td class="min">8</td>
+  <td class="max">8</td>
+  </tr>
+  <tr class="EvenRow">
+  <td class="no">2</td>
+  <td class="field">Item #2</td>
+  <td class="comment"></td>
+  <td class="optional">always</td>
+  <td class="type"><a href="#ICD_Parameter">Parameter</a></td>
+  <td class="constraint">(0 .. 255)</td>
+  <td class="min">8</td>
+  <td class="max">8</td>
+  </tr>
+  
+  </tbody>
+  </table>
+  &nbsp;<br/>
+  <a name="ICD_PUS_1_2_Generic_parameters"></a> 
+  <table width="100%" >
+  <tbody>
+  
+  <tr class="typeRow">
+  <td colspan="6">
+  PUS-1-2-Generic-parameters <font size="-1">(<i>anonymous </i>CHOICE)</font>
+  <font size="-2"><a href="#ASN1_PUS_1_2_Generic_parameters" class="fileLink">ASN.1</a></font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Min:&nbsp;2&nbsp;bytes</font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Max:&nbsp;3&nbsp;bytes</font>
+  </td>
+  </tr>
+  
+  <tr class="CommentRow">
+  <td class="comment2" colspan="8"></td>
+  </tr>
+  
+  
+  <tr class="headerRow">
+  <td class="hrNo">No</td>
+  <td class="hrField">Field</td>
+  <td class="hrComment">Comment</td>
+  <td class="hrOptional">Present</td>
+  <td class="hrType">Type</td>
+  <td class="hrConstraint">Constraint</td>
+  <td class="hrMin">Min Bits</td>
+  <td class="hrMax">Max Bits</td>
+  </tr>
+  
+  <tr class="OddRow">
+  <td class="no">1</td>
+  <td class="field">ChoiceIndex</td>
+  <td class="comment">Special field used by ACN to indicate which choice alternative is present.</td>
+  <td class="optional">always</td>
+  <td class="type">unsigned int</td>
+  <td class="constraint">N.A.</td>
+  <td class="min">1</td>
+  <td class="max">1</td>
+  </tr>
+  <tr class="EvenRow">
+  <td class="no">2</td>
+  <td class="field">one-param</td>
+  <td class="comment"></td>
+  <td class="optional">ChoiceIndex = 0</td>
+  <td class="type"><a href="#ICD_Parameter">Parameter</a></td>
+  <td class="constraint">(0 .. 255)</td>
+  <td class="min">8</td>
+  <td class="max">8</td>
+  </tr>
+  <tr class="OddRow">
+  <td class="no">3</td>
+  <td class="field">two-params</td>
+  <td class="comment"></td>
+  <td class="optional">ChoiceIndex = 1</td>
+  <td class="type"><a href="#ICD_PUS_1_2_Generic_parameters_two_params">PUS-1-2-Generic-parameters-two-params</a></td>
+  <td class="constraint">(2)</td>
+  <td class="min">16</td>
+  <td class="max">16</td>
+  </tr>
+  
+  </tbody>
+  </table>
+  &nbsp;<br/>
+  <a name="ICD_APID_PUS_1_2_Generic_parameters_two_params"></a>
+  <table width="100%" >
+  <tbody>
+  
+  <tr  class="typeRow">
+  <td colspan="6">
+  APID-PUS-1-2-Generic-parameters-two-params <font size="-1">(SEQUENCE-OF)</font>
+  <font size="-2"><a href="#ASN1_APID_PUS_1_2_Generic_parameters_two_params" class="fileLink">ASN.1</a></font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Min:&nbsp;2&nbsp;bytes</font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Max:&nbsp;2&nbsp;bytes</font>
+  </td>
+  </tr>
+  
+  <tr class="CommentRow">
+  <td class="comment2" colspan="8">Acn inline encoding in the context of PUS-1-2-Generic-parameters type and two-params component<br/>Length is fixed to 2 elements (no length determinant is needed).</td>
+  </tr>
+  
+  <tr class="headerRow">
+  <td class="hrNo">No</td>
+  <td class="hrField">Field</td>
+  <td class="hrComment">Comment</td>
+  <td class="hrOptional">Present</td>
+  <td class="hrType">Type</td>
+  <td class="hrConstraint">Constraint</td>
+  <td class="hrMin">Min Length (bits)</td>
+  <td class="hrMax">Max Length (bits)</td>
+  </tr>
+  
+  <tr class="OddRow">
+  <td class="no">1</td>
+  <td class="field">Item #1</td>
+  <td class="comment"></td>
+  <td class="optional">always</td>
+  <td class="type"><a href="#ICD_Parameter">Parameter</a></td>
+  <td class="constraint">(0 .. 255)</td>
+  <td class="min">8</td>
+  <td class="max">8</td>
+  </tr>
+  <tr class="EvenRow">
+  <td class="no">2</td>
+  <td class="field">Item #2</td>
+  <td class="comment"></td>
+  <td class="optional">always</td>
+  <td class="type"><a href="#ICD_Parameter">Parameter</a></td>
+  <td class="constraint">(0 .. 255)</td>
+  <td class="min">8</td>
+  <td class="max">8</td>
+  </tr>
+  
+  </tbody>
+  </table>
+  &nbsp;<br/>
+  <a name="ICD_PUS_1_2_Generic_parameters_two_params"></a>
+  <table width="100%" >
+  <tbody>
+  
+  <tr  class="typeRow">
+  <td colspan="6">
+  PUS-1-2-Generic-parameters-two-params <font size="-1">(SEQUENCE-OF)</font>
+  <font size="-2"><a href="#ASN1_PUS_1_2_Generic_parameters_two_params" class="fileLink">ASN.1</a></font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Min:&nbsp;2&nbsp;bytes</font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Max:&nbsp;2&nbsp;bytes</font>
+  </td>
+  </tr>
+  
+  <tr class="CommentRow">
+  <td class="comment2" colspan="8">Length is fixed to 2 elements (no length determinant is needed).</td>
+  </tr>
+  
+  <tr class="headerRow">
+  <td class="hrNo">No</td>
+  <td class="hrField">Field</td>
+  <td class="hrComment">Comment</td>
+  <td class="hrOptional">Present</td>
+  <td class="hrType">Type</td>
+  <td class="hrConstraint">Constraint</td>
+  <td class="hrMin">Min Length (bits)</td>
+  <td class="hrMax">Max Length (bits)</td>
+  </tr>
+  
+  <tr class="OddRow">
+  <td class="no">1</td>
+  <td class="field">Item #1</td>
+  <td class="comment"></td>
+  <td class="optional">always</td>
+  <td class="type"><a href="#ICD_Parameter">Parameter</a></td>
+  <td class="constraint">(0 .. 255)</td>
+  <td class="min">8</td>
+  <td class="max">8</td>
+  </tr>
+  <tr class="EvenRow">
+  <td class="no">2</td>
+  <td class="field">Item #2</td>
+  <td class="comment"></td>
+  <td class="optional">always</td>
+  <td class="type"><a href="#ICD_Parameter">Parameter</a></td>
+  <td class="constraint">(0 .. 255)</td>
+  <td class="min">8</td>
+  <td class="max">8</td>
+  </tr>
+  
+  </tbody>
+  </table>
+  &nbsp;<br/>
+  <a name="ICD_Service1_APID_1"></a> 
+  <table width="100%" >
+  <tbody>
+  
+  <tr class="typeRow">
+  <td colspan="6">
+  Service1-APID-1 <font size="-1">(CHOICE)</font>
+  <font size="-2"><a href="#ASN1_Service1_APID_1" class="fileLink">ASN.1</a>  <a href="#ACN_Service1_APID_1" class="fileLink">ACN</a></font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Min:&nbsp;2&nbsp;bytes</font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Max:&nbsp;3&nbsp;bytes</font>
+  </td>
+  </tr>
+  
+  <tr class="CommentRow">
+  <td class="comment2" colspan="8"></td>
+  </tr>
+  
+  
+  <tr class="headerRow">
+  <td class="hrNo">No</td>
+  <td class="hrField" colspan="3">ACN Parameters <a href="#ACN_PARAMS_EXPLAINED123" class="acnParamsLink">[?]</a></td>
+  <td class="hrType" colspan="4">Type</td>
+  </tr>
+  <tr class="OddRow">
+      <td class="no" >1</td>
+      <td class="field" colspan="3">serviceSubType</td>
+      <td class="type" colspan="4">INTEGER</td>
+  </tr>
+  <tr class="headerRow">
+  <td class="hrNo">No</td>
+  <td class="hrField">Field</td>
+  <td class="hrComment">Comment</td>
+  <td class="hrOptional">Present</td>
+  <td class="hrType">Type</td>
+  <td class="hrConstraint">Constraint</td>
+  <td class="hrMin">Min Bits</td>
+  <td class="hrMax">Max Bits</td>
+  </tr>
+  
+  <tr class="OddRow">
+  <td class="no">1</td>
+  <td class="field">acceptance-failure</td>
+  <td class="comment"></td>
+  <td class="optional">serviceSubType=2</td>
+  <td class="type"><a href="#ICD_PUS_1_2_Generic">PUS-1-2-Generic</a></td>
+  <td class="constraint"></td>
+  <td class="min">9</td>
+  <td class="max">17</td>
+  </tr>
+  
+  </tbody>
+  </table>
+  &nbsp;<br/>
+  <a name="ICD_APID_Service1_APID_1_acceptance_failure"></a> 
+  <table width="100%" >
+  <tbody>
+  
+  <tr class="typeRow">
+  <td colspan="6">
+  APID-Service1-APID-1-acceptance-failure <font size="-1">(SEQUENCE)</font>
+  <font size="-2"><a href="#ASN1_APID_Service1_APID_1_acceptance_failure" class="fileLink">ASN.1</a></font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Min:&nbsp;2&nbsp;bytes</font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Max:&nbsp;3&nbsp;bytes</font>
+  </td>
+  </tr>
+  
+  <tr class="CommentRow">
+  <td class="comment2" colspan="8">Acn inline encoding in the context of Service1-APID-1 type and acceptance-failure component</td>
+  </tr>
+  
+  
+  <tr class="headerRow">
+  <td class="hrNo">No</td>
+  <td class="hrField">Field</td>
+  <td class="hrComment">Comment</td>
+  <td class="hrOptional">Present</td>
+  <td class="hrType">Type</td>
+  <td class="hrConstraint">Constraint</td>
+  <td class="hrMin">Min Bits</td>
+  <td class="hrMax">Max Bits</td>
+  </tr>
+  
+  <tr class="OddRow">
+  <td class="no">1</td>
+  <td class="field">code</td>
+  <td class="comment"></td>
+  <td class="optional">always</td>
+  <td class="type">INTEGER</td>
+  <td class="constraint"></td>
+  <td class="min">1</td>
+  <td class="max">1</td>
+  </tr>
+  <tr class="EvenRow">
+  <td class="no">2</td>
+  <td class="field">parameters</td>
+  <td class="comment">code INTEGER { incomplete-packet-length (1), incorrect-checksum (2) } (1..2),</td>
+  <td class="optional">always</td>
+  <td class="type"><a href="#ICD_PUS_1_2_Generic_parameters">APID-Service1-APID-1-acceptance-failure-parameters</a></td>
+  <td class="constraint"></td>
+  <td class="min">8</td>
+  <td class="max">16</td>
+  </tr>
+  
+  </tbody>
+  </table>
+  &nbsp;<br/>
+  <a name="ICD_APID_Service1_APID_1_acceptance_failure_parameters"></a> 
+  <table width="100%" >
+  <tbody>
+  
+  <tr class="typeRow">
+  <td colspan="6">
+  APID-Service1-APID-1-acceptance-failure-parameters <font size="-1">(CHOICE)</font>
+  <font size="-2"><a href="#ASN1_APID_Service1_APID_1_acceptance_failure_parameters" class="fileLink">ASN.1</a></font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Min:&nbsp;1&nbsp;bytes</font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Max:&nbsp;2&nbsp;bytes</font>
+  </td>
+  </tr>
+  
+  <tr class="CommentRow">
+  <td class="comment2" colspan="8">Acn inline encoding in the context of Service1-APID-1 type and acceptance-failure component<br/>Acn inline encoding in the context of APID-Service1-APID-1-acceptance-failure type and parameters component</td>
+  </tr>
+  
+  
+  <tr class="headerRow">
+  <td class="hrNo">No</td>
+  <td class="hrField">Field</td>
+  <td class="hrComment">Comment</td>
+  <td class="hrOptional">Present</td>
+  <td class="hrType">Type</td>
+  <td class="hrConstraint">Constraint</td>
+  <td class="hrMin">Min Bits</td>
+  <td class="hrMax">Max Bits</td>
+  </tr>
+  
+  <tr class="OddRow">
+  <td class="no">1</td>
+  <td class="field">one-param</td>
+  <td class="comment"></td>
+  <td class="optional">code=1</td>
+  <td class="type"><a href="#ICD_Parameter">Parameter</a></td>
+  <td class="constraint">(0 .. 255)</td>
+  <td class="min">8</td>
+  <td class="max">8</td>
+  </tr>
+  <tr class="EvenRow">
+  <td class="no">2</td>
+  <td class="field">two-params</td>
+  <td class="comment"></td>
+  <td class="optional">code=2</td>
+  <td class="type"><a href="#ICD_PUS_1_2_Generic_parameters_two_params">PUS-1-2-Generic-parameters-two-params</a></td>
+  <td class="constraint">(2)</td>
+  <td class="min">16</td>
+  <td class="max">16</td>
+  </tr>
+  
+  </tbody>
+  </table>
+  &nbsp;<br/>
+  <a name="ICD_APID_Service1_APID_1_acceptance_failure_parameters_two_params"></a>
+  <table width="100%" >
+  <tbody>
+  
+  <tr  class="typeRow">
+  <td colspan="6">
+  APID-Service1-APID-1-acceptance-failure-parameters-two-params <font size="-1">(SEQUENCE-OF)</font>
+  <font size="-2"><a href="#ASN1_APID_Service1_APID_1_acceptance_failure_parameters_two_params" class="fileLink">ASN.1</a></font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Min:&nbsp;2&nbsp;bytes</font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Max:&nbsp;2&nbsp;bytes</font>
+  </td>
+  </tr>
+  
+  <tr class="CommentRow">
+  <td class="comment2" colspan="8">Acn inline encoding in the context of Service1-APID-1 type and acceptance-failure component<br/>Acn inline encoding in the context of APID-Service1-APID-1-acceptance-failure type and parameters component<br/>Acn inline encoding in the context of APID-Service1-APID-1-acceptance-failure-parameters type and two-params component<br/>Length is fixed to 2 elements (no length determinant is needed).</td>
+  </tr>
+  
+  <tr class="headerRow">
+  <td class="hrNo">No</td>
+  <td class="hrField">Field</td>
+  <td class="hrComment">Comment</td>
+  <td class="hrOptional">Present</td>
+  <td class="hrType">Type</td>
+  <td class="hrConstraint">Constraint</td>
+  <td class="hrMin">Min Length (bits)</td>
+  <td class="hrMax">Max Length (bits)</td>
+  </tr>
+  
+  <tr class="OddRow">
+  <td class="no">1</td>
+  <td class="field">Item #1</td>
+  <td class="comment"></td>
+  <td class="optional">always</td>
+  <td class="type"><a href="#ICD_Parameter">Parameter</a></td>
+  <td class="constraint">(0 .. 255)</td>
+  <td class="min">8</td>
+  <td class="max">8</td>
+  </tr>
+  <tr class="EvenRow">
+  <td class="no">2</td>
+  <td class="field">Item #2</td>
+  <td class="comment"></td>
+  <td class="optional">always</td>
+  <td class="type"><a href="#ICD_Parameter">Parameter</a></td>
+  <td class="constraint">(0 .. 255)</td>
+  <td class="min">8</td>
+  <td class="max">8</td>
+  </tr>
+  
+  </tbody>
+  </table>
+  &nbsp;<br/>
+  <a name="ICD_Service1_APID_2"></a> 
+  <table width="100%" >
+  <tbody>
+  
+  <tr class="typeRow">
+  <td colspan="6">
+  Service1-APID-2 <font size="-1">(CHOICE)</font>
+  <font size="-2"><a href="#ASN1_Service1_APID_2" class="fileLink">ASN.1</a>  <a href="#ACN_Service1_APID_2" class="fileLink">ACN</a></font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Min:&nbsp;2&nbsp;bytes</font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Max:&nbsp;3&nbsp;bytes</font>
+  </td>
+  </tr>
+  
+  <tr class="CommentRow">
+  <td class="comment2" colspan="8"></td>
+  </tr>
+  
+  
+  <tr class="headerRow">
+  <td class="hrNo">No</td>
+  <td class="hrField" colspan="3">ACN Parameters <a href="#ACN_PARAMS_EXPLAINED123" class="acnParamsLink">[?]</a></td>
+  <td class="hrType" colspan="4">Type</td>
+  </tr>
+  <tr class="OddRow">
+      <td class="no" >1</td>
+      <td class="field" colspan="3">serviceSubType</td>
+      <td class="type" colspan="4">INTEGER</td>
+  </tr>
+  <tr class="headerRow">
+  <td class="hrNo">No</td>
+  <td class="hrField">Field</td>
+  <td class="hrComment">Comment</td>
+  <td class="hrOptional">Present</td>
+  <td class="hrType">Type</td>
+  <td class="hrConstraint">Constraint</td>
+  <td class="hrMin">Min Bits</td>
+  <td class="hrMax">Max Bits</td>
+  </tr>
+  
+  <tr class="OddRow">
+  <td class="no">1</td>
+  <td class="field">acceptance-failure</td>
+  <td class="comment"></td>
+  <td class="optional">serviceSubType=2</td>
+  <td class="type"><a href="#ICD_PUS_1_2_Generic">PUS-1-2-Generic</a></td>
+  <td class="constraint"></td>
+  <td class="min">9</td>
+  <td class="max">17</td>
+  </tr>
+  
+  </tbody>
+  </table>
+  &nbsp;<br/>
+  <a name="ICD_APID_Service1_APID_2_acceptance_failure"></a> 
+  <table width="100%" >
+  <tbody>
+  
+  <tr class="typeRow">
+  <td colspan="6">
+  APID-Service1-APID-2-acceptance-failure <font size="-1">(SEQUENCE)</font>
+  <font size="-2"><a href="#ASN1_APID_Service1_APID_2_acceptance_failure" class="fileLink">ASN.1</a></font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Min:&nbsp;2&nbsp;bytes</font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Max:&nbsp;3&nbsp;bytes</font>
+  </td>
+  </tr>
+  
+  <tr class="CommentRow">
+  <td class="comment2" colspan="8">Acn inline encoding in the context of Service1-APID-2 type and acceptance-failure component</td>
+  </tr>
+  
+  
+  <tr class="headerRow">
+  <td class="hrNo">No</td>
+  <td class="hrField">Field</td>
+  <td class="hrComment">Comment</td>
+  <td class="hrOptional">Present</td>
+  <td class="hrType">Type</td>
+  <td class="hrConstraint">Constraint</td>
+  <td class="hrMin">Min Bits</td>
+  <td class="hrMax">Max Bits</td>
+  </tr>
+  
+  <tr class="OddRow">
+  <td class="no">1</td>
+  <td class="field">code</td>
+  <td class="comment"></td>
+  <td class="optional">always</td>
+  <td class="type">INTEGER</td>
+  <td class="constraint"></td>
+  <td class="min">1</td>
+  <td class="max">1</td>
+  </tr>
+  <tr class="EvenRow">
+  <td class="no">2</td>
+  <td class="field">parameters</td>
+  <td class="comment">code INTEGER { incomplete-packet-length (1), incorrect-checksum (2) } (1..2),</td>
+  <td class="optional">always</td>
+  <td class="type"><a href="#ICD_PUS_1_2_Generic_parameters">APID-Service1-APID-2-acceptance-failure-parameters</a></td>
+  <td class="constraint"></td>
+  <td class="min">8</td>
+  <td class="max">16</td>
+  </tr>
+  
+  </tbody>
+  </table>
+  &nbsp;<br/>
+  <a name="ICD_APID_Service1_APID_2_acceptance_failure_parameters"></a> 
+  <table width="100%" >
+  <tbody>
+  
+  <tr class="typeRow">
+  <td colspan="6">
+  APID-Service1-APID-2-acceptance-failure-parameters <font size="-1">(CHOICE)</font>
+  <font size="-2"><a href="#ASN1_APID_Service1_APID_2_acceptance_failure_parameters" class="fileLink">ASN.1</a></font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Min:&nbsp;1&nbsp;bytes</font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Max:&nbsp;2&nbsp;bytes</font>
+  </td>
+  </tr>
+  
+  <tr class="CommentRow">
+  <td class="comment2" colspan="8">Acn inline encoding in the context of Service1-APID-2 type and acceptance-failure component<br/>Acn inline encoding in the context of APID-Service1-APID-2-acceptance-failure type and parameters component</td>
+  </tr>
+  
+  
+  <tr class="headerRow">
+  <td class="hrNo">No</td>
+  <td class="hrField">Field</td>
+  <td class="hrComment">Comment</td>
+  <td class="hrOptional">Present</td>
+  <td class="hrType">Type</td>
+  <td class="hrConstraint">Constraint</td>
+  <td class="hrMin">Min Bits</td>
+  <td class="hrMax">Max Bits</td>
+  </tr>
+  
+  <tr class="OddRow">
+  <td class="no">1</td>
+  <td class="field">one-param</td>
+  <td class="comment"></td>
+  <td class="optional">code=2</td>
+  <td class="type"><a href="#ICD_Parameter">Parameter</a></td>
+  <td class="constraint">(0 .. 255)</td>
+  <td class="min">8</td>
+  <td class="max">8</td>
+  </tr>
+  <tr class="EvenRow">
+  <td class="no">2</td>
+  <td class="field">two-params</td>
+  <td class="comment"></td>
+  <td class="optional">code=1</td>
+  <td class="type"><a href="#ICD_PUS_1_2_Generic_parameters_two_params">PUS-1-2-Generic-parameters-two-params</a></td>
+  <td class="constraint">(2)</td>
+  <td class="min">16</td>
+  <td class="max">16</td>
+  </tr>
+  
+  </tbody>
+  </table>
+  &nbsp;<br/>
+  <a name="ICD_APID_Service1_APID_2_acceptance_failure_parameters_two_params"></a>
+  <table width="100%" >
+  <tbody>
+  
+  <tr  class="typeRow">
+  <td colspan="6">
+  APID-Service1-APID-2-acceptance-failure-parameters-two-params <font size="-1">(SEQUENCE-OF)</font>
+  <font size="-2"><a href="#ASN1_APID_Service1_APID_2_acceptance_failure_parameters_two_params" class="fileLink">ASN.1</a></font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Min:&nbsp;2&nbsp;bytes</font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Max:&nbsp;2&nbsp;bytes</font>
+  </td>
+  </tr>
+  
+  <tr class="CommentRow">
+  <td class="comment2" colspan="8">Acn inline encoding in the context of Service1-APID-2 type and acceptance-failure component<br/>Acn inline encoding in the context of APID-Service1-APID-2-acceptance-failure type and parameters component<br/>Acn inline encoding in the context of APID-Service1-APID-2-acceptance-failure-parameters type and two-params component<br/>Length is fixed to 2 elements (no length determinant is needed).</td>
+  </tr>
+  
+  <tr class="headerRow">
+  <td class="hrNo">No</td>
+  <td class="hrField">Field</td>
+  <td class="hrComment">Comment</td>
+  <td class="hrOptional">Present</td>
+  <td class="hrType">Type</td>
+  <td class="hrConstraint">Constraint</td>
+  <td class="hrMin">Min Length (bits)</td>
+  <td class="hrMax">Max Length (bits)</td>
+  </tr>
+  
+  <tr class="OddRow">
+  <td class="no">1</td>
+  <td class="field">Item #1</td>
+  <td class="comment"></td>
+  <td class="optional">always</td>
+  <td class="type"><a href="#ICD_Parameter">Parameter</a></td>
+  <td class="constraint">(0 .. 255)</td>
+  <td class="min">8</td>
+  <td class="max">8</td>
+  </tr>
+  <tr class="EvenRow">
+  <td class="no">2</td>
+  <td class="field">Item #2</td>
+  <td class="comment"></td>
+  <td class="optional">always</td>
+  <td class="type"><a href="#ICD_Parameter">Parameter</a></td>
+  <td class="constraint">(0 .. 255)</td>
+  <td class="min">8</td>
+  <td class="max">8</td>
+  </tr>
+  
+  </tbody>
+  </table>
+  &nbsp;<br/>
+  <a name="ICD_APID_1_TM"></a> 
+  <table width="100%" >
+  <tbody>
+  
+  <tr class="typeRow">
+  <td colspan="6">
+  APID-1-TM <font size="-1">(CHOICE)</font>
+  <font size="-2"><a href="#ASN1_APID_1_TM" class="fileLink">ASN.1</a>  <a href="#ACN_APID_1_TM" class="fileLink">ACN</a></font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Min:&nbsp;2&nbsp;bytes</font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Max:&nbsp;3&nbsp;bytes</font>
+  </td>
+  </tr>
+  
+  <tr class="CommentRow">
+  <td class="comment2" colspan="8"></td>
+  </tr>
+  
+  
+  <tr class="headerRow">
+  <td class="hrNo">No</td>
+  <td class="hrField" colspan="3">ACN Parameters <a href="#ACN_PARAMS_EXPLAINED123" class="acnParamsLink">[?]</a></td>
+  <td class="hrType" colspan="4">Type</td>
+  </tr>
+  <tr class="OddRow">
+      <td class="no" >1</td>
+      <td class="field" colspan="3">serviceType</td>
+      <td class="type" colspan="4">INTEGER</td>
+  </tr><tr class="OddRow">
+      <td class="no" >2</td>
+      <td class="field" colspan="3">serviceSubType</td>
+      <td class="type" colspan="4">INTEGER</td>
+  </tr>
+  <tr class="headerRow">
+  <td class="hrNo">No</td>
+  <td class="hrField">Field</td>
+  <td class="hrComment">Comment</td>
+  <td class="hrOptional">Present</td>
+  <td class="hrType">Type</td>
+  <td class="hrConstraint">Constraint</td>
+  <td class="hrMin">Min Bits</td>
+  <td class="hrMax">Max Bits</td>
+  </tr>
+  
+  <tr class="OddRow">
+  <td class="no">1</td>
+  <td class="field">pus-1</td>
+  <td class="comment"></td>
+  <td class="optional">serviceType=1</td>
+  <td class="type"><a href="#ICD_Service1_APID_1">Service1-APID-1</a></td>
+  <td class="constraint"></td>
+  <td class="min">9</td>
+  <td class="max">17</td>
+  </tr>
+  
+  </tbody>
+  </table>
+  &nbsp;<br/>
+  <a name="ICD_APID_APID_1_TM_pus_1"></a> 
+  <table width="100%" >
+  <tbody>
+  
+  <tr class="typeRow">
+  <td colspan="6">
+  APID-APID-1-TM-pus-1 <font size="-1">(CHOICE)</font>
+  <font size="-2"><a href="#ASN1_APID_APID_1_TM_pus_1" class="fileLink">ASN.1</a></font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Min:&nbsp;2&nbsp;bytes</font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Max:&nbsp;3&nbsp;bytes</font>
+  </td>
+  </tr>
+  
+  <tr class="CommentRow">
+  <td class="comment2" colspan="8">Acn inline encoding in the context of APID-1-TM type and pus-1 component</td>
+  </tr>
+  
+  
+  <tr class="headerRow">
+  <td class="hrNo">No</td>
+  <td class="hrField" colspan="3">ACN Parameters <a href="#ACN_PARAMS_EXPLAINED123" class="acnParamsLink">[?]</a></td>
+  <td class="hrType" colspan="4">Type</td>
+  </tr>
+  <tr class="OddRow">
+      <td class="no" >1</td>
+      <td class="field" colspan="3">serviceSubType</td>
+      <td class="type" colspan="4">INTEGER</td>
+  </tr>
+  <tr class="headerRow">
+  <td class="hrNo">No</td>
+  <td class="hrField">Field</td>
+  <td class="hrComment">Comment</td>
+  <td class="hrOptional">Present</td>
+  <td class="hrType">Type</td>
+  <td class="hrConstraint">Constraint</td>
+  <td class="hrMin">Min Bits</td>
+  <td class="hrMax">Max Bits</td>
+  </tr>
+  
+  <tr class="OddRow">
+  <td class="no">1</td>
+  <td class="field">acceptance-failure</td>
+  <td class="comment"></td>
+  <td class="optional">serviceSubType=2</td>
+  <td class="type"><a href="#ICD_PUS_1_2_Generic">PUS-1-2-Generic</a></td>
+  <td class="constraint"></td>
+  <td class="min">9</td>
+  <td class="max">17</td>
+  </tr>
+  
+  </tbody>
+  </table>
+  &nbsp;<br/>
+  <a name="ICD_APID_APID_1_TM_pus_1_acceptance_failure"></a> 
+  <table width="100%" >
+  <tbody>
+  
+  <tr class="typeRow">
+  <td colspan="6">
+  APID-APID-1-TM-pus-1-acceptance-failure <font size="-1">(SEQUENCE)</font>
+  <font size="-2"><a href="#ASN1_APID_APID_1_TM_pus_1_acceptance_failure" class="fileLink">ASN.1</a></font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Min:&nbsp;2&nbsp;bytes</font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Max:&nbsp;3&nbsp;bytes</font>
+  </td>
+  </tr>
+  
+  <tr class="CommentRow">
+  <td class="comment2" colspan="8">Acn inline encoding in the context of APID-1-TM type and pus-1 component<br/>Acn inline encoding in the context of APID-APID-1-TM-pus-1 type and acceptance-failure component</td>
+  </tr>
+  
+  
+  <tr class="headerRow">
+  <td class="hrNo">No</td>
+  <td class="hrField">Field</td>
+  <td class="hrComment">Comment</td>
+  <td class="hrOptional">Present</td>
+  <td class="hrType">Type</td>
+  <td class="hrConstraint">Constraint</td>
+  <td class="hrMin">Min Bits</td>
+  <td class="hrMax">Max Bits</td>
+  </tr>
+  
+  <tr class="OddRow">
+  <td class="no">1</td>
+  <td class="field">code</td>
+  <td class="comment"></td>
+  <td class="optional">always</td>
+  <td class="type">INTEGER</td>
+  <td class="constraint"></td>
+  <td class="min">1</td>
+  <td class="max">1</td>
+  </tr>
+  <tr class="EvenRow">
+  <td class="no">2</td>
+  <td class="field">parameters</td>
+  <td class="comment">code INTEGER { incomplete-packet-length (1), incorrect-checksum (2) } (1..2),</td>
+  <td class="optional">always</td>
+  <td class="type"><a href="#ICD_PUS_1_2_Generic_parameters">APID-APID-1-TM-pus-1-acceptance-failure-parameters</a></td>
+  <td class="constraint"></td>
+  <td class="min">8</td>
+  <td class="max">16</td>
+  </tr>
+  
+  </tbody>
+  </table>
+  &nbsp;<br/>
+  <a name="ICD_APID_APID_1_TM_pus_1_acceptance_failure_parameters"></a> 
+  <table width="100%" >
+  <tbody>
+  
+  <tr class="typeRow">
+  <td colspan="6">
+  APID-APID-1-TM-pus-1-acceptance-failure-parameters <font size="-1">(CHOICE)</font>
+  <font size="-2"><a href="#ASN1_APID_APID_1_TM_pus_1_acceptance_failure_parameters" class="fileLink">ASN.1</a></font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Min:&nbsp;1&nbsp;bytes</font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Max:&nbsp;2&nbsp;bytes</font>
+  </td>
+  </tr>
+  
+  <tr class="CommentRow">
+  <td class="comment2" colspan="8">Acn inline encoding in the context of APID-1-TM type and pus-1 component<br/>Acn inline encoding in the context of APID-APID-1-TM-pus-1 type and acceptance-failure component<br/>Acn inline encoding in the context of APID-APID-1-TM-pus-1-acceptance-failure type and parameters component</td>
+  </tr>
+  
+  
+  <tr class="headerRow">
+  <td class="hrNo">No</td>
+  <td class="hrField">Field</td>
+  <td class="hrComment">Comment</td>
+  <td class="hrOptional">Present</td>
+  <td class="hrType">Type</td>
+  <td class="hrConstraint">Constraint</td>
+  <td class="hrMin">Min Bits</td>
+  <td class="hrMax">Max Bits</td>
+  </tr>
+  
+  <tr class="OddRow">
+  <td class="no">1</td>
+  <td class="field">one-param</td>
+  <td class="comment"></td>
+  <td class="optional">code=1</td>
+  <td class="type"><a href="#ICD_Parameter">Parameter</a></td>
+  <td class="constraint">(0 .. 255)</td>
+  <td class="min">8</td>
+  <td class="max">8</td>
+  </tr>
+  <tr class="EvenRow">
+  <td class="no">2</td>
+  <td class="field">two-params</td>
+  <td class="comment"></td>
+  <td class="optional">code=2</td>
+  <td class="type"><a href="#ICD_PUS_1_2_Generic_parameters_two_params">PUS-1-2-Generic-parameters-two-params</a></td>
+  <td class="constraint">(2)</td>
+  <td class="min">16</td>
+  <td class="max">16</td>
+  </tr>
+  
+  </tbody>
+  </table>
+  &nbsp;<br/>
+  <a name="ICD_APID_APID_1_TM_pus_1_acceptance_failure_parameters_two_params"></a>
+  <table width="100%" >
+  <tbody>
+  
+  <tr  class="typeRow">
+  <td colspan="6">
+  APID-APID-1-TM-pus-1-acceptance-failure-parameters-two-params <font size="-1">(SEQUENCE-OF)</font>
+  <font size="-2"><a href="#ASN1_APID_APID_1_TM_pus_1_acceptance_failure_parameters_two_params" class="fileLink">ASN.1</a></font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Min:&nbsp;2&nbsp;bytes</font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Max:&nbsp;2&nbsp;bytes</font>
+  </td>
+  </tr>
+  
+  <tr class="CommentRow">
+  <td class="comment2" colspan="8">Acn inline encoding in the context of APID-1-TM type and pus-1 component<br/>Acn inline encoding in the context of APID-APID-1-TM-pus-1 type and acceptance-failure component<br/>Acn inline encoding in the context of APID-APID-1-TM-pus-1-acceptance-failure type and parameters component<br/>Acn inline encoding in the context of APID-APID-1-TM-pus-1-acceptance-failure-parameters type and two-params component<br/>Length is fixed to 2 elements (no length determinant is needed).</td>
+  </tr>
+  
+  <tr class="headerRow">
+  <td class="hrNo">No</td>
+  <td class="hrField">Field</td>
+  <td class="hrComment">Comment</td>
+  <td class="hrOptional">Present</td>
+  <td class="hrType">Type</td>
+  <td class="hrConstraint">Constraint</td>
+  <td class="hrMin">Min Length (bits)</td>
+  <td class="hrMax">Max Length (bits)</td>
+  </tr>
+  
+  <tr class="OddRow">
+  <td class="no">1</td>
+  <td class="field">Item #1</td>
+  <td class="comment"></td>
+  <td class="optional">always</td>
+  <td class="type"><a href="#ICD_Parameter">Parameter</a></td>
+  <td class="constraint">(0 .. 255)</td>
+  <td class="min">8</td>
+  <td class="max">8</td>
+  </tr>
+  <tr class="EvenRow">
+  <td class="no">2</td>
+  <td class="field">Item #2</td>
+  <td class="comment"></td>
+  <td class="optional">always</td>
+  <td class="type"><a href="#ICD_Parameter">Parameter</a></td>
+  <td class="constraint">(0 .. 255)</td>
+  <td class="min">8</td>
+  <td class="max">8</td>
+  </tr>
+  
+  </tbody>
+  </table>
+  &nbsp;<br/>
+  <a name="ICD_APID_2_TM"></a> 
+  <table width="100%" >
+  <tbody>
+  
+  <tr class="typeRow">
+  <td colspan="6">
+  APID-2-TM <font size="-1">(CHOICE)</font>
+  <font size="-2"><a href="#ASN1_APID_2_TM" class="fileLink">ASN.1</a>  <a href="#ACN_APID_2_TM" class="fileLink">ACN</a></font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Min:&nbsp;2&nbsp;bytes</font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Max:&nbsp;3&nbsp;bytes</font>
+  </td>
+  </tr>
+  
+  <tr class="CommentRow">
+  <td class="comment2" colspan="8"></td>
+  </tr>
+  
+  
+  <tr class="headerRow">
+  <td class="hrNo">No</td>
+  <td class="hrField" colspan="3">ACN Parameters <a href="#ACN_PARAMS_EXPLAINED123" class="acnParamsLink">[?]</a></td>
+  <td class="hrType" colspan="4">Type</td>
+  </tr>
+  <tr class="OddRow">
+      <td class="no" >1</td>
+      <td class="field" colspan="3">serviceType</td>
+      <td class="type" colspan="4">INTEGER</td>
+  </tr><tr class="OddRow">
+      <td class="no" >2</td>
+      <td class="field" colspan="3">serviceSubType</td>
+      <td class="type" colspan="4">INTEGER</td>
+  </tr>
+  <tr class="headerRow">
+  <td class="hrNo">No</td>
+  <td class="hrField">Field</td>
+  <td class="hrComment">Comment</td>
+  <td class="hrOptional">Present</td>
+  <td class="hrType">Type</td>
+  <td class="hrConstraint">Constraint</td>
+  <td class="hrMin">Min Bits</td>
+  <td class="hrMax">Max Bits</td>
+  </tr>
+  
+  <tr class="OddRow">
+  <td class="no">1</td>
+  <td class="field">pus-1</td>
+  <td class="comment"></td>
+  <td class="optional">serviceType=1</td>
+  <td class="type"><a href="#ICD_Service1_APID_2">Service1-APID-2</a></td>
+  <td class="constraint"></td>
+  <td class="min">9</td>
+  <td class="max">17</td>
+  </tr>
+  
+  </tbody>
+  </table>
+  &nbsp;<br/>
+  <a name="ICD_APID_APID_2_TM_pus_1"></a> 
+  <table width="100%" >
+  <tbody>
+  
+  <tr class="typeRow">
+  <td colspan="6">
+  APID-APID-2-TM-pus-1 <font size="-1">(CHOICE)</font>
+  <font size="-2"><a href="#ASN1_APID_APID_2_TM_pus_1" class="fileLink">ASN.1</a></font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Min:&nbsp;2&nbsp;bytes</font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Max:&nbsp;3&nbsp;bytes</font>
+  </td>
+  </tr>
+  
+  <tr class="CommentRow">
+  <td class="comment2" colspan="8">Acn inline encoding in the context of APID-2-TM type and pus-1 component</td>
+  </tr>
+  
+  
+  <tr class="headerRow">
+  <td class="hrNo">No</td>
+  <td class="hrField" colspan="3">ACN Parameters <a href="#ACN_PARAMS_EXPLAINED123" class="acnParamsLink">[?]</a></td>
+  <td class="hrType" colspan="4">Type</td>
+  </tr>
+  <tr class="OddRow">
+      <td class="no" >1</td>
+      <td class="field" colspan="3">serviceSubType</td>
+      <td class="type" colspan="4">INTEGER</td>
+  </tr>
+  <tr class="headerRow">
+  <td class="hrNo">No</td>
+  <td class="hrField">Field</td>
+  <td class="hrComment">Comment</td>
+  <td class="hrOptional">Present</td>
+  <td class="hrType">Type</td>
+  <td class="hrConstraint">Constraint</td>
+  <td class="hrMin">Min Bits</td>
+  <td class="hrMax">Max Bits</td>
+  </tr>
+  
+  <tr class="OddRow">
+  <td class="no">1</td>
+  <td class="field">acceptance-failure</td>
+  <td class="comment"></td>
+  <td class="optional">serviceSubType=2</td>
+  <td class="type"><a href="#ICD_PUS_1_2_Generic">PUS-1-2-Generic</a></td>
+  <td class="constraint"></td>
+  <td class="min">9</td>
+  <td class="max">17</td>
+  </tr>
+  
+  </tbody>
+  </table>
+  &nbsp;<br/>
+  <a name="ICD_APID_APID_2_TM_pus_1_acceptance_failure"></a> 
+  <table width="100%" >
+  <tbody>
+  
+  <tr class="typeRow">
+  <td colspan="6">
+  APID-APID-2-TM-pus-1-acceptance-failure <font size="-1">(SEQUENCE)</font>
+  <font size="-2"><a href="#ASN1_APID_APID_2_TM_pus_1_acceptance_failure" class="fileLink">ASN.1</a></font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Min:&nbsp;2&nbsp;bytes</font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Max:&nbsp;3&nbsp;bytes</font>
+  </td>
+  </tr>
+  
+  <tr class="CommentRow">
+  <td class="comment2" colspan="8">Acn inline encoding in the context of APID-2-TM type and pus-1 component<br/>Acn inline encoding in the context of APID-APID-2-TM-pus-1 type and acceptance-failure component</td>
+  </tr>
+  
+  
+  <tr class="headerRow">
+  <td class="hrNo">No</td>
+  <td class="hrField">Field</td>
+  <td class="hrComment">Comment</td>
+  <td class="hrOptional">Present</td>
+  <td class="hrType">Type</td>
+  <td class="hrConstraint">Constraint</td>
+  <td class="hrMin">Min Bits</td>
+  <td class="hrMax">Max Bits</td>
+  </tr>
+  
+  <tr class="OddRow">
+  <td class="no">1</td>
+  <td class="field">code</td>
+  <td class="comment"></td>
+  <td class="optional">always</td>
+  <td class="type">INTEGER</td>
+  <td class="constraint"></td>
+  <td class="min">1</td>
+  <td class="max">1</td>
+  </tr>
+  <tr class="EvenRow">
+  <td class="no">2</td>
+  <td class="field">parameters</td>
+  <td class="comment">code INTEGER { incomplete-packet-length (1), incorrect-checksum (2) } (1..2),</td>
+  <td class="optional">always</td>
+  <td class="type"><a href="#ICD_PUS_1_2_Generic_parameters">APID-APID-2-TM-pus-1-acceptance-failure-parameters</a></td>
+  <td class="constraint"></td>
+  <td class="min">8</td>
+  <td class="max">16</td>
+  </tr>
+  
+  </tbody>
+  </table>
+  &nbsp;<br/>
+  <a name="ICD_APID_APID_2_TM_pus_1_acceptance_failure_parameters"></a> 
+  <table width="100%" >
+  <tbody>
+  
+  <tr class="typeRow">
+  <td colspan="6">
+  APID-APID-2-TM-pus-1-acceptance-failure-parameters <font size="-1">(CHOICE)</font>
+  <font size="-2"><a href="#ASN1_APID_APID_2_TM_pus_1_acceptance_failure_parameters" class="fileLink">ASN.1</a></font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Min:&nbsp;1&nbsp;bytes</font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Max:&nbsp;2&nbsp;bytes</font>
+  </td>
+  </tr>
+  
+  <tr class="CommentRow">
+  <td class="comment2" colspan="8">Acn inline encoding in the context of APID-2-TM type and pus-1 component<br/>Acn inline encoding in the context of APID-APID-2-TM-pus-1 type and acceptance-failure component<br/>Acn inline encoding in the context of APID-APID-2-TM-pus-1-acceptance-failure type and parameters component</td>
+  </tr>
+  
+  
+  <tr class="headerRow">
+  <td class="hrNo">No</td>
+  <td class="hrField">Field</td>
+  <td class="hrComment">Comment</td>
+  <td class="hrOptional">Present</td>
+  <td class="hrType">Type</td>
+  <td class="hrConstraint">Constraint</td>
+  <td class="hrMin">Min Bits</td>
+  <td class="hrMax">Max Bits</td>
+  </tr>
+  
+  <tr class="OddRow">
+  <td class="no">1</td>
+  <td class="field">one-param</td>
+  <td class="comment"></td>
+  <td class="optional">code=2</td>
+  <td class="type"><a href="#ICD_Parameter">Parameter</a></td>
+  <td class="constraint">(0 .. 255)</td>
+  <td class="min">8</td>
+  <td class="max">8</td>
+  </tr>
+  <tr class="EvenRow">
+  <td class="no">2</td>
+  <td class="field">two-params</td>
+  <td class="comment"></td>
+  <td class="optional">code=1</td>
+  <td class="type"><a href="#ICD_PUS_1_2_Generic_parameters_two_params">PUS-1-2-Generic-parameters-two-params</a></td>
+  <td class="constraint">(2)</td>
+  <td class="min">16</td>
+  <td class="max">16</td>
+  </tr>
+  
+  </tbody>
+  </table>
+  &nbsp;<br/>
+  <a name="ICD_APID_APID_2_TM_pus_1_acceptance_failure_parameters_two_params"></a>
+  <table width="100%" >
+  <tbody>
+  
+  <tr  class="typeRow">
+  <td colspan="6">
+  APID-APID-2-TM-pus-1-acceptance-failure-parameters-two-params <font size="-1">(SEQUENCE-OF)</font>
+  <font size="-2"><a href="#ASN1_APID_APID_2_TM_pus_1_acceptance_failure_parameters_two_params" class="fileLink">ASN.1</a></font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Min:&nbsp;2&nbsp;bytes</font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Max:&nbsp;2&nbsp;bytes</font>
+  </td>
+  </tr>
+  
+  <tr class="CommentRow">
+  <td class="comment2" colspan="8">Acn inline encoding in the context of APID-2-TM type and pus-1 component<br/>Acn inline encoding in the context of APID-APID-2-TM-pus-1 type and acceptance-failure component<br/>Acn inline encoding in the context of APID-APID-2-TM-pus-1-acceptance-failure type and parameters component<br/>Acn inline encoding in the context of APID-APID-2-TM-pus-1-acceptance-failure-parameters type and two-params component<br/>Length is fixed to 2 elements (no length determinant is needed).</td>
+  </tr>
+  
+  <tr class="headerRow">
+  <td class="hrNo">No</td>
+  <td class="hrField">Field</td>
+  <td class="hrComment">Comment</td>
+  <td class="hrOptional">Present</td>
+  <td class="hrType">Type</td>
+  <td class="hrConstraint">Constraint</td>
+  <td class="hrMin">Min Length (bits)</td>
+  <td class="hrMax">Max Length (bits)</td>
+  </tr>
+  
+  <tr class="OddRow">
+  <td class="no">1</td>
+  <td class="field">Item #1</td>
+  <td class="comment"></td>
+  <td class="optional">always</td>
+  <td class="type"><a href="#ICD_Parameter">Parameter</a></td>
+  <td class="constraint">(0 .. 255)</td>
+  <td class="min">8</td>
+  <td class="max">8</td>
+  </tr>
+  <tr class="EvenRow">
+  <td class="no">2</td>
+  <td class="field">Item #2</td>
+  <td class="comment"></td>
+  <td class="optional">always</td>
+  <td class="type"><a href="#ICD_Parameter">Parameter</a></td>
+  <td class="constraint">(0 .. 255)</td>
+  <td class="min">8</td>
+  <td class="max">8</td>
+  </tr>
+  
+  </tbody>
+  </table>
+  &nbsp;<br/>
+  <a name="ICD_PUS_TM"></a> 
+  <table width="100%" >
+  <tbody>
+  
+  <tr class="typeRow">
+  <td colspan="6">
+  PUS-TM <font size="-1">(CHOICE)</font>
+  <font size="-2"><a href="#ASN1_PUS_TM" class="fileLink">ASN.1</a>  <a href="#ACN_PUS_TM" class="fileLink">ACN</a></font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Min:&nbsp;2&nbsp;bytes</font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Max:&nbsp;3&nbsp;bytes</font>
+  </td>
+  </tr>
+  
+  <tr class="CommentRow">
+  <td class="comment2" colspan="8"></td>
+  </tr>
+  
+  
+  <tr class="headerRow">
+  <td class="hrNo">No</td>
+  <td class="hrField" colspan="3">ACN Parameters <a href="#ACN_PARAMS_EXPLAINED123" class="acnParamsLink">[?]</a></td>
+  <td class="hrType" colspan="4">Type</td>
+  </tr>
+  <tr class="OddRow">
+      <td class="no" >1</td>
+      <td class="field" colspan="3">apid</td>
+      <td class="type" colspan="4">INTEGER</td>
+  </tr><tr class="OddRow">
+      <td class="no" >2</td>
+      <td class="field" colspan="3">serviceType</td>
+      <td class="type" colspan="4">INTEGER</td>
+  </tr><tr class="OddRow">
+      <td class="no" >3</td>
+      <td class="field" colspan="3">serviceSubType</td>
+      <td class="type" colspan="4">INTEGER</td>
+  </tr>
+  <tr class="headerRow">
+  <td class="hrNo">No</td>
+  <td class="hrField">Field</td>
+  <td class="hrComment">Comment</td>
+  <td class="hrOptional">Present</td>
+  <td class="hrType">Type</td>
+  <td class="hrConstraint">Constraint</td>
+  <td class="hrMin">Min Bits</td>
+  <td class="hrMax">Max Bits</td>
+  </tr>
+  
+  <tr class="OddRow">
+  <td class="no">1</td>
+  <td class="field">apid-1</td>
+  <td class="comment"></td>
+  <td class="optional">apid=1</td>
+  <td class="type"><a href="#ICD_APID_1_TM">APID-1-TM</a></td>
+  <td class="constraint"></td>
+  <td class="min">9</td>
+  <td class="max">17</td>
+  </tr>
+  <tr class="EvenRow">
+  <td class="no">2</td>
+  <td class="field">apid-2</td>
+  <td class="comment"></td>
+  <td class="optional">apid=2</td>
+  <td class="type"><a href="#ICD_APID_2_TM">APID-2-TM</a></td>
+  <td class="constraint"></td>
+  <td class="min">9</td>
+  <td class="max">17</td>
+  </tr>
+  
+  </tbody>
+  </table>
+  &nbsp;<br/>
+  <a name="ICD_APID_PUS_TM_apid_1"></a> 
+  <table width="100%" >
+  <tbody>
+  
+  <tr class="typeRow">
+  <td colspan="6">
+  APID-PUS-TM-apid-1 <font size="-1">(CHOICE)</font>
+  <font size="-2"><a href="#ASN1_APID_PUS_TM_apid_1" class="fileLink">ASN.1</a></font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Min:&nbsp;2&nbsp;bytes</font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Max:&nbsp;3&nbsp;bytes</font>
+  </td>
+  </tr>
+  
+  <tr class="CommentRow">
+  <td class="comment2" colspan="8">Acn inline encoding in the context of PUS-TM type and apid-1 component</td>
+  </tr>
+  
+  
+  <tr class="headerRow">
+  <td class="hrNo">No</td>
+  <td class="hrField" colspan="3">ACN Parameters <a href="#ACN_PARAMS_EXPLAINED123" class="acnParamsLink">[?]</a></td>
+  <td class="hrType" colspan="4">Type</td>
+  </tr>
+  <tr class="OddRow">
+      <td class="no" >1</td>
+      <td class="field" colspan="3">serviceType</td>
+      <td class="type" colspan="4">INTEGER</td>
+  </tr><tr class="OddRow">
+      <td class="no" >2</td>
+      <td class="field" colspan="3">serviceSubType</td>
+      <td class="type" colspan="4">INTEGER</td>
+  </tr>
+  <tr class="headerRow">
+  <td class="hrNo">No</td>
+  <td class="hrField">Field</td>
+  <td class="hrComment">Comment</td>
+  <td class="hrOptional">Present</td>
+  <td class="hrType">Type</td>
+  <td class="hrConstraint">Constraint</td>
+  <td class="hrMin">Min Bits</td>
+  <td class="hrMax">Max Bits</td>
+  </tr>
+  
+  <tr class="OddRow">
+  <td class="no">1</td>
+  <td class="field">pus-1</td>
+  <td class="comment"></td>
+  <td class="optional">serviceType=1</td>
+  <td class="type"><a href="#ICD_Service1_APID_1">Service1-APID-1</a></td>
+  <td class="constraint"></td>
+  <td class="min">9</td>
+  <td class="max">17</td>
+  </tr>
+  
+  </tbody>
+  </table>
+  &nbsp;<br/>
+  <a name="ICD_APID_PUS_TM_apid_1_pus_1"></a> 
+  <table width="100%" >
+  <tbody>
+  
+  <tr class="typeRow">
+  <td colspan="6">
+  APID-PUS-TM-apid-1-pus-1 <font size="-1">(CHOICE)</font>
+  <font size="-2"><a href="#ASN1_APID_PUS_TM_apid_1_pus_1" class="fileLink">ASN.1</a></font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Min:&nbsp;2&nbsp;bytes</font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Max:&nbsp;3&nbsp;bytes</font>
+  </td>
+  </tr>
+  
+  <tr class="CommentRow">
+  <td class="comment2" colspan="8">Acn inline encoding in the context of PUS-TM type and apid-1 component<br/>Acn inline encoding in the context of APID-PUS-TM-apid-1 type and pus-1 component</td>
+  </tr>
+  
+  
+  <tr class="headerRow">
+  <td class="hrNo">No</td>
+  <td class="hrField" colspan="3">ACN Parameters <a href="#ACN_PARAMS_EXPLAINED123" class="acnParamsLink">[?]</a></td>
+  <td class="hrType" colspan="4">Type</td>
+  </tr>
+  <tr class="OddRow">
+      <td class="no" >1</td>
+      <td class="field" colspan="3">serviceSubType</td>
+      <td class="type" colspan="4">INTEGER</td>
+  </tr>
+  <tr class="headerRow">
+  <td class="hrNo">No</td>
+  <td class="hrField">Field</td>
+  <td class="hrComment">Comment</td>
+  <td class="hrOptional">Present</td>
+  <td class="hrType">Type</td>
+  <td class="hrConstraint">Constraint</td>
+  <td class="hrMin">Min Bits</td>
+  <td class="hrMax">Max Bits</td>
+  </tr>
+  
+  <tr class="OddRow">
+  <td class="no">1</td>
+  <td class="field">acceptance-failure</td>
+  <td class="comment"></td>
+  <td class="optional">serviceSubType=2</td>
+  <td class="type"><a href="#ICD_PUS_1_2_Generic">PUS-1-2-Generic</a></td>
+  <td class="constraint"></td>
+  <td class="min">9</td>
+  <td class="max">17</td>
+  </tr>
+  
+  </tbody>
+  </table>
+  &nbsp;<br/>
+  <a name="ICD_APID_PUS_TM_apid_1_pus_1_acceptance_failure"></a> 
+  <table width="100%" >
+  <tbody>
+  
+  <tr class="typeRow">
+  <td colspan="6">
+  APID-PUS-TM-apid-1-pus-1-acceptance-failure <font size="-1">(SEQUENCE)</font>
+  <font size="-2"><a href="#ASN1_APID_PUS_TM_apid_1_pus_1_acceptance_failure" class="fileLink">ASN.1</a></font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Min:&nbsp;2&nbsp;bytes</font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Max:&nbsp;3&nbsp;bytes</font>
+  </td>
+  </tr>
+  
+  <tr class="CommentRow">
+  <td class="comment2" colspan="8">Acn inline encoding in the context of PUS-TM type and apid-1 component<br/>Acn inline encoding in the context of APID-PUS-TM-apid-1 type and pus-1 component<br/>Acn inline encoding in the context of APID-PUS-TM-apid-1-pus-1 type and acceptance-failure component</td>
+  </tr>
+  
+  
+  <tr class="headerRow">
+  <td class="hrNo">No</td>
+  <td class="hrField">Field</td>
+  <td class="hrComment">Comment</td>
+  <td class="hrOptional">Present</td>
+  <td class="hrType">Type</td>
+  <td class="hrConstraint">Constraint</td>
+  <td class="hrMin">Min Bits</td>
+  <td class="hrMax">Max Bits</td>
+  </tr>
+  
+  <tr class="OddRow">
+  <td class="no">1</td>
+  <td class="field">code</td>
+  <td class="comment"></td>
+  <td class="optional">always</td>
+  <td class="type">INTEGER</td>
+  <td class="constraint"></td>
+  <td class="min">1</td>
+  <td class="max">1</td>
+  </tr>
+  <tr class="EvenRow">
+  <td class="no">2</td>
+  <td class="field">parameters</td>
+  <td class="comment">code INTEGER { incomplete-packet-length (1), incorrect-checksum (2) } (1..2),</td>
+  <td class="optional">always</td>
+  <td class="type"><a href="#ICD_PUS_1_2_Generic_parameters">APID-PUS-TM-apid-1-pus-1-acceptance-failure-parameters</a></td>
+  <td class="constraint"></td>
+  <td class="min">8</td>
+  <td class="max">16</td>
+  </tr>
+  
+  </tbody>
+  </table>
+  &nbsp;<br/>
+  <a name="ICD_APID_PUS_TM_apid_1_pus_1_acceptance_failure_parameters"></a> 
+  <table width="100%" >
+  <tbody>
+  
+  <tr class="typeRow">
+  <td colspan="6">
+  APID-PUS-TM-apid-1-pus-1-acceptance-failure-parameters <font size="-1">(CHOICE)</font>
+  <font size="-2"><a href="#ASN1_APID_PUS_TM_apid_1_pus_1_acceptance_failure_parameters" class="fileLink">ASN.1</a></font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Min:&nbsp;1&nbsp;bytes</font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Max:&nbsp;2&nbsp;bytes</font>
+  </td>
+  </tr>
+  
+  <tr class="CommentRow">
+  <td class="comment2" colspan="8">Acn inline encoding in the context of PUS-TM type and apid-1 component<br/>Acn inline encoding in the context of APID-PUS-TM-apid-1 type and pus-1 component<br/>Acn inline encoding in the context of APID-PUS-TM-apid-1-pus-1 type and acceptance-failure component<br/>Acn inline encoding in the context of APID-PUS-TM-apid-1-pus-1-acceptance-failure type and parameters component</td>
+  </tr>
+  
+  
+  <tr class="headerRow">
+  <td class="hrNo">No</td>
+  <td class="hrField">Field</td>
+  <td class="hrComment">Comment</td>
+  <td class="hrOptional">Present</td>
+  <td class="hrType">Type</td>
+  <td class="hrConstraint">Constraint</td>
+  <td class="hrMin">Min Bits</td>
+  <td class="hrMax">Max Bits</td>
+  </tr>
+  
+  <tr class="OddRow">
+  <td class="no">1</td>
+  <td class="field">one-param</td>
+  <td class="comment"></td>
+  <td class="optional">code=1</td>
+  <td class="type"><a href="#ICD_Parameter">Parameter</a></td>
+  <td class="constraint">(0 .. 255)</td>
+  <td class="min">8</td>
+  <td class="max">8</td>
+  </tr>
+  <tr class="EvenRow">
+  <td class="no">2</td>
+  <td class="field">two-params</td>
+  <td class="comment"></td>
+  <td class="optional">code=2</td>
+  <td class="type"><a href="#ICD_PUS_1_2_Generic_parameters_two_params">PUS-1-2-Generic-parameters-two-params</a></td>
+  <td class="constraint">(2)</td>
+  <td class="min">16</td>
+  <td class="max">16</td>
+  </tr>
+  
+  </tbody>
+  </table>
+  &nbsp;<br/>
+  <a name="ICD_APID_PUS_TM_apid_1_pus_1_acceptance_failure_parameters_two_params"></a>
+  <table width="100%" >
+  <tbody>
+  
+  <tr  class="typeRow">
+  <td colspan="6">
+  APID-PUS-TM-apid-1-pus-1-acceptance-failure-parameters-two-params <font size="-1">(SEQUENCE-OF)</font>
+  <font size="-2"><a href="#ASN1_APID_PUS_TM_apid_1_pus_1_acceptance_failure_parameters_two_params" class="fileLink">ASN.1</a></font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Min:&nbsp;2&nbsp;bytes</font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Max:&nbsp;2&nbsp;bytes</font>
+  </td>
+  </tr>
+  
+  <tr class="CommentRow">
+  <td class="comment2" colspan="8">Acn inline encoding in the context of PUS-TM type and apid-1 component<br/>Acn inline encoding in the context of APID-PUS-TM-apid-1 type and pus-1 component<br/>Acn inline encoding in the context of APID-PUS-TM-apid-1-pus-1 type and acceptance-failure component<br/>Acn inline encoding in the context of APID-PUS-TM-apid-1-pus-1-acceptance-failure type and parameters component<br/>Acn inline encoding in the context of APID-PUS-TM-apid-1-pus-1-acceptance-failure-parameters type and two-params component<br/>Length is fixed to 2 elements (no length determinant is needed).</td>
+  </tr>
+  
+  <tr class="headerRow">
+  <td class="hrNo">No</td>
+  <td class="hrField">Field</td>
+  <td class="hrComment">Comment</td>
+  <td class="hrOptional">Present</td>
+  <td class="hrType">Type</td>
+  <td class="hrConstraint">Constraint</td>
+  <td class="hrMin">Min Length (bits)</td>
+  <td class="hrMax">Max Length (bits)</td>
+  </tr>
+  
+  <tr class="OddRow">
+  <td class="no">1</td>
+  <td class="field">Item #1</td>
+  <td class="comment"></td>
+  <td class="optional">always</td>
+  <td class="type"><a href="#ICD_Parameter">Parameter</a></td>
+  <td class="constraint">(0 .. 255)</td>
+  <td class="min">8</td>
+  <td class="max">8</td>
+  </tr>
+  <tr class="EvenRow">
+  <td class="no">2</td>
+  <td class="field">Item #2</td>
+  <td class="comment"></td>
+  <td class="optional">always</td>
+  <td class="type"><a href="#ICD_Parameter">Parameter</a></td>
+  <td class="constraint">(0 .. 255)</td>
+  <td class="min">8</td>
+  <td class="max">8</td>
+  </tr>
+  
+  </tbody>
+  </table>
+  &nbsp;<br/>
+  <a name="ICD_APID_PUS_TM_apid_2"></a> 
+  <table width="100%" >
+  <tbody>
+  
+  <tr class="typeRow">
+  <td colspan="6">
+  APID-PUS-TM-apid-2 <font size="-1">(CHOICE)</font>
+  <font size="-2"><a href="#ASN1_APID_PUS_TM_apid_2" class="fileLink">ASN.1</a></font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Min:&nbsp;2&nbsp;bytes</font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Max:&nbsp;3&nbsp;bytes</font>
+  </td>
+  </tr>
+  
+  <tr class="CommentRow">
+  <td class="comment2" colspan="8">Acn inline encoding in the context of PUS-TM type and apid-2 component</td>
+  </tr>
+  
+  
+  <tr class="headerRow">
+  <td class="hrNo">No</td>
+  <td class="hrField" colspan="3">ACN Parameters <a href="#ACN_PARAMS_EXPLAINED123" class="acnParamsLink">[?]</a></td>
+  <td class="hrType" colspan="4">Type</td>
+  </tr>
+  <tr class="OddRow">
+      <td class="no" >1</td>
+      <td class="field" colspan="3">serviceType</td>
+      <td class="type" colspan="4">INTEGER</td>
+  </tr><tr class="OddRow">
+      <td class="no" >2</td>
+      <td class="field" colspan="3">serviceSubType</td>
+      <td class="type" colspan="4">INTEGER</td>
+  </tr>
+  <tr class="headerRow">
+  <td class="hrNo">No</td>
+  <td class="hrField">Field</td>
+  <td class="hrComment">Comment</td>
+  <td class="hrOptional">Present</td>
+  <td class="hrType">Type</td>
+  <td class="hrConstraint">Constraint</td>
+  <td class="hrMin">Min Bits</td>
+  <td class="hrMax">Max Bits</td>
+  </tr>
+  
+  <tr class="OddRow">
+  <td class="no">1</td>
+  <td class="field">pus-1</td>
+  <td class="comment"></td>
+  <td class="optional">serviceType=1</td>
+  <td class="type"><a href="#ICD_Service1_APID_2">Service1-APID-2</a></td>
+  <td class="constraint"></td>
+  <td class="min">9</td>
+  <td class="max">17</td>
+  </tr>
+  
+  </tbody>
+  </table>
+  &nbsp;<br/>
+  <a name="ICD_APID_PUS_TM_apid_2_pus_1"></a> 
+  <table width="100%" >
+  <tbody>
+  
+  <tr class="typeRow">
+  <td colspan="6">
+  APID-PUS-TM-apid-2-pus-1 <font size="-1">(CHOICE)</font>
+  <font size="-2"><a href="#ASN1_APID_PUS_TM_apid_2_pus_1" class="fileLink">ASN.1</a></font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Min:&nbsp;2&nbsp;bytes</font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Max:&nbsp;3&nbsp;bytes</font>
+  </td>
+  </tr>
+  
+  <tr class="CommentRow">
+  <td class="comment2" colspan="8">Acn inline encoding in the context of PUS-TM type and apid-2 component<br/>Acn inline encoding in the context of APID-PUS-TM-apid-2 type and pus-1 component</td>
+  </tr>
+  
+  
+  <tr class="headerRow">
+  <td class="hrNo">No</td>
+  <td class="hrField" colspan="3">ACN Parameters <a href="#ACN_PARAMS_EXPLAINED123" class="acnParamsLink">[?]</a></td>
+  <td class="hrType" colspan="4">Type</td>
+  </tr>
+  <tr class="OddRow">
+      <td class="no" >1</td>
+      <td class="field" colspan="3">serviceSubType</td>
+      <td class="type" colspan="4">INTEGER</td>
+  </tr>
+  <tr class="headerRow">
+  <td class="hrNo">No</td>
+  <td class="hrField">Field</td>
+  <td class="hrComment">Comment</td>
+  <td class="hrOptional">Present</td>
+  <td class="hrType">Type</td>
+  <td class="hrConstraint">Constraint</td>
+  <td class="hrMin">Min Bits</td>
+  <td class="hrMax">Max Bits</td>
+  </tr>
+  
+  <tr class="OddRow">
+  <td class="no">1</td>
+  <td class="field">acceptance-failure</td>
+  <td class="comment"></td>
+  <td class="optional">serviceSubType=2</td>
+  <td class="type"><a href="#ICD_PUS_1_2_Generic">PUS-1-2-Generic</a></td>
+  <td class="constraint"></td>
+  <td class="min">9</td>
+  <td class="max">17</td>
+  </tr>
+  
+  </tbody>
+  </table>
+  &nbsp;<br/>
+  <a name="ICD_APID_PUS_TM_apid_2_pus_1_acceptance_failure"></a> 
+  <table width="100%" >
+  <tbody>
+  
+  <tr class="typeRow">
+  <td colspan="6">
+  APID-PUS-TM-apid-2-pus-1-acceptance-failure <font size="-1">(SEQUENCE)</font>
+  <font size="-2"><a href="#ASN1_APID_PUS_TM_apid_2_pus_1_acceptance_failure" class="fileLink">ASN.1</a></font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Min:&nbsp;2&nbsp;bytes</font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Max:&nbsp;3&nbsp;bytes</font>
+  </td>
+  </tr>
+  
+  <tr class="CommentRow">
+  <td class="comment2" colspan="8">Acn inline encoding in the context of PUS-TM type and apid-2 component<br/>Acn inline encoding in the context of APID-PUS-TM-apid-2 type and pus-1 component<br/>Acn inline encoding in the context of APID-PUS-TM-apid-2-pus-1 type and acceptance-failure component</td>
+  </tr>
+  
+  
+  <tr class="headerRow">
+  <td class="hrNo">No</td>
+  <td class="hrField">Field</td>
+  <td class="hrComment">Comment</td>
+  <td class="hrOptional">Present</td>
+  <td class="hrType">Type</td>
+  <td class="hrConstraint">Constraint</td>
+  <td class="hrMin">Min Bits</td>
+  <td class="hrMax">Max Bits</td>
+  </tr>
+  
+  <tr class="OddRow">
+  <td class="no">1</td>
+  <td class="field">code</td>
+  <td class="comment"></td>
+  <td class="optional">always</td>
+  <td class="type">INTEGER</td>
+  <td class="constraint"></td>
+  <td class="min">1</td>
+  <td class="max">1</td>
+  </tr>
+  <tr class="EvenRow">
+  <td class="no">2</td>
+  <td class="field">parameters</td>
+  <td class="comment">code INTEGER { incomplete-packet-length (1), incorrect-checksum (2) } (1..2),</td>
+  <td class="optional">always</td>
+  <td class="type"><a href="#ICD_PUS_1_2_Generic_parameters">APID-PUS-TM-apid-2-pus-1-acceptance-failure-parameters</a></td>
+  <td class="constraint"></td>
+  <td class="min">8</td>
+  <td class="max">16</td>
+  </tr>
+  
+  </tbody>
+  </table>
+  &nbsp;<br/>
+  <a name="ICD_APID_PUS_TM_apid_2_pus_1_acceptance_failure_parameters"></a> 
+  <table width="100%" >
+  <tbody>
+  
+  <tr class="typeRow">
+  <td colspan="6">
+  APID-PUS-TM-apid-2-pus-1-acceptance-failure-parameters <font size="-1">(CHOICE)</font>
+  <font size="-2"><a href="#ASN1_APID_PUS_TM_apid_2_pus_1_acceptance_failure_parameters" class="fileLink">ASN.1</a></font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Min:&nbsp;1&nbsp;bytes</font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Max:&nbsp;2&nbsp;bytes</font>
+  </td>
+  </tr>
+  
+  <tr class="CommentRow">
+  <td class="comment2" colspan="8">Acn inline encoding in the context of PUS-TM type and apid-2 component<br/>Acn inline encoding in the context of APID-PUS-TM-apid-2 type and pus-1 component<br/>Acn inline encoding in the context of APID-PUS-TM-apid-2-pus-1 type and acceptance-failure component<br/>Acn inline encoding in the context of APID-PUS-TM-apid-2-pus-1-acceptance-failure type and parameters component</td>
+  </tr>
+  
+  
+  <tr class="headerRow">
+  <td class="hrNo">No</td>
+  <td class="hrField">Field</td>
+  <td class="hrComment">Comment</td>
+  <td class="hrOptional">Present</td>
+  <td class="hrType">Type</td>
+  <td class="hrConstraint">Constraint</td>
+  <td class="hrMin">Min Bits</td>
+  <td class="hrMax">Max Bits</td>
+  </tr>
+  
+  <tr class="OddRow">
+  <td class="no">1</td>
+  <td class="field">one-param</td>
+  <td class="comment"></td>
+  <td class="optional">code=2</td>
+  <td class="type"><a href="#ICD_Parameter">Parameter</a></td>
+  <td class="constraint">(0 .. 255)</td>
+  <td class="min">8</td>
+  <td class="max">8</td>
+  </tr>
+  <tr class="EvenRow">
+  <td class="no">2</td>
+  <td class="field">two-params</td>
+  <td class="comment"></td>
+  <td class="optional">code=1</td>
+  <td class="type"><a href="#ICD_PUS_1_2_Generic_parameters_two_params">PUS-1-2-Generic-parameters-two-params</a></td>
+  <td class="constraint">(2)</td>
+  <td class="min">16</td>
+  <td class="max">16</td>
+  </tr>
+  
+  </tbody>
+  </table>
+  &nbsp;<br/>
+  <a name="ICD_APID_PUS_TM_apid_2_pus_1_acceptance_failure_parameters_two_params"></a>
+  <table width="100%" >
+  <tbody>
+  
+  <tr  class="typeRow">
+  <td colspan="6">
+  APID-PUS-TM-apid-2-pus-1-acceptance-failure-parameters-two-params <font size="-1">(SEQUENCE-OF)</font>
+  <font size="-2"><a href="#ASN1_APID_PUS_TM_apid_2_pus_1_acceptance_failure_parameters_two_params" class="fileLink">ASN.1</a></font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Min:&nbsp;2&nbsp;bytes</font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Max:&nbsp;2&nbsp;bytes</font>
+  </td>
+  </tr>
+  
+  <tr class="CommentRow">
+  <td class="comment2" colspan="8">Acn inline encoding in the context of PUS-TM type and apid-2 component<br/>Acn inline encoding in the context of APID-PUS-TM-apid-2 type and pus-1 component<br/>Acn inline encoding in the context of APID-PUS-TM-apid-2-pus-1 type and acceptance-failure component<br/>Acn inline encoding in the context of APID-PUS-TM-apid-2-pus-1-acceptance-failure type and parameters component<br/>Acn inline encoding in the context of APID-PUS-TM-apid-2-pus-1-acceptance-failure-parameters type and two-params component<br/>Length is fixed to 2 elements (no length determinant is needed).</td>
+  </tr>
+  
+  <tr class="headerRow">
+  <td class="hrNo">No</td>
+  <td class="hrField">Field</td>
+  <td class="hrComment">Comment</td>
+  <td class="hrOptional">Present</td>
+  <td class="hrType">Type</td>
+  <td class="hrConstraint">Constraint</td>
+  <td class="hrMin">Min Length (bits)</td>
+  <td class="hrMax">Max Length (bits)</td>
+  </tr>
+  
+  <tr class="OddRow">
+  <td class="no">1</td>
+  <td class="field">Item #1</td>
+  <td class="comment"></td>
+  <td class="optional">always</td>
+  <td class="type"><a href="#ICD_Parameter">Parameter</a></td>
+  <td class="constraint">(0 .. 255)</td>
+  <td class="min">8</td>
+  <td class="max">8</td>
+  </tr>
+  <tr class="EvenRow">
+  <td class="no">2</td>
+  <td class="field">Item #2</td>
+  <td class="comment"></td>
+  <td class="optional">always</td>
+  <td class="type"><a href="#ICD_Parameter">Parameter</a></td>
+  <td class="constraint">(0 .. 255)</td>
+  <td class="min">8</td>
+  <td class="max">8</td>
+  </tr>
+  
+  </tbody>
+  </table>
+  &nbsp;<br/>
+  <a name="ICD_TM"></a> 
+  <table width="100%" >
+  <tbody>
+  
+  <tr class="typeRow">
+  <td colspan="6">
+  TM <font size="-1">(SEQUENCE)</font>
+  <font size="-2"><a href="#ASN1_TM" class="fileLink">ASN.1</a>  <a href="#ACN_TM" class="fileLink">ACN</a></font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Min:&nbsp;4&nbsp;bytes</font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Max:&nbsp;5&nbsp;bytes</font>
+  </td>
+  </tr>
+  
+  <tr class="CommentRow">
+  <td class="comment2" colspan="8"></td>
+  </tr>
+  
+  
+  <tr class="headerRow">
+  <td class="hrNo">No</td>
+  <td class="hrField">Field</td>
+  <td class="hrComment">Comment</td>
+  <td class="hrOptional">Present</td>
+  <td class="hrType">Type</td>
+  <td class="hrConstraint">Constraint</td>
+  <td class="hrMin">Min Bits</td>
+  <td class="hrMax">Max Bits</td>
+  </tr>
+  
+  <tr class="OddRow">
+  <td class="no">1</td>
+  <td class="field">serviceType</td>
+  <td class="comment"></td>
+  <td class="optional">always</td>
+  <td class="type">INTEGER</td>
+  <td class="constraint"></td>
+  <td class="min">4</td>
+  <td class="max">4</td>
+  </tr>
+  <tr class="EvenRow">
+  <td class="no">2</td>
+  <td class="field">serviceSubType</td>
+  <td class="comment"></td>
+  <td class="optional">always</td>
+  <td class="type">INTEGER</td>
+  <td class="constraint"></td>
+  <td class="min">4</td>
+  <td class="max">4</td>
+  </tr>
+  <tr class="OddRow">
+  <td class="no">3</td>
+  <td class="field">apid</td>
+  <td class="comment"></td>
+  <td class="optional">always</td>
+  <td class="type">INTEGER</td>
+  <td class="constraint"></td>
+  <td class="min">8</td>
+  <td class="max">8</td>
+  </tr>
+  <tr class="EvenRow">
+  <td class="no">4</td>
+  <td class="field">pus</td>
+  <td class="comment"></td>
+  <td class="optional">always</td>
+  <td class="type"><a href="#ICD_PUS_TM">APID-TM-pus</a></td>
+  <td class="constraint"></td>
+  <td class="min">9</td>
+  <td class="max">17</td>
+  </tr>
+  
+  </tbody>
+  </table>
+  &nbsp;<br/>
+  <a name="ICD_APID_TM_pus"></a> 
+  <table width="100%" >
+  <tbody>
+  
+  <tr class="typeRow">
+  <td colspan="6">
+  APID-TM-pus <font size="-1">(CHOICE)</font>
+  <font size="-2"><a href="#ASN1_APID_TM_pus" class="fileLink">ASN.1</a></font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Min:&nbsp;2&nbsp;bytes</font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Max:&nbsp;3&nbsp;bytes</font>
+  </td>
+  </tr>
+  
+  <tr class="CommentRow">
+  <td class="comment2" colspan="8">Acn inline encoding in the context of TM type and pus component</td>
+  </tr>
+  
+  
+  <tr class="headerRow">
+  <td class="hrNo">No</td>
+  <td class="hrField" colspan="3">ACN Parameters <a href="#ACN_PARAMS_EXPLAINED123" class="acnParamsLink">[?]</a></td>
+  <td class="hrType" colspan="4">Type</td>
+  </tr>
+  <tr class="OddRow">
+      <td class="no" >1</td>
+      <td class="field" colspan="3">apid</td>
+      <td class="type" colspan="4">INTEGER</td>
+  </tr><tr class="OddRow">
+      <td class="no" >2</td>
+      <td class="field" colspan="3">serviceType</td>
+      <td class="type" colspan="4">INTEGER</td>
+  </tr><tr class="OddRow">
+      <td class="no" >3</td>
+      <td class="field" colspan="3">serviceSubType</td>
+      <td class="type" colspan="4">INTEGER</td>
+  </tr>
+  <tr class="headerRow">
+  <td class="hrNo">No</td>
+  <td class="hrField">Field</td>
+  <td class="hrComment">Comment</td>
+  <td class="hrOptional">Present</td>
+  <td class="hrType">Type</td>
+  <td class="hrConstraint">Constraint</td>
+  <td class="hrMin">Min Bits</td>
+  <td class="hrMax">Max Bits</td>
+  </tr>
+  
+  <tr class="OddRow">
+  <td class="no">1</td>
+  <td class="field">apid-1</td>
+  <td class="comment"></td>
+  <td class="optional">apid=1</td>
+  <td class="type"><a href="#ICD_APID_1_TM">APID-1-TM</a></td>
+  <td class="constraint"></td>
+  <td class="min">9</td>
+  <td class="max">17</td>
+  </tr>
+  <tr class="EvenRow">
+  <td class="no">2</td>
+  <td class="field">apid-2</td>
+  <td class="comment"></td>
+  <td class="optional">apid=2</td>
+  <td class="type"><a href="#ICD_APID_2_TM">APID-2-TM</a></td>
+  <td class="constraint"></td>
+  <td class="min">9</td>
+  <td class="max">17</td>
+  </tr>
+  
+  </tbody>
+  </table>
+  &nbsp;<br/>
+  <a name="ICD_APID_TM_pus_apid_1"></a> 
+  <table width="100%" >
+  <tbody>
+  
+  <tr class="typeRow">
+  <td colspan="6">
+  APID-TM-pus-apid-1 <font size="-1">(CHOICE)</font>
+  <font size="-2"><a href="#ASN1_APID_TM_pus_apid_1" class="fileLink">ASN.1</a></font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Min:&nbsp;2&nbsp;bytes</font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Max:&nbsp;3&nbsp;bytes</font>
+  </td>
+  </tr>
+  
+  <tr class="CommentRow">
+  <td class="comment2" colspan="8">Acn inline encoding in the context of TM type and pus component<br/>Acn inline encoding in the context of APID-TM-pus type and apid-1 component</td>
+  </tr>
+  
+  
+  <tr class="headerRow">
+  <td class="hrNo">No</td>
+  <td class="hrField" colspan="3">ACN Parameters <a href="#ACN_PARAMS_EXPLAINED123" class="acnParamsLink">[?]</a></td>
+  <td class="hrType" colspan="4">Type</td>
+  </tr>
+  <tr class="OddRow">
+      <td class="no" >1</td>
+      <td class="field" colspan="3">serviceType</td>
+      <td class="type" colspan="4">INTEGER</td>
+  </tr><tr class="OddRow">
+      <td class="no" >2</td>
+      <td class="field" colspan="3">serviceSubType</td>
+      <td class="type" colspan="4">INTEGER</td>
+  </tr>
+  <tr class="headerRow">
+  <td class="hrNo">No</td>
+  <td class="hrField">Field</td>
+  <td class="hrComment">Comment</td>
+  <td class="hrOptional">Present</td>
+  <td class="hrType">Type</td>
+  <td class="hrConstraint">Constraint</td>
+  <td class="hrMin">Min Bits</td>
+  <td class="hrMax">Max Bits</td>
+  </tr>
+  
+  <tr class="OddRow">
+  <td class="no">1</td>
+  <td class="field">pus-1</td>
+  <td class="comment"></td>
+  <td class="optional">serviceType=1</td>
+  <td class="type"><a href="#ICD_Service1_APID_1">Service1-APID-1</a></td>
+  <td class="constraint"></td>
+  <td class="min">9</td>
+  <td class="max">17</td>
+  </tr>
+  
+  </tbody>
+  </table>
+  &nbsp;<br/>
+  <a name="ICD_APID_TM_pus_apid_1_pus_1"></a> 
+  <table width="100%" >
+  <tbody>
+  
+  <tr class="typeRow">
+  <td colspan="6">
+  APID-TM-pus-apid-1-pus-1 <font size="-1">(CHOICE)</font>
+  <font size="-2"><a href="#ASN1_APID_TM_pus_apid_1_pus_1" class="fileLink">ASN.1</a></font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Min:&nbsp;2&nbsp;bytes</font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Max:&nbsp;3&nbsp;bytes</font>
+  </td>
+  </tr>
+  
+  <tr class="CommentRow">
+  <td class="comment2" colspan="8">Acn inline encoding in the context of TM type and pus component<br/>Acn inline encoding in the context of APID-TM-pus type and apid-1 component<br/>Acn inline encoding in the context of APID-TM-pus-apid-1 type and pus-1 component</td>
+  </tr>
+  
+  
+  <tr class="headerRow">
+  <td class="hrNo">No</td>
+  <td class="hrField" colspan="3">ACN Parameters <a href="#ACN_PARAMS_EXPLAINED123" class="acnParamsLink">[?]</a></td>
+  <td class="hrType" colspan="4">Type</td>
+  </tr>
+  <tr class="OddRow">
+      <td class="no" >1</td>
+      <td class="field" colspan="3">serviceSubType</td>
+      <td class="type" colspan="4">INTEGER</td>
+  </tr>
+  <tr class="headerRow">
+  <td class="hrNo">No</td>
+  <td class="hrField">Field</td>
+  <td class="hrComment">Comment</td>
+  <td class="hrOptional">Present</td>
+  <td class="hrType">Type</td>
+  <td class="hrConstraint">Constraint</td>
+  <td class="hrMin">Min Bits</td>
+  <td class="hrMax">Max Bits</td>
+  </tr>
+  
+  <tr class="OddRow">
+  <td class="no">1</td>
+  <td class="field">acceptance-failure</td>
+  <td class="comment"></td>
+  <td class="optional">serviceSubType=2</td>
+  <td class="type"><a href="#ICD_PUS_1_2_Generic">PUS-1-2-Generic</a></td>
+  <td class="constraint"></td>
+  <td class="min">9</td>
+  <td class="max">17</td>
+  </tr>
+  
+  </tbody>
+  </table>
+  &nbsp;<br/>
+  <a name="ICD_APID_TM_pus_apid_1_pus_1_acceptance_failure"></a> 
+  <table width="100%" >
+  <tbody>
+  
+  <tr class="typeRow">
+  <td colspan="6">
+  APID-TM-pus-apid-1-pus-1-acceptance-failure <font size="-1">(SEQUENCE)</font>
+  <font size="-2"><a href="#ASN1_APID_TM_pus_apid_1_pus_1_acceptance_failure" class="fileLink">ASN.1</a></font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Min:&nbsp;2&nbsp;bytes</font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Max:&nbsp;3&nbsp;bytes</font>
+  </td>
+  </tr>
+  
+  <tr class="CommentRow">
+  <td class="comment2" colspan="8">Acn inline encoding in the context of TM type and pus component<br/>Acn inline encoding in the context of APID-TM-pus type and apid-1 component<br/>Acn inline encoding in the context of APID-TM-pus-apid-1 type and pus-1 component<br/>Acn inline encoding in the context of APID-TM-pus-apid-1-pus-1 type and acceptance-failure component</td>
+  </tr>
+  
+  
+  <tr class="headerRow">
+  <td class="hrNo">No</td>
+  <td class="hrField">Field</td>
+  <td class="hrComment">Comment</td>
+  <td class="hrOptional">Present</td>
+  <td class="hrType">Type</td>
+  <td class="hrConstraint">Constraint</td>
+  <td class="hrMin">Min Bits</td>
+  <td class="hrMax">Max Bits</td>
+  </tr>
+  
+  <tr class="OddRow">
+  <td class="no">1</td>
+  <td class="field">code</td>
+  <td class="comment"></td>
+  <td class="optional">always</td>
+  <td class="type">INTEGER</td>
+  <td class="constraint"></td>
+  <td class="min">1</td>
+  <td class="max">1</td>
+  </tr>
+  <tr class="EvenRow">
+  <td class="no">2</td>
+  <td class="field">parameters</td>
+  <td class="comment">code INTEGER { incomplete-packet-length (1), incorrect-checksum (2) } (1..2),</td>
+  <td class="optional">always</td>
+  <td class="type"><a href="#ICD_PUS_1_2_Generic_parameters">APID-TM-pus-apid-1-pus-1-acceptance-failure-parameters</a></td>
+  <td class="constraint"></td>
+  <td class="min">8</td>
+  <td class="max">16</td>
+  </tr>
+  
+  </tbody>
+  </table>
+  &nbsp;<br/>
+  <a name="ICD_APID_TM_pus_apid_1_pus_1_acceptance_failure_parameters"></a> 
+  <table width="100%" >
+  <tbody>
+  
+  <tr class="typeRow">
+  <td colspan="6">
+  APID-TM-pus-apid-1-pus-1-acceptance-failure-parameters <font size="-1">(CHOICE)</font>
+  <font size="-2"><a href="#ASN1_APID_TM_pus_apid_1_pus_1_acceptance_failure_parameters" class="fileLink">ASN.1</a></font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Min:&nbsp;1&nbsp;bytes</font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Max:&nbsp;2&nbsp;bytes</font>
+  </td>
+  </tr>
+  
+  <tr class="CommentRow">
+  <td class="comment2" colspan="8">Acn inline encoding in the context of TM type and pus component<br/>Acn inline encoding in the context of APID-TM-pus type and apid-1 component<br/>Acn inline encoding in the context of APID-TM-pus-apid-1 type and pus-1 component<br/>Acn inline encoding in the context of APID-TM-pus-apid-1-pus-1 type and acceptance-failure component<br/>Acn inline encoding in the context of APID-TM-pus-apid-1-pus-1-acceptance-failure type and parameters component</td>
+  </tr>
+  
+  
+  <tr class="headerRow">
+  <td class="hrNo">No</td>
+  <td class="hrField">Field</td>
+  <td class="hrComment">Comment</td>
+  <td class="hrOptional">Present</td>
+  <td class="hrType">Type</td>
+  <td class="hrConstraint">Constraint</td>
+  <td class="hrMin">Min Bits</td>
+  <td class="hrMax">Max Bits</td>
+  </tr>
+  
+  <tr class="OddRow">
+  <td class="no">1</td>
+  <td class="field">one-param</td>
+  <td class="comment"></td>
+  <td class="optional">code=1</td>
+  <td class="type"><a href="#ICD_Parameter">Parameter</a></td>
+  <td class="constraint">(0 .. 255)</td>
+  <td class="min">8</td>
+  <td class="max">8</td>
+  </tr>
+  <tr class="EvenRow">
+  <td class="no">2</td>
+  <td class="field">two-params</td>
+  <td class="comment"></td>
+  <td class="optional">code=2</td>
+  <td class="type"><a href="#ICD_PUS_1_2_Generic_parameters_two_params">PUS-1-2-Generic-parameters-two-params</a></td>
+  <td class="constraint">(2)</td>
+  <td class="min">16</td>
+  <td class="max">16</td>
+  </tr>
+  
+  </tbody>
+  </table>
+  &nbsp;<br/>
+  <a name="ICD_APID_TM_pus_apid_1_pus_1_acceptance_failure_parameters_two_params"></a>
+  <table width="100%" >
+  <tbody>
+  
+  <tr  class="typeRow">
+  <td colspan="6">
+  APID-TM-pus-apid-1-pus-1-acceptance-failure-parameters-two-params <font size="-1">(SEQUENCE-OF)</font>
+  <font size="-2"><a href="#ASN1_APID_TM_pus_apid_1_pus_1_acceptance_failure_parameters_two_params" class="fileLink">ASN.1</a></font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Min:&nbsp;2&nbsp;bytes</font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Max:&nbsp;2&nbsp;bytes</font>
+  </td>
+  </tr>
+  
+  <tr class="CommentRow">
+  <td class="comment2" colspan="8">Acn inline encoding in the context of TM type and pus component<br/>Acn inline encoding in the context of APID-TM-pus type and apid-1 component<br/>Acn inline encoding in the context of APID-TM-pus-apid-1 type and pus-1 component<br/>Acn inline encoding in the context of APID-TM-pus-apid-1-pus-1 type and acceptance-failure component<br/>Acn inline encoding in the context of APID-TM-pus-apid-1-pus-1-acceptance-failure type and parameters component<br/>Acn inline encoding in the context of APID-TM-pus-apid-1-pus-1-acceptance-failure-parameters type and two-params component<br/>Length is fixed to 2 elements (no length determinant is needed).</td>
+  </tr>
+  
+  <tr class="headerRow">
+  <td class="hrNo">No</td>
+  <td class="hrField">Field</td>
+  <td class="hrComment">Comment</td>
+  <td class="hrOptional">Present</td>
+  <td class="hrType">Type</td>
+  <td class="hrConstraint">Constraint</td>
+  <td class="hrMin">Min Length (bits)</td>
+  <td class="hrMax">Max Length (bits)</td>
+  </tr>
+  
+  <tr class="OddRow">
+  <td class="no">1</td>
+  <td class="field">Item #1</td>
+  <td class="comment"></td>
+  <td class="optional">always</td>
+  <td class="type"><a href="#ICD_Parameter">Parameter</a></td>
+  <td class="constraint">(0 .. 255)</td>
+  <td class="min">8</td>
+  <td class="max">8</td>
+  </tr>
+  <tr class="EvenRow">
+  <td class="no">2</td>
+  <td class="field">Item #2</td>
+  <td class="comment"></td>
+  <td class="optional">always</td>
+  <td class="type"><a href="#ICD_Parameter">Parameter</a></td>
+  <td class="constraint">(0 .. 255)</td>
+  <td class="min">8</td>
+  <td class="max">8</td>
+  </tr>
+  
+  </tbody>
+  </table>
+  &nbsp;<br/>
+  <a name="ICD_APID_TM_pus_apid_2"></a> 
+  <table width="100%" >
+  <tbody>
+  
+  <tr class="typeRow">
+  <td colspan="6">
+  APID-TM-pus-apid-2 <font size="-1">(CHOICE)</font>
+  <font size="-2"><a href="#ASN1_APID_TM_pus_apid_2" class="fileLink">ASN.1</a></font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Min:&nbsp;2&nbsp;bytes</font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Max:&nbsp;3&nbsp;bytes</font>
+  </td>
+  </tr>
+  
+  <tr class="CommentRow">
+  <td class="comment2" colspan="8">Acn inline encoding in the context of TM type and pus component<br/>Acn inline encoding in the context of APID-TM-pus type and apid-2 component</td>
+  </tr>
+  
+  
+  <tr class="headerRow">
+  <td class="hrNo">No</td>
+  <td class="hrField" colspan="3">ACN Parameters <a href="#ACN_PARAMS_EXPLAINED123" class="acnParamsLink">[?]</a></td>
+  <td class="hrType" colspan="4">Type</td>
+  </tr>
+  <tr class="OddRow">
+      <td class="no" >1</td>
+      <td class="field" colspan="3">serviceType</td>
+      <td class="type" colspan="4">INTEGER</td>
+  </tr><tr class="OddRow">
+      <td class="no" >2</td>
+      <td class="field" colspan="3">serviceSubType</td>
+      <td class="type" colspan="4">INTEGER</td>
+  </tr>
+  <tr class="headerRow">
+  <td class="hrNo">No</td>
+  <td class="hrField">Field</td>
+  <td class="hrComment">Comment</td>
+  <td class="hrOptional">Present</td>
+  <td class="hrType">Type</td>
+  <td class="hrConstraint">Constraint</td>
+  <td class="hrMin">Min Bits</td>
+  <td class="hrMax">Max Bits</td>
+  </tr>
+  
+  <tr class="OddRow">
+  <td class="no">1</td>
+  <td class="field">pus-1</td>
+  <td class="comment"></td>
+  <td class="optional">serviceType=1</td>
+  <td class="type"><a href="#ICD_Service1_APID_2">Service1-APID-2</a></td>
+  <td class="constraint"></td>
+  <td class="min">9</td>
+  <td class="max">17</td>
+  </tr>
+  
+  </tbody>
+  </table>
+  &nbsp;<br/>
+  <a name="ICD_APID_TM_pus_apid_2_pus_1"></a> 
+  <table width="100%" >
+  <tbody>
+  
+  <tr class="typeRow">
+  <td colspan="6">
+  APID-TM-pus-apid-2-pus-1 <font size="-1">(CHOICE)</font>
+  <font size="-2"><a href="#ASN1_APID_TM_pus_apid_2_pus_1" class="fileLink">ASN.1</a></font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Min:&nbsp;2&nbsp;bytes</font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Max:&nbsp;3&nbsp;bytes</font>
+  </td>
+  </tr>
+  
+  <tr class="CommentRow">
+  <td class="comment2" colspan="8">Acn inline encoding in the context of TM type and pus component<br/>Acn inline encoding in the context of APID-TM-pus type and apid-2 component<br/>Acn inline encoding in the context of APID-TM-pus-apid-2 type and pus-1 component</td>
+  </tr>
+  
+  
+  <tr class="headerRow">
+  <td class="hrNo">No</td>
+  <td class="hrField" colspan="3">ACN Parameters <a href="#ACN_PARAMS_EXPLAINED123" class="acnParamsLink">[?]</a></td>
+  <td class="hrType" colspan="4">Type</td>
+  </tr>
+  <tr class="OddRow">
+      <td class="no" >1</td>
+      <td class="field" colspan="3">serviceSubType</td>
+      <td class="type" colspan="4">INTEGER</td>
+  </tr>
+  <tr class="headerRow">
+  <td class="hrNo">No</td>
+  <td class="hrField">Field</td>
+  <td class="hrComment">Comment</td>
+  <td class="hrOptional">Present</td>
+  <td class="hrType">Type</td>
+  <td class="hrConstraint">Constraint</td>
+  <td class="hrMin">Min Bits</td>
+  <td class="hrMax">Max Bits</td>
+  </tr>
+  
+  <tr class="OddRow">
+  <td class="no">1</td>
+  <td class="field">acceptance-failure</td>
+  <td class="comment"></td>
+  <td class="optional">serviceSubType=2</td>
+  <td class="type"><a href="#ICD_PUS_1_2_Generic">PUS-1-2-Generic</a></td>
+  <td class="constraint"></td>
+  <td class="min">9</td>
+  <td class="max">17</td>
+  </tr>
+  
+  </tbody>
+  </table>
+  &nbsp;<br/>
+  <a name="ICD_APID_TM_pus_apid_2_pus_1_acceptance_failure"></a> 
+  <table width="100%" >
+  <tbody>
+  
+  <tr class="typeRow">
+  <td colspan="6">
+  APID-TM-pus-apid-2-pus-1-acceptance-failure <font size="-1">(SEQUENCE)</font>
+  <font size="-2"><a href="#ASN1_APID_TM_pus_apid_2_pus_1_acceptance_failure" class="fileLink">ASN.1</a></font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Min:&nbsp;2&nbsp;bytes</font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Max:&nbsp;3&nbsp;bytes</font>
+  </td>
+  </tr>
+  
+  <tr class="CommentRow">
+  <td class="comment2" colspan="8">Acn inline encoding in the context of TM type and pus component<br/>Acn inline encoding in the context of APID-TM-pus type and apid-2 component<br/>Acn inline encoding in the context of APID-TM-pus-apid-2 type and pus-1 component<br/>Acn inline encoding in the context of APID-TM-pus-apid-2-pus-1 type and acceptance-failure component</td>
+  </tr>
+  
+  
+  <tr class="headerRow">
+  <td class="hrNo">No</td>
+  <td class="hrField">Field</td>
+  <td class="hrComment">Comment</td>
+  <td class="hrOptional">Present</td>
+  <td class="hrType">Type</td>
+  <td class="hrConstraint">Constraint</td>
+  <td class="hrMin">Min Bits</td>
+  <td class="hrMax">Max Bits</td>
+  </tr>
+  
+  <tr class="OddRow">
+  <td class="no">1</td>
+  <td class="field">code</td>
+  <td class="comment"></td>
+  <td class="optional">always</td>
+  <td class="type">INTEGER</td>
+  <td class="constraint"></td>
+  <td class="min">1</td>
+  <td class="max">1</td>
+  </tr>
+  <tr class="EvenRow">
+  <td class="no">2</td>
+  <td class="field">parameters</td>
+  <td class="comment">code INTEGER { incomplete-packet-length (1), incorrect-checksum (2) } (1..2),</td>
+  <td class="optional">always</td>
+  <td class="type"><a href="#ICD_PUS_1_2_Generic_parameters">APID-TM-pus-apid-2-pus-1-acceptance-failure-parameters</a></td>
+  <td class="constraint"></td>
+  <td class="min">8</td>
+  <td class="max">16</td>
+  </tr>
+  
+  </tbody>
+  </table>
+  &nbsp;<br/>
+  <a name="ICD_APID_TM_pus_apid_2_pus_1_acceptance_failure_parameters"></a> 
+  <table width="100%" >
+  <tbody>
+  
+  <tr class="typeRow">
+  <td colspan="6">
+  APID-TM-pus-apid-2-pus-1-acceptance-failure-parameters <font size="-1">(CHOICE)</font>
+  <font size="-2"><a href="#ASN1_APID_TM_pus_apid_2_pus_1_acceptance_failure_parameters" class="fileLink">ASN.1</a></font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Min:&nbsp;1&nbsp;bytes</font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Max:&nbsp;2&nbsp;bytes</font>
+  </td>
+  </tr>
+  
+  <tr class="CommentRow">
+  <td class="comment2" colspan="8">Acn inline encoding in the context of TM type and pus component<br/>Acn inline encoding in the context of APID-TM-pus type and apid-2 component<br/>Acn inline encoding in the context of APID-TM-pus-apid-2 type and pus-1 component<br/>Acn inline encoding in the context of APID-TM-pus-apid-2-pus-1 type and acceptance-failure component<br/>Acn inline encoding in the context of APID-TM-pus-apid-2-pus-1-acceptance-failure type and parameters component</td>
+  </tr>
+  
+  
+  <tr class="headerRow">
+  <td class="hrNo">No</td>
+  <td class="hrField">Field</td>
+  <td class="hrComment">Comment</td>
+  <td class="hrOptional">Present</td>
+  <td class="hrType">Type</td>
+  <td class="hrConstraint">Constraint</td>
+  <td class="hrMin">Min Bits</td>
+  <td class="hrMax">Max Bits</td>
+  </tr>
+  
+  <tr class="OddRow">
+  <td class="no">1</td>
+  <td class="field">one-param</td>
+  <td class="comment"></td>
+  <td class="optional">code=2</td>
+  <td class="type"><a href="#ICD_Parameter">Parameter</a></td>
+  <td class="constraint">(0 .. 255)</td>
+  <td class="min">8</td>
+  <td class="max">8</td>
+  </tr>
+  <tr class="EvenRow">
+  <td class="no">2</td>
+  <td class="field">two-params</td>
+  <td class="comment"></td>
+  <td class="optional">code=1</td>
+  <td class="type"><a href="#ICD_PUS_1_2_Generic_parameters_two_params">PUS-1-2-Generic-parameters-two-params</a></td>
+  <td class="constraint">(2)</td>
+  <td class="min">16</td>
+  <td class="max">16</td>
+  </tr>
+  
+  </tbody>
+  </table>
+  &nbsp;<br/>
+  <a name="ICD_APID_TM_pus_apid_2_pus_1_acceptance_failure_parameters_two_params"></a>
+  <table width="100%" >
+  <tbody>
+  
+  <tr  class="typeRow">
+  <td colspan="6">
+  APID-TM-pus-apid-2-pus-1-acceptance-failure-parameters-two-params <font size="-1">(SEQUENCE-OF)</font>
+  <font size="-2"><a href="#ASN1_APID_TM_pus_apid_2_pus_1_acceptance_failure_parameters_two_params" class="fileLink">ASN.1</a></font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Min:&nbsp;2&nbsp;bytes</font>
+  </td>
+  
+  <td align="left">
+      <font size="-1">Max:&nbsp;2&nbsp;bytes</font>
+  </td>
+  </tr>
+  
+  <tr class="CommentRow">
+  <td class="comment2" colspan="8">Acn inline encoding in the context of TM type and pus component<br/>Acn inline encoding in the context of APID-TM-pus type and apid-2 component<br/>Acn inline encoding in the context of APID-TM-pus-apid-2 type and pus-1 component<br/>Acn inline encoding in the context of APID-TM-pus-apid-2-pus-1 type and acceptance-failure component<br/>Acn inline encoding in the context of APID-TM-pus-apid-2-pus-1-acceptance-failure type and parameters component<br/>Acn inline encoding in the context of APID-TM-pus-apid-2-pus-1-acceptance-failure-parameters type and two-params component<br/>Length is fixed to 2 elements (no length determinant is needed).</td>
+  </tr>
+  
+  <tr class="headerRow">
+  <td class="hrNo">No</td>
+  <td class="hrField">Field</td>
+  <td class="hrComment">Comment</td>
+  <td class="hrOptional">Present</td>
+  <td class="hrType">Type</td>
+  <td class="hrConstraint">Constraint</td>
+  <td class="hrMin">Min Length (bits)</td>
+  <td class="hrMax">Max Length (bits)</td>
+  </tr>
+  
+  <tr class="OddRow">
+  <td class="no">1</td>
+  <td class="field">Item #1</td>
+  <td class="comment"></td>
+  <td class="optional">always</td>
+  <td class="type"><a href="#ICD_Parameter">Parameter</a></td>
+  <td class="constraint">(0 .. 255)</td>
+  <td class="min">8</td>
+  <td class="max">8</td>
+  </tr>
+  <tr class="EvenRow">
+  <td class="no">2</td>
+  <td class="field">Item #2</td>
+  <td class="comment"></td>
+  <td class="optional">always</td>
+  <td class="type"><a href="#ICD_Parameter">Parameter</a></td>
+  <td class="constraint">(0 .. 255)</td>
+  <td class="min">8</td>
+  <td class="max">8</td>
+  </tr>
+  
+  </tbody>
+  </table>
+  &nbsp;<br/>
+  </div>
+
+  <hr />
+    <a name="ACN_PARAMS_EXPLAINED123"></a>
+    <em>ACN Parameters</em><br/>
+    In the standard ASN.1 encodings such as uPER, BER etc, the encoding and decoding of any type has no external dependencies. For example, the encoded data for a SEQUENCE OF depends on the number of items in the SEQUENCE OF (the length determinant) and the type of item contained in the SEQUENCE. On the other hand, ACN allows types to be parameterized. For instance, the length of a SEQUENCE OF may be determined by the value of an external field. In this case, the SEQUENCE OF is parameterized and the input parameter is the field providing the length.
+  <hr />
+    <br/>
+  <div style="width: 100%">
+  <h1 >File : apid2.asn</h1>
+  <div style="width: 100%; white-space:pre; font-family:Courier New; font-size:small">
+  APID <b><font color="#5F9EA0">DEFINITIONS</font></b> ::=
+  <b><font color="#5F9EA0">BEGIN</font></b>
+
+  <font color="#008000"><i>--  PUS-2-1 has two parameters that may be APID-dependent:
+  </i></font><font color="#008000"><i>--    Max number of elements
+  </i></font><font color="#008000"><i>--    Values for actual addresses
+  </i></font><font color="#008000"><i>--  The definition is the following:
+  </i></font>PUS-2-1-Generic {<b><font color="#5F9EA0">INTEGER</font></b>: max-elem, Device-Address-Type} ::=
+     <a name="ASN1_APID_1_PUS_2_1">SEQUENCE</a> (<b><font color="#5F9EA0">SIZE</font></b> (1 .. max-elem)) <b><font color="#5F9EA0">OF</font></b> Device-Address-Type
+
+  <font color="#008000"><i>-- An APID-instance of the PUS service 2 has two parameters:
+  </i></font><font color="#008000"><i>--    an instance of PUS-2-1
+  </i></font><font color="#008000"><i>--    and instance of PUS-2-2
+  </i></font><font color="#008000"><i>-- The definition is the following:
+  </i></font>Service2-Generic {PUS-2-1, PUS-2-2} ::=
+     <a name="ASN1_Service2_APID_1">CHOICE</a> {
+        distribute-On-Off PUS-2-1,
+        whatever-pus-2-2  PUS-2-2
+     }
+
+  <font color="#008000"><i>-- Tailoring part: we create tha APID-specific versions of each service
+  </i></font>
+  <a name="ACN_APID_1_Addresses"></a><a href="#ICD_APID_1_Addresses"><font color="#B8860B"><b>APID-1-Addresses</b></font></a> ::= <a name="ASN1_APID_1_Addresses">ENUMERATED</a> { device1, device2 } <font color="#008000"><i>-- fake devices for the example
+  </i></font><a name="ACN_APID_1_PUS_2_1"></a><a href="#ICD_APID_1_PUS_2_1"><font color="#B8860B"><b>APID-1-PUS-2-1</b></font></a>   ::= PUS-2-1-Generic { 1, <a href="#ASN1_APID_1_Addresses"><font color="#000000">APID-1-Addresses</font></a> }
+  <a name="ACN_APID_1_PUS_2_2"></a><a href="#ICD_APID_1_PUS_2_2"><font color="#B8860B"><b>APID-1-PUS-2-2</b></font></a>   ::= <a name="ASN1_APID_1_PUS_2_2">NULL</a>   <font color="#008000"><i>-- Service (2,2) to be defined
+  </i></font><a name="ACN_Service2_APID_1"></a><a href="#ICD_Service2_APID_1"><font color="#B8860B"><b>Service2-APID-1</b></font></a>  ::= Service2-Generic { <a href="#ASN1_APID_1_PUS_2_1"><font color="#000000">APID-1-PUS-2-1</font></a>, <a href="#ASN1_APID_1_PUS_2_2"><font color="#000000">APID-1-PUS-2-2</font></a> } <font color="#008000"><i>-- Tailored service 2 for APID 1
+  </i></font>
+  <font color="#008000"><i>-- Dummy definition for PUS service 3
+  </i></font><a name="ACN_Service3_Generic"></a><a href="#ICD_Service3_Generic"><font color="#B8860B"><b>Service3-Generic</b></font></a> ::= <a name="ASN1_Service3_Generic">CHOICE</a> {
+    whatever-3-1 <b><font color="#5F9EA0">NULL</font></b>
+  }
+
+  <font color="#008000"><i>-- Dummy definition for PUS service 4
+  </i></font><a name="ACN_Service4_Generic"></a><a href="#ICD_Service4_Generic"><font color="#B8860B"><b>Service4-Generic</b></font></a> ::= <a name="ASN1_Service4_Generic">CHOICE</a> {
+    whatever-4-1 <b><font color="#5F9EA0">NULL</font></b>
+  }
+
+  <a name="ACN_APID_2_Addresses"></a><a href="#ICD_APID_2_Addresses"><font color="#B8860B"><b>APID-2-Addresses</b></font></a> ::= <a name="ASN1_APID_2_Addresses">ENUMERATED</a> { device3, device4 }
+  <a name="ACN_APID_2_PUS_2_1"></a><a href="#ICD_APID_2_PUS_2_1"><font color="#B8860B"><b>APID-2-PUS-2-1</b></font></a>   ::= PUS-2-1-Generic { 5, <a href="#ASN1_APID_2_Addresses"><font color="#000000">APID-2-Addresses</font></a> }
+  <a name="ACN_APID_2_PUS_2_2"></a><a href="#ICD_APID_2_PUS_2_2"><font color="#B8860B"><b>APID-2-PUS-2-2</b></font></a>   ::= <a name="ASN1_APID_2_PUS_2_2">NULL</a>
+  <a name="ACN_Service2_APID_2"></a><a href="#ICD_Service2_APID_2"><font color="#B8860B"><b>Service2-APID-2</b></font></a>  ::= Service2-Generic { <a href="#ASN1_APID_2_PUS_2_1"><font color="#000000">APID-2-PUS-2-1</font></a>, <a href="#ASN1_APID_2_PUS_2_2"><font color="#000000">APID-2-PUS-2-2</font></a> }
+
+  <font color="#008000"><i>-- Full set of available TCs for APID 1
+  </i></font><a name="ACN_APID_1_TC"></a><a href="#ICD_APID_1_TC"><font color="#B8860B"><b>APID-1-TC</b></font></a> ::= <a name="ASN1_APID_1_TC">CHOICE</a> {
+     pus-2 <a href="#ASN1_Service2_APID_1"><font color="#000000">Service2-APID-1</font></a>,
+     pus-3 <a href="#ASN1_Service3_Generic"><font color="#000000">Service3-Generic</font></a>
+  }
+
+  <font color="#008000"><i>-- Full set of available TCs for APID 2
+  </i></font><a name="ACN_APID_2_TC"></a><a href="#ICD_APID_2_TC"><font color="#B8860B"><b>APID-2-TC</b></font></a> ::= <a name="ASN1_APID_2_TC">CHOICE</a> {
+     pus-2 <a href="#ASN1_Service2_APID_2"><font color="#000000">Service2-APID-2</font></a>,
+     pus-4 <a href="#ASN1_Service4_Generic"><font color="#000000">Service4-Generic</font></a>
+  }
+
+  <font color="#008000"><i>-- System-level set of TCs including all APIDs
+  </i></font><a name="ACN_PUS_TC"></a><a href="#ICD_PUS_TC"><font color="#B8860B"><b>PUS-TC</b></font></a> ::= <a name="ASN1_PUS_TC">CHOICE</a> {
+    apid-1 <a href="#ASN1_APID_1_TC"><font color="#000000">APID-1-TC</font></a>,
+    apid-2 <a href="#ASN1_APID_2_TC"><font color="#000000">APID-2-TC</font></a>
+  }
+
+  <font color="#008000"><i>-- Define the main telecommand type
+  </i></font><a name="ACN_TC"></a><a href="#ICD_TC"><font color="#B8860B"><b>TC</b></font></a> ::= <b><font color="#5F9EA0">SEQUENCE</font></b> {
+    pus <a href="#ASN1_PUS_TC"><font color="#000000">PUS-TC</font></a>
+  }
+
+  <font color="#008000"><i>-------------------
+  </i></font><font color="#008000"><i>--  TELEMETRIES  --
+  </i></font><font color="#008000"><i>-------------------
+  </i></font>
+  <a name="ACN_Parameter"></a><a href="#ICD_Parameter"><font color="#B8860B"><b>Parameter</b></font></a> ::= <a name="ASN1_Parameter">INTEGER</a> (0..255)  <font color="#008000"><i>-- Type for a parameter (could be generic)
+  </i></font>
+  <font color="#008000"><i>-- I use a choice to indicate that the type for the parameters could by anything,
+  </i></font><font color="#008000"><i>-- not always a list of identical types.
+  </i></font><a name="ACN_PUS_1_2_Generic"></a><a href="#ICD_PUS_1_2_Generic"><font color="#B8860B"><b>PUS-1-2-Generic</b></font></a> ::= <a name="ASN1_PUS_1_2_Generic">SEQUENCE</a> {
+   <font color="#008000"><i>--code INTEGER { incomplete-packet-length (1), incorrect-checksum (2) } (1..2),
+  </i></font> parameters <b><font color="#5F9EA0">CHOICE</font></b> {
+        one-param  <a href="#ASN1_Parameter"><font color="#000000">Parameter</font></a>,
+        two-params <b><font color="#5F9EA0">SEQUENCE</font></b> (<b><font color="#5F9EA0">SIZE</font></b> (2)) <b><font color="#5F9EA0">OF</font></b> <a href="#ASN1_Parameter"><font color="#000000">Parameter</font></a>
+      }
+  }
+
+  Service1-Generic {PUS-1-2} ::= <a name="ASN1_Service1_APID_1">CHOICE</a> {
+     acceptance-failure PUS-1-2
+  }
+
+  <a name="ACN_Service1_APID_1"></a><a href="#ICD_Service1_APID_1"><font color="#B8860B"><b>Service1-APID-1</b></font></a> ::= Service1-Generic {<a href="#ASN1_PUS_1_2_Generic"><font color="#000000">PUS-1-2-Generic</font></a>}
+  <a name="ACN_Service1_APID_2"></a><a href="#ICD_Service1_APID_2"><font color="#B8860B"><b>Service1-APID-2</b></font></a> ::= Service1-Generic {<a href="#ASN1_PUS_1_2_Generic"><font color="#000000">PUS-1-2-Generic</font></a>}
+
+  <a name="ACN_APID_1_TM"></a><a href="#ICD_APID_1_TM"><font color="#B8860B"><b>APID-1-TM</b></font></a> ::= <a name="ASN1_APID_1_TM">CHOICE</a> {
+     pus-1 <a href="#ASN1_Service1_APID_1"><font color="#000000">Service1-APID-1</font></a>
+  }
+
+  <a name="ACN_APID_2_TM"></a><a href="#ICD_APID_2_TM"><font color="#B8860B"><b>APID-2-TM</b></font></a> ::= <a name="ASN1_APID_2_TM">CHOICE</a> {
+     pus-1 <a href="#ASN1_Service1_APID_2"><font color="#000000">Service1-APID-2</font></a>
+  }
+
+  <a name="ACN_PUS_TM"></a><a href="#ICD_PUS_TM"><font color="#B8860B"><b>PUS-TM</b></font></a> ::= <a name="ASN1_PUS_TM">CHOICE</a> {
+     apid-1 <a href="#ASN1_APID_1_TM"><font color="#000000">APID-1-TM</font></a>,
+     apid-2 <a href="#ASN1_APID_2_TM"><font color="#000000">APID-2-TM</font></a>
+  }
+
+  <a name="ACN_TM"></a><a href="#ICD_TM"><font color="#B8860B"><b>TM</b></font></a> ::= <b><font color="#5F9EA0">SEQUENCE</font></b> {
+    pus <a href="#ASN1_PUS_TM"><font color="#000000">PUS-TM</font></a>
+  }
+  <b><font color="#5F9EA0">END</font></b>
+  
+  </div>
+  </div>
+
+  <div style="width: 100%">
+  <h1 >File : apid2.acn</h1>
+  <div style="width: 100%; white-space:pre; font-family:Courier New; font-size:small">
+  APID <b><font color="#5F9EA0">DEFINITIONS</font></b> ::=
+  <b><font color="#5F9EA0">BEGIN</font></b>
+
+  <font color="#008000"><i>--  Define the discriminants of APID 1 for service 2 
+  </i></font><a name="ACN_Service2_APID_1"></a><a href="#ICD_Service2_APID_1"><font color="#B8860B"><b>Service2-APID-1</b></font></a> &lt;<b><font color="#5F9EA0">INTEGER</font></b>: serviceSubType&gt; [] {
+     distribute-On-Off [<b><font color="#5F9EA0">present-when</font></b> serviceSubType == 1],
+     whatever-pus-2-2  [<b><font color="#5F9EA0">present-when</font></b> serviceSubType == 2]
+  }
+
+  <font color="#008000"><i>--  Define the discriminants of APID 2 for service 2 
+  </i></font><a name="ACN_Service2_APID_2"></a><a href="#ICD_Service2_APID_2"><font color="#B8860B"><b>Service2-APID-2</b></font></a> &lt;<b><font color="#5F9EA0">INTEGER</font></b>: serviceSubType&gt; [] {
+     distribute-On-Off [<b><font color="#5F9EA0">present-when</font></b> serviceSubType == 1],
+     whatever-pus-2-2  [<b><font color="#5F9EA0">present-when</font></b> serviceSubType == 2]
+  }
+
+  <font color="#008000"><i>-- Define the discriminant for the dummy service 3,1
+  </i></font><a name="ACN_Service3_Generic"></a><a href="#ICD_Service3_Generic"><font color="#B8860B"><b>Service3-Generic</b></font></a> &lt;<b><font color="#5F9EA0">INTEGER</font></b>: serviceSubType&gt; [] {
+     whatever-3-1 [<b><font color="#5F9EA0">present-when</font></b> serviceSubType == 1]
+  }
+
+  <font color="#008000"><i>-- Define the discriminant for the dummy service 4,1
+  </i></font><a name="ACN_Service4_Generic"></a><a href="#ICD_Service4_Generic"><font color="#B8860B"><b>Service4-Generic</b></font></a> &lt;<b><font color="#5F9EA0">INTEGER</font></b>: serviceSubType&gt; [] {
+     whatever-4-1 [<b><font color="#5F9EA0">present-when</font></b> serviceSubType == 1]
+  }
+
+  <font color="#008000"><i>--  APID 1 options for each service
+  </i></font><a name="ACN_APID_1_TC"></a><a href="#ICD_APID_1_TC"><font color="#B8860B"><b>APID-1-TC</b></font></a> &lt;<b><font color="#5F9EA0">INTEGER</font></b>: serviceType, <b><font color="#5F9EA0">INTEGER</font></b>: serviceSubType&gt; [] {
+    pus-2 &lt;serviceSubType&gt; [<b><font color="#5F9EA0">present-when</font></b> serviceType == 2],
+    pus-3 &lt;serviceSubType&gt; [<b><font color="#5F9EA0">present-when</font></b> serviceType == 3]
+  }
+
+  <font color="#008000"><i>--  APID 2 options for each service
+  </i></font><a name="ACN_APID_2_TC"></a><a href="#ICD_APID_2_TC"><font color="#B8860B"><b>APID-2-TC</b></font></a> &lt;<b><font color="#5F9EA0">INTEGER</font></b>: serviceType, <b><font color="#5F9EA0">INTEGER</font></b>: serviceSubType&gt; [] {
+    pus-2 &lt;serviceSubType&gt; [<b><font color="#5F9EA0">present-when</font></b> serviceType == 2],
+    pus-4 &lt;serviceSubType&gt; [<b><font color="#5F9EA0">present-when</font></b> serviceType == 4]
+  }
+
+  <font color="#008000"><i>--  Add discrimination based on APID
+  </i></font><a name="ACN_PUS_TC"></a><a href="#ICD_PUS_TC"><font color="#B8860B"><b>PUS-TC</b></font></a> &lt;<b><font color="#5F9EA0">INTEGER</font></b>: apid, <b><font color="#5F9EA0">INTEGER</font></b>: serviceType, <b><font color="#5F9EA0">INTEGER</font></b>: serviceSubType&gt; [] {
+     apid-1 &lt;serviceType, serviceSubType&gt; [<b><font color="#5F9EA0">present-when</font></b> apid == 1],
+     apid-2 &lt;serviceType, serviceSubType&gt; [<b><font color="#5F9EA0">present-when</font></b> apid == 2]
+  }
+
+  <font color="#008000"><i>-- The telecommand header is added here, with the 3 TC discriminants 
+  </i></font><a name="ACN_TC"></a><a href="#ICD_TC"><font color="#B8860B"><b>TC</b></font></a> [] {
+     serviceType    <b><font color="#5F9EA0">INTEGER</font></b> [<b><font color="#5F9EA0">size</font></b> 4, <b><font color="#5F9EA0">encoding</font></b> <b><font color="#5F9EA0">pos-int</font></b>],
+     serviceSubType <b><font color="#5F9EA0">INTEGER</font></b> [<b><font color="#5F9EA0">size</font></b> 4, <b><font color="#5F9EA0">encoding</font></b> <b><font color="#5F9EA0">pos-int</font></b>],
+     apid           <b><font color="#5F9EA0">INTEGER</font></b> [<b><font color="#5F9EA0">size</font></b> 8, <b><font color="#5F9EA0">encoding</font></b> <b><font color="#5F9EA0">pos-int</font></b>],
+     pus &lt;apid, serviceType, serviceSubType&gt; []
+  }
+
+
+  <font color="#008000"><i>-------------------
+  </i></font><font color="#008000"><i>--  TELEMETRIES  --
+  </i></font><font color="#008000"><i>-------------------
+  </i></font>
+  <font color="#008000"><i>--  Define the discriminants of APID 1 for service 1 
+  </i></font><a name="ACN_Service1_APID_1"></a><a href="#ICD_Service1_APID_1"><font color="#B8860B"><b>Service1-APID-1</b></font></a> &lt;<b><font color="#5F9EA0">INTEGER</font></b>: serviceSubType&gt; [] {
+     acceptance-failure [<b><font color="#5F9EA0">present-when</font></b> serviceSubType == 2] {
+        code <b><font color="#5F9EA0">INTEGER</font></b> [<b><font color="#5F9EA0">size</font></b> 1, <b><font color="#5F9EA0">encoding</font></b> <b><font color="#5F9EA0">pos-int</font></b>],
+        parameters [] {
+           one-param  [<b><font color="#5F9EA0">present-when</font></b> code == 1],
+           two-params [<b><font color="#5F9EA0">present-when</font></b> code == 2]
+        }
+     }
+  }
+
+  <a name="ACN_Service1_APID_2"></a><a href="#ICD_Service1_APID_2"><font color="#B8860B"><b>Service1-APID-2</b></font></a> &lt;<b><font color="#5F9EA0">INTEGER</font></b>: serviceSubType&gt; [] {
+     acceptance-failure [<b><font color="#5F9EA0">present-when</font></b> serviceSubType == 2] {
+        code <b><font color="#5F9EA0">INTEGER</font></b> [<b><font color="#5F9EA0">size</font></b> 1, <b><font color="#5F9EA0">encoding</font></b> <b><font color="#5F9EA0">pos-int</font></b>],
+        parameters [] {
+           one-param  [<b><font color="#5F9EA0">present-when</font></b> code == 2],
+           two-params [<b><font color="#5F9EA0">present-when</font></b> code == 1]
+        }
+     }
+  }
+
+  <a name="ACN_APID_1_TM"></a><a href="#ICD_APID_1_TM"><font color="#B8860B"><b>APID-1-TM</b></font></a> &lt;<b><font color="#5F9EA0">INTEGER</font></b>: serviceType, <b><font color="#5F9EA0">INTEGER</font></b>: serviceSubType&gt; [] {
+    pus-1 &lt;serviceSubType&gt; [<b><font color="#5F9EA0">present-when</font></b> serviceType == 1]
+  }
+
+  <a name="ACN_APID_2_TM"></a><a href="#ICD_APID_2_TM"><font color="#B8860B"><b>APID-2-TM</b></font></a> &lt;<b><font color="#5F9EA0">INTEGER</font></b>: serviceType, <b><font color="#5F9EA0">INTEGER</font></b>: serviceSubType&gt; [] {
+    pus-1 &lt;serviceSubType&gt; [<b><font color="#5F9EA0">present-when</font></b> serviceType == 1]
+  }
+
+  <font color="#008000"><i>-- TM structure is similar to TC here
+  </i></font><a name="ACN_PUS_TM"></a><a href="#ICD_PUS_TM"><font color="#B8860B"><b>PUS-TM</b></font></a> &lt;<b><font color="#5F9EA0">INTEGER</font></b>: apid, <b><font color="#5F9EA0">INTEGER</font></b>: serviceType, <b><font color="#5F9EA0">INTEGER</font></b>: serviceSubType&gt; [] {
+     apid-1 &lt;serviceType, serviceSubType&gt; [<b><font color="#5F9EA0">present-when</font></b> apid == 1],
+     apid-2 &lt;serviceType, serviceSubType&gt; [<b><font color="#5F9EA0">present-when</font></b> apid == 2]
+  }
+
+  <font color="#008000"><i>-- The telemetry header is added here, with the 3 TC discriminants 
+  </i></font><a name="ACN_TM"></a><a href="#ICD_TM"><font color="#B8860B"><b>TM</b></font></a> [] {
+     serviceType    <b><font color="#5F9EA0">INTEGER</font></b> [<b><font color="#5F9EA0">size</font></b> 4, <b><font color="#5F9EA0">encoding</font></b> <b><font color="#5F9EA0">pos-int</font></b>],
+     serviceSubType <b><font color="#5F9EA0">INTEGER</font></b> [<b><font color="#5F9EA0">size</font></b> 4, <b><font color="#5F9EA0">encoding</font></b> <b><font color="#5F9EA0">pos-int</font></b>],
+     apid           <b><font color="#5F9EA0">INTEGER</font></b> [<b><font color="#5F9EA0">size</font></b> 8, <b><font color="#5F9EA0">encoding</font></b> <b><font color="#5F9EA0">pos-int</font></b>],
+     pus &lt;apid, serviceType, serviceSubType&gt; []
+  }
+
+
+  <b><font color="#5F9EA0">END</font></b>
+  
+  </div>
+  </div>
+
+</body>
+</html>
