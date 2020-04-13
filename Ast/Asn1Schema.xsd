@@ -1,0 +1,370 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<!-- XSD SCHEMA IS STILL INCOMPLETE -->
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+    <xsd:element name = "AstRoot">
+        <xsd:complexType>
+            <xsd:sequence>
+                <xsd:element ref = "Asn1File" minOccurs = "1" maxOccurs = "unbounded"/>
+                <xsd:element ref = "AcnDependencies" minOccurs = "1" maxOccurs = "1"/>
+            </xsd:sequence>
+            <xsd:attribute name = "rename_policy" use="required"><xsd:simpleType><xsd:restriction base = "RenamePolicy"></xsd:restriction></xsd:simpleType></xsd:attribute>
+        </xsd:complexType>
+    </xsd:element>
+    
+    
+    <xsd:simpleType name="RenamePolicy">
+        <xsd:restriction base="xsd:string">
+            <xsd:enumeration value="NoRenamePolicy" />
+            <xsd:enumeration value="SelectiveEnumerants" />
+            <xsd:enumeration value="AllEnumerants" />
+            <xsd:enumeration value="AlwaysPrefixTypeName" />
+        </xsd:restriction>
+    </xsd:simpleType>
+    
+
+    
+    <xsd:element name="AcnDependencies" >
+        <xsd:complexType>
+            <xsd:sequence>
+                <xsd:element ref = "AcnDependency" minOccurs = "0" maxOccurs = "unbounded"/>
+            </xsd:sequence>
+        </xsd:complexType>
+    </xsd:element>
+    
+    <xsd:element name="AcnDependency" >
+        <xsd:complexType>
+            <xsd:choice>
+                <xsd:element name="SizeDependency"></xsd:element>
+                <xsd:element name="RefTypeArgumentDependency">
+                    <xsd:complexType>
+                        <xsd:attribute name="prmId" use="required"><xsd:simpleType><xsd:restriction base="xsd:string"></xsd:restriction></xsd:simpleType></xsd:attribute>                        
+                    </xsd:complexType>
+                </xsd:element>
+                <xsd:element name="PresenseBoolDependency"></xsd:element>
+                <xsd:element name="ChoicePresenseDependency"></xsd:element>
+                <xsd:element name="ChoicePresenseStrDependency"></xsd:element>
+                <xsd:element name="ChoiceEnumDependency"></xsd:element>
+                <xsd:element name="SizeDependency2"></xsd:element>
+            </xsd:choice>
+            <xsd:attribute name="Asn1TypeID" use="required"><xsd:simpleType><xsd:restriction base="xsd:string"></xsd:restriction></xsd:simpleType></xsd:attribute>
+            <xsd:attribute name="DeterminantId" use="required"><xsd:simpleType><xsd:restriction base="xsd:string"></xsd:restriction></xsd:simpleType></xsd:attribute>
+        </xsd:complexType>
+    </xsd:element>
+    
+    <xsd:element name="Asn1File" >
+        <xsd:complexType>
+            <xsd:sequence>
+                <xsd:element ref = "Modules" minOccurs = "1" maxOccurs = "1"/>
+            </xsd:sequence>
+            <xsd:attribute name="FileName" use="required"><xsd:simpleType><xsd:restriction base="xsd:string"></xsd:restriction></xsd:simpleType></xsd:attribute>
+        </xsd:complexType>
+    </xsd:element>
+
+    <xsd:element name="Modules" >
+        <xsd:complexType>
+            <xsd:sequence>
+                <xsd:element ref = "Module" minOccurs = "1" maxOccurs = "unbounded"/>
+            </xsd:sequence>
+        </xsd:complexType>
+    </xsd:element>
+
+    <xsd:element name="Module" >
+        <xsd:complexType>
+            <xsd:sequence>
+                <xsd:element ref = "ExportedTypes" minOccurs = "1" maxOccurs = "1"/>
+                <xsd:element ref = "ExportedValues" minOccurs = "1" maxOccurs = "1"/>
+                <xsd:element ref = "ImportedModules" minOccurs = "1" maxOccurs = "1"/>
+                <xsd:element ref = "TypeAssignments" minOccurs = "1" maxOccurs = "1"/>
+                <xsd:element ref = "ValueAssignments" minOccurs = "1" maxOccurs = "1"/>
+            </xsd:sequence>
+            <xsd:attribute name="Name" use="required"><xsd:simpleType><xsd:restriction base="xsd:string"></xsd:restriction></xsd:simpleType></xsd:attribute>
+            <xsd:attribute name="Line" use="required"><xsd:simpleType><xsd:restriction base="xsd:integer"></xsd:restriction></xsd:simpleType></xsd:attribute>
+            <xsd:attribute name="CharPositionInLine" use="required"><xsd:simpleType><xsd:restriction base="xsd:integer"></xsd:restriction></xsd:simpleType></xsd:attribute>
+        </xsd:complexType>
+    </xsd:element>
+
+    <xsd:element name="ExportedTypes" >
+        <xsd:complexType>
+            <xsd:sequence>
+                <xsd:element ref = "ExportedType" minOccurs = "0" maxOccurs = "unbounded"/>
+            </xsd:sequence>
+        </xsd:complexType>
+    </xsd:element>
+
+    <xsd:element name="ExportedType" >
+        <xsd:complexType>
+            <xsd:sequence>
+            </xsd:sequence>
+            <xsd:attribute name="Name" use="required"><xsd:simpleType><xsd:restriction base="xsd:string"></xsd:restriction></xsd:simpleType></xsd:attribute>
+        </xsd:complexType>
+    </xsd:element>
+    
+    <xsd:element name="ExportedValues" >
+        <xsd:complexType>
+            <xsd:sequence>
+                <xsd:element ref = "ExportedValue" minOccurs = "0" maxOccurs = "unbounded"/>
+            </xsd:sequence>
+        </xsd:complexType>
+    </xsd:element>
+
+    <xsd:element name="ExportedValue" >
+        <xsd:complexType>
+            <xsd:sequence>
+            </xsd:sequence>
+            <xsd:attribute name="Name" use="required"><xsd:simpleType><xsd:restriction base="xsd:string"></xsd:restriction></xsd:simpleType></xsd:attribute>
+        </xsd:complexType>
+    </xsd:element>
+    
+    
+    <xsd:element name="ImportedModules" >
+        <xsd:complexType>
+            <xsd:sequence>
+                <xsd:element ref = "ImportedModule" minOccurs = "0" maxOccurs = "unbounded"/>
+            </xsd:sequence>
+        </xsd:complexType>
+    </xsd:element>
+
+    <xsd:element name="ImportedModule" >
+        <xsd:complexType>
+            <xsd:sequence>
+                <xsd:element ref = "ImportedTypes" minOccurs = "0" maxOccurs = "unbounded"/>
+                <xsd:element ref = "ImportedValues" minOccurs = "0" maxOccurs = "unbounded"/>
+            </xsd:sequence>
+            <xsd:attribute name="ID" use="required"><xsd:simpleType><xsd:restriction base="xsd:string"></xsd:restriction></xsd:simpleType></xsd:attribute>
+        </xsd:complexType>
+    </xsd:element>
+
+
+    <xsd:element name="ImportedTypes" >
+        <xsd:complexType>
+            <xsd:sequence>
+                <xsd:element ref = "ImportedType" minOccurs = "0" maxOccurs = "unbounded"/>
+            </xsd:sequence>
+        </xsd:complexType>
+    </xsd:element>
+
+    <xsd:element name="ImportedType" >
+        <xsd:complexType>
+            <xsd:sequence>
+            </xsd:sequence>
+            <xsd:attribute name="Name" use="required"><xsd:simpleType><xsd:restriction base="xsd:string"></xsd:restriction></xsd:simpleType></xsd:attribute>
+        </xsd:complexType>
+    </xsd:element>
+    
+    <xsd:element name="ImportedValues" >
+        <xsd:complexType>
+            <xsd:sequence>
+                <xsd:element ref = "ImportedValue" minOccurs = "0" maxOccurs = "unbounded"/>
+            </xsd:sequence>
+        </xsd:complexType>
+    </xsd:element>
+
+    <xsd:element name="ImportedValue" >
+        <xsd:complexType>
+            <xsd:sequence>
+            </xsd:sequence>
+            <xsd:attribute name="Name" use="required"><xsd:simpleType><xsd:restriction base="xsd:string"></xsd:restriction></xsd:simpleType></xsd:attribute>
+        </xsd:complexType>
+    </xsd:element>
+
+
+
+    <xsd:element name="TypeAssignments" >
+        <xsd:complexType>
+            <xsd:sequence>
+                <xsd:element ref = "TypeAssignment" minOccurs = "0" maxOccurs = "unbounded"/>
+            </xsd:sequence>
+        </xsd:complexType>
+    </xsd:element>
+    
+    <xsd:element name="TypeAssignment" >
+        <xsd:complexType>
+            <xsd:sequence>
+                <xsd:element ref = "Asn1Type" minOccurs = "1" maxOccurs = "1"/>
+            </xsd:sequence>
+            <xsd:attribute name="Name" use="required"><xsd:simpleType><xsd:restriction base="xsd:string"></xsd:restriction></xsd:simpleType></xsd:attribute>
+            <xsd:attribute name="CName" use="required"><xsd:simpleType><xsd:restriction base="xsd:string"></xsd:restriction></xsd:simpleType></xsd:attribute>
+            <xsd:attribute name="AdaName" use="required"><xsd:simpleType><xsd:restriction base="xsd:string"></xsd:restriction></xsd:simpleType></xsd:attribute>
+            <xsd:attribute name="Line" use="required"><xsd:simpleType><xsd:restriction base="xsd:integer"></xsd:restriction></xsd:simpleType></xsd:attribute>
+            <xsd:attribute name="CharPositionInLine" use="required"><xsd:simpleType><xsd:restriction base="xsd:integer"></xsd:restriction></xsd:simpleType></xsd:attribute>
+        </xsd:complexType>
+    </xsd:element>
+
+    <xsd:element name="ValueAssignments" >
+        <xsd:complexType>
+            <xsd:sequence>
+                <xsd:element ref = "ValueAssignment" minOccurs = "0" maxOccurs = "unbounded"/>
+            </xsd:sequence>
+        </xsd:complexType>
+    </xsd:element>
+    
+    <xsd:element name="ValueAssignment" >
+        <xsd:complexType>
+            <xsd:sequence>
+                <xsd:element ref = "Asn1Type" minOccurs = "1" maxOccurs = "1"/>
+            </xsd:sequence>
+            <xsd:attribute name="Name" use="required"><xsd:simpleType><xsd:restriction base="xsd:string"></xsd:restriction></xsd:simpleType></xsd:attribute>
+            <xsd:attribute name="CName" use="required"><xsd:simpleType><xsd:restriction base="xsd:string"></xsd:restriction></xsd:simpleType></xsd:attribute>
+            <xsd:attribute name="AdaName" use="required"><xsd:simpleType><xsd:restriction base="xsd:string"></xsd:restriction></xsd:simpleType></xsd:attribute>
+            <xsd:attribute name="Line" use="required"><xsd:simpleType><xsd:restriction base="xsd:integer"></xsd:restriction></xsd:simpleType></xsd:attribute>
+            <xsd:attribute name="CharPositionInLine" use="required"><xsd:simpleType><xsd:restriction base="xsd:integer"></xsd:restriction></xsd:simpleType></xsd:attribute>
+        </xsd:complexType>
+    </xsd:element>
+    
+
+    <xsd:element name="Asn1Type" >
+        <xsd:complexType>
+            <xsd:sequence>
+                <xsd:group ref = "Asn1TypeGrp" minOccurs = "1" maxOccurs = "1"/>
+            </xsd:sequence>
+            <xsd:attribute name="id" use="required"><xsd:simpleType><xsd:restriction base="xsd:string"></xsd:restriction></xsd:simpleType></xsd:attribute>
+            <xsd:attribute name="Line" use="required"><xsd:simpleType><xsd:restriction base="xsd:integer"></xsd:restriction></xsd:simpleType></xsd:attribute>
+            <xsd:attribute name="CharPositionInLine" use="required"><xsd:simpleType><xsd:restriction base="xsd:integer"></xsd:restriction></xsd:simpleType></xsd:attribute>
+            <xsd:attribute name="ParameterizedTypeInstance" use="required"><xsd:simpleType><xsd:restriction base="xsd:boolean"></xsd:restriction></xsd:simpleType></xsd:attribute>
+            <xsd:attribute name="tasInfoModule" use="optional"><xsd:simpleType><xsd:restriction base="xsd:string"></xsd:restriction></xsd:simpleType></xsd:attribute>
+            <xsd:attribute name="tasInfoName" use="optional"><xsd:simpleType><xsd:restriction base="xsd:string"></xsd:restriction></xsd:simpleType></xsd:attribute>
+        </xsd:complexType>
+    </xsd:element>
+
+    <xsd:group name = "Asn1TypeGrp">
+        <xsd:choice>
+            <xsd:element ref = "INTEGER" minOccurs = "1" maxOccurs = "1"/>
+            <xsd:element ref = "REAL" minOccurs = "1" maxOccurs = "1"/>
+            <!--
+            <xsd:element ref = "IA5String" minOccurs = "1" maxOccurs = "1"/>
+            <xsd:element ref = "NumericString" minOccurs = "1" maxOccurs = "1"/>
+            <xsd:element ref = "OCTET_STRING" minOccurs = "1" maxOccurs = "1"/>
+            <xsd:element ref = "TIME" minOccurs = "1" maxOccurs = "1"/>
+            <xsd:element ref = "NULL" minOccurs = "1" maxOccurs = "1"/>
+            <xsd:element ref = "BIT_STRING" minOccurs = "1" maxOccurs = "1"/>
+            <xsd:element ref = "BOOLEAN" minOccurs = "1" maxOccurs = "1"/>
+            <xsd:element ref = "ENUMERATED" minOccurs = "1" maxOccurs = "1"/>
+            <xsd:element ref = "ObjectIdentifier" minOccurs = "1" maxOccurs = "1"/>
+            <xsd:element ref = "SEQUENCE_OF" minOccurs = "1" maxOccurs = "1"/>
+            <xsd:element ref = "SEQUENCE" minOccurs = "1" maxOccurs = "1"/>
+            <xsd:element ref = "CHOICE" minOccurs = "1" maxOccurs = "1"/>
+            <xsd:element ref = "REFERENCE_TYPE" minOccurs = "1" maxOccurs = "1"/>
+            -->
+        </xsd:choice>
+    </xsd:group>
+
+   
+    <xsd:simpleType name="AcnEndianness">
+        <xsd:restriction base="xsd:string">
+            <xsd:enumeration value="little" />
+            <xsd:enumeration value="big" />
+        </xsd:restriction>
+    </xsd:simpleType>
+
+    <xsd:simpleType name="AcnAligment">
+        <xsd:restriction base="xsd:string">
+            <xsd:enumeration value="byte" />
+            <xsd:enumeration value="word" />
+            <xsd:enumeration value="dword" />
+        </xsd:restriction>
+    </xsd:simpleType>
+
+    <xsd:simpleType name="AcnIntEncoding">
+        <xsd:restriction base="xsd:string">
+            <xsd:enumeration value="pos-int" />
+            <xsd:enumeration value="twos-complement" />
+            <xsd:enumeration value="ASCII" />
+            <xsd:enumeration value="BCD" />
+        </xsd:restriction>
+    </xsd:simpleType>
+
+    <xsd:element name="INTEGER" >
+        <xsd:complexType>
+            <xsd:sequence>
+                <xsd:element name="Constraints" >
+                    <xsd:complexType>
+                        <xsd:sequence>
+                            <xsd:group ref = "RangeConstraint" minOccurs = "0" maxOccurs = "unbounded"/>
+                        </xsd:sequence>
+                    </xsd:complexType>
+                </xsd:element>
+                <xsd:element name="WithComponentConstraints" >
+                    <xsd:complexType>
+                        <xsd:sequence>
+                            <xsd:group ref = "RangeConstraint" minOccurs = "0" maxOccurs = "unbounded"/>
+                        </xsd:sequence>
+                    </xsd:complexType>
+                </xsd:element>
+
+            </xsd:sequence>
+
+            <xsd:attribute name="acnMaxSizeInBits" use="required"><xsd:simpleType><xsd:restriction base="xsd:integer"></xsd:restriction></xsd:simpleType></xsd:attribute>
+            <xsd:attribute name="acnMinSizeInBits" use="required"><xsd:simpleType><xsd:restriction base="xsd:integer"></xsd:restriction></xsd:simpleType></xsd:attribute>
+            <xsd:attribute name="uperMaxSizeInBits" use="required"><xsd:simpleType><xsd:restriction base="xsd:integer"></xsd:restriction></xsd:simpleType></xsd:attribute>
+            <xsd:attribute name="uperMinSizeInBits" use="required"><xsd:simpleType><xsd:restriction base="xsd:integer"></xsd:restriction></xsd:simpleType></xsd:attribute>
+            <xsd:attribute name="endianness" use="optional"><xsd:simpleType><xsd:restriction base = "AcnEndianness"></xsd:restriction></xsd:simpleType></xsd:attribute>
+            <xsd:attribute name="size" use="optional"><xsd:simpleType><xsd:restriction base="xsd:string"></xsd:restriction></xsd:simpleType></xsd:attribute>
+            <xsd:attribute name="termination-pattern" use="optional"><xsd:simpleType><xsd:restriction base="xsd:string"></xsd:restriction></xsd:simpleType></xsd:attribute>
+            <xsd:attribute name="encoding" use="optional"><xsd:simpleType><xsd:restriction base = "AcnIntEncoding"></xsd:restriction></xsd:simpleType></xsd:attribute>
+        </xsd:complexType>
+    </xsd:element>
+
+
+
+    <xsd:element name="REAL" >
+        <xsd:complexType>
+            <xsd:attribute name="acnMaxSizeInBits" use="required"><xsd:simpleType><xsd:restriction base="xsd:integer"></xsd:restriction></xsd:simpleType></xsd:attribute>
+            <xsd:attribute name="acnMinSizeInBits" use="required"><xsd:simpleType><xsd:restriction base="xsd:integer"></xsd:restriction></xsd:simpleType></xsd:attribute>
+            <xsd:attribute name="uperMaxSizeInBits" use="required"><xsd:simpleType><xsd:restriction base="xsd:integer"></xsd:restriction></xsd:simpleType></xsd:attribute>
+            <xsd:attribute name="uperMinSizeInBits" use="required"><xsd:simpleType><xsd:restriction base="xsd:integer"></xsd:restriction></xsd:simpleType></xsd:attribute>
+            <xsd:attribute name="endianness" use="optional"><xsd:simpleType><xsd:restriction base = "AcnEndianness"></xsd:restriction></xsd:simpleType></xsd:attribute>
+        </xsd:complexType>
+    </xsd:element>
+
+
+    <xsd:group name = "RangeConstraint">
+        <xsd:choice>
+            <xsd:element ref = "OR" minOccurs = "1" maxOccurs = "1"/>
+            <xsd:element ref = "AND" minOccurs = "1" maxOccurs = "1"/>
+            <xsd:element ref = "ALL_EXCEPT" minOccurs = "1" maxOccurs = "1"/>
+            <xsd:element ref = "EXCEPT" minOccurs = "1" maxOccurs = "1"/>
+            <xsd:element ref = "ROOTC_CONSTRAINT" minOccurs = "1" maxOccurs = "1"/>
+            <xsd:element ref = "ROOTC_CONSTRAINT_WITH_EXTENSION" minOccurs = "1" maxOccurs = "1"/>
+            <xsd:element ref = "IntegerValue" minOccurs = "1" maxOccurs = "1"/>
+            <xsd:element ref = "Range" minOccurs = "1" maxOccurs = "1"/>
+            <xsd:element ref = "GT" minOccurs = "1" maxOccurs = "1"/>
+            <xsd:element ref = "LT" minOccurs = "1" maxOccurs = "1"/>
+        </xsd:choice>
+    </xsd:group>
+
+    <xsd:element name="OR"><xsd:complexType><xsd:sequence><xsd:group ref = "RangeConstraint" minOccurs = "2" maxOccurs = "2"/></xsd:sequence></xsd:complexType></xsd:element>
+    <xsd:element name="AND"><xsd:complexType><xsd:sequence><xsd:group ref = "RangeConstraint" minOccurs = "2" maxOccurs = "2"/></xsd:sequence></xsd:complexType></xsd:element>
+    <xsd:element name="EXCEPT"><xsd:complexType><xsd:sequence><xsd:group ref = "RangeConstraint" minOccurs = "2" maxOccurs = "2"/></xsd:sequence></xsd:complexType></xsd:element>
+    <xsd:element name="ROOTC_CONSTRAINT"><xsd:complexType><xsd:sequence><xsd:group ref = "RangeConstraint" minOccurs = "2" maxOccurs = "2"/></xsd:sequence></xsd:complexType></xsd:element>
+    <xsd:element name="ROOTC_CONSTRAINT_WITH_EXTENSION"><xsd:complexType><xsd:sequence><xsd:group ref = "RangeConstraint" minOccurs = "2" maxOccurs = "2"/></xsd:sequence></xsd:complexType></xsd:element>
+
+    <xsd:element name="ALL_EXCEPT"><xsd:complexType><xsd:sequence><xsd:group ref = "RangeConstraint" minOccurs = "1" maxOccurs = "1"/></xsd:sequence></xsd:complexType></xsd:element>
+
+    <xsd:element name="IntegerValue"  type="xsd:integer"/>
+
+    <xsd:element name="Range" >
+        <xsd:complexType>
+            <xsd:sequence>
+                <xsd:element name="Min" ><xsd:complexType><xsd:sequence><xsd:element ref = "IntegerValue" minOccurs = "1" maxOccurs = "1"/></xsd:sequence></xsd:complexType></xsd:element>
+                <xsd:element name="Max" ><xsd:complexType><xsd:sequence><xsd:element ref = "IntegerValue" minOccurs = "1" maxOccurs = "1"/></xsd:sequence></xsd:complexType></xsd:element>
+            </xsd:sequence>
+        </xsd:complexType>
+    </xsd:element>
+
+    <xsd:element name="GT" >
+        <xsd:complexType>
+            <xsd:sequence>
+                <xsd:element name="Min" ><xsd:complexType><xsd:sequence><xsd:element ref = "IntegerValue" minOccurs = "1" maxOccurs = "1"/></xsd:sequence></xsd:complexType></xsd:element>
+            </xsd:sequence>
+        </xsd:complexType>
+    </xsd:element>
+
+    <xsd:element name="LT" >
+        <xsd:complexType>
+            <xsd:sequence>
+                <xsd:element name="Min" ><xsd:complexType><xsd:sequence><xsd:element ref = "IntegerValue" minOccurs = "1" maxOccurs = "1"/></xsd:sequence></xsd:complexType></xsd:element>
+            </xsd:sequence>
+        </xsd:complexType>
+    </xsd:element>
+
+</xsd:schema>
