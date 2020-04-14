@@ -1146,3 +1146,7 @@ v2out
 /v4Tests/test_case_UPER_000003.dat
 /v4Tests/test_case_UPER_000004.dat
 /v4Tests/test_case_UPER_000005.dat
+/FrontEndAst/Resources/Asn1Schema.xsd
+/UpgradeLog.htm
+/v4Tests/ast.xml
+/v4Tests/backend_ast.xml

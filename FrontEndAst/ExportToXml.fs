@@ -9,12 +9,18 @@ open AcnGenericTypes
 open Asn1AcnAst
 open Asn1Fold
 open Asn1AcnAstUtilFunctions
+open System.Resources
+
+open System.Xml
+open System.Xml.Schema
+
+
 let private xname s = System.Xml.Linq.XName.Get(s)
 let private xnameNs str ns = System.Xml.Linq.XName.Get(str, ns)
 
 let private xsiUrl = "http://www.w3.org/2001/XMLSchema-instance"
 let private xsi = XNamespace.Get xsiUrl
-let private customWsSchemaLocation = "asn1sccAst.xsd"
+let private customWsSchemaLocation = "Asn1Schema.xsd"
 
 
 let constraintsTag = "Constraints"
@@ -635,7 +641,11 @@ let  exportAcnDependencies (deps:AcnInsertedFieldDependencies) =
     )
 
 
+
+
 let exportFile (r:AstRoot) (deps:AcnInsertedFieldDependencies) (fileName:string) =
+    let writeTextFile fileName (content:String) =
+        System.IO.File.WriteAllText(fileName, content.Replace("\r",""))
     let wsRoot =
         XElement(xname "AstRoot",
             XAttribute(XNamespace.Xmlns + "xsi", xsi),
@@ -656,3 +666,14 @@ let exportFile (r:AstRoot) (deps:AcnInsertedFieldDependencies) (fileName:string)
     let doc =new XDocument(dec)
     doc.AddFirst wsRoot
     doc.Save(fileName)
+    let rm = new ResourceManager("Resource1", System.Reflection.Assembly.GetExecutingAssembly());
+    let schema = rm.GetString("Asn1Schema_xsd",null)
+    let outDir = Path.GetDirectoryName fileName
+    writeTextFile (Path.Combine(outDir, customWsSchemaLocation)) schema 
+    //try to open the document.
+    //if there are errors, it will stop
+    //FsUtils.loadXmlFile ValidationType.Schema fileName |> ignore
+    
+
+    ()
+

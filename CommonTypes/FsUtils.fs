@@ -16,6 +16,9 @@ open System.Numerics
 open Antlr.Runtime.Tree
 open Antlr.Runtime
 
+open System.Xml
+open System.Xml.Linq
+open System.Xml.Schema
 
 
 
@@ -624,3 +627,26 @@ let test (a:T1) (b:T2) (c:T3)=
 
 
 
+let loadXmlFile (validationType:ValidationType) (xmlFileName:string) =
+    let settings = new XmlReaderSettings()
+    settings.ValidationType <- validationType
+    
+    settings.ValidationFlags <- settings.ValidationFlags ||| XmlSchemaValidationFlags.ProcessInlineSchema
+    settings.ValidationFlags <- settings.ValidationFlags ||| XmlSchemaValidationFlags.ProcessSchemaLocation
+    settings.ValidationFlags <- settings.ValidationFlags ||| XmlSchemaValidationFlags.ReportValidationWarnings
+    let  nErrors = ref 0
+    settings.ValidationEventHandler.AddHandler((fun s e -> 
+                                                                let ex = e.Exception :?> System.Xml.Schema.XmlSchemaValidationException
+                                                                Console.WriteLine("{0} '{1}':line {2}, {3}", e.Severity.ToString(), xmlFileName, ex.LineNumber, e.Message)
+                                                                nErrors := !nErrors + 1 
+                                                            ))
+    let xmlRdr = XmlReader.Create(xmlFileName, settings)
+    try 
+        let doc = XDocument.Load(xmlRdr, LoadOptions.SetLineInfo);
+        if !nErrors > 0 then
+            raise(BugErrorException "One or more errors detected in the xml parsing")
+        doc
+    with
+        | exc         -> 
+            Console.Error.WriteLine("Error in file: {0}", xmlFileName)
+            raise exc
