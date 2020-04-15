@@ -59,7 +59,7 @@ and private printObjectIdentifierValue (resCompList:CommonTypes.ResolvedObjectId
         | CommonTypes.ObjNamedIntValue      (label,nVal)    ->  XElement(xname "ObjIdComponent", XAttribute(xname "label", label.Value), XAttribute(xname "IntValue", nVal.Value))                 //name form
         | CommonTypes.ObjRegisteredKeyword  (label,nVal)    ->  XElement(xname "ObjIdComponent", XAttribute(xname "label", label.Value), XAttribute(xname "IntValue", nVal))
         | CommonTypes.ObjDefinedValue       (md,ts)         ->  XElement(xname "ObjIdComponent", XAttribute(xname "Module", md.Value), XAttribute(xname "TypeAssignment", ts.Value))      //value assignment to Integer value or ObjectIdentifier or RelativeObject
-    XElement(xname "ReferenceValue", (compList |> List.map printComponent))
+    XElement(xname "ObjectIdentifierValue", (compList |> List.map printComponent))
 
 and private printRefValue ((md:StringLoc,ts:StringLoc), v:Asn1Value) =    
         XElement(xname "ReferenceValue", 
@@ -149,7 +149,8 @@ let private printAlphaConstraint printValue (c:IA5StringConstraint)  =
         c 
         0 |> fst
 
-let private printSequenceOfConstraint printValue (c:SequenceOfConstraint)  = 
+
+let rec private printSequenceOfConstraint printValue (c:SequenceOfConstraint)  = 
     foldSequenceOfTypeConstraint2
         (fun r1 r2 b s      -> XElement(xname "OR", r1, r2), s)
         (fun r1 r2 s        -> XElement(xname "AND", r1, r2) , s)
@@ -162,28 +163,24 @@ let private printSequenceOfConstraint printValue (c:SequenceOfConstraint)  =
             let sizeCon = printRangeConstraint0 printUInt printUInt sc 
             XElement(xname "SIZE", sizeCon), s)
         (fun c l s           -> 
-            //generate warning to remember the missing functionality (i.e. print the constaint within the nc
-            let b = true
-            match b with true -> ()
-            null,s)
-        c 
+            XElement(xname "WithComponent", printAnyConstraint c), s)
+        c
         0 |> fst
-
-let private printSeqOrChoiceConstraint printValue (c:SeqOrChoiceConstraint<'v>)  = 
+         
+and private printSeqOrChoiceConstraint printValue (c:SeqOrChoiceConstraint<'v>)  = 
     let printNamedConstaintItem (nc:NamedConstraint) =
-        let nc_mark =
+        let nc_mark = 
             match nc.Mark with
             | Asn1Ast.MarkPresent   -> XAttribute(xname "present", "always" )
             | Asn1Ast.MarkAbsent    -> XAttribute(xname "present", "never" )
             | Asn1Ast.MarkOptional  -> XAttribute(xname "present", "optional" )
             | Asn1Ast.NoMark        -> null
-        //generate warning to remember the missing functionality (i.e. print the constaint within the nc
-        let b = true
-        match b with true -> ()
-
         XElement(xname "WithComponent", 
             XAttribute(xname "Name", nc.Name.Value),
-            nc_mark)
+            nc_mark,
+            (match nc.Contraint with
+             | None -> null
+             | Some c -> printAnyConstraint c))
     foldSeqOrChConstraint
         (fun r1 r2 b s      -> XElement(xname "OR", r1, r2) , s)
         (fun r1 r2 s        -> XElement(xname "AND", r1, r2) , s)
@@ -197,29 +194,46 @@ let private printSeqOrChoiceConstraint printValue (c:SeqOrChoiceConstraint<'v>) 
         0 |> fst
 
 
+and private printAnyConstraint (ac:AnyConstraint)  : XElement = 
+    match ac with
+    | IntegerTypeConstraint c  -> XElement(xname "IntegerTypeConstraint", printRangeConstraint printIntVal c)
+    | IA5StringConstraint   c  -> XElement(xname "IA5StringConstraint", printAlphaConstraint printStringVal c)
+    | RealTypeConstraint    c  -> XElement(xname "RealTypeConstraint", printRangeConstraint printRealVal c)
+    | OctetStringConstraint c  -> XElement(xname "OctetStringConstraint", printSizableConstraint printOctetStringVal c)
+    | BitStringConstraint   c  -> XElement(xname "BitStringConstraint", printSizableConstraint printBitStringVal c)
+    | BoolConstraint        c  -> XElement(xname "BoolConstraint", printGenericConstraint printBoolVal c)
+    | EnumConstraint        c  -> XElement(xname "EnumConstraint", printGenericConstraint printEnumVal c)
+    | ObjectIdConstraint    c  -> XElement(xname "ObjectIdConstraint")
+    | SequenceOfConstraint  c  -> XElement(xname "SequenceOfConstraint", printSequenceOfConstraint printSeqOfValue c)
+    | SeqConstraint         c  -> XElement(xname "SeqConstraint", printSeqOrChoiceConstraint printSeqValue c)
+    | ChoiceConstraint      c  -> XElement(xname "ChoiceConstraint", printSeqOrChoiceConstraint printChoiceValue c)
+    | NullConstraint           -> XElement(xname "NullConstraint")
+    | TimeConstraint        c  -> XElement(xname "TimeConstraint")
+
+
 let exportChoiceOptionality (opt:Asn1ChoiceOptionality option) =
     match opt with
     | None  -> []
-    | Some ChoiceAlwaysAbsent  -> [XAttribute(xname "ALWAYS-ABSENT", "TRUE" ) :> Object]
-    | Some ChoiceAlwaysPresent -> [XAttribute(xname "ALWAYS-PRESENT", "TRUE" )]
+    | Some ChoiceAlwaysAbsent  -> [XAttribute(xname "ALWAYS-ABSENT", "true" ) :> Object]
+    | Some ChoiceAlwaysPresent -> [XAttribute(xname "ALWAYS-PRESENT", "true" )]
 
 let exportOptionality (opt:Asn1Optionality option) =
     match opt with
     | None  -> []
-    | Some AlwaysAbsent  -> [XAttribute(xname "ALWAYS-ABSENT", "TRUE" ) :> Object]
-    | Some AlwaysPresent -> [XAttribute(xname "ALWAYS-PRESENT", "TRUE" )]
+    | Some AlwaysAbsent  -> [XAttribute(xname "ALWAYS-ABSENT", "true" ) :> Object]
+    | Some AlwaysPresent -> [XAttribute(xname "ALWAYS-PRESENT", "true" )]
     | Some (Optional opt) ->
         match opt.acnPresentWhen, opt.defaultValue with
-        | Some (PresenceWhenBool( RelativePath  rp)), Some v -> [XAttribute(xname "Optional", "TRUE" ); XAttribute(xname "present-when", (rp |> Seq.StrJoin ".") ); XElement(xname "Default",(PrintAsn1GenericValue v))]
-        | Some (PresenceWhenBool( RelativePath  rp)), None  ->  [XAttribute(xname "Optional", "TRUE" ); XAttribute(xname "present-when", (rp |> Seq.StrJoin ".") )]
+        | Some (PresenceWhenBool( RelativePath  rp)), Some v -> [XAttribute(xname "Optional", "true" ); XAttribute(xname "present-when", (rp |> Seq.StrJoin ".") ); XElement(xname "Default",(PrintAsn1GenericValue v))]
+        | Some (PresenceWhenBool( RelativePath  rp)), None  ->  [XAttribute(xname "Optional", "true" ); XAttribute(xname "present-when", (rp |> Seq.StrJoin ".") )]
         | Some (PresenceWhenBoolExpression acnExp), Some v     ->  
             let _, debugStr = AcnGenericCreateFromAntlr.printDebug acnExp
-            [XAttribute(xname "Optional", "TRUE" ); XAttribute(xname "present-when", debugStr ); XElement(xname "Default",(PrintAsn1GenericValue v))]
+            [XAttribute(xname "Optional", "true" ); XAttribute(xname "present-when", debugStr ); XElement(xname "Default",(PrintAsn1GenericValue v))]
         | Some (PresenceWhenBoolExpression acnExp), None     ->  
             let _, debugStr = AcnGenericCreateFromAntlr.printDebug acnExp
-            [XAttribute(xname "Optional", "TRUE" ); XAttribute(xname "present-when", debugStr )]
+            [XAttribute(xname "Optional", "true" ); XAttribute(xname "present-when", debugStr )]
         | None, Some v      -> [XElement(xname "Default",(PrintAsn1GenericValue v))]
-        | None, None        -> [XAttribute(xname "Optional", "TRUE" );]
+        | None, None        -> [XAttribute(xname "Optional", "true" );]
     
 
 let exportChoiceChildPresentWhenCondition (presentConditions:AcnPresentWhenConditionChoiceChild list) =
@@ -397,7 +411,7 @@ let private exportType (t:Asn1Type) =
                         (exportAcnBooleanEncoding ti.acnProperties.encodingPattern),
                         XElement(xname constraintsTag, ti.cons |> List.map(printGenericConstraint printBoolVal )),
                         XElement(xname withCompConstraintsTag, ti.withcons |> List.map(printGenericConstraint printBoolVal ))
-                        ), us )
+                        ), us ) 
         (fun ti us -> XElement(xname "ENUMERATED",
                         (XAttribute(xname "acnMaxSizeInBits", ti.acnMaxSizeInBits )),
                         (XAttribute(xname "acnMinSizeInBits", ti.acnMinSizeInBits )),
@@ -529,7 +543,11 @@ let private exportType (t:Asn1Type) =
                             XAttribute(xname "Name", ch.Name.Value),
                             XAttribute(xname "Line", ch.Name.Location.srcLine),
                             XAttribute(xname "CharPositionInLine", ch.Name.Location.charPos),
-                            XAttribute(xname "PresentWhenName", ch.present_when_name),
+                            (
+                            match ch.acnPresentWhenConditions with
+                            | []    -> null
+                            | conds -> XAttribute(xname "PresentWhenName", conds |> List.map(fun c -> sprintf "%s==%s" c.relativePath.AsString c.valueAsString) |> Seq.StrJoin "," )
+                            ),
                             XAttribute(xname "AdaName", ch._ada_name),
                             XAttribute(xname "CName", ch._c_name),
                             (exportChoiceOptionality ch.Optionality ),
@@ -672,7 +690,7 @@ let exportFile (r:AstRoot) (deps:AcnInsertedFieldDependencies) (fileName:string)
     writeTextFile (Path.Combine(outDir, customWsSchemaLocation)) schema 
     //try to open the document.
     //if there are errors, it will stop
-    //FsUtils.loadXmlFile ValidationType.Schema fileName |> ignore
+    FsUtils.loadXmlFile ValidationType.Schema fileName |> ignore
     
 
     ()

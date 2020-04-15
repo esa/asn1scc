@@ -164,7 +164,6 @@
       <ResourceFilesToCopy Include="$(SolutionDir)asn1crt/asn1crt_encoding_uper.h" />
       <ResourceFilesToCopy Include="$(SolutionDir)asn1crt/asn1crt_encoding_xer.c" />
       <ResourceFilesToCopy Include="$(SolutionDir)asn1crt/asn1crt_encoding_xer.h" />
-      <ResourceFilesToCopy Include="$(SolutionDir)Ast/Asn1Schema.xsd" />
     </ItemGroup>
     <PropertyGroup>
       <ResourcesDir>$(ProjectDir)/Resources</ResourcesDir>

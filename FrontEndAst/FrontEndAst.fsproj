@@ -81,6 +81,7 @@
     <Compile Include="TargetLanguageStgMacros.fs" />
     <Compile Include="FrontEntMain.fs" />
     <EmbeddedResource Include="Resource1.resx" />
+    <None Include="Asn1Schema.xsd" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="antlr.runtime">
@@ -130,14 +131,13 @@
   </ItemGroup>
   <Target Name="BeforeBuild">
     <ItemGroup>
-      <ResourceFilesToCopy Include="$(SolutionDir)Ast/Asn1Schema.xsd" />
-	  
+      <ResourceFilesToCopy Include="$(ProjectDir)/Asn1Schema.xsd" />
     </ItemGroup>
     <PropertyGroup>
       <ResourcesDir>$(ProjectDir)/Resources</ResourcesDir>
     </PropertyGroup>
     <MakeDir Directories="$(ResourcesDir)" />
-    <Copy SourceFiles="@(ResourceFilesToCopy)" DestinationFolder="$(ResourcesDir)" />  
+    <Copy SourceFiles="@(ResourceFilesToCopy)" DestinationFolder="$(ResourcesDir)" />
   </Target>
   <!-- 
   <Target Name="AfterBuild">
