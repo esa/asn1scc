@@ -219,10 +219,6 @@
     <value>Resources\asn1crt_encoding_xer.c;System.String, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089;windows-1253</value>
   </data>
 
-  <data name="Asn1Schema_xsd" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>Resources\Asn1Schema.xsd;System.String, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089;windows-1253</value>
-  </data>
-  
 
   
 </root>
