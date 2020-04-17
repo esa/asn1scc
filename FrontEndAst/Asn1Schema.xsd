@@ -1,5 +1,4 @@
 ﻿<?xml version="1.0" encoding="utf-8" ?>
-<!-- XSD SCHEMA IS STILL INCOMPLETE -->
 <xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema">
     <xsd:element name = "AstRoot">
         <xsd:complexType>
@@ -40,9 +39,9 @@
                         <xsd:attribute name="prmId" use="required"><xsd:simpleType><xsd:restriction base="xsd:string"></xsd:restriction></xsd:simpleType></xsd:attribute>                        
                     </xsd:complexType>
                 </xsd:element>
-                <xsd:element name="PresenseBoolDependency"></xsd:element>
-                <xsd:element name="ChoicePresenseDependency"></xsd:element>
-                <xsd:element name="ChoicePresenseStrDependency"></xsd:element>
+                <xsd:element name="PresenceBoolDependency"></xsd:element>
+                <xsd:element name="ChoicePresenceDependency"></xsd:element>
+                <xsd:element name="ChoicePresenceStrDependency"></xsd:element>
                 <xsd:element name="ChoiceEnumDependency"></xsd:element>
                 <xsd:element name="SizeDependency2"></xsd:element>
             </xsd:choice>
@@ -717,7 +716,7 @@
         </xsd:complexType>
     </xsd:element>
 
-    <xsd:group name = "SequenceCompoenent">
+    <xsd:group name = "SequenceAsn1OrAcnChild">
         <xsd:choice>
             <xsd:element ref = "SEQUENCE_COMPONENT" minOccurs = "1" maxOccurs = "1"/>
             <xsd:element ref = "ACN_COMPONENT" minOccurs = "1" maxOccurs = "1"/>
@@ -727,7 +726,7 @@
     <xsd:element name="SEQUENCE" >
         <xsd:complexType>
             <xsd:sequence>
-                <xsd:group ref = "SequenceCompoenent" minOccurs = "0" maxOccurs = "unbounded"/>
+                <xsd:group ref = "SequenceAsn1OrAcnChild" minOccurs = "0" maxOccurs = "unbounded"/>
                 
                 <xsd:element name="Constraints" >
                     <xsd:complexType>
