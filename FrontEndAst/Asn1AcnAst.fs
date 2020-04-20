@@ -580,8 +580,11 @@ and Asn1Child = {
     _ada_name                   : string                     
     Type                        : Asn1Type
     Optionality                 : Asn1Optionality option
-    Comments                    : string array
+    asn1Comments                : string list
+    acnComments                 : string list
 }
+with
+    member this.Comments = this.asn1Comments@this.acnComments
 
 
 
@@ -608,9 +611,13 @@ and ChChildInfo = {
     present_when_name           : string // Does not contain the "_PRESENT". Not to be used directly by backends.
     Type                        : Asn1Type
     acnPresentWhenConditions    : AcnPresentWhenConditionChoiceChild list
-    Comments                    : string array
+    asn1Comments                : string list
+    acnComments                 : string list
     Optionality                 : Asn1ChoiceOptionality option
 }
+with
+    member this.Comments = this.asn1Comments@this.acnComments
+
 
 and EncodeWithinOctetOrBitStringProperties = {
     minSize             : SIZE
@@ -641,7 +648,7 @@ type TypeAssignment = {
     ada_name:string
     Type:Asn1Type
     Comments: string array
-
+    acnComments : string list
 }
 
 type ValueAssignment = {

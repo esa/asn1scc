@@ -618,7 +618,7 @@ let private createAsn1Child (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (m:As
             _ada_name           = ch._ada_name
             Type               = newChildType
             Optionality        = ch.Optionality
-            Comments           = ch.Comments
+            Comments           = ch.Comments |> Seq.toArray
             isEqualBodyStats   = DAstEqual.isEqualBodySequenceChild l ch newChildType
             //isValidBodyStats    = DAstValidate.isValidSequenceChild l ch newChildType
         }
@@ -741,7 +741,7 @@ let private createChoiceChild (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (m:
             _present_when_name_private  = ch.present_when_name
             acnPresentWhenConditions = ch.acnPresentWhenConditions
             chType              = newChildType
-            Comments            = ch.Comments
+            Comments            = ch.Comments |> Seq.toArray
             isEqualBodyStats    = DAstEqual.isEqualBodyChoiceChild typeDefinitionName l ch newChildType
             //isValidBodyStats    = DAstValidate.isValidChoiceChild l ch newChildType
             Optionality         = ch.Optionality

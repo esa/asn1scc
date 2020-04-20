@@ -30,8 +30,8 @@
     <PlatformTarget>AnyCPU</PlatformTarget>
     <DocumentationFile>bin\Debug\Asn1f4.XML</DocumentationFile>
     <Prefer32Bit>true</Prefer32Bit>
-    <StartWorkingDirectory>C:\prj\GitHub\asn1scc\tmp\001</StartWorkingDirectory>
-    <StartArguments>-c -ACN -o c_out/ -atc -x ast.xml -icdAcn doc.html apid2.asn apid2.acn</StartArguments>
+    <StartWorkingDirectory>C:\prj\GitHub\asn1scc\tmp\002</StartWorkingDirectory>
+    <StartArguments>-x ast.xml 05.asn1 05.acn</StartArguments>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>

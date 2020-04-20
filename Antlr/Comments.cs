@@ -40,7 +40,7 @@ namespace Antlr
                 else if (t.Type == COMMENT || t.Type == COMMENT2)
                 {
                     if (!t.Text.StartsWith("--!"))
-                        comments.Insert(0, t.Text);
+                        comments.Insert(0, t.Type == COMMENT2 && t.Text.Length >=2 ? t.Text.Substring(2).TrimEnd() : t.Text);
                     alreadyTakenComments.Add(t);
                 }
                 else
@@ -64,7 +64,7 @@ namespace Antlr
                     else if (t.Type == COMMENT || t.Type == COMMENT2)
                     {
                         if (!t.Text.StartsWith("--!"))
-                            comments.Insert(0, t.Text);
+                            comments.Insert(0, t.Type == COMMENT2 && t.Text.Length >= 2 ? t.Text.Substring(2).TrimEnd() : t.Text);
                         alreadyTakenComments.Add(t);
                     }
                     else

@@ -106,7 +106,7 @@ type StgCommentLineMacros = {
 }
 
 let GetCommentLineFactory (stgFileName:string) (stgs:StgCommentLineMacros) =
-    let GetCommentLine  (comments:string array) (t:Asn1Type) =
+    let GetCommentLine  (comments:string seq) (t:Asn1Type) =
         let singleComment = comments |> Seq.StrJoin (stgs.NewLine stgFileName ()) 
         let ret = 
             match (t.ActualType).Kind with
