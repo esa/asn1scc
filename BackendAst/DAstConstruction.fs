@@ -864,7 +864,7 @@ let private mapTas (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDepen
         c_name = tas.c_name
         ada_name = tas.ada_name
         Type = newType
-        Comments = tas.Comments
+        Comments = tas.Comments |> Seq.toArray
     },ns
 
 

@@ -647,9 +647,11 @@ type TypeAssignment = {
     c_name:string
     ada_name:string
     Type:Asn1Type
-    Comments: string array
+    asn1Comments: string list
     acnComments : string list
 }
+with
+    member this.Comments = this.asn1Comments@this.acnComments
 
 type ValueAssignment = {
     Name:StringLoc

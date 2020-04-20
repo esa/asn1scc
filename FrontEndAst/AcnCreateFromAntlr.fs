@@ -1356,7 +1356,7 @@ let private mergeTAS (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (m:Asn1Ast.Asn1Module) 
             c_name = tas.c_name
             ada_name = tas.ada_name
             Type = newType
-            Comments = tas.Comments
+            asn1Comments = tas.Comments |> Seq.toList
             acnComments = acnComments
         }
     newTas, us1
