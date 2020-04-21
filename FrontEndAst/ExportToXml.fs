@@ -466,8 +466,8 @@ let private exportType (t:Asn1Type) =
                             XAttribute(xname "AdaName", ch._ada_name),
                             XAttribute(xname "CName", ch._c_name),
                             (exportOptionality ch.Optionality ),
-                            (if ch.asn1Comments.Length > 0 then (XComment (ch.asn1Comments |> Seq.StrJoin "\n")) else null),
-                            (if ch.acnComments.Length > 0 then (XComment (ch.acnComments |> Seq.StrJoin "\n")) else null),
+                            (if ch.asn1Comments.Length > 0 then (XElement (xname "AsnComment", (ch.asn1Comments |> Seq.StrJoin "\n"))) else null),
+                            (if ch.acnComments.Length > 0 then (XElement (xname "AcnComment",  (ch.acnComments |> Seq.StrJoin "\n"))) else null),
                             nt), us )
         (fun ch us -> 
             match ch.Type with
@@ -483,7 +483,7 @@ let private exportType (t:Asn1Type) =
                     (exportAcnIntSizeProperty a.acnProperties.sizeProp),
                     (exportAcnIntEncoding a.acnProperties.encodingProp),
                     (exportAcnAligment a.acnAligment),
-                    (if ch.Comments.Length > 0 then (XComment (ch.Comments |> Seq.StrJoin "\n")) else null)), us 
+                    (if ch.Comments.Length > 0 then (XElement (xname "AcnComment", (ch.Comments |> Seq.StrJoin "\n"))) else null)), us 
             | AcnNullType (a)        -> 
                 XElement(xname "ACN_COMPONENT", 
                     XAttribute(xname "Id", ch.id.AsString),
@@ -493,7 +493,7 @@ let private exportType (t:Asn1Type) =
                     (XAttribute(xname "acnMinSizeInBits", ch.Type.acnMinSizeInBits )),
                     (exportAcnNullType a.acnProperties.encodingPattern),
                     (exportAcnAligment a.acnAligment),
-                    (if ch.Comments.Length > 0 then (XComment (ch.Comments |> Seq.StrJoin "\n")) else null)), us 
+                    (if ch.Comments.Length > 0 then (XElement (xname "AcnComment", (ch.Comments |> Seq.StrJoin "\n"))) else null)), us 
 
             | AcnReferenceToEnumerated (a)        -> 
                 XElement(xname "ACN_COMPONENT", 
@@ -508,7 +508,7 @@ let private exportType (t:Asn1Type) =
                     (exportAcnEndianness a.enumerated.acnProperties.endiannessProp),
                     (exportAcnIntSizeProperty a.enumerated.acnProperties.sizeProp),
                     (exportAcnIntEncoding a.enumerated.acnProperties.encodingProp),
-                    (if ch.Comments.Length > 0 then (XComment (ch.Comments |> Seq.StrJoin "\n")) else null),
+                    (if ch.Comments.Length > 0 then (XElement (xname "AcnComment", (ch.Comments |> Seq.StrJoin "\n"))) else null),
                     XElement(xname "Items", a.enumerated.items |> List.map(fun c ->  XElement(xname "Item", XAttribute(xname "Name", c.Name.Value), XAttribute(xname "Value", c.definitionValue))   )),
                     XElement(xname constraintsTag, a.enumerated.cons |> List.map(printGenericConstraint printEnumVal )),
                     XElement(xname withCompConstraintsTag, a.enumerated.withcons |> List.map(printGenericConstraint printEnumVal )) ), us 
@@ -523,7 +523,7 @@ let private exportType (t:Asn1Type) =
                     (XAttribute(xname "acnMaxSizeInBits", ch.Type.acnMaxSizeInBits )),
                     (XAttribute(xname "acnMinSizeInBits", ch.Type.acnMinSizeInBits )),
                     (exportAcnAligment a.acnAligment),
-                    (if ch.Comments.Length > 0 then (XComment (ch.Comments |> Seq.StrJoin "\n")) else null) ), us 
+                    (if ch.Comments.Length > 0 then (XElement (xname "AcnComment", (ch.Comments |> Seq.StrJoin "\n"))) else null) ), us 
 
 
             | AcnBoolean  (a)       -> 
@@ -535,7 +535,7 @@ let private exportType (t:Asn1Type) =
                     (XAttribute(xname "acnMinSizeInBits", ch.Type.acnMinSizeInBits )),
                     (exportAcnBooleanEncoding a.acnProperties.encodingPattern),
                     (exportAcnAligment a.acnAligment),
-                    (if ch.Comments.Length > 0 then (XComment (ch.Comments |> Seq.StrJoin "\n")) else null)), us )
+                    (if ch.Comments.Length > 0 then (XElement (xname "AcnComment", (ch.Comments |> Seq.StrJoin "\n"))) else null)), us )
         (fun ti children us -> XElement(xname "CHOICE",
                                 (XAttribute(xname "acnMaxSizeInBits", ti.acnMaxSizeInBits )),
                                 (XAttribute(xname "acnMinSizeInBits", ti.acnMinSizeInBits )),
@@ -559,8 +559,8 @@ let private exportType (t:Asn1Type) =
                             XAttribute(xname "CName", ch._c_name),
                             (exportChoiceOptionality ch.Optionality ),
                             (exportChoiceChildPresentWhenCondition ch.acnPresentWhenConditions),
-                            (if ch.asn1Comments.Length > 0 then (XComment (ch.asn1Comments |> Seq.StrJoin "\n")) else null),
-                            (if ch.acnComments.Length > 0 then (XComment (ch.acnComments |> Seq.StrJoin "\n")) else null),
+                            (if ch.asn1Comments.Length > 0 then (XElement (xname "AsnComment", (ch.asn1Comments |> Seq.StrJoin "\n"))) else null),
+                            (if ch.acnComments.Length > 0 then (XElement (xname "AsnComment", (ch.acnComments |> Seq.StrJoin "\n"))) else null),
                             nt), us )
         (fun ref nt us -> XElement(xname "REFERENCE_TYPE",
                             XAttribute(xname "Module", ref.modName.Value),
@@ -606,8 +606,8 @@ let private exportTas (tas:TypeAssignment) =
         XAttribute(xname "AdaName", tas.Type.FT_TypeDefintion.[CommonTypes.Ada].typeName),
         XAttribute(xname "Line", tas.Name.Location.srcLine),
         XAttribute(xname "CharPositionInLine", tas.Name.Location.charPos),
-        (if tas.Comments.Length > 0 then (XComment (tas.Comments |> Seq.StrJoin "\n")) else null),
-        (if tas.acnComments.Length > 0 then (XComment (tas.acnComments |> Seq.StrJoin "\n")) else null),
+        (if tas.asn1Comments.Length > 0 then (XElement (xname "AsnComment", (tas.asn1Comments |> Seq.StrJoin "\n"))) else null),
+        (if tas.acnComments.Length > 0 then (XElement (xname "AcnComment",  (tas.acnComments |> Seq.StrJoin "\n"))) else null),
         (exportType tas.Type)
     )
 

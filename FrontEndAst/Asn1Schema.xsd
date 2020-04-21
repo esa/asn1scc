@@ -9,8 +9,10 @@
             <xsd:attribute name = "rename_policy" use="required"><xsd:simpleType><xsd:restriction base = "RenamePolicy"></xsd:restriction></xsd:simpleType></xsd:attribute>
         </xsd:complexType>
     </xsd:element>
-    
-    
+
+    <xsd:element name="AsnComment"  type="xsd:string"/>
+    <xsd:element name="AcnComment"  type="xsd:string"/>
+
     <xsd:simpleType name="RenamePolicy">
         <xsd:restriction base="xsd:string">
             <xsd:enumeration value="NoRenamePolicy" />
@@ -179,6 +181,8 @@
     <xsd:element name="TypeAssignment" >
         <xsd:complexType>
             <xsd:sequence>
+                <xsd:element ref="AsnComment" minOccurs="0" maxOccurs="1"/>
+                <xsd:element ref="AcnComment" minOccurs="0" maxOccurs="1"/>
                 <xsd:element ref = "Asn1Type" minOccurs = "1" maxOccurs = "1"/>
             </xsd:sequence>
             <xsd:attribute name="Name" use="required"><xsd:simpleType><xsd:restriction base="xsd:string"></xsd:restriction></xsd:simpleType></xsd:attribute>
@@ -646,6 +650,8 @@
                         </xsd:sequence>
                     </xsd:complexType>
                 </xsd:element>
+                <xsd:element ref="AsnComment" minOccurs="0" maxOccurs="1"/>
+                <xsd:element ref="AcnComment" minOccurs="0" maxOccurs="1"/>
                 <xsd:element ref = "Asn1Type" minOccurs = "1" maxOccurs = "1"/>
             </xsd:sequence>
 
@@ -666,6 +672,7 @@
     <xsd:element name="ACN_COMPONENT" >
         <xsd:complexType>
             <xsd:sequence>
+                <xsd:element ref="AcnComment" minOccurs="0" maxOccurs="1"/>
                 <xsd:element name="Items" minOccurs = "0" maxOccurs = "unbounded">
                     <xsd:complexType>
                         <xsd:sequence>
@@ -761,6 +768,8 @@
                 <xsd:element name="CHOICE_ALTERNATIVE" minOccurs = "1" maxOccurs = "unbounded">
                     <xsd:complexType>
                         <xsd:sequence>
+                            <xsd:element ref="AsnComment" minOccurs="0" maxOccurs="1"/>
+                            <xsd:element ref="AcnComment" minOccurs="0" maxOccurs="1"/>
                             <xsd:element ref = "Asn1Type" minOccurs = "1" maxOccurs = "1"/>
                         </xsd:sequence>
 
