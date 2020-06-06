@@ -331,10 +331,10 @@ sizeShortConstraint
 nULL:	NULL;
 
 octetStringContainingType :
-	: a=OCTET STRING L_PAREN CONTAINING referencedType R_PAREN -> ^(OCT_STR_CONTAINING[$a] referencedType)
+	a=OCTET STRING L_PAREN CONTAINING referencedType R_PAREN -> ^(OCT_STR_CONTAINING[$a] referencedType)
 	;
 bitStringContainingType :
-	: a=BIT STRING L_PAREN CONTAINING referencedType R_PAREN -> ^(BIT_STR_CONTAINING[$a] referencedType)
+	a=BIT STRING L_PAREN CONTAINING referencedType R_PAREN -> ^(BIT_STR_CONTAINING[$a] referencedType)
 	;
 
 
