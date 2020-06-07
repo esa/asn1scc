@@ -299,6 +299,15 @@ and CreateValue (astRoot:list<ITree>) (tree:ITree ) : Asn1Value=
             match tree.Type with
             | asn1Parser.INT                    -> IntegerValue(tree.BigIntL)
             | asn1Parser.FloatingPointLiteral   -> RealValue(tree.DoubleL)
+            | asn1Parser.NUMERIC_VALUE2         ->
+                let mantissa = double (tree.GetChild(0).BigInt)
+                let bas = 
+                    if tree.GetChild(1).BigInt = 2I then 2.0
+                    elif tree.GetChild(1).BigInt = 10I then 10.0
+                    else raise (SemanticError(tree.GetChild(1).Location, "Only 2 or 10 values are allowed"))
+                let exponent = double (tree.GetChild(2).BigInt)
+                let d = mantissa*Math.Pow(bas, exponent)
+                RealValue({DoubleLoc.Value=d;Location=tree.Location})
             | asn1Parser.PLUS_INFINITY          -> RealValue(tree.GetValueL Double.PositiveInfinity)
             | asn1Parser.MINUS_INFINITY         -> RealValue(tree.GetValueL Double.NegativeInfinity)
             | asn1Parser.TRUE                   -> BooleanValue(tree.GetValueL true)

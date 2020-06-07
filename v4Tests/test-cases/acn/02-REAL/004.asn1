@@ -1,0 +1,13 @@
+TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
+
+    
+    MyPDU   ::= REAL ({mantissa 2, base 10, exponent 0} .. <{mantissa 5, base 10, exponent 0})
+
+	pdu1 MyPDU ::= {mantissa 314159265, base 10, exponent -8} 
+	
+END
+
+--TCLS     MyPDU[encoding IEEE754-1985-64, endianness little]
+--TCLS     MyPDU[encoding IEEE754-1985-64, endianness big]
+--TCLS     MyPDU[encoding IEEE754-1985-64]
+--TCLS     MyPDU[]
