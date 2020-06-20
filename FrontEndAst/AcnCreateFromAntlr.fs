@@ -1079,6 +1079,16 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (m:Asn1Ast.Asn1Mo
                     | acnChildren   ->
                         // MAKE SURE ACN CHILDREN ARE SUPERSET OF ASN1 CHILDREN !!!!!
                         children |> List.filter(fun c -> not (acnChildren |> List.exists(fun c2 -> c2.name = c.Name))) |> List.iter(fun c -> raise(SemanticError(acnEncSpec.loc, (sprintf "No ACN encoding specification was provided for component %s" c.Name.Value)))  )
+                        //detect acn inserted children which already defined in ASN.1
+                        acnChildren |> 
+                        List.choose(fun c -> match c.asn1Type with None -> None | Some pt -> (Some (c,pt))) |> 
+                        List.choose(fun (acnC,pt) -> 
+                            match children |> List.tryFind(fun asn1C -> asn1C.Name = acnC.name) with
+                            | None -> None
+                            | Some asn1C -> Some (asn1C, acnC, pt)) |>
+                        List.iter(fun (asn1C, acnC, pt) -> 
+                            raise(SemanticError(acnC.name.Location, (sprintf "Component '%s' cannot be defined as an ACN inserted field. Remove the type '%s' from the ACN file or remove th component from the ANS.1 file" acnC.name.Value (pt.ToString()))))
+                        )
 
                         acnChildren |>
                         foldMap(fun st acnChild ->

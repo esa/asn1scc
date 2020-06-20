@@ -1,0 +1,11 @@
+Toto DEFINITIONS ::= BEGIN
+
+MyInt ::= INTEGER (0..255)
+
+AA ::= SEQUENCE {
+	field-a BOOLEAN,
+	field-b MyInt,
+	field-X SEQUENCE (SIZE (1..10)) OF BOOLEAN
+}
+
+END

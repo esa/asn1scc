@@ -1,0 +1,9 @@
+Toto DEFINITIONS ::= BEGIN
+
+AA [] {
+	field-a [],
+	field-b MyInt [],
+	field-X [size field-b]
+}
+
+END
