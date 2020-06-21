@@ -16,7 +16,8 @@ PrintIndexFile(arrsModules) ::= <<
 
 PrintMakeFile(arrsModuleList) ::=<<
 all:
-	gnatmake -gnat2012 -P GPS_project.gpr mainprogram.adb --subdirs=debug -cargs -g -O0 -gnatwe -gnatwa
+	#gnatpp -r *ad?
+	gprbuild -gnat2012 -P GPS_project.gpr mainprogram.adb --subdirs=debug -cargs -g -O0 -gnatwe -gnatwa
 	touch builtWithoutCoverage
 	
 coverage:

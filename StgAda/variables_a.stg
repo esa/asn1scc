@@ -25,7 +25,7 @@ PrintRefValue_lengthOf(sValue)	::= "Integer(<sValue>)"
 
 PrintCharValue(cValue)	::= "'<cValue>'"
 
-PrintBooleanValue(bValue)	::= "<if(bValue)>TRUE<else>FALSE<endif>"
+PrintBooleanValue(bValue)	::= "<if(bValue)>True<else>FALSE<endif>"
 
 PrintNullValue()	::= "0"
 
@@ -135,7 +135,7 @@ PrintChoiceValue(sTasName, sChildName, sChildVal, sChildNamePresent) ::= <<
 <sTasName>'(kind => <sChildNamePresent>, <sChildName> => <sChildVal>)
 >>
 
-//FUNCTION MyChoice_a1_set(itm:<rtlModuleName()>.Asn1Int) RETURN MyChoice;
+//function MyChoice_a1_set(itm:<rtlModuleName()>.Asn1Int) return MyChoice;
 PrintChoiceValue_setters(sTasName, sChildName, sChildVal) ::= <<
 <sTasName>_<sChildName>_set(<sChildVal>)
 >>

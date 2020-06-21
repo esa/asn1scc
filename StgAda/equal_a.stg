@@ -12,62 +12,60 @@ end if;
 
 
 PrintEqualDefintion(sFuncName, sTypeDefName) ::= <<
-function <sFuncName>(val1, val2: in <sTypeDefName>) return Boolean;
+    function <sFuncName> (val1, val2 : <sTypeDefName>) return Boolean;
 >>
 
 PrintEqualPrimitive(sFuncName, sTypeDefName, sContent) ::= <<
-function <sFuncName>(val1, val2: in <sTypeDefName>) 
-    return Boolean is
-begin
-    return <sContent>;
-end <sFuncName>;
+    function <sFuncName> (val1, val2 : <sTypeDefName>) 
+        return Boolean is
+    begin
+        return <sContent>;
+    end <sFuncName>;
 >>
 
 PrintEqualComposite(sFuncName, sTypeDefName, sContent, arrsLocalVars) ::= <<
-function <sFuncName>(val1, val2: in <sTypeDefName>) 
-    return Boolean 
-is
-    pragma Warnings (Off, "initialization of ret has no effect");        
-    ret : Boolean := TRUE;
-    pragma Warnings (On, "initialization of ret has no effect");        
-    <arrsLocalVars; separator="\n">
-begin
-    <sContent>
-    return ret;
-end <sFuncName>;
+    function <sFuncName> (val1, val2 : <sTypeDefName>) return Boolean 
+    is
+        pragma Warnings (Off, "initialization of ret has no effect");        
+        ret : Boolean := True;
+        pragma Warnings (On, "initialization of ret has no effect");        
+        <arrsLocalVars; separator="\n">
+    begin
+        <sContent>
+        return ret;
+    end <sFuncName>;
 >>
 
 equalTypeAssignment_def(sVarName1, sVarName2, sStar, sFuncName, sTypeDefName) ::= <<
-function <sFuncName>(<sVarName1>, <sVarName2>: in <sTypeDefName>) return Boolean;
+function <sFuncName>(<sVarName1>, <sVarName2> : <sTypeDefName>) return Boolean;
 >>
 
 equalTypeAssignment(sVarName1, sVarName2, sStar, sFuncName, sTypeDefName, sContent, arrsLocalVars, bExpression) ::= <<
 pragma Warnings (Off, "formal parameter ""<sVarName1>"" is not referenced");
 pragma Warnings (Off, "formal parameter ""<sVarName2>"" is not referenced");
-function <sFuncName>(<sVarName1>, <sVarName2>: in <sTypeDefName>)
-    return Boolean 
-is
-    <if(!bExpression)>
-    pragma Warnings (Off, "initialization of ret has no effect");        
-    ret : Boolean := TRUE;
-    pragma Warnings (On, "initialization of ret has no effect");        
-    <arrsLocalVars; separator="\n">
+    function <sFuncName> (<sVarName1>, <sVarName2> :  <sTypeDefName>) return Boolean
+    is
+        <if(!bExpression)>
+        pragma Warnings (Off, "initialization of ret has no effect");
+        ret : Boolean := True;
+        pragma Warnings (On, "initialization of ret has no effect");
+        <arrsLocalVars; separator="\n">
 
-    <endif>
-begin
-    pragma Warnings (Off, "condition can only be False if invalid values present");        
-    pragma Warnings (Off, "condition can only be True if invalid values present");        
-    <if(bExpression)>
-	return <sContent>;
+        <endif>
+    begin
+        pragma Warnings (Off, "condition can only be False if invalid values present");
+        pragma Warnings (Off, "condition can only be True if invalid values present");
+        <if(bExpression)>
+	    return <sContent>;
 
-    <else>
-    <sContent>
-	return ret;
+        <else>
+        <sContent>
+	    return ret;
 
-    <endif>
-    pragma Warnings (On, "condition can only be False if invalid values present");        
-    pragma Warnings (On, "condition can only be True if invalid values present");        
-end <sFuncName>;
+        <endif>
+        pragma Warnings (On, "condition can only be False if invalid values present");
+        pragma Warnings (On, "condition can only be True if invalid values present");
+    end <sFuncName>;
 pragma Warnings (On, "formal parameter ""<sVarName1>"" is not referenced");
 pragma Warnings (On, "formal parameter ""<sVarName2>"" is not referenced");
 >>

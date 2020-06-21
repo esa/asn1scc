@@ -5,13 +5,13 @@ rtlModuleName() ::= "adaasn1rtl"
 EmitAcnParameter(sName, sType) ::= "<sName> : IN <sType>"
 
 EmitTypeAssignment_def_err_code(sErrCode, nErrValue) ::= <<
-<sErrCode>:CONSTANT INTEGER := <nErrValue>; 
+<sErrCode>:constant Integer := <nErrValue>; 
 >>
 
 EmitTypeAssignment_primitive_def_encode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes, bEmptyEncodingSpace, nMaxBytesInACN, nMaxBitsInACN, arrsAcnPrms) ::= <<
 <arrsErrcodes; separator="\n">
-<sTypeDefName>_REQUIRED_BYTES_FOR_ACN_ENCODING:CONSTANT INTEGER := <nMaxBytesInACN>;
-<sTypeDefName>_REQUIRED_BITS_FOR_ACN_ENCODING:CONSTANT INTEGER := <nMaxBitsInACN>;
+<sTypeDefName>_REQUIRED_BYTES_FOR_ACN_ENCODING:constant Integer := <nMaxBytesInACN>;
+<sTypeDefName>_REQUIRED_BITS_FOR_ACN_ENCODING:constant Integer := <nMaxBitsInACN>;
 
 <if(bEmptyEncodingSpace)>
 subtype <sTypeDefName>_ACN_Stream is adaasn1rtl.encoding.Bitstream(1); -- we cannot declare a bit stream of zero size
@@ -21,23 +21,25 @@ subtype <sTypeDefName>_ACN_Stream is adaasn1rtl.encoding.Bitstream(<sTypeDefName
 
 <endif>
 
-procedure <sFuncName>(<sVarName>:in <sTypeDefName>; Stream : out <sTypeDefName>_ACN_Stream; result : OUT <rtlModuleName()>.ASN1_RESULT);
+procedure <sFuncName>(<sVarName> : <sTypeDefName>; Stream : out <sTypeDefName>_ACN_Stream; result : OUT <rtlModuleName()>.ASN1_RESULT);
 >>
 
 EmitTypeAssignment_primitive_encodeMain(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitilialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace) ::= /*nogen*/<<
-PROCEDURE <sFuncName>(<sVarName>:in <sTypeDefName>; Stream : out <sTypeDefName>_ACN_Stream; result : OUT <rtlModuleName()>.ASN1_RESULT)
-IS
-BEGIN
+procedure <sFuncName>(<sVarName> : <sTypeDefName>; Stream : out <sTypeDefName>_ACN_Stream; result : out <rtlModuleName()>.ASN1_RESULT)
+is
+begin
     Stream := <sTypeDefName>_ACN_Stream'(Size_In_Bytes => <if(bEmptyEncodingSpace)>1<else><sTypeDefName>_REQUIRED_BYTES_FOR_ACN_ENCODING<endif>, Current_Bit_Pos  => 0, pushDataPrm  => 0, fetchDataPrm => 0, Buffer => (others => 0));
     <sTypeDefName>_ACN_Encode_aux(<sVarName>, Stream, result);
-END <sFuncName>;
+end <sFuncName>;
 >>
 
 EmitTypeAssignment_primitive_encode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitilialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace) ::= <<
---stg macro EmitTypeAssignment_primitive_encode
+--  stg macro EmitTypeAssignment_primitive_encode
 pragma Warnings (Off, "formal parameter ""bs"" is not referenced");
 pragma Warnings (Off, "formal parameter ""<sVarName>"" is not referenced");
-procedure <sFuncName>_aux(<sVarName>:in <sTypeDefName>; bs : in out <rtlModuleName()>.encoding.Bitstream; result : OUT <rtlModuleName()>.ASN1_RESULT)
+procedure <sFuncName>_aux(<sVarName> : <sTypeDefName>; bs : in out <rtlModuleName()>.encoding.Bitstream; result : OUT <rtlModuleName()>.ASN1_RESULT);
+
+procedure <sFuncName>_aux(<sVarName> : <sTypeDefName>; bs : in out <rtlModuleName()>.encoding.Bitstream; result : OUT <rtlModuleName()>.ASN1_RESULT)
 <soSparkAnnotations>
 is
     <arrsLocalVariables; separator="\n">
@@ -68,8 +70,8 @@ procedure <sFuncName>(<sVarName>: out <sTypeDefName>; Stream : in out <sTypeDefN
 
 EmitTypeAssignment_primitive_decodeMain(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitilialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace) ::= /*nogen*/<<
 PROCEDURE <sFuncName>(<sVarName>: out <sTypeDefName>; Stream : in out <sTypeDefName>_ACN_Stream; result : OUT <rtlModuleName()>.ASN1_RESULT<if(arrsAcnPrms)>; <arrsAcnPrms; separator="; "><endif>)
-IS
-BEGIN
+is
+begin
     Stream.Current_Bit_Pos :=0;
     <sFuncName>_aux(<sVarName>, Stream, result<if(arrsAcnParamNames)>, <arrsAcnParamNames; separator=","><endif>);
     <if(soIValidFuncName)>
@@ -78,19 +80,21 @@ BEGIN
     end if;
 
     <endif>
-END <sFuncName>;
+end <sFuncName>;
 >>
 
 EmitTypeAssignment_primitive_decode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitilialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace) ::= <<
 pragma Warnings (Off, "unused initial value of ""<sVarName>""");
 pragma Warnings (Off, "formal parameter ""bs"" is not referenced");
+PROCEDURE <sFuncName>_aux(<sVarName>:out <sTypeDefName>; bs : in out <rtlModuleName()>.encoding.Bitstream; result : OUT <rtlModuleName()>.ASN1_RESULT<if(arrsAcnPrms)>; <arrsAcnPrms; separator="; "><endif>);
+
 PROCEDURE <sFuncName>_aux(<sVarName>:out <sTypeDefName>; bs : in out <rtlModuleName()>.encoding.Bitstream; result : OUT <rtlModuleName()>.ASN1_RESULT<if(arrsAcnPrms)>; <arrsAcnPrms; separator="; "><endif>)
 <soSparkAnnotations>
-IS
+is
     <arrsLocalVariables; separator="\n">
-BEGIN
+begin
     <sContent>
-END <sFuncName>_aux;
+end <sFuncName>_aux;
 pragma Warnings (On, "unused initial value of ""<sVarName>""");
 pragma Warnings (On, "formal parameter ""bs"" is not referenced");
 
@@ -102,14 +106,14 @@ pragma Warnings (On, "formal parameter ""bs"" is not referenced");
 
 
 MF(p, soMF, soMFM, nUperMin, nUperMax) ::= <<
-IF Result.Success THEN
+if Result.Success then
     <p> := <soMFM>.<soMF>_decode(mapFuncIntVal);
     Result.Success := <p> \>= <nUperMin> AND <p> \<= <nUperMax>;
-    IF NOT Result.Success THEN
+    if NOT Result.Success then
         <p> := <nUperMin>;							-- COVERAGE_IGNORE
         Result.ErrorCode := ERR_INCORRECT_STREAM;	-- COVERAGE_IGNORE
-    END IF;
-END IF;
+    end if;
+end if;
 >>
 
 MFen(soMF, soMFM, p) ::= "<if(soMF)><soMFM>.<soMF>_encode(<p>)<else><p><endif>"
@@ -253,14 +257,14 @@ PositiveInteger_VarSize_LengthEmbedded_encode(p, sErrCode, soMF, soMFM, nUperMin
 PositiveInteger_VarSize_LengthEmbedded_decode(p, sErrCode, soMF, soMFM, nUperMin) ::= <<
 <if(soMF)>
 adaasn1rtl.encoding.acn.Acn_Dec_Int_PositiveInteger_VarSize_LengthEmbedded(bs, mapFuncIntVal, 0, 0, result);
-IF Result.Success THEN
+if Result.Success then
     <p> := <soMFM>.<soMF>_decode(mapFuncIntVal);
     Result.Success := <p> \>= <nUperMin>;
-    IF NOT Result.Success THEN
+    if NOT Result.Success then
         <p> := <nUperMin>;					-- COVERAGE_IGNORE
         result.ErrorCode := <sErrCode>;		-- COVERAGE_IGNORE
-    END IF;
-END IF;
+    end if;
+end if;
 
 <else>
 adaasn1rtl.encoding.acn.Acn_Dec_Int_PositiveInteger_VarSize_LengthEmbedded(bs, <p>, <nUperMin>, result);
@@ -387,9 +391,9 @@ TwosComplement_VarSize_LengthEmbedded_decode(p, sErrCode, soMF, soMFM) ::= <<
 <if(soMF)>
 adaasn1rtl.encoding.acn.Acn_Dec_Int_TwosComplement_VarSize_LengthEmbedded(bs, <p>, result);
 result.ErrorCode := <sErrCode>;
-IF Result.Success THEN
+if Result.Success then
     <p> := <soMFM>.<soMF>_decode(mapFuncIntVal);
-END IF;
+end if;
 
 <else>
 adaasn1rtl.encoding.acn.Acn_Dec_Int_TwosComplement_VarSize_LengthEmbedded(bs, <p>, result);
@@ -418,9 +422,9 @@ BCD_VarSize_LengthEmbedded_decode(p, sErrCode, soMF, soMFM) ::= <<
 <if(soMF)>
 adaasn1rtl.encoding.acn.Acn_Dec_Int_BCD_VarSize_LengthEmbedded(bs, mapFuncIntVal, result);
 result.ErrorCode := <sErrCode>;
-IF Result.Success THEN
+if Result.Success then
     <p> := <soMFM>.<soMF>_decode(mapFuncIntVal);
-END IF;
+end if;
 
 <else>
 adaasn1rtl.encoding.acn.Acn_Dec_Int_BCD_VarSize_LengthEmbedded(bs, <p>, result);
@@ -479,9 +483,9 @@ ASCII_VarSize_LengthEmbedded_decode(p, sErrCode, soMF, soMFM) ::= <<
 <if(soMF)>
 adaasn1rtl.encoding.acn.Acn_Dec_Int_ASCII_VarSize_LengthEmbedded(bs, mapFuncIntVal, result);
 result.ErrorCode := <sErrCode>;
-IF Result.Success THEN
+if Result.Success then
     <p> := <soMFM>.<soMF>_decode(mapFuncIntVal);
-END IF;
+end if;
 
 <else>
 adaasn1rtl.encoding.acn.Acn_Dec_Int_ASCII_VarSize_LengthEmbedded(bs, <p>, result);
@@ -582,7 +586,7 @@ adaasn1rtl.encoding.acn.Acn_Enc_NullType_pattern(bs, <p>, BitArray'(<arrsBits; s
 Null_pattern_decode(p, arruNullValueAsByteArray, nSize, arrsBits, sErrCode, bSavePosition) ::= <<
 <if(bSavePosition)>
 result.ErrorCode := <sErrCode>;
-result.Success := TRUE;
+result.Success := True;
 bs.Current_Bit_Pos := bs.Current_Bit_Pos + <nSize>;
 
 <else>
@@ -601,7 +605,7 @@ adaasn1rtl.encoding.acn.Acn_Enc_NullType_pattern2(bs, BitArray'(<arrsBits; separ
 Null_pattern2_decode(p, arruNullValueAsByteArray, nSize, arrsBits, sErrCode, bSavePosition) ::= <<
 <if(bSavePosition)>
 result.ErrorCode := <sErrCode>;
-result.Success := TRUE;
+result.Success := True;
 bs.Current_Bit_Pos := bs.Current_Bit_Pos + <nSize>;
 
 <else>
@@ -646,11 +650,11 @@ end case;
 EnumeratedEncIdx_decode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, sActualCodecFunc) ::= <<
 <p> := <td.typeName>_Init;
 <sActualCodecFunc>
-IF result.Success THEN
+if result.Success then
     case <td.index_range>(intVal) is
         <arrsItem; separator="\n">
     end case;
-END IF;
+end if;
 >>
 
 
@@ -776,10 +780,10 @@ oct_sqf_external_field_encode(p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, sE
 
 oct_sqf_external_field_decode(p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, sExtFld, nAlignSize, sErrCode, nIntItemMinSize, nIntItemMaxSize) ::= <<
 result := <rtlModuleName()>.ASN1_RESULT'(Success => <if(noSizeMin)><noSizeMin>\<=<sExtFld> AND <endif><sExtFld>\<=<nSizeMax>, ErrorCode => <sErrCode>);
-IF result.Success THEN
+if result.Success then
     <p>.Length := Integer(<sExtFld>);
     <loopFixedItem_dec(i=i, sInternalItem=sInternalItem, fixedSize=[p,".Length"], nfixedSizeUperLimit = nSizeMax, nCurOffset="0", nAlignSize=nAlignSize, nIntItemMinSize=nIntItemMinSize, nIntItemMaxSize=nIntItemMaxSize)>
-END IF;
+end if;
 >>
 
 
@@ -790,9 +794,9 @@ oct_sqf_external_field_fix_size_encode(p, sAcc, i, sInternalItem, noSizeMin, nSi
 
 oct_sqf_external_field_fix_size_decode(p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, sExtFld, nAlignSize, sErrCode, nIntItemMinSize, nIntItemMaxSize) ::= <<
 result := <rtlModuleName()>.ASN1_RESULT'(Success => <if(noSizeMin)><noSizeMin>\<=<sExtFld> AND <endif><sExtFld>\<=<nSizeMax>, ErrorCode => <sErrCode>);
-IF result.Success THEN
+if result.Success then
     <loopFixedItem_dec(i=i, sInternalItem=sInternalItem, fixedSize=[nSizeMax], nfixedSizeUperLimit = nSizeMax, nCurOffset="0", nAlignSize=nAlignSize, nIntItemMinSize=nIntItemMinSize, nIntItemMaxSize=nIntItemMaxSize)>
-END IF;
+end if;
 >>
 
 
@@ -910,7 +914,7 @@ sequence_save_bitstream_decode(sBitStreamPositionsLocalVar, sChName) ::=<<
 sequence_acn_child_encode(sChName, sChildContent, sErrCode, soSaveBitStrmPosStatement) ::= <<
 --Encode <sChName> 
 if <sChName>_is_initialized then
-    result := <rtlModuleName()>.ASN1_RESULT'(Success => TRUE, ErrorCode => 0);
+    result := <rtlModuleName()>.ASN1_RESULT'(Success => True, ErrorCode => 0);
     <soSaveBitStrmPosStatement>
     <sChildContent>
 else
@@ -1032,7 +1036,7 @@ Sequence_decode(p, arrsChildren, sTasName, bRequiresInit, arrsDecOutParamsInit, 
 <if(bRequiresInit)>val := <sTasName>_Init;<endif>
 <arrsDecOutParamsInit; separator="\n">
 <if(bResultRequiresInit)>
-result := <rtlModuleName()>.ASN1_RESULT'(Success => TRUE, ErrorCode => 0);
+result := <rtlModuleName()>.ASN1_RESULT'(Success => True, ErrorCode => 0);
 
 <endif>
 <arrsChildren; separator="\n">
@@ -1056,9 +1060,9 @@ JoinItems_encode(sTasName, sPart, sNestedPart, nRequiredBitsSoFar, bRequiresAsse
 
 <endif>
 <if(bReqResultCheck)>
-IF result.Success THEN
+if result.Success then
     <sNestedPart>
-END IF;
+end if;
 <else>
 <sNestedPart>
 <endif>
@@ -1077,9 +1081,9 @@ JoinItems_decode(sTasName, sPart, sNestedPart, nRequiredBitsSoFar, bRequiresAsse
 
 <endif>
 <if(bReqResultCheck)>
-IF result.Success THEN
+if result.Success then
     <sNestedPart>
-END IF;
+end if;
 <else>
 <sNestedPart>
 <endif>
@@ -1090,7 +1094,7 @@ END IF;
 /* Choice like uper*/
 
 Choice_encode(p, sAcc, arrsChildren, nLastItemIndex, sChoiceIndexName, td/*:FE_ChoiceTypeDefinition*/, nIndexSizeInBits, sErrCode) ::= <<
-case <p><sAcc>kind IS
+case <p><sAcc>kind is
     <arrsChildren; separator="\n">
 end case;
 >>
@@ -1098,8 +1102,8 @@ end case;
 Choice_decode(p, sAcc, arrsChildren, nLastItemIndex, sChoiceIndexName, td/*:FE_ChoiceTypeDefinition*/, nIndexSizeInBits, sErrCode) ::= <<
 result.ErrorCode := <sErrCode>;
 adaasn1rtl.encoding.Dec_ConstraintWholeNumber(bs, <sChoiceIndexName>, 0, <nLastItemIndex>, <nIndexSizeInBits>, result.Success);
-if result.Success AND <sChoiceIndexName> \>= 0 AND  <sChoiceIndexName> \<= <nLastItemIndex> THEN
-    case <td.index_range>(<sChoiceIndexName>) IS
+if result.Success AND <sChoiceIndexName> \>= 0 AND  <sChoiceIndexName> \<= <nLastItemIndex> then
+    case <td.index_range>(<sChoiceIndexName>) is
         <arrsChildren; separator="\n">
     end case;
 end if;
@@ -1156,13 +1160,13 @@ when <sEnmName> =>
 >>
 
 Choice_Enum_encode(p, sAcc, arrsChildren, sEnmExtFld, sErrCode) ::= <<
-case <p><sAcc>kind IS
+case <p><sAcc>kind is
     <arrsChildren; separator="\n">
 end case;
 >>
 
 Choice_Enum_decode(p, sAcc, arrsChildren, sEnmExtFld, sErrCode) ::= <<
-case <sEnmExtFld> IS
+case <sEnmExtFld> is
     <arrsChildren; separator="\n">
 end case;
 >>
@@ -1178,7 +1182,7 @@ ChoiceChild_preWhen_int_condition(sExtFld, nVal) ::= "(<sExtFld> = <nVal>)"
 ChoiceChild_preWhen_str_condition(sExtFld, sVal, arrsNullChars) ::= "(<sExtFld> = \"<sVal>\"<if(arrsNullChars)> & <arrsNullChars; wrap, anchor, separator=\" & \"><endif>)"
 
 Choice_preWhen_encode(p, sAcc, arrsChildren, sErrCode) ::= <<
-case <p><sAcc>kind IS
+case <p><sAcc>kind is
     <arrsChildren; separator="\n">
 end case;
 >>
@@ -1261,7 +1265,7 @@ end;
 
 
 PresenceDependency(v, sSeqPath, sAcc, sChildName) ::= <<
-<v>_is_initialized := TRUE;
+<v>_is_initialized := True;
 <v> := (<sSeqPath><sAcc>exist.<sChildName> = 1);
 >>
 
@@ -1269,12 +1273,12 @@ PresenceDependency(v, sSeqPath, sAcc, sChildName) ::= <<
 
 
 SizeDependency(v, sCount) ::= <<
-<v>_is_initialized := TRUE;
+<v>_is_initialized := True;
 <v> := <rtlModuleName()>.Asn1UInt(<sCount>);
 >>
 
 SizeDependencyFixedSize(v, nFixedSize) ::= <<
-<v>_is_initialized := TRUE;
+<v>_is_initialized := True;
 <v> := <nFixedSize>;
 >>
 
@@ -1285,20 +1289,20 @@ getSizeableSize(p, sAcc) ::= "<p>.Length"
 
 
 ChoiceDependencyPres(sChPath, sAcc, arrsChoiceItems) ::= <<
-case <sChPath><sAcc>kind IS
+case <sChPath><sAcc>kind is
     <arrsChoiceItems; separator="\n">
 end case;
 >>
 
 ChoiceDependencyIntPres_child(v, sChildNamePrese, nChildRetVal) ::= <<
 when <sChildNamePrese> =>
-    <v>_is_initialized := TRUE;
+    <v>_is_initialized := True;
 	<v> := <nChildRetVal>; 
 >>
 
 ChoiceDependencyStrPres_child(v, sChildNamePrese, sChildRetVal, arrsNullChars) ::= <<
 when <sChildNamePrese> =>
-    <v>_is_initialized := TRUE;
+    <v>_is_initialized := True;
 	<v> := "<sChildRetVal>"<if(arrsNullChars)> & <arrsNullChars; wrap, anchor, separator=" & "><endif>; 
 >>
 
@@ -1306,12 +1310,12 @@ when <sChildNamePrese> =>
 
 ChoiceDependencyEnum_Item(v, sChildCID, sEnumCName) ::= <<
 when <sChildCID> =>
-    <v>_is_initialized := TRUE;
+    <v>_is_initialized := True;
 	<v> := <sEnumCName>; 
 >>
 
 ChoiceDependencyEnum(sChPath, sAcc, arrsChoiceEnumItems) ::= <<
-case <sChPath><sAcc>kind IS
+case <sChPath><sAcc>kind is
     <arrsChoiceEnumItems; separator="\n">
 end case;
 >>
@@ -1346,32 +1350,32 @@ end if;
 PrintAcn_update_param(sTasName, bHasSuccess, sParamName, sContent, sParamType, arrsTmpVars) ::= <<
 PROCEDURE <sTasName>_ACN_Encode_update_<sParamName>(val : IN <sTasName>; <sParamName>: OUT <sParamType><if(bHasSuccess)>; result : OUT <rtlModuleName()>.ASN1_RESULT<endif>)
 ---# derives <sParamName><if(bHasSuccess)>, result<endif> from val;
-IS
+is
     <arrsTmpVars; separator="\n">
-BEGIN
+begin
     <sContent>
-END <sTasName>_ACN_Encode_update_<sParamName>;
+end <sTasName>_ACN_Encode_update_<sParamName>;
 >>
 
 PrintAcn_update_param_body_choice_child(sChildName, sChildUpdateStatement, bCheckSuccess, sChildNamePresent) ::= <<
 WHEN <sChildNamePresent> =>	
     <sChildUpdateStatement>
-<if(!bCheckSuccess)>    result := <rtlModuleName()>.ASN1_RESULT'(Success => TRUE, ErrorCode => 0);<endif>
+<if(!bCheckSuccess)>    result := <rtlModuleName()>.ASN1_RESULT'(Success => True, ErrorCode => 0);<endif>
 >>
 
 PrintAcn_update_param_body_choice(sTasName, arrsChildUpdateStatements) ::= <<
-CASE <sTasName>_kind(val) IS
+CASE <sTasName>_kind(val) is
 	<arrsChildUpdateStatements; separator="\n">
-END CASE;
+end CASE;
 >>
 
 PrintAcn_update_param_body(sPart, sNestedPart, bCheckSuccess) ::= <<
 <sPart>
 <if(sNestedPart)>
 <if(bCheckSuccess)>
-IF result.success THEN
+if result.success then
     <sNestedPart>
-END IF;
+end if;
 <else>
 <sNestedPart>
 <endif>
@@ -1395,7 +1399,7 @@ SizeDependency_oct_str_containing(p, sFuncName, sReqBytesForUperEncoding, v, bIs
 <sFuncName>_aux(<p>, tmpBs, result);
 if result.success then
 	<v> := <rtlModuleName()>.Asn1UInt(<if(bIsOctet)>adaasn1rtl.encoding.BitStream_current_length_in_bytes(tmpBs)<else>tmpBs.Current_Bit_Pos<endif>);
-	<v>_is_initialized := TRUE;
+	<v>_is_initialized := True;
 end if;
 >>
 

@@ -9,7 +9,7 @@ project Ada_Rtl is
    end Prove;
 
    package Compiler is
-      for Default_Switches ("ada") use ("-gnatwa", "-g");
+      for Default_Switches ("ada") use ("-g", "-gnatf", "-gnatoa", "-gnatg", "-fstack-check", "-gnatwa", "-gnaty3M79abcefhiklnprst");
    end Compiler;
 
    package Builder is

@@ -9,14 +9,25 @@ package adaasn1rtl.encoding.xer is
 
    subtype XString is String;
 
+   pragma Warnings (Off, "comes too early and was moved down");
+   pragma Warnings (Off,
+          "component ""Data"" whose length depends on a discriminant");
+   pragma Warnings (Off, "record layout may cause performance issues");
+
    type CharStream (N : Integer) is record
       CurrentByte      : Natural          := 1;
       Data             : XString (1 .. N) := (1 .. N => Character'Val (0));
       EncodeWhiteSpace : Boolean          := False;
    end record;
 
-   procedure Write_CharStream_To_File (bs : in CharStream; Filename : in String);
+   pragma Warnings (On, "comes too early and was moved down");
+   pragma Warnings (On,
+          "component ""Data"" whose length depends on a discriminant");
+   pragma Warnings (On, "record layout may cause performance issues");
 
+   procedure Write_CharStream_To_File
+     (bs       : in CharStream;
+      Filename : in String);
 
    procedure Xer_EncodeXmlHeader
      (Strm      : in out CharStream;
@@ -41,8 +52,12 @@ package adaasn1rtl.encoding.xer is
       Result     :    out ASN1_RESULT;
       level      : in     Integer);
 
-   procedure Xer_EncodeNull (Strm : in out CharStream; elementTag : in XString; value: Asn1NullType; Result : out ASN1_RESULT; level : in Integer);
-
+   procedure Xer_EncodeNull
+     (Strm       : in out CharStream;
+      elementTag : in     XString;
+      value      :        Asn1NullType;
+      Result     :    out ASN1_RESULT;
+      level      : in     Integer);
 
    procedure Xer_EncodeBoolean
      (Strm       : in out CharStream;
@@ -90,8 +105,6 @@ package adaasn1rtl.encoding.xer is
       Result     :    out ASN1_RESULT;
       level      : in     Integer);
 
-
-
    procedure Xer_DecodeInteger
      (Strm       : in out CharStream;
       elementTag : in     XString;
@@ -104,7 +117,11 @@ package adaasn1rtl.encoding.xer is
       value      :    out Asn1UInt;
       Result     :    out ASN1_RESULT);
 
-   procedure Xer_DecodeNull (Strm : in out CharStream; elementTag : in XString; value: out Asn1NullType; Result : out ASN1_RESULT);
+   procedure Xer_DecodeNull
+     (Strm       : in out CharStream;
+      elementTag : in     XString;
+      value      :    out Asn1NullType;
+      Result     :    out ASN1_RESULT);
 
    procedure Xer_DecodeBoolean
      (Strm       : in out CharStream;
@@ -139,8 +156,11 @@ package adaasn1rtl.encoding.xer is
       len        :    out Integer;
       Result     :    out ASN1_RESULT);
 
-   procedure Xer_DecodeObjectIdentifier(Strm : in out CharStream; elementTag : in XString; value : out Asn1ObjectIdentifier; Result : out ASN1_RESULT);
-
+   procedure Xer_DecodeObjectIdentifier
+     (Strm       : in out CharStream;
+      elementTag : in     XString;
+      value      :    out Asn1ObjectIdentifier;
+      Result     :    out ASN1_RESULT);
 
    procedure Xer_EncodeComplexElementStart
      (Strm       : in out CharStream;

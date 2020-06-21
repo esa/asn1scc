@@ -5,31 +5,31 @@ rtlModuleName() ::= "adaasn1rtl"
 
 
 EmitTypeAssignment_def_err_code(sErrCode, nErrValue) ::= <<
-<sErrCode>:CONSTANT INTEGER := <nErrValue>; 
+<sErrCode>:constant Integer := <nErrValue>; 
 >>
 
 EmitTypeAssignment_def_encode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes, bEmptyEncodingSpace, nMaxBytesInXER, soSparkAnnotations) ::= <<
 <arrsErrcodes; separator="\n">
-<sTypeDefName>_REQUIRED_BYTES_FOR_XER_ENCODING:CONSTANT INTEGER := <nMaxBytesInXER>;
+<sTypeDefName>_REQUIRED_BYTES_FOR_XER_ENCODING:constant Integer := <nMaxBytesInXER>;
 
-SUBTYPE <sTypeDefName>_XER_byte_array_range is Natural range 1..<if(bEmptyEncodingSpace)>1<else><sTypeDefName>_REQUIRED_BYTES_FOR_XER_ENCODING<endif>;
-SUBTYPE <sTypeDefName>_XER_byte_array is <rtlModuleName()>.OctetBuffer(<sTypeDefName>_XER_byte_array_range);
+subtype <sTypeDefName>_XER_byte_array_range is Natural range 1..<if(bEmptyEncodingSpace)>1<else><sTypeDefName>_REQUIRED_BYTES_FOR_XER_ENCODING<endif>;
+subtype <sTypeDefName>_XER_byte_array is <rtlModuleName()>.OctetBuffer(<sTypeDefName>_XER_byte_array_range);
 
 subtype <sTypeDefName>_XER_Stream is adaasn1rtl.encoding.xer.CharStream(<if(bEmptyEncodingSpace)>1<else><sTypeDefName>_REQUIRED_BYTES_FOR_XER_ENCODING<endif>);
 
-procedure <sFuncName>(val:in <sTypeDefName>; Stream : OUT <sTypeDefName>_XER_Stream; ret : OUT <rtlModuleName()>.ASN1_RESULT);
-procedure <sFuncName>_aux(<sVarName>:in <sTypeDefName>; xmlTag : in <rtlModuleName()>.encoding.xer.XString; bs : in out <rtlModuleName()>.encoding.xer.CharStream; ret : OUT <rtlModuleName()>.ASN1_RESULT)
+procedure <sFuncName> (val : <sTypeDefName>; Stream : OUT <sTypeDefName>_XER_Stream; ret : OUT <rtlModuleName()>.ASN1_RESULT);
+procedure <sFuncName>_aux(<sVarName> : <sTypeDefName>; xmlTag : <rtlModuleName()>.encoding.xer.XString; bs : in out <rtlModuleName()>.encoding.xer.CharStream; ret : OUT <rtlModuleName()>.ASN1_RESULT)
 <soSparkAnnotations>;
 >>
 
 EmitTypeAssignment_encode(sTasName, sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitilialExp) ::= <<
-procedure <sFuncName>_aux(<sVarName>:in <sTypeDefName>; xmlTag : in <rtlModuleName()>.encoding.xer.XString; bs : in out <rtlModuleName()>.encoding.xer.CharStream; ret : OUT <rtlModuleName()>.ASN1_RESULT)
+procedure <sFuncName>_aux(<sVarName> : <sTypeDefName>; xmlTag : <rtlModuleName()>.encoding.xer.XString; bs : in out <rtlModuleName()>.encoding.xer.CharStream; ret : OUT <rtlModuleName()>.ASN1_RESULT)
 is
     <arrsLocalVariables; separator="\n">
 begin
     <if(soIValidFuncName)>
     ret := <soIValidFuncName>(<sVarName>);
-    if ret.success THEN
+    if ret.success then
         <sContent>
     end if;
     <else>
@@ -38,7 +38,7 @@ begin
     <endif>
 end <sFuncName>_aux;
 
-procedure <sFuncName>(<sVarName>:in <sTypeDefName>; Stream : OUT <sTypeDefName>_XER_Stream; ret : OUT <rtlModuleName()>.ASN1_RESULT)
+procedure <sFuncName>(<sVarName> : <sTypeDefName>; Stream : OUT <sTypeDefName>_XER_Stream; ret : OUT <rtlModuleName()>.ASN1_RESULT)
 is
 begin
     Stream := <sTypeDefName>_XER_Stream'(N => <if(bEmptyEncodingSpace)>1<else><sTypeDefName>_REQUIRED_BYTES_FOR_XER_ENCODING<endif>,
@@ -54,7 +54,7 @@ end <sFuncName>;
 EmitTypeAssignment_def_decode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes, bEmptyEncodingSpace, nMaxBytesInXER, soSparkAnnotations) ::= <<
 <arrsErrcodes; separator="\n">
 procedure <sFuncName>(<sVarName>: out <sTypeDefName>; Stream : in out <sTypeDefName>_XER_Stream; ret : OUT <rtlModuleName()>.ASN1_RESULT);
-procedure <sFuncName>_aux(<sVarName>: out <sTypeDefName>; xmlTag : in <rtlModuleName()>.encoding.xer.XString; bs : in out <rtlModuleName()>.encoding.xer.CharStream; ret : OUT <rtlModuleName()>.ASN1_RESULT)
+procedure <sFuncName>_aux(<sVarName>: out <sTypeDefName>; xmlTag : <rtlModuleName()>.encoding.xer.XString; bs : in out <rtlModuleName()>.encoding.xer.CharStream; ret : OUT <rtlModuleName()>.ASN1_RESULT)
 <soSparkAnnotations>;
 >>
 
@@ -62,8 +62,8 @@ procedure <sFuncName>_aux(<sVarName>: out <sTypeDefName>; xmlTag : in <rtlModule
 
 EmitTypeAssignment_decode(sTasName, sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitilialExp) ::= <<
 pragma Warnings (Off, "unused initial value of ""val""");
-procedure <sFuncName>_aux(<sVarName>: out <sTypeDefName>; xmlTag : in <rtlModuleName()>.encoding.xer.XString; bs : in out <rtlModuleName()>.encoding.xer.CharStream; ret : OUT <rtlModuleName()>.ASN1_RESULT)
-IS
+procedure <sFuncName>_aux(<sVarName>: out <sTypeDefName>; xmlTag : <rtlModuleName()>.encoding.xer.XString; bs : in out <rtlModuleName()>.encoding.xer.CharStream; ret : OUT <rtlModuleName()>.ASN1_RESULT)
+is
     <arrsLocalVariables; separator="\n">
 begin
     <sContent>
@@ -208,7 +208,7 @@ ret.ErrorCode := (if ret.Success then 0 else <sErrCode>);
 OctetString_decode(p, sAcc, sTag, nLevel, nSizeMax, bIsFixedSize, soCheckExp, sErrCode) ::= <<
 <if(bIsFixedSize)>
 declare
-	fixed_length : integer;
+	fixed_length : Integer;
 begin
 	adaasn1rtl.encoding.xer.Xer_DecodeOctetString(bs, <sTag>, <p><sAcc>Data, fixed_length, ret);
 	<if(soCheckExp)><soCheckExp><endif>
@@ -232,7 +232,7 @@ ret.ErrorCode := (if ret.Success then 0 else <sErrCode>);
 BitString_decode(p, sAcc, sTag, nLevel, nSizeMax, bIsFixedSize, soCheckExp, sErrCode) ::= <<
 <if(bIsFixedSize)>
 declare
-	fixed_length : integer;
+	fixed_length : Integer;
 begin
 	adaasn1rtl.encoding.xer.Xer_DecodeBitString(bs, <sTag>, <p><sAcc>Data, fixed_length, ret);
 	<if(soCheckExp)><soCheckExp><endif>
@@ -401,7 +401,7 @@ CHOICE_child_decode(p, sAcc, sChID, sChildBody, bFirst, sChildTag, sChildName, s
      <sChildName>_tmp:<sChildTypeDef>;
   begin
     <sChildBody>
-    if ret.Success THEN
+    if ret.Success then
         <p> := <sChoiceTypeName>'(kind => <sChID>, <sChildName> => <sChildName>_tmp);
     end if;
   end;
@@ -409,7 +409,7 @@ CHOICE_child_decode(p, sAcc, sChID, sChildBody, bFirst, sChildTag, sChildName, s
 
 
 CHOICE_no_tag_encode(p, sAcc, arrsChildren, sErrCode) ::= <<
-case <p><sAcc>kind IS
+case <p><sAcc>kind is
     <arrsChildren; separator="\n">
 end case;
 >>
@@ -420,7 +420,7 @@ declare
 begin
 	adaasn1rtl.encoding.xer.Xer_LA_NextElementTag(bs, nextTag, ret);
 	ret.ErrorCode := (if ret.Success then 0 else <sErrCode>);
-	if ret.Success THEN
+	if ret.Success then
 		<arrsChildren; separator="\n"> 
         else
 			ret.Success := False;
@@ -433,9 +433,9 @@ end;
 CHOICE_encode(p, sAcc, sTag, nLevel, sMainBody, sErrCode) ::= <<
 --CHOICE Encode
 adaasn1rtl.encoding.xer.Xer_EncodeComplexElementStart(bs, <sTag>, ret, <nLevel>);
-if ret.Success THEN
+if ret.Success then
     <sMainBody>
-    if ret.Success THEN
+    if ret.Success then
         adaasn1rtl.encoding.xer.Xer_EncodeComplexElementEnd(bs, <sTag>, ret, <nLevel>);
     end if;
 end if;
