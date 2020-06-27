@@ -60,13 +60,55 @@
     </Otherwise>
   </Choose>
   <Import Project="$(FSharpTargetsPath)" />
+  <Target Name="BeforeBuild">
+    <ItemGroup>
+      <!--
+      <ResourceFilesToCopy Include="$(SolutionDir)ADA_RTL/src/test_cases_aux.*" />
+      <ResourceFilesToCopy Include="$(SolutionDir)ADA_RTL/src/adaasn1rtl.*" />
+      <ResourceFilesToCopy Include="$(SolutionDir)ADA_RTL/src/uper_asn1_rtl.*" />
+      <ResourceFilesToCopy Include="$(SolutionDir)ADA_RTL/src/acn_asn1_rtl.*" />
+      <ResourceFilesToCopy Include="$(SolutionDir)ADA_RTL/src/xer_rtl.*" />
+      -->
+      <ResourceFilesToCopy Include="$(SolutionDir)ADA_RTL2/src/*.*" />
+      <ResourceFilesToCopy Include="$(SolutionDir)ADA_RTL/aux_files/IgnoredExaminerWarnings.wrn" />
+      <ResourceFilesToCopy Include="$(SolutionDir)ADA_RTL/aux_files/gnat.cfg" />
+      <ResourceFilesToCopy Include="$(SolutionDir)ADA_RTL/aux_files/run.sh" />
+      <ResourceFilesToCopy Include="$(SolutionDir)ADA_RTL/aux_files/GPS_project.gpr" />
+      <ResourceFilesToCopy Include="$(SolutionDir)asn1crt/asn1crt.c" />
+      <ResourceFilesToCopy Include="$(SolutionDir)asn1crt/asn1crt.h" />
+      <ResourceFilesToCopy Include="$(SolutionDir)asn1crt/asn1crt_encoding.c" />
+      <ResourceFilesToCopy Include="$(SolutionDir)asn1crt/asn1crt_encoding.h" />
+      <ResourceFilesToCopy Include="$(SolutionDir)asn1crt/asn1crt_encoding_acn.c" />
+      <ResourceFilesToCopy Include="$(SolutionDir)asn1crt/asn1crt_encoding_acn.h" />
+      <ResourceFilesToCopy Include="$(SolutionDir)asn1crt/asn1crt_encoding_ber.c" />
+      <ResourceFilesToCopy Include="$(SolutionDir)asn1crt/asn1crt_encoding_ber.h" />
+      <ResourceFilesToCopy Include="$(SolutionDir)asn1crt/asn1crt_encoding_uper.c" />
+      <ResourceFilesToCopy Include="$(SolutionDir)asn1crt/asn1crt_encoding_uper.h" />
+      <ResourceFilesToCopy Include="$(SolutionDir)asn1crt/asn1crt_encoding_xer.c" />
+      <ResourceFilesToCopy Include="$(SolutionDir)asn1crt/asn1crt_encoding_xer.h" />
+    </ItemGroup>
+    <PropertyGroup>
+      <ResourcesDir>$(ProjectDir)/Resources</ResourcesDir>
+    </PropertyGroup>
+    <MakeDir Directories="$(ResourcesDir)" />
+    <Copy SourceFiles="@(ResourceFilesToCopy)" DestinationFolder="$(ResourcesDir)" />
+  </Target>
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  -->
+  <Target Name="AfterBuild">
+    <ItemGroup>
+      <StgFilesToCopy Include="$(SolutionDir)/Stg*/*.stg" />
+    </ItemGroup>
+    <Copy SourceFiles="@(StgFilesToCopy)" DestinationFolder="$(OutputPath)" />
+  </Target>
   <ItemGroup>
     <Compile Include="AssemblyInfo.fs" />
     <Compile Include="GenerateRTL.fs" />
     <Compile Include="Program.fs" />
     <None Include="App.config" />
-    <Content Include="packages.config" />
     <EmbeddedResource Include="Resource1.resx" />
+    <Content Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="antlr.runtime">
@@ -138,46 +180,4 @@
     <Reference Include="System.Xml" />
     <Reference Include="System.Xml.Linq" />
   </ItemGroup>
-  <Target Name="BeforeBuild">
-    <ItemGroup>
-      <!--
-      <ResourceFilesToCopy Include="$(SolutionDir)ADA_RTL/src/test_cases_aux.*" />
-      <ResourceFilesToCopy Include="$(SolutionDir)ADA_RTL/src/adaasn1rtl.*" />
-      <ResourceFilesToCopy Include="$(SolutionDir)ADA_RTL/src/uper_asn1_rtl.*" />
-      <ResourceFilesToCopy Include="$(SolutionDir)ADA_RTL/src/acn_asn1_rtl.*" />
-      <ResourceFilesToCopy Include="$(SolutionDir)ADA_RTL/src/xer_rtl.*" />
-      -->
-      <ResourceFilesToCopy Include="$(SolutionDir)ADA_RTL2/src/*.*" />
-      <ResourceFilesToCopy Include="$(SolutionDir)ADA_RTL/aux_files/IgnoredExaminerWarnings.wrn" />
-      <ResourceFilesToCopy Include="$(SolutionDir)ADA_RTL/aux_files/gnat.cfg" />
-      <ResourceFilesToCopy Include="$(SolutionDir)ADA_RTL/aux_files/run.sh" />
-      <ResourceFilesToCopy Include="$(SolutionDir)ADA_RTL/aux_files/GPS_project.gpr" />
-      <ResourceFilesToCopy Include="$(SolutionDir)asn1crt/asn1crt.c" />
-      <ResourceFilesToCopy Include="$(SolutionDir)asn1crt/asn1crt.h" />
-      <ResourceFilesToCopy Include="$(SolutionDir)asn1crt/asn1crt_encoding.c" />
-      <ResourceFilesToCopy Include="$(SolutionDir)asn1crt/asn1crt_encoding.h" />
-      <ResourceFilesToCopy Include="$(SolutionDir)asn1crt/asn1crt_encoding_acn.c" />
-      <ResourceFilesToCopy Include="$(SolutionDir)asn1crt/asn1crt_encoding_acn.h" />
-      <ResourceFilesToCopy Include="$(SolutionDir)asn1crt/asn1crt_encoding_ber.c" />
-      <ResourceFilesToCopy Include="$(SolutionDir)asn1crt/asn1crt_encoding_ber.h" />
-      <ResourceFilesToCopy Include="$(SolutionDir)asn1crt/asn1crt_encoding_uper.c" />
-      <ResourceFilesToCopy Include="$(SolutionDir)asn1crt/asn1crt_encoding_uper.h" />
-      <ResourceFilesToCopy Include="$(SolutionDir)asn1crt/asn1crt_encoding_xer.c" />
-      <ResourceFilesToCopy Include="$(SolutionDir)asn1crt/asn1crt_encoding_xer.h" />
-    </ItemGroup>
-    <PropertyGroup>
-      <ResourcesDir>$(ProjectDir)/Resources</ResourcesDir>
-    </PropertyGroup>
-    <MakeDir Directories="$(ResourcesDir)" />
-    <Copy SourceFiles="@(ResourceFilesToCopy)" DestinationFolder="$(ResourcesDir)" />
-  </Target>
-  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
-       Other similar extension points exist, see Microsoft.Common.targets.
-  -->
-  <Target Name="AfterBuild">
-    <ItemGroup>
-      <StgFilesToCopy Include="$(SolutionDir)/Stg*/*.stg" />
-    </ItemGroup>
-    <Copy SourceFiles="@(StgFilesToCopy)" DestinationFolder="$(OutputPath)" />
-  </Target>
 </Project>
