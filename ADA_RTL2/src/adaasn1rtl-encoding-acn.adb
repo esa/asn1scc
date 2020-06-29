@@ -1646,7 +1646,7 @@ package body adaasn1rtl.encoding.acn with
          tmp (i + tmp'First - null_characters'First) := charIndex;
       end loop;
 
-      while I <= strVal'Last
+      while I <= strVal'Last - 1
         and then
           null_characters (null_characters'First .. null_characters'Last) /=
           tmp
@@ -1700,7 +1700,7 @@ package body adaasn1rtl.encoding.acn with
          Asn1Int (getStringSize (strVal)),
          asn1Min,
          nLengthDeterminantSizeInBits);
-      while I <= strVal'Last and then strVal (I) /= Standard.Ascii.NUL loop
+      while I <= strVal'Last - 1 and then strVal (I) /= Standard.Ascii.NUL loop
          pragma Loop_Invariant
            (I >= strVal'First and
             I <= strVal'Last and
@@ -1739,7 +1739,8 @@ package body adaasn1rtl.encoding.acn with
          nLengthDeterminantSizeInBits,
          Result.Success);
 
-      while Result.Success and then I <= strVal'Last and then I <= nSize loop
+      while Result.Success and then I <= strVal'Last - 1
+                           and then I <= nSize loop
          pragma Loop_Invariant
            (I >= strVal'First and
             I <= strVal'Last and
@@ -1764,7 +1765,7 @@ package body adaasn1rtl.encoding.acn with
    is
       I : Integer := strVal'First;
    begin
-      while I <= strVal'Last and then strVal (I) /= Standard.Ascii.NUL loop
+      while I <= strVal'Last - 1 and then strVal (I) /= Standard.Ascii.NUL loop
          pragma Loop_Invariant
            (I >= strVal'First and
             I <= strVal'Last and
@@ -1793,7 +1794,7 @@ package body adaasn1rtl.encoding.acn with
         ASN1_RESULT'(Success => True, ErrorCode => ERR_INCORRECT_STREAM);
 
       while Result.Success
-        and then I <= strVal'Last
+        and then I <= strVal'Last - 1
         and then I <= Integer (extSizeDeterminatFld)
       loop
          pragma Loop_Invariant
@@ -1823,7 +1824,7 @@ package body adaasn1rtl.encoding.acn with
       I         : Integer := strVal'First;
       charIndex : Integer;
    begin
-      while I <= strVal'Last and then strVal (I) /= Standard.Ascii.NUL loop
+      while I <= strVal'Last - 1 and then strVal (I) /= Standard.Ascii.NUL loop
          pragma Loop_Invariant
            (I >= strVal'First and
             I <= strVal'Last and
@@ -1900,7 +1901,7 @@ package body adaasn1rtl.encoding.acn with
          asn1Min,
          nLengthDeterminantSizeInBits);
 
-      while I <= strVal'Last and then strVal (I) /= Standard.Ascii.NUL loop
+      while I <= strVal'Last - 1 and then strVal (I) /= Standard.Ascii.NUL loop
          pragma Loop_Invariant
            (I >= strVal'First and
             I <= strVal'Last and

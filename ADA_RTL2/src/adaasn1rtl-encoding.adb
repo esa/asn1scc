@@ -544,7 +544,7 @@ package body adaasn1rtl.encoding with
    begin
       result :=
         nBits >= 0
-        and then nBits < Asn1UInt'Size
+        and then nBits <= Asn1UInt'Size
         and then bs.Current_Bit_Pos < Natural'Last - nBits
         and then bs.Size_In_Bytes < Positive'Last / 8
         and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - nBits;

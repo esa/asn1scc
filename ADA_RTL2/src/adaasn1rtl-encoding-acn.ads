@@ -1063,14 +1063,16 @@ package adaasn1rtl.encoding.acn with
         Natural'Last / 8 - null_characters'Length
       and then
         bs.Current_Bit_Pos <
-        Natural'Last - (strVal'Length + null_characters'Length) * 8
+        Natural'Last - (strVal'Length - 1 + null_characters'Length) * 8
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then
         bs.Current_Bit_Pos <=
-        bs.Size_In_Bytes * 8 - (strVal'Length + null_characters'Length) * 8,
+        bs.Size_In_Bytes * 8 -
+            (strVal'Length - 1  + null_characters'Length) * 8,
       Post => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and
       bs.Current_Bit_Pos <=
-        bs'Old.Current_Bit_Pos + (strVal'Length + null_characters'Length) * 8;
+        bs'Old.Current_Bit_Pos +
+             (strVal'Length - 1 + null_characters'Length) * 8;
 
    procedure Acn_Dec_String_Ascii_Null_Teminated
      (bs              : in out Bitstream;
@@ -1086,15 +1088,17 @@ package adaasn1rtl.encoding.acn with
       and then strVal'Length < Natural'Last / 8 - null_characters'Length
       and then
         bs.Current_Bit_Pos <
-        Natural'Last - (strVal'Length + null_characters'Length) * 8
+        Natural'Last - (strVal'Length - 1  + null_characters'Length) * 8
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then
         bs.Current_Bit_Pos <=
-        bs.Size_In_Bytes * 8 - (strVal'Length + null_characters'Length) * 8,
+        bs.Size_In_Bytes * 8 -
+           (strVal'Length - 1  + null_characters'Length) * 8,
       Post => Result.Success and
       bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and
       bs.Current_Bit_Pos <=
-        bs'Old.Current_Bit_Pos + (strVal'Length + null_characters'Length) * 8;
+        bs'Old.Current_Bit_Pos +
+          (strVal'Length - 1  + null_characters'Length) * 8;
 
    procedure Acn_Enc_String_Ascii_Internal_Field_Determinant
      (bs                           : in out Bitstream;
@@ -1112,17 +1116,17 @@ package adaasn1rtl.encoding.acn with
       and then
         bs.Current_Bit_Pos <
         Natural'Last -
-          ((strVal'Last - strVal'First + 1) * 8 + nLengthDeterminantSizeInBits)
+          ((strVal'Last - strVal'First) * 8 + nLengthDeterminantSizeInBits)
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then
         bs.Current_Bit_Pos <=
         bs.Size_In_Bytes * 8 -
-          ((strVal'Last - strVal'First + 1) * 8 +
+          ((strVal'Last - strVal'First) * 8 +
            nLengthDeterminantSizeInBits),
       Post => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and
       bs.Current_Bit_Pos <=
         bs'Old.Current_Bit_Pos +
-          ((strVal'Last - strVal'First + 1) * 8 +
+          ((strVal'Last - strVal'First) * 8 +
            nLengthDeterminantSizeInBits);
 
    procedure Acn_Dec_String_Ascii_Internal_Field_Determinant
@@ -1146,17 +1150,17 @@ package adaasn1rtl.encoding.acn with
       and then
         bs.Current_Bit_Pos <
         Natural'Last -
-          ((strVal'Last - strVal'First + 1) * 8 + nLengthDeterminantSizeInBits)
+          ((strVal'Last - strVal'First) * 8 + nLengthDeterminantSizeInBits)
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then
         bs.Current_Bit_Pos <=
         bs.Size_In_Bytes * 8 -
-          ((strVal'Last - strVal'First + 1) * 8 +
+          ((strVal'Last - strVal'First) * 8 +
            nLengthDeterminantSizeInBits),
       Post => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and
       bs.Current_Bit_Pos <=
         bs'Old.Current_Bit_Pos +
-          ((strVal'Last - strVal'First + 1) * 8 +
+          ((strVal'Last - strVal'First) * 8 +
            nLengthDeterminantSizeInBits);
 
    procedure Acn_Enc_String_Ascii_External_Field_Determinant
@@ -1168,14 +1172,14 @@ package adaasn1rtl.encoding.acn with
       and then strVal'Last - strVal'First < Natural'Last / 8 - 8
       and then
         bs.Current_Bit_Pos <
-        Natural'Last - ((strVal'Last - strVal'First + 1) * 8)
+        Natural'Last - ((strVal'Last - strVal'First) * 8)
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then
         bs.Current_Bit_Pos <=
-        bs.Size_In_Bytes * 8 - ((strVal'Last - strVal'First + 1) * 8),
+        bs.Size_In_Bytes * 8 - ((strVal'Last - strVal'First) * 8),
       Post => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and
       bs.Current_Bit_Pos <=
-        bs'Old.Current_Bit_Pos + ((strVal'Last - strVal'First + 1) * 8);
+        bs'Old.Current_Bit_Pos + ((strVal'Last - strVal'First) * 8);
 
    procedure Acn_Dec_String_Ascii_External_Field_Determinant
      (bs                   : in out Bitstream;
@@ -1190,14 +1194,14 @@ package adaasn1rtl.encoding.acn with
       and then strVal'Last - strVal'First < Natural'Last / 8 - 8
       and then
         bs.Current_Bit_Pos <
-        Natural'Last - ((strVal'Last - strVal'First + 1) * 8)
+        Natural'Last - ((strVal'Last - strVal'First) * 8)
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then
         bs.Current_Bit_Pos <=
-        bs.Size_In_Bytes * 8 - ((strVal'Last - strVal'First + 1) * 8),
+        bs.Size_In_Bytes * 8 - ((strVal'Last - strVal'First) * 8),
       Post => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and
       bs.Current_Bit_Pos <=
-        bs'Old.Current_Bit_Pos + ((strVal'Last - strVal'First + 1) * 8);
+        bs'Old.Current_Bit_Pos + ((strVal'Last - strVal'First) * 8);
 
    procedure Acn_Enc_String_CharIndex_External_Field_Determinant
      (bs        : in out Bitstream;
@@ -1215,15 +1219,15 @@ package adaasn1rtl.encoding.acn with
       and then strVal'Last - strVal'First < Natural'Last / 8 - nCharSize
       and then
         bs.Current_Bit_Pos <
-        Natural'Last - ((strVal'Last - strVal'First + 1) * nCharSize)
+        Natural'Last - ((strVal'Last - strVal'First) * nCharSize)
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then
         bs.Current_Bit_Pos <=
-        bs.Size_In_Bytes * 8 - ((strVal'Last - strVal'First + 1) * nCharSize),
+        bs.Size_In_Bytes * 8 - ((strVal'Last - strVal'First) * nCharSize),
       Post => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and
       bs.Current_Bit_Pos <=
         bs'Old.Current_Bit_Pos +
-          ((strVal'Last - strVal'First + 1) * nCharSize);
+          ((strVal'Last - strVal'First) * nCharSize);
 
    procedure Acn_Dec_String_CharIndex_External_Field_Determinant
      (bs                   : in out Bitstream;
@@ -1246,15 +1250,15 @@ package adaasn1rtl.encoding.acn with
       and then strVal'Last - strVal'First < Natural'Last / 8 - nCharSize
       and then
         bs.Current_Bit_Pos <
-        Natural'Last - ((strVal'Last - strVal'First + 1) * nCharSize)
+        Natural'Last - ((strVal'Last - strVal'First) * nCharSize)
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then
         bs.Current_Bit_Pos <=
-        bs.Size_In_Bytes * 8 - ((strVal'Last - strVal'First + 1) * nCharSize),
+        bs.Size_In_Bytes * 8 - ((strVal'Last - strVal'First) * nCharSize),
       Post => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and
       bs.Current_Bit_Pos <=
         bs'Old.Current_Bit_Pos +
-          ((strVal'Last - strVal'First + 1) * nCharSize);
+          ((strVal'Last - strVal'First) * nCharSize);
 
    procedure Acn_Enc_String_CharIndex_Internal_Field_Determinant
      (bs                           : in out Bitstream;
@@ -1278,18 +1282,18 @@ package adaasn1rtl.encoding.acn with
       and then
         bs.Current_Bit_Pos <
         Natural'Last -
-          ((strVal'Last - strVal'First + 1) * nCharSize +
+          ((strVal'Last - strVal'First) * nCharSize +
            nLengthDeterminantSizeInBits)
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then
         bs.Current_Bit_Pos <=
         bs.Size_In_Bytes * 8 -
-          ((strVal'Last - strVal'First + 1) * nCharSize +
+          ((strVal'Last - strVal'First) * nCharSize +
            nLengthDeterminantSizeInBits),
       Post => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and
       bs.Current_Bit_Pos <=
         bs'Old.Current_Bit_Pos +
-          ((strVal'Last - strVal'First + 1) * nCharSize +
+          ((strVal'Last - strVal'First) * nCharSize +
            nLengthDeterminantSizeInBits);
 
    procedure Acn_Dec_String_CharIndex_Internal_Field_Determinant
@@ -1318,18 +1322,18 @@ package adaasn1rtl.encoding.acn with
       and then
         bs.Current_Bit_Pos <
         Natural'Last -
-          ((strVal'Last - strVal'First + 1) * nCharSize +
+          ((strVal'Last - strVal'First) * nCharSize +
            nLengthDeterminantSizeInBits)
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then
         bs.Current_Bit_Pos <=
         bs.Size_In_Bytes * 8 -
-          ((strVal'Last - strVal'First + 1) * nCharSize +
+          ((strVal'Last - strVal'First) * nCharSize +
            nLengthDeterminantSizeInBits),
       Post => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and
       bs.Current_Bit_Pos <=
         bs'Old.Current_Bit_Pos +
-          ((strVal'Last - strVal'First + 1) * nCharSize +
+          ((strVal'Last - strVal'First) * nCharSize +
            nLengthDeterminantSizeInBits);
 
 end adaasn1rtl.encoding.acn;

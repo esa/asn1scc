@@ -746,7 +746,7 @@ result.ErrorCode := <sErrCode>;
 loopFixedItem_enc (i, fixedSize, nfixedSizeUperLimit, sInternalItem, nCurOffset, nAlignSize, nIntItemMinSize, nIntItemMaxSize)::= /*nogen*/<<    
 <i> := 1;
 while <i>\<= <fixedSize> loop
-    pragma Loop_Invariant (<i> >=1 and <i>\<=<fixedSize>);
+    --  pragma Loop_Invariant (<i> >=1 and <i>\<=<fixedSize>);
     <sInternalItem>
     <i> := <i> + 1;
 end loop;
@@ -755,7 +755,7 @@ end loop;
 loopFixedItem_dec (i, fixedSize, nfixedSizeUperLimit, sInternalItem, nCurOffset, nAlignSize, nIntItemMinSize, nIntItemMaxSize)::= /*nogen*/<<    
 <i> := 1;
 while <i>\<= <fixedSize> AND result.Success loop
-    pragma Loop_Invariant (<i> >=1 and <i>\<=<fixedSize>);
+    --  pragma Loop_Invariant (<i> >=1 and <i>\<=<fixedSize>);
     <sInternalItem>
     <i> := <i> + 1;
 end loop;
@@ -809,7 +809,7 @@ oct_sqf_null_terminated_decode(p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, a
 <i> := 1;
 result := <rtlModuleName()>.ASN1_RESULT'(Success => true, ErrorCode => 0);
 while result.Success and then <i>\<= <nSizeMax> and then not <rtlModuleName()>.encoding.BitStream_bitPatternMatches(bs,<rtlModuleName()>.OctetBuffer'(<arruNullBytes:{b|<i>=>16#<b;format="X2">#}; wrap, anchor, separator=", ">), <nBitPatternLength>)  loop
-    pragma Loop_Invariant (<i> >=1 and <i>\<=<nSizeMax>);
+    --  pragma Loop_Invariant (<i> >=1 and <i>\<=<nSizeMax>);
     <sInternalItem>
     <i> := <i> + 1;
 end loop;

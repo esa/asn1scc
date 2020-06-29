@@ -9,7 +9,7 @@ project GPS_Project is
    end Ide;
 
    package Compiler is
-      for Default_Switches ("ada") use ("-gnatwae", "-gnat2012", "-g");
+      for Default_Switches ("ada") use ("-gnatwae", "-gnat2012", "-g", "-gnatf", "-gnaty", "-gnatwa", "-gnatoa", "-gnatg", "-fstack-check");
    end Compiler;
 
    package Pretty_Printer is

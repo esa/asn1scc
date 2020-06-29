@@ -334,8 +334,8 @@ let private mergeObjectIdentifier (asn1:Asn1Ast.AstRoot) (relativeId:bool) (loc:
 
     let acnProperties =  {ObjectIdTypeAcnProperties.sizeProperties = None; itemProperties = None }
 
-    let lengthSize = 1I //+++ SOS, must be valiader
-    let compUperMinSizeInBits, compUperMaxSizeInBits = uPER.getRequiredBitsForIntUperEncoding asn1.args.integerSizeInBytes Full
+    let lengthSize = 16I //+++ SOS, must be valiader
+    let compUperMinSizeInBits, compUperMaxSizeInBits = 8I, 16I*8I//uPER.getRequiredBitsForIntUperEncoding asn1.args.integerSizeInBytes Full
     let uperMaxSizeInBits= compUperMaxSizeInBits*asn1.args.objectIdentifierMaxLength + lengthSize
     let uperMinSizeInBits= lengthSize
     let aligment = tryGetProp props (fun x -> match x with ALIGNTONEXT e -> Some e | _ -> None)

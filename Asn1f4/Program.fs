@@ -93,7 +93,7 @@ let printVersion () =
     //let version = fvi.FileVersion;
     let version = "4.2.3.0f"
     printfn "asn1scc version %s\n" version
-    () 
+    ()
 
 let getCustmStgFileNames (compositeFile:string) =
     let files = compositeFile.Split ':' |> Seq.toList

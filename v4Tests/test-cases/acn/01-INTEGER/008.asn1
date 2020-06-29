@@ -7,4 +7,4 @@ END
 
 
 --TCLS     MyPDU[encoding ASCII, size null-terminated]  
---TCLS     MyPDU[encoding ASCII, size 240]  
+--TCLFC    MyPDU[encoding ASCII, size 240]          $$$ sample1.acn:4:6: error: Size must be less than 168

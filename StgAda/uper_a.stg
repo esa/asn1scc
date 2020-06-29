@@ -420,9 +420,9 @@ end if;
 
 loopFixedItem_enc (i, fixedSize, nfixedSizeUperLimit, sInternalItem, nCurOffset, nAlignSize, nIntItemMinSize, nIntItemMaxSize)::= /*nogen*/<<    
 while <i>\<= <fixedSize> loop
-    pragma Loop_Invariant (<i> >=1 and <i>\<=<fixedSize>);
-    --pragma Loop_Invariant (K >= K'Loop_Entry);
-    --pragma Loop_Invariant (K\<=K'Loop_Entry + <nIntItemMaxSize>*(<i>-1));
+    --  pragma Loop_Invariant (<i> >=1 and <i>\<=<fixedSize>);
+    --  pragma Loop_Invariant (K >= K'Loop_Entry);
+    --  pragma Loop_Invariant (K\<=K'Loop_Entry + <nIntItemMaxSize>*(<i>-1));
     <sInternalItem>
     <i> := <i> + 1;
 end loop;
@@ -431,9 +431,9 @@ end loop;
 
 loopFixedItem_dec (i, fixedSize, nfixedSizeUperLimit, sInternalItem, nCurOffset, nAlignSize, nIntItemMinSize, nIntItemMaxSize)::= /*nogen*/<<    
 while <i>\<= <fixedSize> AND result.Success loop
-    pragma Loop_Invariant (<i> >=1 and <i>\<=<fixedSize>);
-    --pragma Loop_Invariant (K.K >= K'Loop_Entry.K);
-    --pragma Loop_Invariant (K.K \<= K'Loop_Entry.K + <nIntItemMaxSize>*(<i>-1));
+    --  pragma Loop_Invariant (<i> >=1 and <i>\<=<fixedSize>);
+    --  pragma Loop_Invariant (K.K >= K'Loop_Entry.K);
+    --  pragma Loop_Invariant (K.K \<= K'Loop_Entry.K + <nIntItemMaxSize>*(<i>-1));
     <sInternalItem>
     <i> := <i> + 1;
 end loop;
@@ -512,7 +512,7 @@ adaasn1rtl.encoding.uper.UPER_Dec_ConstraintWholeNumberInt(bs, nStringLength, <n
 
 --add nulls until the end
 while <i>\<= <nSizeMax> + 1  loop
-    pragma Loop_Invariant (<i> >=1 and <i>\<=<nSizeMax> + 1);
+    --  pragma Loop_Invariant (<i> >=1 and <i>\<=<nSizeMax> + 1);
     <p>(<i>) := adaasn1rtl.NUL;
     <i> := <i> + 1;
 end loop;
@@ -814,7 +814,7 @@ if <sLengthTmp> >= <nSizeMin> and <sLengthTmp> \<= <nSizeMax> then
 
     --add nulls until the end
     while <sBLI>\<= <nSizeMax> + 1  loop
-        pragma Loop_Invariant (<sBLI> >=1 and <sBLI>\<=<nSizeMax> + 1);
+        --  pragma Loop_Invariant (<sBLI> >=1 and <sBLI>\<=<nSizeMax> + 1);
         <p>(<sBLI>) := adaasn1rtl.NUL;
         <sBLI> := <sBLI> + 1;
     end loop;

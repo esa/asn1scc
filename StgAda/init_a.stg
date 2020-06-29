@@ -34,7 +34,9 @@ initNull(sVal)    ::= "<sVal> := 0;"
 initTestCaseIA5String(p, sAcc, nSize, nMaxSizePlusOne, i, td/*:FE_StringTypeDefinition*/, bAlpha, arrnAlphabetAsciiCodes, nAlphabetLength, bZero) ::= <<
 <i> := 1;
 while <i>\<= <nMaxSizePlusOne> loop
-    pragma Loop_Invariant (<i> >=1 and <i>\<=<nMaxSizePlusOne>);
+    --  commented because it casues this warning    
+    --  warning: condition can only be False if invalid values present
+    --  pragma Loop_Invariant (<i> >=1 and <i>\<=<nMaxSizePlusOne>);      
     <if(bZero)>
     <p>(<i>) := <rtlModuleName()>.NUL;
 
@@ -124,7 +126,9 @@ initFixVarSizeBitOrOctString(p, sAcc, nSize, arrsBytes) ::= <<
 initTestCaseOctetString(p, sAcc, nSize, i, bIsFixedSize, bZero, nMinSize) ::= <<
 <i> := 1;
 while <i>\<= <nSize> loop
-    pragma Loop_Invariant (<i> >=1 and <i>\<=<nSize>);
+    --  commented because it casues this warning    
+    --  warning: condition can only be False if invalid values present
+    --  pragma Loop_Invariant (<i> >=1 and <i>\<=<nSize>);
     <p><sAcc>Data(<i>) := <rtlModuleName()>.Asn1Byte(<if(bZero)>0<else>(<i>-1) mod 256<endif>);
     <i> := <i> + 1;
 end loop;
@@ -134,7 +138,9 @@ end loop;
 initTestCaseBitString(p, sAcc, nSize, nSizeCeiled, i, bIsFixedSize, bZero, nMinSize) ::= <<
 <i> := 1;
 while <i>\<= <nSize> loop
-    pragma Loop_Invariant (<i> >=1 and <i>\<=<nSize>);
+    --  commented because it casues this warning    
+    --  warning: condition can only be False if invalid values present
+    --  pragma Loop_Invariant (<i> >=1 and <i>\<=<nSize>);
     <p><sAcc>Data(<i>) := <rtlModuleName()>.BIT(<if(bZero)>0<else>(<i>-1) mod 2<endif>);
     <i> := <i> + 1;
 end loop;
@@ -166,7 +172,9 @@ initTestCaseSizeSequenceOf_innerItem(bFirst, bLastItem, nCaseIdx, sChildCaseInit
 initTestCaseSizeSequenceOf(p, sAcc, noMinSize, nSize, bIsFixedSize, arrsInnerItems, bMultiCases, i) ::= <<
 <i> := 1;
 while <i>\<= <nSize> loop
-    pragma Loop_Invariant (<i> >=1 and <i>\<=<nSize>);
+    --  commented because it casues this warning    
+    --  warning: condition can only be False if invalid values present
+    --  pragma Loop_Invariant (<i> >=1 and <i>\<=<nSize>);
     <arrsInnerItems; separator="\n">
     <if(bMultiCases)>       
     end if;

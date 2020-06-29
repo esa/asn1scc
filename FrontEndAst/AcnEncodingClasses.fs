@@ -15,7 +15,6 @@ let getAlignmentSize (aligment: AcnAligment option) =
     | Some NextWord     -> 15I
     | Some NextDWord    -> 31I
 
-
 let GetIntEncodingClass (integerSizeInBytes:BigInteger) (aligment: AcnAligment option) errLoc (p  : IntegerAcnProperties) (uperMinSizeInBits:BigInteger) (uperMaxSizeInBits:BigInteger) isUnsigned=
     let alignmentSize = getAlignmentSize aligment
     let maxDigitsInInteger =
@@ -46,7 +45,7 @@ let GetIntEncodingClass (integerSizeInBytes:BigInteger) (aligment: AcnAligment o
                 | Some e    -> e
                 | None   -> raise(SemanticError(errLoc, "Mandatory ACN property 'size' is missing"))
             let bUINT = isUnsigned
-
+            let maxFxVal = integerSizeInBytes*8I
             match encProp, sizeProp, endianess with
             | PosInt, Fixed(fixedSizeInBits) , BigEndianness     when fixedSizeInBits = 8I              ->  PositiveInteger_ConstSize_8, 8I, 8I
             | PosInt, Fixed(fixedSizeInBits), BigEndianness      when fixedSizeInBits = 16I->  PositiveInteger_ConstSize_big_endian_16, 16I, 16I
@@ -55,6 +54,7 @@ let GetIntEncodingClass (integerSizeInBytes:BigInteger) (aligment: AcnAligment o
             | PosInt, Fixed(fixedSizeInBits), LittleEndianness   when fixedSizeInBits = 32I->  PositiveInteger_ConstSize_little_endian_32, 32I, 32I
             | PosInt, Fixed(fixedSizeInBits), BigEndianness      when fixedSizeInBits = 64I->  PositiveInteger_ConstSize_big_endian_64, 64I, 64I
             | PosInt, Fixed(fixedSizeInBits), LittleEndianness   when fixedSizeInBits = 64I->  PositiveInteger_ConstSize_little_endian_64, 64I, 64I
+            | PosInt, Fixed(fxVal) , BigEndianness  when fxVal > maxFxVal ->  raise(SemanticError(errLoc, (sprintf "Size must be less than %A" maxFxVal)))
             | PosInt, Fixed(fxVal) , BigEndianness            ->  PositiveInteger_ConstSize fxVal, fxVal, fxVal
             | PosInt, IntNullTerminated _, _                    ->  raise(SemanticError(errLoc, "Acn properties pos-int and null-terminated are mutually exclusive"))
             | TwosComplement, _,_              when bUINT       ->  raise(SemanticError(errLoc, "Acn property twos-complement cannot be applied to non negative INTEGER types"))
@@ -65,21 +65,24 @@ let GetIntEncodingClass (integerSizeInBytes:BigInteger) (aligment: AcnAligment o
             | TwosComplement, Fixed(fixedSizeInBits), LittleEndianness   when fixedSizeInBits = 32I ->  TwosComplement_ConstSize_little_endian_32, 32I, 32I
             | TwosComplement, Fixed(fixedSizeInBits), BigEndianness      when fixedSizeInBits = 64I ->  TwosComplement_ConstSize_big_endian_64, 64I, 64I
             | TwosComplement, Fixed(fixedSizeInBits), LittleEndianness   when fixedSizeInBits = 64I ->  TwosComplement_ConstSize_little_endian_64, 64I, 64I
+            | TwosComplement, Fixed(fxVal) , BigEndianness when fxVal > maxFxVal   ->  raise(SemanticError(errLoc, (sprintf "Size must be less than %A" maxFxVal)))
             | TwosComplement, Fixed(fxVal) , BigEndianness   ->  TwosComplement_ConstSize fxVal, fxVal, fxVal
             | TwosComplement, IntNullTerminated _, _         ->  raise(SemanticError(errLoc, "Acn properties twos-complement and null-terminated are mutually exclusive"))
+            | IntAscii, Fixed(fxVal) , BigEndianness  when fxVal > maxDigitsInInteger*8I+8I       ->  raise(SemanticError(errLoc, (sprintf "Size must be less than %A" (maxDigitsInInteger*8I+8I))))
             | IntAscii, Fixed(fxVal) , BigEndianness  when fxVal % 8I <> 0I       ->  raise(SemanticError(errLoc, "size value should be multiple of 8"))
             | IntAscii, Fixed(fxVal) , BigEndianness         ->  
                 match bUINT with
                 | true                                          -> ASCII_UINT_ConstSize fxVal, fxVal, fxVal
                 | false                                         -> ASCII_ConstSize  fxVal, fxVal, fxVal
+            | BCD, Fixed(fxVal) , BigEndianness   when fxVal > maxDigitsInInteger*4I       ->  raise(SemanticError(errLoc, (sprintf "Size must be less than %A" (maxDigitsInInteger*4I))))
             | BCD, Fixed(fxVal) , BigEndianness   when fxVal % 4I <> 0I       ->  raise(SemanticError(errLoc, "size value should be multiple of 4"))
             | BCD, Fixed(fxVal) , BigEndianness                 ->  BCD_ConstSize fxVal, fxVal, fxVal
-            | BCD, IntNullTerminated b, BigEndianness           ->  BCD_VarSize_NullTerminated b, 4I, maxDigitsInInteger*4I
+            | BCD, IntNullTerminated b, BigEndianness           ->  BCD_VarSize_NullTerminated b, 4I, 4I+maxDigitsInInteger*4I
             | IntAscii, IntNullTerminated nullBytes, BigEndianness         ->  
                 let nullBytesLength = BigInteger (nullBytes.Length*8)
                 match bUINT with
                 | true                                                            -> ASCII_UINT_VarSize_NullTerminated nullBytes, nullBytesLength, nullBytesLength + maxDigitsInInteger*8I
-                | false                                                           -> ASCII_VarSize_NullTerminated nullBytes, nullBytesLength, nullBytesLength+8I+maxDigitsInInteger*8I
+                | false                                                           -> ASCII_VarSize_NullTerminated nullBytes, nullBytesLength, nullBytesLength+8I+8I+maxDigitsInInteger*8I
             | _, IntNullTerminated _, _                                  ->  raise(SemanticError(errLoc, "null-terminated can be applied only for ASCII or BCD encodings"))
             | _, _ , LittleEndianness                           ->  raise(SemanticError(errLoc, "Little endian can be applied only for fixed size encodings and size must be 16 or 32 or 64"))
 
