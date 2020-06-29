@@ -7,8 +7,7 @@ jobs:
       - restore_cache:
           key: docker-{{ checksum "Dockerfile" }}
       - run:
-        # command: if [[ -e ~/docker/image.tar ]]; then docker load --input ~/docker/image.tar; else docker build -t asn1scc . && { mkdir -p ~/docker; docker save asn1scc > ~/docker/image.tar ; } ; fi
-          command: docker build -t asn1scc . && { mkdir -p ~/docker; docker save asn1scc > ~/docker/image.tar ; }
+          command: if [[ -e ~/docker/image.tar ]]; then docker load --input ~/docker/image.tar; else docker build -t asn1scc . && { mkdir -p ~/docker; docker save asn1scc > ~/docker/image.tar ; } ; fi
       - save_cache:
           key: docker-{{ checksum "Dockerfile" }}
           paths:
