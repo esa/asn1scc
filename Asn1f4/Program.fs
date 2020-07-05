@@ -4,6 +4,7 @@ open System
 open System.Numerics
 open System.IO
 open CommonTypes
+open OutDirectories
 open System.Resources
 open Antlr
 
@@ -297,12 +298,26 @@ let main0 argv =
                     Some (DAstConstruction.DoWork {frontEntAst with stg=TargetLanguageStgMacros.a_StgMacros} acnDeps CommonTypes.ProgrammingLanguage.Ada  args.encodings)
                 | _             -> None)
 
+        let createDirectories baseDir (l:ProgrammingLanguage) =
+            let createDirIfNotExists outDir =
+                let outDir = Path.Combine(baseDir,outDir)
+                match Directory.Exists outDir with
+                | true  -> ()
+                | false -> Directory.CreateDirectory outDir |> ignore
+            OutDirectories.getTopLevelDirs l |> Seq.iter createDirIfNotExists
+            OutDirectories.getBoardDirs l |> Seq.iter createDirIfNotExists
+
 
         //generate code
         backends |> 
             Seq.iter (fun r -> 
-                GenerateFiles.generateAll outDir r args.encodings
-                GenerateRTL.exportRTL outDir r.lang args
+                createDirectories outDir r.lang
+                let srcDirName = Path.Combine(outDir, OutDirectories.srcDirName r.lang)
+                let asn1rtlDirName = Path.Combine(outDir, OutDirectories.asn1rtlDirName r.lang)
+                let boardsDirName = Path.Combine(outDir, OutDirectories.boardsDirName r.lang)
+
+                GenerateFiles.generateAll srcDirName boardsDirName r args.encodings
+                GenerateRTL.exportRTL asn1rtlDirName boardsDirName r.lang args
                 match args.AstXmlAbsFileName with
                 | ""    -> ()
                 | _     -> DAstExportToXml.exportFile r acnDeps ("backend_" + args.AstXmlAbsFileName)
@@ -371,7 +386,7 @@ let main0 argv =
             3
         | ex            ->
             Console.Error.WriteLine(ex.Message)
-            Console.Error.WriteLine(ex.StackTrace)
+            Console.Error.WriteLine( ex.StackTrace)
             4
 
 

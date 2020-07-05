@@ -806,3 +806,6 @@ let rec uperIntersection r1 r2 (l:SrcLoc) =
                                             elif a1<=a2 && b2<=b1 then r2
                                             else emptyTypeError l
     | _                             ->  uperIntersection r2 r1 l
+
+
+

@@ -151,7 +151,6 @@ let private printUnit (r:DAst.AstRoot) (l:ProgrammingLanguage) (encodings: Commo
         | Ada   -> 
             let arrsPrivateChoices = []
             header_a.PrintPackageSpec pu.name pu.importedProgramUnits typeDefs (arrsValues@arrsHeaderAnonymousValues) arrsPrivateChoices (not r.args.encodings.IsEmpty) (r.args.encodings |> Seq.exists ((=) XER) )
-
     let fileName = Path.Combine(outDir, pu.specFileName)
     File.WriteAllText(fileName, defintionsContntent.Replace("\r",""))
 
@@ -292,7 +291,7 @@ let CreateCMainFile (r:AstRoot)  (l:ProgrammingLanguage) outDir  =
     File.WriteAllText(outFileName, content.Replace("\r",""))
 
 
-let CreateMakeFile (r:AstRoot) (l:ProgrammingLanguage) outDir  =
+let CreateMakeFile (r:AstRoot) (l:ProgrammingLanguage) outDir  boardsDirName =
     match l with
     | C ->
         let files = r.Files |> Seq.map(fun x -> x.FileNameWithoutExtension.ToLower() )
@@ -300,13 +299,16 @@ let CreateMakeFile (r:AstRoot) (l:ProgrammingLanguage) outDir  =
         let outFileName = Path.Combine(outDir, "Makefile")
         File.WriteAllText(outFileName, content.Replace("\r",""))
     | Ada ->
-        let mods = aux_a.rtlModuleName()::(r.programUnits |> List.map(fun pu -> pu.name ))
-        let content = aux_a.PrintMakeFile  mods
-        let outFileName = Path.Combine(outDir, "Makefile")
-        File.WriteAllText(outFileName, content.Replace("\r",""))
+        let writeBoard boardName = 
+            let outDir = Path.Combine(boardsDirName, boardName)
+            let mods = aux_a.rtlModuleName()::(r.programUnits |> List.map(fun pu -> pu.name ))
+            let content = aux_a.PrintMakeFile  mods
+            let outFileName = Path.Combine(outDir, "Makefile")
+            File.WriteAllText(outFileName, content.Replace("\r",""))
+        OutDirectories.getBoardNames l |> List.iter writeBoard
 
 
-let private CreateAdaIndexFile (r:AstRoot) bGenTestCases outDir =
+let private CreateAdaIndexFile (r:AstRoot) bGenTestCases outDir boardsDirName =
     let mods = r.programUnits |> Seq.map(fun x -> (ToC x.name).ToLower()) |>Seq.toList
     //let mds = match bGenTestCases with
     //            | true  -> mods @ (modules |> Seq.filter(fun x -> ModuleHasAutoCodecs x r) |> Seq.map(fun x -> (ToC x.Name.Value+"_auto_encs_decs").ToLower() ) |>Seq.toList)
@@ -355,14 +357,14 @@ let generateVisualStudtioProject (r:DAst.AstRoot) outDir (arrsSrcTstFilesX, arrs
     File.WriteAllText((Path.Combine(outDir, "VsProject.sln")), (aux_c.emitVisualStudioSolution()))
 
 
-let generateAll outDir (r:DAst.AstRoot) (encodings: CommonTypes.Asn1Encoding list)  =
+let generateAll outDir boardsDirName (r:DAst.AstRoot) (encodings: CommonTypes.Asn1Encoding list)  =
     r.programUnits |> Seq.iter (printUnit r r.lang encodings outDir)
     //print extra such make files etc
     //print_debug.DoWork r outDir "debug.txt"
     match r.args.generateAutomaticTestCases with
     | false -> ()
     | true  -> 
-        CreateMakeFile r r.lang outDir
+        CreateMakeFile r r.lang outDir boardsDirName
         let arrsSrcTstFiles, arrsHdrTstFiles = DastTestCaseCreation.printAllTestCases r r.lang outDir
         match r.lang with
         | C    -> 
@@ -374,7 +376,8 @@ let generateAll outDir (r:DAst.AstRoot) (encodings: CommonTypes.Asn1Encoding lis
             //CreateAdaMain r false outDir
             //CreateTestSuiteFile r ProgrammingLanguage.Ada outDir "ALL"
 
-            CreateAdaIndexFile r false outDir
+            //CreateAdaIndexFile r false outDir boardsDirName
+            ()
 
 
 

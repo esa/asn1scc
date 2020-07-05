@@ -86,7 +86,7 @@ def RunTestCase(asn1, acn, behavior, expErrMsg):
         "' 2>tmp.err"+"_"+language, True)
     ferr = open("tmp.err"+"_"+language, 'r')
     #print("str to replace '" + resolvedir(targetDir) + resolvesep() + "'")
-    err_msg = ferr.read().replace("\r\n", "").replace("\n", "").replace(resolvedir(targetDir) +  resolvesep(), "")
+    err_msg = ferr.read()
     ferr.close()
     if behavior == 0 or behavior == 2:
         if res != 0 or err_msg != "":
@@ -94,6 +94,7 @@ def RunTestCase(asn1, acn, behavior, expErrMsg):
             print("Asn.1 compiler error is: " + err_msg)
             sys.exit(1)
     else:
+        err_msg = err_msg.replace("\r\n", "").replace("\n", "").replace(resolvedir(targetDir) +  resolvesep(), "")
         if res == 0 or err_msg != expErrMsg:
             PrintFailed(
                 "Asn.1 compiler didn't fail or failed with "
@@ -108,8 +109,12 @@ def RunTestCase(asn1, acn, behavior, expErrMsg):
 
     no_automatic_test_cases = "NO_AUTOMATIC_TEST_CASES" in open(asn1File, 'r').readlines()[0]
     if no_automatic_test_cases:
-        res = mysystem("cd " + targetDir + os.sep + "; CC=gcc make", False)
-        return
+        if language == "c":
+            res = mysystem("cd " + targetDir + os.sep + "; CC=gcc make", False)
+            return
+        else:
+            res = mysystem("cd " + targetDir + os.sep + "boards/x86/; CC=gcc make", False)
+            return
 
     if language == "c":
         try:
@@ -143,7 +148,7 @@ def RunTestCase(asn1, acn, behavior, expErrMsg):
         #     sys.exit(1)
         #
         # res = mysystem("CC=gcc make coverage >covlog.txt 2>&1", True)
-        res = mysystem("make coverage >covlog.txt 2>&1", True)
+        res = mysystem("cd boards/x86/; make coverage >covlog.txt 2>&1", True)
         if res != 0 and behavior != 2:
             PrintFailed("run time failure")
             PrintFailed("covlog.txt is ...")
