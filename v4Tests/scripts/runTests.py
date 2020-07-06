@@ -113,7 +113,7 @@ def RunTestCase(asn1, acn, behavior, expErrMsg):
             res = mysystem("cd " + targetDir + os.sep + "; CC=gcc make", False)
             return
         else:
-            res = mysystem("cd " + targetDir + os.sep + "boards/x86/; CC=gcc make", False)
+            res = mysystem("cd " + targetDir + os.sep + "; CC=gcc make", False)
             return
 
     if language == "c":
@@ -148,7 +148,7 @@ def RunTestCase(asn1, acn, behavior, expErrMsg):
         #     sys.exit(1)
         #
         # res = mysystem("CC=gcc make coverage >covlog.txt 2>&1", True)
-        res = mysystem("cd boards/x86/; make coverage >covlog.txt 2>&1", True)
+        res = mysystem("make coverage >covlog.txt 2>&1", True)
         if res != 0 and behavior != 2:
             PrintFailed("run time failure")
             PrintFailed("covlog.txt is ...")

@@ -70,10 +70,15 @@
       <ResourceFilesToCopy Include="$(SolutionDir)ADA_RTL/src/xer_rtl.*" />
       -->
       <ResourceFilesToCopy Include="$(SolutionDir)ADA_RTL2/src/*.*" />
+      <ResourceFilesToCopy Include="$(SolutionDir)ADA_RTL2/aux_files/*.*" />
+      <ResourceFilesToCopy Include="$(SolutionDir)ADA_RTL2/boards/*.*" />
+	  
+	  <!--
       <ResourceFilesToCopy Include="$(SolutionDir)ADA_RTL/aux_files/IgnoredExaminerWarnings.wrn" />
       <ResourceFilesToCopy Include="$(SolutionDir)ADA_RTL/aux_files/gnat.cfg" />
       <ResourceFilesToCopy Include="$(SolutionDir)ADA_RTL/aux_files/run.sh" />
       <ResourceFilesToCopy Include="$(SolutionDir)ADA_RTL/aux_files/GPS_project.gpr" />
+	  -->
       <ResourceFilesToCopy Include="$(SolutionDir)asn1crt/asn1crt.c" />
       <ResourceFilesToCopy Include="$(SolutionDir)asn1crt/asn1crt.h" />
       <ResourceFilesToCopy Include="$(SolutionDir)asn1crt/asn1crt_encoding.c" />

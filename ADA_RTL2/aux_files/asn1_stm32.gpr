@@ -1,0 +1,8 @@
+project asn1_stm32 is
+     for Source_Dirs use
+         ("asn1rtl",
+          "src",
+          "boards/stm32");
+
+     for Object_Dir use "obj_stm32";
+ end asn1_stm32;

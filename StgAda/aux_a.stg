@@ -14,21 +14,21 @@ PrintIndexFile(arrsModules) ::= <<
 >>
 
 
-PrintMakeFile(arrsModuleList) ::=<<
+PrintMakeFile(sBoardName, sProjectName, arrsModuleList) ::=<<
 all:
 	#gnatpp -r *ad?
-	gprbuild -gnat2012 -P GPS_project.gpr mainprogram.adb --subdirs=debug -cargs -g -O0 -gnatwe -gnatwa
+	gprbuild -gnat2012 -P <sProjectName> mainprogram.adb --subdirs=debug -cargs -g -O0 -gnatwe -gnatwa
 	touch builtWithoutCoverage
 	
 coverage:
 	if [ -f builtWithoutCoverage ] ; then make clean ; fi
 	#argument -gnatoa was removed because it makes gmat crash.
-    #gprbuild -gnat2012 -P GPS_project.gpr mainprogram.adb --subdirs=debug -cargs -g -O0 -gnatf -gnaty -gnatoa -gnatg -fstack-check -gnatwe -gnatwa -fprofile-arcs -ftest-coverage -largs -fprofile-arcs
-	gprbuild -gnat2012 -P GPS_project.gpr mainprogram.adb --subdirs=debug -cargs -g -O0 -gnatf -gnaty -gnatg -fstack-check -gnatwe -gnatwa -fprofile-arcs -ftest-coverage -largs -fprofile-arcs
-	cd bin/debug ; ./mainprogram
-	cd bin/debug ; gcov <arrsModuleList; separator=" ">
+    #gprbuild -gnat2012 -P <sProjectName> mainprogram.adb --subdirs=debug -cargs -g -O0 -gnatf -gnaty -gnatoa -gnatg -fstack-check -gnatwe -gnatwa -fprofile-arcs -ftest-coverage -largs -fprofile-arcs
+	gprbuild -gnat2012 -P <sProjectName> mainprogram.adb --subdirs=debug -cargs -g -O0 -gnatf -gnaty -gnatg -fstack-check -gnatwe -gnatwa -fprofile-arcs -ftest-coverage -largs -fprofile-arcs
+	cd obj_<sBoardName>/debug ; ./mainprogram
+	cd obj_<sBoardName>/debug ; gcov <arrsModuleList; separator=" ">
 	
 clean:
 	rm -f builtWithoutCoverage ;
-	gnat clean -r -P GPS_project.gpr --subdirs=debug	
+	gnat clean -r -P <sProjectName> --subdirs=debug	
 >>

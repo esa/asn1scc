@@ -1,5 +1,6 @@
 with Interfaces;
 with Ada.Characters.Latin_1;
+with Board_Config;
 
 package adaasn1rtl with
      Spark_Mode is
@@ -9,9 +10,10 @@ package adaasn1rtl with
 
    subtype Asn1Byte is Interfaces.Unsigned_8;
 
-   subtype Asn1Int is Interfaces.Integer_64;
-   subtype Asn1UInt is Interfaces.Unsigned_64;
-   subtype Asn1Real is Standard.Long_Float;
+   subtype Asn1Int is Board_Config.Asn1Int;
+   subtype Asn1UInt is Board_Config.Asn1UInt;
+   subtype Asn1Real is Board_Config.Asn1Real;
+   Enumerated_Size : constant := Board_Config.Enumerated_Size;
 
    subtype Asn1Boolean is Boolean;
    subtype Asn1NullType is Interfaces.Unsigned_8;

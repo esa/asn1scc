@@ -1,0 +1,8 @@
+project asn1_msp430 is
+     for Source_Dirs use
+         ("asn1rtl",
+          "src",
+          "boards/msp430");
+
+     for Object_Dir use "obj_msp430";
+ end asn1_msp430;

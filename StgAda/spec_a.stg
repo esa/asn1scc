@@ -170,7 +170,7 @@ Define_new_enumerated_item_macro(td/*:FE_EnumeratedTypeDefinition*/, sAsn1Name, 
 
 Define_new_enumerated(td/*:FE_EnumeratedTypeDefinition*/, arrsEnumNames, arrsEnumNamesAndValues, nIndexMax, arrsResolvingMacros) ::= <<
 subtype <td.index_range> is Integer range 0..<nIndexMax>;
-type <td.typeName> is (<arrsEnumNames; separator=", ">) with Convention => C;
+type <td.typeName> is (<arrsEnumNames; separator=", ">) with Size => adaasn1rtl.Enumerated_Size;
 for <td.typeName> use
     (<arrsEnumNamesAndValues; separator=", ">);
 >>

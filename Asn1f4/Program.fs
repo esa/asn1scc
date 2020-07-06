@@ -312,12 +312,13 @@ let main0 argv =
         backends |> 
             Seq.iter (fun r -> 
                 createDirectories outDir r.lang
-                let srcDirName = Path.Combine(outDir, OutDirectories.srcDirName r.lang)
-                let asn1rtlDirName = Path.Combine(outDir, OutDirectories.asn1rtlDirName r.lang)
-                let boardsDirName = Path.Combine(outDir, OutDirectories.boardsDirName r.lang)
+                let dirInfo = OutDirectories.getDirInfo r.lang outDir
+                //let srcDirName = Path.Combine(outDir, OutDirectories.srcDirName r.lang)
+                //let asn1rtlDirName = Path.Combine(outDir, OutDirectories.asn1rtlDirName r.lang)
+                //let boardsDirName = Path.Combine(outDir, OutDirectories.boardsDirName r.lang)
 
-                GenerateFiles.generateAll srcDirName boardsDirName r args.encodings
-                GenerateRTL.exportRTL asn1rtlDirName boardsDirName r.lang args
+                GenerateFiles.generateAll dirInfo r args.encodings
+                GenerateRTL.exportRTL dirInfo r.lang args
                 match args.AstXmlAbsFileName with
                 | ""    -> ()
                 | _     -> DAstExportToXml.exportFile r acnDeps ("backend_" + args.AstXmlAbsFileName)

@@ -118,6 +118,7 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <assembly alias="System.Windows.Forms" name="System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" />
+  <!--
   <data name="gnat" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>Resources\gnat.cfg;System.String, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089;windows-1253</value>
   </data>
@@ -130,6 +131,28 @@
   <data name="run" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>Resources\run.sh;System.String, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089;windows-1253</value>
   </data>
+  -->
+  <data name="asn1_msp430.gpr" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>Resources\asn1_msp430.gpr;System.String, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089;windows-1253</value>
+  </data>
+  <data name="asn1_stm32.gpr" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>Resources\asn1_stm32.gpr;System.String, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089;windows-1253</value>
+  </data>
+  <data name="asn1_x86.gpr" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>Resources\asn1_x86.gpr;System.String, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089;windows-1253</value>
+  </data>
+  
+  <data name="msp430_board_config.ads" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>Resources\msp430_board_config.ads;System.String, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089;windows-1253</value>
+  </data>
+  <data name="stm32_board_config.ads" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>Resources\stm32_board_config.ads;System.String, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089;windows-1253</value>
+  </data>
+  <data name="x86_board_config.ads" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>Resources\x86_board_config.ads;System.String, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089;windows-1253</value>
+  </data>
+  
+  
   <data name="adaasn1rtl_ads" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>Resources\adaasn1rtl.ads;System.String, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089;windows-1253</value>
   </data>

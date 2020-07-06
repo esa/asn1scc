@@ -7,7 +7,10 @@ open CommonTypes
 open OutDirectories
 open System.Resources
 
-let exportRTL asn1rtlDirName boardsDirName (l:ProgrammingLanguage) (args:CommandLineSettings)=
+let exportRTL (di:DirInfo) (l:ProgrammingLanguage) (args:CommandLineSettings)=
+    let rootDir = di.rootDir
+    let asn1rtlDirName = di.asn1rtlDir
+    let boardsDirName = di.boardsDir
     let writeTextFile fileName (content:String) =
         System.IO.File.WriteAllText(fileName, content.Replace("\r",""))
     let rm = new ResourceManager("Resource1", System.Reflection.Assembly.GetExecutingAssembly());
@@ -89,10 +92,10 @@ let exportRTL asn1rtlDirName boardsDirName (l:ProgrammingLanguage) (args:Command
 
         let writeBoard boardName = 
             let outDir = Path.Combine(boardsDirName, boardName)
-            writeTextFile (Path.Combine(outDir, "IgnoredExaminerWarnings.wrn"))     (rm.GetString("IgnoredExaminerWarnings",null)) 
-            writeTextFile (Path.Combine(outDir, "gnat.cfg"))    (rm.GetString("gnat",null)) 
-            //writeTextFile (Path.Combine(outDir, "runSpark.sh"))    (rm.GetString("run",null)) 
-            writeTextFile (Path.Combine(outDir, "GPS_project.gpr"))    (rm.GetString("GPS_project",null)) 
+            writeTextFile (Path.Combine(outDir, "board_config.ads"))     (rm.GetString(boardName+"_board_config.ads",null)) 
 
         OutDirectories.getBoardNames l |> List.iter writeBoard
+        writeTextFile (Path.Combine(rootDir, "asn1_msp430.gpr"))    (rm.GetString("asn1_msp430.gpr",null)) 
+        writeTextFile (Path.Combine(rootDir, "asn1_stm32.gpr"))    (rm.GetString("asn1_stm32.gpr",null)) 
+        writeTextFile (Path.Combine(rootDir, "asn1_x86.gpr"))    (rm.GetString("asn1_x86.gpr",null)) 
 

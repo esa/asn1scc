@@ -6,6 +6,24 @@ let asn1rtlDirName    l = match l with C -> "" | Ada -> "asn1rtl"
 let srcDirName        l = match l with C -> "" | Ada -> "src"
 let boardsDirName     l = match l with C -> "" | Ada -> "boards"
 
+type DirInfo = {
+    rootDir     : string   
+    srcDir      : string
+    asn1rtlDir  : string
+    boardsDir   : string
+}
+
+let getDirInfo l rootDir =
+    match l with
+    | C     -> {rootDir = rootDir; srcDir=rootDir;asn1rtlDir=rootDir;boardsDir=rootDir}
+    | Ada   -> 
+        {
+            rootDir = rootDir; 
+            srcDir=Path.Combine(rootDir, srcDirName l);
+            asn1rtlDir=Path.Combine(rootDir, asn1rtlDirName l);
+            boardsDir=Path.Combine(rootDir, boardsDirName l)
+        }
+
 let getTopLevelDirs (l:ProgrammingLanguage) =
     match l with
     | C     -> []
