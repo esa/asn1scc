@@ -3,30 +3,6 @@ with Interfaces; use Interfaces;
 package adaasn1rtl.encoding with
      Spark_Mode is
 
-   type Asn1Int_ARRAY_0_19 is array (0 .. 19) of Asn1UInt;
-   Powers_of_10 : constant Asn1Int_ARRAY_0_19 :=
-     Asn1Int_ARRAY_0_19'
-       (0  => 1,
-        1  => 10,
-        2  => 100,
-        3  => 1000,
-        4  => 10000,
-        5  => 100000,
-        6  => 1000000,
-        7  => 10000000,
-        8  => 100000000,
-        9  => 1000000000,
-        10 => 10000000000,
-        11 => 100000000000,
-        12 => 1000000000000,
-        13 => 10000000000000,
-        14 => 100000000000000,
-        15 => 1000000000000000,
-        16 => 10000000000000000,
-        17 => 100000000000000000,
-        18 => 1000000000000000000,
-        19 => 10000000000000000000);
-
    subtype BIT_RANGE is Natural range 0 .. 7;
 
    subtype OctetBuffer_16 is OctetBuffer (1 .. 16);
@@ -104,88 +80,28 @@ package adaasn1rtl.encoding with
       Pre => str'Last < Natural'Last;
 
    function GetBytes (V : Asn1UInt) return Asn1Byte with
-      Post => GetBytes'Result >= 1 and GetBytes'Result <= 8;
+      Post => GetBytes'Result >= 1 and GetBytes'Result <= Asn1UInt'Size/8;
 
    function GetLengthInBytesOfSInt (V : Asn1Int) return Asn1Byte with
       Post => GetLengthInBytesOfSInt'Result >= 1 and
-      GetLengthInBytesOfSInt'Result <= 8;
+      GetLengthInBytesOfSInt'Result <= Asn1UInt'Size/8;
+
+
+   function Get_number_of_digits2 (int_value : Asn1UInt;
+                                   nDigits : Integer;
+                                   max_value : Asn1UInt) return Integer is
+     (
+      if nDigits = Integer'Last then nDigits
+      elsif int_value < max_value then nDigits
+      elsif max_value > Asn1UInt'Last/10 then nDigits+1
+      else
+         Get_number_of_digits2(int_value, nDigits +1, max_value*10 ))
+   ;
 
    function Get_number_of_digits
      (Int_value : Asn1UInt) return Integer is
-     (if Int_value < Powers_of_10 (1) then 1
-      elsif
-        Int_value >= Powers_of_10 (1) and Int_value < Powers_of_10 (2)
-      then
-        2
-      elsif
-        Int_value >= Powers_of_10 (2) and Int_value < Powers_of_10 (3)
-      then
-        3
-      elsif
-        Int_value >= Powers_of_10 (3) and Int_value < Powers_of_10 (4)
-      then
-        4
-      elsif
-        Int_value >= Powers_of_10 (4) and Int_value < Powers_of_10 (5)
-      then
-        5
-      elsif
-        Int_value >= Powers_of_10 (5) and Int_value < Powers_of_10 (6)
-      then
-        6
-      elsif
-        Int_value >= Powers_of_10 (6) and Int_value < Powers_of_10 (7)
-      then
-        7
-      elsif
-        Int_value >= Powers_of_10 (7) and Int_value < Powers_of_10 (8)
-      then
-        8
-      elsif
-        Int_value >= Powers_of_10 (8) and Int_value < Powers_of_10 (9)
-      then
-        9
-      elsif
-        Int_value >= Powers_of_10 (9) and Int_value < Powers_of_10 (10)
-      then
-        10
-      elsif
-        Int_value >= Powers_of_10 (10) and Int_value < Powers_of_10 (11)
-      then
-        11
-      elsif
-        Int_value >= Powers_of_10 (11) and Int_value < Powers_of_10 (12)
-      then
-        12
-      elsif
-        Int_value >= Powers_of_10 (12) and Int_value < Powers_of_10 (13)
-      then
-        13
-      elsif
-        Int_value >= Powers_of_10 (13) and Int_value < Powers_of_10 (14)
-      then
-        14
-      elsif
-        Int_value >= Powers_of_10 (14) and Int_value < Powers_of_10 (15)
-      then
-        15
-      elsif
-        Int_value >= Powers_of_10 (15) and Int_value < Powers_of_10 (16)
-      then
-        16
-      elsif
-        Int_value >= Powers_of_10 (16) and Int_value < Powers_of_10 (17)
-      then
-        17
-      elsif
-        Int_value >= Powers_of_10 (17) and Int_value < Powers_of_10 (18)
-      then
-        18
-      elsif
-        Int_value >= Powers_of_10 (18) and Int_value < Powers_of_10 (19)
-      then
-        19
-      else 20);
+     (Get_number_of_digits2(Int_value, 1, 10));
+
 
    function PLUS_INFINITY return Asn1Real;
    function MINUS_INFINITY return Asn1Real;
@@ -212,7 +128,8 @@ package adaasn1rtl.encoding with
 
    function BitStream_current_length_in_bytes
      (bs : Bitstream) return Natural is
-     ((bs.Current_Bit_Pos + 7) / 8);
+     ((bs.Current_Bit_Pos + 7) / 8)
+   with Pre =>  bs.Current_Bit_Pos <= Natural'Last - 7;
 
    procedure BitStream_AppendBit
      (bs        : in out Bitstream;
@@ -280,7 +197,6 @@ package adaasn1rtl.encoding with
       bitMaskAsByteArray : in out OctetBuffer;
       bits_to_read       :        Natural;
       success            :    out Boolean) with
-      Depends => ((bs, bitMaskAsByteArray, success) => (bs, bits_to_read)),
       Pre     => bitMaskAsByteArray'First >= 0
       and then bitMaskAsByteArray'Last < Natural'Last / 8
       and then bits_to_read >= (bitMaskAsByteArray'Length - 1) * 8
@@ -389,7 +305,7 @@ package adaasn1rtl.encoding with
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - total_bytes * 8,
       Post => Result and then
       bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + total_bytes * 8 and then
-      ((total_bytes < 8 and then  Ret < 256**total_bytes) or else True);
+      ((total_bytes < Asn1UInt'Size/8 and then  Ret < 256**total_bytes) or else True);
 
    procedure Dec_Int
      (bs          : in out Bitstream;
@@ -429,7 +345,6 @@ package adaasn1rtl.encoding with
       IntVal :    out Asn1Int;
       MinVal :      Asn1Int;
       Result :    out Boolean) with
-      Depends => ((IntVal, Result) => (bs, MinVal), bs => (bs, MinVal)),
       Pre     => bs.Current_Bit_Pos < Natural'Last - (Asn1UInt'Size + 8)
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then
@@ -458,7 +373,6 @@ package adaasn1rtl.encoding with
       IntVal :    out Asn1UInt;
       MinVal :      Asn1UInt;
       Result :    out Boolean) with
-      Depends => ((IntVal, Result) => (bs, MinVal), bs => (bs, MinVal)),
       Pre     => bs.Current_Bit_Pos < Natural'Last - (Asn1UInt'Size + 8)
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then
@@ -528,7 +442,6 @@ package adaasn1rtl.encoding with
       MaxVal :      Asn1Int;
       nBits  :      Integer;
       Result :    out Boolean) with
-      Depends => ((bs, IntVal, Result) => (bs, MinVal, MaxVal, nBits)),
       Pre     => MinVal <= MaxVal
       and then nBits >= 0
       and then nBits <= Asn1UInt'Size
@@ -546,7 +459,6 @@ package adaasn1rtl.encoding with
       MaxVal :      Asn1UInt;
       nBits  :      Integer;
       Result :    out Boolean) with
-      Depends => ((bs, IntVal, Result) => (bs, MinVal, MaxVal, nBits)),
       Pre     => MinVal <= MaxVal
       and then nBits >= 0
       and then nBits <= Asn1UInt'Size
@@ -592,7 +504,17 @@ package adaasn1rtl.encoding with
         bs.Current_Bit_Pos <=
         bs.Size_In_Bytes * 8 - bit_terminated_pattern_size_in_bits;
 
-   procedure bitstrean_fetch_data_if_required (bs : in out Bitstream);
-   procedure bitstrean_push_data_if_required (bs : in out Bitstream);
+pragma Warnings (Off, """bs"" is not modified, could be IN");
+
+   procedure bitstrean_fetch_data_if_required (bs : in out Bitstream)
+     with
+       Pre  => bs.Size_In_Bytes < Positive'Last - 8,
+       Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos;
+
+   procedure bitstrean_push_data_if_required (bs : in out Bitstream)
+     with
+       Pre  => bs.Size_In_Bytes < Positive'Last - 8,
+       Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos;
+pragma Warnings (On, """bs"" is not modified, could be IN");
 
 end adaasn1rtl.encoding;

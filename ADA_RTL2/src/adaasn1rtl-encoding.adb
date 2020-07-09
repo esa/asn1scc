@@ -59,54 +59,105 @@ package body adaasn1rtl.encoding with
       return ret;
    end Sub;
 
-   function GetBytes (V : Asn1UInt) return Asn1Byte is
-      Ret : Asn1Byte;
+   function GetLengthInBytesAux (V : Asn1UInt; init_value : Asn1UInt) return Asn1Byte
+     with
+       Pre => (init_value = 16#100# or init_value = 16#80#),
+       Post => GetLengthInBytesAux'Result >= 1 and GetLengthInBytesAux'Result <= Asn1UInt'Size/8
+   ;
+
+   function GetLengthInBytesAux (V : Asn1UInt; init_value : Asn1UInt) return Asn1Byte is
+      max_val : Asn1UInt :=init_value;
    begin
-      if V < 16#100# then
-         Ret := 1;
-      elsif V < 16#10000# then
-         Ret := 2;
-      elsif V < 16#1000000# then
-         Ret := 3;
-      elsif V < 16#100000000# then
-         Ret := 4;
-      elsif V < 16#10000000000# then
-         Ret := 5;
-      elsif V < 16#1000000000000# then
-         Ret := 6;
-      elsif V < 16#100000000000000# then
-         Ret := 7;
-      else
-         Ret := 8;
-      end if;
-      return Ret;
+      for i in 1 .. Asn1UInt'Size/8 - 1 loop
+         if V < max_val then
+            return Asn1Byte(i);
+         end if;
+         max_val := max_val * 16#100#;
+      end loop;
+      return Asn1UInt'Size/8;
+   end GetLengthInBytesAux;
+
+
+   function GetBytes (V : Asn1UInt) return Asn1Byte is
+   begin
+      return GetLengthInBytesAux(V, 16#100#);
    end GetBytes;
+
+--     function GetBytes (V : Asn1UInt) return Asn1Byte is
+--        max_val : Asn1UInt :=1;
+--     begin
+--
+--        for i in 1 .. Asn1UInt'Size/8 - 1 loop
+--           max_val := max_val * 16#100#;
+--           if V < max_val then
+--              return Asn1Byte(i);
+--           end if;
+--        end loop;
+--        return Asn1UInt'Size/8;
+--     end GetBytes;
+
+--     function GetBytes (V : Asn1UInt) return Asn1Byte is
+--        Ret : Asn1Byte;
+--     begin
+--        if V < 16#100# then
+--           Ret := 1;
+--        elsif V < 16#10000# then
+--           Ret := 2;
+--        elsif V < 16#1000000# then
+--           Ret := 3;
+--  --        elsif V < 16#100000000# then
+--  --           Ret := 4;
+--  --        elsif V < 16#10000000000# then
+--  --           Ret := 5;
+--  --        elsif V < 16#1000000000000# then
+--  --           Ret := 6;
+--  --        elsif V < 16#100000000000000# then
+--  --           Ret := 7;
+--        else
+--           Ret := 4;
+--        end if;
+--        return Ret;
+--     end GetBytes;
 
    function GetLengthInBytesOfSIntAux (V : Asn1UInt) return Asn1Byte;
 
    function GetLengthInBytesOfSIntAux (V : Asn1UInt) return Asn1Byte is
-      Ret : Asn1Byte;
+      --max_val : Asn1UInt :=16#80#;
    begin
-      if V < 16#80# then
-         Ret := 1;
-      elsif V < 16#8000# then
-         Ret := 2;
-      elsif V < 16#800000# then
-         Ret := 3;
-      elsif V < 16#80000000# then
-         Ret := 4;
-      elsif V < 16#8000000000# then
-         Ret := 5;
-      elsif V < 16#800000000000# then
-         Ret := 6;
-      elsif V < 16#80000000000000# then
-         Ret := 7;
-      else
-         Ret := 8;
-      end if;
+       return GetLengthInBytesAux(V, 16#80#);
 
-      return Ret;
+--        for i in 1 .. Asn1UInt'Size/8 - 1 loop
+--           if V < max_val then
+--              return Asn1Byte(i);
+--           end if;
+--           max_val := max_val * 16#100#;
+--        end loop;
+--        return Asn1UInt'Size/8;
    end GetLengthInBytesOfSIntAux;
+
+--     function GetLengthInBytesOfSIntAux (V : Asn1UInt) return Asn1Byte is
+--        Ret : Asn1Byte;
+--     begin
+--        if V < 16#80# then
+--           Ret := 1;
+--        elsif V < 16#8000# then
+--           Ret := 2;
+--        elsif V < 16#800000# then
+--           Ret := 3;
+--  --        elsif V < 16#80000000# then
+--  --           Ret := 4;
+--  --        elsif V < 16#8000000000# then
+--  --           Ret := 5;
+--  --        elsif V < 16#800000000000# then
+--  --           Ret := 6;
+--  --        elsif V < 16#80000000000000# then
+--  --           Ret := 7;
+--        else
+--           Ret := 4;
+--        end if;
+--
+--        return Ret;
+--     end GetLengthInBytesOfSIntAux;
 
    function GetLengthInBytesOfSInt (V : Asn1Int) return Asn1Byte is
       Ret : Asn1Byte;
@@ -706,12 +757,14 @@ package body adaasn1rtl.encoding with
 
       IntVal := MinVal;
       BitStream_DecodeByte (bs, NBytes, Result);
-      if Result and NBytes >= 1 and NBytes <= 8 then
+      if Result and NBytes >= 1 and NBytes <= Asn1UInt'Size/8 then
          Dec_UInt (bs, Integer (NBytes), Ret, Result);
-         IntVal := To_Int (Ret + To_UInt (MinVal));
-         Result := IntVal >= MinVal;
-         if not Result then
-            IntVal := MinVal;
+         if Result then
+            IntVal := To_Int (Ret + To_UInt (MinVal));
+            Result := IntVal >= MinVal;
+            if not Result then
+               IntVal := MinVal;
+            end if;
          end if;
       else
          Result := False;
@@ -744,21 +797,22 @@ package body adaasn1rtl.encoding with
       Result :    out Boolean)
    is
       NBytes : Asn1Byte;
-      Ret    : Asn1UInt := 0;
+      Ret    : Asn1UInt;
    begin
 
       IntVal := MinVal;
       pragma Assert (IntVal >= MinVal);
       BitStream_DecodeByte (bs, NBytes, Result);
-      Result := Result and NBytes >= 1 and NBytes <= 8;
+      Result := Result and NBytes >= 1 and NBytes <= Asn1UInt'Size/8;
       if Result then
          Dec_UInt (bs, Integer (NBytes), Ret, Result);
-         IntVal := Ret + MinVal;
-         Result := IntVal >= MinVal;
-         if not Result then
-            IntVal := MinVal;
+         if Result then
+            IntVal := Ret + MinVal;
+            Result := IntVal >= MinVal;
+            if not Result then
+               IntVal := MinVal;
+            end if;
          end if;
-
       end if;
       pragma Assert (IntVal >= MinVal);
 
@@ -786,7 +840,7 @@ package body adaasn1rtl.encoding with
       NBytes : Asn1Byte;
    begin
       BitStream_DecodeByte (bs, NBytes, Result);
-      Result := Result and NBytes >= 1 and NBytes <= 8;
+      Result := Result and NBytes >= 1 and NBytes <= Asn1UInt'Size/8;
       if Result then
          Dec_Int (bs, Integer (NBytes), IntVal, Result);
       else
@@ -926,6 +980,7 @@ package body adaasn1rtl.encoding with
    end BitStream_bitPatternMatches;
 
    pragma Warnings (Off, "formal parameter ""bs"" is not modified");
+   pragma Warnings (Off, "statement has no effect");
 
    procedure bitstrean_fetch_data_if_required (bs : in out Bitstream) is
       Current_Byte : constant Integer :=
@@ -937,7 +992,8 @@ package body adaasn1rtl.encoding with
         bs.fetchDataPrm > 0
       then
          --  user_code.fetch_data(bs, bs.fetchDataPrm);
-         bs.Current_Bit_Pos := 0;
+         --  bs.Current_Bit_Pos := 0;
+         null;
       end if;
    end bitstrean_fetch_data_if_required;
 
@@ -951,10 +1007,12 @@ package body adaasn1rtl.encoding with
         bs.fetchDataPrm > 0
       then
          --  user_code.push_data(bs, bs.pushDataPrm);
-         bs.Current_Bit_Pos := 0;
+         --  bs.Current_Bit_Pos := 0;
+         null;
       end if;
    end bitstrean_push_data_if_required;
 
    pragma Warnings (On, "formal parameter ""bs"" is not modified");
+   pragma Warnings (On, "statement has no effect");
 
 end adaasn1rtl.encoding;

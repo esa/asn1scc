@@ -41,7 +41,11 @@ package body adaasn1rtl.encoding.acn with
       IntVal :      Asn1UInt)
    is
    begin
-      Enc_UInt (bs, IntVal, 8);
+      for i in 1 .. 8 - Asn1UInt'Size/8 loop
+         BitStream_AppendByte (bs, 0, False)
+      end loop;
+
+      Enc_UInt (bs, IntVal, Asn1UInt'Size/8);
    end Acn_Enc_Int_PositiveInteger_ConstSize_big_endian_64;
 
    procedure Acn_Enc_Int_PositiveInteger_ConstSize_little_endian_N
@@ -94,7 +98,11 @@ package body adaasn1rtl.encoding.acn with
       IntVal :      Asn1UInt)
    is
    begin
-      Acn_Enc_Int_PositiveInteger_ConstSize_little_endian_N (bs, IntVal, 8);
+      Acn_Enc_Int_PositiveInteger_ConstSize_little_endian_N (bs, IntVal, Asn1UInt'Size/8);
+      for i in 1 .. 8 - Asn1UInt'Size/8 loop
+         BitStream_AppendByte (bs, 0, False)
+      end loop;
+
    end Acn_Enc_Int_PositiveInteger_ConstSize_little_endian_64;
 
    procedure Acn_Enc_Int_PositiveInteger_VarSize_LengthEmbedded
@@ -1190,18 +1198,18 @@ package body adaasn1rtl.encoding.acn with
       return do_it (x);
    end OctetArray4_to_Float;
 
-   function Long_Float_to_OctetArray8 (x : Asn1Real) return OctetArray8;
+   function Long_Float_to_OctetArray8 (x : Long_Float) return OctetArray8;
 
-   function Long_Float_to_OctetArray8 (x : Asn1Real) return OctetArray8 is
-      function do_it is new Ada.Unchecked_Conversion (Asn1Real, OctetArray8);
+   function Long_Float_to_OctetArray8 (x : Long_Float) return OctetArray8 is
+      function do_it is new Ada.Unchecked_Conversion (Long_Float, OctetArray8);
    begin
       return do_it (x);
    end Long_Float_to_OctetArray8;
 
-   function OctetArray8_to_Long_Float (x : OctetArray8) return Asn1Real;
+   function OctetArray8_to_Long_Float (x : OctetArray8) return Long_Float;
 
-   function OctetArray8_to_Long_Float (x : OctetArray8) return Asn1Real is
-      function do_it is new Ada.Unchecked_Conversion (OctetArray8, Asn1Real);
+   function OctetArray8_to_Long_Float (x : OctetArray8) return Long_Float is
+      function do_it is new Ada.Unchecked_Conversion (OctetArray8, Long_Float);
    begin
       return do_it (x);
    end OctetArray8_to_Long_Float;
@@ -1265,7 +1273,7 @@ package body adaasn1rtl.encoding.acn with
    is
       tmp : OctetArray8;
    begin
-      tmp := Long_Float_to_OctetArray8 (RealVal);
+      tmp := Long_Float_to_OctetArray8 (Long_Float(RealVal));
       if RequiresReverse then
          for I in reverse 1 .. 8 loop
             pragma Loop_Invariant
@@ -1308,7 +1316,7 @@ package body adaasn1rtl.encoding.acn with
          end loop;
       end if;
       pragma Assert (Result.Success);
-      RealVal := OctetArray8_to_Long_Float (tmp);
+      RealVal := Asn1Real(OctetArray8_to_Long_Float (tmp));
    end Acn_Dec_Real_IEEE754_64_big_endian;
 
    procedure Acn_Enc_Real_IEEE754_32_little_endian
@@ -1370,7 +1378,7 @@ package body adaasn1rtl.encoding.acn with
    is
       tmp : OctetArray8;
    begin
-      tmp := Long_Float_to_OctetArray8 (RealVal);
+      tmp := Long_Float_to_OctetArray8 (Long_Float(RealVal));
       if not RequiresReverse then
          for I in reverse 1 .. 8 loop
             pragma Loop_Invariant
@@ -1413,7 +1421,7 @@ package body adaasn1rtl.encoding.acn with
          end loop;
       end if;
       pragma Assert (Result.Success);
-      RealVal := OctetArray8_to_Long_Float (tmp);
+      RealVal :=  Asn1Real(OctetArray8_to_Long_Float (tmp));
    end Acn_Dec_Real_IEEE754_64_little_endian;
 
    procedure Acn_Enc_Boolean_true_pattern
