@@ -42,7 +42,7 @@ package body adaasn1rtl.encoding.acn with
    is
    begin
       for i in 1 .. 8 - Asn1UInt'Size/8 loop
-         BitStream_AppendByte (bs, 0, False)
+         BitStream_AppendByte (bs, 0, False);
       end loop;
 
       Enc_UInt (bs, IntVal, Asn1UInt'Size/8);
@@ -100,7 +100,7 @@ package body adaasn1rtl.encoding.acn with
    begin
       Acn_Enc_Int_PositiveInteger_ConstSize_little_endian_N (bs, IntVal, Asn1UInt'Size/8);
       for i in 1 .. 8 - Asn1UInt'Size/8 loop
-         BitStream_AppendByte (bs, 0, False)
+         BitStream_AppendByte (bs, 0, False);
       end loop;
 
    end Acn_Enc_Int_PositiveInteger_ConstSize_little_endian_64;
@@ -151,7 +151,10 @@ package body adaasn1rtl.encoding.acn with
       IntVal :        Asn1Int)
    is
    begin
-      Enc_UInt (bs, To_UInt (IntVal), 8);
+      for i in 1 .. 8 - Asn1UInt'Size/8 loop
+         BitStream_AppendByte (bs, (if IntVal >= 0 then 0 else 255), False);
+      end loop;
+      Enc_UInt (bs, To_UInt (IntVal), Asn1UInt'Size/8);
    end Acn_Enc_Int_TwosComplement_ConstSize_big_endian_64;
 
    procedure Acn_Enc_Int_TwosComplement_ConstSize_little_endian_16
@@ -184,7 +187,11 @@ package body adaasn1rtl.encoding.acn with
       Acn_Enc_Int_PositiveInteger_ConstSize_little_endian_N
         (bs,
          To_UInt (IntVal),
-         8);
+         Asn1UInt'Size/8);
+      for i in 1 .. 8 - Asn1UInt'Size/8 loop
+         BitStream_AppendByte (bs, (if IntVal >= 0 then 0 else 255), False);
+      end loop;
+
    end Acn_Enc_Int_TwosComplement_ConstSize_little_endian_64;
 
    procedure Acn_Enc_Int_TwosComplement_VarSize_LengthEmbedded
@@ -457,8 +464,9 @@ package body adaasn1rtl.encoding.acn with
    is
    begin
       Result.ErrorCode := 0;
-      Dec_UInt (bs, 8, IntVal, Result.Success);
-      Result.Success := IntVal >= minVal and IntVal <= maxVal;
+      bs.Current_Bit_Pos := bs.Current_Bit_Pos + (64 - Asn1UInt'Size);
+      Dec_UInt (bs, Asn1UInt'Size/8, IntVal, Result.Success);
+      Result.Success := Result.Success and then IntVal >= minVal and then IntVal <= maxVal;
       if not Result.Success then
          IntVal           := minVal;
          Result.ErrorCode := ERR_INCORRECT_STREAM;
@@ -521,7 +529,6 @@ package body adaasn1rtl.encoding.acn with
       total_bytes :        Integer)
    is
    begin
-      IntVal           := 0;
       Result.ErrorCode := 0;
       Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_N0
         (bs,
@@ -582,7 +589,8 @@ package body adaasn1rtl.encoding.acn with
          minVal,
          maxVal,
          Result,
-         8);
+         Asn1UInt'Size/8);
+      bs.Current_Bit_Pos := bs.Current_Bit_Pos + (64 - Asn1UInt'Size);
    end Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_64;
 
    procedure Acn_Dec_Int_PositiveInteger_VarSize_LengthEmbedded
@@ -599,7 +607,7 @@ package body adaasn1rtl.encoding.acn with
       Result.ErrorCode := 0;
       BitStream_DecodeByte (bs, NBytes, Result.Success);
 
-      if Result.Success and NBytes >= 1 and NBytes <= 8 then
+      if Result.Success and NBytes >= 1 and NBytes <= Asn1UInt'Size/8 then
          Dec_UInt (bs, Integer (NBytes), Ret, Result.Success);
          pragma Assert (Result.Success);
          IntVal         := Ret;
@@ -695,6 +703,8 @@ package body adaasn1rtl.encoding.acn with
          Result);
    end Acn_Dec_Int_TwosComplement_ConstSize_big_endian_32;
 
+
+
    procedure Acn_Dec_Int_TwosComplement_ConstSize_big_endian_64
      (bs     : in out Bitstream;
       IntVal :    out Asn1Int;
@@ -705,7 +715,8 @@ package body adaasn1rtl.encoding.acn with
       encVal : Asn1UInt;
    begin
       Result.ErrorCode := 0;
-      Dec_UInt (bs, 8, encVal, Result.Success);
+      bs.Current_Bit_Pos := bs.Current_Bit_Pos + (64-Asn1UInt'Size);
+      Dec_UInt (bs, Asn1UInt'Size/8, encVal, Result.Success);
       pragma Assert (Result.Success);
       IntVal         := To_Int (encVal);
       Result.Success := IntVal >= minVal and IntVal <= maxVal;
@@ -805,7 +816,8 @@ package body adaasn1rtl.encoding.acn with
          minVal,
          maxVal,
          Result,
-         8);
+         Asn1UInt'Size/8);
+      bs.Current_Bit_Pos := bs.Current_Bit_Pos + (64-Asn1UInt'Size);
    end Acn_Dec_Int_TwosComplement_ConstSize_little_endian_64;
 
    procedure Acn_Dec_Int_TwosComplement_VarSize_LengthEmbedded
@@ -864,7 +876,7 @@ package body adaasn1rtl.encoding.acn with
       IntVal := 0;
       Result := ASN1_RESULT'(Success => True, ErrorCode => 0);
 
-      for i in 1 .. 20 loop
+      for i in 1 .. Max_Int_Digits-1 loop
          pragma Loop_Invariant
            (bs.Current_Bit_Pos = bs.Current_Bit_Pos'Loop_Entry + (i - 1) * 4);
          BitStream_ReadNibble (bs, digit, Result.Success);
@@ -879,7 +891,7 @@ package body adaasn1rtl.encoding.acn with
 
       if Result.Success and (not (digit = 16#F#)) then
          BitStream_ReadNibble (bs, digit, Result.Success);
-         Result.Success :=
+         Result.Success := Result.Success and then
            digit = 16#F# and then ((IntVal >= minVal) and (IntVal <= maxVal));
       else
          Result.Success :=
@@ -946,8 +958,8 @@ package body adaasn1rtl.encoding.acn with
 
       Result :=
         ASN1_RESULT'
-          (Success =>
-             digit = Character'Pos ('+') or digit = Character'Pos ('-'),
+          (Success => Result.Success and then
+             (digit = Character'Pos ('+') or else digit = Character'Pos ('-')),
            ErrorCode => ERR_INCORRECT_STREAM);
       if Result.Success then
 
@@ -955,7 +967,9 @@ package body adaasn1rtl.encoding.acn with
          for i in 1 .. nChars - 1 loop
             pragma Loop_Invariant
               (bs.Current_Bit_Pos =
-               bs.Current_Bit_Pos'Loop_Entry + (i - 1) * 8);
+                 bs.Current_Bit_Pos'Loop_Entry + (i - 1) * 8);
+            pragma Loop_Invariant (uval >= 0 and uval <  Powers_of_10(i));
+
             BitStream_DecodeByte (bs, digit, Result.Success);
             pragma Assert (Result.Success);
             Ch       := Character'Val (digit);
@@ -967,10 +981,11 @@ package body adaasn1rtl.encoding.acn with
                uval := uval + Asn1UInt (intDigit);
             end if;
             Result.Success :=
-              Result.Success and then uval <= abs_value (Asn1Int'First);
+              Result.Success and then uval <= Asn1UInt(Asn1Int'Last);
             exit when not Result.Success;
          end loop;
          if Result.Success then
+            pragma Assert (uval <= Asn1UInt(Asn1Int'Last));
             IntVal :=
               (if negative and uval > 0 then (-Asn1Int (uval - 1) - 1)
                else Asn1Int (uval));
@@ -1101,7 +1116,7 @@ package body adaasn1rtl.encoding.acn with
       pragma Assert (tmp'First = 1);
       pragma Assert (tmp'Last = 10);
 
-      for i in 1 .. 20 loop
+      for i in 1 .. Max_Int_Digits loop
          pragma Loop_Invariant
            (bs.Current_Bit_Pos =
             bs.Current_Bit_Pos'Loop_Entry + (i - 1) * 8 and
@@ -1243,10 +1258,9 @@ package body adaasn1rtl.encoding.acn with
       RealVal :    out Asn1Real;
       Result  :    out ASN1_RESULT)
    is
-      tmp : OctetArray4 := OctetArray4'(others => 0);
+      tmp : OctetArray4;
    begin
       Result  := ASN1_RESULT'(Success => True, ErrorCode => 0);
-      RealVal := 0.0;
       if RequiresReverse then
          for i in reverse 1 .. 4 loop
             pragma Loop_Invariant
@@ -1296,10 +1310,10 @@ package body adaasn1rtl.encoding.acn with
       RealVal :    out Asn1Real;
       Result  :    out ASN1_RESULT)
    is
-      tmp : OctetArray8 := OctetArray8'(others => 0);
+      tmp : OctetArray8;
+      r8  : Long_Float;
    begin
       Result  := ASN1_RESULT'(Success => True, ErrorCode => 0);
-      RealVal := 0.0;
       if RequiresReverse then
          for I in reverse 1 .. 8 loop
             pragma Loop_Invariant
@@ -1316,7 +1330,8 @@ package body adaasn1rtl.encoding.acn with
          end loop;
       end if;
       pragma Assert (Result.Success);
-      RealVal := Asn1Real(OctetArray8_to_Long_Float (tmp));
+      r8 := OctetArray8_to_Long_Float (tmp);
+      RealVal := Asn1Real(r8);
    end Acn_Dec_Real_IEEE754_64_big_endian;
 
    procedure Acn_Enc_Real_IEEE754_32_little_endian
@@ -1348,10 +1363,9 @@ package body adaasn1rtl.encoding.acn with
       RealVal :    out Asn1Real;
       Result  :    out ASN1_RESULT)
    is
-      tmp : OctetArray4 := OctetArray4'(others => 0);
+      tmp : OctetArray4;
    begin
       Result  := ASN1_RESULT'(Success => True, ErrorCode => 0);
-      RealVal := 0.0;
       if not RequiresReverse then
          for i in reverse 1 .. 4 loop
             pragma Loop_Invariant
@@ -1401,10 +1415,9 @@ package body adaasn1rtl.encoding.acn with
       RealVal :    out Asn1Real;
       Result  :    out ASN1_RESULT)
    is
-      tmp : OctetArray8 := OctetArray8'(others => 0);
+      tmp : OctetArray8;
    begin
       Result  := ASN1_RESULT'(Success => True, ErrorCode => 0);
-      RealVal := 0.0;
       if not RequiresReverse then
          for I in reverse 1 .. 8 loop
             pragma Loop_Invariant
@@ -1454,7 +1467,7 @@ package body adaasn1rtl.encoding.acn with
            (bs.Current_Bit_Pos =
             bs.Current_Bit_Pos'Loop_Entry + (I - pattern'First));
          BitStream_ReadBit (bs, bit_val, Result.Success);
-         BoolVal := BoolVal and bit_val = pattern (I);
+         BoolVal := Result.Success and BoolVal and bit_val = pattern (I);
       end loop;
       Result := ASN1_RESULT'(Success => True, ErrorCode => 0);
    end Acn_Dec_Boolean_true_pattern;
@@ -1502,7 +1515,7 @@ package body adaasn1rtl.encoding.acn with
       pattern  :        BitArray;
       Result   :    out ASN1_RESULT)
    is
-      BoolVal : Boolean := True;
+      BoolVal : Boolean;
    begin
       Acn_Dec_Boolean_true_pattern (bs, BoolVal, pattern, Result);
       Result.Success := BoolVal;
@@ -1522,7 +1535,7 @@ package body adaasn1rtl.encoding.acn with
       pattern :        BitArray;
       Result  :    out ASN1_RESULT)
    is
-      BoolVal : Boolean := True;
+      BoolVal : Boolean;
    begin
       Acn_Dec_Boolean_true_pattern (bs, BoolVal, pattern, Result);
       Result.Success := BoolVal;
@@ -1621,7 +1634,7 @@ package body adaasn1rtl.encoding.acn with
    is
       I         : Integer  := strVal'First;
       --  ascii code of 'A'. Let's hope that 'A' will never be null Character
-      charIndex : Asn1Byte :=  65;
+      charIndex : Asn1Byte;
       tmp : OctetBuffer :=
         OctetBuffer'
           (1  => 0,

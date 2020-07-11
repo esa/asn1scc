@@ -192,7 +192,6 @@ package adaasn1rtl.encoding.uper with
       IntVal :    out Asn1Int;
       MaxVal :        Asn1Int;
       Result :    out Boolean) with
-      Depends => ((IntVal, bs, Result) => (bs, MaxVal)),
       Pre     => bs.Current_Bit_Pos < Natural'Last - (Asn1UInt'Size + 8)
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then
@@ -346,6 +345,11 @@ package adaasn1rtl.encoding.uper with
       and then asn1SizeMin <= asn1SizeMax
       and then nBits >= 0
       and then nBits <= Asn1UInt'Size
+      and then (
+      (asn1SizeMax <= 65536 and asn1SizeMin = asn1SizeMax and nBits = 0) or else
+      (asn1SizeMax <= 65536 and asn1SizeMin /= asn1SizeMax and nBits>0) or else
+      (asn1SizeMax > 65536)
+                )
       and then data_length >= 0
       and then data_length >= asn1SizeMin
       and then data'Last >= data'First
@@ -391,6 +395,9 @@ package adaasn1rtl.encoding.uper with
       data_length >= asn1SizeMin and
       data_length <= asn1SizeMax;
 
+
+
+
    procedure BitStream_EncodeBitString
      (bs          : in out Bitstream;
       data        :        OctetBuffer;
@@ -404,19 +411,29 @@ package adaasn1rtl.encoding.uper with
       and then nBits <= Asn1UInt'Size
       and then data_length >= 0
       and then data_length >= asn1SizeMin
-      and then data'Last >= data'First
-      and then data'Last < Positive'Last
-      and then data'Last - data'First < Positive'Last / 8
-      and then data_length <= (data'Last - data'First + 1) * 8
-      and then data_length < Positive'Last - nBits
+      and then data'Last < Positive'Last/8
+      and then data'Length < Positive'Last / 8
       and then bs.Size_In_Bytes < Positive'Last / 8
+      and then data_length >= (data'Length - 1) * 8
+      and then data_length <= (data'Length) * 8
+
+      and then data'Last >= data'First
+      and then data_length < Positive'Last - nBits
       and then bs.Current_Bit_Pos < Natural'Last - (data_length + nBits)
       and then
         bs.Current_Bit_Pos <=
         bs.Size_In_Bytes * 8 - (data_length + nBits),
-      Post => bs.Current_Bit_Pos <=
-      bs'Old.Current_Bit_Pos + (data_length + nBits) and
-      bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos;
+     Post =>
+       bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + (data_length + nBits) and
+       bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos;
+
+--        Pre     => bitMaskAsByteArray'First >= 0
+--        and then bitMaskAsByteArray'Last < Natural'Last / 8
+--        and then bits_to_read >= (bitMaskAsByteArray'Length - 1) * 8
+--        and then bits_to_read <= (bitMaskAsByteArray'Length) * 8
+--        and then bs.Current_Bit_Pos < Natural'Last - bits_to_read
+--        and then bs.Size_In_Bytes < Positive'Last / 8
+--        and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - bits_to_read,
 
    procedure BitStream_DecodeBitString
      (bs          : in out Bitstream;
@@ -426,22 +443,26 @@ package adaasn1rtl.encoding.uper with
       asn1SizeMin :        Integer;
       asn1SizeMax :        Integer;
       success     :    out Boolean) with
-      Pre => asn1SizeMin >= 0
+     Pre => asn1SizeMin >= 0
       and then asn1SizeMin <= asn1SizeMax
       and then asn1SizeMax < Positive'Last
       and then nBits >= 0
       and then nBits <= Asn1UInt'Size
+      and then data'First >= 0
+      and then data'Last < Natural'Last / 8
       and then data'Last >= data'First
-      and then data'Last < Positive'Last
       and then data'Last - data'First < Positive'Last / 8
-      and then asn1SizeMax <= (data'Last - data'First + 1) * 8
+--      and then asn1SizeMax <= (data'Last - data'First + 1) * 8
+      and then asn1SizeMax <= data'Length * 8
+
       and then asn1SizeMax < Positive'Last - nBits
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos < Natural'Last - (asn1SizeMax + nBits)
       and then
         bs.Current_Bit_Pos <=
         bs.Size_In_Bytes * 8 - (asn1SizeMax + nBits),
-      Post => bs.Current_Bit_Pos <=
+
+     Post => bs.Current_Bit_Pos <=
       bs'Old.Current_Bit_Pos + (asn1SizeMax + nBits) and
       bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and
       data_length >= asn1SizeMin and

@@ -1,5 +1,9 @@
 with Interfaces; use Interfaces;
 
+with Board_Config;
+use Board_Config;
+
+
 package adaasn1rtl.encoding with
      Spark_Mode is
 
@@ -58,6 +62,11 @@ package adaasn1rtl.encoding with
    --  This seems to be a bug since the function is proved if comment
    --  some irrelevant code e.g. the getStringSize function
 
+   function max_value_with_n_bits(nBits  : Integer) return Asn1UInt is
+     (if nBits = Asn1UInt'Size then Asn1UInt'Last else Shift_Left (Asn1UInt (1), nBits) - 1)
+     with
+       Pre => nBits > 0 and nBits <= Asn1UInt'Size;
+
    function To_Int_n
      (IntVal : Asn1UInt;
       nBits  : Integer) return Asn1Int is
@@ -66,10 +75,10 @@ package adaasn1rtl.encoding with
       then
       --   is given value greater than the maximum pos value in nBits space?
         -Asn1Int
-        (not ((not (Shift_Left (Asn1UInt (1), nBits) - 1)) or IntVal)) -  1
+        (not ((not (max_value_with_n_bits(nBits))) or IntVal)) -  1
         -- in this case the number is negative ==> prefix with 1111
       else Asn1Int (IntVal)) with
-      Pre => nBits > 0 and nBits < Asn1UInt'Size;
+      Pre => nBits > 0 and nBits <= Asn1UInt'Size;
 
    function Sub (A : Asn1Int; B : Asn1Int) return Asn1UInt with
       Pre => A >= B;
@@ -87,20 +96,9 @@ package adaasn1rtl.encoding with
       GetLengthInBytesOfSInt'Result <= Asn1UInt'Size/8;
 
 
-   function Get_number_of_digits2 (int_value : Asn1UInt;
-                                   nDigits : Integer;
-                                   max_value : Asn1UInt) return Integer is
-     (
-      if nDigits = Integer'Last then nDigits
-      elsif int_value < max_value then nDigits
-      elsif max_value > Asn1UInt'Last/10 then nDigits+1
-      else
-         Get_number_of_digits2(int_value, nDigits +1, max_value*10 ))
-   ;
 
-   function Get_number_of_digits
-     (Int_value : Asn1UInt) return Integer is
-     (Get_number_of_digits2(Int_value, 1, 10));
+
+
 
 
    function PLUS_INFINITY return Asn1Real;
@@ -199,7 +197,6 @@ package adaasn1rtl.encoding with
       success            :    out Boolean) with
       Pre     => bitMaskAsByteArray'First >= 0
       and then bitMaskAsByteArray'Last < Natural'Last / 8
-      and then bits_to_read >= (bitMaskAsByteArray'Length - 1) * 8
       and then bits_to_read <= (bitMaskAsByteArray'Length) * 8
       and then bs.Current_Bit_Pos < Natural'Last - bits_to_read
       and then bs.Size_In_Bytes < Positive'Last / 8
@@ -239,7 +236,8 @@ package adaasn1rtl.encoding with
       Byte_Value :    out Asn1Byte;
       nBits      :      BIT_RANGE) with
       Depends => ((bs, Byte_Value) => (bs, nBits)),
-      Pre     => bs.Current_Bit_Pos < Natural'Last - nBits
+     Pre     => nBits >0
+      and then bs.Current_Bit_Pos < Natural'Last - nBits
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - nBits,
       Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + nBits;
@@ -248,9 +246,12 @@ package adaasn1rtl.encoding with
      (bs     :  Bitstream;
       offset :  Natural;
       nBits  :  BIT_RANGE) return Asn1Byte with
-      Pre => bs.Current_Bit_Pos < Natural'Last - nBits - offset
-      and then bs.Size_In_Bytes < Positive'Last / 8
-      and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - nBits - offset;
+     Pre =>
+       bs.Current_Bit_Pos < Natural'Last - nBits - offset
+       and then nBits > 0
+       and then bs.Size_In_Bytes < Positive'Last / 8
+       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - nBits - offset
+     ;
 
    procedure BitStream_Encode_Non_Negative_Integer
      (bs       : in out Bitstream;

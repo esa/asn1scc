@@ -219,8 +219,6 @@ package body adaasn1rtl.encoding.uper with
       Base    :        Integer;
       RealVal :    out Asn1Real;
       Result  :    out ASN1_RESULT) with
-      Depends =>
-      ((bs, RealVal, Result) => (bs, ExpLen, Length, Factor, Sign, Base)),
       Pre => (Base = 2 or Base = 8 or Base = 16)
       and then (Factor = 1 or Factor = 2 or Factor = 4 or Factor = 8)
       and then ExpLen <= 4
@@ -253,7 +251,7 @@ package body adaasn1rtl.encoding.uper with
       if ExpLen < Length and ExpLen <= 3 then
          Dec_Int (bs, Integer (ExpLen), Exp, Result.Success);
 
-         if Result.Success and Length - ExpLen <= 8 then
+         if Result.Success and Length - ExpLen <= Asn1Uint'Size/8 then
             Dec_UInt (bs, Integer (Length - ExpLen), N, Result.Success);
             if Result.Success and
               Exp > Asn1Int (Integer'First) and
@@ -506,7 +504,7 @@ package body adaasn1rtl.encoding.uper with
    is
       curByte       : Asn1Byte;
       bLastOctet    : Boolean  := False;
-      curOctetValue : Asn1UInt := 0;
+      curOctetValue : Asn1UInt;
       i             : Integer  := 1;
    begin
       siValue := 0;
@@ -518,7 +516,6 @@ package body adaasn1rtl.encoding.uper with
         bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 8 and
         i <= OctetBuffer_16'Last
       loop
-         curByte := 0;
          pragma Loop_Invariant
            (i >= 1 and
             --  i <= OctetBuffer_16'Last and
@@ -735,15 +732,20 @@ package body adaasn1rtl.encoding.uper with
       end loop;
    end BitStream_DecodeOctetString_no_length;
 
-   procedure BitStream_EncodeOctetString_fragmentation
-     (bs          : in out Bitstream;
-      data        :        OctetBuffer;
-      data_length :        Integer);
+
 
    procedure BitStream_EncodeOctetString_fragmentation
      (bs          : in out Bitstream;
       data        :        OctetBuffer;
       data_length :        Integer)
+   ;
+
+   procedure BitStream_EncodeOctetString_fragmentation
+     (bs          : in out Bitstream;
+      data        :        OctetBuffer;
+      data_length :        Integer)
+   with
+       SPARK_Mode => Off
    is
       i1                  : Integer;
       nBLJ1               : Integer;
@@ -806,6 +808,7 @@ package body adaasn1rtl.encoding.uper with
 
    end BitStream_EncodeOctetString_fragmentation;
 
+
    procedure BitStream_EncodeOctetString
      (bs          : in out Bitstream;
       data        :        OctetBuffer;
@@ -813,6 +816,8 @@ package body adaasn1rtl.encoding.uper with
       nBits       :        Integer;
       asn1SizeMin :        Integer;
       asn1SizeMax :        Integer)
+   with
+       SPARK_Mode => Off
    is
    begin
       if asn1SizeMax < 65536 then
@@ -844,6 +849,8 @@ package body adaasn1rtl.encoding.uper with
       asn1SizeMin :        Integer;
       asn1SizeMax :        Integer;
       success     :    out Boolean)
+   with
+       SPARK_Mode => Off
    is
       i1                  : Integer;
       nLengthTmp1         : Integer := 0;
@@ -933,6 +940,8 @@ package body adaasn1rtl.encoding.uper with
       asn1SizeMin :        Integer;
       asn1SizeMax :        Integer;
       success     :    out Boolean)
+   with
+       SPARK_Mode => Off
    is
    begin
       success     := True;
@@ -970,24 +979,14 @@ package body adaasn1rtl.encoding.uper with
    procedure BitStream_EncodeBitString_fragmentation
      (bs          : in out Bitstream;
       data        :        OctetBuffer;
-      data_length :        Integer) with
-      Pre => data_length >= 0
-      and then data'Last >= data'First
-      and then data'Last < Positive'Last / 8
-      and then data'Last - data'First < Positive'Last / 8
-      and then data_length <= data'Last - data'First + 1
-      and then data_length < Positive'Last / 8
-      and then bs.Size_In_Bytes < Positive'Last / 8
-      and then bs.Current_Bit_Pos < Natural'Last - (8 * data_length)
-      and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - (8 * data_length),
-      Post => bs.Current_Bit_Pos <=
-      bs'Old.Current_Bit_Pos + (8 * data_length) and
-      bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos;
+      data_length :        Integer);
 
    procedure BitStream_EncodeBitString_fragmentation
      (bs          : in out Bitstream;
       data        :        OctetBuffer;
       data_length :        Integer)
+   with
+       SPARK_Mode => Off
    is
       nRemainingItemsVar1 : Integer;
       nCurBlockSize1      : Integer;
@@ -1052,6 +1051,8 @@ package body adaasn1rtl.encoding.uper with
       nBits       :        Integer;
       asn1SizeMin :        Integer;
       asn1SizeMax :        Integer)
+   with
+       SPARK_Mode => Off
    is
    begin
       if asn1SizeMax < 65536 then
@@ -1083,6 +1084,8 @@ package body adaasn1rtl.encoding.uper with
       asn1SizeMin :        Integer;
       asn1SizeMax :        Integer;
       success     :    out Boolean)
+   with
+       SPARK_Mode => Off
    is
       nLengthTmp1         : Integer := 0;
       nRemainingItemsVar1 : Integer;
@@ -1185,6 +1188,21 @@ package body adaasn1rtl.encoding.uper with
 
    end BitStream_DecodeBitString_fragmentation;
 
+--     procedure BitStream_ReadBits
+--       (bs                 : in out Bitstream;
+--        bitMaskAsByteArray : in out OctetBuffer;
+--        bits_to_read       :        Natural;
+--        success            :    out Boolean) with
+--        Pre     => bitMaskAsByteArray'First >= 0
+--        and then bitMaskAsByteArray'Last < Natural'Last / 8
+--        and then bits_to_read >= (bitMaskAsByteArray'Length - 1) * 8
+--        and then bits_to_read <= (bitMaskAsByteArray'Length) * 8
+--        and then bs.Current_Bit_Pos < Natural'Last - bits_to_read
+--        and then bs.Size_In_Bytes < Positive'Last / 8
+--        and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - bits_to_read,
+--        Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + bits_to_read;
+
+
    procedure BitStream_DecodeBitString
      (bs          : in out Bitstream;
       data        : in out OctetBuffer;
@@ -1193,6 +1211,8 @@ package body adaasn1rtl.encoding.uper with
       asn1SizeMin :        Integer;
       asn1SizeMax :        Integer;
       success     :    out Boolean)
+   with
+       SPARK_Mode => Off
    is
    begin
       success     := True;

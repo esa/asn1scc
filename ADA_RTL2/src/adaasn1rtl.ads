@@ -61,6 +61,8 @@ package adaasn1rtl with
      1002;
    ERR_INCORRECT_STREAM : constant Integer := 104;
 
+   ERR_INCORRECT_IEEE754_FORMAT : constant Integer := 105;
+
    function GetZeroBasedCharIndex
      (CharToSearch   :    Character;
       AllowedCharSet : String) return Integer with
@@ -89,8 +91,10 @@ package adaasn1rtl with
      (Left, Right : Asn1Real) return Boolean is
      (if Left = Right then True
       elsif Left = 0.0 then Right = 0.0
-      elsif Left > Right then ((Left - Right) / Left) < 0.00001
-      else ((Right - Left) / Left) < 0.00001);
+      elsif ( (Left > 0.0 and Right < 0.0) or (Left < 0.0 and Right > 0.0)) then False
+      elsif abs(Left) > abs(Right) then abs(Right)/ abs(Left) >= 0.99999
+      else abs(Left) / abs(Right) >= 0.99999)
+   ;
 
    function OctetString_equal
      (len1 : Integer;
@@ -100,11 +104,15 @@ package adaasn1rtl with
      (len1 = len2
       and then
         arr1 (arr1'First .. arr1'First + (len1 - 1)) =
-        arr2 (arr2'First .. arr2'First + (len1 - 1))) with
-      Pre => len1 > 0 and
-      len2 > 0 and
-      arr1'First + (len1 - 1) <= arr1'Last and
-      arr2'First + (len2 - 1) <= arr1'Last;
+        arr2 (arr2'First .. arr2'First + (len2 - 1))) with
+      Pre =>
+         len1 > 0 and then
+         len2 > 0 and then
+         len1 = len2 and then
+         arr1'First <= Integer'Last - (len1 - 1) and then
+         arr2'First <= Integer'Last - (len2 - 1) and then
+         arr1'First + (len1 - 1) <= arr1'Last and then
+         arr2'First + (len2 - 1) <= arr2'Last;
 
    function BitString_equal
      (len1 : Integer;
@@ -114,11 +122,14 @@ package adaasn1rtl with
      (len1 = len2
       and then
         arr1 (arr1'First .. arr1'First + (len1 - 1)) =
-        arr2 (arr2'First .. arr2'First + (len1 - 1))) with
-      Pre => len1 > 0 and
-      len2 > 0 and
-      arr1'First + (len1 - 1) <= arr1'Last and
-      arr2'First + (len2 - 1) <= arr1'Last;
+        arr2 (arr2'First .. arr2'First + (len2 - 1))) with
+       Pre =>
+         len1 > 0 and then
+         len2 > 0 and then
+         arr1'First <= Integer'Last - (len1 - 1) and then
+         arr2'First <= Integer'Last - (len2 - 1) and then
+         arr1'First + (len1 - 1) <= arr1'Last and then
+         arr2'First + (len2 - 1) <= arr2'Last;
 
    procedure ObjectIdentifier_Init (val : out Asn1ObjectIdentifier);
    function ObjectIdentifier_isValid

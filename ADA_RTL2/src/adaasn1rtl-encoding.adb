@@ -522,6 +522,14 @@ package body adaasn1rtl.encoding with
       bitstrean_fetch_data_if_required (bs);
    end BitStream_ReadPartialByte;
 
+
+   --   and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - nBits - offset;
+   --   bs.Current_Bit_Pos = 0
+   --   bs.Buffer'First = 1
+   --   bs.Buffer'Last = bs.Size_In_Bytes = 1  (i.e. (1..1)
+   --   offset = 7
+   --   nBits 1
+
    function BitStream_PeekPartialByte
      (bs     : Bitstream;
       offset : Natural;
@@ -537,7 +545,9 @@ package body adaasn1rtl.encoding with
       if cb < 8 - nBits then
          totalBits  := cb + nBits;
          Byte_Value :=
-           Shift_Right (bs.Buffer (Current_Byte), 8 - totalBits) and
+           Shift_Right (
+                        bs.Buffer (Current_Byte),
+                        8 - totalBits) and
            MASKSB (nBits);
       else
          totalBitsForNextByte := cb + nBits - 8;

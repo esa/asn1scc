@@ -106,11 +106,6 @@ package adaasn1rtl.encoding.acn with
      with
        Pre => i>=2 and i<=Asn1UInt'Size;
 
-   function Powers_of_10(i:Integer) return Asn1UInt is
-     (10**i)
-     with
-       Pre => i>=0 and i<Get_number_of_digits(Asn1UInt'Last);
-
 --     PV : constant Asn1Int_ARRAY_2_64 :=
 --       Asn1Int_ARRAY_2_64'
 --         (2  => Asn1Int (1),
@@ -343,7 +338,7 @@ package adaasn1rtl.encoding.acn with
       nNibbles :       Integer) with
       Depends => (bs => (bs, IntVal, nNibbles)),
       Pre     => nNibbles >= 1
-      and then nNibbles <= 20
+      and then  nNibbles< Max_Int_Digits
       and then IntVal < Powers_of_10 (nNibbles)
       and then bs.Current_Bit_Pos < Natural'Last - 4 * nNibbles
       and then bs.Size_In_Bytes < Positive'Last / 8
@@ -354,35 +349,35 @@ package adaasn1rtl.encoding.acn with
      (bs     : in out Bitstream;
       IntVal :       Asn1UInt) with
       Depends => (bs => (bs, IntVal)),
-      Pre     => IntVal < Powers_of_10 (19)
-      and then bs.Current_Bit_Pos < Natural'Last - 4 * (20 + 1)
+      Pre     => IntVal < Powers_of_10 (Max_Int_Digits-1)
+      and then bs.Current_Bit_Pos < Natural'Last - 4 * (Max_Int_Digits + 1)
       and then bs.Size_In_Bytes < Positive'Last / 8
-      and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 4 * (20 + 1),
+      and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 4 * (Max_Int_Digits + 1),
       Post => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and
-      bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + 4 * (20 + 1);
+      bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + 4 * (Max_Int_Digits + 1);
 
    procedure Acn_Enc_Int_ASCII_VarSize_LengthEmbedded
      (bs     : in out Bitstream;
       IntVal :       Asn1Int) with
       Depends => (bs => (bs, IntVal)),
-      Pre     => IntVal > -Asn1Int (Powers_of_10 (18))
-      and then Asn1UInt (abs IntVal) < Powers_of_10 (18)
-      and then bs.Current_Bit_Pos < Natural'Last - 8 * (18 + 1 + 1)
+      Pre     => IntVal > -Asn1Int (Powers_of_10 (Max_Int_Digits-2))
+      and then Asn1UInt (abs IntVal) < Powers_of_10 (Max_Int_Digits-2)
+      and then bs.Current_Bit_Pos < Natural'Last - 8 * (Max_Int_Digits)
       and then bs.Size_In_Bytes < Positive'Last / 8
-      and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 8 * (18 + 1 + 1),
+      and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 8 * (Max_Int_Digits),
       Post => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and
-      bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + 8 * (18 + 1 + 1);
+      bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + 8 * (Max_Int_Digits);
 
    procedure Acn_Enc_UInt_ASCII_VarSize_LengthEmbedded
      (bs     : in out Bitstream;
       IntVal :       Asn1UInt) with
       Depends => (bs => (bs, IntVal)),
-      Pre     => IntVal < Powers_of_10 (19)
-      and then bs.Current_Bit_Pos < Natural'Last - 8 * (20 + 1)
+      Pre     => IntVal < Powers_of_10 (Max_Int_Digits-1)
+      and then bs.Current_Bit_Pos < Natural'Last - 8 * (Max_Int_Digits + 1)
       and then bs.Size_In_Bytes < Positive'Last / 8
-      and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 8 * (20 + 1),
+      and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 8 * (Max_Int_Digits + 1),
       Post => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and
-      bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + 8 * (20 + 1);
+      bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + 8 * (Max_Int_Digits + 1);
 
    procedure Acn_Enc_Int_ASCII_VarSize_NullTerminated
      (bs        : in out Bitstream;
@@ -434,7 +429,7 @@ package adaasn1rtl.encoding.acn with
       nSizeInBits :       Integer;
       Result      :    out ASN1_RESULT) with
       Pre => nSizeInBits >= 0
-      and then nSizeInBits < Asn1UInt'Size
+      and then nSizeInBits <= Asn1UInt'Size
       and then bs.Current_Bit_Pos < Natural'Last - nSizeInBits
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - nSizeInBits,
@@ -553,7 +548,7 @@ package adaasn1rtl.encoding.acn with
       nSizeInBits :       Integer;
       Result      :    out ASN1_RESULT) with
       Pre => nSizeInBits >= 0
-      and then nSizeInBits < Asn1UInt'Size
+      and then nSizeInBits <= Asn1UInt'Size
       and then bs.Current_Bit_Pos < Natural'Last - nSizeInBits
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - nSizeInBits,
@@ -670,7 +665,7 @@ package adaasn1rtl.encoding.acn with
       nNibbles :       Integer;
       Result   :    out ASN1_RESULT) with
       Pre => nNibbles >= 1
-      and then nNibbles <= 19
+      and then nNibbles <= Max_Int_Digits-1
       and then minVal <= maxVal
       and then maxVal <= Powers_of_10 (nNibbles) - 1
       and then bs.Current_Bit_Pos < Natural'Last - 4 * nNibbles
@@ -688,12 +683,12 @@ package adaasn1rtl.encoding.acn with
       maxVal :       Asn1UInt;
       Result :    out ASN1_RESULT) with
       Pre => minVal <= maxVal
-      and then maxVal <= Powers_of_10 (19) - 1
-      and then bs.Current_Bit_Pos < Natural'Last - 4 * (19 + 1)
+      and then maxVal <= Powers_of_10 (Max_Int_Digits-1) - 1
+      and then bs.Current_Bit_Pos < Natural'Last - 4 * (Max_Int_Digits)
       and then bs.Size_In_Bytes < Positive'Last / 8
-      and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 4 * (19 + 1),
+      and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 4 * (Max_Int_Digits),
       Post => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and
-      bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + 4 * (19 + 1) and
+      bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + 4 * (Max_Int_Digits) and
       ((Result.Success and IntVal >= minVal and IntVal <= maxVal) or
        (not Result.Success and IntVal = minVal));
 
@@ -718,7 +713,7 @@ package adaasn1rtl.encoding.acn with
       nChars :       Integer;
       Result :    out ASN1_RESULT) with
       Pre => nChars >= 2
-      and then nChars <= 50
+      and then nChars <= Max_Int_Digits
       and then minVal <= maxVal
       and then bs.Current_Bit_Pos < Natural'Last - 8 * (nChars + 1)
       and then bs.Size_In_Bytes < Positive'Last / 8
@@ -734,7 +729,7 @@ package adaasn1rtl.encoding.acn with
       nChars :       Integer) with
       Depends => (bs => (bs, IntVal, nChars)),
       Pre     => nChars >= 1
-      and then nChars <= 20
+      and then nChars <= Max_Int_Digits - 1
       and then IntVal < Powers_of_10 (nChars)
       and then bs.Current_Bit_Pos < Natural'Last - 8 * (nChars)
       and then bs.Size_In_Bytes < Positive'Last / 8
@@ -752,7 +747,7 @@ package adaasn1rtl.encoding.acn with
       Pre => nChars >= 2
       and then nChars <= 20
       and then minVal <= maxVal
-      and then maxVal < Powers_of_10 (19)
+      and then maxVal < Powers_of_10 (Max_Int_Digits-1)
       and then bs.Current_Bit_Pos < Natural'Last - 8 * (nChars)
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 8 * (nChars),
@@ -769,14 +764,14 @@ package adaasn1rtl.encoding.acn with
       Pre => nullChars'Length >= 1
       and then nullChars'Length <= 10
       and then nullChars'First = 1
-      and then bs.Current_Bit_Pos < Natural'Last - 8 * (20 + nullChars'Length)
+      and then bs.Current_Bit_Pos < Natural'Last - 8 * (Max_Int_Digits + nullChars'Length)
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then
         bs.Current_Bit_Pos <=
-        bs.Size_In_Bytes * 8 - 8 * (20 + nullChars'Length),
+        bs.Size_In_Bytes * 8 - 8 * (Max_Int_Digits + nullChars'Length),
       Post => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and
       bs.Current_Bit_Pos <=
-        bs'Old.Current_Bit_Pos + 8 * (20 + nullChars'Length);
+        bs'Old.Current_Bit_Pos + 8 * (Max_Int_Digits + nullChars'Length);
 
    procedure Acn_Dec_Int_ASCII_VarSize_NullTerminated
      (bs        : in out Bitstream;
@@ -788,14 +783,14 @@ package adaasn1rtl.encoding.acn with
       and then nullChars'First = 1
       and then
         bs.Current_Bit_Pos <
-        Natural'Last - 8 * (19 + 1 + nullChars'Length)
+        Natural'Last - 8 * (Max_Int_Digits + nullChars'Length + 1)
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then
         bs.Current_Bit_Pos <=
-        bs.Size_In_Bytes * 8 - 8 * (19 + 1 + nullChars'Length),
+        bs.Size_In_Bytes * 8 - 8 * (Max_Int_Digits + nullChars'Length + 1),
       Post => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and
       bs.Current_Bit_Pos <=
-        bs'Old.Current_Bit_Pos + 8 * (19 + 1 + nullChars'Length);
+        bs'Old.Current_Bit_Pos + 8 * (Max_Int_Digits + nullChars'Length + 1);
 
    procedure Acn_Enc_Real_IEEE754_32_big_endian
      (bs      : in out Bitstream;
@@ -899,7 +894,6 @@ package adaasn1rtl.encoding.acn with
       BoolVal :    out Asn1Boolean;
       pattern :       BitArray;
       Result  :    out ASN1_RESULT) with
-      Depends => ((bs, BoolVal, Result) => (bs, pattern)),
       Pre     => pattern'Last >= pattern'First
       and then pattern'Last - pattern'First < Natural'Last
       and then
@@ -953,7 +947,6 @@ package adaasn1rtl.encoding.acn with
      (bs      : in out Bitstream;
       encVal  :       Asn1NullType;
       pattern :       BitArray) with
-      Depends => (bs => (bs, encVal, pattern)),
       Pre     => pattern'Last >= pattern'First
       and then pattern'Last - pattern'First < Natural'Last
       and then
@@ -1050,7 +1043,6 @@ package adaasn1rtl.encoding.acn with
      (bs     : in out Bitstream;
       strVal : in out String;
       Result :    out ASN1_RESULT) with
-      Depends => ((bs, strVal, Result) => (bs)),
       Pre     => strVal'Last >= strVal'First
       and then strVal'Last - strVal'First < Natural'Last / 8 - 8
       and then
@@ -1094,7 +1086,6 @@ package adaasn1rtl.encoding.acn with
       null_characters :       OctetBuffer;
       strVal          : in out String;
       Result          :    out ASN1_RESULT) with
-      Depends => ((bs, strVal, Result) => (bs, null_characters)),
       Pre     => null_characters'Length >= 1
       and then null_characters'Length <= 10
       and then null_characters'First = 1
@@ -1151,9 +1142,6 @@ package adaasn1rtl.encoding.acn with
       nLengthDeterminantSizeInBits :       Integer;
       strVal                       : in out String;
       Result                       :    out ASN1_RESULT) with
-      Depends =>
-      ((bs, strVal, Result) =>
-         (bs, asn1Min, asn1Max, nLengthDeterminantSizeInBits)),
       Pre => asn1Min >= 0
       and then asn1Max <= Asn1Int (Integer'Last)
       and then asn1Min <= asn1Max
@@ -1201,7 +1189,6 @@ package adaasn1rtl.encoding.acn with
       extSizeDeterminatFld :       Asn1Int;
       strVal               : in out String;
       Result               :    out ASN1_RESULT) with
-      Depends => ((bs, strVal, Result) => (bs, extSizeDeterminatFld)),
       Pre     => extSizeDeterminatFld >= 0
       and then extSizeDeterminatFld <= Asn1Int (Integer'Last)
       and then strVal'Last < Natural'Last
@@ -1251,8 +1238,6 @@ package adaasn1rtl.encoding.acn with
       extSizeDeterminatFld :       Asn1Int;
       strVal               : in out String;
       Result               :    out ASN1_RESULT) with
-      Depends =>
-      ((bs, strVal, Result) => (bs, extSizeDeterminatFld, charSet, nCharSize)),
       Pre => extSizeDeterminatFld >= 0
       and then extSizeDeterminatFld <= Asn1Int (Integer'Last)
       and then nCharSize >= 1
@@ -1332,7 +1317,7 @@ package adaasn1rtl.encoding.acn with
       and then charSet'Last < Natural'Last
       and then charSet'Last >= charSet'First
       and then charSet'Last - charSet'First <= 255
-      and then Asn1Int (charSet'First) + asn1Max < Asn1Int (Integer'Last)
+      and then asn1Max < Asn1Int (Integer'Last) - Asn1Int (charSet'First)
       and then strVal'Last - strVal'First < Natural'Last / 8 - nCharSize
       and then
         bs.Current_Bit_Pos <
