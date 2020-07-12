@@ -307,7 +307,7 @@ let main0 argv =
             OutDirectories.getTopLevelDirs l |> Seq.iter createDirIfNotExists
             OutDirectories.getBoardDirs l |> Seq.iter createDirIfNotExists
 
-
+ 
         //generate code
         backends |> 
             Seq.iter (fun r -> 
@@ -316,7 +316,7 @@ let main0 argv =
                 //let srcDirName = Path.Combine(outDir, OutDirectories.srcDirName r.lang)
                 //let asn1rtlDirName = Path.Combine(outDir, OutDirectories.asn1rtlDirName r.lang)
                 //let boardsDirName = Path.Combine(outDir, OutDirectories.boardsDirName r.lang)
-
+                
                 GenerateFiles.generateAll dirInfo r args.encodings
                 GenerateRTL.exportRTL dirInfo r.lang args
                 match args.AstXmlAbsFileName with

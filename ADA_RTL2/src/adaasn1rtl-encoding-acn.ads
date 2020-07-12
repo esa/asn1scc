@@ -1,13 +1,13 @@
+with Board_Config; use Board_Config;
+
 package adaasn1rtl.encoding.acn with
-     Spark_Mode is
+   Spark_Mode
+is
 
    procedure Acn_Enc_Int_PositiveInteger_ConstSize
-     (bs         : in out Bitstream;
-      IntVal     :       Asn1UInt;
-      sizeInBits :       Integer) with
+     (bs : in out Bitstream; IntVal : Asn1UInt; sizeInBits : Integer) with
       Depends => (bs => (bs, IntVal, sizeInBits)),
-      Pre     => sizeInBits >= 0
-      and then sizeInBits < Asn1UInt'Size
+      Pre     => sizeInBits >= 0 and then sizeInBits < Asn1UInt'Size
       and then IntVal <= 2**sizeInBits - 1
       and then bs.Current_Bit_Pos < Natural'Last - sizeInBits
       and then bs.Size_In_Bytes < Positive'Last / 8
@@ -15,8 +15,7 @@ package adaasn1rtl.encoding.acn with
       Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + sizeInBits;
 
    procedure Acn_Enc_Int_PositiveInteger_ConstSize_8
-     (bs     : in out Bitstream;
-      IntVal :       Asn1UInt) with
+     (bs : in out Bitstream; IntVal : Asn1UInt) with
       Depends => (bs => (bs, IntVal)),
       Pre     => bs.Current_Bit_Pos < Natural'Last - 8
       and then IntVal <= Asn1UInt (Asn1Byte'Last)
@@ -25,8 +24,7 @@ package adaasn1rtl.encoding.acn with
       Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 8;
 
    procedure Acn_Enc_Int_PositiveInteger_ConstSize_big_endian_16
-     (bs     : in out Bitstream;
-      IntVal :       Asn1UInt) with
+     (bs : in out Bitstream; IntVal : Asn1UInt) with
       Depends => (bs => (bs, IntVal)),
       Pre     => bs.Current_Bit_Pos < Natural'Last - 16
       and then IntVal <= Asn1UInt (Interfaces.Unsigned_16'Last)
@@ -35,8 +33,7 @@ package adaasn1rtl.encoding.acn with
       Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 16;
 
    procedure Acn_Enc_Int_PositiveInteger_ConstSize_big_endian_32
-     (bs     : in out Bitstream;
-      IntVal :       Asn1UInt) with
+     (bs : in out Bitstream; IntVal : Asn1UInt) with
       Depends => (bs => (bs, IntVal)),
       Pre     => bs.Current_Bit_Pos < Natural'Last - 32
       and then IntVal <= Asn1UInt (Interfaces.Unsigned_32'Last)
@@ -45,8 +42,7 @@ package adaasn1rtl.encoding.acn with
       Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 32;
 
    procedure Acn_Enc_Int_PositiveInteger_ConstSize_big_endian_64
-     (bs     : in out Bitstream;
-      IntVal :       Asn1UInt) with
+     (bs : in out Bitstream; IntVal : Asn1UInt) with
       Depends => (bs => (bs, IntVal)),
       Pre     => bs.Current_Bit_Pos < Natural'Last - 64
       and then bs.Size_In_Bytes < Positive'Last / 8
@@ -54,8 +50,7 @@ package adaasn1rtl.encoding.acn with
       Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 64;
 
    procedure Acn_Enc_Int_PositiveInteger_ConstSize_little_endian_16
-     (bs     : in out Bitstream;
-      IntVal :       Asn1UInt) with
+     (bs : in out Bitstream; IntVal : Asn1UInt) with
       Depends => (bs => (bs, IntVal)),
       Pre     => bs.Current_Bit_Pos < Natural'Last - 16
       and then IntVal <= Asn1UInt (Interfaces.Unsigned_16'Last)
@@ -64,8 +59,7 @@ package adaasn1rtl.encoding.acn with
       Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 16;
 
    procedure Acn_Enc_Int_PositiveInteger_ConstSize_little_endian_32
-     (bs     : in out Bitstream;
-      IntVal :       Asn1UInt) with
+     (bs : in out Bitstream; IntVal : Asn1UInt) with
       Depends => (bs => (bs, IntVal)),
       Pre     => bs.Current_Bit_Pos < Natural'Last - 32
       and then IntVal <= Asn1UInt (Interfaces.Unsigned_32'Last)
@@ -74,8 +68,7 @@ package adaasn1rtl.encoding.acn with
       Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 32;
 
    procedure Acn_Enc_Int_PositiveInteger_ConstSize_little_endian_64
-     (bs     : in out Bitstream;
-      IntVal :       Asn1UInt) with
+     (bs : in out Bitstream; IntVal : Asn1UInt) with
       Depends => (bs => (bs, IntVal)),
       Pre     => bs.Current_Bit_Pos < Natural'Last - 64
       and then bs.Size_In_Bytes < Positive'Last / 8
@@ -83,28 +76,23 @@ package adaasn1rtl.encoding.acn with
       Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 64;
 
    procedure Acn_Enc_Int_PositiveInteger_VarSize_LengthEmbedded
-     (bs     : in out Bitstream;
-      IntVal :       Asn1UInt) with
+     (bs : in out Bitstream; IntVal : Asn1UInt) with
       Depends => (bs => (bs, IntVal)),
       Pre     => bs.Current_Bit_Pos < Natural'Last - (Asn1UInt'Size + 8)
       and then bs.Size_In_Bytes < Positive'Last / 8
-      and then
-        bs.Current_Bit_Pos <=
+      and then bs.Current_Bit_Pos <=
         bs.Size_In_Bytes * 8 - (Asn1UInt'Size + 8),
       Post => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and
       bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + (Asn1UInt'Size + 8);
 
    type Asn1Int_ARRAY_2_64 is array (2 .. 64) of Asn1Int;
 
-   function PV(i:Integer) return Asn1Int is
-      (Asn1Int(Shift_Left (Asn1UInt(1), i-1) - 1))
-     with
-       Pre => i>=2 and i<=Asn1UInt'Size;
+   function PV (i : Integer) return Asn1Int is
+     (Asn1Int (Shift_Left (Asn1UInt (1), i - 1) - 1)) with
+      Pre => i >= 2 and i <= Asn1UInt'Size;
 
-   function NV(i:Integer) return Asn1Int is
-      (-PV(i)-1)
-     with
-       Pre => i>=2 and i<=Asn1UInt'Size;
+   function NV (i : Integer) return Asn1Int is (-PV (i) - 1) with
+      Pre => i >= 2 and i <= Asn1UInt'Size;
 
 --     PV : constant Asn1Int_ARRAY_2_64 :=
 --       Asn1Int_ARRAY_2_64'
@@ -238,55 +226,44 @@ package adaasn1rtl.encoding.acn with
 --          64 => Asn1Int (-9223372036854775808));
 
    procedure Acn_Enc_Int_TwosComplement_ConstSize
-     (bs         : in out Bitstream;
-      IntVal     :       Asn1Int;
-      sizeInBits :       Natural) with
+     (bs : in out Bitstream; IntVal : Asn1Int; sizeInBits : Natural) with
       Depends => (bs => (bs, IntVal, sizeInBits)),
-      Pre     => sizeInBits >= 2
-      and then sizeInBits < Asn1UInt'Size
-      and then IntVal >= NV (sizeInBits)
-      and then IntVal <= PV (sizeInBits)
+      Pre     => sizeInBits >= 2 and then sizeInBits < Asn1UInt'Size
+      and then IntVal >= NV (sizeInBits) and then IntVal <= PV (sizeInBits)
       and then bs.Current_Bit_Pos < Natural'Last - sizeInBits
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - sizeInBits,
       Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + sizeInBits;
 
    procedure Acn_Enc_Int_TwosComplement_ConstSize_8
-     (bs     : in out Bitstream;
-      IntVal :       Asn1Int) with
+     (bs : in out Bitstream; IntVal : Asn1Int) with
       Depends => (bs => (bs, IntVal)),
-      Pre     => IntVal >= NV (8)
-      and then IntVal <= PV (8)
+      Pre     => IntVal >= NV (8) and then IntVal <= PV (8)
       and then bs.Current_Bit_Pos < Natural'Last - 8
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 8,
       Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 8;
 
    procedure Acn_Enc_Int_TwosComplement_ConstSize_big_endian_16
-     (bs     : in out Bitstream;
-      IntVal :       Asn1Int) with
+     (bs : in out Bitstream; IntVal : Asn1Int) with
       Depends => (bs => (bs, IntVal)),
-      Pre     => IntVal >= NV (16)
-      and then IntVal <= PV (16)
+      Pre     => IntVal >= NV (16) and then IntVal <= PV (16)
       and then bs.Current_Bit_Pos < Natural'Last - 8
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 16,
       Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 16;
 
    procedure Acn_Enc_Int_TwosComplement_ConstSize_big_endian_32
-     (bs     : in out Bitstream;
-      IntVal :       Asn1Int) with
+     (bs : in out Bitstream; IntVal : Asn1Int) with
       Depends => (bs => (bs, IntVal)),
-      Pre     => IntVal >= NV (32)
-      and then IntVal <= PV (32)
+      Pre     => IntVal >= NV (32) and then IntVal <= PV (32)
       and then bs.Current_Bit_Pos < Natural'Last - 32
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 32,
       Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 32;
 
    procedure Acn_Enc_Int_TwosComplement_ConstSize_big_endian_64
-     (bs     : in out Bitstream;
-      IntVal :       Asn1Int) with
+     (bs : in out Bitstream; IntVal : Asn1Int) with
       Depends => (bs => (bs, IntVal)),
       Pre     => bs.Current_Bit_Pos < Natural'Last - 64
       and then bs.Size_In_Bytes < Positive'Last / 8
@@ -294,8 +271,7 @@ package adaasn1rtl.encoding.acn with
       Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 64;
 
    procedure Acn_Enc_Int_TwosComplement_ConstSize_little_endian_16
-     (bs     : in out Bitstream;
-      IntVal :       Asn1Int) with
+     (bs : in out Bitstream; IntVal : Asn1Int) with
       Depends => (bs => (bs, IntVal)),
       Pre     => bs.Current_Bit_Pos < Natural'Last - 16
       and then IntVal <= Asn1Int (Interfaces.Unsigned_16'Last)
@@ -304,18 +280,15 @@ package adaasn1rtl.encoding.acn with
       Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 16;
 
    procedure Acn_Enc_Int_TwosComplement_ConstSize_little_endian_32
-     (bs     : in out Bitstream;
-      IntVal :       Asn1Int) with
+     (bs : in out Bitstream; IntVal : Asn1Int) with
       Depends => (bs => (bs, IntVal)),
       Pre     => bs.Current_Bit_Pos < Natural'Last - 32
-      -- and then IntVal <= Asn1Int (Interfaces.Unsigned_32'Last)
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 32,
       Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 32;
 
    procedure Acn_Enc_Int_TwosComplement_ConstSize_little_endian_64
-     (bs     : in out Bitstream;
-      IntVal :       Asn1Int) with
+     (bs : in out Bitstream; IntVal : Asn1Int) with
       Depends => (bs => (bs, IntVal)),
       Pre     => bs.Current_Bit_Pos < Natural'Last - 64
       and then bs.Size_In_Bytes < Positive'Last / 8
@@ -323,8 +296,7 @@ package adaasn1rtl.encoding.acn with
       Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 64;
 
    procedure Acn_Enc_Int_TwosComplement_VarSize_LengthEmbedded
-     (bs     : in out Bitstream;
-      IntVal :       Asn1Int) with
+     (bs : in out Bitstream; IntVal : Asn1Int) with
       Depends => (bs => (bs, IntVal)),
       Pre     => bs.Current_Bit_Pos < Natural'Last - (Asn1Int'Size + 8)
       and then bs.Size_In_Bytes < Positive'Last / 8
@@ -333,12 +305,9 @@ package adaasn1rtl.encoding.acn with
       bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + (Asn1Int'Size + 8);
 
    procedure Acn_Enc_Int_BCD_ConstSize
-     (bs       : in out Bitstream;
-      IntVal   :       Asn1UInt;
-      nNibbles :       Integer) with
+     (bs : in out Bitstream; IntVal : Asn1UInt; nNibbles : Integer) with
       Depends => (bs => (bs, IntVal, nNibbles)),
-      Pre     => nNibbles >= 1
-      and then  nNibbles< Max_Int_Digits
+      Pre     => nNibbles >= 1 and then nNibbles < Max_Int_Digits
       and then IntVal < Powers_of_10 (nNibbles)
       and then bs.Current_Bit_Pos < Natural'Last - 4 * nNibbles
       and then bs.Size_In_Bytes < Positive'Last / 8
@@ -346,53 +315,49 @@ package adaasn1rtl.encoding.acn with
       Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 4 * nNibbles;
 
    procedure Acn_Enc_Int_BCD_VarSize_NullTerminated
-     (bs     : in out Bitstream;
-      IntVal :       Asn1UInt) with
+     (bs : in out Bitstream; IntVal : Asn1UInt) with
       Depends => (bs => (bs, IntVal)),
-      Pre     => IntVal < Powers_of_10 (Max_Int_Digits-1)
+      Pre     => IntVal < Powers_of_10 (Max_Int_Digits - 1)
       and then bs.Current_Bit_Pos < Natural'Last - 4 * (Max_Int_Digits + 1)
       and then bs.Size_In_Bytes < Positive'Last / 8
-      and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 4 * (Max_Int_Digits + 1),
+      and then bs.Current_Bit_Pos <=
+        bs.Size_In_Bytes * 8 - 4 * (Max_Int_Digits + 1),
       Post => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and
       bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + 4 * (Max_Int_Digits + 1);
 
    procedure Acn_Enc_Int_ASCII_VarSize_LengthEmbedded
-     (bs     : in out Bitstream;
-      IntVal :       Asn1Int) with
+     (bs : in out Bitstream; IntVal : Asn1Int) with
       Depends => (bs => (bs, IntVal)),
-      Pre     => IntVal > -Asn1Int (Powers_of_10 (Max_Int_Digits-2))
-      and then Asn1UInt (abs IntVal) < Powers_of_10 (Max_Int_Digits-2)
+      Pre     => IntVal > -Asn1Int (Powers_of_10 (Max_Int_Digits - 2))
+      and then Asn1UInt (abs IntVal) < Powers_of_10 (Max_Int_Digits - 2)
       and then bs.Current_Bit_Pos < Natural'Last - 8 * (Max_Int_Digits)
       and then bs.Size_In_Bytes < Positive'Last / 8
-      and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 8 * (Max_Int_Digits),
+      and then bs.Current_Bit_Pos <=
+        bs.Size_In_Bytes * 8 - 8 * (Max_Int_Digits),
       Post => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and
       bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + 8 * (Max_Int_Digits);
 
    procedure Acn_Enc_UInt_ASCII_VarSize_LengthEmbedded
-     (bs     : in out Bitstream;
-      IntVal :       Asn1UInt) with
+     (bs : in out Bitstream; IntVal : Asn1UInt) with
       Depends => (bs => (bs, IntVal)),
-      Pre     => IntVal < Powers_of_10 (Max_Int_Digits-1)
+      Pre     => IntVal < Powers_of_10 (Max_Int_Digits - 1)
       and then bs.Current_Bit_Pos < Natural'Last - 8 * (Max_Int_Digits + 1)
       and then bs.Size_In_Bytes < Positive'Last / 8
-      and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 8 * (Max_Int_Digits + 1),
+      and then bs.Current_Bit_Pos <=
+        bs.Size_In_Bytes * 8 - 8 * (Max_Int_Digits + 1),
       Post => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and
       bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + 8 * (Max_Int_Digits + 1);
 
    procedure Acn_Enc_Int_ASCII_VarSize_NullTerminated
-     (bs        : in out Bitstream;
-      IntVal    :       Asn1Int;
-      nullChars :       OctetBuffer) with
+     (bs : in out Bitstream; IntVal : Asn1Int; nullChars : OctetBuffer) with
       Depends => (bs => (bs, IntVal, nullChars)),
       Pre     => nullChars'Length <= 100
-      and then
-        bs.Current_Bit_Pos <
+      and then bs.Current_Bit_Pos <
         Natural'Last -
           8 *
             (Get_number_of_digits (abs_value (IntVal)) + nullChars'Length + 1)
       and then bs.Size_In_Bytes < Positive'Last / 8
-      and then
-        bs.Current_Bit_Pos <=
+      and then bs.Current_Bit_Pos <=
         bs.Size_In_Bytes * 8 -
           8 *
             (Get_number_of_digits (abs_value (IntVal)) + nullChars'Length + 1),
@@ -403,17 +368,13 @@ package adaasn1rtl.encoding.acn with
             (Get_number_of_digits (abs_value (IntVal)) + nullChars'Length + 1);
 
    procedure Acn_Enc_UInt_ASCII_VarSize_NullTerminated
-     (bs        : in out Bitstream;
-      IntVal    :       Asn1UInt;
-      nullChars :       OctetBuffer) with
+     (bs : in out Bitstream; IntVal : Asn1UInt; nullChars : OctetBuffer) with
       Depends => (bs => (bs, IntVal, nullChars)),
       Pre     => nullChars'Length <= 100
-      and then
-        bs.Current_Bit_Pos <
+      and then bs.Current_Bit_Pos <
         Natural'Last - 8 * (Get_number_of_digits (IntVal) + nullChars'Length)
       and then bs.Size_In_Bytes < Positive'Last / 8
-      and then
-        bs.Current_Bit_Pos <=
+      and then bs.Current_Bit_Pos <=
         bs.Size_In_Bytes * 8 -
           8 * (Get_number_of_digits (IntVal) + nullChars'Length),
       Post => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and
@@ -422,14 +383,9 @@ package adaasn1rtl.encoding.acn with
           8 * (Get_number_of_digits (IntVal) + nullChars'Length);
 
    procedure Acn_Dec_Int_PositiveInteger_ConstSize
-     (bs          : in out Bitstream;
-      IntVal      :    out Asn1UInt;
-      minVal      :       Asn1UInt;
-      maxVal      :       Asn1UInt;
-      nSizeInBits :       Integer;
-      Result      :    out ASN1_RESULT) with
-      Pre => nSizeInBits >= 0
-      and then nSizeInBits <= Asn1UInt'Size
+     (bs     : in out Bitstream; IntVal : out Asn1UInt; minVal : Asn1UInt;
+      maxVal : Asn1UInt; nSizeInBits : Integer; Result : out ASN1_RESULT) with
+      Pre => nSizeInBits >= 0 and then nSizeInBits <= Asn1UInt'Size
       and then bs.Current_Bit_Pos < Natural'Last - nSizeInBits
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - nSizeInBits,
@@ -438,11 +394,8 @@ package adaasn1rtl.encoding.acn with
        (not Result.Success and IntVal = minVal));
 
    procedure Acn_Dec_Int_PositiveInteger_ConstSize_8
-     (bs     : in out Bitstream;
-      IntVal :    out Asn1UInt;
-      minVal :       Asn1UInt;
-      maxVal :       Asn1UInt;
-      Result :    out ASN1_RESULT) with
+     (bs     : in out Bitstream; IntVal : out Asn1UInt; minVal : Asn1UInt;
+      maxVal :        Asn1UInt; Result : out ASN1_RESULT) with
       Pre => bs.Current_Bit_Pos < Natural'Last - 8
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 8,
@@ -451,11 +404,8 @@ package adaasn1rtl.encoding.acn with
        (not Result.Success and IntVal = minVal));
 
    procedure Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_16
-     (bs     : in out Bitstream;
-      IntVal :    out Asn1UInt;
-      minVal :       Asn1UInt;
-      maxVal :       Asn1UInt;
-      Result :    out ASN1_RESULT) with
+     (bs     : in out Bitstream; IntVal : out Asn1UInt; minVal : Asn1UInt;
+      maxVal :        Asn1UInt; Result : out ASN1_RESULT) with
       Pre => bs.Current_Bit_Pos < Natural'Last - 16
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 16,
@@ -464,11 +414,8 @@ package adaasn1rtl.encoding.acn with
        (not Result.Success and IntVal = minVal));
 
    procedure Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_32
-     (bs     : in out Bitstream;
-      IntVal :    out Asn1UInt;
-      minVal :       Asn1UInt;
-      maxVal :       Asn1UInt;
-      Result :    out ASN1_RESULT) with
+     (bs     : in out Bitstream; IntVal : out Asn1UInt; minVal : Asn1UInt;
+      maxVal :        Asn1UInt; Result : out ASN1_RESULT) with
       Pre => bs.Current_Bit_Pos < Natural'Last - 32
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 32,
@@ -477,11 +424,8 @@ package adaasn1rtl.encoding.acn with
        (not Result.Success and IntVal = minVal));
 
    procedure Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_64
-     (bs     : in out Bitstream;
-      IntVal :    out Asn1UInt;
-      minVal :       Asn1UInt;
-      maxVal :       Asn1UInt;
-      Result :    out ASN1_RESULT) with
+     (bs     : in out Bitstream; IntVal : out Asn1UInt; minVal : Asn1UInt;
+      maxVal :        Asn1UInt; Result : out ASN1_RESULT) with
       Pre => bs.Current_Bit_Pos < Natural'Last - 64
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 64,
@@ -490,11 +434,8 @@ package adaasn1rtl.encoding.acn with
        (not Result.Success and IntVal = minVal));
 
    procedure Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_16
-     (bs     : in out Bitstream;
-      IntVal :    out Asn1UInt;
-      minVal :       Asn1UInt;
-      maxVal :       Asn1UInt;
-      Result :    out ASN1_RESULT) with
+     (bs     : in out Bitstream; IntVal : out Asn1UInt; minVal : Asn1UInt;
+      maxVal :        Asn1UInt; Result : out ASN1_RESULT) with
       Pre => bs.Current_Bit_Pos < Natural'Last - 16
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 16,
@@ -503,11 +444,8 @@ package adaasn1rtl.encoding.acn with
        (not Result.Success and IntVal = minVal));
 
    procedure Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_32
-     (bs     : in out Bitstream;
-      IntVal :    out Asn1UInt;
-      minVal :       Asn1UInt;
-      maxVal :       Asn1UInt;
-      Result :    out ASN1_RESULT) with
+     (bs     : in out Bitstream; IntVal : out Asn1UInt; minVal : Asn1UInt;
+      maxVal :        Asn1UInt; Result : out ASN1_RESULT) with
       Pre => bs.Current_Bit_Pos < Natural'Last - 32
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 32,
@@ -516,11 +454,8 @@ package adaasn1rtl.encoding.acn with
        (not Result.Success and IntVal = minVal));
 
    procedure Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_64
-     (bs     : in out Bitstream;
-      IntVal :    out Asn1UInt;
-      minVal :       Asn1UInt;
-      maxVal :       Asn1UInt;
-      Result :    out ASN1_RESULT) with
+     (bs     : in out Bitstream; IntVal : out Asn1UInt; minVal : Asn1UInt;
+      maxVal :        Asn1UInt; Result : out ASN1_RESULT) with
       Pre => bs.Current_Bit_Pos < Natural'Last - 64
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 64,
@@ -528,9 +463,7 @@ package adaasn1rtl.encoding.acn with
       ((Result.Success and IntVal >= minVal and IntVal <= maxVal) or
        (not Result.Success and IntVal = minVal));
    procedure Acn_Dec_Int_PositiveInteger_VarSize_LengthEmbedded
-     (bs     : in out Bitstream;
-      IntVal :    out Asn1UInt;
-      minVal :       Asn1UInt;
+     (bs     : in out Bitstream; IntVal : out Asn1UInt; minVal : Asn1UInt;
       Result :    out ASN1_RESULT) with
       Pre => bs.Current_Bit_Pos < Natural'Last - (8 * 8 + 8)
       and then bs.Size_In_Bytes < Positive'Last / 8
@@ -541,14 +474,9 @@ package adaasn1rtl.encoding.acn with
        (not Result.Success and IntVal = minVal));
 
    procedure Acn_Dec_Int_TwosComplement_ConstSize
-     (bs          : in out Bitstream;
-      IntVal      :    out Asn1Int;
-      minVal      :       Asn1Int;
-      maxVal      :       Asn1Int;
-      nSizeInBits :       Integer;
-      Result      :    out ASN1_RESULT) with
-      Pre => nSizeInBits >= 0
-      and then nSizeInBits <= Asn1UInt'Size
+     (bs     : in out Bitstream; IntVal : out Asn1Int; minVal : Asn1Int;
+      maxVal : Asn1Int; nSizeInBits : Integer; Result : out ASN1_RESULT) with
+      Pre => nSizeInBits >= 0 and then nSizeInBits <= Asn1UInt'Size
       and then bs.Current_Bit_Pos < Natural'Last - nSizeInBits
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - nSizeInBits,
@@ -557,11 +485,8 @@ package adaasn1rtl.encoding.acn with
        (not Result.Success and IntVal = minVal));
 
    procedure Acn_Dec_Int_TwosComplement_ConstSize_8
-     (bs     : in out Bitstream;
-      IntVal :    out Asn1Int;
-      minVal :       Asn1Int;
-      maxVal :       Asn1Int;
-      Result :    out ASN1_RESULT) with
+     (bs     : in out Bitstream; IntVal : out Asn1Int; minVal : Asn1Int;
+      maxVal :        Asn1Int; Result : out ASN1_RESULT) with
       Pre => bs.Current_Bit_Pos < Natural'Last - 8
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 8,
@@ -570,11 +495,8 @@ package adaasn1rtl.encoding.acn with
        (not Result.Success and IntVal = minVal));
 
    procedure Acn_Dec_Int_TwosComplement_ConstSize_big_endian_16
-     (bs     : in out Bitstream;
-      IntVal :    out Asn1Int;
-      minVal :       Asn1Int;
-      maxVal :       Asn1Int;
-      Result :    out ASN1_RESULT) with
+     (bs     : in out Bitstream; IntVal : out Asn1Int; minVal : Asn1Int;
+      maxVal :        Asn1Int; Result : out ASN1_RESULT) with
       Pre => bs.Current_Bit_Pos < Natural'Last - 16
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 16,
@@ -583,11 +505,8 @@ package adaasn1rtl.encoding.acn with
        (not Result.Success and IntVal = minVal));
 
    procedure Acn_Dec_Int_TwosComplement_ConstSize_big_endian_32
-     (bs     : in out Bitstream;
-      IntVal :    out Asn1Int;
-      minVal :       Asn1Int;
-      maxVal :       Asn1Int;
-      Result :    out ASN1_RESULT) with
+     (bs     : in out Bitstream; IntVal : out Asn1Int; minVal : Asn1Int;
+      maxVal :        Asn1Int; Result : out ASN1_RESULT) with
       Pre => bs.Current_Bit_Pos < Natural'Last - 32
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 32,
@@ -596,11 +515,8 @@ package adaasn1rtl.encoding.acn with
        (not Result.Success and IntVal = minVal));
 
    procedure Acn_Dec_Int_TwosComplement_ConstSize_big_endian_64
-     (bs     : in out Bitstream;
-      IntVal :    out Asn1Int;
-      minVal :       Asn1Int;
-      maxVal :       Asn1Int;
-      Result :    out ASN1_RESULT) with
+     (bs     : in out Bitstream; IntVal : out Asn1Int; minVal : Asn1Int;
+      maxVal :        Asn1Int; Result : out ASN1_RESULT) with
       Pre => bs.Current_Bit_Pos < Natural'Last - 64
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 64,
@@ -609,11 +525,8 @@ package adaasn1rtl.encoding.acn with
        (not Result.Success and IntVal = minVal));
 
    procedure Acn_Dec_Int_TwosComplement_ConstSize_little_endian_16
-     (bs     : in out Bitstream;
-      IntVal :    out Asn1Int;
-      minVal :       Asn1Int;
-      maxVal :       Asn1Int;
-      Result :    out ASN1_RESULT) with
+     (bs     : in out Bitstream; IntVal : out Asn1Int; minVal : Asn1Int;
+      maxVal :        Asn1Int; Result : out ASN1_RESULT) with
       Pre => bs.Current_Bit_Pos < Natural'Last - 16
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 16,
@@ -622,11 +535,8 @@ package adaasn1rtl.encoding.acn with
        (not Result.Success and IntVal = minVal));
 
    procedure Acn_Dec_Int_TwosComplement_ConstSize_little_endian_32
-     (bs     : in out Bitstream;
-      IntVal :    out Asn1Int;
-      minVal :       Asn1Int;
-      maxVal :       Asn1Int;
-      Result :    out ASN1_RESULT) with
+     (bs     : in out Bitstream; IntVal : out Asn1Int; minVal : Asn1Int;
+      maxVal :        Asn1Int; Result : out ASN1_RESULT) with
       Pre => bs.Current_Bit_Pos < Natural'Last - 32
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 32,
@@ -635,11 +545,8 @@ package adaasn1rtl.encoding.acn with
        (not Result.Success and IntVal = minVal));
 
    procedure Acn_Dec_Int_TwosComplement_ConstSize_little_endian_64
-     (bs     : in out Bitstream;
-      IntVal :    out Asn1Int;
-      minVal :       Asn1Int;
-      maxVal :       Asn1Int;
-      Result :    out ASN1_RESULT) with
+     (bs     : in out Bitstream; IntVal : out Asn1Int; minVal : Asn1Int;
+      maxVal :        Asn1Int; Result : out ASN1_RESULT) with
       Pre => bs.Current_Bit_Pos < Natural'Last - 64
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 64,
@@ -648,8 +555,7 @@ package adaasn1rtl.encoding.acn with
        (not Result.Success and IntVal = minVal));
 
    procedure Acn_Dec_Int_TwosComplement_VarSize_LengthEmbedded
-     (bs     : in out Bitstream;
-      IntVal :    out Asn1Int;
+     (bs     : in out Bitstream; IntVal : out Asn1Int;
       Result :    out ASN1_RESULT) with
       Pre => bs.Current_Bit_Pos < Natural'Last - (Asn1Int'Size + 8)
       and then bs.Size_In_Bytes < Positive'Last / 8
@@ -658,16 +564,10 @@ package adaasn1rtl.encoding.acn with
       bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + (Asn1Int'Size + 8);
 
    procedure Acn_Dec_Int_BCD_ConstSize
-     (bs       : in out Bitstream;
-      IntVal   :    out Asn1UInt;
-      minVal   :       Asn1UInt;
-      maxVal   :       Asn1UInt;
-      nNibbles :       Integer;
-      Result   :    out ASN1_RESULT) with
-      Pre => nNibbles >= 1
-      and then nNibbles <= Max_Int_Digits-1
-      and then minVal <= maxVal
-      and then maxVal <= Powers_of_10 (nNibbles) - 1
+     (bs     : in out Bitstream; IntVal : out Asn1UInt; minVal : Asn1UInt;
+      maxVal :    Asn1UInt; nNibbles : Integer; Result : out ASN1_RESULT) with
+      Pre => nNibbles >= 1 and then nNibbles <= Max_Int_Digits - 1
+      and then minVal <= maxVal and then maxVal <= Powers_of_10 (nNibbles) - 1
       and then bs.Current_Bit_Pos < Natural'Last - 4 * nNibbles
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 4 * nNibbles,
@@ -677,25 +577,21 @@ package adaasn1rtl.encoding.acn with
        (not Result.Success and IntVal = minVal));
 
    procedure Acn_Dec_Int_BCD_VarSize_NullTerminated
-     (bs     : in out Bitstream;
-      IntVal :    out Asn1UInt;
-      minVal :       Asn1UInt;
-      maxVal :       Asn1UInt;
-      Result :    out ASN1_RESULT) with
+     (bs     : in out Bitstream; IntVal : out Asn1UInt; minVal : Asn1UInt;
+      maxVal :        Asn1UInt; Result : out ASN1_RESULT) with
       Pre => minVal <= maxVal
-      and then maxVal <= Powers_of_10 (Max_Int_Digits-1) - 1
+      and then maxVal <= Powers_of_10 (Max_Int_Digits - 1) - 1
       and then bs.Current_Bit_Pos < Natural'Last - 4 * (Max_Int_Digits)
       and then bs.Size_In_Bytes < Positive'Last / 8
-      and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 4 * (Max_Int_Digits),
+      and then bs.Current_Bit_Pos <=
+        bs.Size_In_Bytes * 8 - 4 * (Max_Int_Digits),
       Post => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and
       bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + 4 * (Max_Int_Digits) and
       ((Result.Success and IntVal >= minVal and IntVal <= maxVal) or
        (not Result.Success and IntVal = minVal));
 
    procedure Acn_Enc_Int_ASCII_ConstSize
-     (bs     : in out Bitstream;
-      IntVal :       Asn1Int;
-      nChars :       Integer) with
+     (bs : in out Bitstream; IntVal : Asn1Int; nChars : Integer) with
       Depends => (bs => (bs, IntVal, nChars)),
       Pre     => nChars >= Get_number_of_digits (abs_value (IntVal)) + 1
       and then nChars <= 50
@@ -706,14 +602,9 @@ package adaasn1rtl.encoding.acn with
       bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + 8 * (nChars);
 
    procedure Acn_Dec_Int_ASCII_ConstSize
-     (bs     : in out Bitstream;
-      IntVal :    out Asn1Int;
-      minVal :       Asn1Int;
-      maxVal :       Asn1Int;
-      nChars :       Integer;
-      Result :    out ASN1_RESULT) with
-      Pre => nChars >= 2
-      and then nChars <= Max_Int_Digits
+     (bs     : in out Bitstream; IntVal : out Asn1Int; minVal : Asn1Int;
+      maxVal :        Asn1Int; nChars : Integer; Result : out ASN1_RESULT) with
+      Pre => nChars >= 2 and then nChars <= Max_Int_Digits
       and then minVal <= maxVal
       and then bs.Current_Bit_Pos < Natural'Last - 8 * (nChars + 1)
       and then bs.Size_In_Bytes < Positive'Last / 8
@@ -724,12 +615,9 @@ package adaasn1rtl.encoding.acn with
        (not Result.Success and IntVal = minVal));
 
    procedure Acn_Enc_UInt_ASCII_ConstSize
-     (bs     : in out Bitstream;
-      IntVal :       Asn1UInt;
-      nChars :       Integer) with
+     (bs : in out Bitstream; IntVal : Asn1UInt; nChars : Integer) with
       Depends => (bs => (bs, IntVal, nChars)),
-      Pre     => nChars >= 1
-      and then nChars <= Max_Int_Digits - 1
+      Pre     => nChars >= 1 and then nChars <= Max_Int_Digits - 1
       and then IntVal < Powers_of_10 (nChars)
       and then bs.Current_Bit_Pos < Natural'Last - 8 * (nChars)
       and then bs.Size_In_Bytes < Positive'Last / 8
@@ -738,16 +626,10 @@ package adaasn1rtl.encoding.acn with
       bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + 8 * (nChars);
 
    procedure Acn_Dec_UInt_ASCII_ConstSize
-     (bs     : in out Bitstream;
-      IntVal :    out Asn1UInt;
-      minVal :       Asn1UInt;
-      maxVal :       Asn1UInt;
-      nChars :       Integer;
-      Result :    out ASN1_RESULT) with
-      Pre => nChars >= 2
-      and then nChars <= 20
-      and then minVal <= maxVal
-      and then maxVal < Powers_of_10 (Max_Int_Digits-1)
+     (bs     : in out Bitstream; IntVal : out Asn1UInt; minVal : Asn1UInt;
+      maxVal :    Asn1UInt; nChars : Integer; Result : out ASN1_RESULT) with
+      Pre => nChars >= 2 and then nChars <= 20 and then minVal <= maxVal
+      and then maxVal < Powers_of_10 (Max_Int_Digits - 1)
       and then bs.Current_Bit_Pos < Natural'Last - 8 * (nChars)
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 8 * (nChars),
@@ -757,44 +639,35 @@ package adaasn1rtl.encoding.acn with
        (not Result.Success and IntVal = minVal));
 
    procedure Acn_Dec_UInt_ASCII_VarSize_NullTerminated
-     (bs        : in out Bitstream;
-      IntVal    :    out Asn1UInt;
-      nullChars :       OctetBuffer;
-      Result    :    out ASN1_RESULT) with
-      Pre => nullChars'Length >= 1
-      and then nullChars'Length <= 10
+     (bs : in out Bitstream; IntVal : out Asn1UInt; nullChars : OctetBuffer;
+      Result :    out ASN1_RESULT) with
+      Pre => nullChars'Length >= 1 and then nullChars'Length <= 10
       and then nullChars'First = 1
-      and then bs.Current_Bit_Pos < Natural'Last - 8 * (Max_Int_Digits + nullChars'Length)
+      and then bs.Current_Bit_Pos <
+        Natural'Last - 8 * (Max_Int_Digits + nullChars'Length)
       and then bs.Size_In_Bytes < Positive'Last / 8
-      and then
-        bs.Current_Bit_Pos <=
+      and then bs.Current_Bit_Pos <=
         bs.Size_In_Bytes * 8 - 8 * (Max_Int_Digits + nullChars'Length),
       Post => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and
       bs.Current_Bit_Pos <=
         bs'Old.Current_Bit_Pos + 8 * (Max_Int_Digits + nullChars'Length);
 
    procedure Acn_Dec_Int_ASCII_VarSize_NullTerminated
-     (bs        : in out Bitstream;
-      IntVal    :    out Asn1Int;
-      nullChars :       OctetBuffer;
-      Result    :    out ASN1_RESULT) with
-      Pre => nullChars'Length >= 1
-      and then nullChars'Length < 10
+     (bs     : in out Bitstream; IntVal : out Asn1Int; nullChars : OctetBuffer;
+      Result :    out ASN1_RESULT) with
+      Pre => nullChars'Length >= 1 and then nullChars'Length < 10
       and then nullChars'First = 1
-      and then
-        bs.Current_Bit_Pos <
+      and then bs.Current_Bit_Pos <
         Natural'Last - 8 * (Max_Int_Digits + nullChars'Length + 1)
       and then bs.Size_In_Bytes < Positive'Last / 8
-      and then
-        bs.Current_Bit_Pos <=
+      and then bs.Current_Bit_Pos <=
         bs.Size_In_Bytes * 8 - 8 * (Max_Int_Digits + nullChars'Length + 1),
       Post => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and
       bs.Current_Bit_Pos <=
         bs'Old.Current_Bit_Pos + 8 * (Max_Int_Digits + nullChars'Length + 1);
 
    procedure Acn_Enc_Real_IEEE754_32_big_endian
-     (bs      : in out Bitstream;
-      RealVal :       Asn1Real) with
+     (bs : in out Bitstream; RealVal : Asn1Real) with
       Depends => (bs => (bs, RealVal)),
       Pre     => bs.Current_Bit_Pos < Natural'Last - 32
       and then bs.Size_In_Bytes < Positive'Last / 8
@@ -802,9 +675,8 @@ package adaasn1rtl.encoding.acn with
       Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 32;
 
    procedure Acn_Dec_Real_IEEE754_32_big_endian
-     (bs      : in out Bitstream;
-      RealVal :    out Asn1Real;
-      Result  :    out ASN1_RESULT) with
+     (bs     : in out Bitstream; RealVal : out Asn1Real;
+      Result :    out ASN1_RESULT) with
       Depends => ((Result, bs, RealVal) => bs),
       Pre     => bs.Current_Bit_Pos < Natural'Last - 32
       and then bs.Size_In_Bytes < Positive'Last / 8
@@ -813,8 +685,7 @@ package adaasn1rtl.encoding.acn with
       bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 32;
 
    procedure Acn_Enc_Real_IEEE754_64_big_endian
-     (bs      : in out Bitstream;
-      RealVal :       Asn1Real) with
+     (bs : in out Bitstream; RealVal : Asn1Real) with
       Depends => (bs => (bs, RealVal)),
       Pre     => bs.Current_Bit_Pos < Natural'Last - 64
       and then bs.Size_In_Bytes < Positive'Last / 8
@@ -822,9 +693,8 @@ package adaasn1rtl.encoding.acn with
       Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 64;
 
    procedure Acn_Dec_Real_IEEE754_64_big_endian
-     (bs      : in out Bitstream;
-      RealVal :    out Asn1Real;
-      Result  :    out ASN1_RESULT) with
+     (bs     : in out Bitstream; RealVal : out Asn1Real;
+      Result :    out ASN1_RESULT) with
       Depends => ((Result, bs, RealVal) => bs),
       Pre     => bs.Current_Bit_Pos < Natural'Last - 64
       and then bs.Size_In_Bytes < Positive'Last / 8
@@ -833,8 +703,7 @@ package adaasn1rtl.encoding.acn with
       bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 64;
 
    procedure Acn_Enc_Real_IEEE754_32_little_endian
-     (bs      : in out Bitstream;
-      RealVal :       Asn1Real) with
+     (bs : in out Bitstream; RealVal : Asn1Real) with
       Depends => (bs => (bs, RealVal)),
       Pre     => bs.Current_Bit_Pos < Natural'Last - 32
       and then bs.Size_In_Bytes < Positive'Last / 8
@@ -842,9 +711,8 @@ package adaasn1rtl.encoding.acn with
       Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 32;
 
    procedure Acn_Dec_Real_IEEE754_32_little_endian
-     (bs      : in out Bitstream;
-      RealVal :    out Asn1Real;
-      Result  :    out ASN1_RESULT) with
+     (bs     : in out Bitstream; RealVal : out Asn1Real;
+      Result :    out ASN1_RESULT) with
       Depends => ((Result, bs, RealVal) => bs),
       Pre     => bs.Current_Bit_Pos < Natural'Last - 32
       and then bs.Size_In_Bytes < Positive'Last / 8
@@ -853,8 +721,7 @@ package adaasn1rtl.encoding.acn with
       bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 32;
 
    procedure Acn_Enc_Real_IEEE754_64_little_endian
-     (bs      : in out Bitstream;
-      RealVal :       Asn1Real) with
+     (bs : in out Bitstream; RealVal : Asn1Real) with
       Depends => (bs => (bs, RealVal)),
       Pre     => bs.Current_Bit_Pos < Natural'Last - 64
       and then bs.Size_In_Bytes < Positive'Last / 8
@@ -862,9 +729,8 @@ package adaasn1rtl.encoding.acn with
       Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 64;
 
    procedure Acn_Dec_Real_IEEE754_64_little_endian
-     (bs      : in out Bitstream;
-      RealVal :    out Asn1Real;
-      Result  :    out ASN1_RESULT) with
+     (bs     : in out Bitstream; RealVal : out Asn1Real;
+      Result :    out ASN1_RESULT) with
       Depends => ((Result, bs, RealVal) => bs),
       Pre     => bs.Current_Bit_Pos < Natural'Last - 64
       and then bs.Size_In_Bytes < Positive'Last / 8
@@ -873,420 +739,319 @@ package adaasn1rtl.encoding.acn with
       bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 64;
 
    procedure Acn_Enc_Boolean_true_pattern
-     (bs      : in out Bitstream;
-      BoolVal :       Asn1Boolean;
-      pattern :       BitArray) with
+     (bs : in out Bitstream; BoolVal : Asn1Boolean; pattern : BitArray) with
       Depends => (bs => (bs, BoolVal, pattern)),
       Pre     => pattern'Last >= pattern'First
       and then pattern'Last - pattern'First < Natural'Last
-      and then
-        bs.Current_Bit_Pos <
+      and then bs.Current_Bit_Pos <
         Natural'Last - (pattern'Last - pattern'First + 1)
       and then bs.Size_In_Bytes < Positive'Last / 8
-      and then
-        bs.Current_Bit_Pos <=
+      and then bs.Current_Bit_Pos <=
         bs.Size_In_Bytes * 8 - (pattern'Last - pattern'First + 1),
       Post => bs.Current_Bit_Pos =
       bs'Old.Current_Bit_Pos + (pattern'Last - pattern'First + 1);
 
    procedure Acn_Dec_Boolean_true_pattern
-     (bs      : in out Bitstream;
-      BoolVal :    out Asn1Boolean;
-      pattern :       BitArray;
-      Result  :    out ASN1_RESULT) with
-      Pre     => pattern'Last >= pattern'First
+     (bs     : in out Bitstream; BoolVal : out Asn1Boolean; pattern : BitArray;
+      Result :    out ASN1_RESULT) with
+      Pre => pattern'Last >= pattern'First
       and then pattern'Last - pattern'First < Natural'Last
-      and then
-        bs.Current_Bit_Pos <
+      and then bs.Current_Bit_Pos <
         Natural'Last - (pattern'Last - pattern'First + 1)
       and then bs.Size_In_Bytes < Positive'Last / 8
-      and then
-        bs.Current_Bit_Pos <=
+      and then bs.Current_Bit_Pos <=
         bs.Size_In_Bytes * 8 - (pattern'Last - pattern'First + 1),
       Post => Result.Success and
       bs.Current_Bit_Pos =
         bs'Old.Current_Bit_Pos + (pattern'Last - pattern'First + 1);
 
    procedure Acn_Enc_Boolean_false_pattern
-     (bs      : in out Bitstream;
-      BoolVal :       Asn1Boolean;
-      pattern :       BitArray) with
+     (bs : in out Bitstream; BoolVal : Asn1Boolean; pattern : BitArray) with
       Depends => (bs => (bs, BoolVal, pattern)),
       Pre     => pattern'Last >= pattern'First
       and then pattern'Last - pattern'First < Natural'Last
-      and then
-        bs.Current_Bit_Pos <
+      and then bs.Current_Bit_Pos <
         Natural'Last - (pattern'Last - pattern'First + 1)
       and then bs.Size_In_Bytes < Positive'Last / 8
-      and then
-        bs.Current_Bit_Pos <=
+      and then bs.Current_Bit_Pos <=
         bs.Size_In_Bytes * 8 - (pattern'Last - pattern'First + 1),
       Post => bs.Current_Bit_Pos =
       bs'Old.Current_Bit_Pos + (pattern'Last - pattern'First + 1);
 
    procedure Acn_Dec_Boolean_false_pattern
-     (bs      : in out Bitstream;
-      BoolVal :    out Asn1Boolean;
-      pattern :       BitArray;
-      Result  :    out ASN1_RESULT) with
+     (bs     : in out Bitstream; BoolVal : out Asn1Boolean; pattern : BitArray;
+      Result :    out ASN1_RESULT) with
       Depends => ((bs, BoolVal, Result) => (bs, pattern)),
       Pre     => pattern'Last >= pattern'First
       and then pattern'Last - pattern'First < Natural'Last
-      and then
-        bs.Current_Bit_Pos <
+      and then bs.Current_Bit_Pos <
         Natural'Last - (pattern'Last - pattern'First + 1)
       and then bs.Size_In_Bytes < Positive'Last / 8
-      and then
-        bs.Current_Bit_Pos <=
+      and then bs.Current_Bit_Pos <=
         bs.Size_In_Bytes * 8 - (pattern'Last - pattern'First + 1),
       Post => Result.Success and
       bs.Current_Bit_Pos =
         bs'Old.Current_Bit_Pos + (pattern'Last - pattern'First + 1);
 
    procedure Acn_Enc_NullType_pattern
-     (bs      : in out Bitstream;
-      encVal  :       Asn1NullType;
-      pattern :       BitArray) with
-      Pre     => pattern'Last >= pattern'First
+     (bs : in out Bitstream; encVal : Asn1NullType; pattern : BitArray) with
+      Pre => pattern'Last >= pattern'First
       and then pattern'Last - pattern'First < Natural'Last
-      and then
-        bs.Current_Bit_Pos <
+      and then bs.Current_Bit_Pos <
         Natural'Last - (pattern'Last - pattern'First + 1)
       and then bs.Size_In_Bytes < Positive'Last / 8
-      and then
-        bs.Current_Bit_Pos <=
+      and then bs.Current_Bit_Pos <=
         bs.Size_In_Bytes * 8 - (pattern'Last - pattern'First + 1),
       Post => bs.Current_Bit_Pos =
       bs'Old.Current_Bit_Pos + (pattern'Last - pattern'First + 1);
 
    procedure Acn_Dec_NullType_pattern
-     (bs       : in out Bitstream;
-      decValue :    out Asn1NullType;
-      pattern  :       BitArray;
-      Result   :    out ASN1_RESULT) with
+     (bs : in out Bitstream; decValue : out Asn1NullType; pattern : BitArray;
+      Result :    out ASN1_RESULT) with
       Depends => ((bs, decValue, Result) => (bs, pattern)),
       Pre     => pattern'Last >= pattern'First
       and then pattern'Last - pattern'First < Natural'Last
-      and then
-        bs.Current_Bit_Pos <
+      and then bs.Current_Bit_Pos <
         Natural'Last - (pattern'Last - pattern'First + 1)
       and then bs.Size_In_Bytes < Positive'Last / 8
-      and then
-        bs.Current_Bit_Pos <=
+      and then bs.Current_Bit_Pos <=
         bs.Size_In_Bytes * 8 - (pattern'Last - pattern'First + 1),
       Post => bs.Current_Bit_Pos =
       bs'Old.Current_Bit_Pos + (pattern'Last - pattern'First + 1);
 
    procedure Acn_Enc_NullType_pattern2
-     (bs      : in out Bitstream;
-      pattern :       BitArray) with
+     (bs : in out Bitstream; pattern : BitArray) with
       Depends => (bs => (bs, pattern)),
       Pre     => pattern'Last >= pattern'First
       and then pattern'Last - pattern'First < Natural'Last
-      and then
-        bs.Current_Bit_Pos <
+      and then bs.Current_Bit_Pos <
         Natural'Last - (pattern'Last - pattern'First + 1)
       and then bs.Size_In_Bytes < Positive'Last / 8
-      and then
-        bs.Current_Bit_Pos <=
+      and then bs.Current_Bit_Pos <=
         bs.Size_In_Bytes * 8 - (pattern'Last - pattern'First + 1),
       Post => bs.Current_Bit_Pos =
       bs'Old.Current_Bit_Pos + (pattern'Last - pattern'First + 1);
 
    procedure Acn_Dec_NullType_pattern2
-     (bs      : in out Bitstream;
-      pattern :       BitArray;
-      Result  :    out ASN1_RESULT) with
+     (bs : in out Bitstream; pattern : BitArray; Result : out ASN1_RESULT) with
       Depends => ((bs, Result) => (bs, pattern)),
       Pre     => pattern'Last >= pattern'First
       and then pattern'Last - pattern'First < Natural'Last
-      and then
-        bs.Current_Bit_Pos <
+      and then bs.Current_Bit_Pos <
         Natural'Last - (pattern'Last - pattern'First + 1)
       and then bs.Size_In_Bytes < Positive'Last / 8
-      and then
-        bs.Current_Bit_Pos <=
+      and then bs.Current_Bit_Pos <=
         bs.Size_In_Bytes * 8 - (pattern'Last - pattern'First + 1),
       Post => bs.Current_Bit_Pos =
       bs'Old.Current_Bit_Pos + (pattern'Last - pattern'First + 1);
 
    procedure Acn_Enc_NullType
-     (bs     : in out Bitstream;
-      encVal :       Asn1NullType) with
+     (bs : in out Bitstream; encVal : Asn1NullType) with
       Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos;
 
    procedure Acn_Dec_NullType
-     (bs       : in out Bitstream;
-      decValue :    out Asn1NullType;
-      Result   :    out ASN1_RESULT) with
-      Post => Result.Success and
-      decValue = 0 and
+     (bs     : in out Bitstream; decValue : out Asn1NullType;
+      Result :    out ASN1_RESULT) with
+      Post => Result.Success and decValue = 0 and
       bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos;
 
    procedure Acn_Enc_String_Ascii_FixSize
-     (bs     : in out Bitstream;
-      strVal :       String) with
+     (bs : in out Bitstream; strVal : String) with
       Depends => (bs => (bs, strVal)),
       Pre     => strVal'Last >= strVal'First
       and then strVal'Last - strVal'First < Natural'Last / 8 - 8
-      and then
-        bs.Current_Bit_Pos <
+      and then bs.Current_Bit_Pos <
         Natural'Last - (strVal'Last - strVal'First) * 8
       and then bs.Size_In_Bytes < Positive'Last / 8
-      and then
-        bs.Current_Bit_Pos <=
+      and then bs.Current_Bit_Pos <=
         bs.Size_In_Bytes * 8 - (strVal'Last - strVal'First) * 8,
       Post => bs.Current_Bit_Pos =
       bs'Old.Current_Bit_Pos + (strVal'Last - strVal'First) * 8;
 
    procedure Acn_Dec_String_Ascii_FixSize
-     (bs     : in out Bitstream;
-      strVal : in out String;
+     (bs     : in out Bitstream; strVal : in out String;
       Result :    out ASN1_RESULT) with
-      Pre     => strVal'Last >= strVal'First
+      Pre => strVal'Last >= strVal'First
       and then strVal'Last - strVal'First < Natural'Last / 8 - 8
-      and then
-        bs.Current_Bit_Pos <
+      and then bs.Current_Bit_Pos <
         Natural'Last - (strVal'Last - strVal'First) * 8
       and then bs.Size_In_Bytes < Positive'Last / 8
-      and then
-        bs.Current_Bit_Pos <=
+      and then bs.Current_Bit_Pos <=
         bs.Size_In_Bytes * 8 - (strVal'Last - strVal'First) * 8,
       Post => Result.Success and
       bs.Current_Bit_Pos =
         bs'Old.Current_Bit_Pos + (strVal'Last - strVal'First) * 8;
 
    procedure Acn_Enc_String_Ascii_Null_Teminated
-     (bs              : in out Bitstream;
-      null_characters :       OctetBuffer;
-      strVal          :       String) with
+     (bs     : in out Bitstream; null_characters : OctetBuffer;
+      strVal :        String) with
       Depends => (bs => (bs, strVal, null_characters)),
-      Pre     => null_characters'Length >= 1
-      and then null_characters'Length <= 10
-      and then null_characters'First = 1
-      and then strVal'Last >= strVal'First
-      and then
-        strVal'Last - strVal'First <
+      Pre => null_characters'Length >= 1 and then null_characters'Length <= 10
+      and then null_characters'First = 1 and then strVal'Last >= strVal'First
+      and then strVal'Last - strVal'First <
         Natural'Last / 8 - null_characters'Length
-      and then
-        bs.Current_Bit_Pos <
+      and then bs.Current_Bit_Pos <
         Natural'Last - (strVal'Length - 1 + null_characters'Length) * 8
       and then bs.Size_In_Bytes < Positive'Last / 8
-      and then
-        bs.Current_Bit_Pos <=
+      and then bs.Current_Bit_Pos <=
         bs.Size_In_Bytes * 8 -
-            (strVal'Length - 1  + null_characters'Length) * 8,
+          (strVal'Length - 1 + null_characters'Length) * 8,
       Post => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and
       bs.Current_Bit_Pos <=
         bs'Old.Current_Bit_Pos +
-             (strVal'Length - 1 + null_characters'Length) * 8;
+          (strVal'Length - 1 + null_characters'Length) * 8;
 
    procedure Acn_Dec_String_Ascii_Null_Teminated
-     (bs              : in out Bitstream;
-      null_characters :       OctetBuffer;
-      strVal          : in out String;
-      Result          :    out ASN1_RESULT) with
-      Pre     => null_characters'Length >= 1
-      and then null_characters'Length <= 10
-      and then null_characters'First = 1
-      and then strVal'Last < Natural'Last
+     (bs     : in out Bitstream; null_characters : OctetBuffer;
+      strVal : in out String; Result : out ASN1_RESULT) with
+      Pre => null_characters'Length >= 1 and then null_characters'Length <= 10
+      and then null_characters'First = 1 and then strVal'Last < Natural'Last
       and then strVal'Last >= strVal'First
       and then strVal'Length < Natural'Last / 8 - null_characters'Length
-      and then
-        bs.Current_Bit_Pos <
-        Natural'Last - (strVal'Length - 1  + null_characters'Length) * 8
+      and then bs.Current_Bit_Pos <
+        Natural'Last - (strVal'Length - 1 + null_characters'Length) * 8
       and then bs.Size_In_Bytes < Positive'Last / 8
-      and then
-        bs.Current_Bit_Pos <=
+      and then bs.Current_Bit_Pos <=
         bs.Size_In_Bytes * 8 -
-           (strVal'Length - 1  + null_characters'Length) * 8,
+          (strVal'Length - 1 + null_characters'Length) * 8,
       Post => Result.Success and
       bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and
       bs.Current_Bit_Pos <=
         bs'Old.Current_Bit_Pos +
-          (strVal'Length - 1  + null_characters'Length) * 8;
+          (strVal'Length - 1 + null_characters'Length) * 8;
 
    procedure Acn_Enc_String_Ascii_Internal_Field_Determinant
-     (bs                           : in out Bitstream;
-      asn1Min                      :        Asn1Int;
-      nLengthDeterminantSizeInBits :       Integer;
-      strVal                       :       String) with
+     (bs                           : in out Bitstream; asn1Min : Asn1Int;
+      nLengthDeterminantSizeInBits :        Integer; strVal : String) with
       Depends => (bs => (bs, asn1Min, strVal, nLengthDeterminantSizeInBits)),
       Pre     => nLengthDeterminantSizeInBits >= 0
       and then nLengthDeterminantSizeInBits < Asn1UInt'Size
-      and then asn1Min >= 0
-      and then strVal'Last < Natural'Last
+      and then asn1Min >= 0 and then strVal'Last < Natural'Last
       and then strVal'Last >= strVal'First
       and then strVal'Last - strVal'First < Natural'Last / 8 - 8
       and then asn1Min <= Asn1Int (getStringSize (strVal))
-      and then
-        bs.Current_Bit_Pos <
+      and then bs.Current_Bit_Pos <
         Natural'Last -
           ((strVal'Last - strVal'First) * 8 + nLengthDeterminantSizeInBits)
       and then bs.Size_In_Bytes < Positive'Last / 8
-      and then
-        bs.Current_Bit_Pos <=
+      and then bs.Current_Bit_Pos <=
         bs.Size_In_Bytes * 8 -
-          ((strVal'Last - strVal'First) * 8 +
-           nLengthDeterminantSizeInBits),
+          ((strVal'Last - strVal'First) * 8 + nLengthDeterminantSizeInBits),
       Post => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and
       bs.Current_Bit_Pos <=
         bs'Old.Current_Bit_Pos +
-          ((strVal'Last - strVal'First) * 8 +
-           nLengthDeterminantSizeInBits);
+          ((strVal'Last - strVal'First) * 8 + nLengthDeterminantSizeInBits);
 
    procedure Acn_Dec_String_Ascii_Internal_Field_Determinant
-     (bs                           : in out Bitstream;
-      asn1Min                      :        Asn1Int;
-      asn1Max                      :        Asn1Int;
-      nLengthDeterminantSizeInBits :       Integer;
-      strVal                       : in out String;
+     (bs : in out Bitstream; asn1Min : Asn1Int; asn1Max : Asn1Int;
+      nLengthDeterminantSizeInBits :        Integer; strVal : in out String;
       Result                       :    out ASN1_RESULT) with
-      Pre => asn1Min >= 0
-      and then asn1Max <= Asn1Int (Integer'Last)
-      and then asn1Min <= asn1Max
-      and then nLengthDeterminantSizeInBits >= 0
+      Pre => asn1Min >= 0 and then asn1Max <= Asn1Int (Integer'Last)
+      and then asn1Min <= asn1Max and then nLengthDeterminantSizeInBits >= 0
       and then nLengthDeterminantSizeInBits < Asn1UInt'Size
-      and then strVal'Last < Natural'Last
-      and then strVal'Last >= strVal'First
+      and then strVal'Last < Natural'Last and then strVal'Last >= strVal'First
       and then strVal'Last - strVal'First < Natural'Last / 8 - 8
-      and then
-        bs.Current_Bit_Pos <
+      and then bs.Current_Bit_Pos <
         Natural'Last -
           ((strVal'Last - strVal'First) * 8 + nLengthDeterminantSizeInBits)
       and then bs.Size_In_Bytes < Positive'Last / 8
-      and then
-        bs.Current_Bit_Pos <=
+      and then bs.Current_Bit_Pos <=
         bs.Size_In_Bytes * 8 -
-          ((strVal'Last - strVal'First) * 8 +
-           nLengthDeterminantSizeInBits),
+          ((strVal'Last - strVal'First) * 8 + nLengthDeterminantSizeInBits),
       Post => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and
       bs.Current_Bit_Pos <=
         bs'Old.Current_Bit_Pos +
-          ((strVal'Last - strVal'First) * 8 +
-           nLengthDeterminantSizeInBits);
+          ((strVal'Last - strVal'First) * 8 + nLengthDeterminantSizeInBits);
 
    procedure Acn_Enc_String_Ascii_External_Field_Determinant
-     (bs     : in out Bitstream;
-      strVal :       String) with
+     (bs : in out Bitstream; strVal : String) with
       Depends => (bs => (bs, strVal)),
-      Pre     => strVal'Last < Natural'Last
-      and then strVal'Last >= strVal'First
+      Pre => strVal'Last < Natural'Last and then strVal'Last >= strVal'First
       and then strVal'Last - strVal'First < Natural'Last / 8 - 8
-      and then
-        bs.Current_Bit_Pos <
+      and then bs.Current_Bit_Pos <
         Natural'Last - ((strVal'Last - strVal'First) * 8)
       and then bs.Size_In_Bytes < Positive'Last / 8
-      and then
-        bs.Current_Bit_Pos <=
+      and then bs.Current_Bit_Pos <=
         bs.Size_In_Bytes * 8 - ((strVal'Last - strVal'First) * 8),
       Post => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and
       bs.Current_Bit_Pos <=
         bs'Old.Current_Bit_Pos + ((strVal'Last - strVal'First) * 8);
 
    procedure Acn_Dec_String_Ascii_External_Field_Determinant
-     (bs                   : in out Bitstream;
-      extSizeDeterminatFld :       Asn1Int;
-      strVal               : in out String;
-      Result               :    out ASN1_RESULT) with
-      Pre     => extSizeDeterminatFld >= 0
+     (bs     : in out Bitstream; extSizeDeterminatFld : Asn1Int;
+      strVal : in out String; Result : out ASN1_RESULT) with
+      Pre => extSizeDeterminatFld >= 0
       and then extSizeDeterminatFld <= Asn1Int (Integer'Last)
-      and then strVal'Last < Natural'Last
-      and then strVal'Last >= strVal'First
+      and then strVal'Last < Natural'Last and then strVal'Last >= strVal'First
       and then strVal'Last - strVal'First < Natural'Last / 8 - 8
-      and then
-        bs.Current_Bit_Pos <
+      and then bs.Current_Bit_Pos <
         Natural'Last - ((strVal'Last - strVal'First) * 8)
       and then bs.Size_In_Bytes < Positive'Last / 8
-      and then
-        bs.Current_Bit_Pos <=
+      and then bs.Current_Bit_Pos <=
         bs.Size_In_Bytes * 8 - ((strVal'Last - strVal'First) * 8),
       Post => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and
       bs.Current_Bit_Pos <=
         bs'Old.Current_Bit_Pos + ((strVal'Last - strVal'First) * 8);
 
    procedure Acn_Enc_String_CharIndex_External_Field_Determinant
-     (bs        : in out Bitstream;
-      charSet   :        String;
-      nCharSize :        Integer;
-      strVal    :       String) with
+     (bs     : in out Bitstream; charSet : String; nCharSize : Integer;
+      strVal :        String) with
       Depends => (bs => (bs, strVal, nCharSize, charSet)),
-      Pre     => nCharSize >= 1
-      and then nCharSize <= 8
-      and then strVal'Last < Natural'Last
-      and then strVal'Last >= strVal'First
+      Pre     => nCharSize >= 1 and then nCharSize <= 8
+      and then strVal'Last < Natural'Last and then strVal'Last >= strVal'First
       and then charSet'Last < Natural'Last
       and then charSet'Last >= charSet'First
       and then charSet'Last - charSet'First <= 255
       and then strVal'Last - strVal'First < Natural'Last / 8 - nCharSize
-      and then
-        bs.Current_Bit_Pos <
+      and then bs.Current_Bit_Pos <
         Natural'Last - ((strVal'Last - strVal'First) * nCharSize)
       and then bs.Size_In_Bytes < Positive'Last / 8
-      and then
-        bs.Current_Bit_Pos <=
+      and then bs.Current_Bit_Pos <=
         bs.Size_In_Bytes * 8 - ((strVal'Last - strVal'First) * nCharSize),
       Post => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and
       bs.Current_Bit_Pos <=
-        bs'Old.Current_Bit_Pos +
-          ((strVal'Last - strVal'First) * nCharSize);
+        bs'Old.Current_Bit_Pos + ((strVal'Last - strVal'First) * nCharSize);
 
    procedure Acn_Dec_String_CharIndex_External_Field_Determinant
-     (bs                   : in out Bitstream;
-      charSet              :        String;
-      nCharSize            :        Integer;
-      extSizeDeterminatFld :       Asn1Int;
-      strVal               : in out String;
+     (bs : in out Bitstream; charSet : String; nCharSize : Integer;
+      extSizeDeterminatFld :        Asn1Int; strVal : in out String;
       Result               :    out ASN1_RESULT) with
       Pre => extSizeDeterminatFld >= 0
       and then extSizeDeterminatFld <= Asn1Int (Integer'Last)
-      and then nCharSize >= 1
-      and then nCharSize <= 8
-      and then strVal'Last < Natural'Last
-      and then strVal'Last >= strVal'First
+      and then nCharSize >= 1 and then nCharSize <= 8
+      and then strVal'Last < Natural'Last and then strVal'Last >= strVal'First
       and then charSet'Last < Natural'Last
       and then charSet'Last >= charSet'First
       and then charSet'Last - charSet'First <= 255
       and then strVal'Last - strVal'First < Natural'Last / 8 - nCharSize
-      and then
-        bs.Current_Bit_Pos <
+      and then bs.Current_Bit_Pos <
         Natural'Last - ((strVal'Last - strVal'First) * nCharSize)
       and then bs.Size_In_Bytes < Positive'Last / 8
-      and then
-        bs.Current_Bit_Pos <=
+      and then bs.Current_Bit_Pos <=
         bs.Size_In_Bytes * 8 - ((strVal'Last - strVal'First) * nCharSize),
       Post => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and
       bs.Current_Bit_Pos <=
-        bs'Old.Current_Bit_Pos +
-          ((strVal'Last - strVal'First) * nCharSize);
+        bs'Old.Current_Bit_Pos + ((strVal'Last - strVal'First) * nCharSize);
 
    procedure Acn_Enc_String_CharIndex_Internal_Field_Determinant
-     (bs                           : in out Bitstream;
-      charSet                      :        String;
-      nCharSize                    :        Integer;
-      asn1Min                      :        Asn1Int;
-      nLengthDeterminantSizeInBits :       Integer;
-      strVal                       :       String) with
+     (bs      : in out Bitstream; charSet : String; nCharSize : Integer;
+      asn1Min :        Asn1Int; nLengthDeterminantSizeInBits : Integer;
+      strVal  :        String) with
       Pre => nLengthDeterminantSizeInBits >= 0
       and then nLengthDeterminantSizeInBits < Asn1UInt'Size
-      and then asn1Min >= 0
-      and then nCharSize >= 1
-      and then nCharSize <= 8
-      and then strVal'Last < Natural'Last
-      and then strVal'Last >= strVal'First
+      and then asn1Min >= 0 and then nCharSize >= 1 and then nCharSize <= 8
+      and then strVal'Last < Natural'Last and then strVal'Last >= strVal'First
       and then charSet'Last < Natural'Last
       and then charSet'Last >= charSet'First
       and then charSet'Last - charSet'First <= 255
       and then strVal'Last - strVal'First < Natural'Last / 8 - nCharSize
       and then asn1Min <= Asn1Int (getStringSize (strVal))
-      and then
-        bs.Current_Bit_Pos <
+      and then bs.Current_Bit_Pos <
         Natural'Last -
           ((strVal'Last - strVal'First) * nCharSize +
            nLengthDeterminantSizeInBits)
       and then bs.Size_In_Bytes < Positive'Last / 8
-      and then
-        bs.Current_Bit_Pos <=
+      and then bs.Current_Bit_Pos <=
         bs.Size_In_Bytes * 8 -
           ((strVal'Last - strVal'First) * nCharSize +
            nLengthDeterminantSizeInBits),
@@ -1297,36 +1062,26 @@ package adaasn1rtl.encoding.acn with
            nLengthDeterminantSizeInBits);
 
    procedure Acn_Dec_String_CharIndex_Internal_Field_Determinant
-     (bs                           : in out Bitstream;
-      charSet                      :        String;
-      nCharSize                    :        Integer;
-      asn1Min                      :        Asn1Int;
-      asn1Max                      :        Asn1Int;
-      nLengthDeterminantSizeInBits :       Integer;
-      strVal                       : in out String;
+     (bs : in out Bitstream; charSet : String; nCharSize : Integer;
+      asn1Min                      :        Asn1Int; asn1Max : Asn1Int;
+      nLengthDeterminantSizeInBits :        Integer; strVal : in out String;
       Result                       :    out ASN1_RESULT) with
-      Pre => asn1Min >= 0
-      and then asn1Max <= Asn1Int (Integer'Last)
-      and then asn1Min <= asn1Max
-      and then nLengthDeterminantSizeInBits >= 0
+      Pre => asn1Min >= 0 and then asn1Max <= Asn1Int (Integer'Last)
+      and then asn1Min <= asn1Max and then nLengthDeterminantSizeInBits >= 0
       and then nLengthDeterminantSizeInBits < Asn1UInt'Size
-      and then nCharSize >= 1
-      and then nCharSize <= 8
-      and then strVal'Last < Natural'Last
-      and then strVal'Last >= strVal'First
+      and then nCharSize >= 1 and then nCharSize <= 8
+      and then strVal'Last < Natural'Last and then strVal'Last >= strVal'First
       and then charSet'Last < Natural'Last
       and then charSet'Last >= charSet'First
       and then charSet'Last - charSet'First <= 255
       and then asn1Max < Asn1Int (Integer'Last) - Asn1Int (charSet'First)
       and then strVal'Last - strVal'First < Natural'Last / 8 - nCharSize
-      and then
-        bs.Current_Bit_Pos <
+      and then bs.Current_Bit_Pos <
         Natural'Last -
           ((strVal'Last - strVal'First) * nCharSize +
            nLengthDeterminantSizeInBits)
       and then bs.Size_In_Bytes < Positive'Last / 8
-      and then
-        bs.Current_Bit_Pos <=
+      and then bs.Current_Bit_Pos <=
         bs.Size_In_Bytes * 8 -
           ((strVal'Last - strVal'First) * nCharSize +
            nLengthDeterminantSizeInBits),

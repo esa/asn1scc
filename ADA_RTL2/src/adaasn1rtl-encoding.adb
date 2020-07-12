@@ -1,28 +1,17 @@
 --  with user_code;
 
 package body adaasn1rtl.encoding with
-     Spark_Mode is
+   Spark_Mode
+is
 
    MASKS : constant OctetBuffer_0_7 :=
      OctetBuffer_0_7'
-       (0 => 16#80#,
-        1 => 16#40#,
-        2 => 16#20#,
-        3 => 16#10#,
-        4 => 16#08#,
-        5 => 16#04#,
-        6 => 16#02#,
-        7 => 16#01#);
+       (0 => 16#80#, 1 => 16#40#, 2 => 16#20#, 3 => 16#10#, 4 => 16#08#,
+        5 => 16#04#, 6 => 16#02#, 7 => 16#01#);
    MASKSB : constant OctetBuffer_0_7 :=
      OctetBuffer_0_7'
-       (0 => 16#00#,
-        1 => 16#01#,
-        2 => 16#03#,
-        3 => 16#07#,
-        4 => 16#0F#,
-        5 => 16#1F#,
-        6 => 16#3F#,
-        7 => 16#7F#);
+       (0 => 16#00#, 1 => 16#01#, 2 => 16#03#, 3 => 16#07#, 4 => 16#0F#,
+        5 => 16#1F#, 6 => 16#3F#, 7 => 16#7F#);
 
    MantissaFactor : constant Asn1Real :=
      Asn1Real (Interfaces.Unsigned_64 (2)**Asn1Real'Machine_Mantissa);
@@ -59,105 +48,37 @@ package body adaasn1rtl.encoding with
       return ret;
    end Sub;
 
-   function GetLengthInBytesAux (V : Asn1UInt; init_value : Asn1UInt) return Asn1Byte
-     with
-       Pre => (init_value = 16#100# or init_value = 16#80#),
-       Post => GetLengthInBytesAux'Result >= 1 and GetLengthInBytesAux'Result <= Asn1UInt'Size/8
-   ;
+   function GetLengthInBytesAux
+     (V : Asn1UInt; init_value : Asn1UInt) return Asn1Byte with
+      Pre  => (init_value = 16#100# or init_value = 16#80#),
+      Post => GetLengthInBytesAux'Result >= 1 and
+      GetLengthInBytesAux'Result <= Asn1UInt'Size / 8;
 
-   function GetLengthInBytesAux (V : Asn1UInt; init_value : Asn1UInt) return Asn1Byte is
-      max_val : Asn1UInt :=init_value;
+   function GetLengthInBytesAux
+     (V : Asn1UInt; init_value : Asn1UInt) return Asn1Byte
+   is
+      max_val : Asn1UInt := init_value;
    begin
-      for i in 1 .. Asn1UInt'Size/8 - 1 loop
+      for i in 1 .. Asn1UInt'Size / 8 - 1 loop
          if V < max_val then
-            return Asn1Byte(i);
+            return Asn1Byte (i);
          end if;
          max_val := max_val * 16#100#;
       end loop;
-      return Asn1UInt'Size/8;
+      return Asn1UInt'Size / 8;
    end GetLengthInBytesAux;
-
 
    function GetBytes (V : Asn1UInt) return Asn1Byte is
    begin
-      return GetLengthInBytesAux(V, 16#100#);
+      return GetLengthInBytesAux (V, 16#100#);
    end GetBytes;
-
---     function GetBytes (V : Asn1UInt) return Asn1Byte is
---        max_val : Asn1UInt :=1;
---     begin
---
---        for i in 1 .. Asn1UInt'Size/8 - 1 loop
---           max_val := max_val * 16#100#;
---           if V < max_val then
---              return Asn1Byte(i);
---           end if;
---        end loop;
---        return Asn1UInt'Size/8;
---     end GetBytes;
-
---     function GetBytes (V : Asn1UInt) return Asn1Byte is
---        Ret : Asn1Byte;
---     begin
---        if V < 16#100# then
---           Ret := 1;
---        elsif V < 16#10000# then
---           Ret := 2;
---        elsif V < 16#1000000# then
---           Ret := 3;
---  --        elsif V < 16#100000000# then
---  --           Ret := 4;
---  --        elsif V < 16#10000000000# then
---  --           Ret := 5;
---  --        elsif V < 16#1000000000000# then
---  --           Ret := 6;
---  --        elsif V < 16#100000000000000# then
---  --           Ret := 7;
---        else
---           Ret := 4;
---        end if;
---        return Ret;
---     end GetBytes;
 
    function GetLengthInBytesOfSIntAux (V : Asn1UInt) return Asn1Byte;
 
    function GetLengthInBytesOfSIntAux (V : Asn1UInt) return Asn1Byte is
-      --max_val : Asn1UInt :=16#80#;
    begin
-       return GetLengthInBytesAux(V, 16#80#);
-
---        for i in 1 .. Asn1UInt'Size/8 - 1 loop
---           if V < max_val then
---              return Asn1Byte(i);
---           end if;
---           max_val := max_val * 16#100#;
---        end loop;
---        return Asn1UInt'Size/8;
+      return GetLengthInBytesAux (V, 16#80#);
    end GetLengthInBytesOfSIntAux;
-
---     function GetLengthInBytesOfSIntAux (V : Asn1UInt) return Asn1Byte is
---        Ret : Asn1Byte;
---     begin
---        if V < 16#80# then
---           Ret := 1;
---        elsif V < 16#8000# then
---           Ret := 2;
---        elsif V < 16#800000# then
---           Ret := 3;
---  --        elsif V < 16#80000000# then
---  --           Ret := 4;
---  --        elsif V < 16#8000000000# then
---  --           Ret := 5;
---  --        elsif V < 16#800000000000# then
---  --           Ret := 6;
---  --        elsif V < 16#80000000000000# then
---  --           Ret := 7;
---        else
---           Ret := 4;
---        end if;
---
---        return Ret;
---     end GetLengthInBytesOfSIntAux;
 
    function GetLengthInBytesOfSInt (V : Asn1Int) return Asn1Byte is
       Ret : Asn1Byte;
@@ -230,11 +151,8 @@ package body adaasn1rtl.encoding with
    function BitStream_init
      (Bitstream_Size_In_Bytes : Positive) return Bitstream is
      (Bitstream'
-        (Size_In_Bytes   => Bitstream_Size_In_Bytes,
-         Current_Bit_Pos => 0,
-         pushDataPrm     => 0,
-         fetchDataPrm    => 0,
-         Buffer          => (others => 0)));
+        (Size_In_Bytes => Bitstream_Size_In_Bytes, Current_Bit_Pos => 0,
+         pushDataPrm   => 0, fetchDataPrm => 0, Buffer => (others => 0)));
 
    procedure BitStream_AppendBit (bs : in out Bitstream; Bit_Value : BIT) is
       Current_Byte : constant Integer :=
@@ -252,9 +170,7 @@ package body adaasn1rtl.encoding with
    end BitStream_AppendBit;
 
    procedure BitStream_ReadBit
-     (bs        : in out Bitstream;
-      Bit_Value :    out BIT;
-      result    :    out Boolean)
+     (bs : in out Bitstream; Bit_Value : out BIT; result : out Boolean)
    is
       Current_Byte : constant Integer :=
         bs.Buffer'First + bs.Current_Bit_Pos / 8;
@@ -275,9 +191,7 @@ package body adaasn1rtl.encoding with
    end BitStream_ReadBit;
 
    procedure BitStream_AppendByte
-     (bs         : in out Bitstream;
-      Byte_Value :      Asn1Byte;
-      Negate     :      Boolean)
+     (bs : in out Bitstream; Byte_Value : Asn1Byte; Negate : Boolean)
    is
       Current_Byte : constant Integer :=
         bs.Buffer'First + bs.Current_Bit_Pos / 8;
@@ -310,9 +224,7 @@ package body adaasn1rtl.encoding with
    end BitStream_AppendByte;
 
    procedure BitStream_DecodeByte
-     (bs         : in out Bitstream;
-      Byte_Value :    out Asn1Byte;
-      success    :    out Boolean)
+     (bs : in out Bitstream; Byte_Value : out Asn1Byte; success : out Boolean)
    is
    begin
       success :=
@@ -327,8 +239,7 @@ package body adaasn1rtl.encoding with
    end BitStream_DecodeByte;
 
    function BitStream_PeekByte
-     (bs     :  Bitstream;
-      offset :    Natural) return Asn1Byte
+     (bs : Bitstream; offset : Natural) return Asn1Byte
    is
       Current_Byte : constant Integer :=
         bs.Buffer'First + (bs.Current_Bit_Pos + offset) / 8;
@@ -349,9 +260,7 @@ package body adaasn1rtl.encoding with
    end BitStream_PeekByte;
 
    procedure BitStream_ReadNibble
-     (bs         : in out Bitstream;
-      Byte_Value :    out Asn1Byte;
-      success    :    out Boolean)
+     (bs : in out Bitstream; Byte_Value : out Asn1Byte; success : out Boolean)
    is
       Current_Byte : constant Integer :=
         bs.Buffer'First + bs.Current_Bit_Pos / 8;
@@ -374,8 +283,7 @@ package body adaasn1rtl.encoding with
             Byte_Value :=
               Byte_Value or
               (Shift_Right
-                 (bs.Buffer (Current_Byte + 1),
-                  8 - totalBitsForNextByte));
+                 (bs.Buffer (Current_Byte + 1), 8 - totalBitsForNextByte));
          end if;
 
          Byte_Value := Byte_Value and 16#0F#;
@@ -386,10 +294,8 @@ package body adaasn1rtl.encoding with
    end BitStream_ReadNibble;
 
    procedure BitStream_AppendPartialByte
-     (bs         : in out Bitstream;
-      Byte_Value :     Asn1Byte;
-      nBits      :     BIT_RANGE;
-      negate     :     Boolean)
+     (bs     : in out Bitstream; Byte_Value : Asn1Byte; nBits : BIT_RANGE;
+      negate :        Boolean)
    is
       Current_Byte : Integer := bs.Buffer'First + bs.Current_Bit_Pos / 8;
       cb                   : constant BIT_RANGE := bs.Current_Bit_Pos mod 8;
@@ -441,9 +347,8 @@ package body adaasn1rtl.encoding with
    end BitStream_AppendPartialByte;
 
    procedure BitStream_AppendBits
-     (bs                 : in out Bitstream;
-      bitMaskAsByteArray :      OctetBuffer;
-      bits_to_write      :      Natural)
+     (bs            : in out Bitstream; bitMaskAsByteArray : OctetBuffer;
+      bits_to_write :        Natural)
    is
       total_bytes : constant Integer   := bits_to_write / 8;
       rest_bits   : constant BIT_RANGE := bits_to_write mod 8;
@@ -451,7 +356,7 @@ package body adaasn1rtl.encoding with
    begin
       for i in
         bitMaskAsByteArray'First ..
-            (bitMaskAsByteArray'First + total_bytes - 1)
+          (bitMaskAsByteArray'First + total_bytes - 1)
       loop
          pragma Loop_Invariant
            (bs.Current_Bit_Pos =
@@ -469,10 +374,8 @@ package body adaasn1rtl.encoding with
    end BitStream_AppendBits;
 
    procedure BitStream_ReadBits
-     (bs                 : in out Bitstream;
-      bitMaskAsByteArray : in out OctetBuffer;
-      bits_to_read       :     Natural;
-      success            : out Boolean)
+     (bs           : in out Bitstream; bitMaskAsByteArray : in out OctetBuffer;
+      bits_to_read :        Natural; success : out Boolean)
    is
       total_bytes : constant Integer   := bits_to_read / 8;
       rest_bits   : constant BIT_RANGE := bits_to_read mod 8;
@@ -480,7 +383,7 @@ package body adaasn1rtl.encoding with
       success := True;
       for i in
         bitMaskAsByteArray'First ..
-            (bitMaskAsByteArray'First + total_bytes - 1)
+          (bitMaskAsByteArray'First + total_bytes - 1)
       loop
          pragma Loop_Invariant
            (bs.Current_Bit_Pos =
@@ -493,8 +396,7 @@ package body adaasn1rtl.encoding with
       end loop;
       if rest_bits > 0 then
          BitStream_ReadPartialByte
-           (bs,
-            bitMaskAsByteArray (bitMaskAsByteArray'First + total_bytes),
+           (bs, bitMaskAsByteArray (bitMaskAsByteArray'First + total_bytes),
             rest_bits);
          bitMaskAsByteArray (bitMaskAsByteArray'First + total_bytes) :=
            Shift_Left
@@ -503,25 +405,20 @@ package body adaasn1rtl.encoding with
       end if;
    end BitStream_ReadBits;
 
-   procedure BitStream_SkipBits
-     (bs           : in out Bitstream;
-      bits_to_skip :     Natural)
+   procedure BitStream_SkipBits (bs : in out Bitstream; bits_to_skip : Natural)
    is
    begin
       bs.Current_Bit_Pos := bs.Current_Bit_Pos + bits_to_skip;
    end BitStream_SkipBits;
 
    procedure BitStream_ReadPartialByte
-     (bs         : in out Bitstream;
-      Byte_Value :    out Asn1Byte;
-      nBits      :    BIT_RANGE)
+     (bs : in out Bitstream; Byte_Value : out Asn1Byte; nBits : BIT_RANGE)
    is
    begin
       Byte_Value         := BitStream_PeekPartialByte (bs, 0, nBits);
       bs.Current_Bit_Pos := bs.Current_Bit_Pos + nBits;
       bitstrean_fetch_data_if_required (bs);
    end BitStream_ReadPartialByte;
-
 
    --   and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - nBits - offset;
    --   bs.Current_Bit_Pos = 0
@@ -531,9 +428,7 @@ package body adaasn1rtl.encoding with
    --   nBits 1
 
    function BitStream_PeekPartialByte
-     (bs     : Bitstream;
-      offset : Natural;
-      nBits  : BIT_RANGE) return Asn1Byte
+     (bs : Bitstream; offset : Natural; nBits : BIT_RANGE) return Asn1Byte
    is
       Current_Byte : Integer :=
         bs.Buffer'First + (bs.Current_Bit_Pos + offset) / 8;
@@ -545,9 +440,7 @@ package body adaasn1rtl.encoding with
       if cb < 8 - nBits then
          totalBits  := cb + nBits;
          Byte_Value :=
-           Shift_Right (
-                        bs.Buffer (Current_Byte),
-                        8 - totalBits) and
+           Shift_Right (bs.Buffer (Current_Byte), 8 - totalBits) and
            MASKSB (nBits);
       else
          totalBitsForNextByte := cb + nBits - 8;
@@ -565,9 +458,7 @@ package body adaasn1rtl.encoding with
    end BitStream_PeekPartialByte;
 
    procedure BitStream_Encode_Non_Negative_Integer
-     (bs       : in out Bitstream;
-      intValue : Asn1UInt;
-      nBits    : Integer)
+     (bs : in out Bitstream; intValue : Asn1UInt; nBits : Integer)
    is
       byteValue     : Asn1Byte;
       tmp           : Asn1UInt;
@@ -594,18 +485,15 @@ package body adaasn1rtl.encoding with
    end BitStream_Encode_Non_Negative_Integer;
 
    procedure BitStream_Decode_Non_Negative_Integer
-     (bs       : in out Bitstream;
-      IntValue :    out Asn1UInt;
-      nBits    :        Integer;
-      result   :    out Boolean)
+     (bs     : in out Bitstream; IntValue : out Asn1UInt; nBits : Integer;
+      result :    out Boolean)
    is
       byteValue   : Asn1Byte;
       total_bytes : constant Integer   := nBits / 8;
       cc          : constant BIT_RANGE := nBits mod 8;
    begin
       result :=
-        nBits >= 0
-        and then nBits <= Asn1UInt'Size
+        nBits >= 0 and then nBits <= Asn1UInt'Size
         and then bs.Current_Bit_Pos < Natural'Last - nBits
         and then bs.Size_In_Bytes < Positive'Last / 8
         and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - nBits;
@@ -628,9 +516,7 @@ package body adaasn1rtl.encoding with
    end BitStream_Decode_Non_Negative_Integer;
 
    procedure Enc_UInt
-     (bs          : in out Bitstream;
-      intValue    :        Asn1UInt;
-      total_bytes :        Integer)
+     (bs : in out Bitstream; intValue : Asn1UInt; total_bytes : Integer)
    is
       byteValue     : Asn1Byte;
       tmp           : Asn1UInt;
@@ -651,17 +537,14 @@ package body adaasn1rtl.encoding with
    end Enc_UInt;
 
    procedure Dec_UInt
-     (bs          : in out Bitstream;
-      total_bytes :        Integer;
-      Ret         :    out Asn1UInt;
-      Result      :    out Boolean)
+     (bs     : in out Bitstream; total_bytes : Integer; Ret : out Asn1UInt;
+      Result :    out Boolean)
    is
       ByteVal : Asn1Byte;
    begin
       Ret    := 0;
       Result :=
-        total_bytes >= 0
-        and then total_bytes <= Asn1UInt'Size / 8
+        total_bytes >= 0 and then total_bytes <= Asn1UInt'Size / 8
         and then bs.Current_Bit_Pos < Natural'Last - total_bytes * 8
         and then bs.Size_In_Bytes < Positive'Last / 8
         and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - total_bytes * 8;
@@ -682,10 +565,8 @@ package body adaasn1rtl.encoding with
    end Dec_UInt;
 
    procedure Dec_Int
-     (bs          : in out Bitstream;
-      total_bytes :        Integer;
-      int_value   :    out Asn1Int;
-      Result      :    out Boolean)
+     (bs : in out Bitstream; total_bytes : Integer; int_value : out Asn1Int;
+      Result :    out Boolean)
    is
       Current_Byte : constant Integer :=
         bs.Buffer'First + bs.Current_Bit_Pos / 8;
@@ -694,8 +575,7 @@ package body adaasn1rtl.encoding with
       Ret         : Asn1UInt;
    begin
       Result :=
-        total_bytes >= 0
-        and then total_bytes <= Asn1UInt'Size / 8
+        total_bytes >= 0 and then total_bytes <= Asn1UInt'Size / 8
         and then bs.Current_Bit_Pos < Natural'Last - total_bytes * 8
         and then bs.Size_In_Bytes < Positive'Last / 8
         and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - total_bytes * 8;
@@ -738,9 +618,7 @@ package body adaasn1rtl.encoding with
    end Long_Float_to_Float;
 
    procedure Enc_SemiConstraintWholeNumber
-     (bs     : in out Bitstream;
-      IntVal :        Asn1Int;
-      MinVal :        Asn1Int)
+     (bs : in out Bitstream; IntVal : Asn1Int; MinVal : Asn1Int)
    is
       nBytes             : Asn1Byte;
       ActualEncodedValue : Asn1UInt;
@@ -756,9 +634,7 @@ package body adaasn1rtl.encoding with
    end Enc_SemiConstraintWholeNumber;
 
    procedure Dec_SemiConstraintWholeNumber
-     (bs     : in out Bitstream;
-      IntVal :    out Asn1Int;
-      MinVal :        Asn1Int;
+     (bs     : in out Bitstream; IntVal : out Asn1Int; MinVal : Asn1Int;
       Result :    out Boolean)
    is
       NBytes : Asn1Byte;
@@ -767,7 +643,7 @@ package body adaasn1rtl.encoding with
 
       IntVal := MinVal;
       BitStream_DecodeByte (bs, NBytes, Result);
-      if Result and NBytes >= 1 and NBytes <= Asn1UInt'Size/8 then
+      if Result and NBytes >= 1 and NBytes <= Asn1UInt'Size / 8 then
          Dec_UInt (bs, Integer (NBytes), Ret, Result);
          if Result then
             IntVal := To_Int (Ret + To_UInt (MinVal));
@@ -783,9 +659,7 @@ package body adaasn1rtl.encoding with
    end Dec_SemiConstraintWholeNumber;
 
    procedure Enc_SemiConstraintPosWholeNumber
-     (bs     : in out Bitstream;
-      IntVal :        Asn1UInt;
-      MinVal :        Asn1UInt)
+     (bs : in out Bitstream; IntVal : Asn1UInt; MinVal : Asn1UInt)
    is
       nBytes             : Asn1Byte;
       ActualEncodedValue : Asn1UInt;
@@ -801,9 +675,7 @@ package body adaasn1rtl.encoding with
    end Enc_SemiConstraintPosWholeNumber;
 
    procedure Dec_SemiConstraintPosWholeNumber
-     (bs     : in out Bitstream;
-      IntVal :    out Asn1UInt;
-      MinVal :        Asn1UInt;
+     (bs     : in out Bitstream; IntVal : out Asn1UInt; MinVal : Asn1UInt;
       Result :    out Boolean)
    is
       NBytes : Asn1Byte;
@@ -813,7 +685,7 @@ package body adaasn1rtl.encoding with
       IntVal := MinVal;
       pragma Assert (IntVal >= MinVal);
       BitStream_DecodeByte (bs, NBytes, Result);
-      Result := Result and NBytes >= 1 and NBytes <= Asn1UInt'Size/8;
+      Result := Result and NBytes >= 1 and NBytes <= Asn1UInt'Size / 8;
       if Result then
          Dec_UInt (bs, Integer (NBytes), Ret, Result);
          if Result then
@@ -829,8 +701,7 @@ package body adaasn1rtl.encoding with
    end Dec_SemiConstraintPosWholeNumber;
 
    procedure Enc_UnConstraintWholeNumber
-     (bs     : in out Bitstream;
-      IntVal :        Asn1Int)
+     (bs : in out Bitstream; IntVal : Asn1Int)
    is
       nBytes : Asn1Byte;
    begin
@@ -843,14 +714,12 @@ package body adaasn1rtl.encoding with
    end Enc_UnConstraintWholeNumber;
 
    procedure Dec_UnConstraintWholeNumber
-     (bs     : in out Bitstream;
-      IntVal :    out Asn1Int;
-      Result :    out Boolean)
+     (bs : in out Bitstream; IntVal : out Asn1Int; Result : out Boolean)
    is
       NBytes : Asn1Byte;
    begin
       BitStream_DecodeByte (bs, NBytes, Result);
-      Result := Result and NBytes >= 1 and NBytes <= Asn1UInt'Size/8;
+      Result := Result and NBytes >= 1 and NBytes <= Asn1UInt'Size / 8;
       if Result then
          Dec_Int (bs, Integer (NBytes), IntVal, Result);
       else
@@ -860,10 +729,8 @@ package body adaasn1rtl.encoding with
    end Dec_UnConstraintWholeNumber;
 
    procedure Enc_ConstraintWholeNumber
-     (bs     : in out Bitstream;
-      IntVal :      Asn1Int;
-      MinVal :      Asn1Int;
-      nBits  :      Integer)
+     (bs    : in out Bitstream; IntVal : Asn1Int; MinVal : Asn1Int;
+      nBits :        Integer)
    is
       encVal : Asn1UInt;
    begin
@@ -872,10 +739,8 @@ package body adaasn1rtl.encoding with
    end Enc_ConstraintWholeNumber;
 
    procedure Enc_ConstraintPosWholeNumber
-     (bs     : in out Bitstream;
-      IntVal :      Asn1UInt;
-      MinVal :      Asn1UInt;
-      nBits  :      Integer)
+     (bs    : in out Bitstream; IntVal : Asn1UInt; MinVal : Asn1UInt;
+      nBits :        Integer)
    is
       encVal : Asn1UInt;
    begin
@@ -884,12 +749,8 @@ package body adaasn1rtl.encoding with
    end Enc_ConstraintPosWholeNumber;
 
    procedure Dec_ConstraintWholeNumber
-     (bs     : in out Bitstream;
-      IntVal :    out Asn1Int;
-      MinVal :      Asn1Int;
-      MaxVal :      Asn1Int;
-      nBits  :      Integer;
-      Result :    out Boolean)
+     (bs     : in out Bitstream; IntVal : out Asn1Int; MinVal : Asn1Int;
+      MaxVal :        Asn1Int; nBits : Integer; Result : out Boolean)
    is
       encVal : Asn1UInt;
    begin
@@ -908,12 +769,8 @@ package body adaasn1rtl.encoding with
    end Dec_ConstraintWholeNumber;
 
    procedure Dec_ConstraintPosWholeNumber
-     (bs     : in out Bitstream;
-      IntVal :    out Asn1UInt;
-      MinVal :      Asn1UInt;
-      MaxVal :      Asn1UInt;
-      nBits  :      Integer;
-      Result :    out Boolean)
+     (bs     : in out Bitstream; IntVal : out Asn1UInt; MinVal : Asn1UInt;
+      MaxVal :        Asn1UInt; nBits : Integer; Result : out Boolean)
    is
       encVal : Asn1UInt;
    begin
@@ -932,29 +789,19 @@ package body adaasn1rtl.encoding with
    end Dec_ConstraintPosWholeNumber;
 
    procedure Dec_ConstraintWholeNumberInt
-     (bs     : in out Bitstream;
-      IntVal :    out Integer;
-      MinVal :      Integer;
-      MaxVal :      Integer;
-      nBits  :      Integer;
-      Result :    out Boolean)
+     (bs     : in out Bitstream; IntVal : out Integer; MinVal : Integer;
+      MaxVal :        Integer; nBits : Integer; Result : out Boolean)
    is
       Ret : Asn1Int;
    begin
       Dec_ConstraintWholeNumber
-        (bs,
-         Ret,
-         Asn1Int (MinVal),
-         Asn1Int (MaxVal),
-         nBits,
-         Result);
+        (bs, Ret, Asn1Int (MinVal), Asn1Int (MaxVal), nBits, Result);
       IntVal := Integer (Ret);
    end Dec_ConstraintWholeNumberInt;
 
    function BitStream_bitPatternMatches
-     (bs                                  :  Bitstream;
-      bit_terminated_pattern              :  OctetBuffer;
-      bit_terminated_pattern_size_in_bits :    Natural) return Boolean
+     (bs : Bitstream; bit_terminated_pattern : OctetBuffer;
+      bit_terminated_pattern_size_in_bits : Natural) return Boolean
    is
       total_bytes : constant Natural :=
         bit_terminated_pattern_size_in_bits / 8;
@@ -965,7 +812,7 @@ package body adaasn1rtl.encoding with
    begin
       for i in
         bit_terminated_pattern'First ..
-            (bit_terminated_pattern'First + total_bytes - 1)
+          (bit_terminated_pattern'First + total_bytes - 1)
       loop
          pragma Loop_Invariant
            (offset =
@@ -997,8 +844,7 @@ package body adaasn1rtl.encoding with
         bs.Buffer'First + bs.Current_Bit_Pos / 8;
       Current_Bit : constant BIT_RANGE := bs.Current_Bit_Pos mod 8;
    begin
-      if Current_Bit = 0 and
-        Current_Byte = bs.Size_In_Bytes + 1 and
+      if Current_Bit = 0 and Current_Byte = bs.Size_In_Bytes + 1 and
         bs.fetchDataPrm > 0
       then
          --  user_code.fetch_data(bs, bs.fetchDataPrm);
@@ -1012,8 +858,7 @@ package body adaasn1rtl.encoding with
         bs.Buffer'First + bs.Current_Bit_Pos / 8;
       Current_Bit : constant BIT_RANGE := bs.Current_Bit_Pos mod 8;
    begin
-      if Current_Bit = 0 and
-        Current_Byte = bs.Size_In_Bytes + 1 and
+      if Current_Bit = 0 and Current_Byte = bs.Size_In_Bytes + 1 and
         bs.fetchDataPrm > 0
       then
          --  user_code.push_data(bs, bs.pushDataPrm);

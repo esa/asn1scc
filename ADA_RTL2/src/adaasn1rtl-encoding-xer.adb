@@ -27,12 +27,11 @@ package body adaasn1rtl.encoding.xer is
    WORD_ID : constant Character := Character'Val (1);
 
    procedure Write_CharStream_To_File
-     (bs       : in CharStream;
-      Filename : in String)
+     (bs : in CharStream; Filename : in String)
    is
       Out_File : Seq_IO.File_Type;
-   --Current_Bit  : constant BIT_RANGE := bs.Current_Bit_Pos mod 8;
-   --End_Byte : constant Integer   := bs.Buffer'First + bs.Current_Bit_Pos / 8 + (if Current_Bit > 0 then 1 else 0);
+      --Current_Bit  : constant BIT_RANGE := bs.Current_Bit_Pos mod 8;
+      --End_Byte : constant Integer   := bs.Buffer'First + bs.Current_Bit_Pos / 8 + (if Current_Bit > 0 then 1 else 0);
    begin
       Seq_IO.Create (Out_File, Seq_IO.Out_File, Filename);
       for i in bs.Data'Range loop
@@ -55,9 +54,7 @@ package body adaasn1rtl.encoding.xer is
    end Strlen;
 
    procedure BS_Append_String
-     (Strm   : in out CharStream;
-      str    : in     XString;
-      Result :    out ASN1_RESULT)
+     (Strm : in out CharStream; str : in XString; Result : out ASN1_RESULT)
    is
       len : constant Integer := Strlen (str);
    begin
@@ -73,9 +70,7 @@ package body adaasn1rtl.encoding.xer is
    end BS_Append_String;
 
    procedure BS_PutSpace
-     (Strm   : in out CharStream;
-      level  : in     Integer;
-      Result :    out ASN1_RESULT)
+     (Strm : in out CharStream; level : in Integer; Result : out ASN1_RESULT)
    is
    begin
       if Strm.EncodeWhiteSpace then
@@ -95,11 +90,8 @@ package body adaasn1rtl.encoding.xer is
    end BS_PutNL;
 
    procedure Xer_EncodePrimitiveElement
-     (Strm       : in out CharStream;
-      elementTag : in     String;
-      value      : in     String;
-      Result     :    out ASN1_RESULT;
-      level      :        Integer)
+     (Strm   : in out CharStream; elementTag : in String; value : in String;
+      Result :    out ASN1_RESULT; level : Integer)
    is
    begin
       BS_PutSpace (Strm, level, Result);
@@ -134,17 +126,14 @@ package body adaasn1rtl.encoding.xer is
    end Xer_EncodePrimitiveElement;
 
    procedure Xer_EncodeXmlHeader
-     (Strm      : in out CharStream;
-      XmlHeader : in     XString;
-      Result    :    out ASN1_RESULT)
+     (Strm   : in out CharStream; XmlHeader : in XString;
+      Result :    out ASN1_RESULT)
    is
    begin
 
       if XmlHeader = "" then
          BS_Append_String
-           (Strm,
-            "<?xml version=""1.0"" encoding=""UTF-8""?>",
-            Result);
+           (Strm, "<?xml version=""1.0"" encoding=""UTF-8""?>", Result);
          if not Result.Success then
             return;
          end if;
@@ -159,68 +148,42 @@ package body adaasn1rtl.encoding.xer is
    end Xer_EncodeXmlHeader;
 
    procedure Xer_EncodeComment
-     (Strm    : in out CharStream;
-      comment : in     XString;
-      Result  :    out ASN1_RESULT)
+     (Strm : in out CharStream; comment : in XString; Result : out ASN1_RESULT)
    is
    begin
       null;
    end Xer_EncodeComment;
 
    procedure Xer_EncodeInteger
-     (Strm       : in out CharStream;
-      elementTag : in     XString;
-      value      : in     Asn1Int;
-      Result     :    out ASN1_RESULT;
-      level      : in     Integer)
+     (Strm   : in out CharStream; elementTag : in XString; value : in Asn1Int;
+      Result :    out ASN1_RESULT; level : in Integer)
    is
    begin
       Xer_EncodePrimitiveElement
-        (Strm,
-         elementTag,
-         Trim (value'Img, Ada.Strings.Both),
-         Result,
-         level);
+        (Strm, elementTag, Trim (value'Img, Ada.Strings.Both), Result, level);
    end Xer_EncodeInteger;
 
    procedure Xer_EncodeNull
-     (Strm       : in out CharStream;
-      elementTag : in     XString;
-      value      :        Asn1NullType;
-      Result     :    out ASN1_RESULT;
-      level      : in     Integer)
+     (Strm : in out CharStream; elementTag : in XString; value : Asn1NullType;
+      Result :    out ASN1_RESULT; level : in Integer)
    is
    begin
       Xer_EncodePrimitiveElement
-        (Strm,
-         elementTag,
-         (if value = 0 then "" else ""),
-         Result,
-         level);
+        (Strm, elementTag, (if value = 0 then "" else ""), Result, level);
    end Xer_EncodeNull;
 
    procedure Xer_EncodePosInteger
-     (Strm       : in out CharStream;
-      elementTag : in     XString;
-      value      : in     Asn1UInt;
-      Result     :    out ASN1_RESULT;
-      level      : in     Integer)
+     (Strm   : in out CharStream; elementTag : in XString; value : in Asn1UInt;
+      Result :    out ASN1_RESULT; level : in Integer)
    is
    begin
       Xer_EncodePrimitiveElement
-        (Strm,
-         elementTag,
-         Trim (value'Img, Ada.Strings.Both),
-         Result,
-         level);
+        (Strm, elementTag, Trim (value'Img, Ada.Strings.Both), Result, level);
    end Xer_EncodePosInteger;
 
    procedure Xer_EncodeBoolean
-     (Strm       : in out CharStream;
-      elementTag : in     XString;
-      value      : in     Asn1Boolean;
-      Result     :    out ASN1_RESULT;
-      level      : in     Integer)
+     (Strm  : in out CharStream; elementTag : in XString;
+      value : in     Asn1Boolean; Result : out ASN1_RESULT; level : in Integer)
    is
    begin
       if elementTag = "" then
@@ -232,48 +195,30 @@ package body adaasn1rtl.encoding.xer is
       else
          if value then
             Xer_EncodePrimitiveElement
-              (Strm,
-               elementTag,
-               "<true/>",
-               Result,
-               level);
+              (Strm, elementTag, "<true/>", Result, level);
          else
             Xer_EncodePrimitiveElement
-              (Strm,
-               elementTag,
-               "<false/>",
-               Result,
-               level);
+              (Strm, elementTag, "<false/>", Result, level);
          end if;
       end if;
    end Xer_EncodeBoolean;
 
    procedure Xer_EncodeEnumerated
-     (Strm       : in out CharStream;
-      elementTag : in     XString;
-      value      : in     XString;
-      Result     :    out ASN1_RESULT;
-      level      : in     Integer)
+     (Strm   : in out CharStream; elementTag : in XString; value : in XString;
+      Result :    out ASN1_RESULT; level : in Integer)
    is
    begin
       if elementTag = "" then
          Xer_EncodePrimitiveElement (Strm, value, "", Result, level);
       else
          Xer_EncodePrimitiveElement
-           (Strm,
-            elementTag,
-            "<" & value & "/>",
-            Result,
-            level);
+           (Strm, elementTag, "<" & value & "/>", Result, level);
       end if;
    end Xer_EncodeEnumerated;
 
    procedure Xer_EncodeReal
-     (Strm       : in out CharStream;
-      elementTag : in     XString;
-      value      : in     Asn1Real;
-      Result     :    out ASN1_RESULT;
-      level      : in     Integer)
+     (Strm   : in out CharStream; elementTag : in XString; value : in Asn1Real;
+      Result :    out ASN1_RESULT; level : in Integer)
    is
       s : String := Trim (value'Img, Ada.Strings.Both);
    begin
@@ -287,23 +232,17 @@ package body adaasn1rtl.encoding.xer is
    end Xer_EncodeReal;
 
    procedure Xer_EncodeString
-     (Strm       : in out CharStream;
-      elementTag : in     XString;
-      value      : in     XString;
-      Result     :    out ASN1_RESULT;
-      level      : in     Integer)
+     (Strm   : in out CharStream; elementTag : in XString; value : in XString;
+      Result :    out ASN1_RESULT; level : in Integer)
    is
    begin
       Xer_EncodePrimitiveElement (Strm, elementTag, value, Result, level);
    end Xer_EncodeString;
 
    procedure Xer_EncodeOctetString
-     (Strm       : in out CharStream;
-      elementTag : in     XString;
-      value      : in     OctetBuffer;
-      len        : in     Integer;
-      Result     :    out ASN1_RESULT;
-      level      : in     Integer)
+     (Strm  : in out CharStream; elementTag : in XString;
+      value : in     OctetBuffer; len : in Integer; Result : out ASN1_RESULT;
+      level : in     Integer)
    is
       str    : String := 10 * ' ';
       str2   : String := 2 * '0';
@@ -321,9 +260,7 @@ package body adaasn1rtl.encoding.xer is
 
       for I in value'First .. len loop
          Ada.Integer_Text_IO.Put
-           (To   => str,
-            Item => Integer (value (I)),
-            Base => 16);
+           (To => str, Item => Integer (value (I)), Base => 16);
          i1 := Index (str, "#", Forward) + 1;
          i2 := Index (str, "#", Backward) - 1;
 
@@ -354,11 +291,9 @@ package body adaasn1rtl.encoding.xer is
    end Xer_EncodeOctetString;
 
    procedure Xer_EncodeObjectIdentifier
-     (Strm       : in out CharStream;
-      elementTag : in     XString;
-      value      : in     Asn1ObjectIdentifier;
-      Result     :    out ASN1_RESULT;
-      level      : in     Integer)
+     (Strm  : in out CharStream; elementTag : in XString;
+      value : in     Asn1ObjectIdentifier; Result : out ASN1_RESULT;
+      level : in     Integer)
    is
    begin
       BS_PutSpace (Strm, level, Result);
@@ -375,13 +310,10 @@ package body adaasn1rtl.encoding.xer is
 
          if i = 1 then
             BS_Append_String
-              (Strm,
-               Trim (value.values (i)'Img, Ada.Strings.Both),
-               Result);
+              (Strm, Trim (value.values (i)'Img, Ada.Strings.Both), Result);
          else
             BS_Append_String
-              (Strm,
-               "." & Trim (value.values (i)'Img, Ada.Strings.Both),
+              (Strm, "." & Trim (value.values (i)'Img, Ada.Strings.Both),
                Result);
          end if;
 
@@ -404,12 +336,8 @@ package body adaasn1rtl.encoding.xer is
    end Xer_EncodeObjectIdentifier;
 
    procedure Xer_EncodeBitString
-     (Strm       : in out CharStream;
-      elementTag : in     XString;
-      value      : in     BitArray;
-      len        : in     Integer;
-      Result     :    out ASN1_RESULT;
-      level      : in     Integer)
+     (Strm : in out CharStream; elementTag : in XString; value : in BitArray;
+      len  : in     Integer; Result : out ASN1_RESULT; level : in Integer)
    is
    begin
       BS_PutSpace (Strm, level, Result);
@@ -541,11 +469,8 @@ package body adaasn1rtl.encoding.xer is
 --   end LA;
 
    procedure Xer_DecodePrimitiveElement
-     (Strm       : in out CharStream;
-      elementTag : in     XString;
-      value      :    out XString;
-      valLength  :    out Integer;
-      Result     :    out ASN1_RESULT)
+     (Strm : in out CharStream; elementTag : in XString; value : out XString;
+      valLength :    out Integer; Result : out ASN1_RESULT)
    is
       tok : Token;
    begin
@@ -622,9 +547,8 @@ package body adaasn1rtl.encoding.xer is
    end Xer_DecodePrimitiveElement;
 
    procedure Xer_DecodeComplexElementStart
-     (Strm       : in out CharStream;
-      elementTag : in     XString;
-      Result     :    out ASN1_RESULT)
+     (Strm   : in out CharStream; elementTag : in XString;
+      Result :    out ASN1_RESULT)
    is
       tok : Token;
    begin
@@ -662,9 +586,8 @@ package body adaasn1rtl.encoding.xer is
    end Xer_DecodeComplexElementStart;
 
    procedure Xer_DecodeComplexElementEnd
-     (Strm       : in out CharStream;
-      elementTag : in     XString;
-      Result     :    out ASN1_RESULT)
+     (Strm   : in out CharStream; elementTag : in XString;
+      Result :    out ASN1_RESULT)
    is
       tok : Token;
    begin
@@ -699,10 +622,8 @@ package body adaasn1rtl.encoding.xer is
    end Xer_DecodeComplexElementEnd;
 
    procedure Xer_DecodeInteger
-     (Strm       : in out CharStream;
-      elementTag : in     XString;
-      value      :    out Asn1Int;
-      Result     :    out ASN1_RESULT)
+     (Strm   : in out CharStream; elementTag : in XString; value : out Asn1Int;
+      Result :    out ASN1_RESULT)
    is
       str : XString (1 .. 100) := (1 .. 100 => ' ');
       len : Integer;
@@ -717,10 +638,8 @@ package body adaasn1rtl.encoding.xer is
    end Xer_DecodeInteger;
 
    procedure Xer_DecodePosInteger
-     (Strm       : in out CharStream;
-      elementTag : in     XString;
-      value      :    out Asn1UInt;
-      Result     :    out ASN1_RESULT)
+     (Strm : in out CharStream; elementTag : in XString; value : out Asn1UInt;
+      Result :    out ASN1_RESULT)
    is
       str : XString (1 .. 100) := (1 .. 100 => ' ');
       len : Integer;
@@ -735,10 +654,8 @@ package body adaasn1rtl.encoding.xer is
    end Xer_DecodePosInteger;
 
    procedure Xer_DecodeNull
-     (Strm       : in out CharStream;
-      elementTag : in     XString;
-      value      :    out Asn1NullType;
-      Result     :    out ASN1_RESULT)
+     (Strm  : in out CharStream; elementTag : in XString;
+      value :    out Asn1NullType; Result : out ASN1_RESULT)
    is
       str : XString (1 .. 100) := (1 .. 100 => ' ');
       len : Integer;
@@ -748,10 +665,8 @@ package body adaasn1rtl.encoding.xer is
    end Xer_DecodeNull;
 
    procedure Xer_DecodeBoolean
-     (Strm       : in out CharStream;
-      elementTag : in     XString;
-      value      :    out Asn1Boolean;
-      Result     :    out ASN1_RESULT)
+     (Strm  : in out CharStream; elementTag : in XString;
+      value :    out Asn1Boolean; Result : out ASN1_RESULT)
    is
       str : XString (1 .. 100) := (1 .. 100 => ' ');
       len : Integer;
@@ -794,10 +709,8 @@ package body adaasn1rtl.encoding.xer is
    end Xer_DecodeBoolean;
 
    procedure Xer_DecodeEnumerated
-     (Strm       : in out CharStream;
-      elementTag : in     XString;
-      value      :    out XString;
-      Result     :    out ASN1_RESULT)
+     (Strm   : in out CharStream; elementTag : in XString; value : out XString;
+      Result :    out ASN1_RESULT)
    is
       str : XString (1 .. 100) := (1 .. 100 => ' ');
       len : Integer;
@@ -830,10 +743,8 @@ package body adaasn1rtl.encoding.xer is
    end Xer_DecodeEnumerated;
 
    procedure Xer_DecodeReal
-     (Strm       : in out CharStream;
-      elementTag : in     XString;
-      value      :    out Asn1Real;
-      Result     :    out ASN1_RESULT)
+     (Strm : in out CharStream; elementTag : in XString; value : out Asn1Real;
+      Result :    out ASN1_RESULT)
    is
       str : XString (1 .. 100) := (1 .. 100 => ' ');
       len : Integer;
@@ -848,10 +759,8 @@ package body adaasn1rtl.encoding.xer is
    end Xer_DecodeReal;
 
    procedure Xer_DecodeString
-     (Strm       : in out CharStream;
-      elementTag : in     XString;
-      value      :    out XString;
-      Result     :    out ASN1_RESULT)
+     (Strm   : in out CharStream; elementTag : in XString; value : out XString;
+      Result :    out ASN1_RESULT)
    is
       len : Integer;
    begin
@@ -875,11 +784,8 @@ package body adaasn1rtl.encoding.xer is
    end CharToNibble;
 
    procedure Xer_DecodeOctetString
-     (Strm       : in out CharStream;
-      elementTag : in     XString;
-      value      :    out OctetBuffer;
-      len        :    out Integer;
-      Result     :    out ASN1_RESULT)
+     (Strm  : in out CharStream; elementTag : in XString;
+      value :    out OctetBuffer; len : out Integer; Result : out ASN1_RESULT)
    is
       str  : XString (1 .. 32768) := (1 .. 32768 => ' ');
       len2 : Integer;
@@ -916,11 +822,8 @@ package body adaasn1rtl.encoding.xer is
    end Xer_DecodeOctetString;
 
    procedure Xer_DecodeBitString
-     (Strm       : in out CharStream;
-      elementTag : in     XString;
-      value      :    out BitArray;
-      len        :    out Integer;
-      Result     :    out ASN1_RESULT)
+     (Strm : in out CharStream; elementTag : in XString; value : out BitArray;
+      len  :    out Integer; Result : out ASN1_RESULT)
    is
       str : XString (1 .. 32768) := (1 .. 32768 => ' ');
       J   : Integer              := 1;
@@ -950,10 +853,8 @@ package body adaasn1rtl.encoding.xer is
    end Xer_DecodeBitString;
 
    procedure Xer_DecodeObjectIdentifier
-     (Strm       : in out CharStream;
-      elementTag : in     XString;
-      value      :    out Asn1ObjectIdentifier;
-      Result     :    out ASN1_RESULT)
+     (Strm  : in out CharStream; elementTag : in XString;
+      value :    out Asn1ObjectIdentifier; Result : out ASN1_RESULT)
    is
       str     : XString (1 .. 200) := (1 .. 200 => NUL);
       len2    : Integer;
@@ -990,10 +891,8 @@ package body adaasn1rtl.encoding.xer is
    end Xer_DecodeObjectIdentifier;
 
    procedure Xer_EncodeComplexElementStart
-     (Strm       : in out CharStream;
-      elementTag : in     XString;
-      Result     :    out ASN1_RESULT;
-      level      : in     Integer)
+     (Strm   : in out CharStream; elementTag : in XString;
+      Result :    out ASN1_RESULT; level : in Integer)
    is
    begin
       BS_PutSpace (Strm, level, Result);
@@ -1010,10 +909,8 @@ package body adaasn1rtl.encoding.xer is
    end Xer_EncodeComplexElementStart;
 
    procedure Xer_EncodeComplexElementEnd
-     (Strm       : in out CharStream;
-      elementTag : in     XString;
-      Result     :    out ASN1_RESULT;
-      level      : in     Integer)
+     (Strm   : in out CharStream; elementTag : in XString;
+      Result :    out ASN1_RESULT; level : in Integer)
    is
    begin
       BS_PutSpace (Strm, level, Result);
@@ -1030,8 +927,7 @@ package body adaasn1rtl.encoding.xer is
    end Xer_EncodeComplexElementEnd;
 
    function Xer_NextEndElementIs
-     (Strm       : in CharStream;
-      elementTag : in XString) return Asn1Boolean
+     (Strm : in CharStream; elementTag : in XString) return Asn1Boolean
    is
       I : Integer := Strm.CurrentByte;
       J : Integer := elementTag'First;
@@ -1066,8 +962,7 @@ package body adaasn1rtl.encoding.xer is
    end Xer_NextEndElementIs;
 
    function Xer_NextStartElementIs
-     (Strm       : in CharStream;
-      elementTag : in XString) return Asn1Boolean
+     (Strm : in CharStream; elementTag : in XString) return Asn1Boolean
    is
       I : Integer := Strm.CurrentByte;
       J : Integer := elementTag'First;
@@ -1099,9 +994,7 @@ package body adaasn1rtl.encoding.xer is
    end Xer_NextStartElementIs;
 
    procedure Xer_LA_NextElementTag
-     (Strm       : in     CharStream;
-      elementTag :    out XString;
-      Result     :    out ASN1_RESULT)
+     (Strm : in CharStream; elementTag : out XString; Result : out ASN1_RESULT)
    is
       I : Integer := Strm.CurrentByte;
       J : Integer := elementTag'First;
