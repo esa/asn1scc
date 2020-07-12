@@ -1,0 +1,481 @@
+TEST-CASE DEFINITIONS ::= BEGIN
+
+   DEF-PUS-Packet-Header [] {
+      field-packet-id [], 
+      field-packet-sequence-control [], 
+      field-packet-length []
+   }
+   DEF-PUS-Packet-ID [] {
+      field-version-number [], 
+      field-type [], 
+      field-data-field-header-flag [], 
+      field-application-process-id []
+   }
+   DEF-PUS-version-number [size 3, encoding pos-int]
+   DEF-PUS-type [size 1, encoding pos-int, encode-values]
+   DEF-PUS-data-field-header-flag [size 1, encoding pos-int, encode-values]
+   DEF-PUS-application-process-id [size 11, endianness big, encoding pos-int]
+   DEF-PUS-Packet-Sequence-Control [] {
+      field-sequence-flags [], 
+      field-sequence-count []
+   }
+   DEF-PUS-sequence-flags [size 2]
+   DEF-PUS-sequence-count [size 14, endianness big, encoding pos-int]
+   DEF-PUS-packet-length [size 16, endianness little, encoding pos-int]
+   DEF-PUS-TC-data-field-header [] {
+      field-ccsds-secondary-header-flag [], 
+      field-tc-packet-pus-version-number [], 
+      field-ack [], 
+      field-service-type [], 
+      field-service-subtype [], 
+      field-source-id [], 
+      field-spare1 [], 
+      field-spare2 []
+   }
+   DEF-PUS-TM-data-field-header [] {
+      field-spare2 [], 
+      field-tm-source-packet-pus-version-number [], 
+      field-spare1 [], 
+      field-service-type [], 
+      field-service-subtype [], 
+      field-elapsed-day [], 
+      field-milliseconds []
+   }
+   DEF-PUS-ccsds-secondary-header-flag [size 1, encoding pos-int, encode-values]
+   DEF-PUS-packet-version [size 3, encoding pos-int]
+   DEF-PUS-ack [size 4]
+   DEF-PUS-service-type [size 8, encoding pos-int]
+   DEF-PUS-service-subtype [size 8, encoding pos-int]
+   DEF-PUS-node-address [size 32]
+   DEF-PUS-spare8 [size 8]
+   DEF-PUS-spare1 [size 1]
+   DEF-PUS-spare4 [size 4]
+   DEF-PUS-day-counter [size 16, endianness little, encoding pos-int]
+   DEF-PUS-millisecond-counter [size 32, endianness little, encoding pos-int]
+   DEF-PUS-data-field-footer [] {
+      field-packet-error-control []
+   }
+   DEF-PUS-data-checksum [size 16]
+   DEF-SPW-EOP [size 8]
+   DEF-NPAL-TC-header [] {
+      field-packet-header [], 
+      field-data-header []
+   }
+   DEF-NPAL-TC-footer [] {
+      field-packet-footer [], 
+      field-end-of-packet []
+   }
+   DEF-NPAL-TM-header [] {
+      field-packet-header [], 
+      field-data-header []
+   }
+   DEF-NPAL-TM-footer [] {
+      field-packet-footer [], 
+      field-end-of-packet []
+   }
+   DEF-NPAL-fill8 [size 8]
+   DEF-NPAL-memory-address [size 32, endianness little, encoding pos-int]
+   DEF-NPAL-word [size 32]
+   DEF-NPAL-days-count [size 16, endianness little, encoding pos-int]
+   DEF-NPAL-milliseconds-count [size 32, endianness little, encoding pos-int]
+   DEF-NPAL-image-count [size 8, encoding pos-int]
+   DEF-NPAL-image-threshold [size 16, endianness little, encoding pos-int]
+   DEF-NPAL-image-processing [size 8, encoding pos-int, encode-values]
+   DEF-NPAL-TC-RESET [] {
+      field-header [], 
+      field-reset-level [], 
+      field-fill [], 
+      field-footer []
+   }
+   DEF-NPAL-TC-SWM [] {
+      field-header [], 
+      field-fill1 [], 
+      field-fill2 [], 
+      field-footer []
+   }
+   DEF-NPAL-TC-STB [] {
+      field-header [], 
+      field-sw-loading [], 
+      field-fill [], 
+      field-footer []
+   }
+   DEF-NPAL-TC-TRK [] {
+      field-header [], 
+      field-window-start-row [], 
+      field-window-start-column [], 
+      field-commanded-exposure-time [], 
+      field-tracking-option [], 
+      field-footer []
+   }
+   DEF-NPAL-TC-IMG [] {
+      field-header [], 
+      field-window-start-row [], 
+      field-window-start-column [], 
+      field-window-row-number [], 
+      field-window-column-number [], 
+      field-image-number [], 
+      field-image-dynamic-range [], 
+      field-commanded-exposure-time [], 
+      field-image-threshold [], 
+      field-image-processing [], 
+      field-fill1 [], 
+      field-fill2 [], 
+      field-footer []
+   }
+   DEF-NPAL-TC-TIME [] {
+      field-header [], 
+      field-elapsed-day [], 
+      field-milliseconds [], 
+      field-footer []
+   }
+   DEF-NPAL-TC-SPEED [] {
+      field-header [], 
+      field-speed-option [], 
+      field-fill1 [], 
+      field-footer []
+   }
+   DEF-NPAL-TC-CYCLE [] {
+      field-header [], 
+      field-frame-size [], 
+      field-cycle-prescaler [], 
+      field-footer []
+   }
+   DEF-NPAL-TC-SETPAR-restore-default-values [] {
+      field-header [], 
+      field-parameter-code [], 
+      field-fill1 [], 
+      field-fill2 [], 
+      field-fill3 [], 
+      field-fill4 [], 
+      field-fill5 [], 
+      field-footer []
+   }
+   DEF-NPAL-TC-SETPAR-defective-pixels-low-threshold [] {
+      field-header [], 
+      field-parameter-code [], 
+      field-defective-pixels-low-threshold [], 
+      field-fill1 [], 
+      field-fill2 [], 
+      field-fill3 [], 
+      field-footer []
+   }
+   DEF-NPAL-TC-SETPAR-defective-pixels-high-threshold [] {
+      field-header [], 
+      field-parameter-code [], 
+      field-defective-pixels-high-threshold [], 
+      field-fill1 [], 
+      field-fill2 [], 
+      field-fill3 [], 
+      field-footer []
+   }
+   DEF-NPAL-TC-SETPAR-number-of-cycles-for-defective-pixels-update [] {
+      field-header [], 
+      field-parameter-code [], 
+      field-number-of-cycles-for-defective-pixels-update [], 
+      field-fill1 [], 
+      field-fill2 [], 
+      field-fill3 [], 
+      field-footer []
+   }
+   DEF-NPAL-TC-SETPAR-camera-status-tm-update-rate [] {
+      field-header [], 
+      field-parameter-code [], 
+      field-camera-status-tm-update-rate [], 
+      field-fill1 [], 
+      field-fill2 [], 
+      field-fill3 [], 
+      field-footer []
+   }
+   DEF-NPAL-TC-CALIB [] {
+      field-header [], 
+      field-calibration-type [], 
+      field-exposure-time [], 
+      field-footer []
+   }
+   DEF-NPAL-TC-MEMCHK [] {
+      field-header [], 
+      field-start-address [], 
+      field-end-address [], 
+      field-fill1 [], 
+      field-fill2 [], 
+      field-footer []
+   }
+   DEF-NPAL-TC-DWNLD [] {
+      field-header [], 
+      field-start-address [], 
+      field-end-address [], 
+      field-fill1 [], 
+      field-fill2 [], 
+      field-footer []
+   }
+   DEF-NPAL-TC-UPLD <INTEGER:length> [] {
+      field-header [], 
+      field-start-address [], 
+      field-word-number [], 
+      field-words <length> [], 
+      field-fill1 [], 
+      field-footer []
+   }
+   DEF-NPAL-word-count [size 8, encoding pos-int]
+   DEF-NPAL-word-array-upld <INTEGER:length> [size length]
+   DEF-NPAL-TC-DEFPIX [] {
+      field-header [], 
+      field-fill1 [], 
+      field-fill2 [], 
+      field-footer []
+   }
+   DEF-NPAL-TM-CHKDATA [] {
+      field-header [], 
+      field-last-reset [], 
+      field-prom-sw-release [], 
+      field-ram-faults [], 
+      field-first-error-address [], 
+      field-prom-checksum [], 
+      field-eeprom-checksum [], 
+      field-fill1 [], 
+      field-footer []
+   }
+   DEF-NPAL-ram-faults-count [size 16, endianness little, encoding pos-int]
+   DEF-NPAL-TM-STATUS [] {
+      field-header [], 
+      field-operating-mode [], 
+      field-exposure-time [], 
+      field-aps-temperature [], 
+      field-optics-temperature [], 
+      field-input-voltage [], 
+      field-health-check [], 
+      field-link-speed [], 
+      field-cycle-option [], 
+      field-defective-pixels-low-threshold [], 
+      field-defective-pixels-high-threshold [], 
+      field-cycles-for-defects-detect [], 
+      field-camera-status-rate [], 
+      field-sw-version [], 
+      field-footer []
+   }
+   DEF-NPAL-TM-REPORT [] {
+      field-header [], 
+      field-event-code [], 
+      field-tc-acceptance [], 
+      field-mode-transition [], 
+      field-download-status [], 
+      field-not-used [], 
+      field-calibration [], 
+      field-error-code [], 
+      field-fill1 [], 
+      field-fill2 [], 
+      field-fill3 [], 
+      field-footer []
+   }
+   DEF-NPAL-TM-CHECKSUM [] {
+      field-header [], 
+      field-start-address [], 
+      field-end-address [], 
+      field-checksum-result [], 
+      field-fill1 [], 
+      field-fill2 [], 
+      field-footer []
+   }
+   DEF-NPAL-TM-DWNDATA <INTEGER:length> [] {
+      field-header [], 
+      field-start-address [], 
+      field-end-address [], 
+      field-words <length> [], 
+      field-fill1 [], 
+      field-fill2 [], 
+      field-footer []
+   }
+   DEF-NPAL-word-array-dwndata <INTEGER:length> [size length]
+   DEF-NPAL-TM-DEFLIST <INTEGER:length> [] {
+      field-header [], 
+      field-pixel-number [], 
+      field-pixels <length> [], 
+      field-fill1 [], 
+      field-footer []
+   }
+   DEF-NPAL-defective-pixels-transferred [size 8, encoding pos-int]
+   DEF-NPAL-defective-pixels <INTEGER:length> [size length]
+   DEF-NPAL-TM-STARS <INTEGER:length> [] {
+      field-header [], 
+      field-number-of-stars [], 
+      field-stars <length> [], 
+      field-fill1 [], 
+      field-footer []
+   }
+   DEF-NPAL-stars-transferred [size 8, encoding pos-int]
+   DEF-NPAL-stars <INTEGER:length> [size length]
+   DEF-NPAL-star [] {
+      field-x-coord [], 
+      field-y-coord [], 
+      field-dimension []
+   }
+   DEF-NPAL-star-coord [size 16, endianness little, encoding twos-complement]
+   DEF-NPAL-star-dimension [size 8, encoding pos-int]
+   DEF-NPAL-TM-HORIZON [] {
+      field-header [], 
+      field-border-polar-angle [], 
+      field-border-distance [], 
+      field-radius [], 
+      field-footer []
+   }
+   DEF-NPAL-image-packet-number [size 16, endianness little, encoding pos-int]
+   DEF-NPAL-image-pixels-transferred [size 16, endianness little, encoding pos-int]
+   DEF-NPAL-TM-IMAGE-10 <INTEGER:length> [] {
+      field-header [], 
+      field-packet-number [], 
+      field-pixel-number [], 
+      field-dynamic-range [], 
+      field-pixels <length> [], 
+      field-fill1 [], 
+      field-footer []
+   }
+   DEF-NPAL-pixels-2x10 <INTEGER:length> [size length]
+   DEF-NPAL-pixel-2x10 [] {
+      field-odd-intensity [], 
+      field-not-used1 [], 
+      field-even-intensity [], 
+      field-not-used2 []
+   }
+   DEF-NPAL-fill2 [size 2]
+   DEF-NPAL-pixel-intensity-10 [size 10, endianness big, encoding pos-int]
+   DEF-NPAL-TM-IMAGE-08 <INTEGER:length> [] {
+      field-header [], 
+      field-packet-number [], 
+      field-pixel-number [], 
+      field-dynamic-range [], 
+      field-pixels <length> [], 
+      field-fill1 [], 
+      field-footer []
+   }
+   DEF-NPAL-pixels-8 <INTEGER:length> [size length]
+   DEF-NPAL-pixel-intensity-8 [size 8, encoding pos-int]
+   DEF-NPAL-TM-IMAGE-04 <INTEGER:length> [] {
+      field-header [], 
+      field-packet-number [], 
+      field-pixel-number [], 
+      field-dynamic-range [], 
+      field-pixels <length> [], 
+      field-fill1 [], 
+      field-footer []
+   }
+   DEF-NPAL-pixels-4 <INTEGER:length> [size length]
+   DEF-NPAL-pixels-intensity-4 [] {
+      field-B-intensity [], 
+      field-A-intensity []
+   }
+   DEF-NPAL-pixel-intensity-4 [size 4, encoding pos-int]
+   DEF-NPAL-TM-IMAGE-02 <INTEGER:length> [] {
+      field-header [], 
+      field-packet-number [], 
+      field-pixel-number [], 
+      field-dynamic-range [], 
+      field-pixels <length> [], 
+      field-fill1 [], 
+      field-footer []
+   }
+   DEF-NPAL-pixels-2 <INTEGER:length> [size length]
+   DEF-NPAL-pixels-intensity-2 [] {
+      field-D-intensity [], 
+      field-C-intensity [], 
+      field-B-intensity [], 
+      field-A-intensity []
+   }
+   DEF-NPAL-pixel-intensity-2 [size 2, encoding pos-int]
+   DEF-NPAL-TM-IMAGE-01 <INTEGER:length> [] {
+      field-header [], 
+      field-packet-number [], 
+      field-pixel-number [], 
+      field-dynamic-range [], 
+      field-pixels <length> [], 
+      field-fill1 [], 
+      field-footer []
+   }
+   DEF-NPAL-pixels-1 <INTEGER:length> [size length]
+   DEF-NPAL-pixels-intensity-1 [] {
+      field-H-intensity [], 
+      field-G-intensity [], 
+      field-F-intensity [], 
+      field-E-intensity [], 
+      field-D-intensity [], 
+      field-C-intensity [], 
+      field-B-intensity [], 
+      field-A-intensity []
+   }
+   DEF-NPAL-pixel-intensity-1 [size 1, encoding pos-int]
+   DEF-NPAL-cycles-count [size 16, endianness little, encoding pos-int]
+   DEF-NPAL-TM-STATUS-rate [size 16, endianness little, encoding pos-int]
+   DEF-NPAL-event-code [size 8, encoding pos-int, encode-values]
+   DEF-NPAL-mode-transition [] {
+      field-cause [], 
+      field-current-mode [], 
+      field-previous-mode []
+   }
+   DEF-NPAL-mini-operating-mode [size 3, encoding pos-int, encode-values]
+   DEF-NPAL-mode-transition-cause [size 2, encoding pos-int, encode-values]
+   DEF-NPAL-TC-received [size 8, encoding pos-int, encode-values]
+   DEF-NPAL-download-status [size 8, encoding pos-int, encode-values]
+   DEF-NPAL-calibration-status [size 8, encoding pos-int, encode-values]
+   DEF-NPAL-error-code [size 8, encoding pos-int, encode-values]
+   DEF-NPAL-defective-pixel [] {
+      field-pixel-row [], 
+      field-pixel-column [], 
+      field-not-used [], 
+      field-defect-type []
+   }
+   DEF-NPAL-defect-type [size 1, encoding pos-int, encode-values]
+   DEF-NPAL-fill3 [size 3]
+   DEF-NPAL-reset-level [size 8, encoding pos-int, encode-values]
+   DEF-NPAL-SW-loading [size 8, encoding pos-int, encode-values]
+   DEF-NPAL-window-size [size 8, encoding pos-int, encode-values]
+   DEF-NPAL-image-dynamic-range [size 8, encoding pos-int, encode-values]
+   DEF-NPAL-speed-option [size 8, encoding pos-int, encode-values]
+   DEF-NPAL-frame-size [size 8, encoding pos-int, encode-values]
+   DEF-NPAL-cycle-prescaler [size 8, encoding pos-int, encode-values]
+   DEF-NPAL-parameter-code [size 8, encoding pos-int, encode-values]
+   DEF-NPAL-calibration-type [size 8, encoding pos-int, encode-values]
+   DEF-NPAL-operating-mode [size 8, encoding pos-int, encode-values]
+   DEF-NPAL-tracking-option [size 8, encoding pos-int, encode-values]
+   DEF-NPAL-exposure-time [size 8, encoding pos-int, encode-values]
+   DEF-NPAL-last-reset [] {
+      field-not-used [], 
+      field-reset-cause [], 
+      field-reset-level []
+   }
+   DEF-NPAL-last-reset-level [size 1, encoding pos-int, encode-values]
+   DEF-NPAL-last-reset-cause [size 2, encoding pos-int, encode-values]
+   DEF-NPAL-fill5 [size 5]
+   DEF-NPAL-PROM-SW-release [] {
+      field-sw-revision-number [], 
+      field-sw-issue-number []
+   }
+   DEF-NPAL-version-nb [size 8, encoding pos-int]
+   DEF-NPAL-health [] {
+      field-not-used [], 
+      field-input-voltage [], 
+      field-optics-temperature [], 
+      field-APS-temperature [], 
+      field-general-hc []
+   }
+   DEF-NPAL-hc [size 1, encoding pos-int, encode-values]
+   DEF-NPAL-fill4 [size 4]
+   DEF-NPAL-exposure-time-linear [size 16, endianness little, encoding pos-int]
+   DEF-NPAL-temperature [size 8, encoding pos-int]
+   DEF-NPAL-voltage [size 8, encoding pos-int]
+   DEF-NPAL-distance [size 16, endianness little, encoding twos-complement]
+   DEF-NPAL-angle [size 16, endianness little, encoding twos-complement]
+   DEF-NPAL-radius [size 16, endianness little, encoding twos-complement]
+   DEF-NPAL-SW-release [] {
+      field-sw-issue-number [], 
+      field-sw-revision-number []
+   }
+   DEF-NPAL-mini-version-nb [size 4, encoding pos-int]
+   DEF-NPAL-cycle-option [] {
+      field-cycle-prescaler [], 
+      field-frame-size []
+   }
+   DEF-NPAL-cycle-option-frame-size [size 4, encoding pos-int, encode-values]
+   DEF-NPAL-cycle-option-cycle-prescaler [size 4, encoding pos-int, encode-values]
+   DEF-NPAL-pixel-coord [size 16, endianness little, encoding pos-int]
+   DEF-NPAL-defect-coord [size 10, endianness big, encoding pos-int]
+
+END

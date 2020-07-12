@@ -1,0 +1,16 @@
+MYMOD DEFINITIONS ::= BEGIN
+
+   COLOR-TYPE [encoding pos-int, size 8]
+   MySeq [] {
+       activeColor1 COLOR-TYPE [],
+       activeColor2 COLOR-TYPE [],
+       colorData <activeColor1, activeColor2> []
+   }
+
+   COLOR-DATA<COLOR-TYPE:type1, COLOR-TYPE:type2> [] {
+       green [present-when type2==10 type1==30],
+       red   [present-when type1==30 type2==20],
+       blue  [present-when type1==50 type2==20]
+   }
+
+END 

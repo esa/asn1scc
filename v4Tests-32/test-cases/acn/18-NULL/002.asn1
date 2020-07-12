@@ -1,0 +1,13 @@
+TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
+
+	MyPDU ::= SEQUENCE {
+        a INTEGER
+    }
+	
+	pdu1 MyPDU ::= {a 10}
+	
+END
+
+
+--TCLS     MyPDU[] {a[], newField NULL [pattern '1001'B]}
+--TCLS     MyPDU[] {a[], newField NULL [pattern 'AABBCC'H]}

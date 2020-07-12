@@ -40,7 +40,7 @@ let constructAst (args:CommandLineSettings) (debugFnc : Asn1Ast.AstRoot -> AcnGe
     let acnParseTrees = args.acnFiles |> Seq.groupBy(fun f -> f.name) |> Seq.map (antlrParse (fun f -> new acnLexer(f)) (fun ts -> new acnParser(ts))  (fun p -> p.moduleDefinitions().Tree :?> ITree)  ) |> Seq.toList
 
 
-    let acnAst = AcnGenericCreateFromAntlr.CreateAcnAst acnParseTrees
+    let acnAst = AcnGenericCreateFromAntlr.CreateAcnAst args.integerSizeInBytes acnParseTrees
 
 
     (*

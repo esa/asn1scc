@@ -1,0 +1,17 @@
+TEST-CASE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+
+
+AType ::= SEQUENCE {
+    inner-ch	CHOICE {
+		a1 INTEGER,
+		a2 BOOLEAN
+	}
+}
+
+
+
+My2ndAType ::= AType
+
+END
+
+--TCLS     My2ndAType[] AType[]

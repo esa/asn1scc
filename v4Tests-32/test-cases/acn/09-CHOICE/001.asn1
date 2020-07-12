@@ -1,0 +1,27 @@
+TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
+
+	MyPDU ::= CHOICE {                  --3
+		int1	INTEGER(0..15),
+		int2	INTEGER(0..65535),
+		enm		ENUMERATED {
+					one(1), two(2), three(3),
+					 four(4), thousand(1000)
+				},
+		buf	 OCTET STRING (SIZE(10)),
+		gg  SEQUENCE {
+			int1	INTEGER(0..15),         --4
+			int2	INTEGER(0..65535),      --16
+			enm	ENUMERATED {
+					pone(1), ptwo(2), pthree(3),
+					 pfour(4), pthousand(1000)
+				},                              -- 3
+			buf	[APPLICATION 104]	OCTET STRING (SIZE(10)) --80
+		}
+	}
+	
+	pdu1 MyPDU ::= int1 : 10
+
+	
+END
+
+--TCLS     MyPDU[]

@@ -1,0 +1,29 @@
+TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
+
+    MyPDU ::= SEQUENCE {
+        a1  INTEGER(1..200),
+        a2  MySqOf
+    }
+	
+	maxSize INTEGER ::= 7000
+
+	MySqOf ::= SEQUENCE (SIZE(0..maxSize)) OF SEQUENCE {
+		int1	INTEGER(0..15),
+		int2	INTEGER(0..65535),
+		enm		ENUMERATED {
+					one(1), two(2), three(3),
+					 four(4), thousand(1000)
+				}
+
+	}
+	
+	INT0-20 ::= INTEGER(0..maxSize)
+	
+	pdu1 MyPDU ::=  {a1 1, a2 { 
+							{int1 10, int2 200, enm one}
+							}}
+END
+
+
+--TCLS     MyPDU[] MySqOf[]
+--TCLS     INT0-20[] MyPDU[]{a1[], a3 INT0-20[], a2<a3>[]} MySqOf<INT0-20:nLen>[size nLen]

@@ -136,13 +136,16 @@ type ITree with
 
      
 
-    member t.BigIntL = { IntLoc.Value = t.BigInt; Location = t.Location} 
+    member t.BigIntL integerSizeInBytes = { IntLoc.Value = t.BigInt integerSizeInBytes; Location = t.Location} 
     
-    member t.BigInt = 
+    member t.BigInt integerSizeInBytes = 
         let ret = BigInteger.Parse(t.Text)
-        match ret < (BigInteger System.Int64.MinValue) || ret > (BigInteger System.UInt64.MaxValue) with
-        | true  when ret > (BigInteger System.Int64.MaxValue) -> raise(SemanticError(t.Location, (sprintf "Integer value of range. Supported values are within range %d to %d" 0 System.UInt64.MaxValue)))
-        | true  -> raise(SemanticError(t.Location, (sprintf "Integer value of range. Supported values are within range %d to %d" System.Int64.MinValue System.Int64.MaxValue)))
+        let mn = if integerSizeInBytes = 8I then (BigInteger System.Int64.MinValue) else (BigInteger System.Int32.MinValue)
+        let mx = if integerSizeInBytes = 8I then (BigInteger System.Int64.MaxValue) else (BigInteger System.Int32.MaxValue)
+        let mxu = if integerSizeInBytes = 8I then (BigInteger System.UInt64.MaxValue) else (BigInteger System.UInt32.MaxValue)
+        match ret < mn || ret > mxu with
+        | true  when ret > mx -> raise(SemanticError(t.Location, (sprintf "Integer value of range. Supported values are within range %d to %A" 0 mxu)))
+        | true  -> raise(SemanticError(t.Location, (sprintf "Integer value of range. Supported values are within range %A to %A" mn mx)))
         | false -> ret
 
     member t.Double = System.Double.Parse(t.Text, System.Globalization.NumberFormatInfo.InvariantInfo)

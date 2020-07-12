@@ -1,0 +1,34 @@
+--NOCOVERAGE
+TEST-CASE DEFINITIONS ::=
+BEGIN
+
+PUS-TYPE ::= INTEGER (0 .. 255)
+
+PUS-6 ::= CHOICE {
+   pus-6-1-memory-dump   BOOLEAN,
+   pus-6-2-memory-patch  BOOLEAN
+}
+
+PUS-8 ::= CHOICE {
+   pus-8-1-execute-function BOOLEAN
+}
+
+PUS-200 ::= CHOICE {
+   change-mode   BOOLEAN,
+   anything-else BOOLEAN
+}
+
+PUS ::= CHOICE {
+   manage-memory    PUS-6,
+   execute-function PUS-8,
+   private-services PUS-200
+}
+
+--  Complete telecommand - with header, etc.
+TC ::= SEQUENCE {
+   one-tc PUS
+}
+
+END
+
+--TCFS     004.acn

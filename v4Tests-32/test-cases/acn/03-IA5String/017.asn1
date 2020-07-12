@@ -1,0 +1,8 @@
+TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
+
+	MyPDU ::= IA5String(SIZE(20))(FROM("A".."Z"|"a".."z"|" "))
+	pdu1 MyPDU ::= "George Mamais       "
+	
+END
+
+--TCLS     MyPDU[encoding ASCII, size null-terminated, termination-pattern '010203'H]

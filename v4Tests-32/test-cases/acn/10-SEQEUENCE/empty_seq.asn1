@@ -1,0 +1,17 @@
+--NOCOVERAGE
+MYMOD DEFINITIONS ::=  -- Data types shared by several services
+BEGIN
+
+D ::= INTEGER
+
+C ::= SEQUENCE {
+		c1 D,
+		c2 MySeq
+	}
+
+MySeq ::= SEQUENCE {}
+
+END
+
+--TCFS     empty_seq.acn
+

@@ -1,0 +1,13 @@
+TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
+
+	MyPDU ::= SEQUENCE { 
+		str1 IA5String(SIZE(1..16)),
+		str2 IA5String(SIZE(1..16))
+	}
+	
+END
+
+--TCLFC    MyPDU[] {len1 INTEGER[size 4, encoding pos-int], str1[size len1], len2 INTEGER[size 4, encoding pos-int], str2[size len2]}               $$$ sample1.acn:4:15: error: The applied ACN encoding does not allow values larger than 15 to be encoded, while the corresponding ASN.1 type allows values up to 16
+--TCLS     MyPDU[] {len1 INTEGER[size 5, encoding pos-int], str1[size len1], len2 INTEGER[size 5, encoding pos-int], str2[size len2]}
+--TCLS     MyPDU[]
+

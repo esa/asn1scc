@@ -1,0 +1,165 @@
+--!
+--! Copyright (C) 2017 N7 Mobile sp. z o. o.
+--! Contact: http://n7mobile.pl/Space
+--!
+--! This file is part of ASN.1/ACN PUS-C Components Library.
+--!
+--! Library was developed under a programme and funded by
+--! European Space Agency.
+--!
+--! This Library is free software: you can redistribute it and/or modify
+--! it under the terms of the GNU General Public License as published by
+--! the Free Software Foundation, either version 3 of the License, or
+--! (at your option) any later version.
+--!
+--! This Library is distributed in the hope that it will be useful,
+--! but WITHOUT ANY WARRANTY; without even the implied warranty of
+--! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+--! GNU General Public License for more details.
+--!
+--! You should have received a copy of the GNU General Public License
+--! along with this program.  If not, see <http://www.gnu.org/licenses/>.
+--!
+
+BasicTypes DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+
+EXPORTS ALL;
+
+-- PTC-1
+PUSC-BOOL1 ::= BOOLEAN --PFC-0
+PUSC-BOOL8 ::= BOOLEAN --PFC-8
+PUSC-BOOL16 ::= BOOLEAN --PFC-16
+PUSC-BOOL32 ::= BOOLEAN --PFC-32
+
+-- PTC-3
+PUSC-UINT4 ::= INTEGER (0 .. 15) --PFC-0
+PUSC-UINT5 ::= INTEGER (0 .. 31) --PFC-1
+PUSC-UINT6 ::= INTEGER (0 .. 63) --PFC-2
+PUSC-UINT7 ::= INTEGER (0 .. 127) --PFC-3
+PUSC-UINT8 ::= INTEGER (0 .. 255) --PFC-4
+PUSC-UINT9 ::= INTEGER (0 .. 511) --PFC-5
+PUSC-UINT10 ::= INTEGER (0 .. 1023) --PFC-6
+PUSC-UINT11 ::= INTEGER (0 .. 2047) --PFC-7
+PUSC-UINT12 ::= INTEGER (0 .. 4095) --PFC-8
+PUSC-UINT13 ::= INTEGER (0 .. 8191) --PFC-9
+PUSC-UINT14 ::= INTEGER (0 .. 16383) --PFC-10
+PUSC-UINT15 ::= INTEGER (0 .. 32767) --PFC-11
+PUSC-UINT16 ::= INTEGER (0 .. 65535) --PFC-12
+PUSC-UINT24 ::= INTEGER (0 .. 16777215) --PFC-13
+PUSC-UINT32 ::= INTEGER (0 .. MAX) --PFC-14
+PUSC-UINT1 ::= INTEGER (0 .. 1) --PFC-17
+PUSC-UINT2 ::= INTEGER (0 .. 3) --PFC-18
+PUSC-UINT3 ::= INTEGER (0 .. 7) --PFC-19
+
+-- PTC-4
+PUSC-INT4 ::= INTEGER (-8 .. 7) --PFC-0
+PUSC-INT5 ::= INTEGER (-16 .. 15) --PFC-1
+PUSC-INT6 ::= INTEGER (-32 .. 31) --PFC-2
+PUSC-INT7 ::= INTEGER (-64 .. 63) --PFC-3
+PUSC-INT8 ::= INTEGER (-128 .. 127) --PFC-4
+PUSC-INT9 ::= INTEGER (-256 .. 255) --PFC-5
+PUSC-INT10 ::= INTEGER (-512 .. 511) --PFC-6
+PUSC-INT11 ::= INTEGER (-1024 .. 1023) --PFC-7
+PUSC-INT12 ::= INTEGER (-2048 .. 2047) --PFC-8
+PUSC-INT13 ::= INTEGER (-4096 .. 4095) --PFC-9
+PUSC-INT14 ::= INTEGER (-8192 .. 8191) --PFC-10
+PUSC-INT15 ::= INTEGER (-16384 .. 16383) --PFC-11
+PUSC-INT16 ::= INTEGER (-32768 .. 32767) --PFC-12
+PUSC-INT24 ::= INTEGER (-8388608 .. 8388607) --PFC-13
+PUSC-INT32 ::= INTEGER (-2147483648 .. 2147483647) --PFC-14
+
+-- PTC-5
+PUSC-FLOAT32 ::= REAL
+PUSC-FLOAT64 ::= REAL
+PUSC-MIL-FLOAT32 ::= SEQUENCE
+{
+    mant BIT STRING (SIZE(24)),
+    exp INTEGER (-128 .. 127)
+}
+
+PUSC-MIL-FLOAT48 ::= SEQUENCE
+{
+    mant-MSB BIT STRING (SIZE(24)),
+    exp INTEGER (-128 .. 127),
+    mant-LSB BIT STRING (SIZE(16))
+}
+
+-- PTC-6
+PUSC-BITSTR-VARIABLE-LEN ::= BIT STRING (SIZE(0 .. 4095)) --PFC-0
+
+-- PTC-7
+PUSC-OCTSTR-VARIABLE-LEN ::= OCTET STRING (SIZE(0 .. 4095)) --PFC-0
+
+-- PTC-8
+PUSC-CHARSTR-VARIABLE-LEN ::= IA5String (SIZE(0 .. 4095)) --PFC-0
+
+-- PTC-9
+CDS-AbsoluteTime-PFC-1 ::= SEQUENCE --PFC-1
+{
+    day INTEGER (0 .. 65535),
+    msOfDay INTEGER (0 .. MAX)
+}
+
+CDS-AbsoluteTime-PFC-2 ::= SEQUENCE --PFC-2
+{
+    day INTEGER (0 .. 65535),
+    msOfDay INTEGER (0 .. MAX),
+    usOfDay INTEGER (0 .. 65535)
+}
+
+CUC-AbsoluteTime-PFC-3 ::= SEQUENCE
+{
+    coarseTime OCTET STRING (SIZE(1)),
+    fineTime OCTET STRING (SIZE(1))
+}
+
+CUC-AbsoluteTime-PFC-18 ::= SEQUENCE
+{
+    coarseTime OCTET STRING (SIZE(4)),
+    fineTime OCTET STRING (SIZE(4))
+}
+
+CUC-AbsoluteTime-PFC-19 ::= SEQUENCE
+{
+    coarseTime OCTET STRING(SIZE(1)),
+    fineTime OCTET STRING(SIZE(5))
+}
+
+CUC-AbsoluteTime-PFC-46 ::= SEQUENCE
+{
+    coarseTime OCTET STRING(SIZE(4)),
+    fineTime OCTET STRING(SIZE(8))
+}
+
+AbsoluteTime-PFC-0 {P-Field, T-Field} ::= SEQUENCE --PFC-0
+{
+    preamble P-Field,
+    time T-Field
+}
+
+AbsoluteTime ::= CDS-AbsoluteTime-PFC-2 --TODO
+
+-- PTC-10
+CDS-RelativeTime-PFC-2 ::= SEQUENCE
+{
+    day INTEGER (0 .. 65535),
+    msOfDay INTEGER (0 .. MAX),
+    usOfDay INTEGER (0 .. 65535)
+}
+
+CUC-RelativeTime-PFC-3 ::= SEQUENCE
+{
+    coarseTime OCTET STRING (SIZE(1)),
+    fineTime OCTET STRING (SIZE(1))
+}
+
+CUC-RelativeTime-PFC-18 ::= SEQUENCE
+{
+    coarseTime OCTET STRING (SIZE(4)),
+    fineTime OCTET STRING (SIZE(4))
+}
+
+RelativeTime ::= CDS-RelativeTime-PFC-2 --TODO
+END
+
+--TCFS     BasicTypes.acn

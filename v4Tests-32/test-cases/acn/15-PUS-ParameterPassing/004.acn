@@ -1,0 +1,30 @@
+TEST-CASE DEFINITIONS ::= BEGIN
+
+TC [] {
+   pus-type    INTEGER [size 8, encoding pos-int],
+   pus-subtype INTEGER [size 8, encoding pos-int],
+   one-tc      <pus-type, pus-subtype> []
+} 
+
+PUS <INTEGER: pus-type, INTEGER: pus-subtype> [] {
+   manage-memory    <pus-subtype> [present-when pus-type == 6],
+   execute-function <pus-subtype> [present-when pus-type == 8],
+   private-services <pus-subtype> [present-when pus-type == 200]
+}
+
+PUS-6 <INTEGER: pus-subtype> [] {
+   pus-6-1-memory-dump  [present-when pus-subtype == 1],
+   pus-6-2-memory-patch [present-when pus-subtype == 2]
+}
+
+PUS-8 <INTEGER: pus-subtype> [] {
+   pus-8-1-execute-function [present-when pus-subtype == 1]
+}
+
+PUS-200 <INTEGER: pus-subtype> [] {
+   change-mode   [present-when pus-subtype == 1],
+   anything-else [present-when pus-subtype == 2]
+}
+
+END
+

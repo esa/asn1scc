@@ -1,0 +1,27 @@
+TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
+
+	MyPDU ::= INTEGER(1..MAX)
+	
+	pdu1 MyPDU ::= 719476736
+	
+    v64 INTEGER ::= 64
+END
+
+
+--TCLFC     MyPDU[encoding BCD, size 20]       $$$ sample1.acn:4:6: error: The applied ACN encoding does not allow values larger than 99999 to be encoded, while the corresponding ASN.1 type allows values up to 4294967295
+--TCLFC    CONSTANT WSIZE ::=64-1 MyPDU[encoding twos-complement, size WSIZE]      $$$  sample1.acn:4:29: error: Acn property twos-complement cannot be applied to non negative INTEGER types
+--TCFC     MyPDU[encoding BCD, size 76]     $$$ Asn.1 compiler error is: sample1.acn:4:6: error: Resulting integer encoding can have values up to 9999999999999999999 which is larger than MAXINT (9223372036854775807)
+--TCLFC     MyPDU[encoding ASCII, size 21]       $$$  sample1.acn:4:6: error: size value should be multiple of 8
+--TCLFC    MyPDU[encoding pos-int, size 64, adjust 2]          $$$ sample1.acn:4:34: error: no viable alternative at input 'adjust'
+
+--TCLFC     CONSTANT WSIZE ::=63 CONSTANT WSIZE2 ::=64 MyPDU[encoding twos-complement, size WSIZE2]  $$$ sample1.acn:4:49: error: Acn property twos-complement cannot be applied to non negative INTEGER types
+--TCLS     CONSTANT WSIZE ::=64 MyPDU[encoding pos-int, size WSIZE]
+--TCLS     CONSTANT WSIZE ::=128/2 MyPDU[encoding pos-int, size WSIZE]
+--TCLS     MyPDU[encoding pos-int, size 64]
+--TCLS     MyPDU[]
+--TCLFC     MyPDU[encoding ASCII, size 56]       $$$  sample1.acn:4:6: error: The applied ACN encoding does not allow values larger than 999999 to be encoded, while the corresponding ASN.1 type allows values up to 4294967295
+--TCLFC     MyPDU[encoding BCD, size -200]     $$$  sample1.acn:4:21: error: no viable alternative at input 'size'
+--TCLFC     MyPDU[encoding ASCII, size -200]     $$$  sample1.acn:4:23: error: no viable alternative at input 'size'
+--TCLFC     MyPDU[encoding BCD, size 39]       $$$  sample1.acn:4:6: error: size value should be multiple of 4
+--TCLFC    MyPDU[encoding pos-int, size h9hd]       $$$ sample1.acn:4:6: error: Expecting an Integer value or an ACN constant as value for the size property
+

@@ -1,0 +1,11 @@
+TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
+
+	MyPDU ::= SEQUENCE {
+        a2 OCTET STRING (SIZE(1..120000))
+    }
+	MyRange::= INTEGER(1..120000)
+END
+
+
+--TCLS     MyPDU[]
+--TCLS     MyPDU[] {a1 MyRange[], a2[size a1]}              

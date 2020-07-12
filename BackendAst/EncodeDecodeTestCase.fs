@@ -370,12 +370,15 @@ let IntegerAutomaticTestCaseValues (r:Asn1AcnAst.AstRoot)  (t:Asn1AcnAst.Asn1Typ
 let RealAutomaticTestCaseValues (r:Asn1AcnAst.AstRoot)  (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Real) =
     let allCons = o.AllCons
     let min, max =  
-        match o.acnEncodingClass with
-        | Real_uPER                           -> Double.MinValue, Double.MaxValue
-        | Real_IEEE754_32_big_endian          -> (double Single.MinValue), (double Single.MaxValue)
-        | Real_IEEE754_64_big_endian          -> Double.MinValue, Double.MaxValue
-        | Real_IEEE754_32_little_endian       -> (double Single.MinValue), (double Single.MaxValue)
-        | Real_IEEE754_64_little_endian       -> Double.MinValue, Double.MaxValue
+        match r.args.floatingPointSizeInBytes = 4I with
+        | true  -> (double Single.MinValue/10.0), (double Single.MaxValue/10.0)
+        | false ->
+            match o.acnEncodingClass with
+            | Real_uPER                           -> Double.MinValue, Double.MaxValue
+            | Real_IEEE754_32_big_endian          -> (double Single.MinValue), (double Single.MaxValue)
+            | Real_IEEE754_64_big_endian          -> Double.MinValue, Double.MaxValue
+            | Real_IEEE754_32_little_endian       -> (double Single.MinValue), (double Single.MaxValue)
+            | Real_IEEE754_64_little_endian       -> Double.MinValue, Double.MaxValue
 
     
     match allCons with

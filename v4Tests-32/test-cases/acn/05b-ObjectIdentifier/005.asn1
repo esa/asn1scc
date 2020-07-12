@@ -1,0 +1,13 @@
+TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
+
+	MyPDU ::= OBJECT IDENTIFIER ( 
+                            { 1 2 334 40 5 680} | 
+                            { 1 2 334 40 5 681} | 
+                            { 1 2 334 40 5 682} | 
+                            { 1 2 334 40 5 683} )
+
+	--pdu1 MyPDU ::= { 1 2 334 40 5 680}
+	
+END
+
+--TCLS     MyPDU[]

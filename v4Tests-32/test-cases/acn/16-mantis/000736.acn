@@ -1,0 +1,42 @@
+TEST-CASE DEFINITIONS ::= BEGIN
+
+T-Thing<MyIndex:index1, MyIndex:index2> [] {
+msg1 [present-when index1==10 index2==1],
+msg2 [present-when index1==10 index2==2],
+msg3 [present-when index1==20 index2==1]
+}
+
+T-Header [] {
+index1 [],
+index2 [],
+ack []
+}
+
+T-MsgA<MyIndex:index1, MyIndex:index2> [] {
+header [],
+payload<index1,index2> []
+}
+
+T-MsgB [] {
+header [],
+payload []
+}
+
+T-MsgC [] {
+header [],
+payload []
+}
+
+T-MsgD<MyIndex:index1, MyIndex:index2> [] {
+header [],
+payload<index1,index2> []
+}
+
+T-ContainerMsg<MyIndex:index1, MyIndex:index2> [] {
+msgA<index1,index2> [],
+msgB [],
+msgC [],
+msgD<index1,index2> []
+}
+
+END

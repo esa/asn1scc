@@ -1,0 +1,22 @@
+TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
+
+    MyBit ::= BIT STRING (SIZE(1..50))
+
+    MySeqType ::= SEQUENCE { 
+        a INTEGER (0..255), 
+        b INTEGER (0..255)
+    }
+    
+    
+	MyContBit ::= BIT STRING (CONTAINING MySeqType)
+    
+    MyMasterSeq ::= SEQUENCE {
+        a INTEGER (0 .. 200),
+        b MyContBit
+    }
+	
+	
+END
+
+
+--TCLS     MyMasterSeq[]

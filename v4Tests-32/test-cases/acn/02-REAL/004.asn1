@@ -1,0 +1,13 @@
+TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
+
+    
+    MyPDU   ::= REAL ({mantissa 2, base 10, exponent 0} .. <{mantissa 5, base 10, exponent 0})
+
+	pdu1 MyPDU ::= {mantissa 314159265, base 10, exponent -8} 
+	
+END
+
+--TCLFC     MyPDU[encoding IEEE754-1985-64, endianness little]    $$$  sample1.acn:4:6: error: Acn property 'IEEE754-1985-64' cannot be applied when -fpWordSize  4
+--TCLFC     MyPDU[encoding IEEE754-1985-64, endianness big]    $$$  sample1.acn:4:6: error: Acn property 'IEEE754-1985-64' cannot be applied when -fpWordSize  4
+--TCLS     MyPDU[encoding IEEE754-1985-32]
+--TCLS     MyPDU[]

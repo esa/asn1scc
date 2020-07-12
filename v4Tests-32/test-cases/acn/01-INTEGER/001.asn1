@@ -1,0 +1,39 @@
+TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
+
+	MyPDU ::= INTEGER(1|2|3|719476736)
+	
+	pdu1 MyPDU ::= 719476736
+    
+    v37 INTEGER ::= 37
+	
+END
+
+
+
+--TCLS     MyPDU[encoding BCD, size null-terminated]
+
+--TCLFC     MyPDU[encoding ASCII, size 81]       $$$ sample1.acn:4:6: error: size value should be multiple of 8
+--TCLFC     MyPDU[encoding ASCII, size 48]       $$$ sample1.acn:4:6: error: The applied ACN encoding does not allow values larger than 99999 to be encoded, while the corresponding ASN.1 type allows values up to 719476736
+--TCLFC    MyPDU[encoding pos-int, size 6]          $$$ sample1.acn:4:6: error: The applied ACN encoding does not allow values larger than 63 to be encoded, while the corresponding ASN.1 type allows values up to 719476736
+--TCLS     CONSTANT WSIZE ::=31 MyPDU[encoding pos-int, size WSIZE]
+--TCLS     CONSTANT WSIZE ::=31/1  MyPDU[encoding pos-int, size WSIZE]
+--TCLFC    MyPDU[encoding pos-int, size 12]         $$$ sample1.acn:4:6: error: The applied ACN encoding does not allow values larger than 4095 to be encoded, while the corresponding ASN.1 type allows values up to 719476736
+--TCLFC     MyPDU[encoding BCD, size 20]       $$$ sample1.acn:4:6: error: The applied ACN encoding does not allow values larger than 99999 to be encoded, while the corresponding ASN.1 type allows values up to 719476736
+--TCLFC     MyPDU[encoding BCD, size 21]       $$$ sample1.acn:4:6: error: size value should be multiple of 4
+--TCLFC     MyPDU[encoding BCD, size -200]     $$$  sample1.acn:4:21: error: no viable alternative at input 'size'
+--TCLS     MyPDU[encoding pos-int, size 31]
+--TCLS     MyPDU[]
+--TCLFC     CONSTANT WSIZE ::=37 CONSTANT WSIZE2 ::=37+1 MyPDU[encoding twos-complement, size WSIZE2]  $$$ sample1.acn:4:51: error: Acn property twos-complement cannot be applied to non negative INTEGER types
+--TCLS     MyPDU[encoding pos-int, size 32]
+--TCLFC    MyPDU[encoding pos-int, size h9hd]       $$$ sample1.acn:4:6: error: Expecting an Integer value or an ACN constant as value for the size property
+--TCLFC    CONSTANT WSIZE ::=37 CONSTANT WSIZE2 ::=37 - 1 MyPDU[encoding twos-complement, size WSIZE2]      $$$ sample1.acn:4:53: error: Acn property twos-complement cannot be applied to non negative INTEGER types
+--TCLS     MyPDU[encoding BCD, size 36]
+--TCLS     MyPDU[encoding BCD, size 40]
+
+       
+--   TC   Test Case
+--   L  Line test case
+--   F   complex  test case written in separate File
+--   S  Expected to Succeed
+--   FC  Expected to fail by asn1 compiler
+--   FE  Expected to fail by the generated executable

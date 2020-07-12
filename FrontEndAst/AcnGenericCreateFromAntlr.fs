@@ -103,30 +103,30 @@ let private GetParams (files:CommonTypes.AntlrParserResult list) modName tasName
     files |>  List.map (fun pr -> GetParamsAux pr.rootItem) |> List.collect(fun x -> x)
 
 
-let rec createPresentWhenBoooExpresssion (t:ITree) : AcnExpression =
+let rec createPresentWhenBoooExpresssion (t:ITree) integerSizeInBytes : AcnExpression =
     match t.Type with
-        | acnParser.INT                 -> IntegerConstantExp(t.BigIntL)
+        | acnParser.INT                 -> IntegerConstantExp(t.BigIntL integerSizeInBytes)
         | acnParser.UID                 -> AcnIntegerConstExp(t.TextL)
         | acnParser.REAL                -> RealConstantExp(t.DoubleL)
         | acnParser.LONG_FIELD          -> Asn1LongField (CreateLongField t)
-        | acnParser.OR                  -> OrExpression(t.Location, createPresentWhenBoooExpresssion  (t.GetChild 0), createPresentWhenBoooExpresssion (t.GetChild 1))
-        | acnParser.AND                 -> AndExpression(t.Location, createPresentWhenBoooExpresssion  (t.GetChild 0), createPresentWhenBoooExpresssion (t.GetChild 1))
-        | acnParser.EQUAL               -> EqualExpression(t.Location, createPresentWhenBoooExpresssion  (t.GetChild 0), createPresentWhenBoooExpresssion (t.GetChild 1))
-        | acnParser.NOTEQUAL            -> NotEqualExpression(t.Location, createPresentWhenBoooExpresssion  (t.GetChild 0), createPresentWhenBoooExpresssion (t.GetChild 1))
-        | acnParser.LTE                 -> LessThanEqualExpression(t.Location, createPresentWhenBoooExpresssion  (t.GetChild 0), createPresentWhenBoooExpresssion (t.GetChild 1))
-        | acnParser.LT                  -> LessThanExpression(t.Location, createPresentWhenBoooExpresssion  (t.GetChild 0), createPresentWhenBoooExpresssion (t.GetChild 1))
-        | acnParser.GTE                 -> GreaterThanEqualExpression(t.Location, createPresentWhenBoooExpresssion  (t.GetChild 0), createPresentWhenBoooExpresssion (t.GetChild 1))
-        | acnParser.GT                  -> GreaterThanExpression(t.Location, createPresentWhenBoooExpresssion  (t.GetChild 0), createPresentWhenBoooExpresssion (t.GetChild 1))
-        | acnParser.PLUS   when t.Children.Length > 1             -> AdditionExpression(t.Location, createPresentWhenBoooExpresssion  (t.GetChild 0), createPresentWhenBoooExpresssion (t.GetChild 1))
-        | acnParser.MINUS  when t.Children.Length > 1             -> SubtractionExpression(t.Location, createPresentWhenBoooExpresssion  (t.GetChild 0), createPresentWhenBoooExpresssion (t.GetChild 1))
-        | acnParser.PLUS   (*unary*)    -> createPresentWhenBoooExpresssion  (t.GetChild 0)
-        | acnParser.MINUS  (*unary*)    -> MinusUnaryExpression(t.Location, createPresentWhenBoooExpresssion  (t.GetChild 0))
-        | acnParser.BANG   (*unary*)    -> NotUnaryExpression(t.Location, createPresentWhenBoooExpresssion  (t.GetChild 0))
+        | acnParser.OR                  -> OrExpression(t.Location, createPresentWhenBoooExpresssion  (t.GetChild 0) integerSizeInBytes, createPresentWhenBoooExpresssion (t.GetChild 1) integerSizeInBytes) 
+        | acnParser.AND                 -> AndExpression(t.Location, createPresentWhenBoooExpresssion  (t.GetChild 0) integerSizeInBytes, createPresentWhenBoooExpresssion (t.GetChild 1) integerSizeInBytes) 
+        | acnParser.EQUAL               -> EqualExpression(t.Location, createPresentWhenBoooExpresssion  (t.GetChild 0) integerSizeInBytes, createPresentWhenBoooExpresssion (t.GetChild 1) integerSizeInBytes)
+        | acnParser.NOTEQUAL            -> NotEqualExpression(t.Location, createPresentWhenBoooExpresssion  (t.GetChild 0) integerSizeInBytes, createPresentWhenBoooExpresssion (t.GetChild 1) integerSizeInBytes)
+        | acnParser.LTE                 -> LessThanEqualExpression(t.Location, createPresentWhenBoooExpresssion  (t.GetChild 0) integerSizeInBytes, createPresentWhenBoooExpresssion (t.GetChild 1) integerSizeInBytes)
+        | acnParser.LT                  -> LessThanExpression(t.Location, createPresentWhenBoooExpresssion  (t.GetChild 0) integerSizeInBytes, createPresentWhenBoooExpresssion (t.GetChild 1) integerSizeInBytes)
+        | acnParser.GTE                 -> GreaterThanEqualExpression(t.Location, createPresentWhenBoooExpresssion  (t.GetChild 0) integerSizeInBytes, createPresentWhenBoooExpresssion (t.GetChild 1) integerSizeInBytes)
+        | acnParser.GT                  -> GreaterThanExpression(t.Location, createPresentWhenBoooExpresssion  (t.GetChild 0) integerSizeInBytes, createPresentWhenBoooExpresssion (t.GetChild 1) integerSizeInBytes)
+        | acnParser.PLUS   when t.Children.Length > 1             -> AdditionExpression(t.Location, createPresentWhenBoooExpresssion  (t.GetChild 0) integerSizeInBytes, createPresentWhenBoooExpresssion (t.GetChild 1) integerSizeInBytes)
+        | acnParser.MINUS  when t.Children.Length > 1             -> SubtractionExpression(t.Location, createPresentWhenBoooExpresssion  (t.GetChild 0) integerSizeInBytes, createPresentWhenBoooExpresssion (t.GetChild 1) integerSizeInBytes)
+        | acnParser.PLUS   (*unary*)    -> createPresentWhenBoooExpresssion  (t.GetChild 0) integerSizeInBytes
+        | acnParser.MINUS  (*unary*)    -> MinusUnaryExpression(t.Location, createPresentWhenBoooExpresssion  (t.GetChild 0) integerSizeInBytes) 
+        | acnParser.BANG   (*unary*)    -> NotUnaryExpression(t.Location, createPresentWhenBoooExpresssion  (t.GetChild 0) integerSizeInBytes)
 
 
-        | acnParser.MULTIPLICATION      -> MultipicationExpression(t.Location, createPresentWhenBoooExpresssion  (t.GetChild 0), createPresentWhenBoooExpresssion (t.GetChild 1))
-        | acnParser.DIVISION            -> DivisionExpression(t.Location, createPresentWhenBoooExpresssion  (t.GetChild 0), createPresentWhenBoooExpresssion (t.GetChild 1))
-        | acnParser.MODULO              -> ModuloExpression(t.Location, createPresentWhenBoooExpresssion  (t.GetChild 0), createPresentWhenBoooExpresssion (t.GetChild 1))
+        | acnParser.MULTIPLICATION      -> MultipicationExpression(t.Location, createPresentWhenBoooExpresssion  (t.GetChild 0) integerSizeInBytes, createPresentWhenBoooExpresssion (t.GetChild 1) integerSizeInBytes)
+        | acnParser.DIVISION            -> DivisionExpression(t.Location, createPresentWhenBoooExpresssion  (t.GetChild 0) integerSizeInBytes, createPresentWhenBoooExpresssion (t.GetChild 1) integerSizeInBytes)
+        | acnParser.MODULO              -> ModuloExpression(t.Location, createPresentWhenBoooExpresssion  (t.GetChild 0) integerSizeInBytes, createPresentWhenBoooExpresssion (t.GetChild 1) integerSizeInBytes)
         | _                             -> raise(BugErrorException("createPresentWhenBoooExpresssion Unsupported operation"))
 
 
@@ -161,11 +161,11 @@ let rec printDebug (exp:AcnExpression) : (int*string) =
     | OrExpression                  (_,e1, e2) -> printBinary "or" e1 e2 6 //6, sprintf "(%s) or (%s)" (printDebug e1) (printDebug e2)
 
 
-let private CreateNamedExpression (t:ITree) : AcnConstant= 
+let private CreateNamedExpression  integerSizeInBytes (t:ITree) : AcnConstant= 
 
     let CreateAcnIntegerConstant  (t:ITree) = 
         match t.Type with
-        | acnParser.INT                 -> IntConst(t.BigIntL)
+        | acnParser.INT                 -> IntConst(t.BigIntL  integerSizeInBytes)
         | acnParser.UID                 -> RefConst(t.TextL)
         | _                             -> raise(BugErrorException("AcnCreateFromAntlr::CreateAcnIntegerConstant"))
     let rec CreateExpression  (t:ITree) = 
@@ -212,10 +212,10 @@ let private CheckCircularDependenciesInAcnConstants (constants : List<ITree>) =
     DoTopologicalSort2 independentConstants dependentConstansts comparer ExToThrow |> ignore
 
 
-let private creareAcnProperty (acnConstants : Map<string, BigInteger>) (t:ITree) =
+let private creareAcnProperty integerSizeInBytes (acnConstants : Map<string, BigInteger>) (t:ITree) =
     let CreateAcnIntegerConstant  (t:ITree) = 
         match t.Type with
-        | acnParser.INT                 -> t.BigIntL
+        | acnParser.INT                 -> t.BigIntL integerSizeInBytes
         | acnParser.UID                 -> 
             match acnConstants.TryFind t.Text with
             | Some ret -> {IntLoc.Location = t.Location; Value=ret}
@@ -263,7 +263,7 @@ let private creareAcnProperty (acnConstants : Map<string, BigInteger>) (t:ITree)
             | _                     -> raise(BugErrorException("creareAcnProperty_PRESENT_WHEN"))
         PRESENT_WHEN (t.Children |> List.map CreateAcnPresenseCondition )
     | acnParser.PRESENT_WHEN_EXP            -> 
-        let retExp = createPresentWhenBoooExpresssion (t.GetChild 0)
+        let retExp = createPresentWhenBoooExpresssion (t.GetChild 0) integerSizeInBytes
         (*
         let valResult = AcnGenericTypes.validateAcnExpression (fun lf -> ValResultOK (NonBooleanExpression RealExpType)) retExp
         match valResult with
@@ -300,7 +300,7 @@ let private creareAcnProperty (acnConstants : Map<string, BigInteger>) (t:ITree)
     | acnParser.MAPPING_FUNCTION        -> MAPPING_FUNCTION (t.GetChild(0).TextL)
     | acnParser.POST_ENCODING_FUNCTION  -> POST_ENCODING_FUNCTION (t.GetChild(0).TextL)
     | acnParser.POST_DECODING_VALIDATOR -> PRE_DECODING_FUNCTION (t.GetChild(0).TextL)
-    | acnParser.INT                     -> ENUM_SET_VALUE t.BigIntL
+    | acnParser.INT                     -> ENUM_SET_VALUE (t.BigIntL integerSizeInBytes)
     | acnParser.TERMINATION_PATTERN     -> 
         let tp = t
         let bitPattern = 
@@ -336,11 +336,11 @@ let private creareAcnProperty (acnConstants : Map<string, BigInteger>) (t:ITree)
         TERMINATION_PATTERN bitPattern
     | _                             -> raise(SemanticError(t.Location, (sprintf "Unexpected token '%s'" t.Text)))
 
-let rec  private createTypeEncodingSpec (allAcnFiles: CommonTypes.AntlrParserResult list) (acnConstants : Map<string, BigInteger>) (thisAcnFile: CommonTypes.AntlrParserResult)  (alreadyTakenComments:System.Collections.Generic.List<IToken>) (encSpecITree:ITree) : AcnTypeEncodingSpec =
+let rec  private createTypeEncodingSpec integerSizeInBytes (allAcnFiles: CommonTypes.AntlrParserResult list) (acnConstants : Map<string, BigInteger>) (thisAcnFile: CommonTypes.AntlrParserResult)  (alreadyTakenComments:System.Collections.Generic.List<IToken>) (encSpecITree:ITree) : AcnTypeEncodingSpec =
     let acnProperties = 
         match encSpecITree.GetOptChild(acnParser.ENCODING_PROPERTIES) with
         | None              -> []
-        | Some(propList)    -> propList.Children |> List.map (creareAcnProperty acnConstants)
+        | Some(propList)    -> propList.Children |> List.map (creareAcnProperty integerSizeInBytes acnConstants)
     
     let children = 
         match encSpecITree.GetOptChild(acnParser.CHILDREN_ENC_SPEC) with
@@ -356,7 +356,7 @@ let rec  private createTypeEncodingSpec (allAcnFiles: CommonTypes.AntlrParserRes
                         | None            -> []
                         | Some(argList)   -> argList.Children |> List.map CreateLongField
                 let comments = Antlr.Comment.GetComments(thisAcnFile.tokens, alreadyTakenComments, thisAcnFile.tokens.[t.TokenStopIndex].Line, t.TokenStartIndex - 1, t.TokenStopIndex + 2, true)
-                let childEncodingSpec = createTypeEncodingSpec allAcnFiles acnConstants thisAcnFile alreadyTakenComments (t.GetChildByType acnParser.ENCODING_SPEC) 
+                let childEncodingSpec = createTypeEncodingSpec integerSizeInBytes allAcnFiles acnConstants thisAcnFile alreadyTakenComments (t.GetChildByType acnParser.ENCODING_SPEC) 
                 let asn1Type  =
                     match t.Type with
                     | acnParser.CHILD       -> None
@@ -367,7 +367,7 @@ let rec  private createTypeEncodingSpec (allAcnFiles: CommonTypes.AntlrParserRes
             childrenList.Children |> List.map createChild
     {AcnTypeEncodingSpec.acnProperties = acnProperties; children = children; loc = encSpecITree.Location; comments=[]}
 
-let private CreateTypeAssignment (allAcnFiles: CommonTypes.AntlrParserResult list) (acnConstants : Map<string, BigInteger>) (thisAcnFile: CommonTypes.AntlrParserResult)  (alreadyTakenComments:System.Collections.Generic.List<IToken>) (tasTree:ITree) : AcnTypeAssignment =
+let private CreateTypeAssignment integerSizeInBytes (allAcnFiles: CommonTypes.AntlrParserResult list) (acnConstants : Map<string, BigInteger>) (thisAcnFile: CommonTypes.AntlrParserResult)  (alreadyTakenComments:System.Collections.Generic.List<IToken>) (tasTree:ITree) : AcnTypeAssignment =
     let tasNameL = tasTree.GetChildByType(acnParser.UID).TextL
 
     let encSpecITree = tasTree.GetChildByType(acnParser.ENCODING_SPEC)
@@ -389,12 +389,12 @@ let private CreateTypeAssignment (allAcnFiles: CommonTypes.AntlrParserResult lis
             paramList.Children |> List.map CreateParam
 
     let comments = Antlr.Comment.GetComments(thisAcnFile.tokens, alreadyTakenComments, thisAcnFile.tokens.[tasTree.TokenStopIndex].Line, tasTree.TokenStartIndex - 1, tasTree.TokenStopIndex + 1, true)
-    let typeEncodingSpec = createTypeEncodingSpec allAcnFiles acnConstants thisAcnFile alreadyTakenComments encSpecITree
+    let typeEncodingSpec = createTypeEncodingSpec integerSizeInBytes allAcnFiles acnConstants thisAcnFile alreadyTakenComments encSpecITree
 
     {AcnTypeAssignment.name = tasNameL; acnParameters = prms; typeEncodingSpec = typeEncodingSpec; comments = comments |> Seq.toList}
 
 
-let private CreateModule (allAcnFiles: CommonTypes.AntlrParserResult list) (acnConstants : Map<string, BigInteger>) (thisAcnFile: CommonTypes.AntlrParserResult)   (alreadyTakenComments:System.Collections.Generic.List<IToken>)  (modTree : ITree) : AcnModule =
+let private CreateModule integerSizeInBytes (allAcnFiles: CommonTypes.AntlrParserResult list) (acnConstants : Map<string, BigInteger>) (thisAcnFile: CommonTypes.AntlrParserResult)   (alreadyTakenComments:System.Collections.Generic.List<IToken>)  (modTree : ITree) : AcnModule =
     let modNameL = modTree.GetChildByType(acnParser.UID).TextL
 
     let tasITreeList = modTree.GetChildrenByType(acnParser.TYPE_ENCODING)
@@ -402,18 +402,18 @@ let private CreateModule (allAcnFiles: CommonTypes.AntlrParserResult list) (acnC
     //check for duplicate type assignments in the ACN module
     tasITreeList |> List.map(fun x -> x.GetChildByType(acnParser.UID).TextL) |> CheckForDuplicates
 
-    let newTasses = tasITreeList |> List.map(fun tasTree -> CreateTypeAssignment allAcnFiles acnConstants thisAcnFile alreadyTakenComments tasTree) 
+    let newTasses = tasITreeList |> List.map(fun tasTree -> CreateTypeAssignment integerSizeInBytes allAcnFiles acnConstants thisAcnFile alreadyTakenComments tasTree) 
     
     {AcnModule.name = modNameL; typeAssignments = newTasses}
 
 
-let private LoadAcnFile (allAcnFiles: CommonTypes.AntlrParserResult list) (acnConstants : Map<string, BigInteger>) (thisAcnFile: CommonTypes.AntlrParserResult)   : AcnFile = 
+let private LoadAcnFile integerSizeInBytes (allAcnFiles: CommonTypes.AntlrParserResult list) (acnConstants : Map<string, BigInteger>) (thisAcnFile: CommonTypes.AntlrParserResult)   : AcnFile = 
     let alreadyTakenComments = new System.Collections.Generic.List<IToken>();
 
-    let modules = thisAcnFile.rootItem.Children |> List.map (CreateModule allAcnFiles acnConstants thisAcnFile alreadyTakenComments)
+    let modules = thisAcnFile.rootItem.Children |> List.map (CreateModule integerSizeInBytes allAcnFiles acnConstants thisAcnFile alreadyTakenComments)
     {AcnFile.antlrResult = thisAcnFile; modules = modules}
 
-let CreateAcnAst (allAcnFiles: CommonTypes.AntlrParserResult list) : AcnAst =  
+let CreateAcnAst  integerSizeInBytes (allAcnFiles: CommonTypes.AntlrParserResult list) : AcnAst =  
     ITree.RegisterFiles(allAcnFiles|> Seq.map(fun pr -> (pr.rootItem, pr.fileName)))
     let constants = seq {
         for acnFile in allAcnFiles do
@@ -428,10 +428,10 @@ let CreateAcnAst (allAcnFiles: CommonTypes.AntlrParserResult list) : AcnAst =
 
     CheckCircularDependenciesInAcnConstants constants
 
-    let constantValues = constants |> List.map CreateNamedExpression  
+    let constantValues = constants |> List.map (CreateNamedExpression  integerSizeInBytes)
     let acnConstantsMap = constantValues |> List.map(fun c -> c.Name.Value, EvaluateAcnIntExpression constantValues c.Value) |> Map.ofList
 
-    let acnFiles = allAcnFiles |> List.map (LoadAcnFile allAcnFiles acnConstantsMap)
+    let acnFiles = allAcnFiles |> List.map (LoadAcnFile integerSizeInBytes allAcnFiles acnConstantsMap)
     {AcnAst.files = acnFiles; acnConstants = acnConstantsMap}
 
 

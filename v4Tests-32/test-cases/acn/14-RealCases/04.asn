@@ -1,0 +1,49 @@
+-- NOCOVERAGE
+TEST-CASE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+
+
+Command-T ::= CHOICE
+{
+  go-left BOOLEAN,
+  go-right BOOLEAN,
+  go-forward BOOLEAN,
+  go-backward BOOLEAN,
+  take-picture BOOLEAN
+}
+
+Telecommand-T ::= CHOICE
+{
+  go-left                INTEGER (0 .. 254),
+  go-right              INTEGER (0 .. 254),
+  go-forward         INTEGER (0 .. 254),
+  go-backward     INTEGER (0 .. 254)
+}
+
+
+MyEnum ::= ENUMERATED 
+{
+    go-left(4),
+    go-right(3),
+    go-forward(0),
+    go-backward(1)
+}
+
+
+MyEnum2 ::= ENUMERATED 
+{
+    go-left(4),
+    go-right(3),
+    go-forward(0),
+    go-backward(1)
+}
+
+MyTestPDU ::= MyEnum2 
+
+
+testPDU MyTestPDU ::= go-left
+
+
+END
+
+
+--TCLS     MyEnum2[encoding pos-int, size 3]

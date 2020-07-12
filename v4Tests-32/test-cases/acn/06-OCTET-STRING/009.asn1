@@ -1,0 +1,6 @@
+TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
+	MyPDU ::=  OCTET STRING (SIZE(1..20))
+END
+
+
+--TCLS     MyPDU[size null-terminated, termination-pattern 'FFFFFF'H]

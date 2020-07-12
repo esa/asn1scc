@@ -1,0 +1,15 @@
+TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
+
+	MyPDU ::= SEQUENCE {
+       a1 INTEGER,
+       a2 IA5String(SIZE(1..20))(FROM("A".."Z"|"a".."z"|" "))
+    }
+	
+	pdu1 MyPDU ::= {a1 13, a2 "George Mamais"}
+	
+END
+
+--TCLS     MyPDU[]
+--TCLS     MyPDU[] { a1[], a2[]}
+-- TCLS     MyPDU[] { a1[], a2[size null-terminated]}
+--TCLFC    MyPDU[] { a1[], a2[size 20]}               $$$ sample1.acn:4:19: error: The size constraints of the ASN.1  allows variable items (1 .. 20). Therefore, you should either remove the size property (in which case the size determinant will be encoded automatically exactly like uPER), or use a an Integer field as size determinant

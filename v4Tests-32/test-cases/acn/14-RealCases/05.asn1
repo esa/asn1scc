@@ -1,0 +1,47 @@
+--NOCOVERAGE
+TEST-CASE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+
+   DEF-PUS-Packet-Header ::= SEQUENCE {
+      field-packet-id DEF-PUS-Packet-ID, 
+      field-packet-sequence-control DEF-PUS-Packet-Sequence-Control, 
+      field-packet-length DEF-PUS-packet-length
+   }
+
+   DEF-PUS-Packet-ID ::= SEQUENCE {
+      field-version-number DEF-PUS-version-number, 
+      field-type DEF-PUS-type, 
+      field-data-field-header-flag DEF-PUS-data-field-header-flag, 
+      field-application-process-id DEF-PUS-application-process-id
+   }
+   
+   DEF-PUS-version-number ::= INTEGER ((0..7))
+   DEF-PUS-Packet-Sequence-Control ::= SEQUENCE {
+      field-sequence-flags DEF-PUS-sequence-flags, 
+      field-sequence-count DEF-PUS-sequence-count
+   }
+
+   DEF-PUS-packet-length ::= INTEGER ((0..65535))
+
+   DEF-PUS-sequence-flags ::= BIT STRING (SIZE(2))
+   DEF-PUS-sequence-count ::= INTEGER ((0..16383))
+   DEF-PUS-type ::= ENUMERATED {option-telecommand(1), option-telemetry(0)}
+   DEF-PUS-data-field-header-flag ::= ENUMERATED {option-present(1), option-absent(0)}
+   DEF-PUS-application-process-id ::= INTEGER ((0..2047))
+
+   
+   DEF-NPAL-TC-header ::= SEQUENCE {
+      field-packet-header DEF-PUS-Packet-Header 
+		(WITH COMPONENTS {..., 
+			field-packet-id (WITH COMPONENTS {..., 
+				field-version-number ((0)), 
+				field-type (option-telecommand), 
+				field-data-field-header-flag (option-present), 
+				field-application-process-id ((31))}), 
+			field-packet-sequence-control (WITH COMPONENTS {..., 
+					field-sequence-flags (('11'B))})}) 
+   }
+
+
+END
+
+--TCFS     05.acn

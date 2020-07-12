@@ -1,0 +1,17 @@
+TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
+
+	MyPDU ::= SEQUENCE {
+       a2 IA5String(SIZE(1..20))(FROM("A".."Z"|"a".."z"|" "))
+    }
+	
+	AT1 ::= INTEGER (1..100)
+	
+	pdu1 MyPDU ::= {a2 "George Mamais       "}
+	
+END
+
+-- ASCII encodings
+--TCLS     MyPDU[] { a1 AT1[], a2[size a1, encoding ASCII]} 
+--TCLS     MyPDU[] { a2[size null-terminated, encoding ASCII]} 
+-- char index encodings
+--TCLS     MyPDU[] { a1 AT1[], a2[size a1]} 

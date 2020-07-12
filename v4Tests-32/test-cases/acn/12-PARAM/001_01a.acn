@@ -1,0 +1,22 @@
+-- 
+TEST-CASE DEFINITIONS ::= BEGIN
+        
+    MyPDU[] {    
+         tap[]        
+    }
+    
+    
+    TAP2File[]{
+         nrCalls CallsSize [],
+         data <nrCalls> []
+    }
+    
+    SourceData<INTEGER:nElements>[]
+    {
+         operatorID[],
+         calls[size nElements]
+    }
+    Call[]
+END  
+
+

@@ -1,0 +1,18 @@
+TEST-CASE DEFINITIONS ::= 
+BEGIN
+
+
+Super{T} ::= SEQUENCE {
+    a INTEGER (0..255),
+    b T
+}
+
+Flux ::= Super {BOOLEAN}
+
+END
+
+
+--TCFS     07.acn
+
+
+

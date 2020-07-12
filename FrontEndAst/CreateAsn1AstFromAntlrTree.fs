@@ -145,7 +145,7 @@ let createDefaultConstraintsForEnumeratedTypes (tree:ITree) (namedItems:NamedIte
     
     
 
-let rec CreateType (tasParameters : TemplateParameter list) (acnTypeEncodingSpec  : AcnTypeEncodingSpec option) (astRoot:list<ITree>) (tree:ITree) (fileTokens:array<IToken>) (alreadyTakenComments:System.Collections.Generic.List<IToken>) : Asn1Type= 
+let rec CreateType integerSizeInBytes (tasParameters : TemplateParameter list) (acnTypeEncodingSpec  : AcnTypeEncodingSpec option) (astRoot:list<ITree>) (tree:ITree) (fileTokens:array<IToken>) (alreadyTakenComments:System.Collections.Generic.List<IToken>) : Asn1Type= 
 
 
     let createReferenceType (typeNode:ITree) refEnc =
@@ -167,9 +167,9 @@ let rec CreateType (tasParameters : TemplateParameter list) (acnTypeEncodingSpec
                             let (md,ts) = CreateRefTypeContent(typeNode)
                             match tasParameters |> Seq.tryFind (fun tp -> match tp with TypeParameter prmName | ValueParameter (_,prmName)  -> prmName.Value = ts.Value) with
                             | Some _   -> TemplateParameter ts
-                            | None                  -> ArgType (CreateType tasParameters None astRoot (x.GetChild(0)) fileTokens alreadyTakenComments)
-                        | _                             -> ArgType (CreateType tasParameters None astRoot (x.GetChild(0)) fileTokens alreadyTakenComments)
-                    | asn1Parser.ACTUAL_VALUE_PARAM     ->  ArgValue (CreateValue astRoot (x.GetChild(0)) )    
+                            | None                  -> ArgType (CreateType integerSizeInBytes tasParameters None astRoot (x.GetChild(0)) fileTokens alreadyTakenComments)
+                        | _                             -> ArgType (CreateType integerSizeInBytes tasParameters None astRoot (x.GetChild(0)) fileTokens alreadyTakenComments)
+                    | asn1Parser.ACTUAL_VALUE_PARAM     ->  ArgValue (CreateValue integerSizeInBytes astRoot (x.GetChild(0)) )    
                     | _                         ->  raise (BugErrorException("Bug in CrateType(refType)"))  )
 
         ReferenceType(md, ts, refEnc, templateArgs)
@@ -192,11 +192,11 @@ let rec CreateType (tasParameters : TemplateParameter list) (acnTypeEncodingSpec
         | asn1Parser.INTEGER_TYPE       -> Integer
         | asn1Parser.REAL               -> Real
         | asn1Parser.BOOLEAN            -> Boolean
-        | asn1Parser.CHOICE_TYPE        -> Choice(CreateChoiceChild  tasParameters acnTypeEncodingSpec astRoot typeNode fileTokens alreadyTakenComments )
-        | asn1Parser.SEQUENCE_TYPE      -> Sequence(CreateSequenceChild  tasParameters acnTypeEncodingSpec astRoot typeNode fileTokens alreadyTakenComments )
-        | asn1Parser.SET_TYPE           -> Sequence(CreateSequenceChild  tasParameters acnTypeEncodingSpec astRoot typeNode fileTokens alreadyTakenComments )
-        | asn1Parser.ENUMERATED_TYPE    -> Enumerated(CreateNamedItems astRoot  typeNode fileTokens alreadyTakenComments)
-        | asn1Parser.BIT_STRING_TYPE    -> BitString(CreateNamedBitList astRoot  typeNode fileTokens alreadyTakenComments)
+        | asn1Parser.CHOICE_TYPE        -> Choice(CreateChoiceChild  integerSizeInBytes tasParameters acnTypeEncodingSpec astRoot typeNode fileTokens alreadyTakenComments )
+        | asn1Parser.SEQUENCE_TYPE      -> Sequence(CreateSequenceChild  integerSizeInBytes tasParameters acnTypeEncodingSpec astRoot typeNode fileTokens alreadyTakenComments )
+        | asn1Parser.SET_TYPE           -> Sequence(CreateSequenceChild  integerSizeInBytes tasParameters acnTypeEncodingSpec astRoot typeNode fileTokens alreadyTakenComments )
+        | asn1Parser.ENUMERATED_TYPE    -> Enumerated(CreateNamedItems integerSizeInBytes  astRoot  typeNode fileTokens alreadyTakenComments)
+        | asn1Parser.BIT_STRING_TYPE    -> BitString(CreateNamedBitList integerSizeInBytes  astRoot  typeNode fileTokens alreadyTakenComments)
         | asn1Parser.OCTECT_STING       -> OctetString
         | asn1Parser.IA5String          -> IA5String
         | asn1Parser.NumericString      -> NumericString
@@ -221,7 +221,7 @@ let rec CreateType (tasParameters : TemplateParameter list) (acnTypeEncodingSpec
                     | []    -> None
                     | z::_  -> Some z.childEncodingSpec
 
-            SequenceOf(CreateType tasParameters childAcnEncodingSpec astRoot (getChildByType (typeNode, asn1Parser.TYPE_DEF)) fileTokens alreadyTakenComments )
+            SequenceOf(CreateType integerSizeInBytes tasParameters childAcnEncodingSpec astRoot (getChildByType (typeNode, asn1Parser.TYPE_DEF)) fileTokens alreadyTakenComments )
         | asn1Parser.SET_OF_TYPE        -> 
             let childAcnEncodingSpec = 
                 match acnTypeEncodingSpec with
@@ -230,7 +230,7 @@ let rec CreateType (tasParameters : TemplateParameter list) (acnTypeEncodingSpec
                     match sqe.children with
                     | []    -> None
                     | z::_  -> Some z.childEncodingSpec
-            SequenceOf(CreateType tasParameters acnTypeEncodingSpec astRoot (getChildByType (typeNode, asn1Parser.TYPE_DEF)) fileTokens alreadyTakenComments )
+            SequenceOf(CreateType integerSizeInBytes tasParameters acnTypeEncodingSpec astRoot (getChildByType (typeNode, asn1Parser.TYPE_DEF)) fileTokens alreadyTakenComments )
         | asn1Parser.UTF8String         -> raise (SemanticError (tree.Location, "UTF8String is not supported, use IA5String"))
         | asn1Parser.TeletexString      -> raise (SemanticError (tree.Location, "TeletexString is not supported, use IA5String"))
         | asn1Parser.VideotexString     -> raise (SemanticError (tree.Location, "VideotexString is not supported"))
@@ -244,7 +244,7 @@ let rec CreateType (tasParameters : TemplateParameter list) (acnTypeEncodingSpec
     {
         Asn1Type.Kind = asn1Kind
         Constraints= 
-            let userConstraints = contraintNodes |> List.map(fun x-> CreateConstraint  astRoot x ) |> List.choose(fun x -> x)
+            let userConstraints = contraintNodes |> List.map(fun x-> CreateConstraint integerSizeInBytes astRoot x ) |> List.choose(fun x -> x)
             match asn1Kind with
             | Enumerated(itms)  -> 
                 match userConstraints with
@@ -256,7 +256,7 @@ let rec CreateType (tasParameters : TemplateParameter list) (acnTypeEncodingSpec
         acnInfo = acnTypeEncodingSpec 
     }
 
-and CreateChoiceChild (tasParameters : TemplateParameter list) (chAcnTypeEncodingSpec  : AcnTypeEncodingSpec option) (astRoot:list<ITree>) (tree:ITree) (fileTokens:array<IToken>) (alreadyTakenComments:System.Collections.Generic.List<IToken>) = 
+and CreateChoiceChild integerSizeInBytes (tasParameters : TemplateParameter list) (chAcnTypeEncodingSpec  : AcnTypeEncodingSpec option) (astRoot:list<ITree>) (tree:ITree) (fileTokens:array<IToken>) (alreadyTakenComments:System.Collections.Generic.List<IToken>) = 
     getChildrenByType(tree, asn1Parser.CHOICE_ITEM) |> 
     List.map(fun x ->
         match getTreeChildren(x) with
@@ -268,7 +268,7 @@ and CreateChoiceChild (tasParameters : TemplateParameter list) (chAcnTypeEncodin
                         match chAcnTypeEncodingSpec with
                         | None      -> None
                         | Some sqe  -> sqe.children |> Seq.tryFind(fun z -> z.name.Value = first.Text) |> Option.map(fun z -> z.childEncodingSpec)
-                    CreateType tasParameters childAcnEncodingSpec astRoot sec fileTokens alreadyTakenComments ; 
+                    CreateType integerSizeInBytes tasParameters childAcnEncodingSpec astRoot sec fileTokens alreadyTakenComments ; 
                 Optionality=None; 
                 AcnInsertedField=false
                 Comments = Antlr.Comment.GetComments(fileTokens, alreadyTakenComments, fileTokens.[x.TokenStopIndex].Line, x.TokenStartIndex - 1, x.TokenStopIndex + 2)
@@ -288,7 +288,7 @@ and singleReference2DoubleReference (tree:ITree) =
         |None       -> ( modName,  strVal)
     valToReturn
 
-and CreateValue (astRoot:list<ITree>) (tree:ITree ) : Asn1Value=
+and CreateValue integerSizeInBytes (astRoot:list<ITree>) (tree:ITree ) : Asn1Value=
         
 
     let GetActualString (str:string) = 
@@ -297,15 +297,15 @@ and CreateValue (astRoot:list<ITree>) (tree:ITree ) : Asn1Value=
     {
         Asn1Value.Kind = 
             match tree.Type with
-            | asn1Parser.INT                    -> IntegerValue(tree.BigIntL)
+            | asn1Parser.INT                    -> IntegerValue(tree.BigIntL integerSizeInBytes)
             | asn1Parser.FloatingPointLiteral   -> RealValue(tree.DoubleL)
             | asn1Parser.NUMERIC_VALUE2         ->
-                let mantissa = double (tree.GetChild(0).BigInt)
+                let mantissa = double (tree.GetChild(0).BigInt integerSizeInBytes)
                 let bas = 
-                    if tree.GetChild(1).BigInt = 2I then 2.0
-                    elif tree.GetChild(1).BigInt = 10I then 10.0
+                    if tree.GetChild(1).BigInt integerSizeInBytes = 2I then 2.0
+                    elif tree.GetChild(1).BigInt integerSizeInBytes = 10I then 10.0
                     else raise (SemanticError(tree.GetChild(1).Location, "Only 2 or 10 values are allowed"))
-                let exponent = double (tree.GetChild(2).BigInt)
+                let exponent = double (tree.GetChild(2).BigInt integerSizeInBytes)
                 let d = mantissa*Math.Pow(bas, exponent)
                 RealValue({DoubleLoc.Value=d;Location=tree.Location})
             | asn1Parser.PLUS_INFINITY          -> RealValue(tree.GetValueL Double.PositiveInfinity)
@@ -329,9 +329,9 @@ and CreateValue (astRoot:list<ITree>) (tree:ITree ) : Asn1Value=
                 let handleObjectIdComponent (rootComponent:bool) (parentKeyword: RegisterObjIDKeyword option) (tree:ITree ) =
                     match tree.Type with
                     | asn1Parser.OBJ_LST_ITEM2  -> 
-                        let nVal = tree.GetChild(0).BigIntL.Value
+                        let nVal = (tree.GetChild(0).BigIntL integerSizeInBytes).Value 
                         match nVal >= 0I with
-                        | true  -> ObjInteger (tree.GetChild(0).BigIntL) , None
+                        | true  -> ObjInteger (tree.GetChild(0).BigIntL integerSizeInBytes ) , None
                         | false -> raise (SemanticError(tree.GetChild(0).Location, "Negative values are not permitted in OJECT-IDENTIFIER"))
 
                     | asn1Parser.OBJ_LST_ITEM1  -> 
@@ -341,8 +341,8 @@ and CreateValue (astRoot:list<ITree>) (tree:ITree ) : Asn1Value=
                             let secChild = tree.GetChild(1)
                             match secChild.Type with
                             | asn1Parser.INT            -> 
-                                match secChild.BigIntL.Value >= 0I with
-                                | true  -> ObjNamedIntValue (name, secChild.BigIntL), None
+                                match (secChild.BigIntL integerSizeInBytes ).Value >= 0I with
+                                | true  -> ObjNamedIntValue (name, secChild.BigIntL integerSizeInBytes ), None
                                 | false -> raise (SemanticError(secChild.Location, "Negative values are not permitted in OJECT-IDENTIFIER"))
                             | asn1Parser.DEFINED_VALUE  ->
                                 match secChild.ChildCount with
@@ -374,7 +374,7 @@ and CreateValue (astRoot:list<ITree>) (tree:ITree ) : Asn1Value=
                         (false, curComponents@[compent], regKeyword) ) (true, [],None) 
                 ObjOrRelObjIdValue components
             | asn1Parser.VALUE_LIST             -> 
-                SeqOfValue(getTreeChildren(tree)|> List.map (fun x -> CreateValue astRoot (x) ))
+                SeqOfValue(getTreeChildren(tree)|> List.map (fun x -> CreateValue integerSizeInBytes  astRoot (x) ))
 //                match (GetActualTypeKind  astRoot typeKind |> fst) with
 //                | SequenceOf(child)     ->
 //                    SeqOfValue(getTreeChildren(tree)|> List.map (fun x -> CreateValue astRoot (x) child.Kind ))
@@ -382,12 +382,12 @@ and CreateValue (astRoot:list<ITree>) (tree:ITree ) : Asn1Value=
             | asn1Parser.NAMED_VALUE_LIST       -> 
                 let HandleChild (childTree:ITree) =
                     let chName = childTree.GetChild(0).TextL
-                    let value = CreateValue astRoot (childTree.GetChild(1)) 
+                    let value = CreateValue integerSizeInBytes  astRoot (childTree.GetChild(1)) 
                     chName, value
                 SeqValue(getTreeChildren(tree)|> List.map HandleChild)
             | asn1Parser.CHOICE_VALUE           -> 
                 let chName = tree.GetChild(0).TextL
-                let value = CreateValue astRoot (tree.GetChild(1)) 
+                let value = CreateValue integerSizeInBytes  astRoot (tree.GetChild(1)) 
                 ChValue(chName, value)
             | asn1Parser.OctectStringLiteral    -> 
                 let strVal = GetActualString(tree.Text)
@@ -399,7 +399,7 @@ and CreateValue (astRoot:list<ITree>) (tree:ITree ) : Asn1Value=
         Location = tree.Location
     }
 
-and CreateSequenceChild (tasParameters : TemplateParameter list) (seqAcnTypeEncodingSpec  : AcnTypeEncodingSpec option) (astRoot:list<ITree>) (tree:ITree) (fileTokens:array<IToken>) (alreadyTakenComments:System.Collections.Generic.List<IToken>) : list<SequenceChild>= 
+and CreateSequenceChild integerSizeInBytes  (tasParameters : TemplateParameter list) (seqAcnTypeEncodingSpec  : AcnTypeEncodingSpec option) (astRoot:list<ITree>) (tree:ITree) (fileTokens:array<IToken>) (alreadyTakenComments:System.Collections.Generic.List<IToken>) : list<SequenceChild>= 
     let CreateChild(x:ITree) = 
         match x.Type with
         | asn1Parser.SEQUENCE_ITEM ->
@@ -412,14 +412,14 @@ and CreateSequenceChild (tasParameters : TemplateParameter list) (seqAcnTypeEnco
                     match seqAcnTypeEncodingSpec with
                     | None      -> None
                     | Some sqe  -> sqe.children |> Seq.tryFind(fun z -> z.name.Value = lid.Text) |> Option.map(fun z -> z.childEncodingSpec)
-                CreateType tasParameters childAcnEncodingSpec astRoot typeDef fileTokens alreadyTakenComments
+                CreateType integerSizeInBytes  tasParameters childAcnEncodingSpec astRoot typeDef fileTokens alreadyTakenComments
             let chInfo =
                 { 
                     ChildInfo.Name = lid.TextL; 
                     Type = chType;
                     Optionality = match (optionalVal,defVal) with
                                     | (None, Some(v))   -> 
-                                        Some(Default(CreateValue astRoot (v.GetChild(0)) ))
+                                        Some(Default(CreateValue integerSizeInBytes  astRoot (v.GetChild(0)) ))
                                     | (Some(_), None)   -> Some Optional
                                     | (None, None)      -> None
                                     | _                 -> raise (BugErrorException("Bug in CreateSequenceChild")) 
@@ -461,19 +461,19 @@ and CreateSequenceChild (tasParameters : TemplateParameter list) (seqAcnTypeEnco
             asn1Children
     
 
-and CreateNamedItems (astRoot:list<ITree>) (tree:ITree) (fileTokens:array<IToken>) (alreadyTakenComments:System.Collections.Generic.List<IToken>)=
+and CreateNamedItems integerSizeInBytes  (astRoot:list<ITree>) (tree:ITree) (fileTokens:array<IToken>) (alreadyTakenComments:System.Collections.Generic.List<IToken>)=
     let CreateItem(itemItree:ITree) =
         let itemChildren = getTreeChildren(itemItree)
         match itemChildren with
         | name::value::_    -> 
-            let value = Some(CreateValue astRoot (value) )
+            let value = Some(CreateValue integerSizeInBytes  astRoot (value) )
             {NamedItem.Name=name.TextL; _value=value; Comments = Antlr.Comment.GetComments(fileTokens, alreadyTakenComments, fileTokens.[itemItree.TokenStopIndex].Line, itemItree.TokenStartIndex - 1, itemItree.TokenStopIndex + 2)}
         | name::[]          -> {NamedItem.Name=name.TextL; _value= None; Comments = Antlr.Comment.GetComments(fileTokens, alreadyTakenComments, fileTokens.[itemItree.TokenStopIndex].Line, itemItree.TokenStartIndex - 1, itemItree.TokenStopIndex + 2)}
         | _                 -> raise (BugErrorException("Bug in CreateNamedItems.CreateItem")) 
     let enumItes = getChildrenByType(tree, asn1Parser.NUMBER_LST_ITEM)
     enumItes |> List.map CreateItem
 
-and CreateNamedBitList (astRoot:list<ITree>) (tree:ITree) (fileTokens:array<IToken>) (alreadyTakenComments:System.Collections.Generic.List<IToken>)=
+and CreateNamedBitList integerSizeInBytes  (astRoot:list<ITree>) (tree:ITree) (fileTokens:array<IToken>) (alreadyTakenComments:System.Collections.Generic.List<IToken>)=
     let CreateNamedBit(itemItree:ITree) =
         let itemChildren = getTreeChildren(itemItree)
         match itemChildren with
@@ -481,8 +481,8 @@ and CreateNamedBitList (astRoot:list<ITree>) (tree:ITree) (fileTokens:array<ITok
             let value = 
                 match vlue.Type with
                 | asn1Parser.INT            -> 
-                    match vlue.BigIntL.Value >= 0I with
-                    | true  -> IDV_IntegerValue(vlue.BigIntL)
+                    match (vlue.BigIntL integerSizeInBytes ).Value >= 0I with
+                    | true  -> IDV_IntegerValue(vlue.BigIntL integerSizeInBytes )
                     | false -> raise (SemanticError(vlue.Location, "Negative values are not permitted"))
                 | asn1Parser.DEFINED_VALUE  ->
                     match vlue.ChildCount with
@@ -533,64 +533,64 @@ and CreateTimeClass (astRoot:list<ITree>) (tree:ITree) (fileTokens:array<IToken>
     | None      -> raise(SemanticError(tree.Location, (sprintf "Invalid SETTINGS definition '%s'" text)))
     
 
-and CreateConstraint (astRoot:list<ITree>) (tree:ITree) : Asn1Constraint option=
+and CreateConstraint (integerSizeInBytes: BigInteger)  (astRoot:list<ITree>) (tree:ITree) : Asn1Constraint option=
         match tree.Type with
         |asn1Parser.UnionMark           -> 
-            let c1 = CreateConstraint  astRoot (tree.GetChild(0)) 
-            let c2 = CreateConstraint  astRoot (tree.GetChild(1)) 
+            let c1 = CreateConstraint  integerSizeInBytes  astRoot (tree.GetChild(0)) 
+            let c2 = CreateConstraint  integerSizeInBytes  astRoot (tree.GetChild(1)) 
             match c1, c2 with
             |Some(k1),Some(k2)  ->Some(UnionConstraint(k1 , k2, false ))
             |Some(k1),None      -> None
             |None, Some(_)      -> None
             |None, None         -> None
         |asn1Parser.IntersectionMark    -> 
-            let c1 = CreateConstraint astRoot (tree.GetChild(0)) 
-            let c2 = CreateConstraint astRoot (tree.GetChild(1)) 
+            let c1 = CreateConstraint integerSizeInBytes  astRoot (tree.GetChild(0)) 
+            let c2 = CreateConstraint integerSizeInBytes  astRoot (tree.GetChild(1)) 
             match c1, c2 with
             |Some(k1),Some(k2)  ->Some(IntersectionConstraint(k1 , k2 ))
             |Some(k1),None      -> Some k1
             |None, Some(k2)     -> Some k2
             |None, None         -> None
         |asn1Parser.SIZE_EXPR           -> 
-            let c1 = CreateConstraint astRoot (tree.GetChild(0)) 
+            let c1 = CreateConstraint integerSizeInBytes  astRoot (tree.GetChild(0)) 
             match c1 with
             |Some(k1)   -> Some(SizeContraint k1)
             |None       -> None
         |asn1Parser.SUBTYPE_EXPR        -> 
             Some(TypeInclusionConstraint(CreateRefTypeContent(tree.GetChild(0))))
         |asn1Parser.PERMITTED_ALPHABET_EXPR -> 
-            let c1 = CreateConstraint astRoot (tree.GetChild(0)) 
+            let c1 = CreateConstraint integerSizeInBytes  astRoot (tree.GetChild(0)) 
             match c1 with
             |Some(k1)   -> Some(AlphabetContraint k1)
             |None       -> None
         |asn1Parser.ALL_EXCEPT          -> 
-            let c1 = CreateConstraint astRoot (tree.GetChild(0)) 
+            let c1 = CreateConstraint integerSizeInBytes  astRoot (tree.GetChild(0)) 
             match c1 with
             |Some(k1)   -> Some(AllExceptConstraint k1)
             |None       -> raise(SemanticError(tree.Location, "Invalid constraints definition"))
         |asn1Parser.EXCEPT              -> 
-            let c1 = CreateConstraint astRoot (tree.GetChild(0)) 
-            let c2 = CreateConstraint astRoot (tree.GetChild(1)) 
+            let c1 = CreateConstraint integerSizeInBytes  astRoot (tree.GetChild(0)) 
+            let c2 = CreateConstraint integerSizeInBytes  astRoot (tree.GetChild(1)) 
             match c1, c2 with
             |Some(k1),Some(k2)  ->Some(ExceptConstraint(k1 , k2 ))
             |Some(k1),None      -> raise(SemanticError(tree.Location, "Invalid constraints definition"))
             |None, Some(k2)     -> Some(AllExceptConstraint k2)
             |None, None         -> raise(SemanticError(tree.Location, "Invalid constraints definition"))
         |asn1Parser.EXT_MARK            ->
-            let c1 = CreateConstraint astRoot (tree.GetChild(0)) 
+            let c1 = CreateConstraint integerSizeInBytes  astRoot (tree.GetChild(0)) 
             if tree.ChildCount = 1 then 
                 match c1 with
                 | Some k1 -> Some( RootConstraint(k1)) 
                 | None    -> None
             else 
-                let c2 = CreateConstraint astRoot (tree.GetChild(1)) 
+                let c2 = CreateConstraint integerSizeInBytes  astRoot (tree.GetChild(1)) 
                 match c1, c2 with
                 |Some(k1),Some(k2)  -> Some(RootConstraint2(k1 , k2 ))
                 |Some(k1),None      -> Some( RootConstraint(k1)) 
                 |None, Some(k2)     -> raise(SemanticError(tree.Location, "Invalid constraints definition"))
                 |None, None         -> raise(SemanticError(tree.Location, "Invalid constraints definition"))
         |asn1Parser.WITH_COMPONENT_CONSTR   -> 
-            let c1 = CreateConstraint astRoot (tree.GetChild(0)) 
+            let c1 = CreateConstraint integerSizeInBytes  astRoot (tree.GetChild(0)) 
             match c1 with
             | Some k1   -> Some(WithComponentConstraint(k1, tree.Location))
             | None      -> None
@@ -605,7 +605,7 @@ and CreateConstraint (astRoot:list<ITree>) (tree:ITree) : Asn1Constraint option=
                         NamedConstraint.Name=nm
                         Contraint = match getOptionalChildByType(tree, asn1Parser.INNER_CONSTRAINT)  with
                                         | None -> None
-                                        | Some(con) -> CreateConstraint  astRoot (con.GetChild(0)) 
+                                        | Some(con) -> CreateConstraint   integerSizeInBytes  astRoot (con.GetChild(0)) 
                         Mark = match getOptionalChildByType(tree, asn1Parser.EXT_MARK) with
                                 | None -> NoMark
                                 | Some(markNode) -> match markNode.GetChild(0).Type with
@@ -626,34 +626,34 @@ and CreateConstraint (astRoot:list<ITree>) (tree:ITree) : Asn1Constraint option=
                                    | None     -> true
             
             match maxValIncl with
-            | None         -> Some(SingleValueContraint( CreateValue astRoot (tree.GetChild(0))  ))
+            | None         -> Some(SingleValueContraint( CreateValue integerSizeInBytes astRoot (tree.GetChild(0))  ))
             | Some(v)      -> 
                 let a = tree.GetChild(0)
                 let b = v.GetChild(0)
                 match a.Type, b.Type with
                 | asn1Parser.MIN, asn1Parser.MAX    -> None //RangeContraint_MIN_MAX
-                | asn1Parser.MIN, _                 -> Some(RangeContraint_MIN_val(CreateValue  astRoot b,  maxValIsIncluded))
-                | _, asn1Parser.MAX                 -> Some(RangeContraint_val_MAX(CreateValue  astRoot a, minValIsIncluded ))
-                | _, _  ->  Some(RangeContraint(CreateValue  astRoot a , CreateValue  astRoot  b, minValIsIncluded, maxValIsIncluded  ))
+                | asn1Parser.MIN, _                 -> Some(RangeContraint_MIN_val(CreateValue  integerSizeInBytes astRoot b,  maxValIsIncluded))
+                | _, asn1Parser.MAX                 -> Some(RangeContraint_val_MAX(CreateValue  integerSizeInBytes  astRoot a, minValIsIncluded ))
+                | _, _  ->  Some(RangeContraint(CreateValue  integerSizeInBytes astRoot a , CreateValue  integerSizeInBytes astRoot  b, minValIsIncluded, maxValIsIncluded  ))
         | _ -> raise (BugErrorException("Bug in CreateConstraint"))
 
 
 
 
-let CreateTemplateParameter (astRoot:list<ITree>) (tree:ITree) (fileTokens:array<IToken>) (alreadyTakenComments:System.Collections.Generic.List<IToken>)=
+let CreateTemplateParameter integerSizeInBytes (astRoot:list<ITree>) (tree:ITree) (fileTokens:array<IToken>) (alreadyTakenComments:System.Collections.Generic.List<IToken>)=
     match tree.Type with
     |asn1Parser.TYPE_PARAM  -> TypeParameter(tree.GetChild(0).TextL)
     |asn1Parser.VALUE_PARAM -> 
-        let Type = CreateType [] None astRoot (tree.GetChild(0)) fileTokens alreadyTakenComments; 
+        let Type = CreateType integerSizeInBytes [] None astRoot (tree.GetChild(0)) fileTokens alreadyTakenComments; 
         ValueParameter (Type, tree.GetChild(1).TextL)
     | _ -> raise (BugErrorException("Bug in CreateConstraint"))
     
 
-let CreateTypeAssignment (astRoot:list<ITree>) (acnAst:AcnAst) (acnModule : AcnModule option) (tree:ITree) (fileTokens:array<IToken>) (alreadyTakenComments:System.Collections.Generic.List<IToken>) = 
+let CreateTypeAssignment integerSizeInBytes (astRoot:list<ITree>) (acnAst:AcnAst) (acnModule : AcnModule option) (tree:ITree) (fileTokens:array<IToken>) (alreadyTakenComments:System.Collections.Generic.List<IToken>) = 
     let parameters = 
             match tree.GetOptChild asn1Parser.PARAM_LIST with
             | None          -> []
-            | Some(prmList) -> prmList.Children |> List.map(fun x -> CreateTemplateParameter astRoot x fileTokens alreadyTakenComments)
+            | Some(prmList) -> prmList.Children |> List.map(fun x -> CreateTemplateParameter integerSizeInBytes astRoot x fileTokens alreadyTakenComments)
     let tasName = tree.GetChild(0).TextL
     let acnTypeAssignment = 
         match acnModule with
@@ -665,7 +665,7 @@ let CreateTypeAssignment (astRoot:list<ITree>) (acnAst:AcnAst) (acnModule : AcnM
             | Some a -> Some a.typeEncodingSpec
     {
         TypeAssignment.Name = tasName
-        Type = CreateType parameters acnTypeEncodingSpec astRoot (tree.GetChild(1)) fileTokens alreadyTakenComments; 
+        Type = CreateType integerSizeInBytes parameters acnTypeEncodingSpec astRoot (tree.GetChild(1)) fileTokens alreadyTakenComments; 
         Parameters = parameters
         Comments = Antlr.Comment.GetComments(fileTokens, alreadyTakenComments, fileTokens.[tree.TokenStopIndex].Line, tree.TokenStartIndex - 1, tree.TokenStopIndex + 1)
         acnInfo = 
@@ -674,20 +674,20 @@ let CreateTypeAssignment (astRoot:list<ITree>) (acnAst:AcnAst) (acnModule : AcnM
             | Some a -> Some ({AcnTypeAssignmentExtraInfo.loc = a.name.Location; acnParameters = a.acnParameters; comments = a.comments})
     }
 
-let CreateValueAssignment (astRoot:list<ITree>) (tree:ITree) = 
+let CreateValueAssignment integerSizeInBytes (astRoot:list<ITree>) (tree:ITree) = 
     let alreadyTakenComments = System.Collections.Generic.List<IToken>()
     let name = tree.GetChild(0).TextL;
-    let typ = CreateType [] None astRoot (tree.GetChild(1)) [||] alreadyTakenComments
+    let typ = CreateType integerSizeInBytes [] None astRoot (tree.GetChild(1)) [||] alreadyTakenComments
     {
         ValueAssignment.Name = name
         Type = typ
-        Value = CreateValue astRoot (tree.GetChild(2)) 
+        Value = CreateValue integerSizeInBytes astRoot (tree.GetChild(2)) 
         Scope = ParameterizedAsn1Ast.GlobalScope
         c_name = ToC2 name.Value
         ada_name = ToC2 name.Value
     }
 
-let CreateAsn1Module (astRoot:list<ITree>) (acnAst:AcnAst) (implicitlyImportedTypes: (string*ImportedModule list) list) (tree:ITree)   (fileTokens:array<IToken>) (alreadyTakenComments:System.Collections.Generic.List<IToken>)= 
+let CreateAsn1Module integerSizeInBytes (astRoot:list<ITree>) (acnAst:AcnAst) (implicitlyImportedTypes: (string*ImportedModule list) list) (tree:ITree)   (fileTokens:array<IToken>) (alreadyTakenComments:System.Collections.Generic.List<IToken>)= 
     let createImport  (tree:ITree) = 
         {   ImportedModule.Name = tree.GetChild(0).TextL;
             Types = getChildrenByType(tree, asn1Parser.UID) |> List.tail |> List.map (fun x -> x.TextL)
@@ -716,7 +716,7 @@ let CreateAsn1Module (astRoot:list<ITree>) (acnAst:AcnAst) (implicitlyImportedTy
                 seq {
                     for ni in x.Children do
                         if ni.Type = asn1Parser.NUMBER_LST_ITEM then
-                            let Value = CreateValue astRoot (ni.GetChild(1))
+                            let Value = CreateValue integerSizeInBytes astRoot (ni.GetChild(1))
                             let vasName = ni.GetChild(0).TextL
                             let c_name = ToC2 (tas.Value + "_" + ni.GetChild(0).Text)
                             yield   {
@@ -740,9 +740,9 @@ let CreateAsn1Module (astRoot:list<ITree>) (acnAst:AcnAst) (implicitlyImportedTy
                 
                 TypeAssignments= 
                     let acnModule = acnAst.files |> List.collect(fun f -> f.modules) |> Seq.tryFind(fun am -> am.name.Value = modName.Value)
-                    getChildrenByType(tree, asn1Parser.TYPE_ASSIG) |> List.map(fun x -> CreateTypeAssignment astRoot acnAst acnModule x fileTokens alreadyTakenComments)
+                    getChildrenByType(tree, asn1Parser.TYPE_ASSIG) |> List.map(fun x -> CreateTypeAssignment integerSizeInBytes astRoot acnAst acnModule x fileTokens alreadyTakenComments)
                 ValueAssignments = 
-                    let globalValueAssignments = getChildrenByType(tree, asn1Parser.VAL_ASSIG) |> List.map(fun x -> CreateValueAssignment astRoot x)
+                    let globalValueAssignments = getChildrenByType(tree, asn1Parser.VAL_ASSIG) |> List.map(fun x -> CreateValueAssignment integerSizeInBytes astRoot x)
                     let typeScopedValueAssignments = handleIntegerValues tree
                     globalValueAssignments@typeScopedValueAssignments
                 Imports = 
@@ -765,13 +765,13 @@ let CreateAsn1Module (astRoot:list<ITree>) (acnAst:AcnAst) (implicitlyImportedTy
 
 
 
-let CreateAsn1File (astRoot:list<ITree>) (acnAst:AcnAst) (implicitlyImportedTypes: (string*ImportedModule list) list) (tree:ITree, file, tokens)   = 
+let CreateAsn1File integerSizeInBytes (astRoot:list<ITree>) (acnAst:AcnAst) (implicitlyImportedTypes: (string*ImportedModule list) list) (tree:ITree, file, tokens)   = 
     match tree.Type with
     | asn1Parser.ASN1_FILE ->  
         let alreadyTakenComments = new System.Collections.Generic.List<IToken>();
         { 
                 Asn1File.FileName=file;  
-                Modules= getTreeChildren(tree) |> List.map(fun t-> CreateAsn1Module  astRoot acnAst implicitlyImportedTypes t tokens alreadyTakenComments) 
+                Modules= getTreeChildren(tree) |> List.map(fun t-> CreateAsn1Module integerSizeInBytes astRoot acnAst implicitlyImportedTypes t tokens alreadyTakenComments) 
                 Tokens = tokens
         }
     | _ -> raise (BugErrorException("Bug in CreateAsn1File"))
@@ -843,7 +843,7 @@ let CreateAstRoot (list:CommonTypes.AntlrParserResult list) (acnAst:AcnAst) (arg
     ITree.RegisterFiles(list |> Seq.map (fun x -> (x.rootItem, x.fileName)))
     let implicitlyImportedTypes = rootCheckCyclicDeps astRoot
     {
-        AstRoot.Files = list |> Seq.toList  |> List.map(fun x -> CreateAsn1File astRoot acnAst implicitlyImportedTypes (x.rootItem,x.fileName, x.tokens))
+        AstRoot.Files = list |> Seq.toList  |> List.map(fun x -> CreateAsn1File args.integerSizeInBytes astRoot acnAst implicitlyImportedTypes (x.rootItem,x.fileName, x.tokens))
         args = args
     }
 

@@ -1,0 +1,23 @@
+
+-- It tests the   
+-- 'pdu1' does conform to its type constraints. 
+
+TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
+    
+    MyPDU ::= SEQUENCE {
+        primaryHeader SEQUENCE {
+            version INTEGER,
+            seqNr   INTEGER
+--            secHeaderFlag   BOOLEAN
+        },
+        secondaryHeader SEQUENCE { dummy INTEGER} OPTIONAL
+	}
+
+    
+	pdu1 MyPDU ::= { 
+	                primaryHeader { version 2, seqNr 21321}
+	               }
+	
+END
+
+--TCFS     001_02b.acn

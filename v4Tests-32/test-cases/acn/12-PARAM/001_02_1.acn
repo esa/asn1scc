@@ -1,0 +1,11 @@
+-- 
+TEST-CASE DEFINITIONS ::= BEGIN
+        
+    MyPDU[] {    
+        primaryHeader [] ,
+        secondaryHeader [present-when primaryHeader.secHeaderFlag]
+    }
+      
+   HeaderType[]
+   Payload[]
+END  
