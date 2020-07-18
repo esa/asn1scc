@@ -315,7 +315,7 @@ let main0 argv =
                 let dirInfo = OutDirectories.getDirInfo r.lang outDir
                 //let srcDirName = Path.Combine(outDir, OutDirectories.srcDirName r.lang)
                 //let asn1rtlDirName = Path.Combine(outDir, OutDirectories.asn1rtlDirName r.lang)
-                //let boardsDirName = Path.Combine(outDir, OutDirectories.boardsDirName r.lang)
+                //let boardsDirName = Path.Combine(outDir, OutDirectories.boardsDirName r.lang) 
                 
                 GenerateFiles.generateAll dirInfo r args.encodings
                 GenerateRTL.exportRTL dirInfo r.lang args
