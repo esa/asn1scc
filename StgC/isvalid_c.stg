@@ -63,42 +63,8 @@ PrintErrorCode(sErrorName, nErrCode, sComment) ::= <<
 >>
 
 
-EmitTypeAssignment_primitive_def(sVarName, sStar, sFuncName, sTypeDefName, sErrCode, nErrValue) ::= <<
-#define <sErrCode>		<nErrValue>  /**/
-flag <sFuncName>(const <sTypeDefName><sStar> <sVarName>, int* pErrCode);
->>
-
-EmitTypeAssignment_primitive(sVarName, sStar, sFuncName, sTypeDefName, sContent, arrsAlphaFuncs) ::= <<
-<arrsAlphaFuncs; separator="\n">
-flag <sFuncName>(const <sTypeDefName><sStar> <sVarName>, int* pErrCode)
-{
-    flag ret = TRUE;
-	(void)<sVarName>;
-	
-    <sContent>
-
-	return ret;
-}
->>
 
 
-EmitTypeAssignment_oct_or_bit_string_def(sVarName, sStar, sFuncName, sTypeDefName, sErrCode, nErrValue) ::= <<
-#define <sErrCode>		<nErrValue>  /**/
-flag <sFuncName>(const <sTypeDefName><sStar> <sVarName>, int* pErrCode);
->>
-
-EmitTypeAssignment_oct_or_bit_string(sVarName, sStar, sFuncName, sTypeDefName, sContent, arrsAlphaFuncs) ::= <<
-<arrsAlphaFuncs; separator="\n">
-flag <sFuncName>(const <sTypeDefName><sStar> <sVarName>, int* pErrCode)
-{
-    flag ret = TRUE;
-	(void)<sVarName>;
-	
-    <sContent>
-
-	return ret;
-}
->>
 
 
 
@@ -112,14 +78,16 @@ flag <sFuncName>(const <sTypeDefName><sStar> <sVarName>, int* pErrCode);
 
 
 
-EmitTypeAssignment_composite(sVarName, sStar, sFuncName, sTypeDefName, sContent, arrsAlphaFuncs, arrsLocalVars) ::= <<
+EmitTypeAssignment_composite(sVarName, sStar, sFuncName, sTypeDefName, sContent, arrsAlphaFuncs, arrsLocalVars, bUnreferenced) ::= <<
 <arrsAlphaFuncs; separator="\n">
 flag <sFuncName>(const <sTypeDefName><sStar> <sVarName>, int* pErrCode)
 {
     flag ret = TRUE;
     <arrsLocalVars; separator="\n">
+<if(bUnreferenced)>
 	(void)<sVarName>;
-	
+
+<endif>
     <sContent>
 
 	return ret;

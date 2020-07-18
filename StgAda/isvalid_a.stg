@@ -148,21 +148,6 @@ end loop;
 >>
 
 
-EmitTypeAssignment_primitive_def(sVarName, sStar, sFuncName, sTypeDefName, sErrCode, nErrValue) ::= <<
-<sErrCode>:constant Integer := <nErrValue>; -- 
-function <sFuncName> (<sVarName> : <sTypeDefName>) return <rtlModuleName()>.ASN1_RESULT;
->>
-
-EmitTypeAssignment_primitive(sVarName, sStar, sFuncName, sTypeDefName, sContent, arrsAlphaFuncs) ::= <<
-<arrsAlphaFuncs; separator="\n">
-function <sFuncName> (<sVarName> : <sTypeDefName>) return <rtlModuleName()>.ASN1_RESULT
-is
-    ret : <rtlModuleName()>.ASN1_RESULT;
-begin
-    <sContent>
-    return ret;
-end <sFuncName>;
->>
 
 EmitTypeAssignment_composite_def_err_code(sErrCode, nErrValue) ::= <<
 <sErrCode>:constant Integer := <nErrValue>; 
@@ -173,12 +158,14 @@ EmitTypeAssignment_composite_def(sVarName, sStar, sFuncName, sTypeDefName, arrsE
 function <sFuncName>(<sVarName> : <sTypeDefName>) return <rtlModuleName()>.ASN1_RESULT;
 >>
 
-EmitTypeAssignment_composite(sVarName, sStar, sFuncName, sTypeDefName, sContent, arrsAlphaFuncs, arrsLocalVars) ::= <<
+EmitTypeAssignment_composite(sVarName, sStar, sFuncName, sTypeDefName, sContent, arrsAlphaFuncs, arrsLocalVars, bUnreferenced) ::= <<
 <arrsAlphaFuncs; separator="\n">
-	pragma Warnings (Off, "formal parameter ""val"" is not referenced");
 function <sFuncName>(<sVarName> : <sTypeDefName>) return <rtlModuleName()>.ASN1_RESULT
 is
-	pragma Warnings (On, "formal parameter ""val"" is not referenced");
+<if(bUnreferenced)>
+    pragma Unreferenced (<sVarName>);
+
+<endif>
     pragma Warnings (Off, "initialization of ret has no effect");        
     ret : <rtlModuleName()>.ASN1_RESULT := <rtlModuleName()>.ASN1_RESULT'(Success => true, ErrorCode => 0);
     pragma Warnings (On, "initialization of ret has no effect");        

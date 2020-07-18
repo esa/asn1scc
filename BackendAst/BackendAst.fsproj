@@ -77,7 +77,6 @@
     <Compile Include="DAstVariables.fs" />
     <Compile Include="DAstEqual.fs" />
     <Compile Include="DastValidate2.fs" />
-    <Compile Include="DAstValidate.fs" />
     <Compile Include="DAstUPer.fs" />
     <Compile Include="DAstXer.fs" />
     <Compile Include="DAstACN.fs" />
