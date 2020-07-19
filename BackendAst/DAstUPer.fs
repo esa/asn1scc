@@ -47,8 +47,8 @@ let internal createUperFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (
     let errCodeName         = ToC ("ERR_UPER" + (codec.suffix.ToUpper()) + "_" + ((t.id.AcnAbsPath |> Seq.skip 1 |> Seq.StrJoin("-")).Replace("#","elm")))
     let errCode, ns = getNextValidErrorCode us errCodeName
 
-    let EmitTypeAssignment_primitive = match l with C -> uper_c.EmitTypeAssignment_primitive    | Ada -> uper_a.EmitTypeAssignment
-    let EmitTypeAssignment_primitive_def = match l with C -> uper_c.EmitTypeAssignment_primitive_def    | Ada -> uper_a.EmitTypeAssignment_def
+    let EmitTypeAssignment = match l with C -> uper_c.EmitTypeAssignment    | Ada -> uper_a.EmitTypeAssignment
+    let EmitTypeAssignment_def = match l with C -> uper_c.EmitTypeAssignment_def    | Ada -> uper_a.EmitTypeAssignment_def
     let EmitTypeAssignment_def_err_code  = match l with C -> uper_c.EmitTypeAssignment_def_err_code    | Ada -> uper_a.EmitTypeAssignment_def_err_code
 
     let funcBody = (funcBody_e errCode)
@@ -63,19 +63,22 @@ let internal createUperFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (
             | None              -> None, None
             | Some funcName     -> 
                 let content = funcBody p  
-                let bodyResult_funcBody, errCodes,  bodyResult_localVariables = 
+                let bodyResult_funcBody, errCodes,  bodyResult_localVariables, bBsIsUnreferenced = 
                     match content with 
                     | None              -> 
                         let emtyStatement = match l with C -> "" | Ada -> "null;"
-                        emtyStatement, [], []
-                    | Some bodyResult   -> bodyResult.funcBody, bodyResult.errCodes, bodyResult.localVariables
-
+                        emtyStatement, [], [], true
+                    | Some bodyResult   -> bodyResult.funcBody, bodyResult.errCodes, bodyResult.localVariables, false
+                let bVarNameIsUnreferenced =
+                    match codec with
+                    | Encode -> bBsIsUnreferenced && isValidFuncName.IsNone
+                    | Decode -> bBsIsUnreferenced
                 let lvars = bodyResult_localVariables |> List.map(fun (lv:LocalVariable) -> lv.GetDeclaration l) |> Seq.distinct
-                let func = Some(EmitTypeAssignment_primitive varName sStar funcName isValidFuncName  (typeDefinition.longTypedefName l) lvars  bodyResult_funcBody soSparkAnnotations sInitilialExp (t.uperMaxSizeInBits = 0I) codec)
+                let func = Some(EmitTypeAssignment varName sStar funcName isValidFuncName  (typeDefinition.longTypedefName l) lvars  bodyResult_funcBody soSparkAnnotations sInitilialExp (t.uperMaxSizeInBits = 0I) bBsIsUnreferenced bVarNameIsUnreferenced codec)
                 
                 //let errCodes = bodyResult.errCodes
                 let errCodStr = errCodes |> List.map(fun x -> (EmitTypeAssignment_def_err_code x.errCodeName) (BigInteger x.errCodeValue))
-                let funcDef = Some(EmitTypeAssignment_primitive_def varName sStar funcName  (typeDefinition.longTypedefName l) errCodStr (t.uperMaxSizeInBits = 0I) (BigInteger (ceil ((double t.uperMaxSizeInBits)/8.0))) ( t.uperMaxSizeInBits) soSparkAnnotations (t.uperMaxSizeInBits = 0I) codec)
+                let funcDef = Some(EmitTypeAssignment_def varName sStar funcName  (typeDefinition.longTypedefName l) errCodStr (t.uperMaxSizeInBits = 0I) (BigInteger (ceil ((double t.uperMaxSizeInBits)/8.0))) ( t.uperMaxSizeInBits) soSparkAnnotations (t.uperMaxSizeInBits = 0I) codec)
                 func, funcDef
 
 
@@ -110,15 +113,14 @@ let getIntfuncBodyByCons (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec:C
         None
 
     let IntBod uperRange extCon =
-        
         match uperRange with
-        | Concrete(min, max) when min=max                    -> IntNoneRequired (p.arg.getValue l) min   errCode.errCodeName codec 
-        | Concrete(min, max) when min>=0I && (not extCon)    -> IntFullyConstraintPos pp min max (GetNumberOfBitsForNonNegativeInteger (max-min))  errCode.errCodeName codec
-        | Concrete(min, max)                                 -> IntFullyConstraint pp min max (GetNumberOfBitsForNonNegativeInteger (max-min))  errCode.errCodeName codec
-        | PosInf(a)  when a>=0I && (not extCon)  -> IntSemiConstraintPos pp a  errCode.errCodeName codec
-        | PosInf(a)               -> IntSemiConstraint pp a  errCode.errCodeName codec
-        | NegInf(max)             -> IntUnconstraintMax pp max checkExp errCode.errCodeName codec
-        | Full                    -> IntUnconstraint pp errCode.errCodeName false codec
+        | Concrete(min, max) when min=max                    -> IntNoneRequired (p.arg.getValue l) min   errCode.errCodeName codec, (if l = C then true else false)
+        | Concrete(min, max) when min>=0I && (not extCon)    -> IntFullyConstraintPos pp min max (GetNumberOfBitsForNonNegativeInteger (max-min))  errCode.errCodeName codec, false
+        | Concrete(min, max)                                 -> IntFullyConstraint pp min max (GetNumberOfBitsForNonNegativeInteger (max-min))  errCode.errCodeName codec, false
+        | PosInf(a)  when a>=0I && (not extCon)  -> IntSemiConstraintPos pp a  errCode.errCodeName codec, false
+        | PosInf(a)               -> IntSemiConstraint pp a  errCode.errCodeName codec, false
+        | NegInf(max)             -> IntUnconstraintMax pp max checkExp errCode.errCodeName codec, false
+        | Full                    -> IntUnconstraint pp errCode.errCodeName false codec, false
 
     let getValueByConstraint uperRange =
         match uperRange with
@@ -126,7 +128,7 @@ let getIntfuncBodyByCons (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec:C
         | PosInf(a)       -> a
         | NegInf(b)       -> b
         | Full            -> 0I
-    let funcBodyContent = 
+    let funcBodyContent, dummyContent = 
         match rootCons with
         | []                            -> IntBod uperRange false
         | (RangeRootConstraint a)::rest      -> 
@@ -134,15 +136,19 @@ let getIntfuncBodyByCons (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec:C
             let cc,_ = DastValidate2.integerConstraint2ValidationCodeBlock r l isUnsigned a 0
             let cc = DastValidate2.ValidationBlockAsStringExpr (cc p) 
             //let cc = DAstValidate.foldRangeCon l (fun v -> v.ToString()) (fun v -> v.ToString()) p a
-            IntRootExt pp (getValueByConstraint uperR) cc (IntBod uperR true) errCode.errCodeName codec
+            let rootBody, _ = IntBod uperR true
+            IntRootExt pp (getValueByConstraint uperR) cc rootBody errCode.errCodeName codec, false
         | (RangeRootConstraint2(a,_))::rest  -> 
             let uperR    = uPER.getIntTypeConstraintUperRange [a]  errLoc
             //let cc = DAstValidate.foldRangeCon l (fun v -> v.ToString()) (fun v -> v.ToString()) p a
             let cc,_ = DastValidate2.integerConstraint2ValidationCodeBlock r l isUnsigned a 0
             let cc = DastValidate2.ValidationBlockAsStringExpr (cc p) 
-            IntRootExt2 pp (getValueByConstraint uperR) cc (IntBod uperR true) errCode.errCodeName codec 
+            let rootBody, _ = IntBod uperR true
+            IntRootExt2 pp (getValueByConstraint uperR) cc rootBody errCode.errCodeName codec, false 
         | _                             -> raise(BugErrorException "")
-    {UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = []}    
+    match dummyContent with
+    | true  -> None
+    | false -> Some({UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = []})
     
 
 
@@ -150,12 +156,9 @@ let getIntfuncBodyByCons (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec:C
 
 let createIntegerFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Integer) (typeDefinition:TypeDefintionOrReference) (baseTypeUperFunc : UPerFunction option) (isValidFunc: IsValidFunction option) (us:State)  =
     let funcBody (errCode:ErroCode) (p:CallerScope) = 
-        if (t.id.AsString = "TEST-CASE.DEF-NPAL-TC-header.field-packet-header.field-packet-id.field-version-number") then
-            let dummy = 0
-            ()
         getIntfuncBodyByCons r l codec o.uperRange t.Location o.isUnsigned o.cons o.AllCons errCode p
     let soSparkAnnotations = None
-    createUperFunction r l codec t typeDefinition baseTypeUperFunc  isValidFunc  (fun e p -> Some (funcBody e p)) soSparkAnnotations us
+    createUperFunction r l codec t typeDefinition baseTypeUperFunc  isValidFunc  (fun e p -> funcBody e p) soSparkAnnotations us
 
 
 let createBooleanFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Boolean) (typeDefinition:TypeDefintionOrReference) (baseTypeUperFunc : UPerFunction option) (isValidFunc: IsValidFunction option) (us:State)  =

@@ -33,18 +33,23 @@ begin
 end <sFuncName>;
 >>
 
-EmitTypeAssignment_primitive_encode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitilialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace) ::= <<
+EmitTypeAssignment_primitive_encode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitilialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace, bBsIsUnreferenced, bVarNameIsUnreferenced) ::= <<
 --  stg macro EmitTypeAssignment_primitive_encode
-pragma Warnings (Off, "formal parameter ""bs"" is not referenced");
-pragma Warnings (Off, "formal parameter ""<sVarName>"" is not referenced");
 procedure <sFuncName>_aux(<sVarName> : <sTypeDefName>; bs : in out <rtlModuleName()>.encoding.Bitstream; result : OUT <rtlModuleName()>.ASN1_RESULT);
 
 procedure <sFuncName>_aux(<sVarName> : <sTypeDefName>; bs : in out <rtlModuleName()>.encoding.Bitstream; result : OUT <rtlModuleName()>.ASN1_RESULT)
 <soSparkAnnotations>
 is
+<if(bBsIsUnreferenced)>
+pragma Unreferenced(bs);
+
+<endif>
+<if(bVarNameIsUnreferenced)>
+pragma Unreferenced(<sVarName>);
+
+<endif>
     <arrsLocalVariables; separator="\n">
 begin
-	pragma Warnings (Off, "condition can only be False if invalid values present");
     <if(soIValidFuncName)>
     result := <soIValidFuncName>(<sVarName>);
     if result.success then
@@ -54,10 +59,7 @@ begin
     result := <rtlModuleName()>.ASN1_RESULT'(Success => true, ErrorCode => 0);
     <sContent>
     <endif>
-	pragma Warnings (On, "condition can only be False if invalid values present");
 end <sFuncName>_aux;
-pragma Warnings (On, "formal parameter ""bs"" is not referenced");
-pragma Warnings (On, "formal parameter ""<sVarName>"" is not referenced");
 <EmitTypeAssignment_primitive_encodeMain(sVarName=sVarName, sStar=sStar, sFuncName=sFuncName, soIValidFuncName=soIValidFuncName, sTypeDefName=sTypeDefName, arrsLocalVariables=arrsLocalVariables, sContent=sContent, soSparkAnnotations=soSparkAnnotations, sInitilialExp=sInitilialExp, arrsAcnPrms=arrsAcnPrms, arrsAcnParamNames=arrsAcnParamNames, bEmptyEncodingSpace=bEmptyEncodingSpace)>
 >>
 
@@ -83,20 +85,28 @@ begin
 end <sFuncName>;
 >>
 
-EmitTypeAssignment_primitive_decode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitilialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace) ::= <<
+EmitTypeAssignment_primitive_decode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitilialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace, bBsIsUnreferenced, bVarNameIsUnreferenced) ::= <<
+<if(bVarNameIsUnreferenced)>
 pragma Warnings (Off, "unused initial value of ""<sVarName>""");
-pragma Warnings (Off, "formal parameter ""bs"" is not referenced");
-PROCEDURE <sFuncName>_aux(<sVarName>:out <sTypeDefName>; bs : in out <rtlModuleName()>.encoding.Bitstream; result : OUT <rtlModuleName()>.ASN1_RESULT<if(arrsAcnPrms)>; <arrsAcnPrms; separator="; "><endif>);
 
-PROCEDURE <sFuncName>_aux(<sVarName>:out <sTypeDefName>; bs : in out <rtlModuleName()>.encoding.Bitstream; result : OUT <rtlModuleName()>.ASN1_RESULT<if(arrsAcnPrms)>; <arrsAcnPrms; separator="; "><endif>)
+<endif>
+procedure <sFuncName>_aux(<sVarName>:out <sTypeDefName>; bs : in out <rtlModuleName()>.encoding.Bitstream; result : OUT <rtlModuleName()>.ASN1_RESULT<if(arrsAcnPrms)>; <arrsAcnPrms; separator="; "><endif>);
+
+procedure <sFuncName>_aux(<sVarName>:out <sTypeDefName>; bs : in out <rtlModuleName()>.encoding.Bitstream; result : OUT <rtlModuleName()>.ASN1_RESULT<if(arrsAcnPrms)>; <arrsAcnPrms; separator="; "><endif>)
 <soSparkAnnotations>
 is
+<if(bBsIsUnreferenced)>
+pragma Unreferenced(bs);
+
+<endif>
     <arrsLocalVariables; separator="\n">
 begin
     <sContent>
 end <sFuncName>_aux;
+<if(bVarNameIsUnreferenced)>
 pragma Warnings (On, "unused initial value of ""<sVarName>""");
-pragma Warnings (On, "formal parameter ""bs"" is not referenced");
+
+<endif>
 
 <EmitTypeAssignment_primitive_decodeMain(sVarName=sVarName, sStar=sStar, sFuncName=sFuncName, soIValidFuncName=soIValidFuncName, sTypeDefName=sTypeDefName, arrsLocalVariables=arrsLocalVariables, sContent=sContent, soSparkAnnotations=soSparkAnnotations, sInitilialExp=sInitilialExp, arrsAcnPrms=arrsAcnPrms, arrsAcnParamNames=arrsAcnParamNames, bEmptyEncodingSpace=bEmptyEncodingSpace)>
 >>
@@ -958,7 +968,8 @@ sequence_always_absent_child_encode(p, sAcc, sChName, sChildContent, soSaveBitSt
 -- Encode <sChName>
 -- marked as ALWAYS ABSENT, so do not encode anything
 <soSaveBitStrmPosStatement>
-null;
+bs.Current_Bit_Pos := bs.Current_Bit_Pos + 0;
+
 >>
 
 sequence_always_absent_child_decode(p, sAcc, sChName, sChildContent, soSaveBitStrmPosStatement) ::= <<
@@ -966,6 +977,7 @@ sequence_always_absent_child_decode(p, sAcc, sChName, sChildContent, soSaveBitSt
 -- marked as ALWAYS ABSENT, so do not decode anything
 <p>.Exist.<sChName> := 0;
 result := <rtlModuleName()>.ASN1_RESULT'(Success => true, ErrorCode => 0);
+bs.Current_Bit_Pos := bs.Current_Bit_Pos + 0;
 <soSaveBitStrmPosStatement>
 >>
 

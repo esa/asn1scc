@@ -18,23 +18,32 @@ pragma Warnings (On, "unit ""<inc>"" is not referenced");
 }; separator="\n">
 pragma Warnings (On, "redundant with clause in body");
 
+<if(arrsImportedTypes)>
 pragma Warnings (Off, "use clause for type");
 pragma Warnings (Off, "is already use-visible through previous use_type_clause at");
 <arrsImportedTypes: {x|use type <x>;}; separator="\n">
 pragma Warnings (On, "use clause for type");
 pragma Warnings (On, "is already use-visible through previous use_type_clause at");
 
-
+<endif>
 package body <sPackageName> with SPARK_Mode is
 
 <arrsNegativeReals; separator="\n\n">
 
 <arrsBoolPatterns; separator="\n\n">
 
+<if(arrsTypeAssignments)>
+pragma Warnings (Off, "condition can only be False if invalid values present");
+pragma Warnings (Off, "condition can only be True if invalid values present");
+
 <arrsTypeAssignments:{tas|<tas>}; separator="\n\n">
+
+pragma Warnings (On, "condition can only be False if invalid values present");
+pragma Warnings (On, "condition can only be True if invalid values present");
 
 <arrsChoiceValueAssignments:{vas|<vas>}; separator="\n\n"> 
 
+<endif>
 end <sPackageName>;
 >>
 

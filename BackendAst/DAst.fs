@@ -272,6 +272,8 @@ type AcnFuncBodyResult = {
     funcBody            : string
     errCodes            : ErroCode list
     localVariables      : LocalVariable list
+    bValIsReferenced    : bool
+    bBsIsReferenced     : bool
 
 }
 

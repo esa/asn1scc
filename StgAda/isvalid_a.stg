@@ -171,11 +171,7 @@ is
     pragma Warnings (On, "initialization of ret has no effect");        
     <arrsLocalVars; separator="\n">
 begin
-	pragma Warnings (Off, "condition can only be False if invalid values present");
-	pragma Warnings (Off, "condition can only be True if invalid values present");
     <sContent>
-	pragma Warnings (On, "condition can only be False if invalid values present");
-	pragma Warnings (On, "condition can only be True if invalid values present");
     return ret;
 end <sFuncName>;
 >>

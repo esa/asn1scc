@@ -56,8 +56,6 @@ is
 
     <endif>
 begin
-    pragma Warnings (Off, "condition can only be False if invalid values present");
-    pragma Warnings (Off, "condition can only be True if invalid values present");
     <if(bExpression)>
 	return <sContent>;
 
@@ -66,8 +64,6 @@ begin
 	return ret;
 
     <endif>
-    pragma Warnings (On, "condition can only be False if invalid values present");
-    pragma Warnings (On, "condition can only be True if invalid values present");
 end <sFuncName>;
 >>
 

@@ -40,27 +40,32 @@ begin
 end <sFuncName>;
 >>
 
-EmitTypeAssignment_encode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitilialExp, bReqBytesForEncodingIsZero) ::= <<
-pragma Warnings (Off, "formal parameter ""bs"" is not referenced");
-pragma Warnings (Off, "formal parameter ""<sVarName>"" is not referenced");
+EmitTypeAssignment_encode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitilialExp, bReqBytesForEncodingIsZero, bBsIsUnreferenced, bVarNameIsUnreferenced) ::= <<
 procedure <sFuncName>_aux(<sVarName> : <sTypeDefName>; bs : in out <rtlModuleName()>.encoding.Bitstream; result : OUT <rtlModuleName()>.ASN1_RESULT)
 is
+<if(bBsIsUnreferenced)>
+    pragma Unreferenced (bs);
+
+<endif>
+<if(bVarNameIsUnreferenced)>
+    pragma Unreferenced (<sVarName>);
+
+<endif>
+
     <arrsLocalVariables; separator="\n">
 begin
-	pragma Warnings (Off, "condition can only be False if invalid values present");
     <if(soIValidFuncName)>
     result := <soIValidFuncName>(<sVarName>);
     if result.success then
         <sContent>
     end if;
+
     <else>
     result := <rtlModuleName()>.ASN1_RESULT'(Success => true, ErrorCode => 0);
     <sContent>
+
     <endif>
-	pragma Warnings (On, "condition can only be False if invalid values present");
 end <sFuncName>_aux;
-pragma Warnings (On, "formal parameter ""bs"" is not referenced");
-pragma Warnings (On, "formal parameter ""<sVarName>"" is not referenced");
 
 <TasEncodeMain(sVarName=sVarName, sFuncName=sFuncName, sTypeDefName=sTypeDefName, bReqBytesForEncodingIsZero=bReqBytesForEncodingIsZero)>
 >>
@@ -79,15 +84,22 @@ begin
     <endif>
 end <sFuncName>;
 >>
-EmitTypeAssignment_decode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitilialExp, bReqBytesForEncodingIsZero) ::= <<
-pragma Warnings (Off, "unused initial value of ""val""");
+EmitTypeAssignment_decode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitilialExp, bReqBytesForEncodingIsZero, bBsIsUnreferenced, bVarNameIsUnreferenced) ::= <<
+<if(bVarNameIsUnreferenced)>
+pragma Warnings (Off, "unused initial value of ""<sVarName>""");
+
+<endif>
 procedure <sFuncName>_aux(<sVarName>: out <sTypeDefName>; bs : in out <rtlModuleName()>.encoding.Bitstream; result : OUT <rtlModuleName()>.ASN1_RESULT)
 is
     <arrsLocalVariables; separator="\n">
 begin
     <sContent>
 end <sFuncName>_aux;
-pragma Warnings (On, "unused initial value of ""val""");
+<if(bVarNameIsUnreferenced)>
+pragma Warnings (On, "unused initial value of ""<sVarName>""");
+
+<endif>
+
 <TasDecodeMain(sVarName=sVarName, sFuncName=sFuncName, sTypeDefName=sTypeDefName, sInitilialExp=sInitilialExp)>
 >>
 
