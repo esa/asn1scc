@@ -1,4 +1,4 @@
-MYMOD DEFINITIONS ::= BEGIN
+TEST-CASE DEFINITIONS ::= BEGIN
 
    COLOR-TYPE [encoding pos-int, size 8]
    MySeq [] {

@@ -21,7 +21,7 @@
 --! along with this program.  If not, see <http://www.gnu.org/licenses/>.
 --!
 
-BasicTypes DEFINITIONS ::= BEGIN
+TEST-CASE DEFINITIONS ::= BEGIN
 
 PUSC-BOOL1 [false-value '0'B]
 PUSC-BOOL8 [false-value '00000000'B]

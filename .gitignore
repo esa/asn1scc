@@ -1150,3 +1150,5 @@ v2out
 /UpgradeLog.htm
 /v4Tests/ast.xml
 /v4Tests/backend_ast.xml
+/v4Tests/tmp0_Ada
+/v4Tests/tmp0_c

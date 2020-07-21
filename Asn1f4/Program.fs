@@ -321,7 +321,7 @@ let main0 argv =
                 GenerateRTL.exportRTL dirInfo r.lang args
                 match args.AstXmlAbsFileName with
                 | ""    -> ()
-                | _     -> DAstExportToXml.exportFile r acnDeps ("backend_" + args.AstXmlAbsFileName)
+                | _     -> () //DAstExportToXml.exportFile r acnDeps ("backend_" + args.AstXmlAbsFileName)
                 )
         
 
