@@ -301,7 +301,7 @@ let CreateMakeFile (r:AstRoot) (l:ProgrammingLanguage) (di:DirInfo) =
         File.WriteAllText(outFileName, content.Replace("\r",""))
     | Ada ->
         let writeBoard boardName = 
-            let mods = aux_a.rtlModuleName()::(r.programUnits |> List.map(fun pu -> pu.name ))
+            let mods = aux_a.rtlModuleName()::(r.programUnits |> List.map(fun pu -> pu.name.ToLower() ))
             let content = aux_a.PrintMakeFile boardName (sprintf "asn1_%s.gpr" boardName) mods
             let fileName = if boardName = "x86" then "Makefile" else ("Makefile." + boardName)
             let outFileName = Path.Combine(di.rootDir, fileName)

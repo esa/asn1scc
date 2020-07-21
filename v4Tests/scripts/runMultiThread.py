@@ -62,7 +62,7 @@ def mysystem(targetDir, tmp_err, cmd, bCanFail):
         sys.exit(1)
     return ret
 
-
+ 
 
 # behavior 0 :test case must pass
 # behavior 1 :test case must fail in the asn1f.exe, with specific error message
