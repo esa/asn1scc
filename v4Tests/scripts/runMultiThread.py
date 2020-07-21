@@ -7,6 +7,7 @@ import shutil
 import getopt
 import subprocess
 import distutils.spawn as spawn
+import multiprocessing
 from threading import Thread
 from queue import Queue
 
@@ -325,7 +326,9 @@ def main():
     
     rootDir = os.path.abspath(os.path.dirname(os.path.abspath(sys.argv[0])) + os.sep + "..")
 
-    for i in range(5):
+    print ("Cores used :" + str(multiprocessing.cpu_count()))
+
+    for _ in range(multiprocessing.cpu_count()):
         t = Thread(target=consumer)
         t.daemon = True
         t.start()
