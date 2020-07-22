@@ -70,7 +70,7 @@ package body user_code is
    procedure read_from_file (bs : in out adaasn1rtl.encoding.Bitstream;
                              ft : in out Seq_IO.File_Type);
 
-   procedure read_from_file (bs : in out adaasn1rtl.encoding.
+   procedure read_from_file (bs : in out adaasn1rtl.encoding.Bitstream;
                              ft : in out Seq_IO.File_Type)
    is
    begin
