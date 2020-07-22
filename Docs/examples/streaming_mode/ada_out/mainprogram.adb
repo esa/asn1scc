@@ -1,12 +1,9 @@
-
+pragma Style_Checks (Off);
 
 with user_code;
 
-
-
-FUNCTION MainProgram RETURN INTEGER
-IS 
-BEGIN
+function MainProgram return Integer is
+begin
    user_code.streaming_mode_test;
    return 0;
 end MainProgram;
