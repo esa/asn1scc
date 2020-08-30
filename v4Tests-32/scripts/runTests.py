@@ -80,7 +80,7 @@ def RunTestCase(asn1, acn, behavior, expErrMsg):
     path_to_asn1scc = spawn.find_executable('Asn1f4.exe')
     res = mysystem(
         launcher + path_to_asn1scc +
-        " -" + language + " -x ast.xml -uPER -ACN -typePrefix gmamais_ -fpWordSize 4 -wordSize 4 " +
+        " -" + language + " -x ast.xml -uPER -ACN -typePrefix gmamais_ -fpWordSize 4 -wordSize 4 -t msp430 " +
         "-renamePolicy 2 -fp AUTO " + "-equal -atc -o '" + resolvedir(targetDir) +
         "' '" + resolvedir(asn1File) + "' '" + resolvedir(acnFile) +
         "' 2>tmp.err"+"_"+language, True)
@@ -113,7 +113,7 @@ def RunTestCase(asn1, acn, behavior, expErrMsg):
             res = mysystem("cd " + targetDir + os.sep + "; CC=gcc make", False)
             return
         else:
-            res = mysystem("cd " + targetDir + os.sep + "; CC=gcc make -f Makefile.msp430 ", False)
+            res = mysystem("cd " + targetDir + os.sep + "; CC=gcc make ", False)
             return
 
     if language == "c":
@@ -148,7 +148,7 @@ def RunTestCase(asn1, acn, behavior, expErrMsg):
         #     sys.exit(1)
         #
         # res = mysystem("CC=gcc make coverage >covlog.txt 2>&1", True)
-        res = mysystem("make -f Makefile.msp430 coverage >covlog.txt 2>&1", True)
+        res = mysystem("make coverage >covlog.txt 2>&1", True)
         if res != 0 and behavior != 2:
             PrintFailed("run time failure")
             PrintFailed("covlog.txt is ...")
