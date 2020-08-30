@@ -82,6 +82,7 @@ type Asn1Service() =
             targetLanguages = match box options.TargetLanguage with | null -> [defaultOptions.TargetLanguage] | _ -> [options.TargetLanguage]
             objectIdentifierMaxLength = bigint(match options.ObjectIdentifierMaxLength with | 0 -> defaultOptions.ObjectIdentifierMaxLength | _ -> options.ObjectIdentifierMaxLength)
             streamingModeSupport = false
+            target = None
         }
     
     member private this.ConvertInput (input:Dto.FileData) : CommonTypes.Input =
