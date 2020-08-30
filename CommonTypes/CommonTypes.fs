@@ -288,6 +288,12 @@ type FieldPrefix =
     | FieldPrefixAuto   
     | FieldPrefixUserValue  of string
 
+type Targets =
+    | X86
+    | Stm32
+    | Msp430
+    | AllBoards
+
 type CommandLineSettings = {
     asn1Files : Input list
     acnFiles  : Input list
@@ -303,6 +309,7 @@ type CommandLineSettings = {
     mappingFunctionsModule : string option
     integerSizeInBytes : BigInteger            //currently only the value of 4 or 8 bytes (32/64 bits) is supported
     floatingPointSizeInBytes : BigInteger       // 8 or 4
+    target : Targets option
     renamePolicy :  EnumRenamePolicy
     fieldPrefix  : FieldPrefix option
     targetLanguages : ProgrammingLanguage list

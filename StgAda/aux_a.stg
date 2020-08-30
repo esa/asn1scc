@@ -32,3 +32,22 @@ clean:
 	rm -f builtWithoutCoverage ;
 	gnat clean -r -P <sProjectName> --subdirs=debug	
 >>
+
+
+PrintGpsProject(sBoardName, arrsDirsList) ::=<<
+project asn1_<sBoardName> is
+   for Source_Dirs use (<arrsDirsList:{dir|"<dir>"}; separator=", ">);
+
+   package Compiler is
+      for Default_Switches ("ada") use ("-gnatwae", "-gnat2012", "-g", "-gnatf", "-gnaty", "-gnatwa", "-gnatg", "-fstack-check");
+   end Compiler;
+
+   package Pretty_Printer is
+      for Default_Switches ("ada") use ("-i4", "-M200", "--no-separate-is", "--no-separate-loop-then");
+   end Pretty_Printer;
+
+   for Object_Dir use "obj_<sBoardName>";
+   for Main use ("mainprogram.adb");
+	 
+ end asn1_<sBoardName>;
+>>

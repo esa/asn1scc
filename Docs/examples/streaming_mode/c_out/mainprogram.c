@@ -22,12 +22,6 @@ void fetchData(BitStream* pBitStrm, void* pParam) {
 	printf("fetchData called, bytes read = %d\n", bytes_read);
 }
 
-//called during encoding
-void pushData(BitStream* pBitStrm, void* pParam) {
-	FILE* fp = (FILE*)pParam;
-	fwrite(pBitStrm->buf, 1, pBitStrm->currentByte, fp);
-	printf("pushData called, bytes written = %ld\n", pBitStrm->currentByte);
-}
 
 
 void initialize(A1* pPdu) {
@@ -91,6 +85,13 @@ is that this function declares a smaller buffer (1K in this example vs 4K) and
 when passing the buffer in the stream via BitStream_AttachBuffer2 it passes two
 more parameters
 */
+//called during encoding
+void pushData(BitStream* pBitStrm, void* pParam) {
+	FILE* fp = (FILE*)pParam;
+	fwrite(pBitStrm->buf, 1, pBitStrm->currentByte, fp);
+	printf("pushData called, bytes written = %ld\n", pBitStrm->currentByte);
+}
+
 
 flag decode_with_streaming_mode(A1* pVal, int* pErrCode, const char* filename) {
 	BitStream bitStrm;

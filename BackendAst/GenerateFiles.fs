@@ -300,13 +300,14 @@ let CreateMakeFile (r:AstRoot) (l:ProgrammingLanguage) (di:DirInfo) =
         let outFileName = Path.Combine(di.srcDir, "Makefile")
         File.WriteAllText(outFileName, content.Replace("\r",""))
     | Ada ->
+        let boardNames = OutDirectories.getBoardNames l r.args.target
         let writeBoard boardName = 
             let mods = aux_a.rtlModuleName()::(r.programUnits |> List.map(fun pu -> pu.name.ToLower() ))
             let content = aux_a.PrintMakeFile boardName (sprintf "asn1_%s.gpr" boardName) mods
-            let fileName = if boardName = "x86" then "Makefile" else ("Makefile." + boardName)
+            let fileName = if boardNames.Length = 1 || boardName = "x86" then "Makefile" else ("Makefile." + boardName)
             let outFileName = Path.Combine(di.rootDir, fileName)
             File.WriteAllText(outFileName, content.Replace("\r",""))
-        OutDirectories.getBoardNames l |> List.iter writeBoard
+        OutDirectories.getBoardNames l r.args.target |> List.iter writeBoard
 
 
 let private CreateAdaIndexFile (r:AstRoot) bGenTestCases outDir boardsDirName =

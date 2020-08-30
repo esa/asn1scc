@@ -94,8 +94,20 @@ let exportRTL (di:DirInfo) (l:ProgrammingLanguage) (args:CommandLineSettings)=
             let outDir = Path.Combine(boardsDirName, boardName)
             writeTextFile (Path.Combine(outDir, "board_config.ads"))     (rm.GetString(boardName+"_board_config.ads",null)) 
 
-        OutDirectories.getBoardNames l |> List.iter writeBoard
-        writeTextFile (Path.Combine(rootDir, "asn1_msp430.gpr"))    (rm.GetString("asn1_msp430.gpr",null)) 
-        writeTextFile (Path.Combine(rootDir, "asn1_stm32.gpr"))    (rm.GetString("asn1_stm32.gpr",null)) 
-        writeTextFile (Path.Combine(rootDir, "asn1_x86.gpr"))    (rm.GetString("asn1_x86.gpr",null)) 
+        let boardNames = OutDirectories.getBoardNames l args.target  
+
+        boardNames |> List.iter writeBoard
+        
+        boardNames |> 
+        List.iter(fun bn -> 
+            let filename = (Path.Combine(rootDir, ("asn1_"+bn+".gpr")))
+            let dirs = 
+                match args.target with
+                | Some _    -> ["asn1rtl"; "src"; "boards/" + bn]
+                | None      -> ["."; "x86"]
+
+            let content = aux_a.PrintGpsProject bn dirs
+            //let content = (rm.GetString(("asn1_"+bn+".gpr"),null))
+            writeTextFile filename    content)
+
 
