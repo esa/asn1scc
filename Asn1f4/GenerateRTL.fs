@@ -91,8 +91,11 @@ let exportRTL (di:DirInfo) (l:ProgrammingLanguage) (args:CommandLineSettings)=
         | false -> ()
 
         let writeBoard boardName = 
-            let outDir = Path.Combine(boardsDirName, boardName)
-            writeTextFile (Path.Combine(outDir, "board_config.ads"))     (rm.GetString(boardName+"_board_config.ads",null)) 
+            let outDir = 
+                match args.target with
+                | Some  _       -> Path.Combine(boardsDirName, boardName)
+                | None          -> boardsDirName
+            writeTextFile (Path.Combine(outDir, "board_config.ads")) (rm.GetString(boardName+"_board_config.ads",null)) 
 
         let boardNames = OutDirectories.getBoardNames l args.target  
 
@@ -104,7 +107,7 @@ let exportRTL (di:DirInfo) (l:ProgrammingLanguage) (args:CommandLineSettings)=
             let dirs = 
                 match args.target with
                 | Some _    -> ["asn1rtl"; "src"; "boards/" + bn]
-                | None      -> ["."; "x86"]
+                | None      -> ["."]
 
             let content = aux_a.PrintGpsProject bn dirs
             //let content = (rm.GetString(("asn1_"+bn+".gpr"),null))
