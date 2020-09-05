@@ -1,0 +1,20 @@
+--SEMANTICERROR:File:05.asn1, line:8, Expecting Integer value
+TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
+
+	FrequenciesTemplate{INTEGER:someLength, SomeType } ::= SEQUENCE (SIZE(someLength)) OF SomeType
+	
+	val5 INTEGER ::= 5
+	
+	MyPDU ::= FrequenciesTemplate{"strValue", FrequenciesTemplate{5, INTEGER(1..20)}}
+	
+	testPDU MyPDU ::= { 
+							{3, 4, 5, 6, 20},
+							{3, 4, 5, 6, 20},
+							{3, 4, 5, 6, 20},
+							{3, 4, 5, 6, 20},
+							{3, 4, 5, 6, 20}
+						}
+END
+
+--TCLFC    MyPDU[MyPDU]          $$$ sample1.acn:4:7: error: Unexpected token 'MyPDU'
+--TCLFC    MyPDU[]          $$$ sample1.asn1:8:31: error: Expecting a 'Integer' value

@@ -1,7 +1,8 @@
 with Interfaces; use Interfaces;
 
 package body adaasn1rtl with
-     Spark_Mode is
+   Spark_Mode
+is
 
    function getStringSize (str : String) return Integer is
       length : Integer := 0;
@@ -16,8 +17,7 @@ package body adaasn1rtl with
    end getStringSize;
 
    function GetZeroBasedCharIndex
-     (CharToSearch   :    Character;
-      AllowedCharSet :  String) return Integer
+     (CharToSearch : Character; AllowedCharSet : String) return Integer
    is
       ret : Integer;
    begin
@@ -50,24 +50,20 @@ package body adaasn1rtl with
    end ObjectIdentifier_Init;
 
    function ObjectIdentifier_isValid
-     (val :  Asn1ObjectIdentifier) return Boolean
+     (val : Asn1ObjectIdentifier) return Boolean
    is
    begin
-      return val.Length >= 2
-        and then val.values (1) <= 2
+      return val.Length >= 2 and then val.values (1) <= 2
         and then val.values (2) <= 39;
    end ObjectIdentifier_isValid;
 
-   function RelativeOID_isValid
-     (val :  Asn1ObjectIdentifier) return Boolean
-   is
+   function RelativeOID_isValid (val : Asn1ObjectIdentifier) return Boolean is
    begin
       return val.Length > 0;
    end RelativeOID_isValid;
 
    function ObjectIdentifier_equal
-     (val1 :  Asn1ObjectIdentifier;
-      val2 :  Asn1ObjectIdentifier) return Boolean
+     (val1 : Asn1ObjectIdentifier; val2 : Asn1ObjectIdentifier) return Boolean
    is
       ret : Boolean;
       i   : Integer;
@@ -84,13 +80,12 @@ package body adaasn1rtl with
       return ret;
    end ObjectIdentifier_equal;
 
-   function String_Equal (Left, Right :  String) return Boolean is
+   function String_Equal (Left, Right : String) return Boolean is
       len1 : constant Integer := getStringSize (Left);
       len2 : constant Integer := getStringSize (Right);
    begin
       return len1 = len2
-        and then
-          Left (Left'First .. Left'First + (len1 - 1)) =
+        and then Left (Left'First .. Left'First + (len1 - 1)) =
           Right (Right'First .. Right'First + (len1 - 1));
    end String_Equal;
 

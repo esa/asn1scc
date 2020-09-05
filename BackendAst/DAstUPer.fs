@@ -47,8 +47,8 @@ let internal createUperFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (
     let errCodeName         = ToC ("ERR_UPER" + (codec.suffix.ToUpper()) + "_" + ((t.id.AcnAbsPath |> Seq.skip 1 |> Seq.StrJoin("-")).Replace("#","elm")))
     let errCode, ns = getNextValidErrorCode us errCodeName
 
-    let EmitTypeAssignment_primitive = match l with C -> uper_c.EmitTypeAssignment_primitive    | Ada -> uper_a.EmitTypeAssignment
-    let EmitTypeAssignment_primitive_def = match l with C -> uper_c.EmitTypeAssignment_primitive_def    | Ada -> uper_a.EmitTypeAssignment_def
+    let EmitTypeAssignment = match l with C -> uper_c.EmitTypeAssignment    | Ada -> uper_a.EmitTypeAssignment
+    let EmitTypeAssignment_def = match l with C -> uper_c.EmitTypeAssignment_def    | Ada -> uper_a.EmitTypeAssignment_def
     let EmitTypeAssignment_def_err_code  = match l with C -> uper_c.EmitTypeAssignment_def_err_code    | Ada -> uper_a.EmitTypeAssignment_def_err_code
 
     let funcBody = (funcBody_e errCode)
@@ -63,19 +63,18 @@ let internal createUperFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (
             | None              -> None, None
             | Some funcName     -> 
                 let content = funcBody p  
-                let bodyResult_funcBody, errCodes,  bodyResult_localVariables = 
+                let bodyResult_funcBody, errCodes,  bodyResult_localVariables, bBsIsUnreferenced, bVarNameIsUnreferenced = 
                     match content with 
                     | None              -> 
                         let emtyStatement = match l with C -> "" | Ada -> "null;"
-                        emtyStatement, [], []
-                    | Some bodyResult   -> bodyResult.funcBody, bodyResult.errCodes, bodyResult.localVariables
-
+                        emtyStatement, [], [], true, isValidFuncName.IsNone
+                    | Some bodyResult   -> bodyResult.funcBody, bodyResult.errCodes, bodyResult.localVariables, bodyResult.bBsIsUnReferenced, bodyResult.bValIsUnReferenced
                 let lvars = bodyResult_localVariables |> List.map(fun (lv:LocalVariable) -> lv.GetDeclaration l) |> Seq.distinct
-                let func = Some(EmitTypeAssignment_primitive varName sStar funcName isValidFuncName  (typeDefinition.longTypedefName l) lvars  bodyResult_funcBody soSparkAnnotations sInitilialExp (t.uperMaxSizeInBits = 0I) codec)
+                let func = Some(EmitTypeAssignment varName sStar funcName isValidFuncName  (typeDefinition.longTypedefName l) lvars  bodyResult_funcBody soSparkAnnotations sInitilialExp (t.uperMaxSizeInBits = 0I) bBsIsUnreferenced bVarNameIsUnreferenced codec)
                 
                 //let errCodes = bodyResult.errCodes
                 let errCodStr = errCodes |> List.map(fun x -> (EmitTypeAssignment_def_err_code x.errCodeName) (BigInteger x.errCodeValue))
-                let funcDef = Some(EmitTypeAssignment_primitive_def varName sStar funcName  (typeDefinition.longTypedefName l) errCodStr (t.uperMaxSizeInBits = 0I) (BigInteger (ceil ((double t.uperMaxSizeInBits)/8.0))) ( t.uperMaxSizeInBits) soSparkAnnotations (t.uperMaxSizeInBits = 0I) codec)
+                let funcDef = Some(EmitTypeAssignment_def varName sStar funcName  (typeDefinition.longTypedefName l) errCodStr (t.uperMaxSizeInBits = 0I) (BigInteger (ceil ((double t.uperMaxSizeInBits)/8.0))) ( t.uperMaxSizeInBits) soSparkAnnotations (t.uperMaxSizeInBits = 0I) codec)
                 func, funcDef
 
 
@@ -110,15 +109,14 @@ let getIntfuncBodyByCons (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec:C
         None
 
     let IntBod uperRange extCon =
-        
         match uperRange with
-        | Concrete(min, max) when min=max                    -> IntNoneRequired (p.arg.getValue l) min   errCode.errCodeName codec 
-        | Concrete(min, max) when min>=0I && (not extCon)    -> IntFullyConstraintPos pp min max (GetNumberOfBitsForNonNegativeInteger (max-min))  errCode.errCodeName codec
-        | Concrete(min, max)                                 -> IntFullyConstraint pp min max (GetNumberOfBitsForNonNegativeInteger (max-min))  errCode.errCodeName codec
-        | PosInf(a)  when a>=0I && (not extCon)  -> IntSemiConstraintPos pp a  errCode.errCodeName codec
-        | PosInf(a)               -> IntSemiConstraint pp a  errCode.errCodeName codec
-        | NegInf(max)             -> IntUnconstraintMax pp max checkExp errCode.errCodeName codec
-        | Full                    -> IntUnconstraint pp errCode.errCodeName false codec
+        | Concrete(min, max) when min=max                    -> IntNoneRequired (p.arg.getValue l) min   errCode.errCodeName codec, false, (match l with C -> true | Ada -> false)
+        | Concrete(min, max) when min>=0I && (not extCon)    -> IntFullyConstraintPos pp min max (GetNumberOfBitsForNonNegativeInteger (max-min))  errCode.errCodeName codec, false, false
+        | Concrete(min, max)                                 -> IntFullyConstraint pp min max (GetNumberOfBitsForNonNegativeInteger (max-min))  errCode.errCodeName codec, false, false
+        | PosInf(a)  when a>=0I && (not extCon)  -> IntSemiConstraintPos pp a  errCode.errCodeName codec, false, false
+        | PosInf(a)               -> IntSemiConstraint pp a  errCode.errCodeName codec, false, false
+        | NegInf(max)             -> IntUnconstraintMax pp max checkExp errCode.errCodeName codec, false, false
+        | Full                    -> IntUnconstraint pp errCode.errCodeName false codec, false, false
 
     let getValueByConstraint uperRange =
         match uperRange with
@@ -126,7 +124,7 @@ let getIntfuncBodyByCons (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec:C
         | PosInf(a)       -> a
         | NegInf(b)       -> b
         | Full            -> 0I
-    let funcBodyContent = 
+    let funcBodyContent, bValIsUnReferenced, bBsIsUnReferenced = 
         match rootCons with
         | []                            -> IntBod uperRange false
         | (RangeRootConstraint a)::rest      -> 
@@ -134,15 +132,17 @@ let getIntfuncBodyByCons (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec:C
             let cc,_ = DastValidate2.integerConstraint2ValidationCodeBlock r l isUnsigned a 0
             let cc = DastValidate2.ValidationBlockAsStringExpr (cc p) 
             //let cc = DAstValidate.foldRangeCon l (fun v -> v.ToString()) (fun v -> v.ToString()) p a
-            IntRootExt pp (getValueByConstraint uperR) cc (IntBod uperR true) errCode.errCodeName codec
+            let rootBody, _,_ = IntBod uperR true
+            IntRootExt pp (getValueByConstraint uperR) cc rootBody errCode.errCodeName codec, false, false
         | (RangeRootConstraint2(a,_))::rest  -> 
             let uperR    = uPER.getIntTypeConstraintUperRange [a]  errLoc
             //let cc = DAstValidate.foldRangeCon l (fun v -> v.ToString()) (fun v -> v.ToString()) p a
             let cc,_ = DastValidate2.integerConstraint2ValidationCodeBlock r l isUnsigned a 0
             let cc = DastValidate2.ValidationBlockAsStringExpr (cc p) 
-            IntRootExt2 pp (getValueByConstraint uperR) cc (IntBod uperR true) errCode.errCodeName codec 
+            let rootBody, _,_ = IntBod uperR true
+            IntRootExt2 pp (getValueByConstraint uperR) cc rootBody errCode.errCodeName codec, false, false 
         | _                             -> raise(BugErrorException "")
-    {UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = []}    
+    Some({UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = []; bValIsUnReferenced=bValIsUnReferenced; bBsIsUnReferenced=bBsIsUnReferenced})
     
 
 
@@ -150,12 +150,9 @@ let getIntfuncBodyByCons (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec:C
 
 let createIntegerFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Integer) (typeDefinition:TypeDefintionOrReference) (baseTypeUperFunc : UPerFunction option) (isValidFunc: IsValidFunction option) (us:State)  =
     let funcBody (errCode:ErroCode) (p:CallerScope) = 
-        if (t.id.AsString = "TEST-CASE.DEF-NPAL-TC-header.field-packet-header.field-packet-id.field-version-number") then
-            let dummy = 0
-            ()
         getIntfuncBodyByCons r l codec o.uperRange t.Location o.isUnsigned o.cons o.AllCons errCode p
     let soSparkAnnotations = None
-    createUperFunction r l codec t typeDefinition baseTypeUperFunc  isValidFunc  (fun e p -> Some (funcBody e p)) soSparkAnnotations us
+    createUperFunction r l codec t typeDefinition baseTypeUperFunc  isValidFunc  (fun e p -> funcBody e p) soSparkAnnotations us
 
 
 let createBooleanFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Boolean) (typeDefinition:TypeDefintionOrReference) (baseTypeUperFunc : UPerFunction option) (isValidFunc: IsValidFunction option) (us:State)  =
@@ -163,7 +160,7 @@ let createBooleanFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec:
         let pp = match codec with CommonTypes.Encode -> p.arg.getValue l | CommonTypes.Decode -> p.arg.getPointer l
         let Boolean         = match l with C -> uper_c.Boolean          | Ada -> uper_a.Boolean
         let funcBodyContent = Boolean pp errCode.errCodeName codec
-        {UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = []}    
+        {UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = []; bValIsUnReferenced=false; bBsIsUnReferenced=false}    
     let soSparkAnnotations = None
     createUperFunction r l codec t typeDefinition baseTypeUperFunc  isValidFunc  (fun e p -> Some (funcBody e p)) soSparkAnnotations us
 
@@ -172,7 +169,7 @@ let createRealFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec:Com
         let pp = match codec with CommonTypes.Encode -> p.arg.getValue l | CommonTypes.Decode -> p.arg.getPointer l
         let Real         = match l with C -> uper_c.Real          | Ada -> uper_a.Real
         let funcBodyContent = Real pp errCode.errCodeName codec
-        {UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = []}    
+        {UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = []; bValIsUnReferenced=false; bBsIsUnReferenced=false}    
     let soSparkAnnotations = None
     createUperFunction r l codec t typeDefinition baseTypeUperFunc  isValidFunc  (fun e p -> Some (funcBody e p)) soSparkAnnotations us
 
@@ -185,7 +182,7 @@ let createObjectIdentifierFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage
             else
                 match l with C -> uper_c.ObjectIdentifier          | Ada -> uper_a.ObjectIdentifier
         let funcBodyContent = ObjectIdentifier pp errCode.errCodeName codec
-        {UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = []}    
+        {UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = []; bValIsUnReferenced=false; bBsIsUnReferenced=false}    
     let soSparkAnnotations = None
     createUperFunction r l codec t typeDefinition baseTypeUperFunc  isValidFunc  (fun e p -> Some (funcBody e p)) soSparkAnnotations us
 
@@ -205,7 +202,7 @@ let createTimeTypeFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec
         let pp = match codec with CommonTypes.Encode -> p.arg.getPointer l | CommonTypes.Decode -> p.arg.getPointer l
         let TimeType         =  match l with C -> uper_c.Time          | Ada -> uper_a.Time
         let funcBodyContent = TimeType pp (getTimeSubTypeByClass o.timeClass) errCode.errCodeName codec
-        {UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = []}    
+        {UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = []; bValIsUnReferenced=false; bBsIsUnReferenced=false}    
     let soSparkAnnotations = None
     createUperFunction r l codec t typeDefinition baseTypeUperFunc  isValidFunc  (fun e p -> Some (funcBody e p)) soSparkAnnotations us
 
@@ -232,7 +229,7 @@ let createEnumeratedFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (cod
         let nBits = (GetNumberOfBitsForNonNegativeInteger (nMax-nMin))
         let sFirstItemName = o.items.Head.getBackendName (Some typeDefinition) l
         let funcBodyContent = Enumerated (p.arg.getValue l) td items nMin nMax nBits errCode.errCodeName nLastItemIndex sFirstItemName codec
-        {UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = []}    
+        {UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = []; bValIsUnReferenced=false; bBsIsUnReferenced=false}    
     let soSparkAnnotations = None
     createUperFunction r l codec t typeDefinition baseTypeUperFunc  isValidFunc  (fun e p -> Some (funcBody e p)) soSparkAnnotations us
 
@@ -407,7 +404,7 @@ let createIA5StringFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (code
                 let localVariables = localVariables |> List.addIf (l = C || o.maxSize.uper<>o.minSize.uper) (lv)
                 funcBodyContent, charIndex@localVariables
 
-        {UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = localVariables}    
+        {UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = localVariables; bValIsUnReferenced=false; bBsIsUnReferenced=false}    
     let soSparkAnnotations = 
         match l with
         | C     -> None
@@ -448,7 +445,7 @@ let createOctetStringFunction_funcBody (r:Asn1AcnAst.AstRoot) (l:ProgrammingLang
             let localVariables = localVariables |> List.addIf (l = C || (not isFixedSize)) (lv)
             funcBodyContent, localVariables
 
-    {UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = localVariables}    
+    {UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = localVariables; bValIsUnReferenced=false; bBsIsUnReferenced=false}    
 
 let createOctetStringFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type)  (o:Asn1AcnAst.OctetString) (typeDefinition:TypeDefintionOrReference)  (baseTypeUperFunc : UPerFunction option) (isValidFunc: IsValidFunction option) (us:State)  =
 
@@ -502,7 +499,7 @@ let createBitStringFunction_funcBody (r:Asn1AcnAst.AstRoot) (l:ProgrammingLangua
             | _ when maxSize < 65536I && (not isFixedSize)  -> uper_c.bitString_VarSize p.arg.p (p.arg.getAcces l) (minSize) (maxSize) errCode.errCodeName codec, nStringLength
             | _                                                -> 
                 handleFragmentation l p codec errCode ii (uperMaxSizeInBits) minSize maxSize "" 1I true false
-    {UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = localVariables}    
+    {UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = localVariables; bValIsUnReferenced=false; bBsIsUnReferenced=false}    
 
 
 let createBitStringFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.BitString) (typeDefinition:TypeDefintionOrReference)  (baseTypeUperFunc : UPerFunction option) (isValidFunc: IsValidFunction option) (us:State)  =
@@ -560,10 +557,10 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (cod
                     | _ when o.maxSize.uper < 65536I && o.maxSize.uper=o.minSize.uper  -> None
                     | _ when o.maxSize.uper < 65536I && o.maxSize.uper<>o.minSize.uper -> 
                         let funcBody = varSize p.arg.p (p.arg.getAcces l)  typeDefinitionName i "" ( o.minSize.uper) ( o.maxSize.uper) nSizeInBits ( child.uperMinSizeInBits) nIntItemMaxSize 0I errCode.errCodeName codec
-                        Some ({UPERFuncBodyResult.funcBody = funcBody; errCodes = [errCode]; localVariables = lv@nStringLength})    
+                        Some ({UPERFuncBodyResult.funcBody = funcBody; errCodes = [errCode]; localVariables = lv@nStringLength; bValIsUnReferenced=false; bBsIsUnReferenced=false})    
                     | _                                                -> 
                         let funcBody, localVariables = handleFragmentation l p codec errCode ii ( o.uperMaxSizeInBits) o.minSize.uper o.maxSize.uper "" nIntItemMaxSize false false
-                        Some ({UPERFuncBodyResult.funcBody = funcBody; errCodes = [errCode]; localVariables = localVariables})    
+                        Some ({UPERFuncBodyResult.funcBody = funcBody; errCodes = [errCode]; localVariables = localVariables; bValIsUnReferenced=false; bBsIsUnReferenced=false})    
             | Some internalItem -> 
                 let childErrCodes =  internalItem.errCodes
                 let ret,localVariables = 
@@ -572,10 +569,10 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (cod
                     | _ when o.maxSize.uper < 65536I && o.maxSize.uper<>o.minSize.uper  -> varSize p.arg.p (p.arg.getAcces l)  typeDefinitionName i internalItem.funcBody ( o.minSize.uper) ( o.maxSize.uper) nSizeInBits ( child.uperMinSizeInBits) nIntItemMaxSize 0I errCode.errCodeName codec , nStringLength
                     | _                                                -> handleFragmentation l p codec errCode ii ( o.uperMaxSizeInBits) o.minSize.uper o.maxSize.uper internalItem.funcBody nIntItemMaxSize false false
 
-                Some ({UPERFuncBodyResult.funcBody = ret; errCodes = errCode::childErrCodes; localVariables = lv@(localVariables@internalItem.localVariables)})    
+                Some ({UPERFuncBodyResult.funcBody = ret; errCodes = errCode::childErrCodes; localVariables = lv@(localVariables@internalItem.localVariables); bValIsUnReferenced=false; bBsIsUnReferenced=false})    
         | Some baseFuncName ->
             let funcBodyContent =  callBaseTypeFunc l (p.arg.getPointer l) baseFuncName codec
-            Some ({UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = []})
+            Some ({UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = []; bValIsUnReferenced=false; bBsIsUnReferenced=false})
     let soSparkAnnotations = None
     createUperFunction r l codec t typeDefinition baseTypeUperFunc  isValidFunc  funcBody soSparkAnnotations  us
 
@@ -637,7 +634,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec
             let seqContent =  (presenseBits@childrenStatements) |> nestChildItems l codec 
             match seqContent with
             | None  -> None
-            | Some ret -> Some ({UPERFuncBodyResult.funcBody = ret; errCodes = errCode::childrenErrCodes; localVariables = localVariables@childrenLocalvars})    
+            | Some ret -> Some ({UPERFuncBodyResult.funcBody = ret; errCodes = errCode::childrenErrCodes; localVariables = localVariables@childrenLocalvars; bValIsUnReferenced=false; bBsIsUnReferenced=false})    
 //        | Some baseFuncName ->
 //            let funcBodyContent = callBaseTypeFunc l (p.arg.getPointer l) baseFuncName codec
 //            Some ({UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = []})
@@ -698,10 +695,10 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec:C
             let childrenErrCodes = childrenContent3 |> List.collect(fun (_,_,s) -> s)
             
             let ret = choice p.arg.p (p.arg.getAcces l) childrenContent (BigInteger (children.Length - 1)) sChoiceIndexName errCode.errCodeName td nIndexSizeInBits  codec
-            Some ({UPERFuncBodyResult.funcBody = ret; errCodes = errCode::childrenErrCodes; localVariables = localVariables@childrenLocalvars})
+            Some ({UPERFuncBodyResult.funcBody = ret; errCodes = errCode::childrenErrCodes; localVariables = localVariables@childrenLocalvars; bValIsUnReferenced=false; bBsIsUnReferenced=false})
         | Some baseFuncName ->
             let funcBodyContent = callBaseTypeFunc l (p.arg.getPointer l) baseFuncName codec
-            Some ({UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = []})
+            Some ({UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = []; bValIsUnReferenced=false; bBsIsUnReferenced=false})
 
     let soSparkAnnotations = None
 
@@ -729,7 +726,7 @@ let createReferenceFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (code
                 match (baseType.getUperFunction codec).funcBody p with
                 | Some _    -> 
                     let funcBodyContent = callBaseTypeFunc l (t.getParamValue p.arg l codec) baseFncName codec
-                    Some {UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = []}    
+                    Some {UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = []; bValIsUnReferenced=false; bBsIsUnReferenced=false}    
                 | None      -> None
             createUperFunction r l codec t typeDefinition None  isValidFunc  funcBody soSparkAnnotations  us
         | false -> 
@@ -748,7 +745,7 @@ let createReferenceFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (code
                     match opts.octOrBitStr with
                     | ContainedInOctString  -> octet_string_containing_func  (t.getParamValue p.arg l codec) baseFncName sReqBytesForUperEncoding nBits opts.minSize.uper opts.maxSize.uper codec
                     | ContainedInBitString  -> bit_string_containing_func  (t.getParamValue p.arg l codec) baseFncName sReqBytesForUperEncoding sReqBitForUperEncoding nBits opts.minSize.uper opts.maxSize.uper codec
-                Some {UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = []}    
+                Some {UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = []; bValIsUnReferenced=false; bBsIsUnReferenced=false}    
             | None      -> None
         createUperFunction r l codec t typeDefinition None  isValidFunc  funcBody soSparkAnnotations  us
         

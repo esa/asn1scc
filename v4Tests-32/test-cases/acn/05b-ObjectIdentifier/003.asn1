@@ -1,0 +1,19 @@
+TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
+
+	MyPDU ::= SEQUENCE {
+        a OBJECT IDENTIFIER,
+        b SEQUENCE (SIZE(1..10)) OF RELATIVE-OID
+    }
+
+	pdu1 MyPDU ::= 
+        {
+            a { 1 2 334 40 5 680}, 
+            b {
+                {11 20},
+                {11 22}
+            }
+        }
+	
+END
+
+--TCLS     MyPDU[]

@@ -55,15 +55,16 @@
   <ItemGroup>
     <None Include="Script.fsx" />
     <Compile Include="FsUtils.fs" />
+    <Compile Include="CommonTypes.fs" />
     <Compile Include="RangeSets.fs" />
     <Compile Include="ValueSets.fs" />
     <Compile Include="SimpleSets.fs" />
-    <Compile Include="CommonTypes.fs" />
     <Compile Include="isvalid_if.stg.fs" />
     <Compile Include="AbstractMacros.fs" />
     <Compile Include="AcnGenericTypes.fs" />
     <Compile Include="RangeSets0.fs" />
     <Compile Include="SizeableSet.fs" />
+    <Compile Include="OutDirecories.fs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="antlr.runtime">

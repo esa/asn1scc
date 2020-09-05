@@ -1,0 +1,21 @@
+-- NO_AUTOMATIC_TEST_CASES
+TEST-CASE  DEFINITIONS AUTOMATIC TAGS::= BEGIN
+
+	MyPDU ::= SEQUENCE {
+		int1	INTEGER(0..15) OPTIONAL,
+		int2	INTEGER(0..65535) OPTIONAL,
+		enm		ENUMERATED {
+					one(1), two(2), three(3),
+					 four(4), thousand(1000)
+				} OPTIONAL
+	} (
+		WITH COMPONENTS {..., int1 (4..12) PRESENT,	int2 (200 .. 400), enm ABSENT} |
+		WITH COMPONENTS {..., int1 (0..3) ,	enm PRESENT}
+	   )
+	
+
+	
+END
+
+
+--TCLS     MyPDU[] 

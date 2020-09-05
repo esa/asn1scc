@@ -1,0 +1,13 @@
+TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
+
+	MyPDU ::= REAL
+
+	pdu1 MyPDU ::= 3.14159265
+	
+END
+
+--TCLS     MyPDU[]
+--TCLFC     MyPDU[encoding ASCII]    $$$  sample1.acn:4:6: error: Invalid encoding property value. Expecting 'IEEE754-1985-32' or 'IEEE754-1985-64'
+--TCLFC     MyPDU[encoding IEEE754-1985-64, endianness little]    $$$  sample1.acn:4:6: error: Acn property 'IEEE754-1985-64' cannot be applied when -fpWordSize  4
+--TCLS     MyPDU[encoding IEEE754-1985-32]   
+--TCLFC     MyPDU[encoding ASCII, size 100]    $$$  sample1.acn:4:6: error: Acn property 'size' cannot be applied to REAL types

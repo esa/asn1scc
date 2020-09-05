@@ -1,0 +1,14 @@
+MYMOD DEFINITIONS AUTOMATIC TAGS::= BEGIN
+
+    COLOR-TYPE ::= INTEGER (0..255)
+    COLOR-DATA ::= CHOICE {
+        green INTEGER (1..10),
+        red INTEGER (1..1000),
+        blue IA5String (SIZE(1..20))
+    }
+    MySeq ::= SEQUENCE {
+        colorData COLOR-DATA
+    }
+END 
+
+--TCFFC     002.acn  $$$ sample1.acn:10:50: error: Duplicate condition found in choice alternatives

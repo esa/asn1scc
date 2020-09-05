@@ -4,10 +4,7 @@ package body adaasn1rtl.encoding.test_cases_aux is
 
    package Seq_IO is new Ada.Sequential_IO (Asn1Byte);
 
-   procedure Write_BitStream_To_File
-     (bs       :  Bitstream;
-      Filename :  String)
-   is
+   procedure Write_BitStream_To_File (bs : Bitstream; Filename : String) is
       Out_File : Seq_IO.File_Type;
    begin
       Seq_IO.Create (Out_File, Seq_IO.Out_File, Filename);

@@ -152,18 +152,18 @@ let createEqualFunction_any (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:As
             match funcName  with
             | None              -> None, None
             | Some funcName     -> 
-                let content, lvars, bExp =
+                let content, lvars, bExp, bUnreferenced =
                     match isEqualBody with
                     | EqualBodyExpression       expFunc ->
                         match expFunc p1 p2 with
-                        | Some (content, lvars) -> content, lvars, true
-                        | None                  -> alwaysTrue, [], true
+                        | Some (content, lvars) -> content, lvars, true, false
+                        | None                  -> alwaysTrue, [], true, true
                     | EqualBodyStatementList    stmFunc ->
                         match stmFunc p1 p2 with
-                        | Some (content, lvars) -> content, lvars, false
-                        | None                  -> alwaysTrue, [], true
+                        | Some (content, lvars) -> content, lvars, false, false
+                        | None                  -> alwaysTrue, [], true, true
                 let lvarsStr = lvars |> List.map(fun (lv:LocalVariable) -> lv.GetDeclaration l) |> Seq.distinct
-                let isEqualFunc = equalTypeAssignment varName1 varName2 sStar funcName (typeDefinition.longTypedefName l) content lvarsStr bExp
+                let isEqualFunc = equalTypeAssignment varName1 varName2 sStar funcName (typeDefinition.longTypedefName l) content lvarsStr bExp bUnreferenced
                 let isEqualFuncDef = equalTypeAssignment_def varName1 varName2 sStar funcName (typeDefinition.longTypedefName l) 
                 Some  isEqualFunc, Some isEqualFuncDef
 

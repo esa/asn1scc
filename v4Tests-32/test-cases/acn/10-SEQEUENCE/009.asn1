@@ -1,0 +1,25 @@
+TEST-CASE  DEFINITIONS AUTOMATIC TAGS::= BEGIN
+
+	MyPDU ::= SEQUENCE {
+		int1	INTEGER(0..15),
+		int2	INTEGER(0..65535) OPTIONAL,
+		enm		ENUMERATED {
+					one(1), two(2), three(3),
+					 four(4), thousand(1000)
+				},
+		buf	 OCTET STRING (SIZE(10)) OPTIONAL,
+		gg  SEQUENCE {
+			int1	INTEGER(0..15),
+			int2	INTEGER(0..65535)
+		} OPTIONAL
+	}
+	
+	pdu1 MyPDU ::= {int1 10, int2 100, enm one, buf '00112233445566778899'H, gg {int1 10, int2 200}}
+
+	
+END
+
+
+--TCLS     MyPDU[] {int1[], bBool BOOLEAN[], int2[present-when bBool], enm[], buf[], gg[present-when bBool]}   
+--TCLS     MyPDU[] {int1[], bBool BOOLEAN[], int2[present-when bBool], enm[], buf[present-when bBool], gg[present-when bBool]}   
+--TCLS     MyPDU[]

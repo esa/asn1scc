@@ -1,0 +1,10 @@
+TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
+
+    MySeq ::=  SEQUENCE (SIZE(1..100)) OF INTEGER
+	
+END
+
+
+--TCLS     MySeq [size null-terminated, termination-pattern 'FFFFFF'H]
+
+

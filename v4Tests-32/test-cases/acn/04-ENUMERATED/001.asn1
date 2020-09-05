@@ -1,0 +1,35 @@
+-- NOCOVERAGE
+TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
+
+	MyPDU ::= ENUMERATED {
+		alpha(1), beta(200)
+	}
+	
+	pdu1 MyPDU ::= beta
+		
+END
+
+--TCLS     MyPDU[encode-values, encoding pos-int, size 10] { alpha[50], beta[60] }
+--TCLFC     MyPDU[encode-values, encoding twos-complement, size 10] { alpha[50], beta[60] } $$$ sample1.asn1:4:11: error: Acn property twos-complement cannot be applied to non negative INTEGER types
+--TCLS     MyPDU[encode-values, encoding BCD, size 12] { alpha[50], beta[60] }
+--  TCLS     MyPDU[encode-values, encoding BCD, size null-terminated] { alpha[50], beta[60] }
+--TCLS     MyPDU[encode-values, encoding ASCII, size 32] { alpha[50], beta[60] }
+--  TCLS     MyPDU[encode-values, encoding ASCII, size null-terminated] { alpha[50], beta[60] }
+--TCLS     MyPDU[] { alpha[50], beta[60] }
+
+--TCLS     MyPDU[encode-values, encoding pos-int, size 10]
+--TCLFC     MyPDU[encode-values, encoding twos-complement, size 10]	$$$ sample1.asn1:4:11: error: Acn property twos-complement cannot be applied to non negative INTEGER types
+--TCLS     MyPDU[encode-values, encoding BCD, size 12]
+--  TCLS     MyPDU[encode-values, encoding BCD, size null-terminated]
+--TCLS     MyPDU[encode-values, encoding ASCII, size 32]
+--  TCLS     MyPDU[encode-values, encoding ASCII, size null-terminated]
+--TCLS     MyPDU[]
+
+
+
+--TCLS     MyPDU[encoding pos-int, size 10]
+--TCLFC     MyPDU[encoding twos-complement, size 10]		$$$ sample1.asn1:4:11: error: Acn property twos-complement cannot be applied to non negative INTEGER types
+--TCLS     MyPDU[encoding BCD, size 8]
+--  TCLS     MyPDU[encoding BCD, size null-terminated]
+--TCLS     MyPDU[encoding ASCII, size 16]
+--  TCLS     MyPDU[encoding ASCII, size null-terminated]

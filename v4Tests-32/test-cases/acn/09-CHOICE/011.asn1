@@ -1,0 +1,17 @@
+--NOCOVERAGE
+TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
+
+T-UInt8 ::= INTEGER (0..255)
+
+T-Thing ::= CHOICE {
+field1 T-UInt8,
+field2 T-UInt8,
+field3 T-UInt8
+}
+
+T-SubThing ::= T-Thing (WITH COMPONENTS {field1 ABSENT})
+
+END
+
+--TCFS     011.acn
+

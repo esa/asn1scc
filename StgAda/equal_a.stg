@@ -40,34 +40,31 @@ equalTypeAssignment_def(sVarName1, sVarName2, sStar, sFuncName, sTypeDefName) ::
 function <sFuncName>(<sVarName1>, <sVarName2> : <sTypeDefName>) return Boolean;
 >>
 
-equalTypeAssignment(sVarName1, sVarName2, sStar, sFuncName, sTypeDefName, sContent, arrsLocalVars, bExpression) ::= <<
-pragma Warnings (Off, "formal parameter ""<sVarName1>"" is not referenced");
-pragma Warnings (Off, "formal parameter ""<sVarName2>"" is not referenced");
-    function <sFuncName> (<sVarName1>, <sVarName2> :  <sTypeDefName>) return Boolean
-    is
-        <if(!bExpression)>
-        pragma Warnings (Off, "initialization of ret has no effect");
-        ret : Boolean := True;
-        pragma Warnings (On, "initialization of ret has no effect");
-        <arrsLocalVars; separator="\n">
+equalTypeAssignment(sVarName1, sVarName2, sStar, sFuncName, sTypeDefName, sContent, arrsLocalVars, bExpression, bUnreferenced) ::= <<
+function <sFuncName> (<sVarName1>, <sVarName2> :  <sTypeDefName>) return Boolean
+is
+<if(bUnreferenced)>
+   pragma Unreferenced (<sVarName1>);
+   pragma Unreferenced (<sVarName2>);
 
-        <endif>
-    begin
-        pragma Warnings (Off, "condition can only be False if invalid values present");
-        pragma Warnings (Off, "condition can only be True if invalid values present");
-        <if(bExpression)>
-	    return <sContent>;
+<endif>
+    <if(!bExpression)>
+    pragma Warnings (Off, "initialization of ret has no effect");
+    ret : Boolean := True;
+    pragma Warnings (On, "initialization of ret has no effect");
+    <arrsLocalVars; separator="\n">
 
-        <else>
-        <sContent>
-	    return ret;
+    <endif>
+begin
+    <if(bExpression)>
+	return <sContent>;
 
-        <endif>
-        pragma Warnings (On, "condition can only be False if invalid values present");
-        pragma Warnings (On, "condition can only be True if invalid values present");
-    end <sFuncName>;
-pragma Warnings (On, "formal parameter ""<sVarName1>"" is not referenced");
-pragma Warnings (On, "formal parameter ""<sVarName2>"" is not referenced");
+    <else>
+    <sContent>
+	return ret;
+
+    <endif>
+end <sFuncName>;
 >>
 
 

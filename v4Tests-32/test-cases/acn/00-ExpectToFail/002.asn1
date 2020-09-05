@@ -1,0 +1,16 @@
+TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
+
+MyInt ::= INTEGER (0..255)
+
+MyPDU ::= SEQUENCE {
+	field-a BOOLEAN,
+	field-b MyInt,
+	field-X SEQUENCE (SIZE (1..10)) OF BOOLEAN
+}
+
+END
+
+
+
+--TCLFC    MyPDU [] {field-a [], field-b MyInt [], field-X [size field-b]}          $$$ sample1.acn:4:23: error: Component 'field-b' cannot be defined as an ACN inserted field. Remove the type 'TEST-CASE.MyInt' from the ACN file or remove th component from the ANS.1 file
+

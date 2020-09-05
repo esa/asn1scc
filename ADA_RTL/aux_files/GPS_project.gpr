@@ -16,5 +16,7 @@ project GPS_Project is
       for Default_Switches ("ada") use ("-i4", "-M200", "--no-separate-is", "--no-separate-loop-then");
    end Pretty_Printer;
 
+   for Source_Dirs use ("../../asn1rtl", "../../src", ".");
+
 end GPS_Project;
 

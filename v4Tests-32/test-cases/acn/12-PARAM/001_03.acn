@@ -1,0 +1,33 @@
+-- 
+TEST-CASE DEFINITIONS ::= BEGIN
+        
+    MyPDU[] {    
+         tap[]        
+    }
+    
+    
+    TAP3File[]{
+         header [] {
+            operatorID[],
+            nrCalls CallsSize[]
+        },  
+        data <header.nrCalls> []
+    }
+    
+    HeaderType[]
+             
+    SourceData<INTEGER:nElements>[]
+    {
+         data2 <nElements> []         
+    }
+    
+    
+    SourceData2<INTEGER:nElements2>[]
+    {         
+         calls[size nElements2]
+    }
+    
+    Call[]
+END  
+
+

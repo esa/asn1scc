@@ -1,0 +1,18 @@
+TEST-CASE DEFINITIONS ::=
+
+BEGIN
+
+T-UInt8 [encoding pos-int, size 8]
+
+T-Thing [] {
+field1 [],
+field2 [],
+field3 []
+}
+
+T-SubThing [] {
+field2 [],
+field3 []
+}
+
+END

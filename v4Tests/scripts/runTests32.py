@@ -73,7 +73,9 @@ def RunTestCase(asn1, acn, behavior, expErrMsg):
     print(asn1, acn)
 
     asn1File = targetDir + os.sep + "sample1.asn1"
+    bRunCodeCoverage = "NOCOVERAGE" not in open(resolvedir(asn1File)).readline()
     acnFile = targetDir + os.sep + "sample1.acn"
+    astXml  = targetDir + os.sep + "ast.xml"
     launcher = '' if sys.platform == 'cygwin' else 'mono '
     path_to_asn1scc = spawn.find_executable('Asn1f4.exe')
     res = mysystem(
@@ -84,7 +86,7 @@ def RunTestCase(asn1, acn, behavior, expErrMsg):
         "' 2>tmp.err"+"_"+language, True)
     ferr = open("tmp.err"+"_"+language, 'r')
     #print("str to replace '" + resolvedir(targetDir) + resolvesep() + "'")
-    err_msg = ferr.read().replace("\r\n", "").replace("\n", "").replace(resolvedir(targetDir) +  resolvesep(), "")
+    err_msg = ferr.read()
     ferr.close()
     if behavior == 0 or behavior == 2:
         if res != 0 or err_msg != "":
@@ -92,6 +94,7 @@ def RunTestCase(asn1, acn, behavior, expErrMsg):
             print("Asn.1 compiler error is: " + err_msg)
             sys.exit(1)
     else:
+        err_msg = err_msg.replace("\r\n", "").replace("\n", "").replace(resolvedir(targetDir) +  resolvesep(), "")
         if res == 0 or err_msg != expErrMsg:
             PrintFailed(
                 "Asn.1 compiler didn't fail or failed with "
@@ -104,18 +107,30 @@ def RunTestCase(asn1, acn, behavior, expErrMsg):
             nTests += 1
             return
 
+    no_automatic_test_cases = "NO_AUTOMATIC_TEST_CASES" in open(asn1File, 'r').readlines()[0]
+    if no_automatic_test_cases:
+        if language == "c":
+            res = mysystem("cd " + targetDir + os.sep + "; CC=gcc make", False)
+            return
+        else:
+            res = mysystem("cd " + targetDir + os.sep + "; CC=gcc make", False)
+            return
+
     if language == "c":
         try:
             res = mysystem(
-                "cd " + targetDir + os.sep + "; CC=gcc make coverage", False)
+                "cd " + targetDir + os.sep + "; CC=gcc make -f Makefile.msp430 coverage", False)
             f = open(targetDir + os.sep + "sample1.c.gcov", 'r')
-            lines = [
-                l
-                for l in f.readlines()
-                if ("####" in l) and ("COVERAGE_IGNORE" not in l)]
-            if len(lines) > 0:
+            lines = f.readlines()
+            lines = filter(lambda x : "####" in x, lines)
+            lines = filter(lambda x : "COVERAGE_IGNORE" not in x, lines)
+            lines = filter(lambda l : ":".join(l.split(":")[2:]).strip() != '}', lines)
+            lines = filter(lambda l : ":".join(l.split(":")[2:]).strip() != "default:", lines)
+            lines = filter(lambda l : ":".join(l.split(":")[2:]).strip() != "break;", lines)
+            lines = list(lines)
+            if bRunCodeCoverage and len(lines) > 0:
                 PrintWarning("coverage failed. (less than 100%)")
-                #sys.exit(1)
+                sys.exit(1)
         except FileNotFoundError as err:
             pass;
     else:
@@ -148,27 +163,40 @@ def RunTestCase(asn1, acn, behavior, expErrMsg):
             sys.exit(1)
         elif behavior == 0 and res == 0:
             # -- NOCOVERAGE
-            doCoverage = "-- NOCOVERAGE" not in \
-                open("sample1.asn1", 'r').readlines()[0]
+            doCoverage = "-- NOCOVERAGE" not in open("sample1.asn1", 'r').readlines()[0]
             if doCoverage:
-
-                def hunt_signature(l):
-                    return "test_case.adb" not in l and "mymod.adb" not in l
-                lines = list(
-                    itertools.dropwhile(
-                        hunt_signature, open("covlog.txt", 'r').readlines()))
-                lines = list(itertools.dropwhile(hunt_signature, lines[1:]))
-                excecLines = [l for l in list(lines) if "executed" in l]
-                #print (excecLines)
-                if excecLines:
-                    excLine = excecLines[0]
-                    if "executed:100.00" not in excLine:
-                        PrintWarning("coverage error (less than 100%): {}".format('\n'.join(lines)))
-                        #sys.exit(-1)
-                    else:
-                        PrintSucceededAsExpected(excLine)
-                else:
-                    PrintWarning("No line executed !!!: {}".format('\n'.join(lines)))
+                try:
+                    f = open(targetDir + os.sep + "bin" + os.sep + "debug" + os.sep + "test_case.adb.gcov", 'r')
+                    lines = f.readlines()
+                    lines = filter(lambda x : "####" in x, lines)
+                    lines = filter(lambda x : "COVERAGE_IGNORE" not in x, lines)
+                    lines = filter(lambda l : ":".join(l.split(":")[2:]).strip() != 'end;', lines)
+                    lines = filter(lambda l : ":".join(l.split(":")[2:]).strip() != "default:", lines)
+                    lines = filter(lambda l : ":".join(l.split(":")[2:]).strip() != "break;", lines)
+                    lines = list(lines)
+                    if bRunCodeCoverage and len(lines) > 0:
+                        PrintWarning("coverage failed. (less than 100%)")
+                        sys.exit(1)
+                except FileNotFoundError as err:
+                    pass;
+            
+            #   def hunt_signature(l):
+            #       return "test_case.adb" not in l and "mymod.adb" not in l
+            #   lines = list(
+            #       itertools.dropwhile(
+            #           hunt_signature, open("covlog.txt", 'r').readlines()))
+            #   lines = list(itertools.dropwhile(hunt_signature, lines[1:]))
+            #   excecLines = [l for l in list(lines) if "executed" in l]
+            #   #print (excecLines)
+            #   if excecLines:
+            #       excLine = excecLines[0]
+            #       if "executed:100.00" not in excLine:
+            #           PrintWarning("coverage error (less than 100%): {}".format('\n'.join(lines)))
+            #           sys.exit(-1)
+            #       else:
+            #           PrintSucceededAsExpected(excLine)
+            #   else:
+            #       PrintWarning("No line executed !!!: {}".format('\n'.join(lines)))
         else:
             print(res, behavior)
             PrintWarning(

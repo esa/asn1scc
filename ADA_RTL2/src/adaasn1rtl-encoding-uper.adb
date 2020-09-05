@@ -1,5 +1,6 @@
 package body adaasn1rtl.encoding.uper with
-     Spark_Mode is
+   Spark_Mode
+is
 
    procedure UPER_Enc_Boolean (bs : in out Bitstream; Val : Asn1Boolean) is
    begin
@@ -7,9 +8,7 @@ package body adaasn1rtl.encoding.uper with
    end UPER_Enc_Boolean;
 
    procedure UPER_Dec_boolean
-     (bs     : in out Bitstream;
-      val    :    out Asn1Boolean;
-      result :    out Boolean)
+     (bs : in out Bitstream; val : out Asn1Boolean; result : out Boolean)
    is
       v : BIT;
    begin
@@ -18,18 +17,14 @@ package body adaasn1rtl.encoding.uper with
    end UPER_Dec_boolean;
 
    procedure UPER_Enc_SemiConstraintWholeNumber
-     (bs     : in out Bitstream;
-      IntVal :        Asn1Int;
-      MinVal :        Asn1Int)
+     (bs : in out Bitstream; IntVal : Asn1Int; MinVal : Asn1Int)
    is
    begin
       Enc_SemiConstraintWholeNumber (bs, IntVal, MinVal);
    end UPER_Enc_SemiConstraintWholeNumber;
 
    procedure UPER_Dec_SemiConstraintWholeNumber
-     (bs     : in out Bitstream;
-      IntVal :    out Asn1Int;
-      MinVal :        Asn1Int;
+     (bs     : in out Bitstream; IntVal : out Asn1Int; MinVal : Asn1Int;
       Result :    out Boolean)
    is
    begin
@@ -37,18 +32,14 @@ package body adaasn1rtl.encoding.uper with
    end UPER_Dec_SemiConstraintWholeNumber;
 
    procedure UPER_Enc_SemiConstraintPosWholeNumber
-     (bs     : in out Bitstream;
-      IntVal :        Asn1UInt;
-      MinVal :        Asn1UInt)
+     (bs : in out Bitstream; IntVal : Asn1UInt; MinVal : Asn1UInt)
    is
    begin
       Enc_SemiConstraintPosWholeNumber (bs, IntVal, MinVal);
    end UPER_Enc_SemiConstraintPosWholeNumber;
 
    procedure UPER_Dec_SemiConstraintPosWholeNumber
-     (bs     : in out Bitstream;
-      IntVal :    out Asn1UInt;
-      MinVal :        Asn1UInt;
+     (bs     : in out Bitstream; IntVal : out Asn1UInt; MinVal : Asn1UInt;
       Result :    out Boolean)
    is
    begin
@@ -57,44 +48,32 @@ package body adaasn1rtl.encoding.uper with
    end UPER_Dec_SemiConstraintPosWholeNumber;
 
    procedure UPER_Enc_ConstraintWholeNumber
-     (bs     : in out Bitstream;
-      IntVal :        Asn1Int;
-      MinVal :        Asn1Int;
-      nBits  :        Integer)
+     (bs    : in out Bitstream; IntVal : Asn1Int; MinVal : Asn1Int;
+      nBits :        Integer)
    is
    begin
       Enc_ConstraintWholeNumber (bs, IntVal, MinVal, nBits);
    end UPER_Enc_ConstraintWholeNumber;
 
    procedure UPER_Enc_ConstraintPosWholeNumber
-     (bs     : in out Bitstream;
-      IntVal :        Asn1UInt;
-      MinVal :        Asn1UInt;
-      nBits  :        Integer)
+     (bs    : in out Bitstream; IntVal : Asn1UInt; MinVal : Asn1UInt;
+      nBits :        Integer)
    is
    begin
       Enc_ConstraintPosWholeNumber (bs, IntVal, MinVal, nBits);
    end UPER_Enc_ConstraintPosWholeNumber;
 
    procedure UPER_Dec_ConstraintWholeNumber
-     (bs     : in out Bitstream;
-      IntVal :    out Asn1Int;
-      MinVal :        Asn1Int;
-      MaxVal :        Asn1Int;
-      nBits  :        Integer;
-      Result :    out Boolean)
+     (bs     : in out Bitstream; IntVal : out Asn1Int; MinVal : Asn1Int;
+      MaxVal :        Asn1Int; nBits : Integer; Result : out Boolean)
    is
    begin
       Dec_ConstraintWholeNumber (bs, IntVal, MinVal, MaxVal, nBits, Result);
    end UPER_Dec_ConstraintWholeNumber;
 
    procedure UPER_Dec_ConstraintPosWholeNumber
-     (bs     : in out Bitstream;
-      IntVal :    out Asn1UInt;
-      MinVal :        Asn1UInt;
-      MaxVal :        Asn1UInt;
-      nBits  :        Integer;
-      Result :    out Boolean)
+     (bs     : in out Bitstream; IntVal : out Asn1UInt; MinVal : Asn1UInt;
+      MaxVal :        Asn1UInt; nBits : Integer; Result : out Boolean)
    is
    begin
       Dec_ConstraintPosWholeNumber (bs, IntVal, MinVal, MaxVal, nBits, Result);
@@ -102,38 +81,29 @@ package body adaasn1rtl.encoding.uper with
    end UPER_Dec_ConstraintPosWholeNumber;
 
    procedure UPER_Dec_ConstraintWholeNumberInt
-     (bs     : in out Bitstream;
-      IntVal :    out Integer;
-      MinVal :        Integer;
-      MaxVal :        Integer;
-      nBits  :        Integer;
-      Result :    out Boolean)
+     (bs     : in out Bitstream; IntVal : out Integer; MinVal : Integer;
+      MaxVal :        Integer; nBits : Integer; Result : out Boolean)
    is
    begin
       Dec_ConstraintWholeNumberInt (bs, IntVal, MinVal, MaxVal, nBits, Result);
    end UPER_Dec_ConstraintWholeNumberInt;
 
    procedure UPER_Enc_UnConstraintWholeNumber
-     (bs     : in out Bitstream;
-      IntVal :        Asn1Int)
+     (bs : in out Bitstream; IntVal : Asn1Int)
    is
    begin
       Enc_UnConstraintWholeNumber (bs, IntVal);
    end UPER_Enc_UnConstraintWholeNumber;
 
    procedure UPER_Dec_UnConstraintWholeNumber
-     (bs     : in out Bitstream;
-      IntVal :    out Asn1Int;
-      Result :    out Boolean)
+     (bs : in out Bitstream; IntVal : out Asn1Int; Result : out Boolean)
    is
    begin
       Dec_UnConstraintWholeNumber (bs, IntVal, Result);
    end UPER_Dec_UnConstraintWholeNumber;
 
    procedure UPER_Dec_UnConstraintWholeNumberMax
-     (bs     : in out Bitstream;
-      IntVal :    out Asn1Int;
-      MaxVal :        Asn1Int;
+     (bs     : in out Bitstream; IntVal : out Asn1Int; MaxVal : Asn1Int;
       Result :    out Boolean)
    is
    begin
@@ -144,7 +114,7 @@ package body adaasn1rtl.encoding.uper with
       end if;
    end UPER_Dec_UnConstraintWholeNumberMax;
 
-   procedure UPER_Enc_Real (bs : in out Bitstream; RealVal :   Asn1Real) is
+   procedure UPER_Enc_Real (bs : in out Bitstream; RealVal : Asn1Real) is
       Header   : Interfaces.Unsigned_8 := 16#80#;
       NExpLen  : Asn1Byte;
       NManLen  : Asn1Byte;
@@ -200,10 +170,8 @@ package body adaasn1rtl.encoding.uper with
    end UPER_Enc_Real;
 
    function CalcReal
-     (Factor : Asn1UInt;
-      N      : Asn1UInt;
-      base   : Integer;
-      Exp    : Integer) return Asn1Real
+     (Factor : Asn1UInt; N : Asn1UInt; base : Integer; Exp : Integer)
+      return Asn1Real
    is
       pragma SPARK_Mode (Off);
    begin
@@ -211,39 +179,24 @@ package body adaasn1rtl.encoding.uper with
    end CalcReal;
 
    procedure UPER_Dec_Real_AsBinary_aux
-     (bs      : in out Bitstream;
-      ExpLen  :        Asn1Byte;
-      Length  :        Asn1Byte;
-      Factor  :        Asn1UInt;
-      Sign    :        Integer;
-      Base    :        Integer;
-      RealVal :    out Asn1Real;
-      Result  :    out ASN1_RESULT) with
-      Depends =>
-      ((bs, RealVal, Result) => (bs, ExpLen, Length, Factor, Sign, Base)),
+     (bs      : in out Bitstream; ExpLen : Asn1Byte; Length : Asn1Byte;
+      Factor  :        Asn1UInt; Sign : Integer; Base : Integer;
+      RealVal :    out Asn1Real; Result : out ASN1_RESULT) with
       Pre => (Base = 2 or Base = 8 or Base = 16)
       and then (Factor = 1 or Factor = 2 or Factor = 4 or Factor = 8)
-      and then ExpLen <= 4
-      and then Length >= 0
-      and then Length <= 11
+      and then ExpLen <= 4 and then Length >= 0 and then Length <= 11
       and then (Sign = 1 or Sign = -1)
       and then bs.Current_Bit_Pos < Natural'Last - (Asn1UInt'Size + 24)
       and then bs.Size_In_Bytes < Positive'Last / 8
-      and then
-        bs.Current_Bit_Pos <=
+      and then bs.Current_Bit_Pos <=
         bs.Size_In_Bytes * 8 - (Asn1UInt'Size + 24),
       Post => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and
       bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + (Asn1UInt'Size + 24);
 
    procedure UPER_Dec_Real_AsBinary_aux
-     (bs      : in out Bitstream;
-      ExpLen  :        Asn1Byte;
-      Length  :        Asn1Byte;
-      Factor  :        Asn1UInt;
-      Sign    :        Integer;
-      Base    :        Integer;
-      RealVal :    out Asn1Real;
-      Result  :    out ASN1_RESULT)
+     (bs      : in out Bitstream; ExpLen : Asn1Byte; Length : Asn1Byte;
+      Factor  :        Asn1UInt; Sign : Integer; Base : Integer;
+      RealVal :    out Asn1Real; Result : out ASN1_RESULT)
    is
       Exp : Asn1Int;
       N   : Asn1UInt;
@@ -253,10 +206,9 @@ package body adaasn1rtl.encoding.uper with
       if ExpLen < Length and ExpLen <= 3 then
          Dec_Int (bs, Integer (ExpLen), Exp, Result.Success);
 
-         if Result.Success and Length - ExpLen <= 8 then
+         if Result.Success and Length - ExpLen <= Asn1UInt'Size / 8 then
             Dec_UInt (bs, Integer (Length - ExpLen), N, Result.Success);
-            if Result.Success and
-              Exp > Asn1Int (Integer'First) and
+            if Result.Success and Exp > Asn1Int (Integer'First) and
               Exp < Asn1Int (Integer'Last)
             then
                RealVal := CalcReal (Factor, N, Base, Integer (Exp));
@@ -272,27 +224,20 @@ package body adaasn1rtl.encoding.uper with
    end UPER_Dec_Real_AsBinary_aux;
 
    procedure UPER_Dec_Real_AsBinary
-     (bs        : in out Bitstream;
-      Header    :        Asn1Byte;
-      EncLength :        Asn1Byte;
-      RealVal   :    out Asn1Real;
-      Result    :    out ASN1_RESULT) with
+     (bs      : in out Bitstream; Header : Asn1Byte; EncLength : Asn1Byte;
+      RealVal :    out Asn1Real; Result : out ASN1_RESULT) with
       Depends => ((bs, RealVal, Result) => (bs, Header, EncLength)),
       Pre     => EncLength <= 11
       and then bs.Current_Bit_Pos < (Natural'Last - (Asn1UInt'Size + 24))
       and then bs.Size_In_Bytes < Positive'Last / 8
-      and then
-        bs.Current_Bit_Pos <=
+      and then bs.Current_Bit_Pos <=
         bs.Size_In_Bytes * 8 - (Asn1UInt'Size + 24),
       Post => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and
       bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + (Asn1UInt'Size + 24);
 
    procedure UPER_Dec_Real_AsBinary
-     (bs        : in out Bitstream;
-      Header    :        Asn1Byte;
-      EncLength :        Asn1Byte;
-      RealVal   :    out Asn1Real;
-      Result    :    out ASN1_RESULT)
+     (bs      : in out Bitstream; Header : Asn1Byte; EncLength : Asn1Byte;
+      RealVal :    out Asn1Real; Result : out ASN1_RESULT)
    is
       Sign   : Integer  := 1;
       Base   : Integer  := 2;
@@ -321,21 +266,12 @@ package body adaasn1rtl.encoding.uper with
       pragma Assert (ExpLen <= 4);
 
       UPER_Dec_Real_AsBinary_aux
-        (bs,
-         ExpLen,
-         EncLength,
-         Factor,
-         Sign,
-         Base,
-         RealVal,
-         Result);
+        (bs, ExpLen, EncLength, Factor, Sign, Base, RealVal, Result);
 
    end UPER_Dec_Real_AsBinary;
 
    procedure UPER_Dec_Real
-     (bs      : in out Bitstream;
-      RealVal :    out Asn1Real;
-      Result  :    out ASN1_RESULT)
+     (bs : in out Bitstream; RealVal : out Asn1Real; Result : out ASN1_RESULT)
    is
       Header : Asn1Byte;
       Length : Asn1Byte;
@@ -356,11 +292,7 @@ package body adaasn1rtl.encoding.uper with
                   Result  := ASN1_RESULT'(Success => True, ErrorCode => 0);
                elsif (Header and 16#80#) > 0 then
                   UPER_Dec_Real_AsBinary
-                    (bs,
-                     Header,
-                     Length - 1,
-                     RealVal,
-                     Result);
+                    (bs, Header, Length - 1, RealVal, Result);
                else
                   Result :=
                     ASN1_RESULT'
@@ -375,41 +307,28 @@ package body adaasn1rtl.encoding.uper with
    end UPER_Dec_Real;
 
    procedure ObjectIdentifier_uper_decode_length
-     (bs     : in out Bitstream;
-      length :    out Integer;
+     (bs     : in out Bitstream; length : out Integer;
       result :    out ASN1_RESULT) with
       Depends => ((bs, length, result) => (bs)),
       Pre     => bs.Current_Bit_Pos < Natural'Last - 16
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 16,
       Post => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and
-     bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + 16;
+      bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + 16;
 
    procedure ObjectIdentifier_uper_decode_length
-     (bs     : in out Bitstream;
-      length :    out Integer;
-      result :    out ASN1_RESULT)
+     (bs : in out Bitstream; length : out Integer; result : out ASN1_RESULT)
    is
       len2 : Integer;
    begin
       result := ASN1_RESULT'(ErrorCode => 0, Success => True);
       UPER_Dec_ConstraintWholeNumberInt
-        (bs,
-         length,
-         0,
-         255,
-         8,
-         result.Success);
+        (bs, length, 0, 255, 8, result.Success);
       if result.Success then
          if length > 16#80# then
             length := (length - 16#80#) * 16#100#;
             UPER_Dec_ConstraintWholeNumberInt
-              (bs,
-               len2,
-               0,
-               255,
-               8,
-               result.Success);
+              (bs, len2, 0, 255, 8, result.Success);
             if result.Success then
                length := length + len2;
             end if;
@@ -428,11 +347,9 @@ package body adaasn1rtl.encoding.uper with
 --  the leading octet of the subidentifier shall not have the value 8016.
 
    procedure ObjectIdentifier_subidentifiers_uper_encode
-     (encodingBuf : in out OctetArray1K;
-      curSize     : in out Integer;
+     (encodingBuf : in out OctetArray1K; curSize : in out Integer;
       siValue0    :        Asn1UInt) with
-      Depends =>
-      (curSize     => (curSize, siValue0),
+      Depends => (curSize => (curSize, siValue0),
        encodingBuf => (encodingBuf, curSize, siValue0)),
       Pre => curSize >= OctetArray1K'First - 1 and
       curSize < OctetArray1K'Last - OctetBuffer_16'Last,
@@ -441,8 +358,7 @@ package body adaasn1rtl.encoding.uper with
       curSize <= OctetArray1K'Last;
 
    procedure ObjectIdentifier_subidentifiers_uper_encode
-     (encodingBuf : in out OctetArray1K;
-      curSize     : in out Integer;
+     (encodingBuf : in out OctetArray1K; curSize : in out Integer;
       siValue0    :        Asn1UInt)
    is
       lastOctet : Boolean        := False;
@@ -479,18 +395,14 @@ package body adaasn1rtl.encoding.uper with
    end ObjectIdentifier_subidentifiers_uper_encode;
 
    procedure ObjectIdentifier_subidentifiers_uper_decode
-     (bs              : in out Bitstream;
-      remainingOctets : in out Integer;
-      siValue         :    out Asn1UInt;
-      Result          :    out ASN1_RESULT) with
-      Depends =>
-      ((remainingOctets, bs) => (remainingOctets, bs),
-       (siValue, Result)     => (remainingOctets, bs)),
+     (bs      : in out Bitstream; remainingOctets : in out Integer;
+      siValue :    out Asn1UInt; Result : out ASN1_RESULT) with
+      Depends => ((remainingOctets, bs) => (remainingOctets, bs),
+       (siValue, Result) => (remainingOctets, bs)),
       Pre => remainingOctets > 0
       and then bs.Current_Bit_Pos < Natural'Last - (8 * OctetBuffer_16'Last)
       and then bs.Size_In_Bytes < Positive'Last / 8
-      and then
-        bs.Current_Bit_Pos <=
+      and then bs.Current_Bit_Pos <=
         bs.Size_In_Bytes * 8 - (8 * OctetBuffer_16'Last),
       Post => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and
       bs.Current_Bit_Pos <=
@@ -499,30 +411,26 @@ package body adaasn1rtl.encoding.uper with
       remainingOctets >= remainingOctets'Old - OctetBuffer_16'Last;
 
    procedure ObjectIdentifier_subidentifiers_uper_decode
-     (bs              : in out Bitstream;
-      remainingOctets : in out Integer;
-      siValue         :    out Asn1UInt;
-      Result          :    out ASN1_RESULT)
+     (bs      : in out Bitstream; remainingOctets : in out Integer;
+      siValue :    out Asn1UInt; Result : out ASN1_RESULT)
    is
       curByte       : Asn1Byte;
-      bLastOctet    : Boolean  := False;
-      curOctetValue : Asn1UInt := 0;
-      i             : Integer  := 1;
+      bLastOctet    : Boolean := False;
+      curOctetValue : Asn1UInt;
+      i             : Integer := 1;
    begin
       siValue := 0;
       Result  := ASN1_RESULT'(Success => True, ErrorCode => 0);
 
-      while Result.Success and
-        remainingOctets > 0 and
-        not bLastOctet and
+      while Result.Success and remainingOctets > 0 and not bLastOctet and
         bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 8 and
         i <= OctetBuffer_16'Last
       loop
-         curByte := 0;
          pragma Loop_Invariant
            (i >= 1 and
-            --  i <= OctetBuffer_16'Last and
-            --  remainingOctets > 0 and
+         --  i <= OctetBuffer_16'Last and
+         --  remainingOctets > 0 and
+
             bs.Current_Bit_Pos =
               bs.Current_Bit_Pos'Loop_Entry + (i - 1) * 8 and
             remainingOctets = remainingOctets'Loop_Entry - (i - 1));
@@ -541,27 +449,22 @@ package body adaasn1rtl.encoding.uper with
    end ObjectIdentifier_subidentifiers_uper_decode;
 
    procedure ObjectIdentifier_uper_encode
-     (bs  : in out Bitstream;
-      val :        Asn1ObjectIdentifier)
+     (bs : in out Bitstream; val : Asn1ObjectIdentifier)
    is
       tmp       : OctetArray1K := OctetArray1K'(others => 0);
       totalSize : Integer      := 0;
    begin
       ObjectIdentifier_subidentifiers_uper_encode
-        (tmp,
-         totalSize,
-         val.values (1) * 40 + val.values (2));
+        (tmp, totalSize, val.values (1) * 40 + val.values (2));
       pragma Assert (totalSize >= 1 and totalSize <= OctetBuffer_16'Last);
 
       for i in Integer range 3 .. val.Length loop
          pragma Loop_Invariant
            ( --   val.Length <= OBJECT_IDENTIFIER_MAX_LENGTH and
-            totalSize >= 1 and
+         totalSize >= 1 and
             totalSize <= totalSize'Loop_Entry + (i - 3) * OctetBuffer_16'Last);
          ObjectIdentifier_subidentifiers_uper_encode
-           (tmp,
-            totalSize,
-            val.values (i));
+           (tmp, totalSize, val.values (i));
       end loop;
 
       pragma Assert
@@ -585,8 +488,7 @@ package body adaasn1rtl.encoding.uper with
    end ObjectIdentifier_uper_encode;
 
    procedure ObjectIdentifier_uper_decode
-     (bs     : in out Bitstream;
-      val    :    out Asn1ObjectIdentifier;
+     (bs     : in out Bitstream; val : out Asn1ObjectIdentifier;
       Result :    out ASN1_RESULT)
    is
       totalSize : Integer;
@@ -599,31 +501,23 @@ package body adaasn1rtl.encoding.uper with
 
       if Result.Success and totalSize > 0 then
          ObjectIdentifier_subidentifiers_uper_decode
-           (bs,
-            totalSize,
-            si,
-            Result);
+           (bs, totalSize, si, Result);
          if Result.Success then
             val.Length     := 2;
             val.values (1) := si / 40;
             val.values (2) := si mod 40;
 
-            while Result.Success and
-              totalSize > 0 and
+            while Result.Success and totalSize > 0 and
               val.Length < OBJECT_IDENTIFIER_MAX_LENGTH
             loop
                pragma Loop_Invariant
                  (bs.Current_Bit_Pos >= bs.Current_Bit_Pos'Loop_Entry and
                   bs.Current_Bit_Pos <=
                     bs.Current_Bit_Pos'Loop_Entry +
-                      (val.Length - val.Length'Loop_Entry) *
-                        8 *
+                      (val.Length - val.Length'Loop_Entry) * 8 *
                         OctetBuffer_16'Last);
                ObjectIdentifier_subidentifiers_uper_decode
-                 (bs,
-                  totalSize,
-                  si,
-                  Result);
+                 (bs, totalSize, si, Result);
                val.Length              := val.Length + 1;
                val.values (val.Length) := si;
             end loop;
@@ -634,8 +528,7 @@ package body adaasn1rtl.encoding.uper with
    end ObjectIdentifier_uper_decode;
 
    procedure RelativeOID_uper_encode
-     (bs  : in out Bitstream;
-      val :        Asn1ObjectIdentifier)
+     (bs : in out Bitstream; val : Asn1ObjectIdentifier)
    is
       tmp       : OctetArray1K := OctetArray1K'(others => 0);
       totalSize : Integer      := 0;
@@ -643,12 +536,10 @@ package body adaasn1rtl.encoding.uper with
       for i in Integer range 1 .. val.Length loop
          pragma Loop_Invariant
            ( --   val.Length <= OBJECT_IDENTIFIER_MAX_LENGTH and
-            totalSize >= 0 and
+         totalSize >= 0 and
             totalSize <= totalSize'Loop_Entry + (i - 1) * OctetBuffer_16'Last);
          ObjectIdentifier_subidentifiers_uper_encode
-           (tmp,
-            totalSize,
-            val.values (i));
+           (tmp, totalSize, val.values (i));
       end loop;
       pragma Assert
         (totalSize <= OctetBuffer_16'Last * OBJECT_IDENTIFIER_MAX_LENGTH);
@@ -671,8 +562,7 @@ package body adaasn1rtl.encoding.uper with
    end RelativeOID_uper_encode;
 
    procedure RelativeOID_uper_decode
-     (bs     : in out Bitstream;
-      val    :    out Asn1ObjectIdentifier;
+     (bs     : in out Bitstream; val : out Asn1ObjectIdentifier;
       Result :    out ASN1_RESULT)
    is
       totalSize : Integer;
@@ -681,22 +571,17 @@ package body adaasn1rtl.encoding.uper with
       ObjectIdentifier_Init (val);
       ObjectIdentifier_uper_decode_length (bs, totalSize, Result);
       if Result.Success then
-         while Result.Success and
-           totalSize > 0 and
+         while Result.Success and totalSize > 0 and
            val.Length < OBJECT_IDENTIFIER_MAX_LENGTH
          loop
             pragma Loop_Invariant
               (bs.Current_Bit_Pos >= bs.Current_Bit_Pos'Loop_Entry and
                bs.Current_Bit_Pos <=
                  bs.Current_Bit_Pos'Loop_Entry +
-                   (val.Length - val.Length'Loop_Entry) *
-                     8 *
+                   (val.Length - val.Length'Loop_Entry) * 8 *
                      OctetBuffer_16'Last);
             ObjectIdentifier_subidentifiers_uper_decode
-              (bs,
-               totalSize,
-               si,
-               Result);
+              (bs, totalSize, si, Result);
             val.Length              := val.Length + 1;
             val.values (val.Length) := si;
          end loop;
@@ -705,9 +590,7 @@ package body adaasn1rtl.encoding.uper with
    end RelativeOID_uper_decode;
 
    procedure BitStream_EncodeOctetString_no_length
-     (bs          : in out Bitstream;
-      data        :        OctetBuffer;
-      data_length :        Integer)
+     (bs : in out Bitstream; data : OctetBuffer; data_length : Integer)
    is
    begin
       for i in data'First .. (data'First + data_length - 1) loop
@@ -719,10 +602,8 @@ package body adaasn1rtl.encoding.uper with
    end BitStream_EncodeOctetString_no_length;
 
    procedure BitStream_DecodeOctetString_no_length
-     (bs          : in out Bitstream;
-      data        : in out OctetBuffer;
-      data_length :        Integer;
-      success     :    out Boolean)
+     (bs : in out Bitstream; data : in out OctetBuffer; data_length : Integer;
+      success :    out Boolean)
    is
    begin
       success := True;
@@ -736,14 +617,11 @@ package body adaasn1rtl.encoding.uper with
    end BitStream_DecodeOctetString_no_length;
 
    procedure BitStream_EncodeOctetString_fragmentation
-     (bs          : in out Bitstream;
-      data        :        OctetBuffer;
-      data_length :        Integer);
+     (bs : in out Bitstream; data : OctetBuffer; data_length : Integer);
 
    procedure BitStream_EncodeOctetString_fragmentation
-     (bs          : in out Bitstream;
-      data        :        OctetBuffer;
-      data_length :        Integer)
+     (bs : in out Bitstream; data : OctetBuffer; data_length : Integer) with
+      SPARK_Mode => Off
    is
       i1                  : Integer;
       nBLJ1               : Integer;
@@ -782,17 +660,11 @@ package body adaasn1rtl.encoding.uper with
 
       if nRemainingItemsVar1 <= 16#7F# then
          UPER_Enc_ConstraintWholeNumber
-           (bs,
-            adaasn1rtl.Asn1Int (nRemainingItemsVar1),
-            0,
-            8);
+           (bs, adaasn1rtl.Asn1Int (nRemainingItemsVar1), 0, 8);
       else
          BitStream_AppendBit (bs, 1);
          uper.UPER_Enc_ConstraintWholeNumber
-           (bs,
-            adaasn1rtl.Asn1Int (nRemainingItemsVar1),
-            0,
-            15);
+           (bs, adaasn1rtl.Asn1Int (nRemainingItemsVar1), 0, 15);
       end if;
 
       nBLJ1          := 0;
@@ -807,21 +679,15 @@ package body adaasn1rtl.encoding.uper with
    end BitStream_EncodeOctetString_fragmentation;
 
    procedure BitStream_EncodeOctetString
-     (bs          : in out Bitstream;
-      data        :        OctetBuffer;
-      data_length :        Integer;
-      nBits       :        Integer;
-      asn1SizeMin :        Integer;
-      asn1SizeMax :        Integer)
+     (bs    : in out Bitstream; data : OctetBuffer; data_length : Integer;
+      nBits :    Integer; asn1SizeMin : Integer; asn1SizeMax : Integer) with
+      SPARK_Mode => Off
    is
    begin
       if asn1SizeMax < 65536 then
          if asn1SizeMax /= asn1SizeMin then
             UPER_Enc_ConstraintWholeNumber
-              (bs,
-               Asn1Int (data_length),
-               Asn1Int (asn1SizeMin),
-               nBits);
+              (bs, Asn1Int (data_length), Asn1Int (asn1SizeMin), nBits);
          end if;
          BitStream_EncodeOctetString_no_length (bs, data, data_length);
       else
@@ -830,20 +696,15 @@ package body adaasn1rtl.encoding.uper with
    end BitStream_EncodeOctetString;
 
    procedure BitStream_DecodeOctetString_fragmentation
-     (bs          : in out Bitstream;
-      data        : in out OctetBuffer;
-      data_length :    out Integer;
-      asn1SizeMin :        Integer;
-      asn1SizeMax :        Integer;
+     (bs          : in out Bitstream; data : in out OctetBuffer;
+      data_length : out Integer; asn1SizeMin : Integer; asn1SizeMax : Integer;
       success     :    out Boolean);
 
    procedure BitStream_DecodeOctetString_fragmentation
-     (bs          : in out Bitstream;
-      data        : in out OctetBuffer;
-      data_length :    out Integer;
-      asn1SizeMin :        Integer;
-      asn1SizeMax :        Integer;
-      success     :    out Boolean)
+     (bs          : in out Bitstream; data : in out OctetBuffer;
+      data_length : out Integer; asn1SizeMin : Integer; asn1SizeMax : Integer;
+      success     :    out Boolean) with
+      SPARK_Mode => Off
    is
       i1                  : Integer;
       nLengthTmp1         : Integer := 0;
@@ -854,19 +715,12 @@ package body adaasn1rtl.encoding.uper with
       --  decode blockSize
       data_length := asn1SizeMin;
       UPER_Dec_ConstraintWholeNumberInt
-        (bs,
-         nRemainingItemsVar1,
-         0,
-         255,
-         8,
-         success);
+        (bs, nRemainingItemsVar1, 0, 255, 8, success);
       nCurOffset1 := 1;
 
       while success and
-        (nRemainingItemsVar1 = 16#C4# or
-         nRemainingItemsVar1 = 16#C3# or
-         nRemainingItemsVar1 = 16#C2# or
-         nRemainingItemsVar1 = 16#C1#)
+        (nRemainingItemsVar1 = 16#C4# or nRemainingItemsVar1 = 16#C3# or
+         nRemainingItemsVar1 = 16#C2# or nRemainingItemsVar1 = 16#C1#)
       loop
          if nRemainingItemsVar1 = 16#C4# then
             nCurBlockSize1 := 16#10000#;
@@ -887,12 +741,7 @@ package body adaasn1rtl.encoding.uper with
          end loop;
          nCurOffset1 := nCurOffset1 + nCurBlockSize1;
          UPER_Dec_ConstraintWholeNumberInt
-           (bs,
-            nRemainingItemsVar1,
-            0,
-            255,
-            8,
-            success);
+           (bs, nRemainingItemsVar1, 0, 255, 8, success);
       end loop;
 
       if nRemainingItemsVar1 >= 16#80# then
@@ -926,13 +775,10 @@ package body adaasn1rtl.encoding.uper with
    end BitStream_DecodeOctetString_fragmentation;
 
    procedure BitStream_DecodeOctetString
-     (bs          : in out Bitstream;
-      data        : in out OctetBuffer;
-      data_length :    out Integer;
-      nBits       :        Integer;
-      asn1SizeMin :        Integer;
-      asn1SizeMax :        Integer;
-      success     :    out Boolean)
+     (bs          : in out Bitstream; data : in out OctetBuffer;
+      data_length :    out Integer; nBits : Integer; asn1SizeMin : Integer;
+      asn1SizeMax :        Integer; success : out Boolean) with
+      SPARK_Mode => Off
    is
    begin
       success     := True;
@@ -940,54 +786,26 @@ package body adaasn1rtl.encoding.uper with
       if asn1SizeMax < 65536 then
          if asn1SizeMax /= asn1SizeMin then
             UPER_Dec_ConstraintWholeNumberInt
-              (bs,
-               data_length,
-               asn1SizeMin,
-               asn1SizeMax,
-               nBits,
-               success);
+              (bs, data_length, asn1SizeMin, asn1SizeMax, nBits, success);
          end if;
          if success then
             BitStream_DecodeOctetString_no_length
-              (bs,
-               data,
-               data_length,
-               success);
+              (bs, data, data_length, success);
          end if;
       else
          BitStream_DecodeOctetString_fragmentation
-           (bs,
-            data,
-            data_length,
-            asn1SizeMin,
-            asn1SizeMax,
-            success);
+           (bs, data, data_length, asn1SizeMin, asn1SizeMax, success);
       end if;
 
    end BitStream_DecodeOctetString;
 
    --  ---------------------------------------
    procedure BitStream_EncodeBitString_fragmentation
-     (bs          : in out Bitstream;
-      data        :        OctetBuffer;
-      data_length :        Integer) with
-      Pre => data_length >= 0
-      and then data'Last >= data'First
-      and then data'Last < Positive'Last / 8
-      and then data'Last - data'First < Positive'Last / 8
-      and then data_length <= data'Last - data'First + 1
-      and then data_length < Positive'Last / 8
-      and then bs.Size_In_Bytes < Positive'Last / 8
-      and then bs.Current_Bit_Pos < Natural'Last - (8 * data_length)
-      and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - (8 * data_length),
-      Post => bs.Current_Bit_Pos <=
-      bs'Old.Current_Bit_Pos + (8 * data_length) and
-      bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos;
+     (bs : in out Bitstream; data : OctetBuffer; data_length : Integer);
 
    procedure BitStream_EncodeBitString_fragmentation
-     (bs          : in out Bitstream;
-      data        :        OctetBuffer;
-      data_length :        Integer)
+     (bs : in out Bitstream; data : OctetBuffer; data_length : Integer) with
+      SPARK_Mode => Off
    is
       nRemainingItemsVar1 : Integer;
       nCurBlockSize1      : Integer;
@@ -1025,42 +843,29 @@ package body adaasn1rtl.encoding.uper with
 
       if nRemainingItemsVar1 <= 16#7F# then
          UPER_Enc_ConstraintWholeNumber
-           (bs,
-            adaasn1rtl.Asn1Int (nRemainingItemsVar1),
-            0,
-            8);
+           (bs, adaasn1rtl.Asn1Int (nRemainingItemsVar1), 0, 8);
       else
          BitStream_AppendBit (bs, 1);
          UPER_Enc_ConstraintWholeNumber
-           (bs,
-            adaasn1rtl.Asn1Int (nRemainingItemsVar1),
-            0,
-            15);
+           (bs, adaasn1rtl.Asn1Int (nRemainingItemsVar1), 0, 15);
       end if;
 
       BitStream_AppendBits
-        (bs,
-         data (data'First + nCurOffset1 / 8 .. data'Last),
+        (bs, data (data'First + nCurOffset1 / 8 .. data'Last),
          nRemainingItemsVar1);
 
    end BitStream_EncodeBitString_fragmentation;
 
    procedure BitStream_EncodeBitString
-     (bs          : in out Bitstream;
-      data        :        OctetBuffer;
-      data_length :        Integer;
-      nBits       :        Integer;
-      asn1SizeMin :        Integer;
-      asn1SizeMax :        Integer)
+     (bs    : in out Bitstream; data : OctetBuffer; data_length : Integer;
+      nBits :    Integer; asn1SizeMin : Integer; asn1SizeMax : Integer) with
+      SPARK_Mode => Off
    is
    begin
       if asn1SizeMax < 65536 then
          if asn1SizeMax /= asn1SizeMin then
             UPER_Enc_ConstraintWholeNumber
-              (bs,
-               Asn1Int (data_length),
-               Asn1Int (asn1SizeMin),
-               nBits);
+              (bs, Asn1Int (data_length), Asn1Int (asn1SizeMin), nBits);
          end if;
          BitStream_AppendBits (bs, data, data_length);
       else
@@ -1069,20 +874,15 @@ package body adaasn1rtl.encoding.uper with
    end BitStream_EncodeBitString;
 
    procedure BitStream_DecodeBitString_fragmentation
-     (bs          : in out Bitstream;
-      data        : in out OctetBuffer;
-      data_length :    out Integer;
-      asn1SizeMin :        Integer;
-      asn1SizeMax :        Integer;
+     (bs          : in out Bitstream; data : in out OctetBuffer;
+      data_length : out Integer; asn1SizeMin : Integer; asn1SizeMax : Integer;
       success     :    out Boolean);
 
    procedure BitStream_DecodeBitString_fragmentation
-     (bs          : in out Bitstream;
-      data        : in out OctetBuffer;
-      data_length :    out Integer;
-      asn1SizeMin :        Integer;
-      asn1SizeMax :        Integer;
-      success     :    out Boolean)
+     (bs          : in out Bitstream; data : in out OctetBuffer;
+      data_length : out Integer; asn1SizeMin : Integer; asn1SizeMax : Integer;
+      success     :    out Boolean) with
+      SPARK_Mode => Off
    is
       nLengthTmp1         : Integer := 0;
       nRemainingItemsVar1 : Integer;
@@ -1091,19 +891,12 @@ package body adaasn1rtl.encoding.uper with
    begin
 
       UPER_Dec_ConstraintWholeNumberInt
-        (bs,
-         nRemainingItemsVar1,
-         0,
-         255,
-         8,
-         success);
+        (bs, nRemainingItemsVar1, 0, 255, 8, success);
       nCurOffset1 := 1;
 
       while success and
-        (nRemainingItemsVar1 = 16#C4# or
-         nRemainingItemsVar1 = 16#C3# or
-         nRemainingItemsVar1 = 16#C2# or
-         nRemainingItemsVar1 = 16#C1#)
+        (nRemainingItemsVar1 = 16#C4# or nRemainingItemsVar1 = 16#C3# or
+         nRemainingItemsVar1 = 16#C2# or nRemainingItemsVar1 = 16#C1#)
       loop
          if nRemainingItemsVar1 = 16#C4# then
             nCurBlockSize1 := 16#10000#;
@@ -1120,19 +913,13 @@ package body adaasn1rtl.encoding.uper with
             data
               (data'First + nCurOffset1 / 8 ..
                    data'First + (nCurOffset1 + nCurBlockSize1) / 8 - 1),
-            nCurBlockSize1,
-            success);
+            nCurBlockSize1, success);
 
          if success then
             nLengthTmp1 := nLengthTmp1 + nCurBlockSize1;
             nCurOffset1 := nCurOffset1 + nCurBlockSize1;
             UPER_Dec_ConstraintWholeNumberInt
-              (bs,
-               nRemainingItemsVar1,
-               0,
-               255,
-               8,
-               success);
+              (bs, nRemainingItemsVar1, 0, 255, 8, success);
          end if;
       end loop;
 
@@ -1144,31 +931,23 @@ package body adaasn1rtl.encoding.uper with
             begin
                nRemainingItemsVar1 := (nRemainingItemsVar1 - 16#80#) * 16#100#;
                UPER_Dec_ConstraintWholeNumberInt
-                 (bs,
-                  len2,
-                  0,
-                  255,
-                  8,
-                  success);
+                 (bs, len2, 0, 255, 8, success);
                if success then
                   nRemainingItemsVar1 := nRemainingItemsVar1 + len2;
                end if;
             end;
          end if;
 
-         if success and
-           nCurOffset1 + nRemainingItemsVar1 - 1 <= asn1SizeMax
+         if success and nCurOffset1 + nRemainingItemsVar1 - 1 <= asn1SizeMax
          then
 
             BitStream_ReadBits
               (bs,
                data
                  (data'First + nCurOffset1 / 8 ..
-                      data'First +
-                      (nCurOffset1 + nRemainingItemsVar1) / 8 -
+                      data'First + (nCurOffset1 + nRemainingItemsVar1) / 8 -
                       1),
-               nRemainingItemsVar1,
-               success);
+               nRemainingItemsVar1, success);
 
             nLengthTmp1 := nLengthTmp1 + nRemainingItemsVar1;
          end if;
@@ -1185,14 +964,25 @@ package body adaasn1rtl.encoding.uper with
 
    end BitStream_DecodeBitString_fragmentation;
 
+--     procedure BitStream_ReadBits
+--       (bs                 : in out Bitstream;
+--        bitMaskAsByteArray : in out OctetBuffer;
+--        bits_to_read       :        Natural;
+--        success            :    out Boolean) with
+--        Pre     => bitMaskAsByteArray'First >= 0
+--        and then bitMaskAsByteArray'Last < Natural'Last / 8
+--        and then bits_to_read >= (bitMaskAsByteArray'Length - 1) * 8
+--        and then bits_to_read <= (bitMaskAsByteArray'Length) * 8
+--        and then bs.Current_Bit_Pos < Natural'Last - bits_to_read
+--        and then bs.Size_In_Bytes < Positive'Last / 8
+--        and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - bits_to_read,
+--        Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + bits_to_read;
+
    procedure BitStream_DecodeBitString
-     (bs          : in out Bitstream;
-      data        : in out OctetBuffer;
-      data_length :    out Integer;
-      nBits       :        Integer;
-      asn1SizeMin :        Integer;
-      asn1SizeMax :        Integer;
-      success     :    out Boolean)
+     (bs          : in out Bitstream; data : in out OctetBuffer;
+      data_length :    out Integer; nBits : Integer; asn1SizeMin : Integer;
+      asn1SizeMax :        Integer; success : out Boolean) with
+      SPARK_Mode => Off
    is
    begin
       success     := True;
@@ -1200,24 +990,14 @@ package body adaasn1rtl.encoding.uper with
       if asn1SizeMax < 65536 then
          if asn1SizeMax /= asn1SizeMin then
             UPER_Dec_ConstraintWholeNumberInt
-              (bs,
-               data_length,
-               asn1SizeMin,
-               asn1SizeMax,
-               nBits,
-               success);
+              (bs, data_length, asn1SizeMin, asn1SizeMax, nBits, success);
          end if;
          if success then
             BitStream_ReadBits (bs, data, data_length, success);
          end if;
       else
          BitStream_DecodeBitString_fragmentation
-           (bs,
-            data,
-            data_length,
-            asn1SizeMin,
-            asn1SizeMax,
-            success);
+           (bs, data, data_length, asn1SizeMin, asn1SizeMax, success);
       end if;
 
    end BitStream_DecodeBitString;

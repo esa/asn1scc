@@ -1,0 +1,31 @@
+TEST-CASE DEFINITIONS ::= BEGIN
+
+   DEF-PUS-Packet-Header [] {
+      field-packet-id [], 
+      field-packet-sequence-control [], 
+      field-packet-length []
+   }
+   DEF-PUS-Packet-ID [] {
+      field-version-number [], 
+      field-type [], 
+      field-data-field-header-flag [], 
+      field-application-process-id []
+   }
+   DEF-PUS-version-number [size 3, encoding pos-int]
+   
+   DEF-PUS-Packet-Sequence-Control [] {
+      field-sequence-flags [], 
+      field-sequence-count []
+   }
+   DEF-PUS-packet-length [size 16, endianness little, encoding pos-int]
+   
+   DEF-PUS-sequence-flags [size 2]
+   DEF-PUS-sequence-count [size 14, endianness big, encoding pos-int]
+
+   DEF-NPAL-TC-header [] {
+      field-packet-header []
+   }
+   
+   
+
+END

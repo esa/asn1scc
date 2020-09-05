@@ -527,13 +527,13 @@ let createIsValidFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage)  (t:Asn
             match funcName  with
             | None              -> None, None
             | Some funcName     -> 
-                let statement = 
+                let statement, bUnreferenced = 
                     match funcBody p with
                     | ValidationStatementTrue   st
-                    | ValidationStatementFalse  st
-                    | ValidationStatement       st  -> st
+                    | ValidationStatementFalse  st ->  st, true
+                    | ValidationStatement       st  -> st, false
                 let lvars = localVars |> List.map(fun (lv:LocalVariable) -> lv.GetDeclaration l) |> Seq.distinct
-                let fnc = emitTasFnc varName sStar funcName  (typeDefinition.longTypedefName l) statement  (alphaFuncs |> List.map(fun x -> x.funcBody (str_p l t.id))) lvars
+                let fnc = emitTasFnc varName sStar funcName  (typeDefinition.longTypedefName l) statement  (alphaFuncs |> List.map(fun x -> x.funcBody (str_p l t.id))) lvars bUnreferenced
                 let arrsErrcodes = errCodes |> List.map(fun s -> defErrCode s.errCodeName (BigInteger s.errCodeValue))
                 let fncH = emitTasFncDef varName sStar funcName  (typeDefinition.longTypedefName l) arrsErrcodes
                 Some fnc, Some fncH

@@ -1,0 +1,17 @@
+project asn1_msp430 is
+     for Source_Dirs use
+         ("asn1rtl",
+          "src",
+          "boards/msp430");
+
+   package Compiler is
+      for Default_Switches ("ada") use ("-gnatwae", "-gnat2012", "-g", "-gnatf", "-gnaty", "-gnatwa", "-gnatg", "-fstack-check");
+   end Compiler;
+
+   package Pretty_Printer is
+      for Default_Switches ("ada") use ("-i4", "-M200", "--no-separate-is", "--no-separate-loop-then");
+   end Pretty_Printer;
+
+     for Object_Dir use "obj_msp430";
+   for Main use ("mainprogram.adb");
+ end asn1_msp430;

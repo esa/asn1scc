@@ -1,0 +1,10 @@
+TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
+
+    MyStr ::= IA5String (SIZE(1..20)) (FROM("A" .."Z"))
+    MyStr-alpha-index ::= INTEGER (0..4)    -- collides in Ada with MyStr_alpha_index
+    MyStr-alpha ::= INTEGER (0..4)
+	
+END
+
+
+--TCLS     MyStr[]

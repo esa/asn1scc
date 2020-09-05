@@ -1,0 +1,25 @@
+TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
+
+ChoiceSelector ::= ENUMERATED
+{
+  a1,
+  a2
+}
+
+SecondEnumWithSameNames ::= ENUMERATED
+{
+  a1,
+  a2
+}
+
+TestType ::= INTEGER(0..255)
+
+Choice ::= CHOICE
+{
+  a1 TestType,
+  a2 TestType
+}
+
+--TCLS   ChoiceSelector [size 8, encoding pos-int] TestType [size 8, encoding pos-int] Choice<ChoiceSelector:sel> [determinant sel]
+
+END

@@ -7,6 +7,7 @@ open FsUtils
 open CommonTypes
 open DAst
 open DAstUtilFunctions
+open OutDirectories
 
 
 let getTypeDecl = DastTestCaseCreation.getTypeDecl
@@ -151,7 +152,6 @@ let private printUnit (r:DAst.AstRoot) (l:ProgrammingLanguage) (encodings: Commo
         | Ada   -> 
             let arrsPrivateChoices = []
             header_a.PrintPackageSpec pu.name pu.importedProgramUnits typeDefs (arrsValues@arrsHeaderAnonymousValues) arrsPrivateChoices (not r.args.encodings.IsEmpty) (r.args.encodings |> Seq.exists ((=) XER) )
-
     let fileName = Path.Combine(outDir, pu.specFileName)
     File.WriteAllText(fileName, defintionsContntent.Replace("\r",""))
 
@@ -292,21 +292,25 @@ let CreateCMainFile (r:AstRoot)  (l:ProgrammingLanguage) outDir  =
     File.WriteAllText(outFileName, content.Replace("\r",""))
 
 
-let CreateMakeFile (r:AstRoot) (l:ProgrammingLanguage) outDir  =
+let CreateMakeFile (r:AstRoot) (l:ProgrammingLanguage) (di:DirInfo) =
     match l with
     | C ->
         let files = r.Files |> Seq.map(fun x -> x.FileNameWithoutExtension.ToLower() )
         let content = aux_c.PrintMakeFile files (r.args.integerSizeInBytes = 4I) (r.args.floatingPointSizeInBytes = 4I)
-        let outFileName = Path.Combine(outDir, "Makefile")
+        let outFileName = Path.Combine(di.srcDir, "Makefile")
         File.WriteAllText(outFileName, content.Replace("\r",""))
     | Ada ->
-        let mods = aux_a.rtlModuleName()::(r.programUnits |> List.map(fun pu -> pu.name ))
-        let content = aux_a.PrintMakeFile  mods
-        let outFileName = Path.Combine(outDir, "Makefile")
-        File.WriteAllText(outFileName, content.Replace("\r",""))
+        let boardNames = OutDirectories.getBoardNames l r.args.target
+        let writeBoard boardName = 
+            let mods = aux_a.rtlModuleName()::(r.programUnits |> List.map(fun pu -> pu.name.ToLower() ))
+            let content = aux_a.PrintMakeFile boardName (sprintf "asn1_%s.gpr" boardName) mods
+            let fileName = if boardNames.Length = 1 || boardName = "x86" then "Makefile" else ("Makefile." + boardName)
+            let outFileName = Path.Combine(di.rootDir, fileName)
+            File.WriteAllText(outFileName, content.Replace("\r",""))
+        OutDirectories.getBoardNames l r.args.target |> List.iter writeBoard
 
 
-let private CreateAdaIndexFile (r:AstRoot) bGenTestCases outDir =
+let private CreateAdaIndexFile (r:AstRoot) bGenTestCases outDir boardsDirName =
     let mods = r.programUnits |> Seq.map(fun x -> (ToC x.name).ToLower()) |>Seq.toList
     //let mds = match bGenTestCases with
     //            | true  -> mods @ (modules |> Seq.filter(fun x -> ModuleHasAutoCodecs x r) |> Seq.map(fun x -> (ToC x.Name.Value+"_auto_encs_decs").ToLower() ) |>Seq.toList)
@@ -355,26 +359,20 @@ let generateVisualStudtioProject (r:DAst.AstRoot) outDir (arrsSrcTstFilesX, arrs
     File.WriteAllText((Path.Combine(outDir, "VsProject.sln")), (aux_c.emitVisualStudioSolution()))
 
 
-let generateAll outDir (r:DAst.AstRoot) (encodings: CommonTypes.Asn1Encoding list)  =
-    r.programUnits |> Seq.iter (printUnit r r.lang encodings outDir)
-    //print extra such make files etc
-    //print_debug.DoWork r outDir "debug.txt"
+let generateAll (di:DirInfo) (r:DAst.AstRoot) (encodings: CommonTypes.Asn1Encoding list)  =
+    r.programUnits |> Seq.iter (printUnit r r.lang encodings di.srcDir)
     match r.args.generateAutomaticTestCases with
     | false -> ()
     | true  -> 
-        CreateMakeFile r r.lang outDir
-        let arrsSrcTstFiles, arrsHdrTstFiles = DastTestCaseCreation.printAllTestCases r r.lang outDir
+        CreateMakeFile r r.lang di
+        let arrsSrcTstFiles, arrsHdrTstFiles = DastTestCaseCreation.printAllTestCases r r.lang di.srcDir
         match r.lang with
         | C    -> 
-            CreateCMainFile r  ProgrammingLanguage.C outDir
+            CreateCMainFile r  ProgrammingLanguage.C di.srcDir
 
-            //CreateTestSuiteFile r ProgrammingLanguage.C outDir "ALL"
-            generateVisualStudtioProject r outDir (arrsSrcTstFiles, arrsHdrTstFiles)
+            generateVisualStudtioProject r di.srcDir (arrsSrcTstFiles, arrsHdrTstFiles)
         | Ada  -> 
-            //CreateAdaMain r false outDir
-            //CreateTestSuiteFile r ProgrammingLanguage.Ada outDir "ALL"
-
-            CreateAdaIndexFile r false outDir
+            ()
 
 
 

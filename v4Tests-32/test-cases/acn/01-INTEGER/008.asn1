@@ -1,0 +1,10 @@
+TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
+
+	MyPDU ::= INTEGER(0..MAX)
+	
+	
+END
+
+
+--TCLS     MyPDU[encoding ASCII, size null-terminated]  
+--TCLFC    MyPDU[encoding ASCII, size 240]          $$$ sample1.acn:4:6: error: Size must be less than 88

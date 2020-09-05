@@ -4,6 +4,7 @@ open System
 open System.Numerics
 open System.IO
 open CommonTypes
+open OutDirectories
 open System.Resources
 open Antlr
 
@@ -31,6 +32,7 @@ type CliArguments =
     | [<Unique; AltCommandLine("-ACND")>] ACND  
     | [<Unique; AltCommandLine("-wordSize")>] Word_Size  of wordSize:int
     | [<Unique; AltCommandLine("-fpWordSize")>]  Fp_Word_Size of fpWordSize:int
+    | [<Unique; AltCommandLine("-t")>]   Target of Targets
     | [<Unique; AltCommandLine("-v")>]   Version
     | [<Unique; AltCommandLine("-asn1")>]   Debug_Asn1 of string option
     | [<Unique; AltCommandLine("-mfm")>]   Mapping_Functions_Module of string 
@@ -81,8 +83,10 @@ with
             | AdaUses           -> "Prints in the console all type Assignments of the input ASN.1 grammar"
             | ACND              -> "creates ACN grammars for the input ASN.1 grammars using the default encoding properties"
             | Debug_Asn1  _     -> "Prints all input ASN.1 grammars in a single module/single file and with parameterized types removed. Used for debugging purposes"
-            | Word_Size _       -> "Applicable only to C.Defines the size of asn1SccSint and asn1SccUint types. Valid values are 8 bytes (default) and 4 bytes. If you pass 4 then you should compile the C code -DWORD_SIZE=4."
-            | Fp_Word_Size _     -> "Defines the size of the REAL type. Valid values are 8 bytes (default) which corresponds to double and 4 bytes which corresponds to float. If you pass 4 then you should compile the C code -DFP_WORD_SIZE=4."
+            | Word_Size _       -> "Defines the size of asn1SccSint and asn1SccUint types. Valid values are 8 bytes (default) and 4 bytes. If you pass 4 then you should compile the C code -DWORD_SIZE=4. (Applicable only to C.)"
+            | Fp_Word_Size _    -> "Defines the size of the REAL type. Valid values are 8 bytes (default) which corresponds to double and 4 bytes which corresponds to float. If you pass 4 then you should compile the C code -DFP_WORD_SIZE=4. (Applicable only to C.)"
+            | Target _          -> """Specify Ada configuration profile. (Applicable only to Ada.)"""
+
             | Mapping_Functions_Module _    -> "The name of Ada module or name of C header file (without extension) containing the definitions of mapping functions"
             | Streaming_Mode    -> "Streaming mode support"
 
@@ -91,7 +95,7 @@ let printVersion () =
     //let assembly = System.Reflection.Assembly.GetExecutingAssembly();
     //let fvi = System.Diagnostics.FileVersionInfo.GetVersionInfo(assembly.Location);
     //let version = fvi.FileVersion;
-    let version = "4.2.3.0f"
+    let version = "4.2.4.0f"
     printfn "asn1scc version %s\n" version
     ()
 
@@ -183,6 +187,7 @@ let checkArguement arg =
         | _ when ws = 4 -> ()
         | _ when ws = 8 -> ()
         | _  -> raise (UserException ("invalid value for argument -fpWordSize. Currently only values 4 and 8 are supported"))
+    | Target _          ->()
     | Mapping_Functions_Module mfm  -> ()
     | Streaming_Mode    -> ()
 
@@ -221,6 +226,7 @@ let constructCommandLineSettings args (parserResults: ParseResults<CliArguments>
         floatingPointSizeInBytes =
             let fws = parserResults.GetResult(<@Fp_Word_Size@>, defaultValue = 8)
             BigInteger fws
+        target = parserResults.TryGetResult(<@Target@>)
         streamingModeSupport = parserResults.Contains<@ Streaming_Mode @>
         renamePolicy = 
             match args |> List.choose (fun a -> match a with Rename_Policy rp -> Some rp | _ -> None) with
@@ -297,15 +303,30 @@ let main0 argv =
                     Some (DAstConstruction.DoWork {frontEntAst with stg=TargetLanguageStgMacros.a_StgMacros} acnDeps CommonTypes.ProgrammingLanguage.Ada  args.encodings)
                 | _             -> None)
 
+        let createDirectories baseDir (l:ProgrammingLanguage) target =
+            let createDirIfNotExists outDir =
+                let outDir = Path.Combine(baseDir,outDir)
+                match Directory.Exists outDir with
+                | true  -> ()
+                | false -> Directory.CreateDirectory outDir |> ignore
+            OutDirectories.getTopLevelDirs l target  |> Seq.iter createDirIfNotExists
+            OutDirectories.getBoardDirs l target  |> Seq.iter createDirIfNotExists
 
+ 
         //generate code
         backends |> 
             Seq.iter (fun r -> 
-                GenerateFiles.generateAll outDir r args.encodings
-                GenerateRTL.exportRTL outDir r.lang args
+                createDirectories outDir r.lang args.target
+                let dirInfo = OutDirectories.getDirInfo r.lang args.target outDir
+                //let srcDirName = Path.Combine(outDir, OutDirectories.srcDirName r.lang)
+                //let asn1rtlDirName = Path.Combine(outDir, OutDirectories.asn1rtlDirName r.lang)
+                //let boardsDirName = Path.Combine(outDir, OutDirectories.boardsDirName r.lang) 
+                
+                GenerateFiles.generateAll dirInfo r args.encodings
+                GenerateRTL.exportRTL dirInfo r.lang args
                 match args.AstXmlAbsFileName with
                 | ""    -> ()
-                | _     -> DAstExportToXml.exportFile r acnDeps ("backend_" + args.AstXmlAbsFileName)
+                | _     -> () //DAstExportToXml.exportFile r acnDeps ("backend_" + args.AstXmlAbsFileName)
                 )
         
 
@@ -371,7 +392,7 @@ let main0 argv =
             3
         | ex            ->
             Console.Error.WriteLine(ex.Message)
-            Console.Error.WriteLine(ex.StackTrace)
+            Console.Error.WriteLine( ex.StackTrace)
             4
 
 

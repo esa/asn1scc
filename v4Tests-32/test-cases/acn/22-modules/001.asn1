@@ -1,0 +1,9 @@
+TEST-CASE { iso member-body(2) f(250) type-org(1) taste(16) asn1scc(9) testmodule(1) }
+DEFINITIONS AUTOMATIC TAGS::= BEGIN
+
+	MyPDU ::= INTEGER
+	
+END
+
+--TCLS     MyPDU[]
+

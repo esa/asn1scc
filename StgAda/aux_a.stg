@@ -14,21 +14,40 @@ PrintIndexFile(arrsModules) ::= <<
 >>
 
 
-PrintMakeFile(arrsModuleList) ::=<<
+PrintMakeFile(sBoardName, sProjectName, arrsModuleList) ::=<<
 all:
 	#gnatpp -r *ad?
-	gprbuild -gnat2012 -P GPS_project.gpr mainprogram.adb --subdirs=debug -cargs -g -O0 -gnatwe -gnatwa
+	gprbuild -gnat2012 -P <sProjectName> mainprogram.adb --subdirs=debug -cargs -g -O0 -gnatwe -gnatwa
 	touch builtWithoutCoverage
 	
 coverage:
 	if [ -f builtWithoutCoverage ] ; then make clean ; fi
 	#argument -gnatoa was removed because it makes gmat crash.
-    #gprbuild -gnat2012 -P GPS_project.gpr mainprogram.adb --subdirs=debug -cargs -g -O0 -gnatf -gnaty -gnatoa -gnatg -fstack-check -gnatwe -gnatwa -fprofile-arcs -ftest-coverage -largs -fprofile-arcs
-	gprbuild -gnat2012 -P GPS_project.gpr mainprogram.adb --subdirs=debug -cargs -g -O0 -gnatf -gnaty -gnatg -fstack-check -gnatwe -gnatwa -fprofile-arcs -ftest-coverage -largs -fprofile-arcs
-	cd bin/debug ; ./mainprogram
-	cd bin/debug ; gcov <arrsModuleList; separator=" ">
+    #gprbuild -gnat2012 -P <sProjectName> mainprogram.adb --subdirs=debug -cargs -g -O0 -gnatf -gnaty -gnatoa -gnatg -fstack-check -gnatwe -gnatwa -fprofile-arcs -ftest-coverage -largs -fprofile-arcs
+	gprbuild -gnat2012 -P <sProjectName> mainprogram.adb --subdirs=debug -cargs -g -O0 -gnatf -gnaty -gnatg -fstack-check -gnatwe -gnatwa -fprofile-arcs -ftest-coverage -largs -fprofile-arcs
+	cd obj_<sBoardName>/debug ; ./mainprogram
+	cd obj_<sBoardName>/debug ; gcov <arrsModuleList; separator=" ">
 	
 clean:
 	rm -f builtWithoutCoverage ;
-	gnat clean -r -P GPS_project.gpr --subdirs=debug	
+	gnat clean -r -P <sProjectName> --subdirs=debug	
+>>
+
+
+PrintGpsProject(sBoardName, arrsDirsList) ::=<<
+project asn1_<sBoardName> is
+   for Source_Dirs use (<arrsDirsList:{dir|"<dir>"}; separator=", ">);
+
+   package Compiler is
+      for Default_Switches ("ada") use ("-gnatwae", "-gnat2012", "-g", "-gnatf", "-gnaty", "-gnatwa", "-gnatg", "-fstack-check");
+   end Compiler;
+
+   package Pretty_Printer is
+      for Default_Switches ("ada") use ("-i4", "-M200", "--no-separate-is", "--no-separate-loop-then");
+   end Pretty_Printer;
+
+   for Object_Dir use "obj_<sBoardName>";
+   for Main use ("mainprogram.adb");
+	 
+ end asn1_<sBoardName>;
 >>

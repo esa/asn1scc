@@ -1,0 +1,15 @@
+-- 
+TEST-CASE DEFINITIONS ::= BEGIN
+        
+    MyPDU[] {    
+         primaryHeader [] {
+            version [],
+            seqNr   [],
+            secHeaderFlag []
+        },
+        secondaryHeader [present-when primaryHeader.secHeaderFlag]
+    }
+       
+END  
+
+

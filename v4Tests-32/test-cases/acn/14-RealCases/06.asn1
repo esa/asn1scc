@@ -1,0 +1,19 @@
+TEST-CASE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+
+   MyBitStr ::= BIT STRING (SIZE(2))
+
+
+   MySeq ::= SEQUENCE {
+      bitStrFld MyBitStr
+   }
+   
+   MyWithCompSeq ::= SEQUENCE {
+		seqField   MySeq (WITH COMPONENTS {..., 
+					bitStrFld (('11'B))})
+   }
+
+
+
+END
+
+--TCFS     06.acn

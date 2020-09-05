@@ -1,0 +1,12 @@
+
+TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
+    
+    MyPDU ::= IA5String (SIZE(1..20))(FROM("ABCDEFG") | FROM("A".."Z"| "a".."z" | " "))
+    
+	
+	pdu1 MyPDU ::= "AABBEG"
+	
+	pdu2 MyPDU ::= "george mamais"
+END
+
+--TCLS     MyPDU[]

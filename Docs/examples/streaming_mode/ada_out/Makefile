@@ -1,12 +1,12 @@
 all:
-	gnatmake -gnat2012 -P GPS_project.gpr mainprogram.adb --subdirs=debug -cargs -g -O0 -gnatwe -gnatwa
+	gprbuild -gnat2012 -P GPS_project.gpr mainprogram.adb --subdirs=debug -cargs -g -O0 -gnatwe -gnatwa
 	touch builtWithoutCoverage
 	
 coverage:
 	if [ -f builtWithoutCoverage ] ; then make clean ; fi
-	gnatmake -gnat2012 -P GPS_project.gpr mainprogram.adb --subdirs=debug -cargs -g -O0 -gnatwe -gnatwa -fprofile-arcs -ftest-coverage -largs -fprofile-arcs
-	cd bin/debug ; ./mainprogram
-	cd bin/debug ; gcov adaasn1rtl TASTE_Dataview
+	gprbuild -gnat2012 -P GPS_project.gpr mainprogram.adb --subdirs=debug -cargs -g -O0 -gnatf -gnaty -gnatg -fstack-check -gnatwe -gnatwa -fprofile-arcs -ftest-coverage -largs -fprofile-arcs
+	cd obj_x86/debug ; ./mainprogram
+	cd obj_x86/debug ; gcov adaasn1rtl taste_dataview
 	
 clean:
 	rm -f builtWithoutCoverage ;

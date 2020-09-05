@@ -1,0 +1,39 @@
+/*
+NOT SUPPORTED ...
+Moreover, in case (though very unlikely) it is needed to import two
+definitions with the same name from two modules with the same name,
+each one of the definitions can be invoked ...
+*/
+TEST-CASE { iso member-body(2) f(250) type-org(1) taste(16) asn1scc(9) testmodule(1) }
+DEFINITIONS AUTOMATIC TAGS::= 
+BEGIN
+
+   MyPDU ::= INTEGER
+	
+END
+
+
+TEST-CASE { iso member-body(2) f(250) type-org(1) taste(16) asn1scc(9) testmodule(2) }
+DEFINITIONS AUTOMATIC TAGS::= 
+BEGIN
+
+   MyPDU ::= REAL
+	
+END
+
+
+TEST-CASE2 { iso member-body(2) f(250) type-org(1) taste(16) asn1scc(9) testmodule(3) }
+DEFINITIONS AUTOMATIC TAGS::= BEGIN
+   IMPORTS 
+      MyPDU FROM TEST-CASE { iso member-body(2) f(250) type-org(1) taste(16) asn1scc(9) testmodule(1) }
+      MyPDU FROM RENAMED-MODULE /**/ { iso member-body(2) f(250) type-org(1) taste(16) asn1scc(9) testmodule(2) };
+
+	W ::= CHOICE {
+       a TEST-CASE.MyPDU,
+       b RENAMED-MODULE.MyPDU
+    }
+	
+END
+
+--TCLFC      MyPDU[]    $$$ sample1.asn1:33:24: error: No type assignment with name MyPDU exists (or exported) in module RENAMED-MODULE
+

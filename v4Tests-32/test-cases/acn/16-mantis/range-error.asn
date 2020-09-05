@@ -1,0 +1,37 @@
+TEST-CASE DEFINITIONS ::=
+
+
+BEGIN
+
+MyInteger   ::= INTEGER (0..255)
+MyChoice ::= CHOICE {
+    a MyInteger,
+    b BOOLEAN
+}
+
+MySeq ::= SEQUENCE {
+   b BOOLEAN,
+   a MyInteger
+}
+
+Some-Thing ::= MyInteger
+
+
+My-OctStr    ::= OCTET STRING (SIZE (0..20))
+
+SeqOf ::= SEQUENCE (SIZE(0..100)) OF MyInteger
+
+Type1 ::= INTEGER(0..1)
+Type2 ::= BOOLEAN
+
+Toto ::= SEQUENCE { elem-1 Type1, elem-2 Type2 }
+
+SeqBool ::= SEQUENCE(SIZE(1..5)) OF BOOLEAN
+Enum-T ::= ENUMERATED {enum1}
+
+default-seqof SeqOf ::= {4,7,9}
+default-str My-OctStr ::= 'DEADBEEF'H
+
+END
+
+--TCLS     MyInteger[]

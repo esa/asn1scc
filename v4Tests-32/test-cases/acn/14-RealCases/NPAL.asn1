@@ -1,0 +1,921 @@
+--NOCOVERAGE
+TEST-CASE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+
+   ss-DEF-PUS-Packet-Header INTEGER ::= 48
+   ds-DEF-PUS-Packet-Header INTEGER ::= 0
+   DEF-PUS-Packet-Header ::= SEQUENCE {
+      field-packet-id DEF-PUS-Packet-ID, 
+      field-packet-sequence-control DEF-PUS-Packet-Sequence-Control, 
+      field-packet-length DEF-PUS-packet-length
+   }
+
+   ss-DEF-PUS-Packet-ID INTEGER ::= 16
+   ds-DEF-PUS-Packet-ID INTEGER ::= 0
+   DEF-PUS-Packet-ID ::= SEQUENCE {
+      field-version-number DEF-PUS-version-number, 
+      field-type DEF-PUS-type, 
+      field-data-field-header-flag DEF-PUS-data-field-header-flag, 
+      field-application-process-id DEF-PUS-application-process-id
+   }
+
+   ss-DEF-PUS-version-number INTEGER ::= 3
+   ds-DEF-PUS-version-number INTEGER ::= 0
+   DEF-PUS-version-number ::= INTEGER ((0..7))
+
+   ss-DEF-PUS-type INTEGER ::= 1
+   ds-DEF-PUS-type INTEGER ::= 0
+   DEF-PUS-type ::= ENUMERATED {option-telecommand(1), option-telemetry(0)}
+
+   ss-DEF-PUS-data-field-header-flag INTEGER ::= 1
+   ds-DEF-PUS-data-field-header-flag INTEGER ::= 0
+   DEF-PUS-data-field-header-flag ::= ENUMERATED {option-present(1), option-absent(0)}
+
+   ss-DEF-PUS-application-process-id INTEGER ::= 11
+   ds-DEF-PUS-application-process-id INTEGER ::= 0
+   DEF-PUS-application-process-id ::= INTEGER ((0..2047))
+
+   ss-DEF-PUS-Packet-Sequence-Control INTEGER ::= 16
+   ds-DEF-PUS-Packet-Sequence-Control INTEGER ::= 0
+   DEF-PUS-Packet-Sequence-Control ::= SEQUENCE {
+      field-sequence-flags DEF-PUS-sequence-flags, 
+      field-sequence-count DEF-PUS-sequence-count
+   }
+
+   ss-DEF-PUS-sequence-flags INTEGER ::= 2
+   ds-DEF-PUS-sequence-flags INTEGER ::= 0
+   DEF-PUS-sequence-flags ::= BIT STRING (SIZE(2))
+
+   ss-DEF-PUS-sequence-count INTEGER ::= 14
+   ds-DEF-PUS-sequence-count INTEGER ::= 0
+   DEF-PUS-sequence-count ::= INTEGER ((0..16383))
+
+   ss-DEF-PUS-packet-length INTEGER ::= 16
+   ds-DEF-PUS-packet-length INTEGER ::= 0
+   DEF-PUS-packet-length ::= INTEGER ((0..65535))
+
+   ss-DEF-PUS-TC-data-field-header INTEGER ::= 72
+   ds-DEF-PUS-TC-data-field-header INTEGER ::= 0
+   DEF-PUS-TC-data-field-header ::= SEQUENCE {
+      field-ccsds-secondary-header-flag DEF-PUS-ccsds-secondary-header-flag, 
+      field-tc-packet-pus-version-number DEF-PUS-packet-version, 
+      field-ack DEF-PUS-ack, 
+      field-service-type DEF-PUS-service-type, 
+      field-service-subtype DEF-PUS-service-subtype, 
+      field-source-id DEF-PUS-node-address, 
+      field-spare1 DEF-PUS-spare8, 
+      field-spare2 DEF-PUS-spare8
+   }
+
+   ss-DEF-PUS-TM-data-field-header INTEGER ::= 72
+   ds-DEF-PUS-TM-data-field-header INTEGER ::= 0
+   DEF-PUS-TM-data-field-header ::= SEQUENCE {
+      field-spare2 DEF-PUS-spare1, 
+      field-tm-source-packet-pus-version-number DEF-PUS-packet-version, 
+      field-spare1 DEF-PUS-spare4, 
+      field-service-type DEF-PUS-service-type, 
+      field-service-subtype DEF-PUS-service-subtype, 
+      field-elapsed-day DEF-PUS-day-counter, 
+      field-milliseconds DEF-PUS-millisecond-counter
+   }
+
+   ss-DEF-PUS-ccsds-secondary-header-flag INTEGER ::= 1
+   ds-DEF-PUS-ccsds-secondary-header-flag INTEGER ::= 0
+   DEF-PUS-ccsds-secondary-header-flag ::= ENUMERATED {option-non-ccsds(0), option-ccsds(1)}
+
+   ss-DEF-PUS-packet-version INTEGER ::= 3
+   ds-DEF-PUS-packet-version INTEGER ::= 0
+   DEF-PUS-packet-version ::= INTEGER ((0..7))
+
+   ss-DEF-PUS-ack INTEGER ::= 4
+   ds-DEF-PUS-ack INTEGER ::= 0
+   DEF-PUS-ack ::= BIT STRING (SIZE(4))
+
+   ss-DEF-PUS-service-type INTEGER ::= 8
+   ds-DEF-PUS-service-type INTEGER ::= 0
+   DEF-PUS-service-type ::= INTEGER ((0..255))
+
+   ss-DEF-PUS-service-subtype INTEGER ::= 8
+   ds-DEF-PUS-service-subtype INTEGER ::= 0
+   DEF-PUS-service-subtype ::= INTEGER ((0..255))
+
+   ss-DEF-PUS-node-address INTEGER ::= 32
+   ds-DEF-PUS-node-address INTEGER ::= 0
+   DEF-PUS-node-address ::= BIT STRING (SIZE(32))
+
+   ss-DEF-PUS-spare8 INTEGER ::= 8
+   ds-DEF-PUS-spare8 INTEGER ::= 0
+   DEF-PUS-spare8 ::= BIT STRING (SIZE(8))
+
+   ss-DEF-PUS-spare1 INTEGER ::= 1
+   ds-DEF-PUS-spare1 INTEGER ::= 0
+   DEF-PUS-spare1 ::= BIT STRING (SIZE(1))
+
+   ss-DEF-PUS-spare4 INTEGER ::= 4
+   ds-DEF-PUS-spare4 INTEGER ::= 0
+   DEF-PUS-spare4 ::= BIT STRING (SIZE(4))
+
+   ss-DEF-PUS-day-counter INTEGER ::= 16
+   ds-DEF-PUS-day-counter INTEGER ::= 0
+   DEF-PUS-day-counter ::= INTEGER ((0..65535))
+
+   ss-DEF-PUS-millisecond-counter INTEGER ::= 32
+   ds-DEF-PUS-millisecond-counter INTEGER ::= 0
+   DEF-PUS-millisecond-counter ::= INTEGER ((0..MAX))
+
+   ss-DEF-PUS-data-field-footer INTEGER ::= 16
+   ds-DEF-PUS-data-field-footer INTEGER ::= 0
+   DEF-PUS-data-field-footer ::= SEQUENCE {
+      field-packet-error-control DEF-PUS-data-checksum
+   }
+
+   ss-DEF-PUS-data-checksum INTEGER ::= 16
+   ds-DEF-PUS-data-checksum INTEGER ::= 0
+   DEF-PUS-data-checksum ::= BIT STRING (SIZE(16))
+
+   ss-DEF-SPW-EOP INTEGER ::= 8
+   ds-DEF-SPW-EOP INTEGER ::= 0
+   DEF-SPW-EOP ::= BIT STRING (SIZE(8))
+
+   ss-DEF-NPAL-TC-header INTEGER ::= 120
+   ds-DEF-NPAL-TC-header INTEGER ::= 0
+   DEF-NPAL-TC-header ::= SEQUENCE {
+      field-packet-header DEF-PUS-Packet-Header (WITH COMPONENTS {..., field-packet-id (WITH COMPONENTS {..., field-version-number ((0)), field-type (option-telecommand), field-data-field-header-flag (option-present), field-application-process-id ((31))}), field-packet-sequence-control (WITH COMPONENTS {..., field-sequence-flags (('11'B))})}), 
+      field-data-header DEF-PUS-TC-data-field-header (WITH COMPONENTS {..., field-ack (('0000'B)), field-tc-packet-pus-version-number ((1)), field-ccsds-secondary-header-flag (option-non-ccsds), field-service-subtype ((0)), field-spare1 (('00'H)), field-spare2 (('00'H))})
+   }
+
+   ss-DEF-NPAL-TC-footer INTEGER ::= 24
+   ds-DEF-NPAL-TC-footer INTEGER ::= 0
+   DEF-NPAL-TC-footer ::= SEQUENCE {
+      field-packet-footer DEF-PUS-data-field-footer (WITH COMPONENTS {..., field-packet-error-control (('0000'H))}), 
+      field-end-of-packet DEF-SPW-EOP
+   }
+
+   ss-DEF-NPAL-TM-header INTEGER ::= 120
+   ds-DEF-NPAL-TM-header INTEGER ::= 0
+   DEF-NPAL-TM-header ::= SEQUENCE {
+      field-packet-header DEF-PUS-Packet-Header (WITH COMPONENTS {..., field-packet-id (WITH COMPONENTS {..., field-version-number ((0)), field-type (option-telemetry), field-data-field-header-flag (option-present), field-application-process-id ((31))}), field-packet-sequence-control (WITH COMPONENTS {..., field-sequence-flags (('11'B))})}), 
+      field-data-header DEF-PUS-TM-data-field-header (WITH COMPONENTS {..., field-spare1 (('0000'B)), field-tm-source-packet-pus-version-number ((1)), field-spare2 (('0'B)), field-service-subtype ((0))})
+   }
+
+   ss-DEF-NPAL-TM-footer INTEGER ::= 24
+   ds-DEF-NPAL-TM-footer INTEGER ::= 0
+   DEF-NPAL-TM-footer ::= SEQUENCE {
+      field-packet-footer DEF-PUS-data-field-footer (WITH COMPONENTS {..., field-packet-error-control (('0000'H))}), 
+      field-end-of-packet DEF-SPW-EOP
+   }
+
+   ss-DEF-NPAL-fill8 INTEGER ::= 8
+   ds-DEF-NPAL-fill8 INTEGER ::= 0
+   DEF-NPAL-fill8 ::= BIT STRING (SIZE(8))
+
+   ss-DEF-NPAL-memory-address INTEGER ::= 32
+   ds-DEF-NPAL-memory-address INTEGER ::= 0
+   DEF-NPAL-memory-address ::= INTEGER ((0..MAX))
+
+   ss-DEF-NPAL-word INTEGER ::= 32
+   ds-DEF-NPAL-word INTEGER ::= 0
+   DEF-NPAL-word ::= BIT STRING (SIZE(32))
+
+   ss-DEF-NPAL-days-count INTEGER ::= 16
+   ds-DEF-NPAL-days-count INTEGER ::= 0
+   DEF-NPAL-days-count ::= INTEGER ((0..65535))
+
+   ss-DEF-NPAL-milliseconds-count INTEGER ::= 32
+   ds-DEF-NPAL-milliseconds-count INTEGER ::= 0
+   DEF-NPAL-milliseconds-count ::= INTEGER ((0..<86400000))
+
+   ss-DEF-NPAL-image-count INTEGER ::= 8
+   ds-DEF-NPAL-image-count INTEGER ::= 0
+   DEF-NPAL-image-count ::= INTEGER ((0..255))
+
+   ss-DEF-NPAL-image-threshold INTEGER ::= 16
+   ds-DEF-NPAL-image-threshold INTEGER ::= 0
+   DEF-NPAL-image-threshold ::= INTEGER ((0..65535))
+
+   ss-DEF-NPAL-image-processing INTEGER ::= 8
+   ds-DEF-NPAL-image-processing INTEGER ::= 0
+   DEF-NPAL-image-processing ::= ENUMERATED {option-star-tracking(0), option-horizon-detection(1)}
+
+   ss-DEF-NPAL-TC-RESET INTEGER ::= 160
+   ds-DEF-NPAL-TC-RESET INTEGER ::= 0
+   DEF-NPAL-TC-RESET ::= SEQUENCE {
+      field-header DEF-NPAL-TC-header (WITH COMPONENTS {..., field-data-header (WITH COMPONENTS {..., field-service-type ((1))})}), 
+      field-reset-level DEF-NPAL-reset-level, 
+      field-fill DEF-NPAL-fill8, 
+      field-footer DEF-NPAL-TC-footer
+   }
+
+   ss-DEF-NPAL-TC-SWM INTEGER ::= 160
+   ds-DEF-NPAL-TC-SWM INTEGER ::= 0
+   DEF-NPAL-TC-SWM ::= SEQUENCE {
+      field-header DEF-NPAL-TC-header (WITH COMPONENTS {..., field-data-header (WITH COMPONENTS {..., field-service-type ((2))})}), 
+      field-fill1 DEF-NPAL-fill8, 
+      field-fill2 DEF-NPAL-fill8, 
+      field-footer DEF-NPAL-TC-footer
+   }
+
+   ss-DEF-NPAL-TC-STB INTEGER ::= 160
+   ds-DEF-NPAL-TC-STB INTEGER ::= 0
+   DEF-NPAL-TC-STB ::= SEQUENCE {
+      field-header DEF-NPAL-TC-header (WITH COMPONENTS {..., field-data-header (WITH COMPONENTS {..., field-service-type ((3))})}), 
+      field-sw-loading DEF-NPAL-SW-loading, 
+      field-fill DEF-NPAL-fill8, 
+      field-footer DEF-NPAL-TC-footer
+   }
+
+   ss-DEF-NPAL-TC-TRK INTEGER ::= 192
+   ds-DEF-NPAL-TC-TRK INTEGER ::= 0
+   DEF-NPAL-TC-TRK ::= SEQUENCE {
+      field-header DEF-NPAL-TC-header (WITH COMPONENTS {..., field-data-header (WITH COMPONENTS {..., field-service-type ((4))})}), 
+      field-window-start-row DEF-NPAL-pixel-coord, 
+      field-window-start-column DEF-NPAL-pixel-coord, 
+      field-commanded-exposure-time DEF-NPAL-exposure-time, 
+      field-tracking-option DEF-NPAL-tracking-option, 
+      field-footer DEF-NPAL-TC-footer
+   }
+
+   ss-DEF-NPAL-TC-IMG INTEGER ::= 256
+   ds-DEF-NPAL-TC-IMG INTEGER ::= 0
+   DEF-NPAL-TC-IMG ::= SEQUENCE {
+      field-header DEF-NPAL-TC-header (WITH COMPONENTS {..., field-data-header (WITH COMPONENTS {..., field-service-type ((5))})}), 
+      field-window-start-row DEF-NPAL-pixel-coord, 
+      field-window-start-column DEF-NPAL-pixel-coord, 
+      field-window-row-number DEF-NPAL-window-size, 
+      field-window-column-number DEF-NPAL-window-size, 
+      field-image-number DEF-NPAL-image-count, 
+      field-image-dynamic-range DEF-NPAL-image-dynamic-range, 
+      field-commanded-exposure-time DEF-NPAL-exposure-time, 
+      field-image-threshold DEF-NPAL-image-threshold, 
+      field-image-processing DEF-NPAL-image-processing, 
+      field-fill1 DEF-NPAL-fill8, 
+      field-fill2 DEF-NPAL-fill8, 
+      field-footer DEF-NPAL-TC-footer
+   }
+
+   ss-DEF-NPAL-TC-TIME INTEGER ::= 192
+   ds-DEF-NPAL-TC-TIME INTEGER ::= 0
+   DEF-NPAL-TC-TIME ::= SEQUENCE {
+      field-header DEF-NPAL-TC-header (WITH COMPONENTS {..., field-data-header (WITH COMPONENTS {..., field-service-type ((6))})}), 
+      field-elapsed-day DEF-NPAL-days-count, 
+      field-milliseconds DEF-NPAL-milliseconds-count, 
+      field-footer DEF-NPAL-TC-footer
+   }
+
+   ss-DEF-NPAL-TC-SPEED INTEGER ::= 160
+   ds-DEF-NPAL-TC-SPEED INTEGER ::= 0
+   DEF-NPAL-TC-SPEED ::= SEQUENCE {
+      field-header DEF-NPAL-TC-header (WITH COMPONENTS {..., field-data-header (WITH COMPONENTS {..., field-service-type ((7))})}), 
+      field-speed-option DEF-NPAL-speed-option, 
+      field-fill1 DEF-NPAL-fill8, 
+      field-footer DEF-NPAL-TC-footer
+   }
+
+   ss-DEF-NPAL-TC-CYCLE INTEGER ::= 160
+   ds-DEF-NPAL-TC-CYCLE INTEGER ::= 0
+   DEF-NPAL-TC-CYCLE ::= SEQUENCE {
+      field-header DEF-NPAL-TC-header (WITH COMPONENTS {..., field-data-header (WITH COMPONENTS {..., field-service-type ((8))})}), 
+      field-frame-size DEF-NPAL-frame-size, 
+      field-cycle-prescaler DEF-NPAL-cycle-prescaler, 
+      field-footer DEF-NPAL-TC-footer
+   }
+
+   ss-DEF-NPAL-TC-SETPAR-restore-default-values INTEGER ::= 192
+   ds-DEF-NPAL-TC-SETPAR-restore-default-values INTEGER ::= 0
+   DEF-NPAL-TC-SETPAR-restore-default-values ::= SEQUENCE {
+      field-header DEF-NPAL-TC-header (WITH COMPONENTS {..., field-data-header (WITH COMPONENTS {..., field-service-type ((9))})}), 
+      field-parameter-code DEF-NPAL-parameter-code (option-restore-default-values), 
+      field-fill1 DEF-NPAL-fill8, 
+      field-fill2 DEF-NPAL-fill8, 
+      field-fill3 DEF-NPAL-fill8, 
+      field-fill4 DEF-NPAL-fill8, 
+      field-fill5 DEF-NPAL-fill8, 
+      field-footer DEF-NPAL-TC-footer
+   }
+
+   ss-DEF-NPAL-TC-SETPAR-defective-pixels-low-threshold INTEGER ::= 192
+   ds-DEF-NPAL-TC-SETPAR-defective-pixels-low-threshold INTEGER ::= 0
+   DEF-NPAL-TC-SETPAR-defective-pixels-low-threshold ::= SEQUENCE {
+      field-header DEF-NPAL-TC-header (WITH COMPONENTS {..., field-data-header (WITH COMPONENTS {..., field-service-type ((9))})}), 
+      field-parameter-code DEF-NPAL-parameter-code (option-defective-pixels-low-threshold), 
+      field-defective-pixels-low-threshold DEF-NPAL-image-threshold, 
+      field-fill1 DEF-NPAL-fill8, 
+      field-fill2 DEF-NPAL-fill8, 
+      field-fill3 DEF-NPAL-fill8, 
+      field-footer DEF-NPAL-TC-footer
+   }
+
+   ss-DEF-NPAL-TC-SETPAR-defective-pixels-high-threshold INTEGER ::= 192
+   ds-DEF-NPAL-TC-SETPAR-defective-pixels-high-threshold INTEGER ::= 0
+   DEF-NPAL-TC-SETPAR-defective-pixels-high-threshold ::= SEQUENCE {
+      field-header DEF-NPAL-TC-header (WITH COMPONENTS {..., field-data-header (WITH COMPONENTS {..., field-service-type ((9))})}), 
+      field-parameter-code DEF-NPAL-parameter-code (option-defective-pixels-high-threshold), 
+      field-defective-pixels-high-threshold DEF-NPAL-image-threshold, 
+      field-fill1 DEF-NPAL-fill8, 
+      field-fill2 DEF-NPAL-fill8, 
+      field-fill3 DEF-NPAL-fill8, 
+      field-footer DEF-NPAL-TC-footer
+   }
+
+   ss-DEF-NPAL-TC-SETPAR-number-of-cycles-for-defective-pixels-update INTEGER ::= 192
+   ds-DEF-NPAL-TC-SETPAR-number-of-cycles-for-defective-pixels-update INTEGER ::= 0
+   DEF-NPAL-TC-SETPAR-number-of-cycles-for-defective-pixels-update ::= SEQUENCE {
+      field-header DEF-NPAL-TC-header (WITH COMPONENTS {..., field-data-header (WITH COMPONENTS {..., field-service-type ((9))})}), 
+      field-parameter-code DEF-NPAL-parameter-code (option-number-of-cycles-for-defective-pixels-update), 
+      field-number-of-cycles-for-defective-pixels-update DEF-NPAL-cycles-count, 
+      field-fill1 DEF-NPAL-fill8, 
+      field-fill2 DEF-NPAL-fill8, 
+      field-fill3 DEF-NPAL-fill8, 
+      field-footer DEF-NPAL-TC-footer
+   }
+
+   ss-DEF-NPAL-TC-SETPAR-camera-status-tm-update-rate INTEGER ::= 192
+   ds-DEF-NPAL-TC-SETPAR-camera-status-tm-update-rate INTEGER ::= 0
+   DEF-NPAL-TC-SETPAR-camera-status-tm-update-rate ::= SEQUENCE {
+      field-header DEF-NPAL-TC-header (WITH COMPONENTS {..., field-data-header (WITH COMPONENTS {..., field-service-type ((9))})}), 
+      field-parameter-code DEF-NPAL-parameter-code (option-camera-status-tm-update-rate), 
+      field-camera-status-tm-update-rate DEF-NPAL-TM-STATUS-rate, 
+      field-fill1 DEF-NPAL-fill8, 
+      field-fill2 DEF-NPAL-fill8, 
+      field-fill3 DEF-NPAL-fill8, 
+      field-footer DEF-NPAL-TC-footer
+   }
+
+   ss-DEF-NPAL-TC-CALIB INTEGER ::= 160
+   ds-DEF-NPAL-TC-CALIB INTEGER ::= 0
+   DEF-NPAL-TC-CALIB ::= SEQUENCE {
+      field-header DEF-NPAL-TC-header (WITH COMPONENTS {..., field-data-header (WITH COMPONENTS {..., field-service-type ((10))})}), 
+      field-calibration-type DEF-NPAL-calibration-type, 
+      field-exposure-time DEF-NPAL-exposure-time, 
+      field-footer DEF-NPAL-TC-footer
+   }
+
+   ss-DEF-NPAL-TC-MEMCHK INTEGER ::= 224
+   ds-DEF-NPAL-TC-MEMCHK INTEGER ::= 0
+   DEF-NPAL-TC-MEMCHK ::= SEQUENCE {
+      field-header DEF-NPAL-TC-header (WITH COMPONENTS {..., field-data-header (WITH COMPONENTS {..., field-service-type ((11))})}), 
+      field-start-address DEF-NPAL-memory-address, 
+      field-end-address DEF-NPAL-memory-address, 
+      field-fill1 DEF-NPAL-fill8, 
+      field-fill2 DEF-NPAL-fill8, 
+      field-footer DEF-NPAL-TC-footer
+   }
+
+   ss-DEF-NPAL-TC-DWNLD INTEGER ::= 224
+   ds-DEF-NPAL-TC-DWNLD INTEGER ::= 0
+   DEF-NPAL-TC-DWNLD ::= SEQUENCE {
+      field-header DEF-NPAL-TC-header (WITH COMPONENTS {..., field-data-header (WITH COMPONENTS {..., field-service-type ((12))})}), 
+      field-start-address DEF-NPAL-memory-address, 
+      field-end-address DEF-NPAL-memory-address, 
+      field-fill1 DEF-NPAL-fill8, 
+      field-fill2 DEF-NPAL-fill8, 
+      field-footer DEF-NPAL-TC-footer
+   }
+
+   ss-DEF-NPAL-TC-UPLD INTEGER ::= 192
+   ds-DEF-NPAL-TC-UPLD INTEGER ::= 32
+   DEF-NPAL-TC-UPLD ::= SEQUENCE {
+      field-header DEF-NPAL-TC-header (WITH COMPONENTS {..., field-data-header (WITH COMPONENTS {..., field-service-type ((13))})}), 
+      field-start-address DEF-NPAL-memory-address, 
+      field-word-number DEF-NPAL-word-count, 
+      field-words DEF-NPAL-word-array-upld, 
+      field-fill1 DEF-NPAL-fill8, 
+      field-footer DEF-NPAL-TC-footer
+   }
+
+   ss-DEF-NPAL-word-count INTEGER ::= 8
+   ds-DEF-NPAL-word-count INTEGER ::= 0
+   DEF-NPAL-word-count ::= INTEGER ((0..255))
+
+   ss-DEF-NPAL-word-array-upld INTEGER ::= 0
+   ds-DEF-NPAL-word-array-upld INTEGER ::= 32
+   DEF-NPAL-word-array-upld ::= SEQUENCE (SIZE(1..13)) OF DEF-NPAL-word
+
+   ss-DEF-NPAL-TC-DEFPIX INTEGER ::= 160
+   ds-DEF-NPAL-TC-DEFPIX INTEGER ::= 0
+   DEF-NPAL-TC-DEFPIX ::= SEQUENCE {
+      field-header DEF-NPAL-TC-header (WITH COMPONENTS {..., field-data-header (WITH COMPONENTS {..., field-service-type ((14))})}), 
+      field-fill1 DEF-NPAL-fill8, 
+      field-fill2 DEF-NPAL-fill8, 
+      field-footer DEF-NPAL-TC-footer
+   }
+
+   ss-DEF-NPAL-TM-CHKDATA INTEGER ::= 288
+   ds-DEF-NPAL-TM-CHKDATA INTEGER ::= 0
+   DEF-NPAL-TM-CHKDATA ::= SEQUENCE {
+      field-header DEF-NPAL-TM-header (WITH COMPONENTS {..., field-data-header (WITH COMPONENTS {..., field-service-type ((1))})}), 
+      field-last-reset DEF-NPAL-last-reset, 
+      field-prom-sw-release DEF-NPAL-PROM-SW-release, 
+      field-ram-faults DEF-NPAL-ram-faults-count, 
+      field-first-error-address DEF-NPAL-memory-address, 
+      field-prom-checksum DEF-NPAL-word, 
+      field-eeprom-checksum DEF-NPAL-word, 
+      field-fill1 DEF-NPAL-fill8, 
+      field-footer DEF-NPAL-TM-footer
+   }
+
+   ss-DEF-NPAL-ram-faults-count INTEGER ::= 16
+   ds-DEF-NPAL-ram-faults-count INTEGER ::= 0
+   DEF-NPAL-ram-faults-count ::= INTEGER ((0..65535))
+
+   ss-DEF-NPAL-TM-STATUS INTEGER ::= 288
+   ds-DEF-NPAL-TM-STATUS INTEGER ::= 0
+   DEF-NPAL-TM-STATUS ::= SEQUENCE {
+      field-header DEF-NPAL-TM-header (WITH COMPONENTS {..., field-data-header (WITH COMPONENTS {..., field-service-type ((2))})}), 
+      field-operating-mode DEF-NPAL-operating-mode, 
+      field-exposure-time DEF-NPAL-exposure-time-linear, 
+      field-aps-temperature DEF-NPAL-temperature, 
+      field-optics-temperature DEF-NPAL-temperature, 
+      field-input-voltage DEF-NPAL-voltage, 
+      field-health-check DEF-NPAL-health, 
+      field-link-speed DEF-NPAL-speed-option, 
+      field-cycle-option DEF-NPAL-cycle-option, 
+      field-defective-pixels-low-threshold DEF-NPAL-image-threshold, 
+      field-defective-pixels-high-threshold DEF-NPAL-image-threshold, 
+      field-cycles-for-defects-detect DEF-NPAL-cycles-count, 
+      field-camera-status-rate DEF-NPAL-TM-STATUS-rate, 
+      field-sw-version DEF-NPAL-SW-release, 
+      field-footer DEF-NPAL-TM-footer
+   }
+
+   ss-DEF-NPAL-TM-REPORT INTEGER ::= 224
+   ds-DEF-NPAL-TM-REPORT INTEGER ::= 0
+   DEF-NPAL-TM-REPORT ::= SEQUENCE {
+      field-header DEF-NPAL-TM-header (WITH COMPONENTS {..., field-data-header (WITH COMPONENTS {..., field-service-type ((3))})}), 
+      field-event-code DEF-NPAL-event-code, 
+      field-tc-acceptance DEF-NPAL-TC-received, 
+      field-mode-transition DEF-NPAL-mode-transition, 
+      field-download-status DEF-NPAL-download-status, 
+      field-not-used DEF-NPAL-fill8, 
+      field-calibration DEF-NPAL-calibration-status, 
+      field-error-code DEF-NPAL-error-code, 
+      field-fill1 DEF-NPAL-fill8, 
+      field-fill2 DEF-NPAL-fill8, 
+      field-fill3 DEF-NPAL-fill8, 
+      field-footer DEF-NPAL-TM-footer
+   }
+
+   ss-DEF-NPAL-TM-CHECKSUM INTEGER ::= 256
+   ds-DEF-NPAL-TM-CHECKSUM INTEGER ::= 0
+   DEF-NPAL-TM-CHECKSUM ::= SEQUENCE {
+      field-header DEF-NPAL-TM-header (WITH COMPONENTS {..., field-data-header (WITH COMPONENTS {..., field-service-type ((5))})}), 
+      field-start-address DEF-NPAL-memory-address, 
+      field-end-address DEF-NPAL-memory-address, 
+      field-checksum-result DEF-NPAL-word, 
+      field-fill1 DEF-NPAL-fill8, 
+      field-fill2 DEF-NPAL-fill8, 
+      field-footer DEF-NPAL-TM-footer
+   }
+
+   ss-DEF-NPAL-TM-DWNDATA INTEGER ::= 224
+   ds-DEF-NPAL-TM-DWNDATA INTEGER ::= 32
+   DEF-NPAL-TM-DWNDATA ::= SEQUENCE {
+      field-header DEF-NPAL-TM-header (WITH COMPONENTS {..., field-data-header (WITH COMPONENTS {..., field-service-type ((6))})}), 
+      field-start-address DEF-NPAL-memory-address, 
+      field-end-address DEF-NPAL-memory-address, 
+      field-words DEF-NPAL-word-array-dwndata, 
+      field-fill1 DEF-NPAL-fill8, 
+      field-fill2 DEF-NPAL-fill8, 
+      field-footer DEF-NPAL-TM-footer
+   }
+
+   ss-DEF-NPAL-word-array-dwndata INTEGER ::= 0
+   ds-DEF-NPAL-word-array-dwndata INTEGER ::= 32
+   DEF-NPAL-word-array-dwndata ::= SEQUENCE (SIZE(1..128)) OF DEF-NPAL-word
+
+   ss-DEF-NPAL-TM-DEFLIST INTEGER ::= 160
+   ds-DEF-NPAL-TM-DEFLIST INTEGER ::= 24
+   DEF-NPAL-TM-DEFLIST ::= SEQUENCE {
+      field-header DEF-NPAL-TM-header (WITH COMPONENTS {..., field-data-header (WITH COMPONENTS {..., field-service-type ((7))})}), 
+      field-pixel-number DEF-NPAL-defective-pixels-transferred, 
+      field-pixels DEF-NPAL-defective-pixels, 
+      field-fill1 DEF-NPAL-fill8, 
+      field-footer DEF-NPAL-TM-footer
+   }
+
+   ss-DEF-NPAL-defective-pixels-transferred INTEGER ::= 8
+   ds-DEF-NPAL-defective-pixels-transferred INTEGER ::= 0
+   DEF-NPAL-defective-pixels-transferred ::= INTEGER ((0..255))
+
+   ss-DEF-NPAL-defective-pixels INTEGER ::= 0
+   ds-DEF-NPAL-defective-pixels INTEGER ::= 24
+   DEF-NPAL-defective-pixels ::= SEQUENCE (SIZE(1..256)) OF DEF-NPAL-defective-pixel
+
+   ss-DEF-NPAL-TM-STARS INTEGER ::= 160
+   ds-DEF-NPAL-TM-STARS INTEGER ::= 40
+   DEF-NPAL-TM-STARS ::= SEQUENCE {
+      field-header DEF-NPAL-TM-header (WITH COMPONENTS {..., field-data-header (WITH COMPONENTS {..., field-service-type ((8))})}), 
+      field-number-of-stars DEF-NPAL-stars-transferred, 
+      field-stars DEF-NPAL-stars, 
+      field-fill1 DEF-NPAL-fill8, 
+      field-footer DEF-NPAL-TM-footer
+   }
+
+   ss-DEF-NPAL-stars-transferred INTEGER ::= 8
+   ds-DEF-NPAL-stars-transferred INTEGER ::= 0
+   DEF-NPAL-stars-transferred ::= INTEGER ((0..16))
+
+   ss-DEF-NPAL-stars INTEGER ::= 0
+   ds-DEF-NPAL-stars INTEGER ::= 40
+   DEF-NPAL-stars ::= SEQUENCE (SIZE(1..16)) OF DEF-NPAL-star
+
+   ss-DEF-NPAL-star INTEGER ::= 40
+   ds-DEF-NPAL-star INTEGER ::= 0
+   DEF-NPAL-star ::= SEQUENCE {
+      field-x-coord DEF-NPAL-star-coord, 
+      field-y-coord DEF-NPAL-star-coord, 
+      field-dimension DEF-NPAL-star-dimension
+   }
+
+   ss-DEF-NPAL-star-coord INTEGER ::= 16
+   ds-DEF-NPAL-star-coord INTEGER ::= 0
+   DEF-NPAL-star-coord ::= INTEGER ((-32768..32767))
+
+   ss-DEF-NPAL-star-dimension INTEGER ::= 8
+   ds-DEF-NPAL-star-dimension INTEGER ::= 0
+   DEF-NPAL-star-dimension ::= INTEGER ((0..255))
+
+   ss-DEF-NPAL-TM-HORIZON INTEGER ::= 192
+   ds-DEF-NPAL-TM-HORIZON INTEGER ::= 0
+   DEF-NPAL-TM-HORIZON ::= SEQUENCE {
+      field-header DEF-NPAL-TM-header (WITH COMPONENTS {..., field-data-header (WITH COMPONENTS {..., field-service-type ((9))})}), 
+      field-border-polar-angle DEF-NPAL-angle, 
+      field-border-distance DEF-NPAL-distance, 
+      field-radius DEF-NPAL-radius, 
+      field-footer DEF-NPAL-TM-footer
+   }
+
+   ss-DEF-NPAL-image-packet-number INTEGER ::= 16
+   ds-DEF-NPAL-image-packet-number INTEGER ::= 0
+   DEF-NPAL-image-packet-number ::= INTEGER ((0..65535))
+
+   ss-DEF-NPAL-image-pixels-transferred INTEGER ::= 16
+   ds-DEF-NPAL-image-pixels-transferred INTEGER ::= 0
+   DEF-NPAL-image-pixels-transferred ::= INTEGER ((0..65535))
+
+   ss-DEF-NPAL-TM-IMAGE-10 INTEGER ::= 192
+   ds-DEF-NPAL-TM-IMAGE-10 INTEGER ::= 24
+   DEF-NPAL-TM-IMAGE-10 ::= SEQUENCE {
+      field-header DEF-NPAL-TM-header (WITH COMPONENTS {..., field-data-header (WITH COMPONENTS {..., field-service-type ((4))})}), 
+      field-packet-number DEF-NPAL-image-packet-number, 
+      field-pixel-number DEF-NPAL-image-pixels-transferred, 
+      field-dynamic-range DEF-NPAL-image-dynamic-range (option-10-bits), 
+      field-pixels DEF-NPAL-pixels-2x10, 
+      field-fill1 DEF-NPAL-fill8, 
+      field-footer DEF-NPAL-TM-footer
+   }
+
+   ss-DEF-NPAL-pixels-2x10 INTEGER ::= 0
+   ds-DEF-NPAL-pixels-2x10 INTEGER ::= 24
+   DEF-NPAL-pixels-2x10 ::= SEQUENCE (SIZE(1..256)) OF DEF-NPAL-pixel-2x10
+
+   ss-DEF-NPAL-pixel-2x10 INTEGER ::= 24
+   ds-DEF-NPAL-pixel-2x10 INTEGER ::= 0
+   DEF-NPAL-pixel-2x10 ::= SEQUENCE {
+      field-odd-intensity DEF-NPAL-pixel-intensity-10, 
+      field-not-used1 DEF-NPAL-fill2, 
+      field-even-intensity DEF-NPAL-pixel-intensity-10, 
+      field-not-used2 DEF-NPAL-fill2
+   }
+
+   ss-DEF-NPAL-fill2 INTEGER ::= 2
+   ds-DEF-NPAL-fill2 INTEGER ::= 0
+   DEF-NPAL-fill2 ::= BIT STRING (SIZE(2))
+
+   ss-DEF-NPAL-pixel-intensity-10 INTEGER ::= 10
+   ds-DEF-NPAL-pixel-intensity-10 INTEGER ::= 0
+   DEF-NPAL-pixel-intensity-10 ::= INTEGER ((0..1023))
+
+   ss-DEF-NPAL-TM-IMAGE-08 INTEGER ::= 192
+   ds-DEF-NPAL-TM-IMAGE-08 INTEGER ::= 8
+   DEF-NPAL-TM-IMAGE-08 ::= SEQUENCE {
+      field-header DEF-NPAL-TM-header (WITH COMPONENTS {..., field-data-header (WITH COMPONENTS {..., field-service-type ((4))})}), 
+      field-packet-number DEF-NPAL-image-packet-number, 
+      field-pixel-number DEF-NPAL-image-pixels-transferred, 
+      field-dynamic-range DEF-NPAL-image-dynamic-range (option-8-bits), 
+      field-pixels DEF-NPAL-pixels-8, 
+      field-fill1 DEF-NPAL-fill8, 
+      field-footer DEF-NPAL-TM-footer
+   }
+
+   ss-DEF-NPAL-pixels-8 INTEGER ::= 0
+   ds-DEF-NPAL-pixels-8 INTEGER ::= 8
+   DEF-NPAL-pixels-8 ::= SEQUENCE (SIZE(1..512)) OF DEF-NPAL-pixel-intensity-8
+
+   ss-DEF-NPAL-pixel-intensity-8 INTEGER ::= 8
+   ds-DEF-NPAL-pixel-intensity-8 INTEGER ::= 0
+   DEF-NPAL-pixel-intensity-8 ::= INTEGER ((0..255))
+
+   ss-DEF-NPAL-TM-IMAGE-04 INTEGER ::= 192
+   ds-DEF-NPAL-TM-IMAGE-04 INTEGER ::= 8
+   DEF-NPAL-TM-IMAGE-04 ::= SEQUENCE {
+      field-header DEF-NPAL-TM-header (WITH COMPONENTS {..., field-data-header (WITH COMPONENTS {..., field-service-type ((4))})}), 
+      field-packet-number DEF-NPAL-image-packet-number, 
+      field-pixel-number DEF-NPAL-image-pixels-transferred, 
+      field-dynamic-range DEF-NPAL-image-dynamic-range (option-4-bits), 
+      field-pixels DEF-NPAL-pixels-4, 
+      field-fill1 DEF-NPAL-fill8, 
+      field-footer DEF-NPAL-TM-footer
+   }
+
+   ss-DEF-NPAL-pixels-4 INTEGER ::= 0
+   ds-DEF-NPAL-pixels-4 INTEGER ::= 8
+   DEF-NPAL-pixels-4 ::= SEQUENCE (SIZE(1..512)) OF DEF-NPAL-pixels-intensity-4
+
+   ss-DEF-NPAL-pixels-intensity-4 INTEGER ::= 8
+   ds-DEF-NPAL-pixels-intensity-4 INTEGER ::= 0
+   DEF-NPAL-pixels-intensity-4 ::= SEQUENCE {
+      field-B-intensity DEF-NPAL-pixel-intensity-4, 
+      field-A-intensity DEF-NPAL-pixel-intensity-4
+   }
+
+   ss-DEF-NPAL-pixel-intensity-4 INTEGER ::= 4
+   ds-DEF-NPAL-pixel-intensity-4 INTEGER ::= 0
+   DEF-NPAL-pixel-intensity-4 ::= INTEGER ((0..15))
+
+   ss-DEF-NPAL-TM-IMAGE-02 INTEGER ::= 192
+   ds-DEF-NPAL-TM-IMAGE-02 INTEGER ::= 8
+   DEF-NPAL-TM-IMAGE-02 ::= SEQUENCE {
+      field-header DEF-NPAL-TM-header (WITH COMPONENTS {..., field-data-header (WITH COMPONENTS {..., field-service-type ((4))})}), 
+      field-packet-number DEF-NPAL-image-packet-number, 
+      field-pixel-number DEF-NPAL-image-pixels-transferred, 
+      field-dynamic-range DEF-NPAL-image-dynamic-range (option-2-bits), 
+      field-pixels DEF-NPAL-pixels-2, 
+      field-fill1 DEF-NPAL-fill8, 
+      field-footer DEF-NPAL-TM-footer
+   }
+
+   ss-DEF-NPAL-pixels-2 INTEGER ::= 0
+   ds-DEF-NPAL-pixels-2 INTEGER ::= 8
+   DEF-NPAL-pixels-2 ::= SEQUENCE (SIZE(1..512)) OF DEF-NPAL-pixels-intensity-2
+
+   ss-DEF-NPAL-pixels-intensity-2 INTEGER ::= 8
+   ds-DEF-NPAL-pixels-intensity-2 INTEGER ::= 0
+   DEF-NPAL-pixels-intensity-2 ::= SEQUENCE {
+      field-D-intensity DEF-NPAL-pixel-intensity-2, 
+      field-C-intensity DEF-NPAL-pixel-intensity-2, 
+      field-B-intensity DEF-NPAL-pixel-intensity-2, 
+      field-A-intensity DEF-NPAL-pixel-intensity-2
+   }
+
+   ss-DEF-NPAL-pixel-intensity-2 INTEGER ::= 2
+   ds-DEF-NPAL-pixel-intensity-2 INTEGER ::= 0
+   DEF-NPAL-pixel-intensity-2 ::= INTEGER ((0..3))
+
+   ss-DEF-NPAL-TM-IMAGE-01 INTEGER ::= 192
+   ds-DEF-NPAL-TM-IMAGE-01 INTEGER ::= 8
+   DEF-NPAL-TM-IMAGE-01 ::= SEQUENCE {
+      field-header DEF-NPAL-TM-header (WITH COMPONENTS {..., field-data-header (WITH COMPONENTS {..., field-service-type ((4))})}), 
+      field-packet-number DEF-NPAL-image-packet-number, 
+      field-pixel-number DEF-NPAL-image-pixels-transferred, 
+      field-dynamic-range DEF-NPAL-image-dynamic-range (option-1-bits), 
+      field-pixels DEF-NPAL-pixels-1, 
+      field-fill1 DEF-NPAL-fill8, 
+      field-footer DEF-NPAL-TM-footer
+   }
+
+   ss-DEF-NPAL-pixels-1 INTEGER ::= 0
+   ds-DEF-NPAL-pixels-1 INTEGER ::= 8
+   DEF-NPAL-pixels-1 ::= SEQUENCE (SIZE(1..512)) OF DEF-NPAL-pixels-intensity-1
+
+   ss-DEF-NPAL-pixels-intensity-1 INTEGER ::= 8
+   ds-DEF-NPAL-pixels-intensity-1 INTEGER ::= 0
+   DEF-NPAL-pixels-intensity-1 ::= SEQUENCE {
+      field-H-intensity DEF-NPAL-pixel-intensity-1, 
+      field-G-intensity DEF-NPAL-pixel-intensity-1, 
+      field-F-intensity DEF-NPAL-pixel-intensity-1, 
+      field-E-intensity DEF-NPAL-pixel-intensity-1, 
+      field-D-intensity DEF-NPAL-pixel-intensity-1, 
+      field-C-intensity DEF-NPAL-pixel-intensity-1, 
+      field-B-intensity DEF-NPAL-pixel-intensity-1, 
+      field-A-intensity DEF-NPAL-pixel-intensity-1
+   }
+
+   ss-DEF-NPAL-pixel-intensity-1 INTEGER ::= 1
+   ds-DEF-NPAL-pixel-intensity-1 INTEGER ::= 0
+   DEF-NPAL-pixel-intensity-1 ::= INTEGER ((0..1))
+
+   ss-DEF-NPAL-cycles-count INTEGER ::= 16
+   ds-DEF-NPAL-cycles-count INTEGER ::= 0
+   DEF-NPAL-cycles-count ::= INTEGER ((0..65535))
+
+   ss-DEF-NPAL-TM-STATUS-rate INTEGER ::= 16
+   ds-DEF-NPAL-TM-STATUS-rate INTEGER ::= 0
+   DEF-NPAL-TM-STATUS-rate ::= INTEGER ((0..65535))
+
+   ss-DEF-NPAL-event-code INTEGER ::= 8
+   ds-DEF-NPAL-event-code INTEGER ::= 0
+   DEF-NPAL-event-code ::= ENUMERATED {option-mode-transition(0), option-error-occurrence(1), option-tc-received(2), option-download-event(3), option-deleted(4), option-calibration-event(5)}
+
+   ss-DEF-NPAL-mode-transition INTEGER ::= 8
+   ds-DEF-NPAL-mode-transition INTEGER ::= 0
+   DEF-NPAL-mode-transition ::= SEQUENCE {
+      field-cause DEF-NPAL-mode-transition-cause, 
+      field-current-mode DEF-NPAL-mini-operating-mode, 
+      field-previous-mode DEF-NPAL-mini-operating-mode
+   }
+
+   ss-DEF-NPAL-mini-operating-mode INTEGER ::= 3
+   ds-DEF-NPAL-mini-operating-mode INTEGER ::= 0
+   DEF-NPAL-mini-operating-mode ::= ENUMERATED {option-ini(0), option-swm(1), option-stb(2), option-trk(3), option-img(4), option-trk-hibernated(5)}
+
+   ss-DEF-NPAL-mode-transition-cause INTEGER ::= 2
+   ds-DEF-NPAL-mode-transition-cause INTEGER ::= 0
+   DEF-NPAL-mode-transition-cause ::= ENUMERATED {option-transition-after-error-condition(0), option-automatic-transition-at-end-of-mode(1), option-transition-after-tc(2)}
+
+   ss-DEF-NPAL-TC-received INTEGER ::= 8
+   ds-DEF-NPAL-TC-received INTEGER ::= 0
+   DEF-NPAL-TC-received ::= ENUMERATED {option-accepted(0), option-not-accepted(1)}
+
+   ss-DEF-NPAL-download-status INTEGER ::= 8
+   ds-DEF-NPAL-download-status INTEGER ::= 0
+   DEF-NPAL-download-status ::= ENUMERATED {option-started(0), option-completed(1), option-aborted(2)}
+
+   ss-DEF-NPAL-calibration-status INTEGER ::= 8
+   ds-DEF-NPAL-calibration-status INTEGER ::= 0
+   DEF-NPAL-calibration-status ::= ENUMERATED {option-started(0), option-completed(1), option-aborted(2)}
+
+   ss-DEF-NPAL-error-code INTEGER ::= 8
+   ds-DEF-NPAL-error-code INTEGER ::= 0
+   DEF-NPAL-error-code ::= ENUMERATED {option-not-used1(0), option-not-used2(1), option-not-used3(2), option-tm-buffer-full(3)}
+
+   ss-DEF-NPAL-defective-pixel INTEGER ::= 24
+   ds-DEF-NPAL-defective-pixel INTEGER ::= 0
+   DEF-NPAL-defective-pixel ::= SEQUENCE {
+      field-pixel-row DEF-NPAL-defect-coord, 
+      field-pixel-column DEF-NPAL-defect-coord, 
+      field-not-used DEF-NPAL-fill3, 
+      field-defect-type DEF-NPAL-defect-type
+   }
+
+   ss-DEF-NPAL-defect-type INTEGER ::= 1
+   ds-DEF-NPAL-defect-type INTEGER ::= 0
+   DEF-NPAL-defect-type ::= ENUMERATED {option-cold-pixel(0), option-hot-pixel(1)}
+
+   ss-DEF-NPAL-fill3 INTEGER ::= 3
+   ds-DEF-NPAL-fill3 INTEGER ::= 0
+   DEF-NPAL-fill3 ::= BIT STRING (SIZE(3))
+
+   ss-DEF-NPAL-reset-level INTEGER ::= 8
+   ds-DEF-NPAL-reset-level INTEGER ::= 0
+   DEF-NPAL-reset-level ::= ENUMERATED {option-full-reset(0), option-restart-to-ini(1)}
+
+   ss-DEF-NPAL-SW-loading INTEGER ::= 8
+   ds-DEF-NPAL-SW-loading INTEGER ::= 0
+   DEF-NPAL-SW-loading ::= ENUMERATED {option-sw-loading(0), option-ram-loaded(1)}
+
+   ss-DEF-NPAL-window-size INTEGER ::= 8
+   ds-DEF-NPAL-window-size INTEGER ::= 0
+   DEF-NPAL-window-size ::= ENUMERATED {option-256-pixels(0), option-512-pixels(1), option-768-pixels(2), option-1024-pixels(3)}
+
+   ss-DEF-NPAL-image-dynamic-range INTEGER ::= 8
+   ds-DEF-NPAL-image-dynamic-range INTEGER ::= 0
+   DEF-NPAL-image-dynamic-range ::= ENUMERATED {option-1-bits, option-2-bits, option-4-bits, option-8-bits, option-10-bits}
+
+   ss-DEF-NPAL-speed-option INTEGER ::= 8
+   ds-DEF-NPAL-speed-option INTEGER ::= 0
+   DEF-NPAL-speed-option ::= ENUMERATED {option-100-Mbps(0), option-50-Mbps(1), option-25-Mbps(2), option-16p7-Mbps(3), option-12p5-Mbps(4), option-10-Mbps(5)}
+
+   ss-DEF-NPAL-frame-size INTEGER ::= 8
+   ds-DEF-NPAL-frame-size INTEGER ::= 0
+   DEF-NPAL-frame-size ::= ENUMERATED {option-half(0), option-full(1)}
+
+   ss-DEF-NPAL-cycle-prescaler INTEGER ::= 8
+   ds-DEF-NPAL-cycle-prescaler INTEGER ::= 0
+   DEF-NPAL-cycle-prescaler ::= ENUMERATED {option-1x(0), option-2x(1), option-4x(2), option-8x(3), option-16x(4), option-32x(5)}
+
+   ss-DEF-NPAL-parameter-code INTEGER ::= 8
+   ds-DEF-NPAL-parameter-code INTEGER ::= 0
+   DEF-NPAL-parameter-code ::= ENUMERATED {option-restore-default-values(0), option-defective-pixels-low-threshold(1), option-defective-pixels-high-threshold(2), option-number-of-cycles-for-defective-pixels-update(3), option-camera-status-tm-update-rate(4)}
+
+   ss-DEF-NPAL-calibration-type INTEGER ::= 8
+   ds-DEF-NPAL-calibration-type INTEGER ::= 0
+   DEF-NPAL-calibration-type ::= ENUMERATED {option-cold-pixel(0), option-hot-pixel(1), option-save-data(2)}
+
+   ss-DEF-NPAL-operating-mode INTEGER ::= 8
+   ds-DEF-NPAL-operating-mode INTEGER ::= 0
+   DEF-NPAL-operating-mode ::= ENUMERATED {option-ini(0), option-swm(1), option-stb(2), option-trk(3), option-img(4), option-trk-hibernated(5)}
+
+   ss-DEF-NPAL-tracking-option INTEGER ::= 8
+   ds-DEF-NPAL-tracking-option INTEGER ::= 0
+   DEF-NPAL-tracking-option ::= ENUMERATED {option-normal(0), option-hibernated(1)}
+
+   ss-DEF-NPAL-exposure-time INTEGER ::= 8
+   ds-DEF-NPAL-exposure-time INTEGER ::= 0
+   DEF-NPAL-exposure-time ::= ENUMERATED {option-0p069ms(0), option-0p082ms(1), option-0p098ms(2), option-0p116ms(3), option-0p138ms(4), option-0p164ms(5), option-0p195ms(6), option-0p232ms(7), option-0p276ms(8), option-0p328ms(9), option-0p391ms(10), option-0p465ms(11), option-0p552ms(12), option-0p657ms(13), option-0p781ms(14), option-0p929ms(15), option-1p100ms(16), option-1p310ms(17), option-1p560ms(18), option-1p860ms(19), option-2p210ms(20), option-2p630ms(21), option-3p130ms(22), option-3p720ms(23), option-4p420ms(24), option-5p260ms(25), option-6p250ms(26), option-7p430ms(27), option-8p840ms(28), option-10p50ms(29), option-12p50ms(30), option-14p90ms(31), option-17p70ms(32), option-21p00ms(33), option-25p00ms(34), option-29p70ms(35), option-35p40ms(36), option-42p00ms(37), option-50p00ms(38), option-59p50ms(39), option-70p70ms(40), option-84p10ms(41), option-100p0ms(42)}
+
+   ss-DEF-NPAL-last-reset INTEGER ::= 8
+   ds-DEF-NPAL-last-reset INTEGER ::= 0
+   DEF-NPAL-last-reset ::= SEQUENCE {
+      field-not-used DEF-NPAL-fill5, 
+      field-reset-cause DEF-NPAL-last-reset-cause, 
+      field-reset-level DEF-NPAL-last-reset-level
+   }
+
+   ss-DEF-NPAL-last-reset-level INTEGER ::= 1
+   ds-DEF-NPAL-last-reset-level INTEGER ::= 0
+   DEF-NPAL-last-reset-level ::= ENUMERATED {option-level-0(0), option-level-1(1)}
+
+   ss-DEF-NPAL-last-reset-cause INTEGER ::= 2
+   ds-DEF-NPAL-last-reset-cause INTEGER ::= 0
+   DEF-NPAL-last-reset-cause ::= ENUMERATED {option-switch-on(0), option-commanded-by-TC(1), option-error(2), option-WD-timeout(3)}
+
+   ss-DEF-NPAL-fill5 INTEGER ::= 5
+   ds-DEF-NPAL-fill5 INTEGER ::= 0
+   DEF-NPAL-fill5 ::= BIT STRING (SIZE(5))
+
+   ss-DEF-NPAL-PROM-SW-release INTEGER ::= 16
+   ds-DEF-NPAL-PROM-SW-release INTEGER ::= 0
+   DEF-NPAL-PROM-SW-release ::= SEQUENCE {
+      field-sw-revision-number DEF-NPAL-version-nb, 
+      field-sw-issue-number DEF-NPAL-version-nb
+   }
+
+   ss-DEF-NPAL-version-nb INTEGER ::= 8
+   ds-DEF-NPAL-version-nb INTEGER ::= 0
+   DEF-NPAL-version-nb ::= INTEGER ((0..255))
+
+   ss-DEF-NPAL-health INTEGER ::= 8
+   ds-DEF-NPAL-health INTEGER ::= 0
+   DEF-NPAL-health ::= SEQUENCE {
+      field-not-used DEF-NPAL-fill4, 
+      field-input-voltage DEF-NPAL-hc, 
+      field-optics-temperature DEF-NPAL-hc, 
+      field-APS-temperature DEF-NPAL-hc, 
+      field-general-hc DEF-NPAL-hc
+   }
+
+   ss-DEF-NPAL-hc INTEGER ::= 1
+   ds-DEF-NPAL-hc INTEGER ::= 0
+   DEF-NPAL-hc ::= ENUMERATED {option-in-range(0), option-out-of-range(1)}
+
+   ss-DEF-NPAL-fill4 INTEGER ::= 4
+   ds-DEF-NPAL-fill4 INTEGER ::= 0
+   DEF-NPAL-fill4 ::= BIT STRING (SIZE(4))
+
+   ss-DEF-NPAL-exposure-time-linear INTEGER ::= 16
+   ds-DEF-NPAL-exposure-time-linear INTEGER ::= 0
+   DEF-NPAL-exposure-time-linear ::= INTEGER ((0..65535))
+
+   ss-DEF-NPAL-temperature INTEGER ::= 8
+   ds-DEF-NPAL-temperature INTEGER ::= 0
+   DEF-NPAL-temperature ::= INTEGER ((0..255))
+
+   ss-DEF-NPAL-voltage INTEGER ::= 8
+   ds-DEF-NPAL-voltage INTEGER ::= 0
+   DEF-NPAL-voltage ::= INTEGER ((0..255))
+
+   ss-DEF-NPAL-distance INTEGER ::= 16
+   ds-DEF-NPAL-distance INTEGER ::= 0
+   DEF-NPAL-distance ::= INTEGER ((-32768..32767))
+
+   ss-DEF-NPAL-angle INTEGER ::= 16
+   ds-DEF-NPAL-angle INTEGER ::= 0
+   DEF-NPAL-angle ::= INTEGER ((-32768..32767))
+
+   ss-DEF-NPAL-radius INTEGER ::= 16
+   ds-DEF-NPAL-radius INTEGER ::= 0
+   DEF-NPAL-radius ::= INTEGER ((-32768..32767))
+
+   ss-DEF-NPAL-SW-release INTEGER ::= 8
+   ds-DEF-NPAL-SW-release INTEGER ::= 0
+   DEF-NPAL-SW-release ::= SEQUENCE {
+      field-sw-issue-number DEF-NPAL-mini-version-nb, 
+      field-sw-revision-number DEF-NPAL-mini-version-nb
+   }
+
+   ss-DEF-NPAL-mini-version-nb INTEGER ::= 4
+   ds-DEF-NPAL-mini-version-nb INTEGER ::= 0
+   DEF-NPAL-mini-version-nb ::= INTEGER ((0..15))
+
+   ss-DEF-NPAL-cycle-option INTEGER ::= 8
+   ds-DEF-NPAL-cycle-option INTEGER ::= 0
+   DEF-NPAL-cycle-option ::= SEQUENCE {
+      field-cycle-prescaler DEF-NPAL-cycle-option-cycle-prescaler, 
+      field-frame-size DEF-NPAL-cycle-option-frame-size
+   }
+
+   ss-DEF-NPAL-cycle-option-frame-size INTEGER ::= 4
+   ds-DEF-NPAL-cycle-option-frame-size INTEGER ::= 0
+   DEF-NPAL-cycle-option-frame-size ::= ENUMERATED {option-half-frame(0), option-full-frame(1)}
+
+   ss-DEF-NPAL-cycle-option-cycle-prescaler INTEGER ::= 4
+   ds-DEF-NPAL-cycle-option-cycle-prescaler INTEGER ::= 0
+   DEF-NPAL-cycle-option-cycle-prescaler ::= ENUMERATED {option-1x(0), option-2x(1), option-4x(2), option-8x(3), option-16x(4), option-32x(5)}
+
+   ss-DEF-NPAL-pixel-coord INTEGER ::= 16
+   ds-DEF-NPAL-pixel-coord INTEGER ::= 0
+   DEF-NPAL-pixel-coord ::= INTEGER ((0..1023))
+
+   ss-DEF-NPAL-defect-coord INTEGER ::= 10
+   ds-DEF-NPAL-defect-coord INTEGER ::= 0
+   DEF-NPAL-defect-coord ::= INTEGER ((0..1023))
+   
+	-- needed for regression
+	MyPDU ::= INTEGER
+	pdu1 MyPDU ::= 0
+   
+
+
+END
+
+--TCFS     NPAL.acn

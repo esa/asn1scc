@@ -1,0 +1,13 @@
+TEST-CASE  DEFINITIONS AUTOMATIC TAGS::= BEGIN
+
+	MyPDU ::= SEQUENCE {
+		myInt	MyInt
+	}
+    MyInt   ::= INTEGER
+	
+
+	
+END
+
+--TCLS     MyPDU[]
+-- test case becaome obsolete because with -renamePolicy 2 (which is passed by Python script) this is not an error any more. --TCLFC     MyPDU[]         $$$ sample1.asn1:4:2: error: component name 'gmamais-myInt' conflicts with type assignment 'MyInt'. May cause compilation errors in case insensitive languages

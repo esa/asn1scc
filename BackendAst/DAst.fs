@@ -259,6 +259,8 @@ type UPERFuncBodyResult = {
     funcBody            : string
     errCodes            : ErroCode list
     localVariables      : LocalVariable list
+    bValIsUnReferenced    : bool
+    bBsIsUnReferenced     : bool
 }
 type UPerFunction = {
     funcName            : string option               // the name of the function
@@ -272,6 +274,8 @@ type AcnFuncBodyResult = {
     funcBody            : string
     errCodes            : ErroCode list
     localVariables      : LocalVariable list
+    bValIsUnReferenced    : bool
+    bBsIsUnReferenced     : bool
 
 }
 

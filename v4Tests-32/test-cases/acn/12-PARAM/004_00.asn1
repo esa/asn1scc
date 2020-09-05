@@ -1,0 +1,39 @@
+
+-- It tests the   
+-- 'pdu1' does conform to its type constraints. 
+
+TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
+    
+    MyPDU ::= SEQUENCE {
+        tap     TAP3File
+	}
+
+    TAP3File::=SEQUENCE {
+        header  HeaderType,
+        data    SourceData
+    }
+
+    HeaderType::=SEQUENCE {
+        operatorID  IA5String(SIZE(1..10))
+    }
+	CallsSize ::= INTEGER (1..10)
+    
+    SourceData::=SEQUENCE {
+        
+        calls   SEQUENCE (SIZE(1..10)) OF Call,
+		calls2   SEQUENCE (SIZE(1..10)) OF Call
+    }	
+
+    Call ::= IA5String(SIZE(1..5))
+    
+	pdu1 MyPDU ::= { tap { 
+	                    header{operatorID "FA23DF"}, 
+	                    data{ calls{"22433","23423","57437","43632"},
+							  calls2{"22433","23423","57437","43632"}						
+							} 
+	                 }
+	               }
+	
+END
+
+--TCFS     004_00.acn

@@ -1,0 +1,9 @@
+TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
+
+    MySeqOf ::= SEQUENCE (SIZE (1..5)) OF BOOLEAN
+    MySeqOf-Index ::= INTEGER (0..4)
+	
+END
+
+
+--TCLS     MySeqOf[]

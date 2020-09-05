@@ -1,0 +1,14 @@
+TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
+    
+    MyStr ::= IA5String(SIZE(1..20))(FROM("A".."Z"|"a".."z"|" "))
+    
+	MyPDU ::= SEQUENCE {
+       a1 INTEGER,
+       a2 MyStr
+    }
+	
+	pdu1 MyPDU ::= {a1 13, a2 "George Mamais"}
+	
+END
+
+--TCLS     MyPDU[] MyStr[]

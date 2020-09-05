@@ -1,0 +1,11 @@
+TEST-CASE DEFINITIONS ::= BEGIN
+
+    T1[] {
+        length INTEGER [size 32, encoding pos-int],
+        a      [size length],
+        b      []
+    }
+
+    T2[] 
+END
+    

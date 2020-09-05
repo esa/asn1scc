@@ -1,0 +1,17 @@
+TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
+
+	FrequenciesTemplate{INTEGER:someLength, SomeType } ::= SEQUENCE (SIZE(someLength)) OF SomeType
+	
+	MyPDU ::= FrequenciesTemplate{5, FrequenciesTemplate{5, INTEGER(1..20)}}
+	
+	testPDU MyPDU ::= { 
+							{3, 4, 5, 6, 20},
+							{3, 4, 5, 6, 20},
+							{3, 4, 5, 6, 20},
+							{3, 4, 5, 6, 20},
+							{3, 4, 5, 6, 20}
+						}
+END
+
+--TCLS     MyPDU[]
+

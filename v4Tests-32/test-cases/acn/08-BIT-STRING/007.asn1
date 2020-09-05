@@ -1,0 +1,9 @@
+TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
+
+	FruitSaladType ::= BIT STRING { apple(0), avocado(1), banana(2), blackberry(3), blueberry(4), cherry(5), coconut(6), mango(7), melon(8), lemon(9), pear(10) } (SIZE (1..64))
+	
+	mySalad FruitSaladType ::= { avocado, mango}
+	
+END
+
+--TCLS     FruitSaladType[]

@@ -1,0 +1,102 @@
+TEST-CASE DEFINITIONS ::= BEGIN
+
+	TC-PACKET [] {
+		header[] {
+            versionNumber 				NULL	[pattern '000'B], 
+            packet-type	  				NULL	[pattern '1'B],
+            data-field-header-flag		BOOLEAN	[],
+            applicationProcessID				[],	
+            sequence-flags						[],
+            sequence-count						[],
+            packet-length						[]
+        },
+		data<header.data-field-header-flag>[]
+	}
+	
+	
+	TC-HEADER [] 
+	
+	TC-HEADER-SEQUENCE-FLAGS [] {
+		first-packet[0],
+		continuation-packet[1],
+		last-packet[2],
+		stand-alone-packet[3]
+	}
+
+	TC-DATA <BOOLEAN:fldHeaderPresent>[] {
+		header	[present-when fldHeaderPresent]
+	}
+	
+	TC-DATA-HEADER [] {
+		cCSDSSecondaryHeaderFlag			[],
+		tCPacketPUSVersionNumber	NULL	[pattern '001'B], 
+		ack									[],
+		serviceType							[],
+		serviceSubtype						[],
+		sourceID							[]
+	}
+
+	
+	TM-PACKET [] {
+		header 								[] {
+            versionNumber 			NULL		[pattern '000'B], 
+            packet-type	  			NULL		[pattern '0'B],
+            data-field-header-flag	BOOLEAN		[],
+            applicationProcessID				[],
+            grouping-flags						[],
+            sequence-count						[],
+            packet-length						[]
+        },
+		data								[present-when header.data-field-header-flag]
+	}
+	
+	TM-HEADER [] 
+	
+	TM-DATA [] {
+		header													[] {
+            spare1						NULL			[pattern '0'B],
+            tmPacketPUSVersionNumber	NULL			[pattern '001'B], 
+            spare2						NULL			[pattern '0000'B],
+            serviceType					SERVICE-TYPE	[],
+            serviceSubtype				SERVICE-SUBTYPE	[],
+            packetSubcounter							[],
+            destinationID								[],
+            absTime										[encoding pos-int, size 64]
+        },
+		sourceData<header.serviceType, header.serviceSubtype>	[]
+	}
+	
+	TM-DATA-HEADER [] 
+	
+	TM-DATA-SRC<SERVICE-TYPE:st, SERVICE-SUBTYPE:sst> [] {
+		tcVerification<sst>				[present-when st==1],
+		deviceCommandDistribution<sst>	[present-when st==2]
+	}
+	
+	TC-VERIFICATION-SERVICE<SERVICE-SUBTYPE:sst> [] {
+		tcAcceptanceReport				[present-when sst==1],
+		tcAcceptanceReportFailure		[present-when sst==2],
+		tcExecutionStarted				[present-when sst==3],
+		tcExecutionProgress				[present-when sst==5],
+		tcExecutionComplete				[present-when sst==6]
+	}
+	
+	DEVICE-COMMAND-DISTTIBUTION<SERVICE-SUBTYPE:sst> [] {
+		distributingOn-OffCommands			[present-when sst==1],
+		distributingRegisterLoadCommands	[present-when sst==2],
+		distributingCPDUCommands			[present-when sst==3]
+	}
+	
+	
+	
+END
+
+
+CASE1 DEFINITIONS ::= BEGIN
+
+MySeq[] {
+	alpha [],
+	beta BOOLEAN [],
+	gamma [present-when beta, encoding IEEE754-1985-32]
+}
+END

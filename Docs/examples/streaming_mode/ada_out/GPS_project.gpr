@@ -1,15 +1,15 @@
 project GPS_Project is
 
-   for Object_Dir use "bin";
+   for Source_Dirs use
+         (".", "asn1rtl",
+          "src",
+          "boards/x86");
+
+   for Object_Dir use "obj_x86";
    for Main use ("mainprogram.adb");
 
-   package Ide is
-      for Default_Switches ("examiner") use ("-vcg", "-dpc", "-sparklib", "-language=2005", "-index_file=spark.idx", "-warning_file=IgnoredExaminerWarnings.wrn", "-config=gnat.cfg", "-output_directory=examiner");
-      for Default_Switches ("sparksimp") use ("-p=4", "-nz", "-victor");
-   end Ide;
-
    package Compiler is
-      for Default_Switches ("ada") use ("-gnatwae", "-gnat2012", "-g");
+      for Default_Switches ("ada") use ("-gnatwae", "-gnat2012", "-g", "-gnatf", "-gnaty", "-gnatwa", "-gnatg", "-fstack-check");
    end Compiler;
 
    package Pretty_Printer is

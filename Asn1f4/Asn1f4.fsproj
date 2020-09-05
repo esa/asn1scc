@@ -30,8 +30,8 @@
     <PlatformTarget>AnyCPU</PlatformTarget>
     <DocumentationFile>bin\Debug\Asn1f4.XML</DocumentationFile>
     <Prefer32Bit>true</Prefer32Bit>
-    <StartWorkingDirectory>C:\prj\GitHub\asn1scc\v4Tests\tmp_c</StartWorkingDirectory>
-    <StartArguments>-c -uPER  -atc sample1.asn1</StartArguments>
+    <StartWorkingDirectory>C:\prj\GitHub\asn1scc\v4Tests\tmp_Ada</StartWorkingDirectory>
+    <StartArguments>-Ada -uPER  -atc sample1.asn1 sample1.acn</StartArguments>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
@@ -70,10 +70,15 @@
       <ResourceFilesToCopy Include="$(SolutionDir)ADA_RTL/src/xer_rtl.*" />
       -->
       <ResourceFilesToCopy Include="$(SolutionDir)ADA_RTL2/src/*.*" />
+      <ResourceFilesToCopy Include="$(SolutionDir)ADA_RTL2/aux_files/*.*" />
+      <ResourceFilesToCopy Include="$(SolutionDir)ADA_RTL2/boards/*.*" />
+	  
+	  <!--
       <ResourceFilesToCopy Include="$(SolutionDir)ADA_RTL/aux_files/IgnoredExaminerWarnings.wrn" />
       <ResourceFilesToCopy Include="$(SolutionDir)ADA_RTL/aux_files/gnat.cfg" />
       <ResourceFilesToCopy Include="$(SolutionDir)ADA_RTL/aux_files/run.sh" />
       <ResourceFilesToCopy Include="$(SolutionDir)ADA_RTL/aux_files/GPS_project.gpr" />
+	  -->
       <ResourceFilesToCopy Include="$(SolutionDir)asn1crt/asn1crt.c" />
       <ResourceFilesToCopy Include="$(SolutionDir)asn1crt/asn1crt.h" />
       <ResourceFilesToCopy Include="$(SolutionDir)asn1crt/asn1crt_encoding.c" />

@@ -1,0 +1,20 @@
+MYMOD DEFINITIONS ::=  
+BEGIN
+
+MyEnum ::= ENUMERATED {default, user-defined}
+
+MyChoice ::= CHOICE {
+	break INTEGER(1..20),
+	else REAL,
+    gmamais-myEnum MyEnum   -- this will be renamed in Ada
+}
+
+MyStruct ::= SEQUENCE {
+	register INTEGER (1..10),
+	return INTEGER (1..20)
+}
+
+
+END
+
+--TCFS     01-keywords.acn

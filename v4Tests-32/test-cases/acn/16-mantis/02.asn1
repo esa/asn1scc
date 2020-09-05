@@ -1,0 +1,14 @@
+TEST-CASE DEFINITIONS ::=
+BEGIN
+	MyInt ::= INTEGER
+	
+	intConstant INTEGER ::= 70
+	
+	T-UInt16 ::= INTEGER (0 .. 65535)
+	
+	intVal T-UInt16 ::= intConstant
+
+END
+
+--TCLS     MyInt[]
+

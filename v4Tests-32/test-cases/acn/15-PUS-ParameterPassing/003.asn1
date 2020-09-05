@@ -1,0 +1,22 @@
+TEST-CASE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+EXPORTS ALL;
+	
+maxTC-8-1-Function-ID-Size INTEGER ::= 9
+
+TC-8-1-PerformAFunction ::= SEQUENCE
+{
+	functionArgs FunctionArguments
+}
+
+Function-ID ::= IA5String (SIZE(maxTC-8-1-Function-ID-Size))
+
+FunctionArguments ::= CHOICE
+{
+	pus8-Function1 NULL,
+	pus8-Function2 IA5String(SIZE(16))
+}
+
+END
+
+
+--TCFS     003.acn
