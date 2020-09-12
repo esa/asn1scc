@@ -1,9 +1,0 @@
-MYMOD DEFINITIONS ::=  -- Data types shared by several services
-BEGIN
-
-MySeq ::= SEQUENCE {}
-
-END
-
---TCFS     empty_seq.acn
-

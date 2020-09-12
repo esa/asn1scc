@@ -1,9 +1,0 @@
-scripts/log.txt
-scripts/tmp.err
-test-cases/asn1cc.ada/
-test-cases/asn1cc/
-test-cases/front-end/
-test-cases/std-encodings/
-testApp/
-tmp.err
-tmp/
