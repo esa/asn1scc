@@ -35,10 +35,11 @@ end <sFuncName>;
 
 EmitTypeAssignment_primitive_encode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitilialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace, bBsIsUnreferenced, bVarNameIsUnreferenced) ::= <<
 --  stg macro EmitTypeAssignment_primitive_encode
-procedure <sFuncName>_aux(<sVarName> : <sTypeDefName>; bs : in out <rtlModuleName()>.encoding.Bitstream; result : OUT <rtlModuleName()>.ASN1_RESULT);
-
 procedure <sFuncName>_aux(<sVarName> : <sTypeDefName>; bs : in out <rtlModuleName()>.encoding.Bitstream; result : OUT <rtlModuleName()>.ASN1_RESULT)
 <soSparkAnnotations>
+;
+
+procedure <sFuncName>_aux(<sVarName> : <sTypeDefName>; bs : in out <rtlModuleName()>.encoding.Bitstream; result : OUT <rtlModuleName()>.ASN1_RESULT)
 is
 <if(bBsIsUnreferenced)>
 pragma Unreferenced(bs);
@@ -90,10 +91,11 @@ EmitTypeAssignment_primitive_decode(sVarName, sStar, sFuncName, soIValidFuncName
 pragma Warnings (Off, "unused initial value of ""<sVarName>""");
 
 <endif>
-procedure <sFuncName>_aux(<sVarName>:out <sTypeDefName>; bs : in out <rtlModuleName()>.encoding.Bitstream; result : OUT <rtlModuleName()>.ASN1_RESULT<if(arrsAcnPrms)>; <arrsAcnPrms; separator="; "><endif>);
-
 procedure <sFuncName>_aux(<sVarName>:out <sTypeDefName>; bs : in out <rtlModuleName()>.encoding.Bitstream; result : OUT <rtlModuleName()>.ASN1_RESULT<if(arrsAcnPrms)>; <arrsAcnPrms; separator="; "><endif>)
 <soSparkAnnotations>
+;
+
+procedure <sFuncName>_aux(<sVarName>:out <sTypeDefName>; bs : in out <rtlModuleName()>.encoding.Bitstream; result : OUT <rtlModuleName()>.ASN1_RESULT<if(arrsAcnPrms)>; <arrsAcnPrms; separator="; "><endif>)
 is
 <if(bBsIsUnreferenced)>
 pragma Unreferenced(bs);
@@ -112,6 +114,27 @@ pragma Warnings (On, "unused initial value of ""<sVarName>""");
 >>
 
 
+sparkAnnotations_encode(sTypeDefName) ::= <<
+with
+    Pre => bs.Current_Bit_Pos \< Natural'Last - <sTypeDefName>_REQUIRED_BITS_FOR_ACN_ENCODING
+      and then bs.Size_In_Bytes \< Positive'Last / 8
+      and then bs.Current_Bit_Pos + <sTypeDefName>_REQUIRED_BITS_FOR_ACN_ENCODING \<= bs.Size_In_Bytes * 8,
+       Post => 
+         (result.Success and bs.Current_Bit_Pos \>= bs'Old.Current_Bit_Pos + <sTypeDefName>_REQUIRED_BITS_FOR_ACN_ENCODING)
+       or
+         not result.Success
+>>
+
+sparkAnnotations_decode(sTypeDefName) ::= <<
+with
+    Pre => bs.Current_Bit_Pos \< Natural'Last - <sTypeDefName>_REQUIRED_BITS_FOR_ACN_ENCODING
+      and then bs.Size_In_Bytes \< Positive'Last / 8
+      and then bs.Current_Bit_Pos + <sTypeDefName>_REQUIRED_BITS_FOR_ACN_ENCODING \<= bs.Size_In_Bytes * 8,
+       Post => 
+         (result.Success and bs.Current_Bit_Pos \>= bs'Old.Current_Bit_Pos + <sTypeDefName>_REQUIRED_BITS_FOR_ACN_ENCODING)
+       or
+         not result.Success
+>>
 
 
 

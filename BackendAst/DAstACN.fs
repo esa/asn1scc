@@ -18,6 +18,8 @@ let foldMap = Asn1Fold.foldMap
 
 let callBaseTypeFunc l = match l with C -> uper_c.call_base_type_func | Ada -> uper_a.call_base_type_func
 
+let sparkAnnotations l  = match l with C -> (fun _ _ -> "")    | Ada -> acn_a.sparkAnnotations
+
 
 let getAcnDeterminantName (id : ReferenceToType) =
     match id with
@@ -385,7 +387,7 @@ let createIntegerFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec:
     let soMapFunc = match o.acnProperties.mappingFunction with Some (MappingFunction mapFncName)    -> Some mapFncName.Value | None -> None
     let soMapFunMod = getMappingFunctionModule r l soMapFunc
     let funcBody = createAcnIntegerFunctionInternal r l codec o.uperRange o.acnEncodingClass uperFunc.funcBody_e (soMapFunc, soMapFunMod)
-    let soSparkAnnotations = None
+    let soSparkAnnotations = Some(sparkAnnotations l (typeDefinition.longTypedefName l) codec)
     createAcnFunction r l codec t typeDefinition isValidFunc  (fun us e acnArgs p -> funcBody e acnArgs p, us) (fun atc -> true) soSparkAnnotations us
 
 
@@ -539,7 +541,7 @@ let createBooleanFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec:
                 acnBoolean pvalue ptr bEncValIsTrue (BigInteger nSize) arruTrueValueAsByteArray arruFalseValueAsByteArray arrsBits errCode.errCodeName codec
                 
         {AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = []; bValIsUnReferenced= false; bBsIsUnReferenced=false}    
-    let soSparkAnnotations = None
+    let soSparkAnnotations = Some(sparkAnnotations l (typeDefinition.longTypedefName l) codec)
     createAcnFunction r l codec t typeDefinition  isValidFunc  (fun us e acnArgs p -> Some (funcBody e acnArgs p), us) (fun atc -> true) soSparkAnnotations us
 
 

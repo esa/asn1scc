@@ -31,6 +31,29 @@ procedure <sFuncName>_aux(<sVarName>: out <sTypeDefName>; bs : in out <rtlModule
 ;
 >>
 
+
+sparkAnnotations_encode(sTypeDefName) ::= <<
+with
+    Pre => bs.Current_Bit_Pos \< Natural'Last - <sTypeDefName>_REQUIRED_BITS_FOR_ENCODING
+      and then bs.Size_In_Bytes \< Positive'Last / 8
+      and then bs.Current_Bit_Pos + <sTypeDefName>_REQUIRED_BITS_FOR_ENCODING \<= bs.Size_In_Bytes * 8,
+       Post => 
+         (result.Success and bs.Current_Bit_Pos \>= bs'Old.Current_Bit_Pos + <sTypeDefName>_REQUIRED_BITS_FOR_ENCODING)
+       or
+         not result.Success
+>>
+
+sparkAnnotations_decode(sTypeDefName) ::= <<
+with
+    Pre => bs.Current_Bit_Pos \< Natural'Last - <sTypeDefName>_REQUIRED_BITS_FOR_ENCODING
+      and then bs.Size_In_Bytes \< Positive'Last / 8
+      and then bs.Current_Bit_Pos + <sTypeDefName>_REQUIRED_BITS_FOR_ENCODING \<= bs.Size_In_Bytes * 8,
+       Post => 
+         (result.Success and bs.Current_Bit_Pos \>= bs'Old.Current_Bit_Pos + <sTypeDefName>_REQUIRED_BITS_FOR_ENCODING)
+       or
+         not result.Success
+>>
+
 TasEncodeMain(sVarName, sFuncName, sTypeDefName, bReqBytesForEncodingIsZero) ::= /*nogen*/<<
 procedure <sFuncName>(<sVarName> : <sTypeDefName>; Stream : out <sTypeDefName>_uPER_Stream; result : OUT <rtlModuleName()>.ASN1_RESULT)
 is

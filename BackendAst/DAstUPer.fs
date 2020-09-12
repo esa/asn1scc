@@ -19,6 +19,7 @@ let getFuncName (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec:CommonType
 
 let callBaseTypeFunc l = match l with C -> uper_c.call_base_type_func | Ada -> uper_a.call_base_type_func
 
+let sparkAnnotations l  = match l with C -> (fun _ _ -> "")    | Ada -> uper_a.sparkAnnotations
 
 let nestChildItems (l:ProgrammingLanguage) (codec:CommonTypes.Codec) children = DAstUtilFunctions.nestItems l "result" children
 //    let printChild (content:string) (sNestedContent:string option) = 
@@ -151,17 +152,19 @@ let getIntfuncBodyByCons (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec:C
 let createIntegerFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Integer) (typeDefinition:TypeDefintionOrReference) (baseTypeUperFunc : UPerFunction option) (isValidFunc: IsValidFunction option) (us:State)  =
     let funcBody (errCode:ErroCode) (p:CallerScope) = 
         getIntfuncBodyByCons r l codec o.uperRange t.Location o.isUnsigned o.cons o.AllCons errCode p
-    let soSparkAnnotations = None
+    let soSparkAnnotations = Some(sparkAnnotations l (typeDefinition.longTypedefName l) codec)
     createUperFunction r l codec t typeDefinition baseTypeUperFunc  isValidFunc  (fun e p -> funcBody e p) soSparkAnnotations us
 
 
 let createBooleanFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Boolean) (typeDefinition:TypeDefintionOrReference) (baseTypeUperFunc : UPerFunction option) (isValidFunc: IsValidFunction option) (us:State)  =
+
     let funcBody (errCode:ErroCode) (p:CallerScope) = 
         let pp = match codec with CommonTypes.Encode -> p.arg.getValue l | CommonTypes.Decode -> p.arg.getPointer l
         let Boolean         = match l with C -> uper_c.Boolean          | Ada -> uper_a.Boolean
         let funcBodyContent = Boolean pp errCode.errCodeName codec
         {UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = []; bValIsUnReferenced=false; bBsIsUnReferenced=false}    
-    let soSparkAnnotations = None
+    let soSparkAnnotations = Some(sparkAnnotations l (typeDefinition.longTypedefName l) codec)
+        
     createUperFunction r l codec t typeDefinition baseTypeUperFunc  isValidFunc  (fun e p -> Some (funcBody e p)) soSparkAnnotations us
 
 let createRealFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Real) (typeDefinition:TypeDefintionOrReference) (baseTypeUperFunc : UPerFunction option) (isValidFunc: IsValidFunction option) (us:State)  =
