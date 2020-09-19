@@ -606,11 +606,11 @@ is
       maxVal :        Asn1Int; nChars : Integer; Result : out ASN1_RESULT) with
       Pre => nChars >= 2 and then nChars <= Max_Int_Digits
       and then minVal <= maxVal
-      and then bs.Current_Bit_Pos < Natural'Last - 8 * (nChars + 1)
+      and then bs.Current_Bit_Pos < Natural'Last - 8 * (nChars)
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 8 * (nChars),
       Post => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and
-      bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + 8 * (nChars + 1) and
+      bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + 8 * (nChars) and
       ((Result.Success and IntVal >= minVal and IntVal <= maxVal) or
        (not Result.Success and IntVal = minVal));
 

@@ -120,7 +120,7 @@ with
       and then bs.Size_In_Bytes \< Positive'Last / 8
       and then bs.Current_Bit_Pos + <sTypeDefName>_REQUIRED_BITS_FOR_ACN_ENCODING \<= bs.Size_In_Bytes * 8,
        Post => 
-         (result.Success and bs.Current_Bit_Pos \>= bs'Old.Current_Bit_Pos + <sTypeDefName>_REQUIRED_BITS_FOR_ACN_ENCODING)
+         (result.Success and bs.Current_Bit_Pos \>= bs'Old.Current_Bit_Pos and bs.Current_Bit_Pos \<= bs'Old.Current_Bit_Pos + <sTypeDefName>_REQUIRED_BITS_FOR_ACN_ENCODING)
        or
          not result.Success
 >>
@@ -131,7 +131,7 @@ with
       and then bs.Size_In_Bytes \< Positive'Last / 8
       and then bs.Current_Bit_Pos + <sTypeDefName>_REQUIRED_BITS_FOR_ACN_ENCODING \<= bs.Size_In_Bytes * 8,
        Post => 
-         (result.Success and bs.Current_Bit_Pos \>= bs'Old.Current_Bit_Pos + <sTypeDefName>_REQUIRED_BITS_FOR_ACN_ENCODING)
+         (result.Success and bs.Current_Bit_Pos \>= bs'Old.Current_Bit_Pos and bs.Current_Bit_Pos \<= bs'Old.Current_Bit_Pos + <sTypeDefName>_REQUIRED_BITS_FOR_ACN_ENCODING)
        or
          not result.Success
 >>

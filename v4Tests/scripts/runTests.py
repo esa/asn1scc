@@ -164,6 +164,7 @@ def RunTestCase(asn1, acn, behavior, expErrMsg):
         elif behavior == 0 and res == 0:
             # -- NOCOVERAGE
             doCoverage = "-- NOCOVERAGE" not in open("sample1.asn1", 'r').readlines()[0]
+            runSpark = "RUN_SPARK" in open("sample1.asn1", 'r').readlines()[0]
             if doCoverage:
                 try:
                     f = open(targetDir + os.sep + "bin" + os.sep + "debug" + os.sep + "test_case.adb.gcov", 'r')
@@ -179,7 +180,23 @@ def RunTestCase(asn1, acn, behavior, expErrMsg):
                         sys.exit(1)
                 except FileNotFoundError as err:
                     pass;
-            
+            if runSpark:
+                res = mysystem("gnatprove -Pasn1_x86.gpr -j0  -u test_case.adb --level=4 >sparklog.txt 2>&1", True)
+                try:
+                    f = open("sparklog.txt", 'r')
+                    lines = f.readlines()
+                    lines = filter(lambda x : "might fail, cannot prove" in x, lines)
+                    lines = list(lines)
+                    if len(lines) > 0:
+                        PrintWarning("Spark failed.")
+                        mysystem("cat sparklog.txt",False)
+                        sys.exit(1)
+                    else:
+                        PrintSucceededAsExpected("Spark OK !!!")
+                except FileNotFoundError as err:
+                    pass;
+
+
             #   def hunt_signature(l):
             #       return "test_case.adb" not in l and "mymod.adb" not in l
             #   lines = list(

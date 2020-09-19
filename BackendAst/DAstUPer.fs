@@ -173,7 +173,7 @@ let createRealFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec:Com
         let Real         = match l with C -> uper_c.Real          | Ada -> uper_a.Real
         let funcBodyContent = Real pp errCode.errCodeName codec
         {UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = []; bValIsUnReferenced=false; bBsIsUnReferenced=false}    
-    let soSparkAnnotations = None
+    let soSparkAnnotations = Some(sparkAnnotations l (typeDefinition.longTypedefName l) codec)
     createUperFunction r l codec t typeDefinition baseTypeUperFunc  isValidFunc  (fun e p -> Some (funcBody e p)) soSparkAnnotations us
 
 let createObjectIdentifierFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.ObjectIdentifier) (typeDefinition:TypeDefintionOrReference) (baseTypeUperFunc : UPerFunction option) (isValidFunc: IsValidFunction option) (us:State)  =
@@ -408,11 +408,12 @@ let createIA5StringFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (code
                 funcBodyContent, charIndex@localVariables
 
         {UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = localVariables; bValIsUnReferenced=false; bBsIsUnReferenced=false}    
-    let soSparkAnnotations = 
-        match l with
-        | C     -> None
-        | Ada   ->
-            Some(uper_a.annotations (typeDefinition.longTypedefName l) true isValidFunc.IsSome true true codec)
+//    let soSparkAnnotations = 
+//        match l with
+//        | C     -> None
+//        | Ada   ->
+//            Some(uper_a.annotations (typeDefinition.longTypedefName l) true isValidFunc.IsSome true true codec)
+    let soSparkAnnotations = Some(sparkAnnotations l (typeDefinition.longTypedefName l) codec)
     createUperFunction r l codec t typeDefinition baseTypeUperFunc  isValidFunc  (fun e p -> Some (funcBody e p)) soSparkAnnotations  us
 
 

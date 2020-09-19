@@ -342,7 +342,7 @@ let private createAcnIntegerFunctionInternal (r:Asn1AcnAst.AstRoot) (l:Programmi
             |Asn1AcnAst.TwosComplement_ConstSize_little_endian_64          ->  Some(TwosComplement_ConstSize_little_endian_64 pp errCode.errCodeName soMF soMFM (sIntActualMin 64) (sIntActualMax 64) codec, [errCode], false, false)
             |Asn1AcnAst.TwosComplement_ConstSize bitSize                   ->  Some(TwosComplement_ConstSize pp errCode.errCodeName soMF soMFM ( bitSize) (sIntActualMin (int bitSize)) (sIntActualMax (int bitSize)) codec, [errCode], false, false)
 
-            |Asn1AcnAst.ASCII_ConstSize size                               ->  Some(ASCII_ConstSize pp errCode.errCodeName soMF soMFM nUperMin nUperMax (( size)/8I) codec, [errCode], false, false)
+            |Asn1AcnAst.ASCII_ConstSize size                               ->  Some(ASCII_ConstSize pp errCode.errCodeName soMF soMFM nUperMin nUperMax ((size)/8I) codec, [errCode], false, false)
             |Asn1AcnAst.ASCII_VarSize_NullTerminated nullBytes             ->  Some(ASCII_VarSize_NullTerminated pp errCode.errCodeName soMF soMFM nUperMin nUperMax nullBytes codec, [errCode], false, false)
             |Asn1AcnAst.ASCII_UINT_ConstSize size                          ->  Some(ASCII_UINT_ConstSize pp errCode.errCodeName soMF soMFM nUperMin nUperMax (( size)/8I) codec, [errCode], false, false)
             |Asn1AcnAst.ASCII_UINT_VarSize_NullTerminated nullBytes         ->  Some(ASCII_UINT_VarSize_NullTerminated pp errCode.errCodeName  soMF soMFM nUperMin nUperMax nullBytes codec, [errCode], false, false)
@@ -458,7 +458,7 @@ let createRealrFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec:Co
         match funcBodyContent with
         | None -> None
         | Some (funcBodyContent,errCodes) -> Some ({AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = errCodes; localVariables = []; bValIsUnReferenced= false; bBsIsUnReferenced=false})
-    let soSparkAnnotations = None
+    let soSparkAnnotations = Some(sparkAnnotations l (typeDefinition.longTypedefName l) codec)
     createAcnFunction r l codec t typeDefinition isValidFunc  (fun us e acnArgs p -> funcBody e acnArgs p, us) (fun atc -> true) soSparkAnnotations us
 
 

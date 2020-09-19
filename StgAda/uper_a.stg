@@ -38,7 +38,7 @@ with
       and then bs.Size_In_Bytes \< Positive'Last / 8
       and then bs.Current_Bit_Pos + <sTypeDefName>_REQUIRED_BITS_FOR_ENCODING \<= bs.Size_In_Bytes * 8,
        Post => 
-         (result.Success and bs.Current_Bit_Pos \>= bs'Old.Current_Bit_Pos + <sTypeDefName>_REQUIRED_BITS_FOR_ENCODING)
+         (result.Success and bs.Current_Bit_Pos \>= bs'Old.Current_Bit_Pos and bs.Current_Bit_Pos \<= bs'Old.Current_Bit_Pos + <sTypeDefName>_REQUIRED_BITS_FOR_ENCODING)
        or
          not result.Success
 >>
@@ -49,7 +49,7 @@ with
       and then bs.Size_In_Bytes \< Positive'Last / 8
       and then bs.Current_Bit_Pos + <sTypeDefName>_REQUIRED_BITS_FOR_ENCODING \<= bs.Size_In_Bytes * 8,
        Post => 
-         (result.Success and bs.Current_Bit_Pos \>= bs'Old.Current_Bit_Pos + <sTypeDefName>_REQUIRED_BITS_FOR_ENCODING)
+         (result.Success and bs.Current_Bit_Pos \>= bs'Old.Current_Bit_Pos and bs.Current_Bit_Pos \<= bs'Old.Current_Bit_Pos + <sTypeDefName>_REQUIRED_BITS_FOR_ENCODING)
        or
          not result.Success
 >>
@@ -455,9 +455,8 @@ end if;
 
 loopFixedItem_enc (i, fixedSize, nfixedSizeUperLimit, sInternalItem, nCurOffset, nAlignSize, nIntItemMinSize, nIntItemMaxSize)::= /*nogen*/<<    
 while <i>\<= <fixedSize> loop
-    --  pragma Loop_Invariant (<i> >=1 and <i>\<=<fixedSize>);
-    --  pragma Loop_Invariant (K >= K'Loop_Entry);
-    --  pragma Loop_Invariant (K\<=K'Loop_Entry + <nIntItemMaxSize>*(<i>-1));
+    pragma Loop_Invariant (<i> >=1 and <i>\<=<fixedSize>);
+    pragma Loop_Invariant (bs.Current_Bit_Pos\<=bs.Current_Bit_Pos'Loop_Entry + <nIntItemMaxSize>*(<i>-1));
     <sInternalItem>
     <i> := <i> + 1;
 end loop;
@@ -466,9 +465,9 @@ end loop;
 
 loopFixedItem_dec (i, fixedSize, nfixedSizeUperLimit, sInternalItem, nCurOffset, nAlignSize, nIntItemMinSize, nIntItemMaxSize)::= /*nogen*/<<    
 while <i>\<= <fixedSize> AND result.Success loop
-    --  pragma Loop_Invariant (<i> >=1 and <i>\<=<fixedSize>);
+    pragma Loop_Invariant (<i> >=1 and <i>\<=<fixedSize>);
     --  pragma Loop_Invariant (K.K >= K'Loop_Entry.K);
-    --  pragma Loop_Invariant (K.K \<= K'Loop_Entry.K + <nIntItemMaxSize>*(<i>-1));
+    pragma Loop_Invariant (bs.Current_Bit_Pos\<=bs.Current_Bit_Pos'Loop_Entry + <nIntItemMaxSize>*(<i>-1));
     <sInternalItem>
     <i> := <i> + 1;
 end loop;
