@@ -648,7 +648,7 @@ let private exportModule (m:Asn1Module) =
 
 let private exportAcnDependencyKind (d:AcnDependencyKind) =
     match d with                   
-    | AcnDepIA5StringSizeDeterminant        -> XElement(xname "SizeDependency")
+    | AcnDepIA5StringSizeDeterminant  _       -> XElement(xname "SizeDependency")
     | AcnDepSizeDeterminant  _      -> XElement(xname "SizeDependency")
     | AcnDepRefTypeArgument prm    -> XElement(xname "RefTypeArgumentDependency", XAttribute(xname "prmId", prm.id.AsString))
     | AcnDepPresenceBool           -> XElement(xname "PresenceBoolDependency")

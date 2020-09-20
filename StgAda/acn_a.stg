@@ -735,7 +735,13 @@ result.ErrorCode := <sErrCode>;
 >>
 
 
-Acn_String_Ascii_Internal_Field_Determinant_encode(p, sErrCode, nAsn1Max, nAsn1Min, nInternalLengthDeterminantSizeInBits) ::= "adaasn1rtl.encoding.acn.Acn_Enc_String_Ascii_Internal_Field_Determinant(bs, <nAsn1Min>, <nInternalLengthDeterminantSizeInBits>, <p>);"
+Acn_String_Ascii_Internal_Field_Determinant_encode(p, sErrCode, nAsn1Max, nAsn1Min, nInternalLengthDeterminantSizeInBits) ::= <<
+result.ErrorCode := <sErrCode>;
+result.Success := <nAsn1Min> \<= <rtlModuleName()>.getStringSize(<p>);
+if result.Success then
+    adaasn1rtl.encoding.acn.Acn_Enc_String_Ascii_Internal_Field_Determinant(bs, <nAsn1Min>, <nInternalLengthDeterminantSizeInBits>, <p>);
+end if;
+>>
 Acn_String_Ascii_Internal_Field_Determinant_decode(p, sErrCode, nAsn1Max, nAsn1Min, nInternalLengthDeterminantSizeInBits) ::= <<
 adaasn1rtl.encoding.acn.Acn_Dec_String_Ascii_Internal_Field_Determinant(bs, <nAsn1Min>, <nAsn1Max>, <nInternalLengthDeterminantSizeInBits>, <p>, result);
 result.ErrorCode := <sErrCode>;
@@ -779,7 +785,9 @@ result.ErrorCode := <sErrCode>;
 loopFixedItem_enc (i, fixedSize, nfixedSizeUperLimit, sInternalItem, nCurOffset, nAlignSize, nIntItemMinSize, nIntItemMaxSize)::= /*nogen*/<<    
 <i> := 1;
 while <i>\<= <fixedSize> loop
-    --  pragma Loop_Invariant (<i> >=1 and <i>\<=<fixedSize>);
+    pragma Loop_Invariant (<i> >=1 and <i>\<=<fixedSize>);
+    pragma Loop_Invariant (bs.Current_Bit_Pos \>= bs.Current_Bit_Pos'Loop_Entry);
+    pragma Loop_Invariant (bs.Current_Bit_Pos\<=bs.Current_Bit_Pos'Loop_Entry + <nIntItemMaxSize>*(<i>-1));
     <sInternalItem>
     <i> := <i> + 1;
 end loop;
@@ -788,7 +796,9 @@ end loop;
 loopFixedItem_dec (i, fixedSize, nfixedSizeUperLimit, sInternalItem, nCurOffset, nAlignSize, nIntItemMinSize, nIntItemMaxSize)::= /*nogen*/<<    
 <i> := 1;
 while <i>\<= <fixedSize> AND result.Success loop
-    --  pragma Loop_Invariant (<i> >=1 and <i>\<=<fixedSize>);
+    pragma Loop_Invariant (<i> >=1 and <i>\<=<fixedSize>);
+    pragma Loop_Invariant (bs.Current_Bit_Pos \>= bs.Current_Bit_Pos'Loop_Entry);
+    pragma Loop_Invariant (bs.Current_Bit_Pos\<=bs.Current_Bit_Pos'Loop_Entry + <nIntItemMaxSize>*(<i>-1));
     <sInternalItem>
     <i> := <i> + 1;
 end loop;
@@ -833,16 +843,18 @@ end if;
 >>
 
 
-oct_sqf_null_terminated_encode(p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength, sErrCode) ::= <<
-<loopFixedItem_enc(i=i, sInternalItem=sInternalItem, fixedSize=[p,".Length"], nfixedSizeUperLimit = nSizeMax, nCurOffset="0", nAlignSize="", nIntItemMinSize="", nIntItemMaxSize="")>
+oct_sqf_null_terminated_encode(p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength, sErrCode, nIntItemMinSize, nIntItemMaxSize) ::= <<
+<loopFixedItem_enc(i=i, sInternalItem=sInternalItem, fixedSize=[p,".Length"], nfixedSizeUperLimit = nSizeMax, nCurOffset="0", nAlignSize="", nIntItemMinSize=nIntItemMinSize, nIntItemMaxSize=nIntItemMaxSize)>
 <rtlModuleName()>.encoding.BitStream_AppendBits(bs, <rtlModuleName()>.OctetBuffer'(<arruNullBytes:{b|<i>=>16#<b;format="X2">#}; wrap, anchor, separator=", ">), <nBitPatternLength>);
 >>
 
-oct_sqf_null_terminated_decode(p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength, sErrCode) ::= <<
+oct_sqf_null_terminated_decode(p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength, sErrCode, nIntItemMinSize, nIntItemMaxSize) ::= <<
 <i> := 1;
 result := <rtlModuleName()>.ASN1_RESULT'(Success => true, ErrorCode => 0);
 while result.Success and then <i>\<= <nSizeMax> and then not <rtlModuleName()>.encoding.BitStream_bitPatternMatches(bs,<rtlModuleName()>.OctetBuffer'(<arruNullBytes:{b|<i>=>16#<b;format="X2">#}; wrap, anchor, separator=", ">), <nBitPatternLength>)  loop
-    --  pragma Loop_Invariant (<i> >=1 and <i>\<=<nSizeMax>);
+    pragma Loop_Invariant (<i> >=1 and <i>\<=<nSizeMax>);
+    pragma Loop_Invariant (bs.Current_Bit_Pos \>= bs.Current_Bit_Pos'Loop_Entry);
+    pragma Loop_Invariant (bs.Current_Bit_Pos\<=bs.Current_Bit_Pos'Loop_Entry + <nIntItemMaxSize>*(<i>-1));
     <sInternalItem>
     <i> := <i> + 1;
 end loop;
@@ -1307,9 +1319,13 @@ PresenceDependency(v, sSeqPath, sAcc, sChildName) ::= <<
 
 
 
-SizeDependency(v, sCount) ::= <<
+SizeDependency(v, sCount, nMin, nMax, bCheckRange) ::= <<
 <v>_is_initialized := True;
 <v> := <rtlModuleName()>.Asn1UInt(<sCount>);
+<if(bCheckRange)>
+result.success := <v> \>= <nMin> and <v> \<= <nMax>;
+
+<endif>
 >>
 
 SizeDependencyFixedSize(v, nFixedSize) ::= <<

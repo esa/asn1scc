@@ -179,7 +179,7 @@ def RunTestCase(asn1, acn, behavior, expErrMsg):
                         PrintWarning("coverage failed. (less than 100%)")
                         sys.exit(1)
                 except FileNotFoundError as err:
-                    pass;
+                    pass
             if runSpark:
                 res = mysystem("gnatprove -Pasn1_x86.gpr -j0  -u test_case.adb --level=4 >sparklog.txt 2>&1", True)
                 try:
@@ -194,7 +194,7 @@ def RunTestCase(asn1, acn, behavior, expErrMsg):
                     else:
                         PrintSucceededAsExpected("Spark OK !!!")
                 except FileNotFoundError as err:
-                    pass;
+                    pass
 
 
             #   def hunt_signature(l):

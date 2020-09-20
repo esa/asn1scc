@@ -294,7 +294,7 @@ let rec private checkType (r:AstRoot) (tasPositions:Map<ReferenceToType,int>) (p
     | NumericString  a      ->
         match a.acnProperties.sizeProp with
         | Some (StrExternalField   relPath)    ->
-            sizeReference r tasPositions curState parents t a.minSize.acn a.maxSize.acn visibleParameters (Some relPath) AcnDepIA5StringSizeDeterminant
+            sizeReference r tasPositions curState parents t a.minSize.acn a.maxSize.acn visibleParameters (Some relPath) (AcnDepIA5StringSizeDeterminant (a.minSize, a.maxSize, a.acnProperties))
         | _          -> curState
     | OctetString    a      -> 
         let rp = 

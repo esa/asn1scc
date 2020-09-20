@@ -694,7 +694,7 @@ type ReferenceToEnumerated = {
 }
 
 type AcnDependencyKind = 
-    | AcnDepIA5StringSizeDeterminant                  // The asn1Type has a size dependency a SEQUENCE OF, BIT STRINT, OCTET STRING etc
+    | AcnDepIA5StringSizeDeterminant  of (SIZE*SIZE*StringAcnProperties)                // The asn1Type has a size dependency in IA5String etc
     | AcnDepSizeDeterminant     of (SIZE*SIZE*SizeableAcnProperties)               // The asn1Type has a size dependency a SEQUENCE OF, BIT STRINT, OCTET STRING etc
     | AcnDepSizeDeterminant_bit_oct_str_containt     of ReferenceType             // The asn1Type has a size dependency a BIT STRINT, OCTET STRING containing another type
     | AcnDepRefTypeArgument       of AcnParameter        // string is the param name

@@ -1591,7 +1591,7 @@ is
 
    procedure Acn_Dec_String_CharIndex_External_Field_Determinant
      (bs : in out Bitstream; charSet : String; nCharSize : Integer;
-      extSizeDeterminatFld :        Asn1Int; strVal : in out String;
+      extSizeDeterminatFld :        Asn1Int; strVal : out String;
       Result               :    out ASN1_RESULT)
    is
       I         : Integer          := strVal'First;
@@ -1600,7 +1600,7 @@ is
    begin
       Result :=
         ASN1_RESULT'(Success => True, ErrorCode => ERR_INCORRECT_STREAM);
-
+      strVal := (others => Standard.Ascii.NUL);
       while Result.Success and then I <= strVal'Last - 1
         and then I <= Integer (extSizeDeterminatFld)
       loop

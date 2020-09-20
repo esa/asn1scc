@@ -97,7 +97,7 @@ is
      (len1 = len2
       and then arr1 (arr1'First .. arr1'First + (len1 - 1)) =
         arr2 (arr2'First .. arr2'First + (len2 - 1))) with
-      Pre => len1 > 0 and then len2 > 0 and then len1 = len2
+      Pre => len1 > 0 and then len2 > 0
       and then arr1'First <= Integer'Last - (len1 - 1)
       and then arr2'First <= Integer'Last - (len2 - 1)
       and then arr1'First + (len1 - 1) <= arr1'Last

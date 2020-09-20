@@ -97,7 +97,7 @@ ret := (<p1>.Length = <p2>.Length);
 <if(soInnerStatement)>
 <i> := <p1>.Data'First;
 while ret and <i> \<= <p1>.Length loop
-    --  pragma Loop_Invariant (<i> \>= <p1>.Data'First and <i> \>= <p2>.Data'First and <i> \<= <p1>.Length  and <p1>.Length = <p2>.Length);
+    pragma Loop_Invariant (<i> \>= <p1>.Data'First and <i> \>= <p2>.Data'First and <i> \<= <p1>.Length  and <p1>.Length = <p2>.Length);
     <soInnerStatement>
     <i> := <i>+1;
 end loop;

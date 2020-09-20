@@ -1,4 +1,4 @@
--- NOCOVERAGE
+-- NOCOVERAGE RUN_SPARK
 TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
 
 	MyPDU ::= ENUMERATED {
@@ -8,6 +8,7 @@ TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
 	pdu1 MyPDU ::= beta
 		
 END
+
 
 --TCLS     MyPDU[encode-values, encoding pos-int, size 10] { alpha[50], beta[60] }
 --TCLFC     MyPDU[encode-values, encoding twos-complement, size 10] { alpha[50], beta[60] } $$$ sample1.asn1:4:11: error: Acn property twos-complement cannot be applied to non negative INTEGER types

@@ -1014,7 +1014,7 @@ is
 
    procedure Acn_Dec_String_CharIndex_External_Field_Determinant
      (bs : in out Bitstream; charSet : String; nCharSize : Integer;
-      extSizeDeterminatFld :        Asn1Int; strVal : in out String;
+      extSizeDeterminatFld :        Asn1Int; strVal : out String;
       Result               :    out ASN1_RESULT) with
       Pre => extSizeDeterminatFld >= 0
       and then extSizeDeterminatFld <= Asn1Int (Integer'Last)
