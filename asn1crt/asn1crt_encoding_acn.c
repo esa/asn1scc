@@ -114,9 +114,9 @@ void Acn_Enc_Int_PositiveInteger_ConstSize_big_endian_32(BitStream* pBitStrm, as
 
 void Acn_Enc_Int_PositiveInteger_ConstSize_big_endian_64(BitStream* pBitStrm, asn1SccUint intVal)
 {
-    int i;
     // Avoid dead code warnings by conditionally compiling this part.
 #if WORD_SIZE!=8
+    int i;
     for (i = 0; i < 8 - WORD_SIZE; i++) {
         BitStream_AppendByte0(pBitStrm, 0x0);
     }
@@ -151,10 +151,10 @@ void Acn_Enc_Int_PositiveInteger_ConstSize_little_endian_32(BitStream* pBitStrm,
 
 void Acn_Enc_Int_PositiveInteger_ConstSize_little_endian_64(BitStream* pBitStrm, asn1SccUint intVal)
 {
-    int i;
     Acn_Enc_Int_PositiveInteger_ConstSize_little_endian_N(pBitStrm, intVal, WORD_SIZE);
     // Avoid dead code warnings by conditionally compiling this part.
 #if WORD_SIZE!=8
+    int i;
     for (i = 0; i < 8 - WORD_SIZE; i++) {
         BitStream_AppendByte0(pBitStrm, 0x0);
     }
