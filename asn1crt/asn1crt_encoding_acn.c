@@ -760,6 +760,7 @@ flag Acn_Dec_SInt_ASCII_ConstSize(BitStream* pBitStrm, asn1SccSint* pIntVal, int
 }
 
 
+void getIntegerDigits(asn1SccUint intVal, byte digitsArray100[], byte* totalDigits);
 
 void getIntegerDigits(asn1SccUint intVal, byte digitsArray100[], byte* totalDigits) {
 	int i = 0;
