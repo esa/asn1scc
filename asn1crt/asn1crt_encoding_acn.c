@@ -23,7 +23,7 @@ void Acn_AlignToNextByte(BitStream* pBitStrm, flag bEncode)
 		if (bEncode)
 			bitstrean_push_data_if_required(pBitStrm);
 		else
-			bitstrean_push_data_if_required(pBitStrm);
+            bitstrean_fetch_data_if_required(pBitStrm);
 		CHECK_BIT_STREAM(pBitStrm);
 	}
 }
@@ -36,7 +36,7 @@ void Acn_AlignToNextWord(BitStream* pBitStrm, flag bEncode)
 	if (bEncode)
 		bitstrean_push_data_if_required(pBitStrm);
 	else
-		bitstrean_push_data_if_required(pBitStrm);
+        bitstrean_fetch_data_if_required(pBitStrm);
 
 	CHECK_BIT_STREAM(pBitStrm);
 }
@@ -56,7 +56,7 @@ void Acn_AlignToNextDWord(BitStream* pBitStrm, flag bEncode)
 		if (bEncode)
 			bitstrean_push_data_if_required(pBitStrm);
 		else
-			bitstrean_push_data_if_required(pBitStrm);
+            bitstrean_fetch_data_if_required(pBitStrm);
 		pBitStrm->currentByte = extraBytes;
 	}
 
