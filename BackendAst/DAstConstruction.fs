@@ -849,6 +849,44 @@ let private mapType (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDepe
         us 
         
 
+let private mapTypeId (r:Asn1AcnAst.AstRoot)  (t:Asn1AcnAst.Asn1Type) =
+    Asn1Fold.foldType2
+        (fun pi t ti us -> [t.id], us)
+        (fun pi t ti us -> [t.id], us)
+        (fun pi t ti us -> [t.id], us)
+        (fun pi t ti us -> [t.id], us)
+        (fun pi t ti us -> [t.id], us)
+        (fun pi t ti us -> [t.id], us)
+        (fun pi t ti us -> [t.id], us)
+        (fun pi t ti us -> [t.id], us)
+        
+        (fun pi t ti us -> [t.id], us)
+        (fun pi t ti us -> [t.id], us)
+        (fun pi t ti us -> [t.id], us)
+
+        (fun pi t ti (newChild,_) -> newChild@[t.id],0)
+
+        (fun pi t ti (newChildren,_) -> (newChildren|> List.collect id)@[t.id], 0)
+        (fun ch (newChild,_) -> newChild, 0)
+        (fun ch us -> [ch.id], us)
+        
+
+        (fun pi t ti (newChildren,_) -> (newChildren|> List.collect id)@[t.id], 0)
+        (fun ch (newChild,_) -> newChild, 0)
+
+        (fun pi t ti newBaseType -> [t.id], 0)
+
+        (fun pi t (newKind,_)        -> newKind, 0)
+
+        (fun pi t ti us -> (),us)
+        (fun pi t ti us -> (),us)
+        (fun pi t ti us -> (),us)
+
+
+        None
+        t
+        0 |> fst
+
 
 
 
@@ -930,8 +968,16 @@ let DoWork (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies)
 //        | CommonTypes.ProgrammingLanguage.Spark -> DAst.ProgrammingLanguage.Ada
 //        | _                             -> raise(System.Exception "Unsupported programming language")
 
-    
-    let initialState = {currErrorCode = 1; curErrCodeNames = Set.empty; (*allocatedTypeDefNames = []; allocatedTypeDefNameInTas = Map.empty;*) alphaIndex=0; alphaFuncs=[]}
+    let typeIdsSet = 
+        r.Files |> 
+        Seq.collect(fun f -> f.Modules) |> 
+        Seq.collect(fun m -> m.TypeAssignments) |> 
+        Seq.collect(fun tas -> mapTypeId r tas.Type) |>
+        Seq.map(fun tid -> ToC (tid.AcnAbsPath.Tail.StrJoin("_").Replace("#","elem"))) |>
+        Seq.groupBy id |>
+        Seq.map(fun (id, lst) -> (id, Seq.length lst)) |>
+        Map.ofSeq
+    let initialState = {currErrorCode = 1; curErrCodeNames = Set.empty; (*allocatedTypeDefNames = []; allocatedTypeDefNameInTas = Map.empty;*) alphaIndex=0; alphaFuncs=[];typeIdsSet=typeIdsSet}
     //first map all type assignments and then value assignments
     let files0, ns = r.Files |> foldMap (fun cs f -> mapFile r deps l f cs) initialState
     let files, ns = files0 |> foldMap (fun cs f -> reMapFile r files0 deps l f cs) ns

@@ -31,9 +31,10 @@ type State = {
     //allocatedTypeDefNameInTas : Map<TypeAssignmentInfo, (string*string)>
     alphaIndex : int
     alphaFuncs : AlphaFunc list //func name, func body
+    typeIdsSet : Map<String,int>
 }
 
-let emptyState = {currErrorCode=0; curErrCodeNames=Set.empty; (*allocatedTypeDefNames = []; allocatedTypeDefNameInTas = Map.empty;*) alphaIndex=0; alphaFuncs=[]}
+let emptyState = {currErrorCode=0; curErrCodeNames=Set.empty; (*allocatedTypeDefNames = []; allocatedTypeDefNameInTas = Map.empty;*) alphaIndex=0; alphaFuncs=[]; typeIdsSet=Map.empty}
 
 
 

@@ -316,7 +316,7 @@ let createChoice (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1AcnAst.As
 
     match td.kind with
     | NonPrimitiveNewTypeDefinition              -> 
-        let completeDefintion = define_new_choice td (choiceIDForNone t.id) (children.Head.presentWhenName None l) arrsChildren arrsPresent nIndexMax childldrenCompleteDefintions
+        let completeDefintion = define_new_choice td (choiceIDForNone us.typeIdsSet l t.id) (children.Head.presentWhenName None l) arrsChildren arrsPresent nIndexMax childldrenCompleteDefintions
         Some completeDefintion
     | NonPrimitiveNewSubTypeDefinition subDef     -> 
         let otherProgramUnit = if td.programUnit = subDef.programUnit then None else (Some subDef.programUnit)

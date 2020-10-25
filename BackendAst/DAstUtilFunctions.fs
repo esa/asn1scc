@@ -423,7 +423,15 @@ type Choice with
     member this.WithCons = this.baseInfo.withcons
     member this.AllCons  = this.baseInfo.cons@this.baseInfo.withcons
     
-let  choiceIDForNone (id:ReferenceToType) =  ToC (id.AcnAbsPath.Tail.StrJoin("_").Replace("#","elem")) + "_NONE"
+let  choiceIDForNone (typeIdsSet:Map<String,int>) (l:ProgrammingLanguage) (id:ReferenceToType) =  
+    let prefix = ToC (id.AcnAbsPath.Tail.StrJoin("_").Replace("#","elem"))
+    match l with
+    | Ada   -> prefix + "_NONE"
+    | C     -> 
+        match typeIdsSet.TryFind prefix with
+        | None  -> prefix + "_NONE" 
+        | Some a when a = 1 -> prefix + "_NONE" 
+        | Some a            -> ToC (id.AcnAbsPath.StrJoin("_").Replace("#","elem")) + "_NONE" 
 
 type ReferenceType with
     member ref.AsTypeAssignmentInfo =  {TypeAssignmentInfo.modName = ref.baseInfo.modName.Value; tasName = ref.baseInfo.tasName.Value}
