@@ -5,12 +5,13 @@ if [ $# -ne 1 ] ; then
 fi
 OLD_TARBALL="$1"
 echo "[-] Building debug version... (mandatory pre-requisite)"
+rm -rf Asn1f4/{bin,obj}
 make >make.log 2>&1 || { 
     echo "[x] Failed - please check make.log"
     exit 1
 }
 echo "[-] Building release version..."
-make >make.log 2>&1 || { 
+make -f Makefile.Release >make.log 2>&1 || { 
     echo "[x] Failed - please check make.log"
     exit 1
 }
