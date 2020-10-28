@@ -67,7 +67,7 @@ ImportedMod(sName, sCName, arrsTypes, arrsVars) ::= <<
 /* A single Type Assignment, this is filled for all types of all modules */
 TasXml(sName, nLine, nPos, sType, sCName, sAssigOp, sContract, bAddedType) ::= <<
 types["$sName$"] = type("$sName$", (object,), {
-    "Line": $nLine$, "CharPositionInLine": $nPos$, "AddedType": "$bAddedType$", "type": type("$sName$_type", (object,), {
+    "Line": $nLine$, "CharPositionInLine": $nPos$, "CName": "$sCName$", "AddedType": "$bAddedType$", "type": type("$sName$_type", (object,), {
         $sType$
     })
 })
@@ -89,8 +89,8 @@ variables["$sName$"] = type("$sName$", (object,), {
 
 >>
 
-TypeGeneric(nLine, nPos, sAsnFile, sSubType, bHasAcnEncDecFunction) ::= <<
-"Line": $nLine$, "CharPositionInLine": $nPos$, $sSubType$
+TypeGeneric(nLine, nPos, sAsnFile, sSubType, bHasAcnEncDecFunction, sCName, sAdaName) ::= <<
+"AsnFile": "$sAsnFile$", "Line": $nLine$, "CharPositionInLine": $nPos$, "CName": "$sCName$", "AdaName": "$sAdaName$", "HasAcnEncDec": $bHasAcnEncDecFunction$, $sSubType$
 >>
 
 
