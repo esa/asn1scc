@@ -73,8 +73,8 @@ VasXml(sName, nLine, nPos, sType, sValue, sCName) ::= <<
 </VariableAssignment>
 >>
 
-TypeGeneric(nLine, nPos, sAsnFile, sSubType, bHasAcnEncDecFunction) ::= <<
-<Type Line="$nLine$" CharPositionInLine="$nPos$" Asn1File="$sAsnFile$" HasAcnEncDecFunction = "$bHasAcnEncDecFunction$">
+TypeGeneric(nLine, nPos, sAsnFile, sSubType, bHasAcnEncDecFunction, sCName, sAdaName) ::= <<
+<Type Line="$nLine$" CharPositionInLine="$nPos$" Asn1File="$sAsnFile$" HasAcnEncDecFunction = "$bHasAcnEncDecFunction$" cName="$sCName$" adaName="$sAdaName$">
     $sSubType$
 </Type>
 >>

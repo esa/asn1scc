@@ -64,7 +64,7 @@ variables["$sName$"] = {
 
 >>
 
-TypeGeneric(nLine, nPos, sAsnFile, sSubType, bHasAcnEncDecFunction) ::= <<
+TypeGeneric(nLine, nPos, sAsnFile, sSubType, bHasAcnEncDecFunction, sCName, sAdaName) ::= <<
 "Line": $nLine$, "CharPositionInLine": $nPos$, "Asn1File":"$sAsnFile$", $sSubType$, "HasAcnEncodeDecodeFunction":$bHasAcnEncDecFunction$
 >>
 

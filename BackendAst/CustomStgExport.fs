@@ -141,7 +141,11 @@ let rec PrintType (r:AstRoot) (f:Asn1File) (stgFileName:string) modName (deepRec
                 match uperRange with
                 | Some(sMin, sMax)  -> gen.RefTypeMinMax sMin sMax asn1Name sModName (ToC asn1Name) (*typedefName*) sCModName (sMin = sMax) sResolvedType stgFileName
                 | None              -> gen.RefType asn1Name sModName (ToC asn1Name) (*typedefName*) sCModName sResolvedType stgFileName
-            gen.TypeGeneric (BigInteger t.Location.srcLine) (BigInteger t.Location.charPos) f.FileName refTypeContent (t.acnDecFunction.IsSome && t.acnDecFunction.Value.funcName.IsSome) stgFileName
+
+            let cName = t.FT_TypeDefintion.[C].typeName
+            let adaName = t.FT_TypeDefintion.[Ada].typeName
+            gen.TypeGeneric (BigInteger t.Location.srcLine) (BigInteger t.Location.charPos) f.FileName refTypeContent (t.acnDecFunction.IsSome && t.acnDecFunction.Value.funcName.IsSome) cName adaName stgFileName
+
     let PrintTypeAux (t:Asn1Type) =
         match t.Kind with                                                                                            //func name sMin sMax (sMin=sMax) stgFileName
         | Integer           i    -> handTypeWithMinMax (gen.IntegerType () stgFileName)         i.baseInfo.uperRange (fun name sMin sMax bFixedSize stgFileName -> gen.MinMaxType name sMin sMax bFixedSize i.baseInfo.isUnsigned false stgFileName ) stgFileName
@@ -216,7 +220,9 @@ let rec PrintType (r:AstRoot) (f:Asn1File) (stgFileName:string) modName (deepRec
             match uperRange with
             | Some(sMin, sMax)  -> gen.RefTypeMinMax sMin sMax info.baseInfo.tasName.Value sModName (ToC info.baseInfo.tasName.Value) sCModName  (sMin=sMax) (Some resolvedType) stgFileName
             | None              -> gen.RefType info.baseInfo.tasName.Value sModName (ToC info.baseInfo.tasName.Value) sCModName (Some resolvedType) stgFileName
-    gen.TypeGeneric (BigInteger t.Location.srcLine) (BigInteger t.Location.charPos) f.FileName  (PrintTypeAux t) (t.acnDecFunction.IsSome && t.acnDecFunction.Value.funcName.IsSome) stgFileName
+    let cName = t.FT_TypeDefintion.[C].typeName
+    let adaName = t.FT_TypeDefintion.[Ada].typeName
+    gen.TypeGeneric (BigInteger t.Location.srcLine) (BigInteger t.Location.charPos) f.FileName  (PrintTypeAux t) (t.acnDecFunction.IsSome && t.acnDecFunction.Value.funcName.IsSome) cName adaName stgFileName 
 
 
 
