@@ -1007,7 +1007,8 @@ let createChoiceInitFunc (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1A
 
 let createReferenceType (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1AcnAst.Asn1Type) (o :Asn1AcnAst.ReferenceType) (typeDefinition:TypeDefintionOrReference) (baseType:Asn1Type) =
     let initChildWithInitFunc       = match l with C -> init_c.initChildWithInitFunc | Ada -> init_a.initChildWithInitFunc
-    let typeDefinitionName = ToC2(r.args.TypePrefix + o.tasName.Value)
+    //let typeDefinitionName = ToC2(r.args.TypePrefix + o.tasName.Value)
+    
     
     let t1              = Asn1AcnAstUtilFunctions.GetActualTypeByName r o.modName o.tasName
     let t1WithExtensios = o.resolvedType;
@@ -1017,13 +1018,13 @@ let createReferenceType (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1Ac
     | false -> 
         createInitFunctionCommon r l t typeDefinition bs.initByAsn1Value baseType.initialValue bs.initTas bs.automaticTestCases
     | true  ->
-        let baseFncName = 
-            match l with
-            | C     -> typeDefinitionName + (nameSuffix l)
-            | Ada   -> 
-                match t.id.ModName = o.modName.Value with
-                | true  -> typeDefinitionName + (nameSuffix l)
-                | false -> (ToC o.modName.Value) + "." + (typeDefinitionName + (nameSuffix l))
+        let baseFncName = (typeDefinition.longTypedefName l) + (nameSuffix l)
+//            match l with
+//            | C     -> typeDefinitionName + (nameSuffix l)
+//            | Ada   -> 
+//                match t.id.ModName = o.modName.Value with
+//                | true  -> typeDefinitionName + (nameSuffix l)
+//                | false -> (ToC o.modName.Value) + "." + (typeDefinitionName + (nameSuffix l))
         let initTasFunction (p:CallerScope) =
             let funcBody = initChildWithInitFunc (p.arg.getPointer l) baseFncName
             {InitFunctionResult.funcBody = funcBody; localVariables = []}

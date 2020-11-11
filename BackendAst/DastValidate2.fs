@@ -777,13 +777,13 @@ let createReferenceTypeFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (
     | true  -> baseType.isValidFunction, us    
     | false -> 
         let typeDefinitionName = ToC2(r.args.TypePrefix + o.tasName.Value)
-        let baseFncName = 
-            match l with
-            | C     -> typeDefinitionName + "_IsConstraintValid"
-            | Ada   -> 
-                match t.id.ModName = o.modName.Value with
-                | true  -> typeDefinitionName + "_IsConstraintValid"
-                | false -> (ToC o.modName.Value) + "." + typeDefinitionName + "_IsConstraintValid"
+        let baseFncName = (typeDefinition.longTypedefName l) + "_IsConstraintValid"
+//            match l with
+//            | C     -> typeDefinitionName + "_IsConstraintValid"
+//            | Ada   -> 
+//                match t.id.ModName = o.modName.Value with
+//                | true  -> typeDefinitionName + "_IsConstraintValid"
+//                | false -> (ToC o.modName.Value) + "." + typeDefinitionName + "_IsConstraintValid"
 
         let funBody (errCode: ErroCode) (p:CallerScope) = 
             let callBaseTypeFunc = match l with C -> isvalid_c.call_base_type_func | Ada -> isvalid_a.call_base_type_func
