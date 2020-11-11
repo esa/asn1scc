@@ -700,13 +700,16 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec:C
 
 
 let createReferenceFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.ReferenceType) (typeDefinition:TypeDefintionOrReference) (isValidFunc: IsValidFunction option) (baseType:Asn1Type) (us:State)  =
+    let typeDefinitionName0 = 
+        let t1 = Asn1AcnAstUtilFunctions.GetActualTypeByName r o.modName o.tasName
+        t1.FT_TypeDefintion.[l].typeName
     let baseTypeDefinitionName = 
         match l with
-        | C     -> ToC2(r.args.TypePrefix + o.tasName.Value) 
+        | C     -> typeDefinitionName0 
         | Ada   -> 
             match t.id.ModName = o.modName.Value with
-            | true  -> ToC2(r.args.TypePrefix + o.tasName.Value) 
-            | false -> (ToC o.modName.Value) + "." + ToC2(r.args.TypePrefix + o.tasName.Value) 
+            | true  -> typeDefinitionName0 
+            | false -> (ToC o.modName.Value) + "." + typeDefinitionName0 
     let baseFncName = baseTypeDefinitionName + codec.suffix
 
     match o.encodingOptions with 

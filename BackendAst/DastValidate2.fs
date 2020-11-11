@@ -776,7 +776,10 @@ let createReferenceTypeFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (
     match o.hasConstraints with
     | true  -> baseType.isValidFunction, us    
     | false -> 
-        let typeDefinitionName = ToC2(r.args.TypePrefix + o.tasName.Value)
+        let typeDefinitionName = 
+            let t1 = Asn1AcnAstUtilFunctions.GetActualTypeByName r o.modName o.tasName
+            t1.FT_TypeDefintion.[l].typeName
+        //let typeDefinitionName = ToC2(r.args.TypePrefix + o.tasName.Value)
         let baseFncName = 
             match l with
             | C     -> typeDefinitionName + "_IsConstraintValid"

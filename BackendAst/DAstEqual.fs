@@ -5,6 +5,7 @@ open System.IO
 
 open FsUtils
 open CommonTypes
+open Asn1AcnAstUtilFunctions
 
 open DAst
 open DAstUtilFunctions
@@ -328,10 +329,15 @@ let createReferenceTypeEqualFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLangua
     //let isEqualFuncName     = getEqualFuncName r l t.id
     let isEqualFuncName            = getFuncName r l  defOrRef
     let typeDefinitionName = defOrRef.longTypedefName l
-    let aaa
-        = 0
 
-    let baseTypeDefName = ToC2(r.args.TypePrefix + o.tasName.Value)
+
+    let typeDefinitionName0 = 
+        let t1 = Asn1AcnAstUtilFunctions.GetActualTypeByName r o.modName o.tasName
+        t1.FT_TypeDefintion.[l].typeName
+
+    let baseTypeDefName = typeDefinitionName0//ToC2(r.args.TypePrefix + o.tasName.Value)
+
+
     let baseEqName = 
         match l with
         | C     -> baseTypeDefName + "_Equal"
