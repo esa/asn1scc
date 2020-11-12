@@ -1690,16 +1690,16 @@ let createReferenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
     | Some( encOptions) ->
         //contained type i.e. MyOct ::= OCTET STRING (CONTAINING Other-Type)
         let loc = o.tasName.Location
-        let typeDefinitionName0 = 
+        let moduleName, typeDefinitionName0 = 
             let t1 = Asn1AcnAstUtilFunctions.GetActualTypeByName r o.modName o.tasName
-            t1.FT_TypeDefintion.[l].typeName
+            t1.FT_TypeDefintion.[l].programUnit, t1.FT_TypeDefintion.[l].typeName
         let baseTypeDefinitionName = 
             match l with
             | C     -> typeDefinitionName0 
             | Ada   -> 
                 match t.id.ModName = o.modName.Value with
                 | true  -> typeDefinitionName0 
-                | false -> (ToC o.modName.Value) + "." + typeDefinitionName0 
+                | false -> moduleName + "." + typeDefinitionName0 
         let baseFncName = baseTypeDefinitionName + "_ACN" + codec.suffix
         let sReqBytesForUperEncoding = sprintf "%s_REQUIRED_BYTES_FOR_ACN_ENCODING" baseTypeDefinitionName
         let sReqBitForUperEncoding = sprintf "%s_REQUIRED_BITS_FOR_ACN_ENCODING" baseTypeDefinitionName

@@ -55,8 +55,8 @@ let GetDatFile (r:DAst.AstRoot) l (v:ValueAssignment) modName sTasName encAmper 
     | true, BER   -> generate_dat_file modName sTasName encAmper (GetEncodingString l enc) "Byte"
     | true, uPER  -> generate_dat_file modName sTasName encAmper (GetEncodingString l enc) "Bit"
 
-let PrintValueAssignmentAsTestCase (r:DAst.AstRoot) l (e:Asn1Encoding) (v:ValueAssignment) (m:Asn1Module) (sTasName : string)  (idx :int) dummyInitStatementsNeededForStatementCoverage  =
-    let modName = ToC m.Name.Value
+let PrintValueAssignmentAsTestCase (r:DAst.AstRoot) l (e:Asn1Encoding) (v:ValueAssignment) (m:Asn1Module) (typeModName:string) (sTasName : string)  (idx :int) dummyInitStatementsNeededForStatementCoverage  =
+    let modName = typeModName//ToC m.Name.Value
     let sFuncName = sprintf "test_case_%A_%06d" e idx
     let encAmper, initAmper = gAmber v.Type
     let curProgramUnitName = ""  //Main program has no module
@@ -69,9 +69,9 @@ let PrintValueAssignmentAsTestCase (r:DAst.AstRoot) l (e:Asn1Encoding) (v:ValueA
     let func_invokation = invokeTestCaseAsFunc l sFuncName
     (func_def, func_dody, func_invokation)
     
-let PrintAutomaticTestCase (r:DAst.AstRoot) l (e:Asn1Encoding) (initStatement:String) (localVars : LocalVariable list) (m:Asn1Module) (t:Asn1Type) (sTasName : string)  (idx :int) initFuncName  =
+let PrintAutomaticTestCase (r:DAst.AstRoot) l (e:Asn1Encoding) (initStatement:String) (localVars : LocalVariable list) (m:Asn1Module) (t:Asn1Type) (modName : string) (sTasName : string)  (idx :int) initFuncName  =
     let sFuncName = sprintf "test_case_%A_%06d" e idx
-    let modName = ToC m.Name.Value
+    //let modName = ToC m.Name.Value
     let arrsVars = localVars |> List.map(fun lv -> lv.GetDeclaration l) |> Seq.distinct |> Seq.toList
 
     let encAmper, initAmper = gAmber t
@@ -118,6 +118,13 @@ let emitDummyInitStatementsNeededForStatementCoverage l (t:Asn1Type) =
             | true  ->  p.arg.getValue l
             | false ->  p.arg.getPointer l
         let sTypeName = t.typeDefintionOrReference.longTypedefName l
+        let sTypeName = 
+            match l with
+            | C -> sTypeName
+            | Ada -> 
+                match sTypeName.Contains "." with
+                | true  -> sTypeName
+                | false -> t.FT_TypeDefintion.[l].programUnit + "." + sTypeName
         match funcName with
         | None  -> None
         | Some funcName ->  Some (emitTestCaseAsFunc_dummy_init l sTypeName funcName dummyVarName))
@@ -145,18 +152,18 @@ let printAllTestCases (r:DAst.AstRoot) l outDir =
                                             let initStatement = atc.initTestCaseFunc p
                                             let dummyInitStatementsNeededForStatementCoverage = (emitDummyInitStatementsNeededForStatementCoverage l t.Type)//t.Type.initFunction.initFuncName
                                             
-                                            PrintAutomaticTestCase r l e initStatement.funcBody initStatement.localVariables  m t.Type (t.Type.FT_TypeDefintion.[l].typeName) idx dummyInitStatementsNeededForStatementCoverage 
+                                            PrintAutomaticTestCase r l e initStatement.funcBody initStatement.localVariables  m t.Type (t.Type.FT_TypeDefintion.[l].programUnit) (t.Type.FT_TypeDefintion.[l].typeName) idx dummyInitStatementsNeededForStatementCoverage 
                                         yield generateTcFun
                         | None  -> () 
                     for v in m.ValueAssignments do
-                        let encDecTestFunc, tasName = 
+                        let encDecTestFunc, typeModName, tasName = 
                             //does not work for Ada (tasname is not calculated correctly, needs to be fixed)
 //                            match l with
 //                            | C ->
                                 match v.Type.Kind with
                                 | ReferenceType   ref ->
-                                    ref.resolvedType.getEncDecTestFunc e, (ToC2(r.args.TypePrefix + ref.baseInfo.tasName.Value) )
-                                | _                  -> v.Type.getEncDecTestFunc e, v.Type.typeDefintionOrReference.longTypedefName l
+                                    ref.resolvedType.getEncDecTestFunc e, (ToC ref.baseInfo.modName.Value), (ToC2(r.args.TypePrefix + ref.baseInfo.tasName.Value) )
+                                | _                  -> v.Type.getEncDecTestFunc e,  (ToC m.Name.Value), v.Type.typeDefintionOrReference.longTypedefName l
 //                            | Ada ->
 //                                v.Type.getEncDecTestFunc e, (getTypeDecl r (ToC m.Name.Value) l v )
                         match encDecTestFunc with
@@ -164,7 +171,7 @@ let printAllTestCases (r:DAst.AstRoot) l outDir =
                             let generateTcFun idx = 
                                 //let initFuncName = v.Type.initFunction.initFuncName
                                 let dummyInitStatementsNeededForStatementCoverage = (emitDummyInitStatementsNeededForStatementCoverage l v.Type)
-                                PrintValueAssignmentAsTestCase r l e v m tasName (*(getTypeDecl r (ToC m.Name.Value) l v )*)  idx dummyInitStatementsNeededForStatementCoverage 
+                                PrintValueAssignmentAsTestCase r l e v m typeModName tasName (*(getTypeDecl r (ToC m.Name.Value) l v )*)  idx dummyInitStatementsNeededForStatementCoverage 
                             yield generateTcFun
                         | None         -> ()
         } |> Seq.toList

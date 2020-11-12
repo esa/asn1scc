@@ -331,9 +331,9 @@ let createReferenceTypeEqualFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLangua
     let typeDefinitionName = defOrRef.longTypedefName l
 
 
-    let typeDefinitionName0 = 
+    let moduleName, typeDefinitionName0 = 
         let t1 = Asn1AcnAstUtilFunctions.GetActualTypeByName r o.modName o.tasName
-        t1.FT_TypeDefintion.[l].typeName
+        t1.FT_TypeDefintion.[l].programUnit, t1.FT_TypeDefintion.[l].typeName
 
     let baseTypeDefName = typeDefinitionName0//ToC2(r.args.TypePrefix + o.tasName.Value)
 
@@ -344,7 +344,7 @@ let createReferenceTypeEqualFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLangua
         | Ada   -> 
             match t.id.ModName = o.modName.Value with
             | true  -> baseTypeDefName + "_Equal"
-            | false -> (ToC o.modName.Value) + "." + baseTypeDefName + "_Equal"
+            | false -> moduleName + "." + baseTypeDefName + "_Equal"
 
     
     match baseType.Kind with
