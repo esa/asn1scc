@@ -679,7 +679,10 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec:C
                             | C ->"/*no encoding/decoding is required*/" 
                             | Ada when codec=Decode -> 
                                 let childp = ({p with arg = VALUE ((child.getBackendName l) + "_tmp")})
-                                uper_a.null_decode childp.arg.p
+                                match child.chType.ActualType.Kind with
+                                | NullType _    -> uper_a.null_decode childp.arg.p
+                                | Sequence _    -> uper_a.decode_empty_sequence_emptySeq childp.arg.p
+                                | _             -> "--no encoding/decoding is required"
                             | Ada   -> "--no encoding/decoding is required"
                         choice_child p.arg.p (p.arg.getAcces l) (child.presentWhenName (Some typeDefinition) l) (BigInteger i) nIndexSizeInBits (BigInteger (children.Length - 1)) childContent sChildName sChildTypeDef sChoiceTypeName codec,[],[]
                     | Some childContent ->  

@@ -303,6 +303,12 @@ end;
 
 /* SEQUENCE START */
 
+decode_empty_sequence_emptySeq(p) ::= <<
+<p> := (null record);
+result := <rtlModuleName()>.ASN1_RESULT'(Success => true, ErrorCode => 0);
+>>
+
+
 
 sequence_presence_bit_encode(p, sAcc, sChName, sErrCode) ::= "<rtlModuleName()>.encoding.BitStream_AppendBit(bs,<p>.Exist.<sChName>);"
 sequence_presence_bit_decode(p, sAcc, sChName, sErrCode) ::= <<
