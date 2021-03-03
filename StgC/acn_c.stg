@@ -449,32 +449,30 @@ Null_empty_pattern() ::= "/*null, nothing to do */"
 
 
 
-Declare_EnumValueUInt() ::= "asn1SccUint intVal = 0;"
-Declare_EnumValueSInt() ::= "asn1SccSint intVal = -1;"
 
 
-Enumerated_item_encode(p, sName, nItemIdxOrVal) ::= <<
+Enumerated_item_encode(p, sName, nItemIdxOrVal, sIntVal) ::= <<
 case <sName>:
-    intVal = <nItemIdxOrVal>;
+    <sIntVal> = <nItemIdxOrVal>;
     break;
 >>
 
-Enumerated_item_decode(p, sName, nItemIdxOrVal) ::= <<
+Enumerated_item_decode(p, sName, nItemIdxOrVal, sIntVal) ::= <<
 case <nItemIdxOrVal>:
     <p> = <sName>;
     break;
 >>
 
-EnumeratedEncIdx_encode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, sActualCodecFunc) ::= <<
+EnumeratedEncIdx_encode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, sActualCodecFunc, sIntVal) ::= <<
 <sActualCodecFunc>
 >>
 
-EnumeratedEncIdx_decode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, sActualCodecFunc) ::= <<
+EnumeratedEncIdx_decode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, sActualCodecFunc, sIntVal) ::= <<
 <sActualCodecFunc>
 >>
 
 
-EnumeratedEncValues_encode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, sActualCodecFunc, sErrCode, sFirstItemName) ::= <<
+EnumeratedEncValues_encode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, sActualCodecFunc, sErrCode, sFirstItemName, sIntVal) ::= <<
 switch(<p>) { 
     <arrsItem; separator="\n">
     default:                                    /*COVERAGE_IGNORE*/
@@ -484,10 +482,10 @@ switch(<p>) {
 <sActualCodecFunc>
 >>
 
-EnumeratedEncValues_decode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, sActualCodecFunc, sErrCode, sFirstItemName) ::= <<
+EnumeratedEncValues_decode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, sActualCodecFunc, sErrCode, sFirstItemName, sIntVal) ::= <<
 <sActualCodecFunc>
 if (ret) {
-    switch (intVal) {
+    switch (<sIntVal>) {
         <arrsItem; separator="\n">
     default:                                    /*COVERAGE_IGNORE*/
         ret = FALSE;                            /*COVERAGE_IGNORE*/

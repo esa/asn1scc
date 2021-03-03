@@ -1,0 +1,23 @@
+TEST-CASE DEFINITIONS ::=
+BEGIN
+
+EnumA ::= ENUMERATED {
+    val1 (-1),
+    val2 (0),
+    val3 (1)
+}
+
+EnumB ::= ENUMERATED {
+    valX (0),
+    valY (1),
+    valZ (2)
+}
+
+Combined ::= SEQUENCE {
+    alpha EnumA,
+    beta  EnumB
+}
+
+END
+
+--TCFS     0209.acn

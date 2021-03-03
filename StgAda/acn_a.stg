@@ -669,36 +669,36 @@ adaasn1rtl.encoding.acn.Acn_Dec_NullType(bs, <p>, result);
 
 
 
-Enumerated_item_encode(p, sName, nItemIdxOrVal) ::= "when <sName>    => intVal := <nItemIdxOrVal>;"
+Enumerated_item_encode(p, sName, nItemIdxOrVal, sIntVal) ::= "when <sName>    => <sIntVal> := <nItemIdxOrVal>;"
 
-Enumerated_item_decode(p, sName, nItemIdxOrVal) ::= "when <nItemIdxOrVal> => <p> := <sName>;"
+Enumerated_item_decode(p, sName, nItemIdxOrVal, sIntVal) ::= "when <nItemIdxOrVal> => <p> := <sName>;"
 
-EnumeratedEncIdx_encode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, sActualCodecFunc) ::= <<
+EnumeratedEncIdx_encode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, sActualCodecFunc, sIntVal) ::= <<
 case <p> is 
     <arrsItem; separator="\n">
 end case;
 <sActualCodecFunc>
 >>
 
-EnumeratedEncIdx_decode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, sActualCodecFunc) ::= <<
+EnumeratedEncIdx_decode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, sActualCodecFunc, sIntVal) ::= <<
 <p> := <td.typeName>_Init;
 <sActualCodecFunc>
 if result.Success then
-    case <td.index_range>(intVal) is
+    case <td.index_range>(<sIntVal>) is
         <arrsItem; separator="\n">
     end case;
 end if;
 >>
 
 
-EnumeratedEncValues_encode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, sActualCodecFunc, sErrCode, sFirstItemName) ::= <<
+EnumeratedEncValues_encode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, sActualCodecFunc, sErrCode, sFirstItemName, sIntVal) ::= <<
 <EnumeratedEncIdx_encode(p=p, td=td, arrsItem=arrsItem, sActualCodecFunc=sActualCodecFunc)>
 >>
 
-EnumeratedEncValues_decode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, sActualCodecFunc, sErrCode, sFirstItemName) ::= <<
+EnumeratedEncValues_decode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, sActualCodecFunc, sErrCode, sFirstItemName, sIntVal) ::= <<
 <sActualCodecFunc>
 if result.Success then
-    case intVal is
+    case <sIntVal> is
         <arrsItem; separator="\n">
     when others =>																				-- COVERAGE_IGNORE
         <p> := <sFirstItemName>;																-- COVERAGE_IGNORE

@@ -1,0 +1,7 @@
+TEST-CASE DEFINITIONS ::=
+BEGIN
+
+EnumA [size 8, encoding twos-complement, encode-values]
+EnumB [size 8, encoding pos-int, encode-values]
+
+END
