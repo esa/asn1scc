@@ -258,7 +258,7 @@ let private createAcnFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (co
                 
                 //let errCodes = bodyResult.errCodes
                 let errCodStr = errCodes |> List.map(fun x -> (EmitTypeAssignment_def_err_code x.errCodeName) (BigInteger x.errCodeValue))
-                let funcDef = Some(EmitTypeAssignment_primitive_def varName sStar funcName  (typeDefinition.longTypedefName l) errCodStr (t.acnMaxSizeInBits = 0I) (BigInteger (ceil ((double t.acnMaxSizeInBits)/8.0))) ( t.acnMaxSizeInBits) prms codec)
+                let funcDef = Some(EmitTypeAssignment_primitive_def varName sStar funcName  (typeDefinition.longTypedefName l) errCodStr (t.acnMaxSizeInBits = 0I) (BigInteger (ceil ((double t.acnMaxSizeInBits)/8.0))) ( t.acnMaxSizeInBits) prms soSparkAnnotations codec)
                 func, funcDef,ns1a
 
 
@@ -1495,8 +1495,15 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
         match existsAcnChildWithNoUpdates with
         | []     ->
             match seqContent with
-            | None  -> None, ns
-            | Some ret -> Some ({AcnFuncBodyResult.funcBody = ret; errCodes = errCode::childrenErrCodes; localVariables = localVariables@childrenLocalvars; bValIsUnReferenced= false; bBsIsUnReferenced=false}), ns    
+            | None  -> 
+                match l with 
+                | C -> None, ns
+                | Ada when codec=Decode -> 
+                    let ret = uper_a.decode_empty_sequence_emptySeq p.arg.p
+                    Some ({AcnFuncBodyResult.funcBody = ret; errCodes = errCode::childrenErrCodes; localVariables = localVariables@childrenLocalvars; bValIsUnReferenced= false; bBsIsUnReferenced=true}), ns
+                | Ada   -> None, ns
+            | Some ret -> Some ({AcnFuncBodyResult.funcBody = ret; errCodes = errCode::childrenErrCodes; localVariables = localVariables@childrenLocalvars; bValIsUnReferenced= false; bBsIsUnReferenced=false}), ns
+            
         | errChild::_      -> 
             let determinantUsage =
                 match errChild.Type with
@@ -1673,20 +1680,45 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
 let createReferenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (l:ProgrammingLanguage) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.ReferenceType) (typeDefinition:TypeDefintionOrReference) (isValidFunc: IsValidFunction option) (baseType:Asn1Type) (us:State)  =
   match o.encodingOptions with 
   | None          -> 
-      match codec with
-        | Codec.Encode  -> baseType.getAcnFunction codec, us
-        | Codec.Decode  -> 
-            let paramsArgsPairs = List.zip o.acnArguments o.resolvedType.acnParameters
-            let baseTypeAcnFunction = baseType.getAcnFunction codec 
-            let ret =
-                match baseTypeAcnFunction with
-                | None  -> None
-                | Some baseTypeAcnFunction   ->
-                    let funcBody us (acnArgs: (AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) (p:CallerScope) = 
-                        baseTypeAcnFunction.funcBody us (acnArgs@paramsArgsPairs) p
-                    Some  {baseTypeAcnFunction with funcBody = funcBody} 
+      match o.hasExtraConstrainsOrChildrenOrAcnArgs with
+      | true  ->
+          match codec with
+            | Codec.Encode  -> baseType.getAcnFunction codec, us
+            | Codec.Decode  -> 
+                let paramsArgsPairs = List.zip o.acnArguments o.resolvedType.acnParameters
+                let baseTypeAcnFunction = baseType.getAcnFunction codec 
+                let ret =
+                    match baseTypeAcnFunction with
+                    | None  -> None
+                    | Some baseTypeAcnFunction   ->
+                        let funcBody us (acnArgs: (AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) (p:CallerScope) = 
+                            baseTypeAcnFunction.funcBody us (acnArgs@paramsArgsPairs) p
+                        Some  {baseTypeAcnFunction with funcBody = funcBody} 
 
-            ret, us
+                ret, us
+      | false ->    
+            let moduleName, typeDefinitionName0 = 
+                let t1 = Asn1AcnAstUtilFunctions.GetActualTypeByName r o.modName o.tasName
+                t1.FT_TypeDefintion.[l].programUnit, t1.FT_TypeDefintion.[l].typeName
+
+            let baseTypeDefinitionName = 
+                match l with
+                | C     -> typeDefinitionName0 
+                | Ada   -> 
+                    match t.id.ModName = o.modName.Value with
+                    | true  -> typeDefinitionName0 
+                    | false -> moduleName + "." + typeDefinitionName0 
+            let baseFncName = baseTypeDefinitionName + "_ACN" + codec.suffix
+
+            let funcBody (us:State) (errCode:ErroCode) (acnArgs: (AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) (p:CallerScope) = 
+                let funcBodyContent = callBaseTypeFunc l (t.getParamValue p.arg l codec) baseFncName codec
+                Some ({AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = []; bValIsUnReferenced= false; bBsIsUnReferenced=false}), us
+
+
+            let soSparkAnnotations = Some(sparkAnnotations l (typeDefinition.longTypedefName l) codec)
+            let a, ns = createAcnFunction r l codec t typeDefinition  isValidFunc  funcBody (fun atc -> true) soSparkAnnotations us
+            Some a, ns
+
     | Some( encOptions) ->
         //contained type i.e. MyOct ::= OCTET STRING (CONTAINING Other-Type)
         let loc = o.tasName.Location

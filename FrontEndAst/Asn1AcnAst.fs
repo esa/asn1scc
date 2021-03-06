@@ -633,6 +633,7 @@ and ReferenceType = {
     acnArguments: RelativePath list
     resolvedType: Asn1Type
     hasConstraints : bool
+    hasExtraConstrainsOrChildrenOrAcnArgs : bool
     typeDef             : Map<ProgrammingLanguage, FE_TypeDefinition>
     uperMaxSizeInBits   : BigInteger
     uperMinSizeInBits   : BigInteger
