@@ -772,6 +772,17 @@ let rec private mapAcnParamTypeToAcnAcnInsertedType (asn1:Asn1Ast.AstRoot) (acn:
         AcnNullType ({AcnNullType.acnProperties=acnProperties; acnAligment=acnAligment; Location = acnErrLoc; acnMinSizeInBits=acnMinSizeInBits; acnMaxSizeInBits = acnMaxSizeInBits}), us
     | AcnPrmRefType (md,ts)->
         let asn1Type0 = Asn1Ast.GetBaseTypeByName md ts asn1
+        let baseProps = 
+            acn.files |> 
+            List.collect(fun f -> f.modules) |> 
+            List.filter(fun acm -> acm.name.Value = md.Value) |> 
+            List.collect(fun acm -> acm.typeAssignments) |>
+            List.filter(fun act -> act.name.Value = ts.Value) |> 
+            List.collect(fun act -> act.typeEncodingSpec.acnProperties)
+        let props =
+            match props with
+            | []    -> baseProps
+            | _     -> props
         match asn1Type0.Kind with
         | Asn1Ast.Enumerated nmItems    ->
             let cons =  asn1Type0.Constraints |> List.collect (fixConstraint asn1) |> List.map (ConstraintsMapping.getEnumConstraint asn1 asn1Type0)
