@@ -30,8 +30,8 @@
     <PlatformTarget>AnyCPU</PlatformTarget>
     <DocumentationFile>bin\Debug\Asn1f4.XML</DocumentationFile>
     <Prefer32Bit>true</Prefer32Bit>
-    <StartWorkingDirectory>C:\prj\GitHub\asn1scc\tmp\012</StartWorkingDirectory>
-    <StartArguments>-Ada -o a_out/ -uPER -atc dv.asn</StartArguments>
+    <StartWorkingDirectory>C:\prj\GitHub\asn1scc\tmp\016</StartWorkingDirectory>
+    <StartArguments>-c -ACN -o c_out/ -atc a.asn a.acn</StartArguments>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>

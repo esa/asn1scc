@@ -1302,13 +1302,17 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (m:Asn1Ast.Asn1Mo
                 | _      -> typeDefPath 
 
             let typeDef, us1 = getRefereceTypeDefinition asn1 t {tfdArg with typeDefPath = newTypeDefPath} us
-            let hasChildren =
+            let hasChildren, hasAcnProps =
                 match acnType with
-                | None            -> false
-                | Some acnEncSpec -> acnEncSpec.children.Length > 0
+                | None            -> false, false
+                | Some acnEncSpec -> 
+                    let b1 = acnEncSpec.children.Length > 0
+                    let b2 =acnEncSpec.acnProperties.Length>0
+                    b1,b2
+            
                 
             let hasExtraConstrainsOrChildrenOrAcnArgs = 
-                hasAdditionalConstraints || hasChildren || acnArguments.Length > 0
+                hasAdditionalConstraints || hasChildren || acnArguments.Length > 0 || hasAcnProps
             let resolvedType, us2     = mergeType asn1 acn m oldBaseType curPath newTypeDefPath mergedAcnEncSpec (Some t.Location) restCons withCompCons acnArgs baseTypeAcnParams inheritanceInfo typeAssignmentInfo  us1
 
 
