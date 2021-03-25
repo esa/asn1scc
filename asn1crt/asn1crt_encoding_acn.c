@@ -283,9 +283,6 @@ static void Encode_UnsignedInteger(BitStream* pBitStrm, asn1SccUint val, byte nB
 }
 
 
-int GetLengthInBytesOfUInt(asn1SccUint64 v);
-
-
 void Acn_Enc_Int_PositiveInteger_VarSize_LengthEmbedded(BitStream* pBitStrm, asn1SccUint intVal)
 {
 	asn1SccUint val = intVal;
@@ -489,9 +486,6 @@ static asn1SccUint To_UInt(asn1SccSint intVal) {
 	}
 	return ret;
 }
-
-
-int GetLengthInBytesOfSInt(asn1SccSint v);
 
 
 void Acn_Enc_Int_TwosComplement_VarSize_LengthEmbedded(BitStream* pBitStrm, asn1SccSint intVal)
