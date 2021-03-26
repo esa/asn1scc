@@ -479,7 +479,9 @@ switch(<p>) {
         ret = FALSE;                            /*COVERAGE_IGNORE*/
         *pErrCode = <sErrCode>;                 /*COVERAGE_IGNORE*/
 }
-<sActualCodecFunc>
+if (ret) {
+	<sActualCodecFunc>
+}
 >>
 
 EnumeratedEncValues_decode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, sActualCodecFunc, sErrCode, sFirstItemName, sIntVal) ::= <<
