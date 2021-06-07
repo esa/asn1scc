@@ -1,70 +1,9 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="14.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
   <PropertyGroup>
-    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
-    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <SchemaVersion>2.0</SchemaVersion>
-    <ProjectGuid>2f960476-565f-4282-90b3-606dbac5eff2</ProjectGuid>
-    <OutputType>Library</OutputType>
-    <RootNamespace>BackendAst</RootNamespace>
-    <AssemblyName>BackendAst</AssemblyName>
-    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
-    <TargetFSharpCoreVersion>4.4.0.0</TargetFSharpCoreVersion>
-    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
-    <Name>BackendAst</Name>
-    <TargetFrameworkProfile>
-    </TargetFrameworkProfile>
+    <TargetFramework>net5.0</TargetFramework>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
   </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-    <DebugSymbols>true</DebugSymbols>
-    <FscDebugType>full</FscDebugType>
-    <FscDebugFileExt>.mdb</FscDebugFileExt>
-    <DebugType>full</DebugType>
-    <Optimize>false</Optimize>
-    <Tailcalls>false</Tailcalls>
-    <OutputPath>bin\Debug\</OutputPath>
-    <DefineConstants>DEBUG;TRACE</DefineConstants>
-    <WarningLevel>3</WarningLevel>
-    <DocumentationFile>bin\Debug\BackendAst.XML</DocumentationFile>
-    <StartWorkingDirectory>C:\prj\GitHub\asn1scc\mantis\0000872</StartWorkingDirectory>
-    <StartArguments>-icdUper out2.html a.asn1</StartArguments>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <DebugType>pdbonly</DebugType>
-    <Optimize>true</Optimize>
-    <Tailcalls>true</Tailcalls>
-    <OutputPath>bin\Release\</OutputPath>
-    <DefineConstants>TRACE</DefineConstants>
-    <WarningLevel>3</WarningLevel>
-    <DocumentationFile>bin\Release\BackendAst.XML</DocumentationFile>
-  </PropertyGroup>
-  <ItemGroup>
-    <Reference Include="antlr.runtime">
-      <HintPath>..\Antlr\antlr313\antlr.runtime.dll</HintPath>
-    </Reference>
-    <Reference Include="Antlr3.Runtime">
-      <HintPath>..\Antlr\antlr313\Antlr3.Runtime.dll</HintPath>
-    </Reference>
-    <Reference Include="Antlr3.Utility">
-      <HintPath>..\Antlr\antlr313\Antlr3.Utility.dll</HintPath>
-    </Reference>
-    <Reference Include="mscorlib" />
-    <Reference Include="FSharp.Core">
-      <Name>FSharp.Core</Name>
-      <Private>true</Private>
-      <AssemblyName>FSharp.Core.dll</AssemblyName>
-      <HintPath>$(MSBuildProgramFiles32)\Reference Assemblies\Microsoft\FSharp\.NETFramework\v4.0\$(TargetFSharpCoreVersion)\FSharp.Core.dll</HintPath>
-    </Reference>
-    <Reference Include="StringTemplate">
-      <HintPath>..\Antlr\antlr313\StringTemplate.dll</HintPath>
-    </Reference>
-    <Reference Include="System" />
-    <Reference Include="System.Core" />
-    <Reference Include="System.Numerics" />
-    <Reference Include="System.Xml" />
-    <Reference Include="System.Xml.Linq" />
-  </ItemGroup>
   <ItemGroup>
     <Compile Include="AssemblyInfo.fs" />
     <Compile Include="DAst.fs" />
@@ -86,7 +25,6 @@
     <Compile Include="DastTestCaseCreation.fs" />
     <Compile Include="DAstConstruction.fs" />
     <Compile Include="GenerateFiles.fs" />
-    <None Include="Script.fsx" />
     <Compile Include="DAstExportToXml.fs" />
     <Compile Include="GrammarGenerator.fs" />
     <Compile Include="CustomStgExport.fs" />
@@ -95,59 +33,57 @@
     <Compile Include="GenerateAcnIcd.fs" />
     <Compile Include="PrintAcn.fs" />
   </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\Antlr\Antlr.csproj">
-      <Name>Antlr</Name>
-      <Project>{a1882f1d-5185-407c-8227-1e2b69baade9}</Project>
-      <Private>True</Private>
-    </ProjectReference>
-    <ProjectReference Include="..\CommonTypes\CommonTypes.fsproj">
-      <Name>CommonTypes</Name>
-      <Project>{83f15fa6-7da0-4e47-9512-39ae3fdd28cf}</Project>
-      <Private>True</Private>
-    </ProjectReference>
-    <ProjectReference Include="..\FrontEndAst\FrontEndAst.fsproj">
-      <Name>FrontEndAst</Name>
-      <Project>{11fdc208-86e6-464e-9974-0e534ed55513}</Project>
-      <Private>True</Private>
-    </ProjectReference>
-    <ProjectReference Include="..\StgAda\StgAda.fsproj">
-      <Name>StgAda</Name>
-      <Project>{18b04aee-c300-4139-a2de-c3519cc24e94}</Project>
-      <Private>True</Private>
-    </ProjectReference>
-    <ProjectReference Include="..\StgC\StgC.fsproj">
-      <Name>StgC</Name>
-      <Project>{a35cb9d7-70b4-41e3-bba8-7f8263aa3498}</Project>
-      <Private>True</Private>
-    </ProjectReference>
-    <ProjectReference Include="..\StgVarious\StgVarious.fsproj">
-      <Name>StgVarious</Name>
-      <Project>{44920b63-4f4d-40e2-a652-66ea7ebd5e80}</Project>
-      <Private>True</Private>
-    </ProjectReference>
+    <ItemGroup>
+        <Compile Include="AssemblyInfo.fs" />
+        <Compile Include="DAst.fs" />
+        <Compile Include="DAstUtilFunctions.fs" />
+        <Compile Include="DastFold.fs" />
+        <Compile Include="DAstAsn1.fs" />
+        <Compile Include="DAstBaseTypesEquivalence.fs" />
+        <Compile Include="DAstTypeDefinition.fs" />
+        <Compile Include="DAstTypeDefinition2.fs" />
+        <Compile Include="DAstVariables.fs" />
+        <Compile Include="DAstEqual.fs" />
+        <Compile Include="DastValidate2.fs" />
+        <Compile Include="DAstUPer.fs" />
+        <Compile Include="DAstXer.fs" />
+        <Compile Include="DAstACN.fs" />
+        <Compile Include="EncodeDecodeTestCase.fs" />
+        <Compile Include="DAstInitialize.fs" />
+        <Compile Include="DAstProgramUnit.fs" />
+        <Compile Include="DastTestCaseCreation.fs" />
+        <Compile Include="DAstConstruction.fs" />
+        <Compile Include="GenerateFiles.fs" />
+        <Compile Include="DAstExportToXml.fs" />
+        <Compile Include="GrammarGenerator.fs" />
+        <Compile Include="CustomStgExport.fs" />
+        <Compile Include="PrintAsn1.fs" />
+        <Compile Include="GenerateUperIcd.fs" />
+        <Compile Include="GenerateAcnIcd.fs" />
+        <Compile Include="PrintAcn.fs" />
+    </ItemGroup>
+    <ItemGroup>
+      <ProjectReference Include="..\Antlr\Antlr.csproj" />
+      <ProjectReference Include="..\CommonTypes\CommonTypes.fsproj" />
+      <ProjectReference Include="..\FrontEndAst\FrontEndAst.fsproj" />
+      <ProjectReference Include="..\StgAda\StgAda.fsproj" />
+      <ProjectReference Include="..\StgC\StgC.fsproj" />
+      <ProjectReference Include="..\StgVarious\StgVarious.fsproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+    <Reference Include="antlr.runtime">
+      <HintPath>..\Antlr\antlr313\antlr.runtime.dll</HintPath>
+    </Reference>
+    <Reference Include="Antlr3.Runtime">
+      <HintPath>..\Antlr\antlr313\Antlr3.Runtime.dll</HintPath>
+    </Reference>
+    <Reference Include="Antlr3.Utility">
+      <HintPath>..\Antlr\antlr313\Antlr3.Utility.dll</HintPath>
+    </Reference>
+    <Reference Include="StringTemplate">
+      <HintPath>..\Antlr\antlr313\StringTemplate.dll</HintPath>
+    </Reference>
   </ItemGroup>
-  <PropertyGroup>
-    <MinimumVisualStudioVersion Condition="'$(MinimumVisualStudioVersion)' == ''">11</MinimumVisualStudioVersion>
-  </PropertyGroup>
-  <Choose>
-    <When Condition="'$(VisualStudioVersion)' == '11.0'">
-      <PropertyGroup Condition="Exists('$(MSBuildExtensionsPath32)\..\Microsoft SDKs\F#\3.0\Framework\v4.0\Microsoft.FSharp.Targets')">
-        <FSharpTargetsPath>$(MSBuildExtensionsPath32)\..\Microsoft SDKs\F#\3.0\Framework\v4.0\Microsoft.FSharp.Targets</FSharpTargetsPath>
-      </PropertyGroup>
-    </When>
-    <Otherwise>
-      <PropertyGroup Condition="Exists('$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\FSharp\Microsoft.FSharp.Targets')">
-        <FSharpTargetsPath>$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\FSharp\Microsoft.FSharp.Targets</FSharpTargetsPath>
-      </PropertyGroup>
-    </Otherwise>
-  </Choose>
-  <Import Project="$(FSharpTargetsPath)" />
-  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
-       Other similar extension points exist, see Microsoft.Common.targets.
-  <Target Name="BeforeBuild">
-  </Target>
-  <Target Name="AfterBuild">
-  </Target>
-  -->
+
 </Project>

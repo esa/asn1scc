@@ -1,174 +1,47 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="14.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
   <PropertyGroup>
-    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
-    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <SchemaVersion>2.0</SchemaVersion>
-    <ProjectGuid>a35cb9d7-70b4-41e3-bba8-7f8263aa3498</ProjectGuid>
-    <OutputType>Library</OutputType>
-    <RootNamespace>StgC</RootNamespace>
-    <AssemblyName>StgC</AssemblyName>
-    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
-    <TargetFSharpCoreVersion>4.4.0.0</TargetFSharpCoreVersion>
-    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
-    <Name>StgC</Name>
-    <TargetFrameworkProfile />
+    <TargetFramework>net5.0</TargetFramework>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
   </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-    <DebugSymbols>true</DebugSymbols>
-    <FscDebugType>full</FscDebugType>
-    <FscDebugFileExt>.mdb</FscDebugFileExt>
-    <DebugType>full</DebugType>
-    <Optimize>false</Optimize>
-    <Tailcalls>false</Tailcalls>
-    <OutputPath>bin\Debug\</OutputPath>
-    <DefineConstants>DEBUG;TRACE</DefineConstants>
-    <WarningLevel>3</WarningLevel>
-    <DocumentationFile>bin\Debug\StgC.XML</DocumentationFile>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <DebugType>pdbonly</DebugType>
-    <Optimize>true</Optimize>
-    <Tailcalls>true</Tailcalls>
-    <OutputPath>bin\Release\</OutputPath>
-    <DefineConstants>TRACE</DefineConstants>
-    <WarningLevel>3</WarningLevel>
-    <DocumentationFile>bin\Release\StgC.XML</DocumentationFile>
-  </PropertyGroup>
-  <PropertyGroup>
-    <MinimumVisualStudioVersion Condition="'$(MinimumVisualStudioVersion)' == ''">11</MinimumVisualStudioVersion>
-  </PropertyGroup>
-  <Choose>
-    <When Condition="'$(VisualStudioVersion)' == '11.0'">
-      <PropertyGroup Condition="Exists('$(MSBuildExtensionsPath32)\..\Microsoft SDKs\F#\3.0\Framework\v4.0\Microsoft.FSharp.Targets')">
-        <FSharpTargetsPath>$(MSBuildExtensionsPath32)\..\Microsoft SDKs\F#\3.0\Framework\v4.0\Microsoft.FSharp.Targets</FSharpTargetsPath>
-      </PropertyGroup>
-    </When>
-    <Otherwise>
-      <PropertyGroup Condition="Exists('$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\FSharp\Microsoft.FSharp.Targets')">
-        <FSharpTargetsPath>$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\FSharp\Microsoft.FSharp.Targets</FSharpTargetsPath>
-      </PropertyGroup>
-    </Otherwise>
-  </Choose>
-  <Import Project="$(FSharpTargetsPath)" />
+
   <ItemGroup>
-    <Compile Include="AssemblyInfo.fs" />
-    <None Include="Script.fsx" />
-    <Content Include="backends.xml" />
-    <None Include="header_c.stg">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Include="body_c.stg">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Include="init_c.stg">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Include="equal_c.stg">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Include="isvalid_c.stg">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Include="isvalid_new_c.stg" />
-    <None Include="uper_c.stg">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Include="acn_c.stg">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Include="xer_c.stg">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Include="variables_c.stg">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Include="test_cases_c.stg">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Include="aux_c.stg">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
     <Compile Include="acn_c.stg.fs" />
+    <Compile Include="aux_c.stg.fs" />
     <Compile Include="body_c.stg.fs" />
     <Compile Include="equal_c.stg.fs" />
     <Compile Include="header_c.stg.fs" />
     <Compile Include="init_c.stg.fs" />
     <Compile Include="isvalid_c.stg.fs" />
     <Compile Include="isvalid_new_c.stg.fs" />
+    <Compile Include="test_cases_c.stg.fs" />
     <Compile Include="uper_c.stg.fs" />
     <Compile Include="variables_c.stg.fs" />
     <Compile Include="xer_c.stg.fs" />
-    <Compile Include="test_cases_c.stg.fs" />
-    <Compile Include="aux_c.stg.fs" />
-    <Compile Include="AbstractMacrosImp.fs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="acn_c.stg" />
+    <None Include="aux_c.stg" />
+    <None Include="body_c.stg" />
+    <None Include="equal_c.stg" />
+    <None Include="header_c.stg" />
+    <None Include="init_c.stg" />
+    <None Include="isvalid_c.stg" />
+    <None Include="isvalid_new_c.stg" />
+    <None Include="test_cases_c.stg" />
+    <None Include="uper_c.stg" />
+    <None Include="variables_c.stg" />
+    <None Include="xer_c.stg" />
     <Compile Include="isvalid_c_impl.stg.fs" />
   </ItemGroup>
-  <ItemGroup>
-    <Reference Include="mscorlib" />
-    <Reference Include="FSharp.Core">
-      <Name>FSharp.Core</Name>
-      <Private>true</Private>
-      <AssemblyName>FSharp.Core.dll</AssemblyName>
-      <HintPath>$(MSBuildProgramFiles32)\Reference Assemblies\Microsoft\FSharp\.NETFramework\v4.0\$(TargetFSharpCoreVersion)\FSharp.Core.dll</HintPath>
-    </Reference>
-    <Reference Include="System" />
-    <Reference Include="System.Core" />
-    <Reference Include="System.Numerics" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\CommonTypes\CommonTypes.fsproj">
-      <Name>CommonTypes</Name>
-      <Project>{83f15fa6-7da0-4e47-9512-39ae3fdd28cf}</Project>
-      <Private>True</Private>
-    </ProjectReference>
-    <ProjectReference Include="..\parseStg2\parseStg2.csproj">
-      <Name>parseStg2</Name>
-      <Project>{4112e7c9-0e9c-41db-88c3-d5911c1d89d5}</Project>
-      <Private>True</Private>
-    </ProjectReference>
-    <ProjectReference Include="..\ST\ST.fsproj">
-      <Name>ST</Name>
-      <Project>{94495d92-b615-4745-b26b-a5ec73a6a462}</Project>
-      <Private>True</Private>
-    </ProjectReference>
-  </ItemGroup>
-  <Choose>
-    <When Condition="'$(VisualStudioVersion)' == '11.0' Or $(OS) == 'Unix'">
-      <PropertyGroup Condition="Exists('$(MSBuildExtensionsPath32)\..\Microsoft SDKs\F#\3.0\Framework\v4.0\Microsoft.FSharp.Targets')">
-        <FSharpTargetsPath>$(MSBuildExtensionsPath32)\..\Microsoft SDKs\F#\3.0\Framework\v4.0\Microsoft.FSharp.Targets</FSharpTargetsPath>
-      </PropertyGroup>
-    </When>
-    <Otherwise>
-      <PropertyGroup Condition="Exists('$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\FSharp\Microsoft.FSharp.Targets')">
-        <FSharpTargetsPath>$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\FSharp\Microsoft.FSharp.Targets</FSharpTargetsPath>
-      </PropertyGroup>
-    </Otherwise>
-  </Choose>
-  <Choose>
-    <When Condition="$(OS) == 'Unix'">
-      <PropertyGroup>
-        <MonoCallPrefix> mono </MonoCallPrefix>
-      </PropertyGroup>
-    </When>
-    <Otherwise>
-      <PropertyGroup>
-        <MonoCallPrefix />
-      </PropertyGroup>
-    </Otherwise>
-  </Choose>
-  <Import Project="$(FSharpTargetsPath)" />
-  <PropertyGroup>
-    <PreBuildEvent>
-      $(MonoCallPrefix) $(ProjectDir)..\parseStg2\bin\Debug\parseStg2.exe $(ProjectDir)backends.xml 3
-</PreBuildEvent>
-  </PropertyGroup>
-  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
-       Other similar extension points exist, see Microsoft.Common.targets.
-  <Target Name="BeforeBuild">
-  </Target>
-  <Target Name="AfterBuild">
-  </Target>
-  -->
+
+    <ItemGroup>
+        <ProjectReference Include="..\ST\ST.fsproj" />
+    </ItemGroup>
+
+    <Target Name="PreBuild" BeforeTargets="PreBuildEvent">
+        <Exec Command="dotnet $(ProjectDir)..\parseStg2\bin\Debug\net5.0\parseStg2.dll $(ProjectDir)backends.xml" />
+    </Target>
+
 </Project>

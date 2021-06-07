@@ -1,88 +1,44 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="14.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
   <PropertyGroup>
-    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
-    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <SchemaVersion>2.0</SchemaVersion>
-    <ProjectGuid>11fdc208-86e6-464e-9974-0e534ed55513</ProjectGuid>
-    <OutputType>Library</OutputType>
-    <RootNamespace>FrontEndAst</RootNamespace>
-    <AssemblyName>FrontEndAst</AssemblyName>
-    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
-    <TargetFSharpCoreVersion>4.4.0.0</TargetFSharpCoreVersion>
-    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
-    <Name>FrontEndAst</Name>
-    <TargetFrameworkProfile />
+    <TargetFramework>net5.0</TargetFramework>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
   </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-    <DebugSymbols>true</DebugSymbols>
-    <FscDebugType>full</FscDebugType>
-    <FscDebugFileExt>.mdb</FscDebugFileExt>
-    <DebugType>full</DebugType>
-    <Optimize>false</Optimize>
-    <Tailcalls>false</Tailcalls>
-    <OutputPath>bin\Debug\</OutputPath>
-    <DefineConstants>DEBUG;TRACE</DefineConstants>
-    <WarningLevel>3</WarningLevel>
-    <DocumentationFile>bin\Debug\FrontEndAst.XML</DocumentationFile>
-    <StartWorkingDirectory>C:\prj\GitHub\asn1scc\tmp2\headerFiles</StartWorkingDirectory>
-    <StartArguments>-c -o c/ a1.asn1</StartArguments>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <DebugType>pdbonly</DebugType>
-    <Optimize>true</Optimize>
-    <Tailcalls>true</Tailcalls>
-    <OutputPath>bin\Release\</OutputPath>
-    <DefineConstants>TRACE</DefineConstants>
-    <WarningLevel>3</WarningLevel>
-    <DocumentationFile>bin\Release\FrontEndAst.XML</DocumentationFile>
-  </PropertyGroup>
-  <PropertyGroup>
-    <MinimumVisualStudioVersion Condition="'$(MinimumVisualStudioVersion)' == ''">11</MinimumVisualStudioVersion>
-  </PropertyGroup>
-  <Choose>
-    <When Condition="'$(VisualStudioVersion)' == '11.0'">
-      <PropertyGroup Condition="Exists('$(MSBuildExtensionsPath32)\..\Microsoft SDKs\F#\3.0\Framework\v4.0\Microsoft.FSharp.Targets')">
-        <FSharpTargetsPath>$(MSBuildExtensionsPath32)\..\Microsoft SDKs\F#\3.0\Framework\v4.0\Microsoft.FSharp.Targets</FSharpTargetsPath>
-      </PropertyGroup>
-    </When>
-    <Otherwise>
-      <PropertyGroup Condition="Exists('$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\FSharp\Microsoft.FSharp.Targets')">
-        <FSharpTargetsPath>$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\FSharp\Microsoft.FSharp.Targets</FSharpTargetsPath>
-      </PropertyGroup>
-    </Otherwise>
-  </Choose>
-  <Import Project="$(FSharpTargetsPath)" />
+
+    <ItemGroup>
+        <Compile Include="AcnGenericCreateFromAntlr.fs" />
+        <Compile Include="ParameterizedAsn1Ast.fs" />
+        <Compile Include="CreateAsn1AstFromAntlrTree.fs" />
+        <Compile Include="RemoveParamterizedTypes.fs" />
+        <Compile Include="Asn1Ast.fs" />
+        <Compile Include="MapParamAstToNonParamAst.fs" />
+        <Compile Include="CheckAsn1.fs" />
+        <Compile Include="CloneTree.fs" />
+        <Compile Include="EnsureUniqueEnumNames.fs" />
+        <Compile Include="Asn1AcnAst.fs" />
+        <Compile Include="Asn1AcnAstUtilFunctions.fs" />
+        <Compile Include="Asn1Fold.fs" />
+        <Compile Include="ValuesMapping.fs" />
+        <Compile Include="ConstraintsMapping.fs" />
+        <Compile Include="uPER.fs" />
+        <Compile Include="XER.fs" />
+        <Compile Include="AcnEncodingClasses.fs" />
+        <Compile Include="CheckLongReferences.fs" />
+        <Compile Include="FE_TypeDefinition.fs" />
+        <Compile Include="AcnCreateFromAntlr.fs" />
+        <Compile Include="TypesEquivalence.fs" />
+        <Compile Include="ExportToXml.fs" />
+        <Compile Include="TargetLanguageStgMacros.fs" />
+        <Compile Include="FrontEntMain.fs" />
+    </ItemGroup>
+    
   <ItemGroup>
-    <None Include="Script.fsx" />
-    <Compile Include="AcnGenericCreateFromAntlr.fs" />
-    <Compile Include="ParameterizedAsn1Ast.fs" />
-    <Compile Include="CreateAsn1AstFromAntlrTree.fs" />
-    <Compile Include="RemoveParamterizedTypes.fs" />
-    <Compile Include="Asn1Ast.fs" />
-    <Compile Include="MapParamAstToNonParamAst.fs" />
-    <Compile Include="CheckAsn1.fs" />
-    <Compile Include="CloneTree.fs" />
-    <Compile Include="EnsureUniqueEnumNames.fs" />
-    <Compile Include="Asn1AcnAst.fs" />
-    <Compile Include="Asn1AcnAstUtilFunctions.fs" />
-    <Compile Include="Asn1Fold.fs" />
-    <Compile Include="ValuesMapping.fs" />
-    <Compile Include="ConstraintsMapping.fs" />
-    <Compile Include="uPER.fs" />
-    <Compile Include="XER.fs" />
-    <Compile Include="AcnEncodingClasses.fs" />
-    <Compile Include="CheckLongReferences.fs" />
-    <Compile Include="FE_TypeDefinition.fs" />
-    <Compile Include="AcnCreateFromAntlr.fs" />
-    <Compile Include="TypesEquivalence.fs" />
-    <Compile Include="ExportToXml.fs" />
-    <Compile Include="TargetLanguageStgMacros.fs" />
-    <Compile Include="FrontEntMain.fs" />
-    <EmbeddedResource Include="Resource1.resx" />
-    <None Include="Asn1Schema.xsd" />
+    <ProjectReference Include="..\Antlr\Antlr.csproj" />
+    <ProjectReference Include="..\CommonTypes\CommonTypes.fsproj" />
+    <ProjectReference Include="..\StgAda\StgAda.fsproj" />
+    <ProjectReference Include="..\StgC\StgC.fsproj" />
   </ItemGroup>
+    
   <ItemGroup>
     <Reference Include="antlr.runtime">
       <HintPath>..\Antlr\antlr313\antlr.runtime.dll</HintPath>
@@ -93,54 +49,9 @@
     <Reference Include="Antlr3.Utility">
       <HintPath>..\Antlr\antlr313\Antlr3.Utility.dll</HintPath>
     </Reference>
-    <Reference Include="mscorlib" />
-    <Reference Include="FSharp.Core">
-      <Name>FSharp.Core</Name>
-      <AssemblyName>FSharp.Core.dll</AssemblyName>
-      <HintPath>$(MSBuildProgramFiles32)\Reference Assemblies\Microsoft\FSharp\.NETFramework\v4.0\$(TargetFSharpCoreVersion)\FSharp.Core.dll</HintPath>
-      <Private>true</Private>
-    </Reference>
     <Reference Include="StringTemplate">
       <HintPath>..\Antlr\antlr313\StringTemplate.dll</HintPath>
     </Reference>
-    <Reference Include="System" />
-    <Reference Include="System.Core" />
-    <Reference Include="System.Numerics" />
-    <Reference Include="System.Xml" />
-    <Reference Include="System.Xml.Linq" />
-    <ProjectReference Include="..\Antlr\Antlr.csproj">
-      <Name>Antlr</Name>
-      <Project>{a1882f1d-5185-407c-8227-1e2b69baade9}</Project>
-      <Private>True</Private>
-    </ProjectReference>
-    <ProjectReference Include="..\CommonTypes\CommonTypes.fsproj">
-      <Name>CommonTypes</Name>
-      <Project>{83f15fa6-7da0-4e47-9512-39ae3fdd28cf}</Project>
-      <Private>True</Private>
-    </ProjectReference>
-    <ProjectReference Include="..\StgAda\StgAda.fsproj">
-      <Name>StgAda</Name>
-      <Project>{18b04aee-c300-4139-a2de-c3519cc24e94}</Project>
-      <Private>True</Private>
-    </ProjectReference>
-    <ProjectReference Include="..\StgC\StgC.fsproj">
-      <Name>StgC</Name>
-      <Project>{a35cb9d7-70b4-41e3-bba8-7f8263aa3498}</Project>
-      <Private>True</Private>
-    </ProjectReference>
   </ItemGroup>
-  <Target Name="BeforeBuild">
-    <ItemGroup>
-      <ResourceFilesToCopy Include="$(ProjectDir)/Asn1Schema.xsd" />
-    </ItemGroup>
-    <PropertyGroup>
-      <ResourcesDir>$(ProjectDir)/Resources</ResourcesDir>
-    </PropertyGroup>
-    <MakeDir Directories="$(ResourcesDir)" />
-    <Copy SourceFiles="@(ResourceFilesToCopy)" DestinationFolder="$(ResourcesDir)" />
-  </Target>
-  <!-- 
-  <Target Name="AfterBuild">
-  </Target>
-  -->
+
 </Project>

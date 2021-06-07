@@ -1,135 +1,33 @@
-<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="14.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
   <PropertyGroup>
-    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
-    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <SchemaVersion>2.0</SchemaVersion>
-    <ProjectGuid>44920b63-4f4d-40e2-a652-66ea7ebd5e80</ProjectGuid>
-    <OutputType>Library</OutputType>
-    <RootNamespace>StgVarious</RootNamespace>
-    <AssemblyName>StgVarious</AssemblyName>
-    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
-    <TargetFSharpCoreVersion>4.4.0.0</TargetFSharpCoreVersion>
-    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
-    <Name>StgVarious</Name>
-    <TargetFrameworkProfile />
+    <TargetFramework>net5.0</TargetFramework>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
   </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-    <DebugSymbols>true</DebugSymbols>
-    <FscDebugType>full</FscDebugType>
-    <FscDebugFileExt>.mdb</FscDebugFileExt>
-    <DebugType>full</DebugType>
-    <Optimize>false</Optimize>
-    <Tailcalls>false</Tailcalls>
-    <OutputPath>bin\Debug\</OutputPath>
-    <DefineConstants>DEBUG;TRACE</DefineConstants>
-    <WarningLevel>3</WarningLevel>
-    <DocumentationFile>bin\Debug\StgVarious.XML</DocumentationFile>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <DebugType>pdbonly</DebugType>
-    <Optimize>true</Optimize>
-    <Tailcalls>true</Tailcalls>
-    <OutputPath>bin\Release\</OutputPath>
-    <DefineConstants>TRACE</DefineConstants>
-    <WarningLevel>3</WarningLevel>
-    <DocumentationFile>bin\Release\StgVarious.XML</DocumentationFile>
-  </PropertyGroup>
+
   <ItemGroup>
-    <Reference Include="mscorlib" />
-    <Reference Include="FSharp.Core">
-      <Name>FSharp.Core</Name>
-      <Private>true</Private>
-      <AssemblyName>FSharp.Core.dll</AssemblyName>
-      <HintPath>$(MSBuildProgramFiles32)\Reference Assemblies\Microsoft\FSharp\.NETFramework\v4.0\$(TargetFSharpCoreVersion)\FSharp.Core.dll</HintPath>
-    </Reference>
-    <Reference Include="System" />
-    <Reference Include="System.Core" />
-    <Reference Include="System.Numerics" />
-  </ItemGroup>
-  <ItemGroup>
-    <Compile Include="AssemblyInfo.fs" />
-    <Compile Include="Library1.fs" />
-    <None Include="Script.fsx" />
-    <None Include="stg_ACN.stg">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <Compile Include="stg_ACN.stg.fs" />
-    <None Include="stg_ASN.stg">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <Compile Include="stg_ASN.stg.fs" />
-    <None Include="xml_outputs.stg">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <Compile Include="xml_outputs.stg.fs" />
     <Compile Include="generic.gen.fs" />
-    <None Include="generic.stg" />
     <Compile Include="icdtemplate_acn.gen.fs" />
-    <None Include="icdtemplate_acn.stg">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
     <Compile Include="icdtemplate_uper.gen.fs" />
-    <None Include="icdtemplate_uper.stg">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
+    <Compile Include="stg_ACN.stg.fs" />
+    <Compile Include="stg_ASN.stg.fs" />
+    <Compile Include="xml_outputs.stg.fs" />
+    <None Include="generic.stg" />
+    <None Include="icdtemplate_acn.stg" />
+    <None Include="icdtemplate_uper.stg" />
+    <None Include="python.stg" />
+    <None Include="stg_ACN.stg" />
+    <None Include="stg_ASN.stg" />
+    <None Include="xml.stg" />
+    <None Include="xml_outputs.stg" />
   </ItemGroup>
+
   <ItemGroup>
-    <ProjectReference Include="..\CommonTypes\CommonTypes.fsproj">
-      <Name>CommonTypes</Name>
-      <Project>{83f15fa6-7da0-4e47-9512-39ae3fdd28cf}</Project>
-      <Private>True</Private>
-    </ProjectReference>
-    <ProjectReference Include="..\parseStg2\parseStg2.csproj">
-      <Name>parseStg2</Name>
-      <Project>{4112e7c9-0e9c-41db-88c3-d5911c1d89d5}</Project>
-      <Private>True</Private>
-    </ProjectReference>
-    <ProjectReference Include="..\ST\ST.fsproj">
-      <Name>ST</Name>
-      <Project>{94495d92-b615-4745-b26b-a5ec73a6a462}</Project>
-      <Private>True</Private>
-    </ProjectReference>
+    <ProjectReference Include="..\ST\ST.fsproj" />
   </ItemGroup>
-  <PropertyGroup>
-    <MinimumVisualStudioVersion Condition="'$(MinimumVisualStudioVersion)' == ''">11</MinimumVisualStudioVersion>
-  </PropertyGroup>
-  <Choose>
-    <When Condition="'$(VisualStudioVersion)' == '11.0' Or $(OS) == 'Unix'">
-      <PropertyGroup Condition="Exists('$(MSBuildExtensionsPath32)\..\Microsoft SDKs\F#\3.0\Framework\v4.0\Microsoft.FSharp.Targets')">
-        <FSharpTargetsPath>$(MSBuildExtensionsPath32)\..\Microsoft SDKs\F#\3.0\Framework\v4.0\Microsoft.FSharp.Targets</FSharpTargetsPath>
-      </PropertyGroup>
-    </When>
-    <Otherwise>
-      <PropertyGroup Condition="Exists('$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\FSharp\Microsoft.FSharp.Targets')">
-        <FSharpTargetsPath>$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\FSharp\Microsoft.FSharp.Targets</FSharpTargetsPath>
-      </PropertyGroup>
-    </Otherwise>
-  </Choose>
-  <Choose>
-    <When Condition="$(OS) == 'Unix'">
-      <PropertyGroup>
-        <MonoCallPrefix> mono </MonoCallPrefix>
-      </PropertyGroup>
-    </When>
-    <Otherwise>
-      <PropertyGroup>
-        <MonoCallPrefix />
-      </PropertyGroup>
-    </Otherwise>
-  </Choose>
-  <Import Project="$(FSharpTargetsPath)" />
-  <PropertyGroup>
-    <PreBuildEvent>
-      $(MonoCallPrefix) $(ProjectDir)..\parseStg2\bin\Debug\parseStg2.exe $(ProjectDir)backends.xml
-</PreBuildEvent>
-  </PropertyGroup>
-  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
-       Other similar extension points exist, see Microsoft.Common.targets.
-  <Target Name="BeforeBuild">
+
+  <Target Name="PreBuild" BeforeTargets="PreBuildEvent">
+    <Exec Command="dotnet $(ProjectDir)..\parseStg2\bin\Debug\net5.0\parseStg2.dll $(ProjectDir)backends.xml" />
   </Target>
-  <Target Name="AfterBuild">
-  </Target>
-  -->
+
 </Project>

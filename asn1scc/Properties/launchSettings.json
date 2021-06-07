@@ -1,0 +1,9 @@
+{
+  "profiles": {
+    "asn1scc": {
+      "commandName": "Project",
+      "commandLineArgs": "-c -uPER -ACN -atc -o c_out/ sample1.asn1 sample1.acn",
+      "workingDirectory": "C:\\prj\\net5\\asn1scc\\tmp"
+    }
+  }
+}
