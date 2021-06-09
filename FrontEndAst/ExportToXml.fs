@@ -671,7 +671,6 @@ let  exportAcnDependencies (deps:AcnInsertedFieldDependencies) =
 
 
 
-
 let exportFile (r:AstRoot) (deps:AcnInsertedFieldDependencies) (fileName:string) =
     let writeTextFile fileName (content:String) =
         System.IO.File.WriteAllText(fileName, content.Replace("\r",""))
@@ -695,8 +694,10 @@ let exportFile (r:AstRoot) (deps:AcnInsertedFieldDependencies) (fileName:string)
     let doc =new XDocument(dec)
     doc.AddFirst wsRoot
     doc.Save(fileName)
-    let rm = new ResourceManager("Resource1", System.Reflection.Assembly.GetExecutingAssembly());
-    let schema = rm.GetString("Asn1Schema_xsd",null)
+    let getResourceAsString (rsName:string) = 
+        FsUtils.getResourceAsString0 "FrontEndAst" (System.Reflection.Assembly.GetExecutingAssembly ()) rsName
+    let schema = getResourceAsString customWsSchemaLocation
+    
     let outDir = Path.GetDirectoryName fileName
     writeTextFile (Path.Combine(outDir, customWsSchemaLocation)) schema 
     //try to open the document.
