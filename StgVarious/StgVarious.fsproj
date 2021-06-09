@@ -12,14 +12,30 @@
     <Compile Include="stg_ACN.stg.fs" />
     <Compile Include="stg_ASN.stg.fs" />
     <Compile Include="xml_outputs.stg.fs" />
-    <None Include="generic.stg" />
-    <None Include="icdtemplate_acn.stg" />
-    <None Include="icdtemplate_uper.stg" />
-    <None Include="python.stg" />
-    <None Include="stg_ACN.stg" />
-    <None Include="stg_ASN.stg" />
-    <None Include="xml.stg" />
-    <None Include="xml_outputs.stg" />
+    <None Include="generic.stg">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="icdtemplate_acn.stg">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="icdtemplate_uper.stg">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="python.stg">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="stg_ACN.stg">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="stg_ASN.stg">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="xml.stg">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="xml_outputs.stg">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
   <ItemGroup>
