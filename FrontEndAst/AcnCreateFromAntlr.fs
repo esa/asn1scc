@@ -1436,7 +1436,7 @@ let private mergeFile (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (f:Asn1Ast.Asn1File) (
 
 
 //let rec registerPrimitiveTypeDefinition (us:Asn1AcnMergeState) l (id : ReferenceToType) (kind : FE_TypeDefinitionKind) getRtlDefinitionFunc : (FE_PrimitiveTypeDefinition*Asn1AcnMergeState)=
-let mergeAsn1WithAcnAst (asn1:Asn1Ast.AstRoot) (acn:AcnGenericTypes.AcnAst ,acnParseResults:CommonTypes.AntlrParserResult list) defaultStgLang =
+let mergeAsn1WithAcnAst (asn1:Asn1Ast.AstRoot) (acn:AcnGenericTypes.AcnAst ,acnParseResults:CommonTypes.AntlrParserResult list) =
     let initialState = {Asn1AcnMergeState.allocatedTypeNames = []; allocatedFE_TypeDefinition= Map.empty; args = asn1.args; temporaryTypesAllocation = Map.empty} 
     let state =
         seq {
@@ -1457,4 +1457,4 @@ let mergeAsn1WithAcnAst (asn1:Asn1Ast.AstRoot) (acn:AcnGenericTypes.AcnAst ,acnP
             ) initialState |> snd
     //let acn = CreateAcnAst acnParseResults
     let files, finalState = asn1.Files |> foldMap (fun st f -> mergeFile asn1 acn f st) state
-    {AstRoot.Files = files; args = asn1.args; acnConstants = acn.acnConstants; acnParseResults=acnParseResults; stg=defaultStgLang}, acn
+    {AstRoot.Files = files; args = asn1.args; acnConstants = acn.acnConstants; acnParseResults=acnParseResults}, acn

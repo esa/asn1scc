@@ -300,7 +300,7 @@ let main0 argv =
                     Some (DAstConstruction.DoWork frontEntAst acnDeps CommonTypes.ProgrammingLanguage.C  args.encodings)
                 | Ada_Lang              -> 
                     
-                    Some (DAstConstruction.DoWork {frontEntAst with stg=TargetLanguageStgMacros.a_StgMacros} acnDeps CommonTypes.ProgrammingLanguage.Ada  args.encodings)
+                    Some (DAstConstruction.DoWork frontEntAst acnDeps CommonTypes.ProgrammingLanguage.Ada  args.encodings)
                 | _             -> None)
 
         let createDirectories baseDir (l:ProgrammingLanguage) target =

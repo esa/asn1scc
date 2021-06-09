@@ -28,7 +28,6 @@
         <Compile Include="AcnCreateFromAntlr.fs" />
         <Compile Include="TypesEquivalence.fs" />
         <Compile Include="ExportToXml.fs" />
-        <Compile Include="TargetLanguageStgMacros.fs" />
         <Compile Include="FrontEntMain.fs" />
     </ItemGroup>
     

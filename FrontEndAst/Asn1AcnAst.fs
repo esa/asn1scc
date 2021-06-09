@@ -683,7 +683,6 @@ type AstRoot = {
     acnConstants : Map<string, BigInteger>
     args:CommandLineSettings
     acnParseResults:CommonTypes.AntlrParserResult list //used in ICDs to regenerate with collors the initial ACN input
-    stg : AbstractMacros.StgMacros  
 }
 
 
