@@ -10,20 +10,10 @@ open System.Resources
 let writeTextFile fileName (content:String) =
     System.IO.File.WriteAllText(fileName, content.Replace("\r",""))
 
+
 let getResourceAsString (rsName:string) =
-    let projName = "asn1scc"
-    let assembly = System.Reflection.Assembly.GetExecutingAssembly()
-    let names = assembly.GetManifestResourceNames();
-    let compositeResourceName = (projName+"." + rsName)
-    match names |> Seq.tryFind( (=) compositeResourceName) with
-    | None  ->
-        let msg = sprintf "Resource '%s' not found!\nAvailable resources are\n%A" compositeResourceName names
-        raise (UserException msg)
-    | Some _    ->
-        let resource = assembly.GetManifestResourceStream compositeResourceName    
-        use memStrm = new MemoryStream ()
-        resource.CopyTo(memStrm)
-        System.Text.Encoding.UTF8.GetString(memStrm.ToArray())
+    FsUtils.getResourceAsString0 "asn1scc" (System.Reflection.Assembly.GetExecutingAssembly ()) rsName
+
 
 let writeResource (di:DirInfo) (rsName:string) (fn) : unit=
     let asn1rtlDirName = di.asn1rtlDir

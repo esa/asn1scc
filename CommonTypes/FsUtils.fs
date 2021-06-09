@@ -19,6 +19,7 @@ open Antlr.Runtime
 open System.Xml
 open System.Xml.Linq
 open System.Xml.Schema
+open System.IO
 
 
 
@@ -653,3 +654,19 @@ let loadXmlFile (validationType:ValidationType) (xmlFileName:string) =
         | exc         -> 
             Console.Error.WriteLine("Error in file: {0}", xmlFileName)
             raise exc
+
+
+let getResourceAsString0 (resourcePrefix:string) (assembly:Reflection.Assembly) (rsName:string) =
+    //let projName = "asn1scc"
+    //let assembly = System.Reflection.Assembly.GetExecutingAssembly()
+    let names = assembly.GetManifestResourceNames();
+    let compositeResourceName = (resourcePrefix+"." + rsName)
+    match names |> Seq.tryFind( (=) compositeResourceName) with
+    | None  ->
+        let msg = sprintf "Resource '%s' not found!\nAvailable resources are\n%A" compositeResourceName names
+        raise (UserException msg)
+    | Some _    ->
+        let resource = assembly.GetManifestResourceStream compositeResourceName    
+        use memStrm = new MemoryStream ()
+        resource.CopyTo(memStrm)
+        System.Text.Encoding.UTF8.GetString(memStrm.ToArray())
