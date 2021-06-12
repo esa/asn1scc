@@ -4,8 +4,18 @@
     <TargetFramework>net5.0</TargetFramework>
   </PropertyGroup>
 
+<!--
   <Target Name="PreBuild" BeforeTargets="PreBuildEvent">
-    <Exec Command="java -jar $(ProjectDir)antlr313/antlr-3.2.jar -o $(ProjectDir) $(ProjectDir)asn1.g&#xD;&#xA;java -jar $(ProjectDir)antlr313/antlr-3.2.jar -o $(ProjectDir) $(ProjectDir)acn.g&#xD;&#xA;" />
+      <Exec Command="java -jar $(ProjectDir)antlr313/antlr-3.2.jar -o $(ProjectDir) $(ProjectDir)asn1.g &amp;&amp; java -jar $(ProjectDir)antlr313/antlr-3.2.jar -o $(ProjectDir) $(ProjectDir)acn.g" />
+  </Target>
+-->
+
+  <Target Name="RunAntlr" BeforeTargets="BeforeBuild">
+    <Exec Command="java -jar $(ProjectDir)antlr313/antlr-3.2.jar -o $(ProjectDir) $(ProjectDir)asn1.g &amp;&amp; java -jar $(ProjectDir)antlr313/antlr-3.2.jar -o $(ProjectDir) $(ProjectDir)acn.g" />
+    <ItemGroup>
+      <Compile Include="**/*$(DefaultLanguageSourceExtension)"
+               Exclude="$(DefaultItemExcludes);$(DefaultExcludesInProjectFolder);$(BaseIntermediateOutputPath)**;$(BaseOutputPath)**;@(Compile)" />
+    </ItemGroup>
   </Target>
 
   <ItemGroup>
