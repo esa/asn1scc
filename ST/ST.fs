@@ -85,7 +85,7 @@ type RealFormatRenderer() =
             let result = 
                 match double2StringPlain with
                 | true      -> v.ToString()
-                | false     -> v.ToString("E20", NumberFormatInfo.InvariantInfo)
+                | false     -> v.ToString("E19", NumberFormatInfo.InvariantInfo)
 //            String.Format(NumberFormatInfo.InvariantInfo, "{0}", o)
 //            if ((v%1.0) = 0.0) && not(result.Contains("E")) then
 //                result + ".0"
