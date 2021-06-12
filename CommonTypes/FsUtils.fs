@@ -634,7 +634,7 @@ let test (a:T1) (b:T2) (c:T3)=
 let loadXmlFile (validationType:ValidationType) (xmlFileName:string) =
     let settings = new XmlReaderSettings()
     settings.ValidationType <- validationType
-    
+    settings.XmlResolver <- new XmlUrlResolver()
     settings.ValidationFlags <- settings.ValidationFlags ||| XmlSchemaValidationFlags.ProcessInlineSchema
     settings.ValidationFlags <- settings.ValidationFlags ||| XmlSchemaValidationFlags.ProcessSchemaLocation
     settings.ValidationFlags <- settings.ValidationFlags ||| XmlSchemaValidationFlags.ReportValidationWarnings

@@ -1,8 +1,13 @@
-FROM debian:buster
+FROM  mcr.microsoft.com/dotnet/sdk AS build
 
 RUN apt update
-RUN apt install -y mono-devel mono-complete mono-xbuild python3 python3-distutils \
+RUN mkdir /usr/share/man/man1
+RUN apt install -y python3 python3-distutils \
     gnat gcc g++ make openjdk-11-jre nuget libgit2-dev libssl-dev gprbuild ; apt clean
-RUN echo "deb http://deb.debian.org/debian stretch main" >> /etc/apt/sources.list
-RUN apt update
-RUN apt install -y --no-install-recommends fsharp
+
+
+WORKDIR /src
+COPY . .
+RUN dotnet build Antlr/
+RUN dotnet build "asn1scc.sln"
+
