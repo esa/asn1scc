@@ -76,10 +76,11 @@ def RunTestCase(asn1, acn, behavior, expErrMsg):
     bRunCodeCoverage = "NOCOVERAGE" not in open(resolvedir(asn1File)).readline()
     acnFile = targetDir + os.sep + "sample1.acn"
     astXml  = targetDir + os.sep + "ast.xml"
-    launcher = '' if sys.platform == 'cygwin' else 'mono '
-    path_to_asn1scc = spawn.find_executable('Asn1f4.exe')
+    #launcher = '' if sys.platform == 'cygwin' else 'mono '
+    #path_to_asn1scc = spawn.find_executable('Asn1f4.exe')
+    path_to_asn1scc = "../asn1scc/bin/Debug/net5.0/asn1scc"
     res = mysystem(
-        launcher + path_to_asn1scc +
+        path_to_asn1scc +
         " -" + language + " -x ast.xml -uPER -ACN -typePrefix gmamais_ -fpWordSize 4 -wordSize 4 " +
         "-renamePolicy 2 -fp AUTO " + "-equal -atc -o '" + resolvedir(targetDir) +
         "' '" + resolvedir(asn1File) + "' '" + resolvedir(acnFile) +
