@@ -1219,3 +1219,12 @@ v2out
 /asn1scc/Resources/msp430_board_config.ads
 /asn1scc/Resources/stm32_board_config.ads
 /asn1scc/Resources/x86_board_config.ads
+/frama-c
+/v4Tests-32/tmp_c
+/v4Tests-32/Asn1Schema.xsd
+/v4Tests-32/ast.xml
+/v4Tests-32/backend_ast.xml
+/v4Tests-32/c_log.txt
+/v4Tests-32/tmp.err_Ada
+/v4Tests-32/tmp.err_c
+/v4Tests-32/Ada_log.txt
