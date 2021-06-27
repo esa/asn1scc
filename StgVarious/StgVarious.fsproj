@@ -43,7 +43,7 @@
   </ItemGroup>
 
   <Target Name="PreBuild" BeforeTargets="PreBuildEvent">
-    <Exec Command="dotnet $(ProjectDir)..\parseStg2\bin\$(ConfigurationName)\net5.0\parseStg2.dll $(ProjectDir)backends.xml" />
+    <Exec Command="dotnet $(ProjectDir)../parseStg2/bin/$(ConfigurationName)/net5.0/parseStg2.dll $(ProjectDir)backends.xml" />
   </Target>
 
 </Project>
