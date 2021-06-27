@@ -23,47 +23,24 @@ interest you.
 Compilation
 ===========
 
-## Common for all OSes
+## Ιnstall the Java JRE
 
 First, install the Java JRE. This is a compile-time only dependency,
 required to execute ANTLR.
 
-Then depending on your OS:
+## Install .Net Core SDK
 
-### Under Windows
-
-Install:
-
-1. A version of Visual Studio with support for F# .
-
-2. Open `Asn1.sln` and build the `Asn1f4` project (right-click/build)
-
-## Under OSX
-
-1. Install the [Mono MDK](http://www.mono-project.com).
-
-2. Execute `make` - and the compiler will be built.
-
-## Under Linux
-
-1. Install the [mono](http://www.mono-project.com) development tools, 
-   as well as the FSharp compiler itself. Under Debian-based distributions,
-   as of September 2018, the packages below cover all dependencies:
-
+Install the [.Net core](https://dotnet.microsoft.com/) sdk.
+and then exexcute
     ```
-    sudo apt-get install -y mono-devel mono-complete fsharp mono-xbuild \
-       python3 gnat-6 gcc g++ make openjdk-8-jre nuget \
-       libgit2-dev libssl-dev
-    
+    dotnet build Antlr/
+    dotnet build "asn1scc.sln"
     ```
+and the compiler will be built.
 
-2. Build the compiler, via...
+Under Windows, you can also open open `asn1scc.sln` and build the `asn1scc` project (right-click/build)
 
-    ```
-    make
-    ```
-
-3. Then run the tests - if you want to:
+## Run the tests - if you want to:
 
     ```
     cd v4Tests
