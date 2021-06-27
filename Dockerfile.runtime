@@ -14,7 +14,7 @@ WORKDIR /src
 RUN set -ex ;\
     git clone https://github.com/ttsiodras/asn1scc.git ;\
     cd asn1scc/ ;\
-    git checkout dotnetcore ;\
+    #git checkout dotnetcore ;\
     dotnet build Antlr/ --configuration Release ;\
     dotnet build "asn1scc.sln" --configuration Release 
 
