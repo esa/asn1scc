@@ -1,7 +1,4 @@
-# syntax = docker/dockerfile:experimental
 FROM  mcr.microsoft.com/dotnet/sdk AS builder
-
-
 
 RUN apt update
 RUN mkdir /usr/share/man/man1
@@ -14,9 +11,7 @@ RUN --mount=type=cache,target=/var/cache/apt --mount=type=cache,target=/var/lib/
 
 
 WORKDIR /src
-COPY . .
 RUN set -ex ;\
-    cd /tmp ;\
     git clone https://github.com/ttsiodras/asn1scc.git ;\
     cd asn1scc/ ;\
     git checkout dotnetcore ;\
@@ -28,6 +23,7 @@ RUN set -ex ;\
 
 FROM mcr.microsoft.com/dotnet/runtime
 
-COPY --from=builder /src/asn1scc/bin/Debug/net5.0/ /opt/asn1scc
+COPY --from=builder /src/asn1scc/asn1scc/bin/Release/net5.0/ /opt/asn1scc
+WORKDIR /tmp
 
 ENTRYPOINT ["/opt/asn1scc/asn1scc"]
