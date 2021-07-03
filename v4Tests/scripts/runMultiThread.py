@@ -142,10 +142,11 @@ class TestCase:
         acnFile = self.targetDir + os.sep + "sample1.acn"
         astXml  = self.targetDir + os.sep + "ast.xml"
         tmp_err = self.targetDir + os.sep + "tmp.err"
-        launcher = '' if sys.platform == 'cygwin' else 'mono '
-        path_to_asn1scc = spawn.find_executable('../Asn1f4/bin/Debug/Asn1f4.exe')
+        #launcher = '' if sys.platform == 'cygwin' else 'mono '
+        #path_to_asn1scc = spawn.find_executable('Asn1f4.exe')
+        path_to_asn1scc = "../asn1scc/bin/Debug/net5.0/asn1scc"
         res = mysystem(self.targetDir, tmp_err,
-            launcher + path_to_asn1scc +
+            path_to_asn1scc +
             " -" + self.language + " -x '"+resolvedir(astXml)+"' -uPER -ACN -typePrefix gmamais_ " +
             "-renamePolicy 2 -fp AUTO " + "-equal -atc -o '" + resolvedir(self.targetDir) +
             "' '" + resolvedir(asn1File) + "' '" + resolvedir(acnFile) +

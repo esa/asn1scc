@@ -38,6 +38,7 @@ let ToC (str:string) =  str.Replace('-','_').Replace('.','_').Replace("#","elm")
 
 let ToC2  =  ToC
 
+let doubleParseString  = "E19"
 
 type stringL  = (string*int)
 

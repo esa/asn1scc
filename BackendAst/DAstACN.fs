@@ -1294,7 +1294,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
             AcnGenericTypes.foldAcnExpression
                 (fun i s -> ( (0, i.Value.ToString()) , 0))
                 (fun i s -> ( (0,"") , 0))
-                (fun i s -> ( (0, i.Value.ToString("E20", NumberFormatInfo.InvariantInfo)) , 0))
+                (fun i s -> ( (0, i.Value.ToString(FsUtils.doubleParseString, NumberFormatInfo.InvariantInfo)) , 0))
                 (fun i s -> ( (0, i.Value.ToString().ToLower()) , 0))
                 (fun lf s ->
                     let plf = getChildResult seq pSeq lf
