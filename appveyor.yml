@@ -10,5 +10,5 @@ before_build:
 
 build:
   parallel: true
-  project: Asn1.sln
+  project: asn1scc.sln
   verbosity: normal
