@@ -28,9 +28,9 @@ let handTypeWithMinMax name uperRange func  stgFileName =
 let handTypeWithMinMax_real name (uperRange:Asn1AcnAst.DoubleUperRange) func stgFileName =
     let GetMinMax (uperRange:Asn1AcnAst.DoubleUperRange) =
         match uperRange with
-        | CommonTypes.Concrete(min, max)      -> min.ToString("E20", NumberFormatInfo.InvariantInfo), max.ToString("E20", NumberFormatInfo.InvariantInfo)
-        | CommonTypes.PosInf(a)               -> a.ToString("E20", NumberFormatInfo.InvariantInfo), "MAX"
-        | CommonTypes.NegInf(max)             -> "MIN", max.ToString("E20", NumberFormatInfo.InvariantInfo)
+        | CommonTypes.Concrete(min, max)      -> min.ToString(FsUtils.doubleParseString, NumberFormatInfo.InvariantInfo), max.ToString("E20", NumberFormatInfo.InvariantInfo)
+        | CommonTypes.PosInf(a)               -> a.ToString(FsUtils.doubleParseString, NumberFormatInfo.InvariantInfo), "MAX"
+        | CommonTypes.NegInf(max)             -> "MIN", max.ToString(FsUtils.doubleParseString, NumberFormatInfo.InvariantInfo)
         | CommonTypes.Full                    -> "MIN", "MAX"
     let sMin, sMax = GetMinMax uperRange
     func name sMin sMax (sMin=sMax) stgFileName

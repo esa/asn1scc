@@ -1,8 +1,6 @@
 version: 4.0.0.{build}
 
 image:
-  - Visual Studio 2015
-  - Visual Studio 2017
   - Visual Studio 2019
 
 before_build:
@@ -10,5 +8,5 @@ before_build:
 
 build:
   parallel: true
-  project: Asn1.sln
+  project: asn1scc.sln
   verbosity: normal

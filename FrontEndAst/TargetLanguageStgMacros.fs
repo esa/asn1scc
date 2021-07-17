@@ -10,5 +10,5 @@ let c_StgMacros =
 // C Macros
 let a_StgMacros = 
     {
-        AbstractMacros.StgMacros.is_valid = isvalid_a_impl.macrosImplClass
+        AbstractMacros.StgMacros.is_valid = isvalid_c_impl.macrosImplClass
     }

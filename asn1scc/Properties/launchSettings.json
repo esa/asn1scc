@@ -1,0 +1,9 @@
+{
+  "profiles": {
+    "asn1scc": {
+      "commandName": "Project",
+      "commandLineArgs": "-c -uPER -atc -o c_out/ a.asn",
+      "workingDirectory": "C:\\prj\\GitHub\\asn1scc\\tmp\\20"
+    }
+  }
+}

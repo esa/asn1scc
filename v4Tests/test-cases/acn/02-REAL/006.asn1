@@ -1,0 +1,13 @@
+--RUN_SPARK
+TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
+
+    
+    MyPDU   ::= REAL (-1.7976931348623157e+308..1.7976931348623157E308)
+
+	pdu1 MyPDU ::= 3.14159265
+	
+END
+--TCLS     MyPDU[]
+--TCLS     MyPDU[encoding IEEE754-1985-64, endianness little]
+--TCLS     MyPDU[encoding IEEE754-1985-64, endianness big]
+--TCLS     MyPDU[encoding IEEE754-1985-64]

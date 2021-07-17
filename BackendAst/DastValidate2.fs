@@ -230,7 +230,7 @@ let integerConstraint2ValidationCodeBlock (r:Asn1AcnAst.AstRoot) (l:ProgrammingL
 
 
 let realConstraint2ValidationCodeBlock (l:ProgrammingLanguage) (c:RealTypeConstraint) st =
-    let valToStrFunc (v:double) = v.ToString("E20", NumberFormatInfo.InvariantInfo)
+    let valToStrFunc (v:double) = v.ToString(FsUtils.doubleParseString, NumberFormatInfo.InvariantInfo)
     foldRangeTypeConstraint  (con_or l) (con_and l) (con_not l) (con_ecxept l) con_root (con_root2 l)      
         (fun v  s         -> (fun p -> VCBExpression(l.ExpEqual (p.arg.getValue l) (valToStrFunc  v))) ,s)
         (fun v1 v2  minIsIn maxIsIn s   -> 

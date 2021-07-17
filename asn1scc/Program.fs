@@ -95,7 +95,7 @@ let printVersion () =
     //let assembly = System.Reflection.Assembly.GetExecutingAssembly();
     //let fvi = System.Diagnostics.FileVersionInfo.GetVersionInfo(assembly.Location);
     //let version = fvi.FileVersion;
-    let version = "4.2.4.6f"
+    let version = "4.2.4.7f"
     printfn "asn1scc version %s\n" version
     ()
 
@@ -110,7 +110,7 @@ let getCustmStgFileNames (compositeFile:string) =
         | _             -> None
      
 
-let checkOutFileName (fileName:string) extension cmdoption =    
+let checkOutFileName (fileName:string) (extension:string) cmdoption =    
     match fileName.ToLower().EndsWith extension with
     | true  -> ()
     | false -> 
@@ -300,7 +300,7 @@ let main0 argv =
                     Some (DAstConstruction.DoWork frontEntAst acnDeps CommonTypes.ProgrammingLanguage.C  args.encodings)
                 | Ada_Lang              -> 
                     
-                    Some (DAstConstruction.DoWork {frontEntAst with stg=TargetLanguageStgMacros.a_StgMacros} acnDeps CommonTypes.ProgrammingLanguage.Ada  args.encodings)
+                    Some (DAstConstruction.DoWork frontEntAst acnDeps CommonTypes.ProgrammingLanguage.Ada  args.encodings)
                 | _             -> None)
 
         let createDirectories baseDir (l:ProgrammingLanguage) target =
@@ -400,6 +400,5 @@ let main0 argv =
 
 [<EntryPoint>]
 let main argv = 
-    
     main0 argv
     

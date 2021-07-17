@@ -86,7 +86,7 @@ let constructAst (args:CommandLineSettings) (debugFnc : Asn1Ast.AstRoot -> AcnGe
         - Updates ASN.1 AST with ACN information
         - Creates the expanded tree (i.e reference types are now resolved)
     *)
-    let acnAst,acn0 = AcnCreateFromAntlr.mergeAsn1WithAcnAst uniqueEnumNamesAst (acnAst, acnParseTrees) TargetLanguageStgMacros.c_StgMacros
+    let acnAst,acn0 = AcnCreateFromAntlr.mergeAsn1WithAcnAst uniqueEnumNamesAst (acnAst, acnParseTrees) 
     debugFnc uniqueEnumNamesAst acn0
 
     (*
