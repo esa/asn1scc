@@ -1228,3 +1228,6 @@ v2out
 /v4Tests-32/tmp.err_Ada
 /v4Tests-32/tmp.err_c
 /v4Tests-32/Ada_log.txt
+/lsp/Server/Server/obj
+/lsp/Server/Server/bin
+/lsp/Server/.vs/Server/DesignTimeBuild/.dtbcache.v2
