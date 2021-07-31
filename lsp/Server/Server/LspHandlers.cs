@@ -58,10 +58,9 @@ namespace LspServer
     {
         private readonly ILogger<MyDefinitionHandler> _logger;
         private readonly DocumentSelector _documentSelector = new DocumentSelector(
-            new DocumentFilter
-            {
-                Pattern = "**/*.acn"
-            }
+            new DocumentFilter { Pattern = "**/*.asn" },
+            new DocumentFilter { Pattern = "**/*.asn1" },
+            new DocumentFilter { Pattern = "**/*.acn" }
         );
 
         public MyDefinitionHandler(ILogger<MyDefinitionHandler> logger)
@@ -102,10 +101,9 @@ namespace LspServer
     {
         private readonly ILogger<MyCompletionHandler> _logger;
         private readonly DocumentSelector _documentSelector = new DocumentSelector(
-            new DocumentFilter
-            {
-                Pattern = "**/*.acn"
-            }
+            new DocumentFilter { Pattern = "**/*.asn" },
+            new DocumentFilter { Pattern = "**/*.asn1" },
+            new DocumentFilter { Pattern = "**/*.acn" }
         );
 
         public MyCompletionHandler(ILogger<MyCompletionHandler> logger)
@@ -161,10 +159,9 @@ namespace LspServer
 
         private readonly ILogger<MyPublishDiagnosticsHandler> _logger;
         private readonly DocumentSelector _documentSelector = new DocumentSelector(
-            new DocumentFilter
-            {
-                Pattern = "**/*.acn"
-            }
+            new DocumentFilter { Pattern = "**/*.asn" },
+            new DocumentFilter { Pattern = "**/*.asn1" },
+            new DocumentFilter { Pattern = "**/*.acn" }
         );
 
         public MyPublishDiagnosticsHandler(ILogger<MyPublishDiagnosticsHandler> logger)
@@ -196,23 +193,50 @@ namespace LspServer
         private readonly ILogger<TextDocumentHandler> _logger;
         private readonly ILanguageServerConfiguration _configuration;
         private readonly ILanguageServerFacade _server;
+        private readonly Asn1SccService _asn1SccService;
 
         private readonly DocumentSelector _documentSelector = new DocumentSelector(
-            new DocumentFilter
-            {
-                Pattern = "**/*.acn"
-            }
+            new DocumentFilter { Pattern = "**/*.asn"},
+            new DocumentFilter { Pattern = "**/*.asn1" },
+            
+            new DocumentFilter { Pattern = "**/*.acn"}
         );
 
-        public TextDocumentHandler(ILogger<TextDocumentHandler> logger, Foo foo, ILanguageServerConfiguration configuration, ILanguageServerFacade server)
+        public TextDocumentHandler(ILogger<TextDocumentHandler> logger, Asn1SccService asn1SccService, ILanguageServerConfiguration configuration, ILanguageServerFacade server)
         {
             _logger = logger;
             _configuration = configuration;
-            foo.SayFoo();
+            _asn1SccService = asn1SccService;
             _server = server;
         }
 
         public TextDocumentSyncKind Change { get; } = TextDocumentSyncKind.Full;
+
+        private List<Diagnostic>  parseDocument(string fileName, string fileContent)
+        {
+            List<Diagnostic> dia = new List<Diagnostic>();
+            bool asn1File = fileName.ToLower().EndsWith("asn1") || fileName.ToLower().EndsWith("asn");
+            Antlr.Asn1.asn1Parser.AntlrError[] errors =
+                asn1File ?
+                FrontEntMain.parseAsn1File(fileName, fileContent)
+                :
+                FrontEntMain.parseAcnFile(fileName, fileContent);
+            _logger.LogInformation("parseDocument called. asn1File is {0}, erros count {1}", asn1File, errors.Length);
+            foreach (var e in errors)
+            {
+                _logger.LogInformation(e.msg);
+                dia.Add(new Diagnostic()
+                {
+                    Message = e.msg,
+                    Range = new Range(e.line - 1, e.charPosInline, e.line - 1, e.charPosInline + 10),
+                    Severity = DiagnosticSeverity.Error,
+                    // TODO: We need to forward this type though if we add something like Vb Support
+                    Source = "asn1scc"
+                });
+            }
+
+            return dia;
+        }
 
         public override Task<Unit> Handle(DidChangeTextDocumentParams notification, CancellationToken token)
         {
@@ -231,6 +255,24 @@ namespace LspServer
             }
             _logger.LogInformation("---- chaneges end ---");
             */
+            string content = "";
+            foreach (var c in notification.ContentChanges)
+            {
+                //_logger.LogInformation("Range is :{0}", c.Range != null ? c.Range.ToString() : "null");
+                //_logger.LogInformation("Text is :{0}", c.Text);
+                //_logger.LogInformation("**** end of range ***    ");
+                content += c.Text;
+            }
+
+            var fileName = notification.TextDocument.Uri.ToString();
+            List<Diagnostic> dia = parseDocument(fileName, content);
+            _server.TextDocument.PublishDiagnostics(new PublishDiagnosticsParams()
+            {
+                Uri = notification.TextDocument.Uri,
+                Version = notification.TextDocument.Version,
+                Diagnostics = dia
+            });
+
             return Unit.Task;
         }
 
@@ -242,16 +284,8 @@ namespace LspServer
             _logger.LogInformation(notification.TextDocument.Text);
             _logger.LogInformation("----- End of Content -------------");
             await _configuration.GetScopedConfiguration(notification.TextDocument.Uri, token);
-
-            List<Diagnostic> dia = new List<Diagnostic>();
-            dia.Add(new Diagnostic()
-            {
-                Message = "Aman",
-                Range = new Range(0,0,0,4),
-                Severity = DiagnosticSeverity.Error,
-                // TODO: We need to forward this type though if we add something like Vb Support
-                Source = "acn"
-            });
+            var fileName = notification.TextDocument.Uri.ToString();
+            List<Diagnostic> dia = parseDocument(fileName, notification.TextDocument.Text);
             _server.TextDocument.PublishDiagnostics(new PublishDiagnosticsParams()
             {
                 Uri = notification.TextDocument.Uri,

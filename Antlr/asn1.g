@@ -121,15 +121,42 @@ public class SyntaxErrorException : Exception
     public SyntaxErrorException(string msg) : base(msg) { }
 }
 
-/*
+public class AntlrError  
+{
+    public int line;
+    public int charPosInline;
+    public string filePath;
+    public string msg;
+
+
+    public AntlrError(int line, int charPosInline, string filePath, string msg) {
+        this.line = line;
+        this.charPosInline = charPosInline;
+        this.filePath = filePath;
+        this.msg = msg;
+
+    }
+    public string FullMessage
+        {
+            get {
+                var arr = new object[] { filePath, ":", line, ":", charPosInline, ": error:", " ",  msg };
+                return string.Concat(arr);
+            }
+        }
+}
+
+public System.Collections.Generic.List<AntlrError> errorList = new System.Collections.Generic.List<AntlrError>();
 public override void ReportError(RecognitionException e) {
-	base.ReportError(e);
-        throw e;
-}*/
+    var er = new AntlrError(e.Line, e.CharPositionInLine, e.Input.SourceName, GetErrorMessage(e, tokenNames));
+
+    errorList.Add(er);
+    base.ReportError(e);
+    //    throw e;
+}
 
 public override void EmitErrorMessage(string msg)
 {
-    throw new SyntaxErrorException(msg);
+//    throw new SyntaxErrorException(msg);
 //    throw new Semantix.Utils.SyntaxErrorException(msg);
 }
 public override string GetErrorHeader(RecognitionException e)
@@ -154,15 +181,19 @@ public override IToken NextToken() {
         tokens.Remove(ret);
         return ret;
 }
-/*
+
+public System.Collections.Generic.List<asn1Parser.AntlrError> errorList = new System.Collections.Generic.List<asn1Parser.AntlrError>();
 public override void ReportError(RecognitionException e) {
-	base.ReportError(e);
-        throw e;
-}*/
+    var er = new asn1Parser.AntlrError(e.Line, e.CharPositionInLine, e.Input.SourceName, GetErrorMessage(e, asn1Parser.tokenNames));
+
+    errorList.Add(er);
+    base.ReportError(e);
+    //    throw e;
+}
 
 public override void EmitErrorMessage(string msg)
 {
-    throw new asn1Parser.SyntaxErrorException(msg);
+    //throw new asn1Parser.SyntaxErrorException(msg);
 }
 public override string GetErrorHeader(RecognitionException e)
 {
@@ -420,7 +451,7 @@ extensionAdditionAlternative
 	;	
 
 sequenceType
-	:	a=SEQUENCE L_BRACKET sequenceOrSetBody?  R_BRACKET -> ^(SEQUENCE_TYPE[$a] sequenceOrSetBody?)
+	:	a=SEQUENCE L_BRACKET sequenceOrSetBody?  R_BRACKET -> ^(SEQUENCE_TYPE[$a] L_BRACKET R_BRACKET sequenceOrSetBody?)
 	;
 	
 setType	:	a=SET L_BRACKET sequenceOrSetBody?  R_BRACKET -> ^(SET_TYPE[$a] sequenceOrSetBody?)

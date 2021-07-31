@@ -35,6 +35,8 @@ Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "BackendAst", "BackendAst\Ba
 EndProject
 Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "Asn1sccWs", "Asn1sccWs\Asn1sccWs.fsproj", "{AD7DD189-E244-4228-B7E4-8756849096D0}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Server", "lsp\Server\Server\Server.csproj", "{5637D206-32D6-440C-9007-11E74AFF91BB}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -85,6 +87,10 @@ Global
 		{AD7DD189-E244-4228-B7E4-8756849096D0}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{AD7DD189-E244-4228-B7E4-8756849096D0}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{AD7DD189-E244-4228-B7E4-8756849096D0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5637D206-32D6-440C-9007-11E74AFF91BB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5637D206-32D6-440C-9007-11E74AFF91BB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5637D206-32D6-440C-9007-11E74AFF91BB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5637D206-32D6-440C-9007-11E74AFF91BB}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -13,6 +13,7 @@ export function activate(context: ExtensionContext) {
 
     // The server is implemented in node
     let serverExe = 'dotnet';
+    console.log("Current directory is :" + process.cwd())
 
     // If the extension is launched in debug mode then the debug server options are used
     // Otherwise the run options are used
@@ -26,9 +27,9 @@ export function activate(context: ExtensionContext) {
         // Register the server for plain text documents
         
         documentSelector: [
-            {
-                pattern: '**/*.acn',
-            }
+            {pattern: '**/*.acn',},
+            {pattern: '**/*.asn1',},
+            {pattern: '**/*.asn',}
         ],
         synchronize: {
             // Synchronize the setting section 'languageServerExample' to the server

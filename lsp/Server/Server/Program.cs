@@ -59,11 +59,11 @@ namespace LspServer
                                 services.AddSingleton(
                                     provider => {
                                         var loggerFactory = provider.GetService<ILoggerFactory>();
-                                        var logger = loggerFactory.CreateLogger<Foo>();
+                                        var logger = loggerFactory.CreateLogger<Asn1SccService>();
 
                                         logger.LogInformation("Configuring");
 
-                                        return new Foo(logger);
+                                        return new Asn1SccService(logger);
                                     }
                                 );
                                 services.AddSingleton(
@@ -133,7 +133,7 @@ namespace LspServer
                                 await Task.Delay(10000);
                                 manager.OnNext(new WorkDoneProgressReport { Message = "doing things... 56789" });
 
-                                var logger = languageServer.Services.GetService<ILogger<Foo>>();
+                                var logger = languageServer.Services.GetService<ILogger<Asn1SccService>>();
                                 var configuration = await languageServer.Configuration.GetConfiguration(
                                     new ConfigurationItem
                                     {
@@ -167,11 +167,11 @@ namespace LspServer
         }
     }
 
-    internal class Foo
+    internal class Asn1SccService
     {
-        private readonly ILogger<Foo> _logger;
+        private readonly ILogger<Asn1SccService> _logger;
 
-        public Foo(ILogger<Foo> logger)
+        public Asn1SccService(ILogger<Asn1SccService> logger)
         {
             logger.LogInformation("inside ctor");
             _logger = logger;

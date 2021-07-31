@@ -26,4 +26,10 @@
 	<PackageReference Include="Nerdbank.Streams" Version="2.6.81" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\Antlr\Antlr.csproj" />
+    <ProjectReference Include="..\..\..\CommonTypes\CommonTypes.fsproj" />
+    <ProjectReference Include="..\..\..\FrontEndAst\FrontEndAst.fsproj" />
+  </ItemGroup>
+
 </Project>

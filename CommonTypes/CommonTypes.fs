@@ -11,7 +11,19 @@ let c_keyworkds =  [ "auto"; "break"; "case"; "char"; "const"; "continue"; "defa
 let ada_keyworkds =  [ "abort"; "else"; "new"; "return"; "abs"; "elsif"; "not"; "reverse"; "abstract"; "end"; "null"; "accept"; "entry"; "select"; "access"; "exception"; "of"; "separate"; "aliased"; "exit"; "or"; "some"; "all"; "others"; "subtype"; "and"; "for"; "out"; "synchronized"; "array"; "function"; "overriding"; "at"; "tagged"; "generic"; "package"; "task"; "begin"; "goto"; "pragma"; "terminate"; "body"; "private"; "then"; "if"; "procedure"; "type"; "case"; "in"; "protected"; "constant"; "interface"; "until"; "is"; "raise"; "use"; "declare"; "range"; "delay"; "limited"; "record"; "when"; "delta"; "loop"; "rem"; "while"; "digits"; "renames"; "with"; "do"; "mod"; "requeue"; "xor" ]
 
 
+type UserErrorSeverity = 
+    | ERROR
+    | WARNING
+    | INFO
 
+type UserError = {
+    line : int
+    charPosInline : int
+    filePath : string
+    msg : string
+    fullMessage : string
+    severity : UserErrorSeverity
+}
 
 
 
@@ -760,6 +772,11 @@ type ContainedInOctOrBitString =
 type IntegerOrDefinedValue =
     | IDV_IntegerValue         of IntLoc                    //integer literal i.e. 5
     | IDV_DefinedValue   of (StringLoc*StringLoc)     // reference to an integer value assignment defined in another module
+
+
+type Asn1SccOperationMode =
+    | Asn1Compiler
+    | LanguagerServer
 
 type NamedBit0 = {
     Name:StringLoc

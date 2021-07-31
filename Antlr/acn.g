@@ -49,10 +49,17 @@ tokens {
 }
 
 @members {
+public System.Collections.Generic.List<Antlr.Asn1.asn1Parser.AntlrError> errorList = new System.Collections.Generic.List<Antlr.Asn1.asn1Parser.AntlrError>();
+public override void ReportError(RecognitionException e) {
+    var er = new Antlr.Asn1.asn1Parser.AntlrError(e.Line, e.CharPositionInLine, e.Input.SourceName, GetErrorMessage(e, tokenNames));
+
+    errorList.Add(er);
+    base.ReportError(e);
+}
 
 public override void EmitErrorMessage(string msg)
 {
-    throw new  Antlr.Asn1.asn1Parser.SyntaxErrorException(msg);
+//    throw new  Antlr.Asn1.asn1Parser.SyntaxErrorException(msg);
 }
 public override string GetErrorHeader(RecognitionException e)
 {
@@ -77,9 +84,18 @@ public override IToken NextToken() {
         return ret;
 }
 
+public System.Collections.Generic.List<Antlr.Asn1.asn1Parser.AntlrError> errorList = new System.Collections.Generic.List<Antlr.Asn1.asn1Parser.AntlrError>();
+public override void ReportError(RecognitionException e) {
+    var er = new Antlr.Asn1.asn1Parser.AntlrError(e.Line, e.CharPositionInLine, e.Input.SourceName, GetErrorMessage(e, acnParser.tokenNames));
+
+    errorList.Add(er);
+    base.ReportError(e);
+}
+
+
 public override void EmitErrorMessage(string msg)
 {
-    throw new Antlr.Asn1.asn1Parser.SyntaxErrorException(msg);
+    //throw new Antlr.Asn1.asn1Parser.SyntaxErrorException(msg);
 }
 public override string GetErrorHeader(RecognitionException e)
 {

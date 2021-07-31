@@ -325,7 +325,7 @@ type Asn1OrAcnOrPrmType =
     | ASN1_TYPE         of Asn1Type
     | ACN_PARAMETER     of Asn1Type*AcnGenericTypes.AcnParameter
 
-
+(*
 let locateTypeByRefId (r:AstRoot) (ReferenceToType nodes) =
     let origPath = ReferenceToType nodes
     let rec locateType (parent:Asn1OrAcnOrPrmType) (nodes:ScopeNode list) =
@@ -381,7 +381,7 @@ let locateTypeByRefId (r:AstRoot) (ReferenceToType nodes) =
         locateType (ASN1_TYPE tas.Type) restPath
     | _                 -> raise(UserException(sprintf "Invalid module name " ))
         
-
+*)
 
 type AstRoot with
     member r.Modules = r.Files |> List.collect(fun f -> f.Modules)
