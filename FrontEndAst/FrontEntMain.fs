@@ -12,6 +12,17 @@ open FsUtils
 open Antlr
 open System
 
+open System
+open System.Numerics
+open FsUtils
+open ParameterizedAsn1Ast
+open Antlr.Asn1
+open Antlr.Runtime.Tree
+open Antlr.Runtime
+open FsUtils
+open CommonTypes
+open AcnGenericTypes
+
 //let CreateAstRoot (list:(ITree*string*array<IToken>) seq) (encodings:array<Asn1Encoding>) generateEqualFunctions typePrefix checkWithOss astXmlFileName icdUperHtmlFileName icdAcnHtmlFileName (mappingFunctionsModule:string) integerSizeInBytes =  
 
 
@@ -37,6 +48,10 @@ let antlrParse (lexer: ICharStream -> (#ITokenSource* asn1Parser.AntlrError list
     let tree, parcerErrors = treeParser(tokenStream);
     let allErrors = parcerErrors@lexerErrors
     {CommonTypes.AntlrParserResult.fileName = name; CommonTypes.AntlrParserResult.rootItem=tree; CommonTypes.AntlrParserResult.tokens=tokens}, allErrors
+
+
+let rec visitAntlrTree (r:ITree)  =
+    r.AllChildren |> List.filter(fun z -> z.Type = asn1Parser.TYPE_ASSIG) |> List.map(fun z -> z.Text) |> Seq.toArray
 
 let asn1treeParser (tokenStream:CommonTokenStream)=
     let p = new asn1Parser(tokenStream)
@@ -83,12 +98,16 @@ let constructCommandLineSettings (fileName:string) strm =
     }    
 
 
-
+type ParsedFile = {
+    errors : asn1Parser.AntlrError array
+    completionItems : string array
+}
 
 let parseAsn1File (fileName:string) (fileContent:string) =
     let stm = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(fileContent))
     let args = constructCommandLineSettings fileName stm
     let asn1ParseTree, b = antlrParse asn1Lexer asn1treeParser (fileName, [{Input.name=fileName; contents=stm}])
+    let typeAss = asn1ParseTree.rootItem.AllChildren |> List.filter(fun z -> z.Type = asn1Parser.TYPE_ASSIG) |> List.map(fun z -> (z.GetChild(0)).Text) |> Seq.toArray
     match b with
     [] ->
         try
@@ -99,18 +118,21 @@ let parseAsn1File (fileName:string) (fileContent:string) =
             let uniqueEnumNamesAst = EnsureUniqueEnumNames.DoWork asn1Ast0 
             let acnAst,acn0 = AcnCreateFromAntlr.mergeAsn1WithAcnAst uniqueEnumNamesAst (acnAst, []) 
             let acnDeps = CheckLongReferences.checkAst acnAst
-            Array.empty
+            {ParsedFile.errors = Array.empty; completionItems = typeAss}
         with
             | SemanticError (loc,msg)            ->
                 let a = new asn1Parser.AntlrError (loc.srcLine, loc.charPos, loc.srcFilename, msg);
-                [a] |> Seq.toArray
+                {ParsedFile.errors = [a] |> Seq.toArray; completionItems = typeAss}
     | _ ->
-        b |> Seq.toArray
+        {ParsedFile.errors = b |> Seq.toArray; completionItems = typeAss}
+
+
 
 let parseAcnFile (fileName:string) (fileContent:string) =
     let stm = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(fileContent))
     let _, b = antlrParse acnLexer acnTreeParser (fileName, [{Input.name=fileName; contents=stm}])
-    b |> Seq.toArray
+    {ParsedFile.errors = b |> Seq.toArray; completionItems = Array.empty}
+
 let constructAst_int (args:CommandLineSettings) (op_mode:Asn1SccOperationMode) (debugFnc : Asn1Ast.AstRoot -> AcnGenericTypes.AcnAst-> unit) : (Result<Asn1AcnAst.AstRoot*Asn1AcnAst.AcnInsertedFieldDependencies, (UserError *UserError list)>) =
 
     let asn1ParseTrees, asn1ParseErrors = 

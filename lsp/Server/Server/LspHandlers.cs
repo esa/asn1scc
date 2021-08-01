@@ -57,15 +57,17 @@ namespace LspServer
     internal class MyDefinitionHandler : DefinitionHandlerBase
     {
         private readonly ILogger<MyDefinitionHandler> _logger;
+        private readonly Asn1SccService _asn1SccService;
         private readonly DocumentSelector _documentSelector = new DocumentSelector(
             new DocumentFilter { Pattern = "**/*.asn" },
             new DocumentFilter { Pattern = "**/*.asn1" },
             new DocumentFilter { Pattern = "**/*.acn" }
         );
 
-        public MyDefinitionHandler(ILogger<MyDefinitionHandler> logger)
+        public MyDefinitionHandler(ILogger<MyDefinitionHandler> logger, Asn1SccService asn1SccService)
         {
             _logger = logger;
+            _asn1SccService = asn1SccService;
         }
 
 
@@ -100,15 +102,17 @@ namespace LspServer
     internal class MyCompletionHandler : CompletionHandlerBase
     {
         private readonly ILogger<MyCompletionHandler> _logger;
+        private readonly Asn1SccService _asn1SccService;
         private readonly DocumentSelector _documentSelector = new DocumentSelector(
             new DocumentFilter { Pattern = "**/*.asn" },
             new DocumentFilter { Pattern = "**/*.asn1" },
             new DocumentFilter { Pattern = "**/*.acn" }
         );
 
-        public MyCompletionHandler(ILogger<MyCompletionHandler> logger)
+        public MyCompletionHandler(ILogger<MyCompletionHandler> logger, Asn1SccService asn1SccService)
         {
             _logger = logger;
+            _asn1SccService = asn1SccService;
         }
 
         public override async Task<CompletionItem> Handle(CompletionItem request, CancellationToken cancellationToken)
@@ -120,27 +124,25 @@ namespace LspServer
             return request;
         }
 
-        public override async Task<CompletionList> Handle(CompletionParams request, CancellationToken cancellationToken)
+        public override async Task<CompletionList> Handle(CompletionParams req, CancellationToken cancellationToken)
         {
-            _logger.LogInformation("gmamais MyCompletionHandler(CompletionParams {0})", request.Position.ToString());
+            _logger.LogInformation("gmamais MyCompletionHandler(CompletionParams {0})", req.Position.ToString());
             await Task.Yield();
             var lst = new List<CompletionItem>();
-            var seq = new CompletionItem()
+            var asn1Types = new string[] { "INTEGER", "REAL", "ENUMERATED", "CHOICE", "SEQUENCE", "SEQUENCE OF", "OCTET STRING", "BIT STRING", "IA5String"};
+            var typeAssign = new List<string>();
+            var filename = req.TextDocument.Uri.ToString().ToLower();
+            typeAssign.AddRange(_asn1SccService.getFileResults(filename).completionItems);
+            typeAssign.AddRange(asn1Types);
+            foreach(var it in typeAssign)
             {
-                Label = "SEQUENCE",
-                Kind = CompletionItemKind.Variable,
-                Detail = "This detail for sequence"
-
-            };
-            lst.Add(seq);
-            var ch = new CompletionItem()
-            {
-                Label = "CHOICE",
-                Kind = CompletionItemKind.Variable,
-                Detail = "This detail for CHOICE"
-            };
-            lst.Add(ch);
-
+                var seq = new CompletionItem()
+                {
+                    Label = it,
+                    Kind = CompletionItemKind.Keyword
+                };
+                lst.Add(seq);
+            }
             return new CompletionList(lst, true);
         }
 
@@ -158,16 +160,17 @@ namespace LspServer
     {
 
         private readonly ILogger<MyPublishDiagnosticsHandler> _logger;
+        private readonly Asn1SccService _asn1SccService;
         private readonly DocumentSelector _documentSelector = new DocumentSelector(
             new DocumentFilter { Pattern = "**/*.asn" },
             new DocumentFilter { Pattern = "**/*.asn1" },
             new DocumentFilter { Pattern = "**/*.acn" }
         );
 
-        public MyPublishDiagnosticsHandler(ILogger<MyPublishDiagnosticsHandler> logger)
+        public MyPublishDiagnosticsHandler(ILogger<MyPublishDiagnosticsHandler> logger, Asn1SccService asn1SccService)
         {
-
             _logger = logger;
+            _asn1SccService = asn1SccService;
         }
 
 
@@ -216,13 +219,15 @@ namespace LspServer
         {
             List<Diagnostic> dia = new List<Diagnostic>();
             bool asn1File = fileName.ToLower().EndsWith("asn1") || fileName.ToLower().EndsWith("asn");
-            Antlr.Asn1.asn1Parser.AntlrError[] errors =
+            //Antlr.Asn1.asn1Parser.AntlrError[] errors =
+            var parsedFile =
                 asn1File ?
                 FrontEntMain.parseAsn1File(fileName, fileContent)
                 :
                 FrontEntMain.parseAcnFile(fileName, fileContent);
-            _logger.LogInformation("parseDocument called. asn1File is {0}, erros count {1}", asn1File, errors.Length);
-            foreach (var e in errors)
+            _asn1SccService.saveFileResults(fileName.ToLower(), parsedFile);
+            _logger.LogInformation("parseDocument called. asn1File is {0}, erros count {1}", asn1File, parsedFile.errors.Length);
+            foreach (var e in parsedFile.errors)
             {
                 _logger.LogInformation(e.msg);
                 dia.Add(new Diagnostic()

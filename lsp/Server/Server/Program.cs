@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -170,13 +171,47 @@ namespace LspServer
     internal class Asn1SccService
     {
         private readonly ILogger<Asn1SccService> _logger;
-
+        private readonly Dictionary<String, FrontEntMain.ParsedFile> parsedFiles = new Dictionary<String, FrontEntMain.ParsedFile>();
         public Asn1SccService(ILogger<Asn1SccService> logger)
         {
-            logger.LogInformation("inside ctor");
             _logger = logger;
         }
 
         public void SayFoo() => _logger.LogInformation("Fooooo!");
+
+        public void saveFileResults(String fileUri, FrontEntMain.ParsedFile res)
+        {
+            _logger.LogInformation("START OF saveFileResults file Uri is {0}", fileUri);
+            foreach(var s in res.completionItems)
+            {
+                _logger.LogInformation(" ===> Completion item is {0}", s);
+            }
+
+            if (parsedFiles.ContainsKey(fileUri))
+            {
+                _logger.LogInformation("dictionary  replace");
+                parsedFiles[fileUri] = res;
+            }
+            else
+            {
+                _logger.LogInformation("dictionary add");
+                parsedFiles.Add(fileUri, res);
+            }
+            _logger.LogInformation("END  OF saveFileResults file Uri is {0}", fileUri);
+        }
+
+        public FrontEntMain.ParsedFile getFileResults (String fileUri)
+        {
+            _logger.LogInformation("START OF getFileResults file Uri is {0}", fileUri);
+            _logger.LogInformation("dictionary contains returns {0}", parsedFiles.ContainsKey(fileUri));
+
+            return
+            parsedFiles.ContainsKey(fileUri) ?
+                parsedFiles[fileUri] :
+                new FrontEntMain.ParsedFile(new Antlr.Asn1.asn1Parser.AntlrError[] { }, new string[] { });
+            _logger.LogInformation("END OF getFileResults file Uri is {0}", fileUri);
+        }
+
+
     }
 }
