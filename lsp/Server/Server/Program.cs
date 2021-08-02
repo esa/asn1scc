@@ -1,6 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
+using Antlr.Asn1;
+using Antlr.Runtime;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -205,11 +208,34 @@ namespace LspServer
             _logger.LogInformation("START OF getFileResults file Uri is {0}", fileUri);
             _logger.LogInformation("dictionary contains returns {0}", parsedFiles.ContainsKey(fileUri));
 
+            
+            
             return
             parsedFiles.ContainsKey(fileUri) ?
                 parsedFiles[fileUri] :
-                new FrontEntMain.ParsedFile(new Antlr.Asn1.asn1Parser.AntlrError[] { }, new string[] { });
+                new FrontEntMain.ParsedFile(new asn1Parser.AntlrError[] { }, new string[] { }, new FrontEntMain.TypeAssignmentLSP[] { } , new IToken[] { } );
             _logger.LogInformation("END OF getFileResults file Uri is {0}", fileUri);
+        }
+
+        public (String, FrontEntMain.TypeAssignmentLSP) getTasDefinition(String fileUri, int line, int charPos)
+        {
+            var r = getFileResults(fileUri);
+
+            var token = 
+                r.tokens.Where(a => a.Line == line && a.CharPositionInLine <= charPos && charPos <= a.CharPositionInLine + a.Text.Length).FirstOrDefault();
+            if (token == null)
+                return (null, null);
+            foreach (var k in parsedFiles)
+            {
+                var tas = k.Value.tasList.Where(z => z.name == token.Text).FirstOrDefault();
+                if (tas != null)
+                {
+                    return (k.Key, tas);
+                }
+
+            }
+
+            return (null, null);
         }
 
 

@@ -77,14 +77,17 @@ namespace LspServer
             var locations = new List<LocationOrLocationLink>();
             _logger.LogInformation("gmamais MyDefinitionHandler({0})", request.Position.ToString());
 
-
-            locations.Add(
-                new LocationOrLocationLink(new Location()
-                {
-                    Uri = request.TextDocument.Uri,
-                    Range = new Range(2, 2, 2, 2)
-                })
-                );
+            var (file, tas) = _asn1SccService.getTasDefinition(request.TextDocument.Uri.ToString().ToLower(), request.Position.Line + 1, request.Position.Character);
+            if (file != null && tas != null)
+            {
+                locations.Add(
+                    new LocationOrLocationLink(new Location()
+                    {
+                        Uri = request.TextDocument.Uri  /*file*/,
+                        Range = new Range(tas.line - 1, tas.charPos, tas.line - 1, tas.charPos + tas.name.Length)
+                    })
+                    );
+            }
 
             return locations;
         }

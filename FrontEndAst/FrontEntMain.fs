@@ -97,17 +97,30 @@ let constructCommandLineSettings (fileName:string) strm =
         objectIdentifierMaxLength = 20I
     }    
 
-
+type TypeAssignmentLSP = {
+    name : string
+    line : int
+    charPos : int 
+} 
 type ParsedFile = {
     errors : asn1Parser.AntlrError array
     completionItems : string array
+    tasList : TypeAssignmentLSP array
+    tokens : IToken array
 }
 
 let parseAsn1File (fileName:string) (fileContent:string) =
     let stm = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(fileContent))
     let args = constructCommandLineSettings fileName stm
     let asn1ParseTree, b = antlrParse asn1Lexer asn1treeParser (fileName, [{Input.name=fileName; contents=stm}])
-    let typeAss = asn1ParseTree.rootItem.AllChildren |> List.filter(fun z -> z.Type = asn1Parser.TYPE_ASSIG) |> List.map(fun z -> (z.GetChild(0)).Text) |> Seq.toArray
+    let typeAssI = asn1ParseTree.rootItem.AllChildren |> List.filter(fun z -> z.Type = asn1Parser.TYPE_ASSIG) |> List.map(fun z -> (z.GetChild(0))) 
+    let typeAss = typeAssI |> List.map(fun x -> x.Text) |> Seq.toArray
+    let tokens = asn1ParseTree.tokens
+    let tasList = 
+        typeAssI |> 
+        List.map(fun x -> 
+            let tk = tokens.[x.TokenStartIndex]
+            {TypeAssignmentLSP.name = x.Text; line = tk.Line; charPos = tk.CharPositionInLine}) |> Seq.toArray
     match b with
     [] ->
         try
@@ -118,20 +131,20 @@ let parseAsn1File (fileName:string) (fileContent:string) =
             let uniqueEnumNamesAst = EnsureUniqueEnumNames.DoWork asn1Ast0 
             let acnAst,acn0 = AcnCreateFromAntlr.mergeAsn1WithAcnAst uniqueEnumNamesAst (acnAst, []) 
             let acnDeps = CheckLongReferences.checkAst acnAst
-            {ParsedFile.errors = Array.empty; completionItems = typeAss}
+            {ParsedFile.errors = Array.empty; completionItems = typeAss ; tokens = asn1ParseTree.tokens; tasList=tasList}
         with
             | SemanticError (loc,msg)            ->
                 let a = new asn1Parser.AntlrError (loc.srcLine, loc.charPos, loc.srcFilename, msg);
-                {ParsedFile.errors = [a] |> Seq.toArray; completionItems = typeAss}
+                {ParsedFile.errors = [a] |> Seq.toArray; completionItems = typeAss; tokens = asn1ParseTree.tokens; tasList=tasList}
     | _ ->
-        {ParsedFile.errors = b |> Seq.toArray; completionItems = typeAss}
+        {ParsedFile.errors = b |> Seq.toArray; completionItems = typeAss; tokens = asn1ParseTree.tokens; tasList=tasList}
 
 
 
 let parseAcnFile (fileName:string) (fileContent:string) =
     let stm = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(fileContent))
-    let _, b = antlrParse acnLexer acnTreeParser (fileName, [{Input.name=fileName; contents=stm}])
-    {ParsedFile.errors = b |> Seq.toArray; completionItems = Array.empty}
+    let pf, b = antlrParse acnLexer acnTreeParser (fileName, [{Input.name=fileName; contents=stm}])
+    {ParsedFile.errors = b |> Seq.toArray; completionItems = Array.empty; tokens = pf.tokens; tasList = [||]}
 
 let constructAst_int (args:CommandLineSettings) (op_mode:Asn1SccOperationMode) (debugFnc : Asn1Ast.AstRoot -> AcnGenericTypes.AcnAst-> unit) : (Result<Asn1AcnAst.AstRoot*Asn1AcnAst.AcnInsertedFieldDependencies, (UserError *UserError list)>) =
 
