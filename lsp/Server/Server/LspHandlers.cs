@@ -53,6 +53,32 @@ namespace LspServer
     }
 
 
+    internal class MyWorkspaceSymbolsHandler : WorkspaceSymbolsHandlerBase
+    {
+        private readonly ILogger<MyWorkspaceSymbolsHandler> _logger;
+        private readonly Asn1SccService _asn1SccService;
+        public MyWorkspaceSymbolsHandler(ILogger<MyWorkspaceSymbolsHandler> logger, Asn1SccService asn1SccService)
+        {
+            _logger = logger;
+            _asn1SccService = asn1SccService;
+        }
+
+
+        public override Task<Container<SymbolInformation>> Handle(WorkspaceSymbolParams request, CancellationToken cancellationToken)
+        {
+            var symbols = new List<SymbolInformation>();
+            _logger.LogInformation("MyWorkspaceSymbolsHandler WorkspaceSymbolParams {0}", request);
+            _logger.LogInformation("MyWorkspaceSymbolsHandler WorkspaceSymbolParams {0}", request.Query);
+
+
+            return Task.FromResult(new Container<SymbolInformation>(symbols));
+        }
+
+        protected override WorkspaceSymbolRegistrationOptions CreateRegistrationOptions(WorkspaceSymbolCapability capability, ClientCapabilities clientCapabilities)
+        {
+            return new WorkspaceSymbolRegistrationOptions { };
+        }
+    }
 
     internal class MyDefinitionHandler : DefinitionHandlerBase
     {
@@ -74,22 +100,7 @@ namespace LspServer
         public override async Task<LocationOrLocationLinks> Handle(DefinitionParams request, CancellationToken cancellationToken)
         {
             await Task.Yield();
-            var locations = new List<LocationOrLocationLink>();
-            _logger.LogInformation("gmamais MyDefinitionHandler({0})", request.Position.ToString());
-
-            var (file, tas) = _asn1SccService.getTasDefinition(request.TextDocument.Uri.ToString().ToLower(), request.Position.Line + 1, request.Position.Character);
-            if (file != null && tas != null)
-            {
-                locations.Add(
-                    new LocationOrLocationLink(new Location()
-                    {
-                        Uri = request.TextDocument.Uri  /*file*/,
-                        Range = new Range(tas.line - 1, tas.charPos, tas.line - 1, tas.charPos + tas.name.Length)
-                    })
-                    );
-            }
-
-            return locations;
+            return _asn1SccService.getDefinitions(request.TextDocument.Uri, request.Position.Line, request.Position.Character);
         }
 
         protected override DefinitionRegistrationOptions CreateRegistrationOptions(DefinitionCapability capability, ClientCapabilities clientCapabilities)
@@ -129,23 +140,8 @@ namespace LspServer
 
         public override async Task<CompletionList> Handle(CompletionParams req, CancellationToken cancellationToken)
         {
-            _logger.LogInformation("gmamais MyCompletionHandler(CompletionParams {0})", req.Position.ToString());
             await Task.Yield();
-            var lst = new List<CompletionItem>();
-            var asn1Types = new string[] { "INTEGER", "REAL", "ENUMERATED", "CHOICE", "SEQUENCE", "SEQUENCE OF", "OCTET STRING", "BIT STRING", "IA5String"};
-            var typeAssign = new List<string>();
-            var filename = req.TextDocument.Uri.ToString().ToLower();
-            typeAssign.AddRange(_asn1SccService.getFileResults(filename).completionItems);
-            typeAssign.AddRange(asn1Types);
-            foreach(var it in typeAssign)
-            {
-                var seq = new CompletionItem()
-                {
-                    Label = it,
-                    Kind = CompletionItemKind.Keyword
-                };
-                lst.Add(seq);
-            }
+            var lst = _asn1SccService.getCompletionItems(req.TextDocument.Uri, req.Position.Line, req.Position.Character);
             return new CompletionList(lst, true);
         }
 
@@ -180,11 +176,7 @@ namespace LspServer
         public override async Task<Unit> Handle(PublishDiagnosticsParams request, CancellationToken cancellationToken)
         {
             await Task.Yield();
-            //throw new System.NotImplementedException();
             _logger.LogInformation("gmamais MyPublishDiagnosticsHandler(PublishDiagnosticsParams {0})", request.ToString());
-
-
-
             return Unit.Value;
         }
 
@@ -218,82 +210,31 @@ namespace LspServer
 
         public TextDocumentSyncKind Change { get; } = TextDocumentSyncKind.Full;
 
-        private List<Diagnostic>  parseDocument(string fileName, string fileContent)
-        {
-            List<Diagnostic> dia = new List<Diagnostic>();
-            bool asn1File = fileName.ToLower().EndsWith("asn1") || fileName.ToLower().EndsWith("asn");
-            //Antlr.Asn1.asn1Parser.AntlrError[] errors =
-            var parsedFile =
-                asn1File ?
-                FrontEntMain.parseAsn1File(fileName, fileContent)
-                :
-                FrontEntMain.parseAcnFile(fileName, fileContent);
-            _asn1SccService.saveFileResults(fileName.ToLower(), parsedFile);
-            _logger.LogInformation("parseDocument called. asn1File is {0}, erros count {1}", asn1File, parsedFile.errors.Length);
-            foreach (var e in parsedFile.errors)
-            {
-                _logger.LogInformation(e.msg);
-                dia.Add(new Diagnostic()
-                {
-                    Message = e.msg,
-                    Range = new Range(e.line - 1, e.charPosInline, e.line - 1, e.charPosInline + 10),
-                    Severity = DiagnosticSeverity.Error,
-                    // TODO: We need to forward this type though if we add something like Vb Support
-                    Source = "asn1scc"
-                });
-            }
-
-            return dia;
-        }
-
         public override Task<Unit> Handle(DidChangeTextDocumentParams notification, CancellationToken token)
         {
-            //_logger.LogCritical("Critical");
-            //_logger.LogDebug("Debug");
-            //_logger.LogTrace("Trace");
-            _logger.LogInformation("gmamais DidChangeTextDocumentParams({0})",
-                notification.TextDocument.Uri.ToString());
-            /*
-            _logger.LogInformation("---- chaneges start ---");
-            foreach(var c in notification.ContentChanges)
-            {
-                _logger.LogInformation("Range is :{0}", c.Range != null ? c.Range.ToString() : "null");
-                _logger.LogInformation("Text is :{0}", c.Text);
-                _logger.LogInformation("**** end of range ***    ");
-            }
-            _logger.LogInformation("---- chaneges end ---");
-            */
             string content = "";
             foreach (var c in notification.ContentChanges)
             {
-                //_logger.LogInformation("Range is :{0}", c.Range != null ? c.Range.ToString() : "null");
-                //_logger.LogInformation("Text is :{0}", c.Text);
-                //_logger.LogInformation("**** end of range ***    ");
                 content += c.Text;
             }
 
-            var fileName = notification.TextDocument.Uri.ToString();
-            List<Diagnostic> dia = parseDocument(fileName, content);
+
+            _asn1SccService.onDocumentChange(notification.TextDocument.Uri, content);
+            List<Diagnostic> dia = _asn1SccService.getDiagnostics(notification.TextDocument.Uri);
             _server.TextDocument.PublishDiagnostics(new PublishDiagnosticsParams()
             {
                 Uri = notification.TextDocument.Uri,
                 Version = notification.TextDocument.Version,
                 Diagnostics = dia
             });
-
             return Unit.Task;
         }
 
         public override async Task<Unit> Handle(DidOpenTextDocumentParams notification, CancellationToken token)
         {
             await Task.Yield();
-            _logger.LogInformation("DidOpenTextDocumentParams {0}", notification.TextDocument.Uri.ToString());
-            _logger.LogInformation("----- Content is -------------");
-            _logger.LogInformation(notification.TextDocument.Text);
-            _logger.LogInformation("----- End of Content -------------");
-            await _configuration.GetScopedConfiguration(notification.TextDocument.Uri, token);
-            var fileName = notification.TextDocument.Uri.ToString();
-            List<Diagnostic> dia = parseDocument(fileName, notification.TextDocument.Text);
+            _asn1SccService.onOpenDocument(notification.TextDocument.Uri, notification.TextDocument.Text);
+            List<Diagnostic> dia = _asn1SccService.getDiagnostics(notification.TextDocument.Uri);
             _server.TextDocument.PublishDiagnostics(new PublishDiagnosticsParams()
             {
                 Uri = notification.TextDocument.Uri,

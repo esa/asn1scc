@@ -117,7 +117,11 @@ type ITree with
     member t.Root = if t.Parent = null then t else t.Parent.Root
     static member RegisterFiles(files:seq<ITree*string>) =
                     for (i,f) in files do
-                        dict.Add(i,f)
+                        if dict.ContainsKey i then
+                            dict.[i] <- f
+                        else
+                            dict.Add(i,f)
+
     member t.FileName = dict.[t.Root]
     member t.Location = { srcFilename = t.FileName; srcLine = t.Line; charPos = t.CharPositionInLine}
 
