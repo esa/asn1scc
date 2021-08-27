@@ -398,6 +398,8 @@ let MapModule (r:ParameterizedAsn1Ast.AstRoot) (m:ParameterizedAsn1Ast.Asn1Modul
                    | ParameterizedAsn1Ast.All               -> Asn1Ast.All
                    | ParameterizedAsn1Ast.OnlySome(lst)     -> Asn1Ast.OnlySome(lst)
         Comments = m.Comments
+        postion = m.postion
+
     }
 
 let MapFile (r:ParameterizedAsn1Ast.AstRoot) (f:ParameterizedAsn1Ast.Asn1File) :Asn1Ast.Asn1File =

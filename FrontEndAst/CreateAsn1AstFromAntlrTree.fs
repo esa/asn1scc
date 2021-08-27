@@ -760,6 +760,9 @@ let CreateAsn1Module integerSizeInBytes (astRoot:list<ITree>) (acnAst:AcnAst) (i
                     mergedImports
                 Exports = HandleExports()
                 Comments = Antlr.Comment.GetComments(fileTokens, alreadyTakenComments, fileTokens.[tree.TokenStopIndex].Line, tree.TokenStartIndex - 1, tree.TokenStopIndex + 2)
+                postion = 
+                    let modEnd = getChildByType(tree, asn1Parser.END)
+                    modName.Location, modEnd.Location
           }
     | _ -> raise (BugErrorException("Bug in CreateAsn1Module"))
 

@@ -1,4 +1,5 @@
 /*
+/*
 * Copyright (c) 2008-2012 Semantix and (c) 2012-2015 Neuropublic
 *
 * This file is part of the ASN1SCC tool.
@@ -144,7 +145,7 @@ asn1Type
 	;	
 	
 encodingSpec
-	:	a='[' propertyList? ']' childrenSpec?	->^(ENCODING_SPEC[$a] propertyList? childrenSpec?)
+	:	a='[' propertyList? R_SBRACKET childrenSpec?	->^(ENCODING_SPEC[$a] propertyList? R_SBRACKET childrenSpec? )
 	;	
 	
 	
@@ -489,6 +490,9 @@ R_BRACKET	:	'}';
 L_PAREN		:	'(';
 R_PAREN		:	')';
 COMMA		:	',';
+
+L_SBRACKET	:   '[';
+R_SBRACKET	:   ']';
 
 DOUBLE_DOT  : '..';
 

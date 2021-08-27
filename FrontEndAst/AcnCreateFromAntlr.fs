@@ -675,7 +675,7 @@ let rec private mergeAcnEncodingSpecs (thisType:AcnTypeEncodingSpec option) (bas
                             Some ({name = nm; childEncodingSpec = combinedEncoingSpec; asn1Type = thisChild.asn1Type; argumentList = thisChild.argumentList; comments=thisChild.comments})
                         | None                      -> None)
 
-        Some {AcnTypeEncodingSpec.acnProperties = mergedProperties; children = mergedChildren; loc = thisType.loc; comments = thisType.comments}        
+        Some {AcnTypeEncodingSpec.acnProperties = mergedProperties; children = mergedChildren; loc = thisType.loc; comments = thisType.comments; postion=thisType.postion; antlrSubTree=thisType.antlrSubTree}        
 
 (*
     match asn1Type with
@@ -786,7 +786,7 @@ let rec private mapAcnParamTypeToAcnAcnInsertedType (asn1:Asn1Ast.AstRoot) (acn:
         match asn1Type0.Kind with
         | Asn1Ast.Enumerated nmItems    ->
             let cons =  asn1Type0.Constraints |> List.collect (fixConstraint asn1) |> List.map (ConstraintsMapping.getEnumConstraint asn1 asn1Type0)
-            let enumerated, ns = mergeEnumerated asn1 nmItems ts.Location (Some ts.Location) (Some {AcnTypeEncodingSpec.acnProperties = props; children = []; loc=ts.Location; comments = []}) props cons [] (AcnPrmGetTypeDefinition (curPath,md.Value,ts.Value)) us
+            let enumerated, ns = mergeEnumerated asn1 nmItems ts.Location (Some ts.Location) (Some {AcnTypeEncodingSpec.acnProperties = props; children = []; loc=ts.Location; comments = []; postion=(ts.Location, ts.Location); antlrSubTree=None}) props cons [] (AcnPrmGetTypeDefinition (curPath,md.Value,ts.Value)) us
             AcnReferenceToEnumerated({AcnReferenceToEnumerated.modName = md; tasName = ts; enumerated = enumerated; acnAligment= acnAligment}), ns
         | Asn1Ast.IA5String    
         | Asn1Ast.NumericString  ->
@@ -1355,7 +1355,7 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (m:Asn1Ast.Asn1Mo
 
             let newRef       = {ReferenceType.modName = rf.modName; tasName = rf.tasName; tabularized = rf.tabularized; acnArguments = acnArguments; resolvedType=resolvedType; hasConstraints = hasAdditionalConstraints; typeDef=typeDef; uperMaxSizeInBits = uperMaxSizeInBits; uperMinSizeInBits = uperMinSizeInBits; acnMaxSizeInBits  = acnMaxSizeInBits; acnMinSizeInBits  = acnMinSizeInBits; encodingOptions=encodingOptions; hasExtraConstrainsOrChildrenOrAcnArgs=hasExtraConstrainsOrChildrenOrAcnArgs}
             ReferenceType newRef, us2
-    
+        
     {
         Asn1Type.Kind   = asn1Kind
         id              = ReferenceToType curPath
@@ -1367,7 +1367,11 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (m:Asn1Ast.Asn1Mo
         typeAssignmentInfo = typeAssignmentInfo
         parameterizedTypeInstance = t.parameterizedTypeInstance
 
-        
+        acnEncSpecPostion = acnType |> Option.map (fun x -> x.postion)
+        acnEncSpecAntlrSubTree  = 
+            match acnType with
+            | None -> None
+            | Some st -> st.antlrSubTree
     }, kindState
 
 let private mergeTAS (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (m:Asn1Ast.Asn1Module) (am:AcnModule option)  (tas:Asn1Ast.TypeAssignment) (us:Asn1AcnMergeState) : (TypeAssignment*Asn1AcnMergeState) =
@@ -1420,6 +1424,8 @@ let private mergeModule (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (m:Asn1Ast.Asn1Modul
             Imports  =  m.Imports
             Exports = m.Exports
             Comments = m.Comments
+            postion = m.postion
+
         }
     newModule, us2
 

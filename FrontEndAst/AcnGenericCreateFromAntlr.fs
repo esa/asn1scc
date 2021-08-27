@@ -365,7 +365,9 @@ let rec  private createTypeEncodingSpec integerSizeInBytes (allAcnFiles: CommonT
 
                 {ChildSpec.name = name; childEncodingSpec= childEncodingSpec; asn1Type=asn1Type; argumentList=argumentList; comments = comments |> Seq.toList}
             childrenList.Children |> List.map createChild
-    {AcnTypeEncodingSpec.acnProperties = acnProperties; children = children; loc = encSpecITree.Location; comments=[]}
+    let pos =
+        encSpecITree.Location, (encSpecITree.GetChildByType(acnParser.R_SBRACKET)).Location
+    {AcnTypeEncodingSpec.acnProperties = acnProperties; children = children; loc = encSpecITree.Location; comments=[]; postion = pos; antlrSubTree = Some encSpecITree}
 
 let private CreateTypeAssignment integerSizeInBytes (allAcnFiles: CommonTypes.AntlrParserResult list) (acnConstants : Map<string, BigInteger>) (thisAcnFile: CommonTypes.AntlrParserResult)  (alreadyTakenComments:System.Collections.Generic.List<IToken>) (tasTree:ITree) : AcnTypeAssignment =
     let tasNameL = tasTree.GetChildByType(acnParser.UID).TextL

@@ -197,6 +197,7 @@ type Asn1Module = {
     Imports : list<ImportedModule>
     Exports : Exports
     Comments : string array
+    postion : SrcLoc*SrcLoc   //start pos, end pos
 }
 
 type Asn1File = {

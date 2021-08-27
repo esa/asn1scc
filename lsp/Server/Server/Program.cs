@@ -18,7 +18,25 @@ namespace LspServer
 {
     internal class Program
     {
-        private static void Main(string[] args) => MainAsync(args).Wait();
+        private static void Main(string[] args)
+        {
+            if (args.Contains("debug"))
+            {
+                var localPath = @"C:\prj\GitHub\asn1scc\lsp\workdir\2\a.asn";
+                var acnLocalPath = @"C:\prj\GitHub\asn1scc\lsp\workdir\2\a.acn";
+                var content = System.IO.File.ReadAllText(localPath);
+                var ws = FrontEntMain.lspOnFileOpened(FrontEntMain.lspEmptyWs, localPath, content);
+                var autoCompleteList = FrontEntMain.lspAutoComplete(ws, acnLocalPath, 3, 11);
+                foreach(var s in autoCompleteList)
+                {
+                    Console.WriteLine(s);
+                }
+            }
+            else
+            {
+                MainAsync(args).Wait();
+            }
+        }
 
         private static async Task MainAsync(string[] args)
         {

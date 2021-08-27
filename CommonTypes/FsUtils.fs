@@ -61,6 +61,14 @@ type SrcLoc =
         srcLine : int 
         charPos : int
     }
+
+
+let srcLocContaints (startLoc:SrcLoc) (endLoc:SrcLoc) (uiLoc:SrcLoc) =
+    startLoc.srcLine <= uiLoc.srcLine && 
+    startLoc.charPos <= uiLoc.charPos && 
+    uiLoc.srcLine <= endLoc.srcLine && 
+    uiLoc.charPos <= endLoc.charPos 
+        
     
 
 
@@ -157,6 +165,7 @@ type ITree with
     member t.Double = System.Double.Parse(t.Text, System.Globalization.NumberFormatInfo.InvariantInfo)
     member t.DoubleL = { StringLoc.Value = t.Double; Location = t.Location} 
     
+
 
 
 let rec getAsTupples<'T> (list:array<'T>) (empty:'T) =

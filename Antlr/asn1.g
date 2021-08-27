@@ -237,7 +237,7 @@ moduleDefinition :  	a=modulereference	definitiveIdentifier?
 //				|valueSetAssignment
 			)*
 			END
-			->  ^(MODULE_DEF[$d] modulereference EXPLICIT? IMPLICIT? AUTOMATIC? EXTENSIBILITY? exports? imports? typeAssignment* valueAssignment* /* valueSetAssignment* */)
+			->  ^(MODULE_DEF[$d] modulereference EXPLICIT? IMPLICIT? AUTOMATIC? EXTENSIBILITY? exports? imports? typeAssignment* valueAssignment* END)
 			;
 
 /*

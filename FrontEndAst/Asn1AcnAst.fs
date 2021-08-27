@@ -511,6 +511,8 @@ type Asn1Type = {
     /// it indicates that this type is directly under a type assignment.
     typeAssignmentInfo  : AssignmentInfo option
 
+    acnEncSpecPostion           : (SrcLoc*SrcLoc) option   //start pos, end pos
+    acnEncSpecAntlrSubTree      :ITree option
 }
 
 
@@ -670,6 +672,7 @@ type Asn1Module = {
     Imports : list<Asn1Ast.ImportedModule>
     Exports : Asn1Ast.Exports
     Comments : string array
+    postion : SrcLoc*SrcLoc   //start pos, end pos
 }
 
 type Asn1File = {

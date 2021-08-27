@@ -50,6 +50,7 @@ let CloneModule (oldRoot:AstRoot) (old:Asn1Module) cons state  =
         Imports = old.Imports 
         Exports = old.Exports
         Comments = old.Comments
+        postion = old.postion
     }, s1
 
 

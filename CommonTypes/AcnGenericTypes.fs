@@ -4,6 +4,8 @@ open System.Numerics
 open System
 open FsUtils
 open CommonTypes
+open Antlr.Runtime.Tree
+open Antlr.Runtime
 
 type RelativePath = 
     | RelativePath of StringLoc list
@@ -454,6 +456,8 @@ type  AcnTypeEncodingSpec = {
     children        : ChildSpec list
     loc             : SrcLoc
     comments        : string list
+    postion         : SrcLoc*SrcLoc   //start pos, end pos
+    antlrSubTree    :ITree option
 }
 
 and  ChildSpec = {

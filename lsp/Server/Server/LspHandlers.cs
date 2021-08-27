@@ -133,7 +133,8 @@ namespace LspServer
         {
             await Task.Yield();
             var locations = new List<LocationOrLocationLink>();
-            _logger.LogInformation("gmamais MyCompletionHandler(CompletionItem {0})", request.Label);
+            
+            _logger.LogInformation("gmamais MyCompletionHandler(CompletionItem {0}), toString = {1}", request.Label, request.ToString());
 
             return request;
         }
@@ -184,7 +185,10 @@ namespace LspServer
 
     }
 
-
+    /**
+     * Called whenever an ASN.1 or ACN file is opened or modified.
+     * 
+     */
 
     internal class TextDocumentHandler : TextDocumentSyncHandlerBase
     {

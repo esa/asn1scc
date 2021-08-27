@@ -86,6 +86,7 @@ let defaultCommandLineSettings  =
 
 type LspWorkSpace = {
     files : LspFile list
+    astRoot : Asn1AcnAst.AstRoot option
 }
 with 
     override this.ToString() = sprintf "%A" this
@@ -116,6 +117,8 @@ let antlrParse (lexer: ICharStream -> (#ITokenSource* asn1Parser.AntlrError list
     let tokenStream = new CommonTokenStream(lexerTokens)
     let tokens = tokenStream.GetTokens().Cast<IToken>() |> Seq.toArray
     let tree, parcerErrors = treeParser(tokenStream);
+    let b:ITree = tree
+    
     let allErrors = parcerErrors@lexerErrors
     {CommonTypes.AntlrParserResult.fileName = name; CommonTypes.AntlrParserResult.rootItem=tree; CommonTypes.AntlrParserResult.tokens=tokens}, allErrors
 
@@ -194,12 +197,77 @@ let lspParseAsn1File (fileName:string) (fileContent:string) =
     {LspFile.fileName = fileName; content = fileContent; tokens=tokens; antlrResult=asn1ParseTree; parseErrors = parseErrors; semanticErrors = []; tasList=tasList}
 
 
+
+let printAntlrNode (tokens : IToken array) (r:ITree) =
+    let s = tokens.[r.TokenStartIndex]
+    let e = tokens.[r.TokenStopIndex]
+    sprintf "type =%d, text=%s, start(%d,%d) end (%d,%d) " r.Type r.Text s.Line s.CharPositionInLine e.Line (e.CharPositionInLine + e.Text.Length)
+
+
+let rec printAntlrTree (tokens : IToken array) (r:ITree) n =
+    printf "%s" (String(' ', 2*n))
+    printfn "%s toString : %s"  (printAntlrNode tokens r) (r.ToString())
+    r.Children |> Seq.iter(fun ch -> printAntlrTree tokens ch (n+1) )
+
+
+
+type LspPos = {
+    line   : int
+    charPos : int
+}
+
+type LspRange = {
+    start  : LspPos
+    end_   : LspPos
+}
+
+let getTreeRange (tokens : IToken array) (r:ITree)  =
+    let s = tokens.[r.TokenStartIndex]
+    let e = tokens.[r.TokenStopIndex]
+    {LspRange.start = {LspPos.line = s.Line; charPos=s.CharPositionInLine}; end_ = {LspPos.line = e.Line; charPos=e.CharPositionInLine + e.Text.Length}}
+
+let isInside (range : LspRange) (pos: LspPos) =
+    if range.start.line < pos.line && pos.line < range.end_.line then true
+    elif range.start.line < pos.line && pos.line = range.end_.line then pos.charPos <= range.end_.charPos
+    elif range.start.line <= pos.line && pos.line < range.end_.line then range.start.charPos <= pos.charPos
+    elif range.start.line = pos.line && pos.line = range.end_.line then range.start.charPos <= pos.charPos && pos.charPos <= range.end_.charPos
+    else false
+    
+
+let rec getTreeNodesByPosition (tokens : IToken array) (pos:LspPos) (r:ITree)  =
+    seq {
+        let range = getTreeRange tokens  r
+        match isInside range pos with
+        | false -> ()
+        | true  -> 
+            yield r
+            for c in r.Children do  
+                yield! getTreeNodesByPosition tokens pos c
+    } |> Seq.toList
+
+
+
 let lspParseAcnFile (fileName:string) (fileContent:string) =
     let stm = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(fileContent))
     let acnParseTree, antlerErrors = antlrParse acnLexer acnTreeParser (fileName, [{Input.name=fileName; contents=stm}])
+    let typeAssI = acnParseTree.rootItem.AllChildren |> List.filter(fun z -> z.Type = acnParser.TYPE_ENCODING) |> List.map(fun z -> (z.GetChild(0)).Text, z ) 
+
+    //typeAssI |> Seq.iter(fun (nm, tr) -> printfn"%s --> %s" nm (tr.ToStringTree()) ) 
+    //printfn"----"
+    //typeAssI |> Seq.iter(fun (nm, tr) -> printAntlrTree acnParseTree.tokens tr 0) 
+    //printfn"---- end ----"
+
+
+(*    let test = getTreeNodesByPosition acnParseTree.tokens {LspPos.line=5; charPos=17} acnParseTree.rootItem 
+    printfn"---- whereami start ----"
+    test |> Seq.iter(fun z -> printfn "%s" (printAntlrNode acnParseTree.tokens z))
+    printfn"---- whereami end ----"
+*)
+
     let tokens = acnParseTree.tokens
     let parseErrors = 
         antlerErrors |> List.map(fun ae -> {LspError.line0 = ae.line - 1; charPosInline = ae.charPosInline; msg = ae.msg})
+    
     {LspFile.fileName = fileName; content = fileContent; tokens=tokens; antlrResult=acnParseTree; parseErrors = parseErrors; semanticErrors = []; tasList=[]}
 
 
@@ -240,7 +308,7 @@ let lspPerformSemanticAnalysis (ws:LspWorkSpace) =
             let uniqueEnumNamesAst = EnsureUniqueEnumNames.DoWork asn1Ast0 
             let acnAst,acn0 = AcnCreateFromAntlr.mergeAsn1WithAcnAst uniqueEnumNamesAst (acnAst, acnParseTrees) 
             let acnDeps = CheckLongReferences.checkAst acnAst
-            ws
+            {ws with astRoot = Some (acnAst)}
         with
         | SemanticError (loc,msg)            ->
             let se = {LspError.line0 = loc.srcLine - 1; charPosInline = loc.charPos; msg = msg}          
@@ -268,13 +336,56 @@ let lspGoToDefinition (ws:LspWorkSpace) filename line0 charPos =
                 | Some ts -> Some(f.fileName, ts)
                 | None    -> None)
         
+
+let quickParseAcnEncSpecTree (subTree :ITree) =
+    //match subTree.
+    []
+
 let lspAutoComplete (ws:LspWorkSpace) filename (line0:int) (charPos:int) =
     let asn1Keywords = ["INTEGER"; "REAL"; "ENUMERATED"; "CHOICE"; "SEQUENCE"; "SEQUENCE OF"; "OCTET STRING"; "BIT STRING"; "IA5String"]
     let tasList = ws.files |> List.collect(fun x -> x.tasList) |> List.map(fun x -> x.name)
+
+    let getAcnproperties (dummy:int) =
+        match ws.astRoot with
+        | None -> []
+        | Some a ->
+            let tasList0 = 
+                a.Files |> 
+                List.collect(fun z -> z.Modules) |> 
+                List.collect(fun z -> z.TypeAssignments) 
+
+            tasList0 |>
+            List.choose(fun tas -> tas.Type.acnEncSpecAntlrSubTree) |>
+            List.map(fun t -> t.ToStringTree()) |>
+            Seq.iter(fun s -> printfn "%s" s)
+
+            let tasList = 
+                tasList0 |>
+                List.choose(fun tas ->
+                    let  uiLoc = {SrcLoc.srcFilename=""; srcLine = line0+1;charPos=charPos}
+                    match tas.Type.acnEncSpecPostion with
+                    | None -> None
+                    | Some (l1,l2) when FsUtils.srcLocContaints l1 l2 uiLoc -> Some tas 
+                    | Some (_,_)    -> None)
+            match tasList with
+            | []    -> []
+            | x1::_ -> 
+                match x1.Type.Kind with
+                | Asn1AcnAst.Asn1TypeKind.Integer o -> 
+                    ["encoding pos-int"; "size"; "align-to-next"]
+                | _ -> []
+            
+
     match tryGetFileType filename with
     | Some LspAsn1  -> 
         tasList@asn1Keywords
-    | Some LspAcn   -> tasList
+    | Some LspAcn   -> 
+        tasList
+    (*
+        match getAcnproperties 0 with
+        | []    ->        tasList
+        | xs    -> xs
+        *)
     | None          -> []
 
 let lspOnFileOpened (ws:LspWorkSpace) (filename:string) (filecontent:string) =
@@ -311,7 +422,7 @@ let lspOnFileChanged (ws:LspWorkSpace) (filename:string) (filecontent:string) =
         {ws with files = restFiles @ newFiles}
     lspPerformSemanticAnalysis parseAnalysis
 
-let lspEmptyWs = {LspWorkSpace.files = []}
+let lspEmptyWs = {LspWorkSpace.files = []; astRoot = None}
 
 
 
