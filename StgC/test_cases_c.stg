@@ -76,27 +76,27 @@ ret = <sTasName>_ACN_Encode_update_<sParamName>(pVal, &dec_<sParamName>);
 Codec_Encode(sModName, sFuncName, sVal) ::= <<
 // Encode value
 ret = <sFuncName>(<sVal>, &bitStrm, pErrCode, TRUE);
-*pErrCode = ret ? 0 : 1;
+*pErrCode = (ret && *pErrCode ==0) ? 0 : 1;
 >>
 
 Codec_Decode(sModName, sFuncName, sTasName, sEnc, sAmber) ::= <<
 BitStream_AttachBuffer(&bitStrm, encBuff, <sTasName>_REQUIRED_BYTES_FOR_<sEnc>ENCODING);
 // Decode value
 ret = <sFuncName>(<sAmber>decodedPDU, &bitStrm, pErrCode);
-*pErrCode = ret ? 0 : 2;
+*pErrCode = (ret && *pErrCode ==0) ? 0 : 2;
 >>
 
 Codec_Decode_XER(sModName, sFuncName, sTasName, sEnc, sAmber) ::= <<
 ByteStream_AttachBuffer(&bitStrm, encBuff, <sTasName>_REQUIRED_BYTES_FOR_<sEnc>ENCODING);
 // Decode value
 ret = <sFuncName>(<sAmber>decodedPDU, &bitStrm, pErrCode);
-*pErrCode = ret ? 0 : 2;
+*pErrCode = (ret && *pErrCode ==0) ? 0 : 2;
 >>
 
 Codec_validate_output(sModName, sFuncName, sAmber) ::= <<
 // validate decoded data
 ret = <sFuncName>(<sAmber>decodedPDU, pErrCode);
-*pErrCode = ret ? 0 : 3;
+*pErrCode = (ret && *pErrCode ==0) ? 0 : 3;
 >>
 
 Codec_compare_input_with_output(sModName, sFuncName, sVal, sAmber) ::= <<

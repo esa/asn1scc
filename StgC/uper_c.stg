@@ -54,8 +54,9 @@ flag <sFuncName>(const <sTypeDefName><sStar> <sVarName>, BitStream* pBitStrm, in
 
 	<arrsLocalVariables:{lv|<lv>}; separator="\n">
     <if(soIValidFuncName)>
+	*pErrCode = 0;
 	ret = bCheckConstraints ? <soIValidFuncName>(<sVarName>, pErrCode) : TRUE ;
-	if (ret) {
+	if (ret && *pErrCode == 0) {
 	    <sContent>
     } /*COVERAGE_IGNORE*/
 
