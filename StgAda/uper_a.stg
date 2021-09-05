@@ -79,7 +79,7 @@ is
 begin
     <if(soIValidFuncName)>
     result := <soIValidFuncName>(<sVarName>);
-    if result.success then
+    if result.success and  result.ErrorCode = 0 then
         <sContent>
     end if;
 
