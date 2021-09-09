@@ -36,6 +36,8 @@ NullTypeWithBytePattern(arruOctets) ::= "fixed pattern:  '$arruOctets:{b|$b;form
 Real()          ::= "REAL"
 Sequence()      ::= "SEQUENCE"
 SequenceOf()    ::= "SEQUENCE-OF"
+ObjectIdentifier()       ::= "OBJECT IDENTIFIER"
+RelativeOid()       ::= "RELATIVE-OID"
 
 
 EmitRowWith3Dots() ::= <<
