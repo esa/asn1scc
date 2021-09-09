@@ -1,0 +1,16 @@
+D DEFINITIONS ::=
+BEGIN
+
+T-Message []
+{
+	length	INTEGER [size 32, encoding pos-int],
+	packets [size length] 
+}
+
+T-Packet []
+{
+	fReal [encoding IEEE754-1985-64],
+	fInt  [encoding pos-int, size 16]
+}
+
+END

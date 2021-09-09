@@ -1,0 +1,34 @@
+STM-Example DEFINITIONS AUTOMATIC TAGS ::=
+BEGIN
+
+-- ----------------------------------------------------------------------
+-- Basic definitions
+-- ----------------------------------------------------------------------
+
+T-NID-Packet ::= INTEGER (0 .. 255)
+
+T-NID-STM-StateRequest ::= ENUMERATED
+{
+    lit-NP-Reserved (0),
+    lit-PO-Reserved,
+    lit-CO,
+    lit-DE,
+    lit-CS,
+    lit-CS-Reserved,
+    lit-HS-Reserved,
+    lit-DA-Reserved,
+    lit-FA-Reserved
+}
+
+
+-- ----------------------------------------------------------------------
+-- Definition of packets
+-- ----------------------------------------------------------------------
+
+T-Packet-STM13 ::= SEQUENCE {
+nid-packet T-NID-Packet,
+nid-stm-state-request T-NID-STM-StateRequest
+}
+
+
+END

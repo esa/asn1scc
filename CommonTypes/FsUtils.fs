@@ -112,6 +112,11 @@ exception SemanticError of SrcLoc*string
 exception UserException of string
 exception BugErrorException of string
 
+type Asn1ParseError =
+    | Semantic_Error of SrcLoc*string
+    | User_Error of string
+    | Bug_Error of string
+
 let dict = System.Collections.Generic.Dictionary<ITree,string>()
 
 type ITree with
@@ -477,6 +482,34 @@ let rec DoTopologicalSort2b
         let newIndependentNodes = independentNodes2 @ tail
         head::(DoTopologicalSort2b newIndependentNodes newDependentNodes comparer excToThrow) 
 
+
+let DoTopologicalSort2_noexc 
+                    (independentNodes: 'a list) 
+                    (dependentNodes: ('a * 'b list) list)  
+                    comparer  =
+    let rec DoTopologicalSort3_aux 
+                    (independentNodes: 'a list) 
+                    (dependentNodes: ('a * 'b list) list)  
+                    comparer  ret=
+        match independentNodes with
+        | []          ->  ret |> List.rev, dependentNodes
+        | head::tail  ->
+            let dependentNodes2   = dependentNodes  |> List.map(fun (n,list) -> (n, list |>List.filter(fun x -> (not (comparer x head)))  ) ) 
+            let newDependentNodes = dependentNodes2 |> List.filter(fun (_,list) -> not(List.isEmpty list))
+            let independentNodes2 = dependentNodes2 |> List.filter(fun (_,list) -> List.isEmpty list) |> List.map fst
+            let newIndependentNodes = independentNodes2 @ tail
+            let newRet = head::ret
+            DoTopologicalSort3_aux newIndependentNodes newDependentNodes comparer  newRet
+    let sorted, unsorted = DoTopologicalSort3_aux independentNodes dependentNodes  comparer [] 
+    match unsorted with
+    | []    -> Ok sorted
+    | _     -> Error(unsorted) 
+
+let rec DoTopologicalSort_noexc independentNodes dependentNodes   =
+    DoTopologicalSort2_noexc independentNodes dependentNodes  (=) 
+
+
+
 let DoTopologicalSort2 
                     (independentNodes: 'a list) 
                     (dependentNodes: ('a * 'b list) list)  
@@ -546,6 +579,17 @@ let CheckForDuplicates<'T when 'T :equality>   (sequence:seq<PrimitiveWithLocati
         let errMsg = sprintf "Duplicate definition: %s" (name.ToString())
         raise (SemanticError (loc, errMsg))
 
+let CheckForDuplicates2<'T when 'T :equality>   (sequence:seq<PrimitiveWithLocation<'T>>) : Result<unit, Asn1ParseError>=  
+    let duplicates = sequence 
+                     |> Seq.map(fun x -> x.AsTupple) 
+                     |> Seq.groupBy(fun (name,loc) -> name) |> Seq.filter(fun (n,dups) -> Seq.length dups > 1)
+    if not(Seq.isEmpty duplicates) then
+        let name = fst ( duplicates |> Seq.head)
+        let loc = snd ((snd (duplicates |> Seq.head)) |> Seq.head)
+        let errMsg = sprintf "Duplicate definition: %s" (name.ToString())
+        Error (Semantic_Error (loc, errMsg))
+    else    
+        Ok ()
 
 
 

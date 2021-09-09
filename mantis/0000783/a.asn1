@@ -1,0 +1,10 @@
+PUS DEFINITIONS ::= BEGIN
+    x INTEGER ::= 5
+	
+	S ::= SEQUENCE {
+	   ba INTEGER DEFAULT x
+	}
+		
+END
+
+

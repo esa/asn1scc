@@ -5,10 +5,11 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
   </PropertyGroup>
     <ItemGroup>
-        <EmbeddedResource Include="Asn1Schema.xsd"/>
+        <EmbeddedResource Include="Asn1Schema.xsd" />
     </ItemGroup>
     <ItemGroup>
         <Compile Include="AcnGenericCreateFromAntlr.fs" />
+        <Compile Include="AntlrParse.fs" />
         <Compile Include="ParameterizedAsn1Ast.fs" />
         <Compile Include="CreateAsn1AstFromAntlrTree.fs" />
         <Compile Include="RemoveParamterizedTypes.fs" />
@@ -30,7 +31,12 @@
         <Compile Include="AcnCreateFromAntlr.fs" />
         <Compile Include="TypesEquivalence.fs" />
         <Compile Include="ExportToXml.fs" />
+        <Compile Include="LspAst.fs" />
+        <Compile Include="Lsp.fs" />
         <Compile Include="FrontEntMain.fs" />
+    </ItemGroup>
+    <ItemGroup>
+      <PackageReference Include="FsToolkit.ErrorHandling" Version="2.7.0" />
     </ItemGroup>
     
   <ItemGroup>

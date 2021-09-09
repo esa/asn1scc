@@ -1,0 +1,49 @@
+TASTE-Dataview DEFINITIONS ::=
+BEGIN
+
+MyInteger ::= INTEGER (0..9999)
+MyReal ::= REAL (0.0 .. 1000.0)
+MyBool ::= BOOLEAN
+
+MyIndex ::= INTEGER (0 ..100)
+
+T-Thing ::= CHOICE {
+msg1 MyInteger,
+msg2 MyBool,
+msg3 MyReal
+}
+
+T-Header ::= SEQUENCE {
+index1 MyIndex,
+index2 MyIndex,
+ack MyBool
+}
+
+T-MsgA ::= SEQUENCE {
+header T-Header,
+payload T-Thing
+}
+
+T-MsgB ::= SEQUENCE {
+header T-Header,
+payload MyInteger
+}
+
+T-MsgC ::= SEQUENCE {
+header T-Header,
+payload MyBool
+}
+
+T-MsgD ::= SEQUENCE {
+header T-Header,
+payload T-Thing
+}
+
+T-ContainerMsg ::= CHOICE {
+msgA T-MsgA,
+msgB T-MsgB,
+msgC T-MsgC,
+msgD T-MsgD
+}
+
+END

@@ -1,0 +1,22 @@
+TEST-TEMPLATE DEFINITIONS AUTOMATIC TAGS::= BEGIN
+    EXPORTS ALL;
+
+	FrequenciesTemplate{INTEGER:someLength, SomeType } ::= SEQUENCE (SIZE(someLength)) OF SomeType
+	
+END
+
+TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
+    IMPORTS
+        FrequenciesTemplate
+    FROM TEST-TEMPLATE;
+
+	
+	MyPDU ::= FrequenciesTemplate{5, INTEGER(1..20)}
+	
+	testPDU MyPDU ::= {3, 4, 5, 6, 20}
+END
+
+--TCLS     MyPDU[]
+
+
+

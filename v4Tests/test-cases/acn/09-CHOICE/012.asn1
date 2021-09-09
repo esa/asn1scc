@@ -1,0 +1,13 @@
+TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
+
+
+MyChoice ::= CHOICE {
+	nullField NULL,
+	singleIntField INTEGER (5)
+}
+
+
+END
+
+--TCLS     MyPDU[]
+

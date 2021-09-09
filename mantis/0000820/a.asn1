@@ -1,0 +1,15 @@
+D DEFINITIONS ::=
+BEGIN
+
+T-Message ::= SEQUENCE
+{
+	packets SEQUENCE (SIZE (1 .. 100)) OF T-Packet
+}
+
+T-Packet ::= CHOICE
+{
+	fReal REAL,
+	fInt  INTEGER (1..200)
+}
+
+END

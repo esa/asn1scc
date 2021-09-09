@@ -1,0 +1,9 @@
+TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
+
+    MyOctStr ::=  OCTET STRING (SIZE(0..20)) 
+	
+    MySeqOf ::=  SEQUENCE (SIZE(0..20)) OF MyOctStr
+END
+
+
+--TCLS     MySeqOf[] MyOctStr[]

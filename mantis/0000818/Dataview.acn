@@ -1,0 +1,21 @@
+STM-Example DEFINITIONS ::=
+BEGIN
+
+-- ----------------------------------------------------------------------
+-- Basic types
+-- ----------------------------------------------------------------------
+T-NID-Packet [size 8, encoding pos-int]
+
+T-NID-STM-StateRequest [size 4, encoding pos-int]
+
+-- ----------------------------------------------------------------------
+-- Packets
+-- ----------------------------------------------------------------------
+T-Packet-STM13 []
+{
+  nid-packet [],
+  l-packet INTEGER [size 13, encoding pos-int], -- this is causing troubles
+  nid-stm-state-request[]
+}
+
+END

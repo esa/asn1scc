@@ -1,0 +1,15 @@
+TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
+
+	MyPDU ::= IA5String(SIZE(114788))(FROM("A".."Z")) -- 64K + 48K + 100
+	MyPDU2 ::= IA5String(SIZE(115688))(FROM("A".."Z")) -- 64K + 48K + 1000
+	
+	MyPDU3 ::= IA5String(SIZE(98404))(FROM("A".."Z")) -- 64K + 32K + 100
+	MyPDU4 ::= IA5String(SIZE(99304))(FROM("A".."Z")) -- 64K + 32K + 1000
+	
+	MyPDU5 ::= IA5String(SIZE(81920))(FROM("A".."Z")) -- 64K + 16K 
+	MyPDU6 ::= IA5String(SIZE(81999))(FROM("A".."Z")) -- 64K + 16K + 79
+	MyPDU7 ::= IA5String(SIZE(82920))(FROM("A".."Z")) -- 64K + 16K + 1000
+	
+END
+
+--TCLS     MyPDU[]

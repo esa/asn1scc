@@ -22,15 +22,18 @@ namespace LspServer
         {
             if (args.Contains("debug"))
             {
+                /*
                 var localPath = @"C:\prj\GitHub\asn1scc\lsp\workdir\2\a.asn";
                 var acnLocalPath = @"C:\prj\GitHub\asn1scc\lsp\workdir\2\a.acn";
                 var content = System.IO.File.ReadAllText(localPath);
-                var ws = FrontEntMain.lspOnFileOpened(FrontEntMain.lspEmptyWs, localPath, content);
-                var autoCompleteList = FrontEntMain.lspAutoComplete(ws, acnLocalPath, 3, 11);
+                var ws = Lsp.lspOnFileOpened(Lsp.lspEmptyWs, localPath, content);
+                var autoCompleteList = Lsp.lspAutoComplete(ws, acnLocalPath, 3, 11);
                 foreach(var s in autoCompleteList)
                 {
                     Console.WriteLine(s);
-                }
+                }*/
+
+                AcnGenericCreateFromAntlr.someTests();
             }
             else
             {
@@ -194,10 +197,10 @@ namespace LspServer
     internal class Asn1SccService
     {
         private readonly ILogger<Asn1SccService> _logger;
-        private FrontEntMain.LspWorkSpace ws;
-        //private readonly Dictionary<String, FrontEntMain.ParsedFile> parsedFiles = new Dictionary<String, FrontEntMain.ParsedFile>();
+        private LspAst.LspWorkSpace ws;
+        //private readonly Dictionary<String, Lsp.ParsedFile> parsedFiles = new Dictionary<String, Lsp.ParsedFile>();
 
-        public static Diagnostic lspError2Diagnostic(FrontEntMain.LspError e)
+        public static Diagnostic lspError2Diagnostic(LspAst.LspError e)
         {
             return new Diagnostic()
             {
@@ -246,24 +249,24 @@ namespace LspServer
 
         public Asn1SccService(ILogger<Asn1SccService> logger)
         {
-            ws = FrontEntMain.lspEmptyWs;
+            ws = Lsp.lspEmptyWs;
             _logger = logger;
         }
 
         public void onOpenDocument(DocumentUri docUri, string content)
         {
-            ws = FrontEntMain.lspOnFileOpened(ws, docUri.ToUri().LocalPath, content);
+            ws = Lsp.lspOnFileOpened(ws, docUri.ToUri().LocalPath, content);
         }
 
         public void onDocumentChange(DocumentUri docUri, string content)
         {
-            ws = FrontEntMain.lspOnFileChanged(ws, docUri.ToUri().LocalPath, content);
+            ws = Lsp.lspOnFileChanged(ws, docUri.ToUri().LocalPath, content);
         }
 
         public List<CompletionItem> getCompletionItems(DocumentUri docUri, int line0, int charPos)
         {
             return
-                FrontEntMain.lspAutoComplete(ws, docUri.ToUri().LocalPath, line0, charPos).
+                Lsp.lspAutoComplete(ws, docUri.ToUri().LocalPath, line0, charPos).
                     Select(s => new CompletionItem()
                     {
                         Label = s,
@@ -274,7 +277,7 @@ namespace LspServer
         public List<LocationOrLocationLink> getDefinitions (DocumentUri docUri, int line0, int charPos)
         {
             return
-                FrontEntMain.lspGoToDefinition(ws, docUri.ToUri().LocalPath, line0, charPos).
+                Lsp.lspGoToDefinition(ws, docUri.ToUri().LocalPath, line0, charPos).
                     Select(z =>
                         new LocationOrLocationLink(new Location()
                         {
@@ -301,17 +304,17 @@ namespace LspServer
 
             var lspFiles = 
                 files.Select(f => 
-                    new FrontEntMain.FileLsp(f, 
+                    new Lsp.FileLsp(f, 
                         f == fileName ? 
                             Microsoft.FSharp.Core.FSharpOption<String>.Some(fileContent) : 
                             Microsoft.FSharp.Core.FSharpOption<String>.None) );
             
-            FrontEntMain.parseFilesLsp(lspFiles);
+            Lsp.parseFilesLsp(lspFiles);
 
         }
 
 
-        public void saveFileResults(String fileUri, FrontEntMain.ParsedFile res)
+        public void saveFileResults(String fileUri, Lsp.ParsedFile res)
         {
             _logger.LogInformation("START OF saveFileResults file Uri is {0}", fileUri);
             foreach(var s in res.completionItems)
@@ -332,7 +335,7 @@ namespace LspServer
             _logger.LogInformation("END  OF saveFileResults file Uri is {0}", fileUri);
         }
 
-        public FrontEntMain.ParsedFile getFileResults (String fileUri)
+        public Lsp.ParsedFile getFileResults (String fileUri)
         {
             _logger.LogInformation("START OF getFileResults file Uri is {0}", fileUri);
             _logger.LogInformation("dictionary contains returns {0}", parsedFiles.ContainsKey(fileUri));
@@ -340,11 +343,11 @@ namespace LspServer
             return
             parsedFiles.ContainsKey(fileUri) ?
                 parsedFiles[fileUri] :
-                new FrontEntMain.ParsedFile(new asn1Parser.AntlrError[] { }, new string[] { }, new FrontEntMain.TypeAssignmentLSP[] { } , new IToken[] { } );
+                new Lsp.ParsedFile(new asn1Parser.AntlrError[] { }, new string[] { }, new Lsp.TypeAssignmentLSP[] { } , new IToken[] { } );
             //_logger.LogInformation("END OF getFileResults file Uri is {0}", fileUri);
         }
 
-        public (String?, FrontEntMain.TypeAssignmentLSP?) getTasDefinition(String fileUri, int line, int charPos)
+        public (String?, Lsp.TypeAssignmentLSP?) getTasDefinition(String fileUri, int line, int charPos)
         {
             var r = getFileResults(fileUri);
 
