@@ -172,6 +172,19 @@ type ITree with
     
 
 
+type PositionWithinFile = {
+    filename : string
+    line   : int
+    charPos : int
+}
+
+type RangeWithinFile = {
+    filename : string
+    startPos : {|line : int; charPos:int|}
+    endPos   : {|line : int; charPos:int|}
+}
+
+
 
 let rec getAsTupples<'T> (list:array<'T>) (empty:'T) =
     let mutable x = 0

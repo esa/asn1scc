@@ -11,6 +11,7 @@ open CommonTypes
 open FsUtils
 open AcnGenericTypes
 open FsToolkit.ErrorHandling
+
 //open FE_TypeDefinition
 
 
@@ -102,6 +103,7 @@ and private  EvaluateAcnIntExpression (constants:AcnConstant list) acnExpr : Res
 let private CreateLongField(t:ITree) = t.Children |> List.map(fun x -> x.TextL) |> AcnGenericTypes.RelativePath
 
 let private CreateAcnParamType (t:ITree) : Result<AcnParamType, Asn1ParseError> =
+    
     match t.Type with
     | acnParser.INTEGER         -> Ok (AcnGenericTypes.AcnParamType.AcnPrmInteger t.Location  )
     | acnParser.BOOLEAN         -> Ok (AcnGenericTypes.AcnParamType.AcnPrmBoolean t.Location  )
@@ -440,8 +442,18 @@ let private CreateTypeAssignment integerSizeInBytes (allAcnFiles: CommonTypes.An
 
         let comments = Antlr.Comment.GetComments(thisAcnFile.tokens, alreadyTakenComments, thisAcnFile.tokens.[tasTree.TokenStopIndex].Line, tasTree.TokenStartIndex - 1, tasTree.TokenStopIndex + 1, true)
         let! typeEncodingSpec = createTypeEncodingSpec integerSizeInBytes allAcnFiles acnConstants thisAcnFile alreadyTakenComments encSpecITree
-
-        return {AcnTypeAssignment.name = tasNameL; acnParameters = prms; typeEncodingSpec = typeEncodingSpec; comments = comments |> Seq.toList}
+        //tasTree.TokenStartIndex
+        let acnFile = allAcnFiles |> Seq.find(fun z -> z.rootItem = tasTree.Root)
+        let pos = {
+            RangeWithinFile.filename=  tasTree.Root.FileName; 
+            startPos=
+                let startToken = acnFile.tokens.[tasTree.TokenStartIndex]
+                {|line=startToken.Line;charPos=startToken.CharPositionInLine |}; 
+            endPos=
+                let endToken = acnFile.tokens.[tasTree.TokenStopIndex]
+                {|line=endToken.Line;charPos=endToken.CharPositionInLine + tasTree.Text.Length|}
+            }
+        return {AcnTypeAssignment.name = tasNameL; acnParameters = prms; typeEncodingSpec = typeEncodingSpec; comments = comments |> Seq.toList; position=pos}
     }
     
 let private CreateModule integerSizeInBytes (allAcnFiles: CommonTypes.AntlrParserResult list) (acnConstants : Map<string, BigInteger>) (thisAcnFile: CommonTypes.AntlrParserResult)   (alreadyTakenComments:System.Collections.Generic.List<IToken>)  (modTree : ITree) : Result<AcnModule, Asn1ParseError> =

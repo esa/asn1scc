@@ -104,6 +104,41 @@ let rec getTreeNodesByPosition (tokens : IToken array) (pos:LspPos) (r:ITree)  =
     } |> Seq.toList
 
 
+let getProposeAcnProperties (pathToRoot:ITree list) =
+    match pathToRoot with
+    | []        -> []
+    | x1::xs    ->
+        match x1::xs |> Seq.tryFind (fun z -> z.Type = acnParser.ENCODING_PROPERTIES) with
+        | None  -> []
+        | Some ep   ->
+            let existingProperties = ep.Children |> List.map(fun z -> z.Type)
+            //get Type, let's suppose it INTEGER
+            let encodingProps = 
+                [
+                    (acnParser.ENCODING, ["encoding pos-int"; "encoding twos-complement"; "encoding BCD"; "encoding ASCII"])
+                    (acnParser.SIZE, ["size"])
+                    (acnParser.ENDIANNES, ["endianness big"; "endianness little"])
+                    (acnParser.MAPPING_FUNCTION, ["mapping-function myFunction"])
+                ]
+            let encodingPropCons = encodingProps |> List.map fst
+
+
+            match encodingPropCons |> Seq.tryFind(fun a -> a = x1.Type) with
+            | Some _   ->
+                //Am I within a completed ACN property (i.e. ENCODING, SIZE etc) then there is nothing to suggest to the user
+                []
+            | None     ->
+                let possibleProperties = encodingProps |> List.filter(fun (a,_) -> not (existingProperties |> Seq.contains a) )
+                let possibleAnwers = possibleProperties |> List.map snd |> List.collect id
+                match x1.Type with
+                | acnParser.ENCODING_PROPERTIES -> possibleAnwers
+                | 0     (**)                -> 
+                    //I am within possibly within an incomplete acn Property
+                    possibleAnwers |> List.filter (fun a -> a.StartsWith (x1.Text)) 
+                | _                     -> []
+
+        
+
 
 let lspParseAcnFile (fileName:string) (fileContent:string) =
     let stm = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(fileContent))
@@ -116,11 +151,10 @@ let lspParseAcnFile (fileName:string) (fileContent:string) =
     //printfn"---- end ----"
 
 
-(*    let test = getTreeNodesByPosition acnParseTree.tokens {LspPos.line=5; charPos=17} acnParseTree.rootItem 
+    let test = getTreeNodesByPosition acnParseTree.tokens {LspPos.line=5; charPos=13} acnParseTree.rootItem 
     printfn"---- whereami start ----"
     test |> Seq.iter(fun z -> printfn "%s" (printAntlrNode acnParseTree.tokens z))
     printfn"---- whereami end ----"
-*)
 
     let tokens = acnParseTree.tokens
     let parseErrors = 
@@ -160,6 +194,7 @@ let lspPerformSemanticAnalysis (ws:LspWorkSpace) =
     | []     -> 
         try
             let acnAst = AcnGenericCreateFromAntlr.CreateAcnAst args.integerSizeInBytes acnParseTrees
+            //let acnAst = AcnGenericCreateFromAntlr.CreateAcnAst_no_exc  args.integerSizeInBytes acnParseTrees
             let parameterized_ast = CreateAsn1AstFromAntlrTree.CreateAstRoot asn1ParseTrees acnAst args
             let asn1Ast0 = MapParamAstToNonParamAst.DoWork parameterized_ast
             CheckAsn1.CheckFiles asn1Ast0 0

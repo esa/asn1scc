@@ -473,6 +473,7 @@ type  AcnTypeAssignment = {
     acnParameters   : AcnParameter list
     typeEncodingSpec: AcnTypeEncodingSpec
     comments        : string list
+    position        : RangeWithinFile
 }
 
 type  AcnModule = {
