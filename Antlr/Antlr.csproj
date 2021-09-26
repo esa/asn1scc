@@ -10,12 +10,11 @@
   </Target>
 -->
 
-  <Target Name="RunAntlr" BeforeTargets="BeforeBuild">
+  <Target Name="RunAntlr" BeforeTargets="BeforeBuild" Inputs="asn1.g;acn.g" Outputs="asn1Lexer.cs;acnLexer.cs">
       
     <Exec Command="java -jar $(ProjectDir)antlr313/antlr-3.2.jar -o $(ProjectDir) $(ProjectDir)asn1.g &amp;&amp; java -jar $(ProjectDir)antlr313/antlr-3.2.jar -o $(ProjectDir) $(ProjectDir)acn.g" />
     <ItemGroup>
-      <Compile Include="**/*$(DefaultLanguageSourceExtension)"
-               Exclude="$(DefaultItemExcludes);$(DefaultExcludesInProjectFolder);$(BaseIntermediateOutputPath)**;$(BaseOutputPath)**;@(Compile)" />
+      <Compile Include="**/*$(DefaultLanguageSourceExtension)" Exclude="$(DefaultItemExcludes);$(DefaultExcludesInProjectFolder);$(BaseIntermediateOutputPath)**;$(BaseOutputPath)**;@(Compile)" />
     </ItemGroup>
   </Target>
 
