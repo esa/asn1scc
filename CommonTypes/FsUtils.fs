@@ -741,3 +741,6 @@ let getResourceAsString0 (resourcePrefix:string) (assembly:Reflection.Assembly) 
         use memStrm = new MemoryStream ()
         resource.CopyTo(memStrm)
         System.Text.Encoding.UTF8.GetString(memStrm.ToArray())
+
+
+

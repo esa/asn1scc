@@ -24,7 +24,7 @@ open CommonTypes
 open AcnGenericTypes
 open AntlrParse
 open LspAst
-
+open FsUtils
 
 type LspFileType =
     | LspAsn1
@@ -36,6 +36,121 @@ type LspFileType =
 
 
 
+
+let rec getAcnPathByITree (n:ITree) curResult =
+    let encSpec =
+        if    n.Type = acnParser.ENCODING_PROPERTIES then Some (n.Parent)
+        elif  n.Type = acnParser.ENCODING_SPEC then Some n
+        else None
+
+    match encSpec with
+    | None  -> curResult
+    | Some ens ->
+        if ens.Parent.Type = acnParser.TYPE_ENCODING then  
+            let tasName = ens.Parent.GetChildByType(acnParser.UID).Text
+            let modDef = ens.Parent.Parent
+            let modName = modDef.GetChildByType(acnParser.UID).Text
+            modName::tasName::curResult
+        elif ens.Parent.Type = acnParser.CHILD then  
+            let name  = 
+                match (ens.Parent).GetOptChild(acnParser.LID) with
+                | None          -> "#"
+                | Some(lid)     -> lid.Text
+            let result = name::curResult
+            getAcnPathByITree ens.Parent.Parent result
+        else    
+            curResult
+
+
+let rec getAsn1TypeByPath (asn1Trees:AntlrParserResult list) (path:string list)  =
+    let getModuleByName modName =
+        asn1Trees |> Seq.collect (fun r -> r.rootItem.Children) |> Seq.tryFind(fun m -> m.GetChild(0).Text = modName)
+    let getTasByName mdTree tasName =
+        getChildrenByType(mdTree, asn1Parser.TYPE_ASSIG) |> Seq.tryFind (fun ts -> ts.GetChild(0).Text = tasName)
+    let rec resolveReferenceType (typeNode:ITree) =
+        match typeNode.Type with
+        |asn1Parser.REFERENCED_TYPE ->
+            let refType = 
+                match getTreeChildren(typeNode) |> List.filter(fun x -> x.Type<> asn1Parser.ACTUAL_PARAM_LIST) with
+                | refTypeName::[]           ->  
+                    let mdTree = typeNode.GetAncestor(asn1Parser.MODULE_DEF)
+                    let mdName = mdTree.GetChild(0).Text
+                    let imports = mdTree.GetChildrenByType(asn1Parser.IMPORTS_FROM_MODULE)
+                    let importedFromModule = imports |> List.tryFind(fun imp-> imp.GetChildrenByType(asn1Parser.UID) |> Seq.exists(fun impTypeName -> impTypeName.Text = refTypeName.Text ))
+                    match importedFromModule with
+                    |Some(imp)  -> Some ( imp.GetChild(0).Text,  refTypeName.Text)
+                    |None       -> Some ( typeNode.GetAncestor(asn1Parser.MODULE_DEF).GetChild(0).Text,  refTypeName.Text)
+                | modName::refTypeName::[]  ->  Some ( modName.Text, refTypeName.Text)
+                | _   -> None
+            match refType with
+            | None  -> None
+            | Some (x1, x2) -> 
+                match getModuleByName x1 with
+                | None      -> None
+                | Some md   -> 
+                    let tas = getTasByName md x2
+                    match tas with
+                    | None  -> None
+                    | Some ts -> 
+                        resolveReferenceType (ts.GetChild 1)
+        | _     -> Some typeNode
+
+
+
+
+    let rec getTypeByPath (typeDef:ITree) (path:string list) =
+        if (typeDef.Type <> asn1Parser.TYPE_DEF) then
+            raise (BugErrorException "No a type")
+
+        let children = getTreeChildren(typeDef)
+        let typeNodes = children |> List.filter(fun x -> (not (CreateAsn1AstFromAntlrTree.ConstraintNodes |> List.exists(fun y -> y=x.Type) ) ) && (x.Type <> asn1Parser.TYPE_TAG) )
+        let typeNode = List.head(typeNodes)
+
+        match path with
+        | []        -> 
+            resolveReferenceType typeNode
+        | x1::xs    ->
+            match typeNode.Type with
+            | asn1Parser.CHOICE_TYPE        -> 
+                let childItems = getChildrenByType(typeNode, asn1Parser.CHOICE_ITEM)
+                match childItems |> Seq.tryFind(fun ch -> x1 = ch.GetChild(0).Text) with
+                | Some ch -> 
+                    let typeDef = getChildByType(ch, asn1Parser.TYPE_DEF)
+                    getTypeByPath typeDef xs
+                | None    -> None
+            | asn1Parser.SEQUENCE_TYPE        -> 
+                let childItems =
+                    match getOptionChildByType(typeNode, asn1Parser.SEQUENCE_BODY) with
+                    | Some(sequenceBody)    -> getChildrenByType(sequenceBody, asn1Parser.SEQUENCE_ITEM)
+                    | None                  -> []
+                match childItems |> Seq.tryFind(fun ch -> x1 = ch.GetChild(0).Text) with
+                | Some ch -> 
+                    let typeDef = getChildByType(ch, asn1Parser.TYPE_DEF)
+                    getTypeByPath typeDef xs
+                | None    -> None
+            | asn1Parser.SEQUENCE_OF_TYPE   when x1="#"     -> 
+                let typeDef = getChildByType(typeNode, asn1Parser.TYPE_DEF)
+                getTypeByPath typeDef xs
+            |asn1Parser.REFERENCED_TYPE ->
+                let actType = resolveReferenceType typeNode
+                match actType with
+                | Some actType  -> getTypeByPath actType path
+                | None          -> None
+            | _         -> None
+
+    match path with
+    | []
+    | _::[] -> None
+    | x1::x2::xs    ->
+        match getModuleByName x1 with
+        | None      -> None
+        | Some md   -> 
+            let tas = getTasByName md x2
+            match tas with
+            | None  -> None
+            | Some ts -> 
+                getTypeByPath (ts.GetChild 1) xs
+                
 
 
 
