@@ -32,10 +32,10 @@ required to execute ANTLR.
 
 Install the [.Net core](https://dotnet.microsoft.com/) sdk.
 and then exexcute
-    ```
+
     dotnet build Antlr/
     dotnet build "asn1scc.sln"
-    ```
+    
 and the compiler will be built.
 
 Under Windows, you can also open open `asn1scc.sln` and build the `asn1scc` project (right-click/build)
