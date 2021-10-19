@@ -31,21 +31,19 @@ required to execute ANTLR.
 ## Install .Net Core SDK
 
 Install the [.Net core](https://dotnet.microsoft.com/) sdk.
-and then exexcute
+Then execute...
 
     dotnet build Antlr/
     dotnet build "asn1scc.sln"
     
-and the compiler will be built.
+...and the compiler will be built.
 
 Under Windows, you can also open open `asn1scc.sln` and build the `asn1scc` project (right-click/build)
 
 ## Run the tests - if you want to:
 
-    ```
     cd v4Tests
     make
-    ```
 
 Note that in order to run the tests you need both GCC and GNAT.
 The tests will process hundreds of ASN.1 grammars, generate C and
@@ -57,16 +55,15 @@ Continuous integration and Docker image
 ASN1SCC is setup to use CircleCI for continuous integration. Upon every
 commit or merge request, [we instruct CircleCI](.circleci/config.yml) to...
 
-- create on the fly [a Docker image](Dockerfile) based on Debian Stretch
+- create on the fly [a Docker image](Dockerfile) based on Microsoft's .NET image
 - [build ASN1SCC](circleci-build.sh) with the new code inside that image
 - then run all the tests and check the coverage results.
 
 In addition, a runtime docker image can be build with the following command
 which can then be used instead of installing ASN1SCC on the host (or any of
 the dependencies or build tools).
-```
-DOCKER_BUILDKIT=1 docker build -t asn1scc-runtime -f Dockerfile.runtime .
-```
+
+    DOCKER_BUILDKIT=1 docker build -t asn1scc-runtime -f Dockerfile.runtime .
 
 ...and your Docker will build an "asn1scc-runtime" Docker image. This image can be
 used as if the ASN1SCC is installed on the host system. The [asn1-docker.sh](asn1-docker.sh)
@@ -81,6 +78,7 @@ named `asn1scc-runtime` is already built.)
 ```bash
 $ pwd
 /tmp/myasnfiles
+
 $ cat sample.asn 
 MY-MODULE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
 
@@ -98,8 +96,8 @@ $ ls
 acn.c  asn1crt.c  asn1crt.h  real.c  sample.asn  sample.c  sample.h
 ```
 
-As can be seen above, the host does not have the ASN1SCC installation, but only
-the asn1scc-runtime docker image.
+As can be seen above, the host does not have the ASN1SCC installation; 
+only the asn1scc-runtime docker image.
 
 Usage
 =====
