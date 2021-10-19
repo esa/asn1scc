@@ -1,0 +1,115 @@
+MY-MODULE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+
+-- Original definition by Alain
+--T-POS ::= BOOLEAN
+
+MyInt ::= INTEGER (0 .. 20)
+
+My2ndInt ::= MyInt ( 1 .. 18)
+
+AType ::= SEQUENCE {
+    blArray	SEQUENCE (SIZE(10)) OF BOOLEAN
+}
+
+My2ndAType ::= AType
+
+TypeEnumerated ::= ENUMERATED {
+    red(0),
+    green(1),
+    blue(2)
+}
+
+My2ndEnumerated ::= TypeEnumerated
+
+TypeNested ::= SEQUENCE {
+    intVal	INTEGER(0..10),
+    int2Val	INTEGER(-10..10),
+    int3Val	MyInt (10..12),
+    intArray	SEQUENCE (SIZE (10)) OF INTEGER (0..3),
+    realArray	SEQUENCE (SIZE (10)) OF REAL (0.1 .. 3.14),
+    octStrArray	SEQUENCE (SIZE (10)) OF OCTET STRING (SIZE(1..10)),
+    boolArray	SEQUENCE (SIZE (10)) OF T-BOOL,
+    enumArray	SEQUENCE (SIZE (10)) OF TypeEnumerated,
+    enumValue	TypeEnumerated,
+    enumValue2	ENUMERATED {
+	truism(0),
+	falsism(1)
+    },
+    label	OCTET STRING (SIZE(10..40)),
+    bAlpha	T-BOOL,
+    bBeta	BOOLEAN,
+    sString	T-STRING,
+    arr		T-ARR,
+    arr2	T-ARR2
+}
+
+My2ndTypeNested ::= TypeNested
+
+-- A more realistic definition
+T-POS ::= CHOICE {
+    longitude	REAL(-180.0..180.0),
+    latitude	REAL(-90.0..90.0),
+    height	REAL(30000.0..45000.0),
+    subTypeArray SEQUENCE (SIZE(10..15)) OF TypeNested,
+    label	OCTET STRING (SIZE(50)),
+    intArray	T-ARR,
+    myIntSet	T-SET,
+    myIntSetOf	T-SETOF,
+    anInt	My2ndInt
+}
+
+T-POS-SET ::= SET {
+    longitude	REAL(-180.0..180.0),
+    latitude	REAL(-90.0..90.0),
+    height	REAL(30000.0..45000.0),
+    subTypeArray SEQUENCE (SIZE(10..15)) OF TypeNested,
+    label	OCTET STRING (SIZE(20..50)),
+    intArray	T-ARR,
+    myIntSet	T-SET,
+    myIntSetOf	T-SETOF
+
+}
+
+T-ARR ::= SEQUENCE (SIZE (5..6)) OF INTEGER (0..32764)
+
+My2ndArr ::= T-ARR
+
+T-ARR2 ::= SEQUENCE (SIZE (5..6)) OF REAL (0.1 .. 4.2)
+
+T-ARR3 ::= SEQUENCE (SIZE (5..6)) OF SEQUENCE (SIZE(7)) OF REAL (0.1 .. 4.2)
+
+T-ARR4 ::= SEQUENCE (SIZE (5..6)) OF SEQUENCE (SIZE(7)) OF REAL (0.1 .. 4.3)
+
+T-SET ::= SET {
+    data1   INTEGER(0..131071),
+    data2   REAL(-100.0 .. 10.0),
+    data3   INTEGER(-1024..1024),
+    data4   INTEGER(-1310720..131071)
+}
+
+T-SETOF ::= SET (SIZE (5..6)) OF INTEGER (0..4)
+
+T-BOOL ::= BOOLEAN
+
+My2ndBool ::= T-BOOL
+
+T-INT ::= INTEGER (0..50)
+T-REAL ::= REAL (-3.14..3.14)
+My2ndReal ::= T-REAL
+T-STRING ::= OCTET STRING (SIZE(10..15))
+My2ndString ::= T-STRING
+T-FIXEDSTRING ::= OCTET STRING (SIZE(15))
+
+T-META ::= T-POS
+
+myVar MyInt ::= 4
+
+ConfigString ::= IA5String (SIZE(1..20))
+myStrVar ConfigString ::= "This is a test"
+
+T-TypeThatMustNotBeMapped ::= SEQUENCE {
+    config  ConfigString,
+    param   INTEGER (0..10)
+}
+
+END
