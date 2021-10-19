@@ -1,3 +1,9 @@
+#
+# Copy the current folder into the container and build asn1scc.
+#
+#################################################################################################
+#################################################################################################
+
 FROM  mcr.microsoft.com/dotnet/sdk AS build
 
 RUN apt update

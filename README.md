@@ -65,7 +65,7 @@ In addition, a runtime docker image can be build with the following command
 which can then be used instead of installing ASN1SCC on the host (or any of
 the dependencies or build tools).
 ```
-DOCKER_BUILDKIT=1 docker build -t asn1scc-runtime -f Dockerfile.asn1scc-runtime .
+DOCKER_BUILDKIT=1 docker build -t asn1scc-runtime -f Dockerfile.runtime .
 ```
 
 ...and your Docker will build an "asn1scc-runtime" Docker image. This image can be

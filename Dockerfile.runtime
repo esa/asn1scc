@@ -1,7 +1,14 @@
+#
+# Builder: Build a release version of asn1scc from upstream.
+# Runtime: Run asn1scc.
+#
+#################################################################################################
+#################################################################################################
+
 FROM  mcr.microsoft.com/dotnet/sdk AS builder
 
 RUN apt update
-RUN mkdir /usr/share/man/man1
+#RUN mkdir /usr/share/man/man1
 RUN apt install -y python3 python3-distutils \
     make openjdk-11-jre nuget libgit2-dev libssl-dev ; apt clean
 
