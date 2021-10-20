@@ -970,7 +970,7 @@ with
         | ObjectIdentifier t -> t.automaticTestCasesValues
         | ReferenceType t-> t.automaticTestCasesValues
         | TimeType t        -> t.automaticTestCasesValues
-
+        
     member this.typeDefintionOrReference : TypeDefintionOrReference =
         match this.Kind with
         | Integer      t -> t.definitionOrRef

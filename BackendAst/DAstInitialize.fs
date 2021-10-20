@@ -702,18 +702,21 @@ let createSequenceOfInitFunc (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:A
                         let thisCase = Map.ofList [(t.id, TcvSizeableTypeValue nSize)]
                         childTestCases |> List.fold(fun (newMap:Map<ReferenceToType, TestCaseValue>) atc -> mergeMaps newMap atc.testCaseTypeIDsMap) thisCase
                     {AutomaticTestCase.initTestCaseFunc = initTestCaseFunc; testCaseTypeIDsMap = combinedTestCase }
+        match r.args.generateAutomaticTestCases with
+        | true  ->          
+            seq {
+                match o.minSize.acn = o.maxSize.acn with
+                | true  -> yield seqOfCase o.minSize.acn
+                | false -> 
+                    yield seqOfCase o.maxSize.acn 
+                    yield seqOfCase o.minSize.acn 
+                    match o.maxSize.acn > 65536I with  //fragmentation cases
+                    | true ->
+                            yield! fragmentationCases seqOfCase o.maxSize.acn
+                    | false -> ()
+            } |> Seq.toList
+        | fase  -> []
 
-        seq {
-            match o.minSize.acn = o.maxSize.acn with
-            | true  -> yield seqOfCase o.minSize.acn
-            | false -> 
-                yield seqOfCase o.maxSize.acn 
-                yield seqOfCase o.minSize.acn 
-                match o.maxSize.acn > 65536I with  //fragmentation cases
-                | true ->
-                        yield! fragmentationCases seqOfCase o.maxSize.acn
-                | false -> ()
-        } |> Seq.toList
     let initTasFunction (p:CallerScope) =
         let initCountValue = Some o.minSize.uper
         let chp = {p with arg = p.arg.getArrayItem l i childType.isIA5String}
@@ -841,8 +844,9 @@ let createSequenceInitFunc (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn
 
                 tesCases
 
-        let tesCases = generateCases  asn1Children 
-        tesCases 
+        match r.args.generateAutomaticTestCases with
+        | true  ->  generateCases  asn1Children 
+        | false ->  [] 
 
     let initTasFunction (p:CallerScope) =
         let handleChild  (ch:Asn1Child)  = 
@@ -941,14 +945,6 @@ let createChoiceInitFunc (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1A
                 match l with
                 | C     -> (ToC ch._present_when_name_private) + "_PRESENT"
                 | Ada   ->
-        //                    let modName = 
-        //                        match ch.chType.typeDefintionOrReference with
-        //                        | TypeDefinition  _ -> ToC ch.chType.id.ModName
-        //                        | ReferenceToExistingDefinition ref -> 
-        //                            match ref.programUnit with
-        //                            | Some pu       -> pu
-        //                            | None          -> ToC ch.chType.id.ModName
-        //                    modName + "." + ((ToC ch._present_when_name_private) + "_PRESENT")
                     (ToC ch._present_when_name_private) + "_PRESENT"
 
 
@@ -971,10 +967,13 @@ let createChoiceInitFunc (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1A
                     | false     -> atc.testCaseTypeIDsMap.Add(ch.chType.id, TcvAnyValue)
                 {AutomaticTestCase.initTestCaseFunc = presentFunc; testCaseTypeIDsMap = combinedTestCase } )
 
-        children |>
-        //if some alternatives have restricted to always ABSENT (via WITH COMPONENTS constraint) then do not produce a test case for them.
-        List.filter (fun c -> c.Optionality.IsNone || c.Optionality = (Some Asn1AcnAst.Asn1ChoiceOptionality.ChoiceAlwaysPresent)) |>
-        List.collect handleChild
+        match r.args.generateAutomaticTestCases with
+        | true  ->          
+            children |>
+            //if some alternatives have restricted to always ABSENT (via WITH COMPONENTS constraint) then do not produce a test case for them.
+            List.filter (fun c -> c.Optionality.IsNone || c.Optionality = (Some Asn1AcnAst.Asn1ChoiceOptionality.ChoiceAlwaysPresent)) |>
+            List.collect handleChild
+        | false -> []
 
 
     let initTasFunction (p:CallerScope) =
