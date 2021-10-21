@@ -1,0 +1,29 @@
+all: build
+
+build: dotnet-debian.SENTINEL
+	dotnet build -c Release Antlr/
+	dotnet build -c Release "asn1scc.sln"
+
+publish: build
+	dotnet publish -c Release --self-contained true -r linux-x64  asn1scc.sln
+
+dotnet-debian.SENTINEL:
+	# install dotnet on debian (https://docs.microsoft.com/en-us/dotnet/core/install/linux-debian)
+	wget https://packages.microsoft.com/config/debian/11/packages-microsoft-prod.deb -O packages-microsoft-prod.deb
+	sudo dpkg -i packages-microsoft-prod.deb
+	rm packages-microsoft-prod.deb
+	# install the sdk
+	sudo apt update
+	sudo apt install -y apt-transport-https &&  sudo apt update &&  sudo apt install -y dotnet-sdk-5.0
+	touch $@
+
+tests:
+	$(MAKE) -C v4Tests
+
+clean:
+	rm -rf asn1scc/bin packages-microsoft-prod.deb
+
+distclean: clean
+	rm dotnet-debian.SENTINEL
+
+.PHONY: all tests clean
