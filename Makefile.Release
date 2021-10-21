@@ -1,6 +1,0 @@
-all:
-	nuget restore
-	xbuild /p:Configuration=Release || exit 1
-	chmod +x Asn1f?/bin/Release/*.exe
-	rm -f Asn1f4/bin/Release/asn1.exe 
-	cp Asn1f4/bin/Release/Asn1f4.exe Asn1f4/bin/Release/asn1.exe 
