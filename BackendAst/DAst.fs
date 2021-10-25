@@ -291,14 +291,18 @@ type XerTag =
     | XerLiteralConstant   of string        //tagValue
     | XerFunctionParameter of string*string //tagValue, prmName holding the tag value
 
-type XerFunction = {
+type XerFunctionRec = {
     funcName            : string option               // the name of the function
-    func            : string option               // the body of the function
+    func                : string option               // the body of the function
     funcDef             : string option               // function definition in header file
     encodingSizeInBytes : BigInteger
     funcBody            : CallerScope -> (XerTag option) -> (XERFuncBodyResult option)
     funcBody_e          : ErroCode -> CallerScope -> (XerTag option) -> (XERFuncBodyResult option)            //p, XmlTag,   returns a list of encoding/decoding statements
 }
+
+type XerFunction =
+    | XerFunction of XerFunctionRec
+    | XerFunctionDummy
 
 
 type AcnFunction = {

@@ -20,6 +20,8 @@ open System.Xml
 open System.Xml.Linq
 open System.Xml.Schema
 open System.IO
+open System.Diagnostics
+open System.Collections.Generic
 
 
 
@@ -744,3 +746,23 @@ let getResourceAsString0 (resourcePrefix:string) (assembly:Reflection.Assembly) 
 
 
 
+
+let subsystems: Dictionary<String, TimeSpan> = new Dictionary<String, TimeSpan>()
+let TL  subSystem func =
+    let stopwatch = Stopwatch.StartNew()
+    let ret = func ()
+    stopwatch.Stop()
+    let totalElapsed = stopwatch.Elapsed
+
+    match subsystems.ContainsKey subSystem with
+    | true -> subsystems.[subSystem] <-  subsystems.[subSystem] + totalElapsed
+    | false ->
+        subsystems.Add(subSystem, totalElapsed)
+
+    ret
+
+let TL_report () =
+    let aaa = subsystems.Keys |> Seq.toList
+    let bbb = aaa |> List.map(fun z -> sprintf "%s took %A" z (subsystems.[z])) |> Seq.StrJoin "\n"
+    printfn "%s" bbb
+    

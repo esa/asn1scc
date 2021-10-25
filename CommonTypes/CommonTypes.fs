@@ -352,6 +352,12 @@ with
     match isUnsigned with
     | true          -> 0I
     | false         -> this.SIntMin
+  member this.hasXer =
+    this.encodings |> Seq.contains (XER)
+  member this.hasAcn =
+    this.encodings |> Seq.contains (ACN)
+  member this.hasUper =
+    this.encodings |> Seq.contains (UPER)
 
 type ScopeNode =
     | MD of string          //MODULE

@@ -72,7 +72,7 @@ let createXerFunction_any (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec:
     let emitTypeAssignment      = match l with C -> xer_c.EmitTypeAssignment    | Ada -> xer_a.EmitTypeAssignment
     let emitTypeAssignment_def  = match l with C -> xer_c.EmitTypeAssignment_def    | Ada -> xer_a.EmitTypeAssignment_def
     let EmitTypeAssignment_def_err_code  = match l with C -> uper_c.EmitTypeAssignment_def_err_code    | Ada -> uper_a.EmitTypeAssignment_def_err_code
-
+     
     let funcName            = getFuncName r l codec typeDefinition
     let p  = t.getParamType l codec
     let varName = p.arg.p
@@ -92,10 +92,11 @@ let createXerFunction_any (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec:
 
             let bodyResult_funcBody, errCodes,  bodyResult_localVariables, encodingSizeInBytes = 
                 match xerBdResultOpt with
+                | Some bodyResult   -> 
+                    bodyResult.funcBody, bodyResult.errCodes, bodyResult.localVariables, bodyResult.encodingSizeInBytes
                 | None              -> 
                     let emtyStatement = match l with C -> "" | Ada -> "null;"
                     emtyStatement, [], [], 0I
-                | Some bodyResult   -> bodyResult.funcBody, bodyResult.errCodes, bodyResult.localVariables, bodyResult.encodingSizeInBytes
 
             let lvars = bodyResult_localVariables |> List.map(fun (lv:LocalVariable) -> lv.GetDeclaration l) |> Seq.distinct
             let xerFunc = Some(emitTypeAssignment asn1TasName varName sStar funcName isValidFuncName  (typeDefinition.longTypedefName l) lvars  bodyResult_funcBody soSparkAnnotations sInitilialExp codec)
@@ -105,14 +106,14 @@ let createXerFunction_any (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec:
             xerFunc, xerFuncDef, encodingSizeInBytes
     let ret = 
         {
-            XerFunction.funcName       = funcName
+            XerFunctionRec.funcName       = funcName
             func                       = xerFunc
             funcDef                    = xerFuncDef
             encodingSizeInBytes        = encodingSizeInBytes
             funcBody_e                 = xerFuncBody_e
             funcBody                   = xerFuncBody
         }
-    ret, ns
+    (XerFunction ret), ns
 
 let orElse defaultValue optValue = match optValue with Some x -> x | None -> defaultValue
 
@@ -280,7 +281,10 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (cod
         let lv = SequenceOfIndex (t.id.SeqeuenceOfLevel + 1, None)
         let pp =  p.arg.getPointer l
         let nLevel = BigInteger (t.id.AcnAbsPath.Length - 2)
-        let chFunc = child.getXerFunction codec
+        let chFunc = 
+            match child.getXerFunction codec with
+            | XerFunction z -> z
+            | XerFunctionDummy  -> raise (BugErrorException "XerFunctionDummy")
 
         let childTag = 
             let definedInRTL = 
@@ -317,7 +321,11 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec
         let nonAcnChildren = children |> List.choose(fun c -> match c with Asn1Child c -> Some c | AcnChild _ -> None)
 
         let handleChild (child:Asn1Child) =
-            let chFunc = child.Type.getXerFunction codec
+            let chFunc = 
+                match child.Type.getXerFunction codec with
+                | XerFunction z -> z
+                | XerFunctionDummy  -> raise (BugErrorException "XerFunctionDummy")
+
             let childContentResult = chFunc.funcBody ({p with arg = p.arg.getSeqChild l (child.getBackendName l) child.Type.isIA5String}) (Some (XerLiteralConstant child.Name.Value))
             match childContentResult with
             | None              -> None
@@ -363,7 +371,11 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec:C
     let nLevel = BigInteger (t.id.AcnAbsPath.Length - 2)
     let funcBody (errCode:ErroCode) (p:CallerScope) (xmlTag:XerTag option) = 
         let handleChild childIndex (child:ChChildInfo) =
-            let chFunc = child.chType.getXerFunction codec
+            let chFunc = 
+                match child.chType.getXerFunction codec with
+                | XerFunction z -> z
+                | XerFunctionDummy  -> raise (BugErrorException "XerFunctionDummy")
+
             let childContentResult = 
                 match l with
                 | C   -> chFunc.funcBody ({p with arg = p.arg.getChChild l (child.getBackendName l) child.chType.isIA5String}) (Some (XerLiteralConstant child.Name.Value))
@@ -410,7 +422,12 @@ let createReferenceFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (code
     match TypesEquivalence.uperEquivalence t1 t1WithExtensios with
     | true  ->
         let funcBody (errCode:ErroCode) (p:CallerScope) (xmlTag:XerTag option) = 
-            match (baseType.getXerFunction codec).funcBody p xmlTag with
+            let baseTypeXerFunc =
+                match baseType.getXerFunction codec with
+                | XerFunction z -> z
+                | XerFunctionDummy  -> raise (BugErrorException "XerFunctionDummy")
+
+            match baseTypeXerFunc.funcBody p xmlTag with
             | Some baseXerFunc    -> 
                 let xmlTag = xmlTag |> orElse (XerLiteralConstant o.tasName.Value)
                 let funcBodyContent = callBaseTypeFunc (t.getParamValue p.arg l codec) xmlTag.p baseFncName codec

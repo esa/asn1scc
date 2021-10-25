@@ -61,13 +61,21 @@ let rec getAcnPathByITree (n:ITree) curResult =
         else    
             curResult
 
+type Asn1TypeDef = Asn1TypeDef of ITree
+
+let getAsn1Type (Asn1TypeDef typeDef:Asn1TypeDef) = 
+    let children = getTreeChildren(typeDef)
+    let typeNodes = children |> List.filter(fun x -> (not (CreateAsn1AstFromAntlrTree.ConstraintNodes |> List.exists(fun y -> y=x.Type) ) ) && (x.Type <> asn1Parser.TYPE_TAG) )
+    let typeNode = List.head(typeNodes)
+    typeNode
 
 let rec getAsn1TypeByPath (asn1Trees:AntlrParserResult list) (path:string list)  =
     let getModuleByName modName =
         asn1Trees |> Seq.collect (fun r -> r.rootItem.Children) |> Seq.tryFind(fun m -> m.GetChild(0).Text = modName)
     let getTasByName mdTree tasName =
         getChildrenByType(mdTree, asn1Parser.TYPE_ASSIG) |> Seq.tryFind (fun ts -> ts.GetChild(0).Text = tasName)
-    let rec resolveReferenceType (typeNode:ITree) =
+    let rec resolveReferenceType (typeDef:Asn1TypeDef) : Asn1TypeDef option =
+        let typeNode = getAsn1Type typeDef
         match typeNode.Type with
         |asn1Parser.REFERENCED_TYPE ->
             let refType = 
@@ -91,14 +99,13 @@ let rec getAsn1TypeByPath (asn1Trees:AntlrParserResult list) (path:string list) 
                     let tas = getTasByName md x2
                     match tas with
                     | None  -> None
-                    | Some ts -> 
-                        resolveReferenceType (ts.GetChild 1)
-        | _     -> Some typeNode
+                    | Some ts ->
+                        let typeDef = ts.GetChild 1
 
+                        resolveReferenceType (Asn1TypeDef typeDef)
+        | _     -> Some typeDef
 
-
-
-    let rec getTypeByPath (typeDef:ITree) (path:string list) =
+    let rec getTypeByPath (Asn1TypeDef typeDef:Asn1TypeDef) (path:string list) =
         if (typeDef.Type <> asn1Parser.TYPE_DEF) then
             raise (BugErrorException "No a type")
 
@@ -108,7 +115,7 @@ let rec getAsn1TypeByPath (asn1Trees:AntlrParserResult list) (path:string list) 
 
         match path with
         | []        -> 
-            resolveReferenceType typeNode
+            resolveReferenceType (Asn1TypeDef typeDef)
         | x1::xs    ->
             match typeNode.Type with
             | asn1Parser.CHOICE_TYPE        -> 
@@ -116,7 +123,7 @@ let rec getAsn1TypeByPath (asn1Trees:AntlrParserResult list) (path:string list) 
                 match childItems |> Seq.tryFind(fun ch -> x1 = ch.GetChild(0).Text) with
                 | Some ch -> 
                     let typeDef = getChildByType(ch, asn1Parser.TYPE_DEF)
-                    getTypeByPath typeDef xs
+                    getTypeByPath (Asn1TypeDef typeDef) xs
                 | None    -> None
             | asn1Parser.SEQUENCE_TYPE        -> 
                 let childItems =
@@ -126,13 +133,13 @@ let rec getAsn1TypeByPath (asn1Trees:AntlrParserResult list) (path:string list) 
                 match childItems |> Seq.tryFind(fun ch -> x1 = ch.GetChild(0).Text) with
                 | Some ch -> 
                     let typeDef = getChildByType(ch, asn1Parser.TYPE_DEF)
-                    getTypeByPath typeDef xs
+                    getTypeByPath (Asn1TypeDef typeDef) xs
                 | None    -> None
             | asn1Parser.SEQUENCE_OF_TYPE   when x1="#"     -> 
                 let typeDef = getChildByType(typeNode, asn1Parser.TYPE_DEF)
-                getTypeByPath typeDef xs
+                getTypeByPath (Asn1TypeDef typeDef) xs
             |asn1Parser.REFERENCED_TYPE ->
-                let actType = resolveReferenceType typeNode
+                let actType = resolveReferenceType (Asn1TypeDef typeDef)
                 match actType with
                 | Some actType  -> getTypeByPath actType path
                 | None          -> None
@@ -149,7 +156,7 @@ let rec getAsn1TypeByPath (asn1Trees:AntlrParserResult list) (path:string list) 
             match tas with
             | None  -> None
             | Some ts -> 
-                getTypeByPath (ts.GetChild 1) xs
+                getTypeByPath (Asn1TypeDef (ts.GetChild 1)) xs
                 
 
 
@@ -170,6 +177,16 @@ let lspParseAsn1File (fileName:string) (fileContent:string) =
     {LspFile.fileName = fileName; content = fileContent; tokens=tokens; antlrResult=asn1ParseTree; parseErrors = parseErrors; semanticErrors = []; tasList=tasList}
 
 
+let debuggetAsn1TypeByPath (a_path:string array)  =
+    let fileName = @"C:\prj\GitHub\asn1scc\v4Tests\test-cases\acn\14-RealCases\NPAL.asn1"
+    let path = a_path |> Seq.toList
+    let a = lspParseAsn1File fileName (System.IO.File.ReadAllText fileName)
+    let b = getAsn1TypeByPath [a.antlrResult] path
+    match b with
+    | None  -> printfn "%s not found!" (Seq.StrJoin "." path)
+    | Some typedef -> 
+        let t= getAsn1Type typedef
+        printfn "It is %s, children" (asn1Parser.tokenNames.[t.Type]) 
 
 let printAntlrNode (tokens : IToken array) (r:ITree) =
     let s = tokens.[r.TokenStartIndex]

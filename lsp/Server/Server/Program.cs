@@ -22,6 +22,8 @@ namespace LspServer
         {
             if (args.Contains("debug"))
             {
+                //var localPath = @"C:\prj\GitHub\asn1scc\lsp\workdir\2\a.asn";
+                /*
                 var localPath = @"C:\prj\GitHub\asn1scc\lsp\workdir\2\a.asn";
                 var acnLocalPath = @"C:\prj\GitHub\asn1scc\lsp\workdir\2\a.acn";
                 var content = System.IO.File.ReadAllText(localPath);
@@ -31,6 +33,10 @@ namespace LspServer
                 {
                     Console.WriteLine(s);
                 }
+                */
+
+                var newArgs = args.Where(s => s != "debug").ToArray();
+                Lsp.debuggetAsn1TypeByPath(newArgs);
 
                 //AcnGenericCreateFromAntlr.someTests();
             }

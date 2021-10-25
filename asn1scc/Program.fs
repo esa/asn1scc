@@ -281,7 +281,7 @@ let main0 argv =
             | false -> ()
 
 
-        let frontEntAst, acnDeps = FrontEntMain.constructAst args debugFunc 
+        let frontEntAst, acnDeps = TL "FrontEntMain.constructAst" (fun () -> FrontEntMain.constructAst args debugFunc) 
 
         
         // print front ent ast as xml 
@@ -297,10 +297,10 @@ let main0 argv =
             List.choose (fun a -> 
                 match a with
                 | C_lang                -> 
-                    Some (DAstConstruction.DoWork frontEntAst acnDeps CommonTypes.ProgrammingLanguage.C  args.encodings)
+                    Some (TL "DAstConstruction.DoWork" (fun () -> DAstConstruction.DoWork frontEntAst acnDeps CommonTypes.ProgrammingLanguage.C  args.encodings))
                 | Ada_Lang              -> 
                     
-                    Some (DAstConstruction.DoWork frontEntAst acnDeps CommonTypes.ProgrammingLanguage.Ada  args.encodings)
+                    Some (TL "DAstConstruction.DoWork" (fun () -> DAstConstruction.DoWork frontEntAst acnDeps CommonTypes.ProgrammingLanguage.Ada  args.encodings))
                 | _             -> None)
 
         let createDirectories baseDir (l:ProgrammingLanguage) target =
@@ -337,7 +337,7 @@ let main0 argv =
 
         let r = 
             match backends with
-            | []    -> DAstConstruction.DoWork frontEntAst acnDeps CommonTypes.ProgrammingLanguage.C  args.encodings
+            | []    -> TL "DAstConstruction.DoWork" (fun () -> DAstConstruction.DoWork frontEntAst acnDeps CommonTypes.ProgrammingLanguage.C  args.encodings)
             | x::_  -> x
         
 
@@ -369,6 +369,9 @@ let main0 argv =
         cliArgs |> 
             List.filter (fun a -> match a with | Generate_Test_Grammar    -> true | _  -> false) |>
             Seq.iter(fun _ -> GrammarGenerator.generateGrammars outDir)
+
+        //TL_report ()
+
 
         0
     with

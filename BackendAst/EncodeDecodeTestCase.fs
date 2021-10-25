@@ -217,7 +217,7 @@ let createAcnEncDecFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:As
     | true  -> _createAcnEncDecFunction r l t typeDefinition eqFunc isValidFunc encFunc decFunc  us
     | false -> None, us
 
-let _createXerEncDecFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1AcnAst.Asn1Type) (typeDefinition:TypeDefintionOrReference) (eqFunc:EqualFunction) (isValidFunc: IsValidFunction option) (encFunc : XerFunction option) (decFunc : XerFunction option)   (us:State)  =
+let _createXerEncDecFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1AcnAst.Asn1Type) (typeDefinition:TypeDefintionOrReference) (eqFunc:EqualFunction) (isValidFunc: IsValidFunction option) (encFunc : XerFunctionRec) (decFunc : XerFunctionRec)   (us:State)  =
     let sEnc = "XER_"
     let funcName            = getFuncName r l sEnc t.id (t.FT_TypeDefintion.[l])
     let modName = ToC t.id.AcnAbsPath.Head
@@ -245,12 +245,12 @@ let _createXerEncDecFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:A
             let content= 
                 match stm with
                 |Encode_input           -> option {
-                                                let! encF = encFunc
+                                                let encF = encFunc
                                                 let! encFunName = encF.funcName
                                                 return encode modName encFunName varName
                                            }
                 |Decode_output          -> option {
-                                                let! decF = decFunc
+                                                let decF = decFunc
                                                 let! decFunName = decF.funcName
                                                 return decode modName decFunName (typeDefinition.longTypedefName l) sEnc sAmberDecode 
                                            }
@@ -271,33 +271,35 @@ let _createXerEncDecFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:A
                                                 }                        
             joinItems (content.orElse "") sNestedContent
 
-        match hasXerEncodeFunction encFunc with
-        | true  ->
-            let sNestedStatements = 
-                let rec printStatements statements : string option = 
-                    match statements with
-                    |[]     -> None
-                    |x::xs  -> 
-                        match printStatements xs with
-                        | None                 -> Some (printStatement x  None)
-                        | Some childrenCont    -> Some (printStatement x  (Some childrenCont))
-                printStatements [Encode_input; Decode_output; Validate_output; Compare_input_output; Write_bitstream_to_file]
+        let sNestedStatements = 
+            let rec printStatements statements : string option = 
+                match statements with
+                |[]     -> None
+                |x::xs  -> 
+                    match printStatements xs with
+                    | None                 -> Some (printStatement x  None)
+                    | Some childrenCont    -> Some (printStatement x  (Some childrenCont))
+            printStatements [Encode_input; Decode_output; Validate_output; Compare_input_output; Write_bitstream_to_file]
 
-            let func = printCodec_body modName funcName (typeDefinition.longTypedefName l) sStar varName sEnc (sNestedStatements.orElse "")
-            let funcDef = printCodec_body_header funcName  modName (typeDefinition.longTypedefName l) sStar varName
-            let ret = 
-                {
-                    EncodeDecodeTestFunc.funcName   = funcName
-                    func                            = func 
-                    funcDef                         = funcDef
-                }
-            Some ret, us
-        | false -> None, us
+        let func = printCodec_body modName funcName (typeDefinition.longTypedefName l) sStar varName sEnc (sNestedStatements.orElse "")
+        let funcDef = printCodec_body_header funcName  modName (typeDefinition.longTypedefName l) sStar varName
+        let ret = 
+            {
+                EncodeDecodeTestFunc.funcName   = funcName
+                func                            = func 
+                funcDef                         = funcDef
+            }
+        Some ret, us
 
 
-let createXerEncDecFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1AcnAst.Asn1Type) (typeDefinition:TypeDefintionOrReference) (eqFunc:EqualFunction) (isValidFunc: IsValidFunction option) (encFunc : XerFunction option) (decFunc : XerFunction option)   (us:State)  =
+let createXerEncDecFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1AcnAst.Asn1Type) (typeDefinition:TypeDefintionOrReference) (eqFunc:EqualFunction) (isValidFunc: IsValidFunction option) (encFunc : XerFunction) (decFunc : XerFunction)   (us:State)  =
     match r.args.generateAutomaticTestCases with
-    | true  -> _createXerEncDecFunction r l t typeDefinition eqFunc isValidFunc encFunc decFunc  us
+    | true  -> 
+        match encFunc, decFunc with
+        | XerFunction encFunc, XerFunction decFunc ->
+            _createXerEncDecFunction r l t typeDefinition eqFunc isValidFunc encFunc decFunc  us
+        | XerFunctionDummy, XerFunctionDummy -> None, us
+        | _         -> raise (BugErrorException "createXerEncDecFunction")
     | false -> None, us
 
 (*

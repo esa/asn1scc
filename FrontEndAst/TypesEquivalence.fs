@@ -13,7 +13,7 @@ let rec uperEquivalence (t1:Asn1Type) (t2:Asn1Type) =
     | BitString bs1, BitString bs2          -> bs1.cons = bs2.cons
     | Boolean _, Boolean _                  -> true
     | Enumerated e1, Enumerated e2          -> e1.items = e2.items &&  e1.cons = e2.cons
-    | SequenceOf sqof1, SequenceOf sqof2    ->
+    | SequenceOf sqof1, SequenceOf sqof2    -> 
         sqof1.cons = sqof2.cons && (uperEquivalence sqof1.child sqof2.child)
     | Sequence sq1, Sequence sq2    ->
         let children1 = sq1.children |> List.choose (fun c -> match c with Asn1Child a -> Some a | AcnChild _ -> None)

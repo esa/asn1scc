@@ -63,7 +63,7 @@ let private printUnit (r:DAst.AstRoot) (l:ProgrammingLanguage) (encodings: Commo
     
     let requiresUPER = encodings |> Seq.exists ( (=) Asn1Encoding.UPER)
     let requiresAcn = encodings |> Seq.exists ( (=) Asn1Encoding.ACN)
-    let requiresXER = encodings |> Seq.exists ( (=) Asn1Encoding.XER)
+    //let requiresXER = encodings |> Seq.exists ( (=) Asn1Encoding.XER)
 
     //header file
     //let typeDefs = tases |> List.choose(fun t -> t.getTypeDefinition l)
@@ -91,8 +91,8 @@ let private printUnit (r:DAst.AstRoot) (l:ProgrammingLanguage) (encodings: Commo
             let uPerEncFunc = match requiresUPER with true -> tas.Type.uperEncFunction.funcDef | false -> None
             let uPerDecFunc = match requiresUPER with true -> tas.Type.uperDecFunction.funcDef | false -> None
 
-            let xerEncFunc = match requiresXER with true -> tas.Type.xerEncFunction.funcDef | false -> None
-            let xerDecFunc = match requiresXER with true -> tas.Type.xerDecFunction.funcDef | false -> None
+            let xerEncFunc = match tas.Type.xerEncFunction with XerFunction z -> z.funcDef | XerFunctionDummy -> None
+            let xerDecFunc = match tas.Type.xerDecFunction with XerFunction z -> z.funcDef | XerFunctionDummy -> None
 
             let acnEncFunc = 
                 match requiresAcn, tas.Type.acnEncFunction with 
@@ -199,12 +199,15 @@ let private printUnit (r:DAst.AstRoot) (l:ProgrammingLanguage) (encodings: Commo
                 | false -> None
 
             let xerEncDec codec         =  
-                match requiresXER with
-                | true  ->
-                    match codec with
-                    | CommonTypes.Encode    -> t.Type.xerEncFunction.func
-                    | CommonTypes.Decode    -> t.Type.xerDecFunction.func
-                | false -> None
+                match codec with
+                | CommonTypes.Encode    -> 
+                    match t.Type.xerEncFunction with
+                    | XerFunction z ->  z.func
+                    | XerFunctionDummy  -> None
+                | CommonTypes.Decode    -> 
+                    match t.Type.xerDecFunction with
+                    | XerFunction z -> z.func
+                    | XerFunctionDummy  -> None
 
             let ancEncDec codec         = 
                 match requiresAcn with
@@ -390,4 +393,5 @@ let EmmitDefaultACNGrammar (r:AstRoot) outDir  =
             let content = f.Modules |> Seq.map printModule |> Seq.StrJoin "\n"
             let fileName = Path.Combine(outDir, fileName)
             File.WriteAllText(fileName, content.Replace("\r",""))
+
     r.Files |> Seq.iter printFile
