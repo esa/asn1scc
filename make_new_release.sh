@@ -5,7 +5,15 @@ if [ $# -ne 1 ] ; then
 fi
 OLD_TARBALL="$1"
 echo "[-] Building release version..."
-dotnet publish -c Release --self-contained true -r linux-x64  asn1scc.sln >make.log 2>&1 || { 
+dotnet build Antlr/ >make.log 2>&1 || {
+    echo "[x] Failed - please check make.log"
+    exit 1
+}
+dotnet build "asn1scc.sln" >make.log 2>&1 || { 
+    echo "[x] Failed - please check make.log"
+    exit 1
+}
+dotnet publish -c Release --self-contained true -r linux-x64  asn1scc.sln >make.log 2>&1 || {
     echo "[x] Failed - please check make.log"
     exit 1
 }
