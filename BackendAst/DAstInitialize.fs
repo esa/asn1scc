@@ -670,10 +670,9 @@ let createSequenceOfInitFunc (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:A
     let ii = t.id.SeqeuenceOfLevel + 1
     let i = sprintf "i%d" (t.id.SeqeuenceOfLevel + 1)
     let testCaseFuncs =
-        let seqOfCase (nSize:BigInteger)  = 
-                let len = childType.initFunction.automaticTestCases.Length
-                let childTestCases = 
-                    childType.initFunction.automaticTestCases (*|> Seq.take (min 5 len)*) |> Seq.toList //|>
+        let seqOfCase (childTestCases : AutomaticTestCase list) (nSize:BigInteger)  = 
+                //let len = childType.initFunction.automaticTestCases.Length
+                //let childTestCases = childType.initFunction.automaticTestCases |> Seq.take (min (int nSize) len) |> Seq.toList //|>
                     //List.map(fun fnc -> fnc.initTestCaseFunc ({p with arg = p.arg.getArrayItem l i childType.isIA5String}))
                 match childTestCases with
                 | []    -> 
@@ -703,16 +702,35 @@ let createSequenceOfInitFunc (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:A
                         childTestCases |> List.fold(fun (newMap:Map<ReferenceToType, TestCaseValue>) atc -> mergeMaps newMap atc.testCaseTypeIDsMap) thisCase
                     {AutomaticTestCase.initTestCaseFunc = initTestCaseFunc; testCaseTypeIDsMap = combinedTestCase }
         match r.args.generateAutomaticTestCases with
-        | true  ->          
+        | true  ->    
+            let seqOfCase_aux (nSize:BigInteger) =
+                match nSize > 0I with
+                | true ->
+                    let totalChildAtcs = childType.initFunction.automaticTestCases.Length
+                    let childTestCases = childType.initFunction.automaticTestCases 
+                    let test_case_bundles = int (totalChildAtcs.AsBigInt / nSize)
+                    let last_test_case_bundle_size = int (totalChildAtcs.AsBigInt % nSize)
+                    seq {
+                        for i in [1..test_case_bundles] do
+                            let bund_cases = childTestCases |> Seq.skip ((i-1) * (int nSize)) |> Seq.take (int nSize) |> Seq.toList
+                            yield seqOfCase bund_cases nSize
+                        
+                        if (last_test_case_bundle_size > 0) then
+                            let last_bund_cases = childTestCases |> Seq.skip (test_case_bundles * (int nSize)) |> Seq.take (last_test_case_bundle_size) |> Seq.toList
+                            yield seqOfCase last_bund_cases nSize
+
+                    } |> Seq.toList
+                | false -> []
+        
             seq {
                 match o.minSize.acn = o.maxSize.acn with
-                | true  -> yield seqOfCase o.minSize.acn
+                | true  -> yield! seqOfCase_aux o.minSize.acn
                 | false -> 
-                    yield seqOfCase o.maxSize.acn 
-                    yield seqOfCase o.minSize.acn 
+                    yield! seqOfCase_aux o.maxSize.acn 
+                    yield! seqOfCase_aux o.minSize.acn 
                     match o.maxSize.acn > 65536I with  //fragmentation cases
                     | true ->
-                            yield! fragmentationCases seqOfCase o.maxSize.acn
+                            yield! (fragmentationCases seqOfCase_aux o.maxSize.acn |> List.collect id)
                     | false -> ()
             } |> Seq.toList
         | fase  -> []
@@ -1029,3 +1047,4 @@ let createReferenceType (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1Ac
             let funcBody = initChildWithInitFunc (p.arg.getPointer l) baseFncName
             {InitFunctionResult.funcBody = funcBody; localVariables = []}
         createInitFunctionCommon r l t typeDefinition bs.initByAsn1Value baseType.initialValue initTasFunction bs.automaticTestCases
+    

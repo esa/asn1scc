@@ -898,12 +898,7 @@ let private mapTypeId (r:Asn1AcnAst.AstRoot)  (t:Asn1AcnAst.Asn1Type) =
 
 
 let private mapTas (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (l:ProgrammingLanguage) (m:Asn1AcnAst.Asn1Module) (tas:Asn1AcnAst.TypeAssignment) (us:State)=
-    //let stopWatch = System.Diagnostics.Stopwatch.StartNew()
     let newType, ns = TL "mapType" (fun () -> mapType r deps l m (tas.Type, us))
-
-    //stopWatch.Stop()
-    //printfn "\t %s \t: %f " tas.Name.Value stopWatch.Elapsed.TotalMilliseconds
-
     {
         TypeAssignment.Name = tas.Name
         c_name = tas.c_name
