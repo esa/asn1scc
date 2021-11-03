@@ -747,7 +747,7 @@ let getResourceAsString0 (resourcePrefix:string) (assembly:Reflection.Assembly) 
 
 
 
-let subsystems: Dictionary<String, TimeSpan> = new Dictionary<String, TimeSpan>()
+let subsystems: Dictionary<String, int*TimeSpan> = new Dictionary<String, int*TimeSpan>()
 let TL  subSystem func =
     let stopwatch = Stopwatch.StartNew()
     let ret = func ()
@@ -755,14 +755,28 @@ let TL  subSystem func =
     let totalElapsed = stopwatch.Elapsed
 
     match subsystems.ContainsKey subSystem with
-    | true -> subsystems.[subSystem] <-  subsystems.[subSystem] + totalElapsed
+    | true -> 
+        let (oc, ts) = subsystems.[subSystem]
+        subsystems.[subSystem] <-  (oc+1, ts+totalElapsed)
     | false ->
-        subsystems.Add(subSystem, totalElapsed)
+        subsystems.Add(subSystem, (1,totalElapsed))
 
     ret
 
 let TL_report () =
+    let StrJoin_priv str listItems =
+        if Seq.isEmpty listItems then 
+            ""
+        else
+            listItems |> Seq.map(fun x -> x.ToString()) |> Seq.reduce(fun agr el -> agr + str + el.ToString())
+
+
     let aaa = subsystems.Keys |> Seq.toList
-    let bbb = aaa |> List.map(fun z -> sprintf "%s took %A" z (subsystems.[z])) |> Seq.StrJoin "\n"
+    let bbb = 
+        aaa |> 
+        List.map(fun z -> 
+            let (a,b) = subsystems.[z]
+            sprintf "%s nCall %d = took %A" z a b) |> StrJoin_priv "\n"
     printfn "%s" bbb
+
     

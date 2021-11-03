@@ -1266,3 +1266,5 @@ v2out
 /Asn1f4.psess
 /FrontEndAst/AcnGenericCreateFromAntlr_delme.fs
 /FrontEndAst/CreateAsn1AstFromAntlrTree_delme.fs
+/ADA_RTL2/src/main.adb
+/FrontEndAst/Asn1SchemaExt.xsd
