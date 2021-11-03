@@ -131,7 +131,7 @@ let createIntegerFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec:
                 | VCBTrue               -> Some (makeExpressionToStatement0 "true")
                 | VCBFalse              -> Some (makeExpressionToStatement0 "false")
                 | VCBExpression sExp    -> Some (makeExpressionToStatement0 sExp)
-                | VCBStatement sStat    -> Some sStat
+                | VCBStatement (sStat,_)    -> Some sStat
 
                 //Some (expFunc p)
         let pp = match codec with CommonTypes.Encode -> p.arg.getValue l | CommonTypes.Decode -> p.arg.getPointer l

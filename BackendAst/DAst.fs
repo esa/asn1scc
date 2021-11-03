@@ -122,13 +122,13 @@ type ValidationCodeBlock =
     | VCBTrue                                // always true
     | VCBFalse                               // always false
     | VCBExpression of string                // single expression
-    | VCBStatement  of string                // statement that updates ret or Result.Success
+    | VCBStatement  of (string * LocalVariable list)                // statement that updates ret or Result.Success
 
 (*a statement that checks if a constraint is met or not and which assigns the error code*)
 type ValidationStatement =
-    | ValidationStatementTrue   of string
-    | ValidationStatementFalse  of string
-    | ValidationStatement       of string
+    | ValidationStatementTrue   of (string * LocalVariable list)
+    | ValidationStatementFalse  of (string * LocalVariable list)
+    | ValidationStatement       of (string * LocalVariable list)
 
 
          //Emit_local_variable_SQF_Index(nI, bHasInitalValue)::="I<nI>:Integer<if(bHasInitalValue)>:=1<endif>;"
