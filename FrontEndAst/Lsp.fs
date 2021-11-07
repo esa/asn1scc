@@ -33,7 +33,16 @@ type LspFileType =
 
 
 
+(*
+getAutocompleteItems filename, ui_line, ui_charPos
+  1. let get fileData from filename
+  2. parse filedata (ANTLR only)
+  3. locate the position of (ui_line, ui_charPos) within the ANTLR TREE
+     start from the root and find the last child that contains the ui_line, ui_charPos. Return the path to the root
+     This the function *getTreeNodesByPosition*
+  4. 
 
+*)
 
 
 
@@ -211,9 +220,9 @@ type LspRange = {
     end_   : LspPos
 }
 
-let getTreeRange (tokens : IToken array) (r:ITree)  =
-    let s = tokens.[r.TokenStartIndex]
-    let e = tokens.[r.TokenStopIndex]
+let getAntrlNodeLspRange (tokens : IToken array) (node:ITree)  =
+    let s = tokens.[node.TokenStartIndex]
+    let e = tokens.[node.TokenStopIndex]
     {LspRange.start = {LspPos.line = s.Line; charPos=s.CharPositionInLine}; end_ = {LspPos.line = e.Line; charPos=e.CharPositionInLine + e.Text.Length}}
 
 let isInside (range : LspRange) (pos: LspPos) =
@@ -224,9 +233,13 @@ let isInside (range : LspRange) (pos: LspPos) =
     else false
     
 
+(*
+Returns the antlr tree nodes based from the leaf to the root based on the current position (line, charpos)
+The position is provided by the UI
+*)
 let rec getTreeNodesByPosition (tokens : IToken array) (pos:LspPos) (r:ITree)  =
     seq {
-        let range = getTreeRange tokens  r
+        let range = getAntrlNodeLspRange tokens  r
         match isInside range pos with
         | false -> ()
         | true  -> 
@@ -236,22 +249,26 @@ let rec getTreeNodesByPosition (tokens : IToken array) (pos:LspPos) (r:ITree)  =
     } |> Seq.toList
 
 
-let getProposeAcnProperties (pathToRoot:ITree list) =
+
+
+
+let getProposeAcnProperties (ws:LspWorkSpace) (pathToRoot:ITree list) =
     match pathToRoot with
     | []        -> []
     | x1::xs    ->
         match x1::xs |> Seq.tryFind (fun z -> z.Type = acnParser.ENCODING_PROPERTIES) with
         | None  -> []
         | Some ep   ->
+            let typePath = getAcnPathByITree ep []
+            let typeKind = getAsn1TypeByPath  (ws.files |> List.map(fun f -> f.antlrResult) ) typePath
+
+
             let existingProperties = ep.Children |> List.map(fun z -> z.Type)
-            //get Type, let's suppose it INTEGER
             let encodingProps = 
-                [
-                    (acnParser.ENCODING, ["encoding pos-int"; "encoding twos-complement"; "encoding BCD"; "encoding ASCII"])
-                    (acnParser.SIZE, ["size"])
-                    (acnParser.ENDIANNES, ["endianness big"; "endianness little"])
-                    (acnParser.MAPPING_FUNCTION, ["mapping-function myFunction"])
-                ]
+                match typeKind with
+                | Some (Asn1TypeDef typeKind)   -> getTypeAcnProps typeKind.Type
+                | None                          -> []
+
             let encodingPropCons = encodingProps |> List.map fst
 
 
@@ -366,10 +383,34 @@ let quickParseAcnEncSpecTree (subTree :ITree) =
     //match subTree.
     []
 
+(*
+Called by the UI to provide a list with possible items.
+It provides the filename, the line0 and the char position.
+If the file is ASN.1 file, it returns the list of type assignments along with a list of standard ASN.1 types
+if the files is ACN then
+    
+
+*)
+
+
 let lspAutoComplete (ws:LspWorkSpace) filename (line0:int) (charPos:int) =
     let asn1Keywords = ["INTEGER"; "REAL"; "ENUMERATED"; "CHOICE"; "SEQUENCE"; "SEQUENCE OF"; "OCTET STRING"; "BIT STRING"; "IA5String"]
     let tasList = ws.files |> List.collect(fun x -> x.tasList) |> List.map(fun x -> x.name)
 
+    (*The following must be rewritten to utilize the getTreeNodesByPosition.
+      The followin function requires an astRoot which will not be the case*)
+
+    let fn () = 
+        match ws.files |> Seq.tryFind(fun fn -> fn.fileName = filename) with
+        | None  -> []
+        | Some fn ->
+            let lspPos = {LspPos.line=line0+1; charPos=charPos}
+            let pathFromRootToChild = getTreeNodesByPosition fn.tokens lspPos fn.antlrResult.rootItem 
+            let pathFromChildToRoot = List.rev pathFromRootToChild
+            getProposeAcnProperties ws pathFromChildToRoot
+
+
+(*    
     let getAcnproperties (dummy:int) =
         match ws.astRoot with
         | None -> []
@@ -399,7 +440,7 @@ let lspAutoComplete (ws:LspWorkSpace) filename (line0:int) (charPos:int) =
                 | Asn1AcnAst.Asn1TypeKind.Integer o -> 
                     ["encoding pos-int"; "size"; "align-to-next"]
                 | _ -> []
-            
+  *)          
 
     match tryGetFileType filename with
     | Some LspAsn1  -> 

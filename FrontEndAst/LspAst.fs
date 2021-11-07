@@ -104,3 +104,15 @@ type LspWorkSpace = {
 with 
     override this.ToString() = sprintf "%A" this
 
+
+let private acnEncPropsPerType = 
+
+    [
+     (asn1Parser.INTEGER,   (acnParser.ENCODING, ["encoding pos-int"; "encoding twos-complement"; "encoding BCD"; "encoding ASCII"]))
+     (asn1Parser.INTEGER,   (acnParser.SIZE, ["size"]))
+     (asn1Parser.INTEGER,   (acnParser.ENDIANNES, ["endianness big"; "endianness little"]))
+     (asn1Parser.INTEGER,   (acnParser.MAPPING_FUNCTION, ["mapping-function myFunction"]))
+    ] 
+
+let getTypeAcnProps typeKind =
+    acnEncPropsPerType |> List.choose (fun (a,b) -> if typeKind = a then Some b else None)
