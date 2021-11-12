@@ -49,6 +49,15 @@ let asn1Lexer (f:ICharStream) =
     let lexer = new asn1Lexer(f)
     lexer, lexer.errorList |> Seq.toList
 
+let acnTreeGeneric func (tokenStream:CommonTokenStream)  =
+    let p = new acnParser(tokenStream)
+    let a1 : ITree = func(p)
+    let a2 = p.errorList |> Seq.toList
+    a1, a2
+
+//let acnTreeParserMod (tokenStream:CommonTokenStream)=
+//    acnTreeGeneric tokenStream (fun p -> p.moduleDefinitions().Tree :?> ITree)
+
 let acnTreeParser (tokenStream:CommonTokenStream)=
     let p = new acnParser(tokenStream)
     let a1 = p.moduleDefinitions().Tree :?> ITree

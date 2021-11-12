@@ -16,6 +16,10 @@ open System.IO
 open System
 open System.Numerics
 
+type LspFileType =
+    | LspAsn1
+    | LspAcn
+
 
 type LspType =
     | LspInteger 
@@ -68,6 +72,7 @@ type LspFile = {
     parseErrors     : LspError list
     semanticErrors  : LspError list
     tasList         : LspTypeAssignment list
+    lspFileType     : LspFileType
 }
 with 
     override this.ToString() = sprintf "%A" this
@@ -108,11 +113,86 @@ with
 let private acnEncPropsPerType = 
 
     [
-     (asn1Parser.INTEGER,   (acnParser.ENCODING, ["encoding pos-int"; "encoding twos-complement"; "encoding BCD"; "encoding ASCII"]))
-     (asn1Parser.INTEGER,   (acnParser.SIZE, ["size"]))
-     (asn1Parser.INTEGER,   (acnParser.ENDIANNES, ["endianness big"; "endianness little"]))
-     (asn1Parser.INTEGER,   (acnParser.MAPPING_FUNCTION, ["mapping-function myFunction"]))
+        (asn1Parser.INTEGER_TYPE,   (acnParser.ENCODING, ["encoding pos-int"; "encoding twos-complement"; "encoding BCD"; "encoding ASCII"]))
+        (asn1Parser.INTEGER_TYPE,   (acnParser.SIZE, ["size"]))
+        (asn1Parser.INTEGER_TYPE,   (acnParser.ENDIANNES, ["endianness big"; "endianness little"]))
+        (asn1Parser.INTEGER_TYPE,   (acnParser.MAPPING_FUNCTION, ["mapping-function myFunction"]))
+
+        (asn1Parser.REAL,           (acnParser.ENCODING, ["encoding IEEE754-1985-32"; "encoding IEEE754-1985-32"]))
+        (asn1Parser.REAL,           (acnParser.ENDIANNES, ["endianness big"; "endianness little"]))
+
+        (asn1Parser.IA5String, (acnParser.ENCODING, ["encoding ASCII"]))
+        (asn1Parser.IA5String, (acnParser.SIZE, ["size other-fld"; "size null-terminated"]))
+        (asn1Parser.IA5String, (acnParser.TERMINATION_PATTERN, ["termination-pattern '00'H" ]))
+
+        (asn1Parser.OCTECT_STING, (acnParser.SIZE, ["size other-fld"; "size null-terminated"]))
+        (asn1Parser.OCTECT_STING, (acnParser.TERMINATION_PATTERN, ["termination-pattern '0000'H" ]))
+
+        (asn1Parser.BIT_STRING_TYPE, (acnParser.SIZE, ["size other-fld"; "size null-terminated"]))
+        (asn1Parser.BIT_STRING_TYPE, (acnParser.TERMINATION_PATTERN, ["termination-pattern '0000'H" ]))
+
+        (asn1Parser.SEQUENCE_OF_TYPE, (acnParser.SIZE, ["size other-fld"; "size null-terminated"]))
+        (asn1Parser.SEQUENCE_OF_TYPE, (acnParser.TERMINATION_PATTERN, ["termination-pattern '0000'H" ]))
+
+
+        (asn1Parser.ENUMERATED_TYPE,   (acnParser.ENCODING, ["encoding pos-int"; "encoding twos-complement"; "encoding BCD"; "encoding ASCII"]))
+        (asn1Parser.ENUMERATED_TYPE,   (acnParser.SIZE, ["size"]))
+        (asn1Parser.ENUMERATED_TYPE,   (acnParser.ENDIANNES, ["endianness big"; "endianness little"]))
+        (asn1Parser.ENUMERATED_TYPE,   (acnParser.MAPPING_FUNCTION, ["mapping-function myFunction"]))
+        (asn1Parser.ENUMERATED_TYPE,   (acnParser.ENCODE_VALUES, ["encode-values"]))
+
+        (asn1Parser.BOOLEAN,      (acnParser.TRUE_VALUE, ["true-value '1'B"]))
+        (asn1Parser.BOOLEAN,      (acnParser.FALSE_VALUE, ["false-value '1'B"]))
+        
+        (asn1Parser.NULL,         (acnParser.PATTERN, ["pattern '1'B"]))
+
+        (asn1Parser.CHOICE_TYPE,       (acnParser.DETERMINANT, ["determinant other-fld"]))
     ] 
 
 let getTypeAcnProps typeKind =
-    acnEncPropsPerType |> List.choose (fun (a,b) -> if typeKind = a then Some b else None)
+    let actType =
+        match typeKind with
+        | asn1Parser.SET_TYPE       -> asn1Parser.SEQUENCE_TYPE
+        | asn1Parser.SET_OF_TYPE    -> asn1Parser.SET_OF_TYPE
+        | asn1Parser.NumericString  -> asn1Parser.IA5String
+        | _                         -> typeKind
+    acnEncPropsPerType |> List.choose (fun (a,b) -> if actType = a then Some b else None)
+
+
+let isAsn1File (fn:string) = fn.ToLower().EndsWith("asn1") || fn.ToLower().EndsWith("asn")
+let isAcnFile  (fn:string) = fn.ToLower().EndsWith("acn") 
+
+let tryGetFileType filename = 
+    match isAsn1File filename with
+    | true -> Some LspAsn1
+    | false ->
+        match isAcnFile filename with
+        | true  -> Some LspAcn
+        | false -> None
+
+let isInside (range : LspRange) (pos: LspPos) =
+    if range.start.line < pos.line && pos.line < range.end_.line then true
+    elif range.start.line < pos.line && pos.line = range.end_.line then pos.charPos <= range.end_.charPos
+    elif range.start.line <= pos.line && pos.line < range.end_.line then range.start.charPos <= pos.charPos
+    elif range.start.line = pos.line && pos.line = range.end_.line then range.start.charPos <= pos.charPos && pos.charPos <= range.end_.charPos
+    else false
+    
+
+(*
+Returns the antlr tree nodes based from the leaf to the root based on the current position (line, charpos)
+The position is provided by the UI
+*)
+let getTreeNodesByPosition (fn:LspFile) (lspPos:LspPos) =
+
+    let rec getTreeNodesByPosition_aux (tokens : IToken array)  (r:ITree)  =
+        seq {
+            let range = r.getRange tokens
+            match isInside range lspPos with
+            | false -> ()
+            | true  ->
+                    yield r
+                    for c in r.Children do  
+                        yield! getTreeNodesByPosition_aux tokens  c
+        } |> Seq.toList 
+
+    getTreeNodesByPosition_aux fn.tokens fn.antlrResult.rootItem |>    List.rev 

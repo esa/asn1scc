@@ -32,6 +32,7 @@
         <Compile Include="TypesEquivalence.fs" />
         <Compile Include="ExportToXml.fs" />
         <Compile Include="LspAst.fs" />
+        <Compile Include="LspAutoComplete.fs" />
         <Compile Include="Lsp.fs" />
         <Compile Include="FrontEntMain.fs" />
     </ItemGroup>

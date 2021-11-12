@@ -121,6 +121,16 @@ type Asn1ParseError =
 
 let dict = System.Collections.Generic.Dictionary<ITree,string>()
 
+type LspPos = {
+    line   : int
+    charPos : int
+}
+
+type LspRange = {
+    start  : LspPos
+    end_   : LspPos
+}
+
 type ITree with
     member t.Children = getTreeChildren(t)
     member t.GetChildByType (childType) = getChildByType(t, childType)
@@ -130,6 +140,17 @@ type ITree with
         | []            -> None
         | first::_      -> Some(first)
     member t.Root = if t.Parent = null then t else t.Parent.Root
+    member t.getRange (tokens : IToken array) =
+        match t with
+        | :? CommonErrorNode as errToken    ->
+            let s = errToken.start
+            let e = errToken.stop
+            {LspRange.start = {LspPos.line = s.Line; charPos=s.CharPositionInLine}; end_ = {LspPos.line = e.Line; charPos=e.CharPositionInLine + e.Text.Length}}
+        | _     ->
+            let s = tokens.[t.TokenStartIndex]
+            let e = tokens.[t.TokenStopIndex]
+            {LspRange.start = {LspPos.line = s.Line; charPos=s.CharPositionInLine}; end_ = {LspPos.line = e.Line; charPos=e.CharPositionInLine + e.Text.Length}}
+
     static member RegisterFiles(files:seq<ITree*string>) =
                     for (i,f) in files do
                         if dict.ContainsKey i then
@@ -139,6 +160,13 @@ type ITree with
 
     member t.FileName = dict.[t.Root]
     member t.Location = { srcFilename = t.FileName; srcLine = t.Line; charPos = t.CharPositionInLine}
+
+    member t.Parents = 
+        seq {
+            if t.Parent <> null then
+                yield t.Parent
+                yield! t.Parent.Parents
+        } |> Seq.toList
 
     member t.AllChildren =
         seq {

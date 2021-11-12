@@ -11,6 +11,7 @@ open CommonTypes
 open FsUtils
 open Antlr
 open System
+
 open System.IO
 
 open System
@@ -26,40 +27,33 @@ open AntlrParse
 open LspAst
 open FsUtils
 
-type LspFileType =
-    | LspAsn1
-    | LspAcn
+
+
 
 
 
 
 (*
-getAutocompleteItems filename, ui_line, ui_charPos
-  1. let get fileData from filename
-  2. parse filedata (ANTLR only)
-  3. locate the position of (ui_line, ui_charPos) within the ANTLR TREE
-     start from the root and find the last child that contains the ui_line, ui_charPos. Return the path to the root
-     This the function *getTreeNodesByPosition*
-  4. 
-
-*)
-
-
-
 let rec getAcnPathByITree (n:ITree) curResult =
+    
+    let handleTypeEncoding (typeEnc : ITree) =
+        let tasName = typeEnc.GetChildByType(acnParser.UID).Text
+        let modDef = typeEnc.Parent
+        let modName = modDef.GetChildByType(acnParser.UID).Text
+        modName::tasName::curResult
     let encSpec =
         if    n.Type = acnParser.ENCODING_PROPERTIES then Some (n.Parent)
         elif  n.Type = acnParser.ENCODING_SPEC then Some n
         else None
-
     match encSpec with
-    | None  -> curResult
+    | None  -> 
+        if n.Type = acnParser.TYPE_ENCODING then
+            handleTypeEncoding n
+        else
+            curResult
     | Some ens ->
         if ens.Parent.Type = acnParser.TYPE_ENCODING then  
-            let tasName = ens.Parent.GetChildByType(acnParser.UID).Text
-            let modDef = ens.Parent.Parent
-            let modName = modDef.GetChildByType(acnParser.UID).Text
-            modName::tasName::curResult
+            handleTypeEncoding ens.Parent
         elif ens.Parent.Type = acnParser.CHILD then  
             let name  = 
                 match (ens.Parent).GetOptChild(acnParser.LID) with
@@ -70,103 +64,11 @@ let rec getAcnPathByITree (n:ITree) curResult =
         else    
             curResult
 
-type Asn1TypeDef = Asn1TypeDef of ITree
 
-let getAsn1Type (Asn1TypeDef typeDef:Asn1TypeDef) = 
-    let children = getTreeChildren(typeDef)
-    let typeNodes = children |> List.filter(fun x -> (not (CreateAsn1AstFromAntlrTree.ConstraintNodes |> List.exists(fun y -> y=x.Type) ) ) && (x.Type <> asn1Parser.TYPE_TAG) )
-    let typeNode = List.head(typeNodes)
-    typeNode
+*)
 
-let rec getAsn1TypeByPath (asn1Trees:AntlrParserResult list) (path:string list)  =
-    let getModuleByName modName =
-        asn1Trees |> Seq.collect (fun r -> r.rootItem.Children) |> Seq.tryFind(fun m -> m.GetChild(0).Text = modName)
-    let getTasByName mdTree tasName =
-        getChildrenByType(mdTree, asn1Parser.TYPE_ASSIG) |> Seq.tryFind (fun ts -> ts.GetChild(0).Text = tasName)
-    let rec resolveReferenceType (typeDef:Asn1TypeDef) : Asn1TypeDef option =
-        let typeNode = getAsn1Type typeDef
-        match typeNode.Type with
-        |asn1Parser.REFERENCED_TYPE ->
-            let refType = 
-                match getTreeChildren(typeNode) |> List.filter(fun x -> x.Type<> asn1Parser.ACTUAL_PARAM_LIST) with
-                | refTypeName::[]           ->  
-                    let mdTree = typeNode.GetAncestor(asn1Parser.MODULE_DEF)
-                    let mdName = mdTree.GetChild(0).Text
-                    let imports = mdTree.GetChildrenByType(asn1Parser.IMPORTS_FROM_MODULE)
-                    let importedFromModule = imports |> List.tryFind(fun imp-> imp.GetChildrenByType(asn1Parser.UID) |> Seq.exists(fun impTypeName -> impTypeName.Text = refTypeName.Text ))
-                    match importedFromModule with
-                    |Some(imp)  -> Some ( imp.GetChild(0).Text,  refTypeName.Text)
-                    |None       -> Some ( typeNode.GetAncestor(asn1Parser.MODULE_DEF).GetChild(0).Text,  refTypeName.Text)
-                | modName::refTypeName::[]  ->  Some ( modName.Text, refTypeName.Text)
-                | _   -> None
-            match refType with
-            | None  -> None
-            | Some (x1, x2) -> 
-                match getModuleByName x1 with
-                | None      -> None
-                | Some md   -> 
-                    let tas = getTasByName md x2
-                    match tas with
-                    | None  -> None
-                    | Some ts ->
-                        let typeDef = ts.GetChild 1
 
-                        resolveReferenceType (Asn1TypeDef typeDef)
-        | _     -> Some typeDef
 
-    let rec getTypeByPath (Asn1TypeDef typeDef:Asn1TypeDef) (path:string list) =
-        if (typeDef.Type <> asn1Parser.TYPE_DEF) then
-            raise (BugErrorException "No a type")
-
-        let children = getTreeChildren(typeDef)
-        let typeNodes = children |> List.filter(fun x -> (not (CreateAsn1AstFromAntlrTree.ConstraintNodes |> List.exists(fun y -> y=x.Type) ) ) && (x.Type <> asn1Parser.TYPE_TAG) )
-        let typeNode = List.head(typeNodes)
-
-        match path with
-        | []        -> 
-            resolveReferenceType (Asn1TypeDef typeDef)
-        | x1::xs    ->
-            match typeNode.Type with
-            | asn1Parser.CHOICE_TYPE        -> 
-                let childItems = getChildrenByType(typeNode, asn1Parser.CHOICE_ITEM)
-                match childItems |> Seq.tryFind(fun ch -> x1 = ch.GetChild(0).Text) with
-                | Some ch -> 
-                    let typeDef = getChildByType(ch, asn1Parser.TYPE_DEF)
-                    getTypeByPath (Asn1TypeDef typeDef) xs
-                | None    -> None
-            | asn1Parser.SEQUENCE_TYPE        -> 
-                let childItems =
-                    match getOptionChildByType(typeNode, asn1Parser.SEQUENCE_BODY) with
-                    | Some(sequenceBody)    -> getChildrenByType(sequenceBody, asn1Parser.SEQUENCE_ITEM)
-                    | None                  -> []
-                match childItems |> Seq.tryFind(fun ch -> x1 = ch.GetChild(0).Text) with
-                | Some ch -> 
-                    let typeDef = getChildByType(ch, asn1Parser.TYPE_DEF)
-                    getTypeByPath (Asn1TypeDef typeDef) xs
-                | None    -> None
-            | asn1Parser.SEQUENCE_OF_TYPE   when x1="#"     -> 
-                let typeDef = getChildByType(typeNode, asn1Parser.TYPE_DEF)
-                getTypeByPath (Asn1TypeDef typeDef) xs
-            |asn1Parser.REFERENCED_TYPE ->
-                let actType = resolveReferenceType (Asn1TypeDef typeDef)
-                match actType with
-                | Some actType  -> getTypeByPath actType path
-                | None          -> None
-            | _         -> None
-
-    match path with
-    | []
-    | _::[] -> None
-    | x1::x2::xs    ->
-        match getModuleByName x1 with
-        | None      -> None
-        | Some md   -> 
-            let tas = getTasByName md x2
-            match tas with
-            | None  -> None
-            | Some ts -> 
-                getTypeByPath (Asn1TypeDef (ts.GetChild 1)) xs
-                
 
 
 
@@ -183,9 +85,10 @@ let lspParseAsn1File (fileName:string) (fileContent:string) =
         List.map(fun x -> 
             let tk = tokens.[x.TokenStartIndex]
             {LspTypeAssignment.name = x.Text; line0 = tk.Line - 1; charPos = tk.CharPositionInLine}) 
-    {LspFile.fileName = fileName; content = fileContent; tokens=tokens; antlrResult=asn1ParseTree; parseErrors = parseErrors; semanticErrors = []; tasList=tasList}
+    {LspFile.fileName = fileName; content = fileContent; tokens=tokens; antlrResult=asn1ParseTree; parseErrors = parseErrors; semanticErrors = []; tasList=tasList; lspFileType = LspFileType.LspAsn1}
 
 
+(*
 let debuggetAsn1TypeByPath (a_path:string array)  =
     let fileName = @"C:\prj\GitHub\asn1scc\v4Tests\test-cases\acn\14-RealCases\NPAL.asn1"
     let path = a_path |> Seq.toList
@@ -196,6 +99,7 @@ let debuggetAsn1TypeByPath (a_path:string array)  =
     | Some typedef -> 
         let t= getAsn1Type typedef
         printfn "It is %s, children" (asn1Parser.tokenNames.[t.Type]) 
+*)
 
 let printAntlrNode (tokens : IToken array) (r:ITree) =
     let s = tokens.[r.TokenStartIndex]
@@ -210,83 +114,163 @@ let rec printAntlrTree (tokens : IToken array) (r:ITree) n =
 
 
 
-type LspPos = {
-    line   : int
-    charPos : int
-}
 
-type LspRange = {
-    start  : LspPos
-    end_   : LspPos
-}
 
-let getAntrlNodeLspRange (tokens : IToken array) (node:ITree)  =
-    let s = tokens.[node.TokenStartIndex]
-    let e = tokens.[node.TokenStopIndex]
-    {LspRange.start = {LspPos.line = s.Line; charPos=s.CharPositionInLine}; end_ = {LspPos.line = e.Line; charPos=e.CharPositionInLine + e.Text.Length}}
 
-let isInside (range : LspRange) (pos: LspPos) =
-    if range.start.line < pos.line && pos.line < range.end_.line then true
-    elif range.start.line < pos.line && pos.line = range.end_.line then pos.charPos <= range.end_.charPos
-    elif range.start.line <= pos.line && pos.line < range.end_.line then range.start.charPos <= pos.charPos
-    elif range.start.line = pos.line && pos.line = range.end_.line then range.start.charPos <= pos.charPos && pos.charPos <= range.end_.charPos
-    else false
+
+
+let getCursonString (filedate:string) (lspPos:LspPos) =
+    let lines = filedate.Split('\r', '\n')
+    let curLine = lines.[lspPos.line - 1]
+    printfn "\n%s" curLine
+    printfn "'%s'" (curLine.Substring(0, lspPos.charPos-1))
+    printfn "'%s'\n" (curLine.Substring(lspPos.charPos-1))
+
+
+
+
+
+
+let tc str char0 =
+    let ret1 = LspAutoComplete.tryFindErrPartInAncProperties asn1Parser.INTEGER_TYPE str char0
+    printfn "%s" str
+    printfn "%A" ret1
+    printfn "----------"
+
+let debug2 () =
+    tc "[enc]" 3
+    tc "[encoding pos-int, ]" 18
+    tc "[encoding pos-int, s ]" 20
     
 
+
+
+    
 (*
-Returns the antlr tree nodes based from the leaf to the root based on the current position (line, charpos)
-The position is provided by the UI
-*)
-let rec getTreeNodesByPosition (tokens : IToken array) (pos:LspPos) (r:ITree)  =
-    seq {
-        let range = getAntrlNodeLspRange tokens  r
-        match isInside range pos with
-        | false -> ()
-        | true  -> 
-            yield r
-            for c in r.Children do  
-                yield! getTreeNodesByPosition tokens pos c
-    } |> Seq.toList
+let getProposeAcnProperties (ws:LspWorkSpace) (f:LspFile) (lspPos:LspPos) (pathToRoot:ITree list) =
+    let findFirstEncProp (pathToRoot:ITree list) =
+        match pathToRoot with
+        | []    -> None
+        | x1::_ ->
+            if x1.Type = acnParser.ENCODING_PROPERTIES then 
+                Some x1
+            elif x1.Type = acnParser.ENCODING_SPEC then 
+                x1.Children |> Seq.tryFind (fun c -> c.Type = acnParser.ENCODING_PROPERTIES)
+            else pathToRoot |> Seq.tryFind (fun z -> z.Type = acnParser.ENCODING_PROPERTIES)
 
-
-
-
-
-let getProposeAcnProperties (ws:LspWorkSpace) (pathToRoot:ITree list) =
     match pathToRoot with
-    | []        -> []
+    | []        -> None
     | x1::xs    ->
-        match x1::xs |> Seq.tryFind (fun z -> z.Type = acnParser.ENCODING_PROPERTIES) with
-        | None  -> []
+        match findFirstEncProp pathToRoot with
+        | None  -> 
+            match x1.Type = acnParser.TYPE_ENCODING with
+            | true ->  
+                //TYPE ENCODING
+                // DO I HAVE an acnParser.ENCODING_SPEC ?, if yes then return None i.e. the cursor is out of brackets
+                // Do I have an error node child? if yes and cursor is inside the error text and error text is inside []
+                // then I have to guess ...
+                match x1.Children |> Seq.tryFind(fun c -> c.Type = acnParser.ENCODING_SPEC) with
+                | Some _  -> None
+                | None    ->
+                    let getTextJustBeforeCursor (bigText:string) (textRange:LspRange) (lspPos:LspPos) =
+                        let curLine = textRange.start.line - lspPos.line
+                        let charPos =
+                            match textRange.start.line = lspPos.line with
+                            | true -> textRange.start.charPos - lspPos.charPos
+                            | false -> lspPos.charPos - 1 
+                        let lines = bigText.Split('\r', '\n')
+                        match curLine >= 0 && curLine < lines.Length with
+                        | false -> None
+                        | true  ->
+                            let curLine = lines.[curLine]
+                            match charPos >= 0 && charPos < curLine.Length with
+                            | false -> None
+                            | true  -> 
+                                let subStr = curLine.Substring(0, charPos)
+                                let lstIndexOf = subStr.LastIndexOfAny([|' ';'[';|])
+                                if lstIndexOf >= 0 then 
+                                    Some (subStr.Substring lstIndexOf)
+                                else None
+
+
+
+                    let errNodes =
+                        x1.Children |> 
+                        Seq.choose(fun c ->
+                            match c with
+                            | :? CommonErrorNode as e    -> Some e
+                            | _  -> None) 
+                    match errNodes |> Seq.tryFind(fun c -> c.Type = 0 && (isInside (c.getRange f.tokens) lspPos) && c.Text.StartsWith("[") && c.Text.EndsWith("]")) with
+                    | None -> None
+                    | Some c ->
+                        let errText = c.Text
+                        let textJustBefore = getTextJustBeforeCursor errText (c.getRange f.tokens) lspPos
+                        match textJustBefore with
+                        | None  -> None
+                        | Some str  ->
+                            let typePath = getAcnPathByITree x1 []
+                            let typeKind = getAsn1TypeByPath  (ws.files |> List.filter(fun f -> f.lspFileType = LspFileType.LspAsn1) |> List.map(fun f -> f.antlrResult) ) typePath
+                            let allPossibleEncodingProps = 
+                                match typeKind with
+                                | Some typeDef   -> 
+                                    let asn1Type = getAsn1Type typeDef
+                                    getTypeAcnProps asn1Type.Type
+                                | None                          -> []
+
+                
+
+                            None
+            | false -> None
         | Some ep   ->
             let typePath = getAcnPathByITree ep []
-            let typeKind = getAsn1TypeByPath  (ws.files |> List.map(fun f -> f.antlrResult) ) typePath
+            let typeKind = getAsn1TypeByPath  (ws.files |> List.filter(fun f -> f.lspFileType = LspFileType.LspAsn1) |> List.map(fun f -> f.antlrResult) ) typePath
 
 
             let existingProperties = ep.Children |> List.map(fun z -> z.Type)
-            let encodingProps = 
+            let allPossibleEncodingProps = 
                 match typeKind with
-                | Some (Asn1TypeDef typeKind)   -> getTypeAcnProps typeKind.Type
+                | Some typeDef   -> 
+                    let asn1Type = getAsn1Type typeDef
+                    getTypeAcnProps asn1Type.Type
                 | None                          -> []
 
-            let encodingPropCons = encodingProps |> List.map fst
+            let encodingPropCons = allPossibleEncodingProps |> List.map fst
 
 
             match encodingPropCons |> Seq.tryFind(fun a -> a = x1.Type) with
             | Some _   ->
                 //Am I within a completed ACN property (i.e. ENCODING, SIZE etc) then there is nothing to suggest to the user
-                []
+                Some []
             | None     ->
-                let possibleProperties = encodingProps |> List.filter(fun (a,_) -> not (existingProperties |> Seq.contains a) )
+                let possibleProperties = allPossibleEncodingProps |> List.filter(fun (a,_) -> not (existingProperties |> Seq.contains a) )
                 let possibleAnwers = possibleProperties |> List.map snd |> List.collect id
                 match x1.Type with
-                | acnParser.ENCODING_PROPERTIES -> possibleAnwers
+                | acnParser.ENCODING_PROPERTIES
+                | acnParser.ENCODING_SPEC -> Some possibleAnwers
                 | 0     (**)                -> 
                     //I am within possibly within an incomplete acn Property
-                    possibleAnwers |> List.filter (fun a -> a.StartsWith (x1.Text)) 
-                | _                     -> []
+                    Some (possibleAnwers |> List.filter (fun a -> a.StartsWith (x1.Text)) )
+                | _                     -> Some []
 
         
+
+*)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 let lspParseAcnFile (fileName:string) (fileContent:string) =
@@ -299,30 +283,22 @@ let lspParseAcnFile (fileName:string) (fileContent:string) =
     //typeAssI |> Seq.iter(fun (nm, tr) -> printAntlrTree acnParseTree.tokens tr 0) 
     //printfn"---- end ----"
 
-
+    (*
     let test = getTreeNodesByPosition acnParseTree.tokens {LspPos.line=5; charPos=13} acnParseTree.rootItem 
     printfn"---- whereami start ----"
     test |> Seq.iter(fun z -> printfn "%s" (printAntlrNode acnParseTree.tokens z))
     printfn"---- whereami end ----"
+    *)
 
     let tokens = acnParseTree.tokens
     let parseErrors = 
         antlerErrors |> List.map(fun ae -> {LspError.line0 = ae.line - 1; charPosInline = ae.charPosInline; msg = ae.msg})
     
-    {LspFile.fileName = fileName; content = fileContent; tokens=tokens; antlrResult=acnParseTree; parseErrors = parseErrors; semanticErrors = []; tasList=[]}
+    {LspFile.fileName = fileName; content = fileContent; tokens=tokens; antlrResult=acnParseTree; parseErrors = parseErrors; semanticErrors = []; tasList=[]; lspFileType = LspFileType.LspAcn}
 
 
-let isAsn1File (fn:string) = fn.ToLower().EndsWith("asn1") || fn.ToLower().EndsWith("asn")
-let isAcnFile  (fn:string) = fn.ToLower().EndsWith("acn") 
 
 
-let tryGetFileType filename = 
-    match isAsn1File filename with
-    | true -> Some LspAsn1
-    | false ->
-        match isAcnFile filename with
-        | true  -> Some LspAcn
-        | false -> None
 
 let lspParceFile (fileName:string) (fileContent:string) =
     if (isAsn1File fileName) then
@@ -383,76 +359,6 @@ let quickParseAcnEncSpecTree (subTree :ITree) =
     //match subTree.
     []
 
-(*
-Called by the UI to provide a list with possible items.
-It provides the filename, the line0 and the char position.
-If the file is ASN.1 file, it returns the list of type assignments along with a list of standard ASN.1 types
-if the files is ACN then
-    
-
-*)
-
-
-let lspAutoComplete (ws:LspWorkSpace) filename (line0:int) (charPos:int) =
-    let asn1Keywords = ["INTEGER"; "REAL"; "ENUMERATED"; "CHOICE"; "SEQUENCE"; "SEQUENCE OF"; "OCTET STRING"; "BIT STRING"; "IA5String"]
-    let tasList = ws.files |> List.collect(fun x -> x.tasList) |> List.map(fun x -> x.name)
-
-    (*The following must be rewritten to utilize the getTreeNodesByPosition.
-      The followin function requires an astRoot which will not be the case*)
-
-    let fn () = 
-        match ws.files |> Seq.tryFind(fun fn -> fn.fileName = filename) with
-        | None  -> []
-        | Some fn ->
-            let lspPos = {LspPos.line=line0+1; charPos=charPos}
-            let pathFromRootToChild = getTreeNodesByPosition fn.tokens lspPos fn.antlrResult.rootItem 
-            let pathFromChildToRoot = List.rev pathFromRootToChild
-            getProposeAcnProperties ws pathFromChildToRoot
-
-
-(*    
-    let getAcnproperties (dummy:int) =
-        match ws.astRoot with
-        | None -> []
-        | Some a ->
-            let tasList0 = 
-                a.Files |> 
-                List.collect(fun z -> z.Modules) |> 
-                List.collect(fun z -> z.TypeAssignments) 
-
-            tasList0 |>
-            List.choose(fun tas -> tas.Type.acnEncSpecAntlrSubTree) |>
-            List.map(fun t -> t.ToStringTree()) |>
-            Seq.iter(fun s -> printfn "%s" s)
-
-            let tasList = 
-                tasList0 |>
-                List.choose(fun tas ->
-                    let  uiLoc = {SrcLoc.srcFilename=""; srcLine = line0+1;charPos=charPos}
-                    match tas.Type.acnEncSpecPostion with
-                    | None -> None
-                    | Some (l1,l2) when FsUtils.srcLocContaints l1 l2 uiLoc -> Some tas 
-                    | Some (_,_)    -> None)
-            match tasList with
-            | []    -> []
-            | x1::_ -> 
-                match x1.Type.Kind with
-                | Asn1AcnAst.Asn1TypeKind.Integer o -> 
-                    ["encoding pos-int"; "size"; "align-to-next"]
-                | _ -> []
-  *)          
-
-    match tryGetFileType filename with
-    | Some LspAsn1  -> 
-        tasList@asn1Keywords
-    | Some LspAcn   -> 
-        tasList
-    (*
-        match getAcnproperties 0 with
-        | []    ->        tasList
-        | xs    -> xs
-        *)
-    | None          -> []
 
 let lspOnFileOpened (ws:LspWorkSpace) (filename:string) (filecontent:string) =
     let parseAnalysis = 

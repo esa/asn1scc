@@ -20,23 +20,37 @@ namespace LspServer
     {
         private static void Main(string[] args)
         {
-            if (args.Contains("debug"))
+
+            if (args.Contains("pp")) {
+                Lsp.debug2();
+            }
+            else if (args.Contains("debug"))
             {
                 //var localPath = @"C:\prj\GitHub\asn1scc\lsp\workdir\2\a.asn";
                 /*
                 var localPath = @"C:\prj\GitHub\asn1scc\lsp\workdir\2\a.asn";
+                */
+
                 var acnLocalPath = @"C:\prj\GitHub\asn1scc\lsp\workdir\2\a.acn";
-                var content = System.IO.File.ReadAllText(localPath);
-                var ws = Lsp.lspOnFileOpened(Lsp.lspEmptyWs, localPath, content);
-                var autoCompleteList = Lsp.lspAutoComplete(ws, acnLocalPath, 3, 11);
-                foreach(var s in autoCompleteList)
+                var content = System.IO.File.ReadAllText(acnLocalPath);
+                var ws = Lsp.lspOnFileOpened(Lsp.lspEmptyWs, acnLocalPath, content);
+                var b = args.Length >= 3 && Int32.Parse(args[1]) > 0 && Int32.Parse(args[2]) > 0;
+                var line = b ? Int32.Parse(args[1]) : 0;
+                var charPos = b ? Int32.Parse(args[2]) : 0;
+                Console.WriteLine("Line = {0}, charPos = {1}", line, charPos);
+                var autoCompleteList = 
+                    b ?
+                    LspAutoComplete.lspAutoComplete(ws, acnLocalPath, line, charPos) :
+                    LspAutoComplete.lspAutoComplete(ws, acnLocalPath, 4, 11);
+
+                foreach (var s in autoCompleteList)
                 {
                     Console.WriteLine(s);
                 }
-                */
 
-                var newArgs = args.Where(s => s != "debug").ToArray();
-                Lsp.debuggetAsn1TypeByPath(newArgs);
+
+                //var newArgs = args.Where(s => s != "debug").ToArray();
+                //Lsp.debuggetAsn1TypeByPath(newArgs);
 
                 //AcnGenericCreateFromAntlr.someTests();
             }
@@ -271,7 +285,7 @@ namespace LspServer
         public List<CompletionItem> getCompletionItems(DocumentUri docUri, int line0, int charPos)
         {
             return
-                Lsp.lspAutoComplete(ws, docUri.ToUri().LocalPath, line0, charPos).
+                LspAutoComplete.lspAutoComplete(ws, docUri.ToUri().LocalPath, line0, charPos).
                     Select(s => new CompletionItem()
                     {
                         Label = s,
