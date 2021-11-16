@@ -45,6 +45,7 @@ let rec getAcnTypePathByITree (nodes:ITree list)  =
         | None     -> ["#"] // Sequence Of case
 
     nodes |> 
+    List.rev |> //node are in reverse order, so reverse them
     List.choose(fun z ->
         match z.Type with
         | acnParser.TYPE_ENCODING  -> Some (handleTypeEncoding z)
@@ -171,55 +172,74 @@ let tryFindErrPartInAncProperties (typeKind:int) (propText : string) (char0:int)
 
     let allPossibleEncodingProps = getTypeAcnProps typeKind
 
-    let t, e = tryParceEncodingSpec propText
-    match e with
-    | []    -> []
-    | _     -> 
-        let propText, char0 =
-            match propText.StartsWith "[" with
-            | false  -> propText.Replace("]", ""), char0
-            | true   -> propText.Replace("]", "").Replace("[",""), char0 - 1
-        let t, e = tryParcePropertyList propText
-        match e with
-        | []    -> []
-        | _     ->
-            let split_string_into_parts (propText:string) =
-                propText.Split(',') |>
-                Seq.fold(fun (cs, rt) e -> (cs+e.Length+1, rt@[(cs, cs+e.Length - 1 ,e)] ) ) (0,[]) |> snd
+    //let t, e = tryParceEncodingSpec propText
+    //match e with
+    //| []    -> []
+    //| _     -> 
+    let propText, char0 =
+        match propText.StartsWith "[" with
+        | false  -> propText.Replace("]", ""), char0
+        | true   -> propText.Replace("]", "").Replace("[",""), char0 - 1
+    let char0 = if propText.Length = char0 && char0 > 0 then char0 - 1 else char0
+    //let t, e = tryParcePropertyList propText
+    //match e with
+    //| []    -> []
+    //| _     ->
+    let split_string_into_parts (propText:string) =
+        propText.Split(',') |>
+        Seq.fold(fun (cs, rt) e -> (cs+e.Length+1, rt@[(cs, cs+e.Length - 1 ,e)] ) ) (0,[]) |> snd
 
-            let parts = split_string_into_parts (propText)
+    let parts = split_string_into_parts (propText)
 
-            let cursorPart, otherParts = 
-                parts |>
-                Seq.map(fun (a, b , str) -> 
-                    match a <= char0 && char0 <= b with
-                    | true   -> (0, str) 
-                    | false  -> (1, str)) |>
-                Seq.toList |>
-                List.split (fun (x,_) -> x=0)
-            let existingProperties = 
-                otherParts |> 
-                List.map snd |> 
-                List.map tryParceProperty |>
-                List.filter(fun (_,e) -> e.IsEmpty) |>
-                List.map (fun (pr,_) -> pr.rootItem.Type)
-            let possibleProperties = allPossibleEncodingProps |> List.filter(fun (a,_) -> not (existingProperties |> Seq.contains a) )
-            let possibleAnwers = possibleProperties |> List.map snd |> List.collect id
-                        
-            match cursorPart with
-            | []           -> []   //return no suggestion
-            | (_, str)::_  -> 
-                let actStr = str.Trim()
-                possibleAnwers |> List.filter (fun a -> a.StartsWith (actStr)) 
+    let cursorPart, otherParts = 
+        parts |>
+        Seq.map(fun (a, b , str) -> 
+            match a <= char0 && char0 <= b with
+            | true   -> (0, str) 
+            | false  -> (1, str)) |>
+        Seq.toList |>
+        List.split (fun (x,_) -> x=0)
+    let existingProperties = 
+        otherParts |> 
+        List.map snd |> 
+        List.map tryParceProperty |>
+        List.filter(fun (_,e) -> e.IsEmpty) |>
+        List.map (fun (pr,_) -> pr.rootItem.Type)
+    let possibleProperties = allPossibleEncodingProps |> List.filter(fun (a,_) -> not (existingProperties |> Seq.contains a) )
+    let possibleAnwers = possibleProperties |> List.map snd |> List.collect id
+    
+    match propText.Trim() = "" with
+    | true -> possibleAnwers
+    | false ->
+        match cursorPart with
+        | []           -> []   //return no suggestion
+        | (_, str)::_  -> 
+            let actStr = str.Trim()
+            possibleAnwers |> List.filter (fun a -> a.StartsWith (actStr)) 
 
 
-let autoCompleteAcnProperties (lspPos:LspPos) (typeKind:int) (antlrNodes: ITree list) =
+let autoCompleteAcnProperties (fn:LspFile) (lspPos:LspPos) (typeKind:int) (antlrNodes: ITree list) =
+
     match antlrNodes with
     | []    -> None
     | x1::_ ->
-        match x1.Type with
-        | 0  when (x1.Text.StartsWith "[") &&  (x1.Text.EndsWith "]") ->  
-               Some (tryFindErrPartInAncProperties typeKind x1.Text lspPos.charPos)
+        //exportFile fn.tokens (antlrNodes |> List.rev).Head """C:\prj\GitHub\asn1scc\lsp\workdir\2\antlr.xml"""
+
+        match antlrNodes |> Seq.tryFind (fun n -> n.Type = acnParser.ENCODING_SPEC ) with
+        | Some es -> 
+            let child_enc_spec = es.Children |> Seq.tryFind(fun c -> c.Type = acnParser.CHILDREN_ENC_SPEC)
+            let esText = 
+                match child_enc_spec with
+                | None  -> es.getCompositeText fn.tokens
+                | Some ces ->
+                    let ret = 
+
+                        [es.TokenStartIndex .. es.TokenStopIndex] |> 
+                        List.filter(fun i -> i < ces.TokenStartIndex || i > ces.TokenStopIndex) |>
+                        List.map(fun i -> (fn.tokens.[i]).Text) |>
+                        Seq.StrJoin "" 
+                    ret.Trim()
+            Some (tryFindErrPartInAncProperties typeKind esText (lspPos.charPos - (es.getRange fn.tokens).start.charPos) )
         | _  -> None
 
 
@@ -245,7 +265,7 @@ let lspAutoComplete (ws:LspWorkSpace) filename (line0:int) (charPos:int) =
             | Some asn1TpDef ->
                 let asn1Type = getAsn1Type asn1TpDef
                 //getProposeAcnProperties ws fn lspPos pathFromChildToRoot
-                autoCompleteAcnProperties lspPos asn1Type.Type antlrNodes
+                autoCompleteAcnProperties fn lspPos asn1Type.Type antlrNodes
 
 
     match tryGetFileType filename with

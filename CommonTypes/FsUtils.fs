@@ -76,6 +76,14 @@ let srcLocContaints (startLoc:SrcLoc) (endLoc:SrcLoc) (uiLoc:SrcLoc) =
 
 let emptyLocation = {srcFilename=""; srcLine=0; charPos = 0}
 
+
+module Seq =
+    let StrJoin str listItems =
+        if Seq.isEmpty listItems then 
+            ""
+        else
+            listItems |> Seq.map(fun x -> x.ToString()) |> Seq.reduce(fun agr el -> agr + str + el.ToString())
+
 [<CustomEquality; NoComparison>]
 type PrimitiveWithLocation<'T when 'T :equality>  = 
     {
@@ -150,7 +158,14 @@ type ITree with
             let s = tokens.[t.TokenStartIndex]
             let e = tokens.[t.TokenStopIndex]
             {LspRange.start = {LspPos.line = s.Line; charPos=s.CharPositionInLine}; end_ = {LspPos.line = e.Line; charPos=e.CharPositionInLine + e.Text.Length}}
+    member t.getCompositeText (tokens : IToken array) =
+        match t with
+        | :? CommonErrorNode as errToken    -> t.Text
+        | _     ->
+            tokens.[t.TokenStartIndex .. t.TokenStopIndex] |> Seq.map(fun (z:IToken) -> z.Text) |> Seq.StrJoin ""
+            
 
+        
     static member RegisterFiles(files:seq<ITree*string>) =
                     for (i,f) in files do
                         if dict.ContainsKey i then
@@ -319,12 +334,6 @@ type System.Collections.Generic.IEnumerable<'T> with
 
 
 
-module Seq =
-    let StrJoin str listItems =
-        if Seq.isEmpty listItems then 
-            ""
-        else
-            listItems |> Seq.map(fun x -> x.ToString()) |> Seq.reduce(fun agr el -> agr + str + el.ToString())
 
 
 module List =

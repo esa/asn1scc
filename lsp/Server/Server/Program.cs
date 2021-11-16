@@ -8,6 +8,7 @@ using Antlr.Runtime;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.FSharp.Core;
 using Newtonsoft.Json.Linq;
 using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
@@ -33,7 +34,7 @@ namespace LspServer
 
                 var acnLocalPath = @"C:\prj\GitHub\asn1scc\lsp\workdir\2\a.acn";
                 var content = System.IO.File.ReadAllText(acnLocalPath);
-                var ws = Lsp.lspOnFileOpened(Lsp.lspEmptyWs, acnLocalPath, content);
+                var ws = Lsp.lspOnFileOpened(Lsp.lspEmptyWs(FuncConvert.FromFunc<string, int>(s => {System.Console.WriteLine(s); return 1; })), acnLocalPath, content);
                 var b = args.Length >= 3 && Int32.Parse(args[1]) > 0 && Int32.Parse(args[2]) > 0;
                 var line = b ? Int32.Parse(args[1]) : 0;
                 var charPos = b ? Int32.Parse(args[2]) : 0;
@@ -268,8 +269,9 @@ namespace LspServer
 
         public Asn1SccService(ILogger<Asn1SccService> logger)
         {
-            ws = Lsp.lspEmptyWs;
             _logger = logger;
+            
+            ws = Lsp.lspEmptyWs(FuncConvert.FromFunc<string, int>(s => { _logger.LogInformation(s); return 1; }));
         }
 
         public void onOpenDocument(DocumentUri docUri, string content)

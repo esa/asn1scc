@@ -15,6 +15,8 @@ open System.IO
 
 open System
 open System.Numerics
+open System.Xml
+open System.Xml.Linq
 
 type LspFileType =
     | LspAsn1
@@ -103,6 +105,7 @@ let defaultCommandLineSettings  =
     }    
 
 type LspWorkSpace = {
+    logger : (string->int)
     files : LspFile list
     astRoot : Asn1AcnAst.AstRoot option
 }
@@ -195,4 +198,41 @@ let getTreeNodesByPosition (fn:LspFile) (lspPos:LspPos) =
                         yield! getTreeNodesByPosition_aux tokens  c
         } |> Seq.toList 
 
-    getTreeNodesByPosition_aux fn.tokens fn.antlrResult.rootItem |>    List.rev 
+    let ret = getTreeNodesByPosition_aux fn.tokens fn.antlrResult.rootItem 
+    List.rev ret
+
+
+let private xname s = System.Xml.Linq.XName.Get(s)
+let private xnameNs str ns = System.Xml.Linq.XName.Get(str, ns)
+
+let private xsiUrl = "http://www.w3.org/2001/XMLSchema-instance"
+let private xsi = XNamespace.Get xsiUrl
+
+
+let exportFile (tokens : IToken array) (r:ITree)  (fileName:string) =
+    let writeTextFile fileName (content:String) =
+        System.IO.File.WriteAllText(fileName, content.Replace("\r",""))
+
+    let rec exportNode (r:ITree) =
+        let rg = r.getRange tokens
+        let f (p:LspPos) = sprintf "(%d,%d)" p.line p.charPos
+
+        XElement(xname "Node",
+            XAttribute(xname "type", acnParser.tokenNames.[r.Type]),
+            XAttribute(xname "text", r.Text),
+            XAttribute(xname "start", (f rg.start)),
+            XAttribute(xname "end", (f rg.end_)),
+            XElement(xname "Content", (r.getCompositeText tokens)),
+            (r.Children |> List.map exportNode) )
+    let wsRoot =
+        XElement(xname "Antl",
+            XAttribute(XNamespace.Xmlns + "xsi", xsi),
+            (exportNode r))
+
+    let dec = new XDeclaration("1.0", "utf-8", "true")
+    let doc =new XDocument(dec)
+    doc.AddFirst wsRoot
+    doc.Save(fileName)
+
+
+

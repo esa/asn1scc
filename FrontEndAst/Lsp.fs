@@ -394,7 +394,7 @@ let lspOnFileChanged (ws:LspWorkSpace) (filename:string) (filecontent:string) =
         {ws with files = restFiles @ newFiles}
     lspPerformSemanticAnalysis parseAnalysis
 
-let lspEmptyWs = {LspWorkSpace.files = []; astRoot = None}
+let lspEmptyWs logger = {LspWorkSpace.files = []; astRoot = None; logger = logger}
 
 
 
