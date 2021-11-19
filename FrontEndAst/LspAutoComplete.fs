@@ -152,6 +152,28 @@ let rec getAsn1TypeDefinitionByPath (asn1Trees:AntlrParserResult list) (path:str
             | Some ts -> 
                 getTypeByPath (Asn1TypeDef (ts.GetChild 1)) xs
                 
+let getAsn1TypeChildren (asn1Type: ITree) =
+    match asn1Type.Type with
+    | asn1Parser.SEQUENCE_TYPE        -> 
+        match getOptionChildByType(asn1Type, asn1Parser.SEQUENCE_BODY) with
+        | Some(sequenceBody)    -> 
+            getChildrenByType(sequenceBody, asn1Parser.SEQUENCE_ITEM) |> 
+            List.map(fun x ->
+                let lid = getChildByType(x, asn1Parser.LID)
+                let typeDef = getChildByType(x, asn1Parser.TYPE_DEF)
+                (lid.Text, Asn1TypeDef typeDef)
+            )
+        | None                  -> []
+    | asn1Parser.CHOICE_TYPE        -> 
+        getChildrenByType(asn1Type, asn1Parser.CHOICE_ITEM) |> 
+        List.map(fun x ->
+            let lid = getChildByType(x, asn1Parser.LID)
+            let typeDef = getChildByType(x, asn1Parser.TYPE_DEF)
+            (lid.Text, Asn1TypeDef typeDef)
+        )
+    | _     -> []
+
+
 
 
 let tryFindErrPartInAncProperties (typeKind:int) (propText : string) (char0:int) = 
@@ -172,19 +194,12 @@ let tryFindErrPartInAncProperties (typeKind:int) (propText : string) (char0:int)
 
     let allPossibleEncodingProps = getTypeAcnProps typeKind
 
-    //let t, e = tryParceEncodingSpec propText
-    //match e with
-    //| []    -> []
-    //| _     -> 
     let propText, char0 =
         match propText.StartsWith "[" with
         | false  -> propText.Replace("]", ""), char0
         | true   -> propText.Replace("]", "").Replace("[",""), char0 - 1
     let char0 = if propText.Length = char0 && char0 > 0 then char0 - 1 else char0
-    //let t, e = tryParcePropertyList propText
-    //match e with
-    //| []    -> []
-    //| _     ->
+
     let split_string_into_parts (propText:string) =
         propText.Split(',') |>
         Seq.fold(fun (cs, rt) e -> (cs+e.Length+1, rt@[(cs, cs+e.Length - 1 ,e)] ) ) (0,[]) |> snd
@@ -218,37 +233,58 @@ let tryFindErrPartInAncProperties (typeKind:int) (propText : string) (char0:int)
             possibleAnwers |> List.filter (fun a -> a.StartsWith (actStr)) 
 
 
-let autoCompleteAcnProperties (fn:LspFile) (lspPos:LspPos) (typeKind:int) (antlrNodes: ITree list) =
+let autoCompleteAcnProperties (fn:LspFile) (lspPos:LspPos) (asn1Type:ITree) (antlrNodes: ITree list)  =
+    match antlrNodes |> Seq.tryFind (fun n -> n.Type = acnParser.ENCODING_SPEC ) with
+    | Some es -> 
+        let child_enc_spec = es.Children |> Seq.tryFind(fun c -> c.Type = acnParser.CHILDREN_ENC_SPEC)
+        let esText = 
+            match child_enc_spec with
+            | None  -> es.getCompositeText fn.tokens
+            | Some ces ->
+                let ret = 
 
+                    [es.TokenStartIndex .. es.TokenStopIndex] |> 
+                    List.filter(fun i -> i < ces.TokenStartIndex || i > ces.TokenStopIndex) |>
+                    List.map(fun i -> (fn.tokens.[i]).Text) |>
+                    Seq.StrJoin "" 
+                ret.Trim()
+        Some (tryFindErrPartInAncProperties asn1Type.Type esText (lspPos.charPos - (es.getRange fn.tokens).start.charPos) )
+    | None  -> None
+
+
+let autoCompleteChildName (fn:LspFile) (lspPos:LspPos) (asn1Type:ITree) (antlrNodes: ITree list) =
+    match antlrNodes |> Seq.tryFind (fun n -> n.Type = acnParser.CHILDREN_ENC_SPEC ) with
+    | Some ces -> 
+        let acnChildren = ces.GetChildrenByType(acnParser.CHILD) |> List.map(fun c -> (c.GetChild 0).Text) |> Set.ofList
+        let asn1ChildNames = getAsn1TypeChildren asn1Type |> List.map fst |> List.filter(fun asc -> not (acnChildren.Contains asc)) |> List.map(fun s -> s + " []")
+        match asn1ChildNames with
+        | x::_  -> Some ([x])
+        | []    -> Some []
+    | None     -> None
+    
+
+let acnAutoComplete (fn:LspFile) (lspPos:LspPos) (asn1Type:ITree) (antlrNodes: ITree list) =
     match antlrNodes with
     | []    -> None
     | x1::_ ->
-        //exportFile fn.tokens (antlrNodes |> List.rev).Head """C:\prj\GitHub\asn1scc\lsp\workdir\2\antlr.xml"""
-
-        match antlrNodes |> Seq.tryFind (fun n -> n.Type = acnParser.ENCODING_SPEC ) with
-        | Some es -> 
-            let child_enc_spec = es.Children |> Seq.tryFind(fun c -> c.Type = acnParser.CHILDREN_ENC_SPEC)
-            let esText = 
-                match child_enc_spec with
-                | None  -> es.getCompositeText fn.tokens
-                | Some ces ->
-                    let ret = 
-
-                        [es.TokenStartIndex .. es.TokenStopIndex] |> 
-                        List.filter(fun i -> i < ces.TokenStartIndex || i > ces.TokenStopIndex) |>
-                        List.map(fun i -> (fn.tokens.[i]).Text) |>
-                        Seq.StrJoin "" 
-                    ret.Trim()
-            Some (tryFindErrPartInAncProperties typeKind esText (lspPos.charPos - (es.getRange fn.tokens).start.charPos) )
-        | _  -> None
+        //first, try acn properties. This will work if the curent position is within brackets []
+        match antlrNodes |> Seq.tryFind (fun n -> n.Type = acnParser.CHILDREN_ENC_SPEC || n.Type = acnParser.ENCODING_SPEC ) with
+        | Some n   ->
+            if n.Type = acnParser.ENCODING_SPEC then
+                autoCompleteAcnProperties fn lspPos asn1Type antlrNodes 
+            elif n.Type = acnParser.CHILDREN_ENC_SPEC then
+                autoCompleteChildName fn lspPos asn1Type antlrNodes
+            else
+                None
+        | _    ->  None
+            
+            
 
 
 let lspAutoComplete (ws:LspWorkSpace) filename (line0:int) (charPos:int) =
     let asn1Keywords = ["INTEGER"; "REAL"; "ENUMERATED"; "CHOICE"; "SEQUENCE"; "SEQUENCE OF"; "OCTET STRING"; "BIT STRING"; "IA5String"]
     let tasList = ws.files |> List.collect(fun x -> x.tasList) |> List.map(fun x -> x.name)
 
-    (*The following must be rewritten to utilize the getTreeNodesByPosition.
-      The followin function requires an astRoot which will not be the case*)
 
     let lspAutoCompleteAcn () = 
         match ws.files |> Seq.tryFind(fun fn -> fn.fileName = filename) with
@@ -265,7 +301,7 @@ let lspAutoComplete (ws:LspWorkSpace) filename (line0:int) (charPos:int) =
             | Some asn1TpDef ->
                 let asn1Type = getAsn1Type asn1TpDef
                 //getProposeAcnProperties ws fn lspPos pathFromChildToRoot
-                autoCompleteAcnProperties fn lspPos asn1Type.Type antlrNodes
+                acnAutoComplete fn lspPos asn1Type antlrNodes
 
 
     match tryGetFileType filename with

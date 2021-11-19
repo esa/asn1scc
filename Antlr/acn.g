@@ -254,7 +254,7 @@ enumSetValue
 	;
 
 childrenSpec
-	:	'{'! '}'!
+	:	'{' '}'								->^(CHILDREN_ENC_SPEC )
 	|	'{' childSpec (',' childSpec)* '}'	->^(CHILDREN_ENC_SPEC childSpec+)
 	;	
 	
