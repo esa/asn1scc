@@ -348,11 +348,32 @@ let lspGoToDefinition (ws:LspWorkSpace) filename line0 charPos =
         match f.tokens |> Seq.tryFind(fun a -> a.Line = line0 + 1 && a.CharPositionInLine <= charPos && charPos <= a.CharPositionInLine + a.Text.Length) with
         | None -> []
         | Some t -> 
-            ws.files |> 
-            List.choose(fun f -> 
-                match f.tasList |> Seq.tryFind(fun ts -> ts.name = t.Text) with
-                | Some ts -> Some(f.fileName, ts)
-                | None    -> None)
+            let ret1 = 
+                ws.files |> 
+                List.filter(fun f -> isAsn1File f.fileName) |>
+                List.choose(fun f -> 
+                    match f.tasList |> Seq.tryFind(fun ts -> ts.name = t.Text) with
+                    | Some ts -> Some(f.fileName, ts)
+                    | None    -> None)
+            match ret1 with
+            | []    ->
+                match isAcnFile f.fileName with
+                | true  ->
+                    let lspPos = {LspPos.line=line0+1; charPos=charPos}
+
+                    let antlrNodes = getTreeNodesByPosition f lspPos 
+                    let acnTypePath= getAcnTypePathByITree antlrNodes
+
+                    let asn1TypeDefinition = getAsn1TypeDefinitionByPath  (ws.files |> List.filter(fun f -> f.lspFileType = LspFileType.LspAsn1) |> List.map(fun f -> f.antlrResult) ) false acnTypePath
+                    match asn1TypeDefinition with
+                    | None  -> []
+                    | Some asn1TpDef ->
+                        let asn1Type = getAsn1Type asn1TpDef
+                        let fname = asn1Type.TextL.Location.srcFilename
+                        [(fname, {LspTypeAssignment.name = asn1Type.Text; line0 = asn1Type.Line - 1; charPos = asn1Type.CharPositionInLine})]
+
+                | false -> []
+            | _ -> ret1
         
 
 let quickParseAcnEncSpecTree (subTree :ITree) =
