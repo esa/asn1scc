@@ -15,6 +15,7 @@
     <Compile Include="DAstTypeDefinition2.fs" />
     <Compile Include="DAstVariables.fs" />
     <Compile Include="DAstEqual.fs" />
+    <Compile Include="DAstEqualExp.fs" />
     <Compile Include="DastValidate2.fs" />
     <Compile Include="DAstUPer.fs" />
     <Compile Include="DAstXer.fs" />

@@ -462,6 +462,25 @@ type Asn1AcnAst.NamedItem      with
 
 
 type Asn1AcnAst.Asn1Type with
+    member this.getParameterExpr (suf:string) (c:Codec) =
+        match this.Kind with
+        | Asn1AcnAst.Integer         _ -> TC_ReferenceToVariable(TC_INTEGER, "val" + suf)
+        | Asn1AcnAst.Real            _ -> TC_ReferenceToVariable(TC_REAL, "val" + suf)
+        | Asn1AcnAst.IA5String       _ -> TC_ReferenceToVariable(TC_STRING, "val" + suf)
+        | Asn1AcnAst.NumericString   _ -> TC_ReferenceToVariable(TC_STRING, "val" + suf)
+        | Asn1AcnAst.OctetString     _ -> TC_ReferenceToVariable(TC_COMPLEX, "val" + suf)
+        | Asn1AcnAst.NullType        _ -> TC_ReferenceToVariable(TC_INTEGER, "val" + suf)
+        | Asn1AcnAst.BitString       _ -> TC_ReferenceToVariable(TC_COMPLEX, "val" + suf)
+        | Asn1AcnAst.Boolean         _ -> TC_ReferenceToVariable(TC_BOOL, "val" + suf)
+        | Asn1AcnAst.Enumerated      _ -> TC_ReferenceToVariable(TC_INTEGER, "val" + suf)
+        | Asn1AcnAst.SequenceOf      _ -> TC_ReferenceToVariable(TC_COMPLEX, "val" + suf)
+        | Asn1AcnAst.Sequence        _ -> TC_ReferenceToVariable(TC_COMPLEX, "val" + suf)
+        | Asn1AcnAst.Choice          _ -> TC_ReferenceToVariable(TC_COMPLEX, "val" + suf)
+        | Asn1AcnAst.ObjectIdentifier _ ->TC_ReferenceToVariable(TC_COMPLEX, "val" + suf)
+        | Asn1AcnAst.TimeType _         ->TC_ReferenceToVariable(TC_COMPLEX, "val" + suf)
+        | Asn1AcnAst.ReferenceType r -> r.resolvedType.getParameterExpr suf c
+
+        
     member this.getParamTypeSuffix (l:ProgrammingLanguage) (suf:string) (c:Codec) =
         match l with
         | Ada   -> {CallerScope.modName = this.id.ModName; arg= VALUE ("val" + suf) }

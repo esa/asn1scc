@@ -951,3 +951,45 @@ type AstRoot = {
     acnParseResults:CommonTypes.AntlrParserResult list //used in ICDs to regenerate with collors the initial ACN input
 }
 
+
+type TC_Param_Direction = TC_IN | TC_OUT | TC_INOUT
+type TC_Param = {
+    name : string
+    direction : TC_Param_Direction
+    typeName : string
+}
+
+type TC_EpressionType =
+    | TC_INTEGER
+    | TC_REAL
+    | TC_STRING
+    | TC_BOOL
+    | TC_COMPLEX
+
+type TC_Statement =
+    | ReturnStatement       of      TC_Expression
+    | CompositeStatement    of      TC_Statement list
+    | AssignmentStatement   of      TC_Expression*TC_Expression
+    | ForStatement          of      {|initExp:TC_Expression; termination : TC_Expression; incrementExpression : TC_Expression; innerStatement:TC_Statement|}
+    | WhileStatement        of      {|whileTrueExp : TC_Expression; innerStatement:TC_Statement|}
+    | IfStatement           of      {| ifelsif : {|whileTrueExp : TC_Expression; innerStatement:TC_Statement|} list; elseStatement: TC_Statement option |}
+    
+
+and TC_Expression =
+    | TC_EqExpression              of TC_Expression*TC_Expression
+    | TC_GtExpression              of TC_Expression*TC_Expression
+    | TC_GteExpression             of TC_Expression*TC_Expression
+    | TC_ReferenceToVariable       of TC_EpressionType*string
+    | TC_Literal                   of TC_EpressionType*string
+    | TC_AccessToField             of TC_Expression * string
+    | TC_AccessToArrayElement      of TC_Expression * TC_Expression
+
+
+type TC_Function = {
+    name            : string
+    returnTypeName  : string
+    parameters      : TC_Param list
+    body            : TC_Statement list
+}
+
+

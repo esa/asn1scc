@@ -23,6 +23,7 @@ let isEqualBodyPrimitive (l:ProgrammingLanguage) (v1:CallerScope) (v2:CallerScop
     | C         -> Some (sprintf "%s == %s" (v1.arg.getValue l) (v2.arg.getValue l)  , [])
     | Ada       -> Some (sprintf "%s = %s"  (v1.arg.getValue l) (v2.arg.getValue l)  , [])
 
+
 let isEqualBodyString (l:ProgrammingLanguage) (v1:CallerScope) (v2:CallerScope) =
     match l with
     | C         -> Some (sprintf "strcmp(%s, %s) == 0" v1.arg.p v2.arg.p  , [])
@@ -393,3 +394,5 @@ let createReferenceTypeEqualFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLangua
             isEqualFunc                    = isEqualFunc
             isEqualFuncDef                 = isEqualFuncDef
         }    
+
+
