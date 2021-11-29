@@ -68,7 +68,9 @@ let rec getAcnPathByITree (n:ITree) curResult =
 *)
 
 
-
+type FileContent =
+    | AsLines of string list
+    | AsString of string
 
 
 
@@ -414,6 +416,23 @@ let lspOnFileChanged (ws:LspWorkSpace) (filename:string) (filecontent:string) =
     let parseAnalysis = 
         {ws with files = restFiles @ newFiles}
     lspPerformSemanticAnalysis parseAnalysis
+
+let lspOnFileSaved (ws:LspWorkSpace) (filename:string)  =
+    let filecontent = File.ReadAllText filename
+    let restFiles =
+        ws.files |> List.filter (fun z -> z.fileName <> filename) 
+    let newFiles =
+        [(filename, filecontent)] |> List.choose (fun (fn, fc) -> lspParceFile fn fc)
+    let parseAnalysis = 
+        {ws with files = restFiles @ newFiles}
+    lspPerformSemanticAnalysis parseAnalysis
+    
+
+
+let getDocumentLines (ws:LspWorkSpace) (filename:string) =
+    match ws.files |> Seq.tryFind(fun f -> f.fileName = filename) with
+    |Some (f)  -> f.AsLines
+    | None     -> [||]
 
 let lspEmptyWs logger = {LspWorkSpace.files = []; astRoot = None; logger = logger}
 

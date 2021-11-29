@@ -91,9 +91,9 @@ namespace LspServer
                                 .SetMinimumLevel(LogLevel.Debug)
                         )
                        .WithHandler<MyWorkspaceSymbolsHandler>()
+                       .WithHandler<TextDocumentHandler>()
                        .WithHandler<MyDefinitionHandler>()
                        .WithHandler<MyCompletionHandler>()
-                       .WithHandler<TextDocumentHandler>()
                        .WithHandler<MyPublishDiagnosticsHandler>()
                        //.WithHandler<DidChangeWatchedFilesHandler>()
                        //.WithHandler<FoldingRangeHandler>()
@@ -126,6 +126,8 @@ namespace LspServer
                                 );
                             }
                         )
+
+                       /*
                        .OnInitialize(
                             async (server, request, token) => {
                                 var manager = server.WorkDoneManager.For(
@@ -207,7 +209,7 @@ namespace LspServer
 
                                 logger.LogInformation("Scoped Config: {Config}", scopedConfig);
                             }
-                        )
+                        )*/
             );
 
             await server.WaitForExit;
@@ -219,6 +221,11 @@ namespace LspServer
         private readonly ILogger<Asn1SccService> _logger;
         private LspAst.LspWorkSpace ws;
         //private readonly Dictionary<String, Lsp.ParsedFile> parsedFiles = new Dictionary<String, Lsp.ParsedFile>();
+        public Asn1SccService(ILogger<Asn1SccService> logger)
+        {
+            _logger = logger;
+            ws = Lsp.lspEmptyWs(FuncConvert.FromFunc<string, int>(s => { _logger.LogInformation(s); return 1; }));
+        }
 
         public static Diagnostic lspError2Diagnostic(LspAst.LspError e)
         {
@@ -267,15 +274,10 @@ namespace LspServer
             return dia;
         }
 
-        public Asn1SccService(ILogger<Asn1SccService> logger)
-        {
-            _logger = logger;
-            
-            ws = Lsp.lspEmptyWs(FuncConvert.FromFunc<string, int>(s => { _logger.LogInformation(s); return 1; }));
-        }
 
         public void onOpenDocument(DocumentUri docUri, string content)
         {
+            
             ws = Lsp.lspOnFileOpened(ws, docUri.ToUri().LocalPath, content);
         }
 
@@ -283,6 +285,16 @@ namespace LspServer
         {
             ws = Lsp.lspOnFileChanged(ws, docUri.ToUri().LocalPath, content);
         }
+        public void onDocumentSave(DocumentUri docUri, string content)
+        {
+            ws = Lsp.lspOnFileSaved(ws, docUri.ToUri().LocalPath);
+        }
+
+        public string[] getDocumentLines(DocumentUri docUri)
+        {
+            return Lsp.getDocumentLines(ws, docUri.ToUri().LocalPath);
+        }
+
 
         public List<CompletionItem> getCompletionItems(DocumentUri docUri, int line0, int charPos)
         {

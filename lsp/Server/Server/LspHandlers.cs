@@ -151,6 +151,7 @@ namespace LspServer
             return new CompletionRegistrationOptions()
             {
                 DocumentSelector = _documentSelector,
+                TriggerCharacters = new[] { " " },
                 WorkDoneProgress = false
             };
         }
@@ -212,15 +213,26 @@ namespace LspServer
             _server = server;
         }
 
-        public TextDocumentSyncKind Change { get; } = TextDocumentSyncKind.Full;
+        public TextDocumentSyncKind Change { get; } = TextDocumentSyncKind.Incremental;
 
         public override Task<Unit> Handle(DidChangeTextDocumentParams notification, CancellationToken token)
         {
+            List<string> lines =  new List<string>(_asn1SccService.getDocumentLines(notification.TextDocument.Uri));
+
+            foreach (TextDocumentContentChangeEvent textChange in notification.ContentChanges)
+            //foreach (var c in notification.ContentChanges)
+            {
+                if (textChange == null)
+                    continue;
+                lines = Server.TextSync.ApplyChange(lines, GetFileChangeDetails(textChange.Range,textChange.Text));
+            }
+            string content = string.Join(System.Environment.NewLine, lines);
+            /*
             string content = "";
             foreach (var c in notification.ContentChanges)
             {
                 content += c.Text;
-            }
+            }*/
 
 
             _asn1SccService.onDocumentChange(notification.TextDocument.Uri, content);
@@ -258,8 +270,17 @@ namespace LspServer
             return Unit.Task;
         }
 
-        public override Task<Unit> Handle(DidSaveTextDocumentParams notification, CancellationToken token) => Unit.Task;
-
+        public override Task<Unit> Handle(DidSaveTextDocumentParams notification, CancellationToken token)
+        {
+            _asn1SccService.onDocumentSave(notification.TextDocument.Uri, notification.Text);
+            List<Diagnostic> dia = _asn1SccService.getDiagnostics(notification.TextDocument.Uri);
+            _server.TextDocument.PublishDiagnostics(new PublishDiagnosticsParams()
+            {
+                Uri = notification.TextDocument.Uri,
+                Diagnostics = dia
+            });
+            return Unit.Task;
+        }
         protected override TextDocumentSyncRegistrationOptions CreateRegistrationOptions(SynchronizationCapability capability, ClientCapabilities clientCapabilities) => new TextDocumentSyncRegistrationOptions()
         {
             DocumentSelector = _documentSelector,
@@ -268,7 +289,66 @@ namespace LspServer
         };
 
         public override TextDocumentAttributes GetTextDocumentAttributes(DocumentUri uri) => new TextDocumentAttributes(uri, "acn");
+
+
+        private static FileChange GetFileChangeDetails(Range changeRange, string insertString)
+        {
+            // The protocol's positions are zero-based so add 1 to all offsets
+
+            if (changeRange == null) return new FileChange { InsertString = insertString, IsReload = true };
+
+            return new FileChange
+            {
+                InsertString = insertString,
+                Line = changeRange.Start.Line + 1,
+                Offset = changeRange.Start.Character + 1,
+                EndLine = changeRange.End.Line + 1,
+                EndOffset = changeRange.End.Character + 1,
+                IsReload = false
+            };
+        }
+
+
     }
+
+
+
+
+    public sealed class FileChange
+    {
+        /// <summary>
+        /// The string which is to be inserted in the file.
+        /// </summary>
+        public string InsertString { get; set; }
+
+        /// <summary>
+        /// The 1-based line number where the change starts.
+        /// </summary>
+        public int Line { get; set; }
+
+        /// <summary>
+        /// The 1-based column offset where the change starts.
+        /// </summary>
+        public int Offset { get; set; }
+
+        /// <summary>
+        /// The 1-based line number where the change ends.
+        /// </summary>
+        public int EndLine { get; set; }
+
+        /// <summary>
+        /// The 1-based column offset where the change ends.
+        /// </summary>
+        public int EndOffset { get; set; }
+
+        /// <summary>
+        /// Indicates that the InsertString is an overwrite
+        /// of the content, and all stale content and metadata
+        /// should be discarded.
+        /// </summary>
+        public bool IsReload { get; set; }
+    }
+
 
 
 

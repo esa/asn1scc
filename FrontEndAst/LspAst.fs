@@ -68,6 +68,7 @@ type LspModule = {
 
 type LspFile = {
     fileName        : string
+    //lines           : System.Collections.Generic.List<String>
     content         : string
     tokens          : IToken array
     antlrResult     : AntlrParserResult
@@ -78,6 +79,10 @@ type LspFile = {
 }
 with 
     override this.ToString() = sprintf "%A" this
+    member this.AsLines = 
+        this.content.Split([|"\r\n";"\n"|], StringSplitOptions.None)
+
+    //member this.content = String.Join(Environment.NewLine, this.lines)
 
 
 let defaultCommandLineSettings  =
