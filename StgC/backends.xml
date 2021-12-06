@@ -5,17 +5,21 @@
     <output>header_c.stg.fs</output>
     <modName>header_c</modName>
 	<lang>c</lang>
+    <abctractInterface   modMame="ITypeDefinition">ITypeDefinition.stg.fs</abctractInterface>
+    <implementationClass ifModMame="AbstractMacros.ITypeDefinition" modMame="ITypeDefinition_c">ITypeDefinition_c.stg.fs</implementationClass>
   </run>
   <run mode="single">
     <input>body_c.stg</input>
     <output>body_c.stg.fs</output>
     <modName>body_c</modName>
 	<lang>c</lang>
+    <abctractInterface   modMame="ISrcBody">ISrcBody.stg.fs</abctractInterface>
   </run>
   <run mode="single">
     <input>variables_c.stg</input>
     <output>variables_c.stg.fs</output>
     <modName>variables_c</modName>
+    <abctractInterface   modMame="IVariables">IVariables.stg.fs</abctractInterface>
 	<lang>c</lang>
   </run>
 
@@ -24,32 +28,36 @@
     <output>equal_c.stg.fs</output>
     <modName>equal_c</modName>
 	<lang>c</lang>
+    <abctractInterface   modMame="IEqual">IEqual.stg.fs</abctractInterface>
+    <implementationClass ifModMame="AbstractMacros.IEqual" modMame="IEqual_c">IEqual_c.stg.fs</implementationClass>
   </run>
   <run mode="single" >
     <input>isvalid_c.stg</input>
     <output>isvalid_c.stg.fs</output>
     <modName>isvalid_c</modName>
 	<lang>c</lang>
+    <abctractInterface   modMame="IIsValid">IIsValid.stg.fs</abctractInterface>
+    <implementationClass ifModMame="IIsValid" modMame="IsValid_c">isvalid_c.stg.fs</implementationClass>
    </run>
     <run mode="single" >
         <input>isvalid_new_c.stg</input>
         <output>isvalid_new_c.stg.fs</output>
         <modName>isvalid_new_c</modName>
         <lang>c</lang>
-        <abctractInterface   modMame="isvalid_if">../CommonTypes/isvalid_if.stg.fs</abctractInterface>
-        <implementationClass ifModMame="isvalid_if" modMame="isvalid_c_impl">isvalid_c_impl.stg.fs</implementationClass>
     </run>
     <run mode="single">
     <input>init_c.stg</input>
     <output>init_c.stg.fs</output>
     <modName>init_c</modName>
 	<lang>c</lang>
+    <abctractInterface   modMame="IInit">IInit.stg.fs</abctractInterface>
   </run>
   <run mode="single">
     <input>uper_c.stg</input>
     <output>uper_c.stg.fs</output>
     <modName>uper_c</modName>
 	<lang>c</lang>
+    <abctractInterface   modMame="IUper">IUper.stg.fs</abctractInterface>
   </run>
   <run mode="single">
     <input>acn_c.stg</input>
@@ -57,10 +65,8 @@
     <modName>acn_c</modName>
 	<interfaces_def></interfaces_def>
 	<lang>c</lang>
-	<interfacesImplementation>
-		<interface name="Lang.ACN:IntegerMacros"  />
-		<interface name="Lang.uPER:IntegerMacros" />
-	</interfacesImplementation>
+	
+    <abctractInterface   modMame="IAcn">IAcn.stg.fs</abctractInterface>
 	
   </run>
   <run mode="single">
@@ -68,18 +74,21 @@
         <output>xer_c.stg.fs</output>
         <modName>xer_c</modName>
         <lang>c</lang>
+    <abctractInterface   modMame="IXer">IXer.stg.fs</abctractInterface>
   </run>
   <run mode="single">
       <input>test_cases_c.stg</input>
       <output>test_cases_c.stg.fs</output>
       <modName>test_cases_c</modName>
       <lang>c</lang>
+    <abctractInterface   modMame="ITestCases">ITestCases.stg.fs</abctractInterface>
   </run>
   <run mode="single">
       <input>aux_c.stg</input>
       <output>aux_c.stg.fs</output>
       <modName>aux_c</modName>
       <lang>c</lang>
+    <abctractInterface   modMame="IAux">IAux.stg.fs</abctractInterface>
   </run>
 
 </Settings>

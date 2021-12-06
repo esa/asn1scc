@@ -96,9 +96,9 @@ let isEqualBodySequenceChild   (l:ProgrammingLanguage)  (o:Asn1AcnAst.Asn1Child)
         | Some (sInnerStatement, lvars)     -> Some (equal_c.isEqual_Sequence_child v1.arg.p  v2.arg.p  (v1.arg.getAcces l) o.Optionality.IsSome c_name (Some sInnerStatement), lvars)
     | Ada       ->
         match sInnerStatement with
-        | None  when  o.Optionality.IsSome  -> Some (equal_a.isEqual_Sequence_Child v1.arg.p  v2.arg.p  o.Optionality.IsSome c_name None, [])
+        | None  when  o.Optionality.IsSome  -> Some (equal_a.isEqual_Sequence_child v1.arg.p  v2.arg.p  (v1.arg.getAcces l) o.Optionality.IsSome c_name None, [])
         | None                              -> None
-        | Some (sInnerStatement, lvars)     -> Some (equal_a.isEqual_Sequence_Child v1.arg.p  v2.arg.p  o.Optionality.IsSome c_name (Some sInnerStatement), lvars)
+        | Some (sInnerStatement, lvars)     -> Some (equal_a.isEqual_Sequence_child v1.arg.p  v2.arg.p  (v1.arg.getAcces l) o.Optionality.IsSome c_name (Some sInnerStatement), lvars)
 
 
 
@@ -184,11 +184,11 @@ let stgPrintEqualPrimitive = function
 
 let stgMacroPrimDefFunc = function
     | C    -> equal_c.PrintEqualDefintionPrimitive
-    | Ada  -> equal_a.PrintEqualDefintion
+    | Ada  -> equal_a.PrintEqualDefintionPrimitive
 
 let stgMacroCompDefFunc = function
     | C    -> equal_c.PrintEqualDefintionComposite
-    | Ada  -> equal_a.PrintEqualDefintion
+    | Ada  -> equal_a.PrintEqualDefintionComposite
 
 let createIntegerEqualFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Integer) (typeDefinition:TypeDefintionOrReference) =
     let isEqualBody         = EqualBodyExpression (isEqualBodyPrimitive l)
@@ -263,15 +263,18 @@ let createSequenceOfEqualFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage)
         | None when o.minSize.uper = o.maxSize.uper        -> None
         | None                                   ->
             match l with
-            | C    -> Some (equal_c.isEqual_SequenceOf v1.arg.p v2.arg.p (v1.arg.getAcces l) i (o.minSize.uper = o.maxSize.uper) ( o.minSize.uper) None, [])
-            | Ada  -> Some (equal_a.isEqual_SequenceOf_var_size v1.arg.p v2.arg.p i None, [])
+            | C    -> Some (equal_c.isEqual_SequenceOf_var_size v1.arg.p v2.arg.p (v1.arg.getAcces l) i  None, [])
+            | Ada  -> Some (equal_a.isEqual_SequenceOf_var_size v1.arg.p v2.arg.p (v1.arg.getAcces l) i None, [])
         | Some (innerStatement, lvars)           ->
             match l with
-            | C    -> Some (equal_c.isEqual_SequenceOf v1.arg.p v2.arg.p (v1.arg.getAcces l) i (o.minSize.uper = o.maxSize.uper) ( o.minSize.uper) (Some innerStatement), lv::lvars)
+            | C    -> 
+                match (o.minSize.uper = o.maxSize.uper) with
+                | true  -> Some (equal_c.isEqual_SequenceOf_fix_size v1.arg.p v2.arg.p (v1.arg.getAcces l) i  ( o.minSize.uper) innerStatement, lv::lvars)
+                | false -> Some (equal_c.isEqual_SequenceOf_var_size v1.arg.p v2.arg.p (v1.arg.getAcces l) i  (Some innerStatement), lv::lvars)
             | Ada  -> 
                 match (o.minSize.uper = o.maxSize.uper) with
-                | true  -> Some (equal_a.isEqual_SequenceOf_fix_size v1.arg.p v2.arg.p i  ( o.minSize.uper) innerStatement, lv::lvars)
-                | false -> Some (equal_a.isEqual_SequenceOf_var_size v1.arg.p v2.arg.p i  (Some innerStatement), lv::lvars)
+                | true  -> Some (equal_a.isEqual_SequenceOf_fix_size v1.arg.p v2.arg.p (v1.arg.getAcces l) i  ( o.minSize.uper) innerStatement, lv::lvars)
+                | false -> Some (equal_a.isEqual_SequenceOf_var_size v1.arg.p v2.arg.p (v1.arg.getAcces l) i  (Some innerStatement), lv::lvars)
 
 
     let isEqualBody         = isEqualBodySequenceOf childType t o l

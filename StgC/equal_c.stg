@@ -40,12 +40,6 @@ flag <sFuncName>(const <sTypeDefName> val1, const <sTypeDefName> val2)
 }
 >>
 
-PrintEqualOctBit(sFuncName, sTypeDefName, sContent) ::= <<
-flag <sFuncName>(const <sTypeDefName>* pVal1, const <sTypeDefName>* pVal2)
-{
-	return <sContent>;
-}
->>
 
 
 PrintEqualComposite(sFuncName, sTypeDefName, sContent, arrsLocalVars) ::= <<
@@ -87,21 +81,21 @@ flag <sFuncName>(const <sTypeDefName><sStar> <sVarName1>, const <sTypeDefName><s
 
 
 
-isEqual_Integer(p1, p2) ::= "ret = (<p1> == <p2>);"
+isEqual_Integer(p1, p2) /*nogen*/::= "ret = (<p1> == <p2>);"
 
-isEqual_Enumerated(p1, p2) ::= "<isEqual_Integer(p1=p1,p2=p2)>"
+isEqual_Enumerated(p1, p2) /*nogen*/::= "<isEqual_Integer(p1=p1,p2=p2)>"
 
 
-isEqual_Boolean(p1, p2) ::= "ret = ( (<p1> && <p2>) || (!<p1> && !<p2>));"
+isEqual_Boolean(p1, p2) /*nogen*/::= "ret = ( (<p1> && <p2>) || (!<p1> && !<p2>));"
 
-isEqual_Real(p1, p2) ::= <<
+isEqual_Real(p1, p2) /*nogen*/::= <<
 ret =  <p1> == <p2> ? TRUE : (<p1> == 0.0 ? <p2> ==0.0 : (fabs((<p1> - <p2>) / <p1>) \< 0.00001));
 >>
 
-isEqual_IA5String(p1, p2) ::= "ret = (strcmp(<p1>, <p2>) ==0);"
+isEqual_IA5String(p1, p2) /*nogen*/::= "ret = (strcmp(<p1>, <p2>) ==0);"
 
-isEqual_NumericString(p1, p2) ::= "<isEqual_IA5String(p1=p1, p2=p2)>"
-isEqual_NullType() ::= "ret = TRUE;"
+isEqual_NumericString(p1, p2) /*nogen*/::= "<isEqual_IA5String(p1=p1, p2=p2)>"
+isEqual_NullType()/*nogen*/ ::= "ret = TRUE;"
 
 isEqual_BitString(p1,p2,bIsFixedSize, nFixedSize) ::= <<
 <if(!bIsFixedSize)>
@@ -163,13 +157,11 @@ if (ret && <p1><sAcc>exist.<sChName>) {
 >>
 
 
-isEqual_SequenceOf(p1,p2, sAcc, i, bIsFixedSize, nFixedSize, soInnerStatement) ::= <<
-<if(!bIsFixedSize)>
-ret = (<p1><sAcc>nCount == <p2><sAcc>nCount);
 
-<endif>
+isEqual_SequenceOf_var_size(p1,p2, sAcc, i, soInnerStatement) ::= <<
+ret = (<p1><sAcc>nCount == <p2><sAcc>nCount);
 <if (soInnerStatement)>
-for(<i> = 0; ret && <i> \< <if(!bIsFixedSize)><p1><sAcc>nCount<else><nFixedSize><endif>; <i>++) 
+for(<i> = 0; ret && <i> \< <p1><sAcc>nCount; <i>++) 
 {
 	<soInnerStatement>
 }
@@ -177,7 +169,13 @@ for(<i> = 0; ret && <i> \< <if(!bIsFixedSize)><p1><sAcc>nCount<else><nFixedSize>
 <endif>
 >>
 
+isEqual_SequenceOf_fix_size(p1,p2, sAcc, i, nFixedSize, sInnerStatement) ::= <<
+for(<i> = 0; ret && <i> \< <nFixedSize>; <i>++) 
+{
+	<sInnerStatement>
+}
 
+>>
 
 call_base_type_func(p1, p2, sFuncName) ::= "<sFuncName>(<p1>, <p2>)"
 

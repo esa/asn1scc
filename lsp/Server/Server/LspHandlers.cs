@@ -107,8 +107,7 @@ namespace LspServer
         {
             return new DefinitionRegistrationOptions()
             {
-                DocumentSelector = _documentSelector,
-                WorkDoneProgress = false
+                DocumentSelector = _documentSelector
             };
         }
     }
@@ -142,6 +141,9 @@ namespace LspServer
         public override async Task<CompletionList> Handle(CompletionParams req, CancellationToken cancellationToken)
         {
             await Task.Yield();
+            var db1 = req?.PartialResultToken?.ToString();
+            var db2 = req?.ToString();
+            var db3 = req?.Context?.ToString();
             var lst = _asn1SccService.getCompletionItems(req.TextDocument.Uri, req.Position.Line, req.Position.Character);
             return new CompletionList(lst, true);
         }
@@ -213,27 +215,33 @@ namespace LspServer
             _server = server;
         }
 
-        public TextDocumentSyncKind Change { get; } = TextDocumentSyncKind.Incremental;
+        public TextDocumentSyncKind Change { get; } = TextDocumentSyncKind.Full;
 
         public override Task<Unit> Handle(DidChangeTextDocumentParams notification, CancellationToken token)
         {
-            List<string> lines =  new List<string>(_asn1SccService.getDocumentLines(notification.TextDocument.Uri));
+            string content;
 
-            foreach (TextDocumentContentChangeEvent textChange in notification.ContentChanges)
-            //foreach (var c in notification.ContentChanges)
+            if (Change == TextDocumentSyncKind.Incremental)
             {
-                if (textChange == null)
-                    continue;
-                lines = Server.TextSync.ApplyChange(lines, GetFileChangeDetails(textChange.Range,textChange.Text));
+                List<string> lines = new List<string>(_asn1SccService.getDocumentLines(notification.TextDocument.Uri));
+
+                foreach (TextDocumentContentChangeEvent textChange in notification.ContentChanges)
+                {
+                    if (textChange == null)
+                        continue;
+                    lines = Server.TextSync.ApplyChange(lines, GetFileChangeDetails(textChange.Range, textChange.Text));
+                }
+                content = string.Join(System.Environment.NewLine, lines);
             }
-            string content = string.Join(System.Environment.NewLine, lines);
-            /*
-            string content = "";
-            foreach (var c in notification.ContentChanges)
+            else
             {
-                content += c.Text;
-            }*/
-
+                
+                content = "";
+                foreach (var c in notification.ContentChanges)
+                {
+                    content += c.Text;
+                }
+            }
 
             _asn1SccService.onDocumentChange(notification.TextDocument.Uri, content);
             List<Diagnostic> dia = _asn1SccService.getDiagnostics(notification.TextDocument.Uri);
@@ -285,7 +293,10 @@ namespace LspServer
         {
             DocumentSelector = _documentSelector,
             Change = Change,
-            Save = new SaveOptions() { IncludeText = true }
+            //Save = new SaveOptions() { IncludeText = true }
+            Save = new BooleanOr<SaveOptions>(true)
+
+
         };
 
         public override TextDocumentAttributes GetTextDocumentAttributes(DocumentUri uri) => new TextDocumentAttributes(uri, "acn");

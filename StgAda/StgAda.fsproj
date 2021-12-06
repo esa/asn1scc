@@ -18,6 +18,7 @@
     <Compile Include="uper_a.stg.fs" />
     <Compile Include="variables_a.stg.fs" />
     <Compile Include="xer_a.stg.fs" />
+    <Compile Include="IEqual_a.stg.fs" />
   </ItemGroup>
 
   <ItemGroup>
@@ -64,7 +65,7 @@
   </ItemGroup>
     
     <Target Name="PreBuild" BeforeTargets="PreBuildEvent">
-        <Exec Command="dotnet $(ProjectDir)../parseStg2/bin/$(ConfigurationName)/net5.0/parseStg2.dll $(ProjectDir)backends.xml" />
+        <Exec Command="dotnet $(ProjectDir)../parseStg2/bin/$(ConfigurationName)/net5.0/parseStg2.dll $(ProjectDir)backends.xml 3" />
     </Target>
 
 </Project>

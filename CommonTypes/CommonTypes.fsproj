@@ -15,6 +15,7 @@
     <Compile Include="RangeSets0.fs" />
     <Compile Include="SizeableSet.fs" />
     <Compile Include="OutDirecories.fs" />
+    <Compile Include="AbstractMacros.fs" />
   </ItemGroup>
 
   <ItemGroup>

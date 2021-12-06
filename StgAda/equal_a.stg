@@ -10,10 +10,22 @@ end if;
 <endif>
 >>
 
+JoinItems2(sPart, sNestedPart) ::= <<
+<sPart>
+if ret then
+    <sNestedPart>
+end if;
+>>
 
-PrintEqualDefintion(sFuncName, sTypeDefName) ::= <<
+
+PrintEqualDefintionPrimitive(sFuncName, sTypeDefName) ::= <<
     function <sFuncName> (val1, val2 : <sTypeDefName>) return Boolean;
 >>
+
+PrintEqualDefintionComposite(sFuncName, sTypeDefName) ::= <<
+    function <sFuncName> (val1, val2 : <sTypeDefName>) return Boolean;
+>>
+
 
 PrintEqualPrimitive(sFuncName, sTypeDefName, sContent) ::= <<
     function <sFuncName> (val1, val2 : <sTypeDefName>) 
@@ -92,7 +104,7 @@ isEqual_BitString(p1,p2,bFixedSize,nFixedSize) ::= <<
 
 
 
-isEqual_SequenceOf_var_size(p1,p2, i, soInnerStatement) ::= <<
+isEqual_SequenceOf_var_size(p1,p2, sAcc, i, soInnerStatement) ::= <<
 ret := (<p1>.Length = <p2>.Length);
 <if(soInnerStatement)>
 <i> := <p1>.Data'First;
@@ -108,7 +120,7 @@ end loop;
 >>
 
 
-isEqual_SequenceOf_fix_size(p1,p2, i, nFixedSize, sInnerStatement) ::= <<
+isEqual_SequenceOf_fix_size(p1,p2, sAcc, i, nFixedSize, sInnerStatement) ::= <<
 <i> := <p1>.Data'First;
 while ret and <i> \<= <nFixedSize> loop
     --  pragma Loop_Invariant (<i> \>= <p1>.Data'First and <i> \>= <p2>.Data'First);
@@ -119,7 +131,7 @@ end loop;
 
 
 
-isEqual_Sequence_Child(p1, p2, bIsOptional, sChName, soInnerStatement) ::= <<
+isEqual_Sequence_child(p1, p2, sAcc,  bIsOptional, sChName, soInnerStatement) ::= <<
 <if(bIsOptional)>
 ret := <p1>.Exist.<sChName> = <p2>.Exist.<sChName>;
 <if(soInnerStatement)>

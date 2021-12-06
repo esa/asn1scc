@@ -1268,3 +1268,6 @@ v2out
 /FrontEndAst/CreateAsn1AstFromAntlrTree_delme.fs
 /ADA_RTL2/src/main.adb
 /FrontEndAst/Asn1SchemaExt.xsd
+/StgC/ITypeDefinition_c.stg.fs
+/StgC/IEqual_c.stg.fs
+/StgAda/IEqual_a.stg.fs

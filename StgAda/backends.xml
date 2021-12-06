@@ -24,6 +24,7 @@
     <output>equal_a.stg.fs</output>
     <modName>equal_a</modName>
 	<lang>Ada</lang>
+    <implementationClass ifModMame="AbstractMacros.IEqual" modMame="IEqual_a">IEqual_a.stg.fs</implementationClass>
   </run>
   <run mode="single">
     <input>isvalid_a.stg</input>
