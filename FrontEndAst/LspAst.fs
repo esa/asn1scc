@@ -8,6 +8,7 @@ open Antlr.Acn
 open System.Collections.Generic
 open System.Linq
 open CommonTypes
+open AbstractMacros
 open FsUtils
 open Antlr
 open System

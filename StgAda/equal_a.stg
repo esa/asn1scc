@@ -89,7 +89,9 @@ end <sFuncName>;
  */
 
 
+ isEqual_Primitive(p1, p2) ::= "<p1> = <p2>"
 
+ isEqual_String(p1, p2) ::= "<p1> = <p2>"
 
 isEqual_OctetString(p1, p2, bFixedSize, nFixedSize) ::= <<
 <if(!bFixedSize)><p1>Length = <p2>Length and then <p1>Data(1 .. <p1>Length) = <p2>Data(1 .. <p2>Length)<else><p1>Data = <p2>Data<endif>
@@ -102,6 +104,10 @@ isEqual_BitString(p1,p2,bFixedSize,nFixedSize) ::= <<
 <isEqual_OctetString(p1=p1,p2=p2, bFixedSize=bFixedSize, nFixedSize=nFixedSize)>
 >>
 
+
+isObjectIdentifier_equal(p1, p2) ::= <<
+adaasn1rtl.ObjectIdentifier_equal(<p1>, <p2>)
+>>
 
 
 isEqual_SequenceOf_var_size(p1,p2, sAcc, i, soInnerStatement) ::= <<
@@ -152,7 +158,7 @@ when <sNamePresent> =>
     <sInnerStatement>
 >>
 
-isEqual_Choice(p1, p2, sTasName, arrsChildren) ::= <<
+isEqual_Choice(p1, p2, sAccess, arrsChildren) ::= <<
 ret := <p1>.kind = <p2>.kind;
 if ret then
     case <p1>.kind is

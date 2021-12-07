@@ -80,6 +80,10 @@ flag <sFuncName>(const <sTypeDefName><sStar> <sVarName1>, const <sTypeDefName><s
 >>
 
 
+isEqual_Primitive(p1, p2) ::= "<p1> == <p2>"
+
+isEqual_String(p1, p2) ::= "strcmp(<p1>, <p2>) == 0"
+
 
 isEqual_Integer(p1, p2) /*nogen*/::= "ret = (<p1> == <p2>);"
 
@@ -118,6 +122,10 @@ isEqual_OctetString(p1,p2, bIsFixedSize, nFixedSize) ::= <<
 <else>
 memcmp(<p1>arr, <p2>arr, <nFixedSize>) ==0
 <endif>	
+>>
+
+isObjectIdentifier_equal(p1, p2) ::= <<
+ObjectIdentifier_equal(<p1>, <p2>)
 >>
 
 

@@ -7,6 +7,7 @@ open Antlr.Acn
 open Antlr.Runtime.Tree
 open Antlr.Runtime
 open CommonTypes
+open AbstractMacros
 open FsUtils
 
 open Asn1AcnAst

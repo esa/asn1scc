@@ -10,7 +10,7 @@ open Asn1AcnAst
 open Asn1Fold
 open Asn1AcnAstUtilFunctions
 open System.Resources
-
+open AbstractMacros
 open System.Xml
 open System.Xml.Schema
 

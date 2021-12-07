@@ -9,6 +9,7 @@ open Antlr.Runtime.Tree
 open Antlr.Runtime
 open FsUtils
 open CommonTypes
+open AbstractMacros
 open AcnGenericTypes
 open FsToolkit.ErrorHandling
 

@@ -5,6 +5,7 @@ open System.IO
 
 open FsUtils
 open CommonTypes
+open AbstractMacros
 open DAst
 open DAstUtilFunctions
 open OutDirectories

@@ -306,58 +306,6 @@ type Targets =
     | Msp430
     | AllBoards
 
-type CommandLineSettings = {
-    asn1Files : Input list
-    acnFiles  : Input list
-    encodings: Asn1Encoding list
-    GenerateEqualFunctions : bool
-    generateAutomaticTestCases : bool
-    TypePrefix:string
-    CheckWithOss:bool
-    AstXmlAbsFileName:string
-    IcdUperHtmlFileName:string
-    IcdAcnHtmlFileName:string
-    custom_Stg_Ast_Version : int
-    mappingFunctionsModule : string option
-    integerSizeInBytes : BigInteger            //currently only the value of 4 or 8 bytes (32/64 bits) is supported
-    floatingPointSizeInBytes : BigInteger       // 8 or 4
-    target : Targets option
-    renamePolicy :  EnumRenamePolicy
-    fieldPrefix  : FieldPrefix option
-    targetLanguages : ProgrammingLanguage list
-    objectIdentifierMaxLength : BigInteger
-    streamingModeSupport      : bool
-}
-with 
-  member this.SIntMax =
-    match this.integerSizeInBytes with
-    | _ when this.integerSizeInBytes = 8I     -> BigInteger(Int64.MaxValue)
-    | _ when this.integerSizeInBytes = 4I     -> BigInteger(Int32.MaxValue)
-    | _     -> BigInteger.Pow(2I, int (this.integerSizeInBytes*8I - 1I)) - 1I
-  member this.SIntMin =
-    match this.integerSizeInBytes with
-    | _ when this.integerSizeInBytes = 8I     -> BigInteger(Int64.MinValue)
-    | _ when this.integerSizeInBytes = 4I     -> BigInteger(Int32.MinValue)
-    | _     -> -BigInteger.Pow(2I, int(this.integerSizeInBytes*8I - 1I))
-  member this.UIntMax =
-    match this.integerSizeInBytes with
-    | _ when this.integerSizeInBytes = 8I     -> BigInteger(UInt64.MaxValue)
-    | _ when this.integerSizeInBytes = 4I     -> BigInteger(UInt32.MaxValue)
-    | _     -> BigInteger.Pow(2I, int (this.integerSizeInBytes*8I)) - 1I
-  member this.IntMax (isUnsigned:bool) =
-    match isUnsigned with
-    | true          -> this.UIntMax
-    | false         -> this.SIntMax
-  member this.IntMin (isUnsigned:bool) =
-    match isUnsigned with
-    | true          -> 0I
-    | false         -> this.SIntMin
-  member this.hasXer =
-    this.encodings |> Seq.contains (XER)
-  member this.hasAcn =
-    this.encodings |> Seq.contains (ACN)
-  member this.hasUper =
-    this.encodings |> Seq.contains (UPER)
 
 type ScopeNode =
     | MD of string          //MODULE
@@ -839,3 +787,64 @@ let rec uperIntersection r1 r2 (l:SrcLoc) =
 
 
 
+
+
+[<AbstractClass>]
+type IProgrammingLanguage () =
+    abstract member indentation : sStatement:string -> string;
+
+    
+
+
+type CommandLineSettings = {
+    asn1Files : Input list
+    acnFiles  : Input list
+    encodings: Asn1Encoding list
+    GenerateEqualFunctions : bool
+    generateAutomaticTestCases : bool
+    TypePrefix:string
+    CheckWithOss:bool
+    AstXmlAbsFileName:string
+    IcdUperHtmlFileName:string
+    IcdAcnHtmlFileName:string
+    custom_Stg_Ast_Version : int
+    mappingFunctionsModule : string option
+    integerSizeInBytes : BigInteger            //currently only the value of 4 or 8 bytes (32/64 bits) is supported
+    floatingPointSizeInBytes : BigInteger       // 8 or 4
+    target : Targets option
+    renamePolicy :  EnumRenamePolicy
+    fieldPrefix  : FieldPrefix option
+    targetLanguages : ProgrammingLanguage list
+    objectIdentifierMaxLength : BigInteger
+    streamingModeSupport      : bool
+}
+with 
+  member this.SIntMax =
+    match this.integerSizeInBytes with
+    | _ when this.integerSizeInBytes = 8I     -> BigInteger(Int64.MaxValue)
+    | _ when this.integerSizeInBytes = 4I     -> BigInteger(Int32.MaxValue)
+    | _     -> BigInteger.Pow(2I, int (this.integerSizeInBytes*8I - 1I)) - 1I
+  member this.SIntMin =
+    match this.integerSizeInBytes with
+    | _ when this.integerSizeInBytes = 8I     -> BigInteger(Int64.MinValue)
+    | _ when this.integerSizeInBytes = 4I     -> BigInteger(Int32.MinValue)
+    | _     -> -BigInteger.Pow(2I, int(this.integerSizeInBytes*8I - 1I))
+  member this.UIntMax =
+    match this.integerSizeInBytes with
+    | _ when this.integerSizeInBytes = 8I     -> BigInteger(UInt64.MaxValue)
+    | _ when this.integerSizeInBytes = 4I     -> BigInteger(UInt32.MaxValue)
+    | _     -> BigInteger.Pow(2I, int (this.integerSizeInBytes*8I)) - 1I
+  member this.IntMax (isUnsigned:bool) =
+    match isUnsigned with
+    | true          -> this.UIntMax
+    | false         -> this.SIntMax
+  member this.IntMin (isUnsigned:bool) =
+    match isUnsigned with
+    | true          -> 0I
+    | false         -> this.SIntMin
+  member this.hasXer =
+    this.encodings |> Seq.contains (XER)
+  member this.hasAcn =
+    this.encodings |> Seq.contains (ACN)
+  member this.hasUper =
+    this.encodings |> Seq.contains (UPER)

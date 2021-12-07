@@ -9,6 +9,7 @@ open System.Threading.Tasks
 open Microsoft.AspNetCore.Mvc
 open Microsoft.Extensions.Logging
 open CommonTypes
+open AbstractMacros
 open System.IO
 open FsUtils
 

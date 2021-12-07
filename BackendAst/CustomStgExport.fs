@@ -6,6 +6,7 @@ open System.Numerics
 open System.IO
 open FsUtils
 open CommonTypes
+open AbstractMacros
 open DAst
 open DastFold
 open DAstUtilFunctions

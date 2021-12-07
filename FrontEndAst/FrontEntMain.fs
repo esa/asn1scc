@@ -23,6 +23,7 @@ open Antlr.Runtime
 open FsUtils
 open CommonTypes
 open AcnGenericTypes
+open AbstractMacros
 
 open AntlrParse
 //let CreateAstRoot (list:(ITree*string*array<IToken>) seq) (encodings:array<Asn1Encoding>) generateEqualFunctions typePrefix checkWithOss astXmlFileName icdUperHtmlFileName icdAcnHtmlFileName (mappingFunctionsModule:string) integerSizeInBytes =  

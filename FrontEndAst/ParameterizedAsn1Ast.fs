@@ -15,6 +15,7 @@ open System.Numerics
 open Antlr.Runtime.Tree
 open Antlr.Runtime
 open CommonTypes
+open AbstractMacros
 open AcnGenericTypes
 open FsUtils
 open System

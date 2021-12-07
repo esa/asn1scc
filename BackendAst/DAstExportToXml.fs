@@ -6,6 +6,7 @@ open System.IO
 open System.Xml.Linq
 open FsUtils
 open CommonTypes
+open AbstractMacros
 open Asn1AcnAstUtilFunctions;
 open DAst
 open DastFold
