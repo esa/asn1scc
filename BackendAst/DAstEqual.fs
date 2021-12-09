@@ -5,7 +5,7 @@ open System.IO
 
 open FsUtils
 open CommonTypes
-open AbstractMacros
+open OutDirectories
 open Asn1AcnAstUtilFunctions
 
 open DAst
@@ -33,13 +33,13 @@ let isEqualBodyTimeType (o:Asn1AcnAst.TimeType) (l:ProgrammingLanguage) (lm:Lang
     let namespacePrefix = match l with C -> "" | Ada -> "adaasn1rtl."
     let getRtlTypeName  = 
         match o.timeClass with
-        |Asn1LocalTime                      _ -> match l with C -> header_c.Declare_Asn1LocalTime                   | Ada -> header_a.Declare_Asn1LocalTimeNoRTL                  
-        |Asn1UtcTime                        _ -> match l with C -> header_c.Declare_Asn1UtcTime                     | Ada -> header_a.Declare_Asn1UtcTimeNoRTL                    
-        |Asn1LocalTimeWithTimeZone          _ -> match l with C -> header_c.Declare_Asn1LocalTimeWithTimeZone       | Ada -> header_a.Declare_Asn1LocalTimeWithTimeZoneNoRTL      
-        |Asn1Date                             -> match l with C -> header_c.Declare_Asn1Date                        | Ada -> header_a.Declare_Asn1DateNoRTL                     
-        |Asn1Date_LocalTime                 _ -> match l with C -> header_c.Declare_Asn1Date_LocalTime              | Ada -> header_a.Declare_Asn1Date_LocalTimeNoRTL             
-        |Asn1Date_UtcTime                   _ -> match l with C -> header_c.Declare_Asn1Date_UtcTime                | Ada -> header_a.Declare_Asn1Date_UtcTimeNoRTL               
-        |Asn1Date_LocalTimeWithTimeZone     _ -> match l with C -> header_c.Declare_Asn1Date_LocalTimeWithTimeZone  | Ada -> header_a.Declare_Asn1Date_LocalTimeWithTimeZoneNoRTL 
+        |Asn1LocalTime                      _ -> lm.typeDef.Declare_Asn1LocalTimeNoRTL                    
+        |Asn1UtcTime                        _ -> lm.typeDef.Declare_Asn1UtcTimeNoRTL                      
+        |Asn1LocalTimeWithTimeZone          _ -> lm.typeDef.Declare_Asn1LocalTimeWithTimeZoneNoRTL        
+        |Asn1Date                             -> lm.typeDef.Declare_Asn1DateNoRTL                        
+        |Asn1Date_LocalTime                 _ -> lm.typeDef.Declare_Asn1Date_LocalTimeNoRTL               
+        |Asn1Date_UtcTime                   _ -> lm.typeDef.Declare_Asn1Date_UtcTimeNoRTL                 
+        |Asn1Date_LocalTimeWithTimeZone     _ -> lm.typeDef.Declare_Asn1Date_LocalTimeWithTimeZoneNoRTL   
     let timeTypeName = getRtlTypeName ()
     Some (sprintf "%s%s_equal(%s, %s)" namespacePrefix timeTypeName (v1.arg.getPointer l) (v2.arg.getPointer l)  , [])
 

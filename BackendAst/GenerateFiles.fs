@@ -121,7 +121,7 @@ let private printUnit (r:DAst.AstRoot) (l:ProgrammingLanguage) (encodings: Commo
                 | Real _
                 | Boolean _     -> 
                     let typeDefinitionName = match t.tasInfo with| Some tasInfo    -> ToC2(r.args.TypePrefix + tasInfo.tasName) | None    -> t.typeDefintionOrReference.longTypedefName l //t.typeDefinition.typeDefinitionBodyWithinSeq
-                    header_c.PrintValueAssignment (typeDefinitionName) gv.c_name
+                    header_c.PrintValueAssignment gv.c_name (typeDefinitionName) ""
                 | ReferenceType ref ->
                     let typeDefinitionName = ToC2(r.args.TypePrefix + ref.baseInfo.tasName.Value)
 //                        match l with
@@ -130,29 +130,32 @@ let private printUnit (r:DAst.AstRoot) (l:ProgrammingLanguage) (encodings: Commo
 //                            match ToC ref.baseInfo.modName.Value = pu.name with
 //                            | true  -> ToC2(r.args.TypePrefix + ref.baseInfo.tasName.Value) 
 //                            | false -> (ToC ref.baseInfo.modName.Value) + "." + ToC2(r.args.TypePrefix + ref.baseInfo.tasName.Value) 
-                    header_c.PrintValueAssignment (typeDefinitionName) gv.c_name
+                    header_c.PrintValueAssignment gv.c_name (typeDefinitionName) ""
                 | _             -> 
                     let typeDefinitionName = match t.tasInfo with| Some tasInfo    -> ToC2(r.args.TypePrefix + tasInfo.tasName) | None    -> t.typeDefintionOrReference.longTypedefName l//t.typeDefinition.name
-                    header_c.PrintValueAssignment (typeDefinitionName) gv.c_name
+                    header_c.PrintValueAssignment gv.c_name (typeDefinitionName) ""
             | Ada   -> printValueAssignment r pu.name l gv)
     let arrsHeaderAnonymousValues =
         arrsAnonymousValues |>
         List.map(fun av -> 
             match l with
-            | C     -> header_c.PrintValueAssignment av.typeDefinitionName av.valueName
+            | C     -> header_c.PrintValueAssignment av.valueName av.typeDefinitionName ""
             | Ada   -> 
                 header_a.PrintValueAssignment av.valueName av.typeDefinitionName av.valueExpresion)
     
 
     let arrsPrototypes = []
+
+    //sFileNameWithNoExtUpperCase, sPackageName, arrsIncludedModules, arrsTypeAssignments, arrsValueAssignments, arrsPrototypes, arrsUtilityDefines, bHasEncodings, bXer
+    let sFileNameWithNoExtUpperCase = (ToC (System.IO.Path.GetFileNameWithoutExtension pu.specFileName))
+    let bXer = r.args.encodings |> Seq.exists ((=) XER) 
+    let arrsUtilityDefines = []
     let defintionsContntent =
         match l with
         | C     -> 
-            let arrsUtilityDefines = []
-            header_c.PrintHeaderFile (ToC pu.name) pu.importedProgramUnits typeDefs (arrsValues@arrsHeaderAnonymousValues) arrsPrototypes arrsUtilityDefines (not r.args.encodings.IsEmpty)
+            header_c.PrintSpecificationFile sFileNameWithNoExtUpperCase pu.name pu.importedProgramUnits typeDefs (arrsValues@arrsHeaderAnonymousValues) arrsPrototypes arrsUtilityDefines (not r.args.encodings.IsEmpty) bXer
         | Ada   -> 
-            let arrsPrivateChoices = []
-            header_a.PrintPackageSpec pu.name pu.importedProgramUnits typeDefs (arrsValues@arrsHeaderAnonymousValues) arrsPrivateChoices (not r.args.encodings.IsEmpty) (r.args.encodings |> Seq.exists ((=) XER) )
+            header_a.PrintSpecificationFile sFileNameWithNoExtUpperCase pu.name pu.importedProgramUnits typeDefs (arrsValues@arrsHeaderAnonymousValues) arrsPrototypes arrsUtilityDefines (not r.args.encodings.IsEmpty) bXer
     let fileName = Path.Combine(outDir, pu.specFileName)
     File.WriteAllText(fileName, defintionsContntent.Replace("\r",""))
 

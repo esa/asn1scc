@@ -281,7 +281,7 @@ let private mergeInteger (asn1:Asn1Ast.AstRoot) (loc:SrcLoc) (typeAssignmentInfo
 
 let private mergeReal (asn1:Asn1Ast.AstRoot) (loc:SrcLoc) (acnErrLoc: SrcLoc option) (props:GenericAcnProperty list) cons withcons (tdarg:GetTypeDifition_arg) (us:Asn1AcnMergeState) =
     let acnErrLoc0 = match acnErrLoc with Some a -> a | None -> loc
-    let getRtlTypeName  l = match l with C -> "", header_c.Declare_Real  (), "REAL" | Ada  -> "adaasn1rtl", header_a.Declare_REALNoRTL (), "REAL" 
+    let getRtlTypeName  l = match l with C -> "", header_c.Declare_RealNoRTL (), "REAL" | Ada  -> "adaasn1rtl", header_a.Declare_RealNoRTL (), "REAL" 
     
     //check for invalid properties
     props |> 
@@ -536,7 +536,7 @@ let private mergeBitStringType (asn1:Asn1Ast.AstRoot) (namedBitList: NamedBit0 l
     {BitString.acnProperties = acnProperties; cons = cons; withcons = withcons; minSize=minSize; maxSize =maxSize; uperMaxSizeInBits = uperMaxSizeInBits; uperMinSizeInBits=uperMinSizeInBits; acnEncodingClass = acnEncodingClass;  acnMinSizeInBits=acnMinSizeInBits; acnMaxSizeInBits = acnMaxSizeInBits; typeDef=typeDef; namedBitList = newNamedBitList}, us1
 
 let private mergeNullType (acnErrLoc: SrcLoc option) (props:GenericAcnProperty list) (tdarg:GetTypeDifition_arg) (us:Asn1AcnMergeState) =
-    let getRtlTypeName  l = match l with C -> "", header_c.Declare_NullType  (), "NULL" | Ada -> "adaasn1rtl", header_a.Declare_NULLNoRTL  (), "NULL" 
+    let getRtlTypeName  l = match l with C -> "", header_c.Declare_NullNoRTL (), "NULL" | Ada -> "adaasn1rtl", header_a.Declare_NullNoRTL(), "NULL" 
     let acnProperties = 
         match acnErrLoc with
         | Some acnErrLoc    -> { NullTypeAcnProperties.encodingPattern  = tryGetProp props (fun x -> match x with PATTERN e -> Some e | _ -> None); savePosition = props |> Seq.exists(fun z -> match z with SAVE_POSITION -> true | _ -> false )}
@@ -548,7 +548,7 @@ let private mergeNullType (acnErrLoc: SrcLoc option) (props:GenericAcnProperty l
     {NullType.acnProperties = acnProperties; uperMaxSizeInBits = 0I; uperMinSizeInBits=0I;  acnMinSizeInBits=acnMinSizeInBits; acnMaxSizeInBits = acnMaxSizeInBits; typeDef=typeDef}, us1
 
 let private mergeBooleanType (acnErrLoc: SrcLoc option) (props:GenericAcnProperty list) cons withcons  (tdarg:GetTypeDifition_arg) (us:Asn1AcnMergeState)=
-    let getRtlTypeName  l = match l with C -> "",header_c.Declare_Boolean  (),"BOOLEAN" | Ada  -> "adaasn1rtl", header_a.Declare_BOOLEANNoRTL  (), "BOOLEAN" 
+    let getRtlTypeName  l = match l with C -> "",header_c.Declare_BooleanNoRTL (),"BOOLEAN" | Ada  -> "adaasn1rtl", header_a.Declare_BooleanNoRTL (), "BOOLEAN" 
     let acnProperties = 
         match acnErrLoc with
         | Some acnErrLoc    -> 

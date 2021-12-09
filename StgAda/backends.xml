@@ -5,6 +5,7 @@
     <output>spec_a.stg.fs</output>
     <modName>header_a</modName>
 	<lang>Ada</lang>
+    <implementationClass ifModMame="AbstractMacros.ITypeDefinition" modMame="ITypeDefinition_a">ITypeDefinition_a.stg.fs</implementationClass>
   </run>
   <run mode="single">
     <input>body_a.stg</input>

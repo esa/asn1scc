@@ -1,6 +1,7 @@
 ﻿module OutDirectories
 open System.IO
 open CommonTypes
+open AbstractMacros
 
 let asn1rtlDirName    l target = match l with C -> "" | Ada when target=None -> "" | Ada -> "asn1rtl"
 let srcDirName        l target = match l with C -> "" | Ada when target=None -> "" | Ada -> "src"
@@ -46,3 +47,10 @@ let getBoardNames (l:ProgrammingLanguage) target =
 let getBoardDirs (l:ProgrammingLanguage) target =
     getBoardNames l target |> List.map(fun s -> Path.Combine(boardsDirName l target , s))
 
+
+    
+    
+type LanguageMacros = {
+    equal : IEqual;
+    typeDef : ITypeDefinition;
+}

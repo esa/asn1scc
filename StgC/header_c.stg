@@ -1,10 +1,12 @@
 group c_header;
 
+rtlModuleName() ::= ""
+
 indentation(sStatement) ::=<<
     <sStatement>
 >>
 
-PrintHeaderFile(sFileNameWithNoExtUpperCase, arrsIncludedModules, arrsTypeAssignments, arrsValueAssignments, arrsPrototypes, arrsUtilityDefines, bHasEncodings) ::= <<
+PrintSpecificationFile(sFileNameWithNoExtUpperCase, sPackageName, arrsIncludedModules, arrsTypeAssignments, arrsValueAssignments, arrsPrototypes, arrsUtilityDefines, bHasEncodings, bXer) ::= <<
 #ifndef GENERATED_ASN1SCC_<sFileNameWithNoExtUpperCase>_H
 #define GENERATED_ASN1SCC_<sFileNameWithNoExtUpperCase>_H
 /*
@@ -51,7 +53,7 @@ Define_TAS(sTypeDefinition, arrsProcs) ::= <<
 <arrsProcs; separator="\n\n">
 >>
 
-PrintValueAssignment(sTypeDecl, sName) ::= "extern const <sTypeDecl> <sName>;"
+PrintValueAssignment(sName, sTypeDecl, sValue) ::= "extern const <sTypeDecl> <sName>;"
 
 
 /*
@@ -60,13 +62,20 @@ C TYPES
 
 Declare_Integer() ::="asn1SccSint"
 Declare_PosInteger() ::="asn1SccUint"
+Declare_IntegerNoRTL() ::="asn1SccSint"
+Declare_PosIntegerNoRTL() ::="asn1SccUint"
 
 Declare_Boolean() ::= "flag"
 Declare_Real() ::= "asn1Real"
-Declare_IA5String() ::= "char"
-Declare_NumericString() ::= "char"
-Declare_NullType() ::= "NullType"
+
+Declare_BooleanNoRTL() ::= "flag"
+Declare_RealNoRTL() ::= "asn1Real"
+
+
+Declare_Null() ::= "NullType"
+Declare_NullNoRTL() ::= "NullType"
 Declare_ObjectIdentifier() ::= "Asn1ObjectIdentifier"
+Declare_ObjectIdentifierNoRTL() ::= "Asn1ObjectIdentifier"
 
 Declare_Asn1LocalTime                 	()::= "Asn1LocalTime"
 Declare_Asn1UtcTime                   	()::= "Asn1UtcTime"
@@ -75,6 +84,14 @@ Declare_Asn1Date                      	()::= "Asn1Date"
 Declare_Asn1Date_LocalTime            	()::= "Asn1DateLocalTime"
 Declare_Asn1Date_UtcTime              	()::= "Asn1DateUtcTime"
 Declare_Asn1Date_LocalTimeWithTimeZone	()::= "Asn1DateTimeWithTimeZone"
+
+Declare_Asn1LocalTimeNoRTL                 	()::= "Asn1LocalTime"
+Declare_Asn1UtcTimeNoRTL                   	()::= "Asn1UtcTime"
+Declare_Asn1LocalTimeWithTimeZoneNoRTL     	()::= "Asn1TimeWithTimeZone"
+Declare_Asn1DateNoRTL                      	()::= "Asn1Date"
+Declare_Asn1Date_LocalTimeNoRTL            	()::= "Asn1DateLocalTime"
+Declare_Asn1Date_UtcTimeNoRTL              	()::= "Asn1DateUtcTime"
+Declare_Asn1Date_LocalTimeWithTimeZoneNoRTL	()::= "Asn1DateTimeWithTimeZone"
 
 
 Define_SubType(sTypeDefinitionName, soParentTypePackage, sParentType, soNewRange, soExtraDefs) ::= <<
@@ -249,3 +266,5 @@ Define_subType_choice(td/*:FE_ChoiceTypeDefinition*/, prTd/*:FE_ChoiceTypeDefini
 typedef <prTd.typeName> <td.typeName>;
 >>
 
+Define_SubType_int_range(soParentTypePackage, sParentType, noMin, noMax) ::= <<
+>>

@@ -47,12 +47,12 @@ let getDeterminantTypeDefinitionBodyWithinSeq (r:Asn1AcnAst.AstRoot) (l:Programm
     let createAcnBoolean (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) =
         match l with
         | C                      -> header_c.Declare_Boolean ()
-        | Ada                    -> header_a.Declare_BOOLEAN ()    
+        | Ada                    -> header_a.Declare_Boolean ()    
 
     let createAcnNull (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) =
         match l with
-        | C                      -> header_c.Declare_NullType ()
-        | Ada                    -> header_a.Declare_NULL ()
+        | C                      -> header_c.Declare_Null ()
+        | Ada                    -> header_a.Declare_Null ()
     
     let getTypeDefinitionName (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (id : ReferenceToType) =
         let longName = id.AcnAbsPath.Tail |> Seq.StrJoin "_"
@@ -235,7 +235,7 @@ let private createAcnFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (co
 
                 let handleAcnParameter (p:AcnGenericTypes.AcnParameter) =
                     let intType  = match l with C -> header_c.Declare_Integer () | Ada -> header_a.Declare_Integer ()
-                    let boolType = match l with C -> header_c.Declare_Boolean () | Ada -> header_a.Declare_BOOLEAN ()
+                    let boolType = match l with C -> header_c.Declare_Boolean () | Ada -> header_a.Declare_Boolean ()
                     let emitPrm  = match l with C -> acn_c.EmitAcnParameter      | Ada -> acn_a.EmitAcnParameter
                     match p.asn1Type with
                     | AcnGenericTypes.AcnPrmInteger    loc          -> emitPrm p.c_name intType

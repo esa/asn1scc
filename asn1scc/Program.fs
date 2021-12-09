@@ -299,12 +299,12 @@ let main0 argv =
             List.choose (fun a -> 
                 match a with
                 | C_lang                -> 
-                    let aaa = new IEqual_c.IEqual_c() 
-                    let lm = {LanguageMacros.equal = aaa}
+                    //let aaa = new IEqual_c.IEqual_c() 
+                    let lm = {LanguageMacros.equal = new IEqual_c.IEqual_c(); typeDef = new ITypeDefinition_c.ITypeDefinition_c()}
                     Some (TL "DAstConstruction.DoWork" (fun () -> DAstConstruction.DoWork frontEntAst acnDeps CommonTypes.ProgrammingLanguage.C lm args.encodings))
                 | Ada_Lang              -> 
-                    let aaa = new IEqual_a.IEqual_a() 
-                    let lm = {LanguageMacros.equal = aaa}
+                    //let aaa = new IEqual_a.IEqual_a() 
+                    let lm = {LanguageMacros.equal = new IEqual_a.IEqual_a(); typeDef = new ITypeDefinition_a.ITypeDefinition_a()}
                     
                     Some (TL "DAstConstruction.DoWork" (fun () -> DAstConstruction.DoWork frontEntAst acnDeps CommonTypes.ProgrammingLanguage.Ada lm args.encodings))
                 | _             -> None)
@@ -344,8 +344,7 @@ let main0 argv =
         let r = 
             match backends with
             | []    -> 
-                let aaa = new IEqual_c.IEqual_c() 
-                let lm = {LanguageMacros.equal = aaa}
+                let lm = {LanguageMacros.equal = new IEqual_c.IEqual_c(); typeDef = new ITypeDefinition_c.ITypeDefinition_c()}
                 TL "DAstConstruction.DoWork" (fun () -> DAstConstruction.DoWork frontEntAst acnDeps CommonTypes.ProgrammingLanguage.C  lm args.encodings)
             | x::_  -> x
         
