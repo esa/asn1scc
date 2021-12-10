@@ -18,6 +18,7 @@
     <output>variables_a.stg.fs</output>
     <modName>variables_a</modName>
 	<lang>Ada</lang>
+    <implementationClass ifModMame="AbstractMacros.IVariables" modMame="IVariables_a">IVariables_a.stg.fs</implementationClass>
   </run>
 
   <run mode="single">

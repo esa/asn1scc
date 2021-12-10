@@ -10,9 +10,10 @@ PrintRefValue1(sValue)    ::= "<sValue>"
 PrintRefValue2(sModName,sValue)    ::= "<sValue>"
 
 
-PrintStringValue(sValue)    ::= <<
+PrintStringValue(sValue, arrsNullChars)    ::= <<
 "<sValue>"
 >>
+PrintStringValueNull()	::= "NULL"
 
 PrintCharValue(cValue)    ::= "'<cValue>'"
 
@@ -20,13 +21,23 @@ PrintBooleanValue(bValue)    ::= "<if(bValue)>TRUE<else>FALSE<endif>"
 
 PrintNullValue()    ::= "0"
 
-PrintBitOrOctetStringValue(bIsFixedSize, arruBytes, nCount) ::= <<
+PrintBitOrOctetStringValue(bIsFixedSize, arruBytes, nCount) /*nogen*/ ::= <<
 {<if(!bIsFixedSize)><nCount>,<endif>
     {
         <arruBytes:{b|0x<b;format="X2">}; separator=",\n">
     }
 }
 >>
+
+
+PrintOctetStringValue(td/*:FE_SizeableTypeDefinition*/,bIsFixedSize, arruBytes, nCount) ::= <<
+<PrintBitOrOctetStringValue(bIsFixedSize=bIsFixedSize, arruBytes=arruBytes, nCount=nCount)>
+>>
+
+PrintBitStringValue(td/*:FE_SizeableTypeDefinition*/,bIsFixedSize, arrsBits, nCount, arruBytes, nBytesCount) ::= <<
+<PrintBitOrOctetStringValue(bIsFixedSize=bIsFixedSize, arruBytes=arruBytes, nCount=nBytesCount)>
+>>
+
 
 PrintBitOrOctetStringValueAsCompoundLitteral(td/*:FE_SizeableTypeDefinition*/, bIsFixedSize, arruBytes, nCount) ::= <<
 (<td.typeName>){<if(!bIsFixedSize)>.nCount = <nCount>, <endif>.arr = {<arruBytes:{b|0x<b;format="X2">}; separator=", ">}}
@@ -37,6 +48,9 @@ PrintOctetArrayAsCompoundLitteral(arruBytes) ::= <<
 (const byte[]){<arruBytes:{b|0x<b;format="X2">}; wrap, anchor, separator=", ">}
 >>
 
+PrintBitArrayAsCompoundLitteral(arruBits) ::= <<
+SYNTAX ERROR
+>>
 
 PrintObjectIdentifierValue(td/*:FE_PrimitiveTypeDefinition*/, arrnValues, nCount) ::= <<
 {	<nCount>,
@@ -136,7 +150,7 @@ PrintTimeValue_Asn1Date_LocalTimeWithTimeZone(td/*:FE_PrimitiveTypeDefinition*/,
 PrintSequenceValueChild(sName, sInnerValue) ::= ".<sName> = <sInnerValue>"
 PrintSequenceValue_child_exists(sName, sExistsBit) ::= ".<sName> = <sExistsBit>"
 
-PrintSequenceValue(arrsChildren, arrsOptionalPresentFields) ::= <<{
+PrintSequenceValue(td/*:FE_SequenceTypeDefinition*/, sTasName, arrsChildren, arrsOptionalPresentFields) ::= <<{
     <arrsChildren:{ch|<ch>}; separator=",\n"><if(arrsOptionalPresentFields)>,
     .exist = {
         <arrsOptionalPresentFields; separator=",\n">
@@ -145,14 +159,18 @@ PrintSequenceValue(arrsChildren, arrsOptionalPresentFields) ::= <<{
 }
 >>
 
-PrintChoiceValue(sAltNamePresent, sAltName, sInnerValue) ::= <<{
-    .kind = <sAltNamePresent>,
-    .u = { .<sAltName> = <sInnerValue>}
+PrintChoiceValue(sTasName, sChildName, sChildVal, sChildNamePresent) ::= <<{
+    .kind = <sChildNamePresent>,
+    .u = { .<sChildName> = <sChildVal>}
 }
 >>
 
 
-PrintSequenceOfValue(bIsFixedSize, arrsInnerValues) ::= <<
+PrintValueAssignment(sTypeDecl, sName, sValue) ::= <<
+const <sTypeDecl> <sName> = <sValue>;
+>>
+
+PrintSequenceOfValue(td/*:FE_SizeableTypeDefinition*/, bIsFixedSize, nLength, arrsInnerValues, sDefValue) ::= <<
 {<if(!bIsFixedSize)>
     .nCount = <arrsInnerValues.Length>,
 <endif>
@@ -163,4 +181,5 @@ PrintSequenceOfValue(bIsFixedSize, arrsInnerValues) ::= <<
 }
 >>
 
-PrintValueAssignment(sTypeDecl, sName, sValue) ::= "const <sTypeDecl> <sName> = <sValue>;"
+
+

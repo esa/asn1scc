@@ -1,7 +1,6 @@
-﻿
-group a_variables;
+﻿group a_variables;
 
-rtlModuleName() ::= "adaasn1rtl"
+rtlModuleName() /*nogen*/ ::= "adaasn1rtl"
 
 PrintIntValue(nValue) ::= "<nValue>"
 
@@ -12,7 +11,6 @@ PrintStringValue(sValue, arrsNullChars)	::= "\"<sValue>\"<if(arrsNullChars)> & <
 
 PrintStringValueNull()	::= "<rtlModuleName()>.NUL"
 
-PrintStringValueChar(sValue)	::= "'<sValue>'"
 
 
 PrintRefValue1(sValue)	::= "<sValue>"
@@ -21,7 +19,6 @@ PrintRefValue2(sModName,sValue)	::= "<sModName>.<sValue>"
 
 PrintEnumValue(sValue)	::= "<sValue>"
 
-PrintRefValue_lengthOf(sValue)	::= "Integer(<sValue>)"
 
 PrintCharValue(cValue)	::= "'<cValue>'"
 
@@ -45,7 +42,7 @@ PrintBitArrayAsCompoundLitteral(arruBits) ::= <<
 <rtlModuleName()>.BitArray'(<arruBits:{b|<i>=>16#<b;format="X2">#}; wrap, anchor, separator=", ">)
 >>
 
-PrintBitStringValue(td/*:FE_SizeableTypeDefinition*/,bIsFixedSize, arrsBits, nCount) ::= <<
+PrintBitStringValue(td/*:FE_SizeableTypeDefinition*/,bIsFixedSize, arrsBits, nCount, arruBytes, nBytesCount) ::= <<
 <td.typeName>'(<if(!bIsFixedSize)>Length => <nCount>,<endif>Data => <td.array>'(<if(arrsBits)><arrsBits:{b|<i>=><b>}; wrap, anchor, separator=", ">,<endif> others=> 0)) 
 >>
 
@@ -122,11 +119,14 @@ PrintTimeValue_Asn1Date_LocalTimeWithTimeZone(td/*:FE_PrimitiveTypeDefinition*/,
 
 PrintSequenceValueChild(sName, sInnerValue) ::= "<sName> => <sInnerValue>"
 PrintSequenceValue_child_exists(sName, sExistsBit) ::= "<sName> => <sExistsBit>"
-PrintSequenceValue_Exists(td/*:FE_SequenceTypeDefinition*/, arrsOptionalPresentFields) ::="Exist => <td.exist>'(<arrsOptionalPresentFields; wrap, anchor,  separator=\",\">)"
+PrintSequenceValue_Exists(td/*:FE_SequenceTypeDefinition*/, arrsOptionalPresentFields) /*nogen*/ ::="Exist => <td.exist>'(<arrsOptionalPresentFields; wrap, anchor,  separator=\",\">)"
 
-PrintSequenceValue(sTasName,arrsChildren) ::= <<
+PrintSequenceValue(td/*:FE_SequenceTypeDefinition*/, sTasName, arrsChildren, arrsOptionalPresentFields) ::= <<
 <sTasName>'(
-    <if(arrsChildren)><arrsChildren; separator=",\n"><else>null record<endif>
+    <if(arrsChildren)><arrsChildren; separator=",\n"><else>null record<endif> <if(arrsOptionalPresentFields)>
+    , Exist => <td.exist>'(<arrsOptionalPresentFields; wrap, anchor,  separator=", ">)
+
+    <endif>
     )
 >>
 
@@ -135,10 +135,6 @@ PrintChoiceValue(sTasName, sChildName, sChildVal, sChildNamePresent) ::= <<
 <sTasName>'(kind => <sChildNamePresent>, <sChildName> => <sChildVal>)
 >>
 
-//function MyChoice_a1_set(itm:<rtlModuleName()>.Asn1Int) return MyChoice;
-PrintChoiceValue_setters(sTasName, sChildName, sChildVal) ::= <<
-<sTasName>_<sChildName>_set(<sChildVal>)
->>
 
 PrintSequenceOfValue(td/*:FE_SizeableTypeDefinition*/, bIsFixedSize, nLength, arrsInnerValues, sDefValue) ::= <<
 <td.typeName>'(<if(!bIsFixedSize)>Length => <nLength>,<endif>Data => <td.array>'(<if(arrsInnerValues)><arrsInnerValues:{b|<i>=><b>}; wrap, anchor, separator=", ">,<endif> others => <sDefValue>))
@@ -146,3 +142,6 @@ PrintSequenceOfValue(td/*:FE_SizeableTypeDefinition*/, bIsFixedSize, nLength, ar
 
 
 
+PrintValueAssignment(sVasName, sTypeDecl, sValue) ::= <<
+<sVasName> : constant <sTypeDecl>:= <sValue>;
+>>

@@ -20,6 +20,7 @@
     <output>variables_c.stg.fs</output>
     <modName>variables_c</modName>
     <abctractInterface   modMame="IVariables">IVariables.stg.fs</abctractInterface>
+    <implementationClass ifModMame="AbstractMacros.IVariables" modMame="IVariables_c">IVariables_c.stg.fs</implementationClass>
 	<lang>c</lang>
   </run>
 

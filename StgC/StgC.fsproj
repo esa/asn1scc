@@ -20,6 +20,7 @@
     <Compile Include="xer_c.stg.fs" />
     <Compile Include="IEqual_c.stg.fs" />
     <Compile Include="ITypeDefinition_c.stg.fs" />
+    <Compile Include="IVariables_c.stg.fs" />
   </ItemGroup>
 
   <ItemGroup>
