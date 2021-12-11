@@ -1271,3 +1271,4 @@ v2out
 /StgC/ITypeDefinition_c.stg.fs
 /StgC/IEqual_c.stg.fs
 /StgAda/IEqual_a.stg.fs
+/lsp/Server/Server/Properties/PublishProfiles/FolderProfile.pubxml.user

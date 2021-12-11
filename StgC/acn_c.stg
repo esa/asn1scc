@@ -434,8 +434,9 @@ ret = BitStream_ReadBitPattern_ignore_value(pBitStrm, <nSize>);
 <if(arruNullValueAsByteArray)>
 {
 	static byte tmp[] = {<arruNullValueAsByteArray:{b|0x<b;format="X2">}; separator=",">};
-    flag dummy;
-	ret = BitStream_ReadBitPattern(pBitStrm, tmp, <nSize>, &dummy);
+    flag bDecodingPatternMatches;
+	ret = BitStream_ReadBitPattern(pBitStrm, tmp, <nSize>, &bDecodingPatternMatches);
+    ret = ret && bDecodingPatternMatches;
     <A(sErrCode)>
 }
 
