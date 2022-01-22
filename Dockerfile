@@ -4,7 +4,7 @@
 #################################################################################################
 #################################################################################################
 
-FROM  mcr.microsoft.com/dotnet/sdk:5.0 AS build
+FROM  mcr.microsoft.com/dotnet/sdk AS build
 
 RUN apt update
 #RUN mkdir /usr/share/man/man1
@@ -15,5 +15,6 @@ RUN apt install -y python3 python3-distutils \
 WORKDIR /src
 COPY . .
 RUN dotnet build Antlr/
+RUN dotnet build parseStg2/
 RUN dotnet build "asn1scc.sln"
 

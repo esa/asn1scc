@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net5.0</TargetFramework>
+    <TargetFramework>net6.0</TargetFramework>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
   </PropertyGroup>
 
@@ -67,7 +67,7 @@
   </ItemGroup>
     
     <Target Name="PreBuild" BeforeTargets="PreBuildEvent">
-        <Exec Command="dotnet $(ProjectDir)../parseStg2/bin/$(ConfigurationName)/net5.0/parseStg2.dll $(ProjectDir)backends.xml 3" />
+        <Exec Command="dotnet $(ProjectDir)../parseStg2/bin/$(ConfigurationName)/$(TargetFramework)/parseStg2.dll $(ProjectDir)backends.xml 3" />
     </Target>
 
 </Project>
