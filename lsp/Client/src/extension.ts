@@ -18,8 +18,8 @@ export function activate(context: ExtensionContext) {
     // If the extension is launched in debug mode then the debug server options are used
     // Otherwise the run options are used
     let serverOptions: ServerOptions = {
-        run: { command: serverExe, args: ['C:/prj/GitHub/asn1scc/lsp/Server/Server/bin/Debug/net5.0/Server.dll'] },
-        debug: { command: 'C:/prj/GitHub/asn1scc/lsp/Server/Server/bin/Debug/net5.0/Server.exe', args: [] }
+        run: { command: serverExe, args: ['C:/prj/GitHub/asn1scc/lsp/Server/Server/bin/Debug/net6.0/Server.dll'] },
+        debug: { command: 'C:/prj/GitHub/asn1scc/lsp/Server/Server/bin/Debug/net6.0/Server.exe', args: [] }
     }
 
     // Options to control the language client

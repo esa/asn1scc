@@ -153,7 +153,7 @@ namespace LspServer
             return new CompletionRegistrationOptions()
             {
                 DocumentSelector = _documentSelector,
-                TriggerCharacters = new[] { " " },
+                //TriggerCharacters = new[] { " " },
                 WorkDoneProgress = false
             };
         }
