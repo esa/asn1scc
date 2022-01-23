@@ -549,6 +549,16 @@ let private mergeNullType (acnErrLoc: SrcLoc option) (props:GenericAcnProperty l
 
 let private mergeBooleanType (acnErrLoc: SrcLoc option) (props:GenericAcnProperty list) cons withcons  (tdarg:GetTypeDifition_arg) (us:Asn1AcnMergeState)=
     let getRtlTypeName  l = match l with C -> "",header_c.Declare_BooleanNoRTL (),"BOOLEAN" | Ada  -> "adaasn1rtl", header_a.Declare_BooleanNoRTL (), "BOOLEAN" 
+    
+    match acnErrLoc with
+    | Some acnErrLoc    -> 
+        props |> 
+        Seq.iter(fun pr -> 
+            match pr with
+            | SIZE  _   -> raise(SemanticError(acnErrLoc, "Acn property 'size' cannot be applied to BOOLEAN types.\nThe encoding size can be defined implicitly with the 'true-value' or 'false-value' properties"))
+            | _         -> ())
+    | None  -> ()
+
     let acnProperties = 
         match acnErrLoc with
         | Some acnErrLoc    -> 
