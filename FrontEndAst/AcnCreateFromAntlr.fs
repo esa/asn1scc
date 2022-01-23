@@ -549,24 +549,37 @@ let private mergeNullType (acnErrLoc: SrcLoc option) (props:GenericAcnProperty l
 
 let private mergeBooleanType (acnErrLoc: SrcLoc option) (props:GenericAcnProperty list) cons withcons  (tdarg:GetTypeDifition_arg) (us:Asn1AcnMergeState)=
     let getRtlTypeName  l = match l with C -> "",header_c.Declare_BooleanNoRTL (),"BOOLEAN" | Ada  -> "adaasn1rtl", header_a.Declare_BooleanNoRTL (), "BOOLEAN" 
-    
-    match acnErrLoc with
-    | Some acnErrLoc    -> 
-        props |> 
-        Seq.iter(fun pr -> 
-            match pr with
-            | SIZE  _   -> raise(SemanticError(acnErrLoc, "Acn property 'size' cannot be applied to BOOLEAN types.\nThe encoding size can be defined implicitly with the 'true-value' or 'false-value' properties"))
-            | _         -> ())
-    | None  -> ()
+
+    let size = 
+        match acnErrLoc with
+        | Some acnErrLoc    -> 
+            match tryGetProp props (fun x -> match x with SIZE e -> Some e | _ -> None) with
+            | None                -> None
+            | Some (GP_Fixed v)   -> Some(v.Value)
+            | Some _              -> raise(SemanticError(acnErrLoc ,"Expecting an Integer value or an ACN constant as value for the size property"))
+        | None                    -> None
+
+    let alignWithZeros (bitVal:StringLoc) =
+        match size with
+        | None      -> bitVal
+        | Some sz  when sz >= bitVal.Value.Length.AsBigInt ->
+            let zeros = new String('0', ((int sz) - bitVal.Value.Length)  )
+            {StringLoc.Value = zeros + bitVal.Value; Location = bitVal.Location}
+        | Some sz          -> 
+            let errMsg = sprintf "The size of the pattern '%s' is greater than the encoding size (%d)" bitVal.Value (int sz)
+            raise(SemanticError(bitVal.Location ,errMsg))
+            
+
 
     let acnProperties = 
         match acnErrLoc with
         | Some acnErrLoc    -> 
             match tryGetProp props (fun x -> match x with TRUE_VALUE e -> Some e | _ -> None) with
-            | Some tv   ->  {BooleanAcnProperties.encodingPattern  = Some (TrueValue tv)}
+            | Some tv   ->  
+                {BooleanAcnProperties.encodingPattern  = Some (TrueValue (alignWithZeros tv))}
             | None      ->
                 match tryGetProp props (fun x -> match x with FALSE_VALUE e -> Some e | _ -> None) with
-                | Some tv   ->  {BooleanAcnProperties.encodingPattern  = Some (FalseValue tv)}
+                | Some tv   ->  {BooleanAcnProperties.encodingPattern  = Some (FalseValue (alignWithZeros tv))}
                 | None      ->  {BooleanAcnProperties.encodingPattern  = None}
         | None              -> {BooleanAcnProperties.encodingPattern = None }
     let aligment = tryGetProp props (fun x -> match x with ALIGNTONEXT e -> Some e | _ -> None)
