@@ -187,7 +187,7 @@ let rec printType stgFileName (tas:GenerateUperIcd.IcdTypeAssignment) (t:Asn1Typ
                             | Sequence _
                             | Choice _
                             | SequenceOf _ -> 
-                                icd_acn.EmmitSeqChild_RefType stgFileName ch.Type.id.AsString.RDD (ToC ch.Type.FT_TypeDefintion.[CommonTypes.C].asn1Name)
+                                icd_acn.EmmitSeqChild_RefType stgFileName ch.Type.id.AsString.RDD (ToC ch.Type.id.AsString.RDD)
                             | _            ->
                                 icd_acn.EmmitSeqChild_RefType stgFileName ch.Type.FT_TypeDefintion.[CommonTypes.C].asn1Name (ToC ch.Type.FT_TypeDefintion.[CommonTypes.C].asn1Name)
                         match ch.Type.ActualType.Kind with
@@ -253,6 +253,10 @@ let rec printType stgFileName (tas:GenerateUperIcd.IcdTypeAssignment) (t:Asn1Typ
             let sType = 
                 let defaultRetValue = icd_acn.EmmitSeqChild_RefType stgFileName ch.chType.FT_TypeDefintion.[CommonTypes.C].asn1Name (ToC ch.chType.FT_TypeDefintion.[CommonTypes.C].asn1Name)
                 match ch.chType.ActualType.Kind with
+                | Sequence _
+                | Choice _
+                | SequenceOf _ -> 
+                    icd_acn.EmmitSeqChild_RefType stgFileName ch.chType.id.AsString.RDD (ToC ch.chType.id.AsString.RDD)
                 | DAst.NullType       o  when o.baseInfo.acnProperties.encodingPattern.IsSome  -> 
                                                 handleNullType o.baseInfo.acnProperties.encodingPattern defaultRetValue
                 | _                       -> defaultRetValue
