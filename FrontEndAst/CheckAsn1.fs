@@ -579,7 +579,8 @@ let CheckModule (m:Asn1Module) ast (pass :int)=
     let typeAssNames = m.TypeAssignments |> List.map(fun t -> t.Name) 
     typeAssNames |> CheckForDuplicates 
     typeAssNames |> CheckForDuplicatesCI "Type Assignment"
-    typeAssNames |> Seq.iter(fun z -> checkAgainstKeywords ({z with Value = ast.args.TypePrefix + z.Value}))
+    
+    //typeAssNames |> Seq.iter(fun z -> checkAgainstKeywords ({z with Value = ast.args.TypePrefix + z.Value}))
     
     //check for duplicate imported types
     let importedTypeAssNames = m.Imports |> Seq.collect(fun imp -> imp.Types) |> Seq.toList

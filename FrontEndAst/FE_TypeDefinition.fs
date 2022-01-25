@@ -23,6 +23,16 @@ let private reserveTypeDefinitionName  (typePrefix:string) (allocatedTypeNames :
             | true, num ->  (oldPart |> List.rev |> Seq.StrJoin "_") + "_" + ((num+1).ToString())
             | _         -> oldName + "_1"
     let rec getValidTypeDefname (proposedTypeDefName:string) = 
+        let keywords =  match l with C -> CommonTypes.c_keyworkds | Ada -> CommonTypes.ada_keyworkds
+        let cmp l (s1:String) (s2:String) =
+            match l with
+            | C     -> s1 = s2
+            | Ada   -> s1.ToUpper() = s2.ToUpper()
+        let proposedTypeDefName =
+            match keywords |> Seq.tryFind(fun kw -> cmp l proposedTypeDefName kw) with
+            | None      -> proposedTypeDefName
+            | Some _    -> getNextCount proposedTypeDefName
+
         match l with
         | C     ->  
             match allocatedTypeNames |> Seq.exists(fun (cl, _, ct) -> cl = l && ct = proposedTypeDefName) with
@@ -35,11 +45,14 @@ let private reserveTypeDefinitionName  (typePrefix:string) (allocatedTypeNames :
                     | false -> getValidTypeDefname (programUnit + "_" + proposedTypeDefName ) 
                 | true  -> getValidTypeDefname (getNextCount proposedTypeDefName ) 
         | Ada   ->  
+            let keywords =  CommonTypes.ada_keyworkds
             match allocatedTypeNames  |> Seq.exists(fun (cl, cp, ct) -> cl = l && cp.ToUpper() = programUnit.ToUpper() && ct.ToUpper() = proposedTypeDefName.ToUpper()) with
             | false -> proposedTypeDefName
             | true  -> getValidTypeDefname (getNextCount proposedTypeDefName  ) 
     
     let validTypeDefname = getValidTypeDefname proposedTypeDefName 
+    
+
     validTypeDefname, (l, programUnit, validTypeDefname)::allocatedTypeNames
 
 
