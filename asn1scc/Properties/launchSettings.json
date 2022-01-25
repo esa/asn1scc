@@ -2,8 +2,8 @@
   "profiles": {
     "asn1scc": {
       "commandName": "Project",
-      "commandLineArgs": "-c -uPER -ACN -typePrefix gmamais_ -renamePolicy 2 -equal -atc sample1.asn1 sample1.acn",
-      "workingDirectory": "C:\\prj\\GitHub\\asn1scc\\v4Tests\\tmp_c"
+      "commandLineArgs": "-c -ACN -atc -o c_out/ pus.asn pus.acn",
+      "workingDirectory": "C:\\prj\\GitHub\\asn1scc\\tmp\\026"
     }
   }
 }

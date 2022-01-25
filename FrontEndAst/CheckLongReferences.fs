@@ -38,13 +38,14 @@ let private addAcnChild (tasPositions:Map<ReferenceToType,int>) (cur:AcnInserted
 let private checkRelativePath (tasPositions:Map<ReferenceToType,int>) (curState:AcnInsertedFieldDependencies) (parents: Asn1Type list) (asn1TypeWithDependency:Asn1Type ) (visibleParameters:(ReferenceToType*AcnParameter) list) (RelativePath path : RelativePath) checkParameter checkAcnType =
     match path with
     | []        -> raise (BugErrorException("Invalid Argument"))
-    | x1::[]    ->
+    | x1::_    ->
         match visibleParameters |> Seq.tryFind(fun (ref, p) -> p.name = x1.Value) with
         | Some  (rf,p)   -> 
             //x1 is a parameter
             let d = checkParameter p
             addParameter curState asn1TypeWithDependency p d
         | None      -> 
+        (*
             //x1 is silbing child
             match parents |> List.rev with
             | []    -> raise(SemanticError(x1.Location, (sprintf "Invalid reference '%s'" x1.Value)))
@@ -60,45 +61,55 @@ let private checkRelativePath (tasPositions:Map<ReferenceToType,int>) (curState:
                             addAcnChild tasPositions curState asn1TypeWithDependency ch d
                     | None      -> raise(SemanticError(x1.Location, (sprintf "Invalid reference '%s'" x1.Value)))
                 | _                 -> raise(SemanticError(x1.Location, (sprintf "Invalid reference '%s'" x1.Value)))
-    | x1::_  -> 
+                *)
+//    | x1::_  -> 
             //x1 may be a silbing child or a child to one of my parents
             // so, find the first parent that has a child x1
 
-        let parSeq = 
-            let rec findSeq p =
-                match p.Kind with
-                | Sequence seq      -> seq.children |> Seq.exists(fun c -> c.Name = x1) 
-                | ReferenceType ref ->findSeq ref.resolvedType
+            let parSeq = 
+                let rec findSeq p =
+                    match p.Kind with
+                    | Sequence seq      -> seq.children |> Seq.exists(fun c -> c.Name = x1) 
+                    | ReferenceType ref ->findSeq ref.resolvedType
+                    | _            -> raise(SemanticError(x1.Location, (sprintf "Invalid reference '%s'" (path |> Seq.StrJoin "."))))
+                parents |> 
+                List.rev |> 
+                List.filter(fun z -> 
+                    match z.Kind with
+                    | Sequence _ -> true
+                    | ReferenceType r -> 
+                        match r.resolvedType.Kind with
+                        | Sequence _  -> true
+                        | _           -> false
+                    | _ -> false ) |>  Seq.tryFind findSeq
+            let rec checkSeqWithPath (seq:Asn1Type) (path : StringLoc list)=   
+                match seq.Kind with
+                | Sequence seq -> 
+                    match path with
+                    | []       -> raise(BugErrorException "111")
+                    | x1::[]   ->
+                        match seq.children |> Seq.tryFind(fun c -> c.Name = x1) with
+                        | None -> raise(SemanticError(x1.Location, (sprintf "Invalid reference '%s'" (path |> Seq.StrJoin "."))))
+                        | Some ch -> 
+                            match ch with
+                            | Asn1Child ch  -> raise(SemanticError(x1.Location, (sprintf "ASN.1 fields cannot act as encoding determinants. Remove field '%s' from the ASN.1 grammar and introduce it in the ACN grammar" x1.Value)))
+                            | AcnChild ch  -> 
+                                let d = checkAcnType ch
+                                addAcnChild tasPositions curState asn1TypeWithDependency ch d
+                    | x1::xs     ->
+                        match seq.children |> Seq.tryFind(fun c -> c.Name = x1) with
+                        | None -> raise(SemanticError(x1.Location, (sprintf "Invalid reference '%s'" (path |> Seq.StrJoin "."))))
+                        | Some ch -> 
+                            match ch with
+                            | Asn1Child ch -> checkSeqWithPath ch.Type xs
+                            | _            -> raise(SemanticError(x1.Location, (sprintf "Invalid reference '%s'" (path |> Seq.StrJoin "."))))
+                | ReferenceType ref -> checkSeqWithPath ref.resolvedType path
                 | _            -> raise(SemanticError(x1.Location, (sprintf "Invalid reference '%s'" (path |> Seq.StrJoin "."))))
-            parents |> List.rev |>  Seq.tryFind findSeq
-        let rec checkSeqWithPath (seq:Asn1Type) (path : StringLoc list)=   
-            match seq.Kind with
-            | Sequence seq -> 
-                match path with
-                | []       -> raise(BugErrorException "111")
-                | x1::[]   ->
-                    match seq.children |> Seq.tryFind(fun c -> c.Name = x1) with
-                    | None -> raise(SemanticError(x1.Location, (sprintf "Invalid reference '%s'" (path |> Seq.StrJoin "."))))
-                    | Some ch -> 
-                        match ch with
-                        | Asn1Child ch  -> raise(SemanticError(x1.Location, (sprintf "ASN.1 fields cannot act as encoding determinants. Remove field '%s' from the ASN.1 grammar and introduce it in the ACN grammar" x1.Value)))
-                        | AcnChild ch  -> 
-                            let d = checkAcnType ch
-                            addAcnChild tasPositions curState asn1TypeWithDependency ch d
-                | x1::xs     ->
-                    match seq.children |> Seq.tryFind(fun c -> c.Name = x1) with
-                    | None -> raise(SemanticError(x1.Location, (sprintf "Invalid reference '%s'" (path |> Seq.StrJoin "."))))
-                    | Some ch -> 
-                        match ch with
-                        | Asn1Child ch -> checkSeqWithPath ch.Type xs
-                        | _            -> raise(SemanticError(x1.Location, (sprintf "Invalid reference '%s'" (path |> Seq.StrJoin "."))))
-            | ReferenceType ref -> checkSeqWithPath ref.resolvedType path
-            | _            -> raise(SemanticError(x1.Location, (sprintf "Invalid reference '%s'" (path |> Seq.StrJoin "."))))
 
-        match parSeq with
-        | None  -> raise(SemanticError(x1.Location, (sprintf "Invalid reference '%s'" (path |> Seq.StrJoin "."))))
-        | Some p -> 
-            checkSeqWithPath p path
+            match parSeq with
+            | None  -> raise(SemanticError(x1.Location, (sprintf "Invalid reference '%s'" (path |> Seq.StrJoin "."))))
+            | Some p -> 
+                checkSeqWithPath p path
 
 
 let checkParamIsActuallyInteger (r:AstRoot) (prmMod0:StringLoc) (tasName0:StringLoc) =
