@@ -23,8 +23,8 @@ cd asn1scc || {
     exit 1
 }
 rm -rf ./*.stg
-rm -rf ../../asn1scc/bin/Release/net5.0/linux-x64/publish
-cp -a ../../asn1scc/bin/Release/net5.0/linux-x64/* .
+rm -rf ../../asn1scc/bin/Release/net6.0/linux-x64/publish
+cp -a ../../asn1scc/bin/Release/net6.0/linux-x64/* .
 rm asn1.exe
 VERSION="$(./asn1scc -v | head -1 | awk '{print $NF}')"
 cd ../
