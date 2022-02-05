@@ -234,6 +234,14 @@ let exportFile (r:AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (stgFi
         match t.Kind with
         | Sequence(_) -> gen.AssigOpSpecialType () stgFileName
         | _           -> gen.AssigOpNormalType () stgFileName
+
+    let typesMap = 
+        r.Files |> 
+        List.collect(fun f -> f.Modules) |>
+        List.collect(fun m ->
+            m.TypeAssignments |> List.map(fun tas -> tas.AsTypeAssignmentInfo m.Name.Value, tas) 
+        ) |> Map.ofList
+
     let PrintVas (f:Asn1File) (vas: ValueAssignment) modName =
         gen.VasXml vas.Name.Value (BigInteger vas.Name.Location.srcLine) (BigInteger vas.Name.Location.charPos) (PrintType r f stgFileName modName  false vas.Type ) (PrintCustomAsn1Value vas stgFileName) (ToC vas.c_name)  stgFileName
     let deepRecursion = r.args.custom_Stg_Ast_Version = 1
@@ -266,8 +274,16 @@ let exportFile (r:AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (stgFi
                         | ReferenceToExistingDefinition _ -> None
                         | TypeDefinition td               -> Some (t.typeDefintionOrReference.getAsn1Name r.args.TypePrefix))
                 | None     -> [])
-            
-        gen.ModuleXml m.Name.Value (ToC m.Name.Value) (m.Imports |> Seq.map PrintImpModule) exportedTypes m.ExportedVars (m.TypeAssignments |> Seq.map (fun t -> PrintTas f t m.Name.Value)) (m.ValueAssignments |> Seq.map (fun t -> PrintVas f t m.Name.Value)) stgFileName
+        
+
+        let moduTypes = m.TypeAssignments |> List.map(fun x -> x.Type)
+        let importedTypes = 
+            m.Imports |>
+            Seq.collect(fun imp -> imp.Types |> List.map (fun impType ->{TypeAssignmentInfo.modName = imp.Name.Value; tasName = impType.Value})) |> 
+            Seq.distinct |> Seq.toList        
+        let sortedTypes = DAstProgramUnit.sortTypes moduTypes importedTypes |> List.filter(fun z -> z.modName = m.Name.Value) |> List.map(fun ref -> typesMap.[ref]) 
+
+        gen.ModuleXml m.Name.Value (ToC m.Name.Value) (m.Imports |> Seq.map PrintImpModule) exportedTypes m.ExportedVars (sortedTypes |> Seq.map (fun t -> PrintTas f t m.Name.Value)) (m.ValueAssignments |> Seq.map (fun t -> PrintVas f t m.Name.Value)) stgFileName
 
     let PrintFile (f:Asn1File) =
         gen.FileXml f.FileName (f.Modules |> Seq.map (PrintModule f)) stgFileName

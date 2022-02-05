@@ -56,7 +56,7 @@ let rec private  getTypeDependencies2 (t:Asn1Type) : (TypeAssignmentInfo list ) 
     | ReferenceType ref          -> ref.AsTypeAssignmentInfo::prms
     | TimeType  _                -> prms
 
-let private sortTypes (typesToSort: Asn1Type list) (imports :TypeAssignmentInfo list) =
+let internal sortTypes (typesToSort: Asn1Type list) (imports :TypeAssignmentInfo list) =
     let allNodes = 
         typesToSort |> 
         List.choose( fun tas -> 
