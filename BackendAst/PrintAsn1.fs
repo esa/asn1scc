@@ -135,7 +135,7 @@ let DoWork (r:AstRoot) outDir newFileExt =
 
 
 
-let printInASignleFile (r:AstRoot) outDir newFile (pdu:string option)=
+let printInASingleFile (r:AstRoot) outDir newFile (pdu:string option)=
     
     let rec  getTypeDependencies2 (tsMap:Map<TypeAssignmentInfo,TypeAssignment>) (deep:bool) (t:Asn1Type) : (TypeAssignmentInfo list )    =
         match t.Kind with

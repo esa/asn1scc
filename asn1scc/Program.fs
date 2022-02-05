@@ -262,7 +262,7 @@ let constructCommandLineSettings args (parserResults: ParseResults<CliArguments>
 
 let main0 argv =
     
-    let parser = ArgumentParser.Create<CliArguments>(programName = "Asn1f4.exe")
+    let parser = ArgumentParser.Create<CliArguments>(programName = "asn1scc.exe")
     try
         let parserResults = parser.Parse argv
         let cliArgs = parserResults.GetAllResults()
@@ -278,7 +278,7 @@ let main0 argv =
             match parserResults.Contains<@ Debug_Asn1 @> with
             | true  -> 
                 let pdu = parserResults.GetResult(<@Debug_Asn1@>, defaultValue = None)
-                let tastToPrint = PrintAsn1.printInASignleFile r outDir "SingleAsn1FileDbg.asn1" pdu
+                let tastToPrint = PrintAsn1.printInASingleFile r outDir "SingleAsn1FileDbg.asn1" pdu
                 PrintAcn.printInASignleFile acn outDir "SingleAsn1FileDbg.acn" tastToPrint
             | false -> ()
 
