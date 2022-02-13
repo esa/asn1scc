@@ -9,7 +9,7 @@ extern "C" {
 
 flag OctetString_equal(int len1, int len2, const byte arr1[], const byte arr2[]);
 
-/* Byte strean functions */
+/* Byte stream functions */
 void ByteStream_Init(ByteStream* pStrm, byte* buf, long count);
 void BitStream_Init2(BitStream* pBitStrm, unsigned char* buf, long count, void* pushDataPrm, void* fetchDataPrm);
 
@@ -17,13 +17,22 @@ void ByteStream_AttachBuffer(ByteStream* pStrm, unsigned char* buf, long count);
 void BitStream_AttachBuffer2(BitStream* pBitStrm, unsigned char* buf, long count, void* pushDataPrm, void* fetchDataPrm);
 asn1SccSint ByteStream_GetLength(ByteStream* pStrm);
 
+#ifdef ASN1SCC_STREAMING
+
 void fetchData(BitStream* pBitStrm, void* param);
 void pushData(BitStream* pBitStrm, void* param);
 
-void bitstrean_fetch_data_if_required(BitStream* pStrm);
-void bitstrean_push_data_if_required(BitStream* pStrm);
+void bitstream_fetch_data_if_required(BitStream* pStrm);
+void bitstream_push_data_if_required(BitStream* pStrm);
 
-/* Bit strean functions */
+#else
+
+#define bitstream_fetch_data_if_required(pStrm) ((void)pStrm)
+#define bitstream_push_data_if_required(pStrm) ((void)pStrm)
+
+#endif
+
+/* Bit stream functions */
 
 flag BitString_equal(int nBitsLength1, int nBitsLength2, const byte arr1[], const byte arr2[]);
 void BitStream_AppendNBitZero(BitStream* pBitStrm, int nbits);
@@ -66,7 +75,7 @@ int GetNumberOfBitsForNonNegativeInteger(asn1SccUint v);
 void CalculateMantissaAndExponent(asn1Real d, int* exp, asn1SccUint64* mantissa);
 asn1Real GetDoubleByMantissaAndExp(asn1SccUint mantissa, int exp);
 
-int GetLengthInBytesOfSInt(asn1SccSint v); 
+int GetLengthInBytesOfSInt(asn1SccSint v);
 int GetLengthInBytesOfUInt(asn1SccUint64 v);
 
 void BitStream_EncodeReal(BitStream* pBitStrm, asn1Real v);
