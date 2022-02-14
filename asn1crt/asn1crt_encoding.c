@@ -288,9 +288,6 @@ void BitStream_AppendByte(BitStream* pBitStrm, byte v, flag negate)
 
 flag BitStream_AppendByte0(BitStream* pBitStrm, byte v)
 {
-	if (!((pBitStrm->currentByte+1) * 8 + pBitStrm->currentBit <= pBitStrm->count * 8))
-		return FALSE;
-
 	int cb = pBitStrm->currentBit;
 	int ncb = 8 - cb;
 
@@ -299,9 +296,10 @@ flag BitStream_AppendByte0(BitStream* pBitStrm, byte v)
 	pBitStrm->buf[pBitStrm->currentByte] &= mask;
 	pBitStrm->buf[pBitStrm->currentByte++] |= (byte)(v >> cb);
 	bitstream_push_data_if_required(pBitStrm);
-	//assert(pBitStrm->currentByte * 8 + pBitStrm->currentBit <= pBitStrm->count * 8);
 
 	if (cb) {
+		if (pBitStrm->currentByte >= pBitStrm->count)
+			return FALSE;
 		mask = (byte)~mask;
 		pBitStrm->buf[pBitStrm->currentByte] &= mask;
 		pBitStrm->buf[pBitStrm->currentByte] |= (byte)(v << ncb);
