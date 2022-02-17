@@ -21,7 +21,7 @@ INCLUDEFLAGS= -I .
 
 # -Wall -Wextra -pedantic -Wcast-qual -Wformat=2 -Wshadow -Wundef -Wno-unused -Wuninitialized -Wno-unused-parameter -fdiagnostics-show-option
 # Separate compile options per configuration
-CFLAGS += -g -Wall -Werror -Wextra -Wuninitialized -Wcast-qual -Wshadow -Wundef -fdiagnostics-show-option -D_DEBUG   ${INCLUDEFLAGS} -O0 -fprofile-arcs -ftest-coverage
+CFLAGS += -g -Wall -Werror -Wextra -Wuninitialized -Wcast-qual -Wshadow -Wundef -fdiagnostics-show-option -D_DEBUG -DASN1SCC_STREAMING   ${INCLUDEFLAGS} -O0 -fprofile-arcs -ftest-coverage
 LDFLAGS += -g -ftest-coverage -fprofile-arcs
 
 # A common link flag for all configurations
