@@ -303,7 +303,7 @@ let CreateMakeFile (r:AstRoot) (l:ProgrammingLanguage) (di:DirInfo) =
     match l with
     | C ->
         let files = r.Files |> Seq.map(fun x -> x.FileNameWithoutExtension.ToLower() )
-        let content = aux_c.PrintMakeFile files (r.args.integerSizeInBytes = 4I) (r.args.floatingPointSizeInBytes = 4I)
+        let content = aux_c.PrintMakeFile files (r.args.integerSizeInBytes = 4I) (r.args.floatingPointSizeInBytes = 4I) r.args.streamingModeSupport
         let outFileName = Path.Combine(di.srcDir, "Makefile")
         File.WriteAllText(outFileName, content.Replace("\r",""))
     | Ada ->

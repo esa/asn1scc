@@ -25,7 +25,7 @@ let writeResource (di:DirInfo) (rsName:string) (fn) : unit=
     | None      -> 
         writeTextFile (Path.Combine(asn1rtlDirName, rsName)) resourceInitialContent
     | Some fn   -> 
-        let newContent = resourceInitialContent 
+        let newContent = fn resourceInitialContent 
         writeTextFile (Path.Combine(asn1rtlDirName, rsName)) newContent
 
 
@@ -54,13 +54,8 @@ let exportRTL (di:DirInfo) (l:ProgrammingLanguage) (args:CommandLineSettings)=
         match args.encodings with
         | []    -> ()
         | _     ->
-            //let asn1crt_encoding_c = rm.GetString("asn1crt_encoding_c",null)
-            let asn1crt_encoding_fn (asn1crt_encoding_c:string) = 
-                match args.streamingModeSupport with
-                | false -> asn1crt_encoding_c
-                | true  -> asn1crt_encoding_c.Replace("#define INTERNAL_FETH_DATA","")
 
-            writeResource di "asn1crt_encoding.c" (Some asn1crt_encoding_fn)
+            writeResource di "asn1crt_encoding.c" None
             //writeTextFile (Path.Combine(asn1rtlDirName, "asn1crt_encoding.c")) asn1crt_encoding_c
 
 

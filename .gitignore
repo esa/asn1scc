@@ -1272,3 +1272,12 @@ v2out
 /StgC/IEqual_c.stg.fs
 /StgAda/IEqual_a.stg.fs
 /lsp/Server/Server/Properties/PublishProfiles/FolderProfile.pubxml.user
+/Docs/examples/streaming_mode/ada_out/taste_dataview.ads
+/Docs/examples/streaming_mode/ada_out/taste_dataview.adb
+/Docs/examples/streaming_mode/ada_out/board_config.ads
+/Docs/examples/streaming_mode/ada_out/adaasn1rtl.ads
+/Docs/examples/streaming_mode/ada_out/adaasn1rtl.adb
+/Docs/examples/streaming_mode/ada_out/adaasn1rtl-encoding.ads
+/Docs/examples/streaming_mode/ada_out/adaasn1rtl-encoding.adb
+/Docs/examples/streaming_mode/ada_out/adaasn1rtl-encoding-uper.ads
+/Docs/examples/streaming_mode/ada_out/adaasn1rtl-encoding-uper.adb

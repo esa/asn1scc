@@ -11,7 +11,7 @@
 
 group ch ;
 
-PrintMakeFile(arrsFilesNoExt, bWordSize4, bFpWordSize4) ::= <<
+PrintMakeFile(arrsFilesNoExt, bWordSize4, bFpWordSize4, bAsn1sccStreaming) ::= <<
 # The directories containing the source files, separated by ':'
 VPATH=.
 
@@ -35,7 +35,7 @@ INCLUDEFLAGS= -I .
 
 # -Wall -Wextra -pedantic -Wcast-qual -Wformat=2 -Wshadow -Wundef -Wno-unused -Wuninitialized -Wno-unused-parameter -fdiagnostics-show-option
 # Separate compile options per configuration
-CFLAGS += -g -Wall -Werror -Wextra -Wuninitialized -Wcast-qual -Wshadow -Wundef -fdiagnostics-show-option -D_DEBUG <if(bWordSize4)>-DWORD_SIZE=4<endif> <if(bFpWordSize4)>-DFP_WORD_SIZE=4<endif> ${INCLUDEFLAGS} -O0 -fprofile-arcs -ftest-coverage
+CFLAGS += -g -Wall -Werror -Wextra -Wuninitialized -Wcast-qual -Wshadow -Wundef -fdiagnostics-show-option -D_DEBUG <if(bAsn1sccStreaming)>-DASN1SCC_STREAMING<endif>  <if(bWordSize4)>-DWORD_SIZE=4<endif> <if(bFpWordSize4)>-DFP_WORD_SIZE=4<endif> ${INCLUDEFLAGS} -O0 -fprofile-arcs -ftest-coverage
 LDFLAGS += -g -ftest-coverage -fprofile-arcs
 
 # A common link flag for all configurations
