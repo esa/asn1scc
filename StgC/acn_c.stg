@@ -1140,26 +1140,34 @@ if (<arrsCheckPaths; separator=" && ">) {
 >>
 
 
-SizeDependency_oct_str_containing(p, sFuncName, sReqBytesForUperEncoding, v, bIsOctet) ::= <<
-/*first encode containing type to a temporary bitstream. That's the only way to learn in advance the size of the encoding octet string*/
-BitStream_Init(&bitStrm, arr, sizeof(arr));
-ret = <sFuncName>(<p>, &bitStrm, pErrCode, FALSE);
+SizeDependency_oct_str_containing(p, sFuncName, sReqBytesForUperEncoding, v, bIsOctet, sComment) ::= <<
+{
+    /*first encode containing type to a temporary bitstream. That's the only way to learn in advance the size of the encoding octet string*/
+    BitStream_Init(&bitStrm, arr, sizeof(arr));
+    BitStream* pBitStrm_save = pBitStrm;
+    pBitStrm = &bitStrm;
+    <sComment>
+    pBitStrm = pBitStrm_save;
+  //ret = <sFuncName>(<p>, &bitStrm, pErrCode, FALSE);
+}
 if (ret) {
 	<v> = <if(bIsOctet)>bitStrm.currentBit == 0 ? bitStrm.currentByte : (bitStrm.currentByte + 1)<else>bitStrm.currentByte*8+bitStrm.currentBit<endif>;
 	<v>_is_initialized = TRUE;
 }
+
 >>
 
 
-octet_string_containing_ext_field_func_encode(p, sFuncName, sReqBytesForUperEncoding, sExtField, sErrCode) ::= <<
+octet_string_containing_ext_field_func_encode(p, sFuncName, sReqBytesForUperEncoding, sExtField, sErrCode, soInner) ::= <<
 ret = BitStream_EncodeOctetString_no_length(pBitStrm, arr, (int)<sExtField>);
 >>
 
-octet_string_containing_ext_field_func_decode(p, sFuncName, sReqBytesForUperEncoding, sExtField, sErrCode) ::= <<
+octet_string_containing_ext_field_func_decode(p, sFuncName, sReqBytesForUperEncoding, sExtField, sErrCode, soInner) ::= <<
 /*open new scope to declare some variables*/
 {
 	/*decode to a temporary bitstream*/
 	static byte arr[<sReqBytesForUperEncoding>];
+    BitStream* pBitStrm_save = pBitStrm;
 	BitStream bitStrm;
 	BitStream_Init(&bitStrm, arr, sizeof(arr));
 	ret = (int)<sExtField> \<= <sReqBytesForUperEncoding>;
@@ -1167,7 +1175,10 @@ octet_string_containing_ext_field_func_decode(p, sFuncName, sReqBytesForUperEnco
 	if (ret) {
 		ret = BitStream_DecodeOctetString_no_length(pBitStrm, arr, (int)<sExtField>);
 		if (ret) {
-			ret = <sFuncName>(<p>, &bitStrm, pErrCode);
+            pBitStrm = &bitStrm;
+            <soInner>
+			//ret = <sFuncName>(<p>, &bitStrm, pErrCode);
+            pBitStrm = pBitStrm_save;
 		}
 	}
 }

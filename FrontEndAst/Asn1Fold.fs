@@ -460,13 +460,25 @@ let foldType2
                 seqOfFunc pi t ti (loopType (Some {ParentInfo.parent = t ; name=None; parentData=parentData}) ti.child ns) 
             | Sequence       ti -> 
                 let (parentData:'T, ns:'UserState) = preSeqFunc pi t ti us
-                let newChildren = 
+                //first process asn1 children and then asn.1 children.
+                let initialOrder = ti.children |> List.mapi(fun i c -> match c with Asn1Child x -> (x.Name.Value, i) | AcnChild x -> (x.Name.Value, i) ) |> Map.ofList
+                let newChildren, ns = 
                     ti.children |> 
+                    List.mapi(fun i c -> match c with Asn1Child _ -> (i, c) | AcnChild _ -> (i*10000, c)) |>
+                    List.sortBy fst |> 
+                    List.map snd |>
                     foldMap (fun curState ch -> 
                         match ch with
-                        | Asn1Child asn1Chlld   -> seqAsn1ChildFunc asn1Chlld (loopType (Some {ParentInfo.parent = t ; name=Some asn1Chlld.Name.Value; parentData=parentData}) asn1Chlld.Type curState)
-                        | AcnChild  acnChild    -> seqAcnChildFunc  acnChild curState) ns
-                seqFunc pi t ti newChildren 
+                        | Asn1Child asn1Chlld   -> 
+                            let newChild, ns = seqAsn1ChildFunc asn1Chlld (loopType (Some {ParentInfo.parent = t ; name=Some asn1Chlld.Name.Value; parentData=parentData}) asn1Chlld.Type curState)
+                            (asn1Chlld.Name.Value, newChild), ns
+                        | AcnChild  acnChild    -> 
+                            let newChild, ns = seqAcnChildFunc  acnChild curState
+                            (acnChild.Name.Value, newChild), ns) ns
+                //restore the correct order
+                let newChildren =
+                    newChildren |> List.sortBy(fun (nm, _)  -> initialOrder[nm]) |> List.map snd
+                seqFunc pi t ti (newChildren, ns) 
             | Choice         ti -> 
                 let (parentData:'T, ns:'UserState) = preChoiceFunc pi t ti us
                 let newChildren = ti.children |> foldMap (fun curState ch -> chChildFunc ch (loopType (Some {ParentInfo.parent = t ; name=Some ch.Name.Value; parentData=parentData}) ch.Type curState)) ns

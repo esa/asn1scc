@@ -2,8 +2,8 @@
   "profiles": {
     "asn1scc": {
       "commandName": "Project",
-      "commandLineArgs": "-c -uPER -sm -equal -o c_out/ a.asn",
-      "workingDirectory": "C:\\prj\\GitHub\\asn1scc\\Docs\\examples\\streaming_mode"
+      "commandLineArgs": "-c -o c_out/ -atc -ACN pus.asn pus.acn",
+      "workingDirectory": "C:\\prj\\GitHub\\asn1scc\\tmp\\029"
     }
   }
 }

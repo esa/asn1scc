@@ -1447,7 +1447,7 @@ RefTypeArgument2(v, sModName, sTasName, sParamName, sRefTypePath, bHasSuccess) :
 
 
 
-SizeDependency_oct_str_containing(p, sFuncName, sReqBytesForUperEncoding, v, bIsOctet) ::= <<
+SizeDependency_oct_str_containing(p, sFuncName, sReqBytesForUperEncoding, v, bIsOctet, sComment) ::= <<
 --first encode containing type to a temporary bitstream. That's the only way to learn in advance the size of the encoding octet string
 <sFuncName>_aux(<p>, tmpBs, result);
 if result.success then
@@ -1457,11 +1457,11 @@ end if;
 >>
 
 
-octet_string_containing_ext_field_func_encode(p, sFuncName, sReqBytesForUperEncoding, sExtField, sErrCode) ::= <<
+octet_string_containing_ext_field_func_encode(p, sFuncName, sReqBytesForUperEncoding, sExtField, sErrCode, soInner) ::= <<
 adaasn1rtl.encoding.uper.BitStream_EncodeOctetString_no_length(bs, tmpBs.Buffer, Integer(<sExtField>));
 >>
 
-octet_string_containing_ext_field_func_decode(p, sFuncName, sReqBytesForUperEncoding, sExtField, sErrCode) ::= <<
+octet_string_containing_ext_field_func_decode(p, sFuncName, sReqBytesForUperEncoding, sExtField, sErrCode, soInner) ::= <<
 --open new scope to declare some variables
 declare
     tmpBs : adaasn1rtl.encoding.Bitstream := adaasn1rtl.encoding.BitStream_init(<sReqBytesForUperEncoding>);
