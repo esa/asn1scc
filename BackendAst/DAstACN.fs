@@ -257,7 +257,7 @@ let private createAcnFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (co
                 let func = Some(EmitTypeAssignment_primitive varName sStar funcName isValidFuncName  (typeDefinition.longTypedefName l) lvars  bodyResult_funcBody soSparkAnnotations sInitilialExp prms prmNames (t.acnMaxSizeInBits = 0I) bBsIsUnreferenced bVarNameIsUnreferenced codec)
                 
                 //let errCodes = bodyResult.errCodes
-                let errCodStr = errCodes |> List.map(fun x -> (EmitTypeAssignment_def_err_code x.errCodeName) (BigInteger x.errCodeValue))
+                let errCodStr = errCodes |> List.map(fun x -> (EmitTypeAssignment_def_err_code x.errCodeName) (BigInteger x.errCodeValue)) |> List.distinct
                 let funcDef = Some(EmitTypeAssignment_primitive_def varName sStar funcName  (typeDefinition.longTypedefName l) errCodStr (t.acnMaxSizeInBits = 0I) (BigInteger (ceil ((double t.acnMaxSizeInBits)/8.0))) ( t.acnMaxSizeInBits) prms soSparkAnnotations codec)
                 func, funcDef,ns1a
 
@@ -1016,7 +1016,7 @@ let rec handleSingleUpdateDependency (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.Acn
         let baseFncName = baseTypeDefinitionName + "_ACN" + Encode.suffix
         let sReqBytesForUperEncoding = sprintf "%s_REQUIRED_BYTES_FOR_ACN_ENCODING" baseTypeDefinitionName
         let asn1TypeD = us.newTypesMap[d.asn1Type] :?> Asn1Type
-        let asn1TypeD = match asn1TypeD.Kind with ReferenceType  o -> o.resolvedType | _  -> asn1TypeD
+        let asn1TypeD = match asn1TypeD.Kind with ReferenceType  o -> o.resolvedType.ActualType | _  -> asn1TypeD
         let errCodes0, localVariables0, ns = 
             match asn1TypeD.acnEncFunction with
             | Some f  -> 
@@ -1758,7 +1758,6 @@ let createReferenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
         let bit_string_containing_func  = match l with C -> uper_c.bit_string_containing_func | Ada -> uper_a.bit_string_containing_func
         let octet_string_containing_ext_field_func = match l with C -> acn_c.octet_string_containing_ext_field_func | Ada -> acn_a.octet_string_containing_ext_field_func
         let bit_string_containing_ext_field_func = match l with C -> acn_c.bit_string_containing_ext_field_func | Ada -> acn_a.bit_string_containing_ext_field_func
-
 
         let baseTypeAcnFunction = baseType.getAcnFunction codec 
 
