@@ -7,6 +7,8 @@ open System.Numerics
 open FsUtils
 open CommonTypes
 open AbstractMacros
+open System.Collections.Generic
+
 //open Constraints
 
 
@@ -33,9 +35,11 @@ type State = {
     alphaIndex : int
     alphaFuncs : AlphaFunc list //func name, func body
     typeIdsSet : Map<String,int>
+    newTypesMap : Dictionary<ReferenceToType, System.Object>
 }
 
-let emptyState = {currErrorCode=0; curErrCodeNames=Set.empty; (*allocatedTypeDefNames = []; allocatedTypeDefNameInTas = Map.empty;*) alphaIndex=0; alphaFuncs=[]; typeIdsSet=Map.empty}
+
+let emptyState = {currErrorCode=0; curErrCodeNames=Set.empty; (*allocatedTypeDefNames = []; allocatedTypeDefNameInTas = Map.empty;*) alphaIndex=0; alphaFuncs=[]; typeIdsSet=Map.empty; newTypesMap = new Dictionary<ReferenceToType, System.Object>()}
 
 
 

@@ -8,6 +8,7 @@ open CommonTypes
 open DAst
 open DAstUtilFunctions
 open OutDirectories
+open System.Collections.Generic
 
 let foldMap = Asn1Fold.foldMap
 
@@ -800,17 +801,22 @@ let private createReferenceType (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInser
         }
     ((ReferenceType ret),newPrms), s10
 
-let private createType (r:Asn1AcnAst.AstRoot) pi (t:Asn1AcnAst.Asn1Type) ((newKind, newPrms),us) =
-    {
-        Asn1Type.Kind = newKind
-        id            = t.id
-        acnAligment   = t.acnAligment
-        acnParameters = newPrms 
-        Location      = t.Location
-        inheritInfo = t.inheritInfo
-        typeAssignmentInfo = t.typeAssignmentInfo
-        //newTypeDefName = DAstTypeDefinition2.getTypedefName r pi t
-    }, us
+let private createType (r:Asn1AcnAst.AstRoot) pi (t:Asn1AcnAst.Asn1Type) ((newKind, newPrms), (us:State )) =
+    let newAsn1Type  = 
+        {
+            Asn1Type.Kind = newKind
+            id            = t.id
+            acnAligment   = t.acnAligment
+            acnParameters = newPrms 
+            Location      = t.Location
+            inheritInfo = t.inheritInfo
+            typeAssignmentInfo = t.typeAssignmentInfo
+            //newTypeDefName = DAstTypeDefinition2.getTypedefName r pi t
+        }
+    match us.newTypesMap.ContainsKey t.id with
+    | false -> us.newTypesMap.Add(t.id, newAsn1Type)
+    | true  -> us.newTypesMap[t.id] <- newAsn1Type
+    newAsn1Type, us
 
 let private mapType (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (l:ProgrammingLanguage) (lm:LanguageMacros) (m:Asn1AcnAst.Asn1Module) (t:Asn1AcnAst.Asn1Type, us:State) =
     Asn1Fold.foldType2
@@ -979,7 +985,7 @@ let DoWork (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies)
         Seq.groupBy id |>
         Seq.map(fun (id, lst) -> (id, Seq.length lst)) |>
         Map.ofSeq
-    let initialState = {currErrorCode = 1; curErrCodeNames = Set.empty; (*allocatedTypeDefNames = []; allocatedTypeDefNameInTas = Map.empty;*) alphaIndex=0; alphaFuncs=[];typeIdsSet=typeIdsSet}
+    let initialState = {currErrorCode = 1; curErrCodeNames = Set.empty; (*allocatedTypeDefNames = []; allocatedTypeDefNameInTas = Map.empty;*) alphaIndex=0; alphaFuncs=[];typeIdsSet=typeIdsSet; newTypesMap = new Dictionary<ReferenceToType, System.Object>()}
     //first map all type assignments and then value assignments
     let files0, ns = TL "mapFile" (fun () -> r.Files |> foldMap (fun cs f -> mapFile r deps l lm f cs) initialState)
     let files, ns = TL "reMapFile" (fun () -> files0 |> foldMap (fun cs f -> reMapFile r files0 deps l lm f cs) ns)

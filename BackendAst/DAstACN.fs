@@ -257,7 +257,7 @@ let private createAcnFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (co
                 let func = Some(EmitTypeAssignment_primitive varName sStar funcName isValidFuncName  (typeDefinition.longTypedefName l) lvars  bodyResult_funcBody soSparkAnnotations sInitilialExp prms prmNames (t.acnMaxSizeInBits = 0I) bBsIsUnreferenced bVarNameIsUnreferenced codec)
                 
                 //let errCodes = bodyResult.errCodes
-                let errCodStr = errCodes |> List.map(fun x -> (EmitTypeAssignment_def_err_code x.errCodeName) (BigInteger x.errCodeValue))
+                let errCodStr = errCodes |> List.map(fun x -> (EmitTypeAssignment_def_err_code x.errCodeName) (BigInteger x.errCodeValue)) |> List.distinct
                 let funcDef = Some(EmitTypeAssignment_primitive_def varName sStar funcName  (typeDefinition.longTypedefName l) errCodStr (t.acnMaxSizeInBits = 0I) (BigInteger (ceil ((double t.acnMaxSizeInBits)/8.0))) ( t.acnMaxSizeInBits) prms soSparkAnnotations codec)
                 func, funcDef,ns1a
 
@@ -1015,10 +1015,29 @@ let rec handleSingleUpdateDependency (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.Acn
                 | false -> (ToC o.modName.Value) + "." + ToC2(r.args.TypePrefix + o.tasName.Value) 
         let baseFncName = baseTypeDefinitionName + "_ACN" + Encode.suffix
         let sReqBytesForUperEncoding = sprintf "%s_REQUIRED_BYTES_FOR_ACN_ENCODING" baseTypeDefinitionName
+        let asn1TypeD = us.newTypesMap[d.asn1Type] :?> Asn1Type
+        let asn1TypeD = match asn1TypeD.Kind with ReferenceType  o -> o.resolvedType.ActualType | _  -> asn1TypeD
+        let errCodes0, localVariables0, ns = 
+            match asn1TypeD.acnEncFunction with
+            | Some f  -> 
+                let fncBdRes, ns = f.funcBody us [] {CallerScope.modName = ""; arg = VALUE "dummy"}
+                match fncBdRes with
+                | Some x -> x.errCodes, x.localVariables, ns
+                | None   -> [], [], us
+            | None    -> [], [], us
+
         let updateFunc (typedefName :string) (vTarget : CallerScope) (pSrcRoot : CallerScope)  = 
             let pSizeable, checkPath = getAccessFromScopeNodeList d.asn1Type false l pSrcRoot
-            
-            let updateStatement = sizeDep_oct_str_containing (o.resolvedType.getParamValue pSizeable.arg l Encode) baseFncName sReqBytesForUperEncoding (vTarget.arg.getValue l) (match o.encodingOptions with Some eo -> eo.octOrBitStr = ContainedInOctString | None -> false)
+            let sComment= 
+                match asn1TypeD.acnEncFunction with
+                | Some f  -> 
+                    let fncBdRes, _ = f.funcBody us [] pSizeable
+                    match fncBdRes with
+                    | None -> ""
+                    | Some a -> a.funcBody
+                | None -> ""
+                    
+            let updateStatement = sizeDep_oct_str_containing (o.resolvedType.getParamValue pSizeable.arg l Encode) baseFncName sReqBytesForUperEncoding (vTarget.arg.getValue l) (match o.encodingOptions with Some eo -> eo.octOrBitStr = ContainedInOctString | None -> false) sComment
             match checkPath with
             | []    -> updateStatement
             | _     -> checkAccessPath checkPath updateStatement
@@ -1036,7 +1055,7 @@ let rec handleSingleUpdateDependency (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.Acn
                     GenericLocalVariable {GenericLocalVariable.name = "tmpBs"; varType = "adaasn1rtl.encoding.BitStream"; arrSize = None; isStatic = false;initExp = Some (sprintf "adaasn1rtl.encoding.BitStream_init(%s)" sReqBytesForUperEncoding)}
                 ]
 
-        Some ({AcnChildUpdateResult.updateAcnChildFnc = updateFunc; errCodes=[]; testCaseFnc=testCaseFnc; localVariables= localVars}), us
+        Some ({AcnChildUpdateResult.updateAcnChildFnc = updateFunc; errCodes=errCodes0; testCaseFnc=testCaseFnc; localVariables= localVariables0@localVars}), ns
     | AcnDepIA5StringSizeDeterminant (minSize, maxSize, szAcnProp)   ->
         let updateFunc (typedefName :string) (vTarget : CallerScope) (pSrcRoot : CallerScope)  = 
             let pSizeable, checkPath = getAccessFromScopeNodeList d.asn1Type true l pSrcRoot
@@ -1740,14 +1759,33 @@ let createReferenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
         let octet_string_containing_ext_field_func = match l with C -> acn_c.octet_string_containing_ext_field_func | Ada -> acn_a.octet_string_containing_ext_field_func
         let bit_string_containing_ext_field_func = match l with C -> acn_c.bit_string_containing_ext_field_func | Ada -> acn_a.bit_string_containing_ext_field_func
 
+        let baseTypeAcnFunction = baseType.getAcnFunction codec 
+
+
+
         let funcBody (errCode:ErroCode) (acnArgs: (AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) (p:CallerScope)        = 
             let funcBodyContent = 
-
                 match encOptions.acnEncodingClass, encOptions.octOrBitStr with
                 | SZ_EC_ExternalField    relPath    , ContainedInOctString  ->  
-                    let extField        = getExternaField r deps t.id
-                    let fncBody = octet_string_containing_ext_field_func (t.getParamValue p.arg l codec)  baseFncName sReqBytesForUperEncoding extField errCode.errCodeName codec
-                    Some(fncBody, [errCode],[])
+                    let filterDependency (d:AcnDependency) =
+                        match d.dependencyKind with
+                        | AcnDepSizeDeterminant_bit_oct_str_containt _   -> true
+                        | _                              -> false
+
+
+                    let extField        = getExternaField0 r deps t.id filterDependency
+
+                    let soInner, errCodes0, localVariables0 =
+                        match baseTypeAcnFunction with
+                        | None  -> None, [], []
+                        | Some baseTypeAcnFunction   ->
+                            let acnRes, ns = baseTypeAcnFunction.funcBody us (acnArgs) p
+                            match acnRes with
+                            | None  -> None, [], []
+                            | Some r -> Some r.funcBody, r.errCodes, r.localVariables
+
+                    let fncBody = octet_string_containing_ext_field_func (t.getParamValue p.arg l codec)  baseFncName sReqBytesForUperEncoding extField errCode.errCodeName soInner codec
+                    Some(fncBody, errCode::errCodes0,localVariables0)
                 | SZ_EC_ExternalField    relPath    , ContainedInBitString  ->  
                     let extField        = getExternaField r deps t.id
                     let fncBody = bit_string_containing_ext_field_func (t.getParamValue p.arg l codec)  baseFncName sReqBytesForUperEncoding sReqBitForUperEncoding extField errCode.errCodeName codec
@@ -1766,6 +1804,7 @@ let createReferenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
             match funcBodyContent with
             | None -> None
             | Some (funcBodyContent,errCodes, localVariables) -> Some ({AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = errCodes; localVariables = localVariables; bValIsUnReferenced= false; bBsIsUnReferenced=false})
+
         let soSparkAnnotations = Some(sparkAnnotations l (typeDefinition.longTypedefName l) codec)
         let a,b = createAcnFunction r l codec t typeDefinition  isValidFunc  (fun us e acnArgs p -> funcBody e acnArgs p, us) (fun atc -> true) soSparkAnnotations us
         Some a, b
