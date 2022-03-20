@@ -346,9 +346,19 @@ let private creareAcnProperty integerSizeInBytes (acnConstants : Map<string, Big
         | acnParser.BIG                 -> Ok (ENDIANNES AcnGenericTypes.BigEndianness)
         | acnParser.LITTLE              -> Ok (ENDIANNES AcnGenericTypes.LittleEndianness)
         | _                             -> Error (Bug_Error("creareAcnProperty_ENDIANNES"))
-    | acnParser.MAPPING_FUNCTION        -> Ok (MAPPING_FUNCTION (t.GetChild(0).TextL))
-    | acnParser.POST_ENCODING_FUNCTION  -> Ok (POST_ENCODING_FUNCTION (t.GetChild(0).TextL))
-    | acnParser.POST_DECODING_VALIDATOR -> Ok (PRE_DECODING_FUNCTION (t.GetChild(0).TextL))
+    | acnParser.MAPPING_FUNCTION        -> 
+        match t.ChildCount > 1 with
+        | false  -> Ok (MAPPING_FUNCTION (None, t.GetChild(0).TextL))
+        | true   -> Ok (MAPPING_FUNCTION (Some (t.GetChild(0).TextL), t.GetChild(2).TextL))
+    | acnParser.POST_ENCODING_FUNCTION  -> 
+        match t.ChildCount > 1 with
+        | false  -> Ok (POST_ENCODING_FUNCTION (None, t.GetChild(0).TextL))
+        | true   -> Ok (POST_ENCODING_FUNCTION (Some (t.GetChild(0).TextL), t.GetChild(2).TextL))
+
+    | acnParser.POST_DECODING_VALIDATOR -> 
+        match t.ChildCount > 1 with
+        | false  -> Ok (PRE_DECODING_FUNCTION (None, t.GetChild(0).TextL))
+        | true   -> Ok (PRE_DECODING_FUNCTION (Some (t.GetChild(0).TextL), t.GetChild(2).TextL))
     | acnParser.INT                     -> Ok (ENUM_SET_VALUE (t.BigIntL integerSizeInBytes))
     | acnParser.TERMINATION_PATTERN     -> 
         let tp = t

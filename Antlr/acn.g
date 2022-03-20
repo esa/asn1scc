@@ -205,9 +205,9 @@ adjustProp
 
 longFld 	:	asn1LID ('.' asn1LID)*		-> ^(LONG_FIELD asn1LID+);
 
-mappingFunctionProp         : MAPPING_FUNCTION^ (asn1LID|asn1UID);
-postEncodingFunctionProp    : POST_ENCODING_FUNCTION^ (asn1LID|asn1UID);
-preDecodingFunctionProp     : POST_DECODING_VALIDATOR^ (asn1LID|asn1UID);
+mappingFunctionProp         : MAPPING_FUNCTION^			( (asn1LID|asn1UID) ('.' (asn1LID|asn1UID))* );
+postEncodingFunctionProp    : POST_ENCODING_FUNCTION^	( (asn1LID|asn1UID) ('.' (asn1LID|asn1UID))* );
+preDecodingFunctionProp     : POST_DECODING_VALIDATOR^  ( (asn1LID|asn1UID) ('.' (asn1LID|asn1UID))* );
 
 alignToNextProp	
 	:	ALIGNTONEXT^ BYTE

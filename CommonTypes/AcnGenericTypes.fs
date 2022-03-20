@@ -278,13 +278,13 @@ type AcnIntEncoding =
     | BCD
 
 type MappingFunction  = 
-    | MappingFunction of StringLoc
+    | MappingFunction of (StringLoc option)*StringLoc
 
 type PostEncodingFunction  = 
-    | PostEncodingFunction of StringLoc
+    | PostEncodingFunction of (StringLoc option)*StringLoc
 
 type PreDecodingFunction  = 
-    | PreDecodingFunction of StringLoc
+    | PreDecodingFunction of (StringLoc option)*StringLoc
 
 
 type IntegerAcnProperties = {
@@ -444,9 +444,9 @@ type  GenericAcnProperty =
     | ENDIANNES         of AcnEndianness
     | ENUM_SET_VALUE    of IntLoc
     | TERMINATION_PATTERN of StringLoc //bit pattern
-    | MAPPING_FUNCTION  of StringLoc
-    | POST_ENCODING_FUNCTION of StringLoc
-    | PRE_DECODING_FUNCTION of StringLoc
+    | MAPPING_FUNCTION  of (StringLoc option)*StringLoc
+    | POST_ENCODING_FUNCTION of (StringLoc option)*StringLoc
+    | PRE_DECODING_FUNCTION of (StringLoc option)*StringLoc
 
 
 

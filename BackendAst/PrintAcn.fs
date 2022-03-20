@@ -76,9 +76,9 @@ let rec printTypeEncSpec (t:AcnTypeEncodingSpec) =
 
             | ENUM_SET_VALUE     newVal         -> newVal.Value.ToString()
             | TERMINATION_PATTERN  nullByte     -> nullByte.ToString()
-            | MAPPING_FUNCTION   fncName        -> fncName.Value
-            | POST_ENCODING_FUNCTION fncName    -> fncName.Value
-            | PRE_DECODING_FUNCTION fncName     -> fncName.Value
+            | MAPPING_FUNCTION   (modFncName, fncName)        -> match modFncName with None -> fncName.Value | Some modFncName -> modFncName.Value + "." + fncName.Value
+            | POST_ENCODING_FUNCTION (modFncName, fncName)    -> match modFncName with None -> fncName.Value | Some modFncName -> modFncName.Value + "." + fncName.Value
+            | PRE_DECODING_FUNCTION (modFncName, fncName)     -> match modFncName with None -> fncName.Value | Some modFncName -> modFncName.Value + "." + fncName.Value
         )
     
     let children =

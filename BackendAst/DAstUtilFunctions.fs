@@ -874,6 +874,33 @@ with
         | ReferenceType ref -> ref.baseInfo.acnMinSizeInBits
         | TimeType t        -> t.baseInfo.acnMinSizeInBits
 
+    member this.MappingFunctionsModules =
+        match this.Kind with
+        | Sequence     t -> 
+            match t.baseInfo.acnProperties.postEncodingFunction, t.baseInfo.acnProperties.preDecodingFunction with
+            | Some (AcnGenericTypes.PostEncodingFunction (a, _) ), Some (AcnGenericTypes.PreDecodingFunction (c, _)) -> [a;c] |> List.choose id |> List.map(fun z -> z.Value)
+            | Some (AcnGenericTypes.PostEncodingFunction (a, _) ), None -> [a] |> List.choose id |> List.map(fun z -> z.Value)
+            | None, Some (AcnGenericTypes.PreDecodingFunction (c, _)) -> [c] |> List.choose id |> List.map(fun z -> z.Value)
+            | None, None -> []
+
+        | Integer      t -> 
+            match t.baseInfo.acnProperties.mappingFunction with
+            | Some (AcnGenericTypes.MappingFunction (a, _)) -> [a] |> List.choose id |> List.map(fun z -> z.Value)
+            | None                                          -> []
+        | Real         _ -> []
+        | IA5String    _ -> []
+        | OctetString  _ -> []
+        | NullType     _ -> []
+        | BitString    _ -> []
+        | Boolean      _ -> []
+        | Enumerated   _ -> []
+        | SequenceOf   _ -> []
+        | Choice       _ -> []
+        | ObjectIdentifier _ -> []
+        | ReferenceType ref -> ref.resolvedType.MappingFunctionsModules
+        | TimeType _        -> []
+
+
     member this.acnEncFunction : AcnFunction option =
         match this.Kind with
         | Integer      t -> Some (t.acnEncFunction)

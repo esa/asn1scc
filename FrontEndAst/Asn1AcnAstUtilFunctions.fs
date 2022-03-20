@@ -106,6 +106,11 @@ type Asn1Type with
         | ObjectIdentifier _ -> this
 
 
+
+
+
+
+
     member this.FT_TypeDefintion =
         match this.Kind with
         | Integer      o  -> o.typeDef |> Map.toList |> List.map (fun (l, d) -> (l, FE_PrimitiveTypeDefinition d)) |> Map.ofList

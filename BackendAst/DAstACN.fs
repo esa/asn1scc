@@ -376,16 +376,28 @@ let createAcnIntegerFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (cod
         let IntUnconstraint = match l with C -> uper_c.IntUnconstraint          | Ada -> uper_a.IntUnconstraint
         let funcBodyContent = IntUnconstraint pp errCode.errCodeName false codec
         Some {UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = []}    *)
-    let soMapFunc = match t.acnProperties.mappingFunction with Some (MappingFunction mapFncName)    -> Some mapFncName.Value | None -> None
-    let soMapFunMod = getMappingFunctionModule r l soMapFunc
+    let soMapFunMod, soMapFunc  = 
+        match t.acnProperties.mappingFunction with 
+        | Some (MappingFunction (soMapFunMod, mapFncName))    -> 
+            let soMapFunMod, soMapFunc  =  soMapFunMod,  Some mapFncName.Value 
+            match soMapFunMod with
+            | None  -> getMappingFunctionModule r l soMapFunc, soMapFunc
+            | Some soMapFunMod   -> Some soMapFunMod.Value, soMapFunc
+        | None -> None, None
     let funcBody = createAcnIntegerFunctionInternal r l codec t.uperRange t.acnEncodingClass uperFuncBody (soMapFunc, soMapFunMod)
     (funcBody errCode), ns
 
 
 
 let createIntegerFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Integer) (typeDefinition:TypeDefintionOrReference)  (isValidFunc: IsValidFunction option) (uperFunc: UPerFunction) (us:State)  =
-    let soMapFunc = match o.acnProperties.mappingFunction with Some (MappingFunction mapFncName)    -> Some mapFncName.Value | None -> None
-    let soMapFunMod = getMappingFunctionModule r l soMapFunc
+    let soMapFunMod, soMapFunc  = 
+        match o.acnProperties.mappingFunction with 
+        | Some (MappingFunction (soMapFunMod, mapFncName))    -> 
+            let soMapFunMod, soMapFunc  =  soMapFunMod,  Some mapFncName.Value 
+            match soMapFunMod with
+            | None  -> getMappingFunctionModule r l soMapFunc, soMapFunc
+            | Some soMapFunMod   -> Some soMapFunMod.Value, soMapFunc
+        | None -> None, None
     let funcBody = createAcnIntegerFunctionInternal r l codec o.uperRange o.acnEncodingClass uperFunc.funcBody_e (soMapFunc, soMapFunMod)
     let soSparkAnnotations = Some(sparkAnnotations l (typeDefinition.longTypedefName l) codec)
     createAcnFunction r l codec t typeDefinition isValidFunc  (fun us e acnArgs p -> funcBody e acnArgs p, us) (fun atc -> true) soSparkAnnotations us
@@ -1379,15 +1391,28 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
             let bitStreamPositionsLocalVar = sprintf "bitStreamPositions_%d" (t.id.SeqeuenceOfLevel + 1)
             let bsPosStart = sprintf "bitStreamPositions_start%d" (t.id.SeqeuenceOfLevel + 1)
             match o.acnProperties.postEncodingFunction with
-            | Some (PostEncodingFunction fncName) when codec = Encode  ->
-                let actualFncName = match l with C -> (ToC fncName.Value) | Ada -> (ToC (r.args.mappingFunctionsModule.orElse "")) + "." + (ToC fncName.Value)
+            | Some (PostEncodingFunction (modFncName, fncName)) when codec = Encode  ->
+                let actualFncName = 
+                    match l with 
+                    | C ->  (ToC fncName.Value) 
+                    | Ada -> 
+                        match modFncName with
+                        | None -> (ToC (r.args.mappingFunctionsModule.orElse "")) + "." + (ToC fncName.Value)
+                        | Some modFncName -> (ToC modFncName.Value) + "." + (ToC fncName.Value)
+
                 let fncCall = sequence_call_post_encoding_function (p.arg.getPointer l) (actualFncName) bsPosStart  bitStreamPositionsLocalVar
                 let initialBitStrmStatement = sequence_save_bitStream_start bsPosStart codec
                 [AcnInsertedChild(bitStreamPositionsLocalVar, td.extention_function_potisions); AcnInsertedChild(bsPosStart, bitStreamName)]@localVariables, Some fncCall, Some bitStreamPositionsLocalVar, Some initialBitStrmStatement
             | _ ->
                 match o.acnProperties.preDecodingFunction with
-                | Some (PreDecodingFunction fncName) when codec = Decode  ->
-                    let actualFncName = match l with C -> (ToC fncName.Value) | Ada -> (ToC (r.args.mappingFunctionsModule.orElse "")) + "." + (ToC fncName.Value)
+                | Some (PreDecodingFunction (modFncName, fncName)) when codec = Decode  ->
+                    let actualFncName = 
+                        match l with 
+                        | C -> (ToC fncName.Value) 
+                        | Ada -> 
+                            match modFncName with
+                            | None -> (ToC (r.args.mappingFunctionsModule.orElse "")) + "." + (ToC fncName.Value)
+                            | Some modFncName -> (ToC modFncName.Value) + "." + (ToC fncName.Value)
                     let fncCall = sequence_call_post_decoding_validator (p.arg.getPointer l) (actualFncName) bsPosStart  bitStreamPositionsLocalVar
                     let initialBitStrmStatement = sequence_save_bitStream_start bsPosStart codec
                     [AcnInsertedChild(bitStreamPositionsLocalVar, td.extention_function_potisions); AcnInsertedChild(bsPosStart, bitStreamName)]@localVariables, Some fncCall, Some bitStreamPositionsLocalVar, Some initialBitStrmStatement

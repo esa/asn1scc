@@ -237,9 +237,9 @@ let private printUnit (r:DAst.AstRoot) (l:ProgrammingLanguage) (encodings: Commo
             let uperRtl = match r.args.encodings |> Seq.exists(fun e -> e = UPER || e = ACN) with true -> ["asn1crt_encoding_uper"] | false -> []
             let acnRtl = match r.args.encodings |> Seq.exists(fun e -> e = ACN) with true -> ["asn1crt_encoding_acn"] | false -> []
             let xerRtl = match r.args.encodings |> Seq.exists(fun e -> e = XER) with true -> ["asn1crt_encoding_xer"] | false -> []
-            let arrsImportedRtlFiles = encRtl@uperRtl@acnRtl@xerRtl
+            let arrsImportedRtlFiles = encRtl@uperRtl@acnRtl@xerRtl@pu.importedUserModules
 
-            Some (body_c.printSourceFile pu.name arrsImportedRtlFiles arrsUnnamedVariables (arrsValueAssignments@arrsSourceAnonymousValues) arrsTypeAssignments r.args.mappingFunctionsModule)
+            Some (body_c.printSourceFile pu.name arrsImportedRtlFiles arrsUnnamedVariables (arrsValueAssignments@arrsSourceAnonymousValues) arrsTypeAssignments)
         | Ada   ->
             let arrsNegativeReals = []
             let arrsBoolPatterns = []
@@ -252,7 +252,7 @@ let private printUnit (r:DAst.AstRoot) (l:ProgrammingLanguage) (encodings: Commo
 
             //adaasn1rtl.encoding is included by .uper or .acn or .xer. So, do not include it otherwise you get a warning
             let encRtl = []//match r.args.encodings |> Seq.exists(fun e -> e = UPER || e = ACN || e = XER) with true -> [] | false -> ["adaasn1rtl.encoding"]
-            let rtl = (*[body_a.rtlModuleName()]@*)encRtl@uperRtl@acnRtl@xerRtl@(r.args.mappingFunctionsModule |> Option.toList) |> List.distinct
+            let rtl = (*[body_a.rtlModuleName()]@*)encRtl@uperRtl@acnRtl@xerRtl@pu.importedUserModules |> List.distinct
             match arrsTypeAssignments with
             | []    -> None
             | _     -> Some (body_a.PrintPackageBody pu.name  (rtl@pu.importedProgramUnits) arrsNegativeReals arrsBoolPatterns arrsTypeAssignments arrsChoiceValueAssignments (pu.importedTypes |> List.distinct))

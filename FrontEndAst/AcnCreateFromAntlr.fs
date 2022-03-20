@@ -103,19 +103,19 @@ let private getIntEncodingProperty errLoc (props:GenericAcnProperty list) =
     | Some (GP_IEEE754_64     ) ->   raise(SemanticError(errLoc ,"The encoding property was expected to be one of 'pos-int','twos-complement','BCD' or 'ASCII' "))
 
 let private getMappingFunctionProperty acnErrLoc (props:GenericAcnProperty list) = 
-    match tryGetProp props (fun x -> match x with MAPPING_FUNCTION e -> Some e | _ -> None) with
+    match tryGetProp props (fun x -> match x with MAPPING_FUNCTION (md,fn) -> Some (md,fn) | _ -> None) with
     | None  -> None
-    | Some mapFuncName  -> Some (AcnGenericTypes.MappingFunction mapFuncName)
+    | Some (md,fn)  -> Some (AcnGenericTypes.MappingFunction (md,fn))
 
 let private getPostEncodingFunction (props:GenericAcnProperty list) = 
-    match tryGetProp props (fun x -> match x with POST_ENCODING_FUNCTION e -> Some e | _ -> None) with
+    match tryGetProp props (fun x -> match x with POST_ENCODING_FUNCTION (md,fn)-> Some (md,fn) | _ -> None) with
     | None  -> None
-    | Some mapFuncName  -> Some (AcnGenericTypes.POST_ENCODING_FUNCTION mapFuncName)
+    | Some (md,fn)  -> Some (AcnGenericTypes.POST_ENCODING_FUNCTION (md,fn))
 
 let private getPreDecodingFunction  (props:GenericAcnProperty list) = 
-    match tryGetProp props (fun x -> match x with PRE_DECODING_FUNCTION e -> Some e | _ -> None) with
+    match tryGetProp props (fun x -> match x with PRE_DECODING_FUNCTION (md,fn) -> Some (md,fn) | _ -> None) with
     | None  -> None
-    | Some mapFuncName  -> Some (AcnGenericTypes.PRE_DECODING_FUNCTION mapFuncName)
+    | Some (md,fn)  -> Some (AcnGenericTypes.PRE_DECODING_FUNCTION (md,fn))
 
 
 let private getRealEncodingProperty errLoc (props:GenericAcnProperty list) = 
@@ -1161,10 +1161,10 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (m:Asn1Ast.Asn1Mo
             let acnMinSizeInBits = alignmentSize + acnBitMaskSize + minChildrenSize
             let acnProperties = 
                 {
-                    SequenceAcnProperties.postEncodingFunction = tryGetProp combinedProperties (fun x -> match x with POST_ENCODING_FUNCTION e -> Some (PostEncodingFunction e) | _ -> None);
-                    preDecodingFunction = tryGetProp combinedProperties (fun x -> match x with PRE_DECODING_FUNCTION e -> Some (PreDecodingFunction e) | _ -> None)
+                    SequenceAcnProperties.postEncodingFunction = tryGetProp combinedProperties (fun x -> match x with POST_ENCODING_FUNCTION (md,fn) -> Some (PostEncodingFunction (md,fn)) | _ -> None);
+                    preDecodingFunction = tryGetProp combinedProperties (fun x -> match x with PRE_DECODING_FUNCTION (md,fn) -> Some (PreDecodingFunction (md,fn)) | _ -> None)
                 }
-            
+            (*
             match asn1.args.mappingFunctionsModule with
             | Some _    -> ()
             | None      ->
@@ -1179,6 +1179,7 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (m:Asn1Ast.Asn1Mo
                 | None          -> ()
                 | Some fncName  ->
                     raise(SemanticError(fncName.Location, (sprintf "Usage of ACN attributes 'post-encoding-function' or 'post-decoding-validator' requires the -mfm argument")))
+                    *)
 
             Sequence ({Sequence.children = mergedChildren;  acnProperties=acnProperties;  cons=cons; withcons = wcons;uperMaxSizeInBits=uperBitMaskSize+uperMaxChildrenSize; uperMinSizeInBits=uperBitMaskSize+uperMinChildrenSize;acnMaxSizeInBits=acnMaxSizeInBits;acnMinSizeInBits=acnMinSizeInBits; typeDef=typeDef}), chus
         | Asn1Ast.Choice      children     -> 

@@ -943,6 +943,7 @@ type ProgramUnit = {
     valueAssignments        : ValueAssignment list
     importedProgramUnits    : string list
     importedTypes           : string list
+    importedUserModules     : string list
 }
 
 

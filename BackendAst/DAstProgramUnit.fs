@@ -10,7 +10,6 @@ open DAst
 open DAstUtilFunctions
 
 
-
 let private getTypeDependencies (t:Asn1Type) : (TypeAssignmentInfo list )  
     =
     let prms = t.acnParameters |> List.choose(fun z -> match z.asn1Type with AcnGenericTypes.AcnPrmRefType (mdName,tsName) -> Some ({TypeAssignmentInfo.modName = mdName.Value; tasName = tsName.Value}) | _ -> None )    
@@ -120,12 +119,15 @@ let internal createProgramUnits (args:CommandLineSettings) (files: Asn1File list
                     | Some vl -> Some vl
                     | None    -> None (*raise(SemanticError(emptyLocation, sprintf "Type assignment %s.%s cannot be resolved within progam unit %s" ref.modName ref.tasName f.FileNameWithoutExtension))*)
                 )
+
+            let mappingFunctionsModules = sortedTypes |> List.map(fun t -> GetMySelfAndChildren t.Type |> List.map(fun q -> q.MappingFunctionsModules) |> List.collect id) |> List.collect id 
+            let importedUserModules = mappingFunctionsModules@(args.mappingFunctionsModule |> Option.toList) |> List.distinct
             let specFileName = f.FileNameWithoutExtension+"."+l.SpecExtention
             let bodyFileName = f.FileNameWithoutExtension+"."+l.BodyExtention
             let tetscase_specFileName = f.FileNameWithoutExtension+"_auto_tcs."+l.SpecExtention
             let tetscase_bodyFileName = f.FileNameWithoutExtension+"_auto_tcs."+l.BodyExtention
             let tetscase_name = f.FileNameWithoutExtension+"_auto_tcs"
-            {ProgramUnit.name = f.FileNameWithoutExtension; specFileName = specFileName; bodyFileName=bodyFileName; sortedTypeAssignments = sortedTypes; valueAssignments = fileValueAssignments; importedProgramUnits = importedProgramUnits; tetscase_specFileName=tetscase_specFileName; tetscase_bodyFileName=tetscase_bodyFileName; tetscase_name=tetscase_name; importedTypes= []})
+            {ProgramUnit.name = f.FileNameWithoutExtension; specFileName = specFileName; bodyFileName=bodyFileName; sortedTypeAssignments = sortedTypes; valueAssignments = fileValueAssignments; importedProgramUnits = importedProgramUnits; tetscase_specFileName=tetscase_specFileName; tetscase_bodyFileName=tetscase_bodyFileName; tetscase_name=tetscase_name; importedTypes= []; importedUserModules=importedUserModules})
     | Ada   -> 
         let typesMap = 
             files |> 
@@ -193,12 +195,14 @@ let internal createProgramUnits (args:CommandLineSettings) (files: Asn1File list
                     aaa) 
                 //Seq.map(fun ti -> (ToC ti.modName) + "." + (ToC (args.TypePrefix + ti.tasName)) ) |> Seq.distinct |> Seq.toList
 
+            let mappingFunctionsModules = sortedTypes |> List.map(fun t -> GetMySelfAndChildren t.Type |> List.map(fun q -> q.MappingFunctionsModules) |> List.collect id) |> List.collect id |> List.distinct
+            let importedUserModules = mappingFunctionsModules@(args.mappingFunctionsModule |> Option.toList) |> List.distinct
             let specFileName = ToC (m.Name.Value.ToLower()) + "." + l.SpecExtention
             let bodyFileName = ToC (m.Name.Value.ToLower()) + "." + l.BodyExtention
             let tetscase_specFileName = ToC (m.Name.Value.ToLower()) + "_auto_tcs." + l.SpecExtention
             let tetscase_bodyFileName = ToC (m.Name.Value.ToLower()) + "_auto_tcs." + l.BodyExtention
             //let importedProgramUnits = m.Imports |> List.map (fun im -> ToC im.Name.Value)
             let tetscase_name = ToC (m.Name.Value.ToLower()+"_auto_tcs")
-            {ProgramUnit.name = ToC m.Name.Value; specFileName = specFileName; bodyFileName=bodyFileName; sortedTypeAssignments = sortedTypes; valueAssignments = valueAssignments; importedProgramUnits = importedProgramUnits; tetscase_specFileName=tetscase_specFileName; tetscase_bodyFileName=tetscase_bodyFileName; tetscase_name=tetscase_name; importedTypes= importedTypes})
+            {ProgramUnit.name = ToC m.Name.Value; specFileName = specFileName; bodyFileName=bodyFileName; sortedTypeAssignments = sortedTypes; valueAssignments = valueAssignments; importedProgramUnits = importedProgramUnits; tetscase_specFileName=tetscase_specFileName; tetscase_bodyFileName=tetscase_bodyFileName; tetscase_name=tetscase_name; importedTypes= importedTypes; importedUserModules=importedUserModules})
 
 
