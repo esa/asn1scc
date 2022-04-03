@@ -877,12 +877,27 @@ with
     member this.MappingFunctionsModules =
         match this.Kind with
         | Sequence     t -> 
-            match t.baseInfo.acnProperties.postEncodingFunction, t.baseInfo.acnProperties.preDecodingFunction with
-            | Some (AcnGenericTypes.PostEncodingFunction (a, _) ), Some (AcnGenericTypes.PreDecodingFunction (c, _)) -> [a;c] |> List.choose id |> List.map(fun z -> z.Value)
-            | Some (AcnGenericTypes.PostEncodingFunction (a, _) ), None -> [a] |> List.choose id |> List.map(fun z -> z.Value)
-            | None, Some (AcnGenericTypes.PreDecodingFunction (c, _)) -> [c] |> List.choose id |> List.map(fun z -> z.Value)
-            | None, None -> []
+            let ret1 =
+                match t.baseInfo.acnProperties.postEncodingFunction, t.baseInfo.acnProperties.preDecodingFunction with
+                | Some (AcnGenericTypes.PostEncodingFunction (a, _) ), Some (AcnGenericTypes.PreDecodingFunction (c, _)) -> [a;c] |> List.choose id |> List.map(fun z -> z.Value)
+                | Some (AcnGenericTypes.PostEncodingFunction (a, _) ), None -> [a] |> List.choose id |> List.map(fun z -> z.Value)
+                | None, Some (AcnGenericTypes.PreDecodingFunction (c, _)) -> [c] |> List.choose id |> List.map(fun z -> z.Value)
+                | None, None -> []
+            let ret2 =
+                t.children |>
+                List.choose(fun c ->
+                    match c with
+                    | Asn1Child _   -> None
+                    | AcnChild  ancC ->
+                        match ancC.Type with
+                        | AcnInteger a -> 
+                            match a.acnProperties.mappingFunction with
+                            | Some (AcnGenericTypes.MappingFunction (a, _)) -> a
+                            | None                                          -> None
 
+                        | _            -> None)
+                    |> List.map(fun z -> z.Value)
+            ret1@ret2
         | Integer      t -> 
             match t.baseInfo.acnProperties.mappingFunction with
             | Some (AcnGenericTypes.MappingFunction (a, _)) -> [a] |> List.choose id |> List.map(fun z -> z.Value)
