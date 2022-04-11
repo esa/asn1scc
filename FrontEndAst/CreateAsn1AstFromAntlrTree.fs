@@ -598,13 +598,17 @@ and CreateSequenceChild integerSizeInBytes  (tasParameters : TemplateParameter l
                         | _                 -> Error (Bug_Error("Bug in CreateSequenceChild")) 
 
 
+                let comments =
+                    match fileTokens.Length > 0 with
+                    | true -> Antlr.Comment.GetComments(fileTokens, alreadyTakenComments, fileTokens.[x.TokenStopIndex].Line, x.TokenStartIndex - 1, x.TokenStopIndex + 2)
+                    | false -> [||]
                 let chInfo =
                     { 
                         ChildInfo.Name = lid.TextL; 
                         Type = chType;
                         Optionality = optVal
                         AcnInsertedField=false
-                        Comments = Antlr.Comment.GetComments(fileTokens, alreadyTakenComments, fileTokens.[x.TokenStopIndex].Line, x.TokenStartIndex - 1, x.TokenStopIndex + 2)
+                        Comments = comments
                     }
                 return ChildInfo chInfo
             | asn1Parser.COMPONENTS_OF -> 
