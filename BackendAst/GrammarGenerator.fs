@@ -169,9 +169,9 @@ let generatedAsn1Grammar (outDir:string) (ast:GenFile list) =
         | Integer   -> stg_asn1.Print_Integer "" (t.Constraints |> List.map printConstraint)
         | _         -> raise(BugErrorException "Not Implemented yet")
     let printTas (tas:GenTas) : string=
-        stg_asn1.PrintTypeAssignment tas.name (printAsn1Type tas.Type)
+        stg_asn1.PrintTypeAssignment tas.name (printAsn1Type tas.Type) [] "::="
     let printModule (m:GenMod) : string=
-        stg_asn1.PrintModule m.name (m.tases |> List.map printTas) [] "" []
+        stg_asn1.PrintModule m.name (m.tases |> List.map printTas) [] "" [] []
     let generateAsn1File (f:GenFile) =
         let content = stg_asn1.PrintAsn1File (f.mods |> List.map printModule)
         let outCFileName = Path.Combine(outDir, f.name + ".asn1")

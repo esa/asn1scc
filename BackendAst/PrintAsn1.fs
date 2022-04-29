@@ -84,19 +84,39 @@ let rec PrintType (t:Asn1Type) (m:Asn1Module) (bPrintInSignleModule:bool) =
     |ObjectIdentifier -> stg_asn1.Print_ObjectIdenitifier cons
     |RelativeObjectIdentifier -> stg_asn1.Print_RelativeObjectIdenitifier cons
     |Enumerated(items)  ->
-        let printItem (it:NamedItem) = stg_asn1.Print_Enumerated_child it.Name.Value it._value.IsSome (if it._value.IsSome then (PrintAsn1Value it._value.Value) else "")
-        stg_asn1.Print_Enumerated (items |> Seq.map printItem |> Seq.toArray) cons
+        let printItem i (it:NamedItem) = 
+            let arrsMultilineComments, soSingleLineComment  =
+                match it.Comments |> Seq.toList with
+                | [] -> [], None
+                | x::[] -> [], Some x
+                | xs  -> xs, None
+            let bLastChild = i = items.Length - 1
+            stg_asn1.Print_Enumerated_child it.Name.Value it._value.IsSome (if it._value.IsSome then (PrintAsn1Value it._value.Value) else "")  arrsMultilineComments soSingleLineComment bLastChild
+        stg_asn1.Print_Enumerated (items |> Seq.mapi printItem |> Seq.toArray) cons
     |Choice(children)   ->
-        let printChild (c:ChildInfo) = stg_asn1.Print_Choice_child c.Name.Value (PrintType c.Type m bPrintInSignleModule)
-        stg_asn1.Print_Choice (children |> Seq.map printChild |> Seq.toArray) cons
+        let printChild i (c:ChildInfo) = 
+            let arrsMultilineComments, soSingleLineComment  =
+                match c.Comments |> Seq.toList with
+                | [] -> [], None
+                | x::[] -> [], Some x
+                | xs  -> xs, None
+            let bLastChild = i = children.Length - 1
+            stg_asn1.Print_Choice_child c.Name.Value (PrintType c.Type m bPrintInSignleModule) arrsMultilineComments soSingleLineComment bLastChild
+        stg_asn1.Print_Choice (children |> Seq.mapi printChild |> Seq.toArray) cons
     |Sequence(children) ->
-        let printChild (c:ChildInfo) = 
+        let printChild i (c:ChildInfo) = 
+            let arrsMultilineComments, soSingleLineComment  =
+                match c.Comments |> Seq.toList with
+                | [] -> [], None
+                | x::[] -> [], Some x
+                | xs  -> xs, None
+            let bLastChild = i = children.Length - 1
             let bIsOptionalOrDefault, soDefValue = 
                 match c.Optionality with
                 |Some(Optional(dv))   -> true, match dv.defaultValue with Some v -> Some (PrintAsn1Value v) | None -> None
                 |_                   -> false, None
-            stg_asn1.Print_Sequence_child c.Name.Value (PrintType c.Type m bPrintInSignleModule) bIsOptionalOrDefault soDefValue
-        stg_asn1.Print_Sequence (children |> Seq.map printChild |> Seq.toArray) cons
+            stg_asn1.Print_Sequence_child c.Name.Value (PrintType c.Type m bPrintInSignleModule) bIsOptionalOrDefault soDefValue arrsMultilineComments soSingleLineComment bLastChild
+        stg_asn1.Print_Sequence (children |> Seq.mapi printChild |> Seq.toArray) cons
     |SequenceOf(child)  -> stg_asn1.Print_SequenceOf (PrintType child m bPrintInSignleModule) cons
     //|ReferenceType(mname, name, _) ->  
     |ReferenceType(r) ->  
@@ -105,7 +125,7 @@ let rec PrintType (t:Asn1Type) (m:Asn1Module) (bPrintInSignleModule:bool) =
         | false -> stg_asn1.Print_ReferenceType2 r.modName.Value r.tasName.Value cons
         
 
-let PrintTypeAss (t:TypeAssignment) m bPrintInSignleModule = stg_asn1.PrintTypeAssignment t.Name.Value (PrintType t.Type m bPrintInSignleModule)
+let PrintTypeAss (t:TypeAssignment) m bPrintInSignleModule = stg_asn1.PrintTypeAssignment t.Name.Value (PrintType t.Type m bPrintInSignleModule) t.Comments "::="
 
 let PrintValueAss (v:ValueAssignment) m bPrintInSignleModule = stg_asn1.PrintValueAssignment v.Name.Value (PrintType v.Type m bPrintInSignleModule) (PrintAsn1Value v.Value)
 
@@ -120,7 +140,7 @@ let PrintModule (m:Asn1Module) =
 
     let tases = m.TypeAssignments |> Seq.map(fun x -> PrintTypeAss x m false) |> Seq.toArray
     let vases = m.ValueAssignments |> Seq.map(fun x -> PrintValueAss x m false)|> Seq.toArray
-    stg_asn1.PrintModule m.Name.Value tases vases exports importsFromModule
+    stg_asn1.PrintModule m.Name.Value tases vases exports importsFromModule m.Comments
 
 let PrintFile (f:Asn1File) outDir newFileExt =
     let modules = f.Modules |> Seq.map PrintModule |> Seq.toArray
@@ -198,7 +218,7 @@ let printInASingleFile (r:AstRoot) outDir newFile (pdu:string option)=
     let modulesContent =
         let tases = tastToPrint |> Seq.map(fun tsInfo -> PrintTypeAss (tsMap.[tsInfo]) (modMap.[tsInfo.modName]) true) |> Seq.toArray
         let vases = allVasses |> Seq.map(fun (m,x) -> PrintValueAss x m true)|> Seq.toArray
-        stg_asn1.PrintModule "SingleModuleName" tases vases null []
+        stg_asn1.PrintModule "SingleModuleName" tases vases null [] []
 
     let outFileName = Path.Combine(outDir, newFile)
     File.WriteAllText(outFileName, modulesContent.Replace("\r",""))

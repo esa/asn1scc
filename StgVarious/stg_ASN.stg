@@ -6,7 +6,11 @@ PrintAsn1File(arrsModules) ::= <<
 
 
 
-PrintModule(sName, arrsTas, arrsVas, sExports, arrsImportsFromModule) ::= <<
+PrintModule(sName, arrsTas, arrsVas, sExports, arrsImportsFromModule, arrsComments) ::= <<
+<if(arrsComments)>
+<arrsComments : {l | -- <l>}; separator="\n">
+
+<endif>
 <sName> DEFINITIONS AUTOMATIC TAGS ::= BEGIN 
 <if(sExports)>
     EXPORTS
@@ -33,7 +37,13 @@ PrintModuleImportFromModule(arrsImports, sModName) ::= <<
 <arrsImports; separator = ", "> FROM <sModName>
 >>
 
-PrintTypeAssignment(sName, sType) ::= "<sName> ::= <sType>"
+PrintTypeAssignment(sName, sType, arrsComments, sAsn1AssignOp) ::= <<
+<if(arrsComments)>
+<arrsComments : {l | -- <l>}; separator="\n">
+
+<endif>
+<sName> <sAsn1AssignOp> <sType>
+>>
 
 PrintTypeAssignment2(sID, soBaseType, sName, sTypeBody) ::= <<
 -- ID: <sID>
@@ -63,33 +73,49 @@ Print_Boolean(arrsConstraints) ::= "BOOLEAN <arrsConstraints>"
 Print_ObjectIdenitifier(arrsConstraints) ::= "OBJECT IDENTIFIER <arrsConstraints>"
 Print_RelativeObjectIdenitifier(arrsConstraints) ::= "RELATIVE-OID <arrsConstraints>"
 
-Print_Enumerated_child(sName, bHasValue, sValue) ::= "<sName><if(bHasValue)>(<sValue>)<endif>"
+Print_Enumerated_child(sName, bHasValue, sValue, arrsMultilineComments, soSingleLineComment, bLastChild) ::= <<
+<if(arrsMultilineComments)>
+<arrsMultilineComments : {l | -- <l>}; separator="\n">
+
+<endif>
+<sName; format="-15"><if(bHasValue)>(<sValue>)<endif><if(!bLastChild)>,<endif><if(soSingleLineComment)> -- <soSingleLineComment><endif>
+>>
 
 Print_Enumerated(arrsItems, arrsConstraints) ::= <<
 ENUMERATED {
-    <arrsItems: {it|<it>}; separator=",\n">
+    <arrsItems: {it|<it>}; separator="\n">
 } <arrsConstraints>
 >>
 
 Print_SequenceOf(sChild, arrsConstraints) ::= "SEQUENCE <arrsConstraints> OF <sChild>"
 
 
-Print_Sequence_child(sName, sChildType, bIsOptionalOrDefault, soDefValue) ::= <<
-<sName; format="-15"> <sChildType> <if(bIsOptionalOrDefault)><if(soDefValue)>DEFAULT <soDefValue><else>OPTIONAL<endif><endif>
+Print_Sequence_child(sName, sChildType, bIsOptionalOrDefault, soDefValue, arrsMultilineComments, soSingleLineComment, bLastChild) ::= <<
+<if(arrsMultilineComments)>
+<arrsMultilineComments : {l | -- <l>}; separator="\n">
+
+<endif>
+<sName; format="-15"> <sChildType><if(bIsOptionalOrDefault)> <if(soDefValue)>DEFAULT <soDefValue><else>OPTIONAL<endif><endif><if(!bLastChild)>,<endif><if(soSingleLineComment)> -- <soSingleLineComment><endif>
 >>
 
 Print_Sequence(arrsChildren, arrsConstraints) ::= <<
 SEQUENCE {
-    <arrsChildren: {ch|<ch>}; separator=",\n">
+    <arrsChildren: {ch|<ch>}; separator="\n">
 } <arrsConstraints>
 >>
 
 
-Print_Choice_child(sName, sChildType) ::= "<sName; format=\"-15\"> <sChildType>"
+Print_Choice_child(sName, sChildType, arrsMultilineComments, soSingleLineComment, bLastChild) ::= <<
+<if(arrsMultilineComments)>
+<arrsMultilineComments : {l | -- <l>}; separator="\n">
+
+<endif>
+<sName; format="-15"> <sChildType><if(!bLastChild)>,<endif><if(soSingleLineComment)> -- <soSingleLineComment><endif>
+>>
 
 Print_Choice(arrsChildren, arrsConstraints) ::= <<
 CHOICE {
-    <arrsChildren: {ch|<ch>}; separator=",\n">
+    <arrsChildren: {ch|<ch>}; separator="\n">
 } <arrsConstraints>
 >>
 
