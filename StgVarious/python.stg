@@ -228,7 +228,7 @@ ContractExprSequence(arrsChildren) ::= ""
 
 /* Print Values */
 Print_IntegerValue(nVal) ::= "$nVal$"
-Print_RealValue(dVal) ::= "$dVal$"
+Print_RealValue(dVal) ::= <<float("$dVal$".replace(',', '.'))>>   /* some locales do not use a dot separator */
 Print_StringValue(v) ::= <<"$v$">>
 Print_TrueValue() ::= "True"
 Print_FalseValue() ::= "False"
