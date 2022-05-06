@@ -326,25 +326,25 @@ values for this type are those of the intersection of constraints .
 
 */
 type	: typeTag?
-(   nULL						-> ^(TYPE_DEF typeTag? nULL)
-    |bitStringContainingType				-> ^(TYPE_DEF typeTag? bitStringContainingType )
-    |octetStringContainingType				-> ^(TYPE_DEF typeTag? octetStringContainingType )
-    |bitStringType constraint*				-> ^(TYPE_DEF typeTag? bitStringType constraint* )
-    |booleanType constraint*				-> ^(TYPE_DEF typeTag? booleanType constraint* )
-    |enumeratedType constraint*				-> ^(TYPE_DEF typeTag? enumeratedType constraint* )
-    |integerType constraint*				-> ^(TYPE_DEF typeTag? integerType constraint* )
-    |realType constraint*		                -> ^(TYPE_DEF typeTag? realType constraint* )
-    |stringType constraint*		                -> ^(TYPE_DEF typeTag? stringType constraint* )
-    |referencedType	constraint*	                -> ^(TYPE_DEF typeTag? referencedType constraint* )
+(   nULL UNITS?						-> ^(TYPE_DEF typeTag? nULL)
+    |bitStringContainingType UNITS?				-> ^(TYPE_DEF typeTag? bitStringContainingType  UNITS?)
+    |octetStringContainingType UNITS?				-> ^(TYPE_DEF typeTag? octetStringContainingType  UNITS?)
+    |bitStringType constraint* UNITS?				-> ^(TYPE_DEF typeTag? bitStringType constraint*  UNITS?)
+    |booleanType constraint* UNITS?				-> ^(TYPE_DEF typeTag? booleanType constraint*  UNITS?)
+    |enumeratedType constraint* UNITS?				-> ^(TYPE_DEF typeTag? enumeratedType constraint*  UNITS?)
+    |integerType constraint* UNITS?				-> ^(TYPE_DEF typeTag? integerType constraint* UNITS?)
+    |realType constraint* UNITS?                -> ^(TYPE_DEF typeTag? realType constraint* UNITS?)
+    |stringType constraint*	UNITS?	                -> ^(TYPE_DEF typeTag? stringType constraint*  UNITS?)
+    |referencedType	constraint*	UNITS?                -> ^(TYPE_DEF typeTag? referencedType constraint*  UNITS?)
     |sequenceOfType 				        -> ^(TYPE_DEF typeTag? sequenceOfType)
-    |choiceType	constraint*		        	-> ^(TYPE_DEF typeTag? choiceType constraint* )
-    |sequenceType constraint*	                        -> ^(TYPE_DEF typeTag? sequenceType constraint* )
-    |setType	constraint*		                -> ^(TYPE_DEF typeTag? setType )
+    |choiceType	constraint* UNITS?		        	-> ^(TYPE_DEF typeTag? choiceType constraint*  UNITS?)
+    |sequenceType constraint* UNITS?	                        -> ^(TYPE_DEF typeTag? sequenceType constraint*  UNITS?)
+    |setType	constraint*	UNITS?	                -> ^(TYPE_DEF typeTag? setType  UNITS?)
     |setOfType						-> ^(TYPE_DEF typeTag? setOfType)
-    |objectIdentifier constraint*	                -> ^(TYPE_DEF typeTag? objectIdentifier constraint* )
-    |relativeOID	constraint*		        -> ^(TYPE_DEF typeTag? relativeOID constraint* )
+    |objectIdentifier constraint* UNITS?	                -> ^(TYPE_DEF typeTag? objectIdentifier constraint*  UNITS?)
+    |relativeOID	constraint*	UNITS?	        -> ^(TYPE_DEF typeTag? relativeOID constraint*  UNITS?)
     |selectionType					-> ^(TYPE_DEF typeTag? selectionType)
-	|timeType								-> ^(TYPE_DEF typeTag? timeType)
+	|timeType UNITS?								-> ^(TYPE_DEF typeTag? timeType  UNITS?)
 )
 ;
 
@@ -489,12 +489,12 @@ componentType
 	;	
 	
 sequenceOfType
-	:	a=SEQUENCE (sizeShortConstraint | constraint)? OF (identifier)? type			
-		-> ^(SEQUENCE_OF_TYPE[$a] sizeShortConstraint? constraint? identifier? type )
+	:	a=SEQUENCE (sizeShortConstraint | constraint)?  UNITS? OF (identifier)? type			
+		-> ^(SEQUENCE_OF_TYPE[$a] sizeShortConstraint? constraint?  UNITS? identifier? type )
 	;
 	
 setOfType
-	:	a=SET (sizeShortConstraint | constraint)? OF (identifier)? type				-> ^(SET_OF_TYPE[$a] sizeShortConstraint? constraint? identifier? type )
+	:	a=SET (sizeShortConstraint | constraint)?  UNITS? OF (identifier)? type				-> ^(SET_OF_TYPE[$a] sizeShortConstraint? constraint?  UNITS? identifier? type )
 	;		
 
 	
@@ -854,6 +854,9 @@ FloatingPointLiteral
 DOT	:	 '.';	
 
 
+UNITS
+    :   '--{' ( options {greedy=false;} : . )* '}--' 
+    ;
 
 
 

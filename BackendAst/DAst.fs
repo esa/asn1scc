@@ -824,6 +824,8 @@ and Asn1Type = {
     typeAssignmentInfo  : AssignmentInfo option
 
     Kind            : Asn1TypeKind
+    unitsOfMeasure : string option
+
     //parInfoData : Asn1Fold.ParentInfo<ParentInfoData> option
     //newTypeDefName  : string
 }

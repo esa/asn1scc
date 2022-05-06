@@ -157,7 +157,7 @@ let rec printType (stgFileName:string) (m:Asn1Module) (tas:IcdTypeAssignment) (t
         let sKind = Kind2Name  stgFileName t
         let sMaxBitsExplained =  GetWhyExplanation stgFileName t r
         let sCommentLine = GetCommentLine  tas.comments t
-        icd_uper.EmitPrimitiveType stgFileName color sTasName (ToC sTasName) sKind sMinBytes sMaxBytes sMaxBitsExplained sCommentLine ( if sAsn1Constraints.Trim() ="" then "N.A." else sAsn1Constraints) sMinBits sMaxBits (sCommentLine.Split [|'\n'|])
+        icd_uper.EmitPrimitiveType stgFileName color sTasName (ToC sTasName) sKind sMinBytes sMaxBytes sMaxBitsExplained sCommentLine ( if sAsn1Constraints.Trim() ="" then "N.A." else sAsn1Constraints) sMinBits sMaxBits (sCommentLine.Split [|'\n'|]) t.unitsOfMeasure
     match t.Kind with
     | Integer    o   ->
         let sAsn1Constraints = o.AllCons |> List.map (foldRangeCon (fun z -> z.ToString())) |> Seq.StrJoin ""
@@ -198,13 +198,19 @@ let rec printType (stgFileName:string) (m:Asn1Module) (tas:IcdTypeAssignment) (t
             let sMinBits, sMinBytes, sMaxBits, sMaxBytes = getMinMaxBitsAndBytes ch.Type.uperMinSizeInBits ch.Type.uperMaxSizeInBits
 
             let sMaxBitsExplained =  GetWhyExplanation stgFileName ch.Type r
-            icd_uper.EmmitSequenceChild stgFileName sClass nIndex ch.Name.Value sComment  sOptionality  sType sAsn1Constraints sMinBits (sMaxBits+sMaxBitsExplained)
+            let soUnit = 
+                let rec getUnits (t:Asn1Type) =
+                    match t.Kind with
+                    |ReferenceType a when t.unitsOfMeasure.IsNone -> getUnits (a.resolvedType)
+                    | _              -> t.unitsOfMeasure
+                getUnits ch.Type
+            icd_uper.EmmitSequenceChild stgFileName sClass nIndex ch.Name.Value sComment  sOptionality  sType sAsn1Constraints sMinBits (sMaxBits+sMaxBitsExplained) soUnit
         let SeqPreamble =
             let optChild = seq.Asn1Children |> Seq.filter (fun x -> x.Optionality.IsSome) |> Seq.mapi(fun i c -> icd_uper.EmmitSequencePreambleSingleComment stgFileName (BigInteger (i+1)) c.Name.Value)
             let nLen = optChild |> Seq.length
             if  nLen > 0 then
                 let sComment = icd_uper.EmmitSequencePreambleComment stgFileName optChild
-                let ret = icd_uper.EmmitSequenceChild stgFileName (icd_uper.OddRow stgFileName ()) (BigInteger 1) "Preamble" sComment  "No"  "Bit mask" "N.A." (nLen.ToString()) (nLen.ToString())
+                let ret = icd_uper.EmmitSequenceChild stgFileName (icd_uper.OddRow stgFileName ()) (BigInteger 1) "Preamble" sComment  "No"  "Bit mask" "N.A." (nLen.ToString()) (nLen.ToString()) None
                 Some ret
             else
                 None

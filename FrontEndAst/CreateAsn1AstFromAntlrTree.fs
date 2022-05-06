@@ -450,7 +450,14 @@ let rec CreateType integerSizeInBytes (tasParameters : TemplateParameter list) (
         let typeNode = List.head(typeNodes)
         let children_cons = if typeNode.Type=asn1Parser.SEQUENCE_OF_TYPE || typeNode.Type=asn1Parser.SET_OF_TYPE then getTreeChildren(typeNode) 
                             else children
+        let units = 
+            match children_cons |> List.filter(fun x -> x.Type = asn1Parser.UNITS) |> List.map(fun z -> z.Text) with
+            | []    -> None
+            | x1::_ -> 
+                let ret = x1.Replace("--{","").Replace("}--","")
+                Some ret
         let contraintNodes = children_cons |> List.filter(fun x -> ConstraintNodes |> List.exists(fun y -> y=x.Type) )
+
         let! asn1Kind =
             match typeNode.Type with
             | asn1Parser.INTEGER_TYPE       -> Ok Integer
@@ -543,6 +550,7 @@ let rec CreateType integerSizeInBytes (tasParameters : TemplateParameter list) (
                 Location = tree.Location
                 parameterizedTypeInstance = false
                 acnInfo = acnTypeEncodingSpec 
+                unitsOfMeasure = units
             }
         return ret
     }
@@ -804,7 +812,7 @@ let CreateAsn1Module integerSizeInBytes (astRoot:list<ITree>) (acnAst:AcnAst) (i
         List.filter(fun x -> x.Type = asn1Parser.INTEGER_TYPE && not (x.Children.IsEmpty) && x.Parent.Parent.Type = asn1Parser.TYPE_ASSIG) |>
         List.collect(fun x -> 
             let tas = x.Parent.Parent.GetChild(0).TextL
-            let Type = { Asn1Type.Kind =  ReferenceType(mdName, tas, None, []); Constraints= []; Location = tas.Location; parameterizedTypeInstance = false; acnInfo = None}
+            let Type = { Asn1Type.Kind =  ReferenceType(mdName, tas, None, []); Constraints= []; Location = tas.Location; parameterizedTypeInstance = false; acnInfo = None;unitsOfMeasure = None}
             
             let scope = TypeScope(mdName, tas)
 

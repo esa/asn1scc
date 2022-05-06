@@ -114,6 +114,7 @@ and ValueScope =
 and Asn1Type = {
     Kind:Asn1TypeKind;
     Constraints:list<Asn1Constraint>;
+    unitsOfMeasure : string option
     Location: SrcLoc   //Line no, Char pos
     parameterizedTypeInstance : bool
     acnInfo     : AcnTypeEncodingSpec option

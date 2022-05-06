@@ -98,6 +98,8 @@ let CloneType (old:Asn1Type) m key cons state =
         Location = old.Location
         parameterizedTypeInstance = old.parameterizedTypeInstance
         acnInfo = old.acnInfo
+        unitsOfMeasure = old.unitsOfMeasure
+
     }, newState
 
     

@@ -514,6 +514,7 @@ type Asn1Type = {
 
     acnEncSpecPostion           : (SrcLoc*SrcLoc) option   //start pos, end pos
     acnEncSpecAntlrSubTree      :ITree option
+    unitsOfMeasure : string option
 }
 
 

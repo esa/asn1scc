@@ -247,7 +247,7 @@ and MapNamedItem (r:ParameterizedAsn1Ast.AstRoot) typeScope (n:ParameterizedAsn1
         ada_name = ToC n.Name.Value
         _value = match n._value with
                  | None -> None
-                 | Some(x)  -> Some (MapAsn1Value r {ParameterizedAsn1Ast.Asn1Type.Kind = ParameterizedAsn1Ast.Integer; Constraints = []; Location=n.Name.Location;parameterizedTypeInstance=false;acnInfo=None} typeScope (visitNamedItemValue n) x)
+                 | Some(x)  -> Some (MapAsn1Value r {ParameterizedAsn1Ast.Asn1Type.Kind = ParameterizedAsn1Ast.Integer; Constraints = []; Location=n.Name.Location;parameterizedTypeInstance=false;acnInfo=None;unitsOfMeasure = None} typeScope (visitNamedItemValue n) x)
         Comments = n.Comments
     }
 
@@ -289,8 +289,8 @@ and MapAsn1Constraint (r:ParameterizedAsn1Ast.AstRoot) (t: ParameterizedAsn1Ast.
     | ParameterizedAsn1Ast.Asn1Constraint.RangeContraint_val_MAX(v,b)        -> Asn1Ast.RangeContraint_val_MAX (MapAsn1Value r t typeScope (visitValue cs) v, b)
     | ParameterizedAsn1Ast.Asn1Constraint.RangeContraint_MIN_val(v,b)        -> Asn1Ast.RangeContraint_MIN_val (MapAsn1Value r t typeScope (visitValue cs) v, b)
     | ParameterizedAsn1Ast.TypeInclusionConstraint(s1,s2)   -> Asn1Ast.TypeInclusionConstraint(s1,s2)
-    | ParameterizedAsn1Ast.Asn1Constraint.SizeContraint(c)                 -> Asn1Ast.SizeContraint(MapAsn1Constraint r {ParameterizedAsn1Ast.Asn1Type.Kind = ParameterizedAsn1Ast.Integer; Constraints = []; Location=emptyLocation;parameterizedTypeInstance=false;acnInfo=None} typeScope (visitConstraint cs) c)
-    | ParameterizedAsn1Ast.AlphabetContraint(c)             -> Asn1Ast.AlphabetContraint(MapAsn1Constraint r {ParameterizedAsn1Ast.Asn1Type.Kind = ParameterizedAsn1Ast.IA5String; Constraints = []; Location=emptyLocation;parameterizedTypeInstance=false;acnInfo=None} typeScope (visitConstraint cs) c)
+    | ParameterizedAsn1Ast.Asn1Constraint.SizeContraint(c)                 -> Asn1Ast.SizeContraint(MapAsn1Constraint r {ParameterizedAsn1Ast.Asn1Type.Kind = ParameterizedAsn1Ast.Integer; Constraints = []; Location=emptyLocation;parameterizedTypeInstance=false;acnInfo=None;unitsOfMeasure = None} typeScope (visitConstraint cs) c)
+    | ParameterizedAsn1Ast.AlphabetContraint(c)             -> Asn1Ast.AlphabetContraint(MapAsn1Constraint r {ParameterizedAsn1Ast.Asn1Type.Kind = ParameterizedAsn1Ast.IA5String; Constraints = []; Location=emptyLocation;parameterizedTypeInstance=false;acnInfo=None;unitsOfMeasure = None} typeScope (visitConstraint cs) c)
     | ParameterizedAsn1Ast.UnionConstraint(c1,c2, b)           -> 
         let cs1 = visitConstraint cs
         let cs2 = visitSilbingConstraint cs1
@@ -333,6 +333,8 @@ and MapAsn1Type (r:ParameterizedAsn1Ast.AstRoot) typeScope (t:ParameterizedAsn1A
                    newC, newSs) (visitConstraint []) |> fst
             Location = t.Location
             parameterizedTypeInstance = t.parameterizedTypeInstance
+            unitsOfMeasure = t.unitsOfMeasure
+
             acnInfo = t.acnInfo
         }        
     match t.Kind with

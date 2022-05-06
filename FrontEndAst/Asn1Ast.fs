@@ -121,6 +121,8 @@ type Asn1Optionality =
 type Asn1Type = {
     Kind            : Asn1TypeKind;
     Constraints     : Asn1Constraint list
+    unitsOfMeasure : string option
+
     Location        : SrcLoc //Line no, Char pos
     parameterizedTypeInstance : bool
     acnInfo     :    AcnGenericTypes.AcnTypeEncodingSpec option

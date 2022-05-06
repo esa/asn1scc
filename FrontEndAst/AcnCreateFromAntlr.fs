@@ -1396,6 +1396,8 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (m:Asn1Ast.Asn1Mo
             match acnType with
             | None -> None
             | Some st -> st.antlrSubTree
+        unitsOfMeasure = t.unitsOfMeasure
+
     }, kindState
 
 let private mergeTAS (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (m:Asn1Ast.Asn1Module) (am:AcnModule option)  (tas:Asn1Ast.TypeAssignment) (us:Asn1AcnMergeState) : (TypeAssignment*Asn1AcnMergeState) =

@@ -811,6 +811,7 @@ let private createType (r:Asn1AcnAst.AstRoot) pi (t:Asn1AcnAst.Asn1Type) ((newKi
             Location      = t.Location
             inheritInfo = t.inheritInfo
             typeAssignmentInfo = t.typeAssignmentInfo
+            unitsOfMeasure = t.unitsOfMeasure
             //newTypeDefName = DAstTypeDefinition2.getTypedefName r pi t
         }
     match us.newTypesMap.ContainsKey t.id with

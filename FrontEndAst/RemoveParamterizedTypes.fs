@@ -95,6 +95,7 @@ let rec CloneType  (r:AstRoot)  (curModule:Asn1Module) (oldModName:string) (name
             Location = old.Location
             parameterizedTypeInstance = false
             acnInfo = old.acnInfo
+            unitsOfMeasure = old.unitsOfMeasure
         }
     retType, (implicitImports@newImports |> Seq.distinct |> Seq.toList)
 
@@ -255,6 +256,7 @@ and DoAsn1Type (r:AstRoot) (curModule:Asn1Module) (implicitImports : List<string
             Location = t.Location
             parameterizedTypeInstance = false
             acnInfo = acnInfo
+            unitsOfMeasure = t.unitsOfMeasure
         }        
     match t.Kind with
     | SequenceOf(child) -> 

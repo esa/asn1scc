@@ -106,7 +106,7 @@ $arrsItems;separator="\n"$
 >>
 
 // applicable to Integers, booleans, reals
-EmitPrimitiveType(sColor, sTasName, sTasNameC, sAsnKindName, sMinBytes, sMaxBytes, sMaxBitsExplained, sCommentLine, sAsn1Constraints, sMinBits, sMaxBits, arrsComments) ::= <<
+EmitPrimitiveType(sColor, sTasName, sTasNameC, sAsnKindName, sMinBytes, sMaxBytes, sMaxBitsExplained, sCommentLine, sAsn1Constraints, sMinBits, sMaxBits, arrsCommentsm, soUnit) ::= <<
 <a name="ICD_$sTasNameC$"></a> 
 <table border="0" width="100%" >
 <tbody>
@@ -124,11 +124,15 @@ EmitPrimitiveType(sColor, sTasName, sTasNameC, sAsnKindName, sMinBytes, sMaxByte
 <td height="35" align="center">
     <font face="Verdana" color="#FFFFFF" size="2">max = $sMaxBytes$ bytes$sMaxBitsExplained$</font>
 </td>
+<td height="35" align="center">
+    <font face="Verdana" color="#FFFFFF" size="2">Unit</font>
+</td>
+
 </tr>
 
 $if(sCommentLine)$
 <tr class="CommentRow">
-<td class="comment2" colspan="4">$sCommentLine$</td>
+<td class="comment2" colspan="5">$sCommentLine$</td>
 </tr>
 
 $endif$
@@ -137,12 +141,14 @@ $endif$
 <td class="hrconstraint2" colspan="2">Constraints</td>
 <td class="hrMin2">Min Length (bits)</td>
 <td class="hrMax2">Max Length (bits)</td>
+<td class="hrMax2">Unit</td>
 </tr>
 
 <tr class="OddRow">
     <td class="constraint" colspan="2">$sAsn1Constraints$</td>
     <td class="min" >$sMinBits$</td>
     <td class="max" >$sMaxBits$$sMaxBitsExplained$</td>
+    <td class="max" >$soUnit$</td>
 </tr>
 
 </tbody>
@@ -169,11 +175,14 @@ EmitSequence(sColor, sTasName, sTasNameC, sMinBytes, sMaxBytes, sMaxBitsExplaine
 <td height="35" colspan="2" align="center">
     <font face="Verdana" color="#FFFFFF" size="2">max = $sMaxBytes$ bytes$sMaxBitsExplained$</font>
 </td>
+<td height="35" colspan="2" align="center">
+    <font face="Verdana" color="#FFFFFF" size="2">Unit</font>
+</td>
 </tr>
 
 $if(sCommentLine)$
 <tr class="CommentRow">
-<td class="comment2" colspan="4">$sCommentLine$</td>
+<td class="comment2" colspan="9">$sCommentLine$</td>
 </tr>
 $endif$
 
@@ -186,6 +195,7 @@ $endif$
 <td class="hrconstraint">Constraint</td>
 <td class="hrMin">Min Length (bits)</td>
 <td class="hrMax">Max Length (bits)</td>
+<td class="hrMax">Unit</td>
 </tr>
 
 $arrsChildren;separator="\n"$
@@ -206,7 +216,7 @@ EmmitSeqChild_RefType(sRefName, sRefNameC) ::= <<
 OddRow() ::= "OddRow"
 EvenRow() ::= "EvenRow"
 
-EmmitSequenceChild(sCssClass, nIndex, sName, sComment, sOptionality, sType, sConstraint, sMin, sMax) ::= <<
+EmmitSequenceChild(sCssClass, nIndex, sName, sComment, sOptionality, sType, sConstraint, sMin, sMax, soUnit) ::= <<
 <tr class="$sCssClass$">
 <td class="no">$nIndex$</td>
 <td class="field">$sName$</td>
@@ -216,6 +226,7 @@ EmmitSequenceChild(sCssClass, nIndex, sName, sComment, sOptionality, sType, sCon
 <td class="constraint">$sConstraint$</td>
 <td class="min">$sMin$</td>
 <td class="max">$sMax$</td>
+<td class="max">$soUnit$</td>
 </tr>
 >>
 
