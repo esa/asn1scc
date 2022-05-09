@@ -362,11 +362,11 @@ let main0 argv =
                     match getCustmStgFileNames comFile with
                     | Some(stgFile, outFile)  -> GenerateUperIcd.DoWork r stgFile outFile
                     | None  -> ()
-                | IcdAcn outFile       -> GenerateAcnIcd.DoWork r  acnDeps "icdtemplate_acn.stg" outFile
+                | IcdAcn outFile       -> GenerateAcnIcd.DoWork r  acnDeps "icdtemplate_acn.stg"  (Some "icdtemplate_uper.stg") outFile
                 | CustomIcdAcn comFile ->
                     match getCustmStgFileNames comFile with
                     | Some(stgFile, outFile)  -> 
-                        GenerateAcnIcd.DoWork r  acnDeps stgFile outFile
+                        GenerateAcnIcd.DoWork r  acnDeps stgFile None outFile
                     | None  -> ()
                 | AdaUses   -> DAstUtilFunctions.AdaUses r
                 | ACND      -> GenerateFiles.EmmitDefaultACNGrammar r outDir

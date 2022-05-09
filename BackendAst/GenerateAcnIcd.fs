@@ -495,10 +495,14 @@ let emitCss (r:AstRoot) stgFileName   outFileName =
     let cssContent = icd_acn.RootCss stgFileName ()
     File.WriteAllText(outFileName, cssContent.Replace("\r", ""))
 
-let DoWork (r:AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (stgFileName:string)   outFileName =
+let DoWork (r:AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (stgFileName:string) (asn1HtmlStgFileMacros:string option)   outFileName =
     let files1 = r.Files |> Seq.map (fun f -> PrintTasses stgFileName f r ) 
     let bAcnParamsMustBeExplained = true 
-    let files2 = r.Files |> Seq.map (GenerateUperIcd.PrintFile2 stgFileName)
+    let asn1HtmlMacros =
+        match asn1HtmlStgFileMacros with
+        | None  -> stgFileName
+        | Some x -> x
+    let files2 = r.Files |> Seq.map (GenerateUperIcd.PrintFile2 asn1HtmlMacros)
     let files3 = PrintAcnAsHTML stgFileName r 
     let cssFileName = Path.ChangeExtension(outFileName, ".css")
     let htmlContent = icd_acn.RootHtml stgFileName files1 files2 bAcnParamsMustBeExplained files3 (Path.GetFileName(cssFileName))
