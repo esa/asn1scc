@@ -139,7 +139,7 @@ EmitSequenceOrChoice(bIsAnonymousType, sTasName, sTasNameC, bHasAcnDef, sAsn1Kin
 <tbody>
 
 <tr class="typeRow">
-<td colspan="6">
+<td colspan="7">
 $sTasName$ <font size="-1">($if(bIsAnonymousType)$<i>anonymous </i>$endif$$sAsn1Kinf$)</font>
 <font size="-2"><a href="#ASN1_$sTasNameC$" class="fileLink">ASN.1</a>$if(bHasAcnDef)$  <a href="#ACN_$sTasNameC$" class="fileLink">ACN</a>$endif$</font>
 </td>
@@ -155,7 +155,7 @@ $sTasName$ <font size="-1">($if(bIsAnonymousType)$<i>anonymous </i>$endif$$sAsn1
 
 $if(sCommentLine)$
 <tr class="CommentRow">
-<td class="comment2" colspan="8">$sCommentLine$</td>
+<td class="comment2" colspan="9">$sCommentLine$</td>
 </tr>
 $endif$
 
@@ -164,7 +164,7 @@ $endif$
 $if(arrsParams)$
 <tr class="headerRow">
 <td class="hrNo">No</td>
-<td class="hrField" colspan="3">ACN Parameters <a href="#ACN_PARAMS_EXPLAINED123" class="acnParamsLink">[?]</a></td>
+<td class="hrField" colspan="4">ACN Parameters <a href="#ACN_PARAMS_EXPLAINED123" class="acnParamsLink">[?]</a></td>
 <td class="hrType" colspan="4">Type</td>
 </tr>
 $arrsParams$
@@ -179,6 +179,7 @@ $endif$
 <td class="hrConstraint">Constraint</td>
 <td class="hrMin">Min Bits</td>
 <td class="hrMax">Max Bits</td>
+<td class="hrMax">Unit</td>
 </tr>
 
 $arrsChildren;separator="\n"$
@@ -188,7 +189,7 @@ $arrsChildren;separator="\n"$
 >>
 
 
-EmmitSeqOrChoiceRow(sCssClass, nIndex, sName, sComment, sPresentWhen, sType, sConstraint, sMin, sMax, noAlignToNextSize) ::= <<
+EmmitSeqOrChoiceRow(sCssClass, nIndex, sName, sComment, sPresentWhen, sType, sConstraint, sMin, sMax, noAlignToNextSize, soUnit) ::= <<
 $if(noAlignToNextSize)$
 <tr class="$sCssClass$">
 <td class="no"></td>
@@ -199,6 +200,7 @@ $if(noAlignToNextSize)$
 <td class="constraint"></td>
 <td class="min">0</td>
 <td class="max">$noAlignToNextSize$</td>
+<td class="max">$soUnit$</td>
 </tr>
 
 $endif$
@@ -211,6 +213,7 @@ $endif$
 <td class="constraint">$sConstraint$</td>
 <td class="min">$sMin$</td>
 <td class="max">$sMax$</td>
+<td class="max">$soUnit$</td>
 </tr>
 >>
 
@@ -252,7 +255,7 @@ EmmitSeqChild_RefType(sRefName, sRefNameC) ::= <<
 
 
 
-EmitPrimitiveType(bIsAnonymousType, sTasName, sTasNameC, bHasAcnDef, sAsnKindName, sMinBytes, sMaxBytes, sMaxBitsExplained, sCommentLine, sAsn1Constraints, sMinBits, sMaxBits, arrsParams, arrsComments) ::= <<
+EmitPrimitiveType(bIsAnonymousType, sTasName, sTasNameC, bHasAcnDef, sAsnKindName, sMinBytes, sMaxBytes, sMaxBitsExplained, sCommentLine, sAsn1Constraints, sMinBits, sMaxBits, arrsParams, arrsComments, soUnit) ::= <<
 <a name="ICD_$sTasNameC$"></a> 
 <table width="100%" >
 <tbody>
@@ -270,11 +273,14 @@ $sTasName$ <font size="-1">($if(bIsAnonymousType)$<i>anonymous </i>$endif$$sAsnK
 <td align="left">
     <font size="-1">Max:&nbsp;$sMaxBytes$&nbsp;bytes$sMaxBitsExplained$</font>
 </td>
+<td align="left">
+    <font size="-1"></font>
+</td>
 </tr>
 
 $if(sCommentLine)$
 <tr class="CommentRow">
-<td class="comment2" colspan="4">$sCommentLine$</td>
+<td class="comment2" colspan="5">$sCommentLine$</td>
 </tr>
 
 $endif$
@@ -292,12 +298,14 @@ $endif$
 <td class="hrConstraint2" colspan="2">Constraints</td>
 <td class="hrMin">Min Length (bits)</td>
 <td class="hrMax">Max Length (bits)</td>
+<td class="hrMax">Unit</td>
 </tr>
 
 <tr class="OddRow">
     <td class="constraint" colspan="2">$sAsn1Constraints$</td>
     <td class="min" >$sMinBits$</td>
     <td class="max" >$sMaxBits$$sMaxBitsExplained$</td>
+    <td class="max" >$soUnit$</td>
 </tr>
 
 </tbody>

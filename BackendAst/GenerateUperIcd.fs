@@ -26,6 +26,11 @@ let rec GetMySelfAndChildren (t:Asn1Type) =
         |_ -> ()    
     }
 
+let rec getUnits (t:Asn1Type) =
+    match t.Kind with
+    |ReferenceType a when t.unitsOfMeasure.IsNone -> getUnits (a.resolvedType)
+    | _              -> t.unitsOfMeasure
+
 let foldGenericCon  valToStrFunc    (c:Asn1AcnAst.GenericConstraint<'v>)  =
     Asn1Fold.foldGenericConstraint
         (fun e1 e2 b s      -> stg_asn1.Print_UnionConstraint e1 e2, s)
@@ -198,12 +203,7 @@ let rec printType (stgFileName:string) (m:Asn1Module) (tas:IcdTypeAssignment) (t
             let sMinBits, sMinBytes, sMaxBits, sMaxBytes = getMinMaxBitsAndBytes ch.Type.uperMinSizeInBits ch.Type.uperMaxSizeInBits
 
             let sMaxBitsExplained =  GetWhyExplanation stgFileName ch.Type r
-            let soUnit = 
-                let rec getUnits (t:Asn1Type) =
-                    match t.Kind with
-                    |ReferenceType a when t.unitsOfMeasure.IsNone -> getUnits (a.resolvedType)
-                    | _              -> t.unitsOfMeasure
-                getUnits ch.Type
+            let soUnit =  getUnits ch.Type
             icd_uper.EmmitSequenceChild stgFileName sClass nIndex ch.Name.Value sComment  sOptionality  sType sAsn1Constraints sMinBits (sMaxBits+sMaxBitsExplained) soUnit
         let SeqPreamble =
             let optChild = seq.Asn1Children |> Seq.filter (fun x -> x.Optionality.IsSome) |> Seq.mapi(fun i c -> icd_uper.EmmitSequencePreambleSingleComment stgFileName (BigInteger (i+1)) c.Name.Value)
@@ -237,12 +237,13 @@ let rec printType (stgFileName:string) (m:Asn1Module) (tas:IcdTypeAssignment) (t
                 //( if ret.Trim() ="" then "N.A." else ret)
             let sMinBits, sMinBytes, sMaxBits, sMaxBytes = getMinMaxBitsAndBytes ch.chType.uperMinSizeInBits ch.chType.uperMaxSizeInBits
             let sMaxBitsExplained =  GetWhyExplanation stgFileName ch.chType r
-            icd_uper.EmmitChoiceChild stgFileName sClass nIndex ch.Name.Value sComment  sType sAsn1Constraints sMinBits (sMaxBits+sMaxBitsExplained)
+            let soUnit =  getUnits ch.chType
+            icd_uper.EmmitChoiceChild stgFileName sClass nIndex ch.Name.Value sComment  sType sAsn1Constraints sMinBits (sMaxBits+sMaxBitsExplained) soUnit
         let ChIndex =
             let optChild = chInfo.children |> Seq.mapi(fun i c -> icd_uper.EmmitChoiceIndexSingleComment stgFileName (BigInteger (i+1)) c.Name.Value)
             let sComment = icd_uper.EmmitChoiceIndexComment stgFileName optChild
             let indexSize = (GetChoiceUperDeterminantLengthInBits(BigInteger(Seq.length chInfo.children))).ToString()
-            icd_uper.EmmitChoiceChild stgFileName (icd_uper.OddRow stgFileName ()) (BigInteger 1) "ChoiceIndex" sComment    "unsigned int" "N.A." indexSize indexSize
+            icd_uper.EmmitChoiceChild stgFileName (icd_uper.OddRow stgFileName ()) (BigInteger 1) "ChoiceIndex" sComment    "unsigned int" "N.A." indexSize indexSize None
         let sTasName = tas.name
         let sMaxBitsExplained = ""
         let sCommentLine = GetCommentLine tas.comments t
@@ -285,7 +286,7 @@ let rec printType (stgFileName:string) (m:Asn1Module) (tas:IcdTypeAssignment) (t
             let nIndex = lineFrom + i
             let sFieldName = icd_uper.ItemNumber stgFileName i
             let sComment = ""
-            icd_uper.EmmitChoiceChild stgFileName sClass nIndex sFieldName sComment  sType sAsn1Constraints sMinChildBits sMaxChildBits
+            icd_uper.EmmitChoiceChild stgFileName sClass nIndex sFieldName sComment  sType sAsn1Constraints sMinChildBits sMaxChildBits None
         
         let LengthRow =
             let nMin, nLengthSize = 
@@ -299,7 +300,7 @@ let rec printType (stgFileName:string) (m:Asn1Module) (tas:IcdTypeAssignment) (t
             let ret = t.ConstraintsAsn1Str |> Seq.StrJoin "" //+++ t.Constraints |> Seq.map PrintAsn1.PrintConstraint |> Seq.StrJoin "" 
             let sCon = ( if ret.Trim() ="" then "N.A." else ret)
 
-            icd_uper.EmmitChoiceChild stgFileName (icd_uper.OddRow stgFileName ()) (BigInteger 1) "Length" comment    "unsigned int" sCon (nMin.ToString()) (nLengthSize.ToString())
+            icd_uper.EmmitChoiceChild stgFileName (icd_uper.OddRow stgFileName ()) (BigInteger 1) "Length" comment    "unsigned int" sCon (nMin.ToString()) (nLengthSize.ToString()) None
 
         let sTasName = tas.name
         let sMaxBitsExplained = ""

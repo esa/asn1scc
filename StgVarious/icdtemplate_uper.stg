@@ -175,7 +175,7 @@ EmitSequence(sColor, sTasName, sTasNameC, sMinBytes, sMaxBytes, sMaxBitsExplaine
 <td height="35" colspan="2" align="center">
     <font face="Verdana" color="#FFFFFF" size="2">max = $sMaxBytes$ bytes$sMaxBitsExplained$</font>
 </td>
-<td height="35" colspan="2" align="center">
+<td height="35" colspan="1" align="center">
     <font face="Verdana" color="#FFFFFF" size="2">Unit</font>
 </td>
 </tr>
@@ -252,7 +252,7 @@ EmitChoice(sColor, sTasName, sTasNameC, sMinBytes, sMaxBytes, sMaxBitsExplained,
 <tbody>
 
 <tr  bgcolor="$sColor$">
-<td height="35" colspan="4"  >
+<td height="35" colspan="3"  >
 <font face="Verdana" color="#FFFFFF" size="4">$sTasName$</font><font face="Verdana" color="#FFFFFF" size="2">(CHOICE) </font>
 <font face="Verdana" color="#FFFFFF" size="2"><a href="#ASN1_$sTasNameC$">ASN.1</a></font>
 </td>
@@ -264,11 +264,14 @@ EmitChoice(sColor, sTasName, sTasNameC, sMinBytes, sMaxBytes, sMaxBitsExplained,
 <td height="35" colspan="2" align="center">
     <font face="Verdana" color="#FFFFFF" size="2">max = $sMaxBytes$ bytes$sMaxBitsExplained$</font>
 </td>
+<td height="35" colspan="1" align="center">
+    <font face="Verdana" color="#FFFFFF" size="2">Unit</font>
+</td>
 </tr>
 
 $if(sCommentLine)$
 <tr class="CommentRow">
-<td class="comment2" colspan="4">$sCommentLine$</td>
+<td class="comment2" colspan="8">$sCommentLine$</td>
 </tr>
 $endif$
 
@@ -280,6 +283,7 @@ $endif$
 <td class="hrconstraint">Constraint</td>
 <td class="hrMin">Min Length (bits)</td>
 <td class="hrMax">Max Length (bits)</td>
+<td class="hrMax">Unit</td>
 </tr>
 
 $arrsChildren;separator="\n"$
@@ -289,7 +293,7 @@ $arrsChildren;separator="\n"$
 >>
 
 
-EmmitChoiceChild(sCssClass, nIndex, sName, sComment,  sType, sConstraint, sMin, sMax) ::= <<
+EmmitChoiceChild(sCssClass, nIndex, sName, sComment,  sType, sConstraint, sMin, sMax, soUnit) ::= <<
 <tr class="$sCssClass$">
 <td class="no">$nIndex$</td>
 <td class="field">$sName$</td>
@@ -298,6 +302,7 @@ EmmitChoiceChild(sCssClass, nIndex, sName, sComment,  sType, sConstraint, sMin, 
 <td class="constraint">$sConstraint$</td>
 <td class="min">$sMin$</td>
 <td class="max">$sMax$</td>
+<td class="max">$soUnit$</td>
 </tr>
 >>
 
