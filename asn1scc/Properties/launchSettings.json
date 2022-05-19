@@ -2,8 +2,8 @@
   "profiles": {
     "asn1scc": {
       "commandName": "Project",
-      "commandLineArgs": "-icdAcn a2.html a.asn a.acn",
-      "workingDirectory": "C:\\prj\\GitHub\\asn1scc\\tmp\\033-ICD-OCTET-STRING"
+      "commandLineArgs": "-c -uPER -atc -o c_out/ a.asn1",
+      "workingDirectory": "C:\\prj\\GitHub\\asn1scc\\tmp\\#0235"
     }
   }
 }
