@@ -183,13 +183,17 @@ let rec printType stgFileName (tas:GenerateUperIcd.IcdTypeAssignment) (t:Asn1Typ
                 | Asn1Child ch  ->
                     let sType = 
                         let defaultRetValue = 
-                            match ch.Type.ActualType.Kind with
-                            | Sequence _
-                            | Choice _
-                            | SequenceOf _ -> 
-                                icd_acn.EmmitSeqChild_RefType stgFileName ch.Type.id.AsString.RDD (ToC ch.Type.id.AsString.RDD)
-                            | _            ->
+                            match ch.Type.Kind with
+                            | ReferenceType o when not o.baseInfo.hasExtraConstrainsOrChildrenOrAcnArgs -> 
                                 icd_acn.EmmitSeqChild_RefType stgFileName ch.Type.FT_TypeDefintion.[CommonTypes.C].asn1Name (ToC ch.Type.FT_TypeDefintion.[CommonTypes.C].asn1Name)
+                            | _ ->
+                                match ch.Type.ActualType.Kind with
+                                | Sequence _
+                                | Choice _
+                                | SequenceOf _ -> 
+                                    icd_acn.EmmitSeqChild_RefType stgFileName ch.Type.id.AsString.RDD (ToC ch.Type.id.AsString.RDD)
+                                | _            ->
+                                    icd_acn.EmmitSeqChild_RefType stgFileName ch.Type.FT_TypeDefintion.[CommonTypes.C].asn1Name (ToC ch.Type.FT_TypeDefintion.[CommonTypes.C].asn1Name)
                         match ch.Type.ActualType.Kind with
                         | DAst.NullType       o  when o.baseInfo.acnProperties.encodingPattern.IsSome  -> 
                                                      handleNullType o.baseInfo.acnProperties.encodingPattern defaultRetValue
@@ -228,13 +232,16 @@ let rec printType stgFileName (tas:GenerateUperIcd.IcdTypeAssignment) (t:Asn1Typ
             Seq.map(fun ch -> 
                     match ch with
                     | Asn1Child ch  ->
-                        match ch.Type.ActualType.Kind with
-                        | Sequence _
-                        | Choice _
-                        | SequenceOf _ -> 
-                            let chTas = {tas with name=ch.Type.id.AsString.RDD; t=ch.Type; comments = Array.concat [ tas.comments; [|sprintf "Acn inline encoding in the context of %s type and %s component" tas.name ch.Name.Value|]]; isBlue = true }
-                            printType stgFileName chTas ch.Type m r isAnonymousType
-                        | _            -> []
+                        match ch.Type.Kind with
+                        | ReferenceType o when not o.baseInfo.hasExtraConstrainsOrChildrenOrAcnArgs -> []
+                        | _     ->
+                            match ch.Type.ActualType.Kind with
+                            | Sequence _
+                            | Choice _
+                            | SequenceOf _ -> 
+                                let chTas = {tas with name=ch.Type.id.AsString.RDD; t=ch.Type; comments = Array.concat [ tas.comments; [|sprintf "Acn inline encoding in the context of %s type and %s component" tas.name ch.Name.Value|]]; isBlue = true }
+                                printType stgFileName chTas ch.Type m r isAnonymousType
+                            | _            -> []
                     | AcnChild _       -> [])|> 
             Seq.collect id |> Seq.toList
         let arRows =
@@ -253,14 +260,17 @@ let rec printType stgFileName (tas:GenerateUperIcd.IcdTypeAssignment) (t:Asn1Typ
 
             let sType = 
                 let defaultRetValue = icd_acn.EmmitSeqChild_RefType stgFileName ch.chType.FT_TypeDefintion.[CommonTypes.C].asn1Name (ToC ch.chType.FT_TypeDefintion.[CommonTypes.C].asn1Name)
-                match ch.chType.ActualType.Kind with
-                | Sequence _
-                | Choice _
-                | SequenceOf _ -> 
-                    icd_acn.EmmitSeqChild_RefType stgFileName ch.chType.id.AsString.RDD (ToC ch.chType.id.AsString.RDD)
-                | DAst.NullType       o  when o.baseInfo.acnProperties.encodingPattern.IsSome  -> 
-                                                handleNullType o.baseInfo.acnProperties.encodingPattern defaultRetValue
-                | _                       -> defaultRetValue
+                match ch.chType.Kind with
+                | ReferenceType o when not o.baseInfo.hasExtraConstrainsOrChildrenOrAcnArgs -> defaultRetValue
+                | _  ->
+                    match ch.chType.ActualType.Kind with
+                    | Sequence _
+                    | Choice _
+                    | SequenceOf _ -> 
+                        icd_acn.EmmitSeqChild_RefType stgFileName ch.chType.id.AsString.RDD (ToC ch.chType.id.AsString.RDD)
+                    | DAst.NullType       o  when o.baseInfo.acnProperties.encodingPattern.IsSome  -> 
+                                                    handleNullType o.baseInfo.acnProperties.encodingPattern defaultRetValue
+                    | _                       -> defaultRetValue
 
             let sAsn1Constraints = ch.chType.ConstraintsAsn1Str |> Seq.StrJoin ""
             let sMaxBits, sMaxBytes = ch.chType.acnMaxSizeInBits.ToString(), BigInteger(System.Math.Ceiling(double(ch.chType.acnMaxSizeInBits)/8.0)).ToString()
@@ -314,13 +324,16 @@ let rec printType stgFileName (tas:GenerateUperIcd.IcdTypeAssignment) (t:Asn1Typ
         let childTasses = 
             chInfo.children |> 
             Seq.map(fun ch -> 
-                    match ch.chType.ActualType.Kind with
-                    | Sequence _
-                    | Choice _
-                    | SequenceOf _ -> 
-                        let chTas = {tas with name=ch.chType.id.AsString.RDD; t=ch.chType; comments = Array.concat [ tas.comments; [|sprintf "Acn inline encoding in the context of %s type and %s component" tas.name ch.Name.Value|]]; isBlue = true }
-                        printType stgFileName chTas ch.chType m r isAnonymousType
-                    | _            -> [] )|> 
+                    match ch.chType.Kind with
+                    | ReferenceType o when not o.baseInfo.hasExtraConstrainsOrChildrenOrAcnArgs -> []
+                    | _  ->
+                        match ch.chType.ActualType.Kind with
+                        | Sequence _
+                        | Choice _
+                        | SequenceOf _ -> 
+                            let chTas = {tas with name=ch.chType.id.AsString.RDD; t=ch.chType; comments = Array.concat [ tas.comments; [|sprintf "Acn inline encoding in the context of %s type and %s component" tas.name ch.Name.Value|]]; isBlue = true }
+                            printType stgFileName chTas ch.chType m r isAnonymousType
+                        | _            -> [] )|> 
             Seq.collect id |> Seq.toList
         [chRet]@childTasses
     | IA5String  o  ->
