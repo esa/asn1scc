@@ -15,7 +15,7 @@ group xml;
 //delimiters "$", "$"
 
 
-RootXml(arrsFiles) ::= <<
+RootXml(arrsFiles, arrsSortedTypeAssignmentRefs) ::= <<
 #!/usr/bin/env python
 # ASN.1 Data model
 asn1Files = []
@@ -27,6 +27,10 @@ types = {}
 variables = {}
 $arrsFiles;separator="\n"$
 >>
+
+TypeAssignmentReference(sModuName, sTasName) ::= <<
+>>
+
 
 FileXml(sFileName, arrsModules) ::= <<
 asn1Files.append("$sFileName$")

@@ -14,14 +14,18 @@ group xml;
 //delimiters "$", "$"
 
 
-RootXml(arrsFiles) ::= <<
+RootXml(arrsFiles, arrsSortedTypeAssignmentRefs) ::= <<
 <?xml version="1.0" encoding="utf-8"?>
 <ASN1AST>
+    $arrsSortedTypeAssignmentRefs;separator="\n"$
     $arrsFiles;separator="\n"$
 </ASN1AST>
 >>
 
 
+TypeAssignmentReference(sModuName, sTasName) ::= <<
+<TypeAssignmentReference ModuleName="$sModuName$" TypeAssignmentName="$sTasName$"/>
+>>
 
 FileXml(sFileName, arrsModules) ::= <<
 <Asn1File FileName="$sFileName$">

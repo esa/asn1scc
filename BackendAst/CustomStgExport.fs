@@ -288,5 +288,13 @@ let exportFile (r:AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (stgFi
     let PrintFile (f:Asn1File) =
         gen.FileXml f.FileName (f.Modules |> Seq.map (PrintModule f)) stgFileName
 
-    let content = gen.RootXml (r.Files |> Seq.map PrintFile) stgFileName
+    let allTypes =
+        r.Files |> 
+        List.collect(fun f -> f.Modules) |>
+        List.collect(fun m ->
+            m.TypeAssignments |> List.map(fun tas -> tas.Type) 
+        )
+    let globalSortedTypes =  DAstProgramUnit.sortTypes allTypes [] 
+    let arrsSortedTypeAssignmentRefs = globalSortedTypes |> List.map(fun a -> gen.TypeAssignmentReference a.modName a.tasName stgFileName)
+    let content = gen.RootXml (r.Files |> Seq.map PrintFile) arrsSortedTypeAssignmentRefs stgFileName
     File.WriteAllText(outFileName, content.Replace("\r",""))

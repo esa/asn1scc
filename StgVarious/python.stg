@@ -14,7 +14,7 @@ group python;
 //delimiters "$", "$"
 
 /* Header of the file */
-RootXml(arrsFiles) ::= <<
+RootXml(arrsFiles, arrsSortedTypeAssignmentRefs) ::= <<
 #!/usr/bin/env python
 # ASN.1 Data model
 asn1Files = []
@@ -27,6 +27,8 @@ variables = {}
 $arrsFiles;separator="\n"$
 >>
 
+TypeAssignmentReference(sModuName, sTasName) ::= <<
+>>
 
 /* sFileName is a string with the current file name */
 FileXml(sFileName, arrsModules) ::= <<
