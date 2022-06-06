@@ -53,6 +53,13 @@ let rec collectEqualFuncs (t:Asn1Type) =
 
 let private printUnit (r:DAst.AstRoot) (l:ProgrammingLanguage) (encodings: CommonTypes.Asn1Encoding list) outDir (pu:ProgramUnit)  =
     let tases = pu.sortedTypeAssignments
+    let printChildrenIsValidFuncs (t:Asn1Type) =
+        match t.Kind with
+        | SequenceOf o  -> not o.Cons.IsEmpty
+        | Sequence o    -> not o.Cons.IsEmpty
+        | Choice o      -> not o.Cons.IsEmpty
+        | _             -> false
+            
     
     let vases = pu.valueAssignments 
     let arrsAnonymousValues =
@@ -83,10 +90,11 @@ let private printUnit (r:DAst.AstRoot) (l:ProgrammingLanguage) (encodings: Commo
                 match r.args.GenerateEqualFunctions with
                 | true  -> GetMySelfAndChildren tas.Type |> List.choose(fun t -> t.equalFunction.isEqualFuncDef ) 
                 | false -> []
-            let isValid        = 
-                match tas.Type.isValidFunction with
-                | None      -> None
-                | Some f    -> f.funcDef
+            let isValidFuncs        = 
+                //match tas.Type.isValidFunction with
+                //| None      -> []
+                //| Some f    -> 
+                GetMySelfAndChildren3 printChildrenIsValidFuncs tas.Type |> List.choose(fun f -> f.isValidFunction )  |> List.choose(fun f -> f.funcDef)
 
 
             let uPerEncFunc = match requiresUPER with true -> tas.Type.uperEncFunction.funcDef | false -> None
@@ -104,7 +112,7 @@ let private printUnit (r:DAst.AstRoot) (l:ProgrammingLanguage) (encodings: Commo
                 | true, Some x -> x.funcDef
                 | _ -> None 
 
-            let allProcs = equal_defs@([init_def;isValid;uPerEncFunc;uPerDecFunc;acnEncFunc; acnDecFunc;xerEncFunc;xerDecFunc] |> List.choose id)
+            let allProcs = equal_defs@isValidFuncs@([init_def;uPerEncFunc;uPerDecFunc;acnEncFunc; acnDecFunc;xerEncFunc;xerDecFunc] |> List.choose id)
             match l with
             |C     -> header_c.Define_TAS type_defintion allProcs 
             |Ada   -> header_a.Define_TAS type_defintion allProcs 
@@ -193,7 +201,8 @@ let private printUnit (r:DAst.AstRoot) (l:ProgrammingLanguage) (encodings: Commo
                 | true  -> GetMySelfAndChildren t.Type |> List.choose(fun y -> y.equalFunction.isEqualFunc)
                 | false -> []
 
-            let isValid = match t.Type.isValidFunction with None -> None | Some isVal -> isVal.func
+            let isValidFuncs = //match t.Type.isValidFunction with None -> None | Some isVal -> isVal.func
+                GetMySelfAndChildren3 printChildrenIsValidFuncs t.Type |> List.choose(fun f -> f.isValidFunction )  |> List.choose(fun f -> f.func)
             let uperEncDec codec         =  
                 match requiresUPER with
                 | true  ->
@@ -220,7 +229,7 @@ let private printUnit (r:DAst.AstRoot) (l:ProgrammingLanguage) (encodings: Commo
                     | CommonTypes.Encode    -> match t.Type.acnEncFunction with None -> None | Some x -> x.func
                     | CommonTypes.Decode    -> match t.Type.acnDecFunction with None -> None | Some x -> x.func
                 | false     -> None
-            let allProcs =  eqFuncs@([initialize; isValid;(uperEncDec CommonTypes.Encode); (uperEncDec CommonTypes.Decode);(ancEncDec CommonTypes.Encode); (ancEncDec CommonTypes.Decode);(xerEncDec CommonTypes.Encode); (xerEncDec CommonTypes.Decode)] |> List.choose id)
+            let allProcs =  eqFuncs@isValidFuncs@([initialize; (uperEncDec CommonTypes.Encode); (uperEncDec CommonTypes.Decode);(ancEncDec CommonTypes.Encode); (ancEncDec CommonTypes.Decode);(xerEncDec CommonTypes.Encode); (xerEncDec CommonTypes.Decode)] |> List.choose id)
             match l with
             | C     ->  body_c.printTass allProcs 
             | Ada   ->  body_a.printTass allProcs )

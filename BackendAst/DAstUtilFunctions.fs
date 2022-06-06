@@ -1333,6 +1333,22 @@ let rec GetMySelfAndChildren2 l (t:Asn1Type) (p:CallerScope)=
         yield (t,p)
     } |> Seq.toList
 
+let rec GetMySelfAndChildren3 visitChildPredicate (t:Asn1Type) = 
+    seq {
+        if visitChildPredicate t then
+            match t.Kind with
+            | SequenceOf(conType) ->  
+                yield! GetMySelfAndChildren conType.childType
+            | Sequence seq ->
+                for ch in seq.Asn1Children do 
+                    yield! GetMySelfAndChildren ch.Type
+            | Choice(ch)-> 
+                for ch in ch.children do 
+                    yield! GetMySelfAndChildren ch.chType
+            |_ -> ()    
+        yield t
+    } |> Seq.toList
+
 
 let getFuncNameGeneric (typeDefinition:TypeDefintionOrReference) nameSuffix  =
     match typeDefinition with

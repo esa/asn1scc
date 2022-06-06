@@ -238,7 +238,7 @@ let createSequenceOfEqualFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage)
     //createCompositeEqualFunction r l lm  t typeDefinition isEqualBody (stgMacroCompDefFunc l) 
 
 let createSequenceEqualFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (lm:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Sequence) (typeDefinition:TypeDefintionOrReference) (children:SeqChildInfo list)  =
-    let isEqualBodySequence  (l:ProgrammingLanguage) (lm:LanguageMacros) (children:SeqChildInfo list) (v1:CallerScope) (v2:CallerScope)  = 
+    let isEqualBodySequence  (_:ProgrammingLanguage) (lm:LanguageMacros) (children:SeqChildInfo list) (v1:CallerScope) (v2:CallerScope)  = 
         let printChild (content:string, lvars:LocalVariable list) (sNestedContent:string option) = 
             match sNestedContent with
             | None  -> content, lvars
