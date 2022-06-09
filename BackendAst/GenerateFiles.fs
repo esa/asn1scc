@@ -13,6 +13,14 @@ open OutDirectories
 
 let getTypeDecl = DastTestCaseCreation.getTypeDecl
 
+let rec getValidFunctions (isValidFunction:IsValidFunction) =
+    seq {
+        for c in isValidFunction.nonEmbeddedChildrenValidFuncs do
+            yield! getValidFunctions c
+        yield isValidFunction
+    } |> Seq.toList
+
+
 let printValueAssignment (r:DAst.AstRoot) (vasPU_name:string) (l:ProgrammingLanguage)  (vas:ValueAssignment) =
     let sName = vas.c_name
     let t = vas.Type
@@ -55,9 +63,9 @@ let private printUnit (r:DAst.AstRoot) (l:ProgrammingLanguage) (encodings: Commo
     let tases = pu.sortedTypeAssignments
     let printChildrenIsValidFuncs (t:Asn1Type) =
         match t.Kind with
-        | SequenceOf o  -> not o.Cons.IsEmpty
-        | Sequence o    -> not o.Cons.IsEmpty
-        | Choice o      -> not o.Cons.IsEmpty
+        | SequenceOf o  -> o.Cons.IsEmpty
+        | Sequence o    -> o.Cons.IsEmpty
+        | Choice o      -> o.Cons.IsEmpty
         | _             -> false
             
     
@@ -94,7 +102,11 @@ let private printUnit (r:DAst.AstRoot) (l:ProgrammingLanguage) (encodings: Commo
                 //match tas.Type.isValidFunction with
                 //| None      -> []
                 //| Some f    -> 
-                GetMySelfAndChildren3 printChildrenIsValidFuncs tas.Type |> List.choose(fun f -> f.isValidFunction )  |> List.choose(fun f -> f.funcDef)
+                //GetMySelfAndChildren3 printChildrenIsValidFuncs tas.Type |> List.choose(fun f -> f.isValidFunction )  |> List.choose(fun f -> f.funcDef)
+                match tas.Type.isValidFunction with
+                | None      -> []
+                | Some f    -> 
+                    getValidFunctions f |> List.choose(fun f -> f.funcDef)
 
 
             let uPerEncFunc = match requiresUPER with true -> tas.Type.uperEncFunction.funcDef | false -> None
@@ -202,7 +214,12 @@ let private printUnit (r:DAst.AstRoot) (l:ProgrammingLanguage) (encodings: Commo
                 | false -> []
 
             let isValidFuncs = //match t.Type.isValidFunction with None -> None | Some isVal -> isVal.func
-                GetMySelfAndChildren3 printChildrenIsValidFuncs t.Type |> List.choose(fun f -> f.isValidFunction )  |> List.choose(fun f -> f.func)
+                //GetMySelfAndChildren3 printChildrenIsValidFuncs t.Type |> List.choose(fun f -> f.isValidFunction )  |> List.choose(fun f -> f.func)
+                match t.Type.isValidFunction with
+                | None      -> []
+                | Some f    -> 
+                    getValidFunctions f |> List.choose(fun f -> f.func)
+
             let uperEncDec codec         =  
                 match requiresUPER with
                 | true  ->
