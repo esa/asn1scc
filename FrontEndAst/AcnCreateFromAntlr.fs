@@ -877,8 +877,40 @@ let rec private mapAcnParamTypeToAcnAcnInsertedType (asn1:Asn1Ast.AstRoot) (acn:
             mapAcnParamTypeToAcnAcnInsertedType asn1 acn newParma (props@baseTypeAcnProps) curPath us
 
 
-
-
+let rec mapAnyConstraint (asn1:Asn1Ast.AstRoot) (t:Asn1Ast.Asn1Type) (cons:Asn1Ast.Asn1Constraint list) =
+    let fixConstraint  = (fixConstraint asn1)
+    match t.Kind with
+    | Asn1Ast.Integer                  -> 
+        cons |> List.collect fixConstraint |> List.map (ConstraintsMapping.getIntegerTypeConstraint asn1 t) |> List.map IntegerTypeConstraint 
+    | Asn1Ast.Real                     -> 
+        cons |> List.collect fixConstraint |> List.map (ConstraintsMapping.getRealTypeConstraint asn1 t) |> List.map RealTypeConstraint 
+    | Asn1Ast.ObjectIdentifier                 
+    | Asn1Ast.RelativeObjectIdentifier         -> 
+        cons |> List.collect fixConstraint |> List.map (ConstraintsMapping.getObjectIdConstraint asn1 t) |> List.map ObjectIdConstraint 
+    | Asn1Ast.TimeType   tc      -> 
+        cons |> List.collect fixConstraint |> List.map (ConstraintsMapping.getTimeConstraint asn1 t) |> List.map TimeConstraint 
+    | Asn1Ast.IA5String                ->  
+        cons |> List.collect fixConstraint |> List.map (ConstraintsMapping.getIA5StringConstraint asn1 t) |> List.map IA5StringConstraint 
+    | Asn1Ast.NumericString            ->  
+        cons |> List.collect fixConstraint |> List.map (ConstraintsMapping.getIA5StringConstraint asn1 t) |> List.map IA5StringConstraint
+    | Asn1Ast.OctetString              ->  
+        cons |> List.collect fixConstraint |> List.map (ConstraintsMapping.getOctetStringConstraint asn1 t) |> List.map OctetStringConstraint
+    | Asn1Ast.BitString    namedBitList            ->  
+        cons |> List.collect fixConstraint |> List.map (ConstraintsMapping.getBitStringConstraint asn1 t) |> List.map BitStringConstraint 
+    | Asn1Ast.NullType                 ->  [NullConstraint]
+    | Asn1Ast.Boolean                  ->  
+        cons |> List.collect fixConstraint |> List.map (ConstraintsMapping.getBoolConstraint asn1 t) |> List.map BoolConstraint 
+    | Asn1Ast.Enumerated  items        ->  
+        cons |> List.collect fixConstraint |> List.map (ConstraintsMapping.getEnumConstraint asn1 t) |> List.map EnumConstraint 
+    | Asn1Ast.SequenceOf  chType       -> 
+        cons |> List.collect fixConstraint |> List.map (ConstraintsMapping.getSequenceOfConstraint asn1 t chType) |> List.map SequenceOfConstraint 
+    | Asn1Ast.Sequence    children     -> 
+        cons |> List.collect fixConstraint |> List.map (ConstraintsMapping.getSeqConstraint asn1 t children) |> List.map SeqConstraint
+    | Asn1Ast.Choice      children     -> 
+        cons |> List.collect fixConstraint |> List.map (ConstraintsMapping.getChoiceConstraint asn1 t children) |> List.map ChoiceConstraint
+    | Asn1Ast.ReferenceType rf    -> 
+        let oldBaseType  = Asn1Ast.GetBaseTypeByName rf.modName rf.tasName asn1
+        mapAnyConstraint asn1 oldBaseType cons
 
 let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (m:Asn1Ast.Asn1Module) (t:Asn1Ast.Asn1Type) (curPath : ScopeNode list)
                            (typeDefPath : ScopeNode list)
@@ -1350,7 +1382,7 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (m:Asn1Ast.Asn1Mo
                 hasAdditionalConstraints || hasChildren || acnArguments.Length > 0 || hasAcnProps
             let resolvedType, us2     = mergeType asn1 acn m oldBaseType curPath newTypeDefPath mergedAcnEncSpec (Some t.Location) restCons withCompCons acnArgs baseTypeAcnParams inheritanceInfo typeAssignmentInfo  us1
 
-
+            let refCons = mapAnyConstraint asn1 t t.Constraints
 
             let toByte sizeInBits =
                 sizeInBits/8I + (if sizeInBits % 8I = 0I then 0I else 1I)
@@ -1388,7 +1420,7 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (m:Asn1Ast.Asn1Mo
 
                     uperMinSizeInBits, uperMaxSizeInBits, acnMinSizeInBits, acnMaxSizeInBits, (Some  {EncodeWithinOctetOrBitStringProperties.acnEncodingClass = acnEncodingClass; octOrBitStr = ContainedInOctString; minSize = minSize; maxSize=maxSize})
 
-            let newRef       = {ReferenceType.modName = rf.modName; tasName = rf.tasName; tabularized = rf.tabularized; acnArguments = acnArguments; resolvedType=resolvedType; hasConstraints = hasAdditionalConstraints; typeDef=typeDef; uperMaxSizeInBits = uperMaxSizeInBits; uperMinSizeInBits = uperMinSizeInBits; acnMaxSizeInBits  = acnMaxSizeInBits; acnMinSizeInBits  = acnMinSizeInBits; encodingOptions=encodingOptions; hasExtraConstrainsOrChildrenOrAcnArgs=hasExtraConstrainsOrChildrenOrAcnArgs}
+            let newRef       = {ReferenceType.modName = rf.modName; tasName = rf.tasName; tabularized = rf.tabularized; acnArguments = acnArguments; resolvedType=resolvedType; hasConstraints = hasAdditionalConstraints; typeDef=typeDef; uperMaxSizeInBits = uperMaxSizeInBits; uperMinSizeInBits = uperMinSizeInBits; acnMaxSizeInBits  = acnMaxSizeInBits; acnMinSizeInBits  = acnMinSizeInBits; encodingOptions=encodingOptions; hasExtraConstrainsOrChildrenOrAcnArgs=hasExtraConstrainsOrChildrenOrAcnArgs; refCons = refCons}
             ReferenceType newRef, us2
         
     {

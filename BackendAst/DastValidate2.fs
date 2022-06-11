@@ -600,11 +600,11 @@ let createIntegerFunctionByCons (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) i
 
 let createRealFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Real) (typeDefinition:TypeDefintionOrReference)  (us:State)  =
     let fncs, ns = o.cons |> Asn1Fold.foldMap (fun us c -> realConstraint2ValidationCodeBlock l c us) us
-    createIsValidFunction r l t (funcBody l fncs) typeDefinition [] [] [] [] us
+    createIsValidFunction r l t (funcBody l fncs) typeDefinition [] [] [] [] ns
 
 let createBoolFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Boolean) (typeDefinition:TypeDefintionOrReference) (us:State)  =
     let fncs, ns = o.cons |> Asn1Fold.foldMap (fun us c -> booleanConstraint2ValidationCodeBlock l c us) us
-    createIsValidFunction r l t (funcBody l fncs)  typeDefinition [] [] [] [] us
+    createIsValidFunction r l t (funcBody l fncs)  typeDefinition [] [] [] [] ns
 
 let createOctetStringFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.OctetString) (typeDefinition:TypeDefintionOrReference) (equalFunc:EqualFunction) (printValue  : string -> (Asn1ValueKind option) -> (Asn1ValueKind) -> string) (us:State)  =
     let fncs, ns = o.cons |> Asn1Fold.foldMap (fun us c -> octetStringConstraint2ValidationCodeBlock r l  t.id o equalFunc c us) us
@@ -684,31 +684,6 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:A
                 let f1 (p:CallerScope)  =  cvf.funcBody (chp p) 
                 Some f1, cvf.errCodes, cvf.alphaFuncs, cvf.localVariables, []
         
-(*
-    let childrenErrCodes, alphaFuncs = 
-        match childType.isValidFunction with
-        | None -> [], []
-        | Some cvf ->
-            match cvf.funcName with
-            | Some fncName -> [], []
-            | None ->
-                cvf.errCodes, cvf.alphaFuncs
-*)        
-(*
-    let childrenErrCodes = childType.isValidFunction |> Option.map(fun x -> x.errCodes) |> Option.toList |> List.collect id
-    let alphaFuncs = childType.isValidFunction |> Option.map(fun x -> x.alphaFuncs) |> Option.toList |> List.collect id
-    let localVars = childType.isValidFunction |> Option.map(fun x -> x.localVariables) |> Option.toList |> List.collect id
-    let localVars =
-        match childType.isValidFunction with
-        | Some cvf  ->
-            let dummyp = {CallerScope.modName = t.id.ModName; arg = VALUE("dummy")}
-            let innerStatement = cvf.funcBody (chp dummyp) 
-            match innerStatement with
-            | ValidationStatementTrue   st  -> localVars
-            | ValidationStatementFalse  st  -> lv::localVars
-            | ValidationStatement       st  -> lv::localVars
-        | None  -> localVars
-*)
     let funBody (errCode: ErroCode) (p:CallerScope) = 
         let with_component_check, lllvs = convertMultipleVCBsToStatementAndSetErrorCode l p errCode vcbs |> List.unzip
         let childCheck =
@@ -720,26 +695,13 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:A
                 | ValidationStatementTrue   (_,_)  -> []
                 | ValidationStatementFalse  (st,clv)  -> [sequenceOf p.arg.p (p.arg.getAcces l) i o.isFixedSize o.minSize.uper st, lv::clv]
                 | ValidationStatement       (st,clv)  -> [sequenceOf p.arg.p (p.arg.getAcces l) i o.isFixedSize o.minSize.uper st, lv::clv]
-(*
-        let childCheck =
-            match childType.isValidFunction with
-            | Some cvf  ->
-                let innerStatement =
-                    match cvf.funcName with
-                    | None          ->  cvf.funcBody (chp p) 
-                    | Some fncName  -> ValidationStatement (callBaseTypeFunc ((chp p).arg.getPointer l)  fncName, [])
-                match innerStatement with
-                | ValidationStatementTrue   (_,_)  -> []
-                | ValidationStatementFalse  (st,clv)  -> [sequenceOf p.arg.p (p.arg.getAcces l) i o.isFixedSize o.minSize.uper st, lv::clv]
-                | ValidationStatement       (st,clv)  -> [sequenceOf p.arg.p (p.arg.getAcces l) i o.isFixedSize o.minSize.uper st, lv::clv]
-            | None  -> []
-*)
         let childCheck, lllvs2 = childCheck |> List.unzip
         match (with_component_check@childCheck) |> DAstUtilFunctions.nestItems l "ret" with
         | None   -> convertVCBToStatementAndAssigneErrCode l VCBTrue errCode.errCodeName
         | Some s ->ValidationStatement (s, (lllvs@lllvs2) |> List.collect id)
     
     createIsValidFunction r l t funBody  typeDefinition childAlphaFuncs childLocalVars childErrCodes nonEmbeddedChildValidFuncs ns2
+
 
 let createSequenceFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Sequence) (typeDefinition:TypeDefintionOrReference) (children:SeqChildInfo list)  (us:State)  =
     if (t.id.AsString = "Subtypes.T3-s1") then 
@@ -748,7 +710,6 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn
     let sequence_OptionalChild           = match l with C -> isvalid_c.Sequence_OptionalChild                            | Ada -> isvalid_a.Sequence_OptionalChild
     let JoinTwoIfFirstOk                 = match l with C -> isvalid_c.JoinTwoIfFirstOk                                  | Ada -> isvalid_a.JoinTwoIfFirstOk 
     let callBaseTypeFunc                 = match l with C -> isvalid_c.call_base_type_func | Ada -> isvalid_a.call_base_type_func
-    let bHasConstraints = not o.cons.IsEmpty
     let asn1Children = children |> List.choose(fun c -> match c with Asn1Child x -> Some x | AcnChild _ -> None)
     let handleChild (child:Asn1Child) (us:State) =
         let c_name = child.getBackendName l
@@ -760,9 +721,9 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn
                 fun (p:CallerScope)  ->
                     let chp = {p with arg = p.arg.getSeqChild l c_name child.Type.isIA5String}
                     match isValidFunction.funcName with
-                    | Some fncName  when not bHasConstraints -> 
+                    | Some fncName  -> 
                         ValidationStatement (callBaseTypeFunc (chp.arg.getPointer l)  fncName, [])
-                    | _ ->
+                    | None ->
                         isValidFunction.funcBody chp
             let childFnc = 
                 (*handle optionality*)
@@ -778,9 +739,9 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn
                 | None      -> func
             (*return new local variables, errorcodes or alphaFuncs*)
             match isValidFunction.funcName with
-            | Some fncName when not bHasConstraints -> 
+            | Some fncName -> 
                 Some(IsValidProcCall {|isValidStatement= childFnc; chidIsValidFunction=isValidFunction|}), us
-            | _ ->
+            | None ->
                 Some(IsValidEmbedded {|isValidStatement = childFnc; localVars = isValidFunction.localVariables; alphaFuncs = isValidFunction.alphaFuncs; childErrCodes = isValidFunction.errCodes|}), us
     let childrenContent, ns1 =  asn1Children |> Asn1Fold.foldMap (fun us child -> handleChild child us) us
     let childrenContent = childrenContent |> List.choose id
@@ -790,6 +751,8 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn
     let nonEmbeddedChildrenValidFuncs = childrenContent |> List.choose(fun s -> match s with IsValidEmbedded c -> None | IsValidProcCall c -> Some c.chidIsValidFunction)
     let valToStrFunc (p:CallerScope) (v:Asn1AcnAst.SeqValue) = VCBTrue
     let vcbs, ns2 =  o.cons |> Asn1Fold.foldMap(fun cs c -> sequenceConstraint2ValidationCodeBlock r l t.id asn1Children valToStrFunc  c cs) ns1
+
+
 
     let funBody (errCode: ErroCode) (p:CallerScope) = 
         let childrenChecks, lv = 
@@ -856,7 +819,6 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1A
     let nonEmbeddedChildrenValidFuncs = childrenContent |> List.choose(fun s -> match s with IsValidEmbedded c -> None | IsValidProcCall c -> Some c.chidIsValidFunction)
     let valToStrFunc (p:CallerScope) (v:Asn1AcnAst.ChValue) = VCBTrue
     let vcbs, ns2 =  o.cons |> Asn1Fold.foldMap(fun cs c -> choiceConstraint2ValidationCodeBlock r l t.id children valToStrFunc defOrRef  c cs) ns1
-
     let funBody (errCode: ErroCode) (p:CallerScope) = 
         let childrenChecks, lv1 = 
             let aaa, lv1 = 
@@ -878,32 +840,86 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1A
         
     createIsValidFunction r l t funBody  typeDefinition alphaFuncs localVars childrenErrCodes nonEmbeddedChildrenValidFuncs ns2
 
-let createReferenceTypeFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.ReferenceType) (typeDefinition:TypeDefintionOrReference) (baseType:Asn1Type)  (us:State)  =
-    match o.hasConstraints with
-    | true  -> baseType.isValidFunction, us    
-    | false -> 
-        let moduleName, typeDefinitionName = 
-            let t1 = Asn1AcnAstUtilFunctions.GetActualTypeByName r o.modName o.tasName
-            t1.FT_TypeDefintion.[l].programUnit, t1.FT_TypeDefintion.[l].typeName
+
+let rec createReferenceTypeFunction_this_type (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (refTypeId:ReferenceToType) (refCons:Asn1AcnAst.AnyConstraint list) (typeDefinition:TypeDefintionOrReference) (resolvedType:Asn1Type)  (us:State)  =
+    match resolvedType.Kind with
+    | Sequence sq    ->
+        let asn1Children = sq.children |> List.choose(fun c -> match c with Asn1Child x -> Some x | AcnChild _ -> None)
+        let cons = refCons |> List.choose(fun c -> match c with Asn1AcnAst.SeqConstraint z -> Some z | _ -> None )
+        let valToStrFunc (p:CallerScope) (v:Asn1AcnAst.SeqValue) = VCBTrue
+        cons |> Asn1Fold.foldMap(fun cs c -> sequenceConstraint2ValidationCodeBlock r l refTypeId asn1Children valToStrFunc  c cs) us
+    | ReferenceType rt    ->
+        createReferenceTypeFunction_this_type r l refTypeId refCons typeDefinition rt.resolvedType  us
+    | Integer rt ->
+        let cons = refCons |> List.choose(fun c -> match c with Asn1AcnAst.IntegerTypeConstraint z -> Some z | _ -> None )
+        cons |> Asn1Fold.foldMap (fun us c -> integerConstraint2ValidationCodeBlock r l rt.baseInfo.isUnsigned c us) us
+    | Real _ ->
+        let cons = refCons |> List.choose(fun c -> match c with Asn1AcnAst.RealTypeConstraint z -> Some z | _ -> None )
+        cons |> Asn1Fold.foldMap (fun us c -> realConstraint2ValidationCodeBlock l c us) us
+    | Boolean _ ->
+        let cons = refCons |> List.choose(fun c -> match c with Asn1AcnAst.BoolConstraint z -> Some z | _ -> None )
+        cons |> Asn1Fold.foldMap (fun us c -> booleanConstraint2ValidationCodeBlock l c us) us        
+    | OctetString oc ->
+        let cons = refCons |> List.choose(fun c -> match c with Asn1AcnAst.OctetStringConstraint z -> Some z | _ -> None )
+        cons |> Asn1Fold.foldMap (fun us c -> octetStringConstraint2ValidationCodeBlock r l  refTypeId oc.baseInfo resolvedType.equalFunction c us) us
+    | BitString bs ->
+        let cons = refCons |> List.choose(fun c -> match c with Asn1AcnAst.BitStringConstraint z -> Some z | _ -> None )
+        cons |> Asn1Fold.foldMap (fun us c -> bitStringConstraint2ValidationCodeBlock r l  refTypeId bs.baseInfo resolvedType.equalFunction c us) us
+    | IA5String st ->
+        let cons = refCons |> List.choose(fun c -> match c with Asn1AcnAst.IA5StringConstraint z -> Some z | _ -> None )
+        cons |> Asn1Fold.foldMap (fun us c -> ia5StringConstraint2ValidationCodeBlock r  l refTypeId c us) {us with alphaIndex=0; alphaFuncs=[]}        
+    | ObjectIdentifier _ ->
+        let cons = refCons |> List.choose(fun c -> match c with Asn1AcnAst.ObjectIdConstraint z -> Some z | _ -> None )
+        cons |> Asn1Fold.foldMap (fun us c -> objIdConstraint2ValidationCodeBlock l c us) us
+    | TimeType tt   ->
+        let cons = refCons |> List.choose(fun c -> match c with Asn1AcnAst.TimeConstraint z -> Some z | _ -> None )
+        cons |> Asn1Fold.foldMap (fun us c -> timeConstraint2ValidationCodeBlock l (tt.baseInfo.typeDef.[l]) c us) us
+    | NullType _    ->
+        [],us
+    | Enumerated en  ->
+        let cons = refCons |> List.choose(fun c -> match c with Asn1AcnAst.EnumConstraint z -> Some z | _ -> None )
+        cons |> Asn1Fold.foldMap (fun us c -> enumeratedConstraint2ValidationCodeBlock  l  en.baseInfo typeDefinition c us) us        
+    | Choice ch ->
+        let valToStrFunc (p:CallerScope) (v:Asn1AcnAst.ChValue) = VCBTrue
+        let cons = refCons |> List.choose(fun c -> match c with Asn1AcnAst.ChoiceConstraint z -> Some z | _ -> None )
+        cons |> Asn1Fold.foldMap(fun cs c -> choiceConstraint2ValidationCodeBlock r l refTypeId ch.children valToStrFunc typeDefinition  c cs) us        
+    | SequenceOf sqo ->
+        let cons = refCons |> List.choose(fun c -> match c with Asn1AcnAst.SequenceOfConstraint z -> Some z | _ -> None )
+        cons |> Asn1Fold.foldMap(fun cs c -> sequenceOfConstraint2ValidationCodeBlock r l refTypeId sqo.baseInfo sqo.childType resolvedType.equalFunction c cs) us        
+
+
+let createReferenceTypeFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.ReferenceType) (typeDefinition:TypeDefintionOrReference) (resolvedType:Asn1Type)  (us:State)  =
+    let callBaseTypeFunc = match l with C -> isvalid_c.call_base_type_func | Ada -> isvalid_a.call_base_type_func
+    let vcbs,us = createReferenceTypeFunction_this_type r l t.id o.refCons typeDefinition resolvedType us
+    let moduleName, typeDefinitionName = 
+        let t1 = Asn1AcnAstUtilFunctions.GetActualTypeByName r o.modName o.tasName
+        t1.FT_TypeDefintion.[l].programUnit, t1.FT_TypeDefintion.[l].typeName
         
-        let typeDefinitionName0 = ToC2(r.args.TypePrefix + o.tasName.Value)
-        let baseFncName = 
-            match l with
-            | C     -> typeDefinitionName + "_IsConstraintValid"
-            | Ada   -> 
-                match t.id.ModName = o.modName.Value with
-                | true  -> typeDefinitionName + "_IsConstraintValid"
-                | false -> moduleName + "." + typeDefinitionName + "_IsConstraintValid"
-
-        let funBody (errCode: ErroCode) (p:CallerScope) = 
-            let callBaseTypeFunc = match l with C -> isvalid_c.call_base_type_func | Ada -> isvalid_a.call_base_type_func
-
-            match baseType.isValidFunction with
-            | Some _    -> 
-                let funcBodyContent = callBaseTypeFunc (t.getParamValue p.arg l Encode) baseFncName 
-                ValidationStatement (funcBodyContent, [])    
-            | None      -> convertVCBToStatementAndAssigneErrCode l VCBTrue errCode.errCodeName
+    let typeDefinitionName0 = ToC2(r.args.TypePrefix + o.tasName.Value)
+    let baseFncName = 
+        match l with
+        | C     -> typeDefinitionName + "_IsConstraintValid"
+        | Ada   -> 
+            match t.id.ModName = o.modName.Value with
+            | true  -> typeDefinitionName + "_IsConstraintValid"
+            | false -> moduleName + "." + typeDefinitionName + "_IsConstraintValid"
 
 
-        createIsValidFunction r l t funBody  typeDefinition [] [] [] [] us
+    let funBody (errCode: ErroCode) (p:CallerScope) = 
+        let with_component_check, lv2 = 
+            convertMultipleVCBsToStatementAndSetErrorCode l p errCode vcbs |>
+            List.unzip
+
+        match resolvedType.isValidFunction with
+        | Some _    -> 
+            let funcBodyContent = callBaseTypeFunc (t.getParamValue p.arg l Encode) baseFncName 
+            match (funcBodyContent::with_component_check) |> DAstUtilFunctions.nestItems l "ret" with
+            | None   -> convertVCBToStatementAndAssigneErrCode l VCBTrue errCode.errCodeName
+            | Some s ->ValidationStatement (s, (lv2 |>List.collect id))
+        | None      -> 
+            match (with_component_check) |> DAstUtilFunctions.nestItems l "ret" with
+            | None   -> convertVCBToStatementAndAssigneErrCode l VCBTrue errCode.errCodeName
+            | Some s ->ValidationStatement (s, (lv2 |>List.collect id))
+
+    createIsValidFunction r l t funBody  typeDefinition [] [] [] [] us
 

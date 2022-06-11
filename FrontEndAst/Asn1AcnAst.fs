@@ -644,6 +644,7 @@ and ReferenceType = {
     acnMaxSizeInBits    : BigInteger
     acnMinSizeInBits    : BigInteger
     encodingOptions        : EncodeWithinOctetOrBitStringProperties option
+    refCons             : AnyConstraint list
 }
 
 
