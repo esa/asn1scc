@@ -259,6 +259,8 @@ type IsValidFunction = {
     localVariables      : LocalVariable list
     anonymousVariables  : AnonymousVariable  list      //list with the anonymous asn1 values used in constraints and which must be declared.
                                                        //these are the bit and octet string values which cannot be expressed as single primitives in C/Ada
+    nonEmbeddedChildrenValidFuncs  : IsValidFunction list         //a list with the first level child funcs which are not embedded by this
+                                                       //IsValidFunction but the the function is called
 }
 
 type UPERFuncBodyResult = {
