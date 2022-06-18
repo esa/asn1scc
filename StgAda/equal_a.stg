@@ -10,9 +10,18 @@ end if;
 <endif>
 >>
 
-JoinItems2(sPart, sNestedPart) ::= <<
+JoinItems2_ret(sPart, sNestedPart) ::= <<
 <sPart>
 if ret then
+    <sNestedPart>
+end if;
+>>
+
+
+
+JoinItems2_ret_result(sPart, sNestedPart) ::= <<
+<sPart>
+if result.Success then
     <sNestedPart>
 end if;
 >>

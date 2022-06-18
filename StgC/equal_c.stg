@@ -11,7 +11,14 @@ if (ret) {
 <endif>
 >>
 
-JoinItems2(sPart, sNestedPart) ::= <<
+JoinItems2_ret(sPart, sNestedPart) ::= <<
+<sPart>
+if (ret) {
+    <sNestedPart>
+}
+>>
+
+JoinItems2_ret_result(sPart, sNestedPart) ::= <<
 <sPart>
 if (ret) {
     <sNestedPart>

@@ -1,14 +1,19 @@
 ﻿group c_isvalid;
 
+rtlModuleName() ::= ""
+
 
 getStringSize(p) ::= "strlen(<p>)"
 
 
-Print_AlphabetCheckFunc_str(p) ::= "<p>[i]"
 
-JoinTwo(sStr1,sStr2) ::=<<
-<sStr1>
-<sStr2>
+JoinItems(sPart, soNestedPart) ::= <<
+<sPart>
+<if(soNestedPart)>
+if (ret) {
+    <soNestedPart>
+}
+<endif>
 >>
 
 JoinTwoIfFirstOk(sStr1,sStr2) ::=<<
@@ -17,6 +22,16 @@ if (ret) {
     <sStr2>
 }   /*COVERAGE_IGNORE*/
 >>
+
+JoinItems2(sPart, sNestedPart) ::= <<
+<sStr1>
+if (ret) {
+    <sStr2>
+}   /*COVERAGE_IGNORE*/
+>>
+
+
+
 
 
 always_true_statement ()::= <<
@@ -58,9 +73,6 @@ ret = FALSE;
  C H E C K   C O N S T R A I N T S      F U N C T I O N S
 *****************************************************************************************
 */
-PrintErrorCode(sErrorName, nErrCode, sComment) ::= <<
-#define <sErrorName>		<nErrCode>  /*<sComment>*/
->>
 
 
 
@@ -215,22 +227,8 @@ flag <sFuncName>(const char* str)
 
 SingleValContraint(p, v) ::= "(<p> == <v>)"
 
-SingleValContraint_bitString_fixedSize(p1, p2, nFixedSize) ::= <<
-((memcmp(<p1>arr, <p2>.arr, <nFixedSize>/8) == 0) && ((<nFixedSize> % 8) >0 ? (<p1>arr[<nFixedSize>/8]\>>(8-<nFixedSize> % 8) == <p2>.arr[<nFixedSize>/8]\>>(8-<nFixedSize> % 8) ) : TRUE))
->>
-
-SingleValContraint_bitString_varSize(p1, p2) ::= <<
-(((<p1>nCount == <p2>.nCount) && (memcmp(<p1>arr, <p2>.arr, <p1>nCount/8) == 0)) && (<p1>nCount % 8 > 0 ? (<p1>arr[<p1>nCount/8] \>> (8-<p1>nCount % 8) == <p2>.arr[<p1>nCount/8]\>>(8-<p1>nCount % 8) ) : TRUE))
->>
 
 
-SingleValContraint_octetString_fixedSize(p1, p2, nFixedSize) ::= <<
-(memcmp(<p1>arr, <p2>.arr, <nFixedSize>) ==0)
->>
-
-SingleValContraint_octetString_varSize(p1, p2) ::= <<
-((<p1>nCount == <p2>.nCount) && (memcmp(<p1>arr, <p2>.arr, <p1>nCount) ==0))
->>
 
 
 stringContainsChar(sStrVal, p) ::= "strchr(<sStrVal>, <p>)"
@@ -255,7 +253,6 @@ callAlphaFunc(sFuncName, p) ::= "<sFuncName>_CharsAreValid(<p>)"
 PrintMultipleConstraints(arrsConstraints) ::= "<arrsConstraints; separator=\" && \">"
 
 
-Emit_local_variable_SQF_Index(nI)::="int i<nI>=0;"
 
 
 
@@ -293,14 +290,6 @@ Sequence_optional_child_always_present_or_absent_expr(p, sAcc,  sChName, sPresOr
 >>
 
 
-JoinItems(sPart, sNestedPart) ::= <<
-<sPart>
-<if(sNestedPart)>
-if (ret) {
-    <sNestedPart>
-}
-<endif>
->>
 
 /* SEQUENCE end*/
 
@@ -340,18 +329,8 @@ switch (<p><sAccess>kind) {
 /* CHOICE end*/
 
 
-Emit_fixedSize_constraint() ::= "ret = TRUE; *pErrCode = 0;"
 
 
-
-Emit_sequence_of(sI, sPath, nMax, sSizeConstraint, sChildBody, bFixed) ::= <<
-<sSizeConstraint>
-<sI> = 0;
-while (ret && (<sI>\< <if(bFixed)><nMax><else><sPath>nCount<endif>)) {
-    <sChildBody>
-    <sI> = <sI>+1;
-}
->>
 
 
 

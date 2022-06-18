@@ -7,7 +7,7 @@ open CommonTypes
 open Asn1AcnAst
 open Asn1AcnAstUtilFunctions
 open DAst
-
+open Language
 
 
 type ProgrammingLanguage with
@@ -169,11 +169,6 @@ type FuncParamType  with
         | C, VALUE x        -> x
         | C, POINTER x      -> sprintf "(*(%s))" x
         | C, FIXARRAY x     -> x
-    member this.p  =
-        match this with
-        | VALUE x      -> x
-        | POINTER x    -> x
-        | FIXARRAY x   -> x
     member this.getAcces (l:ProgrammingLanguage) =
         match l, this with
         | Ada, VALUE x      -> "."
@@ -1361,8 +1356,23 @@ let getFuncNameGeneric2 (typeDefinition:TypeDefintionOrReference) =
     | TypeDefinition   td                   -> Some (td.typedefName)
 
 
+let nestItems joinItems2 children = 
+    let printChild (content:string) (soNestedContent:string option) = 
+        match soNestedContent with
+        | None                -> content
+        | Some sNestedContent -> joinItems2 content sNestedContent
+    let rec printChildren children : Option<string> = 
+        match children with
+        |[]     -> None
+        |x::xs  -> Some (printChild x (printChildren xs))
+    printChildren children
 
 
+let nestItems_ret (lm:LanguageMacros) children = 
+    nestItems isvalid_a.JoinTwoIfFirstOk children
+
+
+#if false
 let nestItems (l:ProgrammingLanguage) (retVarName:string (*ret or result*)) children = 
     let joinItems2 =  
         match l with  
@@ -1379,7 +1389,7 @@ let nestItems (l:ProgrammingLanguage) (retVarName:string (*ret or result*)) chil
         |[]     -> None
         |x::xs  -> Some (printChild x (printChildren xs))
     printChildren children
-#if false
+
 let nestItems_dbg  children = 
     let joinItems2 =  sprintf """
     %s

@@ -16,6 +16,18 @@ type UserErrorSeverity =
     | WARNING
     | INFO
 
+type FuncParamType =
+  | VALUE       of string
+  | POINTER     of string
+  | FIXARRAY    of string
+  with
+    member this.p  =
+        match this with
+        | VALUE x      -> x
+        | POINTER x    -> x
+        | FIXARRAY x   -> x
+
+
 type UserError = {
     line : int
     charPosInline : int

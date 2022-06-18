@@ -50,7 +50,3 @@ let getBoardDirs (l:ProgrammingLanguage) target =
 
     
     
-type LanguageMacros = {
-    equal : IEqual;
-    typeDef : ITypeDefinition;
-}

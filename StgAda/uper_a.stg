@@ -373,12 +373,7 @@ end if;
 <endif>
 >>
 
-JoinItems2(sPart, sNestedPart) ::= <<
-<sPart>
-if result.Success then
-    <sNestedPart>
-end if;
->>
+
 
 
 JoinItems0_encode(sTasName, sPart, sNestedPart, nRequiredBitsSoFar, bRequiresResultCheck) ::= <<

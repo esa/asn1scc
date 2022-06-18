@@ -38,7 +38,7 @@
     <modName>isvalid_c</modName>
 	<lang>c</lang>
     <abctractInterface   modMame="IIsValid">IIsValid.stg.fs</abctractInterface>
-    <implementationClass ifModMame="IIsValid" modMame="IsValid_c">isvalid_c.stg.fs</implementationClass>
+    <implementationClass ifModMame="AbstractMacros.IIsValid" modMame="IsValid_c">IIsValid_c.stg.fs</implementationClass>
    </run>
     <run mode="single" >
         <input>isvalid_new_c.stg</input>
@@ -47,11 +47,11 @@
         <lang>c</lang>
     </run>
     <run mode="single">
-    <input>init_c.stg</input>
-    <output>init_c.stg.fs</output>
-    <modName>init_c</modName>
-	<lang>c</lang>
-    <abctractInterface   modMame="IInit">IInit.stg.fs</abctractInterface>
+        <input>init_c.stg</input>
+        <output>init_c.stg.fs</output>
+        <modName>init_c</modName>
+	    <lang>c</lang>
+        <abctractInterface   modMame="IInit">IInit.stg.fs</abctractInterface>
   </run>
   <run mode="single">
     <input>uper_c.stg</input>

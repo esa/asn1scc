@@ -33,6 +33,7 @@
     <output>isvalid_a.stg.fs</output>
     <modName>isvalid_a</modName>
 	<lang>Ada</lang>
+    <implementationClass ifModMame="AbstractMacros.IIsValid" modMame="IsValid_a">IIsValid_a.stg.fs</implementationClass>
   </run>
     <run mode="single" >
         <input>isvalid_new_a.stg</input>

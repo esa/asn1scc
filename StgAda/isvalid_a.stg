@@ -34,7 +34,6 @@ convertVCBFalseToStatementAndUpdateErrCode(sErrCode) ::= <<
 ret := <rtlModuleName()>.ASN1_RESULT'(Success => false, ErrorCode => <sErrCode>);
 >>
 
-
 JoinTwoIfFirstOk(sStr1,sStr2) ::=<<
 <sStr1>
 if ret.Success then
@@ -178,7 +177,6 @@ end <sFuncName>;
 
 
 
-Print_AlphabetCheckFunc_str() ::= "str(I)"
 
 Print_AlphabetCheckFunc(sFuncName, arrsAlphaConBody) ::= <<
 function <sFuncName> (str : String) return boolean 
@@ -207,13 +205,10 @@ callAlphaFunc(sFuncName, p) ::= "<sFuncName>_CharsAreValid(<p>)"
 
 getStringSize(p) ::= "<rtlModuleName()>.getStringSize(<p>)"
 
-getSizeableSize(p) ::= "<p>.Length"
 
 stringContainsChar(sStrVal, p) ::= "<rtlModuleName()>.encoding.stringContainsChar(<sStrVal>, <p>)"
 
-PrintReference1(p, sName) ::= "<sName>_IsConstraintValid(<p>)"
 
-PrintReference2(p, sModName,sName) ::= "<sModName>.<sName>_IsConstraintValid(<p>)"
 
 call_base_type_func(p, sFuncName) ::= "ret := <sFuncName>(<p>);"
 call_base_type_func_exp(p, sFuncName) ::= "<sFuncName>(<p>).Success"
@@ -236,7 +231,6 @@ AllExceptConstraint(sCon)  ::= "(NOT (<sCon>))"
 ExceptConstraint(sCon1,sCon2) ::= "(<sCon1> AND NOT (<sCon2>))"
 
 
-Emit_local_variable_SQF_Index(nI, bHasInitalValue)::="I<nI>:Integer<if(bHasInitalValue)>:=1<endif>;"
 
 
 
@@ -245,9 +239,6 @@ Emit_type(arrsConstraints, sErrCodeName) ::= <<
 ret := <rtlModuleName()>.ASN1_RESULT'(Success => <if(arrsConstraints)><arrsConstraints; separator=" AND "><else>True<endif>, ErrorCode => <sErrCodeName>);
 >>
 
-Emit_Reference1(p, sName) ::= "ret := <sName>_IsConstraintValid(<p>);"
-
-Emit_Reference2(p, sModName,sName) ::= "ret := <sModName>.<sName>_IsConstraintValid(<p>);"
 
 /* SEQUENCE OF start*/
 
@@ -308,9 +299,17 @@ end if;
 <endif>
 >>
 
+JoinItems2(sPart, sNestedPart) ::= <<
+<sPart>
+if result.Success then
+    <sNestedPart>
+end if;
+>>
 
 
-Emit_sequence_optional_component(sParentPath, sName, sChildBody) ::=<<
+
+
+Emit_sequence_optional_component(sParentPath, sName, sChildBody) /*nogen*/ ::=<<
 if <sParentPath>.Exist.<sName>=1 then
     <sChildBody>
 end if;

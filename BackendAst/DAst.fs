@@ -12,10 +12,8 @@ open System.Collections.Generic
 //open Constraints
 
 
-type FuncParamType =
-  | VALUE       of string
-  | POINTER     of string
-  | FIXARRAY    of string
+
+
 
 type CallerScope = {
     modName : string
@@ -1001,5 +999,4 @@ type TC_Function = {
     parameters      : TC_Param list
     body            : TC_Statement list
 }
-
 

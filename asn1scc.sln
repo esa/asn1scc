@@ -19,6 +19,9 @@ EndProject
 Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "ST", "ST\ST.fsproj", "{D96F44D5-DD4A-433F-B0D0-10680E01311C}"
 EndProject
 Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "CommonTypes", "CommonTypes\CommonTypes.fsproj", "{D2809183-CBF3-4291-AF6E-67A9931B5129}"
+	ProjectSection(ProjectDependencies) = postProject
+		{463CB02E-00DA-43EE-AE8C-C1345F035D08} = {463CB02E-00DA-43EE-AE8C-C1345F035D08}
+	EndProjectSection
 EndProject
 Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "StgVarious", "StgVarious\StgVarious.fsproj", "{643494DD-76DD-4574-AF4C-394FEE80745E}"
 EndProject

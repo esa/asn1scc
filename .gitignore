@@ -1362,3 +1362,5 @@ v2out
 /Docs/examples/calculate_crc/a_out/obj_x86/debug/adaasn1rtl-encoding-acn.adb.stdout
 /Docs/examples/calculate_crc/a_out/obj_x86/debug/adaasn1rtl-encoding-acn.adb.stderr
 /Docs/examples/calculate_crc/a_out/board_config.ads
+/StgAda/IIsValid_a.stg.fs
+/StgC/IIsValid_c.stg.fs

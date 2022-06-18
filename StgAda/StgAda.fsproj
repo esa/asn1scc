@@ -21,6 +21,7 @@
     <Compile Include="IEqual_a.stg.fs" />
     <Compile Include="ITypeDefinition_a.stg.fs" />
     <Compile Include="IVariables_a.stg.fs" />
+    <Compile Include="IIsValid_a.stg.fs" />
   </ItemGroup>
 
   <ItemGroup>

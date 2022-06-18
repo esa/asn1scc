@@ -8,6 +8,7 @@ open AbstractMacros
 open OutDirectories
 open System.Resources
 open Antlr
+open Language
 
 type CliArguments =
     | [<Unique; AltCommandLine("-c")>]C_lang 
@@ -300,11 +301,23 @@ let main0 argv =
                 match a with
                 | C_lang                -> 
                     //let aaa = new IEqual_c.IEqual_c() 
-                    let lm = {LanguageMacros.equal = new IEqual_c.IEqual_c(); typeDef = new ITypeDefinition_c.ITypeDefinition_c()}
+                    let lm = {
+                                LanguageMacros.equal = new IEqual_c.IEqual_c() 
+                                typeDef = new ITypeDefinition_c.ITypeDefinition_c() 
+                                lg = new LangGeneric_c(); 
+                                isvalid= new IsValid_c.IsValid_c() 
+                                vars = new IVariables_c.IVariables_c()
+                            }
                     Some (TL "DAstConstruction.DoWork" (fun () -> DAstConstruction.DoWork frontEntAst acnDeps CommonTypes.ProgrammingLanguage.C lm args.encodings))
                 | Ada_Lang              -> 
                     //let aaa = new IEqual_a.IEqual_a() 
-                    let lm = {LanguageMacros.equal = new IEqual_a.IEqual_a(); typeDef = new ITypeDefinition_a.ITypeDefinition_a()}
+                    let lm = {
+                                LanguageMacros.equal = new IEqual_a.IEqual_a(); 
+                                typeDef = new ITypeDefinition_a.ITypeDefinition_a(); 
+                                lg = new LangGeneric_a(); 
+                                isvalid= new IsValid_a.IsValid_a()
+                                vars = new IVariables_a.IVariables_a()
+                            }
                     
                     Some (TL "DAstConstruction.DoWork" (fun () -> DAstConstruction.DoWork frontEntAst acnDeps CommonTypes.ProgrammingLanguage.Ada lm args.encodings))
                 | _             -> None)
@@ -344,7 +357,15 @@ let main0 argv =
         let r = 
             match backends with
             | []    -> 
-                let lm = {LanguageMacros.equal = new IEqual_c.IEqual_c(); typeDef = new ITypeDefinition_c.ITypeDefinition_c()}
+                let lm = 
+                        {
+                            LanguageMacros.equal = new IEqual_c.IEqual_c(); 
+                            typeDef = new ITypeDefinition_c.ITypeDefinition_c(); 
+                            lg = new LangGeneric_c()
+                            isvalid= new IsValid_c.IsValid_c() 
+                            vars = new IVariables_c.IVariables_c()
+
+                        }
                 TL "DAstConstruction.DoWork" (fun () -> DAstConstruction.DoWork frontEntAst acnDeps CommonTypes.ProgrammingLanguage.C  lm args.encodings)
             | x::_  -> x
         
