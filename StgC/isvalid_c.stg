@@ -24,9 +24,9 @@ if (ret) {
 >>
 
 JoinItems2(sPart, sNestedPart) ::= <<
-<sStr1>
+<sPart>
 if (ret) {
-    <sStr2>
+    <sNestedPart>
 }   /*COVERAGE_IGNORE*/
 >>
 

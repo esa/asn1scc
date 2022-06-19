@@ -1369,7 +1369,7 @@ let nestItems joinItems2 children =
 
 
 let nestItems_ret (lm:LanguageMacros) children = 
-    nestItems isvalid_a.JoinTwoIfFirstOk children
+    nestItems  lm.isvalid.JoinTwoIfFirstOk children
 
 
 #if false
