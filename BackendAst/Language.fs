@@ -16,8 +16,13 @@ type ILangGeneric () =
     abstract member getArrayItem    : FuncParamType -> (string) -> (bool) -> FuncParamType;
     abstract member intValueToSting : BigInteger -> bool -> string;
     abstract member getNamedItemBackendName  :TypeDefintionOrReference option -> Asn1AcnAst.NamedItem -> string
+
+    abstract member getAsn1ChildBackendName0  : Asn1AcnAst.Asn1Child -> string
+    abstract member getAsn1ChChildBackendName0: Asn1AcnAst.ChChildInfo -> string
+
     abstract member getAsn1ChildBackendName  : Asn1Child -> string
     abstract member getAsn1ChChildBackendName: ChChildInfo -> string
+
     abstract member Length          : string -> string -> string
     abstract member typeDef         : Map<ProgrammingLanguage, FE_PrimitiveTypeDefinition> -> FE_PrimitiveTypeDefinition
     abstract member getTypeDefinition : Map<ProgrammingLanguage, FE_TypeDefinition> -> FE_TypeDefinition
@@ -25,7 +30,7 @@ type ILangGeneric () =
     abstract member getChChild      : FuncParamType -> string -> bool -> FuncParamType;
     abstract member getLocalVariableDeclaration : LocalVariable -> string;
     abstract member getLongTypedefName : TypeDefintionOrReference -> string;
-    abstract member ArrayAccess : string -> string;
+    abstract member ArrayAccess     : string -> string;
 
     abstract member presentWhenName : TypeDefintionOrReference option -> ChChildInfo -> string;
     abstract member getParamTypeSuffix : Asn1AcnAst.Asn1Type -> string -> Codec -> CallerScope;
@@ -34,6 +39,8 @@ type ILangGeneric () =
     abstract member getParamType    : Asn1AcnAst.Asn1Type -> Codec -> CallerScope;
     abstract member rtlModuleName   : string
     abstract member hasModules      : bool
+    abstract member AssignOperator  : string
+    abstract member TrueLiteral     : string
 
     default this.getAmber (fpt:FuncParamType) =
         if this.getStar fpt = "*" then "&" else ""        
@@ -101,7 +108,13 @@ type LangGeneric_c() =
 
         override this.getAsn1ChildBackendName (ch:Asn1Child) = ch._c_name
         override this.getAsn1ChChildBackendName (ch:ChChildInfo) = ch._c_name
+        override this.getAsn1ChildBackendName0 (ch:Asn1AcnAst.Asn1Child) = ch._c_name
+        override this.getAsn1ChChildBackendName0 (ch:Asn1AcnAst.ChChildInfo) = ch._c_name
+
+
         override this.rtlModuleName  = ""
+        override this.AssignOperator = "="
+        override this.TrueLiteral = "TRUE"
         override this.hasModules = false
         override this.getSeqChild (fpt:FuncParamType) (childName:string) (childTypeIsString: bool) =
             let newPath = sprintf "%s%s%s" fpt.p (this.getAcces fpt) childName
@@ -205,6 +218,8 @@ type LangGeneric_c() =
 type LangGeneric_a() =
     inherit ILangGeneric()
         override this.rtlModuleName  = "adaasn1rtl."
+        override this.AssignOperator = ":="
+        override this.TrueLiteral = "True"
         override this.hasModules = true
 
         override _.intValueToSting (i:BigInteger) _ = i.ToString()
@@ -247,6 +262,8 @@ type LangGeneric_a() =
         override this.getTypeDefinition (td:Map<ProgrammingLanguage, FE_TypeDefinition>) = td.[Ada]
         override this.getAsn1ChildBackendName (ch:Asn1Child) = ch._ada_name
         override this.getAsn1ChChildBackendName (ch:ChChildInfo) = ch._ada_name
+        override this.getAsn1ChildBackendName0 (ch:Asn1AcnAst.Asn1Child) = ch._ada_name
+        override this.getAsn1ChChildBackendName0 (ch:Asn1AcnAst.ChChildInfo) = ch._ada_name
 
         override this.getSeqChild (fpt:FuncParamType) (childName:string) (childTypeIsString: bool) =
             let newPath = sprintf "%s.%s" fpt.p childName
