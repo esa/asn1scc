@@ -59,7 +59,7 @@
     <modName>uper_c</modName>
 	<lang>c</lang>
     <abctractInterface   modMame="IUper">IUper.stg.fs</abctractInterface>
-    <implementationClass ifModMame="AbstractMacros.IUper" modMame="iuper">IUper_c.stg.fs</implementationClass>
+    <implementationClass ifModMame="AbstractMacros.IUper" modMame="iuper_c">IUper_c.stg.fs</implementationClass>
   </run>
   <run mode="single">
     <input>acn_c.stg</input>

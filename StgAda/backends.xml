@@ -54,7 +54,7 @@
     <output>uper_a.stg.fs</output>
     <modName>uper_a</modName>
 	<lang>Ada</lang>
-    <implementationClass ifModMame="AbstractMacros.IUper" modMame="iuper">IUper_a.stg.fs</implementationClass>
+    <implementationClass ifModMame="AbstractMacros.IUper" modMame="iuper_a">IUper_a.stg.fs</implementationClass>
 
   </run>
   <run mode="single">

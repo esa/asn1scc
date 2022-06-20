@@ -372,7 +372,7 @@ let createAcnIntegerFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (lm:
     let errCode, ns = getNextValidErrorCode us errCodeName
 
     let uperFuncBody (errCode) (p:CallerScope) = 
-        DAstUPer.getIntfuncBodyByCons r l lm codec t.uperRange t.Location t.isUnsigned (t.cons) (t.cons@t.withcons) errCode p
+        DAstUPer.getIntfuncBodyByCons r lm codec t.uperRange t.Location t.isUnsigned (t.cons) (t.cons@t.withcons) errCode p
         (*let pp = match codec with CommonTypes.Encode -> p.arg.getValue l | CommonTypes.Decode -> p.arg.getPointer l
         let IntUnconstraint = match l with C -> uper_c.IntUnconstraint          | Ada -> uper_a.IntUnconstraint
         let funcBodyContent = IntUnconstraint pp errCode.errCodeName false codec

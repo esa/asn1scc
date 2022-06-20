@@ -1,5 +1,6 @@
 group a_uper;
 
+
 rtlModuleName() ::= "adaasn1rtl"
 
 call_base_type_func_encode(p, sFuncName) ::= "<sFuncName>_aux(<p>, bs, result);"

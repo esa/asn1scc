@@ -41,6 +41,7 @@ type ILangGeneric () =
     abstract member hasModules      : bool
     abstract member AssignOperator  : string
     abstract member TrueLiteral     : string
+    abstract member emtyStatement   : string
 
     default this.getAmber (fpt:FuncParamType) =
         if this.getStar fpt = "*" then "&" else ""        
@@ -56,6 +57,7 @@ type LanguageMacros = {
     typeDef : ITypeDefinition;
     isvalid : IIsValid
     vars    : IVariables
+    uper    : IUper
 }
 
 
@@ -115,6 +117,7 @@ type LangGeneric_c() =
         override this.rtlModuleName  = ""
         override this.AssignOperator = "="
         override this.TrueLiteral = "TRUE"
+        override this.emtyStatement = ""
         override this.hasModules = false
         override this.getSeqChild (fpt:FuncParamType) (childName:string) (childTypeIsString: bool) =
             let newPath = sprintf "%s%s%s" fpt.p (this.getAcces fpt) childName
@@ -221,6 +224,7 @@ type LangGeneric_a() =
         override this.AssignOperator = ":="
         override this.TrueLiteral = "True"
         override this.hasModules = true
+        override this.emtyStatement = "null;"
 
         override _.intValueToSting (i:BigInteger) _ = i.ToString()
 
