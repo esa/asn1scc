@@ -128,25 +128,21 @@ pragma Warnings (On, "unused initial value of ""<sVarName>""");
 
 
 
-annotations_encode(sName, bKDependsOnValue, bAcnEncodeFuncRequiresResult, bResDependsOnData, bKDependsOnData) ::= <<
---with
--- pre  => S'Last >= <sName>_REQUIRED_BITS_FOR_ENCODING and then K >= S'First - 1 and then K \<= S'Last - <sName>_REQUIRED_BITS_FOR_ENCODING and then K \<= Natural'Last - <sName>_REQUIRED_BITS_FOR_ENCODING,
--- post => K>=K'Old and K\<=K'Old + <sName>_REQUIRED_BITS_FOR_ENCODING
->>
 
 
-annotations_decode(sName, bKDependsOnValue, bAcnEncodeFuncRequiresResult, bResDependsOnData, bKDependsOnData) ::= <<
---with
--- pre => S'Last >= <sName>_REQUIRED_BITS_FOR_ENCODING and then K.K >= S'First - 1 and then K.K \<= S'Last - <sName>_REQUIRED_BITS_FOR_ENCODING and then K.K \<= Natural'Last - <sName>_REQUIRED_BITS_FOR_ENCODING,
--- post => K.K>=K'Old.K and K.K\<=K'Old.K+<sName>_REQUIRED_BITS_FOR_ENCODING
->>
-
-
-
-null_decode(p) ::= <<
+decode_nullType(p) ::= <<
 <p> := 0;
 result := <rtlModuleName()>.ASN1_RESULT'(Success => true, ErrorCode => 0);
 >>
+
+
+/*case: A:: = INTEGER (5..5) */
+IntNoneRequired_encode(p, nConst, sErrCode) ::= "-- No need to encode value since it will always be <nConst> --"
+IntNoneRequired_decode(p, nConst, sErrCode) ::= <<
+result := <rtlModuleName()>.ASN1_RESULT'(Success => true, ErrorCode => 0);
+<p> := <nConst>; 
+>>
+
 
 /*case: A:: = INTEGER (5..20) */
 IntFullyConstraint_encode(p, nMin, nMax, nBits, sErrCode) ::= "adaasn1rtl.encoding.uper.UPER_Enc_ConstraintWholeNumber(bs, <p>, <nMin>, <nBits>);"
@@ -376,33 +372,7 @@ end if;
 
 
 
-JoinItems0_encode(sTasName, sPart, sNestedPart, nRequiredBitsSoFar, bRequiresResultCheck) ::= <<
-<sPart>
-<if(sNestedPart)>
---# assert K~+1>= S'First and K~ + <sTasName>_REQUIRED_BITS_FOR_ENCODING \<= S'Last AND
---#	       K>=K~ and K\<=K~+<nRequiredBitsSoFar>;	
-<if(bRequiresResultCheck)>
-if result.Success then
-    <sNestedPart>
-end if;
-<else>
-<sNestedPart>
-<endif>
-<endif>
 
->>
-
-
-JoinItems0_decode(sTasName, sPart, sNestedPart, nRequiredBitsSoFar, bRequiresResultCheck) ::= <<
-<sPart>
-<if(sNestedPart)>
---# assert K~.K+1>= S'First and K~.K + <sTasName>_REQUIRED_BITS_FOR_ENCODING \<= S'Last AND
---#	       K.K>=K~.K and K.K\<=K~.K+<nRequiredBitsSoFar>;	
-if result.Success then
-    <sNestedPart>
-end if;
-<endif>
->>
 /* SEQUENCE end */
 
 
@@ -931,4 +901,26 @@ begin
 end;
 >>
 
+
+
+
+/* BIT STRING*/
+bitString_FixSize_encode(p, sAcc, nFixedSize, sErrCode) ::= "BitStream_AppendBits(pBitStrm, <p><sAcc>arr, <nFixedSize>);"
+bitString_FixSize_decode(p, sAcc, nFixedSize, sErrCode) ::= <<
+ret = BitStream_ReadBits(pBitStrm, <p><sAcc>arr, <nFixedSize>);
+*pErrCode = ret ? 0 : <sErrCode>;
+>>
+
+bitString_VarSize_encode(p, sAcc, nSizeMin, nSizeMax, sErrCode) ::= <<
+BitStream_EncodeConstraintWholeNumber(pBitStrm, <p><sAcc>nCount, <nSizeMin>, <nSizeMax>);
+<bitString_FixSize_encode(p=p, sAcc=sAcc, nFixedSize=[p, sAcc,"nCount"], sErrCode=sErrCode)>
+>>
+
+bitString_VarSize_decode(p, sAcc, nSizeMin, nSizeMax, sErrCode) ::= <<
+ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, &nCount, <nSizeMin>, <nSizeMax>);
+if (ret) {
+	<p><sAcc>nCount = (long)nCount;
+	<bitString_FixSize_decode(p=p, sAcc=sAcc, nFixedSize=[p,sAcc, "nCount"], sErrCode=sErrCode)>
+}
+>>
 

@@ -984,8 +984,8 @@ let rec handleSingleUpdateDependency (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.Acn
     let sizeDependency                  = match l with C -> acn_c.SizeDependency                    | Ada -> acn_a.SizeDependency      
     let sizeDependencyFixedSize         = match l with C -> acn_c.SizeDependencyFixedSize           | Ada -> acn_a.SizeDependencyFixedSize      
     let sizeDep_oct_str_containing      = match l with C -> acn_c.SizeDependency_oct_str_containing | Ada -> acn_a.SizeDependency_oct_str_containing
-    let getSizeableSize                 = match l with C -> uper_c.getSizeableSize                  | Ada -> acn_a.getSizeableSize          
-    let getStringSize                   = match l with C -> uper_c.getStringSize                    | Ada -> acn_a.getStringSize          
+    let getSizeableSize                 = match l with C -> acn_c.getSizeableSize                  | Ada -> acn_a.getSizeableSize          
+    let getStringSize                   = match l with C -> acn_c.getStringSize                    | Ada -> acn_a.getStringSize          
     let choiceDependencyPres            = match l with C -> acn_c.ChoiceDependencyPres              | Ada -> acn_a.ChoiceDependencyPres
     let choiceDependencyIntPres_child   = match l with C -> acn_c.ChoiceDependencyIntPres_child     | Ada -> acn_a.ChoiceDependencyIntPres_child
     let choiceDependencyStrPres_child   = match l with C -> acn_c.ChoiceDependencyStrPres_child     | Ada -> acn_a.ChoiceDependencyStrPres_child
@@ -1650,7 +1650,7 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
                         | C -> "",[],[] 
                         | Ada when codec = CommonTypes.Decode -> 
                             let childp = ({CallerScope.modName = p.modName; arg = VALUE ((child.getBackendName l) + "_tmp")})
-                            let ret = uper_a.null_decode childp.arg.p
+                            let ret = uper_a.decode_nullType childp.arg.p
                             ret ,[],[]
                         | Ada  -> "null;",[],[]
                     | Some childContent -> childContent.funcBody,  childContent.localVariables, childContent.errCodes

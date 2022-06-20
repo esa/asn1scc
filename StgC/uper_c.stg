@@ -1,9 +1,7 @@
 ﻿group c_uper;
 
+rtlModuleName() ::= ""
 
-getStringSize(p) ::= "strlen(<p>)"
-
-getSizeableSize(p, sAcc) ::= "<p><sAcc>nCount"
 
 
 call_base_type_func_encode(p, sFuncName) ::= "ret = <sFuncName>(<p>, pBitStrm, pErrCode, FALSE);"
@@ -114,7 +112,7 @@ ret = BitStream_ReadByte(pBitStrm, &(<p><sAcc>arr[<i>]));
 *pErrCode = ret ? 0 : <sErrCode>;
 >>
 
-PrintAlphabet2(arrnCharSet) ::= <<
+PrintAlphabet2(arrnCharSet) /*nogen*/::= <<
 static byte allowedCharSet[] = {<arrnCharSet:{ch|0x<ch;format="X2">}; wrap, anchor, separator=",">}; 
 >>
 
@@ -802,11 +800,6 @@ if (ret) {
 >>
 
 
-PrintDefaultAcnModule(sModName, arrsTypeAssignments, sAssignOperator) ::= <<
-<sModName> DEFINITIONS <sAssignOperator> BEGIN
-    <arrsTypeAssignments; separator="\n">
-END
->>
 
 
 
@@ -870,4 +863,37 @@ bit_string_containing_func_decode(p, sFuncName, sReqBytesForUperEncoding, sReqBi
 		ret = <sFuncName>(<p>, &bitStrm, pErrCode);
 	}
 }
+>>
+
+
+sparkAnnotations_encode(sTypeDefName) ::= <<
+>>
+
+sparkAnnotations_decode(sTypeDefName) ::= <<
+>>
+
+decode_nullType(p) ::= <<
+/*no encoding/decoding is required*/
+>>
+
+decode_empty_sequence_emptySeq(p) ::= <<
+/*no encoding/decoding is required*/
+>>
+
+JoinItems(sPart, soNestedPart) ::= <<
+<sPart>
+<if(soNestedPart)>
+if (ret) {
+    <soNestedPart>
+}
+
+<endif>
+>>
+
+
+
+InternalItem_bit_str_encode(p, i, sErrCode) ::=<<
+>>
+
+InternalItem_bit_str_decode(p, i, sErrCode) ::=<<
 >>

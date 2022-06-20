@@ -414,7 +414,7 @@ let EmmitDefaultACNGrammar (r:AstRoot) outDir  =
         tas.Name.Value + "[]"
     let printModule (m:Asn1Module) =
         let arrTases = m.TypeAssignments |> Seq.map printTas
-        uper_c.PrintDefaultAcnModule m.Name.Value arrTases "::="
+        stg_acn.PrintDefaultAcnModule m.Name.Value arrTases "::="
     let printFile (f:Asn1File) =
         let fileName = f.FileNameWithoutExtension + ".acn"
         if (System.IO.File.Exists fileName) then

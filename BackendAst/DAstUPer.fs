@@ -12,7 +12,7 @@ open DAst
 open DAstUtilFunctions
 open Language
 
-let getFuncName (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (lm:LanguageMacros) (codec:CommonTypes.Codec) (typeId :ReferenceToType) (td:FE_TypeDefinition) =
+let getFuncName (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:CommonTypes.Codec) (typeId :ReferenceToType) (td:FE_TypeDefinition) =
     match typeId.tasInfo with
     | None -> None
     | Some _ -> Some (td.typeName + codec.suffix)
@@ -48,7 +48,7 @@ let nestChildItems (l:ProgrammingLanguage) (lm:LanguageMacros) (codec:CommonType
 
 
 let internal createUperFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (lm:LanguageMacros) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (typeDefinition:TypeDefintionOrReference) (baseTypeUperFunc : UPerFunction option) (isValidFunc: IsValidFunction option)  (funcBody_e:ErroCode->CallerScope -> (UPERFuncBodyResult option)) soSparkAnnotations (us:State)  =
-    let funcName            = getFuncName r l lm codec t.id (t.FT_TypeDefintion.[l])
+    let funcName            = getFuncName r lm codec t.id (t.FT_TypeDefintion.[l])
     let errCodeName         = ToC ("ERR_UPER" + (codec.suffix.ToUpper()) + "_" + ((t.id.AcnAbsPath |> Seq.skip 1 |> Seq.StrJoin("-")).Replace("#","elm")))
     let errCode, ns = getNextValidErrorCode us errCodeName
 
@@ -684,7 +684,7 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (lm:Lang
                             | Ada when codec=Decode -> 
                                 let childp = ({p with arg = VALUE ((child.getBackendName l) + "_tmp")})
                                 match child.chType.ActualType.Kind with
-                                | NullType _    -> uper_a.null_decode childp.arg.p
+                                | NullType _    -> uper_a.decode_nullType childp.arg.p
                                 | Sequence _    -> uper_a.decode_empty_sequence_emptySeq childp.arg.p
                                 | _             -> "--no encoding/decoding is required"
                             | Ada   -> "--no encoding/decoding is required"
