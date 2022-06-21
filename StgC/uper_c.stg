@@ -190,8 +190,16 @@ ret = BitStream_DecodeSemiConstraintPosWholeNumber(pBitStrm, <p>, <nMin>);
 
 
 /*case: A:: = INTEGER (5..5) */
-IntNoneRequired_encode(p, nConst, sErrCode) ::= "/* No need to encode value since it will always be <nConst> */"
-IntNoneRequired_decode(p, nConst, sErrCode) ::= "<p>=<nConst>; ret = TRUE; *pErrCode = 0;"
+IntNoneRequired_encode(p, nConst, sErrCode) ::=<<
+/* No need to encode value since it will always be <nConst> */
+(void)pBitStrm;
+>>
+IntNoneRequired_decode(p, nConst, sErrCode) ::= <<
+<p>=<nConst>; 
+(void)pBitStrm;
+ret = TRUE; 
+*pErrCode = 0;
+>>
 
 
 /*case: A:: = INTEGER (5..40,...) */

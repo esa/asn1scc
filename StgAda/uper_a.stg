@@ -115,6 +115,15 @@ pragma Warnings (Off, "unused initial value of ""<sVarName>""");
 <endif>
 procedure <sFuncName>_aux(<sVarName>: out <sTypeDefName>; bs : in out <rtlModuleName()>.encoding.Bitstream; result : OUT <rtlModuleName()>.ASN1_RESULT)
 is
+<if(bBsIsUnreferenced)>
+    pragma Unreferenced (bs);
+
+<endif>
+<if(bVarNameIsUnreferenced)>
+    pragma Unreferenced (<sVarName>);
+
+<endif>
+
     <arrsLocalVariables; separator="\n">
 begin
     <sContent>
@@ -138,7 +147,11 @@ result := <rtlModuleName()>.ASN1_RESULT'(Success => true, ErrorCode => 0);
 
 
 /*case: A:: = INTEGER (5..5) */
-IntNoneRequired_encode(p, nConst, sErrCode) ::= "-- No need to encode value since it will always be <nConst> --"
+IntNoneRequired_encode(p, nConst, sErrCode) ::= <<
+-- No need to encode value since it will always be <nConst> --
+null;
+>>
+
 IntNoneRequired_decode(p, nConst, sErrCode) ::= <<
 result := <rtlModuleName()>.ASN1_RESULT'(Success => true, ErrorCode => 0);
 <p> := <nConst>; 
