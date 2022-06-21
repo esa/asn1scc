@@ -204,8 +204,8 @@ let private createStringType (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserted
         System.String(ch, int o.minSize.uper)
     let initFunction        = DAstInitialize.createIA5StringInitFunc r l t o defOrRef (StringValue initialValue)
     let isValidFunction, s1     = DastValidate2.createStringFunction r lm t o defOrRef  us
-    let uperEncFunction, s2     = DAstUPer.createIA5StringFunction r l lm Codec.Encode t o  defOrRef None isValidFunction s1
-    let uperDecFunction, s3     = DAstUPer.createIA5StringFunction r l lm Codec.Decode t o  defOrRef None isValidFunction s2
+    let uperEncFunction, s2     = DAstUPer.createIA5StringFunction r lm Codec.Encode t o  defOrRef None isValidFunction s1
+    let uperDecFunction, s3     = DAstUPer.createIA5StringFunction r lm Codec.Decode t o  defOrRef None isValidFunction s2
     let acnEncFunction, s4      = DAstACN.createStringFunction r deps l Codec.Encode t o defOrRef defOrRef isValidFunction uperEncFunction s3
     let acnDecFunction, s5      = DAstACN.createStringFunction r deps l Codec.Decode t o defOrRef defOrRef isValidFunction uperDecFunction s4
     let uperEncDecTestFunc,s6         = EncodeDecodeTestCase.createUperEncDecFunction r l t defOrRef equalFunction isValidFunction (Some uperEncFunction) (Some uperDecFunction) s5
@@ -251,8 +251,8 @@ let private createOctetString (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserte
 
     let isValidFunction, s1     = DastValidate2.createOctetStringFunction r lm t o defOrRef  equalFunction printValue us
     let initFunction        = DAstInitialize.createOctetStringInitFunc r l t o defOrRef (OctetStringValue initialValue) isValidFunction
-    let uperEncFunction, s2     = DAstUPer.createOctetStringFunction r l lm Codec.Encode t o  defOrRef None isValidFunction s1
-    let uperDecFunction, s3     = DAstUPer.createOctetStringFunction r l lm Codec.Decode t o  defOrRef None isValidFunction s2
+    let uperEncFunction, s2     = DAstUPer.createOctetStringFunction r lm Codec.Encode t o  defOrRef None isValidFunction s1
+    let uperDecFunction, s3     = DAstUPer.createOctetStringFunction r lm Codec.Decode t o  defOrRef None isValidFunction s2
     let acnEncFunction, s4      = DAstACN.createOctetStringFunction r deps l lm Codec.Encode t o defOrRef isValidFunction uperEncFunction s3
     let acnDecFunction, s5      = DAstACN.createOctetStringFunction r deps l lm Codec.Decode t o defOrRef isValidFunction uperDecFunction s4
     let uperEncDecTestFunc,s6         = EncodeDecodeTestCase.createUperEncDecFunction r l t defOrRef equalFunction isValidFunction (Some uperEncFunction) (Some uperDecFunction) s5
@@ -424,8 +424,8 @@ let private createEnumerated (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (lm:
     let initialValue  =o.items.Head.Name.Value
     let initFunction        = DAstInitialize.createEnumeratedInitFunc r l t o  defOrRef (EnumValue initialValue)
     let isValidFunction, s1     = DastValidate2.createEnumeratedFunction r lm t o defOrRef us
-    let uperEncFunction, s2     = DAstUPer.createEnumeratedFunction r l lm Codec.Encode t o  defOrRef None isValidFunction s1
-    let uperDecFunction, s3     = DAstUPer.createEnumeratedFunction r l lm Codec.Decode t o  defOrRef None isValidFunction s2
+    let uperEncFunction, s2     = DAstUPer.createEnumeratedFunction r lm Codec.Encode t o  defOrRef None isValidFunction s1
+    let uperDecFunction, s3     = DAstUPer.createEnumeratedFunction r lm Codec.Decode t o  defOrRef None isValidFunction s2
 
     let acnEncFunction, s4      = DAstACN.createEnumeratedFunction r l Codec.Encode t o defOrRef defOrRef isValidFunction uperEncFunction s3
     let acnDecFunction, s5      = DAstACN.createEnumeratedFunction r l Codec.Decode t o defOrRef defOrRef isValidFunction uperDecFunction s4

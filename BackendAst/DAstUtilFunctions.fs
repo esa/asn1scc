@@ -300,17 +300,22 @@ type LocalVariable with
 
 
 type TypeDefintionOrReference with 
-    member this.longTypedefName  l =
+
+    member this.longTypedefName2 bHasModules =
         match this with
         | TypeDefinition  td ->
             td.typedefName
         | ReferenceToExistingDefinition ref ->
             match ref.programUnit with
             | Some pu -> 
-                match l with
-                | Ada   -> pu + "." + ref.typedefName
-                | C     -> ref.typedefName
+                match bHasModules with
+                | true   -> pu + "." + ref.typedefName
+                | false     -> ref.typedefName
             | None    -> ref.typedefName
+
+    member this.longTypedefName  (l:ProgrammingLanguage) =
+        let b = (l = Ada)
+        this.longTypedefName2 b
             
     member this.getAsn1Name (typePrefix : string) =
         let typedefName = 

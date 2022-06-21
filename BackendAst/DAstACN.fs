@@ -742,7 +742,7 @@ let createAcnStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
                 //printfn "%A\n" nStringLength
                 str_VarSize p.arg.p typeDefinitionName i internalItem ( o.minSize.uper) ( o.maxSize.uper) nSizeInBits nBits nBits 0I codec , charIndex@nStringLength
             | _                                                -> 
-                let funcBodyContent,localVariables = DAstUPer.handleFragmentation l lm p codec errCode ii ( o.uperMaxSizeInBits) o.minSize.uper o.maxSize.uper internalItem nBits false true
+                let funcBodyContent,localVariables = DAstUPer.handleFragmentation lm p codec errCode ii ( o.uperMaxSizeInBits) o.minSize.uper o.maxSize.uper internalItem nBits false true
                 funcBodyContent,charIndex@localVariables
 
         {UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = lv::localVariables; bValIsUnReferenced=false; bBsIsUnReferenced=false}    
@@ -798,7 +798,7 @@ let createOctetStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserte
             match o.acnEncodingClass with
             | SZ_EC_uPER                                              -> 
                 let funcBody (errCode:ErroCode) (p:CallerScope) =
-                    Some (DAstUPer.createOctetStringFunction_funcBody r l lm codec t.id  typeDefinition o.isFixedSize  o.uperMaxSizeInBits o.minSize.acn o.maxSize.acn (errCode:ErroCode) (p:CallerScope) )
+                    Some (DAstUPer.createOctetStringFunction_funcBody r lm codec t.id  typeDefinition o.isFixedSize  o.uperMaxSizeInBits o.minSize.acn o.maxSize.acn (errCode:ErroCode) (p:CallerScope) )
             
                 funcBody errCode p |> Option.map(fun x -> x.funcBody, x.errCodes, x.localVariables)
             | SZ_EC_ExternalField   _    -> 
@@ -929,7 +929,7 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserted
                                 let funcBody = varSize p.arg.p (p.arg.getAcces l)  typeDefinitionName i "" ( o.minSize.acn) ( o.maxSize.acn) nSizeInBits ( child.acnMinSizeInBits) nIntItemMaxSize 0I errCode.errCodeName codec
                                 Some ({AcnFuncBodyResult.funcBody = funcBody; errCodes = [errCode]; localVariables = lv@nStringLength; bValIsUnReferenced= false; bBsIsUnReferenced=false})    
                             | _                                                -> 
-                                let funcBody, localVariables = DAstUPer.handleFragmentation l lm p codec errCode ii ( o.acnMaxSizeInBits) o.minSize.acn o.maxSize.acn "" nIntItemMaxSize false false
+                                let funcBody, localVariables = DAstUPer.handleFragmentation lm p codec errCode ii ( o.acnMaxSizeInBits) o.minSize.acn o.maxSize.acn "" nIntItemMaxSize false false
                                 Some ({AcnFuncBodyResult.funcBody = funcBody; errCodes = [errCode]; localVariables = localVariables; bValIsUnReferenced= false; bBsIsUnReferenced=false})    
 
                     | Some internalItem -> 
@@ -940,7 +940,7 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserted
                             | _ when o.maxSize.acn < 65536I && o.isFixedSize  -> fixedSize p.arg.p typeDefinitionName i internalItem.funcBody ( o.minSize.acn) ( child.acnMinSizeInBits) nIntItemMaxSize 0I codec , nStringLength 
                             | _ when o.maxSize.acn < 65536I && o.isVariableSize  -> varSize p.arg.p (p.arg.getAcces l)  typeDefinitionName i internalItem.funcBody ( o.minSize.acn) ( o.maxSize.acn) nSizeInBits ( child.acnMinSizeInBits) nIntItemMaxSize 0I errCode.errCodeName codec , nStringLength 
                             | _                                                -> 
-                                DAstUPer.handleFragmentation l lm p codec errCode ii ( o.acnMaxSizeInBits) o.minSize.acn o.maxSize.acn internalItem.funcBody nIntItemMaxSize false false
+                                DAstUPer.handleFragmentation lm p codec errCode ii ( o.acnMaxSizeInBits) o.minSize.acn o.maxSize.acn internalItem.funcBody nIntItemMaxSize false false
                         Some ({AcnFuncBodyResult.funcBody = ret; errCodes = errCode::childErrCodes; localVariables = lv@(internalItem.localVariables@localVariables); bValIsUnReferenced= false; bBsIsUnReferenced=false})    
 
                 | SZ_EC_ExternalField   _    -> 
