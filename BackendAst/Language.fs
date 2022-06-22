@@ -12,6 +12,7 @@ type Uper_parts = {
     requires_charIndex   : bool
     requires_IA5String_i : bool
     count_var            : LocalVariable
+    requires_presenceBit : bool
 }
 
 
@@ -248,6 +249,7 @@ type LangGeneric_c() =
                 requires_charIndex = false
                 requires_IA5String_i = true
                 count_var            = Asn1SIntLocalVariable ("nCount", None)
+                requires_presenceBit = true
             }
 
 type LangGeneric_a() =
@@ -363,6 +365,7 @@ type LangGeneric_a() =
                 requires_charIndex = true
                 requires_IA5String_i = false
                 count_var            = IntegerLocalVariable ("nStringLength", None)
+                requires_presenceBit = false
             }
 
 (*
