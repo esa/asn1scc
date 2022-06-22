@@ -584,11 +584,14 @@ type FE_StringTypeDefinition = {
 }
 with
     member this.longTypedefName l callerProgramUnit =
+        this.longTypedefName2 (l=Ada) callerProgramUnit
+    
+    member this.longTypedefName2 bHasUnits callerProgramUnit =
         let z n = this.programUnit + "." + n
-        match l with
-        | C             -> this
-        | Ada   when this.programUnit = callerProgramUnit   -> this
-        | Ada           -> {this with typeName = z this.typeName; encoding_range = z this.encoding_range; index = z this.index; alpha = z this.alpha; alpha_set = z this.alpha_set; alpha_index = z this.alpha_index}
+        match bHasUnits with
+        | false             -> this
+        | true   when this.programUnit = callerProgramUnit   -> this
+        | true           -> {this with typeName = z this.typeName; encoding_range = z this.encoding_range; index = z this.index; alpha = z this.alpha; alpha_set = z this.alpha_set; alpha_index = z this.alpha_index}
 
 type FE_SizeableTypeDefinition = {
     asn1Name        : string
@@ -653,12 +656,14 @@ type FE_EnumeratedTypeDefinition = {
 }
 with
     member this.longTypedefName l callerProgramUnit =
-        let z n = this.programUnit + "." + n
-        match l with
-        | C             -> this
-        | Ada   when this.programUnit = callerProgramUnit   -> this
-        | Ada           -> {this with typeName = z this.typeName; index_range = z this.index_range}
+        this.longTypedefName2 (l=Ada) callerProgramUnit
 
+    member this.longTypedefName2 bHasUnits callerProgramUnit =
+        let z n = this.programUnit + "." + n
+        match bHasUnits with
+        | false             -> this
+        | true   when this.programUnit = callerProgramUnit   -> this
+        | true           -> {this with typeName = z this.typeName; index_range = z this.index_range}
 
 
 type FE_TypeDefinition = 

@@ -40,7 +40,7 @@
     <abctractInterface   modMame="IIsValid">IIsValid.stg.fs</abctractInterface>
     <implementationClass ifModMame="AbstractMacros.IIsValid" modMame="IsValid_c">IIsValid_c.stg.fs</implementationClass>
    </run>
-    <run mode="single" >
+  <run mode="single" >
         <input>isvalid_new_c.stg</input>
         <output>isvalid_new_c.stg.fs</output>
         <modName>isvalid_new_c</modName>
@@ -59,6 +59,7 @@
     <modName>uper_c</modName>
 	<lang>c</lang>
     <abctractInterface   modMame="IUper">IUper.stg.fs</abctractInterface>
+    <implementationClass ifModMame="AbstractMacros.IUper" modMame="iuper_c">IUper_c.stg.fs</implementationClass>
   </run>
   <run mode="single">
     <input>acn_c.stg</input>

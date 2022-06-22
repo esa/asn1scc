@@ -5,6 +5,11 @@ PrintAsn1File(arrsModules) ::= <<
 >>
 
 
+PrintDefaultAcnModule(sModName, arrsTypeAssignments, sAssignOperator) ::= <<
+<sModName> DEFINITIONS <sAssignOperator> BEGIN
+    <arrsTypeAssignments; separator="\n">
+END
+>>
 
 PrintModule(sName, arrsTas) ::= <<
 <sName> DEFINITIONS ::= BEGIN /*nogen*/

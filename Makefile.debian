@@ -2,6 +2,7 @@ all: build
 
 build: dotnet-debian.SENTINEL
 	dotnet build -c Release Antlr/
+	dotnet build -c Release parseStg2/
 	dotnet build -c Release "asn1scc.sln"
 
 publish: build

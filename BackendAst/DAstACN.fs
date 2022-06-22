@@ -372,7 +372,7 @@ let createAcnIntegerFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (lm:
     let errCode, ns = getNextValidErrorCode us errCodeName
 
     let uperFuncBody (errCode) (p:CallerScope) = 
-        DAstUPer.getIntfuncBodyByCons r l lm codec t.uperRange t.Location t.isUnsigned (t.cons) (t.cons@t.withcons) errCode p
+        DAstUPer.getIntfuncBodyByCons r lm codec t.uperRange t.Location t.isUnsigned (t.cons) (t.cons@t.withcons) errCode p
         (*let pp = match codec with CommonTypes.Encode -> p.arg.getValue l | CommonTypes.Decode -> p.arg.getPointer l
         let IntUnconstraint = match l with C -> uper_c.IntUnconstraint          | Ada -> uper_a.IntUnconstraint
         let funcBodyContent = IntUnconstraint pp errCode.errCodeName false codec
@@ -742,7 +742,7 @@ let createAcnStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
                 //printfn "%A\n" nStringLength
                 str_VarSize p.arg.p typeDefinitionName i internalItem ( o.minSize.uper) ( o.maxSize.uper) nSizeInBits nBits nBits 0I codec , charIndex@nStringLength
             | _                                                -> 
-                let funcBodyContent,localVariables = DAstUPer.handleFragmentation l lm p codec errCode ii ( o.uperMaxSizeInBits) o.minSize.uper o.maxSize.uper internalItem nBits false true
+                let funcBodyContent,localVariables = DAstUPer.handleFragmentation lm p codec errCode ii ( o.uperMaxSizeInBits) o.minSize.uper o.maxSize.uper internalItem nBits false true
                 funcBodyContent,charIndex@localVariables
 
         {UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = lv::localVariables; bValIsUnReferenced=false; bBsIsUnReferenced=false}    
@@ -798,7 +798,7 @@ let createOctetStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserte
             match o.acnEncodingClass with
             | SZ_EC_uPER                                              -> 
                 let funcBody (errCode:ErroCode) (p:CallerScope) =
-                    Some (DAstUPer.createOctetStringFunction_funcBody r l lm codec t.id  typeDefinition o.isFixedSize  o.uperMaxSizeInBits o.minSize.acn o.maxSize.acn (errCode:ErroCode) (p:CallerScope) )
+                    Some (DAstUPer.createOctetStringFunction_funcBody r lm codec t.id  typeDefinition o.isFixedSize  o.uperMaxSizeInBits o.minSize.acn o.maxSize.acn (errCode:ErroCode) (p:CallerScope) )
             
                 funcBody errCode p |> Option.map(fun x -> x.funcBody, x.errCodes, x.localVariables)
             | SZ_EC_ExternalField   _    -> 
@@ -929,7 +929,7 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserted
                                 let funcBody = varSize p.arg.p (p.arg.getAcces l)  typeDefinitionName i "" ( o.minSize.acn) ( o.maxSize.acn) nSizeInBits ( child.acnMinSizeInBits) nIntItemMaxSize 0I errCode.errCodeName codec
                                 Some ({AcnFuncBodyResult.funcBody = funcBody; errCodes = [errCode]; localVariables = lv@nStringLength; bValIsUnReferenced= false; bBsIsUnReferenced=false})    
                             | _                                                -> 
-                                let funcBody, localVariables = DAstUPer.handleFragmentation l lm p codec errCode ii ( o.acnMaxSizeInBits) o.minSize.acn o.maxSize.acn "" nIntItemMaxSize false false
+                                let funcBody, localVariables = DAstUPer.handleFragmentation lm p codec errCode ii ( o.acnMaxSizeInBits) o.minSize.acn o.maxSize.acn "" nIntItemMaxSize false false
                                 Some ({AcnFuncBodyResult.funcBody = funcBody; errCodes = [errCode]; localVariables = localVariables; bValIsUnReferenced= false; bBsIsUnReferenced=false})    
 
                     | Some internalItem -> 
@@ -940,7 +940,7 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserted
                             | _ when o.maxSize.acn < 65536I && o.isFixedSize  -> fixedSize p.arg.p typeDefinitionName i internalItem.funcBody ( o.minSize.acn) ( child.acnMinSizeInBits) nIntItemMaxSize 0I codec , nStringLength 
                             | _ when o.maxSize.acn < 65536I && o.isVariableSize  -> varSize p.arg.p (p.arg.getAcces l)  typeDefinitionName i internalItem.funcBody ( o.minSize.acn) ( o.maxSize.acn) nSizeInBits ( child.acnMinSizeInBits) nIntItemMaxSize 0I errCode.errCodeName codec , nStringLength 
                             | _                                                -> 
-                                DAstUPer.handleFragmentation l lm p codec errCode ii ( o.acnMaxSizeInBits) o.minSize.acn o.maxSize.acn internalItem.funcBody nIntItemMaxSize false false
+                                DAstUPer.handleFragmentation lm p codec errCode ii ( o.acnMaxSizeInBits) o.minSize.acn o.maxSize.acn internalItem.funcBody nIntItemMaxSize false false
                         Some ({AcnFuncBodyResult.funcBody = ret; errCodes = errCode::childErrCodes; localVariables = lv@(internalItem.localVariables@localVariables); bValIsUnReferenced= false; bBsIsUnReferenced=false})    
 
                 | SZ_EC_ExternalField   _    -> 
@@ -984,8 +984,8 @@ let rec handleSingleUpdateDependency (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.Acn
     let sizeDependency                  = match l with C -> acn_c.SizeDependency                    | Ada -> acn_a.SizeDependency      
     let sizeDependencyFixedSize         = match l with C -> acn_c.SizeDependencyFixedSize           | Ada -> acn_a.SizeDependencyFixedSize      
     let sizeDep_oct_str_containing      = match l with C -> acn_c.SizeDependency_oct_str_containing | Ada -> acn_a.SizeDependency_oct_str_containing
-    let getSizeableSize                 = match l with C -> uper_c.getSizeableSize                  | Ada -> acn_a.getSizeableSize          
-    let getStringSize                   = match l with C -> uper_c.getStringSize                    | Ada -> acn_a.getStringSize          
+    let getSizeableSize                 = match l with C -> acn_c.getSizeableSize                  | Ada -> acn_a.getSizeableSize          
+    let getStringSize                   = match l with C -> acn_c.getStringSize                    | Ada -> acn_a.getStringSize          
     let choiceDependencyPres            = match l with C -> acn_c.ChoiceDependencyPres              | Ada -> acn_a.ChoiceDependencyPres
     let choiceDependencyIntPres_child   = match l with C -> acn_c.ChoiceDependencyIntPres_child     | Ada -> acn_a.ChoiceDependencyIntPres_child
     let choiceDependencyStrPres_child   = match l with C -> acn_c.ChoiceDependencyStrPres_child     | Ada -> acn_a.ChoiceDependencyStrPres_child
@@ -1650,7 +1650,7 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
                         | C -> "",[],[] 
                         | Ada when codec = CommonTypes.Decode -> 
                             let childp = ({CallerScope.modName = p.modName; arg = VALUE ((child.getBackendName l) + "_tmp")})
-                            let ret = uper_a.null_decode childp.arg.p
+                            let ret = uper_a.decode_nullType childp.arg.p
                             ret ,[],[]
                         | Ada  -> "null;",[],[]
                     | Some childContent -> childContent.funcBody,  childContent.localVariables, childContent.errCodes

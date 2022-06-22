@@ -5,6 +5,16 @@ open DAst
 open FsUtils
 open AbstractMacros
 
+type Uper_parts = {
+    createLv : string -> LocalVariable
+    requires_sBlockIndex : bool
+    requires_sBLJ        : bool
+    requires_charIndex   : bool
+    requires_IA5String_i : bool
+    count_var            : LocalVariable
+}
+
+
 [<AbstractClass>]
 type ILangGeneric () =
     abstract member getPointer      : FuncParamType -> string;
@@ -26,10 +36,15 @@ type ILangGeneric () =
     abstract member Length          : string -> string -> string
     abstract member typeDef         : Map<ProgrammingLanguage, FE_PrimitiveTypeDefinition> -> FE_PrimitiveTypeDefinition
     abstract member getTypeDefinition : Map<ProgrammingLanguage, FE_TypeDefinition> -> FE_TypeDefinition
+    abstract member getEnmTypeDefintion : Map<ProgrammingLanguage, FE_EnumeratedTypeDefinition>  -> FE_EnumeratedTypeDefinition;
+    abstract member getStrTypeDefinition : Map<ProgrammingLanguage, FE_StringTypeDefinition> -> FE_StringTypeDefinition
+
     abstract member getSeqChild     : FuncParamType -> string -> bool -> FuncParamType;
     abstract member getChChild      : FuncParamType -> string -> bool -> FuncParamType;
     abstract member getLocalVariableDeclaration : LocalVariable -> string;
     abstract member getLongTypedefName : TypeDefintionOrReference -> string;
+    //abstract member getEnmLongTypedefName : FE_EnumeratedTypeDefinition -> string -> FE_EnumeratedTypeDefinition;
+
     abstract member ArrayAccess     : string -> string;
 
     abstract member presentWhenName : TypeDefintionOrReference option -> ChChildInfo -> string;
@@ -41,6 +56,11 @@ type ILangGeneric () =
     abstract member hasModules      : bool
     abstract member AssignOperator  : string
     abstract member TrueLiteral     : string
+    abstract member emtyStatement   : string
+
+    abstract member toHex : int -> string
+    abstract member uper : Uper_parts;
+//    abstract member createLocalVariable_frag : string -> LocalVariable
 
     default this.getAmber (fpt:FuncParamType) =
         if this.getStar fpt = "*" then "&" else ""        
@@ -56,6 +76,7 @@ type LanguageMacros = {
     typeDef : ITypeDefinition;
     isvalid : IIsValid
     vars    : IVariables
+    uper    : IUper
 }
 
 
@@ -104,7 +125,8 @@ type LangGeneric_c() =
 
         override this.typeDef (ptd:Map<ProgrammingLanguage, FE_PrimitiveTypeDefinition>) = ptd.[C]
         override this.getTypeDefinition (td:Map<ProgrammingLanguage, FE_TypeDefinition>) = td.[C]
-
+        override this.getEnmTypeDefintion (td:Map<ProgrammingLanguage, FE_EnumeratedTypeDefinition>) = td.[C]
+        override this.getStrTypeDefinition (td:Map<ProgrammingLanguage, FE_StringTypeDefinition>) = td.[C]
 
         override this.getAsn1ChildBackendName (ch:Asn1Child) = ch._c_name
         override this.getAsn1ChChildBackendName (ch:ChChildInfo) = ch._c_name
@@ -115,6 +137,7 @@ type LangGeneric_c() =
         override this.rtlModuleName  = ""
         override this.AssignOperator = "="
         override this.TrueLiteral = "TRUE"
+        override this.emtyStatement = ""
         override this.hasModules = false
         override this.getSeqChild (fpt:FuncParamType) (childName:string) (childTypeIsString: bool) =
             let newPath = sprintf "%s%s%s" fpt.p (this.getAcces fpt) childName
@@ -213,7 +236,19 @@ type LangGeneric_c() =
             match tdr with
             | TypeDefinition  td -> td.typedefName
             | ReferenceToExistingDefinition ref -> ref.typedefName
-            
+                    
+        //override this.getEnmLongTypedefName (td:FE_EnumeratedTypeDefinition) _ = td;
+
+        override this.toHex n = sprintf "0x%x" n
+        override this.uper =
+            {
+                Uper_parts.createLv = (fun name -> Asn1SIntLocalVariable(name,None))
+                requires_sBlockIndex  = true
+                requires_sBLJ = false
+                requires_charIndex = false
+                requires_IA5String_i = true
+                count_var            = Asn1SIntLocalVariable ("nCount", None)
+            }
 
 type LangGeneric_a() =
     inherit ILangGeneric()
@@ -221,6 +256,7 @@ type LangGeneric_a() =
         override this.AssignOperator = ":="
         override this.TrueLiteral = "True"
         override this.hasModules = true
+        override this.emtyStatement = "null;"
 
         override _.intValueToSting (i:BigInteger) _ = i.ToString()
 
@@ -260,6 +296,8 @@ type LangGeneric_a() =
 
         override this.typeDef (ptd:Map<ProgrammingLanguage, FE_PrimitiveTypeDefinition>) = ptd.[Ada]
         override this.getTypeDefinition (td:Map<ProgrammingLanguage, FE_TypeDefinition>) = td.[Ada]
+        override this.getEnmTypeDefintion (td:Map<ProgrammingLanguage, FE_EnumeratedTypeDefinition>) = td.[Ada]
+        override this.getStrTypeDefinition (td:Map<ProgrammingLanguage, FE_StringTypeDefinition>) = td.[Ada]
         override this.getAsn1ChildBackendName (ch:Asn1Child) = ch._ada_name
         override this.getAsn1ChChildBackendName (ch:ChChildInfo) = ch._ada_name
         override this.getAsn1ChildBackendName0 (ch:Asn1AcnAst.Asn1Child) = ch._ada_name
@@ -308,8 +346,24 @@ type LangGeneric_a() =
                 | Some pu -> pu + "." + ref.typedefName
                 | None    -> ref.typedefName
 
+
+
+
+
         override this.getParamValue  (t:Asn1AcnAst.Asn1Type) (p:FuncParamType)  (c:Codec) =
             p.p
+
+        override this.toHex n = sprintf "16#%x#" n
+
+        override this.uper =
+            {
+                Uper_parts.createLv = (fun name -> IntegerLocalVariable(name,None))
+                requires_sBlockIndex  = false
+                requires_sBLJ = true
+                requires_charIndex = true
+                requires_IA5String_i = false
+                count_var            = IntegerLocalVariable ("nStringLength", None)
+            }
 
 (*
 type ProgrammingLanguage with

@@ -1364,3 +1364,5 @@ v2out
 /Docs/examples/calculate_crc/a_out/board_config.ads
 /StgAda/IIsValid_a.stg.fs
 /StgC/IIsValid_c.stg.fs
+/StgC/IUper_c.stg.fs
+/StgAda/IUper_a.stg.fs

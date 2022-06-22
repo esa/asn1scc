@@ -6,6 +6,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Content Include="backends.xml" />
     <Compile Include="acn_c.stg.fs" />
     <Compile Include="aux_c.stg.fs" />
     <Compile Include="body_c.stg.fs" />
@@ -22,6 +23,7 @@
     <Compile Include="ITypeDefinition_c.stg.fs" />
     <Compile Include="IVariables_c.stg.fs" />
     <Compile Include="IIsValid_c.stg.fs" />
+    <Compile Include="IUper_c.stg.fs" />
   </ItemGroup>
 
   <ItemGroup>
