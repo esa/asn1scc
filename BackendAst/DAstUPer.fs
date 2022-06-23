@@ -416,7 +416,13 @@ let createOctetStringFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:
     let soSparkAnnotations = Some(sparkAnnotations lm (lm.lg.getLongTypedefName typeDefinition) codec)
     createUperFunction r lm codec t typeDefinition baseTypeUperFunc  isValidFunc  (fun e p -> Some (funcBody  e p)) soSparkAnnotations  us
 
-let createBitStringFunction_funcBody (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (lm:LanguageMacros) (codec:CommonTypes.Codec) (id : ReferenceToType) (typeDefinition:TypeDefintionOrReference) isFixedSize  uperMaxSizeInBits minSize maxSize (errCode:ErroCode) (p:CallerScope) = 
+
+
+
+let createBitStringFunction_funcBody (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (codec:CommonTypes.Codec) (id : ReferenceToType) (typeDefinition:TypeDefintionOrReference) isFixedSize  uperMaxSizeInBits minSize maxSize (errCode:ErroCode) (p:CallerScope) = 
+    lm.lg.uper.createBitStringFunction (handleFragmentation lm) codec id typeDefinition isFixedSize  uperMaxSizeInBits minSize maxSize errCode p
+
+#if false 
     let ii = id.SeqeuenceOfLevel + 1;
     let i = sprintf "i%d" (id.SeqeuenceOfLevel + 1)
 
@@ -457,20 +463,20 @@ let createBitStringFunction_funcBody (r:Asn1AcnAst.AstRoot) (l:ProgrammingLangua
             | _                                                -> 
                 handleFragmentation lm p codec errCode ii (uperMaxSizeInBits) minSize maxSize "" 1I true false
     {UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = localVariables; bValIsUnReferenced=false; bBsIsUnReferenced=false}    
+#endif 
 
-
-let createBitStringFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (lm:LanguageMacros) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.BitString) (typeDefinition:TypeDefintionOrReference)  (baseTypeUperFunc : UPerFunction option) (isValidFunc: IsValidFunction option) (us:State)  =
+let createBitStringFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.BitString) (typeDefinition:TypeDefintionOrReference)  (baseTypeUperFunc : UPerFunction option) (isValidFunc: IsValidFunction option) (us:State)  =
 
     let funcBody  (errCode:ErroCode) (p:CallerScope) =
-        createBitStringFunction_funcBody r l lm codec t.id typeDefinition o.isFixedSize  o.uperMaxSizeInBits o.minSize.uper o.maxSize.uper (errCode:ErroCode) (p:CallerScope)
+        createBitStringFunction_funcBody r lm codec t.id typeDefinition o.isFixedSize  o.uperMaxSizeInBits o.minSize.uper o.maxSize.uper (errCode:ErroCode) (p:CallerScope)
 
     let soSparkAnnotations = Some(sparkAnnotations lm (lm.lg.getLongTypedefName typeDefinition) codec)
     createUperFunction r lm codec t typeDefinition baseTypeUperFunc  isValidFunc  (fun e p -> Some (funcBody e p))  soSparkAnnotations  us
 
 
+//let get
 
-
-let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (lm:LanguageMacros) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.SequenceOf) (typeDefinition:TypeDefintionOrReference)  (baseTypeUperFunc : UPerFunction option) (isValidFunc: IsValidFunction option) (child:Asn1Type) (us:State)  =
+let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.SequenceOf) (typeDefinition:TypeDefintionOrReference)  (baseTypeUperFunc : UPerFunction option) (isValidFunc: IsValidFunction option) (child:Asn1Type) (us:State)  =
     let fixedSize       = lm.uper.octect_FixedSize
     let varSize         = lm.uper.octect_VarSize
     let typeDefinitionName = typeDefinition.longTypedefName2 lm.lg.hasModules //getTypeDefinitionName t.id.tasInfo typeDefinition
@@ -484,11 +490,11 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (lm:
         | None ->
             let ii = t.id.SeqeuenceOfLevel + 1
             let i = sprintf "i%d" ii
-            let lv = 
-                match l with 
-                | C           -> [SequenceOfIndex (t.id.SeqeuenceOfLevel + 1, None)]
-                | Ada   when o.maxSize.uper >= 65536I && o.maxSize.uper=o.minSize.uper   -> []      //fixed size fragmentation does not need the i variable
-                | Ada         -> [SequenceOfIndex (t.id.SeqeuenceOfLevel + 1, None)]
+            let lv = lm.lg.uper.seqof_lv t.id o.minSize.uper o.maxSize.uper
+//                match l with 
+//                | C           -> [SequenceOfIndex (t.id.SeqeuenceOfLevel + 1, None)]
+//                | Ada   when o.maxSize.uper >= 65536I && o.maxSize.uper=o.minSize.uper   -> []      //fixed size fragmentation does not need the i variable
+//                | Ada         -> [SequenceOfIndex (t.id.SeqeuenceOfLevel + 1, None)]
 
             let nStringLength =
                 match o.minSize.uper = o.maxSize.uper,  codec with
@@ -597,10 +603,10 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Com
 
 
 
-let createChoiceFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (lm:LanguageMacros) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Choice) (typeDefinition:TypeDefintionOrReference)  (baseTypeUperFunc : UPerFunction option) (isValidFunc: IsValidFunction option) (children:ChChildInfo list) (us:State)  =
+let createChoiceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Choice) (typeDefinition:TypeDefintionOrReference)  (baseTypeUperFunc : UPerFunction option) (isValidFunc: IsValidFunction option) (children:ChChildInfo list) (us:State)  =
     // stg macros
-    let choice_child       = match l with C -> uper_c.choice_child | Ada -> uper_a.choice_child
-    let choice             = match l with C -> uper_c.choice       | Ada -> uper_a.choice
+    let choice_child       = lm.uper.choice_child
+    let choice             = lm.uper.choice
 
     let baseFuncName =  match baseTypeUperFunc  with None -> None | Some baseFunc -> baseFunc.funcName
     let sChoiceIndexName = (lm.lg.getLongTypedefName typeDefinition) + "_index_tmp"
@@ -609,10 +615,11 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (lm:Lang
         | CommonTypes.Encode  -> []
         | CommonTypes.Decode  -> [(Asn1SIntLocalVariable (sChoiceIndexName, None))]
 
-    let typeDefinitionName = typeDefinition.longTypedefName l //getTypeDefinitionName t.id.tasInfo typeDefinition
+    let typeDefinitionName = typeDefinition.longTypedefName2 lm.lg.hasModules //getTypeDefinitionName t.id.tasInfo typeDefinition
 
     let funcBody (errCode:ErroCode) (p:CallerScope) = 
-        let td = (o.typeDef.[l]).longTypedefName l (ToC p.modName)
+        let td0 = lm.lg.getChoiceTypeDefinition o.typeDef
+        let td = td0.longTypedefName2 lm.lg.hasModules (ToC p.modName)
         match baseFuncName with
         | None ->
             let nIndexSizeInBits = (GetNumberOfBitsForNonNegativeInteger (BigInteger (children.Length - 1)))
@@ -621,28 +628,28 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (lm:Lang
                 List.mapi(fun i child ->
                     let chFunc = child.chType.getUperFunction codec
                     let uperChildRes = 
-                        match l with
-                        | C   -> chFunc.funcBody ({p with arg = p.arg.getChChild l (child.getBackendName l) child.chType.isIA5String})
-                        | Ada when codec = CommonTypes.Decode -> chFunc.funcBody ({p with arg = VALUE ((child.getBackendName l) + "_tmp")})
-                        | Ada -> chFunc.funcBody ({p with arg = p.arg.getChChild l (child.getBackendName l) child.chType.isIA5String})
-                    let sChildName = (child.getBackendName l)
-                    let sChildTypeDef = child.chType.typeDefintionOrReference.longTypedefName l //child.chType.typeDefinition.typeDefinitionBodyWithinSeq
+                        match lm.lg.uper.catd with
+                        | false   -> chFunc.funcBody ({p with arg =  lm.lg.getChChild p.arg (lm.lg.getAsn1ChChildBackendName child) child.chType.isIA5String})
+                        | true when codec = CommonTypes.Decode -> chFunc.funcBody ({p with arg = VALUE ((lm.lg.getAsn1ChChildBackendName child) + "_tmp")})
+                        | true -> chFunc.funcBody ({p with arg = lm.lg.getChChild p.arg  (lm.lg.getAsn1ChChildBackendName child) child.chType.isIA5String})
+                    let sChildName = (lm.lg.getAsn1ChChildBackendName child)
+                    let sChildTypeDef = child.chType.typeDefintionOrReference.longTypedefName2 lm.lg.hasModules //child.chType.typeDefinition.typeDefinitionBodyWithinSeq
                     let sChoiceTypeName = typeDefinitionName
                     match uperChildRes with
                     | None              -> 
                         let childContent = 
-                            match l with 
-                            | C ->"/*no encoding/decoding is required*/" 
-                            | Ada when codec=Decode -> 
-                                let childp = ({p with arg = VALUE ((child.getBackendName l) + "_tmp")})
+                            match lm.lg.uper.catd with 
+                            | false ->"/*no encoding/decoding is required*/" 
+                            | true when codec=Decode -> 
+                                let childp = ({p with arg = VALUE ((lm.lg.getAsn1ChChildBackendName child) + "_tmp")})
                                 match child.chType.ActualType.Kind with
                                 | NullType _    -> uper_a.decode_nullType childp.arg.p
                                 | Sequence _    -> uper_a.decode_empty_sequence_emptySeq childp.arg.p
                                 | _             -> "--no encoding/decoding is required"
-                            | Ada   -> "--no encoding/decoding is required"
-                        choice_child p.arg.p (lm.lg.getAcces p.arg) (child.presentWhenName (Some typeDefinition) l) (BigInteger i) nIndexSizeInBits (BigInteger (children.Length - 1)) childContent sChildName sChildTypeDef sChoiceTypeName codec,[],[]
+                            | true   -> "--no encoding/decoding is required"
+                        choice_child p.arg.p (lm.lg.getAcces p.arg) (lm.lg.presentWhenName (Some typeDefinition) child) (BigInteger i) nIndexSizeInBits (BigInteger (children.Length - 1)) childContent sChildName sChildTypeDef sChoiceTypeName codec,[],[]
                     | Some childContent ->  
-                        choice_child p.arg.p (lm.lg.getAcces p.arg) (child.presentWhenName (Some typeDefinition) l) (BigInteger i) nIndexSizeInBits (BigInteger (children.Length - 1)) childContent.funcBody sChildName sChildTypeDef sChoiceTypeName codec, childContent.localVariables, childContent.errCodes )
+                        choice_child p.arg.p (lm.lg.getAcces p.arg) (lm.lg.presentWhenName (Some typeDefinition) child) (BigInteger i) nIndexSizeInBits (BigInteger (children.Length - 1)) childContent.funcBody sChildName sChildTypeDef sChoiceTypeName codec, childContent.localVariables, childContent.errCodes )
             let childrenContent = childrenContent3 |> List.map(fun (s,_,_) -> s)
             let childrenLocalvars = childrenContent3 |> List.collect(fun (_,s,_) -> s)
             let childrenErrCodes = childrenContent3 |> List.collect(fun (_,_,s) -> s)
@@ -650,7 +657,7 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (lm:Lang
             let ret = choice p.arg.p (lm.lg.getAcces p.arg) childrenContent (BigInteger (children.Length - 1)) sChoiceIndexName errCode.errCodeName td nIndexSizeInBits  codec
             Some ({UPERFuncBodyResult.funcBody = ret; errCodes = errCode::childrenErrCodes; localVariables = localVariables@childrenLocalvars; bValIsUnReferenced=false; bBsIsUnReferenced=false})
         | Some baseFuncName ->
-            let funcBodyContent = callBaseTypeFunc lm (p.arg.getPointer l) baseFuncName codec
+            let funcBodyContent = callBaseTypeFunc lm (lm.lg.getPointer p.arg) baseFuncName codec
             Some ({UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = []; bValIsUnReferenced=false; bBsIsUnReferenced=false})
 
     let soSparkAnnotations = Some(sparkAnnotations lm (lm.lg.getLongTypedefName typeDefinition) codec)
@@ -658,15 +665,16 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (lm:Lang
     createUperFunction r lm codec t typeDefinition baseTypeUperFunc  isValidFunc  funcBody soSparkAnnotations  us
 
 
-let createReferenceFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (lm:LanguageMacros) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.ReferenceType) (typeDefinition:TypeDefintionOrReference) (isValidFunc: IsValidFunction option) (baseType:Asn1Type) (us:State)  =
+let createReferenceFunction (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.ReferenceType) (typeDefinition:TypeDefintionOrReference) (isValidFunc: IsValidFunction option) (baseType:Asn1Type) (us:State)  =
     let moduleName, typeDefinitionName0 = 
         let t1 = Asn1AcnAstUtilFunctions.GetActualTypeByName r o.modName o.tasName
-        t1.FT_TypeDefintion.[l].programUnit, t1.FT_TypeDefintion.[l].typeName
+        let typeDef = lm.lg.getTypeDefinition t1.FT_TypeDefintion
+        typeDef.programUnit, typeDef.typeName
 
     let baseTypeDefinitionName = 
-        match l with
-        | C     -> typeDefinitionName0 
-        | Ada   -> 
+        match lm.lg.hasModules with
+        | false     -> typeDefinitionName0 
+        | true   -> 
             match t.id.ModName = o.modName.Value with
             | true  -> typeDefinitionName0 
             | false -> moduleName + "." + typeDefinitionName0 
@@ -682,15 +690,15 @@ let createReferenceFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (lm:L
             let funcBody (errCode:ErroCode) (p:CallerScope) = 
                 match (baseType.getUperFunction codec).funcBody p with
                 | Some _    -> 
-                    let funcBodyContent = callBaseTypeFunc lm (t.getParamValue p.arg l codec) baseFncName codec
+                    let funcBodyContent = callBaseTypeFunc lm (lm.lg.getParamValue t p.arg codec) baseFncName codec
                     Some {UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = []; bValIsUnReferenced=false; bBsIsUnReferenced=false}    
                 | None      -> None
             createUperFunction r lm codec t typeDefinition None  isValidFunc  funcBody soSparkAnnotations  us
         | false -> 
             baseType.getUperFunction codec, us
     | Some opts  -> 
-        let octet_string_containing_func  = match l with C -> uper_c.octet_string_containing_func | Ada -> uper_a.octet_string_containing_func
-        let bit_string_containing_func  = match l with C -> uper_c.bit_string_containing_func | Ada -> uper_a.bit_string_containing_func
+        let octet_string_containing_func  = lm.uper.octet_string_containing_func
+        let bit_string_containing_func  = lm.uper.bit_string_containing_func
         let soSparkAnnotations = Some(sparkAnnotations lm (lm.lg.getLongTypedefName typeDefinition) codec)
         let funcBody (errCode:ErroCode) (p:CallerScope) = 
             match (baseType.getUperFunction codec).funcBody p with
@@ -700,8 +708,8 @@ let createReferenceFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (lm:L
                 let sReqBitForUperEncoding = sprintf "%s_REQUIRED_BITS_FOR_ENCODING" baseTypeDefinitionName
                 let funcBodyContent = 
                     match opts.octOrBitStr with
-                    | ContainedInOctString  -> octet_string_containing_func  (t.getParamValue p.arg l codec) baseFncName sReqBytesForUperEncoding nBits opts.minSize.uper opts.maxSize.uper codec
-                    | ContainedInBitString  -> bit_string_containing_func  (t.getParamValue p.arg l codec) baseFncName sReqBytesForUperEncoding sReqBitForUperEncoding nBits opts.minSize.uper opts.maxSize.uper codec
+                    | ContainedInOctString  -> octet_string_containing_func  (lm.lg.getParamValue t p.arg codec) baseFncName sReqBytesForUperEncoding nBits opts.minSize.uper opts.maxSize.uper codec
+                    | ContainedInBitString  -> bit_string_containing_func  (lm.lg.getParamValue t p.arg codec) baseFncName sReqBytesForUperEncoding sReqBitForUperEncoding nBits opts.minSize.uper opts.maxSize.uper codec
                 Some {UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = []; bValIsUnReferenced=false; bBsIsUnReferenced=false}    
             | None      -> None
         createUperFunction r lm codec t typeDefinition None  isValidFunc  funcBody soSparkAnnotations  us

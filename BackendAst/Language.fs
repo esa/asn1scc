@@ -13,6 +13,10 @@ type Uper_parts = {
     requires_IA5String_i : bool
     count_var            : LocalVariable
     requires_presenceBit : bool
+    catd                 : bool //if true then Choice Alternatives are Temporarily Decoded (i.e. in _tmp variables in curent scope)
+    createBitStringFunction  : (CallerScope -> CommonTypes.Codec -> ErroCode -> int -> BigInteger -> BigInteger -> BigInteger -> string -> BigInteger -> bool -> bool -> (string * LocalVariable list)) -> CommonTypes.Codec -> ReferenceToType -> TypeDefintionOrReference -> bool -> BigInteger -> BigInteger -> BigInteger -> ErroCode ->  CallerScope -> UPERFuncBodyResult
+    seqof_lv             : ReferenceToType -> BigInteger -> BigInteger -> LocalVariable list
+
 }
 
 
@@ -37,8 +41,9 @@ type ILangGeneric () =
     abstract member Length          : string -> string -> string
     abstract member typeDef         : Map<ProgrammingLanguage, FE_PrimitiveTypeDefinition> -> FE_PrimitiveTypeDefinition
     abstract member getTypeDefinition : Map<ProgrammingLanguage, FE_TypeDefinition> -> FE_TypeDefinition
-    abstract member getEnmTypeDefintion : Map<ProgrammingLanguage, FE_EnumeratedTypeDefinition>  -> FE_EnumeratedTypeDefinition;
+    abstract member getEnmTypeDefintion : Map<ProgrammingLanguage, FE_EnumeratedTypeDefinition>  -> FE_EnumeratedTypeDefinition
     abstract member getStrTypeDefinition : Map<ProgrammingLanguage, FE_StringTypeDefinition> -> FE_StringTypeDefinition
+    abstract member getChoiceTypeDefinition : Map<ProgrammingLanguage, FE_ChoiceTypeDefinition> -> FE_ChoiceTypeDefinition
 
     abstract member getSeqChild     : FuncParamType -> string -> bool -> FuncParamType;
     abstract member getChChild      : FuncParamType -> string -> bool -> FuncParamType;
@@ -81,6 +86,31 @@ type LanguageMacros = {
 }
 
 
+let getAcces_c  (fpt:FuncParamType) =
+    match fpt with
+    | VALUE x        -> "."
+    | POINTER x      -> "->"
+    | FIXARRAY x     -> ""
+
+let createBitStringFunction_funcBody_c handleFragmentation (codec:CommonTypes.Codec) (id : ReferenceToType) (typeDefinition:TypeDefintionOrReference) isFixedSize  uperMaxSizeInBits minSize maxSize (errCode:ErroCode) (p:CallerScope) = 
+    let ii = id.SeqeuenceOfLevel + 1;
+    let i = sprintf "i%d" (id.SeqeuenceOfLevel + 1)
+
+    let funcBodyContent, localVariables = 
+        let nStringLength =
+            match isFixedSize,  codec with
+            | true , _    -> []
+            | false, Encode -> []
+            | false, Decode -> [Asn1SIntLocalVariable ("nCount", None)]
+
+        match minSize with
+        | _ when maxSize < 65536I && isFixedSize   -> uper_c.bitString_FixSize p.arg.p (getAcces_c p.arg) (minSize) errCode.errCodeName codec , nStringLength
+        | _ when maxSize < 65536I && (not isFixedSize)  -> uper_c.bitString_VarSize p.arg.p (getAcces_c p.arg) (minSize) (maxSize) errCode.errCodeName codec, nStringLength
+        | _                                                -> 
+            handleFragmentation p codec errCode ii (uperMaxSizeInBits) minSize maxSize "" 1I true false
+    {UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = localVariables; bValIsUnReferenced=false; bBsIsUnReferenced=false}    
+
+
 type LangGeneric_c() =
     inherit ILangGeneric()
         override _.intValueToSting (i:BigInteger) isUnsigned =
@@ -100,11 +130,7 @@ type LangGeneric_c() =
             | POINTER x      -> sprintf "(*(%s))" x
             | FIXARRAY x     -> x
 
-        override this.getAcces  (fpt:FuncParamType) =
-            match fpt with
-            | VALUE x        -> "."
-            | POINTER x      -> "->"
-            | FIXARRAY x     -> ""
+        override this.getAcces  (fpt:FuncParamType) = getAcces_c fpt
 
         override this.ArrayAccess idx = "[" + idx + "]"
 
@@ -128,6 +154,7 @@ type LangGeneric_c() =
         override this.getTypeDefinition (td:Map<ProgrammingLanguage, FE_TypeDefinition>) = td.[C]
         override this.getEnmTypeDefintion (td:Map<ProgrammingLanguage, FE_EnumeratedTypeDefinition>) = td.[C]
         override this.getStrTypeDefinition (td:Map<ProgrammingLanguage, FE_StringTypeDefinition>) = td.[C]
+        override this.getChoiceTypeDefinition (td:Map<ProgrammingLanguage, FE_ChoiceTypeDefinition>) = td.[C]
 
         override this.getAsn1ChildBackendName (ch:Asn1Child) = ch._c_name
         override this.getAsn1ChChildBackendName (ch:ChChildInfo) = ch._c_name
@@ -250,7 +277,49 @@ type LangGeneric_c() =
                 requires_IA5String_i = true
                 count_var            = Asn1SIntLocalVariable ("nCount", None)
                 requires_presenceBit = true
+                catd                 = false
+                createBitStringFunction = createBitStringFunction_funcBody_c
+                seqof_lv              =
+                  (fun id minSize maxSize -> [SequenceOfIndex (id.SeqeuenceOfLevel + 1, None)])
             }
+
+
+let createBitStringFunction_funcBody_Ada handleFragmentation (codec:CommonTypes.Codec) (id : ReferenceToType) (typeDefinition:TypeDefintionOrReference) isFixedSize  uperMaxSizeInBits minSize maxSize (errCode:ErroCode) (p:CallerScope) = 
+    let ii = id.SeqeuenceOfLevel + 1;
+    let i = sprintf "i%d" (id.SeqeuenceOfLevel + 1)
+
+    let typeDefinitionName =
+        match typeDefinition with
+        | TypeDefinition  td ->
+            td.typedefName
+        | ReferenceToExistingDefinition ref ->
+            match ref.programUnit with
+            | Some pu -> pu + "." + ref.typedefName
+            | None    -> ref.typedefName
+
+    let funcBodyContent, localVariables = 
+        let nStringLength = 
+            match isFixedSize with  
+            | true  -> [] 
+            | false -> 
+                match codec with
+                | Encode    -> []
+                | Decode    -> [IntegerLocalVariable ("nStringLength", None)]
+        let iVar = SequenceOfIndex (id.SeqeuenceOfLevel + 1, None)
+
+        let nBits = 1I
+        let internalItem = uper_a.InternalItem_bit_str p.arg.p i  errCode.errCodeName codec 
+        let nSizeInBits = GetNumberOfBitsForNonNegativeInteger ( (maxSize - minSize))
+        match minSize with
+        | _ when maxSize < 65536I && isFixedSize  -> uper_a.octect_FixedSize p.arg.p typeDefinitionName i internalItem (minSize) nBits nBits 0I codec, iVar::nStringLength 
+        | _ when maxSize < 65536I && (not isFixedSize) -> uper_a.octect_VarSize p.arg.p "."  typeDefinitionName i internalItem ( minSize) (maxSize) nSizeInBits nBits nBits 0I errCode.errCodeName codec , iVar::nStringLength
+        | _                                                -> 
+            let funcBodyContent, fragmentationLvars = handleFragmentation p codec errCode ii (uperMaxSizeInBits) minSize maxSize internalItem nBits true false
+            let fragmentationLvars = fragmentationLvars |> List.addIf (not isFixedSize) (iVar)
+            (funcBodyContent,fragmentationLvars)
+
+    {UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = localVariables; bValIsUnReferenced=false; bBsIsUnReferenced=false}    
+
 
 type LangGeneric_a() =
     inherit ILangGeneric()
@@ -300,6 +369,9 @@ type LangGeneric_a() =
         override this.getTypeDefinition (td:Map<ProgrammingLanguage, FE_TypeDefinition>) = td.[Ada]
         override this.getEnmTypeDefintion (td:Map<ProgrammingLanguage, FE_EnumeratedTypeDefinition>) = td.[Ada]
         override this.getStrTypeDefinition (td:Map<ProgrammingLanguage, FE_StringTypeDefinition>) = td.[Ada]
+        override this.getChoiceTypeDefinition (td:Map<ProgrammingLanguage, FE_ChoiceTypeDefinition>) = td.[Ada]
+
+
         override this.getAsn1ChildBackendName (ch:Asn1Child) = ch._ada_name
         override this.getAsn1ChChildBackendName (ch:ChChildInfo) = ch._ada_name
         override this.getAsn1ChildBackendName0 (ch:Asn1AcnAst.Asn1Child) = ch._ada_name
@@ -366,6 +438,14 @@ type LangGeneric_a() =
                 requires_IA5String_i = false
                 count_var            = IntegerLocalVariable ("nStringLength", None)
                 requires_presenceBit = false
+                catd                 = true
+                createBitStringFunction = createBitStringFunction_funcBody_Ada
+                seqof_lv              =
+                  (fun id minSize maxSize -> 
+                    if maxSize >= 65536I && maxSize = minSize then 
+                        []
+                    else
+                        [SequenceOfIndex (id.SeqeuenceOfLevel + 1, None)])
             }
 
 (*

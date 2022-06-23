@@ -841,7 +841,7 @@ let createBitStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
             match o.acnEncodingClass with
             | SZ_EC_uPER                                              -> 
                 let funcBody  (errCode:ErroCode) (p:CallerScope) =
-                    Some (DAstUPer.createBitStringFunction_funcBody r l lm codec t.id typeDefinition o.isFixedSize  o.uperMaxSizeInBits o.minSize.acn o.maxSize.acn (errCode:ErroCode) (p:CallerScope))
+                    Some (DAstUPer.createBitStringFunction_funcBody r  lm codec t.id typeDefinition o.isFixedSize  o.uperMaxSizeInBits o.minSize.acn o.maxSize.acn (errCode:ErroCode) (p:CallerScope))
                 funcBody errCode p |> Option.map(fun x -> x.funcBody, x.errCodes, x.localVariables)
             | SZ_EC_ExternalField   _    -> 
                 let extField = getExternaField r deps t.id

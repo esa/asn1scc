@@ -639,12 +639,15 @@ type FE_ChoiceTypeDefinition = {
     kind            : FE_NonPrimitiveTypeDefinitionKind<FE_ChoiceTypeDefinition>
 }
 with
-    member this.longTypedefName l callerProgramUnit =
+    member this.longTypedefName2 bHasModules callerProgramUnit =
         let z n = this.programUnit + "." + n
-        match l with
-        | C             -> this
-        | Ada   when this.programUnit = callerProgramUnit   -> this
-        | Ada           -> {this with typeName = z this.typeName; index_range = z this.index_range; selection = z this.selection}
+        match bHasModules with
+        | false             -> this
+        | true   when this.programUnit = callerProgramUnit   -> this
+        | true           -> {this with typeName = z this.typeName; index_range = z this.index_range; selection = z this.selection}
+    
+    member this.longTypedefName l callerProgramUnit =
+        this.longTypedefName2 (l=Ada) callerProgramUnit
 
 type FE_EnumeratedTypeDefinition = {
     asn1Name        : string
