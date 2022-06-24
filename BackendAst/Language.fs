@@ -83,6 +83,7 @@ type LanguageMacros = {
     isvalid : IIsValid
     vars    : IVariables
     uper    : IUper
+    acn     : IAcn
 }
 
 

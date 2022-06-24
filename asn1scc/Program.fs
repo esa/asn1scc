@@ -308,6 +308,7 @@ let main0 argv =
                                 isvalid= new IsValid_c.IsValid_c() 
                                 vars = new IVariables_c.IVariables_c()
                                 uper = new iuper_c.iuper_c()
+                                acn = new IAcn_c.IAcn_c()
                             }
                     Some (TL "DAstConstruction.DoWork" (fun () -> DAstConstruction.DoWork frontEntAst acnDeps CommonTypes.ProgrammingLanguage.C lm args.encodings))
                 | Ada_Lang              -> 
@@ -319,6 +320,7 @@ let main0 argv =
                                 isvalid= new IsValid_a.IsValid_a()
                                 vars = new IVariables_a.IVariables_a()
                                 uper = new iuper_a.iuper_a()
+                                acn = new IAcn_a.IAcn_a()
                             }
                     
                     Some (TL "DAstConstruction.DoWork" (fun () -> DAstConstruction.DoWork frontEntAst acnDeps CommonTypes.ProgrammingLanguage.Ada lm args.encodings))
@@ -367,6 +369,7 @@ let main0 argv =
                             isvalid= new IsValid_c.IsValid_c() 
                             vars = new IVariables_c.IVariables_c()
                             uper = new iuper_c.iuper_c()
+                            acn = new IAcn_c.IAcn_c()
 
                         }
                 TL "DAstConstruction.DoWork" (fun () -> DAstConstruction.DoWork frontEntAst acnDeps CommonTypes.ProgrammingLanguage.C  lm args.encodings)

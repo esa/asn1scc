@@ -2,6 +2,7 @@
 group c_acn;
 
 
+
 getStringSize(p) ::= "strlen(<p>)"
 
 getSizeableSize(p, sAcc) ::= "<p><sAcc>nCount"
@@ -92,9 +93,9 @@ flag <sFuncName>(<sTypeDefName><sStar> <sVarName>, BitStream* pBitStrm, int* pEr
 
 
 
-A(sErrCode) ::= "*pErrCode = ret ? 0 : <sErrCode>;"
+A(sErrCode) /*nogen*/ ::= "*pErrCode = ret ? 0 : <sErrCode>;"
 
-MF(soMF) ::= <<
+MF(soMF) ::= /*nogen*/ <<
 <if(soMF)>
 if (ret) {
     *<p> = <soMF>_decode(*<p>);
@@ -103,54 +104,8 @@ if (ret) {
 <endif>
 >>
 
-TasPrimitiveDefinition_encode(sFuncName, sTypeDefName, arrsExtraParams) ::= <<
-flag <sFuncName>(const <sTypeDefName> val1, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints<if(arrsExtraParams)>, <arrsExtraParams; separator=", "><endif>);
->>
-
-TasPrimitive_encode(sFuncName, sTypeDefName, arrsLocalVariables, sContent,  arrsExtraParams) ::= <<
-flag <sFuncName>(const <sTypeDefName> val1, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints<if(arrsExtraParams)>, <arrsExtraParams; separator=", "><endif>)
-{
-    flag ret = TRUE;
-	(void)val1;
-	(void)pBitStrm;
-
-    <arrsLocalVariables; separator="\n">
-
-    /*ret = bCheckConstraints ? <sName>_IsConstraintValid(pVal, pErrCode) : TRUE ;*/
-	if (ret) {
-	    <sContent>
-    }
-
-	return ret;
-}
->>
-
-TasPrimitiveDefinition_decode(sFuncName, sTypeDefName, arrsExtraParams) ::= <<
-flag <sFuncName>(<sTypeDefName>* pVal1, BitStream* pBitStrm, int* pErrCode<if(arrsExtraParams)>, <arrsExtraParams; separator=", "><endif>);
->>
-
-TasPrimitive_decode(sFuncName, sTypeDefName, arrsLocalVariables, sContent, arrsExtraParams) ::= <<
-flag <sFuncName>(<sTypeDefName>* pVal1, BitStream* pBitStrm, int* pErrCode<if(arrsExtraParams)>, <arrsExtraParams; separator=", "><endif>)
-{
-    flag ret = TRUE;
-	(void)val1;
-	(void)pBitStrm;
-
-    <arrsLocalVariables; separator="\n">
-    <sContent>
-    return ret;
-}
->>
 
 
-
-
-PrintTypeNoUpdate_encode(sMainBody, bAligmentApplied, sAligmentValue) ::= <<
-<PrintType_encode(sMainBody=sMainBody, bAligmentApplied=bAligmentApplied, sAligmentValue=sAligmentValue)>
->>
-PrintTypeNoUpdate_decode(sMainBody, bAligmentApplied, sAligmentValue) ::= <<
-<PrintType_decode(sMainBody=sMainBody, bAligmentApplied=bAligmentApplied, sAligmentValue=sAligmentValue)>
->>
 
 
 loopFixedItem (i, fixedSize,  sInternalItem)::= /*nogen*/<<	
@@ -351,12 +306,6 @@ ret = Acn_Dec_UInt_ASCII_ConstSize(pBitStrm, <p>, <nSizeInBytes>);
 <A(sErrCode)>
 >>
 
-ASCII_UINT_VarSize_LengthEmbedded_encode(p, sErrCode, soMF) ::= "Acn_Enc_UInt_ASCII_VarSize_LengthEmbedded(pBitStrm, <if(soMF)><soMF>_encode(<p>)<else><p><endif>);"
-ASCII_UINT_VarSize_LengthEmbedded_decode(p, sErrCode, soMF) ::= <<
-ret = Acn_Dec_UInt_ASCII_VarSize_LengthEmbedded(pBitStrm, <p>);
-<MF(soMF)>
-<A(sErrCode)>
->>
 
 ASCII_UINT_VarSize_NullTerminated_encode(p, sErrCode, soMF, soMFM, nUperMin, nUperMax, arruNullBytes) ::= "Acn_Enc_UInt_ASCII_VarSize_NullTerminated(pBitStrm, <if(soMF)><soMF>_encode(<p>)<else><p><endif>, (byte[]){<arruNullBytes; separator=\", \">}, <arruNullBytes.Length>);"
 ASCII_UINT_VarSize_NullTerminated_decode(p, sErrCode, soMF, soMFM, nUperMin, nUperMax, arruNullBytes) ::= <<
@@ -420,7 +369,7 @@ Boolean_decode(p, ptr, bEncValIsTrue, nSize, arruTrueValueAsByteArray, arruFalse
 
 
 
-Null_encode(p, arruNullValueAsByteArray, nSize, arrsBits, sErrCode, bSavePosition) ::= <<
+Null_pattern_encode(p, arruNullValueAsByteArray, nSize, arrsBits, sErrCode, bSavePosition) ::= <<
 <if(arruNullValueAsByteArray)>
 {
 	static byte tmp[] = {<arruNullValueAsByteArray:{b|0x<b;format="X2">}; separator=",">};
@@ -429,7 +378,7 @@ Null_encode(p, arruNullValueAsByteArray, nSize, arrsBits, sErrCode, bSavePositio
 <endif>
 >>
 
-Null_decode(p, arruNullValueAsByteArray, nSize, arrsBits, sErrCode, bSavePosition) ::= <<
+Null_pattern_decode(p, arruNullValueAsByteArray, nSize, arrsBits, sErrCode, bSavePosition) ::= <<
 <if(bSavePosition)>
 ret = BitStream_ReadBitPattern_ignore_value(pBitStrm, <nSize>);
 
@@ -448,7 +397,14 @@ ret = BitStream_ReadBitPattern_ignore_value(pBitStrm, <nSize>);
 <endif>
 >>
 
-Null_empty_pattern() ::= "/*null, nothing to do */"
+Null_pattern2_encode(p, arruNullValueAsByteArray, nSize, arrsBits, sErrCode, bSavePosition) ::= <<
+<Null_pattern_encode(p=p, arruNullValueAsByteArray=arruNullValueAsByteArray, nSize=nSize, arrsBits=arrsBits, sErrCode=sErrCode, bSavePosition=bSavePosition)>
+>>
+Null_pattern2_decode(p, arruNullValueAsByteArray, nSize, arrsBits, sErrCode, bSavePosition) ::= <<
+<Null_pattern_decode(p=p, arruNullValueAsByteArray=arruNullValueAsByteArray, nSize=nSize, arrsBits=arrsBits, sErrCode=sErrCode, bSavePosition=bSavePosition)>
+>>
+
+
 
 
 
@@ -528,7 +484,7 @@ ret = Acn_Dec_String_Ascii_Internal_Field_Determinant(pBitStrm, <nAsn1Max>, <nAs
 <A(sErrCode)>
 >>
 
-PrintAlphabet2(arrnCharSet) ::= <<
+PrintAlphabet2(arrnCharSet) /*nogen*/ ::= <<
 static byte allowedCharSet[] = {<arrnCharSet:{ch|0x<ch;format="X2">}; wrap, anchor, separator=",">}; 
 >>
 
@@ -564,17 +520,6 @@ ret = Acn_Dec_IA5String_CharIndex_External_Field_Determinant(pBitStrm, <nAsn1Max
 <A(sErrCode)>
 >>
 
-
-Acn_String_CharIndex_Internal_Field_Determinant_encode(p, sErrCode, nAsn1Max, arrnAlphabetAsciiCodes, nCharSetSize, nAsn1Min) ::= <<
-<PrintAlphabet2(arrnAlphabetAsciiCodes)>
-Acn_Enc_String_CharIndex_Internal_Field_Determinant(pBitStrm, <nAsn1Max>, allowedCharSet, <nCharSetSize>, <nAsn1Min>, <p>);
->>
-
-Acn_String_CharIndex_Internal_Field_Determinant_decode(p, sErrCode, nAsn1Max, arrnAlphabetAsciiCodes, nCharSetSize, nAsn1Min) ::= <<
-<PrintAlphabet2(arrnAlphabetAsciiCodes)>
-ret = Acn_Dec_String_CharIndex_Internal_Field_Determinant(pBitStrm, <nAsn1Max>, allowedCharSet, <nCharSetSize>, <nAsn1Min>, <p>);
-<A(sErrCode)>
->>
 
 
                             
@@ -987,50 +932,8 @@ default:
 
 /* Updates */
 
-PrintAcn_update_param(sTasName, sStar, sParamType, sParamName, sStarParm, sContent, arrsTmpVars) ::= <<
-flag <sTasName>_ACN_Encode_update_<sParamName>(const <sTasName><sStar> pVal, <sParamType><sStarParm> <sParamName>)
-{
-    flag ret = TRUE;
-
-    <arrsTmpVars; separator="\n">
-    <sContent>
-
-    return ret;
-}
->>
-
-PrintAcn_update_param_body_choice_child(sChildPresentID, sChildUpdateStatement, bCheckSuccess) ::= <<
-case <sChildPresentID>:
-    <sChildUpdateStatement>
-    break;
->>
-
-PrintAcn_update_param_body_choice(arrsChildUpdateStatements) ::= <<
-switch (pVal->kind) {
-	<arrsChildUpdateStatements; separator="\n">
-    default:
-        ret = FALSE;                 /*COVERAGE_IGNORE*/
-}
->>
-
-PrintAcn_update_param_body(sPart, sNestedPart, bCheckSuccess) ::= <<
-<sPart>
-<if(sNestedPart)>
-<if(bCheckSuccess)>
-if (ret) {
-    <sNestedPart>
-};
-<else>
-<sNestedPart>
-<endif>
-<endif>
->>
 
 
-
-RefTypeArgument1(v, sTasName, sParamName, sRefTypePath) ::= <<
-ret = <sTasName>_ACN_Encode_update_<sParamName>(<sRefTypePath>, <v>);
->>
 
 
 SizeDependency(v, sCount, nMin, nMax, bCheckRange) ::= <<
@@ -1211,3 +1114,8 @@ bit_string_containing_ext_field_func_decode(p, sFuncName, sReqBytesForUperEncodi
 }
 >>
 
+
+
+rtlModuleName() ::= ""
+sparkAnnotations_encode(sTypeDefName) ::= ""
+sparkAnnotations_decode(sTypeDefName) ::= ""

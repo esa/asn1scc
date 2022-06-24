@@ -69,7 +69,8 @@
 	<lang>c</lang>
 	
     <abctractInterface   modMame="IAcn">IAcn.stg.fs</abctractInterface>
-	
+    <implementationClass ifModMame="AbstractMacros.IAcn" modMame="IAcn_c">IAcn_c.stg.fs</implementationClass>
+
   </run>
   <run mode="single">
         <input>xer_c.stg</input>

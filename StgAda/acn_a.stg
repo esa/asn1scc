@@ -140,7 +140,7 @@ with
 
 
 
-MF(p, soMF, soMFM, nUperMin, nUperMax) ::= <<
+MF(p, soMF, soMFM, nUperMin, nUperMax) ::= /*nogen*/ <<
 if Result.Success then
     <p> := <soMFM>.<soMF>_decode(mapFuncIntVal);
     Result.Success := <p> \>= <nUperMin> AND <p> \<= <nUperMax>;
@@ -151,7 +151,7 @@ if Result.Success then
 end if;
 >>
 
-MFen(soMF, soMFM, p) ::= "<if(soMF)><soMFM>.<soMF>_encode(<p>)<else><p><endif>"
+MFen(soMF, soMFM, p) /*nogen*/ ::= "<if(soMF)><soMFM>.<soMF>_encode(<p>)<else><p><endif>"
 
 
 alignToNext_encode(sMainBody, sAligmentValue, nAligmentValue) ::= <<
@@ -651,22 +651,8 @@ result.ErrorCode := <sErrCode>;
 >>
 
 
-Null2_encode() ::= <<
- -- encoding NULL, nothing to do
->>
-
-Null2_decode() ::= <<
- -- decoding NULL, nothing to do
->>
 
 
-Null_encode(p) ::= <<
-adaasn1rtl.encoding.acn.Acn_Enc_NullType(bs, <p>);
->>
-
-Null_decode(p) ::= <<
-adaasn1rtl.encoding.acn.Acn_Dec_NullType(bs, <p>, result);
->>
 
 
 
@@ -773,11 +759,6 @@ result.ErrorCode := <sErrCode>;
 
 
 
-Acn_String_CharIndex_Internal_Field_Determinant_encode(p, sErrCode, td/*:FE_StringTypeDefinition*/, nCharSize, nAsn1Max, nAsn1Min, nInternalLengthDeterminantSizeInBits) ::= "adaasn1rtl.encoding.acn.Acn_Enc_String_CharIndex_Internal_Field_Determinant(bs, <td.alpha_set>, <nCharSize>, <nAsn1Min>, <nInternalLengthDeterminantSizeInBits>, <p>);"
-Acn_String_CharIndex_Internal_Field_Determinant_decode(p, sErrCode, td/*:FE_StringTypeDefinition*/, nCharSize, nAsn1Max, nAsn1Min, nInternalLengthDeterminantSizeInBits) ::= <<
-adaasn1rtl.encoding.acn.Acn_Dec_String_CharIndex_Internal_Field_Determinant(bs, <td.alpha_set>, <nCharSize>, <nAsn1Min>, <nAsn1Max>, <nInternalLengthDeterminantSizeInBits>, <p>, result);
-result.ErrorCode := <sErrCode>;
->>
 
 
 
@@ -895,9 +876,6 @@ ReferenceType1_decode(p, sName, bAcnEncodeFuncRequiresResult, arrsArgs, arrsLoca
 <sName>_ACN_Decode(<p>, bs, result<if(arrsArgs)>, <arrsLocalPrms; separator=", "><endif>);
 >>
 
-ReferenceType2_encode(p, sTasName, sName, bAcnEncodeFuncRequiresResult, arrsArgs, arrsLocalPrms) ::= "<sTasName>.<ReferenceType1_encode(p=p, sName=sName, bAcnEncodeFuncRequiresResult = bAcnEncodeFuncRequiresResult, arrsArgs=arrsArgs, arrsLocalPrms=arrsLocalPrms)>"
-
-ReferenceType2_decode(p, sTasName, sName, bAcnEncodeFuncRequiresResult, arrsArgs, arrsLocalPrms) ::= "<sTasName>.<ReferenceType1_decode(p=p, sName=sName, bAcnEncodeFuncRequiresResult = bAcnEncodeFuncRequiresResult, arrsArgs=arrsArgs, arrsLocalPrms=arrsLocalPrms)>"
 
 
 /* SEQUENCE*/
@@ -1068,28 +1046,8 @@ end if;
 
 
 
-Sequence_encode(p, arrsChildren, sTasName, bRequiresInit, arrsDecOutParamsInit, bResultRequiresInit) ::= <<
-<if(arrsChildren)>
-<arrsChildren; separator="\n">
-
-<else>
-null;
-
-<endif>
->>
 
 
-PrmUpdate(sPrmName, sPrmInitValue) ::= "<sPrmName> := <sPrmInitValue>;"
-
-Sequence_decode(p, arrsChildren, sTasName, bRequiresInit, arrsDecOutParamsInit, bResultRequiresInit) ::= <<
-<if(bRequiresInit)>val := <sTasName>_Init;<endif>
-<arrsDecOutParamsInit; separator="\n">
-<if(bResultRequiresInit)>
-result := <rtlModuleName()>.ASN1_RESULT'(Success => True, ErrorCode => 0);
-
-<endif>
-<arrsChildren; separator="\n">
->>
 
 sequence_call_post_encoding_function(p, sFncName, sBitStreamStartPos, sBitStreamPositionsNullPos) ::= <<
 <sFncName>(<p>, <sBitStreamStartPos>, <sBitStreamPositionsNullPos>, bs);
@@ -1100,44 +1058,9 @@ result := <sFncName>(<p>, <sBitStreamStartPos>, <sBitStreamPositionsNullPos>, bs
 >>
 
 
-JoinItems_encode(sTasName, sPart, sNestedPart, nRequiredBitsSoFar, bRequiresAssert,  bReqResultCheck) ::= <<
-<sPart>
-<if(sNestedPart)>
-<if(bRequiresAssert)>
---# assert K~+1>= S'First and K~ + <sTasName>_REQUIRED_BITS_FOR_ACN_ENCODING \<= S'Last AND
---#	       K>=K~ and K\<=K~+<nRequiredBitsSoFar>;
-
-<endif>
-<if(bReqResultCheck)>
-if result.Success then
-    <sNestedPart>
-end if;
-<else>
-<sNestedPart>
-<endif>
-<endif>
->>
 
 
-UpdateFailedPart()::="result.ErrorCode := <rtlModuleName()>.ERR_INCORRECT_DATA;"
 
-JoinItems_decode(sTasName, sPart, sNestedPart, nRequiredBitsSoFar, bRequiresAssert, bReqResultCheck) ::= <<
-<sPart>
-<if(sNestedPart)>
-<if(bRequiresAssert)>
---# assert K~.K+1>= S'First and K~.K + <sTasName>_REQUIRED_BITS_FOR_ACN_ENCODING \<= S'Last AND
---#	       K.K>=K~.K and K.K\<=K~.K+<nRequiredBitsSoFar>;	
-
-<endif>
-<if(bReqResultCheck)>
-if result.Success then
-    <sNestedPart>
-end if;
-<else>
-<sNestedPart>
-<endif>
-<endif>
->>
 
 
 /* Choice like uper*/
@@ -1268,10 +1191,6 @@ ChoiceChild_preWhen_decode(p, sAcc, sChildID, sChildBody, arrsConditions, bFirst
 
 
 
-ChoiceChild_tmpVar(sName, sTypeDecl) ::= "<sName>_tmp:<sTypeDecl>;"
-
-
-Declare_ChoiceIndex()::="index:<rtlModuleName()>.Asn1Int;"
 
 
 
@@ -1400,50 +1319,7 @@ end if;
 
 
 
-PrintAcn_update_param(sTasName, bHasSuccess, sParamName, sContent, sParamType, arrsTmpVars) ::= <<
-PROCEDURE <sTasName>_ACN_Encode_update_<sParamName>(val : IN <sTasName>; <sParamName>: OUT <sParamType><if(bHasSuccess)>; result : OUT <rtlModuleName()>.ASN1_RESULT<endif>)
----# derives <sParamName><if(bHasSuccess)>, result<endif> from val;
-is
-    <arrsTmpVars; separator="\n">
-begin
-    <sContent>
-end <sTasName>_ACN_Encode_update_<sParamName>;
->>
 
-PrintAcn_update_param_body_choice_child(sChildName, sChildUpdateStatement, bCheckSuccess, sChildNamePresent) ::= <<
-WHEN <sChildNamePresent> =>	
-    <sChildUpdateStatement>
-<if(!bCheckSuccess)>    result := <rtlModuleName()>.ASN1_RESULT'(Success => True, ErrorCode => 0);<endif>
->>
-
-PrintAcn_update_param_body_choice(sTasName, arrsChildUpdateStatements) ::= <<
-CASE <sTasName>_kind(val) is
-	<arrsChildUpdateStatements; separator="\n">
-end CASE;
->>
-
-PrintAcn_update_param_body(sPart, sNestedPart, bCheckSuccess) ::= <<
-<sPart>
-<if(sNestedPart)>
-<if(bCheckSuccess)>
-if result.success then
-    <sNestedPart>
-end if;
-<else>
-<sNestedPart>
-<endif>
-<endif>
->>
-
-
-
-RefTypeArgument1(v, sTasName, sParamName, sRefTypePath, bHasSuccess) ::= <<
-<sTasName>_ACN_Encode_update_<sParamName>(<sRefTypePath>, <v><if(bHasSuccess)>, result<endif>);
->>
-
-RefTypeArgument2(v, sModName, sTasName, sParamName, sRefTypePath, bHasSuccess) ::= <<
-<sModName>.<RefTypeArgument1(v=v, sTasName=sTasName, sParamName=sParamName, sRefTypePath=sRefTypePath, bHasSuccess=bHasSuccess)>
->>
 
 
 
@@ -1501,3 +1377,28 @@ end;
 >>
 
 
+
+
+bit_string_external_field_encode(p, sErrCode, sAcc, noSizeMin, nSizeMax, sExtFld) ::= <<
+bit_string_external_field_encode not to be used
+>>
+
+bit_string_external_field_decode(p, sErrCode, sAcc, noSizeMin, nSizeMax, sExtFld) ::= <<
+bit_string_external_field_encode not to be used
+>>
+
+bit_string_external_field_fixed_size_encode(p, sErrCode, sAcc, noSizeMin, nSizeMax, sExtFld) ::= <<
+bit_string_external_field_encode not to be used
+>>
+
+bit_string_external_field_fixed_size_decode(p, sErrCode, sAcc, noSizeMin, nSizeMax, sExtFld) ::= <<
+bit_string_external_field_encode not to be used
+>>
+
+bit_string_null_terminated_encode(p, sErrCode, sAcc, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength) ::= <<
+bit_string_external_field_encode not to be used
+>>
+
+bit_string_null_terminated_decode(p, sErrCode, sAcc, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength) ::= <<
+bit_string_external_field_encode not to be used
+>>

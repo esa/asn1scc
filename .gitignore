@@ -1366,3 +1366,5 @@ v2out
 /StgC/IIsValid_c.stg.fs
 /StgC/IUper_c.stg.fs
 /StgAda/IUper_a.stg.fs
+/StgC/IAcn_c.stg.fs
+/StgAda/IAcn_a.stg.fs

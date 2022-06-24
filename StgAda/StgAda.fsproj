@@ -24,6 +24,7 @@
     <Compile Include="IVariables_a.stg.fs" />
     <Compile Include="IIsValid_a.stg.fs" />
     <Compile Include="IUper_a.stg.fs" />
+    <Compile Include="IAcn_a.stg.fs" />
   </ItemGroup>
 
   <ItemGroup>
