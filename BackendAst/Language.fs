@@ -19,6 +19,11 @@ type Uper_parts = {
 
 }
 
+type Acn_parts = {
+    null_valIsUnReferenced         : bool
+    oct_str_checkBitPatternPresentResult        : bool
+}
+
 
 [<AbstractClass>]
 type ILangGeneric () =
@@ -66,6 +71,7 @@ type ILangGeneric () =
 
     abstract member toHex : int -> string
     abstract member uper : Uper_parts;
+    abstract member acn  : Acn_parts
 //    abstract member createLocalVariable_frag : string -> LocalVariable
 
     default this.getAmber (fpt:FuncParamType) =
@@ -283,6 +289,11 @@ type LangGeneric_c() =
                 seqof_lv              =
                   (fun id minSize maxSize -> [SequenceOfIndex (id.SeqeuenceOfLevel + 1, None)])
             }
+        override this.acn = 
+            {
+                Acn_parts.null_valIsUnReferenced = true
+                oct_str_checkBitPatternPresentResult = true
+            }
 
 
 let createBitStringFunction_funcBody_Ada handleFragmentation (codec:CommonTypes.Codec) (id : ReferenceToType) (typeDefinition:TypeDefintionOrReference) isFixedSize  uperMaxSizeInBits minSize maxSize (errCode:ErroCode) (p:CallerScope) = 
@@ -447,6 +458,11 @@ type LangGeneric_a() =
                         []
                     else
                         [SequenceOfIndex (id.SeqeuenceOfLevel + 1, None)])
+            }
+        override this.acn = 
+            {
+                Acn_parts.null_valIsUnReferenced = false
+                oct_str_checkBitPatternPresentResult = false
             }
 
 (*

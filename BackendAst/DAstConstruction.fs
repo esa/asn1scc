@@ -51,18 +51,18 @@ let private createAcnChild (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
     let funcBodyEncode, ns1= 
         match ch.Type with
         | Asn1AcnAst.AcnInteger  a -> DAstACN.createAcnIntegerFunction r lm Codec.Encode ch.id a us
-        | Asn1AcnAst.AcnBoolean  a -> DAstACN.createAcnBooleanFunction r l lm Codec.Encode ch.id a us
-        | Asn1AcnAst.AcnNullType a -> DAstACN.createAcnNullTypeFunction r l lm Codec.Encode ch.id a us
+        | Asn1AcnAst.AcnBoolean  a -> DAstACN.createAcnBooleanFunction r lm Codec.Encode ch.id a us
+        | Asn1AcnAst.AcnNullType a -> DAstACN.createAcnNullTypeFunction r lm Codec.Encode ch.id a us
         | Asn1AcnAst.AcnReferenceToEnumerated a -> DAstACN.createAcnEnumeratedFunction r lm Codec.Encode ch.id a (defOrRef a) us
-        | Asn1AcnAst.AcnReferenceToIA5String a -> DAstACN.createAcnStringFunction r deps l lm Codec.Encode ch.id a us
+        | Asn1AcnAst.AcnReferenceToIA5String a -> DAstACN.createAcnStringFunction r deps lm Codec.Encode ch.id a us
         
     let funcBodyDecode, ns2 = 
         match ch.Type with
         | Asn1AcnAst.AcnInteger  a -> DAstACN.createAcnIntegerFunction r lm Codec.Decode ch.id a ns1
-        | Asn1AcnAst.AcnBoolean  a -> DAstACN.createAcnBooleanFunction r l lm Codec.Decode ch.id a ns1
-        | Asn1AcnAst.AcnNullType a -> DAstACN.createAcnNullTypeFunction r l lm Codec.Decode ch.id a ns1
+        | Asn1AcnAst.AcnBoolean  a -> DAstACN.createAcnBooleanFunction r lm Codec.Decode ch.id a ns1
+        | Asn1AcnAst.AcnNullType a -> DAstACN.createAcnNullTypeFunction r lm Codec.Decode ch.id a ns1
         | Asn1AcnAst.AcnReferenceToEnumerated a -> DAstACN.createAcnEnumeratedFunction r lm Codec.Decode ch.id a (defOrRef a) ns1
-        | Asn1AcnAst.AcnReferenceToIA5String a -> DAstACN.createAcnStringFunction r deps l lm Codec.Decode ch.id a ns1
+        | Asn1AcnAst.AcnReferenceToIA5String a -> DAstACN.createAcnStringFunction r deps lm Codec.Decode ch.id a ns1
         
     let funcUpdateStatement, ns3 = DAstACN.getUpdateFunctionUsedInEncoding r deps l lm m ch.id ns2
     let c_name         = DAstACN.getAcnDeterminantName ch.id
@@ -206,8 +206,8 @@ let private createStringType (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserted
     let isValidFunction, s1     = DastValidate2.createStringFunction r lm t o defOrRef  us
     let uperEncFunction, s2     = DAstUPer.createIA5StringFunction r lm Codec.Encode t o  defOrRef None isValidFunction s1
     let uperDecFunction, s3     = DAstUPer.createIA5StringFunction r lm Codec.Decode t o  defOrRef None isValidFunction s2
-    let acnEncFunction, s4      = DAstACN.createStringFunction r deps l lm Codec.Encode t o defOrRef defOrRef isValidFunction uperEncFunction s3
-    let acnDecFunction, s5      = DAstACN.createStringFunction r deps l lm Codec.Decode t o defOrRef defOrRef isValidFunction uperDecFunction s4
+    let acnEncFunction, s4      = DAstACN.createStringFunction r deps lm Codec.Encode t o defOrRef defOrRef isValidFunction uperEncFunction s3
+    let acnDecFunction, s5      = DAstACN.createStringFunction r deps lm Codec.Decode t o defOrRef defOrRef isValidFunction uperDecFunction s4
     let uperEncDecTestFunc,s6         = EncodeDecodeTestCase.createUperEncDecFunction r l t defOrRef equalFunction isValidFunction (Some uperEncFunction) (Some uperDecFunction) s5
     let acnEncDecTestFunc ,s7         = EncodeDecodeTestCase.createAcnEncDecFunction r l t defOrRef equalFunction isValidFunction (Some acnEncFunction) (Some acnDecFunction) s6
     let automaticTestCasesValues      = EncodeDecodeTestCase.StringAutomaticTestCaseValues r t o |> List.mapi (fun i x -> createAsn1ValueFromValueKind t i (StringValue x)) 
@@ -253,8 +253,8 @@ let private createOctetString (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserte
     let initFunction        = DAstInitialize.createOctetStringInitFunc r l t o defOrRef (OctetStringValue initialValue) isValidFunction
     let uperEncFunction, s2     = DAstUPer.createOctetStringFunction r lm Codec.Encode t o  defOrRef None isValidFunction s1
     let uperDecFunction, s3     = DAstUPer.createOctetStringFunction r lm Codec.Decode t o  defOrRef None isValidFunction s2
-    let acnEncFunction, s4      = DAstACN.createOctetStringFunction r deps l lm Codec.Encode t o defOrRef isValidFunction uperEncFunction s3
-    let acnDecFunction, s5      = DAstACN.createOctetStringFunction r deps l lm Codec.Decode t o defOrRef isValidFunction uperDecFunction s4
+    let acnEncFunction, s4      = DAstACN.createOctetStringFunction r deps lm Codec.Encode t o defOrRef isValidFunction uperEncFunction s3
+    let acnDecFunction, s5      = DAstACN.createOctetStringFunction r deps lm Codec.Decode t o defOrRef isValidFunction uperDecFunction s4
     let uperEncDecTestFunc,s6         = EncodeDecodeTestCase.createUperEncDecFunction r l t defOrRef equalFunction isValidFunction (Some uperEncFunction) (Some uperDecFunction) s5
     let acnEncDecTestFunc ,s7         = EncodeDecodeTestCase.createAcnEncDecFunction r l t defOrRef equalFunction isValidFunction (Some acnEncFunction) (Some acnDecFunction) s6
     let automaticTestCasesValues      = EncodeDecodeTestCase.OctetStringAutomaticTestCaseValues r t o |> List.mapi (fun i x -> createAsn1ValueFromValueKind t i (OctetStringValue x)) 
@@ -296,8 +296,8 @@ let private createNullType (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (lm:La
     let initFunction        = DAstInitialize.createNullTypeInitFunc r l t o defOrRef (NullValue initialValue)
     let uperEncFunction, s2     = DAstUPer.createNullTypeFunction r lm Codec.Encode t o defOrRef None None us
     let uperDecFunction, s3     = DAstUPer.createNullTypeFunction r lm Codec.Decode t o defOrRef None None s2
-    let acnEncFunction, s4      = DAstACN.createNullTypeFunction r l lm Codec.Encode t o defOrRef None  s3
-    let acnDecFunction, s5      = DAstACN.createNullTypeFunction r l lm Codec.Decode t o defOrRef None  s4
+    let acnEncFunction, s4      = DAstACN.createNullTypeFunction r lm Codec.Encode t o defOrRef None  s3
+    let acnDecFunction, s5      = DAstACN.createNullTypeFunction r lm Codec.Decode t o defOrRef None  s4
     let uperEncDecTestFunc,s6         = EncodeDecodeTestCase.createUperEncDecFunction r l t defOrRef equalFunction None (Some uperEncFunction) (Some uperDecFunction) s5
     let acnEncDecTestFunc ,s7         = EncodeDecodeTestCase.createAcnEncDecFunction r l t defOrRef equalFunction None (Some acnEncFunction) (Some acnDecFunction) s6
     let xerEncFunction, s8      = XER r (fun () ->   DAstXer.createNullTypeFunction  r l lm Codec.Encode t o defOrRef None s7) s7
@@ -383,8 +383,8 @@ let private createBoolean (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (lm:Lan
     let isValidFunction, s1     = DastValidate2.createBoolFunction r lm t o defOrRef us
     let uperEncFunction, s2     = DAstUPer.createBooleanFunction r lm Codec.Encode t o defOrRef None isValidFunction s1
     let uperDecFunction, s3     = DAstUPer.createBooleanFunction r lm Codec.Decode t o defOrRef None isValidFunction s2
-    let acnEncFunction, s4      = DAstACN.createBooleanFunction r l lm Codec.Encode t o defOrRef None isValidFunction  s3
-    let acnDecFunction, s5      = DAstACN.createBooleanFunction r l lm Codec.Decode t o defOrRef None isValidFunction  s4
+    let acnEncFunction, s4      = DAstACN.createBooleanFunction r lm Codec.Encode t o defOrRef None isValidFunction  s3
+    let acnDecFunction, s5      = DAstACN.createBooleanFunction r lm Codec.Decode t o defOrRef None isValidFunction  s4
     let uperEncDecTestFunc,s6         = EncodeDecodeTestCase.createUperEncDecFunction r l t defOrRef equalFunction isValidFunction (Some uperEncFunction) (Some uperDecFunction) s5
     let acnEncDecTestFunc ,s7         = EncodeDecodeTestCase.createAcnEncDecFunction r l t defOrRef equalFunction isValidFunction (Some acnEncFunction) (Some acnDecFunction) s6
     let automaticTestCasesValues      = EncodeDecodeTestCase.BooleanAutomaticTestCaseValues r t o |> List.mapi (fun i x -> createAsn1ValueFromValueKind t i (BooleanValue x)) 
