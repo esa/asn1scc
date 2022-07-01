@@ -20,8 +20,11 @@ type Uper_parts = {
 }
 
 type Acn_parts = {
-    null_valIsUnReferenced         : bool
-    oct_str_checkBitPatternPresentResult        : bool
+    null_valIsUnReferenced              : bool
+    checkBitPatternPresentResult        : bool
+    getAcnDepSizeDeterminantLocVars     : string -> LocalVariable list
+    choice_handle_always_absent_child   : bool
+    choice_requires_tmp_decoding        : bool
 }
 
 
@@ -36,6 +39,9 @@ type ILangGeneric () =
     abstract member getArrayItem    : FuncParamType -> (string) -> (bool) -> FuncParamType;
     abstract member intValueToSting : BigInteger -> bool -> string;
     abstract member getNamedItemBackendName  :TypeDefintionOrReference option -> Asn1AcnAst.NamedItem -> string
+    abstract member decodeEmptySeq  : string -> string option
+    abstract member decode_nullType : string -> string option
+
 
     abstract member getAsn1ChildBackendName0  : Asn1AcnAst.Asn1Child -> string
     abstract member getAsn1ChChildBackendName0: Asn1AcnAst.ChChildInfo -> string
@@ -49,6 +55,7 @@ type ILangGeneric () =
     abstract member getEnmTypeDefintion : Map<ProgrammingLanguage, FE_EnumeratedTypeDefinition>  -> FE_EnumeratedTypeDefinition
     abstract member getStrTypeDefinition : Map<ProgrammingLanguage, FE_StringTypeDefinition> -> FE_StringTypeDefinition
     abstract member getChoiceTypeDefinition : Map<ProgrammingLanguage, FE_ChoiceTypeDefinition> -> FE_ChoiceTypeDefinition
+    abstract member getSequenceTypeDefinition :Map<ProgrammingLanguage, FE_SequenceTypeDefinition> -> FE_SequenceTypeDefinition
 
     abstract member getSeqChild     : FuncParamType -> string -> bool -> FuncParamType;
     abstract member getChChild      : FuncParamType -> string -> bool -> FuncParamType;
@@ -68,6 +75,14 @@ type ILangGeneric () =
     abstract member AssignOperator  : string
     abstract member TrueLiteral     : string
     abstract member emtyStatement   : string
+    abstract member bitStreamName   : string
+    abstract member  unaryNotOperator :string
+    abstract member  modOp            :string
+    abstract member  eqOp             :string
+    abstract member  neqOp            :string
+    abstract member  andOp            :string
+    abstract member  orOp             :string
+
 
     abstract member toHex : int -> string
     abstract member uper : Uper_parts;
@@ -153,6 +168,8 @@ type LangGeneric_c() =
         override this.getNamedItemBackendName (defOrRef:TypeDefintionOrReference option) (nm:Asn1AcnAst.NamedItem) = 
             ToC nm.c_name
 
+        override this.decodeEmptySeq _ = None
+        override this.decode_nullType _ = None
 
         override this.Length exp sAcc =
             isvalid_c.ArrayLen exp sAcc
@@ -162,6 +179,7 @@ type LangGeneric_c() =
         override this.getEnmTypeDefintion (td:Map<ProgrammingLanguage, FE_EnumeratedTypeDefinition>) = td.[C]
         override this.getStrTypeDefinition (td:Map<ProgrammingLanguage, FE_StringTypeDefinition>) = td.[C]
         override this.getChoiceTypeDefinition (td:Map<ProgrammingLanguage, FE_ChoiceTypeDefinition>) = td.[C]
+        override this.getSequenceTypeDefinition (td:Map<ProgrammingLanguage, FE_SequenceTypeDefinition>) = td.[C]
 
         override this.getAsn1ChildBackendName (ch:Asn1Child) = ch._c_name
         override this.getAsn1ChChildBackendName (ch:ChChildInfo) = ch._c_name
@@ -173,6 +191,16 @@ type LangGeneric_c() =
         override this.AssignOperator = "="
         override this.TrueLiteral = "TRUE"
         override this.emtyStatement = ""
+        override this.bitStreamName = "BitStream"
+        override this.unaryNotOperator    = "!"  
+        override this.modOp               = "%"  
+        override this.eqOp                = "==" 
+        override this.neqOp               = "!=" 
+        override this.andOp               = "&&" 
+        override this.orOp                = "||" 
+
+
+
         override this.hasModules = false
         override this.getSeqChild (fpt:FuncParamType) (childName:string) (childTypeIsString: bool) =
             let newPath = sprintf "%s%s%s" fpt.p (this.getAcces fpt) childName
@@ -292,7 +320,15 @@ type LangGeneric_c() =
         override this.acn = 
             {
                 Acn_parts.null_valIsUnReferenced = true
-                oct_str_checkBitPatternPresentResult = true
+                checkBitPatternPresentResult = true
+                getAcnDepSizeDeterminantLocVars = 
+                    fun  sReqBytesForUperEncoding ->
+                        [
+                            GenericLocalVariable {GenericLocalVariable.name = "arr"; varType = "byte"; arrSize = Some sReqBytesForUperEncoding; isStatic = true; initExp = None}
+                            GenericLocalVariable {GenericLocalVariable.name = "bitStrm"; varType = "BitStream"; arrSize = None; isStatic = false; initExp = None}
+                        ]
+                choice_handle_always_absent_child = false
+                choice_requires_tmp_decoding = false
             }
 
 
@@ -340,6 +376,14 @@ type LangGeneric_a() =
         override this.TrueLiteral = "True"
         override this.hasModules = true
         override this.emtyStatement = "null;"
+        override this.bitStreamName = "adaasn1rtl.encoding.BitStreamPtr"
+        override this.unaryNotOperator    = "not"
+        override this.modOp               = "mod"
+        override this.eqOp                = "="
+        override this.neqOp               = "<>"
+        override this.andOp               = "and"
+        override this.orOp                = "or"
+
 
         override _.intValueToSting (i:BigInteger) _ = i.ToString()
 
@@ -382,6 +426,7 @@ type LangGeneric_a() =
         override this.getEnmTypeDefintion (td:Map<ProgrammingLanguage, FE_EnumeratedTypeDefinition>) = td.[Ada]
         override this.getStrTypeDefinition (td:Map<ProgrammingLanguage, FE_StringTypeDefinition>) = td.[Ada]
         override this.getChoiceTypeDefinition (td:Map<ProgrammingLanguage, FE_ChoiceTypeDefinition>) = td.[Ada]
+        override this.getSequenceTypeDefinition (td:Map<ProgrammingLanguage, FE_SequenceTypeDefinition>) = td.[Ada]
 
 
         override this.getAsn1ChildBackendName (ch:Asn1Child) = ch._ada_name
@@ -432,7 +477,8 @@ type LangGeneric_a() =
                 | Some pu -> pu + "." + ref.typedefName
                 | None    -> ref.typedefName
 
-
+        override this.decodeEmptySeq p = Some (uper_a.decode_empty_sequence_emptySeq p)
+        override this.decode_nullType p = Some (uper_a.decode_nullType p)
 
 
 
@@ -462,8 +508,15 @@ type LangGeneric_a() =
         override this.acn = 
             {
                 Acn_parts.null_valIsUnReferenced = false
-                oct_str_checkBitPatternPresentResult = false
-            }
+                checkBitPatternPresentResult = false
+                getAcnDepSizeDeterminantLocVars = 
+                    fun  sReqBytesForUperEncoding ->
+                        [
+                            GenericLocalVariable {GenericLocalVariable.name = "tmpBs"; varType = "adaasn1rtl.encoding.BitStream"; arrSize = None; isStatic = false;initExp = Some (sprintf "adaasn1rtl.encoding.BitStream_init(%s)" sReqBytesForUperEncoding)}
+                        ]
+                choice_handle_always_absent_child = true
+                choice_requires_tmp_decoding = true
+          }
 
 (*
 type ProgrammingLanguage with

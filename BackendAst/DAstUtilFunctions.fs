@@ -221,21 +221,22 @@ type FuncParamType  with
         | C     -> 
             sprintf "%s%skind == %s_PRESENT" this.p (this.getAcces l) childPresentName
 
-let getAccessFromScopeNodeList (ReferenceToType nodes)  (childTypeIsString: bool) (l:ProgrammingLanguage) (pVal : CallerScope) =
+let getAccessFromScopeNodeList (ReferenceToType nodes)  (childTypeIsString: bool) (lm:LanguageMacros) (pVal : CallerScope) =
     let handleNode zeroBasedSeqeuenceOfLevel (pVal : CallerScope) (n:ScopeNode) (childTypeIsString: bool) = 
         match n with
         | MD _
         | TA _
         | PRM _
         | VA _              -> raise(BugErrorException "getAccessFromScopeNodeList")
-        | SEQ_CHILD chName  -> [], {pVal with arg = pVal.arg.getSeqChild l (ToC chName) childTypeIsString}
+        | SEQ_CHILD chName  -> [], {pVal with arg = lm.lg.getSeqChild pVal.arg (ToC chName) childTypeIsString}
         | CH_CHILD (chName,pre_name)  -> 
-            
-            [pVal.arg.getChChildIsPresent l pre_name], {pVal with arg = pVal.arg.getChChild l (ToC chName) childTypeIsString}
+            let chChildIsPresent =
+                sprintf "%s%skind %s %s_PRESENT" pVal.arg.p (lm.lg.getAcces pVal.arg) lm.lg.eqOp pre_name
+            [chChildIsPresent], {pVal with arg = lm.lg.getChChild pVal.arg (ToC chName) childTypeIsString}
         | SQF               -> 
             let curIdx = sprintf "i%d" (zeroBasedSeqeuenceOfLevel + 1)
 
-            [], {pVal with arg = pVal.arg.getArrayItem l curIdx childTypeIsString}
+            [], {pVal with arg = lm.lg.getArrayItem pVal.arg curIdx childTypeIsString}
 
     match nodes with
     | (MD md)::(TA tas)::(PRM prm)::[]  -> ({CallerScope.modName = pVal.modName; arg = VALUE (ToC (md + "_" + tas + "_" + prm))}, [])
