@@ -51,6 +51,8 @@ type ILangGeneric () =
     abstract member getAsn1ChildBackendName  : Asn1Child -> string
     abstract member getAsn1ChChildBackendName: ChChildInfo -> string
 
+    abstract member choiceIDForNone : Map<string,int> -> ReferenceToType -> string
+
     abstract member Length          : string -> string -> string
     abstract member typeDef         : Map<ProgrammingLanguage, FE_PrimitiveTypeDefinition> -> FE_PrimitiveTypeDefinition
     abstract member getTypeDefinition : Map<ProgrammingLanguage, FE_TypeDefinition> -> FE_TypeDefinition
@@ -58,6 +60,7 @@ type ILangGeneric () =
     abstract member getStrTypeDefinition : Map<ProgrammingLanguage, FE_StringTypeDefinition> -> FE_StringTypeDefinition
     abstract member getChoiceTypeDefinition : Map<ProgrammingLanguage, FE_ChoiceTypeDefinition> -> FE_ChoiceTypeDefinition
     abstract member getSequenceTypeDefinition :Map<ProgrammingLanguage, FE_SequenceTypeDefinition> -> FE_SequenceTypeDefinition
+    abstract member getSizeableTypeDefinition : Map<ProgrammingLanguage, FE_SizeableTypeDefinition> -> FE_SizeableTypeDefinition
 
     abstract member getSeqChild     : FuncParamType -> string -> bool -> FuncParamType;
     abstract member getChChild      : FuncParamType -> string -> bool -> FuncParamType;
@@ -197,6 +200,7 @@ type LangGeneric_c() =
         override this.getStrTypeDefinition (td:Map<ProgrammingLanguage, FE_StringTypeDefinition>) = td.[C]
         override this.getChoiceTypeDefinition (td:Map<ProgrammingLanguage, FE_ChoiceTypeDefinition>) = td.[C]
         override this.getSequenceTypeDefinition (td:Map<ProgrammingLanguage, FE_SequenceTypeDefinition>) = td.[C]
+        override this.getSizeableTypeDefinition (td:Map<ProgrammingLanguage, FE_SizeableTypeDefinition>) = td.[C]
 
         override this.getAsn1ChildBackendName (ch:Asn1Child) = ch._c_name
         override this.getAsn1ChChildBackendName (ch:ChChildInfo) = ch._c_name
@@ -226,6 +230,12 @@ type LangGeneric_c() =
             let newPath = sprintf "%s%su.%s" fpt.p (this.getAcces fpt) childName
             if childTypeIsString then (FIXARRAY newPath) else (VALUE newPath)
             
+        override this.choiceIDForNone (typeIdsSet:Map<string,int>) (id:ReferenceToType) =  
+            let prefix = ToC (id.AcnAbsPath.Tail.StrJoin("_").Replace("#","elem"))
+            match typeIdsSet.TryFind prefix with
+            | None  -> prefix + "_NONE" 
+            | Some a when a = 1 -> prefix + "_NONE" 
+            | Some a            -> ToC (id.AcnAbsPath.StrJoin("_").Replace("#","elem")) + "_NONE" 
 
         override this.presentWhenName (defOrRef:TypeDefintionOrReference option) (ch:ChChildInfo) : string =
             (ToC ch._present_when_name_private) + "_PRESENT"
@@ -458,6 +468,11 @@ type LangGeneric_a() =
             if childTypeIsString then (FIXARRAY newPath) else (VALUE newPath)
         override this.ArrayAccess idx = "(" + idx + ")"
 
+        override this.choiceIDForNone (typeIdsSet:Map<string,int>) (id:ReferenceToType) =  
+            let prefix = ToC (id.AcnAbsPath.Tail.StrJoin("_").Replace("#","elem"))
+            prefix + "_NONE"
+
+
         override this.getNamedItemBackendName (defOrRef:TypeDefintionOrReference option) (nm:Asn1AcnAst.NamedItem) = 
             match defOrRef with
             | Some (ReferenceToExistingDefinition r) when r.programUnit.IsSome -> r.programUnit.Value + "." + nm.ada_name
@@ -472,6 +487,7 @@ type LangGeneric_a() =
         override this.getStrTypeDefinition (td:Map<ProgrammingLanguage, FE_StringTypeDefinition>) = td.[Ada]
         override this.getChoiceTypeDefinition (td:Map<ProgrammingLanguage, FE_ChoiceTypeDefinition>) = td.[Ada]
         override this.getSequenceTypeDefinition (td:Map<ProgrammingLanguage, FE_SequenceTypeDefinition>) = td.[Ada]
+        override this.getSizeableTypeDefinition (td:Map<ProgrammingLanguage, FE_SizeableTypeDefinition>) = td.[Ada]
 
 
         override this.getAsn1ChildBackendName (ch:Asn1Child) = ch._ada_name

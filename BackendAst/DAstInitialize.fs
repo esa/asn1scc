@@ -97,20 +97,6 @@ let bitConstraint2Set r (c:Asn1AcnAst.BitStringConstraint) = foldSizableConstrai
 
 
 let ia5StringConstraint2Set  (r:Asn1AcnAst.AstRoot)    (c:Asn1AcnAst.IA5StringConstraint) (us0:State) =
-    let foldRangeCharCon (l:ProgrammingLanguage)   (c:Asn1AcnAst.CharTypeConstraint)  st = 
-        foldRangeTypeConstraint 
-            (fun (e1:RangeSet<char>) e2 b s -> e1.union e2, s) 
-            (fun e1 e2 s -> e1.intersect e2, s) 
-            (fun e s -> e.complement, s) 
-            (fun e1 e2 s -> e1.difference e2, s) 
-            (fun e s -> e,s) 
-            (fun e1 e2 s -> e1.union e2, s) 
-            (fun (strVal:string)  s         -> RangeSet<char>.createFromMultipleValues (strVal.ToCharArray() |> Seq.toList) ,s)
-            (fun v1 v2  minIsIn maxIsIn s   -> RangeSet<char>.createFromValuePair v1 v2  minIsIn maxIsIn, s)
-            (fun v1 minIsIn s   -> RangeSet<char>.createPosInfinite v1 minIsIn, s)
-            (fun v2 maxIsIn s   -> RangeSet<char>.createNegInfinite v2 maxIsIn, s)
-            c
-            st
     foldStringTypeConstraint2 
         (fun (e1:SizeableSet<string>) e2 b s -> e1.union e2, s) 
         (fun e1 e2 s -> e1.intersect e2, s) 
