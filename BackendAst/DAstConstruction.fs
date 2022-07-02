@@ -341,8 +341,8 @@ let private createBitString (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
 
     let uperEncFunction, s2     = DAstUPer.createBitStringFunction r lm Codec.Encode t o  defOrRef None isValidFunction s1
     let uperDecFunction, s3     = DAstUPer.createBitStringFunction r lm Codec.Decode t o  defOrRef None isValidFunction s2
-    let acnEncFunction, s4      = DAstACN.createBitStringFunction r deps l lm Codec.Encode t o defOrRef isValidFunction uperEncFunction s3
-    let acnDecFunction, s5      = DAstACN.createBitStringFunction r deps l lm Codec.Decode t o defOrRef isValidFunction uperDecFunction s4
+    let acnEncFunction, s4      = DAstACN.createBitStringFunction r deps lm Codec.Encode t o defOrRef isValidFunction uperEncFunction s3
+    let acnDecFunction, s5      = DAstACN.createBitStringFunction r deps lm Codec.Decode t o defOrRef isValidFunction uperDecFunction s4
     let uperEncDecTestFunc,s6         = EncodeDecodeTestCase.createUperEncDecFunction r l t defOrRef equalFunction isValidFunction (Some uperEncFunction) (Some uperDecFunction) s5
     let acnEncDecTestFunc ,s7         = EncodeDecodeTestCase.createAcnEncDecFunction r l t defOrRef equalFunction isValidFunction (Some acnEncFunction) (Some acnDecFunction) s6
     let automaticTestCasesValues      = EncodeDecodeTestCase.BitStringAutomaticTestCaseValues r t o |> List.mapi (fun i x -> createAsn1ValueFromValueKind t i (BitStringValue x)) 
@@ -767,8 +767,8 @@ let private createReferenceType (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInser
     let isValidFunction, s1     = DastValidate2.createReferenceTypeFunction r lm t o defOrRef newResolvedType us
     let uperEncFunction, s2     = DAstUPer.createReferenceFunction r lm Codec.Encode t o defOrRef isValidFunction newResolvedType s1
     let uperDecFunction, s3     = DAstUPer.createReferenceFunction r lm Codec.Decode t o defOrRef isValidFunction newResolvedType s2
-    let acnEncFunction, s4      = DAstACN.createReferenceFunction r deps l lm Codec.Encode t o defOrRef  isValidFunction newResolvedType s3
-    let acnDecFunction, s5      = DAstACN.createReferenceFunction r deps l lm Codec.Decode t o defOrRef  isValidFunction newResolvedType s4
+    let acnEncFunction, s4      = DAstACN.createReferenceFunction r deps lm Codec.Encode t o defOrRef  isValidFunction newResolvedType s3
+    let acnDecFunction, s5      = DAstACN.createReferenceFunction r deps lm Codec.Decode t o defOrRef  isValidFunction newResolvedType s4
     
     let uperEncDecTestFunc,s6         = EncodeDecodeTestCase.createUperEncDecFunction r l t defOrRef equalFunction isValidFunction (Some uperEncFunction) (Some uperDecFunction) s5
     let acnEncDecTestFunc ,s7         = EncodeDecodeTestCase.createAcnEncDecFunction r l t defOrRef equalFunction isValidFunction acnEncFunction acnDecFunction s6

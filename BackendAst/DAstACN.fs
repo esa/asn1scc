@@ -829,12 +829,14 @@ let createOctetStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserte
     let soSparkAnnotations = Some(sparkAnnotations lm (typeDefinition.longTypedefName2 lm.lg.hasModules) codec)
     createAcnFunction r lm codec t typeDefinition  isValidFunc  (fun us e acnArgs p -> funcBody e acnArgs p, us) (fun atc -> true) soSparkAnnotations us
 
-let createBitStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (l:ProgrammingLanguage) (lm:LanguageMacros) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.BitString) (typeDefinition:TypeDefintionOrReference)  (isValidFunc: IsValidFunction option) (uperFunc: UPerFunction) (us:State)  =
+
+
+
+
+let createBitStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (lm:LanguageMacros) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.BitString) (typeDefinition:TypeDefintionOrReference)  (isValidFunc: IsValidFunction option) (uperFunc: UPerFunction) (us:State)  =
     let nAlignSize = 0I;
 
     let funcBody (errCode:ErroCode) (acnArgs: (AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) (p:CallerScope)        = 
-        //let pp = match codec with CommonTypes.Encode -> lm.lg.getValue p.arg | CommonTypes.Decode -> lm.lg.getPointer p.arg
-        //let bit_string_null_terminated = match l with C -> acn_c.bit_string_null_terminated | Ada -> acn_a.bit_string_null_terminated
         let funcBodyContent = 
             match o.acnEncodingClass with
             | SZ_EC_uPER                                              -> 
@@ -842,40 +844,13 @@ let createBitStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
                     Some (DAstUPer.createBitStringFunction_funcBody r  lm codec t.id typeDefinition o.isFixedSize  o.uperMaxSizeInBits o.minSize.acn o.maxSize.acn (errCode:ErroCode) (p:CallerScope))
                 funcBody errCode p |> Option.map(fun x -> x.funcBody, x.errCodes, x.localVariables)
             | SZ_EC_ExternalField   _    -> 
+                
                 let extField = getExternaField r deps t.id
-                match l with
-                | C     ->
-                    let fncBody = 
-                        match o.isFixedSize with
-                        | true  -> acn_c.bit_string_external_field_fixed_size p.arg.p errCode.errCodeName (lm.lg.getAcces p.arg) (if o.minSize.acn=0I then None else Some ( o.minSize.acn)) ( o.maxSize.acn) extField codec
-                        | false  -> acn_c.bit_string_external_field p.arg.p errCode.errCodeName (lm.lg.getAcces p.arg) (if o.minSize.acn=0I then None else Some ( o.minSize.acn)) ( o.maxSize.acn) extField codec
-                    Some(fncBody, [errCode], [])
-                | Ada   ->
-                    let i = sprintf "i%d" (t.id.SeqeuenceOfLevel + 1)
-                    let lv = SequenceOfIndex (t.id.SeqeuenceOfLevel + 1, None)
-                    let internalItem = uper_a.InternalItem_bit_str p.arg.p i  errCode.errCodeName codec 
-                    let fncBody = 
-                        match o.isFixedSize with
-                        | true  -> acn_a.oct_sqf_external_field_fix_size p.arg.p (lm.lg.getAcces p.arg) i internalItem (if o.minSize.acn=0I then None else Some ( o.minSize.acn)) ( o.maxSize.acn) extField nAlignSize errCode.errCodeName 1I 1I codec
-                        | false  -> acn_a.oct_sqf_external_field p.arg.p (lm.lg.getAcces p.arg) i internalItem (if o.minSize.acn=0I then None else Some ( o.minSize.acn)) ( o.maxSize.acn) extField nAlignSize errCode.errCodeName 1I 1I codec
-                    Some(fncBody, [errCode], [lv])
+                let ret = lm.lg.acn.createBitStringFunction_extfld t o errCode p extField codec
+                Some ret
             | SZ_EC_TerminationPattern   bitPattern    -> 
-                let mod8 = bitPattern.Value.Length % 8
-                let suffix = [1 .. mod8] |> Seq.map(fun _ -> "0") |> Seq.StrJoin ""
-                let bitPatten8 = bitPattern.Value + suffix
-                let byteArray = bitStringValueToByteArray bitPatten8.AsLoc
-                match l with
-                | C     ->
-                    let fncBody = acn_c.bit_string_null_terminated p.arg.p errCode.errCodeName (lm.lg.getAcces p.arg) (if o.minSize.acn=0I then None else Some ( o.minSize.acn)) ( o.maxSize.acn) byteArray bitPattern.Value.Length.AsBigInt codec
-                    Some(fncBody, [errCode], [])
-                | Ada   ->
-                    let i = sprintf "i%d" (t.id.SeqeuenceOfLevel + 1)
-                    let lv = SequenceOfIndex (t.id.SeqeuenceOfLevel + 1, None)
-                    let internalItem = uper_a.InternalItem_bit_str p.arg.p i  errCode.errCodeName codec 
-                    let noSizeMin = if o.minSize.acn=0I then None else Some ( o.minSize.acn)
-                    let fncBody = acn_a.oct_sqf_null_terminated p.arg.p (lm.lg.getAcces p.arg) i internalItem noSizeMin o.maxSize.acn byteArray bitPattern.Value.Length.AsBigInt errCode.errCodeName 1I 1I  codec
-                    Some(fncBody, [errCode], [lv])
-                    
+                let ret = lm.lg.acn.createBitStringFunction_term_pat t o errCode p codec bitPattern
+                Some ret
         match funcBodyContent with
         | None -> None
         | Some (funcBodyContent,errCodes, localVariables) -> Some ({AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = errCodes; localVariables = localVariables; bValIsUnReferenced= false; bBsIsUnReferenced=false})
@@ -1717,7 +1692,7 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
     let soSparkAnnotations = Some(sparkAnnotations lm (typeDefinition.longTypedefName2 lm.lg.hasModules) codec)
     createAcnFunction r lm codec t typeDefinition  isValidFunc  funcBody (fun atc -> true) soSparkAnnotations us, ec
 
-let createReferenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (l:ProgrammingLanguage) (lm:LanguageMacros) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.ReferenceType) (typeDefinition:TypeDefintionOrReference) (isValidFunc: IsValidFunction option) (baseType:Asn1Type) (us:State)  =
+let createReferenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (lm:LanguageMacros) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.ReferenceType) (typeDefinition:TypeDefintionOrReference) (isValidFunc: IsValidFunction option) (baseType:Asn1Type) (us:State)  =
   match o.encodingOptions with 
   | None          -> 
       match o.hasExtraConstrainsOrChildrenOrAcnArgs with
@@ -1739,19 +1714,20 @@ let createReferenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
       | false ->    
             let moduleName, typeDefinitionName0 = 
                 let t1 = Asn1AcnAstUtilFunctions.GetActualTypeByName r o.modName o.tasName
-                t1.FT_TypeDefintion.[l].programUnit, t1.FT_TypeDefintion.[l].typeName
+                let typeDef = lm.lg.getTypeDefinition t1.FT_TypeDefintion
+                typeDef.programUnit, typeDef.typeName
 
             let baseTypeDefinitionName = 
-                match l with
-                | C     -> typeDefinitionName0 
-                | Ada   -> 
+                match lm.lg.hasModules with
+                | false     -> typeDefinitionName0 
+                | true   -> 
                     match t.id.ModName = o.modName.Value with
                     | true  -> typeDefinitionName0 
                     | false -> moduleName + "." + typeDefinitionName0 
             let baseFncName = baseTypeDefinitionName + "_ACN" + codec.suffix
 
             let funcBody (us:State) (errCode:ErroCode) (acnArgs: (AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) (p:CallerScope) = 
-                let funcBodyContent = callBaseTypeFunc lm (t.getParamValue p.arg l codec) baseFncName codec
+                let funcBodyContent = callBaseTypeFunc lm (lm.lg.getParamValue t p.arg codec) baseFncName codec
                 Some ({AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = []; bValIsUnReferenced= false; bBsIsUnReferenced=false}), us
 
 
@@ -1764,21 +1740,23 @@ let createReferenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
         let loc = o.tasName.Location
         let moduleName, typeDefinitionName0 = 
             let t1 = Asn1AcnAstUtilFunctions.GetActualTypeByName r o.modName o.tasName
-            t1.FT_TypeDefintion.[l].programUnit, t1.FT_TypeDefintion.[l].typeName
+            let typeDef = lm.lg.getTypeDefinition t1.FT_TypeDefintion
+            typeDef.programUnit, typeDef.typeName
         let baseTypeDefinitionName = 
-            match l with
-            | C     -> typeDefinitionName0 
-            | Ada   -> 
+            match lm.lg.hasModules with
+            | false     -> typeDefinitionName0 
+            | true   -> 
                 match t.id.ModName = o.modName.Value with
                 | true  -> typeDefinitionName0 
                 | false -> moduleName + "." + typeDefinitionName0 
         let baseFncName = baseTypeDefinitionName + "_ACN" + codec.suffix
         let sReqBytesForUperEncoding = sprintf "%s_REQUIRED_BYTES_FOR_ACN_ENCODING" baseTypeDefinitionName
         let sReqBitForUperEncoding = sprintf "%s_REQUIRED_BITS_FOR_ACN_ENCODING" baseTypeDefinitionName
-        let octet_string_containing_func  = match l with C -> uper_c.octet_string_containing_func | Ada -> uper_a.octet_string_containing_func
-        let bit_string_containing_func  = match l with C -> uper_c.bit_string_containing_func | Ada -> uper_a.bit_string_containing_func
-        let octet_string_containing_ext_field_func = match l with C -> acn_c.octet_string_containing_ext_field_func | Ada -> acn_a.octet_string_containing_ext_field_func
-        let bit_string_containing_ext_field_func = match l with C -> acn_c.bit_string_containing_ext_field_func | Ada -> acn_a.bit_string_containing_ext_field_func
+        
+        let octet_string_containing_func            = lm.uper.octet_string_containing_func
+        let bit_string_containing_func              = lm.uper.bit_string_containing_func
+        let octet_string_containing_ext_field_func  = lm.acn.octet_string_containing_ext_field_func
+        let bit_string_containing_ext_field_func    = lm.acn.bit_string_containing_ext_field_func
 
         let baseTypeAcnFunction = baseType.getAcnFunction codec 
 
@@ -1805,20 +1783,20 @@ let createReferenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
                             | None  -> None, [], []
                             | Some r -> Some r.funcBody, r.errCodes, r.localVariables
 
-                    let fncBody = octet_string_containing_ext_field_func (t.getParamValue p.arg l codec)  baseFncName sReqBytesForUperEncoding extField errCode.errCodeName soInner codec
+                    let fncBody = octet_string_containing_ext_field_func (lm.lg.getParamValue t p.arg codec)  baseFncName sReqBytesForUperEncoding extField errCode.errCodeName soInner codec
                     Some(fncBody, errCode::errCodes0,localVariables0)
                 | SZ_EC_ExternalField    relPath    , ContainedInBitString  ->  
                     let extField        = getExternaField r deps t.id
-                    let fncBody = bit_string_containing_ext_field_func (t.getParamValue p.arg l codec)  baseFncName sReqBytesForUperEncoding sReqBitForUperEncoding extField errCode.errCodeName codec
+                    let fncBody = bit_string_containing_ext_field_func (lm.lg.getParamValue t p.arg codec)  baseFncName sReqBytesForUperEncoding sReqBitForUperEncoding extField errCode.errCodeName codec
                     Some(fncBody, [errCode],[])
 
                 | SZ_EC_uPER                        , ContainedInOctString  ->  
                     let nBits = GetNumberOfBitsForNonNegativeInteger (encOptions.maxSize.acn - encOptions.minSize.acn)
-                    let fncBody = octet_string_containing_func  (t.getParamValue p.arg l codec) baseFncName sReqBytesForUperEncoding nBits encOptions.minSize.acn encOptions.maxSize.acn codec
+                    let fncBody = octet_string_containing_func  (lm.lg.getParamValue t p.arg codec) baseFncName sReqBytesForUperEncoding nBits encOptions.minSize.acn encOptions.maxSize.acn codec
                     Some(fncBody, [errCode],[])
                 | SZ_EC_uPER                        , ContainedInBitString  ->  
                     let nBits = GetNumberOfBitsForNonNegativeInteger (encOptions.maxSize.acn - encOptions.minSize.acn)
-                    let fncBody = bit_string_containing_func  (t.getParamValue p.arg l codec) baseFncName sReqBytesForUperEncoding sReqBitForUperEncoding nBits encOptions.minSize.acn encOptions.maxSize.acn codec
+                    let fncBody = bit_string_containing_func  (lm.lg.getParamValue t p.arg codec) baseFncName sReqBytesForUperEncoding sReqBitForUperEncoding nBits encOptions.minSize.acn encOptions.maxSize.acn codec
                     Some(fncBody, [errCode],[])
                 | SZ_EC_TerminationPattern nullVal  ,  _                    ->  raise(SemanticError (loc, "Invalid type for parameter4"))
 

@@ -25,6 +25,8 @@ type Acn_parts = {
     getAcnDepSizeDeterminantLocVars     : string -> LocalVariable list
     choice_handle_always_absent_child   : bool
     choice_requires_tmp_decoding        : bool
+    createBitStringFunction_extfld      : Asn1AcnAst.Asn1Type -> Asn1AcnAst.BitString -> ErroCode -> CallerScope -> string ->CommonTypes.Codec ->  (string*ErroCode list*LocalVariable list)
+    createBitStringFunction_term_pat    : Asn1AcnAst.Asn1Type -> Asn1AcnAst.BitString -> ErroCode -> CallerScope -> CommonTypes.Codec -> Asn1AcnAst.BitStringValue -> (string*ErroCode list*LocalVariable list) 
 }
 
 
@@ -132,6 +134,21 @@ let createBitStringFunction_funcBody_c handleFragmentation (codec:CommonTypes.Co
             handleFragmentation p codec errCode ii (uperMaxSizeInBits) minSize maxSize "" 1I true false
     {UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = localVariables; bValIsUnReferenced=false; bBsIsUnReferenced=false}    
 
+
+let createBitStringFunction_extfld_c  (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.BitString) (errCode:ErroCode) (p:CallerScope) (extField:string) (codec:CommonTypes.Codec) : (string*ErroCode list*LocalVariable list) = 
+    let fncBody = 
+        match o.minSize.uper = o.maxSize.uper with
+        | true  -> acn_c.bit_string_external_field_fixed_size p.arg.p errCode.errCodeName (getAcces_c p.arg) (if o.minSize.acn=0I then None else Some ( o.minSize.acn)) ( o.maxSize.acn) extField codec
+        | false  -> acn_c.bit_string_external_field p.arg.p errCode.errCodeName (getAcces_c p.arg) (if o.minSize.acn=0I then None else Some ( o.minSize.acn)) ( o.maxSize.acn) extField codec
+    (fncBody, [errCode], [])
+
+let createBitStringFunction_term_pat_c  (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.BitString) (errCode:ErroCode) (p:CallerScope) (codec:CommonTypes.Codec) (bitPattern:Asn1AcnAst.BitStringValue): (string*ErroCode list*LocalVariable list) = 
+    let mod8 = bitPattern.Value.Length % 8
+    let suffix = [1 .. mod8] |> Seq.map(fun _ -> "0") |> Seq.StrJoin ""
+    let bitPatten8 = bitPattern.Value + suffix
+    let byteArray = bitStringValueToByteArray bitPatten8.AsLoc
+    let fncBody = acn_c.bit_string_null_terminated p.arg.p errCode.errCodeName (getAcces_c p.arg) (if o.minSize.acn=0I then None else Some ( o.minSize.acn)) ( o.maxSize.acn) byteArray bitPattern.Value.Length.AsBigInt codec
+    (fncBody, [errCode], [])
 
 type LangGeneric_c() =
     inherit ILangGeneric()
@@ -329,8 +346,13 @@ type LangGeneric_c() =
                         ]
                 choice_handle_always_absent_child = false
                 choice_requires_tmp_decoding = false
+                createBitStringFunction_extfld = createBitStringFunction_extfld_c
+                createBitStringFunction_term_pat = createBitStringFunction_term_pat_c
             }
 
+(****** Ada Implementation ******)
+
+let getAcces_a  (_:FuncParamType) = "."
 
 let createBitStringFunction_funcBody_Ada handleFragmentation (codec:CommonTypes.Codec) (id : ReferenceToType) (typeDefinition:TypeDefintionOrReference) isFixedSize  uperMaxSizeInBits minSize maxSize (errCode:ErroCode) (p:CallerScope) = 
     let ii = id.SeqeuenceOfLevel + 1;
@@ -369,6 +391,32 @@ let createBitStringFunction_funcBody_Ada handleFragmentation (codec:CommonTypes.
     {UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = localVariables; bValIsUnReferenced=false; bBsIsUnReferenced=false}    
 
 
+let createBitStringFunction_extfld_ada (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.BitString) (errCode:ErroCode) (p:CallerScope) (extField:string) (codec:CommonTypes.Codec) : (string*ErroCode list*LocalVariable list) = 
+    let nAlignSize = 0I;
+    let i = sprintf "i%d" (t.id.SeqeuenceOfLevel + 1)
+    let lv = SequenceOfIndex (t.id.SeqeuenceOfLevel + 1, None)
+    let internalItem = uper_a.InternalItem_bit_str p.arg.p i  errCode.errCodeName codec 
+    let fncBody = 
+        match o.minSize.uper = o.maxSize.uper with
+        | true  -> acn_a.oct_sqf_external_field_fix_size p.arg.p (getAcces_a p.arg) i internalItem (if o.minSize.acn=0I then None else Some ( o.minSize.acn)) ( o.maxSize.acn) extField nAlignSize errCode.errCodeName 1I 1I codec
+        | false  -> acn_a.oct_sqf_external_field p.arg.p (getAcces_a p.arg) i internalItem (if o.minSize.acn=0I then None else Some ( o.minSize.acn)) ( o.maxSize.acn) extField nAlignSize errCode.errCodeName 1I 1I codec
+    fncBody, [errCode], [lv]
+
+
+
+let createBitStringFunction_term_pat_ada  (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.BitString) (errCode:ErroCode) (p:CallerScope) (codec:CommonTypes.Codec) (bitPattern:Asn1AcnAst.BitStringValue): (string*ErroCode list*LocalVariable list) = 
+    let mod8 = bitPattern.Value.Length % 8
+    let suffix = [1 .. mod8] |> Seq.map(fun _ -> "0") |> Seq.StrJoin ""
+    let bitPatten8 = bitPattern.Value + suffix
+    let byteArray = bitStringValueToByteArray bitPatten8.AsLoc
+    let i = sprintf "i%d" (t.id.SeqeuenceOfLevel + 1)
+    let lv = SequenceOfIndex (t.id.SeqeuenceOfLevel + 1, None)
+    let internalItem = uper_a.InternalItem_bit_str p.arg.p i  errCode.errCodeName codec 
+    let noSizeMin = if o.minSize.acn=0I then None else Some ( o.minSize.acn)
+    let fncBody = acn_a.oct_sqf_null_terminated p.arg.p (getAcces_a p.arg) i internalItem noSizeMin o.maxSize.acn byteArray bitPattern.Value.Length.AsBigInt errCode.errCodeName 1I 1I  codec
+    (fncBody, [errCode], [lv])
+
+
 type LangGeneric_a() =
     inherit ILangGeneric()
         override this.rtlModuleName  = "adaasn1rtl."
@@ -398,11 +446,8 @@ type LangGeneric_a() =
             | VALUE x      -> x
             | POINTER x    -> x
             | FIXARRAY x   -> x
-        override this.getAcces  (fpt:FuncParamType) =
-            match fpt with
-            | VALUE _      -> "."
-            | POINTER _    -> "."
-            | FIXARRAY _   -> "."
+        override this.getAcces  (fpt:FuncParamType) = getAcces_a fpt
+
         override this.getStar  (fpt:FuncParamType) =
             match fpt with
             | VALUE x        -> ""
@@ -516,91 +561,7 @@ type LangGeneric_a() =
                         ]
                 choice_handle_always_absent_child = true
                 choice_requires_tmp_decoding = true
+                createBitStringFunction_extfld = createBitStringFunction_extfld_ada
+                createBitStringFunction_term_pat = createBitStringFunction_term_pat_ada
           }
 
-(*
-type ProgrammingLanguage with
-    member this.SpecExtention =
-        match this with
-        |C      -> "h"
-        |Ada    -> "ads"
-    member this.BodyExtention =
-        match this with
-        |C      -> "c"
-        |Ada    -> "adb"
-    member this.ArrName =
-        match this with
-        |C      -> "arr"
-        |Ada    -> "Data"
-    member this.AssignOperator =
-        match this with
-        |C      -> "="
-        |Ada    -> ":="
-    member this.ArrayAccess idx =
-        match this with
-        |C      -> "[" + idx + "]"
-        |Ada    -> "(" + idx + ")"
-    member this.ExpOr e1 e2 =
-        match this with
-        |C      -> isvalid_c.ExpOr e1 e2
-        |Ada    -> isvalid_a.ExpOr e1 e2
-    member this.ExpAnd e1 e2 =
-        match this with
-        |C      -> isvalid_c.ExpAnd e1 e2
-        |Ada    -> isvalid_a.ExpAnd e1 e2
-    member this.ExpAndMulti expList =
-        match this with
-        |C      -> isvalid_c.ExpAndMulit expList
-        |Ada    -> isvalid_a.ExpAndMulit expList
-    member this.ExpNot e  =
-        match this with
-        |C      -> isvalid_c.ExpNot e
-        |Ada    -> isvalid_a.ExpNot e
-    member this.ExpEqual e1 e2  =
-        match this with
-        |C      -> isvalid_c.ExpEqual e1 e2
-        |Ada    -> isvalid_a.ExpEqual e1 e2
-    member this.ExpStringEqual e1 e2  =
-        match this with
-        |C      -> isvalid_c.ExpStringEqual e1 e2
-        |Ada    -> isvalid_a.ExpStringEqual e1 e2
-    member this.ExpGt e1 e2  =
-        match this with
-        |C      -> isvalid_c.ExpGt e1 e2
-        |Ada    -> isvalid_a.ExpGt e1 e2
-    member this.ExpGte e1 e2  =
-        match this with
-        |C      -> isvalid_c.ExpGte e1 e2
-        |Ada    -> isvalid_a.ExpGte e1 e2
-    member this.ExpLt e1 e2  =
-        match this with
-        |C      -> isvalid_c.ExpLt e1 e2
-        |Ada    -> isvalid_a.ExpLt e1 e2
-    member this.ExpLte e1 e2  =
-        match this with
-        |C      -> isvalid_c.ExpLte e1 e2
-        |Ada    -> isvalid_a.ExpLte e1 e2
-    member this.StrLen exp =
-        match this with
-        |C      -> isvalid_c.StrLen exp
-        |Ada    -> isvalid_a.StrLen exp
-    member this.Length exp sAcc =
-        match this with
-        |C      -> isvalid_c.ArrayLen exp sAcc
-        |Ada    -> isvalid_a.ArrayLen exp sAcc
-    member this.ArrayStartIndex =
-        match this with
-        |C      -> 0
-        |Ada    -> 1
-    member this.boolean =
-        match this with
-        |C      -> "flag"
-        |Ada    -> "Boolean"
-    member this.toHex n =
-        match this with
-        |C      -> sprintf "0x%x" n
-        |Ada    -> sprintf "16#%x#" n
-        
-
-
-*)
