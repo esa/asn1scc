@@ -72,7 +72,7 @@ let private createAcnChild (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
             let funcBody codec = match codec with Codec.Encode -> funcBodyEncode | Codec.Decode -> funcBodyDecode
             funcBody codec prms p, st
         let retFunc = DAstACN.handleSavePostion funBodyWithState ch.Type.savePosition c_name ch.id lm codec prms p
-        retFunc emptyState {ErroCode.errCodeName = ""; ErroCode.errCodeValue=0} prms p |> fst
+        retFunc emptyState {ErroCode.errCodeName = ""; ErroCode.errCodeValue=0; comment=None} prms p |> fst
         
 
     let ret = 

@@ -31,33 +31,9 @@ let rec getUnits (t:Asn1Type) =
     |ReferenceType a when t.unitsOfMeasure.IsNone -> getUnits (a.resolvedType)
     | _              -> t.unitsOfMeasure
 
-let foldGenericCon  valToStrFunc    (c:Asn1AcnAst.GenericConstraint<'v>)  =
-    Asn1Fold.foldGenericConstraint
-        (fun e1 e2 b s      -> stg_asn1.Print_UnionConstraint e1 e2, s)
-        (fun e1 e2 s        -> stg_asn1.Print_IntersectionConstraint e1 e2, s)
-        (fun e s            -> stg_asn1.Print_AllExceptConstraint e, s)
-        (fun e1 e2 s        -> stg_asn1.Print_ExceptConstraint e1 e2, s)
-        (fun e s            -> stg_asn1.Print_RootConstraint e, s)
-        (fun e1 e2 s        -> stg_asn1.Print_RootConstraint2 e1 e2, s)
-        (fun v  s           -> stg_asn1.Print_SingleValueContraint (valToStrFunc v) ,s)
-        c
-        0 |> fst
+let foldGenericCon  = DastValidate2.printGenericConAsAsn1
 
-let foldRangeCon valToStrFunc   (c:Asn1AcnAst.RangeTypeConstraint<'v1,'v1>)  =
-    Asn1Fold.foldRangeTypeConstraint        
-        (fun e1 e2 b s      -> stg_asn1.Print_UnionConstraint e1 e2, s)
-        (fun e1 e2 s        -> stg_asn1.Print_IntersectionConstraint e1 e2, s)
-        (fun e s            -> stg_asn1.Print_AllExceptConstraint e, s)
-        (fun e1 e2 s        -> stg_asn1.Print_ExceptConstraint e1 e2, s)
-        (fun e s            -> stg_asn1.Print_RootConstraint e, s)
-        (fun e1 e2 s        -> stg_asn1.Print_RootConstraint2 e1 e2, s)
-        (fun v  s           -> stg_asn1.Print_SingleValueContraint (valToStrFunc v) ,s)
-        (fun v1 v2  minIsIn maxIsIn s   -> 
-            stg_asn1.Print_RangeContraint (valToStrFunc v1) (valToStrFunc v2) minIsIn maxIsIn, s)
-        (fun v1 minIsIn s   -> stg_asn1.Print_RangeContraint_val_MAX (valToStrFunc v1) minIsIn, s)
-        (fun v2 maxIsIn s   -> stg_asn1.Print_RangeContraint_MIN_val (valToStrFunc v2) maxIsIn, s)
-        c
-        0 |> fst
+let foldRangeCon = DastValidate2.printRangeConAsAsn1
 
 
 let Kind2Name (stgFileName:string) (t:Asn1Type) =

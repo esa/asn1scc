@@ -35,7 +35,7 @@ let internal createUperFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (code
     let typeDef = lm.lg.getTypeDefinition t.FT_TypeDefintion
     let funcName            = getFuncName r lm codec t.id typeDef
     let errCodeName         = ToC ("ERR_UPER" + (codec.suffix.ToUpper()) + "_" + ((t.id.AcnAbsPath |> Seq.skip 1 |> Seq.StrJoin("-")).Replace("#","elm")))
-    let errCode, ns = getNextValidErrorCode us errCodeName
+    let errCode, ns = getNextValidErrorCode us errCodeName None
 
     let EmitTypeAssignment = lm.uper.EmitTypeAssignment
     let EmitTypeAssignment_def = lm.uper.EmitTypeAssignment_def

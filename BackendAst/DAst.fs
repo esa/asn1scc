@@ -176,6 +176,7 @@ type TypeDefintionOrReference =
 type ErroCode = {
     errCodeValue    : int
     errCodeName     : string
+    comment         : string option
 }
 
 type BaseTypesEquivalence<'T> = {
@@ -849,7 +850,7 @@ and Asn1TypeKind =
 
 
 
-let getNextValidErrorCode (cur:State) (errCodeName:string) =
+let getNextValidErrorCode (cur:State) (errCodeName:string) (comment:string option) =
     
     //if (errCodeName.ToUpper() = "ERR_ACN_ENCODE_TC_DATA_HEADER_TCPACKETPUSVERSIONNUMBER") then
     //    let aaa = cur.curErrCodeNames |> Set.toArray
@@ -857,7 +858,7 @@ let getNextValidErrorCode (cur:State) (errCodeName:string) =
         
     let rec getErroCode (errCodeName:string) = 
         match cur.curErrCodeNames.Contains errCodeName with
-        | false -> {ErroCode.errCodeName = errCodeName; errCodeValue = cur.currErrorCode}
+        | false -> {ErroCode.errCodeName = errCodeName; errCodeValue = cur.currErrorCode; comment=comment}
         | true  -> 
             getErroCode (errCodeName + "_2")
 

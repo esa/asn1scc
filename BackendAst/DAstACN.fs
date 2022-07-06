@@ -195,7 +195,7 @@ let private createAcnFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:
         | []    -> getFuncName r codec t.id (lm.lg.getTypeDefinition t.FT_TypeDefintion)
         | _     -> None
     let errCodeName         = ToC ("ERR_ACN" + (codec.suffix.ToUpper()) + "_" + ((t.id.AcnAbsPath |> Seq.skip 1 |> Seq.StrJoin("-")).Replace("#","elm")))
-    let errCode, ns = getNextValidErrorCode us errCodeName
+    let errCode, ns = getNextValidErrorCode us errCodeName None
 
     let EmitTypeAssignment_primitive     =  lm.acn.EmitTypeAssignment_primitive
     let EmitTypeAssignment_primitive_def =  lm.acn.EmitTypeAssignment_primitive_def
@@ -367,7 +367,7 @@ let getMappingFunctionModule (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (soMapFu
 
 let createAcnIntegerFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:CommonTypes.Codec) (typeId : ReferenceToType) (t:Asn1AcnAst.AcnInteger)  (us:State)  =
     let errCodeName         = ToC ("ERR_ACN" + (codec.suffix.ToUpper()) + "_" + ((typeId.AcnAbsPath |> Seq.skip 1 |> Seq.StrJoin("-")).Replace("#","elm")))
-    let errCode, ns = getNextValidErrorCode us errCodeName
+    let errCode, ns = getNextValidErrorCode us errCodeName None
 
     let uperFuncBody (errCode) (p:CallerScope) = 
         DAstUPer.getIntfuncBodyByCons r lm codec t.uperRange t.Location t.isUnsigned (t.cons) (t.cons@t.withcons) errCode p
@@ -443,7 +443,7 @@ let createEnumeratedFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:C
 
 let createAcnEnumeratedFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:CommonTypes.Codec) (typeId : ReferenceToType) (t:Asn1AcnAst.AcnReferenceToEnumerated)  (defOrRef:TypeDefintionOrReference) (us:State)  =
     let errCodeName         = ToC ("ERR_ACN" + (codec.suffix.ToUpper()) + "_" + ((typeId.AcnAbsPath |> Seq.skip 1 |> Seq.StrJoin("-")).Replace("#","elm")))
-    let errCode, ns = getNextValidErrorCode us errCodeName
+    let errCode, ns = getNextValidErrorCode us errCodeName None
     let td = lm.lg.getTypeDefinition (t.getType r).FT_TypeDefintion
     let typeDefinitionName = td.typeName
     let funcBody = createEnumComn r lm codec typeId t.enumerated defOrRef typeDefinitionName
@@ -521,7 +521,7 @@ let nestChildItems (lm:LanguageMacros) (codec:CommonTypes.Codec) children =
 
 let createAcnBooleanFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:CommonTypes.Codec)  (typeId : ReferenceToType) (o:Asn1AcnAst.AcnBoolean)  (us:State)  =
     let errCodeName         = ToC ("ERR_ACN" + (codec.suffix.ToUpper()) + "_" + ((typeId.AcnAbsPath |> Seq.skip 1 |> Seq.StrJoin("-")).Replace("#","elm")))
-    let errCode, ns = getNextValidErrorCode us errCodeName
+    let errCode, ns = getNextValidErrorCode us errCodeName None
 
     let funcBody (errCode:ErroCode) (acnArgs: (AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) (p:CallerScope) = 
         let pp = match codec with CommonTypes.Encode -> lm.lg.getValue p.arg | CommonTypes.Decode -> lm.lg.getPointer p.arg
@@ -563,7 +563,7 @@ let createBooleanFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Comm
 
 let createAcnNullTypeFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:CommonTypes.Codec)  (typeId : ReferenceToType) (o:Asn1AcnAst.AcnNullType)  (us:State)  =
     let errCodeName         = ToC ("ERR_ACN" + (codec.suffix.ToUpper()) + "_" + ((typeId.AcnAbsPath |> Seq.skip 1 |> Seq.StrJoin("-")).Replace("#","elm")))
-    let errCode, ns = getNextValidErrorCode us errCodeName
+    let errCode, ns = getNextValidErrorCode us errCodeName None
 
     let funcBody (errCode:ErroCode) (acnArgs: (AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) (p:CallerScope) = 
         let pp = match codec with CommonTypes.Encode -> lm.lg.getValue p.arg | CommonTypes.Decode -> lm.lg.getPointer p.arg
@@ -686,7 +686,7 @@ let createStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
 
 let createAcnStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (lm:LanguageMacros) (codec:CommonTypes.Codec) (typeId : ReferenceToType) (t:Asn1AcnAst.AcnReferenceToIA5String)  (us:State)  =
     let errCodeName         = ToC ("ERR_ACN" + (codec.suffix.ToUpper()) + "_" + ((typeId.AcnAbsPath |> Seq.skip 1 |> Seq.StrJoin("-")).Replace("#","elm")))
-    let errCode, ns = getNextValidErrorCode us errCodeName
+    let errCode, ns = getNextValidErrorCode us errCodeName None
     let Acn_String_Ascii_FixSize                            = lm.acn.Acn_String_Ascii_FixSize                          
     let Acn_String_Ascii_Internal_Field_Determinant         = lm.acn.Acn_String_Ascii_Internal_Field_Determinant       
     let Acn_String_Ascii_Null_Teminated                     = lm.acn.Acn_String_Ascii_Null_Teminated                   
@@ -1156,7 +1156,7 @@ and getUpdateFunctionUsedInEncoding (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnI
         ret, ns
     | d1::dds         -> 
         let _errCodeName         = ToC ("ERR_ACN" + (Encode.suffix.ToUpper()) + "_UPDATE_" + ((acnChildOrAcnParameterId.AcnAbsPath |> Seq.skip 1 |> Seq.StrJoin("-")).Replace("#","elm")))
-        let errCode, us = getNextValidErrorCode us _errCodeName
+        let errCode, us = getNextValidErrorCode us _errCodeName None
 
 
         let ds = d1::dds
@@ -1412,7 +1412,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                                         Some(sequence_presense_optChild_pres_bool p.arg.p (lm.lg.getAcces p.arg) (lm.lg.getAsn1ChildBackendName child) extField codec), [], ns1
                                 | Some (PresenceWhenBoolExpression exp)    -> 
                                     let _errCodeName         = ToC ("ERR_ACN" + (codec.suffix.ToUpper()) + "_" + ((child.Type.id.AcnAbsPath |> Seq.skip 1 |> Seq.StrJoin("-")).Replace("#","elm")) + "_PRESENT_WHEN_EXP_FAILED")
-                                    let errCode, ns1a = getNextValidErrorCode ns1 _errCodeName
+                                    let errCode, ns1a = getNextValidErrorCode ns1 _errCodeName None
                                     let retExp = acnExpressionToBackendExpression o p exp
                                     Some(sequence_presense_optChild_pres_acn_expression p.arg.p (lm.lg.getAcces p.arg) (lm.lg.getAsn1ChildBackendName child) retExp errCode.errCodeName codec), [errCode], ns1a
                             | _                 -> None, [], ns1
@@ -1467,7 +1467,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                                 [(AcnChildEncodeStatement, childBody, childContent.localVariables, childContent.errCodes)], ns1
                             | _             ->
                                 let _errCodeName         = ToC ("ERR_ACN" + (codec.suffix.ToUpper()) + "_" + ((acnChild.id.AcnAbsPath |> Seq.skip 1 |> Seq.StrJoin("-")).Replace("#","elm")) + "_UNITIALIZED")
-                                let errCode, ns1a = getNextValidErrorCode ns1 _errCodeName
+                                let errCode, ns1a = getNextValidErrorCode ns1 _errCodeName None
                         
                                 let childBody = Some (sequence_acn_child acnChild.c_name childContent.funcBody errCode.errCodeName soSaveBitStrmPosStatement codec)
                                 [(AcnChildEncodeStatement, childBody, childContent.localVariables, errCode::childContent.errCodes)], ns1a
