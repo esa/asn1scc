@@ -199,21 +199,21 @@ and Asn1ValueKind =
 
 
 and Asn1Constraint = 
-    | SingleValueContraint              of Asn1Value             
-    | RangeContraint                    of Asn1Value*Asn1Value*bool*bool    //min, max, InclusiveMin(=true), InclusiveMax(=true)         
-    | RangeContraint_val_MAX            of Asn1Value*bool         //min, InclusiveMin(=true)
-    | RangeContraint_MIN_val            of Asn1Value*bool         //max, InclusiveMax(=true)
-    | TypeInclusionConstraint           of StringLoc*StringLoc     
-    | SizeContraint                     of Asn1Constraint               
-    | AlphabetContraint                 of Asn1Constraint           
-    | UnionConstraint                   of Asn1Constraint*Asn1Constraint*bool //left,righ, virtual constraint
-    | IntersectionConstraint            of Asn1Constraint*Asn1Constraint
-    | AllExceptConstraint               of Asn1Constraint
-    | ExceptConstraint                  of Asn1Constraint*Asn1Constraint
-    | RootConstraint                    of Asn1Constraint
-    | RootConstraint2                   of Asn1Constraint*Asn1Constraint
-    | WithComponentConstraint           of Asn1Constraint*SrcLoc
-    | WithComponentsConstraint          of list<NamedConstraint>
+    | SingleValueContraint              of string*Asn1Value             
+    | RangeContraint                    of string*Asn1Value*Asn1Value*bool*bool    //min, max, InclusiveMin(=true), InclusiveMax(=true)         
+    | RangeContraint_val_MAX            of string*Asn1Value*bool         //min, InclusiveMin(=true)
+    | RangeContraint_MIN_val            of string*Asn1Value*bool         //max, InclusiveMax(=true)
+    | TypeInclusionConstraint           of string*StringLoc*StringLoc     
+    | SizeContraint                     of string*Asn1Constraint               
+    | AlphabetContraint                 of string*Asn1Constraint           
+    | UnionConstraint                   of string*Asn1Constraint*Asn1Constraint*bool //left,righ, virtual constraint
+    | IntersectionConstraint            of string*Asn1Constraint*Asn1Constraint
+    | AllExceptConstraint               of string*Asn1Constraint
+    | ExceptConstraint                  of string*Asn1Constraint*Asn1Constraint
+    | RootConstraint                    of string*Asn1Constraint
+    | RootConstraint2                   of string*Asn1Constraint*Asn1Constraint
+    | WithComponentConstraint           of string*Asn1Constraint*SrcLoc
+    | WithComponentsConstraint          of string*list<NamedConstraint>
 
 and NamedConstraint = {
     Name:StringLoc;
@@ -318,21 +318,21 @@ let foldBConstraint
     withComponentsConstraintFunc     
     (c:Asn1Constraint) =
     match c with
-    |Asn1Constraint.SingleValueContraint       rv                -> singleValueContraintFunc rv 
-    |Asn1Constraint.RangeContraint             (rv1,rv2,b1,b2)   -> rangeContraintFunc rv1 rv2 b1 b2 
-    |Asn1Constraint.RangeContraint_val_MAX     (rv,b)            -> rangeContraint_val_MAXFunc rv b 
-    |Asn1Constraint.RangeContraint_MIN_val     (rv,b)            -> rangeContraint_MIN_valFunc rv b 
-    |Asn1Constraint.SizeContraint              c                 -> sizeContraintFunc c 
-    |Asn1Constraint.AlphabetContraint          c                 -> alphabetContraintFunc c 
-    |Asn1Constraint.UnionConstraint            (c1,c2,b)         -> unionConstraintFunc c1 c2  b 
-    |Asn1Constraint.IntersectionConstraint     (c1,c2)           -> intersectionConstraintFunc c1 c2 
-    |Asn1Constraint.AllExceptConstraint        c                 -> allExceptConstraintFunc c 
-    |Asn1Constraint.ExceptConstraint           (c1,c2)           -> exceptConstraintFunc c1 c2 
-    |Asn1Constraint.RootConstraint             c1                -> rootConstraintFunc c1    
-    |Asn1Constraint.RootConstraint2            (c1,c2)           -> rootConstraint2Func c1 c2      
-    |Asn1Constraint.TypeInclusionConstraint    (md,ts)           -> typeInclusionFnc md ts
-    |Asn1Constraint.WithComponentConstraint    (c,l)             -> withComponentConstraintFunc  c l //raise(BugErrorException "Unexpected constraint type")
-    |Asn1Constraint.WithComponentsConstraint   ncs               -> withComponentsConstraintFunc ncs   //raise(BugErrorException "Unexpected constraint type")
+    |Asn1Constraint.SingleValueContraint       (s,rv)               -> singleValueContraintFunc rv 
+    |Asn1Constraint.RangeContraint             (s, rv1,rv2,b1,b2)   -> rangeContraintFunc rv1 rv2 b1 b2 
+    |Asn1Constraint.RangeContraint_val_MAX     (s, rv,b)            -> rangeContraint_val_MAXFunc rv b 
+    |Asn1Constraint.RangeContraint_MIN_val     (s, rv,b)            -> rangeContraint_MIN_valFunc rv b 
+    |Asn1Constraint.SizeContraint              (s, c)               -> sizeContraintFunc c 
+    |Asn1Constraint.AlphabetContraint          (s, c)               -> alphabetContraintFunc c 
+    |Asn1Constraint.UnionConstraint            (s, c1,c2,b)         -> unionConstraintFunc c1 c2  b 
+    |Asn1Constraint.IntersectionConstraint     (s, c1,c2)           -> intersectionConstraintFunc c1 c2 
+    |Asn1Constraint.AllExceptConstraint        (s, c)               -> allExceptConstraintFunc c 
+    |Asn1Constraint.ExceptConstraint           (s, c1,c2)           -> exceptConstraintFunc c1 c2 
+    |Asn1Constraint.RootConstraint             (s, c1)              -> rootConstraintFunc c1    
+    |Asn1Constraint.RootConstraint2            (s, c1,c2)           -> rootConstraint2Func c1 c2      
+    |Asn1Constraint.TypeInclusionConstraint    (s, md,ts)           -> typeInclusionFnc md ts
+    |Asn1Constraint.WithComponentConstraint    (s, c,l)             -> withComponentConstraintFunc  c l //raise(BugErrorException "Unexpected constraint type")
+    |Asn1Constraint.WithComponentsConstraint   (s, ncs)             -> withComponentsConstraintFunc ncs   //raise(BugErrorException "Unexpected constraint type")
 
 type BitStringConstraint    =    SizableTypeConstraint<StringLoc>
 

@@ -68,14 +68,14 @@ let foldAsn1Type
 
 let getValueFromSizeableConstraint (c:SizableTypeConstraint<'v>) =
     Asn1Fold.foldSizableTypeConstraint2
-        (fun e1 e2 b s      -> e1@e2, s)
-        (fun e1 e2 s        -> e1@e2, s)
-        (fun e s            -> e, s)
-        (fun e1 e2 s        -> e1@e2, s)
-        (fun e s            -> e, s)
-        (fun e1 e2 s        -> e1@e2, s)
-        (fun v  s           -> [v] ,s)
-        (fun intCon s       -> [],s)
+        (fun _ e1 e2 b s      -> e1@e2, s)
+        (fun _ e1 e2 s        -> e1@e2, s)
+        (fun _ e s            -> e, s)
+        (fun _ e1 e2 s        -> e1@e2, s)
+        (fun _ e s            -> e, s)
+        (fun _ e1 e2 s        -> e1@e2, s)
+        (fun _ v  s           -> [v] ,s)
+        (fun _ intCon s       -> [],s)
         c
         0 |> fst
 

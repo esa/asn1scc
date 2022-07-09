@@ -55,22 +55,22 @@ type NamedConstraintMark =
 
 
 type Asn1Constraint = 
-    | SingleValueContraint              of Asn1Value             
-    | RangeContraint                    of Asn1Value*Asn1Value*bool*bool    //min, max, InclusiveMin(=true), InclusiveMax(=true)
-    | RangeContraint_val_MAX            of Asn1Value*bool         //min, InclusiveMin(=true)
-    | RangeContraint_MIN_val            of Asn1Value*bool         //max, InclusiveMax(=true)
+    | SingleValueContraint              of string*Asn1Value             
+    | RangeContraint                    of string*Asn1Value*Asn1Value*bool*bool    //min, max, InclusiveMin(=true), InclusiveMax(=true)
+    | RangeContraint_val_MAX            of string*Asn1Value*bool         //min, InclusiveMin(=true)
+    | RangeContraint_MIN_val            of string*Asn1Value*bool         //max, InclusiveMax(=true)
     | RangeContraint_MIN_MAX            
-    | TypeInclusionConstraint           of StringLoc*StringLoc     
-    | SizeContraint                     of Asn1Constraint               
-    | AlphabetContraint                 of Asn1Constraint           
-    | UnionConstraint                   of Asn1Constraint*Asn1Constraint*bool //left,righ, virtual constraint
-    | IntersectionConstraint            of Asn1Constraint*Asn1Constraint
-    | AllExceptConstraint               of Asn1Constraint
-    | ExceptConstraint                  of Asn1Constraint*Asn1Constraint
-    | RootConstraint                    of Asn1Constraint
-    | RootConstraint2                   of Asn1Constraint*Asn1Constraint
-    | WithComponentConstraint           of Asn1Constraint*SrcLoc
-    | WithComponentsConstraint          of list<NamedConstraint>
+    | TypeInclusionConstraint           of string*StringLoc*StringLoc     
+    | SizeContraint                     of string*Asn1Constraint               
+    | AlphabetContraint                 of string*Asn1Constraint           
+    | UnionConstraint                   of string*Asn1Constraint*Asn1Constraint*bool //left,righ, virtual constraint
+    | IntersectionConstraint            of string*Asn1Constraint*Asn1Constraint
+    | AllExceptConstraint               of string*Asn1Constraint
+    | ExceptConstraint                  of string*Asn1Constraint*Asn1Constraint
+    | RootConstraint                    of string*Asn1Constraint
+    | RootConstraint2                   of string*Asn1Constraint*Asn1Constraint
+    | WithComponentConstraint           of string*Asn1Constraint*SrcLoc
+    | WithComponentsConstraint          of string*list<NamedConstraint>
 
 and NamedConstraint = {
     Name:StringLoc;
@@ -393,6 +393,27 @@ type NamedItem with
         |Ada    -> c.ada_name
         |C      -> c.c_name
 
+type Asn1Constraint with
+    member this.Asn1Con =
+        match this with
+        | SingleValueContraint      (s,_)           -> s
+        | RangeContraint            (s,_,_,_,_)     -> s
+        | RangeContraint_val_MAX    (s,_,_)         -> s
+        | RangeContraint_MIN_val    (s,_,_)         -> s
+        | RangeContraint_MIN_MAX                    -> "(MIN .. MAX)"
+        | TypeInclusionConstraint   (s,_,_)         -> s
+        | SizeContraint             (s,_)           -> s
+        | AlphabetContraint         (s,_)           -> s
+        | UnionConstraint           (s,_,_,_)       -> s
+        | IntersectionConstraint    (s,_,_)         -> s
+        | AllExceptConstraint       (s,_)           -> s
+        | ExceptConstraint          (s,_,_)         -> s
+        | RootConstraint            (s,_)           -> s
+        | RootConstraint2           (s,_,_)         -> s
+        | WithComponentConstraint   (s,_,_)         -> s
+        | WithComponentsConstraint  (s,_)           -> s
+
+
 let foldConstraint 
     singleValueFunc rangeContraintFunc rangeContraint_val_MAX rangeContraint_MIN_val rangeContraint_MIN_MAX
     typeInclusionConstraint sizeContraint alphabetContraint 
@@ -401,39 +422,39 @@ let foldConstraint
     c =
     let rec loopRecursiveConstraint c =
         match c with
-        | SingleValueContraint v           -> singleValueFunc v
-        | RangeContraint (a,b,inclusiveMin,inclusiveMax)    ->
-            rangeContraintFunc a b inclusiveMin inclusiveMax
-        | RangeContraint_val_MAX (a, inclusive)  -> rangeContraint_val_MAX a inclusive
-        | RangeContraint_MIN_val (b, inclusive)  -> rangeContraint_MIN_val b inclusive
+        | SingleValueContraint (s,v)           -> singleValueFunc s v
+        | RangeContraint (s,a,b,inclusiveMin,inclusiveMax)    ->
+            rangeContraintFunc s a b inclusiveMin inclusiveMax
+        | RangeContraint_val_MAX (s,a, inclusive)  -> rangeContraint_val_MAX s a inclusive
+        | RangeContraint_MIN_val (s,b, inclusive)  -> rangeContraint_MIN_val s b inclusive
         | RangeContraint_MIN_MAX                 -> rangeContraint_MIN_MAX ()
-        | TypeInclusionConstraint  (md,ts)       -> typeInclusionConstraint md ts
-        | SizeContraint c                        -> sizeContraint (loopRecursiveConstraint c)
-        | AlphabetContraint  c                   -> alphabetContraint (loopRecursiveConstraint c)
-        | WithComponentConstraint  (c,l)          -> withComponentConstraint (loopRecursiveConstraint c) l
-        | WithComponentsConstraint nitems        -> 
-            let newItems = nitems |> List.map(fun ni -> namedItemConstraint ni   (ni.Contraint |> Option.map loopRecursiveConstraint))
-            withComponentsConstraint newItems
-        | UnionConstraint(c1,c2,b)         -> 
+        | TypeInclusionConstraint  (s,md,ts)       -> typeInclusionConstraint s md ts
+        | SizeContraint (s,c)                        -> sizeContraint s (loopRecursiveConstraint c)
+        | AlphabetContraint  (s,c)                   -> alphabetContraint s (loopRecursiveConstraint c)
+        | WithComponentConstraint  (s,c,l)          -> withComponentConstraint s (loopRecursiveConstraint c) l
+        | WithComponentsConstraint (s,nitems)        -> 
+            let newItems = nitems |> List.map(fun ni -> namedItemConstraint s ni   (ni.Contraint |> Option.map loopRecursiveConstraint))
+            withComponentsConstraint s newItems
+        | UnionConstraint(s,c1,c2,b)         -> 
             let nc1 = loopRecursiveConstraint c1 
             let nc2 = loopRecursiveConstraint c2 
-            unionFunc nc1 nc2 b
-        | IntersectionConstraint(c1,c2)    -> 
+            unionFunc s nc1 nc2 b
+        | IntersectionConstraint(s,c1,c2)    -> 
             let nc1 = loopRecursiveConstraint c1 
             let nc2 = loopRecursiveConstraint c2 
-            intersectionFunc nc1 nc2 
-        | AllExceptConstraint(c1)          -> 
+            intersectionFunc s nc1 nc2 
+        | AllExceptConstraint(s,c1)          -> 
             let nc1 = loopRecursiveConstraint c1 
-            allExceptFunc nc1 
-        | ExceptConstraint(c1,c2)          -> 
-            let nc1 = loopRecursiveConstraint c1 
-            let nc2 = loopRecursiveConstraint c2 
-            exceptFunc nc1 nc2 
-        | RootConstraint(c1)               -> 
-            let nc1 = loopRecursiveConstraint c1 
-            rootFunc nc1 
-        | RootConstraint2(c1,c2)           -> 
+            allExceptFunc s nc1 
+        | ExceptConstraint(s,c1,c2)          -> 
             let nc1 = loopRecursiveConstraint c1 
             let nc2 = loopRecursiveConstraint c2 
-            rootFunc2 nc1 nc2
+            exceptFunc s nc1 nc2 
+        | RootConstraint(s,c1)               -> 
+            let nc1 = loopRecursiveConstraint c1 
+            rootFunc s nc1 
+        | RootConstraint2(s,c1,c2)           -> 
+            let nc1 = loopRecursiveConstraint c1 
+            let nc2 = loopRecursiveConstraint c2 
+            rootFunc2 s nc1 nc2
     loopRecursiveConstraint c 

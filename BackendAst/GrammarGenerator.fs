@@ -54,32 +54,32 @@ let generatedIntConstraints (v1:BigInteger option) (v2:BigInteger option)=
         seq {
             match a, b with
             | Some a, Some b ->
-                yield ParameterizedAsn1Ast.Asn1Constraint.SingleValueContraint a
-                yield ParameterizedAsn1Ast.Asn1Constraint.SingleValueContraint b
-                yield ParameterizedAsn1Ast.Asn1Constraint.RangeContraint(a,b,true, true)
-                yield ParameterizedAsn1Ast.Asn1Constraint.RangeContraint(a,b,true, false)
-                yield ParameterizedAsn1Ast.Asn1Constraint.RangeContraint(a,b,false, true)
-                yield ParameterizedAsn1Ast.Asn1Constraint.RangeContraint(a,b,false, false)
-                yield ParameterizedAsn1Ast.Asn1Constraint.RangeContraint_val_MAX(a,true)
-                yield ParameterizedAsn1Ast.Asn1Constraint.RangeContraint_val_MAX(a,false)
-                yield ParameterizedAsn1Ast.Asn1Constraint.RangeContraint_val_MAX(b,true)
-                yield ParameterizedAsn1Ast.Asn1Constraint.RangeContraint_val_MAX(b,false)
-                yield ParameterizedAsn1Ast.Asn1Constraint.RangeContraint_MIN_val(a,true)
-                yield ParameterizedAsn1Ast.Asn1Constraint.RangeContraint_MIN_val(a,false)
-                yield ParameterizedAsn1Ast.Asn1Constraint.RangeContraint_MIN_val(b,true)
-                yield ParameterizedAsn1Ast.Asn1Constraint.RangeContraint_MIN_val(b,false)
+                yield ParameterizedAsn1Ast.Asn1Constraint.SingleValueContraint ("", a)
+                yield ParameterizedAsn1Ast.Asn1Constraint.SingleValueContraint ("", b)
+                yield ParameterizedAsn1Ast.Asn1Constraint.RangeContraint("",a,b,true, true)
+                yield ParameterizedAsn1Ast.Asn1Constraint.RangeContraint("",a,b,true, false)
+                yield ParameterizedAsn1Ast.Asn1Constraint.RangeContraint("",a,b,false, true)
+                yield ParameterizedAsn1Ast.Asn1Constraint.RangeContraint("",a,b,false, false)
+                yield ParameterizedAsn1Ast.Asn1Constraint.RangeContraint_val_MAX("",a,true)
+                yield ParameterizedAsn1Ast.Asn1Constraint.RangeContraint_val_MAX("",a,false)
+                yield ParameterizedAsn1Ast.Asn1Constraint.RangeContraint_val_MAX("",b,true)
+                yield ParameterizedAsn1Ast.Asn1Constraint.RangeContraint_val_MAX("",b,false)
+                yield ParameterizedAsn1Ast.Asn1Constraint.RangeContraint_MIN_val("",a,true)
+                yield ParameterizedAsn1Ast.Asn1Constraint.RangeContraint_MIN_val("",a,false)
+                yield ParameterizedAsn1Ast.Asn1Constraint.RangeContraint_MIN_val("",b,true)
+                yield ParameterizedAsn1Ast.Asn1Constraint.RangeContraint_MIN_val("",b,false)
             | Some a, None  ->
-                yield ParameterizedAsn1Ast.Asn1Constraint.SingleValueContraint a
-                yield ParameterizedAsn1Ast.Asn1Constraint.RangeContraint_val_MAX(a,true)
-                yield ParameterizedAsn1Ast.Asn1Constraint.RangeContraint_val_MAX(a,false)
-                yield ParameterizedAsn1Ast.Asn1Constraint.RangeContraint_MIN_val(a,true)
-                yield ParameterizedAsn1Ast.Asn1Constraint.RangeContraint_MIN_val(a,false)
+                yield ParameterizedAsn1Ast.Asn1Constraint.SingleValueContraint ("",a)
+                yield ParameterizedAsn1Ast.Asn1Constraint.RangeContraint_val_MAX("",a,true)
+                yield ParameterizedAsn1Ast.Asn1Constraint.RangeContraint_val_MAX("",a,false)
+                yield ParameterizedAsn1Ast.Asn1Constraint.RangeContraint_MIN_val("",a,true)
+                yield ParameterizedAsn1Ast.Asn1Constraint.RangeContraint_MIN_val("",a,false)
             | None, Some b      ->
-                yield ParameterizedAsn1Ast.Asn1Constraint.SingleValueContraint b
-                yield ParameterizedAsn1Ast.Asn1Constraint.RangeContraint_val_MAX(b,true)
-                yield ParameterizedAsn1Ast.Asn1Constraint.RangeContraint_val_MAX(b,false)
-                yield ParameterizedAsn1Ast.Asn1Constraint.RangeContraint_MIN_val(b,true)
-                yield ParameterizedAsn1Ast.Asn1Constraint.RangeContraint_MIN_val(b,false)
+                yield ParameterizedAsn1Ast.Asn1Constraint.SingleValueContraint ("",b)
+                yield ParameterizedAsn1Ast.Asn1Constraint.RangeContraint_val_MAX("",b,true)
+                yield ParameterizedAsn1Ast.Asn1Constraint.RangeContraint_val_MAX("",b,false)
+                yield ParameterizedAsn1Ast.Asn1Constraint.RangeContraint_MIN_val("",b,true)
+                yield ParameterizedAsn1Ast.Asn1Constraint.RangeContraint_MIN_val("",b,false)
             | None, None        -> ()
 
         } |> Seq.toList
@@ -145,21 +145,21 @@ let generatedAsn1Grammar (outDir:string) (ast:GenFile list) =
 
     let rec printConstraint (c:Asn1Constraint) : string = 
         match c with
-        | SingleValueContraint      v               -> stg_asn1.Print_SingleValueContraint (printValue v)
-        | RangeContraint            (a,b,b1,b2)     -> stg_asn1.Print_RangeContraint (printValue a) (printValue b) b1 b2
-        | RangeContraint_val_MAX    (a, b1)         -> stg_asn1.Print_RangeContraint_val_MAX (printValue a) b1
-        | RangeContraint_MIN_val    (a, b1)         -> stg_asn1.Print_RangeContraint_MIN_val (printValue a) b1
-        | TypeInclusionConstraint   (md,ts)         -> stg_asn1.Print_TypeInclusionConstraint(ts.Value)
-        | SizeContraint             sc              -> stg_asn1.Print_SizeContraint (printConstraint sc)
-        | AlphabetContraint         alpha           -> stg_asn1.Print_AlphabetContraint (printConstraint alpha)
-        | UnionConstraint           (c1,c2, _)      -> stg_asn1.Print_UnionConstraint (printConstraint c1) (printConstraint c2)
-        | IntersectionConstraint    (c1,c2)         -> stg_asn1.Print_IntersectionConstraint (printConstraint c1) (printConstraint c2)
-        | AllExceptConstraint       c1              -> stg_asn1.Print_AllExceptConstraint (printConstraint c1)
-        | ExceptConstraint          (c1,c2)         -> stg_asn1.Print_ExceptConstraint (printConstraint c1) (printConstraint c2)
-        | RootConstraint            c1              -> stg_asn1.Print_RootConstraint (printConstraint c1)
-        | RootConstraint2           (c1,c2)         -> stg_asn1.Print_RootConstraint2 (printConstraint c1) (printConstraint c2)
-        | WithComponentConstraint   (c1,l)          -> stg_asn1.Print_WithComponentConstraint (printConstraint c1)
-        | WithComponentsConstraint  ncs             -> 
+        | SingleValueContraint      (_,v)               -> stg_asn1.Print_SingleValueContraint (printValue v)
+        | RangeContraint            (_, a,b,b1,b2)     -> stg_asn1.Print_RangeContraint (printValue a) (printValue b) b1 b2
+        | RangeContraint_val_MAX    (_, a, b1)         -> stg_asn1.Print_RangeContraint_val_MAX (printValue a) b1
+        | RangeContraint_MIN_val    (_, a, b1)         -> stg_asn1.Print_RangeContraint_MIN_val (printValue a) b1
+        | TypeInclusionConstraint   (_, md,ts)         -> stg_asn1.Print_TypeInclusionConstraint(ts.Value)
+        | SizeContraint             (_, sc)              -> stg_asn1.Print_SizeContraint (printConstraint sc)
+        | AlphabetContraint         (_, alpha)           -> stg_asn1.Print_AlphabetContraint (printConstraint alpha)
+        | UnionConstraint           (_, c1,c2, _)      -> stg_asn1.Print_UnionConstraint (printConstraint c1) (printConstraint c2)
+        | IntersectionConstraint    (_, c1,c2)         -> stg_asn1.Print_IntersectionConstraint (printConstraint c1) (printConstraint c2)
+        | AllExceptConstraint       (_, c1)              -> stg_asn1.Print_AllExceptConstraint (printConstraint c1)
+        | ExceptConstraint          (_, c1,c2)         -> stg_asn1.Print_ExceptConstraint (printConstraint c1) (printConstraint c2)
+        | RootConstraint            (_, c1)              -> stg_asn1.Print_RootConstraint (printConstraint c1)
+        | RootConstraint2           (_, c1,c2)         -> stg_asn1.Print_RootConstraint2 (printConstraint c1) (printConstraint c2)
+        | WithComponentConstraint   (_, c1,l)          -> stg_asn1.Print_WithComponentConstraint (printConstraint c1)
+        | WithComponentsConstraint  (_, ncs)             -> 
             let print nc =
                 stg_asn1.Print_WithComponentsConstraint_child nc.Name.Value (match nc.Contraint with Some c -> printConstraint c | None -> "") (sprintf "%A" nc.Mark)
             stg_asn1.Print_WithComponentsConstraint (ncs |> List.map print)

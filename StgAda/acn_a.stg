@@ -4,8 +4,8 @@ rtlModuleName() ::= "adaasn1rtl"
 
 EmitAcnParameter(sName, sType) ::= "<sName> : IN <sType>"
 
-EmitTypeAssignment_def_err_code(sErrCode, nErrValue) ::= <<
-<sErrCode>:constant Integer := <nErrValue>; 
+EmitTypeAssignment_def_err_code(sErrCode, nErrValue, soErrorCodeComment) ::= <<
+<sErrCode>:constant Integer := <nErrValue>; <if(soErrorCodeComment)> -- <soErrorCodeComment> <endif>
 >>
 
 EmitTypeAssignment_primitive_def_encode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes, bEmptyEncodingSpace, nMaxBytesInACN, nMaxBitsInACN, arrsAcnPrms, soSparkAnnotations) ::= <<

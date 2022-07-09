@@ -18,29 +18,29 @@ open DAstUtilFunctions
 
 let printGenericConAsAsn1  valToStrFunc    (c:Asn1AcnAst.GenericConstraint<'v>)  =
     Asn1Fold.foldGenericConstraint
-        (fun e1 e2 b s      -> stg_asn1.Print_UnionConstraint e1 e2, s)
-        (fun e1 e2 s        -> stg_asn1.Print_IntersectionConstraint e1 e2, s)
-        (fun e s            -> stg_asn1.Print_AllExceptConstraint e, s)
-        (fun e1 e2 s        -> stg_asn1.Print_ExceptConstraint e1 e2, s)
-        (fun e s            -> stg_asn1.Print_RootConstraint e, s)
-        (fun e1 e2 s        -> stg_asn1.Print_RootConstraint2 e1 e2, s)
-        (fun v  s           -> stg_asn1.Print_SingleValueContraint (valToStrFunc v) ,s)
+        (fun _ e1 e2 b s      -> stg_asn1.Print_UnionConstraint e1 e2, s)
+        (fun _ e1 e2 s        -> stg_asn1.Print_IntersectionConstraint e1 e2, s)
+        (fun _ e s            -> stg_asn1.Print_AllExceptConstraint e, s)
+        (fun _ e1 e2 s        -> stg_asn1.Print_ExceptConstraint e1 e2, s)
+        (fun _ e s            -> stg_asn1.Print_RootConstraint e, s)
+        (fun _ e1 e2 s        -> stg_asn1.Print_RootConstraint2 e1 e2, s)
+        (fun _ v  s           -> stg_asn1.Print_SingleValueContraint (valToStrFunc v) ,s)
         c
         0 |> fst
 
 let printRangeConAsAsn1 valToStrFunc   (c:Asn1AcnAst.RangeTypeConstraint<'v1,'v1>)  =
     Asn1Fold.foldRangeTypeConstraint        
-        (fun e1 e2 b s      -> stg_asn1.Print_UnionConstraint e1 e2, s)
-        (fun e1 e2 s        -> stg_asn1.Print_IntersectionConstraint e1 e2, s)
-        (fun e s            -> stg_asn1.Print_AllExceptConstraint e, s)
-        (fun e1 e2 s        -> stg_asn1.Print_ExceptConstraint e1 e2, s)
-        (fun e s            -> stg_asn1.Print_RootConstraint e, s)
-        (fun e1 e2 s        -> stg_asn1.Print_RootConstraint2 e1 e2, s)
-        (fun v  s           -> stg_asn1.Print_SingleValueContraint (valToStrFunc v) ,s)
-        (fun v1 v2  minIsIn maxIsIn s   -> 
+        (fun _ e1 e2 b s      -> stg_asn1.Print_UnionConstraint e1 e2, s)
+        (fun _ e1 e2 s        -> stg_asn1.Print_IntersectionConstraint e1 e2, s)
+        (fun _ e s            -> stg_asn1.Print_AllExceptConstraint e, s)
+        (fun _ e1 e2 s        -> stg_asn1.Print_ExceptConstraint e1 e2, s)
+        (fun _ e s            -> stg_asn1.Print_RootConstraint e, s)
+        (fun _ e1 e2 s        -> stg_asn1.Print_RootConstraint2 e1 e2, s)
+        (fun _ v  s           -> stg_asn1.Print_SingleValueContraint (valToStrFunc v) ,s)
+        (fun _ v1 v2  minIsIn maxIsIn s   -> 
             stg_asn1.Print_RangeContraint (valToStrFunc v1) (valToStrFunc v2) minIsIn maxIsIn, s)
-        (fun v1 minIsIn s   -> stg_asn1.Print_RangeContraint_val_MAX (valToStrFunc v1) minIsIn, s)
-        (fun v2 maxIsIn s   -> stg_asn1.Print_RangeContraint_MIN_val (valToStrFunc v2) maxIsIn, s)
+        (fun _ v1 minIsIn s   -> stg_asn1.Print_RangeContraint_val_MAX (valToStrFunc v1) minIsIn, s)
+        (fun _ v2 maxIsIn s   -> stg_asn1.Print_RangeContraint_MIN_val (valToStrFunc v2) maxIsIn, s)
         c
         0 |> fst
 
@@ -149,12 +149,12 @@ let Lte (lm:LanguageMacros) eqIsInc  e1 e2 =
     | false  -> lm.isvalid.ExpLt  e1 e2
 
 
-let con_or l (e1 : CallerScope -> ValidationCodeBlock) (e2 : CallerScope -> ValidationCodeBlock) b s =  (fun p -> ValidationCodeBlock_OR l (e1 p) (e2 p)), s
-let con_and lm (e1 : CallerScope -> ValidationCodeBlock) (e2 : CallerScope -> ValidationCodeBlock) s =  (fun p -> ValidationCodeBlock_AND lm (e1 p) (e2 p)), s
-let con_not lm (e : CallerScope -> ValidationCodeBlock)  s =  (fun p -> ValidationCodeBlock_Not lm (e p)), s
-let con_ecxept lm (e1 : CallerScope -> ValidationCodeBlock) (e2 : CallerScope -> ValidationCodeBlock) s =  (fun p -> ValidationCodeBlock_Except lm (e1 p) (e2 p)), s
-let con_root e s = e,s
-let con_root2 lm (e1 : CallerScope -> ValidationCodeBlock) (e2 : CallerScope -> ValidationCodeBlock)  s =  (fun p -> ValidationCodeBlock_OR lm (e1 p) (e2 p)), s
+let con_or  l _ (e1 : CallerScope -> ValidationCodeBlock) (e2 : CallerScope -> ValidationCodeBlock) b s =  (fun p -> ValidationCodeBlock_OR l (e1 p) (e2 p)), s
+let con_and lm _ (e1 : CallerScope -> ValidationCodeBlock) (e2 : CallerScope -> ValidationCodeBlock) s =  (fun p -> ValidationCodeBlock_AND lm (e1 p) (e2 p)), s
+let con_not lm _ (e : CallerScope -> ValidationCodeBlock)  s =  (fun p -> ValidationCodeBlock_Not lm (e p)), s
+let con_ecxept lm _ (e1 : CallerScope -> ValidationCodeBlock) (e2 : CallerScope -> ValidationCodeBlock) s =  (fun p -> ValidationCodeBlock_Except lm (e1 p) (e2 p)), s
+let con_root _ e s = e,s
+let con_root2 lm _ (e1 : CallerScope -> ValidationCodeBlock) (e2 : CallerScope -> ValidationCodeBlock)  s =  (fun p -> ValidationCodeBlock_OR lm (e1 p) (e2 p)), s
 
 (*  e.g. INTEGER (v1..MAX)  ==>          v1 <= p.p   *)
 let con_rangeContraint_val_MAX  (lm:LanguageMacros) minint maxint v1 eqIsInc valToStrFunc pToStrFunc =
@@ -174,7 +174,7 @@ let con_angeContraint_MIN_val  (lm:LanguageMacros) minint maxint v1 eqIsInc valT
 
 let foldGenericCon  (lm:LanguageMacros) valToStrFunc  (c:GenericConstraint<'v>)  st =
     foldGenericConstraint (con_or lm) (con_and lm) (con_not lm) (con_ecxept lm) con_root (con_root2 lm)
-        (fun v  s           -> (fun p -> VCBExpression (lm.isvalid.ExpEqual (lm.lg.getValue  p.arg) (valToStrFunc v))) ,s)
+        (fun _ v  s           -> (fun p -> VCBExpression (lm.isvalid.ExpEqual (lm.lg.getValue  p.arg) (valToStrFunc v))) ,s)
         c
         st
 
@@ -182,21 +182,21 @@ let foldGenericCon  (lm:LanguageMacros) valToStrFunc  (c:GenericConstraint<'v>) 
 let foldSizeRangeTypeConstraint (r:Asn1AcnAst.AstRoot)   (lm:LanguageMacros)  getSizeFunc  (c:PosIntTypeConstraint) st = 
     let valToStrFunc (v:UInt32) = v.ToString()
     foldRangeTypeConstraint (con_or lm) (con_and lm) (con_not lm) (con_ecxept lm) con_root (con_root2 lm)
-        (fun v  s         -> (fun p -> VCBExpression (lm.isvalid.ExpEqual (getSizeFunc lm p) (valToStrFunc  v))) ,s)
-        (fun v1 v2  minIsIn maxIsIn s   -> 
+        (fun _ v  (s:State)         -> (fun p -> VCBExpression (lm.isvalid.ExpEqual (getSizeFunc lm p) (valToStrFunc  v))) ,s)
+        (fun _ v1 v2  minIsIn maxIsIn s   -> 
             let exp1 = con_rangeContraint_val_MAX  lm UInt32.MinValue UInt32.MaxValue v1 minIsIn valToStrFunc getSizeFunc
             let exp2 = con_angeContraint_MIN_val  lm UInt32.MinValue UInt32.MaxValue v2 maxIsIn valToStrFunc getSizeFunc
-            con_and lm exp1 exp2 s)
-        (fun v1 minIsIn s   -> con_rangeContraint_val_MAX  lm UInt32.MinValue UInt32.MaxValue v1 minIsIn valToStrFunc getSizeFunc, s)
-        (fun v2 maxIsIn s   -> con_angeContraint_MIN_val  lm UInt32.MinValue UInt32.MaxValue v2 maxIsIn valToStrFunc getSizeFunc, s)
+            con_and lm s exp1 exp2 s)
+        (fun asn1 v1 minIsIn s   -> con_rangeContraint_val_MAX  lm UInt32.MinValue UInt32.MaxValue v1 minIsIn valToStrFunc getSizeFunc, s)
+        (fun asn1 v2 maxIsIn s   -> con_angeContraint_MIN_val  lm UInt32.MinValue UInt32.MaxValue v2 maxIsIn valToStrFunc getSizeFunc, s)
         c
         st
 
 
 let foldSizableConstraint (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) hasCount compareSingValueFunc  getSizeFunc  (c:SizableTypeConstraint<'v>) st =
     foldSizableTypeConstraint2 (con_or lm) (con_and lm) (con_not lm) (con_ecxept lm) con_root (con_root2 lm)
-        (fun v  s           -> (fun p -> compareSingValueFunc p v) ,s)
-        (fun intCon s       -> 
+        (fun _ v  s           -> (fun p -> compareSingValueFunc p v) ,s)
+        (fun _ intCon s       -> 
             match hasCount with
             | true  -> foldSizeRangeTypeConstraint r lm getSizeFunc intCon s
             | false -> (fun p -> VCBTrue), s)
@@ -211,18 +211,18 @@ let ia5StringConstraint2ValidationCodeBlock  (r:Asn1AcnAst.AstRoot) (lm:Language
     let foldRangeCharCon (lm:LanguageMacros)   (c:CharTypeConstraint)  st =
         let valToStrFunc1 v = v.ToString().ISQ
         foldRangeTypeConstraint   (con_or lm) (con_and lm) (con_not lm) (con_ecxept lm) con_root (con_root2 lm)
-            (fun (v:string)  s  -> (fun p -> VCBExpression( stringContainsChar v.IDQ p.arg.p)) ,s)
-            (fun v1 v2  minIsIn maxIsIn s   -> 
+            (fun _ (v:string)  s  -> (fun p -> VCBExpression( stringContainsChar v.IDQ p.arg.p)) ,s)
+            (fun _ v1 v2  minIsIn maxIsIn s   -> 
                 (fun p -> VCBExpression(lm.isvalid.ExpAnd (Lte lm minIsIn (valToStrFunc1 v1) (lm.lg.getValue p.arg)) (Lte lm maxIsIn (lm.lg.getValue p.arg) (valToStrFunc1 v2)))), s)
-            (fun v1 minIsIn s   -> (fun p -> VCBExpression( Lte lm minIsIn (valToStrFunc1 v1) (lm.lg.getValue p.arg))), s)
-            (fun v2 maxIsIn s   -> (fun p -> VCBExpression(Lte lm maxIsIn (lm.lg.getValue p.arg) (valToStrFunc1 v2))), s)
+            (fun _ v1 minIsIn s   -> (fun p -> VCBExpression( Lte lm minIsIn (valToStrFunc1 v1) (lm.lg.getValue p.arg))), s)
+            (fun _ v2 maxIsIn s   -> (fun p -> VCBExpression(Lte lm maxIsIn (lm.lg.getValue p.arg) (valToStrFunc1 v2))), s)
             c
             st 
 
     foldStringTypeConstraint2 (con_or lm) (con_and lm) (con_not lm) (con_ecxept lm) con_root (con_root2 lm)
-        (fun v  s         -> (fun p -> VCBExpression (lm.isvalid.ExpStringEqual p.arg.p v.IDQ))  ,s)
-        (fun intCon s     -> foldSizeRangeTypeConstraint r lm (fun l p -> lm.isvalid.StrLen p.arg.p) intCon s)
-        (fun alphcon s      -> 
+        (fun _ v  s         -> (fun p -> VCBExpression (lm.isvalid.ExpStringEqual p.arg.p v.IDQ))  ,s)
+        (fun _ intCon s     -> foldSizeRangeTypeConstraint r lm (fun l p -> lm.isvalid.StrLen p.arg.p) intCon s)
+        (fun _ alphcon (s:State)      -> 
             let alphaBody p = 
                 let alphaFunc = foldRangeCharCon lm  alphcon 0 |> fst 
                 match alphaFunc p with
@@ -250,13 +250,13 @@ let integerConstraint2ValidationCodeBlock (r:Asn1AcnAst.AstRoot) (lm:LanguageMac
     let valToStrFunc  (i:BigInteger) = lm.lg.intValueToSting i isUnsigned
     let p2StrFunc l (p:CallerScope) = l.lg.getValue p.arg
     foldRangeTypeConstraint (con_or lm) (con_and lm) (con_not lm) (con_ecxept lm) con_root (con_root2 lm)
-        (fun v  s         -> (fun p -> VCBExpression (lm.isvalid.ExpEqual (lm.lg.getValue p.arg) (valToStrFunc  v))) ,s)
-        (fun v1 v2  minIsIn maxIsIn s   -> 
+        (fun _ v  s         -> (fun p -> VCBExpression (lm.isvalid.ExpEqual (lm.lg.getValue p.arg) (valToStrFunc  v))) ,s)
+        (fun asn1 v1 v2  minIsIn maxIsIn s   -> 
             let exp1 = con_rangeContraint_val_MAX  lm (r.args.IntMin isUnsigned) (r.args.IntMax isUnsigned) v1 minIsIn valToStrFunc p2StrFunc
             let exp2 = con_angeContraint_MIN_val  lm (r.args.IntMin isUnsigned) (r.args.IntMax isUnsigned) v2 maxIsIn valToStrFunc p2StrFunc
-            con_and lm exp1 exp2 s)
-        (fun v1 minIsIn s   -> con_rangeContraint_val_MAX  lm (r.args.IntMin isUnsigned) (r.args.IntMax isUnsigned) v1 minIsIn valToStrFunc p2StrFunc, s)
-        (fun v2 maxIsIn s   -> con_angeContraint_MIN_val  lm (r.args.IntMin isUnsigned) (r.args.IntMax isUnsigned) v2 maxIsIn valToStrFunc p2StrFunc, s)
+            con_and  lm asn1 exp1 exp2 s)
+        (fun _ v1 minIsIn s   -> con_rangeContraint_val_MAX  lm (r.args.IntMin isUnsigned) (r.args.IntMax isUnsigned) v1 minIsIn valToStrFunc p2StrFunc, s)
+        (fun _ v2 maxIsIn s   -> con_angeContraint_MIN_val  lm (r.args.IntMin isUnsigned) (r.args.IntMax isUnsigned) v2 maxIsIn valToStrFunc p2StrFunc, s)
         c
         st
 
@@ -264,11 +264,11 @@ let integerConstraint2ValidationCodeBlock (r:Asn1AcnAst.AstRoot) (lm:LanguageMac
 let realConstraint2ValidationCodeBlock  (l:LanguageMacros) (c:RealTypeConstraint) st =
     let valToStrFunc (v:double) = v.ToString(FsUtils.doubleParseString, NumberFormatInfo.InvariantInfo)
     foldRangeTypeConstraint  (con_or l) (con_and l) (con_not l) (con_ecxept l) con_root (con_root2 l)      
-        (fun v  s         -> (fun p -> VCBExpression(l.isvalid.ExpEqual (l.lg.getValue p.arg) (valToStrFunc  v))) ,s)
-        (fun v1 v2  minIsIn maxIsIn s   -> 
+        (fun _ v  s         -> (fun p -> VCBExpression(l.isvalid.ExpEqual (l.lg.getValue p.arg) (valToStrFunc  v))) ,s)
+        (fun _ v1 v2  minIsIn maxIsIn s   -> 
             (fun p -> VCBExpression (l.isvalid.ExpAnd (Lte l minIsIn (valToStrFunc v1) (l.lg.getValue p.arg)) (Lte l maxIsIn (l.lg.getValue p.arg) (valToStrFunc v2)))), s)
-        (fun v1 minIsIn s   -> (fun p -> VCBExpression(Lte l minIsIn (valToStrFunc v1) (l.lg.getValue p.arg))), s)
-        (fun v2 maxIsIn s   -> (fun p -> VCBExpression(Lte l maxIsIn (l.lg.getValue p.arg) (valToStrFunc v2))), s)
+        (fun _ v1 minIsIn s   -> (fun p -> VCBExpression(Lte l minIsIn (valToStrFunc v1) (l.lg.getValue p.arg))), s)
+        (fun _ v2 maxIsIn s   -> (fun p -> VCBExpression(Lte l maxIsIn (l.lg.getValue p.arg) (valToStrFunc v2))), s)
         c
         st
 
@@ -283,7 +283,7 @@ let objIdConstraint2ValidationCodeBlock  (l:LanguageMacros) (c:ObjectIdConstrain
     let printObjectIdentifierValue = l.vars.PrintObjectIdentifierValueAsCompoundLiteral
     
     foldGenericConstraint (con_or l) (con_and l) (con_not l) (con_ecxept l) con_root (con_root2 l)
-        (fun (a,b)  s           -> 
+        (fun _ (a,b)  s           -> 
             let v =  Asn1DefinedObjectIdentifierValue(a,b)
             (fun (p:CallerScope) -> 
                 let lit = printObjectIdentifierValue (v.Values |> List.map fst) (BigInteger v.Values.Length)
@@ -311,7 +311,7 @@ let timeConstraint2ValidationCodeBlock (l:LanguageMacros) (td) (c:TimeConstraint
         |Asn1Date_LocalTimeWithTimeZoneValue (dt,tv,tz)-> print_Asn1Date_LocalTimeWithTimeZone td dt tv tz
 
     foldGenericConstraint (con_or l) (con_and l) (con_not l) (con_ecxept l) con_root (con_root2 l)
-        (fun v  s           -> 
+        (fun _ v  s           -> 
             (fun (p:CallerScope) -> 
                 let lit = printValueAsLiteral v
                 VCBExpression (l.isvalid.ExpEqual p.arg.p lit)) ,s)
@@ -421,8 +421,8 @@ and sequenceConstraint2ValidationCodeBlock (r:Asn1AcnAst.AstRoot)  (l:LanguageMa
         presentAbsent@[childCheck], ns
 
     foldSeqConstraint (con_or l) (con_and l) (con_not l) (con_ecxept l) con_root (con_root2 l)
-        (fun v  s           ->   (fun p -> valToStrFunc p v) ,s)      
-        (fun ncs  s         -> 
+        (fun _ v  s           ->   (fun p -> valToStrFunc p v) ,s)      
+        (fun _ ncs  s         -> 
             let withComponentItems, ns =  ncs |> Asn1Fold.foldMap handleNamedConstraint s 
             let withComponentItems = withComponentItems |> List.collect id
             let fnc p =  
@@ -478,8 +478,8 @@ and choiceConstraint2ValidationCodeBlock (r:Asn1AcnAst.AstRoot) (l:LanguageMacro
 
 
     foldChoiceConstraint (con_or l) (con_and l) (con_not l) (con_ecxept l) con_root (con_root2 l)
-        (fun v  s           ->   (fun p -> valToStrFunc p v) ,s)      
-        (fun ncs  s         -> 
+        (fun _ v  s           ->   (fun p -> valToStrFunc p v) ,s)      
+        (fun _ ncs  s         -> 
             let withComponentItems, ns =  ncs |> Asn1Fold.foldMap handleNamedConstraint s 
             let withComponentItems = withComponentItems |> List.collect id
             let fnc p =  
@@ -500,12 +500,12 @@ and sequenceOfConstraint2ValidationCodeBlock (r:Asn1AcnAst.AstRoot) (l:LanguageM
     let compareSingleValueFunc (p:CallerScope) (v:Asn1AcnAst.SeqOfValue)  = 
         VCBTrue
     foldSequenceOfTypeConstraint2 (con_or l) (con_and l) (con_not l) (con_ecxept l) con_root (con_root2 l)
-        (fun v  s           -> (fun p -> compareSingleValueFunc p v) ,s)
-        (fun intCon s       -> 
+        (fun _ v  s           -> (fun p -> compareSingleValueFunc p v) ,s)
+        (fun _ intCon s       -> 
             match o.isFixedSize with
             | false  -> foldSizeRangeTypeConstraint r l getSizeFunc intCon s
             | true  -> (fun p -> VCBTrue), s)
-        (fun c loc s -> 
+        (fun _ c loc s -> 
             (fun p -> 
                 let fnc, ns = anyConstraint2ValidationCodeBlock r l loc child c s
                 let ch_arg = l.lg.getArrayItem p.arg i child.isIA5String
@@ -590,7 +590,11 @@ let createIsValidFunction (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros)  (t:Asn1Ac
                     | ValidationStatement       (st,lv)  -> st, lv, false
                 let lvars = (stLVs@localVars) |> List.map(fun (lv:LocalVariable) -> lm.lg.getLocalVariableDeclaration lv) |> Seq.distinct
                 let fnc = emitTasFnc varName sStar funcName  (lm.lg.getLongTypedefName typeDefinition) statement  (alphaFuncs |> List.map(fun x -> x.funcBody (str_p lm t.id))) lvars bUnreferenced
-                let arrsErrcodes = errCodes |> List.map(fun s -> defErrCode s.errCodeName (BigInteger s.errCodeValue))
+                let split (s:string option) =
+                    match s with
+                    | None -> []
+                    | Some s -> s.Split('\n') |> Seq.toList
+                let arrsErrcodes = errCodes |> List.map(fun s -> defErrCode s.errCodeName (BigInteger s.errCodeValue) (split s.comment))
                 let fncH = emitTasFncDef varName sStar funcName  (lm.lg.getLongTypedefName typeDefinition) arrsErrcodes
                 Some fnc, Some fncH
     let ret = 
@@ -614,7 +618,7 @@ let funcBody l fncs (e:ErroCode) (p:CallerScope) =
 let createIntegerFunction (r:Asn1AcnAst.AstRoot)  (l:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Integer) (typeDefinition:TypeDefintionOrReference) (us:State)  =
     //let allCons = getIntSimplifiedConstraints r o.isUnsigned o.AllCons
     let fncs, ns = o.cons |> Asn1Fold.foldMap (fun us c -> integerConstraint2ValidationCodeBlock r l o.isUnsigned c us) us
-    let errorCodeComment = o.cons |> List.map (printRangeConAsAsn1 (fun z -> z.ToString())) |> Seq.StrJoin ""
+    let errorCodeComment = o.cons |> List.map(fun z -> z.ASN1) |> Seq.StrJoin ""
     createIsValidFunction r l t  (funcBody l fncs) typeDefinition [] [] [] [] (Some errorCodeComment) ns
 
 let createIntegerFunctionByCons (r:Asn1AcnAst.AstRoot)  (l:LanguageMacros) isUnsigned (allCons  : IntegerTypeConstraint list) =
@@ -629,25 +633,28 @@ let createIntegerFunctionByCons (r:Asn1AcnAst.AstRoot)  (l:LanguageMacros) isUns
 
 let createRealFunction (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Real) (typeDefinition:TypeDefintionOrReference)  (us:State)  =
     let fncs, ns = o.cons |> Asn1Fold.foldMap (fun us c -> realConstraint2ValidationCodeBlock l c us) us
-    let errorCodeComment = o.cons |> List.map (printRangeConAsAsn1 (fun z -> z.ToString())) |> Seq.StrJoin ""
+    let errorCodeComment = o.cons |> List.map(fun z -> z.ASN1) |> Seq.StrJoin ""
     createIsValidFunction r l t (funcBody l fncs) typeDefinition [] [] [] [] (Some errorCodeComment) ns
 
 let createBoolFunction (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Boolean) (typeDefinition:TypeDefintionOrReference) (us:State)  =
     let fncs, ns = o.cons |> Asn1Fold.foldMap (fun us c -> booleanConstraint2ValidationCodeBlock l c us) us
-    let errorCodeComment = o.cons |> List.map (printGenericConAsAsn1 (fun z -> z.ToString())) |> Seq.StrJoin ""
+    let errorCodeComment = o.cons |> List.map(fun z -> z.ASN1) |> Seq.StrJoin ""
     createIsValidFunction r l t (funcBody l fncs)  typeDefinition [] [] [] [] (Some errorCodeComment) ns
 
 let createOctetStringFunction (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.OctetString) (typeDefinition:TypeDefintionOrReference) (equalFunc:EqualFunction) (printValue  : string -> (Asn1ValueKind option) -> (Asn1ValueKind) -> string) (us:State)  =
     let fncs, ns = o.cons |> Asn1Fold.foldMap (fun us c -> octetStringConstraint2ValidationCodeBlock r l  t.id o equalFunc c us) us
-    createIsValidFunction r l t (funcBody l fncs)  typeDefinition [] [] [] [] None ns
+    let errorCodeComment = o.cons |> List.map(fun z -> z.ASN1) |> Seq.StrJoin ""
+    createIsValidFunction r l t (funcBody l fncs)  typeDefinition [] [] [] [] (Some errorCodeComment) ns
 
 let createBitStringFunction (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.BitString) (typeDefinition:TypeDefintionOrReference) (defOrRef:TypeDefintionOrReference) (equalFunc:EqualFunction) (printValue  : string -> (Asn1ValueKind option) -> (Asn1ValueKind) -> string) (us:State)  =
     let fncs, ns = o.cons |> Asn1Fold.foldMap (fun us c -> bitStringConstraint2ValidationCodeBlock r l  t.id o equalFunc c us) us
-    createIsValidFunction r l t (funcBody l fncs)  typeDefinition [] [] [] [] None ns
+    let errorCodeComment = o.cons |> List.map(fun z -> z.ASN1) |> Seq.StrJoin ""
+    createIsValidFunction r l t (funcBody l fncs)  typeDefinition [] [] [] [] (Some errorCodeComment) ns
 
 let createStringFunction (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.StringType) (typeDefinition:TypeDefintionOrReference) (us:State)  =
     let fncs, ns = o.cons |> Asn1Fold.foldMap (fun us c -> ia5StringConstraint2ValidationCodeBlock r  l t.id c us) {us with alphaIndex=0; alphaFuncs=[]}
-    createIsValidFunction r l t (funcBody l fncs) typeDefinition ns.alphaFuncs [] [] [] None ns
+    let errorCodeComment = o.cons |> List.map(fun z -> z.ASN1) |> Seq.StrJoin ""
+    createIsValidFunction r l t (funcBody l fncs) typeDefinition ns.alphaFuncs [] [] [] (Some errorCodeComment) ns
 
 let createObjectIdentifierFunction (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.ObjectIdentifier) (typeDefinition:TypeDefintionOrReference) (us:State)  =
     let conToStrFunc_basic (p:CallerScope)  = 
@@ -658,7 +665,8 @@ let createObjectIdentifierFunction (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (t:
 
     let fnc, ns = o.cons |> Asn1Fold.foldMap (fun us c -> objIdConstraint2ValidationCodeBlock l c us) us
     let fncs = conToStrFunc_basic::fnc
-    createIsValidFunction r l t (funcBody l fncs)  typeDefinition [] [] [] [] None ns
+    let errorCodeComment = o.cons |> List.map(fun z -> z.ASN1) |> Seq.StrJoin ""
+    createIsValidFunction r l t (funcBody l fncs)  typeDefinition [] [] [] [] (Some errorCodeComment) ns
 
 
 let createTimeTypeFunction (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.TimeType) (typeDefinition:TypeDefintionOrReference) (us:State)  =
@@ -667,13 +675,15 @@ let createTimeTypeFunction (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (t:Asn1AcnA
         VCBExpression (sprintf "%sTimeType_isValid(%s)" namespacePrefix (l.lg.getPointer p.arg))
     let fnc, ns = o.cons |> Asn1Fold.foldMap (fun us c -> timeConstraint2ValidationCodeBlock l (l.lg.typeDef o.typeDef) c us) us
     let fncs = conToStrFunc_basic::fnc
-    createIsValidFunction r l t (funcBody l fncs)  typeDefinition [] [] [] [] None ns
+    let errorCodeComment = o.cons |> List.map(fun z -> z.ASN1) |> Seq.StrJoin ""
+    createIsValidFunction r l t (funcBody l fncs)  typeDefinition [] [] [] [] (Some errorCodeComment) ns
 
 
 
 let createEnumeratedFunction (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Enumerated) (typeDefinition:TypeDefintionOrReference)  (us:State)  =
     let fncs, ns = o.cons |> Asn1Fold.foldMap (fun us c -> enumeratedConstraint2ValidationCodeBlock  l  o typeDefinition c us) us
-    createIsValidFunction r l t (funcBody l fncs)  typeDefinition [] [] [] [] None ns
+    let errorCodeComment = o.cons |> List.map(fun z -> z.ASN1) |> Seq.StrJoin ""
+    createIsValidFunction r l t (funcBody l fncs)  typeDefinition [] [] [] [] (Some errorCodeComment) ns
 
 let convertMultipleVCBsToStatementAndSetErrorCode l p (errCode: ErroCode) vcbs =
     let combinedVcb = 
@@ -731,7 +741,8 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (t:Asn1Ac
         | None   -> convertVCBToStatementAndAssigneErrCode l VCBTrue errCode.errCodeName
         | Some s ->ValidationStatement (s, (lllvs@lllvs2) |> List.collect id)
     
-    createIsValidFunction r l t funBody  typeDefinition childAlphaFuncs childLocalVars childErrCodes nonEmbeddedChildValidFuncs None ns2
+    let errorCodeComment = o.cons |> List.map(fun z -> z.ASN1) |> Seq.StrJoin ""
+    createIsValidFunction r l t funBody  typeDefinition childAlphaFuncs childLocalVars childErrCodes nonEmbeddedChildValidFuncs (Some errorCodeComment) ns2
 
 
 let createSequenceFunction (r:Asn1AcnAst.AstRoot)  (l:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Sequence) (typeDefinition:TypeDefintionOrReference) (children:SeqChildInfo list)  (us:State)  =
@@ -804,7 +815,8 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot)  (l:LanguageMacros) (t:Asn1Acn
         | Some s ->ValidationStatement (s, lv@(lv2 |>List.collect id))
         
         
-    createIsValidFunction r l t funBody  typeDefinition alphaFuncs localVars childrenErrCodes nonEmbeddedChildrenValidFuncs None ns2
+    let errorCodeComment = o.cons |> List.map(fun z -> z.ASN1) |> Seq.StrJoin ""
+    createIsValidFunction r l t funBody  typeDefinition alphaFuncs localVars childrenErrCodes nonEmbeddedChildrenValidFuncs (Some errorCodeComment) ns2
 
 let createChoiceFunction (r:Asn1AcnAst.AstRoot)  (l:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Choice) (typeDefinition:TypeDefintionOrReference) (defOrRef:TypeDefintionOrReference) (children:ChChildInfo list) (baseTypeValFunc : IsValidFunction option) (us:State)  =
     let choice_OptionalChild              = l.isvalid.Choice_OptionalChild
@@ -868,7 +880,8 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot)  (l:LanguageMacros) (t:Asn1AcnAs
         | None   -> convertVCBToStatementAndAssigneErrCode l VCBTrue errCode.errCodeName
         | Some s ->ValidationStatement (s, lv1@lv2)
         
-    createIsValidFunction r l t funBody  typeDefinition alphaFuncs localVars childrenErrCodes nonEmbeddedChildrenValidFuncs None ns2
+    let errorCodeComment = o.cons |> List.map(fun z -> z.ASN1) |> Seq.StrJoin ""
+    createIsValidFunction r l t funBody  typeDefinition alphaFuncs localVars childrenErrCodes nonEmbeddedChildrenValidFuncs (Some errorCodeComment) ns2
 
 
 let rec createReferenceTypeFunction_this_type (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (refTypeId:ReferenceToType) (refCons:Asn1AcnAst.AnyConstraint list) (typeDefinition:TypeDefintionOrReference) (resolvedType:Asn1Type)  (us:State)  =
@@ -952,5 +965,7 @@ let createReferenceTypeFunction (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (t:Asn
             | None   -> convertVCBToStatementAndAssigneErrCode l VCBTrue errCode.errCodeName
             | Some s ->ValidationStatement (s, (lv2 |>List.collect id))
 
-    createIsValidFunction r l t funBody  typeDefinition [] [] [] [] None us
+    let errorCodeComment = o.refCons |> List.map(fun z -> z.ASN1) |> Seq.StrJoin ""
+    
+    createIsValidFunction r l t funBody  typeDefinition [] [] [] [] (Some errorCodeComment) us
 

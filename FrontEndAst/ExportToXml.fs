@@ -87,28 +87,28 @@ and private PrintAsn1GenericValue (v:Asn1Value) =
 
 let private printGenericConstraint printValue (c:GenericConstraint<'v>)  = 
     foldGenericConstraint
-        (fun r1 r2 b s      -> XElement(xname "OR", r1, r2) , s)
-        (fun r1 r2 s        -> XElement(xname "AND", r1, r2) , s)
-        (fun r s            -> XElement(xname "ALL_EXCEPT", r), s)       
-        (fun r1 r2 s        -> XElement(xname "EXCEPT", r1, r2), s)
-        (fun r s            -> XElement(xname "ROOTC_CONSTRAINT", r), s)       
-        (fun r1 r2 s        -> XElement(xname "ROOTC_CONSTRAINT_WITH_EXTENSION", r1, r2), s)
-        (fun v  s           -> printValue v, s)
+        (fun _ r1 r2 b s      -> XElement(xname "OR", r1, r2) , s)
+        (fun _ r1 r2 s        -> XElement(xname "AND", r1, r2) , s)
+        (fun _ r s            -> XElement(xname "ALL_EXCEPT", r), s)       
+        (fun _ r1 r2 s        -> XElement(xname "EXCEPT", r1, r2), s)
+        (fun _ r s            -> XElement(xname "ROOTC_CONSTRAINT", r), s)       
+        (fun _ r1 r2 s        -> XElement(xname "ROOTC_CONSTRAINT_WITH_EXTENSION", r1, r2), s)
+        (fun _ v  s           -> printValue v, s)
         c 
         0 |> fst
 
 let private printRangeConstraint0 (printValue:'v1->XElement) printValue2  (c:RangeTypeConstraint<'v1,'v2>) = 
     foldRangeTypeConstraint
-        (fun r1 r2 b s      -> XElement(xname "OR", r1, r2), s)
-        (fun r1 r2 s        -> XElement(xname "AND", r1, r2) , s)
-        (fun r s            -> XElement(xname "ALL_EXCEPT", r), s)       
-        (fun r1 r2 s        -> XElement(xname "EXCEPT", r1, r2), s)
-        (fun r s            -> XElement(xname "ROOTC_CONSTRAINT", r), s)       
-        (fun r1 r2 s        -> XElement(xname "ROOTC_CONSTRAINT_WITH_EXTENSION", r1, r2), s)
-        (fun v  s           -> printValue2 v,s)
-        (fun v1 v2  b1 b2 s -> XElement(xname "Range", (XElement(xname "Min", (printValue v1))), (XElement(xname "Max", (printValue v2)))), s)
-        (fun v1 b s         -> XElement(xname "GT", (XElement(xname "Min", (printValue v1))) ),s )
-        (fun v2 b s         -> XElement(xname "LT", (XElement(xname "Max", (printValue v2))) ), s)
+        (fun _ r1 r2 b s      -> XElement(xname "OR", r1, r2), s)
+        (fun _ r1 r2 s        -> XElement(xname "AND", r1, r2) , s)
+        (fun _ r s            -> XElement(xname "ALL_EXCEPT", r), s)       
+        (fun _ r1 r2 s        -> XElement(xname "EXCEPT", r1, r2), s)
+        (fun _ r s            -> XElement(xname "ROOTC_CONSTRAINT", r), s)       
+        (fun _ r1 r2 s        -> XElement(xname "ROOTC_CONSTRAINT_WITH_EXTENSION", r1, r2), s)
+        (fun _ v  s           -> printValue2 v,s)
+        (fun _ v1 v2  b1 b2 s -> XElement(xname "Range", (XElement(xname "Min", (printValue v1))), (XElement(xname "Max", (printValue v2)))), s)
+        (fun _ v1 b s         -> XElement(xname "GT", (XElement(xname "Min", (printValue v1))) ),s )
+        (fun _ v2 b s         -> XElement(xname "LT", (XElement(xname "Max", (printValue v2))) ), s)
         c 
         0 |> fst
 
@@ -118,14 +118,14 @@ let private printRangeConstraint printValue (c:RangeTypeConstraint<'v1,'v1>)  =
 
 let private printSizableConstraint printValue (c:SizableTypeConstraint<'v>)  = 
     foldSizableTypeConstraint2
-        (fun r1 r2 b s      -> XElement(xname "OR", r1, r2), s)
-        (fun r1 r2 s        -> XElement(xname "AND", r1, r2) , s)
-        (fun r s            -> XElement(xname "ALL_EXCEPT", r), s)       
-        (fun r1 r2 s        -> XElement(xname "EXCEPT", r1, r2), s)
-        (fun r s            -> XElement(xname "ROOTC_CONSTRAINT", r), s)       
-        (fun r1 r2 s        -> XElement(xname "ROOTC_CONSTRAINT_WITH_EXTENSION", r1, r2), s)
-        (fun v  s           -> printValue v,s)
-        (fun sc s           -> 
+        (fun _ r1 r2 b s      -> XElement(xname "OR", r1, r2), s)
+        (fun _ r1 r2 s        -> XElement(xname "AND", r1, r2) , s)
+        (fun _ r s            -> XElement(xname "ALL_EXCEPT", r), s)       
+        (fun _ r1 r2 s        -> XElement(xname "EXCEPT", r1, r2), s)
+        (fun _ r s            -> XElement(xname "ROOTC_CONSTRAINT", r), s)       
+        (fun _ r1 r2 s        -> XElement(xname "ROOTC_CONSTRAINT_WITH_EXTENSION", r1, r2), s)
+        (fun _ v  s           -> printValue v,s)
+        (fun _ sc s           -> 
             let sizeCon = printRangeConstraint0 printUInt printUInt sc 
             XElement(xname "SIZE", sizeCon), s)
         c 
@@ -133,17 +133,17 @@ let private printSizableConstraint printValue (c:SizableTypeConstraint<'v>)  =
 
 let private printAlphaConstraint printValue (c:IA5StringConstraint)  = 
     foldStringTypeConstraint2
-        (fun r1 r2 b s      -> XElement(xname "OR", r1, r2), s)
-        (fun r1 r2 s        -> XElement(xname "AND", r1, r2) , s)
-        (fun r s            -> XElement(xname "ALL_EXCEPT", r), s)       
-        (fun r1 r2 s        -> XElement(xname "EXCEPT", r1, r2), s)
-        (fun r s            -> XElement(xname "ROOTC_CONSTRAINT", r), s)       
-        (fun r1 r2 s        -> XElement(xname "ROOTC_CONSTRAINT_WITH_EXTENSION", r1, r2), s)
-        (fun v  s         -> (printValue v),s)
-        (fun sc s           -> 
+        (fun _ r1 r2 b s      -> XElement(xname "OR", r1, r2), s)
+        (fun _ r1 r2 s        -> XElement(xname "AND", r1, r2) , s)
+        (fun _ r s            -> XElement(xname "ALL_EXCEPT", r), s)       
+        (fun _ r1 r2 s        -> XElement(xname "EXCEPT", r1, r2), s)
+        (fun _ r s            -> XElement(xname "ROOTC_CONSTRAINT", r), s)       
+        (fun _ r1 r2 s        -> XElement(xname "ROOTC_CONSTRAINT_WITH_EXTENSION", r1, r2), s)
+        (fun _ v  s         -> (printValue v),s)
+        (fun _ sc s           -> 
             let sizeCon = printRangeConstraint0 printUInt printUInt sc 
             XElement(xname "SIZE", sizeCon), s)
-        (fun sc s           -> 
+        (fun _ sc s           -> 
             let alphaCon = printRangeConstraint0 printCharVal printStringVal  sc 
             XElement(xname "ALPHA", alphaCon), s)
         c 
@@ -152,17 +152,17 @@ let private printAlphaConstraint printValue (c:IA5StringConstraint)  =
 
 let rec private printSequenceOfConstraint printValue (c:SequenceOfConstraint)  = 
     foldSequenceOfTypeConstraint2
-        (fun r1 r2 b s      -> XElement(xname "OR", r1, r2), s)
-        (fun r1 r2 s        -> XElement(xname "AND", r1, r2) , s)
-        (fun r s            -> XElement(xname "ALL_EXCEPT", r), s)       
-        (fun r1 r2 s        -> XElement(xname "EXCEPT", r1, r2), s)
-        (fun r s            -> XElement(xname "ROOTC_CONSTRAINT", r), s)       
-        (fun r1 r2 s        -> XElement(xname "ROOTC_CONSTRAINT_WITH_EXTENSION", r1, r2), s)
-        (fun v  s           -> printValue v,s)
-        (fun sc s           -> 
+        (fun _ r1 r2 b s      -> XElement(xname "OR", r1, r2), s)
+        (fun _ r1 r2 s        -> XElement(xname "AND", r1, r2) , s)
+        (fun _ r s            -> XElement(xname "ALL_EXCEPT", r), s)       
+        (fun _ r1 r2 s        -> XElement(xname "EXCEPT", r1, r2), s)
+        (fun _ r s            -> XElement(xname "ROOTC_CONSTRAINT", r), s)       
+        (fun _ r1 r2 s        -> XElement(xname "ROOTC_CONSTRAINT_WITH_EXTENSION", r1, r2), s)
+        (fun _ v  s           -> printValue v,s)
+        (fun _ sc s           -> 
             let sizeCon = printRangeConstraint0 printUInt printUInt sc 
             XElement(xname "SIZE", sizeCon), s)
-        (fun c l s           -> 
+        (fun _ c l s           -> 
             XElement(xname "WithComponent", printAnyConstraint c), s)
         c
         0 |> fst
@@ -182,14 +182,14 @@ and private printSeqOrChoiceConstraint printValue (c:SeqOrChoiceConstraint<'v>) 
              | None -> null
              | Some c -> printAnyConstraint c))
     foldSeqOrChConstraint
-        (fun r1 r2 b s      -> XElement(xname "OR", r1, r2) , s)
-        (fun r1 r2 s        -> XElement(xname "AND", r1, r2) , s)
-        (fun r s            -> XElement(xname "ALL_EXCEPT", r), s)       
-        (fun r1 r2 s        -> XElement(xname "EXCEPT", r1, r2), s)
-        (fun r s            -> XElement(xname "ROOTC_CONSTRAINT", r), s)       
-        (fun r1 r2 s        -> XElement(xname "ROOTC_CONSTRAINT_WITH_EXTENSION", r1, r2), s)
-        (fun v  s           -> printValue v, s)
-        (fun nitms s        -> XElement(xname withCompConstraintsTag, nitms |> List.map(printNamedConstaintItem )), s)
+        (fun _ r1 r2 b s      -> XElement(xname "OR", r1, r2) , s)
+        (fun _ r1 r2 s        -> XElement(xname "AND", r1, r2) , s)
+        (fun _ r s            -> XElement(xname "ALL_EXCEPT", r), s)       
+        (fun _ r1 r2 s        -> XElement(xname "EXCEPT", r1, r2), s)
+        (fun _ r s            -> XElement(xname "ROOTC_CONSTRAINT", r), s)       
+        (fun _ r1 r2 s        -> XElement(xname "ROOTC_CONSTRAINT_WITH_EXTENSION", r1, r2), s)
+        (fun _ v  s           -> printValue v, s)
+        (fun _ nitms s        -> XElement(xname withCompConstraintsTag, nitms |> List.map(printNamedConstaintItem )), s)
         c 
         0 |> fst
 

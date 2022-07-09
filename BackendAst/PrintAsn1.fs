@@ -39,26 +39,26 @@ let rec PrintAsn1Value (v:Asn1Value) =
 
 let rec PrintConstraint (c:Asn1Constraint) = 
     match c with
-    | SingleValueContraint(v)       -> stg_asn1.Print_SingleValueContraint (PrintAsn1Value v)
-    | RangeContraint(v1, v2, b1, b2)        -> stg_asn1.Print_RangeContraint (PrintAsn1Value v1) (PrintAsn1Value v2) b1 b2
-    | RangeContraint_val_MAX(v, b1)     -> stg_asn1.Print_RangeContraint_val_MAX (PrintAsn1Value v) b1
-    | RangeContraint_MIN_val(v, b2)     -> stg_asn1.Print_RangeContraint_MIN_val (PrintAsn1Value v) b2  
+    | SingleValueContraint(_, v)       -> stg_asn1.Print_SingleValueContraint (PrintAsn1Value v)
+    | RangeContraint(_, v1, v2, b1, b2)        -> stg_asn1.Print_RangeContraint (PrintAsn1Value v1) (PrintAsn1Value v2) b1 b2
+    | RangeContraint_val_MAX(_, v, b1)     -> stg_asn1.Print_RangeContraint_val_MAX (PrintAsn1Value v) b1
+    | RangeContraint_MIN_val(_, v, b2)     -> stg_asn1.Print_RangeContraint_MIN_val (PrintAsn1Value v) b2  
     | RangeContraint_MIN_MAX        -> stg_asn1.Print_RangeContraint_MIN_MAX()
-    | TypeInclusionConstraint(mn,nm)-> 
+    | TypeInclusionConstraint(_, mn,nm)-> 
         stg_asn1.Print_TypeInclusionConstraint nm.Value       
-    | SizeContraint(c)              -> stg_asn1.Print_SizeContraint (PrintConstraint c)   
-    | AlphabetContraint(c)          -> stg_asn1.Print_AlphabetContraint (PrintConstraint c)   
-    | UnionConstraint(c1,c2,virtualCon)        -> 
+    | SizeContraint(_, c)              -> stg_asn1.Print_SizeContraint (PrintConstraint c)   
+    | AlphabetContraint(_, c)          -> stg_asn1.Print_AlphabetContraint (PrintConstraint c)   
+    | UnionConstraint(_, c1,c2,virtualCon)        -> 
         match virtualCon with
         | false -> stg_asn1.Print_UnionConstraint (PrintConstraint c1) (PrintConstraint c2)   
         | true  -> ""
-    | IntersectionConstraint(c1,c2) -> stg_asn1.Print_IntersectionConstraint (PrintConstraint c1) (PrintConstraint c2)          
-    | AllExceptConstraint(c)        -> stg_asn1.Print_AllExceptConstraint (PrintConstraint c)      
-    | ExceptConstraint(c1,c2)       -> stg_asn1.Print_ExceptConstraint (PrintConstraint c1) (PrintConstraint c2)                 
-    | RootConstraint(c)             -> stg_asn1.Print_RootConstraint  (PrintConstraint c)        
-    | RootConstraint2(c1,c2)        -> stg_asn1.Print_RootConstraint2 (PrintConstraint c1) (PrintConstraint c2)
-    | WithComponentConstraint(c,_)  -> stg_asn1.Print_WithComponentConstraint (PrintConstraint c)
-    | WithComponentsConstraint(ncs) -> 
+    | IntersectionConstraint(_, c1,c2) -> stg_asn1.Print_IntersectionConstraint (PrintConstraint c1) (PrintConstraint c2)          
+    | AllExceptConstraint(_, c)        -> stg_asn1.Print_AllExceptConstraint (PrintConstraint c)      
+    | ExceptConstraint(_, c1,c2)       -> stg_asn1.Print_ExceptConstraint (PrintConstraint c1) (PrintConstraint c2)                 
+    | RootConstraint(_, c)             -> stg_asn1.Print_RootConstraint  (PrintConstraint c)        
+    | RootConstraint2(_, c1,c2)        -> stg_asn1.Print_RootConstraint2 (PrintConstraint c1) (PrintConstraint c2)
+    | WithComponentConstraint(_, c,_)  -> stg_asn1.Print_WithComponentConstraint (PrintConstraint c)
+    | WithComponentsConstraint(_, ncs) -> 
         let print_nc (nc:NamedConstraint) =
             let sConstraint = match nc.Contraint with
                               | Some(c1)     -> PrintConstraint c1

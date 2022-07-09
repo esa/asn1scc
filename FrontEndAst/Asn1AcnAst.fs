@@ -70,25 +70,51 @@ and Asn1ValueKind =
 
 
 type GenericConstraint<'v> =
-    | UnionConstraint                   of GenericConstraint<'v>*GenericConstraint<'v>*bool //left,righ, virtual constraint
-    | IntersectionConstraint            of GenericConstraint<'v>*GenericConstraint<'v>
-    | AllExceptConstraint               of GenericConstraint<'v>
-    | ExceptConstraint                  of GenericConstraint<'v>*GenericConstraint<'v>
-    | RootConstraint                    of GenericConstraint<'v>
-    | RootConstraint2                   of GenericConstraint<'v>*GenericConstraint<'v>
-    | SingleValueConstraint             of 'v
+    | UnionConstraint                   of string*GenericConstraint<'v>*GenericConstraint<'v>*bool //left,righ, virtual constraint
+    | IntersectionConstraint            of string*GenericConstraint<'v>*GenericConstraint<'v>
+    | AllExceptConstraint               of string*GenericConstraint<'v>
+    | ExceptConstraint                  of string*GenericConstraint<'v>*GenericConstraint<'v>
+    | RootConstraint                    of string*GenericConstraint<'v>
+    | RootConstraint2                   of string*GenericConstraint<'v>*GenericConstraint<'v>
+    | SingleValueConstraint             of string*'v
+    with 
+        member
+            this.ASN1 =
+                match this with
+                | UnionConstraint (s,_,_,_) -> s
+                | IntersectionConstraint (s,_,_) -> s
+                | AllExceptConstraint    (s,_) -> s
+                | ExceptConstraint       (s,_,_) -> s
+                | RootConstraint         (s,_) -> s
+                | RootConstraint2        (s,_,_) -> s
+                | SingleValueConstraint  (s,_) -> s
+
 
 type RangeTypeConstraint<'v1,'v2>  = 
-    | RangeUnionConstraint               of RangeTypeConstraint<'v1,'v2>*RangeTypeConstraint<'v1,'v2>*bool //left,righ, virtual constraint
-    | RangeIntersectionConstraint        of RangeTypeConstraint<'v1,'v2>*RangeTypeConstraint<'v1,'v2>
-    | RangeAllExceptConstraint           of RangeTypeConstraint<'v1,'v2>
-    | RangeExceptConstraint              of RangeTypeConstraint<'v1,'v2>*RangeTypeConstraint<'v1,'v2>
-    | RangeRootConstraint                of RangeTypeConstraint<'v1,'v2>
-    | RangeRootConstraint2               of RangeTypeConstraint<'v1,'v2>*RangeTypeConstraint<'v1,'v2>
-    | RangeSingleValueConstraint         of 'v2
-    | RangeContraint                     of ('v1) *('v1)*bool*bool    //min, max, InclusiveMin(=true), InclusiveMax(=true)
-    | RangeContraint_val_MAX             of ('v1) *bool            //min, InclusiveMin(=true)
-    | RangeContraint_MIN_val             of ('v1) *bool            //max, InclusiveMax(=true)
+    | RangeUnionConstraint               of string*RangeTypeConstraint<'v1,'v2>*RangeTypeConstraint<'v1,'v2>*bool //left,righ, virtual constraint
+    | RangeIntersectionConstraint        of string*RangeTypeConstraint<'v1,'v2>*RangeTypeConstraint<'v1,'v2>
+    | RangeAllExceptConstraint           of string*RangeTypeConstraint<'v1,'v2>
+    | RangeExceptConstraint              of string*RangeTypeConstraint<'v1,'v2>*RangeTypeConstraint<'v1,'v2>
+    | RangeRootConstraint                of string*RangeTypeConstraint<'v1,'v2>
+    | RangeRootConstraint2               of string*RangeTypeConstraint<'v1,'v2>*RangeTypeConstraint<'v1,'v2>
+    | RangeSingleValueConstraint         of string*'v2
+    | RangeContraint                     of string*('v1) *('v1)*bool*bool    //min, max, InclusiveMin(=true), InclusiveMax(=true)
+    | RangeContraint_val_MAX             of string*('v1) *bool            //min, InclusiveMin(=true)
+    | RangeContraint_MIN_val             of string*('v1) *bool            //max, InclusiveMax(=true)
+    with
+        member this.ASN1 =
+            match this with
+            | RangeUnionConstraint               (s,_,_,_) -> s
+            | RangeIntersectionConstraint        (s,_,_) -> s
+            | RangeAllExceptConstraint           (s,_) -> s
+            | RangeExceptConstraint              (s,_,_) -> s
+            | RangeRootConstraint                (s,_) -> s
+            | RangeRootConstraint2               (s,_,_) -> s
+            | RangeSingleValueConstraint         (s,_) -> s
+            | RangeContraint                     (s,_,_,_,_) -> s
+            | RangeContraint_val_MAX             (s,_,_) -> s
+            | RangeContraint_MIN_val             (s,_,_) -> s
+
 
 type IntegerTypeConstraint  = RangeTypeConstraint<BigInteger, BigInteger>
 type PosIntTypeConstraint   = RangeTypeConstraint<UInt32, UInt32>
@@ -98,25 +124,57 @@ type RealTypeConstraint     = RangeTypeConstraint<double, double>
 
 
 type SizableTypeConstraint<'v>  = 
-    | SizeUnionConstraint               of SizableTypeConstraint<'v>*SizableTypeConstraint<'v>*bool //left,righ, virtual constraint
-    | SizeIntersectionConstraint        of SizableTypeConstraint<'v>*SizableTypeConstraint<'v>
-    | SizeAllExceptConstraint           of SizableTypeConstraint<'v>
-    | SizeExceptConstraint              of SizableTypeConstraint<'v>*SizableTypeConstraint<'v>
-    | SizeRootConstraint                of SizableTypeConstraint<'v>
-    | SizeRootConstraint2               of SizableTypeConstraint<'v>*SizableTypeConstraint<'v>
-    | SizeSingleValueConstraint         of 'v
-    | SizeContraint                     of PosIntTypeConstraint               
+    | SizeUnionConstraint               of string*SizableTypeConstraint<'v>*SizableTypeConstraint<'v>*bool //left,righ, virtual constraint
+    | SizeIntersectionConstraint        of string*SizableTypeConstraint<'v>*SizableTypeConstraint<'v>
+    | SizeAllExceptConstraint           of string*SizableTypeConstraint<'v>
+    | SizeExceptConstraint              of string*SizableTypeConstraint<'v>*SizableTypeConstraint<'v>
+    | SizeRootConstraint                of string*SizableTypeConstraint<'v>
+    | SizeRootConstraint2               of string*SizableTypeConstraint<'v>*SizableTypeConstraint<'v>
+    | SizeSingleValueConstraint         of string*'v
+    | SizeContraint                     of string*PosIntTypeConstraint               
+    with 
+        member
+            this.ASN1 =
+                match this with
+                | SizeUnionConstraint       (s,_,_,_) -> s
+                | SizeIntersectionConstraint(s,_,_) -> s
+                | SizeAllExceptConstraint   (s,_) -> s
+                | SizeExceptConstraint      (s,_,_) -> s
+                | SizeRootConstraint        (s,_) -> s
+                | SizeRootConstraint2       (s,_,_) -> s
+                | SizeSingleValueConstraint (s,_) -> s
+                | SizeContraint             (s,_) -> s
 
 type IA5StringConstraint = 
-    | StrUnionConstraint               of IA5StringConstraint*IA5StringConstraint*bool //left,righ, virtual constraint
-    | StrIntersectionConstraint        of IA5StringConstraint*IA5StringConstraint
-    | StrAllExceptConstraint           of IA5StringConstraint
-    | StrExceptConstraint              of IA5StringConstraint*IA5StringConstraint
-    | StrRootConstraint                of IA5StringConstraint
-    | StrRootConstraint2               of IA5StringConstraint*IA5StringConstraint
-    | StrSingleValueConstraint         of string
-    | StrSizeContraint                 of PosIntTypeConstraint               
-    | AlphabetContraint                of CharTypeConstraint           
+    | StrUnionConstraint               of string*IA5StringConstraint*IA5StringConstraint*bool //left,righ, virtual constraint
+    | StrIntersectionConstraint        of string*IA5StringConstraint*IA5StringConstraint
+    | StrAllExceptConstraint           of string*IA5StringConstraint
+    | StrExceptConstraint              of string*IA5StringConstraint*IA5StringConstraint
+    | StrRootConstraint                of string*IA5StringConstraint
+    | StrRootConstraint2               of string*IA5StringConstraint*IA5StringConstraint
+    | StrSingleValueConstraint         of string*string
+    | StrSizeContraint                 of string*PosIntTypeConstraint               
+    | AlphabetContraint                of string*CharTypeConstraint           
+    with 
+        member
+            this.ASN1 =
+                match this with
+                | StrUnionConstraint        (s,_,_,_) -> s
+                | StrIntersectionConstraint (s,_,_) -> s
+                | StrAllExceptConstraint    (s,_) -> s
+                | StrExceptConstraint       (s,_,_) -> s
+                | StrRootConstraint         (s,_) -> s
+                | StrRootConstraint2        (s,_,_) -> s
+                | StrSingleValueConstraint  (s,_) -> s
+                | StrSizeContraint          (s,_) -> s
+                | AlphabetContraint         (s,_) -> s
+
+
+
+
+
+
+
 
 
 type OctetStringConstraint  =    SizableTypeConstraint<OctetStringValue*(ReferenceToValue*SrcLoc)>
@@ -131,14 +189,26 @@ type TimeConstraint         =    GenericConstraint<Asn1DateTimeValue>
 //type SequenceConstraint     =     GenericConstraint<SeqValue>
 
 type SeqOrChoiceConstraint<'v> =
-    | SeqOrChUnionConstraint                   of SeqOrChoiceConstraint<'v>*SeqOrChoiceConstraint<'v>*bool //left,righ, virtual constraint
-    | SeqOrChIntersectionConstraint            of SeqOrChoiceConstraint<'v>*SeqOrChoiceConstraint<'v>
-    | SeqOrChAllExceptConstraint               of SeqOrChoiceConstraint<'v>
-    | SeqOrChExceptConstraint                  of SeqOrChoiceConstraint<'v>*SeqOrChoiceConstraint<'v>
-    | SeqOrChRootConstraint                    of SeqOrChoiceConstraint<'v>
-    | SeqOrChRootConstraint2                   of SeqOrChoiceConstraint<'v>*SeqOrChoiceConstraint<'v>
-    | SeqOrChSingleValueConstraint             of 'v
-    | SeqOrChWithComponentsConstraint          of NamedConstraint list       
+    | SeqOrChUnionConstraint                   of string*SeqOrChoiceConstraint<'v>*SeqOrChoiceConstraint<'v>*bool //left,righ, virtual constraint
+    | SeqOrChIntersectionConstraint            of string*SeqOrChoiceConstraint<'v>*SeqOrChoiceConstraint<'v>
+    | SeqOrChAllExceptConstraint               of string*SeqOrChoiceConstraint<'v>
+    | SeqOrChExceptConstraint                  of string*SeqOrChoiceConstraint<'v>*SeqOrChoiceConstraint<'v>
+    | SeqOrChRootConstraint                    of string*SeqOrChoiceConstraint<'v>
+    | SeqOrChRootConstraint2                   of string*SeqOrChoiceConstraint<'v>*SeqOrChoiceConstraint<'v>
+    | SeqOrChSingleValueConstraint             of string*'v
+    | SeqOrChWithComponentsConstraint          of string*NamedConstraint list       
+    with 
+        member
+            this.ASN1 =
+                match this with
+                | SeqOrChUnionConstraint              (s,_,_,_) -> s
+                | SeqOrChIntersectionConstraint       (s,_,_) -> s
+                | SeqOrChAllExceptConstraint          (s,_) -> s
+                | SeqOrChExceptConstraint             (s,_,_) -> s
+                | SeqOrChRootConstraint               (s,_) -> s
+                | SeqOrChRootConstraint2              (s,_,_) -> s
+                | SeqOrChSingleValueConstraint        (s,_) -> s
+                | SeqOrChWithComponentsConstraint     (s,_) -> s
 
 
 and SeqConstraint = SeqOrChoiceConstraint<SeqValue>
@@ -146,15 +216,29 @@ and SeqConstraint = SeqOrChoiceConstraint<SeqValue>
 and ChoiceConstraint       =     SeqOrChoiceConstraint<ChValue>
 
 and SequenceOfConstraint   =  
-    | SeqOfSizeUnionConstraint               of SequenceOfConstraint*SequenceOfConstraint*bool //left,righ, virtual constraint
-    | SeqOfSizeIntersectionConstraint        of SequenceOfConstraint*SequenceOfConstraint
-    | SeqOfSizeAllExceptConstraint           of SequenceOfConstraint
-    | SeqOfSizeExceptConstraint              of SequenceOfConstraint*SequenceOfConstraint
-    | SeqOfSizeRootConstraint                of SequenceOfConstraint
-    | SeqOfSizeRootConstraint2               of SequenceOfConstraint*SequenceOfConstraint
-    | SeqOfSizeSingleValueConstraint         of SeqOfValue
-    | SeqOfSizeContraint                     of PosIntTypeConstraint               
-    | SeqOfSeqWithComponentConstraint        of AnyConstraint*SrcLoc
+    | SeqOfSizeUnionConstraint               of string*SequenceOfConstraint*SequenceOfConstraint*bool //left,righ, virtual constraint
+    | SeqOfSizeIntersectionConstraint        of string*SequenceOfConstraint*SequenceOfConstraint
+    | SeqOfSizeAllExceptConstraint           of string*SequenceOfConstraint
+    | SeqOfSizeExceptConstraint              of string*SequenceOfConstraint*SequenceOfConstraint
+    | SeqOfSizeRootConstraint                of string*SequenceOfConstraint
+    | SeqOfSizeRootConstraint2               of string*SequenceOfConstraint*SequenceOfConstraint
+    | SeqOfSizeSingleValueConstraint         of string*SeqOfValue
+    | SeqOfSizeContraint                     of string*PosIntTypeConstraint               
+    | SeqOfSeqWithComponentConstraint        of string*AnyConstraint*SrcLoc
+    with 
+        member
+            this.ASN1 =
+                match this with
+                | SeqOfSizeUnionConstraint         (s,_,_,_) -> s
+                | SeqOfSizeIntersectionConstraint  (s,_,_) -> s
+                | SeqOfSizeAllExceptConstraint     (s,_) -> s
+                | SeqOfSizeExceptConstraint        (s,_,_) -> s
+                | SeqOfSizeRootConstraint          (s,_) -> s
+                | SeqOfSizeRootConstraint2         (s,_,_) -> s
+                | SeqOfSizeSingleValueConstraint   (s,_) -> s
+                | SeqOfSizeContraint               (s,_) -> s
+                | SeqOfSeqWithComponentConstraint  (s,_,_) -> s
+
     
 and AnyConstraint =
     | IntegerTypeConstraint of IntegerTypeConstraint
@@ -170,6 +254,23 @@ and AnyConstraint =
     | ChoiceConstraint      of ChoiceConstraint
     | NullConstraint        
     | TimeConstraint        of TimeConstraint
+    with 
+        member
+            this.ASN1 =
+                match this with
+                | IntegerTypeConstraint (x) -> x.ASN1
+                | IA5StringConstraint   (x) -> x.ASN1
+                | RealTypeConstraint    (x) -> x.ASN1
+                | OctetStringConstraint (x) -> x.ASN1
+                | BitStringConstraint   (x) -> x.ASN1
+                | BoolConstraint        (x) -> x.ASN1
+                | EnumConstraint        (x) -> x.ASN1
+                | ObjectIdConstraint    (x) -> x.ASN1
+                | SequenceOfConstraint  (x) -> x.ASN1
+                | SeqConstraint         (x) -> x.ASN1
+                | ChoiceConstraint      (x) -> x.ASN1
+                | NullConstraint            -> ""
+                | TimeConstraint        (x) -> x.ASN1
     
 
 and NamedConstraint = {

@@ -80,8 +80,8 @@ ret = FALSE;
 
 
 
-EmitTypeAssignment_composite_def_err_code(sErrCode, nErrValue) ::= <<
-#define <sErrCode>		<nErrValue>  /**/
+EmitTypeAssignment_composite_def_err_code(sErrCode, nErrValue, arrsErrorCodeComments) ::= <<
+#define <sErrCode>		<nErrValue>  /*<arrsErrorCodeComments : {x|<x>}; separator = "\n">*/
 >>
 EmitTypeAssignment_composite_def(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes) ::= <<
 <arrsErrcodes; separator="\n">

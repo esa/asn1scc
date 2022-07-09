@@ -101,21 +101,21 @@ let rec CloneType  (r:AstRoot)  (curModule:Asn1Module) (oldModName:string) (name
 
 and CloneConstraint (r:AstRoot) (curModule:Asn1Module) (oldModName:string) (namedArgs:list<StringLoc*TemplateArgument>) (t:Asn1Type option) (c:Asn1Constraint) :Asn1Constraint =
     match c with
-    | SingleValueContraint(v)          -> SingleValueContraint (CloneValue  r curModule oldModName namedArgs t v)
-    | RangeContraint(v1,v2,b1,b2)            -> RangeContraint(CloneValue  r curModule oldModName namedArgs t v1,CloneValue r curModule oldModName namedArgs t v2,b1,b2)
-    | RangeContraint_val_MAX(v,b)        -> RangeContraint_val_MAX (CloneValue r curModule oldModName namedArgs t v,b)
-    | RangeContraint_MIN_val(v,b)        -> RangeContraint_MIN_val (CloneValue r curModule oldModName namedArgs t v,b)
-    | TypeInclusionConstraint(s1,s2)   -> TypeInclusionConstraint(s1,s2)
-    | SizeContraint(c)                 -> SizeContraint(CloneConstraint r curModule oldModName namedArgs None c)
-    | AlphabetContraint(c)             -> AlphabetContraint(CloneConstraint r curModule oldModName namedArgs None c)
-    | UnionConstraint(c1,c2,b)           -> UnionConstraint(CloneConstraint r curModule oldModName namedArgs t c1, CloneConstraint r curModule oldModName namedArgs t c2, b)
-    | IntersectionConstraint(c1,c2)    -> IntersectionConstraint(CloneConstraint r curModule oldModName namedArgs t c1, CloneConstraint r curModule oldModName namedArgs t c2)
-    | AllExceptConstraint(c)           -> AllExceptConstraint(CloneConstraint r curModule oldModName namedArgs t c)
-    | ExceptConstraint(c1,c2)          -> ExceptConstraint(CloneConstraint r curModule oldModName namedArgs t c1, CloneConstraint r curModule oldModName namedArgs t c2)
-    | RootConstraint(c1)               -> RootConstraint(CloneConstraint r curModule oldModName namedArgs t c)
-    | RootConstraint2(c1,c2)           -> RootConstraint2(CloneConstraint r curModule oldModName namedArgs t c1, CloneConstraint r curModule oldModName namedArgs t c2)
-    | WithComponentConstraint(c,l)     -> WithComponentConstraint((CloneConstraint r curModule oldModName namedArgs None c),l)
-    | WithComponentsConstraint(ncs)    -> WithComponentsConstraint(ncs|> List.map (CloneNamedConstraint r curModule oldModName namedArgs))
+    | SingleValueContraint(s, v)          -> SingleValueContraint(s, (CloneValue  r curModule oldModName namedArgs t v))
+    | RangeContraint(s, v1,v2,b1,b2)            -> RangeContraint(s, CloneValue  r curModule oldModName namedArgs t v1,CloneValue r curModule oldModName namedArgs t v2,b1,b2)
+    | RangeContraint_val_MAX(s,v,b)        -> RangeContraint_val_MAX (s, CloneValue r curModule oldModName namedArgs t v,b)
+    | RangeContraint_MIN_val(s, v,b)        -> RangeContraint_MIN_val (s, CloneValue r curModule oldModName namedArgs t v,b)
+    | TypeInclusionConstraint(s, s1,s2)   -> TypeInclusionConstraint(s, s1,s2)
+    | SizeContraint(s, c)                 -> SizeContraint(s, CloneConstraint r curModule oldModName namedArgs None c)
+    | AlphabetContraint(s, c)             -> AlphabetContraint(s, CloneConstraint r curModule oldModName namedArgs None c)
+    | UnionConstraint(s, c1,c2,b)           -> UnionConstraint(s, CloneConstraint r curModule oldModName namedArgs t c1, CloneConstraint r curModule oldModName namedArgs t c2, b)
+    | IntersectionConstraint(s, c1,c2)    -> IntersectionConstraint(s, CloneConstraint r curModule oldModName namedArgs t c1, CloneConstraint r curModule oldModName namedArgs t c2)
+    | AllExceptConstraint(s, c)           -> AllExceptConstraint(s, CloneConstraint r curModule oldModName namedArgs t c)
+    | ExceptConstraint(s, c1,c2)          -> ExceptConstraint(s, CloneConstraint r curModule oldModName namedArgs t c1, CloneConstraint r curModule oldModName namedArgs t c2)
+    | RootConstraint(s, c1)               -> RootConstraint(s, CloneConstraint r curModule oldModName namedArgs t c)
+    | RootConstraint2(s, c1,c2)           -> RootConstraint2(s, CloneConstraint r curModule oldModName namedArgs t c1, CloneConstraint r curModule oldModName namedArgs t c2)
+    | WithComponentConstraint(s, c,l)     -> WithComponentConstraint(s, (CloneConstraint r curModule oldModName namedArgs None c),l)
+    | WithComponentsConstraint(s, ncs)    -> WithComponentsConstraint(s, ncs|> List.map (CloneNamedConstraint r curModule oldModName namedArgs))
 
 and CloneNamedConstraint (r:AstRoot) (curModule:Asn1Module) (oldModName:string) (namedArgs:list<StringLoc*TemplateArgument>) (x:NamedConstraint) :NamedConstraint =
     {

@@ -8,8 +8,8 @@ getStringSize(p) ::= "strlen(<p>)"
 getSizeableSize(p, sAcc) ::= "<p><sAcc>nCount"
 
 
-EmitTypeAssignment_def_err_code(sErrCode, nErrValue) ::= <<
-#define <sErrCode>		<nErrValue>  /**/
+EmitTypeAssignment_def_err_code(sErrCode, nErrValue, soErrorCodeComment) ::= <<
+#define <sErrCode>		<nErrValue>  /*<soErrorCodeComment>*/
 >>
 
 EmitAcnParameter(sName, sType) ::= "<sType> <sName>"

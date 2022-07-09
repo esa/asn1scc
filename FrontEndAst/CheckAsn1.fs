@@ -169,23 +169,23 @@ let rec IsValueAllowed (c:Asn1Constraint) (v:Asn1Value) (isOfEnumType:bool) (bit
             id = ReferenceToValue([],[])
         }
     match c with
-    | SingleValueContraint(v1)          -> AreAsn1ValuesEqual v1 v isOfEnumType ast
-    | RangeContraint(v1, v2, minInclusi, maxInclusive)            -> 
+    | SingleValueContraint(_, v1)          -> AreAsn1ValuesEqual v1 v isOfEnumType ast
+    | RangeContraint(_, v1, v2, minInclusi, maxInclusive)            -> 
         match minInclusi, maxInclusive with
         | true, true  ->CompareAsn1Value v1 v ast <=0 && CompareAsn1Value v v2 ast <= 0
         | true, false ->CompareAsn1Value v1 v ast <=0 && CompareAsn1Value v v2 ast < 0
         | false,true  ->CompareAsn1Value v1 v ast <0 && CompareAsn1Value v v2 ast <= 0
         | false,false ->CompareAsn1Value v1 v ast <0 && CompareAsn1Value v v2 ast < 0
-    | RangeContraint_val_MAX(v1, minInclusi)        -> 
+    | RangeContraint_val_MAX(_, v1, minInclusi)        -> 
         match minInclusi with
         | true      -> CompareAsn1Value v1 v ast <=0
         | false     -> CompareAsn1Value v1 v ast <0
-    | RangeContraint_MIN_val(v2, maxInclusive)        -> 
+    | RangeContraint_MIN_val(_, v2, maxInclusive)        -> 
         match maxInclusive with
         | true  -> CompareAsn1Value v v2 ast <= 0
         | false -> CompareAsn1Value v v2 ast < 0
     | RangeContraint_MIN_MAX            -> true
-    | SizeContraint(sc)                 -> 
+    | SizeContraint(_, sc)                 -> 
         let rec IsSizeContraintOK (v:Asn1Value) (sc:Asn1Constraint) =
             match v.Kind with
             | StringValue(s)                -> IsValueAllowed sc (CreateDummyValueByKind (IntegerValue(IntLoc.ByValue (BigInteger s.Value.Length))) ) isOfEnumType bitOrOctSrt ast
@@ -203,12 +203,12 @@ let rec IsValueAllowed (c:Asn1Constraint) (v:Asn1Value) (isOfEnumType:bool) (bit
             | RefValue(modName,vasName)                  -> IsSizeContraintOK (GetBaseValue modName vasName ast) sc
             | _                             -> raise (BugErrorException(""))
         IsSizeContraintOK v sc
-    | AlphabetContraint(ac)             ->
+    | AlphabetContraint(_, ac)             ->
         let rec IsAlphabetConstraintOK (v:Asn1Value) (ac:Asn1Constraint) =
             match v.Kind with
             | StringValue(s)    -> 
                 match ac with
-                | SingleValueContraint setVal   ->
+                | SingleValueContraint (_, setVal)   ->
                     match setVal.Kind with
                     | StringValue setvaluesstr     ->
                         let setvals = setvaluesstr.Value.ToCharArray() |> Set.ofArray
@@ -219,19 +219,19 @@ let rec IsValueAllowed (c:Asn1Constraint) (v:Asn1Value) (isOfEnumType:bool) (bit
             | RefValue(modName,vasName)      -> IsAlphabetConstraintOK (GetBaseValue modName vasName ast) ac
             | _                             -> raise (BugErrorException(""))
         IsAlphabetConstraintOK v ac 
-    | UnionConstraint(c1,c2,_)            -> 
+    | UnionConstraint(_, c1,c2,_)            -> 
         let ret1 = IsValueAllowed c1 v isOfEnumType bitOrOctSrt ast  
         let ret2 = IsValueAllowed c2 v isOfEnumType bitOrOctSrt ast
         ret1 || ret2
-    | IntersectionConstraint(c1,c2)     -> IsValueAllowed c1 v isOfEnumType bitOrOctSrt ast && IsValueAllowed c2 v isOfEnumType bitOrOctSrt ast
-    | AllExceptConstraint(c1)           -> not (IsValueAllowed c1 v isOfEnumType bitOrOctSrt ast)
-    | ExceptConstraint(c1,c2)           -> IsValueAllowed c1 v isOfEnumType bitOrOctSrt ast && not(IsValueAllowed c2 v isOfEnumType bitOrOctSrt ast)
-    | RootConstraint(c1)                -> IsValueAllowed c1 v isOfEnumType bitOrOctSrt ast
-    | RootConstraint2(c1,c2)            -> IsValueAllowed c1 v isOfEnumType bitOrOctSrt ast || IsValueAllowed c2 v isOfEnumType bitOrOctSrt ast
-    | TypeInclusionConstraint(modName,tasName)   ->
+    | IntersectionConstraint(_, c1,c2)     -> IsValueAllowed c1 v isOfEnumType bitOrOctSrt ast && IsValueAllowed c2 v isOfEnumType bitOrOctSrt ast
+    | AllExceptConstraint(_, c1)           -> not (IsValueAllowed c1 v isOfEnumType bitOrOctSrt ast)
+    | ExceptConstraint(_, c1,c2)           -> IsValueAllowed c1 v isOfEnumType bitOrOctSrt ast && not(IsValueAllowed c2 v isOfEnumType bitOrOctSrt ast)
+    | RootConstraint(_, c1)                -> IsValueAllowed c1 v isOfEnumType bitOrOctSrt ast
+    | RootConstraint2(_, c1,c2)            -> IsValueAllowed c1 v isOfEnumType bitOrOctSrt ast || IsValueAllowed c2 v isOfEnumType bitOrOctSrt ast
+    | TypeInclusionConstraint(_, modName,tasName)   ->
         let otherType = GetBaseTypeByName modName tasName ast
         otherType.Constraints |> Seq.forall(fun c -> IsValueAllowed c v isOfEnumType bitOrOctSrt ast)
-    | WithComponentConstraint(innerCon, loc)       ->
+    | WithComponentConstraint(_, innerCon, loc)       ->
         let rec IsWithComponentConstraintOK (v:Asn1Value) (innerCon:Asn1Constraint) =
             match v.Kind with
             | SeqOfValue(innerValues) ->
@@ -239,7 +239,7 @@ let rec IsValueAllowed (c:Asn1Constraint) (v:Asn1Value) (isOfEnumType:bool) (bit
             | RefValue(modName,vasName)      -> IsWithComponentConstraintOK (GetBaseValue modName vasName ast) innerCon
             | _                             -> raise (SemanticError(loc,"Invalid constraint"))
         IsWithComponentConstraintOK v innerCon
-    | WithComponentsConstraint(namedConstraints)    ->
+    | WithComponentsConstraint(_, namedConstraints)    ->
         let rec IsWithComponentsConstraintOK (v:Asn1Value) =
             match v.Kind with
             | SeqValue(children)    ->
@@ -416,42 +416,42 @@ let rec isConstraintValid (t:Asn1Type) (c:Asn1Constraint) ast =
         | Sequence(children) | Choice(children)                                -> Some(children)
         | ReferenceType(_)                                                     -> CanHaveWithComponentsConstraint (GetActualType t ast)
     match c with
-    | SingleValueContraint(v1)          ->  CheckValueType t v1 ast
-    | RangeContraint(v1,v2,_,_)             -> 
+    | SingleValueContraint(_, v1)          ->  CheckValueType t v1 ast
+    | RangeContraint(_, v1,v2,_,_)             -> 
         if not(CanHaveRangeContraint t) then
             raise(SemanticError(t.Location, "Type does not support range constraints"))
         CheckValueType t v1 ast
         CheckValueType t v2 ast
-    | RangeContraint_val_MAX(v1,_)       
-    | RangeContraint_MIN_val(v1,_)       ->
+    | RangeContraint_val_MAX(_, v1,_)       
+    | RangeContraint_MIN_val(_, v1,_)       ->
         if not(CanHaveRangeContraint t) then
             raise(SemanticError(t.Location, "Type does not support range constraints"))
         CheckValueType t v1 ast
     | RangeContraint_MIN_MAX           -> 
         if not(CanHaveRangeContraint t) then
             raise(SemanticError(t.Location, "Type does not support range constraints"))
-    | SizeContraint(c1)                 -> 
+    | SizeContraint(_, c1)                 -> 
         if not(CanHaveSizeContraint t) then
             raise(SemanticError(t.Location, "Type does not support size constraints"))
         isConstraintValid { t with Kind=Integer; Constraints=[] } c1 ast
-    | AlphabetContraint(c1)             -> 
+    | AlphabetContraint(_, c1)             -> 
         if not(CanHaveFromContraint t) then
             raise(SemanticError(t.Location, "Type does not support alphabet constraints"))
         isConstraintValid t c1 ast
-    | UnionConstraint(c1,c2,_)  | IntersectionConstraint(c1,c2) | ExceptConstraint(c1,c2) | RootConstraint2(c1,c2) ->
+    | UnionConstraint(_, c1,c2,_)  | IntersectionConstraint(_, c1,c2) | ExceptConstraint(_, c1,c2) | RootConstraint2(_, c1,c2) ->
         isConstraintValid t c1 ast
         isConstraintValid t c2 ast
-    | AllExceptConstraint(c1) | RootConstraint(c1)       -> isConstraintValid t c1 ast
-    | TypeInclusionConstraint(mdName, refName)  -> 
+    | AllExceptConstraint(_, c1) | RootConstraint(_, c1)       -> isConstraintValid t c1 ast
+    | TypeInclusionConstraint(_, mdName, refName)  -> 
         let typeInclusion = GetActualTypeByName mdName refName ast
         let actType = GetActualType t ast
         if not(AreTypesCompatible typeInclusion actType ast) then
             raise (SemanticError(t.Location, "Incompatible types used in type inclusion constraint"))
-    | WithComponentConstraint(c1, loc)       -> 
+    | WithComponentConstraint(_, c1, loc)       -> 
         match CanHaveWithComponentConstraint t with
         | None -> raise (SemanticError(loc, "Type does not support WITH COMPONENT constraints"))
         | Some(ch)  -> isConstraintValid ch c1 ast
-    | WithComponentsConstraint(namedCons)       -> 
+    | WithComponentsConstraint(_, namedCons)       -> 
         match CanHaveWithComponentsConstraint t with
         | None  -> raise (SemanticError(t.Location, "Type does not support WITH COMPONENTS constraints"))
         | Some(children)    ->  

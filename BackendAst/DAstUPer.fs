@@ -91,7 +91,7 @@ let getIntfuncBodyByCons (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Commo
     let IntUnconstraintMax      = lm.uper.IntUnconstraintMax       
     let IntRootExt              = lm.uper.IntRootExt               
     let IntRootExt2             = lm.uper.IntRootExt2              
-    let rootCons = cons |> List.choose(fun x -> match x with RangeRootConstraint(a) |RangeRootConstraint2(a,_) -> Some(x) |_ -> None) 
+    let rootCons = cons |> List.choose(fun x -> match x with RangeRootConstraint(_, a) |RangeRootConstraint2(_, a,_) -> Some(x) |_ -> None) 
 
     let checkExp = 
         //match (DastValidate2.createIntegerFunctionByCons r l isUnsigned allCons) with
@@ -119,14 +119,14 @@ let getIntfuncBodyByCons (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Commo
     let funcBodyContent, bValIsUnReferenced, bBsIsUnReferenced = 
         match rootCons with
         | []                            -> IntBod uperRange false
-        | (RangeRootConstraint a)::rest      -> 
+        | (RangeRootConstraint (_, a))::rest      -> 
             let uperR    = uPER.getIntTypeConstraintUperRange [a]  errLoc
             let cc,_ = DastValidate2.integerConstraint2ValidationCodeBlock r lm isUnsigned a 0
             let cc = DastValidate2.ValidationBlockAsStringExpr (cc p) 
             //let cc = DAstValidate.foldRangeCon l (fun v -> v.ToString()) (fun v -> v.ToString()) p a
             let rootBody, _,_ = IntBod uperR true
             IntRootExt pp (getValueByConstraint uperR) cc rootBody errCode.errCodeName codec, false, false
-        | (RangeRootConstraint2(a,_))::rest  -> 
+        | (RangeRootConstraint2(_,a,_))::rest  -> 
             let uperR    = uPER.getIntTypeConstraintUperRange [a]  errLoc
             //let cc = DAstValidate.foldRangeCon l (fun v -> v.ToString()) (fun v -> v.ToString()) p a
             let cc,_ = DastValidate2.integerConstraint2ValidationCodeBlock r lm isUnsigned a 0

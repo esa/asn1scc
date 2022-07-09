@@ -148,8 +148,8 @@ end loop;
 
 
 
-EmitTypeAssignment_composite_def_err_code(sErrCode, nErrValue) ::= <<
-<sErrCode>:constant Integer := <nErrValue>; 
+EmitTypeAssignment_composite_def_err_code(sErrCode, nErrValue, arrsErrorCodeComments) ::= <<
+<sErrCode>:constant Integer := <nErrValue>; <arrsErrorCodeComments : {x|-- <x>}; separator = "\n">
 >>
 
 EmitTypeAssignment_composite_def(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes) ::= <<

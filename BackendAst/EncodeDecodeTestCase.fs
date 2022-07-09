@@ -312,13 +312,13 @@ Automatic Test case values
 
 let foldGenericCon  (c:GenericConstraint<'v>)  =
     foldGenericConstraint
-        (fun e1 e2 b s      -> e1@e2, s)
-        (fun e1 e2 s        -> e1@e2, s)
-        (fun e s            -> [], s)
-        (fun e1 e2 s        -> e1, s)
-        (fun e s            -> e, s)
-        (fun e1 e2 s        -> e1@e2, s)
-        (fun v  s           -> [v] ,s)
+        (fun _ e1 e2 b s      -> e1@e2, s)
+        (fun _ e1 e2 s        -> e1@e2, s)
+        (fun _ e s            -> [], s)
+        (fun _ e1 e2 s        -> e1, s)
+        (fun _ e s            -> e, s)
+        (fun _ e1 e2 s        -> e1@e2, s)
+        (fun _ v  s           -> [v] ,s)
         c
         0 |> fst 
 
@@ -326,30 +326,30 @@ let foldGenericCon  (c:GenericConstraint<'v>)  =
 
 let foldRangeCon  getNext getPrev min max zero (c:RangeTypeConstraint<'v1,'v1>)  =
     foldRangeTypeConstraint        
-        (fun e1 e2 b s      -> e1@e2, s)    //union
-        (fun e1 e2 s        -> e1@e2, s)    //Intersection
-        (fun e s            -> [], s)       //AllExcept
-        (fun e1 e2 s        -> e1, s)       //ExceptConstraint
-        (fun e s            -> e, s)        //RootConstraint
-        (fun e1 e2 s        -> e1@e2, s)    //RootConstraint2
-        (fun v  s         -> [v] ,s)        // SingleValueConstraint
-        (fun v1 v2  minIsIn maxIsIn s   ->  //RangeContraint
+        (fun _ e1 e2 b s      -> e1@e2, s)    //union
+        (fun _ e1 e2 s        -> e1@e2, s)    //Intersection
+        (fun _ e s            -> [], s)       //AllExcept
+        (fun _ e1 e2 s        -> e1, s)       //ExceptConstraint
+        (fun _ e s            -> e, s)        //RootConstraint
+        (fun _ e1 e2 s        -> e1@e2, s)    //RootConstraint2
+        (fun _ v  s         -> [v] ,s)        // SingleValueConstraint
+        (fun _ v1 v2  minIsIn maxIsIn s   ->  //RangeContraint
             [(if minIsIn then v1 else (getNext v1));(if maxIsIn then v2 else (getPrev v2))], s)
-        (fun v1 minIsIn s   -> [(if minIsIn then v1 else (getNext v1)); max], s) //Contraint_val_MAX
-        (fun v2 maxIsIn s   -> [min; (if maxIsIn then v2 else (getPrev v2))], s) //Contraint_MIN_val
+        (fun _ v1 minIsIn s   -> [(if minIsIn then v1 else (getNext v1)); max], s) //Contraint_val_MAX
+        (fun _ v2 maxIsIn s   -> [min; (if maxIsIn then v2 else (getPrev v2))], s) //Contraint_MIN_val
         c
         0 |> fst 
 
 let foldSizableConstraint  (c:SizableTypeConstraint<'v>) =
     foldSizableTypeConstraint2
-        (fun e1 e2 b s      -> e1@e2, s)
-        (fun e1 e2 s        -> e1@e2, s)
-        (fun e s            -> [], s)
-        (fun e1 e2 s        -> e1, s)
-        (fun e s            -> e, s)
-        (fun e1 e2 s        -> e1@e2, s)
-        (fun v  s           -> [v] ,s)
-        (fun intCon s       -> [], s)
+        (fun _ e1 e2 b s      -> e1@e2, s)
+        (fun _ e1 e2 s        -> e1@e2, s)
+        (fun _ e s            -> [], s)
+        (fun _ e1 e2 s        -> e1, s)
+        (fun _ e s            -> e, s)
+        (fun _ e1 e2 s        -> e1@e2, s)
+        (fun _ v  s           -> [v] ,s)
+        (fun _ intCon s       -> [], s)
         c
         0 |> fst
 

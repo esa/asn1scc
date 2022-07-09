@@ -280,43 +280,43 @@ and MapNamedConstraint (r:ParameterizedAsn1Ast.AstRoot) (t: ParameterizedAsn1Ast
 
 and MapAsn1Constraint (r:ParameterizedAsn1Ast.AstRoot) (t: ParameterizedAsn1Ast.Asn1Type) typeScope cs (c:ParameterizedAsn1Ast.Asn1Constraint) :Asn1Ast.Asn1Constraint =
     match c with
-    | ParameterizedAsn1Ast.Asn1Constraint.SingleValueContraint(v)          -> Asn1Ast.SingleValueContraint (MapAsn1Value r t typeScope (visitValue cs) v)
-    | ParameterizedAsn1Ast.Asn1Constraint.RangeContraint(v1,v2,b1,b2)      -> 
+    | ParameterizedAsn1Ast.Asn1Constraint.SingleValueContraint(s, v)          -> Asn1Ast.SingleValueContraint (s, MapAsn1Value r t typeScope (visitValue cs) v)
+    | ParameterizedAsn1Ast.Asn1Constraint.RangeContraint(s, v1,v2,b1,b2)      -> 
         let vs1 = visitValue cs
         let vs2 = visitSilbingValue vs1
 
-        Asn1Ast.RangeContraint(MapAsn1Value r t typeScope vs1 v1, MapAsn1Value r t typeScope vs2 v2,b1,b2)
-    | ParameterizedAsn1Ast.Asn1Constraint.RangeContraint_val_MAX(v,b)        -> Asn1Ast.RangeContraint_val_MAX (MapAsn1Value r t typeScope (visitValue cs) v, b)
-    | ParameterizedAsn1Ast.Asn1Constraint.RangeContraint_MIN_val(v,b)        -> Asn1Ast.RangeContraint_MIN_val (MapAsn1Value r t typeScope (visitValue cs) v, b)
-    | ParameterizedAsn1Ast.TypeInclusionConstraint(s1,s2)   -> Asn1Ast.TypeInclusionConstraint(s1,s2)
-    | ParameterizedAsn1Ast.Asn1Constraint.SizeContraint(c)                 -> Asn1Ast.SizeContraint(MapAsn1Constraint r {ParameterizedAsn1Ast.Asn1Type.Kind = ParameterizedAsn1Ast.Integer; Constraints = []; Location=emptyLocation;parameterizedTypeInstance=false;acnInfo=None;unitsOfMeasure = None} typeScope (visitConstraint cs) c)
-    | ParameterizedAsn1Ast.AlphabetContraint(c)             -> Asn1Ast.AlphabetContraint(MapAsn1Constraint r {ParameterizedAsn1Ast.Asn1Type.Kind = ParameterizedAsn1Ast.IA5String; Constraints = []; Location=emptyLocation;parameterizedTypeInstance=false;acnInfo=None;unitsOfMeasure = None} typeScope (visitConstraint cs) c)
-    | ParameterizedAsn1Ast.UnionConstraint(c1,c2, b)           -> 
+        Asn1Ast.RangeContraint(s, MapAsn1Value r t typeScope vs1 v1, MapAsn1Value r t typeScope vs2 v2,b1,b2)
+    | ParameterizedAsn1Ast.Asn1Constraint.RangeContraint_val_MAX(s, v,b)        -> Asn1Ast.RangeContraint_val_MAX (s, MapAsn1Value r t typeScope (visitValue cs) v, b)
+    | ParameterizedAsn1Ast.Asn1Constraint.RangeContraint_MIN_val(s, v,b)        -> Asn1Ast.RangeContraint_MIN_val (s, MapAsn1Value r t typeScope (visitValue cs) v, b)
+    | ParameterizedAsn1Ast.TypeInclusionConstraint(s, s1,s2)   -> Asn1Ast.TypeInclusionConstraint(s, s1,s2)
+    | ParameterizedAsn1Ast.Asn1Constraint.SizeContraint(s, c)                 -> Asn1Ast.SizeContraint(s, MapAsn1Constraint r {ParameterizedAsn1Ast.Asn1Type.Kind = ParameterizedAsn1Ast.Integer; Constraints = []; Location=emptyLocation;parameterizedTypeInstance=false;acnInfo=None;unitsOfMeasure = None} typeScope (visitConstraint cs) c)
+    | ParameterizedAsn1Ast.AlphabetContraint(s,c)             -> Asn1Ast.AlphabetContraint(s, MapAsn1Constraint r {ParameterizedAsn1Ast.Asn1Type.Kind = ParameterizedAsn1Ast.IA5String; Constraints = []; Location=emptyLocation;parameterizedTypeInstance=false;acnInfo=None;unitsOfMeasure = None} typeScope (visitConstraint cs) c)
+    | ParameterizedAsn1Ast.UnionConstraint(s, c1,c2, b)           -> 
         let cs1 = visitConstraint cs
         let cs2 = visitSilbingConstraint cs1
-        Asn1Ast.UnionConstraint(MapAsn1Constraint r t typeScope cs1 c1, MapAsn1Constraint r t typeScope cs2 c2, b)
-    | ParameterizedAsn1Ast.IntersectionConstraint(c1,c2)    -> 
+        Asn1Ast.UnionConstraint(s, MapAsn1Constraint r t typeScope cs1 c1, MapAsn1Constraint r t typeScope cs2 c2, b)
+    | ParameterizedAsn1Ast.IntersectionConstraint(s, c1,c2)    -> 
         let cs1 = visitConstraint cs
         let cs2 = visitSilbingConstraint cs1
-        Asn1Ast.IntersectionConstraint(MapAsn1Constraint r t typeScope cs1 c1, MapAsn1Constraint r t typeScope cs2 c2)
-    | ParameterizedAsn1Ast.AllExceptConstraint(c)           -> Asn1Ast.AllExceptConstraint(MapAsn1Constraint r t typeScope (visitConstraint cs) c)
-    | ParameterizedAsn1Ast.ExceptConstraint(c1,c2)          -> 
+        Asn1Ast.IntersectionConstraint(s, MapAsn1Constraint r t typeScope cs1 c1, MapAsn1Constraint r t typeScope cs2 c2)
+    | ParameterizedAsn1Ast.AllExceptConstraint(s, c)           -> Asn1Ast.AllExceptConstraint(s, MapAsn1Constraint r t typeScope (visitConstraint cs) c)
+    | ParameterizedAsn1Ast.ExceptConstraint(s, c1,c2)          -> 
         let cs1 = visitConstraint cs
         let cs2 = visitSilbingConstraint cs1
-        Asn1Ast.ExceptConstraint(MapAsn1Constraint r t typeScope cs1 c1, MapAsn1Constraint r t typeScope cs2 c2)
-    | ParameterizedAsn1Ast.RootConstraint(c1)               -> Asn1Ast.RootConstraint(MapAsn1Constraint r t typeScope (visitConstraint cs) c1)
-    | ParameterizedAsn1Ast.RootConstraint2(c1,c2)           -> 
+        Asn1Ast.ExceptConstraint(s, MapAsn1Constraint r t typeScope cs1 c1, MapAsn1Constraint r t typeScope cs2 c2)
+    | ParameterizedAsn1Ast.RootConstraint(s, c1)               -> Asn1Ast.RootConstraint(s, MapAsn1Constraint r t typeScope (visitConstraint cs) c1)
+    | ParameterizedAsn1Ast.RootConstraint2(s, c1,c2)           -> 
         let cs1 = visitConstraint cs
         let cs2 = visitSilbingConstraint cs1
-        Asn1Ast.RootConstraint2(MapAsn1Constraint r t typeScope cs2 c1, MapAsn1Constraint r t typeScope cs2 c2)
-    | ParameterizedAsn1Ast.WithComponentConstraint(c, loc)       -> 
+        Asn1Ast.RootConstraint2(s, MapAsn1Constraint r t typeScope cs2 c1, MapAsn1Constraint r t typeScope cs2 c2)
+    | ParameterizedAsn1Ast.WithComponentConstraint(s, c, loc)       -> 
         let akind = getActualKind r t.Kind
         match akind with
         | ParameterizedAsn1Ast.SequenceOf(child)    ->        
-            Asn1Ast.WithComponentConstraint((MapAsn1Constraint r child typeScope (visitConstraint cs) c), loc)
+            Asn1Ast.WithComponentConstraint(s, (MapAsn1Constraint r child typeScope (visitConstraint cs) c), loc)
         | _                                         ->        raise(SemanticError(emptyLocation,"Unexpected constraint type"))
-    | ParameterizedAsn1Ast.WithComponentsConstraint(ncs)    -> 
-        Asn1Ast.WithComponentsConstraint(ncs|> foldMap (fun cs c -> 
+    | ParameterizedAsn1Ast.WithComponentsConstraint(s, ncs)    -> 
+        Asn1Ast.WithComponentsConstraint(s, ncs|> foldMap (fun cs c -> 
                                                                 let newC = MapNamedConstraint r t typeScope (visitConstraint cs) c
                                                                 let newSs = visitSilbingConstraint cs
                                                                 newC, newSs) cs |> fst  )

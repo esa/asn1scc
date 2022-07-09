@@ -14,21 +14,21 @@ let max a b = if a>b then a else b
 
 let getRangeTypeConstraintUperRange (c:RangeTypeConstraint<'v1,'v1>) funcNext funcPrev (l:SrcLoc) =
     foldRangeTypeConstraint
-        (fun r1 r2 b s      -> uperUnion r1 r2, s)
-        (fun r1 r2 s        -> uperIntersection r1 r2 l, s)
-        (fun r s            -> Full, s)       
-        (fun r1 r2 s        -> r1, s)
-        (fun r s            -> Full, s)       
-        (fun r1 r2 s        -> Full, s)
-        (fun v  s           -> Concrete (v,v),s)
-        (fun v1 v2  minIsIn maxIsIn s  ->
+        (fun _ r1 r2 b s      -> uperUnion r1 r2, s)
+        (fun _ r1 r2 s        -> uperIntersection r1 r2 l, s)
+        (fun _ r s            -> Full, s)       
+        (fun _ r1 r2 s        -> r1, s)
+        (fun _ r s            -> Full, s)       
+        (fun _ r1 r2 s        -> Full, s)
+        (fun _ v  s           -> Concrete (v,v),s)
+        (fun _ v1 v2  minIsIn maxIsIn s  ->
             let val1 = if minIsIn then v1 else (funcNext v1)
             let val2 = if maxIsIn then v2 else (funcPrev v2)
             Concrete(val1 , val2), s)
-        (fun v1 minIsIn  s      -> 
+        (fun _ v1 minIsIn  s      -> 
             let val1 = if minIsIn then v1 else (funcNext v1)
             PosInf(val1) ,s )
-        (fun v2 maxIsIn s      -> 
+        (fun _ v2 maxIsIn s      -> 
             let val2 = if maxIsIn then v2 else (funcPrev v2)
             NegInf(val2), s)
         c 
@@ -49,29 +49,29 @@ let getRealTypeConstraintUperRange (cons:RealTypeConstraint list) (l:SrcLoc) =
 
 let getSizeableTypeConstraintUperRange (c:SizableTypeConstraint<'v>) funcGetLength (l:SrcLoc) =
     foldSizableTypeConstraint
-        (fun r1 r2 b s      -> uperUnion r1 r2, s)
-        (fun r1 r2 s        -> uperIntersection r1 r2 l, s)
-        (fun r s            -> Full, s)       
-        (fun r1 r2 s        -> r1, s)
-        (fun r s            -> Full, s)       
-        (fun r1 r2 s        -> Full, s)
-        (fun v  s           -> Concrete (funcGetLength v,funcGetLength v),s)
+        (fun _ r1 r2 b s      -> uperUnion r1 r2, s)
+        (fun _ r1 r2 s        -> uperIntersection r1 r2 l, s)
+        (fun _ r s            -> Full, s)       
+        (fun _ r1 r2 s        -> r1, s)
+        (fun _ r s            -> Full, s)       
+        (fun _ r1 r2 s        -> Full, s)
+        (fun _ v  s           -> Concrete (funcGetLength v,funcGetLength v),s)
         
-        (fun r1 r2 b s      -> uperUnion r1 r2, s)
-        (fun r1 r2 s        -> uperIntersection r1 r2 l, s)
-        (fun r s            -> Full, s)       
-        (fun r1 r2 s        -> r1, s)
-        (fun r s            -> Full, s)       
-        (fun r1 r2 s        -> Full, s)
-        (fun v  s           -> Concrete (v,v),s)
-        (fun v1 v2  minIsIn maxIsIn s  ->
+        (fun _ r1 r2 b s      -> uperUnion r1 r2, s)
+        (fun _ r1 r2 s        -> uperIntersection r1 r2 l, s)
+        (fun _ r s            -> Full, s)       
+        (fun _ r1 r2 s        -> r1, s)
+        (fun _ r s            -> Full, s)       
+        (fun _ r1 r2 s        -> Full, s)
+        (fun _ v  s           -> Concrete (v,v),s)
+        (fun _ v1 v2  minIsIn maxIsIn s  ->
             let val1 = if minIsIn then v1 else (v1+1u)
             let val2 = if maxIsIn then v2 else (v2-1u)
             Concrete(val1 , val2), s)
-        (fun v1 minIsIn  s      -> 
+        (fun _ v1 minIsIn  s      -> 
             let val1 = if minIsIn then v1 else (v1+1u)
             PosInf(val1) ,s )
-        (fun v2 maxIsIn s      -> 
+        (fun _ v2 maxIsIn s      -> 
             let val2 = if maxIsIn then v2 else (v2-1u)
             NegInf(val2), s)
         c 
@@ -93,32 +93,32 @@ let getBitStringUperRange (cons:BitStringConstraint list) (l:SrcLoc) =
 let getSequenceOfUperRange (cons:SequenceOfConstraint list) (l:SrcLoc) =
     let getConUperRange (c:SequenceOfConstraint)  (l:SrcLoc) =
         foldSequenceOfTypeConstraint
-            (fun r1 r2 b s      -> uperUnion r1 r2, s)
-            (fun r1 r2 s        -> uperIntersection r1 r2 l, s)
-            (fun r s            -> Full, s)       
-            (fun r1 r2 s        -> r1, s)
-            (fun r s            -> Full, s)       
-            (fun r1 r2 s        -> Full, s)
-            (fun v  s           -> Concrete (uint32 v.Length,uint32 v.Length ),s)
+            (fun _ r1 r2 b s      -> uperUnion r1 r2, s)
+            (fun _ r1 r2 s        -> uperIntersection r1 r2 l, s)
+            (fun _ r s            -> Full, s)       
+            (fun _ r1 r2 s        -> r1, s)
+            (fun _ r s            -> Full, s)       
+            (fun _ r1 r2 s        -> Full, s)
+            (fun _ v  s           -> Concrete (uint32 v.Length,uint32 v.Length ),s)
         
-            (fun r1 r2 b s      -> uperUnion r1 r2, s)
-            (fun r1 r2 s        -> uperIntersection r1 r2 l, s)
-            (fun r s            -> Full, s)       
-            (fun r1 r2 s        -> r1, s)
-            (fun r s            -> Full, s)       
-            (fun r1 r2 s        -> Full, s)
-            (fun v  s           -> Concrete (v,v),s)
-            (fun v1 v2  minIsIn maxIsIn s  ->
+            (fun _ r1 r2 b s      -> uperUnion r1 r2, s)
+            (fun _ r1 r2 s        -> uperIntersection r1 r2 l, s)
+            (fun _ r s            -> Full, s)       
+            (fun _ r1 r2 s        -> r1, s)
+            (fun _ r s            -> Full, s)       
+            (fun _ r1 r2 s        -> Full, s)
+            (fun _ v  s           -> Concrete (v,v),s)
+            (fun _ v1 v2  minIsIn maxIsIn s  ->
                 let val1 = if minIsIn then v1 else (v1+1u)
                 let val2 = if maxIsIn then v2 else (v2-1u)
                 Concrete(val1 , val2), s)
-            (fun v1 minIsIn  s      -> 
+            (fun _ v1 minIsIn  s      -> 
                 let val1 = if minIsIn then v1 else (v1+1u)
                 PosInf(val1) ,s )
-            (fun v2 maxIsIn s      -> 
+            (fun _ v2 maxIsIn s      -> 
                 let val2 = if maxIsIn then v2 else (v2-1u)
                 NegInf(val2), s)
-            (fun c l s           -> Full, s)       
+            (fun _ c l s           -> Full, s)       
             c 
             0 |> fst
 
@@ -127,42 +127,42 @@ let getSequenceOfUperRange (cons:SequenceOfConstraint list) (l:SrcLoc) =
 
 let getStringConstraintSizeUperRange (c:IA5StringConstraint) (l:SrcLoc) =
     foldStringTypeConstraint
-        (fun r1 r2 b s      -> uperUnion r1 r2, s)
-        (fun r1 r2 s        -> uperIntersection r1 r2 l, s)
-        (fun r s            -> Full, s)       
-        (fun r1 r2 s        -> r1, s)
-        (fun r s            -> Full, s)       
-        (fun r1 r2 s        -> Full, s)
-        (fun v  s           -> Concrete (uint32 v.Length, uint32 v.Length),s)
+        (fun _ r1 r2 b s      -> uperUnion r1 r2, s)
+        (fun _ r1 r2 s        -> uperIntersection r1 r2 l, s)
+        (fun _ r s            -> Full, s)       
+        (fun _ r1 r2 s        -> r1, s)
+        (fun _ r s            -> Full, s)       
+        (fun _ r1 r2 s        -> Full, s)
+        (fun _ v  s           -> Concrete (uint32 v.Length, uint32 v.Length),s)
         
-        (fun r1 r2 b s      -> uperUnion r1 r2, s)
-        (fun r1 r2 s        -> uperIntersection r1 r2 l, s)
-        (fun r s            -> Full, s)       
-        (fun r1 r2 s        -> r1, s)
-        (fun r s            -> Full, s)       
-        (fun r1 r2 s        -> Full, s)
-        (fun v  s           -> Concrete (v,v),s)
-        (fun v1 v2  minIsIn maxIsIn s  ->
+        (fun _ r1 r2 b s      -> uperUnion r1 r2, s)
+        (fun _ r1 r2 s        -> uperIntersection r1 r2 l, s)
+        (fun _ r s            -> Full, s)       
+        (fun _ r1 r2 s        -> r1, s)
+        (fun _ r s            -> Full, s)       
+        (fun _ r1 r2 s        -> Full, s)
+        (fun _ v  s           -> Concrete (v,v),s)
+        (fun _ v1 v2  minIsIn maxIsIn s  ->
             let val1 = if minIsIn then v1 else (v1+1u)
             let val2 = if maxIsIn then v2 else (v2-1u)
             Concrete(val1 , val2), s)
-        (fun v1 minIsIn  s      -> 
+        (fun _ v1 minIsIn  s      -> 
             let val1 = if minIsIn then v1 else (v1+1u)
             PosInf(val1) ,s )
-        (fun v2 maxIsIn s      -> 
+        (fun _ v2 maxIsIn s      -> 
             let val2 = if maxIsIn then v2 else (v2-1u)
             NegInf(val2), s)
 
-        (fun r1 r2 b s      -> Full, s)
-        (fun r1 r2 s        -> Full, s)
-        (fun r s            -> Full, s)       
-        (fun r1 r2 s        -> Full, s)
-        (fun r s            -> Full, s)       
-        (fun r1 r2 s        -> Full, s)
-        (fun v    s         -> Full,s)
-        (fun v1 v2  minIsIn maxIsIn s  ->Full, s)
-        (fun v1 minIsIn  s  -> Full ,s )
-        (fun v2 maxIsIn s   -> Full, s)
+        (fun _ r1 r2 b s      -> Full, s)
+        (fun _ r1 r2 s        -> Full, s)
+        (fun _ r s            -> Full, s)       
+        (fun _ r1 r2 s        -> Full, s)
+        (fun _ r s            -> Full, s)       
+        (fun _ r1 r2 s        -> Full, s)
+        (fun _ v    s         -> Full,s)
+        (fun _ v1 v2  minIsIn maxIsIn s  ->Full, s)
+        (fun _ v1 minIsIn  s  -> Full ,s )
+        (fun _ v2 maxIsIn s   -> Full, s)
         c 
         0 |> fst
         
@@ -207,38 +207,38 @@ let getStringConstraintAlphabetUperRange (c:IA5StringConstraint) (defaultCharSet
         System.Convert.ToChar(System.Convert.ToInt32(c)-1)
     
     foldStringTypeConstraint
-        (fun r1 r2 b s      -> CharSetUnion r1 r2, s)
-        (fun r1 r2 s        -> IntersectArrays r1 r2 l, s)
-        (fun r s            -> defaultCharSet, s)       
-        (fun r1 r2 s        -> r1, s)
-        (fun r s            -> defaultCharSet, s)       
-        (fun r1 r2 s        -> defaultCharSet, s)
-        (fun v  s           -> defaultCharSet, s)
+        (fun _ r1 r2 b s      -> CharSetUnion r1 r2, s)
+        (fun _ r1 r2 s        -> IntersectArrays r1 r2 l, s)
+        (fun _ r s            -> defaultCharSet, s)       
+        (fun _ r1 r2 s        -> r1, s)
+        (fun _ r s            -> defaultCharSet, s)       
+        (fun _ r1 r2 s        -> defaultCharSet, s)
+        (fun _ v  s           -> defaultCharSet, s)
         
-        (fun r1 r2 b s      -> defaultCharSet, s)
-        (fun r1 r2 s        -> defaultCharSet, s)
-        (fun r s            -> defaultCharSet, s)       
-        (fun r1 r2 s        -> defaultCharSet, s)
-        (fun r s            -> defaultCharSet, s)       
-        (fun r1 r2 s        -> defaultCharSet, s)
-        (fun v  s           -> defaultCharSet,s)
-        (fun v1 v2  minIsIn maxIsIn s  ->defaultCharSet, s)
-        (fun v1 minIsIn  s  -> defaultCharSet ,s )
-        (fun v2 maxIsIn s   -> defaultCharSet, s)
+        (fun _ r1 r2 b s      -> defaultCharSet, s)
+        (fun _ r1 r2 s        -> defaultCharSet, s)
+        (fun _ r s            -> defaultCharSet, s)       
+        (fun _ r1 r2 s        -> defaultCharSet, s)
+        (fun _ r s            -> defaultCharSet, s)       
+        (fun _ r1 r2 s        -> defaultCharSet, s)
+        (fun _ v  s           -> defaultCharSet,s)
+        (fun _ v1 v2  minIsIn maxIsIn s  ->defaultCharSet, s)
+        (fun _ v1 minIsIn  s  -> defaultCharSet ,s )
+        (fun _ v2 maxIsIn s   -> defaultCharSet, s)
 
-        (fun r1 r2 b s      -> CharSetUnion r1 r2, s)
-        (fun r1 r2 s        -> IntersectArrays r1 r2 l, s)
-        (fun r s            -> defaultCharSet, s)       
-        (fun r1 r2 s        -> r1, s)
-        (fun r s            -> defaultCharSet, s)       
-        (fun r1 r2 s        -> defaultCharSet, s)
-        (fun v  s         -> GetCharSetFromString v, s)
-        (fun v1 v2  minIsIn maxIsIn s  -> GetCharSetFromMinMax v1 v2 minIsIn maxIsIn, s)
-        (fun v1 minIsIn  s      -> 
+        (fun _ r1 r2 b s      -> CharSetUnion r1 r2, s)
+        (fun _ r1 r2 s        -> IntersectArrays r1 r2 l, s)
+        (fun _ r s            -> defaultCharSet, s)       
+        (fun _ r1 r2 s        -> r1, s)
+        (fun _ r s            -> defaultCharSet, s)       
+        (fun _ r1 r2 s        -> defaultCharSet, s)
+        (fun _ v  s         -> GetCharSetFromString v, s)
+        (fun _ v1 v2  minIsIn maxIsIn s  -> GetCharSetFromMinMax v1 v2 minIsIn maxIsIn, s)
+        (fun _ v1 minIsIn  s      -> 
             let v2 = defaultCharSet.[defaultCharSet.Length-1]
             let val1 = if minIsIn then v1 else (nextChar v1)
             GetCharSetFromMinMax v1 v2 minIsIn true ,s )
-        (fun v2 maxIsIn s      -> 
+        (fun _ v2 maxIsIn s      -> 
             let v1 = defaultCharSet.[0]
             GetCharSetFromMinMax v1 v2 true maxIsIn, s)
 

@@ -42,28 +42,28 @@ let rec printAsn1Value (v:Asn1AcnAst.Asn1Value) =
 
 let foldGenericCon valToStrFunc  (c:GenericConstraint<'v>)  =
     foldGenericConstraint
-        (fun e1 e2 b s      -> stg_asn1.Print_UnionConstraint e1 e2, s)
-        (fun e1 e2 s        -> stg_asn1.Print_IntersectionConstraint e1 e2, s)
-        (fun e s            -> stg_asn1.Print_AllExceptConstraint e, s)
-        (fun e1 e2 s        -> stg_asn1.Print_ExceptConstraint e1 e2, s)
-        (fun e s            -> stg_asn1.Print_RootConstraint e, s)
-        (fun e1 e2 s        -> stg_asn1.Print_RootConstraint2 e1 e2, s)
-        (fun v  s           -> stg_asn1.Print_SingleValueContraint (valToStrFunc v) ,s)
+        (fun _ e1 e2 b s      -> stg_asn1.Print_UnionConstraint e1 e2, s)
+        (fun _ e1 e2 s        -> stg_asn1.Print_IntersectionConstraint e1 e2, s)
+        (fun _ e s            -> stg_asn1.Print_AllExceptConstraint e, s)
+        (fun _ e1 e2 s        -> stg_asn1.Print_ExceptConstraint e1 e2, s)
+        (fun _ e s            -> stg_asn1.Print_RootConstraint e, s)
+        (fun _ e1 e2 s        -> stg_asn1.Print_RootConstraint2 e1 e2, s)
+        (fun _ v  s           -> stg_asn1.Print_SingleValueContraint (valToStrFunc v) ,s)
         c
         0 |> fst
 
 let foldRangeCon valToStrFunc1 valToStrFunc2  (c:RangeTypeConstraint<'v1,'v2>)  =
     foldRangeTypeConstraint        
-        (fun e1 e2 b s      -> stg_asn1.Print_UnionConstraint e1 e2, s)
-        (fun e1 e2 s        -> stg_asn1.Print_IntersectionConstraint e1 e2, s)
-        (fun e s            -> stg_asn1.Print_AllExceptConstraint e, s)
-        (fun e1 e2 s        -> stg_asn1.Print_ExceptConstraint e1 e2, s)
-        (fun e s            -> stg_asn1.Print_RootConstraint e, s)
-        (fun e1 e2 s        -> stg_asn1.Print_RootConstraint2 e1 e2, s)
-        (fun v  s           -> stg_asn1.Print_SingleValueContraint (valToStrFunc2 v) ,s)
-        (fun v1 v2  minIsIn maxIsIn s   -> stg_asn1.Print_RangeContraint (valToStrFunc1 v1) (valToStrFunc1 v2) minIsIn  maxIsIn , s)
-        (fun v1 minIsIn s   -> stg_asn1.Print_RangeContraint_val_MAX  (valToStrFunc1 v1) minIsIn, s)
-        (fun v2 maxIsIn s   -> stg_asn1.Print_RangeContraint_MIN_val (valToStrFunc1 v2) maxIsIn, s)
+        (fun _ e1 e2 b s      -> stg_asn1.Print_UnionConstraint e1 e2, s)
+        (fun _ e1 e2 s        -> stg_asn1.Print_IntersectionConstraint e1 e2, s)
+        (fun _ e s            -> stg_asn1.Print_AllExceptConstraint e, s)
+        (fun _ e1 e2 s        -> stg_asn1.Print_ExceptConstraint e1 e2, s)
+        (fun _ e s            -> stg_asn1.Print_RootConstraint e, s)
+        (fun _ e1 e2 s        -> stg_asn1.Print_RootConstraint2 e1 e2, s)
+        (fun _ v  s           -> stg_asn1.Print_SingleValueContraint (valToStrFunc2 v) ,s)
+        (fun _ v1 v2  minIsIn maxIsIn s   -> stg_asn1.Print_RangeContraint (valToStrFunc1 v1) (valToStrFunc1 v2) minIsIn  maxIsIn , s)
+        (fun _ v1 minIsIn s   -> stg_asn1.Print_RangeContraint_val_MAX  (valToStrFunc1 v1) minIsIn, s)
+        (fun _ v2 maxIsIn s   -> stg_asn1.Print_RangeContraint_MIN_val (valToStrFunc1 v2) maxIsIn, s)
         c
         0 |> fst
 
@@ -71,68 +71,68 @@ let foldRangeCon valToStrFunc1 valToStrFunc2  (c:RangeTypeConstraint<'v1,'v2>)  
 
 let foldSizableConstraint printSingValueFunc   (c:SizableTypeConstraint<'v>) =
     foldSizableTypeConstraint2
-        (fun e1 e2 b s      -> stg_asn1.Print_UnionConstraint e1 e2, s)
-        (fun e1 e2 s        -> stg_asn1.Print_IntersectionConstraint e1 e2, s)
-        (fun e s            -> stg_asn1.Print_AllExceptConstraint e, s)
-        (fun e1 e2 s        -> stg_asn1.Print_ExceptConstraint e1 e2, s)
-        (fun e s            -> stg_asn1.Print_RootConstraint e, s)
-        (fun e1 e2 s        -> stg_asn1.Print_RootConstraint2 e1 e2, s)
-        (fun v  s           -> stg_asn1.Print_SingleValueContraint (printSingValueFunc v) ,s)
-        (fun intCon s       -> foldRangeCon (fun i -> i.ToString()) (fun i -> i.ToString()) intCon, s)
+        (fun _ e1 e2 b s      -> stg_asn1.Print_UnionConstraint e1 e2, s)
+        (fun _ e1 e2 s        -> stg_asn1.Print_IntersectionConstraint e1 e2, s)
+        (fun _ e s            -> stg_asn1.Print_AllExceptConstraint e, s)
+        (fun _ e1 e2 s        -> stg_asn1.Print_ExceptConstraint e1 e2, s)
+        (fun _ e s            -> stg_asn1.Print_RootConstraint e, s)
+        (fun _ e1 e2 s        -> stg_asn1.Print_RootConstraint2 e1 e2, s)
+        (fun _ v  s           -> stg_asn1.Print_SingleValueContraint (printSingValueFunc v) ,s)
+        (fun _ intCon s       -> foldRangeCon (fun i -> i.ToString()) (fun i -> i.ToString()) intCon, s)
         c
         0 |> fst
 
 let foldSequenceOfConstraint printSingValueFunc   (c:SequenceOfConstraint) =
     foldSequenceOfTypeConstraint2
-        (fun e1 e2 b s      -> stg_asn1.Print_UnionConstraint e1 e2, s)
-        (fun e1 e2 s        -> stg_asn1.Print_IntersectionConstraint e1 e2, s)
-        (fun e s            -> stg_asn1.Print_AllExceptConstraint e, s)
-        (fun e1 e2 s        -> stg_asn1.Print_ExceptConstraint e1 e2, s)
-        (fun e s            -> stg_asn1.Print_RootConstraint e, s)
-        (fun e1 e2 s        -> stg_asn1.Print_RootConstraint2 e1 e2, s)
-        (fun v  s           -> stg_asn1.Print_SingleValueContraint (printSingValueFunc v) ,s)
-        (fun intCon s       -> foldRangeCon (fun i -> i.ToString()) (fun i -> i.ToString()) intCon, s)
-        (fun c l s          -> "", s)
+        (fun _ e1 e2 b s      -> stg_asn1.Print_UnionConstraint e1 e2, s)
+        (fun _ e1 e2 s        -> stg_asn1.Print_IntersectionConstraint e1 e2, s)
+        (fun _ e s            -> stg_asn1.Print_AllExceptConstraint e, s)
+        (fun _ e1 e2 s        -> stg_asn1.Print_ExceptConstraint e1 e2, s)
+        (fun _ e s            -> stg_asn1.Print_RootConstraint e, s)
+        (fun _ e1 e2 s        -> stg_asn1.Print_RootConstraint2 e1 e2, s)
+        (fun _ v  s           -> stg_asn1.Print_SingleValueContraint (printSingValueFunc v) ,s)
+        (fun _ intCon s       -> foldRangeCon (fun i -> i.ToString()) (fun i -> i.ToString()) intCon, s)
+        (fun _ c l s          -> "", s)
         c
         0 |> fst
 
 let foldStringCon    (c:IA5StringConstraint)  =
     foldStringTypeConstraint2
-        (fun e1 e2 b s      -> stg_asn1.Print_UnionConstraint e1 e2, s)
-        (fun e1 e2 s        -> stg_asn1.Print_IntersectionConstraint e1 e2, s)
-        (fun e s            -> stg_asn1.Print_AllExceptConstraint e, s)
-        (fun e1 e2 s        -> stg_asn1.Print_ExceptConstraint e1 e2, s)
-        (fun e s            -> stg_asn1.Print_RootConstraint e, s)
-        (fun e1 e2 s        -> stg_asn1.Print_RootConstraint2 e1 e2, s)
-        (fun v  s           -> stg_asn1.Print_SingleValueContraint (stg_asn1.Print_StringValue v ),s)
-        (fun intCon s       -> foldRangeCon  (fun i -> i.ToString()) (fun i -> i.ToString()) intCon , s)
-        (fun alphcon s      -> foldRangeCon  (fun i -> "\"" + i.ToString() + "\"") (fun i -> "\"" + i.ToString() + "\"") alphcon,s) 
+        (fun _ e1 e2 b s      -> stg_asn1.Print_UnionConstraint e1 e2, s)
+        (fun _ e1 e2 s        -> stg_asn1.Print_IntersectionConstraint e1 e2, s)
+        (fun _ e s            -> stg_asn1.Print_AllExceptConstraint e, s)
+        (fun _ e1 e2 s        -> stg_asn1.Print_ExceptConstraint e1 e2, s)
+        (fun _ e s            -> stg_asn1.Print_RootConstraint e, s)
+        (fun _ e1 e2 s        -> stg_asn1.Print_RootConstraint2 e1 e2, s)
+        (fun _ v  s           -> stg_asn1.Print_SingleValueContraint (stg_asn1.Print_StringValue v ),s)
+        (fun _ intCon s       -> foldRangeCon  (fun i -> i.ToString()) (fun i -> i.ToString()) intCon , s)
+        (fun _ alphcon s      -> foldRangeCon  (fun i -> "\"" + i.ToString() + "\"") (fun i -> "\"" + i.ToString() + "\"") alphcon,s) 
         c
         0 |> fst
 
 let foldSequenceCon valToStrFunc  (c:SeqConstraint)  =
     foldSeqConstraint
-        (fun e1 e2 b s      -> stg_asn1.Print_UnionConstraint e1 e2, s)
-        (fun e1 e2 s        -> stg_asn1.Print_IntersectionConstraint e1 e2, s)
-        (fun e s            -> stg_asn1.Print_AllExceptConstraint e, s)
-        (fun e1 e2 s        -> stg_asn1.Print_ExceptConstraint e1 e2, s)
-        (fun e s            -> stg_asn1.Print_RootConstraint e, s)
-        (fun e1 e2 s        -> stg_asn1.Print_RootConstraint2 e1 e2, s)
-        (fun v  s           -> stg_asn1.Print_SingleValueContraint (valToStrFunc v) ,s)
-        (fun nc s           -> "", s)
+        (fun _ e1 e2 b s      -> stg_asn1.Print_UnionConstraint e1 e2, s)
+        (fun _ e1 e2 s        -> stg_asn1.Print_IntersectionConstraint e1 e2, s)
+        (fun _ e s            -> stg_asn1.Print_AllExceptConstraint e, s)
+        (fun _ e1 e2 s        -> stg_asn1.Print_ExceptConstraint e1 e2, s)
+        (fun _ e s            -> stg_asn1.Print_RootConstraint e, s)
+        (fun _ e1 e2 s        -> stg_asn1.Print_RootConstraint2 e1 e2, s)
+        (fun _ v  s           -> stg_asn1.Print_SingleValueContraint (valToStrFunc v) ,s)
+        (fun _ nc s           -> "", s)
         c
         0 |> fst
 
 let foldChoiceCon valToStrFunc  (c:ChoiceConstraint)  =
     foldChoiceConstraint
-        (fun e1 e2 b s      -> stg_asn1.Print_UnionConstraint e1 e2, s)
-        (fun e1 e2 s        -> stg_asn1.Print_IntersectionConstraint e1 e2, s)
-        (fun e s            -> stg_asn1.Print_AllExceptConstraint e, s)
-        (fun e1 e2 s        -> stg_asn1.Print_ExceptConstraint e1 e2, s)
-        (fun e s            -> stg_asn1.Print_RootConstraint e, s)
-        (fun e1 e2 s        -> stg_asn1.Print_RootConstraint2 e1 e2, s)
-        (fun v  s           -> stg_asn1.Print_SingleValueContraint (valToStrFunc v) ,s)
-        (fun nc s           -> "", s)
+        (fun _ e1 e2 b s      -> stg_asn1.Print_UnionConstraint e1 e2, s)
+        (fun _ e1 e2 s        -> stg_asn1.Print_IntersectionConstraint e1 e2, s)
+        (fun _ e s            -> stg_asn1.Print_AllExceptConstraint e, s)
+        (fun _ e1 e2 s        -> stg_asn1.Print_ExceptConstraint e1 e2, s)
+        (fun _ e s            -> stg_asn1.Print_RootConstraint e, s)
+        (fun _ e1 e2 s        -> stg_asn1.Print_RootConstraint2 e1 e2, s)
+        (fun _ v  s           -> stg_asn1.Print_SingleValueContraint (valToStrFunc v) ,s)
+        (fun _ nc s           -> "", s)
         c
         0 |> fst
 
@@ -174,7 +174,7 @@ let createEnumeratedFunction (r:Asn1AcnAst.AstRoot) (t:Asn1AcnAst.Asn1Type) (o:A
         o.AllCons |>
         List.filter(fun c ->
             match c with
-            | Asn1AcnAst.UnionConstraint(_,_,virtCon)   -> not virtCon
+            | Asn1AcnAst.UnionConstraint(_,_,_,virtCon)   -> not virtCon
             | _                                         -> true)
     actualConstraints |> List.map conToStrFunc
 

@@ -30,16 +30,16 @@ create c and Ada procedures that initialize an ASN.1 type.
 
 let rangeConstraint2RangeSet (r:Asn1AcnAst.AstRoot)  (c:Asn1AcnAst.RangeTypeConstraint<'v,'v>) st =
     foldRangeTypeConstraint 
-        (fun (e1:RangeSet<'v>) e2 b s -> e1.union e2, s) 
-        (fun e1 e2 s -> e1.intersect e2, s) 
-        (fun e s -> e.complement, s) 
-        (fun e1 e2 s -> e1.difference e2, s) 
-        (fun e s -> e,s) 
-        (fun e1 e2 s -> e1.union e2, s) 
-        (fun v  s         -> RangeSet<'v>.createFromSingleValue v ,s)
-        (fun v1 v2  minIsIn maxIsIn s   -> RangeSet<'v>.createFromValuePair v1 v2  minIsIn maxIsIn, s)
-        (fun v1 minIsIn s   -> RangeSet<'v>.createPosInfinite v1 minIsIn, s)
-        (fun v2 maxIsIn s   -> RangeSet<'v>.createNegInfinite v2 maxIsIn, s)
+        (fun _ (e1:RangeSet<'v>) e2 b s -> e1.union e2, s) 
+        (fun _ e1 e2 s -> e1.intersect e2, s) 
+        (fun _ e s -> e.complement, s) 
+        (fun _ e1 e2 s -> e1.difference e2, s) 
+        (fun _ e s -> e,s) 
+        (fun _ e1 e2 s -> e1.union e2, s) 
+        (fun _ v  s         -> RangeSet<'v>.createFromSingleValue v ,s)
+        (fun _ v1 v2  minIsIn maxIsIn s   -> RangeSet<'v>.createFromValuePair v1 v2  minIsIn maxIsIn, s)
+        (fun _ v1 minIsIn s   -> RangeSet<'v>.createPosInfinite v1 minIsIn, s)
+        (fun _ v2 maxIsIn s   -> RangeSet<'v>.createNegInfinite v2 maxIsIn, s)
         c
         st
 
@@ -48,13 +48,13 @@ let rangeConstraint2RangeSet (r:Asn1AcnAst.AstRoot)  (c:Asn1AcnAst.RangeTypeCons
 
 let genericConstraint2ValueSet  (r:Asn1AcnAst.AstRoot) (c:Asn1AcnAst.GenericConstraint<'v>)  st =
     foldGenericConstraint 
-        (fun (e1:ValueSet<'v>) e2 b s -> e1.union e2, s) 
-        (fun e1 e2 s -> e1.intersect e2, s) 
-        (fun e s -> e.complement, s) 
-        (fun e1 e2 s -> e1.difference e2, s) 
-        (fun e s -> e,s) 
-        (fun e1 e2 s -> e1.union e2, s) 
-        (fun v  s         -> ValueSet<'v>.createFromSingleValue v ,s)
+        (fun _ (e1:ValueSet<'v>) e2 b s -> e1.union e2, s) 
+        (fun _ e1 e2 s -> e1.intersect e2, s) 
+        (fun _ e s -> e.complement, s) 
+        (fun _ e1 e2 s -> e1.difference e2, s) 
+        (fun _ e s -> e,s) 
+        (fun _ e1 e2 s -> e1.union e2, s) 
+        (fun _ v  s         -> ValueSet<'v>.createFromSingleValue v ,s)
         c
         st
 
@@ -75,14 +75,14 @@ let foldSizeRangeTypeConstraint (r:Asn1AcnAst.AstRoot)  (c:Asn1AcnAst.PosIntType
 //SizeableSet
 let foldSizableConstraint (r:Asn1AcnAst.AstRoot)  (c:Asn1AcnAst.SizableTypeConstraint<'v>) st =
     foldSizableTypeConstraint2 
-        (fun (e1:SizeableSet<'v>) e2 b s -> e1.union e2, s) 
-        (fun e1 e2 s -> e1.intersect e2, s) 
-        (fun e s -> e.complement, s) 
-        (fun e1 e2 s -> e1.difference e2, s) 
-        (fun e s -> e,s) 
-        (fun e1 e2 s -> e1.union e2, s) 
-        (fun v  s         -> SizeableSet<'v>.createFromSingleValue v ,s)
-        (fun intCon s       -> 
+        (fun _ (e1:SizeableSet<'v>) e2 b s -> e1.union e2, s) 
+        (fun _ e1 e2 s -> e1.intersect e2, s) 
+        (fun _ e s -> e.complement, s) 
+        (fun _ e1 e2 s -> e1.difference e2, s) 
+        (fun _ e s -> e,s) 
+        (fun _ e1 e2 s -> e1.union e2, s) 
+        (fun _ v  s         -> SizeableSet<'v>.createFromSingleValue v ,s)
+        (fun _ intCon s       -> 
             let sizeRange, ns = foldSizeRangeTypeConstraint r intCon s
             SizeableSet<'v>.createFromSizeRange sizeRange, ns)
         c
@@ -98,17 +98,17 @@ let bitConstraint2Set r (c:Asn1AcnAst.BitStringConstraint) = foldSizableConstrai
 
 let ia5StringConstraint2Set  (r:Asn1AcnAst.AstRoot)    (c:Asn1AcnAst.IA5StringConstraint) (us0:State) =
     foldStringTypeConstraint2 
-        (fun (e1:SizeableSet<string>) e2 b s -> e1.union e2, s) 
-        (fun e1 e2 s -> e1.intersect e2, s) 
-        (fun e s -> e.complement, s) 
-        (fun e1 e2 s -> e1.difference e2, s) 
-        (fun e s -> e,s) 
-        (fun e1 e2 s -> e1.union e2, s) 
-        (fun v  s         -> SizeableSet<string>.createFromSingleValue v ,s)
-        (fun intCon s       -> 
+        (fun _ (e1:SizeableSet<string>) e2 b s -> e1.union e2, s) 
+        (fun _ e1 e2 s -> e1.intersect e2, s) 
+        (fun _ e s -> e.complement, s) 
+        (fun _ e1 e2 s -> e1.difference e2, s) 
+        (fun _ e s -> e,s) 
+        (fun _ e1 e2 s -> e1.union e2, s) 
+        (fun _ v  s         -> SizeableSet<string>.createFromSingleValue v ,s)
+        (fun _ intCon s       -> 
             let sizeRange, ns = foldSizeRangeTypeConstraint r intCon s
             SizeableSet<string>.createFromSizeRange sizeRange, ns)
-        (fun alphcon s      -> 
+        (fun _ alphcon s      -> 
             let b = true
             match b with true -> ()
             //currently the alphabet constraints are ignored ...

@@ -97,14 +97,16 @@ let createDefaultConstraintsForEnumeratedTypes (tree:ITree) (namedItems:NamedIte
     let mdName = mdTree.GetChild(0).TextL
     let createSingleValueConstraintFromNamedItem (ni:NamedItem) =
         let v = {Asn1Value.Kind = (RefValue ({StringLoc.Value = mdName.Value; Location=ni.Name.Location}, ni.Name)); Location = ni.Name.Location  }
-        SingleValueContraint v
+        SingleValueContraint (ni.Name.Value, v)
     match namedItems with
     | x::xs ->
         let initialCon = createSingleValueConstraintFromNamedItem x
+        let asn1Cons =
+            namedItems |> List.map(fun z -> z.Name.Value) |> Seq.StrJoin " | "
         let ret = 
             xs |> List.fold(fun accConst ni -> 
                                 let curCon = createSingleValueConstraintFromNamedItem ni
-                                UnionConstraint (accConst, curCon, true) ) initialCon
+                                UnionConstraint (asn1Cons, accConst, curCon, true) ) initialCon
         Ok ret
     | []    -> 
             Error (Semantic_Error (tree.Location, "Enumerated type has no enumerants"))
@@ -268,68 +270,71 @@ let rec CreateValue integerSizeInBytes (astRoot:list<ITree>) (tree:ITree ) : Res
 
 
 
-let rec CreateConstraint (integerSizeInBytes: BigInteger)  (astRoot:list<ITree>) (tree:ITree) : Result<Asn1Constraint option, Asn1ParseError>=
+let rec CreateConstraint (integerSizeInBytes: BigInteger)  (astRoot:list<ITree>) (fileTokens:array<IToken>) (tree:ITree) : Result<Asn1Constraint option, Asn1ParseError>=
     result {
+        let asn1Str = 
+            fileTokens.[tree.TokenStartIndex .. tree.TokenStopIndex] |> Seq.map(fun s -> s.Text) |> Seq.StrJoin ""
+        //printfn "%s" asn1Str
         match tree.Type with
         |asn1Parser.UnionMark           -> 
-            let! c1 = CreateConstraint  integerSizeInBytes  astRoot (tree.GetChild(0)) 
-            let! c2 = CreateConstraint  integerSizeInBytes  astRoot (tree.GetChild(1)) 
+            let! c1 = CreateConstraint  integerSizeInBytes  astRoot fileTokens (tree.GetChild(0)) 
+            let! c2 = CreateConstraint  integerSizeInBytes  astRoot fileTokens (tree.GetChild(1)) 
             match c1, c2 with
-            |Some(k1),Some(k2)  -> return (Some(UnionConstraint(k1 , k2, false )))
+            |Some(k1),Some(k2)  -> return (Some(UnionConstraint(asn1Str, k1 , k2, false )))
             |Some(k1),None      -> return None
             |None, Some(_)      -> return None
             |None, None         -> return None
         |asn1Parser.IntersectionMark    -> 
-            let! c1 = CreateConstraint integerSizeInBytes  astRoot (tree.GetChild(0)) 
-            let! c2 = CreateConstraint integerSizeInBytes  astRoot (tree.GetChild(1)) 
+            let! c1 = CreateConstraint integerSizeInBytes  astRoot fileTokens (tree.GetChild(0)) 
+            let! c2 = CreateConstraint integerSizeInBytes  astRoot fileTokens (tree.GetChild(1)) 
             match c1, c2 with
-            |Some(k1),Some(k2)  -> return (Some(IntersectionConstraint(k1 , k2 )))
+            |Some(k1),Some(k2)  -> return (Some(IntersectionConstraint(asn1Str, k1 , k2 )))
             |Some(k1),None      -> return (Some k1)
             |None, Some(k2)     -> return (Some k2)
             |None, None         -> return None
         |asn1Parser.SIZE_EXPR           -> 
-            let! c1 = CreateConstraint integerSizeInBytes  astRoot (tree.GetChild(0)) 
+            let! c1 = CreateConstraint integerSizeInBytes  astRoot fileTokens (tree.GetChild(0)) 
             match c1 with
-            |Some(k1)   -> return (Some(SizeContraint k1))
+            |Some(k1)   -> return (Some(SizeContraint (asn1Str, k1)))
             |None       -> return None
         |asn1Parser.SUBTYPE_EXPR        -> 
-            let! t = CreateRefTypeContent(tree.GetChild(0))
-            return (Some(TypeInclusionConstraint(t)))
+            let! (a,b) = CreateRefTypeContent(tree.GetChild(0))
+            return (Some(TypeInclusionConstraint(asn1Str,a,b) ))
         |asn1Parser.PERMITTED_ALPHABET_EXPR -> 
-            let! c1 = CreateConstraint integerSizeInBytes  astRoot (tree.GetChild(0)) 
+            let! c1 = CreateConstraint integerSizeInBytes  astRoot fileTokens (tree.GetChild(0)) 
             match c1 with
-            |Some(k1)   -> return (Some(AlphabetContraint k1))
+            |Some(k1)   -> return (Some(AlphabetContraint (asn1Str, k1)))
             |None       -> return None
         |asn1Parser.ALL_EXCEPT          -> 
-            let! c1 = CreateConstraint integerSizeInBytes  astRoot (tree.GetChild(0)) 
+            let! c1 = CreateConstraint integerSizeInBytes  astRoot fileTokens (tree.GetChild(0)) 
             match c1 with
-            |Some(k1)   -> return (Some(AllExceptConstraint k1))
+            |Some(k1)   -> return (Some(AllExceptConstraint (asn1Str, k1)))
             |None       -> 
                 let! e = Error (Semantic_Error(tree.Location, "Invalid constraints definition"))
                 return e
         |asn1Parser.EXCEPT              -> 
-            let! c1 = CreateConstraint integerSizeInBytes  astRoot (tree.GetChild(0)) 
-            let! c2 = CreateConstraint integerSizeInBytes  astRoot (tree.GetChild(1)) 
+            let! c1 = CreateConstraint integerSizeInBytes  astRoot fileTokens (tree.GetChild(0)) 
+            let! c2 = CreateConstraint integerSizeInBytes  astRoot fileTokens (tree.GetChild(1)) 
             match c1, c2 with
-            |Some(k1),Some(k2)  -> return (Some(ExceptConstraint(k1 , k2 )))
+            |Some(k1),Some(k2)  -> return (Some(ExceptConstraint(asn1Str, k1 , k2 )))
             |Some(k1),None      -> 
                 let! e = Error(Semantic_Error(tree.Location, "Invalid constraints definition"))
                 return e
-            |None, Some(k2)     -> return (Some(AllExceptConstraint k2))
+            |None, Some(k2)     -> return (Some(AllExceptConstraint (asn1Str, k2)))
             |None, None         -> 
                 let! e = Error(Semantic_Error(tree.Location, "Invalid constraints definition"))
                 return e
         |asn1Parser.EXT_MARK            ->
-            let! c1 = CreateConstraint integerSizeInBytes  astRoot (tree.GetChild(0)) 
+            let! c1 = CreateConstraint integerSizeInBytes  astRoot fileTokens (tree.GetChild(0)) 
             if tree.ChildCount = 1 then 
                 match c1 with
-                | Some k1 -> return (Some( RootConstraint(k1)))
+                | Some k1 -> return (Some( RootConstraint(asn1Str, k1)))
                 | None    -> return None
             else 
-                let! c2 = CreateConstraint integerSizeInBytes  astRoot (tree.GetChild(1)) 
+                let! c2 = CreateConstraint integerSizeInBytes  astRoot fileTokens (tree.GetChild(1)) 
                 match c1, c2 with
-                |Some(k1),Some(k2)  -> return (Some(RootConstraint2(k1 , k2 )))
-                |Some(k1),None      -> return (Some( RootConstraint(k1)))
+                |Some(k1),Some(k2)  -> return (Some(RootConstraint2(asn1Str, k1 , k2 )))
+                |Some(k1),None      -> return (Some( RootConstraint(asn1Str, k1)))
                 |None, Some(k2)     -> 
                     let! e = Error(Semantic_Error(tree.Location, "Invalid constraints definition"))
                     return e
@@ -337,9 +342,9 @@ let rec CreateConstraint (integerSizeInBytes: BigInteger)  (astRoot:list<ITree>)
                     let! e = Error(Semantic_Error(tree.Location, "Invalid constraints definition"))
                     return e
         |asn1Parser.WITH_COMPONENT_CONSTR   -> 
-            let! c1 = CreateConstraint integerSizeInBytes  astRoot (tree.GetChild(0)) 
+            let! c1 = CreateConstraint integerSizeInBytes  astRoot fileTokens (tree.GetChild(0)) 
             match c1 with
-            | Some k1   -> return (Some(WithComponentConstraint(k1, tree.Location)))
+            | Some k1   -> return (Some(WithComponentConstraint(asn1Str, k1, tree.Location)))
             | None      -> return None
 
         |asn1Parser.WITH_COMPONENTS_CONSTR -> 
@@ -350,7 +355,7 @@ let rec CreateConstraint (integerSizeInBytes: BigInteger)  (astRoot:list<ITree>)
                         let! contraint = 
                             match getOptionalChildByType(tree, asn1Parser.INNER_CONSTRAINT)  with
                             | None -> Ok None
-                            | Some(con) -> CreateConstraint   integerSizeInBytes  astRoot (con.GetChild(0)) 
+                            | Some(con) -> CreateConstraint   integerSizeInBytes  astRoot fileTokens (con.GetChild(0)) 
 
                         let! mark = 
                             match getOptionalChildByType(tree, asn1Parser.EXT_MARK) with
@@ -369,8 +374,9 @@ let rec CreateConstraint (integerSizeInBytes: BigInteger)  (astRoot:list<ITree>)
                             }
                     }
                 let! cs = tree.GetChildrenByType(asn1Parser.NAME_CONSTRAINT_EXPR) |> List.traverseResultM CreateNamedConstraint
-                return (Some(WithComponentsConstraint cs))
+                return (Some(WithComponentsConstraint (asn1Str, cs)))
         |asn1Parser.VALUE_RANGE_EXPR    ->
+            
             let maxValIncl = getOptionalChildByType(tree, asn1Parser.MAX_VAL_PRESENT)
             let minValIsIncluded= match getOptionalChildByType(tree, asn1Parser.MIN_VAL_INCLUDED) with
                                   | Some _   -> false
@@ -382,7 +388,7 @@ let rec CreateConstraint (integerSizeInBytes: BigInteger)  (astRoot:list<ITree>)
             match maxValIncl with
             | None         -> 
                 let! v = CreateValue integerSizeInBytes astRoot (tree.GetChild(0))
-                return (Some(SingleValueContraint( v  )))
+                return (Some(SingleValueContraint(asn1Str, v)))
             | Some(v)      -> 
                 let a = tree.GetChild(0)
                 let b = v.GetChild(0)
@@ -390,14 +396,14 @@ let rec CreateConstraint (integerSizeInBytes: BigInteger)  (astRoot:list<ITree>)
                 | asn1Parser.MIN, asn1Parser.MAX    -> return None //RangeContraint_MIN_MAX
                 | asn1Parser.MIN, _                 -> 
                     let! v = CreateValue  integerSizeInBytes astRoot b
-                    return (Some(RangeContraint_MIN_val(v,  maxValIsIncluded)))
+                    return (Some(RangeContraint_MIN_val(asn1Str, v,  maxValIsIncluded)))
                 | _, asn1Parser.MAX                 -> 
                     let! v = CreateValue  integerSizeInBytes  astRoot a
-                    return (Some(RangeContraint_val_MAX(v, minValIsIncluded )))
+                    return (Some(RangeContraint_val_MAX(asn1Str, v, minValIsIncluded )))
                 | _, _  ->  
                     let! v1 = CreateValue  integerSizeInBytes astRoot a
                     let! v2 = CreateValue  integerSizeInBytes astRoot  b
-                    return (Some(RangeContraint(v1 , v2, minValIsIncluded, maxValIsIncluded  )))
+                    return (Some(RangeContraint(asn1Str, v1 , v2, minValIsIncluded, maxValIsIncluded  )))
         | _ -> 
             return! Error (Bug_Error("Bug in CreateConstraint"))
             
@@ -530,7 +536,7 @@ let rec CreateType integerSizeInBytes (tasParameters : TemplateParameter list) (
         let! constraints = 
             result {
                 let! userConstraints0 = 
-                    contraintNodes |> List.traverseResultM(fun x-> CreateConstraint integerSizeInBytes astRoot x ) 
+                    contraintNodes |> List.traverseResultM(fun x-> CreateConstraint integerSizeInBytes astRoot fileTokens x ) 
                 let userConstraints = userConstraints0 |> List.choose(fun x -> x)
                 match asn1Kind with
                 | Enumerated(itms)  -> 
