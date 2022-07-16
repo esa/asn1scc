@@ -1368,3 +1368,5 @@ v2out
 /StgAda/IUper_a.stg.fs
 /StgC/IAcn_c.stg.fs
 /StgAda/IAcn_a.stg.fs
+/StgC/IInit_c.stg.fs
+/StgAda/IInit_a.stg.fs

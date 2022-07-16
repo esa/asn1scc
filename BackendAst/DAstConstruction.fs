@@ -103,7 +103,7 @@ let private createInteger (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (lm:Lan
             |true    -> 0I
             |false   -> x
     let automaticTestCasesValues      = automaticTestCasesIntValues |> List.mapi (fun i x -> createAsn1ValueFromValueKind t i (IntegerValue x)) 
-    let initFunction        = TL "DAstInitialize" (fun () -> DAstInitialize.createIntegerInitFunc r l t o defOrRef (IntegerValue initialValue))
+    let initFunction        = TL "DAstInitialize" (fun () -> DAstInitialize.createIntegerInitFunc r lm t o defOrRef (IntegerValue initialValue))
     let equalFunction       = TL "DAstEqual" (fun () -> DAstEqual.createIntegerEqualFunction r lm t o defOrRef)
     let isValidFunction, s1     = TL "DastValidate2" (fun () -> DastValidate2.createIntegerFunction r lm t o defOrRef  us)
     let uperEncFunction, s2     = TL "DAstUPer" (fun () -> DAstUPer.createIntegerFunction r lm Codec.Encode t o defOrRef None isValidFunction s1)
@@ -148,7 +148,7 @@ let private createReal (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (lm:Langua
     let defOrRef            =  DAstTypeDefinition.createReal_u r lm t o us
     let equalFunction       = DAstEqual.createRealEqualFunction r lm t o defOrRef 
     let initialValue        = getValueByUperRange o.uperRange 0.0
-    let initFunction        = DAstInitialize.createRealInitFunc r l t o defOrRef (RealValue initialValue)
+    let initFunction        = DAstInitialize.createRealInitFunc r lm t o defOrRef (RealValue initialValue)
     let isValidFunction, s1     = DastValidate2.createRealFunction r lm t o defOrRef  us
     let uperEncFunction, s2     = DAstUPer.createRealFunction r lm Codec.Encode t o defOrRef None isValidFunction s1
     let uperDecFunction, s3     = DAstUPer.createRealFunction r lm Codec.Decode t o defOrRef None isValidFunction s2
@@ -202,7 +202,7 @@ let private createStringType (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserted
             | true  -> ' '
             | false -> o.uperCharSet |> Seq.find(fun c -> not (Char.IsControl c))
         System.String(ch, int o.minSize.uper)
-    let initFunction        = DAstInitialize.createIA5StringInitFunc r l t o defOrRef (StringValue initialValue)
+    let initFunction        = DAstInitialize.createIA5StringInitFunc r lm t o defOrRef (StringValue initialValue)
     let isValidFunction, s1     = DastValidate2.createStringFunction r lm t o defOrRef  us
     let uperEncFunction, s2     = DAstUPer.createIA5StringFunction r lm Codec.Encode t o  defOrRef None isValidFunction s1
     let uperDecFunction, s3     = DAstUPer.createIA5StringFunction r lm Codec.Decode t o  defOrRef None isValidFunction s2
@@ -250,7 +250,7 @@ let private createOctetString (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserte
     let printValue          = DAstVariables.createOctetStringFunction r l t o defOrRef 
 
     let isValidFunction, s1     = DastValidate2.createOctetStringFunction r lm t o defOrRef  equalFunction printValue us
-    let initFunction        = DAstInitialize.createOctetStringInitFunc r l t o defOrRef (OctetStringValue initialValue) isValidFunction
+    let initFunction        = DAstInitialize.createOctetStringInitFunc r lm t o defOrRef (OctetStringValue initialValue) isValidFunction
     let uperEncFunction, s2     = DAstUPer.createOctetStringFunction r lm Codec.Encode t o  defOrRef None isValidFunction s1
     let uperDecFunction, s3     = DAstUPer.createOctetStringFunction r lm Codec.Decode t o  defOrRef None isValidFunction s2
     let acnEncFunction, s4      = DAstACN.createOctetStringFunction r deps lm Codec.Encode t o defOrRef isValidFunction uperEncFunction s3
@@ -293,7 +293,7 @@ let private createNullType (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (lm:La
     let defOrRef            =  DAstTypeDefinition.createNull_u r lm t o us
     let equalFunction       = DAstEqual.createNullTypeEqualFunction r lm  t o defOrRef
     let initialValue        = ()
-    let initFunction        = DAstInitialize.createNullTypeInitFunc r l t o defOrRef (NullValue initialValue)
+    let initFunction        = DAstInitialize.createNullTypeInitFunc r lm t o defOrRef (NullValue initialValue)
     let uperEncFunction, s2     = DAstUPer.createNullTypeFunction r lm Codec.Encode t o defOrRef None None us
     let uperDecFunction, s3     = DAstUPer.createNullTypeFunction r lm Codec.Decode t o defOrRef None None s2
     let acnEncFunction, s4      = DAstACN.createNullTypeFunction r lm Codec.Encode t o defOrRef None  s3
@@ -337,7 +337,7 @@ let private createBitString (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
     let equalFunction       = DAstEqual.createBitStringEqualFunction r lm t o defOrRef 
     let printValue          = DAstVariables.createBitStringFunction r l t o defOrRef 
     let isValidFunction, s1     = DastValidate2.createBitStringFunction r lm t o defOrRef defOrRef equalFunction printValue us
-    let initFunction        = DAstInitialize.createBitStringInitFunc r l t o defOrRef (BitStringValue initialValue) isValidFunction
+    let initFunction        = DAstInitialize.createBitStringInitFunc r lm t o defOrRef (BitStringValue initialValue) isValidFunction
 
     let uperEncFunction, s2     = DAstUPer.createBitStringFunction r lm Codec.Encode t o  defOrRef None isValidFunction s1
     let uperDecFunction, s3     = DAstUPer.createBitStringFunction r lm Codec.Decode t o  defOrRef None isValidFunction s2
@@ -379,7 +379,7 @@ let private createBoolean (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (lm:Lan
     let defOrRef            =  DAstTypeDefinition.createBoolean_u r lm t o us
     let equalFunction       = DAstEqual.createBooleanEqualFunction r lm t o defOrRef 
     let initialValue        = false
-    let initFunction        = DAstInitialize.createBooleanInitFunc r l t o defOrRef (BooleanValue initialValue)
+    let initFunction        = DAstInitialize.createBooleanInitFunc r lm t o defOrRef (BooleanValue initialValue)
     let isValidFunction, s1     = DastValidate2.createBoolFunction r lm t o defOrRef us
     let uperEncFunction, s2     = DAstUPer.createBooleanFunction r lm Codec.Encode t o defOrRef None isValidFunction s1
     let uperDecFunction, s3     = DAstUPer.createBooleanFunction r lm Codec.Decode t o defOrRef None isValidFunction s2
@@ -422,7 +422,7 @@ let private createEnumerated (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (lm:
     let equalFunction       = DAstEqual.createEnumeratedEqualFunction r lm t o defOrRef 
 
     let initialValue  =o.items.Head.Name.Value
-    let initFunction        = DAstInitialize.createEnumeratedInitFunc r l t o  defOrRef (EnumValue initialValue)
+    let initFunction        = DAstInitialize.createEnumeratedInitFunc r lm t o  defOrRef (EnumValue initialValue)
     let isValidFunction, s1     = DastValidate2.createEnumeratedFunction r lm t o defOrRef us
     let uperEncFunction, s2     = DAstUPer.createEnumeratedFunction r lm Codec.Encode t o  defOrRef None isValidFunction s1
     let uperDecFunction, s3     = DAstUPer.createEnumeratedFunction r lm Codec.Decode t o  defOrRef None isValidFunction s2
@@ -474,7 +474,7 @@ let private createObjectIdentifier (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage
     let equalFunction       = DAstEqual.createObjectIdentifierEqualFunction r lm t o defOrRef 
 
     let initialValue  = InternalObjectIdentifierValue([])
-    let initFunction        = DAstInitialize.createObjectIdentifierInitFunc r l t o  defOrRef (ObjOrRelObjIdValue initialValue)
+    let initFunction        = DAstInitialize.createObjectIdentifierInitFunc r lm t o  defOrRef (ObjOrRelObjIdValue initialValue)
     let isValidFunction, s1     = DastValidate2.createObjectIdentifierFunction r lm t o defOrRef us
     let uperEncFunction, s2     = DAstUPer.createObjectIdentifierFunction r lm Codec.Encode t o  defOrRef None isValidFunction s1
     let uperDecFunction, s3     = DAstUPer.createObjectIdentifierFunction r lm Codec.Decode t o  defOrRef None isValidFunction s2
@@ -519,7 +519,7 @@ let private createTimeType (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (lm:La
     let equalFunction       = DAstEqual.createTimeTypeEqualFunction r lm t o defOrRef 
 
     let initialValue  = (EncodeDecodeTestCase.TimeTypeAutomaticTestCaseValues r t o).Head
-    let initFunction        = DAstInitialize.createTimeTypeInitFunc r l t o  defOrRef (TimeValue initialValue)
+    let initFunction        = DAstInitialize.createTimeTypeInitFunc r lm t o  defOrRef (TimeValue initialValue)
     let isValidFunction, s1     = DastValidate2.createTimeTypeFunction r lm t o defOrRef us
     
     let uperEncFunction, s2     = DAstUPer.createTimeTypeFunction r lm Codec.Encode t o  defOrRef None isValidFunction s1
@@ -575,7 +575,7 @@ let private createSequenceOf (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserted
     let equalFunction       = DAstEqual.createSequenceOfEqualFunction r lm t o defOrRef childType
     let initialValue =
         [1 .. int o.minSize.uper] |> List.map(fun i -> childType.initialValue) |> List.map(fun x -> {Asn1Value.kind=x;id=ReferenceToValue([],[]);loc=emptyLocation}) 
-    let initFunction        = DAstInitialize.createSequenceOfInitFunc r l t o defOrRef childType (SeqOfValue initialValue)
+    let initFunction        = DAstInitialize.createSequenceOfInitFunc r lm t o defOrRef childType (SeqOfValue initialValue)
     let isValidFunction, s1     = DastValidate2.createSequenceOfFunction r lm t o defOrRef childType equalFunction us0
     let uperEncFunction, s2     = DAstUPer.createSequenceOfFunction r lm Codec.Encode t o  defOrRef None isValidFunction childType s1
     let uperDecFunction, s3     = DAstUPer.createSequenceOfFunction r lm Codec.Decode t o  defOrRef None isValidFunction childType s2
@@ -647,7 +647,7 @@ let private createSequence (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                                 match ch with
                                 | Asn1Child o -> Some ({NamedValue.name = o.Name.Value; Value={Asn1Value.kind=o.Type.initialValue;id=ReferenceToValue([],[]);loc=emptyLocation}})
                                 | AcnChild  _ -> None))
-    let initFunction        = TL "SQ_DAstInitialize" (fun () -> DAstInitialize.createSequenceInitFunc r l t o defOrRef children (SeqValue initialValue))
+    let initFunction        = TL "SQ_DAstInitialize" (fun () -> DAstInitialize.createSequenceInitFunc r lm t o defOrRef children (SeqValue initialValue))
     let isValidFunction, s1     =  TL "SQ_DAstInitialize" (fun () -> DastValidate2.createSequenceFunction r lm t o defOrRef children  us)
         
     let uperEncFunction, s2     = TL "SQ_DAstUPer" (fun () ->DAstUPer.createSequenceFunction r lm Codec.Encode t o defOrRef isValidFunction children s1)
@@ -696,7 +696,7 @@ let private createChoice (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
     let equalFunction       = TL "DAstEqual" (fun () -> DAstEqual.createChoiceEqualFunction r lm t o defOrRef children)
     let initialValue =
         children |> Seq.map(fun o -> {NamedValue.name = o.Name.Value; Value={Asn1Value.kind=o.chType.initialValue;id=ReferenceToValue([],[]);loc=emptyLocation}}) |> Seq.head
-    let initFunction        = TL "DAstInitialize" (fun () -> DAstInitialize.createChoiceInitFunc r l t o defOrRef children (ChValue initialValue))
+    let initFunction        = TL "DAstInitialize" (fun () -> DAstInitialize.createChoiceInitFunc r lm t o defOrRef children (ChValue initialValue))
     let isValidFunction, s1     = TL "DastValidate2" (fun () -> DastValidate2.createChoiceFunction r lm t o defOrRef defOrRef children None us)
     let uperEncFunction, s2     = TL "DAstUPer" (fun () -> DAstUPer.createChoiceFunction r lm Codec.Encode t o  defOrRef None isValidFunction children s1)
     let uperDecFunction, s3     = TL "DAstUPer" (fun () -> DAstUPer.createChoiceFunction r lm Codec.Decode t o  defOrRef None isValidFunction children s2)
@@ -763,7 +763,7 @@ let private createReferenceType (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInser
     //let typeDefinition = DAstTypeDefinition.createReferenceType r l t o newResolvedType us
     let equalFunction       = DAstEqual.createReferenceTypeEqualFunction r lm t o defOrRef newResolvedType
     let initialValue        = {Asn1Value.kind=newResolvedType.initialValue;id=ReferenceToValue([],[]);loc=emptyLocation}
-    let initFunction        = DAstInitialize.createReferenceType r l t o defOrRef newResolvedType
+    let initFunction        = DAstInitialize.createReferenceType r lm t o defOrRef newResolvedType
     let isValidFunction, s1     = DastValidate2.createReferenceTypeFunction r lm t o defOrRef newResolvedType us
     let uperEncFunction, s2     = DAstUPer.createReferenceFunction r lm Codec.Encode t o defOrRef isValidFunction newResolvedType s1
     let uperDecFunction, s3     = DAstUPer.createReferenceFunction r lm Codec.Decode t o defOrRef isValidFunction newResolvedType s2

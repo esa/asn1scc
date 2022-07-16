@@ -605,12 +605,14 @@ type FE_SizeableTypeDefinition = {
 }
 with
     member this.longTypedefName l callerProgramUnit =
-        let z n = this.programUnit + "." + n
-        match l with
-        | C             -> this
-        | Ada   when this.programUnit = callerProgramUnit   -> this
-        | Ada           -> {this with typeName = z this.typeName; index = z this.index; array = z this.array; length_index = z this.length_index}
+        this.longTypedefName2 (l=Ada) callerProgramUnit
 
+    member this.longTypedefName2 bHasUnits callerProgramUnit =
+        let z n = this.programUnit + "." + n
+        match bHasUnits with
+        | false             -> this
+        | true   when this.programUnit = callerProgramUnit   -> this
+        | true           -> {this with typeName = z this.typeName; index = z this.index; array = z this.array; length_index = z this.length_index}
 
 type FE_SequenceTypeDefinition = {
     asn1Name        : string
@@ -622,12 +624,14 @@ type FE_SequenceTypeDefinition = {
     kind            : FE_NonPrimitiveTypeDefinitionKind<FE_SequenceTypeDefinition>
 }
 with
-    member this.longTypedefName l callerProgramUnit =
+    member this.longTypedefName2 bHasUnits callerProgramUnit =
         let z n = this.programUnit + "." + n
-        match l with
-        | C             -> this
-        | Ada   when this.programUnit = callerProgramUnit   -> this
-        | Ada           -> {this with typeName = z this.typeName; exist = z this.exist}
+        match bHasUnits with
+        | false             -> this
+        | true   when this.programUnit = callerProgramUnit   -> this
+        | true   -> {this with typeName = z this.typeName; exist = z this.exist}
+    member this.longTypedefName l callerProgramUnit =
+        this.longTypedefName2 (l=Ada) callerProgramUnit
 
 type FE_ChoiceTypeDefinition = {
     asn1Name        : string

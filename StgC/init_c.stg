@@ -1,6 +1,9 @@
 ﻿group c_init;
 
 
+rtlModuleName() ::= "adaasn1rtl"
+methodNameSuffix() ::= "_Initialize"
+
 initTypeAssignment_def(sVarName, sStar, sFuncName, sTypeDefName) ::= <<
 void <sFuncName>(<sTypeDefName><sStar> <sVarName>);
 >>
@@ -192,6 +195,9 @@ initSequence(arrsInnerValues) ::= <<
 <arrsInnerValues; separator="\n">        
 >>
 
+initSequence_emptySeq(p) ::= ""
+
+
 initTestCase_sequence_child(p, sAcc, sChName, sChildContent, bOptional) ::= <<
 /*set <sChName> */
 <if(bOptional)><p><sAcc>exist.<sChName> = 1;<endif>
@@ -202,8 +208,7 @@ initTestCase_sequence_child_opt(p, sAcc, sChName) ::= <<
 >>
 
 
-
-initChoice(p1, sAccess, sChildContent, sChildKind) ::= <<
+initChoice(p1, sAccess, sChildContent, sChildKind, sChildTempVarName, sChildTypeName, sChoiceTypeName, sChildName) ::= <<
 <p1><sAccess>kind = <sChildKind>;
 <sChildContent>        
 >>

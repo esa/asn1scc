@@ -23,6 +23,7 @@
     <Compile Include="ITypeDefinition_c.stg.fs" />
     <Compile Include="IVariables_c.stg.fs" />
     <Compile Include="IIsValid_c.stg.fs" />
+    <Compile Include="IInit_c.stg.fs" />
     <Compile Include="IUper_c.stg.fs" />
   </ItemGroup>
 

@@ -8,14 +8,15 @@ open FsUtils
 open CommonTypes
 open DAst
 open DAstUtilFunctions
-
+open Language
 
 
 let getDefaultValueByType  (t:Asn1Type)  =  t.initialValue
 
-let printOctetStringValueAsCompoundLitteral  (l:ProgrammingLanguage) curProgamUnitName  (o:Asn1AcnAst.OctetString) (bytes : byte list) =
-    let printOct = match l with C -> variables_c.PrintBitOrOctetStringValueAsCompoundLitteral | Ada -> variables_a.PrintBitOrOctetStringValueAsCompoundLitteral
-    let td = (o.typeDef.[l]).longTypedefName l curProgamUnitName
+let printOctetStringValueAsCompoundLitteral  (lm:LanguageMacros) curProgamUnitName  (o:Asn1AcnAst.OctetString) (bytes : byte list) =
+    let printOct = lm.vars.PrintBitOrOctetStringValueAsCompoundLitteral
+
+    let td = (lm.lg.getSizeableTypeDefinition  o.typeDef).longTypedefName2 lm.lg.hasModules curProgamUnitName
     printOct td (o.minSize.uper = o.maxSize.uper) bytes (BigInteger bytes.Length)
 
 let printTimeValue (l:ProgrammingLanguage) (td) (v:TimeValue) =
@@ -36,17 +37,11 @@ let printTimeValue (l:ProgrammingLanguage) (td) (v:TimeValue) =
     |Ada, Asn1Date_LocalTimeWithTimeZoneValue (dt,tv,tz)-> variables_a.PrintTimeValue_Asn1Date_LocalTimeWithTimeZone td dt tv tz
 
     
-let printBitStringValueAsCompoundLitteral  (l:ProgrammingLanguage) curProgamUnitName  (o:Asn1AcnAst.BitString) (v : BitStringValue) =
-    let printOct = match l with C -> variables_c.PrintBitOrOctetStringValueAsCompoundLitteral | Ada -> variables_a.PrintBitOrOctetStringValueAsCompoundLitteral
-    let td = (o.typeDef.[l]).longTypedefName l curProgamUnitName
-    match l with
-    | C     ->
-        let bytes = bitStringValueToByteArray (StringLoc.ByValue v)
-        printOct td (o.minSize.uper = o.maxSize.uper) bytes o.minSize.uper
-    | Ada   ->
-        let bits = v.ToCharArray() |> Array.map(fun c -> if c = '0' then 0uy else 1uy)
-        printOct td (o.minSize.uper = o.maxSize.uper) bits o.minSize.uper
-
+let printBitStringValueAsCompoundLitteral  (lm:LanguageMacros) curProgamUnitName  (o:Asn1AcnAst.BitString) (v : BitStringValue) =
+    let printOct =  lm.vars.PrintBitOrOctetStringValueAsCompoundLitteral
+    let td = (lm.lg.getSizeableTypeDefinition o.typeDef).longTypedefName2 lm.lg.hasModules curProgamUnitName
+    let bytes = lm.lg.bitStringValueToByteArray v
+    printOct td (o.minSize.uper = o.maxSize.uper) bytes o.minSize.uper
 
 
 let rec printValue (r:DAst.AstRoot)  (l:ProgrammingLanguage)  (curProgamUnitName:string)  (t:Asn1Type) (parentValue:Asn1ValueKind option) (gv:Asn1ValueKind) =
@@ -502,3 +497,4 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1A
 
 let createReferenceTypeFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.ReferenceType) (defOrRef:TypeDefintionOrReference) (baseType:Asn1Type)   =
     baseType.printValue
+

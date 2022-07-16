@@ -52,7 +52,8 @@
         <modName>init_c</modName>
 	    <lang>c</lang>
         <abctractInterface   modMame="IInit">IInit.stg.fs</abctractInterface>
-  </run>
+		<implementationClass ifModMame="AbstractMacros.IInit" modMame="Init_c">IInit_c.stg.fs</implementationClass>
+	</run>
   <run mode="single">
     <input>uper_c.stg</input>
     <output>uper_c.stg.fs</output>

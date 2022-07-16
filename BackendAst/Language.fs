@@ -28,10 +28,15 @@ type Acn_parts = {
     createBitStringFunction_extfld      : Asn1AcnAst.Asn1Type -> Asn1AcnAst.BitString -> ErroCode -> CallerScope -> string ->CommonTypes.Codec ->  (string*ErroCode list*LocalVariable list)
     createBitStringFunction_term_pat    : Asn1AcnAst.Asn1Type -> Asn1AcnAst.BitString -> ErroCode -> CallerScope -> CommonTypes.Codec -> Asn1AcnAst.BitStringValue -> (string*ErroCode list*LocalVariable list) 
 }
+type Initialize_parts = {
+    zeroIA5String_localVars             : int -> LocalVariable list
+    choiceComponentTempInit             : bool
+}
 
 
 [<AbstractClass>]
 type ILangGeneric () =
+    abstract member ArrayStartIndex : int
     abstract member getPointer      : FuncParamType -> string;
     abstract member getValue        : FuncParamType -> string;
     abstract member getAcces        : FuncParamType -> string;
@@ -77,6 +82,7 @@ type ILangGeneric () =
     abstract member getParamType    : Asn1AcnAst.Asn1Type -> Codec -> CallerScope;
     abstract member rtlModuleName   : string
     abstract member hasModules      : bool
+    abstract member supportsStaticVerification      : bool
     abstract member AssignOperator  : string
     abstract member TrueLiteral     : string
     abstract member emtyStatement   : string
@@ -88,10 +94,12 @@ type ILangGeneric () =
     abstract member  andOp            :string
     abstract member  orOp             :string
 
+    abstract member  bitStringValueToByteArray:  BitStringValue -> byte[]
 
     abstract member toHex : int -> string
     abstract member uper : Uper_parts;
     abstract member acn  : Acn_parts
+    abstract member init : Initialize_parts
 //    abstract member createLocalVariable_frag : string -> LocalVariable
 
     default this.getAmber (fpt:FuncParamType) =
@@ -104,6 +112,7 @@ type ILangGeneric () =
 
 type LanguageMacros = {
     lg      : ILangGeneric;
+    init    : IInit;
     equal   : IEqual;
     typeDef : ITypeDefinition;
     isvalid : IIsValid
@@ -155,6 +164,8 @@ let createBitStringFunction_term_pat_c  (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Bi
 
 type LangGeneric_c() =
     inherit ILangGeneric()
+        override _.ArrayStartIndex = 0
+
         override _.intValueToSting (i:BigInteger) isUnsigned =
             match isUnsigned with
             | true   -> sprintf "%sUL" (i.ToString())
@@ -220,9 +231,12 @@ type LangGeneric_c() =
         override this.andOp               = "&&" 
         override this.orOp                = "||" 
 
+            
 
 
         override this.hasModules = false
+        override this.supportsStaticVerification = false
+        
         override this.getSeqChild (fpt:FuncParamType) (childName:string) (childTypeIsString: bool) =
             let newPath = sprintf "%s%s%s" fpt.p (this.getAcces fpt) childName
             if childTypeIsString then (FIXARRAY newPath) else (VALUE newPath)
@@ -330,6 +344,9 @@ type LangGeneric_c() =
         //override this.getEnmLongTypedefName (td:FE_EnumeratedTypeDefinition) _ = td;
 
         override this.toHex n = sprintf "0x%x" n
+
+        override this.bitStringValueToByteArray (v : BitStringValue) = FsUtils.bitStringValueToByteArray (StringLoc.ByValue v)
+
         override this.uper =
             {
                 Uper_parts.createLv = (fun name -> Asn1SIntLocalVariable(name,None))
@@ -359,6 +376,12 @@ type LangGeneric_c() =
                 createBitStringFunction_extfld = createBitStringFunction_extfld_c
                 createBitStringFunction_term_pat = createBitStringFunction_term_pat_c
             }
+        override this.init = 
+            {
+                Initialize_parts.zeroIA5String_localVars    = fun _ -> []
+                choiceComponentTempInit                     = false
+            }
+
 
 (****** Ada Implementation ******)
 
@@ -427,12 +450,15 @@ let createBitStringFunction_term_pat_ada  (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.
     (fncBody, [errCode], [lv])
 
 
+
 type LangGeneric_a() =
     inherit ILangGeneric()
+        override _.ArrayStartIndex = 1
         override this.rtlModuleName  = "adaasn1rtl."
         override this.AssignOperator = ":="
         override this.TrueLiteral = "True"
         override this.hasModules = true
+        override this.supportsStaticVerification = true 
         override this.emtyStatement = "null;"
         override this.bitStreamName = "adaasn1rtl.encoding.BitStreamPtr"
         override this.unaryNotOperator    = "not"
@@ -548,6 +574,9 @@ type LangGeneric_a() =
 
         override this.toHex n = sprintf "16#%x#" n
 
+        override this.bitStringValueToByteArray (v : BitStringValue) = 
+            v.ToCharArray() |> Array.map(fun c -> if c = '0' then 0uy else 1uy)
+
         override this.uper =
             {
                 Uper_parts.createLv = (fun name -> IntegerLocalVariable(name,None))
@@ -580,4 +609,9 @@ type LangGeneric_a() =
                 createBitStringFunction_extfld = createBitStringFunction_extfld_ada
                 createBitStringFunction_term_pat = createBitStringFunction_term_pat_ada
           }
+        override this.init = 
+            {
+                Initialize_parts.zeroIA5String_localVars    = fun ii -> [SequenceOfIndex (ii, None)]
+                choiceComponentTempInit                     = true
+            }
 

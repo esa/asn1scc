@@ -1,6 +1,9 @@
 group a_init;
 
+
 rtlModuleName() ::= "adaasn1rtl"
+methodNameSuffix() ::= "_Init"
+
 
 initTypeAssignment_def(sVarName, sStar, sFuncName, sTypeDefName) ::= <<
 function <sFuncName> return <sTypeDefName>;

@@ -48,7 +48,8 @@
     <output>init_a.stg.fs</output>
     <modName>init_a</modName>
 	<lang>Ada</lang>
-  </run>
+    <implementationClass ifModMame="AbstractMacros.IInit" modMame="Init_a">IInit_a.stg.fs</implementationClass>
+	</run>
   <run mode="single">
     <input>uper_a.stg</input>
     <output>uper_a.stg.fs</output>
