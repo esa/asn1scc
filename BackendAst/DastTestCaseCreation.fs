@@ -47,7 +47,7 @@ let emitTestCaseAsFunc_dummy_init l = match l with C -> test_cases_c.emitTestCas
 
 
 let GetDatFile (r:DAst.AstRoot) l (v:ValueAssignment) modName sTasName encAmper (enc:Asn1Encoding) = 
-    let generate_dat_file  = match l with C -> test_cases_c.PrintSuite_call_codec_generate_dat_file | Ada -> test_cases_a.PrintMain_call_codec_generate_dat_file
+    let generate_dat_file  = match l with C -> test_cases_c.PrintSuite_call_codec_generate_dat_file | Ada -> test_cases_a.PrintSuite_call_codec_generate_dat_file
     let bGenerateDatFile = (r.args.CheckWithOss && v.Name.Value = "testPDU")
     match bGenerateDatFile, enc with
     | false,_     -> ""
@@ -56,12 +56,12 @@ let GetDatFile (r:DAst.AstRoot) l (v:ValueAssignment) modName sTasName encAmper 
     | true, BER   -> generate_dat_file modName sTasName encAmper (GetEncodingString l enc) "Byte"
     | true, uPER  -> generate_dat_file modName sTasName encAmper (GetEncodingString l enc) "Bit"
 
-let PrintValueAssignmentAsTestCase (r:DAst.AstRoot) l (e:Asn1Encoding) (v:ValueAssignment) (m:Asn1Module) (typeModName:string) (sTasName : string)  (idx :int) dummyInitStatementsNeededForStatementCoverage  =
+let PrintValueAssignmentAsTestCase (r:DAst.AstRoot) l lm (e:Asn1Encoding) (v:ValueAssignment) (m:Asn1Module) (typeModName:string) (sTasName : string)  (idx :int) dummyInitStatementsNeededForStatementCoverage  =
     let modName = typeModName//ToC m.Name.Value
     let sFuncName = sprintf "test_case_%A_%06d" e idx
     let encAmper, initAmper = gAmber v.Type
     let curProgramUnitName = ""  //Main program has no module
-    let initStatement = DAstVariables.printValue r l  curProgramUnitName v.Type None v.Value.kind
+    let initStatement = DAstVariables.printValue r l lm curProgramUnitName v.Type None v.Value.kind
     let sTestCaseIndex = idx.ToString()
     let bStatic = match v.Type.ActualType.Kind with Integer _ | Enumerated(_) -> false | _ -> true
     let GetDatFile = GetDatFile r l v modName sTasName encAmper
@@ -130,7 +130,7 @@ let emitDummyInitStatementsNeededForStatementCoverage l (t:Asn1Type) =
         | None  -> None
         | Some funcName ->  Some (emitTestCaseAsFunc_dummy_init l sTypeName funcName dummyVarName))
 
-let printAllTestCases (r:DAst.AstRoot) l outDir =
+let printAllTestCases (r:DAst.AstRoot) l lm outDir =
     let tcFunctors = 
         seq {
             for m in r.Files |> List.collect(fun f -> f.Modules) do
@@ -172,7 +172,7 @@ let printAllTestCases (r:DAst.AstRoot) l outDir =
                             let generateTcFun idx = 
                                 //let initFuncName = v.Type.initFunction.initFuncName
                                 let dummyInitStatementsNeededForStatementCoverage = (emitDummyInitStatementsNeededForStatementCoverage l v.Type)
-                                PrintValueAssignmentAsTestCase r l e v m typeModName tasName (*(getTypeDecl r (ToC m.Name.Value) l v )*)  idx dummyInitStatementsNeededForStatementCoverage 
+                                PrintValueAssignmentAsTestCase r l lm e v m typeModName tasName (*(getTypeDecl r (ToC m.Name.Value) l v )*)  idx dummyInitStatementsNeededForStatementCoverage 
                             yield generateTcFun
                         | None         -> ()
         } |> Seq.toList
@@ -226,16 +226,16 @@ let printAllTestCases (r:DAst.AstRoot) l outDir =
 
     match l with
     | C ->
-        let contentC = test_cases_c.PrintTestSuiteSource TestSuiteFileName includedPackages [] func_invokations
+        let contentC = test_cases_c.PrintATCRunner TestSuiteFileName includedPackages [] func_invokations [] [] false
         let outCFileName = Path.Combine(outDir, TestSuiteFileName + "." + l.BodyExtention)
         File.WriteAllText(outCFileName, contentC.Replace("\r",""))
         
-        let contentH = test_cases_c.PrintTestSuiteHeader()
+        let contentH = test_cases_c.PrintATCRunnerDefinition()
         let outHFileName = Path.Combine(outDir, TestSuiteFileName + "." + l.SpecExtention)
         File.WriteAllText(outHFileName, contentH.Replace("\r",""))
 
     | Ada ->
-        let contentC = test_cases_a.PrintMain includedPackages [] func_invokations [] [] false
+        let contentC = test_cases_a.PrintATCRunner TestSuiteFileName includedPackages [] func_invokations [] [] false
         let outCFileName = Path.Combine(outDir, "mainprogram." + l.BodyExtention)
         File.WriteAllText(outCFileName, contentC.Replace("\r",""))
 

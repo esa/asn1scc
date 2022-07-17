@@ -85,7 +85,8 @@
       <output>test_cases_c.stg.fs</output>
       <modName>test_cases_c</modName>
       <lang>c</lang>
-    <abctractInterface   modMame="ITestCases">ITestCases.stg.fs</abctractInterface>
+      <abctractInterface   modMame="ITestCases">ITestCases.stg.fs</abctractInterface>
+	  <implementationClass ifModMame="AbstractMacros.ITestCases" modMame="ITestCases_c">ITestCases_c.stg.fs</implementationClass>
   </run>
   <run mode="single">
       <input>aux_c.stg</input>

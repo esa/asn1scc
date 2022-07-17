@@ -260,6 +260,32 @@ let constructCommandLineSettings args (parserResults: ParseResults<CliArguments>
     }    
 
 
+let getLanguageMacro (l:ProgrammingLanguage) =
+    match l with
+    | C ->
+        {
+            LanguageMacros.equal = new IEqual_c.IEqual_c() 
+            init = new Init_c.Init_c()
+            typeDef = new ITypeDefinition_c.ITypeDefinition_c() 
+            lg = new LangGeneric_c(); 
+            isvalid= new IsValid_c.IsValid_c() 
+            vars = new IVariables_c.IVariables_c()
+            uper = new iuper_c.iuper_c()
+            acn = new IAcn_c.IAcn_c()
+            atc = new ITestCases_c.ITestCases_c()
+        }
+    | Ada ->
+        {
+            LanguageMacros.equal = new IEqual_a.IEqual_a(); 
+            init = new Init_a.Init_a()
+            typeDef = new ITypeDefinition_a.ITypeDefinition_a(); 
+            lg = new LangGeneric_a(); 
+            isvalid= new IsValid_a.IsValid_a()
+            vars = new IVariables_a.IVariables_a()
+            uper = new iuper_a.iuper_a()
+            acn = new IAcn_a.IAcn_a()
+            atc = new ITestCases_a.ITestCases_a()
+        }        
 
 let main0 argv =
     
@@ -300,31 +326,10 @@ let main0 argv =
             List.choose (fun a -> 
                 match a with
                 | C_lang                -> 
-                    //let aaa = new IEqual_c.IEqual_c() 
-                    let lm = {
-                                LanguageMacros.equal = new IEqual_c.IEqual_c() 
-                                init = new Init_c.Init_c()
-                                typeDef = new ITypeDefinition_c.ITypeDefinition_c() 
-                                lg = new LangGeneric_c(); 
-                                isvalid= new IsValid_c.IsValid_c() 
-                                vars = new IVariables_c.IVariables_c()
-                                uper = new iuper_c.iuper_c()
-                                acn = new IAcn_c.IAcn_c()
-                            }
+                    let lm = getLanguageMacro C
                     Some (TL "DAstConstruction.DoWork" (fun () -> DAstConstruction.DoWork frontEntAst acnDeps CommonTypes.ProgrammingLanguage.C lm args.encodings))
                 | Ada_Lang              -> 
-                    //let aaa = new IEqual_a.IEqual_a() 
-                    let lm = {
-                                LanguageMacros.equal = new IEqual_a.IEqual_a(); 
-                                init = new Init_a.Init_a()
-                                typeDef = new ITypeDefinition_a.ITypeDefinition_a(); 
-                                lg = new LangGeneric_a(); 
-                                isvalid= new IsValid_a.IsValid_a()
-                                vars = new IVariables_a.IVariables_a()
-                                uper = new iuper_a.iuper_a()
-                                acn = new IAcn_a.IAcn_a()
-                            }
-                    
+                    let lm = getLanguageMacro Ada
                     Some (TL "DAstConstruction.DoWork" (fun () -> DAstConstruction.DoWork frontEntAst acnDeps CommonTypes.ProgrammingLanguage.Ada lm args.encodings))
                 | _             -> None)
 
@@ -346,8 +351,8 @@ let main0 argv =
                 //let srcDirName = Path.Combine(outDir, OutDirectories.srcDirName r.lang)
                 //let asn1rtlDirName = Path.Combine(outDir, OutDirectories.asn1rtlDirName r.lang)
                 //let boardsDirName = Path.Combine(outDir, OutDirectories.boardsDirName r.lang) 
-                
-                GenerateFiles.generateAll dirInfo r args.encodings
+                let lm = getLanguageMacro r.lang
+                GenerateFiles.generateAll dirInfo r lm args.encodings
                 GenerateRTL.exportRTL dirInfo r.lang args
                 match args.AstXmlAbsFileName with
                 | ""    -> ()
@@ -373,7 +378,7 @@ let main0 argv =
                             vars = new IVariables_c.IVariables_c()
                             uper = new iuper_c.iuper_c()
                             acn = new IAcn_c.IAcn_c()
-
+                            atc = new ITestCases_c.ITestCases_c()
                         }
                 TL "DAstConstruction.DoWork" (fun () -> DAstConstruction.DoWork frontEntAst acnDeps CommonTypes.ProgrammingLanguage.C  lm args.encodings)
             | x::_  -> x

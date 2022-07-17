@@ -1370,3 +1370,5 @@ v2out
 /StgAda/IAcn_a.stg.fs
 /StgC/IInit_c.stg.fs
 /StgAda/IInit_a.stg.fs
+/StgC/ITestCases_c.stg.fs
+/StgAda/ITestCases_a.stg.fs

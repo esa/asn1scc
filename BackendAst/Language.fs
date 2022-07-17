@@ -33,6 +33,12 @@ type Initialize_parts = {
     choiceComponentTempInit             : bool
 }
 
+type Atc_parts = {
+    uperPrefix : string
+    acnPrefix : string
+    xerPrefix : string
+}
+
 
 [<AbstractClass>]
 type ILangGeneric () =
@@ -100,6 +106,7 @@ type ILangGeneric () =
     abstract member uper : Uper_parts;
     abstract member acn  : Acn_parts
     abstract member init : Initialize_parts
+    abstract member atc  : Atc_parts
 //    abstract member createLocalVariable_frag : string -> LocalVariable
 
     default this.getAmber (fpt:FuncParamType) =
@@ -119,6 +126,7 @@ type LanguageMacros = {
     vars    : IVariables
     uper    : IUper
     acn     : IAcn
+    atc     : ITestCases
 }
 
 
@@ -381,6 +389,12 @@ type LangGeneric_c() =
                 Initialize_parts.zeroIA5String_localVars    = fun _ -> []
                 choiceComponentTempInit                     = false
             }
+        override this.atc =
+            {
+                Atc_parts.uperPrefix = ""
+                acnPrefix            = "ACN_"
+                xerPrefix            = "XER_"
+            }
 
 
 (****** Ada Implementation ******)
@@ -615,3 +629,9 @@ type LangGeneric_a() =
                 choiceComponentTempInit                     = true
             }
 
+        override this.atc =
+            {
+                Atc_parts.uperPrefix = "UPER_"
+                acnPrefix            = "ACN_"
+                xerPrefix            = "XER_"
+            }

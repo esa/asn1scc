@@ -81,7 +81,8 @@
         <input>test_cases_a.stg</input>
         <output>test_cases_a.stg.fs</output>
         <modName>test_cases_a</modName>
-        <lang>c</lang>
-    </run>
+        <lang>Ada</lang>
+		<implementationClass ifModMame="AbstractMacros.ITestCases" modMame="ITestCases_a">ITestCases_a.stg.fs</implementationClass>
+	</run>
 
 </Settings>

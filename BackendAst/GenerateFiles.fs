@@ -9,6 +9,7 @@ open AbstractMacros
 open DAst
 open DAstUtilFunctions
 open OutDirectories
+open Language
 
 
 let getTypeDecl = DastTestCaseCreation.getTypeDecl
@@ -21,12 +22,12 @@ let rec getValidFunctions (isValidFunction:IsValidFunction) =
     } |> Seq.toList
 
 
-let printValueAssignment (r:DAst.AstRoot) (vasPU_name:string) (l:ProgrammingLanguage)  (vas:ValueAssignment) =
+let printValueAssignment (r:DAst.AstRoot) (vasPU_name:string) (l:ProgrammingLanguage) (lm:LanguageMacros) (vas:ValueAssignment) =
     let sName = vas.c_name
     let t = vas.Type
     let sTypeDecl= getTypeDecl r vasPU_name l vas
 
-    let sVal = DAstVariables.printValue r  l vasPU_name vas.Type None vas.Value.kind
+    let sVal = DAstVariables.printValue r  l lm vasPU_name vas.Type None vas.Value.kind
     match l with
     | C     -> variables_c.PrintValueAssignment sTypeDecl sName sVal
     | Ada   -> header_a.PrintValueAssignment sName sTypeDecl sVal
@@ -59,7 +60,7 @@ let rec collectEqualFuncs (t:Asn1Type) =
     } |> Seq.toList
 
 
-let private printUnit (r:DAst.AstRoot) (l:ProgrammingLanguage) (encodings: CommonTypes.Asn1Encoding list) outDir (pu:ProgramUnit)  =
+let private printUnit (r:DAst.AstRoot) (l:ProgrammingLanguage) (lm:LanguageMacros) (encodings: CommonTypes.Asn1Encoding list) outDir (pu:ProgramUnit)  =
     let tases = pu.sortedTypeAssignments
     let printChildrenIsValidFuncs (t:Asn1Type) =
         match t.Kind with
@@ -154,7 +155,7 @@ let private printUnit (r:DAst.AstRoot) (l:ProgrammingLanguage) (encodings: Commo
                 | _             -> 
                     let typeDefinitionName = match t.tasInfo with| Some tasInfo    -> ToC2(r.args.TypePrefix + tasInfo.tasName) | None    -> t.typeDefintionOrReference.longTypedefName l//t.typeDefinition.name
                     header_c.PrintValueAssignment gv.c_name (typeDefinitionName) ""
-            | Ada   -> printValueAssignment r pu.name l gv)
+            | Ada   -> printValueAssignment r pu.name l lm gv)
     let arrsHeaderAnonymousValues =
         arrsAnonymousValues |>
         List.map(fun av -> 
@@ -197,8 +198,8 @@ let private printUnit (r:DAst.AstRoot) (l:ProgrammingLanguage) (encodings: Commo
         let tetscase_specFileName = Path.Combine(outDir, pu.tetscase_specFileName)
         let tstCasesHdrContent =
             match l with
-            | C     -> test_cases_c.PrintAutomaticTestCasesHeaderFile (ToC pu.tetscase_specFileName) pu.name typeDefs
-            | Ada   -> test_cases_a.PrintCodecsFile_spec pu.name pu.importedProgramUnits typeDefs
+            | C     -> test_cases_c.PrintAutomaticTestCasesSpecFile (ToC pu.tetscase_specFileName) pu.name pu.importedProgramUnits typeDefs
+            | Ada   -> test_cases_a.PrintAutomaticTestCasesSpecFile (ToC pu.tetscase_specFileName) pu.name pu.importedProgramUnits typeDefs
         File.WriteAllText(tetscase_specFileName, tstCasesHdrContent.Replace("\r",""))
         
     //sourse file
@@ -254,7 +255,7 @@ let private printUnit (r:DAst.AstRoot) (l:ProgrammingLanguage) (encodings: Commo
         match l with
         | C     ->
             let arrsUnnamedVariables = []
-            let arrsValueAssignments = vases |> List.map (printValueAssignment r pu.name l )
+            let arrsValueAssignments = vases |> List.map (printValueAssignment r pu.name l lm)
             let arrsSourceAnonymousValues = 
                 arrsAnonymousValues |>
                 List.map (fun av -> variables_c.PrintValueAssignment av.typeDefinitionName av.valueName av.valueExpresion)
@@ -305,21 +306,21 @@ let private printUnit (r:DAst.AstRoot) (l:ProgrammingLanguage) (encodings: Commo
                 } |> Seq.choose id |> Seq.toList
 
         let tetscase_SrcFileName = Path.Combine(outDir, pu.tetscase_bodyFileName)
-    
+        let bXer = r.args.encodings |> Seq.exists((=) XER)
         let tstCasesHdrContent =
             match l with
-            | C     -> Some (test_cases_c.PrintAutomaticTestCasesSourceFile pu.tetscase_specFileName pu.importedProgramUnits encDecFuncs)
+            | C     -> Some (test_cases_c.PrintAutomaticTestCasesBodyFile pu.name pu.tetscase_specFileName pu.importedProgramUnits [] encDecFuncs bXer)
             | Ada   -> 
                 match encDecFuncs with
                 | []    -> None
-                | _     -> Some (test_cases_a.PrintCodecsFile_body pu.name pu.importedProgramUnits [] encDecFuncs (r.args.encodings |> Seq.exists((=) XER)))
+                | _     -> Some (test_cases_a.PrintAutomaticTestCasesBodyFile pu.name pu.tetscase_specFileName pu.importedProgramUnits [] encDecFuncs bXer)
         
         tstCasesHdrContent |> Option.iter(fun tstCasesHdrContent -> File.WriteAllText(tetscase_SrcFileName, tstCasesHdrContent.Replace("\r","")))
 
 
 let CreateCMainFile (r:AstRoot)  (l:ProgrammingLanguage) outDir  =
     //Main file for test cass    
-    let printMain = match l with C -> test_cases_c.PrintMain | Ada -> test_cases_c.PrintMain
+    let printMain =    test_cases_c.PrintMain //match l with C -> test_cases_c.PrintMain | Ada -> test_cases_c.PrintMain
     let content = printMain DastTestCaseCreation.TestSuiteFileName
     let outFileName = Path.Combine(outDir, "mainprogram.c")
     File.WriteAllText(outFileName, content.Replace("\r",""))
@@ -392,13 +393,13 @@ let generateVisualStudtioProject (r:DAst.AstRoot) outDir (arrsSrcTstFilesX, arrs
     File.WriteAllText((Path.Combine(outDir, "VsProject.sln")), (aux_c.emitVisualStudioSolution()))
 
 
-let generateAll (di:DirInfo) (r:DAst.AstRoot) (encodings: CommonTypes.Asn1Encoding list)  =
-    r.programUnits |> Seq.iter (printUnit r r.lang encodings di.srcDir)
+let generateAll (di:DirInfo) (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTypes.Asn1Encoding list)  =
+    r.programUnits |> Seq.iter (printUnit r r.lang lm encodings di.srcDir)
     match r.args.generateAutomaticTestCases with
     | false -> ()
     | true  -> 
         CreateMakeFile r r.lang di
-        let arrsSrcTstFiles, arrsHdrTstFiles = DastTestCaseCreation.printAllTestCases r r.lang di.srcDir
+        let arrsSrcTstFiles, arrsHdrTstFiles = DastTestCaseCreation.printAllTestCases r r.lang lm di.srcDir
         match r.lang with
         | C    -> 
             CreateCMainFile r  ProgrammingLanguage.C di.srcDir

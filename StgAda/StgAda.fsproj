@@ -26,6 +26,7 @@
     <Compile Include="IIsValid_a.stg.fs" />
     <Compile Include="IUper_a.stg.fs" />
     <Compile Include="IAcn_a.stg.fs" />
+    <Compile Include="ITestCases_a.stg.fs" />
   </ItemGroup>
 
   <ItemGroup>

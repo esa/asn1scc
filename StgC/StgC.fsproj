@@ -29,6 +29,7 @@
 
   <ItemGroup>
     <Compile Include="IAcn_c.stg.fs" />
+    <Compile Include="ITestCases_c.stg.fs" />
     <None Include="acn_c.stg">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>

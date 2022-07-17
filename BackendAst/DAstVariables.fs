@@ -19,22 +19,15 @@ let printOctetStringValueAsCompoundLitteral  (lm:LanguageMacros) curProgamUnitNa
     let td = (lm.lg.getSizeableTypeDefinition  o.typeDef).longTypedefName2 lm.lg.hasModules curProgamUnitName
     printOct td (o.minSize.uper = o.maxSize.uper) bytes (BigInteger bytes.Length)
 
-let printTimeValue (l:ProgrammingLanguage) (td) (v:TimeValue) =
-    match l, v with
-    |C, Asn1LocalTimeValue                  tv        -> variables_c.PrintTimeValue_Asn1LocalTime td tv
-    |C, Asn1UtcTimeValue                    tv        -> variables_c.PrintTimeValue_Asn1UtcTime td tv
-    |C, Asn1LocalTimeWithTimeZoneValue      (tv,tz)   -> variables_c.PrintTimeValue_Asn1LocalTimeWithTimeZone td tv tz
-    |C, Asn1DateValue                       dt        -> variables_c.PrintTimeValue_Asn1Date td dt
-    |C, Asn1Date_LocalTimeValue             (dt,tv)   -> variables_c.PrintTimeValue_Asn1Date_LocalTime td dt tv
-    |C, Asn1Date_UtcTimeValue               (dt,tv)   -> variables_c.PrintTimeValue_Asn1Date_UtcTime td dt tv
-    |C, Asn1Date_LocalTimeWithTimeZoneValue (dt,tv,tz)-> variables_c.PrintTimeValue_Asn1Date_LocalTimeWithTimeZone td dt tv tz
-    |Ada, Asn1LocalTimeValue                  tv        -> variables_a.PrintTimeValue_Asn1LocalTime td tv
-    |Ada, Asn1UtcTimeValue                    tv        -> variables_a.PrintTimeValue_Asn1UtcTime td tv
-    |Ada, Asn1LocalTimeWithTimeZoneValue      (tv,tz)   -> variables_a.PrintTimeValue_Asn1LocalTimeWithTimeZone td tv tz
-    |Ada, Asn1DateValue                       dt        -> variables_a.PrintTimeValue_Asn1Date td dt
-    |Ada, Asn1Date_LocalTimeValue             (dt,tv)   -> variables_a.PrintTimeValue_Asn1Date_LocalTime td dt tv
-    |Ada, Asn1Date_UtcTimeValue               (dt,tv)   -> variables_a.PrintTimeValue_Asn1Date_UtcTime td dt tv
-    |Ada, Asn1Date_LocalTimeWithTimeZoneValue (dt,tv,tz)-> variables_a.PrintTimeValue_Asn1Date_LocalTimeWithTimeZone td dt tv tz
+let printTimeValue (lm:LanguageMacros) (td) (v:TimeValue) =
+    match v with
+    |Asn1LocalTimeValue                  tv        -> lm.vars.PrintTimeValue_Asn1LocalTime td tv
+    |Asn1UtcTimeValue                    tv        -> lm.vars.PrintTimeValue_Asn1UtcTime td tv
+    |Asn1LocalTimeWithTimeZoneValue      (tv,tz)   -> lm.vars.PrintTimeValue_Asn1LocalTimeWithTimeZone td tv tz
+    |Asn1DateValue                       dt        -> lm.vars.PrintTimeValue_Asn1Date td dt
+    |Asn1Date_LocalTimeValue             (dt,tv)   -> lm.vars.PrintTimeValue_Asn1Date_LocalTime td dt tv
+    |Asn1Date_UtcTimeValue               (dt,tv)   -> lm.vars.PrintTimeValue_Asn1Date_UtcTime td dt tv
+    |Asn1Date_LocalTimeWithTimeZoneValue (dt,tv,tz)-> lm.vars.PrintTimeValue_Asn1Date_LocalTimeWithTimeZone td dt tv tz
 
     
 let printBitStringValueAsCompoundLitteral  (lm:LanguageMacros) curProgamUnitName  (o:Asn1AcnAst.BitString) (v : BitStringValue) =
@@ -44,7 +37,7 @@ let printBitStringValueAsCompoundLitteral  (lm:LanguageMacros) curProgamUnitName
     printOct td (o.minSize.uper = o.maxSize.uper) bytes o.minSize.uper
 
 
-let rec printValue (r:DAst.AstRoot)  (l:ProgrammingLanguage)  (curProgamUnitName:string)  (t:Asn1Type) (parentValue:Asn1ValueKind option) (gv:Asn1ValueKind) =
+let rec printValue (r:DAst.AstRoot)  (l:ProgrammingLanguage) (lm:LanguageMacros) (curProgamUnitName:string)  (t:Asn1Type) (parentValue:Asn1ValueKind option) (gv:Asn1ValueKind) =
     match l with
     | C ->
         match gv with
@@ -84,10 +77,10 @@ let rec printValue (r:DAst.AstRoot)  (l:ProgrammingLanguage)  (curProgamUnitName
         | SeqOfValue        v -> 
             match t.ActualType.Kind with
             | SequenceOf so -> 
-                let childVals = v |> List.map (fun chv -> printValue r l curProgamUnitName so.childType (Some gv) chv.kind)
+                let childVals = v |> List.map (fun chv -> printValue r l lm curProgamUnitName so.childType (Some gv) chv.kind)
                 let td = (so.baseInfo.typeDef.[l]).longTypedefName l curProgamUnitName
                 let typeDefName  = t.typeDefintionOrReference.longTypedefName l //if parentValue.IsSome then so.typeDefinition.typeDefinitionBodyWithinSeq else so.typeDefinition.name
-                let sDefValue = printValue r l curProgamUnitName so.childType None (getDefaultValueByType so.childType)
+                let sDefValue = printValue r l lm curProgamUnitName so.childType None (getDefaultValueByType so.childType)
                 variables_c.PrintSequenceOfValue td (so.baseInfo.minSize.uper = so.baseInfo.maxSize.uper) (BigInteger v.Length) childVals sDefValue
             | _         -> raise(BugErrorException "unexpected type")
         | SeqValue          v -> 
@@ -106,12 +99,12 @@ let rec printValue (r:DAst.AstRoot)  (l:ProgrammingLanguage)  (curProgamUnitName
                     List.choose(fun ch -> match ch with Asn1Child a -> Some a | AcnChild _ -> None) |>
                     List.choose(fun cht -> 
                         match v |> Seq.tryFind(fun chv -> chv.name = cht.Name.Value) with
-                        | Some v    -> Some (variables_c.PrintSequenceValueChild (cht.getBackendName l) (printValue r l curProgamUnitName cht.Type (Some gv) v.Value.kind))
+                        | Some v    -> Some (variables_c.PrintSequenceValueChild (cht.getBackendName l) (printValue r l lm curProgamUnitName cht.Type (Some gv) v.Value.kind))
                         | None      -> 
                             match cht.Optionality with
                             | Some(Asn1AcnAst.Optional opt)    -> 
                                 match opt.defaultValue with
-                                | Some v    -> Some (variables_c.PrintSequenceValueChild (cht.getBackendName l) (printValue r l curProgamUnitName cht.Type (Some gv) (mapValue v).kind ))                    
+                                | Some v    -> Some (variables_c.PrintSequenceValueChild (cht.getBackendName l) (printValue r l lm curProgamUnitName cht.Type (Some gv) (mapValue v).kind ))                    
                                 | None      -> None
                             | _             -> None)
                 let td = (s.baseInfo.typeDef.[l]).longTypedefName l curProgamUnitName
@@ -127,7 +120,7 @@ let rec printValue (r:DAst.AstRoot)  (l:ProgrammingLanguage)  (curProgamUnitName
                 s.children |>
                 List.filter(fun x -> x.Name.Value = v.name)  |>
                 List.map(fun x -> 
-                    let childValue = printValue r l curProgamUnitName x.chType (Some gv) v.Value.kind
+                    let childValue = printValue r l lm curProgamUnitName x.chType (Some gv) v.Value.kind
                     let sChildNamePresent = x.presentWhenName (Some t.typeDefintionOrReference) l
                     variables_c.PrintChoiceValue typeDefName (x.getBackendName l) childValue   sChildNamePresent) |>
                 List.head
@@ -142,10 +135,10 @@ let rec printValue (r:DAst.AstRoot)  (l:ProgrammingLanguage)  (curProgamUnitName
             match t.ActualType.Kind with
             | TimeType tt   ->
                 let td = tt.baseInfo.typeDef.[l]
-                printTimeValue l td v
+                printTimeValue lm td v
             | _         -> raise(BugErrorException "unexpected type")
         | RefValue ((md,vs),v)         ->
-            printValue r  l  curProgamUnitName t parentValue v.kind
+            printValue r  l  lm curProgamUnitName t parentValue v.kind
             //the following code has been commented out because of the following issue
             //https://stackoverflow.com/questions/3025050/error-initializer-element-is-not-constant-when-trying-to-initialize-variable-w
             //Error “initializer element is not constant” when trying to initialize variable with const
@@ -218,15 +211,15 @@ let rec printValue (r:DAst.AstRoot)  (l:ProgrammingLanguage)  (curProgamUnitName
             match t.ActualType.Kind with
             | TimeType tt   ->
                 let td = tt.baseInfo.typeDef.[l]
-                printTimeValue l td v
+                printTimeValue lm td v
             | _         -> raise(BugErrorException "unexpected type")
         | SeqOfValue        v -> 
             match t.ActualType.Kind with
             | SequenceOf so -> 
                 let td = (so.baseInfo.typeDef.[l]).longTypedefName l curProgamUnitName
                 let typeDefName  = t.typeDefintionOrReference.longTypedefName l //if parentValue.IsSome then so.typeDefinition.typeDefinitionBodyWithinSeq else so.typeDefinition.name
-                let childVals = v |> List.map (fun chv -> printValue r l curProgamUnitName so.childType (Some gv) chv.kind)
-                let sDefValue = printValue r l curProgamUnitName so.childType None (getDefaultValueByType so.childType)
+                let childVals = v |> List.map (fun chv -> printValue r l lm curProgamUnitName so.childType (Some gv) chv.kind)
+                let sDefValue = printValue r l lm curProgamUnitName so.childType None (getDefaultValueByType so.childType)
                 variables_a.PrintSequenceOfValue td (so.baseInfo.minSize.uper = so.baseInfo.maxSize.uper) (BigInteger v.Length) childVals sDefValue
 
             | _         -> raise(BugErrorException "unexpected type")
@@ -249,7 +242,7 @@ let rec printValue (r:DAst.AstRoot)  (l:ProgrammingLanguage)  (curProgamUnitName
                     List.choose(fun ch -> match ch with Asn1Child a -> Some a | AcnChild _ -> None) |>
                     List.map(fun x -> 
                         match v |> Seq.tryFind(fun chv -> chv.name = x.Name.Value) with
-                        | Some v    -> variables_a.PrintSequenceValueChild (x.getBackendName l) (printValue r l curProgamUnitName x.Type (Some gv) v.Value.kind)
+                        | Some v    -> variables_a.PrintSequenceValueChild (x.getBackendName l) (printValue r l lm curProgamUnitName x.Type (Some gv) v.Value.kind)
                         | None      -> 
                             let chV = 
                                 match x.Optionality with
@@ -258,7 +251,7 @@ let rec printValue (r:DAst.AstRoot)  (l:ProgrammingLanguage)  (curProgamUnitName
                                     | Some v    -> (mapValue v).kind
                                     | None      -> getDefaultValueByType x.Type
                                 | _             -> getDefaultValueByType x.Type
-                            variables_a.PrintSequenceValueChild (x.getBackendName l) (printValue r l curProgamUnitName x.Type None chV) )
+                            variables_a.PrintSequenceValueChild (x.getBackendName l) (printValue r l lm curProgamUnitName x.Type None chV) )
                 //let allChildren = match Seq.isEmpty optChildren with
                 //                  | true     -> arrChildren
                 //                  | false    -> arrChildren @ [variables_a.PrintSequenceValue_Exists td optChildren]
@@ -271,7 +264,7 @@ let rec printValue (r:DAst.AstRoot)  (l:ProgrammingLanguage)  (curProgamUnitName
                 let typeDefName  = t.typeDefintionOrReference.longTypedefName l
                 s.children |>
                 List.filter(fun x -> x.Name.Value = v.name)  |>
-                List.map(fun x -> variables_a.PrintChoiceValue typeDefName (x.getBackendName l) (printValue r l  curProgamUnitName x.chType (Some gv) v.Value.kind) (x.presentWhenName (Some t.typeDefintionOrReference) l) ) |>
+                List.map(fun x -> variables_a.PrintChoiceValue typeDefName (x.getBackendName l) (printValue r l  lm curProgamUnitName x.chType (Some gv) v.Value.kind) (x.presentWhenName (Some t.typeDefintionOrReference) l) ) |>
                 List.head
             | _         -> raise(BugErrorException "unexpected type")
 
@@ -279,7 +272,7 @@ let rec printValue (r:DAst.AstRoot)  (l:ProgrammingLanguage)  (curProgamUnitName
             match t.ActualType.Kind with
             | Integer _
             | Real  _   ->
-                printValue r  l  curProgamUnitName t parentValue v.kind
+                printValue r  l lm  curProgamUnitName t parentValue v.kind
             | _         ->
                 let vas = r.getValueAssignmentByName md vs
                 match (ToC md) = curProgamUnitName with
@@ -381,11 +374,11 @@ let createObjectIdentifierFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage
     printValue
 
 
-let createTimeTypeFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.TimeType) (defOrRef:TypeDefintionOrReference) =
+let createTimeTypeFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (lm:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.TimeType) (defOrRef:TypeDefintionOrReference) =
     let printValue (curProgamUnitName:string) (parentValue:Asn1ValueKind option) (v:Asn1ValueKind) =
         let td = o.typeDef.[l]
         match v with
-        | TimeValue  v            -> printTimeValue l td v
+        | TimeValue  v            -> printTimeValue lm td v
         | RefValue ((md,vs),ov)   -> vs
         | _                 -> raise(BugErrorException "unexpected value")
     printValue
