@@ -405,6 +405,40 @@ is
       end if;
    end BitStream_ReadBits;
 
+   procedure BitStream_AppendBitArray (bs : in out Bitstream;
+                                       bitArrayData : BitArray;
+                                       bitsCount : Natural)
+   is
+   begin
+      for i in bitArrayData'First ..
+                 bitArrayData'First + bitsCount - 1 loop
+         pragma Loop_Invariant
+           (bs.Current_Bit_Pos =
+            bs.Current_Bit_Pos'Loop_Entry +
+              (i - bitArrayData'First));
+         BitStream_AppendBit (bs, bitArrayData (i));
+      end loop;
+   end BitStream_AppendBitArray;
+
+   procedure BitStream_ReadBitArray
+     (bs           : in out Bitstream; bitArrayData : in out BitArray;
+      bits_to_read :        Natural; success : out Boolean)
+   is
+   begin
+      success := True;
+      for i in bitArrayData'First ..
+               bitArrayData'First + bits_to_read - 1 loop
+         pragma Loop_Invariant
+           (bs.Current_Bit_Pos =
+            bs.Current_Bit_Pos'Loop_Entry +
+              (i - bitArrayData'First));
+         BitStream_ReadBit (bs, bitArrayData (i), success);
+         if not success then
+            return;
+         end if;
+      end loop;
+   end BitStream_ReadBitArray;
+
    procedure BitStream_SkipBits (bs : in out Bitstream; bits_to_skip : Natural)
    is
    begin

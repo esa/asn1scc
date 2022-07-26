@@ -175,7 +175,29 @@ is
       and then bs.Current_Bit_Pos < Natural'Last - bits_to_read
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - bits_to_read,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + bits_to_read;
+     Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + bits_to_read;
+
+   procedure BitStream_AppendBitArray (bs : in out Bitstream;
+                                      bitArrayData : BitArray;
+                                      bitsCount : Natural) with
+      Pre => bitArrayData'First >= 0
+      and then bitArrayData'Last < Natural'Last
+      and then bitsCount <= bitArrayData'Length
+      and then bs.Current_Bit_Pos < Natural'Last - bitsCount
+      and then bs.Size_In_Bytes < Positive'Last / 8
+      and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - bitsCount,
+     Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + bitsCount;
+
+   procedure BitStream_ReadBitArray
+     (bs           : in out Bitstream; bitArrayData : in out BitArray;
+      bits_to_read :        Natural; success : out Boolean) with
+      Pre => bitArrayData'First >= 0
+      and then bitArrayData'Last < Natural'Last
+      and then bits_to_read <= bitArrayData'Length
+      and then bs.Current_Bit_Pos < Natural'Last - bits_to_read
+      and then bs.Size_In_Bytes < Positive'Last / 8
+      and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - bits_to_read,
+     Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + bits_to_read;
 
    procedure BitStream_SkipBits
      (bs : in out Bitstream; bits_to_skip : Natural) with

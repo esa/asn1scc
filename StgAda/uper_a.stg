@@ -595,6 +595,35 @@ result.errorCode := <sErrCode>;
 <loopFixedItem_dec(i=i, sInternalItem=sInternalItem, fixedSize=[p, sAcc, "Length"], nfixedSizeUperLimit = nSizeMax, nCurOffset=nSizeInBits, nAlignSize=nAlignSize, nIntItemMinSize=nIntItemMinSize, nIntItemMaxSize=nIntItemMaxSize)>
 >>
 
+seqOf_FixedSize_encode(p, sTasName, i, sInternalItem, nFixedSize, nIntItemMinSize, nIntItemMaxSize, nAlignSize) ::= <<
+<i> := 1; 
+<loopFixedItem_enc(i=i, sInternalItem=sInternalItem, fixedSize=nFixedSize, nfixedSizeUperLimit = nFixedSize, nCurOffset="0", nAlignSize=nAlignSize, nIntItemMinSize=nIntItemMinSize, nIntItemMaxSize=nIntItemMaxSize)>
+>>
+
+seqOf_FixedSize_decode(p, sTasName, i, sInternalItem, nFixedSize, nIntItemMinSize, nIntItemMaxSize, nAlignSize) ::= <<
+result := <rtlModuleName()>.ASN1_RESULT'(Success => True, ErrorCode => 0);
+<i> := 1; 
+<loopFixedItem_dec(i=i, sInternalItem=sInternalItem, fixedSize=nFixedSize, nfixedSizeUperLimit = nFixedSize, nCurOffset="0", nAlignSize=nAlignSize, nIntItemMinSize=nIntItemMinSize, nIntItemMaxSize=nIntItemMaxSize)>
+>>
+
+seqOf_VarSize_encode(p, sAcc, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, sErrCode) ::= <<
+result.Success := <p><sAcc>Length >= <nSizeMin> AND <p><sAcc>Length \<= <nSizeMax>;
+result.errorCode := <sErrCode>;
+<i> := 1; 
+if result.Success then
+    adaasn1rtl.encoding.uper.UPER_Enc_ConstraintWholeNumber(bs, <rtlModuleName()>.Asn1Int(<p><sAcc>Length), <nSizeMin>, <nSizeInBits>);
+    <loopFixedItem_enc(i=i, sInternalItem=sInternalItem, fixedSize=[p, sAcc, "Length"], nfixedSizeUperLimit = nSizeMax, nCurOffset=nSizeInBits, nAlignSize=nAlignSize, nIntItemMinSize=nIntItemMinSize, nIntItemMaxSize=nIntItemMaxSize)>
+end if;
+>>
+
+seqOf_VarSize_decode(p, sAcc, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, sErrCode) ::= <<
+adaasn1rtl.encoding.uper.UPER_Dec_ConstraintWholeNumberInt(bs, nStringLength, <nSizeMin>, <nSizeMax>, <nSizeInBits>, result.Success);
+result.errorCode := <sErrCode>;
+<i> := 1; 
+<p>.Length := nStringLength;
+<loopFixedItem_dec(i=i, sInternalItem=sInternalItem, fixedSize=[p, sAcc, "Length"], nfixedSizeUperLimit = nSizeMax, nCurOffset=nSizeInBits, nAlignSize=nAlignSize, nIntItemMinSize=nIntItemMinSize, nIntItemMaxSize=nIntItemMaxSize)>
+>>
+
 
 
 
@@ -612,7 +641,6 @@ for <sBlockIndex> in 1 .. <nBlocks64K> loop
 	for <sBLI> in <sCurOffset> .. <sCurOffset> + <sCurBlockSize> -1 loop
 		<sInternalItem>
 	end loop;
-
     <sCurOffset> := <sCurOffset> + <sCurBlockSize>;
 end loop;
 >>
@@ -919,22 +947,34 @@ end;
 
 
 /* BIT STRING*/
-bitString_FixSize_encode(p, sAcc, nFixedSize, sErrCode) ::= "BitStream_AppendBits(pBitStrm, <p><sAcc>arr, <nFixedSize>);"
+bitString_FixSize_encode(p, sAcc, nFixedSize, sErrCode) ::= <<
+adaasn1rtl.encoding.BitStream_AppendBitArray(bs, <p><sAcc>Data, Integer(<nFixedSize>));
+>>
+
 bitString_FixSize_decode(p, sAcc, nFixedSize, sErrCode) ::= <<
-ret = BitStream_ReadBits(pBitStrm, <p><sAcc>arr, <nFixedSize>);
-*pErrCode = ret ? 0 : <sErrCode>;
+adaasn1rtl.encoding.BitStream_ReadBitArray(bs, <p><sAcc>Data, Integer(<nFixedSize>), result.success);
+if not result.Success then
+    result.errorcode := <sErrCode>; -- COVERAGE_IGNORE
+end if;
 >>
 
-bitString_VarSize_encode(p, sAcc, nSizeMin, nSizeMax, sErrCode) ::= <<
-BitStream_EncodeConstraintWholeNumber(pBitStrm, <p><sAcc>nCount, <nSizeMin>, <nSizeMax>);
-<bitString_FixSize_encode(p=p, sAcc=sAcc, nFixedSize=[p, sAcc,"nCount"], sErrCode=sErrCode)>
+bitString_VarSize_encode(p, sAcc, nSizeMin, nSizeMax, sErrCode, nSizeInBits) ::= <<
+result.Success := <p><sAcc>Length >= <nSizeMin> AND <p><sAcc>Length \<= <nSizeMax>;
+result.errorCode := <sErrCode>;
+if result.Success then
+    adaasn1rtl.encoding.uper.UPER_Enc_ConstraintWholeNumber(bs, <rtlModuleName()>.Asn1Int(<p><sAcc>Length), <nSizeMin>, <nSizeInBits>);
+    <bitString_FixSize_encode(p=p, sAcc=sAcc, nFixedSize=[p, sAcc,"Length"], sErrCode=sErrCode)>
+end if;
 >>
 
-bitString_VarSize_decode(p, sAcc, nSizeMin, nSizeMax, sErrCode) ::= <<
-ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, &nCount, <nSizeMin>, <nSizeMax>);
-if (ret) {
-	<p><sAcc>nCount = (long)nCount;
-	<bitString_FixSize_decode(p=p, sAcc=sAcc, nFixedSize=[p,sAcc, "nCount"], sErrCode=sErrCode)>
-}
+bitString_VarSize_decode(p, sAcc, nSizeMin, nSizeMax, sErrCode, nSizeInBits) ::= <<
+adaasn1rtl.encoding.uper.UPER_Dec_ConstraintWholeNumberInt(bs, nStringLength, <nSizeMin>, <nSizeMax>, <nSizeInBits>, result.Success);
+result.errorCode := <sErrCode>;
+if result.Success then
+	<p><sAcc>Length := nStringLength;
+	<bitString_FixSize_decode(p=p, sAcc=sAcc, nFixedSize=[p,sAcc, "Length"], sErrCode=sErrCode)>
+end if;
 >>
+
+
 

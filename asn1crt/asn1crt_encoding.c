@@ -1215,14 +1215,42 @@ flag BitStream_ReadBits_nullterminated(BitStream* pBitStrm, const byte bit_termi
 
 
 flag BitStream_EncodeOctetString_no_length (BitStream* pBitStrm, const byte* arr, int nCount) {
+	int cb = pBitStrm->currentBit;
 	int i1;
 	flag ret = TRUE;
-	for (i1 = 0; (i1 < (int)nCount) && ret; i1++)
-	{
-		ret = BitStream_AppendByte0(pBitStrm, arr[i1]);
+
+	if (cb == 0) {
+#ifdef ASN1SCC_STREAMING
+		int remainingBytesToSend = nCount;
+		while (remainingBytesToSend > 0) {
+			int currentBatch =
+				pBitStrm->currentByte + remainingBytesToSend <= pBitStrm->count ?
+				remainingBytesToSend :
+				pBitStrm->count - pBitStrm->currentByte;
+
+			memcpy(&pBitStrm->buf[pBitStrm->currentByte], arr, currentBatch);
+			pBitStrm->currentByte += currentBatch;
+			bitstream_push_data_if_required(pBitStrm);
+			remainingBytesToSend -= currentBatch;
+		}
+#else
+		ret = pBitStrm->currentByte + nCount <= pBitStrm->count;
+		if (ret) {
+			memcpy(&pBitStrm->buf[pBitStrm->currentByte], arr, nCount);
+			pBitStrm->currentByte += nCount;
+		}
+#endif
+
+	}
+	else {
+
+		for (i1 = 0; (i1 < (int)nCount) && ret; i1++)
+		{
+			ret = BitStream_AppendByte0(pBitStrm, arr[i1]);
+		}
 	}
 
-	return TRUE;
+	return ret;
 }
 
 flag BitStream_DecodeOctetString_no_length(BitStream* pBitStrm, byte* arr, int nCount) {

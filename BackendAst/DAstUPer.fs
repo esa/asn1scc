@@ -408,6 +408,8 @@ let createOctetStringFunction_funcBody (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros
 
     {UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = localVariables; bValIsUnReferenced=false; bBsIsUnReferenced=false}    
 
+
+
 let createOctetStringFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type)  (o:Asn1AcnAst.OctetString) (typeDefinition:TypeDefintionOrReference)  (baseTypeUperFunc : UPerFunction option) (isValidFunc: IsValidFunction option) (us:State)  =
 
     let funcBody (errCode:ErroCode) (p:CallerScope) =
@@ -418,52 +420,37 @@ let createOctetStringFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:
 
 
 
-
+(*
 let createBitStringFunction_funcBody (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (codec:CommonTypes.Codec) (id : ReferenceToType) (typeDefinition:TypeDefintionOrReference) isFixedSize  uperMaxSizeInBits minSize maxSize (errCode:ErroCode) (p:CallerScope) = 
     lm.lg.uper.createBitStringFunction (handleFragmentation lm) codec id typeDefinition isFixedSize  uperMaxSizeInBits minSize maxSize errCode p
+*)
 
-#if false 
+let createBitStringFunction_funcBody (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (codec:CommonTypes.Codec) (id : ReferenceToType) (typeDefinition:TypeDefintionOrReference) isFixedSize  uperMaxSizeInBits minSize maxSize (errCode:ErroCode) (p:CallerScope) = 
+    let bitString_FixSize = lm.uper.bitString_FixSize
+    let bitString_VarSize = lm.uper.bitString_VarSize
     let ii = id.SeqeuenceOfLevel + 1;
     let i = sprintf "i%d" (id.SeqeuenceOfLevel + 1)
+    let nSizeInBits = GetNumberOfBitsForNonNegativeInteger ( (maxSize - minSize))
+    let internalItem = lm.uper.InternalItem_bit_str p.arg.p i  errCode.errCodeName codec 
+    let iVar = SequenceOfIndex (id.SeqeuenceOfLevel + 1, None)
 
     let funcBodyContent, localVariables = 
-        match l with
-        | Ada ->
-            let nStringLength = 
-                match isFixedSize with  
-                | true  -> [] 
-                | false -> 
-                    match codec with
-                    | Encode    -> []
-                    | Decode    -> [IntegerLocalVariable ("nStringLength", None)]
-            let iVar = SequenceOfIndex (id.SeqeuenceOfLevel + 1, None)
+        let nStringLength =
+            match isFixedSize,  codec with
+            | true , _    -> []
+            | false, Encode -> []
+            | false, Decode -> [lm.lg.uper.count_var]
+        
+        match minSize with
+        | _ when maxSize < 65536I && isFixedSize   -> bitString_FixSize p.arg.p (getAcces_c p.arg) (minSize) errCode.errCodeName codec , nStringLength
+        | _ when maxSize < 65536I && (not isFixedSize)  -> bitString_VarSize p.arg.p (getAcces_c p.arg) (minSize) (maxSize) errCode.errCodeName nSizeInBits codec, nStringLength
+        | _                                                -> 
+            let funcBodyContent, fragmentationLvars = handleFragmentation lm p codec errCode ii uperMaxSizeInBits minSize maxSize internalItem 1I true false
+            let fragmentationLvars = fragmentationLvars |> List.addIf ((not isFixedSize) &&  lm.lg.uper.requires_sBLJ) (iVar)
+            (funcBodyContent,fragmentationLvars)
 
-            let typeDefinitionName = typeDefinition.longTypedefName2 lm.lg.hasModules //getTypeDefinitionName t.id.tasInfo typeDefinition
-            let nBits = 1I
-            let internalItem = uper_a.InternalItem_bit_str p.arg.p i  errCode.errCodeName codec 
-            let nSizeInBits = GetNumberOfBitsForNonNegativeInteger ( (maxSize - minSize))
-            match minSize with
-            | _ when maxSize < 65536I && isFixedSize  -> uper_a.octect_FixedSize p.arg.p typeDefinitionName i internalItem (minSize) nBits nBits 0I codec, iVar::nStringLength 
-            | _ when maxSize < 65536I && (not isFixedSize) -> uper_a.octect_VarSize p.arg.p (lm.lg.getAcces p.arg)  typeDefinitionName i internalItem ( minSize) (maxSize) nSizeInBits nBits nBits 0I errCode.errCodeName codec , iVar::nStringLength
-            | _                                                -> 
-                let funcBodyContent, fragmentationLvars = handleFragmentation lm p codec errCode ii (uperMaxSizeInBits) minSize maxSize internalItem nBits true false
-                let fragmentationLvars = fragmentationLvars |> List.addIf (not isFixedSize) (iVar)
-                (funcBodyContent,fragmentationLvars)
-
-        | C ->
-            let nStringLength =
-                match isFixedSize,  codec with
-                | true , _    -> []
-                | false, Encode -> []
-                | false, Decode -> [Asn1SIntLocalVariable ("nCount", None)]
-
-            match minSize with
-            | _ when maxSize < 65536I && isFixedSize   -> uper_c.bitString_FixSize p.arg.p (lm.lg.getAcces p.arg) (minSize) errCode.errCodeName codec , nStringLength
-            | _ when maxSize < 65536I && (not isFixedSize)  -> uper_c.bitString_VarSize p.arg.p (lm.lg.getAcces p.arg) (minSize) (maxSize) errCode.errCodeName codec, nStringLength
-            | _                                                -> 
-                handleFragmentation lm p codec errCode ii (uperMaxSizeInBits) minSize maxSize "" 1I true false
     {UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = localVariables; bValIsUnReferenced=false; bBsIsUnReferenced=false}    
-#endif 
+
 
 let createBitStringFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.BitString) (typeDefinition:TypeDefintionOrReference)  (baseTypeUperFunc : UPerFunction option) (isValidFunc: IsValidFunction option) (us:State)  =
 
