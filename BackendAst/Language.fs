@@ -14,7 +14,7 @@ type Uper_parts = {
     count_var            : LocalVariable
     requires_presenceBit : bool
     catd                 : bool //if true then Choice Alternatives are Temporarily Decoded (i.e. in _tmp variables in curent scope)
-    createBitStringFunction  : (CallerScope -> CommonTypes.Codec -> ErroCode -> int -> BigInteger -> BigInteger -> BigInteger -> string -> BigInteger -> bool -> bool -> (string * LocalVariable list)) -> CommonTypes.Codec -> ReferenceToType -> TypeDefintionOrReference -> bool -> BigInteger -> BigInteger -> BigInteger -> ErroCode ->  CallerScope -> UPERFuncBodyResult
+    //createBitStringFunction  : (CallerScope -> CommonTypes.Codec -> ErroCode -> int -> BigInteger -> BigInteger -> BigInteger -> string -> BigInteger -> bool -> bool -> (string * LocalVariable list)) -> CommonTypes.Codec -> ReferenceToType -> TypeDefintionOrReference -> bool -> BigInteger -> BigInteger -> BigInteger -> ErroCode ->  CallerScope -> UPERFuncBodyResult
     seqof_lv             : ReferenceToType -> BigInteger -> BigInteger -> LocalVariable list
 
 }
@@ -136,9 +136,11 @@ let getAcces_c  (fpt:FuncParamType) =
     | POINTER x      -> "->"
     | FIXARRAY x     -> ""
 
+#if false
 let createBitStringFunction_funcBody_c handleFragmentation (codec:CommonTypes.Codec) (id : ReferenceToType) (typeDefinition:TypeDefintionOrReference) isFixedSize  uperMaxSizeInBits minSize maxSize (errCode:ErroCode) (p:CallerScope) = 
     let ii = id.SeqeuenceOfLevel + 1;
     let i = sprintf "i%d" (id.SeqeuenceOfLevel + 1)
+    let nSizeInBits = GetNumberOfBitsForNonNegativeInteger ( (maxSize - minSize))
 
     let funcBodyContent, localVariables = 
         let nStringLength =
@@ -149,11 +151,11 @@ let createBitStringFunction_funcBody_c handleFragmentation (codec:CommonTypes.Co
 
         match minSize with
         | _ when maxSize < 65536I && isFixedSize   -> uper_c.bitString_FixSize p.arg.p (getAcces_c p.arg) (minSize) errCode.errCodeName codec , nStringLength
-        | _ when maxSize < 65536I && (not isFixedSize)  -> uper_c.bitString_VarSize p.arg.p (getAcces_c p.arg) (minSize) (maxSize) errCode.errCodeName codec, nStringLength
+        | _ when maxSize < 65536I && (not isFixedSize)  -> uper_c.bitString_VarSize p.arg.p (getAcces_c p.arg) (minSize) (maxSize) errCode.errCodeName nSizeInBits codec, nStringLength
         | _                                                -> 
             handleFragmentation p codec errCode ii (uperMaxSizeInBits) minSize maxSize "" 1I true false
     {UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = localVariables; bValIsUnReferenced=false; bBsIsUnReferenced=false}    
-
+#endif
 
 let createBitStringFunction_extfld_c  (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.BitString) (errCode:ErroCode) (p:CallerScope) (extField:string) (codec:CommonTypes.Codec) : (string*ErroCode list*LocalVariable list) = 
     let fncBody = 
@@ -365,7 +367,7 @@ type LangGeneric_c() =
                 count_var            = Asn1SIntLocalVariable ("nCount", None)
                 requires_presenceBit = true
                 catd                 = false
-                createBitStringFunction = createBitStringFunction_funcBody_c
+                //createBitStringFunction = createBitStringFunction_funcBody_c
                 seqof_lv              =
                   (fun id minSize maxSize -> [SequenceOfIndex (id.SeqeuenceOfLevel + 1, None)])
             }
@@ -400,7 +402,7 @@ type LangGeneric_c() =
 (****** Ada Implementation ******)
 
 let getAcces_a  (_:FuncParamType) = "."
-
+#if false
 let createBitStringFunction_funcBody_Ada handleFragmentation (codec:CommonTypes.Codec) (id : ReferenceToType) (typeDefinition:TypeDefintionOrReference) isFixedSize  uperMaxSizeInBits minSize maxSize (errCode:ErroCode) (p:CallerScope) = 
     let ii = id.SeqeuenceOfLevel + 1;
     let i = sprintf "i%d" (id.SeqeuenceOfLevel + 1)
@@ -436,7 +438,7 @@ let createBitStringFunction_funcBody_Ada handleFragmentation (codec:CommonTypes.
             (funcBodyContent,fragmentationLvars)
 
     {UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = localVariables; bValIsUnReferenced=false; bBsIsUnReferenced=false}    
-
+#endif
 
 let createBitStringFunction_extfld_ada (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.BitString) (errCode:ErroCode) (p:CallerScope) (extField:string) (codec:CommonTypes.Codec) : (string*ErroCode list*LocalVariable list) = 
     let nAlignSize = 0I;
@@ -601,7 +603,7 @@ type LangGeneric_a() =
                 count_var            = IntegerLocalVariable ("nStringLength", None)
                 requires_presenceBit = false
                 catd                 = true
-                createBitStringFunction = createBitStringFunction_funcBody_Ada
+                //createBitStringFunction = createBitStringFunction_funcBody_Ada
                 seqof_lv              =
                   (fun id minSize maxSize -> 
                     if maxSize >= 65536I && maxSize = minSize then 
