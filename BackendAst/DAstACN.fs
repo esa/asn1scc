@@ -863,8 +863,8 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserted
     let oct_sqf_null_terminated = lm.acn.oct_sqf_null_terminated
     let oct_sqf_external_field_fix_size                 = lm.acn.oct_sqf_external_field_fix_size
     let external_field          = lm.acn.oct_sqf_external_field
-    let fixedSize               = lm.uper.octect_FixedSize
-    let varSize                 = lm.uper.octect_VarSize
+    let fixedSize               = lm.uper.seqOf_FixedSize
+    let varSize                 = lm.uper.seqOf_VarSize
     
     let ii = t.id.SeqeuenceOfLevel + 1
 

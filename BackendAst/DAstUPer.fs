@@ -399,8 +399,8 @@ let createOctetStringFunction_funcBody (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros
             | false, Decode -> [lm.lg.uper.count_var]
 
         match minSize with
-        | _ when maxSize < 65536I && isFixedSize  ->  fixedSize p.arg.p typeDefinitionName i internalItem ( minSize) nIntItemMaxSize nIntItemMaxSize 0I codec , lv::nStringLength
-        | _ when maxSize < 65536I && (not isFixedSize)  -> varSize p.arg.p (lm.lg.getAcces p.arg)  typeDefinitionName i internalItem ( minSize) ( maxSize) nSizeInBits nIntItemMaxSize nIntItemMaxSize 0I errCode.errCodeName codec , lv::nStringLength
+        | _ when maxSize < 65536I && isFixedSize  ->  fixedSize p.arg.p (lm.lg.getAcces p.arg) typeDefinitionName i internalItem ( minSize) nIntItemMaxSize nIntItemMaxSize 0I codec , (if lm.lg.hasModules || codec=Decode then lv::nStringLength else nStringLength)
+        | _ when maxSize < 65536I && (not isFixedSize)  -> varSize p.arg.p (lm.lg.getAcces p.arg)  typeDefinitionName i internalItem ( minSize) ( maxSize) nSizeInBits nIntItemMaxSize nIntItemMaxSize 0I errCode.errCodeName codec , (if lm.lg.hasModules  || codec=Decode then lv::nStringLength else nStringLength)
         | _                                                -> 
             let funcBodyContent,localVariables = handleFragmentation lm p codec errCode ii ( uperMaxSizeInBits) minSize maxSize internalItem nIntItemMaxSize false false
             let localVariables = localVariables |> List.addIf (lm.lg.uper.requires_IA5String_i || (not isFixedSize)) (lv)
@@ -464,8 +464,8 @@ let createBitStringFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Co
 //let get
 
 let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.SequenceOf) (typeDefinition:TypeDefintionOrReference)  (baseTypeUperFunc : UPerFunction option) (isValidFunc: IsValidFunction option) (child:Asn1Type) (us:State)  =
-    let fixedSize       = lm.uper.octect_FixedSize
-    let varSize         = lm.uper.octect_VarSize
+    let fixedSize       = lm.uper.seqOf_FixedSize
+    let varSize         = lm.uper.seqOf_VarSize
     let typeDefinitionName = typeDefinition.longTypedefName2 lm.lg.hasModules //getTypeDefinitionName t.id.tasInfo typeDefinition
     let nSizeInBits = GetNumberOfBitsForNonNegativeInteger ( (o.maxSize.uper - o.minSize.uper))
     let nIntItemMaxSize = ( child.uperMaxSizeInBits)
