@@ -783,8 +783,8 @@ let createAcnStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
 
 
 let createOctetStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (lm:LanguageMacros) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.OctetString) (typeDefinition:TypeDefintionOrReference) (isValidFunc: IsValidFunction option) (uperFunc: UPerFunction) (us:State)  =
-    let oct_sqf_external_field           = lm.acn.oct_sqf_external_field
-    let oct_sqf_external_field_fix_size  = lm.acn.oct_sqf_external_field_fix_size
+    let oct_external_field           = lm.acn.oct_external_field
+    let oct_external_field_fix_size  = lm.acn.oct_external_field_fix_size
     let oct_sqf_null_terminated          = lm.acn.oct_sqf_null_terminated
     let InternalItem_oct_str             = lm.uper.InternalItem_oct_str
     let i = sprintf "i%d" (t.id.SeqeuenceOfLevel + 1)
@@ -804,9 +804,10 @@ let createOctetStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserte
                 let internalItem = InternalItem_oct_str p.arg.p (lm.lg.getAcces p.arg) i  errCode.errCodeName codec 
                 let fncBody = 
                     match o.isFixedSize with
-                    | true  -> oct_sqf_external_field_fix_size p.arg.p (lm.lg.getAcces p.arg) i internalItem (if o.minSize.acn=0I then None else Some ( o.minSize.acn)) ( o.maxSize.acn) extField nAlignSize errCode.errCodeName 8I 8I codec
-                    | false -> oct_sqf_external_field p.arg.p (lm.lg.getAcces p.arg) i internalItem (if o.minSize.acn=0I then None else Some ( o.minSize.acn)) ( o.maxSize.acn) extField nAlignSize errCode.errCodeName 8I 8I codec
-                Some(fncBody, [errCode],[lv])
+                    //oct_external_field_encode(p, sAcc, noSizeMin, nSizeMax, sExtFld, nAlignSize, sErrCode) ::= <<
+                    | true  -> oct_external_field_fix_size p.arg.p (lm.lg.getAcces p.arg) (if o.minSize.acn=0I then None else Some ( o.minSize.acn)) ( o.maxSize.acn) extField nAlignSize errCode.errCodeName codec
+                    | false -> oct_external_field p.arg.p (lm.lg.getAcces p.arg) (if o.minSize.acn=0I then None else Some ( o.minSize.acn)) ( o.maxSize.acn) extField nAlignSize errCode.errCodeName codec
+                Some(fncBody, [errCode],[])
             | SZ_EC_TerminationPattern bitPattern   ->
                 let mod8 = bitPattern.Value.Length % 8
                 let suffix = [1 .. mod8] |> Seq.map(fun _ -> "0") |> Seq.StrJoin ""
@@ -861,8 +862,8 @@ let createBitStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
 
 let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (lm:LanguageMacros) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.SequenceOf) (typeDefinition:TypeDefintionOrReference) (defOrRef:TypeDefintionOrReference) (isValidFunc: IsValidFunction option)  (child:Asn1Type) (us:State)  =
     let oct_sqf_null_terminated = lm.acn.oct_sqf_null_terminated
-    let oct_sqf_external_field_fix_size                 = lm.acn.oct_sqf_external_field_fix_size
-    let external_field          = lm.acn.oct_sqf_external_field
+    let oct_sqf_external_field_fix_size                 = lm.acn.sqf_external_field_fix_size
+    let external_field          = lm.acn.sqf_external_field
     let fixedSize               = lm.uper.seqOf_FixedSize
     let varSize                 = lm.uper.seqOf_VarSize
     

@@ -447,8 +447,8 @@ let createBitStringFunction_extfld_ada (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Bit
     let internalItem = uper_a.InternalItem_bit_str p.arg.p i  errCode.errCodeName codec 
     let fncBody = 
         match o.minSize.uper = o.maxSize.uper with
-        | true  -> acn_a.oct_sqf_external_field_fix_size p.arg.p (getAcces_a p.arg) i internalItem (if o.minSize.acn=0I then None else Some ( o.minSize.acn)) ( o.maxSize.acn) extField nAlignSize errCode.errCodeName 1I 1I codec
-        | false  -> acn_a.oct_sqf_external_field p.arg.p (getAcces_a p.arg) i internalItem (if o.minSize.acn=0I then None else Some ( o.minSize.acn)) ( o.maxSize.acn) extField nAlignSize errCode.errCodeName 1I 1I codec
+        | true  -> acn_a.sqf_external_field_fix_size p.arg.p (getAcces_a p.arg) i internalItem (if o.minSize.acn=0I then None else Some ( o.minSize.acn)) ( o.maxSize.acn) extField nAlignSize errCode.errCodeName 1I 1I codec
+        | false  -> acn_a.sqf_external_field p.arg.p (getAcces_a p.arg) i internalItem (if o.minSize.acn=0I then None else Some ( o.minSize.acn)) ( o.maxSize.acn) extField nAlignSize errCode.errCodeName 1I 1I codec
     fncBody, [errCode], [lv]
 
 

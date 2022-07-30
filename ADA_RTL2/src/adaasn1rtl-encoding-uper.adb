@@ -592,28 +592,46 @@ is
    procedure BitStream_EncodeOctetString_no_length
      (bs : in out Bitstream; data : OctetBuffer; data_length : Integer)
    is
+      Current_Bit : constant BIT_RANGE := bs.Current_Bit_Pos mod 8;
+      Current_Byte : constant Integer :=
+        bs.Buffer'First + bs.Current_Bit_Pos / 8;
    begin
-      for i in data'First .. (data'First + data_length - 1) loop
-         pragma Loop_Invariant
-           (bs.Current_Bit_Pos =
-            bs.Current_Bit_Pos'Loop_Entry + (i - data'First) * 8);
-         BitStream_AppendByte (bs, data (i), False);
-      end loop;
+      if Current_Bit > 0 then
+         for i in data'First .. (data'First + data_length - 1) loop
+            pragma Loop_Invariant
+              (bs.Current_Bit_Pos =
+                 bs.Current_Bit_Pos'Loop_Entry + (i - data'First) * 8);
+            BitStream_AppendByte (bs, data (i), False);
+         end loop;
+      else
+         bs.Buffer (Current_Byte .. Current_Byte + data_length - 1) :=
+           data (data'First .. (data'First + data_length - 1));
+         bs.Current_Bit_Pos := bs.Current_Bit_Pos + 8 * data_length;
+      end if;
    end BitStream_EncodeOctetString_no_length;
 
    procedure BitStream_DecodeOctetString_no_length
      (bs : in out Bitstream; data : in out OctetBuffer; data_length : Integer;
       success :    out Boolean)
    is
+      Current_Bit : constant BIT_RANGE := bs.Current_Bit_Pos mod 8;
+      Current_Byte : constant Integer :=
+        bs.Buffer'First + bs.Current_Bit_Pos / 8;
    begin
       success := True;
-      for i in data'First .. (data'First + data_length - 1) loop
-         pragma Loop_Invariant
-           (bs.Current_Bit_Pos =
-            bs.Current_Bit_Pos'Loop_Entry + (i - data'First) * 8);
-         BitStream_DecodeByte (bs, data (i), success);
-         exit when not success;
-      end loop;
+      if Current_Bit > 0 then
+         for i in data'First .. (data'First + data_length - 1) loop
+            pragma Loop_Invariant
+              (bs.Current_Bit_Pos =
+                 bs.Current_Bit_Pos'Loop_Entry + (i - data'First) * 8);
+            BitStream_DecodeByte (bs, data (i), success);
+            exit when not success;
+         end loop;
+      else
+         data (data'First .. (data'First + data_length - 1)) :=
+           bs.Buffer (Current_Byte .. Current_Byte + data_length - 1);
+         bs.Current_Bit_Pos := bs.Current_Bit_Pos + 8 * data_length;
+      end if;
    end BitStream_DecodeOctetString_no_length;
 
    procedure BitStream_EncodeOctetString_fragmentation

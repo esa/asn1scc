@@ -312,6 +312,10 @@ is
     use Ada.Text_IO;
     result      : adaasn1rtl.test_case_result;
 
+    s1 : Ada.Calendar.Time;
+    s2 : Ada.Calendar.Time;
+
+
     <arrsVars; separator="\n">
 	pragma Warnings (Off, "there are no others");
     tc_data : <sModName>.<sTasName><if(bValueAssignment)> := <sInitializeTcData><endif>;
@@ -347,9 +351,14 @@ begin
 	pragma Warnings (On, "is always False at this point");
 
 	pragma Warnings (Off, "object ""tc_data"" is always");
+    s1 := Ada.Calendar.Clock;
     result := <sTasName>_<sEnc>enc_dec(tc_data,"<sFuncName>");
+    s2 := Ada.Calendar.Clock;
 	pragma Warnings (On, "object ""tc_data"" is always");
-    if NOT result.Success then
+    if result.Success then
+        Put("Test case '<sFuncName>' succeeded, duration was :");
+        Put_Line (Duration'Image ((s2 - s1)));
+    else
         case result.Step is
             when <rtlModuleName()>.TC_VALIDATE =>
                 Put_Line ("Test case '<sFuncName>' failed in validation"); 
@@ -399,6 +408,8 @@ with <inc>; USE <inc>;
 pragma Warnings (On, "no entities of ""<inc>"" are referenced");
 pragma Warnings (On, "use clause for package ""<inc>"" has no effect");
 }; separator="\n">
+with Ada.Calendar;
+use Ada.Calendar;
 
 package body <sPackageName> is
 
