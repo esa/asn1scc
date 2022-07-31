@@ -430,6 +430,42 @@ is
       and then bs.Current_Bit_Pos <=
         bs.Size_In_Bytes * 8 - bit_terminated_pattern_size_in_bits;
 
+   procedure BitStream_ReadBits_nullterminated (
+        bs : in out adaasn1rtl.encoding.Bitstream;
+        val : in out adaasn1rtl.BitArray;
+        decodedBits : out Natural;
+        bit_terminated_pattern : OctetBuffer;
+        bit_terminated_pattern_size_in_bits : Natural;
+       result : out Boolean)
+   with
+      Pre =>
+         val'Length >= 0
+      and then val'First >= 0
+      and then val'Last >= val'First
+      and then val'Last < Natural'Last / 8
+      and then val'Length < Natural'Last / 8
+      and then bit_terminated_pattern'First >= 0
+      and then bit_terminated_pattern'Last < Natural'Last / 8
+      and then bit_terminated_pattern_size_in_bits <=
+        (bit_terminated_pattern'Length) * 8
+     and then bit_terminated_pattern_size_in_bits < Natural'Last / 2
+     and then
+           bs.Current_Bit_Pos < Natural'Last - (val'Length +
+                                           bit_terminated_pattern_size_in_bits)
+     and then bs.Size_In_Bytes < Positive'Last / 8
+     and then bs.Current_Bit_Pos + (val'Length +
+            bit_terminated_pattern_size_in_bits) <= bs.Size_In_Bytes * 8,
+       Post =>
+       (result
+           and bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos
+           and bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos +
+                 (val'Length + bit_terminated_pattern_size_in_bits)
+           and decodedBits >= 0
+           and decodedBits <= val'Last - val'First + 1
+       )
+       or
+         not result;
+
    pragma Warnings (Off, """bs"" is not modified, could be IN");
 
    procedure bitstrean_fetch_data_if_required (bs : in out Bitstream) with

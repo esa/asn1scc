@@ -870,6 +870,50 @@ is
       return True;
    end BitStream_bitPatternMatches;
 
+   procedure BitStream_ReadBits_nullterminated (
+        bs : in out adaasn1rtl.encoding.Bitstream;
+        val : in out adaasn1rtl.BitArray;
+        decodedBits : out Natural;
+        bit_terminated_pattern : OctetBuffer;
+        bit_terminated_pattern_size_in_bits : Natural;
+        result : out Boolean)
+   is
+      i1 : Integer;
+   begin
+      i1     := val'First;
+      result := True;
+      decodedBits := 0;
+      while result and then i1 <= val'Last and then not
+        BitStream_bitPatternMatches (bs, bit_terminated_pattern,
+                                     bit_terminated_pattern_size_in_bits) loop
+         pragma Loop_Invariant (i1 >= val'First and i1 <= val'Last);
+         pragma Loop_Invariant (bs.Current_Bit_Pos >=
+                                  bs.Current_Bit_Pos'Loop_Entry);
+         pragma Loop_Invariant (bs.Current_Bit_Pos <=
+                         bs.Current_Bit_Pos'Loop_Entry + (i1 - val'First));
+         pragma Loop_Invariant (decodedBits = i1 - val'First);
+         adaasn1rtl.encoding.BitStream_ReadBit (bs, val (i1), result);
+         i1 := i1 + 1;
+         decodedBits := decodedBits + 1;
+      end loop;
+
+      if result and i1 = val'Last + 1 then
+         --  maximum number of elements was decoded. Makesure that the
+         --  following bits is the termination pattern
+         result := BitStream_bitPatternMatches (bs, bit_terminated_pattern,
+                                         bit_terminated_pattern_size_in_bits);
+         if result then
+            BitStream_SkipBits (bs, bit_terminated_pattern_size_in_bits);
+         end if;
+      elsif result and i1 < val'Last + 1 then
+         BitStream_SkipBits (bs, bit_terminated_pattern_size_in_bits);
+         result := True;
+      else
+         decodedBits := 0;
+         result := False;
+      end if;
+   end BitStream_ReadBits_nullterminated;
+
    pragma Warnings (Off, "formal parameter ""bs"" is not modified");
    pragma Warnings (Off, "statement has no effect");
 

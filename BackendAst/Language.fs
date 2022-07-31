@@ -25,8 +25,6 @@ type Acn_parts = {
     getAcnDepSizeDeterminantLocVars     : string -> LocalVariable list
     choice_handle_always_absent_child   : bool
     choice_requires_tmp_decoding        : bool
-    createBitStringFunction_extfld      : Asn1AcnAst.Asn1Type -> Asn1AcnAst.BitString -> ErroCode -> CallerScope -> string ->CommonTypes.Codec ->  (string*ErroCode list*LocalVariable list)
-    createBitStringFunction_term_pat    : Asn1AcnAst.Asn1Type -> Asn1AcnAst.BitString -> ErroCode -> CallerScope -> CommonTypes.Codec -> Asn1AcnAst.BitStringValue -> (string*ErroCode list*LocalVariable list) 
 }
 type Initialize_parts = {
     zeroIA5String_localVars             : int -> LocalVariable list
@@ -157,20 +155,6 @@ let createBitStringFunction_funcBody_c handleFragmentation (codec:CommonTypes.Co
     {UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = localVariables; bValIsUnReferenced=false; bBsIsUnReferenced=false}    
 #endif
 
-let createBitStringFunction_extfld_c  (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.BitString) (errCode:ErroCode) (p:CallerScope) (extField:string) (codec:CommonTypes.Codec) : (string*ErroCode list*LocalVariable list) = 
-    let fncBody = 
-        match o.minSize.uper = o.maxSize.uper with
-        | true  -> acn_c.bit_string_external_field_fixed_size p.arg.p errCode.errCodeName (getAcces_c p.arg) (if o.minSize.acn=0I then None else Some ( o.minSize.acn)) ( o.maxSize.acn) extField codec
-        | false  -> acn_c.bit_string_external_field p.arg.p errCode.errCodeName (getAcces_c p.arg) (if o.minSize.acn=0I then None else Some ( o.minSize.acn)) ( o.maxSize.acn) extField codec
-    (fncBody, [errCode], [])
-
-let createBitStringFunction_term_pat_c  (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.BitString) (errCode:ErroCode) (p:CallerScope) (codec:CommonTypes.Codec) (bitPattern:Asn1AcnAst.BitStringValue): (string*ErroCode list*LocalVariable list) = 
-    let mod8 = bitPattern.Value.Length % 8
-    let suffix = [1 .. mod8] |> Seq.map(fun _ -> "0") |> Seq.StrJoin ""
-    let bitPatten8 = bitPattern.Value + suffix
-    let byteArray = bitStringValueToByteArray bitPatten8.AsLoc
-    let fncBody = acn_c.bit_string_null_terminated p.arg.p errCode.errCodeName (getAcces_c p.arg) (if o.minSize.acn=0I then None else Some ( o.minSize.acn)) ( o.maxSize.acn) byteArray bitPattern.Value.Length.AsBigInt codec
-    (fncBody, [errCode], [])
 
 type LangGeneric_c() =
     inherit ILangGeneric()
@@ -383,8 +367,6 @@ type LangGeneric_c() =
                         ]
                 choice_handle_always_absent_child = false
                 choice_requires_tmp_decoding = false
-                createBitStringFunction_extfld = createBitStringFunction_extfld_c
-                createBitStringFunction_term_pat = createBitStringFunction_term_pat_c
             }
         override this.init = 
             {
@@ -440,30 +422,9 @@ let createBitStringFunction_funcBody_Ada handleFragmentation (codec:CommonTypes.
     {UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = localVariables; bValIsUnReferenced=false; bBsIsUnReferenced=false}    
 #endif
 
-let createBitStringFunction_extfld_ada (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.BitString) (errCode:ErroCode) (p:CallerScope) (extField:string) (codec:CommonTypes.Codec) : (string*ErroCode list*LocalVariable list) = 
-    let nAlignSize = 0I;
-    let i = sprintf "i%d" (t.id.SeqeuenceOfLevel + 1)
-    let lv = SequenceOfIndex (t.id.SeqeuenceOfLevel + 1, None)
-    let internalItem = uper_a.InternalItem_bit_str p.arg.p i  errCode.errCodeName codec 
-    let fncBody = 
-        match o.minSize.uper = o.maxSize.uper with
-        | true  -> acn_a.sqf_external_field_fix_size p.arg.p (getAcces_a p.arg) i internalItem (if o.minSize.acn=0I then None else Some ( o.minSize.acn)) ( o.maxSize.acn) extField nAlignSize errCode.errCodeName 1I 1I codec
-        | false  -> acn_a.sqf_external_field p.arg.p (getAcces_a p.arg) i internalItem (if o.minSize.acn=0I then None else Some ( o.minSize.acn)) ( o.maxSize.acn) extField nAlignSize errCode.errCodeName 1I 1I codec
-    fncBody, [errCode], [lv]
 
 
 
-let createBitStringFunction_term_pat_ada  (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.BitString) (errCode:ErroCode) (p:CallerScope) (codec:CommonTypes.Codec) (bitPattern:Asn1AcnAst.BitStringValue): (string*ErroCode list*LocalVariable list) = 
-    let mod8 = bitPattern.Value.Length % 8
-    let suffix = [1 .. mod8] |> Seq.map(fun _ -> "0") |> Seq.StrJoin ""
-    let bitPatten8 = bitPattern.Value + suffix
-    let byteArray = bitStringValueToByteArray bitPatten8.AsLoc
-    let i = sprintf "i%d" (t.id.SeqeuenceOfLevel + 1)
-    let lv = SequenceOfIndex (t.id.SeqeuenceOfLevel + 1, None)
-    let internalItem = uper_a.InternalItem_bit_str p.arg.p i  errCode.errCodeName codec 
-    let noSizeMin = if o.minSize.acn=0I then None else Some ( o.minSize.acn)
-    let fncBody = acn_a.oct_sqf_null_terminated p.arg.p (getAcces_a p.arg) i internalItem noSizeMin o.maxSize.acn byteArray bitPattern.Value.Length.AsBigInt errCode.errCodeName 1I 1I  codec
-    (fncBody, [errCode], [lv])
 
 
 
@@ -622,8 +583,6 @@ type LangGeneric_a() =
                         ]
                 choice_handle_always_absent_child = true
                 choice_requires_tmp_decoding = true
-                createBitStringFunction_extfld = createBitStringFunction_extfld_ada
-                createBitStringFunction_term_pat = createBitStringFunction_term_pat_ada
           }
         override this.init = 
             {
