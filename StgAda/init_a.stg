@@ -241,3 +241,16 @@ end;
 initChildWithInitFunc(p, sChildInitFuncName) ::= <<
 <p> := <sChildInitFuncName>;
 >>
+
+
+initBitStringAtPos(sVarName, sStar, sFuncName, sTypeDefName, sNamedBit, nZeroBasedByteIndex, sHexByteMax, nZeroBasedBitIndex) ::= <<
+procedure <sFuncName>_set_<sNamedBit>(<sVarName> : in out <sTypeDefName>)
+is
+begin
+    <sVarName>.Data(<sVarName>.Data'First + <nZeroBasedBitIndex>) := 1; --  COVERAGE_IGNORE
+end <sFuncName>_set_<sNamedBit>;
+>>
+
+initBitStringAtPos_def(sVarName, sStar, sFuncName, sTypeDefName, sNamedBit) ::= <<
+procedure <sFuncName>_set_<sNamedBit>(<sVarName> : in out <sTypeDefName>);
+>>

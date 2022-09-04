@@ -93,6 +93,8 @@ let private printUnit (r:DAst.AstRoot) (l:ProgrammingLanguage) (lm:LanguageMacro
                 | ReferenceToExistingDefinition _   -> raise(BugErrorException "Type Assignment with no Type Defintion")
             let init_def        = //tas.Type.initFunction.initFuncDef 
                 Some (GetMySelfAndChildren tas.Type |> List.choose(fun t -> t.initFunction.initFuncDef ) |> Seq.StrJoin "\n")
+            let special_init_funcs =
+                tas.Type.initFunction.user_aux_functions |> List.map fst
 
 
             let equal_defs      = //collectEqualFuncs tas.Type |> List.choose(fun ef -> ef.isEqualFuncDef)
@@ -125,7 +127,7 @@ let private printUnit (r:DAst.AstRoot) (l:ProgrammingLanguage) (lm:LanguageMacro
                 | true, Some x -> x.funcDef
                 | _ -> None 
 
-            let allProcs = equal_defs@isValidFuncs@([init_def;uPerEncFunc;uPerDecFunc;acnEncFunc; acnDecFunc;xerEncFunc;xerDecFunc] |> List.choose id)
+            let allProcs = equal_defs@isValidFuncs@special_init_funcs@([init_def;uPerEncFunc;uPerDecFunc;acnEncFunc; acnDecFunc;xerEncFunc;xerDecFunc] |> List.choose id)
             match l with
             |C     -> header_c.Define_TAS type_defintion allProcs 
             |Ada   -> header_a.Define_TAS type_defintion allProcs 
@@ -207,6 +209,8 @@ let private printUnit (r:DAst.AstRoot) (l:ProgrammingLanguage) (lm:LanguageMacro
         tases |> List.map(fun t -> 
             let initialize        = //t.Type.initFunction.initFunc 
                 Some(GetMySelfAndChildren t.Type |> List.choose(fun y -> y.initFunction.initFunc) |> Seq.StrJoin "\n")
+            let special_init_funcs =
+                t.Type.initFunction.user_aux_functions |> List.map snd
 
             //let eqFuncs = collectEqualDeffinitions t |> List.choose(fun ef -> ef.isEqualFunc)
             let eqFuncs = //collectEqualFuncs t.Type |> List.choose(fun ef -> ef.isEqualFunc)
@@ -247,7 +251,7 @@ let private printUnit (r:DAst.AstRoot) (l:ProgrammingLanguage) (lm:LanguageMacro
                     | CommonTypes.Encode    -> match t.Type.acnEncFunction with None -> None | Some x -> x.func
                     | CommonTypes.Decode    -> match t.Type.acnDecFunction with None -> None | Some x -> x.func
                 | false     -> None
-            let allProcs =  eqFuncs@isValidFuncs@([initialize; (uperEncDec CommonTypes.Encode); (uperEncDec CommonTypes.Decode);(ancEncDec CommonTypes.Encode); (ancEncDec CommonTypes.Decode);(xerEncDec CommonTypes.Encode); (xerEncDec CommonTypes.Decode)] |> List.choose id)
+            let allProcs =  eqFuncs@isValidFuncs@special_init_funcs@([initialize; (uperEncDec CommonTypes.Encode); (uperEncDec CommonTypes.Decode);(ancEncDec CommonTypes.Encode); (ancEncDec CommonTypes.Decode);(xerEncDec CommonTypes.Encode); (xerEncDec CommonTypes.Decode)] |> List.choose id)
             match l with
             | C     ->  body_c.printTass allProcs 
             | Ada   ->  body_a.printTass allProcs )

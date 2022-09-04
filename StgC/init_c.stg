@@ -224,3 +224,16 @@ initTestCase_choice_child(p, sAcc, sChildID, sChildContent, sChildName, sChildTy
 initChildWithInitFunc(p, sChildInitFuncName) ::= <<
 <sChildInitFuncName>(<p>);
 >>
+
+
+
+initBitStringAtPos(sVarName, sStar, sFuncName, sTypeDefName, sNamedBit, nZeroBasedByteIndex, sHexByteMax, nZeroBasedBitIndex) ::= <<
+void <sFuncName>_set_<sNamedBit>(<sTypeDefName><sStar> <sVarName>) /*COVERAGE_IGNORE*/
+{
+    <sVarName>->arr[<nZeroBasedByteIndex>] |= <sHexByteMax>; /*COVERAGE_IGNORE*/
+}
+>>
+
+initBitStringAtPos_def(sVarName, sStar, sFuncName, sTypeDefName, sNamedBit) ::= <<
+void <sFuncName>_set_<sNamedBit>(<sTypeDefName><sStar> <sVarName>);
+>>

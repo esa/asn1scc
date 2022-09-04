@@ -222,6 +222,7 @@ type InitFunction = {
     initByAsn1Value         : CallerScope  -> Asn1ValueKind -> string           // returns the statement(s) that initialize according to the asn1value
     //initFuncBodyTestCases   : (CallerScope  -> InitFunctionResult) list         // returns a list of set the statement(s). Each set that initialize this type according to a specific test case
     automaticTestCases      : AutomaticTestCase list
+    user_aux_functions      : (string*string) list
 }
 
 

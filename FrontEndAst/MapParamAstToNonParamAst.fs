@@ -172,15 +172,15 @@ let rec MapAsn1Value (r:ParameterizedAsn1Ast.AstRoot) (t: ParameterizedAsn1Ast.A
                         | _                                         -> raise (SemanticError(v.Location, (sprintf "Expecting a BIT STRING value but found a SEQUENCE OF value" )))
                     ) |> Set.ofList
                 
-                printfn "uperRange = %A" uperRange
+                //printfn "uperRange = %A" uperRange
                 let maxValue = 
                     match uperRange with
                     | Concrete(a, b)    -> 
-                        printf "maxValue : %A, %A\n" a b
+                        //printf "maxValue : %A, %A\n" a b
 
                         BigInteger (b-1u)
                     | _                 -> bitPos.MaximumElement
-                printf "maxValue : %A\n" maxValue
+                //printf "maxValue : %A\n" maxValue
                 let bitStrVal = 
                     [0I .. maxValue] |> List.map(fun bi -> if bitPos.Contains bi then '1' else '0') |> Seq.StrJoin ""
                 Asn1Ast.BitStringValue ({StringLoc.Value = bitStrVal; Location = v.Location})
