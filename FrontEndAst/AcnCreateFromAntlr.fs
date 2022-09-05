@@ -1282,13 +1282,24 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (m:Asn1Ast.Asn1Mo
                                 | GP_PresenceStr (p,v) -> Some (PresenceStr (p,v)) 
                                 | _ -> None)
 
+                let present_when_name =
+                    match asn1.args.renamePolicy with
+                    | AlwaysPrefixTypeName -> 
+                        let activeLang =
+                            match asn1.args.targetLanguages  with
+                            | x1::_ -> x1
+                            | []    -> C
+                        typeDef.[activeLang].typeName + "_" + c.present_when_name
+                    | _                    ->  c.present_when_name
+
+
                 match cc with
                 | None      ->  
-                    let newChild, us1 = mergeType asn1 acn m c.Type (curPath@[CH_CHILD (c.Name.Value, c.present_when_name)]) (typeDefPath@[CH_CHILD (c.Name.Value, c.present_when_name)]) None None [] childWithCons [] [] None  None  us
-                    {ChChildInfo.Name = c.Name; _c_name = c.c_name; _ada_name = c.ada_name; Type  = newChild; acnPresentWhenConditions = acnPresentWhenConditions; asn1Comments = c.Comments|> Seq.toList; acnComments = []; present_when_name = c.present_when_name; Optionality = newOptionality}, us1
+                    let newChild, us1 = mergeType asn1 acn m c.Type (curPath@[CH_CHILD (c.Name.Value, present_when_name)]) (typeDefPath@[CH_CHILD (c.Name.Value, present_when_name)]) None None [] childWithCons [] [] None  None  us
+                    {ChChildInfo.Name = c.Name; _c_name = c.c_name; _ada_name = c.ada_name; Type  = newChild; acnPresentWhenConditions = acnPresentWhenConditions; asn1Comments = c.Comments|> Seq.toList; acnComments = []; present_when_name = present_when_name; Optionality = newOptionality}, us1
                 | Some cc   ->
-                    let newChild, us1 = mergeType asn1 acn m c.Type (curPath@[CH_CHILD (c.Name.Value, c.present_when_name)]) (typeDefPath@[CH_CHILD (c.Name.Value, c.present_when_name)]) (Some cc.childEncodingSpec) None [] childWithCons cc.argumentList [] None  None us
-                    {ChChildInfo.Name = c.Name; _c_name = c.c_name; _ada_name = c.ada_name; Type  = newChild; acnPresentWhenConditions = acnPresentWhenConditions; asn1Comments = c.Comments |> Seq.toList; acnComments = cc.comments ; present_when_name = c.present_when_name; Optionality = newOptionality}, us1
+                    let newChild, us1 = mergeType asn1 acn m c.Type (curPath@[CH_CHILD (c.Name.Value, present_when_name)]) (typeDefPath@[CH_CHILD (c.Name.Value, present_when_name)]) (Some cc.childEncodingSpec) None [] childWithCons cc.argumentList [] None  None us
+                    {ChChildInfo.Name = c.Name; _c_name = c.c_name; _ada_name = c.ada_name; Type  = newChild; acnPresentWhenConditions = acnPresentWhenConditions; asn1Comments = c.Comments |> Seq.toList; acnComments = cc.comments ; present_when_name = present_when_name; Optionality = newOptionality}, us1
             let mergedChildren, chus = 
                 match acnType with
                 | None            -> children |> foldMap (fun st ch -> mergeChild None ch st) us1
@@ -1328,15 +1339,15 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (m:Asn1Ast.Asn1Mo
 
             let aligment = tryGetProp combinedProperties (fun x -> match x with ALIGNTONEXT e -> Some e | _ -> None)
             let acnMinSizeInBits, acnMaxSizeInBits = AcnEncodingClasses.GetChoiceEncodingClass  mergedChildren aligment t.Location acnProperties
-            let mergedChildren =
-                match asn1.args.renamePolicy with
-                | AlwaysPrefixTypeName -> 
-                    let activeLang =
-                        match asn1.args.targetLanguages |> List.exists ((=) C) with
-                        | true    -> C
-                        | false   -> Ada
-                    mergedChildren |> List.map(fun x -> {x with present_when_name = typeDef.[activeLang].typeName + "_" + x.present_when_name})
-                | _                    ->  mergedChildren
+            //let mergedChildren =
+            //    match asn1.args.renamePolicy with
+            //    | AlwaysPrefixTypeName -> 
+            //        let activeLang =
+            //            match asn1.args.targetLanguages |> List.exists ((=) C) with
+            //            | true    -> C
+            //            | false   -> Ada
+            //        mergedChildren |> List.map(fun x -> {x with present_when_name = typeDef.[activeLang].typeName + "_" + x.present_when_name})
+            //    | _                    ->  mergedChildren
 
             Choice ({Choice.children = mergedChildren; acnProperties = acnProperties;   cons=cons; withcons = wcons;uperMaxSizeInBits=indexSize+maxChildSize; uperMinSizeInBits=indexSize+minChildSize; acnMinSizeInBits =acnMinSizeInBits; acnMaxSizeInBits=acnMaxSizeInBits; acnLoc = acnLoc; typeDef=typeDef}), chus
         | Asn1Ast.ReferenceType rf    -> 
