@@ -204,6 +204,15 @@ let checkIntHasEnoughSpace acnEncodingClass (hasMappingFunction:bool) acnErrLoc0
 
 
 
+let private removeTypePrefix (typePrefix : String) (typeName : string)=
+    match typePrefix.Length > 0 with
+    | false -> typeName 
+    | true  ->
+        match typeName.StartsWith(typePrefix) with
+        | false -> typeName 
+        | true  -> (typeName.Substring(typePrefix.Length))
+
+                            
 
 
 
@@ -597,6 +606,15 @@ let private mergeEnumerated (asn1:Asn1Ast.AstRoot)  (items: Asn1Ast.NamedItem li
         match tryGetProp props (fun x -> match x with ENCODE_VALUES -> Some true | _ -> None) with
         | Some  true    -> true
         | _             -> false
+    let typeDef, us1 = 
+        match tdarg with
+        | EnmStrGetTypeDifition_arg tdarg   -> getEnumeratedTypeDifition tdarg us
+        | AcnPrmGetTypeDefinition (curPath, md, ts)   -> 
+            let lanDefs, us1 =
+                [C;Ada] |> foldMap (fun us l -> 
+                    let itm, ns = registerEnumeratedTypeDefinition us l (ReferenceToType curPath) (FEI_Reference2OtherType (ReferenceToType [MD md; TA ts])) 
+                    (l,itm), ns) us
+            lanDefs |> Map.ofList, us1
 
     let allocatedValuesToAllEnumItems (namedItems:Asn1Ast.NamedItem list) = 
         let createAsn1ValueByBigInt biVal = {Asn1Ast.Asn1Value.Kind = Asn1Ast.IntegerValue (IntLoc.ByValue biVal); Asn1Ast.Location = emptyLocation; Asn1Ast.id = ReferenceToValue([],[])}
@@ -617,10 +635,28 @@ let private mergeEnumerated (asn1:Asn1Ast.AstRoot)  (items: Asn1Ast.NamedItem li
         newItems
     let mapItem (i:int) (itm:Asn1Ast.NamedItem) =
         let definitionValue = Asn1Ast.GetValueAsInt itm._value.Value asn1
+        let c_name, a_name =
+            match asn1.args.renamePolicy with
+            | AlwaysPrefixTypeName      -> 
+                let typeName0 lang =
+                    let langTypeDef = typeDef.[lang]
+                    match langTypeDef.kind with
+                    | NonPrimitiveNewTypeDefinition         -> langTypeDef.typeName
+                    | NonPrimitiveNewSubTypeDefinition sub  -> sub.typeName
+                    | NonPrimitiveReference2OtherType       -> langTypeDef.typeName
+
+
+                let c_tpname = removeTypePrefix  asn1.args.TypePrefix (typeName0 C)
+                let a_tpname = removeTypePrefix  asn1.args.TypePrefix (typeName0 Ada)
+                c_tpname + "_" + itm.c_name, a_tpname + "_" + itm.ada_name
+            | _     ->
+                asn1.args.TypePrefix + itm.c_name, asn1.args.TypePrefix + itm.ada_name
+
+
         match acnType with
         | None  ->
             let acnEncodeValue = (BigInteger i)
-            {NamedItem.Name = itm.Name; Comments = itm.Comments; c_name = asn1.args.TypePrefix + itm.c_name;  ada_name = asn1.args.TypePrefix + itm.ada_name; definitionValue = definitionValue; acnEncodeValue = acnEncodeValue}        
+            {NamedItem.Name = itm.Name; Comments = itm.Comments; c_name = c_name;  ada_name = a_name; definitionValue = definitionValue; acnEncodeValue = acnEncodeValue}        
         | Some acnType ->
             let acnEncodeValue = 
                 match tryGetProp props (fun x -> match x with ENCODE_VALUES -> Some true | _ -> None) with
@@ -632,7 +668,7 @@ let private mergeEnumerated (asn1:Asn1Ast.AstRoot)  (items: Asn1Ast.NamedItem li
                         | None          -> definitionValue
                     | None      -> definitionValue
                 | None      -> (BigInteger i)
-            {NamedItem.Name = itm.Name; Comments = itm.Comments; c_name = asn1.args.TypePrefix + itm.c_name; ada_name = asn1.args.TypePrefix + itm.ada_name; definitionValue = definitionValue; acnEncodeValue = acnEncodeValue}        
+            {NamedItem.Name = itm.Name; Comments = itm.Comments; c_name = c_name; ada_name = a_name; definitionValue = definitionValue; acnEncodeValue = acnEncodeValue}        
 
     let items0, userDefinedValues = 
         match items |> Seq.exists (fun nm -> nm._value.IsSome) with
@@ -654,19 +690,6 @@ let private mergeEnumerated (asn1:Asn1Ast.AstRoot)  (items: Asn1Ast.NamedItem li
     
     let aligment = tryGetProp props (fun x -> match x with ALIGNTONEXT e -> Some e | _ -> None)
     let acnEncodingClass,  acnMinSizeInBits, acnMaxSizeInBits= AcnEncodingClasses.GetEnumeratedEncodingClass asn1.args.integerSizeInBytes items aligment loc acnProperties uperSizeInBits uperSizeInBits endodeValues
-    let typeDef, us1 = 
-        match tdarg with
-        | EnmStrGetTypeDifition_arg tdarg   -> getEnumeratedTypeDifition tdarg us
-        | AcnPrmGetTypeDefinition (curPath, md, ts)   -> 
-            let lanDefs, us1 =
-                [C;Ada] |> foldMap (fun us l -> 
-                    let itm, ns = registerEnumeratedTypeDefinition us l (ReferenceToType curPath) (FEI_Reference2OtherType (ReferenceToType [MD md; TA ts])) 
-                    (l,itm), ns) us
-            lanDefs |> Map.ofList, us1
-    let items = 
-        match asn1.args.renamePolicy with
-        | AlwaysPrefixTypeName      -> items |> List.map(fun itm -> {itm with c_name = typeDef.[C].typeName + "_" + itm.c_name; ada_name = typeDef.[Ada].typeName + "_" + itm.ada_name})
-        | _                         -> items 
     match cons with
     | [] -> ()
     | _  -> 
@@ -1289,7 +1312,16 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (m:Asn1Ast.Asn1Mo
                             match asn1.args.targetLanguages  with
                             | x1::_ -> x1
                             | []    -> C
-                        typeDef.[activeLang].typeName + "_" + c.present_when_name
+                        let typeName0 =
+                            let aaa = typeDef.[activeLang]
+                            match aaa.kind with
+                            | NonPrimitiveNewTypeDefinition         -> typeDef.[activeLang].typeName
+                            | NonPrimitiveNewSubTypeDefinition sub  -> sub.typeName
+                            | NonPrimitiveReference2OtherType       -> typeDef.[activeLang].typeName
+
+
+                        let tpName = removeTypePrefix  asn1.args.TypePrefix typeName0
+                        tpName + "_" + c.present_when_name
                     | _                    ->  c.present_when_name
 
 

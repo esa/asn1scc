@@ -82,7 +82,7 @@ def RunTestCase(asn1, acn, behavior, expErrMsg):
     res = mysystem(
         path_to_asn1scc +
         " -" + language + " -x ast.xml -uPER -ACN -typePrefix gmamais_ " +
-        "-renamePolicy 2 -fp AUTO " + "-equal -atc -o '" + resolvedir(targetDir) +
+        "-renamePolicy 3 -fp AUTO " + "-equal -atc -o '" + resolvedir(targetDir) +
         "' '" + resolvedir(asn1File) + "' '" + resolvedir(acnFile) +
         "' 2>tmp.err"+"_"+language, True)
     ferr = open("tmp.err"+"_"+language, 'r')
