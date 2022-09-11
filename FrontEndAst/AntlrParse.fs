@@ -67,3 +67,14 @@ let acnTreeParser (tokenStream:CommonTokenStream)=
 let acnLexer (f:ICharStream) =
     let lexer = new acnLexer(f)
     lexer, lexer.errorList |> Seq.toList
+
+
+let formatSemanticError (loc:SrcLoc) (msg:string) =
+    if loc.Equals(emptyLocation)
+        then "error: " + msg
+        else Antlr.ErrorFormatter.FormatError(loc.srcFilename, loc.srcLine, loc.charPos, msg)
+
+let formatSemanticWarning (loc:SrcLoc) (msg:string) =
+    if loc.Equals(emptyLocation)
+        then "warning: " + msg
+        else Antlr.ErrorFormatter.FormatWarning(loc.srcFilename, loc.srcLine, loc.charPos, msg)

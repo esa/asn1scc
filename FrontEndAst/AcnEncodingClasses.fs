@@ -48,6 +48,10 @@ let GetIntEncodingClass (integerSizeInBytes:BigInteger) (aligment: AcnAligment o
             let maxFxVal = integerSizeInBytes*8I
             match encProp, sizeProp, endianess with
             | PosInt, Fixed(fixedSizeInBits) , BigEndianness     when fixedSizeInBits = 8I              ->  PositiveInteger_ConstSize_8, 8I, 8I
+            | PosInt, Fixed(fixedSizeInBits) , LittleEndianness     when fixedSizeInBits = 8I              ->  
+                let errMsg = "Little endian has not effect here.\nLittle endian can be applied only for fixed size encodings and size must be 16 or 32 or 64\n" 
+                Console.Error.WriteLine(AntlrParse.formatSemanticWarning errLoc errMsg)
+                PositiveInteger_ConstSize_8, 8I, 8I
             | PosInt, Fixed(fixedSizeInBits), BigEndianness      when fixedSizeInBits = 16I->  PositiveInteger_ConstSize_big_endian_16, 16I, 16I
             | PosInt, Fixed(fixedSizeInBits), LittleEndianness   when fixedSizeInBits = 16I->  PositiveInteger_ConstSize_little_endian_16, 16I, 16I
             | PosInt, Fixed(fixedSizeInBits), BigEndianness      when fixedSizeInBits = 32I->  PositiveInteger_ConstSize_big_endian_32, 32I, 32I
@@ -59,6 +63,10 @@ let GetIntEncodingClass (integerSizeInBytes:BigInteger) (aligment: AcnAligment o
             | PosInt, IntNullTerminated _, _                    ->  raise(SemanticError(errLoc, "Acn properties pos-int and null-terminated are mutually exclusive"))
             | TwosComplement, _,_              when bUINT       ->  raise(SemanticError(errLoc, "Acn property twos-complement cannot be applied to non negative INTEGER types"))
             | TwosComplement, Fixed(fixedSizeInBits) , BigEndianness      when fixedSizeInBits = 8I  ->  TwosComplement_ConstSize_8, 8I, 8I
+            | TwosComplement, Fixed(fixedSizeInBits) , LittleEndianness   when fixedSizeInBits = 8I  ->  
+                let errMsg = "Little endian has not effect here.\nLittle endian can be applied only for fixed size encodings and size must be 16 or 32 or 64\n" 
+                Console.Error.WriteLine(AntlrParse.formatSemanticWarning errLoc errMsg)
+                TwosComplement_ConstSize_8, 8I, 8I
             | TwosComplement, Fixed(fixedSizeInBits), BigEndianness      when fixedSizeInBits = 16I ->  TwosComplement_ConstSize_big_endian_16, 16I, 16I
             | TwosComplement, Fixed(fixedSizeInBits), LittleEndianness   when fixedSizeInBits = 16I ->  TwosComplement_ConstSize_little_endian_16, 16I, 16I
             | TwosComplement, Fixed(fixedSizeInBits), BigEndianness      when fixedSizeInBits = 32I ->  TwosComplement_ConstSize_big_endian_32, 32I, 32I

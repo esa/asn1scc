@@ -97,7 +97,7 @@ let printVersion () =
     //let assembly = System.Reflection.Assembly.GetExecutingAssembly();
     //let fvi = System.Diagnostics.FileVersionInfo.GetVersionInfo(assembly.Location);
     //let version = fvi.FileVersion;
-    let version = "4.3.0.0"
+    let version = "4.3.0.1"
     printfn "asn1scc version %s\n" version
     ()
 
@@ -434,7 +434,7 @@ let main0 argv =
             Console.Error.WriteLine(ex.Message)
             2
         | SemanticError (loc,msg)            ->
-            Console.Error.WriteLine(FrontEntMain.formatSemanticError loc msg)
+            Console.Error.WriteLine(AntlrParse.formatSemanticError loc msg)
             3
         | ex            ->
             Console.Error.WriteLine(ex.Message)

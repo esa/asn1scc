@@ -117,12 +117,3 @@ let constructAst (args:CommandLineSettings)  (debugFnc : Asn1Ast.AstRoot -> AcnG
         
 
 
-let formatSemanticError (loc:SrcLoc) (msg:string) =
-    if loc.Equals(FsUtils.emptyLocation)
-        then "error: " + msg
-        else ErrorFormatter.FormatError(loc.srcFilename, loc.srcLine, loc.charPos, msg)
-
-let formatSemanticWarning (loc:SrcLoc) (msg:string) =
-    if loc.Equals(FsUtils.emptyLocation)
-        then "warning: " + msg
-        else ErrorFormatter.FormatWarning(loc.srcFilename, loc.srcLine, loc.charPos, msg)
