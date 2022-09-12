@@ -32,7 +32,7 @@ PUSC-UINT4 [size 4, encoding pos-int, endianness big]
 PUSC-UINT5 [size 5, encoding pos-int, endianness big]
 PUSC-UINT6 [size 6, encoding pos-int, endianness big]
 PUSC-UINT7 [size 7, encoding pos-int, endianness big]
-PUSC-UINT8 [size 8, encoding pos-int, endianness big]
+PUSC-UINT8 [size 8, encoding pos-int]
 PUSC-UINT9 [size 9, encoding pos-int, endianness big]
 PUSC-UINT10 [size 10, encoding pos-int, endianness big]
 PUSC-UINT11 [size 11, encoding pos-int, endianness big]
@@ -53,7 +53,7 @@ PUSC-INT4 [size 4, encoding twos-complement, endianness big]
 PUSC-INT5 [size 5, encoding twos-complement, endianness big]
 PUSC-INT6 [size 6, encoding twos-complement, endianness big]
 PUSC-INT7 [size 7, encoding twos-complement, endianness big]
-PUSC-INT8 [size 8, encoding twos-complement, endianness big]
+PUSC-INT8 [size 8, encoding twos-complement]
 PUSC-INT9 [size 9, encoding twos-complement, endianness big]
 PUSC-INT10 [size 10, encoding twos-complement, endianness big]
 PUSC-INT11 [size 11, encoding twos-complement, endianness big]
@@ -72,13 +72,13 @@ PUSC-FLOAT64 [encoding IEEE754-1985-64, endianness big]
 PUSC-MIL-FLOAT32 []
 {
     mant [size 24],
-    exp [size 8, encoding twos-complement, endianness big]
+    exp [size 8, encoding twos-complement]
 }
 
 PUSC-MIL-FLOAT48 []
 {
     mant-MSB [size 24],
-    exp [size 8, encoding twos-complement, endianness big],
+    exp [size 8, encoding twos-complement],
     mant-LSB [size 16]
 }
 
