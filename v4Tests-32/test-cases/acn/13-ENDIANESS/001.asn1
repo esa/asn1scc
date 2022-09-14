@@ -11,7 +11,6 @@ END
 --TCLS     MyPDU[encoding twos-complement, size 16]
 --TCLS     MyPDU[encoding twos-complement, size 32]
 --TCLS     MyPDU[encoding twos-complement, size 64]
---TCLS     MyPDU[encoding twos-complement, size 8, endianness big]
 --TCLS     MyPDU[encoding twos-complement, size 16, endianness big]
 --TCLS     MyPDU[encoding twos-complement, size 32, endianness big]
 --TCLS     MyPDU[encoding twos-complement, size 64, endianness big]
