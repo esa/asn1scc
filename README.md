@@ -28,9 +28,9 @@ Compilation
 First, install the Java JRE. This is a compile-time only dependency,
 required to execute ANTLR.
 
-## Install .NET SDK (version 5.0)
+## Install .NET SDK (version 6.0)
 
-Install the [.NET 5.0](https://dotnet.microsoft.com/download/dotnet/5.0) sdk.
+Install the [.NET 6.0](https://dotnet.microsoft.com/download/dotnet/6.0) sdk.
 Add NuGet package source (in case it is missing) by executing:
     
     dotnet nuget add source "https://api.nuget.org/v3/index.json" --name "NuGet"
@@ -38,8 +38,14 @@ Add NuGet package source (in case it is missing) by executing:
 Then execute...
 
     dotnet build "asn1scc.sln"
-    
+
 ...and the compiler will be built.
+
+On Linux (debian) the build can be done with the following command:
+
+    $ make -f Makefile.debian
+
+(all dependencies will be installed automatically)
 
 Under Windows, you can also open open `asn1scc.sln` and build the `asn1scc` project (right-click/build)
 
