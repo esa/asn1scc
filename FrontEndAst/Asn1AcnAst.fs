@@ -350,9 +350,11 @@ type StringAcnEncodingClass =
     | Acn_Enc_String_CharIndex_External_Field_Determinant   of BigInteger*RelativePath             //char size in bits, encode char index, size is provided by an external length determinant
 
 type SizeableAcnEncodingClass =
-    | SZ_EC_uPER              
-    | SZ_EC_ExternalField    of RelativePath
-    | SZ_EC_TerminationPattern of BitStringValue
+    //| SZ_EC_uPER              
+    | SZ_EC_FIXED_SIZE              
+    | SZ_EC_LENGTH_EMBEDDED     of BigInteger //embedded length determinant size in bits         
+    | SZ_EC_ExternalField       of RelativePath
+    | SZ_EC_TerminationPattern  of BitStringValue
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ////// FRONT END TYPE DEFINITIONS   /////////////////////////////////////////////////////////////////////////////////////////////////////////////

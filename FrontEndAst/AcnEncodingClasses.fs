@@ -207,8 +207,14 @@ let GetOctetBitSeqofEncodingClass (aligment: AcnAligment option) errLoc (p  : Si
     let encClass, minSizeInBits, maxSizeInBits = 
         match  p.sizeProp with
         | None                  -> 
-                let minSizeInBits, maxSizeInBits = uPER.getSizeableTypeSize asn1Min asn1Max internalMaxSize
-                SZ_EC_uPER, minSizeInBits, maxSizeInBits
+            match asn1Min = asn1Max with
+            | true  -> SZ_EC_FIXED_SIZE, asn1Min*internalMaxSize, asn1Max*internalMaxSize
+            | false -> 
+                let lenSize  = GetNumberOfBitsForNonNegativeInteger(asn1Max-asn1Min)
+                SZ_EC_LENGTH_EMBEDDED lenSize, asn1Min*internalMaxSize + lenSize, asn1Max*internalMaxSize + lenSize 
+
+            //let minSizeInBits, maxSizeInBits = uPER.getSizeableTypeSize asn1Min asn1Max internalMaxSize
+            //SZ_EC_uPER, minSizeInBits, maxSizeInBits
         | Some p                -> 
             match p with
             | SzExternalField p     -> SZ_EC_ExternalField p, asn1Min*internalMinSize, asn1Max*internalMaxSize
