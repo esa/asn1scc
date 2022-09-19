@@ -201,7 +201,7 @@ let GetStringEncodingClass (aligment: AcnAligment option) errLoc (p  : StringAcn
 ╚══════╝╚══════╝ ╚══▀▀═╝  ╚═════╝ ╚══════╝╚═╝  ╚═══╝ ╚═════╝╚══════╝     ╚═════╝ ╚═╝          ╚═════╝  ╚═════╝   ╚═╝   ╚══════╝   ╚═╝╚═╝    ╚═════╝ ╚═╝   ╚═╝       ╚══════╝   ╚═╝   ╚═╝  ╚═╝╚═╝╚═╝  ╚═══╝ ╚═════╝ 
 *)
 
-let GetOctetBitSeqofEncodingClass (aligment: AcnAligment option) errLoc (p  : SizeableAcnProperties) uperMinSizeInBits uperMaxSizeInBits asn1Min asn1Max internalMinSize internalMaxSize bOcteString =
+let GetOctetBitSeqofEncodingClass (aligment: AcnAligment option) errLoc (p  : SizeableAcnProperties) uperMinSizeInBits uperMaxSizeInBits asn1Min asn1Max internalMinSize internalMaxSize bOcteString hasNCount =
     let alignmentSize = getAlignmentSize aligment
     
     let encClass, minSizeInBits, maxSizeInBits = 
@@ -209,16 +209,16 @@ let GetOctetBitSeqofEncodingClass (aligment: AcnAligment option) errLoc (p  : Si
         | None                  -> 
             match bOcteString with
             | true ->
-                match asn1Min = asn1Max with
-                | true  -> SZ_EC_FIXED_SIZE, asn1Min*internalMaxSize, asn1Max*internalMaxSize
-                | false -> 
+                match hasNCount with
+                | false  -> SZ_EC_FIXED_SIZE, asn1Min*internalMaxSize, asn1Max*internalMaxSize
+                | true -> 
                     let lenSize  = GetNumberOfBitsForNonNegativeInteger(asn1Max-asn1Min)
                     SZ_EC_LENGTH_EMBEDDED lenSize, asn1Min*internalMaxSize + lenSize, asn1Max*internalMaxSize + lenSize 
             | false ->
                 let minSizeInBits, maxSizeInBits = uPER.getSizeableTypeSize asn1Min asn1Max internalMaxSize
-                match asn1Min = asn1Max with
-                | true  -> SZ_EC_FIXED_SIZE, minSizeInBits, maxSizeInBits
-                | false -> 
+                match hasNCount with
+                | false  -> SZ_EC_FIXED_SIZE, minSizeInBits, maxSizeInBits
+                | true -> 
                     let lenSize  = GetNumberOfBitsForNonNegativeInteger(asn1Max-asn1Min)
                     SZ_EC_LENGTH_EMBEDDED lenSize, minSizeInBits, maxSizeInBits
 
@@ -231,14 +231,14 @@ let GetOctetBitSeqofEncodingClass (aligment: AcnAligment option) errLoc (p  : Si
 
     encClass, minSizeInBits+alignmentSize, maxSizeInBits+alignmentSize
 
-let GetOctetStringEncodingClass (aligment: AcnAligment option) errLoc (p  : SizeableAcnProperties) uperMinSizeInBits uperMaxSizeInBits asn1Min asn1Max =
-    GetOctetBitSeqofEncodingClass aligment errLoc p   uperMinSizeInBits uperMaxSizeInBits asn1Min asn1Max 8I 8I true
+let GetOctetStringEncodingClass (aligment: AcnAligment option) errLoc (p  : SizeableAcnProperties) uperMinSizeInBits uperMaxSizeInBits asn1Min asn1Max hasNCount =
+    GetOctetBitSeqofEncodingClass aligment errLoc p   uperMinSizeInBits uperMaxSizeInBits asn1Min asn1Max 8I 8I true hasNCount
 
-let GetBitStringEncodingClass (aligment: AcnAligment option) errLoc (p  : SizeableAcnProperties) uperMinSizeInBits uperMaxSizeInBits asn1Min asn1Max =
-    GetOctetBitSeqofEncodingClass aligment errLoc p   uperMinSizeInBits uperMaxSizeInBits asn1Min asn1Max 1I 1I false
+let GetBitStringEncodingClass (aligment: AcnAligment option) errLoc (p  : SizeableAcnProperties) uperMinSizeInBits uperMaxSizeInBits asn1Min asn1Max hasNCount =
+    GetOctetBitSeqofEncodingClass aligment errLoc p   uperMinSizeInBits uperMaxSizeInBits asn1Min asn1Max 1I 1I false hasNCount
 
-let GetSequenceOfEncodingClass (aligment: AcnAligment option) errLoc (p  : SizeableAcnProperties) uperMinSizeInBits uperMaxSizeInBits asn1Min asn1Max internalMinSize internalMaxSize =
-    GetOctetBitSeqofEncodingClass aligment errLoc p   uperMinSizeInBits uperMaxSizeInBits asn1Min asn1Max internalMinSize internalMaxSize false
+let GetSequenceOfEncodingClass (aligment: AcnAligment option) errLoc (p  : SizeableAcnProperties) uperMinSizeInBits uperMaxSizeInBits asn1Min asn1Max internalMinSize internalMaxSize hasNCount =
+    GetOctetBitSeqofEncodingClass aligment errLoc p   uperMinSizeInBits uperMaxSizeInBits asn1Min asn1Max internalMinSize internalMaxSize false hasNCount
 
 
 let GetNullEncodingClass (aligment: AcnAligment option) errLoc (p  : NullTypeAcnProperties) =
