@@ -800,17 +800,20 @@ let createOctetStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserte
             match o.acnEncodingClass with
             | SZ_EC_FIXED_SIZE                                              -> 
                 let fncBody = 
-                    //oct_external_field_fix_size p.arg.p (lm.lg.getAcces p.arg) (if o.minSize.acn=0I then None else Some ( o.minSize.acn)) ( o.maxSize.acn) extField nAlignSize errCode.errCodeName codec
-                    let internalItem = InternalItem_oct_str p.arg.p (lm.lg.getAcces p.arg) i  errCode.errCodeName codec 
-                    fixedSize p.arg.p (lm.lg.getAcces p.arg) typeDefinitionName i internalItem ( o.minSize.acn) nIntItemMaxSize nIntItemMaxSize 0I codec 
+                    fixedSize p.arg.p (lm.lg.getAcces p.arg) o.minSize.acn codec 
                 Some(fncBody, [errCode],[])
 
             | SZ_EC_LENGTH_EMBEDDED lenSize                                 ->
                 let fncBody = 
                     //oct_external_field p.arg.p (lm.lg.getAcces p.arg) (if o.minSize.acn=0I then None else Some ( o.minSize.acn)) ( o.maxSize.acn) extField nAlignSize errCode.errCodeName codec
                     let internalItem = InternalItem_oct_str p.arg.p (lm.lg.getAcces p.arg) i  errCode.errCodeName codec 
-                    varSize p.arg.p (lm.lg.getAcces p.arg)  typeDefinitionName i internalItem ( o.minSize.acn) ( o.maxSize.acn) lenSize nIntItemMaxSize nIntItemMaxSize 0I errCode.errCodeName codec 
-                Some(fncBody, [errCode],[])
+                    varSize p.arg.p (lm.lg.getAcces p.arg)  (o.minSize.acn) (o.maxSize.acn) lenSize errCode.errCodeName codec 
+                let nStringLength =
+                    match codec with
+                    | Encode -> []
+                    | Decode -> [lm.lg.uper.count_var]
+
+                Some(fncBody, [errCode],nStringLength)
             | SZ_EC_ExternalField   _    -> 
                 let extField = getExternaField r deps t.id
                 let internalItem = InternalItem_oct_str p.arg.p (lm.lg.getAcces p.arg) i  errCode.errCodeName codec 
