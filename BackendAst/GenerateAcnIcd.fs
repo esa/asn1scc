@@ -250,6 +250,8 @@ let rec printType stgFileName (tas:GenerateUperIcd.IcdTypeAssignment) (t:Asn1Typ
                 match ch with
                 | AcnChild  _ -> 1, [emitSequenceComponent r stgFileName optionalLikeUperChildren i ch]
                 | Asn1Child ach  ->
+                                1, [emitSequenceComponent r stgFileName optionalLikeUperChildren i ch]
+                (*
                     match ach.Type.Kind with
                     | OctetString o when o.baseInfo.acnEncodingClass = Asn1AcnAst.SizeableAcnEncodingClass.SZ_EC_uPER ->
                         let lengthLine =
@@ -259,7 +261,7 @@ let rec printType stgFileName (tas:GenerateUperIcd.IcdTypeAssignment) (t:Asn1Typ
 
                         1, [emitSequenceComponent r stgFileName optionalLikeUperChildren i ch]
                     | _ -> 1, [emitSequenceComponent r stgFileName optionalLikeUperChildren i ch]
-                
+                *)
             (i+di, curResult@newLines)
         let arChildren idx = 
             seq.children |> 
@@ -475,7 +477,8 @@ let rec printType stgFileName (tas:GenerateUperIcd.IcdTypeAssignment) (t:Asn1Typ
         let sFixedLengthComment = sprintf "Length is Fixed equal to %A, so no length determinant is encoded." nMax
         let arRows, sExtraComment =
             match encClass, nMax >= 2I with
-            | Asn1AcnAst.SZ_EC_uPER, _                     -> 
+            | Asn1AcnAst.SZ_EC_FIXED_SIZE, _                     
+            | Asn1AcnAst.SZ_EC_LENGTH_EMBEDDED _, _                     -> 
                 let sizeUperRange =  CommonTypes.Concrete(nMin, nMax)
                 let sFixedLengthComment (nMax: BigInteger) =
                     sprintf "Length is fixed to %A elements (no length determinant is needed)." nMax

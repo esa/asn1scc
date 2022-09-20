@@ -786,19 +786,34 @@ let createOctetStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserte
     let oct_external_field           = lm.acn.oct_external_field
     let oct_external_field_fix_size  = lm.acn.oct_external_field_fix_size
     let oct_sqf_null_terminated          = lm.acn.oct_sqf_null_terminated
+    let fixedSize       = lm.uper.octect_FixedSize
+    let varSize         = lm.uper.octect_VarSize
     let InternalItem_oct_str             = lm.uper.InternalItem_oct_str
     let i = sprintf "i%d" (t.id.SeqeuenceOfLevel + 1)
     let lv = SequenceOfIndex (t.id.SeqeuenceOfLevel + 1, None)
     let nAlignSize = 0I;
+    let typeDefinitionName = typeDefinition.longTypedefName2 lm.lg.hasModules //getTypeDefinitionName t.id.tasInfo typeDefinition
+    let nIntItemMaxSize = 8I
 
     let funcBody (errCode:ErroCode) (acnArgs: (AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) (p:CallerScope)        = 
         let funcBodyContent = 
             match o.acnEncodingClass with
-            | SZ_EC_uPER                                              -> 
-                let funcBody (errCode:ErroCode) (p:CallerScope) =
-                    Some (DAstUPer.createOctetStringFunction_funcBody r lm codec t.id  typeDefinition o.isFixedSize  o.uperMaxSizeInBits o.minSize.acn o.maxSize.acn (errCode:ErroCode) (p:CallerScope) )
-            
-                funcBody errCode p |> Option.map(fun x -> x.funcBody, x.errCodes, x.localVariables)
+            | SZ_EC_FIXED_SIZE                                              -> 
+                let fncBody = 
+                    fixedSize p.arg.p (lm.lg.getAcces p.arg) o.minSize.acn codec 
+                Some(fncBody, [errCode],[])
+
+            | SZ_EC_LENGTH_EMBEDDED lenSize                                 ->
+                let fncBody = 
+                    //oct_external_field p.arg.p (lm.lg.getAcces p.arg) (if o.minSize.acn=0I then None else Some ( o.minSize.acn)) ( o.maxSize.acn) extField nAlignSize errCode.errCodeName codec
+                    let internalItem = InternalItem_oct_str p.arg.p (lm.lg.getAcces p.arg) i  errCode.errCodeName codec 
+                    varSize p.arg.p (lm.lg.getAcces p.arg)  (o.minSize.acn) (o.maxSize.acn) lenSize errCode.errCodeName codec 
+                let nStringLength =
+                    match codec with
+                    | Encode -> []
+                    | Decode -> [lm.lg.uper.count_var]
+
+                Some(fncBody, [errCode],nStringLength)
             | SZ_EC_ExternalField   _    -> 
                 let extField = getExternaField r deps t.id
                 let internalItem = InternalItem_oct_str p.arg.p (lm.lg.getAcces p.arg) i  errCode.errCodeName codec 
@@ -840,10 +855,6 @@ let createBitStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
     let funcBody (errCode:ErroCode) (acnArgs: (AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) (p:CallerScope)        = 
         let funcBodyContent = 
             match o.acnEncodingClass with
-            | SZ_EC_uPER                                              -> 
-                let funcBody  (errCode:ErroCode) (p:CallerScope) =
-                    Some (DAstUPer.createBitStringFunction_funcBody r  lm codec t.id typeDefinition o.isFixedSize  o.uperMaxSizeInBits o.minSize.acn o.maxSize.acn (errCode:ErroCode) (p:CallerScope))
-                funcBody errCode p |> Option.map(fun x -> x.funcBody, x.errCodes, x.localVariables)
             | SZ_EC_ExternalField   _    -> 
                 let createBitStringFunction_extfld  (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.BitString) (errCode:ErroCode) (p:CallerScope) (extField:string) (codec:CommonTypes.Codec) : (string*ErroCode list*LocalVariable list) = 
                     let fncBody = 
@@ -870,6 +881,11 @@ let createBitStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
                 let ret = createBitStringFunction_term_pat t o errCode p codec bitPattern
 
                 Some ret
+            | SZ_EC_FIXED_SIZE
+            | SZ_EC_LENGTH_EMBEDDED _ -> 
+                let funcBody  (errCode:ErroCode) (p:CallerScope) =
+                    Some (DAstUPer.createBitStringFunction_funcBody r  lm codec t.id typeDefinition o.isFixedSize  o.uperMaxSizeInBits o.minSize.acn o.maxSize.acn (errCode:ErroCode) (p:CallerScope))
+                funcBody errCode p |> Option.map(fun x -> x.funcBody, x.errCodes, x.localVariables)
         match funcBodyContent with
         | None -> None
         | Some (funcBodyContent,errCodes, localVariables) -> Some ({AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = errCodes; localVariables = localVariables; bValIsUnReferenced= false; bBsIsUnReferenced=false})
@@ -889,9 +905,11 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserted
 
     let i = sprintf "i%d" ii
     let lv = 
-        match o.acnEncodingClass = SZ_EC_uPER with
-        | true -> lm.lg.uper.seqof_lv t.id o.minSize.uper o.maxSize.uper
-        | false ->[SequenceOfIndex (t.id.SeqeuenceOfLevel + 1, None)]
+        match o.acnEncodingClass with
+        | SZ_EC_FIXED_SIZE
+        | SZ_EC_LENGTH_EMBEDDED _ -> lm.lg.uper.seqof_lv t.id o.minSize.uper o.maxSize.uper
+        | SZ_EC_ExternalField       _
+        | SZ_EC_TerminationPattern  _ -> [SequenceOfIndex (t.id.SeqeuenceOfLevel + 1, None)]
 
 //        match l with 
 //        | C           -> [SequenceOfIndex (t.id.SeqeuenceOfLevel + 1, None)]
@@ -908,7 +926,8 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserted
             let internalItem, ns = chFunc.funcBody us acnArgs ({p with arg = lm.lg.getArrayItem p.arg i child.isIA5String})
             let ret = 
                 match o.acnEncodingClass with
-                | SZ_EC_uPER                                              -> 
+                | SZ_EC_FIXED_SIZE
+                | SZ_EC_LENGTH_EMBEDDED _ -> 
                     let nSizeInBits = GetNumberOfBitsForNonNegativeInteger ( (o.maxSize.acn - o.minSize.acn))
                     let nStringLength =
                         match o.minSize.uper = o.maxSize.uper,  codec with
@@ -1809,11 +1828,14 @@ let createReferenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
                     let fncBody = bit_string_containing_ext_field_func (lm.lg.getParamValue t p.arg codec)  baseFncName sReqBytesForUperEncoding sReqBitForUperEncoding extField errCode.errCodeName codec
                     Some(fncBody, [errCode],[])
 
-                | SZ_EC_uPER                        , ContainedInOctString  ->  
+
+                | SZ_EC_FIXED_SIZE        , ContainedInOctString   
+                | SZ_EC_LENGTH_EMBEDDED _ , ContainedInOctString  -> 
                     let nBits = GetNumberOfBitsForNonNegativeInteger (encOptions.maxSize.acn - encOptions.minSize.acn)
                     let fncBody = octet_string_containing_func  (lm.lg.getParamValue t p.arg codec) baseFncName sReqBytesForUperEncoding nBits encOptions.minSize.acn encOptions.maxSize.acn codec
                     Some(fncBody, [errCode],[])
-                | SZ_EC_uPER                        , ContainedInBitString  ->  
+                | SZ_EC_FIXED_SIZE                        , ContainedInBitString  
+                | SZ_EC_LENGTH_EMBEDDED _                 , ContainedInBitString  ->  
                     let nBits = GetNumberOfBitsForNonNegativeInteger (encOptions.maxSize.acn - encOptions.minSize.acn)
                     let fncBody = bit_string_containing_func  (lm.lg.getParamValue t p.arg codec) baseFncName sReqBytesForUperEncoding sReqBitForUperEncoding nBits encOptions.minSize.acn encOptions.maxSize.acn codec
                     Some(fncBody, [errCode],[])

@@ -395,7 +395,8 @@ let rec private checkType (r:AstRoot) (tasPositions:Map<ReferenceToType,int>) (p
     
                 let rp = 
                     match props.acnEncodingClass with
-                    | SZ_EC_uPER                    -> None 
+                    | SZ_EC_FIXED_SIZE              
+                    | SZ_EC_LENGTH_EMBEDDED     _  -> None
                     | SZ_EC_ExternalField ef        -> Some ef
                     | SZ_EC_TerminationPattern _    -> None
                 sizeReference r tasPositions curState parents t props.minSize.acn props.maxSize.acn visibleParameters rp (AcnDepSizeDeterminant_bit_oct_str_containt ref)
