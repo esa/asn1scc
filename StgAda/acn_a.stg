@@ -1466,4 +1466,106 @@ end if;
 >>
 
 
+octet_string_containing_func_encode(p, sFuncName, sReqBytesForAcnEncoding, nBits, nMinSize, nMaxSize, bFixedSize) ::= <<
+--open new scope to declare some variables
+declare
+    tmpBs : adaasn1rtl.encoding.Bitstream := adaasn1rtl.encoding.BitStream_init(<sReqBytesForAcnEncoding>);
+	data_length : Integer;
+begin
+	--encode value to a temporary bit stream
+	<sFuncName>_aux(<p>, tmpBs, result);
+	if result.success then
+		data_length := adaasn1rtl.encoding.BitStream_current_length_in_bytes(tmpBs);
+		<if(bFixedSize)>
+        adaasn1rtl.encoding.uper.BitStream_EncodeOctetString_no_length (bs, tmpBs.Buffer, data_length);
+
+		<else>
+        adaasn1rtl.encoding.uper.UPER_Enc_ConstraintWholeNumber(bs, Asn1Int (data_length), Asn1Int (<nMinSize>), <nBits>);
+        adaasn1rtl.encoding.uper.BitStream_EncodeOctetString_no_length (bs, tmpBs.Buffer, data_length);
+
+		<endif>
+	end if;
+end;
+>>
+
+octet_string_containing_func_decode(p, sFuncName, sReqBytesForAcnEncoding, nBits, nMinSize, nMaxSize, bFixedSize) ::= <<
+--open new scope to declare some variables
+declare
+    tmpBs : adaasn1rtl.encoding.Bitstream := adaasn1rtl.encoding.BitStream_init(<sReqBytesForAcnEncoding>);
+    <if(!bFixedSize)>
+	data_length : Integer;
+
+    <endif>
+begin
+	--decode to a temporary bitstream
+	<if(bFixedSize)>
+    adaasn1rtl.encoding.uper.BitStream_DecodeOctetString_no_length (bs, tmpBs.Buffer, <nMinSize>, result.success);
+	if result.success then
+		<sFuncName>_aux(<p>, tmpBs, result);
+	end if;
+
+	<else>
+    adaasn1rtl.encoding.uper.UPER_Dec_ConstraintWholeNumberInt(bs, data_length, <nMinSize>, <nMaxSize>, <nBits>, result.success);
+    if result.success then
+        adaasn1rtl.encoding.uper.BitStream_DecodeOctetString_no_length (bs, tmpBs.Buffer, data_length, result.success);
+	    if result.success then
+		    <sFuncName>_aux(<p>, tmpBs, result);
+	    end if;
+    end if;
+
+	<endif>
+end;
+>>
+
+
+bit_string_containing_func_encode(p, sFuncName, sReqBytesForAcnEncoding, sReqBitsForUperEncoding, nBits, nMinSize, nMaxSize, bFixedSize) ::= <<
+--open new scope to declare some variables
+declare
+    tmpBs : adaasn1rtl.encoding.Bitstream := adaasn1rtl.encoding.BitStream_init(<sReqBytesForAcnEncoding>);
+	data_length : Integer;
+begin
+	--encode value to a temporary bit stream
+	<sFuncName>_aux(<p>, tmpBs, result);
+	if result.success then
+		data_length := tmpBs.Current_Bit_Pos;
+		<if(bFixedSize)>
+        adaasn1rtl.encoding.BitStream_AppendBits (bs, tmpBs.Buffer, data_length);
+
+		<else>
+        adaasn1rtl.encoding.uper.UPER_Enc_ConstraintWholeNumber(bs, Asn1Int (data_length), Asn1Int (<nMinSize>), <nBits>);
+        adaasn1rtl.encoding.BitStream_AppendBits (bs, tmpBs.Buffer, data_length);
+
+		<endif>
+	end if;
+end;
+>>
+
+bit_string_containing_func_decode(p, sFuncName, sReqBytesForAcnEncoding, sReqBitsForUperEncoding, nBits, nMinSize, nMaxSize, bFixedSize) ::= <<
+--open new scope to declare some variables
+declare
+    tmpBs : adaasn1rtl.encoding.Bitstream := adaasn1rtl.encoding.BitStream_init(<sReqBytesForAcnEncoding>);
+    <if(!bFixedSize)>
+	data_length : Integer;
+
+    <endif>
+begin
+	--decode to a temporary bitstream
+	<if(bFixedSize)>
+    adaasn1rtl.encoding.BitStream_ReadBits (bs, tmpBs.Buffer, <nMinSize>, result.success);
+	if result.success then
+		<sFuncName>_aux(<p>, tmpBs, result);
+	end if;
+
+	<else>
+    adaasn1rtl.encoding.uper.UPER_Dec_ConstraintWholeNumberInt(bs, data_length, <nMinSize>, <nMaxSize>, <nBits>, result.success);
+    if result.success then
+        adaasn1rtl.encoding.BitStream_ReadBits (bs, tmpBs.Buffer, data_length, result.success);
+	    if result.success then
+		    <sFuncName>_aux(<p>, tmpBs, result);
+	    end if;
+    end if;
+
+    <endif>
+end;
+>>
 

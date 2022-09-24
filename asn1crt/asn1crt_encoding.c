@@ -193,17 +193,16 @@ void BitStream_AppendNBitOne(BitStream* pBitStrm, int nbits)
 
 void BitStream_AppendBits(BitStream* pBitStrm, const byte* srcBuffer, int nbits)
 {
-	int i = 0;
 	byte lastByte = 0;
 
-	while (nbits >= 8) {
-		BitStream_AppendByte(pBitStrm, srcBuffer[i], FALSE);
-		nbits -= 8;
-		i++;
-	}
-	if (nbits > 0) {
-		lastByte = (byte)(srcBuffer[i] >> (8 - nbits));
-		BitStream_AppendPartialByte(pBitStrm, lastByte, (byte)nbits, FALSE);
+    int bytesToEncode = nbits / 8;
+    int remainingBits = nbits % 8;
+    
+    BitStream_EncodeOctetString_no_length(pBitStrm, srcBuffer, bytesToEncode);
+
+    if (remainingBits > 0) {
+		lastByte = (byte)(srcBuffer[bytesToEncode] >> (8 - remainingBits));
+		BitStream_AppendPartialByte(pBitStrm, lastByte, (byte)remainingBits, FALSE);
 	}
 }
 
@@ -307,6 +306,51 @@ flag BitStream_AppendByte0(BitStream* pBitStrm, byte v)
 	return TRUE;
 }
 
+flag BitStream_AppendByteArray(BitStream* pBitStrm, const byte arr[], const size_t arr_len)
+{
+    //static byte  masks[] = { 0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01 };
+    //static byte masksb[] = { 0x00, 0x01, 0x03, 0x07, 0x0F, 0x1F, 0x3F, 0x7F, 0xFF };
+
+    int cb = pBitStrm->currentBit;
+    int ncb = 8 - cb;
+
+    byte mask = (byte)~masksb[ncb];
+    byte nmask = (byte)~mask;
+    if (pBitStrm->currentByte + (int)arr_len + (cb > 0 ? 1 : 0) >= pBitStrm->count)
+        return FALSE;
+
+    if (arr_len> 0) {
+        byte v = arr[0];
+        pBitStrm->buf[pBitStrm->currentByte] &= mask;       //make zero right bits (i.e. the ones that will get the new value)
+        pBitStrm->buf[pBitStrm->currentByte++] |= (byte)(v >> cb);  //shift right and then populate current byte
+        bitstream_push_data_if_required(pBitStrm);
+
+        pBitStrm->buf[pBitStrm->currentByte] &= nmask;
+        pBitStrm->buf[pBitStrm->currentByte] |= (byte)(v << ncb);
+    }
+
+    for (size_t i = 1; i < arr_len - 1; i++) {
+        byte v = arr[i];
+        byte v1 = (byte)(v >> cb);
+        byte v2 = (byte)(v << ncb);
+        pBitStrm->buf[pBitStrm->currentByte++] |= v1;  //shift right and then populate current byte
+        bitstream_push_data_if_required(pBitStrm);
+        pBitStrm->buf[pBitStrm->currentByte] |= v2;
+    }
+    if (arr_len - 1 > 0) {
+        byte v = arr[arr_len - 1];
+        pBitStrm->buf[pBitStrm->currentByte] &= mask;       //make zero right bits (i.e. the ones that will get the new value)
+        pBitStrm->buf[pBitStrm->currentByte++] |= (byte)(v >> cb);  //shift right and then populate current byte
+        bitstream_push_data_if_required(pBitStrm);
+
+        if (cb) {
+            pBitStrm->buf[pBitStrm->currentByte] &= nmask;
+            pBitStrm->buf[pBitStrm->currentByte] |= (byte)(v << ncb);
+        }
+    }
+    return TRUE;
+}
+
 
 flag BitStream_ReadByte(BitStream* pBitStrm, byte* v)
 {
@@ -343,22 +387,20 @@ flag BitStream_ReadByte2(BitStream2* pBitStrm, byte* v)
 
 flag BitStream_ReadBits(BitStream* pBitStrm, byte* BuffToWrite, int nbits)
 {
-	int i = 0;
+    int bytesToRead = nbits / 8;
+    int remainingBits = nbits % 8;
+    flag ret;
 
-	while (nbits >= 8) {
-		if (!BitStream_ReadByte(pBitStrm, &BuffToWrite[i]))
+    ret = BitStream_DecodeOctetString_no_length(pBitStrm, BuffToWrite, bytesToRead);
+
+    
+	if (ret && remainingBits > 0) {
+		if (!BitStream_ReadPartialByte(pBitStrm, &BuffToWrite[bytesToRead], (byte)remainingBits))
 			return FALSE;
-		nbits -= 8;
-		i++;
+		BuffToWrite[bytesToRead] = (byte)(BuffToWrite[bytesToRead] << (8 - remainingBits));
 	}
 
-	if (nbits > 0) {
-		if (!BitStream_ReadPartialByte(pBitStrm, &BuffToWrite[i], (byte)nbits))
-			return FALSE;
-		BuffToWrite[i] = (byte)(BuffToWrite[i] << (8 - nbits));
-	}
-
-	return TRUE;
+	return ret;
 }
 
 /* nbits 1..7*/

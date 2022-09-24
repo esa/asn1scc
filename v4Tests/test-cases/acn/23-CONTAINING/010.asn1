@@ -1,0 +1,19 @@
+-- NOCOVERAGE
+-- no special for not coverage. It seems that there is a bug in gnatcov which reports a an uncovered statement a local variable definition
+TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
+
+
+    MySeqType ::= SEQUENCE { 
+        a INTEGER (0..255) OPTIONAL, 
+        b INTEGER (0..255) OPTIONAL
+    }
+    
+    
+    
+    MyMasterSeq ::= BIT STRING (CONTAINING MySeqType)
+	
+	
+END
+
+
+--TCLS     MyMasterSeq[] 

@@ -201,7 +201,7 @@ static void printf_message(const char* message)
 }
 
 static void print_test_case_success(const char* message, const long duration) {
-    printf("test case '%s' succeeded, duration was \t\t%lu\n", message, duration);
+    printf("test case '%s' succeeded, duration was \t\t\t\t%lu ms\n", message, duration);
 }
 
 int main(int argc, char* argv[])
@@ -367,7 +367,7 @@ void <sFuncName>(const TestOutput* output, int *totalErrors)
     result = <sTasName>_<sEnc>enc_dec(<sAmber>tc_data, &errCode, "<sFuncName>");
     gettimeofday(&stop, NULL);
     if (result) {
-        output->report_test_case_success("<sFuncName>", (stop.tv_sec - start.tv_sec) * 1000000 + stop.tv_usec - start.tv_usec);
+        output->report_test_case_success("<sTasName>/<sFuncName>", ((stop.tv_sec - start.tv_sec) * 1000000 + stop.tv_usec - start.tv_usec)/1000);
     } else {
 #else
     result = <sTasName>_<sEnc>enc_dec(<sAmber>tc_data, &errCode, "<sFuncName>");
