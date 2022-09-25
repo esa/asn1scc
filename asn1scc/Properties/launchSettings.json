@@ -2,8 +2,8 @@
   "profiles": {
     "asn1scc": {
       "commandName": "Project",
-      "commandLineArgs": "-o c_out -c -uPER -ACN -atc a.asn",
-      "workingDirectory": "C:\\prj\\GitHub\\asn1scc\\tmp\\035-IsConstraintValid_forUnknownTypes"
+      "commandLineArgs": "-c -ACN -o c_out/ -atc a.asn1",
+      "workingDirectory": "C:\\prj\\GitHub\\asn1scc\\tmp\\236"
     }
   }
 }

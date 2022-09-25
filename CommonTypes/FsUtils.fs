@@ -621,6 +621,25 @@ let PrintLocation loc = sprintf "File:%s, line:%d" loc.srcFilename loc.srcLine
 
 /// Generic function which checks an input sequence of strings*location and if there
 /// are duplicate values it raises a user exception 
+
+
+let CheckForDuplicatesCaseCaseInsensitive   (sequence:seq<StringLoc>)  =  
+    let duplicates = sequence 
+                     |> Seq.map(fun x -> x.AsTupple) 
+                     |> Seq.groupBy(fun (name,loc) -> name.ToLower()) |> Seq.filter(fun (n,dups) -> Seq.length dups > 1)
+    if not(Seq.isEmpty duplicates) then
+        let duplicateNames = 
+            match Seq.toList duplicates with
+            | (_,dups)::_ -> 
+                let aaa = dups |> Seq.map fst //|> Seq.map(fun n -> n.AsTupple) |> Seq.map fst
+                aaa |> Seq.StrJoin ", "   
+            | []          -> 
+                let inputSeq = sequence |> Seq.map(fun n -> n.AsTupple) |> Seq.map fst |> Seq.StrJoin ", "
+                raise(BugErrorException (sprintf "CheckForDuplicatesCaseCaseInsensitive. Input was %s" inputSeq))
+        let loc = snd ((snd (duplicates |> Seq.head)) |> Seq.head)
+        let errMsg = sprintf "Duplicate case insensitive definitions within the same scope: %s" duplicateNames
+        raise (SemanticError (loc, errMsg))
+
 let CheckForDuplicates<'T when 'T :equality>   (sequence:seq<PrimitiveWithLocation<'T>>) =  
     let duplicates = sequence 
                      |> Seq.map(fun x -> x.AsTupple) 
@@ -630,6 +649,7 @@ let CheckForDuplicates<'T when 'T :equality>   (sequence:seq<PrimitiveWithLocati
         let loc = snd ((snd (duplicates |> Seq.head)) |> Seq.head)
         let errMsg = sprintf "Duplicate definition: %s" (name.ToString())
         raise (SemanticError (loc, errMsg))
+
 
 let CheckForDuplicates2<'T when 'T :equality>   (sequence:seq<PrimitiveWithLocation<'T>>) : Result<unit, Asn1ParseError>=  
     let duplicates = sequence 

@@ -42,7 +42,13 @@ let rec private handleEnumChoices (r:AstRoot) (renamePolicy:EnumRenamePolicy)=
                     match state |> Seq.exists (ch.present_when_name.icompare) with
                     | false     -> ch.present_when_name
                     | true      ->
-                        let newPrefix = key |> List.rev |> List.map ToC |> Seq.skipWhile(fun x -> ch.present_when_name.Contains x) |> Seq.head
+                        let aaaa = key |> List.rev |> List.map ToC |> Seq.skipWhile(fun x -> ch.present_when_name.Contains x) |> Seq.toList
+                        let newPrefix = 
+                            match aaaa with
+                            | z1::_ -> z1
+                            | []    -> 
+                                let errMsg = sprintf "Choice ch.present_when_name = '%s', key=%A, state='%A'" ch.present_when_name key state
+                                raise (SemanticError(old.Location,errMsg))
                         newPrefix + "_" + ch.present_when_name
             
                 {ch with Type = t; present_when_name = ToC2 newUniqueName},ns

@@ -1829,7 +1829,7 @@ let createReferenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
                     let fncBody = octet_string_containing_func  (lm.lg.getParamValue t p.arg codec) baseFncName sReqBytesForUperEncoding nBits encOptions.minSize.acn encOptions.maxSize.acn false codec
                     Some(fncBody, [errCode],[])
                 | SZ_EC_FIXED_SIZE                        , ContainedInBitString  ->
-                    let fncBody = bit_string_containing_func  (lm.lg.getParamValue t p.arg codec) baseFncName sReqBytesForUperEncoding sReqBitForUperEncoding 0 encOptions.minSize.acn encOptions.maxSize.acn true codec
+                    let fncBody = bit_string_containing_func  (lm.lg.getParamValue t p.arg codec) baseFncName sReqBytesForUperEncoding sReqBitForUperEncoding 0I encOptions.minSize.acn encOptions.maxSize.acn true codec
                     Some(fncBody, [errCode],[])
                 | SZ_EC_LENGTH_EMBEDDED nBits                 , ContainedInBitString  ->  
                     let fncBody = bit_string_containing_func  (lm.lg.getParamValue t p.arg codec) baseFncName sReqBytesForUperEncoding sReqBitForUperEncoding nBits encOptions.minSize.acn encOptions.maxSize.acn false codec

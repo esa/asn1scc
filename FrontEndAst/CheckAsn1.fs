@@ -477,9 +477,12 @@ let rec isConstraintValid (t:Asn1Type) (c:Asn1Constraint) ast =
 /// it checks the input type for semantic error
 /// raises a user exception if an error is found.
 let rec CheckType(t:Asn1Type) (m:Asn1Module) ast =
-    let CheckSeqChoiceChildren (children:seq<ChildInfo>) =
+    let CheckSeqChoiceChildren bChoice (children:seq<ChildInfo>) =
         let childrenNames = children |> Seq.map(fun c -> c.Name) |> Seq.toList
-        childrenNames |> CheckForDuplicates 
+        match bChoice with
+        | true ->   childrenNames  |> CheckForDuplicatesCaseCaseInsensitive 
+        | false ->  childrenNames  |> CheckForDuplicates
+        
         match ast.args.fieldPrefix with
         | None      ->  childrenNames |> Seq.iter checkAgainstKeywords
         | Some _    ->  ()
@@ -535,8 +538,8 @@ let rec CheckType(t:Asn1Type) (m:Asn1Module) ast =
                                 else raise(SemanticError(intVal.Location,"Expecting integer value"))
                             |None           -> ())
     match t.Kind with
-    | Sequence(children)    ->  CheckSeqChoiceChildren children
-    | Choice(children)      ->  CheckSeqChoiceChildren children
+    | Sequence(children)    ->  CheckSeqChoiceChildren false children
+    | Choice(children)      ->  CheckSeqChoiceChildren true children
     | SequenceOf(child)     ->  CheckType child m ast
     | Enumerated(children)  ->  
         let getVal vKind = { Asn1Value.Kind = vKind; Location = emptyLocation; id = ReferenceToValue([],[])}
