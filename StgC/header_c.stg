@@ -68,6 +68,18 @@ Declare_PosIntegerNoRTL() ::="asn1SccUint"
 Declare_Boolean() ::= "flag"
 Declare_Real() ::= "asn1Real"
 
+Declare_Int8() ::="int8_t"
+Declare_UInt8() ::="uint8_t"
+Declare_Int16() ::="int16_t"
+Declare_UInt16() ::="uint16_t"
+Declare_Int32() ::="int32_t"
+Declare_UInt32() ::="uint32_t"
+Declare_Int64() ::="int64_t"
+Declare_UInt64() ::="uint64_t"
+
+Declare_Real32() ::= "float"
+Declare_Real64() ::= "double"
+
 Declare_BooleanNoRTL() ::= "flag"
 Declare_RealNoRTL() ::= "asn1Real"
 

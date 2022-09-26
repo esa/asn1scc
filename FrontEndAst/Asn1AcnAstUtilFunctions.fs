@@ -257,6 +257,26 @@ type AcnReferenceToEnumerated with
 
 type Integer with
     member this.AllCons  = this.cons@this.withcons
+    member this.getClass (wordSize:int) =
+        let getUClass (x:BigInteger) =
+            if   x > BigInteger System.UInt32.MaxValue then (UInt64 (0I,  BigInteger System.UInt64.MaxValue))
+            elif x > BigInteger System.UInt16.MaxValue then (UInt32 (0I,  BigInteger System.UInt32.MaxValue))
+            elif x > BigInteger System.Byte.MaxValue then   (UInt16 (0I,  BigInteger System.UInt16.MaxValue))
+            else (UInt8 (0I,  BigInteger System.Byte.MaxValue ))
+        let getSClass (x:BigInteger) =
+            if   x > BigInteger System.Int32.MaxValue then (Int64 (BigInteger System.Int64.MinValue,  BigInteger System.Int64.MaxValue))
+            elif x > BigInteger System.Int16.MaxValue then (Int32 (BigInteger System.Int32.MinValue,  BigInteger System.Int32.MaxValue))
+            elif x > BigInteger System.SByte.MaxValue then (Int16 (BigInteger System.Int16.MinValue,  BigInteger System.Int16.MaxValue))
+            else (Int8 (BigInteger System.SByte.MinValue,  BigInteger System.SByte.MaxValue))
+        match this.uperRange with
+        | Concrete  (a,b) when a >= 0I -> getUClass b
+        | Concrete  (a,b)              -> getSClass (max (abs a) (abs b))
+        | NegInf    _                  -> (Int64 (BigInteger System.Int64.MinValue,  BigInteger System.Int64.MaxValue))
+        | PosInf   a when a >= 0I      -> (UInt64 (0I,  BigInteger System.UInt64.MaxValue))
+        | PosInf  _                    -> (Int64 (BigInteger System.Int64.MinValue,  BigInteger System.Int64.MaxValue))
+        | Full    _                    -> (Int64 (BigInteger System.Int64.MinValue,  BigInteger System.Int64.MaxValue))
+
+        
 
 type ObjectIdentifier with 
     member this.AllCons  = this.cons@this.withcons

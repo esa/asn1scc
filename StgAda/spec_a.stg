@@ -97,6 +97,18 @@ Declare_PosIntegerNoRTL() ::="Asn1UInt"
 Declare_Integer() ::="<rtlModuleName()>.Asn1Int"
 Declare_PosInteger() ::="<rtlModuleName()>.Asn1UInt"
 
+Declare_Int8() ::="Interfaces.Integer_8"
+Declare_UInt8() ::="Interfaces.Unsigned_8"
+Declare_Int16() ::="Interfaces.Integer_16"
+Declare_UInt16() ::="Interfaces.Unsigned_16"
+Declare_Int32() ::="Interfaces.Integer_32"
+Declare_UInt32() ::="Interfaces.Unsigned_32"
+Declare_Int64() ::="Interfaces.Integer_64"
+Declare_UInt64() ::="Interfaces.Unsigned_64"
+
+Declare_Real32() ::= "Standard.Float"
+Declare_Real64() ::= "Standard.Long_Float"
+
 
 Declare_Boolean() ::= "<rtlModuleName()>.Asn1Boolean"
 Declare_Real() ::= "<rtlModuleName()>.Asn1Real"
