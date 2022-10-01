@@ -159,16 +159,16 @@ result := <rtlModuleName()>.ASN1_RESULT'(Success => true, ErrorCode => 0);
 
 
 /*case: A:: = INTEGER (5..20) */
-IntFullyConstraint_encode(p, nMin, nMax, nBits, sErrCode) ::= "adaasn1rtl.encoding.uper.UPER_Enc_ConstraintWholeNumber(bs, <p>, <nMin>, <nBits>);"
-IntFullyConstraint_decode(p, nMin, nMax, nBits, sErrCode) ::= <<
+IntFullyConstraint_encode(p, nMin, nMax, nBits, sSsuffix, sErrCode) ::= "adaasn1rtl.encoding.uper.UPER_Enc_ConstraintWholeNumber(bs, <p>, <nMin>, <nBits>);"
+IntFullyConstraint_decode(p, nMin, nMax, nBits, sSsuffix, sErrCode) ::= <<
 result.ErrorCode := <sErrCode>;
-adaasn1rtl.encoding.uper.UPER_Dec_ConstraintWholeNumber(bs, <p>, <nMin>, <nMax>, <nBits>, result.Success);
+adaasn1rtl.encoding.uper.UPER_Dec_ConstraintWholeNumber<sSsuffix>(bs, <p>, <nMin>, <nMax>, <nBits>, result.Success);
 >>
 
-IntFullyConstraintPos_encode(p, nMin, nMax, nBits, sErrCode) ::= "adaasn1rtl.encoding.uper.UPER_Enc_ConstraintPosWholeNumber(bs, <p>, <nMin>, <nBits>);"
-IntFullyConstraintPos_decode(p, nMin, nMax, nBits, sErrCode) ::= <<
+IntFullyConstraintPos_encode(p, nMin, nMax, nBits, sSsuffix, sErrCode) ::= "adaasn1rtl.encoding.uper.UPER_Enc_ConstraintPosWholeNumber(bs, <p>, <nMin>, <nBits>);"
+IntFullyConstraintPos_decode(p, nMin, nMax, nBits, sSsuffix, sErrCode) ::= <<
 result.ErrorCode := <sErrCode>;
-adaasn1rtl.encoding.uper.UPER_Dec_ConstraintPosWholeNumber(bs, <p>, <nMin>, <nMax>, <nBits>, result.Success);
+adaasn1rtl.encoding.uper.UPER_Dec_ConstraintPosWholeNumber<sSsuffix>(bs, <p>, <nMin>, <nMax>, <nBits>, result.Success);
 >>
 
 /*case: A :: = INTEGER */

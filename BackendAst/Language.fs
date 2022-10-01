@@ -48,7 +48,7 @@ type ILangGeneric () =
     abstract member getAmber        : FuncParamType -> string;
     abstract member toPointer       : FuncParamType -> FuncParamType;
     abstract member getArrayItem    : FuncParamType -> (string) -> (bool) -> FuncParamType;
-    abstract member intValueToSting : BigInteger -> bool -> string;
+    abstract member intValueToSting : BigInteger -> Asn1AcnAst.IntegerClass -> string;
     abstract member getNamedItemBackendName  :TypeDefintionOrReference option -> Asn1AcnAst.NamedItem -> string
     abstract member decodeEmptySeq  : string -> string option
     abstract member decode_nullType : string -> string option
@@ -160,10 +160,18 @@ type LangGeneric_c() =
     inherit ILangGeneric()
         override _.ArrayStartIndex = 0
 
-        override _.intValueToSting (i:BigInteger) isUnsigned =
-            match isUnsigned with
-            | true   -> sprintf "%sUL" (i.ToString())
-            | false  -> sprintf "%sLL" (i.ToString())
+        override _.intValueToSting (i:BigInteger) (intClass:Asn1AcnAst.IntegerClass) =
+            match intClass with
+            | Asn1AcnAst.ASN1SCC_Int8     _ ->  sprintf "%s" (i.ToString())
+            | Asn1AcnAst.ASN1SCC_Int16    _ ->  sprintf "%s" (i.ToString())
+            | Asn1AcnAst.ASN1SCC_Int32    _ ->  sprintf "%s" (i.ToString())
+            | Asn1AcnAst.ASN1SCC_Int64    _ ->  sprintf "%sL" (i.ToString())
+            | Asn1AcnAst.ASN1SCC_Int      _ ->  sprintf "%sL" (i.ToString())
+            | Asn1AcnAst.ASN1SCC_UInt8    _ ->  sprintf "%sU" (i.ToString())
+            | Asn1AcnAst.ASN1SCC_UInt16   _ ->  sprintf "%sU" (i.ToString())
+            | Asn1AcnAst.ASN1SCC_UInt32   _ ->  sprintf "%sU" (i.ToString())
+            | Asn1AcnAst.ASN1SCC_UInt64   _ ->  sprintf "%sUL" (i.ToString())
+            | Asn1AcnAst.ASN1SCC_UInt     _ ->  sprintf "%sUL" (i.ToString())
 
         override _.getPointer  (fpt:FuncParamType) =
             match fpt with

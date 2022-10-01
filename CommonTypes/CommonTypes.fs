@@ -835,6 +835,7 @@ type CommandLineSettings = {
     mappingFunctionsModule : string option
     integerSizeInBytes : BigInteger            //currently only the value of 4 or 8 bytes (32/64 bits) is supported
     floatingPointSizeInBytes : BigInteger       // 8 or 4
+    slim : bool
     target : Targets option
     renamePolicy :  EnumRenamePolicy
     fieldPrefix  : FieldPrefix option

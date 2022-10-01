@@ -255,28 +255,70 @@ type AcnReferenceToEnumerated with
             | None -> raise (SemanticError(this.modName.Location, (sprintf "No type assignment with name '%s' is defined in mode '%s'" this.tasName.Value this.modName.Value)))
             | Some tas -> tas.Type
 
+
+let getIntEncodingClassByUperRange (args:CommandLineSettings) (uperRange:BigIntegerUperRange) =
+    let getUClass (x:BigInteger) =
+        match args.slim with
+        | true ->
+            if   x > BigInteger System.UInt32.MaxValue then (ASN1SCC_UInt64 (0I,  BigInteger System.UInt64.MaxValue))
+            elif x > BigInteger System.UInt16.MaxValue then (ASN1SCC_UInt32 (0I,  BigInteger System.UInt32.MaxValue))
+            elif x > BigInteger System.Byte.MaxValue then   (ASN1SCC_UInt16 (0I,  BigInteger System.UInt16.MaxValue))
+            else (ASN1SCC_UInt8 (0I,  BigInteger System.Byte.MaxValue ))
+        | false -> (ASN1SCC_UInt (0I,  args.UIntMax))
+    let getSClass (a:BigInteger) (b:BigInteger)=
+        match args.slim with
+        | true ->
+            if   BigInteger System.SByte.MinValue <= a && b <= BigInteger System.SByte.MaxValue then (ASN1SCC_Int8  (BigInteger System.SByte.MinValue,  BigInteger System.SByte.MaxValue))
+            elif BigInteger System.Int16.MinValue <= a && b <= BigInteger System.Int16.MaxValue then (ASN1SCC_Int16 (BigInteger System.Int16.MinValue,  BigInteger System.Int16.MaxValue))
+            elif BigInteger System.Int32.MinValue <= a && b <= BigInteger System.Int32.MaxValue then (ASN1SCC_Int32 (BigInteger System.Int32.MinValue,  BigInteger System.Int32.MaxValue))
+            else 
+                (ASN1SCC_Int64 (BigInteger System.Int64.MinValue,  BigInteger System.Int64.MaxValue))
+        | false -> (ASN1SCC_Int (args.SIntMin,  args.SIntMax))
+    match uperRange with
+    | Concrete  (a,b) when a >= 0I -> getUClass b
+    | Concrete  (a,b)              -> getSClass a b
+    | NegInf    _                  -> (ASN1SCC_Int64 (BigInteger System.Int64.MinValue,  BigInteger System.Int64.MaxValue))
+    | PosInf   a when a >= 0I      -> (ASN1SCC_UInt64 (0I,  BigInteger System.UInt64.MaxValue))
+    | PosInf  _                    -> (ASN1SCC_Int64 (BigInteger System.Int64.MinValue,  BigInteger System.Int64.MaxValue))
+    | Full    _                    -> (ASN1SCC_Int64 (BigInteger System.Int64.MinValue,  BigInteger System.Int64.MaxValue))
+
+
 type Integer with
     member this.AllCons  = this.cons@this.withcons
-    member this.getClass (wordSize:int) =
-        let getUClass (x:BigInteger) =
-            if   x > BigInteger System.UInt32.MaxValue then (UInt64 (0I,  BigInteger System.UInt64.MaxValue))
-            elif x > BigInteger System.UInt16.MaxValue then (UInt32 (0I,  BigInteger System.UInt32.MaxValue))
-            elif x > BigInteger System.Byte.MaxValue then   (UInt16 (0I,  BigInteger System.UInt16.MaxValue))
-            else (UInt8 (0I,  BigInteger System.Byte.MaxValue ))
-        let getSClass (x:BigInteger) =
-            if   x > BigInteger System.Int32.MaxValue then (Int64 (BigInteger System.Int64.MinValue,  BigInteger System.Int64.MaxValue))
-            elif x > BigInteger System.Int16.MaxValue then (Int32 (BigInteger System.Int32.MinValue,  BigInteger System.Int32.MaxValue))
-            elif x > BigInteger System.SByte.MaxValue then (Int16 (BigInteger System.Int16.MinValue,  BigInteger System.Int16.MaxValue))
-            else (Int8 (BigInteger System.SByte.MinValue,  BigInteger System.SByte.MaxValue))
-        match this.uperRange with
-        | Concrete  (a,b) when a >= 0I -> getUClass b
-        | Concrete  (a,b)              -> getSClass (max (abs a) (abs b))
-        | NegInf    _                  -> (Int64 (BigInteger System.Int64.MinValue,  BigInteger System.Int64.MaxValue))
-        | PosInf   a when a >= 0I      -> (UInt64 (0I,  BigInteger System.UInt64.MaxValue))
-        | PosInf  _                    -> (Int64 (BigInteger System.Int64.MinValue,  BigInteger System.Int64.MaxValue))
-        | Full    _                    -> (Int64 (BigInteger System.Int64.MinValue,  BigInteger System.Int64.MaxValue))
+    member this.getClass (args:CommandLineSettings)  =
+        getIntEncodingClassByUperRange args this.uperRange
 
-        
+type IntegerClass with
+    member this.Min =
+        match this with
+        | ASN1SCC_Int8      (a,_) -> a 
+        | ASN1SCC_Int16     (a,_) -> a
+        | ASN1SCC_Int32     (a,_) -> a
+        | ASN1SCC_Int64     (a,_) -> a
+        | ASN1SCC_Int       (a,_) -> a
+        | ASN1SCC_UInt8     (a,_) -> a
+        | ASN1SCC_UInt16    (a,_) -> a
+        | ASN1SCC_UInt32    (a,_) -> a
+        | ASN1SCC_UInt64    (a,_) -> a
+        | ASN1SCC_UInt      (a,_) -> a
+    member this.Max =
+        match this with
+        | ASN1SCC_Int8      (_,b) -> b 
+        | ASN1SCC_Int16     (_,b) -> b
+        | ASN1SCC_Int32     (_,b) -> b
+        | ASN1SCC_Int64     (_,b) -> b
+        | ASN1SCC_Int       (_,b) -> b
+        | ASN1SCC_UInt8     (_,b) -> b
+        | ASN1SCC_UInt16    (_,b) -> b
+        | ASN1SCC_UInt32    (_,b) -> b
+        | ASN1SCC_UInt64    (_,b) -> b
+        | ASN1SCC_UInt      (_,b) -> b
+
+
+let getAcnIntegerClass (args:CommandLineSettings) (i:AcnInteger) =
+    match i.isUnsigned with
+    | true  -> (ASN1SCC_UInt (0I,  args.UIntMax))
+    | false -> (ASN1SCC_Int (args.SIntMin,  args.SIntMax))
 
 type ObjectIdentifier with 
     member this.AllCons  = this.cons@this.withcons
@@ -287,6 +329,17 @@ type TimeType with
 
 type Real             with
     member this.AllCons  = this.cons@this.withcons
+    member this.getClass (args:CommandLineSettings)  =
+        match args.slim with
+        | true ->
+            match this.acnEncodingClass with
+            | Real_uPER                         -> ASN1SCC_REAL
+            | Real_IEEE754_32_big_endian        -> ASN1SCC_FP32
+            | Real_IEEE754_64_big_endian        -> ASN1SCC_FP64
+            | Real_IEEE754_32_little_endian     -> ASN1SCC_FP32
+            | Real_IEEE754_64_little_endian     -> ASN1SCC_FP64
+        | false -> ASN1SCC_REAL
+
 
 type StringType       with
     member this.AllCons  = this.cons@this.withcons

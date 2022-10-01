@@ -94,6 +94,104 @@ flag Acn_Dec_UInt_ASCII_VarSize_NullTerminated(BitStream* pBitStrm, asn1SccUint*
 
 /*flag Acn_Dec_Int_ASCII_NullTerminated_FormattedInteger(BitStream* pBitStrm, const char* format, asn1SccSint* pIntVal);*/
 
+flag Acn_Dec_Int_PositiveInteger_ConstSizeUInt8(BitStream* pBitStrm, uint8_t* pIntVal, int encodedSizeInBits);
+
+flag Acn_Dec_Int_PositiveInteger_ConstSizeUInt16(BitStream* pBitStrm, uint16_t* pIntVal, int encodedSizeInBits);
+
+flag Acn_Dec_Int_PositiveInteger_ConstSizeUInt32(BitStream* pBitStrm, uint32_t* pIntVal, int encodedSizeInBits);
+
+flag Acn_Dec_Int_PositiveInteger_ConstSize_8UInt8(BitStream* pBitStrm, uint8_t* pIntVal);
+
+flag Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_16UInt16(BitStream* pBitStrm, uint16_t* pIntVal);
+
+flag Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_32UInt32(BitStream* pBitStrm, uint32_t* pIntVal);
+
+flag Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_16UInt16(BitStream* pBitStrm, uint16_t* pIntVal);
+
+flag Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_32UInt32(BitStream* pBitStrm, uint32_t* pIntVal);
+
+flag Acn_Dec_Int_PositiveInteger_VarSize_LengthEmbeddedUInt8(BitStream* pBitStrm, uint8_t* pIntVal);
+
+flag Acn_Dec_Int_PositiveInteger_VarSize_LengthEmbeddedUInt16(BitStream* pBitStrm, uint16_t* pIntVal);
+
+flag Acn_Dec_Int_PositiveInteger_VarSize_LengthEmbeddedUInt32(BitStream* pBitStrm, uint32_t* pIntVal);
+
+flag Acn_Dec_Int_TwosComplement_ConstSizeInt8(BitStream* pBitStrm, int8_t* pIntVal, int encodedSizeInBits);
+
+flag Acn_Dec_Int_TwosComplement_ConstSizeInt16(BitStream* pBitStrm, int16_t* pIntVal, int encodedSizeInBits);
+
+flag Acn_Dec_Int_TwosComplement_ConstSizeInt32(BitStream* pBitStrm, int32_t* pIntVal, int encodedSizeInBits);
+
+flag Acn_Dec_Int_TwosComplement_ConstSize_8Int8(BitStream* pBitStrm, int8_t* pIntVal);
+
+flag Acn_Dec_Int_TwosComplement_ConstSize_big_endian_16Int16(BitStream* pBitStrm, int16_t* pIntVal);
+
+flag Acn_Dec_Int_TwosComplement_ConstSize_big_endian_32Int32(BitStream* pBitStrm, int32_t* pIntVal);
+
+flag Acn_Dec_Int_TwosComplement_ConstSize_little_endian_16Int16(BitStream* pBitStrm, int16_t* pIntVal);
+
+flag Acn_Dec_Int_TwosComplement_ConstSize_little_endian_32Int32(BitStream* pBitStrm, int32_t* pIntVal);
+
+flag Acn_Dec_Int_TwosComplement_VarSize_LengthEmbeddedInt8(BitStream* pBitStrm, int8_t* pIntVal);
+
+flag Acn_Dec_Int_TwosComplement_VarSize_LengthEmbeddedInt16(BitStream* pBitStrm, int16_t* pIntVal);
+
+flag Acn_Dec_Int_TwosComplement_VarSize_LengthEmbeddedInt32(BitStream* pBitStrm, int32_t* pIntVal);
+
+flag Acn_Dec_Int_BCD_ConstSizeUInt8(BitStream* pBitStrm, uint8_t* pIntVal, int encodedSizeInNibbles);
+
+flag Acn_Dec_Int_BCD_ConstSizeUInt16(BitStream* pBitStrm, uint16_t* pIntVal, int encodedSizeInNibbles);
+
+flag Acn_Dec_Int_BCD_ConstSizeUInt32(BitStream* pBitStrm, uint32_t* pIntVal, int encodedSizeInNibbles);
+
+flag Acn_Dec_Int_BCD_VarSize_LengthEmbeddedUInt8(BitStream* pBitStrm, uint8_t* pIntVal);
+
+flag Acn_Dec_Int_BCD_VarSize_LengthEmbeddedUInt16(BitStream* pBitStrm, uint16_t* pIntVal);
+
+flag Acn_Dec_Int_BCD_VarSize_LengthEmbeddedUInt32(BitStream* pBitStrm, uint32_t* pIntVal);
+
+flag Acn_Dec_Int_BCD_VarSize_NullTerminatedUInt8(BitStream* pBitStrm, uint8_t* pIntVal);
+
+flag Acn_Dec_Int_BCD_VarSize_NullTerminatedUInt16(BitStream* pBitStrm, uint16_t* pIntVal);
+
+flag Acn_Dec_Int_BCD_VarSize_NullTerminatedUInt32(BitStream* pBitStrm, uint32_t* pIntVal);
+
+flag Acn_Dec_SInt_ASCII_ConstSizeInt8(BitStream* pBitStrm, int8_t* pIntVal, int encodedSizeInBytes);
+
+flag Acn_Dec_SInt_ASCII_ConstSizeInt16(BitStream* pBitStrm, int16_t* pIntVal, int encodedSizeInBytes);
+
+flag Acn_Dec_SInt_ASCII_ConstSizeInt32(BitStream* pBitStrm, int32_t* pIntVal, int encodedSizeInBytes);
+
+flag Acn_Dec_SInt_ASCII_VarSize_LengthEmbeddedInt8(BitStream* pBitStrm, int8_t* pIntVal);
+
+flag Acn_Dec_SInt_ASCII_VarSize_LengthEmbeddedInt16(BitStream* pBitStrm, int16_t* pIntVal);
+
+flag Acn_Dec_SInt_ASCII_VarSize_LengthEmbeddedInt32(BitStream* pBitStrm, int32_t* pIntVal);
+
+flag Acn_Dec_SInt_ASCII_VarSize_NullTerminatedInt8(BitStream* pBitStrm, int8_t* pIntVal, const byte null_characters[], size_t null_characters_size);
+
+flag Acn_Dec_SInt_ASCII_VarSize_NullTerminatedInt16(BitStream* pBitStrm, int16_t* pIntVal, const byte null_characters[], size_t null_characters_size);
+
+flag Acn_Dec_SInt_ASCII_VarSize_NullTerminatedInt32(BitStream* pBitStrm, int32_t* pIntVal, const byte null_characters[], size_t null_characters_size);
+
+flag Acn_Dec_UInt_ASCII_ConstSizeUInt8(BitStream* pBitStrm, uint8_t* pIntVal, int encodedSizeInBytes);
+
+flag Acn_Dec_UInt_ASCII_ConstSizeUInt16(BitStream* pBitStrm, uint16_t* pIntVal, int encodedSizeInBytes);
+
+flag Acn_Dec_UInt_ASCII_ConstSizeUInt32(BitStream* pBitStrm, uint32_t* pIntVal, int encodedSizeInBytes);
+
+flag Acn_Dec_UInt_ASCII_VarSize_LengthEmbeddedUInt8(BitStream* pBitStrm, uint8_t* pIntVal);
+
+flag Acn_Dec_UInt_ASCII_VarSize_LengthEmbeddedUInt16(BitStream* pBitStrm, uint16_t* pIntVal);
+
+flag Acn_Dec_UInt_ASCII_VarSize_LengthEmbeddedUInt32(BitStream* pBitStrm, uint32_t* pIntVal);
+
+flag Acn_Dec_UInt_ASCII_VarSize_NullTerminatedUInt8(BitStream* pBitStrm, uint8_t* pIntVal, const byte null_characters[], size_t null_characters_size);
+
+flag Acn_Dec_UInt_ASCII_VarSize_NullTerminatedUInt16(BitStream* pBitStrm, uint16_t* pIntVal, const byte null_characters[], size_t null_characters_size);
+
+flag Acn_Dec_UInt_ASCII_VarSize_NullTerminatedUInt32(BitStream* pBitStrm, uint32_t* pIntVal, const byte null_characters[], size_t null_characters_size);
+
 
 /* Boolean Decode */
 

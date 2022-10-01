@@ -102,6 +102,7 @@ let defaultCommandLineSettings  =
         mappingFunctionsModule = None
         integerSizeInBytes = 8I
         floatingPointSizeInBytes = 8I
+        slim = false
         target = None
         streamingModeSupport = false
         renamePolicy = CommonTypes.EnumRenamePolicy.NoRenamePolicy

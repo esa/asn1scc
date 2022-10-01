@@ -3,6 +3,7 @@ open System
 open System.Numerics
 open System.IO
 
+open Asn1AcnAstUtilFunctions
 open FsUtils
 open CommonTypes
 open DAst
@@ -124,7 +125,7 @@ let createIntegerFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (lm:Lan
     let funcBody (errCode:ErroCode) (p:CallerScope) (xmlTag:XerTag option) = 
         let xmlTag = xmlTag |> orElse (XerLiteralConstant "INTEGER")
         let checkExp = 
-            match (DastValidate2.createIntegerFunctionByCons r lm o.isUnsigned (o.cons@o.withcons)) with
+            match (DastValidate2.createIntegerFunctionByCons r lm (o.getClass r.args) (o.cons@o.withcons)) with
             | None  ->  None
             | Some expFunc -> 
                 let makeExpressionToStatement0  = match l with C -> isvalid_c.makeExpressionToStatement0 | Ada -> isvalid_a.makeExpressionToStatement0

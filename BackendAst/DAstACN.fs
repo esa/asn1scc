@@ -317,35 +317,36 @@ let private createAcnIntegerFunctionInternal (r:Asn1AcnAst.AstRoot) (lm:Language
         let sIntActualMax (nBits:int) =
             let a = 2I**(nBits-1) - 1I
             min a nUperMax
+        let sSsuffix = DAstUPer.getIntDecFuncSuffix r uperRange 
         
         //let soMF = match 
         let funcBodyContent  = 
             match acnEncodingClass with
             |Asn1AcnAst.Integer_uPER                                       ->  uperfuncBody errCode p |> Option.map(fun x -> x.funcBody, x.errCodes, x.bValIsUnReferenced, x.bBsIsUnReferenced)
-            |Asn1AcnAst.PositiveInteger_ConstSize_8                        ->  Some(PositiveInteger_ConstSize_8 pp errCode.errCodeName soMF soMFM (max 0I nUperMin) (uIntActualMax 8)  codec, [errCode], false, false)
-            |Asn1AcnAst.PositiveInteger_ConstSize_big_endian_16            ->  Some(PositiveInteger_ConstSize_big_endian_16 pp errCode.errCodeName soMF soMFM (max 0I nUperMin) (uIntActualMax 16) codec, [errCode], false, false)
-            |Asn1AcnAst.PositiveInteger_ConstSize_little_endian_16         ->  Some(PositiveInteger_ConstSize_little_endian_16 pp errCode.errCodeName soMF soMFM (max 0I nUperMin) (uIntActualMax 16) codec, [errCode], false, false)
-            |Asn1AcnAst.PositiveInteger_ConstSize_big_endian_32            ->  Some(PositiveInteger_ConstSize_big_endian_32 pp errCode.errCodeName soMF soMFM (max 0I nUperMin) (uIntActualMax 32) codec, [errCode], false, false)
-            |Asn1AcnAst.PositiveInteger_ConstSize_little_endian_32         ->  Some(PositiveInteger_ConstSize_little_endian_32 pp errCode.errCodeName soMF soMFM (max 0I nUperMin) (uIntActualMax 32) codec, [errCode], false, false)
+            |Asn1AcnAst.PositiveInteger_ConstSize_8                        ->  Some(PositiveInteger_ConstSize_8 pp sSsuffix errCode.errCodeName soMF soMFM (max 0I nUperMin) (uIntActualMax 8)  codec, [errCode], false, false)
+            |Asn1AcnAst.PositiveInteger_ConstSize_big_endian_16            ->  Some(PositiveInteger_ConstSize_big_endian_16 pp sSsuffix errCode.errCodeName soMF soMFM (max 0I nUperMin) (uIntActualMax 16) codec, [errCode], false, false)
+            |Asn1AcnAst.PositiveInteger_ConstSize_little_endian_16         ->  Some(PositiveInteger_ConstSize_little_endian_16 pp sSsuffix errCode.errCodeName soMF soMFM (max 0I nUperMin) (uIntActualMax 16) codec, [errCode], false, false)
+            |Asn1AcnAst.PositiveInteger_ConstSize_big_endian_32            ->  Some(PositiveInteger_ConstSize_big_endian_32 pp sSsuffix errCode.errCodeName soMF soMFM (max 0I nUperMin) (uIntActualMax 32) codec, [errCode], false, false)
+            |Asn1AcnAst.PositiveInteger_ConstSize_little_endian_32         ->  Some(PositiveInteger_ConstSize_little_endian_32 pp sSsuffix errCode.errCodeName soMF soMFM (max 0I nUperMin) (uIntActualMax 32) codec, [errCode], false, false)
             |Asn1AcnAst.PositiveInteger_ConstSize_big_endian_64            ->  Some(PositiveInteger_ConstSize_big_endian_64 pp errCode.errCodeName soMF soMFM (max 0I nUperMin) (uIntActualMax 64) codec, [errCode], false, false)
             |Asn1AcnAst.PositiveInteger_ConstSize_little_endian_64         ->  Some(PositiveInteger_ConstSize_little_endian_64 pp errCode.errCodeName soMF soMFM (max 0I nUperMin) (uIntActualMax 64) codec, [errCode], false, false)
-            |Asn1AcnAst.PositiveInteger_ConstSize bitSize                  ->  Some(PositiveInteger_ConstSize pp errCode.errCodeName ( bitSize) soMF soMFM (max 0I nUperMin) (uIntActualMax (int bitSize)) codec, [errCode], false, false)
+            |Asn1AcnAst.PositiveInteger_ConstSize bitSize                  ->  Some(PositiveInteger_ConstSize pp sSsuffix errCode.errCodeName ( bitSize) soMF soMFM (max 0I nUperMin) (uIntActualMax (int bitSize)) codec, [errCode], false, false)
             
-            |Asn1AcnAst.TwosComplement_ConstSize_8                         ->  Some(TwosComplement_ConstSize_8 pp errCode.errCodeName soMF soMFM (sIntActualMin 8) (sIntActualMax 8) codec, [errCode], false, false)
-            |Asn1AcnAst.TwosComplement_ConstSize_big_endian_16             ->  Some(TwosComplement_ConstSize_big_endian_16 pp errCode.errCodeName soMF soMFM (sIntActualMin 16) (sIntActualMax 16) codec, [errCode], false, false)
-            |Asn1AcnAst.TwosComplement_ConstSize_little_endian_16          ->  Some(TwosComplement_ConstSize_little_endian_16 pp errCode.errCodeName soMF soMFM (sIntActualMin 16) (sIntActualMax 16) codec, [errCode], false, false)
-            |Asn1AcnAst.TwosComplement_ConstSize_big_endian_32             ->  Some(TwosComplement_ConstSize_big_endian_32 pp errCode.errCodeName soMF soMFM (sIntActualMin 32) (sIntActualMax 32) codec, [errCode], false, false)
-            |Asn1AcnAst.TwosComplement_ConstSize_little_endian_32          ->  Some(TwosComplement_ConstSize_little_endian_32 pp errCode.errCodeName soMF soMFM (sIntActualMin 32) (sIntActualMax 32) codec, [errCode], false, false)
+            |Asn1AcnAst.TwosComplement_ConstSize_8                         ->  Some(TwosComplement_ConstSize_8 pp sSsuffix errCode.errCodeName soMF soMFM (sIntActualMin 8) (sIntActualMax 8) codec, [errCode], false, false)
+            |Asn1AcnAst.TwosComplement_ConstSize_big_endian_16             ->  Some(TwosComplement_ConstSize_big_endian_16 pp sSsuffix errCode.errCodeName soMF soMFM (sIntActualMin 16) (sIntActualMax 16) codec, [errCode], false, false)
+            |Asn1AcnAst.TwosComplement_ConstSize_little_endian_16          ->  Some(TwosComplement_ConstSize_little_endian_16 pp sSsuffix errCode.errCodeName soMF soMFM (sIntActualMin 16) (sIntActualMax 16) codec, [errCode], false, false)
+            |Asn1AcnAst.TwosComplement_ConstSize_big_endian_32             ->  Some(TwosComplement_ConstSize_big_endian_32 pp sSsuffix errCode.errCodeName soMF soMFM (sIntActualMin 32) (sIntActualMax 32) codec, [errCode], false, false)
+            |Asn1AcnAst.TwosComplement_ConstSize_little_endian_32          ->  Some(TwosComplement_ConstSize_little_endian_32 pp sSsuffix errCode.errCodeName soMF soMFM (sIntActualMin 32) (sIntActualMax 32) codec, [errCode], false, false)
             |Asn1AcnAst.TwosComplement_ConstSize_big_endian_64             ->  Some(TwosComplement_ConstSize_big_endian_64 pp errCode.errCodeName soMF soMFM (sIntActualMin 64) (sIntActualMax 64) codec, [errCode], false, false)
             |Asn1AcnAst.TwosComplement_ConstSize_little_endian_64          ->  Some(TwosComplement_ConstSize_little_endian_64 pp errCode.errCodeName soMF soMFM (sIntActualMin 64) (sIntActualMax 64) codec, [errCode], false, false)
-            |Asn1AcnAst.TwosComplement_ConstSize bitSize                   ->  Some(TwosComplement_ConstSize pp errCode.errCodeName soMF soMFM ( bitSize) (sIntActualMin (int bitSize)) (sIntActualMax (int bitSize)) codec, [errCode], false, false)
+            |Asn1AcnAst.TwosComplement_ConstSize bitSize                   ->  Some(TwosComplement_ConstSize pp sSsuffix errCode.errCodeName soMF soMFM ( bitSize) (sIntActualMin (int bitSize)) (sIntActualMax (int bitSize)) codec, [errCode], false, false)
 
-            |Asn1AcnAst.ASCII_ConstSize size                               ->  Some(ASCII_ConstSize pp errCode.errCodeName soMF soMFM nUperMin nUperMax ((size)/8I) codec, [errCode], false, false)
-            |Asn1AcnAst.ASCII_VarSize_NullTerminated nullBytes             ->  Some(ASCII_VarSize_NullTerminated pp errCode.errCodeName soMF soMFM nUperMin nUperMax nullBytes codec, [errCode], false, false)
-            |Asn1AcnAst.ASCII_UINT_ConstSize size                          ->  Some(ASCII_UINT_ConstSize pp errCode.errCodeName soMF soMFM nUperMin nUperMax (( size)/8I) codec, [errCode], false, false)
-            |Asn1AcnAst.ASCII_UINT_VarSize_NullTerminated nullBytes         ->  Some(ASCII_UINT_VarSize_NullTerminated pp errCode.errCodeName  soMF soMFM nUperMin nUperMax nullBytes codec, [errCode], false, false)
-            |Asn1AcnAst.BCD_ConstSize size                                 ->  Some(BCD_ConstSize pp errCode.errCodeName soMF soMFM nUperMin nUperMax (( size)/4I) codec, [errCode], false, false)
-            |Asn1AcnAst.BCD_VarSize_NullTerminated nullBytes                ->  Some(BCD_VarSize_NullTerminated pp errCode.errCodeName soMF soMFM nUperMin nUperMax codec, [errCode], false, false)
+            |Asn1AcnAst.ASCII_ConstSize size                               ->  Some(ASCII_ConstSize pp sSsuffix errCode.errCodeName soMF soMFM nUperMin nUperMax ((size)/8I) codec, [errCode], false, false)
+            |Asn1AcnAst.ASCII_VarSize_NullTerminated nullBytes             ->  Some(ASCII_VarSize_NullTerminated pp sSsuffix errCode.errCodeName soMF soMFM nUperMin nUperMax nullBytes codec, [errCode], false, false)
+            |Asn1AcnAst.ASCII_UINT_ConstSize size                          ->  Some(ASCII_UINT_ConstSize pp sSsuffix errCode.errCodeName soMF soMFM nUperMin nUperMax (( size)/8I) codec, [errCode], false, false)
+            |Asn1AcnAst.ASCII_UINT_VarSize_NullTerminated nullBytes         -> Some(ASCII_UINT_VarSize_NullTerminated pp sSsuffix errCode.errCodeName  soMF soMFM nUperMin nUperMax nullBytes codec, [errCode], false, false)
+            |Asn1AcnAst.BCD_ConstSize size                                 ->  Some(BCD_ConstSize pp sSsuffix errCode.errCodeName soMF soMFM nUperMin nUperMax (( size)/4I) codec, [errCode], false, false)
+            |Asn1AcnAst.BCD_VarSize_NullTerminated nullBytes                -> Some(BCD_VarSize_NullTerminated pp sSsuffix errCode.errCodeName soMF soMFM nUperMin nUperMax codec, [errCode], false, false)
         match funcBodyContent with
         | None -> None
         | Some (funcBodyContent,errCodes, bValIsUnReferenced, bBsIsUnReferenced ) -> 
@@ -370,7 +371,7 @@ let createAcnIntegerFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:C
     let errCode, ns = getNextValidErrorCode us errCodeName None
 
     let uperFuncBody (errCode) (p:CallerScope) = 
-        DAstUPer.getIntfuncBodyByCons r lm codec t.uperRange t.Location t.isUnsigned (t.cons) (t.cons@t.withcons) errCode p
+        DAstUPer.getIntfuncBodyByCons r lm codec t.uperRange t.Location (getAcnIntegerClass r.args t) (t.cons) (t.cons@t.withcons) errCode p
         (*let pp = match codec with CommonTypes.Encode -> lm.lg.getValue p.arg | CommonTypes.Decode -> lm.lg.getPointer p.arg
         let IntUnconstraint = match l with C -> uper_c.IntUnconstraint          | Ada -> uper_a.IntUnconstraint
         let funcBodyContent = IntUnconstraint pp errCode.errCodeName false codec
@@ -420,7 +421,7 @@ let createEnumComn (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:CommonTypes
         let intFuncBody = 
             let uperInt (errCode:ErroCode) (p:CallerScope) = 
                 let pp = match codec with CommonTypes.Encode -> lm.lg.getValue p.arg | CommonTypes.Decode -> lm.lg.getPointer p.arg
-                let funcBody = IntFullyConstraintPos pp min max (GetNumberOfBitsForNonNegativeInteger (max-min))  errCode.errCodeName codec
+                let funcBody = IntFullyConstraintPos pp min max (GetNumberOfBitsForNonNegativeInteger (max-min))  "" errCode.errCodeName codec
                 Some({UPERFuncBodyResult.funcBody = funcBody; errCodes = [errCode]; localVariables= []; bValIsUnReferenced=false; bBsIsUnReferenced=false})
             createAcnIntegerFunctionInternal r lm codec (Concrete (min,max)) o.acnEncodingClass uperInt (None, None)
         let funcBodyContent = 

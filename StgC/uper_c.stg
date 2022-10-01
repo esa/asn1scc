@@ -143,16 +143,16 @@ ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, &charValue, 0, 127);
 
 
 /*case: A:: = INTEGER (-5..20) */
-IntFullyConstraint_encode(p, nMin, nMax, nBits, sErrCode) ::= "BitStream_EncodeConstraintWholeNumber(pBitStrm, <p>, <nMin>, <nMax>);"
-IntFullyConstraint_decode(p, nMin, nMax, nBits, sErrCode) ::= <<
-ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, <p>, <nMin>, <nMax>);
+IntFullyConstraint_encode(p, nMin, nMax, nBits, sSsuffix, sErrCode) ::= "BitStream_EncodeConstraintWholeNumber(pBitStrm, <p>, <nMin>, <nMax>);"
+IntFullyConstraint_decode(p, nMin, nMax, nBits, sSsuffix, sErrCode) ::= <<
+ret = BitStream_DecodeConstraintWholeNumber<sSsuffix>(pBitStrm, <p>, <nMin>, <nMax>);
 *pErrCode = ret ? 0 : <sErrCode>;
 >>
 
 /*case: Positive fully constraint A:: = INTEGER (5..20) */
-IntFullyConstraintPos_encode(p, nMin, nMax, nBits, sErrCode) ::= "BitStream_EncodeConstraintPosWholeNumber(pBitStrm, <p>, <nMin>, <nMax>);"
-IntFullyConstraintPos_decode(p, nMin, nMax, nBits, sErrCode) ::= <<
-ret = BitStream_DecodeConstraintPosWholeNumber(pBitStrm, <p>, <nMin>, <nMax>);
+IntFullyConstraintPos_encode(p, nMin, nMax, nBits, sSsuffix, sErrCode) ::= "BitStream_EncodeConstraintPosWholeNumber(pBitStrm, <p>, <nMin>, <nMax>);"
+IntFullyConstraintPos_decode(p, nMin, nMax, nBits, sSsuffix, sErrCode) ::= <<
+ret = BitStream_DecodeConstraintPosWholeNumber<sSsuffix>(pBitStrm, <p>, <nMin>, <nMax>);
 *pErrCode = ret ? 0 : <sErrCode>;
 >>
 
