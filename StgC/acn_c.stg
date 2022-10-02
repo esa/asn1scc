@@ -158,9 +158,9 @@ ret = Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_32<sSsuffix>(pBitStrm, <p
 <A(sErrCode)>
 >>
 
-PositiveInteger_ConstSize_big_endian_64_encode(p, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "Acn_Enc_Int_PositiveInteger_ConstSize_big_endian_64(pBitStrm, <if(soMF)><soMF>_encode(<p>)<else><p><endif>);"
-PositiveInteger_ConstSize_big_endian_64_decode(p, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
-ret = Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_64(pBitStrm, <p>);
+PositiveInteger_ConstSize_big_endian_64_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "Acn_Enc_Int_PositiveInteger_ConstSize_big_endian_64(pBitStrm, <if(soMF)><soMF>_encode(<p>)<else><p><endif>);"
+PositiveInteger_ConstSize_big_endian_64_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
+ret = Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_64<sSsuffix>(pBitStrm, <p>);
 <MF(soMF)>
 <A(sErrCode)>
 >>
@@ -179,9 +179,9 @@ ret = Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_32<sSsuffix>(pBitStrm,
 <A(sErrCode)>
 >>
 
-PositiveInteger_ConstSize_little_endian_64_encode(p, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "Acn_Enc_Int_PositiveInteger_ConstSize_little_endian_64(pBitStrm, <if(soMF)><soMF>_encode(<p>)<else><p><endif>);"
-PositiveInteger_ConstSize_little_endian_64_decode(p, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
-ret = Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_64(pBitStrm, <p>);
+PositiveInteger_ConstSize_little_endian_64_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "Acn_Enc_Int_PositiveInteger_ConstSize_little_endian_64(pBitStrm, <if(soMF)><soMF>_encode(<p>)<else><p><endif>);"
+PositiveInteger_ConstSize_little_endian_64_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
+ret = Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_64<sSsuffix>(pBitStrm, <p>);
 <MF(soMF)>
 <A(sErrCode)>
 >>
@@ -221,9 +221,9 @@ ret = Acn_Dec_Int_TwosComplement_ConstSize_big_endian_32<sSsuffix>(pBitStrm, <p>
 <A(sErrCode)>
 >>
 
-TwosComplement_ConstSize_big_endian_64_encode(p, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "Acn_Enc_Int_TwosComplement_ConstSize_big_endian_64(pBitStrm, <if(soMF)><soMF>_encode(<p>)<else><p><endif>);"
-TwosComplement_ConstSize_big_endian_64_decode(p, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
-ret = Acn_Dec_Int_TwosComplement_ConstSize_big_endian_64(pBitStrm, <p>);
+TwosComplement_ConstSize_big_endian_64_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "Acn_Enc_Int_TwosComplement_ConstSize_big_endian_64(pBitStrm, <if(soMF)><soMF>_encode(<p>)<else><p><endif>);"
+TwosComplement_ConstSize_big_endian_64_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
+ret = Acn_Dec_Int_TwosComplement_ConstSize_big_endian_64<sSsuffix>(pBitStrm, <p>);
 <MF(soMF)>
 <A(sErrCode)>
 >>
@@ -242,9 +242,9 @@ ret = Acn_Dec_Int_TwosComplement_ConstSize_little_endian_32<sSsuffix>(pBitStrm, 
 <A(sErrCode)>
 >>
 
-TwosComplement_ConstSize_little_endian_64_encode(p, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "Acn_Enc_Int_TwosComplement_ConstSize_little_endian_64(pBitStrm, <if(soMF)><soMF>_encode(<p>)<else><p><endif>);"
-TwosComplement_ConstSize_little_endian_64_decode(p, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
-ret = Acn_Dec_Int_TwosComplement_ConstSize_little_endian_64(pBitStrm, <p>);
+TwosComplement_ConstSize_little_endian_64_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "Acn_Enc_Int_TwosComplement_ConstSize_little_endian_64(pBitStrm, <if(soMF)><soMF>_encode(<p>)<else><p><endif>);"
+TwosComplement_ConstSize_little_endian_64_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
+ret = Acn_Dec_Int_TwosComplement_ConstSize_little_endian_64<sSsuffix>(pBitStrm, <p>);
 <MF(soMF)>
 <A(sErrCode)>
 >>

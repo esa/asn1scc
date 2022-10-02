@@ -412,7 +412,7 @@ def main():
     try:
         args = sys.argv[1:]
         optlist, args = getopt.gnu_getopt(
-            args, "al:t:c:s", ['all', 'lang=', 'testCaseSet=','cntTest','slim'])
+            args, "al:t:cs", ['all', 'lang=', 'testCaseSet=','cntTest','slim'])
     except:
         usage()
     if args != []:

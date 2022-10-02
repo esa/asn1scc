@@ -779,18 +779,18 @@ let rec private mapAcnParamTypeToAcnAcnInsertedType (asn1:Asn1Ast.AstRoot) (acn:
             match acnProperties.encodingProp with
             | Some e -> e
             | None   -> raise(SemanticError(acnErrLoc, "Mandatory ACN property 'encoding' is missing"))
-        let isUnsigned =
+        let isUnsigned, uperRange =
             match encProp with
-            | PosInt            -> true
-            | TwosComplement    -> false
-            | IntAscii          -> false
-            | BCD               -> true
+            | PosInt            -> true, PosInf(0I)
+            | TwosComplement    -> false, Full
+            | IntAscii          -> false, Full
+            | BCD               -> true, PosInf(0I)
         let acnEncodingClass,  acnMinSizeInBits, acnMaxSizeInBits= AcnEncodingClasses.GetIntEncodingClass asn1.args.integerSizeInBytes acnAligment acnErrLoc acnProperties 0I 0I isUnsigned
 
         let checkIntHasEnoughSpace asn1Min asn1Max =
             checkIntHasEnoughSpace acnEncodingClass acnProperties.mappingFunction.IsSome acnErrLoc asn1Min asn1Max
 
-        AcnInteger ({AcnInteger.acnProperties=acnProperties; acnAligment=acnAligment; acnEncodingClass = acnEncodingClass;  Location = acnErrLoc; acnMinSizeInBits=acnMinSizeInBits; acnMaxSizeInBits = acnMaxSizeInBits; cons=[]; withcons=[];isUnsigned=isUnsigned; uperRange= Full; checkIntHasEnoughSpace=checkIntHasEnoughSpace; inheritInfo=None}), us
+        AcnInteger ({AcnInteger.acnProperties=acnProperties; acnAligment=acnAligment; acnEncodingClass = acnEncodingClass;  Location = acnErrLoc; acnMinSizeInBits=acnMinSizeInBits; acnMaxSizeInBits = acnMaxSizeInBits; cons=[]; withcons=[];isUnsigned=isUnsigned; uperRange= uperRange; checkIntHasEnoughSpace=checkIntHasEnoughSpace; inheritInfo=None}), us
     | AcnPrmBoolean  acnErrLoc ->
         let acnProperties = 
             match tryGetProp props (fun x -> match x with TRUE_VALUE e -> Some e | _ -> None) with
