@@ -25,6 +25,13 @@ let getIntererTypeByClass (lm:LanguageMacros) intClass =
     | ASN1SCC_UInt32 (_)   -> lm.typeDef.Declare_UInt32
     | ASN1SCC_UInt64 (_)   -> lm.typeDef.Declare_UInt64
     | ASN1SCC_UInt   (_)   -> lm.typeDef.Declare_PosIntegerNoRTL
+
+let getRealTypeByClass (lm:LanguageMacros) realClass = 
+    match realClass with
+    | ASN1SCC_REAL   -> lm.typeDef.Declare_RealNoRTL
+    | ASN1SCC_FP32   -> lm.typeDef.Declare_Real32
+    | ASN1SCC_FP64   -> lm.typeDef.Declare_Real64
+
     
 let createInteger (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAst.Asn1Type)  (o:Asn1AcnAst.Integer)   (us:State) =
     let declare_IntegerNoRTL = getIntererTypeByClass lm (o.getClass r.args)
@@ -90,7 +97,8 @@ let createBoolean (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAst.Asn1T
     | PrimitiveReference2OtherType            -> None
 
 let createReal (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAst.Asn1Type)  (o:Asn1AcnAst.Real)   (us:State) =
-    let getRtlTypeName  = lm.typeDef.Declare_RealNoRTL 
+    //let getRtlTypeName  = lm.typeDef.Declare_RealNoRTL
+    let getRtlTypeName  = getRealTypeByClass lm (o.getClass r.args)
     let defineSubType = lm.typeDef.Define_SubType
     let rtlModuleName                   = if lm.typeDef.rtlModuleName().IsEmptyOrNull then None else (Some (lm.typeDef.rtlModuleName ()))
 

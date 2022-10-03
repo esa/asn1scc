@@ -467,14 +467,21 @@ let createRealrFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Common
     let Real_64_big_endian                  = lm.acn.Real_64_big_endian
     let Real_32_little_endian               = lm.acn.Real_32_little_endian
     let Real_64_little_endian               = lm.acn.Real_64_little_endian
+
+    let sSuffix =
+        match o.getClass r.args with
+        | ASN1SCC_REAL   -> ""
+        | ASN1SCC_FP32   -> "_fp32"
+        | ASN1SCC_FP64   -> ""
+
     
     let funcBody (errCode:ErroCode) (acnArgs: (AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) (p:CallerScope)        = 
         let pp = match codec with CommonTypes.Encode -> lm.lg.getValue p.arg | CommonTypes.Decode -> lm.lg.getPointer p.arg
         let funcBodyContent = 
             match o.acnEncodingClass with
-            | Real_IEEE754_32_big_endian            -> Some (Real_32_big_endian pp errCode.errCodeName codec, [errCode])
+            | Real_IEEE754_32_big_endian            -> Some (Real_32_big_endian pp sSuffix errCode.errCodeName codec, [errCode])
             | Real_IEEE754_64_big_endian            -> Some (Real_64_big_endian pp errCode.errCodeName codec, [errCode])
-            | Real_IEEE754_32_little_endian         -> Some (Real_32_little_endian pp errCode.errCodeName codec, [errCode])
+            | Real_IEEE754_32_little_endian         -> Some (Real_32_little_endian pp sSuffix errCode.errCodeName codec, [errCode])
             | Real_IEEE754_64_little_endian         -> Some (Real_64_little_endian pp errCode.errCodeName codec, [errCode])
             | Real_uPER                             -> uperFunc.funcBody_e errCode p |> Option.map(fun x -> x.funcBody, x.errCodes)
         match funcBodyContent with

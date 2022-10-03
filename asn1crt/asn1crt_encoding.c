@@ -1752,3 +1752,12 @@ void bitstream_push_data_if_required(BitStream* pStrm) {
 	}
 }
 #endif
+
+
+flag BitStream_DecodeReal_fp32(BitStream* pBitStrm, float* v)
+{
+	asn1Real rv;
+	flag ret = BitStream_DecodeReal(pBitStrm, &rv);
+	*v = (float)rv;
+	return ret;
+}

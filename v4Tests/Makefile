@@ -5,6 +5,7 @@ $(info ${PATH})
 all:	cTests adaTests
 
 cTests:
+	./scripts/runTests.py -l c -s
 	./scripts/runTests.py -l c
 
 adaTests:

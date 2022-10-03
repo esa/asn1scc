@@ -251,9 +251,9 @@ result.ErrorCode := <sErrCode>;
 adaasn1rtl.encoding.uper.UPER_Dec_boolean(bs, <p>, result.Success);
 >>
 
-Real_encode(p, sErrCode) ::= "adaasn1rtl.encoding.uper.UPER_Enc_Real(bs, <p>);"
-Real_decode(p, sErrCode) ::= <<
-adaasn1rtl.encoding.uper.UPER_Dec_Real(bs, <p>, result);
+Real_encode(p, sSuffix, sErrCode) ::= "adaasn1rtl.encoding.uper.UPER_Enc_Real(bs, <p>);"
+Real_decode(p, sSuffix, sErrCode) ::= <<
+adaasn1rtl.encoding.uper.UPER_Dec_Real<sSuffix>(bs, <p>, result);
 >>
 
 ObjectIdentifier_encode(p, sErrCode) ::= "adaasn1rtl.encoding.uper.ObjectIdentifier_uper_encode(bs, <p>);"

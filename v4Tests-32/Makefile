@@ -6,6 +6,7 @@ all:	cTests adaTests
 
 cTests:
 	./scripts/runTests.py -l c
+	./scripts/runTests.py -l c -s
 
 adaTests:
 	./scripts/runTests.py -l Ada

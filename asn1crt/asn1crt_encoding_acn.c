@@ -1061,6 +1061,12 @@ flag Acn_Dec_Real_IEEE754_32_big_endian(BitStream* pBitStrm, asn1Real* pRealValu
 	Acn_dec_real_big_endian(float)
 }
 
+flag Acn_Dec_Real_IEEE754_32_big_endian_fp32(BitStream* pBitStrm, float* pRealValue)
+{
+	Acn_dec_real_big_endian(float)
+}
+
+
 void Acn_Enc_Real_IEEE754_64_big_endian(BitStream* pBitStrm, asn1Real realValue)
 {
 	Acn_enc_real_big_endian(double)
@@ -1112,6 +1118,11 @@ void Acn_Enc_Real_IEEE754_32_little_endian(BitStream* pBitStrm, asn1Real realVal
 }
 
 flag Acn_Dec_Real_IEEE754_32_little_endian(BitStream* pBitStrm, asn1Real* pRealValue)
+{
+	Acn_dec_real_little_endian(float)
+}
+
+flag Acn_Dec_Real_IEEE754_32_little_endian_fp32(BitStream* pBitStrm, float* pRealValue)
 {
 	Acn_dec_real_little_endian(float)
 }

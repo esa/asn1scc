@@ -253,9 +253,9 @@ ret = BitStream_ReadBit(pBitStrm, <p>);
 *pErrCode = ret ? 0 : <sErrCode>;
 >>
 
-Real_encode(p, sErrCode) ::= "BitStream_EncodeReal(pBitStrm, <p>);"
-Real_decode(p, sErrCode) ::= <<
-ret = BitStream_DecodeReal(pBitStrm, <p>);
+Real_encode(p, sSuffix, sErrCode) ::= "BitStream_EncodeReal(pBitStrm, <p>);"
+Real_decode(p, sSuffix, sErrCode) ::= <<
+ret = BitStream_DecodeReal<sSuffix>(pBitStrm, <p>);
 *pErrCode = ret ? 0 : <sErrCode>;
 >>
 
