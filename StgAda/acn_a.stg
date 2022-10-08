@@ -1237,9 +1237,9 @@ PresenceDependency(v, sSeqPath, sAcc, sChildName) ::= <<
 
 
 
-SizeDependency(v, sCount, nMin, nMax, bCheckRange) ::= <<
+SizeDependency(v, sCount, nMin, nMax, bCheckRange, sTypedefName) ::= <<
 <v>_is_initialized := True;
-<v> := <rtlModuleName()>.Asn1UInt(<sCount>);
+<v> := <sTypedefName>(<sCount>);
 <if(bCheckRange)>
 result.success := <v> \>= <nMin> and <v> \<= <nMax>;
 

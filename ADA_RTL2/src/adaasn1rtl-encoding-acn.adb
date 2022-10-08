@@ -1694,4 +1694,744 @@ is
 
    end Acn_Dec_String_CharIndex_Internal_Field_Determinant;
 
+   procedure Acn_Dec_Int_PositiveInteger_ConstSizeUInt8
+     (bs : in out Bitstream; IntVal : out Unsigned_8; MinVal : Unsigned_8;
+      MaxVal : Unsigned_8; nBits : Integer; Result : out ASN1_RESULT)
+   is
+      v : Asn1UInt;
+   begin
+      Acn_Dec_Int_PositiveInteger_ConstSize (bs, v, Asn1UInt (MinVal),
+             Asn1UInt (MaxVal), nBits, Result);
+
+      IntVal := Unsigned_8 (v);
+   end Acn_Dec_Int_PositiveInteger_ConstSizeUInt8;
+
+   procedure Acn_Dec_Int_PositiveInteger_ConstSizeUInt16
+     (bs : in out Bitstream; IntVal : out Unsigned_16; MinVal : Unsigned_16;
+      MaxVal : Unsigned_16; nBits : Integer; Result : out ASN1_RESULT)
+   is
+      v : Asn1UInt;
+   begin
+      Acn_Dec_Int_PositiveInteger_ConstSize (bs, v, Asn1UInt (MinVal),
+             Asn1UInt (MaxVal), nBits, Result);
+
+      IntVal := Unsigned_16 (v);
+   end Acn_Dec_Int_PositiveInteger_ConstSizeUInt16;
+
+   procedure Acn_Dec_Int_PositiveInteger_ConstSizeUInt32
+     (bs : in out Bitstream; IntVal : out Unsigned_32; MinVal : Unsigned_32;
+      MaxVal : Unsigned_32; nBits : Integer; Result : out ASN1_RESULT)
+   is
+      v : Asn1UInt;
+   begin
+      Acn_Dec_Int_PositiveInteger_ConstSize (bs, v, Asn1UInt (MinVal),
+             Asn1UInt (MaxVal), nBits, Result);
+
+      IntVal := Unsigned_32 (v);
+   end Acn_Dec_Int_PositiveInteger_ConstSizeUInt32;
+
+   procedure Acn_Dec_Int_TwosComplement_ConstSizeInt8
+     (bs : in out Bitstream; IntVal : out Integer_8; MinVal : Integer_8;
+      MaxVal : Integer_8; nBits : Integer; Result : out ASN1_RESULT)
+   is
+      v : Asn1Int;
+   begin
+      Acn_Dec_Int_TwosComplement_ConstSize (bs, v, Asn1Int (MinVal),
+             Asn1Int (MaxVal), nBits, Result);
+
+      IntVal := Integer_8 (v);
+   end Acn_Dec_Int_TwosComplement_ConstSizeInt8;
+
+   procedure Acn_Dec_Int_TwosComplement_ConstSizeInt16
+     (bs : in out Bitstream; IntVal : out Integer_16; MinVal : Integer_16;
+      MaxVal : Integer_16; nBits : Integer; Result : out ASN1_RESULT)
+   is
+      v : Asn1Int;
+   begin
+      Acn_Dec_Int_TwosComplement_ConstSize (bs, v, Asn1Int (MinVal),
+             Asn1Int (MaxVal), nBits, Result);
+
+      IntVal := Integer_16 (v);
+   end Acn_Dec_Int_TwosComplement_ConstSizeInt16;
+
+   procedure Acn_Dec_Int_TwosComplement_ConstSizeInt32
+     (bs : in out Bitstream; IntVal : out Integer_32; MinVal : Integer_32;
+      MaxVal : Integer_32; nBits : Integer; Result : out ASN1_RESULT)
+   is
+      v : Asn1Int;
+   begin
+      Acn_Dec_Int_TwosComplement_ConstSize (bs, v, Asn1Int (MinVal),
+             Asn1Int (MaxVal), nBits, Result);
+
+      IntVal := Integer_32 (v);
+   end Acn_Dec_Int_TwosComplement_ConstSizeInt32;
+
+   procedure Acn_Dec_Int_PositiveInteger_ConstSize_8UInt8
+     (bs : in out Bitstream; IntVal : out Unsigned_8; MinVal : Unsigned_8;
+      MaxVal : Unsigned_8; Result : out ASN1_RESULT)
+   is
+      v : Asn1UInt;
+   begin
+      Acn_Dec_Int_PositiveInteger_ConstSize_8 (bs, v,
+         Asn1UInt (MinVal), Asn1UInt (MaxVal), Result);
+
+      IntVal := Unsigned_8 (v);
+   end Acn_Dec_Int_PositiveInteger_ConstSize_8UInt8;
+
+   procedure Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_16UInt16
+     (bs : in out Bitstream; IntVal : out Unsigned_16; MinVal : Unsigned_16;
+      MaxVal : Unsigned_16; Result : out ASN1_RESULT)
+   is
+      v : Asn1UInt;
+   begin
+      Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_16 (bs, v,
+         Asn1UInt (MinVal), Asn1UInt (MaxVal), Result);
+
+      IntVal := Unsigned_16 (v);
+   end Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_16UInt16;
+
+   procedure Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_16UInt8
+     (bs : in out Bitstream; IntVal : out Unsigned_8; MinVal : Unsigned_8;
+      MaxVal : Unsigned_8; Result : out ASN1_RESULT)
+   is
+      v : Asn1UInt;
+   begin
+      Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_16 (bs, v,
+         Asn1UInt (MinVal), Asn1UInt (MaxVal), Result);
+
+      IntVal := Unsigned_8 (v);
+   end Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_16UInt8;
+
+   procedure Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_32UInt32
+     (bs : in out Bitstream; IntVal : out Unsigned_32; MinVal : Unsigned_32;
+      MaxVal : Unsigned_32; Result : out ASN1_RESULT)
+   is
+      v : Asn1UInt;
+   begin
+      Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_32 (bs, v,
+         Asn1UInt (MinVal), Asn1UInt (MaxVal), Result);
+
+      IntVal := Unsigned_32 (v);
+   end Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_32UInt32;
+
+   procedure Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_32UInt16
+     (bs : in out Bitstream; IntVal : out Unsigned_16; MinVal : Unsigned_16;
+      MaxVal : Unsigned_16; Result : out ASN1_RESULT)
+   is
+      v : Asn1UInt;
+   begin
+      Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_32 (bs, v,
+         Asn1UInt (MinVal), Asn1UInt (MaxVal), Result);
+
+      IntVal := Unsigned_16 (v);
+   end Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_32UInt16;
+
+   procedure Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_32UInt8
+     (bs : in out Bitstream; IntVal : out Unsigned_8; MinVal : Unsigned_8;
+      MaxVal : Unsigned_8; Result : out ASN1_RESULT)
+   is
+      v : Asn1UInt;
+   begin
+      Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_32 (bs, v,
+         Asn1UInt (MinVal), Asn1UInt (MaxVal), Result);
+
+      IntVal := Unsigned_8 (v);
+   end Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_32UInt8;
+
+   procedure Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_64UInt32
+     (bs : in out Bitstream; IntVal : out Unsigned_32; MinVal : Unsigned_32;
+      MaxVal : Unsigned_32; Result : out ASN1_RESULT)
+   is
+      v : Asn1UInt;
+   begin
+      Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_64 (bs, v,
+         Asn1UInt (MinVal), Asn1UInt (MaxVal), Result);
+
+      IntVal := Unsigned_32 (v);
+   end Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_64UInt32;
+
+   procedure Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_64UInt16
+     (bs : in out Bitstream; IntVal : out Unsigned_16; MinVal : Unsigned_16;
+      MaxVal : Unsigned_16; Result : out ASN1_RESULT)
+   is
+      v : Asn1UInt;
+   begin
+      Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_64 (bs, v,
+         Asn1UInt (MinVal), Asn1UInt (MaxVal), Result);
+
+      IntVal := Unsigned_16 (v);
+   end Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_64UInt16;
+
+   procedure Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_64UInt8
+     (bs : in out Bitstream; IntVal : out Unsigned_8; MinVal : Unsigned_8;
+      MaxVal : Unsigned_8; Result : out ASN1_RESULT)
+   is
+      v : Asn1UInt;
+   begin
+      Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_64 (bs, v,
+         Asn1UInt (MinVal), Asn1UInt (MaxVal), Result);
+
+      IntVal := Unsigned_8 (v);
+   end Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_64UInt8;
+
+   procedure Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_16UInt16
+     (bs : in out Bitstream; IntVal : out Unsigned_16; MinVal : Unsigned_16;
+      MaxVal : Unsigned_16; Result : out ASN1_RESULT)
+   is
+      v : Asn1UInt;
+   begin
+      Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_16 (bs, v,
+         Asn1UInt (MinVal), Asn1UInt (MaxVal), Result);
+
+      IntVal := Unsigned_16 (v);
+   end Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_16UInt16;
+
+   procedure Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_16UInt8
+     (bs : in out Bitstream; IntVal : out Unsigned_8; MinVal : Unsigned_8;
+      MaxVal : Unsigned_8; Result : out ASN1_RESULT)
+   is
+      v : Asn1UInt;
+   begin
+      Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_16 (bs, v,
+         Asn1UInt (MinVal), Asn1UInt (MaxVal), Result);
+
+      IntVal := Unsigned_8 (v);
+   end Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_16UInt8;
+
+   procedure Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_32UInt32
+     (bs : in out Bitstream; IntVal : out Unsigned_32; MinVal : Unsigned_32;
+      MaxVal : Unsigned_32; Result : out ASN1_RESULT)
+   is
+      v : Asn1UInt;
+   begin
+      Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_32 (bs, v,
+         Asn1UInt (MinVal), Asn1UInt (MaxVal), Result);
+
+      IntVal := Unsigned_32 (v);
+   end Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_32UInt32;
+
+   procedure Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_32UInt16
+     (bs : in out Bitstream; IntVal : out Unsigned_16; MinVal : Unsigned_16;
+      MaxVal : Unsigned_16; Result : out ASN1_RESULT)
+   is
+      v : Asn1UInt;
+   begin
+      Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_32 (bs, v,
+         Asn1UInt (MinVal), Asn1UInt (MaxVal), Result);
+
+      IntVal := Unsigned_16 (v);
+   end Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_32UInt16;
+
+   procedure Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_32UInt8
+     (bs : in out Bitstream; IntVal : out Unsigned_8; MinVal : Unsigned_8;
+      MaxVal : Unsigned_8; Result : out ASN1_RESULT)
+   is
+      v : Asn1UInt;
+   begin
+      Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_32 (bs, v,
+         Asn1UInt (MinVal), Asn1UInt (MaxVal), Result);
+
+      IntVal := Unsigned_8 (v);
+   end Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_32UInt8;
+
+   procedure Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_64UInt32
+     (bs : in out Bitstream; IntVal : out Unsigned_32; MinVal : Unsigned_32;
+      MaxVal : Unsigned_32; Result : out ASN1_RESULT)
+   is
+      v : Asn1UInt;
+   begin
+      Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_64 (bs, v,
+         Asn1UInt (MinVal), Asn1UInt (MaxVal), Result);
+
+      IntVal := Unsigned_32 (v);
+   end Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_64UInt32;
+
+   procedure Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_64UInt16
+     (bs : in out Bitstream; IntVal : out Unsigned_16; MinVal : Unsigned_16;
+      MaxVal : Unsigned_16; Result : out ASN1_RESULT)
+   is
+      v : Asn1UInt;
+   begin
+      Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_64 (bs, v,
+         Asn1UInt (MinVal), Asn1UInt (MaxVal), Result);
+
+      IntVal := Unsigned_16 (v);
+   end Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_64UInt16;
+
+   procedure Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_64UInt8
+     (bs : in out Bitstream; IntVal : out Unsigned_8; MinVal : Unsigned_8;
+      MaxVal : Unsigned_8; Result : out ASN1_RESULT)
+   is
+      v : Asn1UInt;
+   begin
+      Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_64 (bs, v,
+         Asn1UInt (MinVal), Asn1UInt (MaxVal), Result);
+
+      IntVal := Unsigned_8 (v);
+   end Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_64UInt8;
+
+   procedure Acn_Dec_Int_TwosComplement_ConstSize_8Int8
+     (bs : in out Bitstream; IntVal : out Integer_8; MinVal : Integer_8;
+      MaxVal : Integer_8; Result : out ASN1_RESULT)
+   is
+      v : Asn1Int;
+   begin
+      Acn_Dec_Int_TwosComplement_ConstSize_8 (bs, v,
+         Asn1Int (MinVal), Asn1Int (MaxVal), Result);
+
+      IntVal := Integer_8 (v);
+   end Acn_Dec_Int_TwosComplement_ConstSize_8Int8;
+
+   procedure Acn_Dec_Int_TwosComplement_ConstSize_big_endian_16Int16
+     (bs : in out Bitstream; IntVal : out Integer_16; MinVal : Integer_16;
+      MaxVal : Integer_16; Result : out ASN1_RESULT)
+   is
+      v : Asn1Int;
+   begin
+      Acn_Dec_Int_TwosComplement_ConstSize_big_endian_16 (bs, v,
+         Asn1Int (MinVal), Asn1Int (MaxVal), Result);
+
+      IntVal := Integer_16 (v);
+   end Acn_Dec_Int_TwosComplement_ConstSize_big_endian_16Int16;
+
+   procedure Acn_Dec_Int_TwosComplement_ConstSize_big_endian_16Int8
+     (bs : in out Bitstream; IntVal : out Integer_8; MinVal : Integer_8;
+      MaxVal : Integer_8; Result : out ASN1_RESULT)
+   is
+      v : Asn1Int;
+   begin
+      Acn_Dec_Int_TwosComplement_ConstSize_big_endian_16 (bs, v,
+         Asn1Int (MinVal), Asn1Int (MaxVal), Result);
+
+      IntVal := Integer_8 (v);
+   end Acn_Dec_Int_TwosComplement_ConstSize_big_endian_16Int8;
+
+   procedure Acn_Dec_Int_TwosComplement_ConstSize_big_endian_32Int32
+     (bs : in out Bitstream; IntVal : out Integer_32; MinVal : Integer_32;
+      MaxVal : Integer_32; Result : out ASN1_RESULT)
+   is
+      v : Asn1Int;
+   begin
+      Acn_Dec_Int_TwosComplement_ConstSize_big_endian_32 (bs, v,
+         Asn1Int (MinVal), Asn1Int (MaxVal), Result);
+
+      IntVal := Integer_32 (v);
+   end Acn_Dec_Int_TwosComplement_ConstSize_big_endian_32Int32;
+
+   procedure Acn_Dec_Int_TwosComplement_ConstSize_big_endian_32Int16
+     (bs : in out Bitstream; IntVal : out Integer_16; MinVal : Integer_16;
+      MaxVal : Integer_16; Result : out ASN1_RESULT)
+   is
+      v : Asn1Int;
+   begin
+      Acn_Dec_Int_TwosComplement_ConstSize_big_endian_32 (bs, v,
+         Asn1Int (MinVal), Asn1Int (MaxVal), Result);
+
+      IntVal := Integer_16 (v);
+   end Acn_Dec_Int_TwosComplement_ConstSize_big_endian_32Int16;
+
+   procedure Acn_Dec_Int_TwosComplement_ConstSize_big_endian_32Int8
+     (bs : in out Bitstream; IntVal : out Integer_8; MinVal : Integer_8;
+      MaxVal : Integer_8; Result : out ASN1_RESULT)
+   is
+      v : Asn1Int;
+   begin
+      Acn_Dec_Int_TwosComplement_ConstSize_big_endian_32 (bs, v,
+         Asn1Int (MinVal), Asn1Int (MaxVal), Result);
+
+      IntVal := Integer_8 (v);
+   end Acn_Dec_Int_TwosComplement_ConstSize_big_endian_32Int8;
+
+   procedure Acn_Dec_Int_TwosComplement_ConstSize_big_endian_64Int32
+     (bs : in out Bitstream; IntVal : out Integer_32; MinVal : Integer_32;
+      MaxVal : Integer_32; Result : out ASN1_RESULT)
+   is
+      v : Asn1Int;
+   begin
+      Acn_Dec_Int_TwosComplement_ConstSize_big_endian_64 (bs, v,
+         Asn1Int (MinVal), Asn1Int (MaxVal), Result);
+
+      IntVal := Integer_32 (v);
+   end Acn_Dec_Int_TwosComplement_ConstSize_big_endian_64Int32;
+
+   procedure Acn_Dec_Int_TwosComplement_ConstSize_big_endian_64Int16
+     (bs : in out Bitstream; IntVal : out Integer_16; MinVal : Integer_16;
+      MaxVal : Integer_16; Result : out ASN1_RESULT)
+   is
+      v : Asn1Int;
+   begin
+      Acn_Dec_Int_TwosComplement_ConstSize_big_endian_64 (bs, v,
+         Asn1Int (MinVal), Asn1Int (MaxVal), Result);
+
+      IntVal := Integer_16 (v);
+   end Acn_Dec_Int_TwosComplement_ConstSize_big_endian_64Int16;
+
+   procedure Acn_Dec_Int_TwosComplement_ConstSize_big_endian_64Int8
+     (bs : in out Bitstream; IntVal : out Integer_8; MinVal : Integer_8;
+      MaxVal : Integer_8; Result : out ASN1_RESULT)
+   is
+      v : Asn1Int;
+   begin
+      Acn_Dec_Int_TwosComplement_ConstSize_big_endian_64 (bs, v,
+         Asn1Int (MinVal), Asn1Int (MaxVal), Result);
+
+      IntVal := Integer_8 (v);
+   end Acn_Dec_Int_TwosComplement_ConstSize_big_endian_64Int8;
+
+   procedure Acn_Dec_Int_TwosComplement_ConstSize_little_endian_16Int16
+     (bs : in out Bitstream; IntVal : out Integer_16; MinVal : Integer_16;
+      MaxVal : Integer_16; Result : out ASN1_RESULT)
+   is
+      v : Asn1Int;
+   begin
+      Acn_Dec_Int_TwosComplement_ConstSize_little_endian_16 (bs, v,
+         Asn1Int (MinVal), Asn1Int (MaxVal), Result);
+
+      IntVal := Integer_16 (v);
+   end Acn_Dec_Int_TwosComplement_ConstSize_little_endian_16Int16;
+
+   procedure Acn_Dec_Int_TwosComplement_ConstSize_little_endian_16Int8
+     (bs : in out Bitstream; IntVal : out Integer_8; MinVal : Integer_8;
+      MaxVal : Integer_8; Result : out ASN1_RESULT)
+   is
+      v : Asn1Int;
+   begin
+      Acn_Dec_Int_TwosComplement_ConstSize_little_endian_16 (bs, v,
+         Asn1Int (MinVal), Asn1Int (MaxVal), Result);
+
+      IntVal := Integer_8 (v);
+   end Acn_Dec_Int_TwosComplement_ConstSize_little_endian_16Int8;
+
+   procedure Acn_Dec_Int_TwosComplement_ConstSize_little_endian_32Int32
+     (bs : in out Bitstream; IntVal : out Integer_32; MinVal : Integer_32;
+      MaxVal : Integer_32; Result : out ASN1_RESULT)
+   is
+      v : Asn1Int;
+   begin
+      Acn_Dec_Int_TwosComplement_ConstSize_little_endian_32 (bs, v,
+         Asn1Int (MinVal), Asn1Int (MaxVal), Result);
+
+      IntVal := Integer_32 (v);
+   end Acn_Dec_Int_TwosComplement_ConstSize_little_endian_32Int32;
+
+   procedure Acn_Dec_Int_TwosComplement_ConstSize_little_endian_32Int16
+     (bs : in out Bitstream; IntVal : out Integer_16; MinVal : Integer_16;
+      MaxVal : Integer_16; Result : out ASN1_RESULT)
+   is
+      v : Asn1Int;
+   begin
+      Acn_Dec_Int_TwosComplement_ConstSize_little_endian_32 (bs, v,
+         Asn1Int (MinVal), Asn1Int (MaxVal), Result);
+
+      IntVal := Integer_16 (v);
+   end Acn_Dec_Int_TwosComplement_ConstSize_little_endian_32Int16;
+
+   procedure Acn_Dec_Int_TwosComplement_ConstSize_little_endian_32Int8
+     (bs : in out Bitstream; IntVal : out Integer_8; MinVal : Integer_8;
+      MaxVal : Integer_8; Result : out ASN1_RESULT)
+   is
+      v : Asn1Int;
+   begin
+      Acn_Dec_Int_TwosComplement_ConstSize_little_endian_32 (bs, v,
+         Asn1Int (MinVal), Asn1Int (MaxVal), Result);
+
+      IntVal := Integer_8 (v);
+   end Acn_Dec_Int_TwosComplement_ConstSize_little_endian_32Int8;
+
+   procedure Acn_Dec_Int_TwosComplement_ConstSize_little_endian_64Int32
+     (bs : in out Bitstream; IntVal : out Integer_32; MinVal : Integer_32;
+      MaxVal : Integer_32; Result : out ASN1_RESULT)
+   is
+      v : Asn1Int;
+   begin
+      Acn_Dec_Int_TwosComplement_ConstSize_little_endian_64 (bs, v,
+         Asn1Int (MinVal), Asn1Int (MaxVal), Result);
+
+      IntVal := Integer_32 (v);
+   end Acn_Dec_Int_TwosComplement_ConstSize_little_endian_64Int32;
+
+   procedure Acn_Dec_Int_TwosComplement_ConstSize_little_endian_64Int16
+     (bs : in out Bitstream; IntVal : out Integer_16; MinVal : Integer_16;
+      MaxVal : Integer_16; Result : out ASN1_RESULT)
+   is
+      v : Asn1Int;
+   begin
+      Acn_Dec_Int_TwosComplement_ConstSize_little_endian_64 (bs, v,
+         Asn1Int (MinVal), Asn1Int (MaxVal), Result);
+
+      IntVal := Integer_16 (v);
+   end Acn_Dec_Int_TwosComplement_ConstSize_little_endian_64Int16;
+
+   procedure Acn_Dec_Int_TwosComplement_ConstSize_little_endian_64Int8
+     (bs : in out Bitstream; IntVal : out Integer_8; MinVal : Integer_8;
+      MaxVal : Integer_8; Result : out ASN1_RESULT)
+   is
+      v : Asn1Int;
+   begin
+      Acn_Dec_Int_TwosComplement_ConstSize_little_endian_64 (bs, v,
+         Asn1Int (MinVal), Asn1Int (MaxVal), Result);
+
+      IntVal := Integer_8 (v);
+   end Acn_Dec_Int_TwosComplement_ConstSize_little_endian_64Int8;
+
+   procedure Acn_Dec_Int_BCD_ConstSizeUInt8
+     (bs : in out Bitstream; IntVal : out Unsigned_8; minVal : Unsigned_8;
+      maxVal : Unsigned_8; nNibbles : Integer; Result : out ASN1_RESULT)
+   is
+      v : Asn1UInt;
+   begin
+      Acn_Dec_Int_BCD_ConstSize (bs, v, Asn1UInt (minVal),
+             Asn1UInt (maxVal), nNibbles, Result);
+
+      IntVal := Unsigned_8 (v);
+   end Acn_Dec_Int_BCD_ConstSizeUInt8;
+
+   procedure Acn_Dec_Int_BCD_ConstSizeUInt16
+     (bs : in out Bitstream; IntVal : out Unsigned_16; minVal : Unsigned_16;
+      maxVal : Unsigned_16; nNibbles : Integer; Result : out ASN1_RESULT)
+   is
+      v : Asn1UInt;
+   begin
+      Acn_Dec_Int_BCD_ConstSize (bs, v, Asn1UInt (minVal),
+             Asn1UInt (maxVal), nNibbles, Result);
+
+      IntVal := Unsigned_16 (v);
+   end Acn_Dec_Int_BCD_ConstSizeUInt16;
+
+   procedure Acn_Dec_Int_BCD_ConstSizeUInt32
+     (bs : in out Bitstream; IntVal : out Unsigned_32; minVal : Unsigned_32;
+      maxVal : Unsigned_32; nNibbles : Integer; Result : out ASN1_RESULT)
+   is
+      v : Asn1UInt;
+   begin
+      Acn_Dec_Int_BCD_ConstSize (bs, v, Asn1UInt (minVal),
+             Asn1UInt (maxVal), nNibbles, Result);
+
+      IntVal := Unsigned_32 (v);
+   end Acn_Dec_Int_BCD_ConstSizeUInt32;
+
+   procedure Acn_Dec_Int_BCD_VarSize_NullTerminatedUInt8
+     (bs : in out Bitstream; IntVal : out Unsigned_8; minVal : Unsigned_8;
+      maxVal : Unsigned_8; Result : out ASN1_RESULT)
+   is
+      v : Asn1UInt;
+   begin
+      Acn_Dec_Int_BCD_VarSize_NullTerminated (bs, v, Asn1UInt (minVal),
+             Asn1UInt (maxVal), Result);
+
+      IntVal := Unsigned_8 (v);
+   end Acn_Dec_Int_BCD_VarSize_NullTerminatedUInt8;
+
+   procedure Acn_Dec_Int_BCD_VarSize_NullTerminatedUInt16
+     (bs : in out Bitstream; IntVal : out Unsigned_16; minVal : Unsigned_16;
+      maxVal : Unsigned_16; Result : out ASN1_RESULT)
+   is
+      v : Asn1UInt;
+   begin
+      Acn_Dec_Int_BCD_VarSize_NullTerminated (bs, v, Asn1UInt (minVal),
+             Asn1UInt (maxVal), Result);
+
+      IntVal := Unsigned_16 (v);
+   end Acn_Dec_Int_BCD_VarSize_NullTerminatedUInt16;
+
+   procedure Acn_Dec_Int_BCD_VarSize_NullTerminatedUInt32
+     (bs : in out Bitstream; IntVal : out Unsigned_32; minVal : Unsigned_32;
+      maxVal : Unsigned_32; Result : out ASN1_RESULT)
+   is
+      v : Asn1UInt;
+   begin
+      Acn_Dec_Int_BCD_VarSize_NullTerminated (bs, v, Asn1UInt (minVal),
+             Asn1UInt (maxVal), Result);
+
+      IntVal := Unsigned_32 (v);
+   end Acn_Dec_Int_BCD_VarSize_NullTerminatedUInt32;
+
+   procedure Acn_Dec_Int_ASCII_ConstSizeInt8
+     (bs : in out Bitstream; IntVal : out Integer_8; minVal : Integer_8;
+      maxVal : Integer_8; nChars : Integer; Result : out ASN1_RESULT)
+   is
+      v : Asn1Int;
+   begin
+      Acn_Dec_Int_ASCII_ConstSize (bs, v, Asn1Int (minVal),
+             Asn1Int (maxVal), nChars, Result);
+
+      IntVal := Integer_8 (v);
+   end Acn_Dec_Int_ASCII_ConstSizeInt8;
+
+   procedure Acn_Dec_Int_ASCII_ConstSizeInt16
+     (bs : in out Bitstream; IntVal : out Integer_16; minVal : Integer_16;
+      maxVal : Integer_16; nChars : Integer; Result : out ASN1_RESULT)
+   is
+      v : Asn1Int;
+   begin
+      Acn_Dec_Int_ASCII_ConstSize (bs, v, Asn1Int (minVal),
+             Asn1Int (maxVal), nChars, Result);
+
+      IntVal := Integer_16 (v);
+   end Acn_Dec_Int_ASCII_ConstSizeInt16;
+
+   procedure Acn_Dec_Int_ASCII_ConstSizeInt32
+     (bs : in out Bitstream; IntVal : out Integer_32; minVal : Integer_32;
+      maxVal : Integer_32; nChars : Integer; Result : out ASN1_RESULT)
+   is
+      v : Asn1Int;
+   begin
+      Acn_Dec_Int_ASCII_ConstSize (bs, v, Asn1Int (minVal),
+             Asn1Int (maxVal), nChars, Result);
+
+      IntVal := Integer_32 (v);
+   end Acn_Dec_Int_ASCII_ConstSizeInt32;
+
+   procedure Acn_Dec_UInt_ASCII_ConstSizeUInt8
+     (bs : in out Bitstream; IntVal : out Unsigned_8; minVal : Unsigned_8;
+      maxVal : Unsigned_8; nChars : Integer; Result : out ASN1_RESULT)
+   is
+      v : Asn1UInt;
+   begin
+      Acn_Dec_UInt_ASCII_ConstSize (bs, v, Asn1UInt (minVal),
+             Asn1UInt (maxVal), nChars, Result);
+
+      IntVal := Unsigned_8 (v);
+   end Acn_Dec_UInt_ASCII_ConstSizeUInt8;
+
+   procedure Acn_Dec_UInt_ASCII_ConstSizeUInt16
+     (bs : in out Bitstream; IntVal : out Unsigned_16; minVal : Unsigned_16;
+      maxVal : Unsigned_16; nChars : Integer; Result : out ASN1_RESULT)
+   is
+      v : Asn1UInt;
+   begin
+      Acn_Dec_UInt_ASCII_ConstSize (bs, v, Asn1UInt (minVal),
+             Asn1UInt (maxVal), nChars, Result);
+
+      IntVal := Unsigned_16 (v);
+   end Acn_Dec_UInt_ASCII_ConstSizeUInt16;
+
+   procedure Acn_Dec_UInt_ASCII_ConstSizeUInt32
+     (bs : in out Bitstream; IntVal : out Unsigned_32; minVal : Unsigned_32;
+      maxVal : Unsigned_32; nChars : Integer; Result : out ASN1_RESULT)
+   is
+      v : Asn1UInt;
+   begin
+      Acn_Dec_UInt_ASCII_ConstSize (bs, v, Asn1UInt (minVal),
+             Asn1UInt (maxVal), nChars, Result);
+
+      IntVal := Unsigned_32 (v);
+   end Acn_Dec_UInt_ASCII_ConstSizeUInt32;
+
+   procedure Acn_Dec_Int_ASCII_VarSize_NullTerminatedInt8
+     (bs : in out Bitstream; IntVal : out Integer_8;
+      nullChars : OctetBuffer; Result :    out ASN1_RESULT)
+   is
+      v : Asn1Int;
+   begin
+      Acn_Dec_Int_ASCII_VarSize_NullTerminated (bs, v,
+             nullChars, Result);
+      Result.Success := Result.Success and then
+        Asn1Int (Integer_8'First) <= v and then v <= Asn1Int (Integer_8'Last);
+
+      if Result.Success then
+         IntVal := Integer_8 (v);
+      else
+         IntVal := 0;
+      end if;
+
+   end Acn_Dec_Int_ASCII_VarSize_NullTerminatedInt8;
+
+   procedure Acn_Dec_Int_ASCII_VarSize_NullTerminatedInt16
+     (bs : in out Bitstream; IntVal : out Integer_16;
+      nullChars : OctetBuffer; Result :    out ASN1_RESULT)
+   is
+      v : Asn1Int;
+   begin
+      Acn_Dec_Int_ASCII_VarSize_NullTerminated (bs, v,
+             nullChars, Result);
+      Result.Success := Result.Success and then
+        Asn1Int (Integer_16'First) <= v and then
+        v <= Asn1Int (Integer_16'Last);
+
+      if Result.Success then
+         IntVal := Integer_16 (v);
+      else
+         IntVal := 0;
+      end if;
+
+   end Acn_Dec_Int_ASCII_VarSize_NullTerminatedInt16;
+
+   procedure Acn_Dec_Int_ASCII_VarSize_NullTerminatedInt32
+     (bs : in out Bitstream; IntVal : out Integer_32;
+      nullChars : OctetBuffer; Result :    out ASN1_RESULT)
+   is
+      v : Asn1Int;
+   begin
+      Acn_Dec_Int_ASCII_VarSize_NullTerminated (bs, v,
+             nullChars, Result);
+      Result.Success := Result.Success and then
+        Asn1Int (Integer_32'First) <= v and then
+        v <= Asn1Int (Integer_32'Last);
+
+      if Result.Success then
+         IntVal := Integer_32 (v);
+      else
+         IntVal := 0;
+      end if;
+
+   end Acn_Dec_Int_ASCII_VarSize_NullTerminatedInt32;
+
+   procedure Acn_Dec_UInt_ASCII_VarSize_NullTerminatedUInt8
+     (bs : in out Bitstream; IntVal : out Unsigned_8;
+      nullChars : OctetBuffer; Result :    out ASN1_RESULT)
+   is
+      v : Asn1UInt;
+   begin
+      Acn_Dec_UInt_ASCII_VarSize_NullTerminated (bs, v,
+             nullChars, Result);
+      Result.Success := Result.Success and then
+        v <= Asn1UInt (Unsigned_8'Last);
+
+      if Result.Success then
+         IntVal := Unsigned_8 (v);
+      else
+         IntVal := 0;
+      end if;
+
+   end Acn_Dec_UInt_ASCII_VarSize_NullTerminatedUInt8;
+
+   procedure Acn_Dec_UInt_ASCII_VarSize_NullTerminatedUInt16
+     (bs : in out Bitstream; IntVal : out Unsigned_16;
+      nullChars : OctetBuffer; Result :    out ASN1_RESULT)
+   is
+      v : Asn1UInt;
+   begin
+      Acn_Dec_UInt_ASCII_VarSize_NullTerminated (bs, v,
+             nullChars, Result);
+      Result.Success := Result.Success and then
+         v <= Asn1UInt (Unsigned_16'Last);
+
+      if Result.Success then
+         IntVal := Unsigned_16 (v);
+      else
+         IntVal := 0;
+      end if;
+
+   end Acn_Dec_UInt_ASCII_VarSize_NullTerminatedUInt16;
+
+   procedure Acn_Dec_UInt_ASCII_VarSize_NullTerminatedUInt32
+     (bs : in out Bitstream; IntVal : out Unsigned_32;
+      nullChars : OctetBuffer; Result :    out ASN1_RESULT)
+   is
+      v : Asn1UInt;
+   begin
+      Acn_Dec_UInt_ASCII_VarSize_NullTerminated (bs, v,
+             nullChars, Result);
+      Result.Success := Result.Success and then
+        v <= Asn1UInt (Unsigned_32'Last);
+
+      if Result.Success then
+         IntVal := Unsigned_32 (v);
+      else
+         IntVal := 0;
+      end if;
+
+   end Acn_Dec_UInt_ASCII_VarSize_NullTerminatedUInt32;
+
 end adaasn1rtl.encoding.acn;

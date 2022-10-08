@@ -52,7 +52,7 @@ type ILangGeneric () =
     abstract member getNamedItemBackendName  :TypeDefintionOrReference option -> Asn1AcnAst.NamedItem -> string
     abstract member decodeEmptySeq  : string -> string option
     abstract member decode_nullType : string -> string option
-
+    abstract member castExpression  : string -> string -> string
 
     abstract member getAsn1ChildBackendName0  : Asn1AcnAst.Asn1Child -> string
     abstract member getAsn1ChChildBackendName0: Asn1AcnAst.ChChildInfo -> string
@@ -233,6 +233,7 @@ type LangGeneric_c() =
         override this.andOp               = "&&" 
         override this.orOp                = "||" 
 
+        override this.castExpression (sExp:string) (sCastType:string) = sprintf "(%s)(%s)" sCastType sExp
             
 
 
@@ -452,6 +453,8 @@ type LangGeneric_a() =
         override this.neqOp               = "<>"
         override this.andOp               = "and"
         override this.orOp                = "or"
+
+        override this.castExpression (sExp:string) (sCastType:string) = sprintf "%s(%s)" sCastType sExp
 
 
         override _.intValueToSting (i:BigInteger) _ = i.ToString()

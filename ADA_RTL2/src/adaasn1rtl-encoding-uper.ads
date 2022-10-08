@@ -99,6 +99,84 @@ is
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - nBits,
       Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + nBits and
       ((Result and (((IntVal >= MinVal) and (IntVal <= MaxVal)))) or
+         (not Result and (IntVal = MinVal)));
+
+   procedure UPER_Dec_ConstraintWholeNumberInt8
+     (bs     : in out Bitstream; IntVal : out Integer_8; MinVal : Integer_8;
+      MaxVal :        Integer_8; nBits : Integer; Result : out Boolean) with
+      Depends => ((bs, IntVal, Result) => (bs, MinVal, MaxVal, nBits)),
+      Pre     => MinVal <= MaxVal and then nBits >= 0
+      and then nBits <= Integer_8'Size
+      and then bs.Current_Bit_Pos < Natural'Last - nBits
+      and then bs.Size_In_Bytes < Positive'Last / 8
+      and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - nBits,
+      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + nBits and
+      ((Result and (((IntVal >= MinVal) and (IntVal <= MaxVal)))) or
+       (not Result and (IntVal = MinVal)));
+
+   procedure UPER_Dec_ConstraintWholeNumberInt16
+     (bs     : in out Bitstream; IntVal : out Integer_16; MinVal : Integer_16;
+      MaxVal :        Integer_16; nBits : Integer; Result : out Boolean) with
+      Depends => ((bs, IntVal, Result) => (bs, MinVal, MaxVal, nBits)),
+      Pre     => MinVal <= MaxVal and then nBits >= 0
+      and then nBits <= Integer_16'Size
+      and then bs.Current_Bit_Pos < Natural'Last - nBits
+      and then bs.Size_In_Bytes < Positive'Last / 8
+      and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - nBits,
+      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + nBits and
+      ((Result and (((IntVal >= MinVal) and (IntVal <= MaxVal)))) or
+       (not Result and (IntVal = MinVal)));
+
+   procedure UPER_Dec_ConstraintWholeNumberInt32
+     (bs     : in out Bitstream; IntVal : out Integer_32; MinVal : Integer_32;
+      MaxVal :        Integer_32; nBits : Integer; Result : out Boolean) with
+      Depends => ((bs, IntVal, Result) => (bs, MinVal, MaxVal, nBits)),
+      Pre     => MinVal <= MaxVal and then nBits >= 0
+      and then nBits <= Integer_32'Size
+      and then bs.Current_Bit_Pos < Natural'Last - nBits
+      and then bs.Size_In_Bytes < Positive'Last / 8
+      and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - nBits,
+      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + nBits and
+      ((Result and (((IntVal >= MinVal) and (IntVal <= MaxVal)))) or
+       (not Result and (IntVal = MinVal)));
+
+   procedure UPER_Dec_ConstraintPosWholeNumberUInt8
+     (bs : in out Bitstream; IntVal : out Unsigned_8; MinVal : Unsigned_8;
+      MaxVal :        Unsigned_8; nBits : Integer; Result : out Boolean) with
+      Depends => ((bs, IntVal, Result) => (bs, MinVal, MaxVal, nBits)),
+      Pre     => MinVal <= MaxVal and then nBits >= 0
+      and then nBits <= Unsigned_8'Size
+      and then bs.Current_Bit_Pos < Natural'Last - nBits
+      and then bs.Size_In_Bytes < Positive'Last / 8
+      and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - nBits,
+      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + nBits and
+      ((Result and (((IntVal >= MinVal) and (IntVal <= MaxVal)))) or
+       (not Result and (IntVal = MinVal)));
+
+   procedure UPER_Dec_ConstraintPosWholeNumberUInt16
+     (bs : in out Bitstream; IntVal : out Unsigned_16; MinVal : Unsigned_16;
+      MaxVal :        Unsigned_16; nBits : Integer; Result : out Boolean) with
+      Depends => ((bs, IntVal, Result) => (bs, MinVal, MaxVal, nBits)),
+      Pre     => MinVal <= MaxVal and then nBits >= 0
+      and then nBits <= Unsigned_16'Size
+      and then bs.Current_Bit_Pos < Natural'Last - nBits
+      and then bs.Size_In_Bytes < Positive'Last / 8
+      and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - nBits,
+      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + nBits and
+      ((Result and (((IntVal >= MinVal) and (IntVal <= MaxVal)))) or
+       (not Result and (IntVal = MinVal)));
+
+   procedure UPER_Dec_ConstraintPosWholeNumberUInt32
+     (bs : in out Bitstream; IntVal : out Unsigned_32; MinVal : Unsigned_32;
+      MaxVal :        Unsigned_32; nBits : Integer; Result : out Boolean) with
+      Depends => ((bs, IntVal, Result) => (bs, MinVal, MaxVal, nBits)),
+      Pre     => MinVal <= MaxVal and then nBits >= 0
+      and then nBits <= Unsigned_32'Size
+      and then bs.Current_Bit_Pos < Natural'Last - nBits
+      and then bs.Size_In_Bytes < Positive'Last / 8
+      and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - nBits,
+      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + nBits and
+      ((Result and (((IntVal >= MinVal) and (IntVal <= MaxVal)))) or
        (not Result and (IntVal = MinVal)));
 
    procedure UPER_Dec_ConstraintPosWholeNumber
