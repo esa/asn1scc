@@ -47,9 +47,9 @@ PrintEqualPrimitive(sFuncName, sTypeDefName, sContent) ::= <<
 PrintEqualComposite(sFuncName, sTypeDefName, sContent, arrsLocalVars) ::= <<
     function <sFuncName> (val1, val2 : <sTypeDefName>) return Boolean 
     is
-        pragma Warnings (Off, "initialization of ret has no effect");        
+        pragma Warnings (Off, "initialization of ""ret"" has no effect");        
         ret : Boolean := True;
-        pragma Warnings (On, "initialization of ret has no effect");        
+        pragma Warnings (On, "initialization of ""ret"" has no effect");        
         <arrsLocalVars; separator="\n">
     begin
         <sContent>
@@ -70,9 +70,9 @@ is
 
 <endif>
     <if(!bExpression)>
-    pragma Warnings (Off, "initialization of ret has no effect");
+    pragma Warnings (Off, "initialization of ""ret"" has no effect");
     ret : Boolean := True;
-    pragma Warnings (On, "initialization of ret has no effect");
+    pragma Warnings (On, "initialization of ""ret"" has no effect");
     <arrsLocalVars; separator="\n">
 
     <endif>

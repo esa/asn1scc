@@ -262,6 +262,17 @@ is
       Post => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and
       bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + (Asn1UInt'Size + 40);
 
+   procedure UPER_Dec_Real_fp32
+     (bs     : in out Bitstream; RealVal : out Standard.Float;
+      Result :    out ASN1_RESULT) with
+      Depends => ((bs, RealVal, Result) => (bs)),
+      Pre     => bs.Current_Bit_Pos < Natural'Last - (Asn1UInt'Size + 40)
+      and then bs.Size_In_Bytes < Positive'Last / 8
+      and then bs.Current_Bit_Pos <=
+        bs.Size_In_Bytes * 8 - (Asn1UInt'Size + 40),
+      Post => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and
+      bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + (Asn1UInt'Size + 40);
+
    procedure ObjectIdentifier_uper_encode
      (bs : in out Bitstream; val : Asn1ObjectIdentifier) with
       Depends => (bs => (bs, val)),

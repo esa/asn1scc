@@ -378,6 +378,36 @@ is
       end if;
    end UPER_Dec_Real;
 
+   procedure UPER_Dec_Real_fp32
+     (bs : in out Bitstream; RealVal : out Standard.Float;
+          Result : out ASN1_RESULT)
+   is
+      v : Asn1Real;
+   begin
+      UPER_Dec_Real (bs, v, Result);
+
+      pragma Warnings
+        (Off, "condition can only be False if invalid values present");
+      pragma Warnings
+        (Off, "condition is always True");
+
+      Result.Success := Result.Success and then
+        Asn1Real (Standard.Float'First) <= v and then
+        v <= Asn1Real (Standard.Float'Last);
+
+      pragma Warnings
+        (On, "condition can only be False if invalid values present");
+      pragma Warnings
+        (On, "condition is always True");
+
+      if Result.Success then
+         RealVal := Standard.Float (v);
+      else
+         RealVal := 0.0;
+      end if;
+
+   end UPER_Dec_Real_fp32;
+
    procedure ObjectIdentifier_uper_decode_length
      (bs     : in out Bitstream; length : out Integer;
       result :    out ASN1_RESULT) with

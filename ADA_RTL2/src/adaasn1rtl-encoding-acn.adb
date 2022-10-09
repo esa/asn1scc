@@ -1088,6 +1088,35 @@ is
       RealVal := Asn1Real (OctetArray4_to_Float (tmp));
    end Acn_Dec_Real_IEEE754_32_big_endian;
 
+   procedure Acn_Dec_Real_IEEE754_32_big_endian_fp32
+     (bs : in out Bitstream; RealVal : out Standard.Float;
+       Result : out ASN1_RESULT)
+   is
+      v : Asn1Real;
+   begin
+      Acn_Dec_Real_IEEE754_32_big_endian (bs, v, Result);
+
+      pragma Warnings
+        (Off, "condition can only be False if invalid values present");
+      pragma Warnings
+        (Off, "condition is always True");
+
+      Result.Success := Result.Success and then
+        Asn1Real (Standard.Float'First) <= v and then
+        v <= Asn1Real (Standard.Float'Last);
+
+      pragma Warnings
+        (On, "condition can only be False if invalid values present");
+      pragma Warnings
+        (On, "condition is always True");
+
+      if Result.Success then
+         RealVal := Standard.Float (v);
+      else
+         RealVal := 0.0;
+      end if;
+   end Acn_Dec_Real_IEEE754_32_big_endian_fp32;
+
    procedure Acn_Enc_Real_IEEE754_64_big_endian
      (bs : in out Bitstream; RealVal : Asn1Real)
    is
@@ -1186,6 +1215,35 @@ is
       end if;
       RealVal := Asn1Real (OctetArray4_to_Float (tmp));
    end Acn_Dec_Real_IEEE754_32_little_endian;
+
+   procedure Acn_Dec_Real_IEEE754_32_little_endian_fp32
+     (bs : in out Bitstream; RealVal : out Standard.Float;
+       Result : out ASN1_RESULT)
+   is
+      v : Asn1Real;
+   begin
+      Acn_Dec_Real_IEEE754_32_little_endian (bs, v, Result);
+
+      pragma Warnings
+        (Off, "condition can only be False if invalid values present");
+      pragma Warnings
+        (Off, "condition is always True");
+
+      Result.Success := Result.Success and then
+        Asn1Real (Standard.Float'First) <= v and then
+        v <= Asn1Real (Standard.Float'Last);
+
+      pragma Warnings
+        (On, "condition can only be False if invalid values present");
+      pragma Warnings
+        (On, "condition is always True");
+
+      if Result.Success then
+         RealVal := Standard.Float (v);
+      else
+         RealVal := 0.0;
+      end if;
+   end Acn_Dec_Real_IEEE754_32_little_endian_fp32;
 
    procedure Acn_Enc_Real_IEEE754_64_little_endian
      (bs : in out Bitstream; RealVal : Asn1Real)
@@ -2364,10 +2422,20 @@ is
       v : Asn1Int;
    begin
       Acn_Dec_Int_ASCII_VarSize_NullTerminated (bs, v,
-             nullChars, Result);
+                                                nullChars, Result);
+      pragma Warnings
+        (Off, "condition can only be False if invalid values present");
+      pragma Warnings
+        (Off, "condition is always True");
+
       Result.Success := Result.Success and then
         Asn1Int (Integer_32'First) <= v and then
         v <= Asn1Int (Integer_32'Last);
+
+      pragma Warnings
+        (On, "condition can only be False if invalid values present");
+      pragma Warnings
+        (On, "condition is always True");
 
       if Result.Success then
          IntVal := Integer_32 (v);
@@ -2422,9 +2490,19 @@ is
       v : Asn1UInt;
    begin
       Acn_Dec_UInt_ASCII_VarSize_NullTerminated (bs, v,
-             nullChars, Result);
+                                                 nullChars, Result);
+      pragma Warnings
+        (Off, "condition can only be False if invalid values present");
+      pragma Warnings
+        (Off, "condition is always True");
+
       Result.Success := Result.Success and then
         v <= Asn1UInt (Unsigned_32'Last);
+
+      pragma Warnings
+        (On, "condition can only be False if invalid values present");
+      pragma Warnings
+        (On, "condition is always True");
 
       if Result.Success then
          IntVal := Unsigned_32 (v);

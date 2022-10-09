@@ -684,6 +684,15 @@ is
       Post => Result.Success and
       bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 32;
 
+   procedure Acn_Dec_Real_IEEE754_32_big_endian_fp32
+     (bs     : in out Bitstream; RealVal : out Standard.Float;
+      Result :    out ASN1_RESULT) with
+      Depends => ((Result, bs, RealVal) => bs),
+      Pre     => bs.Current_Bit_Pos < Natural'Last - 32
+      and then bs.Size_In_Bytes < Positive'Last / 8
+      and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 32,
+      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 32;
+
    procedure Acn_Enc_Real_IEEE754_64_big_endian
      (bs : in out Bitstream; RealVal : Asn1Real) with
       Depends => (bs => (bs, RealVal)),
@@ -719,6 +728,15 @@ is
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 32,
       Post => Result.Success and
       bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 32;
+
+   procedure Acn_Dec_Real_IEEE754_32_little_endian_fp32
+     (bs     : in out Bitstream; RealVal : out Standard.Float;
+      Result :    out ASN1_RESULT) with
+      Depends => ((Result, bs, RealVal) => bs),
+      Pre     => bs.Current_Bit_Pos < Natural'Last - 32
+      and then bs.Size_In_Bytes < Positive'Last / 8
+      and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 32,
+      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 32;
 
    procedure Acn_Enc_Real_IEEE754_64_little_endian
      (bs : in out Bitstream; RealVal : Asn1Real) with
@@ -1096,7 +1114,7 @@ is
       MaxVal : Unsigned_8; nBits : Integer; Result : out ASN1_RESULT) with
       Depends => ((bs, IntVal, Result) => (bs, MinVal, MaxVal, nBits)),
       Pre     => MinVal <= MaxVal and then nBits >= 0
-      and then nBits <= Unsigned_8'Size
+      and then nBits <= Asn1UInt'Size
       and then bs.Current_Bit_Pos < Natural'Last - nBits
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - nBits,
@@ -1109,7 +1127,7 @@ is
       MaxVal : Unsigned_16; nBits : Integer; Result : out ASN1_RESULT) with
       Depends => ((bs, IntVal, Result) => (bs, MinVal, MaxVal, nBits)),
       Pre     => MinVal <= MaxVal and then nBits >= 0
-      and then nBits <= Unsigned_16'Size
+      and then nBits <= Asn1UInt'Size
       and then bs.Current_Bit_Pos < Natural'Last - nBits
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - nBits,
@@ -1122,7 +1140,7 @@ is
       MaxVal : Unsigned_32; nBits : Integer; Result : out ASN1_RESULT) with
       Depends => ((bs, IntVal, Result) => (bs, MinVal, MaxVal, nBits)),
       Pre     => MinVal <= MaxVal and then nBits >= 0
-      and then nBits <= Unsigned_32'Size
+      and then nBits <= Asn1UInt'Size
       and then bs.Current_Bit_Pos < Natural'Last - nBits
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - nBits,
@@ -1135,7 +1153,7 @@ is
       MaxVal : Integer_8; nBits : Integer; Result : out ASN1_RESULT) with
       Depends => ((bs, IntVal, Result) => (bs, MinVal, MaxVal, nBits)),
       Pre     => MinVal <= MaxVal and then nBits >= 0
-      and then nBits <= Integer_8'Size
+      and then nBits <= Asn1Int'Size
       and then bs.Current_Bit_Pos < Natural'Last - nBits
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - nBits,
@@ -1148,7 +1166,7 @@ is
       MaxVal : Integer_16; nBits : Integer; Result : out ASN1_RESULT) with
       Depends => ((bs, IntVal, Result) => (bs, MinVal, MaxVal, nBits)),
       Pre     => MinVal <= MaxVal and then nBits >= 0
-      and then nBits <= Integer_16'Size
+      and then nBits <= Asn1Int'Size
       and then bs.Current_Bit_Pos < Natural'Last - nBits
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - nBits,
@@ -1161,7 +1179,7 @@ is
       MaxVal : Integer_32; nBits : Integer; Result : out ASN1_RESULT) with
       Depends => ((bs, IntVal, Result) => (bs, MinVal, MaxVal, nBits)),
       Pre     => MinVal <= MaxVal and then nBits >= 0
-      and then nBits <= Integer_32'Size
+      and then nBits <= Asn1Int'Size
       and then bs.Current_Bit_Pos < Natural'Last - nBits
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - nBits,

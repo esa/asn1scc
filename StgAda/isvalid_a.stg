@@ -165,9 +165,9 @@ is
     pragma Unreferenced (<sVarName>);
 
 <endif>
-    pragma Warnings (Off, "initialization of ret has no effect");        
+    pragma Warnings (Off, "initialization of ""ret"" has no effect");        
     ret : <rtlModuleName()>.ASN1_RESULT := <rtlModuleName()>.ASN1_RESULT'(Success => true, ErrorCode => 0);
-    pragma Warnings (On, "initialization of ret has no effect");        
+    pragma Warnings (On, "initialization of ""ret"" has no effect");        
     <arrsLocalVars; separator="\n">
 begin
     <sContent>

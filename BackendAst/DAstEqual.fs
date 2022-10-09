@@ -149,6 +149,14 @@ let createEqualFunction_any (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1Ac
 
 
 
+let castRPp (lm:LanguageMacros) codec realClass pp =
+    match codec with 
+    | CommonTypes.Encode -> 
+        match realClass with
+        | Asn1AcnAst.ASN1SCC_REAL   -> pp
+        | Asn1AcnAst.ASN1SCC_FP32   -> (lm.lg.castExpression pp (lm.typeDef.Declare_Real())) 
+        | Asn1AcnAst.ASN1SCC_FP64   -> pp
+    | CommonTypes.Decode -> pp
 
 
 let createIntegerEqualFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Integer) (typeDefinition:TypeDefintionOrReference) =
@@ -157,7 +165,10 @@ let createIntegerEqualFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn
 
 let createRealEqualFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Real) (typeDefinition:TypeDefintionOrReference) =
     let isEqualBodyPrimitive (lm:LanguageMacros) (v1:CallerScope) (v2:CallerScope) =
-        Some(lm.equal.isEqual_Real (lm.lg.getValue v1.arg) (lm.lg.getValue v2.arg), [])
+        let castPp pp = castRPp lm Encode (o.getClass r.args) pp 
+        let pp1 = (lm.lg.getValue v1.arg) 
+        let pp2 = (lm.lg.getValue v2.arg)
+        Some(lm.equal.isEqual_Real (castPp pp1) (castPp pp2), [])
     let isEqualBody         = EqualBodyExpression (isEqualBodyPrimitive lm)
     createEqualFunction_any r lm t typeDefinition isEqualBody //(stgPrintEqualPrimitive l) (stgMacroPrimDefFunc l) 
 
