@@ -38,3 +38,7 @@ rm -rf asn1scc
 cd ..
 rmdir old
 echo "[-] Created $FINAL_TARBALL - all good."
+echo "[-] To create a new tag:"
+echo "[-]    $ git tag -a ${VERSION}"
+echo "[-]    $ git push --tags"
+echo "[-] Then go on github.com, create a new release, and upload the archive"
