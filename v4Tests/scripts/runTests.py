@@ -168,7 +168,7 @@ def RunTestCase(asn1, acn, behavior, expErrMsg):
             runSpark = "RUN_SPARK" in open("sample1.asn1", 'r').readlines()[0]
             if doCoverage:
                 try:
-                    f = open(targetDir + os.sep + "bin" + os.sep + "debug" + os.sep + "test_case.adb.gcov", 'r')
+                    f = open(targetDir + os.sep + "obj_x86" + os.sep + "debug" + os.sep + "test_case.adb.gcov", 'r')
                     lines = f.readlines()
                     lines = filter(lambda x : "####" in x, lines)
                     lines = filter(lambda x : "COVERAGE_IGNORE" not in x, lines)
@@ -180,6 +180,7 @@ def RunTestCase(asn1, acn, behavior, expErrMsg):
                         PrintWarning("coverage failed. (less than 100%)")
                         sys.exit(1)
                 except FileNotFoundError as err:
+                    print ("No file found at : " + targetDir + os.sep + "obj_x86" + os.sep + "debug" + os.sep + "test_case.adb.gcov")
                     pass
             if runSpark:
                 res = mysystem("gnatprove -Pasn1_x86.gpr -j0  -u test_case.adb --level=4 >sparklog.txt 2>&1", True)
