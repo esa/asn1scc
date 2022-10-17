@@ -172,126 +172,126 @@ end if;
 >>
 
 
-PositiveInteger_ConstSize_encode(p, sErrCode, nFixedSize, soMF, soMFM, nUperMin, nUperMax) ::= <<
+PositiveInteger_ConstSize_encode(p, sSsuffix, sErrCode, nFixedSize, soMF, soMFM, nUperMin, nUperMax) ::= <<
 adaasn1rtl.encoding.acn.Acn_Enc_Int_PositiveInteger_ConstSize(bs, <MFen(soMF=soMF, soMFM=soMFM, p=p)>, <nFixedSize>);
 >>
 
-PositiveInteger_ConstSize_decode(p, sErrCode, nFixedSize, soMF, soMFM, nUperMin, nUperMax) ::= <<
+PositiveInteger_ConstSize_decode(p, sSsuffix, sErrCode, nFixedSize, soMF, soMFM, nUperMin, nUperMax) ::= <<
 <if(soMF)>
-adaasn1rtl.encoding.acn.Acn_Dec_Int_PositiveInteger_ConstSize(bs, mapFuncIntVal, 0, 0, Asn1Int(2)**<nFixedSize> - 1, <nFixedSize>, result);
+adaasn1rtl.encoding.acn.Acn_Dec_Int_PositiveInteger_ConstSize<sSsuffix>(bs, mapFuncIntVal, 0, 0, Asn1Int(2)**<nFixedSize> - 1, <nFixedSize>, result);
 result.ErrorCode := <sErrCode>;
 <MF(p=p, soMF=soMF, soMFM=soMFM, nUperMin=nUperMin, nUperMax=nUperMax)>
 
 <else>
-adaasn1rtl.encoding.acn.Acn_Dec_Int_PositiveInteger_ConstSize(bs, <p>, <nUperMin>, <nUperMax>, <nFixedSize>, result);
+adaasn1rtl.encoding.acn.Acn_Dec_Int_PositiveInteger_ConstSize<sSsuffix>(bs, <p>, <nUperMin>, <nUperMax>, <nFixedSize>, result);
 result.ErrorCode := <sErrCode>;
 
 <endif>
 >>
 
-PositiveInteger_ConstSize_8_encode(p, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "adaasn1rtl.encoding.acn.Acn_Enc_Int_PositiveInteger_ConstSize_8(bs, <MFen(soMF=soMF, soMFM=soMFM, p=p)>);"
-PositiveInteger_ConstSize_8_decode(p, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
+PositiveInteger_ConstSize_8_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "adaasn1rtl.encoding.acn.Acn_Enc_Int_PositiveInteger_ConstSize_8(bs, <MFen(soMF=soMF, soMFM=soMFM, p=p)>);"
+PositiveInteger_ConstSize_8_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
 <if(soMF)>
-adaasn1rtl.encoding.acn.Acn_Dec_Int_PositiveInteger_ConstSize_8(bs, mapFuncIntVal, 0, 0, Asn1Int(255), result);
+adaasn1rtl.encoding.acn.Acn_Dec_Int_PositiveInteger_ConstSize_8<sSsuffix>(bs, mapFuncIntVal, 0, 0, Asn1Int(255), result);
 result.ErrorCode := <sErrCode>;
 <MF(p=p, soMF=soMF, soMFM=soMFM, nUperMin=nUperMin, nUperMax=nUperMax)>
 
 <else>
-adaasn1rtl.encoding.acn.Acn_Dec_Int_PositiveInteger_ConstSize_8(bs, <p>, <nUperMin>, <nUperMax>, result);
+adaasn1rtl.encoding.acn.Acn_Dec_Int_PositiveInteger_ConstSize_8<sSsuffix>(bs, <p>, <nUperMin>, <nUperMax>, result);
 result.ErrorCode := <sErrCode>;
 
 <endif>
 >>
 
-PositiveInteger_ConstSize_big_endian_16_encode(p, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "adaasn1rtl.encoding.acn.Acn_Enc_Int_PositiveInteger_ConstSize_big_endian_16(bs, <MFen(soMF=soMF, soMFM=soMFM, p=p)>);"
-PositiveInteger_ConstSize_big_endian_16_decode(p, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
+PositiveInteger_ConstSize_big_endian_16_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "adaasn1rtl.encoding.acn.Acn_Enc_Int_PositiveInteger_ConstSize_big_endian_16(bs, <MFen(soMF=soMF, soMFM=soMFM, p=p)>);"
+PositiveInteger_ConstSize_big_endian_16_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
 <if(soMF)>
-adaasn1rtl.encoding.acn.Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_16(bs, mapFuncIntVal, 0, 0, Asn1Int(65535), result);
+adaasn1rtl.encoding.acn.Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_16<sSsuffix>(bs, mapFuncIntVal, 0, 0, Asn1Int(65535), result);
 result.ErrorCode := <sErrCode>;
 <MF(p=p, soMF=soMF, soMFM=soMFM, nUperMin=nUperMin, nUperMax=nUperMax)>
 
 <else>
-adaasn1rtl.encoding.acn.Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_16(bs, <p>, <nUperMin>, <nUperMax>, result);
+adaasn1rtl.encoding.acn.Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_16<sSsuffix>(bs, <p>, <nUperMin>, <nUperMax>, result);
 result.ErrorCode := <sErrCode>;
 
 <endif>
 >>
 
 
-PositiveInteger_ConstSize_big_endian_32_encode(p, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "adaasn1rtl.encoding.acn.Acn_Enc_Int_PositiveInteger_ConstSize_big_endian_32(bs, <MFen(soMF=soMF, soMFM=soMFM, p=p)>);"
-PositiveInteger_ConstSize_big_endian_32_decode(p, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
+PositiveInteger_ConstSize_big_endian_32_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "adaasn1rtl.encoding.acn.Acn_Enc_Int_PositiveInteger_ConstSize_big_endian_32(bs, <MFen(soMF=soMF, soMFM=soMFM, p=p)>);"
+PositiveInteger_ConstSize_big_endian_32_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
 <if(soMF)>
-adaasn1rtl.encoding.acn.Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_32(bs, mapFuncIntVal, 0, 0, Asn1Int'Last, result);
+adaasn1rtl.encoding.acn.Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_32<sSsuffix>(bs, mapFuncIntVal, 0, 0, Asn1Int'Last, result);
 result.ErrorCode := <sErrCode>;
 <MF(p=p, soMF=soMF, soMFM=soMFM, nUperMin=nUperMin, nUperMax=nUperMax)>
 
 <else>
-adaasn1rtl.encoding.acn.Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_32(bs, <p>, <nUperMin>, <nUperMax>, result);
+adaasn1rtl.encoding.acn.Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_32<sSsuffix>(bs, <p>, <nUperMin>, <nUperMax>, result);
 result.ErrorCode := <sErrCode>;
 
 <endif>
 >>
 
-PositiveInteger_ConstSize_big_endian_64_encode(p, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "adaasn1rtl.encoding.acn.Acn_Enc_Int_PositiveInteger_ConstSize_big_endian_64(bs, <MFen(soMF=soMF, soMFM=soMFM, p=p)>);"
-PositiveInteger_ConstSize_big_endian_64_decode(p, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
+PositiveInteger_ConstSize_big_endian_64_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "adaasn1rtl.encoding.acn.Acn_Enc_Int_PositiveInteger_ConstSize_big_endian_64(bs, <MFen(soMF=soMF, soMFM=soMFM, p=p)>);"
+PositiveInteger_ConstSize_big_endian_64_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
 <if(soMF)>
-adaasn1rtl.encoding.acn.Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_64(bs, mapFuncIntVal, 0, 0, Asn1Int'Last, result);
+adaasn1rtl.encoding.acn.Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_64<sSsuffix>(bs, mapFuncIntVal, 0, 0, Asn1Int'Last, result);
 result.ErrorCode := <sErrCode>;
 <MF(p=p, soMF=soMF, soMFM=soMFM, nUperMin=nUperMin, nUperMax=nUperMax)>
 
 <else>
-adaasn1rtl.encoding.acn.Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_64(bs, <p>, <nUperMin>, <nUperMax>, result);
+adaasn1rtl.encoding.acn.Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_64<sSsuffix>(bs, <p>, <nUperMin>, <nUperMax>, result);
 result.ErrorCode := <sErrCode>;
 
 <endif>
 >>
 
-PositiveInteger_ConstSize_little_endian_16_encode(p, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "adaasn1rtl.encoding.acn.Acn_Enc_Int_PositiveInteger_ConstSize_little_endian_16(bs, <MFen(soMF=soMF, soMFM=soMFM, p=p)>);"
-PositiveInteger_ConstSize_little_endian_16_decode(p, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
+PositiveInteger_ConstSize_little_endian_16_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "adaasn1rtl.encoding.acn.Acn_Enc_Int_PositiveInteger_ConstSize_little_endian_16(bs, <MFen(soMF=soMF, soMFM=soMFM, p=p)>);"
+PositiveInteger_ConstSize_little_endian_16_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
 <if(soMF)>
-adaasn1rtl.encoding.acn.Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_16(bs, mapFuncIntVal, 0, 0, Asn1Int'Last, result);
+adaasn1rtl.encoding.acn.Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_16<sSsuffix>(bs, mapFuncIntVal, 0, 0, Asn1Int'Last, result);
 result.ErrorCode := <sErrCode>;
 <MF(p=p, soMF=soMF, soMFM=soMFM, nUperMin=nUperMin, nUperMax=nUperMax)>
 
 <else>
-adaasn1rtl.encoding.acn.Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_16(bs, <p>, <nUperMin>, <nUperMax>, result);
+adaasn1rtl.encoding.acn.Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_16<sSsuffix>(bs, <p>, <nUperMin>, <nUperMax>, result);
 result.ErrorCode := <sErrCode>;
 
 <endif>
 >>
 
-PositiveInteger_ConstSize_little_endian_32_encode(p, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "adaasn1rtl.encoding.acn.Acn_Enc_Int_PositiveInteger_ConstSize_little_endian_32(bs, <MFen(soMF=soMF, soMFM=soMFM, p=p)>);"
-PositiveInteger_ConstSize_little_endian_32_decode(p, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
+PositiveInteger_ConstSize_little_endian_32_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "adaasn1rtl.encoding.acn.Acn_Enc_Int_PositiveInteger_ConstSize_little_endian_32(bs, <MFen(soMF=soMF, soMFM=soMFM, p=p)>);"
+PositiveInteger_ConstSize_little_endian_32_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
 <if(soMF)>
-adaasn1rtl.encoding.acn.Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_32(bs, mapFuncIntVal, 0, 0, Asn1Int'Last,  result);
+adaasn1rtl.encoding.acn.Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_32<sSsuffix>(bs, mapFuncIntVal, 0, 0, Asn1Int'Last,  result);
 result.ErrorCode := <sErrCode>;
 <MF(p=p, soMF=soMF, soMFM=soMFM, nUperMin=nUperMin, nUperMax=nUperMax)>
 
 <else>
-adaasn1rtl.encoding.acn.Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_32(bs, <p>, <nUperMin>, <nUperMax>,  result);
+adaasn1rtl.encoding.acn.Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_32<sSsuffix>(bs, <p>, <nUperMin>, <nUperMax>,  result);
 result.ErrorCode := <sErrCode>;
 
 <endif>
 >>
 
-PositiveInteger_ConstSize_little_endian_64_encode(p, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "adaasn1rtl.encoding.acn.Acn_Enc_Int_PositiveInteger_ConstSize_little_endian_64(bs, <MFen(soMF=soMF, soMFM=soMFM, p=p)>);"
-PositiveInteger_ConstSize_little_endian_64_decode(p, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
+PositiveInteger_ConstSize_little_endian_64_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "adaasn1rtl.encoding.acn.Acn_Enc_Int_PositiveInteger_ConstSize_little_endian_64(bs, <MFen(soMF=soMF, soMFM=soMFM, p=p)>);"
+PositiveInteger_ConstSize_little_endian_64_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
 <if(soMF)>
-adaasn1rtl.encoding.acn.Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_64(bs, mapFuncIntVal, 0, 0, Asn1Int'Last, result);
+adaasn1rtl.encoding.acn.Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_64<sSsuffix>(bs, mapFuncIntVal, 0, 0, Asn1Int'Last, result);
 result.ErrorCode := <sErrCode>;
 <MF(p=p, soMF=soMF, soMFM=soMFM, nUperMin=nUperMin, nUperMax=nUperMax)>
 
 <else>
-adaasn1rtl.encoding.acn.Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_64(bs, <p>, <nUperMin>, <nUperMax>, result);
+adaasn1rtl.encoding.acn.Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_64<sSsuffix>(bs, <p>, <nUperMin>, <nUperMax>, result);
 result.ErrorCode := <sErrCode>;
 
 <endif>
 >>
 
-PositiveInteger_VarSize_LengthEmbedded_encode(p, sErrCode, soMF, soMFM, nUperMin) ::= "adaasn1rtl.encoding.acn.Acn_Enc_Int_PositiveInteger_VarSize_LengthEmbedded(bs, <MFen(soMF=soMF, soMFM=soMFM, p=p)>);"
-PositiveInteger_VarSize_LengthEmbedded_decode(p, sErrCode, soMF, soMFM, nUperMin) ::= <<
+PositiveInteger_VarSize_LengthEmbedded_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin) ::= "adaasn1rtl.encoding.acn.Acn_Enc_Int_PositiveInteger_VarSize_LengthEmbedded(bs, <MFen(soMF=soMF, soMFM=soMFM, p=p)>);"
+PositiveInteger_VarSize_LengthEmbedded_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin) ::= <<
 <if(soMF)>
-adaasn1rtl.encoding.acn.Acn_Dec_Int_PositiveInteger_VarSize_LengthEmbedded(bs, mapFuncIntVal, 0, 0, result);
+adaasn1rtl.encoding.acn.Acn_Dec_Int_PositiveInteger_VarSize_LengthEmbedded<sSsuffix>(bs, mapFuncIntVal, 0, 0, result);
 if Result.Success then
     <p> := <soMFM>.<soMF>_decode(mapFuncIntVal);
     Result.Success := <p> \>= <nUperMin>;
@@ -302,210 +302,210 @@ if Result.Success then
 end if;
 
 <else>
-adaasn1rtl.encoding.acn.Acn_Dec_Int_PositiveInteger_VarSize_LengthEmbedded(bs, <p>, <nUperMin>, result);
+adaasn1rtl.encoding.acn.Acn_Dec_Int_PositiveInteger_VarSize_LengthEmbedded<sSsuffix>(bs, <p>, <nUperMin>, result);
 result.ErrorCode := <sErrCode>;
 
 <endif>
 >>
 
 
-TwosComplement_ConstSize_encode(p, sErrCode, soMF, soMFM, nFixedSize, nUperMin, nUperMax) ::= "adaasn1rtl.encoding.acn.Acn_Enc_Int_TwosComplement_ConstSize(bs, <MFen(soMF=soMF, soMFM=soMFM, p=p)>, <nFixedSize>);"
-TwosComplement_ConstSize_decode(p, sErrCode, soMF, soMFM, nFixedSize, nUperMin, nUperMax) ::= <<
+TwosComplement_ConstSize_encode(p, sSsuffix, sErrCode, soMF, soMFM, nFixedSize, nUperMin, nUperMax) ::= "adaasn1rtl.encoding.acn.Acn_Enc_Int_TwosComplement_ConstSize(bs, <MFen(soMF=soMF, soMFM=soMFM, p=p)>, <nFixedSize>);"
+TwosComplement_ConstSize_decode(p, sSsuffix, sErrCode, soMF, soMFM, nFixedSize, nUperMin, nUperMax) ::= <<
 <if(soMF)>
-adaasn1rtl.encoding.acn.Acn_Dec_Int_TwosComplement_ConstSize(bs, mapFuncIntVal, Asn1Int'First, Asn1Int'Last, <nFixedSize>, result);
+adaasn1rtl.encoding.acn.Acn_Dec_Int_TwosComplement_ConstSize<sSsuffix>(bs, mapFuncIntVal, Asn1Int'First, Asn1Int'Last, <nFixedSize>, result);
 result.ErrorCode := <sErrCode>;
 <MF(p=p, soMF=soMF, soMFM=soMFM, nUperMin=nUperMin, nUperMax=nUperMax)>
 
 <else>
-adaasn1rtl.encoding.acn.Acn_Dec_Int_TwosComplement_ConstSize(bs, <p>, <nUperMin>, <nUperMax>, <nFixedSize>, result);
+adaasn1rtl.encoding.acn.Acn_Dec_Int_TwosComplement_ConstSize<sSsuffix>(bs, <p>, <nUperMin>, <nUperMax>, <nFixedSize>, result);
 result.ErrorCode := <sErrCode>;
 
 <endif>
 >>
 
-TwosComplement_ConstSize_8_encode(p, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "adaasn1rtl.encoding.acn.Acn_Enc_Int_TwosComplement_ConstSize_8(bs, <MFen(soMF=soMF, soMFM=soMFM, p=p)>);"
-TwosComplement_ConstSize_8_decode(p, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
+TwosComplement_ConstSize_8_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "adaasn1rtl.encoding.acn.Acn_Enc_Int_TwosComplement_ConstSize_8(bs, <MFen(soMF=soMF, soMFM=soMFM, p=p)>);"
+TwosComplement_ConstSize_8_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
 <if(soMF)>
-adaasn1rtl.encoding.acn.Acn_Dec_Int_TwosComplement_ConstSize_8(bs, mapFuncIntVal, -Asn1Int(128), Asn1Int(127), result);
+adaasn1rtl.encoding.acn.Acn_Dec_Int_TwosComplement_ConstSize_8<sSsuffix>(bs, mapFuncIntVal, -Asn1Int(128), Asn1Int(127), result);
 result.ErrorCode := <sErrCode>;
 <MF(p=p, soMF=soMF, soMFM=soMFM, nUperMin=nUperMin, nUperMax=nUperMax)>
 
 <else>
-adaasn1rtl.encoding.acn.Acn_Dec_Int_TwosComplement_ConstSize_8(bs, <p>, <nUperMin>, <nUperMax>, result);
+adaasn1rtl.encoding.acn.Acn_Dec_Int_TwosComplement_ConstSize_8<sSsuffix>(bs, <p>, <nUperMin>, <nUperMax>, result);
 result.ErrorCode := <sErrCode>;
 
 <endif>
 >>
 
-TwosComplement_ConstSize_big_endian_16_encode(p, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "adaasn1rtl.encoding.acn.Acn_Enc_Int_TwosComplement_ConstSize_big_endian_16(bs, <MFen(soMF=soMF, soMFM=soMFM, p=p)>);"
-TwosComplement_ConstSize_big_endian_16_decode(p, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
+TwosComplement_ConstSize_big_endian_16_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "adaasn1rtl.encoding.acn.Acn_Enc_Int_TwosComplement_ConstSize_big_endian_16(bs, <MFen(soMF=soMF, soMFM=soMFM, p=p)>);"
+TwosComplement_ConstSize_big_endian_16_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
 <if(soMF)>
-adaasn1rtl.encoding.acn.Acn_Dec_Int_TwosComplement_ConstSize_big_endian_16(bs, mapFuncIntVal, Asn1Int'First, Asn1Int'Last, result);
+adaasn1rtl.encoding.acn.Acn_Dec_Int_TwosComplement_ConstSize_big_endian_16<sSsuffix>(bs, mapFuncIntVal, Asn1Int'First, Asn1Int'Last, result);
 result.ErrorCode := <sErrCode>;
 <MF(p=p, soMF=soMF, soMFM=soMFM, nUperMin=nUperMin, nUperMax=nUperMax)>
 
 <else>
-adaasn1rtl.encoding.acn.Acn_Dec_Int_TwosComplement_ConstSize_big_endian_16(bs, <p>, <nUperMin>, <nUperMax>, result);
+adaasn1rtl.encoding.acn.Acn_Dec_Int_TwosComplement_ConstSize_big_endian_16<sSsuffix>(bs, <p>, <nUperMin>, <nUperMax>, result);
 result.ErrorCode := <sErrCode>;
 
 <endif>
 >>
 
-TwosComplement_ConstSize_big_endian_32_encode(p, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "adaasn1rtl.encoding.acn.Acn_Enc_Int_TwosComplement_ConstSize_big_endian_32(bs, <MFen(soMF=soMF, soMFM=soMFM, p=p)>);"
-TwosComplement_ConstSize_big_endian_32_decode(p, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
+TwosComplement_ConstSize_big_endian_32_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "adaasn1rtl.encoding.acn.Acn_Enc_Int_TwosComplement_ConstSize_big_endian_32(bs, <MFen(soMF=soMF, soMFM=soMFM, p=p)>);"
+TwosComplement_ConstSize_big_endian_32_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
 <if(soMF)>
-adaasn1rtl.encoding.acn.Acn_Dec_Int_TwosComplement_ConstSize_big_endian_32(bs, mapFuncIntVal, Asn1Int'First, Asn1Int'Last, result);
+adaasn1rtl.encoding.acn.Acn_Dec_Int_TwosComplement_ConstSize_big_endian_32<sSsuffix>(bs, mapFuncIntVal, Asn1Int'First, Asn1Int'Last, result);
 result.ErrorCode := <sErrCode>;
 <MF(p=p, soMF=soMF, soMFM=soMFM, nUperMin=nUperMin, nUperMax=nUperMax)>
 
 <else>
-adaasn1rtl.encoding.acn.Acn_Dec_Int_TwosComplement_ConstSize_big_endian_32(bs, <p>, <nUperMin>, <nUperMax>, result);
+adaasn1rtl.encoding.acn.Acn_Dec_Int_TwosComplement_ConstSize_big_endian_32<sSsuffix>(bs, <p>, <nUperMin>, <nUperMax>, result);
 result.ErrorCode := <sErrCode>;
 
 <endif>
 >>
 
-TwosComplement_ConstSize_big_endian_64_encode(p, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "adaasn1rtl.encoding.acn.Acn_Enc_Int_TwosComplement_ConstSize_big_endian_64(bs, <MFen(soMF=soMF, soMFM=soMFM, p=p)>);"
-TwosComplement_ConstSize_big_endian_64_decode(p, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
+TwosComplement_ConstSize_big_endian_64_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "adaasn1rtl.encoding.acn.Acn_Enc_Int_TwosComplement_ConstSize_big_endian_64(bs, <MFen(soMF=soMF, soMFM=soMFM, p=p)>);"
+TwosComplement_ConstSize_big_endian_64_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
 <if(soMF)>
-adaasn1rtl.encoding.acn.Acn_Dec_Int_TwosComplement_ConstSize_big_endian_64(bs, mapFuncIntVal, Asn1Int'First, Asn1Int'Last, result);
+adaasn1rtl.encoding.acn.Acn_Dec_Int_TwosComplement_ConstSize_big_endian_64<sSsuffix>(bs, mapFuncIntVal, Asn1Int'First, Asn1Int'Last, result);
 result.ErrorCode := <sErrCode>;
 <MF(p=p, soMF=soMF, soMFM=soMFM, nUperMin=nUperMin, nUperMax=nUperMax)>
 
 <else>
-adaasn1rtl.encoding.acn.Acn_Dec_Int_TwosComplement_ConstSize_big_endian_64(bs, <p>, <nUperMin>, <nUperMax>, result);
+adaasn1rtl.encoding.acn.Acn_Dec_Int_TwosComplement_ConstSize_big_endian_64<sSsuffix>(bs, <p>, <nUperMin>, <nUperMax>, result);
 result.ErrorCode := <sErrCode>;
 
 <endif>
 >>
 
-TwosComplement_ConstSize_little_endian_16_encode(p, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "adaasn1rtl.encoding.acn.Acn_Enc_Int_TwosComplement_ConstSize_little_endian_16(bs, <MFen(soMF=soMF, soMFM=soMFM, p=p)>);"
-TwosComplement_ConstSize_little_endian_16_decode(p, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
+TwosComplement_ConstSize_little_endian_16_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "adaasn1rtl.encoding.acn.Acn_Enc_Int_TwosComplement_ConstSize_little_endian_16(bs, <MFen(soMF=soMF, soMFM=soMFM, p=p)>);"
+TwosComplement_ConstSize_little_endian_16_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
 <if(soMF)>
-adaasn1rtl.encoding.acn.Acn_Dec_Int_TwosComplement_ConstSize_little_endian_16(bs, mapFuncIntVal, Asn1Int'First, Asn1Int'Last, result);
+adaasn1rtl.encoding.acn.Acn_Dec_Int_TwosComplement_ConstSize_little_endian_16<sSsuffix>(bs, mapFuncIntVal, Asn1Int'First, Asn1Int'Last, result);
 result.ErrorCode := <sErrCode>;
 <MF(p=p, soMF=soMF, soMFM=soMFM, nUperMin=nUperMin, nUperMax=nUperMax)>
 
 <else>
-adaasn1rtl.encoding.acn.Acn_Dec_Int_TwosComplement_ConstSize_little_endian_16(bs, <p>, <nUperMin>, <nUperMax>, result);
+adaasn1rtl.encoding.acn.Acn_Dec_Int_TwosComplement_ConstSize_little_endian_16<sSsuffix>(bs, <p>, <nUperMin>, <nUperMax>, result);
 result.ErrorCode := <sErrCode>;
 
 <endif>
 >>
 
-TwosComplement_ConstSize_little_endian_32_encode(p, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "adaasn1rtl.encoding.acn.Acn_Enc_Int_TwosComplement_ConstSize_little_endian_32(bs, <MFen(soMF=soMF, soMFM=soMFM, p=p)>);"
-TwosComplement_ConstSize_little_endian_32_decode(p, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
+TwosComplement_ConstSize_little_endian_32_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "adaasn1rtl.encoding.acn.Acn_Enc_Int_TwosComplement_ConstSize_little_endian_32(bs, <MFen(soMF=soMF, soMFM=soMFM, p=p)>);"
+TwosComplement_ConstSize_little_endian_32_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
 <if(soMF)>
-adaasn1rtl.encoding.acn.Acn_Dec_Int_TwosComplement_ConstSize_little_endian_32(bs, mapFuncIntVal, Asn1Int'First, Asn1Int'Last, result);
+adaasn1rtl.encoding.acn.Acn_Dec_Int_TwosComplement_ConstSize_little_endian_32<sSsuffix>(bs, mapFuncIntVal, Asn1Int'First, Asn1Int'Last, result);
 result.ErrorCode := <sErrCode>;
 <MF(p=p, soMF=soMF, soMFM=soMFM, nUperMin=nUperMin, nUperMax=nUperMax)>
 
 <else>
-adaasn1rtl.encoding.acn.Acn_Dec_Int_TwosComplement_ConstSize_little_endian_32(bs, <p>, <nUperMin>, <nUperMax>, result);
+adaasn1rtl.encoding.acn.Acn_Dec_Int_TwosComplement_ConstSize_little_endian_32<sSsuffix>(bs, <p>, <nUperMin>, <nUperMax>, result);
 result.ErrorCode := <sErrCode>;
 
 <endif>
 >>
 
-TwosComplement_ConstSize_little_endian_64_encode(p, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "adaasn1rtl.encoding.acn.Acn_Enc_Int_TwosComplement_ConstSize_little_endian_64(bs, <MFen(soMF=soMF, soMFM=soMFM, p=p)>);"
-TwosComplement_ConstSize_little_endian_64_decode(p, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
+TwosComplement_ConstSize_little_endian_64_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "adaasn1rtl.encoding.acn.Acn_Enc_Int_TwosComplement_ConstSize_little_endian_64(bs, <MFen(soMF=soMF, soMFM=soMFM, p=p)>);"
+TwosComplement_ConstSize_little_endian_64_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
 <if(soMF)>
-adaasn1rtl.encoding.acn.Acn_Dec_Int_TwosComplement_ConstSize_little_endian_64(bs, mapFuncIntVal, Asn1Int'First, Asn1Int'Last, result);
+adaasn1rtl.encoding.acn.Acn_Dec_Int_TwosComplement_ConstSize_little_endian_64<sSsuffix>(bs, mapFuncIntVal, Asn1Int'First, Asn1Int'Last, result);
 result.ErrorCode := <sErrCode>;
 <MF(p=p, soMF=soMF, soMFM=soMFM, nUperMin=nUperMin, nUperMax=nUperMax)>
 
 <else>
-adaasn1rtl.encoding.acn.Acn_Dec_Int_TwosComplement_ConstSize_little_endian_64(bs, <p>, <nUperMin>, <nUperMax>, result);
+adaasn1rtl.encoding.acn.Acn_Dec_Int_TwosComplement_ConstSize_little_endian_64<sSsuffix>(bs, <p>, <nUperMin>, <nUperMax>, result);
 result.ErrorCode := <sErrCode>;
 
 <endif>
 >>
 
-TwosComplement_VarSize_LengthEmbedded_encode(p, sErrCode, soMF, soMFM) ::= "adaasn1rtl.encoding.acn.Acn_Enc_Int_TwosComplement_VarSize_LengthEmbedded(bs, <MFen(soMF=soMF, soMFM=soMFM, p=p)>);"
-TwosComplement_VarSize_LengthEmbedded_decode(p, sErrCode, soMF, soMFM) ::= <<
+TwosComplement_VarSize_LengthEmbedded_encode(p, sSsuffix, sErrCode, soMF, soMFM) ::= "adaasn1rtl.encoding.acn.Acn_Enc_Int_TwosComplement_VarSize_LengthEmbedded(bs, <MFen(soMF=soMF, soMFM=soMFM, p=p)>);"
+TwosComplement_VarSize_LengthEmbedded_decode(p, sSsuffix, sErrCode, soMF, soMFM) ::= <<
 <if(soMF)>
-adaasn1rtl.encoding.acn.Acn_Dec_Int_TwosComplement_VarSize_LengthEmbedded(bs, <p>, result);
+adaasn1rtl.encoding.acn.Acn_Dec_Int_TwosComplement_VarSize_LengthEmbedded<sSsuffix>(bs, <p>, result);
 result.ErrorCode := <sErrCode>;
 if Result.Success then
     <p> := <soMFM>.<soMF>_decode(mapFuncIntVal);
 end if;
 
 <else>
-adaasn1rtl.encoding.acn.Acn_Dec_Int_TwosComplement_VarSize_LengthEmbedded(bs, <p>, result);
+adaasn1rtl.encoding.acn.Acn_Dec_Int_TwosComplement_VarSize_LengthEmbedded<sSsuffix>(bs, <p>, result);
 result.ErrorCode := <sErrCode>;
 
 <endif>
 >>
 
 
-BCD_ConstSize_encode(p, sErrCode, soMF, soMFM, nUperMin, nUperMax, nNibbles) ::= "adaasn1rtl.encoding.acn.Acn_Enc_Int_BCD_ConstSize(bs, <MFen(soMF=soMF, soMFM=soMFM, p=p)>, <nNibbles>);"
-BCD_ConstSize_decode(p, sErrCode, soMF, soMFM, nUperMin, nUperMax, nNibbles) ::= <<
+BCD_ConstSize_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, nNibbles) ::= "adaasn1rtl.encoding.acn.Acn_Enc_Int_BCD_ConstSize(bs, <MFen(soMF=soMF, soMFM=soMFM, p=p)>, <nNibbles>);"
+BCD_ConstSize_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, nNibbles) ::= <<
 <if(soMF)>
-adaasn1rtl.encoding.acn.Acn_Dec_Int_BCD_ConstSize(bs, mapFuncIntVal, Asn1Int'First, Asn1Int'Last, <nNibbles>, result);
+adaasn1rtl.encoding.acn.Acn_Dec_Int_BCD_ConstSize<sSsuffix>(bs, mapFuncIntVal, Asn1Int'First, Asn1Int'Last, <nNibbles>, result);
 result.ErrorCode := <sErrCode>;
 <MF(p=p, soMF=soMF, soMFM=soMFM, nUperMin=nUperMin, nUperMax=nUperMax)>
 
 <else>
-adaasn1rtl.encoding.acn.Acn_Dec_Int_BCD_ConstSize(bs, <p>, <nUperMin>, <nUperMax>, <nNibbles>, result);
+adaasn1rtl.encoding.acn.Acn_Dec_Int_BCD_ConstSize<sSsuffix>(bs, <p>, <nUperMin>, <nUperMax>, <nNibbles>, result);
 result.ErrorCode := <sErrCode>;
 
 <endif>
 >>
 
-BCD_VarSize_LengthEmbedded_encode(p, sErrCode, soMF, soMFM) ::= "adaasn1rtl.encoding.acn.Acn_Enc_Int_BCD_VarSize_LengthEmbedded(bs, <MFen(soMF=soMF, soMFM=soMFM, p=p)>);"
-BCD_VarSize_LengthEmbedded_decode(p, sErrCode, soMF, soMFM) ::= <<
+BCD_VarSize_LengthEmbedded_encode(p, sSsuffix, sErrCode, soMF, soMFM) ::= "adaasn1rtl.encoding.acn.Acn_Enc_Int_BCD_VarSize_LengthEmbedded(bs, <MFen(soMF=soMF, soMFM=soMFM, p=p)>);"
+BCD_VarSize_LengthEmbedded_decode(p, sSsuffix, sErrCode, soMF, soMFM) ::= <<
 <if(soMF)>
-adaasn1rtl.encoding.acn.Acn_Dec_Int_BCD_VarSize_LengthEmbedded(bs, mapFuncIntVal, result);
+adaasn1rtl.encoding.acn.Acn_Dec_Int_BCD_VarSize_LengthEmbedded<sSsuffix>(bs, mapFuncIntVal, result);
 result.ErrorCode := <sErrCode>;
 if Result.Success then
     <p> := <soMFM>.<soMF>_decode(mapFuncIntVal);
 end if;
 
 <else>
-adaasn1rtl.encoding.acn.Acn_Dec_Int_BCD_VarSize_LengthEmbedded(bs, <p>, result);
+adaasn1rtl.encoding.acn.Acn_Dec_Int_BCD_VarSize_LengthEmbedded<sSsuffix>(bs, <p>, result);
 result.ErrorCode := <sErrCode>;
 
 <endif>
 >>
 
-BCD_VarSize_NullTerminated_encode(p, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "adaasn1rtl.encoding.acn.Acn_Enc_Int_BCD_VarSize_NullTerminated(bs, <MFen(soMF=soMF, soMFM=soMFM, p=p)>);"
-BCD_VarSize_NullTerminated_decode(p, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
+BCD_VarSize_NullTerminated_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "adaasn1rtl.encoding.acn.Acn_Enc_Int_BCD_VarSize_NullTerminated(bs, <MFen(soMF=soMF, soMFM=soMFM, p=p)>);"
+BCD_VarSize_NullTerminated_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
 <if(soMF)>
-adaasn1rtl.encoding.acn.Acn_Dec_Int_BCD_VarSize_NullTerminated(bs, mapFuncIntVal, Asn1Int'First, Asn1Int'Last, result);
+adaasn1rtl.encoding.acn.Acn_Dec_Int_BCD_VarSize_NullTerminated<sSsuffix>(bs, mapFuncIntVal, Asn1Int'First, Asn1Int'Last, result);
 result.ErrorCode := <sErrCode>;
 <MF(p=p, soMF=soMF, soMFM=soMFM, nUperMin=nUperMin, nUperMax=nUperMax)>
 
 <else>
-adaasn1rtl.encoding.acn.Acn_Dec_Int_BCD_VarSize_NullTerminated(bs, <p>, <nUperMin>, <nUperMax>, result);
+adaasn1rtl.encoding.acn.Acn_Dec_Int_BCD_VarSize_NullTerminated<sSsuffix>(bs, <p>, <nUperMin>, <nUperMax>, result);
 result.ErrorCode := <sErrCode>;
 
 <endif>
 >>
 
-ASCII_ConstSize_encode(p, sErrCode, soMF, soMFM, nUperMin, nUperMax, nSizeInBytes) ::= "adaasn1rtl.encoding.acn.Acn_Enc_Int_ASCII_ConstSize(bs, <MFen(soMF=soMF, soMFM=soMFM, p=p)>, <nSizeInBytes>);"
-ASCII_ConstSize_decode(p, sErrCode, soMF, soMFM, nUperMin, nUperMax, nSizeInBytes) ::= <<
+ASCII_ConstSize_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, nSizeInBytes) ::= "adaasn1rtl.encoding.acn.Acn_Enc_Int_ASCII_ConstSize(bs, <MFen(soMF=soMF, soMFM=soMFM, p=p)>, <nSizeInBytes>);"
+ASCII_ConstSize_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, nSizeInBytes) ::= <<
 <if(soMF)>
-adaasn1rtl.encoding.acn.Acn_Dec_Int_ASCII_ConstSize(bs, mapFuncIntVal, Asn1Int'First, Asn1Int'Last, <nSizeInBytes>, result);
+adaasn1rtl.encoding.acn.Acn_Dec_Int_ASCII_ConstSize<sSsuffix>(bs, mapFuncIntVal, Asn1Int'First, Asn1Int'Last, <nSizeInBytes>, result);
 result.ErrorCode := <sErrCode>;
 <MF(p=p, soMF=soMF, soMFM=soMFM, nUperMin=nUperMin, nUperMax=nUperMax)>
 
 <else>
-adaasn1rtl.encoding.acn.Acn_Dec_Int_ASCII_ConstSize(bs, <p>, <nUperMin>, <nUperMax>, <nSizeInBytes>, result);
+adaasn1rtl.encoding.acn.Acn_Dec_Int_ASCII_ConstSize<sSsuffix>(bs, <p>, <nUperMin>, <nUperMax>, <nSizeInBytes>, result);
 result.ErrorCode := <sErrCode>;
 
 <endif>
 >>
 
 
-ASCII_UINT_ConstSize_encode(p, sErrCode, soMF, soMFM, nUperMin, nUperMax, nSizeInBytes) ::= "adaasn1rtl.encoding.acn.Acn_Enc_UInt_ASCII_ConstSize(bs, <MFen(soMF=soMF, soMFM=soMFM, p=p)>, <nSizeInBytes>);"
-ASCII_UINT_ConstSize_decode(p, sErrCode, soMF, soMFM, nUperMin, nUperMax, nSizeInBytes) ::= <<
+ASCII_UINT_ConstSize_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, nSizeInBytes) ::= "adaasn1rtl.encoding.acn.Acn_Enc_UInt_ASCII_ConstSize(bs, <MFen(soMF=soMF, soMFM=soMFM, p=p)>, <nSizeInBytes>);"
+ASCII_UINT_ConstSize_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, nSizeInBytes) ::= <<
 <if(soMF)>
-adaasn1rtl.encoding.acn.Acn_Dec_UInt_ASCII_ConstSize(bs, mapFuncIntVal, Asn1Int'First, Asn1Int'Last, <nSizeInBytes>, result);
+adaasn1rtl.encoding.acn.Acn_Dec_UInt_ASCII_ConstSize<sSsuffix>(bs, mapFuncIntVal, Asn1Int'First, Asn1Int'Last, <nSizeInBytes>, result);
 result.ErrorCode := <sErrCode>;
 <MF(p=p, soMF=soMF, soMFM=soMFM, nUperMin=nUperMin, nUperMax=nUperMax)>
 
 <else>
-adaasn1rtl.encoding.acn.Acn_Dec_UInt_ASCII_ConstSize(bs, <p>, <nUperMin>, <nUperMax>, <nSizeInBytes>, result);
+adaasn1rtl.encoding.acn.Acn_Dec_UInt_ASCII_ConstSize<sSsuffix>(bs, <p>, <nUperMin>, <nUperMax>, <nSizeInBytes>, result);
 result.ErrorCode := <sErrCode>;
 
 <endif>
@@ -513,46 +513,46 @@ result.ErrorCode := <sErrCode>;
 
 
 
-ASCII_VarSize_LengthEmbedded_encode(p, sErrCode, soMF, soMFM) ::= "adaasn1rtl.encoding.acn.Acn_Enc_Int_ASCII_VarSize_LengthEmbedded(bs, <MFen(soMF=soMF, soMFM=soMFM, p=p)>);"
-ASCII_VarSize_LengthEmbedded_decode(p, sErrCode, soMF, soMFM) ::= <<
+ASCII_VarSize_LengthEmbedded_encode(p, sSsuffix, sErrCode, soMF, soMFM) ::= "adaasn1rtl.encoding.acn.Acn_Enc_Int_ASCII_VarSize_LengthEmbedded(bs, <MFen(soMF=soMF, soMFM=soMFM, p=p)>);"
+ASCII_VarSize_LengthEmbedded_decode(p, sSsuffix, sErrCode, soMF, soMFM) ::= <<
 <if(soMF)>
-adaasn1rtl.encoding.acn.Acn_Dec_Int_ASCII_VarSize_LengthEmbedded(bs, mapFuncIntVal, result);
+adaasn1rtl.encoding.acn.Acn_Dec_Int_ASCII_VarSize_LengthEmbedded<sSsuffix>(bs, mapFuncIntVal, result);
 result.ErrorCode := <sErrCode>;
 if Result.Success then
     <p> := <soMFM>.<soMF>_decode(mapFuncIntVal);
 end if;
 
 <else>
-adaasn1rtl.encoding.acn.Acn_Dec_Int_ASCII_VarSize_LengthEmbedded(bs, <p>, result);
+adaasn1rtl.encoding.acn.Acn_Dec_Int_ASCII_VarSize_LengthEmbedded<sSsuffix>(bs, <p>, result);
 result.ErrorCode := <sErrCode>;
 
 <endif>
 >>
 
-ASCII_VarSize_NullTerminated_encode(p, sErrCode, soMF, soMFM, nUperMin, nUperMax, arruNullBytes) ::= "adaasn1rtl.encoding.acn.Acn_Enc_Int_ASCII_VarSize_NullTerminated(bs, <MFen(soMF=soMF, soMFM=soMFM, p=p)>, adaasn1rtl.OctetBuffer'(<arruNullBytes : {b|<i>=><b>}; separator=\", \">));"
-ASCII_VarSize_NullTerminated_decode(p, sErrCode, soMF, soMFM, nUperMin, nUperMax, arruNullBytes) ::= <<
+ASCII_VarSize_NullTerminated_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, arruNullBytes) ::= "adaasn1rtl.encoding.acn.Acn_Enc_Int_ASCII_VarSize_NullTerminated(bs, <MFen(soMF=soMF, soMFM=soMFM, p=p)>, adaasn1rtl.OctetBuffer'(<arruNullBytes : {b|<i>=><b>}; separator=\", \">));"
+ASCII_VarSize_NullTerminated_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, arruNullBytes) ::= <<
 <if(soMF)>
-adaasn1rtl.encoding.acn.Acn_Dec_Int_ASCII_VarSize_NullTerminated(bs, mapFuncIntVal, adaasn1rtl.OctetBuffer'(<arruNullBytes : {b|<i>=><b>}; separator=", ">), result);
+adaasn1rtl.encoding.acn.Acn_Dec_Int_ASCII_VarSize_NullTerminated<sSsuffix>(bs, mapFuncIntVal, adaasn1rtl.OctetBuffer'(<arruNullBytes : {b|<i>=><b>}; separator=", ">), result);
 result.ErrorCode := <sErrCode>;
 <MF(p=p, soMF=soMF, soMFM=soMFM, nUperMin=nUperMin, nUperMax=nUperMax)>
 
 <else>
-adaasn1rtl.encoding.acn.Acn_Dec_Int_ASCII_VarSize_NullTerminated(bs, <p>, adaasn1rtl.OctetBuffer'(<arruNullBytes : {b|<i>=><b>}; separator=", ">), result);
+adaasn1rtl.encoding.acn.Acn_Dec_Int_ASCII_VarSize_NullTerminated<sSsuffix>(bs, <p>, adaasn1rtl.OctetBuffer'(<arruNullBytes : {b|<i>=><b>}; separator=", ">), result);
 result.ErrorCode := <sErrCode>;
 
 <endif>
 >>
 
 
-ASCII_UINT_VarSize_NullTerminated_encode(p, sErrCode, soMF, soMFM, nUperMin, nUperMax, arruNullBytes) ::= "adaasn1rtl.encoding.acn.Acn_Enc_UInt_ASCII_VarSize_NullTerminated(bs, <MFen(soMF=soMF, soMFM=soMFM, p=p)>, adaasn1rtl.OctetBuffer'(<arruNullBytes : {b|<i>=><b>}; separator=\", \">));"
-ASCII_UINT_VarSize_NullTerminated_decode(p, sErrCode, soMF, soMFM, nUperMin, nUperMax, arruNullBytes) ::= <<
+ASCII_UINT_VarSize_NullTerminated_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, arruNullBytes) ::= "adaasn1rtl.encoding.acn.Acn_Enc_UInt_ASCII_VarSize_NullTerminated(bs, <MFen(soMF=soMF, soMFM=soMFM, p=p)>, adaasn1rtl.OctetBuffer'(<arruNullBytes : {b|<i>=><b>}; separator=\", \">));"
+ASCII_UINT_VarSize_NullTerminated_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, arruNullBytes) ::= <<
 <if(soMF)>
-adaasn1rtl.encoding.acn.Acn_Dec_UInt_ASCII_VarSize_NullTerminated(bs, mapFuncIntVal, adaasn1rtl.OctetBuffer'(<arruNullBytes : {b|<i>=><b>}; separator=", ">), result);
+adaasn1rtl.encoding.acn.Acn_Dec_UInt_ASCII_VarSize_NullTerminated<sSsuffix>(bs, mapFuncIntVal, adaasn1rtl.OctetBuffer'(<arruNullBytes : {b|<i>=><b>}; separator=", ">), result);
 result.ErrorCode := <sErrCode>;
 <MF(p=p, soMF=soMF, soMFM=soMFM, nUperMin=nUperMin, nUperMax=nUperMax)>
 
 <else>
-adaasn1rtl.encoding.acn.Acn_Dec_UInt_ASCII_VarSize_NullTerminated(bs, <p>, adaasn1rtl.OctetBuffer'(<arruNullBytes : {b|<i>=><b>}; separator=", ">), result);
+adaasn1rtl.encoding.acn.Acn_Dec_UInt_ASCII_VarSize_NullTerminated<sSsuffix>(bs, <p>, adaasn1rtl.OctetBuffer'(<arruNullBytes : {b|<i>=><b>}; separator=", ">), result);
 result.ErrorCode := <sErrCode>;
 
 <endif>
@@ -565,9 +565,9 @@ result.ErrorCode := <sErrCode>;
 
 
 
-Real_32_big_endian_encode(p, sErrCode) ::= "adaasn1rtl.encoding.acn.Acn_Enc_Real_IEEE754_32_big_endian(bs, <p>);"
-Real_32_big_endian_decode(p, sErrCode) ::= <<
-adaasn1rtl.encoding.acn.Acn_Dec_Real_IEEE754_32_big_endian(bs, <p>, result);
+Real_32_big_endian_encode(p, sSuffix, sErrCode) ::= "adaasn1rtl.encoding.acn.Acn_Enc_Real_IEEE754_32_big_endian(bs, <p>);"
+Real_32_big_endian_decode(p, sSuffix, sErrCode) ::= <<
+adaasn1rtl.encoding.acn.Acn_Dec_Real_IEEE754_32_big_endian<sSuffix>(bs, <p>, result);
 result.ErrorCode := <sErrCode>;
 >>
 
@@ -577,9 +577,9 @@ adaasn1rtl.encoding.acn.Acn_Dec_Real_IEEE754_64_big_endian(bs, <p>, result);
 result.ErrorCode := <sErrCode>;
 >>
 
-Real_32_little_endian_encode(p, sErrCode) ::= "adaasn1rtl.encoding.acn.Acn_Enc_Real_IEEE754_32_little_endian(bs, <p>);"
-Real_32_little_endian_decode(p, sErrCode) ::= <<
-adaasn1rtl.encoding.acn.Acn_Dec_Real_IEEE754_32_little_endian(bs, <p>, result);
+Real_32_little_endian_encode(p, sSuffix, sErrCode) ::= "adaasn1rtl.encoding.acn.Acn_Enc_Real_IEEE754_32_little_endian(bs, <p>);"
+Real_32_little_endian_decode(p, sSuffix, sErrCode) ::= <<
+adaasn1rtl.encoding.acn.Acn_Dec_Real_IEEE754_32_little_endian<sSuffix>(bs, <p>, result);
 result.ErrorCode := <sErrCode>;
 >>
 
@@ -1237,9 +1237,9 @@ PresenceDependency(v, sSeqPath, sAcc, sChildName) ::= <<
 
 
 
-SizeDependency(v, sCount, nMin, nMax, bCheckRange) ::= <<
+SizeDependency(v, sCount, nMin, nMax, bCheckRange, sTypedefName) ::= <<
 <v>_is_initialized := True;
-<v> := <rtlModuleName()>.Asn1UInt(<sCount>);
+<v> := <sTypedefName>(<sCount>);
 <if(bCheckRange)>
 result.success := <v> \>= <nMin> and <v> \<= <nMax>;
 

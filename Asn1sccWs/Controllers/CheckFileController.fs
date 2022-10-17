@@ -77,6 +77,7 @@ type CheckFileController (logger : ILogger<CheckFileController>) =
                 floatingPointSizeInBytes = 8I
                 target = None
                 streamingModeSupport = false
+                slim = false
                 renamePolicy = CommonTypes.EnumRenamePolicy.NoRenamePolicy
                 fieldPrefix = None
                 targetLanguages = []

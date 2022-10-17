@@ -806,6 +806,65 @@ flag BitStream_DecodeConstraintWholeNumber(BitStream* pBitStrm, asn1SccSint* v, 
 	return FALSE;
 }
 
+flag BitStream_DecodeConstraintWholeNumberInt8(BitStream* pBitStrm, int8_t* v, int8_t min, int8_t max)
+{
+    asn1SccSint bv;
+    flag ret;
+    ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, &bv, min, max);
+    *v = (int8_t)bv;
+    return ret;
+}
+
+flag BitStream_DecodeConstraintWholeNumberInt16(BitStream* pBitStrm, int16_t* v, int16_t min, int16_t max)
+{
+    asn1SccSint bv;
+    flag ret;
+    ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, &bv, min, max);
+    *v = (int16_t)bv;
+    return ret;
+}
+
+flag BitStream_DecodeConstraintWholeNumberInt32(BitStream* pBitStrm, int32_t* v, int32_t min, int32_t max)
+{
+    asn1SccSint bv;
+    flag ret;
+    ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, &bv, min, max);
+    *v = (int32_t)bv;
+    return ret;
+}
+
+
+flag BitStream_DecodeConstraintPosWholeNumberUInt8(BitStream* pBitStrm, uint8_t* v, uint8_t min, uint8_t max)
+{
+    asn1SccUint bv;
+    flag ret;
+    ret = BitStream_DecodeConstraintPosWholeNumber(pBitStrm, &bv, min, max);
+    *v = (uint8_t)bv;
+    return ret;
+}
+
+flag BitStream_DecodeConstraintPosWholeNumberUInt16(BitStream* pBitStrm, uint16_t* v, uint16_t min, uint16_t max)
+{
+    asn1SccUint bv;
+    flag ret;
+    ret = BitStream_DecodeConstraintPosWholeNumber(pBitStrm, &bv, min, max);
+    *v = (uint16_t)bv;
+    return ret;
+}
+
+
+flag BitStream_DecodeConstraintPosWholeNumberUInt32(BitStream* pBitStrm, uint32_t* v, uint32_t min, uint32_t max)
+{
+    asn1SccUint bv;
+    flag ret;
+    ret = BitStream_DecodeConstraintPosWholeNumber(pBitStrm, &bv, min, max);
+    *v = (uint32_t)bv;
+    return ret;
+}
+
+
+
+
 flag BitStream_DecodeConstraintPosWholeNumber(BitStream* pBitStrm, asn1SccUint* v, asn1SccUint min, asn1SccUint max)
 {
 	asn1SccUint uv;
@@ -1693,3 +1752,12 @@ void bitstream_push_data_if_required(BitStream* pStrm) {
 	}
 }
 #endif
+
+
+flag BitStream_DecodeReal_fp32(BitStream* pBitStrm, float* v)
+{
+	asn1Real rv;
+	flag ret = BitStream_DecodeReal(pBitStrm, &rv);
+	*v = (float)rv;
+	return ret;
+}

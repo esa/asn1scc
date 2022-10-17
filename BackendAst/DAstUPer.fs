@@ -78,6 +78,37 @@ let internal createUperFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (code
         }
     ret, ns
 
+let getIntDecFuncSuffix (r:Asn1AcnAst.AstRoot) uperRange =
+    match Asn1AcnAstUtilFunctions.getIntEncodingClassByUperRange r.args uperRange with
+    | Asn1AcnAst.ASN1SCC_Int8      _ -> "Int8" 
+    | Asn1AcnAst.ASN1SCC_Int16     _ -> "Int16"
+    | Asn1AcnAst.ASN1SCC_Int32     _ -> "Int32"
+    | Asn1AcnAst.ASN1SCC_Int64     _ -> ""
+    | Asn1AcnAst.ASN1SCC_Int       _ -> ""
+    | Asn1AcnAst.ASN1SCC_UInt8     _ -> "UInt8"
+    | Asn1AcnAst.ASN1SCC_UInt16    _ -> "UInt16"
+    | Asn1AcnAst.ASN1SCC_UInt32    _ -> "UInt32"
+    | Asn1AcnAst.ASN1SCC_UInt64    _ -> ""
+    | Asn1AcnAst.ASN1SCC_UInt      _ -> ""
+
+let castPp (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) codec pp uperRange encFuncBits =
+    match codec with 
+    | CommonTypes.Encode -> 
+        match Asn1AcnAstUtilFunctions.getIntEncodingClassByUperRange r.args uperRange with
+        | Asn1AcnAst.ASN1SCC_Int8      _ -> (lm.lg.castExpression pp (lm.typeDef.Declare_Integer()))
+        | Asn1AcnAst.ASN1SCC_Int16     _ -> (lm.lg.castExpression pp (lm.typeDef.Declare_Integer()))
+//        | Asn1AcnAst.ASN1SCC_Int32     _ when r.args.integerSizeInBytes <> 4I -> if encFuncBits = 32 then pp  else (lm.lg.castExpression pp (lm.typeDef.Declare_Integer()))
+        | Asn1AcnAst.ASN1SCC_Int32     _ -> if encFuncBits = 32 && r.args.integerSizeInBytes = 4I then pp  else (lm.lg.castExpression pp (lm.typeDef.Declare_Integer()))
+        | Asn1AcnAst.ASN1SCC_Int64     _ -> if encFuncBits = 64 then pp  else (lm.lg.castExpression pp (lm.typeDef.Declare_Integer()))
+        | Asn1AcnAst.ASN1SCC_Int       _ -> pp
+        | Asn1AcnAst.ASN1SCC_UInt8     _ -> (lm.lg.castExpression pp (lm.typeDef.Declare_PosInteger())) 
+        | Asn1AcnAst.ASN1SCC_UInt16    _ -> (lm.lg.castExpression pp (lm.typeDef.Declare_PosInteger())) 
+//        | Asn1AcnAst.ASN1SCC_UInt32    _ when r.args.integerSizeInBytes <> 4I -> (lm.lg.castExpression pp (lm.typeDef.Declare_PosInteger())) 
+        | Asn1AcnAst.ASN1SCC_UInt32    _ -> if encFuncBits = 32 && r.args.integerSizeInBytes = 4I then pp  else (lm.lg.castExpression pp (lm.typeDef.Declare_PosInteger())) 
+        | Asn1AcnAst.ASN1SCC_UInt64    _ -> if encFuncBits = 64 then pp  else (lm.lg.castExpression pp (lm.typeDef.Declare_PosInteger())) 
+        | Asn1AcnAst.ASN1SCC_UInt      _ -> pp
+    | CommonTypes.Decode -> pp
+
 
 let getIntfuncBodyByCons (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:CommonTypes.Codec) uperRange errLoc isUnsigned (cons: IntegerTypeConstraint list) (allCons: IntegerTypeConstraint list) (errCode:ErroCode) (p:CallerScope) = 
     let pp = match codec with CommonTypes.Encode -> lm.lg.getValue p.arg | CommonTypes.Decode -> lm.lg.getPointer p.arg
@@ -98,13 +129,15 @@ let getIntfuncBodyByCons (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Commo
         //| None  ->  None
         //| Some expFunc -> Some (expFunc p)
         None
+    let sSsuffix = getIntDecFuncSuffix r uperRange 
+    let castPp encFuncBits = castPp r lm codec pp uperRange encFuncBits
 
     let IntBod uperRange extCon =
         match uperRange with
       //| Concrete(min, max) when min=max                    -> IntNoneRequired (p.arg.getValue l) min   errCode.errCodeName codec, false, (match l with C -> true | Ada -> false)
         | Concrete(min, max) when min=max                    -> IntNoneRequired (lm.lg.getValue p.arg) min   errCode.errCodeName codec, codec=Decode, true
-        | Concrete(min, max) when min>=0I && (not extCon)    -> IntFullyConstraintPos pp min max (GetNumberOfBitsForNonNegativeInteger (max-min))  errCode.errCodeName codec, false, false
-        | Concrete(min, max)                                 -> IntFullyConstraint pp min max (GetNumberOfBitsForNonNegativeInteger (max-min))  errCode.errCodeName codec, false, false
+        | Concrete(min, max) when min>=0I && (not extCon)    -> IntFullyConstraintPos (castPp ((int r.args.integerSizeInBytes)*8)) min max (GetNumberOfBitsForNonNegativeInteger (max-min))  sSsuffix errCode.errCodeName codec, false, false
+        | Concrete(min, max)                                 -> IntFullyConstraint (castPp ((int r.args.integerSizeInBytes)*8)) min max (GetNumberOfBitsForNonNegativeInteger (max-min))  sSsuffix errCode.errCodeName codec, false, false
         | PosInf(a)  when a>=0I && (not extCon)  -> IntSemiConstraintPos pp a  errCode.errCodeName codec, false, false
         | PosInf(a)               -> IntSemiConstraint pp a  errCode.errCodeName codec, false, false
         | NegInf(max)             -> IntUnconstraintMax pp max checkExp errCode.errCodeName codec, false, false
@@ -142,7 +175,7 @@ let getIntfuncBodyByCons (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Commo
 
 let createIntegerFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Integer) (typeDefinition:TypeDefintionOrReference) (baseTypeUperFunc : UPerFunction option) (isValidFunc: IsValidFunction option) (us:State)  =
     let funcBody (errCode:ErroCode) (p:CallerScope) = 
-        getIntfuncBodyByCons r lm codec o.uperRange t.Location o.isUnsigned o.cons o.AllCons errCode p
+        getIntfuncBodyByCons r lm codec o.uperRange t.Location (o.getClass r.args) o.cons o.AllCons errCode p
     let soSparkAnnotations = Some(sparkAnnotations lm (lm.lg.getLongTypedefName typeDefinition) codec)
     createUperFunction r lm codec t typeDefinition baseTypeUperFunc  isValidFunc  (fun e p -> funcBody e p) soSparkAnnotations us
 
@@ -158,11 +191,21 @@ let createBooleanFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Comm
         
     createUperFunction r lm codec t typeDefinition baseTypeUperFunc  isValidFunc  (fun e p -> Some (funcBody e p)) soSparkAnnotations us
 
+let castRPp  = DAstEqual.castRPp
+
 let createRealFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Real) (typeDefinition:TypeDefintionOrReference) (baseTypeUperFunc : UPerFunction option) (isValidFunc: IsValidFunction option) (us:State)  =
+    let sSuffix =
+        match o.getClass r.args with
+        | ASN1SCC_REAL   -> ""
+        | ASN1SCC_FP32   -> "_fp32"
+        | ASN1SCC_FP64   -> ""
+
+
     let funcBody (errCode:ErroCode) (p:CallerScope) = 
         let pp = match codec with CommonTypes.Encode -> lm.lg.getValue p.arg | CommonTypes.Decode -> lm.lg.getPointer p.arg
+        let castPp = castRPp lm codec (o.getClass r.args) pp 
         let Real         = lm.uper.Real
-        let funcBodyContent = Real pp errCode.errCodeName codec
+        let funcBodyContent = Real castPp sSuffix errCode.errCodeName codec
         {UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = []; bValIsUnReferenced=false; bBsIsUnReferenced=false}    
     let soSparkAnnotations = Some(sparkAnnotations lm (lm.lg.getLongTypedefName typeDefinition) codec)
     createUperFunction r lm codec t typeDefinition baseTypeUperFunc  isValidFunc  (fun e p -> Some (funcBody e p)) soSparkAnnotations us

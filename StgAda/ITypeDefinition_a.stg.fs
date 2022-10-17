@@ -23,6 +23,26 @@ type ITypeDefinition_a() =
             header_a.Declare_Integer  () 
         override this.Declare_PosInteger  () =
             header_a.Declare_PosInteger  () 
+        override this.Declare_Int8  () =
+            header_a.Declare_Int8  () 
+        override this.Declare_UInt8  () =
+            header_a.Declare_UInt8  () 
+        override this.Declare_Int16  () =
+            header_a.Declare_Int16  () 
+        override this.Declare_UInt16  () =
+            header_a.Declare_UInt16  () 
+        override this.Declare_Int32  () =
+            header_a.Declare_Int32  () 
+        override this.Declare_UInt32  () =
+            header_a.Declare_UInt32  () 
+        override this.Declare_Int64  () =
+            header_a.Declare_Int64  () 
+        override this.Declare_UInt64  () =
+            header_a.Declare_UInt64  () 
+        override this.Declare_Real32  () =
+            header_a.Declare_Real32  () 
+        override this.Declare_Real64  () =
+            header_a.Declare_Real64  () 
         override this.Declare_Boolean  () =
             header_a.Declare_Boolean  () 
         override this.Declare_Real  () =

@@ -374,6 +374,24 @@ type BigIntegerUperRange = uperRange<BigInteger>
 type DoubleUperRange = uperRange<Double>
 type UInt32UperRange = uperRange<uint32>
 
+type IntegerClass =
+    | ASN1SCC_Int8      of BigInteger*BigInteger 
+    | ASN1SCC_Int16     of BigInteger*BigInteger
+    | ASN1SCC_Int32     of BigInteger*BigInteger
+    | ASN1SCC_Int64     of BigInteger*BigInteger
+    | ASN1SCC_Int       of BigInteger*BigInteger
+    | ASN1SCC_UInt8     of BigInteger*BigInteger
+    | ASN1SCC_UInt16    of BigInteger*BigInteger
+    | ASN1SCC_UInt32    of BigInteger*BigInteger
+    | ASN1SCC_UInt64    of BigInteger*BigInteger
+    | ASN1SCC_UInt      of BigInteger*BigInteger
+
+type RealClass =
+    | ASN1SCC_REAL
+    | ASN1SCC_FP32
+    | ASN1SCC_FP64
+
+
 type Integer = {
     acnProperties       : IntegerAcnProperties
     cons                : IntegerTypeConstraint list

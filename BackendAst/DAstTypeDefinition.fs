@@ -13,11 +13,29 @@ open OutDirectories
 open Language
 
 
+let getIntererTypeByClass (lm:LanguageMacros) intClass = 
+    match intClass with
+    | ASN1SCC_Int8   (_)   -> lm.typeDef.Declare_Int8
+    | ASN1SCC_Int16  (_)   -> lm.typeDef.Declare_Int16
+    | ASN1SCC_Int32  (_)   -> lm.typeDef.Declare_Int32
+    | ASN1SCC_Int64  (_)   -> lm.typeDef.Declare_Int64
+    | ASN1SCC_Int    (_)   -> lm.typeDef.Declare_Integer
+    | ASN1SCC_UInt8  (_)   -> lm.typeDef.Declare_UInt8
+    | ASN1SCC_UInt16 (_)   -> lm.typeDef.Declare_UInt16
+    | ASN1SCC_UInt32 (_)   -> lm.typeDef.Declare_UInt32
+    | ASN1SCC_UInt64 (_)   -> lm.typeDef.Declare_UInt64
+    | ASN1SCC_UInt   (_)   -> lm.typeDef.Declare_PosInteger
+
+let getRealTypeByClass (lm:LanguageMacros) realClass = 
+    match realClass with
+    | ASN1SCC_REAL   -> lm.typeDef.Declare_Real
+    | ASN1SCC_FP32   -> lm.typeDef.Declare_Real32
+    | ASN1SCC_FP64   -> lm.typeDef.Declare_Real64
 
     
 let createInteger (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAst.Asn1Type)  (o:Asn1AcnAst.Integer)   (us:State) =
-    let declare_IntegerNoRTL            = lm.typeDef.Declare_IntegerNoRTL
-    let declare_PosIntegerNoRTL         = lm.typeDef.Declare_PosIntegerNoRTL
+    let declare_Integer = getIntererTypeByClass lm (o.getClass r.args)
+
     let rtlModuleName                   = if lm.typeDef.rtlModuleName().IsEmptyOrNull then None else (Some (lm.typeDef.rtlModuleName ()))
 
     let defineSubType                   = lm.typeDef.Define_SubType 
@@ -34,28 +52,28 @@ let createInteger (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAst.Asn1T
     let td = lm.lg.typeDef o.typeDef
     match td.kind with
     | PrimitiveNewTypeDefinition              -> //TypeDefinition {TypeDefinition.typedefName=td.typeName; (*programUnitName = Some programUnit;*) typedefBody = (fun () -> typedefBody); baseType= None}
-        let baseType = if o.isUnsigned then declare_PosIntegerNoRTL() else declare_IntegerNoRTL()
-        let typedefBody = defineSubType  td.typeName rtlModuleName baseType (getNewRange rtlModuleName baseType) None
+        let baseType = declare_Integer()
+        let typedefBody = defineSubType  td.typeName None baseType (getNewRange None baseType) None
         Some typedefBody
     | PrimitiveNewSubTypeDefinition subDef     -> 
-        let rec hasSameSignWithBase (t:Asn1AcnAst.Asn1Type) =
+        let rec hasSameClasWithBase (t:Asn1AcnAst.Asn1Type) =
             match t.inheritInfo with
             | None  -> false
             | Some inhInf ->
                 let baseMod = r.GetModuleByName inhInf.modName.AsLoc
                 let baseTas = baseMod.GetTypeAssignmentByName inhInf.tasName.AsLoc r
                 match  baseTas.Type.Kind with
-                | Asn1AcnAst.Integer bo -> bo.isUnsigned = o.isUnsigned
-                | Asn1AcnAst.ReferenceType br -> hasSameSignWithBase br.resolvedType
+                | Asn1AcnAst.Integer bo -> bo.getClass r.args = o.getClass r.args
+                | Asn1AcnAst.ReferenceType br -> hasSameClasWithBase br.resolvedType
                 | _                           -> false
-        match hasSameSignWithBase t with
+        match hasSameClasWithBase t with
         | true  ->
             let otherProgramUnit = if td.programUnit = subDef.programUnit then None else (Some subDef.programUnit)
             let typedefBody = defineSubType td.typeName otherProgramUnit subDef.typeName (getNewRange otherProgramUnit subDef.typeName) None
             Some typedefBody
         | false     ->
-            let baseType = if o.isUnsigned then declare_PosIntegerNoRTL() else declare_IntegerNoRTL()
-            let typedefBody = defineSubType td.typeName rtlModuleName baseType (getNewRange rtlModuleName baseType) None
+            let baseType = declare_Integer()
+            let typedefBody = defineSubType td.typeName None baseType (getNewRange None baseType) None
             Some typedefBody
     | PrimitiveReference2RTL                  -> None
     | PrimitiveReference2OtherType            -> None
@@ -79,7 +97,8 @@ let createBoolean (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAst.Asn1T
     | PrimitiveReference2OtherType            -> None
 
 let createReal (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAst.Asn1Type)  (o:Asn1AcnAst.Real)   (us:State) =
-    let getRtlTypeName  = lm.typeDef.Declare_RealNoRTL 
+    //let getRtlTypeName  = lm.typeDef.Declare_RealNoRTL
+    let getRtlTypeName  = getRealTypeByClass lm (o.getClass r.args)
     let defineSubType = lm.typeDef.Define_SubType
     let rtlModuleName                   = if lm.typeDef.rtlModuleName().IsEmptyOrNull then None else (Some (lm.typeDef.rtlModuleName ()))
 
@@ -87,7 +106,7 @@ let createReal (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAst.Asn1Type
     match td.kind with
     | PrimitiveNewTypeDefinition              -> 
         let baseType = getRtlTypeName()
-        let typedefBody = defineSubType td.typeName rtlModuleName baseType None None
+        let typedefBody = defineSubType td.typeName None baseType None None
         Some typedefBody
     | PrimitiveNewSubTypeDefinition subDef     -> 
         let otherProgramUnit = if td.programUnit = subDef.programUnit then None else (Some subDef.programUnit)

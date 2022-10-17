@@ -34,6 +34,7 @@ type CliArguments =
     | [<Unique; AltCommandLine("-ACND")>] ACND  
     | [<Unique; AltCommandLine("-wordSize")>] Word_Size  of wordSize:int
     | [<Unique; AltCommandLine("-fpWordSize")>]  Fp_Word_Size of fpWordSize:int
+    | [<Unique; AltCommandLine("-slim")>] Slim
     | [<Unique; AltCommandLine("-t")>]   Target of Targets
     | [<Unique; AltCommandLine("-v")>]   Version
     | [<Unique; AltCommandLine("-asn1")>]   Debug_Asn1 of string option
@@ -87,6 +88,7 @@ with
             | Debug_Asn1  _     -> "Prints all input ASN.1 grammars in a single module/single file and with parameterized types removed. Used for debugging purposes"
             | Word_Size _       -> "Defines the size of asn1SccSint and asn1SccUint types. Valid values are 8 bytes (default) and 4 bytes. If you pass 4 then you should compile the C code -DWORD_SIZE=4. (Applicable only to C.)"
             | Fp_Word_Size _    -> "Defines the size of the REAL type. Valid values are 8 bytes (default) which corresponds to double and 4 bytes which corresponds to float. If you pass 4 then you should compile the C code -DFP_WORD_SIZE=4. (Applicable only to C.)"
+            | Slim              -> "Generate Integer and Real types based on the ASN.1 range constraints and/or on ACN encoding properties. E.g. MyInt ::=INTEGER (0..255) becomes a uint8_t instead of asn1SccUint."
             | Target _          -> """Specify Ada configuration profile. (Applicable only to Ada.)"""
 
             | Mapping_Functions_Module _    -> "The name of Ada module or name of C header file (without extension) containing the definitions of mapping functions"
@@ -97,7 +99,7 @@ let printVersion () =
     //let assembly = System.Reflection.Assembly.GetExecutingAssembly();
     //let fvi = System.Diagnostics.FileVersionInfo.GetVersionInfo(assembly.Location);
     //let version = fvi.FileVersion;
-    let version = "4.3.1.1"
+    let version = "4.3.1.3"
     printfn "asn1scc version %s\n" version
     ()
 
@@ -172,6 +174,7 @@ let checkArguement arg =
         | 1 -> ()
         | 4 -> ()
         | _ -> raise (UserException ("invalid value for argument -customStgAstVersion. Currently only values 1 and 4 are supported"))
+    | Slim -> ()
     | IcdUper  outHtmlFile      -> checkOutFileName outHtmlFile ".html" "-icdUper"
     | CustomIcdUper  comFile    -> checkCompositeFile comFile "-customIcdUper" ".html"
     | IcdAcn  outHtmlFile       -> checkOutFileName outHtmlFile ".html" "-icdAcn"
@@ -228,6 +231,7 @@ let constructCommandLineSettings args (parserResults: ParseResults<CliArguments>
         floatingPointSizeInBytes =
             let fws = parserResults.GetResult(<@Fp_Word_Size@>, defaultValue = 8)
             BigInteger fws
+        slim = parserResults.Contains(<@Slim@>)
         target = parserResults.TryGetResult(<@Target@>)
         streamingModeSupport = parserResults.Contains<@ Streaming_Mode @>
         renamePolicy = 

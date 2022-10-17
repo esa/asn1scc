@@ -1061,6 +1061,12 @@ flag Acn_Dec_Real_IEEE754_32_big_endian(BitStream* pBitStrm, asn1Real* pRealValu
 	Acn_dec_real_big_endian(float)
 }
 
+flag Acn_Dec_Real_IEEE754_32_big_endian_fp32(BitStream* pBitStrm, float* pRealValue)
+{
+	Acn_dec_real_big_endian(float)
+}
+
+
 void Acn_Enc_Real_IEEE754_64_big_endian(BitStream* pBitStrm, asn1Real realValue)
 {
 	Acn_enc_real_big_endian(double)
@@ -1112,6 +1118,11 @@ void Acn_Enc_Real_IEEE754_32_little_endian(BitStream* pBitStrm, asn1Real realVal
 }
 
 flag Acn_Dec_Real_IEEE754_32_little_endian(BitStream* pBitStrm, asn1Real* pRealValue)
+{
+	Acn_dec_real_little_endian(float)
+}
+
+flag Acn_Dec_Real_IEEE754_32_little_endian_fp32(BitStream* pBitStrm, float* pRealValue)
 {
 	Acn_dec_real_little_endian(float)
 }
@@ -1173,7 +1184,7 @@ void Acn_Enc_String_Ascii_External_Field_Determinant(BitStream* pBitStrm, asn1Sc
 
 void Acn_Enc_String_Ascii_Internal_Field_Determinant(BitStream* pBitStrm, asn1SccSint max, asn1SccSint min, const char* strVal)
 {
-	int strLen = strlen(strVal);
+	int strLen = (int)strlen(strVal);
 	BitStream_EncodeConstraintWholeNumber(pBitStrm, strLen <= max ? strLen : max, min, max);
 	Acn_Enc_String_Ascii_private(pBitStrm, max, strVal);
 }
@@ -1211,7 +1222,7 @@ void Acn_Enc_String_CharIndex_External_Field_Determinant(BitStream* pBitStrm, as
 
 void Acn_Enc_String_CharIndex_Internal_Field_Determinant(BitStream* pBitStrm, asn1SccSint max, byte allowedCharSet[], int charSetSize, asn1SccSint min, const char* strVal)
 {
-	int strLen = strlen(strVal);
+	int strLen = (int)strlen(strVal);
 	BitStream_EncodeConstraintWholeNumber(pBitStrm, strLen <= max ? strLen : max, min, max);
 	Acn_Enc_String_CharIndex_private(pBitStrm, max, allowedCharSet, charSetSize, strVal);
 }
@@ -1251,7 +1262,7 @@ void Acn_Enc_IA5String_CharIndex_Internal_Field_Determinant(BitStream* pBitStrm,
 		0x64,0x65,0x66,0x67,0x68,0x69,0x6A,0x6B,0x6C,0x6D,
 		0x6E,0x6F,0x70,0x71,0x72,0x73,0x74,0x75,0x76,0x77,
 		0x78,0x79,0x7A,0x7B,0x7C,0x7D,0x7E,0x7F };
-	int strLen = strlen(strVal);
+	int strLen = (int)strlen(strVal);
 	BitStream_EncodeConstraintWholeNumber(pBitStrm, strLen <= max ? strLen : max, min, max);
 	Acn_Enc_String_CharIndex_private(pBitStrm, max, allowedCharSet, 128, strVal);
 }
@@ -1503,6 +1514,590 @@ asn1SccSint milbus_encode(asn1SccSint val)
 asn1SccSint milbus_decode(asn1SccSint val)
 {
 	return val == 0 ? 32 : val;
+}
+
+
+flag Acn_Dec_Int_PositiveInteger_ConstSizeUInt8(BitStream* pBitStrm, uint8_t* pIntVal, int encodedSizeInBits) {
+	asn1SccUint v;
+	flag ret = Acn_Dec_Int_PositiveInteger_ConstSize(pBitStrm, &v, encodedSizeInBits);
+	*pIntVal = (uint8_t)v;
+	return ret;
+}
+
+
+flag Acn_Dec_Int_PositiveInteger_ConstSizeUInt16(BitStream* pBitStrm, uint16_t* pIntVal, int encodedSizeInBits) {
+	asn1SccUint v;
+	flag ret = Acn_Dec_Int_PositiveInteger_ConstSize(pBitStrm, &v, encodedSizeInBits);
+	*pIntVal = (uint16_t)v;
+	return ret;
+}
+
+
+flag Acn_Dec_Int_PositiveInteger_ConstSizeUInt32(BitStream* pBitStrm, uint32_t* pIntVal, int encodedSizeInBits) {
+	asn1SccUint v;
+	flag ret = Acn_Dec_Int_PositiveInteger_ConstSize(pBitStrm, &v, encodedSizeInBits);
+	*pIntVal = (uint32_t)v;
+	return ret;
+}
+
+
+flag Acn_Dec_Int_PositiveInteger_ConstSize_8UInt8(BitStream* pBitStrm, uint8_t* pIntVal) {
+	asn1SccUint v;
+	flag ret = Acn_Dec_Int_PositiveInteger_ConstSize_8(pBitStrm, &v);
+	*pIntVal = (uint8_t)v;
+	return ret;
+}
+
+
+flag Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_16UInt16(BitStream* pBitStrm, uint16_t* pIntVal) {
+	asn1SccUint v;
+	flag ret = Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_16(pBitStrm, &v);
+	*pIntVal = (uint16_t)v;
+	return ret;
+}
+
+
+flag Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_16UInt8(BitStream* pBitStrm, uint8_t* pIntVal) {
+	asn1SccUint v;
+	flag ret = Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_16(pBitStrm, &v);
+	*pIntVal = (uint8_t)v;
+	return ret;
+}
+
+
+flag Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_32UInt32(BitStream* pBitStrm, uint32_t* pIntVal) {
+	asn1SccUint v;
+	flag ret = Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_32(pBitStrm, &v);
+	*pIntVal = (uint32_t)v;
+	return ret;
+}
+
+
+flag Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_32UInt16(BitStream* pBitStrm, uint16_t* pIntVal) {
+	asn1SccUint v;
+	flag ret = Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_32(pBitStrm, &v);
+	*pIntVal = (uint16_t)v;
+	return ret;
+}
+
+
+flag Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_32UInt8(BitStream* pBitStrm, uint8_t* pIntVal) {
+	asn1SccUint v;
+	flag ret = Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_32(pBitStrm, &v);
+	*pIntVal = (uint8_t)v;
+	return ret;
+}
+
+
+flag Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_64UInt32(BitStream* pBitStrm, uint32_t* pIntVal) {
+	asn1SccUint v;
+	flag ret = Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_64(pBitStrm, &v);
+	*pIntVal = (uint32_t)v;
+	return ret;
+}
+
+
+flag Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_64UInt16(BitStream* pBitStrm, uint16_t* pIntVal) {
+	asn1SccUint v;
+	flag ret = Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_64(pBitStrm, &v);
+	*pIntVal = (uint16_t)v;
+	return ret;
+}
+
+
+flag Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_64UInt8(BitStream* pBitStrm, uint8_t* pIntVal) {
+	asn1SccUint v;
+	flag ret = Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_64(pBitStrm, &v);
+	*pIntVal = (uint8_t)v;
+	return ret;
+}
+
+
+flag Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_16UInt16(BitStream* pBitStrm, uint16_t* pIntVal) {
+	asn1SccUint v;
+	flag ret = Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_16(pBitStrm, &v);
+	*pIntVal = (uint16_t)v;
+	return ret;
+}
+
+
+flag Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_16UInt8(BitStream* pBitStrm, uint8_t* pIntVal) {
+	asn1SccUint v;
+	flag ret = Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_16(pBitStrm, &v);
+	*pIntVal = (uint8_t)v;
+	return ret;
+}
+
+
+flag Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_32UInt32(BitStream* pBitStrm, uint32_t* pIntVal) {
+	asn1SccUint v;
+	flag ret = Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_32(pBitStrm, &v);
+	*pIntVal = (uint32_t)v;
+	return ret;
+}
+
+
+flag Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_32UInt16(BitStream* pBitStrm, uint16_t* pIntVal) {
+	asn1SccUint v;
+	flag ret = Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_32(pBitStrm, &v);
+	*pIntVal = (uint16_t)v;
+	return ret;
+}
+
+
+flag Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_32UInt8(BitStream* pBitStrm, uint8_t* pIntVal) {
+	asn1SccUint v;
+	flag ret = Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_32(pBitStrm, &v);
+	*pIntVal = (uint8_t)v;
+	return ret;
+}
+
+
+flag Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_64UInt32(BitStream* pBitStrm, uint32_t* pIntVal) {
+	asn1SccUint v;
+	flag ret = Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_64(pBitStrm, &v);
+	*pIntVal = (uint32_t)v;
+	return ret;
+}
+
+
+flag Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_64UInt16(BitStream* pBitStrm, uint16_t* pIntVal) {
+	asn1SccUint v;
+	flag ret = Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_64(pBitStrm, &v);
+	*pIntVal = (uint16_t)v;
+	return ret;
+}
+
+
+flag Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_64UInt8(BitStream* pBitStrm, uint8_t* pIntVal) {
+	asn1SccUint v;
+	flag ret = Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_64(pBitStrm, &v);
+	*pIntVal = (uint8_t)v;
+	return ret;
+}
+
+
+flag Acn_Dec_Int_PositiveInteger_VarSize_LengthEmbeddedUInt8(BitStream* pBitStrm, uint8_t* pIntVal) {
+	asn1SccUint v;
+	flag ret = Acn_Dec_Int_PositiveInteger_VarSize_LengthEmbedded(pBitStrm, &v);
+	*pIntVal = (uint8_t)v;
+	return ret;
+}
+
+
+flag Acn_Dec_Int_PositiveInteger_VarSize_LengthEmbeddedUInt16(BitStream* pBitStrm, uint16_t* pIntVal) {
+	asn1SccUint v;
+	flag ret = Acn_Dec_Int_PositiveInteger_VarSize_LengthEmbedded(pBitStrm, &v);
+	*pIntVal = (uint16_t)v;
+	return ret;
+}
+
+
+flag Acn_Dec_Int_PositiveInteger_VarSize_LengthEmbeddedUInt32(BitStream* pBitStrm, uint32_t* pIntVal) {
+	asn1SccUint v;
+	flag ret = Acn_Dec_Int_PositiveInteger_VarSize_LengthEmbedded(pBitStrm, &v);
+	*pIntVal = (uint32_t)v;
+	return ret;
+}
+
+
+flag Acn_Dec_Int_TwosComplement_ConstSizeInt8(BitStream* pBitStrm, int8_t* pIntVal, int encodedSizeInBits) {
+	asn1SccSint v;
+	flag ret = Acn_Dec_Int_TwosComplement_ConstSize(pBitStrm, &v, encodedSizeInBits);
+	*pIntVal = (int8_t)v;
+	return ret;
+}
+
+
+flag Acn_Dec_Int_TwosComplement_ConstSizeInt16(BitStream* pBitStrm, int16_t* pIntVal, int encodedSizeInBits) {
+	asn1SccSint v;
+	flag ret = Acn_Dec_Int_TwosComplement_ConstSize(pBitStrm, &v, encodedSizeInBits);
+	*pIntVal = (int16_t)v;
+	return ret;
+}
+
+
+flag Acn_Dec_Int_TwosComplement_ConstSizeInt32(BitStream* pBitStrm, int32_t* pIntVal, int encodedSizeInBits) {
+	asn1SccSint v;
+	flag ret = Acn_Dec_Int_TwosComplement_ConstSize(pBitStrm, &v, encodedSizeInBits);
+	*pIntVal = (int32_t)v;
+	return ret;
+}
+
+
+flag Acn_Dec_Int_TwosComplement_ConstSize_8Int8(BitStream* pBitStrm, int8_t* pIntVal) {
+	asn1SccSint v;
+	flag ret = Acn_Dec_Int_TwosComplement_ConstSize_8(pBitStrm, &v);
+	*pIntVal = (int8_t)v;
+	return ret;
+}
+
+
+flag Acn_Dec_Int_TwosComplement_ConstSize_big_endian_16Int16(BitStream* pBitStrm, int16_t* pIntVal) {
+	asn1SccSint v;
+	flag ret = Acn_Dec_Int_TwosComplement_ConstSize_big_endian_16(pBitStrm, &v);
+	*pIntVal = (int16_t)v;
+	return ret;
+}
+
+
+flag Acn_Dec_Int_TwosComplement_ConstSize_big_endian_16Int8(BitStream* pBitStrm, int8_t* pIntVal) {
+	asn1SccSint v;
+	flag ret = Acn_Dec_Int_TwosComplement_ConstSize_big_endian_16(pBitStrm, &v);
+	*pIntVal = (int8_t)v;
+	return ret;
+}
+
+
+flag Acn_Dec_Int_TwosComplement_ConstSize_big_endian_32Int32(BitStream* pBitStrm, int32_t* pIntVal) {
+	asn1SccSint v;
+	flag ret = Acn_Dec_Int_TwosComplement_ConstSize_big_endian_32(pBitStrm, &v);
+	*pIntVal = (int32_t)v;
+	return ret;
+}
+
+
+flag Acn_Dec_Int_TwosComplement_ConstSize_big_endian_32Int16(BitStream* pBitStrm, int16_t* pIntVal) {
+	asn1SccSint v;
+	flag ret = Acn_Dec_Int_TwosComplement_ConstSize_big_endian_32(pBitStrm, &v);
+	*pIntVal = (int16_t)v;
+	return ret;
+}
+
+
+flag Acn_Dec_Int_TwosComplement_ConstSize_big_endian_32Int8(BitStream* pBitStrm, int8_t* pIntVal) {
+	asn1SccSint v;
+	flag ret = Acn_Dec_Int_TwosComplement_ConstSize_big_endian_32(pBitStrm, &v);
+	*pIntVal = (int8_t)v;
+	return ret;
+}
+
+
+flag Acn_Dec_Int_TwosComplement_ConstSize_big_endian_64Int32(BitStream* pBitStrm, int32_t* pIntVal) {
+	asn1SccSint v;
+	flag ret = Acn_Dec_Int_TwosComplement_ConstSize_big_endian_64(pBitStrm, &v);
+	*pIntVal = (int32_t)v;
+	return ret;
+}
+
+
+flag Acn_Dec_Int_TwosComplement_ConstSize_big_endian_64Int16(BitStream* pBitStrm, int16_t* pIntVal) {
+	asn1SccSint v;
+	flag ret = Acn_Dec_Int_TwosComplement_ConstSize_big_endian_64(pBitStrm, &v);
+	*pIntVal = (int16_t)v;
+	return ret;
+}
+
+
+flag Acn_Dec_Int_TwosComplement_ConstSize_big_endian_64Int8(BitStream* pBitStrm, int8_t* pIntVal) {
+	asn1SccSint v;
+	flag ret = Acn_Dec_Int_TwosComplement_ConstSize_big_endian_64(pBitStrm, &v);
+	*pIntVal = (int8_t)v;
+	return ret;
+}
+
+
+flag Acn_Dec_Int_TwosComplement_ConstSize_little_endian_16Int16(BitStream* pBitStrm, int16_t* pIntVal) {
+	asn1SccSint v;
+	flag ret = Acn_Dec_Int_TwosComplement_ConstSize_little_endian_16(pBitStrm, &v);
+	*pIntVal = (int16_t)v;
+	return ret;
+}
+
+
+flag Acn_Dec_Int_TwosComplement_ConstSize_little_endian_16Int8(BitStream* pBitStrm, int8_t* pIntVal) {
+	asn1SccSint v;
+	flag ret = Acn_Dec_Int_TwosComplement_ConstSize_little_endian_16(pBitStrm, &v);
+	*pIntVal = (int8_t)v;
+	return ret;
+}
+
+
+flag Acn_Dec_Int_TwosComplement_ConstSize_little_endian_32Int32(BitStream* pBitStrm, int32_t* pIntVal) {
+	asn1SccSint v;
+	flag ret = Acn_Dec_Int_TwosComplement_ConstSize_little_endian_32(pBitStrm, &v);
+	*pIntVal = (int32_t)v;
+	return ret;
+}
+
+
+flag Acn_Dec_Int_TwosComplement_ConstSize_little_endian_32Int16(BitStream* pBitStrm, int16_t* pIntVal) {
+	asn1SccSint v;
+	flag ret = Acn_Dec_Int_TwosComplement_ConstSize_little_endian_32(pBitStrm, &v);
+	*pIntVal = (int16_t)v;
+	return ret;
+}
+
+
+flag Acn_Dec_Int_TwosComplement_ConstSize_little_endian_32Int8(BitStream* pBitStrm, int8_t* pIntVal) {
+	asn1SccSint v;
+	flag ret = Acn_Dec_Int_TwosComplement_ConstSize_little_endian_32(pBitStrm, &v);
+	*pIntVal = (int8_t)v;
+	return ret;
+}
+
+
+flag Acn_Dec_Int_TwosComplement_ConstSize_little_endian_64Int32(BitStream* pBitStrm, int32_t* pIntVal) {
+	asn1SccSint v;
+	flag ret = Acn_Dec_Int_TwosComplement_ConstSize_little_endian_64(pBitStrm, &v);
+	*pIntVal = (int32_t)v;
+	return ret;
+}
+
+
+flag Acn_Dec_Int_TwosComplement_ConstSize_little_endian_64Int16(BitStream* pBitStrm, int16_t* pIntVal) {
+	asn1SccSint v;
+	flag ret = Acn_Dec_Int_TwosComplement_ConstSize_little_endian_64(pBitStrm, &v);
+	*pIntVal = (int16_t)v;
+	return ret;
+}
+
+
+flag Acn_Dec_Int_TwosComplement_ConstSize_little_endian_64Int8(BitStream* pBitStrm, int8_t* pIntVal) {
+	asn1SccSint v;
+	flag ret = Acn_Dec_Int_TwosComplement_ConstSize_little_endian_64(pBitStrm, &v);
+	*pIntVal = (int8_t)v;
+	return ret;
+}
+
+
+flag Acn_Dec_Int_TwosComplement_VarSize_LengthEmbeddedInt8(BitStream* pBitStrm, int8_t* pIntVal) {
+	asn1SccSint v;
+	flag ret = Acn_Dec_Int_TwosComplement_VarSize_LengthEmbedded(pBitStrm, &v);
+	*pIntVal = (int8_t)v;
+	return ret;
+}
+
+
+flag Acn_Dec_Int_TwosComplement_VarSize_LengthEmbeddedInt16(BitStream* pBitStrm, int16_t* pIntVal) {
+	asn1SccSint v;
+	flag ret = Acn_Dec_Int_TwosComplement_VarSize_LengthEmbedded(pBitStrm, &v);
+	*pIntVal = (int16_t)v;
+	return ret;
+}
+
+
+flag Acn_Dec_Int_TwosComplement_VarSize_LengthEmbeddedInt32(BitStream* pBitStrm, int32_t* pIntVal) {
+	asn1SccSint v;
+	flag ret = Acn_Dec_Int_TwosComplement_VarSize_LengthEmbedded(pBitStrm, &v);
+	*pIntVal = (int32_t)v;
+	return ret;
+}
+
+
+flag Acn_Dec_Int_BCD_ConstSizeUInt8(BitStream* pBitStrm, uint8_t* pIntVal, int encodedSizeInNibbles) {
+	asn1SccUint v;
+	flag ret = Acn_Dec_Int_BCD_ConstSize(pBitStrm, &v, encodedSizeInNibbles);
+	*pIntVal = (uint8_t)v;
+	return ret;
+}
+
+
+flag Acn_Dec_Int_BCD_ConstSizeUInt16(BitStream* pBitStrm, uint16_t* pIntVal, int encodedSizeInNibbles) {
+	asn1SccUint v;
+	flag ret = Acn_Dec_Int_BCD_ConstSize(pBitStrm, &v, encodedSizeInNibbles);
+	*pIntVal = (uint16_t)v;
+	return ret;
+}
+
+
+flag Acn_Dec_Int_BCD_ConstSizeUInt32(BitStream* pBitStrm, uint32_t* pIntVal, int encodedSizeInNibbles) {
+	asn1SccUint v;
+	flag ret = Acn_Dec_Int_BCD_ConstSize(pBitStrm, &v, encodedSizeInNibbles);
+	*pIntVal = (uint32_t)v;
+	return ret;
+}
+
+
+flag Acn_Dec_Int_BCD_VarSize_LengthEmbeddedUInt8(BitStream* pBitStrm, uint8_t* pIntVal) {
+	asn1SccUint v;
+	flag ret = Acn_Dec_Int_BCD_VarSize_LengthEmbedded(pBitStrm, &v);
+	*pIntVal = (uint8_t)v;
+	return ret;
+}
+
+
+flag Acn_Dec_Int_BCD_VarSize_LengthEmbeddedUInt16(BitStream* pBitStrm, uint16_t* pIntVal) {
+	asn1SccUint v;
+	flag ret = Acn_Dec_Int_BCD_VarSize_LengthEmbedded(pBitStrm, &v);
+	*pIntVal = (uint16_t)v;
+	return ret;
+}
+
+
+flag Acn_Dec_Int_BCD_VarSize_LengthEmbeddedUInt32(BitStream* pBitStrm, uint32_t* pIntVal) {
+	asn1SccUint v;
+	flag ret = Acn_Dec_Int_BCD_VarSize_LengthEmbedded(pBitStrm, &v);
+	*pIntVal = (uint32_t)v;
+	return ret;
+}
+
+
+flag Acn_Dec_Int_BCD_VarSize_NullTerminatedUInt8(BitStream* pBitStrm, uint8_t* pIntVal) {
+	asn1SccUint v;
+	flag ret = Acn_Dec_Int_BCD_VarSize_NullTerminated(pBitStrm, &v);
+	*pIntVal = (uint8_t)v;
+	return ret;
+}
+
+
+flag Acn_Dec_Int_BCD_VarSize_NullTerminatedUInt16(BitStream* pBitStrm, uint16_t* pIntVal) {
+	asn1SccUint v;
+	flag ret = Acn_Dec_Int_BCD_VarSize_NullTerminated(pBitStrm, &v);
+	*pIntVal = (uint16_t)v;
+	return ret;
+}
+
+
+flag Acn_Dec_Int_BCD_VarSize_NullTerminatedUInt32(BitStream* pBitStrm, uint32_t* pIntVal) {
+	asn1SccUint v;
+	flag ret = Acn_Dec_Int_BCD_VarSize_NullTerminated(pBitStrm, &v);
+	*pIntVal = (uint32_t)v;
+	return ret;
+}
+
+
+flag Acn_Dec_SInt_ASCII_ConstSizeInt8(BitStream* pBitStrm, int8_t* pIntVal, int encodedSizeInBytes) {
+	asn1SccSint v;
+	flag ret = Acn_Dec_SInt_ASCII_ConstSize(pBitStrm, &v, encodedSizeInBytes);
+	*pIntVal = (int8_t)v;
+	return ret;
+}
+
+
+flag Acn_Dec_SInt_ASCII_ConstSizeInt16(BitStream* pBitStrm, int16_t* pIntVal, int encodedSizeInBytes) {
+	asn1SccSint v;
+	flag ret = Acn_Dec_SInt_ASCII_ConstSize(pBitStrm, &v, encodedSizeInBytes);
+	*pIntVal = (int16_t)v;
+	return ret;
+}
+
+
+flag Acn_Dec_SInt_ASCII_ConstSizeInt32(BitStream* pBitStrm, int32_t* pIntVal, int encodedSizeInBytes) {
+	asn1SccSint v;
+	flag ret = Acn_Dec_SInt_ASCII_ConstSize(pBitStrm, &v, encodedSizeInBytes);
+	*pIntVal = (int32_t)v;
+	return ret;
+}
+
+
+flag Acn_Dec_SInt_ASCII_VarSize_LengthEmbeddedInt8(BitStream* pBitStrm, int8_t* pIntVal) {
+	asn1SccSint v;
+	flag ret = Acn_Dec_SInt_ASCII_VarSize_LengthEmbedded(pBitStrm, &v);
+	*pIntVal = (int8_t)v;
+	return ret;
+}
+
+
+flag Acn_Dec_SInt_ASCII_VarSize_LengthEmbeddedInt16(BitStream* pBitStrm, int16_t* pIntVal) {
+	asn1SccSint v;
+	flag ret = Acn_Dec_SInt_ASCII_VarSize_LengthEmbedded(pBitStrm, &v);
+	*pIntVal = (int16_t)v;
+	return ret;
+}
+
+
+flag Acn_Dec_SInt_ASCII_VarSize_LengthEmbeddedInt32(BitStream* pBitStrm, int32_t* pIntVal) {
+	asn1SccSint v;
+	flag ret = Acn_Dec_SInt_ASCII_VarSize_LengthEmbedded(pBitStrm, &v);
+	*pIntVal = (int32_t)v;
+	return ret;
+}
+
+
+flag Acn_Dec_SInt_ASCII_VarSize_NullTerminatedInt8(BitStream* pBitStrm, int8_t* pIntVal, const byte null_characters[], size_t null_characters_size) {
+	asn1SccSint v;
+	flag ret = Acn_Dec_SInt_ASCII_VarSize_NullTerminated(pBitStrm, &v, null_characters, null_characters_size);
+	*pIntVal = (int8_t)v;
+	return ret;
+}
+
+
+flag Acn_Dec_SInt_ASCII_VarSize_NullTerminatedInt16(BitStream* pBitStrm, int16_t* pIntVal, const byte null_characters[], size_t null_characters_size) {
+	asn1SccSint v;
+	flag ret = Acn_Dec_SInt_ASCII_VarSize_NullTerminated(pBitStrm, &v, null_characters, null_characters_size);
+	*pIntVal = (int16_t)v;
+	return ret;
+}
+
+
+flag Acn_Dec_SInt_ASCII_VarSize_NullTerminatedInt32(BitStream* pBitStrm, int32_t* pIntVal, const byte null_characters[], size_t null_characters_size) {
+	asn1SccSint v;
+	flag ret = Acn_Dec_SInt_ASCII_VarSize_NullTerminated(pBitStrm, &v, null_characters, null_characters_size);
+	*pIntVal = (int32_t)v;
+	return ret;
+}
+
+
+flag Acn_Dec_UInt_ASCII_ConstSizeUInt8(BitStream* pBitStrm, uint8_t* pIntVal, int encodedSizeInBytes) {
+	asn1SccUint v;
+	flag ret = Acn_Dec_UInt_ASCII_ConstSize(pBitStrm, &v, encodedSizeInBytes);
+	*pIntVal = (uint8_t)v;
+	return ret;
+}
+
+
+flag Acn_Dec_UInt_ASCII_ConstSizeUInt16(BitStream* pBitStrm, uint16_t* pIntVal, int encodedSizeInBytes) {
+	asn1SccUint v;
+	flag ret = Acn_Dec_UInt_ASCII_ConstSize(pBitStrm, &v, encodedSizeInBytes);
+	*pIntVal = (uint16_t)v;
+	return ret;
+}
+
+
+flag Acn_Dec_UInt_ASCII_ConstSizeUInt32(BitStream* pBitStrm, uint32_t* pIntVal, int encodedSizeInBytes) {
+	asn1SccUint v;
+	flag ret = Acn_Dec_UInt_ASCII_ConstSize(pBitStrm, &v, encodedSizeInBytes);
+	*pIntVal = (uint32_t)v;
+	return ret;
+}
+
+
+flag Acn_Dec_UInt_ASCII_VarSize_LengthEmbeddedUInt8(BitStream* pBitStrm, uint8_t* pIntVal) {
+	asn1SccUint v;
+	flag ret = Acn_Dec_UInt_ASCII_VarSize_LengthEmbedded(pBitStrm, &v);
+	*pIntVal = (uint8_t)v;
+	return ret;
+}
+
+
+flag Acn_Dec_UInt_ASCII_VarSize_LengthEmbeddedUInt16(BitStream* pBitStrm, uint16_t* pIntVal) {
+	asn1SccUint v;
+	flag ret = Acn_Dec_UInt_ASCII_VarSize_LengthEmbedded(pBitStrm, &v);
+	*pIntVal = (uint16_t)v;
+	return ret;
+}
+
+
+flag Acn_Dec_UInt_ASCII_VarSize_LengthEmbeddedUInt32(BitStream* pBitStrm, uint32_t* pIntVal) {
+	asn1SccUint v;
+	flag ret = Acn_Dec_UInt_ASCII_VarSize_LengthEmbedded(pBitStrm, &v);
+	*pIntVal = (uint32_t)v;
+	return ret;
+}
+
+
+flag Acn_Dec_UInt_ASCII_VarSize_NullTerminatedUInt8(BitStream* pBitStrm, uint8_t* pIntVal, const byte null_characters[], size_t null_characters_size) {
+	asn1SccUint v;
+	flag ret = Acn_Dec_UInt_ASCII_VarSize_NullTerminated(pBitStrm, &v, null_characters, null_characters_size);
+	*pIntVal = (uint8_t)v;
+	return ret;
+}
+
+
+flag Acn_Dec_UInt_ASCII_VarSize_NullTerminatedUInt16(BitStream* pBitStrm, uint16_t* pIntVal, const byte null_characters[], size_t null_characters_size) {
+	asn1SccUint v;
+	flag ret = Acn_Dec_UInt_ASCII_VarSize_NullTerminated(pBitStrm, &v, null_characters, null_characters_size);
+	*pIntVal = (uint16_t)v;
+	return ret;
+}
+
+
+flag Acn_Dec_UInt_ASCII_VarSize_NullTerminatedUInt32(BitStream* pBitStrm, uint32_t* pIntVal, const byte null_characters[], size_t null_characters_size) {
+	asn1SccUint v;
+	flag ret = Acn_Dec_UInt_ASCII_VarSize_NullTerminated(pBitStrm, &v, null_characters, null_characters_size);
+	*pIntVal = (uint32_t)v;
+	return ret;
 }
 
 

@@ -14,7 +14,7 @@ rootDir = None
 language = None
 targetDir = None
 nTests = None
-
+slim = None
 
 def CreateACNFile(content):
     str_start = "TEST-CASE DEFINITIONS ::= BEGIN\n"
@@ -68,7 +68,7 @@ def PrintWarning(mssg):
 # behavior 1 :test case must fail in the asn1f.exe, with specific error message
 # behavior 2 :test case must fail during execution of the generated executable
 def RunTestCase(asn1, acn, behavior, expErrMsg):
-    global nTests
+    global nTests, slim
 
     print(asn1, acn)
 
@@ -81,7 +81,7 @@ def RunTestCase(asn1, acn, behavior, expErrMsg):
     path_to_asn1scc = "../asn1scc/bin/Debug/net6.0/asn1scc"
     res = mysystem(
         path_to_asn1scc +
-        " -" + language + " -x ast.xml -uPER -ACN -typePrefix gmamais_ " +
+        " -" + language + " -x ast.xml -uPER -ACN -typePrefix gmamais_ " + slim +
         "-renamePolicy 3 -fp AUTO " + "-equal -atc -o '" + resolvedir(targetDir) +
         "' '" + resolvedir(asn1File) + "' '" + resolvedir(acnFile) +
         "' 2>tmp.err"+"_"+language, True)
@@ -168,7 +168,7 @@ def RunTestCase(asn1, acn, behavior, expErrMsg):
             runSpark = "RUN_SPARK" in open("sample1.asn1", 'r').readlines()[0]
             if doCoverage:
                 try:
-                    f = open(targetDir + os.sep + "bin" + os.sep + "debug" + os.sep + "test_case.adb.gcov", 'r')
+                    f = open(targetDir + os.sep + "obj_x86" + os.sep + "debug" + os.sep + "test_case.adb.gcov", 'r')
                     lines = f.readlines()
                     lines = filter(lambda x : "####" in x, lines)
                     lines = filter(lambda x : "COVERAGE_IGNORE" not in x, lines)
@@ -180,6 +180,7 @@ def RunTestCase(asn1, acn, behavior, expErrMsg):
                         PrintWarning("coverage failed. (less than 100%)")
                         sys.exit(1)
                 except FileNotFoundError as err:
+                    print ("No file found at : " + targetDir + os.sep + "obj_x86" + os.sep + "debug" + os.sep + "test_case.adb.gcov")
                     pass
             if runSpark:
                 res = mysystem("gnatprove -Pasn1_x86.gpr -j0  -u test_case.adb --level=4 >sparklog.txt 2>&1", True)
@@ -395,11 +396,12 @@ def usage():
     print("           where <language_name> is c or Ada")
     print("Optional:")
     print("     -t, --testCaseSet  <asn1File> or <testcaseDir>")
+    print("     -s, --slim")
     sys.exit(1)
 
 
 def main():
-    global rootDir, nTests
+    global rootDir, nTests, slim
 
     rootDir = os.path.abspath(
         os.path.dirname(os.path.abspath(sys.argv[0])) + os.sep + "..")
@@ -411,7 +413,7 @@ def main():
     try:
         args = sys.argv[1:]
         optlist, args = getopt.gnu_getopt(
-            args, "al:t:c", ['all', 'lang=', 'testCaseSet=','cntTest'])
+            args, "al:t:cs", ['all', 'lang=', 'testCaseSet=','cntTest','slim'])
     except:
         usage()
     if args != []:
@@ -422,6 +424,7 @@ def main():
     testCaseSet = ""
     bAll = False
     cntTest = False
+    slim = ""
     for opt, arg in optlist:
         if opt in ("-a", "--all"):
             bAll = True
@@ -431,6 +434,8 @@ def main():
             testCaseSet = arg
         elif opt in ("-c", "--cntTest"):
             cntTest = True
+        elif opt in ("-s", "--slim"):
+            slim = " -slim "
     if bAll:
         f = open(language+"_log.txt", 'a')
         f.write("==========================================\n")

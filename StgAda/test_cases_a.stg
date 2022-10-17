@@ -133,7 +133,7 @@ adaasn1rtl.encoding.xer.Write_CharStream_To_File(stream, Filename & ".dat");
 JoinItems(sPart, soNestedPart) ::= <<
 <sPart>
 <if(soNestedPart)>
-if result.Success and  result.ErrorCode = 0 then
+if result.Success  then
     <soNestedPart>
 end if;
 

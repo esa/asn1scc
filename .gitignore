@@ -1373,4 +1373,6 @@ v2out
 /StgC/ITestCases_c.stg.fs
 /StgAda/ITestCases_a.stg.fs
 /lsp/Qt-creator-options.jpg
+/v4Tests/a.sh
+/v4Tests/runMake.sh
 /regression/Properties/launchSettings.json

@@ -255,8 +255,87 @@ type AcnReferenceToEnumerated with
             | None -> raise (SemanticError(this.modName.Location, (sprintf "No type assignment with name '%s' is defined in mode '%s'" this.tasName.Value this.modName.Value)))
             | Some tas -> tas.Type
 
+
+let getIntEncodingClassByUperRange (args:CommandLineSettings) (uperRange:BigIntegerUperRange) =
+    let int64  = ASN1SCC_Int64 (BigInteger System.Int64.MinValue,  BigInteger System.Int64.MaxValue)
+    let int32  = ASN1SCC_Int32 (BigInteger System.Int32.MinValue,  BigInteger System.Int32.MaxValue)
+    let int16  = ASN1SCC_Int16 (BigInteger System.Int16.MinValue,  BigInteger System.Int16.MaxValue)
+    let  int8  = ASN1SCC_Int8  (BigInteger System.SByte.MinValue,  BigInteger System.SByte.MaxValue)
+    
+    let uint64 = ASN1SCC_UInt64 (0I,  BigInteger System.UInt64.MaxValue)
+    let uint32 = ASN1SCC_UInt32 (0I,  BigInteger System.UInt32.MaxValue)
+    let uint16 = ASN1SCC_UInt16 (0I,  BigInteger System.UInt16.MaxValue)
+    let  uint8 = ASN1SCC_UInt8  (0I,  BigInteger System.Byte.MaxValue)
+
+    let fat_uint = ASN1SCC_UInt (0I,  args.UIntMax)
+    let fat_int = ASN1SCC_Int (args.SIntMin,  args.SIntMax)
+
+    let getUClass (x:BigInteger) =
+        match args.slim with
+        | true ->
+            if   x > BigInteger System.UInt32.MaxValue then uint64
+            elif x > BigInteger System.UInt16.MaxValue then uint32
+            elif x > BigInteger System.Byte.MaxValue then   uint16
+            else uint8
+        | false -> fat_uint
+    let getSClass (a:BigInteger) (b:BigInteger)=
+        match args.slim with
+        | true ->
+            if   BigInteger System.SByte.MinValue <= a && b <= BigInteger System.SByte.MaxValue then int8
+            elif BigInteger System.Int16.MinValue <= a && b <= BigInteger System.Int16.MaxValue then int16
+            elif BigInteger System.Int32.MinValue <= a && b <= BigInteger System.Int32.MaxValue then int32
+            else 
+                int64
+        | false -> (ASN1SCC_Int (args.SIntMin,  args.SIntMax))
+
+    let foo slim8 slim4 fat =
+        match args.slim with
+        | true -> if args.integerSizeInBytes = 8I then slim8 else slim4
+        | false -> fat
+
+    match uperRange with
+    | Concrete  (a,b) when a >= 0I -> getUClass b
+    | Concrete  (a,b)              -> getSClass a b
+    | NegInf    _                  -> foo int64 int32 fat_int
+    | PosInf   a when a >= 0I      -> foo uint64 uint32 fat_uint
+    | PosInf  _                    -> foo int64 int32 fat_int
+    | Full    _                    -> foo int64 int32 fat_int
+
+
 type Integer with
     member this.AllCons  = this.cons@this.withcons
+    member this.getClass (args:CommandLineSettings)  =
+        getIntEncodingClassByUperRange args this.uperRange
+
+type IntegerClass with
+    member this.Min =
+        match this with
+        | ASN1SCC_Int8      (a,_) -> a 
+        | ASN1SCC_Int16     (a,_) -> a
+        | ASN1SCC_Int32     (a,_) -> a
+        | ASN1SCC_Int64     (a,_) -> a
+        | ASN1SCC_Int       (a,_) -> a
+        | ASN1SCC_UInt8     (a,_) -> a
+        | ASN1SCC_UInt16    (a,_) -> a
+        | ASN1SCC_UInt32    (a,_) -> a
+        | ASN1SCC_UInt64    (a,_) -> a
+        | ASN1SCC_UInt      (a,_) -> a
+    member this.Max =
+        match this with
+        | ASN1SCC_Int8      (_,b) -> b 
+        | ASN1SCC_Int16     (_,b) -> b
+        | ASN1SCC_Int32     (_,b) -> b
+        | ASN1SCC_Int64     (_,b) -> b
+        | ASN1SCC_Int       (_,b) -> b
+        | ASN1SCC_UInt8     (_,b) -> b
+        | ASN1SCC_UInt16    (_,b) -> b
+        | ASN1SCC_UInt32    (_,b) -> b
+        | ASN1SCC_UInt64    (_,b) -> b
+        | ASN1SCC_UInt      (_,b) -> b
+
+
+let getAcnIntegerClass (args:CommandLineSettings) (i:AcnInteger) =
+    getIntEncodingClassByUperRange args i.uperRange
 
 type ObjectIdentifier with 
     member this.AllCons  = this.cons@this.withcons
@@ -267,6 +346,17 @@ type TimeType with
 
 type Real             with
     member this.AllCons  = this.cons@this.withcons
+    member this.getClass (args:CommandLineSettings)  =
+        match args.slim with
+        | true ->
+            match this.acnEncodingClass with
+            | Real_uPER                         -> ASN1SCC_REAL
+            | Real_IEEE754_32_big_endian        -> ASN1SCC_FP32
+            | Real_IEEE754_64_big_endian        -> ASN1SCC_FP64
+            | Real_IEEE754_32_little_endian     -> ASN1SCC_FP32
+            | Real_IEEE754_64_little_endian     -> ASN1SCC_FP64
+        | false -> ASN1SCC_REAL
+
 
 type StringType       with
     member this.AllCons  = this.cons@this.withcons

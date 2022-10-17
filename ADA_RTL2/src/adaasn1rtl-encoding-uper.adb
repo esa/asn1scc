@@ -71,8 +71,80 @@ is
       Dec_ConstraintWholeNumber (bs, IntVal, MinVal, MaxVal, nBits, Result);
    end UPER_Dec_ConstraintWholeNumber;
 
+   procedure UPER_Dec_ConstraintWholeNumberInt8
+     (bs     : in out Bitstream; IntVal : out Integer_8; MinVal : Integer_8;
+      MaxVal :        Integer_8; nBits : Integer; Result : out Boolean)
+   is
+      v : Asn1Int;
+   begin
+      UPER_Dec_ConstraintWholeNumber (bs, v, Asn1Int (MinVal),
+             Asn1Int (MaxVal), nBits, Result);
+
+      IntVal := Integer_8 (v);
+   end UPER_Dec_ConstraintWholeNumberInt8;
+
+   procedure UPER_Dec_ConstraintWholeNumberInt16
+     (bs     : in out Bitstream; IntVal : out Integer_16; MinVal : Integer_16;
+      MaxVal :        Integer_16; nBits : Integer; Result : out Boolean)
+   is
+      v : Asn1Int;
+   begin
+      UPER_Dec_ConstraintWholeNumber (bs, v, Asn1Int (MinVal),
+             Asn1Int (MaxVal), nBits, Result);
+
+      IntVal := Integer_16 (v);
+   end UPER_Dec_ConstraintWholeNumberInt16;
+
+   procedure UPER_Dec_ConstraintWholeNumberInt32
+     (bs     : in out Bitstream; IntVal : out Integer_32; MinVal : Integer_32;
+      MaxVal :        Integer_32; nBits : Integer; Result : out Boolean)
+   is
+      v : Asn1Int;
+   begin
+      UPER_Dec_ConstraintWholeNumber (bs, v, Asn1Int (MinVal),
+             Asn1Int (MaxVal), nBits, Result);
+
+      IntVal := Integer_32 (v);
+   end UPER_Dec_ConstraintWholeNumberInt32;
+
+   procedure UPER_Dec_ConstraintPosWholeNumberUInt8
+     (bs     : in out Bitstream; IntVal : out Unsigned_8; MinVal : Unsigned_8;
+      MaxVal :        Unsigned_8; nBits : Integer; Result : out Boolean)
+   is
+      v : Asn1UInt;
+   begin
+      UPER_Dec_ConstraintPosWholeNumber (bs, v, Asn1UInt (MinVal),
+             Asn1UInt (MaxVal), nBits, Result);
+
+      IntVal := Unsigned_8 (v);
+   end UPER_Dec_ConstraintPosWholeNumberUInt8;
+
+   procedure UPER_Dec_ConstraintPosWholeNumberUInt16
+     (bs : in out Bitstream; IntVal : out Unsigned_16; MinVal : Unsigned_16;
+      MaxVal :        Unsigned_16; nBits : Integer; Result : out Boolean)
+   is
+      v : Asn1UInt;
+   begin
+      UPER_Dec_ConstraintPosWholeNumber (bs, v, Asn1UInt (MinVal),
+             Asn1UInt (MaxVal), nBits, Result);
+
+      IntVal := Unsigned_16 (v);
+   end UPER_Dec_ConstraintPosWholeNumberUInt16;
+
+   procedure UPER_Dec_ConstraintPosWholeNumberUInt32
+     (bs : in out Bitstream; IntVal : out Unsigned_32; MinVal : Unsigned_32;
+      MaxVal :        Unsigned_32; nBits : Integer; Result : out Boolean)
+   is
+      v : Asn1UInt;
+   begin
+      UPER_Dec_ConstraintPosWholeNumber (bs, v, Asn1UInt (MinVal),
+             Asn1UInt (MaxVal), nBits, Result);
+
+      IntVal := Unsigned_32 (v);
+   end UPER_Dec_ConstraintPosWholeNumberUInt32;
+
    procedure UPER_Dec_ConstraintPosWholeNumber
-     (bs     : in out Bitstream; IntVal : out Asn1UInt; MinVal : Asn1UInt;
+     (bs : in out Bitstream; IntVal : out Asn1UInt; MinVal : Asn1UInt;
       MaxVal :        Asn1UInt; nBits : Integer; Result : out Boolean)
    is
    begin
@@ -305,6 +377,36 @@ is
          end if;
       end if;
    end UPER_Dec_Real;
+
+   procedure UPER_Dec_Real_fp32
+     (bs : in out Bitstream; RealVal : out Standard.Float;
+          Result : out ASN1_RESULT)
+   is
+      v : Asn1Real;
+   begin
+      UPER_Dec_Real (bs, v, Result);
+
+      pragma Warnings
+        (Off, "condition can only be False if invalid values present");
+      pragma Warnings
+        (Off, "condition is always True");
+
+      Result.Success := Result.Success and then
+        Asn1Real (Standard.Float'First) <= v and then
+        v <= Asn1Real (Standard.Float'Last);
+
+      pragma Warnings
+        (On, "condition can only be False if invalid values present");
+      pragma Warnings
+        (On, "condition is always True");
+
+      if Result.Success then
+         RealVal := Standard.Float (v);
+      else
+         RealVal := 0.0;
+      end if;
+
+   end UPER_Dec_Real_fp32;
 
    procedure ObjectIdentifier_uper_decode_length
      (bs     : in out Bitstream; length : out Integer;
