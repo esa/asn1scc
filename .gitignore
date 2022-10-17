@@ -1375,3 +1375,4 @@ v2out
 /lsp/Qt-creator-options.jpg
 /v4Tests/a.sh
 /v4Tests/runMake.sh
+/regression/Properties/launchSettings.json
