@@ -81,7 +81,7 @@ def RunTestCase(asn1, acn, behavior, expErrMsg):
     path_to_asn1scc = "../asn1scc/bin/Debug/net6.0/asn1scc"
     res = mysystem(
         path_to_asn1scc +
-        " -" + language + " -x ast.xml -uPER -ACN -typePrefix gmamais_ " + slim +
+        " -" + language + " -x ast.xml -uPER -ACN -typePrefix ASN1SCC_ " + slim +
         "-renamePolicy 3 -fp AUTO " + "-equal -atc -o '" + resolvedir(targetDir) +
         "' '" + resolvedir(asn1File) + "' '" + resolvedir(acnFile) +
         "' 2>tmp.err"+"_"+language, True)

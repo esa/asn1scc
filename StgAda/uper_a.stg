@@ -669,7 +669,7 @@ for <sBLI> in <sCurOffset> .. <sCurOffset> + <nRemainingItemsVar> -1 loop
 end loop;
 >>
 
-FixedSize_Fragmentation_sqf_encode(arrsEncodingParts) ::= <<
+FixedSize_Fragmentation_sqf_encode(p, sAcc, arrsEncodingParts, nFixedSize, bIsBitStringType) ::= <<
 <arrsEncodingParts; separator="\n">
 >>
 
@@ -733,8 +733,12 @@ end loop;
 
 
 
-FixedSize_Fragmentation_sqf_decode(arrsEncodingParts) ::= <<
+FixedSize_Fragmentation_sqf_decode(p, sAcc, arrsEncodingParts, nFixedSize, bIsBitStringType) ::= <<
 <arrsEncodingParts; separator="\n">
+<if(bIsBitStringType)>
+<p>(<nFixedSize> + 1) := adaasn1rtl.NUL;
+
+<endif>
 >>
 
 FixedSize_Fragmentation_sqf_64K_decode(p, sAcc,sCurOffset, sCurBlockSize, sBlockIndex, nBlocks64K, sInternalItem, sBLI, sRemainingItemsVar, bIsBitStringType, sErrCodeName) ::=<<

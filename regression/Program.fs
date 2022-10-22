@@ -132,6 +132,7 @@ let executeTestCase asn1sccdll workDir  (t:Test_Case) (lang:string, ws:int, slim
     //-c -x ast.xml -uPER -ACN -typePrefix gmamais_  -slim -renamePolicy 3 -fp AUTO -equal -atc -o 'c:\prj\GitHub\asn1scc\v4Tests\tmp_c' 'c:\prj\GitHub\asn1scc\v4Tests\tmp_c\sample1.asn1' 'c:\prj\GitHub\asn1scc\v4Tests\tmp_c\sample1.acn'
     let cmd = sprintf "%s -%s -x ast.xml -uPER -ACN -typePrefix ASN1SCC_ -renamePolicy 3 -fp AUTO -equal -atc  %s %s sample1.asn1 sample1.acn" asn1sccdll lang slima wsa
     prepareFolderAndFiles workDir t
+    //ShellProcess.printInfo "\nwordDir is:%s\n%s\n\n" workDir cmd
     let res = executeProcess workDir "dotnet" cmd
 
     let checkErrMsg expErrMsg (res:ProcessResult) =
@@ -170,7 +171,7 @@ let executeTestCase asn1sccdll workDir  (t:Test_Case) (lang:string, ws:int, slim
                 else 
                     if bRunSpark then
                         let bWindows = System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Windows) 
-                        let makeCommand = sprintf "gnatprove%s -Pasn1_x86.gpr -j0  -u test_case.adb --level=4 >sparklog.txt 2>&1" (if bWindows then ".exe" else "")
+                        let makeCommand = sprintf "gnatprove%s -Pasn1_x86.gpr -j0  -u test_case.adb --level=4 >sparklog.txt 2>&1" (if bWindows then ".exe" else ".exe")
                         let res = executeBashScript workDir makeCommand
                         let sparkLogFname = Path.Combine(workDir, "sparklog.txt")
                         if res.ExitCode <> 0 then 
@@ -303,11 +304,13 @@ let main0 argv =
             } |> Seq.toList
 
         //asn1sccInvoications |>
-        let results = 
+        let results0 = 
             asn1sccInvoications |>
             List.filter(fun (t,_) -> match tc with None -> true | Some s -> t.asn1.EndsWith s) |>
-            List.mapi(fun i (t,b) -> (i,t, b)) |>  
-            executeBatch Environment.ProcessorCount (fun (i,tc, m) -> executeTestCaseAsync asn1sccdll workDir i tc m) |>
+            List.mapi(fun i (t,b) -> (i,t, b)) 
+        let results =
+            results0 |>
+            executeBatch (Environment.ProcessorCount*2) (fun (i,tc, m) -> executeTestCaseAsync asn1sccdll workDir i tc m) |>
             List.sortBy (fun (i, _, _, _, _, _, _) -> i)
 
         let errors = 

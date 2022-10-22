@@ -341,7 +341,7 @@ let handleFixedSizeFragmentation (lm:LanguageMacros) (p:CallerScope) (codec:Comm
     let fragmentationVars = fragmentationVars |> List.addIf (lm.lg.uper.requires_sBlockIndex) (createLv sBlockIndex)
     //let fragmentationVars = fragmentationVars |> List.addIf (l = C) (lv)
     let singleNestedPart  = nestChildItems lm  codec parts |> Option.toList
-    fixedSize_Fragmentation_sqf singleNestedPart  codec, fragmentationVars
+    fixedSize_Fragmentation_sqf p.arg.p (lm.lg.getAcces p.arg) singleNestedPart fixSize bIsAsciiString codec, fragmentationVars
 
 let handleFragmentation (lm:LanguageMacros) (p:CallerScope) (codec:CommonTypes.Codec) (errCode:ErroCode) ii uperMaxSizeInBits (minSize:BigInteger) (maxSize:BigInteger) internalItem_funcBody nIntItemMaxSize bIsBitStringType bIsAsciiString=
     match minSize = maxSize with

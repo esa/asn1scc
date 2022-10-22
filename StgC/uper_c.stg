@@ -589,7 +589,7 @@ for(<sBLI>=(int)<sCurOffset>; <sBLI> \< (int)(<sCurOffset> + <nRemainingItemsVar
 <endif>
 >>
 
-FixedSize_Fragmentation_sqf_encode(arrsEncodingParts) ::= <<
+FixedSize_Fragmentation_sqf_encode(p, sAcc, arrsEncodingParts, nFixedSize, bIsBitStringType) ::= <<
 <arrsEncodingParts; separator="\n">
 >>
 
@@ -726,8 +726,12 @@ if (ret) {
 }
 >>
 
-FixedSize_Fragmentation_sqf_decode(arrsEncodingParts) ::= <<
+FixedSize_Fragmentation_sqf_decode(p, sAcc, arrsEncodingParts, nFixedSize, bIsBitStringType) ::= <<
 <arrsEncodingParts; separator="\n">
+<if(bIsBitStringType)>
+<p>[<nFixedSize>] = 0x0;
+
+<endif>
 >>
 
 

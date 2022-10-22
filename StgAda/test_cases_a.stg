@@ -301,9 +301,10 @@ procedure <sFuncName> ( totalErrors : in out Integer);
 
 emitTestCaseAsFunc_dummy_init(sTypeName, sFuncName, sDummyVarname) ::= <<
 declare
-   dummy : constant <sTypeName> := <sFuncName>;
-   pragma Unreferenced (dummy);
-begin null; end;
+   dummy : <sTypeName>;
+begin 
+    <sFuncName>(dummy); 
+end;
 >>
 
 emitTestCaseAsFunc(sFuncName, arrsVars, sModName, sTasName, sAmber, sEnc, bValueAssignment, sInitializeTcData, bStatic, sGenerateDatFile, arrsDummyInitStatementsNeededForStatementCoverage, sInitAmber) ::= <<

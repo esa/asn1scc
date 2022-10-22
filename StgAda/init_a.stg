@@ -6,19 +6,15 @@ methodNameSuffix() ::= "_Init"
 
 
 initTypeAssignment_def(sVarName, sStar, sFuncName, sTypeDefName) ::= <<
-function <sFuncName> return <sTypeDefName>;
+procedure <sFuncName>(<sVarName>: out <sTypeDefName>);
 >>
 
 initTypeAssignment(sVarName, sStar, sFuncName, sTypeDefName, sContent, arrsLocalVariables) ::= <<
-function <sFuncName> return <sTypeDefName>
+procedure <sFuncName>(<sVarName>: out <sTypeDefName>)
 is
-    <sVarName>: <sTypeDefName>;
     <arrsLocalVariables; separator="\n">
 begin
     <sContent>
-	pragma Warnings (Off, "object ""val"" is always");
-    return <sVarName>;
-	pragma Warnings (On, "object ""val"" is always");
 end <sFuncName>;
 >>
 
@@ -239,7 +235,7 @@ end;
 
 
 initChildWithInitFunc(p, sChildInitFuncName) ::= <<
-<p> := <sChildInitFuncName>;
+<sChildInitFuncName> (<p>);
 >>
 
 
