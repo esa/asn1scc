@@ -1667,7 +1667,10 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
                         match codec with
                         | Encode -> lm.lg.emtyStatement, [], []
                         | Decode ->
-                            let childp = ({CallerScope.modName = p.modName; arg = VALUE ((lm.lg.getAsn1ChChildBackendName child) + "_tmp")})
+                            let childp = 
+                                match lm.lg.acn.choice_requires_tmp_decoding with
+                                | true ->   ({CallerScope.modName = p.modName; arg = VALUE ((lm.lg.getAsn1ChChildBackendName child) + "_tmp")})
+                                | false ->  ({p with arg = lm.lg.getChChild p.arg (lm.lg.getAsn1ChChildBackendName child) child.chType.isIA5String})
                             let decStatement =
                                 match child.chType.ActualType.Kind with
                                 | NullType _    -> lm.lg.decode_nullType childp.arg.p
@@ -1694,7 +1697,7 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
                     | None  ->
                         match ec with
                         | CEC_uper  -> 
-                            Some (choiceChild p.arg.p (lm.lg.getAcces p.arg) (lm.lg.presentWhenName (Some defOrRef) child) (BigInteger idx) nIndexSizeInBits nMax childContent_funcBody sChildName sChildTypeDef sChoiceTypeName codec)
+                            Some (choiceChild p.arg.p (lm.lg.getAcces p.arg) (lm.lg.presentWhenName (Some defOrRef) child) (BigInteger idx) nIndexSizeInBits nMax childContent_funcBody sChildName sChildTypeDef sChoiceTypeName lm.lg.acn.choice_requires_tmp_decoding codec)
                         | CEC_enum (enm,_) -> 
                             let getDefOrRef (a:Asn1AcnAst.ReferenceToEnumerated) =
                                 match p.modName = a.modName with
@@ -1703,7 +1706,7 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
 
 
                             let enmItem = enm.enm.items |> List.find(fun itm -> itm.Name.Value = child.Name.Value)
-                            Some (choiceChild_Enum p.arg.p (lm.lg.getAcces p.arg) (lm.lg.getNamedItemBackendName (Some (getDefOrRef enm)) enmItem  ) (lm.lg.presentWhenName (Some defOrRef) child) childContent_funcBody sChildName sChildTypeDef sChoiceTypeName codec)
+                            Some (choiceChild_Enum p.arg.p (lm.lg.getAcces p.arg) (lm.lg.getNamedItemBackendName (Some (getDefOrRef enm)) enmItem  ) (lm.lg.presentWhenName (Some defOrRef) child) childContent_funcBody sChildName sChildTypeDef sChoiceTypeName lm.lg.acn.choice_requires_tmp_decoding codec)
                         | CEC_presWhen  ->
                             let handPresenseCond (cond:AcnGenericTypes.AcnPresentWhenConditionChoiceChild) =
                                 match cond with
@@ -1724,7 +1727,7 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
                                     let arrNuls = [0 .. ((int strType.maxSize.acn) - strVal.Value.Length)]|>Seq.map(fun x -> variables_a.PrintStringValueNull())
                                     choiceChild_preWhen_str_condition extField strVal.Value arrNuls
                             let conds = child.acnPresentWhenConditions |>List.map handPresenseCond
-                            Some (choiceChild_preWhen p.arg.p (lm.lg.getAcces p.arg) (lm.lg.presentWhenName (Some defOrRef) child) childContent_funcBody conds (idx=0) sChildName sChildTypeDef sChoiceTypeName codec)
+                            Some (choiceChild_preWhen p.arg.p (lm.lg.getAcces p.arg) (lm.lg.presentWhenName (Some defOrRef) child) childContent_funcBody conds (idx=0) sChildName sChildTypeDef sChoiceTypeName lm.lg.acn.choice_requires_tmp_decoding codec)
                 [(childBody, childContent_localVariables, childContent_errCodes)], ns1
         let childrenStatements00, ns = children |> List.mapi (fun i x -> i,x)  |> foldMap (fun us (i,x) ->  handleChild us i x) us
         let childrenStatements0 = childrenStatements00 |> List.collect id

@@ -1,4 +1,3 @@
--- RUN_SPARK
 TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
 
 	MyPDU ::= CHOICE {                  --3

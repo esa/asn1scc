@@ -944,16 +944,17 @@ let createChoiceInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAs
                     | false -> None
                     | true  ->
                         let sChildTypeName = chChild.chType.typeDefintionOrReference.longTypedefName2 lm.lg.hasModules
-                        let sChildTempVarName = (ToC chChild.chType.id.AsString) + "_tmp"
                         let sChoiceTypeName = typeDefinition.longTypedefName2 lm.lg.hasModules
                         let sChildName = (lm.lg.getAsn1ChChildBackendName chChild)
+                        let sChildTempVarName = (ToC chChild.chType.id.AsString) + "_tmp"
+
                         let chContent = 
                             match lm.lg.init.choiceComponentTempInit with
                             | false ->
                                 chChild.chType.initFunction.initByAsn1Value ({p with arg = lm.lg.getChChild p.arg (lm.lg.getAsn1ChChildBackendName chChild) chChild.chType.isIA5String}) iv.Value.kind
                             | true ->
                                 chChild.chType.initFunction.initByAsn1Value ({CallerScope.modName = t.id.ModName; arg = VALUE sChildTempVarName}) iv.Value.kind
-                        Some (initChoice p.arg.p (lm.lg.getAcces p.arg) chContent (lm.lg.presentWhenName (Some typeDefinition) chChild) sChildTempVarName sChildTypeName sChoiceTypeName sChildName) 
+                        Some (initChoice p.arg.p (lm.lg.getAcces p.arg) chContent (lm.lg.presentWhenName (Some typeDefinition) chChild) sChildTempVarName sChildTypeName sChoiceTypeName sChildName lm.lg.init.choiceComponentTempInit) 
                         ) 
 
             | _               -> raise(BugErrorException "UnexpectedValue")

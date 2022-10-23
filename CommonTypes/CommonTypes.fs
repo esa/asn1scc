@@ -640,6 +640,7 @@ type FE_ChoiceTypeDefinition = {
     typeName        : string            //e.g. MyInt, Asn1SccInt, Asn1SccUInt
     index_range     : string
     selection       : string
+    union_name      : string
     kind            : FE_NonPrimitiveTypeDefinitionKind<FE_ChoiceTypeDefinition>
 }
 with

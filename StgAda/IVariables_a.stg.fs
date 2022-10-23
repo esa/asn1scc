@@ -73,8 +73,8 @@ type IVariables_a() =
             variables_a.PrintSequenceValue_child_exists  sName sExistsBit 
         override this.PrintSequenceValue  (td:FE_SequenceTypeDefinition) (sTasName:string) (arrsChildren:seq<string>) (arrsOptionalPresentFields:seq<string>) =
             variables_a.PrintSequenceValue  td sTasName arrsChildren arrsOptionalPresentFields 
-        override this.PrintChoiceValue  (sTasName:string) (sChildName:string) (sChildVal:string) (sChildNamePresent:string) =
-            variables_a.PrintChoiceValue  sTasName sChildName sChildVal sChildNamePresent 
+        override this.PrintChoiceValue  (sTasName:string) (sChildName:string) (sChildVal:string) (sChildNamePresent:string) (bUseUncheckedUnions:bool) =
+            variables_a.PrintChoiceValue  sTasName sChildName sChildVal sChildNamePresent bUseUncheckedUnions 
         override this.PrintSequenceOfValue  (td:FE_SizeableTypeDefinition) (bIsFixedSize:bool) (nLength:BigInteger) (arrsInnerValues:seq<string>) (sDefValue:string) =
             variables_a.PrintSequenceOfValue  td bIsFixedSize nLength arrsInnerValues sDefValue 
         override this.PrintValueAssignment  (sVasName:string) (sTypeDecl:string) (sValue:string) =

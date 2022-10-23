@@ -393,14 +393,15 @@ end if;
 
 /* CHOICE START*/
 
-choice_child_encode(p, sAcc, sChildID, nChildIndex, nIndexSizeInBits, nLastItemIndex, sChildContent, sChildName, sChildTypeDef, sChoiceTypeName) ::= <<
+choice_child_encode(p, sAcc, sChildID, nChildIndex, nIndexSizeInBits, nLastItemIndex, sChildContent, sChildName, sChildTypeDef, sChoiceTypeName, bDecodeChildAtStack) ::= <<
 when <sChildID> =>
     adaasn1rtl.encoding.uper.UPER_Enc_ConstraintWholeNumber(bs, <nChildIndex>, 0, <nIndexSizeInBits>);
     <sChildContent>
 >>
 
-choice_child_decode(p, sAcc, sChildID, nChildIndex, nIndexSizeInBits, nLastItemIndex, sChildContent, sChildName, sChildTypeDef, sChoiceTypeName) ::= <<
+choice_child_decode(p, sAcc, sChildID, nChildIndex, nIndexSizeInBits, nLastItemIndex, sChildContent, sChildName, sChildTypeDef, sChoiceTypeName, bDecodeChildAtStack) ::= <<
 when <nChildIndex> =>
+<if(bDecodeChildAtStack)>
   declare
      <sChildName>_tmp:<sChildTypeDef>;
   begin
@@ -410,6 +411,12 @@ when <nChildIndex> =>
         pragma Annotate (GNATprove, False_Positive,"discriminant check might fail", "reviewed by GM");
     end if;
   end;
+
+<else>
+<p><sAcc>kind := <sChildID>;
+<sChildContent>
+
+<endif>
 >>
 
 

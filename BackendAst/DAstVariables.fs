@@ -122,7 +122,7 @@ let rec printValue (r:DAst.AstRoot)  (l:ProgrammingLanguage) (lm:LanguageMacros)
                 List.map(fun x -> 
                     let childValue = printValue r l lm curProgamUnitName x.chType (Some gv) v.Value.kind
                     let sChildNamePresent = x.presentWhenName (Some t.typeDefintionOrReference) l
-                    variables_c.PrintChoiceValue typeDefName (x.getBackendName l) childValue   sChildNamePresent) |>
+                    variables_c.PrintChoiceValue typeDefName (x.getBackendName l) childValue   sChildNamePresent true) |>
                 List.head
             | _         -> raise(BugErrorException "unexpected type")
         | ObjOrRelObjIdValue v  ->
@@ -264,7 +264,7 @@ let rec printValue (r:DAst.AstRoot)  (l:ProgrammingLanguage) (lm:LanguageMacros)
                 let typeDefName  = t.typeDefintionOrReference.longTypedefName l
                 s.children |>
                 List.filter(fun x -> x.Name.Value = v.name)  |>
-                List.map(fun x -> variables_a.PrintChoiceValue typeDefName (x.getBackendName l) (printValue r l  lm curProgamUnitName x.chType (Some gv) v.Value.kind) (x.presentWhenName (Some t.typeDefintionOrReference) l) ) |>
+                List.map(fun x -> variables_a.PrintChoiceValue typeDefName (x.getBackendName l) (printValue r l  lm curProgamUnitName x.chType (Some gv) v.Value.kind) (x.presentWhenName (Some t.typeDefintionOrReference) l) true ) |>
                 List.head
             | _         -> raise(BugErrorException "unexpected type")
 
@@ -481,7 +481,7 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn1A
                 
                 let childValue = (x.chType.printValue curProgamUnitName (Some gv) chVal.Value.kind)
                 let sChildNamePresent = x.presentWhenName (Some defOrRef) l
-                variables_c.PrintChoiceValue typeDefName (x.getBackendName l) childValue   sChildNamePresent
+                variables_c.PrintChoiceValue typeDefName (x.getBackendName l) childValue   sChildNamePresent true
                 ) |>
             List.head
         | RefValue ((md,vs),ov)   -> vs

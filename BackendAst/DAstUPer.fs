@@ -669,17 +669,17 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Commo
                     | None              -> 
                         let childContent = 
                             match lm.lg.uper.catd with 
-                            | false ->"/*no encoding/decoding is required*/" 
+                            | false -> lm.lg.createSingleLineComment "no encoding/decoding is required" 
                             | true when codec=Decode -> 
                                 let childp = ({p with arg = VALUE ((lm.lg.getAsn1ChChildBackendName child) + "_tmp")})
                                 match child.chType.ActualType.Kind with
                                 | NullType _    -> uper_a.decode_nullType childp.arg.p
                                 | Sequence _    -> uper_a.decode_empty_sequence_emptySeq childp.arg.p
-                                | _             -> "--no encoding/decoding is required"
-                            | true   -> "--no encoding/decoding is required"
-                        choice_child p.arg.p (lm.lg.getAcces p.arg) (lm.lg.presentWhenName (Some typeDefinition) child) (BigInteger i) nIndexSizeInBits (BigInteger (children.Length - 1)) childContent sChildName sChildTypeDef sChoiceTypeName codec,[],[]
+                                | _             -> lm.lg.createSingleLineComment "no encoding/decoding is required"
+                            | true   -> lm.lg.createSingleLineComment "no encoding/decoding is required"
+                        choice_child p.arg.p (lm.lg.getAcces p.arg) (lm.lg.presentWhenName (Some typeDefinition) child) (BigInteger i) nIndexSizeInBits (BigInteger (children.Length - 1)) childContent sChildName sChildTypeDef sChoiceTypeName lm.lg.uper.catd codec,[],[]
                     | Some childContent ->  
-                        choice_child p.arg.p (lm.lg.getAcces p.arg) (lm.lg.presentWhenName (Some typeDefinition) child) (BigInteger i) nIndexSizeInBits (BigInteger (children.Length - 1)) childContent.funcBody sChildName sChildTypeDef sChoiceTypeName codec, childContent.localVariables, childContent.errCodes )
+                        choice_child p.arg.p (lm.lg.getAcces p.arg) (lm.lg.presentWhenName (Some typeDefinition) child) (BigInteger i) nIndexSizeInBits (BigInteger (children.Length - 1)) childContent.funcBody sChildName sChildTypeDef sChoiceTypeName lm.lg.uper.catd codec, childContent.localVariables, childContent.errCodes )
             let childrenContent = childrenContent3 |> List.map(fun (s,_,_) -> s)
             let childrenLocalvars = childrenContent3 |> List.collect(fun (_,s,_) -> s)
             let childrenErrCodes = childrenContent3 |> List.collect(fun (_,_,s) -> s)

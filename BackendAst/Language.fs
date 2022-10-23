@@ -53,6 +53,7 @@ type ILangGeneric () =
     abstract member decodeEmptySeq  : string -> string option
     abstract member decode_nullType : string -> string option
     abstract member castExpression  : string -> string -> string
+    abstract member createSingleLineComment : string -> string
 
     abstract member getAsn1ChildBackendName0  : Asn1AcnAst.Asn1Child -> string
     abstract member getAsn1ChChildBackendName0: Asn1AcnAst.ChChildInfo -> string
@@ -234,6 +235,7 @@ type LangGeneric_c() =
         override this.orOp                = "||" 
 
         override this.castExpression (sExp:string) (sCastType:string) = sprintf "(%s)(%s)" sCastType sExp
+        override this.createSingleLineComment (sText:string) = sprintf "/*%s*/" sText
             
 
 
@@ -455,6 +457,7 @@ type LangGeneric_a() =
         override this.orOp                = "or"
 
         override this.castExpression (sExp:string) (sCastType:string) = sprintf "%s(%s)" sCastType sExp
+        override this.createSingleLineComment (sText:string) = sprintf "--%s" sText
 
 
         override _.intValueToSting (i:BigInteger) _ = i.ToString()
@@ -513,7 +516,8 @@ type LangGeneric_a() =
             let newPath = sprintf "%s.%s" fpt.p childName
             if childTypeIsString then (FIXARRAY newPath) else (VALUE newPath)
         override this.getChChild (fpt:FuncParamType) (childName:string) (childTypeIsString: bool) : FuncParamType =
-            let newPath = sprintf "%s.%s" fpt.p childName
+            //let newPath = sprintf "%s.%s" fpt.p childName
+            let newPath = sprintf "%s%su.%s" fpt.p (this.getAcces fpt) childName
             if childTypeIsString then (FIXARRAY newPath) else (VALUE newPath)
 
 
@@ -574,7 +578,7 @@ type LangGeneric_a() =
                 requires_IA5String_i = false
                 count_var            = IntegerLocalVariable ("nStringLength", None)
                 requires_presenceBit = false
-                catd                 = true
+                catd                 = false
                 //createBitStringFunction = createBitStringFunction_funcBody_Ada
                 seqof_lv              =
                   (fun id minSize maxSize -> 
@@ -593,12 +597,12 @@ type LangGeneric_a() =
                             GenericLocalVariable {GenericLocalVariable.name = "tmpBs"; varType = "adaasn1rtl.encoding.BitStream"; arrSize = None; isStatic = false;initExp = Some (sprintf "adaasn1rtl.encoding.BitStream_init(%s)" sReqBytesForUperEncoding)}
                         ]
                 choice_handle_always_absent_child = true
-                choice_requires_tmp_decoding = true
+                choice_requires_tmp_decoding = false
           }
         override this.init = 
             {
                 Initialize_parts.zeroIA5String_localVars    = fun ii -> [SequenceOfIndex (ii, None)]
-                choiceComponentTempInit                     = true
+                choiceComponentTempInit                     = false
             }
 
         override this.atc =
