@@ -132,13 +132,7 @@ PrintSequenceValue(td/*:FE_SequenceTypeDefinition*/, sTasName, arrsChildren, arr
 
 
 PrintChoiceValue(sTasName, sChildName, sChildVal, sChildNamePresent, bUseUncheckedUnions) ::= <<
-<if(bUseUncheckedUnions)>
-<sTasName>'(kind => <sChildNamePresent>, u => (kind_unchecked => <sChildNamePresent>, <sChildName> => <sChildVal>))
-
-<else>
 <sTasName>'(kind => <sChildNamePresent>, <sChildName> => <sChildVal>)
-
-<endif>
 >>
 
 

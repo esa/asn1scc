@@ -210,7 +210,7 @@ initTestCase_sequence_child_opt(p, sAcc, sChName) ::= <<
 >>
 
 initTestCase_choice_child(p, sAcc, sChildID, sChildContent, sChildName, sChildTypeDef, sChoiceTypeName) ::= <<
-<p><sAcc>kind := <sChildID>;
+<p> := <sChoiceTypeName>'(kind => <sChildID>, <sChildName> => \<\>);
 <sChildContent>
 >>
 
@@ -226,7 +226,7 @@ begin
 end;
 
 <else>
-<p1><sAccess>kind = <sChildKind>;
+<p1> := <sChoiceTypeName>'(kind => <sChildKind>, <sChildName> => \<\>);
 <sChildContent>        
 
 <endif>

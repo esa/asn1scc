@@ -244,6 +244,7 @@ let createInitFunctionCommon (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros)   (o:Asn
         initFuncName            = funcName
         initFunc                = func
         initFuncDef             = funcDef
+        constantInitExpression  = ""
         initTas                 = initTasFunction
         initByAsn1Value         = initByAsn1Value
         automaticTestCases      = automaticTestCases
@@ -252,6 +253,7 @@ let createInitFunctionCommon (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros)   (o:Asn
 
 let createIntegerInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros)  (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Integer) (typeDefinition:TypeDefintionOrReference) iv =
     let initInteger = lm.init.initInteger
+    
     let funcBody (p:CallerScope) (v:Asn1ValueKind) = 
         let vl = 
             match v.ActualValue with
@@ -262,13 +264,22 @@ let createIntegerInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros)  (t:Asn1Acn
     let integerVals = EncodeDecodeTestCase.IntegerAutomaticTestCaseValues r t o
     
     let allCons = DastValidate2.getIntSimplifiedConstraints r o.isUnsigned o.AllCons
+    let isZeroAllowed = isValidValueRanged allCons 0I  
     let tasInitFunc (p:CallerScope)  = 
-        match isValidValueRanged allCons 0I  with
+        match isZeroAllowed  with
         | false    -> 
             match integerVals with 
             |x::_ -> {InitFunctionResult.funcBody = initInteger (lm.lg.getValue p.arg) x;  localVariables=[]} 
             | [] -> {InitFunctionResult.funcBody = initInteger (lm.lg.getValue p.arg) 0I;  localVariables=[]}
         | true  -> {InitFunctionResult.funcBody = initInteger (lm.lg.getValue p.arg) 0I;  localVariables=[]}
+    let constantInitExpression =
+        match isZeroAllowed  with
+        | false    -> 
+            match integerVals with 
+            |x::_ -> lm.lg.intValueToSting x (o.getClass r.args)
+            | [] -> lm.lg.intValueToSting 0I (o.getClass r.args)
+        | true  -> lm.lg.intValueToSting 0I (o.getClass r.args)
+        
 
     let testCaseFuncs = 
         integerVals |> 
@@ -277,7 +288,7 @@ let createIntegerInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros)  (t:Asn1Acn
                 (fun (p:CallerScope) -> {InitFunctionResult.funcBody = initInteger (lm.lg.getValue p.arg) vl;  localVariables=[]} )
             {AutomaticTestCase.initTestCaseFunc = initTestCaseFunc; testCaseTypeIDsMap = Map.ofList [(t.id, TcvAnyValue)] }        )
 
-    createInitFunctionCommon r lm t  typeDefinition funcBody iv tasInitFunc testCaseFuncs []
+    createInitFunctionCommon r lm t  typeDefinition funcBody iv tasInitFunc testCaseFuncs  []
 
 let createRealInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (o :Asn1AcnAst.Real) (typeDefinition:TypeDefintionOrReference) iv = 
     let initReal = lm.init.initReal
@@ -294,14 +305,22 @@ let createRealInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAst.
         List.map (fun vl -> 
             let initTestCaseFunc = (fun (p:CallerScope) -> {InitFunctionResult.funcBody = initReal (lm.lg.getValue p.arg) vl; localVariables=[]}) 
             {AutomaticTestCase.initTestCaseFunc = initTestCaseFunc; testCaseTypeIDsMap = Map.ofList [(t.id, TcvAnyValue)] } )
-
+    let isZeroAllowed = isValidValueRanged o.AllCons 0.0
     let tasInitFunc (p:CallerScope)  = 
-        match isValidValueRanged o.AllCons 0.0  with
+        match isZeroAllowed with
         | false    -> 
             match realVals with 
             | x::_ -> {InitFunctionResult.funcBody = initReal (lm.lg.getValue p.arg) x;  localVariables=[]} 
             | [] -> {InitFunctionResult.funcBody = initReal (lm.lg.getValue p.arg) 0.0;  localVariables=[]}
         | true  -> {InitFunctionResult.funcBody = initReal (lm.lg.getValue p.arg) 0.0;  localVariables=[]}
+
+    let constantInitExpression =
+        match isZeroAllowed  with
+        | false    -> 
+            match realVals with 
+            |x::_ -> lm.lg.doubleValueToSting x
+            | [] -> lm.lg.doubleValueToSting 0.0
+        | true  -> lm.lg.doubleValueToSting 0.0
 
     createInitFunctionCommon r lm t typeDefinition funcBody iv tasInitFunc testCaseFuncs []
 

@@ -49,6 +49,7 @@ type ILangGeneric () =
     abstract member toPointer       : FuncParamType -> FuncParamType;
     abstract member getArrayItem    : FuncParamType -> (string) -> (bool) -> FuncParamType;
     abstract member intValueToSting : BigInteger -> Asn1AcnAst.IntegerClass -> string;
+    abstract member doubleValueToSting : double -> string
     abstract member getNamedItemBackendName  :TypeDefintionOrReference option -> Asn1AcnAst.NamedItem -> string
     abstract member decodeEmptySeq  : string -> string option
     abstract member decode_nullType : string -> string option
@@ -173,6 +174,10 @@ type LangGeneric_c() =
             | Asn1AcnAst.ASN1SCC_UInt32   _ ->  sprintf "%sU" (i.ToString())
             | Asn1AcnAst.ASN1SCC_UInt64   _ ->  sprintf "%sUL" (i.ToString())
             | Asn1AcnAst.ASN1SCC_UInt     _ ->  sprintf "%sUL" (i.ToString())
+
+        override _.doubleValueToSting (v:double) = 
+            v.ToString(FsUtils.doubleParseString, System.Globalization.NumberFormatInfo.InvariantInfo)
+
 
         override _.getPointer  (fpt:FuncParamType) =
             match fpt with
@@ -460,6 +465,8 @@ type LangGeneric_a() =
         override this.createSingleLineComment (sText:string) = sprintf "--%s" sText
 
 
+        override _.doubleValueToSting (v:double) = 
+            v.ToString(FsUtils.doubleParseString, System.Globalization.NumberFormatInfo.InvariantInfo)
         override _.intValueToSting (i:BigInteger) _ = i.ToString()
 
         override _.getPointer  (fpt:FuncParamType) =
@@ -516,8 +523,8 @@ type LangGeneric_a() =
             let newPath = sprintf "%s.%s" fpt.p childName
             if childTypeIsString then (FIXARRAY newPath) else (VALUE newPath)
         override this.getChChild (fpt:FuncParamType) (childName:string) (childTypeIsString: bool) : FuncParamType =
-            //let newPath = sprintf "%s.%s" fpt.p childName
-            let newPath = sprintf "%s%su.%s" fpt.p (this.getAcces fpt) childName
+            let newPath = sprintf "%s.%s" fpt.p childName
+            //let newPath = sprintf "%s%su.%s" fpt.p (this.getAcces fpt) childName
             if childTypeIsString then (FIXARRAY newPath) else (VALUE newPath)
 
 

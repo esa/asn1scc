@@ -368,19 +368,11 @@ for <td.selection> use
     (<arrsPresent:{c|<c> => <i>}; separator=", ">);
 for <td.selection>'Size use 32;
 
-type <td.union_name>(kind_unchecked : <td.selection>:= <sFirstChildNamePresent>) is 
+type <td.typeName>(kind : <td.selection>:= <sFirstChildNamePresent>) is 
 record
-    case kind_unchecked is
+    case kind is
     <arrsChildren; separator="\n">
     end case;
-end record
-  with Unchecked_Union
-   ;   
-
-type <td.typeName> is 
-record
-    kind    : <td.selection>;
-    u       : <td.union_name>;
 end record;
 
 for <td.typeName> use 

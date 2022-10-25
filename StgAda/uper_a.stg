@@ -413,7 +413,7 @@ when <nChildIndex> =>
   end;
 
 <else>
-<p><sAcc>kind := <sChildID>;
+<p> := <sChoiceTypeName>'(kind => <sChildID>, <sChildName> => \<\>);
 <sChildContent>
 
 <endif>

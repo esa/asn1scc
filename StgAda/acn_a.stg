@@ -1109,7 +1109,7 @@ when <nChildIndex> =>
   end;
 
 <else>
-  <p><sAcc>kind := <sChildID>;
+  <p> := <sChoiceTypeName>'(kind => <sChildID>, <sChildName> => \<\>);
   <sChildContent>
 
 <endif>
@@ -1136,7 +1136,7 @@ when <sEnmName> =>
   end;
 
 <else>
-  <p><sAcc>kind := <sChildID>;
+  <p> := <sChoiceTypeName>'(kind => <sChildID>, <sChildName> => \<\>);
   <sChildBody>
 
 <endif>
@@ -1199,7 +1199,7 @@ ChoiceChild_preWhen_decode(p, sAcc, sChildID, sChildBody, arrsConditions, bFirst
   end;
 
 <else>
-  <p><sAcc>kind := <sChildID>;
+  <p> := <sChoiceTypeName>'(kind => <sChildID>, <sChildName> => \<\>);
   <sChildBody>
 
 <endif>
