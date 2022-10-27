@@ -50,6 +50,7 @@ type ILangGeneric () =
     abstract member getArrayItem    : FuncParamType -> (string) -> (bool) -> FuncParamType;
     abstract member intValueToSting : BigInteger -> Asn1AcnAst.IntegerClass -> string;
     abstract member doubleValueToSting : double -> string
+    abstract member initializeString : int -> string
     abstract member getNamedItemBackendName  :TypeDefintionOrReference option -> Asn1AcnAst.NamedItem -> string
     abstract member decodeEmptySeq  : string -> string option
     abstract member decode_nullType : string -> string option
@@ -178,6 +179,7 @@ type LangGeneric_c() =
         override _.doubleValueToSting (v:double) = 
             v.ToString(FsUtils.doubleParseString, System.Globalization.NumberFormatInfo.InvariantInfo)
 
+        override _.initializeString stringSize = sprintf "{ [0 ... %d] = 0x0 };" stringSize
 
         override _.getPointer  (fpt:FuncParamType) =
             match fpt with
@@ -185,7 +187,7 @@ type LangGeneric_c() =
             |POINTER x      -> x
             |FIXARRAY x     -> x
 
-        override this.getValue  (fpt:FuncParamType) =
+        override this.getValue (fpt:FuncParamType) =
             match fpt with
             | VALUE x        -> x
             | POINTER x      -> sprintf "(*(%s))" x
@@ -468,6 +470,9 @@ type LangGeneric_a() =
         override _.doubleValueToSting (v:double) = 
             v.ToString(FsUtils.doubleParseString, System.Globalization.NumberFormatInfo.InvariantInfo)
         override _.intValueToSting (i:BigInteger) _ = i.ToString()
+
+        override _.initializeString (_) = "(others => adaasn1rtl.NUL)"
+        
 
         override _.getPointer  (fpt:FuncParamType) =
             match fpt with

@@ -106,6 +106,9 @@ while (<i>\< <nSize>) {
 >>
 
 /* BIT AND OCTET STRINGS */
+initFixSizeOctetString(nMax) ::= "{.arr  = {[0 ... <nMax>]-1 = 0 }}"
+initVarSizeOctetString(nMin, nMax) ::= "{.nCount = <nMax>-1, .arr  = {[0 ... <nMax>-1] = 0 }}"
+
 initBitOrOctStringFromCompoundLiteral(p, sCompLiteral) ::= "<p> = <sCompLiteral>;"
 
 initFixSizeBitOrOctString_bytei(p, sAcc, sI, sByteHexVal) ::= "<p><sAcc>arr[<sI>] = 0x<sByteHexVal>;"
@@ -236,4 +239,10 @@ void <sFuncName>_set_<sNamedBit>(<sTypeDefName><sStar> <sVarName>) /*COVERAGE_IG
 
 initBitStringAtPos_def(sVarName, sStar, sFuncName, sTypeDefName, sNamedBit) ::= <<
 void <sFuncName>_set_<sNamedBit>(<sTypeDefName><sStar> <sVarName>);
+>>
+
+initTypeConstant_def(sTypeDecl, sConstantName, sValue) ::= "extern const <sTypeDecl> <sConstantName>;"
+
+initTypeConstant_body(sTypeDecl, sConstantName, sValue) ::= <<
+const <sTypeDecl> <sConstantName> = <sValue>;
 >>

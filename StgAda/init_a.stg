@@ -112,6 +112,10 @@ init_Asn1Date_LocalTimeWithTimeZone(p, sAcc, dt/*:Asn1DateValue*/, tv/*:Asn1Time
 
 
 /* BIT AND OCTET STRINGS */
+
+initFixSizeOctetString(nMax) ::= "(Data => (others => 0))"
+initVarSizeOctetString(nMin, nMax) ::= "(Length => <nMin>, Data => (others => 0))"
+
 initBitOrOctStringFromCompoundLiteral(p, sCompLiteral) ::= "<p> := <sCompLiteral>;"
 initFixSizeBitOrOctString_bytei(p, sAcc, sI, sByteHexVal) ::= "<p><sAcc>Data(<sI>) := 16#<sByteHexVal>#;"
 initFixSizeBitOrOctString(p, sAcc,arrsBytes) ::= <<
@@ -250,3 +254,12 @@ end <sFuncName>_set_<sNamedBit>;   --  COVERAGE_IGNORE
 initBitStringAtPos_def(sVarName, sStar, sFuncName, sTypeDefName, sNamedBit) ::= <<
 procedure <sFuncName>_set_<sNamedBit>(<sVarName> : in out <sTypeDefName>);
 >>
+
+
+
+initTypeConstant_def(sTypeDecl, sConstantName, sValue) ::= <<
+function <sConstantName>  return <sTypeDecl> is
+(<sValue>);
+>>
+
+initTypeConstant_body(sTypeDecl, sConstantName, sValue) ::= ""
