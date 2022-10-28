@@ -218,7 +218,9 @@ type InitFunction = {
     initFuncName            : string option               // the name of the function
     initFunc                : string option               // the body of the function
     initFuncDef             : string option               // function definition in header file
-    constantInitExpression  : {|def:string; body:string |} option                      // an expression that initializes the given type to a default value.
+    initExpression          : string option               // an expression that provides the default initialization. 
+                                                          //It is usually present except of some rare cases such as an empty sequence (for C only) etc
+    constantInitExpression  : {|funcName:string; def:string; body:string |} option                      // an expression that initializes the given type to a default value.
     initTas                 : (CallerScope  -> InitFunctionResult)              // returns the statement(s) that defaults initialize this type (used in the init function)
     initByAsn1Value         : CallerScope  -> Asn1ValueKind -> string           // returns the statement(s) that initialize according to the asn1value
     //initFuncBodyTestCases   : (CallerScope  -> InitFunctionResult) list         // returns a list of set the statement(s). Each set that initialize this type according to a specific test case

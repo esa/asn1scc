@@ -113,8 +113,6 @@ init_Asn1Date_LocalTimeWithTimeZone(p, sAcc, dt/*:Asn1DateValue*/, tv/*:Asn1Time
 
 /* BIT AND OCTET STRINGS */
 
-initFixSizeOctetString(nMax) ::= "(Data => (others => 0))"
-initVarSizeOctetString(nMin, nMax) ::= "(Length => <nMin>, Data => (others => 0))"
 
 initBitOrOctStringFromCompoundLiteral(p, sCompLiteral) ::= "<p> := <sCompLiteral>;"
 initFixSizeBitOrOctString_bytei(p, sAcc, sI, sByteHexVal) ::= "<p><sAcc>Data(<sI>) := 16#<sByteHexVal>#;"
@@ -257,9 +255,61 @@ procedure <sFuncName>_set_<sNamedBit>(<sVarName> : in out <sTypeDefName>);
 
 
 
+initFixSizeOctetString(nMax) ::= "(Data => (others => 0))"
+initVarSizeOctetString(nMin, nMax) ::= "(Length => <nMax>, Data => (others => 0))"
+
+initFixSizeBitString(nMax, nMaxOctets) ::= "(Data => (others => 0))"
+initVarSizeBitString(nMin, nMax, nMaxOctets) ::= "(Length => <nMax>, Data => (others => 0))"
+
+initObjectIdentifierAsExpr() ::= <<
+(length => 0, values => (others => 0))
+>>
+
+initFixSizeSequenceOfExpr(nMax, sChildExp) ::= "(Data => (others => <sChildExp>))"
+initVarSizeSequenceOfExpr(nMin, nMax, sChildExp) ::= "(Length => <nMax>, Data => (others => <sChildExp>))"
+
+
 initTypeConstant_def(sTypeDecl, sConstantName, sValue) ::= <<
 function <sConstantName>  return <sTypeDecl> is
 (<sValue>);
 >>
 
 initTypeConstant_body(sTypeDecl, sConstantName, sValue) ::= ""
+
+init_Asn1LocalTimeExpr() ::= <<
+(hours => 0,mins => 0,sec => 0,fraction => 0)
+>>
+
+init_Asn1UtcTimeExpr() ::= <<
+(hours => 0,mins => 0,sec => 0, fraction => 0)
+>>
+
+
+init_Asn1LocalTimeWithTimeZoneExpr() ::= <<
+(hours => 0,mins => 0,sec => 0,fraction => 0, tz.sign => 0, tz.hours => 0, tz.mins => 0)
+>>
+
+init_Asn1DateExpr() ::= <<
+(years => 0, months => 0, days => 0)
+>>
+
+init_Asn1Date_LocalTimeExpr() ::= <<
+(years => 0, months => 0, days => 0, hours => 0,mins => 0,sec => 0,fraction => 0)
+>>
+
+init_Asn1Date_UtcTimeExpr() ::= <<
+(years => 0, months => 0, days => 0, hours => 0,mins => 0,sec => 0,fraction => 0)
+>>
+
+init_Asn1Date_LocalTimeWithTimeZoneExpr() ::= <<
+(years => 0, months => 0, days => 0, hours => 0,mins => 0,sec => 0,fraction => 0)
+>>
+
+
+initSequenceChildExpr(sChildName, sChildExpr) ::= "<sChildName> => <sChildExpr>"
+initSequenceOptionalChildExpr(sChildName) ::= "<sChildName> => 1"
+initSequenceExpr(arrsChildren, arrsOptionalChildren) ::= <<
+(<arrsChildren; separator=", "><if (arrsOptionalChildren)>, Exist => (<arrsOptionalChildren; separator=", ">)<endif>)
+>>
+
+initChoiceExpr(sChildName, sChildKind, sChildExpr) ::= "(kind => <sChildKind>, <sChildName> => <sChildExpr>)"

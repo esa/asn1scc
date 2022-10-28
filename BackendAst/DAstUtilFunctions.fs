@@ -577,6 +577,22 @@ with
         | TimeType     _  -> this
     
 
+    member this.isComplexType =
+        match this.Kind with
+        | ReferenceType t-> t.resolvedType.isComplexType
+        | Integer      _ -> false
+        | Real         _ -> false
+        | IA5String    _ -> false
+        | OctetString  _ -> false
+        | NullType     _ -> false
+        | BitString    _ -> false
+        | Boolean      _ -> false
+        | Enumerated   _ -> false
+        | SequenceOf   _ -> true
+        | Sequence     _ -> true
+        | Choice       _ -> true
+        | ObjectIdentifier _ -> false
+        | TimeType     _  -> false
 
     member this.ActualType =
         match this.Kind with

@@ -78,7 +78,11 @@ type ILangGeneric () =
     abstract member getChChild      : FuncParamType -> string -> bool -> FuncParamType;
     abstract member getLocalVariableDeclaration : LocalVariable -> string;
     abstract member getLongTypedefName : TypeDefintionOrReference -> string;
+    abstract member getEmptySequenceInitExpression : unit -> string option
+    abstract member callFuncWithNoArgs : unit -> string
+
     //abstract member getEnmLongTypedefName : FE_EnumeratedTypeDefinition -> string -> FE_EnumeratedTypeDefinition;
+
 
     abstract member ArrayAccess     : string -> string;
 
@@ -92,6 +96,7 @@ type ILangGeneric () =
     abstract member supportsStaticVerification      : bool
     abstract member AssignOperator  : string
     abstract member TrueLiteral     : string
+    abstract member FalseLiteral     : string
     abstract member emtyStatement   : string
     abstract member bitStreamName   : string
     abstract member  unaryNotOperator :string
@@ -179,7 +184,7 @@ type LangGeneric_c() =
         override _.doubleValueToSting (v:double) = 
             v.ToString(FsUtils.doubleParseString, System.Globalization.NumberFormatInfo.InvariantInfo)
 
-        override _.initializeString stringSize = sprintf "{ [0 ... %d] = 0x0 };" stringSize
+        override _.initializeString stringSize = sprintf "{ [0 ... %d] = 0x0 }" stringSize
 
         override _.getPointer  (fpt:FuncParamType) =
             match fpt with
@@ -228,10 +233,12 @@ type LangGeneric_c() =
         override this.getAsn1ChildBackendName0 (ch:Asn1AcnAst.Asn1Child) = ch._c_name
         override this.getAsn1ChChildBackendName0 (ch:Asn1AcnAst.ChChildInfo) = ch._c_name
 
-
+        override this.getEmptySequenceInitExpression () = Some "{}"
+        override this.callFuncWithNoArgs () = "()"
         override this.rtlModuleName  = ""
         override this.AssignOperator = "="
         override this.TrueLiteral = "TRUE"
+        override this.FalseLiteral = "FALSE"
         override this.emtyStatement = ""
         override this.bitStreamName = "BitStream"
         override this.unaryNotOperator    = "!"  
@@ -449,9 +456,13 @@ let createBitStringFunction_funcBody_Ada handleFragmentation (codec:CommonTypes.
 type LangGeneric_a() =
     inherit ILangGeneric()
         override _.ArrayStartIndex = 1
+        override this.getEmptySequenceInitExpression () = Some "(null record)"
+        override this.callFuncWithNoArgs () = ""
+
         override this.rtlModuleName  = "adaasn1rtl."
         override this.AssignOperator = ":="
         override this.TrueLiteral = "True"
+        override this.FalseLiteral = "False"
         override this.hasModules = true
         override this.supportsStaticVerification = true 
         override this.emtyStatement = "null;"
