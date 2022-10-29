@@ -291,7 +291,7 @@ init_Asn1Date_LocalTimeWithTimeZoneExpr() ::= <<
 initSequenceChildExpr(sChildName, sChildExpr) ::= ".<sChildName> = <sChildExpr>"
 initSequenceOptionalChildExpr(sChildName) ::= ".<sChildName> = 1"
 initSequenceExpr(arrsChildren, arrsOptionalChildren) ::= <<
-{<arrsChildren; separator=", "><if (arrsOptionalChildren)>, .exist => (<arrsOptionalChildren; separator=", ">)<endif>}
+{<arrsChildren; separator=", "><if (arrsOptionalChildren)>, .exist = {<arrsOptionalChildren; separator=", ">}<endif>}
 >>
 
 initChoiceExpr(sChildName, sChildKind, sChildExpr) ::= "{.kind = <sChildKind>, .u.<sChildName> = <sChildExpr>}"
