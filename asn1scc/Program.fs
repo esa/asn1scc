@@ -41,6 +41,7 @@ type CliArguments =
     | [<Unique; AltCommandLine("-mfm")>]   Mapping_Functions_Module of string 
     | [<Unique; AltCommandLine("-debug")>]   Debug
     | [<Unique; AltCommandLine("-sm")>]   Streaming_Mode
+    | [<Unique; AltCommandLine("-ig")>]   Init_Globals
     | [<MainCommand; ExactlyOnce; Last>] Files of files:string list
 with
     interface IArgParserTemplate with
@@ -58,6 +59,7 @@ with
             | Files (_)        -> "List of ASN.1 and ACN files to process."
             | Type_Prefix _    -> "adds 'prefix' to all generated C or Ada/SPARK data types."
             | Equal_Func       -> "generate functions for testing type equality."
+            | Init_Globals     -> "generate const globals for types initialization. Applicable only to C."
             | Xml_Ast _        -> "dump internal AST in an xml file"
             | Rename_Policy _  -> """Specify rename policy for Enumerated values. Allowed values are:
     0 perform no rename (Ada default).
@@ -146,6 +148,7 @@ let checkArguement arg =
     | Auto_test_cases  -> ()
     | Equal_Func       -> ()
     | Generate_Test_Grammar -> ()
+    | Init_Globals          -> ()
     | Xml_Ast xmlFileName   -> checkOutFileName xmlFileName ".xml" "-x"
     | Out outDir       -> 
         match System.IO.Directory.Exists outDir with
@@ -223,6 +226,7 @@ let constructCommandLineSettings args (parserResults: ParseResults<CliArguments>
         AstXmlAbsFileName = parserResults.GetResult(<@Xml_Ast@>, defaultValue = "")
         IcdUperHtmlFileName = ""
         IcdAcnHtmlFileName = ""
+        generateConstInitGlobals = parserResults.Contains(<@Init_Globals@>)
         custom_Stg_Ast_Version = parserResults.GetResult(<@ Custom_Stg_Ast_Version @>, defaultValue = 1)
         mappingFunctionsModule = parserResults.TryGetResult(<@ Mapping_Functions_Module @>)
         integerSizeInBytes = 

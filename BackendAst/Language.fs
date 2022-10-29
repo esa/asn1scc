@@ -38,6 +38,10 @@ type Atc_parts = {
 }
 
 
+type InitMethod = 
+    | Procedure
+    | Function
+
 [<AbstractClass>]
 type ILangGeneric () =
     abstract member ArrayStartIndex : int
@@ -105,7 +109,7 @@ type ILangGeneric () =
     abstract member  neqOp            :string
     abstract member  andOp            :string
     abstract member  orOp             :string
-
+    abstract member  initMetod        :InitMethod
     abstract member  bitStringValueToByteArray:  BitStringValue -> byte[]
 
     abstract member toHex : int -> string
@@ -247,6 +251,7 @@ type LangGeneric_c() =
         override this.neqOp               = "!=" 
         override this.andOp               = "&&" 
         override this.orOp                = "||" 
+        override this.initMetod           = InitMethod.Procedure
 
         override this.castExpression (sExp:string) (sCastType:string) = sprintf "(%s)(%s)" sCastType sExp
         override this.createSingleLineComment (sText:string) = sprintf "/*%s*/" sText
@@ -473,6 +478,7 @@ type LangGeneric_a() =
         override this.neqOp               = "<>"
         override this.andOp               = "and"
         override this.orOp                = "or"
+        override this.initMetod           = InitMethod.Function
 
         override this.castExpression (sExp:string) (sCastType:string) = sprintf "%s(%s)" sCastType sExp
         override this.createSingleLineComment (sText:string) = sprintf "--%s" sText

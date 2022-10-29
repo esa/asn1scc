@@ -130,7 +130,7 @@ let executeTestCase asn1sccdll workDir  (t:Test_Case) (lang:string, ws:int, slim
     let wsa = if ws=8 then "-fpWordSize 8 -wordSize 8" else "-fpWordSize 4 -wordSize 4"
     let slima = if slim then "-slim" else ""
     //-c -x ast.xml -uPER -ACN -typePrefix gmamais_  -slim -renamePolicy 3 -fp AUTO -equal -atc -o 'c:\prj\GitHub\asn1scc\v4Tests\tmp_c' 'c:\prj\GitHub\asn1scc\v4Tests\tmp_c\sample1.asn1' 'c:\prj\GitHub\asn1scc\v4Tests\tmp_c\sample1.acn'
-    let cmd = sprintf "%s -%s -x ast.xml -uPER -ACN -typePrefix ASN1SCC_ -renamePolicy 3 -fp AUTO -equal -atc  %s %s sample1.asn1 sample1.acn" asn1sccdll lang slima wsa
+    let cmd = sprintf "%s -%s -x ast.xml -uPER -ACN -ig -typePrefix ASN1SCC_ -renamePolicy 3 -fp AUTO -equal -atc  %s %s sample1.asn1 sample1.acn" asn1sccdll lang slima wsa
     prepareFolderAndFiles workDir t
     //ShellProcess.printInfo "\nwordDir is:%s\n%s\n\n" workDir cmd
     let res = executeProcess workDir "dotnet" cmd
@@ -150,7 +150,7 @@ let executeTestCase asn1sccdll workDir  (t:Test_Case) (lang:string, ws:int, slim
         let coverageFile = Path.Combine(workDir, (if lang = "c" then "sample1.c.gcov" else "obj_x86/debug/test_case.adb.gcov"))
         let covLinesToIgnore = ["}";"default:";"break;";"end"] |> Set.ofList
 
-        let makeCommand = sprintf "make%s" (if bNoAtc then "" else " coverage")
+        let makeCommand = sprintf "make%s" (if bNoAtc || not bRunCodeCoverage then "" else " coverage")
         let res = executeBashScript workDir makeCommand
         if res.ExitCode <> 0 then    
             markError "Error code is %d\n%s" res.ExitCode res.StdErr

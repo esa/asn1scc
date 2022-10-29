@@ -228,13 +228,17 @@ typedef struct {
 } <td.extention_function_potisions>;
 
 <endif>
+<if (arrsOptionalChildren)>
+typedef struct {
+    <arrsOptionalChildren; separator="\n">
+} <td.exist>;
+
+<endif>
 typedef struct {
     <arrsChildren; separator="\n">
 
     <if (arrsOptionalChildren)>
-    struct {
-        <arrsOptionalChildren; separator="\n">
-    } exist;
+    <td.exist> exist;
 
     <endif>
 } <td.typeName>;
@@ -264,13 +268,14 @@ typedef enum {
     <arrsPresent:{ch|<ch>}; separator=",\n"> 
 } <td.selection>;
 
+typedef union {
+    <arrsChildren:{ch|<ch>}; separator="\n">
+} <td.union_name>; 
 
 typedef struct {
     <td.selection> kind;
     
-    union {
-        <arrsChildren:{ch|<ch>}; separator="\n">
-    } u; 
+    <td.union_name> u; 
 } <td.typeName>;
 >>
 

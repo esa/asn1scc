@@ -343,6 +343,11 @@ emitTestCaseAsFunc_dummy_init(sTypeName, sFuncName, sDummyVarname) ::= <<
 <sFuncName>(<sDummyVarname>);
 >>
 
+emitTestCaseAsFunc_dummy_init_function(sTypeName, sFuncName, sDummyVarname) ::= <<
+//This macro should never be called for C. C does not support init functions, only init procedures
+//<sDummyVarname> = <sFuncName>();
+>>
+
 emitTestCaseAsFunc(sFuncName, arrsVars, sModName, sTasName, sAmber, sEnc, bValueAssignment, sInitializeTcData, bStatic, sGenerateDatFile, arrsDummyInitStatementsNeededForStatementCoverage, sInitAmber) ::= <<
 void <sFuncName>(const TestOutput* output, int *totalErrors)
 {

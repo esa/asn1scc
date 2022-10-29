@@ -826,6 +826,7 @@ type CommandLineSettings = {
     acnFiles  : Input list
     encodings: Asn1Encoding list
     GenerateEqualFunctions : bool
+    generateConstInitGlobals : bool
     generateAutomaticTestCases : bool
     TypePrefix:string
     CheckWithOss:bool

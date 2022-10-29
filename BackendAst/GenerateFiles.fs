@@ -44,6 +44,7 @@ let rec collectEqualFuncs (t:Asn1Type) =
         | BitString        _
         | Boolean          _
         | ObjectIdentifier _
+        | TimeType         _
         | Enumerated       _ -> ()
         | SequenceOf        ch -> 
             yield! collectEqualFuncs ch.childType
@@ -91,10 +92,18 @@ let private printUnit (r:DAst.AstRoot) (l:ProgrammingLanguage) (lm:LanguageMacro
                 match tas.Type.typeDefintionOrReference with
                 | TypeDefinition td -> td.typedefBody ()      
                 | ReferenceToExistingDefinition _   -> raise(BugErrorException "Type Assignment with no Type Defintion")
-            let init_def        = //tas.Type.initFunction.initFuncDef 
-                Some (GetMySelfAndChildren tas.Type |> List.choose(fun t -> t.initFunction.initFuncDef ) |> Seq.StrJoin "\n")
-            let init_def2        = //tas.Type.initFunction.initFuncDef 
-                Some (GetMySelfAndChildren tas.Type |> List.choose(fun t -> t.initFunction.constantInitExpression ) |> List.map(fun c -> c.def) |> Seq.StrJoin "\n")
+            let init_def        = 
+                match lm.lg.initMetod with
+                | Procedure ->
+                    Some (GetMySelfAndChildren tas.Type |> List.choose(fun t -> t.initFunction.initProcedure) |> List.map(fun c -> c.def) |> Seq.StrJoin "\n")
+                | Function ->
+                    Some (GetMySelfAndChildren tas.Type |> List.choose(fun t -> t.initFunction.initFunction ) |> List.map(fun c -> c.def) |> Seq.StrJoin "\n")
+            let init_globals    =
+                //we generate const globals only if requested by user and the init method is procedure 
+                match r.args.generateConstInitGlobals && (lm.lg.initMetod  = Procedure) with
+                | false -> None
+                | true  -> Some (GetMySelfAndChildren tas.Type |> List.choose(fun t -> t.initFunction.initGlobal ) |> List.map(fun c -> c.def) |> Seq.StrJoin "\n")
+
             let special_init_funcs =
                 tas.Type.initFunction.user_aux_functions |> List.map fst
 
@@ -129,7 +138,7 @@ let private printUnit (r:DAst.AstRoot) (l:ProgrammingLanguage) (lm:LanguageMacro
                 | true, Some x -> x.funcDef
                 | _ -> None 
 
-            let allProcs = equal_defs@isValidFuncs@special_init_funcs@([init_def2;init_def;uPerEncFunc;uPerDecFunc;acnEncFunc; acnDecFunc;xerEncFunc;xerDecFunc] |> List.choose id)
+            let allProcs = equal_defs@isValidFuncs@special_init_funcs@([init_globals;init_def;uPerEncFunc;uPerDecFunc;acnEncFunc; acnDecFunc;xerEncFunc;xerDecFunc] |> List.choose id)
             match l with
             |C     -> header_c.Define_TAS type_defintion allProcs 
             |Ada   -> header_a.Define_TAS type_defintion allProcs 
@@ -209,10 +218,18 @@ let private printUnit (r:DAst.AstRoot) (l:ProgrammingLanguage) (lm:LanguageMacro
     //sourse file
     let arrsTypeAssignments = 
         tases |> List.map(fun t -> 
-            let init_def2        = //tas.Type.initFunction.initFuncDef 
-                Some (GetMySelfAndChildren t.Type |> List.choose(fun t -> t.initFunction.constantInitExpression ) |> List.map(fun c -> c.body) |> Seq.StrJoin "\n")
-            let initialize        = //t.Type.initFunction.initFunc 
-                Some(GetMySelfAndChildren t.Type |> List.choose(fun y -> y.initFunction.initFunc) |> Seq.StrJoin "\n")
+            let initialize        = 
+                match lm.lg.initMetod with
+                | InitMethod.Procedure  ->
+                    Some(GetMySelfAndChildren t.Type |> List.choose(fun y -> y.initFunction.initProcedure) |> List.map(fun c -> c.body) |> Seq.StrJoin "\n")
+                | InitMethod.Function  ->
+                    Some (GetMySelfAndChildren t.Type |> List.choose(fun t -> t.initFunction.initFunction ) |> List.map(fun c -> c.body) |> Seq.StrJoin "\n")
+            let init_globals    =
+                match r.args.generateConstInitGlobals  && (lm.lg.initMetod  = Procedure) with
+                | false -> None
+                | true  -> Some (GetMySelfAndChildren t.Type |> List.choose(fun t -> t.initFunction.initGlobal) |> List.map(fun c -> c.body) |> Seq.StrJoin "\n")
+
+
             let special_init_funcs =
                 t.Type.initFunction.user_aux_functions |> List.map snd
 
@@ -255,7 +272,7 @@ let private printUnit (r:DAst.AstRoot) (l:ProgrammingLanguage) (lm:LanguageMacro
                     | CommonTypes.Encode    -> match t.Type.acnEncFunction with None -> None | Some x -> x.func
                     | CommonTypes.Decode    -> match t.Type.acnDecFunction with None -> None | Some x -> x.func
                 | false     -> None
-            let allProcs =  eqFuncs@isValidFuncs@special_init_funcs@([init_def2;initialize; (uperEncDec CommonTypes.Encode); (uperEncDec CommonTypes.Decode);(ancEncDec CommonTypes.Encode); (ancEncDec CommonTypes.Decode);(xerEncDec CommonTypes.Encode); (xerEncDec CommonTypes.Decode)] |> List.choose id)
+            let allProcs =  eqFuncs@isValidFuncs@special_init_funcs@([init_globals;initialize; (uperEncDec CommonTypes.Encode); (uperEncDec CommonTypes.Decode);(ancEncDec CommonTypes.Encode); (ancEncDec CommonTypes.Decode);(xerEncDec CommonTypes.Encode); (xerEncDec CommonTypes.Decode)] |> List.choose id)
             match l with
             | C     ->  body_c.printTass allProcs 
             | Ada   ->  body_a.printTass allProcs )

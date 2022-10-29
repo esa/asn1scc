@@ -210,17 +210,18 @@ is in order to generate valid ACN test cases. I.e. the ACN checks that test case
 generated.
 *)
 type AutomaticTestCase = {
-    initTestCaseFunc : CallerScope  -> InitFunctionResult //returns a list of set the statement(s) that initialize this type accordingly
-    testCaseTypeIDsMap         : Map<ReferenceToType, TestCaseValue>    //used by ACN to produce valid test cases
+    initTestCaseFunc        : CallerScope  -> InitFunctionResult //returns a list of set the statement(s) that initialize this type accordingly
+    testCaseTypeIDsMap      : Map<ReferenceToType, TestCaseValue>    //used by ACN to produce valid test cases
 }
 
 type InitFunction = {
-    initFuncName            : string option               // the name of the function
-    initFunc                : string option               // the body of the function
-    initFuncDef             : string option               // function definition in header file
     initExpression          : string option               // an expression that provides the default initialization. 
+    initExpressionGlobal    : string option               // an expression that provides the default initialization. 
                                                           //It is usually present except of some rare cases such as an empty sequence (for C only) etc
-    constantInitExpression  : {|funcName:string; def:string; body:string |} option                      // an expression that initializes the given type to a default value.
+    initProcedure           : {|funcName:string; def:string; body:string |} option
+    initFunction            : {|funcName:string; def:string; body:string |} option                      // an expression that initializes the given type to a default value.
+    initGlobal              : {|globalName:string; def:string; body:string |} option                      // an expression that initializes the given type to a default value.
+
     initTas                 : (CallerScope  -> InitFunctionResult)              // returns the statement(s) that defaults initialize this type (used in the init function)
     initByAsn1Value         : CallerScope  -> Asn1ValueKind -> string           // returns the statement(s) that initialize according to the asn1value
     //initFuncBodyTestCases   : (CallerScope  -> InitFunctionResult) list         // returns a list of set the statement(s). Each set that initialize this type according to a specific test case
