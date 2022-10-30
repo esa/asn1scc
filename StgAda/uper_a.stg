@@ -39,9 +39,7 @@ with
       and then bs.Size_In_Bytes \< Positive'Last / 8
       and then bs.Current_Bit_Pos + <sTypeDefName>_REQUIRED_BITS_FOR_ENCODING \<= bs.Size_In_Bytes * 8,
        Post => 
-         (result.Success and bs.Current_Bit_Pos \>= bs'Old.Current_Bit_Pos and bs.Current_Bit_Pos \<= bs'Old.Current_Bit_Pos + <sTypeDefName>_REQUIRED_BITS_FOR_ENCODING)
-       or
-         not result.Success
+         bs.Current_Bit_Pos \>= bs'Old.Current_Bit_Pos and bs.Current_Bit_Pos \<= bs'Old.Current_Bit_Pos + <sTypeDefName>_REQUIRED_BITS_FOR_ENCODING
 >>
 
 sparkAnnotations_decode(sTypeDefName) ::= <<
@@ -50,9 +48,7 @@ with
       and then bs.Size_In_Bytes \< Positive'Last / 8
       and then bs.Current_Bit_Pos + <sTypeDefName>_REQUIRED_BITS_FOR_ENCODING \<= bs.Size_In_Bytes * 8,
        Post => 
-         (result.Success and bs.Current_Bit_Pos \>= bs'Old.Current_Bit_Pos and bs.Current_Bit_Pos \<= bs'Old.Current_Bit_Pos + <sTypeDefName>_REQUIRED_BITS_FOR_ENCODING)
-       or
-         not result.Success
+         bs.Current_Bit_Pos \>= bs'Old.Current_Bit_Pos and bs.Current_Bit_Pos \<= bs'Old.Current_Bit_Pos + <sTypeDefName>_REQUIRED_BITS_FOR_ENCODING
 >>
 
 TasEncodeMain(sVarName, sFuncName, sTypeDefName, bReqBytesForEncodingIsZero) ::= /*nogen*/<<
@@ -64,7 +60,7 @@ begin
 end <sFuncName>;
 >>
 
-EmitTypeAssignment_encode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitilialExp, bReqBytesForEncodingIsZero, bBsIsUnreferenced, bVarNameIsUnreferenced) ::= <<
+EmitTypeAssignment_encode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitilialExp, bReqBytesForEncodingIsZero, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName) ::= <<
 procedure <sFuncName>_aux(<sVarName> : <sTypeDefName>; bs : in out <rtlModuleName()>.encoding.Bitstream; result : OUT <rtlModuleName()>.ASN1_RESULT)
 is
 <if(bBsIsUnreferenced)>
@@ -108,7 +104,7 @@ begin
     <endif>
 end <sFuncName>;
 >>
-EmitTypeAssignment_decode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitilialExp, bReqBytesForEncodingIsZero, bBsIsUnreferenced, bVarNameIsUnreferenced) ::= <<
+EmitTypeAssignment_decode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitilialExp, bReqBytesForEncodingIsZero, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName) ::= <<
 <if(bVarNameIsUnreferenced)>
 pragma Warnings (Off, "unused initial value of ""<sVarName>""");
 
@@ -126,6 +122,10 @@ is
 
     <arrsLocalVariables; separator="\n">
 begin
+    <if(soInitFuncName)>
+    -- <sVarName> := <soInitFuncName>;
+
+    <endif>
     <sContent>
 end <sFuncName>_aux;
 <if(bVarNameIsUnreferenced)>
@@ -393,30 +393,16 @@ end if;
 
 /* CHOICE START*/
 
-choice_child_encode(p, sAcc, sChildID, nChildIndex, nIndexSizeInBits, nLastItemIndex, sChildContent, sChildName, sChildTypeDef, sChoiceTypeName, bDecodeChildAtStack) ::= <<
+choice_child_encode(p, sAcc, sChildID, nChildIndex, nIndexSizeInBits, nLastItemIndex, sChildContent, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr) ::= <<
 when <sChildID> =>
     adaasn1rtl.encoding.uper.UPER_Enc_ConstraintWholeNumber(bs, <nChildIndex>, 0, <nIndexSizeInBits>);
     <sChildContent>
 >>
 
-choice_child_decode(p, sAcc, sChildID, nChildIndex, nIndexSizeInBits, nLastItemIndex, sChildContent, sChildName, sChildTypeDef, sChoiceTypeName, bDecodeChildAtStack) ::= <<
+choice_child_decode(p, sAcc, sChildID, nChildIndex, nIndexSizeInBits, nLastItemIndex, sChildContent, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr) ::= <<
 when <nChildIndex> =>
-<if(bDecodeChildAtStack)>
-  declare
-     <sChildName>_tmp:<sChildTypeDef>;
-  begin
-    <sChildContent>
-    if result.Success then
-        <p> := <sChoiceTypeName>'(kind => <sChildID>, <sChildName> => <sChildName>_tmp);
-        pragma Annotate (GNATprove, False_Positive,"discriminant check might fail", "reviewed by GM");
-    end if;
-  end;
-
-<else>
-<p> := <sChoiceTypeName>'(kind => <sChildID>, <sChildName> => \<\>);
+<p> := <sChoiceTypeName>'(kind => <sChildID>, <sChildName> => <sChildInitExpr>);
 <sChildContent>
-
-<endif>
 >>
 
 

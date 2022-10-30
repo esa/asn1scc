@@ -215,8 +215,8 @@ type AutomaticTestCase = {
 }
 
 type InitFunction = {
-    initExpression          : string option               // an expression that provides the default initialization. 
-    initExpressionGlobal    : string option               // an expression that provides the default initialization. 
+    initExpression          : string               // an expression that provides the default initialization. 
+    initExpressionGlobal    : string               // an expression that provides the default initialization. 
                                                           //It is usually present except of some rare cases such as an empty sequence (for C only) etc
     initProcedure           : {|funcName:string; def:string; body:string |} option
     initFunction            : {|funcName:string; def:string; body:string |} option                      // an expression that initializes the given type to a default value.

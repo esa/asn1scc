@@ -146,6 +146,7 @@ let executeTestCase asn1sccdll workDir  (t:Test_Case) (lang:string, ws:int, slim
         let asn1Lines = File.ReadAllLines t.asn1
         let bNoAtc = asn1Lines |> Seq.exists(fun l -> l.Contains "NO_AUTOMATIC_TEST_CASES")
         let bRunCodeCoverage = not (asn1Lines |> Seq.exists(fun l -> l.Contains "NOCOVERAGE"))
+        //ShellProcess.printDebug "bRunCodeCoverage %b" bRunCodeCoverage
         let bRunSpark = (lang = "Ada") && asn1Lines |> Seq.exists(fun l -> l.Contains "RUN_SPARK")
         let coverageFile = Path.Combine(workDir, (if lang = "c" then "sample1.c.gcov" else "obj_x86/debug/test_case.adb.gcov"))
         let covLinesToIgnore = ["}";"default:";"break;";"end"] |> Set.ofList

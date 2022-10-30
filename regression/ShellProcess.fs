@@ -37,6 +37,12 @@ let printInfo fmt =
         printf "%s" str
         Console.ForegroundColor <- currentColor) fmt
 
+let printDebug fmt = 
+    Printf.kprintf (fun str ->   
+        let currentColor = Console.ForegroundColor
+        Console.ForegroundColor <- ConsoleColor.Cyan
+        printf "%s" str
+        Console.ForegroundColor <- currentColor) fmt
 
 let executeProcess_priv  (workingDirectory: string) (processName: string) (processArgs: string) =
     let psi = new Diagnostics.ProcessStartInfo(processName, processArgs) 

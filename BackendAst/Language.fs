@@ -82,7 +82,7 @@ type ILangGeneric () =
     abstract member getChChild      : FuncParamType -> string -> bool -> FuncParamType;
     abstract member getLocalVariableDeclaration : LocalVariable -> string;
     abstract member getLongTypedefName : TypeDefintionOrReference -> string;
-    abstract member getEmptySequenceInitExpression : unit -> string option
+    abstract member getEmptySequenceInitExpression : unit -> string
     abstract member callFuncWithNoArgs : unit -> string
 
     //abstract member getEnmLongTypedefName : FE_EnumeratedTypeDefinition -> string -> FE_EnumeratedTypeDefinition;
@@ -237,7 +237,7 @@ type LangGeneric_c() =
         override this.getAsn1ChildBackendName0 (ch:Asn1AcnAst.Asn1Child) = ch._c_name
         override this.getAsn1ChChildBackendName0 (ch:Asn1AcnAst.ChChildInfo) = ch._c_name
 
-        override this.getEmptySequenceInitExpression () = Some "{}"
+        override this.getEmptySequenceInitExpression () = "{}"
         override this.callFuncWithNoArgs () = "()"
         override this.rtlModuleName  = ""
         override this.AssignOperator = "="
@@ -461,7 +461,7 @@ let createBitStringFunction_funcBody_Ada handleFragmentation (codec:CommonTypes.
 type LangGeneric_a() =
     inherit ILangGeneric()
         override _.ArrayStartIndex = 1
-        override this.getEmptySequenceInitExpression () = Some "(null record)"
+        override this.getEmptySequenceInitExpression () = "(null record)"
         override this.callFuncWithNoArgs () = ""
 
         override this.rtlModuleName  = "adaasn1rtl."
