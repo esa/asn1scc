@@ -1008,7 +1008,9 @@ let createSequenceInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1Acn
             List.choose (fun c -> 
                 match c.Optionality with 
                 | None -> None
-                | Some _ -> Some (lm.init.initSequenceOptionalChildExpr (lm.lg.getAsn1ChildBackendName c)))
+                | Some (Asn1AcnAst.Optional opt)    -> Some (lm.init.initSequenceOptionalChildExpr (lm.lg.getAsn1ChildBackendName c) 1I)
+                | Some (Asn1AcnAst.AlwaysAbsent)    -> Some (lm.init.initSequenceOptionalChildExpr (lm.lg.getAsn1ChildBackendName c) 0I)
+                | Some (Asn1AcnAst.AlwaysPresent)   -> Some (lm.init.initSequenceOptionalChildExpr (lm.lg.getAsn1ChildBackendName c) 1I)                )
         match nonEmptyChildren with
         | [] -> lm.lg.getEmptySequenceInitExpression ()
         | _  -> lm.init.initSequenceExpr nonEmptyChildren arrsOptionalChildren
