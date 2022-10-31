@@ -11,7 +11,7 @@ open DAstUtilFunctions
 open Language
 
 
-let getDefaultValueByType  (t:Asn1Type)  =  t.initialValue
+//let getDefaultValueByType  (t:Asn1Type)  =  t.initialValue
 
 let printOctetStringValueAsCompoundLitteral  (lm:LanguageMacros) curProgamUnitName  (o:Asn1AcnAst.OctetString) (bytes : byte list) =
     let printOct = lm.vars.PrintBitOrOctetStringValueAsCompoundLitteral
@@ -80,7 +80,8 @@ let rec printValue (r:DAst.AstRoot)  (l:ProgrammingLanguage) (lm:LanguageMacros)
                 let childVals = v |> List.map (fun chv -> printValue r l lm curProgamUnitName so.childType (Some gv) chv.kind)
                 let td = (so.baseInfo.typeDef.[l]).longTypedefName l curProgamUnitName
                 let typeDefName  = t.typeDefintionOrReference.longTypedefName l //if parentValue.IsSome then so.typeDefinition.typeDefinitionBodyWithinSeq else so.typeDefinition.name
-                let sDefValue = printValue r l lm curProgamUnitName so.childType None (getDefaultValueByType so.childType)
+                let sDefValue = so.childType.initFunction.initExpression //printValue r l lm curProgamUnitName so.childType None (getDefaultValueByType so.childType)
+                
                 variables_c.PrintSequenceOfValue td (so.baseInfo.minSize.uper = so.baseInfo.maxSize.uper) (BigInteger v.Length) childVals sDefValue
             | _         -> raise(BugErrorException "unexpected type")
         | SeqValue          v -> 
@@ -219,7 +220,7 @@ let rec printValue (r:DAst.AstRoot)  (l:ProgrammingLanguage) (lm:LanguageMacros)
                 let td = (so.baseInfo.typeDef.[l]).longTypedefName l curProgamUnitName
                 let typeDefName  = t.typeDefintionOrReference.longTypedefName l //if parentValue.IsSome then so.typeDefinition.typeDefinitionBodyWithinSeq else so.typeDefinition.name
                 let childVals = v |> List.map (fun chv -> printValue r l lm curProgamUnitName so.childType (Some gv) chv.kind)
-                let sDefValue = printValue r l lm curProgamUnitName so.childType None (getDefaultValueByType so.childType)
+                let sDefValue = so.childType.initFunction.initExpression// printValue r l lm curProgamUnitName so.childType None (getDefaultValueByType so.childType)
                 variables_a.PrintSequenceOfValue td (so.baseInfo.minSize.uper = so.baseInfo.maxSize.uper) (BigInteger v.Length) childVals sDefValue
 
             | _         -> raise(BugErrorException "unexpected type")
@@ -248,10 +249,12 @@ let rec printValue (r:DAst.AstRoot)  (l:ProgrammingLanguage) (lm:LanguageMacros)
                                 match x.Optionality with
                                 | Some(Asn1AcnAst.Optional opt)    -> 
                                     match opt.defaultValue with
-                                    | Some v    -> (mapValue v).kind
-                                    | None      -> getDefaultValueByType x.Type
-                                | _             -> getDefaultValueByType x.Type
-                            variables_a.PrintSequenceValueChild (x.getBackendName l) (printValue r l lm curProgamUnitName x.Type None chV) )
+                                    | Some v    -> 
+                                        let chV = (mapValue v).kind
+                                        printValue r l lm curProgamUnitName x.Type None chV
+                                    | None      -> x.Type.initFunction.initExpression
+                                | _             -> x.Type.initFunction.initExpression
+                            variables_a.PrintSequenceValueChild (x.getBackendName l) chV )
                 //let allChildren = match Seq.isEmpty optChildren with
                 //                  | true     -> arrChildren
                 //                  | false    -> arrChildren @ [variables_a.PrintSequenceValue_Exists td optChildren]
@@ -412,7 +415,7 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:A
         | SeqOfValue chVals    -> 
             let childVals = chVals |> List.map (fun chv -> childType.printValue curProgamUnitName (Some gv) chv.kind)
             let typeDefName  = defOrRef.longTypedefName l//if parentValue.IsSome then typeDefinition.typeDefinitionBodyWithinSeq else typeDefinition.name
-            let sDefValue =  childType.printValue curProgamUnitName  None childType.initialValue 
+            let sDefValue =  childType.initFunction.initExpression //childType.printValue curProgamUnitName  None childType.initialValue 
             let td = (o.typeDef.[l]).longTypedefName l curProgamUnitName
             PrintSequenceOfValue td (o.minSize.uper = o.maxSize.uper) (BigInteger chVals.Length) childVals sDefValue
 
@@ -458,8 +461,8 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (t:Asn
                                     | Some zz    -> 
                                         let v = (mapValue zz).kind
                                         Some(x.Type.printValue curProgamUnitName (Some gv) v)
-                                    | None      -> match l with C -> None | Ada -> Some (x.Type.printValue curProgamUnitName (Some gv) x.Type.initialValue)
-                                | _             -> match l with C -> None | Ada -> Some (x.Type.printValue curProgamUnitName (Some gv) x.Type.initialValue)
+                                    | None      -> match l with C -> None | Ada -> Some (x.Type.initFunction.initExpression)
+                                | _             -> match l with C -> None | Ada -> Some (x.Type.initFunction.initExpression)
                             match childValue with
                             | None  -> None
                             | Some childValue -> Some (PrintSequenceValueChild (x.getBackendName l) childValue) )

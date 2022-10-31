@@ -14,6 +14,7 @@ open DAstUtilFunctions
 open Language
 
 
+
 let getFuncName (r:Asn1AcnAst.AstRoot)  (sEncoding:string) (typeId:ReferenceToType) (td:FE_TypeDefinition)=
     match typeId.tasInfo with
     | None -> None
@@ -482,92 +483,4 @@ let BitStringAutomaticTestCaseValues (r:Asn1AcnAst.AstRoot)  (t:Asn1AcnAst.Asn1T
                 let s2 = System.String('0', int o.maxSize.uper)
                 [s1;s2]
     | _     -> valsFromSingleValueConstraints
-let SequenceOfAutomaticTestCaseValues (r:Asn1AcnAst.AstRoot)  (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.SequenceOf) (childType:Asn1Type) =
-    let maxItems = 1000I
-    match o.minSize.uper > maxItems with
-    | true  -> []   // the generated string will be very large
-    | false ->  
-        let generateValue (childVal:Asn1Value) =
-            let s1 = [1 .. int o.minSize.uper] |> List.map (fun i -> childVal)
-            match o.minSize.uper = o.maxSize.uper  || o.maxSize.uper > maxItems with
-            | true  -> [s1] 
-            | false ->
-                let s2 = [1 .. int o.maxSize.uper] |> List.map (fun i -> childVal)
-                [s1;s2]
-        childType.automaticTestCasesValues |> List.collect generateValue
-(*
-let rec permutation (a:int list list) =
-    match a with
-    | []    -> [[]]
-    | a1::xs ->
-        let rest = permutation xs
-        seq {
-            for i1 in a1 do
-                for subList in rest do
-                    yield i1::subList
-        } |> Seq.toList
-*)
-
-let SequenceAutomaticTestCaseValues (r:Asn1AcnAst.AstRoot)  (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Sequence) (children:SeqChildInfo list) =
-    let asn1Children = 
-        children |> 
-        List.choose(fun c -> match c with Asn1Child x -> Some x | _ -> None) |> 
-        List.filter(fun z -> match z.Type.Kind with NullType _ -> false | _ -> true) |>
-        List.filter(fun z -> match z.Optionality with Some Asn1AcnAst.AlwaysAbsent -> false | _ -> true)
-
-    let HandleChild (ch:Asn1Child) =
-        let childValues = ch.Type.automaticTestCasesValues
-        match childValues with
-        | []  -> None
-        | x1::_ -> Some ({NamedValue.name = ch.Name.Value; Value = x1})
-    let caseAllChildren = asn1Children |> List.choose HandleChild
-    let caseAllMandatoyrChildren = 
-        asn1Children |> 
-        List.filter(fun z -> 
-            match z.Optionality with 
-            | None  -> true
-            | Some Asn1AcnAst.AlwaysPresent -> true
-            | _             -> false) |>
-        List.choose HandleChild
-    [caseAllChildren; caseAllMandatoyrChildren]
-    (*
-
-    //let allChildren = 
-    let rec generateCases (children : Asn1Child list) =
-        match children with
-        | []        -> [[]]
-        | x1::xs    -> 
-            // generate this component test cases (x1) and the rest and the join them.
-            // However, if this component (x1) is optional with present-when conditions then no test case
-            // is generated for this component because we might generated wrong test cases 
-            let optChildCount = 
-                children |> 
-                List.filter(fun c -> 
-                    match c.Optionality with
-                    | Some (Asn1AcnAst.Optional opt) when opt.acnPresentWhen.IsSome -> true
-                    | _                                                             -> false
-                ) |> Seq.length 
-            let rest = generateCases xs
-            seq {
-                match x1.Optionality with
-                | Some (Asn1AcnAst.Optional opt) when optChildCount > 1 && opt.acnPresentWhen.IsSome  ->  yield! rest       // do not generate test case for this item
-                | _                               -> 
-                    
-                    let ths = x1.Type.automaticTestCasesValues |> List.map(fun v -> {NamedValue.name = x1.Name.Value; Value = v}) 
-                    for i1 in ths do    
-                        for lst in rest do
-                            yield i1::lst
-            } |> Seq.mapi(fun i x -> (i,x)) |> Seq.takeWhile(fun (i,x) -> i<10) |> Seq.map snd |> Seq.toList
-    let ret = generateCases asn1Children
-    ret
-    *)
-let ChoiceAutomaticTestCaseValues (r:Asn1AcnAst.AstRoot)  (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Choice) (children:ChChildInfo list) =
-    seq {
-        for ch in children do
-            for v in ch.chType.automaticTestCasesValues do
-                match ch.Optionality with
-                | Some(ChoiceAlwaysAbsent) -> ()
-                | _ ->                yield {NamedValue.name = ch.Name.Value; Value = v}
-    } |> Seq.toList
-
 

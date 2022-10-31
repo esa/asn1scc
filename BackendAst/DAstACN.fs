@@ -934,7 +934,7 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserted
     let lv = 
         match o.acnEncodingClass with
         | SZ_EC_FIXED_SIZE
-        | SZ_EC_LENGTH_EMBEDDED _ -> lm.lg.uper.seqof_lv t.id o.minSize.uper o.maxSize.uper
+        | SZ_EC_LENGTH_EMBEDDED _ //-> lm.lg.uper.seqof_lv t.id o.minSize.uper o.maxSize.uper
         | SZ_EC_ExternalField       _
         | SZ_EC_TerminationPattern  _ -> [SequenceOfIndex (t.id.SeqeuenceOfLevel + 1, None)]
 
