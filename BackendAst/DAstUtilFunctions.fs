@@ -577,6 +577,22 @@ with
         | TimeType     _  -> this
     
 
+    member this.isComplexType =
+        match this.Kind with
+        | ReferenceType t-> t.resolvedType.isComplexType
+        | Integer      _ -> false
+        | Real         _ -> false
+        | IA5String    _ -> false
+        | OctetString  _ -> false
+        | NullType     _ -> false
+        | BitString    _ -> false
+        | Boolean      _ -> false
+        | Enumerated   _ -> false
+        | SequenceOf   _ -> true
+        | Sequence     _ -> true
+        | Choice       _ -> true
+        | ObjectIdentifier _ -> false
+        | TimeType     _  -> false
 
     member this.ActualType =
         match this.Kind with
@@ -629,22 +645,6 @@ with
         | ObjectIdentifier t -> t.printValue
         | TimeType  t       -> t.printValue
 
-    member this.initialValue =
-        match this.Kind with
-        | Integer      t -> IntegerValue t.initialValue
-        | Real         t -> RealValue t.initialValue
-        | IA5String    t -> StringValue t.initialValue
-        | OctetString  t -> OctetStringValue t.initialValue
-        | NullType     t -> NullValue t.initialValue
-        | BitString    t -> BitStringValue t.initialValue
-        | Boolean      t -> BooleanValue t.initialValue
-        | Enumerated   t -> EnumValue t.initialValue
-        | SequenceOf   t -> SeqOfValue t.initialValue
-        | Sequence     t -> SeqValue t.initialValue
-        | Choice       t -> ChValue t.initialValue
-        | ReferenceType t-> t.initialValue.kind
-        | ObjectIdentifier t -> ObjOrRelObjIdValue  t.initialValue
-        | TimeType t        -> TimeValue t.initialValue
 
     member this.ConstraintsAsn1Str = 
         match this.Kind with
@@ -1016,22 +1016,6 @@ with
         | Asn1Encoding.XER   -> this.xerEncDecTestFunc
         | Asn1Encoding.BER   -> None
         
-    member this.automaticTestCasesValues =
-        match this.Kind with
-        | Integer      t -> t.automaticTestCasesValues
-        | Real         t -> t.automaticTestCasesValues
-        | IA5String    t -> t.automaticTestCasesValues
-        | OctetString  t -> t.automaticTestCasesValues
-        | NullType     t -> []
-        | BitString    t -> t.automaticTestCasesValues
-        | Boolean      t -> t.automaticTestCasesValues
-        | Enumerated   t -> t.automaticTestCasesValues
-        | SequenceOf   t -> t.automaticTestCasesValues
-        | Sequence     t -> t.automaticTestCasesValues
-        | Choice       t -> t.automaticTestCasesValues
-        | ObjectIdentifier t -> t.automaticTestCasesValues
-        | ReferenceType t-> t.automaticTestCasesValues
-        | TimeType t        -> t.automaticTestCasesValues
         
     member this.typeDefintionOrReference : TypeDefintionOrReference =
         match this.Kind with

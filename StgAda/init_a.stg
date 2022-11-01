@@ -6,23 +6,21 @@ methodNameSuffix() ::= "_Init"
 
 
 initTypeAssignment_def(sVarName, sStar, sFuncName, sTypeDefName) ::= <<
-function <sFuncName> return <sTypeDefName>;
+procedure <sFuncName>(<sVarName>: out <sTypeDefName>);
 >>
 
 initTypeAssignment(sVarName, sStar, sFuncName, sTypeDefName, sContent, arrsLocalVariables) ::= <<
-function <sFuncName> return <sTypeDefName>
+procedure <sFuncName>(<sVarName>: out <sTypeDefName>)
 is
-    <sVarName>: <sTypeDefName>;
     <arrsLocalVariables; separator="\n">
 begin
     <sContent>
-	pragma Warnings (Off, "object ""val"" is always");
-    return <sVarName>;
-	pragma Warnings (On, "object ""val"" is always");
 end <sFuncName>;
 >>
 
 
+assignAny(p, sValue) ::= "<p> := <sValue>;"
+assignString(p, sValue) ::= "<p> := <sValue>;"
 
 
 initInteger(p, nValue) ::= "<p> := <nValue>;"
@@ -116,6 +114,8 @@ init_Asn1Date_LocalTimeWithTimeZone(p, sAcc, dt/*:Asn1DateValue*/, tv/*:Asn1Time
 
 
 /* BIT AND OCTET STRINGS */
+
+
 initBitOrOctStringFromCompoundLiteral(p, sCompLiteral) ::= "<p> := <sCompLiteral>;"
 initFixSizeBitOrOctString_bytei(p, sAcc, sI, sByteHexVal) ::= "<p><sAcc>Data(<sI>) := 16#<sByteHexVal>#;"
 initFixSizeBitOrOctString(p, sAcc,arrsBytes) ::= <<
@@ -214,19 +214,13 @@ initTestCase_sequence_child_opt(p, sAcc, sChName) ::= <<
 >>
 
 initTestCase_choice_child(p, sAcc, sChildID, sChildContent, sChildName, sChildTypeDef, sChoiceTypeName) ::= <<
---set <sChildName> 
-declare
-    <sChildName>_tmp:<sChildTypeDef>;
-begin
-    <sChildContent>
-	pragma Warnings (Off, "object ""<sChildName>_tmp"" is always False at this point");
-    <p> := <sChoiceTypeName>'(kind => <sChildID>, <sChildName> => <sChildName>_tmp);
-	pragma Warnings (On, "object ""<sChildName>_tmp"" is always False at this point");
-end;
+<p> := <sChoiceTypeName>'(kind => <sChildID>, <sChildName> => \<\>);
+<sChildContent>
 >>
 
 
-initChoice(p1, sAccess, sChildContent, sChildKind, sChildTempVarName, sChildTypeName, sChoiceTypeName, sChildName) ::= <<
+initChoice(p1, sAccess, sChildContent, sChildKind, sChildTempVarName, sChildTypeName, sChoiceTypeName, sChildName, bComponentTempInit) ::= <<
+<if(bComponentTempInit)>
 declare
    <sChildTempVarName> : <sChildTypeName>;
 begin
@@ -234,12 +228,18 @@ begin
     <p1> := <sChoiceTypeName>'(kind => <sChildKind>, <sChildName> => <sChildTempVarName>);
     pragma Annotate (GNATprove, False_Positive,"discriminant check might fail", "reviewed by GM");
 end;
+
+<else>
+<p1> := <sChoiceTypeName>'(kind => <sChildKind>, <sChildName> => \<\>);
+<sChildContent>        
+
+<endif>
 >>
 
 
 
 initChildWithInitFunc(p, sChildInitFuncName) ::= <<
-<p> := <sChildInitFuncName>;
+<sChildInitFuncName> (<p>);
 >>
 
 
@@ -254,3 +254,64 @@ end <sFuncName>_set_<sNamedBit>;   --  COVERAGE_IGNORE
 initBitStringAtPos_def(sVarName, sStar, sFuncName, sTypeDefName, sNamedBit) ::= <<
 procedure <sFuncName>_set_<sNamedBit>(<sVarName> : in out <sTypeDefName>);
 >>
+
+
+
+initFixSizeOctetString(nMax) ::= "(Data => (others => 0))"
+initVarSizeOctetString(nMin, nMax) ::= "(Length => <nMax>, Data => (others => 0))"
+
+initFixSizeBitString(nMax, nMaxOctets) ::= "(Data => (others => 0))"
+initVarSizeBitString(nMin, nMax, nMaxOctets) ::= "(Length => <nMax>, Data => (others => 0))"
+
+initObjectIdentifierAsExpr() ::= <<
+(length => 0, values => (others => 0))
+>>
+
+initFixSizeSequenceOfExpr(nMax, sChildExp) ::= "(Data => (others => <sChildExp>))"
+initVarSizeSequenceOfExpr(nMin, nMax, sChildExp) ::= "(Length => <nMax>, Data => (others => <sChildExp>))"
+
+
+initTypeConstant_def(sTypeDecl, sConstantName, sValue) ::= <<
+function <sConstantName>  return <sTypeDecl> is
+(<sValue>);
+>>
+
+initTypeConstant_body(sTypeDecl, sConstantName, sValue) ::= ""
+
+init_Asn1LocalTimeExpr() ::= <<
+(hours => 0,mins => 0,sec => 0,fraction => 0)
+>>
+
+init_Asn1UtcTimeExpr() ::= <<
+(hours => 0,mins => 0,sec => 0, fraction => 0)
+>>
+
+
+init_Asn1LocalTimeWithTimeZoneExpr() ::= <<
+(hours => 0,mins => 0,sec => 0,fraction => 0, tz.sign => 0, tz.hours => 0, tz.mins => 0)
+>>
+
+init_Asn1DateExpr() ::= <<
+(years => 0, months => 0, days => 0)
+>>
+
+init_Asn1Date_LocalTimeExpr() ::= <<
+(years => 0, months => 0, days => 0, hours => 0,mins => 0,sec => 0,fraction => 0)
+>>
+
+init_Asn1Date_UtcTimeExpr() ::= <<
+(years => 0, months => 0, days => 0, hours => 0,mins => 0,sec => 0,fraction => 0)
+>>
+
+init_Asn1Date_LocalTimeWithTimeZoneExpr() ::= <<
+(years => 0, months => 0, days => 0, hours => 0,mins => 0,sec => 0,fraction => 0)
+>>
+
+
+initSequenceChildExpr(sChildName, sChildExpr) ::= "<sChildName> => <sChildExpr>"
+initSequenceOptionalChildExpr(sChildName, nPresenceBit) ::= "<sChildName> => <nPresenceBit>"
+initSequenceExpr(arrsChildren, arrsOptionalChildren) ::= <<
+(<arrsChildren; separator=", "><if (arrsOptionalChildren)>, Exist => (<arrsOptionalChildren; separator=", ">)<endif>)
+>>
+
+initChoiceExpr(sChildName, sChildKind, sChildExpr) ::= "(kind => <sChildKind>, <sChildName> => <sChildExpr>)"

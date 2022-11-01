@@ -214,7 +214,7 @@ let rec PrintType (r:AstRoot) (f:Asn1File) (stgFileName:string) modName (deepRec
                 | IA5String     i         -> Some (i.baseInfo.minSize.ToString(), i.baseInfo.maxSize.ToString())
                 | SequenceOf    i         -> Some (i.baseInfo.minSize.ToString(), i.baseInfo.maxSize.ToString())
                 | Real          i         -> Some (GetMinMax i.baseInfo.uperRange)
-                | Boolean _ | NullType _ | Choice _ | Enumerated _ | Sequence _ | ReferenceType _   | ObjectIdentifier _    -> None
+                | Boolean _ | NullType _ | Choice _ | Enumerated _ | Sequence _ | ReferenceType _   | ObjectIdentifier _ | TimeType _   -> None
             let sModName = if info.baseInfo.modName.Value=modName then null else info.baseInfo.modName.Value
             let sCModName = if sModName <> null then (ToC sModName) else null
             let resolvedType = PrintType r f stgFileName modName deepRecursion info.resolvedType

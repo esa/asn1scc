@@ -106,8 +106,30 @@ type Asn1Type with
         | ObjectIdentifier _ -> this
 
 
+    member this.isComplexType =
+        match this.Kind with
+        | ReferenceType t-> t.resolvedType.isComplexType
+        | Integer      _ -> false
+        | Real         _ -> false
+        | IA5String    _ -> false
+        | NumericString _ -> false
+        | OctetString  _ -> false
+        | NullType     _ -> false
+        | TimeType     _ -> false
+        | BitString    _ -> false
+        | Boolean      _ -> false
+        | Enumerated   _ -> false
+        | SequenceOf   _ -> true
+        | Sequence     _ -> true
+        | Choice       _ -> true
+        | ObjectIdentifier _ -> false
 
-
+    member this.isStringType =
+        match this.Kind with
+        | IA5String    _
+        | NumericString _ -> true
+        | ReferenceType t-> t.resolvedType.isStringType
+        | _             -> false
 
 
 

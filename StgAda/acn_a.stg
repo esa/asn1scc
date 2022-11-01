@@ -1089,43 +1089,30 @@ when <nChildIndex> =>
 >>
 
 
-ChoiceChild_encode(p, sAcc, sChildID, nChildIndex, nIndexSizeInBits, nLastItemIndex, sChildContent, sChildName, sChildTypeDef, sChoiceTypeName) ::= <<
+ChoiceChild_encode(p, sAcc, sChildID, nChildIndex, nIndexSizeInBits, nLastItemIndex, sChildContent, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr) ::= <<
 when <sChildID> =>
     adaasn1rtl.encoding.Enc_ConstraintWholeNumber(bs, <nChildIndex>, 0, <nIndexSizeInBits>);
 	<sChildContent>
 >>
 
-ChoiceChild_decode(p, sAcc, sChildID, nChildIndex, nIndexSizeInBits, nLastItemIndex, sChildContent, sChildName, sChildTypeDef, sChoiceTypeName) ::= <<
+ChoiceChild_decode(p, sAcc, sChildID, nChildIndex, nIndexSizeInBits, nLastItemIndex, sChildContent, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr) ::= <<
 when <nChildIndex> =>
-  declare
-     <sChildName>_tmp:<sChildTypeDef>;
-  begin
-    <sChildContent>
-    if result.Success then
-        <p> := <sChoiceTypeName>'(kind => <sChildID>, <sChildName> => <sChildName>_tmp);
-        pragma Annotate (GNATprove, False_Positive,"discriminant check might fail", "reviewed by GM");
-    end if;
-  end;
+  <p> := <sChoiceTypeName>'(kind => <sChildID>, <sChildName> => <sChildInitExpr>);
+  <sChildContent>
 >>
 
 /* Choice with Enum determinant */
 
-ChoiceChild_Enum_encode(p, sAcc, sEnmName, sChildID, sChildBody, sChildName, sChildTypeDef, sChoiceTypeName) ::= <<
+ChoiceChild_Enum_encode(p, sAcc, sEnmName, sChildID, sChildBody, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr) ::= <<
 when <sChildID> =>
 	<sChildBody>
 >>
 
-ChoiceChild_Enum_decode(p, sAcc, sEnmName, sChildID, sChildBody, sChildName, sChildTypeDef, sChoiceTypeName) ::= <<
+ChoiceChild_Enum_decode(p, sAcc, sEnmName, sChildID, sChildBody, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr) ::= <<
 when <sEnmName> =>
-  declare
-     <sChildName>_tmp:<sChildTypeDef>;
-  begin
-    <sChildBody>
-    if result.Success then
-        <p> := <sChoiceTypeName>'(kind => <sChildID>, <sChildName> => <sChildName>_tmp);
-        pragma Annotate (GNATprove, False_Positive,"discriminant check might fail", "reviewed by GM");
-    end if;
-  end;
+  <p> := <sChoiceTypeName>'(kind => <sChildID>, <sChildName> => <sChildInitExpr>);
+  <sChildBody>
+
 >>
 
 Choice_Enum_encode(p, sAcc, arrsChildren, sEnmExtFld, sErrCode) ::= <<
@@ -1156,7 +1143,7 @@ case <p><sAcc>kind is
 end case;
 >>
 
-ChoiceChild_preWhen_encode(p, sAcc, sChildID, sChildBody, arrsConditions, bFirst, sChildName, sChildTypeDef, sChoiceTypeName) ::= <<
+ChoiceChild_preWhen_encode(p, sAcc, sChildID, sChildBody, arrsConditions, bFirst, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr) ::= <<
 when <sChildID> =>
 	<sChildBody>
 >>
@@ -1171,17 +1158,10 @@ else
 end if;
 >>
 
-ChoiceChild_preWhen_decode(p, sAcc, sChildID, sChildBody, arrsConditions, bFirst, sChildName, sChildTypeDef, sChoiceTypeName) ::= <<
+ChoiceChild_preWhen_decode(p, sAcc, sChildID, sChildBody, arrsConditions, bFirst, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr) ::= <<
 <if(bFirst)>if<else>elsif<endif> (<arrsConditions; separator=" and ">) then
-  declare
-     <sChildName>_tmp:<sChildTypeDef>;
-  begin
-    <sChildBody>
-    if result.Success then
-        <p> := <sChoiceTypeName>'(kind => <sChildID>, <sChildName> => <sChildName>_tmp);
-        pragma Annotate (GNATprove, False_Positive,"discriminant check might fail", "reviewed by GM");
-    end if;
-  end;
+  <p> := <sChoiceTypeName>'(kind => <sChildID>, <sChildName> => <sChildInitExpr>);
+  <sChildBody>
 >>
 
 

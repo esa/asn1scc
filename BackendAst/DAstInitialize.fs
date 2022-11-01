@@ -110,8 +110,6 @@ let ia5StringConstraint2Set  (r:Asn1AcnAst.AstRoot)    (c:Asn1AcnAst.IA5StringCo
             let sizeRange, ns = foldSizeRangeTypeConstraint r intCon s
             SizeableSet<string>.createFromSizeRange sizeRange, ns)
         (fun _ alphcon s      -> 
-            let b = true
-            match b with true -> ()
             //currently the alphabet constraints are ignored ...
             Range2D ({sizeSet  = Range_Universe;  valueSet = SsUniverse}) , s) 
         c
@@ -223,35 +221,56 @@ let getFuncName2 (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros)  (typeDefinition:Typ
     getFuncNameGeneric typeDefinition (lm.init.methodNameSuffix())
 
 
-let createInitFunctionCommon (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros)   (o:Asn1AcnAst.Asn1Type) (typeDefinition:TypeDefintionOrReference) initByAsn1Value (iv:Asn1ValueKind) (initTasFunction:CallerScope  -> InitFunctionResult) automaticTestCases (user_aux_functions:(string*string) list) =
+let createInitFunctionCommon (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros)   (o:Asn1AcnAst.Asn1Type) (typeDefinition:TypeDefintionOrReference) initByAsn1Value (initTasFunction:CallerScope  -> InitFunctionResult) automaticTestCases (initExpression:string) (initExpressionGlobal:string) (user_aux_functions:(string*string) list) =
     let funcName            = getFuncName2 r lm typeDefinition
+    let globalName = getFuncNameGeneric typeDefinition "_constant"
     let p = lm.lg.getParamType o CommonTypes.Codec.Decode 
     let initTypeAssignment      = lm.init.initTypeAssignment
     let initTypeAssignment_def  = lm.init.initTypeAssignment_def
     let varName = p.arg.p
     let sStar = lm.lg.getStar p.arg
-
-    let  func, funcDef  = 
+    let initDef = lm.init.initTypeConstant_def
+    let initBody = lm.init.initTypeConstant_body
+    let tdName = lm.lg.getLongTypedefName typeDefinition
+    let initProcedure  = 
             match funcName  with
-            | None              -> None, None
+            | None              -> None
             | Some funcName     -> 
-                let res = initTasFunction p 
-                let lvars = res.localVariables |> List.map(fun (lv:LocalVariable) -> lm.lg.getLocalVariableDeclaration lv) |> Seq.distinct
-                Some(initTypeAssignment varName sStar funcName  (lm.lg.getLongTypedefName typeDefinition) res.funcBody lvars), Some(initTypeAssignment_def varName sStar funcName  (lm.lg.getLongTypedefName typeDefinition))
+                match r.args.generateConstInitGlobals  &&  globalName.IsSome with
+                | true ->
+                    let funcBody = 
+                        match o.isStringType with
+                        | false -> lm.init.assignAny (lm.lg.getValue p.arg) globalName.Value
+                        | true  -> lm.init.assignString p.arg.p  globalName.Value
+                        //sprintf ("%s %s (%s)%s;")  (lm.lg.getValue p.arg) lm.lg.AssignOperator tdName globalName.Value
+                    let func = initTypeAssignment varName sStar funcName  tdName funcBody []
+                    let funcDef = initTypeAssignment_def varName sStar funcName  (lm.lg.getLongTypedefName typeDefinition)
+                    Some {|funcName = funcName; def = funcDef; body=func|}
+                | false ->
+                    let res = initTasFunction p 
+                    let lvars = res.localVariables |> List.map(fun (lv:LocalVariable) -> lm.lg.getLocalVariableDeclaration lv) |> List.distinct
+                    let func = initTypeAssignment varName sStar funcName  tdName res.funcBody lvars
+                    let funcDef = initTypeAssignment_def varName sStar funcName  (lm.lg.getLongTypedefName typeDefinition)
+                    Some {|funcName = funcName; def = funcDef; body=func|}
 
 
     {
-        initFuncName            = funcName
-        initFunc                = func
-        initFuncDef             = funcDef
+        initExpression          = initExpression
+        initExpressionGlobal    = initExpressionGlobal
+        initProcedure           = initProcedure
+        initFunction  = 
+                funcName |> Option.map(fun n -> {|funcName = n; def = initDef tdName n initExpression; body=initBody tdName n initExpression|})
+        initGlobal = 
+                globalName |> Option.map(fun n -> {|globalName = n; def = initDef tdName n initExpressionGlobal; body=initBody tdName n initExpressionGlobal|})
         initTas                 = initTasFunction
         initByAsn1Value         = initByAsn1Value
         automaticTestCases      = automaticTestCases
         user_aux_functions      = user_aux_functions
     }
 
-let createIntegerInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros)  (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Integer) (typeDefinition:TypeDefintionOrReference) iv =
+let createIntegerInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros)  (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Integer) (typeDefinition:TypeDefintionOrReference)  =
     let initInteger = lm.init.initInteger
+    
     let funcBody (p:CallerScope) (v:Asn1ValueKind) = 
         let vl = 
             match v.ActualValue with
@@ -262,13 +281,22 @@ let createIntegerInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros)  (t:Asn1Acn
     let integerVals = EncodeDecodeTestCase.IntegerAutomaticTestCaseValues r t o
     
     let allCons = DastValidate2.getIntSimplifiedConstraints r o.isUnsigned o.AllCons
+    let isZeroAllowed = isValidValueRanged allCons 0I  
     let tasInitFunc (p:CallerScope)  = 
-        match isValidValueRanged allCons 0I  with
+        match isZeroAllowed  with
         | false    -> 
             match integerVals with 
             |x::_ -> {InitFunctionResult.funcBody = initInteger (lm.lg.getValue p.arg) x;  localVariables=[]} 
             | [] -> {InitFunctionResult.funcBody = initInteger (lm.lg.getValue p.arg) 0I;  localVariables=[]}
         | true  -> {InitFunctionResult.funcBody = initInteger (lm.lg.getValue p.arg) 0I;  localVariables=[]}
+    let constantInitExpression =
+        match isZeroAllowed  with
+        | false    -> 
+            match integerVals with 
+            |x::_ -> lm.lg.intValueToSting x (o.getClass r.args)
+            | [] -> lm.lg.intValueToSting 0I (o.getClass r.args)
+        | true  -> lm.lg.intValueToSting 0I (o.getClass r.args)
+        
 
     let testCaseFuncs = 
         integerVals |> 
@@ -277,9 +305,9 @@ let createIntegerInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros)  (t:Asn1Acn
                 (fun (p:CallerScope) -> {InitFunctionResult.funcBody = initInteger (lm.lg.getValue p.arg) vl;  localVariables=[]} )
             {AutomaticTestCase.initTestCaseFunc = initTestCaseFunc; testCaseTypeIDsMap = Map.ofList [(t.id, TcvAnyValue)] }        )
 
-    createInitFunctionCommon r lm t  typeDefinition funcBody iv tasInitFunc testCaseFuncs []
+    createInitFunctionCommon r lm t  typeDefinition funcBody  tasInitFunc testCaseFuncs  constantInitExpression constantInitExpression []
 
-let createRealInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (o :Asn1AcnAst.Real) (typeDefinition:TypeDefintionOrReference) iv = 
+let createRealInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (o :Asn1AcnAst.Real) (typeDefinition:TypeDefintionOrReference)  = 
     let initReal = lm.init.initReal
     let funcBody (p:CallerScope) (v:Asn1ValueKind) = 
         let vl = 
@@ -294,16 +322,24 @@ let createRealInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAst.
         List.map (fun vl -> 
             let initTestCaseFunc = (fun (p:CallerScope) -> {InitFunctionResult.funcBody = initReal (lm.lg.getValue p.arg) vl; localVariables=[]}) 
             {AutomaticTestCase.initTestCaseFunc = initTestCaseFunc; testCaseTypeIDsMap = Map.ofList [(t.id, TcvAnyValue)] } )
-
+    let isZeroAllowed = isValidValueRanged o.AllCons 0.0
     let tasInitFunc (p:CallerScope)  = 
-        match isValidValueRanged o.AllCons 0.0  with
+        match isZeroAllowed with
         | false    -> 
             match realVals with 
             | x::_ -> {InitFunctionResult.funcBody = initReal (lm.lg.getValue p.arg) x;  localVariables=[]} 
             | [] -> {InitFunctionResult.funcBody = initReal (lm.lg.getValue p.arg) 0.0;  localVariables=[]}
         | true  -> {InitFunctionResult.funcBody = initReal (lm.lg.getValue p.arg) 0.0;  localVariables=[]}
 
-    createInitFunctionCommon r lm t typeDefinition funcBody iv tasInitFunc testCaseFuncs []
+    let constantInitExpression =
+        match isZeroAllowed  with
+        | false    -> 
+            match realVals with 
+            |x::_ -> lm.lg.doubleValueToSting x
+            | [] -> lm.lg.doubleValueToSting 0.0
+        | true  -> lm.lg.doubleValueToSting 0.0
+
+    createInitFunctionCommon r lm t typeDefinition funcBody tasInitFunc testCaseFuncs constantInitExpression constantInitExpression []
 
 let fragmentationCases seqOfCase maxSize =
     [
@@ -316,7 +352,7 @@ let fragmentationCases seqOfCase maxSize =
         seqOfCase (16384I + 1I)
         seqOfCase (16384I + 150I)
     ]
-let createIA5StringInitFunc (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (o :Asn1AcnAst.StringType   ) (typeDefinition:TypeDefintionOrReference) iv = 
+let createIA5StringInitFunc (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (o :Asn1AcnAst.StringType   ) (typeDefinition:TypeDefintionOrReference)  = 
     let initIA5String           = lm.init.initIA5String
     let initTestCaseIA5String   = lm.init.initTestCaseIA5String
     let strTypeDef = lm.lg.getStrTypeDefinition o.typeDef
@@ -359,9 +395,10 @@ let createIA5StringInitFunc (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (t:Asn1A
         let funcBody = initTestCaseIA5String p.arg.p (lm.lg.getAcces p.arg) ( (o.maxSize.uper+1I)) ( (o.maxSize.uper+1I)) i td bAlpha arrAsciiCodes (BigInteger arrAsciiCodes.Length) true
         let lvars = lm.lg.init.zeroIA5String_localVars ii
         {InitFunctionResult.funcBody = funcBody; localVariables=lvars}
-    createInitFunctionCommon r lm t typeDefinition funcBody iv zero testCaseFuncs []
+    let constantInitExpression = lm.lg.initializeString (int o.maxSize.uper)
+    createInitFunctionCommon r lm t typeDefinition funcBody  zero testCaseFuncs constantInitExpression constantInitExpression []
 
-let createOctetStringInitFunc (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (o :Asn1AcnAst.OctetString ) (typeDefinition:TypeDefintionOrReference) iv (isValidFunction:IsValidFunction option) = 
+let createOctetStringInitFunc (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (o :Asn1AcnAst.OctetString ) (typeDefinition:TypeDefintionOrReference) (isValidFunction:IsValidFunction option) = 
     let initFixSizeBitOrOctString_bytei = lm.init.initFixSizeBitOrOctString_bytei
     let initFixSizeBitOrOctString       = lm.init.initFixSizeBitOrOctString
     let initFixVarSizeBitOrOctString    = lm.init.initFixVarSizeBitOrOctString
@@ -377,6 +414,11 @@ let createOctetStringInitFunc (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (t:Asn
         match o.isFixedSize with
         | true  -> initFixSizeBitOrOctString p.arg.p (lm.lg.getAcces p.arg) arrsBytes
         | false -> initFixVarSizeBitOrOctString p.arg.p (lm.lg.getAcces p.arg) (BigInteger arrsBytes.Length) arrsBytes
+
+    let constantInitExpression =
+        match o.isFixedSize with
+        | true   -> lm.init.initFixSizeOctetString o.maxSize.uper
+        | false  -> lm.init.initVarSizeOctetString o.minSize.uper o.maxSize.uper
 
     let anonyms =
         o.AllCons |> 
@@ -428,15 +470,16 @@ let createOctetStringInitFunc (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (t:Asn
                         {InitFunctionResult.funcBody = ret; localVariables=[]}
                     {AutomaticTestCase.initTestCaseFunc = initTestCaseFunc; testCaseTypeIDsMap = Map.ofList [(t.id, TcvAnyValue)] })
             ret, ret.Head.initTestCaseFunc
-    createInitFunctionCommon r lm t typeDefinition funcBody iv tasInitFunc testCaseFuncs []
+    createInitFunctionCommon r lm t typeDefinition funcBody tasInitFunc testCaseFuncs constantInitExpression constantInitExpression []
 
-let createNullTypeInitFunc (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (o :Asn1AcnAst.NullType    ) (typeDefinition:TypeDefintionOrReference) iv = 
+let createNullTypeInitFunc (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (o :Asn1AcnAst.NullType    ) (typeDefinition:TypeDefintionOrReference)  = 
     let initNull = lm.init.initNull
     let funcBody (p:CallerScope) v = initNull (lm.lg.getValue p.arg) 
+    let constantInitExpression = "0"
     let testCaseFuncs = [{AutomaticTestCase.initTestCaseFunc = (fun p -> {InitFunctionResult.funcBody = initNull (lm.lg.getValue p.arg); localVariables=[]}); testCaseTypeIDsMap = Map.ofList [(t.id, TcvAnyValue)]} ]
-    createInitFunctionCommon r lm t typeDefinition funcBody iv testCaseFuncs.Head.initTestCaseFunc testCaseFuncs []
+    createInitFunctionCommon r lm t typeDefinition funcBody  testCaseFuncs.Head.initTestCaseFunc testCaseFuncs constantInitExpression constantInitExpression []
 
-let createBitStringInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (o :Asn1AcnAst.BitString   ) (typeDefinition:TypeDefintionOrReference) iv (isValidFunction:IsValidFunction option)= 
+let createBitStringInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (o :Asn1AcnAst.BitString   ) (typeDefinition:TypeDefintionOrReference) (isValidFunction:IsValidFunction option)= 
     let initFixSizeBitOrOctString_bytei = lm.init.initFixSizeBitOrOctString_bytei
     let initFixSizeBitOrOctString       = lm.init.initFixSizeBitOrOctString
     let initFixVarSizeBitOrOctString    = lm.init.initFixVarSizeBitOrOctString
@@ -525,10 +568,13 @@ let createBitStringInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1Ac
             | None -> None
         )
         
+    let constantInitExpression =
+        match o.isFixedSize with
+        | true   -> lm.init.initFixSizeBitString o.maxSize.uper (BigInteger o.MaxOctets)
+        | false  -> lm.init.initVarSizeBitString o.minSize.uper o.maxSize.uper (BigInteger o.MaxOctets)
+    createInitFunctionCommon r lm t typeDefinition funcBody tasInitFunc testCaseFuncs constantInitExpression constantInitExpression user_aux_functions
 
-    createInitFunctionCommon r lm t typeDefinition funcBody iv tasInitFunc testCaseFuncs user_aux_functions
-
-let createBooleanInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (o :Asn1AcnAst.Boolean     ) (typeDefinition:TypeDefintionOrReference) iv = 
+let createBooleanInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (o :Asn1AcnAst.Boolean     ) (typeDefinition:TypeDefintionOrReference)  = 
     let initBoolean = lm.init.initBoolean
     let funcBody (p:CallerScope) (v:Asn1ValueKind) = 
         let vl = 
@@ -548,7 +594,8 @@ let createBooleanInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnA
         | true    -> {InitFunctionResult.funcBody = initBoolean (lm.lg.getValue p.arg) false; localVariables = []}
         | false     -> {InitFunctionResult.funcBody = initBoolean (lm.lg.getValue p.arg) true; localVariables = []}
 
-    createInitFunctionCommon r lm t typeDefinition funcBody iv tasInitFunc testCaseFuncs []
+    let constantInitExpression = lm.lg.FalseLiteral
+    createInitFunctionCommon r lm t typeDefinition funcBody tasInitFunc testCaseFuncs constantInitExpression constantInitExpression []
 
 
 
@@ -576,7 +623,8 @@ let createObjectIdentifierInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t
     let tasInitFunc (p:CallerScope)  = 
         {InitFunctionResult.funcBody = initObjectIdentifier (p.arg.p) (lm.lg.getAcces p.arg) 0I []; localVariables = []}
 
-    createInitFunctionCommon r lm t typeDefinition funcBody iv tasInitFunc testCaseFuncs []
+    let constantInitExpression = lm.init.initObjectIdentifierAsExpr ()
+    createInitFunctionCommon r lm t typeDefinition funcBody tasInitFunc testCaseFuncs constantInitExpression constantInitExpression []
 
 let createTimeTypeInitFunc (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (o :Asn1AcnAst.TimeType     ) (typeDefinition:TypeDefintionOrReference) iv = 
     let init_Asn1LocalTime                  = lm.init.init_Asn1LocalTime
@@ -611,8 +659,17 @@ let createTimeTypeInitFunc (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (t:Asn1Ac
 
     let tasInitFunc (p:CallerScope)  = 
         {InitFunctionResult.funcBody = initByBalue p atvs.Head; localVariables = []}
+    let constantInitExpression = 
+        match o.timeClass with          
+        |Asn1LocalTime                  _-> lm.init.init_Asn1LocalTimeExpr ()
+        |Asn1UtcTime                    _-> lm.init.init_Asn1UtcTimeExpr ()
+        |Asn1LocalTimeWithTimeZone      _-> lm.init.init_Asn1LocalTimeWithTimeZoneExpr ()
+        |Asn1Date                       _-> lm.init.init_Asn1DateExpr ()
+        |Asn1Date_LocalTime             _-> lm.init.init_Asn1Date_LocalTimeExpr ()
+        |Asn1Date_UtcTime               _-> lm.init.init_Asn1Date_UtcTimeExpr ()
+        |Asn1Date_LocalTimeWithTimeZone _-> lm.init.init_Asn1Date_LocalTimeWithTimeZoneExpr ()
 
-    createInitFunctionCommon r lm t typeDefinition funcBody iv tasInitFunc testCaseFuncs []
+    createInitFunctionCommon r lm t typeDefinition funcBody tasInitFunc testCaseFuncs constantInitExpression constantInitExpression []
 
 
 
@@ -643,9 +700,26 @@ let createEnumeratedInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1A
                 AutomaticTestCase.initTestCaseFunc = (fun (p:CallerScope) -> {InitFunctionResult.funcBody = initEnumerated (lm.lg.getValue p.arg) (lm.lg.getNamedItemBackendName (Some typeDefinition) vl); localVariables=[]}); 
                 testCaseTypeIDsMap = Map.ofList [(t.id, (TcvEnumeratedValue vl.Name.Value))] 
             })
-    createInitFunctionCommon r lm t typeDefinition funcBody iv testCaseFuncs.Head.initTestCaseFunc testCaseFuncs []
+    let constantInitExpression = lm.lg.getNamedItemBackendName  (Some typeDefinition) o.items.Head
+    createInitFunctionCommon r lm t typeDefinition funcBody  testCaseFuncs.Head.initTestCaseFunc testCaseFuncs constantInitExpression constantInitExpression []
 
-let createSequenceOfInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (o :Asn1AcnAst.SequenceOf  ) (typeDefinition:TypeDefintionOrReference) (childType:Asn1Type) iv = 
+let getChildExpression (lm:LanguageMacros) (childType:Asn1Type) =
+    match childType.initFunction.initFunction with
+    | None -> childType.initFunction.initExpression
+    | Some cn ->  
+        match childType.isComplexType with
+        | false -> childType.initFunction.initExpression
+        | true -> sprintf "%s" cn.funcName
+
+let getChildExpressionGlobal (lm:LanguageMacros) (childType:Asn1Type) =
+    match childType.initFunction.initGlobal with
+    | None -> childType.initFunction.initExpressionGlobal
+    | Some cn ->  
+        match childType.isComplexType with
+        | false -> childType.initFunction.initExpressionGlobal
+        | true -> sprintf "%s" cn.globalName
+
+let createSequenceOfInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (o :Asn1AcnAst.SequenceOf  ) (typeDefinition:TypeDefintionOrReference) (childType:Asn1Type)  = 
     let initFixedSequenceOf                     = lm.init.initFixedSequenceOf
     let initVarSizeSequenceOf                   = lm.init.initVarSizeSequenceOf
     let initTestCaseSizeSequenceOf_innerItem    = lm.init.initTestCaseSizeSequenceOf_innerItem
@@ -744,12 +818,12 @@ let createSequenceOfInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1A
         let initCountValue = Some o.minSize.uper
         let chp = {p with arg = lm.lg.getArrayItem p.arg i childType.isIA5String}
         let childInitRes_funcBody, childInitRes_localVariables = 
-            match childType.initFunction.initFuncName with
+            match childType.initFunction.initProcedure with
             | None  ->
                 let childInitRes = childType.initFunction.initTas chp
                 childInitRes.funcBody, childInitRes.localVariables
-            | Some fncName  ->
-                initChildWithInitFunc (lm.lg.getPointer chp.arg) fncName, []
+            | Some initProc  ->
+                initChildWithInitFunc (lm.lg.getPointer chp.arg) initProc.funcName, []
         let isFixedSize =
             match t.getBaseType r with
             | None      -> o.isFixedSize
@@ -760,10 +834,16 @@ let createSequenceOfInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1A
 
         let funcBody = initTestCaseSizeSequenceOf p.arg.p (lm.lg.getAcces p.arg) initCountValue o.maxSize.uper (isFixedSize) [childInitRes_funcBody] false i
         {InitFunctionResult.funcBody = funcBody; localVariables= (SequenceOfIndex (ii, None))::childInitRes_localVariables }
-        
-    createInitFunctionCommon r lm t typeDefinition funcBody iv  initTasFunction testCaseFuncs []
+    
+    let childInitExpr = getChildExpression lm childType
+    let childInitGlobal = getChildExpressionGlobal lm childType
+    let constantInitExpression childExpr = 
+        match o.isFixedSize with
+        | true  -> lm.init.initFixSizeSequenceOfExpr o.maxSize.uper childExpr
+        | false -> lm.init.initVarSizeSequenceOfExpr o.minSize.uper o.maxSize.uper childExpr
+    createInitFunctionCommon r lm t typeDefinition funcBody   initTasFunction testCaseFuncs (constantInitExpression childInitExpr) (constantInitExpression childInitGlobal) []
 
-let createSequenceInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (o :Asn1AcnAst.Sequence) (typeDefinition:TypeDefintionOrReference) (children:SeqChildInfo list) iv = 
+let createSequenceInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (o :Asn1AcnAst.Sequence) (typeDefinition:TypeDefintionOrReference) (children:SeqChildInfo list) = 
     let initSequence                        = lm.init.initSequence
     let initSequence_optionalChild          = lm.init.initSequence_optionalChild
     let initTestCase_sequence_child         = lm.init.initTestCase_sequence_child
@@ -876,7 +956,7 @@ let createSequenceInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1Acn
             let presentFunc (defaultValue  : Asn1AcnAst.Asn1Value option) = 
                 match defaultValue with
                 | None  ->
-                    match ch.Type.initFunction.initFuncName with
+                    match ch.Type.initFunction.initProcedure with
                     | None  ->
                         match ch.Type.typeDefintionOrReference with
                         | ReferenceToExistingDefinition    rf   when (not rf.definedInRtl) ->
@@ -891,9 +971,9 @@ let createSequenceInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1Acn
                             let funcBody = initTestCase_sequence_child p.arg.p (lm.lg.getAcces p.arg) (lm.lg.getAsn1ChildBackendName ch) chContent.funcBody ch.Optionality.IsSome
                             {InitFunctionResult.funcBody = funcBody; localVariables = chContent.localVariables }
                         
-                    | Some fncName  ->
+                    | Some initProc  ->
                         let chP = {p with arg = lm.lg.getSeqChild p.arg (lm.lg.getAsn1ChildBackendName ch) ch.Type.isIA5String} 
-                        let chContent =  initChildWithInitFunc (lm.lg.getPointer chP.arg) fncName
+                        let chContent =  initChildWithInitFunc (lm.lg.getPointer chP.arg) initProc.funcName
                         let funcBody = initTestCase_sequence_child p.arg.p (lm.lg.getAcces p.arg) (lm.lg.getAsn1ChildBackendName ch) chContent ch.Optionality.IsSome
                         {InitFunctionResult.funcBody = funcBody; localVariables = [] }
                 | Some dv    ->
@@ -925,10 +1005,31 @@ let createSequenceInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1Acn
                         {InitFunctionResult.funcBody = newFuncBody; localVariables = cr.localVariables@chResult.localVariables }
                     ) {InitFunctionResult.funcBody = ""; localVariables = [] }
         ret
+    let constantInitExpression getChildExpr = 
+        let nonEmptyChildren = 
+            children |> 
+            List.choose(fun c -> match c with Asn1Child x -> Some x | _ -> None) |>
+            List.map (fun c -> 
+                let childName = lm.lg.getAsn1ChildBackendName c
+                let childExp = getChildExpr lm c.Type 
+                lm.init.initSequenceChildExpr childName childExp) 
+        let arrsOptionalChildren =
+            children |> 
+            List.choose(fun c -> match c with Asn1Child x -> Some x | _ -> None) |>
+            List.choose (fun c -> 
+                match c.Optionality with 
+                | None -> None
+                | Some (Asn1AcnAst.Optional opt)    -> Some (lm.init.initSequenceOptionalChildExpr (lm.lg.getAsn1ChildBackendName c) 1I)
+                | Some (Asn1AcnAst.AlwaysAbsent)    -> Some (lm.init.initSequenceOptionalChildExpr (lm.lg.getAsn1ChildBackendName c) 0I)
+                | Some (Asn1AcnAst.AlwaysPresent)   -> Some (lm.init.initSequenceOptionalChildExpr (lm.lg.getAsn1ChildBackendName c) 1I)                )
+        match nonEmptyChildren with
+        | [] -> lm.lg.getEmptySequenceInitExpression ()
+        | _  -> lm.init.initSequenceExpr nonEmptyChildren arrsOptionalChildren
         
-    createInitFunctionCommon r lm t typeDefinition initByAsn1ValueFnc iv initTasFunction testCaseFuncs []
 
-let createChoiceInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (o :Asn1AcnAst.Choice) (typeDefinition:TypeDefintionOrReference) (children:ChChildInfo list) iv =     
+    createInitFunctionCommon r lm t typeDefinition initByAsn1ValueFnc  initTasFunction testCaseFuncs (constantInitExpression getChildExpression)  (constantInitExpression getChildExpressionGlobal)  []
+
+let createChoiceInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (o :Asn1AcnAst.Choice) (typeDefinition:TypeDefintionOrReference) (children:ChChildInfo list)  =     
     let initTestCase_choice_child   = lm.init.initTestCase_choice_child
     let initChildWithInitFunc       = lm.init.initChildWithInitFunc
     let initChoice                  = lm.init.initChoice
@@ -944,16 +1045,17 @@ let createChoiceInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAs
                     | false -> None
                     | true  ->
                         let sChildTypeName = chChild.chType.typeDefintionOrReference.longTypedefName2 lm.lg.hasModules
-                        let sChildTempVarName = (ToC chChild.chType.id.AsString) + "_tmp"
                         let sChoiceTypeName = typeDefinition.longTypedefName2 lm.lg.hasModules
                         let sChildName = (lm.lg.getAsn1ChChildBackendName chChild)
+                        let sChildTempVarName = (ToC chChild.chType.id.AsString) + "_tmp"
+
                         let chContent = 
                             match lm.lg.init.choiceComponentTempInit with
                             | false ->
                                 chChild.chType.initFunction.initByAsn1Value ({p with arg = lm.lg.getChChild p.arg (lm.lg.getAsn1ChChildBackendName chChild) chChild.chType.isIA5String}) iv.Value.kind
                             | true ->
                                 chChild.chType.initFunction.initByAsn1Value ({CallerScope.modName = t.id.ModName; arg = VALUE sChildTempVarName}) iv.Value.kind
-                        Some (initChoice p.arg.p (lm.lg.getAcces p.arg) chContent (lm.lg.presentWhenName (Some typeDefinition) chChild) sChildTempVarName sChildTypeName sChoiceTypeName sChildName) 
+                        Some (initChoice p.arg.p (lm.lg.getAcces p.arg) chContent (lm.lg.presentWhenName (Some typeDefinition) chChild) sChildTempVarName sChildTypeName sChoiceTypeName sChildName lm.lg.init.choiceComponentTempInit) 
                         ) 
 
             | _               -> raise(BugErrorException "UnexpectedValue")
@@ -1000,7 +1102,7 @@ let createChoiceInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAs
             let sChildTypeDef = ch.chType.typeDefintionOrReference.longTypedefName2 lm.lg.hasModules 
             let chp = {p with arg = lm.lg.getChChild p.arg sChildName ch.chType.isIA5String} 
             let childContent_funcBody, childContent_localVariables = 
-                match ch.chType.initFunction.initFuncName with
+                match ch.chType.initFunction.initProcedure with
                 | None  ->
                     let fnc = ch.chType.initFunction.initTas
                     let childContent =  
@@ -1008,10 +1110,10 @@ let createChoiceInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAs
                         | false     -> fnc chp
                         | true   -> fnc {p with arg = VALUE (sChildName + "_tmp")} 
                     childContent.funcBody, childContent.localVariables
-                | Some fncName  ->
+                | Some initProc  ->
                     match lm.lg.init.choiceComponentTempInit with
-                    | false  -> initChildWithInitFunc (lm.lg.getPointer chp.arg) fncName, []
-                    | true   -> initChildWithInitFunc (sChildName + "_tmp") fncName, []
+                    | false  -> initChildWithInitFunc (lm.lg.getPointer chp.arg) initProc.funcName, []
+                    | true   -> initChildWithInitFunc (sChildName + "_tmp") initProc.funcName, []
             let funcBody = initTestCase_choice_child p.arg.p (lm.lg.getAcces p.arg) (lm.lg.presentWhenName (Some typeDefinition) ch) childContent_funcBody sChildName  sChildTypeDef typeDefinitionName
 
             {InitFunctionResult.funcBody = funcBody; localVariables = childContent_localVariables}
@@ -1019,8 +1121,17 @@ let createChoiceInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAs
         | x::_  -> handleChild x
         | _     -> {InitFunctionResult.funcBody = ""; localVariables = []}
 
-        
-    createInitFunctionCommon r lm t typeDefinition funcBody iv initTasFunction testCaseFuncs []
+    let constantInitExpression getChildExp = 
+        children |> 
+        List.map (fun c -> 
+            let childName = lm.lg.getAsn1ChChildBackendName c
+            let presentWhenName = lm.lg.presentWhenName (Some typeDefinition) c
+             
+            let childExp = getChildExp lm c.chType
+            lm.init.initChoiceExpr childName presentWhenName childExp ) |>
+        List.head
+
+    createInitFunctionCommon r lm t typeDefinition funcBody  initTasFunction testCaseFuncs (constantInitExpression getChildExpression) (constantInitExpression getChildExpressionGlobal) []
 
 let createReferenceType (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (o :Asn1AcnAst.ReferenceType) (typeDefinition:TypeDefintionOrReference) (baseType:Asn1Type) =
     let initChildWithInitFunc       = lm.init.initChildWithInitFunc
@@ -1036,17 +1147,25 @@ let createReferenceType (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAst
     let bs = baseType.initFunction
     match TypesEquivalence.uperEquivalence t1 t1WithExtensios with
     | false -> 
-        createInitFunctionCommon r lm t typeDefinition bs.initByAsn1Value baseType.initialValue bs.initTas bs.automaticTestCases []
+        createInitFunctionCommon r lm t typeDefinition bs.initByAsn1Value bs.initTas bs.automaticTestCases bs.initExpression bs.initExpressionGlobal  []
     | true  ->
-        let baseFncName = 
-            match lm.lg.hasModules with
-            | false     -> typeDefinitionName + (lm.init.methodNameSuffix())
-            | true   -> 
-                match t.id.ModName = o.modName.Value with
-                | true  -> typeDefinitionName + (lm.init.methodNameSuffix())
-                | false -> moduleName + "." + (typeDefinitionName + (lm.init.methodNameSuffix()))
-        let initTasFunction (p:CallerScope) =
-            let funcBody = initChildWithInitFunc (lm.lg.getPointer p.arg) baseFncName
-            {InitFunctionResult.funcBody = funcBody; localVariables = []}
-        createInitFunctionCommon r lm t typeDefinition bs.initByAsn1Value baseType.initialValue initTasFunction bs.automaticTestCases []
+        match t.isComplexType with
+        | true ->
+            let baseFncName, baseGlobaleName = 
+                let funcName = typeDefinitionName + (lm.init.methodNameSuffix())
+                let globalName = typeDefinitionName + "_constant"
+                match lm.lg.hasModules with
+                | false     -> funcName, globalName
+                | true   -> 
+                    match t.id.ModName = o.modName.Value with
+                    | true  -> funcName, globalName
+                    | false -> moduleName + "." + funcName, moduleName + "." + globalName
+            let constantInitExpression = baseFncName
+            let constantInitExpressionGlobal = baseGlobaleName
+            let initTasFunction (p:CallerScope) =
+                let funcBody = initChildWithInitFunc (lm.lg.getPointer p.arg) baseFncName
+                {InitFunctionResult.funcBody = funcBody; localVariables = []}
+            createInitFunctionCommon r lm t typeDefinition bs.initByAsn1Value  initTasFunction bs.automaticTestCases constantInitExpression constantInitExpressionGlobal []
+        | false ->
+            createInitFunctionCommon r lm t typeDefinition bs.initByAsn1Value bs.initTas bs.automaticTestCases bs.initExpression bs.initExpressionGlobal []
     

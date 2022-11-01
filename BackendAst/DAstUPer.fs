@@ -36,7 +36,7 @@ let internal createUperFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (code
     let funcName            = getFuncName r lm codec t.id typeDef
     let errCodeName         = ToC ("ERR_UPER" + (codec.suffix.ToUpper()) + "_" + ((t.id.AcnAbsPath |> Seq.skip 1 |> Seq.StrJoin("-")).Replace("#","elm")))
     let errCode, ns = getNextValidErrorCode us errCodeName None
-
+    let soInitFuncName = getFuncNameGeneric typeDefinition (lm.init.methodNameSuffix())
     let EmitTypeAssignment = lm.uper.EmitTypeAssignment
     let EmitTypeAssignment_def = lm.uper.EmitTypeAssignment_def
     let EmitTypeAssignment_def_err_code  = lm.uper.EmitTypeAssignment_def_err_code
@@ -60,7 +60,7 @@ let internal createUperFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (code
                         emtyStatement, [], [], true, isValidFuncName.IsNone
                     | Some bodyResult   -> bodyResult.funcBody, bodyResult.errCodes, bodyResult.localVariables, bodyResult.bBsIsUnReferenced, bodyResult.bValIsUnReferenced
                 let lvars = bodyResult_localVariables |> List.map(fun (lv:LocalVariable) -> lm.lg.getLocalVariableDeclaration lv) |> Seq.distinct
-                let func = Some(EmitTypeAssignment varName sStar funcName isValidFuncName  (lm.lg.getLongTypedefName typeDefinition) lvars  bodyResult_funcBody soSparkAnnotations sInitilialExp (t.uperMaxSizeInBits = 0I) bBsIsUnreferenced bVarNameIsUnreferenced codec)
+                let func = Some(EmitTypeAssignment varName sStar funcName isValidFuncName  (lm.lg.getLongTypedefName typeDefinition) lvars  bodyResult_funcBody soSparkAnnotations sInitilialExp (t.uperMaxSizeInBits = 0I) bBsIsUnreferenced bVarNameIsUnreferenced soInitFuncName codec)
                 
                 //let errCodes = bodyResult.errCodes
                 let errCodStr = errCodes |> List.map(fun x -> (EmitTypeAssignment_def_err_code x.errCodeName) (BigInteger x.errCodeValue))
@@ -341,7 +341,7 @@ let handleFixedSizeFragmentation (lm:LanguageMacros) (p:CallerScope) (codec:Comm
     let fragmentationVars = fragmentationVars |> List.addIf (lm.lg.uper.requires_sBlockIndex) (createLv sBlockIndex)
     //let fragmentationVars = fragmentationVars |> List.addIf (l = C) (lv)
     let singleNestedPart  = nestChildItems lm  codec parts |> Option.toList
-    fixedSize_Fragmentation_sqf singleNestedPart  codec, fragmentationVars
+    fixedSize_Fragmentation_sqf p.arg.p (lm.lg.getAcces p.arg) singleNestedPart fixSize bIsAsciiString codec, fragmentationVars
 
 let handleFragmentation (lm:LanguageMacros) (p:CallerScope) (codec:CommonTypes.Codec) (errCode:ErroCode) ii uperMaxSizeInBits (minSize:BigInteger) (maxSize:BigInteger) internalItem_funcBody nIntItemMaxSize bIsBitStringType bIsAsciiString=
     match minSize = maxSize with
@@ -664,22 +664,23 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Commo
                         | true -> chFunc.funcBody ({p with arg = lm.lg.getChChild p.arg  (lm.lg.getAsn1ChChildBackendName child) child.chType.isIA5String})
                     let sChildName = (lm.lg.getAsn1ChChildBackendName child)
                     let sChildTypeDef = child.chType.typeDefintionOrReference.longTypedefName2 lm.lg.hasModules //child.chType.typeDefinition.typeDefinitionBodyWithinSeq
+                    let sCHildInitExpr = child.chType.initFunction.initExpression
                     let sChoiceTypeName = typeDefinitionName
                     match uperChildRes with
                     | None              -> 
                         let childContent = 
                             match lm.lg.uper.catd with 
-                            | false ->"/*no encoding/decoding is required*/" 
+                            | false -> lm.lg.createSingleLineComment "no encoding/decoding is required" 
                             | true when codec=Decode -> 
                                 let childp = ({p with arg = VALUE ((lm.lg.getAsn1ChChildBackendName child) + "_tmp")})
                                 match child.chType.ActualType.Kind with
                                 | NullType _    -> uper_a.decode_nullType childp.arg.p
                                 | Sequence _    -> uper_a.decode_empty_sequence_emptySeq childp.arg.p
-                                | _             -> "--no encoding/decoding is required"
-                            | true   -> "--no encoding/decoding is required"
-                        choice_child p.arg.p (lm.lg.getAcces p.arg) (lm.lg.presentWhenName (Some typeDefinition) child) (BigInteger i) nIndexSizeInBits (BigInteger (children.Length - 1)) childContent sChildName sChildTypeDef sChoiceTypeName codec,[],[]
+                                | _             -> lm.lg.createSingleLineComment "no encoding/decoding is required"
+                            | true   -> lm.lg.createSingleLineComment "no encoding/decoding is required"
+                        choice_child p.arg.p (lm.lg.getAcces p.arg) (lm.lg.presentWhenName (Some typeDefinition) child) (BigInteger i) nIndexSizeInBits (BigInteger (children.Length - 1)) childContent sChildName sChildTypeDef sChoiceTypeName sCHildInitExpr codec,[],[]
                     | Some childContent ->  
-                        choice_child p.arg.p (lm.lg.getAcces p.arg) (lm.lg.presentWhenName (Some typeDefinition) child) (BigInteger i) nIndexSizeInBits (BigInteger (children.Length - 1)) childContent.funcBody sChildName sChildTypeDef sChoiceTypeName codec, childContent.localVariables, childContent.errCodes )
+                        choice_child p.arg.p (lm.lg.getAcces p.arg) (lm.lg.presentWhenName (Some typeDefinition) child) (BigInteger i) nIndexSizeInBits (BigInteger (children.Length - 1)) childContent.funcBody sChildName sChildTypeDef sChoiceTypeName sCHildInitExpr codec, childContent.localVariables, childContent.errCodes )
             let childrenContent = childrenContent3 |> List.map(fun (s,_,_) -> s)
             let childrenLocalvars = childrenContent3 |> List.collect(fun (_,s,_) -> s)
             let childrenErrCodes = childrenContent3 |> List.collect(fun (_,_,s) -> s)

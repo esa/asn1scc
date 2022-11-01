@@ -38,6 +38,10 @@ type Atc_parts = {
 }
 
 
+type InitMethod = 
+    | Procedure
+    | Function
+
 [<AbstractClass>]
 type ILangGeneric () =
     abstract member ArrayStartIndex : int
@@ -49,10 +53,13 @@ type ILangGeneric () =
     abstract member toPointer       : FuncParamType -> FuncParamType;
     abstract member getArrayItem    : FuncParamType -> (string) -> (bool) -> FuncParamType;
     abstract member intValueToSting : BigInteger -> Asn1AcnAst.IntegerClass -> string;
+    abstract member doubleValueToSting : double -> string
+    abstract member initializeString : int -> string
     abstract member getNamedItemBackendName  :TypeDefintionOrReference option -> Asn1AcnAst.NamedItem -> string
     abstract member decodeEmptySeq  : string -> string option
     abstract member decode_nullType : string -> string option
     abstract member castExpression  : string -> string -> string
+    abstract member createSingleLineComment : string -> string
 
     abstract member getAsn1ChildBackendName0  : Asn1AcnAst.Asn1Child -> string
     abstract member getAsn1ChChildBackendName0: Asn1AcnAst.ChChildInfo -> string
@@ -75,7 +82,11 @@ type ILangGeneric () =
     abstract member getChChild      : FuncParamType -> string -> bool -> FuncParamType;
     abstract member getLocalVariableDeclaration : LocalVariable -> string;
     abstract member getLongTypedefName : TypeDefintionOrReference -> string;
+    abstract member getEmptySequenceInitExpression : unit -> string
+    abstract member callFuncWithNoArgs : unit -> string
+
     //abstract member getEnmLongTypedefName : FE_EnumeratedTypeDefinition -> string -> FE_EnumeratedTypeDefinition;
+
 
     abstract member ArrayAccess     : string -> string;
 
@@ -89,6 +100,7 @@ type ILangGeneric () =
     abstract member supportsStaticVerification      : bool
     abstract member AssignOperator  : string
     abstract member TrueLiteral     : string
+    abstract member FalseLiteral     : string
     abstract member emtyStatement   : string
     abstract member bitStreamName   : string
     abstract member  unaryNotOperator :string
@@ -97,7 +109,7 @@ type ILangGeneric () =
     abstract member  neqOp            :string
     abstract member  andOp            :string
     abstract member  orOp             :string
-
+    abstract member  initMetod        :InitMethod
     abstract member  bitStringValueToByteArray:  BitStringValue -> byte[]
 
     abstract member toHex : int -> string
@@ -173,13 +185,18 @@ type LangGeneric_c() =
             | Asn1AcnAst.ASN1SCC_UInt64   _ ->  sprintf "%sUL" (i.ToString())
             | Asn1AcnAst.ASN1SCC_UInt     _ ->  sprintf "%sUL" (i.ToString())
 
+        override _.doubleValueToSting (v:double) = 
+            v.ToString(FsUtils.doubleParseString, System.Globalization.NumberFormatInfo.InvariantInfo)
+
+        override _.initializeString stringSize = sprintf "{ [0 ... %d] = 0x0 }" stringSize
+
         override _.getPointer  (fpt:FuncParamType) =
             match fpt with
             |VALUE x        -> sprintf "(&(%s))" x
             |POINTER x      -> x
             |FIXARRAY x     -> x
 
-        override this.getValue  (fpt:FuncParamType) =
+        override this.getValue (fpt:FuncParamType) =
             match fpt with
             | VALUE x        -> x
             | POINTER x      -> sprintf "(*(%s))" x
@@ -220,10 +237,12 @@ type LangGeneric_c() =
         override this.getAsn1ChildBackendName0 (ch:Asn1AcnAst.Asn1Child) = ch._c_name
         override this.getAsn1ChChildBackendName0 (ch:Asn1AcnAst.ChChildInfo) = ch._c_name
 
-
+        override this.getEmptySequenceInitExpression () = "{}"
+        override this.callFuncWithNoArgs () = "()"
         override this.rtlModuleName  = ""
         override this.AssignOperator = "="
         override this.TrueLiteral = "TRUE"
+        override this.FalseLiteral = "FALSE"
         override this.emtyStatement = ""
         override this.bitStreamName = "BitStream"
         override this.unaryNotOperator    = "!"  
@@ -232,8 +251,10 @@ type LangGeneric_c() =
         override this.neqOp               = "!=" 
         override this.andOp               = "&&" 
         override this.orOp                = "||" 
+        override this.initMetod           = InitMethod.Procedure
 
         override this.castExpression (sExp:string) (sCastType:string) = sprintf "(%s)(%s)" sCastType sExp
+        override this.createSingleLineComment (sText:string) = sprintf "/*%s*/" sText
             
 
 
@@ -440,9 +461,13 @@ let createBitStringFunction_funcBody_Ada handleFragmentation (codec:CommonTypes.
 type LangGeneric_a() =
     inherit ILangGeneric()
         override _.ArrayStartIndex = 1
+        override this.getEmptySequenceInitExpression () = "(null record)"
+        override this.callFuncWithNoArgs () = ""
+
         override this.rtlModuleName  = "adaasn1rtl."
         override this.AssignOperator = ":="
         override this.TrueLiteral = "True"
+        override this.FalseLiteral = "False"
         override this.hasModules = true
         override this.supportsStaticVerification = true 
         override this.emtyStatement = "null;"
@@ -453,11 +478,18 @@ type LangGeneric_a() =
         override this.neqOp               = "<>"
         override this.andOp               = "and"
         override this.orOp                = "or"
+        override this.initMetod           = InitMethod.Function
 
         override this.castExpression (sExp:string) (sCastType:string) = sprintf "%s(%s)" sCastType sExp
+        override this.createSingleLineComment (sText:string) = sprintf "--%s" sText
 
 
+        override _.doubleValueToSting (v:double) = 
+            v.ToString(FsUtils.doubleParseString, System.Globalization.NumberFormatInfo.InvariantInfo)
         override _.intValueToSting (i:BigInteger) _ = i.ToString()
+
+        override _.initializeString (_) = "(others => adaasn1rtl.NUL)"
+        
 
         override _.getPointer  (fpt:FuncParamType) =
             match fpt with
@@ -514,6 +546,7 @@ type LangGeneric_a() =
             if childTypeIsString then (FIXARRAY newPath) else (VALUE newPath)
         override this.getChChild (fpt:FuncParamType) (childName:string) (childTypeIsString: bool) : FuncParamType =
             let newPath = sprintf "%s.%s" fpt.p childName
+            //let newPath = sprintf "%s%su.%s" fpt.p (this.getAcces fpt) childName
             if childTypeIsString then (FIXARRAY newPath) else (VALUE newPath)
 
 
@@ -574,7 +607,7 @@ type LangGeneric_a() =
                 requires_IA5String_i = false
                 count_var            = IntegerLocalVariable ("nStringLength", None)
                 requires_presenceBit = false
-                catd                 = true
+                catd                 = false
                 //createBitStringFunction = createBitStringFunction_funcBody_Ada
                 seqof_lv              =
                   (fun id minSize maxSize -> 
@@ -593,12 +626,12 @@ type LangGeneric_a() =
                             GenericLocalVariable {GenericLocalVariable.name = "tmpBs"; varType = "adaasn1rtl.encoding.BitStream"; arrSize = None; isStatic = false;initExp = Some (sprintf "adaasn1rtl.encoding.BitStream_init(%s)" sReqBytesForUperEncoding)}
                         ]
                 choice_handle_always_absent_child = true
-                choice_requires_tmp_decoding = true
+                choice_requires_tmp_decoding = false
           }
         override this.init = 
             {
                 Initialize_parts.zeroIA5String_localVars    = fun ii -> [SequenceOfIndex (ii, None)]
-                choiceComponentTempInit                     = true
+                choiceComponentTempInit                     = false
             }
 
         override this.atc =

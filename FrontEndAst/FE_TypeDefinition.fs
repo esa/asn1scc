@@ -311,7 +311,8 @@ let rec registerChoiceTypeDefinition (us:Asn1AcnMergeState) l (id : ReferenceToT
                 let typeName, newAllocatedTypeNames = reserveMasterTypeDefinitionName us id l programUnit proposedTypeDefName
                 let index_range, newAllocatedTypeNames = reserveTypeDefinitionName  us.args.TypePrefix newAllocatedTypeNames l programUnit (proposedTypeDefName + "_index_range")
                 let selection, newAllocatedTypeNames = reserveTypeDefinitionName  us.args.TypePrefix newAllocatedTypeNames l programUnit (proposedTypeDefName + "_selection")
-                let itm = {FE_ChoiceTypeDefinition.programUnit = programUnit; typeName = typeName; asn1Name = asn1Name; asn1Module =  Some id.ModName; kind=NonPrimitiveNewTypeDefinition; index_range=index_range; selection=selection}
+                let union_name, newAllocatedTypeNames = reserveTypeDefinitionName  us.args.TypePrefix newAllocatedTypeNames l programUnit (proposedTypeDefName + "_unchecked_union")
+                let itm = {FE_ChoiceTypeDefinition.programUnit = programUnit; typeName = typeName; asn1Name = asn1Name; asn1Module =  Some id.ModName; kind=NonPrimitiveNewTypeDefinition; index_range=index_range; selection=selection; union_name=union_name}
                 itm, {us with allocatedTypeNames = newAllocatedTypeNames; allocatedFE_TypeDefinition = us.allocatedFE_TypeDefinition.Add((l,id), (FE_ChoiceTypeDefinition itm))}
             | FEI_NewSubTypeDefinition subId ->
                 let subType, ns1 = registerChoiceTypeDefinition us l subId FEI_NewTypeDefinition 
@@ -319,7 +320,8 @@ let rec registerChoiceTypeDefinition (us:Asn1AcnMergeState) l (id : ReferenceToT
                 let typeName, newAllocatedTypeNames = reserveMasterTypeDefinitionName ns1 id l programUnit proposedTypeDefName
                 let index_range, newAllocatedTypeNames = reserveTypeDefinitionName  us.args.TypePrefix newAllocatedTypeNames l programUnit (proposedTypeDefName + "_index_range")
                 let selection, newAllocatedTypeNames = reserveTypeDefinitionName  us.args.TypePrefix newAllocatedTypeNames l programUnit (proposedTypeDefName + "_selection")
-                let itm = {FE_ChoiceTypeDefinition.programUnit = programUnit; typeName = typeName; asn1Name = asn1Name; asn1Module =  Some id.ModName; kind=(NonPrimitiveNewSubTypeDefinition subType); index_range=index_range; selection=selection}
+                let union_name, newAllocatedTypeNames = reserveTypeDefinitionName  us.args.TypePrefix newAllocatedTypeNames l programUnit (proposedTypeDefName + "_unchecked_union")
+                let itm = {FE_ChoiceTypeDefinition.programUnit = programUnit; typeName = typeName; asn1Name = asn1Name; asn1Module =  Some id.ModName; kind=(NonPrimitiveNewSubTypeDefinition subType); index_range=index_range; selection=selection; union_name=union_name}
                 let ns2 = {ns1 with allocatedTypeNames = newAllocatedTypeNames; allocatedFE_TypeDefinition = ns1.allocatedFE_TypeDefinition.Add((l,id), (FE_ChoiceTypeDefinition itm))}
                 itm, ns2
             | FEI_Reference2OtherType refId  -> 

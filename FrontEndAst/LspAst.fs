@@ -109,6 +109,7 @@ let defaultCommandLineSettings  =
         fieldPrefix = None
         targetLanguages = []
         objectIdentifierMaxLength = 20I
+        generateConstInitGlobals = false
     }    
 
 type LspWorkSpace = {

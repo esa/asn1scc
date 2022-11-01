@@ -210,14 +210,18 @@ is in order to generate valid ACN test cases. I.e. the ACN checks that test case
 generated.
 *)
 type AutomaticTestCase = {
-    initTestCaseFunc : CallerScope  -> InitFunctionResult //returns a list of set the statement(s) that initialize this type accordingly
-    testCaseTypeIDsMap         : Map<ReferenceToType, TestCaseValue>    //used by ACN to produce valid test cases
+    initTestCaseFunc        : CallerScope  -> InitFunctionResult //returns a list of set the statement(s) that initialize this type accordingly
+    testCaseTypeIDsMap      : Map<ReferenceToType, TestCaseValue>    //used by ACN to produce valid test cases
 }
 
 type InitFunction = {
-    initFuncName            : string option               // the name of the function
-    initFunc                : string option               // the body of the function
-    initFuncDef             : string option               // function definition in header file
+    initExpression          : string               // an expression that provides the default initialization. 
+    initExpressionGlobal    : string               // an expression that provides the default initialization. 
+                                                          //It is usually present except of some rare cases such as an empty sequence (for C only) etc
+    initProcedure           : {|funcName:string; def:string; body:string |} option
+    initFunction            : {|funcName:string; def:string; body:string |} option                      // an expression that initializes the given type to a default value.
+    initGlobal              : {|globalName:string; def:string; body:string |} option                      // an expression that initializes the given type to a default value.
+
     initTas                 : (CallerScope  -> InitFunctionResult)              // returns the statement(s) that defaults initialize this type (used in the init function)
     initByAsn1Value         : CallerScope  -> Asn1ValueKind -> string           // returns the statement(s) that initialize according to the asn1value
     //initFuncBodyTestCases   : (CallerScope  -> InitFunctionResult) list         // returns a list of set the statement(s). Each set that initialize this type according to a specific test case
@@ -347,7 +351,7 @@ type Integer = {
     //typeDefinition      : TypeDefinitionCommon
     definitionOrRef     : TypeDefintionOrReference
     printValue          : string -> (Asn1ValueKind option) -> (Asn1ValueKind) -> string
-    initialValue        : IntegerValue
+    //initialValue        : IntegerValue
     initFunction        : InitFunction
     equalFunction       : EqualFunction
     isValidFunction     : IsValidFunction option      // it is optional because some types do not require an IsValid function (e.g. an unconstraint integer)
@@ -362,7 +366,7 @@ type Integer = {
     acnEncDecTestFunc   : EncodeDecodeTestFunc option
     xerEncDecTestFunc   : EncodeDecodeTestFunc option
 
-    automaticTestCasesValues     : Asn1Value list
+    ////automaticTestCasesValues     : Asn1Value list
 
 }
 
@@ -375,7 +379,7 @@ type Enumerated = {
     //typeDefinition      : TypeDefinitionCommon
     definitionOrRef     : TypeDefintionOrReference
     printValue          : string -> (Asn1ValueKind option) -> (Asn1ValueKind) -> string
-    initialValue        : EnumValue
+    //initialValue        : EnumValue
     initFunction        : InitFunction
     equalFunction       : EqualFunction
     isValidFunction     : IsValidFunction option      // it is optional because some types do not require an IsValid function (e.g. an unconstraint integer)
@@ -389,7 +393,7 @@ type Enumerated = {
     acnEncDecTestFunc   : EncodeDecodeTestFunc option
     xerEncDecTestFunc   : EncodeDecodeTestFunc option
 
-    automaticTestCasesValues     : Asn1Value list
+    ////automaticTestCasesValues     : Asn1Value list
 }
 
 type ObjectIdentifier = {
@@ -398,7 +402,7 @@ type ObjectIdentifier = {
     constraintsAsn1Str  : string list   //an ASN.1 representation of the constraints
     definitionOrRef     : TypeDefintionOrReference
     printValue          : string -> (Asn1ValueKind option) -> (Asn1ValueKind) -> string
-    initialValue        : ObjectIdenfierValue
+    //initialValue        : ObjectIdenfierValue
     initFunction        : InitFunction
     equalFunction       : EqualFunction
     isValidFunction     : IsValidFunction option      // it is optional because some types do not require an IsValid function (e.g. an unconstraint integer)
@@ -412,7 +416,7 @@ type ObjectIdentifier = {
     acnEncDecTestFunc   : EncodeDecodeTestFunc option
     xerEncDecTestFunc   : EncodeDecodeTestFunc option
 
-    automaticTestCasesValues     : Asn1Value list
+    //automaticTestCasesValues     : Asn1Value list
 }
 
 type TimeType = {
@@ -421,7 +425,7 @@ type TimeType = {
     constraintsAsn1Str  : string list   //an ASN.1 representation of the constraints
     definitionOrRef     : TypeDefintionOrReference
     printValue          : string -> (Asn1ValueKind option) -> (Asn1ValueKind) -> string
-    initialValue        : TimeValue
+    //initialValue        : TimeValue
     initFunction        : InitFunction
     equalFunction       : EqualFunction
     isValidFunction     : IsValidFunction option      // it is optional because some types do not require an IsValid function (e.g. an unconstraint integer)
@@ -435,7 +439,7 @@ type TimeType = {
     acnEncDecTestFunc   : EncodeDecodeTestFunc option
     xerEncDecTestFunc   : EncodeDecodeTestFunc option
 
-    automaticTestCasesValues     : Asn1Value list
+    //automaticTestCasesValues     : Asn1Value list
 }
 
 type Real = {
@@ -449,7 +453,7 @@ type Real = {
     //typeDefinition      : TypeDefinitionCommon
     definitionOrRef     : TypeDefintionOrReference
     printValue          : string -> (Asn1ValueKind option) -> (Asn1ValueKind) -> string
-    initialValue        : RealValue
+    //initialValue        : RealValue
     initFunction        : InitFunction
     equalFunction       : EqualFunction
     isValidFunction     : IsValidFunction option      // it is optional because some types do not require an IsValid function (e.g. an unconstraint integer)
@@ -463,7 +467,7 @@ type Real = {
     acnEncDecTestFunc   : EncodeDecodeTestFunc option
     xerEncDecTestFunc   : EncodeDecodeTestFunc option
 
-    automaticTestCasesValues     : Asn1Value list
+    //automaticTestCasesValues     : Asn1Value list
 }
 
 
@@ -476,7 +480,7 @@ type Boolean = {
     //typeDefinition      : TypeDefinitionCommon
     definitionOrRef     : TypeDefintionOrReference
     printValue          : string -> (Asn1ValueKind option) -> (Asn1ValueKind) -> string
-    initialValue        : BooleanValue
+    //initialValue        : BooleanValue
     initFunction        : InitFunction
     equalFunction       : EqualFunction
     isValidFunction     : IsValidFunction option      // it is optional because some types do not require an IsValid function (e.g. an unconstraint integer)
@@ -490,7 +494,7 @@ type Boolean = {
     acnEncDecTestFunc   : EncodeDecodeTestFunc option
     xerEncDecTestFunc   : EncodeDecodeTestFunc option
 
-    automaticTestCasesValues     : Asn1Value list
+    //automaticTestCasesValues     : Asn1Value list
 }
 
 
@@ -504,7 +508,7 @@ type NullType = {
     definitionOrRef     : TypeDefintionOrReference
     printValue          : string -> (Asn1ValueKind option) -> (Asn1ValueKind) -> string
     initFunction        : InitFunction
-    initialValue        : NullValue
+    //initialValue        : NullValue
     equalFunction       : EqualFunction
     uperEncFunction     : UPerFunction
     uperDecFunction     : UPerFunction
@@ -527,7 +531,7 @@ type StringType = {
     //typeDefinition      : TypeDefinitionCommon
     definitionOrRef     : TypeDefintionOrReference
     printValue          : string -> (Asn1ValueKind option) -> (Asn1ValueKind) -> string
-    initialValue        :  StringValue
+    //initialValue        :  StringValue
     initFunction        : InitFunction
     equalFunction       : EqualFunction
     isValidFunction     : IsValidFunction option      // it is optional because some types do not require an IsValid function (e.g. an unconstraint integer)
@@ -541,7 +545,7 @@ type StringType = {
     acnEncDecTestFunc   : EncodeDecodeTestFunc option
     xerEncDecTestFunc   : EncodeDecodeTestFunc option
 
-    automaticTestCasesValues     : Asn1Value list
+    //automaticTestCasesValues     : Asn1Value list
 }
 
 
@@ -555,7 +559,7 @@ type OctetString = {
     //typeDefinition      : TypeDefinitionCommon
     definitionOrRef     : TypeDefintionOrReference
     printValue          : string -> (Asn1ValueKind option) -> (Asn1ValueKind) -> string
-    initialValue        : OctetStringValue
+    //initialValue        : OctetStringValue
     initFunction        : InitFunction
     equalFunction       : EqualFunction
     isValidFunction     : IsValidFunction option      // it is optional because some types do not require an IsValid function (e.g. an unconstraint integer)
@@ -569,7 +573,7 @@ type OctetString = {
     acnEncDecTestFunc   : EncodeDecodeTestFunc option
     xerEncDecTestFunc   : EncodeDecodeTestFunc option
 
-    automaticTestCasesValues     : Asn1Value list
+    //automaticTestCasesValues     : Asn1Value list
 }
 
 
@@ -583,7 +587,7 @@ type BitString = {
     //typeDefinition      : TypeDefinitionCommon
     definitionOrRef     : TypeDefintionOrReference
     printValue          : string -> (Asn1ValueKind option) -> (Asn1ValueKind) -> string
-    initialValue        : BitStringValue
+    //initialValue        : BitStringValue
     initFunction        : InitFunction
     equalFunction       : EqualFunction
     isValidFunction     : IsValidFunction option      // it is optional because some types do not require an IsValid function (e.g. an unconstraint integer)
@@ -597,7 +601,7 @@ type BitString = {
     acnEncDecTestFunc   : EncodeDecodeTestFunc option
     xerEncDecTestFunc   : EncodeDecodeTestFunc option
 
-    automaticTestCasesValues     : Asn1Value list
+    //automaticTestCasesValues     : Asn1Value list
 }
 
 
@@ -611,7 +615,7 @@ type SequenceOf = {
     //typeDefinition      : TypeDefinitionCommon
     definitionOrRef     : TypeDefintionOrReference
     printValue          : string -> (Asn1ValueKind option) -> (Asn1ValueKind) -> string
-    initialValue        : SeqOfValue
+    //initialValue        : SeqOfValue
     initFunction        : InitFunction
     equalFunction       : EqualFunction
     isValidFunction     : IsValidFunction option      
@@ -625,7 +629,7 @@ type SequenceOf = {
     acnEncDecTestFunc   : EncodeDecodeTestFunc option
     xerEncDecTestFunc   : EncodeDecodeTestFunc option
 
-    automaticTestCasesValues     : Asn1Value list
+    //automaticTestCasesValues     : Asn1Value list
 }
 
 
@@ -685,7 +689,7 @@ and Sequence = {
     //typeDefinition      : TypeDefinitionCommon
     definitionOrRef     : TypeDefintionOrReference
     printValue          : string -> (Asn1ValueKind option) -> (Asn1ValueKind) -> string
-    initialValue        : SeqValue
+    //initialValue        : SeqValue
     initFunction        : InitFunction
     equalFunction       : EqualFunction
     isValidFunction     : IsValidFunction option      // it is optional because some types do not require an IsValid function (e.g. an unconstraint integer)
@@ -700,7 +704,7 @@ and Sequence = {
     acnEncDecTestFunc   : EncodeDecodeTestFunc option
     xerEncDecTestFunc   : EncodeDecodeTestFunc option
 
-    automaticTestCasesValues     : Asn1Value list
+    //automaticTestCasesValues     : Asn1Value list
 }
 
 
@@ -745,7 +749,7 @@ and Choice = {
     //typeDefinition      : TypeDefinitionCommon
     definitionOrRef     : TypeDefintionOrReference
     printValue          : string -> (Asn1ValueKind option) -> (Asn1ValueKind) -> string
-    initialValue        : ChValue
+    //initialValue        : ChValue
     initFunction        : InitFunction
     equalFunction       : EqualFunction
     isValidFunction     : IsValidFunction option      
@@ -759,7 +763,7 @@ and Choice = {
     acnEncDecTestFunc   : EncodeDecodeTestFunc option
     xerEncDecTestFunc   : EncodeDecodeTestFunc option
 
-    automaticTestCasesValues     : Asn1Value list
+    //automaticTestCasesValues     : Asn1Value list
 }
 
 
@@ -771,7 +775,7 @@ and ReferenceType = {
     constraintsAsn1Str  : string list   //an ASN.1 representation of the constraints
     definitionOrRef     : TypeDefintionOrReference
     printValue          : string -> (Asn1ValueKind option) -> (Asn1ValueKind) -> string
-    initialValue        : Asn1Value
+    //initialValue        : Asn1Value
     initFunction        : InitFunction
     equalFunction       : EqualFunction
     isValidFunction     : IsValidFunction option      
@@ -785,7 +789,7 @@ and ReferenceType = {
     acnEncDecTestFunc   : EncodeDecodeTestFunc option
     xerEncDecTestFunc   : EncodeDecodeTestFunc option
 
-    automaticTestCasesValues     : Asn1Value list
+    //automaticTestCasesValues     : Asn1Value list
 }
 
 and AcnChildUpdateResult = {

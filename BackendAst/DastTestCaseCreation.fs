@@ -8,7 +8,7 @@ open CommonTypes
 open AbstractMacros
 open DAst
 open DAstUtilFunctions
-
+open Language
 
 
 let GetEncodingString l = function    
@@ -44,6 +44,7 @@ let emitTestCaseAsFunc l    =         match l with C -> test_cases_c.emitTestCas
 let emitTestCaseAsFunc_h  l =         match l with C -> test_cases_c.emitTestCaseAsFunc_h               | Ada -> test_cases_a.emitTestCaseAsFunc_h
 let invokeTestCaseAsFunc  l =         match l with C -> test_cases_c.invokeTestCaseAsFunc               | Ada -> test_cases_a.invokeTestCaseAsFunc
 let emitTestCaseAsFunc_dummy_init l = match l with C -> test_cases_c.emitTestCaseAsFunc_dummy_init | Ada -> test_cases_a.emitTestCaseAsFunc_dummy_init
+let emitTestCaseAsFunc_dummy_init_function l = match l with C -> test_cases_c.emitTestCaseAsFunc_dummy_init_function | Ada -> test_cases_a.emitTestCaseAsFunc_dummy_init_function
 
 
 let GetDatFile (r:DAst.AstRoot) l (v:ValueAssignment) modName sTasName encAmper (enc:Asn1Encoding) = 
@@ -109,11 +110,11 @@ let getTypeDecl (r:DAst.AstRoot) (vasPU_name:string) (l:ProgrammingLanguage) (va
 
 let TestSuiteFileName = "testsuite"
 
-let emitDummyInitStatementsNeededForStatementCoverage l (t:Asn1Type) =
+let emitDummyInitStatementsNeededForStatementCoverage (lm:Language.LanguageMacros) l (t:Asn1Type) =
     let pdumy = {CallerScope.modName = ToC "MainProgram"; arg = VALUE "tmp0"}
     GetMySelfAndChildren2 l t pdumy |>
     List.choose(fun (t,p) -> 
-        let funcName = t.initFunction.initFuncName
+        let initProc = t.initFunction.initProcedure
         let dummyVarName = 
             match t.isIA5String with
             | true  ->  p.arg.getValue l
@@ -126,9 +127,15 @@ let emitDummyInitStatementsNeededForStatementCoverage l (t:Asn1Type) =
                 match sTypeName.Contains "." with
                 | true  -> sTypeName
                 | false -> t.FT_TypeDefintion.[l].programUnit + "." + sTypeName
-        match funcName with
+        match initProc with
         | None  -> None
-        | Some funcName ->  Some (emitTestCaseAsFunc_dummy_init l sTypeName funcName dummyVarName))
+        | Some initProc ->  
+            match lm.lg.initMetod with
+            | InitMethod.Procedure ->
+                Some (emitTestCaseAsFunc_dummy_init l sTypeName initProc.funcName dummyVarName)
+            | InitMethod.Function ->
+                Some (emitTestCaseAsFunc_dummy_init_function l sTypeName initProc.funcName dummyVarName) )
+
 
 let printAllTestCases (r:DAst.AstRoot) l lm outDir =
     let tcFunctors = 
@@ -151,7 +158,7 @@ let printAllTestCases (r:DAst.AstRoot) l lm outDir =
                                         let generateTcFun idx = 
                                             let p = {CallerScope.modName = ToC "MainProgram"; arg = VALUE "tc_data"}
                                             let initStatement = atc.initTestCaseFunc p
-                                            let dummyInitStatementsNeededForStatementCoverage = (emitDummyInitStatementsNeededForStatementCoverage l t.Type)//t.Type.initFunction.initFuncName
+                                            let dummyInitStatementsNeededForStatementCoverage = (emitDummyInitStatementsNeededForStatementCoverage lm l t.Type)//t.Type.initFunction.initFuncName
                                             
                                             PrintAutomaticTestCase r l e initStatement.funcBody initStatement.localVariables  m t.Type (t.Type.FT_TypeDefintion.[l].programUnit) (t.Type.FT_TypeDefintion.[l].typeName) idx dummyInitStatementsNeededForStatementCoverage 
                                         yield generateTcFun
@@ -171,7 +178,7 @@ let printAllTestCases (r:DAst.AstRoot) l lm outDir =
                         | Some _    ->
                             let generateTcFun idx = 
                                 //let initFuncName = v.Type.initFunction.initFuncName
-                                let dummyInitStatementsNeededForStatementCoverage = (emitDummyInitStatementsNeededForStatementCoverage l v.Type)
+                                let dummyInitStatementsNeededForStatementCoverage = (emitDummyInitStatementsNeededForStatementCoverage lm l v.Type)
                                 PrintValueAssignmentAsTestCase r l lm e v m typeModName tasName (*(getTypeDecl r (ToC m.Name.Value) l v )*)  idx dummyInitStatementsNeededForStatementCoverage 
                             yield generateTcFun
                         | None         -> ()

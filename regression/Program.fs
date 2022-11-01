@@ -130,8 +130,9 @@ let executeTestCase asn1sccdll workDir  (t:Test_Case) (lang:string, ws:int, slim
     let wsa = if ws=8 then "-fpWordSize 8 -wordSize 8" else "-fpWordSize 4 -wordSize 4"
     let slima = if slim then "-slim" else ""
     //-c -x ast.xml -uPER -ACN -typePrefix gmamais_  -slim -renamePolicy 3 -fp AUTO -equal -atc -o 'c:\prj\GitHub\asn1scc\v4Tests\tmp_c' 'c:\prj\GitHub\asn1scc\v4Tests\tmp_c\sample1.asn1' 'c:\prj\GitHub\asn1scc\v4Tests\tmp_c\sample1.acn'
-    let cmd = sprintf "%s -%s -x ast.xml -uPER -ACN -typePrefix ASN1SCC_ -renamePolicy 3 -fp AUTO -equal -atc  %s %s sample1.asn1 sample1.acn" asn1sccdll lang slima wsa
+    let cmd = sprintf "%s -%s -x ast.xml -uPER -ACN -ig -typePrefix ASN1SCC_ -renamePolicy 3 -fp AUTO -equal -atc  %s %s sample1.asn1 sample1.acn" asn1sccdll lang slima wsa
     prepareFolderAndFiles workDir t
+    //ShellProcess.printInfo "\nwordDir is:%s\n%s\n\n" workDir cmd
     let res = executeProcess workDir "dotnet" cmd
 
     let checkErrMsg expErrMsg (res:ProcessResult) =
@@ -145,11 +146,12 @@ let executeTestCase asn1sccdll workDir  (t:Test_Case) (lang:string, ws:int, slim
         let asn1Lines = File.ReadAllLines t.asn1
         let bNoAtc = asn1Lines |> Seq.exists(fun l -> l.Contains "NO_AUTOMATIC_TEST_CASES")
         let bRunCodeCoverage = not (asn1Lines |> Seq.exists(fun l -> l.Contains "NOCOVERAGE"))
+        //ShellProcess.printDebug "bRunCodeCoverage %b" bRunCodeCoverage
         let bRunSpark = (lang = "Ada") && asn1Lines |> Seq.exists(fun l -> l.Contains "RUN_SPARK")
         let coverageFile = Path.Combine(workDir, (if lang = "c" then "sample1.c.gcov" else "obj_x86/debug/test_case.adb.gcov"))
         let covLinesToIgnore = ["}";"default:";"break;";"end"] |> Set.ofList
 
-        let makeCommand = sprintf "make%s" (if bNoAtc then "" else " coverage")
+        let makeCommand = sprintf "make%s" (if bNoAtc || not bRunCodeCoverage then "" else " coverage")
         let res = executeBashScript workDir makeCommand
         if res.ExitCode <> 0 then    
             markError "Error code is %d\n%s" res.ExitCode res.StdErr
@@ -170,7 +172,7 @@ let executeTestCase asn1sccdll workDir  (t:Test_Case) (lang:string, ws:int, slim
                 else 
                     if bRunSpark then
                         let bWindows = System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Windows) 
-                        let makeCommand = sprintf "gnatprove%s -Pasn1_x86.gpr -j0  -u test_case.adb --level=4 >sparklog.txt 2>&1" (if bWindows then ".exe" else "")
+                        let makeCommand = sprintf "gnatprove%s -Pasn1_x86.gpr -j0  -u test_case.adb --level=4 >sparklog.txt 2>&1" (if bWindows then ".exe" else ".exe")
                         let res = executeBashScript workDir makeCommand
                         let sparkLogFname = Path.Combine(workDir, "sparklog.txt")
                         if res.ExitCode <> 0 then 
@@ -303,11 +305,13 @@ let main0 argv =
             } |> Seq.toList
 
         //asn1sccInvoications |>
-        let results = 
+        let results0 = 
             asn1sccInvoications |>
             List.filter(fun (t,_) -> match tc with None -> true | Some s -> t.asn1.EndsWith s) |>
-            List.mapi(fun i (t,b) -> (i,t, b)) |>  
-            executeBatch Environment.ProcessorCount (fun (i,tc, m) -> executeTestCaseAsync asn1sccdll workDir i tc m) |>
+            List.mapi(fun i (t,b) -> (i,t, b)) 
+        let results =
+            results0 |>
+            executeBatch (Environment.ProcessorCount*2) (fun (i,tc, m) -> executeTestCaseAsync asn1sccdll workDir i tc m) |>
             List.sortBy (fun (i, _, _, _, _, _, _) -> i)
 
         let errors = 
