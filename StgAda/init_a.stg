@@ -19,6 +19,8 @@ end <sFuncName>;
 >>
 
 
+assignAny(p, sValue) ::= "<p> := <sValue>;"
+assignString(p, sValue) ::= "<p> := <sValue>;"
 
 
 initInteger(p, nValue) ::= "<p> := <nValue>;"

@@ -124,7 +124,12 @@ type Asn1Type with
         | Choice       _ -> true
         | ObjectIdentifier _ -> false
 
-
+    member this.isStringType =
+        match this.Kind with
+        | IA5String    _
+        | NumericString _ -> true
+        | ReferenceType t-> t.resolvedType.isStringType
+        | _             -> false
 
 
 

@@ -236,11 +236,22 @@ let createInitFunctionCommon (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros)   (o:Asn
             match funcName  with
             | None              -> None
             | Some funcName     -> 
-                let res = initTasFunction p 
-                let lvars = res.localVariables |> List.map(fun (lv:LocalVariable) -> lm.lg.getLocalVariableDeclaration lv) |> Seq.distinct
-                let  func = initTypeAssignment varName sStar funcName  tdName res.funcBody lvars
-                let  funcDef = initTypeAssignment_def varName sStar funcName  (lm.lg.getLongTypedefName typeDefinition)
-                Some {|funcName = funcName; def = funcDef; body=func|}
+                match r.args.generateConstInitGlobals  &&  globalName.IsSome with
+                | true ->
+                    let funcBody = 
+                        match o.isStringType with
+                        | false -> lm.init.assignAny (lm.lg.getValue p.arg) globalName.Value
+                        | true  -> lm.init.assignString p.arg.p  globalName.Value
+                        //sprintf ("%s %s (%s)%s;")  (lm.lg.getValue p.arg) lm.lg.AssignOperator tdName globalName.Value
+                    let func = initTypeAssignment varName sStar funcName  tdName funcBody []
+                    let funcDef = initTypeAssignment_def varName sStar funcName  (lm.lg.getLongTypedefName typeDefinition)
+                    Some {|funcName = funcName; def = funcDef; body=func|}
+                | false ->
+                    let res = initTasFunction p 
+                    let lvars = res.localVariables |> List.map(fun (lv:LocalVariable) -> lm.lg.getLocalVariableDeclaration lv) |> List.distinct
+                    let func = initTypeAssignment varName sStar funcName  tdName res.funcBody lvars
+                    let funcDef = initTypeAssignment_def varName sStar funcName  (lm.lg.getLongTypedefName typeDefinition)
+                    Some {|funcName = funcName; def = funcDef; body=func|}
 
 
     {
