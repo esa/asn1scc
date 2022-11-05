@@ -55,11 +55,15 @@ type ILangGeneric () =
     abstract member intValueToSting : BigInteger -> Asn1AcnAst.IntegerClass -> string;
     abstract member doubleValueToSting : double -> string
     abstract member initializeString : int -> string
-    abstract member getNamedItemBackendName  :TypeDefintionOrReference option -> Asn1AcnAst.NamedItem -> string
+    abstract member supportsInitExpressions : bool
+    abstract member getNamedItemBackendName  : TypeDefintionOrReference option -> Asn1AcnAst.NamedItem -> string
+    abstract member getNamedItemBackendName2  :ReferenceToType -> string -> Asn1AcnAst.NamedItem -> string
     abstract member decodeEmptySeq  : string -> string option
     abstract member decode_nullType : string -> string option
     abstract member castExpression  : string -> string -> string
     abstract member createSingleLineComment : string -> string
+
+    
 
     abstract member getAsn1ChildBackendName0  : Asn1AcnAst.Asn1Child -> string
     abstract member getAsn1ChChildBackendName0: Asn1AcnAst.ChChildInfo -> string
@@ -117,6 +121,7 @@ type ILangGeneric () =
     abstract member acn  : Acn_parts
     abstract member init : Initialize_parts
     abstract member atc  : Atc_parts
+    abstract member getValueAssignmentName : ValueAssignment -> string
 //    abstract member createLocalVariable_frag : string -> LocalVariable
 
     default this.getAmber (fpt:FuncParamType) =
@@ -189,6 +194,8 @@ type LangGeneric_c() =
             v.ToString(FsUtils.doubleParseString, System.Globalization.NumberFormatInfo.InvariantInfo)
 
         override _.initializeString stringSize = sprintf "{ [0 ... %d] = 0x0 }" stringSize
+        
+        override _.supportsInitExpressions = false
 
         override _.getPointer  (fpt:FuncParamType) =
             match fpt with
@@ -217,7 +224,8 @@ type LangGeneric_c() =
             if childTypeIsString then (FIXARRAY newPath) else (VALUE newPath)
         override this.getNamedItemBackendName (defOrRef:TypeDefintionOrReference option) (nm:Asn1AcnAst.NamedItem) = 
             ToC nm.c_name
-
+        override this.getNamedItemBackendName2 (_:ReferenceToType) (_:string) (nm:Asn1AcnAst.NamedItem) = 
+            ToC nm.c_name
         override this.decodeEmptySeq _ = None
         override this.decode_nullType _ = None
 
@@ -257,6 +265,7 @@ type LangGeneric_c() =
         override this.createSingleLineComment (sText:string) = sprintf "/*%s*/" sText
             
 
+        override _.getValueAssignmentName (vas: ValueAssignment) = vas.c_name
 
         override this.hasModules = false
         override this.supportsStaticVerification = false
@@ -490,6 +499,7 @@ type LangGeneric_a() =
 
         override _.initializeString (_) = "(others => adaasn1rtl.NUL)"
         
+        override _.supportsInitExpressions = true
 
         override _.getPointer  (fpt:FuncParamType) =
             match fpt with
@@ -524,6 +534,13 @@ type LangGeneric_a() =
             | Some (ReferenceToExistingDefinition r) when r.programUnit.IsSome -> r.programUnit.Value + "." + nm.ada_name
             | Some (TypeDefinition td) when td.baseType.IsSome && td.baseType.Value.programUnit.IsSome  -> td.baseType.Value.programUnit.Value + "." + nm.ada_name
             | _       -> ToC nm.ada_name
+        override this.getNamedItemBackendName2 (id:ReferenceToType) (curProgamUnitName:string) (itm:Asn1AcnAst.NamedItem) = 
+            let typeModName = id.ModName
+            match (ToC typeModName) = curProgamUnitName with
+            | true  -> ToC itm.ada_name
+            | false -> ((ToC typeModName) + "." + (ToC itm.ada_name))
+
+
         override this.Length exp sAcc =
             isvalid_a.ArrayLen exp sAcc
 
@@ -535,6 +552,7 @@ type LangGeneric_a() =
         override this.getSequenceTypeDefinition (td:Map<ProgrammingLanguage, FE_SequenceTypeDefinition>) = td.[Ada]
         override this.getSizeableTypeDefinition (td:Map<ProgrammingLanguage, FE_SizeableTypeDefinition>) = td.[Ada]
 
+        override _.getValueAssignmentName (vas: ValueAssignment) = vas.ada_name
 
         override this.getAsn1ChildBackendName (ch:Asn1Child) = ch._ada_name
         override this.getAsn1ChChildBackendName (ch:ChChildInfo) = ch._ada_name

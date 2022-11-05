@@ -126,7 +126,7 @@ let private createInteger (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (lm:Lan
             Integer.baseInfo    = o
             //typeDefinition      = typeDefinition
             definitionOrRef     = defOrRef
-            printValue          = DAstVariables.createIntegerFunction r l t o  
+            printValue          = DAstVariables.createIntegerFunction r lm t o  
             //initialValue        = initialValue
             initFunction        = initFunction
             equalFunction       = equalFunction
@@ -169,7 +169,7 @@ let private createReal (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (lm:Langua
             Real.baseInfo = o
             //typeDefinition      = typeDefinition
             definitionOrRef     = defOrRef
-            printValue          = DAstVariables.createRealFunction r l t o  
+            printValue          = DAstVariables.createRealFunction r lm t o  
             //initialValue        = initialValue
             initFunction        = initFunction
             equalFunction       = equalFunction
@@ -216,7 +216,7 @@ let private createStringType (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserted
             StringType.baseInfo = o
             //typeDefinition      = typeDefinition
             definitionOrRef     = defOrRef
-            printValue          = DAstVariables.createStringFunction r l t o  
+            printValue          = DAstVariables.createStringFunction r lm t o  
             //initialValue        = initialValue
             initFunction        = initFunction
             equalFunction       = equalFunction
@@ -241,7 +241,7 @@ let private createOctetString (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserte
     //let typeDefinition = DAstTypeDefinition.createOctet  r l t o us0
     let defOrRef            = DAstTypeDefinition.createOctetString_u r lm t o us0
     let equalFunction       = DAstEqual.createOctetStringEqualFunction r lm t o defOrRef 
-    let printValue          = DAstVariables.createOctetStringFunction r l t o defOrRef 
+    let printValue          = DAstVariables.createOctetStringFunction r lm t o defOrRef 
 
     let isValidFunction, s1     = DastValidate2.createOctetStringFunction r lm t o defOrRef  equalFunction printValue us
     let initFunction            = DAstInitialize.createOctetStringInitFunc r lm t o defOrRef isValidFunction
@@ -301,7 +301,7 @@ let private createNullType (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (lm:La
             NullType.baseInfo   = o
             //typeDefinition      = typeDefinition
             definitionOrRef     = defOrRef
-            printValue          = DAstVariables.createNullTypeFunction r l t o  
+            printValue          = DAstVariables.createNullTypeFunction r lm t o  
             //initialValue        = initialValue
             initFunction        = initFunction
             equalFunction       = equalFunction
@@ -326,7 +326,7 @@ let private createBitString (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
     let defOrRef            =  DAstTypeDefinition.createBitString_u r lm t o us
         
     let equalFunction       = DAstEqual.createBitStringEqualFunction r lm t o defOrRef 
-    let printValue          = DAstVariables.createBitStringFunction r l t o defOrRef 
+    let printValue          = DAstVariables.createBitStringFunction r lm t o defOrRef 
     let isValidFunction, s1     = DastValidate2.createBitStringFunction r lm t o defOrRef defOrRef equalFunction printValue us
     let initFunction        = DAstInitialize.createBitStringInitFunc r lm t o defOrRef isValidFunction
 
@@ -387,7 +387,7 @@ let private createBoolean (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (lm:Lan
             Boolean.baseInfo    = o
             //typeDefinition      = typeDefinition
             definitionOrRef     = defOrRef
-            printValue          = DAstVariables.createBooleanFunction r l t o  
+            printValue          = DAstVariables.createBooleanFunction r lm t o  
             //initialValue        = initialValue
             initFunction        = initFunction
             equalFunction       = equalFunction
@@ -433,7 +433,7 @@ let private createEnumerated (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (lm:
             Enumerated.baseInfo = o
             //typeDefinition      = typeDefinition
             definitionOrRef     = defOrRef
-            printValue          = DAstVariables.createEnumeratedFunction r l t o defOrRef  
+            printValue          = DAstVariables.createEnumeratedFunction r lm t o defOrRef  
             //initialValue        = initialValue
             initFunction        = initFunction
             equalFunction       = equalFunction
@@ -485,7 +485,7 @@ let private createObjectIdentifier (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage
             ObjectIdentifier.baseInfo = o
             //typeDefinition      = typeDefinition
             definitionOrRef     = defOrRef
-            printValue          = DAstVariables.createObjectIdentifierFunction r l t o defOrRef  
+            printValue          = DAstVariables.createObjectIdentifierFunction r lm t o defOrRef  
             //initialValue        = initialValue
             initFunction        = initFunction
             equalFunction       = equalFunction
@@ -531,7 +531,7 @@ let private createTimeType (r:Asn1AcnAst.AstRoot) (l:ProgrammingLanguage) (lm:La
             TimeType.baseInfo = o
             //typeDefinition      = typeDefinition
             definitionOrRef     = defOrRef
-            printValue          = DAstVariables.createTimeTypeFunction r l lm t o defOrRef  
+            printValue          = DAstVariables.createTimeTypeFunction r lm t o defOrRef  
             //initialValue        = initialValue
             initFunction        = initFunction
             equalFunction       = equalFunction
@@ -580,7 +580,7 @@ let private createSequenceOf (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserted
             SequenceOf.baseInfo = o
             childType           = childType
             definitionOrRef     = defOrRef
-            printValue          = DAstVariables.createSequenceOfFunction r l t o defOrRef  childType
+            printValue          = DAstVariables.createSequenceOfFunction r lm t o defOrRef  childType
             //typeDefinition      = typeDefinition
             //initialValue        = initialValue 
             initFunction        = initFunction
@@ -643,7 +643,7 @@ let private createSequence (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
             children            = children
             //typeDefinition      = typeDefinition
             definitionOrRef     = defOrRef
-            printValue          = DAstVariables.createSequenceFunction r l t o defOrRef  children
+            printValue          = DAstVariables.createSequenceFunction r lm t o defOrRef  children
             //initialValue        = initialValue
             initFunction        = initFunction
             equalFunction       = equalFunction
@@ -683,7 +683,7 @@ let private createChoice (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
             Choice.baseInfo     = o
             children            = children
             definitionOrRef     = defOrRef
-            printValue          = DAstVariables.createChoiceFunction r l t o  defOrRef children
+            printValue          = DAstVariables.createChoiceFunction r lm t o  defOrRef children
             //typeDefinition      = typeDefinition
             //initialValue        = initialValue
             initFunction        = initFunction
@@ -750,7 +750,7 @@ let private createReferenceType (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInser
             resolvedType        = newResolvedType
             //typeDefinition      = typeDefinition
             definitionOrRef     = defOrRef
-            printValue          = DAstVariables.createReferenceTypeFunction r l t o defOrRef newResolvedType
+            printValue          = DAstVariables.createReferenceTypeFunction r lm t o defOrRef newResolvedType
             //initialValue        = initialValue
             initFunction        = initFunction
             equalFunction       = equalFunction

@@ -1159,7 +1159,7 @@ let rec handleSingleUpdateDependency (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.Acn
                         raise(SemanticError(intVal.Location, "Unexpected presence condition. Expected string, found integer"))
                         //choiceDependencyIntPres_child v ch.presentWhenName intVal.Value
                     | PresenceStr   (_, strVal) -> 
-                        let arrNuls = [0 .. ((int str.maxSize.acn)- strVal.Value.Length)]|>Seq.map(fun x -> variables_a.PrintStringValueNull())
+                        let arrNuls = [0 .. ((int str.maxSize.acn)- strVal.Value.Length)]|>Seq.map(fun x -> lm.vars.PrintStringValueNull())
                         choiceDependencyStrPres_child v ch.presentWhenName strVal.Value arrNuls)
             let updateStatement = choiceDependencyPres choicePath.arg.p (lm.lg.getAcces choicePath.arg) arrsChildUpdates
             match checkPath with
@@ -1725,7 +1725,7 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
 
 
                                     let extField = getExternaFieldChoizePresentWhen r deps t.id relPath
-                                    let arrNuls = [0 .. ((int strType.maxSize.acn) - strVal.Value.Length)]|>Seq.map(fun x -> variables_a.PrintStringValueNull())
+                                    let arrNuls = [0 .. ((int strType.maxSize.acn) - strVal.Value.Length)]|>Seq.map(fun x -> lm.vars.PrintStringValueNull())
                                     choiceChild_preWhen_str_condition extField strVal.Value arrNuls
                             let conds = child.acnPresentWhenConditions |>List.map handPresenseCond
                             Some (choiceChild_preWhen p.arg.p (lm.lg.getAcces p.arg) (lm.lg.presentWhenName (Some defOrRef) child) childContent_funcBody conds (idx=0) sChildName sChildTypeDef sChoiceTypeName sCHildInitExpr codec)

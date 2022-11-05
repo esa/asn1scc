@@ -62,7 +62,7 @@ let PrintValueAssignmentAsTestCase (r:DAst.AstRoot) l lm (e:Asn1Encoding) (v:Val
     let sFuncName = sprintf "test_case_%A_%06d" e idx
     let encAmper, initAmper = gAmber v.Type
     let curProgramUnitName = ""  //Main program has no module
-    let initStatement = DAstVariables.printValue r l lm curProgramUnitName v.Type None v.Value.kind
+    let initStatement = DAstVariables.printValue r lm curProgramUnitName v.Type None v.Value.kind
     let sTestCaseIndex = idx.ToString()
     let bStatic = match v.Type.ActualType.Kind with Integer _ | Enumerated(_) -> false | _ -> true
     let GetDatFile = GetDatFile r l v modName sTasName encAmper

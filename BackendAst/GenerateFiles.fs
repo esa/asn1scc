@@ -27,9 +27,9 @@ let printValueAssignment (r:DAst.AstRoot) (vasPU_name:string) (l:ProgrammingLang
     let t = vas.Type
     let sTypeDecl= getTypeDecl r vasPU_name l vas
 
-    let sVal = DAstVariables.printValue r  l lm vasPU_name vas.Type None vas.Value.kind
+    let sVal = DAstVariables.printValue r  lm vasPU_name vas.Type None vas.Value.kind
     match l with
-    | C     -> variables_c.PrintValueAssignment sTypeDecl sName sVal
+    | C     -> lm.vars.PrintValueAssignment sTypeDecl sName sVal
     | Ada   -> header_a.PrintValueAssignment sName sTypeDecl sVal
 
 
@@ -283,7 +283,7 @@ let private printUnit (r:DAst.AstRoot) (l:ProgrammingLanguage) (lm:LanguageMacro
             let arrsValueAssignments = vases |> List.map (printValueAssignment r pu.name l lm)
             let arrsSourceAnonymousValues = 
                 arrsAnonymousValues |>
-                List.map (fun av -> variables_c.PrintValueAssignment av.typeDefinitionName av.valueName av.valueExpresion)
+                List.map (fun av -> lm.vars.PrintValueAssignment av.typeDefinitionName av.valueName av.valueExpresion)
 
             let encRtl = match r.args.encodings |> Seq.exists(fun e -> e = UPER || e = ACN ) with true -> ["asn1crt_encoding"] | false -> []
             let uperRtl = match r.args.encodings |> Seq.exists(fun e -> e = UPER || e = ACN) with true -> ["asn1crt_encoding_uper"] | false -> []

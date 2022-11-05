@@ -364,7 +364,7 @@ let createIA5StringInitFunc (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (t:Asn1A
             | StringValue iv   -> 
                 iv
             | _                 -> raise(BugErrorException "UnexpectedValue")
-        let arrNuls = [0 .. (int o.maxSize.uper- vl.Length)]|>Seq.map(fun x -> variables_a.PrintStringValueNull())
+        let arrNuls = [0 .. (int o.maxSize.uper- vl.Length)]|>Seq.map(fun x -> lm.vars.PrintStringValueNull())
         initIA5String (lm.lg.getValue p.arg) (vl.Replace("\"","\"\"")) arrNuls
 
     let ii = t.id.SeqeuenceOfLevel + 1
