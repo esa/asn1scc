@@ -79,6 +79,7 @@
         <modName>xer_c</modName>
         <lang>c</lang>
     <abctractInterface   modMame="IXer">IXer.stg.fs</abctractInterface>
+    <implementationClass ifModMame="AbstractMacros.IXer" modMame="IXer_c">IXer_c.stg.fs</implementationClass>
   </run>
   <run mode="single">
       <input>test_cases_c.stg</input>

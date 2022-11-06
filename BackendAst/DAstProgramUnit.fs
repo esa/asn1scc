@@ -8,6 +8,7 @@ open CommonTypes
 open AbstractMacros
 open DAst
 open DAstUtilFunctions
+open Language
 
 
 let private getTypeDependencies (t:Asn1Type) : (TypeAssignmentInfo list )  
@@ -77,9 +78,12 @@ let internal sortTypes (typesToSort: Asn1Type list) (imports :TypeAssignmentInfo
                     SemanticError(emptyLocation, sprintf "Cyclic Types detected:\n%s\n"  cycTasses)                    )
     sortedTypeAss
 
-let internal createProgramUnits (args:CommandLineSettings) (files: Asn1File list)  (l:ProgrammingLanguage) =
-    match l with
-    | C     -> 
+//let internal createProgramUnits0 (args:CommandLineSettings) (files: Asn1File list)  (lm:LanguageMacros) =
+//    {ProgramUnit.name = ToC m.Name.Value; specFileName = specFileName; bodyFileName=bodyFileName; sortedTypeAssignments = sortedTypes; valueAssignments = valueAssignments; importedProgramUnits = importedProgramUnits; tetscase_specFileName=tetscase_specFileName; tetscase_bodyFileName=tetscase_bodyFileName; tetscase_name=tetscase_name; importedTypes= importedTypes; importedUserModules=importedUserModules}
+
+let internal createProgramUnits (args:CommandLineSettings) (files: Asn1File list)  (lm:LanguageMacros)  =
+    match lm.lg.hasModules with
+    | false     -> 
         files |>
         List.map(fun f -> 
             let modulesSet = f.Modules |> List.map(fun x -> x.Name.Value) |> Set.ofList
@@ -122,13 +126,13 @@ let internal createProgramUnits (args:CommandLineSettings) (files: Asn1File list
 
             let mappingFunctionsModules = sortedTypes |> List.map(fun t -> GetMySelfAndChildren t.Type |> List.map(fun q -> q.MappingFunctionsModules) |> List.collect id) |> List.collect id 
             let importedUserModules = mappingFunctionsModules@(args.mappingFunctionsModule |> Option.toList) |> List.distinct
-            let specFileName = f.FileNameWithoutExtension+"."+l.SpecExtention
-            let bodyFileName = f.FileNameWithoutExtension+"."+l.BodyExtention
-            let tetscase_specFileName = f.FileNameWithoutExtension+"_auto_tcs."+l.SpecExtention
-            let tetscase_bodyFileName = f.FileNameWithoutExtension+"_auto_tcs."+l.BodyExtention
+            let specFileName = f.FileNameWithoutExtension+"."+lm.lg.SpecExtention
+            let bodyFileName = f.FileNameWithoutExtension+"."+lm.lg.BodyExtention
+            let tetscase_specFileName = f.FileNameWithoutExtension+"_auto_tcs."+lm.lg.SpecExtention
+            let tetscase_bodyFileName = f.FileNameWithoutExtension+"_auto_tcs."+lm.lg.BodyExtention
             let tetscase_name = f.FileNameWithoutExtension+"_auto_tcs"
             {ProgramUnit.name = f.FileNameWithoutExtension; specFileName = specFileName; bodyFileName=bodyFileName; sortedTypeAssignments = sortedTypes; valueAssignments = fileValueAssignments; importedProgramUnits = importedProgramUnits; tetscase_specFileName=tetscase_specFileName; tetscase_bodyFileName=tetscase_bodyFileName; tetscase_name=tetscase_name; importedTypes= []; importedUserModules=importedUserModules})
-    | Ada   -> 
+    | true   -> 
         let typesMap = 
             files |> 
             List.collect(fun f -> f.Modules) |>
@@ -197,10 +201,10 @@ let internal createProgramUnits (args:CommandLineSettings) (files: Asn1File list
 
             let mappingFunctionsModules = sortedTypes |> List.map(fun t -> GetMySelfAndChildren t.Type |> List.map(fun q -> q.MappingFunctionsModules) |> List.collect id) |> List.collect id |> List.distinct
             let importedUserModules = mappingFunctionsModules@(args.mappingFunctionsModule |> Option.toList) |> List.distinct
-            let specFileName = ToC (m.Name.Value.ToLower()) + "." + l.SpecExtention
-            let bodyFileName = ToC (m.Name.Value.ToLower()) + "." + l.BodyExtention
-            let tetscase_specFileName = ToC (m.Name.Value.ToLower()) + "_auto_tcs." + l.SpecExtention
-            let tetscase_bodyFileName = ToC (m.Name.Value.ToLower()) + "_auto_tcs." + l.BodyExtention
+            let specFileName = ToC (m.Name.Value.ToLower()) + "." + lm.lg.SpecExtention
+            let bodyFileName = ToC (m.Name.Value.ToLower()) + "." + lm.lg.BodyExtention
+            let tetscase_specFileName = ToC (m.Name.Value.ToLower()) + "_auto_tcs." + lm.lg.SpecExtention
+            let tetscase_bodyFileName = ToC (m.Name.Value.ToLower()) + "_auto_tcs." + lm.lg.BodyExtention
             //let importedProgramUnits = m.Imports |> List.map (fun im -> ToC im.Name.Value)
             let tetscase_name = ToC (m.Name.Value.ToLower()+"_auto_tcs")
             {ProgramUnit.name = ToC m.Name.Value; specFileName = specFileName; bodyFileName=bodyFileName; sortedTypeAssignments = sortedTypes; valueAssignments = valueAssignments; importedProgramUnits = importedProgramUnits; tetscase_specFileName=tetscase_specFileName; tetscase_bodyFileName=tetscase_bodyFileName; tetscase_name=tetscase_name; importedTypes= importedTypes; importedUserModules=importedUserModules})

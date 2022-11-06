@@ -3,7 +3,6 @@ group a_xer;
 rtlModuleName() ::= "adaasn1rtl"
 
 
-
 EmitTypeAssignment_def_err_code(sErrCode, nErrValue) ::= <<
 <sErrCode>:constant Integer := <nErrValue>; 
 >>
@@ -397,14 +396,8 @@ when <sChID> =>
 
 CHOICE_child_decode(p, sAcc, sChID, sChildBody, bFirst, sChildTag, sChildName, sChildTypeDef, sChoiceTypeName) ::= <<
 <if(!bFirst)>els<endif>if String_Equal(nextTag, "<sChildTag>") then
-  declare
-     <sChildName>_tmp:<sChildTypeDef>;
-  begin
-    <sChildBody>
-    if ret.Success then
-        <p> := <sChoiceTypeName>'(kind => <sChID>, <sChildName> => <sChildName>_tmp);
-    end if;
-  end;
+<p> := <sChoiceTypeName>'(kind => <sChID>, <sChildName> => \<\>);
+<sChildBody>
 >>
 
 

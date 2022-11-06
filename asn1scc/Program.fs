@@ -281,6 +281,7 @@ let getLanguageMacro (l:ProgrammingLanguage) =
             uper = new iuper_c.iuper_c()
             acn = new IAcn_c.IAcn_c()
             atc = new ITestCases_c.ITestCases_c()
+            xer = new IXer_c.IXer_c()
         }
     | Ada ->
         {
@@ -293,6 +294,7 @@ let getLanguageMacro (l:ProgrammingLanguage) =
             uper = new iuper_a.iuper_a()
             acn = new IAcn_a.IAcn_a()
             atc = new ITestCases_a.ITestCases_a()
+            xer = new IXer_a.IXer_a()
         }        
 
 let main0 argv =
@@ -387,6 +389,7 @@ let main0 argv =
                             uper = new iuper_c.iuper_c()
                             acn = new IAcn_c.IAcn_c()
                             atc = new ITestCases_c.ITestCases_c()
+                            xer = new IXer_c.IXer_c()
                         }
                 TL "DAstConstruction.DoWork" (fun () -> DAstConstruction.DoWork frontEntAst acnDeps CommonTypes.ProgrammingLanguage.C  lm args.encodings)
             | x::_  -> x

@@ -1,5 +1,12 @@
 ﻿group c_xer;
 
+rtlModuleName() ::= ""
+
+EmitTypeAssignment_def_err_code(sErrCode, nErrValue) ::= <<
+const int <sErrCode> = <nErrValue>;
+>>
+
+
 EmitTypeAssignment_def_encode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes, bEmptyEncodingSpace, nMaxBytesInXER, soSparkAnnotations) ::= <<
 <arrsErrcodes; separator="\n">
 #define <sTypeDefName>_REQUIRED_BYTES_FOR_XER_ENCODING       <nMaxBytesInXER> 

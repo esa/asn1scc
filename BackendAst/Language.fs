@@ -62,6 +62,8 @@ type ILangGeneric () =
     abstract member decode_nullType : string -> string option
     abstract member castExpression  : string -> string -> string
     abstract member createSingleLineComment : string -> string
+    abstract member SpecExtention : string
+    abstract member BodyExtention : string
 
     
 
@@ -142,6 +144,7 @@ type LanguageMacros = {
     uper    : IUper
     acn     : IAcn
     atc     : ITestCases
+    xer     : IXer
 }
 
 
@@ -264,6 +267,9 @@ type LangGeneric_c() =
         override this.castExpression (sExp:string) (sCastType:string) = sprintf "(%s)(%s)" sCastType sExp
         override this.createSingleLineComment (sText:string) = sprintf "/*%s*/" sText
             
+        override _.SpecExtention = "h"
+        override _.BodyExtention = "c"
+
 
         override _.getValueAssignmentName (vas: ValueAssignment) = vas.c_name
 
@@ -492,6 +498,8 @@ type LangGeneric_a() =
         override this.castExpression (sExp:string) (sCastType:string) = sprintf "%s(%s)" sCastType sExp
         override this.createSingleLineComment (sText:string) = sprintf "--%s" sText
 
+        override _.SpecExtention = "ads"
+        override _.BodyExtention = "adb"
 
         override _.doubleValueToSting (v:double) = 
             v.ToString(FsUtils.doubleParseString, System.Globalization.NumberFormatInfo.InvariantInfo)
