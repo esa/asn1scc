@@ -10,216 +10,7 @@ open DAst
 open Language
 
 
-type ProgrammingLanguage with
-    member this.SpecExtention =
-        match this with
-        |C      -> "h"
-        |Ada    -> "ads"
-    member this.BodyExtention =
-        match this with
-        |C      -> "c"
-        |Ada    -> "adb"
-    member this.ArrName =
-        match this with
-        |C      -> "arr"
-        |Ada    -> "Data"
-    member this.AssignOperator =
-        match this with
-        |C      -> "="
-        |Ada    -> ":="
-    member this.ArrayAccess idx =
-        match this with
-        |C      -> "[" + idx + "]"
-        |Ada    -> "(" + idx + ")"
-    member this.ExpOr e1 e2 =
-        match this with
-        |C      -> isvalid_c.ExpOr e1 e2
-        |Ada    -> isvalid_a.ExpOr e1 e2
-    member this.ExpAnd e1 e2 =
-        match this with
-        |C      -> isvalid_c.ExpAnd e1 e2
-        |Ada    -> isvalid_a.ExpAnd e1 e2
-    member this.ExpAndMulti expList =
-        match this with
-        |C      -> isvalid_c.ExpAndMulit expList
-        |Ada    -> isvalid_a.ExpAndMulit expList
-    member this.ExpNot e  =
-        match this with
-        |C      -> isvalid_c.ExpNot e
-        |Ada    -> isvalid_a.ExpNot e
-    member this.ExpEqual e1 e2  =
-        match this with
-        |C      -> isvalid_c.ExpEqual e1 e2
-        |Ada    -> isvalid_a.ExpEqual e1 e2
-    member this.ExpStringEqual e1 e2  =
-        match this with
-        |C      -> isvalid_c.ExpStringEqual e1 e2
-        |Ada    -> isvalid_a.ExpStringEqual e1 e2
-    member this.ExpGt e1 e2  =
-        match this with
-        |C      -> isvalid_c.ExpGt e1 e2
-        |Ada    -> isvalid_a.ExpGt e1 e2
-    member this.ExpGte e1 e2  =
-        match this with
-        |C      -> isvalid_c.ExpGte e1 e2
-        |Ada    -> isvalid_a.ExpGte e1 e2
-    member this.ExpLt e1 e2  =
-        match this with
-        |C      -> isvalid_c.ExpLt e1 e2
-        |Ada    -> isvalid_a.ExpLt e1 e2
-    member this.ExpLte e1 e2  =
-        match this with
-        |C      -> isvalid_c.ExpLte e1 e2
-        |Ada    -> isvalid_a.ExpLte e1 e2
-    member this.StrLen exp =
-        match this with
-        |C      -> isvalid_c.StrLen exp
-        |Ada    -> isvalid_a.StrLen exp
-    member this.Length exp sAcc =
-        match this with
-        |C      -> isvalid_c.ArrayLen exp sAcc
-        |Ada    -> isvalid_a.ArrayLen exp sAcc
-    member this.ArrayStartIndex =
-        match this with
-        |C      -> 0
-        |Ada    -> 1
-    member this.boolean =
-        match this with
-        |C      -> "flag"
-        |Ada    -> "Boolean"
-    member this.toHex n =
-        match this with
-        |C      -> sprintf "0x%x" n
-        |Ada    -> sprintf "16#%x#" n
-        
 
-(*
-    if <sRemainingItemsVar> >= 16#10000# then
-        <sCurBlockSize> := 16#10000#;
-        uper_asn1_rtl.UPER_Enc_ConstraintWholeNumber(bs, 16#C4#, 0, 8);
-    elsif <sRemainingItemsVar> >= 16#C000# then
-        <sCurBlockSize> := 16#C000#;
-        uper_asn1_rtl.UPER_Enc_ConstraintWholeNumber(bs, 16#C3#, 0, 8);
-    elsif <sRemainingItemsVar> >= 16#8000# then
-        <sCurBlockSize> := 16#8000#;
-        uper_asn1_rtl.UPER_Enc_ConstraintWholeNumber(bs, 16#C2#, 0, 8);
-    else 
-        <sCurBlockSize> := 16#4000#;
-        uper_asn1_rtl.UPER_Enc_ConstraintWholeNumber(bs, 16#C1#, 0, 8);
-    end if;
-
-*)
-    
-    member l.multiIf (ifParts : List<string*string>) (elsePart : string option) =
-    //    let tst = [("a==1","do1"); ("a==2","do2")]
-    //let test (l:ProgrammingLanguage) (ifParts : List<string*string>) (elsePart : string option) = 
-        let if_ i l bExp =
-            match l with
-            | Ada -> if i=0 then (sprintf "if %s then" bExp) else (sprintf "elsif %s then" bExp)
-            | C   -> if i=0 then (sprintf "if (%s) {" bExp) else (sprintf "} else if (%s) {" bExp)
-        let else_ l =
-            match l with
-            | Ada -> "else"
-            | C   -> "} else {"
-        let endif l =
-            match l with
-            | Ada -> "end if;"
-            | C   -> "}"
-        match ifParts with
-        | _::_  ->
-            let ifParts = ifParts |> List.mapi(fun i (a,b) -> (i,a,b))
-            let aaa = 
-                seq {
-                    for (i, bExp, statemnt) in ifParts do
-                        yield if_ i l bExp
-                        yield header_c.indentation statemnt
-                    match elsePart with
-                    | Some elsePart ->
-                        yield else_ l
-                        yield header_c.indentation elsePart
-                    | None          -> ()
-                    yield endif l
-                } |> Seq.toList
-            aaa
-        | []    ->
-            match elsePart with
-            | Some elsePart ->
-                [elsePart]
-            | None          -> []
-
-
-
-
-type FuncParamType  with 
-    member this.toPointer (l:ProgrammingLanguage) =
-        POINTER (this.getPointer l)
-    member this.getPointer (l:ProgrammingLanguage) =
-        match l, this with
-        | Ada, VALUE x      -> x
-        | Ada, POINTER x    -> x
-        | Ada, FIXARRAY x   -> x
-        | C, VALUE x        -> sprintf "(&(%s))" x
-        | C, POINTER x      -> x
-        | C, FIXARRAY x     -> x
-    member this.getValue (l:ProgrammingLanguage) =
-        match l, this with
-        | Ada, VALUE x      -> x
-        | Ada, POINTER x    -> x
-        | Ada, FIXARRAY x   -> x
-        | C, VALUE x        -> x
-        | C, POINTER x      -> sprintf "(*(%s))" x
-        | C, FIXARRAY x     -> x
-    member this.getAcces (l:ProgrammingLanguage) =
-        match l, this with
-        | Ada, VALUE x      -> "."
-        | Ada, POINTER x    -> "."
-        | Ada, FIXARRAY x   -> "."
-        | C, VALUE x        -> "."
-        | C, POINTER x      -> "->"
-        | C, FIXARRAY x     -> ""
-        
-    member this.getStar (l:ProgrammingLanguage) =
-        match l, this with
-        | Ada, VALUE x      -> ""
-        | Ada, POINTER x    -> ""
-        | Ada, FIXARRAY x   -> ""
-        | C, VALUE x        -> ""
-        | C, POINTER x      -> "*"
-        | C, FIXARRAY x     -> ""
-    member this.getAmber (l:ProgrammingLanguage) =
-        if this.getStar l = "*" then "&" else ""        
-    member this.getArrayItem (l:ProgrammingLanguage) (idx:string) (childTypeIsString: bool) =
-        match l with
-        | Ada   -> 
-            let newPath = sprintf "%s.Data(%s)" this.p idx
-            if childTypeIsString then (FIXARRAY newPath) else (VALUE newPath)
-        | C     -> 
-            let newPath = sprintf "%s%sarr[%s]" this.p (this.getAcces l) idx
-            if childTypeIsString then (FIXARRAY newPath) else (VALUE newPath)
-    member this.getSeqChild (l:ProgrammingLanguage) (childName:string) (childTypeIsString: bool) =
-        match l with
-        | Ada   -> 
-            let newPath = sprintf "%s.%s" this.p childName
-            if childTypeIsString then (FIXARRAY newPath) else (VALUE newPath)
-        | C     -> 
-            let newPath = sprintf "%s%s%s" this.p (this.getAcces l) childName
-            if childTypeIsString then (FIXARRAY newPath) else (VALUE newPath)
-
-    member this.getChChild (l:ProgrammingLanguage) (childName:string) (childTypeIsString: bool) =
-        match l with
-        | Ada   -> 
-            let newPath = sprintf "%s.%s" this.p childName
-            if childTypeIsString then (FIXARRAY newPath) else (VALUE newPath)
-        | C     -> 
-            let newPath = sprintf "%s%su.%s" this.p (this.getAcces l) childName
-            if childTypeIsString then (FIXARRAY newPath) else (VALUE newPath)
-
-    member this.getChChildIsPresent (l:ProgrammingLanguage) (childPresentName:string)  =
-        match l with
-        | Ada   -> 
-            sprintf "%s.kind = %s_PRESENT" this.p childPresentName
-        | C     -> 
-            sprintf "%s%skind == %s_PRESENT" this.p (this.getAcces l) childPresentName
 
 let getAccessFromScopeNodeList (ReferenceToType nodes)  (childTypeIsString: bool) (lm:LanguageMacros) (pVal : CallerScope) =
     let handleNode zeroBasedSeqeuenceOfLevel (pVal : CallerScope) (n:ScopeNode) (childTypeIsString: bool) = 
@@ -264,40 +55,6 @@ type LocalVariable with
         | AcnInsertedChild(name,_)        -> name
         | BooleanLocalVariable(name,_)    -> name
         | GenericLocalVariable lv         -> lv.name
-    member this.GetDeclaration (l:ProgrammingLanguage) =
-        match l, this with
-        | C,    SequenceOfIndex (i,None)                  -> sprintf "int i%d;" i
-        | C,    SequenceOfIndex (i,Some iv)               -> sprintf "int i%d=%d;" i iv
-        | Ada,  SequenceOfIndex (i,None)                  -> sprintf "i%d:Integer;" i
-        | Ada,  SequenceOfIndex (i,Some iv)               -> sprintf "i%d:Integer:=%d;" i iv
-        | C,    IntegerLocalVariable (name,None)          -> sprintf "int %s;" name
-        | C,    IntegerLocalVariable (name,Some iv)       -> sprintf "int %s=%d;" name iv
-        | Ada,  IntegerLocalVariable (name,None)          -> sprintf "%s:Integer;" name
-        | Ada,  IntegerLocalVariable (name,Some iv)       -> sprintf "%s:Integer:=%d;" name iv
-        | C,    Asn1SIntLocalVariable (name,None)         -> sprintf "asn1SccSint %s;" name
-        | C,    Asn1SIntLocalVariable (name,Some iv)      -> sprintf "asn1SccSint %s=%d;" name iv
-        | Ada,  Asn1SIntLocalVariable (name,None)         -> sprintf "%s:adaasn1rtl.Asn1Int;" name
-        | Ada,  Asn1SIntLocalVariable (name,Some iv)      -> sprintf "%s:adaasn1rtl.Asn1Int:=%d;" name iv
-        | C,    Asn1UIntLocalVariable (name,None)         -> sprintf "asn1SccUint %s;" name
-        | C,    Asn1UIntLocalVariable (name,Some iv)      -> sprintf "asn1SccUint %s=%d;" name iv
-        | Ada,  Asn1UIntLocalVariable (name,None)         -> sprintf "%s:adaasn1rtl.Asn1UInt;" name
-        | Ada,  Asn1UIntLocalVariable (name,Some iv)      -> sprintf "%s:adaasn1rtl.Asn1UInt:=%d;" name iv
-        | C,    FlagLocalVariable (name,None)             -> sprintf "flag %s;" name
-        | C,    FlagLocalVariable (name,Some iv)          -> sprintf "flag %s=%d;" name iv
-        | Ada,  FlagLocalVariable (name,None)             -> sprintf "%s:adaasn1rtl.BIT;" name
-        | Ada,  FlagLocalVariable (name,Some iv)          -> sprintf "%s:adaasn1rtl.BIT:=%d;" name iv
-        | C,    BooleanLocalVariable (name,None)          -> sprintf "flag %s;" name
-        | C,    BooleanLocalVariable (name,Some iv)       -> sprintf "flag %s=%s;" name (if iv then "TRUE" else "FALSE")
-        | Ada,  BooleanLocalVariable (name,None)          -> sprintf "%s:Boolean;" name
-        | Ada,  BooleanLocalVariable (name,Some iv)       -> sprintf "%s:Boolean:=%s;" name (if iv then "True" else "False")
-        | C,    AcnInsertedChild(name, vartype)           -> sprintf "%s %s;" vartype name
-        | Ada,    AcnInsertedChild(name, vartype)         -> sprintf "%s:%s;" name vartype
-        | C,    GenericLocalVariable lv                   ->
-            sprintf "%s%s %s%s;" (if lv.isStatic then "static " else "") lv.varType lv.name (if lv.arrSize.IsNone then "" else "["+lv.arrSize.Value+"]")
-        | Ada,    GenericLocalVariable lv                   ->
-            match lv.initExp with
-            | Some initExp  -> sprintf "%s : %s := %s;" lv.name lv.varType  initExp
-            | None          -> sprintf "%s : %s;" lv.name lv.varType  
 
 
 type TypeDefintionOrReference with 
@@ -329,16 +86,6 @@ type TypeDefintionOrReference with
         | false     -> typedefName.Remove(idx, typePrefix.Length).Replace("_","-")
 
 
-
-type Asn1AcnAst.NamedItem with
-    member this.getBackendName (defOrRef:TypeDefintionOrReference option) l = 
-        match l with
-        | C         -> ToC this.c_name
-        | Ada       -> 
-            match defOrRef with
-            | Some (ReferenceToExistingDefinition r) when r.programUnit.IsSome -> r.programUnit.Value + "." + this.ada_name
-            | Some (TypeDefinition td) when td.baseType.IsSome && td.baseType.Value.programUnit.IsSome  -> td.baseType.Value.programUnit.Value + "." + this.ada_name
-            | _       -> ToC this.ada_name
 
 type Integer with
     member this.Cons     = this.baseInfo.cons
@@ -400,11 +147,6 @@ type Asn1Child with
         | C         -> this._c_name
         | Ada       -> this._ada_name
 
-type Asn1AcnAst.Asn1Child with
-    member this.getBackendName l = 
-        match l with
-        | C         -> this._c_name
-        | Ada       -> this._ada_name
 
 type ChChildInfo with
     member this.getBackendName l = 
@@ -412,11 +154,6 @@ type ChChildInfo with
         | C         -> this._c_name
         | Ada       -> this._ada_name
 
-type Asn1AcnAst.ChChildInfo with
-    member this.getBackendName l = 
-        match l with
-        | C         -> this._c_name
-        | Ada       -> this._ada_name
 
 
 type Choice with 
@@ -424,15 +161,6 @@ type Choice with
     member this.WithCons = this.baseInfo.withcons
     member this.AllCons  = this.baseInfo.cons@this.baseInfo.withcons
     
-let  choiceIDForNone (typeIdsSet:Map<String,int>) (l:ProgrammingLanguage) (id:ReferenceToType) =  
-    let prefix = ToC (id.AcnAbsPath.Tail.StrJoin("_").Replace("#","elem"))
-    match l with
-    | Ada   -> prefix + "_NONE"
-    | C     -> 
-        match typeIdsSet.TryFind prefix with
-        | None  -> prefix + "_NONE" 
-        | Some a when a = 1 -> prefix + "_NONE" 
-        | Some a            -> ToC (id.AcnAbsPath.StrJoin("_").Replace("#","elem")) + "_NONE" 
 
 type ReferenceType with
     member ref.AsTypeAssignmentInfo =  {TypeAssignmentInfo.modName = ref.baseInfo.modName.Value; tasName = ref.baseInfo.tasName.Value}
@@ -482,75 +210,7 @@ type Asn1AcnAst.Asn1Type with
         | Asn1AcnAst.ReferenceType r -> r.resolvedType.getParameterExpr suf c
 
         
-    member this.getParamTypeSuffix (l:ProgrammingLanguage) (suf:string) (c:Codec) =
-        match l with
-        | Ada   -> {CallerScope.modName = this.id.ModName; arg= VALUE ("val" + suf) }
-        | C     ->
-            match c with
-            | Encode  ->
-                match this.Kind with
-                | Asn1AcnAst.Integer         _ -> {CallerScope.modName = this.id.ModName; arg= POINTER ("pVal" + suf)    }
-                | Asn1AcnAst.Real            _ -> {CallerScope.modName = this.id.ModName; arg= POINTER ("pVal" + suf)    }
-                | Asn1AcnAst.IA5String       _ -> {CallerScope.modName = this.id.ModName; arg= FIXARRAY ("val" + suf) }
-                | Asn1AcnAst.NumericString   _ -> {CallerScope.modName = this.id.ModName; arg= FIXARRAY ("val" + suf) }
-                | Asn1AcnAst.OctetString     _ -> {CallerScope.modName = this.id.ModName; arg= POINTER ("pVal" + suf) }
-                | Asn1AcnAst.NullType        _ -> {CallerScope.modName = this.id.ModName; arg= POINTER ("pVal" + suf)    }
-                | Asn1AcnAst.BitString       _ -> {CallerScope.modName = this.id.ModName; arg= POINTER ("pVal" + suf) }
-                | Asn1AcnAst.Boolean         _ -> {CallerScope.modName = this.id.ModName; arg= POINTER ("pVal" + suf)    }
-                | Asn1AcnAst.Enumerated      _ -> {CallerScope.modName = this.id.ModName; arg= POINTER ("pVal" + suf)    }
-                | Asn1AcnAst.SequenceOf      _ -> {CallerScope.modName = this.id.ModName; arg= POINTER ("pVal" + suf) }
-                | Asn1AcnAst.Sequence        _ -> {CallerScope.modName = this.id.ModName; arg= POINTER ("pVal" + suf) }
-                | Asn1AcnAst.Choice          _ -> {CallerScope.modName = this.id.ModName; arg= POINTER ("pVal" + suf) }
-                | Asn1AcnAst.ObjectIdentifier _ -> {CallerScope.modName = this.id.ModName; arg= POINTER ("pVal" + suf) }
-                | Asn1AcnAst.TimeType _         -> {CallerScope.modName = this.id.ModName; arg= POINTER ("pVal" + suf) }
-                | Asn1AcnAst.ReferenceType r -> r.resolvedType.getParamTypeSuffix l suf c
-            | Decode  ->
-                match this.Kind with
-                | Asn1AcnAst.Integer            _ -> {CallerScope.modName = this.id.ModName; arg= POINTER ("pVal" + suf) }
-                | Asn1AcnAst.Real               _ -> {CallerScope.modName = this.id.ModName; arg= POINTER ("pVal" + suf) }
-                | Asn1AcnAst.IA5String          _ -> {CallerScope.modName = this.id.ModName; arg= FIXARRAY ("val" + suf) }
-                | Asn1AcnAst.NumericString      _ -> {CallerScope.modName = this.id.ModName; arg= FIXARRAY ("val" + suf) }
-                | Asn1AcnAst.OctetString        _ -> {CallerScope.modName = this.id.ModName; arg= POINTER ("pVal" + suf) }
-                | Asn1AcnAst.NullType           _ -> {CallerScope.modName = this.id.ModName; arg= POINTER ("pVal" + suf) }
-                | Asn1AcnAst.BitString          _ -> {CallerScope.modName = this.id.ModName; arg= POINTER ("pVal" + suf) }
-                | Asn1AcnAst.Boolean            _ -> {CallerScope.modName = this.id.ModName; arg= POINTER ("pVal" + suf) }
-                | Asn1AcnAst.Enumerated         _ -> {CallerScope.modName = this.id.ModName; arg= POINTER ("pVal" + suf) }
-                | Asn1AcnAst.SequenceOf         _ -> {CallerScope.modName = this.id.ModName; arg= POINTER ("pVal" + suf) }
-                | Asn1AcnAst.Sequence           _ -> {CallerScope.modName = this.id.ModName; arg= POINTER ("pVal" + suf) }
-                | Asn1AcnAst.Choice             _ -> {CallerScope.modName = this.id.ModName; arg= POINTER ("pVal" + suf) }
-                | Asn1AcnAst.ObjectIdentifier _ -> {CallerScope.modName = this.id.ModName; arg= POINTER ("pVal" + suf) }
-                | Asn1AcnAst.TimeType _ -> {CallerScope.modName = this.id.ModName; arg= POINTER ("pVal" + suf) }
-                | Asn1AcnAst.ReferenceType r -> r.resolvedType.getParamTypeSuffix l suf c
-    member this.getParamType (l:ProgrammingLanguage) (c:Codec) =
-        this.getParamTypeSuffix l "" c
-    member this.getParamValue (p:FuncParamType) (l:ProgrammingLanguage) (c:Codec) =
-        match l with
-        | Ada   -> p.p
-        | C     ->
-            match c with
-            | Encode  ->
-                match this.Kind with
-                | Asn1AcnAst.Integer      _ -> p.getPointer l
-                | Asn1AcnAst.Real         _ -> p.getPointer l
-                | Asn1AcnAst.IA5String    _ -> p.getValue l //FIXARRAY "val"
-                | Asn1AcnAst.NumericString _ -> p.getValue l// FIXARRAY "val"
-                | Asn1AcnAst.OctetString  _ -> p.getPointer l
-                | Asn1AcnAst.NullType     _ -> p.getPointer l
-                | Asn1AcnAst.BitString    _ -> p.getPointer l
-                | Asn1AcnAst.Boolean      _ -> p.getPointer l
-                | Asn1AcnAst.Enumerated   _ -> p.getPointer l
-                | Asn1AcnAst.SequenceOf   _ -> p.getPointer l
-                | Asn1AcnAst.Sequence     _ -> p.getPointer l
-                | Asn1AcnAst.Choice       _ -> p.getPointer l
-                | Asn1AcnAst.ObjectIdentifier _ -> p.getPointer l
-                | Asn1AcnAst.TimeType _ -> p.getPointer l
-                | Asn1AcnAst.ReferenceType r -> r.resolvedType.getParamValue p l c
-            | Decode  ->
-                match this.Kind with
-                | Asn1AcnAst.IA5String    _  -> p.getValue l //FIXARRAY "val"
-                | Asn1AcnAst.NumericString _ -> p.getValue l// FIXARRAY "val"
-                | Asn1AcnAst.ReferenceType r -> r.resolvedType.getParamValue p l c
-                | _                          -> p.getPointer l
+
         
 
 
@@ -1045,43 +705,7 @@ with
         | ReferenceToType((MD _)::(TA tasName)::[])   -> Some tasName
         | _                                                                     -> None
 
-    member this.getParamType (l:ProgrammingLanguage) (c:Codec) =
-        match l with
-        | Ada   -> VALUE "val"
-        | C     ->
-            match c with
-            | Encode  ->
-                match this.Kind with
-                | Integer      _ -> VALUE "val"
-                | Real         _ -> VALUE "val"
-                | IA5String    _ -> FIXARRAY "val"
-                | OctetString  _ -> POINTER "pVal"
-                | NullType     _ -> VALUE "val"
-                | BitString    _ -> POINTER "pVal"
-                | Boolean      _ -> VALUE "val"
-                | Enumerated   _ -> VALUE "val"
-                | SequenceOf   _ -> POINTER "pVal"
-                | Sequence     _ -> POINTER "pVal"
-                | Choice       _ -> POINTER "pVal"
-                | ObjectIdentifier t -> POINTER "pVal"
-                | ReferenceType r -> r.resolvedType.getParamType l c
-                | TimeType _        -> POINTER "pVal"
-            | Decode  ->
-                match this.Kind with
-                | Integer      _ -> POINTER "pVal"
-                | Real         _ -> POINTER "pVal"
-                | IA5String    _ -> FIXARRAY "val"
-                | OctetString  _ -> POINTER "pVal"
-                | NullType     _ -> POINTER "pVal"
-                | BitString    _ -> POINTER "pVal"
-                | Boolean      _ -> POINTER "pVal"
-                | Enumerated   _ -> POINTER "pVal"
-                | SequenceOf   _ -> POINTER "pVal"
-                | Sequence     _ -> POINTER "pVal"
-                | Choice       _ -> POINTER "pVal"
-                | ObjectIdentifier t -> POINTER "pVal"
-                | TimeType _        -> POINTER "pVal"
-                | ReferenceType r -> r.resolvedType.getParamType l c
+
     member this.tasInfo =
         match this.typeAssignmentInfo with
         | Some (TypeAssignmentInfo tasInfo)  -> Some tasInfo
@@ -1212,10 +836,6 @@ type SeqChildInfo with
         match this with
         | Asn1Child x    -> x.Name.Value
         | AcnChild x     -> x.Name.Value
-    member this.getBackendName l =
-        match this with 
-        | AcnChild z    -> z.c_name
-        | Asn1Child z   -> z.getBackendName l
     member this.savePosition =
         match this with 
         | AcnChild z -> 
@@ -1301,19 +921,21 @@ let rec GetMySelfAndChildren (t:Asn1Type) =
     } |> Seq.toList
 
 
-let rec GetMySelfAndChildren2 l (t:Asn1Type) (p:CallerScope)= 
+let rec GetMySelfAndChildren2 (lm:Language.LanguageMacros) (t:Asn1Type) (p:CallerScope)= 
     seq {
         match t.Kind with
         | SequenceOf(conType) ->  
             let ii = t.id.SeqeuenceOfLevel + 1
             let i = "0" //sprintf "i%d" ii
-            yield! GetMySelfAndChildren2 l conType.childType ({p with arg = p.arg.getArrayItem l i conType.childType.isIA5String})
+            
+            yield! GetMySelfAndChildren2 lm conType.childType ({p with arg = lm.lg.getArrayItem p.arg i conType.childType.isIA5String})
         | Sequence seq ->
             for ch in seq.Asn1Children do 
-                yield! GetMySelfAndChildren2 l ch.Type ({p with arg = p.arg.getSeqChild l (ch.getBackendName l) ch.Type.isIA5String})
+                
+                yield! GetMySelfAndChildren2 lm ch.Type ({p with arg = lm.lg.getSeqChild p.arg (lm.lg.getAsn1ChildBackendName ch) ch.Type.isIA5String })
         | Choice(ch)-> 
             for ch in ch.children do 
-                yield! GetMySelfAndChildren2 l ch.chType ({p with arg = p.arg.getChChild l (ch.getBackendName l) ch.chType.isIA5String})
+                yield! GetMySelfAndChildren2 lm ch.chType ({p with arg = lm.lg.getChChild p.arg (lm.lg.getAsn1ChChildBackendName ch) ch.chType.isIA5String})
         |_ -> ()    
         yield (t,p)
     } |> Seq.toList
@@ -1362,39 +984,3 @@ let nestItems_ret (lm:LanguageMacros) children =
     nestItems  lm.isvalid.JoinTwoIfFirstOk children
 
 
-#if false
-let nestItems (l:ProgrammingLanguage) (retVarName:string (*ret or result*)) children = 
-    let joinItems2 =  
-        match l with  
-        | C -> equal_c.JoinItems2  
-        | Ada  when retVarName = "result"    -> uper_a.JoinItems2
-        | Ada  -> isvalid_a.JoinTwoIfFirstOk
-
-    let printChild (content:string) (soNestedContent:string option) = 
-        match soNestedContent with
-        | None                -> content
-        | Some sNestedContent -> joinItems2 content sNestedContent
-    let rec printChildren children : Option<string> = 
-        match children with
-        |[]     -> None
-        |x::xs  -> Some (printChild x (printChildren xs))
-    printChildren children
-
-let nestItems_dbg  children = 
-    let joinItems2 =  sprintf """
-    %s
-    if (ret) {
-        %s
-    }
-    """
-
-    let printChild (content:string) (soNestedContent:string option) = 
-        match soNestedContent with
-        | None                -> content
-        | Some sNestedContent -> joinItems2 content sNestedContent
-    let rec printChildren children : Option<string> = 
-        match children with
-        |[]     -> None
-        |x::xs  -> Some (printChild x (printChildren xs))
-    printChildren children
-#endif

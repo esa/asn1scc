@@ -25,7 +25,7 @@ let rec getValidFunctions (isValidFunction:IsValidFunction) =
 let printValueAssignment (r:DAst.AstRoot) (vasPU_name:string) (l:ProgrammingLanguage) (lm:LanguageMacros) (vas:ValueAssignment) =
     let sName = vas.c_name
     let t = vas.Type
-    let sTypeDecl= getTypeDecl r vasPU_name l vas
+    let sTypeDecl= getTypeDecl r vasPU_name lm vas
 
     let sVal = DAstVariables.printValue r  lm vasPU_name vas.Type None vas.Value.kind
     match l with
@@ -424,7 +424,7 @@ let generateAll (di:DirInfo) (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: C
     | false -> ()
     | true  -> 
         CreateMakeFile r r.lang di
-        let arrsSrcTstFiles, arrsHdrTstFiles = DastTestCaseCreation.printAllTestCases r r.lang lm di.srcDir
+        let arrsSrcTstFiles, arrsHdrTstFiles = DastTestCaseCreation.printAllTestCases r lm di.srcDir
         match r.lang with
         | C    -> 
             CreateCMainFile r  ProgrammingLanguage.C di.srcDir

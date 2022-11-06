@@ -35,6 +35,7 @@ type Atc_parts = {
     uperPrefix : string
     acnPrefix : string
     xerPrefix : string
+    berPrefix : string
 }
 
 
@@ -423,6 +424,7 @@ type LangGeneric_c() =
                 Atc_parts.uperPrefix = ""
                 acnPrefix            = "ACN_"
                 xerPrefix            = "XER_"
+                berPrefix            = "BER_"
             }
 
 
@@ -665,4 +667,5 @@ type LangGeneric_a() =
                 Atc_parts.uperPrefix = "UPER_"
                 acnPrefix            = "ACN_"
                 xerPrefix            = "XER_"
+                berPrefix            = "BER_"
             }
