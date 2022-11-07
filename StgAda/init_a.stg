@@ -258,17 +258,17 @@ procedure <sFuncName>_set_<sNamedBit>(<sVarName> : in out <sTypeDefName>);
 
 
 initFixSizeOctetString(nMax) ::= "(Data => (others => 0))"
-initVarSizeOctetString(nMin, nMax) ::= "(Length => <nMax>, Data => (others => 0))"
+initVarSizeOctetString(nMin, nMax) ::= "(Length => <nMin>, Data => (others => 0))"
 
 initFixSizeBitString(nMax, nMaxOctets) ::= "(Data => (others => 0))"
-initVarSizeBitString(nMin, nMax, nMaxOctets) ::= "(Length => <nMax>, Data => (others => 0))"
+initVarSizeBitString(nMin, nMax, nMaxOctets) ::= "(Length => <nMin>, Data => (others => 0))"
 
 initObjectIdentifierAsExpr() ::= <<
 (length => 0, values => (others => 0))
 >>
 
 initFixSizeSequenceOfExpr(nMax, sChildExp) ::= "(Data => (others => <sChildExp>))"
-initVarSizeSequenceOfExpr(nMin, nMax, sChildExp) ::= "(Length => <nMax>, Data => (others => <sChildExp>))"
+initVarSizeSequenceOfExpr(nMin, nMax, sChildExp) ::= "(Length => <nMin>, Data => (others => <sChildExp>))"
 
 
 initTypeConstant_def(sTypeDecl, sConstantName, sValue) ::= <<

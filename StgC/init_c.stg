@@ -248,13 +248,13 @@ const <sTypeDecl> <sConstantName> = <sValue>;
 >>
 
 initFixSizeOctetString(nMax) ::= "{.arr  = {[0 ... <nMax>-1] = 0 }}"
-initVarSizeOctetString(nMin, nMax) ::= "{.nCount = <nMax>-1, .arr  = {[0 ... <nMax>-1] = 0 }}"
+initVarSizeOctetString(nMin, nMax) ::= "{.nCount = <nMin>, .arr  = {[0 ... <nMax>-1] = 0 }}"
 
 initFixSizeBitString(nMax, nMaxOctets) ::= "{.arr  = {[0 ... <nMaxOctets>-1] = 0 }}"
-initVarSizeBitString(nMin, nMax, nMaxOctets) ::= "{.nCount = <nMax>-1, .arr  = {[0 ... <nMaxOctets>-1] = 0 }}"
+initVarSizeBitString(nMin, nMax, nMaxOctets) ::= "{.nCount = <nMin>, .arr  = {[0 ... <nMaxOctets>-1] = 0 }}"
 
 initFixSizeSequenceOfExpr(nMax, sChildExp) ::= "{.arr  = {[0 ... <nMax>-1] = <sChildExp> }}"
-initVarSizeSequenceOfExpr(nMin, nMax, sChildExp) ::= "{.nCount = <nMax>-1, .arr  = {[0 ... <nMax>-1] = <sChildExp> }}"
+initVarSizeSequenceOfExpr(nMin, nMax, sChildExp) ::= "{.nCount = <nMin>, .arr  = {[0 ... <nMax>-1] = <sChildExp> }}"
 
 
 initObjectIdentifierAsExpr() ::= <<
