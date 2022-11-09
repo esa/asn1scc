@@ -328,7 +328,8 @@ let exportReferenceTypeArg (inh:CommonTypes.InheritanceInfo option)=
     | None  -> []
     | Some ref ->            [XAttribute(xname "Module", ref.modName); XAttribute(xname "TypeAssignment", ref.tasName)]
     
-    
+let foo (t:Asn1Type) =
+    t.FT_TypeDefintion.[CommonTypes.C].kind
 
 let private exportType (t:Asn1Type) = 
     Asn1Fold.foldType
@@ -570,6 +571,7 @@ let private exportType (t:Asn1Type) =
                              | args -> [XElement(xname "AcnArguments", (args |> List.map exprtRefTypeArgument) )]),
                             nt), us )
         (fun t nk us -> XElement(xname "Asn1Type",
+                            XAttribute(xname "TD", t.FT_TypeDefintion.[CommonTypes.C].kind),
                             XAttribute(xname "id", t.id.AsString),
                             XAttribute(xname "Line", t.Location.srcLine),
                             XAttribute(xname "CharPositionInLine", t.Location.charPos),

@@ -39,7 +39,7 @@ let private exportType (r:AstRoot) (t:Asn1Type) =
                         //(match t.parInfoData with Some pi-> (XAttribute(xname "parentData.typedefName",pi.parentData.typedefName)) | None -> null),
 //                        XAttribute(xname "typeDefinition.name", ti.typeDefinition.name),
 //                        XAttribute(xname "typeDefinition.typeDefinitionBodyWithinSeq", ti.typeDefinition.typeDefinitionBodyWithinSeq),
-                        XAttribute(xname "newTypedefName", (t.typeDefintionOrReference.longTypedefName Ada)),
+                        XAttribute(xname "newTypedefName", (t.typeDefintionOrReference.longTypedefName2 true)),
                         XAttribute(xname "newTypedefName2", (ti.baseInfo.typeDef.[CommonTypes.ProgrammingLanguage.C].typeName)),
                         XAttribute(xname "newTypedefName2_kind", t.FT_TypeDefintion.[CommonTypes.ProgrammingLanguage.C].kind)
 //                        (exportElement "CompleteDefinition" ti.typeDefinition.completeDefinition),
@@ -52,7 +52,7 @@ let private exportType (r:AstRoot) (t:Asn1Type) =
                         //(match t.parInfoData with Some pi-> (XAttribute(xname "parentData.typedefName",pi.parentData.typedefName)) | None -> null),
 //                        XAttribute(xname "typeDefinition.name", ti.typeDefinition.name),
 //                        XAttribute(xname "typeDefinition.typeDefinitionBodyWithinSeq", ti.typeDefinition.typeDefinitionBodyWithinSeq),
-                        XAttribute(xname "newTypedefName", (t.typeDefintionOrReference.longTypedefName Ada)),
+                        XAttribute(xname "newTypedefName", (t.typeDefintionOrReference.longTypedefName2 true)),
                         XAttribute(xname "newTypedefName2", (ti.baseInfo.typeDef.[CommonTypes.ProgrammingLanguage.C].typeName)),
                         XAttribute(xname "newTypedefName2_kind", t.FT_TypeDefintion.[CommonTypes.ProgrammingLanguage.C].kind)
 //                        (exportElement "CompleteDefinition" ti.typeDefinition.completeDefinition),
@@ -65,7 +65,7 @@ let private exportType (r:AstRoot) (t:Asn1Type) =
                         //(match t.parInfoData with Some pi-> (XAttribute(xname "parentData.typedefName",pi.parentData.typedefName)) | None -> null),
 //                        XAttribute(xname "typeDefinition.name", ti.typeDefinition.name),
 //                        XAttribute(xname "typeDefinition.typeDefinitionBodyWithinSeq", ti.typeDefinition.typeDefinitionBodyWithinSeq),
-                        XAttribute(xname "newTypedefName", (t.typeDefintionOrReference.longTypedefName Ada)),
+                        XAttribute(xname "newTypedefName", (t.typeDefintionOrReference.longTypedefName2 true)),
                         XAttribute(xname "newTypedefName2", (ti.baseInfo.typeDef.[CommonTypes.ProgrammingLanguage.C].typeName)),
                         XAttribute(xname "newTypedefName2_kind", t.FT_TypeDefintion.[CommonTypes.ProgrammingLanguage.C].kind)
 //                        (exportElement "CompleteDefinition" ti.typeDefinition.completeDefinition),
@@ -78,7 +78,7 @@ let private exportType (r:AstRoot) (t:Asn1Type) =
                         //(match t.parInfoData with Some pi-> (XAttribute(xname "parentData.typedefName",pi.parentData.typedefName)) | None -> null),
 //                        XAttribute(xname "typeDefinition.name", ti.typeDefinition.name),
 //                        XAttribute(xname "typeDefinition.typeDefinitionBodyWithinSeq", ti.typeDefinition.typeDefinitionBodyWithinSeq),
-                        XAttribute(xname "newTypedefName", (t.typeDefintionOrReference.longTypedefName Ada)),
+                        XAttribute(xname "newTypedefName", (t.typeDefintionOrReference.longTypedefName2 true)),
                         XAttribute(xname "newTypedefName2", (ti.baseInfo.typeDef.[CommonTypes.ProgrammingLanguage.C].typeName)),
                         XAttribute(xname "newTypedefName2_kind", t.FT_TypeDefintion.[CommonTypes.ProgrammingLanguage.C].kind)
   //                      (exportElement "CompleteDefinition" ti.typeDefinition.completeDefinition),
@@ -91,7 +91,7 @@ let private exportType (r:AstRoot) (t:Asn1Type) =
                         //(match t.parInfoData with Some pi-> (XAttribute(xname "parentData.typedefName",pi.parentData.typedefName)) | None -> null),
 //                        XAttribute(xname "typeDefinition.name", ti.typeDefinition.name),
 //                        XAttribute(xname "typeDefinition.typeDefinitionBodyWithinSeq", ti.typeDefinition.typeDefinitionBodyWithinSeq),
-                        XAttribute(xname "newTypedefName", (t.typeDefintionOrReference.longTypedefName Ada)),
+                        XAttribute(xname "newTypedefName", (t.typeDefintionOrReference.longTypedefName2 true)),
                         XAttribute(xname "newTypedefName2", (ti.baseInfo.typeDef.[CommonTypes.ProgrammingLanguage.C].typeName)),
                         XAttribute(xname "newTypedefName2_kind", t.FT_TypeDefintion.[CommonTypes.ProgrammingLanguage.C].kind)
 //                        (exportElement "CompleteDefinition" ti.typeDefinition.completeDefinition),
@@ -104,7 +104,7 @@ let private exportType (r:AstRoot) (t:Asn1Type) =
                         //(match t.parInfoData with Some pi-> (XAttribute(xname "parentData.typedefName",pi.parentData.typedefName)) | None -> null),
 //                        XAttribute(xname "typeDefinition.name", ti.typeDefinition.name),
 //                        XAttribute(xname "typeDefinition.typeDefinitionBodyWithinSeq", ti.typeDefinition.typeDefinitionBodyWithinSeq),
-                        XAttribute(xname "newTypedefName", (t.typeDefintionOrReference.longTypedefName Ada)),
+                        XAttribute(xname "newTypedefName", (t.typeDefintionOrReference.longTypedefName2 true)),
                         XAttribute(xname "newTypedefName2", (ti.baseInfo.typeDef.[CommonTypes.ProgrammingLanguage.C].typeName)),
                         XAttribute(xname "newTypedefName2_kind", t.FT_TypeDefintion.[CommonTypes.ProgrammingLanguage.C].kind)
 //                        (exportElement "CompleteDefinition" ti.typeDefinition.completeDefinition),
@@ -117,7 +117,7 @@ let private exportType (r:AstRoot) (t:Asn1Type) =
                         //(match t.parInfoData with Some pi-> (XAttribute(xname "parentData.typedefName",pi.parentData.typedefName)) | None -> null),
 //                        XAttribute(xname "typeDefinition.name", ti.typeDefinition.name),
 //                        XAttribute(xname "typeDefinition.typeDefinitionBodyWithinSeq", ti.typeDefinition.typeDefinitionBodyWithinSeq),
-                        XAttribute(xname "newTypedefName", (t.typeDefintionOrReference.longTypedefName Ada)),
+                        XAttribute(xname "newTypedefName", (t.typeDefintionOrReference.longTypedefName2 true)),
                         XAttribute(xname "newTypedefName2", (ti.baseInfo.typeDef.[CommonTypes.ProgrammingLanguage.C].typeName)),
                         XAttribute(xname "newTypedefName2_kind", t.FT_TypeDefintion.[CommonTypes.ProgrammingLanguage.C].kind)
 //                        (exportElement "CompleteDefinition" ti.typeDefinition.completeDefinition),
@@ -130,7 +130,7 @@ let private exportType (r:AstRoot) (t:Asn1Type) =
                         //(match t.parInfoData with Some pi-> (XAttribute(xname "parentData.typedefName",pi.parentData.typedefName)) | None -> null),
 //                        XAttribute(xname "typeDefinition.name", ti.typeDefinition.name),
 //                        XAttribute(xname "typeDefinition.typeDefinitionBodyWithinSeq", ti.typeDefinition.typeDefinitionBodyWithinSeq),
-                        XAttribute(xname "newTypedefName", (t.typeDefintionOrReference.longTypedefName Ada)),
+                        XAttribute(xname "newTypedefName", (t.typeDefintionOrReference.longTypedefName2 true)),
                         XAttribute(xname "newTypedefName2", (ti.baseInfo.typeDef.[CommonTypes.ProgrammingLanguage.C].typeName)),
                         XAttribute(xname "newTypedefName2_kind", t.FT_TypeDefintion.[CommonTypes.ProgrammingLanguage.C].kind)
 //                        (exportElement "CompleteDefinition" ti.typeDefinition.completeDefinition),
@@ -140,14 +140,14 @@ let private exportType (r:AstRoot) (t:Asn1Type) =
         (fun t ti us -> 
                     XElement(xname "ObjectIdentifier",
                         XAttribute(xname "id", t.id.AsString),
-                        XAttribute(xname "newTypedefName", (t.typeDefintionOrReference.longTypedefName Ada)),
+                        XAttribute(xname "newTypedefName", (t.typeDefintionOrReference.longTypedefName2 true)),
                         XAttribute(xname "newTypedefName2", (ti.baseInfo.typeDef.[CommonTypes.ProgrammingLanguage.C].typeName)),
                         XAttribute(xname "newTypedefName2_kind", t.FT_TypeDefintion.[CommonTypes.ProgrammingLanguage.C].kind)
                         ), us )
         (fun t ti us -> 
                     XElement(xname "TIME",
                         XAttribute(xname "id", t.id.AsString),
-                        XAttribute(xname "newTypedefName", (t.typeDefintionOrReference.longTypedefName Ada)),
+                        XAttribute(xname "newTypedefName", (t.typeDefintionOrReference.longTypedefName2 true)),
                         XAttribute(xname "newTypedefName2", (ti.baseInfo.typeDef.[CommonTypes.ProgrammingLanguage.C].typeName)),
                         XAttribute(xname "newTypedefName2_kind", t.FT_TypeDefintion.[CommonTypes.ProgrammingLanguage.C].kind)
                         ), us )
@@ -158,7 +158,7 @@ let private exportType (r:AstRoot) (t:Asn1Type) =
                         //(match t.parInfoData with Some pi-> (XAttribute(xname "parentData.typedefName",pi.parentData.typedefName)) | None -> null),
 //                        XAttribute(xname "typeDefinition.name", ti.typeDefinition.name),
 //                        XAttribute(xname "typeDefinition.typeDefinitionBodyWithinSeq", ti.typeDefinition.typeDefinitionBodyWithinSeq),
-                        XAttribute(xname "newTypedefName", (t.typeDefintionOrReference.longTypedefName Ada)),
+                        XAttribute(xname "newTypedefName", (t.typeDefintionOrReference.longTypedefName2 true)),
                         XAttribute(xname "newTypedefName2", (ti.baseInfo.typeDef.[CommonTypes.ProgrammingLanguage.C].typeName)),
                         XAttribute(xname "newTypedefName2_kind", t.FT_TypeDefintion.[CommonTypes.ProgrammingLanguage.C].kind),
                         child
@@ -183,7 +183,7 @@ let private exportType (r:AstRoot) (t:Asn1Type) =
                         //(match t.parInfoData with Some pi-> (XAttribute(xname "parentData.typedefName",pi.parentData.typedefName)) | None -> null),
 //                        XAttribute(xname "typeDefinition.name", ti.typeDefinition.name),
 //                        XAttribute(xname "typeDefinition.typeDefinitionBodyWithinSeq", ti.typeDefinition.typeDefinitionBodyWithinSeq),
-                        XAttribute(xname "newTypedefName", (t.typeDefintionOrReference.longTypedefName Ada)),
+                        XAttribute(xname "newTypedefName", (t.typeDefintionOrReference.longTypedefName2 true)),
                         XAttribute(xname "newTypedefName2", (ti.baseInfo.typeDef.[CommonTypes.ProgrammingLanguage.C].typeName)),
                         XAttribute(xname "newTypedefName2_kind", t.FT_TypeDefintion.[CommonTypes.ProgrammingLanguage.C].kind),
                         //(exportElement "CompleteDefinition" ti.typeDefinition.completeDefinition),
@@ -206,7 +206,7 @@ let private exportType (r:AstRoot) (t:Asn1Type) =
                         //(match t.parInfoData with Some pi-> (XAttribute(xname "parentData.typedefName",pi.parentData.typedefName)) | None -> null),
 //                        XAttribute(xname "typeDefinition.name", ti.typeDefinition.name),
 //                        XAttribute(xname "typeDefinition.typeDefinitionBodyWithinSeq", ti.typeDefinition.typeDefinitionBodyWithinSeq),
-                        XAttribute(xname "newTypedefName", (t.typeDefintionOrReference.longTypedefName Ada)),
+                        XAttribute(xname "newTypedefName", (t.typeDefintionOrReference.longTypedefName2 true)),
                         XAttribute(xname "newTypedefName2", (ti.baseInfo.typeDef.[CommonTypes.ProgrammingLanguage.C].typeName)),
                         XAttribute(xname "newTypedefName2_kind", t.FT_TypeDefintion.[CommonTypes.ProgrammingLanguage.C].kind),
                         XAttribute(xname "ancEncClass", ti.ancEncClass.ToString()),
@@ -222,7 +222,7 @@ let private exportType (r:AstRoot) (t:Asn1Type) =
                         //(match t.parInfoData with Some pi-> (XAttribute(xname "parentData.typedefName",pi.parentData.typedefName)) | None -> null),
 //                        XAttribute(xname "typeDefinition.name", ti.typeDefinition.name),
 //                        XAttribute(xname "typeDefinition.typeDefinitionBodyWithinSeq", ti.typeDefinition.typeDefinitionBodyWithinSeq),
-                        XAttribute(xname "newTypedefName", (t.typeDefintionOrReference.longTypedefName Ada)),
+                        XAttribute(xname "newTypedefName", (t.typeDefintionOrReference.longTypedefName2 true)),
                         XAttribute(xname "typeDefintionOrReference", (match t.typeDefintionOrReference with ReferenceToExistingDefinition r -> "ReferenceToExistingDefinition" | TypeDefinition td -> "TypeDefinition" )),
                         XAttribute(xname "Module", ti.baseInfo.modName.Value),
                         XAttribute(xname "TypeAssignment", ti.baseInfo.tasName.Value),
@@ -237,7 +237,7 @@ let private exportType (r:AstRoot) (t:Asn1Type) =
 
         (fun o newKind  -> 
             let a = o.FT_TypeDefintion.[CommonTypes.ProgrammingLanguage.C].typeName
-            let b = o.typeDefintionOrReference.longTypedefName C
+            let b = o.typeDefintionOrReference.longTypedefName2 false
             match a = b with
             | true  -> ()
             | false -> ()//printfn "@@@@@@@@@@ %s FE='%s' B='%s'" o.id.AsString a b

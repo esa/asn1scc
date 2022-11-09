@@ -931,6 +931,9 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (m:Asn1Ast.Asn1Mo
     let acnErrLoc = acnType |> Option.map(fun x -> x.loc)
     let combinedProperties = acnProps
     let allCons = t.Constraints@refTypeCons@withCons
+    let debug = ReferenceToType curPath
+    if debug.AsString = "CANOB.MySeq.color" then
+        printfn "%s" debug.AsString
 
     let tfdArg = {GetTypeDifition_arg.asn1TypeKind = t.Kind; loc = t.Location; curPath = curPath; typeDefPath = typeDefPath; inferitInfo =inferitInfo ; typeAssignmentInfo = typeAssignmentInfo; rtlFnc = None}
 
@@ -1385,11 +1388,13 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (m:Asn1Ast.Asn1Mo
 
             //The current type definition path changes to this referenced type path, if this referenced type has no constraints (with component constraints are ignored)
             let newTypeDefPath =
+                //[MD rf.modName.Value; TA rf.tasName.Value]  
                 match t.Constraints |> List.choose(fun c -> match c with Asn1Ast.WithComponentConstraint _ -> None | Asn1Ast.WithComponentsConstraint _ -> None | _ -> Some c) with
                 | []     -> [MD rf.modName.Value; TA rf.tasName.Value]  
                 | _      -> typeDefPath 
 
-            let typeDef, us1 = getRefereceTypeDefinition asn1 t {tfdArg with typeDefPath = newTypeDefPath} us
+            let typeDef, us1 = getRefereceTypeDefinition asn1 t {tfdArg with typeDefPath = newTypeDefPath; inferitInfo =inheritanceInfo } us
+            //let typeDef, us1 = getRefereceTypeDefinition asn1 t {tfdArg with typeDefPath = newTypeDefPath} us
             let hasChildren, hasAcnProps =
                 match acnType with
                 | None            -> false, false

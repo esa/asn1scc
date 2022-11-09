@@ -244,6 +244,7 @@
                 
                 <xsd:group ref = "Asn1TypeGrp" minOccurs = "1" maxOccurs = "1"/>
             </xsd:sequence>
+            <xsd:attribute name="TD" use="required"><xsd:simpleType><xsd:restriction base="xsd:string"></xsd:restriction></xsd:simpleType></xsd:attribute>
             <xsd:attribute name="id" use="required"><xsd:simpleType><xsd:restriction base="xsd:string"></xsd:restriction></xsd:simpleType></xsd:attribute>
             <xsd:attribute name="Line" use="required"><xsd:simpleType><xsd:restriction base="xsd:integer"></xsd:restriction></xsd:simpleType></xsd:attribute>
             <xsd:attribute name="CharPositionInLine" use="required"><xsd:simpleType><xsd:restriction base="xsd:integer"></xsd:restriction></xsd:simpleType></xsd:attribute>

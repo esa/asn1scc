@@ -437,8 +437,11 @@ let getTypedefKind (arg:GetTypeDifition_arg) =
             | Some (ValueAssignmentInfo   _)   
             | None  -> 
                 match arg.curPath.Length > 2 && arg.rtlFnc.IsSome && arg.inferitInfo.IsNone with
-                | false -> FEI_Reference2OtherType (ReferenceToType arg.typeDefPath)
                 | true  -> FEI_Reference2RTL
+                | false -> 
+                    match arg.inferitInfo with
+                    | None -> FEI_Reference2OtherType (ReferenceToType arg.typeDefPath)
+                    | Some inh -> FEI_NewSubTypeDefinition (ReferenceToType [MD inh.modName; TA inh.tasName])
             | Some (TypeAssignmentInfo    tsInfo)   -> FEI_NewSubTypeDefinition (ReferenceToType arg.typeDefPath)
 
 
