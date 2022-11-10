@@ -615,11 +615,12 @@ let private mergeEnumerated (asn1:Asn1Ast.AstRoot)  (items: Asn1Ast.NamedItem li
             | AlwaysPrefixTypeName      -> 
                 let typeName0 lang =
                     let langTypeDef = typeDef.[lang]
-                    match langTypeDef.kind with
-                    | NonPrimitiveNewTypeDefinition         -> langTypeDef.typeName
-                    | NonPrimitiveNewSubTypeDefinition sub  -> sub.typeName
-                    | NonPrimitiveReference2OtherType       -> langTypeDef.typeName
-
+                    let rec aux (langTypeDef:FE_EnumeratedTypeDefinition) = 
+                        match langTypeDef.kind with
+                        | NonPrimitiveNewTypeDefinition         -> langTypeDef.typeName
+                        | NonPrimitiveNewSubTypeDefinition sub  -> aux sub
+                        | NonPrimitiveReference2OtherType       -> langTypeDef.typeName
+                    aux langTypeDef
 
                 let c_tpname = removeTypePrefix  asn1.args.TypePrefix (typeName0 C)
                 let a_tpname = removeTypePrefix  asn1.args.TypePrefix (typeName0 Ada)
