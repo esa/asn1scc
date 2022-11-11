@@ -397,9 +397,11 @@ type GetTypeDifition_arg = {
     loc:SrcLoc 
     curPath : ScopeNode list 
     typeDefPath : ScopeNode list
+    enmItemTypeDefPath : ScopeNode list
     inferitInfo : InheritanceInfo option
     typeAssignmentInfo : AssignmentInfo option
     rtlFnc : (ProgrammingLanguage -> (string*string*string)) option
+
     
 }
 
@@ -438,10 +440,10 @@ let getTypedefKind (arg:GetTypeDifition_arg) =
             | None  -> 
                 match arg.curPath.Length > 2 && arg.rtlFnc.IsSome && arg.inferitInfo.IsNone with
                 | true  -> FEI_Reference2RTL
-                | false -> 
-                    match arg.inferitInfo with
-                    | None -> FEI_Reference2OtherType (ReferenceToType arg.typeDefPath)
-                    | Some inh -> FEI_NewSubTypeDefinition (ReferenceToType [MD inh.modName; TA inh.tasName])
+                | false -> FEI_Reference2OtherType (ReferenceToType arg.typeDefPath)
+                    //match arg.inferitInfo with
+                    //| None -> FEI_Reference2OtherType (ReferenceToType arg.typeDefPath)
+                    //| Some inh -> FEI_NewSubTypeDefinition (ReferenceToType [MD inh.modName; TA inh.tasName])
             | Some (TypeAssignmentInfo    tsInfo)   -> FEI_NewSubTypeDefinition (ReferenceToType arg.typeDefPath)
 
 
@@ -495,6 +497,7 @@ let getChoiceTypeDifition (arg:GetTypeDifition_arg) (us:Asn1AcnMergeState)=
 let getEnumeratedTypeDifition (arg:GetTypeDifition_arg) (us:Asn1AcnMergeState)=
     //first determine the type definition kind (i.e. if it is a new type definition or reference to rtl, referece to other type etc)
     let typedefKind = getTypedefKind arg
+    //let typedefKindEmnItem = getTypedefKind {arg with typeDefPath=arg.enmItemTypeDefPath}
     let lanDefs, us1 =
         [C;Ada] |> foldMap (fun us l -> 
             let itm, ns = registerEnumeratedTypeDefinition us l (ReferenceToType arg.curPath) typedefKind 
