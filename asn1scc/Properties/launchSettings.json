@@ -2,8 +2,8 @@
   "profiles": {
     "asn1scc": {
       "commandName": "Project",
-      "commandLineArgs": " -c -atc  -renamePolicy 3 -o c_out/ -ACN  a.asn1",
-      "workingDirectory": "C:\\prj\\GitHub\\asn1scc\\tmp\\038\\simpl2"
+      "commandLineArgs": "-x err5.xml  -c -atc  -renamePolicy 3 -o c_out/ -uPER  a.asn1",
+      "workingDirectory": "C:\\prj\\GitHub\\asn1scc\\tmp\\038\\simpl4"
     }
   }
 }

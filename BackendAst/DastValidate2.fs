@@ -934,12 +934,27 @@ let rec createReferenceTypeFunction_this_type (r:Asn1AcnAst.AstRoot) (l:Language
 let createReferenceTypeFunction (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.ReferenceType) (typeDefinition:TypeDefintionOrReference) (resolvedType:Asn1Type)  (us:State)  =
     let callBaseTypeFunc = l.isvalid.call_base_type_func
     let vcbs,us = createReferenceTypeFunction_this_type r l t.id o.refCons typeDefinition resolvedType us
+    (*
     let moduleName, typeDefinitionName = 
         let t1 = Asn1AcnAstUtilFunctions.GetActualTypeByName r o.modName o.tasName
         let typeDef = l.lg.getTypeDefinition t1.FT_TypeDefintion
         typeDef.programUnit, typeDef.typeName
-        
-    let typeDefinitionName0 = ToC2(r.args.TypePrefix + o.tasName.Value)
+*)
+    let moduleName, typeDefinitionName = 
+        match typeDefinition with
+        | ReferenceToExistingDefinition refToExist   ->
+            match refToExist.programUnit with
+            | Some md -> md, refToExist.typedefName
+            | None    -> t.id.ModName, refToExist.typedefName
+        | TypeDefinition                tdDef        -> 
+            match tdDef.baseType with
+            | None -> t.id.ModName, tdDef.typedefName
+            | Some refToExist -> 
+                match refToExist.programUnit with
+                | Some md -> md, refToExist.typedefName
+                | None    -> t.id.ModName, refToExist.typedefName
+
+
     let baseFncName = 
         match l.lg.hasModules with
         | false     -> typeDefinitionName + "_IsConstraintValid"

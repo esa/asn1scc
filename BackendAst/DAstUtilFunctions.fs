@@ -984,3 +984,26 @@ let nestItems_ret (lm:LanguageMacros) children =
     nestItems  lm.isvalid.JoinTwoIfFirstOk children
 
 
+let getBaseFuncName (lm:LanguageMacros) (typeDefinition:TypeDefintionOrReference) (o:Asn1AcnAst.ReferenceType) (id:ReferenceToType) (methodSuffix:string) (codec:CommonTypes.Codec) =
+    let moduleName, typeDefinitionName0 = 
+        match typeDefinition with
+        | ReferenceToExistingDefinition refToExist   ->
+            match refToExist.programUnit with
+            | Some md -> md, refToExist.typedefName
+            | None    -> id.ModName, refToExist.typedefName
+        | TypeDefinition                tdDef        -> 
+            match tdDef.baseType with
+            | None -> id.ModName, tdDef.typedefName
+            | Some refToExist -> 
+                match refToExist.programUnit with
+                | Some md -> md, refToExist.typedefName
+                | None    -> id.ModName, refToExist.typedefName
+
+    let baseTypeDefinitionName = 
+        match lm.lg.hasModules with
+        | false     -> typeDefinitionName0 
+        | true   -> 
+            match id.ModName = o.modName.Value with
+            | true  -> typeDefinitionName0 
+            | false -> moduleName + "." + typeDefinitionName0 
+    baseTypeDefinitionName, baseTypeDefinitionName + methodSuffix + codec.suffix
