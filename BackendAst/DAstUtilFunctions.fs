@@ -990,14 +990,14 @@ let getBaseFuncName (lm:LanguageMacros) (typeDefinition:TypeDefintionOrReference
         | ReferenceToExistingDefinition refToExist   ->
             match refToExist.programUnit with
             | Some md -> md, refToExist.typedefName
-            | None    -> id.ModName, refToExist.typedefName
+            | None    -> ToC id.ModName, refToExist.typedefName
         | TypeDefinition                tdDef        -> 
             match tdDef.baseType with
-            | None -> id.ModName, tdDef.typedefName
+            | None -> ToC id.ModName, tdDef.typedefName
             | Some refToExist -> 
                 match refToExist.programUnit with
                 | Some md -> md, refToExist.typedefName
-                | None    -> id.ModName, refToExist.typedefName
+                | None    -> ToC id.ModName, refToExist.typedefName
 
     let baseTypeDefinitionName = 
         match lm.lg.hasModules with

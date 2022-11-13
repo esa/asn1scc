@@ -720,9 +720,6 @@ let createReferenceFunction (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (codec:C
     let baseFncName = baseTypeDefinitionName + codec.suffix
 *)
 
-    if (t.id.AsString = "CANOB.T-CANOB-NodeID-List.#") then
-        printfn "debug"
-
     let baseTypeDefinitionName, baseFncName = getBaseFuncName lm typeDefinition o t.id "" codec
 
     match o.encodingOptions with 

@@ -945,14 +945,14 @@ let createReferenceTypeFunction (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (t:Asn
         | ReferenceToExistingDefinition refToExist   ->
             match refToExist.programUnit with
             | Some md -> md, refToExist.typedefName
-            | None    -> t.id.ModName, refToExist.typedefName
+            | None    -> ToC t.id.ModName, refToExist.typedefName
         | TypeDefinition                tdDef        -> 
             match tdDef.baseType with
-            | None -> t.id.ModName, tdDef.typedefName
+            | None -> ToC t.id.ModName, tdDef.typedefName
             | Some refToExist -> 
                 match refToExist.programUnit with
                 | Some md -> md, refToExist.typedefName
-                | None    -> t.id.ModName, refToExist.typedefName
+                | None    -> ToC t.id.ModName, refToExist.typedefName
 
 
     let baseFncName = 

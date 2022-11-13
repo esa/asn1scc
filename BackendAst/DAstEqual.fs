@@ -285,25 +285,20 @@ let createReferenceTypeEqualFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) 
     let isEqualFuncName            = getFuncName r lm  defOrRef
     let typeDefinitionName = lm.lg.getLongTypedefName defOrRef
 
-(*
-    let moduleName, typeDefinitionName0 = 
-        let t1 = Asn1AcnAstUtilFunctions.GetActualTypeByName r o.modName o.tasName
-        let typeDef = lm.lg.getTypeDefinition t1.FT_TypeDefintion
-        typeDef.programUnit, typeDef.typeName
-*)
+
     let moduleName, typeDefinitionName0 = 
         match defOrRef with
         | ReferenceToExistingDefinition refToExist   ->
             match refToExist.programUnit with
             | Some md -> md, refToExist.typedefName
-            | None    -> t.id.ModName, refToExist.typedefName
+            | None    -> ToC t.id.ModName, refToExist.typedefName
         | TypeDefinition                tdDef        ->
             match tdDef.baseType with
-            | None -> t.id.ModName, tdDef.typedefName
+            | None ->  ToC t.id.ModName, tdDef.typedefName
             | Some refToExist -> 
                 match refToExist.programUnit with
                 | Some md -> md, refToExist.typedefName
-                | None    -> t.id.ModName, refToExist.typedefName
+                | None    -> ToC  t.id.ModName, refToExist.typedefName
 
 
     let baseTypeDefName = typeDefinitionName0//ToC2(r.args.TypePrefix + o.tasName.Value)
