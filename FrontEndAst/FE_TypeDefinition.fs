@@ -23,18 +23,15 @@ let private reserveTypeDefinitionName  (typePrefix:string) (allocatedTypeNames :
             | true, num ->  (oldPart |> List.rev |> Seq.StrJoin "_") + "_" + ((num+1).ToString())
             | _         -> oldName + "_1"
     let rec getValidTypeDefname (proposedTypeDefName:string) = 
-        let keywords =  match l with C -> CommonTypes.c_keyworkds | Ada -> CommonTypes.ada_keyworkds
-        let cmp l (s1:String) (s2:String) =
-            match l with
-            | C     -> s1 = s2
-            | Ada   -> s1.ToUpper() = s2.ToUpper()
+        let keywords =  l.keywords
+        let cmp (l:ProgrammingLanguage) (s1:String) (s2:String) = l.cmp s1 s2
         let proposedTypeDefName =
             match keywords |> Seq.tryFind(fun kw -> cmp l proposedTypeDefName kw) with
             | None      -> proposedTypeDefName
             | Some _    -> getNextCount proposedTypeDefName
 
-        match l with
-        | C     ->  
+        match l.OnTypeNameConflictTryAppendModName with
+        | true     ->  
             match allocatedTypeNames |> Seq.exists(fun (cl, _, ct) -> cl = l && ct = proposedTypeDefName) with
             | false -> proposedTypeDefName
             | true  -> 
@@ -44,8 +41,7 @@ let private reserveTypeDefinitionName  (typePrefix:string) (allocatedTypeNames :
                     | true  -> getValidTypeDefname (typePrefix + programUnit + "_" + proposedTypeDefName.Substring(typePrefix.Length) ) 
                     | false -> getValidTypeDefname (programUnit + "_" + proposedTypeDefName ) 
                 | true  -> getValidTypeDefname (getNextCount proposedTypeDefName ) 
-        | Ada   ->  
-            let keywords =  CommonTypes.ada_keyworkds
+        | false   ->  
             match allocatedTypeNames  |> Seq.exists(fun (cl, cp, ct) -> cl = l && cp.ToUpper() = programUnit.ToUpper() && ct.ToUpper() = proposedTypeDefName.ToUpper()) with
             | false -> proposedTypeDefName
             | true  -> getValidTypeDefname (getNextCount proposedTypeDefName  ) 
@@ -452,7 +448,7 @@ let getPrimitiveTypeDifition (arg:GetTypeDifition_arg) (us:Asn1AcnMergeState)=
     //first determine the type definition kind (i.e. if it is a new type definition or reference to rtl, referece to other type etc)
     let typedefKind = getTypedefKind arg
     let lanDefs, us1 =
-        [C;Ada] |> foldMap (fun us l -> 
+        ProgrammingLanguage.AllLanguages |> foldMap (fun us l -> 
             let itm, ns = registerPrimitiveTypeDefinition us l (ReferenceToType arg.curPath) typedefKind arg.rtlFnc 
             (l,itm), ns) us
     lanDefs |> Map.ofList, us1
@@ -461,7 +457,7 @@ let getStringTypeDifition (arg:GetTypeDifition_arg) (us:Asn1AcnMergeState)=
     //first determine the type definition kind (i.e. if it is a new type definition or reference to rtl, referece to other type etc)
     let typedefKind = getTypedefKind arg
     let lanDefs, us1 =
-        [C;Ada] |> foldMap (fun us l -> 
+        ProgrammingLanguage.AllLanguages |> foldMap (fun us l -> 
             let itm, ns = registerStringTypeDefinition us l (ReferenceToType arg.curPath) typedefKind 
             (l,itm), ns) us
     lanDefs |> Map.ofList, us1
@@ -470,7 +466,7 @@ let getSizeableTypeDifition (arg:GetTypeDifition_arg) (us:Asn1AcnMergeState)=
     //first determine the type definition kind (i.e. if it is a new type definition or reference to rtl, referece to other type etc)
     let typedefKind = getTypedefKind arg
     let lanDefs, us1 =
-        [C;Ada] |> foldMap (fun us l -> 
+        ProgrammingLanguage.AllLanguages |> foldMap (fun us l -> 
             let itm, ns = registerSizeableTypeDefinition us l (ReferenceToType arg.curPath) typedefKind 
             (l,itm), ns) us
     lanDefs |> Map.ofList, us1
@@ -480,7 +476,7 @@ let getSequenceTypeDifition (arg:GetTypeDifition_arg) (us:Asn1AcnMergeState)=
     //first determine the type definition kind (i.e. if it is a new type definition or reference to rtl, referece to other type etc)
     let typedefKind = getTypedefKind arg
     let lanDefs, us1 =
-        [C;Ada] |> foldMap (fun us l -> 
+        ProgrammingLanguage.AllLanguages |> foldMap (fun us l -> 
             let itm, ns = registerSequenceTypeDefinition us l (ReferenceToType arg.curPath) typedefKind 
             (l,itm), ns) us
     lanDefs |> Map.ofList, us1
@@ -489,7 +485,7 @@ let getChoiceTypeDifition (arg:GetTypeDifition_arg) (us:Asn1AcnMergeState)=
     //first determine the type definition kind (i.e. if it is a new type definition or reference to rtl, referece to other type etc)
     let typedefKind = getTypedefKind arg
     let lanDefs, us1 =
-        [C;Ada] |> foldMap (fun us l -> 
+        ProgrammingLanguage.AllLanguages |> foldMap (fun us l -> 
             let itm, ns = registerChoiceTypeDefinition us l (ReferenceToType arg.curPath) typedefKind 
             (l,itm), ns) us
     lanDefs |> Map.ofList, us1
@@ -499,7 +495,7 @@ let getEnumeratedTypeDifition (arg:GetTypeDifition_arg) (us:Asn1AcnMergeState)=
     let typedefKind = getTypedefKind arg
     //let typedefKindEmnItem = getTypedefKind {arg with typeDefPath=arg.enmItemTypeDefPath}
     let lanDefs, us1 =
-        [C;Ada] |> foldMap (fun us l -> 
+        ProgrammingLanguage.AllLanguages |> foldMap (fun us l -> 
             let itm, ns = registerEnumeratedTypeDefinition us l (ReferenceToType arg.curPath) typedefKind 
             (l,itm), ns) us
     lanDefs |> Map.ofList, us1
