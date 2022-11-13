@@ -719,7 +719,7 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (t:Asn1Ac
             match cvf.funcName with
             | Some fncName  -> 
                 let f1 (p:CallerScope)  =  
-                    ValidationStatement (callBaseTypeFunc (l.lg.getPointer (chp p).arg)  fncName, [])
+                    ValidationStatement (callBaseTypeFunc (l.lg.getPointer (chp p).arg)  fncName None, [])
                 Some f1, [], [], [], [cvf]
             | None          -> 
                 let f1 (p:CallerScope)  =  cvf.funcBody (chp p) 
@@ -763,7 +763,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot)  (l:LanguageMacros) (t:Asn1Acn
                     let chp = {p with arg = l.lg.getSeqChild p.arg c_name child.Type.isIA5String}
                     match isValidFunction.funcName with
                     | Some fncName  -> 
-                        ValidationStatement (callBaseTypeFunc (l.lg.getPointer chp.arg)  fncName, [])
+                        ValidationStatement (callBaseTypeFunc (l.lg.getPointer chp.arg)  fncName None, [])
                     | None ->
                         isValidFunction.funcBody chp
             let childFnc = 
@@ -835,7 +835,7 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot)  (l:LanguageMacros) (t:Asn1AcnAs
                     let chp = {p with arg = l.lg.getChChild p.arg c_name child.chType.isIA5String}
                     match isValidFunction.funcName with
                     | Some fncName -> 
-                        ValidationStatement (callBaseTypeFunc (l.lg.getPointer  chp.arg)  fncName, [])
+                        ValidationStatement (callBaseTypeFunc (l.lg.getPointer  chp.arg)  fncName None, [])
                     | None ->
                         isValidFunction.funcBody chp
             let childFnc = 
@@ -953,7 +953,14 @@ let createReferenceTypeFunction (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (t:Asn
                 match refToExist.programUnit with
                 | Some md -> md, refToExist.typedefName
                 | None    -> ToC t.id.ModName, refToExist.typedefName
-
+    let soTypeCasting =
+        let actType = Asn1AcnAstUtilFunctions.GetActualTypeByName r o.modName o.tasName
+        match t.ActualType.Kind, actType.Kind with
+        | Asn1AcnAst.Integer o,  Asn1AcnAst.Integer res -> 
+            match o.getClass r.args = res.getClass r.args with
+            | true -> None
+            | false -> Some typeDefinitionName
+        | _         -> None
 
     let baseFncName = 
         match l.lg.hasModules with
@@ -971,7 +978,7 @@ let createReferenceTypeFunction (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (t:Asn
 
         match resolvedType.isValidFunction with
         | Some _    -> 
-            let funcBodyContent = callBaseTypeFunc (l.lg.getParamValue t p.arg Encode) baseFncName 
+            let funcBodyContent = callBaseTypeFunc (l.lg.getParamValue t p.arg Encode) baseFncName soTypeCasting
             match (funcBodyContent::with_component_check) |> DAstUtilFunctions.nestItems_ret l  with
             | None   -> convertVCBToStatementAndAssigneErrCode l VCBTrue errCode.errCodeName
             | Some s ->ValidationStatement (s, (lv2 |>List.collect id))
