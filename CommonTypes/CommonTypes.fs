@@ -254,6 +254,55 @@ type ProgrammingLanguage =
             match l with
             |C          -> c_keyworkds
             |Ada        -> ada_keyworkds
+        static member AllLanguages = [C; Ada]
+        
+        member l.OnTypeNameConflictTryAppendModName =
+            match l with
+            |C          -> true
+            |Ada        -> false
+        member l.declare_IntegerNoRTL = 
+            match l with 
+            | C     -> "", "asn1SccSint", "INTEGER"
+            | Ada   -> "adaasn1rtl", "Asn1Int", "INTEGER"
+        member l.declare_PosIntegerNoRTL =
+            match l with 
+            | C     -> "", "asn1SccUint" , "INTEGER"               
+            | Ada   -> "adaasn1rtl", "Asn1UInt" , "INTEGER"               
+        member l.getRealRtlTypeName   = 
+            match l with 
+            | C -> "", "asn1Real", "REAL" 
+            | Ada  -> "adaasn1rtl", "Asn1Real", "REAL" 
+        member l.getObjectIdentifierRtlTypeName  relativeId = 
+            let asn1Name = if relativeId then "RELATIVE-OID" else "OBJECT IDENTIFIER"
+            match l with 
+            | C     -> "",           "Asn1ObjectIdentifier", asn1Name
+            | Ada   -> "adaasn1rtl", "Asn1ObjectIdentifier", asn1Name
+        member l.getTimeRtlTypeName  timeClass = 
+            let asn1Name = "TIME"
+            match l, timeClass with 
+            | C, Asn1LocalTime                    _ -> "", "Asn1LocalTime", asn1Name
+            | C, Asn1UtcTime                      _ -> "", "Asn1UtcTime", asn1Name
+            | C, Asn1LocalTimeWithTimeZone        _ -> "", "Asn1TimeWithTimeZone", asn1Name
+            | C, Asn1Date                           -> "", "Asn1Date", asn1Name
+            | C, Asn1Date_LocalTime               _ -> "", "Asn1DateLocalTime", asn1Name
+            | C, Asn1Date_UtcTime                 _ -> "", "Asn1DateUtcTime", asn1Name
+            | C, Asn1Date_LocalTimeWithTimeZone   _ -> "", "Asn1DateTimeWithTimeZone", asn1Name
+            | Ada, Asn1LocalTime                  _ -> "adaasn1rtl", "Asn1LocalTime", asn1Name
+            | Ada, Asn1UtcTime                    _ -> "adaasn1rtl", "Asn1UtcTime", asn1Name
+            | Ada, Asn1LocalTimeWithTimeZone      _ -> "adaasn1rtl", "Asn1TimeWithTimeZone", asn1Name
+            | Ada, Asn1Date                         -> "adaasn1rtl", "Asn1Date", asn1Name
+            | Ada, Asn1Date_LocalTime             _ -> "adaasn1rtl", "Asn1DateLocalTime", asn1Name
+            | Ada, Asn1Date_UtcTime               _ -> "adaasn1rtl", "Asn1DateUtcTime", asn1Name
+            | Ada, Asn1Date_LocalTimeWithTimeZone _ -> "adaasn1rtl", "Asn1DateTimeWithTimeZone", asn1Name
+        member l.getNullRtlTypeName  = 
+            match l with 
+            | C -> "", "NullType", "NULL" 
+            | Ada -> "adaasn1rtl", "Asn1NullType", "NULL" 
+        member l.getBoolRtlTypeName =
+            match l with 
+            | C -> "","flag","BOOLEAN" 
+            | Ada  -> "adaasn1rtl", "Asn1Boolean", "BOOLEAN" 
+
 
 type Codec =
     |Encode

@@ -43,8 +43,6 @@
   <ItemGroup>
     <ProjectReference Include="..\Antlr\Antlr.csproj" />
     <ProjectReference Include="..\CommonTypes\CommonTypes.fsproj" />
-    <ProjectReference Include="..\StgAda\StgAda.fsproj" />
-    <ProjectReference Include="..\StgC\StgC.fsproj" />
   </ItemGroup>
     
   <ItemGroup>

@@ -218,14 +218,8 @@ let private removeTypePrefix (typePrefix : String) (typeName : string)=
 
 
 let private mergeInteger (asn1:Asn1Ast.AstRoot) (loc:SrcLoc) (typeAssignmentInfo : AssignmentInfo option) (acnErrLoc: SrcLoc option) (props:GenericAcnProperty list) cons withcons (tdarg:GetTypeDifition_arg) (us:Asn1AcnMergeState) =
-    let declare_IntegerNoRTL       l     = 
-        match l with 
-        | C     -> "", header_c.Declare_Integer (), "INTEGER"
-        | Ada   -> "adaasn1rtl", header_a.Declare_IntegerNoRTL(), "INTEGER"
-    let declare_PosIntegerNoRTL    l     = 
-        match l with 
-        | C     -> "", header_c.Declare_PosInteger () , "INTEGER"               
-        | Ada   -> "adaasn1rtl", header_a.Declare_PosIntegerNoRTL  () , "INTEGER"               
+    let declare_IntegerNoRTL       (l:ProgrammingLanguage)     = l.declare_IntegerNoRTL
+    let declare_PosIntegerNoRTL    (l:ProgrammingLanguage)     = l.declare_PosIntegerNoRTL
 
     let acnErrLoc0 = match acnErrLoc with Some a -> a | None -> loc
     let rootCons = cons |> List.filter(fun c -> match c with RangeRootConstraint _  | RangeRootConstraint2 _ -> true | _ -> false)
@@ -290,7 +284,7 @@ let private mergeInteger (asn1:Asn1Ast.AstRoot) (loc:SrcLoc) (typeAssignmentInfo
 
 let private mergeReal (asn1:Asn1Ast.AstRoot) (loc:SrcLoc) (acnErrLoc: SrcLoc option) (props:GenericAcnProperty list) cons withcons (tdarg:GetTypeDifition_arg) (us:Asn1AcnMergeState) =
     let acnErrLoc0 = match acnErrLoc with Some a -> a | None -> loc
-    let getRtlTypeName  l = match l with C -> "", header_c.Declare_RealNoRTL (), "REAL" | Ada  -> "adaasn1rtl", header_a.Declare_RealNoRTL (), "REAL" 
+    let getRtlTypeName  (l:ProgrammingLanguage) =  l.getRealRtlTypeName
     
     //check for invalid properties
     props |> 
@@ -332,11 +326,7 @@ let private mergeReal (asn1:Asn1Ast.AstRoot) (loc:SrcLoc) (acnErrLoc: SrcLoc opt
 
 let private mergeObjectIdentifier (asn1:Asn1Ast.AstRoot) (relativeId:bool) (loc:SrcLoc) (acnErrLoc: SrcLoc option) (props:GenericAcnProperty list) cons withcons (tdarg:GetTypeDifition_arg) (us:Asn1AcnMergeState) =
     let acnErrLoc0 = match acnErrLoc with Some a -> a | None -> loc
-    let getRtlTypeName  l = 
-        let asn1Name = if relativeId then "RELATIVE-OID" else "OBJECT IDENTIFIER"
-        match l with 
-        | C     -> "",           header_c.Declare_ObjectIdentifier  (), asn1Name
-        | Ada   -> "adaasn1rtl", header_a.Declare_ObjectIdentifierNoRTL (), asn1Name
+    let getRtlTypeName  (l:ProgrammingLanguage) = l.getObjectIdentifierRtlTypeName relativeId
     
     //check for invalid properties
     props |> Seq.iter(fun pr -> raise(SemanticError(acnErrLoc0, "Acn property cannot be applied to OBJECT IDENTIFIER types")))
@@ -354,23 +344,7 @@ let private mergeObjectIdentifier (asn1:Asn1Ast.AstRoot) (relativeId:bool) (loc:
 
 let private mergeTimeType (asn1:Asn1Ast.AstRoot) (timeClass:TimeTypeClass) (loc:SrcLoc) (acnErrLoc: SrcLoc option) (props:GenericAcnProperty list) cons withcons (tdarg:GetTypeDifition_arg) (us:Asn1AcnMergeState) =
     let acnErrLoc0 = match acnErrLoc with Some a -> a | None -> loc
-    let getRtlTypeName  l = 
-        let asn1Name = "TIME"
-        match l, timeClass with 
-        | C, Asn1LocalTime                    _ -> "", "Asn1LocalTime", asn1Name
-        | C, Asn1UtcTime                      _ -> "", "Asn1UtcTime", asn1Name
-        | C, Asn1LocalTimeWithTimeZone        _ -> "", "Asn1TimeWithTimeZone", asn1Name
-        | C, Asn1Date                           -> "", "Asn1Date", asn1Name
-        | C, Asn1Date_LocalTime               _ -> "", "Asn1DateLocalTime", asn1Name
-        | C, Asn1Date_UtcTime                 _ -> "", "Asn1DateUtcTime", asn1Name
-        | C, Asn1Date_LocalTimeWithTimeZone   _ -> "", "Asn1DateTimeWithTimeZone", asn1Name
-        | Ada, Asn1LocalTime                  _ -> "adaasn1rtl", "Asn1LocalTime", asn1Name
-        | Ada, Asn1UtcTime                    _ -> "adaasn1rtl", "Asn1UtcTime", asn1Name
-        | Ada, Asn1LocalTimeWithTimeZone      _ -> "adaasn1rtl", "Asn1TimeWithTimeZone", asn1Name
-        | Ada, Asn1Date                         -> "adaasn1rtl", "Asn1Date", asn1Name
-        | Ada, Asn1Date_LocalTime             _ -> "adaasn1rtl", "Asn1DateLocalTime", asn1Name
-        | Ada, Asn1Date_UtcTime               _ -> "adaasn1rtl", "Asn1DateUtcTime", asn1Name
-        | Ada, Asn1Date_LocalTimeWithTimeZone _ -> "adaasn1rtl", "Asn1DateTimeWithTimeZone", asn1Name
+    let getRtlTypeName  (l:ProgrammingLanguage) = l.getTimeRtlTypeName timeClass
 
     //check for invalid properties
     props |> Seq.iter(fun pr -> raise(SemanticError(acnErrLoc0, "Acn property cannot be applied to TIME types")))
@@ -448,7 +422,7 @@ let private mergeStringType (asn1:Asn1Ast.AstRoot) (loc:SrcLoc) (acnErrLoc: SrcL
         | EnmStrGetTypeDifition_arg tdarg   -> getStringTypeDifition tdarg us
         | AcnPrmGetTypeDefinition (curPath, md, ts)   -> 
             let lanDefs, us1 =
-                [C;Ada] |> foldMap (fun us l -> 
+                ProgrammingLanguage.AllLanguages |> foldMap (fun us l -> 
                     let itm, ns = registerStringTypeDefinition us l (ReferenceToType curPath) (FEI_Reference2OtherType (ReferenceToType [MD md; TA ts])) 
                     (l,itm), ns) us
             lanDefs |> Map.ofList, us1
@@ -520,7 +494,7 @@ let private mergeBitStringType (asn1:Asn1Ast.AstRoot) (namedBitList: NamedBit0 l
     {BitString.acnProperties = acnProperties; cons = cons; withcons = withcons; minSize=minSize; maxSize =maxSize; uperMaxSizeInBits = uperMaxSizeInBits; uperMinSizeInBits=uperMinSizeInBits; acnEncodingClass = acnEncodingClass;  acnMinSizeInBits=acnMinSizeInBits; acnMaxSizeInBits = acnMaxSizeInBits; typeDef=typeDef; namedBitList = newNamedBitList}, us1
 
 let private mergeNullType (acnErrLoc: SrcLoc option) (props:GenericAcnProperty list) (tdarg:GetTypeDifition_arg) (us:Asn1AcnMergeState) =
-    let getRtlTypeName  l = match l with C -> "", header_c.Declare_NullNoRTL (), "NULL" | Ada -> "adaasn1rtl", header_a.Declare_NullNoRTL(), "NULL" 
+    let getRtlTypeName  (l:ProgrammingLanguage) = l.getNullRtlTypeName
     let acnProperties = 
         match acnErrLoc with
         | Some acnErrLoc    -> { NullTypeAcnProperties.encodingPattern  = tryGetProp props (fun x -> match x with PATTERN e -> Some e | _ -> None); savePosition = props |> Seq.exists(fun z -> match z with SAVE_POSITION -> true | _ -> false )}
@@ -532,7 +506,7 @@ let private mergeNullType (acnErrLoc: SrcLoc option) (props:GenericAcnProperty l
     {NullType.acnProperties = acnProperties; uperMaxSizeInBits = 0I; uperMinSizeInBits=0I;  acnMinSizeInBits=acnMinSizeInBits; acnMaxSizeInBits = acnMaxSizeInBits; typeDef=typeDef}, us1
 
 let private mergeBooleanType (acnErrLoc: SrcLoc option) (props:GenericAcnProperty list) cons withcons  (tdarg:GetTypeDifition_arg) (us:Asn1AcnMergeState)=
-    let getRtlTypeName  l = match l with C -> "",header_c.Declare_BooleanNoRTL (),"BOOLEAN" | Ada  -> "adaasn1rtl", header_a.Declare_BooleanNoRTL (), "BOOLEAN" 
+    let getRtlTypeName  (l:ProgrammingLanguage) = l.getBoolRtlTypeName
 
     let size = 
         match acnErrLoc with
@@ -585,17 +559,17 @@ let private mergeEnumerated (asn1:Asn1Ast.AstRoot)  (items: Asn1Ast.NamedItem li
         match tdarg with
         | EnmStrGetTypeDifition_arg tdarg   -> 
             let proposedEnmName = 
-                [C;Ada] |> List.map(fun l -> 
+                ProgrammingLanguage.AllLanguages |> List.map(fun l -> 
                     l, FE_TypeDefinition.getProposedTypeDefName us l (ReferenceToType tdarg.enmItemTypeDefPath) |> fst) |> Map.ofList
 
             let typeDef, us1 = getEnumeratedTypeDifition tdarg us
             typeDef, proposedEnmName, us1
         | AcnPrmGetTypeDefinition (curPath, md, ts)   -> 
             let proposedEnmName = 
-                [C;Ada] |> List.map(fun l -> 
+                ProgrammingLanguage.AllLanguages |> List.map(fun l -> 
                     l, FE_TypeDefinition.getProposedTypeDefName us l (ReferenceToType [MD md; TA ts]) |> fst) |> Map.ofList
             let lanDefs, us1 =
-                [C;Ada] |> foldMap (fun us l -> 
+                ProgrammingLanguage.AllLanguages |> foldMap (fun us l -> 
                     let itm, ns = registerEnumeratedTypeDefinition us l (ReferenceToType curPath) (FEI_Reference2OtherType (ReferenceToType [MD md; TA ts])) 
                     (l,itm), ns) us
             lanDefs |> Map.ofList, proposedEnmName, us1
@@ -1553,7 +1527,7 @@ let mergeAsn1WithAcnAst (asn1:Asn1Ast.AstRoot) (acn:AcnGenericTypes.AcnAst ,acnP
     let initialState = {Asn1AcnMergeState.allocatedTypeNames = []; allocatedFE_TypeDefinition= Map.empty; args = asn1.args; temporaryTypesAllocation = Map.empty} 
     let state =
         seq {
-            for l in [C;Ada] do           
+            for l in ProgrammingLanguage.AllLanguages do           
                 for f in asn1.Files do
                     for m in f.Modules do
                         for tas in m.TypeAssignments do
