@@ -1752,6 +1752,7 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
     createAcnFunction r lm codec t typeDefinition  isValidFunc  funcBody (fun atc -> true) soSparkAnnotations us, ec
 
 let createReferenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (lm:LanguageMacros) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.ReferenceType) (typeDefinition:TypeDefintionOrReference) (isValidFunc: IsValidFunction option) (baseType:Asn1Type) (us:State)  =
+  let baseTypeDefinitionName, baseFncName = getBaseFuncName lm typeDefinition o t.id "_ACN" codec
   match o.encodingOptions with 
   | None          -> 
       match o.hasExtraConstrainsOrChildrenOrAcnArgs with
@@ -1771,10 +1772,18 @@ let createReferenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
 
                 ret, us
       | false ->    
+            (*
             let moduleName, typeDefinitionName0 = 
                 let t1 = Asn1AcnAstUtilFunctions.GetActualTypeByName r o.modName o.tasName
                 let typeDef = lm.lg.getTypeDefinition t1.FT_TypeDefintion
                 typeDef.programUnit, typeDef.typeName
+            let moduleName, typeDefinitionName0 = 
+                match typeDefinition with
+                | ReferenceToExistingDefinition refToExist   ->
+                    match refToExist.programUnit with
+                    | Some md -> md, refToExist.typedefName
+                    | None    -> t.id.ModName, refToExist.typedefName
+                | TypeDefinition                tdDef        -> t.id.ModName, tdDef.typedefName
 
             let baseTypeDefinitionName = 
                 match lm.lg.hasModules with
@@ -1784,6 +1793,7 @@ let createReferenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
                     | true  -> typeDefinitionName0 
                     | false -> moduleName + "." + typeDefinitionName0 
             let baseFncName = baseTypeDefinitionName + "_ACN" + codec.suffix
+                *)
 
             let funcBody (us:State) (errCode:ErroCode) (acnArgs: (AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) (p:CallerScope) = 
                 let funcBodyContent = callBaseTypeFunc lm (lm.lg.getParamValue t p.arg codec) baseFncName codec
@@ -1797,10 +1807,19 @@ let createReferenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
     | Some( encOptions) ->
         //contained type i.e. MyOct ::= OCTET STRING (CONTAINING Other-Type)
         let loc = o.tasName.Location
+        (*
         let moduleName, typeDefinitionName0 = 
             let t1 = Asn1AcnAstUtilFunctions.GetActualTypeByName r o.modName o.tasName
             let typeDef = lm.lg.getTypeDefinition t1.FT_TypeDefintion
             typeDef.programUnit, typeDef.typeName
+        let moduleName, typeDefinitionName0 = 
+            match typeDefinition with
+            | ReferenceToExistingDefinition refToExist   ->
+                match refToExist.programUnit with
+                | Some md -> md, refToExist.typedefName
+                | None    -> t.id.ModName, refToExist.typedefName
+            | TypeDefinition                tdDef        -> t.id.ModName, tdDef.typedefName
+
         let baseTypeDefinitionName = 
             match lm.lg.hasModules with
             | false     -> typeDefinitionName0 
@@ -1809,6 +1828,7 @@ let createReferenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
                 | true  -> typeDefinitionName0 
                 | false -> moduleName + "." + typeDefinitionName0 
         let baseFncName = baseTypeDefinitionName + "_ACN" + codec.suffix
+        *)
         let sReqBytesForUperEncoding = sprintf "%s_REQUIRED_BYTES_FOR_ACN_ENCODING" baseTypeDefinitionName
         let sReqBitForUperEncoding = sprintf "%s_REQUIRED_BITS_FOR_ACN_ENCODING" baseTypeDefinitionName
         

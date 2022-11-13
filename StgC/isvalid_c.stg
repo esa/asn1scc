@@ -263,7 +263,7 @@ ret = <arrsConstraints; separator=" && ">;
 >>
 
 
-call_base_type_func(p, sFuncName) ::= "ret = <sFuncName>(<p>, pErrCode);"
+call_base_type_func(p, sFuncName, soTypeCasting) ::= "ret = <sFuncName>(<p>, pErrCode);"
 
 call_base_type_func_exp(p, sFuncName) ::= "<sFuncName>(<p>, pErrCode)"
 

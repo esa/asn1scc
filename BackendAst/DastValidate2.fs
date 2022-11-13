@@ -719,7 +719,7 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (t:Asn1Ac
             match cvf.funcName with
             | Some fncName  -> 
                 let f1 (p:CallerScope)  =  
-                    ValidationStatement (callBaseTypeFunc (l.lg.getPointer (chp p).arg)  fncName, [])
+                    ValidationStatement (callBaseTypeFunc (l.lg.getPointer (chp p).arg)  fncName None, [])
                 Some f1, [], [], [], [cvf]
             | None          -> 
                 let f1 (p:CallerScope)  =  cvf.funcBody (chp p) 
@@ -763,7 +763,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot)  (l:LanguageMacros) (t:Asn1Acn
                     let chp = {p with arg = l.lg.getSeqChild p.arg c_name child.Type.isIA5String}
                     match isValidFunction.funcName with
                     | Some fncName  -> 
-                        ValidationStatement (callBaseTypeFunc (l.lg.getPointer chp.arg)  fncName, [])
+                        ValidationStatement (callBaseTypeFunc (l.lg.getPointer chp.arg)  fncName None, [])
                     | None ->
                         isValidFunction.funcBody chp
             let childFnc = 
@@ -835,7 +835,7 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot)  (l:LanguageMacros) (t:Asn1AcnAs
                     let chp = {p with arg = l.lg.getChChild p.arg c_name child.chType.isIA5String}
                     match isValidFunction.funcName with
                     | Some fncName -> 
-                        ValidationStatement (callBaseTypeFunc (l.lg.getPointer  chp.arg)  fncName, [])
+                        ValidationStatement (callBaseTypeFunc (l.lg.getPointer  chp.arg)  fncName None, [])
                     | None ->
                         isValidFunction.funcBody chp
             let childFnc = 
@@ -934,12 +934,34 @@ let rec createReferenceTypeFunction_this_type (r:Asn1AcnAst.AstRoot) (l:Language
 let createReferenceTypeFunction (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.ReferenceType) (typeDefinition:TypeDefintionOrReference) (resolvedType:Asn1Type)  (us:State)  =
     let callBaseTypeFunc = l.isvalid.call_base_type_func
     let vcbs,us = createReferenceTypeFunction_this_type r l t.id o.refCons typeDefinition resolvedType us
+    (*
     let moduleName, typeDefinitionName = 
         let t1 = Asn1AcnAstUtilFunctions.GetActualTypeByName r o.modName o.tasName
         let typeDef = l.lg.getTypeDefinition t1.FT_TypeDefintion
         typeDef.programUnit, typeDef.typeName
-        
-    let typeDefinitionName0 = ToC2(r.args.TypePrefix + o.tasName.Value)
+*)
+    let moduleName, typeDefinitionName = 
+        match typeDefinition with
+        | ReferenceToExistingDefinition refToExist   ->
+            match refToExist.programUnit with
+            | Some md -> md, refToExist.typedefName
+            | None    -> ToC t.id.ModName, refToExist.typedefName
+        | TypeDefinition                tdDef        -> 
+            match tdDef.baseType with
+            | None -> ToC t.id.ModName, tdDef.typedefName
+            | Some refToExist -> 
+                match refToExist.programUnit with
+                | Some md -> md, refToExist.typedefName
+                | None    -> ToC t.id.ModName, refToExist.typedefName
+    let soTypeCasting =
+        let actType = Asn1AcnAstUtilFunctions.GetActualTypeByName r o.modName o.tasName
+        match t.ActualType.Kind, actType.Kind with
+        | Asn1AcnAst.Integer o,  Asn1AcnAst.Integer res -> 
+            match o.getClass r.args = res.getClass r.args with
+            | true -> None
+            | false -> Some typeDefinitionName
+        | _         -> None
+
     let baseFncName = 
         match l.lg.hasModules with
         | false     -> typeDefinitionName + "_IsConstraintValid"
@@ -956,7 +978,7 @@ let createReferenceTypeFunction (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (t:Asn
 
         match resolvedType.isValidFunction with
         | Some _    -> 
-            let funcBodyContent = callBaseTypeFunc (l.lg.getParamValue t p.arg Encode) baseFncName 
+            let funcBodyContent = callBaseTypeFunc (l.lg.getParamValue t p.arg Encode) baseFncName soTypeCasting
             match (funcBodyContent::with_component_check) |> DAstUtilFunctions.nestItems_ret l  with
             | None   -> convertVCBToStatementAndAssigneErrCode l VCBTrue errCode.errCodeName
             | Some s ->ValidationStatement (s, (lv2 |>List.collect id))

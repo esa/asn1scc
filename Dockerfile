@@ -4,7 +4,7 @@
 #################################################################################################
 #################################################################################################
 
-FROM  mcr.microsoft.com/dotnet/sdk AS build
+FROM  mcr.microsoft.com/dotnet/sdk:6.0 AS build
 
 RUN apt update
 #RUN mkdir /usr/share/man/man1

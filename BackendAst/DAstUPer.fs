@@ -696,12 +696,20 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Commo
     createUperFunction r lm codec t typeDefinition baseTypeUperFunc  isValidFunc  funcBody soSparkAnnotations  us
 
 
+    (*
+let getFuncName (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:CommonTypes.Codec) (typeId :ReferenceToType) (td:FE_TypeDefinition) =
+match typeId.tasInfo with
+| None -> None
+| Some _ -> Some (td.typeName + codec.suffix)
+    
+    *)
+
 let createReferenceFunction (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.ReferenceType) (typeDefinition:TypeDefintionOrReference) (isValidFunc: IsValidFunction option) (baseType:Asn1Type) (us:State)  =
+(*
     let moduleName, typeDefinitionName0 = 
         let t1 = Asn1AcnAstUtilFunctions.GetActualTypeByName r o.modName o.tasName
         let typeDef = lm.lg.getTypeDefinition t1.FT_TypeDefintion
         typeDef.programUnit, typeDef.typeName
-
     let baseTypeDefinitionName = 
         match lm.lg.hasModules with
         | false     -> typeDefinitionName0 
@@ -710,6 +718,9 @@ let createReferenceFunction (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (codec:C
             | true  -> typeDefinitionName0 
             | false -> moduleName + "." + typeDefinitionName0 
     let baseFncName = baseTypeDefinitionName + codec.suffix
+*)
+
+    let baseTypeDefinitionName, baseFncName = getBaseFuncName lm typeDefinition o t.id "" codec
 
     match o.encodingOptions with 
     | None          -> 

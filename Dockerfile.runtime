@@ -5,7 +5,7 @@
 #################################################################################################
 #################################################################################################
 
-FROM  mcr.microsoft.com/dotnet/sdk AS builder
+FROM  mcr.microsoft.com/dotnet/sdk:6.0 AS builder
 
 RUN apt update
 #RUN mkdir /usr/share/man/man1
@@ -29,7 +29,7 @@ RUN set -ex ;\
 #################################################################################################
 #################################################################################################
 
-FROM mcr.microsoft.com/dotnet/runtime
+FROM mcr.microsoft.com/dotnet/runtime:6.0
 
 COPY --from=builder /src/asn1scc/asn1scc/bin/Release/net6.0/ /opt/asn1scc
 WORKDIR /tmp
