@@ -1,0 +1,6 @@
+SIMPLETESTCASE DEFINITIONS ::=
+BEGIN
+
+     TypeToTest[encoding ASCII, size 256]
+
+END

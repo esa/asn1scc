@@ -1,0 +1,9 @@
+SIMPLETESTCASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
+
+    TypeToTest ::= INTEGER
+
+    variableToBeEncoded TypeToTest ::= 123456789012
+    canBeMoreThanOne TypeToTest ::= 2137
+
+END
+
