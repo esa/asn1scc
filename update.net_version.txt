@@ -1,0 +1,3 @@
+1. replace <TargetFramework>net6.0</TargetFramework> to <TargetFramework>net7.0</TargetFramework> in all *.csproj abd *.fsproj
+2. update regression scripts : "../asn1scc/bin/Debug/net6.0/asn1scc" to "../asn1scc/bin/Debug/net7.0/asn1scc" in all *.py under v4Tests and v4Tests-32
+3. update Dockerfile and Dockerfile.runtime
