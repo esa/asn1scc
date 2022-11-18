@@ -276,17 +276,17 @@ let main0 argv =
 
 
         let languages =
-            match parserResults.Contains<@ Language @> with
+            match parserResults.Contains <@ Language @> with
             | false -> ["c"; "Ada"]
             | true  -> [parserResults.GetResult(<@ Language @>)]
 
         let word_sizes =
-            match parserResults.Contains<@ Word_Size @> with
+            match parserResults.Contains <@ Word_Size @> with
             | false -> [8; 4]
             | true  -> [parserResults.GetResult(<@ Word_Size @>)]
 
         let slim_modes =
-            match parserResults.Contains<@ Slim @> with
+            match parserResults.Contains <@ Slim @> with
             | false -> [true; false]
             | true  -> [parserResults.GetResult(<@ Slim @>)]
 
