@@ -1,7 +1,6 @@
 from SCons.Script import *
 
 from xml.etree import ElementTree
-from itertools import izip
 from commons import *
 from templates import templates
 import AsnBuilder
@@ -11,10 +10,10 @@ class MultipleReferenceTypeError(Exception):
 
 def _prepare_test_case(target, source, env):
     test_case = _get_test_case_name(source)
-    for targets in izip(*[iter(target)] * len(templates)):
+    for targets in zip(*[iter(target)] * len(templates)):
         asn_header = os.path.splitext(os.path.basename(str(source[0])))[0] + '.h'
         dir_name = os.path.dirname(str(targets[0]))
-        for target_file, template in izip(targets, templates):
+        for target_file, template in zip(targets, templates):
             file_content = template.format(
                 test_case=os.path.basename(dir_name),
                 type_=env['VARIABLES'][dir_name],
@@ -45,7 +44,7 @@ def _parse_xml(target, source, env):
         _cleanup(target)
 
 def _make_xml(xml_name, asn_file, asn_bin):
-    cmd = ["mono", asn_bin, '-ast', xml_name, asn_file]
+    cmd = [asn_bin, '-ast', xml_name, asn_file]
     call_bin(cmd)
 
 def _parse_metadata(root, target, env):

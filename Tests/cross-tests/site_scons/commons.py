@@ -59,7 +59,7 @@ def call_bin(command):
         stderr=subprocess.PIPE)
     stdout, stderr = process.communicate()
     if stderr or process.returncode != 0:
-        raise ChildProcessError("Command failed: '" + stderr.strip() + "'")
+        raise ChildProcessError("Command failed: '" + str(stderr.strip()) + "'")
     return stdout
 
 def grouper(n, iterable, fillvalue=None):

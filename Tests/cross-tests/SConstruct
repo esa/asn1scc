@@ -27,7 +27,7 @@ def setup_environment():
     env['BUILDERS']['Summary'] = SummaryBuilder.builder()
     env['SCRIPT_DIR'] = Dir('#').abspath
     env['ASN_ROOT'] = os.path.dirname(os.path.dirname(env['SCRIPT_DIR']))
-    env['BIN_DIR'] = os.path.join(env['ASN_ROOT'], 'Asn1f2', 'bin')
+    env['BIN_DIR'] = os.path.join(env['ASN_ROOT'], 'asn1scc', 'bin')
     env['ASN_BIN'] = get_asn_bin(env['BIN_DIR'], 'xbuild', env['ASN_ROOT'])
     env['LANGUAGES'] = ['c', 'Ada']
     env['VARIABLES'] = {}
@@ -35,12 +35,12 @@ def setup_environment():
     return env
 
 def get_asn_bin(search_root, build_script, cwd):
-    binary = find_files_recursive(search_root, 'Asn1f2\.exe$')
+    binary = find_files_recursive(search_root, 'asn1scc$')
     if not binary and build_script:
         return_code = subprocess.call(build_script, cwd=cwd)
         if return_code != 0:
-            raise ChildProcessError("Failed to build asn1f2")
-        return find_files_recursive(search_root, 'Asn1f2\.exe$')[0]
+            raise ChildProcessError("Failed to build asn1scc")
+        return find_files_recursive(search_root, 'asn1scc$')[0]
     return binary[0]
 
 def process_test_case(env, test_case):

@@ -4,7 +4,7 @@ from commons import to_strings
 
 def _asn_generator(target, source, env, for_signature):
     str_source = to_strings(source)
-    return ["mono '{}' -{} -ACN '{}' '{}' -o '{}'".format(
+    return ["'{}' -{} -ACN '{}' '{}' -o '{}'".format(
                 env['ASN_BIN'],
                 language,
                 str(source[1]),
