@@ -220,8 +220,8 @@ let constructCommandLineSettings args (parserResults: ParseResults<CliArguments>
                 |ACN_enc  -> Some CommonTypes.Asn1Encoding.ACN
                 | _       -> None )
 
-        GenerateEqualFunctions = parserResults.Contains<@ Equal_Func @> || parserResults.Contains<@ Auto_test_cases @>
-        generateAutomaticTestCases = parserResults.Contains<@ Auto_test_cases @>
+        GenerateEqualFunctions = (parserResults.Contains <@ Equal_Func @>) || (parserResults.Contains <@ Auto_test_cases @>)
+        generateAutomaticTestCases = parserResults.Contains <@ Auto_test_cases @>
         TypePrefix = parserResults.GetResult(<@ Type_Prefix@>, defaultValue = "")
         CheckWithOss = false
         AstXmlAbsFileName = parserResults.GetResult(<@Xml_Ast@>, defaultValue = "")
@@ -238,7 +238,7 @@ let constructCommandLineSettings args (parserResults: ParseResults<CliArguments>
             BigInteger fws
         slim = parserResults.Contains(<@Slim@>)
         target = parserResults.TryGetResult(<@Target@>)
-        streamingModeSupport = parserResults.Contains<@ Streaming_Mode @>
+        streamingModeSupport = parserResults.Contains <@ Streaming_Mode @>
         renamePolicy = 
             match args |> List.choose (fun a -> match a with Rename_Policy rp -> Some rp | _ -> None) with
             | []    ->
@@ -313,7 +313,7 @@ let main0 argv =
         // create front ent ast
 
         let debugFunc (r:Asn1Ast.AstRoot) (acn:AcnGenericTypes.AcnAst) = 
-            match parserResults.Contains<@ Debug_Asn1 @> with
+            match parserResults.Contains <@ Debug_Asn1 @> with
             | true  -> 
                 let pdu = parserResults.GetResult(<@Debug_Asn1@>, defaultValue = None)
                 let tastToPrint = PrintAsn1.printInASingleFile r outDir "SingleAsn1FileDbg.asn1" pdu
