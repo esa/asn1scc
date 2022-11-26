@@ -4,7 +4,7 @@ if [ $# -ne 1 ] ; then
     exit 1
 fi
 OLD_TARBALL="$1"
-echo "[-] Building release version..."
+echo "[-] Building release version (including lsp)..."
 make -f Makefile.debian publish >make.log 2>&1 || {
     echo "[x] Failed - please check make.log"
     exit 1
@@ -23,9 +23,9 @@ cd asn1scc || {
     exit 1
 }
 rm -rf ./*.stg
-rm -rf ../../asn1scc/bin/Release/net6.0/linux-x64/publish
-cp -a ../../asn1scc/bin/Release/net6.0/linux-x64/* .
-rm asn1.exe
+cp -a ../../asn1scc/bin/Release/net7.0/linux-x64/publish/* .
+cp -a ../../lsp/Server/Server/bin/Release/net7.0/linux-x64/publish/* .
+rm -f asn1.exe
 VERSION="$(./asn1scc -v | head -1 | awk '{print $NF}')"
 cd ../
 echo "[-] Packing new release tarball..."
