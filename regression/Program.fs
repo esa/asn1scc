@@ -263,7 +263,7 @@ let main0 argv =
 
         let asn1sccdll =
             Path.GetFullPath(
-                parserResults.GetResult(<@Asn1scc_Location@>, defaultValue = "../asn1scc/bin/Debug/net6.0/asn1scc.dll"))
+                parserResults.GetResult(<@Asn1scc_Location@>, defaultValue = "../asn1scc/bin/Debug/net7.0/asn1scc.dll"))
             
         let test_cases_dir = parserResults.GetResult(<@Test_Cases_Dir@>, defaultValue = "test-cases")
         

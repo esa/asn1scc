@@ -8,10 +8,10 @@ jobs:
           key: docker-{{ checksum "Dockerfile" }}
       - run:
           # command: if [[ -e ~/docker/image.tar ]]; then docker load --input ~/docker/image.tar; else docker build -t asn1scc . && { mkdir -p ~/docker; docker save asn1scc > ~/docker/image.tar ; } ; fi
-          command: docker build -t asn1scc . && { mkdir -p ~/docker; docker save asn1scc > ~/docker/image.tar ; }
+          command: docker build -t asn1scc .
       - save_cache:
           key: docker-{{ checksum "Dockerfile" }}
           paths:
             - ~/docker
       - run:
-          command: docker run -it -v $(pwd):/root/asn1scc asn1scc bash -c 'cd /root/asn1scc ; ./circleci-build.sh'
+          command: docker run -it asn1scc bash -c './circleci-build.sh'
