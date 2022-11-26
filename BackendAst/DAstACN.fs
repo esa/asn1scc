@@ -275,7 +275,7 @@ let private createAcnFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:
         }
     ret, ns2
 
-let private createAcnIntegerFunctionInternal (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:CommonTypes.Codec) (uperRange : BigIntegerUperRange) acnEncodingClass (uperfuncBody : ErroCode -> CallerScope -> (UPERFuncBodyResult option)) (soMF:string option, soMFM:string option) : (ErroCode -> ((AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) -> CallerScope -> (AcnFuncBodyResult option))  =
+let private createAcnIntegerFunctionInternal (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:CommonTypes.Codec) (uperRange : BigIntegerUperRange) (intClass:Asn1AcnAst.IntegerClass) acnEncodingClass (uperfuncBody : ErroCode -> CallerScope -> (UPERFuncBodyResult option)) (soMF:string option, soMFM:string option) : (ErroCode -> ((AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) -> CallerScope -> (AcnFuncBodyResult option))  =
     let PositiveInteger_ConstSize_8                  = lm.acn.PositiveInteger_ConstSize_8                
     let PositiveInteger_ConstSize_big_endian_16      = lm.acn.PositiveInteger_ConstSize_big_endian_16    
     let PositiveInteger_ConstSize_little_endian_16   = lm.acn.PositiveInteger_ConstSize_little_endian_16 
@@ -321,8 +321,8 @@ let private createAcnIntegerFunctionInternal (r:Asn1AcnAst.AstRoot) (lm:Language
         let sIntActualMax (nBits:int) =
             let a = 2I**(nBits-1) - 1I
             min a nUperMax
-        let sSsuffix = DAstUPer.getIntDecFuncSuffix r uperRange 
-        let castPp encFuncBits = DAstUPer.castPp r lm codec pp uperRange encFuncBits
+        let sSsuffix = DAstUPer.getIntDecFuncSuffix intClass 
+        let castPp encFuncBits = DAstUPer.castPp r lm codec pp intClass encFuncBits
         let word_size_in_bits = (int r.args.integerSizeInBytes)*8
         //let soMF = match 
         let funcBodyContent  = 
@@ -389,7 +389,7 @@ let createAcnIntegerFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:C
             | None  -> getMappingFunctionModule r lm soMapFunc, soMapFunc
             | Some soMapFunMod   -> Some soMapFunMod.Value, soMapFunc
         | None -> None, None
-    let funcBody = createAcnIntegerFunctionInternal r lm codec t.uperRange t.acnEncodingClass uperFuncBody (soMapFunc, soMapFunMod)
+    let funcBody = createAcnIntegerFunctionInternal r lm codec t.uperRange t.intClass t.acnEncodingClass uperFuncBody (soMapFunc, soMapFunMod)
     (funcBody errCode), ns
 
 
@@ -403,7 +403,7 @@ let createIntegerFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Comm
             | None  -> getMappingFunctionModule r lm soMapFunc, soMapFunc
             | Some soMapFunMod   -> Some soMapFunMod.Value, soMapFunc
         | None -> None, None
-    let funcBody = createAcnIntegerFunctionInternal r lm codec o.uperRange o.acnEncodingClass uperFunc.funcBody_e (soMapFunc, soMapFunMod)
+    let funcBody = createAcnIntegerFunctionInternal r lm codec o.uperRange o.intClass o.acnEncodingClass uperFunc.funcBody_e (soMapFunc, soMapFunMod)
     let soSparkAnnotations = Some(sparkAnnotations lm (typeDefinition.longTypedefName2 lm.lg.hasModules) codec)
     createAcnFunction r lm codec t typeDefinition isValidFunc  (fun us e acnArgs p -> funcBody e acnArgs p, us) (fun atc -> true) soSparkAnnotations us
 
@@ -431,12 +431,12 @@ let createEnumComn (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:CommonTypes
         let intFuncBody = 
             let uperInt (errCode:ErroCode) (p:CallerScope) = 
                 let pp = match codec with CommonTypes.Encode -> lm.lg.getValue p.arg | CommonTypes.Decode -> lm.lg.getPointer p.arg
-                let castPp  = DAstUPer.castPp r lm codec pp uperRange
-                let sSsuffix = DAstUPer.getIntDecFuncSuffix r uperRange 
+                let castPp  = DAstUPer.castPp r lm codec pp intTypeClass
+                let sSsuffix = DAstUPer.getIntDecFuncSuffix intTypeClass 
                 let word_size_in_bits = (int r.args.integerSizeInBytes)*8
                 let funcBody = IntFullyConstraintPos (castPp word_size_in_bits) min max (GetNumberOfBitsForNonNegativeInteger (max-min))  sSsuffix errCode.errCodeName codec
                 Some({UPERFuncBodyResult.funcBody = funcBody; errCodes = [errCode]; localVariables= []; bValIsUnReferenced=false; bBsIsUnReferenced=false})
-            createAcnIntegerFunctionInternal r lm codec (Concrete (min,max)) o.acnEncodingClass uperInt (None, None)
+            createAcnIntegerFunctionInternal r lm codec (Concrete (min,max)) intTypeClass o.acnEncodingClass uperInt (None, None)
         let funcBodyContent = 
             match intFuncBody errCode acnArgs pVal with
             | None      -> None

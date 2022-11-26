@@ -357,7 +357,7 @@ let bitStringConstraint2ValidationCodeBlock (r:Asn1AcnAst.AstRoot)  (l:LanguageM
 
 let rec anyConstraint2ValidationCodeBlock (r:Asn1AcnAst.AstRoot)  (l:LanguageMacros) (erLoc:SrcLoc) (t:Asn1Type) (ac:AnyConstraint) st =
     match t.ActualType.Kind, ac with
-    | Integer o, IntegerTypeConstraint c        -> integerConstraint2ValidationCodeBlock r l (o.baseInfo.getClass r.args) c st
+    | Integer o, IntegerTypeConstraint c        -> integerConstraint2ValidationCodeBlock r l (o.baseInfo.intClass) c st
     | Real o, RealTypeConstraint   c            -> realConstraint2ValidationCodeBlock l c st
     | IA5String  o, IA5StringConstraint c       -> ia5StringConstraint2ValidationCodeBlock r l t.id  c st
     | OctetString o, OctetStringConstraint c    -> octetStringConstraint2ValidationCodeBlock r l  t.id o.baseInfo  o.equalFunction c st
@@ -617,7 +617,7 @@ let funcBody l fncs (e:ErroCode) (p:CallerScope) =
 
 let createIntegerFunction (r:Asn1AcnAst.AstRoot)  (l:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Integer) (typeDefinition:TypeDefintionOrReference) (us:State)  =
     //let allCons = getIntSimplifiedConstraints r o.isUnsigned o.AllCons
-    let fncs, ns = o.cons |> Asn1Fold.foldMap (fun us c -> integerConstraint2ValidationCodeBlock r l (o.getClass r.args) c us) us
+    let fncs, ns = o.cons |> Asn1Fold.foldMap (fun us c -> integerConstraint2ValidationCodeBlock r l (o.intClass) c us) us
     let errorCodeComment = o.cons |> List.map(fun z -> z.ASN1) |> Seq.StrJoin ""
     createIsValidFunction r l t  (funcBody l fncs) typeDefinition [] [] [] [] (Some errorCodeComment) ns
 
@@ -895,7 +895,7 @@ let rec createReferenceTypeFunction_this_type (r:Asn1AcnAst.AstRoot) (l:Language
         createReferenceTypeFunction_this_type r l refTypeId refCons typeDefinition rt.resolvedType  us
     | Integer rt ->
         let cons = refCons |> List.choose(fun c -> match c with Asn1AcnAst.IntegerTypeConstraint z -> Some z | _ -> None )
-        cons |> Asn1Fold.foldMap (fun us c -> integerConstraint2ValidationCodeBlock r l (rt.baseInfo.getClass r.args) c us) us
+        cons |> Asn1Fold.foldMap (fun us c -> integerConstraint2ValidationCodeBlock r l (rt.baseInfo.intClass) c us) us
     | Real _ ->
         let cons = refCons |> List.choose(fun c -> match c with Asn1AcnAst.RealTypeConstraint z -> Some z | _ -> None )
         cons |> Asn1Fold.foldMap (fun us c -> realConstraint2ValidationCodeBlock l c us) us
@@ -957,7 +957,7 @@ let createReferenceTypeFunction (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (t:Asn
         let actType = Asn1AcnAstUtilFunctions.GetActualTypeByName r o.modName o.tasName
         match t.ActualType.Kind, actType.Kind with
         | Asn1AcnAst.Integer o,  Asn1AcnAst.Integer res -> 
-            match o.getClass r.args = res.getClass r.args with
+            match o.intClass = res.intClass with
             | true -> None
             | false -> Some typeDefinitionName
         | _         -> None

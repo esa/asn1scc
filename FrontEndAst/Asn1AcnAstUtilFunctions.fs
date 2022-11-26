@@ -326,8 +326,7 @@ let getIntEncodingClassByUperRange (args:CommandLineSettings) (uperRange:BigInte
 
 type Integer with
     member this.AllCons  = this.cons@this.withcons
-    member this.getClass (args:CommandLineSettings)  =
-        getIntEncodingClassByUperRange args this.uperRange
+    //member this.getClass (args:CommandLineSettings)  =   getIntEncodingClassByUperRange args this.uperRange
 
 type IntegerClass with
     member this.Min =
@@ -354,6 +353,18 @@ type IntegerClass with
         | ASN1SCC_UInt32    (_,b) -> b
         | ASN1SCC_UInt64    (_,b) -> b
         | ASN1SCC_UInt      (_,b) -> b
+    member this.IsPositive = 
+        match this with
+        | ASN1SCC_Int8      (_) -> false 
+        | ASN1SCC_Int16     (_) -> false
+        | ASN1SCC_Int32     (_) -> false
+        | ASN1SCC_Int64     (_) -> false
+        | ASN1SCC_Int       (_) -> false
+        | ASN1SCC_UInt8     (_) -> true
+        | ASN1SCC_UInt16    (_) -> true
+        | ASN1SCC_UInt32    (_) -> true
+        | ASN1SCC_UInt64    (_) -> true
+        | ASN1SCC_UInt      (_) -> true
 
 
 let getAcnIntegerClass (args:CommandLineSettings) (i:AcnInteger) =

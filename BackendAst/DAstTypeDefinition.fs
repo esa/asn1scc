@@ -34,7 +34,7 @@ let getRealTypeByClass (lm:LanguageMacros) realClass =
 
     
 let createInteger (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAst.Asn1Type)  (o:Asn1AcnAst.Integer)   (us:State) =
-    let declare_Integer = getIntererTypeByClass lm (o.getClass r.args)
+    let declare_Integer = getIntererTypeByClass lm o.intClass
 
     let rtlModuleName                   = if lm.typeDef.rtlModuleName().IsEmptyOrNull then None else (Some (lm.typeDef.rtlModuleName ()))
 
@@ -56,6 +56,10 @@ let createInteger (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAst.Asn1T
         let typedefBody = defineSubType  td.typeName None baseType (getNewRange None baseType) None
         Some typedefBody
     | PrimitiveNewSubTypeDefinition subDef     -> 
+        let otherProgramUnit = if td.programUnit = subDef.programUnit then None else (Some subDef.programUnit)
+        let typedefBody = defineSubType td.typeName otherProgramUnit subDef.typeName (getNewRange otherProgramUnit subDef.typeName) None
+        Some typedefBody
+        (*
         let rec hasSameClasWithBase (t:Asn1AcnAst.Asn1Type) =
             match t.inheritInfo with
             | None  -> false
@@ -63,7 +67,7 @@ let createInteger (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAst.Asn1T
                 let baseMod = r.GetModuleByName inhInf.modName.AsLoc
                 let baseTas = baseMod.GetTypeAssignmentByName inhInf.tasName.AsLoc r
                 match  baseTas.Type.Kind with
-                | Asn1AcnAst.Integer bo -> bo.getClass r.args = o.getClass r.args
+                | Asn1AcnAst.Integer bo -> bo.intClass = o.intClass
                 | Asn1AcnAst.ReferenceType br -> hasSameClasWithBase br.resolvedType
                 | _                           -> false
         match hasSameClasWithBase t with
@@ -75,6 +79,7 @@ let createInteger (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAst.Asn1T
             let baseType = declare_Integer()
             let typedefBody = defineSubType td.typeName None baseType (getNewRange None baseType) None
             Some typedefBody
+            *)
     | PrimitiveReference2RTL                  -> None
     | PrimitiveReference2OtherType            -> None
 

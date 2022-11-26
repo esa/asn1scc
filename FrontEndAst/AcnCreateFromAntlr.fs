@@ -217,13 +217,15 @@ let private removeTypePrefix (typePrefix : String) (typeName : string)=
 
 
 
-let private mergeInteger (asn1:Asn1Ast.AstRoot) (loc:SrcLoc) (typeAssignmentInfo : AssignmentInfo option) (acnErrLoc: SrcLoc option) (props:GenericAcnProperty list) cons withcons (tdarg:GetTypeDifition_arg) (us:Asn1AcnMergeState) =
+let private mergeInteger (asn1:Asn1Ast.AstRoot) (loc:SrcLoc) (typeAssignmentInfo : AssignmentInfo option) (acnErrLoc: SrcLoc option) (props:GenericAcnProperty list) cons withcons thisTypeCons (tdarg:GetTypeDifition_arg) (us:Asn1AcnMergeState) =
     let declare_IntegerNoRTL       (l:ProgrammingLanguage)     = l.declare_IntegerNoRTL
     let declare_PosIntegerNoRTL    (l:ProgrammingLanguage)     = l.declare_PosIntegerNoRTL
 
     let acnErrLoc0 = match acnErrLoc with Some a -> a | None -> loc
     let rootCons = cons |> List.filter(fun c -> match c with RangeRootConstraint _  | RangeRootConstraint2 _ -> true | _ -> false)
     let uperRange    = uPER.getIntTypeConstraintUperRange cons  loc
+    let thisTypeUperRange = uPER.getIntTypeConstraintUperRange thisTypeCons loc
+    let intClass = getIntEncodingClassByUperRange asn1.args thisTypeUperRange
     uPER.getIntTypeConstraintUperRange (cons@withcons)  loc |> ignore
     let acnProperties = 
         match acnErrLoc with
@@ -242,7 +244,8 @@ let private mergeInteger (asn1:Asn1Ast.AstRoot) (loc:SrcLoc) (typeAssignmentInfo
             let mn,mx = uPER.getRequiredBitsForIntUperEncoding asn1.args.integerSizeInBytes uperRange
             1I + mn, 1I + mx
 
-    let isUnsigned =
+    let isUnsigned = intClass.IsPositive
+        (*
         match uperRange with
         | Concrete  (a,b) when a >= 0I && rootCons.IsEmpty-> true      //[a, b]
         | Concrete  _                  -> false
@@ -250,7 +253,7 @@ let private mergeInteger (asn1:Asn1Ast.AstRoot) (loc:SrcLoc) (typeAssignmentInfo
         | PosInf   a when a >= 0I  && rootCons.IsEmpty    -> true     //[a, +inf)
         | PosInf  _                    -> false    //[a, +inf)
         | Full    _                    -> false    // (-inf, +inf)
-
+        *)
 
     let aligment = tryGetProp props (fun x -> match x with ALIGNTONEXT e -> Some e | _ -> None)
     let acnEncodingClass,  acnMinSizeInBits, acnMaxSizeInBits= AcnEncodingClasses.GetIntEncodingClass asn1.args.integerSizeInBytes aligment acnErrLoc0 acnProperties uperMinSizeInBits uperMaxSizeInBits isUnsigned
@@ -280,7 +283,7 @@ let private mergeInteger (asn1:Asn1Ast.AstRoot) (loc:SrcLoc) (typeAssignmentInfo
 
     checkIntHasEnoughSpace acnEncodingClass acnProperties.mappingFunction.IsSome acnErrLoc0 asn1Min asn1Max
     let typeDef, us1 = getPrimitiveTypeDifition {tdarg with rtlFnc = rtlFnc} us
-    {Integer.acnProperties = acnProperties; cons = cons; withcons = withcons; uperRange = uperRange;uperMinSizeInBits=uperMinSizeInBits; uperMaxSizeInBits=uperMaxSizeInBits; acnEncodingClass = acnEncodingClass;  acnMinSizeInBits=acnMinSizeInBits; acnMaxSizeInBits = acnMaxSizeInBits; isUnsigned= isUnsigned; typeDef=typeDef}, us1
+    {Integer.acnProperties = acnProperties; cons = cons; withcons = withcons; uperRange = uperRange;uperMinSizeInBits=uperMinSizeInBits; uperMaxSizeInBits=uperMaxSizeInBits; acnEncodingClass = acnEncodingClass; intClass=intClass;  acnMinSizeInBits=acnMinSizeInBits; acnMaxSizeInBits = acnMaxSizeInBits; isUnsigned= isUnsigned; typeDef=typeDef}, us1
 
 let private mergeReal (asn1:Asn1Ast.AstRoot) (loc:SrcLoc) (acnErrLoc: SrcLoc option) (props:GenericAcnProperty list) cons withcons (tdarg:GetTypeDifition_arg) (us:Asn1AcnMergeState) =
     let acnErrLoc0 = match acnErrLoc with Some a -> a | None -> loc
@@ -774,8 +777,8 @@ let rec private mapAcnParamTypeToAcnAcnInsertedType (asn1:Asn1Ast.AstRoot) (acn:
 
         let checkIntHasEnoughSpace asn1Min asn1Max =
             checkIntHasEnoughSpace acnEncodingClass acnProperties.mappingFunction.IsSome acnErrLoc asn1Min asn1Max
-
-        AcnInteger ({AcnInteger.acnProperties=acnProperties; acnAligment=acnAligment; acnEncodingClass = acnEncodingClass;  Location = acnErrLoc; acnMinSizeInBits=acnMinSizeInBits; acnMaxSizeInBits = acnMaxSizeInBits; cons=[]; withcons=[];isUnsigned=isUnsigned; uperRange= uperRange; checkIntHasEnoughSpace=checkIntHasEnoughSpace; inheritInfo=None}), us
+        let  intClass = getIntEncodingClassByUperRange asn1.args uperRange
+        AcnInteger ({AcnInteger.acnProperties=acnProperties; acnAligment=acnAligment; acnEncodingClass = acnEncodingClass;  Location = acnErrLoc; acnMinSizeInBits=acnMinSizeInBits; acnMaxSizeInBits = acnMaxSizeInBits; cons=[]; withcons=[];isUnsigned=isUnsigned; uperRange= uperRange; intClass=intClass; checkIntHasEnoughSpace=checkIntHasEnoughSpace; inheritInfo=None}), us
     | AcnPrmBoolean  acnErrLoc ->
         let acnProperties = 
             match tryGetProp props (fun x -> match x with TRUE_VALUE e -> Some e | _ -> None) with
@@ -847,7 +850,8 @@ let rec private mapAcnParamTypeToAcnAcnInsertedType (asn1:Asn1Ast.AstRoot) (acn:
             let checkIntHasEnoughSpace asn1Min asn1Max =
                 checkIntHasEnoughSpace acnEncodingClass acnProperties.mappingFunction.IsSome ts.Location asn1Min asn1Max
 
-            AcnInteger ({AcnInteger.acnProperties=acnProperties; acnAligment=acnAligment; acnEncodingClass = acnEncodingClass;  Location = ts.Location; acnMinSizeInBits=acnMinSizeInBits; acnMaxSizeInBits = acnMaxSizeInBits;cons=cons;withcons=[];isUnsigned=isUnsigned; uperRange= uperRange;checkIntHasEnoughSpace=checkIntHasEnoughSpace; inheritInfo=Some {InheritanceInfo.modName=md.Value; tasName=ts.Value;hasAdditionalConstraints=false}}), us
+            let  intClass = getIntEncodingClassByUperRange asn1.args uperRange
+            AcnInteger ({AcnInteger.acnProperties=acnProperties; acnAligment=acnAligment; acnEncodingClass = acnEncodingClass;  Location = ts.Location; acnMinSizeInBits=acnMinSizeInBits; acnMaxSizeInBits = acnMaxSizeInBits;cons=cons;withcons=[];isUnsigned=isUnsigned; uperRange= uperRange; intClass=intClass; checkIntHasEnoughSpace=checkIntHasEnoughSpace; inheritInfo=Some {InheritanceInfo.modName=md.Value; tasName=ts.Value;hasAdditionalConstraints=false}}), us
         | _                               ->
             let newParma  = 
                 match asn1Type0.Kind with
@@ -929,8 +933,9 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (m:Asn1Ast.Asn1Mo
         match t.Kind with
         | Asn1Ast.Integer                  -> 
             let cons =  t.Constraints@refTypeCons |> List.collect fixConstraint |> List.map (ConstraintsMapping.getIntegerTypeConstraint asn1 t)
+            let thisTypeCons = t.Constraints |> List.collect fixConstraint |> List.map (ConstraintsMapping.getIntegerTypeConstraint asn1 t)
             let wcons = withCons |> List.collect fixConstraint |> List.map (ConstraintsMapping.getIntegerTypeConstraint asn1 t)
-            let o, us1  = mergeInteger asn1 t.Location typeAssignmentInfo  acnErrLoc combinedProperties cons wcons tfdArg us
+            let o, us1  = mergeInteger asn1 t.Location typeAssignmentInfo  acnErrLoc combinedProperties cons wcons thisTypeCons tfdArg us
             Integer o, us1
         | Asn1Ast.Real                     -> 
             let cons =  t.Constraints@refTypeCons |> List.collect fixConstraint |> List.map (ConstraintsMapping.getRealTypeConstraint asn1 t)

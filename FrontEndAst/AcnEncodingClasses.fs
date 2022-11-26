@@ -47,6 +47,7 @@ let GetIntEncodingClass (integerSizeInBytes:BigInteger) (aligment: AcnAligment o
             let bUINT = isUnsigned
             let maxFxVal = integerSizeInBytes*8I
             match encProp, sizeProp, endianess with
+            | PosInt, _,_              when not bUINT       ->  raise(SemanticError(errLoc, "Acn property pos-int cannot be applied to signed INTEGER types"))
             | PosInt, Fixed(fixedSizeInBits) , BigEndianness     when fixedSizeInBits = 8I              ->  
                 match p.endiannessProp with
                 | Some BigEndianness ->

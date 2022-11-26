@@ -1,0 +1,17 @@
+--RUN_SPARK
+TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
+
+	T1 ::= INTEGER (-100 .. 100)
+
+	MyPDU ::= T1 (0 .. 100)
+
+    
+    v37 INTEGER ::= 37
+	
+END
+
+--TCLS     MyPDU[encoding twos-complement, size 8]
+--TCLS     MyPDU[encoding twos-complement, size 16]
+--TCLS     MyPDU[]
+--TCLFC    MyPDU[encoding pos-int, size 8] 				$$$ sample1.acn:4:6: error: Acn property pos-int cannot be applied to signed INTEGER types
+--TCLFC    MyPDU[encoding pos-int, size 16]				$$$ sample1.acn:4:6: error: Acn property pos-int cannot be applied to signed INTEGER types

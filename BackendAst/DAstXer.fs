@@ -124,7 +124,7 @@ let createIntegerFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Comm
     let funcBody (errCode:ErroCode) (p:CallerScope) (xmlTag:XerTag option) = 
         let xmlTag = xmlTag |> orElse (XerLiteralConstant "INTEGER")
         let checkExp = 
-            match (DastValidate2.createIntegerFunctionByCons r lm (o.getClass r.args) (o.cons@o.withcons)) with
+            match (DastValidate2.createIntegerFunctionByCons r lm (o.intClass) (o.cons@o.withcons)) with
             | None  ->  None
             | Some expFunc -> 
                 let makeExpressionToStatement0  = lm.isvalid.makeExpressionToStatement0 

@@ -293,9 +293,9 @@ let createIntegerInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros)  (t:Asn1Acn
         match isZeroAllowed  with
         | false    -> 
             match integerVals with 
-            |x::_ -> lm.lg.intValueToSting x (o.getClass r.args)
-            | [] -> lm.lg.intValueToSting 0I (o.getClass r.args)
-        | true  -> lm.lg.intValueToSting 0I (o.getClass r.args)
+            |x::_ -> lm.lg.intValueToSting x (o.intClass)
+            | [] -> lm.lg.intValueToSting 0I (o.intClass)
+        | true  -> lm.lg.intValueToSting 0I (o.intClass)
         
 
     let testCaseFuncs = 

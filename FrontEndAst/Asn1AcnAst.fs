@@ -399,7 +399,7 @@ type Integer = {
     uperMaxSizeInBits   : BigInteger
     uperMinSizeInBits   : BigInteger
     uperRange           : BigIntegerUperRange
-
+    intClass            : IntegerClass
     acnMaxSizeInBits    : BigInteger
     acnMinSizeInBits    : BigInteger
     acnEncodingClass    : IntEncodingClass
@@ -563,6 +563,7 @@ type AcnInteger = {
     acnEncodingClass    : IntEncodingClass
     Location            : SrcLoc //Line no, Char pos
     uperRange           : BigIntegerUperRange
+    intClass            : IntegerClass
     isUnsigned          : bool
     checkIntHasEnoughSpace  : BigInteger -> BigInteger -> unit
     inheritInfo          : InheritanceInfo option
