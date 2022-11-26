@@ -14,4 +14,4 @@ END
 --TCLS     CONSTANT WSIZE ::=64 MyPDU[encoding twos-complement, size WSIZE]
 --TCLFC     MyPDU[encoding ASCII, size 75]       $$$  sample1.acn:4:6: error: size value should be multiple of 8
 --TCLFC    CONSTANT WSIZE ::=32-1 MyPDU[encoding twos-complement, size WSIZE]      $$$  sample1.acn:4:29: error: The applied ACN encoding does not allow values larger than 1073741823 to be encoded, while the corresponding ASN.1 type allows values up to 2147483647
---TCLFC    MyPDU[encoding pos-int, size 32]          $$$ sample1.acn:4:6: error: The applied ACN encoding does not allow values smaller than 0 to be encoded, while the corresponding ASN.1 type allows values up to -2147483648
+--TCLFC    MyPDU[encoding pos-int, size 32]          $$$ sample1.acn:4:6: error: Acn property pos-int cannot be applied to signed INTEGER types
