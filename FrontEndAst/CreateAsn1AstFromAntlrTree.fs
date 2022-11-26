@@ -1,5 +1,6 @@
 ﻿module CreateAsn1AstFromAntlrTree
 
+#nowarn "3536"
 open System
 open System.Numerics
 open FsUtils

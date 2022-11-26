@@ -1,5 +1,6 @@
 ﻿module Asn1AcnAst
 
+#nowarn "3536"
 open System.Numerics
 open Antlr.Runtime.Tree
 open Antlr.Runtime

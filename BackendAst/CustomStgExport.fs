@@ -1,4 +1,5 @@
 ﻿module CustomStgExport
+#nowarn "3536"
 
 open System.Globalization
 open System

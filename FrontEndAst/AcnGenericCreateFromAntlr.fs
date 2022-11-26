@@ -1,5 +1,6 @@
 ﻿module AcnGenericCreateFromAntlr
 //module LspAcnGenericCreateFromAntlr
+#nowarn "3536"
 
 open System
 open System.Linq

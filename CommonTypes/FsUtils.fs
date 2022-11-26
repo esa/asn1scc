@@ -10,6 +10,7 @@
 *)
 
 module FsUtils
+#nowarn "3536"
 
 open System
 open System.Numerics

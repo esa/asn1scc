@@ -1,4 +1,5 @@
 ﻿module LspAst
+#nowarn "3536"
 
 open Antlr.Runtime
 open Antlr.Runtime.Tree

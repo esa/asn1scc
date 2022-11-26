@@ -1,5 +1,6 @@
 ﻿module AcnGenericTypes
 
+#nowarn "3536"
 open System.Numerics
 open System
 open FsUtils

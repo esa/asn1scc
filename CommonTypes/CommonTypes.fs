@@ -1,4 +1,6 @@
 ﻿module CommonTypes
+#nowarn "3536"
+
 open FsUtils
 open System
 open System.Globalization
