@@ -6,8 +6,6 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="AssemblyInfo.fs" />
-    <Compile Include="DAst.fs" />
-    <Compile Include="Language.fs" />
     <Compile Include="DAstUtilFunctions.fs" />
     <Compile Include="DastFold.fs" />
     <Compile Include="DAstAsn1.fs" />
@@ -37,7 +35,6 @@
   </ItemGroup>
     <ItemGroup>
         <Compile Include="AssemblyInfo.fs" />
-        <Compile Include="DAst.fs" />
         <Compile Include="DAstUtilFunctions.fs" />
         <Compile Include="DastFold.fs" />
         <Compile Include="DAstAsn1.fs" />

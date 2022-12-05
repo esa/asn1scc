@@ -7,39 +7,39 @@
 
 
   <ItemGroup>
-      <EmbeddedResource Include="../ADA_RTL2/aux_files/asn1_msp430.gpr"/>
+      <EmbeddedResource Include="../ADA_RTL2/aux_files/asn1_msp430.gpr" />
       
-      <EmbeddedResource Include="../ADA_RTL2/aux_files/asn1_stm32.gpr"/>
-      <EmbeddedResource Include="../ADA_RTL2/aux_files/asn1_x86.gpr"/>
+      <EmbeddedResource Include="../ADA_RTL2/aux_files/asn1_stm32.gpr" />
+      <EmbeddedResource Include="../ADA_RTL2/aux_files/asn1_x86.gpr" />
       
-      <EmbeddedResource Include="../ADA_RTL2/boards/msp430_board_config.ads"/>
-      <EmbeddedResource Include="../ADA_RTL2/boards/stm32_board_config.ads"/>
-      <EmbeddedResource Include="../ADA_RTL2/boards/x86_board_config.ads"/>
+      <EmbeddedResource Include="../ADA_RTL2/boards/msp430_board_config.ads" />
+      <EmbeddedResource Include="../ADA_RTL2/boards/stm32_board_config.ads" />
+      <EmbeddedResource Include="../ADA_RTL2/boards/x86_board_config.ads" />
       
-      <EmbeddedResource Include="../ADA_RTL2/src/adaasn1rtl.ads"/>
-      <EmbeddedResource Include="../ADA_RTL2/src/adaasn1rtl.adb"/>
-      <EmbeddedResource Include="../ADA_RTL2/src/adaasn1rtl-encoding.adb"/>
-      <EmbeddedResource Include="../ADA_RTL2/src/adaasn1rtl-encoding.ads"/>
-      <EmbeddedResource Include="../ADA_RTL2/src/adaasn1rtl-encoding-acn.adb"/>
-      <EmbeddedResource Include="../ADA_RTL2/src/adaasn1rtl-encoding-acn.ads"/>
-      <EmbeddedResource Include="../ADA_RTL2/src/adaasn1rtl-encoding-test_cases_aux.adb"/>
-      <EmbeddedResource Include="../ADA_RTL2/src/adaasn1rtl-encoding-test_cases_aux.ads"/>
-      <EmbeddedResource Include="../ADA_RTL2/src/adaasn1rtl-encoding-uper.adb"/>
-      <EmbeddedResource Include="../ADA_RTL2/src/adaasn1rtl-encoding-uper.ads"/>
-      <EmbeddedResource Include="../ADA_RTL2/src/adaasn1rtl-encoding-xer.adb"/>
-      <EmbeddedResource Include="../ADA_RTL2/src/adaasn1rtl-encoding-xer.ads"/>
-      <EmbeddedResource Include="../asn1crt/asn1crt.h"/>
-      <EmbeddedResource Include="../asn1crt/asn1crt.c"/>
-      <EmbeddedResource Include="../asn1crt/asn1crt_encoding.h"/>
-      <EmbeddedResource Include="../asn1crt/asn1crt_encoding.c"/>
-      <EmbeddedResource Include="../asn1crt/asn1crt_encoding_uper.h"/>
-      <EmbeddedResource Include="../asn1crt/asn1crt_encoding_uper.c"/>
-      <EmbeddedResource Include="../asn1crt/asn1crt_encoding_acn.h"/>
-      <EmbeddedResource Include="../asn1crt/asn1crt_encoding_acn.c"/>
-      <EmbeddedResource Include="../asn1crt/asn1crt_encoding_ber.h"/>
-      <EmbeddedResource Include="../asn1crt/asn1crt_encoding_ber.c"/>
-      <EmbeddedResource Include="../asn1crt/asn1crt_encoding_xer.h"/>
-      <EmbeddedResource Include="../asn1crt/asn1crt_encoding_xer.c"/>
+      <EmbeddedResource Include="../ADA_RTL2/src/adaasn1rtl.ads" />
+      <EmbeddedResource Include="../ADA_RTL2/src/adaasn1rtl.adb" />
+      <EmbeddedResource Include="../ADA_RTL2/src/adaasn1rtl-encoding.adb" />
+      <EmbeddedResource Include="../ADA_RTL2/src/adaasn1rtl-encoding.ads" />
+      <EmbeddedResource Include="../ADA_RTL2/src/adaasn1rtl-encoding-acn.adb" />
+      <EmbeddedResource Include="../ADA_RTL2/src/adaasn1rtl-encoding-acn.ads" />
+      <EmbeddedResource Include="../ADA_RTL2/src/adaasn1rtl-encoding-test_cases_aux.adb" />
+      <EmbeddedResource Include="../ADA_RTL2/src/adaasn1rtl-encoding-test_cases_aux.ads" />
+      <EmbeddedResource Include="../ADA_RTL2/src/adaasn1rtl-encoding-uper.adb" />
+      <EmbeddedResource Include="../ADA_RTL2/src/adaasn1rtl-encoding-uper.ads" />
+      <EmbeddedResource Include="../ADA_RTL2/src/adaasn1rtl-encoding-xer.adb" />
+      <EmbeddedResource Include="../ADA_RTL2/src/adaasn1rtl-encoding-xer.ads" />
+      <EmbeddedResource Include="../asn1crt/asn1crt.h" />
+      <EmbeddedResource Include="../asn1crt/asn1crt.c" />
+      <EmbeddedResource Include="../asn1crt/asn1crt_encoding.h" />
+      <EmbeddedResource Include="../asn1crt/asn1crt_encoding.c" />
+      <EmbeddedResource Include="../asn1crt/asn1crt_encoding_uper.h" />
+      <EmbeddedResource Include="../asn1crt/asn1crt_encoding_uper.c" />
+      <EmbeddedResource Include="../asn1crt/asn1crt_encoding_acn.h" />
+      <EmbeddedResource Include="../asn1crt/asn1crt_encoding_acn.c" />
+      <EmbeddedResource Include="../asn1crt/asn1crt_encoding_ber.h" />
+      <EmbeddedResource Include="../asn1crt/asn1crt_encoding_ber.c" />
+      <EmbeddedResource Include="../asn1crt/asn1crt_encoding_xer.h" />
+      <EmbeddedResource Include="../asn1crt/asn1crt_encoding_xer.c" />
   </ItemGroup>
 
   <ItemGroup>

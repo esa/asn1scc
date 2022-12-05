@@ -245,13 +245,13 @@ let createInitFunctionCommon (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros)   (o:Asn
                         //sprintf ("%s %s (%s)%s;")  (lm.lg.getValue p.arg) lm.lg.AssignOperator tdName globalName.Value
                     let func = initTypeAssignment varName sStar funcName  tdName funcBody []
                     let funcDef = initTypeAssignment_def varName sStar funcName  (lm.lg.getLongTypedefName typeDefinition)
-                    Some {|funcName = funcName; def = funcDef; body=func|}
+                    Some {InitProcedure0.funcName = funcName; def = funcDef; body=func}
                 | false ->
                     let res = initTasFunction p 
                     let lvars = res.localVariables |> List.map(fun (lv:LocalVariable) -> lm.lg.getLocalVariableDeclaration lv) |> List.distinct
                     let func = initTypeAssignment varName sStar funcName  tdName res.funcBody lvars
                     let funcDef = initTypeAssignment_def varName sStar funcName  (lm.lg.getLongTypedefName typeDefinition)
-                    Some {|funcName = funcName; def = funcDef; body=func|}
+                    Some {InitProcedure0.funcName = funcName; def = funcDef; body=func}
 
 
     {
@@ -259,7 +259,7 @@ let createInitFunctionCommon (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros)   (o:Asn
         initExpressionGlobal    = initExpressionGlobal
         initProcedure           = initProcedure
         initFunction  = 
-                funcName |> Option.map(fun n -> {|funcName = n; def = initDef tdName n initExpression; body=initBody tdName n initExpression|})
+                funcName |> Option.map(fun n -> {InitProcedure0.funcName = n; def = initDef tdName n initExpression; body=initBody tdName n initExpression})
         initGlobal = 
                 globalName |> Option.map(fun n -> {|globalName = n; def = initDef tdName n initExpressionGlobal; body=initBody tdName n initExpressionGlobal|})
         initTas                 = initTasFunction

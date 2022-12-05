@@ -878,8 +878,8 @@ let createBitStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
                 let createBitStringFunction_extfld  (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.BitString) (errCode:ErroCode) (p:CallerScope) (extField:string) (codec:CommonTypes.Codec) : (string*ErroCode list*LocalVariable list) = 
                     let fncBody = 
                         match o.minSize.uper = o.maxSize.uper with
-                        | true  -> lm.acn.bit_string_external_field_fixed_size p.arg.p errCode.errCodeName (getAcces_c p.arg) (if o.minSize.acn=0I then None else Some ( o.minSize.acn)) ( o.maxSize.acn) extField codec
-                        | false  -> lm.acn.bit_string_external_field p.arg.p errCode.errCodeName (getAcces_c p.arg) (if o.minSize.acn=0I then None else Some ( o.minSize.acn)) ( o.maxSize.acn) extField codec
+                        | true  -> lm.acn.bit_string_external_field_fixed_size p.arg.p errCode.errCodeName (lm.lg.getAcces p.arg) (if o.minSize.acn=0I then None else Some ( o.minSize.acn)) ( o.maxSize.acn) extField codec
+                        | false  -> lm.acn.bit_string_external_field p.arg.p errCode.errCodeName (lm.lg.getAcces p.arg) (if o.minSize.acn=0I then None else Some ( o.minSize.acn)) ( o.maxSize.acn) extField codec
                     (fncBody, [errCode], [])
 
                 
@@ -894,7 +894,7 @@ let createBitStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
                     let byteArray = bitStringValueToByteArray bitPatten8.AsLoc
                     let i = sprintf "i%d" (t.id.SeqeuenceOfLevel + 1)
                     let lv = SequenceOfIndex (t.id.SeqeuenceOfLevel + 1, None)
-                    let fncBody = lm.acn.bit_string_null_terminated p.arg.p errCode.errCodeName (getAcces_c p.arg) i (if o.minSize.acn=0I then None else Some ( o.minSize.acn)) ( o.maxSize.acn) byteArray bitPattern.Value.Length.AsBigInt codec
+                    let fncBody = lm.acn.bit_string_null_terminated p.arg.p errCode.errCodeName (lm.lg.getAcces p.arg) i (if o.minSize.acn=0I then None else Some ( o.minSize.acn)) ( o.maxSize.acn) byteArray bitPattern.Value.Length.AsBigInt codec
                     (fncBody, [errCode], [])
 
                 let ret = createBitStringFunction_term_pat t o errCode p codec bitPattern
@@ -902,12 +902,12 @@ let createBitStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
                 Some ret
             | SZ_EC_FIXED_SIZE       ->
                 let fncBody = 
-                    bitString_FixSize p.arg.p (getAcces_c p.arg) o.minSize.acn errCode.errCodeName codec
+                    bitString_FixSize p.arg.p (lm.lg.getAcces p.arg) o.minSize.acn errCode.errCodeName codec
                 Some(fncBody, [errCode],[])
 
             | SZ_EC_LENGTH_EMBEDDED nSizeInBits -> 
                 let fncBody =
-                    bitString_VarSize p.arg.p (getAcces_c p.arg) o.minSize.acn o.maxSize.acn errCode.errCodeName nSizeInBits codec
+                    bitString_VarSize p.arg.p (lm.lg.getAcces p.arg) o.minSize.acn o.maxSize.acn errCode.errCodeName nSizeInBits codec
                 let nStringLength =
                     match codec with
                     | Encode -> []

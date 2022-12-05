@@ -28,6 +28,7 @@
     <Compile Include="IUper_a.stg.fs" />
     <Compile Include="IAcn_a.stg.fs" />
     <Compile Include="ITestCases_a.stg.fs" />
+    <Compile Include="LangGeneric_a.fs" />
   </ItemGroup>
 
   <ItemGroup>
@@ -70,10 +71,27 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\FrontEndAst\FrontEndAst.fsproj" />
     <ProjectReference Include="..\ST\ST.fsproj" />
   </ItemGroup>
-    
-    <Target Name="PreBuild" BeforeTargets="PreBuildEvent">
+
+	<ItemGroup>
+		<Reference Include="antlr.runtime">
+			<HintPath>..\Antlr\antlr313\antlr.runtime.dll</HintPath>
+		</Reference>
+		<Reference Include="Antlr3.Runtime">
+			<HintPath>..\Antlr\antlr313\Antlr3.Runtime.dll</HintPath>
+		</Reference>
+		<Reference Include="Antlr3.Utility">
+			<HintPath>..\Antlr\antlr313\Antlr3.Utility.dll</HintPath>
+		</Reference>
+		<Reference Include="StringTemplate">
+			<HintPath>..\Antlr\antlr313\StringTemplate.dll</HintPath>
+		</Reference>
+	</ItemGroup>
+
+
+	<Target Name="PreBuild" BeforeTargets="PreBuildEvent">
         <Exec Command="dotnet $(ProjectDir)../parseStg2/bin/$(ConfigurationName)/$(TargetFramework)/parseStg2.dll $(ProjectDir)backends.xml 3" />
     </Target>
 

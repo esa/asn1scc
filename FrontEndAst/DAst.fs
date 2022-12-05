@@ -214,12 +214,18 @@ type AutomaticTestCase = {
     testCaseTypeIDsMap      : Map<ReferenceToType, TestCaseValue>    //used by ACN to produce valid test cases
 }
 
+type InitProcedure0 = {
+    funcName:string; 
+    def:string; 
+    body:string 
+}
+
 type InitFunction = {
     initExpression          : string               // an expression that provides the default initialization. 
     initExpressionGlobal    : string               // an expression that provides the default initialization. 
                                                           //It is usually present except of some rare cases such as an empty sequence (for C only) etc
-    initProcedure           : {|funcName:string; def:string; body:string |} option
-    initFunction            : {|funcName:string; def:string; body:string |} option                      // an expression that initializes the given type to a default value.
+    initProcedure           : InitProcedure0 option
+    initFunction            : InitProcedure0 option                      // an expression that initializes the given type to a default value.
     initGlobal              : {|globalName:string; def:string; body:string |} option                      // an expression that initializes the given type to a default value.
 
     initTas                 : (CallerScope  -> InitFunctionResult)              // returns the statement(s) that defaults initialize this type (used in the init function)

@@ -485,8 +485,8 @@ let createBitStringFunction_funcBody (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros)
             | false, Decode -> [lm.lg.uper.count_var]
         
         match minSize with
-        | _ when maxSize < 65536I && isFixedSize   -> bitString_FixSize p.arg.p (getAcces_c p.arg) (minSize) errCode.errCodeName codec , nStringLength
-        | _ when maxSize < 65536I && (not isFixedSize)  -> bitString_VarSize p.arg.p (getAcces_c p.arg) (minSize) (maxSize) errCode.errCodeName nSizeInBits codec, nStringLength
+        | _ when maxSize < 65536I && isFixedSize   -> bitString_FixSize p.arg.p (lm.lg.getAcces p.arg) (minSize) errCode.errCodeName codec , nStringLength
+        | _ when maxSize < 65536I && (not isFixedSize)  -> bitString_VarSize p.arg.p (lm.lg.getAcces p.arg) (minSize) (maxSize) errCode.errCodeName nSizeInBits codec, nStringLength
         | _                                                -> 
             let funcBodyContent, fragmentationLvars = handleFragmentation lm p codec errCode ii uperMaxSizeInBits minSize maxSize internalItem 1I true false
             let fragmentationLvars = fragmentationLvars |> List.addIf ((not isFixedSize) &&  lm.lg.uper.requires_sBLJ) (iVar)
