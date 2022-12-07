@@ -110,7 +110,7 @@ let internal createProgramUnits (args:CommandLineSettings) (files: Asn1File list
                     let impFile = files |> Seq.find(fun f -> f.Modules |> Seq.exists (fun md -> md.Name.Value = imp.Name.Value) )
                     impFile.FileNameWithoutExtension) |> 
                 Seq.distinct |> Seq.toList
-            let importedProgramUnits = importedProgramUnits
+
             let importedTypes = 
                 importedModules |>
                 Seq.collect(fun imp -> imp.Types |> List.map (fun impType ->{TypeAssignmentInfo.modName = imp.Name.Value; tasName = impType.Value}  )) |> 
@@ -196,7 +196,7 @@ let internal createProgramUnits (args:CommandLineSettings) (files: Asn1File list
                             //getFuncNameGeneric2 args t.tasInfo t.inheritInfo rtlPrimitve t.typeDefintionOrReference) |>
                         List.map(fun td -> (ToC ts.modName) + "." + td) |> List.distinct
 
-                    aaa) 
+                    aaa) |> List.distinct
                 //Seq.map(fun ti -> (ToC ti.modName) + "." + (ToC (args.TypePrefix + ti.tasName)) ) |> Seq.distinct |> Seq.toList
 
             let mappingFunctionsModules = sortedTypes |> List.map(fun t -> GetMySelfAndChildren t.Type |> List.map(fun q -> q.MappingFunctionsModules) |> List.collect id) |> List.collect id |> List.distinct

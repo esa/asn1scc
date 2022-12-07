@@ -14,6 +14,7 @@
     <modName>body_c</modName>
 	<lang>c</lang>
     <abctractInterface   modMame="ISrcBody">ISrcBody.stg.fs</abctractInterface>
+    <implementationClass ifModMame="AbstractMacros.ISrcBody" modMame="ISrcBody_c">ISrcBody_c.stg.fs</implementationClass>
   </run>
   <run mode="single">
     <input>variables_c.stg</input>

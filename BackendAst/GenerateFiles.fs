@@ -22,16 +22,21 @@ let rec getValidFunctions (isValidFunction:IsValidFunction) =
     } |> Seq.toList
 
 
-let printValueAssignment (r:DAst.AstRoot) (vasPU_name:string) (l:ProgrammingLanguage) (lm:LanguageMacros) (vas:ValueAssignment) =
+let printHeaderFileValueAssignment (r:DAst.AstRoot) (vasPU_name:string)  (lm:LanguageMacros) (vas:ValueAssignment) =
     let sName = vas.c_name
     let t = vas.Type
     let sTypeDecl= getTypeDecl r vasPU_name lm vas
 
     let sVal = DAstVariables.printValue r  lm vasPU_name vas.Type None vas.Value.kind
-    match l with
-    | C     -> lm.vars.PrintValueAssignment sTypeDecl sName sVal
-    | Ada   -> header_a.PrintValueAssignment sName sTypeDecl sVal
+    lm.typeDef.PrintValueAssignment sName sTypeDecl  sVal
 
+let printSourceFileValueAssignment (r:DAst.AstRoot) (vasPU_name:string)  (lm:LanguageMacros) (vas:ValueAssignment) =
+    let sName = vas.c_name
+    let t = vas.Type
+    let sTypeDecl= getTypeDecl r vasPU_name lm vas
+
+    let sVal = DAstVariables.printValue r  lm vasPU_name vas.Type None vas.Value.kind
+    lm.vars.PrintValueAssignment sName sTypeDecl  sVal
 
 let rec collectEqualFuncs (t:Asn1Type) =
     seq {
@@ -61,7 +66,7 @@ let rec collectEqualFuncs (t:Asn1Type) =
     } |> Seq.toList
 
 
-let private printUnit (r:DAst.AstRoot) (l:ProgrammingLanguage) (lm:LanguageMacros) (encodings: CommonTypes.Asn1Encoding list) outDir (pu:ProgramUnit)  =
+let private printUnit (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTypes.Asn1Encoding list) outDir (pu:ProgramUnit)  =
     let tases = pu.sortedTypeAssignments
     let printChildrenIsValidFuncs (t:Asn1Type) =
         match t.Kind with
@@ -139,43 +144,14 @@ let private printUnit (r:DAst.AstRoot) (l:ProgrammingLanguage) (lm:LanguageMacro
                 | _ -> None 
 
             let allProcs = equal_defs@isValidFuncs@special_init_funcs@([init_globals;init_def;uPerEncFunc;uPerDecFunc;acnEncFunc; acnDecFunc;xerEncFunc;xerDecFunc] |> List.choose id)
-            match l with
-            |C     -> header_c.Define_TAS type_defintion allProcs 
-            |Ada   -> header_a.Define_TAS type_defintion allProcs 
+            lm.typeDef.Define_TAS type_defintion allProcs 
         )
     let arrsValues = 
         vases |>
-        List.map(fun gv -> 
-            let t = gv.Type
-
-            match l with
-            | C     -> 
-                match t.Kind with
-                | Integer _
-                | Real _
-                | Boolean _     -> 
-                    let typeDefinitionName = match t.tasInfo with| Some tasInfo    -> ToC2(r.args.TypePrefix + tasInfo.tasName) | None    -> t.typeDefintionOrReference.longTypedefName l //t.typeDefinition.typeDefinitionBodyWithinSeq
-                    header_c.PrintValueAssignment gv.c_name (typeDefinitionName) ""
-                | ReferenceType ref ->
-                    let typeDefinitionName = ToC2(r.args.TypePrefix + ref.baseInfo.tasName.Value)
-//                        match l with
-//                        | C     ->  
-//                        | Ada   ->
-//                            match ToC ref.baseInfo.modName.Value = pu.name with
-//                            | true  -> ToC2(r.args.TypePrefix + ref.baseInfo.tasName.Value) 
-//                            | false -> (ToC ref.baseInfo.modName.Value) + "." + ToC2(r.args.TypePrefix + ref.baseInfo.tasName.Value) 
-                    header_c.PrintValueAssignment gv.c_name (typeDefinitionName) ""
-                | _             -> 
-                    let typeDefinitionName = match t.tasInfo with| Some tasInfo    -> ToC2(r.args.TypePrefix + tasInfo.tasName) | None    -> t.typeDefintionOrReference.longTypedefName l//t.typeDefinition.name
-                    header_c.PrintValueAssignment gv.c_name (typeDefinitionName) ""
-            | Ada   -> printValueAssignment r pu.name l lm gv)
+        List.map(fun gv -> printHeaderFileValueAssignment r pu.name lm gv)
     let arrsHeaderAnonymousValues =
         arrsAnonymousValues |>
-        List.map(fun av -> 
-            match l with
-            | C     -> header_c.PrintValueAssignment av.valueName av.typeDefinitionName ""
-            | Ada   -> 
-                header_a.PrintValueAssignment av.valueName av.typeDefinitionName av.valueExpresion)
+        List.map(fun av -> lm.typeDef.PrintValueAssignment av.valueName av.typeDefinitionName "")
     
 
     let arrsPrototypes = []
@@ -185,11 +161,8 @@ let private printUnit (r:DAst.AstRoot) (l:ProgrammingLanguage) (lm:LanguageMacro
     let bXer = r.args.encodings |> Seq.exists ((=) XER) 
     let arrsUtilityDefines = []
     let defintionsContntent =
-        match l with
-        | C     -> 
-            header_c.PrintSpecificationFile sFileNameWithNoExtUpperCase pu.name pu.importedProgramUnits typeDefs (arrsValues@arrsHeaderAnonymousValues) arrsPrototypes arrsUtilityDefines (not r.args.encodings.IsEmpty) bXer
-        | Ada   -> 
-            header_a.PrintSpecificationFile sFileNameWithNoExtUpperCase pu.name pu.importedProgramUnits typeDefs (arrsValues@arrsHeaderAnonymousValues) arrsPrototypes arrsUtilityDefines (not r.args.encodings.IsEmpty) bXer
+        lm.typeDef.PrintSpecificationFile sFileNameWithNoExtUpperCase pu.name pu.importedProgramUnits typeDefs (arrsValues@arrsHeaderAnonymousValues) arrsPrototypes arrsUtilityDefines (not r.args.encodings.IsEmpty) bXer
+        
     let fileName = Path.Combine(outDir, pu.specFileName)
     File.WriteAllText(fileName, defintionsContntent.Replace("\r",""))
 
@@ -209,10 +182,7 @@ let private printUnit (r:DAst.AstRoot) (l:ProgrammingLanguage) (lm:LanguageMacro
                         yield (tas.Type.acnEncDecTestFunc |> Option.map (fun z -> z.funcDef))
                 } |> Seq.choose id |> Seq.toList
         let tetscase_specFileName = Path.Combine(outDir, pu.tetscase_specFileName)
-        let tstCasesHdrContent =
-            match l with
-            | C     -> test_cases_c.PrintAutomaticTestCasesSpecFile (ToC pu.tetscase_specFileName) pu.name pu.importedProgramUnits typeDefs
-            | Ada   -> test_cases_a.PrintAutomaticTestCasesSpecFile (ToC pu.tetscase_specFileName) pu.name pu.importedProgramUnits typeDefs
+        let tstCasesHdrContent = lm.atc.PrintAutomaticTestCasesSpecFile (ToC pu.tetscase_specFileName) pu.name pu.importedProgramUnits typeDefs
         File.WriteAllText(tetscase_specFileName, tstCasesHdrContent.Replace("\r",""))
         
     //sourse file
@@ -273,41 +243,30 @@ let private printUnit (r:DAst.AstRoot) (l:ProgrammingLanguage) (lm:LanguageMacro
                     | CommonTypes.Decode    -> match t.Type.acnDecFunction with None -> None | Some x -> x.func
                 | false     -> None
             let allProcs =  eqFuncs@isValidFuncs@special_init_funcs@([init_globals;initialize; (uperEncDec CommonTypes.Encode); (uperEncDec CommonTypes.Decode);(ancEncDec CommonTypes.Encode); (ancEncDec CommonTypes.Decode);(xerEncDec CommonTypes.Encode); (xerEncDec CommonTypes.Decode)] |> List.choose id)
-            match l with
-            | C     ->  body_c.printTass allProcs 
-            | Ada   ->  body_a.printTass allProcs )
+            lm.src.printTass allProcs )
+
+
+    let arrsValueAssignments, arrsSourceAnonymousValues = 
+        match lm.lg.requiresValueAssignmentsInSrcFile with
+        | true -> 
+            let arrsValueAssignments = vases |> List.map (printSourceFileValueAssignment r pu.name lm)
+            let arrsSourceAnonymousValues =  arrsAnonymousValues |> List.map (fun av -> lm.vars.PrintValueAssignment av.typeDefinitionName av.valueName av.valueExpresion)
+            arrsValueAssignments, arrsSourceAnonymousValues
+        | false ->
+            [], []
+    let rtlFiles = lm.lg.getRtlFiles r.args.encodings arrsTypeAssignments
+    let arrsImportedFiles = rtlFiles@pu.importedUserModules@pu.importedProgramUnits |> List.distinct
+    let srcBody = lm.src.printSourceFile pu.name arrsImportedFiles pu.importedTypes (arrsValueAssignments@arrsSourceAnonymousValues@arrsTypeAssignments)
+    
     let eqContntent = 
-        match l with
-        | C     ->
-            let arrsUnnamedVariables = []
-            let arrsValueAssignments = vases |> List.map (printValueAssignment r pu.name l lm)
-            let arrsSourceAnonymousValues = 
-                arrsAnonymousValues |>
-                List.map (fun av -> lm.vars.PrintValueAssignment av.typeDefinitionName av.valueName av.valueExpresion)
-
-            let encRtl = match r.args.encodings |> Seq.exists(fun e -> e = UPER || e = ACN ) with true -> ["asn1crt_encoding"] | false -> []
-            let uperRtl = match r.args.encodings |> Seq.exists(fun e -> e = UPER || e = ACN) with true -> ["asn1crt_encoding_uper"] | false -> []
-            let acnRtl = match r.args.encodings |> Seq.exists(fun e -> e = ACN) with true -> ["asn1crt_encoding_acn"] | false -> []
-            let xerRtl = match r.args.encodings |> Seq.exists(fun e -> e = XER) with true -> ["asn1crt_encoding_xer"] | false -> []
-            let arrsImportedRtlFiles = encRtl@uperRtl@acnRtl@xerRtl@pu.importedUserModules
-
-            Some (body_c.printSourceFile pu.name arrsImportedRtlFiles arrsUnnamedVariables (arrsValueAssignments@arrsSourceAnonymousValues) arrsTypeAssignments)
-        | Ada   ->
-            let arrsNegativeReals = []
-            let arrsBoolPatterns = []
-            let arrsChoiceValueAssignments = []
-            let uperRtl = match r.args.encodings |> Seq.exists(fun e -> e = UPER || e = ACN) with true -> ["adaasn1rtl.encoding.uper"] | false -> []
-            let acnRtl = 
-                //match r.args.encodings |> Seq.exists(fun e -> e = ACN) with true -> ["adaasn1rtl.encoding.acn"] | false -> []
-                match arrsTypeAssignments |> Seq.exists(fun s -> s.Contains "adaasn1rtl.encoding.acn") with true -> ["adaasn1rtl.encoding.acn"] | false -> []
-            let xerRtl = match r.args.encodings |> Seq.exists(fun e -> e = XER) with true -> ["adaasn1rtl.encoding.xer"] | false -> []
-
-            //adaasn1rtl.encoding is included by .uper or .acn or .xer. So, do not include it otherwise you get a warning
-            let encRtl = []//match r.args.encodings |> Seq.exists(fun e -> e = UPER || e = ACN || e = XER) with true -> [] | false -> ["adaasn1rtl.encoding"]
-            let rtl = (*[body_a.rtlModuleName()]@*)encRtl@uperRtl@acnRtl@xerRtl@pu.importedUserModules |> List.distinct
+        match lm.lg.allowsSrcFilesWithNoFunctions with
+        | true     ->
+            Some srcBody
+        | false   ->
             match arrsTypeAssignments with
             | []    -> None
-            | _     -> Some (body_a.PrintPackageBody pu.name  (rtl@pu.importedProgramUnits) arrsNegativeReals arrsBoolPatterns arrsTypeAssignments arrsChoiceValueAssignments (pu.importedTypes |> List.distinct))
+            | _     -> Some srcBody
+
     match eqContntent with
     | Some eqContntent ->
         let fileName = Path.Combine(outDir, pu.bodyFileName)
@@ -333,105 +292,27 @@ let private printUnit (r:DAst.AstRoot) (l:ProgrammingLanguage) (lm:LanguageMacro
         let tetscase_SrcFileName = Path.Combine(outDir, pu.tetscase_bodyFileName)
         let bXer = r.args.encodings |> Seq.exists((=) XER)
         let tstCasesHdrContent =
-            match l with
-            | C     -> Some (test_cases_c.PrintAutomaticTestCasesBodyFile pu.name pu.tetscase_specFileName pu.importedProgramUnits [] encDecFuncs bXer)
-            | Ada   -> 
+            match lm.lg.allowsSrcFilesWithNoFunctions with
+            | true     -> Some (lm.atc.PrintAutomaticTestCasesBodyFile pu.name pu.tetscase_specFileName pu.importedProgramUnits [] encDecFuncs bXer)
+            | false   -> 
                 match encDecFuncs with
                 | []    -> None
-                | _     -> Some (test_cases_a.PrintAutomaticTestCasesBodyFile pu.name pu.tetscase_specFileName pu.importedProgramUnits [] encDecFuncs bXer)
+                | _     -> Some (lm.atc.PrintAutomaticTestCasesBodyFile pu.name pu.tetscase_specFileName pu.importedProgramUnits [] encDecFuncs bXer)
         
         tstCasesHdrContent |> Option.iter(fun tstCasesHdrContent -> File.WriteAllText(tetscase_SrcFileName, tstCasesHdrContent.Replace("\r","")))
 
 
-let CreateCMainFile (r:AstRoot)  (l:ProgrammingLanguage) outDir  =
-    //Main file for test cass    
-    let printMain =    test_cases_c.PrintMain //match l with C -> test_cases_c.PrintMain | Ada -> test_cases_c.PrintMain
-    let content = printMain DastTestCaseCreation.TestSuiteFileName
-    let outFileName = Path.Combine(outDir, "mainprogram.c")
-    File.WriteAllText(outFileName, content.Replace("\r",""))
 
-
-let CreateMakeFile (r:AstRoot) (l:ProgrammingLanguage) (di:DirInfo) =
-    match l with
-    | C ->
-        let files = r.Files |> Seq.map(fun x -> x.FileNameWithoutExtension.ToLower() )
-        let content = aux_c.PrintMakeFile files (r.args.integerSizeInBytes = 4I) (r.args.floatingPointSizeInBytes = 4I) r.args.streamingModeSupport
-        let outFileName = Path.Combine(di.srcDir, "Makefile")
-        File.WriteAllText(outFileName, content.Replace("\r",""))
-    | Ada ->
-        let boardNames = OutDirectories.getBoardNames l r.args.target
-        let writeBoard boardName = 
-            let mods = aux_a.rtlModuleName()::(r.programUnits |> List.map(fun pu -> pu.name.ToLower() ))
-            let content = aux_a.PrintMakeFile boardName (sprintf "asn1_%s.gpr" boardName) mods
-            let fileName = if boardNames.Length = 1 || boardName = "x86" then "Makefile" else ("Makefile." + boardName)
-            let outFileName = Path.Combine(di.rootDir, fileName)
-            File.WriteAllText(outFileName, content.Replace("\r",""))
-        OutDirectories.getBoardNames l r.args.target |> List.iter writeBoard
-
-
-let private CreateAdaIndexFile (r:AstRoot) bGenTestCases outDir boardsDirName =
-    let mods = r.programUnits |> Seq.map(fun x -> (ToC x.name).ToLower()) |>Seq.toList
-    //let mds = match bGenTestCases with
-    //            | true  -> mods @ (modules |> Seq.filter(fun x -> ModuleHasAutoCodecs x r) |> Seq.map(fun x -> (ToC x.Name.Value+"_auto_encs_decs").ToLower() ) |>Seq.toList)
-    //            | false -> mods
-    let mds = mods
-    let fullPath = (System.IO.Path.GetFullPath outDir) + System.String(System.IO.Path.DirectorySeparatorChar,1)
-    let lines = (header_a.rtlModuleName())::mds |> List.map(fun x -> aux_a.PrintLineInIndexFile x fullPath)
-    let content = match bGenTestCases with
-                    | true    -> aux_a.PrintIndexFile ("mainprogram    main_program  is in MainProgram.adb"::lines)
-                    | false   -> aux_a.PrintIndexFile lines
-    let outFileName = Path.Combine(outDir, "spark.idx")
-    File.WriteAllText(outFileName, content.Replace("\r",""))
-
-
-let generateVisualStudtioProject (r:DAst.AstRoot) outDir (arrsSrcTstFilesX, arrsHdrTstFilesX) =
-    //generate Visual Studio project file
-//    let extrSrcFiles, extrHdrFiles = 
-//        match r.args.encodings |> List.exists ((=) Asn1Encoding.XER) with
-//        | false     -> [],[]
-//        | true      -> ["xer.c"],["xer.h"]
-
-    let extrSrcFiles, extrHdrFiles = 
-        r.args.encodings |> 
-        List.collect(fun e -> 
-            match e with
-            | Asn1Encoding.UPER -> ["asn1crt_encoding";"asn1crt_encoding_uper"]
-            | Asn1Encoding.ACN  -> ["asn1crt_encoding";"asn1crt_encoding_uper"; "asn1crt_encoding_acn"]
-            | Asn1Encoding.BER  -> ["asn1crt_encoding";"asn1crt_encoding_ber"]
-            | Asn1Encoding.XER  -> ["asn1crt_encoding";"asn1crt_encoding_xer"]
-        ) |> 
-        List.distinct |>
-        List.map(fun a -> a + ".c", a + ".h") |>
-        List.unzip
-
-    let arrsSrcTstFiles = (r.programUnits |> List.map (fun z -> z.tetscase_bodyFileName))
-    let arrsHdrTstFiles = (r.programUnits |> List.map (fun z -> z.tetscase_specFileName))
-    let vcprjContent = xml_outputs.emitVisualStudioProject 
-                        ((r.programUnits |> List.map (fun z -> z.bodyFileName))@extrSrcFiles)
-                        ((r.programUnits |> List.map (fun z -> z.specFileName))@extrHdrFiles)
-                        (arrsSrcTstFiles@arrsSrcTstFilesX)
-                        (arrsHdrTstFiles@arrsHdrTstFilesX)
-    let vcprjFileName = Path.Combine(outDir, "VsProject.vcxproj")
-    File.WriteAllText(vcprjFileName, vcprjContent)
-
-    //generate Visual Studio Solution file
-    File.WriteAllText((Path.Combine(outDir, "VsProject.sln")), (aux_c.emitVisualStudioSolution()))
 
 
 let generateAll (di:DirInfo) (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTypes.Asn1Encoding list)  =
-    r.programUnits |> Seq.iter (printUnit r r.lang lm encodings di.srcDir)
+    r.programUnits |> Seq.iter (printUnit r lm encodings di.srcDir)
     match r.args.generateAutomaticTestCases with
     | false -> ()
     | true  -> 
-        CreateMakeFile r r.lang di
-        let arrsSrcTstFiles, arrsHdrTstFiles = DastTestCaseCreation.printAllTestCases r lm di.srcDir
-        match r.lang with
-        | C    -> 
-            CreateCMainFile r  ProgrammingLanguage.C di.srcDir
-
-            generateVisualStudtioProject r di.srcDir (arrsSrcTstFiles, arrsHdrTstFiles)
-        | Ada  -> 
-            ()
+        lm.lg.CreateMakeFile r di
+        let arrsSrcTstFiles, arrsHdrTstFiles = DastTestCaseCreation.printAllTestCasesAndTestCaseRunner r lm di.srcDir
+        lm.lg.CreateAuxFiles r di (arrsSrcTstFiles, arrsHdrTstFiles)
 
 
 

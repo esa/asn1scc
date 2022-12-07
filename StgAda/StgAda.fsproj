@@ -28,6 +28,7 @@
     <Compile Include="IUper_a.stg.fs" />
     <Compile Include="IAcn_a.stg.fs" />
     <Compile Include="ITestCases_a.stg.fs" />
+    <Compile Include="ISrcBody_a.stg.fs" />
     <Compile Include="LangGeneric_a.fs" />
   </ItemGroup>
 

@@ -166,7 +166,7 @@ PrintChoiceValue(sTasName, sChildName, sChildVal, sChildNamePresent, bUseUncheck
 >>
 
 
-PrintValueAssignment(sTypeDecl, sName, sValue) ::= <<
+PrintValueAssignment(sName, sTypeDecl, sValue) ::= <<
 const <sTypeDecl> <sName> = <sValue>;
 >>
 

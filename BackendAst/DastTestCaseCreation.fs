@@ -138,7 +138,7 @@ let emitDummyInitStatementsNeededForStatementCoverage (lm:Language.LanguageMacro
                 Some (emitTestCaseAsFunc_dummy_init_function lm sTypeName initProc.funcName dummyVarName) )
 
 
-let printAllTestCases (r:DAst.AstRoot) (lm:LanguageMacros) outDir =
+let printAllTestCasesAndTestCaseRunner (r:DAst.AstRoot) (lm:LanguageMacros) outDir =
     let tcFunctors = 
         seq {
             for m in r.Files |> List.collect(fun f -> f.Modules) do

@@ -12,6 +12,7 @@
     <output>body_a.stg.fs</output>
     <modName>body_a</modName>
 	<lang>Ada</lang>
+    <implementationClass ifModMame="AbstractMacros.ISrcBody" modMame="ISrcBody_a">ISrcBody_a.stg.fs</implementationClass>
   </run>
   <run mode="single">
     <input>variables_a.stg</input>

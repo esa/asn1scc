@@ -4,6 +4,7 @@ open System.Numerics
 open DAst
 open FsUtils
 open Language
+open System.IO
 
 let getAcces_c  (fpt:FuncParamType) =
     match fpt with
@@ -105,6 +106,15 @@ type LangGeneric_c() =
         override this.getAsn1ChildBackendName0 (ch:Asn1AcnAst.Asn1Child) = ch._c_name
         override this.getAsn1ChChildBackendName0 (ch:Asn1AcnAst.ChChildInfo) = ch._c_name
 
+        override this.getRtlFiles  (encodings:Asn1Encoding list) (_ :string list) =
+            let encRtl = match encodings |> Seq.exists(fun e -> e = UPER || e = ACN ) with true -> ["asn1crt_encoding"] | false -> []
+            let uperRtl = match encodings |> Seq.exists(fun e -> e = UPER || e = ACN) with true -> ["asn1crt_encoding_uper"] | false -> []
+            let acnRtl = match encodings |> Seq.exists(fun e -> e = ACN) with true -> ["asn1crt_encoding_acn"] | false -> []
+            let xerRtl = match encodings |> Seq.exists(fun e -> e = XER) with true -> ["asn1crt_encoding_xer"] | false -> []
+            encRtl@uperRtl@acnRtl@xerRtl
+            
+
+
         override this.getEmptySequenceInitExpression () = "{}"
         override this.callFuncWithNoArgs () = "()"
         override this.rtlModuleName  = ""
@@ -131,6 +141,8 @@ type LangGeneric_c() =
         override _.getValueAssignmentName (vas: ValueAssignment) = vas.c_name
 
         override this.hasModules = false
+        override this.allowsSrcFilesWithNoFunctions = true
+        override this.requiresValueAssignmentsInSrcFile = true
         override this.supportsStaticVerification = false
         
         override this.getSeqChild (fpt:FuncParamType) (childName:string) (childTypeIsString: bool) =
@@ -283,5 +295,50 @@ type LangGeneric_c() =
                 berPrefix            = "BER_"
             }
 
+        override this.CreateMakeFile (r:AstRoot)  (di:OutDirectories.DirInfo) =
+            let files = r.Files |> Seq.map(fun x -> (Path.GetFileNameWithoutExtension x.FileName).ToLower() )
+            let content = aux_c.PrintMakeFile files (r.args.integerSizeInBytes = 4I) (r.args.floatingPointSizeInBytes = 4I) r.args.streamingModeSupport
+            let outFileName = Path.Combine(di.srcDir, "Makefile")
+            File.WriteAllText(outFileName, content.Replace("\r",""))
+
+        override this.CreateAuxFiles (r:AstRoot)  (di:OutDirectories.DirInfo) (arrsSrcTstFiles : string list, arrsHdrTstFiles:string list) =
+            let CreateCMainFile (r:AstRoot)  outDir  =
+                //Main file for test cass    
+                let printMain =    test_cases_c.PrintMain //match l with C -> test_cases_c.PrintMain | Ada -> test_cases_c.PrintMain
+                let content = printMain "testsuite"
+                let outFileName = Path.Combine(outDir, "mainprogram.c")
+                File.WriteAllText(outFileName, content.Replace("\r",""))
+
+
+            let generateVisualStudtioProject (r:DAst.AstRoot) outDir (arrsSrcTstFilesX, arrsHdrTstFilesX) =
+                let extrSrcFiles, extrHdrFiles = 
+                    r.args.encodings |> 
+                    List.collect(fun e -> 
+                        match e with
+                        | Asn1Encoding.UPER -> ["asn1crt_encoding";"asn1crt_encoding_uper"]
+                        | Asn1Encoding.ACN  -> ["asn1crt_encoding";"asn1crt_encoding_uper"; "asn1crt_encoding_acn"]
+                        | Asn1Encoding.BER  -> ["asn1crt_encoding";"asn1crt_encoding_ber"]
+                        | Asn1Encoding.XER  -> ["asn1crt_encoding";"asn1crt_encoding_xer"]
+                    ) |> 
+                    List.distinct |>
+                    List.map(fun a -> a + ".c", a + ".h") |>
+                    List.unzip
+
+                let arrsSrcTstFiles = (r.programUnits |> List.map (fun z -> z.tetscase_bodyFileName))
+                let arrsHdrTstFiles = (r.programUnits |> List.map (fun z -> z.tetscase_specFileName))
+                let vcprjContent = xml_outputs.emitVisualStudioProject 
+                                    ((r.programUnits |> List.map (fun z -> z.bodyFileName))@extrSrcFiles)
+                                    ((r.programUnits |> List.map (fun z -> z.specFileName))@extrHdrFiles)
+                                    (arrsSrcTstFiles@arrsSrcTstFilesX)
+                                    (arrsHdrTstFiles@arrsHdrTstFilesX)
+                let vcprjFileName = Path.Combine(outDir, "VsProject.vcxproj")
+                File.WriteAllText(vcprjFileName, vcprjContent)
+
+                //generate Visual Studio Solution file
+                File.WriteAllText((Path.Combine(outDir, "VsProject.sln")), (aux_c.emitVisualStudioSolution()))
+
+
+            CreateCMainFile r  di.srcDir
+            generateVisualStudtioProject r di.srcDir (arrsSrcTstFiles, arrsHdrTstFiles)
 
 

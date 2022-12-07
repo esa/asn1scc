@@ -75,7 +75,7 @@ type IVariables_c() =
             variables_c.PrintSequenceValue  td sTasName arrsChildren arrsOptionalPresentFields 
         override this.PrintChoiceValue  (sTasName:string) (sChildName:string) (sChildVal:string) (sChildNamePresent:string) (bUseUncheckedUnions:bool) =
             variables_c.PrintChoiceValue  sTasName sChildName sChildVal sChildNamePresent bUseUncheckedUnions 
-        override this.PrintValueAssignment  (sTypeDecl:string) (sName:string) (sValue:string) =
-            variables_c.PrintValueAssignment  sTypeDecl sName sValue 
+        override this.PrintValueAssignment  (sName:string) (sTypeDecl:string) (sValue:string) =
+            variables_c.PrintValueAssignment  sName sTypeDecl sValue 
         override this.PrintSequenceOfValue  (td:FE_SizeableTypeDefinition) (bIsFixedSize:bool) (nLength:BigInteger) (arrsInnerValues:seq<string>) (sDefValue:string) =
             variables_c.PrintSequenceOfValue  td bIsFixedSize nLength arrsInnerValues sDefValue 

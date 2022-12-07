@@ -4,6 +4,7 @@ open System.Numerics
 open DAst
 open FsUtils
 open Language
+open System.IO
 
 (****** Ada Implementation ******)
 
@@ -63,6 +64,8 @@ type LangGeneric_a() =
         override this.TrueLiteral = "True"
         override this.FalseLiteral = "False"
         override this.hasModules = true
+        override this.allowsSrcFilesWithNoFunctions = false
+        override this.requiresValueAssignmentsInSrcFile = false
         override this.supportsStaticVerification = true 
         override this.emtyStatement = "null;"
         override this.bitStreamName = "adaasn1rtl.encoding.BitStreamPtr"
@@ -145,6 +148,17 @@ type LangGeneric_a() =
         override this.getAsn1ChChildBackendName (ch:ChChildInfo) = ch._ada_name
         override this.getAsn1ChildBackendName0 (ch:Asn1AcnAst.Asn1Child) = ch._ada_name
         override this.getAsn1ChChildBackendName0 (ch:Asn1AcnAst.ChChildInfo) = ch._ada_name
+
+        override this.getRtlFiles  (encodings:Asn1Encoding list) (arrsTypeAssignments :string list) =
+            let uperRtl = match encodings |> Seq.exists(fun e -> e = UPER || e = ACN) with true -> ["adaasn1rtl.encoding.uper"] | false -> []
+            let acnRtl = 
+                match arrsTypeAssignments |> Seq.exists(fun s -> s.Contains "adaasn1rtl.encoding.acn") with true -> ["adaasn1rtl.encoding.acn"] | false -> []
+            let xerRtl = match encodings |> Seq.exists(fun e -> e = XER) with true -> ["adaasn1rtl.encoding.xer"] | false -> []
+
+            //adaasn1rtl.encoding is included by .uper or .acn or .xer. So, do not include it otherwise you get a warning
+            let encRtl = []//match r.args.encodings |> Seq.exists(fun e -> e = UPER || e = ACN || e = XER) with true -> [] | false -> ["adaasn1rtl.encoding"]
+            encRtl@uperRtl@acnRtl@xerRtl |> List.distinct
+
 
         override this.getSeqChild (fpt:FuncParamType) (childName:string) (childTypeIsString: bool) =
             let newPath = sprintf "%s.%s" fpt.p childName
@@ -248,3 +262,15 @@ type LangGeneric_a() =
             }
 
 
+        override this.CreateMakeFile (r:AstRoot)  (di:OutDirectories.DirInfo) =
+            let boardNames = OutDirectories.getBoardNames Ada r.args.target
+            let writeBoard boardName = 
+                let mods = aux_a.rtlModuleName()::(r.programUnits |> List.map(fun pu -> pu.name.ToLower() ))
+                let content = aux_a.PrintMakeFile boardName (sprintf "asn1_%s.gpr" boardName) mods
+                let fileName = if boardNames.Length = 1 || boardName = "x86" then "Makefile" else ("Makefile." + boardName)
+                let outFileName = Path.Combine(di.rootDir, fileName)
+                File.WriteAllText(outFileName, content.Replace("\r",""))
+            OutDirectories.getBoardNames Ada r.args.target |> List.iter writeBoard
+
+        override this.CreateAuxFiles (r:AstRoot)  (di:OutDirectories.DirInfo) (arrsSrcTstFiles : string list, arrsHdrTstFiles:string list) =
+            ()

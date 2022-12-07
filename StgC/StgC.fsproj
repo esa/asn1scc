@@ -31,6 +31,7 @@
   <ItemGroup>
     <Compile Include="IAcn_c.stg.fs" />
     <Compile Include="ITestCases_c.stg.fs" />
+    <Compile Include="ISrcBody_c.stg.fs" />
     <Compile Include="LangGeneric_c.fs" />
     <None Include="acn_c.stg">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
@@ -72,6 +73,7 @@
 
     <ItemGroup>
         <ProjectReference Include="..\FrontEndAst\FrontEndAst.fsproj" />
+        <ProjectReference Include="..\StgVarious\StgVarious.fsproj" />
         <ProjectReference Include="..\ST\ST.fsproj" />
     </ItemGroup>
 

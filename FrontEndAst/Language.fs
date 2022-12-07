@@ -66,7 +66,7 @@ type ILangGeneric () =
     abstract member SpecExtention : string
     abstract member BodyExtention : string
 
-    
+    abstract member getRtlFiles : Asn1Encoding list -> string list -> string list
 
     abstract member getAsn1ChildBackendName0  : Asn1AcnAst.Asn1Child -> string
     abstract member getAsn1ChChildBackendName0: Asn1AcnAst.ChChildInfo -> string
@@ -104,6 +104,9 @@ type ILangGeneric () =
     abstract member getParamType    : Asn1AcnAst.Asn1Type -> Codec -> CallerScope;
     abstract member rtlModuleName   : string
     abstract member hasModules      : bool
+    abstract member allowsSrcFilesWithNoFunctions : bool
+    abstract member requiresValueAssignmentsInSrcFile      : bool
+
     abstract member supportsStaticVerification      : bool
     abstract member AssignOperator  : string
     abstract member TrueLiteral     : string
@@ -125,6 +128,10 @@ type ILangGeneric () =
     abstract member init : Initialize_parts
     abstract member atc  : Atc_parts
     abstract member getValueAssignmentName : ValueAssignment -> string
+
+    abstract member CreateMakeFile : AstRoot -> OutDirectories.DirInfo -> unit
+    abstract member CreateAuxFiles : AstRoot -> OutDirectories.DirInfo -> string list*string list -> unit
+
 //    abstract member createLocalVariable_frag : string -> LocalVariable
 
     default this.getAmber (fpt:FuncParamType) =
@@ -146,6 +153,7 @@ type LanguageMacros = {
     acn     : IAcn
     atc     : ITestCases
     xer     : IXer
+    src     : ISrcBody
 }
 
 
