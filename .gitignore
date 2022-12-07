@@ -1377,3 +1377,4 @@ v2out
 /v4Tests/runMake.sh
 /v4Tests/work_dir
 /regression/Properties/launchSettings.json
+/CommonTypes/CprjGitHubasn1sccCommonTypesAbstractMacros.fs
