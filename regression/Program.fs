@@ -172,7 +172,7 @@ let executeTestCase asn1sccdll workDir  (t:Test_Case) (lang:string, ws:int, slim
                 else 
                     if bRunSpark then
                         let bWindows = System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Windows) 
-                        let makeCommand = sprintf "gnatprove%s -Pasn1_x86.gpr -j0  -u test_case.adb --level=4 >sparklog.txt 2>&1" (if bWindows then ".exe" else ".exe")
+                        let makeCommand = sprintf "gnatprove%s -Pasn1_x86.gpr -j0  -u test_case.adb --level=4 >sparklog.txt 2>&1" (if bWindows then ".exe" else "")
                         let res = executeBashScript workDir makeCommand
                         let sparkLogFname = Path.Combine(workDir, "sparklog.txt")
                         if res.ExitCode <> 0 then 
