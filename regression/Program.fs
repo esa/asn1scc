@@ -14,7 +14,7 @@ type CliArguments =
     | [<Unique; AltCommandLine("-l")>]Language of lang_id:string
     | [<Unique; AltCommandLine("-s")>]Slim of enable:bool
     | [<Unique; AltCommandLine("-ws")>]Word_Size of int
-    | [<Unique; AltCommandLine("-p")>]Parallel of int option
+    | [<Unique; AltCommandLine("-p")>]Parallel of int 
 with
     interface IArgParserTemplate with
         member this.Usage =
@@ -211,9 +211,20 @@ let dirSafeDelete dirName =
     dirSafeDelete_aux 5 dirName
 
         
+let executeTestCaseSync asn1sccdll workDir (i:int) (t:Test_Case) (lang:string, ws:int, slim:bool) =
+    let rndDir = Path.GetRandomFileName()
+    let newWorkDir = Path.Combine(workDir, rndDir)
+    Directory.CreateDirectory newWorkDir |> ignore
+    let ret = executeTestCase asn1sccdll newWorkDir t (lang, ws, slim)    
+    match ret with
+    | Success _     -> 
+        dirSafeDelete newWorkDir
+    | Failed  _     -> ()
+    (i, ret, rndDir, t, lang, ws, slim)
 
 let executeTestCaseAsync asn1sccdll workDir (i:int) (t:Test_Case) (lang:string, ws:int, slim:bool) =
     async {
+    (*
         let rndDir = Path.GetRandomFileName()
         let newWorkDir = Path.Combine(workDir, rndDir)
         Directory.CreateDirectory newWorkDir |> ignore
@@ -223,6 +234,9 @@ let executeTestCaseAsync asn1sccdll workDir (i:int) (t:Test_Case) (lang:string, 
             dirSafeDelete newWorkDir
         | Failed  _     -> ()
         return (i, ret, rndDir, t, lang, ws, slim)
+        *)
+        let aa = executeTestCaseSync asn1sccdll workDir i t (lang, ws, slim)
+        return aa
     }
 
 
@@ -266,6 +280,11 @@ let main0 argv =
                 parserResults.GetResult(<@Asn1scc_Location@>, defaultValue = "../asn1scc/bin/Debug/net7.0/asn1scc.dll"))
             
         let test_cases_dir = parserResults.GetResult(<@Test_Cases_Dir@>, defaultValue = "test-cases")
+
+        let threadPoolSize = 
+            match parserResults.Contains <@ Parallel @> with
+            | true -> parserResults.GetResult(<@ Parallel @>)
+            | false -> 1
         
         let all_tests = collectTestAsn1Files test_cases_dir
 
@@ -310,9 +329,15 @@ let main0 argv =
             List.filter(fun (t,_) -> match tc with None -> true | Some s -> t.asn1.EndsWith s) |>
             List.mapi(fun i (t,b) -> (i,t, b)) 
         let results =
-            results0 |>
-            executeBatch (Environment.ProcessorCount*2) (fun (i,tc, m) -> executeTestCaseAsync asn1sccdll workDir i tc m) |>
-            List.sortBy (fun (i, _, _, _, _, _, _) -> i)
+            match threadPoolSize > 1 with 
+            | true ->
+                results0 |>
+                executeBatch threadPoolSize (fun (i,tc, m) -> executeTestCaseAsync asn1sccdll workDir i tc m) |>
+                List.sortBy (fun (i, _, _, _, _, _, _) -> i)
+            | false  ->
+                results0 |> List.map (fun (i,tc, m) -> executeTestCaseSync asn1sccdll workDir i tc m) |>
+                List.sortBy (fun (i, _, _, _, _, _, _) -> i)
+
 
         let errors = 
             results |> List.filter (fun (i, ret, _, _, _, _, _) ->  match ret with Failed _ -> true | Success _ -> false)
