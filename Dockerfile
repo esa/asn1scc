@@ -24,4 +24,4 @@ WORKDIR /app/
 RUN rm -rf /gnat_tmp/
 	
 ENV PATH="/opt/GNAT/gnat-x86-2021/bin:${PATH}"
-ENTRYPOINT ["/bin/bash"]
+#ENTRYPOINT ["/bin/bash"]
