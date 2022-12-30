@@ -153,7 +153,13 @@ let executeTestCase asn1sccdll workDir  (t:Test_Case) (lang:string, ws:int, slim
         let bRunCodeCoverage = not (asn1Lines |> Seq.exists(fun l -> l.Contains "NOCOVERAGE"))
         //ShellProcess.printDebug "bRunCodeCoverage %b" bRunCodeCoverage
         let bRunSpark = (lang = "Ada") && asn1Lines |> Seq.exists(fun l -> l.Contains "RUN_SPARK")
-        let coverageFile = Path.Combine(workDir, (if lang = "c" then "sample1.c.gcov" else "obj_x86/debug/test_case.adb.gcov"))
+        let ada_target = 
+            if ws = 4 then 
+                "obj_msp430"
+            else
+                "obj_x86"
+
+        let coverageFile = Path.Combine(workDir, (if lang = "c" then "sample1.c.gcov" else (ada_target + "/debug/test_case.adb.gcov")))
         let covLinesToIgnore = ["}";"default:";"break;";"end"] |> Set.ofList
 
         let makeCommand = sprintf "make%s" (if bNoAtc || not bRunCodeCoverage then "" else " coverage")
