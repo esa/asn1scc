@@ -14,4 +14,4 @@ jobs:
           paths:
             - ~/docker
       - run:
-          command: docker run -it -v $(pwd):/root/asn1scc asn1scc bash -c 'cd /root/asn1scc ; echo "hello" ; ./circleci-build.sh'
+          command: docker run -it -v $(pwd):/root/asn1scc asn1scc /bin/bash -c 'cd /root/asn1scc ; echo "hello" ; ./circleci-build.sh'
