@@ -1,20 +1,27 @@
-#
-# Copy the current folder into the container and build asn1scc.
-#
-#################################################################################################
-#################################################################################################
-
 FROM  mcr.microsoft.com/dotnet/sdk:7.0 AS build
 
-RUN apt update
-#RUN mkdir /usr/share/man/man1
-RUN apt install -y python3 python3-distutils \
-    gnat gcc g++ make openjdk-11-jre nuget libgit2-dev libssl-dev gprbuild ; apt clean
+RUN set -xe \
+    && DEBIAN_FRONTEND=noninteractive apt-get update -y \
+	&& apt-get install -y libfontconfig libdbus-1-3 libx11-6 libx11-xcb-dev \
+	    python3 python3-distutils gcc g++ make openjdk-11-jre nuget libgit2-dev libssl-dev \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get purge --auto-remove \
+    && apt-get clean 
 
+# Install GNAT AND SPARK from AdaCore
 
-WORKDIR /src
-COPY . .
-RUN dotnet build Antlr/
-RUN dotnet build parseStg2/
-RUN dotnet build "asn1scc.sln"
+WORKDIR /gnat_tmp/
 
+ADD https://community.download.adacore.com/v1/f3a99d283f7b3d07293b2e1d07de00e31e332325?filename=gnat-2021-20210519-x86_64-linux-bin  ./gnat-2021-20210519-x86_64-linux-bin
+
+RUN git clone https://github.com/AdaCore/gnat_community_install_script.git \
+	&& chmod +x gnat_community_install_script/install_package.sh \
+	&& chmod +x gnat-2021-20210519-x86_64-linux-bin \
+	&& gnat_community_install_script/install_package.sh ./gnat-2021-20210519-x86_64-linux-bin /opt/GNAT/gnat-x86-2021	
+
+WORKDIR /app/
+
+RUN rm -rf /gnat_tmp/
+	
+ENV PATH="/opt/GNAT/gnat-x86-2021/bin:${PATH}"
+#ENTRYPOINT ["/bin/bash"]

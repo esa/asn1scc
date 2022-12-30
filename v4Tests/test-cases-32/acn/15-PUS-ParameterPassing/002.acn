@@ -1,4 +1,4 @@
-MYMOD DEFINITIONS ::= BEGIN
+TEST-CASE DEFINITIONS ::= BEGIN
 
    COLOR-TYPE [encoding pos-int, size 8]
    MySeq [] {
@@ -8,7 +8,7 @@ MYMOD DEFINITIONS ::= BEGIN
    }
 
    COLOR-DATA<COLOR-TYPE:type1, COLOR-TYPE:type2> [] {
-       green [present-when type2==10 type1==30],
+       green [present-when type2==20 type1==30],
        red   [present-when type1==30 type2==20],
        blue  [present-when type1==50 type2==20]
    }

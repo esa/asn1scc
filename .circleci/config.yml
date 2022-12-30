@@ -1,17 +1,14 @@
 version: 2
 jobs:
   build:
-    machine: true
+    machine: 
+      image: ubuntu-2004:202104-01
+      docker_layer_caching: true
     steps:
       - checkout
-      - restore_cache:
-          key: docker-{{ checksum "Dockerfile" }}
       - run:
-          # command: if [[ -e ~/docker/image.tar ]]; then docker load --input ~/docker/image.tar; else docker build -t asn1scc . && { mkdir -p ~/docker; docker save asn1scc > ~/docker/image.tar ; } ; fi
           command: docker build -t asn1scc .
-      - save_cache:
-          key: docker-{{ checksum "Dockerfile" }}
-          paths:
-            - ~/docker
       - run:
-          command: docker run -it asn1scc bash -c './circleci-build.sh'
+          command: docker run -it -v $(pwd):/root/asn1scc asn1scc /bin/bash -c 'cd /root/asn1scc ; ./circleci-build.sh'
+    # The resource_class feature allows configuring CPU and RAM resources for each job. Different resource classes are available for different executors. https://circleci.com/docs/2.0/configuration-reference/#resourceclass   
+    resource_class: large

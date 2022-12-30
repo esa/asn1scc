@@ -1,4 +1,4 @@
-MYMOD DEFINITIONS AUTOMATIC TAGS::= BEGIN
+TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
 
     COLOR-TYPE ::= INTEGER (0..255)
     COLOR-DATA ::= CHOICE {
@@ -11,4 +11,4 @@ MYMOD DEFINITIONS AUTOMATIC TAGS::= BEGIN
     }
 END 
 
---TCFFC     002.acn  $$$ sample1.acn:10:50: error: Duplicate condition found in choice alternatives
+--TCFS     001.acn

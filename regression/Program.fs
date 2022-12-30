@@ -14,7 +14,7 @@ type CliArguments =
     | [<Unique; AltCommandLine("-l")>]Language of lang_id:string
     | [<Unique; AltCommandLine("-s")>]Slim of enable:bool
     | [<Unique; AltCommandLine("-ws")>]Word_Size of int
-    | [<Unique; AltCommandLine("-p")>]Parallel of int option
+    | [<Unique; AltCommandLine("-p")>]Parallel of int 
 with
     interface IArgParserTemplate with
         member this.Usage =
@@ -130,7 +130,12 @@ let executeTestCase asn1sccdll workDir  (t:Test_Case) (lang:string, ws:int, slim
     let wsa = if ws=8 then "-fpWordSize 8 -wordSize 8" else "-fpWordSize 4 -wordSize 4"
     let slima = if slim then "-slim" else ""
     //-c -x ast.xml -uPER -ACN -typePrefix gmamais_  -slim -renamePolicy 3 -fp AUTO -equal -atc -o 'c:\prj\GitHub\asn1scc\v4Tests\tmp_c' 'c:\prj\GitHub\asn1scc\v4Tests\tmp_c\sample1.asn1' 'c:\prj\GitHub\asn1scc\v4Tests\tmp_c\sample1.acn'
-    let cmd = sprintf "%s -%s -x ast.xml -uPER -ACN -ig -typePrefix ASN1SCC_ -renamePolicy 3 -fp AUTO -equal -atc  %s %s sample1.asn1 sample1.acn" asn1sccdll lang slima wsa
+    let target = 
+        if lang = "Ada" && ws = 4 then 
+            " -t msp430 "
+        else
+            ""
+    let cmd = sprintf "%s -%s -x ast.xml -uPER -ACN -ig -typePrefix ASN1SCC_ -renamePolicy 3 -fp AUTO -equal -atc  %s %s %s sample1.asn1 sample1.acn" asn1sccdll lang slima wsa target
     prepareFolderAndFiles workDir t
     //ShellProcess.printInfo "\nwordDir is:%s\n%s\n\n" workDir cmd
     let res = executeProcess workDir "dotnet" cmd
@@ -148,7 +153,13 @@ let executeTestCase asn1sccdll workDir  (t:Test_Case) (lang:string, ws:int, slim
         let bRunCodeCoverage = not (asn1Lines |> Seq.exists(fun l -> l.Contains "NOCOVERAGE"))
         //ShellProcess.printDebug "bRunCodeCoverage %b" bRunCodeCoverage
         let bRunSpark = (lang = "Ada") && asn1Lines |> Seq.exists(fun l -> l.Contains "RUN_SPARK")
-        let coverageFile = Path.Combine(workDir, (if lang = "c" then "sample1.c.gcov" else "obj_x86/debug/test_case.adb.gcov"))
+        let ada_target = 
+            if ws = 4 then 
+                "obj_msp430"
+            else
+                "obj_x86"
+
+        let coverageFile = Path.Combine(workDir, (if lang = "c" then "sample1.c.gcov" else (ada_target + "/debug/test_case.adb.gcov")))
         let covLinesToIgnore = ["}";"default:";"break;";"end"] |> Set.ofList
 
         let makeCommand = sprintf "make%s" (if bNoAtc || not bRunCodeCoverage then "" else " coverage")
@@ -172,7 +183,7 @@ let executeTestCase asn1sccdll workDir  (t:Test_Case) (lang:string, ws:int, slim
                 else 
                     if bRunSpark then
                         let bWindows = System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Windows) 
-                        let makeCommand = sprintf "gnatprove%s -Pasn1_x86.gpr -j0  -u test_case.adb --level=4 >sparklog.txt 2>&1" (if bWindows then ".exe" else ".exe")
+                        let makeCommand = sprintf "gnatprove%s -Pasn1_x86.gpr -j0  -u test_case.adb --level=4 >sparklog.txt 2>&1" (if bWindows then ".exe" else "")
                         let res = executeBashScript workDir makeCommand
                         let sparkLogFname = Path.Combine(workDir, "sparklog.txt")
                         if res.ExitCode <> 0 then 
@@ -211,9 +222,20 @@ let dirSafeDelete dirName =
     dirSafeDelete_aux 5 dirName
 
         
+let executeTestCaseSync asn1sccdll workDir (i:int) (t:Test_Case) (lang:string, ws:int, slim:bool) =
+    let rndDir = Path.GetRandomFileName()
+    let newWorkDir = Path.Combine(workDir, rndDir)
+    Directory.CreateDirectory newWorkDir |> ignore
+    let ret = executeTestCase asn1sccdll newWorkDir t (lang, ws, slim)    
+    match ret with
+    | Success _     -> 
+        dirSafeDelete newWorkDir
+    | Failed  _     -> ()
+    (i, ret, rndDir, t, lang, ws, slim)
 
 let executeTestCaseAsync asn1sccdll workDir (i:int) (t:Test_Case) (lang:string, ws:int, slim:bool) =
     async {
+    (*
         let rndDir = Path.GetRandomFileName()
         let newWorkDir = Path.Combine(workDir, rndDir)
         Directory.CreateDirectory newWorkDir |> ignore
@@ -223,6 +245,9 @@ let executeTestCaseAsync asn1sccdll workDir (i:int) (t:Test_Case) (lang:string, 
             dirSafeDelete newWorkDir
         | Failed  _     -> ()
         return (i, ret, rndDir, t, lang, ws, slim)
+        *)
+        let aa = executeTestCaseSync asn1sccdll workDir i t (lang, ws, slim)
+        return aa
     }
 
 
@@ -264,8 +289,22 @@ let main0 argv =
         let asn1sccdll =
             Path.GetFullPath(
                 parserResults.GetResult(<@Asn1scc_Location@>, defaultValue = "../asn1scc/bin/Debug/net7.0/asn1scc.dll"))
+
+        let word_sizes =
+            match parserResults.Contains <@ Word_Size @> with
+            | false -> 8
+            | true  -> parserResults.GetResult(<@ Word_Size @>)
             
-        let test_cases_dir = parserResults.GetResult(<@Test_Cases_Dir@>, defaultValue = "test-cases")
+        let test_cases_dir = 
+            parserResults.GetResult(<@Test_Cases_Dir@>, defaultValue = (if word_sizes = 8 then "test-cases" else "test-cases-32"))
+
+        printInfo "test-cases-dir '%s'" test_cases_dir
+    
+
+        let threadPoolSize = 
+            match parserResults.Contains <@ Parallel @> with
+            | true -> parserResults.GetResult(<@ Parallel @>)
+            | false -> 1
         
         let all_tests = collectTestAsn1Files test_cases_dir
 
@@ -280,10 +319,6 @@ let main0 argv =
             | false -> ["c"; "Ada"]
             | true  -> [parserResults.GetResult(<@ Language @>)]
 
-        let word_sizes =
-            match parserResults.Contains <@ Word_Size @> with
-            | false -> [8; 4]
-            | true  -> [parserResults.GetResult(<@ Word_Size @>)]
 
         let slim_modes =
             match parserResults.Contains <@ Slim @> with
@@ -293,7 +328,7 @@ let main0 argv =
         let asn1sccModes =
             seq {
                 for l in languages do
-                    for ws in word_sizes do
+                    for ws in [word_sizes] do
                         for sm in slim_modes do
                             yield (l,ws,sm)
             } |> Seq.toList
@@ -310,9 +345,15 @@ let main0 argv =
             List.filter(fun (t,_) -> match tc with None -> true | Some s -> t.asn1.EndsWith s) |>
             List.mapi(fun i (t,b) -> (i,t, b)) 
         let results =
-            results0 |>
-            executeBatch (Environment.ProcessorCount*2) (fun (i,tc, m) -> executeTestCaseAsync asn1sccdll workDir i tc m) |>
-            List.sortBy (fun (i, _, _, _, _, _, _) -> i)
+            match threadPoolSize > 1 with 
+            | true ->
+                results0 |>
+                executeBatch threadPoolSize (fun (i,tc, m) -> executeTestCaseAsync asn1sccdll workDir i tc m) |>
+                List.sortBy (fun (i, _, _, _, _, _, _) -> i)
+            | false  ->
+                results0 |> List.map (fun (i,tc, m) -> executeTestCaseSync asn1sccdll workDir i tc m) |>
+                List.sortBy (fun (i, _, _, _, _, _, _) -> i)
+
 
         let errors = 
             results |> List.filter (fun (i, ret, _, _, _, _, _) ->  match ret with Failed _ -> true | Success _ -> false)
