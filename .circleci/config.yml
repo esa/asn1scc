@@ -40,7 +40,7 @@ jobs:
           root: /root
           paths:
             - .
-	resource_class: xlarge
+  resource_class: xlarge
 
 workflows:
   version: 2
