@@ -357,6 +357,7 @@ let CheckValueType (ot:Asn1Type) (v:Asn1Value) ast=
                     | ReferenceType rf  -> sprintf "%s.%s" rf.modName.Value rf.tasName.Value
                     | _                     -> sprintf "%A" t.Kind
                 raise(SemanticError(v.Location, sprintf "Expecting a '%s' value" typeName))
+
                 //raise(SemanticError(v.Location, sprintf "Expecting a '%s' value, got a '%s' " typeName (v.ToString())))
     CheckValueType ot v ast
 ///checks if two types are ASN.1 compatible
