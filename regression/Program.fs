@@ -123,7 +123,6 @@ END
       
     //printfn "%s" workDir
     emptyFolder workDir
-    printfn "asn1FileName is '%s'" asn1FileName
     File.Copy(asn1FileName, Path.Combine(workDir, "sample1.asn1"))
     File.WriteAllText(Path.Combine(workDir, "sample1.acn"), acnContent)
     
