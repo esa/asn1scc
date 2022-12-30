@@ -1,4 +1,7 @@
 #!/bin/bash
+echo 'world!'
+dotnet --help
+echo 'after help'
 dotnet build Antlr/
 dotnet build parseStg2/
 dotnet build "asn1scc.sln"
