@@ -278,8 +278,14 @@ let main0 argv =
         let asn1sccdll =
             Path.GetFullPath(
                 parserResults.GetResult(<@Asn1scc_Location@>, defaultValue = "../asn1scc/bin/Debug/net7.0/asn1scc.dll"))
+
+        let word_sizes =
+            match parserResults.Contains <@ Word_Size @> with
+            | false -> 8
+            | true  -> parserResults.GetResult(<@ Word_Size @>)
             
-        let test_cases_dir = parserResults.GetResult(<@Test_Cases_Dir@>, defaultValue = "test-cases")
+        let test_cases_dir = 
+            parserResults.GetResult(<@Test_Cases_Dir@>, defaultValue = (if word_sizes = 8 then "test-cases" else "test-cases-32"))
 
         let threadPoolSize = 
             match parserResults.Contains <@ Parallel @> with
@@ -299,10 +305,6 @@ let main0 argv =
             | false -> ["c"; "Ada"]
             | true  -> [parserResults.GetResult(<@ Language @>)]
 
-        let word_sizes =
-            match parserResults.Contains <@ Word_Size @> with
-            | false -> [8; 4]
-            | true  -> [parserResults.GetResult(<@ Word_Size @>)]
 
         let slim_modes =
             match parserResults.Contains <@ Slim @> with
@@ -312,7 +314,7 @@ let main0 argv =
         let asn1sccModes =
             seq {
                 for l in languages do
-                    for ws in word_sizes do
+                    for ws in [word_sizes] do
                         for sm in slim_modes do
                             yield (l,ws,sm)
             } |> Seq.toList
