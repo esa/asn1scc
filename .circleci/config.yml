@@ -15,3 +15,7 @@ jobs:
             - ~/docker
       - run:
           command: docker run -it -v $(pwd):/root/asn1scc asn1scc /bin/bash -c 'cd /root/asn1scc ; echo "hello" ; ./circleci-build.sh'
+    # The resource_class feature allows configuring CPU and RAM resources for each job. Different resource classes are available for different executors. https://circleci.com/docs/2.0/configuration-reference/#resourceclass   
+    resource_class: large
+
+   
