@@ -1,21 +1,49 @@
-version: 2
+version: 2.1
+
+executors:
+  docker:
+    docker:
+      - image: circleci/python:3.8
+
 jobs:
   build:
-    machine: true
+    executor: docker
     steps:
       - checkout
       - restore_cache:
-          key: docker-{{ checksum "Dockerfile" }}
+          keys:
+            - asn1scc-{{ checksum "Dockerfile" }}
+      - setup_remote_docker:
+          version: 18.06.1-ce
       - run:
-          command: if [[ -e ~/docker/image.tar ]]; then docker load --input ~/docker/image.tar; else docker build -t asn1scc . && { mkdir -p ~/docker; docker save asn1scc > ~/docker/image.tar ; } ; fi
-          #command: docker build -t asn1scc .
+          name: Build Docker Image
+          command: |
+            docker build -t asn1scc:latest .
+          when:
+            not:
+              steps:
+                - restore_cache:
+                    keys:
+                      - asn1scc-{{ checksum "Dockerfile" }}
+      - run:
+          name: Run test cases
+          command: |
+            docker run -it -v $(pwd):/root/asn1scc asn1scc /bin/bash -c 'cd /root/asn1scc ; echo "hello" ; ./circleci-build.sh'
       - save_cache:
-          key: docker-{{ checksum "Dockerfile" }}
+          key: asn1scc-{{ checksum "Dockerfile" }}
           paths:
-            - ~/docker
-      - run:
-          command: docker run -it -v $(pwd):/root/asn1scc asn1scc /bin/bash -c 'cd /root/asn1scc ; echo "hello" ; ./circleci-build.sh'
-    # The resource_class feature allows configuring CPU and RAM resources for each job. Different resource classes are available for different executors. https://circleci.com/docs/2.0/configuration-reference/#resourceclass   
-    resource_class: large
+            - /root/.cache/pip
+            - /root/.cache/apt
+            - /root/.cache/docker
+            - /root/.cache/npm
+      - persist_to_workspace:
+          root: /root
+          paths:
+            - .
+	resource_class: xlarge
 
-   
+workflows:
+  version: 2
+  build_and_test:
+    jobs:
+      - build
