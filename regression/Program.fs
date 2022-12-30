@@ -123,6 +123,7 @@ END
       
     //printfn "%s" workDir
     emptyFolder workDir
+    printfn "asn1FileName is '%s'" asn1FileName
     File.Copy(asn1FileName, Path.Combine(workDir, "sample1.asn1"))
     File.WriteAllText(Path.Combine(workDir, "sample1.acn"), acnContent)
     
@@ -286,6 +287,9 @@ let main0 argv =
             
         let test_cases_dir = 
             parserResults.GetResult(<@Test_Cases_Dir@>, defaultValue = (if word_sizes = 8 then "test-cases" else "test-cases-32"))
+
+        printInfo "test-cases-dir '%s'" test_cases_dir
+    
 
         let threadPoolSize = 
             match parserResults.Contains <@ Parallel @> with
