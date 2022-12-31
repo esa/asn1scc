@@ -12,9 +12,14 @@ RUN set -xe \
 
 WORKDIR /gnat_tmp/
 
-ADD https://community.download.adacore.com/v1/f3a99d283f7b3d07293b2e1d07de00e31e332325?filename=gnat-2021-20210519-x86_64-linux-bin  ./gnat-2021-20210519-x86_64-linux-bin
+# The ADD instruction will always download the file and the cache will be invalidated if the checksum of the file no longer matches
+# On the other hand, the RUN instruction will not invalidate the cache unless its text changes. 
+# So if the remote file is updated, you won't get it. Docker will use the cached layer.
+# In our case, the gnat-2021-20210519-x86_64-linux-bin will not change. So, it is preferable to ADD
+#ADD https://community.download.adacore.com/v1/f3a99d283f7b3d07293b2e1d07de00e31e332325?filename=gnat-2021-20210519-x86_64-linux-bin  ./gnat-2021-20210519-x86_64-linux-bin
 
-RUN git clone https://github.com/AdaCore/gnat_community_install_script.git \
+RUN wget -O gnat-2021-20210519-x86_64-linux-bin https://community.download.adacore.com/v1/f3a99d283f7b3d07293b2e1d07de00e31e332325?filename=gnat-2021-20210519-x86_64-linux-bin \
+	&& git clone https://github.com/AdaCore/gnat_community_install_script.git \
 	&& chmod +x gnat_community_install_script/install_package.sh \
 	&& chmod +x gnat-2021-20210519-x86_64-linux-bin \
 	&& gnat_community_install_script/install_package.sh ./gnat-2021-20210519-x86_64-linux-bin /opt/GNAT/gnat-x86-2021	
