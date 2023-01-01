@@ -26,7 +26,9 @@ RUN wget -O gnat-2021-20210519-x86_64-linux-bin https://community.download.adaco
 
 WORKDIR /app/
 
-RUN rm -rf /gnat_tmp/
+RUN rm -rf /gnat_tmp/ \
+	&& sed -i 's/# alias l=/alias l=/' ~/.bashrc \
+	&& sed -i 's/# export LS_OPTIONS/export LS_OPTIONS/' ~/.bashrc
 	
 ENV PATH="/opt/GNAT/gnat-x86-2021/bin:${PATH}"
 #ENTRYPOINT ["/bin/bash"]
