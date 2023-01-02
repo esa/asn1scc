@@ -15,8 +15,16 @@ type IVariables_c() =
             variables_c.PrintRefValue1  sValue 
         override this.PrintRefValue2  (sModName:string) (sValue:string) =
             variables_c.PrintRefValue2  sModName sValue 
-        override this.PrintStringValue  (sValue:string) (arrsNullChars:seq<string>) =
-            variables_c.PrintStringValue  sValue arrsNullChars 
+        override this.PrintStringValue  (arrsVals:seq<string>) (arrsNullChars:seq<string>) =
+            variables_c.PrintStringValue  arrsVals arrsNullChars 
+        override this.PrintSingleStringValue  (sValue:string) =
+            variables_c.PrintSingleStringValue  sValue 
+        override this.PrintLF  () =
+            variables_c.PrintLF  () 
+        override this.PrintCR  () =
+            variables_c.PrintCR  () 
+        override this.PrintHT  () =
+            variables_c.PrintHT  () 
         override this.PrintStringValueNull  () =
             variables_c.PrintStringValueNull  () 
         override this.PrintCharValue  (cValue:char) =

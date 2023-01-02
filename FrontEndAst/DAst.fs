@@ -48,7 +48,7 @@ let emptyState = {currErrorCode=0; curErrCodeNames=Set.empty; (*allocatedTypeDef
 
 type IntegerValue         = BigInteger
 type RealValue            = double
-type StringValue          = string
+type StringValue          = (SingleStringValue list*SrcLoc)
 type BooleanValue         = bool
 type BitStringValue       = string
 type OctetStringValue     = list<byte>

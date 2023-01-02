@@ -72,7 +72,7 @@ and private PrintAsn1GenericValue (v:Asn1Value) =
     match v.kind with
     |IntegerValue(v)         -> printIntVal v.Value
     |RealValue(v)            -> printRealVal v.Value
-    |StringValue(v)          -> printStringVal v.Value
+    |StringValue(v,_)          -> printStringVal (CommonTypes.StringValue2String v)
     |EnumValue(v)            -> printEnumVal v.Value
     |BooleanValue(v)         -> printBoolVal v.Value
     |BitStringValue(v)       -> printBitStringVal (v, ())

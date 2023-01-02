@@ -27,7 +27,7 @@ initInteger(p, nValue) ::= "<p> := <nValue>;"
 initReal(p, dValue) ::= "<p> := <dValue>;"
 initBoolean(p, bValue) ::= "<p> := <if(bValue)>True<else>FALSE<endif>;"
 
-initIA5String(sPtr, sValue, arrsNullChars) ::= "<sPtr> := \"<sValue>\"<if(arrsNullChars)> & <arrsNullChars; wrap, anchor, separator=\" & \"><endif>;" 
+initIA5String(sPtr, sValue) ::= "<sPtr> := <sValue>;" 
 initEnumerated(sVal, sValue) ::= "<sVal> := <sValue>;"
 initNull(sVal)    ::= "<sVal> := 0;"
 

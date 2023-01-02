@@ -42,7 +42,7 @@ let internal PrintCustomAsn1Value_aux (bPrintAsAttr:bool) (v: Asn1Value) stgFile
         match v.kind with
         |IntegerValue(v)         -> gen.Print_IntegerValue v stgFileName
         |RealValue(v)            -> gen.Print_RealValue v stgFileName
-        |StringValue(v)          -> 
+        |StringValue(v,_)          -> 
 //            match bPrintAsAttr with 
 //            | true   -> 
 //                //printfn "%s\n" v
@@ -52,7 +52,8 @@ let internal PrintCustomAsn1Value_aux (bPrintAsAttr:bool) (v: Asn1Value) stgFile
 //                | true  ->  "&quot;" + retVal + "&quot;"
 //                | false -> retVal
 //            | false  -> 
-            gen.Print_StringValue v stgFileName
+            let strVal = CommonTypes.StringValue2String v
+            gen.Print_StringValue strVal stgFileName
         |EnumValue enmv          -> gen.Print_RefValue enmv stgFileName //gen.Print_EnmValueValue enmv stgFileName
         |BooleanValue(v)         -> if v = true then gen.Print_TrueValue () stgFileName else gen.Print_FalseValue () stgFileName
         |BitStringValue(v)       -> gen.Print_BitStringValue v stgFileName

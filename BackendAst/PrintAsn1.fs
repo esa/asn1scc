@@ -22,7 +22,10 @@ let rec PrintAsn1Value (v:Asn1Value) =
     match v.Kind with
     |IntegerValue(v)         -> stg_asn1.Print_IntegerValue v.Value
     |RealValue(v)            -> stg_asn1.Print_RealValue v.Value
-    |StringValue(v)          -> stg_asn1.Print_StringValue v.Value
+    |StringValue(parts,_)          -> 
+        match parts with
+        | (CStringValue v)::[] ->        stg_asn1.Print_StringValue v
+        | _     ->        stg_asn1.Print_SeqOfValue (parts |> List.map(fun p -> p.AsAsn1))  
     |TimeValue v             -> 
         stg_asn1.Print_TimeValue (asn1DateTimeValueToString  v.Value)
     |BooleanValue(v)         -> stg_asn1.Print_BooleanValue v.Value

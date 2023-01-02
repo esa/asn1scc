@@ -90,7 +90,7 @@ let private charGetter (r:Asn1Ast.AstRoot)  (v:Asn1Ast.Asn1Value) =
         }
     let newValue = ValuesMapping.mapValue r charType v
     match (getBaseValue newValue).kind with
-    | StringValue vl    when vl.Value.Length = 1    -> vl.Value.ToCharArray().[0]
+    | StringValue (vl, _)    when (CommonTypes.StringValue2String vl).Length = 1    -> (CommonTypes.StringValue2String vl).ToCharArray().[0]
     | _                                         -> raise(SemanticError (v.Location, "Expecting a string with just one character"))
 
 let private strGetter (r:Asn1Ast.AstRoot)  (v:Asn1Ast.Asn1Value) =
@@ -105,13 +105,13 @@ let private strGetter (r:Asn1Ast.AstRoot)  (v:Asn1Ast.Asn1Value) =
         }
     let newValue = ValuesMapping.mapValue r charType v
     match (getBaseValue newValue).kind with
-    | StringValue vl            -> vl.Value
+    | StringValue (vl,_)            -> (CommonTypes.StringValue2String vl)
     | _                        -> raise(BugErrorException "Value is not of expected type")
 
 let private strValueGetter (r:Asn1Ast.AstRoot) (t:Asn1Ast.Asn1Type) (v:Asn1Ast.Asn1Value) =
     let newValue = ValuesMapping.mapValue r t v
     match (getBaseValue newValue).kind with
-    | StringValue vl            -> vl.Value
+    | StringValue (vl,_)            -> (CommonTypes.StringValue2String vl)
     | _                        -> raise(BugErrorException "Value is not of expected type")
 
 let private octGetter (r:Asn1Ast.AstRoot) (t:Asn1Ast.Asn1Type) (v:Asn1Ast.Asn1Value) =

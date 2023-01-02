@@ -53,6 +53,9 @@ is
    end record;
 
    NUL : constant Standard.Character := Ada.Characters.Latin_1.NUL;
+   CR : constant Standard.Character := Ada.Characters.Latin_1.CR;
+   LF : constant Standard.Character := Ada.Characters.Latin_1.LF;
+   HT : constant Standard.Character := Ada.Characters.Latin_1.HT;
 
    ERR_END_OF_STREAM     : constant Integer := 1001;
    ERR_INSUFFICIENT_DATA : constant Integer := 101;

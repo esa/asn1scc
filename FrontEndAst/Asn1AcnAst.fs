@@ -51,7 +51,7 @@ and Asn1Value = {
 and Asn1ValueKind =
     | IntegerValue          of IntegerValue    
     | RealValue             of RealValue       
-    | StringValue           of StringValue     
+    | StringValue           of (SingleStringValue list*SrcLoc)
     | BooleanValue          of BooleanValue    
     | BitStringValue        of BitStringValue  
     | TimeValue             of TimeValue
