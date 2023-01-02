@@ -1,4 +1,7 @@
 #!/bin/bash
+echo "****"
+echo $1
+echo "****"
 cd /workdir/
 git -C asn1scc pull || git clone /app/ asn1scc
 cd asn1scc
