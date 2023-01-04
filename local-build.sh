@@ -1,8 +1,12 @@
 #!/bin/bash
+echo "****"
+echo $1
+echo "****"
 cd /workdir/
 git -C asn1scc pull || git clone /app/ asn1scc
 cd asn1scc
 git checkout $1
+git rev-parse --abbrev-ref HEAD
 dotnet build Antlr/
 dotnet build parseStg2/
 dotnet build "asn1scc.sln"

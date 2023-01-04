@@ -126,7 +126,7 @@ let rec AreAsn1ValuesEqual (v1:Asn1Value) (v2:Asn1Value) (isOfEnumType:bool) ast
     | IntegerValue(a1), RealValue(a2)               -> a1.Value = BigInteger(a2.Value)
     | RealValue(a1), IntegerValue(a2)               -> BigInteger(a1.Value) = a2.Value
     | RealValue(a1), RealValue(a2)                  -> a1 = a2
-    | StringValue(a1), StringValue(a2)              -> a1 = a2
+    | StringValue(a1,_), StringValue(a2,_)          -> a1 = a2
     | BooleanValue(a1), BooleanValue(a2)            -> a1 = a2
     | BitStringValue(a1), BitStringValue(a2)        -> a1 = a2
     | OctetStringValue(a1), OctetStringValue(a2)    -> a1 = a2
@@ -152,7 +152,7 @@ let rec CompareAsn1Value (v1:Asn1Value) (v2:Asn1Value) ast =
     | IntegerValue(a1), RealValue(a2)               -> comparePrimitiveValues a1.Value  (BigInteger a2.Value)
     | RealValue(a1), IntegerValue(a2)               -> comparePrimitiveValues (BigInteger a1.Value)  a2.Value
     | RealValue(a1), RealValue(a2)                  -> comparePrimitiveValues a1.Value  a2.Value
-    | StringValue(a1), StringValue(a2)              -> comparePrimitiveValues a1.Value  a2.Value
+    | StringValue(a1,_), StringValue(a2,_)              -> comparePrimitiveValues (StringValue2String a1)  (StringValue2String a2)
     | RefValue(modName,vasName), _                  -> CompareAsn1Value (GetBaseValue modName vasName ast) v2 ast
     | _, RefValue(modName,vasName)                  -> CompareAsn1Value v1 (GetBaseValue modName vasName ast)  ast
     | _                                             -> raise (BugErrorException(""))
@@ -188,7 +188,9 @@ let rec IsValueAllowed (c:Asn1Constraint) (v:Asn1Value) (isOfEnumType:bool) (bit
     | SizeContraint(_, sc)                 -> 
         let rec IsSizeContraintOK (v:Asn1Value) (sc:Asn1Constraint) =
             match v.Kind with
-            | StringValue(s)                -> IsValueAllowed sc (CreateDummyValueByKind (IntegerValue(IntLoc.ByValue (BigInteger s.Value.Length))) ) isOfEnumType bitOrOctSrt ast
+            | StringValue(s, l)                -> 
+                let mergedStr = StringValue2String s
+                IsValueAllowed sc (CreateDummyValueByKind (IntegerValue(IntLoc.ByValue (BigInteger mergedStr.Length))) ) isOfEnumType bitOrOctSrt ast
             | BitStringValue(s)             -> 
                 match bitOrOctSrt with
                 | Some TP_BIT_STR   -> IsValueAllowed sc (CreateDummyValueByKind (IntegerValue(IntLoc.ByValue (BigInteger s.Value.Length))) ) isOfEnumType bitOrOctSrt ast
@@ -206,16 +208,26 @@ let rec IsValueAllowed (c:Asn1Constraint) (v:Asn1Value) (isOfEnumType:bool) (bit
     | AlphabetContraint(_, ac)             ->
         let rec IsAlphabetConstraintOK (v:Asn1Value) (ac:Asn1Constraint) =
             match v.Kind with
-            | StringValue(s)    -> 
+            | StringValue(s, l)    -> 
+                let sValue = StringValue2String s
                 match ac with
                 | SingleValueContraint (_, setVal)   ->
                     match setVal.Kind with
-                    | StringValue setvaluesstr     ->
-                        let setvals = setvaluesstr.Value.ToCharArray() |> Set.ofArray
-                        s.Value.ToCharArray() |> Seq.forall(fun c -> setvals.Contains c)
+                    | StringValue (setvaluesstr,l2)     ->
+                        let setvaluesstrValue = StringValue2String setvaluesstr
+                        let setvals = setvaluesstrValue.ToCharArray() |> Set.ofArray
+                        sValue.ToCharArray()  |> Seq.forall(fun c -> setvals.Contains c)
                     | _                         -> false
                 | _     ->
-                    s.Value.ToCharArray() |> Seq.forall(fun c -> IsValueAllowed ac (CreateDummyValueByKind (StringValue(StringLoc.ByValue (c.ToString())) )) isOfEnumType bitOrOctSrt ast)
+                    let sDummyVal (c:SingleStringValue) = CreateDummyValueByKind (StringValue([c], emptyLocation  ) )
+                    sValue.ToCharArray() |> 
+                    Seq.map char2SingleStringValue |>
+                    Seq.forall(fun c -> 
+                        let ret = IsValueAllowed ac (sDummyVal c) isOfEnumType bitOrOctSrt ast
+                        if not ret then 
+                            printfn "Character '%A' is not allowed." c
+                        ret
+                    )
             | RefValue(modName,vasName)      -> IsAlphabetConstraintOK (GetBaseValue modName vasName ast) ac
             | _                             -> raise (BugErrorException(""))
         IsAlphabetConstraintOK v ac 

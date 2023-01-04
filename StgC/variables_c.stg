@@ -10,9 +10,27 @@ PrintRefValue1(sValue)    ::= "<sValue>"
 PrintRefValue2(sModName,sValue)    ::= "<sValue>"
 
 
-PrintStringValue(sValue, arrsNullChars)    ::= <<
+PrintStringValue(arrsVals, arrsNullChars)    ::= <<
+<arrsVals; separator=" ">
+>>
+
+PrintSingleStringValue(sValue)::= <<
 "<sValue>"
 >>
+
+PrintLF() ::= <<
+"\n"
+>>
+
+PrintCR() ::= <<
+"\r"
+>>
+
+PrintHT() ::= <<
+"\t"
+>>
+
+
 PrintStringValueNull()	::= "NULL"
 
 PrintCharValue(cValue)    ::= "'<cValue>'"

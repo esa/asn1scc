@@ -926,3 +926,47 @@ with
     this.encodings |> Seq.contains (ACN)
   member this.hasUper =
     this.encodings |> Seq.contains (UPER)
+
+
+let CharCR =  Convert.ToChar(13)
+let CharLF =  Convert.ToChar(10)
+let CharHT =  Convert.ToChar(9)
+let CharNul =  Convert.ToChar(0)
+
+type SpecialCharacter =
+    | CarriageReturn   // \r , 0x0D in hexadecimal, 13 in decimal) — moves the cursor to the beginning of the line without advancing to the next line
+    | LineFeed         // \n , 0x0A in hexadecimal, 10 in decimal
+    | HorizontalTab    // The horizontal tabulation (HT) or character tabulation, which in ASCII has the decimal character code of 9
+    | NullCharacter    // 0x0
+
+
+type SingleStringValue =
+    | CStringValue  of string
+    | SpecialCharacter of SpecialCharacter
+    with
+        override this.ToString() = 
+            match this with
+            | CStringValue  v -> v
+            | SpecialCharacter CarriageReturn -> "\r"
+            | SpecialCharacter LineFeed -> "\n"
+            | SpecialCharacter HorizontalTab -> "\t"
+            | SpecialCharacter NullCharacter -> new String(Char.MinValue, 1)
+        member this.AsAsn1 =
+            match this with
+            | CStringValue  v -> "\"" + v + "\""
+            | SpecialCharacter CarriageReturn -> "cr"
+            | SpecialCharacter LineFeed -> "lf"
+            | SpecialCharacter HorizontalTab -> "ht"
+            | SpecialCharacter NullCharacter -> "nul"
+
+
+let StringValue2String (vals: SingleStringValue list) =
+    vals |> List.map(fun s -> s.ToString()) |> Seq.StrJoin ""
+
+
+let char2SingleStringValue (c:char) =
+    if c = CharCR  then SpecialCharacter CarriageReturn
+    elif c = CharLF  then SpecialCharacter LineFeed      
+    elif c = CharHT  then SpecialCharacter HorizontalTab 
+    elif c = CharNul then SpecialCharacter NullCharacter 
+    else CStringValue (c.ToString())

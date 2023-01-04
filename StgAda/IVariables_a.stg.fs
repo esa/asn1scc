@@ -9,8 +9,16 @@ type IVariables_a() =
             variables_a.PrintIntValue  nValue 
         override this.PrintRealValue  (dValue:double) =
             variables_a.PrintRealValue  dValue 
-        override this.PrintStringValue  (sValue:string) (arrsNullChars:seq<string>) =
-            variables_a.PrintStringValue  sValue arrsNullChars 
+        override this.PrintStringValue  (arrsVals:seq<string>) (arrsNullChars:seq<string>) =
+            variables_a.PrintStringValue  arrsVals arrsNullChars 
+        override this.PrintSingleStringValue  (sValue:string) =
+            variables_a.PrintSingleStringValue  sValue 
+        override this.PrintLF  () =
+            variables_a.PrintLF  () 
+        override this.PrintCR  () =
+            variables_a.PrintCR  () 
+        override this.PrintHT  () =
+            variables_a.PrintHT  () 
         override this.PrintStringValueNull  () =
             variables_a.PrintStringValueNull  () 
         override this.PrintRefValue1  (sValue:string) =

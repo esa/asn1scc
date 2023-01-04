@@ -769,7 +769,7 @@ let rec mapValue (v:Asn1AcnAst.Asn1Value) =
         match v.kind with
         | Asn1AcnAst.IntegerValue     v ->  IntegerValue        v.Value 
         | Asn1AcnAst.RealValue        v ->  RealValue           v.Value 
-        | Asn1AcnAst.StringValue      v ->  StringValue         v.Value 
+        | Asn1AcnAst.StringValue      v ->  StringValue         v
         | Asn1AcnAst.BooleanValue     v ->  BooleanValue        v.Value 
         | Asn1AcnAst.BitStringValue   v ->  BitStringValue      v.Value 
         | Asn1AcnAst.OctetStringValue v ->  OctetStringValue    (v |> List.map(fun z -> z.Value))

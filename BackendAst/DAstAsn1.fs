@@ -26,7 +26,10 @@ let rec printAsn1Value (v:Asn1AcnAst.Asn1Value) =
     | Asn1AcnAst.IntegerValue        v       -> stg_asn1.Print_IntegerValue v.Value
     | Asn1AcnAst.EnumValue           v       -> v.Value
     | Asn1AcnAst.RealValue           v       -> stg_asn1.Print_RealValue v.Value
-    | Asn1AcnAst.StringValue         v       -> stg_asn1.Print_StringValue v.Value
+    | Asn1AcnAst.StringValue(parts,_)          -> 
+        match parts with
+        | (CStringValue v)::[] ->        stg_asn1.Print_StringValue v
+        | _     ->        stg_asn1.Print_SeqOfValue (parts |> List.map(fun p -> p.AsAsn1))  
     | Asn1AcnAst.BooleanValue        v       -> stg_asn1.Print_BooleanValue v.Value
     | Asn1AcnAst.BitStringValue      v       -> stg_asn1.Print_BitStringValue v.Value
     | Asn1AcnAst.OctetStringValue    v       -> stg_asn1.Print_OctetStringValue (v |> List.map (fun b -> b.Value))

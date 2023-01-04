@@ -6,7 +6,25 @@ PrintIntValue(nValue) ::= "<nValue>"
 
 PrintRealValue(dValue)	::= "<dValue>"
 
-PrintStringValue(sValue, arrsNullChars)	::= "\"<sValue>\"<if(arrsNullChars)> & <arrsNullChars; wrap, anchor, separator=\" & \"><endif>"
+PrintStringValue(arrsVals, arrsNullChars)    ::= <<
+<arrsVals; separator=" & "><if(arrsNullChars)> & <arrsNullChars; wrap, anchor, separator=" & "><endif>
+>>
+
+PrintSingleStringValue(sValue)::= <<
+"<sValue>"
+>>
+
+PrintLF() ::= <<
+<rtlModuleName()>.LF
+>>
+
+PrintCR() ::= <<
+<rtlModuleName()>.CR
+>>
+
+PrintHT() ::= <<
+<rtlModuleName()>.HT
+>>
 
 
 PrintStringValueNull()	::= "<rtlModuleName()>.NUL"

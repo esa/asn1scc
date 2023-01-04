@@ -22,13 +22,13 @@ RUN wget -O gnat-2021-20210519-x86_64-linux-bin https://community.download.adaco
 	&& git clone https://github.com/AdaCore/gnat_community_install_script.git \
 	&& chmod +x gnat_community_install_script/install_package.sh \
 	&& chmod +x gnat-2021-20210519-x86_64-linux-bin \
-	&& gnat_community_install_script/install_package.sh ./gnat-2021-20210519-x86_64-linux-bin /opt/GNAT/gnat-x86-2021	
+	&& gnat_community_install_script/install_package.sh ./gnat-2021-20210519-x86_64-linux-bin /opt/GNAT/gnat-x86-2021 \
+	&& cd \
+	&& rm -rf /gnat_tmp/ \
+	&& sed -i 's/# alias l=/alias l=/' ~/.bashrc \
+	&& sed -i 's/# export LS_OPTIONS/export LS_OPTIONS/' ~/.bashrc
 
 WORKDIR /app/
 
-RUN rm -rf /gnat_tmp/ \
-	&& sed -i 's/# alias l=/alias l=/' ~/.bashrc \
-	&& sed -i 's/# export LS_OPTIONS/export LS_OPTIONS/' ~/.bashrc
-	
 ENV PATH="/opt/GNAT/gnat-x86-2021/bin:${PATH}"
 #ENTRYPOINT ["/bin/bash"]

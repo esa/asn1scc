@@ -80,7 +80,7 @@ assignAny(p, sValue) ::= "<p> = <sValue>;"
 assignString(p, sValue) ::= "memcpy(<p>, <sValue>, sizeof(<sValue>));"
 
 
-initIA5String(sPtr, sValue, arrsNullChars) ::= "strcpy(<sPtr>,\"<sValue>\");"
+initIA5String(sPtr, sValue) ::= "strcpy(<sPtr>,<sValue>);"
 initEnumerated(sVal, sValue) ::= "<sVal> = <sValue>;"
 initNull(sVal)    ::= "<sVal> = 0;"
 

@@ -29,10 +29,11 @@ type Asn1Value = {
 }
 
 
+
 and Asn1ValueKind =
     |   IntegerValue        of IntLoc
     |   RealValue           of DoubleLoc
-    |   StringValue         of StringLoc
+    |   StringValue         of (SingleStringValue list*SrcLoc)
     |   BooleanValue        of BoolLoc
     |   BitStringValue      of StringLoc
     |   OctetStringValue    of list<ByteLoc>

@@ -138,7 +138,7 @@ let rec MapAsn1Value (r:ParameterizedAsn1Ast.AstRoot) (t: ParameterizedAsn1Ast.A
             let actKind, mdName = getActualKindAndModule r t.Kind
             match actKind with
             | ParameterizedAsn1Ast.TimeType tmClss  -> Asn1Ast.TimeValue (CommonTypes.createTimeValueFromString tmClss v)
-            | _                                     -> Asn1Ast.StringValue v
+            | _                                     -> Asn1Ast.StringValue ([CStringValue v.Value], v.Location)
         |ParameterizedAsn1Ast.BooleanValue(v)       -> Asn1Ast.BooleanValue v
         |ParameterizedAsn1Ast.BitStringValue(v)     -> Asn1Ast.BitStringValue v
         |ParameterizedAsn1Ast.OctetStringValue v    -> Asn1Ast.OctetStringValue v
@@ -184,6 +184,22 @@ let rec MapAsn1Value (r:ParameterizedAsn1Ast.AstRoot) (t: ParameterizedAsn1Ast.A
                 let bitStrVal = 
                     [0I .. maxValue] |> List.map(fun bi -> if bitPos.Contains bi then '1' else '0') |> Seq.StrJoin ""
                 Asn1Ast.BitStringValue ({StringLoc.Value = bitStrVal; Location = v.Location})
+            | ParameterizedAsn1Ast.IA5String  -> 
+                let partVals =
+                    vals |> 
+                    List.map(fun v ->
+                        match v.Kind with
+                        | ParameterizedAsn1Ast.StringValue vl -> CStringValue vl.Value
+                        | ParameterizedAsn1Ast.RefValue (_, vs)  -> 
+                            match vs.Value with
+                            | "cr" -> SpecialCharacter CarriageReturn
+                            | "lf" -> SpecialCharacter LineFeed
+                            | "ht" -> SpecialCharacter HorizontalTab
+                            | "nul" -> SpecialCharacter NullCharacter
+                            | _     -> raise(SemanticError(v.Location, "Expecting a IA5String value"))
+                        | _  -> raise(SemanticError(v.Location, "Expecting a IA5String value")))
+                    
+                Asn1Ast.StringValue (partVals, v.Location)
             | _                                      -> raise(SemanticError(v.Location, "Expecting a SEQUENCE OF value"))
         |ParameterizedAsn1Ast.SeqValue(vals)        -> 
             match actKind with
@@ -323,14 +339,16 @@ and MapAsn1Constraint (r:ParameterizedAsn1Ast.AstRoot) (t: ParameterizedAsn1Ast.
 
 and MapAsn1Type (r:ParameterizedAsn1Ast.AstRoot) typeScope (t:ParameterizedAsn1Ast.Asn1Type) :Asn1Ast.Asn1Type =
     let aux kind : Asn1Ast.Asn1Type=
+        let newCons = 
+            t.Constraints |> 
+            foldMap (fun ss c -> 
+                let newC = MapAsn1Constraint r t typeScope ss c
+                let newSs = visitSilbingConstraint ss
+                newC, newSs) (visitConstraint []) |> fst
+
         {
             Asn1Ast.Asn1Type.Kind = kind
-            Constraints = 
-                t.Constraints |> 
-                foldMap (fun ss c -> 
-                   let newC = MapAsn1Constraint r t typeScope ss c
-                   let newSs = visitSilbingConstraint ss
-                   newC, newSs) (visitConstraint []) |> fst
+            Constraints = newCons
             Location = t.Location
             parameterizedTypeInstance = t.parameterizedTypeInstance
             unitsOfMeasure = t.unitsOfMeasure

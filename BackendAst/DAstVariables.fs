@@ -36,6 +36,22 @@ let printBitStringValueAsCompoundLitteral  (lm:LanguageMacros) curProgamUnitName
     let bytes = lm.lg.bitStringValueToByteArray v
     printOct td (o.minSize.uper = o.maxSize.uper) bytes o.minSize.uper
 
+let converStringValue2TargetLangStringLiteral (lm:LanguageMacros) mxSizeUper (v:StringValue) = 
+    let (parts,_) = v
+    let vStr = CommonTypes.StringValue2String parts
+    let arrNuls = [0 .. ((int mxSizeUper) - vStr.Length)]|>Seq.map(fun x -> lm.vars.PrintStringValueNull())
+    let pParts = 
+        parts |> 
+        List.map(fun s ->
+            match s with
+            | CStringValue  sv -> lm.vars.PrintSingleStringValue (sv.Replace("\"","\"\""))
+            | SpecialCharacter  CarriageReturn -> lm.vars.PrintCR ()
+            | SpecialCharacter  LineFeed       -> lm.vars.PrintLF ()
+            | SpecialCharacter  HorizontalTab  -> lm.vars.PrintHT ()
+            | SpecialCharacter  NullCharacter  -> lm.vars.PrintStringValueNull ()
+        )
+    lm.vars.PrintStringValue pParts arrNuls
+
 let rec printValue (r:DAst.AstRoot)  (lm:LanguageMacros) (curProgamUnitName:string)  (t:Asn1Type) (parentValue:Asn1ValueKind option) (gv:Asn1ValueKind) =
         match gv with
         | IntegerValue      v -> lm.vars.PrintIntValue v
@@ -43,9 +59,7 @@ let rec printValue (r:DAst.AstRoot)  (lm:LanguageMacros) (curProgamUnitName:stri
         | BooleanValue      v -> lm.vars.PrintBooleanValue v
         | StringValue       v -> 
             match t.ActualType.Kind with
-            | IA5String st  ->
-                let arrNuls = [0 .. ((int st.baseInfo.maxSize.uper) - v.Length)]|>Seq.map(fun x -> lm.vars.PrintStringValueNull())
-                lm.vars.PrintStringValue (v.Replace("\"","\"\"")) arrNuls
+            | IA5String st  -> converStringValue2TargetLangStringLiteral lm (int st.baseInfo.maxSize.uper) v
             | _             -> raise(BugErrorException "unexpected type")
 
         | BitStringValue    v -> 
@@ -217,8 +231,7 @@ let createStringFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAs
     let printValue (curProgamUnitName:string) (parentValue:Asn1ValueKind option) (v:Asn1ValueKind) =
         match v with
         | StringValue v    -> 
-            let arrNuls = [0 .. (int o.maxSize.uper - v.Length)] |> Seq.map(fun x -> lm.vars.PrintStringValueNull())
-            lm.vars.PrintStringValue (v.Replace("\"","\"\"")) arrNuls
+            converStringValue2TargetLangStringLiteral lm (int o.maxSize.uper) v
         | RefValue ((md,vs),ov)   -> vs
         | _                 -> raise(BugErrorException "unexpected value")
 
