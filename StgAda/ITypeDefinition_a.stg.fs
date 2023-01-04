@@ -115,8 +115,8 @@ type ITypeDefinition_a() =
             header_a.Define_subType_bit_string  td prTd soParentTypePackage bFixedSize 
         override this.Define_new_sequence_of  (td:FE_SizeableTypeDefinition) (nMin:BigInteger) (nMax:BigInteger) (bFixedSize:bool) (sChildType:string) (soChildDefintion:string option) =
             header_a.Define_new_sequence_of  td nMin nMax bFixedSize sChildType soChildDefintion 
-        override this.Define_subType_sequence_of  (td:FE_SizeableTypeDefinition) (prTd:FE_SizeableTypeDefinition) (soParentTypePackage:string option) (bFixedSize:bool) =
-            header_a.Define_subType_sequence_of  td prTd soParentTypePackage bFixedSize 
+        override this.Define_subType_sequence_of  (td:FE_SizeableTypeDefinition) (prTd:FE_SizeableTypeDefinition) (soParentTypePackage:string option) (bFixedSize:bool) (soChildDefintion:string option) =
+            header_a.Define_subType_sequence_of  td prTd soParentTypePackage bFixedSize soChildDefintion 
         override this.Define_new_sequence_child_bit  (sName:string) =
             header_a.Define_new_sequence_child_bit  sName 
         override this.Define_new_sequence_child  (sName:string) (sType:string) =

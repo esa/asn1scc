@@ -21,6 +21,12 @@ let rec getValidFunctions (isValidFunction:IsValidFunction) =
         yield isValidFunction
     } |> Seq.toList
 
+let rec getInitializationFunctions (isValidFunction:InitFunction) =
+    seq {
+        for c in isValidFunction.nonEmbeddedChildrenFuncs do
+            yield! getInitializationFunctions c
+        yield isValidFunction
+    } |> Seq.toList
 
 let printHeaderFileValueAssignment (r:DAst.AstRoot) (vasPU_name:string)  (lm:LanguageMacros) (vas:ValueAssignment) =
     let sName = vas.c_name
@@ -100,9 +106,11 @@ let private printUnit (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTy
             let init_def        = 
                 match lm.lg.initMetod with
                 | Procedure ->
-                    Some (GetMySelfAndChildren tas.Type |> List.choose(fun t -> t.initFunction.initProcedure) |> List.map(fun c -> c.def) |> Seq.StrJoin "\n")
+                    //Some (GetMySelfAndChildren tas.Type |> List.choose(fun t -> t.initFunction.initProcedure) |> List.map(fun c -> c.def) |> Seq.StrJoin "\n")
+                    Some(getInitializationFunctions tas.Type.initFunction |> List.choose( fun i_f -> i_f.initProcedure) |> List.map(fun c -> c.def) |> Seq.StrJoin "\n" )
                 | Function ->
-                    Some (GetMySelfAndChildren tas.Type |> List.choose(fun t -> t.initFunction.initFunction ) |> List.map(fun c -> c.def) |> Seq.StrJoin "\n")
+                    Some(getInitializationFunctions tas.Type.initFunction |> List.choose( fun i_f -> i_f.initFunction) |> List.map(fun c -> c.def) |> Seq.StrJoin "\n" )
+                    //Some (GetMySelfAndChildren tas.Type |> List.choose(fun t -> t.initFunction.initFunction ) |> List.map(fun c -> c.def) |> Seq.StrJoin "\n")
             let init_globals    =
                 //we generate const globals only if requested by user and the init method is procedure 
                 match r.args.generateConstInitGlobals && (lm.lg.initMetod  = Procedure) with
@@ -191,9 +199,12 @@ let private printUnit (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTy
             let initialize        = 
                 match lm.lg.initMetod with
                 | InitMethod.Procedure  ->
-                    Some(GetMySelfAndChildren t.Type |> List.choose(fun y -> y.initFunction.initProcedure) |> List.map(fun c -> c.body) |> Seq.StrJoin "\n")
+                    //Some(GetMySelfAndChildren t.Type |> List.choose(fun y -> y.initFunction.initProcedure) |> List.map(fun c -> c.body) |> Seq.StrJoin "\n")
+                    Some(getInitializationFunctions t.Type.initFunction |> List.choose( fun i_f -> i_f.initProcedure) |> List.map(fun c -> c.body) |> Seq.StrJoin "\n" )
                 | InitMethod.Function  ->
-                    Some (GetMySelfAndChildren t.Type |> List.choose(fun t -> t.initFunction.initFunction ) |> List.map(fun c -> c.body) |> Seq.StrJoin "\n")
+                    //Some (GetMySelfAndChildren t.Type |> List.choose(fun t -> t.initFunction.initFunction ) |> List.map(fun c -> c.body) |> Seq.StrJoin "\n")
+                    Some(getInitializationFunctions t.Type.initFunction |> List.choose( fun i_f -> i_f.initFunction) |> List.map(fun c -> c.body) |> Seq.StrJoin "\n" )
+
             let init_globals    =
                 match r.args.generateConstInitGlobals  && (lm.lg.initMetod  = Procedure) with
                 | false -> None

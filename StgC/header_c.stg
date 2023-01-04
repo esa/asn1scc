@@ -207,7 +207,10 @@ typedef struct {
 
 
 
-Define_subType_sequence_of(td/*:FE_SizeableTypeDefinition*/, prTd/*:FE_SizeableTypeDefinition*/, soParentTypePackage, bFixedSize) ::= <<
+Define_subType_sequence_of(td/*:FE_SizeableTypeDefinition*/, prTd/*:FE_SizeableTypeDefinition*/, soParentTypePackage, bFixedSize, soChildDefintion) ::= <<
+
+<soChildDefintion>
+
 typedef <prTd.typeName> <td.typeName>;
 >>
 

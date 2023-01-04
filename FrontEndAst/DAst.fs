@@ -233,6 +233,9 @@ type InitFunction = {
     //initFuncBodyTestCases   : (CallerScope  -> InitFunctionResult) list         // returns a list of set the statement(s). Each set that initialize this type according to a specific test case
     automaticTestCases      : AutomaticTestCase list
     user_aux_functions      : (string*string) list
+    nonEmbeddedChildrenFuncs  : InitFunction list      //a list with the first level child funcs which are not embedded by this
+                                                       //InitFunction but the the function is called
+
 }
 
 

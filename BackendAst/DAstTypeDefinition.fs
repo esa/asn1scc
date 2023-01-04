@@ -287,7 +287,7 @@ let createSequenceOf (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAst.As
         Some completeDefintion
     | NonPrimitiveNewSubTypeDefinition subDef     -> 
         let otherProgramUnit = if td.programUnit = subDef.programUnit then None else (Some subDef.programUnit)
-        let completeDefintion = define_subType_sequence_of td subDef otherProgramUnit (o.minSize.uper = o.maxSize.uper)
+        let completeDefintion = define_subType_sequence_of td subDef otherProgramUnit (o.minSize.uper = o.maxSize.uper) (getChildDefinition childDefinition)
         Some completeDefintion
     | NonPrimitiveReference2OtherType            -> None
 
