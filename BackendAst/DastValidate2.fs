@@ -205,13 +205,26 @@ let foldSizableConstraint (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) hasCount co
 
 let ia5StringConstraint2ValidationCodeBlock  (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (typeId:ReferenceToType)   (c:IA5StringConstraint) (us0:State) =
     let print_AlphabetCheckFunc = lm.isvalid.Print_AlphabetCheckFunc 
-    let stringContainsChar      = lm.isvalid.stringContainsChar
+    let stringContainsChar    (v:String)  = 
+        let newStr = 
+            if v.Length>1 then
+                v.IDQ
+            elif v.Length = 1 then
+                let c = v.ToCharArray()[0]
+                if   c = CommonTypes.CharCR  then lm.vars.PrintCR ()
+                elif c = CommonTypes.CharLF  then lm.vars.PrintLF ()
+                elif c = CommonTypes.CharHT  then lm.vars.PrintHT ()
+                elif c = CommonTypes.CharNul then lm.vars.PrintStringValueNull ()
+                else v.IDQ
+            else
+                v.IDQ
+        lm.isvalid.stringContainsChar newStr
 
     let alphaFuncName = ToC (((typeId.AcnAbsPath |> Seq.skip 1 |> Seq.StrJoin("-")).Replace("#","elm")) + "_CharsAreValid")
     let foldRangeCharCon (lm:LanguageMacros)   (c:CharTypeConstraint)  st =
         let valToStrFunc1 v = v.ToString().ISQ
         foldRangeTypeConstraint   (con_or lm) (con_and lm) (con_not lm) (con_ecxept lm) con_root (con_root2 lm)
-            (fun _ (v:string)  s  -> (fun p -> VCBExpression( stringContainsChar v.IDQ p.arg.p)) ,s)
+            (fun _ (v:string)  s  -> (fun p -> VCBExpression( stringContainsChar v p.arg.p)) ,s)
             (fun _ v1 v2  minIsIn maxIsIn s   -> 
                 (fun p -> VCBExpression(lm.isvalid.ExpAnd (Lte lm minIsIn (valToStrFunc1 v1) (lm.lg.getValue p.arg)) (Lte lm maxIsIn (lm.lg.getValue p.arg) (valToStrFunc1 v2)))), s)
             (fun _ v1 minIsIn s   -> (fun p -> VCBExpression( Lte lm minIsIn (valToStrFunc1 v1) (lm.lg.getValue p.arg))), s)

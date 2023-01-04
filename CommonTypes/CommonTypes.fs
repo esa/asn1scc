@@ -928,6 +928,11 @@ with
     this.encodings |> Seq.contains (UPER)
 
 
+let CharCR =  Convert.ToChar(13)
+let CharLF =  Convert.ToChar(10)
+let CharHT =  Convert.ToChar(9)
+let CharNul =  Convert.ToChar(0)
+
 type SpecialCharacter =
     | CarriageReturn   // \r , 0x0D in hexadecimal, 13 in decimal) — moves the cursor to the beginning of the line without advancing to the next line
     | LineFeed         // \n , 0x0A in hexadecimal, 10 in decimal
@@ -957,3 +962,11 @@ type SingleStringValue =
 
 let StringValue2String (vals: SingleStringValue list) =
     vals |> List.map(fun s -> s.ToString()) |> Seq.StrJoin ""
+
+
+let char2SingleStringValue (c:char) =
+    if c = CharCR  then SpecialCharacter CarriageReturn
+    elif c = CharLF  then SpecialCharacter LineFeed      
+    elif c = CharHT  then SpecialCharacter HorizontalTab 
+    elif c = CharNul then SpecialCharacter NullCharacter 
+    else CStringValue (c.ToString())

@@ -216,15 +216,16 @@ let rec IsValueAllowed (c:Asn1Constraint) (v:Asn1Value) (isOfEnumType:bool) (bit
                     | StringValue (setvaluesstr,l2)     ->
                         let setvaluesstrValue = StringValue2String setvaluesstr
                         let setvals = setvaluesstrValue.ToCharArray() |> Set.ofArray
-                        sValue.ToCharArray() |> Seq.forall(fun c -> setvals.Contains c)
+                        sValue.ToCharArray()  |> Seq.forall(fun c -> setvals.Contains c)
                     | _                         -> false
                 | _     ->
-                    let sDummyVal (c:char) = CreateDummyValueByKind (StringValue([CStringValue (c.ToString())], emptyLocation  ) )
+                    let sDummyVal (c:SingleStringValue) = CreateDummyValueByKind (StringValue([c], emptyLocation  ) )
                     sValue.ToCharArray() |> 
+                    Seq.map char2SingleStringValue |>
                     Seq.forall(fun c -> 
                         let ret = IsValueAllowed ac (sDummyVal c) isOfEnumType bitOrOctSrt ast
                         if not ret then 
-                            printfn "Character '%c' is not allowed." c
+                            printfn "Character '%A' is not allowed." c
                         ret
                     )
             | RefValue(modName,vasName)      -> IsAlphabetConstraintOK (GetBaseValue modName vasName ast) ac

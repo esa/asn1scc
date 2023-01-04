@@ -206,7 +206,7 @@ callAlphaFunc(sFuncName, p) ::= "<sFuncName>_CharsAreValid(<p>)"
 getStringSize(p) ::= "<rtlModuleName()>.getStringSize(<p>)"
 
 
-stringContainsChar(sStrVal, p) ::= "<rtlModuleName()>.encoding.stringContainsChar(<sStrVal>, <p>)"
+stringContainsChar(sStrVal, p) ::= "<rtlModuleName()>.encoding.stringContainsChar(\"\" & <sStrVal>, <p>)"
 
 
 

@@ -339,14 +339,16 @@ and MapAsn1Constraint (r:ParameterizedAsn1Ast.AstRoot) (t: ParameterizedAsn1Ast.
 
 and MapAsn1Type (r:ParameterizedAsn1Ast.AstRoot) typeScope (t:ParameterizedAsn1Ast.Asn1Type) :Asn1Ast.Asn1Type =
     let aux kind : Asn1Ast.Asn1Type=
+        let newCons = 
+            t.Constraints |> 
+            foldMap (fun ss c -> 
+                let newC = MapAsn1Constraint r t typeScope ss c
+                let newSs = visitSilbingConstraint ss
+                newC, newSs) (visitConstraint []) |> fst
+
         {
             Asn1Ast.Asn1Type.Kind = kind
-            Constraints = 
-                t.Constraints |> 
-                foldMap (fun ss c -> 
-                   let newC = MapAsn1Constraint r t typeScope ss c
-                   let newSs = visitSilbingConstraint ss
-                   newC, newSs) (visitConstraint []) |> fst
+            Constraints = newCons
             Location = t.Location
             parameterizedTypeInstance = t.parameterizedTypeInstance
             unitsOfMeasure = t.unitsOfMeasure
