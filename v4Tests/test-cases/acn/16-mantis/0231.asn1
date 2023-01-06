@@ -1,0 +1,23 @@
+TEST-CASE DEFINITIONS ::=
+BEGIN
+
+MyArray ::= SEQUENCE (SIZE(20)) OF INTEGER (1..20)
+
+MySeqArray ::= MyArray(SIZE(20))
+
+
+MyPDU ::= SEQUENCE
+{
+    data MyArray(SIZE(20))
+}
+
+MyChoice ::= SEQUENCE
+{
+    data1 MyArray(SIZE(20)),
+    data2 MyArray(SIZE(20)),
+	a4 INTEGER
+}
+
+END
+
+--TCLS     MyPDU[]

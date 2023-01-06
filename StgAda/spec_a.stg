@@ -283,7 +283,9 @@ type <td.typeName> is  record
 end record;
 >>
 
-Define_subType_sequence_of(td/*:FE_SizeableTypeDefinition*/, prTd/*:FE_SizeableTypeDefinition*/, soParentTypePackage, bFixedSize) ::= <<
+Define_subType_sequence_of(td/*:FE_SizeableTypeDefinition*/, prTd/*:FE_SizeableTypeDefinition*/, soParentTypePackage, bFixedSize, soChildDefintion) ::= <<
+<soChildDefintion>
+
 <define_subtype(thisType=td.typeName, parentType=prTd.typeName, soParentTypePackage=soParentTypePackage)>
 <define_subtype(thisType=td.index, parentType=prTd.index, soParentTypePackage=soParentTypePackage)>
 <define_subtype(thisType=td.array, parentType=prTd.array, soParentTypePackage=soParentTypePackage)>

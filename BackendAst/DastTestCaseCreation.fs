@@ -112,6 +112,20 @@ let TestSuiteFileName = "testsuite"
 
 let emitDummyInitStatementsNeededForStatementCoverage (lm:Language.LanguageMacros) (t:Asn1Type) =
     let pdumy = {CallerScope.modName = ToC "MainProgram"; arg = VALUE "tmp0"}
+    let rec getInitializationFunctions (n:InitFunction) =
+        seq {
+            for c in n.nonEmbeddedChildrenFuncs do
+                yield! getInitializationFunctions c
+            yield n
+        } |> Seq.toList
+    let actualInitFuncNames =
+        getInitializationFunctions t.initFunction |> 
+        List.choose (fun i ->
+            match i.initProcedure with
+            | None  -> None
+            | Some initProc ->  Some initProc.funcName) |>
+        Set.ofList
+
     GetMySelfAndChildren2 lm t pdumy |>
     List.choose(fun (t,p) -> 
         let initProc = t.initFunction.initProcedure
@@ -130,12 +144,13 @@ let emitDummyInitStatementsNeededForStatementCoverage (lm:Language.LanguageMacro
                     (lm.lg.getTypeDefinition t.FT_TypeDefintion).programUnit + "." + sTypeName
         match initProc with
         | None  -> None
-        | Some initProc ->  
+        | Some initProc when actualInitFuncNames.Contains initProc.funcName ->  
             match lm.lg.initMetod with
             | InitMethod.Procedure ->
                 Some (emitTestCaseAsFunc_dummy_init lm sTypeName initProc.funcName dummyVarName)
             | InitMethod.Function ->
-                Some (emitTestCaseAsFunc_dummy_init_function lm sTypeName initProc.funcName dummyVarName) )
+                Some (emitTestCaseAsFunc_dummy_init_function lm sTypeName initProc.funcName dummyVarName)
+        | Some _ -> None)
 
 
 let printAllTestCasesAndTestCaseRunner (r:DAst.AstRoot) (lm:LanguageMacros) outDir =
