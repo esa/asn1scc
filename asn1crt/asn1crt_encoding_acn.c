@@ -372,7 +372,6 @@ void Acn_Enc_Int_TwosComplement_ConstSize_little_endian_64(BitStream* pBitStrm, 
 flag Acn_Dec_Int_TwosComplement_ConstSize(BitStream* pBitStrm, asn1SccSint* pIntVal, int encodedSizeInBits)
 {
 
-	asn1SccUint tmp = 0;
 
 	int i;
 	flag valIsNegative = BitStream_PeekBit(pBitStrm);
@@ -380,23 +379,19 @@ flag Acn_Dec_Int_TwosComplement_ConstSize(BitStream* pBitStrm, asn1SccSint* pInt
 	int rstBits = encodedSizeInBits % 8;
 	byte b = 0;
 
-
+	*pIntVal = valIsNegative ? MAX_INT : 0;
 	for (i = 0; i<nBytes; i++) {
 		if (!BitStream_ReadByte(pBitStrm, &b))
 			return FALSE;
-		tmp = (tmp << 8) | b;
+		*pIntVal = (*pIntVal << 8) | b;
 	}
 
 	if (rstBits>0)
 	{
 		if (!BitStream_ReadPartialByte(pBitStrm, &b, (byte)rstBits))
 			return FALSE;
-		tmp = (tmp << rstBits) | b;
+		*pIntVal = (*pIntVal << rstBits) | b;
 	}
-	if (valIsNegative)
-		*pIntVal = -(asn1SccSint)(~tmp) - 1;
-	else
-		*pIntVal = (asn1SccSint)tmp;
 	return TRUE;
 }
 
@@ -497,12 +492,6 @@ void Acn_Enc_Int_TwosComplement_VarSize_LengthEmbedded(BitStream* pBitStrm, asn1
 
 flag Acn_Dec_Int_TwosComplement_VarSize_LengthEmbedded(BitStream* pBitStrm, asn1SccSint* pIntVal)
 {
-
-#if WORD_SIZE==8
-#define MAX_INT 0xFFFFFFFFFFFFFFFFULL
-#else
-#define MAX_INT 0xFFFFFFFF
-#endif
 
 	byte nBytes;
 	int i;
