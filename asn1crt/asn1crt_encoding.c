@@ -241,6 +241,11 @@ flag BitStream_ReadBit(BitStream* pBitStrm, flag* v)
 	return pBitStrm->currentByte * 8 + pBitStrm->currentBit <= pBitStrm->count * 8;
 }
 
+flag BitStream_PeekBit(BitStream* pBitStrm) {
+	return pBitStrm->buf[pBitStrm->currentByte] & masks[pBitStrm->currentBit];
+}
+
+
 /*
 Append byte.
 
@@ -977,24 +982,25 @@ flag BitStream_DecodeUnConstraintWholeNumber(BitStream* pBitStrm, asn1SccSint* v
 	asn1SccSint nBytes;
 	int i;
 	flag valIsNegative = FALSE;
-	*v = 0;
+	asn1SccUint tmp = 0;
 
 
 	if (!BitStream_DecodeConstraintWholeNumber(pBitStrm, &nBytes, 0, 255))
 		return FALSE;
 
+	valIsNegative = BitStream_PeekBit(pBitStrm);
 
 	for (i = 0; i<nBytes; i++) {
 		byte b = 0;
 		if (!BitStream_ReadByte(pBitStrm, &b))
 			return FALSE;
-		if (!i) {
-			valIsNegative = b>0x7F;
-			if (valIsNegative)
-				*v = -1;
-		}
-		*v = (*v << 8) | b;
+		tmp = (tmp << 8) | b;
 	}
+	if (valIsNegative)
+		*v = -(asn1SccSint)(~tmp) - 1;
+	else
+		*v = (asn1SccSint)tmp;
+
 	return TRUE;
 }
 
@@ -1220,7 +1226,9 @@ flag DecodeRealAsBinaryEncoding(BitStream* pBitStrm, int length, byte header, as
 	int F;
 	unsigned factor = 1;
 	int expLen;
-	int exponent = 0;
+	unsigned int exponent_uint = 0;
+	int exponent;
+	flag expIsNegative = FALSE;
 	int expFactor = 1;
 	asn1SccUint N = 0;
 	int i;
@@ -1243,17 +1251,18 @@ flag DecodeRealAsBinaryEncoding(BitStream* pBitStrm, int length, byte header, as
 
 	if (expLen>length)
 		return FALSE;
-
+	expIsNegative = BitStream_PeekBit(pBitStrm);
 	for (i = 0; i<expLen; i++) {
 		byte b = 0;
 		if (!BitStream_ReadByte(pBitStrm, &b))
 			return FALSE;
-		if (!i) {
-			if (b>0x7F)
-				exponent = -1;
-		}
-		exponent = exponent << 8 | b;
+		exponent_uint = exponent_uint << 8 | b;
 	}
+	if (expIsNegative)
+		exponent = -(int)(~exponent_uint) - 1;
+	else
+		exponent = (int)exponent_uint;
+
 	length -= expLen;
 
 	for (i = 0; i<length; i++) {
