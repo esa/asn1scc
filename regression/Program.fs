@@ -139,7 +139,7 @@ let executeTestCase asn1sccdll workDir  (t:Test_Case) (lang:string, ws:int, slim
         else
             ""
     
-    let cmd = $"%s{asn1sccdll} -%s{lang} -x ast.xml -uPER -ACN -%s{ig} -typePrefix ASN1SCC_ -renamePolicy 3 -fp AUTO -equal -atc  %s{slima} %s{wsa} %s{target} sample1.asn1 sample1.acn"
+    let cmd = $"%s{asn1sccdll} -%s{lang} -x ast.xml -uPER -ACN %s{ig} -typePrefix ASN1SCC_ -renamePolicy 3 -fp AUTO -equal -atc  %s{slima} %s{wsa} %s{target} sample1.asn1 sample1.acn"
     //let cmd = sprintf "%s -%s -x ast.xml -uPER -ACN -ig -typePrefix ASN1SCC_ -renamePolicy 3 -fp AUTO -equal -atc  %s %s %s sample1.asn1 sample1.acn" asn1sccdll lang slima wsa target
     prepareFolderAndFiles workDir t
     //ShellProcess.printInfo "\nwordDir is:%s\n%s\n\n" workDir cmd
