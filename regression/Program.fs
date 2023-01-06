@@ -7,14 +7,15 @@ open System.IO
 open ShellProcess
 
 type CliArguments =
-    | [<Unique; AltCommandLine("-ac")>]Asn1scc_Location of asn1sccdll:string
-    | [<Unique; AltCommandLine("-tcd")>]Test_Cases_Dir of dir:string
-    | [<Unique; AltCommandLine("-wd")>]Work_Dir of dir:string
-    | [<Unique; AltCommandLine("-t")>]Test_Case of test_asn1_file:string
-    | [<Unique; AltCommandLine("-l")>]Language of lang_id:string
-    | [<Unique; AltCommandLine("-s")>]Slim of enable:bool
-    | [<Unique; AltCommandLine("-ws")>]Word_Size of int
-    | [<Unique; AltCommandLine("-p")>]Parallel of int 
+    | [<Unique; AltCommandLine("-ac")>]     Asn1scc_Location of asn1sccdll:string
+    | [<Unique; AltCommandLine("-tcd")>]    Test_Cases_Dir of dir:string
+    | [<Unique; AltCommandLine("-wd")>]     Work_Dir of dir:string
+    | [<Unique; AltCommandLine("-t")>]      Test_Case of test_asn1_file:string
+    | [<Unique; AltCommandLine("-l")>]      Language of lang_id:string
+    | [<Unique; AltCommandLine("-s")>]      Slim of enable:bool
+    | [<Unique; AltCommandLine("-ws")>]     Word_Size of int
+    | [<Unique; AltCommandLine("-p")>]      Parallel of int 
+    | [<Unique; AltCommandLine("-ig")>]     Init_Globals
 with
     interface IArgParserTemplate with
         member this.Usage =
@@ -27,6 +28,7 @@ with
             | Slim           _   -> ""
             | Word_Size      _   -> "8 or 4"
             | Parallel       _   -> ""
+            | Init_Globals       -> "generate const globals for types initialization. Applicable only to C."
 
 let checkArguement arg =
     match arg with
@@ -38,6 +40,7 @@ let checkArguement arg =
     | Word_Size      _   -> ()
     | Parallel       _   -> ()
     | Asn1scc_Location _ -> ()
+    | Init_Globals       -> ()
 
 let StrJoin str listItems =
     if Seq.isEmpty listItems then 
@@ -126,16 +129,18 @@ END
     File.Copy(asn1FileName, Path.Combine(workDir, "sample1.asn1"))
     File.WriteAllText(Path.Combine(workDir, "sample1.acn"), acnContent)
     
-let executeTestCase asn1sccdll workDir  (t:Test_Case) (lang:string, ws:int, slim:bool) =
+let executeTestCase asn1sccdll workDir  (t:Test_Case) (lang:string, ws:int, slim:bool, enableIG:bool) =
     let wsa = if ws=8 then "-fpWordSize 8 -wordSize 8" else "-fpWordSize 4 -wordSize 4"
     let slima = if slim then "-slim" else ""
-    //-c -x ast.xml -uPER -ACN -typePrefix gmamais_  -slim -renamePolicy 3 -fp AUTO -equal -atc -o 'c:\prj\GitHub\asn1scc\v4Tests\tmp_c' 'c:\prj\GitHub\asn1scc\v4Tests\tmp_c\sample1.asn1' 'c:\prj\GitHub\asn1scc\v4Tests\tmp_c\sample1.acn'
+    let ig = if enableIG then "-ig" else ""
     let target = 
         if lang = "Ada" && ws = 4 then 
             " -t msp430 "
         else
             ""
-    let cmd = sprintf "%s -%s -x ast.xml -uPER -ACN -ig -typePrefix ASN1SCC_ -renamePolicy 3 -fp AUTO -equal -atc  %s %s %s sample1.asn1 sample1.acn" asn1sccdll lang slima wsa target
+    
+    let cmd = $"%s{asn1sccdll} -%s{lang} -x ast.xml -uPER -ACN -${ig} -typePrefix ASN1SCC_ -renamePolicy 3 -fp AUTO -equal -atc  %s{slima} %s{wsa} %s{target} sample1.asn1 sample1.acn"
+    //let cmd = sprintf "%s -%s -x ast.xml -uPER -ACN -ig -typePrefix ASN1SCC_ -renamePolicy 3 -fp AUTO -equal -atc  %s %s %s sample1.asn1 sample1.acn" asn1sccdll lang slima wsa target
     prepareFolderAndFiles workDir t
     //ShellProcess.printInfo "\nwordDir is:%s\n%s\n\n" workDir cmd
     let res = executeProcess workDir "dotnet" cmd
@@ -222,18 +227,18 @@ let dirSafeDelete dirName =
     dirSafeDelete_aux 5 dirName
 
         
-let executeTestCaseSync asn1sccdll workDir (i:int) (t:Test_Case) (lang:string, ws:int, slim:bool) =
+let executeTestCaseSync asn1sccdll workDir (i:int) (t:Test_Case) (lang:string, ws:int, slim:bool, enableIG:bool) =
     let rndDir = Path.GetRandomFileName()
     let newWorkDir = Path.Combine(workDir, rndDir)
     Directory.CreateDirectory newWorkDir |> ignore
-    let ret = executeTestCase asn1sccdll newWorkDir t (lang, ws, slim)    
+    let ret = executeTestCase asn1sccdll newWorkDir t (lang, ws, slim, enableIG)    
     match ret with
     | Success _     -> 
         dirSafeDelete newWorkDir
     | Failed  _     -> ()
     (i, ret, rndDir, t, lang, ws, slim)
 
-let executeTestCaseAsync asn1sccdll workDir (i:int) (t:Test_Case) (lang:string, ws:int, slim:bool) =
+let executeTestCaseAsync asn1sccdll workDir (i:int) (t:Test_Case) (lang:string, ws:int, slim:bool, enableIG:bool) =
     async {
     (*
         let rndDir = Path.GetRandomFileName()
@@ -246,7 +251,7 @@ let executeTestCaseAsync asn1sccdll workDir (i:int) (t:Test_Case) (lang:string, 
         | Failed  _     -> ()
         return (i, ret, rndDir, t, lang, ws, slim)
         *)
-        let aa = executeTestCaseSync asn1sccdll workDir i t (lang, ws, slim)
+        let aa = executeTestCaseSync asn1sccdll workDir i t (lang, ws, slim, enableIG)
         return aa
     }
 
@@ -323,13 +328,14 @@ let main0 argv =
             match parserResults.Contains <@ Slim @> with
             | false -> [true; false]
             | true  -> [parserResults.GetResult(<@ Slim @>)]
+        let enableIG = parserResults.Contains <@ Init_Globals @> 
 
         let asn1sccModes =
             seq {
                 for l in languages do
                     for ws in [word_sizes] do
                         for sm in slim_modes do
-                            yield (l,ws,sm)
+                            yield (l,ws,sm, enableIG)
             } |> Seq.toList
         let asn1sccInvoications =
             seq {

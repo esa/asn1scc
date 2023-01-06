@@ -836,12 +836,13 @@ let createSequenceOfInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1A
 
             let funcBody = initTestCaseSizeSequenceOf p.arg.p (lm.lg.getAcces p.arg) initCountValue o.maxSize.uper (isFixedSize) [childInitRes_funcBody] false i
             {InitFunctionResult.funcBody = funcBody; localVariables= (SequenceOfIndex (ii, None))::childInitRes_localVariables }
-
-        match childType.initFunction.initProcedure with
-        | None  ->
-            initTasFunction, []
-        | Some initProc  ->
-            initTasFunction, [childType.initFunction]
+        let nonEmbeddedChildrenFuncs =
+            match childType.initFunction.initProcedure with
+            | None  -> []
+            | Some _ when r.args.generateConstInitGlobals  -> []
+            | Some _  -> [childType.initFunction]
+        
+        initTasFunction, nonEmbeddedChildrenFuncs
 
     
     let childInitExpr = getChildExpression lm childType
@@ -961,6 +962,10 @@ let createSequenceInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1Acn
         | false ->  [] 
     let initTasFunction, nonEmbeddedChildrenFuncs = 
         let handleChild  (p:CallerScope) (ch:Asn1Child) : (InitFunctionResult*InitFunction option) = 
+            let nonEmbeddedChildrenFunc = 
+                match r.args.generateConstInitGlobals with
+                | true -> None
+                | false -> Some ch.Type.initFunction
             let presentFunc (defaultValue  : Asn1AcnAst.Asn1Value option) = 
                 match defaultValue with
                 | None  ->
@@ -972,7 +977,7 @@ let createSequenceInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1Acn
                             let chP = {p with arg = lm.lg.getSeqChild p.arg (lm.lg.getAsn1ChildBackendName ch) ch.Type.isIA5String} 
                             let chContent =  initChildWithInitFunc (lm.lg.getPointer chP.arg) fncName
                             let funcBody = initTestCase_sequence_child p.arg.p (lm.lg.getAcces p.arg) (lm.lg.getAsn1ChildBackendName ch) chContent ch.Optionality.IsSome
-                            {InitFunctionResult.funcBody = funcBody; localVariables = [] }, Some ch.Type.initFunction
+                            {InitFunctionResult.funcBody = funcBody; localVariables = [] }, nonEmbeddedChildrenFunc
                         | _       ->
                             let fnc = ch.Type.initFunction.initTas
                             let chContent =  fnc {p with arg = lm.lg.getSeqChild p.arg (lm.lg.getAsn1ChildBackendName ch) ch.Type.isIA5String} 
@@ -983,7 +988,7 @@ let createSequenceInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1Acn
                         let chP = {p with arg = lm.lg.getSeqChild p.arg (lm.lg.getAsn1ChildBackendName ch) ch.Type.isIA5String} 
                         let chContent =  initChildWithInitFunc (lm.lg.getPointer chP.arg) initProc.funcName
                         let funcBody = initTestCase_sequence_child p.arg.p (lm.lg.getAcces p.arg) (lm.lg.getAsn1ChildBackendName ch) chContent ch.Optionality.IsSome
-                        {InitFunctionResult.funcBody = funcBody; localVariables = [] }, Some ch.Type.initFunction
+                        {InitFunctionResult.funcBody = funcBody; localVariables = [] }, nonEmbeddedChildrenFunc
                 | Some dv    ->
                     let fnc = ch.Type.initFunction.initByAsn1Value
                     let chContent =  fnc {p with arg = lm.lg.getSeqChild p.arg (lm.lg.getAsn1ChildBackendName ch) ch.Type.isIA5String} (mapValue dv).kind
@@ -1129,10 +1134,12 @@ let createChoiceInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAs
         match children with
         | x::_  -> handleChild x
         | _     -> {InitFunctionResult.funcBody = ""; localVariables = []}
+  
     let nonEmbeddedChildrenFuncs = 
         children |> List.choose(fun ch -> 
             match ch.chType.initFunction.initProcedure with
             | None -> None
+            | Some _ when r.args.generateConstInitGlobals -> None
             | Some _ -> Some ch.chType.initFunction)
 
     let constantInitExpression getChildExp = 
