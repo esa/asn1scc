@@ -143,8 +143,8 @@ let executeTestCase asn1sccdll workDir  (t:Test_Case) (lang:string, ws:int, slim
     let checkErrMsg expErrMsg (res:ProcessResult) =
         match res.ExitCode with
         | 0     -> 
-            markError "test case %s expected to fail but passed!" t.asn1
-        | _  when expErrMsg <> res.StdErr -> markError "test case %s failed.Expected error messager was\n'%s'\ngot\n'%s'" t.asn1 expErrMsg res.StdErr
+            markError "test case %s expected to fail but passed!\n%s" t.asn1 cmd
+        | _  when expErrMsg <> res.StdErr -> markError "test case %s failed.Expected error messager was\n'%s'\ngot\n'%s'\n%s" t.asn1 expErrMsg res.StdErr cmd
         | _     -> markSuccess "asn1scc failed with the expected error message!" 
 
     let invokeMake (t:Test_Case) : TestCaseResult=
@@ -165,7 +165,7 @@ let executeTestCase asn1sccdll workDir  (t:Test_Case) (lang:string, ws:int, slim
         let makeCommand = sprintf "make%s" (if bNoAtc || not bRunCodeCoverage then "" else " coverage")
         let res = executeBashScript workDir makeCommand
         if res.ExitCode <> 0 then    
-            markError "Error code is %d\n%s" res.ExitCode res.StdErr
+            markError "Error code is %d\n%s\n%s" res.ExitCode res.StdErr cmd
         else
             if (bNoAtc || not bRunCodeCoverage) then
                 markSuccess "Make OK" 
@@ -179,7 +179,7 @@ let executeTestCase asn1sccdll workDir  (t:Test_Case) (lang:string, ws:int, slim
                     Seq.filter(fun l -> not (covLinesToIgnore.Contains (restoreSrcLine l))) |> 
                     Seq.toList
                 if not (List.isEmpty covLines) then
-                    markError "Code Coverage Failed. See %s\n%s" coverageFile covLines.Head
+                    markError "Code Coverage Failed. See %s\n%s\n%s" coverageFile covLines.Head cmd
                 else 
                     if bRunSpark then
                         let bWindows = System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Windows) 
@@ -187,13 +187,13 @@ let executeTestCase asn1sccdll workDir  (t:Test_Case) (lang:string, ws:int, slim
                         let res = executeBashScript workDir makeCommand
                         let sparkLogFname = Path.Combine(workDir, "sparklog.txt")
                         if res.ExitCode <> 0 then 
-                            markError "SPARK Failed. See %s" sparkLogFname
+                            markError "SPARK Failed. See %s\n%s" sparkLogFname cmd
                         else
                             let sparkLog = File.ReadLines sparkLogFname
                             let bSparkFailed = 
                                 sparkLog |> Seq.exists(fun l -> l.Contains "might fail, cannot prove")
                             if bSparkFailed then 
-                                markError "SPARK Failed. See %s" sparkLogFname
+                                markError "SPARK Failed. See %s\n%s" sparkLogFname cmd
                             else 
                                 markSuccess "Make OK, Code Coverage OK and SPARK OK" 
                     else
@@ -298,7 +298,6 @@ let main0 argv =
         let test_cases_dir = 
             parserResults.GetResult(<@Test_Cases_Dir@>, defaultValue = (if word_sizes = 8 then "test-cases" else "test-cases-32"))
 
-        printInfo "test-cases-dir '%s'" test_cases_dir
     
 
         let threadPoolSize = 
