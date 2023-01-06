@@ -3,8 +3,6 @@
 
 #include "asn1crt_encoding_acn.h"
 
-static byte masks[] = { 0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01 };
-
 static flag RequiresReverse(void)
 {
 	short int word = 0x0001;
