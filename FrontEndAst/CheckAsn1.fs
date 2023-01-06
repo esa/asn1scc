@@ -469,6 +469,7 @@ let rec isConstraintValid (t:Asn1Type) (c:Asn1Constraint) ast =
         match CanHaveWithComponentsConstraint t with
         | None  -> raise (SemanticError(t.Location, "Type does not support WITH COMPONENTS constraints"))
         | Some(children)    ->  
+            namedCons |> List.map(fun z -> z.Name) |> CheckForDuplicates
             let checkNamedConstraint (nc:NamedConstraint) = 
                 let (conName, loc) =  nc.Name.AsTupple
                 match children |> Seq.tryFind(fun c -> c.Name.Value = conName) with

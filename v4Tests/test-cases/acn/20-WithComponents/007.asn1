@@ -1,0 +1,16 @@
+-- NO_AUTOMATIC_TEST_CASES
+TEST-CASE  DEFINITIONS AUTOMATIC TAGS::= BEGIN
+
+RecordWithAnOptionalField ::= SEQUENCE {
+    requiredItem INTEGER (0..255),
+    optionalItem1 INTEGER (0..255) OPTIONAL,
+    optionalItem2 INTEGER (0..255) OPTIONAL
+}
+
+MyPDU ::= RecordWithAnOptionalField (WITH COMPONENTS {optionalItem1 ABSENT, optionalItem1 PRESENT})	
+
+	
+END
+
+
+--TCLFC    MyPDU[]       $$$ sample1.asn1:10:54: error: Duplicate definition: optionalItem1
