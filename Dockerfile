@@ -2,7 +2,7 @@ FROM  mcr.microsoft.com/dotnet/sdk:7.0 AS build
 
 RUN set -xe \
     && DEBIAN_FRONTEND=noninteractive apt-get update -y \
-	&& apt-get install -y libfontconfig libdbus-1-3 libx11-6 libx11-xcb-dev \
+	&& apt-get install -y libfontconfig libdbus-1-3 libx11-6 libx11-xcb-dev cppcheck htop \
 	    python3 python3-distutils gcc g++ make openjdk-11-jre nuget libgit2-dev libssl-dev \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get purge --auto-remove \

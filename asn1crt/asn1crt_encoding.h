@@ -53,6 +53,7 @@ flag BitStream_AppendByte0(BitStream* pBitStrm, byte v);
 asn1SccSint BitStream_GetLength(BitStream* pBitStrm);
 void BitStream_AppendBitOne(BitStream* pBitStrm);
 void BitStream_AppendBitZero(BitStream* pBitStrm);
+flag BitStream_PeekBit(BitStream* pBitStrm);
 flag BitStream_ReadBit(BitStream* pBitStrm, flag* v);
 flag BitStream_ReadBits(BitStream* pBitStrm, byte* BuffToWrite, int nBitsToRead);
 flag BitStream_ReadByte(BitStream* pBitStrm, byte* v);

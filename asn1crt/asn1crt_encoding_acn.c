@@ -3,8 +3,6 @@
 
 #include "asn1crt_encoding_acn.h"
 
-static byte masks[] = { 0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01 };
-
 static flag RequiresReverse(void)
 {
 	short int word = 0x0001;
@@ -373,23 +371,18 @@ void Acn_Enc_Int_TwosComplement_ConstSize_little_endian_64(BitStream* pBitStrm, 
 
 flag Acn_Dec_Int_TwosComplement_ConstSize(BitStream* pBitStrm, asn1SccSint* pIntVal, int encodedSizeInBits)
 {
+
+
 	int i;
-	flag valIsNegative = FALSE;
+	flag valIsNegative = BitStream_PeekBit(pBitStrm);
 	int nBytes = encodedSizeInBits / 8;
 	int rstBits = encodedSizeInBits % 8;
 	byte b = 0;
 
-	*pIntVal = 0;
-
-
+	*pIntVal = valIsNegative ? MAX_INT : 0;
 	for (i = 0; i<nBytes; i++) {
 		if (!BitStream_ReadByte(pBitStrm, &b))
 			return FALSE;
-		if (i == 0) {
-			valIsNegative = b>0x7F;
-			if (valIsNegative)
-				*pIntVal = -1;
-		}
 		*pIntVal = (*pIntVal << 8) | b;
 	}
 
@@ -397,15 +390,8 @@ flag Acn_Dec_Int_TwosComplement_ConstSize(BitStream* pBitStrm, asn1SccSint* pInt
 	{
 		if (!BitStream_ReadPartialByte(pBitStrm, &b, (byte)rstBits))
 			return FALSE;
-		if (nBytes == 0)
-		{
-			valIsNegative = b & masks[8 - rstBits];
-			if (valIsNegative)
-				*pIntVal = -1;
-		}
 		*pIntVal = (*pIntVal << rstBits) | b;
 	}
-
 	return TRUE;
 }
 
@@ -506,12 +492,6 @@ void Acn_Enc_Int_TwosComplement_VarSize_LengthEmbedded(BitStream* pBitStrm, asn1
 
 flag Acn_Dec_Int_TwosComplement_VarSize_LengthEmbedded(BitStream* pBitStrm, asn1SccSint* pIntVal)
 {
-
-#if WORD_SIZE==8
-#define MAX_INT 0xFFFFFFFFFFFFFFFFULL
-#else
-#define MAX_INT 0xFFFFFFFF
-#endif
 
 	byte nBytes;
 	int i;
@@ -794,7 +774,7 @@ void Acn_Enc_SInt_ASCII_VarSize_LengthEmbedded(BitStream* pBitStrm, asn1SccSint 
 	BitStream_AppendByte0(pBitStrm, intVal >= 0 ? '+' : '-');
 
 	/* encode digits */
-	while (digitsArray100[i] != 0x0 && i<100) {
+	while (i < 100 && digitsArray100[i] != 0x0) {
 		BitStream_AppendByte0(pBitStrm, digitsArray100[i]);
 		i++;
 	}
@@ -813,7 +793,7 @@ void Acn_Enc_UInt_ASCII_VarSize_LengthEmbedded(BitStream* pBitStrm, asn1SccUint 
 	/* encode length */
 	BitStream_AppendByte0(pBitStrm, nChars);
 	/* encode digits */
-	while (digitsArray100[i] != 0x0 && i<100) {
+	while (i < 100 && digitsArray100[i] != 0x0) {
 		BitStream_AppendByte0(pBitStrm, digitsArray100[i]);
 		i++;
 	}
@@ -849,7 +829,7 @@ void Acn_Enc_UInt_ASCII_VarSize_NullTerminated(BitStream* pBitStrm, asn1SccUint 
 	byte nChars;
 	size_t i = 0;
 	getIntegerDigits(intVal, digitsArray100, &nChars);
-	while (digitsArray100[i] != 0x0 && i<100) {
+	while (i < 100 && digitsArray100[i] != 0x0) {
 		BitStream_AppendByte0(pBitStrm, digitsArray100[i]);
 		i++;
 	}
@@ -1155,7 +1135,7 @@ static asn1SccSint Acn_Enc_String_Ascii_private(BitStream* pBitStrm,
 	const char* strVal)
 {
 	asn1SccSint i = 0;
-	while ((strVal[i] != '\0') && (i<max)) {
+	while ((i < max) && (strVal[i] != '\0')) {
 		BitStream_AppendByte(pBitStrm, strVal[i], FALSE);
 		i++;
 	}
@@ -1206,7 +1186,7 @@ static asn1SccSint Acn_Enc_String_CharIndex_private(BitStream* pBitStrm,
 	const char* strVal)
 {
 	asn1SccSint i = 0;
-	while ((strVal[i] != '\0') && (i<max)) {
+	while ((i < max) && (strVal[i] != '\0') ) {
 		int charIndex = GetCharIndex(strVal[i], allowedCharSet, charSetSize);
 		BitStream_EncodeConstraintWholeNumber(pBitStrm, charIndex, 0, charSetSize - 1);
 		i++;

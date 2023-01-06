@@ -101,6 +101,11 @@ typedef asn1Real64 asn1Real;
 typedef asn1Real32 asn1Real;
 #endif
 
+#if WORD_SIZE==8
+#define MAX_INT 0xFFFFFFFFFFFFFFFFULL
+#else
+#define MAX_INT 0xFFFFFFFF
+#endif
 
 #ifdef _MSC_VER
 #  ifndef INFINITY
