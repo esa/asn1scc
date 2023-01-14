@@ -161,11 +161,17 @@ let rec PrintType (r:AstRoot) (f:Asn1File) (stgFileName:string) modName (deepRec
         | ObjectIdentifier i     -> gen.ObjectIdentifierType () stgFileName
         | Choice(chInfo)      ->
             let emitChild (c:ChChildInfo) =
+                let bRemovedChild =
+                    match c.Optionality with
+                    | None  -> false
+                    | Some (Asn1AcnAst.ChoiceAlwaysAbsent)    -> true
+                    | Some (Asn1AcnAst.ChoiceAlwaysPresent)   -> false
+
                 let childTypeExp =
                     match deepRecursion with
                     |true   -> PrintType r f stgFileName modName  deepRecursion c.chType
                     |false  -> printChildTypeAsReferencedType c.chType
-                gen.ChoiceChild c.Name.Value (ToC (c.getBackendName C)) (ToC (c.getBackendName Ada)) (BigInteger c.Name.Location.srcLine) (BigInteger c.Name.Location.charPos) childTypeExp (c.presentWhenName (Some c.chType.typeDefintionOrReference) C) stgFileName
+                gen.ChoiceChild c.Name.Value (ToC (c.getBackendName C)) (ToC (c.getBackendName Ada)) (BigInteger c.Name.Location.srcLine) (BigInteger c.Name.Location.charPos) childTypeExp (c.presentWhenName (Some c.chType.typeDefintionOrReference) C) bRemovedChild stgFileName
             gen.ChoiceType (chInfo.children |> Seq.map emitChild) stgFileName
         | Sequence(seqInfo)    ->
             let emitChild (c:SeqChildInfo) =

@@ -115,9 +115,9 @@ EnumType(arrsItems) ::= <<
 >>
 
 
-ChoiceChild(sName, sCName, sAdaName, nLine, nPos, sChildContent, sNamePresent ) ::= <<
+ChoiceChild(sName, sCName, sAdaName, nLine, nPos, sChildContent, sNamePresent, bRemovedChild ) ::= <<
 "$sName$": {
-    "Line": $nLine$, "CharPositionInLine": $nPos$, "EnumID": "$sNamePresent$", "type": {
+    "Line": $nLine$, "CharPositionInLine": $nPos$, "EnumID": "$sNamePresent$", "RemovedChild": "$bRemovedChild$", "type": {
         $sChildContent$
     }
 }
