@@ -34,7 +34,7 @@
   </ItemGroup>
 
 	<Target Name="PreBuild" BeforeTargets="PreBuildEvent">
-		<Exec Command="dotnet $(ProjectDir)../parseStg2/bin/$(ConfigurationName)/$(TargetFramework)/parseStg2.dll $(ProjectDir)../StgC/backends.xml 4" />
+		<Exec Command="dotnet $(ProjectDir)../parseStg2/bin/$(ConfigurationName)/$(TargetFramework)/parseStg2.dll $(ProjectDir)../StgC/backends.xml 4 $(ProjectDir)AbstractMacros.fs" />
 	</Target>
 
 </Project>
