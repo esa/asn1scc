@@ -555,8 +555,52 @@ let emitCss (r:AstRoot) stgFileName   outFileName =
     let cssContent = icd_acn.RootCss stgFileName ()
     File.WriteAllText(outFileName, cssContent.Replace("\r", ""))
 
+let emitTypeCol stgFileName (sType : IcdTypeCol) =
+    match sType with
+    | IcdRefType (label,linkId) -> icd_acn.EmmitSeqChild_RefType stgFileName label linkId
+    | IcdPlainType label -> label
+    
+
+let emitIcdRow stgFileName i (rw:IcdRow) =
+    let sComment = rw.comments |> Seq.StrJoin (icd_uper.NewLine stgFileName ()) 
+    let sConstraint = match rw.sConstraint with None -> "N.A." | Some x -> x
+    let sClass = if i % 2 = 0 then (icd_acn.EvenRow stgFileName ()) else (icd_acn.OddRow stgFileName ())
+    icd_acn.EmmitSeqOrChoiceRow stgFileName sClass (BigInteger i) rw.fieldName sComment  rw.sPresent  (emitTypeCol stgFileName rw.sType) sConstraint (rw.minLengtInBits.ToString()) (rw.maxLengtInBits.ToString()) None rw.sUnits
+
+let emitTas2 stgFileName myParams (icdTas:IcdTypeAss)  =
+    let sCommentLine = icdTas.comments |> Seq.StrJoin (icd_uper.NewLine stgFileName ())
+    let arRows = 
+        icdTas.rows |> List.mapi (fun i rw -> emitIcdRow stgFileName i rw)
+    icd_acn.EmitSequenceOrChoice stgFileName false icdTas.name (ToC icdTas.name) false icdTas.name (icdTas.minLengtInBytes.ToString()) (icdTas.maxLengtInBytes.ToString()) "sMaxBitsExplained" sCommentLine arRows (myParams 4I) (sCommentLine.Split [|'\n'|]) 
+
+let rec PrintType2 stgFileName (r:AstRoot)  acnParams (icdTas:IcdTypeAss): string list =
+    seq {
+        let htmlContent = emitTas2 stgFileName acnParams icdTas
+        yield htmlContent
+        for c in icdTas.compositeChildren do
+            yield! PrintType2 stgFileName r (fun _ -> []) c
+    } |> Seq.toList
+
+let printTas2 stgFileName (r:AstRoot) (ts:TypeAssignment) : string list =
+    let myParams colSpan= 
+        ts.Type.acnParameters |>
+        List.mapi(fun i x -> 
+            let sType = 
+                match x.asn1Type with
+                | AcnGenericTypes.AcnParamType.AcnPrmInteger    _         -> "INTEGER"
+                | AcnGenericTypes.AcnParamType.AcnPrmBoolean    _         -> "BOOLEAN"
+                | AcnGenericTypes.AcnParamType.AcnPrmNullType   _         -> "NULL"
+                | AcnGenericTypes.AcnParamType.AcnPrmRefType(_,ts)     -> icd_acn.EmmitSeqChild_RefType stgFileName ts.Value (ToC ts.Value)
+            icd_acn.PrintParam stgFileName (i+1).AsBigInt x.name sType colSpan)
+
+    PrintType2 stgFileName r myParams ts.Type.icdFunction.typeAss
+
+let PrintTasses2 stgFileName (r:AstRoot) : string list =
+    r.Modules |> List.collect(fun m -> m.TypeAssignments) |> List.collect (printTas2 stgFileName r)
+
 let DoWork (r:AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (stgFileName:string) (asn1HtmlStgFileMacros:string option)   outFileName =
     let files1 = r.Files |> Seq.map (fun f -> PrintTasses stgFileName f r ) 
+    let files1b = PrintTasses2 stgFileName r
     let bAcnParamsMustBeExplained = true 
     let asn1HtmlMacros =
         match asn1HtmlStgFileMacros with
@@ -566,8 +610,10 @@ let DoWork (r:AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (stgFileNa
     let files3 = PrintAcnAsHTML stgFileName r 
     let cssFileName = Path.ChangeExtension(outFileName, ".css")
     let htmlContent = icd_acn.RootHtml stgFileName files1 files2 bAcnParamsMustBeExplained files3 (Path.GetFileName(cssFileName))
+    let htmlContentb = icd_acn.RootHtml stgFileName files1b files2 bAcnParamsMustBeExplained files3 (Path.GetFileName(cssFileName))
     
     File.WriteAllText(outFileName, htmlContent.Replace("\r",""))
+    File.WriteAllText(outFileName.Replace(".html", "_new.html"), htmlContentb.Replace("\r",""))
     let cssFileName = Path.ChangeExtension(outFileName, ".css");
     emitCss r stgFileName cssFileName
 

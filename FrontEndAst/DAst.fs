@@ -275,6 +275,53 @@ type IsValidFunction = {
     nonEmbeddedChildrenValidFuncs  : IsValidFunction list         //a list with the first level child funcs which are not embedded by this
                                                        //IsValidFunction but the the function is called
 }
+type IcdTypeCol =
+    | IcdRefType of string*string //display string, link
+    | IcdPlainType of string
+
+let getIcdTypeCol_label  l = 
+    match l with
+    | IcdRefType (l,_)
+    | IcdPlainType l -> l
+    
+type IcdRowType =
+    | FieldRow
+    | ReferenceToCompositeTypeRow
+    | LengthDeterminantRow
+    | PresentDeterminantRow
+
+type IcdRow = {
+    fieldName : string
+    comments  : string list
+    sPresent  : string
+    sType     : IcdTypeCol
+    sConstraint : string option
+    minLengtInBits : BigInteger
+    maxLengtInBits : BigInteger
+    sUnits      : string option
+    rowType     : IcdRowType
+}
+(*
+type IcdType =
+    | IcdPrimitiveType  of IcdRow list        // Integer, Real, Boolean, Null, Enumerated, 
+    | IcdSeqOfType      of IcdTypeCol*(IcdRow option)*IcdType        // length info * child type
+    | IcdSeqType        of IcdTypeCol*(IcdRow option)*(IcdType list)            // present bit mast, components
+    | IcdChoiceType     of IcdTypeCol*(IcdRow option)*(IcdType list)          // alternatives
+    | IcdRefType        of IcdRow list          // the resolved type but with sType the ref type
+    *)
+type IcdTypeAss = {
+    linkId  : string
+    asn1Link : string option
+    acnLink : string option
+    name : string
+    kind : string
+    comments : string list
+    rows : IcdRow list
+    compositeChildren : IcdTypeAss list
+    minLengtInBytes : BigInteger
+    maxLengtInBytes : BigInteger
+}
+
 
 type UPERFuncBodyResult = {
     funcBody            : string
@@ -324,6 +371,11 @@ type XerFunction =
     | XerFunction of XerFunctionRec
     | XerFunctionDummy
 
+type IcdAux = {
+    canBeEmbedded  : bool
+    createRowsFunc : string->string->string list ->IcdRow list
+    typeAss        : IcdTypeAss
+}
 
 type AcnFunction = {
     funcName            : string option               // the name of the function. Valid only for TASes)
@@ -335,6 +387,7 @@ type AcnFunction = {
     funcBody            : State->((AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) -> CallerScope -> ((AcnFuncBodyResult option)*State)            
     funcBodyAsSeqComp   : State->((AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) -> CallerScope -> string -> ((AcnFuncBodyResult option)*State)            
     isTestVaseValid     : AutomaticTestCase -> bool
+    icd                 : IcdAux
 }
 
 type EncodeDecodeTestFunc = {

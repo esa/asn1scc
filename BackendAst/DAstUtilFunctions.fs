@@ -576,6 +576,22 @@ with
         | ReferenceType ref -> ref.resolvedType.MappingFunctionsModules
         | TimeType _        -> []
 
+    member this.icdFunction = 
+        match this.Kind with
+        | Integer           t -> t.acnEncFunction.icd 
+        | Real              t -> t.acnEncFunction.icd 
+        | IA5String         t -> t.acnEncFunction.icd 
+        | OctetString       t -> t.acnEncFunction.icd 
+        | NullType          t -> t.acnEncFunction.icd 
+        | BitString         t -> t.acnEncFunction.icd 
+        | Boolean           t -> t.acnEncFunction.icd 
+        | Enumerated        t -> t.acnEncFunction.icd 
+        | SequenceOf        t -> t.acnEncFunction.icd 
+        | Sequence          t -> t.acnEncFunction.icd 
+        | Choice            t -> t.acnEncFunction.icd 
+        | ReferenceType     t -> t.acnEncFunction.icd 
+        | ObjectIdentifier  t -> t.acnEncFunction.icd 
+        | TimeType          t -> t.acnEncFunction.icd 
 
     member this.acnEncFunction : AcnFunction option =
         match this.Kind with

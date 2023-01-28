@@ -188,19 +188,52 @@ let handleAlignemntForAcnTypes (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros)   (acn
         newFuncBody
 
 
-let private createAcnFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (typeDefinition:TypeDefintionOrReference) (isValidFunc: IsValidFunction option)  (funcBody:State-> ErroCode->((AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) -> CallerScope -> ((AcnFuncBodyResult option)*State)) isTestVaseValid soSparkAnnotations (us:State)  =
+let createIcdAux (r:Asn1AcnAst.AstRoot) baseAsn1Kind (canBeEmbedded:bool) (id:ReferenceToType) (createRowsFunc : string->string->string list ->IcdRow list) compositeChildren (td:FE_TypeDefinition) nMinBytesInACN nMaxBytesInACN=
+    let typeAss =
+        {
+            IcdTypeAss.linkId = id.AsString; 
+            asn1Link = None; 
+            acnLink = None; 
+            name = td.asn1Name; 
+            kind = baseAsn1Kind; 
+            comments = 
+                match id.tasInfo with
+                | None -> []
+                | Some tasInfo ->
+                    match r.Modules |> Seq.tryFind(fun m -> m.Name.Value = tasInfo.modName) with
+                    | None -> []
+                    | Some m ->
+                        match m.TypeAssignments |> Seq.tryFind(fun ts -> ts.Name.Value = tasInfo.tasName) with
+                        | None -> []
+                        | Some ts -> ts.Comments |> Seq.toList
+            rows = createRowsFunc "" "" []; 
+            compositeChildren = compositeChildren
+            minLengtInBytes = nMinBytesInACN; 
+            maxLengtInBytes = nMaxBytesInACN
+        }
+    {IcdAux.canBeEmbedded = canBeEmbedded; createRowsFunc= createRowsFunc; typeAss=typeAss}
+
+type IcdArgAux = {
+    canBeEmbedded  : bool
+    baseAsn1Kind   : string
+    rowsFunc : string->string->string list ->IcdRow list
+    compositeChildren : IcdTypeAss list
+}
+
+let private createAcnFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (typeDefinition:TypeDefintionOrReference) (isValidFunc: IsValidFunction option)  (funcBody:State-> ErroCode->((AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) -> CallerScope -> ((AcnFuncBodyResult option)*State)) isTestVaseValid (icdAux:IcdArgAux) soSparkAnnotations (us:State)  =
+
+    let td = lm.lg.getTypeDefinition t.FT_TypeDefintion
     let funcNameAndtasInfo   = 
-        let getFuncName (r:Asn1AcnAst.AstRoot) (codec:CommonTypes.Codec) (typeId:ReferenceToType) (td:FE_TypeDefinition) =
-            match typeId.tasInfo with
+        match t.acnParameters with
+        | []    -> 
+            match t.id.tasInfo with
             | None -> None
             | Some _ -> Some (td.typeName + "_ACN"  + codec.suffix)
-
-        match t.acnParameters with
-        | []    -> getFuncName r codec t.id (lm.lg.getTypeDefinition t.FT_TypeDefintion)
         | _     -> None
     let errCodeName         = ToC ("ERR_ACN" + (codec.suffix.ToUpper()) + "_" + ((t.id.AcnAbsPath |> Seq.skip 1 |> Seq.StrJoin("-")).Replace("#","elm")))
     let errCode, ns = getNextValidErrorCode us errCodeName None
-
+    let nMaxBytesInACN = BigInteger (ceil ((double t.acnMaxSizeInBits)/8.0))
+    let nMinBytesInACN = BigInteger (ceil ((double t.acnMinSizeInBits)/8.0))
     let EmitTypeAssignment_primitive     =  lm.acn.EmitTypeAssignment_primitive
     let EmitTypeAssignment_primitive_def =  lm.acn.EmitTypeAssignment_primitive_def
     let EmitTypeAssignment_def_err_code  =  lm.acn.EmitTypeAssignment_def_err_code
@@ -260,10 +293,8 @@ let private createAcnFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:
                 
                 //let errCodes = bodyResult.errCodes
                 let errCodStr = errCodes |> List.map(fun x -> EmitTypeAssignment_def_err_code x.errCodeName (BigInteger x.errCodeValue) x.comment) |> List.distinct
-                let funcDef = Some(EmitTypeAssignment_primitive_def varName sStar funcName  (typeDefinition.longTypedefName2 lm.lg.hasModules) errCodStr (t.acnMaxSizeInBits = 0I) (BigInteger (ceil ((double t.acnMaxSizeInBits)/8.0))) ( t.acnMaxSizeInBits) prms soSparkAnnotations codec)
+                let funcDef = Some(EmitTypeAssignment_primitive_def varName sStar funcName  (typeDefinition.longTypedefName2 lm.lg.hasModules) errCodStr (t.acnMaxSizeInBits = 0I) nMaxBytesInACN ( t.acnMaxSizeInBits) prms soSparkAnnotations codec)
                 func, funcDef,ns1a
-
-
     let ret = 
         {
             AcnFunction.funcName       = funcNameAndtasInfo 
@@ -272,8 +303,10 @@ let private createAcnFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:
             funcBody                   = (fun us acnArgs p -> funcBody us errCode acnArgs p )
             funcBodyAsSeqComp          = funcBodyAsSeqComp
             isTestVaseValid            = isTestVaseValid
+            icd                        = createIcdAux r icdAux.baseAsn1Kind icdAux.canBeEmbedded t.id icdAux.rowsFunc icdAux.compositeChildren td nMinBytesInACN nMaxBytesInACN
         }
     ret, ns2
+
 
 let private createAcnIntegerFunctionInternal (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:CommonTypes.Codec) (uperRange : BigIntegerUperRange) (intClass:Asn1AcnAst.IntegerClass) acnEncodingClass (uperfuncBody : ErroCode -> CallerScope -> (UPERFuncBodyResult option)) (soMF:string option, soMFM:string option) : (ErroCode -> ((AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) -> CallerScope -> (AcnFuncBodyResult option))  =
     let PositiveInteger_ConstSize_8                  = lm.acn.PositiveInteger_ConstSize_8                
@@ -393,7 +426,6 @@ let createAcnIntegerFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:C
     (funcBody errCode), ns
 
 
-
 let createIntegerFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Integer) (typeDefinition:TypeDefintionOrReference)  (isValidFunc: IsValidFunction option) (uperFunc: UPerFunction) (us:State)  =
     let soMapFunMod, soMapFunc  = 
         match o.acnProperties.mappingFunction with 
@@ -405,8 +437,29 @@ let createIntegerFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Comm
         | None -> None, None
     let funcBody = createAcnIntegerFunctionInternal r lm codec o.uperRange o.intClass o.acnEncodingClass uperFunc.funcBody_e (soMapFunc, soMapFunMod)
     let soSparkAnnotations = Some(sparkAnnotations lm (typeDefinition.longTypedefName2 lm.lg.hasModules) codec)
-    createAcnFunction r lm codec t typeDefinition isValidFunc  (fun us e acnArgs p -> funcBody e acnArgs p, us) (fun atc -> true) soSparkAnnotations us
+    
+    let sAsn1Constraints = 
+        let sTmpCons = o.AllCons |> List.map (DastValidate2.printRangeConAsAsn1 (fun z -> z.ToString())) |> Seq.StrJoin "" 
+        match sTmpCons.Trim() with
+        | "" -> None
+        | _  -> Some sTmpCons
 
+    let icdFnc fieldName sPresent comments = 
+        [{IcdRow.fieldName = fieldName; comments = comments; sPresent=sPresent;sType=(IcdPlainType (getASN1Name t)); sConstraint=sAsn1Constraints; minLengtInBits = o.acnMinSizeInBits ;maxLengtInBits=o.acnMaxSizeInBits;sUnits=t.unitsOfMeasure; rowType = IcdRowType.FieldRow}]
+    let icd = {IcdArgAux.canBeEmbedded = true; baseAsn1Kind = (getASN1Name t); rowsFunc = icdFnc; compositeChildren = []}
+    createAcnFunction r lm codec t typeDefinition isValidFunc  (fun us e acnArgs p -> funcBody e acnArgs p, us) (fun atc -> true) icd soSparkAnnotations us
+
+let createAcnChildIcdFunction  (ch:AcnChild) =
+    let icd fieldName comments  = 
+        let sType, minSize, maxSize = 
+            match ch.Type with
+            | Asn1AcnAst.AcnInteger  a -> "INTEGER", a.acnMinSizeInBits, a.acnMaxSizeInBits
+            | Asn1AcnAst.AcnBoolean  a -> "BOOLEAN", a.acnMinSizeInBits, a.acnMaxSizeInBits
+            | Asn1AcnAst.AcnNullType a -> "NULL", a.acnMinSizeInBits, a.acnMaxSizeInBits
+            | Asn1AcnAst.AcnReferenceToEnumerated a -> a.tasName.Value, a.enumerated.acnMinSizeInBits, a.enumerated.acnMaxSizeInBits
+            | Asn1AcnAst.AcnReferenceToIA5String a -> a.tasName.Value, a.str.acnMinSizeInBits, a.str.acnMaxSizeInBits
+        {IcdRow.fieldName = fieldName; comments = comments; sPresent="always";sType=(IcdPlainType sType); sConstraint=None; minLengtInBits = minSize ;maxLengtInBits=maxSize;sUnits=None; rowType = IcdRowType.FieldRow}
+    icd
 
 let createEnumComn (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:CommonTypes.Codec) (typeId : ReferenceToType) (o:Asn1AcnAst.Enumerated) (defOrRef:TypeDefintionOrReference ) (typeDefinitionName:string)  =
     let EnumeratedEncValues                 = lm.acn.EnumeratedEncValues
@@ -452,7 +505,10 @@ let createEnumeratedFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:C
     let typeDefinitionName = defOrRef.longTypedefName2 lm.lg.hasModules //getTypeDefinitionName t.id.tasInfo typeDefinition
     let funcBody = createEnumComn r lm codec t.id o defOrRef typeDefinitionName
     let soSparkAnnotations = Some(sparkAnnotations lm (typeDefinition.longTypedefName2 lm.lg.hasModules) codec)
-    createAcnFunction r lm codec t typeDefinition  isValidFunc  (fun us e acnArgs p -> funcBody e acnArgs p, us) (fun atc -> true) soSparkAnnotations  us
+    let icdFnc fieldName sPresent comments = 
+        [{IcdRow.fieldName = fieldName; comments = comments; sPresent=sPresent;sType=(IcdPlainType (getASN1Name t)); sConstraint=None; minLengtInBits = o.acnMinSizeInBits ;maxLengtInBits=o.acnMaxSizeInBits;sUnits=t.unitsOfMeasure; rowType = IcdRowType.FieldRow}]
+    let icd = {IcdArgAux.canBeEmbedded = true; baseAsn1Kind = (getASN1Name t); rowsFunc = icdFnc; compositeChildren = []}
+    createAcnFunction r lm codec t typeDefinition  isValidFunc  (fun us e acnArgs p -> funcBody e acnArgs p, us) (fun atc -> true) icd soSparkAnnotations  us
 
 
 let createAcnEnumeratedFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:CommonTypes.Codec) (typeId : ReferenceToType) (t:Asn1AcnAst.AcnReferenceToEnumerated)  (defOrRef:TypeDefintionOrReference) (us:State)  =
@@ -493,7 +549,10 @@ let createRealrFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Common
         | None -> None
         | Some (funcBodyContent,errCodes) -> Some ({AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = errCodes; localVariables = []; bValIsUnReferenced= false; bBsIsUnReferenced=false})
     let soSparkAnnotations = Some(sparkAnnotations lm (typeDefinition.longTypedefName2 lm.lg.hasModules) codec)
-    createAcnFunction r lm codec t typeDefinition isValidFunc  (fun us e acnArgs p -> funcBody e acnArgs p, us) (fun atc -> true) soSparkAnnotations us
+    let icdFnc fieldName sPresent comments = 
+        [{IcdRow.fieldName = fieldName; comments = comments; sPresent=sPresent;sType=(IcdPlainType (getASN1Name t)); sConstraint=None; minLengtInBits = o.acnMinSizeInBits ;maxLengtInBits=o.acnMaxSizeInBits;sUnits=t.unitsOfMeasure; rowType = IcdRowType.FieldRow}]
+    let icd = {IcdArgAux.canBeEmbedded = true; baseAsn1Kind = (getASN1Name t); rowsFunc = icdFnc; compositeChildren = []}
+    createAcnFunction r lm codec t typeDefinition isValidFunc  (fun us e acnArgs p -> funcBody e acnArgs p, us) (fun atc -> true) icd soSparkAnnotations us
 
 
 let createObjectIdentifierFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.ObjectIdentifier) (typeDefinition:TypeDefintionOrReference)  (isValidFunc: IsValidFunction option) (uperFunc: UPerFunction) (us:State)  =
@@ -505,7 +564,10 @@ let createObjectIdentifierFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (c
         | None -> None
         | Some (funcBodyContent,errCodes) -> Some ({AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = errCodes; localVariables = []; bValIsUnReferenced= false; bBsIsUnReferenced=false})
     let soSparkAnnotations = Some(sparkAnnotations lm (typeDefinition.longTypedefName2 lm.lg.hasModules) codec)
-    createAcnFunction r lm codec t typeDefinition isValidFunc  (fun us e acnArgs p -> funcBody e acnArgs p, us) (fun atc -> true) soSparkAnnotations us
+    let icdFnc fieldName sPresent comments  = 
+        [{IcdRow.fieldName = fieldName; comments = comments; sPresent=sPresent;sType=(IcdPlainType (getASN1Name t)); sConstraint=None; minLengtInBits = o.acnMinSizeInBits ;maxLengtInBits=o.acnMaxSizeInBits;sUnits=t.unitsOfMeasure; rowType = IcdRowType.FieldRow}]
+    let icd = {IcdArgAux.canBeEmbedded = true; baseAsn1Kind = (getASN1Name t); rowsFunc = icdFnc; compositeChildren = []}
+    createAcnFunction r lm codec t typeDefinition isValidFunc  (fun us e acnArgs p -> funcBody e acnArgs p, us) (fun atc -> true) icd soSparkAnnotations us
 
 
 let createTimeTypeFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.TimeType) (typeDefinition:TypeDefintionOrReference)  (isValidFunc: IsValidFunction option) (uperFunc: UPerFunction) (us:State)  =
@@ -517,7 +579,10 @@ let createTimeTypeFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Com
         | None -> None
         | Some (funcBodyContent,errCodes) -> Some ({AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = errCodes; localVariables = []; bValIsUnReferenced= false; bBsIsUnReferenced=false})
     let soSparkAnnotations = Some(sparkAnnotations lm (typeDefinition.longTypedefName2 lm.lg.hasModules) codec)
-    createAcnFunction r lm codec t typeDefinition isValidFunc  (fun us e acnArgs p -> funcBody e acnArgs p, us) (fun atc -> true) soSparkAnnotations us
+    let icdFnc fieldName sPresent comments = 
+        [{IcdRow.fieldName = fieldName; comments = comments; sPresent=sPresent;sType=(IcdPlainType (getASN1Name t)); sConstraint=None; minLengtInBits = o.acnMinSizeInBits ;maxLengtInBits=o.acnMaxSizeInBits;sUnits=t.unitsOfMeasure; rowType = IcdRowType.FieldRow}]
+    let icd = {IcdArgAux.canBeEmbedded = true; baseAsn1Kind = (getASN1Name t); rowsFunc = icdFnc; compositeChildren = []}
+    createAcnFunction r lm codec t typeDefinition isValidFunc  (fun us e acnArgs p -> funcBody e acnArgs p, us) (fun atc -> true) icd soSparkAnnotations us
 
 
 let nestChildItems (lm:LanguageMacros) (codec:CommonTypes.Codec) children = 
@@ -579,7 +644,10 @@ let createBooleanFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Comm
                 
         {AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = []; bValIsUnReferenced= false; bBsIsUnReferenced=false}    
     let soSparkAnnotations = Some(sparkAnnotations lm (typeDefinition.longTypedefName2 lm.lg.hasModules) codec)
-    createAcnFunction r lm codec t typeDefinition  isValidFunc  (fun us e acnArgs p -> Some (funcBody e acnArgs p), us) (fun atc -> true) soSparkAnnotations us
+    let icdFnc fieldName sPresent comments = 
+        [{IcdRow.fieldName = fieldName; comments = comments; sPresent=sPresent;sType=(IcdPlainType (getASN1Name t)); sConstraint=None; minLengtInBits = o.acnMinSizeInBits ;maxLengtInBits=o.acnMaxSizeInBits;sUnits=t.unitsOfMeasure; rowType = IcdRowType.FieldRow}]
+    let icd = {IcdArgAux.canBeEmbedded = true; baseAsn1Kind = (getASN1Name t); rowsFunc = icdFnc; compositeChildren = []}
+    createAcnFunction r lm codec t typeDefinition  isValidFunc  (fun us e acnArgs p -> Some (funcBody e acnArgs p), us) (fun atc -> true) icd soSparkAnnotations us
 
 
 
@@ -631,7 +699,10 @@ let createNullTypeFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Com
             let ret = nullType pp arrBytes nBitsSize arrsBits errCode.errCodeName o.acnProperties.savePosition codec
             Some ({AcnFuncBodyResult.funcBody = ret; errCodes = [errCode]; localVariables = []; bValIsUnReferenced= lm.lg.acn.null_valIsUnReferenced; bBsIsUnReferenced=false})
     let soSparkAnnotations = Some(sparkAnnotations lm (typeDefinition.longTypedefName2 lm.lg.hasModules) codec)
-    createAcnFunction r lm codec t typeDefinition  isValidFunc  (fun us e acnArgs p -> funcBody e acnArgs p, us) (fun atc -> true) soSparkAnnotations us
+    let icdFnc fieldName sPresent comments = 
+        [{IcdRow.fieldName = fieldName; comments = comments; sPresent=sPresent;sType=(IcdPlainType (getASN1Name t)); sConstraint=None; minLengtInBits = o.acnMinSizeInBits ;maxLengtInBits=o.acnMaxSizeInBits;sUnits=t.unitsOfMeasure; rowType = IcdRowType.FieldRow}]
+    let icd = {IcdArgAux.canBeEmbedded = true; baseAsn1Kind = (getASN1Name t); rowsFunc = icdFnc; compositeChildren = []}
+    createAcnFunction r lm codec t typeDefinition  isValidFunc  (fun us e acnArgs p -> funcBody e acnArgs p, us) (fun atc -> true) icd soSparkAnnotations us
 
 
 let getExternaField0 (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) asn1TypeIdWithDependency func1 =
@@ -704,7 +775,10 @@ let createStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
         | None -> None, ns
         | Some (funcBodyContent,errCodes, localVars) -> Some ({AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = errCodes; localVariables = localVars; bValIsUnReferenced= false; bBsIsUnReferenced=false}), ns
     let soSparkAnnotations = Some(sparkAnnotations lm (typeDefinition.longTypedefName2 lm.lg.hasModules) codec)
-    createAcnFunction r lm codec t typeDefinition  isValidFunc  (fun us e acnArgs p -> funcBody e acnArgs p us) (fun atc -> true) soSparkAnnotations us
+    let icdFnc fieldName sPresent comments  = 
+        [{IcdRow.fieldName = fieldName; comments = comments; sPresent=sPresent;sType=(IcdPlainType (getASN1Name t)); sConstraint=None; minLengtInBits = o.acnMinSizeInBits ;maxLengtInBits=o.acnMaxSizeInBits;sUnits=t.unitsOfMeasure; rowType = IcdRowType.FieldRow}]
+    let icd = {IcdArgAux.canBeEmbedded = true; baseAsn1Kind = (getASN1Name t); rowsFunc = icdFnc; compositeChildren = []}
+    createAcnFunction r lm codec t typeDefinition  isValidFunc  (fun us e acnArgs p -> funcBody e acnArgs p us) (fun atc -> true) icd soSparkAnnotations us
 
 
 let createAcnStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (lm:LanguageMacros) (codec:CommonTypes.Codec) (typeId : ReferenceToType) (t:Asn1AcnAst.AcnReferenceToIA5String)  (us:State)  =
@@ -860,7 +934,10 @@ let createOctetStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserte
         | None -> None
         | Some (funcBodyContent,errCodes, localVariables) -> Some ({AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = errCodes; localVariables = localVariables; bValIsUnReferenced= false; bBsIsUnReferenced=false})
     let soSparkAnnotations = Some(sparkAnnotations lm (typeDefinition.longTypedefName2 lm.lg.hasModules) codec)
-    createAcnFunction r lm codec t typeDefinition  isValidFunc  (fun us e acnArgs p -> funcBody e acnArgs p, us) (fun atc -> true) soSparkAnnotations us
+    let icdFnc fieldName sPresent comments  = 
+        [{IcdRow.fieldName = fieldName; comments = comments; sPresent=sPresent;sType=(IcdPlainType (getASN1Name t)); sConstraint=None; minLengtInBits = o.acnMinSizeInBits ;maxLengtInBits=o.acnMaxSizeInBits;sUnits=t.unitsOfMeasure; rowType = IcdRowType.FieldRow}]
+    let icd = {IcdArgAux.canBeEmbedded = true; baseAsn1Kind = (getASN1Name t); rowsFunc = icdFnc; compositeChildren = []}
+    createAcnFunction r lm codec t typeDefinition  isValidFunc  (fun us e acnArgs p -> funcBody e acnArgs p, us) (fun atc -> true) icd soSparkAnnotations us
 
 
 
@@ -917,7 +994,10 @@ let createBitStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
         | None -> None
         | Some (funcBodyContent,errCodes, localVariables) -> Some ({AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = errCodes; localVariables = localVariables; bValIsUnReferenced= false; bBsIsUnReferenced=false})
     let soSparkAnnotations = Some(sparkAnnotations lm (typeDefinition.longTypedefName2 lm.lg.hasModules) codec)
-    createAcnFunction r lm codec t typeDefinition  isValidFunc  (fun us e acnArgs p -> funcBody e acnArgs p, us) (fun atc -> true) soSparkAnnotations us
+    let icdFnc fieldName sPresent comments  = 
+        [{IcdRow.fieldName = fieldName; comments = comments; sPresent=sPresent;sType=(IcdPlainType (getASN1Name t)); sConstraint=None; minLengtInBits = o.acnMinSizeInBits ;maxLengtInBits=o.acnMaxSizeInBits;sUnits=t.unitsOfMeasure; rowType = IcdRowType.FieldRow}]
+    let icd = {IcdArgAux.canBeEmbedded = true; baseAsn1Kind = (getASN1Name t); rowsFunc = icdFnc; compositeChildren = []}
+    createAcnFunction r lm codec t typeDefinition  isValidFunc  (fun us e acnArgs p -> funcBody e acnArgs p, us) (fun atc -> true) icd soSparkAnnotations us
 
 
 
@@ -1008,7 +1088,31 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserted
                         Some ({AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = errCode::childErrCodes; localVariables = lv2@lv@localVariables; bValIsUnReferenced= false; bBsIsUnReferenced=false})
             ret,ns
     let soSparkAnnotations = Some(sparkAnnotations lm (typeDefinition.longTypedefName2 lm.lg.hasModules) codec)
-    createAcnFunction r lm codec t typeDefinition  isValidFunc  funcBody (fun atc -> true) soSparkAnnotations us
+
+    let icdFnc fieldName sPresent comments  = 
+        let x = child.icdFunction
+        let lengthRow, terminationPatern = 
+            match o.acnEncodingClass with
+            | SZ_EC_LENGTH_EMBEDDED _ -> 
+                let nSizeInBits = GetNumberOfBitsForNonNegativeInteger ( (o.maxSize.acn - o.minSize.acn))
+                [{IcdRow.fieldName = "Length"; comments = [$"The number of items"]; sPresent="always";sType=IcdPlainType "INTEGER"; sConstraint=None; minLengtInBits = nSizeInBits ;maxLengtInBits=nSizeInBits;sUnits=None; rowType = IcdRowType.LengthDeterminantRow}], []
+            | SZ_EC_FIXED_SIZE      
+            | SZ_EC_ExternalField       _ -> [], []
+            | SZ_EC_TerminationPattern  bitPattern -> 
+                let nSizeInBits = bitPattern.Value.Length.AsBigInt
+                [], [{IcdRow.fieldName = "Length"; comments = [$"Termination pattern ${bitPattern.Value}"]; sPresent="always";sType=IcdPlainType "INTEGER"; sConstraint=None; minLengtInBits = nSizeInBits ;maxLengtInBits=nSizeInBits;sUnits=None; rowType = IcdRowType.LengthDeterminantRow}]
+        match x.canBeEmbedded with
+        | true -> 
+            let chRows =x.createRowsFunc "" "" [] 
+            lengthRow@chRows@terminationPatern
+        | false ->
+            let sType = IcdRefType (x.typeAss.name, x.typeAss.linkId)
+            [{IcdRow.fieldName = fieldName; comments = comments; sPresent=sPresent;sType=sType; sConstraint=None; minLengtInBits = t.acnMinSizeInBits; maxLengtInBits=t.acnMaxSizeInBits;sUnits=None; rowType = IcdRowType.LengthDeterminantRow}]
+
+        
+    let compositeChildren = if child.icdFunction.canBeEmbedded then [] else [child.icdFunction.typeAss]
+    let icd = {IcdArgAux.canBeEmbedded = false; baseAsn1Kind = (getASN1Name t); rowsFunc = icdFnc; compositeChildren = compositeChildren}
+    createAcnFunction r lm codec t typeDefinition  isValidFunc  funcBody (fun atc -> true) icd soSparkAnnotations us
 
 
 let rec handleSingleUpdateDependency (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (lm:LanguageMacros) (m:Asn1AcnAst.Asn1Module) (d:AcnDependency)  (us:State) =
@@ -1594,7 +1698,55 @@ The field '%s' must either be removed or used as %s determinant of another ASN.1
             | Some funcUpdateStatement -> (funcUpdateStatement.testCaseFnc atc).IsSome
             | None                     -> false)
     let soSparkAnnotations = Some(sparkAnnotations lm (typeDefinition.longTypedefName2 lm.lg.hasModules) codec)
-    createAcnFunction r lm codec t typeDefinition  isValidFunc  funcBody isTestVaseValid soSparkAnnotations  us
+    let sPresenceBitIndexMap  =
+        asn1Children |> 
+        List.filter(fun c -> match c.Optionality with Some(Optional _) -> true | _ -> false) |>
+        List.mapi (fun i c -> (c.Name.Value, i)) |>
+        Map.ofList
+    let uperPresenceMask = 
+        match sPresenceBitIndexMap.IsEmpty with
+        | true -> []
+        | false ->
+            [{IcdRow.fieldName = "Presence Mask"; comments = [$"Presence bit mask"]; sPresent="always";sType=IcdPlainType "bit mask"; sConstraint=None; minLengtInBits = sPresenceBitIndexMap.Count.AsBigInt ;maxLengtInBits=sPresenceBitIndexMap.Count.AsBigInt;sUnits=None; rowType = IcdRowType.LengthDeterminantRow}]
+    let icdFnc fieldName sPresent comments  = 
+        let chRows =
+            children |>
+            List.collect(fun c ->
+                match c with
+                | Asn1Child c -> 
+                    let optionality =
+                        match c.Optionality with
+                        | None                -> "always"
+                        | Some(AlwaysAbsent ) -> "never"
+                        | Some(AlwaysPresent) -> "always"
+                        | Some(Optional  opt) -> 
+                            match opt.acnPresentWhen with
+                            | None                                      -> $"when bit %d{sPresenceBitIndexMap[c.Name.Value]} is set in the uPER bit mask"  
+                            | Some(PresenceWhenBool relPath)            -> $"when %s{relPath.AsString} is true"
+                            | Some(PresenceWhenBoolExpression acnExp)   -> 
+                                let dummyScope = {CallerScope.modName = ""; arg = VALUE ""}
+                                let retExp = acnExpressionToBackendExpression o dummyScope acnExp
+                                $"when %s{retExp}"
+                    let comments = c.Comments |> Seq.toList
+                    let x = c.Type.icdFunction
+                    match x.canBeEmbedded with
+                    | true  -> x.createRowsFunc c.Name.Value optionality comments
+                    | false -> 
+                        let sType = IcdRefType (x.typeAss.name, x.typeAss.linkId)
+                        [{IcdRow.fieldName = c.Name.Value; comments = comments; sPresent=optionality;sType=sType; sConstraint=None; minLengtInBits = c.Type.acnMinSizeInBits; maxLengtInBits=c.Type.acnMaxSizeInBits;sUnits=None; rowType = IcdRowType.LengthDeterminantRow}]
+                | AcnChild  c -> 
+                    let icdFunc = createAcnChildIcdFunction c
+                    let comments = c.Comments |> Seq.toList
+                    [icdFunc c.Name.Value comments])
+        uperPresenceMask@chRows
+    let compositeChildren = 
+        asn1Children |> 
+        List.choose(fun c ->
+            match c.Type.icdFunction.canBeEmbedded with
+            | true -> None
+            | false -> Some c.Type.icdFunction.typeAss)
+    let icd = {IcdArgAux.canBeEmbedded = false; baseAsn1Kind = (getASN1Name t); rowsFunc = icdFnc; compositeChildren = compositeChildren}
+    createAcnFunction r lm codec t typeDefinition  isValidFunc  funcBody isTestVaseValid icd soSparkAnnotations  us
 
 
 
@@ -1749,10 +1901,105 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
 
 
     let soSparkAnnotations = Some(sparkAnnotations lm (typeDefinition.longTypedefName2 lm.lg.hasModules) codec)
-    createAcnFunction r lm codec t typeDefinition  isValidFunc  funcBody (fun atc -> true) soSparkAnnotations us, ec
+
+    let icdFnc fieldName sPresent comments  = 
+        let chRows =
+            acnChildren |>
+            List.mapi(fun idx c ->
+                    let childComments = c.Comments |> Seq.toList
+                    let optionality =
+                        match c.Optionality with
+                        | Some(ChoiceAlwaysAbsent ) -> "never"
+                        | Some(ChoiceAlwaysPresent) 
+                        | None ->
+                            match ec with
+                            | CEC_uper          -> 
+                                match acnChildren.Length <= 1 with
+                                | true  -> "always"
+                                | false -> sprintf "ChoiceIndex = %d" idx
+                            | CEC_enum (enm,d)  -> 
+                                let refToStr id =
+                                    match id with
+                                    | ReferenceToType sn -> sn |> List.rev |> List.head |> (fun x -> x.AsString) 
+                                sprintf "%s = %s" (refToStr d.id) c.Name.Value
+                            | CEC_presWhen      -> 
+                                let getPresenceSingle (pc:AcnGenericTypes.AcnPresentWhenConditionChoiceChild) = 
+                                    match pc with
+                                    | AcnGenericTypes.PresenceInt   (rp, intLoc) -> sprintf "%s=%A" rp.AsString intLoc.Value
+                                    | AcnGenericTypes.PresenceStr   (rp, strLoc) -> sprintf "%s=%A" rp.AsString strLoc.Value
+                                c.acnPresentWhenConditions |> Seq.map getPresenceSingle |> Seq.StrJoin " AND " 
+                    let x = c.chType.icdFunction
+                    match x.canBeEmbedded with
+                    | true -> x.createRowsFunc c.Name.Value optionality childComments
+                    | false -> 
+                        let sType = IcdRefType (x.typeAss.name, x.typeAss.linkId)
+                        [{IcdRow.fieldName = c.Name.Value; comments = comments; sPresent=optionality;sType=sType; sConstraint=None; minLengtInBits = c.chType.acnMinSizeInBits; maxLengtInBits=c.chType.acnMaxSizeInBits;sUnits=None; rowType = IcdRowType.LengthDeterminantRow}]) |> 
+            List.collect id
+        let uperPresenceMask = 
+            match acnChildren.Length with
+            | 1 -> []
+            | _ ->
+                let indexSize = GetChoiceUperDeterminantLengthInBits acnChildren.Length.AsBigInt
+                [{IcdRow.fieldName = "ChoiceIndex"; comments = [$"Presence bit mask"]; sPresent="always" ;sType=IcdPlainType "unsigned int"; sConstraint=None; minLengtInBits = indexSize; maxLengtInBits=indexSize;sUnits=None; rowType = IcdRowType.LengthDeterminantRow}]
+
+        uperPresenceMask@chRows
+
+    let compositeChildren = 
+        children |> 
+        List.choose(fun c ->
+            match c.chType.icdFunction.canBeEmbedded with
+            | true -> None
+            | false -> Some c.chType.icdFunction.typeAss)
+    let icd = {IcdArgAux.canBeEmbedded = false; baseAsn1Kind = (getASN1Name t); rowsFunc = icdFnc; compositeChildren = compositeChildren}
+
+    createAcnFunction r lm codec t typeDefinition  isValidFunc  funcBody (fun atc -> true) icd soSparkAnnotations us, ec
 
 let createReferenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (lm:LanguageMacros) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.ReferenceType) (typeDefinition:TypeDefintionOrReference) (isValidFunc: IsValidFunction option) (baseType:Asn1Type) (us:State)  =
   let baseTypeDefinitionName, baseFncName = getBaseFuncName lm typeDefinition o t.id "_ACN" codec
+
+  let legthDetRow = 
+      match o.encodingOptions with 
+      | None          -> []
+      | Some( encOptions) -> 
+        match encOptions.acnEncodingClass with
+        | SZ_EC_LENGTH_EMBEDDED  nSizeInBits -> 
+            let sCommentUnit = match encOptions.octOrBitStr with ContainedInOctString -> "bytes" | ContainedInBitString -> "bits"
+                
+            [ {IcdRow.fieldName = "Length"; comments = [$"The number of {sCommentUnit} used in the encoding"]; sPresent="always";sType=IcdPlainType "INTEGER"; sConstraint=None; minLengtInBits = nSizeInBits ;maxLengtInBits=nSizeInBits;sUnits=None; rowType = IcdRowType.LengthDeterminantRow}]
+        | _ -> []
+  
+  let icdFnc fieldName sPresent comments  = 
+    let x = baseType.icdFunction
+    match x.canBeEmbedded with
+    | true  -> legthDetRow@(x.createRowsFunc fieldName sPresent comments)
+    | false -> 
+        let sType = IcdRefType (x.typeAss.name, x.typeAss.linkId)
+        legthDetRow@[{IcdRow.fieldName = fieldName; comments = comments; sPresent=sPresent;sType=sType; sConstraint=None; minLengtInBits = t.acnMinSizeInBits; maxLengtInBits=t.acnMaxSizeInBits;sUnits=None; rowType = IcdRowType.LengthDeterminantRow}]
+  let icd = {IcdArgAux.canBeEmbedded = false; baseAsn1Kind = (getASN1Name t); rowsFunc = icdFnc; compositeChildren = []}
+
+  (*
+      let baseTypeIcd = baseType.icdFunction fieldName sPresent sComment
+      match baseTypeIcd with
+      | IcdRefType rows
+      | IcdPrimitiveType rows -> 
+          let newRows = 
+              rows |>
+              List.map(fun r ->
+                  match r.rowType with
+                  | FieldRow -> 
+                      let oldSType = getIcdTypeCol_label r.sType
+                      let newType = IcdTypeCol.IcdRefType ($"%s{o.tasName.Value} + (%s{oldSType})", baseTypeDefinitionName)
+                      {r with sType = newType}
+                  | _        -> r)
+          IcdRefType (legthDetRow@newRows)
+      | IcdSeqOfType  (oldType,_,_) 
+      | IcdSeqType    (oldType,_,_) 
+      | IcdChoiceType (oldType,_,_) ->
+          let oldSType = getIcdTypeCol_label oldType
+          let newType = IcdTypeCol.IcdRefType ($"%s{o.tasName.Value} + (%s{oldSType})", baseTypeDefinitionName)
+          IcdRefType (legthDetRow@[{IcdRow.fieldName = fieldName; comments = comments; sPresent=sPresent;sType=newType; sConstraint=None; minLengtInBits = o.acnMinSizeInBits ;maxLengtInBits=o.acnMaxSizeInBits;sUnits=t.unitsOfMeasure; rowType = IcdRowType.ReferenceToCompositeTypeRow}])
+          *)
+
   match o.encodingOptions with 
   | None          -> 
       match o.hasExtraConstrainsOrChildrenOrAcnArgs with
@@ -1772,63 +2019,19 @@ let createReferenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
 
                 ret, us
       | false ->    
-            (*
-            let moduleName, typeDefinitionName0 = 
-                let t1 = Asn1AcnAstUtilFunctions.GetActualTypeByName r o.modName o.tasName
-                let typeDef = lm.lg.getTypeDefinition t1.FT_TypeDefintion
-                typeDef.programUnit, typeDef.typeName
-            let moduleName, typeDefinitionName0 = 
-                match typeDefinition with
-                | ReferenceToExistingDefinition refToExist   ->
-                    match refToExist.programUnit with
-                    | Some md -> md, refToExist.typedefName
-                    | None    -> t.id.ModName, refToExist.typedefName
-                | TypeDefinition                tdDef        -> t.id.ModName, tdDef.typedefName
-
-            let baseTypeDefinitionName = 
-                match lm.lg.hasModules with
-                | false     -> typeDefinitionName0 
-                | true   -> 
-                    match t.id.ModName = o.modName.Value with
-                    | true  -> typeDefinitionName0 
-                    | false -> moduleName + "." + typeDefinitionName0 
-            let baseFncName = baseTypeDefinitionName + "_ACN" + codec.suffix
-                *)
-
             let funcBody (us:State) (errCode:ErroCode) (acnArgs: (AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) (p:CallerScope) = 
                 let funcBodyContent = callBaseTypeFunc lm (lm.lg.getParamValue t p.arg codec) baseFncName codec
                 Some ({AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = []; bValIsUnReferenced= false; bBsIsUnReferenced=false}), us
 
 
             let soSparkAnnotations = Some(sparkAnnotations lm (typeDefinition.longTypedefName2 lm.lg.hasModules) codec)
-            let a, ns = createAcnFunction r lm codec t typeDefinition  isValidFunc  funcBody (fun atc -> true) soSparkAnnotations us
+
+            let a, ns = createAcnFunction r lm codec t typeDefinition  isValidFunc  funcBody (fun atc -> true) icd soSparkAnnotations us
             Some a, ns
 
     | Some( encOptions) ->
         //contained type i.e. MyOct ::= OCTET STRING (CONTAINING Other-Type)
         let loc = o.tasName.Location
-        (*
-        let moduleName, typeDefinitionName0 = 
-            let t1 = Asn1AcnAstUtilFunctions.GetActualTypeByName r o.modName o.tasName
-            let typeDef = lm.lg.getTypeDefinition t1.FT_TypeDefintion
-            typeDef.programUnit, typeDef.typeName
-        let moduleName, typeDefinitionName0 = 
-            match typeDefinition with
-            | ReferenceToExistingDefinition refToExist   ->
-                match refToExist.programUnit with
-                | Some md -> md, refToExist.typedefName
-                | None    -> t.id.ModName, refToExist.typedefName
-            | TypeDefinition                tdDef        -> t.id.ModName, tdDef.typedefName
-
-        let baseTypeDefinitionName = 
-            match lm.lg.hasModules with
-            | false     -> typeDefinitionName0 
-            | true   -> 
-                match t.id.ModName = o.modName.Value with
-                | true  -> typeDefinitionName0 
-                | false -> moduleName + "." + typeDefinitionName0 
-        let baseFncName = baseTypeDefinitionName + "_ACN" + codec.suffix
-        *)
         let sReqBytesForUperEncoding = sprintf "%s_REQUIRED_BYTES_FOR_ACN_ENCODING" baseTypeDefinitionName
         let sReqBitForUperEncoding = sprintf "%s_REQUIRED_BITS_FOR_ACN_ENCODING" baseTypeDefinitionName
         
@@ -1889,7 +2092,7 @@ let createReferenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
             | Some (funcBodyContent,errCodes, localVariables) -> Some ({AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = errCodes; localVariables = localVariables; bValIsUnReferenced= false; bBsIsUnReferenced=false})
 
         let soSparkAnnotations = Some(sparkAnnotations lm (typeDefinition.longTypedefName2 lm.lg.hasModules) codec)
-        let a,b = createAcnFunction r lm codec t typeDefinition  isValidFunc  (fun us e acnArgs p -> funcBody e acnArgs p, us) (fun atc -> true) soSparkAnnotations us
+        let a,b = createAcnFunction r lm codec t typeDefinition  isValidFunc  (fun us e acnArgs p -> funcBody e acnArgs p, us) (fun atc -> true) icd soSparkAnnotations us
         Some a, b
 
 
