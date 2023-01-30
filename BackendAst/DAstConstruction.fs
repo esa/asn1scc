@@ -407,7 +407,7 @@ let private createBoolean (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (m:Asn1Acn
     ((Boolean ret),[]), s10
 
 
-let private createEnumerated (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (m:Asn1AcnAst.Asn1Module) (pi : Asn1Fold.ParentInfo<ParentInfoData> option) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Enumerated) (us:State) =
+let private createEnumerated (r:Asn1AcnAst.AstRoot) (icdStgFileName:string) (lm:LanguageMacros) (m:Asn1AcnAst.Asn1Module) (pi : Asn1Fold.ParentInfo<ParentInfoData> option) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Enumerated) (us:State) =
     //let typeDefinition = DAstTypeDefinition.createEnumerated  r l t o us
     let defOrRef            =  DAstTypeDefinition.createEnumerated_u r lm t o us
     let equalFunction       = DAstEqual.createEnumeratedEqualFunction r lm t o defOrRef 
@@ -418,8 +418,8 @@ let private createEnumerated (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (m:Asn1
     let uperEncFunction, s2     = DAstUPer.createEnumeratedFunction r lm Codec.Encode t o  defOrRef None isValidFunction s1
     let uperDecFunction, s3     = DAstUPer.createEnumeratedFunction r lm Codec.Decode t o  defOrRef None isValidFunction s2
 
-    let acnEncFunction, s4      = DAstACN.createEnumeratedFunction r lm Codec.Encode t o defOrRef defOrRef isValidFunction uperEncFunction s3
-    let acnDecFunction, s5      = DAstACN.createEnumeratedFunction r lm Codec.Decode t o defOrRef defOrRef isValidFunction uperDecFunction s4
+    let acnEncFunction, s4      = DAstACN.createEnumeratedFunction r icdStgFileName lm Codec.Encode t o defOrRef defOrRef isValidFunction uperEncFunction s3
+    let acnDecFunction, s5      = DAstACN.createEnumeratedFunction r icdStgFileName lm Codec.Decode t o defOrRef defOrRef isValidFunction uperDecFunction s4
 
     let uperEncDecTestFunc,s6         = EncodeDecodeTestCase.createUperEncDecFunction r lm t defOrRef equalFunction isValidFunction (Some uperEncFunction) (Some uperDecFunction) s5
     let acnEncDecTestFunc ,s7         = EncodeDecodeTestCase.createAcnEncDecFunction r lm t defOrRef equalFunction isValidFunction (Some acnEncFunction) (Some acnDecFunction) s6
@@ -787,7 +787,7 @@ let private createType (r:Asn1AcnAst.AstRoot) pi (t:Asn1AcnAst.Asn1Type) ((newKi
     | true  -> us.newTypesMap[t.id] <- newAsn1Type
     newAsn1Type, us
 
-let private mapType (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies)  (lm:LanguageMacros) (m:Asn1AcnAst.Asn1Module) (t:Asn1AcnAst.Asn1Type, us:State) =
+let private mapType (r:Asn1AcnAst.AstRoot) (icdStgFileName:string) (deps:Asn1AcnAst.AcnInsertedFieldDependencies)  (lm:LanguageMacros) (m:Asn1AcnAst.Asn1Module) (t:Asn1AcnAst.Asn1Type, us:State) =
     Asn1Fold.foldType2
         (fun pi t ti us -> TL "createInteger" (fun () -> createInteger r lm m pi t ti us))
         (fun pi t ti us -> TL "createReal" (fun () -> createReal r lm m pi t ti us))
@@ -803,7 +803,7 @@ let private mapType (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDepe
         (fun pi t ti us -> TL "createBitString" (fun () -> createBitString r deps lm m pi t ti us))
         
         (fun pi t ti us -> TL "createBoolean" (fun () -> createBoolean r lm m pi t ti us))
-        (fun pi t ti us -> TL "createEnumerated" (fun () -> createEnumerated r lm m pi t ti us))
+        (fun pi t ti us -> TL "createEnumerated" (fun () -> createEnumerated r icdStgFileName lm m pi t ti us))
         (fun pi t ti us -> TL "createObjectIdentifier" (fun () -> createObjectIdentifier r lm  m pi t ti us))
 
         (fun pi t ti newChild -> TL "createSequenceOf" (fun () -> createSequenceOf r deps lm m pi t ti newChild))
@@ -872,8 +872,8 @@ let private mapTypeId (r:Asn1AcnAst.AstRoot)  (t:Asn1AcnAst.Asn1Type) =
 
 
 
-let private mapTas (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies)  (lm:LanguageMacros) (m:Asn1AcnAst.Asn1Module) (tas:Asn1AcnAst.TypeAssignment) (us:State)=
-    let newType, ns = TL "mapType" (fun () -> mapType r deps lm m (tas.Type, us))
+let private mapTas (r:Asn1AcnAst.AstRoot) (icdStgFileName:string) (deps:Asn1AcnAst.AcnInsertedFieldDependencies)  (lm:LanguageMacros) (m:Asn1AcnAst.Asn1Module) (tas:Asn1AcnAst.TypeAssignment) (us:State)=
+    let newType, ns = TL "mapType" (fun () -> mapType r icdStgFileName deps lm m (tas.Type, us))
     {
         TypeAssignment.Name = tas.Name
         c_name = tas.c_name
@@ -883,7 +883,7 @@ let private mapTas (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDepen
     },ns
 
 
-let private mapVas (r:Asn1AcnAst.AstRoot) (allNewTypeAssignments : (Asn1Module*TypeAssignment) list) (deps:Asn1AcnAst.AcnInsertedFieldDependencies)   (lm:LanguageMacros) (m:Asn1AcnAst.Asn1Module) (vas:Asn1AcnAst.ValueAssignment) (us:State)=
+let private mapVas (r:Asn1AcnAst.AstRoot) (icdStgFileName:string) (allNewTypeAssignments : (Asn1Module*TypeAssignment) list) (deps:Asn1AcnAst.AcnInsertedFieldDependencies)   (lm:LanguageMacros) (m:Asn1AcnAst.Asn1Module) (vas:Asn1AcnAst.ValueAssignment) (us:State)=
     let newType, ns = 
         match vas.Type.Kind with
         | Asn1AcnAst.ReferenceType ref ->
@@ -891,12 +891,12 @@ let private mapVas (r:Asn1AcnAst.AstRoot) (allNewTypeAssignments : (Asn1Module*T
             match allNewTypeAssignments |> Seq.tryFind(fun (tm, ts) -> ts.Name.Value = ref.tasName.Value && ref.modName.Value = tm.Name.Value) with
             | None          -> 
                 let oldType = Asn1AcnAstUtilFunctions.GetActualTypeByName r ref.modName ref.tasName
-                mapType r deps lm m (oldType, us)
+                mapType r icdStgFileName deps lm m (oldType, us)
             | Some (mt, newTas)   -> 
                 let (newKind, newPrms),ns = createReferenceType r deps lm m None vas.Type ref (newTas.Type, us) 
                 createType r None vas.Type ((newKind, newPrms),us)
                 //newTas.Type, us
-        | _     ->  mapType r deps lm m (vas.Type, us)
+        | _     ->  mapType r icdStgFileName deps lm m (vas.Type, us)
     {
         ValueAssignment.Name = vas.Name
         c_name = vas.c_name
@@ -905,8 +905,8 @@ let private mapVas (r:Asn1AcnAst.AstRoot) (allNewTypeAssignments : (Asn1Module*T
         Value = mapValue vas.Value
     },ns
 
-let private mapModule (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies)  (lm:LanguageMacros)  (m:Asn1AcnAst.Asn1Module) (us:State) =
-    let newTases, ns1 = TL "mapTas" (fun () -> m.TypeAssignments |> foldMap (fun ns nt -> mapTas r deps lm m nt ns) us)
+let private mapModule (r:Asn1AcnAst.AstRoot) (icdStgFileName:string) (deps:Asn1AcnAst.AcnInsertedFieldDependencies)  (lm:LanguageMacros)  (m:Asn1AcnAst.Asn1Module) (us:State) =
+    let newTases, ns1 = TL "mapTas" (fun () -> m.TypeAssignments |> foldMap (fun ns nt -> mapTas r icdStgFileName deps lm m nt ns) us)
     //let newTases = m.TypeAssignments |> List.toArray |> Microsoft.FSharp.Collections.Array.Parallel.map (fun nt -> mapTas r deps l m nt us) |> Array.toList |> List.unzip |> fst
     //let ns1 = us
 
@@ -919,25 +919,25 @@ let private mapModule (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDe
         Comments = m.Comments
     }, ns1
 
-let private reMapModule (r:Asn1AcnAst.AstRoot) (files0:Asn1File list) (deps:Asn1AcnAst.AcnInsertedFieldDependencies)  (lm:LanguageMacros) (m:Asn1Module) (us:State) =
+let private reMapModule (r:Asn1AcnAst.AstRoot) (icdStgFileName:string) (files0:Asn1File list) (deps:Asn1AcnAst.AcnInsertedFieldDependencies)  (lm:LanguageMacros) (m:Asn1Module) (us:State) =
     let allNewTasses = files0 |> List.collect(fun f -> f.Modules) |> List.collect(fun m -> m.TypeAssignments |> List.map(fun ts -> (m,ts)))
     let oldModule = r.Files |> List.collect(fun f -> f.Modules) |> List.find(fun oldM -> oldM.Name.Value = m.Name.Value)
-    let newVases, ns1 = oldModule.ValueAssignments |> foldMap (fun ns nt -> mapVas r allNewTasses deps lm oldModule nt ns) us
+    let newVases, ns1 = oldModule.ValueAssignments |> foldMap (fun ns nt -> mapVas r icdStgFileName allNewTasses deps lm oldModule nt ns) us
     { m with ValueAssignments = newVases}, ns1
 
-let private mapFile (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies)  (lm:LanguageMacros) (f:Asn1AcnAst.Asn1File) (us:State) =
-    let newModules, ns = TL "mapModules" (fun () -> f.Modules |> foldMap (fun cs m -> mapModule r deps lm m cs) us)
+let private mapFile (r:Asn1AcnAst.AstRoot) (icdStgFileName:string) (deps:Asn1AcnAst.AcnInsertedFieldDependencies)  (lm:LanguageMacros) (f:Asn1AcnAst.Asn1File) (us:State) =
+    let newModules, ns = TL "mapModules" (fun () -> f.Modules |> foldMap (fun cs m -> mapModule r icdStgFileName deps lm m cs) us)
     {
         Asn1File.FileName = f.FileName
         Tokens = f.Tokens
         Modules = newModules
     }, ns
 
-let private reMapFile (r:Asn1AcnAst.AstRoot) (files0:Asn1File list) (deps:Asn1AcnAst.AcnInsertedFieldDependencies)  (lm:LanguageMacros) (f:Asn1File) (us:State) =
-    let newModules, ns = f.Modules |> foldMap (fun cs m -> reMapModule r files0 deps lm m cs) us
+let private reMapFile (r:Asn1AcnAst.AstRoot) (icdStgFileName:string) (files0:Asn1File list) (deps:Asn1AcnAst.AcnInsertedFieldDependencies)  (lm:LanguageMacros) (f:Asn1File) (us:State) =
+    let newModules, ns = f.Modules |> foldMap (fun cs m -> reMapModule r icdStgFileName files0 deps lm m cs) us
     {f with Modules = newModules}, ns
 
-let DoWork (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (lang:CommonTypes.ProgrammingLanguage) (lm:LanguageMacros) (encodings: CommonTypes.Asn1Encoding list) : AstRoot=
+let DoWork (r:Asn1AcnAst.AstRoot) (icdStgFileName:string) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (lang:CommonTypes.ProgrammingLanguage) (lm:LanguageMacros) (encodings: CommonTypes.Asn1Encoding list) : AstRoot=
     let l = lang
 //        match lang with
 //        | CommonTypes.ProgrammingLanguage.C     -> DAst.ProgrammingLanguage.C
@@ -956,8 +956,8 @@ let DoWork (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies)
         Map.ofSeq
     let initialState = {currErrorCode = 1; curErrCodeNames = Set.empty; (*allocatedTypeDefNames = []; allocatedTypeDefNameInTas = Map.empty;*) alphaIndex=0; alphaFuncs=[];typeIdsSet=typeIdsSet; newTypesMap = new Dictionary<ReferenceToType, System.Object>()}
     //first map all type assignments and then value assignments
-    let files0, ns = TL "mapFile" (fun () -> r.Files |> foldMap (fun cs f -> mapFile r deps lm f cs) initialState)
-    let files, ns = TL "reMapFile" (fun () -> files0 |> foldMap (fun cs f -> reMapFile r files0 deps lm f cs) ns)
+    let files0, ns = TL "mapFile" (fun () -> r.Files |> foldMap (fun cs f -> mapFile r icdStgFileName deps lm f cs) initialState)
+    let files, ns = TL "reMapFile" (fun () -> files0 |> foldMap (fun cs f -> reMapFile r icdStgFileName files0 deps lm f cs) ns)
     {
         AstRoot.Files = files
         acnConstants = r.acnConstants

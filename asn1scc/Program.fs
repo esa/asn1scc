@@ -332,6 +332,13 @@ let main0 argv =
         | _     -> 
             ExportToXml.exportFile frontEntAst acnDeps args.AstXmlAbsFileName
 
+        let icdStgFileName = 
+            match parserResults.TryGetResult (<@CustomIcdAcn@>) with
+            | None -> "icdtemplate_acn.stg"
+            | Some comFile ->
+                    match getCustmStgFileNames comFile with
+                    | Some(stgFile, _)  -> stgFile 
+                    | None  -> "icdtemplate_acn.stg"
 
         // construct backend ast
         let backends = 
@@ -340,10 +347,10 @@ let main0 argv =
                 match a with
                 | C_lang                -> 
                     let lm = getLanguageMacro C
-                    Some (TL "DAstConstruction.DoWork" (fun () -> DAstConstruction.DoWork frontEntAst acnDeps CommonTypes.ProgrammingLanguage.C lm args.encodings))
+                    Some (TL "DAstConstruction.DoWork" (fun () -> DAstConstruction.DoWork frontEntAst icdStgFileName acnDeps CommonTypes.ProgrammingLanguage.C lm args.encodings))
                 | Ada_Lang              -> 
                     let lm = getLanguageMacro Ada
-                    Some (TL "DAstConstruction.DoWork" (fun () -> DAstConstruction.DoWork frontEntAst acnDeps CommonTypes.ProgrammingLanguage.Ada lm args.encodings))
+                    Some (TL "DAstConstruction.DoWork" (fun () -> DAstConstruction.DoWork frontEntAst icdStgFileName acnDeps CommonTypes.ProgrammingLanguage.Ada lm args.encodings))
                 | _             -> None)
 
         let createDirectories baseDir (l:ProgrammingLanguage) target =
@@ -377,7 +384,6 @@ let main0 argv =
         
         // let AST for custom STGs
         // if there is an AST from Ada or C use it, otherwise create a new one
-
         let r = 
             match backends with
             | []    -> 
@@ -395,7 +401,7 @@ let main0 argv =
                             xer = new IXer_c.IXer_c()
                             src = new ISrcBody_c.ISrcBody_c()
                         }
-                TL "DAstConstruction.DoWork" (fun () -> DAstConstruction.DoWork frontEntAst acnDeps CommonTypes.ProgrammingLanguage.C  lm args.encodings)
+                TL "DAstConstruction.DoWork" (fun () -> DAstConstruction.DoWork frontEntAst icdStgFileName acnDeps CommonTypes.ProgrammingLanguage.C  lm args.encodings)
             | x::_  -> x
         
 

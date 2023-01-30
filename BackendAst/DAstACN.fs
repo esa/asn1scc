@@ -501,11 +501,27 @@ let createEnumComn (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:CommonTypes
         | Some (funcBodyContent,errCodes, localVariables) -> Some ({AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = errCodes; localVariables = localVariables; bValIsUnReferenced= false; bBsIsUnReferenced=false})
     funcBody
 
-let createEnumeratedFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Enumerated) (defOrRef:TypeDefintionOrReference) (typeDefinition:TypeDefintionOrReference)   (isValidFunc: IsValidFunction option) (uperFunc: UPerFunction) (us:State)  =
+let enumComment stgFileName (o:Asn1AcnAst.Enumerated) =
+    let EmitItem (n:Asn1AcnAst.NamedItem) =
+        let comment =  n.Comments |> Seq.StrJoin "\n"
+        match comment.Trim() with
+        | ""        ->    icd_uper.EmitEnumItem stgFileName n.Name.Value n.definitionValue
+        | _         ->    icd_uper.EmitEnumItemWithComment stgFileName n.Name.Value n.definitionValue comment
+    let itemsHtml = 
+        o.items |> 
+            List.filter(fun z -> 
+                let v = z.Name.Value
+                Asn1Fold.isValidValueGeneric o.AllCons (=) v ) |>
+            List.map EmitItem 
+    icd_uper.EmitEnumInternalContents stgFileName itemsHtml
+
+
+let createEnumeratedFunction (r:Asn1AcnAst.AstRoot) (icdStgFileName:string) (lm:LanguageMacros) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Enumerated) (defOrRef:TypeDefintionOrReference) (typeDefinition:TypeDefintionOrReference)   (isValidFunc: IsValidFunction option) (uperFunc: UPerFunction) (us:State)  =
     let typeDefinitionName = defOrRef.longTypedefName2 lm.lg.hasModules //getTypeDefinitionName t.id.tasInfo typeDefinition
     let funcBody = createEnumComn r lm codec t.id o defOrRef typeDefinitionName
     let soSparkAnnotations = Some(sparkAnnotations lm (typeDefinition.longTypedefName2 lm.lg.hasModules) codec)
-    let icdFnc fieldName sPresent comments = 
+    let icdFnc fieldName sPresent (comments:string list) = 
+        let newComments = comments@[enumComment icdStgFileName o]
         [{IcdRow.fieldName = fieldName; comments = comments; sPresent=sPresent;sType=(IcdPlainType (getASN1Name t)); sConstraint=None; minLengtInBits = o.acnMinSizeInBits ;maxLengtInBits=o.acnMaxSizeInBits;sUnits=t.unitsOfMeasure; rowType = IcdRowType.FieldRow}]
     let icd = {IcdArgAux.canBeEmbedded = true; baseAsn1Kind = (getASN1Name t); rowsFunc = icdFnc; compositeChildren = []}
     createAcnFunction r lm codec t typeDefinition  isValidFunc  (fun us e acnArgs p -> funcBody e acnArgs p, us) (fun atc -> true) icd soSparkAnnotations  us
@@ -1940,7 +1956,7 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
             | 1 -> []
             | _ ->
                 let indexSize = GetChoiceUperDeterminantLengthInBits acnChildren.Length.AsBigInt
-                [{IcdRow.fieldName = "ChoiceIndex"; comments = [$"Presence bit mask"]; sPresent="always" ;sType=IcdPlainType "unsigned int"; sConstraint=None; minLengtInBits = indexSize; maxLengtInBits=indexSize;sUnits=None; rowType = IcdRowType.LengthDeterminantRow}]
+                [{IcdRow.fieldName = "ChoiceIndex"; comments = [$"Special field used by ACN to indicate which choice alternative is present."]; sPresent="always" ;sType=IcdPlainType "unsigned int"; sConstraint=None; minLengtInBits = indexSize; maxLengtInBits=indexSize;sUnits=None; rowType = IcdRowType.LengthDeterminantRow}]
 
         uperPresenceMask@chRows
 

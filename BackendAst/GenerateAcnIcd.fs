@@ -571,7 +571,7 @@ let emitTas2 stgFileName myParams (icdTas:IcdTypeAss)  =
     let sCommentLine = icdTas.comments |> Seq.StrJoin (icd_uper.NewLine stgFileName ())
     let arRows = 
         icdTas.rows |> List.mapi (fun i rw -> emitIcdRow stgFileName i rw)
-    icd_acn.EmitSequenceOrChoice stgFileName false icdTas.name (ToC icdTas.name) false icdTas.name (icdTas.minLengtInBytes.ToString()) (icdTas.maxLengtInBytes.ToString()) "sMaxBitsExplained" sCommentLine arRows (myParams 4I) (sCommentLine.Split [|'\n'|]) 
+    icd_acn.EmitSequenceOrChoice stgFileName false icdTas.name (ToC icdTas.name) false (icdTas.kind + ":" + icdTas.linkId) (icdTas.minLengtInBytes.ToString()) (icdTas.maxLengtInBytes.ToString()) "sMaxBitsExplained" sCommentLine arRows (myParams 4I) (sCommentLine.Split [|'\n'|]) 
 
 let rec PrintType2 stgFileName (r:AstRoot)  acnParams (icdTas:IcdTypeAss): string list =
     seq {
@@ -596,7 +596,10 @@ let printTas2 stgFileName (r:AstRoot) (ts:TypeAssignment) : string list =
     PrintType2 stgFileName r myParams ts.Type.icdFunction.typeAss
 
 let PrintTasses2 stgFileName (r:AstRoot) : string list =
-    r.Modules |> List.collect(fun m -> m.TypeAssignments) |> List.collect (printTas2 stgFileName r)
+    r.Modules |> 
+    List.collect(fun m -> m.TypeAssignments) |> 
+    List.collect (printTas2 stgFileName r) |> 
+    List.map (icd_acn.EmmitTass stgFileName ) 
 
 let DoWork (r:AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (stgFileName:string) (asn1HtmlStgFileMacros:string option)   outFileName =
     let files1 = r.Files |> Seq.map (fun f -> PrintTasses stgFileName f r ) 
