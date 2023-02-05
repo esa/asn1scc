@@ -522,7 +522,7 @@ let createEnumeratedFunction (r:Asn1AcnAst.AstRoot) (icdStgFileName:string) (lm:
     let soSparkAnnotations = Some(sparkAnnotations lm (typeDefinition.longTypedefName2 lm.lg.hasModules) codec)
     let icdFnc fieldName sPresent (comments:string list) = 
         let newComments = comments@[enumComment icdStgFileName o]
-        [{IcdRow.fieldName = fieldName; comments = comments; sPresent=sPresent;sType=(IcdPlainType (getASN1Name t)); sConstraint=None; minLengtInBits = o.acnMinSizeInBits ;maxLengtInBits=o.acnMaxSizeInBits;sUnits=t.unitsOfMeasure; rowType = IcdRowType.FieldRow}]
+        [{IcdRow.fieldName = fieldName; comments = newComments; sPresent=sPresent;sType=(IcdPlainType (getASN1Name t)); sConstraint=None; minLengtInBits = o.acnMinSizeInBits ;maxLengtInBits=o.acnMaxSizeInBits;sUnits=t.unitsOfMeasure; rowType = IcdRowType.FieldRow}]
     let icd = {IcdArgAux.canBeEmbedded = true; baseAsn1Kind = (getASN1Name t); rowsFunc = icdFnc; compositeChildren = []}
     createAcnFunction r lm codec t typeDefinition  isValidFunc  (fun us e acnArgs p -> funcBody e acnArgs p, us) (fun atc -> true) icd soSparkAnnotations  us
 
@@ -1725,6 +1725,8 @@ The field '%s' must either be removed or used as %s determinant of another ASN.1
         | false ->
             [{IcdRow.fieldName = "Presence Mask"; comments = [$"Presence bit mask"]; sPresent="always";sType=IcdPlainType "bit mask"; sConstraint=None; minLengtInBits = sPresenceBitIndexMap.Count.AsBigInt ;maxLengtInBits=sPresenceBitIndexMap.Count.AsBigInt;sUnits=None; rowType = IcdRowType.LengthDeterminantRow}]
     let icdFnc fieldName sPresent comments  = 
+        if t.id.AsString = "PUS-C.Dump-Params" then
+            printfn "debug"
         let chRows =
             children |>
             List.collect(fun c ->
@@ -1746,7 +1748,8 @@ The field '%s' must either be removed or used as %s determinant of another ASN.1
                     let comments = c.Comments |> Seq.toList
                     let x = c.Type.icdFunction
                     match x.canBeEmbedded with
-                    | true  -> x.createRowsFunc c.Name.Value optionality comments
+                    | true  -> 
+                        x.createRowsFunc c.Name.Value optionality comments
                     | false -> 
                         let sType = IcdRefType (x.typeAss.name, x.typeAss.linkId)
                         [{IcdRow.fieldName = c.Name.Value; comments = comments; sPresent=optionality;sType=sType; sConstraint=None; minLengtInBits = c.Type.acnMinSizeInBits; maxLengtInBits=c.Type.acnMaxSizeInBits;sUnits=None; rowType = IcdRowType.LengthDeterminantRow}]
@@ -1991,7 +1994,7 @@ let createReferenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
     | false -> 
         let sType = IcdRefType (x.typeAss.name, x.typeAss.linkId)
         legthDetRow@[{IcdRow.fieldName = fieldName; comments = comments; sPresent=sPresent;sType=sType; sConstraint=None; minLengtInBits = t.acnMinSizeInBits; maxLengtInBits=t.acnMaxSizeInBits;sUnits=None; rowType = IcdRowType.LengthDeterminantRow}]
-  let icd = {IcdArgAux.canBeEmbedded = false; baseAsn1Kind = (getASN1Name t); rowsFunc = icdFnc; compositeChildren = []}
+  let icd = {IcdArgAux.canBeEmbedded = baseType.icdFunction.canBeEmbedded; baseAsn1Kind = (getASN1Name t); rowsFunc = icdFnc; compositeChildren = []}
 
   (*
       let baseTypeIcd = baseType.icdFunction fieldName sPresent sComment

@@ -217,7 +217,7 @@ typedef <prTd.typeName> <td.typeName>;
 
 /***********************************       SEQUENCE     ************************************************************/
 
-Define_new_sequence_child_bit(sName) ::= "unsigned int <sName>:1;"
+Define_new_sequence_child_bit(sName) ::= "unsigned long <sName>:1;"
 Define_new_sequence_child(sName, sType) ::= "<sType> <sName>;"
 
 Define_new_sequence_save_pos_child(td/*:FE_SequenceTypeDefinition*/, sName, nMaxBytesInACN) ::= "BitStream <sName>;"

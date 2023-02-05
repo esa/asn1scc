@@ -570,7 +570,7 @@ let emitIcdRow stgFileName i (rw:IcdRow) =
 let emitTas2 stgFileName myParams (icdTas:IcdTypeAss)  =
     let sCommentLine = icdTas.comments |> Seq.StrJoin (icd_uper.NewLine stgFileName ())
     let arRows = 
-        icdTas.rows |> List.mapi (fun i rw -> emitIcdRow stgFileName i rw)
+        icdTas.rows |> List.mapi (fun i rw -> emitIcdRow stgFileName (i+1) rw)
     icd_acn.EmitSequenceOrChoice stgFileName false icdTas.name (ToC icdTas.name) false (icdTas.kind + ":" + icdTas.linkId) (icdTas.minLengtInBytes.ToString()) (icdTas.maxLengtInBytes.ToString()) "sMaxBitsExplained" sCommentLine arRows (myParams 4I) (sCommentLine.Split [|'\n'|]) 
 
 let rec PrintType2 stgFileName (r:AstRoot)  acnParams (icdTas:IcdTypeAss): string list =
