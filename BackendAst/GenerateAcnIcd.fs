@@ -561,11 +561,14 @@ let emitTypeCol stgFileName (sType : IcdTypeCol) =
     | IcdPlainType label -> label
     
 
-let emitIcdRow stgFileName i (rw:IcdRow) =
+let emitIcdRow stgFileName _i (rw:IcdRow) =
+    let i = match rw.idxOffset with Some z -> z | None -> 1
     let sComment = rw.comments |> Seq.StrJoin (icd_uper.NewLine stgFileName ()) 
     let sConstraint = match rw.sConstraint with None -> "N.A." | Some x -> x
     let sClass = if i % 2 = 0 then (icd_acn.EvenRow stgFileName ()) else (icd_acn.OddRow stgFileName ())
-    icd_acn.EmmitSeqOrChoiceRow stgFileName sClass (BigInteger i) rw.fieldName sComment  rw.sPresent  (emitTypeCol stgFileName rw.sType) sConstraint (rw.minLengtInBits.ToString()) (rw.maxLengtInBits.ToString()) None rw.sUnits
+    match rw.rowType with
+    |ThreeDOTs -> icd_acn.EmitRowWith3Dots stgFileName () 
+    | _        -> icd_acn.EmmitSeqOrChoiceRow stgFileName sClass (BigInteger i) rw.fieldName sComment  rw.sPresent  (emitTypeCol stgFileName rw.sType) sConstraint (rw.minLengtInBits.ToString()) (rw.maxLengtInBits.ToString()) None rw.sUnits
 
 let emitTas2 stgFileName myParams (icdTas:IcdTypeAss)  =
     let sCommentLine = icdTas.comments |> Seq.StrJoin (icd_uper.NewLine stgFileName ())
@@ -598,6 +601,7 @@ let printTas2 stgFileName (r:AstRoot) (ts:TypeAssignment) : string list =
 let PrintTasses2 stgFileName (r:AstRoot) : string list =
     r.Modules |> 
     List.collect(fun m -> m.TypeAssignments) |> 
+    List.filter(fun t -> t.Name.Value = "TC") |>
     List.collect (printTas2 stgFileName r) |> 
     List.map (icd_acn.EmmitTass stgFileName ) 
 

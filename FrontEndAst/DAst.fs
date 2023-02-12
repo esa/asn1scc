@@ -289,8 +289,10 @@ type IcdRowType =
     | ReferenceToCompositeTypeRow
     | LengthDeterminantRow
     | PresentDeterminantRow
+    | ThreeDOTs
 
 type IcdRow = {
+    idxOffset :int option
     fieldName : string
     comments  : string list
     sPresent  : string
