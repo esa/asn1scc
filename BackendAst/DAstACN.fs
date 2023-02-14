@@ -1780,10 +1780,10 @@ The field '%s' must either be removed or used as %s determinant of another ASN.1
         uperPresenceMask@chRows |> List.mapi(fun i r -> {r with idxOffset = Some (i+1)})
     let compositeChildren = 
         asn1Children |> 
-        List.choose(fun c ->
-            match c.Type.icdFunction.canBeEmbedded with
-            | true -> None
-            | false -> Some c.Type.icdFunction.typeAss)
+        List.choose(fun c -> Some c.Type.icdFunction.typeAss)
+            //match c.Type.icdFunction.canBeEmbedded with
+            //| true -> None
+            //| false -> Some c.Type.icdFunction.typeAss)
     let icd = {IcdArgAux.canBeEmbedded = false; baseAsn1Kind = (getASN1Name t); rowsFunc = icdFnc; commentsForTas=[]; compositeChildren = compositeChildren}
     createAcnFunction r lm codec t typeDefinition  isValidFunc  funcBody isTestVaseValid icd soSparkAnnotations  us
 
@@ -2015,17 +2015,17 @@ let createReferenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
             | SZ_EC_LENGTH_EMBEDDED  nSizeInBits -> 
                 let sCommentUnit = match encOptions.octOrBitStr with ContainedInOctString -> "bytes" | ContainedInBitString -> "bits"
                 
-                [ {IcdRow.fieldName = "Length"; comments = [$"The number of {sCommentUnit} used in the encoding"]; sPresent="always";sType=IcdPlainType "INTEGER"; sConstraint=None; minLengtInBits = nSizeInBits ;maxLengtInBits=nSizeInBits;sUnits=None; rowType = IcdRowType.LengthDeterminantRow; idxOffset = None}]
+                [ {IcdRow.fieldName = "Length33"; comments = [$"The number of {sCommentUnit} used in the encoding"]; sPresent="always";sType=IcdPlainType "INTEGER"; sConstraint=None; minLengtInBits = nSizeInBits ;maxLengtInBits=nSizeInBits;sUnits=None; rowType = IcdRowType.LengthDeterminantRow; idxOffset = None}]
             | _ -> []
         let icdFnc fieldName sPresent comments  = 
             match x.canBeEmbedded with
             | true  -> legthDetRow@(x.createRowsFunc fieldName sPresent comments) |> List.mapi(fun i r -> {r with idxOffset = Some (i+1)})
             | false -> 
-                legthDetRow@(x.createRowsFunc fieldName sPresent comments) |> List.mapi(fun i r -> {r with idxOffset = Some (i+1)})
-                //let sType = IcdRefType (x.typeAss.name, x.typeAss.linkId)
-                //legthDetRow@[{IcdRow.fieldName = fieldName; comments = comments; sPresent=sPresent;sType=sType; sConstraint=None; minLengtInBits = t.acnMinSizeInBits; maxLengtInBits=t.acnMaxSizeInBits;sUnits=None; rowType = IcdRowType.LengthDeterminantRow; idxOffset = None}] |> List.mapi(fun i r -> {r with idxOffset = Some (i+1)})
+                //legthDetRow@(x.createRowsFunc fieldName sPresent comments) |> List.mapi(fun i r -> {r with idxOffset = Some (i+1)})
+                let sType = IcdRefType (x.typeAss.name, x.typeAss.linkId)
+                legthDetRow@[{IcdRow.fieldName = fieldName; comments = comments; sPresent=sPresent;sType=sType; sConstraint=None; minLengtInBits = t.acnMinSizeInBits; maxLengtInBits=t.acnMaxSizeInBits;sUnits=None; rowType = IcdRowType.LengthDeterminantRow; idxOffset = None}] |> List.mapi(fun i r -> {r with idxOffset = Some (i+1)})
         icdFnc, x.typeAss.compositeChildren, ["OCTET STING CONTAINING BY"]
-  let icd = {IcdArgAux.canBeEmbedded = baseType.icdFunction.canBeEmbedded; baseAsn1Kind = (getASN1Name t); rowsFunc = icdFnc; commentsForTas=exraComment; compositeChildren = compositeChildren}
+  let icd = {IcdArgAux.canBeEmbedded = true; baseAsn1Kind = (getASN1Name t); rowsFunc = icdFnc; commentsForTas=exraComment; compositeChildren = compositeChildren}
 
   (*
       let baseTypeIcd = baseType.icdFunction fieldName sPresent sComment

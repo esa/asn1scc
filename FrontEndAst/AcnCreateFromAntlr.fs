@@ -1425,7 +1425,7 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (m:Asn1Ast.Asn1Mo
                 | Some  ContainedInOctString  -> 
                     let minSize = {SIZE.uper = toByte resolvedType.uperMinSizeInBits; acn = toByte resolvedType.acnMinSizeInBits}
                     let maxSize = {SIZE.uper = toByte resolvedType.uperMaxSizeInBits; acn = toByte resolvedType.acnMaxSizeInBits}
-                    let hasNCount = minSize.uper <> maxSize.uper
+                    let hasNCount = (minSize.uper <> maxSize.uper) || (minSize.acn <> maxSize.acn)
                     let uperMinSizeInBits, uperMaxSizeInBits = uPER.getSizeableTypeSize minSize.uper maxSize.uper 8I
 
                     let acnProperties = 
