@@ -1767,7 +1767,8 @@ The field '%s' must either be removed or used as %s determinant of another ASN.1
                                 $"when %s{retExp}"
                     let comments = c.Comments |> Seq.toList
                     let x = c.Type.icdFunction
-                    match x.canBeEmbedded with
+                    let isRef = match c.Type.Kind with ReferenceType _ -> true | _ -> false
+                    match x.canBeEmbedded  || isRef with
                     | true  -> 
                         x.createRowsFunc c.Name.Value optionality comments
                     | false -> 
@@ -2021,10 +2022,10 @@ let createReferenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
             match x.canBeEmbedded with
             | true  -> legthDetRow@(x.createRowsFunc fieldName sPresent comments) |> List.mapi(fun i r -> {r with idxOffset = Some (i+1)})
             | false -> 
-                legthDetRow@(x.createRowsFunc fieldName sPresent comments) |> List.mapi(fun i r -> {r with idxOffset = Some (i+1)})
-                //let sType = IcdRefType (x.typeAss.name, x.typeAss.linkId)
-                //legthDetRow@[{IcdRow.fieldName = fieldName; comments = comments; sPresent=sPresent;sType=sType; sConstraint=None; minLengtInBits = t.acnMinSizeInBits; maxLengtInBits=t.acnMaxSizeInBits;sUnits=None; rowType = IcdRowType.LengthDeterminantRow; idxOffset = None}] |> List.mapi(fun i r -> {r with idxOffset = Some (i+1)})
-        icdFnc, [x.typeAss], ["OCTET STING CONTAINING BY"]
+                //legthDetRow@(x.createRowsFunc fieldName sPresent comments) |> List.mapi(fun i r -> {r with idxOffset = Some (i+1)})
+                let sType = IcdRefType (x.typeAss.name, x.typeAss.linkId)
+                legthDetRow@[{IcdRow.fieldName = fieldName; comments = comments; sPresent=sPresent;sType=sType; sConstraint=None; minLengtInBits = t.acnMinSizeInBits; maxLengtInBits=t.acnMaxSizeInBits;sUnits=None; rowType = IcdRowType.LengthDeterminantRow; idxOffset = None}] |> List.mapi(fun i r -> {r with idxOffset = Some (i+1)})
+        icdFnc, x.typeAss.compositeChildren, ["OCTET STING CONTAINING BY"]
   let icd = {IcdArgAux.canBeEmbedded = x.canBeEmbedded; baseAsn1Kind = (getASN1Name t); rowsFunc = icdFnc; commentsForTas=exraComment; compositeChildren = compositeChildren}
 
   (*
