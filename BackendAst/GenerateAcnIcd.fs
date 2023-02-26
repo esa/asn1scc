@@ -557,7 +557,7 @@ let emitCss (r:AstRoot) stgFileName   outFileName =
 
 let emitTypeCol stgFileName (sType : IcdTypeCol) =
     match sType with
-    | IcdRefType (label,linkId) -> icd_acn.EmmitSeqChild_RefType stgFileName label linkId
+    | IcdRefType (label, (IcdTypeAssHas linkId)) -> icd_acn.EmmitSeqChild_RefType stgFileName label linkId
     | IcdPlainType label -> label
     
 
@@ -571,19 +571,25 @@ let emitIcdRow stgFileName _i (rw:IcdRow) =
     | _        -> icd_acn.EmmitSeqOrChoiceRow stgFileName sClass (BigInteger i) rw.fieldName sComment  rw.sPresent  (emitTypeCol stgFileName rw.sType) sConstraint (rw.minLengtInBits.ToString()) (rw.maxLengtInBits.ToString()) None rw.sUnits
 
 let emitTas2 stgFileName myParams (icdTas:IcdTypeAss)  =
-    let sCommentLine = icdTas.comments |> Seq.StrJoin (icd_uper.NewLine stgFileName ())
+    let sCommentLine = icdTas.hash::icdTas.comments |> Seq.StrJoin (icd_uper.NewLine stgFileName ())
     let arRows = 
         icdTas.rows |> List.mapi (fun i rw -> emitIcdRow stgFileName (i+1) rw)
-    icd_acn.EmitSequenceOrChoice stgFileName false icdTas.name (ToC icdTas.name) false (icdTas.kind + ":" + icdTas.linkId) (icdTas.minLengtInBytes.ToString()) (icdTas.maxLengtInBytes.ToString()) "sMaxBitsExplained" sCommentLine arRows (myParams 4I) (sCommentLine.Split [|'\n'|]) 
+    icd_acn.EmitSequenceOrChoice stgFileName false icdTas.name (ToC icdTas.name) false (icdTas.kind + ":" + icdTas.linkId ) (icdTas.minLengtInBytes.ToString()) (icdTas.maxLengtInBytes.ToString()) "sMaxBitsExplained" sCommentLine arRows (myParams 4I) (sCommentLine.Split [|'\n'|]) 
 
+(*
 let rec PrintType2 stgFileName (r:AstRoot)  acnParams (icdTas:IcdTypeAss): string list =
     seq {
         let htmlContent = emitTas2 stgFileName acnParams icdTas
         yield htmlContent
-        for c in icdTas.compositeChildren do
-            yield! PrintType2 stgFileName r (fun _ -> []) c
+        for c in icdTas.rows do
+            match c.sType with
+            | IcdPlainType _ -> ()
+            | IcdRefType (_, IcdTypeAssHas hash) ->
+                match r.icdHashes.TryFind hash with
+                | Some chIcdTas ->
+                    yield! PrintType2 stgFileName r (fun _ -> []) chIcdTas
+                | None -> ()
     } |> Seq.toList
-
 let printTas2 stgFileName (r:AstRoot) (ts:TypeAssignment) : string list =
     let myParams colSpan= 
         ts.Type.acnParameters |>
@@ -597,13 +603,38 @@ let printTas2 stgFileName (r:AstRoot) (ts:TypeAssignment) : string list =
             icd_acn.PrintParam stgFileName (i+1).AsBigInt x.name sType colSpan)
 
     PrintType2 stgFileName r myParams ts.Type.icdFunction.typeAss
+*)
+
+let rec getMySelfAndChildren (r:AstRoot) (icdTas:IcdTypeAss) =
+    seq {
+        yield icdTas.hash
+        for c in icdTas.rows do
+            match c.sType with
+            | IcdPlainType _ -> ()
+            | IcdRefType (_, IcdTypeAssHas hash) ->
+                match r.icdHashes.TryFind hash with
+                | Some chIcdTas ->
+                    yield! getMySelfAndChildren r chIcdTas
+                | None -> ()
+
+    } |> Seq.toList
 
 let PrintTasses2 stgFileName (r:AstRoot) : string list =
-    r.Modules |> 
-    List.collect(fun m -> m.TypeAssignments) |> 
-    List.filter(fun t -> t.Name.Value = "TC") |>
-    List.collect (printTas2 stgFileName r) |> 
-    List.map (icd_acn.EmmitTass stgFileName ) 
+    r.icdHashes.Values |> 
+    Seq.choose(fun z ->
+        match z.tasInfo with
+        | None -> None
+        | Some ts when ts.tasName = "TC" -> Some z
+        | Some _ -> None ) |>
+    Seq.collect(fun icdTas -> getMySelfAndChildren r icdTas) |>
+    Seq.distinct |>
+    Seq.choose(fun hash ->
+        let acnParams colSpan = []
+        match r.icdHashes.TryFind hash with
+        | Some chIcdTas -> Some (emitTas2 stgFileName (fun _ -> []) chIcdTas)
+        | None -> None) |>
+    Seq.toList
+
 
 let DoWork (r:AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (stgFileName:string) (asn1HtmlStgFileMacros:string option)   outFileName =
     let files1 = r.Files |> Seq.map (fun f -> PrintTasses stgFileName f r ) 

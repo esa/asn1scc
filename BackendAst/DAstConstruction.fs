@@ -954,10 +954,11 @@ let DoWork (r:Asn1AcnAst.AstRoot) (icdStgFileName:string) (deps:Asn1AcnAst.AcnIn
         Seq.groupBy id |>
         Seq.map(fun (id, lst) -> (id, Seq.length lst)) |>
         Map.ofSeq
-    let initialState = {currErrorCode = 1; curErrCodeNames = Set.empty; (*allocatedTypeDefNames = []; allocatedTypeDefNameInTas = Map.empty;*) alphaIndex=0; alphaFuncs=[];typeIdsSet=typeIdsSet; newTypesMap = new Dictionary<ReferenceToType, System.Object>()}
+    let initialState = {currErrorCode = 1; curErrCodeNames = Set.empty; (*allocatedTypeDefNames = []; allocatedTypeDefNameInTas = Map.empty;*) alphaIndex=0; alphaFuncs=[];typeIdsSet=typeIdsSet; newTypesMap = new Dictionary<ReferenceToType, System.Object>(); icdHashes = Map.empty}
     //first map all type assignments and then value assignments
     let files0, ns = TL "mapFile" (fun () -> r.Files |> foldMap (fun cs f -> mapFile r icdStgFileName deps lm f cs) initialState)
     let files, ns = TL "reMapFile" (fun () -> files0 |> foldMap (fun cs f -> reMapFile r icdStgFileName files0 deps lm f cs) ns)
+    let icdTases = ns.icdHashes
     {
         AstRoot.Files = files
         acnConstants = r.acnConstants
@@ -966,5 +967,6 @@ let DoWork (r:Asn1AcnAst.AstRoot) (icdStgFileName:string) (deps:Asn1AcnAst.AcnIn
         lang = l
         acnParseResults = r.acnParseResults
         deps    = deps
+        icdHashes   = ns.icdHashes
     }
 

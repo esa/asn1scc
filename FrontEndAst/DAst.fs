@@ -25,6 +25,53 @@ type AlphaFunc   = {
     funcBody            : CallerScope -> string
 }
 
+type IcdTypeAssHas =
+    | IcdTypeAssHas of String
+    
+
+type IcdTypeCol =
+    | IcdRefType of string*IcdTypeAssHas //display string, link
+    | IcdPlainType of string
+
+let getIcdTypeCol_label  l = 
+    match l with
+    | IcdRefType (l,_)
+    | IcdPlainType l -> l
+    
+type IcdRowType =
+    | FieldRow
+    | ReferenceToCompositeTypeRow
+    | LengthDeterminantRow
+    | PresentDeterminantRow
+    | ThreeDOTs
+
+type IcdRow = {
+    idxOffset :int option
+    fieldName : string
+    comments  : string list
+    sPresent  : string
+    sType     : IcdTypeCol
+    sConstraint : string option
+    minLengtInBits : BigInteger
+    maxLengtInBits : BigInteger
+    sUnits      : string option
+    rowType     : IcdRowType
+}
+
+type IcdTypeAss = {
+    linkId  : string
+    tasInfo : TypeAssignmentInfo option
+    asn1Link : string option
+    acnLink : string option
+    name : string
+    kind : string
+    comments : string list
+    rows : IcdRow list
+    //compositeChildren : IcdTypeAss list
+    minLengtInBytes : BigInteger
+    maxLengtInBytes : BigInteger
+    hash            : string
+}
 type State = {
     currErrorCode   : int
     curErrCodeNames : Set<String>
@@ -34,10 +81,11 @@ type State = {
     alphaFuncs : AlphaFunc list //func name, func body
     typeIdsSet : Map<String,int>
     newTypesMap : Dictionary<ReferenceToType, System.Object>
+    icdHashes   : Map<String, IcdTypeAss>
 }
 
 
-let emptyState = {currErrorCode=0; curErrCodeNames=Set.empty; (*allocatedTypeDefNames = []; allocatedTypeDefNameInTas = Map.empty;*) alphaIndex=0; alphaFuncs=[]; typeIdsSet=Map.empty; newTypesMap = new Dictionary<ReferenceToType, System.Object>()}
+let emptyState = {currErrorCode=0; curErrCodeNames=Set.empty; (*allocatedTypeDefNames = []; allocatedTypeDefNameInTas = Map.empty;*) alphaIndex=0; alphaFuncs=[]; typeIdsSet=Map.empty; newTypesMap = new Dictionary<ReferenceToType, System.Object>(); icdHashes = Map.empty}
 
 
 
@@ -275,54 +323,7 @@ type IsValidFunction = {
     nonEmbeddedChildrenValidFuncs  : IsValidFunction list         //a list with the first level child funcs which are not embedded by this
                                                        //IsValidFunction but the the function is called
 }
-type IcdTypeCol =
-    | IcdRefType of string*string //display string, link
-    | IcdPlainType of string
 
-let getIcdTypeCol_label  l = 
-    match l with
-    | IcdRefType (l,_)
-    | IcdPlainType l -> l
-    
-type IcdRowType =
-    | FieldRow
-    | ReferenceToCompositeTypeRow
-    | LengthDeterminantRow
-    | PresentDeterminantRow
-    | ThreeDOTs
-
-type IcdRow = {
-    idxOffset :int option
-    fieldName : string
-    comments  : string list
-    sPresent  : string
-    sType     : IcdTypeCol
-    sConstraint : string option
-    minLengtInBits : BigInteger
-    maxLengtInBits : BigInteger
-    sUnits      : string option
-    rowType     : IcdRowType
-}
-(*
-type IcdType =
-    | IcdPrimitiveType  of IcdRow list        // Integer, Real, Boolean, Null, Enumerated, 
-    | IcdSeqOfType      of IcdTypeCol*(IcdRow option)*IcdType        // length info * child type
-    | IcdSeqType        of IcdTypeCol*(IcdRow option)*(IcdType list)            // present bit mast, components
-    | IcdChoiceType     of IcdTypeCol*(IcdRow option)*(IcdType list)          // alternatives
-    | IcdRefType        of IcdRow list          // the resolved type but with sType the ref type
-    *)
-type IcdTypeAss = {
-    linkId  : string
-    asn1Link : string option
-    acnLink : string option
-    name : string
-    kind : string
-    comments : string list
-    rows : IcdRow list
-    compositeChildren : IcdTypeAss list
-    minLengtInBytes : BigInteger
-    maxLengtInBytes : BigInteger
-}
 
 
 type UPERFuncBodyResult = {
@@ -389,7 +390,7 @@ type AcnFunction = {
     funcBody            : State->((AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) -> CallerScope -> ((AcnFuncBodyResult option)*State)            
     funcBodyAsSeqComp   : State->((AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) -> CallerScope -> string -> ((AcnFuncBodyResult option)*State)            
     isTestVaseValid     : AutomaticTestCase -> bool
-    icd                 : IcdAux
+    icd                 : IcdAux option (* always present in Encode, always None in Decode *)
 }
 
 type EncodeDecodeTestFunc = {
@@ -1027,6 +1028,7 @@ type AstRoot = {
     programUnits : ProgramUnit list
     lang         : ProgrammingLanguage
     acnParseResults:CommonTypes.AntlrParserResult list //used in ICDs to regenerate with collors the initial ACN input
+    icdHashes   : Map<String, IcdTypeAss>
 }
 
 

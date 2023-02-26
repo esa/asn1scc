@@ -578,20 +578,20 @@ with
 
     member this.icdFunction = 
         match this.Kind with
-        | Integer           t -> t.acnEncFunction.icd 
-        | Real              t -> t.acnEncFunction.icd 
-        | IA5String         t -> t.acnEncFunction.icd 
-        | OctetString       t -> t.acnEncFunction.icd 
-        | NullType          t -> t.acnEncFunction.icd 
-        | BitString         t -> t.acnEncFunction.icd 
-        | Boolean           t -> t.acnEncFunction.icd 
-        | Enumerated        t -> t.acnEncFunction.icd 
-        | SequenceOf        t -> t.acnEncFunction.icd 
-        | Sequence          t -> t.acnEncFunction.icd 
-        | Choice            t -> t.acnEncFunction.icd 
-        | ReferenceType     t -> t.acnEncFunction.icd 
-        | ObjectIdentifier  t -> t.acnEncFunction.icd 
-        | TimeType          t -> t.acnEncFunction.icd 
+        | Integer           t -> t.acnEncFunction.icd.Value 
+        | Real              t -> t.acnEncFunction.icd.Value 
+        | IA5String         t -> t.acnEncFunction.icd.Value 
+        | OctetString       t -> t.acnEncFunction.icd.Value 
+        | NullType          t -> t.acnEncFunction.icd.Value 
+        | BitString         t -> t.acnEncFunction.icd.Value 
+        | Boolean           t -> t.acnEncFunction.icd.Value 
+        | Enumerated        t -> t.acnEncFunction.icd.Value 
+        | SequenceOf        t -> t.acnEncFunction.icd.Value 
+        | Sequence          t -> t.acnEncFunction.icd.Value 
+        | Choice            t -> t.acnEncFunction.icd.Value 
+        | ReferenceType     t -> t.acnEncFunction.icd.Value 
+        | ObjectIdentifier  t -> t.acnEncFunction.icd.Value 
+        | TimeType          t -> t.acnEncFunction.icd.Value 
 
     member this.acnEncFunction : AcnFunction option =
         match this.Kind with
