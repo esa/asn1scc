@@ -13,6 +13,13 @@ open Antlr.Acn
 open Antlr.Runtime
 
 
+
+let acnTokens = [
+        "endianness"; "big"; "little"; "encoding"; "pos-int"; "twos-complement"; "BCD"; "ASCII";
+        "IEEE754-1985-32"; "IEEE754-1985-64"; "size"; "null-terminated"; "align-to-next"; "byte";
+        "word"; "dword"; "encode-values"; "true-value"; "false-value"; "pattern"; "present-when";
+        "determinant"; "DEFINITIONS"; "BEGIN"; "END"; "CONSTANT"; "NOT"; "INTEGER"; "BOOLEAN"; "NULL"] |> Set.ofList
+
 let Kind2Name  = GenerateUperIcd.Kind2Name
 
 
@@ -23,17 +30,13 @@ let makeEmptyNull (s:string) =
 
 // Generate a formatted version of the ACN grammar given as input,
 // using the stringtemplate layouts.
+
 let PrintAcnAsHTML stgFileName (r:AstRoot)  =
-    let acnTokens = [|
-            "endianness"; "big"; "little"; "encoding"; "pos-int"; "twos-complement"; "BCD"; "ASCII";
-            "IEEE754-1985-32"; "IEEE754-1985-64"; "size"; "null-terminated"; "align-to-next"; "byte";
-            "word"; "dword"; "encode-values"; "true-value"; "false-value"; "pattern"; "present-when";
-            "determinant"; "DEFINITIONS"; "BEGIN"; "END"; "CONSTANT"; "NOT"; "INTEGER"; "BOOLEAN"; "NULL"|]
     let colorize (t: IToken, tasses: string array) =
             let lt = icd_acn.LeftDiple stgFileName ()
             let gt = icd_acn.RightDiple stgFileName ()
             let containedIn = Array.exists (fun elem -> elem = t.Text) 
-            let isAcnKeyword = containedIn acnTokens
+            let isAcnKeyword = acnTokens.Contains t.Text
             let isType = containedIn tasses
             let safeText = t.Text.Replace("<",lt).Replace(">",gt)
             let uid =
@@ -58,6 +61,44 @@ let PrintAcnAsHTML stgFileName (r:AstRoot)  =
             //let f = r.Files |> Seq.find(fun x -> Path.GetFileNameWithoutExtension(x.FileName) = Path.GetFileNameWithoutExtension(fName))
             //let tasNames = f.Modules |> Seq.collect(fun x -> x.TypeAssignments) |> Seq.map(fun x -> x.Name.Value) |> Seq.toArray
             let content = tokens |> Seq.map(fun token -> colorize(token,tasNames))
+            icd_acn.EmmitFilePart2  stgFileName (Path.GetFileName fName) (content |> Seq.StrJoin "")
+    )
+
+let PrintAcnAsHTML2 stgFileName (r:AstRoot)  =
+    let fileTypeAssignments = 
+        r.icdHashes.Values |> 
+        Seq.collect id |>
+        Seq.choose(fun z ->
+            match z.tasInfo with
+            | None -> None
+            | Some ts -> Some (ts.tasName, z.hash)) |>
+        Map.ofSeq
+
+    let colorize (t: IToken) =
+            let lt = icd_acn.LeftDiple stgFileName ()
+            let gt = icd_acn.RightDiple stgFileName ()
+            let isAcnKeyword = acnTokens.Contains t.Text
+            let safeText = t.Text.Replace("<",lt).Replace(">",gt)
+            let uid =
+                match fileTypeAssignments.TryFind t.Text with
+                |Some hash -> icd_acn.TasName stgFileName safeText hash
+                |None -> safeText
+            let colored =
+                match t.Type with
+                |acnLexer.StringLiteral
+                |acnLexer.BitStringLiteral -> icd_acn.StringLiteral stgFileName safeText
+                |acnLexer.UID -> uid
+                |acnLexer.COMMENT
+                |acnLexer.COMMENT2 -> icd_acn.Comment stgFileName safeText
+                |_ -> safeText
+            if isAcnKeyword then icd_acn.AcnKeyword stgFileName safeText else colored
+    
+    r.acnParseResults |>
+    Seq.map(fun pr -> pr.fileName, pr.tokens) |>
+    Seq.map(fun (fName, tokens) -> 
+            //let f = r.Files |> Seq.find(fun x -> Path.GetFileNameWithoutExtension(x.FileName) = Path.GetFileNameWithoutExtension(fName))
+            //let tasNames = f.Modules |> Seq.collect(fun x -> x.TypeAssignments) |> Seq.map(fun x -> x.Name.Value) |> Seq.toArray
+            let content = tokens |> Seq.map(fun token -> colorize(token))
             icd_acn.EmmitFilePart2  stgFileName (Path.GetFileName fName) (content |> Seq.StrJoin "")
     )
 
@@ -555,26 +596,38 @@ let emitCss (r:AstRoot) stgFileName   outFileName =
     let cssContent = icd_acn.RootCss stgFileName ()
     File.WriteAllText(outFileName, cssContent.Replace("\r", ""))
 
-let emitTypeCol stgFileName (sType : IcdTypeCol) =
-    match sType with
-    | IcdRefType (label, (IcdTypeAssHas linkId)) -> icd_acn.EmmitSeqChild_RefType stgFileName label linkId
-    | IcdPlainType label -> label
+let selectTypeWithSameHash (lst:IcdTypeAss list) = 
+    match lst with
+    | x1::[] -> x1
+    | _      -> 
+        lst |> List.minBy(
+            fun z -> 
+                let (ReferenceToType nodes) = z.linkId; 
+                nodes.Length)
     
 
-let emitIcdRow stgFileName _i (rw:IcdRow) =
+let emitTypeCol stgFileName (r:AstRoot) (sType : IcdTypeCol) =
+    match sType with
+    | IcdPlainType label -> label
+    | TypeHash hash ->
+        let label = (selectTypeWithSameHash (r.icdHashes[hash])).name
+        icd_acn.EmmitSeqChild_RefType stgFileName label hash
+    
+
+let emitIcdRow stgFileName (r:AstRoot) _i (rw:IcdRow) =
     let i = match rw.idxOffset with Some z -> z | None -> 1
     let sComment = rw.comments |> Seq.StrJoin (icd_uper.NewLine stgFileName ()) 
     let sConstraint = match rw.sConstraint with None -> "N.A." | Some x -> x
     let sClass = if i % 2 = 0 then (icd_acn.EvenRow stgFileName ()) else (icd_acn.OddRow stgFileName ())
     match rw.rowType with
     |ThreeDOTs -> icd_acn.EmitRowWith3Dots stgFileName () 
-    | _        -> icd_acn.EmmitSeqOrChoiceRow stgFileName sClass (BigInteger i) rw.fieldName sComment  rw.sPresent  (emitTypeCol stgFileName rw.sType) sConstraint (rw.minLengtInBits.ToString()) (rw.maxLengtInBits.ToString()) None rw.sUnits
+    | _        -> icd_acn.EmmitSeqOrChoiceRow stgFileName sClass (BigInteger i) rw.fieldName sComment  rw.sPresent  (emitTypeCol stgFileName r rw.sType) sConstraint (rw.minLengtInBits.ToString()) (rw.maxLengtInBits.ToString()) None rw.sUnits
 
-let emitTas2 stgFileName myParams (icdTas:IcdTypeAss)  =
+let emitTas2 stgFileName (r:AstRoot) myParams (icdTas:IcdTypeAss)  =
     let sCommentLine = icdTas.hash::icdTas.comments |> Seq.StrJoin (icd_uper.NewLine stgFileName ())
     let arRows = 
-        icdTas.rows |> List.mapi (fun i rw -> emitIcdRow stgFileName (i+1) rw)
-    icd_acn.EmitSequenceOrChoice stgFileName false icdTas.name (ToC icdTas.name) false (icdTas.kind + ":" + icdTas.linkId ) (icdTas.minLengtInBytes.ToString()) (icdTas.maxLengtInBytes.ToString()) "sMaxBitsExplained" sCommentLine arRows (myParams 4I) (sCommentLine.Split [|'\n'|]) 
+        icdTas.rows |> List.mapi (fun i rw -> emitIcdRow stgFileName r (i+1) rw)
+    icd_acn.EmitSequenceOrChoice stgFileName false icdTas.name icdTas.hash false (icdTas.kind) (icdTas.minLengtInBytes.ToString()) (icdTas.maxLengtInBytes.ToString()) "sMaxBitsExplained" sCommentLine arRows (myParams 4I) (sCommentLine.Split [|'\n'|]) 
 
 (*
 let rec PrintType2 stgFileName (r:AstRoot)  acnParams (icdTas:IcdTypeAss): string list =
@@ -611,16 +664,17 @@ let rec getMySelfAndChildren (r:AstRoot) (icdTas:IcdTypeAss) =
         for c in icdTas.rows do
             match c.sType with
             | IcdPlainType _ -> ()
-            | IcdRefType (_, IcdTypeAssHas hash) ->
+            | TypeHash( hash) ->
                 match r.icdHashes.TryFind hash with
                 | Some chIcdTas ->
-                    yield! getMySelfAndChildren r chIcdTas
+                    yield! getMySelfAndChildren r (selectTypeWithSameHash chIcdTas)
                 | None -> ()
 
     } |> Seq.toList
 
 let PrintTasses2 stgFileName (r:AstRoot) : string list =
     r.icdHashes.Values |> 
+    Seq.collect id |>
     Seq.choose(fun z ->
         match z.tasInfo with
         | None -> None
@@ -631,9 +685,85 @@ let PrintTasses2 stgFileName (r:AstRoot) : string list =
     Seq.choose(fun hash ->
         let acnParams colSpan = []
         match r.icdHashes.TryFind hash with
-        | Some chIcdTas -> Some (emitTas2 stgFileName (fun _ -> []) chIcdTas)
+        | Some chIcdTas -> Some (emitTas2 stgFileName r (fun _ -> []) (selectTypeWithSameHash chIcdTas))
         | None -> None) |>
     Seq.toList
+
+
+
+let PrintAsn1FileInColorizedHtml (stgFileName:string) (r:AstRoot) (f:Asn1File) = 
+    //let tryCreateRefType = CreateAsn1AstFromAntlrTree.CreateRefTypeContent
+    let fileModules = f.Modules |> List.map(fun m -> m.Name.Value) |> Set.ofList
+    let fileTypeAssignments = 
+        r.icdHashes.Values |> 
+        Seq.collect id |>
+        Seq.choose(fun z ->
+            match z.tasInfo with
+            | None -> None
+            | Some ts when fileModules.Contains ts.modName -> Some (ts.tasName, z.hash)
+            | Some _ -> None ) |>
+        Map.ofSeq
+        
+
+    //let blueTasses = f.Modules |> Seq.collect(fun m -> getModuleBlueTasses m)
+    let blueTassesWithLoc = 
+              f.TypeAssignments |> 
+              Seq.map(fun x -> x.Type) |> 
+              Seq.collect(fun x -> GetMySelfAndChildren x) |>
+              Seq.choose(fun x -> match x.Kind with
+                                  |ReferenceType ref    -> 
+                                    match f.TypeAssignments |> Seq.tryFind(fun y -> y.Name.Value = ref.baseInfo.tasName.Value) with
+                                    | Some tas  -> Some(ref.baseInfo.tasName.Value, tas.Type.Location.srcLine, tas.Type.Location.charPos)
+                                    | None      -> None
+                                  | _                           -> None ) |> Seq.toArray
+    let colorize (t: IToken, idx: int, blueTassesWithLoc: (string*int*int) array) =
+
+            let blueTas = blueTassesWithLoc |> Array.tryFind(fun (_,l,c) -> l=t.Line && c=t.CharPositionInLine)
+            let lt = icd_uper.LeftDiple stgFileName ()
+            let gt = icd_uper.RightDiple stgFileName ()
+            let isAsn1Token = GenerateUperIcd.asn1Tokens.Contains t.Text
+            //let isType = containedIn tasses
+            let safeText = t.Text.Replace("<",lt).Replace(">",gt)
+            let checkWsCmt (tok: IToken) =
+                match tok.Type with
+                |asn1Lexer.WS
+                |asn1Lexer.COMMENT
+                |asn1Lexer.COMMENT2 -> false
+                |_ -> true
+            let findToken = Array.tryFind(fun tok -> checkWsCmt tok)
+            let findNextToken = f.Tokens.[idx+1..] |> findToken
+            let findPrevToken = Array.rev f.Tokens.[0..idx-1] |> findToken
+            let nextToken =
+                let size = Seq.length(f.Tokens) - 1
+                match findNextToken with
+                |Some(tok) -> tok
+                |None -> if idx = size then t else f.Tokens.[idx+1]
+            let prevToken =
+                match findPrevToken with
+                |Some(tok) -> tok
+                |None -> if idx = 0 then t else f.Tokens.[idx-1]
+            let uid =
+                match fileTypeAssignments.TryFind t.Text with
+                |Some tasHash -> 
+                    if nextToken.Type = asn1Lexer.ASSIG_OP && prevToken.Type <> asn1Lexer.LID then 
+                        icd_uper.TasName stgFileName safeText tasHash
+                    else 
+                        icd_uper.TasName2 stgFileName safeText tasHash
+                |None -> safeText
+            let colored =
+                match t.Type with
+                |asn1Lexer.StringLiteral
+                |asn1Lexer.OctectStringLiteral
+                |asn1Lexer.BitStringLiteral -> icd_uper.StringLiteral stgFileName safeText
+                |asn1Lexer.UID -> uid
+                |asn1Lexer.COMMENT
+                |asn1Lexer.COMMENT2 -> icd_uper.Comment stgFileName safeText
+                |_ -> safeText
+            match blueTas with
+            |Some (s,_,_) -> icd_uper.BlueTas stgFileName (ToC s) safeText
+            |None -> if isAsn1Token then icd_uper.Asn1Token stgFileName safeText else colored
+    let asn1Content = f.Tokens |> Seq.mapi(fun i token -> colorize(token,i,blueTassesWithLoc))
+    icd_uper.EmmitFilePart2  stgFileName (Path.GetFileName f.FileName ) (asn1Content |> Seq.StrJoin "")
 
 
 let DoWork (r:AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (stgFileName:string) (asn1HtmlStgFileMacros:string option)   outFileName =
@@ -644,8 +774,8 @@ let DoWork (r:AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (stgFileNa
         match asn1HtmlStgFileMacros with
         | None  -> stgFileName
         | Some x -> x
-    let files2 = r.Files |> Seq.map (GenerateUperIcd.PrintFile2 asn1HtmlMacros)
-    let files3 = PrintAcnAsHTML stgFileName r 
+    let files2 = r.Files |> Seq.map (PrintAsn1FileInColorizedHtml asn1HtmlMacros r)
+    let files3 = PrintAcnAsHTML2 stgFileName r 
     let cssFileName = Path.ChangeExtension(outFileName, ".css")
     let htmlContent = icd_acn.RootHtml stgFileName files1 files2 bAcnParamsMustBeExplained files3 (Path.GetFileName(cssFileName))
     let htmlContentb = icd_acn.RootHtml stgFileName files1b files2 bAcnParamsMustBeExplained files3 (Path.GetFileName(cssFileName))

@@ -346,6 +346,14 @@ let PrintFile1 (stgFileName:string) (f:Asn1File)  (r:AstRoot) =
     let modules = f.Modules |> Seq.map (fun  m -> PrintModule stgFileName m f r )  
     icd_uper.EmmitFile stgFileName (Path.GetFileName f.FileName) modules 
 
+let asn1Tokens = [ "PLUS-INFINITY";"MINUS-INFINITY";"GeneralizedTime";"UTCTime";"mantissa";"base";"exponent";"UNION";"INTERSECTION";
+                "DEFINITIONS";"EXPLICIT";"TAGS";"IMPLICIT";"AUTOMATIC";"EXTENSIBILITY";"IMPLIED";"BEGIN";"END";"EXPORTS";"ALL";
+                "IMPORTS";"FROM";"UNIVERSAL";"APPLICATION";"PRIVATE";"BIT";"STRING";"BOOLEAN";"ENUMERATED";"INTEGER";"REAL";
+                "OPTIONAL";"SIZE";"OCTET";"MIN";"MAX";"TRUE";"FALSE";"ABSENT";"PRESENT";"WITH";
+                "COMPONENT";"DEFAULT";"NULL";"PATTERN";"OBJECT";"IDENTIFIER";"RELATIVE-OID";"NumericString";
+                "PrintableString";"VisibleString";"IA5String";"TeletexString";"VideotexString";"GraphicString";"GeneralString";
+                "UniversalString";"BMPString";"UTF8String";"INCLUDES";"EXCEPT";"SET";"SEQUENCE";"CHOICE";"OF";"COMPONENTS"] |> Set.ofList
+
 let PrintFile2 (stgFileName:string) (f:Asn1File) = 
     let tasNames = f.Modules |> Seq.collect(fun x -> x.TypeAssignments) |> Seq.map(fun x -> x.Name.Value) |> Seq.toArray
     //let blueTasses = f.Modules |> Seq.collect(fun m -> getModuleBlueTasses m)
@@ -360,19 +368,12 @@ let PrintFile2 (stgFileName:string) (f:Asn1File) =
                                     | None      -> None
                                   | _                           -> None ) |> Seq.toArray
     let colorize (t: IToken, idx: int, tasses: string array, blueTassesWithLoc: (string*int*int) array) =
-            let asn1Tokens = [| "PLUS-INFINITY";"MINUS-INFINITY";"GeneralizedTime";"UTCTime";"mantissa";"base";"exponent";"UNION";"INTERSECTION";
-                "DEFINITIONS";"EXPLICIT";"TAGS";"IMPLICIT";"AUTOMATIC";"EXTENSIBILITY";"IMPLIED";"BEGIN";"END";"EXPORTS";"ALL";
-                "IMPORTS";"FROM";"UNIVERSAL";"APPLICATION";"PRIVATE";"BIT";"STRING";"BOOLEAN";"ENUMERATED";"INTEGER";"REAL";
-                "OPTIONAL";"SIZE";"OCTET";"MIN";"MAX";"TRUE";"FALSE";"ABSENT";"PRESENT";"WITH";
-                "COMPONENT";"DEFAULT";"NULL";"PATTERN";"OBJECT";"IDENTIFIER";"RELATIVE-OID";"NumericString";
-                "PrintableString";"VisibleString";"IA5String";"TeletexString";"VideotexString";"GraphicString";"GeneralString";
-                "UniversalString";"BMPString";"UTF8String";"INCLUDES";"EXCEPT";"SET";"SEQUENCE";"CHOICE";"OF";"COMPONENTS"|]
 
             let blueTas = blueTassesWithLoc |> Array.tryFind(fun (_,l,c) -> l=t.Line && c=t.CharPositionInLine)
             let lt = icd_uper.LeftDiple stgFileName ()
             let gt = icd_uper.RightDiple stgFileName ()
             let containedIn = Array.exists (fun elem -> elem = t.Text)
-            let isAsn1Token = containedIn asn1Tokens
+            let isAsn1Token = asn1Tokens.Contains t.Text
             let isType = containedIn tasses
             let safeText = t.Text.Replace("<",lt).Replace(">",gt)
             let checkWsCmt (tok: IToken) =
@@ -395,7 +396,11 @@ let PrintFile2 (stgFileName:string) (f:Asn1File) =
                 |None -> if idx = 0 then t else f.Tokens.[idx-1]
             let uid =
                 match isType with
-                |true -> if nextToken.Type = asn1Lexer.ASSIG_OP && prevToken.Type <> asn1Lexer.LID then icd_uper.TasName stgFileName safeText (ToC safeText) else icd_uper.TasName2 stgFileName safeText (ToC safeText)
+                |true -> 
+                    if nextToken.Type = asn1Lexer.ASSIG_OP && prevToken.Type <> asn1Lexer.LID then 
+                        icd_uper.TasName stgFileName safeText (ToC safeText) 
+                    else 
+                        icd_uper.TasName2 stgFileName safeText (ToC safeText)
                 |false -> safeText
             let colored =
                 match t.Type with

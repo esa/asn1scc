@@ -25,18 +25,17 @@ type AlphaFunc   = {
     funcBody            : CallerScope -> string
 }
 
-type IcdTypeAssHas =
-    | IcdTypeAssHas of String
-    
 
 type IcdTypeCol =
-    | IcdRefType of string*IcdTypeAssHas //display string, link
+    | TypeHash of string
     | IcdPlainType of string
 
+(*
 let getIcdTypeCol_label  l = 
     match l with
     | IcdRefType (l,_)
     | IcdPlainType l -> l
+*)
     
 type IcdRowType =
     | FieldRow
@@ -59,7 +58,7 @@ type IcdRow = {
 }
 
 type IcdTypeAss = {
-    linkId  : string
+    linkId  : ReferenceToType
     tasInfo : TypeAssignmentInfo option
     asn1Link : string option
     acnLink : string option
@@ -81,7 +80,7 @@ type State = {
     alphaFuncs : AlphaFunc list //func name, func body
     typeIdsSet : Map<String,int>
     newTypesMap : Dictionary<ReferenceToType, System.Object>
-    icdHashes   : Map<String, IcdTypeAss>
+    icdHashes   : Map<String, IcdTypeAss list>
 }
 
 
@@ -1028,7 +1027,7 @@ type AstRoot = {
     programUnits : ProgramUnit list
     lang         : ProgrammingLanguage
     acnParseResults:CommonTypes.AntlrParserResult list //used in ICDs to regenerate with collors the initial ACN input
-    icdHashes   : Map<String, IcdTypeAss>
+    icdHashes   : Map<String, IcdTypeAss list>
 }
 
 

@@ -634,7 +634,7 @@ RootHtml(arrsFiles1, arrsFiles2, bAcnParamsMustBeExplained, arrsFiles3, sCssFile
 <body>
 <em>The following tables describe the binary encodings of the data model using the ACN Encoding Rules.
 </em><br/><br/>
-  $arrsFiles1;separator="\n"$
+  $arrsFiles1;separator="&nbsp;<br/>\n"$
 
   <hr />
 $if(bAcnParamsMustBeExplained)$
