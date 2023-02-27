@@ -252,7 +252,8 @@ let calcIcdTypeAssHash (codec:CommonTypes.Codec) bPrint (t1:IcdTypeAss) =
     aa
 
 let private createAcnFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (typeDefinition:TypeDefintionOrReference) (isValidFunc: IsValidFunction option)  (funcBody:State-> ErroCode->((AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) -> CallerScope -> ((AcnFuncBodyResult option)*State)) isTestVaseValid (icdAux:IcdArgAux) soSparkAnnotations (us:State)  =
-
+    if t.id.AsString = "PUS-C.TC.apidf" then
+        printfn "Debug"
     let td = lm.lg.getTypeDefinition t.FT_TypeDefintion
     let funcNameAndtasInfo   = 
         match t.acnParameters with
@@ -2063,16 +2064,32 @@ let createReferenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
 
     
   let x = baseType.icdFunction
+  let td = lm.lg.getTypeDefinition t.FT_TypeDefintion
+  let getNewSType (r:IcdRow) =
+    let newType =
+        match r.sType with
+        | TypeHash hash   -> TypeHash hash
+        | IcdPlainType plainType when r.rowType = FieldRow -> IcdPlainType (td.asn1Name + "(" + plainType + ")")
+        | IcdPlainType plainType -> IcdPlainType plainType
+    {r with sType = newType}
 
   let icdFnc,exraComment, name  =
+    if t.id.AsString = "PUS-C.TC.apidf" then
+        printfn "debug"
+
+
     match o.encodingOptions with 
     | None -> 
-        let name =
+        let name = 
           match o.hasExtraConstrainsOrChildrenOrAcnArgs with
           | false -> None
           | true -> Some t.id.AsString.RDD
-
-        x.createRowsFunc, x.typeAss.comments, name
+        
+        let icdFnc fieldName sPresent comments  = 
+            let rows = x.createRowsFunc fieldName sPresent comments 
+            rows |> List.map(fun r -> getNewSType r)
+            
+        icdFnc, x.typeAss.comments, name
     | Some encOptions ->
         let legthDetRow = 
             match encOptions.acnEncodingClass with
@@ -2082,8 +2099,10 @@ let createReferenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
                 [ {IcdRow.fieldName = "Length"; comments = [$"The number of {sCommentUnit} used in the encoding"]; sPresent="always";sType=IcdPlainType "INTEGER"; sConstraint=None; minLengtInBits = nSizeInBits ;maxLengtInBits=nSizeInBits;sUnits=None; rowType = IcdRowType.LengthDeterminantRow; idxOffset = None}]
             | _ -> []
         let icdFnc fieldName sPresent comments  = 
-            legthDetRow@(x.createRowsFunc fieldName sPresent comments) |> List.mapi(fun i r -> {r with idxOffset = Some (i+1)})
+            let rows = x.createRowsFunc fieldName sPresent comments |> List.map(fun r -> getNewSType r)
+            legthDetRow@rows |> List.mapi(fun i r -> {r with idxOffset = Some (i+1)})
         icdFnc, ("OCTET STING CONTAINING BY"::x.typeAss.comments), Some (t.id.AsString.RDD + "_OCT_STR" )
+
 
   let icd = {IcdArgAux.canBeEmbedded = x.canBeEmbedded; baseAsn1Kind = (getASN1Name t); rowsFunc = icdFnc; commentsForTas=exraComment; scope="REFTYPE"; name=name}
 
