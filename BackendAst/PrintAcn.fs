@@ -93,7 +93,7 @@ let rec printTypeEncSpec (t:AcnTypeEncodingSpec) =
     stg_acn.PrintType props children
 
 
-let printInASignleFile (r:AcnAst) outDir newFile (tasToPrint:TypeAssignmentInfo list)=
+let printInASingleFile (r:AcnAst) outDir newFile (tasToPrint:TypeAssignmentInfo list)=
     
     let allTasses = r.files |> List.collect(fun f -> f.modules) |> List.collect (fun m -> m.typeAssignments)
     let tasToPrintSet = tasToPrint |> List.map(fun ts -> ts.tasName) |> Set.ofList

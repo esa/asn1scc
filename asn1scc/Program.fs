@@ -319,7 +319,7 @@ let main0 argv =
             | true  -> 
                 let pdu = parserResults.GetResult(<@Debug_Asn1@>, defaultValue = None)
                 let tastToPrint = PrintAsn1.printInASingleFile r outDir "SingleAsn1FileDbg.asn1" pdu
-                PrintAcn.printInASignleFile acn outDir "SingleAsn1FileDbg.acn" tastToPrint
+                PrintAcn.printInASingleFile acn outDir "SingleAsn1FileDbg.acn" tastToPrint
             | false -> ()
 
 

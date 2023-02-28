@@ -74,7 +74,7 @@ let rec PrintConstraint (c:Asn1Constraint) =
             stg_asn1.Print_WithComponentsConstraint_child nc.Name.Value sConstraint sPresMark
         stg_asn1.Print_WithComponentsConstraint (ncs |> Seq.map  print_nc |> Seq.toArray)    
 
-let rec PrintType (t:Asn1Type) (m:Asn1Module) (bPrintInSignleModule:bool) =
+let rec PrintType (t:Asn1Type) (m:Asn1Module) (bPrintInSingleModule:bool) =
     let cons = t.Constraints |> Seq.map PrintConstraint |> Seq.toArray
     match t.Kind with
     |Integer    -> stg_asn1.Print_Integer "" cons
@@ -105,7 +105,7 @@ let rec PrintType (t:Asn1Type) (m:Asn1Module) (bPrintInSignleModule:bool) =
                 | x::[] -> [], Some x
                 | xs  -> xs, None
             let bLastChild = i = children.Length - 1
-            stg_asn1.Print_Choice_child c.Name.Value (PrintType c.Type m bPrintInSignleModule) arrsMultilineComments soSingleLineComment bLastChild
+            stg_asn1.Print_Choice_child c.Name.Value (PrintType c.Type m bPrintInSingleModule) arrsMultilineComments soSingleLineComment bLastChild
         stg_asn1.Print_Choice (children |> Seq.mapi printChild |> Seq.toArray) cons
     |Sequence(children) ->
         let printChild i (c:ChildInfo) = 
@@ -119,19 +119,19 @@ let rec PrintType (t:Asn1Type) (m:Asn1Module) (bPrintInSignleModule:bool) =
                 match c.Optionality with
                 |Some(Optional(dv))   -> true, match dv.defaultValue with Some v -> Some (PrintAsn1Value v) | None -> None
                 |_                   -> false, None
-            stg_asn1.Print_Sequence_child c.Name.Value (PrintType c.Type m bPrintInSignleModule) bIsOptionalOrDefault soDefValue arrsMultilineComments soSingleLineComment bLastChild
+            stg_asn1.Print_Sequence_child c.Name.Value (PrintType c.Type m bPrintInSingleModule) bIsOptionalOrDefault soDefValue arrsMultilineComments soSingleLineComment bLastChild
         stg_asn1.Print_Sequence (children |> Seq.mapi printChild |> Seq.toArray) cons
-    |SequenceOf(child)  -> stg_asn1.Print_SequenceOf (PrintType child m bPrintInSignleModule) cons
+    |SequenceOf(child)  -> stg_asn1.Print_SequenceOf (PrintType child m bPrintInSingleModule) cons
     //|ReferenceType(mname, name, _) ->  
     |ReferenceType(r) ->  
-        match bPrintInSignleModule || m.Name.Value = r.modName.Value with
+        match bPrintInSingleModule || m.Name.Value = r.modName.Value with
         | true -> stg_asn1.Print_ReferenceType1 r.tasName.Value cons
         | false -> stg_asn1.Print_ReferenceType2 r.modName.Value r.tasName.Value cons
         
 
-let PrintTypeAss (t:TypeAssignment) m bPrintInSignleModule = stg_asn1.PrintTypeAssignment t.Name.Value (PrintType t.Type m bPrintInSignleModule) t.Comments "::="
+let PrintTypeAss (t:TypeAssignment) m bPrintInSingleModule = stg_asn1.PrintTypeAssignment t.Name.Value (PrintType t.Type m bPrintInSingleModule) t.Comments "::="
 
-let PrintValueAss (v:ValueAssignment) m bPrintInSignleModule = stg_asn1.PrintValueAssignment v.Name.Value (PrintType v.Type m bPrintInSignleModule) (PrintAsn1Value v.Value)
+let PrintValueAss (v:ValueAssignment) m bPrintInSingleModule = stg_asn1.PrintValueAssignment v.Name.Value (PrintType v.Type m bPrintInSingleModule) (PrintAsn1Value v.Value)
 
 let PrintModule (m:Asn1Module) =
     let exports =
