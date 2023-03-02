@@ -96,7 +96,7 @@ let getTypeDecl (r:DAst.AstRoot) (vasPU_name:string) (lm:LanguageMacros) (vas:Va
         match lm.lg.hasModules with
         | false     -> tasName
         | true ->
-            match vasPU_name = ref.baseInfo.modName.Value with
+            match ToC vasPU_name = ToC ref.baseInfo.modName.Value with
             | true  -> tasName
             |false  -> (ToC ref.baseInfo.modName.Value) + "." + tasName
 
