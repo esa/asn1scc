@@ -577,7 +577,7 @@ let private mergeEnumerated (asn1:Asn1Ast.AstRoot)  (items: Asn1Ast.NamedItem li
                     (l,itm), ns) us
             lanDefs |> Map.ofList, proposedEnmName, us1
     let allocatedValuesToAllEnumItems (namedItems:Asn1Ast.NamedItem list) = 
-        let createAsn1ValueByBigInt biVal = {Asn1Ast.Asn1Value.Kind = Asn1Ast.IntegerValue (IntLoc.ByValue biVal); Asn1Ast.Location = emptyLocation; Asn1Ast.id = ReferenceToValue([],[])}
+        let createAsn1ValueByBigInt biVal = {Asn1Ast.Asn1Value.Kind = Asn1Ast.IntegerValue (IntLoc.ByValue biVal); Asn1Ast.Asn1Value.moduleName="";  Asn1Ast.Location = emptyLocation; Asn1Ast.id = ReferenceToValue([],[])}
         let allocated   = namedItems |> List.filter(fun x -> x._value.IsSome)
         let unallocated = namedItems |> List.filter(fun x -> x._value.IsNone)
         let rec allocateItems (unallocated:Asn1Ast.NamedItem list) (allocated:Asn1Ast.NamedItem list) potentialValue: Asn1Ast.NamedItem list =
@@ -1450,7 +1450,7 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (m:Asn1Ast.Asn1Mo
         inheritInfo   = inferitInfo
         typeAssignmentInfo = typeAssignmentInfo
         parameterizedTypeInstance = t.parameterizedTypeInstance
-
+        moduleName      = t.moduleName
         acnEncSpecPostion = acnType |> Option.map (fun x -> x.postion)
         acnEncSpecAntlrSubTree  = 
             match acnType with

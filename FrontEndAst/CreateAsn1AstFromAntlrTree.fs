@@ -97,7 +97,7 @@ let createDefaultConstraintsForEnumeratedTypes (tree:ITree) (namedItems:NamedIte
     let mdTree = tree.GetAncestor(asn1Parser.MODULE_DEF)
     let mdName = mdTree.GetChild(0).TextL
     let createSingleValueConstraintFromNamedItem (ni:NamedItem) =
-        let v = {Asn1Value.Kind = (RefValue ({StringLoc.Value = mdName.Value; Location=ni.Name.Location}, ni.Name)); Location = ni.Name.Location  }
+        let v = {Asn1Value.Kind = (RefValue ({StringLoc.Value = mdName.Value; Location=ni.Name.Location}, ni.Name)); Location = ni.Name.Location; moduleName=mdName.Value  }
         SingleValueContraint (ni.Name.Value, v)
     match namedItems with
     | x::xs ->
@@ -149,6 +149,8 @@ let rec CreateValue integerSizeInBytes (astRoot:list<ITree>) (tree:ITree ) : Res
             let strVal = str.Substring(1)
             strVal.Remove(strVal.Length-2).Replace("\r", "").Replace("\n", "").Replace("\t", "").Replace(" ", "")
 
+        let mdTree = tree.GetAncestor(asn1Parser.MODULE_DEF)
+        let mdName = mdTree.GetChild(0).Text
 
         let! asn1ValueKind = 
                 match tree.Type with
@@ -263,7 +265,7 @@ let rec CreateValue integerSizeInBytes (astRoot:list<ITree>) (tree:ITree ) : Res
                 | _ -> Error (Bug_Error("Bug in CreateValue " + (sprintf "%d" tree.Type)))
 
 
-        return { Asn1Value.Kind = asn1ValueKind; Location = tree.Location}
+        return { Asn1Value.Kind = asn1ValueKind; Location = tree.Location; moduleName = mdName}
     }
 
 
@@ -453,6 +455,9 @@ let rec CreateType integerSizeInBytes (tasParameters : TemplateParameter list) (
 
     result {
         let children = getTreeChildren(tree)
+        let mdTree = tree.GetAncestor(asn1Parser.MODULE_DEF)
+        let mdName = mdTree.GetChild(0).Text
+
         let typeNodes = children |> List.filter(fun x -> (not (ConstraintNodes |> List.exists(fun y -> y=x.Type) ) ) && (x.Type <> asn1Parser.TYPE_TAG) )
         let typeNode = List.head(typeNodes)
         let children_cons = if typeNode.Type=asn1Parser.SEQUENCE_OF_TYPE || typeNode.Type=asn1Parser.SET_OF_TYPE then getTreeChildren(typeNode) 
@@ -558,6 +563,7 @@ let rec CreateType integerSizeInBytes (tasParameters : TemplateParameter list) (
                 parameterizedTypeInstance = false
                 acnInfo = acnTypeEncodingSpec 
                 unitsOfMeasure = units
+                moduleName = mdName
             }
         return ret
     }
@@ -819,7 +825,7 @@ let CreateAsn1Module integerSizeInBytes (astRoot:list<ITree>) (acnAst:AcnAst) (i
         List.filter(fun x -> x.Type = asn1Parser.INTEGER_TYPE && not (x.Children.IsEmpty) && x.Parent.Parent.Type = asn1Parser.TYPE_ASSIG) |>
         List.collect(fun x -> 
             let tas = x.Parent.Parent.GetChild(0).TextL
-            let Type = { Asn1Type.Kind =  ReferenceType(mdName, tas, None, []); Constraints= []; Location = tas.Location; parameterizedTypeInstance = false; acnInfo = None;unitsOfMeasure = None}
+            let Type = { Asn1Type.Kind =  ReferenceType(mdName, tas, None, []); Constraints= []; Location = tas.Location; parameterizedTypeInstance = false; acnInfo = None;unitsOfMeasure = None; moduleName=mdName.Value }
             
             let scope = TypeScope(mdName, tas)
 

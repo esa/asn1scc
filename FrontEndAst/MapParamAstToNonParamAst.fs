@@ -231,6 +231,8 @@ let rec MapAsn1Value (r:ParameterizedAsn1Ast.AstRoot) (t: ParameterizedAsn1Ast.A
         Asn1Ast.Asn1Value.Kind = MapAsn1ValueKind r t v.Kind
         Location = v.Location
         id = ReferenceToValue(typeScope,variableScope)
+        moduleName  = v.moduleName
+
     }
 
 
@@ -256,14 +258,14 @@ and MapChildInfo (r:ParameterizedAsn1Ast.AstRoot)  typeScope (isSequence) (c:Par
         Comments = c.Comments
     }
 
-and MapNamedItem (r:ParameterizedAsn1Ast.AstRoot) typeScope (n:ParameterizedAsn1Ast.NamedItem) :Asn1Ast.NamedItem =
+and MapNamedItem (r:ParameterizedAsn1Ast.AstRoot) moduleName typeScope (n:ParameterizedAsn1Ast.NamedItem) :Asn1Ast.NamedItem =
     {
         Asn1Ast.NamedItem.Name = n.Name
         c_name = ToC n.Name.Value
         ada_name = ToC n.Name.Value
         _value = match n._value with
                  | None -> None
-                 | Some(x)  -> Some (MapAsn1Value r {ParameterizedAsn1Ast.Asn1Type.Kind = ParameterizedAsn1Ast.Integer; Constraints = []; Location=n.Name.Location;parameterizedTypeInstance=false;acnInfo=None;unitsOfMeasure = None} typeScope (visitNamedItemValue n) x)
+                 | Some(x)  -> Some (MapAsn1Value r {ParameterizedAsn1Ast.Asn1Type.Kind = ParameterizedAsn1Ast.Integer; Constraints = []; Location=n.Name.Location;parameterizedTypeInstance=false;acnInfo=None;unitsOfMeasure = None; moduleName=moduleName} typeScope (visitNamedItemValue n) x)
         Comments = n.Comments
     }
 
@@ -305,8 +307,8 @@ and MapAsn1Constraint (r:ParameterizedAsn1Ast.AstRoot) (t: ParameterizedAsn1Ast.
     | ParameterizedAsn1Ast.Asn1Constraint.RangeContraint_val_MAX(s, v,b)        -> Asn1Ast.RangeContraint_val_MAX (s, MapAsn1Value r t typeScope (visitValue cs) v, b)
     | ParameterizedAsn1Ast.Asn1Constraint.RangeContraint_MIN_val(s, v,b)        -> Asn1Ast.RangeContraint_MIN_val (s, MapAsn1Value r t typeScope (visitValue cs) v, b)
     | ParameterizedAsn1Ast.TypeInclusionConstraint(s, s1,s2)   -> Asn1Ast.TypeInclusionConstraint(s, s1,s2)
-    | ParameterizedAsn1Ast.Asn1Constraint.SizeContraint(s, c)                 -> Asn1Ast.SizeContraint(s, MapAsn1Constraint r {ParameterizedAsn1Ast.Asn1Type.Kind = ParameterizedAsn1Ast.Integer; Constraints = []; Location=emptyLocation;parameterizedTypeInstance=false;acnInfo=None;unitsOfMeasure = None} typeScope (visitConstraint cs) c)
-    | ParameterizedAsn1Ast.AlphabetContraint(s,c)             -> Asn1Ast.AlphabetContraint(s, MapAsn1Constraint r {ParameterizedAsn1Ast.Asn1Type.Kind = ParameterizedAsn1Ast.IA5String; Constraints = []; Location=emptyLocation;parameterizedTypeInstance=false;acnInfo=None;unitsOfMeasure = None} typeScope (visitConstraint cs) c)
+    | ParameterizedAsn1Ast.Asn1Constraint.SizeContraint(s, c)                 -> Asn1Ast.SizeContraint(s, MapAsn1Constraint r {ParameterizedAsn1Ast.Asn1Type.Kind = ParameterizedAsn1Ast.Integer; Constraints = []; Location=emptyLocation;parameterizedTypeInstance=false;acnInfo=None;unitsOfMeasure = None; moduleName=t.moduleName} typeScope (visitConstraint cs) c)
+    | ParameterizedAsn1Ast.AlphabetContraint(s,c)             -> Asn1Ast.AlphabetContraint(s, MapAsn1Constraint r {ParameterizedAsn1Ast.Asn1Type.Kind = ParameterizedAsn1Ast.IA5String; Constraints = []; Location=emptyLocation;parameterizedTypeInstance=false;acnInfo=None;unitsOfMeasure = None; moduleName=t.moduleName} typeScope (visitConstraint cs) c)
     | ParameterizedAsn1Ast.UnionConstraint(s, c1,c2, b)           -> 
         let cs1 = visitConstraint cs
         let cs2 = visitSilbingConstraint cs1
@@ -352,7 +354,7 @@ and MapAsn1Type (r:ParameterizedAsn1Ast.AstRoot) typeScope (t:ParameterizedAsn1A
             Location = t.Location
             parameterizedTypeInstance = t.parameterizedTypeInstance
             unitsOfMeasure = t.unitsOfMeasure
-
+            moduleName  = t.moduleName
             acnInfo = t.acnInfo
         }        
     match t.Kind with
@@ -367,7 +369,7 @@ and MapAsn1Type (r:ParameterizedAsn1Ast.AstRoot) typeScope (t:ParameterizedAsn1A
     | ParameterizedAsn1Ast.Boolean          -> aux Asn1Ast.Boolean
     | ParameterizedAsn1Ast.ObjectIdentifier         -> aux Asn1Ast.ObjectIdentifier
     | ParameterizedAsn1Ast.RelativeObjectIdentifier -> aux Asn1Ast.RelativeObjectIdentifier
-    | ParameterizedAsn1Ast.Enumerated(items)-> aux (Asn1Ast.Enumerated(items |> List.map (MapNamedItem r typeScope)))
+    | ParameterizedAsn1Ast.Enumerated(items)-> aux (Asn1Ast.Enumerated(items |> List.map (MapNamedItem r t.moduleName typeScope)))
     | ParameterizedAsn1Ast.SequenceOf(child)-> aux (Asn1Ast.SequenceOf(MapAsn1Type r (visitSeqOfChild typeScope) child))
     | ParameterizedAsn1Ast.Sequence(children)   -> 
         let children = getSequenceChildren r children

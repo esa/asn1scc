@@ -20,7 +20,7 @@ pragma Style_Checks (Off);
 pragma Warnings (Off, "unit ""<rtlModuleName()>"" is not referenced");
 with <rtlModuleName()>;
 pragma Warnings (Off, "unit ""<rtlModuleName()>"" is not referenced");
-with <sModName>;
+--with <sModName>;
 
 <arrsIncludedModules:{inc| 
 pragma Warnings (Off, "no entities of ""<inc>"" are referenced");

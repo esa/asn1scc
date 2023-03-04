@@ -47,7 +47,7 @@ let genrateAcnIntProps (c:ParameterizedAsn1Ast.Asn1Constraint Option)  =
 
 
 let generatedIntConstraints (v1:BigInteger option) (v2:BigInteger option)= 
-    let gv v = {ParameterizedAsn1Ast.Asn1Value.Kind = ParameterizedAsn1Ast.IntegerValue (IntLoc.ByValue v); ParameterizedAsn1Ast.Asn1Value.Location = emptyLocation}
+    let gv v = {ParameterizedAsn1Ast.Asn1Value.Kind = ParameterizedAsn1Ast.IntegerValue (IntLoc.ByValue v); ParameterizedAsn1Ast.Asn1Value.Location = emptyLocation; ParameterizedAsn1Ast.Asn1Value.moduleName=""}
     let a = v1 |> Option.map gv
     let b = v1 |> Option.map gv
     let svcs = 
@@ -106,7 +106,7 @@ let genetateIntegers (name:string) =
             for (i1,(a,b))  in (toIdxList pairs) do
                 let cons = generatedIntConstraints a b |> List.map(fun c -> Some c)
                 for (i2, c) in (toIdxList (None::cons)) do
-                    let asn1Type =  {ParameterizedAsn1Ast.Asn1Type.Kind = ParameterizedAsn1Ast.Integer; ParameterizedAsn1Ast.Constraints = Option.toList c ; ParameterizedAsn1Ast.Location=emptyLocation; parameterizedTypeInstance = false; acnInfo = None;unitsOfMeasure = None}    
+                    let asn1Type =  {ParameterizedAsn1Ast.Asn1Type.Kind = ParameterizedAsn1Ast.Integer; ParameterizedAsn1Ast.Constraints = Option.toList c ; ParameterizedAsn1Ast.Location=emptyLocation; parameterizedTypeInstance = false; acnInfo = None;unitsOfMeasure = None; moduleName=""}    
                     let acnSpec = genrateAcnIntProps c
                     for (i3,s) in (toIdxList acnSpec) do
                         let newName = sprintf "%s-%d-%d-%d" name i1 i2 i3

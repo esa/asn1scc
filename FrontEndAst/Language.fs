@@ -58,7 +58,7 @@ type ILangGeneric () =
     abstract member initializeString : int -> string
     abstract member supportsInitExpressions : bool
     abstract member getNamedItemBackendName  : TypeDefintionOrReference option -> Asn1AcnAst.NamedItem -> string
-    abstract member getNamedItemBackendName2  :ReferenceToType -> string -> Asn1AcnAst.NamedItem -> string
+    abstract member getNamedItemBackendName2  : string -> string -> Asn1AcnAst.NamedItem -> string
     abstract member decodeEmptySeq  : string -> string option
     abstract member decode_nullType : string -> string option
     abstract member castExpression  : string -> string -> string

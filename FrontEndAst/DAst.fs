@@ -119,6 +119,7 @@ and Asn1Value = {
     kind : Asn1ValueKind
     loc  : SrcLoc
     id   : ReferenceToValue
+    moduleName      : string
 }
 
 and Asn1ValueKind =
@@ -885,7 +886,7 @@ and Asn1Type = {
     acnAligment     : AcnGenericTypes.AcnAligment option
     acnParameters   : DastAcnParameter list
     Location        : SrcLoc //Line no, Char pos
-
+    moduleName      : string
     //when inheritInfo has a value it indicates that this type is
     //a specialization of a reference type.
     inheritInfo   : InheritanceInfo option

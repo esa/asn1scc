@@ -26,6 +26,7 @@ type Asn1Value = {
     Kind:Asn1ValueKind
     id : ReferenceToValue
     Location: SrcLoc
+    moduleName  : string
 }
 
 
@@ -127,6 +128,7 @@ type Asn1Type = {
     Location        : SrcLoc //Line no, Char pos
     parameterizedTypeInstance : bool
     acnInfo     :    AcnGenericTypes.AcnTypeEncodingSpec option
+    moduleName  : string
 }
 
 

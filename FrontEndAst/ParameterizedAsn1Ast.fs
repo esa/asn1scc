@@ -118,6 +118,7 @@ and Asn1Type = {
     Location: SrcLoc   //Line no, Char pos
     parameterizedTypeInstance : bool
     acnInfo     : AcnTypeEncodingSpec option
+    moduleName  : string
 }
 
 and Asn1TypeKind =
@@ -176,6 +177,7 @@ and Asn1Optionality =
 and Asn1Value = {
     Kind:Asn1ValueKind
     Location: SrcLoc
+    moduleName  : string
 }
 
 

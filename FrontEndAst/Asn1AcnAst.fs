@@ -45,6 +45,7 @@ and NamedValue = {
 and Asn1Value = {
     kind : Asn1ValueKind
     loc  : SrcLoc
+    moduleName      : string
     id   : ReferenceToValue
 }
 
@@ -625,6 +626,7 @@ type Asn1Type = {
     acnAligment     : AcnAligment option
     acnParameters   : AcnParameter list
     Location        : SrcLoc //Line no, Char pos
+    moduleName      : string
     acnLocation     : SrcLoc option
 
     /// Indicates that this type

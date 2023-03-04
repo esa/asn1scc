@@ -85,7 +85,7 @@ type LangGeneric_c() =
             if childTypeIsString then (FIXARRAY newPath) else (VALUE newPath)
         override this.getNamedItemBackendName (defOrRef:TypeDefintionOrReference option) (nm:Asn1AcnAst.NamedItem) = 
             ToC nm.c_name
-        override this.getNamedItemBackendName2 (_:ReferenceToType) (_:string) (nm:Asn1AcnAst.NamedItem) = 
+        override this.getNamedItemBackendName2 (_:string) (_:string) (nm:Asn1AcnAst.NamedItem) = 
             ToC nm.c_name
         override this.decodeEmptySeq _ = None
         override this.decode_nullType _ = None

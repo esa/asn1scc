@@ -19,7 +19,7 @@ let XER (r:Asn1AcnAst.AstRoot) func (us:State) =
     | false -> XerFunctionDummy, us
 
 let createAsn1ValueFromValueKind (t:Asn1AcnAst.Asn1Type) i (v:Asn1ValueKind)  =
-    {Asn1Value.kind = v;  loc  = t.Location; id  = (ReferenceToValue (t.id.ToScopeNodeList,[IMG i]))}
+    {Asn1Value.kind = v;  loc  = t.Location; id  = (ReferenceToValue (t.id.ToScopeNodeList,[IMG i]));moduleName    = t.moduleName}
 
 let private mapAcnParameter (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies)  (lm:LanguageMacros) (m:Asn1AcnAst.Asn1Module) (t:Asn1AcnAst.Asn1Type) (prm:AcnGenericTypes.AcnParameter) (us:State) =
     //let funcUpdateStatement, ns1 = DAstACN.getUpdateFunctionUsedInEncoding r deps l m prm.id us
@@ -777,6 +777,7 @@ let private createType (r:Asn1AcnAst.AstRoot) pi (t:Asn1AcnAst.Asn1Type) ((newKi
             acnAligment   = t.acnAligment
             acnParameters = newPrms 
             Location      = t.Location
+            moduleName    = t.moduleName
             inheritInfo = t.inheritInfo
             typeAssignmentInfo = t.typeAssignmentInfo
             unitsOfMeasure = t.unitsOfMeasure

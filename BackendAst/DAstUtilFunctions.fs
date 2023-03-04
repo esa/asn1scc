@@ -797,7 +797,7 @@ let rec mapValue (v:Asn1AcnAst.Asn1Value) =
         | Asn1AcnAst.RefValue     ((md,ts),v) ->  RefValue            ((md.Value, ts.Value), mapValue v)
         | Asn1AcnAst.ObjOrRelObjIdValue (a,b)   -> ObjOrRelObjIdValue (Asn1DefinedObjectIdentifierValue(a,b))
         | Asn1AcnAst.TimeValue        r  -> TimeValue r.Value
-    {Asn1Value.kind = newVKind; id=v.id; loc = v.loc}
+    {Asn1Value.kind = newVKind; id=v.id; loc = v.loc;moduleName    = v.moduleName}
 
 
 let emitComponent (c:ResolvedObjectIdentifierValueCompoent) =

@@ -190,7 +190,7 @@ let private printUnit (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTy
                         yield (tas.Type.acnEncDecTestFunc |> Option.map (fun z -> z.funcDef))
                 } |> Seq.choose id |> Seq.toList
         let tetscase_specFileName = Path.Combine(outDir, pu.tetscase_specFileName)
-        let tstCasesHdrContent = lm.atc.PrintAutomaticTestCasesSpecFile (ToC pu.tetscase_specFileName) pu.name pu.importedProgramUnits typeDefs
+        let tstCasesHdrContent = lm.atc.PrintAutomaticTestCasesSpecFile (ToC pu.tetscase_specFileName) pu.name (pu.name::pu.importedProgramUnits) typeDefs
         File.WriteAllText(tetscase_specFileName, tstCasesHdrContent.Replace("\r",""))
         
     //sourse file

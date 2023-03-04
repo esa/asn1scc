@@ -1,0 +1,40 @@
+TEST-CASE DEFINITIONS ::=
+BEGIN
+
+UART-Config ::= SEQUENCE {
+    port-name IA5String (SIZE (1..20)),
+    baud-rate ENUMERATED { b9600, b115200 }
+}
+
+END
+
+MODULE-B DEFINITIONS ::=
+BEGIN
+   IMPORTS
+      UART-Config FROM TEST-CASE;
+
+Context-ada-uart-driver ::= SEQUENCE {
+   config UART-Config
+
+}
+
+
+END
+
+
+MODULE-C DEFINITIONS ::=
+BEGIN
+   IMPORTS
+      Context-ada-uart-driver FROM MODULE-B;
+
+rw-uart-interface-ctxt Context-ada-uart-driver ::= {
+   config { port-name  "ttyUSB0", baud-rate  b115200 }
+
+}
+
+MyPDU ::= INTEGER
+
+END
+
+
+--TCLS     MyPDU[]

@@ -37,7 +37,28 @@ let private getTypeDependencies (t:Asn1Type) : (TypeAssignmentInfo list )
         (fun o newKind  -> newKind@prms)
 
 
-        
+let private getImportedModules (files: Asn1File list) (t:Asn1Type) =
+    let rec getImportedModules_aux (t:Asn1Type) = 
+        seq {
+            yield t.moduleName
+            match t.Kind with
+            | SequenceOf      seqOf    -> yield! getImportedModules_aux seqOf.childType
+            | Sequence        seq -> 
+                for c in seq.children do
+                    match c with
+                    | Asn1Child c -> yield! getImportedModules_aux c.Type
+                    | AcnChild  _ -> ()
+            | Choice          ch ->
+                for c in ch.children do
+                    yield! getImportedModules_aux c.chType
+            | ReferenceType   o ->
+                let md = files |> Seq.collect(fun f -> f.Modules) |> Seq.find(fun m -> m.Name.Value = o.baseInfo.modName.Value)
+                let ts = md.TypeAssignments |> Seq.find(fun  ts -> ts.Name.Value = o.baseInfo.tasName.Value)
+                yield! getImportedModules_aux ts.Type
+            | _ -> ()
+        } |> Seq.distinct |> Seq.toList
+    getImportedModules_aux t
+
 let rec private  getTypeDependencies2 (t:Asn1Type) : (TypeAssignmentInfo list )    =
     let prms = t.acnParameters |> List.choose(fun z -> match z.asn1Type with AcnGenericTypes.AcnPrmRefType (mdName,tsName) -> Some ({TypeAssignmentInfo.modName = mdName.Value; tasName = tsName.Value}) | _ -> None )    
     match t.Kind with
@@ -163,13 +184,16 @@ let internal createProgramUnits (args:CommandLineSettings) (files: Asn1File list
                 List.filter (fun t -> t.modName <> m.Name.Value) 
             let importedProgramUnitsFromVases = 
                 valueAssignments |> 
-                List.choose(fun z -> 
+                List.collect(fun z -> getImportedModules files z.Type) |>
+                List.filter(fun z -> ToC z <> ToC m.Name.Value) |>
+                List.map (fun z -> ToC z)
+                (*List.choose(fun z -> 
                     match z.Type.Kind with
                     |ReferenceType ref -> 
                         match ref.baseInfo.modName.Value = m.Name.Value with
                         | true -> None
                         | false -> Some (ToC ref.baseInfo.modName.Value)
-                    | _                -> None)
+                    | _                -> None)*)
             let importedProgramUnitsFromTasses = 
                 depTypesFromOtherModules |> Seq.map(fun ti -> ToC ti.modName) |> Seq.distinct |> Seq.toList
             let importedProgramUnits = importedProgramUnitsFromTasses@importedProgramUnitsFromVases |> Seq.distinct |> Seq.toList

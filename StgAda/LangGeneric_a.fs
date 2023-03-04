@@ -124,11 +124,11 @@ type LangGeneric_a() =
             | Some (ReferenceToExistingDefinition r) when r.programUnit.IsSome -> r.programUnit.Value + "." + nm.ada_name
             | Some (TypeDefinition td) when td.baseType.IsSome && td.baseType.Value.programUnit.IsSome  -> td.baseType.Value.programUnit.Value + "." + nm.ada_name
             | _       -> ToC nm.ada_name
-        override this.getNamedItemBackendName2 (id:ReferenceToType) (curProgamUnitName:string) (itm:Asn1AcnAst.NamedItem) = 
-            let typeModName = id.ModName
-            match (ToC typeModName) = curProgamUnitName with
+        override this.getNamedItemBackendName2 (defModule:string) (curProgamUnitName:string) (itm:Asn1AcnAst.NamedItem) = 
+            
+            match (ToC defModule) = ToC curProgamUnitName with
             | true  -> ToC itm.ada_name
-            | false -> ((ToC typeModName) + "." + (ToC itm.ada_name))
+            | false -> ((ToC defModule) + "." + (ToC itm.ada_name))
 
 
         override this.Length exp sAcc =

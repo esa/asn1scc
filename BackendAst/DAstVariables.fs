@@ -91,7 +91,7 @@ let rec printValue (r:DAst.AstRoot)  (lm:LanguageMacros) (curProgamUnitName:stri
             | Enumerated enm    -> 
                 let typeModName = (t.getActualType r).id.ModName
                 let itm = enm.baseInfo.items |> Seq.find(fun x -> x.Name.Value = v)
-                let itmName = lm.lg.getNamedItemBackendName2 (t.getActualType r).id curProgamUnitName itm
+                let itmName = lm.lg.getNamedItemBackendName2 t.moduleName curProgamUnitName itm
                 lm.vars.PrintEnumValue itmName
             | _         -> raise(BugErrorException "unexpected type")
         | NullValue         v -> lm.vars.PrintNullValue ()
@@ -134,7 +134,9 @@ let rec printValue (r:DAst.AstRoot)  (lm:LanguageMacros) (curProgamUnitName:stri
                     List.choose(fun ch -> match ch with Asn1Child a -> Some a | AcnChild _ -> None) |>
                     List.choose(fun x -> 
                         match v |> Seq.tryFind(fun chv -> chv.name = x.Name.Value) with
-                        | Some v    -> Some (lm.vars.PrintSequenceValueChild (lm.lg.getAsn1ChildBackendName x) (printValue r lm curProgamUnitName x.Type (Some gv) v.Value.kind))
+                        | Some v    -> 
+                            let childType = x.Type
+                            Some (lm.vars.PrintSequenceValueChild (lm.lg.getAsn1ChildBackendName x) (printValue r lm curProgamUnitName childType (Some gv) v.Value.kind))
                         | None      -> 
                             let chV = 
                                 match x.Optionality with
