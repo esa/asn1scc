@@ -91,7 +91,7 @@ let rec printValue (r:DAst.AstRoot)  (lm:LanguageMacros) (curProgamUnitName:stri
             | Enumerated enm    -> 
                 let typeModName = (t.getActualType r).id.ModName
                 let itm = enm.baseInfo.items |> Seq.find(fun x -> x.Name.Value = v)
-                let itmName = lm.lg.getNamedItemBackendName2 t.moduleName curProgamUnitName itm
+                let itmName = lm.lg.getNamedItemBackendName2 t.ActualType.moduleName curProgamUnitName itm
                 lm.vars.PrintEnumValue itmName
             | _         -> raise(BugErrorException "unexpected type")
         | NullValue         v -> lm.vars.PrintNullValue ()

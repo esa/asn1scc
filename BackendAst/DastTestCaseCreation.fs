@@ -180,6 +180,7 @@ let printAllTestCasesAndTestCaseRunner (r:DAst.AstRoot) (lm:LanguageMacros) outD
                                         yield generateTcFun
                         | None  -> () 
                     for v in m.ValueAssignments do
+
                         let encDecTestFunc, typeModName, tasName = 
                             match v.Type.Kind with
                             | ReferenceType   ref ->
@@ -188,6 +189,8 @@ let printAllTestCasesAndTestCaseRunner (r:DAst.AstRoot) (lm:LanguageMacros) outD
                         match encDecTestFunc with
                         | Some _    ->
                             let generateTcFun idx = 
+                                //if (v.Name.Value = "apid") then
+                                //    printfn "debug"
                                 let dummyInitStatementsNeededForStatementCoverage = (emitDummyInitStatementsNeededForStatementCoverage lm v.Type)
                                 PrintValueAssignmentAsTestCase r lm e v m typeModName tasName (*(getTypeDecl r (ToC m.Name.Value) l v )*)  idx dummyInitStatementsNeededForStatementCoverage 
                             yield generateTcFun
