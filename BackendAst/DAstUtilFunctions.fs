@@ -145,6 +145,7 @@ type Asn1Child with
     member this.getBackendName l = 
         match l with
         | C         -> this._c_name
+        | Scala     -> this._scala_name
         | Ada       -> this._ada_name
 
 
@@ -152,6 +153,7 @@ type ChChildInfo with
     member this.getBackendName l = 
         match l with
         | C         -> this._c_name
+        | Scala     -> this._scala_name
         | Ada       -> this._ada_name
 
 
@@ -175,6 +177,7 @@ type ChChildInfo with
     member this.presentWhenName (defOrRef:TypeDefintionOrReference option) l = 
         match l with
         | C     -> (ToC this._present_when_name_private) + "_PRESENT"
+        | Scala -> (ToC this._present_when_name_private) + "_PRESENT" // TODO: Scala
         | Ada   ->
             match defOrRef with
             | Some (ReferenceToExistingDefinition r) when r.programUnit.IsSome -> r.programUnit.Value + "." + ((ToC this._present_when_name_private) + "_PRESENT")
@@ -187,6 +190,7 @@ type Asn1AcnAst.NamedItem      with
     member this.CEnumName l =
         match l with
         | C     -> this.c_name
+        | Scala -> this.scala_name
         | Ada   -> this.ada_name
 
 

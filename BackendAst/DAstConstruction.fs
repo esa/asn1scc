@@ -607,8 +607,9 @@ let private createAsn1Child (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (m:Asn1A
         {
         
             Asn1Child.Name     = ch.Name
-            _c_name             = ch._c_name
-            _ada_name           = ch._ada_name
+            _c_name            = ch._c_name
+            _scala_name        = ch._scala_name
+            _ada_name          = ch._ada_name
             Type               = newChildType
             Optionality        = ch.Optionality
             Comments           = ch.Comments |> Seq.toArray
@@ -713,6 +714,7 @@ let private createChoiceChild (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (m:Asn
         
             ChChildInfo.Name     = ch.Name
             _c_name             = ch._c_name
+            _scala_name         = ch._scala_name
             _ada_name           = ch._ada_name
             _present_when_name_private  = ch.present_when_name
             acnPresentWhenConditions = ch.acnPresentWhenConditions

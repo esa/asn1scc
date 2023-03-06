@@ -595,7 +595,7 @@ let private mergeEnumerated (asn1:Asn1Ast.AstRoot)  (items: Asn1Ast.NamedItem li
         newItems
     let mapItem (i:int) (itm:Asn1Ast.NamedItem) =
         let definitionValue = Asn1Ast.GetValueAsInt itm._value.Value asn1
-        let c_name, a_name =
+        let c_name, s_name, a_name =
             match asn1.args.renamePolicy with
             | AlwaysPrefixTypeName      -> 
                 let typeName0 lang =
@@ -610,16 +610,17 @@ let private mergeEnumerated (asn1:Asn1Ast.AstRoot)  (items: Asn1Ast.NamedItem li
                     aux langTypeDef
                     *)
                 let c_tpname = removeTypePrefix  asn1.args.TypePrefix (typeName0 C)
+                let s_tpname = removeTypePrefix  asn1.args.TypePrefix (typeName0 Scala)
                 let a_tpname = removeTypePrefix  asn1.args.TypePrefix (typeName0 Ada)
-                c_tpname + "_" + itm.c_name, a_tpname + "_" + itm.ada_name
+                c_tpname + "_" + itm.c_name, s_tpname + "_" + itm.scala_name, a_tpname + "_" + itm.ada_name
             | _     ->
-                asn1.args.TypePrefix + itm.c_name, asn1.args.TypePrefix + itm.ada_name
+                asn1.args.TypePrefix + itm.c_name, asn1.args.TypePrefix + itm.scala_name, asn1.args.TypePrefix + itm.ada_name
 
 
         match acnType with
         | None  ->
             let acnEncodeValue = (BigInteger i)
-            {NamedItem.Name = itm.Name; Comments = itm.Comments; c_name = c_name;  ada_name = a_name; definitionValue = definitionValue; acnEncodeValue = acnEncodeValue}        
+            {NamedItem.Name = itm.Name; Comments = itm.Comments; c_name = c_name; scala_name = s_name;  ada_name = a_name; definitionValue = definitionValue; acnEncodeValue = acnEncodeValue}        
         | Some acnType ->
             let acnEncodeValue = 
                 match tryGetProp props (fun x -> match x with ENCODE_VALUES -> Some true | _ -> None) with
@@ -631,7 +632,7 @@ let private mergeEnumerated (asn1:Asn1Ast.AstRoot)  (items: Asn1Ast.NamedItem li
                         | None          -> definitionValue
                     | None      -> definitionValue
                 | None      -> (BigInteger i)
-            {NamedItem.Name = itm.Name; Comments = itm.Comments; c_name = c_name; ada_name = a_name; definitionValue = definitionValue; acnEncodeValue = acnEncodeValue}        
+            {NamedItem.Name = itm.Name; Comments = itm.Comments; c_name = c_name; scala_name = s_name; ada_name = a_name; definitionValue = definitionValue; acnEncodeValue = acnEncodeValue}        
 
     let items0, userDefinedValues = 
         match items |> Seq.exists (fun nm -> nm._value.IsSome) with
@@ -1131,12 +1132,12 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (m:Asn1Ast.Asn1Mo
                 match cc with
                 | None      ->  
                     let newChild, us1 = mergeType asn1 acn m c.Type (curPath@[SEQ_CHILD c.Name.Value]) (typeDefPath@[SEQ_CHILD c.Name.Value]) (enmItemTypeDefPath@[SEQ_CHILD c.Name.Value]) None None [] childWithCons [] [] None  None  us
-                    Asn1Child ({Asn1Child.Name = c.Name; _c_name = c.c_name; _ada_name = c.ada_name; Type  = newChild; Optionality = newOptionality;asn1Comments = c.Comments |> Seq.toList; acnComments=[]}), us1
+                    Asn1Child ({Asn1Child.Name = c.Name; _c_name = c.c_name; _scala_name = c.scala_name; _ada_name = c.ada_name; Type  = newChild; Optionality = newOptionality;asn1Comments = c.Comments |> Seq.toList; acnComments=[]}), us1
                 | Some cc   ->
                     match cc.asn1Type with
                     | None  -> 
                         let newChild, us1 = mergeType asn1 acn m c.Type (curPath@[SEQ_CHILD c.Name.Value]) (typeDefPath@[SEQ_CHILD c.Name.Value]) (enmItemTypeDefPath@[SEQ_CHILD c.Name.Value]) (Some cc.childEncodingSpec) None [] childWithCons cc.argumentList [] None  None us
-                        Asn1Child ({Asn1Child.Name = c.Name; _c_name = c.c_name; _ada_name = c.ada_name; Type  = newChild; Optionality = newOptionality; asn1Comments = c.Comments |> Seq.toList; acnComments =   cc.comments}), us1
+                        Asn1Child ({Asn1Child.Name = c.Name; _c_name = c.c_name; _scala_name = c.scala_name; _ada_name = c.ada_name; Type  = newChild; Optionality = newOptionality; asn1Comments = c.Comments |> Seq.toList; acnComments =   cc.comments}), us1
                     | Some xx  ->
                         //let tdprm = {GetTypeDifition_arg.asn1TypeKind = t.Kind; loc = t.Location; curPath = (curPath@[SEQ_CHILD c.Name.Value]); typeDefPath = (typeDefPath@[SEQ_CHILD c.Name.Value]); inferitInfo =None ; typeAssignmentInfo = None; rtlFnc = None}
                         let newType, us1 = mapAcnParamTypeToAcnAcnInsertedType asn1 acn xx cc.childEncodingSpec.acnProperties  (curPath@[SEQ_CHILD c.Name.Value]) us
@@ -1297,10 +1298,10 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (m:Asn1Ast.Asn1Mo
                 match cc with
                 | None      ->  
                     let newChild, us1 = mergeType asn1 acn m c.Type (curPath@[CH_CHILD (c.Name.Value, present_when_name)]) (enmItemTypeDefPath@[CH_CHILD (c.Name.Value, present_when_name)]) (typeDefPath@[CH_CHILD (c.Name.Value, present_when_name)]) None None [] childWithCons [] [] None  None  us
-                    {ChChildInfo.Name = c.Name; _c_name = c.c_name; _ada_name = c.ada_name; Type  = newChild; acnPresentWhenConditions = acnPresentWhenConditions; asn1Comments = c.Comments|> Seq.toList; acnComments = []; present_when_name = present_when_name; Optionality = newOptionality}, us1
+                    {ChChildInfo.Name = c.Name; _c_name = c.c_name; _scala_name = c.scala_name; _ada_name = c.ada_name; Type  = newChild; acnPresentWhenConditions = acnPresentWhenConditions; asn1Comments = c.Comments|> Seq.toList; acnComments = []; present_when_name = present_when_name; Optionality = newOptionality}, us1
                 | Some cc   ->
                     let newChild, us1 = mergeType asn1 acn m c.Type (curPath@[CH_CHILD (c.Name.Value, present_when_name)]) (typeDefPath@[CH_CHILD (c.Name.Value, present_when_name)]) (enmItemTypeDefPath@[CH_CHILD (c.Name.Value, present_when_name)]) (Some cc.childEncodingSpec) None [] childWithCons cc.argumentList [] None  None us
-                    {ChChildInfo.Name = c.Name; _c_name = c.c_name; _ada_name = c.ada_name; Type  = newChild; acnPresentWhenConditions = acnPresentWhenConditions; asn1Comments = c.Comments |> Seq.toList; acnComments = cc.comments ; present_when_name = present_when_name; Optionality = newOptionality}, us1
+                    {ChChildInfo.Name = c.Name; _c_name = c.c_name; _scala_name = c.scala_name; _ada_name = c.ada_name; Type  = newChild; acnPresentWhenConditions = acnPresentWhenConditions; asn1Comments = c.Comments |> Seq.toList; acnComments = cc.comments ; present_when_name = present_when_name; Optionality = newOptionality}, us1
             let mergedChildren, chus = 
                 match acnType with
                 | None            -> children |> foldMap (fun st ch -> mergeChild None ch st) us1

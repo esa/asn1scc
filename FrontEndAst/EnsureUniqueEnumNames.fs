@@ -101,11 +101,13 @@ let rec private handleSequencesAndChoices (r:AstRoot) (lang:ProgrammingLanguage)
                                     let conflictingTas =
                                         match lang with
                                         | ProgrammingLanguage.C     -> None
+                                        | ProgrammingLanguage.Scala -> None // TODO: Scala
                                         | ProgrammingLanguage.Ada   ->
                                             m.TypeAssignments |> Seq.tryFind(fun tas -> lang.cmp (ToC (x.CName lang)) (ToC r.args.TypePrefix + tas.Name.Value) )
                                     let confilectingModuleName =
                                         match lang with
                                         | ProgrammingLanguage.C     -> None
+                                        | ProgrammingLanguage.Scala -> None // TODO: Scala
                                         | ProgrammingLanguage.Ada   ->
                                             r.Modules |> Seq.tryFind(fun m -> lang.cmp (ToC (x.CName lang)) (ToC m.Name.Value) )
                                         
@@ -142,6 +144,7 @@ let rec private handleSequencesAndChoices (r:AstRoot) (lang:ProgrammingLanguage)
             
                     match lang with
                     | ProgrammingLanguage.C     -> {ch with Type = t; c_name = ToC2 newUniqueName},ns
+                    | ProgrammingLanguage.Scala -> {ch with Type = t; scala_name = ToC2 newUniqueName},ns 
                     | ProgrammingLanguage.Ada   -> {ch with Type = t; ada_name = ToC2 newUniqueName},ns
 
                 match old.Kind with
@@ -166,6 +169,8 @@ let rec private handleSequencesAndChoices (r:AstRoot) (lang:ProgrammingLanguage)
                         match lang with
                         | ProgrammingLanguage.C-> 
                             children |> List.map(fun ch -> {ch with c_name = ToC (userValue + ch.c_name)})
+                        | ProgrammingLanguage.Scala-> 
+                            children |> List.map(fun ch -> {ch with scala_name = ToC (userValue + ch.scala_name)})
                         | ProgrammingLanguage.Ada   -> 
                             children |> List.map(fun ch -> {ch with ada_name = ToC(userValue + ch.ada_name)})
                             
@@ -199,6 +204,7 @@ let rec private handleEnums (r:AstRoot) (renamePolicy:EnumRenamePolicy) (lang:Pr
     let doubleEnumNames = 
         match lang with
         | ProgrammingLanguage.C     -> doubleEnumNames0 @ CheckAsn1.c_keywords|> List.keepDuplicates
+        | ProgrammingLanguage.Scala -> doubleEnumNames0 @ CheckAsn1.scala_keywords|> List.keepDuplicates
         | ProgrammingLanguage.Ada   -> doubleEnumNames0 @ CheckAsn1.ada_keywords |> List.keepDuplicatesI
 
 
@@ -216,7 +222,8 @@ let rec private handleEnums (r:AstRoot) (renamePolicy:EnumRenamePolicy) (lang:Pr
                             let newPrefix = key |> List.rev |> List.map ToC |> Seq.skipWhile(fun x -> (old.EnumName lang).Contains x) |> Seq.head
                             newPrefix + "_" + (old.EnumName lang)
                     match lang with
-                    | ProgrammingLanguage.C     ->      {old with c_name=newUniqueName}
+                    | ProgrammingLanguage.C     -> {old with c_name=newUniqueName}
+                    | ProgrammingLanguage.Scala -> {old with scala_name=newUniqueName}
                     | ProgrammingLanguage.Ada   -> {old with ada_name=newUniqueName}
                 let newItems = 
                     match renamePolicy with
@@ -227,6 +234,7 @@ let rec private handleEnums (r:AstRoot) (renamePolicy:EnumRenamePolicy) (lang:Pr
                         let newPrefix = itesm|> List.map copyItem |> List.map(fun itm -> (itm.EnumName lang).Replace(ToC2 itm.Name.Value,"")) |> List.maxBy(fun prf -> prf.Length)
                         match lang with
                         | ProgrammingLanguage.C->  itesm|> List.map (fun itm -> {itm with c_name = newPrefix + itm.c_name})
+                        | ProgrammingLanguage.Scala->  itesm|> List.map (fun itm -> {itm with scala_name = newPrefix + itm.scala_name})
                         | ProgrammingLanguage.Ada -> 
                             itesm|> List.map (fun itm -> {itm with ada_name = newPrefix + itm.ada_name})
 

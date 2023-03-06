@@ -1,0 +1,101 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Settings generateInterfacesSignature="ILang.fs">
+  <run mode="single">
+    <input>header_c.stg</input>
+    <output>header_c.stg.fs</output>
+    <modName>header_c</modName>
+	<lang>c</lang>
+    <abctractInterface   modMame="ITypeDefinition">ITypeDefinition.stg.fs</abctractInterface>
+    <implementationClass ifModMame="AbstractMacros.ITypeDefinition" modMame="ITypeDefinition_c">ITypeDefinition_c.stg.fs</implementationClass>
+  </run>
+  <run mode="single">
+    <input>body_c.stg</input>
+    <output>body_c.stg.fs</output>
+    <modName>body_c</modName>
+	<lang>c</lang>
+    <abctractInterface   modMame="ISrcBody">ISrcBody.stg.fs</abctractInterface>
+    <implementationClass ifModMame="AbstractMacros.ISrcBody" modMame="ISrcBody_c">ISrcBody_c.stg.fs</implementationClass>
+  </run>
+  <run mode="single">
+    <input>variables_c.stg</input>
+    <output>variables_c.stg.fs</output>
+    <modName>variables_c</modName>
+    <abctractInterface   modMame="IVariables">IVariables.stg.fs</abctractInterface>
+    <implementationClass ifModMame="AbstractMacros.IVariables" modMame="IVariables_c">IVariables_c.stg.fs</implementationClass>
+	<lang>c</lang>
+  </run>
+
+  <run mode="single">
+    <input>equal_c.stg</input>
+    <output>equal_c.stg.fs</output>
+    <modName>equal_c</modName>
+	<lang>c</lang>
+    <abctractInterface   modMame="IEqual">IEqual.stg.fs</abctractInterface>
+    <implementationClass ifModMame="AbstractMacros.IEqual" modMame="IEqual_c">IEqual_c.stg.fs</implementationClass>
+  </run>
+  <run mode="single" >
+    <input>isvalid_c.stg</input>
+    <output>isvalid_c.stg.fs</output>
+    <modName>isvalid_c</modName>
+	<lang>c</lang>
+    <abctractInterface   modMame="IIsValid">IIsValid.stg.fs</abctractInterface>
+    <implementationClass ifModMame="AbstractMacros.IIsValid" modMame="IsValid_c">IIsValid_c.stg.fs</implementationClass>
+   </run>
+  <run mode="single" >
+        <input>isvalid_new_c.stg</input>
+        <output>isvalid_new_c.stg.fs</output>
+        <modName>isvalid_new_c</modName>
+        <lang>c</lang>
+    </run>
+    <run mode="single">
+        <input>init_c.stg</input>
+        <output>init_c.stg.fs</output>
+        <modName>init_c</modName>
+	    <lang>c</lang>
+        <abctractInterface   modMame="IInit">IInit.stg.fs</abctractInterface>
+		<implementationClass ifModMame="AbstractMacros.IInit" modMame="Init_c">IInit_c.stg.fs</implementationClass>
+	</run>
+  <run mode="single">
+    <input>uper_c.stg</input>
+    <output>uper_c.stg.fs</output>
+    <modName>uper_c</modName>
+	<lang>c</lang>
+    <abctractInterface   modMame="IUper">IUper.stg.fs</abctractInterface>
+    <implementationClass ifModMame="AbstractMacros.IUper" modMame="iuper_c">IUper_c.stg.fs</implementationClass>
+  </run>
+  <run mode="single">
+    <input>acn_c.stg</input>
+    <output>acn_c.stg.fs</output>
+    <modName>acn_c</modName>
+	<interfaces_def></interfaces_def>
+	<lang>c</lang>
+	
+    <abctractInterface   modMame="IAcn">IAcn.stg.fs</abctractInterface>
+    <implementationClass ifModMame="AbstractMacros.IAcn" modMame="IAcn_c">IAcn_c.stg.fs</implementationClass>
+
+  </run>
+  <run mode="single">
+        <input>xer_c.stg</input>
+        <output>xer_c.stg.fs</output>
+        <modName>xer_c</modName>
+        <lang>c</lang>
+    <abctractInterface   modMame="IXer">IXer.stg.fs</abctractInterface>
+    <implementationClass ifModMame="AbstractMacros.IXer" modMame="IXer_c">IXer_c.stg.fs</implementationClass>
+  </run>
+  <run mode="single">
+      <input>test_cases_c.stg</input>
+      <output>test_cases_c.stg.fs</output>
+      <modName>test_cases_c</modName>
+      <lang>c</lang>
+      <abctractInterface   modMame="ITestCases">ITestCases.stg.fs</abctractInterface>
+	  <implementationClass ifModMame="AbstractMacros.ITestCases" modMame="ITestCases_c">ITestCases_c.stg.fs</implementationClass>
+  </run>
+  <run mode="single">
+      <input>aux_c.stg</input>
+      <output>aux_c.stg.fs</output>
+      <modName>aux_c</modName>
+      <lang>c</lang>
+    <abctractInterface   modMame="IAux">IAux.stg.fs</abctractInterface>
+  </run>
+
+</Settings>

@@ -285,6 +285,7 @@ and NamedConstraint = {
 type NamedItem = {
     Name:StringLoc
     c_name:string
+    scala_name:string
     ada_name:string
     definitionValue : BigInteger          // the value in the header file
     
@@ -706,6 +707,7 @@ and SeqChildInfo =
 and Asn1Child = {
     Name                        : StringLoc
     _c_name                     : string
+    _scala_name                 : string
     _ada_name                   : string                     
     Type                        : Asn1Type
     Optionality                 : Asn1Optionality option
@@ -736,6 +738,7 @@ and Choice = {
 and ChChildInfo = {
     Name                        : StringLoc
     _c_name                     : string
+    _scala_name                 : string
     _ada_name                   : string                     
     present_when_name           : string // Does not contain the "_PRESENT". Not to be used directly by backends.
     Type                        : Asn1Type

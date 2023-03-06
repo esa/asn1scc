@@ -1,0 +1,299 @@
+﻿group c_init;
+
+
+rtlModuleName() ::= "adaasn1rtl"
+methodNameSuffix() ::= "_Initialize"
+
+initTypeAssignment_def(sVarName, sStar, sFuncName, sTypeDefName) ::= <<
+void <sFuncName>(<sTypeDefName><sStar> <sVarName>);
+>>
+
+initTypeAssignment(sVarName, sStar, sFuncName, sTypeDefName, sContent, arrsLocalVariables) ::= <<
+void <sFuncName>(<sTypeDefName><sStar> <sVarName>)
+{
+	(void)<sVarName>;
+
+    <arrsLocalVariables; separator="\n">
+
+	<sContent>
+}
+>>
+
+
+initInteger(sVal, nValue) ::= "<sVal> = <nValue>;"
+initReal(sVal, dValue) ::= "<sVal> = <dValue>;"
+initBoolean(sVal, bValue) ::= "<sVal> = <if(bValue)>TRUE<else>FALSE<endif>;"
+
+initObjectIdentifier_vali(p, sAcc, sI, nIntVal) ::= "<p><sAcc>values[<sI>] = <nIntVal>;"
+initObjectIdentifier(p, sAcc, nSize, arrsValues) ::= <<
+<p><sAcc>nCount = <nSize>;
+<arrsValues; separator="\n">
+>>
+
+init_Asn1LocalTime(p, sAcc, tv/*:Asn1TimeValue*/) ::= <<
+<p><sAcc>hours = <tv.hours>;
+<p><sAcc>mins = <tv.mins>;
+<p><sAcc>sec = <tv.secs>;  
+<p><sAcc>fraction = <tv.secsFraction>;
+>>
+
+init_Asn1UtcTime(p, sAcc, tv/*:Asn1TimeValue*/) ::= <<
+<p><sAcc>hours = <tv.hours>;
+<p><sAcc>mins = <tv.mins>;
+<p><sAcc>sec = <tv.secs>;  
+<p><sAcc>fraction = <tv.secsFraction>;
+>>
+
+
+init_Asn1LocalTimeWithTimeZone(p, sAcc, tv/*:Asn1TimeValue*/, tz/*:Asn1TimeZoneValue*/) ::= <<
+<p><sAcc>hours = <tv.hours>;
+<p><sAcc>mins = <tv.mins>;
+<p><sAcc>sec = <tv.secs>;  
+<p><sAcc>fraction = <tv.secsFraction>;
+<p><sAcc>tz.sign = <tz.sign>;
+<p><sAcc>tz.hours = <tz.hours>;
+<p><sAcc>tz.mins = <tz.mins>;
+>>
+
+init_Asn1Date(p, sAcc, dt/*:Asn1DateValue*/) ::= <<
+<p><sAcc>years = <dt.years>;
+<p><sAcc>months = <dt.months>;
+<p><sAcc>days = <dt.days>;  
+>>
+
+init_Asn1Date_LocalTime(p, sAcc, dt/*:Asn1DateValue*/, tv/*:Asn1TimeValue*/) ::= <<
+<init_Asn1Date(p=p, sAcc=sAcc, dt=dt)>
+<init_Asn1LocalTime(p=p, sAcc=sAcc, tv=tv)>
+>>
+
+init_Asn1Date_UtcTime(p, sAcc, dt/*:Asn1DateValue*/, tv/*:Asn1TimeValue*/) ::= <<
+<init_Asn1Date(p=p, sAcc=sAcc, dt=dt)>
+<init_Asn1UtcTime(p=p, sAcc=sAcc, tv=tv)>
+>>
+
+init_Asn1Date_LocalTimeWithTimeZone(p, sAcc, dt/*:Asn1DateValue*/, tv/*:Asn1TimeValue*/, tz/*:Asn1TimeZoneValue*/) ::= <<
+<init_Asn1Date(p=p, sAcc=sAcc, dt=dt)>
+<init_Asn1UtcTime(p=p, sAcc=sAcc, tv=tv, tz=tz)>
+>>
+
+assignAny(p, sValue) ::= "<p> = <sValue>;"
+assignString(p, sValue) ::= "memcpy(<p>, <sValue>, sizeof(<sValue>));"
+
+
+initIA5String(sPtr, sValue) ::= "strcpy(<sPtr>,<sValue>);"
+initEnumerated(sVal, sValue) ::= "<sVal> = <sValue>;"
+initNull(sVal)    ::= "<sVal> = 0;"
+
+initTestCaseIA5String(p, sAcc, nSize, nMaxSizePlusOne, i, td/*:FE_StringTypeDefinition*/, bAlpha, arrnAlphabetAsciiCodes, nAlphabetLength, bZero) ::= <<
+<if(bZero)>
+memset(<p>, 0x0, <nMaxSizePlusOne>);
+
+<else>
+<i> = 0;
+memset(<p>, 0x0, <nMaxSizePlusOne>);
+while (<i>\< <nSize>) {
+    <if(bAlpha)>
+    static byte allowedCharSet[] = {<arrnAlphabetAsciiCodes:{ch|0x<ch;format="X2">}; wrap, anchor, separator=",">}; 
+
+    <p>[<i>] = allowedCharSet[<i> % <nAlphabetLength>];
+
+    <else>
+    <p>[<i>] = (char)(<i> % 128 == 0 ? 'A' : <i> % 128);
+
+    <endif>
+    <i> = <i> + 1;
+}
+
+<endif>
+>>
+
+/* BIT AND OCTET STRINGS */
+
+initBitOrOctStringFromCompoundLiteral(p, sCompLiteral) ::= "<p> = <sCompLiteral>;"
+
+initFixSizeBitOrOctString_bytei(p, sAcc, sI, sByteHexVal) ::= "<p><sAcc>arr[<sI>] = 0x<sByteHexVal>;"
+initFixSizeBitOrOctString(p, sAcc,arrsBytes) ::= <<
+<arrsBytes; separator="\n">
+>>
+
+initFixVarSizeBitOrOctString(p, sAcc, nSize, arrsBytes) ::= <<
+<p><sAcc>nCount = <nSize>;
+<arrsBytes; separator="\n">
+>>
+
+initTestCaseOctetString(p, sAcc, nSize, i, bIsFixedSize, bZero, nMinSize) ::= <<
+<if(bZero)>
+memset(<p><sAcc>arr, 0x0, <nSize>);
+
+<else>
+<i> = 0;
+while (<i>\< <nSize>) {
+    <p><sAcc>arr[<i>] = (byte)(<i>%256);
+    <i> = <i> + 1;
+}
+
+<endif>
+<if(!bIsFixedSize)><p><sAcc>nCount = <if(bZero)><nMinSize><else><nSize><endif>;<endif>
+
+>>
+
+initTestCaseBitString(p, sAcc, nSize, nSizeCeiled,  i, bIsFixedSize, bZero, nMinSize) ::= <<
+<if(bZero)>
+memset(<p><sAcc>arr, 0x0, <nSizeCeiled>/8);
+
+<else>
+<i> = 0;
+while (<i>\< <nSizeCeiled>/8) {
+    <p><sAcc>arr[<i>] = 0x55; /* --> 0101 0101 as in Ada*/
+    <i> = <i> + 1;
+}
+
+<endif>
+
+<if(!bIsFixedSize)><p><sAcc>nCount = <if(bZero)><nMinSize><else><nSize><endif>;<endif>
+>>
+
+
+
+/*SEQUENCE OF */
+
+/*dummy in C*/
+initSequence_pragma(p) ::= ""
+
+
+initFixedSequenceOf(arrsInnerValues) ::= <<
+<arrsInnerValues; separator="\n">        
+>>
+
+
+initVarSizeSequenceOf(p, sAcc, nSize, arrsInnerValues) ::= <<
+<p><sAcc>nCount = <nSize>;
+<arrsInnerValues; separator="\n">        
+>>
+
+
+initTestCaseSizeSequenceOf_innerItem(bFirst, bLastItem, nCaseIdx, sChildCaseInit, i, nCaseLen) ::= <<
+<if(!bLastItem)><if(bFirst)>if<else>else if<endif> (<i> % <nCaseLen> == <nCaseIdx>)  {<else>else {<endif>
+    <sChildCaseInit>
+}>>
+
+initTestCaseSizeSequenceOf(p, sAcc, noMinSize, nSize, bIsFixedSize, arrsInnerItems, bMultiCases, i) ::= <<
+<i> = 0;
+while (<i>\< <nSize>) {
+    <arrsInnerItems; separator="\n">
+    <i> = <i> + 1;
+}
+<if(!bIsFixedSize)><p><sAcc>nCount = <if(noMinSize)><noMinSize><else><nSize><endif>;<endif>
+>>
+
+
+/*SEQUENCE*/
+
+initSequence_optionalChild(p, sAcc, sChName, sPresentFlag, sChildContent) ::=<<
+<p><sAcc>exist.<sChName> = <sPresentFlag>;
+<sChildContent>
+>>
+
+initSequence(arrsInnerValues) ::= <<
+<arrsInnerValues; separator="\n">        
+>>
+
+initSequence_emptySeq(p) ::= ""
+
+
+initTestCase_sequence_child(p, sAcc, sChName, sChildContent, bOptional) ::= <<
+/*set <sChName> */
+<if(bOptional)><p><sAcc>exist.<sChName> = 1;<endif>
+<sChildContent>
+>>
+initTestCase_sequence_child_opt(p, sAcc, sChName) ::= <<
+<p><sAcc>exist.<sChName> = 0;
+>>
+
+
+initChoice(p1, sAccess, sChildContent, sChildKind, sChildTempVarName, sChildTypeName, sChoiceTypeName, sChildName, bComponentTempInit) ::= <<
+<p1><sAccess>kind = <sChildKind>;
+<sChildContent>        
+>>
+
+
+initTestCase_choice_child(p, sAcc, sChildID, sChildContent, sChildName, sChildTypeDef, sChoiceTypeName) ::= <<
+/*set <sChildName>*/
+<p><sAcc>kind = <sChildID>;
+<sChildContent>
+>>
+
+
+initChildWithInitFunc(p, sChildInitFuncName) ::= <<
+<sChildInitFuncName>(<p>);
+>>
+
+
+
+initBitStringAtPos(sVarName, sStar, sFuncName, sTypeDefName, sNamedBit, nZeroBasedByteIndex, sHexByteMax, nZeroBasedBitIndex) ::= <<
+void <sFuncName>_set_<sNamedBit>(<sTypeDefName><sStar> <sVarName>) /*COVERAGE_IGNORE*/
+{
+    <sVarName>->arr[<nZeroBasedByteIndex>] |= <sHexByteMax>; /*COVERAGE_IGNORE*/
+}
+>>
+
+initBitStringAtPos_def(sVarName, sStar, sFuncName, sTypeDefName, sNamedBit) ::= <<
+void <sFuncName>_set_<sNamedBit>(<sTypeDefName><sStar> <sVarName>);
+>>
+
+initTypeConstant_def(sTypeDecl, sConstantName, sValue) ::= "extern const <sTypeDecl> <sConstantName>;"
+
+initTypeConstant_body(sTypeDecl, sConstantName, sValue) ::= <<
+const <sTypeDecl> <sConstantName> = <sValue>;
+>>
+
+initFixSizeOctetString(nMax) ::= "{.arr  = {[0 ... <nMax>-1] = 0 }}"
+initVarSizeOctetString(nMin, nMax) ::= "{.nCount = <nMin>, .arr  = {[0 ... <nMax>-1] = 0 }}"
+
+initFixSizeBitString(nMax, nMaxOctets) ::= "{.arr  = {[0 ... <nMaxOctets>-1] = 0 }}"
+initVarSizeBitString(nMin, nMax, nMaxOctets) ::= "{.nCount = <nMin>, .arr  = {[0 ... <nMaxOctets>-1] = 0 }}"
+
+initFixSizeSequenceOfExpr(nMax, sChildExp) ::= "{.arr  = {[0 ... <nMax>-1] = <sChildExp> }}"
+initVarSizeSequenceOfExpr(nMin, nMax, sChildExp) ::= "{.nCount = <nMin>, .arr  = {[0 ... <nMax>-1] = <sChildExp> }}"
+
+
+initObjectIdentifierAsExpr() ::= <<
+{.nCount = 0, .values  = {[0 ... OBJECT_IDENTIFIER_MAX_LENGTH-1] = 0 }}
+>>
+
+init_Asn1LocalTimeExpr() ::= <<
+{.hours = 0, .mins = 0, .sec = 0, .fraction = 0}
+>>
+
+init_Asn1UtcTimeExpr() ::= <<
+{.hours = 0, .mins = 0, .sec = 0, .fraction = 0}
+>>
+
+
+init_Asn1LocalTimeWithTimeZoneExpr() ::= <<
+{.hours = 0, .mins = 0, .sec = 0, .fraction = 0, .tz.sign = 0, .tz.hours = 0, .tz.mins = 0}
+>>
+
+init_Asn1DateExpr() ::= <<
+{.years = 0, .months = 0, .days = 0}
+>>
+
+init_Asn1Date_LocalTimeExpr() ::= <<
+{.years = 0, .months = 0, .days = 0, .hours = 0, .mins = 0, .sec = 0, .fraction = 0}
+>>
+
+init_Asn1Date_UtcTimeExpr() ::= <<
+{.years = 0, .months = 0, .days = 0, .hours = 0, .mins = 0, .sec = 0, .fraction = 0}
+>>
+
+init_Asn1Date_LocalTimeWithTimeZoneExpr() ::= <<
+{.years = 0, .months = 0, .days = 0, .hours = 0, .mins = 0, .sec = 0, .fraction = 0, .tz.sign = 0, .tz.hours = 0, .tz.mins = 0 }
+>>
+
+initSequenceChildExpr(sChildName, sChildExpr) ::= ".<sChildName> = <sChildExpr>"
+initSequenceOptionalChildExpr(sChildName, nPresenceBit) ::= ".<sChildName> = <nPresenceBit>"
+initSequenceExpr(arrsChildren, arrsOptionalChildren) ::= <<
+{<arrsChildren; separator=", "><if (arrsOptionalChildren)>, .exist = {<arrsOptionalChildren; separator=", ">}<endif>}
+>>
+
+initChoiceExpr(sChildName, sChildKind, sChildExpr) ::= "{.kind = <sChildKind>, .u.<sChildName> = <sChildExpr>}"

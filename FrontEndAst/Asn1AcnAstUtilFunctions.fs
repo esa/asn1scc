@@ -435,6 +435,7 @@ type Asn1Child with
     member this.getBackendName0 l = 
         match l with
         | CommonTypes.C         -> this._c_name
+        | CommonTypes.Scala     -> this._scala_name
         | CommonTypes.Ada       -> this._ada_name
 
 

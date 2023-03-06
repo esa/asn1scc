@@ -102,6 +102,7 @@ type INTTYPE =
 type NamedItem = {
     Name:StringLoc
     c_name:string
+    scala_name:string
     ada_name:string
     _value:Asn1Value option
     Comments: string array
@@ -161,6 +162,7 @@ and ReferenceType = {
 and ChildInfo = {
     Name                        : StringLoc;
     c_name                      : string
+    scala_name                  : string
     ada_name                    : string                     
     present_when_name           : string // used only by choices. Does not contain the "_PRESENT". Not to be used directly by backends.
     Type                        : Asn1Type
@@ -385,16 +387,19 @@ type ChildInfo with
         match lang with
         | Ada               -> c.ada_name
         | C                 -> c.c_name
+        | Scala             -> c.scala_name
 
 type NamedItem with
     member c.CEnumName (r:AstRoot) (lang:ProgrammingLanguage) = 
         match lang with
         |Ada    -> ToC2 (r.args.TypePrefix + c.ada_name)
         |C      -> ToC2 (r.args.TypePrefix + c.c_name)
+        |Scala  -> ToC2 (r.args.TypePrefix + c.scala_name)
     member c.EnumName (lang:ProgrammingLanguage) = 
         match lang with
         |Ada    -> c.ada_name
         |C      -> c.c_name
+        |Scala  -> c.scala_name
 
 type Asn1Constraint with
     member this.Asn1Con =

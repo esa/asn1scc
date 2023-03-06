@@ -10,6 +10,8 @@ open Antlr.Runtime.Tree
 open Antlr.Runtime
 
 let c_keyworkds =  [ "auto"; "break"; "case"; "char"; "const"; "continue"; "default"; "do"; "double"; "else"; "enum"; "extern"; "float"; "for"; "goto"; "if"; "int"; "long"; "register"; "return"; "short"; "signed"; "sizeof"; "static"; "struct"; "switch"; "typedef"; "union"; "unsigned"; "void"; "volatile"; "while"; ]
+// TODO: Scala
+let scala_keyworkds =  [ "auto"; "break"; "case"; "char"; "const"; "continue"; "default"; "do"; "double"; "else"; "enum"; "extern"; "float"; "for"; "goto"; "if"; "int"; "long"; "register"; "return"; "short"; "signed"; "sizeof"; "static"; "struct"; "switch"; "typedef"; "union"; "unsigned"; "void"; "volatile"; "while"; ]
 let ada_keyworkds =  [ "abort"; "else"; "new"; "return"; "abs"; "elsif"; "not"; "reverse"; "abstract"; "end"; "null"; "accept"; "entry"; "select"; "access"; "exception"; "of"; "separate"; "aliased"; "exit"; "or"; "some"; "all"; "others"; "subtype"; "and"; "for"; "out"; "synchronized"; "array"; "function"; "overriding"; "at"; "tagged"; "generic"; "package"; "task"; "begin"; "goto"; "pragma"; "terminate"; "body"; "private"; "then"; "if"; "procedure"; "type"; "case"; "in"; "protected"; "constant"; "interface"; "until"; "is"; "raise"; "use"; "declare"; "range"; "delay"; "limited"; "record"; "when"; "delta"; "loop"; "rem"; "while"; "digits"; "renames"; "with"; "do"; "mod"; "requeue"; "xor" ]
 
 
@@ -242,42 +244,51 @@ let getDateTimeFromAsn1TimeStringValue timeClass (str:StringLoc) =
 
 type ProgrammingLanguage =
     |C
+    |Scala
     |Ada
     with 
         member l.cmp (s1:string) (s2:string) =
             match l with
             |C          -> s1 = s2
+            |Scala      -> s1 = s2 // TODO: Scala
             |Ada        -> s1.icompare s2
         member l.DefinitionsFileExt = 
             match l with
             |C          -> ".h"
+            |Scala      -> ".h" // TODO: Scala
             |Ada        -> ".ads"
         member l.keywords = 
             match l with
             |C          -> c_keyworkds
+            |Scala      -> scala_keyworkds
             |Ada        -> ada_keyworkds
-        static member AllLanguages = [C; Ada]
+        static member AllLanguages = [C; Scala; Ada]
         
         member l.OnTypeNameConflictTryAppendModName =
             match l with
             |C          -> true
+            |Scala      -> true // TODO: SCala
             |Ada        -> false
         member l.declare_IntegerNoRTL = 
             match l with 
             | C     -> "", "asn1SccSint", "INTEGER"
+            | Scala -> "", "asn1SccSint", "INTEGER" // TODO: Scala
             | Ada   -> "adaasn1rtl", "Asn1Int", "INTEGER"
         member l.declare_PosIntegerNoRTL =
             match l with 
             | C     -> "", "asn1SccUint" , "INTEGER"               
-            | Ada   -> "adaasn1rtl", "Asn1UInt" , "INTEGER"               
+            | Scala -> "", " asn1SccUint" , "INTEGER" // TODO: Scala                
+            | Ada   -> "adaasn1rtl", "Asn1UInt" , "INTEGER"  
         member l.getRealRtlTypeName   = 
             match l with 
             | C -> "", "asn1Real", "REAL" 
+            | Scala -> "", "asn1Real", "REAL" // TODO: Scala 
             | Ada  -> "adaasn1rtl", "Asn1Real", "REAL" 
         member l.getObjectIdentifierRtlTypeName  relativeId = 
             let asn1Name = if relativeId then "RELATIVE-OID" else "OBJECT IDENTIFIER"
             match l with 
             | C     -> "",           "Asn1ObjectIdentifier", asn1Name
+            | Scala -> "",           "Asn1ObjectIdentifier", asn1Name // TODO: Scala
             | Ada   -> "adaasn1rtl", "Asn1ObjectIdentifier", asn1Name
         member l.getTimeRtlTypeName  timeClass = 
             let asn1Name = "TIME"
@@ -289,6 +300,14 @@ type ProgrammingLanguage =
             | C, Asn1Date_LocalTime               _ -> "", "Asn1DateLocalTime", asn1Name
             | C, Asn1Date_UtcTime                 _ -> "", "Asn1DateUtcTime", asn1Name
             | C, Asn1Date_LocalTimeWithTimeZone   _ -> "", "Asn1DateTimeWithTimeZone", asn1Name
+            // TODO: Scala
+            | Scala, Asn1LocalTime                    _ -> "", "Asn1LocalTime", asn1Name
+            | Scala, Asn1UtcTime                      _ -> "", "Asn1UtcTime", asn1Name
+            | Scala, Asn1LocalTimeWithTimeZone        _ -> "", "Asn1TimeWithTimeZone", asn1Name
+            | Scala, Asn1Date                           -> "", "Asn1Date", asn1Name
+            | Scala, Asn1Date_LocalTime               _ -> "", "Asn1DateLocalTime", asn1Name
+            | Scala, Asn1Date_UtcTime                 _ -> "", "Asn1DateUtcTime", asn1Name
+            | Scala, Asn1Date_LocalTimeWithTimeZone   _ -> "", "Asn1DateTimeWithTimeZone", asn1Name
             | Ada, Asn1LocalTime                  _ -> "adaasn1rtl", "Asn1LocalTime", asn1Name
             | Ada, Asn1UtcTime                    _ -> "adaasn1rtl", "Asn1UtcTime", asn1Name
             | Ada, Asn1LocalTimeWithTimeZone      _ -> "adaasn1rtl", "Asn1TimeWithTimeZone", asn1Name
@@ -299,11 +318,13 @@ type ProgrammingLanguage =
         member l.getNullRtlTypeName  = 
             match l with 
             | C -> "", "NullType", "NULL" 
+            | Scala -> "", "NullType", "NULL" // TODO: Scala 
             | Ada -> "adaasn1rtl", "Asn1NullType", "NULL" 
         member l.getBoolRtlTypeName =
             match l with 
             | C -> "","flag","BOOLEAN" 
-            | Ada  -> "adaasn1rtl", "Asn1Boolean", "BOOLEAN" 
+            | Scala -> "","flag","BOOLEAN" // TODO: Scala  
+            | Ada  -> "adaasn1rtl", "Asn1Boolean", "BOOLEAN"
 
 
 type Codec =

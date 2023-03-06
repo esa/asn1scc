@@ -1,0 +1,94 @@
+/*
+* Copyright (c) 2008-2012 Semantix and (c) 2012-2015 Neuropublic
+*
+* This file is part of the ASN1SCC tool.
+*
+* Licensed under the terms of GNU General Public Licence as published by
+* the Free Software Foundation.
+*
+*  For more informations see License.txt file
+*/
+
+group ch ;
+
+PrintMakeFile(arrsFilesNoExt, bWordSize4, bFpWordSize4, bAsn1sccStreaming) ::= <<
+# The directories containing the source files, separated by ':'
+VPATH=.
+
+CC=gcc
+
+# To make "debug" the default configuration if invoked with just "make":
+#
+# The source files: regardless of where they reside in the source tree,
+# VPATH will locate them...
+Group0_SRC = $(shell echo *.c)
+
+# Build a Dependency list and an Object list, by replacing the .c
+# extension to .d for dependency files, and .o for object files.
+Group0_OBJ = $(patsubst %.c, %.o, ${Group0_SRC})
+
+# Your final binary
+TARGET=mainprogram
+
+# What include flags to pass to the compiler
+INCLUDEFLAGS= -I .
+
+# -Wall -Wextra -pedantic -Wcast-qual -Wformat=2 -Wshadow -Wundef -Wno-unused -Wuninitialized -Wno-unused-parameter -fdiagnostics-show-option
+# Separate compile options per configuration
+CFLAGS += -g -Wall -Werror -Wextra -Wuninitialized -Wcast-qual -Wshadow -Wundef -fdiagnostics-show-option -D_DEBUG <if(bAsn1sccStreaming)>-DASN1SCC_STREAMING<endif>  <if(bWordSize4)>-DWORD_SIZE=4<endif> <if(bFpWordSize4)>-DFP_WORD_SIZE=4<endif> ${INCLUDEFLAGS} -O0 -fprofile-arcs -ftest-coverage
+LDFLAGS += -g -ftest-coverage -fprofile-arcs
+
+# A common link flag for all configurations
+LDFLAGS +=
+
+all:	${TARGET}
+
+${TARGET}: ${Group0_OBJ}
+	@mkdir -p $(dir $@)
+	$(CC) -g -o $@ $^ ${LDFLAGS}
+
+%.o: %.c
+	@mkdir -p $(dir $@)
+	$(CC) -c $(CFLAGS) -o $@ $\<
+
+coverage:
+	$(MAKE) && ./$(TARGET) && \
+	    gcov <arrsFilesNoExt: {f|<f>.c}; separator=" ">
+
+clean:
+	@rm -rf *.o $(TARGET) *.gcda *.gcno *.gcov
+>>
+
+
+
+emitVisualStudioSolution() ::= <<
+
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 14
+VisualStudioVersion = 14.0.25420.1
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "VsProject", "VsProject.vcxproj", "{A4CA0E23-0647-419C-97D6-2289FFA1C1E5}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
+		Debug|x86 = Debug|x86
+		Release|x64 = Release|x64
+		Release|x86 = Release|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{A4CA0E23-0647-419C-97D6-2289FFA1C1E5}.Debug|x64.ActiveCfg = Debug|x64
+		{A4CA0E23-0647-419C-97D6-2289FFA1C1E5}.Debug|x64.Build.0 = Debug|x64
+		{A4CA0E23-0647-419C-97D6-2289FFA1C1E5}.Debug|x86.ActiveCfg = Debug|Win32
+		{A4CA0E23-0647-419C-97D6-2289FFA1C1E5}.Debug|x86.Build.0 = Debug|Win32
+		{A4CA0E23-0647-419C-97D6-2289FFA1C1E5}.Release|x64.ActiveCfg = Release|x64
+		{A4CA0E23-0647-419C-97D6-2289FFA1C1E5}.Release|x64.Build.0 = Release|x64
+		{A4CA0E23-0647-419C-97D6-2289FFA1C1E5}.Release|x86.ActiveCfg = Release|Win32
+		{A4CA0E23-0647-419C-97D6-2289FFA1C1E5}.Release|x86.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
+>>
+

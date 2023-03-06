@@ -1,0 +1,202 @@
+﻿group c_equal;
+
+
+JoinItems(sPart, soNestedPart) ::= <<
+<sPart>
+<if(soNestedPart)>
+if (ret) {
+    <soNestedPart>
+}
+
+<endif>
+>>
+
+JoinItems2_ret(sPart, sNestedPart) ::= <<
+<sPart>
+if (ret) {
+    <sNestedPart>
+}
+>>
+
+JoinItems2_ret_result(sPart, sNestedPart) ::= <<
+<sPart>
+if (ret) {
+    <sNestedPart>
+}
+>>
+
+
+
+/*
+*****************************************************************************************
+ E Q U A L      F U N C T I O N S
+*****************************************************************************************
+*/
+PrintEqualDefintionPrimitive(sFuncName, sTypeDefName) ::= <<
+flag <sFuncName>(const <sTypeDefName> val1, const <sTypeDefName> val2);
+>>
+
+PrintEqualDefintionComposite(sFuncName, sTypeDefName) ::= <<
+flag <sFuncName>(const <sTypeDefName>* pVal1, const <sTypeDefName>* pVal2);
+>>
+
+PrintEqualPrimitive(sFuncName, sTypeDefName, sContent) ::= <<
+flag <sFuncName>(const <sTypeDefName> val1, const <sTypeDefName> val2)
+{
+	return <sContent>;
+}
+>>
+
+
+
+PrintEqualComposite(sFuncName, sTypeDefName, sContent, arrsLocalVars) ::= <<
+flag <sFuncName>(const <sTypeDefName>* pVal1, const <sTypeDefName>* pVal2)
+{
+	flag ret=TRUE;
+    <arrsLocalVars; separator="\n">
+
+    <sContent>
+	return ret;
+}
+>>
+
+equalTypeAssignment_def(sVarName1, sVarName2, sStar, sFuncName, sTypeDefName) ::= <<
+flag <sFuncName>(const <sTypeDefName><sStar> <sVarName1>, const <sTypeDefName><sStar> <sVarName2>);
+>>
+
+equalTypeAssignment(sVarName1, sVarName2, sStar, sFuncName, sTypeDefName, sContent, arrsLocalVars, bExpression, bUnreferenced) ::= <<
+flag <sFuncName>(const <sTypeDefName><sStar> <sVarName1>, const <sTypeDefName><sStar> <sVarName2>)
+{
+<if(bUnreferenced)>
+	(void)<sVarName1>;
+	(void)<sVarName2>;
+
+<endif>
+    <if(bExpression)>
+	return <sContent>;
+
+    <else>
+	flag ret=TRUE;
+    <arrsLocalVars; separator="\n">
+
+    <sContent>
+	return ret;
+
+    <endif>
+}
+>>
+
+
+isEqual_Primitive(p1, p2) ::= "<p1> == <p2>"
+
+isEqual_String(p1, p2) ::= "strcmp(<p1>, <p2>) == 0"
+
+
+isEqual_Integer(p1, p2) /*nogen*/::= "ret = (<p1> == <p2>);"
+
+isEqual_Enumerated(p1, p2) /*nogen*/::= "<isEqual_Integer(p1=p1,p2=p2)>"
+
+
+isEqual_Boolean(p1, p2) /*nogen*/::= "ret = ( (<p1> && <p2>) || (!<p1> && !<p2>));"
+
+isEqual_Real(p1, p2) ::= "<p1> == <p2>"
+
+isEqual_IA5String(p1, p2) /*nogen*/::= "ret = (strcmp(<p1>, <p2>) ==0);"
+
+isEqual_NumericString(p1, p2) /*nogen*/::= "<isEqual_IA5String(p1=p1, p2=p2)>"
+isEqual_NullType()/*nogen*/ ::= "ret = TRUE;"
+
+isEqual_BitString(p1,p2,bIsFixedSize, nFixedSize) ::= <<
+<if(!bIsFixedSize)>
+    (<p1>nCount == <p2>nCount) && 
+    (memcmp(<p1>arr, <p2>arr, <p1>nCount/8) == 0) && 
+    (<p1>nCount % 8 > 0 ? (<p1>arr[<p1>nCount/8] \>> (8-<p1>nCount % 8) == <p2>arr[<p1>nCount/8]\>>(8-<p1>nCount % 8) ) : TRUE)
+
+<else>
+    (memcmp(<p1>arr, <p2>arr, <nFixedSize>/8) == 0) &&
+    ((<nFixedSize> % 8) >0 ? (<p1>arr[<nFixedSize>/8]\>>(8-<nFixedSize> % 8) == <p2>arr[<nFixedSize>/8]\>>(8-<nFixedSize> % 8) ) : TRUE)
+
+<endif>
+>>
+
+
+
+isEqual_OctetString(p1,p2, bIsFixedSize, nFixedSize) ::= <<
+<if(!bIsFixedSize)>
+(<p1>nCount == <p2>nCount) && (memcmp(<p1>arr, <p2>arr, <p1>nCount) ==0)
+<else>
+memcmp(<p1>arr, <p2>arr, <nFixedSize>) ==0
+<endif>	
+>>
+
+isObjectIdentifier_equal(p1, p2) ::= <<
+ObjectIdentifier_equal(<p1>, <p2>)
+>>
+
+
+
+isEqual_Choice_Child(sCid, sInnerStatement) ::= <<
+case <sCid>:
+	<sInnerStatement>
+	break;
+>>
+
+isEqual_Choice(p1,p2, sAccess, arrsChildren) ::= <<
+ret = (<p1><sAccess>kind == <p2><sAccess>kind);
+if (ret) {
+	switch(<p1><sAccess>kind) 
+	{
+	<arrsChildren: {ch|<ch>}; separator="\n">
+	default: /*COVERAGE_IGNORE*/
+		ret = FALSE;    /*COVERAGE_IGNORE*/
+	}
+} /*COVERAGE_IGNORE*/
+>>
+
+isEqual_Sequence_child(p1, p2, sAcc,  bIsOptional, sChName, soInnerStatement) ::= <<
+<if(bIsOptional)>
+ret = (<p1><sAcc>exist.<sChName> == <p2><sAcc>exist.<sChName>);
+<if(soInnerStatement)>
+if (ret && <p1><sAcc>exist.<sChName>) {
+	<soInnerStatement>
+}
+
+<endif>
+
+<else>
+<soInnerStatement>
+
+<endif>
+>>
+
+
+
+isEqual_SequenceOf_var_size(p1,p2, sAcc, i, soInnerStatement) ::= <<
+ret = (<p1><sAcc>nCount == <p2><sAcc>nCount);
+<if (soInnerStatement)>
+for(<i> = 0; ret && <i> \< <p1><sAcc>nCount; <i>++) 
+{
+	<soInnerStatement>
+}
+
+<endif>
+>>
+
+isEqual_SequenceOf_fix_size(p1,p2, sAcc, i, nFixedSize, sInnerStatement) ::= <<
+for(<i> = 0; ret && <i> \< <nFixedSize>; <i>++) 
+{
+	<sInnerStatement>
+}
+
+>>
+
+call_base_type_func(p1, p2, sFuncName) ::= "<sFuncName>(<p1>, <p2>)"
+
+makeExpressionToStatement(sIsValidExp) ::= <<
+ret = <sIsValidExp>;
+>>
+
+
+callChildEqualFunc(p1, p2,  sChildEqualFuncName) ::= <<
+ret = <sChildEqualFuncName>(<p1>, <p2>);
+>>
