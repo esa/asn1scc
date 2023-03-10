@@ -922,8 +922,10 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (m:Asn1Ast.Asn1Mo
     let combinedProperties = acnProps
     let allCons = t.Constraints@refTypeCons@withCons
     let debug = ReferenceToType curPath
-    if debug.AsString = "CANOB.MySeq.color" then
-        printfn "%s" debug.AsString
+    //if debug.AsString = "RW90-DATAVIEW.UART-Config" then
+    //    printfn "%s" debug.AsString
+    //if debug.AsString = "RW90-DATAVIEW.UART-Config.timeout" then
+    //    printfn "%s" debug.AsString
 
     let tfdArg = {GetTypeDifition_arg.asn1TypeKind = t.Kind; loc = t.Location; curPath = curPath; typeDefPath = typeDefPath; enmItemTypeDefPath = enmItemTypeDefPath; inferitInfo =inferitInfo ; typeAssignmentInfo = typeAssignmentInfo; rtlFnc = None}
 

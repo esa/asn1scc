@@ -413,7 +413,9 @@ let getTypedefKind (arg:GetTypeDifition_arg) =
             | Asn1Ast.Integer | Asn1Ast.Real | Asn1Ast.NullType | Asn1Ast.Boolean   -> FEI_Reference2RTL
             | _         -> raise(SemanticError(arg.loc, "Unnamed types are not supported in value assignments" ))
         | _     -> 
-            FEI_Reference2OtherType (ReferenceToType arg.typeDefPath)
+                match arg.curPath.Length > 2 && arg.rtlFnc.IsSome && arg.inferitInfo.IsNone with
+                | true  -> FEI_Reference2RTL
+                | false -> FEI_Reference2OtherType (ReferenceToType arg.typeDefPath)
     | _                 ->
         // type under a type assignment
         // when curPath  = typeDefPath then in most case it means a new type definition (or new subtype definition).
