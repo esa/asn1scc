@@ -1,5 +1,17 @@
 # Change Log
 
+## 4.5.0.2 - Maintenance release
+- Bugfix on the command line with parameter ordering 
+- Bugfix: missing include in Ada generated code
+- Bugfix in OCTET STRING (CONTAINING Other-Type)
+- Use "long" for the .exist field (for optional fields) in C to align with Ada
+- Fix cppcheck findings
+- Detect inconsistencies in WITH COMPONENTS subtypes
+- Support IA5String values according to the standard
+- Generate const globals with -ig for type initialization
+- Improve stack usage for Ada initialization functions
+
+
 ## 3.2.75
 - Removed the pragma Export in the Ada backend when using ASN.1 constants
 
