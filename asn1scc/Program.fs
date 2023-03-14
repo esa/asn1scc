@@ -245,7 +245,7 @@ let constructCommandLineSettings args (parserResults: ParseResults<CliArguments>
         renamePolicy = 
             match args |> List.choose (fun a -> match a with Rename_Policy rp -> Some rp | _ -> None) with
             | []    ->
-                match args |> List.filter(fun a -> a = C_lang || a = Ada_Lang) with
+                match args |> List.filter(fun a -> a = C_lang || a = Ada_Lang || a = Scala_Lang) with
                 | [ C_lang ]    -> CommonTypes.EnumRenamePolicy.SelectiveEnumerants
                 | [ Scala_Lang ]-> CommonTypes.EnumRenamePolicy.SelectiveEnumerants // TODO: Scala
                 | [ Ada_Lang ]  -> CommonTypes.EnumRenamePolicy.NoRenamePolicy

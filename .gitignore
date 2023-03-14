@@ -1416,3 +1416,6 @@ v2out
 /asn1crt/.vs/asn1crt/FileContentIndex/fdac4a94-1ee3-4664-b87b-f7d2fc52479c.vsidx
 /asn1crt/new.txt
 /asn1crt/err.txt
+GeneratedOutput/x64/
+x64/
+Backup1/

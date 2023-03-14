@@ -40,6 +40,7 @@
       <ProjectReference Include="..\FrontEndAst\FrontEndAst.fsproj" />
       <ProjectReference Include="..\StgAda\StgAda.fsproj" />
       <ProjectReference Include="..\StgC\StgC.fsproj" />
+      <ProjectReference Include="..\StgScala\StgScala.fsproj" />
       <ProjectReference Include="..\StgVarious\StgVarious.fsproj" />
     </ItemGroup>
 
