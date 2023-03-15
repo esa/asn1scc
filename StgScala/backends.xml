@@ -1,100 +1,100 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Settings generateInterfacesSignature="ILang.fs">
   <run mode="single">
-    <input>header_c.stg</input>
-    <output>header_c.stg.fs</output>
-    <modName>header_c</modName>
-	<lang>c</lang>
+    <input>header_scala.stg</input>
+    <output>header_scala.stg.fs</output>
+    <modName>header_scala</modName>
+	<lang>scala</lang>
     <abctractInterface   modMame="ITypeDefinition">ITypeDefinition.stg.fs</abctractInterface>
-    <implementationClass ifModMame="AbstractMacros.ITypeDefinition" modMame="ITypeDefinition_c">ITypeDefinition_c.stg.fs</implementationClass>
+    <implementationClass ifModMame="AbstractMacros.ITypeDefinition" modMame="ITypeDefinition_scala">ITypeDefinition_scala.stg.fs</implementationClass>
   </run>
   <run mode="single">
-    <input>body_c.stg</input>
-    <output>body_c.stg.fs</output>
-    <modName>body_c</modName>
-	<lang>c</lang>
+    <input>body_scala.stg</input>
+    <output>body_scala.stg.fs</output>
+    <modName>body_scala</modName>
+	<lang>scala</lang>
     <abctractInterface   modMame="ISrcBody">ISrcBody.stg.fs</abctractInterface>
-    <implementationClass ifModMame="AbstractMacros.ISrcBody" modMame="ISrcBody_c">ISrcBody_c.stg.fs</implementationClass>
+    <implementationClass ifModMame="AbstractMacros.ISrcBody" modMame="ISrcBody_scala">ISrcBody_scala.stg.fs</implementationClass>
   </run>
   <run mode="single">
-    <input>variables_c.stg</input>
-    <output>variables_c.stg.fs</output>
-    <modName>variables_c</modName>
+    <input>variables_scala.stg</input>
+    <output>variables_scala.stg.fs</output>
+    <modName>variables_scala</modName>
     <abctractInterface   modMame="IVariables">IVariables.stg.fs</abctractInterface>
-    <implementationClass ifModMame="AbstractMacros.IVariables" modMame="IVariables_c">IVariables_c.stg.fs</implementationClass>
-	<lang>c</lang>
+    <implementationClass ifModMame="AbstractMacros.IVariables" modMame="IVariables_scala">IVariables_scala.stg.fs</implementationClass>
+	<lang>scala</lang>
   </run>
 
   <run mode="single">
-    <input>equal_c.stg</input>
-    <output>equal_c.stg.fs</output>
-    <modName>equal_c</modName>
-	<lang>c</lang>
+    <input>equal_scala.stg</input>
+    <output>equal_scala.stg.fs</output>
+    <modName>equal_scala</modName>
+	<lang>scala</lang>
     <abctractInterface   modMame="IEqual">IEqual.stg.fs</abctractInterface>
-    <implementationClass ifModMame="AbstractMacros.IEqual" modMame="IEqual_c">IEqual_c.stg.fs</implementationClass>
+    <implementationClass ifModMame="AbstractMacros.IEqual" modMame="IEqual_scala">IEqual_scala.stg.fs</implementationClass>
   </run>
   <run mode="single" >
-    <input>isvalid_c.stg</input>
-    <output>isvalid_c.stg.fs</output>
-    <modName>isvalid_c</modName>
-	<lang>c</lang>
+    <input>isvalid_scala.stg</input>
+    <output>isvalid_scala.stg.fs</output>
+    <modName>isvalid_scala</modName>
+	<lang>scala</lang>
     <abctractInterface   modMame="IIsValid">IIsValid.stg.fs</abctractInterface>
-    <implementationClass ifModMame="AbstractMacros.IIsValid" modMame="IsValid_c">IIsValid_c.stg.fs</implementationClass>
+    <implementationClass ifModMame="AbstractMacros.IIsValid" modMame="IIsValid_scala">IIsValid_scala.stg.fs</implementationClass>
    </run>
   <run mode="single" >
-        <input>isvalid_new_c.stg</input>
-        <output>isvalid_new_c.stg.fs</output>
-        <modName>isvalid_new_c</modName>
-        <lang>c</lang>
+        <input>isvalid_new_scala.stg</input>
+        <output>isvalid_new_scala.stg.fs</output>
+        <modName>isvalid_new_scala</modName>
+        <lang>scala</lang>
     </run>
     <run mode="single">
-        <input>init_c.stg</input>
-        <output>init_c.stg.fs</output>
-        <modName>init_c</modName>
-	    <lang>c</lang>
+        <input>init_scala.stg</input>
+        <output>init_scala.stg.fs</output>
+        <modName>init_scala</modName>
+	    <lang>scala</lang>
         <abctractInterface   modMame="IInit">IInit.stg.fs</abctractInterface>
-		<implementationClass ifModMame="AbstractMacros.IInit" modMame="Init_c">IInit_c.stg.fs</implementationClass>
+		<implementationClass ifModMame="AbstractMacros.IInit" modMame="IInit_scala">IInit_scala.stg.fs</implementationClass>
 	</run>
   <run mode="single">
-    <input>uper_c.stg</input>
-    <output>uper_c.stg.fs</output>
-    <modName>uper_c</modName>
-	<lang>c</lang>
+    <input>uper_scala.stg</input>
+    <output>uper_scala.stg.fs</output>
+    <modName>uper_scala</modName>
+	<lang>scala</lang>
     <abctractInterface   modMame="IUper">IUper.stg.fs</abctractInterface>
-    <implementationClass ifModMame="AbstractMacros.IUper" modMame="iuper_c">IUper_c.stg.fs</implementationClass>
+    <implementationClass ifModMame="AbstractMacros.IUper" modMame="IUper_scala">IUper_scala.stg.fs</implementationClass>
   </run>
   <run mode="single">
-    <input>acn_c.stg</input>
-    <output>acn_c.stg.fs</output>
-    <modName>acn_c</modName>
+    <input>acn_scala.stg</input>
+    <output>acn_scala.stg.fs</output>
+    <modName>acn_scala</modName>
 	<interfaces_def></interfaces_def>
-	<lang>c</lang>
+	<lang>scala</lang>
 	
     <abctractInterface   modMame="IAcn">IAcn.stg.fs</abctractInterface>
-    <implementationClass ifModMame="AbstractMacros.IAcn" modMame="IAcn_c">IAcn_c.stg.fs</implementationClass>
+    <implementationClass ifModMame="AbstractMacros.IAcn" modMame="IAcn_scala">IAcn_scala.stg.fs</implementationClass>
 
   </run>
   <run mode="single">
-        <input>xer_c.stg</input>
-        <output>xer_c.stg.fs</output>
-        <modName>xer_c</modName>
-        <lang>c</lang>
+        <input>xer_scala.stg</input>
+        <output>xer_scala.stg.fs</output>
+        <modName>xer_scala</modName>
+        <lang>scala</lang>
     <abctractInterface   modMame="IXer">IXer.stg.fs</abctractInterface>
-    <implementationClass ifModMame="AbstractMacros.IXer" modMame="IXer_c">IXer_c.stg.fs</implementationClass>
+    <implementationClass ifModMame="AbstractMacros.IXer" modMame="IXer_scala">IXer_scala.stg.fs</implementationClass>
   </run>
   <run mode="single">
-      <input>test_cases_c.stg</input>
-      <output>test_cases_c.stg.fs</output>
-      <modName>test_cases_c</modName>
-      <lang>c</lang>
+      <input>test_cases_scala.stg</input>
+      <output>test_cases_scala.stg.fs</output>
+      <modName>test_cases_scala</modName>
+      <lang>scala</lang>
       <abctractInterface   modMame="ITestCases">ITestCases.stg.fs</abctractInterface>
-	  <implementationClass ifModMame="AbstractMacros.ITestCases" modMame="ITestCases_c">ITestCases_c.stg.fs</implementationClass>
+	  <implementationClass ifModMame="AbstractMacros.ITestCases" modMame="ITestCases_scala">ITestCases_scala.stg.fs</implementationClass>
   </run>
   <run mode="single">
-      <input>aux_c.stg</input>
-      <output>aux_c.stg.fs</output>
-      <modName>aux_c</modName>
-      <lang>c</lang>
+      <input>aux_scala.stg</input>
+      <output>aux_scala.stg.fs</output>
+      <modName>aux_scala</modName>
+      <lang>scala</lang>
     <abctractInterface   modMame="IAux">IAux.stg.fs</abctractInterface>
   </run>
 

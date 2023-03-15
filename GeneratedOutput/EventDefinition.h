@@ -15,14 +15,14 @@ extern "C" {
 typedef DummyType EventDefinitionAuxiliaryData;
 
 
-#define ERR_EVENTDEFINITIONAUXILIARYDATA_2		51  /**/
+#define ERR_EVENTDEFINITIONAUXILIARYDATA_2		46  /**/
 flag EventDefinitionAuxiliaryData_IsConstraintValid(const EventDefinitionAuxiliaryData* pVal, int* pErrCode);
 
 void EventDefinitionAuxiliaryData_Initialize(EventDefinitionAuxiliaryData* pVal);
 typedef asn1SccUint EventDefinition_ID;
 
 
-#define ERR_EVENTDEFINITION_ID		41  /*(0 .. 4294967295)*/
+#define ERR_EVENTDEFINITION_ID		36  /*(0 .. 4294967295)*/
 flag EventDefinition_ID_IsConstraintValid(const EventDefinition_ID* pVal, int* pErrCode);
 
 void EventDefinition_ID_Initialize(EventDefinition_ID* pVal);

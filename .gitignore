@@ -912,15 +912,6 @@ Asn1.userprefs
 /StgC/uper_c.stg.fs
 /StgC/variables_c.stg.fs
 /StgC/xer_c.stg.fs
-/StgScala/acn_c.stg.fs
-/StgScala/body_c.stg.fs
-/StgScala/equal_c.stg.fs
-/StgScala/header_c.stg.fs
-/StgScala/init_c.stg.fs
-/StgScala/isvalid_c.stg.fs
-/StgScala/uper_c.stg.fs
-/StgScala/variables_c.stg.fs
-/StgScala/xer_c.stg.fs
 /StgVarious/stg_ACN.stg.fs
 /StgVarious/stg_ASN.stg.fs
 /StgAda/aux_a.stg.fs
@@ -942,7 +933,6 @@ xml
 /v4Tests/tmp - Copy
 /StgAda/test_cases_a.stg.fs
 /StgC/test_cases_c.stg.fs
-/StgScala/test_cases_c.stg.fs
 /StgVarious/xml_outputs.stg.fs
 /mantis/0000703/o2
 /mantis/0000703/o
@@ -1090,8 +1080,6 @@ v2out
 /mantis/0000769/ada_o2
 /StgC/isvalid_c_impl.stg.fs
 /StgC/isvalid_new_c.stg.fs
-/StgScala/isvalid_c_impl.stg.fs
-/StgScala/isvalid_new_c.stg.fs
 /StgAda/isvalid_a_impl.stg.fs
 /StgAda/isvalid_new_a.stg.fs
 /CommonTypes/isvalid_if.stg.fs
@@ -1284,8 +1272,6 @@ v2out
 /FrontEndAst/Asn1SchemaExt.xsd
 /StgC/ITypeDefinition_c.stg.fs
 /StgC/IEqual_c.stg.fs
-/StgScala/ITypeDefinition_c.stg.fs
-/StgScala/IEqual_c.stg.fs
 /StgAda/IEqual_a.stg.fs
 /lsp/Server/Server/Properties/PublishProfiles/FolderProfile.pubxml.user
 /Docs/examples/streaming_mode/ada_out/taste_dataview.ads
@@ -1396,15 +1382,7 @@ v2out
 /StgC/IVariables_c.stg.fs
 /StgC/ISrcBody_c.stg.fs
 /StgC/aux_c.stg.fs
-/StgScala/IIsValid_c.stg.fs
-/StgScala/IUper_c.stg.fs
-/StgScala/IAcn_c.stg.fs
-/StgScala/IInit_c.stg.fs
-/StgScala/ITestCases_c.stg.fs
-/StgScala/IXer_c.stg.fs
-/StgScala/IVariables_c.stg.fs
-/StgScala/ISrcBody_c.stg.fs
-/StgScala/aux_c.stg.fs
+/StgScala/*.stg.fs
 /lsp/Qt-creator-options.jpg
 /v4Tests/a.sh
 /v4Tests/runMake.sh

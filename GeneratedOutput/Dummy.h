@@ -13,7 +13,7 @@ extern "C" {
 typedef asn1SccUint DummyType;
 
 
-#define ERR_DUMMYTYPE		36  /*(15)*/
+#define ERR_DUMMYTYPE		51  /*(15)*/
 flag DummyType_IsConstraintValid(const DummyType* pVal, int* pErrCode);
 
 void DummyType_Initialize(DummyType* pVal);

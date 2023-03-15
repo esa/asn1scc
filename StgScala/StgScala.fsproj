@@ -7,66 +7,66 @@
 
   <ItemGroup>
     <Content Include="backends.xml" />
-    <Compile Include="acn_c.stg.fs" />
-    <Compile Include="aux_c.stg.fs" />
-    <Compile Include="body_c.stg.fs" />
-    <Compile Include="equal_c.stg.fs" />
-    <Compile Include="header_c.stg.fs" />
-    <Compile Include="init_c.stg.fs" />
-    <Compile Include="isvalid_c.stg.fs" />
-    <Compile Include="isvalid_new_c.stg.fs" />
-    <Compile Include="test_cases_c.stg.fs" />
-    <Compile Include="uper_c.stg.fs" />
-    <Compile Include="variables_c.stg.fs" />
-    <Compile Include="xer_c.stg.fs" />
-    <Compile Include="IXer_c.stg.fs" />
-    <Compile Include="IEqual_c.stg.fs" />
-    <Compile Include="ITypeDefinition_c.stg.fs" />
-    <Compile Include="IVariables_c.stg.fs" />
-    <Compile Include="IIsValid_c.stg.fs" />
-    <Compile Include="IInit_c.stg.fs" />
-    <Compile Include="IUper_c.stg.fs" />
+    <Compile Include="acn_scala.stg.fs" />
+    <Compile Include="aux_scala.stg.fs" />
+    <Compile Include="body_scala.stg.fs" />
+    <Compile Include="equal_scala.stg.fs" />
+    <Compile Include="header_scala.stg.fs" />
+    <Compile Include="init_scala.stg.fs" />
+    <Compile Include="isvalid_scala.stg.fs" />
+    <Compile Include="isvalid_new_scala.stg.fs" />
+    <Compile Include="test_cases_scala.stg.fs" />
+    <Compile Include="uper_scala.stg.fs" />
+    <Compile Include="variables_scala.stg.fs" />
+    <Compile Include="xer_scala.stg.fs" />
+    <Compile Include="IXer_scala.stg.fs" />
+    <Compile Include="IEqual_scala.stg.fs" />
+    <Compile Include="ITypeDefinition_scala.stg.fs" />
+    <Compile Include="IVariables_scala.stg.fs" />
+    <Compile Include="IIsValid_scala.stg.fs" />
+    <Compile Include="IInit_scala.stg.fs" />
+    <Compile Include="IUper_scala.stg.fs" />
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Include="IAcn_c.stg.fs" />
-    <Compile Include="ITestCases_c.stg.fs" />
-    <Compile Include="ISrcBody_c.stg.fs" />
-    <Compile Include="LangGeneric_c.fs" />
-    <None Include="acn_c.stg">
+    <Compile Include="IAcn_scala.stg.fs" />
+    <Compile Include="ITestCases_scala.stg.fs" />
+    <Compile Include="ISrcBody_scala.stg.fs" />
+    <Compile Include="LangGeneric_scala.fs" />
+    <None Include="acn_scala.stg">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="aux_c.stg">
+    <None Include="aux_scala.stg">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="body_c.stg">
+    <None Include="body_scala.stg">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="equal_c.stg">
+    <None Include="equal_scala.stg">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="header_c.stg">
+    <None Include="header_scala.stg">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="init_c.stg">
+    <None Include="init_scala.stg">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="isvalid_c.stg">
+    <None Include="isvalid_scala.stg">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="isvalid_new_c.stg">
+    <None Include="isvalid_new_scala.stg">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="test_cases_c.stg">
+    <None Include="test_cases_scala.stg">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="uper_c.stg">
+    <None Include="uper_scala.stg">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="variables_c.stg">
+    <None Include="variables_scala.stg">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="xer_c.stg">
+    <None Include="xer_scala.stg">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>

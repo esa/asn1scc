@@ -1,4 +1,4 @@
-﻿module LangGeneric_c
+﻿module LangGeneric_scala
 open CommonTypes
 open System.Numerics
 open DAst
@@ -6,7 +6,7 @@ open FsUtils
 open Language
 open System.IO
 
-let getAcces_c  (fpt:FuncParamType) =
+let getAcces_scala  (fpt:FuncParamType) =
     match fpt with
     | VALUE x        -> "."
     | POINTER x      -> "->"
@@ -34,7 +34,7 @@ let createBitStringFunction_funcBody_c handleFragmentation (codec:CommonTypes.Co
 #endif
 
 
-type LangGeneric_c() =
+type LangGeneric_scala() =
     inherit ILangGeneric()
         override _.ArrayStartIndex = 0
 
@@ -70,7 +70,7 @@ type LangGeneric_c() =
             | POINTER x      -> sprintf "(*(%s))" x
             | FIXARRAY x     -> x
 
-        override this.getAcces  (fpt:FuncParamType) = getAcces_c fpt
+        override this.getAcces  (fpt:FuncParamType) = getAcces_scala fpt
 
         override this.ArrayAccess idx = "[" + idx + "]"
 
@@ -91,7 +91,7 @@ type LangGeneric_c() =
         override this.decode_nullType _ = None
 
         override this.Length exp sAcc =
-            isvalid_c.ArrayLen exp sAcc
+            isvalid_scala.ArrayLen exp sAcc
 
         override this.typeDef (ptd:Map<ProgrammingLanguage, FE_PrimitiveTypeDefinition>) = ptd.[C]
         override this.getTypeDefinition (td:Map<ProgrammingLanguage, FE_TypeDefinition>) = td.[C]
@@ -113,7 +113,6 @@ type LangGeneric_c() =
             let xerRtl = match encodings |> Seq.exists(fun e -> e = XER) with true -> ["asn1crt_encoding_xer"] | false -> []
             encRtl@uperRtl@acnRtl@xerRtl
             
-
 
         override this.getEmptySequenceInitExpression () = "{}"
         override this.callFuncWithNoArgs () = "()"
@@ -297,14 +296,14 @@ type LangGeneric_c() =
 
         override this.CreateMakeFile (r:AstRoot)  (di:OutDirectories.DirInfo) =
             let files = r.Files |> Seq.map(fun x -> (Path.GetFileNameWithoutExtension x.FileName).ToLower() )
-            let content = aux_c.PrintMakeFile files (r.args.integerSizeInBytes = 4I) (r.args.floatingPointSizeInBytes = 4I) r.args.streamingModeSupport
+            let content = aux_scala.PrintMakeFile files (r.args.integerSizeInBytes = 4I) (r.args.floatingPointSizeInBytes = 4I) r.args.streamingModeSupport
             let outFileName = Path.Combine(di.srcDir, "Makefile")
             File.WriteAllText(outFileName, content.Replace("\r",""))
 
         override this.CreateAuxFiles (r:AstRoot)  (di:OutDirectories.DirInfo) (arrsSrcTstFiles : string list, arrsHdrTstFiles:string list) =
             let CreateCMainFile (r:AstRoot)  outDir  =
                 //Main file for test cass    
-                let printMain =    test_cases_c.PrintMain //match l with C -> test_cases_c.PrintMain | Ada -> test_cases_c.PrintMain
+                let printMain =    test_cases_scala.PrintMain //match l with C -> test_cases_c.PrintMain | Ada -> test_cases_c.PrintMain
                 let content = printMain "testsuite"
                 let outFileName = Path.Combine(outDir, "mainprogram.c")
                 File.WriteAllText(outFileName, content.Replace("\r",""))
@@ -335,10 +334,8 @@ type LangGeneric_c() =
                 File.WriteAllText(vcprjFileName, vcprjContent)
 
                 //generate Visual Studio Solution file
-                File.WriteAllText((Path.Combine(outDir, "VsProject.sln")), (aux_c.emitVisualStudioSolution()))
+                File.WriteAllText((Path.Combine(outDir, "VsProject.sln")), (aux_scala.emitVisualStudioSolution()))
 
 
             CreateCMainFile r  di.srcDir
             generateVisualStudtioProject r di.srcDir (arrsSrcTstFiles, arrsHdrTstFiles)
-
-

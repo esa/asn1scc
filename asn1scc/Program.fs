@@ -292,17 +292,17 @@ let getLanguageMacro (l:ProgrammingLanguage) =
     // TODO: Scala
     | Scala ->
         {
-            LanguageMacros.equal = new IEqual_c.IEqual_c() 
-            init = new Init_c.Init_c()
-            typeDef = new ITypeDefinition_c.ITypeDefinition_c() 
-            lg = new LangGeneric_c.LangGeneric_c(); 
-            isvalid= new IsValid_c.IsValid_c() 
-            vars = new IVariables_c.IVariables_c()
-            uper = new iuper_c.iuper_c()
-            acn = new IAcn_c.IAcn_c()
-            atc = new ITestCases_c.ITestCases_c()
-            xer = new IXer_c.IXer_c()
-            src = new ISrcBody_c.ISrcBody_c()
+            LanguageMacros.equal = new IEqual_scala.IEqual_scala() 
+            init = new IInit_scala.IInit_scala()
+            typeDef = new ITypeDefinition_scala.ITypeDefinition_scala() 
+            lg = new LangGeneric_scala.LangGeneric_scala(); 
+            isvalid= new IIsValid_scala.IIsValid_scala() 
+            vars = new IVariables_scala.IVariables_scala()
+            uper = new IUper_scala.IUper_scala()
+            acn = new IAcn_scala.IAcn_scala()
+            atc = new ITestCases_scala.ITestCases_scala()
+            xer = new IXer_scala.IXer_scala()
+            src = new ISrcBody_scala.ISrcBody_scala()
         }
     | Ada ->
         {
