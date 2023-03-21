@@ -272,7 +272,7 @@ type ProgrammingLanguage =
         member l.declare_IntegerNoRTL = 
             match l with 
             | C     -> "", "asn1SccSint", "INTEGER"
-            | Scala -> "", "asn1SccSint", "INTEGER" // TODO: Scala
+            | Scala -> "", "Int", "INTEGER" // TODO: Scala
             | Ada   -> "adaasn1rtl", "Asn1Int", "INTEGER"
         member l.declare_PosIntegerNoRTL =
             match l with 
@@ -323,7 +323,7 @@ type ProgrammingLanguage =
         member l.getBoolRtlTypeName =
             match l with 
             | C -> "","flag","BOOLEAN" 
-            | Scala -> "","flag","BOOLEAN" // TODO: Scala  
+            | Scala -> "","Boolean","BOOLEAN" // TODO: Scala  
             | Ada  -> "adaasn1rtl", "Asn1Boolean", "BOOLEAN"
 
 

@@ -22,7 +22,7 @@ void <sFuncName>(<sTypeDefName><sStar> <sVarName>)
 
 initInteger(sVal, nValue) ::= "<sVal> = <nValue>;"
 initReal(sVal, dValue) ::= "<sVal> = <dValue>;"
-initBoolean(sVal, bValue) ::= "<sVal> = <if(bValue)>TRUE<else>FALSE<endif>;"
+initBoolean(sVal, bValue) ::= "<sVal> = <if(bValue)>true<else>false<endif>;"
 
 initObjectIdentifier_vali(p, sAcc, sI, nIntVal) ::= "<p><sAcc>values[<sI>] = <nIntVal>;"
 initObjectIdentifier(p, sAcc, nSize, arrsValues) ::= <<

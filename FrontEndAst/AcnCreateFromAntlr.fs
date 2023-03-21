@@ -1473,9 +1473,10 @@ let private mergeTAS (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (m:Asn1Ast.Asn1Module) 
     let typeEncodingSpec = tas.Type.acnInfo
     let newType, us1 = mergeType asn1 acn m tas.Type [MD m.Name.Value; TA tas.Name.Value] [MD m.Name.Value; TA tas.Name.Value] [MD m.Name.Value; TA tas.Name.Value] typeEncodingSpec (*(acnTas |> Option.map(fun x -> x.typeEncodingSpec))*) None [] [] [] acnParameters None (Some (TypeAssignmentInfo {TypeAssignmentInfo.modName = m.Name.Value; tasName = tas.Name.Value}))  us
     let newTas = 
-        {
+            {
             TypeAssignment.Name = tas.Name
             c_name = tas.c_name
+            scala_name = tas.scala_name
             ada_name = tas.ada_name
             Type = newType
             asn1Comments = tas.Comments |> Seq.toList
@@ -1493,6 +1494,7 @@ let private mergeValueAssignment (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (m:Asn1Ast.
         {
             ValueAssignment.Name = vas.Name
             c_name = vas.c_name
+            scala_name = vas.scala_name
             ada_name = vas.ada_name
             Type = newType
             Value = ValuesMapping.mapValue asn1 vas.Type vas.Value

@@ -149,7 +149,7 @@ let get_group  fileName =
         cache.[fileName]
     else
         let applicationFolder = Path.GetDirectoryName(System.Reflection.Assembly.GetAssembly(typedefof<dummy>).Location);
-        let devFolders = [@"C:\prj\GitHub\asn1scc\StgC"; @"C:\prj\GitHub\asn1scc\StgAda"]
+        let devFolders = [@"C:\prj\GitHub\asn1scc\StgC"; @"C:\prj\GitHub\asn1scc\StgAda"; @"C:\prj\GitHub\asn1scc\StgScala"]
         let custFolder =
             match Path.GetDirectoryName fileName with
             | ""    -> []

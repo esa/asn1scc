@@ -880,6 +880,7 @@ let private mapTas (r:Asn1AcnAst.AstRoot) (icdStgFileName:string) (deps:Asn1AcnA
     {
         TypeAssignment.Name = tas.Name
         c_name = tas.c_name
+        scala_name = tas.scala_name
         ada_name = tas.ada_name
         Type = newType
         Comments = tas.Comments |> Seq.toArray
@@ -903,6 +904,7 @@ let private mapVas (r:Asn1AcnAst.AstRoot) (icdStgFileName:string) (allNewTypeAss
     {
         ValueAssignment.Name = vas.Name
         c_name = vas.c_name
+        scala_name = vas.scala_name
         ada_name = vas.ada_name
         Type = newType
         Value = mapValue vas.Value

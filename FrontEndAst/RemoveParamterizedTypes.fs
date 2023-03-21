@@ -293,6 +293,7 @@ let DoValueAssignment (r:AstRoot) (curModule:Asn1Module) (implicitImports : List
         Value = vas.Value
         Scope = vas.Scope
         c_name = vas.c_name
+        scala_name = vas.scala_name
         ada_name = vas.ada_name
     }, newImports
 

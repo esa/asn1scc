@@ -389,6 +389,7 @@ let MapTypeAssignment (r:ParameterizedAsn1Ast.AstRoot) (m:ParameterizedAsn1Ast.A
         Asn1Ast.TypeAssignment.Name = tas.Name
         Type = MapAsn1Type r ([MD m.Name.Value; TA tas.Name.Value]) tas.Type
         c_name = ToC2 tas.Name.Value
+        scala_name = ToC2 tas.Name.Value
         ada_name = ToC2 tas.Name.Value
         Comments = tas.Comments
         acnInfo = tas.acnInfo
@@ -409,6 +410,7 @@ let MapValueAssignment (r:ParameterizedAsn1Ast.AstRoot) (m:ParameterizedAsn1Ast.
         //    | ParameterizedAsn1Ast.GlobalScope      ->  Asn1Ast.GlobalScope
         //    | ParameterizedAsn1Ast.TypeScope(m,t)   ->  Asn1Ast.TypeScope(m,t)
         c_name = vas.c_name
+        scala_name = vas.scala_name
         ada_name = vas.ada_name
     }
 

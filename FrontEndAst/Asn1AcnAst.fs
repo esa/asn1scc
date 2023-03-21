@@ -779,6 +779,7 @@ and ReferenceType = {
 type TypeAssignment = {
     Name:StringLoc
     c_name:string
+    scala_name:string
     ada_name:string
     Type:Asn1Type
     asn1Comments: string list
@@ -790,6 +791,7 @@ with
 type ValueAssignment = {
     Name:StringLoc
     c_name:string
+    scala_name:string
     ada_name:string
     Type:Asn1Type
     Value:Asn1Value

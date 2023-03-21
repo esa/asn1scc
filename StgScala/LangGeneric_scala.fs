@@ -84,27 +84,43 @@ type LangGeneric_scala() =
             let newPath = sprintf "%s%sarr[%s]" fpt.p (this.getAcces fpt) idx
             if childTypeIsString then (FIXARRAY newPath) else (VALUE newPath)
         override this.getNamedItemBackendName (defOrRef:TypeDefintionOrReference option) (nm:Asn1AcnAst.NamedItem) = 
-            ToC nm.c_name
+            ToC nm.scala_name
+            
         override this.getNamedItemBackendName2 (_:string) (_:string) (nm:Asn1AcnAst.NamedItem) = 
-            ToC nm.c_name
+            ToC nm.scala_name
+            
         override this.decodeEmptySeq _ = None
         override this.decode_nullType _ = None
 
         override this.Length exp sAcc =
             isvalid_scala.ArrayLen exp sAcc
 
-        override this.typeDef (ptd:Map<ProgrammingLanguage, FE_PrimitiveTypeDefinition>) = ptd.[C]
-        override this.getTypeDefinition (td:Map<ProgrammingLanguage, FE_TypeDefinition>) = td.[C]
-        override this.getEnmTypeDefintion (td:Map<ProgrammingLanguage, FE_EnumeratedTypeDefinition>) = td.[C]
-        override this.getStrTypeDefinition (td:Map<ProgrammingLanguage, FE_StringTypeDefinition>) = td.[C]
-        override this.getChoiceTypeDefinition (td:Map<ProgrammingLanguage, FE_ChoiceTypeDefinition>) = td.[C]
-        override this.getSequenceTypeDefinition (td:Map<ProgrammingLanguage, FE_SequenceTypeDefinition>) = td.[C]
-        override this.getSizeableTypeDefinition (td:Map<ProgrammingLanguage, FE_SizeableTypeDefinition>) = td.[C]
+        override this.typeDef (ptd:Map<ProgrammingLanguage, FE_PrimitiveTypeDefinition>) = ptd.[Scala]
+        override this.getTypeDefinition (td:Map<ProgrammingLanguage, FE_TypeDefinition>) = td.[Scala]
+        override this.getEnmTypeDefintion (td:Map<ProgrammingLanguage, FE_EnumeratedTypeDefinition>) = td.[Scala]
+        override this.getStrTypeDefinition (td:Map<ProgrammingLanguage, FE_StringTypeDefinition>) = td.[Scala]
+        override this.getChoiceTypeDefinition (td:Map<ProgrammingLanguage, FE_ChoiceTypeDefinition>) = td.[Scala]
+        
+        
+        override this.getSequenceTypeDefinition (td:Map<ProgrammingLanguage, FE_SequenceTypeDefinition>) = td.[Scala]
+        override this.getSizeableTypeDefinition (td:Map<ProgrammingLanguage, FE_SizeableTypeDefinition>) = td.[Scala]
 
-        override this.getAsn1ChildBackendName (ch:Asn1Child) = ch._c_name
-        override this.getAsn1ChChildBackendName (ch:ChChildInfo) = ch._c_name
-        override this.getAsn1ChildBackendName0 (ch:Asn1AcnAst.Asn1Child) = ch._c_name
-        override this.getAsn1ChChildBackendName0 (ch:Asn1AcnAst.ChChildInfo) = ch._c_name
+        override this.getAsn1ChildBackendName (ch:Asn1Child) = ch._scala_name
+        
+        
+        override this.getAsn1ChChildBackendName (ch:ChChildInfo) = ch._scala_name
+        
+        
+        
+        
+        override this.getAsn1ChildBackendName0 (ch:Asn1AcnAst.Asn1Child) = ch._scala_name
+        
+        
+        override this.getAsn1ChChildBackendName0 (ch:Asn1AcnAst.ChChildInfo) = ch._scala_name
+        
+        
+        
+        
 
         override this.getRtlFiles  (encodings:Asn1Encoding list) (_ :string list) =
             let encRtl = match encodings |> Seq.exists(fun e -> e = UPER || e = ACN ) with true -> ["asn1crt_encoding"] | false -> []
@@ -118,8 +134,8 @@ type LangGeneric_scala() =
         override this.callFuncWithNoArgs () = "()"
         override this.rtlModuleName  = ""
         override this.AssignOperator = "="
-        override this.TrueLiteral = "TRUE"
-        override this.FalseLiteral = "FALSE"
+        override this.TrueLiteral = "true"
+        override this.FalseLiteral = "false"
         override this.emtyStatement = ""
         override this.bitStreamName = "BitStream"
         override this.unaryNotOperator    = "!"  
@@ -132,12 +148,13 @@ type LangGeneric_scala() =
 
         override this.castExpression (sExp:string) (sCastType:string) = sprintf "(%s)(%s)" sCastType sExp
         override this.createSingleLineComment (sText:string) = sprintf "/*%s*/" sText
+        
             
-        override _.SpecExtention = "h"
-        override _.BodyExtention = "c"
+        override _.SpecExtention = "h.scala"
+        override _.BodyExtention = "scala"
 
 
-        override _.getValueAssignmentName (vas: ValueAssignment) = vas.c_name
+        override _.getValueAssignmentName (vas: ValueAssignment) = vas.scala_name
 
         override this.hasModules = false
         override this.allowsSrcFilesWithNoFunctions = true
@@ -230,17 +247,18 @@ type LangGeneric_scala() =
             | SequenceOfIndex (i,Some iv)               -> sprintf "int i%d=%d;" i iv
             | IntegerLocalVariable (name,None)          -> sprintf "int %s;" name
             | IntegerLocalVariable (name,Some iv)       -> sprintf "int %s=%d;" name iv
-            | Asn1SIntLocalVariable (name,None)         -> sprintf "asn1SccSint %s;" name
+            | Asn1SIntLocalVariable (name,None)         -> sprintf "%s: Int;" name
             | Asn1SIntLocalVariable (name,Some iv)      -> sprintf "asn1SccSint %s=%d;" name iv
             | Asn1UIntLocalVariable (name,None)         -> sprintf "asn1SccUint %s;" name
             | Asn1UIntLocalVariable (name,Some iv)      -> sprintf "asn1SccUint %s=%d;" name iv
-            | FlagLocalVariable (name,None)             -> sprintf "flag %s;" name
-            | FlagLocalVariable (name,Some iv)          -> sprintf "flag %s=%d;" name iv
-            | BooleanLocalVariable (name,None)          -> sprintf "flag %s;" name
-            | BooleanLocalVariable (name,Some iv)       -> sprintf "flag %s=%s;" name (if iv then "TRUE" else "FALSE")
-            | AcnInsertedChild(name, vartype)           -> sprintf "%s %s;" vartype name
+            | FlagLocalVariable (name,None)             -> sprintf "%s: Boolean;" name
+            | FlagLocalVariable (name,Some iv)          -> sprintf "var %s: Boolean = %d" name iv
+            | BooleanLocalVariable (name,None)          -> sprintf "%s: Boolean;" name
+            | BooleanLocalVariable (name,Some iv)       -> sprintf "var %s: Boolean = %s" name (if iv then "true" else "false")
+            | AcnInsertedChild(name, vartype)           -> sprintf "%s %s;" name vartype
+            
             | GenericLocalVariable lv                   ->
-                sprintf "%s%s %s%s;" (if lv.isStatic then "static " else "") lv.varType lv.name (if lv.arrSize.IsNone then "" else "["+lv.arrSize.Value+"]")
+                sprintf "%s%s: %s%s;" (if lv.isStatic then "static " else "") lv.name lv.varType (if lv.arrSize.IsNone then "" else "["+lv.arrSize.Value+"]")
 
             
         override this.getLongTypedefName (tdr:TypeDefintionOrReference) : string =

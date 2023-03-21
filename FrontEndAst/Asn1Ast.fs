@@ -174,6 +174,7 @@ and ChildInfo = {
 type TypeAssignment = {
     Name:StringLoc
     c_name:string
+    scala_name:string
     ada_name:string
     Type:Asn1Type
     Comments: string array
@@ -183,6 +184,7 @@ type TypeAssignment = {
 type ValueAssignment = {
     Name:StringLoc
     c_name:string
+    scala_name:string
     ada_name:string
     Type:Asn1Type
     Value:Asn1Value

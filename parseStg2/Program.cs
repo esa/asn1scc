@@ -234,7 +234,7 @@ namespace parseStg2
                 case "C":
                     lng = "ST.lang <- CommonTypes.ProgrammingLanguage.C; ST.double2StringPlain <- false";
                     break;
-                case "Scala":
+                case "SCALA":
                     lng = "ST.lang <- CommonTypes.ProgrammingLanguage.Scala; ST.double2StringPlain <- false";
                     break;
                 case "ADA":

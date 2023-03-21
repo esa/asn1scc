@@ -35,11 +35,11 @@ if (ret) {
 
 
 always_true_statement ()::= <<
-ret = TRUE;
+ret = true;
 >>
 
 always_false_statement(sErrorCodeName)::= <<
-ret = FALSE;                        /*COVERAGE_IGNORE*/
+ret = false;                        /*COVERAGE_IGNORE*/
 *pErrCode = <sErrorCodeName>;       /*COVERAGE_IGNORE*/
 >>
  
@@ -59,11 +59,11 @@ convertVCBStatementToStatementAndUpdateErrCode(sStatement, sErrCode) ::= <<
 >>
 
 convertVCBTRUEToStatementAndUpdateErrCode() ::= <<
-ret = TRUE;
+ret = true;
 *pErrCode = 0;
 >>
 convertVCBFalseToStatementAndUpdateErrCode(sErrCode) ::= <<
-ret = FALSE;
+ret = false;
 *pErrCode = <sErrCode>;
 >>
 
@@ -94,7 +94,7 @@ EmitTypeAssignment_composite(sVarName, sStar, sFuncName, sTypeDefName, sContent,
 <arrsAlphaFuncs; separator="\n">
 flag <sFuncName>(const <sTypeDefName><sStar> <sVarName>, int* pErrCode)
 {
-    flag ret = TRUE;
+    var ret: Boolean = true
     <arrsLocalVars; separator="\n">
 <if(bUnreferenced)>
 	(void)<sVarName>;
