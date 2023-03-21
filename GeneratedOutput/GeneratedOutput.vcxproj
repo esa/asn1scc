@@ -25,6 +25,9 @@
     <ClCompile Include="EventDefinition.c" />
     <ClCompile Include="GenOutMain.cpp" />
     <ClCompile Include="PUS-5-1.c" />
+    <ClCompile Include="sample\c\asn1crt.c" />
+    <ClCompile Include="sample\c\sample.c" />
+    <ClCompile Include="sample\c_stainless\stainless.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ApplicationProcess.h" />
@@ -32,6 +35,25 @@
     <ClInclude Include="Dummy.h" />
     <ClInclude Include="EventDefinition.h" />
     <ClInclude Include="PUS-5-1.h" />
+    <ClInclude Include="sample\c\asn1crt.h" />
+    <ClInclude Include="sample\c\sample.h" />
+    <ClInclude Include="sample\c_stainless\stainless.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="sample\ada\adaasn1rtl.adb" />
+    <Content Include="sample\ada\adaasn1rtl.ads" />
+    <Content Include="sample\ada\asn1_x86.gpr" />
+    <Content Include="sample\ada\board_config.ads" />
+    <Content Include="sample\ada\my_module.adb" />
+    <Content Include="sample\ada\my_module.ads" />
+    <Content Include="sample\scala\asn1crt.h.scala" />
+    <Content Include="sample\scala\asn1crt.scala" />
+    <Content Include="sample\scala\sample.h.scala" />
+    <Content Include="sample\scala\sample.scala" />
+    <Content Include="sample\scala_manual\sample.scala" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="sample\ada\x86" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
