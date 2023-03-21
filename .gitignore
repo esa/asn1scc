@@ -1397,3 +1397,4 @@ v2out
 GeneratedOutput/x64/
 x64/
 Backup1/
+*.user

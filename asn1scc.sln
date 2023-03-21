@@ -43,6 +43,19 @@ Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "StgScala", "StgScala\StgSca
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "GeneratedOutput", "GeneratedOutput\GeneratedOutput.vcxproj", "{6A85C6A2-EE8F-48A9-9CB0-F74AB5065ECD}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "GenScala", "GenScala", "{200CBAF9-1352-47A4-B59A-C32E9598AD4F}"
+	ProjectSection(SolutionItems) = preProject
+		GenScala\asn1crt.h.scala = GenScala\asn1crt.h.scala
+		GenScala\asn1crt.scala = GenScala\asn1crt.scala
+		GenScala\simpleMsg.h.scala = GenScala\simpleMsg.h.scala
+		GenScala\simpleMsg.scala = GenScala\simpleMsg.scala
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Inputs", "Inputs", "{985DDF72-E427-4E7E-8580-1C44273F9C03}"
+	ProjectSection(SolutionItems) = preProject
+		Inputs\Samples\simpleMsg.asn = Inputs\Samples\simpleMsg.asn
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
