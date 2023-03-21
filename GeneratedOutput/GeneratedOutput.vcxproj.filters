@@ -33,6 +33,15 @@
     <ClCompile Include="GenOutMain.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="sample\c\asn1crt.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="sample\c\sample.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="sample\c_stainless\stainless.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="EventDefinition.h">
@@ -48,6 +57,15 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Dummy.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="sample\c\asn1crt.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="sample\c\sample.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="sample\c_stainless\stainless.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
