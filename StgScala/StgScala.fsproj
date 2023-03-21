@@ -72,6 +72,7 @@
   </ItemGroup>
 
     <ItemGroup>
+        <ProjectReference Include="..\CommonTypes\CommonTypes.fsproj" />
         <ProjectReference Include="..\FrontEndAst\FrontEndAst.fsproj" />
         <ProjectReference Include="..\StgVarious\StgVarious.fsproj" />
         <ProjectReference Include="..\ST\ST.fsproj" />
