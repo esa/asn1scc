@@ -89,13 +89,13 @@ let exportRTL (di:DirInfo) (l:ProgrammingLanguage) (args:CommandLineSettings)=
     // TODO: Scala
     | ProgrammingLanguage.Scala ->
         //writeTextFile (Path.Combine(asn1rtlDirName, "asn1crt.c")) (rm.GetString("asn1crt_c",null)) 
-        writeResource di "asn1crt.c" None
+        writeResource di "asn1crt.scala" None
                 
         //let asn1crt_h = rm.GetString("asn1crt_h",null)
         let intSize = sprintf "#define WORD_SIZE	%d" (int args.integerSizeInBytes)
         let fpSize = sprintf "#define FP_WORD_SIZE	%d" (int args.floatingPointSizeInBytes)
         //writeTextFile (Path.Combine(asn1rtlDirName, "asn1crt.h")) (asn1crt_h.Replace("#define WORD_SIZE	8", intSize).Replace("#define FP_WORD_SIZE	8", fpSize) )
-        writeResource di "asn1crt.h" (Some (fun (s:string) -> s.Replace("#define WORD_SIZE	8", intSize).Replace("#define FP_WORD_SIZE	8", fpSize)) )
+        writeResource di "asn1crt.h.scala" (Some (fun (s:string) -> s.Replace("#define WORD_SIZE	8", intSize).Replace("#define FP_WORD_SIZE	8", fpSize)) )
                 
         match args.encodings with
         | []    -> ()
