@@ -1398,3 +1398,7 @@ GeneratedOutput/x64/
 x64/
 Backup1/
 *.user
+GenScala/asn1crt.h.scala
+GenScala/asn1crt.scala
+GenScala/simpleMsg.h.scala
+GenScala/simpleMsg.scala

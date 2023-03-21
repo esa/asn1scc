@@ -1,3 +1,8 @@
+/*
+
+THIS gets copied to the output - its just preproc stuff? commend in when we need it
+
+
 #ifndef ASN1SCC_ASN1CRT_H_
 #define ASN1SCC_ASN1CRT_H_
 
@@ -271,3 +276,5 @@ extern const asn1SccUint32 ber_aux[];
 
 
 #endif
+
+*/

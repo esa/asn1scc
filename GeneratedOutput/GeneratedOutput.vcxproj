@@ -25,9 +25,6 @@
     <ClCompile Include="EventDefinition.c" />
     <ClCompile Include="GenOutMain.cpp" />
     <ClCompile Include="PUS-5-1.c" />
-    <ClCompile Include="sample\c\asn1crt.c" />
-    <ClCompile Include="sample\c\sample.c" />
-    <ClCompile Include="sample\c_stainless\stainless.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ApplicationProcess.h" />
@@ -35,9 +32,6 @@
     <ClInclude Include="Dummy.h" />
     <ClInclude Include="EventDefinition.h" />
     <ClInclude Include="PUS-5-1.h" />
-    <ClInclude Include="sample\c\asn1crt.h" />
-    <ClInclude Include="sample\c\sample.h" />
-    <ClInclude Include="sample\c_stainless\stainless.h" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="sample\ada\adaasn1rtl.adb" />

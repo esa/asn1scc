@@ -135,6 +135,12 @@ namespace parseStg2
 
         static int Main(string[] args)
         {
+            if (args.Length == 0)
+            {
+                Console.WriteLine("no args given - exit");
+                return -42;
+            }
+
             var runMode = args.Length >= 2 ? int.Parse(args[1]) : 1;
             var outFile = args.Length >= 3 ? args[2] : "-";
             Console.WriteLine("Caling parseStg2 with args = " + args[0] + ", runMode: " + runMode + ", singleOutFile:" + outFile);

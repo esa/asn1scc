@@ -1,11 +1,10 @@
 MY-MODULE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
 
 Message ::= SEQUENCE {
-    msgId INTEGER,
-    myflag INTEGER,
-    value REAL,
-    szDescription OCTET STRING (SIZE(10)),
-    isReady BOOLEAN
+    anInt INTEGER,
+    aFloat REAL,
+    tenByteString OCTET STRING (SIZE(10)),
+    aBool BOOLEAN
 }
 
 END

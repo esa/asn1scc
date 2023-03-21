@@ -1,3 +1,7 @@
+/*
+
+Same same as copied header
+
 #include <string.h>
 #include <assert.h>
 #include <math.h>
@@ -99,3 +103,5 @@ flag ObjectIdentifier_equal(const Asn1ObjectIdentifier *pVal1, const Asn1ObjectI
 		return FALSE;
 	}
 }
+
+*/
