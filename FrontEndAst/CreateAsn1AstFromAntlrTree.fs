@@ -896,8 +896,10 @@ let CreateAsn1Module integerSizeInBytes (astRoot:list<ITree>) (acnAst:AcnAst) (i
                     | [] -> return ret
                     | _  -> 
                         let orphanAcnTassesStr = orphanAcnTasses |> Seq.map(fun z -> z.name.Value) |> Seq.StrJoin (", ")
-                        let errMess = sprintf "The ACN module '%s' contains type assignments that do not exist in the corresponding ASN.1 module. For example, assignments '%s' are not defined in the ASN.1 module." acnMod.name.Value orphanAcnTassesStr
-                        return! Error (Semantic_Error (acnMod.name.Location, errMess))
+                        let errMsg = sprintf "The ACN module '%s' contains type assignments that do not exist in the corresponding ASN.1 module. For example, assignments '%s' are not defined in the ASN.1 module." acnMod.name.Value orphanAcnTassesStr
+                        Console.Error.WriteLine(AntlrParse.formatSemanticWarning acnMod.name.Location errMsg)
+                        //return! Error (Semantic_Error (acnMod.name.Location, errMess))
+                        return ret
         | _ -> return! Error (Bug_Error("Bug in CreateAsn1Module"))
     }
 
