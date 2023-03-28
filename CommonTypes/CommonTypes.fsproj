@@ -19,6 +19,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\parseStg2\parseStg2.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Reference Include="antlr.runtime">
       <HintPath>..\Antlr\antlr313\antlr.runtime.dll</HintPath>
     </Reference>
