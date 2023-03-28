@@ -289,7 +289,6 @@ let getLanguageMacro (l:ProgrammingLanguage) =
             xer = new IXer_c.IXer_c()
             src = new ISrcBody_c.ISrcBody_c()
         }
-    // TODO: Scala
     | Scala ->
         {
             LanguageMacros.equal = new IEqual_scala.IEqual_scala() 
@@ -341,7 +340,7 @@ let main0 argv =
                 PrintAcn.printInASingleFile acn outDir "SingleAsn1FileDbg.acn" tastToPrint
             | false -> ()
 
-
+        // TODO frontend typo
         let frontEntAst, acnDeps = TL "FrontEntMain.constructAst" (fun () -> FrontEntMain.constructAst args debugFunc) 
 
         

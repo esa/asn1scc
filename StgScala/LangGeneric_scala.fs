@@ -9,7 +9,7 @@ open System.IO
 let getAcces_scala  (fpt:FuncParamType) =
     match fpt with
     | VALUE x        -> "."
-    | POINTER x      -> "->"
+    | POINTER x      -> ".x."
     | FIXARRAY x     -> ""
 
 #if false
@@ -320,13 +320,13 @@ type LangGeneric_scala() =
 
         override this.CreateAuxFiles (r:AstRoot)  (di:OutDirectories.DirInfo) (arrsSrcTstFiles : string list, arrsHdrTstFiles:string list) =
             let CreateCMainFile (r:AstRoot)  outDir  =
-                //Main file for test cass    
+                // Main file for test cass    
                 let printMain =    test_cases_scala.PrintMain //match l with C -> test_cases_c.PrintMain | Ada -> test_cases_c.PrintMain
                 let content = printMain "testsuite"
                 let outFileName = Path.Combine(outDir, "mainprogram.c")
                 File.WriteAllText(outFileName, content.Replace("\r",""))
 
-
+                // TODO fix typo
             let generateVisualStudtioProject (r:DAst.AstRoot) outDir (arrsSrcTstFilesX, arrsHdrTstFilesX) =
                 let extrSrcFiles, extrHdrFiles = 
                     r.args.encodings |> 
@@ -338,7 +338,7 @@ type LangGeneric_scala() =
                         | Asn1Encoding.XER  -> ["asn1crt_encoding";"asn1crt_encoding_xer"]
                     ) |> 
                     List.distinct |>
-                    List.map(fun a -> a + ".c", a + ".h") |>
+                    List.map(fun a -> a + ".scala", a + ".h.scala") |>
                     List.unzip
 
                 let arrsSrcTstFiles = (r.programUnits |> List.map (fun z -> z.tetscase_bodyFileName))
@@ -355,5 +355,5 @@ type LangGeneric_scala() =
                 File.WriteAllText((Path.Combine(outDir, "VsProject.sln")), (aux_scala.emitVisualStudioSolution()))
 
 
-            CreateCMainFile r  di.srcDir
+            CreateCMainFile r di.srcDir
             generateVisualStudtioProject r di.srcDir (arrsSrcTstFiles, arrsHdrTstFiles)

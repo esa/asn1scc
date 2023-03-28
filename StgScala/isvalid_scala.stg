@@ -94,7 +94,7 @@ EmitTypeAssignment_composite(sVarName, sStar, sFuncName, sTypeDefName, sContent,
 <arrsAlphaFuncs; separator="\n">
 flag <sFuncName>(const <sTypeDefName><sStar> <sVarName>, int* pErrCode)
 {
-    var ret: Boolean = true
+    var ret: Boolean = true // isvalid_scala.stg:97
     <arrsLocalVars; separator="\n">
 <if(bUnreferenced)>
 	(void)<sVarName>;
