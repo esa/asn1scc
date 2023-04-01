@@ -379,6 +379,42 @@ type EnmStrGetTypeDifition_arg =
     | EnmStrGetTypeDifition_arg of GetTypeDifition_arg
     | AcnPrmGetTypeDefinition of ((ScopeNode list)* string*string)
 
+let isCharachterAllowedByAplhabetConstrains (cons:IA5StringConstraint list) (b:byte) =
+    let ch = System.Convert.ToChar b
+    let isCharachterAllowedByAplhabetConstrain (c:IA5StringConstraint)  =
+        let con_or      _ e1 e2 _ s =  e1 || e2, s
+        let con_and     _ e1 e2 s =  e1 && e2, s
+        let con_not     _ e  s =  not e, s
+        let con_ecxept  _ e1 e2 s =  e1 && (not e2), s
+        let con_root    _ e s = e,s
+        let con_root2   _ e1 e2  s =  e1 || e2, s
+
+        let foldRangeCharCon  (c:CharTypeConstraint)   =
+            Asn1Fold.foldRangeTypeConstraint   
+                con_or con_and con_not con_ecxept con_root con_root2  
+                (fun _ (v:string)  s  -> v.Contains ch ,s)
+                (fun _ v1 v2  minIsIn maxIsIn s   -> 
+                    let ret = 
+                        match minIsIn, maxIsIn with
+                        | true, true    -> v1 <= ch && ch <= v2
+                        | true, false   -> v1 <= ch && ch < v2
+                        | false, true   -> v1 < ch && ch <= v2
+                        | false, false  -> v1 < ch && ch < v2
+                    ret, s)
+                (fun _ v1 minIsIn s   -> (if minIsIn then (v1 <= ch) else (v1 < ch)), s)
+                (fun _ v2 maxIsIn s   -> (if maxIsIn then (ch<=v2) else (ch<v2)), s)
+                c
+                0 |> fst
+
+        Asn1Fold.foldStringTypeConstraint2
+            con_or con_and con_not con_ecxept con_root con_root2  
+            (fun _ _  s           -> true ,s)
+            (fun _ _ s            -> true, s)
+            (fun _ alphcon s      -> foldRangeCharCon alphcon,s) 
+            c
+            0 |> fst
+    cons |> Seq.forall isCharachterAllowedByAplhabetConstrain
+
 let private mergeStringType (asn1:Asn1Ast.AstRoot) (t:Asn1Ast.Asn1Type option) (loc:SrcLoc) (acnErrLoc: SrcLoc option) (props:GenericAcnProperty list) cons withcons defaultCharSet isNumeric (tdarg:EnmStrGetTypeDifition_arg) (us:Asn1AcnMergeState) =
     let acnErrLoc0 = match acnErrLoc with Some a -> a | None -> loc
     let sizeUperRange = uPER.getSrtingSizeUperRange cons loc
@@ -409,35 +445,9 @@ let private mergeStringType (asn1:Asn1Ast.AstRoot) (t:Asn1Ast.Asn1Type option) (
     | Acn_Enc_String_uPER_Ascii                          _                -> ()
     | Acn_Enc_String_Ascii_Null_Teminated                (_, nullChars)     -> 
         let errMsg = "The termination-pattern defines a character which belongs to the allowed values of the ASN.1 type. Use another value in the termination-pattern or apply different constraints in the ASN.1 type."
-        match t with
-        | None ->
-            match nullChars with
-            | nullChar::[] -> 
-                match uperCharSet |> Seq.exists ((=) (System.Convert.ToChar nullChar)) with
-                | true  when nullChar <> (byte 0) -> raise(SemanticError(acnErrLoc0, errMsg))
-                | _ -> ()
-            | _            -> ()
-        | Some t ->
-            let isValueAllowedByByCons (c:byte)= 
-                let validChar = 
-                    match uperCharSet with
-                    | [||] -> ""
-                    | _    -> (uperCharSet[0]).ToString()
-                let str = System.Text.Encoding.UTF8.GetString([|c|])
-                //we need to pass a 2 characters string with one valid and one from null char set.
-                //This is because we need to avoid since value string constrains.
-                //In other words
-                //      IA5String (SIZE(0..10)) (FROM  (ALL EXCEPT ","))  -- this is OK since it says that all char but ',' are allowed
-                //      IA5String (SIZE(0..10)) (ALL EXCEPT ",")          -- this is not OK since it says all string values are allowed except the string ","
-                let str = str + validChar
-                let vKind = Asn1Ast.StringValue ([CStringValue str], acnErrLoc0)
-                let v = CheckAsn1.CreateDummyValueByKind t.moduleName vKind
-                let ret = CheckAsn1.CheckIfVariableViolatesTypeConstraints t v asn1 
-                ret
-            match nullChars |> Seq.tryFind isValueAllowedByByCons with
-            | Some _ -> raise(SemanticError(acnErrLoc0, errMsg))
-            | None   -> ()
-
+        match nullChars |> Seq.tryFind (isCharachterAllowedByAplhabetConstrains cons) with
+        | Some _ -> raise(SemanticError(acnErrLoc0, errMsg))
+        | None   -> ()
     | Acn_Enc_String_Ascii_External_Field_Determinant       (_,relativePath) -> ()
     | Acn_Enc_String_CharIndex_External_Field_Determinant   (_,relativePath) -> ()
 
