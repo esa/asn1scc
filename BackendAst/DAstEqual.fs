@@ -46,13 +46,13 @@ let isEqualBodyTimeType (o:Asn1AcnAst.TimeType) (lm:LanguageMacros) (v1:CallerSc
 
 
 let isEqualBodyOctetString (lm:LanguageMacros) sMin sMax (v1:CallerScope) (v2:CallerScope) =
-    let v1 = sprintf "%s%s" v1.arg.p (lm.lg.getAcces v1.arg)
-    let v2 = sprintf "%s%s" v2.arg.p (lm.lg.getAcces v2.arg)
+    let v1 = sprintf "%s%s" v1.arg.p (lm.lg.getAccess v1.arg)
+    let v2 = sprintf "%s%s" v2.arg.p (lm.lg.getAccess v2.arg)
     Some (lm.equal.isEqual_OctetString v1 v2 (sMin = sMax) sMax, [])
 
 let isEqualBodyBitString  (lm:LanguageMacros) sMin sMax (v1:CallerScope) (v2:CallerScope) =
-    let v1 = sprintf "%s%s" v1.arg.p (lm.lg.getAcces v1.arg)
-    let v2 = sprintf "%s%s" v2.arg.p (lm.lg.getAcces v2.arg)
+    let v1 = sprintf "%s%s" v1.arg.p (lm.lg.getAccess v1.arg)
+    let v2 = sprintf "%s%s" v2.arg.p (lm.lg.getAccess v2.arg)
     Some (lm.equal.isEqual_BitString v1 v2 (sMin = sMax) sMax, [])
 
 
@@ -74,9 +74,9 @@ let isEqualBodySequenceChild   (lm:LanguageMacros)  (o:Asn1AcnAst.Asn1Child) (ne
             Some ((callChildEqualFunc (lm.lg.getPointer chp1.arg) (lm.lg.getPointer chp2.arg) fncName), [])              
 
     match sInnerStatement with
-    | None  when  o.Optionality.IsSome  -> Some (lm.equal.isEqual_Sequence_child v1.arg.p  v2.arg.p  (lm.lg.getAcces v1.arg) o.Optionality.IsSome c_name None, [])
+    | None  when  o.Optionality.IsSome  -> Some (lm.equal.isEqual_Sequence_child v1.arg.p  v2.arg.p  (lm.lg.getAccess v1.arg) o.Optionality.IsSome c_name None, [])
     | None                              -> None
-    | Some (sInnerStatement, lvars)     -> Some (lm.equal.isEqual_Sequence_child v1.arg.p  v2.arg.p  (lm.lg.getAcces v1.arg) o.Optionality.IsSome c_name (Some sInnerStatement), lvars)
+    | Some (sInnerStatement, lvars)     -> Some (lm.equal.isEqual_Sequence_child v1.arg.p  v2.arg.p  (lm.lg.getAccess v1.arg) o.Optionality.IsSome c_name (Some sInnerStatement), lvars)
 
 
 
@@ -232,11 +232,11 @@ let createSequenceOfEqualFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:
         match getInnerStatement i with
         | None when o.minSize.uper = o.maxSize.uper        -> None
         | None                                   ->
-            Some (lm.equal.isEqual_SequenceOf_var_size v1.arg.p v2.arg.p (lm.lg.getAcces v1.arg) i None, [])
+            Some (lm.equal.isEqual_SequenceOf_var_size v1.arg.p v2.arg.p (lm.lg.getAccess v1.arg) i None, [])
         | Some (innerStatement, lvars)           ->
             match (o.minSize.uper = o.maxSize.uper) with
-            | true  -> Some (lm.equal.isEqual_SequenceOf_fix_size v1.arg.p v2.arg.p (lm.lg.getAcces v1.arg) i  ( o.minSize.uper) innerStatement, lv::lvars)
-            | false -> Some (lm.equal.isEqual_SequenceOf_var_size v1.arg.p v2.arg.p (lm.lg.getAcces v1.arg) i  (Some innerStatement), lv::lvars)
+            | true  -> Some (lm.equal.isEqual_SequenceOf_fix_size v1.arg.p v2.arg.p (lm.lg.getAccess v1.arg) i  ( o.minSize.uper) innerStatement, lv::lvars)
+            | false -> Some (lm.equal.isEqual_SequenceOf_var_size v1.arg.p v2.arg.p (lm.lg.getAccess v1.arg) i  (Some innerStatement), lv::lvars)
 
 
     let isEqualBody         = isEqualBodySequenceOf childType t o lm
@@ -275,7 +275,7 @@ let createChoiceEqualFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1
             List.map(fun c -> c.isEqualBodyStats v1 v2)  |>
             List.unzip
         let lvars = lvars |> List.collect id
-        Some(lm.equal.isEqual_Choice v1.arg.p v2.arg.p (lm.lg.getAcces v1.arg) childrenConent, lvars)
+        Some(lm.equal.isEqual_Choice v1.arg.p v2.arg.p (lm.lg.getAccess v1.arg) childrenConent, lvars)
     let isEqualBody         = isEqualBodyChoice typeDefinition lm children
     createEqualFunction_any r lm t typeDefinition (EqualBodyStatementList isEqualBody)
     //createCompositeEqualFunction r l lm  t typeDefinition isEqualBody (stgMacroCompDefFunc l) 

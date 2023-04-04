@@ -8,7 +8,7 @@ open System.IO
 
 (****** Ada Implementation ******)
 
-let getAcces_a  (_:FuncParamType) = "."
+let getAccess_a  (_:FuncParamType) = "."
 #if false
 let createBitStringFunction_funcBody_Ada handleFragmentation (codec:CommonTypes.Codec) (id : ReferenceToType) (typeDefinition:TypeDefintionOrReference) isFixedSize  uperMaxSizeInBits minSize maxSize (errCode:ErroCode) (p:CallerScope) = 
     let ii = id.SeqeuenceOfLevel + 1;
@@ -83,9 +83,9 @@ type LangGeneric_a() =
         override _.SpecExtention = "ads"
         override _.BodyExtention = "adb"
 
-        override _.doubleValueToSting (v:double) = 
+        override _.doubleValueToString (v:double) = 
             v.ToString(FsUtils.doubleParseString, System.Globalization.NumberFormatInfo.InvariantInfo)
-        override _.intValueToSting (i:BigInteger) _ = i.ToString()
+        override _.intValueToString (i:BigInteger) _ = i.ToString()
 
         override _.initializeString (_) = "(others => adaasn1rtl.NUL)"
         
@@ -102,13 +102,26 @@ type LangGeneric_a() =
             | VALUE x      -> x
             | POINTER x    -> x
             | FIXARRAY x   -> x
-        override this.getAcces  (fpt:FuncParamType) = getAcces_a fpt
+        override this.getAccess  (fpt:FuncParamType) = getAccess_a fpt
+
+        override this.getPtrPrefix (fpt: FuncParamType) = 
+            match fpt with
+            | VALUE x        -> ""
+            | POINTER x      -> ""
+            | FIXARRAY x     -> ""
+
+        override this.getPtrSuffix (fpt: FuncParamType) = 
+            match fpt with
+            | VALUE x        -> ""
+            | POINTER x      -> ""
+            | FIXARRAY x     -> ""
 
         override this.getStar  (fpt:FuncParamType) =
             match fpt with
             | VALUE x        -> ""
             | POINTER x      -> ""
             | FIXARRAY x     -> ""
+
         override this.getArrayItem (fpt:FuncParamType) (idx:string) (childTypeIsString: bool) =
             let newPath = sprintf "%s.Data(%s)" fpt.p idx
             if childTypeIsString then (FIXARRAY newPath) else (VALUE newPath)
@@ -165,7 +178,7 @@ type LangGeneric_a() =
             if childTypeIsString then (FIXARRAY newPath) else (VALUE newPath)
         override this.getChChild (fpt:FuncParamType) (childName:string) (childTypeIsString: bool) : FuncParamType =
             let newPath = sprintf "%s.%s" fpt.p childName
-            //let newPath = sprintf "%s%su.%s" fpt.p (this.getAcces fpt) childName
+            //let newPath = sprintf "%s%su.%s" fpt.p (this.getAccess fpt) childName
             if childTypeIsString then (FIXARRAY newPath) else (VALUE newPath)
 
 

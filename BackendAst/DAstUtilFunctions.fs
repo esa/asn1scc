@@ -12,17 +12,17 @@ open Language
 
 
 
-let getAccessFromScopeNodeList (ReferenceToType nodes)  (childTypeIsString: bool) (lm:LanguageMacros) (pVal : CallerScope) =
+let getAccesssFromScopeNodeList (ReferenceToType nodes)  (childTypeIsString: bool) (lm:LanguageMacros) (pVal : CallerScope) =
     let handleNode zeroBasedSeqeuenceOfLevel (pVal : CallerScope) (n:ScopeNode) (childTypeIsString: bool) = 
         match n with
         | MD _
         | TA _
         | PRM _
-        | VA _              -> raise(BugErrorException "getAccessFromScopeNodeList")
+        | VA _              -> raise(BugErrorException "getAccesssFromScopeNodeList")
         | SEQ_CHILD chName  -> [], {pVal with arg = lm.lg.getSeqChild pVal.arg (ToC chName) childTypeIsString}
         | CH_CHILD (chName,pre_name)  -> 
             let chChildIsPresent =
-                sprintf "%s%skind %s %s_PRESENT" pVal.arg.p (lm.lg.getAcces pVal.arg) lm.lg.eqOp pre_name
+                sprintf "%s%skind %s %s_PRESENT" pVal.arg.p (lm.lg.getAccess pVal.arg) lm.lg.eqOp pre_name
             [chChildIsPresent], {pVal with arg = lm.lg.getChChild pVal.arg (ToC chName) childTypeIsString}
         | SQF               -> 
             let curIdx = sprintf "i%d" (zeroBasedSeqeuenceOfLevel + 1)
@@ -40,7 +40,7 @@ let getAccessFromScopeNodeList (ReferenceToType nodes)  (childTypeIsString: bool
                 let zeroBasedSeqeuenceOfLevel = match n with SQF -> zeroBasedSeqeuenceOfLevel + 1 | _ -> zeroBasedSeqeuenceOfLevel
                 (newPath, chekPath@curCheckExp, zeroBasedSeqeuenceOfLevel, idx+1)) (pVal,[], 0, 1) |> (fun (a,chekPath,_,_) -> a, chekPath)
         ret 
-    | _                                 -> raise(BugErrorException "getAccessFromScopeNodeList")
+    | _                                 -> raise(BugErrorException "getAccesssFromScopeNodeList")
 
 
 

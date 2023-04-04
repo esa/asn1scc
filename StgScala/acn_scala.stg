@@ -1,24 +1,20 @@
+group scala_acn;
 
-group c_acn;
+getStringSize(p) ::= "<p>.length()"
 
-
-
-getStringSize(p) ::= "strlen(<p>)"
-
-getSizeableSize(p, sAcc) ::= "<p><sAcc>nCount"
-
+getSizeableSize(p, sAcc) ::= "<p><sAcc>nCount // TODO acn_scala:5"
 
 EmitTypeAssignment_def_err_code(sErrCode, nErrValue, soErrorCodeComment) ::= <<
-#define <sErrCode>		<nErrValue>  /*<soErrorCodeComment>*/
+#define <sErrCode>		<nErrValue>  /*<soErrorCodeComment>*/ // TODO acn_scala:8
 >>
 
-EmitAcnParameter(sName, sType) ::= "<sType> <sName>"
+EmitAcnParameter(sName, sType) ::= "<sType> <sName> // TODO acn_scala:11"
 
 
 EmitTypeAssignment_primitive_def_encode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes, bEmptyEncodingSpace, nMaxBytesInACN, nMaxBitsInACN, arrsAcnPrms, soSparkAnnotations) ::= <<
 <arrsErrcodes; separator="\n">
 #define <sTypeDefName>_REQUIRED_BYTES_FOR_ACN_ENCODING       <nMaxBytesInACN> 
-#define <sTypeDefName>_REQUIRED_BITS_FOR_ACN_ENCODING        <nMaxBitsInACN>
+#define <sTypeDefName>_REQUIRED_BITS_FOR_ACN_ENCODING        <nMaxBitsInACN> // TODO acn_scala:17
 
 flag <sFuncName>(const <sTypeDefName><sStar> <sVarName>, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints);
 >>
@@ -26,7 +22,7 @@ flag <sFuncName>(const <sTypeDefName><sStar> <sVarName>, BitStream* pBitStrm, in
 EmitTypeAssignment_primitive_encode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitilialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace, bBsIsUnreferenced, bVarNameIsUnreferenced) ::= <<
 flag <sFuncName>(const <sTypeDefName><sStar> <sVarName>, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints)
 {
-    flag ret = TRUE;
+    flag ret = TRUE;			// TODO acn_scala:25
 <if(bVarNameIsUnreferenced)>
 	(void)<sVarName>;
 
@@ -63,7 +59,7 @@ flag <sFuncName>(<sTypeDefName><sStar> <sVarName>, BitStream* pBitStrm, int* pEr
 EmitTypeAssignment_primitive_decode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitilialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace, bBsIsUnreferenced, bVarNameIsUnreferenced) ::= <<
 flag <sFuncName>(<sTypeDefName><sStar> <sVarName>, BitStream* pBitStrm, int* pErrCode<if(arrsAcnPrms)>, <arrsAcnPrms; separator=", "><endif>)
 {
-    flag ret = TRUE;
+    flag ret = TRUE;			// TODO acn_scala:62
 <if(bVarNameIsUnreferenced)>
 	(void)<sVarName>;
 

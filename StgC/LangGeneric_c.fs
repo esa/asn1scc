@@ -6,7 +6,7 @@ open FsUtils
 open Language
 open System.IO
 
-let getAcces_c  (fpt:FuncParamType) =
+let getAccess_c  (fpt:FuncParamType) =
     match fpt with
     | VALUE x        -> "."
     | POINTER x      -> "->"
@@ -26,8 +26,8 @@ let createBitStringFunction_funcBody_c handleFragmentation (codec:CommonTypes.Co
             | false, Decode -> [Asn1SIntLocalVariable ("nCount", None)]
 
         match minSize with
-        | _ when maxSize < 65536I && isFixedSize   -> uper_c.bitString_FixSize p.arg.p (getAcces_c p.arg) (minSize) errCode.errCodeName codec , nStringLength
-        | _ when maxSize < 65536I && (not isFixedSize)  -> uper_c.bitString_VarSize p.arg.p (getAcces_c p.arg) (minSize) (maxSize) errCode.errCodeName nSizeInBits codec, nStringLength
+        | _ when maxSize < 65536I && isFixedSize   -> uper_c.bitString_FixSize p.arg.p (getAccess_c p.arg) (minSize) errCode.errCodeName codec , nStringLength
+        | _ when maxSize < 65536I && (not isFixedSize)  -> uper_c.bitString_VarSize p.arg.p (getAccess_c p.arg) (minSize) (maxSize) errCode.errCodeName nSizeInBits codec, nStringLength
         | _                                                -> 
             handleFragmentation p codec errCode ii (uperMaxSizeInBits) minSize maxSize "" 1I true false
     {UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = localVariables; bValIsUnReferenced=false; bBsIsUnReferenced=false}    
@@ -38,7 +38,7 @@ type LangGeneric_c() =
     inherit ILangGeneric()
         override _.ArrayStartIndex = 0
 
-        override _.intValueToSting (i:BigInteger) (intClass:Asn1AcnAst.IntegerClass) =
+        override _.intValueToString (i:BigInteger) (intClass:Asn1AcnAst.IntegerClass) =
             match intClass with
             | Asn1AcnAst.ASN1SCC_Int8     _ ->  sprintf "%s" (i.ToString())
             | Asn1AcnAst.ASN1SCC_Int16    _ ->  sprintf "%s" (i.ToString())
@@ -51,7 +51,7 @@ type LangGeneric_c() =
             | Asn1AcnAst.ASN1SCC_UInt64   _ ->  sprintf "%sUL" (i.ToString())
             | Asn1AcnAst.ASN1SCC_UInt     _ ->  sprintf "%sUL" (i.ToString())
 
-        override _.doubleValueToSting (v:double) = 
+        override _.doubleValueToString (v:double) = 
             v.ToString(FsUtils.doubleParseString, System.Globalization.NumberFormatInfo.InvariantInfo)
 
         override _.initializeString stringSize = sprintf "{ [0 ... %d] = 0x0 }" stringSize
@@ -70,18 +70,30 @@ type LangGeneric_c() =
             | POINTER x      -> sprintf "(*(%s))" x
             | FIXARRAY x     -> x
 
-        override this.getAcces  (fpt:FuncParamType) = getAcces_c fpt
+        override this.getAccess  (fpt:FuncParamType) = getAccess_c fpt
 
         override this.ArrayAccess idx = "[" + idx + "]"
 
+        override this.getPtrPrefix (fpt: FuncParamType) = 
+            match fpt with
+            | VALUE x        -> ""
+            | POINTER x      -> ""
+            | FIXARRAY x     -> ""
+
+        override this.getPtrSuffix (fpt: FuncParamType) = 
+            match fpt with
+            | VALUE x        -> ""
+            | POINTER x      -> "*"
+            | FIXARRAY x     -> ""
 
         override this.getStar  (fpt:FuncParamType) =
             match fpt with
             | VALUE x        -> ""
             | POINTER x      -> "*"
             | FIXARRAY x     -> ""
+
         override this.getArrayItem (fpt:FuncParamType) (idx:string) (childTypeIsString: bool) =
-            let newPath = sprintf "%s%sarr[%s]" fpt.p (this.getAcces fpt) idx
+            let newPath = sprintf "%s%sarr[%s]" fpt.p (this.getAccess fpt) idx
             if childTypeIsString then (FIXARRAY newPath) else (VALUE newPath)
         override this.getNamedItemBackendName (defOrRef:TypeDefintionOrReference option) (nm:Asn1AcnAst.NamedItem) = 
             ToC nm.c_name
@@ -146,10 +158,10 @@ type LangGeneric_c() =
         override this.supportsStaticVerification = false
         
         override this.getSeqChild (fpt:FuncParamType) (childName:string) (childTypeIsString: bool) =
-            let newPath = sprintf "%s%s%s" fpt.p (this.getAcces fpt) childName
+            let newPath = sprintf "%s%s%s" fpt.p (this.getAccess fpt) childName
             if childTypeIsString then (FIXARRAY newPath) else (VALUE newPath)
         override this.getChChild (fpt:FuncParamType) (childName:string) (childTypeIsString: bool) : FuncParamType =
-            let newPath = sprintf "%s%su.%s" fpt.p (this.getAcces fpt) childName
+            let newPath = sprintf "%s%su.%s" fpt.p (this.getAccess fpt) childName
             if childTypeIsString then (FIXARRAY newPath) else (VALUE newPath)
             
         override this.choiceIDForNone (typeIdsSet:Map<string,int>) (id:ReferenceToType) =  

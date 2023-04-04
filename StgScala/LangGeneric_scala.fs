@@ -6,11 +6,11 @@ open FsUtils
 open Language
 open System.IO
 
-let getAcces_scala  (fpt:FuncParamType) =
+let getAccess_scala  (fpt:FuncParamType) =
     match fpt with
-    | VALUE x        -> "."
-    | POINTER x      -> ".x."
-    | FIXARRAY x     -> ""
+    | VALUE x        -> "VAL@ACC."
+    | POINTER x      -> "PTR@ACC.x."
+    | FIXARRAY x     -> "ARR@ACC"
 
 #if false
 let createBitStringFunction_funcBody_c handleFragmentation (codec:CommonTypes.Codec) (id : ReferenceToType) (typeDefinition:TypeDefintionOrReference) isFixedSize  uperMaxSizeInBits minSize maxSize (errCode:ErroCode) (p:CallerScope) = 
@@ -26,8 +26,8 @@ let createBitStringFunction_funcBody_c handleFragmentation (codec:CommonTypes.Co
             | false, Decode -> [Asn1SIntLocalVariable ("nCount", None)]
 
         match minSize with
-        | _ when maxSize < 65536I && isFixedSize   -> uper_c.bitString_FixSize p.arg.p (getAcces_c p.arg) (minSize) errCode.errCodeName codec , nStringLength
-        | _ when maxSize < 65536I && (not isFixedSize)  -> uper_c.bitString_VarSize p.arg.p (getAcces_c p.arg) (minSize) (maxSize) errCode.errCodeName nSizeInBits codec, nStringLength
+        | _ when maxSize < 65536I && isFixedSize   -> uper_c.bitString_FixSize p.arg.p (getAccess_c p.arg) (minSize) errCode.errCodeName codec , nStringLength
+        | _ when maxSize < 65536I && (not isFixedSize)  -> uper_c.bitString_VarSize p.arg.p (getAccess_c p.arg) (minSize) (maxSize) errCode.errCodeName nSizeInBits codec, nStringLength
         | _                                                -> 
             handleFragmentation p codec errCode ii (uperMaxSizeInBits) minSize maxSize "" 1I true false
     {UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = localVariables; bValIsUnReferenced=false; bBsIsUnReferenced=false}    
@@ -38,7 +38,7 @@ type LangGeneric_scala() =
     inherit ILangGeneric()
         override _.ArrayStartIndex = 0
 
-        override _.intValueToSting (i:BigInteger) (intClass:Asn1AcnAst.IntegerClass) =
+        override _.intValueToString (i:BigInteger) (intClass:Asn1AcnAst.IntegerClass) =
             match intClass with
             | Asn1AcnAst.ASN1SCC_Int8     _ ->  sprintf "%s" (i.ToString())
             | Asn1AcnAst.ASN1SCC_Int16    _ ->  sprintf "%s" (i.ToString())
@@ -51,7 +51,7 @@ type LangGeneric_scala() =
             | Asn1AcnAst.ASN1SCC_UInt64   _ ->  sprintf "%sUL" (i.ToString())
             | Asn1AcnAst.ASN1SCC_UInt     _ ->  sprintf "%sUL" (i.ToString())
 
-        override _.doubleValueToSting (v:double) = 
+        override _.doubleValueToString (v:double) = 
             v.ToString(FsUtils.doubleParseString, System.Globalization.NumberFormatInfo.InvariantInfo)
 
         override _.initializeString stringSize = sprintf "{ [0 ... %d] = 0x0 }" stringSize
@@ -60,28 +60,40 @@ type LangGeneric_scala() =
 
         override _.getPointer  (fpt:FuncParamType) =
             match fpt with
-            |VALUE x        -> sprintf "(&(%s))" x
-            |POINTER x      -> x
-            |FIXARRAY x     -> x
+            |VALUE x        -> sprintf "Ref(%s)" x
+            |POINTER x      -> sprintf "PTR@PTR (%s)" x
+            |FIXARRAY x     -> sprintf "ARR@PTR (%s)" x
 
         override this.getValue (fpt:FuncParamType) =
             match fpt with
             | VALUE x        -> x
-            | POINTER x      -> sprintf "(*(%s))" x
-            | FIXARRAY x     -> x
+            | POINTER x      -> sprintf "PTR@VAL (%s)" x
+            | FIXARRAY x     -> sprintf "ARR@VAL (%s)" x
 
-        override this.getAcces  (fpt:FuncParamType) = getAcces_scala fpt
+        override this.getAccess  (fpt:FuncParamType) = getAccess_scala fpt
 
         override this.ArrayAccess idx = "[" + idx + "]"
 
+        override this.getPtrPrefix (fpt: FuncParamType) = 
+            match fpt with
+            | VALUE x        -> "VAL@PRFX Ref["
+            | POINTER x      -> "PTR@PRFX Ref["
+            | FIXARRAY x     -> "ARR@PRFX Ref["
+
+        override this.getPtrSuffix (fpt: FuncParamType) = 
+            match fpt with
+            | VALUE x        -> "VAL@SFX]"
+            | POINTER x      -> "PTR@SFX]"
+            | FIXARRAY x     -> "ARR@SFX]"
 
         override this.getStar  (fpt:FuncParamType) =
             match fpt with
-            | VALUE x        -> ""
-            | POINTER x      -> "*"
-            | FIXARRAY x     -> ""
+            | VALUE x        -> "VAL@STAR"
+            | POINTER x      -> "PTR@STAR Ref[]"
+            | FIXARRAY x     -> "ARR@STAR"
+
         override this.getArrayItem (fpt:FuncParamType) (idx:string) (childTypeIsString: bool) =
-            let newPath = sprintf "%s%sarr[%s]" fpt.p (this.getAcces fpt) idx
+            let newPath = sprintf "%s%sarr[%s]" fpt.p (this.getAccess fpt) idx
             if childTypeIsString then (FIXARRAY newPath) else (VALUE newPath)
         override this.getNamedItemBackendName (defOrRef:TypeDefintionOrReference option) (nm:Asn1AcnAst.NamedItem) = 
             ToC nm.scala_name
@@ -100,27 +112,12 @@ type LangGeneric_scala() =
         override this.getEnmTypeDefintion (td:Map<ProgrammingLanguage, FE_EnumeratedTypeDefinition>) = td.[Scala]
         override this.getStrTypeDefinition (td:Map<ProgrammingLanguage, FE_StringTypeDefinition>) = td.[Scala]
         override this.getChoiceTypeDefinition (td:Map<ProgrammingLanguage, FE_ChoiceTypeDefinition>) = td.[Scala]
-        
-        
         override this.getSequenceTypeDefinition (td:Map<ProgrammingLanguage, FE_SequenceTypeDefinition>) = td.[Scala]
         override this.getSizeableTypeDefinition (td:Map<ProgrammingLanguage, FE_SizeableTypeDefinition>) = td.[Scala]
-
         override this.getAsn1ChildBackendName (ch:Asn1Child) = ch._scala_name
-        
-        
-        override this.getAsn1ChChildBackendName (ch:ChChildInfo) = ch._scala_name
-        
-        
-        
-        
+        override this.getAsn1ChChildBackendName (ch:ChChildInfo) = ch._scala_name        
         override this.getAsn1ChildBackendName0 (ch:Asn1AcnAst.Asn1Child) = ch._scala_name
-        
-        
         override this.getAsn1ChChildBackendName0 (ch:Asn1AcnAst.ChChildInfo) = ch._scala_name
-        
-        
-        
-        
 
         override this.getRtlFiles  (encodings:Asn1Encoding list) (_ :string list) =
             let encRtl = match encodings |> Seq.exists(fun e -> e = UPER || e = ACN ) with true -> ["asn1crt_encoding"] | false -> []
@@ -128,7 +125,6 @@ type LangGeneric_scala() =
             let acnRtl = match encodings |> Seq.exists(fun e -> e = ACN) with true -> ["asn1crt_encoding_acn"] | false -> []
             let xerRtl = match encodings |> Seq.exists(fun e -> e = XER) with true -> ["asn1crt_encoding_xer"] | false -> []
             encRtl@uperRtl@acnRtl@xerRtl
-            
 
         override this.getEmptySequenceInitExpression () = "{}"
         override this.callFuncWithNoArgs () = "()"
@@ -148,11 +144,9 @@ type LangGeneric_scala() =
 
         override this.castExpression (sExp:string) (sCastType:string) = sprintf "(%s)(%s)" sCastType sExp
         override this.createSingleLineComment (sText:string) = sprintf "/*%s*/" sText
-        
-            
+         
         override _.SpecExtention = "h.scala"
         override _.BodyExtention = "scala"
-
 
         override _.getValueAssignmentName (vas: ValueAssignment) = vas.scala_name
 
@@ -162,10 +156,10 @@ type LangGeneric_scala() =
         override this.supportsStaticVerification = false
         
         override this.getSeqChild (fpt:FuncParamType) (childName:string) (childTypeIsString: bool) =
-            let newPath = sprintf "%s%s%s" fpt.p (this.getAcces fpt) childName
+            let newPath = sprintf "%s%s%s" fpt.p (this.getAccess fpt) childName
             if childTypeIsString then (FIXARRAY newPath) else (VALUE newPath)
         override this.getChChild (fpt:FuncParamType) (childName:string) (childTypeIsString: bool) : FuncParamType =
-            let newPath = sprintf "%s%su.%s" fpt.p (this.getAcces fpt) childName
+            let newPath = sprintf "%s%su.%s" fpt.p (this.getAccess fpt) childName
             if childTypeIsString then (FIXARRAY newPath) else (VALUE newPath)
             
         override this.choiceIDForNone (typeIdsSet:Map<string,int>) (id:ReferenceToType) =  
@@ -177,45 +171,45 @@ type LangGeneric_scala() =
 
         override this.presentWhenName (defOrRef:TypeDefintionOrReference option) (ch:ChChildInfo) : string =
             (ToC ch._present_when_name_private) + "_PRESENT"
+        
         override this.getParamTypeSuffix (t:Asn1AcnAst.Asn1Type) (suf:string) (c:Codec) : CallerScope =
             match c with
             | Encode  ->
                 match t.Kind with
-                | Asn1AcnAst.Integer         _ -> {CallerScope.modName = t.id.ModName; arg= POINTER ("pVal" + suf)    }
-                | Asn1AcnAst.Real            _ -> {CallerScope.modName = t.id.ModName; arg= POINTER ("pVal" + suf)    }
-                | Asn1AcnAst.IA5String       _ -> {CallerScope.modName = t.id.ModName; arg= FIXARRAY ("val" + suf) }
-                | Asn1AcnAst.NumericString   _ -> {CallerScope.modName = t.id.ModName; arg= FIXARRAY ("val" + suf) }
-                | Asn1AcnAst.OctetString     _ -> {CallerScope.modName = t.id.ModName; arg= POINTER ("pVal" + suf) }
-                | Asn1AcnAst.NullType        _ -> {CallerScope.modName = t.id.ModName; arg= POINTER ("pVal" + suf)    }
-                | Asn1AcnAst.BitString       _ -> {CallerScope.modName = t.id.ModName; arg= POINTER ("pVal" + suf) }
-                | Asn1AcnAst.Boolean         _ -> {CallerScope.modName = t.id.ModName; arg= POINTER ("pVal" + suf)    }
-                | Asn1AcnAst.Enumerated      _ -> {CallerScope.modName = t.id.ModName; arg= POINTER ("pVal" + suf)    }
-                | Asn1AcnAst.SequenceOf      _ -> {CallerScope.modName = t.id.ModName; arg= POINTER ("pVal" + suf) }
-                | Asn1AcnAst.Sequence        _ -> {CallerScope.modName = t.id.ModName; arg= POINTER ("pVal" + suf) }
-                | Asn1AcnAst.Choice          _ -> {CallerScope.modName = t.id.ModName; arg= POINTER ("pVal" + suf) }
-                | Asn1AcnAst.ObjectIdentifier _ -> {CallerScope.modName = t.id.ModName; arg= POINTER ("pVal" + suf) }
-                | Asn1AcnAst.TimeType _         -> {CallerScope.modName = t.id.ModName; arg= POINTER ("pVal" + suf) }
-                | Asn1AcnAst.ReferenceType r -> 
-                    this.getParamTypeSuffix r.resolvedType suf c
+                | Asn1AcnAst.Integer         _ -> {CallerScope.modName = t.id.ModName; arg= POINTER ("ENC A pVal" + suf)    }
+                | Asn1AcnAst.Real            _ -> {CallerScope.modName = t.id.ModName; arg= POINTER ("ENC B pVal" + suf)    }
+                | Asn1AcnAst.IA5String       _ -> {CallerScope.modName = t.id.ModName; arg= FIXARRAY ("ENC C val" + suf) }
+                | Asn1AcnAst.NumericString   _ -> {CallerScope.modName = t.id.ModName; arg= FIXARRAY ("ENC D val" + suf) }
+                | Asn1AcnAst.OctetString     _ -> {CallerScope.modName = t.id.ModName; arg= POINTER ("ENC E pVal" + suf) }
+                | Asn1AcnAst.NullType        _ -> {CallerScope.modName = t.id.ModName; arg= POINTER ("ENC F pVal" + suf)    }
+                | Asn1AcnAst.BitString       _ -> {CallerScope.modName = t.id.ModName; arg= POINTER ("ENC G pVal" + suf) }
+                | Asn1AcnAst.Boolean         _ -> {CallerScope.modName = t.id.ModName; arg= POINTER ("ENC H pVal" + suf)    }
+                | Asn1AcnAst.Enumerated      _ -> {CallerScope.modName = t.id.ModName; arg= POINTER ("ENC I pVal" + suf)    }
+                | Asn1AcnAst.SequenceOf      _ -> {CallerScope.modName = t.id.ModName; arg= POINTER ("ENC J pVal" + suf) }
+                | Asn1AcnAst.Sequence        _ -> {CallerScope.modName = t.id.ModName; arg= POINTER ("ENC K pVal" + suf) }
+                | Asn1AcnAst.Choice          _ -> {CallerScope.modName = t.id.ModName; arg= POINTER ("ENC L pVal" + suf) }
+                | Asn1AcnAst.ObjectIdentifier _ -> {CallerScope.modName = t.id.ModName; arg= POINTER ("ENC M pVal" + suf) }
+                | Asn1AcnAst.TimeType _         -> {CallerScope.modName = t.id.ModName; arg= POINTER ("ENC N pVal" + suf) }
+                | Asn1AcnAst.ReferenceType r -> this.getParamTypeSuffix r.resolvedType suf c
             | Decode  ->
                 match t.Kind with
-                | Asn1AcnAst.Integer            _ -> {CallerScope.modName = t.id.ModName; arg= POINTER ("pVal" + suf) }
-                | Asn1AcnAst.Real               _ -> {CallerScope.modName = t.id.ModName; arg= POINTER ("pVal" + suf) }
-                | Asn1AcnAst.IA5String          _ -> {CallerScope.modName = t.id.ModName; arg= FIXARRAY ("val" + suf) }
-                | Asn1AcnAst.NumericString      _ -> {CallerScope.modName = t.id.ModName; arg= FIXARRAY ("val" + suf) }
-                | Asn1AcnAst.OctetString        _ -> {CallerScope.modName = t.id.ModName; arg= POINTER ("pVal" + suf) }
-                | Asn1AcnAst.NullType           _ -> {CallerScope.modName = t.id.ModName; arg= POINTER ("pVal" + suf) }
-                | Asn1AcnAst.BitString          _ -> {CallerScope.modName = t.id.ModName; arg= POINTER ("pVal" + suf) }
-                | Asn1AcnAst.Boolean            _ -> {CallerScope.modName = t.id.ModName; arg= POINTER ("pVal" + suf) }
-                | Asn1AcnAst.Enumerated         _ -> {CallerScope.modName = t.id.ModName; arg= POINTER ("pVal" + suf) }
-                | Asn1AcnAst.SequenceOf         _ -> {CallerScope.modName = t.id.ModName; arg= POINTER ("pVal" + suf) }
-                | Asn1AcnAst.Sequence           _ -> {CallerScope.modName = t.id.ModName; arg= POINTER ("pVal" + suf) }
-                | Asn1AcnAst.Choice             _ -> {CallerScope.modName = t.id.ModName; arg= POINTER ("pVal" + suf) }
-                | Asn1AcnAst.ObjectIdentifier _ -> {CallerScope.modName = t.id.ModName; arg= POINTER ("pVal" + suf) }
-                | Asn1AcnAst.TimeType _ -> {CallerScope.modName = t.id.ModName; arg= POINTER ("pVal" + suf) }
+                | Asn1AcnAst.Integer            _ -> {CallerScope.modName = t.id.ModName; arg= POINTER ("DEC A pVal" + suf) }
+                | Asn1AcnAst.Real               _ -> {CallerScope.modName = t.id.ModName; arg= POINTER ("DEC B pVal" + suf) }
+                | Asn1AcnAst.IA5String          _ -> {CallerScope.modName = t.id.ModName; arg= FIXARRAY ("DEC C val" + suf) }
+                | Asn1AcnAst.NumericString      _ -> {CallerScope.modName = t.id.ModName; arg= FIXARRAY ("DEC D val" + suf) }
+                | Asn1AcnAst.OctetString        _ -> {CallerScope.modName = t.id.ModName; arg= POINTER ("DEC E pVal" + suf) }
+                | Asn1AcnAst.NullType           _ -> {CallerScope.modName = t.id.ModName; arg= POINTER ("DEC F pVal" + suf) }
+                | Asn1AcnAst.BitString          _ -> {CallerScope.modName = t.id.ModName; arg= POINTER ("DEC G pVal" + suf) }
+                | Asn1AcnAst.Boolean            _ -> {CallerScope.modName = t.id.ModName; arg= POINTER ("DEC H pVal" + suf) }
+                | Asn1AcnAst.Enumerated         _ -> {CallerScope.modName = t.id.ModName; arg= POINTER ("DEC I pVal" + suf) }
+                | Asn1AcnAst.SequenceOf         _ -> {CallerScope.modName = t.id.ModName; arg= POINTER ("DEC J pVal" + suf) }
+                | Asn1AcnAst.Sequence           _ -> {CallerScope.modName = t.id.ModName; arg= POINTER ("DEC K pVal" + suf) }
+                | Asn1AcnAst.Choice             _ -> {CallerScope.modName = t.id.ModName; arg= POINTER ("DEC L pVal" + suf) }
+                | Asn1AcnAst.ObjectIdentifier _ -> {CallerScope.modName = t.id.ModName; arg= POINTER ("DEC M pVal" + suf) }
+                | Asn1AcnAst.TimeType _ -> {CallerScope.modName = t.id.ModName; arg= POINTER ("DEC N pVal" + suf) }
                 | Asn1AcnAst.ReferenceType r -> this.getParamTypeSuffix r.resolvedType suf c
         
-        override this.getParamValue  (t:Asn1AcnAst.Asn1Type) (p:FuncParamType)  (c:Codec) =
+        override this.getParamValue (t:Asn1AcnAst.Asn1Type) (p:FuncParamType) (c:Codec) =
             match c with
             | Encode  ->
                 match t.Kind with
@@ -243,19 +237,19 @@ type LangGeneric_scala() =
 
         override this.getLocalVariableDeclaration (lv:LocalVariable) : string  =
             match lv with
-            | SequenceOfIndex (i,None)                  -> sprintf "int i%d;" i
-            | SequenceOfIndex (i,Some iv)               -> sprintf "int i%d=%d;" i iv
-            | IntegerLocalVariable (name,None)          -> sprintf "int %s;" name
-            | IntegerLocalVariable (name,Some iv)       -> sprintf "int %s=%d;" name iv
-            | Asn1SIntLocalVariable (name,None)         -> sprintf "%s: Int;" name
-            | Asn1SIntLocalVariable (name,Some iv)      -> sprintf "asn1SccSint %s=%d;" name iv
-            | Asn1UIntLocalVariable (name,None)         -> sprintf "asn1SccUint %s;" name
-            | Asn1UIntLocalVariable (name,Some iv)      -> sprintf "asn1SccUint %s=%d;" name iv
-            | FlagLocalVariable (name,None)             -> sprintf "%s: Boolean;" name
-            | FlagLocalVariable (name,Some iv)          -> sprintf "var %s: Boolean = %d" name iv
-            | BooleanLocalVariable (name,None)          -> sprintf "%s: Boolean;" name
-            | BooleanLocalVariable (name,Some iv)       -> sprintf "var %s: Boolean = %s" name (if iv then "true" else "false")
-            | AcnInsertedChild(name, vartype)           -> sprintf "%s %s;" name vartype
+            | SequenceOfIndex (i,None)                  -> sprintf "LOCVAR int i%d;" i
+            | SequenceOfIndex (i,Some iv)               -> sprintf "LOCVAR int i%d=%d;" i iv
+            | IntegerLocalVariable (name,None)          -> sprintf "LOCVAR int %s;" name
+            | IntegerLocalVariable (name,Some iv)       -> sprintf "LOCVAR int %s=%d;" name iv
+            | Asn1SIntLocalVariable (name,None)         -> sprintf "LOCVAR %s: Int;" name
+            | Asn1SIntLocalVariable (name,Some iv)      -> sprintf "LOCVAR asn1SccSint %s=%d;" name iv
+            | Asn1UIntLocalVariable (name,None)         -> sprintf "LOCVAR asn1SccUint %s;" name
+            | Asn1UIntLocalVariable (name,Some iv)      -> sprintf "LOCVAR asn1SccUint %s=%d;" name iv
+            | FlagLocalVariable (name,None)             -> sprintf "LOCVAR %s: Boolean;" name
+            | FlagLocalVariable (name,Some iv)          -> sprintf "LOCVAR var %s: Boolean = %d" name iv
+            | BooleanLocalVariable (name,None)          -> sprintf "LOCVAR %s: Boolean;" name
+            | BooleanLocalVariable (name,Some iv)       -> sprintf "LOCVAR var %s: Boolean = %s" name (if iv then "true" else "false")
+            | AcnInsertedChild(name, vartype)           -> sprintf "LOCVAR %s %s;" name vartype
             
             | GenericLocalVariable lv                   ->
                 sprintf "%s%s: %s%s;" (if lv.isStatic then "static " else "") lv.name lv.varType (if lv.arrSize.IsNone then "" else "["+lv.arrSize.Value+"]")

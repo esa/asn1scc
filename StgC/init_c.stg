@@ -8,11 +8,11 @@ initTypeAssignment_def(sVarName, sStar, sFuncName, sTypeDefName) ::= <<
 void <sFuncName>(<sTypeDefName><sStar> <sVarName>);
 >>
 
-initTypeAssignment(sVarName, sStar, sFuncName, sTypeDefName, sContent, arrsLocalVariables) ::= <<
-void <sFuncName>(<sTypeDefName><sStar> <sVarName>)
+initTypeAssignment(sVarName, sPtrPrefix, sPtrSuffix, sFuncName, sTypeDefName, sContent, arrsLocalVariables) ::= <<
+void <sFuncName>(<sTypeDefName><sPtrSuffix> <sVarName>)
 {
 	(void)<sVarName>;
-
+    
     <arrsLocalVariables; separator="\n">
 
 	<sContent>
