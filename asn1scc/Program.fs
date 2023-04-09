@@ -30,6 +30,8 @@ type CliArguments =
     | [<Unique; AltCommandLine("-customIcdUper")>] CustomIcdUper  of custom_stg_colon_out_filename:string
     | [<Unique; AltCommandLine("-icdAcn")>] IcdAcn  of acn_icd_output_file:string
     | [<Unique; AltCommandLine("-customIcdAcn")>] CustomIcdAcn  of custom_stg_colon_out_filename:string
+    | [<Unique; AltCommandLine("-icdPdus")>] IcdPdus  of asn1_type_assignments_list:string list
+
     | [<Unique; AltCommandLine("-AdaUses")>] AdaUses 
     | [<Unique; AltCommandLine("-ACND")>] ACND  
     | [<Unique; AltCommandLine("-wordSize")>] Word_Size  of wordSize:int
@@ -85,6 +87,7 @@ with
             | CustomIcdUper  _  -> "Invokes the custom stg file 'stgFile.stg' using the icdUper backend and produces the output file 'outputFile'"
             | IcdAcn  _         -> "Produces an Interface Control Document for the input ASN.1 and ACN grammars for ACN encoding"
             | CustomIcdAcn  _   -> "Invokes the custom stg file 'stgFile.stg' using the icdAcn backend and produces the output file 'outputFile'"
+            | IcdPdus       _   -> "A list of type assignments to be included in the generated ICD."
             | AdaUses           -> "Prints in the console all type Assignments of the input ASN.1 grammar"
             | ACND              -> "creates ACN grammars for the input ASN.1 grammars using the default encoding properties"
             | Debug_Asn1  _     -> "Prints all input ASN.1 grammars in a single module/single file and with parameterized types removed. Used for debugging purposes"
@@ -183,6 +186,7 @@ let checkArguement arg =
     | CustomIcdUper  comFile    -> checkCompositeFile comFile "-customIcdUper" ".html"
     | IcdAcn  outHtmlFile       -> checkOutFileName outHtmlFile ".html" "-icdAcn"
     | CustomIcdAcn  comFile     -> checkCompositeFile comFile "-customIcdAcn" ".html"
+    | IcdPdus _                 -> ()
     | AdaUses                   -> ()
     | ACND                      -> ()
     | Debug_Asn1  _             -> ()
@@ -229,6 +233,7 @@ let constructCommandLineSettings args (parserResults: ParseResults<CliArguments>
         IcdAcnHtmlFileName = ""
         generateConstInitGlobals = parserResults.Contains(<@Init_Globals@>)
         custom_Stg_Ast_Version = parserResults.GetResult(<@ Custom_Stg_Ast_Version @>, defaultValue = 1)
+        icdPdus = parserResults.TryGetResult(<@ IcdPdus @>)
         mappingFunctionsModule = parserResults.TryGetResult(<@ Mapping_Functions_Module @>)
         integerSizeInBytes = 
             let ws = parserResults.GetResult(<@Word_Size@>, defaultValue = 8)

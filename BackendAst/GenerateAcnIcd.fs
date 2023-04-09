@@ -673,12 +673,13 @@ let rec getMySelfAndChildren (r:AstRoot) (icdTas:IcdTypeAss) =
     } |> Seq.toList
 
 let PrintTasses2 stgFileName (r:AstRoot) : string list =
+    let pdus = r.args.icdPdus |> Option.map Set.ofList
     r.icdHashes.Values |> 
     Seq.collect id |>
     Seq.choose(fun z ->
         match z.tasInfo with
         | None -> None
-        | Some ts when ts.tasName = "TC" -> Some z
+        | Some ts when pdus.IsNone || pdus.Value.Contains ts.tasName -> Some z
         | Some _ -> None ) |>
     Seq.collect(fun icdTas -> getMySelfAndChildren r icdTas) |>
     Seq.distinct |>

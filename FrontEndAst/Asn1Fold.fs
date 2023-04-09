@@ -464,7 +464,7 @@ let foldType2
                 let initialOrder = ti.children |> List.mapi(fun i c -> match c with Asn1Child x -> (x.Name.Value, i) | AcnChild x -> (x.Name.Value, i) ) |> Map.ofList
                 let newChildren, ns = 
                     ti.children |> 
-                    List.mapi(fun i c -> match c with Asn1Child _ -> (i, c) | AcnChild _ -> (i*10000, c)) |>
+                    List.mapi(fun i c -> match c with Asn1Child _ -> ((i+1), c) | AcnChild _ -> ((i+1)*1000000, c)) |>
                     List.sortBy fst |> 
                     List.map snd |>
                     foldMap (fun curState ch -> 

@@ -1241,6 +1241,7 @@ let rec handleSingleUpdateDependency (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.Acn
                 | false -> (ToC o.modName.Value) + "." + ToC2(r.args.TypePrefix + o.tasName.Value) 
         let baseFncName = baseTypeDefinitionName + "_ACN" + Encode.suffix
         let sReqBytesForUperEncoding = sprintf "%s_REQUIRED_BYTES_FOR_ACN_ENCODING" baseTypeDefinitionName
+        //printfn $"debug %s{d.asn1Type.AsString}"
         let asn1TypeD = us.newTypesMap[d.asn1Type] :?> Asn1Type
         let asn1TypeD = match asn1TypeD.Kind with ReferenceType  o -> o.resolvedType.ActualType | _  -> asn1TypeD
         let errCodes0, localVariables0, ns = 
