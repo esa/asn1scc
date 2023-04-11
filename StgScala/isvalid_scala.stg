@@ -35,12 +35,11 @@ if (ret) {
 
 
 always_true_statement ()::= <<
-ret = true;
+ret = 0;
 >>
 
 always_false_statement(sErrorCodeName)::= <<
-ret = false;                        /*COVERAGE_IGNORE*/
-*pErrCode = <sErrorCodeName>;       /*COVERAGE_IGNORE*/
+ret = <sErrorCodeName>;       /*COVERAGE_IGNORE*/
 >>
  
 
@@ -50,21 +49,19 @@ ret = <sIsValidExp>;
 
 convertVCBExpressionToStatementAndUpdateErrCode(sIsValidExp, sErrCode) ::= <<
 ret = <sIsValidExp>; 
-*pErrCode = ret ? 0 :  <sErrCode>; 
+ret = <sErrCode>; 
 >>
 
 convertVCBStatementToStatementAndUpdateErrCode(sStatement, sErrCode) ::= <<
 <sStatement>
-*pErrCode = ret ? 0 :  <sErrCode>; 
+ret = <sErrCode>; 
 >>
 
 convertVCBTRUEToStatementAndUpdateErrCode() ::= <<
-ret = true;
-*pErrCode = 0;
+ret = 0;
 >>
 convertVCBFalseToStatementAndUpdateErrCode(sErrCode) ::= <<
-ret = false;
-*pErrCode = <sErrCode>;
+ret = <sErrCode>;
 >>
 
 
@@ -85,16 +82,16 @@ EmitTypeAssignment_composite_def_err_code(sErrCode, nErrValue, arrsErrorCodeComm
 >>
 EmitTypeAssignment_composite_def(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes) ::= <<
 <arrsErrcodes; separator="\n">
-flag <sFuncName>(const <sTypeDefName><sStar> <sVarName>, int* pErrCode);
+def <sFuncName>(<sVarName>: <sTypeDefName>): Int;
 >>
 
 
 
-EmitTypeAssignment_composite(sVarName, sStar, sFuncName, sTypeDefName, sContent, arrsAlphaFuncs, arrsLocalVars, bUnreferenced) ::= <<
+EmitTypeAssignment_composite(sVarName, sPtrPrefix, sPtrSuffix, sFuncName, sTypeDefName, sContent, arrsAlphaFuncs, arrsLocalVars, bUnreferenced) ::= <<
 <arrsAlphaFuncs; separator="\n">
-flag <sFuncName>(const <sTypeDefName><sStar> <sVarName>, int* pErrCode)
+def <sFuncName>(<sVarName>: <sPtrPrefix><sTypeDefName><sPtrSuffix>): Int = 
 {
-    var ret: Boolean = true // isvalid_scala.stg:97
+    var ret: Int = 0 // isvalid_scala.stg:97
     <arrsLocalVars; separator="\n">
 <if(bUnreferenced)>
 	(void)<sVarName>;
@@ -210,7 +207,7 @@ for(<i> = 0; ret && <i> \< <if(!bIsFixedSize)><p><sAcc>nCount<else><nFixedSize><
 
 
 Print_AlphabetCheckFunc(sFuncName, arrsAlphaConBody) ::= <<
-flag <sFuncName>(const char* str) 
+def <sFuncName>(const char* str): flag = 
 {
     flag ret=TRUE;
     int i=0;
@@ -259,15 +256,13 @@ PrintMultipleConstraints(arrsConstraints) ::= "<arrsConstraints; separator=\" &&
 
 Emit_type(arrsConstraints, sErrCodeName) ::= <<
 ret = <arrsConstraints; separator=" && ">;
-*pErrCode = ret ? 0 : <sErrCodeName>;
+ret = <sErrCodeName>;
 >>
 
 
-call_base_type_func(p, sFuncName, soTypeCasting) ::= "ret = <sFuncName>(<p>, pErrCode);"
+call_base_type_func(p, sFuncName, soTypeCasting) ::= "ret = <sFuncName>(<p>)"
 
-call_base_type_func_exp(p, sFuncName) ::= "<sFuncName>(<p>, pErrCode)"
-
-
+call_base_type_func_exp(p, sFuncName) ::= "<sFuncName>(<p>)"
 
 
 /* SEQUENCE start*/
@@ -281,8 +276,8 @@ if (<p><sAcc>exist.<sChName>) {
 
 
 Sequence_optional_child_always_present_or_absent(p, sAcc,  sChName, sErrCode, sPresOrAbs) ::= <<
-ret= <p><sAcc>exist.<sChName> == <sPresOrAbs>;
-*pErrCode = ret ? 0 : <sErrCode>;
+ret = <p><sAcc>exist.<sChName> == <sPresOrAbs>;
+ret = <sErrCode>;
 >>
 
 Sequence_optional_child_always_present_or_absent_expr(p, sAcc,  sChName, sPresOrAbs) ::= <<
@@ -321,8 +316,7 @@ choice(p, sAccess, arrsChildren, sErrCodeForInvalidCase) ::= <<
 switch (<p><sAccess>kind) {
     <arrsChildren; separator="\n">
     default: /*COVERAGE_IGNORE*/
-	    *pErrCode = <sErrCodeForInvalidCase>;      /*COVERAGE_IGNORE*/
-	    ret = FALSE;                               /*COVERAGE_IGNORE*/
+	    ret = <sErrCodeForInvalidCase>      /*COVERAGE_IGNORE*/
 }
 >>
 
@@ -337,7 +331,7 @@ switch (<p><sAccess>kind) {
 sequenceOf(p,sAcc, i, bIsFixedSize, nFixedSize, soIsValidSizeExp, soErrCode, soInnerStatement) ::= <<
 <if(!bIsFixedSize)>
 ret = <soIsValidSizeExp>;
-*pErrCode = ret ? 0 :  <soErrCode>;
+ret = <soErrCode>;
 
 <endif>
 <if (soInnerStatement)>

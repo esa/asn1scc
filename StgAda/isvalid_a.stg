@@ -157,7 +157,7 @@ EmitTypeAssignment_composite_def(sVarName, sStar, sFuncName, sTypeDefName, arrsE
 function <sFuncName>(<sVarName> : <sTypeDefName>) return <rtlModuleName()>.ASN1_RESULT;
 >>
 
-EmitTypeAssignment_composite(sVarName, sStar, sFuncName, sTypeDefName, sContent, arrsAlphaFuncs, arrsLocalVars, bUnreferenced) ::= <<
+EmitTypeAssignment_composite(sVarName, sPtrPrefix, sPtrSuffix, sFuncName, sTypeDefName, sContent, arrsAlphaFuncs, arrsLocalVars, bUnreferenced) ::= <<
 <arrsAlphaFuncs; separator="\n">
 function <sFuncName>(<sVarName> : <sTypeDefName>) return <rtlModuleName()>.ASN1_RESULT
 is

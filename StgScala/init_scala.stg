@@ -121,20 +121,21 @@ initFixVarSizeBitOrOctString(p, sAcc, nSize, arrsBytes) ::= <<
 
 initTestCaseOctetString(p, sAcc, nSize, i, bIsFixedSize, bZero, nMinSize) ::= <<
 <if(bZero)>
-<p> = Array.Fill(<nSize>)(0) // init_scala:124
-
-<else>
-// bZero was false init_scala:127
 <i> = 0;
-while (<i>\< <nSize>) {
-    <p><sAcc>arr[<i>] = (byte)(<i>%256);
-    <i> = <i> + 1;
-}
-
+(while (<i> \< <nSize>) {
+    <p><sAcc>arr(<i>) = 0;
+    <i> += 1;
+})
+<else>
+<i> = 0;
+(while (<i>\< <nSize>) {
+    <p><sAcc>arr(<i>) = (byte)(<i>%256);
+    <i> += 1;
+})
 <endif>
 <if(!bIsFixedSize)><p><sAcc>nCount = <if(bZero)><nMinSize><else><nSize><endif>;<endif>
-
 >>
+
 
 initTestCaseBitString(p, sAcc, nSize, nSizeCeiled,  i, bIsFixedSize, bZero, nMinSize) ::= <<
 <if(bZero)>
