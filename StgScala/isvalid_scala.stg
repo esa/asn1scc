@@ -91,7 +91,7 @@ EmitTypeAssignment_composite(sVarName, sPtrPrefix, sPtrSuffix, sFuncName, sTypeD
 <arrsAlphaFuncs; separator="\n">
 def <sFuncName>(<sVarName>: <sPtrPrefix><sTypeDefName><sPtrSuffix>): Int = 
 {
-    var ret: Int = 0 // isvalid_scala.stg:97
+    var ret = 0 // isvalid_scala.stg:97
     <arrsLocalVars; separator="\n">
 <if(bUnreferenced)>
 	(void)<sVarName>;

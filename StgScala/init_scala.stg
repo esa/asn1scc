@@ -121,7 +121,7 @@ initFixVarSizeBitOrOctString(p, sAcc, nSize, arrsBytes) ::= <<
 
 initTestCaseOctetString(p, sAcc, nSize, i, bIsFixedSize, bZero, nMinSize) ::= <<
 <if(bZero)>
-<i> = 0;
+var <i> = 0;
 (while (<i> \< <nSize>) {
     <p><sAcc>arr(<i>) = 0;
     <i> += 1;

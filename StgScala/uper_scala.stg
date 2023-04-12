@@ -35,9 +35,9 @@ flag <sFuncName>(const <sTypeDefName><sStar> <sVarName>, BitStream* pBitStrm, in
 >>
 
 EmitTypeAssignment_encode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitilialExp, bReqBytesForEncodingIsZero, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName) ::= <<
-def <sFuncName>(<sVarName>: <sTypeDefName>, pBitStrm: Ref[BitStream], pErrCode: Ref[int], bCheckConstraints: Boolean): Boolean = //uper_scala:38
+def <sFuncName>(<sVarName>: Ref[<sTypeDefName>], pBitStrm: Ref[BitStream], bCheckConstraints: Boolean): Int = //uper_scala:38
 {
-    Boolean ret = TRUE;
+    var ret = 0;
 <if(bVarNameIsUnreferenced)>
 	(void)<sVarName>;
 
@@ -50,15 +50,12 @@ def <sFuncName>(<sVarName>: <sTypeDefName>, pBitStrm: Ref[BitStream], pErrCode: 
 
 	<arrsLocalVariables:{lv|<lv>}; separator="\n">
     <if(soIValidFuncName)>
-	*pErrCode = 0;
-	ret = bCheckConstraints ? <soIValidFuncName>(<sVarName>, pErrCode) : TRUE ;
-	if (ret && *pErrCode == 0) {
+	ret = if (bCheckConstraints) <soIValidFuncName>(<sVarName>) else 0
+	if (ret == 0) {
 	    <sContent>
     } /*COVERAGE_IGNORE*/
 
     <else>
-    *pErrCode = 0;
-    bCheckConstraints=bCheckConstraints;
     <sContent>
 
     <endif>
