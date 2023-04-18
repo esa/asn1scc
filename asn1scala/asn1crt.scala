@@ -1,107 +1,44 @@
-/*
+package asn1crt
 
-Same same as copied header
+import stainless.math.BitVectors._
 
-#include <string.h>
-#include <assert.h>
-#include <math.h>
-#include <float.h>
+case class Ref[T](var x: T) {}
 
-#include "asn1crt.h"
+val WORD_SIZE = 8
+val OBJECT_IDENTIFIER_MAX_LENGTH = 20
 
-#if WORD_SIZE==8
-const asn1SccUint64 ber_aux[] = { 
-    0xFF,
-    0xFF00,
-    0xFF0000,
-    0xFF000000,
-    0xFF00000000ULL,
-    0xFF0000000000ULL,
-    0xFF000000000000ULL,
-    0xFF00000000000000ULL };
-#else
-const asn1SccUint32 ber_aux[] = {
-    0xFF,
-    0xFF00,
-    0xFF0000,
-    0xFF000000 };
-#endif
+type uint8_t = UInt8
+type int32_t = Int32
+type uint32_t = UInt32
+type int64_t = Int64
+type uint64_t = UInt64
 
-asn1SccUint int2uint(asn1SccSint v) {
-    asn1SccUint ret = 0;
-    if (v < 0) {
-        ret = (asn1SccUint)(-v - 1);
-        ret = ~ret;
-    }
-    else {
-        ret = (asn1SccUint)v;
-    };
-    return ret;
+type asn1Real32 = Float
+type asn1Real64 = Double
+type byte = uint8_t
+type asn1SccSint32 = int32_t
+type asn1SccUint32 = uint32_t
+type asn1SccSint64 = int64_t
+type asn1SccUint64 = uint64_t
+
+// TODO: depends on word size (asn1SccUint32)
+type asn1SccSint = asn1SccSint64
+type asn1SccUint = asn1SccUint64
+
+type flag = Boolean
+
+case class BitStream (
+  buf: Array[byte],
+  count: Long,
+  currentByte: Long,
+  currentBit: Int
+) { }
+
+case class Asn1ObjectIdentifier (
+  nCount: Int,
+  values: Array[asn1SccUint]
+) {
+  require(
+    values.length == OBJECT_IDENTIFIER_MAX_LENGTH
+  )
 }
-
-asn1SccSint uint2int(asn1SccUint v, int uintSizeInBytes) {
-    int i;
-    asn1SccUint tmp = 0x80;
-    flag bIsNegative = (v & (tmp << ((uintSizeInBytes - 1) * 8)))>0;
-    if (!bIsNegative)
-        return (asn1SccSint)v;
-    for (i = WORD_SIZE - 1; i >= uintSizeInBytes; i--)
-        v |= ber_aux[i];
-    return -(asn1SccSint)(~v) - 1;
-}
-
-int GetCharIndex(char ch, byte Set[], int setLen)
-{
-    int i=0;
-    for(i=0; i<setLen; i++)
-        if (ch == Set[i])
-            return i;
-    return 0;
-}
-
-/*
-
-#######                                      ###
-#     # #####       # ######  ####  #####     #  #####  ###### #    # ##### # ###### # ###### #####
-#     # #    #      # #      #    #   #       #  #    # #      ##   #   #   # #      # #      #    #
-#     # #####       # #####  #        #       #  #    # #####  # #  #   #   # #####  # #####  #    #
-#     # #    #      # #      #        #       #  #    # #      #  # #   #   # #      # #      #####
-#     # #    # #    # #      #    #   #       #  #    # #      #   ##   #   # #      # #      #   #
-####### #####   ####  ######  ####    #      ### #####  ###### #    #   #   # #      # ###### #    #
-
-Object Identifier
-
-*/
-
-void ObjectIdentifier_Init(Asn1ObjectIdentifier *pVal) {
-	int i;
-	for (i = 0; i < OBJECT_IDENTIFIER_MAX_LENGTH; i++) {
-		pVal->values[i] = 0;
-	}
-	pVal->nCount = 0;
-}
-
-flag ObjectIdentifier_isValid(const Asn1ObjectIdentifier *pVal) {
-	return (pVal->nCount >= 2) && (pVal->values[0] <= 2) && (pVal->values[1] <= 39);
-}
-
-flag RelativeOID_isValid(const Asn1ObjectIdentifier *pVal) {
-	return pVal->nCount > 0;
-}
-
-flag ObjectIdentifier_equal(const Asn1ObjectIdentifier *pVal1, const Asn1ObjectIdentifier *pVal2) {
-	int i;
-	if ((pVal1 != NULL) && (pVal2 != NULL) && pVal1->nCount == pVal2->nCount && pVal1->nCount <= OBJECT_IDENTIFIER_MAX_LENGTH) {
-		flag ret = true;
-		for (i = 0; i < pVal1->nCount && ret; i++)
-		{
-			ret = (pVal1->values[i] == pVal2->values[i]);
-		}
-		return ret;
-	}
-	else {
-		return FALSE;
-	}
-}
-
-*/
