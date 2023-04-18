@@ -66,14 +66,13 @@ def <sFuncName>(<sVarName>: Ref[<sTypeDefName>], pBitStrm: Ref[BitStream], bChec
 
 EmitTypeAssignment_def_decode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes, bEmptyEncodingSpace, nMaxBytesInPER, nMaxBitsInPER, soSparkAnnotations, bReqBytesForEncodingIsZero) ::= <<
 <arrsErrcodes; separator="\n">
-def <sFuncName>(<sTypeDefName><sStar> <sVarName>, BitStream* pBitStrm, int* pErrCode): flag;
+def <sFuncName>(<sTypeDefName><sStar> <sVarName>, BitStream* pBitStrm, int* pErrCode): Int;
 >>
 
 EmitTypeAssignment_decode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitilialExp, bReqBytesForEncodingIsZero, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName) ::= <<
-def <sFuncName>(<sTypeDefName><sStar> <sVarName>, BitStream* pBitStrm, int* pErrCode): flag = 
+def <sFuncName>(<sVarName>: <sTypeDefName>, pBitStrm: Ref[BitStream]): Int = 
 {
-    flag ret = TRUE;
-	*pErrCode = 0;
+    var ret = 0;
 <if(bVarNameIsUnreferenced)>
 	(void)<sVarName>;
 
@@ -87,7 +86,7 @@ def <sFuncName>(<sTypeDefName><sStar> <sVarName>, BitStream* pBitStrm, int* pErr
 
 	<sContent>
 
-	return ret <if(soIValidFuncName)> && <soIValidFuncName>(<sVarName>, pErrCode)<endif>;
+	return ret <if(soIValidFuncName)> && <soIValidFuncName>(<sVarName>)<endif>;
 }
 >>
 
@@ -104,7 +103,8 @@ BitStream_AppendByte0(pBitStrm, <p><sAcc>arr[<i>]);
 
 InternalItem_oct_str_decode(p, sAcc, i, sErrCode) ::=<<
 ret = BitStream_ReadByte(pBitStrm, &(<p><sAcc>arr[<i>])); 
-*pErrCode = ret ? 0 : <sErrCode>;
+ret = <sErrCode>
+//OLD *pErrCode = ret ? 0 : <sErrCode>; // uper_Scala:106
 >>
 
 PrintAlphabet2(arrnCharSet) /*nogen*/::= <<
@@ -120,7 +120,7 @@ InternalItem_string_with_alpha_decode(p, sErrCode,  td/*:FE_StringTypeDefinition
 <PrintAlphabet2(arrnAlphabetAsciiCodes)>
 asn1SccSint charIndex = 0;
 ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, &charIndex, 0, <nLastItemIndex>);
-*pErrCode = ret ? 0 : <sErrCode>;
+ret = <sErrCode>; // uper_scala:123
 <p>[<i>] = ret ? allowedCharSet[charIndex] : '\0' ;
 >>
 
@@ -130,8 +130,8 @@ BitStream_EncodeConstraintWholeNumber(pBitStrm, <p>[<i>], 0, 127);
 
 InternalItem_string_no_alpha_decode(p, sErrCode, i) ::=<<
 asn1SccSint charValue=0;
-ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, &charValue, 0, 127);
-*pErrCode = ret ? 0 : <sErrCode>;
+ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, &charValue, 0, 127)
+ret = <sErrCode> // uper_scala:134
 <p>[<i>] = (char)charValue;
 >>
 
@@ -142,15 +142,15 @@ ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, &charValue, 0, 127);
 /*case: A:: = INTEGER (-5..20) */
 IntFullyConstraint_encode(p, nMin, nMax, nBits, sSsuffix, sErrCode) ::= "BitStream_EncodeConstraintWholeNumber(pBitStrm, <p>, <nMin>, <nMax>);"
 IntFullyConstraint_decode(p, nMin, nMax, nBits, sSsuffix, sErrCode) ::= <<
-ret = BitStream_DecodeConstraintWholeNumber<sSsuffix>(pBitStrm, <p>, <nMin>, <nMax>);
-*pErrCode = ret ? 0 : <sErrCode>;
+ret = BitStream_DecodeConstraintWholeNumber<sSsuffix>(pBitStrm, <p>, <nMin>, <nMax>)
+ret = if (ret==0) 0 else <sErrCode> // uper_scala:146
 >>
 
 /*case: Positive fully constraint A:: = INTEGER (5..20) */
 IntFullyConstraintPos_encode(p, nMin, nMax, nBits, sSsuffix, sErrCode) ::= "BitStream_EncodeConstraintPosWholeNumber(pBitStrm, <p>, <nMin>, <nMax>);"
 IntFullyConstraintPos_decode(p, nMin, nMax, nBits, sSsuffix, sErrCode) ::= <<
 ret = BitStream_DecodeConstraintPosWholeNumber<sSsuffix>(pBitStrm, <p>, <nMin>, <nMax>);
-*pErrCode = ret ? 0 : <sErrCode>;
+ret = if (ret==0) 0 else <sErrCode> // uper_scala:153
 >>
 
 
@@ -158,7 +158,7 @@ ret = BitStream_DecodeConstraintPosWholeNumber<sSsuffix>(pBitStrm, <p>, <nMin>, 
 IntUnconstraint_encode(p, sErrCode, bCoverageIgnore) ::= "BitStream_EncodeUnConstraintWholeNumber(pBitStrm, <p>);"
 IntUnconstraint_decode(p, sErrCode, bCoverageIgnore) ::= <<
 ret = BitStream_DecodeUnConstraintWholeNumber(pBitStrm, <p>);   <if(bCoverageIgnore)>/*COVERAGE_IGNORE*/<endif>
-*pErrCode = ret ? 0 : <sErrCode>;                               <if(bCoverageIgnore)>/*COVERAGE_IGNORE*/<endif>
+ret = if (ret==0) 0 else <sErrCode> // uper_scala:161                               <if(bCoverageIgnore)>/*COVERAGE_IGNORE*/<endif>
 >>
 
 /*case: A :: = INTEGER(MIN..5) */
