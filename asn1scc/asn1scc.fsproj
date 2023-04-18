@@ -76,13 +76,4 @@
     <Folder Include="Properties\" />
   </ItemGroup>
 
-  <ItemGroup>
-    <EmbeddedResource Include="..\asn1scala\asn1crt.h.scala">
-      <Link>asn1crt.h.scala</Link>
-    </EmbeddedResource>
-    <EmbeddedResource Include="..\asn1scala\asn1crt.scala">
-      <Link>asn1crt.scala</Link>
-    </EmbeddedResource>
-  </ItemGroup>
-
 </Project>
