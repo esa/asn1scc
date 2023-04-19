@@ -1,7 +1,7 @@
 MY-MODULE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
 
 Message ::= SEQUENCE {
-    anInt INTEGER,
+    anInt INTEGER(0..255),
     tenByteString OCTET STRING (SIZE(10)),
     aBool BOOLEAN
 }
