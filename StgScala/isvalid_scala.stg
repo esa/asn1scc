@@ -10,7 +10,7 @@ getStringSize(p) ::= "strlen(<p>)"
 JoinItems(sPart, soNestedPart) ::= <<
 <sPart>
 <if(soNestedPart)>
-if (ret) {
+if (ret == 0) {
     <soNestedPart>
 }
 <endif>
@@ -18,14 +18,14 @@ if (ret) {
 
 JoinTwoIfFirstOk(sStr1,sStr2) ::=<<
 <sStr1>
-if (ret) {
+if (ret == 0) {
     <sStr2>
 }   /*COVERAGE_IGNORE*/
 >>
 
 JoinItems2(sPart, sNestedPart) ::= <<
 <sPart>
-if (ret) {
+if (ret == 0) {
     <sNestedPart>
 }   /*COVERAGE_IGNORE*/
 >>
@@ -35,33 +35,32 @@ if (ret) {
 
 
 always_true_statement ()::= <<
-ret = 0;
+ret = 0; // isvalid_scala:38
 >>
 
 always_false_statement(sErrorCodeName)::= <<
-ret = <sErrorCodeName>;       /*COVERAGE_IGNORE*/
+ret = <sErrorCodeName>;       /*COVERAGE_IGNORE*/ // isvalid_scala:42
 >>
  
 
 makeExpressionToStatement0(sIsValidExp) ::= <<
-ret = <sIsValidExp>;
+<sIsValidExp>
 >>
 
 convertVCBExpressionToStatementAndUpdateErrCode(sIsValidExp, sErrCode) ::= <<
-ret = <sIsValidExp>; 
+ret = <sIsValidExp>; // isvalid_scala:51
 ret = <sErrCode>; 
 >>
 
 convertVCBStatementToStatementAndUpdateErrCode(sStatement, sErrCode) ::= <<
-<sStatement>
-ret = <sErrCode>; 
+if (<sStatement>) 0 else <sErrCode> // isvalid_scala:56
 >>
 
 convertVCBTRUEToStatementAndUpdateErrCode() ::= <<
-ret = 0;
+ret = 0; // isvalid_scala:61
 >>
 convertVCBFalseToStatementAndUpdateErrCode(sErrCode) ::= <<
-ret = <sErrCode>;
+ret = <sErrCode>; // isvalid_scala:64
 >>
 
 
@@ -89,14 +88,11 @@ def <sFuncName>(<sVarName>: <sTypeDefName>): Int;
 
 EmitTypeAssignment_composite(sVarName, sPtrPrefix, sPtrSuffix, sFuncName, sTypeDefName, sContent, arrsAlphaFuncs, arrsLocalVars, bUnreferenced) ::= <<
 <arrsAlphaFuncs; separator="\n">
-def <sFuncName>(<sVarName>: <sPtrPrefix><sTypeDefName><sPtrSuffix>): Int = 
+def <sFuncName>(<if(bUnreferenced)>@annotation.unused <endif><sVarName>: <sPtrPrefix><sTypeDefName><sPtrSuffix>): Int = 
 {
     var ret = 0 // isvalid_scala.stg:97
     <arrsLocalVars; separator="\n">
-<if(bUnreferenced)>
-	(void)<sVarName>;
 
-<endif>
     <sContent>
 
 	return ret;

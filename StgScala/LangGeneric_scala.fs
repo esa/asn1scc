@@ -67,7 +67,7 @@ type LangGeneric_scala() =
         override this.getValue (fpt:FuncParamType) =
             match fpt with
             | VALUE x        -> x
-            | POINTER x      -> sprintf "PTR@VAL (%s)" x
+            | POINTER x      -> sprintf "PTR@VAL (%s).x" x
             | FIXARRAY x     -> sprintf "ARR@VAL (%s)" x
 
         override this.getAccess  (fpt:FuncParamType) = getAccess_scala fpt
@@ -76,15 +76,15 @@ type LangGeneric_scala() =
 
         override this.getPtrPrefix (fpt: FuncParamType) = 
             match fpt with
-            | VALUE x        -> "VAL@PRFX Ref["
-            | POINTER x      -> "PTR@PRFX Ref["
-            | FIXARRAY x     -> "ARR@PRFX Ref["
+            | VALUE x        -> "Ref["
+            | POINTER x      -> "Ref["
+            | FIXARRAY x     -> "Ref["
 
         override this.getPtrSuffix (fpt: FuncParamType) = 
             match fpt with
-            | VALUE x        -> "VAL@SFX]"
-            | POINTER x      -> "PTR@SFX]"
-            | FIXARRAY x     -> "ARR@SFX]"
+            | VALUE x        -> "]"
+            | POINTER x      -> "]"
+            | FIXARRAY x     -> "]"
 
         override this.getStar  (fpt:FuncParamType) =
             match fpt with
@@ -176,7 +176,7 @@ type LangGeneric_scala() =
             match c with
             | Encode  ->
                 match t.Kind with
-                | Asn1AcnAst.Integer         _ -> {CallerScope.modName = t.id.ModName; arg= POINTER ("ENC A pVal" + suf)    }
+                | Asn1AcnAst.Integer         _ -> {CallerScope.modName = t.id.ModName; arg= POINTER ("intRef" + suf)    }
                 | Asn1AcnAst.Real            _ -> {CallerScope.modName = t.id.ModName; arg= POINTER ("ENC B pVal" + suf)    }
                 | Asn1AcnAst.IA5String       _ -> {CallerScope.modName = t.id.ModName; arg= FIXARRAY ("ENC C val" + suf) }
                 | Asn1AcnAst.NumericString   _ -> {CallerScope.modName = t.id.ModName; arg= FIXARRAY ("ENC D val" + suf) }
