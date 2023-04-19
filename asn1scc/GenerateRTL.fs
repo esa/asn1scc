@@ -90,9 +90,9 @@ let exportRTL (di:DirInfo) (l:ProgrammingLanguage) (args:CommandLineSettings)=
     | ProgrammingLanguage.Scala ->
         writeResource di "asn1crt.scala" None
                 
-        // let intSize = sprintf "#define WORD_SIZE	%d" (int args.integerSizeInBytes)
-        // let fpSize = sprintf "#define FP_WORD_SIZE	%d" (int args.floatingPointSizeInBytes)
-        //writeResource di "asn1crt.h.scala" (Some (fun (s:string) -> s.Replace("#define WORD_SIZE	8", intSize).Replace("#define FP_WORD_SIZE	8", fpSize)) )
+        let intSize = sprintf "#define WORD_SIZE	%d" (int args.integerSizeInBytes)
+        let fpSize = sprintf "#define FP_WORD_SIZE	%d" (int args.floatingPointSizeInBytes)
+        writeResource di "asn1crt.h" (Some (fun (s:string) -> s.Replace("#define WORD_SIZE	8", intSize).Replace("#define FP_WORD_SIZE	8", fpSize)) )
                 
         match args.encodings with
         | []    -> ()
