@@ -1,0 +1,32 @@
+-- NOCOVERAGE
+-- no special for not coverage. It seems that there is a bug in gnatcov which reports a an uncovered statement a local variable definition
+TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
+
+
+   SpacePacket ::= SEQUENCE {
+      header SpacePacet-Header,
+      payload OCTET STRING (CONTAINING TC)
+   }
+
+   SpacePacet-Header ::= SEQUENCE {
+      dummy MyInteger
+   }
+
+   TC ::= SEQUENCE {
+      packet-on-event RawSpacePacket
+   }
+
+   MyInteger ::= INTEGER (0 .. 10000)
+
+   RawSpacePacket ::= SEQUENCE {
+      header SpacePacet-Header,
+      payload OCTET STRING (SIZE(1..100))
+   }
+	
+	
+END
+
+
+--TCLS     SpacePacket [] { header [] { dummy [size 16, encoding pos-int], packet-length INTEGER [size 16, encoding pos-int] }, payload [size header.packet-length] }
+END
+

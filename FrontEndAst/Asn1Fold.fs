@@ -1,6 +1,7 @@
 ﻿module Asn1Fold
 
 open Asn1AcnAst
+open Asn1AcnAstUtilFunctions
 (*
 let rec foldMap func state lst =
     match lst with
@@ -414,6 +415,29 @@ type ParentInfo<'T> = {
     parentData : 'T
 }
 
+let dummy a = 
+    let parId = "PUS.SpacePacket"
+    let c1 = "PUS.SpacePacket.header.packet-length"
+    let c2 = "PUS.SpacePacket.payload"
+
+    let aaa = c2.Substring(parId.Length + 1).Split('.').[0]
+    let aaa = (c1.Substring(parId.Length + 1)).Split('.').[0]
+
+    0
+
+let getSeqChildrenWithPriority (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (t:Asn1Type)  =
+    let id = t.id.AsString
+    let getChildNameFromId (childId:string) =
+        childId.Substring(id.Length + 1).Split('.').[0]
+    let childrenWithPriority = 
+        deps.acnDependencies |> 
+        List.choose(fun d -> 
+            match d.dependencyKind with
+            | AcnDepSizeDeterminant_bit_oct_str_containt _ when d.asn1Type.AsString.StartsWith (id)  &&   d.determinant.id.AsString.StartsWith (id) &&                (getChildNameFromId d.asn1Type.AsString) <> (getChildNameFromId d.determinant.id.AsString) -> Some (getChildNameFromId d.asn1Type.AsString )
+            | _ -> None    )
+
+    childrenWithPriority
+
 let foldType2
     intFunc
     realFunc
@@ -437,6 +461,7 @@ let foldType2
     preSeqOfFunc
     preSeqFunc
     preChoiceFunc
+    (deps:Asn1AcnAst.AcnInsertedFieldDependencies)
     (parentInfo : ParentInfo<'T> option)
     (t:Asn1Type) 
     (us:'UserState) 
@@ -460,11 +485,15 @@ let foldType2
                 seqOfFunc pi t ti (loopType (Some {ParentInfo.parent = t ; name=None; parentData=parentData}) ti.child ns) 
             | Sequence       ti -> 
                 let (parentData:'T, ns:'UserState) = preSeqFunc pi t ti us
+
+                let priorities = getSeqChildrenWithPriority deps t |> Set.ofList
+
                 //first process asn1 children and then asn.1 children.
                 let initialOrder = ti.children |> List.mapi(fun i c -> match c with Asn1Child x -> (x.Name.Value, i) | AcnChild x -> (x.Name.Value, i) ) |> Map.ofList
                 let newChildren, ns = 
                     ti.children |> 
-                    List.mapi(fun i c -> match c with Asn1Child _ -> ((i+1), c) | AcnChild _ -> ((i+1)*1000000, c)) |>
+                    //List.mapi(fun i c -> match c with Asn1Child _ -> ((i+1), c) | AcnChild _ -> ((i+1)*1000000, c)) |>
+                    List.mapi(fun i c -> match priorities.Contains c.Name.Value with true -> ((i+1), c) | false -> ((i+1)*1000000, c)) |>
                     List.sortBy fst |> 
                     List.map snd |>
                     foldMap (fun curState ch -> 
