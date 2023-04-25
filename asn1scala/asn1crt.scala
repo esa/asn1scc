@@ -36,3 +36,4 @@ def ObjectIdentifier_Init(pVal: Asn1ObjectIdentifier): Unit = {
 
   pVal.nCount = 0
 }
+
