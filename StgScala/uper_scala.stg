@@ -311,9 +311,9 @@ else {
 /* SEQUENCE START */
 sequence_presence_bit_encode(p, sAcc, sChName, sErrCode) ::= "BitStream_AppendBit(pBitStrm,<p><sAcc>exist.<sChName>);"
 sequence_presence_bit_decode(p, sAcc, sChName, sErrCode) ::= <<
-ret = BitStream_ReadBit(pBitStrm, &presenceBit);
-<p><sAcc>exist.<sChName> = presenceBit == 0 ? 0 : 1;<
-ret == if (ret == 0) 0 else <sErrCode>;
+if(!BitStream_ReadBit(pBitStrm, &presenceBit))
+	ret = <sErrCode>
+<p><sAcc>exist.<sChName> = if (presenceBit == 0) 0 else 1
 >>
 
 sequence_presence_bit_fix_encode(p, sAcc, sChName, sErrCode, sVal) ::= "BitStream_AppendBit(pBitStrm, <sVal>);"
@@ -681,58 +681,64 @@ FixedSize_Fragmentation_sqf_decode(p, sAcc, arrsEncodingParts, nFixedSize, bIsBi
 
 
 Fragmentation_sqf_decode(p, sAcc, sInternalItem, nIntItemMaxSize, nSizeMin, nSizeMax, nRequiredBitsForUPerEncoding, bIsVariableSize, sErrCodeName, sRemainingItemsVar, sCurBlockSize, sBlockIndex, sCurOffset, sBLJ, sBLI, sLengthTmp, bIsBitStringType, bIsAsciiString) ::= <<
-<sRemainingItemsVar> = 0;
-<sCurBlockSize> = 0;
-<sCurOffset> = 0;
-<if(bIsVariableSize)><sLengthTmp> = 0;<endif>
-ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, &<sRemainingItemsVar>, 0, 0xFF);
-*pErrCode = ret ? 0 : <sErrCodeName>;
-if (ret) {
-	while(ret && (<sRemainingItemsVar> & 0xC0)==0xC0) 
+<sRemainingItemsVar> = 0
+<sCurBlockSize> = 0
+<sCurOffset> = 0
+<if(bIsVariableSize)>
+<sLengthTmp> = 0
+<endif>
+var check = BitStream_DecodeConstraintWholeNumber(pBitStrm, &<sRemainingItemsVar>, 0, 0xFF)
+ret = if (check) 0 else <sErrCodeName>
+if (check) {
+	while(check && (<sRemainingItemsVar> & 0xC0)==0xC0) 
 	{
 		if (<sRemainingItemsVar> == 0xC4)
-			<sCurBlockSize> = 0x10000;
+			<sCurBlockSize> = 0x10000
 		else if (<sRemainingItemsVar> == 0xC3)
-			<sCurBlockSize> = 0xC000;
+			<sCurBlockSize> = 0xC000
 		else if (<sRemainingItemsVar> == 0xC2)
-			<sCurBlockSize> = 0x8000;
+			<sCurBlockSize> = 0x8000
 		else if (<sRemainingItemsVar> == 0xC1)
-			<sCurBlockSize> = 0x4000;
+			<sCurBlockSize> = 0x4000
 		else {
-			*pErrCode = <sErrCodeName>; /*COVERAGE_IGNORE*/
-			return FALSE; /*COVERAGE_IGNORE*/
+			return <sErrCodeName>
 		}
 		if (<sCurOffset> + <sCurBlockSize> > <nSizeMax>)
 		{
-			*pErrCode = <sErrCodeName>; /*COVERAGE_IGNORE*/
-			return FALSE; /*COVERAGE_IGNORE*/
+			return <sErrCodeName>
 		}
 
 		<if(bIsBitStringType)>
-		ret = BitStream_ReadBits(pBitStrm, &<p><sAcc>arr[<sCurOffset>/8], (int)<sCurBlockSize>);
-        ret = if (ret == 0) 0 else <sErrCodeName>;
+		check = BitStream_ReadBits(pBitStrm, &<p><sAcc>arr[<sCurOffset>/8], (int)<sCurBlockSize>)
+        ret = if (check) 0 else <sErrCodeName>
 		<else>
-		for(<sBLI>=(int)<sCurOffset>; ret && (<sBLI> \< (int)(<sCurOffset> + <sCurBlockSize>)) ; <sBLI>++)
+		<sBLI>=(int)<sCurOffset>
+		while(check && (<sBLI> \< (int)(<sCurOffset> + <sCurBlockSize>)))
 		{
+			// TODO if ret is written from here on - change to check
 			<sInternalItem>
+			// /TODO
+			<sBLI> += 1
 		}
 		<endif>
 	
-        if (ret) {
-		    <if(bIsVariableSize)><sLengthTmp> += (long)<sCurBlockSize>;<endif>
-		    <sCurOffset> += <sCurBlockSize>;
-		    ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, &<sRemainingItemsVar>, 0, 0xFF);
-            *pErrCode = ret ? 0 : <sErrCodeName>;
+        if (check) {
+		    <if(bIsVariableSize)>
+			<sLengthTmp> += (long)<sCurBlockSize>
+			<endif>
+		    <sCurOffset> += <sCurBlockSize>
+		    check = BitStream_DecodeConstraintWholeNumber(pBitStrm, &<sRemainingItemsVar>, 0, 0xFF)
+            ret = if (check) 0 else <sErrCodeName>
         }
 	}
-    if (ret) {
-	    if ( (<sRemainingItemsVar> & 0x80)>0) 
+    if (check) {
+	    if ((<sRemainingItemsVar> & 0x80) > 0) 
 	    {
-		    asn1SccSint len2;
-		    <sRemainingItemsVar> \<\<= 8;
-		    ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, &len2, 0, 0xFF);
-            *pErrCode = ret ? 0 : <sErrCodeName>;
-            if (ret) {
+		    var len2 = 0;
+		    <sRemainingItemsVar> \<\<= 8
+		    check = BitStream_DecodeConstraintWholeNumber(pBitStrm, &len2, 0, 0xFF)
+            ret = if (check) 0 else <sErrCodeName>
+            if (check) {
 		        <sRemainingItemsVar> |= len2;
 		        <sRemainingItemsVar> &= 0x7FFF;
             }
