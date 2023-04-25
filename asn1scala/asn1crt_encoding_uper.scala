@@ -1,44 +1,58 @@
 package asn1crt
 
+import stainless.math.BitVectors._
+import stainless.lang.*
 
 
 def ObjectIdentifier_uper_encode(pBitStrm: BitStream, pVal: Asn1ObjectIdentifier): Unit = {
-  var tmp = new Array[byte](OBJECT_IDENTIFIER_MAX_LENGTH * (WORD_SIZE + 2))
-  var totalSize = Ref[Int](0)
 
-  var i: Integer = 0
+  val tmp: Array[UInt8] = Array.fill(OBJECT_IDENTIFIER_MAX_LENGTH * (WORD_SIZE + 2))(0)
+  val totalSize = Ref[Int](0)
+
+  var i: Int = 0
   ObjectIdentifier_subidentifiers_uper_encode(tmp, totalSize, pVal.values(0) * 40 + pVal.values(1))
 
-  for i <- 2 to pVal.nCount do
+  i = 0
+  while i < pVal.nCount do
+    decreases(pVal.nCount - i)
     ObjectIdentifier_subidentifiers_uper_encode(tmp, totalSize, pVal.values(i))
+    i += 1
 
   if totalSize.x <= 0x7F then
-    BitStream_EncodeConstraintWholeNumber(pBitStrm, totalSize.x, 0, 0xFF)
+    BitStream_EncodeConstraintWholeNumber(pBitStrm, fromInt(totalSize.x).widen[Int64], 0, 0xFF)
   else
-    BitStream_AppendBit(pBitStrm, 1.asInstanceOf[flag])
-    BitStream_EncodeConstraintWholeNumber(pBitStrm, totalSize.x, 0, 0x7FFF)
+    BitStream_AppendBit(pBitStrm, true)
+    BitStream_EncodeConstraintWholeNumber(pBitStrm, fromInt(totalSize.x).widen[Int64], 0, 0x7FFF)
 
-  for i <- 0 to totalSize.x do
+  i = 0
+  while i < totalSize.x do
+    decreases(totalSize.x - i)
     BitStream_AppendByte0(pBitStrm, tmp(i));
+    i += 1
 }
 
-def ObjectIdentifier_subidentifiers_uper_encode(encodingBuf: Array[byte], pSize: Ref[Int], siValue: asn1SccUint): Unit = {
+def ObjectIdentifier_subidentifiers_uper_encode(encodingBuf: Array[UInt8], pSize: Ref[Int], siValueVal: UInt64): Unit = {
   var lastOctet: flag = false
-  var tmp = new Array[byte](16)
-  var nSize: Integer = 0
+  val tmp: Array[UInt8] = Array.fill(16)(0)
+  var nSize: Int = 0
 
-  var siValueVar = siValue
+  var siValue = siValueVal
 
   while !lastOctet do
-    val curByte: byte = (siValueVar % 128.asInstanceOf[asn1SccUint]).asInstanceOf[byte]
-    siValueVar = siValueVar / 128.asInstanceOf[asn1SccUint]
-    lastOctet = siValueVar == 0.asInstanceOf[asn1SccUint]
+    decreases(siValue)
+    val curByte: UInt8 = (siValue % 128).narrow[UInt8]
+    siValue = siValue / 128
+    lastOctet = siValue.toInt == 0
     tmp(nSize) = curByte
     nSize += 1
 
-  for i <- 0 to nSize do
-    val curByte: byte = if i == nSize-1 then tmp(nSize-i-1) else (tmp(nSize-i-1)|0x80).asInstanceOf[byte]
+  var i: Int = 0
+  while i < nSize do
+    decreases(nSize-i)
+    val curByte: UInt8 = if i == nSize-1 then tmp(nSize-i-1) else tmp(nSize-i-1) | 0x80
     encodingBuf(pSize.x) = curByte
     pSize.x += 1
+    i += 1
+
 }
 
