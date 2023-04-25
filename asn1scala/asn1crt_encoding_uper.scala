@@ -56,3 +56,66 @@ def ObjectIdentifier_subidentifiers_uper_encode(encodingBuf: Array[UInt8], pSize
 
 }
 
+
+def ObjectIdentifier_uper_decode(pBitStrm: BitStream, pVal: Asn1ObjectIdentifier): flag = {
+  val si: Ref[UInt64] = Ref[UInt64](0)
+  val totalSize: Ref[Int64] = Ref[Int64](0)
+  ObjectIdentifier_Init(pVal) // TODO: Ref?
+
+
+  if !ObjectIdentifier_uper_decode_lentg(pBitStrm, totalSize) then
+    return false
+
+  if !ObjectIdentifier_subidentifiers_uper_decode(pBitStrm, totalSize, si) then
+    return false
+
+  pVal.nCount = 2
+  pVal.values(0) = si.x / 40
+  pVal.values(1) = si.x % 40
+  while totalSize.x > 0 && pVal.nCount < OBJECT_IDENTIFIER_MAX_LENGTH do
+    decreases(OBJECT_IDENTIFIER_MAX_LENGTH - pVal.nCount)
+    if !ObjectIdentifier_subidentifiers_uper_decode(pBitStrm, totalSize, si) then
+      return false
+
+    pVal.values(pVal.nCount) = si.x
+    pVal.nCount += 1
+
+  //return true, if totalSize reduced to zero. Otherwise we exit the loop because more components we present than OBJECT_IDENTIFIER_MAX_LENGTH
+  return totalSize.x == fromInt(0)
+
+}
+
+def ObjectIdentifier_uper_decode_lentg(pBitStrm: BitStream, totalSize: Ref[Int64]): flag = {
+  val len2: Ref[Int64] = Ref[Int64](0)
+  if !BitStream_DecodeConstraintWholeNumber(pBitStrm, totalSize, 0, 0xFF) then
+    return false
+  if totalSize.x > 0x7F then
+    if !BitStream_DecodeConstraintWholeNumber(pBitStrm, len2, 0, 0xFF) then
+      return false
+    totalSize.x <<= 8
+    totalSize.x |= len2.x
+    totalSize.x &= 0x7FFF
+
+  return true
+}
+
+def ObjectIdentifier_subidentifiers_uper_decode(pBitStrm: BitStream, pRemainingOctets: Ref[Int64], siValue: Ref[UInt64]): flag = {
+  val curByte: Ref[UInt8] = Ref[UInt8](0)
+  var bLastOctet: flag = false
+  var curOctetValue: UInt64 = 0
+  siValue.x = 0
+  while pRemainingOctets.x > 0 && !bLastOctet do
+    decreases(pRemainingOctets.x)
+    curByte.x = 0
+    if !BitStream_ReadByte(pBitStrm, curByte) then
+      return false
+
+    pRemainingOctets.x -= 1
+
+    bLastOctet = (curByte.x & 0x80) == fromInt(0)
+    curOctetValue = (curByte.x & 0x7F).widen[UInt64]
+    siValue.x = siValue.x << 7
+    siValue.x |= curOctetValue
+
+  return true
+}

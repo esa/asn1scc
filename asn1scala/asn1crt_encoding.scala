@@ -52,20 +52,67 @@ def BitStream_EncodeNonNegativeInteger32Neg(pBitStrm: BitStream, v: UInt32, nega
     BitStream_AppendByte(pBitStrm, (t1 >> cc).narrow[UInt8], negate)
 }
 
-def BitStream_EncodeNonNegativeInteger(pBitStrm: BitStream, v: UInt64): Unit = {
-  if WORD_SIZE == 8 then
-    if v < fromLong(0x100000000L).toUnsigned[UInt64] then
-      BitStream_EncodeNonNegativeInteger32Neg(pBitStrm, v.narrow[UInt32], false)
-    else
-      val hi: UInt32 = (v >> 32).narrow[UInt32]
-      val lo: UInt32 = v.narrow[UInt32]
-      BitStream_EncodeNonNegativeInteger32Neg(pBitStrm, hi, false)
+def BitStream_DecodeNonNegativeInteger32Neg(pBitStrm: BitStream, v: Ref[UInt32], nBitsVal: Int): flag = {
+  val b: Ref[UInt8] = Ref[UInt8](0)
+  v.x = 0
 
-      val nBits: Int = GetNumberOfBitsForNonNegativeInteger(lo.widen[UInt64])
-      BitStream_AppendNBitZero(pBitStrm, 32 - nBits)
-      BitStream_EncodeNonNegativeInteger32Neg(pBitStrm, lo, false)
-  else
+  var nBits = nBitsVal
+  while nBits >= 8 do
+    decreases(nBits)
+    v.x = v.x << 8
+    if !BitStream_ReadByte(pBitStrm, b) then
+      return false
+    v.x = v.x | b.x.widen[UInt32]
+    nBits -= 8
+
+  if nBits != 0 then
+    v.x = v.x << fromInt(nBits).toUnsigned[UInt32]
+    if !BitStream_ReadPartialByte(pBitStrm, b, fromInt(nBits).toUnsigned[UInt32].narrow[UInt8]) then
+      return false
+    v.x = v.x | b.x.widen[UInt32]
+
+  return true
+}
+
+def BitStream_EncodeNonNegativeInteger(pBitStrm: BitStream, v: UInt64): Unit = {
+  // TODO: support WORD_SIZE=4?
+  //if WORD_SIZE == 8 then
+  if v < fromLong(0x100000000L).toUnsigned[UInt64] then
     BitStream_EncodeNonNegativeInteger32Neg(pBitStrm, v.narrow[UInt32], false)
+  else
+    val hi: UInt32 = (v >> 32).narrow[UInt32]
+    val lo: UInt32 = v.narrow[UInt32]
+    BitStream_EncodeNonNegativeInteger32Neg(pBitStrm, hi, false)
+
+    val nBits: Int = GetNumberOfBitsForNonNegativeInteger(lo.widen[UInt64])
+    BitStream_AppendNBitZero(pBitStrm, 32 - nBits)
+    BitStream_EncodeNonNegativeInteger32Neg(pBitStrm, lo, false)
+  //else
+  //  BitStream_EncodeNonNegativeInteger32Neg(pBitStrm, v.narrow[UInt32], false)
+}
+
+def BitStream_DecodeNonNegativeInteger(pBitStrm: BitStream, v: Ref[UInt64], nBits: Int): flag = {
+  // TODO: support WORD_SIZE=4?
+  // if WORD_SIZE == 8 then
+  val hi: Ref[UInt32] = Ref[UInt32](0)
+  val lo: Ref[UInt32] = Ref[UInt32](0)
+  var ret: flag = false
+
+  if nBits <= 32 then
+    ret = BitStream_DecodeNonNegativeInteger32Neg(pBitStrm, lo, nBits)
+    v.x = lo.x.widen[UInt64]
+    return ret
+
+  val hi_ret = BitStream_DecodeNonNegativeInteger32Neg(pBitStrm, hi, 32)
+  val lo_ret = BitStream_DecodeNonNegativeInteger32Neg(pBitStrm, lo, nBits - 32)
+  ret = hi_ret && lo_ret
+
+  v.x = hi.x.widen[UInt64]
+  v.x = v.x << fromInt(nBits - 32).widen[Int64].toUnsigned[UInt64]
+  v.x |= lo.x.widen[UInt64]
+  return ret
+  //else
+  //return BitStream_DecodeNonNegativeInteger32Neg(pBitStrm, v, nBits)
 }
 
 def BitStream_EncodeConstraintWholeNumber(pBitStrm: BitStream, v: Int64, min: Int64, max: Int64): Unit = {
@@ -78,6 +125,27 @@ def BitStream_EncodeConstraintWholeNumber(pBitStrm: BitStream, v: Int64, min: In
   val nBits: Int = GetNumberOfBitsForNonNegativeInteger((v - min).toUnsigned[UInt64])
   BitStream_AppendNBitZero(pBitStrm, nRangeBits - nBits);
   BitStream_EncodeNonNegativeInteger(pBitStrm, (v - min).toUnsigned[UInt64])
+}
+
+def BitStream_DecodeConstraintWholeNumber(pBitStrm: BitStream, v: Ref[Int64], min: Int64, max: Int64): flag = {
+  val uv: Ref[UInt64] = Ref[UInt64](0)
+  var nRangeBits: Int = 0
+  val range: UInt64 = (max - min).toUnsigned[UInt64]
+
+//  ASSERT_OR_RETURN_FALSE(min <= max);
+
+  v.x = 0
+  if range == fromInt(0) then
+    v.x = min
+    return true
+
+  nRangeBits = GetNumberOfBitsForNonNegativeInteger(range)
+
+  if BitStream_DecodeNonNegativeInteger(pBitStrm, uv, nRangeBits) then
+    v.x = uv.x.toSigned[Int64] + min
+    return true
+
+  return false
 }
 
 def BitStream_AppendBit(pBitStrm: BitStream, v: flag): Unit = {
@@ -138,6 +206,20 @@ def BitStream_AppendByte(pBitStrm: BitStream, vv: UInt8, negate: flag): Unit = {
     pBitStrm.buf(pBitStrm.currentByte) |= (v << ncb)
 }
 
+def BitStream_ReadByte(pBitStrm: BitStream, v: Ref[UInt8]): flag = {
+  val cb: UInt8 = fromInt(pBitStrm.currentBit).toUnsigned[UInt32].narrow[UInt8]
+  val ncb: UInt8 = 8 - cb
+
+  v.x = pBitStrm.buf(pBitStrm.currentByte) << cb
+  pBitStrm.currentByte += 1
+  //bitstream_fetch_data_if_required(pBitStrm);
+
+  if cb > 0 then
+    v.x = v.x | pBitStrm.buf(pBitStrm.currentByte) >> ncb
+
+  return pBitStrm.currentByte * 8 + pBitStrm.currentBit <= pBitStrm.count * 8
+}
+
 def BitStream_AppendByte0(pBitStrm: BitStream, v: UInt8): flag = {
   val cb: UInt8 = fromInt(pBitStrm.currentBit).toUnsigned[UInt32].narrow[UInt8]
   val ncb: UInt8 = 8-cb
@@ -182,12 +264,12 @@ def BitStream_AppendPartialByte(pBitStrm: BitStream, vv: UInt8, nbits: UInt8, ne
     //					final mask     1110 0011
     pBitStrm.buf(pBitStrm.currentByte) &= mask
     pBitStrm.buf(pBitStrm.currentByte) |= (v << (8 - totalBits))
-    pBitStrm.currentBit += nbits.widen[UInt32].toSigned[Int32].asInstanceOf[Int]
-    if (pBitStrm.currentBit == 8) {
+    pBitStrm.currentBit += nbits.toInt
+    if pBitStrm.currentBit == 8 then
       pBitStrm.currentBit = 0
       pBitStrm.currentByte += 1
       //bitstream_push_data_if_required(pBitStrm);
-    }
+
   } else {
     val totalBitsForNextByte: UInt8 = totalBits - 8
     pBitStrm.buf(pBitStrm.currentByte) &= mask1
@@ -197,10 +279,36 @@ def BitStream_AppendPartialByte(pBitStrm: BitStream, vv: UInt8, nbits: UInt8, ne
     val mask: UInt8 = ~masksb(8 - totalBitsForNextByte)
     pBitStrm.buf(pBitStrm.currentByte) &= mask
     pBitStrm.buf(pBitStrm.currentByte) |= (v << (8 - totalBitsForNextByte))
-    pBitStrm.currentBit = totalBitsForNextByte.widen[UInt32].toSigned[Int32].asInstanceOf[Int]
+    pBitStrm.currentBit = totalBitsForNextByte.toInt
   }
 
   assert(pBitStrm.currentByte * 8 + pBitStrm.currentBit <= pBitStrm.count * 8)
+}
+
+/* nbits 1..7*/
+def BitStream_ReadPartialByte(pBitStrm: BitStream, v: Ref[UInt8], nbits: UInt8): flag = {
+  val cb: UInt8 = fromInt(pBitStrm.currentBit).toUnsigned[UInt32].narrow[UInt8]
+  val totalBits: UInt8 = cb + nbits
+
+  if (totalBits <= 8) {
+    v.x = (pBitStrm.buf(pBitStrm.currentByte) >> (8 - totalBits)) & masksb(nbits)
+    pBitStrm.currentBit += nbits.toInt
+    if pBitStrm.currentBit == 8 then
+      pBitStrm.currentBit = 0
+      pBitStrm.currentByte += 1
+    //bitstream_fetch_data_if_required(pBitStrm);
+
+  } else {
+    var totalBitsForNextByte: UInt8 = totalBits - 8
+    v.x = pBitStrm.buf(pBitStrm.currentByte) << totalBitsForNextByte
+    pBitStrm.currentByte += 1
+    //bitstream_fetch_data_if_required(pBitStrm);
+    v.x |= pBitStrm.buf(pBitStrm.currentByte) >> (8 - totalBitsForNextByte)
+    v.x &= masksb(nbits)
+    pBitStrm.currentBit = totalBitsForNextByte.toInt
+  }
+
+  return pBitStrm.currentByte * 8 + pBitStrm.currentBit <= pBitStrm.count * 8
 }
 
 def GetNumberOfBitsForNonNegativeInteger(v: UInt64): Int = {
