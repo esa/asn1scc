@@ -31,6 +31,33 @@ def ObjectIdentifier_uper_encode(pBitStrm: BitStream, pVal: Asn1ObjectIdentifier
     i += 1
 }
 
+def RelativeOID_uper_encode (pBitStrm: BitStream, pVal: Asn1ObjectIdentifier): Unit = {
+  //a subifentifier (i.e. a component) should not take more than size(asn1SccUint) + 2 to be encoded
+  //(the above statement is true for 8 byte integers. If we ever user larger integer then it should be adjusted)
+  val tmp: Array[UInt8] = Array.fill(OBJECT_IDENTIFIER_MAX_LENGTH * (WORD_SIZE + 2))(0)
+  val totalSize = Ref[Int](0)
+
+  var i: Int = 0
+
+  while i < pVal.nCount do
+    decreases(pVal.nCount - i)
+    ObjectIdentifier_subidentifiers_uper_encode(tmp, totalSize, pVal.values(i))
+    i += 1
+
+
+  if totalSize.x <= 0x7F then
+    BitStream_EncodeConstraintWholeNumber(pBitStrm, fromInt(totalSize.x).widen[Int64], 0, 0xFF)
+  else
+    BitStream_AppendBit(pBitStrm, true)
+    BitStream_EncodeConstraintWholeNumber(pBitStrm, fromInt(totalSize.x).widen[Int64], 0, 0x7FFF)
+
+  i = 0
+  while i < totalSize.x do
+    decreases(totalSize.x - i)
+    BitStream_AppendByte0(pBitStrm, tmp(i))
+    i += 1
+}
+
 def ObjectIdentifier_subidentifiers_uper_encode(encodingBuf: Array[UInt8], pSize: Ref[Int], siValueVal: UInt64): Unit = {
   var lastOctet: flag = false
   val tmp: Array[UInt8] = Array.fill(16)(0)
@@ -84,6 +111,27 @@ def ObjectIdentifier_uper_decode(pBitStrm: BitStream, pVal: Asn1ObjectIdentifier
   return totalSize.x == fromInt(0)
 
 }
+
+
+def RelativeOID_uper_decode (pBitStrm: BitStream, pVal: Asn1ObjectIdentifier): flag = {
+  val si: Ref[UInt64] = Ref[UInt64](0)
+  val totalSize: Ref[Int64] = Ref[Int64](0)
+  ObjectIdentifier_Init(pVal)
+
+  if !ObjectIdentifier_uper_decode_lentg(pBitStrm, totalSize) then
+    return false
+
+  while totalSize.x > 0 && pVal.nCount < OBJECT_IDENTIFIER_MAX_LENGTH do
+    decreases(OBJECT_IDENTIFIER_MAX_LENGTH - pVal.nCount)
+    if !ObjectIdentifier_subidentifiers_uper_decode(pBitStrm, totalSize, si) then
+      return false
+    pVal.values(pVal.nCount) = si.x
+    pVal.nCount += 1
+
+  //return true, if totalSize is zero. Otherwise we exit the loop because more components were present than OBJECT_IDENTIFIER_MAX_LENGTH
+  return totalSize.x == fromInt(0)
+}
+
 
 def ObjectIdentifier_uper_decode_lentg(pBitStrm: BitStream, totalSize: Ref[Int64]): flag = {
   val len2: Ref[Int64] = Ref[Int64](0)
