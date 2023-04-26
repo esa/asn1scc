@@ -4,9 +4,7 @@
 rtlModuleName() ::= "adaasn1rtl"
 methodNameSuffix() ::= "_Initialize"
 
-initTypeAssignment_def(sVarName, sStar, sFuncName, sTypeDefName) ::= <<
-def <sFuncName>(<sVarName>: <sTypeDefName><sStar>): Unit = {} // init_scala:8;
->>
+initTypeAssignment_def(sVarName, sStar, sFuncName, sTypeDefName) ::= << >>
 
 initTypeAssignment(sVarName, sPtrPrefix, sPtrSuffix, sFuncName, sTypeDefName, sContent, arrsLocalVariables) ::= <<
 def <sFuncName>(<sVarName>: <sPtrPrefix><sTypeDefName><sPtrSuffix>): Unit = // init_scala:12

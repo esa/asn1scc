@@ -45,8 +45,19 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "GeneratedOutput", "Generate
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "GenScala", "GenScala", "{200CBAF9-1352-47A4-B59A-C32E9598AD4F}"
 	ProjectSection(SolutionItems) = preProject
+		GenScala\ApplicationProcess.h.scala = GenScala\ApplicationProcess.h.scala
+		GenScala\ApplicationProcess.scala = GenScala\ApplicationProcess.scala
+		GenScala\asn1crt.h = GenScala\asn1crt.h
 		GenScala\asn1crt.h.scala = GenScala\asn1crt.h.scala
 		GenScala\asn1crt.scala = GenScala\asn1crt.scala
+		GenScala\asn1crt_encoding.scala = GenScala\asn1crt_encoding.scala
+		GenScala\asn1crt_encoding_uper.scala = GenScala\asn1crt_encoding_uper.scala
+		GenScala\Dummy.h.scala = GenScala\Dummy.h.scala
+		GenScala\Dummy.scala = GenScala\Dummy.scala
+		GenScala\EventDefinition.h.scala = GenScala\EventDefinition.h.scala
+		GenScala\EventDefinition.scala = GenScala\EventDefinition.scala
+		GenScala\PUS-5-1.h.scala = GenScala\PUS-5-1.h.scala
+		GenScala\PUS-5-1.scala = GenScala\PUS-5-1.scala
 		GenScala\simpleMsg.h.scala = GenScala\simpleMsg.h.scala
 		GenScala\simpleMsg.scala = GenScala\simpleMsg.scala
 	EndProjectSection
@@ -54,6 +65,14 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Inputs", "Inputs", "{985DDF72-E427-4E7E-8580-1C44273F9C03}"
 	ProjectSection(SolutionItems) = preProject
 		Inputs\Samples\simpleMsg.asn = Inputs\Samples\simpleMsg.asn
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "5.1", "5.1", "{57465EA1-D207-4EED-83A4-EE8B39C12B42}"
+	ProjectSection(SolutionItems) = preProject
+		Inputs\PUSInput\service-5-1\ApplicationProcess.asn1 = Inputs\PUSInput\service-5-1\ApplicationProcess.asn1
+		Inputs\PUSInput\service-5-1\Dummy.asn1 = Inputs\PUSInput\service-5-1\Dummy.asn1
+		Inputs\PUSInput\service-5-1\EventDefinition.asn1 = Inputs\PUSInput\service-5-1\EventDefinition.asn1
+		Inputs\PUSInput\service-5-1\PUS-5-1.asn1 = Inputs\PUSInput\service-5-1\PUS-5-1.asn1
 	EndProjectSection
 EndProject
 Global
@@ -249,6 +268,9 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{57465EA1-D207-4EED-83A4-EE8B39C12B42} = {985DDF72-E427-4E7E-8580-1C44273F9C03}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {257CF62D-31FE-4325-899E-BAD6DB9BA2DE}

@@ -20,49 +20,43 @@ JoinTwoIfFirstOk(sStr1,sStr2) ::=<<
 <sStr1>
 if (ret == 0) {
     <sStr2>
-}   /*COVERAGE_IGNORE*/
+}
 >>
 
 JoinItems2(sPart, sNestedPart) ::= <<
 <sPart>
 if (ret == 0) {
     <sNestedPart>
-}   /*COVERAGE_IGNORE*/
+}
 >>
 
-
-
-
-
 always_true_statement ()::= <<
-ret = 0; // isvalid_scala:38
+ret = 0 // isvalid_scala:34
 >>
 
 always_false_statement(sErrorCodeName)::= <<
-ret = <sErrorCodeName>;       /*COVERAGE_IGNORE*/ // isvalid_scala:42
+ret = <sErrorCodeName> // isvalid_scala:38
 >>
- 
 
 makeExpressionToStatement0(sIsValidExp) ::= <<
 <sIsValidExp>
 >>
 
 convertVCBExpressionToStatementAndUpdateErrCode(sIsValidExp, sErrCode) ::= <<
-ret = <sIsValidExp>; // isvalid_scala:51
-ret = <sErrCode>; 
+ret = <sIsValidExp> // isvalid_scala:46
+ret = <sErrCode> 
 >>
 
 convertVCBStatementToStatementAndUpdateErrCode(sStatement, sErrCode) ::= <<
-if (<sStatement>) 0 else <sErrCode> // isvalid_scala:56
+if (<sStatement>) 0 else <sErrCode> // isvalid_scala:51
 >>
 
 convertVCBTRUEToStatementAndUpdateErrCode() ::= <<
-ret = 0; // isvalid_scala:61
+ret = 0 // isvalid_scala:61
 >>
 convertVCBFalseToStatementAndUpdateErrCode(sErrCode) ::= <<
-ret = <sErrCode>; // isvalid_scala:64
+ret = <sErrCode> // isvalid_scala:64
 >>
-
 
 /*
 *****************************************************************************************
@@ -70,40 +64,29 @@ ret = <sErrCode>; // isvalid_scala:64
 *****************************************************************************************
 */
 
-
-
-
-
-
-
 EmitTypeAssignment_composite_def_err_code(sErrCode, nErrValue, arrsErrorCodeComments) ::= <<
-#define <sErrCode>		<nErrValue>  /*<arrsErrorCodeComments : {x|<x>}; separator = "\n">*/
+@inline @cCode.inline val <sErrCode>: Int = <nErrValue>  /*<arrsErrorCodeComments : {x|<x>}; separator = "\n"> isvalid_scala:68 */
 >>
+
 EmitTypeAssignment_composite_def(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes) ::= <<
 <arrsErrcodes; separator="\n">
-def <sFuncName>(<sVarName>: <sTypeDefName>): Int;
 >>
-
-
 
 EmitTypeAssignment_composite(sVarName, sPtrPrefix, sPtrSuffix, sFuncName, sTypeDefName, sContent, arrsAlphaFuncs, arrsLocalVars, bUnreferenced) ::= <<
 <arrsAlphaFuncs; separator="\n">
 def <sFuncName>(<if(bUnreferenced)>@annotation.unused <endif><sVarName>: <sPtrPrefix><sTypeDefName><sPtrSuffix>): Int = 
 {
-    var ret = 0 // isvalid_scala.stg:97
+    var ret = 0 // isvalid_scala.stg:80
     <arrsLocalVars; separator="\n">
 
     <sContent>
 
-	return ret;
+	ret
 }
 >>
 
-
-
-
 ExpEqual(sExp1, sExp2) ::= "(<sExp1> == <sExp2>)"
-ExpStringEqual(sExp1, sExp2) ::= "(strcmp(<sExp1>,<sExp2>)  == 0)"
+ExpStringEqual(sExp1, sExp2) ::= "(<sExp1> == <sExp2>)"
 ExpGt(sExp1, sExp2) ::= "(<sExp1> \> <sExp2>)"
 ExpGte(sExp1, sExp2) ::= "(<sExp1> \>= <sExp2>)"
 ExpLt(sExp1, sExp2) ::= "(<sExp1> \< <sExp2>)"
@@ -114,65 +97,63 @@ ExpAndMulit(arrsExp) ::= <<
 <arrsExp; separator=" && ">
 >>
 ExpNot(sExp) ::= "(!<sExp>)"
-StrLen(sExp) ::= "strlen(<sExp>)"
-ArrayLen(sExp, sAcc) ::= "<sExp><sAcc>nCount"
-
+StrLen(sExp) ::= "<sExp>.length()"
+ArrayLen(sExp, sAcc) ::= "<sExp><sAcc>nCount // isvalid_scala:101"
 
 ExpressionToStament(sExp1) ::=<<
-ret = <sExp1>;
+ret = <sExp1>
 >>
 
 StatementOrStament(sStat1, sStat2) ::= <<
 <sStat1>
-if (!ret) {
+if (ret == 0) { // isvalid_scala:109
     <sStat2>
 }
 >>
 
-
 ExpressionOrStament(sExp1, sStat2) ::= <<
 ret = <sExp1>; 
-if (!ret) {
+if (ret != 0) { // isvalid_scala:116
     <sStat2>
 }
 >>
 
 StatementOrExpression(sStat1, sExp2) ::= <<
 <sStat1>
-if (!ret) {
+if (!ret) { // isvalid_scala:123
     ret = <sExp2>;
 }
 >>
 
 StatementAndStament(sStat1, sStat2) ::= <<
 <sStat1>
-if (ret) {
+if (ret) { // isvalid_scala:130
     <sStat2>
 }
 >>
 
 ExpressionAndStament(sExp1, sStat2) ::= <<
 ret = <sExp1>;
-if (ret) {
+if (ret) { // isvalid_scala:137
     <sStat2>
 }
 >>
 
 StatementAndExpression(sStat1, sExp2) ::= <<
 <sStat1>
-if (ret) {
+if (ret) { // isvalid_scala:144
     ret = <sExp2>;
 }
 >>
 
 StatementNot(sStat) ::= <<
 <sStat>
-ret = !ret;
+ret = !ret; // isvalid_scala:151
 >>
 
 StatementExceptStament(sStat1, sStat2) ::= <<
 <sStat1>
-if (ret) {
+if (ret) {  // isvalid_scala:156
     <sStat2>
     ret = !ret;
 }
@@ -180,7 +161,7 @@ if (ret) {
 
 ExpressionExceptStament(sExp1, sStat2) ::= <<
 ret = <sExp1>;
-if (ret) {
+if (ret) { // isvalid_scala:164
     <sStat2>
     ret = !ret;
 }
@@ -188,7 +169,7 @@ if (ret) {
 
 StatementExceptExpression(sStat1, sExp2) ::= <<
 <sStat1>;
-if (ret) {
+if (ret) { // isvalid_scala:172
     ret = !(<sExp2>);
 }
 >>

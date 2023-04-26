@@ -687,107 +687,95 @@ Fragmentation_sqf_decode(p, sAcc, sInternalItem, nIntItemMaxSize, nSizeMin, nSiz
 <if(bIsVariableSize)>
 <sLengthTmp> = 0
 <endif>
-var check = BitStream_DecodeConstraintWholeNumber(pBitStrm, &<sRemainingItemsVar>, 0, 0xFF)
-ret = if (check) 0 else <sErrCodeName>
-if (check) {
-	while(check && (<sRemainingItemsVar> & 0xC0)==0xC0) 
-	{
-		if (<sRemainingItemsVar> == 0xC4)
-			<sCurBlockSize> = 0x10000
-		else if (<sRemainingItemsVar> == 0xC3)
-			<sCurBlockSize> = 0xC000
-		else if (<sRemainingItemsVar> == 0xC2)
-			<sCurBlockSize> = 0x8000
-		else if (<sRemainingItemsVar> == 0xC1)
-			<sCurBlockSize> = 0x4000
-		else {
-			return <sErrCodeName>
-		}
-		if (<sCurOffset> + <sCurBlockSize> > <nSizeMax>)
-		{
-			return <sErrCodeName>
-		}
+if(!BitStream_DecodeConstraintWholeNumber(pBitStrm, &<sRemainingItemsVar>, 0, 0xFF))
+	return <sErrCodeName>
 
-		<if(bIsBitStringType)>
-		check = BitStream_ReadBits(pBitStrm, &<p><sAcc>arr[<sCurOffset>/8], (int)<sCurBlockSize>)
-        ret = if (check) 0 else <sErrCodeName>
-		<else>
-		<sBLI>=(int)<sCurOffset>
-		while(check && (<sBLI> \< (int)(<sCurOffset> + <sCurBlockSize>)))
-		{
-			// TODO if ret is written from here on - change to check
-			<sInternalItem>
-			// /TODO
-			<sBLI> += 1
-		}
-		<endif>
-	
-        if (check) {
-		    <if(bIsVariableSize)>
-			<sLengthTmp> += (long)<sCurBlockSize>
-			<endif>
-		    <sCurOffset> += <sCurBlockSize>
-		    check = BitStream_DecodeConstraintWholeNumber(pBitStrm, &<sRemainingItemsVar>, 0, 0xFF)
-            ret = if (check) 0 else <sErrCodeName>
-        }
+while((<sRemainingItemsVar> & 0xC0) == 0xC0) {
+	if (<sRemainingItemsVar> == 0xC4)
+		<sCurBlockSize> = 0x10000
+	else if (<sRemainingItemsVar> == 0xC3)
+		<sCurBlockSize> = 0xC000
+	else if (<sRemainingItemsVar> == 0xC2)
+		<sCurBlockSize> = 0x8000
+	else if (<sRemainingItemsVar> == 0xC1)
+		<sCurBlockSize> = 0x4000
+	else {
+		return <sErrCodeName>
 	}
-    if (check) {
-	    if ((<sRemainingItemsVar> & 0x80) > 0) 
-	    {
-		    var len2 = 0;
-		    <sRemainingItemsVar> \<\<= 8
-		    check = BitStream_DecodeConstraintWholeNumber(pBitStrm, &len2, 0, 0xFF)
-            ret = if (check) 0 else <sErrCodeName>
-            if (check) {
-		        <sRemainingItemsVar> |= len2;
-		        <sRemainingItemsVar> &= 0x7FFF;
-            }
-	    }
-        ret = ret && (<sCurOffset> + <sRemainingItemsVar> \<= <nSizeMax>);
-        *pErrCode = ret ? 0 : <sErrCodeName>;
-        if (ret == 0) {
-	        <if(bIsBitStringType)>
-            ret = BitStream_ReadBits(pBitStrm, &<p><sAcc>arr[<sCurOffset>/8], (int)<sRemainingItemsVar>);
-            ret = if (ret == 0) 0 else <sErrCodeName>;
-	        <else>
-	        for(<sBLI>=(int)<sCurOffset>; ret && (<sBLI> \< (int)(<sCurOffset> + <sRemainingItemsVar>)) ; <sBLI>++)
-	        {
-		        <sInternalItem>
-	        }
-	        <endif>
-            if (ret) {
-	            <if(bIsVariableSize)><sLengthTmp> += (long)<sRemainingItemsVar>;<endif>
 
-                <if(bIsVariableSize)>
-                if ((<sLengthTmp> >= <nSizeMin>) && (<sLengthTmp> \<= <nSizeMax>)) {
-	                <if(!bIsAsciiString)>
-	                <p><sAcc>nCount = (int)<sLengthTmp>;
+	if (<sCurOffset> + <sCurBlockSize> > <nSizeMax>) {
+		return <sErrCodeName>
+	}
 
-                    <else>
-                    <p>[<sLengthTmp>] = 0x0;
+	<if(bIsBitStringType)>
+	if(!BitStream_ReadBits(pBitStrm, &<p><sAcc>arr[<sCurOffset>/8], (int)<sCurBlockSize>))
+       return <sErrCodeName>
+	<else>
+	<sBLI>=(int)<sCurOffset>
+	while((<sBLI> \< (int)(<sCurOffset> + <sCurBlockSize>))) {
+		// TODO if ret is written from here on - change to check
+		<sInternalItem>
+		// /TODO
+		<sBLI> += 1
+	}
+	<endif>
 
-	                <endif>
-                } else {
-                    ret = FALSE;  /*COVERAGE_IGNORE*/
-                    *pErrCode = <sErrCodeName>; /*COVERAGE_IGNORE*/
-                }
+	<if(bIsVariableSize)>
+	<sLengthTmp> += (long)<sCurBlockSize>
+	<endif>
+	<sCurOffset> += <sCurBlockSize>
+	if(!BitStream_DecodeConstraintWholeNumber(pBitStrm, &<sRemainingItemsVar>, 0, 0xFF))
+		return <sErrCodeName>
+}
 
-                <else>
-	                <if(bIsAsciiString)>
-                    <p>[<nSizeMax>] = 0x0;
+if ((<sRemainingItemsVar> & 0x80) > 0) {
+	var len2 = 0;
+    <sRemainingItemsVar> \<\<= 8
+    if(!BitStream_DecodeConstraintWholeNumber(pBitStrm, &len2, 0, 0xFF))
+		return <sErrCodeName>
+	
+	<sRemainingItemsVar> |= len2;
+    <sRemainingItemsVar> &= 0x7FFF;   
+}
 
-                    <endif>
+if(<sCurOffset> + <sRemainingItemsVar> \<= <nSizeMax>)
+	return <sErrCodeName>
 
-                <endif>
-            }
-        }
-    }
+<if(bIsBitStringType)>
+if(!BitStream_ReadBits(pBitStrm, &<p><sAcc>arr[<sCurOffset>/8], (int)<sRemainingItemsVar>)) // TODO remove adress of operator
+	return <sErrCodeName>
+<else>
+var <sBLI>=(int)<sCurOffset>
+while(<sBLI> \< (int)(<sCurOffset> + <sRemainingItemsVar>)) {
+	<sInternalItem>
+	<sBLI> += 1
+}
+<endif>
+
+<if(bIsVariableSize)>
+<sLengthTmp> += (long)<sRemainingItemsVar>
+<endif>
+
+<if(bIsVariableSize)>
+if ((<sLengthTmp> >= <nSizeMin>) && (<sLengthTmp> \<= <nSizeMax>)) {
+	<if(!bIsAsciiString)>
+	<p><sAcc>nCount = (int)<sLengthTmp>
+	<else>
+	<p>[<sLengthTmp>] = 0x0
+	<endif>
+} else 
+	return <sErrCodeName>
+
+<else>
+
+<if(bIsAsciiString)>
+<p>[<nSizeMax>] = 0x0
+<endif>
+
+<endif>
+      
 }
 >>
-
-
-
-
 
 octet_string_containing_func_encode(p, sFuncName, sReqBytesForUperEncoding, nBits, nMinSize, nMaxSize) ::= <<
 /*open new scope to declare some variables*/
