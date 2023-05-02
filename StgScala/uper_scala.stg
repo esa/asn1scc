@@ -10,13 +10,13 @@ call_base_type_func_decode(p, sFuncName) ::= "ret = <sFuncName>(<p>, pBitStrm, p
 /*******************************************************/
 
 EmitTypeAssignment_def_err_code(sErrCode, nErrValue) ::= <<
-#define <sErrCode>		<nErrValue>  /**/
+@inline @cCode.inline val <sErrCode>: Int = <nErrValue>  /**/
 >>
 
 EmitTypeAssignment_def_encode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes, bEmptyEncodingSpace, nMaxBytesInPER, nMaxBitsInPER, soSparkAnnotations, bReqBytesForEncodingIsZero) ::= <<
 <arrsErrcodes; separator="\n">
-#define <sTypeDefName>_REQUIRED_BYTES_FOR_ENCODING       <nMaxBytesInPER> 
-#define <sTypeDefName>_REQUIRED_BITS_FOR_ENCODING        <nMaxBitsInPER>
+@inline @cCode.inline val <sTypeDefName>_REQUIRED_BYTES_FOR_ENCODING: Int = <nMaxBytesInPER> 
+@inline @cCode.inline val <sTypeDefName>_REQUIRED_BITS_FOR_ENCODING: Int = <nMaxBitsInPER>
 >>
 
 EmitTypeAssignment_encode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitilialExp, bReqBytesForEncodingIsZero, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName) ::= <<
