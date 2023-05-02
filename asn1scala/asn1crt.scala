@@ -3,6 +3,16 @@ package asn1crt
 import stainless.math.BitVectors._
 import stainless.lang._
 
+// Unsigned datatypes that have no native JVM support
+
+type UByte = Byte
+type UShort = Short
+type UInt = Int
+type ULong = Long
+type RealNoRTL = Float
+type BooleanNoRTL = Boolean
+type nullNoRTL = null
+
 case class Ref[T](var x: T) {}
 
 val WORD_SIZE = 8

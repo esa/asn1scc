@@ -15,16 +15,6 @@ import stainless.lang._
 
 <arrsIncludedModules: {inc | import <inc>}; separator="\n">
 
-// Unsigned datatypes that have no native JVM support
-
-type UByte = Byte
-type UShort = Short
-type UInt = Int
-type ULong = Long
-type RealNoRTL = Float
-type BooleanNoRTL = Boolean
-type nullNoRTL = null
-
 <arrsTypeAssignments:{tas|<tas>}; separator="\n">
 
 <arrsValueAssignments:{vas|<vas>}; separator="\n"> 
