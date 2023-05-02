@@ -1402,3 +1402,6 @@ GenScala/asn1crt.h.scala
 GenScala/asn1crt.scala
 GenScala/simpleMsg.h.scala
 GenScala/simpleMsg.scala
+GenScala/PUSC_5_1/project/target/
+.bsp
+GenScala/PUSC_5_1/target/
