@@ -80,6 +80,7 @@ type LangGeneric_a() =
         override this.castExpression (sExp:string) (sCastType:string) = sprintf "%s(%s)" sCastType sExp
         override this.createSingleLineComment (sText:string) = sprintf "--%s" sText
 
+        override _.SpecNameSuffix = ""
         override _.SpecExtention = "ads"
         override _.BodyExtention = "adb"
 

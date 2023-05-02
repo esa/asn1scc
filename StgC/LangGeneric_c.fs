@@ -146,6 +146,7 @@ type LangGeneric_c() =
         override this.castExpression (sExp:string) (sCastType:string) = sprintf "(%s)(%s)" sCastType sExp
         override this.createSingleLineComment (sText:string) = sprintf "/*%s*/" sText
             
+        override _.SpecNameSuffix = ""
         override _.SpecExtention = "h"
         override _.BodyExtention = "c"
 

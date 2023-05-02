@@ -44,12 +44,12 @@ type LangGeneric_scala() =
             | Asn1AcnAst.ASN1SCC_Int16    _ ->  sprintf "%s" (i.ToString())
             | Asn1AcnAst.ASN1SCC_Int32    _ ->  sprintf "%s" (i.ToString())
             | Asn1AcnAst.ASN1SCC_Int64    _ ->  sprintf "%sL" (i.ToString())
-            | Asn1AcnAst.ASN1SCC_Int      _ ->  sprintf "%sL" (i.ToString())
-            | Asn1AcnAst.ASN1SCC_UInt8    _ ->  sprintf "%sU" (i.ToString())
-            | Asn1AcnAst.ASN1SCC_UInt16   _ ->  sprintf "%sU" (i.ToString())
-            | Asn1AcnAst.ASN1SCC_UInt32   _ ->  sprintf "%sU" (i.ToString())
-            | Asn1AcnAst.ASN1SCC_UInt64   _ ->  sprintf "%sUL" (i.ToString())
-            | Asn1AcnAst.ASN1SCC_UInt     _ ->  sprintf "%sUL" (i.ToString())
+            | Asn1AcnAst.ASN1SCC_Int      _ ->  sprintf "%s" (i.ToString())
+            | Asn1AcnAst.ASN1SCC_UInt8    _ ->  sprintf "%s" (i.ToString())
+            | Asn1AcnAst.ASN1SCC_UInt16   _ ->  sprintf "%s" (i.ToString())
+            | Asn1AcnAst.ASN1SCC_UInt32   _ ->  sprintf "%s" (i.ToString())
+            | Asn1AcnAst.ASN1SCC_UInt64   _ ->  sprintf "%sL" (i.ToString())
+            | Asn1AcnAst.ASN1SCC_UInt     _ ->  sprintf "%s" (i.ToString())
 
         override _.doubleValueToString (v:double) = 
             v.ToString(FsUtils.doubleParseString, System.Globalization.NumberFormatInfo.InvariantInfo)
@@ -145,7 +145,8 @@ type LangGeneric_scala() =
         override this.castExpression (sExp:string) (sCastType:string) = sprintf "(%s)(%s)" sCastType sExp
         override this.createSingleLineComment (sText:string) = sprintf "/*%s*/" sText
          
-        override _.SpecExtention = "h.scala"
+        override _.SpecNameSuffix = "Def"
+        override _.SpecExtention = "scala"
         override _.BodyExtention = "scala"
 
         override _.getValueAssignmentName (vas: ValueAssignment) = vas.scala_name
@@ -332,7 +333,7 @@ type LangGeneric_scala() =
                         | Asn1Encoding.XER  -> ["asn1crt_encoding";"asn1crt_encoding_xer"]
                     ) |> 
                     List.distinct |>
-                    List.map(fun a -> a + ".scala", a + ".h.scala") |>
+                    List.map(fun a -> a + ".scala", a + "Def.scala") |>
                     List.unzip
 
                 let arrsSrcTstFiles = (r.programUnits |> List.map (fun z -> z.tetscase_bodyFileName))

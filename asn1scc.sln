@@ -44,23 +44,6 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "GeneratedOutput", "GeneratedOutput\GeneratedOutput.vcxproj", "{6A85C6A2-EE8F-48A9-9CB0-F74AB5065ECD}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "GenScala", "GenScala", "{200CBAF9-1352-47A4-B59A-C32E9598AD4F}"
-	ProjectSection(SolutionItems) = preProject
-		GenScala\ApplicationProcess.h.scala = GenScala\ApplicationProcess.h.scala
-		GenScala\ApplicationProcess.scala = GenScala\ApplicationProcess.scala
-		GenScala\asn1crt.h = GenScala\asn1crt.h
-		GenScala\asn1crt.h.scala = GenScala\asn1crt.h.scala
-		GenScala\asn1crt.scala = GenScala\asn1crt.scala
-		GenScala\asn1crt_encoding.scala = GenScala\asn1crt_encoding.scala
-		GenScala\asn1crt_encoding_uper.scala = GenScala\asn1crt_encoding_uper.scala
-		GenScala\Dummy.h.scala = GenScala\Dummy.h.scala
-		GenScala\Dummy.scala = GenScala\Dummy.scala
-		GenScala\EventDefinition.h.scala = GenScala\EventDefinition.h.scala
-		GenScala\EventDefinition.scala = GenScala\EventDefinition.scala
-		GenScala\PUS-5-1.h.scala = GenScala\PUS-5-1.h.scala
-		GenScala\PUS-5-1.scala = GenScala\PUS-5-1.scala
-		GenScala\simpleMsg.h.scala = GenScala\simpleMsg.h.scala
-		GenScala\simpleMsg.scala = GenScala\simpleMsg.scala
-	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Inputs", "Inputs", "{985DDF72-E427-4E7E-8580-1C44273F9C03}"
 	ProjectSection(SolutionItems) = preProject
@@ -73,6 +56,32 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "5.1", "5.1", "{57465EA1-D20
 		Inputs\PUSInput\service-5-1\Dummy.asn1 = Inputs\PUSInput\service-5-1\Dummy.asn1
 		Inputs\PUSInput\service-5-1\EventDefinition.asn1 = Inputs\PUSInput\service-5-1\EventDefinition.asn1
 		Inputs\PUSInput\service-5-1\PUS-5-1.asn1 = Inputs\PUSInput\service-5-1\PUS-5-1.asn1
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Simple", "Simple", "{4DEEB89E-1E99-4DB3-9FDE-97E9023EE300}"
+	ProjectSection(SolutionItems) = preProject
+		GenScala\simple\asn1crt.h = GenScala\simple\asn1crt.h
+		GenScala\simple\asn1crt.scala = GenScala\simple\asn1crt.scala
+		GenScala\simple\asn1crt_encoding.scala = GenScala\simple\asn1crt_encoding.scala
+		GenScala\simple\asn1crt_encoding_uper.scala = GenScala\simple\asn1crt_encoding_uper.scala
+		GenScala\simple\simpleMsg.scala = GenScala\simple\simpleMsg.scala
+		GenScala\simple\simpleMsgDef.scala = GenScala\simple\simpleMsgDef.scala
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "5-1", "5-1", "{2095C65C-AC59-4D3A-A894-4FFC22D159D7}"
+	ProjectSection(SolutionItems) = preProject
+		GenScala\PUSC_5_1\src\main\scala\ApplicationProcess.scala = GenScala\PUSC_5_1\src\main\scala\ApplicationProcess.scala
+		GenScala\PUSC_5_1\src\main\scala\ApplicationProcessDef.scala = GenScala\PUSC_5_1\src\main\scala\ApplicationProcessDef.scala
+		GenScala\PUSC_5_1\src\main\scala\asn1crt.h = GenScala\PUSC_5_1\src\main\scala\asn1crt.h
+		GenScala\PUSC_5_1\src\main\scala\asn1crt.scala = GenScala\PUSC_5_1\src\main\scala\asn1crt.scala
+		GenScala\PUSC_5_1\src\main\scala\asn1crt_encoding.scala = GenScala\PUSC_5_1\src\main\scala\asn1crt_encoding.scala
+		GenScala\PUSC_5_1\src\main\scala\asn1crt_encoding_uper.scala = GenScala\PUSC_5_1\src\main\scala\asn1crt_encoding_uper.scala
+		GenScala\PUSC_5_1\src\main\scala\Dummy.scala = GenScala\PUSC_5_1\src\main\scala\Dummy.scala
+		GenScala\PUSC_5_1\src\main\scala\DummyDef.scala = GenScala\PUSC_5_1\src\main\scala\DummyDef.scala
+		GenScala\PUSC_5_1\src\main\scala\EventDefinition.scala = GenScala\PUSC_5_1\src\main\scala\EventDefinition.scala
+		GenScala\PUSC_5_1\src\main\scala\EventDefinitionDef.scala = GenScala\PUSC_5_1\src\main\scala\EventDefinitionDef.scala
+		GenScala\PUSC_5_1\src\main\scala\PUS-5-1.scala = GenScala\PUSC_5_1\src\main\scala\PUS-5-1.scala
+		GenScala\PUSC_5_1\src\main\scala\PUS-5-1Def.scala = GenScala\PUSC_5_1\src\main\scala\PUS-5-1Def.scala
 	EndProjectSection
 EndProject
 Global
@@ -271,6 +280,8 @@ Global
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{57465EA1-D207-4EED-83A4-EE8B39C12B42} = {985DDF72-E427-4E7E-8580-1C44273F9C03}
+		{4DEEB89E-1E99-4DB3-9FDE-97E9023EE300} = {200CBAF9-1352-47A4-B59A-C32E9598AD4F}
+		{2095C65C-AC59-4D3A-A894-4FFC22D159D7} = {200CBAF9-1352-47A4-B59A-C32E9598AD4F}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {257CF62D-31FE-4325-899E-BAD6DB9BA2DE}

@@ -147,7 +147,7 @@ let internal createProgramUnits (args:CommandLineSettings) (files: Asn1File list
 
             let mappingFunctionsModules = sortedTypes |> List.map(fun t -> GetMySelfAndChildren t.Type |> List.map(fun q -> q.MappingFunctionsModules) |> List.collect id) |> List.collect id 
             let importedUserModules = mappingFunctionsModules@(args.mappingFunctionsModule |> Option.toList) |> List.distinct
-            let specFileName = f.FileNameWithoutExtension+"."+lm.lg.SpecExtention
+            let specFileName = f.FileNameWithoutExtension + lm.lg.SpecNameSuffix + "." + lm.lg.SpecExtention
             let bodyFileName = f.FileNameWithoutExtension+"."+lm.lg.BodyExtention
             let tetscase_specFileName = f.FileNameWithoutExtension+"_auto_tcs."+lm.lg.SpecExtention
             let tetscase_bodyFileName = f.FileNameWithoutExtension+"_auto_tcs."+lm.lg.BodyExtention
@@ -225,7 +225,7 @@ let internal createProgramUnits (args:CommandLineSettings) (files: Asn1File list
 
             let mappingFunctionsModules = sortedTypes |> List.map(fun t -> GetMySelfAndChildren t.Type |> List.map(fun q -> q.MappingFunctionsModules) |> List.collect id) |> List.collect id |> List.distinct
             let importedUserModules = mappingFunctionsModules@(args.mappingFunctionsModule |> Option.toList) |> List.distinct
-            let specFileName = ToC (m.Name.Value.ToLower()) + "." + lm.lg.SpecExtention
+            let specFileName = ToC (m.Name.Value.ToLower()) + lm.lg.SpecNameSuffix + "." + lm.lg.SpecExtention
             let bodyFileName = ToC (m.Name.Value.ToLower()) + "." + lm.lg.BodyExtention
             let tetscase_specFileName = ToC (m.Name.Value.ToLower()) + "_auto_tcs." + lm.lg.SpecExtention
             let tetscase_bodyFileName = ToC (m.Name.Value.ToLower()) + "_auto_tcs." + lm.lg.BodyExtention

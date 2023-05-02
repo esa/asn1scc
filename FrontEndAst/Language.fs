@@ -65,6 +65,7 @@ type ILangGeneric () =
     abstract member decode_nullType : string -> string option
     abstract member castExpression  : string -> string -> string
     abstract member createSingleLineComment : string -> string
+    abstract member SpecNameSuffix: string
     abstract member SpecExtention : string
     abstract member BodyExtention : string
 
