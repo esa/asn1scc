@@ -11,9 +11,7 @@ type UInt = Int
 type ULong = Long
 type RealNoRTL = Float
 type BooleanNoRTL = Boolean
-type nullNoRTL = null
-
-case class Ref[T](var x: T) {}
+type nullNoRTL = nulltype
 
 val WORD_SIZE = 8
 val OBJECT_IDENTIFIER_MAX_LENGTH = 20

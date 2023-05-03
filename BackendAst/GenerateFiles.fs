@@ -168,8 +168,13 @@ let private printUnit (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTy
     let sFileNameWithNoExtUpperCase = (ToC (System.IO.Path.GetFileNameWithoutExtension pu.specFileName))
     let bXer = r.args.encodings |> Seq.exists ((=) XER) 
     let arrsUtilityDefines = []
+    let puCorrName =
+        match r.lang with
+        | CommonTypes.ProgrammingLanguage.Scala -> ToC (pu.name)
+        | _ -> pu.name
+
     let defintionsContntent =
-        lm.typeDef.PrintSpecificationFile sFileNameWithNoExtUpperCase pu.name pu.importedProgramUnits typeDefs (arrsValues@arrsHeaderAnonymousValues) arrsPrototypes arrsUtilityDefines (not r.args.encodings.IsEmpty) bXer
+        lm.typeDef.PrintSpecificationFile sFileNameWithNoExtUpperCase puCorrName pu.importedProgramUnits typeDefs (arrsValues@arrsHeaderAnonymousValues) arrsPrototypes arrsUtilityDefines (not r.args.encodings.IsEmpty) bXer
         
     let fileName = Path.Combine(outDir, pu.specFileName)
     File.WriteAllText(fileName, defintionsContntent.Replace("\r",""))
@@ -267,7 +272,11 @@ let private printUnit (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTy
             [], []
     let rtlFiles = lm.lg.getRtlFiles r.args.encodings arrsTypeAssignments
     let arrsImportedFiles = rtlFiles@pu.importedUserModules@pu.importedProgramUnits |> List.distinct
-    let srcBody = lm.src.printSourceFile pu.name arrsImportedFiles pu.importedTypes (arrsValueAssignments@arrsSourceAnonymousValues@arrsTypeAssignments)
+    let puCorrName = 
+        match r.lang with
+        | CommonTypes.ProgrammingLanguage.Scala -> ToC (pu.name)
+        | _ -> pu.name
+    let srcBody = lm.src.printSourceFile puCorrName arrsImportedFiles pu.importedTypes (arrsValueAssignments@arrsSourceAnonymousValues@arrsTypeAssignments)
     
     let eqContntent = 
         match lm.lg.allowsSrcFilesWithNoFunctions with

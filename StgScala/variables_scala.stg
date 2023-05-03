@@ -185,7 +185,7 @@ PrintChoiceValue(sTasName, sChildName, sChildVal, sChildNamePresent, bUseUncheck
 
 
 PrintValueAssignment(sName, sTypeDecl, sValue) ::= <<
-const <sTypeDecl> <sName> = <sValue>;
+val <sName>: <sTypeDecl> = <sValue> // variables_scala:188
 >>
 
 PrintSequenceOfValue(td/*:FE_SizeableTypeDefinition*/, bIsFixedSize, nLength, arrsInnerValues, sDefValue) ::= <<

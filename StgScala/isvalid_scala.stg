@@ -81,7 +81,7 @@ def <sFuncName>(<if(bUnreferenced)>@annotation.unused <endif><sVarName>: <sPtrPr
 
     <sContent>
 
-	ret
+    ret
 }
 >>
 
@@ -177,7 +177,7 @@ if (ret) { // isvalid_scala:172
 StatementForLoop(p, sAcc, i, bIsFixedSize, nFixedSize, sInnerStatement) ::= <<
 for(<i> = 0; ret && <i> \< <if(!bIsFixedSize)><p><sAcc>nCount<else><nFixedSize><endif>; <i>++) 
 {
-	<sInnerStatement>
+    <sInnerStatement>
 }
 >>
 
@@ -247,7 +247,7 @@ call_base_type_func_exp(p, sFuncName) ::= "<sFuncName>(<p>)"
 
 Sequence_OptionalChild(p, sAcc,  sChName, sInnerStatement) ::= <<
 if (<p><sAcc>exist.<sChName>) {
-	<sInnerStatement>
+    <sInnerStatement>
 }
 >>
 
@@ -270,7 +270,7 @@ Sequence_optional_child_always_present_or_absent_expr(p, sAcc,  sChName, sPresOr
 
 Choice_OptionalChild(p, sAcc,  sChPresent, sInnerStatement) ::= <<
 if (<p><sAcc>kind == <sChPresent>) {
-	<sInnerStatement>
+    <sInnerStatement>
 }
 >>
 
@@ -293,7 +293,7 @@ choice(p, sAccess, arrsChildren, sErrCodeForInvalidCase) ::= <<
 switch (<p><sAccess>kind) {
     <arrsChildren; separator="\n">
     default: /*COVERAGE_IGNORE*/
-	    ret = <sErrCodeForInvalidCase>      /*COVERAGE_IGNORE*/
+        ret = <sErrCodeForInvalidCase>      /*COVERAGE_IGNORE*/
 }
 >>
 
@@ -314,7 +314,7 @@ ret = <soErrCode>;
 <if (soInnerStatement)>
 for(<i> = 0; ret && <i> \< <if(!bIsFixedSize)><p><sAcc>nCount<else><nFixedSize><endif>; <i>++) 
 {
-	<soInnerStatement>
+    <soInnerStatement>
 }
 
 <endif>
@@ -323,7 +323,7 @@ for(<i> = 0; ret && <i> \< <if(!bIsFixedSize)><p><sAcc>nCount<else><nFixedSize><
 sequenceOf2(p,sAcc, i, bIsFixedSize, nFixedSize, sInnerStatement) ::= <<
 for(<i> = 0; ret && <i> \< <if(!bIsFixedSize)><p><sAcc>nCount<else><nFixedSize><endif>; <i>++) 
 {
-	<sInnerStatement>
+    <sInnerStatement>
 }
 >>
 

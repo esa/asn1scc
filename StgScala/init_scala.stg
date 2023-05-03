@@ -240,10 +240,12 @@ initBitStringAtPos_def(sVarName, sStar, sFuncName, sTypeDefName, sNamedBit) ::= 
 void <sFuncName>_set_<sNamedBit>(<sTypeDefName><sStar> <sVarName>);
 >>
 
-initTypeConstant_def(sTypeDecl, sConstantName, sValue) ::= "extern const <sTypeDecl> <sConstantName>;"
+initTypeConstant_def(sTypeDecl, sConstantName, sValue) ::= <<
+val <sConstantName>: <sTypeDecl> = <sValue> // init_scala:244
+>>
 
 initTypeConstant_body(sTypeDecl, sConstantName, sValue) ::= <<
-const <sTypeDecl> <sConstantName> = <sValue>;
+val <sConstantName>: sTypeDecl> = <sValue> // init_scala:246
 >>
 
 initFixSizeOctetString(nMax) ::= "{.arr  = {[0 ... <nMax>-1] = 0 }}"

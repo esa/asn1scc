@@ -89,6 +89,7 @@ let exportRTL (di:DirInfo) (l:ProgrammingLanguage) (args:CommandLineSettings)=
     // TODO: Scala
     | ProgrammingLanguage.Scala ->
         writeResource di "asn1crt.scala" None
+        writeResource di "asn1_scala_helpers.scala" None
                 
         let intSize = sprintf "#define WORD_SIZE	%d" (int args.integerSizeInBytes)
         let fpSize = sprintf "#define FP_WORD_SIZE	%d" (int args.floatingPointSizeInBytes)
