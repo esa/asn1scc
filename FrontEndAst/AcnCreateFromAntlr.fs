@@ -105,7 +105,10 @@ let private getIntEncodingProperty errLoc (props:GenericAcnProperty list) =
 let private getMappingFunctionProperty acnErrLoc (props:GenericAcnProperty list) = 
     match tryGetProp props (fun x -> match x with MAPPING_FUNCTION (md,fn) -> Some (md,fn) | _ -> None) with
     | None  -> None
-    | Some (md,fn)  -> Some (AcnGenericTypes.MappingFunction (md,fn))
+    | Some (md,fn)  -> 
+        let newMd = md |> Option.map(fun m -> {StringLoc.Value = ToC m.Value; Location=m.Location})
+        let newFn = {StringLoc.Value = ToC fn.Value; Location=fn.Location}
+        Some (AcnGenericTypes.MappingFunction (newMd,newFn))
 
 let private getPostEncodingFunction (props:GenericAcnProperty list) = 
     match tryGetProp props (fun x -> match x with POST_ENCODING_FUNCTION (md,fn)-> Some (md,fn) | _ -> None) with
