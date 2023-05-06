@@ -623,7 +623,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Com
             let seqContent =  (presenseBits@childrenStatements) |> nestChildItems lm codec 
             match seqContent with
             | None  -> None
-            | Some ret -> Some ({UPERFuncBodyResult.funcBody = ret; errCodes = errCode::childrenErrCodes; localVariables = localVariables@childrenLocalvars; bValIsUnReferenced=false; bBsIsUnReferenced=false})    
+            | Some ret -> Some ({UPERFuncBodyResult.funcBody = ret; errCodes = errCode::childrenErrCodes; localVariables = localVariables@childrenLocalvars; bValIsUnReferenced=false; bBsIsUnReferenced=(o.uperMaxSizeInBits = 0I)})    
 //        | Some baseFuncName ->
 //            let funcBodyContent = callBaseTypeFunc l (p.arg.getPointer l) baseFuncName codec
 //            Some ({UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = []})

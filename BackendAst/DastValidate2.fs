@@ -759,8 +759,8 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (t:Asn1Ac
 
 
 let createSequenceFunction (r:Asn1AcnAst.AstRoot)  (l:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Sequence) (typeDefinition:TypeDefintionOrReference) (children:SeqChildInfo list)  (us:State)  =
-    if (t.id.AsString = "Subtypes.T3-s1") then 
-        printfn "%s" t.id.AsString
+    //if (t.id.AsString = "Subtypes.T3-s1") then 
+    //    printfn "%s" t.id.AsString
     let child_always_present_or_absent   = l.isvalid.Sequence_optional_child_always_present_or_absent
     let sequence_OptionalChild           = l.isvalid.Sequence_OptionalChild
     let callBaseTypeFunc                 = l.isvalid.call_base_type_func
