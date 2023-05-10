@@ -1,6 +1,4 @@
-package asn1crt
-
-import stainless.math.BitVectors._
+//import stainless.math.BitVectors._
 import stainless.lang._
 
 // Unsigned datatypes that have no native JVM support
@@ -11,15 +9,13 @@ type UInt = Int
 type ULong = Long
 type RealNoRTL = Float
 type BooleanNoRTL = Boolean
-type nullNoRTL = null
-
-case class Ref[T](var x: T) {}
+type nullNoRTL = Null
 
 val WORD_SIZE = 8
 val OBJECT_IDENTIFIER_MAX_LENGTH = 20
 
 case class BitStream (
-  var buf: Array[UInt8],
+  var buf: Array[Byte],
   var currentByte: Int,
   var currentBit: Int,
   // TODO
@@ -32,7 +28,7 @@ case class BitStream (
 }
 
 case class ByteStream (
-  var buf: Array[UInt8],
+  var buf: Array[Byte],
   var currentByte: Int,
   var EncodeWhiteSpace: Boolean
 ) {
@@ -41,7 +37,7 @@ case class ByteStream (
 
 case class Asn1ObjectIdentifier (
   var nCount: Int,
-  values: Array[UInt64]
+  values: Array[Long]
 ) {
   require(values.length == OBJECT_IDENTIFIER_MAX_LENGTH)
   require(nCount >= 0)

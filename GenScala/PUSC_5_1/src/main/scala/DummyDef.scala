@@ -8,11 +8,11 @@ import stainless.lang._
 type DummyType = UInt // header_scala:83
 
 
-@inline @cCode.inline val ERR_DUMMYTYPE: Int = 36  /*(15) isvalid_scala:68 */
+@inline @cCode.inline val ERR_DUMMYTYPE: Int = 51  /*(15) isvalid_scala:68 */
 
  
 
-@inline @cCode.inline val ERR_UPER_ENCODE_DUMMYTYPE: Int = 37  /**/
+@inline @cCode.inline val ERR_UPER_ENCODE_DUMMYTYPE: Int = 52  /**/
 @inline @cCode.inline val DummyType_REQUIRED_BYTES_FOR_ENCODING: Int = 0 
 @inline @cCode.inline val DummyType_REQUIRED_BITS_FOR_ENCODING: Int = 0
 
