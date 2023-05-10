@@ -1,6 +1,5 @@
-package asn1crt
-
-import stainless.math.BitVectors._
+// TODO, dotty complains that this is not found in stainless, fix if needed
+// import stainless.math.BitVectors._
 import stainless.lang._
 
 // Unsigned datatypes that have no native JVM support
@@ -16,8 +15,10 @@ type nullNoRTL = nulltype
 val WORD_SIZE = 8
 val OBJECT_IDENTIFIER_MAX_LENGTH = 20
 
+case class Ref[T](var x: T) {}
+
 case class BitStream (
-  var buf: Array[UInt8],
+  var buf: Array[Byte],
   var currentByte: Int,
   var currentBit: Int,
   // TODO

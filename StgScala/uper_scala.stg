@@ -20,21 +20,21 @@ EmitTypeAssignment_def_encode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrc
 >>
 
 EmitTypeAssignment_encode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitilialExp, bReqBytesForEncodingIsZero, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName) ::= <<
-def <sFuncName>(<if(bVarNameIsUnreferenced)>@annotation.unused <endif><sVarName>: Ref[<sTypeDefName>], <if(bBsIsUnreferenced)>@annotation.unused <endif>pBitStrm: Ref[BitStream], bCheckConstraints: Boolean): Int = //uper_scala:38
+def <sFuncName>(<if(bVarNameIsUnreferenced)>@annotation.unused <endif><sVarName>: Ref[<sTypeDefName>], <if(bBsIsUnreferenced)>@annotation.unused <endif>pBitStrm: Ref[BitStream], bCheckConstraints: Boolean): Int = //uper_scala:23
 {
     var ret = 0
 
-	<arrsLocalVariables:{lv|<lv>}; separator="\n">
+    <arrsLocalVariables:{lv|<lv>}; separator="\n">
     <if(soIValidFuncName)>
-	if (bCheckConstraints) 
-		ret = <soIValidFuncName>(<sVarName>)
-	if (ret == 0) {
-	    <sContent>
+    if (bCheckConstraints) 
+        ret = <soIValidFuncName>(<sVarName>)
+    if (ret == 0) {
+        <sContent>
     }
     <else>
     <sContent>
-	<endif>
-	
+    <endif>
+    
     ret
 }
 >>
@@ -46,13 +46,13 @@ def <sFuncName>(<if(bVarNameIsUnreferenced)>@annotation.unused <endif><sVarName>
 {
     var ret = 0;
 
-	<arrsLocalVariables:{lv|<lv>}; separator="\n">
+    <arrsLocalVariables:{lv|<lv>}; separator="\n">
 
-	<sContent>
+    <sContent>
 
-	if (ret == 0)
-		ret = <if(soIValidFuncName)><soIValidFuncName>(<sVarName>)<endif> 
-	ret
+    if (ret == 0)
+        ret = <if(soIValidFuncName)><soIValidFuncName>(<sVarName>)<endif> 
+    ret
 }
 >>
 
@@ -62,7 +62,7 @@ BitStream_AppendByte0(pBitStrm, <p><sAcc>arr[<i>]);
 
 InternalItem_oct_str_decode(p, sAcc, i, sErrCode) ::=<<
 if(!BitStream_ReadByte(pBitStrm, &(<p><sAcc>arr[<i>])){ 
-	ret = <sErrCode>	// uper_Scala:106
+    ret = <sErrCode>	// uper_Scala:106
 }
 >>
 
@@ -80,7 +80,7 @@ InternalItem_string_with_alpha_decode(p, sErrCode,  td/*:FE_StringTypeDefinition
 asn1SccSint charIndex = 0;
 val worked = BitStream_DecodeConstraintWholeNumber(pBitStrm, &charIndex, 0, <nLastItemIndex>)
 if(!worked) {
-	ret = <sErrCode>; // uper_scala:123
+    ret = <sErrCode>; // uper_scala:123
 }
 <p>[<i>] = if (worked) allowedCharSet[charIndex] else '\0' ;
 >>
@@ -92,7 +92,7 @@ BitStream_EncodeConstraintWholeNumber(pBitStrm, <p>[<i>], 0, 127);
 InternalItem_string_no_alpha_decode(p, sErrCode, i) ::=<<
 asn1SccSint charValue=0;
 if(!BitStream_DecodeConstraintWholeNumber(pBitStrm, &charValue, 0, 127))
-	ret = <sErrCode> // uper_scala:134
+    ret = <sErrCode> // uper_scala:134
 <p>[<i>] = (char)charValue;
 >>
 
@@ -104,14 +104,14 @@ if(!BitStream_DecodeConstraintWholeNumber(pBitStrm, &charValue, 0, 127))
 IntFullyConstraint_encode(p, nMin, nMax, nBits, sSsuffix, sErrCode) ::= "BitStream_EncodeConstraintWholeNumber(pBitStrm, <p>, <nMin>, <nMax>);"
 IntFullyConstraint_decode(p, nMin, nMax, nBits, sSsuffix, sErrCode) ::= <<
 if(!BitStream_DecodeConstraintWholeNumber<sSsuffix>(pBitStrm, <p>, <nMin>, <nMax>))
-	ret = <sErrCode> // uper_scala:146
+    ret = <sErrCode> // uper_scala:146
 >>
 
 /*case: Positive fully constraint A:: = INTEGER (5..20) */
 IntFullyConstraintPos_encode(p, nMin, nMax, nBits, sSsuffix, sErrCode) ::= "BitStream_EncodeConstraintPosWholeNumber(pBitStrm, <p>, <nMin>, <nMax>);"
 IntFullyConstraintPos_decode(p, nMin, nMax, nBits, sSsuffix, sErrCode) ::= <<
 if(!BitStream_DecodeConstraintPosWholeNumber<sSsuffix>(pBitStrm, <p>, <nMin>, <nMax>))
-	ret = <sErrCode> // uper_scala:153
+    ret = <sErrCode> // uper_scala:153
 >>
 
 
@@ -119,38 +119,36 @@ if(!BitStream_DecodeConstraintPosWholeNumber<sSsuffix>(pBitStrm, <p>, <nMin>, <n
 IntUnconstraint_encode(p, sErrCode, bCoverageIgnore) ::= "BitStream_EncodeUnConstraintWholeNumber(pBitStrm, <p>);"
 IntUnconstraint_decode(p, sErrCode, bCoverageIgnore) ::= <<
 if(!BitStream_DecodeUnConstraintWholeNumber(pBitStrm, <p>)   <if(bCoverageIgnore)>/*COVERAGE_IGNORE*/<endif>
-	ret = <sErrCode> // uper_scala:161                               <if(bCoverageIgnore)>/*COVERAGE_IGNORE*/<endif>
+    ret = <sErrCode> // uper_scala:161                               <if(bCoverageIgnore)>/*COVERAGE_IGNORE*/<endif>
 >>
 
 /*case: A :: = INTEGER(MIN..5) */
 IntUnconstraintMax_encode(p, nMax, soCheckExp, sErrCode) ::= "BitStream_EncodeUnConstraintWholeNumber(pBitStrm, <p>);"
 IntUnconstraintMax_decode(p, nMax, soCheckExp, sErrCode) ::= <<
 if(!BitStream_DecodeUnConstraintWholeNumber(pBitStrm, <p>))
-	ret = <if(soCheckExp)>(if (<soCheckExp>) : 0 else)<endif> <sErrCode>
+    ret = <if(soCheckExp)>(if (<soCheckExp>) : 0 else)<endif> <sErrCode>
 >>
 
 /*case: A:: = INTEGER (-5..MAX) */
 IntSemiConstraint_encode(p, nMin, sErrCode) ::= "BitStream_EncodeSemiConstraintWholeNumber(pBitStrm, <p>, <nMin>);"
 IntSemiConstraint_decode(p, nMin, sErrCode) ::= <<
 if(!BitStream_DecodeSemiConstraintWholeNumber(pBitStrm, <p>, <nMin>))
-	ret = <sErrCode>
+    ret = <sErrCode>
 >>
 
 /*case: A:: = INTEGER (5..MAX) */
 IntSemiConstraintPos_encode(p, nMin, sErrCode) ::= "BitStream_EncodeSemiConstraintPosWholeNumber(pBitStrm, <p>, <nMin>);"
 IntSemiConstraintPos_decode(p, nMin, sErrCode) ::= <<
 if(!BitStream_DecodeSemiConstraintPosWholeNumber(pBitStrm, <p>, <nMin>))
-	ret = <sErrCode>
+    ret = <sErrCode>
 >>
 
 /*case: A:: = INTEGER (5..5) */
 IntNoneRequired_encode(p, nConst, sErrCode) ::=<<
-/* No need to encode value since it will always be <nConst> */
-(void)pBitStrm;
+/* No need to encode the val <p>, it will always be <nConst> */
 >>
 IntNoneRequired_decode(p, nConst, sErrCode) ::= <<
 <p>=<nConst>; 
-(void)pBitStrm;	// uper_scala:158
 ret = 0
 >>
 
@@ -162,18 +160,18 @@ BitStream_AppendBitZero(pBitStrm); /* write extension bit*/
 
 IntRootExt_decode(p, nMin, sRootBaseConstraint, sIntBody, sErrCode) ::=<<
 {
-	Boolean extBit = false;
-	/* read extension bit*/
-	val success = BitStream_ReadBit(pBitStrm, Ref(extBit))
+    Boolean extBit = false;
+    /* read extension bit*/
+    val success = BitStream_ReadBit(pBitStrm, Ref(extBit))
     if (success) {
-	    if (extBit == false) { /* ext bit is zero ==> value is expecteted with root range*/
-		    <sIntBody>
-	    } else {
-		    <IntUnconstraint_decode(p=p, sErrCode = sErrCode, bCoverageIgnore="true")>
-	    }
+        if (extBit == false) { /* ext bit is zero ==> value is expecteted with root range*/
+            <sIntBody>
+        } else {
+            <IntUnconstraint_decode(p=p, sErrCode = sErrCode, bCoverageIgnore="true")>
+        }
     }
-	else 
-		ret = <sErrCode>
+    else 
+        ret = <sErrCode>
 }
 >>
 
@@ -199,37 +197,37 @@ Boolean_encode(p, sErrCode) ::= "BitStream_AppendBit(pBitStrm,<p>);"
 
 Boolean_decode(p, sErrCode) ::= <<
 if(!BitStream_ReadBit(pBitStrm, <p>))
-	ret = <sErrCode>
+    ret = <sErrCode>
 >>
 
 Real_encode(p, sSuffix, sErrCode) ::= "BitStream_EncodeReal(pBitStrm, <p>);"
 Real_decode(p, sSuffix, sErrCode) ::= <<
 if(!BitStream_DecodeReal<sSuffix>(pBitStrm, <p>))
-	ret = <sErrCode>
+    ret = <sErrCode>
 >>
 
 ObjectIdentifier_encode(p, sErrCode) ::= "ObjectIdentifier_uper_encode(pBitStrm, <p>);"
 ObjectIdentifier_decode(p, sErrCode) ::= <<
 if(!ObjectIdentifier_uper_decode(pBitStrm, <p>))
-	ret = <sErrCode>;
+    ret = <sErrCode>;
 >>
 
 RelativeOID_encode(p, sErrCode) ::= "RelativeOID_uper_encode(pBitStrm, <p>);"
 RelativeOID_decode(p, sErrCode) ::= <<
 if(!RelativeOID_uper_decode(pBitStrm, <p>))
-	ret = <sErrCode>
+    ret = <sErrCode>
 >>
 
 Time_encode(p, sTimeSubType, sErrCode) ::= "<sTimeSubType>_uper_encode(pBitStrm, <p>);"
 Time_decode(p, sTimeSubType, sErrCode) ::= <<
 if(!<sTimeSubType>_uper_decode(pBitStrm, <p>))
-	ret = <sErrCode>
+    ret = <sErrCode>
 >>
 
 Enumerated_item_encode(p, sName, nIndex, nLastItemIndex) ::= <<
 case <sName>:   
     BitStream_EncodeConstraintWholeNumber(pBitStrm, <nIndex>, 0, <nLastItemIndex>);
-	break;
+    break;
 >>
 
 Enumerated_item_decode(p, sName, nIndex, nLastItemIndex) ::= <<
@@ -243,23 +241,23 @@ switch(<p>)
 {
     <arrsItem; separator="\n">
     default:
-	    ret = <sErrCode>;
+        ret = <sErrCode>;
 }
 >>
 
 Enumerated_decode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, nMin, nMax, nBits, sErrCode, nLastItemIndex, sFirstItemName) ::= <<
 {
-	// TODO does ret already exist? : uper_scala:252
+    // TODO does ret already exist? : uper_scala:252
     asn1SccSint enumIndex;
     val check = BitStream_DecodeConstraintWholeNumber(pBitStrm, &enumIndex, 0, <nLastItemIndex>))
-	ret = if (check) 0 : <sErrCode>;
-	if (check)
-	{
+    ret = if (check) 0 : <sErrCode>;
+    if (check)
+    {
         switch(enumIndex) 
         {
             <arrsItem; separator="\n">
             default:                        /*COVERAGE_IGNORE*/
-				ret = <sErrCode>;
+                ret = <sErrCode>;
         }
     } else {
         <p> = <sFirstItemName>;             /*COVERAGE_IGNORE*/
@@ -272,35 +270,35 @@ Enumerated_decode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, nMin, nMax, n
 
 choice_child_encode(p, sAcc, sChildID, nChildIndex, nIndexSizeInBits, nLastItemIndex, sChildContent, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr) ::= <<
 case <sChildID>:
-	BitStream_EncodeConstraintWholeNumber(pBitStrm, <nChildIndex>, 0, <nLastItemIndex>);
-	<sChildContent>
-	break;
+    BitStream_EncodeConstraintWholeNumber(pBitStrm, <nChildIndex>, 0, <nLastItemIndex>);
+    <sChildContent>
+    break;
 >>
 choice_child_decode(p, sAcc, sChildID, nChildIndex, nIndexSizeInBits, nLastItemIndex, sChildContent, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr) ::= <<
 case <nChildIndex>:
-	<p><sAcc>kind = <sChildID>;
-	<sChildContent>
-	break;
+    <p><sAcc>kind = <sChildID>;
+    <sChildContent>
+    break;
 >>
 
 choice_encode(p, sAcc, arrsChildren, nLastItemIndex, sChoiceIndexName, sErrCode, td/*:FE_ChoiceTypeDefinition*/, nIndexSizeInBits) ::= <<
 switch(<p><sAcc>kind) 
 {
-	<arrsChildren: {ch|<ch>}; separator="\n">
-	default:
-		ret = <sErrCode>;
+    <arrsChildren: {ch|<ch>}; separator="\n">
+    default:
+        ret = <sErrCode>;
 }
 >>
 
 choice_decode(p, sAcc, arrsChildren, nLastItemIndex, sChoiceIndexName, sErrCode, td/*:FE_ChoiceTypeDefinition*/, nIndexSizeInBits) ::= <<
 if(!BitStream_DecodeConstraintWholeNumber(pBitStrm, &<sChoiceIndexName>, 0, <nLastItemIndex>))
-	ret = <sErrCode>
+    ret = <sErrCode>
 else {
     switch(<sChoiceIndexName>) 
     {
-		<arrsChildren: {ch|<ch>}; separator="\n">
-		default:                        /*COVERAGE_IGNORE*/
-			ret = <sErrCode>;
+        <arrsChildren: {ch|<ch>}; separator="\n">
+        default:                        /*COVERAGE_IGNORE*/
+            ret = <sErrCode>;
     }
 }  /*COVERAGE_IGNORE*/
 >>
@@ -312,7 +310,7 @@ else {
 sequence_presence_bit_encode(p, sAcc, sChName, sErrCode) ::= "BitStream_AppendBit(pBitStrm,<p><sAcc>exist.<sChName>);"
 sequence_presence_bit_decode(p, sAcc, sChName, sErrCode) ::= <<
 if(!BitStream_ReadBit(pBitStrm, &presenceBit))
-	ret = <sErrCode>
+    ret = <sErrCode>
 <p><sAcc>exist.<sChName> = if (presenceBit == 0) 0 else 1
 >>
 
@@ -337,14 +335,14 @@ sequence_mandatory_child_decode(sChName, sChildContent) ::= <<
 sequence_optional_child_encode(p, sAcc, sChName, sChildContent) ::= <<
 /*Encode <sChName> */
 if (<p><sAcc>exist.<sChName>) {
-	<sChildContent>
+    <sChildContent>
 }
 >>
 
 sequence_optional_child_decode(p, sAcc, sChName, sChildContent) ::= <<
 /*Decode <sChName> */
 if (<p><sAcc>exist.<sChName>) {
-	<sChildContent>
+    <sChildContent>
 }
 >>
 
@@ -357,7 +355,7 @@ sequence_default_child_encode(p, sAcc, sChName, sChildContent, sInitWithDefaultV
 sequence_default_child_decode(p, sAcc, sChName, sChildContent, sInitWithDefaultValue) ::= <<
 /*Decode <sChName> */
 if (<p><sAcc>exist.<sChName>) {
-	<sChildContent>
+    <sChildContent>
 } else {
     <sInitWithDefaultValue>
 }
@@ -370,8 +368,8 @@ loopFixedItem (i, fixedSize,  sInternalItem)::= /*nogen*/<<
 var i = 0
 while((<i> \< (int)<fixedSize>)) && ret == 0)
 {
-	<sInternalItem>
-	i += 1
+    <sInternalItem>
+    i += 1
 }
 >>
 
@@ -439,12 +437,12 @@ ret = BitStream_EncodeOctetString_no_length(pBitStrm, <p><sAcc>arr, <p><sAcc>nCo
 octect_VarSize_decode(p, sAcc, nSizeMin, nSizeMax, nSizeInBits, sErrCode) ::= <<
 if (BitStream_DecodeConstraintWholeNumber(pBitStrm, &nCount, <nSizeMin>, <nSizeMax>))
 {
-	ret = <sErrCode>
+    ret = <sErrCode>
 }
 <p><sAcc>nCount = (long)nCount;
 if(!BitStream_DecodeOctetString_no_length(pBitStrm, <p><sAcc>arr, <p><sAcc>nCount))
 {
-	ret = <sErrCode> // TODO error code may be wrong
+    ret = <sErrCode> // TODO error code may be wrong
 }
 >>
 
@@ -465,8 +463,8 @@ BitStream_EncodeConstraintWholeNumber(pBitStrm, <p><sAcc>nCount, <nSizeMin>, <nS
 bitString_VarSize_decode(p, sAcc, nSizeMin, nSizeMax, sErrCode, nSizeInBits) ::= <<
 if(BitStream_DecodeConstraintWholeNumber(pBitStrm, &nCount, <nSizeMin>, <nSizeMax>)
 {
-	<p><sAcc>nCount = (long)nCount;
-	<bitString_FixSize_decode(p=p, sAcc=sAcc, nFixedSize=[p,sAcc, "nCount"], sErrCode=sErrCode)>
+    <p><sAcc>nCount = (long)nCount;
+    <bitString_FixSize_decode(p=p, sAcc=sAcc, nFixedSize=[p,sAcc, "nCount"], sErrCode=sErrCode)>
 }
 >>
 
@@ -478,20 +476,20 @@ FixedSize_Fragmentation_sqf_64K_encode(p, sAcc,sCurOffset, sCurBlockSize, sBlock
 var <sBlockIndex> = 0
 while(<sBlockIndex> \< <nBlocks64K>)
 {
-	BitStream_EncodeConstraintWholeNumber(pBitStrm, 0xC4, 0, 0xFF); 
-	<if(bIsBitStringType)>
-	BitStream_AppendBits(pBitStrm, &<p><sAcc>arr[<sCurOffset>/8], (int)<sCurBlockSize>)
+    BitStream_EncodeConstraintWholeNumber(pBitStrm, 0xC4, 0, 0xFF); 
+    <if(bIsBitStringType)>
+    BitStream_AppendBits(pBitStrm, &<p><sAcc>arr[<sCurOffset>/8], (int)<sCurBlockSize>)
 
-	<else>
-	val <sBLI>=(int)<sCurOffset>
-	while(<sBLI> \< (int)(<sCurBlockSize> + <sCurOffset>))
-	{
-		<sInternalItem>
-		<sBLI> += 1
-	}
-	<endif>
+    <else>
+    val <sBLI>=(int)<sCurOffset>
+    while(<sBLI> \< (int)(<sCurBlockSize> + <sCurOffset>))
+    {
+        <sInternalItem>
+        <sBLI> += 1
+    }
+    <endif>
     <sCurOffset> += <sCurBlockSize>
-	<sBlockIndex> += 1
+    <sBlockIndex> += 1
 }
 >>
 
@@ -505,7 +503,7 @@ BitStream_AppendBits(pBitStrm, &<p><sAcc>arr[<sCurOffset>/8], (int)<sCurBlockSiz
 <else>
 for(<sBLI>=(int)<sCurOffset>; <sBLI> \< (int)(<sCurBlockSize> + <sCurOffset>); <sBLI>++)
 {
-	<sInternalItem>
+    <sInternalItem>
 }
 
 <endif>
@@ -528,7 +526,7 @@ BitStream_AppendBits(pBitStrm, &<p><sAcc>arr[<sCurOffset>/8], (int)<nRemainingIt
 <else>
 for(<sBLI>=(int)<sCurOffset>; <sBLI> \< (int)(<sCurOffset> + <nRemainingItemsVar>); <sBLI>++)
 {
-	<sInternalItem>
+    <sInternalItem>
 }
 
 <endif>
@@ -545,46 +543,46 @@ Fragmentation_sqf_encode(p, sAcc, sInternalItem, nIntItemMaxSize, nSizeMin, nSiz
 <sBlockIndex> = 0;
 while (<sRemainingItemsVar> >= 0x4000 && <sBlockIndex> \< <if(bIsAsciiString)>(asn1SccSint)strlen(<p>)<else><if(bIsVariableSize)><p><sAcc>nCount<else><nSizeMax><endif><endif>) 
 {
-	if (<sRemainingItemsVar> >= 0x10000)
-	{
-		<sCurBlockSize> = 0x10000;
-		BitStream_EncodeConstraintWholeNumber(pBitStrm, 0xC4, 0, 0xFF); 
-	}
-	else if (<sRemainingItemsVar> >= 0xC000)
-	{
-		<sCurBlockSize> = 0xC000;
-		BitStream_EncodeConstraintWholeNumber(pBitStrm, 0xC3, 0, 0xFF); 
-	}
-	else if (<sRemainingItemsVar> >= 0x8000)
-	{
-		<sCurBlockSize> = 0x8000;
-		BitStream_EncodeConstraintWholeNumber(pBitStrm, 0xC2, 0, 0xFF); 
-	}
-	else 
-	{
-		<sCurBlockSize> = 0x4000;
-		BitStream_EncodeConstraintWholeNumber(pBitStrm, 0xC1, 0, 0xFF); 
-	}
-	
-	<if(bIsBitStringType)>
-	BitStream_AppendBits(pBitStrm, &<p><sAcc>arr[<sCurOffset>/8], (int)<sCurBlockSize>);
-	<else>
-	for(<sBLI>=(int)<sCurOffset>; <sBLI> \< (int)(<sCurBlockSize> + <sCurOffset>); <sBLI>++)
-	{
-		<sInternalItem>
-	}
-	<endif>
-	<sCurOffset> += <sCurBlockSize>;
-	<sRemainingItemsVar> -= <sCurBlockSize>;
+    if (<sRemainingItemsVar> >= 0x10000)
+    {
+        <sCurBlockSize> = 0x10000;
+        BitStream_EncodeConstraintWholeNumber(pBitStrm, 0xC4, 0, 0xFF); 
+    }
+    else if (<sRemainingItemsVar> >= 0xC000)
+    {
+        <sCurBlockSize> = 0xC000;
+        BitStream_EncodeConstraintWholeNumber(pBitStrm, 0xC3, 0, 0xFF); 
+    }
+    else if (<sRemainingItemsVar> >= 0x8000)
+    {
+        <sCurBlockSize> = 0x8000;
+        BitStream_EncodeConstraintWholeNumber(pBitStrm, 0xC2, 0, 0xFF); 
+    }
+    else 
+    {
+        <sCurBlockSize> = 0x4000;
+        BitStream_EncodeConstraintWholeNumber(pBitStrm, 0xC1, 0, 0xFF); 
+    }
+    
+    <if(bIsBitStringType)>
+    BitStream_AppendBits(pBitStrm, &<p><sAcc>arr[<sCurOffset>/8], (int)<sCurBlockSize>);
+    <else>
+    for(<sBLI>=(int)<sCurOffset>; <sBLI> \< (int)(<sCurBlockSize> + <sCurOffset>); <sBLI>++)
+    {
+        <sInternalItem>
+    }
+    <endif>
+    <sCurOffset> += <sCurBlockSize>;
+    <sRemainingItemsVar> -= <sCurBlockSize>;
     <sBlockIndex> = <sBlockIndex>+1;
 }
 
 if (<sRemainingItemsVar> \<= 0x7F)
-	BitStream_EncodeConstraintWholeNumber(pBitStrm, <sRemainingItemsVar>, 0, 0xFF);
+    BitStream_EncodeConstraintWholeNumber(pBitStrm, <sRemainingItemsVar>, 0, 0xFF);
 else
 {
-	BitStream_AppendBit(pBitStrm, 1);
-	BitStream_EncodeConstraintWholeNumber(pBitStrm, <sRemainingItemsVar>, 0, 0x7FFF);
+    BitStream_AppendBit(pBitStrm, 1);
+    BitStream_EncodeConstraintWholeNumber(pBitStrm, <sRemainingItemsVar>, 0, 0x7FFF);
 }
 
 <if(bIsBitStringType)>
@@ -592,7 +590,7 @@ BitStream_AppendBits(pBitStrm, &<p><sAcc>arr[<sCurOffset>/8], (int)<sRemainingIt
 <else>
 for(<sBLI>=(int)<sCurOffset>; <sBLI> \< (int)(<sCurOffset> + <sRemainingItemsVar>); <sBLI>++)
 {
-	<sInternalItem>
+    <sInternalItem>
 }
 <endif>
 >>
@@ -607,19 +605,19 @@ for(<sBlockIndex> = 0; ret && <sBlockIndex> \< <nBlocks64K>; <sBlockIndex>++) {
     ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, &<sRemainingItemsVar>, 0, 0xFF);
     val check = (ret == 0) && (<sRemainingItemsVar> == 0xC4);
     ret = if (check) 0 else <sErrCodeName>;
-	if (ret == 0) {
-	    <if(bIsBitStringType)>
-	    ret = BitStream_ReadBits(pBitStrm, &<p><sAcc>arr[<sCurOffset>/8], (int)<sCurBlockSize>);
+    if (ret == 0) {
+        <if(bIsBitStringType)>
+        ret = BitStream_ReadBits(pBitStrm, &<p><sAcc>arr[<sCurOffset>/8], (int)<sCurBlockSize>);
         ret = if (ret == 0) 0 else <sErrCodeName>;
 
-	    <else>
-	    for(<sBLI>=(int)<sCurOffset>; <sBLI> \< (int)(<sCurBlockSize> + <sCurOffset>); <sBLI>++) {
-		    <sInternalItem>
-	    }
+        <else>
+        for(<sBLI>=(int)<sCurOffset>; <sBLI> \< (int)(<sCurBlockSize> + <sCurOffset>); <sBLI>++) {
+            <sInternalItem>
+        }
 
         <endif>
         <sCurOffset> += <sCurBlockSize>;
-	}
+    }
 }
 >>
 
@@ -637,7 +635,7 @@ if (ret == 0) {
 
     <else>
     for(<sBLI>=(int)<sCurOffset>; <sBLI> \< (int)(<sCurBlockSize> + <sCurOffset>); <sBLI>++) {
-	    <sInternalItem>
+        <sInternalItem>
     }
 
     <endif>
@@ -664,7 +662,7 @@ if (ret == 0) {
     <else>
     for(<sBLI>=(int)<sCurOffset>; <sBLI> \< (int)(<sCurOffset> + <nRemainingItemsVar>); <sBLI>++)
     {
-	    <sInternalItem>
+        <sInternalItem>
     }
 
     <endif>
@@ -688,67 +686,67 @@ Fragmentation_sqf_decode(p, sAcc, sInternalItem, nIntItemMaxSize, nSizeMin, nSiz
 <sLengthTmp> = 0
 <endif>
 if(!BitStream_DecodeConstraintWholeNumber(pBitStrm, &<sRemainingItemsVar>, 0, 0xFF))
-	return <sErrCodeName>
+    return <sErrCodeName>
 
 while((<sRemainingItemsVar> & 0xC0) == 0xC0) {
-	if (<sRemainingItemsVar> == 0xC4)
-		<sCurBlockSize> = 0x10000
-	else if (<sRemainingItemsVar> == 0xC3)
-		<sCurBlockSize> = 0xC000
-	else if (<sRemainingItemsVar> == 0xC2)
-		<sCurBlockSize> = 0x8000
-	else if (<sRemainingItemsVar> == 0xC1)
-		<sCurBlockSize> = 0x4000
-	else {
-		return <sErrCodeName>
-	}
+    if (<sRemainingItemsVar> == 0xC4)
+        <sCurBlockSize> = 0x10000
+    else if (<sRemainingItemsVar> == 0xC3)
+        <sCurBlockSize> = 0xC000
+    else if (<sRemainingItemsVar> == 0xC2)
+        <sCurBlockSize> = 0x8000
+    else if (<sRemainingItemsVar> == 0xC1)
+        <sCurBlockSize> = 0x4000
+    else {
+        return <sErrCodeName>
+    }
 
-	if (<sCurOffset> + <sCurBlockSize> > <nSizeMax>) {
-		return <sErrCodeName>
-	}
+    if (<sCurOffset> + <sCurBlockSize> > <nSizeMax>) {
+        return <sErrCodeName>
+    }
 
-	<if(bIsBitStringType)>
-	if(!BitStream_ReadBits(pBitStrm, &<p><sAcc>arr[<sCurOffset>/8], (int)<sCurBlockSize>))
+    <if(bIsBitStringType)>
+    if(!BitStream_ReadBits(pBitStrm, &<p><sAcc>arr[<sCurOffset>/8], (int)<sCurBlockSize>))
        return <sErrCodeName>
-	<else>
-	<sBLI>=(int)<sCurOffset>
-	while((<sBLI> \< (int)(<sCurOffset> + <sCurBlockSize>))) {
-		// TODO if ret is written from here on - change to check
-		<sInternalItem>
-		// /TODO
-		<sBLI> += 1
-	}
-	<endif>
+    <else>
+    <sBLI>=(int)<sCurOffset>
+    while((<sBLI> \< (int)(<sCurOffset> + <sCurBlockSize>))) {
+        // TODO if ret is written from here on - change to check
+        <sInternalItem>
+        // /TODO
+        <sBLI> += 1
+    }
+    <endif>
 
-	<if(bIsVariableSize)>
-	<sLengthTmp> += (long)<sCurBlockSize>
-	<endif>
-	<sCurOffset> += <sCurBlockSize>
-	if(!BitStream_DecodeConstraintWholeNumber(pBitStrm, &<sRemainingItemsVar>, 0, 0xFF))
-		return <sErrCodeName>
+    <if(bIsVariableSize)>
+    <sLengthTmp> += (long)<sCurBlockSize>
+    <endif>
+    <sCurOffset> += <sCurBlockSize>
+    if(!BitStream_DecodeConstraintWholeNumber(pBitStrm, &<sRemainingItemsVar>, 0, 0xFF))
+        return <sErrCodeName>
 }
 
 if ((<sRemainingItemsVar> & 0x80) > 0) {
-	var len2 = 0;
+    var len2 = 0;
     <sRemainingItemsVar> \<\<= 8
     if(!BitStream_DecodeConstraintWholeNumber(pBitStrm, &len2, 0, 0xFF))
-		return <sErrCodeName>
-	
-	<sRemainingItemsVar> |= len2;
+        return <sErrCodeName>
+    
+    <sRemainingItemsVar> |= len2;
     <sRemainingItemsVar> &= 0x7FFF;   
 }
 
 if(<sCurOffset> + <sRemainingItemsVar> \<= <nSizeMax>)
-	return <sErrCodeName>
+    return <sErrCodeName>
 
 <if(bIsBitStringType)>
 if(!BitStream_ReadBits(pBitStrm, &<p><sAcc>arr[<sCurOffset>/8], (int)<sRemainingItemsVar>)) // TODO remove adress of operator
-	return <sErrCodeName>
+    return <sErrCodeName>
 <else>
 var <sBLI>=(int)<sCurOffset>
 while(<sBLI> \< (int)(<sCurOffset> + <sRemainingItemsVar>)) {
-	<sInternalItem>
-	<sBLI> += 1
+    <sInternalItem>
+    <sBLI> += 1
 }
 <endif>
 
@@ -758,13 +756,13 @@ while(<sBLI> \< (int)(<sCurOffset> + <sRemainingItemsVar>)) {
 
 <if(bIsVariableSize)>
 if ((<sLengthTmp> >= <nSizeMin>) && (<sLengthTmp> \<= <nSizeMax>)) {
-	<if(!bIsAsciiString)>
-	<p><sAcc>nCount = (int)<sLengthTmp>
-	<else>
-	<p>[<sLengthTmp>] = 0x0
-	<endif>
+    <if(!bIsAsciiString)>
+    <p><sAcc>nCount = (int)<sLengthTmp>
+    <else>
+    <p>[<sLengthTmp>] = 0x0
+    <endif>
 } else 
-	return <sErrCodeName>
+    return <sErrCodeName>
 
 <else>
 
@@ -780,62 +778,62 @@ if ((<sLengthTmp> >= <nSizeMin>) && (<sLengthTmp> \<= <nSizeMax>)) {
 octet_string_containing_func_encode(p, sFuncName, sReqBytesForUperEncoding, nBits, nMinSize, nMaxSize) ::= <<
 /*open new scope to declare some variables*/
 {
-	/*encode to a temporary bitstream*/
-	static byte arr[<sReqBytesForUperEncoding>];
-	BitStream bitStrm;
-	BitStream_Init(&bitStrm, arr, sizeof(arr));
+    /*encode to a temporary bitstream*/
+    static byte arr[<sReqBytesForUperEncoding>];
+    BitStream bitStrm;
+    BitStream_Init(&bitStrm, arr, sizeof(arr));
 
-	ret = <sFuncName>(<p>, &bitStrm, pErrCode, FALSE);
-	if (ret) {
-		int nCount = bitStrm.currentBit == 0 ? bitStrm.currentByte : (bitStrm.currentByte + 1);
-		ret = BitStream_EncodeOctetString(pBitStrm, arr, nCount, <nMinSize>, <nMaxSize>);
-	}
+    ret = <sFuncName>(<p>, &bitStrm, pErrCode, FALSE);
+    if (ret) {
+        int nCount = bitStrm.currentBit == 0 ? bitStrm.currentByte : (bitStrm.currentByte + 1);
+        ret = BitStream_EncodeOctetString(pBitStrm, arr, nCount, <nMinSize>, <nMaxSize>);
+    }
 }
 >>
 
 octet_string_containing_func_decode(p, sFuncName, sReqBytesForUperEncoding, nBits, nMinSize, nMaxSize) ::= <<
 /*open new scope to declare some variables*/
 {	
-	/*decode to a temporary bitstream*/
-	static byte arr[<sReqBytesForUperEncoding>];
-	BitStream bitStrm;
-	BitStream_Init(&bitStrm, arr, sizeof(arr));
-	int nCount;
-	ret = BitStream_DecodeOctetString(pBitStrm, arr, &nCount, <nMinSize>, <nMaxSize>);
-	if (ret) {
-		ret = <sFuncName>(<p>, &bitStrm, pErrCode);
-	}
+    /*decode to a temporary bitstream*/
+    static byte arr[<sReqBytesForUperEncoding>];
+    BitStream bitStrm;
+    BitStream_Init(&bitStrm, arr, sizeof(arr));
+    int nCount;
+    ret = BitStream_DecodeOctetString(pBitStrm, arr, &nCount, <nMinSize>, <nMaxSize>);
+    if (ret) {
+        ret = <sFuncName>(<p>, &bitStrm, pErrCode);
+    }
 }
 >>
 
 bit_string_containing_func_encode(p, sFuncName, sReqBytesForUperEncoding, sReqBitsForUperEncoding, nBits, nMinSize, nMaxSize) ::= <<
 /*open new scope to declare some variables*/
 {
-	/*encode to a temporary bitstream*/
-	static byte arr[<sReqBytesForUperEncoding>];
-	BitStream bitStrm;
-	BitStream_Init(&bitStrm, arr, sizeof(arr));
+    /*encode to a temporary bitstream*/
+    static byte arr[<sReqBytesForUperEncoding>];
+    BitStream bitStrm;
+    BitStream_Init(&bitStrm, arr, sizeof(arr));
 
-	ret = <sFuncName>(<p>, &bitStrm, pErrCode, FALSE);
-	if (ret) {
-		int nCount = bitStrm.currentByte*8 + bitStrm.currentBit;
-		ret = BitStream_EncodeBitString(pBitStrm, arr, nCount, <nMinSize>, <nMaxSize>);
-	}
+    ret = <sFuncName>(<p>, &bitStrm, pErrCode, FALSE);
+    if (ret) {
+        int nCount = bitStrm.currentByte*8 + bitStrm.currentBit;
+        ret = BitStream_EncodeBitString(pBitStrm, arr, nCount, <nMinSize>, <nMaxSize>);
+    }
 }
 >>
 
 bit_string_containing_func_decode(p, sFuncName, sReqBytesForUperEncoding, sReqBitsForUperEncoding, nBits, nMinSize, nMaxSize) ::= <<
 /*open new scope to declare some variables*/
 {	
-	/*decode to a temporary bitstream*/
-	static byte arr[<sReqBytesForUperEncoding>];
-	BitStream bitStrm;
-	BitStream_Init(&bitStrm, arr, sizeof(arr));
-	int nCount;
-	ret = BitStream_DecodeBitString(pBitStrm, arr, &nCount, <nMinSize>, <nMaxSize>);
-	if (ret) {
-		ret = <sFuncName>(<p>, &bitStrm, pErrCode);
-	}
+    /*decode to a temporary bitstream*/
+    static byte arr[<sReqBytesForUperEncoding>];
+    BitStream bitStrm;
+    BitStream_Init(&bitStrm, arr, sizeof(arr));
+    int nCount;
+    ret = BitStream_DecodeBitString(pBitStrm, arr, &nCount, <nMinSize>, <nMaxSize>);
+    if (ret) {
+        ret = <sFuncName>(<p>, &bitStrm, pErrCode);
+    }
 }
 >>
 
