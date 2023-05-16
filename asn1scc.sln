@@ -69,18 +69,17 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Simple", "Simple", "{4DEEB8
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "5-1", "5-1", "{2095C65C-AC59-4D3A-A894-4FFC22D159D7}"
 	ProjectSection(SolutionItems) = preProject
-		GenScala\PUSC_5_1\src\main\scala\ApplicationProcess.scala = GenScala\PUSC_5_1\src\main\scala\ApplicationProcess.scala
-		GenScala\PUSC_5_1\src\main\scala\ApplicationProcessDef.scala = GenScala\PUSC_5_1\src\main\scala\ApplicationProcessDef.scala
-		GenScala\PUSC_5_1\src\main\scala\asn1crt.h = GenScala\PUSC_5_1\src\main\scala\asn1crt.h
-		GenScala\PUSC_5_1\src\main\scala\asn1crt.scala = GenScala\PUSC_5_1\src\main\scala\asn1crt.scala
-		GenScala\PUSC_5_1\src\main\scala\asn1crt_encoding.scala = GenScala\PUSC_5_1\src\main\scala\asn1crt_encoding.scala
-		GenScala\PUSC_5_1\src\main\scala\asn1crt_encoding_uper.scala = GenScala\PUSC_5_1\src\main\scala\asn1crt_encoding_uper.scala
-		GenScala\PUSC_5_1\src\main\scala\Dummy.scala = GenScala\PUSC_5_1\src\main\scala\Dummy.scala
-		GenScala\PUSC_5_1\src\main\scala\DummyDef.scala = GenScala\PUSC_5_1\src\main\scala\DummyDef.scala
-		GenScala\PUSC_5_1\src\main\scala\EventDefinition.scala = GenScala\PUSC_5_1\src\main\scala\EventDefinition.scala
-		GenScala\PUSC_5_1\src\main\scala\EventDefinitionDef.scala = GenScala\PUSC_5_1\src\main\scala\EventDefinitionDef.scala
-		GenScala\PUSC_5_1\src\main\scala\PUS-5-1.scala = GenScala\PUSC_5_1\src\main\scala\PUS-5-1.scala
-		GenScala\PUSC_5_1\src\main\scala\PUS-5-1Def.scala = GenScala\PUSC_5_1\src\main\scala\PUS-5-1Def.scala
+		GenScala\PUSC_5_1\src\main\scala\asn1scala\asn1jvm_encoding.scala = GenScala\PUSC_5_1\src\main\scala\asn1scala\asn1jvm_encoding.scala
+		GenScala\PUSC_5_1\src\main\scala\asn1scala\asn1jvm_encoding_uper.scala = GenScala\PUSC_5_1\src\main\scala\asn1scala\asn1jvm_encoding_uper.scala
+		GenScala\PUSC_5_1\src\main\scala\asn1scala\asn1jvm.scala = GenScala\PUSC_5_1\src\main\scala\asn1scala\asn1jvm.scala
+		GenScala\PUSC_5_1\src\main\scala\asn1src\PUS-5-1.scala = GenScala\PUSC_5_1\src\main\scala\asn1src\PUS-5-1.scala
+		GenScala\PUSC_5_1\src\main\scala\asn1src\PUS-5-1Def.scala = GenScala\PUSC_5_1\src\main\scala\asn1src\PUS-5-1Def.scala
+		GenScala\PUSC_5_1\src\main\scala\asn1src\DummyDef.scala = GenScala\PUSC_5_1\src\main\scala\asn1src\DummyDef.scala
+		GenScala\PUSC_5_1\src\main\scala\asn1src\EventDefinition.scala = GenScala\PUSC_5_1\src\main\scala\asn1src\EventDefinition.scala
+		GenScala\PUSC_5_1\src\main\scala\asn1src\EventDefinitionDef.scala = GenScala\PUSC_5_1\src\main\scala\asn1src\EventDefinitionDef.scala
+		GenScala\PUSC_5_1\src\main\scala\asn1src\ApplicationProcessDef.scala = GenScala\PUSC_5_1\src\main\scala\asn1src\ApplicationProcessDef.scala
+		GenScala\PUSC_5_1\src\main\scala\asn1src\ApplicationProcess.scala = GenScala\PUSC_5_1\src\main\scala\asn1src\ApplicationProcess.scala
+		GenScala\PUSC_5_1\src\main\scala\asn1src\Dummy.scala = GenScala\PUSC_5_1\src\main\scala\asn1src\Dummy.scala
 	EndProjectSection
 EndProject
 Global
