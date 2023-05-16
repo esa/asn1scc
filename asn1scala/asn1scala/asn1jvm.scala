@@ -9,7 +9,11 @@ type UInt = Int
 type ULong = Long
 type RealNoRTL = Float
 type BooleanNoRTL = Boolean
-//type nullNoRTL = nulltype
+//type nullNoRTL = nulltype // TODO
+
+// TODO:
+type LongNoRTL = Long
+type ULongNoRTL = ULong
 
 val WORD_SIZE = 8
 val OBJECT_IDENTIFIER_MAX_LENGTH = 20
