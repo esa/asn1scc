@@ -7,9 +7,9 @@
 
 
   <ItemGroup>
-      <EmbeddedResource Include="../asn1scala/asn1crt.scala" />
-      <EmbeddedResource Include="../asn1scala/asn1crt_encoding.scala" />
-      <EmbeddedResource Include="../asn1scala/asn1crt_encoding_uper.scala" />
+      <EmbeddedResource Include="../asn1scala/asn1scala/asn1jvm.scala" />
+      <EmbeddedResource Include="../asn1scala/asn1scala/asn1jvm_encoding.scala" />
+      <EmbeddedResource Include="../asn1scala/asn1scala/asn1jvm_encoding_uper.scala" />
       <EmbeddedResource Include="../ADA_RTL2/aux_files/asn1_msp430.gpr" />
       
       <EmbeddedResource Include="../ADA_RTL2/aux_files/asn1_stm32.gpr" />

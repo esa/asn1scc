@@ -60,12 +60,11 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "5.1", "5.1", "{57465EA1-D20
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Simple", "Simple", "{4DEEB89E-1E99-4DB3-9FDE-97E9023EE300}"
 	ProjectSection(SolutionItems) = preProject
-		GenScala\simple\asn1crt.h = GenScala\simple\asn1crt.h
-		GenScala\simple\asn1crt.scala = GenScala\simple\asn1crt.scala
-		GenScala\simple\asn1crt_encoding.scala = GenScala\simple\asn1crt_encoding.scala
-		GenScala\simple\asn1crt_encoding_uper.scala = GenScala\simple\asn1crt_encoding_uper.scala
-		GenScala\simple\simpleMsg.scala = GenScala\simple\simpleMsg.scala
-		GenScala\simple\simpleMsgDef.scala = GenScala\simple\simpleMsgDef.scala
+		GenScala\simple\asn1jvm.scala = GenScala\simple\asn1scala\asn1jvm.scala
+		GenScala\simple\asn1jvm_encoding.scala = GenScala\simple\asn1scala\asn1jvm_encoding.scala
+		GenScala\simple\asn1jvm_encoding_uper.scala = GenScala\simple\asn1scala\asn1jvm_encoding_uper.scala
+		GenScala\simple\simpleMsg.scala = GenScala\simple\asn1src\simpleMsg.scala
+		GenScala\simple\simpleMsgDef.scala = GenScala\simple\asn1src\simpleMsgDef.scala
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "5-1", "5-1", "{2095C65C-AC59-4D3A-A894-4FFC22D159D7}"

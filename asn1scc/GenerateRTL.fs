@@ -88,20 +88,20 @@ let exportRTL (di:DirInfo) (l:ProgrammingLanguage) (args:CommandLineSettings)=
     
     // TODO: Scala
     | ProgrammingLanguage.Scala ->
-        writeResource di "asn1crt.scala" None
+        writeResource di "asn1jvm.scala" None
                 
-        let intSize = sprintf "#define WORD_SIZE	%d" (int args.integerSizeInBytes)
-        let fpSize = sprintf "#define FP_WORD_SIZE	%d" (int args.floatingPointSizeInBytes)
-        writeResource di "asn1crt.h" (Some (fun (s:string) -> s.Replace("#define WORD_SIZE	8", intSize).Replace("#define FP_WORD_SIZE	8", fpSize)) )
+        //let intSize = sprintf "#define WORD_SIZE	%d" (int args.integerSizeInBytes)
+        //let fpSize = sprintf "#define FP_WORD_SIZE	%d" (int args.floatingPointSizeInBytes)
+        //writeResource di "asn1jvm.scala" (Some (fun (s:string) -> s.Replace("#define WORD_SIZE	8", intSize).Replace("#define FP_WORD_SIZE	8", fpSize)) )
                 
         match args.encodings with
         | []    -> ()
         | _     ->
 
-            writeResource di "asn1crt_encoding.scala" None
+            writeResource di "asn1jvm_encoding.scala" None
 
             if hasUper || hasAcn then
-                writeResource di "asn1crt_encoding_uper.scala" None
+                writeResource di "asn1jvm_encoding_uper.scala" None
 
 //            if hasAcn  then
 //                writeResource di "asn1crt_encoding_acn.c" None
