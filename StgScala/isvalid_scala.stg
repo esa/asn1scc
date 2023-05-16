@@ -65,7 +65,7 @@ ret = <sErrCode> // isvalid_scala:64
 */
 
 EmitTypeAssignment_composite_def_err_code(sErrCode, nErrValue, arrsErrorCodeComments) ::= <<
-@inline @cCode.inline val <sErrCode>: Int = <nErrValue>  /*<arrsErrorCodeComments : {x|<x>}; separator = "\n"> isvalid_scala:68 */
+@inline @cCode.inline val <sErrCode>: Int = <nErrValue> // isvalid:68 /*<arrsErrorCodeComments : {x|<x>}; separator = "\n"> */
 >>
 
 EmitTypeAssignment_composite_def(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes) ::= <<

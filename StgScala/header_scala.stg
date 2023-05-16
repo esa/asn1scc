@@ -16,9 +16,11 @@ import asn1scala._
 import stainless.lang._
 import stainless.annotation._
 
-<arrsTypeAssignments:{tas|<tas>}; separator="\n">
+<arrsTypeAssignments:{tas|<tas> // header:19 }; separator="\n">
 
-<arrsValueAssignments:{vas|<vas>}; separator="\n"> 
+<arrsValueAssignments:{vas|<vas> // header:21 }; separator="\n"> 
+
+<arrsPrototypes:{proto|<proto> // header:23 }; separator="\n"> 
 >>
 
 Define_TAS(sTypeDefinition, arrsProcs) ::= <<
@@ -96,7 +98,7 @@ type <sTypeDefinitionName> = <sParentType> // header_scala:83
 
 Define_new_enumerated_item(sName, nValue) ::= "<sName> = <nValue>"
 
-Define_new_enumerated_item_macro(td/*:FE_EnumeratedTypeDefinition*/, sAsn1Name, sCName) ::= "#define112 <td.typeName>_<sAsn1Name> <sCName>"
+Define_new_enumerated_item_macro(td/*:FE_EnumeratedTypeDefinition*/, sAsn1Name, sCName) ::= "#define <td.typeName>_<sAsn1Name> <sCName> // header:101"
 
 Define_new_enumerated(td/*:FE_EnumeratedTypeDefinition*/, arrsEnumNames, arrsEnumNamesAndValues, nIndexMax, arrsResolvingMacros) ::= <<
 typedef enum {
@@ -136,7 +138,7 @@ typedef <prTd.typeName> <td.typeName>;
 /***********************************       BIT STRING    ************************************************************/
 
 Define_new_bit_string_named_bit(td/*:FE_SizeableTypeDefinition*/, sTargetLangBitName, sHexValue, sComment) ::= <<
-#define152 <td.typeName>_<sTargetLangBitName> 0x<sHexValue>  /*<sComment>*/
+#define <td.typeName>_<sTargetLangBitName> 0x<sHexValue>  /*<sComment>*/ // header:141
 >>
 
 Define_new_bit_string(td/*:FE_SizeableTypeDefinition*/, nMin, nMax, bFixedSize, nMaxOctets, arrsNamedBits) ::= <<

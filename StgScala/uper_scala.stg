@@ -2,8 +2,8 @@
 
 rtlModuleName() ::= ""
 
-call_base_type_func_encode(p, sFuncName) ::= "ret = <sFuncName>(<p>, pBitStrm, pErrCode, FALSE);"
-call_base_type_func_decode(p, sFuncName) ::= "ret = <sFuncName>(<p>, pBitStrm, pErrCode);"
+call_base_type_func_encode(p, sFuncName) ::= "ret = <sFuncName>(<p>, pBitStrm, false)"
+call_base_type_func_decode(p, sFuncName) ::= "ret = <sFuncName>(<p>, pBitStrm)"
 
 /*******************************************************/
 /*   U P E R                                           */
@@ -14,13 +14,13 @@ EmitTypeAssignment_def_err_code(sErrCode, nErrValue) ::= <<
 >>
 
 EmitTypeAssignment_def_encode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes, bEmptyEncodingSpace, nMaxBytesInPER, nMaxBitsInPER, soSparkAnnotations, bReqBytesForEncodingIsZero) ::= <<
-<arrsErrcodes; separator="\n">
-@inline @cCode.inline val <sTypeDefName>_REQUIRED_BYTES_FOR_ENCODING: Int = <nMaxBytesInPER> 
-@inline @cCode.inline val <sTypeDefName>_REQUIRED_BITS_FOR_ENCODING: Int = <nMaxBitsInPER>
+<arrsErrcodes:{x|<x> // uper:17}; separator="\n">
+@inline @cCode.inline val <sTypeDefName>_REQUIRED_BYTES_FOR_ENCODING: Int = <nMaxBytesInPER> // uper:18
+@inline @cCode.inline val <sTypeDefName>_REQUIRED_BITS_FOR_ENCODING: Int = <nMaxBitsInPER> // uper:19
 >>
 
 EmitTypeAssignment_encode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitilialExp, bReqBytesForEncodingIsZero, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName) ::= <<
-def <sFuncName>(<if(bVarNameIsUnreferenced)>@annotation.unused <endif><sVarName>: Ref[<sTypeDefName>], <if(bBsIsUnreferenced)>@annotation.unused <endif>pBitStrm: Ref[BitStream], bCheckConstraints: Boolean): Int = //uper_scala:23
+def <sFuncName>(<if(bVarNameIsUnreferenced)>@annotation.unused <endif><sVarName>: Ref[<sTypeDefName>], <if(bBsIsUnreferenced)>@annotation.unused <endif>pBitStrm: BitStream, bCheckConstraints: Boolean): Int = //uper_scala:23
 {
     var ret = 0
 
@@ -39,10 +39,12 @@ def <sFuncName>(<if(bVarNameIsUnreferenced)>@annotation.unused <endif><sVarName>
 }
 >>
 
-EmitTypeAssignment_def_decode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes, bEmptyEncodingSpace, nMaxBytesInPER, nMaxBitsInPER, soSparkAnnotations, bReqBytesForEncodingIsZero) ::= << >>
+EmitTypeAssignment_def_decode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes, bEmptyEncodingSpace, nMaxBytesInPER, nMaxBitsInPER, soSparkAnnotations, bReqBytesForEncodingIsZero) ::= <<
+<arrsErrcodes:{x|<x> // uper:47}; separator="\n">
+>>
 
 EmitTypeAssignment_decode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitilialExp, bReqBytesForEncodingIsZero, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName) ::= <<
-def <sFuncName>(<if(bVarNameIsUnreferenced)>@annotation.unused <endif><sVarName>: <sTypeDefName>, <if(bBsIsUnreferenced)>@annotation.unused <endif>pBitStrm: Ref[BitStream]): Int = 
+def <sFuncName>(<if(bVarNameIsUnreferenced)>@annotation.unused <endif><sVarName>: Ref[<sTypeDefName>], <if(bBsIsUnreferenced)>@annotation.unused <endif>pBitStrm: BitStream): Int = 
 {
     var ret = 0;
 
@@ -111,7 +113,7 @@ if(!BitStream_DecodeConstraintWholeNumber<sSsuffix>(pBitStrm, <p>, <nMin>, <nMax
 IntFullyConstraintPos_encode(p, nMin, nMax, nBits, sSsuffix, sErrCode) ::= "BitStream_EncodeConstraintPosWholeNumber(pBitStrm, <p>, <nMin>, <nMax>);"
 IntFullyConstraintPos_decode(p, nMin, nMax, nBits, sSsuffix, sErrCode) ::= <<
 if(!BitStream_DecodeConstraintPosWholeNumber<sSsuffix>(pBitStrm, <p>, <nMin>, <nMax>))
-    ret = <sErrCode> // uper_scala:153
+    ret = <sErrCode> // uper_scala:114
 >>
 
 
@@ -783,7 +785,7 @@ octet_string_containing_func_encode(p, sFuncName, sReqBytesForUperEncoding, nBit
     BitStream bitStrm;
     BitStream_Init(&bitStrm, arr, sizeof(arr));
 
-    ret = <sFuncName>(<p>, &bitStrm, pErrCode, FALSE);
+    ret = <sFuncName>(<p>, &bitStrm, false)
     if (ret) {
         int nCount = bitStrm.currentBit == 0 ? bitStrm.currentByte : (bitStrm.currentByte + 1);
         ret = BitStream_EncodeOctetString(pBitStrm, arr, nCount, <nMinSize>, <nMaxSize>);
@@ -801,7 +803,7 @@ octet_string_containing_func_decode(p, sFuncName, sReqBytesForUperEncoding, nBit
     int nCount;
     ret = BitStream_DecodeOctetString(pBitStrm, arr, &nCount, <nMinSize>, <nMaxSize>);
     if (ret) {
-        ret = <sFuncName>(<p>, &bitStrm, pErrCode);
+        ret = <sFuncName>(<p>, &bitStrm);
     }
 }
 >>
@@ -814,7 +816,7 @@ bit_string_containing_func_encode(p, sFuncName, sReqBytesForUperEncoding, sReqBi
     BitStream bitStrm;
     BitStream_Init(&bitStrm, arr, sizeof(arr));
 
-    ret = <sFuncName>(<p>, &bitStrm, pErrCode, FALSE);
+    ret = <sFuncName>(<p>, &bitStrm, false)
     if (ret) {
         int nCount = bitStrm.currentByte*8 + bitStrm.currentBit;
         ret = BitStream_EncodeBitString(pBitStrm, arr, nCount, <nMinSize>, <nMaxSize>);
@@ -832,7 +834,7 @@ bit_string_containing_func_decode(p, sFuncName, sReqBytesForUperEncoding, sReqBi
     int nCount;
     ret = BitStream_DecodeBitString(pBitStrm, arr, &nCount, <nMinSize>, <nMaxSize>);
     if (ret) {
-        ret = <sFuncName>(<p>, &bitStrm, pErrCode);
+        ret = <sFuncName>(<p>, &bitStrm)
     }
 }
 >>
