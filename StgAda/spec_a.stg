@@ -171,7 +171,7 @@ subtype <thisType> is <if(soParentTypePackage)><soParentTypePackage>.<endif><par
 /***********************************       ENUMERATED    ************************************************************/
 
 
-Define_new_enumerated_item(sName, nValue) ::= "<sName> => <nValue>"
+Define_new_enumerated_item(td/*:FE_EnumeratedTypeDefinition*/, sName, nValue) ::= "<sName> => <nValue>"
 
 Define_new_enumerated_item_macro(td/*:FE_EnumeratedTypeDefinition*/, sAsn1Name, sCName) ::= ""
 

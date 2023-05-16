@@ -121,7 +121,7 @@ typedef <sParentType> <sTypeDefinitionName>;
 
 /***********************************       ENUMERATED    ************************************************************/
 
-Define_new_enumerated_item(sName, nValue) ::= "<sName> = <nValue>"
+Define_new_enumerated_item(td/*:FE_EnumeratedTypeDefinition*/, sName, nValue) ::= "<sName> = <nValue>"
 
 Define_new_enumerated_item_macro(td/*:FE_EnumeratedTypeDefinition*/, sAsn1Name, sCName) ::= "#define <td.typeName>_<sAsn1Name> <sCName>"
 
