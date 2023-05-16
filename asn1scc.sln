@@ -82,6 +82,19 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Simple", "Simple", "{69DE69
 		GenScala\simple\asn1src\simpleMsgDef.scala = GenScala\simple\asn1src\simpleMsgDef.scala
 	EndProjectSection
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "1.8", "1.8", "{B0A592D7-CF9C-4FE5-9F3F-8125D870A1A0}"
+	ProjectSection(SolutionItems) = preProject
+		Inputs\PUSInput\service-1-8\ApplicationProcess.asn1 = Inputs\PUSInput\service-1-8\ApplicationProcess.asn1
+		Inputs\PUSInput\service-1-8\ApplicationProcessUser.asn1 = Inputs\PUSInput\service-1-8\ApplicationProcessUser.asn1
+		Inputs\PUSInput\service-1-8\ErrorCodes.asn1 = Inputs\PUSInput\service-1-8\ErrorCodes.asn1
+		Inputs\PUSInput\service-1-8\MessageType.asn1 = Inputs\PUSInput\service-1-8\MessageType.asn1
+		Inputs\PUSInput\service-1-8\PacketTypes.asn1 = Inputs\PUSInput\service-1-8\PacketTypes.asn1
+		Inputs\PUSInput\service-1-8\PUS-1-8.asn1 = Inputs\PUSInput\service-1-8\PUS-1-8.asn1
+		Inputs\PUSInput\service-1-8\TC-Packet.asn1 = Inputs\PUSInput\service-1-8\TC-Packet.asn1
+		Inputs\PUSInput\service-1-8\TC-Payload.asn1 = Inputs\PUSInput\service-1-8\TC-Payload.asn1
+		Inputs\PUSInput\service-1-8\VerificationRequest.asn1 = Inputs\PUSInput\service-1-8\VerificationRequest.asn1
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -280,6 +293,7 @@ Global
 		{57465EA1-D207-4EED-83A4-EE8B39C12B42} = {985DDF72-E427-4E7E-8580-1C44273F9C03}
 		{2095C65C-AC59-4D3A-A894-4FFC22D159D7} = {200CBAF9-1352-47A4-B59A-C32E9598AD4F}
 		{69DE690A-C414-4140-911C-6F85644C759C} = {200CBAF9-1352-47A4-B59A-C32E9598AD4F}
+		{B0A592D7-CF9C-4FE5-9F3F-8125D870A1A0} = {985DDF72-E427-4E7E-8580-1C44273F9C03}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {257CF62D-31FE-4325-899E-BAD6DB9BA2DE}
