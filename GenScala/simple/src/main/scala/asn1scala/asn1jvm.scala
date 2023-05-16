@@ -94,3 +94,15 @@ def ObjectIdentifier_equal (pVal1: Asn1ObjectIdentifier, pVal2: Asn1ObjectIdenti
   else
     return false
 }
+
+
+object playground {
+  def main(args: Array[String]): Unit = {
+    val v: Array[Long] = Array.fill(OBJECT_IDENTIFIER_MAX_LENGTH)(1)
+    var c = 5
+    val x = Asn1ObjectIdentifier(c, v)
+    ObjectIdentifier_Init(x)
+    println(x.nCount)
+    println(x.values.mkString(","))
+  }
+}

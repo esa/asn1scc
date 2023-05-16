@@ -5,6 +5,7 @@ package asn1src
 
 import asn1scala._
 
+
 def Message_anInt_IsConstraintValid(intRef: Ref[Message_anInt]): Int = 
 {
     var ret = 0 // isvalid_scala.stg:80
@@ -14,7 +15,7 @@ def Message_anInt_IsConstraintValid(intRef: Ref[Message_anInt]): Int =
     ret
 }
 
-def Message_tenByteString_IsConstraintValid(@annotation.unused pVal: Message_tenByteString): Int =
+def Message_tenByteString_IsConstraintValid(@annotation.unused pVal: Ref[Message_tenByteString]): Int = 
 {
     var ret = 0 // isvalid_scala.stg:80
 
@@ -23,13 +24,13 @@ def Message_tenByteString_IsConstraintValid(@annotation.unused pVal: Message_ten
     ret
 }
 
-def Message_IsConstraintValid(pVal: Message): Int =
+def Message_IsConstraintValid(pVal: Ref[Message]): Int = 
 {
     var ret = 0 // isvalid_scala.stg:80
 
-    ret = Message_anInt_IsConstraintValid(Ref(pVal.anInt))
+    ret = Message_anInt_IsConstraintValid(Ref(pVal.x.anInt))
     if (ret == 0) {
-        ret = Message_tenByteString_IsConstraintValid(pVal.tenByteString)
+        ret = Message_tenByteString_IsConstraintValid(Ref(pVal.x.tenByteString))
     }
 
     ret
@@ -43,7 +44,7 @@ def Message_tenByteString_Initialize(pVal: Ref[Message_tenByteString]): Unit = /
 {
 	var i1 = 0;
 	(while (i1 < 10) {
-	    pVal.x(i1) = 0;
+	    pVal.x.arr(i1) = 0;
 	    i1 += 1;
 	})
 }
@@ -58,7 +59,7 @@ def Message_Initialize(pVal: Ref[Message]): Unit = // init_scala:12
 	pVal.x.aBool = false;
 }
 
-def Message_Encode(pVal: Message, pBitStrm: BitStream, bCheckConstraints: Boolean): Int = //uper_scala:23
+def Message_Encode(pVal: Ref[Message], pBitStrm: Ref[BitStream], bCheckConstraints: Boolean): Int = //uper_scala:23
 {
     var ret = 0
 
@@ -66,13 +67,13 @@ def Message_Encode(pVal: Message, pBitStrm: BitStream, bCheckConstraints: Boolea
         ret = Message_IsConstraintValid(pVal)
     if (ret == 0) {
         /*Encode anInt */
-        BitStream_EncodeConstraintPosWholeNumber(pBitStrm, pVal.anInt, 0, 267);
+        BitStream_EncodeConstraintPosWholeNumber(pBitStrm, pVal.x.anInt, 0, 267);
         if (ret == 0) {
             /*Encode tenByteString */
-            ret = if BitStream_EncodeOctetString_no_length(pBitStrm, pVal.tenByteString, 10) then 1 else 0
+            ret = BitStream_EncodeOctetString_no_length(pBitStrm, pVal.x.tenByteString.arr, 10);
             if (ret == 0) {
                 /*Encode aBool */
-                BitStream_AppendBit(pBitStrm,pVal.aBool);
+                BitStream_AppendBit(pBitStrm,pVal.x.aBool);
             }
         }
     }
@@ -80,25 +81,25 @@ def Message_Encode(pVal: Message, pBitStrm: BitStream, bCheckConstraints: Boolea
     ret
 }
 
-def Message_Decode(pVal: Message, pBitStrm: BitStream): Int =
+def Message_Decode(pVal: Message, pBitStrm: Ref[BitStream]): Int = 
 {
     var ret = 0;
 
 
     /* Decode anInt */
-    if(!BitStream_DecodeConstraintPosWholeNumber(pBitStrm, Ref(pVal.anInt), 0, 267))
-        ret = 88 // uper_scala:153
+    if(!BitStream_DecodeConstraintPosWholeNumber(pBitStrm, Ref(pVal.x.anInt), 0, 267))
+        ret = ERR_UPER_DECODE_MESSAGE_ANINT // uper_scala:153
     if (ret == 0) {
         /* Decode tenByteString */
-        ret = if (BitStream_DecodeOctetString_no_length(pBitStrm, pVal.tenByteString, 10)) 0 else 1
+        ret = if (BitStream_DecodeOctetString_no_length(pBitStrm, pVal.x.tenByteString.arr, 10)) 0 else 1
         if (ret == 0) {
             /* Decode aBool */
-            if(!BitStream_ReadBit(pBitStrm, Ref(pVal.aBool)))
-                ret = 99
+            if(!BitStream_ReadBit(pBitStrm, Ref(pVal.x.aBool)))
+                ret = ERR_UPER_DECODE_MESSAGE_ABOOL
         }
     }
 
     if (ret == 0)
-        ret = Message_IsConstraintValid(pVal)
+        ret = Message_IsConstraintValid(pVal) 
     ret
 } // body_scala:10, move to definition if needed somewhere else

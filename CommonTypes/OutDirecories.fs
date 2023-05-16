@@ -4,8 +4,8 @@ open CommonTypes
 open AbstractMacros
 
 // TODO: Scala
-let asn1rtlDirName    l target = match l with C -> "" | Scala -> "asn1scala" | Ada when target=None -> "" | Ada -> "asn1rtl"
-let srcDirName        l target = match l with C -> "" | Scala -> "asn1src" | Ada when target=None -> "" | Ada -> "src"
+let asn1rtlDirName    l target = match l with C -> "" | Scala -> Path.Combine("src", "main", "scala", "asn1scala") | Ada when target=None -> "" | Ada -> "asn1rtl"
+let srcDirName        l target = match l with C -> "" | Scala -> Path.Combine("src", "main", "scala", "asn1src") | Ada when target=None -> "" | Ada -> "src"
 let boardsDirName     l target = match l with C -> "" | Scala -> "" | Ada when target=None -> "" | Ada -> "boards"
 
 type DirInfo = {
@@ -37,7 +37,7 @@ let getDirInfo l target rootDir =
 let getTopLevelDirs (l:ProgrammingLanguage) target =
     match l with
     | C     -> []
-    | Scala     -> [asn1rtlDirName l target; srcDirName l target] // TODO: Scala
+    | Scala     -> [asn1rtlDirName l target; srcDirName l target; "lib"] // TODO: Scala
     | Ada when target = None     -> []
     | Ada   -> [asn1rtlDirName l target; srcDirName l target; boardsDirName l target]
 

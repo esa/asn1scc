@@ -79,6 +79,10 @@
     <Folder Include="Properties\" />
   </ItemGroup>
 
-  <ItemGroup />
+  <ItemGroup>
+    <EmbeddedResource Include="..\Stainless\lib\stainless-library_2.13-0.9.7.jar">
+      <Link>stainless-library_2.13-0.9.7.jar</Link>
+    </EmbeddedResource>
+  </ItemGroup>
 
 </Project>

@@ -35,10 +35,10 @@ PrintValueAssignment(sName, sTypeDecl, sValue) ::= << >>
 Scala TYPES 
 */
 
-Declare_Integer() ::="Int"
-Declare_PosInteger() ::="UInt"
-Declare_IntegerNoRTL() ::="Int"
-Declare_PosIntegerNoRTL() ::="UInt"
+Declare_Integer() ::="Long"
+Declare_PosInteger() ::="ULong"
+Declare_IntegerNoRTL() ::="LongNoRTL"
+Declare_PosIntegerNoRTL() ::="ULongNoRTL"
 
 Declare_Boolean() ::= "Boolean"
 Declare_Real() ::= "Float"
