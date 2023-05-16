@@ -12,9 +12,9 @@ type Message_anInt = UInt // header_scala:83
 
 type Message_tenByteString = Array[Byte]
 case class Message (
-    var anInt: Message_anInt,
-    var tenByteString: Message_tenByteString,
-    var aBool: Boolean
+    anInt: Message_anInt,
+    tenByteString: Message_tenByteString,
+    aBool: Boolean
 )
 
 @inline @cCode.inline val ERR_MESSAGE_ANINT: Int = 1  /*(0..267) isvalid_scala:68 */

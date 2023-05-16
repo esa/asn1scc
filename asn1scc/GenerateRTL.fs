@@ -14,6 +14,10 @@ let writeTextFile fileName (content:String) =
 
 let getResourceAsString (rsName:string) =
     FsUtils.getResourceAsString0 "asn1scc" (System.Reflection.Assembly.GetExecutingAssembly ()) rsName
+    
+    
+let getResourceAsByteArray (rsName:string) =
+    FsUtils.getResourceAsByteArray0 "asn1scc" (System.Reflection.Assembly.GetExecutingAssembly ()) rsName
 
 
 let writeResource (di:DirInfo) (rsName:string) (fn) : unit=
@@ -88,6 +92,10 @@ let exportRTL (di:DirInfo) (l:ProgrammingLanguage) (args:CommandLineSettings)=
     
     // TODO: Scala
     | ProgrammingLanguage.Scala ->
+        let rsName = "stainless-library_2.13-0.9.7.jar"
+        let resourceInitialContent = getResourceAsByteArray rsName
+        File.WriteAllBytes(Path.Combine(rootDir, "lib", rsName), resourceInitialContent)
+        
         writeResource di "asn1jvm.scala" None
                 
         //let intSize = sprintf "#define WORD_SIZE	%d" (int args.integerSizeInBytes)
