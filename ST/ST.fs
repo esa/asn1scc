@@ -117,6 +117,14 @@ type BigIntegerFormatRenderer() =
                         obj.ToString() + "ULL"
                     else
                         obj.ToString() + "LL"
+            | CommonTypes.ProgrammingLanguage.Scala ->
+                if obj = (BigInteger System.Int64.MinValue) then
+                    "Long.MinValue"
+                else
+                    if (obj > BigInteger Int64.MaxValue) then
+                        obj.ToString() + "L // TODO wrap this in an bigInteger ST.fs:125"
+                    else
+                        obj.ToString() + "L"
             | _                         -> obj.ToString()
     static member TS2(o:Object, format) =
         let frmStr = "{0:" + format + "}";

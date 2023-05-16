@@ -49,7 +49,7 @@ type LangGeneric_scala() =
             | Asn1AcnAst.ASN1SCC_UInt16   _ ->  sprintf "%s" (i.ToString())
             | Asn1AcnAst.ASN1SCC_UInt32   _ ->  sprintf "%s" (i.ToString())
             | Asn1AcnAst.ASN1SCC_UInt64   _ ->  sprintf "%sL" (i.ToString())
-            | Asn1AcnAst.ASN1SCC_UInt     _ ->  sprintf "%s" (i.ToString())
+            | Asn1AcnAst.ASN1SCC_UInt     _ ->  sprintf "%sL" (i.ToString())
 
         override _.doubleValueToString (v:double) = 
             v.ToString(FsUtils.doubleParseString, System.Globalization.NumberFormatInfo.InvariantInfo)
