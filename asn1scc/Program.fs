@@ -157,7 +157,10 @@ let checkArguement arg =
     | Out outDir       -> 
         match System.IO.Directory.Exists outDir with
         | true  -> ()
-        | false -> raise (UserException (sprintf "directory '%s' does not exist." outDir))
+        | false -> 
+            match Directory.Exists outDir with
+            | true  -> ()
+            | false -> Directory.CreateDirectory outDir |> ignore  
     | Files files      -> 
         files |> Seq.iter(fun f -> match File.Exists f with true -> () | false -> raise (UserException (sprintf "File '%s' does not exist." f)))
         files |>        

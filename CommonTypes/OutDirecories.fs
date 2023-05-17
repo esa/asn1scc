@@ -37,7 +37,7 @@ let getDirInfo l target rootDir =
 let getTopLevelDirs (l:ProgrammingLanguage) target =
     match l with
     | C     -> []
-    | Scala     -> [asn1rtlDirName l target; srcDirName l target; "lib"] // TODO: Scala
+    | Scala -> [asn1rtlDirName l target; srcDirName l target; "lib"] // TODO: Scala
     | Ada when target = None     -> []
     | Ada   -> [asn1rtlDirName l target; srcDirName l target; boardsDirName l target]
 
