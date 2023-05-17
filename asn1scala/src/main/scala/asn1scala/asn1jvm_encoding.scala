@@ -1010,7 +1010,7 @@ def BitStream_EncodeReal(pBitStrm: BitStream, vVal: Double): Unit = {
     return
 
   if v == Double.PositiveInfinity then
-    BitStream_EncodeCostraintWholeNumber(pBitStrm, 1, 0, 0xFF)
+    BitStream_EncodeConstraintWholeNumber(pBitStrm, 1, 0, 0xFF)
     BitStream_EncodeConstraintWholeNumber(pBitStrm, 0x40, 0, 0xFF)
     return
 
@@ -1020,7 +1020,7 @@ def BitStream_EncodeReal(pBitStrm: BitStream, vVal: Double): Unit = {
     return
 
   if v < 0 then
-    header = header | 0x40
+    header = (header | 0x40).toByte
     v = -v
 
   val exponent = Ref[Int](0)
@@ -1031,9 +1031,9 @@ def BitStream_EncodeReal(pBitStrm: BitStream, vVal: Double): Unit = {
   val nManLen: Int = GetLengthInBytesOfUInt(mantissa.x)
   assert(nExpLen <= 3)
   if nExpLen == 2 then
-    header = header | 1
+    header = (header | 1).toByte
   else if nExpLen == 3 then
-    header = header | 2
+    header = (header | 2).toByte
 
   /* encode length */
   BitStream_EncodeConstraintWholeNumber(pBitStrm, 1 + nExpLen + nManLen.toLong, 0, 0xFF)
