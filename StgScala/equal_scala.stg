@@ -142,15 +142,12 @@ case <sCid>:
 >>
 
 isEqual_Choice(p1,p2, sAccess, arrsChildren) ::= <<
-ret = (<p1><sAccess>kind == <p2><sAccess>kind);
-if (ret) {
-	switch(<p1><sAccess>kind) 
-	{
-	<arrsChildren: {ch|<ch>}; separator="\n">
-	default: /*COVERAGE_IGNORE*/
-		ret = FALSE;    /*COVERAGE_IGNORE*/
-	}
-} /*COVERAGE_IGNORE*/
+ret = (<p1><sAccess>kind - <p2><sAccess>kind) // equal:145
+if ret == 0 then
+	<p1><sAccess>kind match
+		<arrsChildren: {ch|<ch>}; separator="\n">
+		case _ =>
+			ret = 1337 // TODO no actual error code
 >>
 
 isEqual_Sequence_child(p1, p2, sAcc,  bIsOptional, sChName, soInnerStatement) ::= <<

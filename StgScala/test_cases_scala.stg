@@ -381,23 +381,17 @@ void <sFuncName>(const TestOutput* output, int *totalErrors)
 
         output->report_failure_begin();
 
-        switch(errCode)
-        {
-        case 1:
-            output->report_failure_message("Test case <sFuncName> failed in encoding.");
-            break;
-        case 2:
-            output->report_failure_message("Test case '<sFuncName>' failed in decoding.");
-            break;
-        case 3:
-            output->report_failure_message("Test case '<sFuncName>' failed in the validation of the decoded message.");
-            break;
-        case 4:
-            output->report_failure_message("Test case '<sFuncName>' failed. Encoded and decoded messages are different.");
-            break;
-        default:
-            output->report_failure_message("Unexpected error code in test case '<sFuncName>'.");
-        }
+        errCode match
+            case 1 =>
+                output->report_failure_message("Test case <sFuncName> failed in encoding.")
+            case 2 =>
+                output->report_failure_message("Test case '<sFuncName>' failed in decoding.")
+            case 3 =>
+                output->report_failure_message("Test case '<sFuncName>' failed in the validation of the decoded message.")
+            case 4 =>
+                output->report_failure_message("Test case '<sFuncName>' failed. Encoded and decoded messages are different.")
+            case _ =>
+                output->report_failure_message("Unexpected error code in test case '<sFuncName>'.")
         output->report_failure_message("========================================");
         *totalErrors = (*totalErrors) + 1;
 

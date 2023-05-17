@@ -409,51 +409,42 @@ Null_pattern2_decode(p, arruNullValueAsByteArray, nSize, arrsBits, sErrCode, bSa
 
 
 Enumerated_item_encode(p, sName, nItemIdxOrVal, sIntVal) ::= <<
-case <sName>:
-    <sIntVal> = <nItemIdxOrVal>;
-    break;
+case <sName> => // acn:417
+    <sIntVal> = <nItemIdxOrVal>
 >>
 
 Enumerated_item_decode(p, sName, nItemIdxOrVal, sIntVal) ::= <<
-case <nItemIdxOrVal>:
-    <p> = <sName>;
-    break;
+case <nItemIdxOrVal> => // acn:417
+    <p> = <sName>
 >>
 
 EnumeratedEncIdx_encode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, sActualCodecFunc, sIntVal) ::= <<
-<sActualCodecFunc>
+<sActualCodecFunc> // acn:422
 >>
 
 EnumeratedEncIdx_decode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, sActualCodecFunc, sIntVal) ::= <<
-<sActualCodecFunc>
+<sActualCodecFunc> // acn:426
 >>
 
 
 EnumeratedEncValues_encode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, sActualCodecFunc, sErrCode, sFirstItemName, sIntVal) ::= <<
-switch(<p>) { 
+<p> match // acn:431
     <arrsItem; separator="\n">
-    default:                                    /*COVERAGE_IGNORE*/
-        ret = FALSE;                            /*COVERAGE_IGNORE*/
-        *pErrCode = <sErrCode>;                 /*COVERAGE_IGNORE*/
-}
-if (ret) {
+    case _ =>
+		ret = <sErrCode>
+
+if (ret == 0)
 	<sActualCodecFunc>
-}
 >>
 
 EnumeratedEncValues_decode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, sActualCodecFunc, sErrCode, sFirstItemName, sIntVal) ::= <<
 <sActualCodecFunc>
-if (ret) {
-    switch (<sIntVal>) {
-        <arrsItem; separator="\n">
-    default:                                    /*COVERAGE_IGNORE*/
-        ret = FALSE;                            /*COVERAGE_IGNORE*/
-        *pErrCode = <sErrCode>;                 /*COVERAGE_IGNORE*/
-    }
-} /*COVERAGE_IGNORE*/
+if (ret) // acn:442
+    match <sIntVal> 
+		<arrsItem; separator="\n">
+    case _ =>
+        ret = <sErrCode>
 >>
-
-
 
 /* Strings */
 Acn_String_Ascii_FixSize_encode(p, sErrCode, nAsn1Max) ::= "Acn_Enc_String_Ascii_FixSize(pBitStrm, <nAsn1Max>, <p>);"
@@ -822,62 +813,48 @@ ret = <sFncName>(<p>, &<sBitStreamStartPos>, &<sBitStreamPositionsNullPos>, pBit
 
 /* Choice like uper*/
 ChoiceChildAlwaysAbsent_encode(p, sAcc, sChildID, nChildIndex, sErrorCodeName) ::= <<
-case <sChildID>:
-    ret = FALSE;
-    *pErrCode = <sErrorCodeName>;
-	break;
+case <sChildID> => // acn:816
+    ret = <sErrorCodeName>
 >>
 
 ChoiceChildAlwaysAbsent_decode(p, sAcc, sChildID, nChildIndex, sErrorCodeName) ::= <<
-case <nChildIndex>:
-    ret = FALSE;
-    *pErrCode = <sErrorCodeName>;
-	break;
+case <nChildIndex> => // acn:821
+    ret <sErrorCodeName>
 >>
 
 ChoiceChild_encode(p, sAcc, sChildID, nChildIndex, nIndexSizeInBits, nLastItemIndex, sChildContent, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr) ::= <<
-case <sChildID>:
-	BitStream_EncodeConstraintWholeNumber(pBitStrm, <nChildIndex>, 0, <nLastItemIndex>);
+case <sChildID> => // acn:826
+	BitStream_EncodeConstraintWholeNumber(pBitStrm, <nChildIndex>, 0, <nLastItemIndex>)
 	<sChildContent>
-	break;
 >>
+
 ChoiceChild_decode(p, sAcc, sChildID, nChildIndex, nIndexSizeInBits, nLastItemIndex, sChildContent, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr) ::= <<
-case <nChildIndex>:
-	<p><sAcc>kind = <sChildID>;
+case <nChildIndex> => // acn:832
+	<p><sAcc>kind = <sChildID>
 	<sChildContent>
-	break;
 >>
 
 Choice_encode(p, sAcc, arrsChildren, nLastItemIndex, sChoiceIndexName, td/*:FE_ChoiceTypeDefinition*/, nIndexSizeInBits, sErrCode) ::= <<
-switch(<p><sAcc>kind) 
-{
+<p><sAcc>kind match // acn:838
 <arrsChildren: {ch|<ch>}; separator="\n">
-default: /*COVERAGE_IGNORE*/
-    *pErrCode = <sErrCode>;         /*COVERAGE_IGNORE*/
-    ret = FALSE;                    /*COVERAGE_IGNORE*/
-} /*COVERAGE_IGNORE*/
+	case _ =>
+		ret = <sErrCode>
 >>
 
 Choice_decode(p, sAcc, arrsChildren, nLastItemIndex, sChoiceIndexName, td/*:FE_ChoiceTypeDefinition*/, nIndexSizeInBits, sErrCode) ::= <<
-ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, &<sChoiceIndexName>, 0, <nLastItemIndex>);
-*pErrCode = ret ? 0 : <sErrCode>;
-if (ret) {
-    switch(<sChoiceIndexName>) 
-    {
-    <arrsChildren: {ch|<ch>}; separator="\n">
-    default: /*COVERAGE_IGNORE*/
-        *pErrCode = <sErrCode>;     /*COVERAGE_IGNORE*/
-        ret = FALSE;                /*COVERAGE_IGNORE*/
-    } 
-} /*COVERAGE_IGNORE*/
+ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, &<sChoiceIndexName>, 0, <nLastItemIndex>)
+if (ret == 0) // acn:846
+	<sChoiceIndexName> match
+		<arrsChildren: {ch|<ch>}; separator="\n">
+		case _ =>
+			ret = <sErrCode>
 >>
 
 /* Choice with presense determinants */
 
 ChoiceChild_preWhen_encode(p, sAcc, sChildID, sChildBody, arrsConditions, bFirst, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr) ::= <<
-case <sChildID>:
+case <sChildID> => // acn:856
 	<sChildBody>
-	break;
 >>
 
 ChoiceChild_preWhen_bool_condition(sExtFld) ::= "<sExtFld>"
@@ -893,70 +870,46 @@ ChoiceChild_preWhen_decode(p, sAcc, sChildID, sChildBody, arrsConditions, bFirst
 
 
 Choice_preWhen_encode(p, sAcc, arrsChildren, sErrCode) ::= <<
-switch(<p><sAcc>kind) 
-{
-<arrsChildren; separator="\n">
-default:
-    *pErrCode = <sErrCode>;         /*COVERAGE_IGNORE*/
-    ret = FALSE;                    /*COVERAGE_IGNORE*/
-}
+<p><sAcc>kind match // acn:873
+	<arrsChildren; separator="\n">
+	case _ =>
+		ret = <sErrCode>
 >>
 
 Choice_preWhen_decode(p, sAcc, arrsChildren, sErrCode) ::= <<
-*pErrCode = 0;
+ret = 0
 <arrsChildren; separator="\n">
-else {
-    *pErrCode = <sErrCode>;         /*COVERAGE_IGNORE*/
-    ret = FALSE;                    /*COVERAGE_IGNORE*/
-}
+else // acn:882 --> no if case?
+    ret = <sErrCode>
 >>
 
-
 /* Choice with Enum determinant */
-
-
-
 ChoiceChild_Enum_encode(p, sAcc, sEnmName, sChildID, sChildBody, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr) ::= <<
-case <sChildID>:    
+case <sChildID> => // acn:888
 	<sChildBody>
-	break;
 >>
 
 ChoiceChild_Enum_decode(p, sAcc, sEnmName, sChildID, sChildBody, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr) ::= <<
-case <sEnmName>:
-	<p><sAcc>kind = <sChildID>;
+case <sEnmName> => // acn:893
+	<p><sAcc>kind = <sChildID>
 	<sChildBody>
-	break;
 >>
 
-
 Choice_Enum_encode(p, sAcc, arrsChildren, sEnmExtFld, sErrCode) ::= <<
-switch(<p><sAcc>kind) 
-{
+<p><sAcc>kind match // acn:899
     <arrsChildren; separator="\n">
-default:
-    *pErrCode = ERR_INVALID_ENUM_VALUE;         /*COVERAGE_IGNORE*/
-    ret = FALSE;                    /*COVERAGE_IGNORE*/
-}
+	case _ =>
+		ret = ERR_INVALID_ENUM_VALUE
 >>
 
 Choice_Enum_decode(p, sAcc, arrsChildren, sEnmExtFld, sErrCode) ::= <<
-switch(<sEnmExtFld>)
-{
+<sEnmExtFld> match // acn:906
     <arrsChildren; separator="\n">
-default:
-    *pErrCode = ERR_INVALID_ENUM_VALUE;         /*COVERAGE_IGNORE*/
-    ret = FALSE;                    /*COVERAGE_IGNORE*/
-}
+	case _ =>
+		ret = ERR_INVALID_ENUM_VALUE
 >>
 
-
 /* Updates */
-
-
-
-
-
 SizeDependency(v, sCount, nMin, nMax, bCheckRange, sTypedefName) ::= <<
 <v>_is_initialized = TRUE;
 <v> = <sCount>;
@@ -971,50 +924,41 @@ SizeDependencyFixedSize(v, nFixedSize) ::= <<
 
 
 ChoiceDependencyEnum_Item(v, sChildCID, sEnumCName) ::= <<
-case <sChildCID>:
-    <v>_is_initialized = TRUE;
-	<v> = <sEnumCName>; 
-    break;
+case <sChildCID> =>
+    <v>_is_initialized = true
+	<v> = <sEnumCName>
 >>
 
 ChoiceDependencyEnum(sChPath, sAcc, arrsChoiceEnumItems) ::= <<
-switch (<sChPath><sAcc>kind) {
+<sChPath><sAcc>kind match // acn:934
     <arrsChoiceEnumItems; separator="\n">
-    default:
-        ret = FALSE;                            /*COVERAGE_IGNORE*/
-}
+    case _ =>
+		ret = 1337 // TODO: no error code available here 
 >>
 
-
-
 PresenceDependency(v, sSeqPath, sAcc, sChildName) ::= <<
-<v>_is_initialized = TRUE;
-<v> = (<sSeqPath><sAcc>exist.<sChildName> == 1);
+<v>_is_initialized = true // acn:940
+<v> = (<sSeqPath><sAcc>exist.<sChildName> == 1)
 >>
 
 ChoiceDependencyIntPres_child(v, sChildNamePrese, nChildRetVal) ::= <<
-case <sChildNamePrese>:
-    <v>_is_initialized = TRUE;
-	<v> = <nChildRetVal>; 
-    break;
+case <sChildNamePrese> => // acn:945
+    <v>_is_initialized = true
+	<v> = <nChildRetVal>
 >>
 
 ChoiceDependencyStrPres_child(v, sChildNamePrese, sChildRetVal, arrsNullChars) ::= <<
-case <sChildNamePrese>:
-    <v>_is_initialized = TRUE;
-	strcpy(<v>, "<sChildRetVal>");
-    break;
+case <sChildNamePrese> => // acn:951
+    <v>_is_initialized = true
+	strcpy(<v>, "<sChildRetVal>")
 >>
 
 ChoiceDependencyPres(sChPath, sAcc, arrsChoiceItems) ::= <<
-switch (<sChPath><sAcc>kind) {
+<sChPath><sAcc>kind match // acn:957
     <arrsChoiceItems; separator="\n">
-    default:
-        ret = FALSE;                            /*COVERAGE_IGNORE*/
-}
+    case _ =>
+        ret = 1337 // TODO no actual error code available
 >>
-
-
 
 MultiAcnUpdate_checkEqual_pri0(p1,p2) ::= "(<p1> == <p2>)"
 MultiAcnUpdate_checkEqual_str0(p1,p2) ::= "(strcmp(<p1>,<p2>) == 0)"

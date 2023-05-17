@@ -10,24 +10,21 @@ getStringSize(p) ::= "strlen(<p>)"
 JoinItems(sPart, soNestedPart) ::= <<
 <sPart>
 <if(soNestedPart)>
-if (ret == 0) {
+if ret == 0 then
     <soNestedPart>
-}
 <endif>
 >>
 
 JoinTwoIfFirstOk(sStr1,sStr2) ::=<<
 <sStr1>
-if (ret == 0) {
+if ret == 0 then
     <sStr2>
-}
 >>
 
 JoinItems2(sPart, sNestedPart) ::= <<
 <sPart>
-if (ret == 0) {
+if ret == 0 then
     <sNestedPart>
-}
 >>
 
 always_true_statement ()::= <<
@@ -106,9 +103,8 @@ ret = <sExp1>
 
 StatementOrStament(sStat1, sStat2) ::= <<
 <sStat1>
-if (ret == 0) { // isvalid_scala:109
+if ret == 0 then // isvalid_scala:109
     <sStat2>
-}
 >>
 
 ExpressionOrStament(sExp1, sStat2) ::= <<
@@ -290,20 +286,13 @@ case <sChPresent> : <if(bAlwaysAbsent)>/*COVERAGE_IGNORE*/<endif>
 
 
 choice(p, sAccess, arrsChildren, sErrCodeForInvalidCase) ::= <<
-switch (<p><sAccess>kind) {
+<p><sAccess>kind match // isvalid:293
     <arrsChildren; separator="\n">
-    default: /*COVERAGE_IGNORE*/
-        ret = <sErrCodeForInvalidCase>      /*COVERAGE_IGNORE*/
-}
+    case _ =>
+        ret = <sErrCodeForInvalidCase>
 >>
 
 /* CHOICE end*/
-
-
-
-
-
-
 
 sequenceOf(p,sAcc, i, bIsFixedSize, nFixedSize, soIsValidSizeExp, soErrCode, soInnerStatement) ::= <<
 <if(!bIsFixedSize)>

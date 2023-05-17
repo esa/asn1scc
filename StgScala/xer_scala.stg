@@ -180,13 +180,10 @@ case <sItemID>:
 >>
 
 Enumerated_encode(p, sTag, nLevel, arrsItems, soCheckExp, sErrCode) ::= <<
-switch(<p>) 
-{
+<p> match: // xer:183
     <arrsItems; separator="\n">
-    default:    
-	    *pErrCode = <sErrCode>; /*COVERAGE_IGNORE*/
-	    ret = FALSE;  /*COVERAGE_IGNORE*/
-}
+    case _ =>
+	    ret = <sErrCode>
 >>
 
 
@@ -385,13 +382,10 @@ CHOICE_child_decode(p, sAcc, sChID, sChildBody, bFirst, sChildTag, sChildName, s
 
 
 CHOICE_no_tag_encode(p, sAcc, arrsChildren, sErrCode) ::= <<
-switch(<p><sAcc>kind) 
-{
+<p><sAcc>kind match // xer:385
     <arrsChildren; separator="\n">
-    default:
-	    *pErrCode = <sErrCode>;
-        ret = FALSE;
-}
+    case _ =>
+	    ret = <sErrCode>
 >>
 
 CHOICE_no_tag_decode(p, sAcc, arrsChildren, sErrCode) ::=<<

@@ -24,7 +24,7 @@
 ErrorCodes DEFINITIONS AUTOMATIC TAGS ::= BEGIN
 EXPORTS ALL;
 
-AcceptanceFailureCode ::= ENUMERATED {error1 (1), error2 (2)}
+AcceptanceFailureCode ::= ENUMERATED {error1 (1)}
 AcceptanceFailureData ::= CHOICE
 {
     error1 BIT STRING (SIZE(1))

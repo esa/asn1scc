@@ -103,7 +103,7 @@ case <sName> extends <td.typeName>(<nValue>)
 >>
 
 Define_new_enumerated_item_macro(td/*:FE_EnumeratedTypeDefinition*/, sAsn1Name, sCName) ::= <<
-type <sCName> = <td.typeName>_<sAsn1Name>
+type <sCName> = <td.typeName>.<sAsn1Name>
 >>
 
 Define_new_enumerated(td/*:FE_EnumeratedTypeDefinition*/, arrsEnumNames, arrsEnumNamesAndValues, nIndexMax, arrsResolvingMacros) ::= <<

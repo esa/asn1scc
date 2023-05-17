@@ -26,11 +26,10 @@ def <sFuncName>(<if(bVarNameIsUnreferenced)>@annotation.unused <endif><sVarName>
 
     <arrsLocalVariables:{lv|<lv>}; separator="\n">
     <if(soIValidFuncName)>
-    if (bCheckConstraints) 
+    if bCheckConstraints then
         ret = <soIValidFuncName>(<sVarName>)
-    if (ret == 0) {
+    if (ret == 0) then
         <sContent>
-    }
     <else>
     <sContent>
     <endif>
@@ -229,86 +228,66 @@ if(!<sTimeSubType>_uper_decode(pBitStrm, <p>))
 >>
 
 Enumerated_item_encode(p, sName, nIndex, nLastItemIndex) ::= <<
-case <sName>:   
-    BitStream_EncodeConstraintWholeNumber(pBitStrm, <nIndex>, 0, <nLastItemIndex>);
-    break;
+case <sName> => // uper:231
+    BitStream_EncodeConstraintWholeNumber(pBitStrm, <nIndex>, 0, <nLastItemIndex>)
 >>
 
 Enumerated_item_decode(p, sName, nIndex, nLastItemIndex) ::= <<
-case <nIndex>: 
-    <p> = <sName>;
-    break;
+case <nIndex> => // uper:236
+    <p> = <sName>
 >>
 
 Enumerated_encode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, nMin, nMax, nBits, sErrCode, nLastItemIndex, sFirstItemName) ::= <<
-switch(<p>) 
-{
+<p> match // uper:241
     <arrsItem; separator="\n">
-    default:
-        ret = <sErrCode>;
-}
+    case _ =>
+        ret = <sErrCode>
 >>
 
 Enumerated_decode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, nMin, nMax, nBits, sErrCode, nLastItemIndex, sFirstItemName) ::= <<
-{
-    // TODO does ret already exist? : uper_scala:252
-    asn1SccSint enumIndex;
-    val check = BitStream_DecodeConstraintWholeNumber(pBitStrm, &enumIndex, 0, <nLastItemIndex>))
-    ret = if (check) 0 : <sErrCode>;
-    if (check)
-    {
-        switch(enumIndex) 
-        {
+    var enumIndex: Ref[Long] = Ref(0) // uper:248
+    val check = BitStream_DecodeConstraintWholeNumber(pBitStrm, enumIndex, 0, <nLastItemIndex>)
+    ret = if check then 0 else <sErrCode>
+    if check then
+        enumIndex match
             <arrsItem; separator="\n">
-            default:                        /*COVERAGE_IGNORE*/
-                ret = <sErrCode>;
-        }
-    } else {
-        <p> = <sFirstItemName>;             /*COVERAGE_IGNORE*/
-    }
-}
+            case _ =>
+                ret = <sErrCode>
+    else
+        <p> = <sFirstItemName>
 >>
-
 
 /* CHOICE START*/
 
 choice_child_encode(p, sAcc, sChildID, nChildIndex, nIndexSizeInBits, nLastItemIndex, sChildContent, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr) ::= <<
-case <sChildID>:
-    BitStream_EncodeConstraintWholeNumber(pBitStrm, <nChildIndex>, 0, <nLastItemIndex>);
+case <sChildID> => // uper:264
+    BitStream_EncodeConstraintWholeNumber(pBitStrm, <nChildIndex>, 0, <nLastItemIndex>)
     <sChildContent>
-    break;
 >>
 choice_child_decode(p, sAcc, sChildID, nChildIndex, nIndexSizeInBits, nLastItemIndex, sChildContent, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr) ::= <<
-case <nChildIndex>:
-    <p><sAcc>kind = <sChildID>;
+case <nChildIndex> => // uper:269
+    <p><sAcc>kind = <sChildID>
     <sChildContent>
-    break;
 >>
 
 choice_encode(p, sAcc, arrsChildren, nLastItemIndex, sChoiceIndexName, sErrCode, td/*:FE_ChoiceTypeDefinition*/, nIndexSizeInBits) ::= <<
-switch(<p><sAcc>kind) 
-{
+<p><sAcc>kind match // uper:275
     <arrsChildren: {ch|<ch>}; separator="\n">
-    default:
-        ret = <sErrCode>;
-}
+    case _ =>
+        ret = <sErrCode>
 >>
 
 choice_decode(p, sAcc, arrsChildren, nLastItemIndex, sChoiceIndexName, sErrCode, td/*:FE_ChoiceTypeDefinition*/, nIndexSizeInBits) ::= <<
-if(!BitStream_DecodeConstraintWholeNumber(pBitStrm, &<sChoiceIndexName>, 0, <nLastItemIndex>))
+if !BitStream_DecodeConstraintWholeNumber(pBitStrm, &<sChoiceIndexName>, 0, <nLastItemIndex>) then // uper:282
     ret = <sErrCode>
-else {
-    switch(<sChoiceIndexName>) 
-    {
+else 
+    <sChoiceIndexName> match
         <arrsChildren: {ch|<ch>}; separator="\n">
-        default:                        /*COVERAGE_IGNORE*/
-            ret = <sErrCode>;
-    }
-}  /*COVERAGE_IGNORE*/
+        case _ =>
+            ret = <sErrCode>
 >>
 
 /* CHOICE END*/
-
 
 /* SEQUENCE START */
 sequence_presence_bit_encode(p, sAcc, sChName, sErrCode) ::= "BitStream_AppendBit(pBitStrm,<p><sAcc>exist.<sChName>);"
@@ -609,7 +588,7 @@ for(<sBlockIndex> = 0; ret && <sBlockIndex> \< <nBlocks64K>; <sBlockIndex>++) {
     ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, &<sRemainingItemsVar>, 0, 0xFF);
     val check = (ret == 0) && (<sRemainingItemsVar> == 0xC4);
     ret = if (check) 0 else <sErrCodeName>;
-    if (ret == 0) {
+    if ret == 0 then
         <if(bIsBitStringType)>
         ret = BitStream_ReadBits(pBitStrm, &<p><sAcc>arr[<sCurOffset>/8], (int)<sCurBlockSize>);
         ret = if (ret == 0) 0 else <sErrCodeName>;
@@ -632,19 +611,17 @@ FixedSize_Fragmentation_sqf_small_block_decode(p, sAcc,sInternalItem, nBlockSize
 ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, &<sRemainingItemsVar>, 0, 0xFF);
 val check = (ret == 0) && (<sRemainingItemsVar> == <sBlockId>);
 ret = if (check) 0 else <sErrCodeName>;
-if (ret == 0) {
+if ret == 0 then
 <if(bIsBitStringType)>
     ret = BitStream_ReadBits(pBitStrm, &<p><sAcc>arr[<sCurOffset>/8], (int)<sCurBlockSize>);
     ret = if (ret == 0) 0 else <sErrCodeName>;
 
-    <else>
+<else>
     for(<sBLI>=(int)<sCurOffset>; <sBLI> \< (int)(<sCurBlockSize> + <sCurOffset>); <sBLI>++) {
         <sInternalItem>
     }
-
-    <endif>
+<endif>
     <sCurOffset> += <sCurBlockSize>;
-}
 >>
 
 FixedSize_Fragmentation_sqf_remaining_decode(p, sAcc,sInternalItem, bRemainingItemsWithinByte, nRemainingItemsVar, sCurOffset, sBLI, sRemainingItemsVar, bIsBitStringType, sErrCodeName) ::= <<
@@ -658,7 +635,7 @@ ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, &<sRemainingItemsVar>, 0, 
 ret = ret && ((0x8000 & <sRemainingItemsVar>) > 0) && ( (0x7FFF & <sRemainingItemsVar>) == <nRemainingItemsVar>);
 
 <endif>
-if (ret == 0) {
+if ret == 0 then
     <if(bIsBitStringType)>
     ret = BitStream_ReadBits(pBitStrm, &<p><sAcc>arr[<sCurOffset>/8], (int)<nRemainingItemsVar>);
     ret = if (ret == 0) 0 else <sErrCodeName>;
@@ -670,7 +647,6 @@ if (ret == 0) {
     }
 
     <endif>
-}
 >>
 
 FixedSize_Fragmentation_sqf_decode(p, sAcc, arrsEncodingParts, nFixedSize, bIsBitStringType) ::= <<
