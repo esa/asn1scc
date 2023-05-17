@@ -7,9 +7,6 @@
 
 
   <ItemGroup>
-      <EmbeddedResource Include="../asn1scala/asn1scala/asn1jvm.scala" />
-      <EmbeddedResource Include="../asn1scala/asn1scala/asn1jvm_encoding.scala" />
-      <EmbeddedResource Include="../asn1scala/asn1scala/asn1jvm_encoding_uper.scala" />
       <EmbeddedResource Include="../ADA_RTL2/aux_files/asn1_msp430.gpr" />
       
       <EmbeddedResource Include="../ADA_RTL2/aux_files/asn1_stm32.gpr" />
@@ -82,6 +79,18 @@
   <ItemGroup>
     <EmbeddedResource Include="..\Stainless\lib\stainless-library_2.13-0.9.7.jar">
       <Link>stainless-library_2.13-0.9.7.jar</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\asn1scala\src\main\scala\asn1scala\asn1jvm_encoding_uper.scala">
+      <Link>asn1jvm_encoding_uper.scala</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\asn1scala\src\main\scala\asn1scala\asn1jvm_encoding.scala">
+      <Link>asn1jvm_encoding.scala</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\asn1scala\src\main\scala\asn1scala\asn1jvm.scala">
+      <Link>asn1jvm.scala</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\asn1scala\build.sbt">
+      <Link>build.sbt</Link>
     </EmbeddedResource>
   </ItemGroup>
 

@@ -92,9 +92,11 @@ let exportRTL (di:DirInfo) (l:ProgrammingLanguage) (args:CommandLineSettings)=
     
     // TODO: Scala
     | ProgrammingLanguage.Scala ->
-        let rsName = "stainless-library_2.13-0.9.7.jar"
-        let resourceInitialContent = getResourceAsByteArray rsName
-        File.WriteAllBytes(Path.Combine(rootDir, "lib", rsName), resourceInitialContent)
+        File.WriteAllBytes(
+            Path.Combine(rootDir, "lib", "stainless-library_2.13-0.9.7.jar"),
+            getResourceAsByteArray "stainless-library_2.13-0.9.7.jar"
+        )
+        writeTextFile (Path.Combine(rootDir, "build.sbt")) (getResourceAsString "build.sbt")
         
         writeResource di "asn1jvm.scala" None
                 
