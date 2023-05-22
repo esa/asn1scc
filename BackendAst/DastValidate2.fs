@@ -761,8 +761,8 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (t:Asn1Ac
 
 
 let createSequenceFunction (r:Asn1AcnAst.AstRoot)  (l:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Sequence) (typeDefinition:TypeDefintionOrReference) (children:SeqChildInfo list)  (us:State)  =
-    if (t.id.AsString = "Subtypes.T3-s1") then 
-        printfn "%s" t.id.AsString
+    //if (t.id.AsString = "Subtypes.T3-s1") then 
+    //    printfn "%s" t.id.AsString
     let child_always_present_or_absent   = l.isvalid.Sequence_optional_child_always_present_or_absent
     let sequence_OptionalChild           = l.isvalid.Sequence_OptionalChild
     let callBaseTypeFunc                 = l.isvalid.call_base_type_func
@@ -948,6 +948,8 @@ let rec createReferenceTypeFunction_this_type (r:Asn1AcnAst.AstRoot) (l:Language
 
 let createReferenceTypeFunction (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.ReferenceType) (typeDefinition:TypeDefintionOrReference) (resolvedType:Asn1Type)  (us:State)  =
     let callBaseTypeFunc = l.isvalid.call_base_type_func
+    if (t.id.AsString = "TEST-CASE.T-STRUCT.member") then
+        printf "%s" t.id.AsString
     let vcbs,us = createReferenceTypeFunction_this_type r l t.id o.refCons typeDefinition resolvedType us
     (*
     let moduleName, typeDefinitionName = 
@@ -955,19 +957,19 @@ let createReferenceTypeFunction (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (t:Asn
         let typeDef = l.lg.getTypeDefinition t1.FT_TypeDefintion
         typeDef.programUnit, typeDef.typeName
 *)
-    let moduleName, typeDefinitionName = 
+    let moduleName, typeDefinitionName, baseTypeDefinitionName = 
         match typeDefinition with
         | ReferenceToExistingDefinition refToExist   ->
             match refToExist.programUnit with
-            | Some md -> md, refToExist.typedefName
-            | None    -> ToC t.id.ModName, refToExist.typedefName
+            | Some md -> md, refToExist.typedefName, refToExist.typedefName
+            | None    -> ToC t.id.ModName, refToExist.typedefName, refToExist.typedefName
         | TypeDefinition                tdDef        -> 
             match tdDef.baseType with
-            | None -> ToC t.id.ModName, tdDef.typedefName
+            | None -> ToC t.id.ModName, tdDef.typedefName, ToC2(r.args.TypePrefix + o.tasName.Value)
             | Some refToExist -> 
                 match refToExist.programUnit with
-                | Some md -> md, refToExist.typedefName
-                | None    -> ToC t.id.ModName, refToExist.typedefName
+                | Some md -> md, refToExist.typedefName, refToExist.typedefName
+                | None    -> ToC t.id.ModName, refToExist.typedefName, refToExist.typedefName
     let soTypeCasting =
         let actType = Asn1AcnAstUtilFunctions.GetActualTypeByName r o.modName o.tasName
         match t.ActualType.Kind, actType.Kind with
@@ -979,11 +981,11 @@ let createReferenceTypeFunction (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (t:Asn
 
     let baseFncName = 
         match l.lg.hasModules with
-        | false     -> typeDefinitionName + "_IsConstraintValid"
+        | false     -> baseTypeDefinitionName + "_IsConstraintValid"
         | true   -> 
             match t.id.ModName = o.modName.Value with
-            | true  -> typeDefinitionName + "_IsConstraintValid"
-            | false -> moduleName + "." + typeDefinitionName + "_IsConstraintValid"
+            | true  -> baseTypeDefinitionName + "_IsConstraintValid"
+            | false -> moduleName + "." + baseTypeDefinitionName + "_IsConstraintValid"
 
 
     let funBody (errCode: ErroCode) (p:CallerScope) = 

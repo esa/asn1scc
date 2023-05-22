@@ -828,13 +828,13 @@ let private mapType (r:Asn1AcnAst.AstRoot) (icdStgFileName:string) (deps:Asn1Acn
         (fun pi t ti us -> (),us)
         (fun pi t ti us -> (),us)
 
-
+        deps
         None
         t
         us 
         
 
-let private mapTypeId (r:Asn1AcnAst.AstRoot)  (t:Asn1AcnAst.Asn1Type) =
+let private mapTypeId (r:Asn1AcnAst.AstRoot)  (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (t:Asn1AcnAst.Asn1Type) =
     Asn1Fold.foldType2
         (fun pi t ti us -> [t.id], us)
         (fun pi t ti us -> [t.id], us)
@@ -867,7 +867,7 @@ let private mapTypeId (r:Asn1AcnAst.AstRoot)  (t:Asn1AcnAst.Asn1Type) =
         (fun pi t ti us -> (),us)
         (fun pi t ti us -> (),us)
 
-
+        deps
         None
         t
         0 |> fst
@@ -954,7 +954,7 @@ let DoWork (r:Asn1AcnAst.AstRoot) (icdStgFileName:string) (deps:Asn1AcnAst.AcnIn
         r.Files |> 
         Seq.collect(fun f -> f.Modules) |> 
         Seq.collect(fun m -> m.TypeAssignments) |> 
-        Seq.collect(fun tas -> mapTypeId r tas.Type) |>
+        Seq.collect(fun tas -> mapTypeId r deps tas.Type) |>
         Seq.map(fun tid -> ToC (tid.AcnAbsPath.Tail.StrJoin("_").Replace("#","elem"))) |>
         Seq.groupBy id |>
         Seq.map(fun (id, lst) -> (id, Seq.length lst)) |>

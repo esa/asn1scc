@@ -904,6 +904,7 @@ type CommandLineSettings = {
     IcdUperHtmlFileName:string
     IcdAcnHtmlFileName:string
     custom_Stg_Ast_Version : int
+    icdPdus : (string list) option
     mappingFunctionsModule : string option
     integerSizeInBytes : BigInteger            //currently only the value of 4 or 8 bytes (32/64 bits) is supported
     floatingPointSizeInBytes : BigInteger       // 8 or 4

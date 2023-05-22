@@ -96,7 +96,7 @@ let rec CloneType  (r:AstRoot)  (curModule:Asn1Module) (oldModName:string) (name
             parameterizedTypeInstance = false
             acnInfo = old.acnInfo
             unitsOfMeasure = old.unitsOfMeasure
-            moduleName = old.moduleName
+            moduleName = curModule.Name.Value
         }
     retType, (implicitImports@newImports |> Seq.distinct |> Seq.toList)
 

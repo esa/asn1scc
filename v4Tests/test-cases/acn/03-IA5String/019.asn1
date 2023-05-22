@@ -1,0 +1,6 @@
+--RUN_SPARK
+TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
+	MyPDU ::= IA5String (SIZE(0..10)) (FROM  (ALL EXCEPT ","))	
+END
+
+--TCLS     MyPDU[encoding ASCII, size null-terminated, termination-pattern '2C'H] -- '2C' is the comma

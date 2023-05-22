@@ -865,9 +865,8 @@ let CreateAsn1Module integerSizeInBytes (astRoot:list<ITree>) (acnAst:AcnAst) (i
                 let! globalValueAssignments = 
                     getChildrenByType(tree, asn1Parser.VAL_ASSIG) |> List.traverseResultM(fun x -> CreateValueAssignment integerSizeInBytes astRoot x)
                 let! typeScopedValueAssignments = handleIntegerValues tree
-                    
-              
-                return
+                
+                let ret = 
                       { 
                             Name=  modName
                             TypeAssignments= typeAssignments
@@ -891,6 +890,18 @@ let CreateAsn1Module integerSizeInBytes (astRoot:list<ITree>) (acnAst:AcnAst) (i
                                 let modEnd = getChildByType(tree, asn1Parser.END)
                                 modName.Location, modEnd.Location
                       }
+                match acnModule with
+                | None -> return ret
+                | Some acnMod ->
+                    let orphanAcnTasses = acnMod.typeAssignments |> List.filter(fun acnTas -> not (typeAssignments |> Seq.exists(fun asn1Tas -> asn1Tas.Name.Value = acnTas.name.Value) ) )
+                    match orphanAcnTasses with
+                    | [] -> return ret
+                    | _  -> 
+                        let orphanAcnTassesStr = orphanAcnTasses |> Seq.map(fun z -> z.name.Value) |> Seq.StrJoin (", ")
+                        let errMsg = sprintf "The ACN module '%s' contains type assignments that do not exist in the corresponding ASN.1 module. For example, assignments '%s' are not defined in the ASN.1 module." acnMod.name.Value orphanAcnTassesStr
+                        Console.Error.WriteLine(AntlrParse.formatSemanticWarning acnMod.name.Location errMsg)
+                        //return! Error (Semantic_Error (acnMod.name.Location, errMess))
+                        return ret
         | _ -> return! Error (Bug_Error("Bug in CreateAsn1Module"))
     }
 

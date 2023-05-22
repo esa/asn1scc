@@ -162,14 +162,16 @@ type TYPE_BIT_OR_OCT_STR =
     | TP_OCT_STR
     | TP_BIT_STR
 
+let CreateDummyValueByKind moduleName valKind = 
+    {
+        Asn1Value.Kind = valKind
+        Location = {SrcLoc.srcFilename="";srcLine=0; charPos=0}
+        id = ReferenceToValue([],[])
+        moduleName  = moduleName
+    }
+
 let rec IsValueAllowed (c:Asn1Constraint) (v:Asn1Value) (isOfEnumType:bool) (bitOrOctSrt:TYPE_BIT_OR_OCT_STR option) (ast:AstRoot) =
-    let CreateDummyValueByKind valKind  = 
-        {
-            Asn1Value.Kind = valKind
-            Location = {SrcLoc.srcFilename="";srcLine=0; charPos=0}
-            id = ReferenceToValue([],[])
-            moduleName  = v.moduleName
-        }
+    let CreateDummyValueByKind = CreateDummyValueByKind v.moduleName
     match c with
     | SingleValueContraint(_, v1)          -> AreAsn1ValuesEqual v1 v isOfEnumType ast
     | RangeContraint(_, v1, v2, minInclusi, maxInclusive)            -> 
@@ -226,8 +228,6 @@ let rec IsValueAllowed (c:Asn1Constraint) (v:Asn1Value) (isOfEnumType:bool) (bit
                     Seq.map char2SingleStringValue |>
                     Seq.forall(fun c -> 
                         let ret = IsValueAllowed ac (sDummyVal c) isOfEnumType bitOrOctSrt ast
-                        if not ret then 
-                            printfn "Character '%A' is not allowed." c
                         ret
                     )
             | RefValue(modName,vasName)      -> IsAlphabetConstraintOK (GetBaseValue modName vasName ast) ac
