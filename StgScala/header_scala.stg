@@ -103,7 +103,7 @@ case <sName> extends <td.typeName>(<nValue>)
 >>
 
 Define_new_enumerated_item_macro(td/*:FE_EnumeratedTypeDefinition*/, sAsn1Name, sCName) ::= <<
-type <sCName> = <td.typeName>.<sAsn1Name>
+// type <sCName> = <td.typeName>.<sAsn1Name> // header_106
 >>
 
 Define_new_enumerated(td/*:FE_EnumeratedTypeDefinition*/, arrsEnumNames, arrsEnumNamesAndValues, nIndexMax, arrsResolvingMacros) ::= <<
@@ -133,7 +133,7 @@ typedef <prTd.typeName> <td.typeName>;
 /***********************************       OCTET STRING    ************************************************************/
 
 Define_new_octet_string(td/*:FE_SizeableTypeDefinition*/, nMin, nMax, bFixedSize) ::= <<
-type <td.typeName> = Array[Byte]
+type <td.typeName> = Array[Byte] // header:136
 >>
 
 Define_subType_octet_string(td/*:FE_SizeableTypeDefinition*/, prTd/*:FE_SizeableTypeDefinition*/, soParentTypePackage, bFixedSize) ::= <<

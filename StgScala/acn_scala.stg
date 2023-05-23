@@ -433,7 +433,7 @@ EnumeratedEncValues_encode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, sAct
     case _ =>
 		ret = <sErrCode>
 
-if (ret == 0)
+if ret == 0 then // acn:436
 	<sActualCodecFunc>
 >>
 
@@ -843,7 +843,7 @@ Choice_encode(p, sAcc, arrsChildren, nLastItemIndex, sChoiceIndexName, td/*:FE_C
 
 Choice_decode(p, sAcc, arrsChildren, nLastItemIndex, sChoiceIndexName, td/*:FE_ChoiceTypeDefinition*/, nIndexSizeInBits, sErrCode) ::= <<
 ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, &<sChoiceIndexName>, 0, <nLastItemIndex>)
-if (ret == 0) // acn:846
+if ret == 0 then // acn:846
 	<sChoiceIndexName> match
 		<arrsChildren: {ch|<ch>}; separator="\n">
 		case _ =>

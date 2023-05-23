@@ -28,7 +28,7 @@ def <sFuncName>(<if(bVarNameIsUnreferenced)>@annotation.unused <endif><sVarName>
     <if(soIValidFuncName)>
     if bCheckConstraints then
         ret = <soIValidFuncName>(<sVarName>)
-    if (ret == 0) then
+    if ret == 0 then // uper:31
         <sContent>
     <else>
     <sContent>
@@ -51,8 +51,10 @@ def <sFuncName>(<if(bVarNameIsUnreferenced)>@annotation.unused <endif><sVarName>
 
     <sContent>
 
-    if (ret == 0)
-        ret = <if(soIValidFuncName)><soIValidFuncName>(<sVarName>)<endif> 
+    <if(soIValidFuncName)>
+    if ret == 0 then // uper:54
+        ret = <soIValidFuncName>(<sVarName>)
+    <endif>
     ret
 }
 >>
@@ -163,9 +165,10 @@ BitStream_AppendBitZero(pBitStrm) /* write extension bit*/ // uper:160
 
 IntRootExt_decode(p, nMin, sRootBaseConstraint, sIntBody, sErrCode) ::=<<
 {
-    Boolean extBit = false // uper:166
+    extBit: Ref[Boolean] = Ref(false) // uper:166
+
     /* read extension bit*/
-    val success = BitStream_ReadBit(pBitStrm, Ref(extBit))
+    val success = BitStream_ReadBit(pBitStrm, extBit))
     if success then
         if extBit == false then /* ext bit is zero ==> value is expecteted with root range*/
             <sIntBody>
@@ -289,7 +292,7 @@ else
 /* SEQUENCE START */
 sequence_presence_bit_encode(p, sAcc, sChName, sErrCode) ::= "BitStream_AppendBit(pBitStrm,<p><sAcc>exist.<sChName>);"
 sequence_presence_bit_decode(p, sAcc, sChName, sErrCode) ::= <<
-if(!BitStream_ReadBit(pBitStrm, &presenceBit))
+if !BitStream_ReadBit(pBitStrm, presenceBit) then // uper:295
     ret = <sErrCode>
 <p><sAcc>exist.<sChName> = if presenceBit == 0 then 0 else 1
 >>
