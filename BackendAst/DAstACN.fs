@@ -1219,7 +1219,7 @@ let rec handleSingleUpdateDependency (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.Acn
             Some ({AcnChildUpdateResult.updateAcnChildFnc = updateFunc; errCodes=prmUpdateStatement.errCodes; testCaseFnc = prmUpdateStatement.testCaseFnc; localVariables=[]}), ns1
     | AcnDepSizeDeterminant (minSize, maxSize, szAcnProp)        -> 
         let updateFunc (typedefName :string) (vTarget : CallerScope) (pSrcRoot : CallerScope)  = 
-            let pSizeable, checkPath = getAccesssFromScopeNodeList d.asn1Type false lm pSrcRoot
+            let pSizeable, checkPath = getAccessFromScopeNodeList d.asn1Type false lm pSrcRoot
             let updateStatement = 
                 match minSize.acn = maxSize.acn with
                 | true  -> sizeDependencyFixedSize (lm.lg.getValue vTarget.arg) minSize.acn
@@ -1253,7 +1253,7 @@ let rec handleSingleUpdateDependency (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.Acn
             | None    -> [], [], us
 
         let updateFunc (typedefName :string) (vTarget : CallerScope) (pSrcRoot : CallerScope)  = 
-            let pSizeable, checkPath = getAccesssFromScopeNodeList d.asn1Type false lm pSrcRoot
+            let pSizeable, checkPath = getAccessFromScopeNodeList d.asn1Type false lm pSrcRoot
             let sComment= 
                 match asn1TypeD.acnEncFunction with
                 | Some f  -> 
@@ -1275,7 +1275,7 @@ let rec handleSingleUpdateDependency (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.Acn
     | AcnDepIA5StringSizeDeterminant (minSize, maxSize, szAcnProp)   ->
 
         let updateFunc (typedefName :string) (vTarget : CallerScope) (pSrcRoot : CallerScope)  = 
-            let pSizeable, checkPath = getAccesssFromScopeNodeList d.asn1Type true lm pSrcRoot
+            let pSizeable, checkPath = getAccessFromScopeNodeList d.asn1Type true lm pSrcRoot
             let updateStatement = sizeDependency (lm.lg.getValue vTarget.arg) (getStringSize pSizeable.arg.p)  minSize.uper maxSize.uper true typedefName
             match checkPath with
             | []    -> updateStatement
@@ -1289,7 +1289,7 @@ let rec handleSingleUpdateDependency (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.Acn
             let parDecTypeSeq =
                 match d.asn1Type with
                 | ReferenceToType (nodes) -> ReferenceToType (nodes |> List.rev |> List.tail |> List.rev)
-            let pDecParSeq, checkPath = getAccesssFromScopeNodeList parDecTypeSeq false lm pSrcRoot
+            let pDecParSeq, checkPath = getAccessFromScopeNodeList parDecTypeSeq false lm pSrcRoot
             let updateStatement = presenceDependency v (pDecParSeq.arg.p) (lm.lg.getAccess pDecParSeq.arg) (ToC d.asn1Type.lastItem)
             match checkPath with
             | []    -> updateStatement
@@ -1302,7 +1302,7 @@ let rec handleSingleUpdateDependency (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.Acn
     | AcnDepPresence   (relPath, chc)               -> 
         let updateFunc (typedefName :string) (vTarget : CallerScope) (pSrcRoot : CallerScope)  = 
             let v = lm.lg.getValue vTarget.arg
-            let choicePath, checkPath = getAccesssFromScopeNodeList d.asn1Type false lm pSrcRoot
+            let choicePath, checkPath = getAccessFromScopeNodeList d.asn1Type false lm pSrcRoot
             let arrsChildUpdates = 
                 chc.children |> 
                 List.map(fun ch -> 
@@ -1330,7 +1330,7 @@ let rec handleSingleUpdateDependency (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.Acn
     | AcnDepPresenceStr   (relPath, chc, str)               -> 
         let updateFunc (typedefName :string) (vTarget : CallerScope) (pSrcRoot : CallerScope)  = 
             let v = lm.lg.getValue vTarget.arg
-            let choicePath, checkPath = getAccesssFromScopeNodeList d.asn1Type false lm pSrcRoot
+            let choicePath, checkPath = getAccessFromScopeNodeList d.asn1Type false lm pSrcRoot
             let arrsChildUpdates = 
                 chc.children |> 
                 List.map(fun ch -> 
@@ -1362,7 +1362,7 @@ let rec handleSingleUpdateDependency (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.Acn
     | AcnDepChoiceDeteterminant       (enm,chc)      -> 
         let updateFunc (typedefName :string) (vTarget : CallerScope) (pSrcRoot : CallerScope)  = 
             let v = lm.lg.getValue vTarget.arg
-            let choicePath, checkPath = getAccesssFromScopeNodeList d.asn1Type false lm pSrcRoot
+            let choicePath, checkPath = getAccessFromScopeNodeList d.asn1Type false lm pSrcRoot
             let defOrRef (a:Asn1AcnAst.ReferenceToEnumerated) =
                 match m.Name.Value = a.modName with
                 | true  -> ReferenceToExistingDefinition {ReferenceToExistingDefinition.programUnit = None; typedefName = ToC (r.args.TypePrefix + a.tasName); definedInRtl = false}
