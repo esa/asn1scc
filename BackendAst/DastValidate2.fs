@@ -594,7 +594,7 @@ let createIsValidFunction (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros)  (t:Asn1Ac
     let sStar = lm.lg.getStar p.arg
     let sPtrPrefix = lm.lg.getPtrPrefix p.arg
     let sPtrSuffix = lm.lg.getPtrSuffix p.arg
-    let  func, funcDef  = 
+    let func, funcDef  = 
             match funcName  with
             | None              -> None, None
             | Some funcName     -> 

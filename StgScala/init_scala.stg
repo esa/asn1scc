@@ -11,7 +11,7 @@ def <sFuncName>(<sVarName>: <sPtrPrefix><sTypeDefName><sPtrSuffix>): Unit = // i
 {
     // init:12
     <arrsLocalVariables; separator="\n">
-	<sContent>
+    <sContent>
 }
 >>
 
@@ -77,7 +77,7 @@ assignString(p, sValue) ::= "memcpy(<p>, <sValue>, sizeof(<sValue>));"
 
 
 initIA5String(sPtr, sValue) ::= "strcpy(<sPtr>,<sValue>);"
-initEnumerated(sVal, sValue, sParent) ::= "<sVal> = <sParent>.<sValue> // init:80"
+initEnumerated(sVal, sValue) ::= "<sVal> = <sValue> // init:80"
 initNull(sVal)    ::= "<sVal> = 0;"
 
 initTestCaseIA5String(p, sAcc, nSize, nMaxSizePlusOne, i, td/*:FE_StringTypeDefinition*/, bAlpha, arrnAlphabetAsciiCodes, nAlphabetLength, bZero) ::= <<

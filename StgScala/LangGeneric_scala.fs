@@ -97,8 +97,12 @@ type LangGeneric_scala() =
             if childTypeIsString then (FIXARRAY newPath) else (VALUE newPath)
         
         override this.getNamedItemBackendName (defOrRef:TypeDefintionOrReference option) (nm:Asn1AcnAst.NamedItem) = 
-            ToC nm.scala_name
-        
+            let itemname = 
+                match defOrRef with
+                | Some (TypeDefinition td) -> td.typedefName + "." + ToC nm.scala_name
+                | _ -> ToC nm.scala_name
+            itemname
+
         override this.getNamedItemBackendName2 (_:string) (_:string) (nm:Asn1AcnAst.NamedItem) = 
             ToC nm.scala_name
             

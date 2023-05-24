@@ -228,7 +228,7 @@ if !<sTimeSubType>_uper_decode(pBitStrm, <p>) then // uper:223
 >>
 
 Enumerated_item_encode(p, sName, nIndex, nLastItemIndex) ::= <<
-case <sName> => // uper:228
+case <sName> => // uper:234
     BitStream_EncodeConstraintWholeNumber(pBitStrm, <nIndex>, 0, <nLastItemIndex>)
 >>
 

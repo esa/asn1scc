@@ -41,11 +41,11 @@ makeExpressionToStatement0(sIsValidExp) ::= <<
 
 convertVCBExpressionToStatementAndUpdateErrCode(sIsValidExp, sErrCode) ::= <<
 ret = <sIsValidExp> // isvalid_scala:46
-ret = <sErrCode> 
+ret = <sErrCode>    // TODO ret is set directly again?
 >>
 
 convertVCBStatementToStatementAndUpdateErrCode(sStatement, sErrCode) ::= <<
-if (<sStatement>) 0 else <sErrCode> // isvalid:48
+if <sStatement> then 0 else <sErrCode> // isvalid:48
 >>
 
 convertVCBTRUEToStatementAndUpdateErrCode() ::= <<
@@ -279,14 +279,13 @@ Choice_child_always_absent_Exp(p, sAcc, sChPresent) ::= <<
 >>
 
 choice_child(sChPresent, sChildBody, bAlwaysAbsent) ::= <<
-case <sChPresent> : <if(bAlwaysAbsent)>/*COVERAGE_IGNORE*/<endif>
-    <sChildBody>
-    break;          <if(bAlwaysAbsent)>/*COVERAGE_IGNORE*/<endif>
+case <sChPresent> => // isvalid:282
+    <sChildBody>         
 >>
 
 
 choice(p, sAccess, arrsChildren, sErrCodeForInvalidCase) ::= <<
-<p><sAccess>kind match // isvalid:293
+<p><sAccess>kind match // isvalid:288
     <arrsChildren; separator="\n">
     case _ =>
         ret = <sErrCodeForInvalidCase>

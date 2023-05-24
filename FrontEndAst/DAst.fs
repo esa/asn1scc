@@ -212,14 +212,11 @@ type TypeDefinition = {
     baseType    : ReferenceToExistingDefinition option
 }
 
-
 type TypeDefintionOrReference =
     /// indicates that no extra type definition is required (e.g. INTEGER without constraints or type reference type without new constraints)
     | ReferenceToExistingDefinition    of ReferenceToExistingDefinition                
-    /// indicates that a new type is defined
+    /// indicates that a new type is 
     | TypeDefinition                of TypeDefinition       
-
-
 
 type ErroCode = {
     errCodeValue    : int

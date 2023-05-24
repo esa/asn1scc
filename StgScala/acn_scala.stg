@@ -439,7 +439,7 @@ if ret == 0 then // acn:436
 
 EnumeratedEncValues_decode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, sActualCodecFunc, sErrCode, sFirstItemName, sIntVal) ::= <<
 <sActualCodecFunc>
-if (ret) // acn:442
+if ret then // acn:442
     match <sIntVal> 
 		<arrsItem; separator="\n">
     case _ =>

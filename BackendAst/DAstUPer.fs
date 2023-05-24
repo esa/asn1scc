@@ -262,6 +262,10 @@ let createEnumeratedFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:C
         let nMin = 0I
         let nMax = BigInteger(Seq.length o.items) - 1I
         let nLastItemIndex      = nMax
+        //let enumParentPrefix =
+        //    match ST.lang with
+        //    | ProgrammingLanguage.Scala -> td.asn1Name + "."
+        //    | _ -> ""
         let items = 
             o.items |> List.mapi(fun i itm -> Enumerated_item (lm.lg.getValue p.arg) (lm.lg.getNamedItemBackendName (Some typeDefinition) itm) (BigInteger i) nLastItemIndex codec) 
         let nBits = (GetNumberOfBitsForNonNegativeInteger (nMax-nMin))
