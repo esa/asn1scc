@@ -149,6 +149,7 @@ if(!BitStream_DecodeSemiConstraintPosWholeNumber(pBitStrm, <p>, <nMin>))
 /*case: A:: = INTEGER (5..5) */
 IntNoneRequired_encode(p, nConst, sErrCode) ::=<<
 /* No need to encode the val <p>, it will always be <nConst> */
+; // nop against empty if statements
 >>
 IntNoneRequired_decode(p, nConst, sErrCode) ::= <<
 <p>=<nConst>; 
@@ -278,7 +279,7 @@ choice_encode(p, sAcc, arrsChildren, nLastItemIndex, sChoiceIndexName, sErrCode,
 >>
 
 choice_decode(p, sAcc, arrsChildren, nLastItemIndex, sChoiceIndexName, sErrCode, td/*:FE_ChoiceTypeDefinition*/, nIndexSizeInBits) ::= <<
-if !BitStream_DecodeConstraintWholeNumber(pBitStrm, &<sChoiceIndexName>, 0, <nLastItemIndex>) then // uper:282
+if !BitStream_DecodeConstraintWholeNumber(pBitStrm, <sChoiceIndexName>, 0, <nLastItemIndex>) then // uper:282
     ret = <sErrCode>
 else 
     <sChoiceIndexName> match
