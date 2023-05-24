@@ -216,7 +216,7 @@ let rec private handleEnums (r:AstRoot) (renamePolicy:EnumRenamePolicy) (lang:Pr
             | Enumerated(itesm)    -> 
                 let copyItem (old:NamedItem) =
                     let newUniqueName =
-                        match state |> Seq.exists (lang.cmp (old.EnumName  lang)) with
+                        match state |> Seq.exists (lang.cmp (old.EnumName lang)) with
                         | false     -> old.EnumName lang
                         | true      ->
                             let newPrefix = key |> List.rev |> List.map ToC |> Seq.skipWhile(fun x -> (old.EnumName lang).Contains x) |> Seq.head
@@ -247,19 +247,19 @@ let rec private handleEnums (r:AstRoot) (renamePolicy:EnumRenamePolicy) (lang:Pr
 
 let DoWork (ast:AstRoot)   =
     let enumRenamePolicy = ast.args.renamePolicy
-    let r2_ada = 
+    let r2_scala = 
         match enumRenamePolicy with
         | AlwaysPrefixTypeName     (* to be handled later when typedefname is known*)
         | NoRenamePolicy           -> ast
         | _                                             ->
             let r1 = handleEnumChoices ast  enumRenamePolicy
             let r2_c = handleEnums r1 enumRenamePolicy ProgrammingLanguage.C
-            handleEnums r2_c enumRenamePolicy ProgrammingLanguage.Ada
+            let r2_ada = handleEnums r2_c enumRenamePolicy ProgrammingLanguage.Ada
+            handleEnums r2_ada enumRenamePolicy ProgrammingLanguage.Scala
     match ast.args.fieldPrefix with
-    | None  -> r2_ada
+    | None  -> r2_scala
     | Some fldPrefixPolicy    -> 
-        let r3_c = handleSequencesAndChoices r2_ada ProgrammingLanguage.C fldPrefixPolicy
+        let r3_c = handleSequencesAndChoices r2_scala ProgrammingLanguage.C fldPrefixPolicy
         let r3_ada = handleSequencesAndChoices r3_c ProgrammingLanguage.Ada fldPrefixPolicy
-        r3_ada
-
-
+        let r3_scala = handleSequencesAndChoices r3_ada ProgrammingLanguage.Scala fldPrefixPolicy
+        r3_scala

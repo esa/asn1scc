@@ -99,7 +99,7 @@ type <sTypeDefinitionName> = <sParentType> // header_scala:83
 /***********************************       ENUMERATED    ************************************************************/
 
 Define_new_enumerated_item(td/*:FE_EnumeratedTypeDefinition*/, sName, nValue) ::= <<
-case <sName> extends <td.typeName>(<nValue>)
+case <sName> extends <td.typeName>(<nValue>) // header:102
 >>
 
 Define_new_enumerated_item_macro(td/*:FE_EnumeratedTypeDefinition*/, sAsn1Name, sCName) ::= <<
@@ -185,7 +185,7 @@ typedef <prTd.typeName> <td.typeName>;
 
 /***********************************       SEQUENCE     ************************************************************/
 
-Define_new_sequence_child_bit(sName) ::= "unsigned long <sName>:1; // header:188"
+Define_new_sequence_child_bit(sName) ::= "<sName>: ULong // header:188"
 
 Define_new_sequence_child(sName, sType) ::= "<sName>: <sType>"
 
@@ -201,16 +201,17 @@ case class <td.extention_function_potisions> (
 
 <endif>
 <if (arrsOptionalChildren)>
-case class <td.exist> (
-    <arrsOptionalChildren; separator="\n">
+case class <td.exist> ( // header:204
+    <arrsOptionalChildren:{ch|<ch>}; separator=", \n">
 )
 
 <endif>
-case class <td.typeName> (
-    <arrsChildren; separator=",\n">
-    <if (arrsOptionalChildren)>
-    <td.exist> exist;
-    <endif>
+case class <td.typeName> ( // header:209
+<if (arrsOptionalChildren)>
+    exist: <td.exist>,
+
+<endif>
+    <arrsChildren:{ch|<ch>}; separator=", \n">
 )
 
 >>

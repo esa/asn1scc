@@ -25,10 +25,10 @@ assignString(p, sValue) ::= "<p> := <sValue>;"
 
 initInteger(p, nValue) ::= "<p> := <nValue>;"
 initReal(p, dValue) ::= "<p> := <dValue>;"
-initBoolean(p, bValue) ::= "<p> := <if(bValue)>True<else>FALSE<endif>;"
+initBoolean(p, bValue) ::= "<p> := <if(bValue)>True<else>FALSE<endif>;
 
 initIA5String(sPtr, sValue) ::= "<sPtr> := <sValue>;" 
-initEnumerated(sVal, sValue) ::= "<sVal> := <sValue>;"
+initEnumerated(sVal, sValue, sParent) ::= "<sVal> := <sValue>;"
 initNull(sVal)    ::= "<sVal> := 0;"
 
 

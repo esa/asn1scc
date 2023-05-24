@@ -45,7 +45,7 @@ ret = <sErrCode>
 >>
 
 convertVCBStatementToStatementAndUpdateErrCode(sStatement, sErrCode) ::= <<
-if (<sStatement>) 0 else <sErrCode> // isvalid_scala:51
+if (<sStatement>) 0 else <sErrCode> // isvalid:48
 >>
 
 convertVCBTRUEToStatementAndUpdateErrCode() ::= <<

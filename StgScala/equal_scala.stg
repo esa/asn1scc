@@ -104,7 +104,7 @@ isEqual_Real(p1, p2) ::= "<p1> == <p2>"
 isEqual_IA5String(p1, p2) /*nogen*/::= "ret = (strcmp(<p1>, <p2>) ==0);"
 
 isEqual_NumericString(p1, p2) /*nogen*/::= "<isEqual_IA5String(p1=p1, p2=p2)>"
-isEqual_NullType()/*nogen*/ ::= "ret = TRUE;"
+isEqual_NullType()/*nogen*/ ::= "ret = true;"
 
 isEqual_BitString(p1,p2,bIsFixedSize, nFixedSize) ::= <<
 <if(!bIsFixedSize)>

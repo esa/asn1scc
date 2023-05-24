@@ -7,8 +7,9 @@ methodNameSuffix() ::= "_Initialize"
 initTypeAssignment_def(sVarName, sStar, sFuncName, sTypeDefName) ::= << >>
 
 initTypeAssignment(sVarName, sPtrPrefix, sPtrSuffix, sFuncName, sTypeDefName, sContent, arrsLocalVariables) ::= <<
-def <sFuncName>(<sVarName>: <sPtrPrefix><sTypeDefName><sPtrSuffix>): Unit = // init_scala:12
+def <sFuncName>(<sVarName>: <sPtrPrefix><sTypeDefName><sPtrSuffix>): Unit = // init_scala:10
 {
+    // init:12
     <arrsLocalVariables; separator="\n">
 	<sContent>
 }
@@ -76,7 +77,7 @@ assignString(p, sValue) ::= "memcpy(<p>, <sValue>, sizeof(<sValue>));"
 
 
 initIA5String(sPtr, sValue) ::= "strcpy(<sPtr>,<sValue>);"
-initEnumerated(sVal, sValue) ::= "<sVal> = <sValue>;"
+initEnumerated(sVal, sValue, sParent) ::= "<sVal> = <sParent>.<sValue> // init:80"
 initNull(sVal)    ::= "<sVal> = 0;"
 
 initTestCaseIA5String(p, sAcc, nSize, nMaxSizePlusOne, i, td/*:FE_StringTypeDefinition*/, bAlpha, arrnAlphabetAsciiCodes, nAlphabetLength, bZero) ::= <<
