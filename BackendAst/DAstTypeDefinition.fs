@@ -347,11 +347,12 @@ let createChoice (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAst.Asn1Ty
     let childldrenCompleteDefintions = children |> List.choose (fun c -> getChildDefinition c.chType.typeDefintionOrReference)
     let arrsPresent = children |> List.map(fun c -> lm.lg.presentWhenName None c)
     let arrsChildren = children |> List.map (fun o -> define_new_choice_child (lm.lg.getAsn1ChChildBackendName o)  (o.chType.typeDefintionOrReference.longTypedefName2 lm.lg.hasModules) (lm.lg.presentWhenName None o))
+    let arrsCombined = List.map2 (fun x y -> x + "(" + y + ")") arrsPresent arrsChildren
     let nIndexMax = BigInteger ((Seq.length children)-1)
 
     match td.kind with
     | NonPrimitiveNewTypeDefinition              -> 
-        let completeDefintion = define_new_choice td (lm.lg.choiceIDForNone us.typeIdsSet t.id) (lm.lg.presentWhenName None children.Head) arrsChildren arrsPresent nIndexMax childldrenCompleteDefintions
+        let completeDefintion = define_new_choice td (lm.lg.choiceIDForNone us.typeIdsSet t.id) (lm.lg.presentWhenName None children.Head) arrsChildren arrsPresent arrsCombined nIndexMax childldrenCompleteDefintions
         Some completeDefintion
     | NonPrimitiveNewSubTypeDefinition subDef     -> 
         let otherProgramUnit = if td.programUnit = subDef.programUnit then None else (Some subDef.programUnit)

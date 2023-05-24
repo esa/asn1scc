@@ -146,8 +146,9 @@ let rec PrintType (r:AstRoot) (f:Asn1File) (stgFileName:string) modName (deepRec
                 | None              -> gen.RefType asn1Name sModName (ToC asn1Name) (*typedefName*) sCModName sResolvedType stgFileName
 
             let cName = t.FT_TypeDefintion.[C].typeName
+            let scalaName = t.FT_TypeDefintion.[Scala].typeName
             let adaName = t.FT_TypeDefintion.[Ada].typeName
-            gen.TypeGeneric (BigInteger t.Location.srcLine) (BigInteger t.Location.charPos) f.FileName refTypeContent (t.acnDecFunction.IsSome && t.acnDecFunction.Value.funcName.IsSome) cName adaName stgFileName
+            gen.TypeGeneric (BigInteger t.Location.srcLine) (BigInteger t.Location.charPos) f.FileName refTypeContent (t.acnDecFunction.IsSome && t.acnDecFunction.Value.funcName.IsSome) cName scalaName adaName stgFileName
 
     let PrintTypeAux (t:Asn1Type) =
         match t.Kind with                                                                                            //func name sMin sMax (sMin=sMax) stgFileName
@@ -171,7 +172,7 @@ let rec PrintType (r:AstRoot) (f:Asn1File) (stgFileName:string) modName (deepRec
                     match deepRecursion with
                     |true   -> PrintType r f stgFileName modName  deepRecursion c.chType
                     |false  -> printChildTypeAsReferencedType c.chType
-                gen.ChoiceChild c.Name.Value (ToC (c.getBackendName C)) (ToC (c.getBackendName Ada)) (BigInteger c.Name.Location.srcLine) (BigInteger c.Name.Location.charPos) childTypeExp (c.presentWhenName (Some c.chType.typeDefintionOrReference) C) bRemovedChild stgFileName
+                gen.ChoiceChild c.Name.Value (ToC (c.getBackendName C)) (ToC (c.getBackendName Scala)) (ToC (c.getBackendName Ada)) (BigInteger c.Name.Location.srcLine) (BigInteger c.Name.Location.charPos) childTypeExp (c.presentWhenName (Some c.chType.typeDefintionOrReference) C) bRemovedChild stgFileName
             gen.ChoiceType (chInfo.children |> Seq.map emitChild) stgFileName
         | Sequence(seqInfo)    ->
             let emitChild (c:SeqChildInfo) =
@@ -196,9 +197,9 @@ let rec PrintType (r:AstRoot) (f:Asn1File) (stgFileName:string) modName (deepRec
                             | false -> defValueAsAsn1Value
                             | true  -> 
                                 defValueAsAsn1Value.Substring(1,defValueAsAsn1Value.Length-2)
-                        gen.SequenceChild c.Name.Value (ToC (c.getBackendName C)) (ToC (c.getBackendName Ada)) true defValueAsAsn1Value (BigInteger c.Name.Location.srcLine) (BigInteger c.Name.Location.charPos) childTypeExp bAlwaysPresent bAlwaysAbsent stgFileName
+                        gen.SequenceChild c.Name.Value (ToC (c.getBackendName C)) (ToC (c.getBackendName Scala)) (ToC (c.getBackendName Ada)) true defValueAsAsn1Value (BigInteger c.Name.Location.srcLine) (BigInteger c.Name.Location.charPos) childTypeExp bAlwaysPresent bAlwaysAbsent stgFileName
                         //gen.SequenceChild c.Name.Value (ToC c.Name.Value) true (printAsn1ValueAsXmlAttribute (DAstUtilFunctions.mapValue optVal.defaultValue.Value) stgFileName) (BigInteger c.Name.Location.srcLine) (BigInteger c.Name.Location.charPos) childTypeExp stgFileName
-                    | _ -> gen.SequenceChild c.Name.Value (ToC (c.getBackendName C)) (ToC (c.getBackendName Ada)) c.Optionality.IsSome null (BigInteger c.Name.Location.srcLine) (BigInteger c.Name.Location.charPos) childTypeExp bAlwaysPresent bAlwaysAbsent  stgFileName
+                    | _ -> gen.SequenceChild c.Name.Value (ToC (c.getBackendName C)) (ToC (c.getBackendName Scala)) (ToC (c.getBackendName Ada)) c.Optionality.IsSome null (BigInteger c.Name.Location.srcLine) (BigInteger c.Name.Location.charPos) childTypeExp bAlwaysPresent bAlwaysAbsent  stgFileName
                 | AcnChild  c -> null
             gen.SequenceType (seqInfo.children |> Seq.map emitChild) stgFileName
         | Enumerated(enmInfo)     ->
@@ -230,8 +231,9 @@ let rec PrintType (r:AstRoot) (f:Asn1File) (stgFileName:string) modName (deepRec
             | Some(sMin, sMax)  -> gen.RefTypeMinMax sMin sMax info.baseInfo.tasName.Value sModName (ToC info.baseInfo.tasName.Value) sCModName  (sMin=sMax) (Some resolvedType) stgFileName
             | None              -> gen.RefType info.baseInfo.tasName.Value sModName (ToC info.baseInfo.tasName.Value) sCModName (Some resolvedType) stgFileName
     let cName = t.FT_TypeDefintion.[C].typeName
+    let scalaName = t.FT_TypeDefintion.[Scala].typeName
     let adaName = t.FT_TypeDefintion.[Ada].typeName
-    gen.TypeGeneric (BigInteger t.Location.srcLine) (BigInteger t.Location.charPos) f.FileName  (PrintTypeAux t) (t.acnDecFunction.IsSome && t.acnDecFunction.Value.funcName.IsSome) cName adaName stgFileName 
+    gen.TypeGeneric (BigInteger t.Location.srcLine) (BigInteger t.Location.charPos) f.FileName  (PrintTypeAux t) (t.acnDecFunction.IsSome && t.acnDecFunction.Value.funcName.IsSome) cName scalaName adaName stgFileName 
 
 
 

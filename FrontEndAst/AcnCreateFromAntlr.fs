@@ -105,7 +105,10 @@ let private getIntEncodingProperty errLoc (props:GenericAcnProperty list) =
 let private getMappingFunctionProperty acnErrLoc (props:GenericAcnProperty list) = 
     match tryGetProp props (fun x -> match x with MAPPING_FUNCTION (md,fn) -> Some (md,fn) | _ -> None) with
     | None  -> None
-    | Some (md,fn)  -> Some (AcnGenericTypes.MappingFunction (md,fn))
+    | Some (md,fn)  -> 
+        let newMd = md |> Option.map(fun m -> {StringLoc.Value = ToC m.Value; Location=m.Location})
+        let newFn = {StringLoc.Value = ToC fn.Value; Location=fn.Location}
+        Some (AcnGenericTypes.MappingFunction (newMd,newFn))
 
 let private getPostEncodingFunction (props:GenericAcnProperty list) = 
     match tryGetProp props (fun x -> match x with POST_ENCODING_FUNCTION (md,fn)-> Some (md,fn) | _ -> None) with
@@ -379,7 +382,43 @@ type EnmStrGetTypeDifition_arg =
     | EnmStrGetTypeDifition_arg of GetTypeDifition_arg
     | AcnPrmGetTypeDefinition of ((ScopeNode list)* string*string)
 
-let private mergeStringType (asn1:Asn1Ast.AstRoot) (loc:SrcLoc) (acnErrLoc: SrcLoc option) (props:GenericAcnProperty list) cons withcons defaultCharSet isNumeric (tdarg:EnmStrGetTypeDifition_arg) (us:Asn1AcnMergeState) =
+let isCharachterAllowedByAplhabetConstrains (cons:IA5StringConstraint list) (b:byte) =
+    let ch = System.Convert.ToChar b
+    let isCharachterAllowedByAplhabetConstrain (c:IA5StringConstraint)  =
+        let con_or      _ e1 e2 _ s =  e1 || e2, s
+        let con_and     _ e1 e2 s =  e1 && e2, s
+        let con_not     _ e  s =  not e, s
+        let con_ecxept  _ e1 e2 s =  e1 && (not e2), s
+        let con_root    _ e s = e,s
+        let con_root2   _ e1 e2  s =  e1 || e2, s
+
+        let foldRangeCharCon  (c:CharTypeConstraint)   =
+            Asn1Fold.foldRangeTypeConstraint   
+                con_or con_and con_not con_ecxept con_root con_root2  
+                (fun _ (v:string)  s  -> v.Contains ch ,s)
+                (fun _ v1 v2  minIsIn maxIsIn s   -> 
+                    let ret = 
+                        match minIsIn, maxIsIn with
+                        | true, true    -> v1 <= ch && ch <= v2
+                        | true, false   -> v1 <= ch && ch < v2
+                        | false, true   -> v1 < ch && ch <= v2
+                        | false, false  -> v1 < ch && ch < v2
+                    ret, s)
+                (fun _ v1 minIsIn s   -> (if minIsIn then (v1 <= ch) else (v1 < ch)), s)
+                (fun _ v2 maxIsIn s   -> (if maxIsIn then (ch<=v2) else (ch<v2)), s)
+                c
+                0 |> fst
+
+        Asn1Fold.foldStringTypeConstraint2
+            con_or con_and con_not con_ecxept con_root con_root2  
+            (fun _ _  s           -> true ,s)
+            (fun _ _ s            -> true, s)
+            (fun _ alphcon s      -> foldRangeCharCon alphcon,s) 
+            c
+            0 |> fst
+    cons |> Seq.forall isCharachterAllowedByAplhabetConstrain
+
+let private mergeStringType (asn1:Asn1Ast.AstRoot) (t:Asn1Ast.Asn1Type option) (loc:SrcLoc) (acnErrLoc: SrcLoc option) (props:GenericAcnProperty list) cons withcons defaultCharSet isNumeric (tdarg:EnmStrGetTypeDifition_arg) (us:Asn1AcnMergeState) =
     let acnErrLoc0 = match acnErrLoc with Some a -> a | None -> loc
     let sizeUperRange = uPER.getSrtingSizeUperRange cons loc
     let sizeUperAcnRange = uPER.getSrtingSizeUperRange (cons@withcons) loc
@@ -408,12 +447,10 @@ let private mergeStringType (asn1:Asn1Ast.AstRoot) (loc:SrcLoc) (acnErrLoc: SrcL
     | Acn_Enc_String_uPER                                _                -> ()
     | Acn_Enc_String_uPER_Ascii                          _                -> ()
     | Acn_Enc_String_Ascii_Null_Teminated                (_, nullChars)     -> 
-        match nullChars with
-        | nullChar::[] -> 
-            match uperCharSet |> Seq.exists ((=) (System.Convert.ToChar nullChar)) with
-            | true  when nullChar <> (byte 0) -> raise(SemanticError(acnErrLoc0, "The termination-pattern defines a character which belongs to the allowed values of the ASN.1 type. Use another value in the termination-pattern or apply different constraints in the ASN.1 type."))
-            | _ -> ()
-        | _            -> ()
+        let errMsg = "The termination-pattern defines a character which belongs to the allowed values of the ASN.1 type. Use another value in the termination-pattern or apply different constraints in the ASN.1 type."
+        match nullChars |> Seq.filter(fun c -> c <> 0uy) |> Seq.tryFind (isCharachterAllowedByAplhabetConstrains cons) with
+        | Some _ -> raise(SemanticError(acnErrLoc0, errMsg))
+        | None   -> ()
     | Acn_Enc_String_Ascii_External_Field_Determinant       (_,relativePath) -> ()
     | Acn_Enc_String_CharIndex_External_Field_Determinant   (_,relativePath) -> ()
 
@@ -817,7 +854,7 @@ let rec private mapAcnParamTypeToAcnAcnInsertedType (asn1:Asn1Ast.AstRoot) (acn:
             let isNumeric = (asn1Type0.Kind = Asn1Ast.NumericString)
             let cons =  asn1Type0.Constraints |> List.collect (fixConstraint asn1) |> List.map (ConstraintsMapping.getIA5StringConstraint asn1 asn1Type0)
             let defaultCharSet = [|for i in 0..127 -> System.Convert.ToChar(i) |]
-            let str, ns = mergeStringType asn1 ts.Location (Some ts.Location) props cons [] defaultCharSet isNumeric (AcnPrmGetTypeDefinition (curPath,md.Value,ts.Value)) us
+            let str, ns = mergeStringType asn1 None ts.Location (Some ts.Location) props cons [] defaultCharSet isNumeric (AcnPrmGetTypeDefinition (curPath,md.Value,ts.Value)) us
             AcnReferenceToIA5String({AcnReferenceToIA5String.modName = md; tasName = ts; str = str; acnAligment= acnAligment}), ns
         | Asn1Ast.Integer       ->
             let cons =  asn1Type0.Constraints |> List.collect (fixConstraint asn1) |> List.map (ConstraintsMapping.getIntegerTypeConstraint asn1 asn1Type0)
@@ -923,8 +960,10 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (m:Asn1Ast.Asn1Mo
     let combinedProperties = acnProps
     let allCons = t.Constraints@refTypeCons@withCons
     let debug = ReferenceToType curPath
-    if debug.AsString = "CANOB.MySeq.color" then
-        printfn "%s" debug.AsString
+    //if debug.AsString = "RW90-DATAVIEW.UART-Config" then
+    //    printfn "%s" debug.AsString
+    //if debug.AsString = "RW90-DATAVIEW.UART-Config.timeout" then
+    //    printfn "%s" debug.AsString
 
     let tfdArg = {GetTypeDifition_arg.asn1TypeKind = t.Kind; loc = t.Location; curPath = curPath; typeDefPath = typeDefPath; enmItemTypeDefPath = enmItemTypeDefPath; inferitInfo =inferitInfo ; typeAssignmentInfo = typeAssignmentInfo; rtlFnc = None}
 
@@ -958,14 +997,14 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (m:Asn1Ast.Asn1Mo
             let defaultCharSet = [|for i in 0..127 -> System.Convert.ToChar(i) |]
             let cons =  t.Constraints@refTypeCons |> List.collect fixConstraint |> List.map (ConstraintsMapping.getIA5StringConstraint asn1 t)
             let wcons = withCons |> List.collect fixConstraint |> List.map (ConstraintsMapping.getIA5StringConstraint asn1 t)
-            let o, us1 = mergeStringType asn1 t.Location acnErrLoc combinedProperties cons wcons defaultCharSet false (EnmStrGetTypeDifition_arg tfdArg) us
+            let o, us1 = mergeStringType asn1 (Some t) t.Location acnErrLoc combinedProperties cons wcons defaultCharSet false (EnmStrGetTypeDifition_arg tfdArg) us
             IA5String o , us1
         | Asn1Ast.NumericString            ->  
             let defaultCharSet = [| ' ';'0';'1';'2';'3';'4';'5';'6';'7';'8';'9'|]
 
             let cons =  t.Constraints@refTypeCons |> List.collect fixConstraint |> List.map (ConstraintsMapping.getIA5StringConstraint asn1 t)
             let wcons = withCons |> List.collect fixConstraint |> List.map (ConstraintsMapping.getIA5StringConstraint asn1 t)
-            let o, us1 = mergeStringType asn1 t.Location acnErrLoc combinedProperties cons wcons defaultCharSet true (EnmStrGetTypeDifition_arg tfdArg) us
+            let o, us1 = mergeStringType asn1 (Some t) t.Location acnErrLoc combinedProperties cons wcons defaultCharSet true (EnmStrGetTypeDifition_arg tfdArg) us
             NumericString o, us1
         | Asn1Ast.OctetString              ->  
             let cons =  t.Constraints@refTypeCons |> List.collect fixConstraint |> List.map (ConstraintsMapping.getOctetStringConstraint asn1 t)

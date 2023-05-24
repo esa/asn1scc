@@ -1,0 +1,4 @@
+To enable ACN syntax coloring in vim you need to copy these two files to your .vim folder:
+
+place acn.vim in ~/.vim/syntax
+and acn_ftdetect.vim in ~/.vim/ftdetect

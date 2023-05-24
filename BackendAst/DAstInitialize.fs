@@ -995,7 +995,7 @@ let createSequenceInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1Acn
                     let fnc = ch.Type.initFunction.initByAsn1Value
                     let chContent =  fnc {p with arg = lm.lg.getSeqChild p.arg (lm.lg.getAsn1ChildBackendName ch) ch.Type.isIA5String} (mapValue dv).kind
                     let funcBody = initTestCase_sequence_child p.arg.p (lm.lg.getAccess p.arg) (lm.lg.getAsn1ChildBackendName ch) chContent ch.Optionality.IsSome
-                    {InitFunctionResult.funcBody = funcBody; localVariables = [] }, None
+                    {InitFunctionResult.funcBody = funcBody; localVariables = [] }, nonEmbeddedChildrenFunc
                     
                     
             let nonPresenceFunc () =  

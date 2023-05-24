@@ -980,7 +980,7 @@ sequence_always_absent_child_encode(p, sAcc, sChName, sChildContent, soSaveBitSt
 -- Encode <sChName>
 -- marked as ALWAYS ABSENT, so do not encode anything
 <soSaveBitStrmPosStatement>
-bs.Current_Bit_Pos := bs.Current_Bit_Pos + 0;
+null;
 
 >>
 
@@ -989,7 +989,6 @@ sequence_always_absent_child_decode(p, sAcc, sChName, sChildContent, soSaveBitSt
 -- marked as ALWAYS ABSENT, so do not decode anything
 <p>.Exist.<sChName> := 0;
 result := <rtlModuleName()>.ASN1_RESULT'(Success => true, ErrorCode => 0);
-bs.Current_Bit_Pos := bs.Current_Bit_Pos + 0;
 <soSaveBitStrmPosStatement>
 >>
 

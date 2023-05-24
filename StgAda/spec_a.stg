@@ -359,7 +359,7 @@ when <sPresent> =>
         <sName>: <sType>;
 >>
 
-Define_new_choice(td/*:FE_ChoiceTypeDefinition*/, sChoiceIDForNone, sFirstChildNamePresent, arrsChildren, arrsPresent, nIndexMax, arrsChildldrenDefintions) ::= <<
+Define_new_choice(td/*:FE_ChoiceTypeDefinition*/, sChoiceIDForNone, sFirstChildNamePresent, arrsChildren, arrsPresent, arrsCombined, nIndexMax, arrsChildldrenDefintions) ::= <<
 -- <td.typeName> --------------------------------------------
 <arrsChildldrenDefintions; separator= "\n">
 

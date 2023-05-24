@@ -12,13 +12,13 @@ open Language
 
 
 
-let getAccesssFromScopeNodeList (ReferenceToType nodes)  (childTypeIsString: bool) (lm:LanguageMacros) (pVal : CallerScope) =
+let getAccessFromScopeNodeList (ReferenceToType nodes)  (childTypeIsString: bool) (lm:LanguageMacros) (pVal : CallerScope) =
     let handleNode zeroBasedSeqeuenceOfLevel (pVal : CallerScope) (n:ScopeNode) (childTypeIsString: bool) = 
         match n with
         | MD _
         | TA _
         | PRM _
-        | VA _              -> raise(BugErrorException "getAccesssFromScopeNodeList")
+        | VA _              -> raise(BugErrorException "getAccessFromScopeNodeList")
         | SEQ_CHILD chName  -> [], {pVal with arg = lm.lg.getSeqChild pVal.arg (ToC chName) childTypeIsString}
         | CH_CHILD (chName,pre_name)  -> 
             let chChildIsPresent =
@@ -40,7 +40,7 @@ let getAccesssFromScopeNodeList (ReferenceToType nodes)  (childTypeIsString: boo
                 let zeroBasedSeqeuenceOfLevel = match n with SQF -> zeroBasedSeqeuenceOfLevel + 1 | _ -> zeroBasedSeqeuenceOfLevel
                 (newPath, chekPath@curCheckExp, zeroBasedSeqeuenceOfLevel, idx+1)) (pVal,[], 0, 1) |> (fun (a,chekPath,_,_) -> a, chekPath)
         ret 
-    | _                                 -> raise(BugErrorException "getAccesssFromScopeNodeList")
+    | _                                 -> raise(BugErrorException "getAccessFromScopeNodeList")
 
 
 

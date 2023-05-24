@@ -83,6 +83,7 @@ type CheckFileController (logger : ILogger<CheckFileController>) =
                 targetLanguages = []
                 objectIdentifierMaxLength = 20I
                 generateConstInitGlobals = false
+                icdPdus = None
             }    
 
         

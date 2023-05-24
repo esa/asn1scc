@@ -197,6 +197,7 @@ let private exportType (r:AstRoot) (t:Asn1Type) =
                         XAttribute(xname "PresentWhenName", ch.presentWhenName (Some ch.chType.typeDefintionOrReference) Ada),
                         XAttribute(xname "AdaName", (ch.getBackendName Ada)),
                         XAttribute(xname "CName", (ch.getBackendName C)),
+                        XAttribute(xname "ScalaName", (ch.getBackendName Scala)),
                         XAttribute(xname "AcnPresentWhenCont", (ch.acnPresentWhenConditions |> List.map(fun pwc -> sprintf "%s = %s" pwc.relativePath.AsString pwc.valueAsString) |> Seq.StrJoin ", ")),
                         chType), us )
 

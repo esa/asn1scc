@@ -1,0 +1,36 @@
+-- NOCOVERAGE
+TEST-CASE DEFINITIONS ::=
+BEGIN
+
+-- Data view with optional fields, including mixed case,
+-- and dash
+
+Seq ::= SEQUENCE {
+    a BOOLEAN OPTIONAL,
+    b SEQUENCE {
+        b-C BOOLEAN OPTIONAL
+    } OPTIONAL
+}
+ChoiceWithInnerSeq ::= CHOICE {
+   ch1 Seq,
+   ch2 SEQUENCE { opt-field BOOLEAN OPTIONAL }
+}
+
+-- Type with DEFAULT values (similar to OPTIONAL in many ways)
+SeqDef ::= SEQUENCE {
+    a BOOLEAN DEFAULT TRUE,
+    b INTEGER (10..20) DEFAULT 15,
+    c INTEGER (8..255),
+    d SEQUENCE { thanassis BOOLEAN } DEFAULT { thanassis TRUE }
+}
+
+SomeSeq ::= SEQUENCE { thanassis BOOLEAN }
+
+some-constant SomeSeq ::= { thanassis TRUE }
+
+SeqPresent ::= Seq (WITH COMPONENTS {a PRESENT})
+SeqAbsent ::= Seq (WITH COMPONENTS  {a ABSENT})
+
+END
+
+--TCFS     BasicTypes.acn
