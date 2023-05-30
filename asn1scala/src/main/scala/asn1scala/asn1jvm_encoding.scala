@@ -1,6 +1,6 @@
 package asn1scala
 
-import stainless.lang.*
+import stainless.lang.{None => _, Option => _, Some => _, _}
 
 val masks: Array[UByte] = Array(
   -0x80, // -128 / 1000 0000 / x80
@@ -35,14 +35,12 @@ val masks2: Array[UInt] = Array(
 /***********************************************************************************************/
 /**  Byte Stream Functions                                                                    **/
 /***********************************************************************************************/
-def ByteStream_Init(pStrm: ByteStream, count: Int): Unit = {
-  pStrm.buf = Array.fill(count)(0)
-  pStrm.currentByte = 0
-  pStrm.EncodeWhiteSpace = false
+def ByteStream_Init(count: Int): ByteStream = {
+  ByteStream(Array.fill(count)(0), 0, false)
 }
 
 def ByteStream_AttachBuffer(pStrm: ByteStream, buf: Array[UByte]): Unit = {
-  // pStrm.buf = buf // TODO: fix illegal aliasing
+  pStrm.buf = buf // TODO: fix illegal aliasing
   pStrm.currentByte = 0
 }
 
@@ -54,48 +52,35 @@ def ByteStream_GetLength(pStrm: ByteStream): Int = {
 /**  Bit Stream Functions                                                                     **/
 /***********************************************************************************************/
 def BitString_equal(arr1: Array[UByte], arr2: Array[UByte]): Boolean = {
-  // STAINLESS memcmp?
-  true
+  arr1.sameElements(arr2)
   //return
   //  (nBitsLength1 == nBitsLength2) &&
   //    (nBitsLength1 / 8 == 0 || memcmp(arr1, arr2, nBitsLength1 / 8) == 0) &&
   //    (nBitsLength1 % 8 > 0 ? (arr1[nBitsLength1 / 8] >> (8 - nBitsLength1 % 8) == arr2[nBitsLength1 / 8] >> (8 - nBitsLength1 % 8)): TRUE);
 }
 
-/*
-def BitStream_Init(pBitStrm: BitStream, count: Int): Unit = {
-  pBitStrm.buf = Array.fill(count)(0)
-  pBitStrm.currentByte = 0
-  pBitStrm.currentBit = 0
-  // TODO
-  //pBitStrm.pushDataPrm = null
-  //pBitStrm.fetchDataPrm = null
+
+def BitStream_Init(count: Int): BitStream = {
+  BitStream(Array.fill(count)(0), 0, 0, null, null)
 }
 
-//def BitStream_Init2(pBitStrm: BitStream, count: Int, pushDataPrm, fetchDataPrm): Unit = {
-def BitStream_Init2(pBitStrm: BitStream, count: Int): Unit = {
-  BitStream_Init(pBitStrm, count)
-  // TODO
-  //pBitStrm.fetchDataPrm = fetchDataPrm
-  //pBitStrm.pushDataPrm = pushDataPrm
+def BitStream_Init2(count: Int, fetchDataPrm: Option[Any], pushDataPrm: Option[Any]): BitStream = {
+  BitStream(Array.fill(count)(0), 0, 0, fetchDataPrm, pushDataPrm)
 }
-*/
+
 
 def BitStream_AttachBuffer(pBitStrm: BitStream, buf: Array[UByte]): Unit = {
-  //pBitStrm.buf = buf // TODO: fix ilegal aliasing
+  pBitStrm.buf = buf // TODO: fix illegal aliasing
   pBitStrm.currentByte = 0
   pBitStrm.currentBit = 0
-  // TODO
-  //pBitStrm.pushDataPrm = NULL
-  //pBitStrm.fetchDataPrm = NULL
+  pBitStrm.pushDataPrm = null
+  pBitStrm.fetchDataPrm = null
 }
 
-//def BitStream_AttachBuffer2(pBitStrm: BitStream, buf: Array[UByte], pushDataPrm, fetchDataPrm): Unit = {
-def BitStream_AttachBuffer2(pBitStrm: BitStream, buf: Array[UByte]): Unit = {
+def BitStream_AttachBuffer2(pBitStrm: BitStream, buf: Array[UByte], fetchDataPrm: Option[Any], pushDataPrm: Option[Any]): Unit = {
   BitStream_AttachBuffer(pBitStrm, buf)
-  // TODO
-  //pBitStrm.pushDataPrm = pushDataPrm
-  //pBitStrm.fetchDataPrm = fetchDataPrm
+  pBitStrm.pushDataPrm = pushDataPrm
+  pBitStrm.fetchDataPrm = fetchDataPrm
 }
 
 def BitStream_GetLength(pBitStrm: BitStream): Int = {
@@ -224,10 +209,8 @@ def BitStream_AppendBit(pBitStrm: BitStream, v: Boolean): Unit = {
   assert(pBitStrm.currentByte + pBitStrm.currentBit/8 <= pBitStrm.buf.length)
 }
 
-def BitStream_ReadBit(pBitStrm: BitStream, v: Ref[Boolean]): Boolean = {
-
-
-  v.x = (pBitStrm.buf(pBitStrm.currentByte) & masks(pBitStrm.currentBit)) != 0
+def BitStream_ReadBit(pBitStrm: BitStream): Option[Boolean] = {
+  val ret = (pBitStrm.buf(pBitStrm.currentByte) & masks(pBitStrm.currentBit)) != 0
 
   if pBitStrm.currentBit < 7 then
     pBitStrm.currentBit += 1
@@ -236,7 +219,10 @@ def BitStream_ReadBit(pBitStrm: BitStream, v: Ref[Boolean]): Boolean = {
     pBitStrm.currentByte += 1
     bitstream_fetch_data_if_required(pBitStrm)
 
-  return pBitStrm.currentByte * 8 + pBitStrm.currentBit <= pBitStrm.buf.length * 8
+  if pBitStrm.currentByte * 8 + pBitStrm.currentBit <= pBitStrm.buf.length * 8 then
+    Some(ret)
+  else
+    None
 }
 
 def BitStream_PeekBit(pBitStrm: BitStream): Boolean = {
@@ -277,7 +263,7 @@ def BitStream_AppendByte(pBitStrm: BitStream, vVal: UByte, negate: Boolean): Uni
   pBitStrm.buf(pBitStrm.currentByte) = (pBitStrm.buf(pBitStrm.currentByte) & mask).toByte
   pBitStrm.currentByte += 1
   pBitStrm.buf(pBitStrm.currentByte) = (pBitStrm.buf(pBitStrm.currentByte) | (v >> cb)).toByte
-  //bitstream_push_data_if_required(pBitStrm)
+  bitstream_push_data_if_required(pBitStrm)
 
   assert(pBitStrm.currentByte * 8 + pBitStrm.currentBit <= pBitStrm.buf.length * 8)
 
@@ -296,7 +282,7 @@ def BitStream_AppendByte0(pBitStrm: BitStream, v: UByte): Boolean = {
   pBitStrm.buf(pBitStrm.currentByte) = (pBitStrm.buf(pBitStrm.currentByte) & mask).toByte
   pBitStrm.currentByte += 1
   pBitStrm.buf(pBitStrm.currentByte) = (pBitStrm.buf(pBitStrm.currentByte) | (v >> cb)).toByte
-  //bitstream_push_data_if_required(pBitStrm);
+  bitstream_push_data_if_required(pBitStrm)
 
   if cb > 0 then
     if pBitStrm.currentByte >= pBitStrm.buf.length then
@@ -360,20 +346,22 @@ def BitStream_AppendByteArray(pBitStrm: BitStream, arr: Array[UByte]): Boolean =
   true
 }
 
-def BitStream_ReadByte(pBitStrm: BitStream, v: Ref[UByte]): Boolean = {
-
+def BitStream_ReadByte(pBitStrm: BitStream): Option[UByte] = {
 
   val cb: UByte = pBitStrm.currentBit.toByte
   val ncb: UByte = (8 - cb).toByte
 
-  v.x = (pBitStrm.buf(pBitStrm.currentByte) << cb).toByte
+  var v: UByte = (pBitStrm.buf(pBitStrm.currentByte) << cb).toByte
   pBitStrm.currentByte += 1
   bitstream_fetch_data_if_required(pBitStrm)
 
   if cb > 0 then
-    v.x = (v.x | pBitStrm.buf(pBitStrm.currentByte) >> ncb).toByte
+    v = (v | pBitStrm.buf(pBitStrm.currentByte) >> ncb).toByte
 
-  return pBitStrm.currentByte * 8 + pBitStrm.currentBit <= pBitStrm.buf.length * 8
+  if pBitStrm.currentByte * 8 + pBitStrm.currentBit <= pBitStrm.buf.length * 8 then
+    Some(v)
+  else
+    None
 }
 
 def BitStream_ReadByteArray(pBitStrm: BitStream, arr: Array[UByte]): Boolean = {
@@ -403,11 +391,9 @@ def BitStream_ReadBits(pBitStrm: BitStream, BuffToWrite: Array[UByte], nbits: In
   ret = BitStream_DecodeOctetString_no_length(pBitStrm, BuffToWrite, bytesToRead)
 
   if ret && remainingBits > 0 then
-    val v = Ref[UByte](0)
-    val ret2 = BitStream_ReadPartialByte(pBitStrm, v, remainingBits)
-    BuffToWrite(bytesToRead) = v.x
-    if !ret2 then
-      return false
+    BitStream_ReadPartialByte(pBitStrm, remainingBits) match
+      case None => return false
+      case Some(ub) => BuffToWrite(bytesToRead) = ub
     BuffToWrite(bytesToRead) = (BuffToWrite(bytesToRead) << (8 - remainingBits)).toByte
 
   ret
@@ -442,14 +428,14 @@ def BitStream_AppendPartialByte(pBitStrm: BitStream, vVal: UByte, nbits: UByte, 
     if pBitStrm.currentBit == 8 then
       pBitStrm.currentBit = 0
       pBitStrm.currentByte += 1
-    //bitstream_push_data_if_required(pBitStrm);
+      bitstream_push_data_if_required(pBitStrm)
 
   } else {
     val totalBitsForNextByte: UByte = (totalBits - 8).toByte
     pBitStrm.buf(pBitStrm.currentByte) = (pBitStrm.buf(pBitStrm.currentByte) & mask1).toByte
     pBitStrm.currentByte += 1
     pBitStrm.buf(pBitStrm.currentByte) = (pBitStrm.buf(pBitStrm.currentByte) | (v >> totalBitsForNextByte)).toByte
-    //bitstream_push_data_if_required(pBitStrm);
+    bitstream_push_data_if_required(pBitStrm)
     val mask: UByte = (~masksb(8 - totalBitsForNextByte)).toByte
     pBitStrm.buf(pBitStrm.currentByte) = (pBitStrm.buf(pBitStrm.currentByte) & mask).toByte
     pBitStrm.buf(pBitStrm.currentByte) = (pBitStrm.buf(pBitStrm.currentByte) | (v << (8 - totalBitsForNextByte))).toByte
@@ -460,14 +446,14 @@ def BitStream_AppendPartialByte(pBitStrm: BitStream, vVal: UByte, nbits: UByte, 
 }
 
 /* nbits 1..7*/
-def BitStream_ReadPartialByte(pBitStrm: BitStream, v: Ref[UByte], nbits: UByte): Boolean = {
+def BitStream_ReadPartialByte(pBitStrm: BitStream, nbits: UByte): Option[UByte] = {
 
-
+  var v: UByte = 0
   val cb: UByte = pBitStrm.currentBit.toByte
   val totalBits: UByte = (cb + nbits).toByte
 
   if (totalBits <= 8) {
-    v.x = ((pBitStrm.buf(pBitStrm.currentByte) >> (8 - totalBits)) & masksb(nbits)).toByte
+    v = ((pBitStrm.buf(pBitStrm.currentByte) >> (8 - totalBits)) & masksb(nbits)).toByte
     pBitStrm.currentBit += nbits.toInt
     if pBitStrm.currentBit == 8 then
       pBitStrm.currentBit = 0
@@ -476,15 +462,18 @@ def BitStream_ReadPartialByte(pBitStrm: BitStream, v: Ref[UByte], nbits: UByte):
 
   } else {
     var totalBitsForNextByte: UByte = (totalBits - 8).toByte
-    v.x = (pBitStrm.buf(pBitStrm.currentByte) << totalBitsForNextByte).toByte
+    v = (pBitStrm.buf(pBitStrm.currentByte) << totalBitsForNextByte).toByte
     pBitStrm.currentByte += 1
     bitstream_fetch_data_if_required(pBitStrm)
-    v.x = (v.x | pBitStrm.buf(pBitStrm.currentByte) >> (8 - totalBitsForNextByte)).toByte
-    v.x = (v.x & masksb(nbits)).toByte
+    v = (v | pBitStrm.buf(pBitStrm.currentByte) >> (8 - totalBitsForNextByte)).toByte
+    v = (v & masksb(nbits)).toByte
     pBitStrm.currentBit = totalBitsForNextByte.toInt
   }
 
-  return pBitStrm.currentByte * 8 + pBitStrm.currentBit <= pBitStrm.buf.length * 8
+  if pBitStrm.currentByte * 8 + pBitStrm.currentBit <= pBitStrm.buf.length * 8 then
+    Some(v)
+  else
+    None
 }
 
 
@@ -534,28 +523,28 @@ def BitStream_EncodeNonNegativeInteger32Neg(pBitStrm: BitStream, v: UInt, negate
     cc -= 8
     BitStream_AppendByte(pBitStrm, (t1 >> cc).toByte, negate)
 }
-def BitStream_DecodeNonNegativeInteger32Neg(pBitStrm: BitStream, v: Ref[UInt], nBitsVal: Int): Boolean = {
+def BitStream_DecodeNonNegativeInteger32Neg(pBitStrm: BitStream, nBitsVal: Int): Option[UInt] = {
 
-
-  val b = Ref[UByte](0)
-  v.x = 0
+  var v: UInt = 0
 
   var nBits = nBitsVal
   while nBits >= 8 do
     decreases(nBits)
-    v.x = v.x << 8
-    if !BitStream_ReadByte(pBitStrm, b) then
-      return false
-    v.x = v.x | b.x.toInt
+    v = v << 8
+
+    BitStream_ReadByte(pBitStrm) match
+      case None => return None
+      case Some(ub) => v = v | ub.toInt
+
     nBits -= 8
 
   if nBits != 0 then
-    v.x = v.x << nBits
-    if !BitStream_ReadPartialByte(pBitStrm, b, nBits.toByte) then
-      return false
-    v.x = v.x | b.x.toInt
+    v = v << nBits
+    BitStream_ReadPartialByte(pBitStrm, nBits.toByte) match
+      case None => return None
+      case Some(ub) => v = v | ub.toInt
 
-  return true
+  Some(v)
 }
 def BitStream_EncodeNonNegativeInteger(pBitStrm: BitStream, v: ULong): Unit = {
   // TODO: support WORD_SIZE=4?
@@ -573,28 +562,24 @@ def BitStream_EncodeNonNegativeInteger(pBitStrm: BitStream, v: ULong): Unit = {
   //else
   //  BitStream_EncodeNonNegativeInteger32Neg(pBitStrm, v.toInt, false)
 }
-def BitStream_DecodeNonNegativeInteger(pBitStrm: BitStream, v: Ref[ULong], nBits: Int): Boolean = {
-
-
+def BitStream_DecodeNonNegativeInteger(pBitStrm: BitStream, nBits: Int): Option[ULong] = {
   // TODO: support WORD_SIZE=4?
   // if WORD_SIZE == 8 then
-  val hi = Ref[UInt](0)
-  val lo = Ref[UInt](0)
-  var ret: Boolean = false
-
   if nBits <= 32 then
-    ret = BitStream_DecodeNonNegativeInteger32Neg(pBitStrm, lo, nBits)
-    v.x = lo.x.toLong
-    return ret
+    BitStream_DecodeNonNegativeInteger32Neg(pBitStrm, nBits) match
+      case None => return None
+      case Some(lo) => return Some(lo.toLong)
 
-  val hi_ret = BitStream_DecodeNonNegativeInteger32Neg(pBitStrm, hi, 32)
-  val lo_ret = BitStream_DecodeNonNegativeInteger32Neg(pBitStrm, lo, nBits - 32)
-  ret = hi_ret && lo_ret
+  val hi_ret = BitStream_DecodeNonNegativeInteger32Neg(pBitStrm, 32)
+  val lo_ret = BitStream_DecodeNonNegativeInteger32Neg(pBitStrm, nBits - 32)
 
-  v.x = hi.x.toLong
-  v.x = v.x << nBits - 32.toLong
-  v.x |= lo.x.toLong
-  return ret
+  (hi_ret, lo_ret) match
+    case (Some(hi), Some(lo)) =>
+      var v: ULong = hi.toLong
+      v = v << nBits - 32.toLong
+      v |= lo.toLong
+      return Some(v)
+    case _ => return None
   //else
   //  return BitStream_DecodeNonNegativeInteger32Neg(pBitStrm, v, nBits)
 }
@@ -724,8 +709,6 @@ def BitStream_EncodeConstraintPosWholeNumber(pBitStrm: BitStream, v: ULong, min:
 
 def BitStream_DecodeConstraintWholeNumber(pBitStrm: BitStream, v: Ref[Long], min: Long, max: Long): Boolean = {
 
-
-  val uv = Ref[ULong](0)
   val range: ULong = (max - min)
 
 //  ASSERT_OR_RETURN_FALSE(min <= max);
@@ -737,11 +720,11 @@ def BitStream_DecodeConstraintWholeNumber(pBitStrm: BitStream, v: Ref[Long], min
 
   val nRangeBits = GetNumberOfBitsForNonNegativeInteger(range)
 
-  if BitStream_DecodeNonNegativeInteger(pBitStrm, uv, nRangeBits) then
-    v.x = uv.x + min
-    return true
-
-  return false
+  BitStream_DecodeNonNegativeInteger(pBitStrm, nRangeBits) match
+    case None => return false
+    case Some(uv) =>
+      v.x = uv + min
+      return true
 }
 
 def BitStream_DecodeConstraintWholeNumberByte(pBitStrm: BitStream, v: Ref[Byte], min: Byte, max: Byte): Boolean = {
@@ -800,7 +783,6 @@ def BitStream_DecodeConstraintWholeNumberUInt(pBitStrm: BitStream, v: Ref[UInt],
 
 
 def BitStream_DecodeConstraintPosWholeNumber(pBitStrm: BitStream, v: Ref[ULong], min: ULong, max: ULong): Boolean = {
-  val uv = Ref[ULong](0)
   val range: ULong = max - min
 
   //ASSERT_OR_RETURN_FALSE(min <= max);
@@ -812,11 +794,11 @@ def BitStream_DecodeConstraintPosWholeNumber(pBitStrm: BitStream, v: Ref[ULong],
 
   val nRangeBits: Int = GetNumberOfBitsForNonNegativeInteger(range)
 
-  if BitStream_DecodeNonNegativeInteger(pBitStrm, uv, nRangeBits) then
-    v.x = uv.x + min
-    return true
-
-  return false
+  BitStream_DecodeNonNegativeInteger(pBitStrm, nRangeBits) match
+    case None => return false
+    case Some(uv) =>
+      v.x = uv + min
+      return true
 }
 
 def BitStream_EncodeSemiConstraintWholeNumber(pBitStrm: BitStream, v: Long, min: Long): Unit = {
@@ -847,7 +829,6 @@ def BitStream_EncodeSemiConstraintPosWholeNumber(pBitStrm: BitStream, v: ULong, 
 
 def BitStream_DecodeSemiConstraintWholeNumber(pBitStrm:BitStream, v: Ref[Long], min: Long): Boolean = {
 
-
   val nBytes = Ref[Long](0)
   v.x = 0
   if !BitStream_DecodeConstraintWholeNumber(pBitStrm, nBytes, 0, 255) then
@@ -856,10 +837,11 @@ def BitStream_DecodeSemiConstraintWholeNumber(pBitStrm:BitStream, v: Ref[Long], 
   var i: Long = 0
   while i < nBytes.x do
     decreases(nBytes.x - i)
-    val b = Ref[UByte](0)
-    if !BitStream_ReadByte(pBitStrm, b) then
-      return false
-    v.x = (v.x << 8) | b.x.toLong
+
+    BitStream_ReadByte(pBitStrm) match
+      case None => return false
+      case Some(ub) => v.x = (v.x << 8) | ub.toLong
+
     i += 1
   v.x += min
   return true
@@ -876,10 +858,11 @@ def BitStream_DecodeSemiConstraintPosWholeNumber(pBitStrm:BitStream, v: Ref[ULon
   var i: Long = 0
   while i < nBytes.x do
     decreases(nBytes.x - i)
-    val b = Ref[UByte](0)
-    if !BitStream_ReadByte(pBitStrm, b) then
-      return false
-    v.x = (v.x << 8) | b.x.toLong
+
+    BitStream_ReadByte(pBitStrm) match
+      case None => return false
+      case Some(ub) => v.x = (v.x << 8) | ub.toLong
+
     i += 1
   v.x += min
   return true
@@ -915,10 +898,11 @@ def BitStream_DecodeUnConstraintWholeNumber(pBitStrm: BitStream, v: Ref[Long]): 
   var i: Long = 0
   while i < nBytes.x do
     decreases(nBytes.x - i)
-    val b = Ref[UByte](0)
-    if !BitStream_ReadByte(pBitStrm, b) then
-      return false
-    v.x = (v.x << 8) | b.x.toLong
+
+    BitStream_ReadByte(pBitStrm) match
+      case None => return false
+      case Some(ub) => v.x = (v.x << 8) | ub.toLong
+
     i += 1
 
   return true
@@ -962,7 +946,7 @@ val MantisaExtraBit = 0x0010000000000000L
 //#define MantisaExtraBit 0x00800000U
 //#endif
 
-def CalculateMantissaAndExponent(d: Double, exponent: Ref[Int], mantissa: Ref[ULong]): Unit = { // STAINLESS: d: Double
+def CalculateMantissaAndExponent(d: Double, exponent: Ref[Int], mantissa: Ref[ULong]): Unit = {
   val ll: ULong = java.lang.Double.doubleToLongBits(d)
 
   exponent.x = 0
@@ -1005,23 +989,26 @@ def BitStream_EncodeReal(pBitStrm: BitStream, vVal: Double): Unit = {
   var header: UByte = -0x80
 
   var v = vVal
-  if v == 0.0 then
+  if (v == 0.0) {
     BitStream_EncodeConstraintWholeNumber(pBitStrm, 0, 0, 0xFF)
     return
-
-  if v == Double.PositiveInfinity then
+  }
+  if (v == Double.PositiveInfinity) {
     BitStream_EncodeConstraintWholeNumber(pBitStrm, 1, 0, 0xFF)
     BitStream_EncodeConstraintWholeNumber(pBitStrm, 0x40, 0, 0xFF)
     return
+  }
 
-  if v == Double.NegativeInfinity then
+  if (v == Double.NegativeInfinity) {
     BitStream_EncodeConstraintWholeNumber(pBitStrm, 1, 0, 0xFF)
     BitStream_EncodeConstraintWholeNumber(pBitStrm, 0x41, 0, 0xFF)
     return
+  }
 
-  if v < 0 then
+  if (v < 0) {
     header = (header | 0x40).toByte
     v = -v
+  }
 
   val exponent = Ref[Int](0)
   val mantissa = Ref[ULong](0)
@@ -1055,29 +1042,25 @@ def BitStream_EncodeReal(pBitStrm: BitStream, vVal: Double): Unit = {
 }
 
 def BitStream_DecodeReal(pBitStrm: BitStream, v: Ref[Double]): Boolean = {
+  BitStream_ReadByte(pBitStrm) match
+    case None => return false
+    case Some(length) =>
+      if length == 0 then
+        v.x = 0.0
+        return true
 
-    val header = Ref[UByte](0)
-    val length = Ref[UByte](0)
+      BitStream_ReadByte(pBitStrm) match
+        case None => return false
+        case Some(header) =>
+          if header == 0x40 then
+            v.x = Double.PositiveInfinity;
+            return true
 
-    if !BitStream_ReadByte(pBitStrm, length) then
-      return false
+          if header == 0x41 then
+            v.x = Double.NegativeInfinity
+            return true
 
-    if length.x == 0 then
-      v.x = 0.0
-      return true
-
-    if !BitStream_ReadByte(pBitStrm, header) then
-      return false
-
-    if header.x == 0x40 then
-      v.x = Double.PositiveInfinity;
-      return true
-
-    if header.x == 0x41 then
-      v.x = Double.NegativeInfinity
-      return true
-
-    return DecodeRealAsBinaryEncoding(pBitStrm, length.x.toInt - 1, header.x, v)
+          DecodeRealAsBinaryEncoding(pBitStrm, length.toInt - 1, header, v)
 }
 
 def DecodeRealAsBinaryEncoding(pBitStrm: BitStream, lengthVal: Int, header: UByte, v: Ref[Double]): Boolean = {
@@ -1112,10 +1095,11 @@ def DecodeRealAsBinaryEncoding(pBitStrm: BitStream, lengthVal: Int, header: UByt
     var i: Int = 0
     while i < expLen do
       decreases(expLen - i)
-      val b = Ref[UByte](0)
-      if !BitStream_ReadByte(pBitStrm, b) then
-        return false
-      exponent = exponent << 8 | b.x.toInt
+
+      BitStream_ReadByte(pBitStrm) match
+        case None => return false
+        case Some(ub) => exponent = exponent << 8 | ub.toInt
+
       i += 1
 
     length -= expLen
@@ -1123,10 +1107,11 @@ def DecodeRealAsBinaryEncoding(pBitStrm: BitStream, lengthVal: Int, header: UByt
     var j: Int = 0
     while j < length do
       decreases(length - j)
-      val b = Ref[UByte](0)
-      if !BitStream_ReadByte(pBitStrm, b) then
-        return false
-      N = N << 8 | b.x.toLong
+
+      BitStream_ReadByte(pBitStrm) match
+        case None => return false
+        case Some(ub) => N = N << 8 | ub.toLong
+
       j += 1
 
     /*  *v = N*factor * pow(base,exp);*/
@@ -1135,14 +1120,14 @@ def DecodeRealAsBinaryEncoding(pBitStrm: BitStream, lengthVal: Int, header: UByt
     if sign < 0 then
       v.x = -v.x
 
-  return true
+    return true
 }
 
 def BitStream_checkBitPatternPresent(pBitStrm: BitStream, bit_terminated_pattern: Array[UByte], bit_terminated_pattern_size_in_bitsVal: UByte): Int = {
   var bit_terminated_pattern_size_in_bits = bit_terminated_pattern_size_in_bitsVal
   val tmp_currentByte: Int = pBitStrm.currentByte
   val tmp_currentBit: Int = pBitStrm.currentBit
-  val tmp_byte = Ref[UByte](0)
+  var tmp_byte: UByte = 0
 
   if pBitStrm.currentByte * 8 + pBitStrm.currentBit + bit_terminated_pattern_size_in_bits.toInt > pBitStrm.buf.length * 8 then
     return 0
@@ -1150,21 +1135,26 @@ def BitStream_checkBitPatternPresent(pBitStrm: BitStream, bit_terminated_pattern
   var i: Int = 0
   while bit_terminated_pattern_size_in_bits >= 8 do
     decreases(bit_terminated_pattern_size_in_bits)
-    if !BitStream_ReadByte(pBitStrm, tmp_byte) then
-      return 0
+
+    BitStream_ReadByte(pBitStrm) match
+      case None => return 0
+      case Some(ub) => tmp_byte = ub
+
     bit_terminated_pattern_size_in_bits = 8
-    if bit_terminated_pattern(i) != tmp_byte.x then
+    if bit_terminated_pattern(i) != tmp_byte then
       pBitStrm.currentByte = tmp_currentByte
       pBitStrm.currentBit = tmp_currentBit
       return 1
     i += 1
 
   if bit_terminated_pattern_size_in_bits > 0 then
-    if !BitStream_ReadPartialByte(pBitStrm, tmp_byte, bit_terminated_pattern_size_in_bits) then
-      return 0
-    tmp_byte.x = (tmp_byte.x << (8 - bit_terminated_pattern_size_in_bits)).toByte
+    BitStream_ReadPartialByte(pBitStrm, bit_terminated_pattern_size_in_bits) match
+      case None => return 0
+      case Some(ub) => tmp_byte = ub
 
-    if bit_terminated_pattern(i) != tmp_byte.x then
+    tmp_byte = (tmp_byte << (8 - bit_terminated_pattern_size_in_bits)).toByte
+
+    if bit_terminated_pattern(i) != tmp_byte then
       pBitStrm.currentByte = tmp_currentByte
       pBitStrm.currentBit = tmp_currentBit
       return 1
@@ -1173,27 +1163,21 @@ def BitStream_checkBitPatternPresent(pBitStrm: BitStream, bit_terminated_pattern
 }
 
 def BitStream_ReadBits_nullterminated(pBitStrm: BitStream, bit_terminated_pattern: Array[UByte], bit_terminated_pattern_size_in_bits: UByte, BuffToWrite: Array[UByte], nMaxReadBits: Int, bitsRead: Ref[Int]): Boolean = {
-
-
-  /*
   var checkBitPatternPresentResult: Int = 0
   bitsRead.x = 0
   var ret: Boolean = true
   val bitVal: Ref[Boolean] = Ref[Boolean](false)
 
-
-
-  // STAINLESS: how to initialize BitStream
-  //val tmpBuf: Array[UByte] = Array.fill(if nMaxReadBits % 8 == 0 then nMaxReadBits / 8 else nMaxReadBits / 8 + 1)(0)
-  val tmpStrm: BitStream = BitStream(BuffToWrite, 0, 0)
+  val tmpStrm: BitStream = BitStream_Init(if nMaxReadBits % 8 == 0 then nMaxReadBits / 8 else nMaxReadBits / 8 + 1)
 
   checkBitPatternPresentResult = BitStream_checkBitPatternPresent(pBitStrm, bit_terminated_pattern, bit_terminated_pattern_size_in_bits)
   while ret && (bitsRead.x < nMaxReadBits) && (checkBitPatternPresentResult == 1) do
     decreases(nMaxReadBits - bitsRead.x)
-    ret = BitStream_ReadBit(pBitStrm, bitVal)
-    if ret then
-      BitStream_AppendBit(tmpStrm, bitVal.x)
-      bitsRead.x += 1
+    BitStream_ReadBit(pBitStrm) match
+      case None => ret = false
+      case Some(bitVal) =>
+        BitStream_AppendBit(tmpStrm, bitVal)
+        bitsRead.x += 1
 
     if ret && (bitsRead.x < nMaxReadBits) then
       checkBitPatternPresentResult = BitStream_checkBitPatternPresent(pBitStrm, bit_terminated_pattern, bit_terminated_pattern_size_in_bits)
@@ -1202,14 +1186,11 @@ def BitStream_ReadBits_nullterminated(pBitStrm: BitStream, bit_terminated_patter
     checkBitPatternPresentResult = BitStream_checkBitPatternPresent(pBitStrm, bit_terminated_pattern, bit_terminated_pattern_size_in_bits)
 
   return ret && (checkBitPatternPresentResult == 2)
-  */
-  false
 }
 
 
 def BitStream_EncodeOctetString_no_length(pBitStrm: BitStream, arr: Array[UByte], nCount: Int): Boolean = {
   val cb = pBitStrm.currentBit
-  //int i1;
   var ret: Boolean = true
 
   if cb == 0 then
@@ -1237,12 +1218,11 @@ def BitStream_EncodeOctetString_no_length(pBitStrm: BitStream, arr: Array[UByte]
 
   else
     ret = BitStream_AppendByteArray(pBitStrm, arr)
-    /*
-        for (i1 = 0; (i1 < (int)nCount) && ret; i1++)
-        {
-          ret = BitStream_AppendByte0(pBitStrm, arr[i1]);
-        }
-    */
+    var i1 = 0
+    while i1 < nCount && ret do
+      decreases(nCount - i1)
+      ret = BitStream_AppendByte0(pBitStrm, arr(i1))
+      i1 += 1
 
   return ret
 }
@@ -1250,7 +1230,6 @@ def BitStream_EncodeOctetString_no_length(pBitStrm: BitStream, arr: Array[UByte]
 
 def BitStream_DecodeOctetString_no_length(pBitStrm: BitStream, arr: Array[UByte], nCount: Int): Boolean = {
   val cb: Int = pBitStrm.currentBit
-  //int i1;
   var ret: Boolean = true
 
   if cb == 0 then
@@ -1277,10 +1256,6 @@ def BitStream_DecodeOctetString_no_length(pBitStrm: BitStream, arr: Array[UByte]
 
   else
     ret = BitStream_ReadByteArray(pBitStrm, arr)
-    //for (i1 = 0; (i1 < nCount) && ret; i1++)
-    //{
-    //    ret = BitStream_ReadByte(pBitStrm, &arr[i1]);
-    //}
 
   return ret
 }
@@ -1334,75 +1309,70 @@ def BitStream_EncodeOctetString_fragmentation(pBitStrm: BitStream, arr: Array[UB
 }
 
 def BitStream_DecodeOctetString_fragmentation(pBitStrm: BitStream, arr: Array[UByte], nCount: Ref[Int], asn1SizeMax: Long): Boolean = {
-
-
   var ret: Boolean = true
 
-  /*
-    var nLengthTmp1: Long = 0
-    val nRemainingItemsVar1 = Ref[Long](0)
-    var nCurBlockSize1: Long = 0
-    var nCurOffset1: Long = 0
+  var nLengthTmp1: Long = 0
+  val nRemainingItemsVar1 = Ref[Long](0)
+  var nCurBlockSize1: Long = 0
+  var nCurOffset1: Long = 0
 
-    ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, nRemainingItemsVar1, 0, 0xFF)
-    if ret then
-      while ret && (nRemainingItemsVar1.x & 0xC0) == 0xC0 do
-        decreases() // TODO
-        if nRemainingItemsVar1.x == 0xC4 then
-          nCurBlockSize1 = 0x10000
-        else if nRemainingItemsVar1.x == 0xC3 then
-          nCurBlockSize1 = 0xC000
-        else if nRemainingItemsVar1.x == 0xC2 then
-          nCurBlockSize1 = 0x8000
-        else if nRemainingItemsVar1.x == 0xC1 then
-          nCurBlockSize1 = 0x4000
-        else
-          ret = false
-
-        if ret then
-          ret = nCurOffset1 + nCurBlockSize1 <= asn1SizeMax
-          var i1: Int = nCurOffset1.toInt
-          while ret && (i1 < (nCurOffset1 + nCurBlockSize1).toInt) do
-            decreases((nCurOffset1 + nCurBlockSize1).toInt - i1)
-            val t = Ref[UByte](arr(i1))
-            ret = BitStream_ReadByte(pBitStrm, t)
-            arr(i1) = t.x
-            i1 += 1
-
-          if ret then
-            nLengthTmp1 += nCurBlockSize1
-            nCurOffset1 += nCurBlockSize1
-            ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, nRemainingItemsVar1, 0, 0xFF)
+  ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, nRemainingItemsVar1, 0, 0xFF)
+  if ret then
+    while ret && (nRemainingItemsVar1.x & 0xC0) == 0xC0 do
+      //decreases()
+      if nRemainingItemsVar1.x == 0xC4 then
+        nCurBlockSize1 = 0x10000
+      else if nRemainingItemsVar1.x == 0xC3 then
+        nCurBlockSize1 = 0xC000
+      else if nRemainingItemsVar1.x == 0xC2 then
+        nCurBlockSize1 = 0x8000
+      else if nRemainingItemsVar1.x == 0xC1 then
+        nCurBlockSize1 = 0x4000
+      else
+        ret = false
 
       if ret then
-        if (nRemainingItemsVar1.x & 0x80) > 0 then
-          val len2 = Ref[Long](0)
-          nRemainingItemsVar1.x <<= 8
-          ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, len2, 0, 0xFF)
-          if ret then
-            nRemainingItemsVar1.x |= len2.x
-            nRemainingItemsVar1.x &= 0x7FFF
+        ret = nCurOffset1 + nCurBlockSize1 <= asn1SizeMax
+        var i1: Int = nCurOffset1.toInt
+        while ret && (i1 < (nCurOffset1 + nCurBlockSize1).toInt) do
+          decreases((nCurOffset1 + nCurBlockSize1).toInt - i1)
+          BitStream_ReadByte(pBitStrm) match
+            case None => ret = false
+            case Some(ub) => arr(i1) = ub
+          i1 += 1
 
-        ret = ret && (nCurOffset1 + nRemainingItemsVar1.x <= asn1SizeMax)
         if ret then
-          var i1: Int = nCurOffset1.toInt
-          while ret && (i1 < (nCurOffset1 + nRemainingItemsVar1.x).toInt) do
-            decreases((nCurOffset1 + nRemainingItemsVar1.x).toInt - i1)
-            val t = Ref[UByte](arr(i1))
-            ret = BitStream_ReadByte(pBitStrm, t)
-            arr(i1) = t.x
-            i1 += 1
+          nLengthTmp1 += nCurBlockSize1
+          nCurOffset1 += nCurBlockSize1
+          ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, nRemainingItemsVar1, 0, 0xFF)
 
-          if ret then
-            nLengthTmp1 += nRemainingItemsVar1.x
+    if ret then
+      if (nRemainingItemsVar1.x & 0x80) > 0 then
+        val len2 = Ref[Long](0)
+        nRemainingItemsVar1.x <<= 8
+        ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, len2, 0, 0xFF)
+        if ret then
+          nRemainingItemsVar1.x |= len2.x
+          nRemainingItemsVar1.x &= 0x7FFF
 
-            if (nLengthTmp1 >= 1) && (nLengthTmp1 <= asn1SizeMax) then
-              nCount.x = nLengthTmp1.toInt
-            else
-              ret = false
-              /*COVERAGE_IGNORE*/
+      ret = ret && (nCurOffset1 + nRemainingItemsVar1.x <= asn1SizeMax)
+      if ret then
+        var i1: Int = nCurOffset1.toInt
+        while ret && (i1 < (nCurOffset1 + nRemainingItemsVar1.x).toInt) do
+          decreases((nCurOffset1 + nRemainingItemsVar1.x).toInt - i1)
+          BitStream_ReadByte(pBitStrm) match
+            case None => ret = false
+            case Some(ub) => arr(i1) = ub
+          i1 += 1
 
-  */
+        if ret then
+          nLengthTmp1 += nRemainingItemsVar1.x
+
+          if (nLengthTmp1 >= 1) && (nLengthTmp1 <= asn1SizeMax) then
+            nCount.x = nLengthTmp1.toInt
+          else
+            ret = false /*COVERAGE_IGNORE*/
+
   return ret
 }
 
@@ -1494,10 +1464,8 @@ def BitStream_EncodeBitString(pBitStrm: BitStream, arr: Array[UByte], nCount: In
 
 
 def BitStream_DecodeBitString(pBitStrm: BitStream, arr: Array[UByte], pCount: Ref[Int], asn1SizeMin: Long, asn1SizeMax: Long): Boolean = {
-
-
   var ret: Boolean  = true
-  /*if asn1SizeMax < 65536 then
+  if (asn1SizeMax < 65536) {
     val nCount = Ref[Long](0)
     if asn1SizeMin != asn1SizeMax then
       ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, nCount, asn1SizeMin, asn1SizeMax)
@@ -1508,7 +1476,7 @@ def BitStream_DecodeBitString(pBitStrm: BitStream, arr: Array[UByte], pCount: Re
       pCount.x = nCount.x.toInt
       ret = BitStream_ReadBits(pBitStrm, arr, pCount.x)
 
-  else
+  } else {
     val nRemainingItemsVar1 = Ref[Long](0)
     var nCurBlockSize1: Long = 0
     var nCurOffset1: Long = 0
@@ -1527,10 +1495,10 @@ def BitStream_DecodeBitString(pBitStrm: BitStream, arr: Array[UByte], pCount: Re
           nCurBlockSize1 = 0x4000
         else
           return false
-          /*COVERAGE_IGNORE*/
+        /*COVERAGE_IGNORE*/
         if nCurOffset1 + nCurBlockSize1 > asn1SizeMax then
           return false
-          /*COVERAGE_IGNORE*/
+        /*COVERAGE_IGNORE*/
 
         val t: Array[UByte] = Array.fill(nCurBlockSize1.toInt)(0)
         //STAINLESS: Array.copy(arr, (nCurOffset1 / 8).toInt, t, 0, nCurBlockSize1.toInt)
@@ -1564,30 +1532,22 @@ def BitStream_DecodeBitString(pBitStrm: BitStream, arr: Array[UByte], pCount: Re
             if (nLengthTmp1 >= 1) && (nLengthTmp1 <= asn1SizeMax) then
               pCount.x = nLengthTmp1.toInt
             else
-              ret = false
-              /*COVERAGE_IGNORE*/
-*/
+              ret = false /*COVERAGE_IGNORE*/
+  }
   return ret
 }
 
-// TODO: use pStrm.fetchDataPrm, pStrm.pushDataPrm
-def fetchData(pBitStrm: BitStream) = ???
-def pushData(pBitStrm: BitStream) = ???
+def fetchData(pBitStrm: BitStream, fetchDataPrm: Option[Any]) = ???
+def pushData(pBitStrm: BitStream, pushDataPrm: Option[Any]) = ???
 
-//def fetchData(pBitStrm: BitStream, param: Any) = ???
-//def pushData(pBitStrm: BitStream, param: Any) = ???
 
 def bitstream_fetch_data_if_required(pStrm: BitStream): Unit = {
-  if pStrm.currentByte == pStrm.buf.length then
-  //if pStrm.currentByte == pStrm.buf.length && pStrm.fetchDataPrm != null then
-    //fetchData(pStrm, pStrm.fetchDataPrm)
-    fetchData(pStrm)
+  if pStrm.currentByte == pStrm.buf.length && pStrm.fetchDataPrm != null then
+    fetchData(pStrm, pStrm.fetchDataPrm)
     pStrm.currentByte = 0
 }
 def bitstream_push_data_if_required(pStrm: BitStream): Unit = {
-  if pStrm.currentByte == pStrm.buf.length then
-  //if pStrm.currentByte == pStrm.buf.length && pStrm.pushDataPrm != null then
-    //pushData(pStrm, pStrm.pushDataPrm)
-    pushData(pStrm)
+  if pStrm.currentByte == pStrm.buf.length && pStrm.pushDataPrm != null then
+    pushData(pStrm, pStrm.pushDataPrm)
     pStrm.currentByte = 0
 }

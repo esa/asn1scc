@@ -1,7 +1,7 @@
 package asn1scala
 
 import stainless.math.BitVectors._
-import stainless.lang._
+import stainless.lang.{None => _, Option => _, Some => _, _}
 
 def ObjectIdentifier_subidentifiers_uper_encode(encodingBuf: Array[UByte], pSize: Ref[Int], siValueVal: ULong): Unit = {
   var lastOctet: Boolean = false
@@ -28,7 +28,6 @@ def ObjectIdentifier_subidentifiers_uper_encode(encodingBuf: Array[UByte], pSize
 
 }
 def ObjectIdentifier_uper_encode(pBitStrm: BitStream, pVal: Asn1ObjectIdentifier): Unit = {
-
   val tmp: Array[UByte] = Array.fill(OBJECT_IDENTIFIER_MAX_LENGTH * (WORD_SIZE + 2))(0)
   val totalSize = Ref[Int](0)
 
@@ -81,22 +80,20 @@ def RelativeOID_uper_encode (pBitStrm: BitStream, pVal: Asn1ObjectIdentifier): U
 }
 
 def ObjectIdentifier_subidentifiers_uper_decode(pBitStrm: BitStream, pRemainingOctets: Ref[Long], siValue: Ref[ULong]): Boolean = {
-  val curByte: Ref[UByte] = Ref[UByte](0)
   var bLastOctet: Boolean = false
   var curOctetValue: ULong = 0
   siValue.x = 0
   while pRemainingOctets.x > 0 && !bLastOctet do
     decreases(pRemainingOctets.x)
-    curByte.x = 0
-    if !BitStream_ReadByte(pBitStrm, curByte) then
-      return false
+    BitStream_ReadByte(pBitStrm) match
+      case None => return false
+      case Some(curByte) =>
+        pRemainingOctets.x -= 1
 
-    pRemainingOctets.x -= 1
-
-    bLastOctet = (curByte.x & 0x80) == 0
-    curOctetValue = (curByte.x & 0x7F).toLong
-    siValue.x = siValue.x << 7
-    siValue.x |= curOctetValue
+        bLastOctet = (curByte & 0x80) == 0
+        curOctetValue = (curByte & 0x7F).toLong
+        siValue.x = siValue.x << 7
+        siValue.x |= curOctetValue
 
   return true
 }
