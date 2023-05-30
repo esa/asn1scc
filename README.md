@@ -115,13 +115,13 @@ You can also check out the official [TASTE project site](https://taste.tools).
 
 This is an example of use, assuming you have created the ASN.1 sample given above. If you have installed the compiler binary instead of the Docker image, you may generate the code with this command:
 
-```
+```bash
 $ asn1scc -c -uPER sample.asn
 ```
 
 We will write a simple C function that creates a variable of type "Message", then encode it and print the resulting binary data:
 
-```
+```c
 $ cat sample_test.c
 #include <stdio.h>
 #include "sample.h"
@@ -153,7 +153,8 @@ int main(void)
     BitStream_Init (&encodedMessage,
                     encodedBuffer,
                     Message_REQUIRED_BYTES_FOR_ENCODING);
-
+    
+    // Encode the message using uPER encoding rule
     if (!Message_Encode(&testMessage,
                         &encodedMessage,
                         &errCode,
@@ -162,7 +163,7 @@ int main(void)
         // Error codes are defined as macros in sample.h
         printf("Encoding failed with error code %d\n", errCode);       
     }
-    else
+    else  // Everything went fine, print the message as a suite of hex numbers
     {
         int encodedSize = BitStream_GetLength(&encodedMessage);
         for (int i=0; i<encodedSize; ++i)
@@ -175,7 +176,7 @@ int main(void)
 ```
 
 Then compile it and run it:
-```
+```bash
 $ gcc -o sample_test *.c
 $ ./sample_test
 01 01 01 02 09 80 cd 19 1e b8 51 eb 85 1f 48 65 6c 6c 6f 57 6f 72 6c 64 80 (25 bytes)
