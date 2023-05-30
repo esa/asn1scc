@@ -49,10 +49,10 @@ if <sStatement> then 0 else <sErrCode> // isvalid:48
 >>
 
 convertVCBTRUEToStatementAndUpdateErrCode() ::= <<
-ret = 0 // isvalid_scala:61
+ret = 0 // isvalid:53
 >>
 convertVCBFalseToStatementAndUpdateErrCode(sErrCode) ::= <<
-ret = <sErrCode> // isvalid_scala:64
+ret = <sErrCode> // isvalid:56
 >>
 
 /*
@@ -73,21 +73,21 @@ EmitTypeAssignment_composite(sVarName, sPtrPrefix, sPtrSuffix, sFuncName, sTypeD
 <arrsAlphaFuncs; separator="\n">
 def <sFuncName>(<if(bUnreferenced)>@annotation.unused <endif><sVarName>: <sPtrPrefix><sTypeDefName><sPtrSuffix>): Int = 
 {
-    var ret = 0 // isvalid_scala.stg:80
+    var ret = 0 // isvalid.stg:77
     <arrsLocalVars; separator="\n">
 
     <sContent>
-
+    
     ret
 }
 >>
 
 ExpEqual(sExp1, sExp2) ::= "(<sExp1> == <sExp2>)"
 ExpStringEqual(sExp1, sExp2) ::= "(<sExp1> == <sExp2>)"
-ExpGt(sExp1, sExp2) ::= "(<sExp1> \> <sExp2>)"
-ExpGte(sExp1, sExp2) ::= "(<sExp1> \>= <sExp2>)"
-ExpLt(sExp1, sExp2) ::= "(<sExp1> \< <sExp2>)"
-ExpLte(sExp1, sExp2) ::= "(<sExp1> \<= <sExp2>)"
+ExpGt(sExp1, sExp2) ::= "(<sExp1> \> <sExp2>) /* isvalid:90 */"
+ExpGte(sExp1, sExp2) ::= "(<sExp1> \>= <sExp2>) /* isvalid:91 */"
+ExpLt(sExp1, sExp2) ::= "(<sExp1> \< <sExp2>) /* isvalid:92 */"
+ExpLte(sExp1, sExp2) ::= "(<sExp1> \<= <sExp2>) /* isvalid:93 */"
 ExpOr(sExp1, sExp2) ::= "((<sExp1>) || (<sExp2>))"
 ExpAnd(sExp1, sExp2) ::= "(<sExp1> && <sExp2>)"
 ExpAndMulit(arrsExp) ::= <<
@@ -264,14 +264,14 @@ Sequence_optional_child_always_present_or_absent_expr(p, sAcc,  sChName, sPresOr
 
 /* CHOICE start*/
 
-Choice_OptionalChild(p, sAcc,  sChPresent, sInnerStatement) ::= <<
-if (<p><sAcc>kind == <sChPresent>) {
-    <sInnerStatement>
-}
+Choice_OptionalChild(p, sAcc, sChPresent, sInnerStatement) ::= <<
+<p><sAcc> match 
+case <sChPresent>(e) => <sInnerStatement> // isvalid:270
+case _ => 
 >>
 
 Choice_child_always_present_Exp(p, sAcc, sChPresent) ::= <<
-<p><sAcc>kind == <sChPresent>
+<p><sAcc>kind == <sChPresent> // isvalid:273
 >>
 
 Choice_child_always_absent_Exp(p, sAcc, sChPresent) ::= <<

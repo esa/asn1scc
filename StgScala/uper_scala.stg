@@ -249,7 +249,7 @@ Enumerated_decode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, nMin, nMax, n
     val check = BitStream_DecodeConstraintWholeNumber(pBitStrm, enumIndex, 0, <nLastItemIndex>)
     ret = if check then 0 else <sErrCode>
     if check then
-        enumIndex match
+        enumIndex.x match
             <arrsItem; separator="\n">
             case _ =>
                 ret = <sErrCode>

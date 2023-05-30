@@ -604,7 +604,7 @@ let createIsValidFunction (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros)  (t:Asn1Ac
                     | ValidationStatementFalse  (st,lv) ->  st, lv, true
                     | ValidationStatement       (st,lv)  -> st, lv, false
                 let lvars = (stLVs@localVars) |> List.map(fun (lv:LocalVariable) -> lm.lg.getLocalVariableDeclaration lv) |> Seq.distinct
-                let fnc = emitTasFnc varName sPtrPrefix sPtrSuffix funcName  (lm.lg.getLongTypedefName typeDefinition) statement  (alphaFuncs |> List.map(fun x -> x.funcBody (str_p lm t.id))) lvars bUnreferenced
+                let fnc = emitTasFnc varName sPtrPrefix sPtrSuffix funcName (lm.lg.getLongTypedefName typeDefinition) statement  (alphaFuncs |> List.map(fun x -> x.funcBody (str_p lm t.id))) lvars bUnreferenced
                 let split (s:string option) =
                     match s with
                     | None -> []

@@ -178,8 +178,8 @@ PrintSequenceValue(td/*:FE_SequenceTypeDefinition*/, sTasName, arrsChildren, arr
 >>
 
 PrintChoiceValue(sTasName, sChildName, sChildVal, sChildNamePresent, bUseUncheckedUnions) ::= <<{
-    .kind = <sChildNamePresent>,
-    .u = { .<sChildName> = <sChildVal>}
+    .kind = <sChildNamePresent>,    /*variables:181*/
+    .u = { .<sChildName> = <sChildVal>} /*variables:182*/
 }
 >>
 

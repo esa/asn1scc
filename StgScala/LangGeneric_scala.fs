@@ -9,7 +9,7 @@ open System.IO
 let getAccess_scala  (fpt:FuncParamType) =
     match fpt with
     | VALUE x        -> "."
-    | POINTER x      -> ".x."
+    | POINTER x      -> ". x"
     | FIXARRAY x     -> ""
 
 #if false
@@ -165,7 +165,8 @@ type LangGeneric_scala() =
             let newPath = sprintf "%s%s%s" fpt.p (this.getAccess fpt) childName
             if childTypeIsString then (FIXARRAY newPath) else (VALUE newPath)
         override this.getChChild (fpt:FuncParamType) (childName:string) (childTypeIsString: bool) : FuncParamType =
-            let newPath = sprintf "%s%su.%s" fpt.p (this.getAccess fpt) childName
+            let newPath = sprintf "e" // always use e for pattern matching
+            //let newPath = sprintf "%s%s%s" fpt.p (this.getAccess fpt) childName
             if childTypeIsString then (FIXARRAY newPath) else (VALUE newPath)
             
         override this.choiceIDForNone (typeIdsSet:Map<string,int>) (id:ReferenceToType) =  
