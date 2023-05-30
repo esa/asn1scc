@@ -102,7 +102,7 @@ Message ::= SEQUENCE {
 END
 $ /opt/asn1scc/asn1-docker.sh -c -uPER sample.asn
 $ ls 
-acn.c  asn1crt.c  asn1crt.h  real.c  sample.asn  sample.c  sample.h
+asn1crt.c  asn1crt_encoding.c  asn1crt_encoding.h  asn1crt_encoding_uper.c  asn1crt_encoding_uper.h  asn1crt.h  sample.asn  sample.c  sample.h
 ```
 
 As can be seen above, the host does not have the ASN1SCC installation; 
@@ -110,13 +110,76 @@ only the asn1scc-runtime docker image.
 
 Usage
 =====
-
-The compiler has many features - documented in
-[Chapter 10 of the TASTE manual](http://download.tuxfamily.org/taste/snapshots/doc/taste-documentation-current.pdf),
-and you can see some simple usage examples in a related
-[blog post](https://www.thanassis.space/asn1.html).
-
+The compiler has many features and you can see some simple usage examples in a [blog post](https://www.thanassis.space/asn1.html).
 You can also check out the official [TASTE project site](https://taste.tools).
+
+This is an example of use, assuming you have created the ASN.1 sample given above. If you have installed the compiler binary instead of the Docker image, you may generate the code with this command:
+
+```
+$ asn1scc -c -uPER sample.asn
+```
+
+We will write a simple C function that creates a variable of type "Message", then encode it and print the resulting binary data:
+
+```
+$ cat sample_test.c
+#include <stdio.h>
+#include "sample.h"
+
+int main(void)
+{
+    Message testMessage = {   // create a dummy message for the test
+        .msgId  = 1,
+        .myflag = 2,
+        .value  = 3.14,
+        .szDescription = {
+             .arr = "HelloWorld"
+        },
+        .isReady = true
+    };
+
+    // Create a buffer to hold the encoded data.
+    // The (maximum) size is computed by the compiler and set
+    // in a macro defined in sample.h
+    unsigned char encodedBuffer[Message_REQUIRED_BYTES_FOR_ENCODING];
+
+    // The encoder needs a data structure for the serialization
+    BitStream encodedMessage;
+
+    // The Encoder may fail and update an error code
+    int errCode;
+
+    // Initialization associates the buffer to the bit stream
+    BitStream_Init (&encodedMessage,
+                    encodedBuffer,
+                    Message_REQUIRED_BYTES_FOR_ENCODING);
+
+    if (!Message_Encode(&testMessage,
+                        &encodedMessage,
+                        &errCode,
+                        true))
+    {
+        // Error codes are defined as macros in sample.h
+        printf("Encoding failed with error code %d\n", errCode);       
+    }
+    else
+    {
+        int encodedSize = BitStream_GetLength(&encodedMessage);
+        for (int i=0; i<encodedSize; ++i)
+        {
+            printf("%02x ", encodedBuffer[i]);
+        }
+        printf("(%d bytes)\n", encodedSize);
+    }
+}
+```
+
+Then compile it and run it:
+```
+$ gcc -o sample_test *.c
+$ ./sample_test
+01 01 01 02 09 80 cd 19 1e b8 51 eb 85 1f 48 65 6c 6c 6f 57 6f 72 6c 64 80 (25 bytes)
+```
 
 Credits
 =======
