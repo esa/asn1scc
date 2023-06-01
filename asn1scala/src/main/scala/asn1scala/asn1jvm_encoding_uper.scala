@@ -97,16 +97,21 @@ def ObjectIdentifier_subidentifiers_uper_decode(pBitStrm: BitStream, pRemainingO
 
   return true
 }
+
+// TODO: Ref
 def ObjectIdentifier_uper_decode_lentg(pBitStrm: BitStream, totalSize: Ref[Long]): Boolean = {
-  val len2: Ref[Long] = Ref[Long](0)
-  if !BitStream_DecodeConstraintWholeNumber(pBitStrm, totalSize, 0, 0xFF) then
-    return false
+
+  BitStream_DecodeConstraintWholeNumber(pBitStrm, 0, 0xFF) match
+    case None => return false
+    case Some(l) => totalSize.x = l
+
   if totalSize.x > 0x7F then
-    if !BitStream_DecodeConstraintWholeNumber(pBitStrm, len2, 0, 0xFF) then
-      return false
-    totalSize.x <<= 8
-    totalSize.x |= len2.x
-    totalSize.x &= 0x7FFF
+    BitStream_DecodeConstraintWholeNumber(pBitStrm, 0, 0xFF) match
+      case None => return false
+      case Some(l) =>
+        totalSize.x <<= 8
+        totalSize.x |= l
+        totalSize.x &= 0x7FFF
 
   return true
 }
