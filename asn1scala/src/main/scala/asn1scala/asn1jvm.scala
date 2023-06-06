@@ -1,6 +1,6 @@
 package asn1scala
 
-import stainless.lang._
+import stainless.lang.{None, Option => _, _}
 
 // Unsigned datatypes that have no native JVM support
 type UByte = Byte
@@ -25,8 +25,8 @@ case class BitStream (
   var currentByte: Int,
   var currentBit: Int,
   // TODO
-  //var pushDataPrm: Option[Any],
-  //var fetchDataPrm: Option[Any],
+  var pushDataPrm: Option[Any],
+  var fetchDataPrm: Option[Any],
 ) {
   // TODO: currentByte==buf.length temp possible, but with bitstream_push_data_if_required set to 0 again
   require(currentByte >= 0 && currentByte < buf.length)
@@ -97,16 +97,4 @@ def ObjectIdentifier_equal (pVal1: Asn1ObjectIdentifier, pVal2: Asn1ObjectIdenti
     return ret
   else
     return false
-}
-
-
-object playground {
-  def main(args: Array[String]): Unit = {
-    val v: Array[Long] = Array.fill(OBJECT_IDENTIFIER_MAX_LENGTH)(1)
-    var c = 5
-    val x = Asn1ObjectIdentifier(c, v)
-    ObjectIdentifier_Init(x)
-    println(x.nCount)
-    println(x.values.mkString(","))
-  }
 }
