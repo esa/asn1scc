@@ -202,7 +202,7 @@ case class <td.extention_function_potisions> (
 <endif>
 <if (arrsOptionalChildren)>
 case class <td.exist> ( // header:204
-    <arrsOptionalChildren:{ch|<ch>}; separator=", \n">
+    <arrsOptionalChildren:{ch|var <ch>}; separator=", \n">
 )
 
 <endif>
@@ -211,7 +211,7 @@ case class <td.typeName> ( // header:209
     exist: <td.exist>,
 
 <endif>
-    <arrsChildren:{ch|<ch>}; separator=", \n">
+    <arrsChildren:{ch|var <ch>}; separator=", \n">
 )
 
 >>

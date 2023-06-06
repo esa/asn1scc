@@ -143,7 +143,7 @@ case <sCid>:
 
 isEqual_Choice(p1,p2, sAccess, arrsChildren) ::= <<
 ret = (<p1><sAccess>kind - <p2><sAccess>kind) // equal:145
-if ret == 0 then
+if ret == 0 then // equal:146
 	<p1><sAccess>kind match
 		<arrsChildren: {ch|<ch>}; separator="\n">
 		case _ =>

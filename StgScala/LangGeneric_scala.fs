@@ -9,7 +9,7 @@ open System.IO
 let getAccess_scala  (fpt:FuncParamType) =
     match fpt with
     | VALUE x        -> "."
-    | POINTER x      -> ". x"
+    | POINTER x      -> "."
     | FIXARRAY x     -> ""
 
 #if false
@@ -60,14 +60,14 @@ type LangGeneric_scala() =
 
         override _.getPointer  (fpt:FuncParamType) =
             match fpt with
-            |VALUE x        -> sprintf "Ref(%s)" x
+            |VALUE x        -> sprintf "%s" x
             |POINTER x      -> sprintf "%s" x
             |FIXARRAY x     -> sprintf "%s" x
 
         override this.getValue (fpt:FuncParamType) =
             match fpt with
             | VALUE x        -> x
-            | POINTER x      -> sprintf "%s.x" x
+            | POINTER x      -> sprintf "%s" x
             | FIXARRAY x     -> sprintf "%s" x
 
         override this.getAccess  (fpt:FuncParamType) = getAccess_scala fpt
@@ -183,7 +183,7 @@ type LangGeneric_scala() =
             match c with
             | Encode  ->
                 match t.Kind with
-                | Asn1AcnAst.Integer         _ -> {CallerScope.modName = t.id.ModName; arg= POINTER ("intRef" + suf)    }
+                | Asn1AcnAst.Integer         _ -> {CallerScope.modName = t.id.ModName; arg= POINTER ("pVal" + suf)    }
                 | Asn1AcnAst.Real            _ -> {CallerScope.modName = t.id.ModName; arg= POINTER ("pVal" + suf)    }
                 | Asn1AcnAst.IA5String       _ -> {CallerScope.modName = t.id.ModName; arg= FIXARRAY ("val" + suf) }
                 | Asn1AcnAst.NumericString   _ -> {CallerScope.modName = t.id.ModName; arg= FIXARRAY ("val" + suf) }
@@ -200,7 +200,7 @@ type LangGeneric_scala() =
                 | Asn1AcnAst.ReferenceType r -> this.getParamTypeSuffix r.resolvedType suf c
             | Decode  ->
                 match t.Kind with
-                | Asn1AcnAst.Integer            _ -> {CallerScope.modName = t.id.ModName; arg= POINTER ("intRef" + suf) }
+                | Asn1AcnAst.Integer            _ -> {CallerScope.modName = t.id.ModName; arg= POINTER ("pVal" + suf) }
                 | Asn1AcnAst.Real               _ -> {CallerScope.modName = t.id.ModName; arg= POINTER ("pVal" + suf) }
                 | Asn1AcnAst.IA5String          _ -> {CallerScope.modName = t.id.ModName; arg= FIXARRAY ("val" + suf) }
                 | Asn1AcnAst.NumericString      _ -> {CallerScope.modName = t.id.ModName; arg= FIXARRAY ("val" + suf) }

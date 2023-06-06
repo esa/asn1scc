@@ -2,6 +2,9 @@ package asn1scala
 
 import stainless.lang.{None, Option => _, _}
 
+// type used in ErrorCases
+type ErrorCode = Int
+
 // Unsigned datatypes that have no native JVM support
 type UByte = Byte
 type UShort = Short

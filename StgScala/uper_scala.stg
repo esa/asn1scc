@@ -2,15 +2,21 @@
 
 rtlModuleName() ::= ""
 
-call_base_type_func_encode(p, sFuncName) ::= "ret = <sFuncName>(<p>, pBitStrm, false)"
-call_base_type_func_decode(p, sFuncName) ::= "ret = <sFuncName>(<p>, pBitStrm)"
+call_base_type_func_encode(p, sFuncName) ::= "ret = <sFuncName>(<p>, pBitStrm, false) // uper:5"
+call_base_type_func_decode(p, sFuncName) ::= <<
+<sFuncName>(pBitStrm) match // uper:6
+    case Left(x) => 
+        return Left(x)
+    case Right(x) => 
+        <p> = x
+>>
 
 /*******************************************************/
 /*   U P E R                                           */
 /*******************************************************/
 
 EmitTypeAssignment_def_err_code(sErrCode, nErrValue) ::= <<
-@inline @cCode.inline val <sErrCode>: Int = <nErrValue>  /**/
+@inline @cCode.inline val <sErrCode>: ErrorCode = <nErrValue>  /**/
 >>
 
 EmitTypeAssignment_def_encode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes, bEmptyEncodingSpace, nMaxBytesInPER, nMaxBitsInPER, soSparkAnnotations, bReqBytesForEncodingIsZero) ::= <<
@@ -20,15 +26,15 @@ EmitTypeAssignment_def_encode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrc
 >>
 
 EmitTypeAssignment_encode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitilialExp, bReqBytesForEncodingIsZero, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName) ::= <<
-def <sFuncName>(<if(bVarNameIsUnreferenced)>@annotation.unused <endif><sVarName>: Ref[<sTypeDefName>], <if(bBsIsUnreferenced)>@annotation.unused <endif>pBitStrm: BitStream, bCheckConstraints: Boolean): Int = //uper_scala:23
+def <sFuncName>(<if(bVarNameIsUnreferenced)>@annotation.unused <endif><sVarName>: <sTypeDefName>, <if(bBsIsUnreferenced)>@annotation.unused <endif>pBitStrm: BitStream, bCheckConstraints: Boolean): Either[ErrorCode, Int] = //uper:29
 {
-    var ret = 0
+    var ret: Either[ErrorCode, Int] = ???
 
     <arrsLocalVariables:{lv|<lv>}; separator="\n">
     <if(soIValidFuncName)>
     if bCheckConstraints then
         ret = <soIValidFuncName>(<sVarName>)
-    if ret == 0 then // uper:31
+    if ret.isRight then
         <sContent>
     <else>
     <sContent>
@@ -43,17 +49,25 @@ EmitTypeAssignment_def_decode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrc
 >>
 
 EmitTypeAssignment_decode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitilialExp, bReqBytesForEncodingIsZero, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName) ::= <<
-def <sFuncName>(<if(bVarNameIsUnreferenced)>@annotation.unused <endif><sVarName>: Ref[<sTypeDefName>], <if(bBsIsUnreferenced)>@annotation.unused <endif>pBitStrm: BitStream): Int = 
+def <sFuncName>(<if(bBsIsUnreferenced)>@annotation.unused <endif>pBitStrm: BitStream): Either[ErrorCode, <sTypeDefName>] = // uper:52
 {
-    var ret = 0
+    var ret: Either[ErrorCode, <sTypeDefName>] = ???
+    var pVal: <sTypeDefName> = ???
+    ret = Right(pVal)
 
     <arrsLocalVariables:{lv|<lv> // uper:50}; separator="\n"> 
 
     <sContent>
 
     <if(soIValidFuncName)>
-    if ret == 0 then // uper:54
-        ret = <soIValidFuncName>(<sVarName>)
+
+    ret match
+        case Left(l) =>
+            assert(false) // no left should reach this point
+
+    <soIValidFuncName>(x) match
+        case Left(l) => 
+            return Left(l)
     <endif>
     ret
 }
@@ -114,8 +128,11 @@ IntFullyConstraintPos_encode(p, nMin, nMax, nBits, sSsuffix, sErrCode) ::= <<
 BitStream_EncodeConstraintPosWholeNumber(pBitStrm, <p>, <nMin>, <nMax>)
 >>
 IntFullyConstraintPos_decode(p, nMin, nMax, nBits, sSsuffix, sErrCode) ::= <<
-if(!BitStream_DecodeConstraintPosWholeNumber<sSsuffix>(pBitStrm, <p>, <nMin>, <nMax>))
-    ret = <sErrCode> // uper_scala:114
+ret = BitStream_DecodeConstraintPosWholeNumber<sSsuffix>(pBitStrm, <nMin>, <nMax>) match // uper:130
+    case Some(l) =>
+        Right(l)
+    case None =>
+        Left(<sErrCode>)
 >>
 
 
@@ -129,21 +146,21 @@ if !BitStream_DecodeUnConstraintWholeNumber(pBitStrm, <p>) then // uper:123   <i
 /*case: A :: = INTEGER(MIN..5) */
 IntUnconstraintMax_encode(p, nMax, soCheckExp, sErrCode) ::= "BitStream_EncodeUnConstraintWholeNumber(pBitStrm, <p>);"
 IntUnconstraintMax_decode(p, nMax, soCheckExp, sErrCode) ::= <<
-if !BitStream_DecodeUnConstraintWholeNumber(pBitStrm, <p>) then // uper:130
+if !BitStream_DecodeUnConstraintWholeNumber(pBitStrm, <p>) then // uper:140
     ret = <if(soCheckExp)> if <soCheckExp> then 0 else <endif> <sErrCode>
 >>
 
 /*case: A:: = INTEGER (-5..MAX) */
 IntSemiConstraint_encode(p, nMin, sErrCode) ::= "BitStream_EncodeSemiConstraintWholeNumber(pBitStrm, <p>, <nMin>);"
 IntSemiConstraint_decode(p, nMin, sErrCode) ::= <<
-if !BitStream_DecodeSemiConstraintWholeNumber(pBitStrm, <p>, <nMin>) then // uper:137
+if !BitStream_DecodeSemiConstraintWholeNumber(pBitStrm, <p>, <nMin>) then // uper:147
     ret = <sErrCode>
 >>
 
 /*case: A:: = INTEGER (5..MAX) */
 IntSemiConstraintPos_encode(p, nMin, sErrCode) ::= "BitStream_EncodeSemiConstraintPosWholeNumber(pBitStrm, <p>, <nMin>);"
 IntSemiConstraintPos_decode(p, nMin, sErrCode) ::= <<
-if !BitStream_DecodeSemiConstraintPosWholeNumber(pBitStrm, <p>, <nMin>) then // uper:144
+if !BitStream_DecodeSemiConstraintPosWholeNumber(pBitStrm, <p>, <nMin>) then // uper:154
     ret = <sErrCode>
 >>
 
@@ -153,13 +170,12 @@ IntNoneRequired_encode(p, nConst, sErrCode) ::=<<
 ; // NOP uper:151
 >>
 IntNoneRequired_decode(p, nConst, sErrCode) ::= <<
-<p>=<nConst>; // uper:153 
-ret = 0
+ret = Right(<nConst>) // uper:164 
 >>
 
 /*case: A:: = INTEGER (5..40,...) */
 IntRootExt_encode(p, nMin, sRootBaseConstraint, sIntBody, sErrCode) ::=<<
-BitStream_AppendBitZero(pBitStrm) /* write extension bit*/ // uper:160
+BitStream_AppendBitZero(pBitStrm) /* write extension bit*/ // uper:170
 <sIntBody>
 >>
 
@@ -199,31 +215,31 @@ IntRootExt2_decode(p, nMin, sRootBaseConstraint, sIntBody, sErrCode) ::="<IntRoo
 Boolean_encode(p, sErrCode) ::= "BitStream_AppendBit(pBitStrm,<p>);"
 
 Boolean_decode(p, sErrCode) ::= <<
-if !BitStream_ReadBit(pBitStrm, <p>) then
+if !BitStream_ReadBit(pBitStrm, <p>) then // uper:213
     ret = <sErrCode>
 >>
 
 Real_encode(p, sSuffix, sErrCode) ::= "BitStream_EncodeReal(pBitStrm, <p>)"
 Real_decode(p, sSuffix, sErrCode) ::= <<
-if !BitStream_DecodeReal<sSuffix>(pBitStrm, <p>) then // uper:205
+if !BitStream_DecodeReal<sSuffix>(pBitStrm, <p>) then // uper:219
     ret = <sErrCode>
 >>
 
 ObjectIdentifier_encode(p, sErrCode) ::= "ObjectIdentifier_uper_encode(pBitStrm, <p>);"
 ObjectIdentifier_decode(p, sErrCode) ::= <<
-if !ObjectIdentifier_uper_decode(pBitStrm, <p>) then // uper:211
+if !ObjectIdentifier_uper_decode(pBitStrm, <p>) then // uper:225
     ret = <sErrCode>
 >>
 
 RelativeOID_encode(p, sErrCode) ::= "RelativeOID_uper_encode(pBitStrm, <p>);"
 RelativeOID_decode(p, sErrCode) ::= <<
-if !RelativeOID_uper_decode(pBitStrm, <p>) then // uper:217
+if !RelativeOID_uper_decode(pBitStrm, <p>) then // uper:231
     ret = <sErrCode>
 >>
 
 Time_encode(p, sTimeSubType, sErrCode) ::= "<sTimeSubType>_uper_encode(pBitStrm, <p>);"
 Time_decode(p, sTimeSubType, sErrCode) ::= <<
-if !<sTimeSubType>_uper_decode(pBitStrm, <p>) then // uper:223
+if !<sTimeSubType>_uper_decode(pBitStrm, <p>) then // uper:237
     ret = <sErrCode>
 >>
 

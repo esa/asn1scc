@@ -10,25 +10,25 @@ getStringSize(p) ::= "strlen(<p>)"
 JoinItems(sPart, soNestedPart) ::= <<
 <sPart>
 <if(soNestedPart)>
-if ret == 0 then
+if ret.isRight then // isvalid:13
     <soNestedPart>
 <endif>
 >>
 
 JoinTwoIfFirstOk(sStr1,sStr2) ::=<<
 <sStr1>
-if ret == 0 then
+if ret.isRight then // isvalid:20
     <sStr2>
 >>
 
 JoinItems2(sPart, sNestedPart) ::= <<
+// isvalid:27
 <sPart>
-if ret == 0 then
-    <sNestedPart>
+<sNestedPart>
 >>
 
 always_true_statement ()::= <<
-ret = 0 // isvalid_scala:34
+ret = Right(0) // isvalid_scala:31
 >>
 
 always_false_statement(sErrorCodeName)::= <<
@@ -45,7 +45,7 @@ ret = <sErrCode>    // TODO ret is set directly again?
 >>
 
 convertVCBStatementToStatementAndUpdateErrCode(sStatement, sErrCode) ::= <<
-if <sStatement> then 0 else <sErrCode> // isvalid:48
+if <sStatement> then Right(0) else Left(<sErrCode>) // isvalid:48
 >>
 
 convertVCBTRUEToStatementAndUpdateErrCode() ::= <<
@@ -71,9 +71,9 @@ EmitTypeAssignment_composite_def(sVarName, sStar, sFuncName, sTypeDefName, arrsE
 
 EmitTypeAssignment_composite(sVarName, sPtrPrefix, sPtrSuffix, sFuncName, sTypeDefName, sContent, arrsAlphaFuncs, arrsLocalVars, bUnreferenced) ::= <<
 <arrsAlphaFuncs; separator="\n">
-def <sFuncName>(<if(bUnreferenced)>@annotation.unused <endif><sVarName>: <sPtrPrefix><sTypeDefName><sPtrSuffix>): Int = 
+def <sFuncName>(<if(bUnreferenced)>@annotation.unused <endif><sVarName>: <sTypeDefName>): Either[ErrorCode, Int] = // isvalid:74
 {
-    var ret = 0 // isvalid.stg:77
+    var ret: Either[ErrorCode, Int] = ??? 
     <arrsLocalVars; separator="\n">
 
     <sContent>
@@ -84,10 +84,10 @@ def <sFuncName>(<if(bUnreferenced)>@annotation.unused <endif><sVarName>: <sPtrPr
 
 ExpEqual(sExp1, sExp2) ::= "(<sExp1> == <sExp2>)"
 ExpStringEqual(sExp1, sExp2) ::= "(<sExp1> == <sExp2>)"
-ExpGt(sExp1, sExp2) ::= "(<sExp1> \> <sExp2>) /* isvalid:90 */"
-ExpGte(sExp1, sExp2) ::= "(<sExp1> \>= <sExp2>) /* isvalid:91 */"
-ExpLt(sExp1, sExp2) ::= "(<sExp1> \< <sExp2>) /* isvalid:92 */"
-ExpLte(sExp1, sExp2) ::= "(<sExp1> \<= <sExp2>) /* isvalid:93 */"
+ExpGt(sExp1, sExp2) ::= "(<sExp1> \> <sExp2>)/* isvalid:87 */"
+ExpGte(sExp1, sExp2) ::= "(<sExp1> \>= <sExp2>)/* isvalid:88 */"
+ExpLt(sExp1, sExp2) ::= "(<sExp1> \< <sExp2>)/* isvalid:89 */"
+ExpLte(sExp1, sExp2) ::= "(<sExp1> \<= <sExp2>)/* isvalid:90 */"
 ExpOr(sExp1, sExp2) ::= "((<sExp1>) || (<sExp2>))"
 ExpAnd(sExp1, sExp2) ::= "(<sExp1> && <sExp2>)"
 ExpAndMulit(arrsExp) ::= <<
@@ -103,7 +103,7 @@ ret = <sExp1>
 
 StatementOrStament(sStat1, sStat2) ::= <<
 <sStat1>
-if ret == 0 then // isvalid_scala:109
+if ret == 0 then // isvalid_scala:106
     <sStat2>
 >>
 

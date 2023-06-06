@@ -7,16 +7,18 @@ methodNameSuffix() ::= "_Initialize"
 initTypeAssignment_def(sVarName, sStar, sFuncName, sTypeDefName) ::= << >>
 
 initTypeAssignment(sVarName, sPtrPrefix, sPtrSuffix, sFuncName, sTypeDefName, sContent, arrsLocalVariables) ::= <<
-def <sFuncName>(<sVarName>: <sPtrPrefix><sTypeDefName><sPtrSuffix>): Unit = // init_scala:10
+def <sFuncName>(): <sTypeDefName> = // init_scala:10
 {
-    // init:12
+    var <sVarName>: <sTypeDefName> = ???
+
     <arrsLocalVariables; separator="\n">
     <sContent>
+    <sVarName>
 }
 >>
 
 
-initInteger(sVal, nValue) ::= "<sVal> = <nValue>;"
+initInteger(sVal, nValue) ::= "<sVal> = <nValue> // init:19"
 initReal(sVal, dValue) ::= "<sVal> = <dValue>;"
 initBoolean(sVal, bValue) ::= "<sVal> = <if(bValue)>true<else>false<endif>;"
 
@@ -202,7 +204,7 @@ initSequence_emptySeq(p) ::= ""
 
 
 initTestCase_sequence_child(p, sAcc, sChName, sChildContent, bOptional) ::= <<
-/*set <sChName> */
+/*set <sChName> init:207*/
 <if(bOptional)><p><sAcc>exist.<sChName> = 1;<endif>
 <sChildContent>
 >>
@@ -218,14 +220,14 @@ initChoice(p1, sAccess, sChildContent, sChildKind, sChildTempVarName, sChildType
 
 
 initTestCase_choice_child(p, sAcc, sChildID, sChildContent, sChildName, sChildTypeDef, sChoiceTypeName) ::= <<
-/*set <sChildName>*/
+/*set <sChildName> init:223*/
 <p><sAcc>kind = <sChildID>;
 <sChildContent>
 >>
 
 
 initChildWithInitFunc(p, sChildInitFuncName) ::= <<
-<sChildInitFuncName>(<p>);
+<p> = <sChildInitFuncName>() // init:230
 >>
 
 
