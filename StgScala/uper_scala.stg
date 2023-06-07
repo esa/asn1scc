@@ -62,12 +62,12 @@ def <sFuncName>(<if(bBsIsUnreferenced)>@annotation.unused <endif>pBitStrm: BitSt
     <if(soIValidFuncName)>
 
     ret match
-        case Left(l) =>
+        case Left(x) =>
             assert(false) // no left should reach this point
-
-    <soIValidFuncName>(x) match
-        case Left(l) => 
-            return Left(l)
+        case Right(x) =>
+            <soIValidFuncName>(x) match
+            case Left(l) => 
+                return Left(l)
     <endif>
     ret
 }
