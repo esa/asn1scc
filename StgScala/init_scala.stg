@@ -84,12 +84,12 @@ initNull(sVal)    ::= "<sVal> = 0;"
 
 initTestCaseIA5String(p, sAcc, nSize, nMaxSizePlusOne, i, td/*:FE_StringTypeDefinition*/, bAlpha, arrnAlphabetAsciiCodes, nAlphabetLength, bZero) ::= <<
 <if(bZero)>
-<p> = Array.Fill(<nMaxSizePlusOne>)(0)
+<p> = Array.fill(<nMaxSizePlusOne>)(0) // init:87
 
 <else>
 // TODO bZero was false init_scala:89
 <i> = 0;
-<p> = Array.Fill(<nMaxSizePlusOne>)(0); // init_scala:91
+<p> = Array.fill(<nMaxSizePlusOne>)(0); // init_scala:91
 while (<i>\< <nSize>) {
     <if(bAlpha)>
     static byte allowedCharSet[] = {<arrnAlphabetAsciiCodes:{ch|0x<ch;format="X2">}; wrap, anchor, separator=",">}; 
@@ -140,7 +140,7 @@ var <i> = 0;
 
 initTestCaseBitString(p, sAcc, nSize, nSizeCeiled,  i, bIsFixedSize, bZero, nMinSize) ::= <<
 <if(bZero)>
-<p><sAcc>arr = Array.Fill(<nSizeCeiled>/8)(0) // init_scala:145
+<p><sAcc>arr = Array.fill(<nSizeCeiled>/8)(0) // init_scala:145
 
 <else>
 // bZero was false init_scala:148
@@ -221,13 +221,13 @@ initChoice(p1, sAccess, sChildContent, sChildKind, sChildTempVarName, sChildType
 
 initTestCase_choice_child(p, sAcc, sChildID, sChildContent, sChildName, sChildTypeDef, sChoiceTypeName) ::= <<
 /*set <sChildName> init:223*/
-<p><sAcc>kind = <sChildID>;
 <sChildContent>
+<p> = <sChildID>(e)
 >>
 
 
 initChildWithInitFunc(p, sChildInitFuncName) ::= <<
-<p> = <sChildInitFuncName>() // init:230
+val <p> = <sChildInitFuncName>() // init:230
 >>
 
 

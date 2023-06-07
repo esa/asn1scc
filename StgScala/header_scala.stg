@@ -152,7 +152,7 @@ Define_new_bit_string(td/*:FE_SizeableTypeDefinition*/, nMin, nMax, bFixedSize, 
 <if(!bFixedSize)>
 /*nCount equals to Number of bits in the array. Max value is : <nMax> */
 <endif>
-case class <td.typeName> (<if(!bFixedSize)>nCount: Int,<endif>arr: Array[Byte]) // header:155
+case class <td.typeName>(<if(!bFixedSize)>nCount: Int,<endif>var arr: Array[Byte]) // header:155
 {
     require(arr.length == <nMaxOctets>)
 }

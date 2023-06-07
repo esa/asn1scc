@@ -49,10 +49,10 @@ if <sStatement> then Right(0) else Left(<sErrCode>) // isvalid:48
 >>
 
 convertVCBTRUEToStatementAndUpdateErrCode() ::= <<
-ret = 0 // isvalid:53
+ret = Right(0) // isvalid:53
 >>
 convertVCBFalseToStatementAndUpdateErrCode(sErrCode) ::= <<
-ret = <sErrCode> // isvalid:56
+ret = Left(<sErrCode>) // isvalid:56
 >>
 
 /*
@@ -98,7 +98,7 @@ StrLen(sExp) ::= "<sExp>.length()"
 ArrayLen(sExp, sAcc) ::= "<sExp><sAcc>nCount // isvalid_scala:101"
 
 ExpressionToStament(sExp1) ::=<<
-ret = <sExp1>
+ret = <sExp1> // isvalid:101
 >>
 
 StatementOrStament(sStat1, sStat2) ::= <<
@@ -233,7 +233,7 @@ ret = <sErrCodeName>;
 >>
 
 
-call_base_type_func(p, sFuncName, soTypeCasting) ::= "ret = <sFuncName>(<p>)"
+call_base_type_func(p, sFuncName, soTypeCasting) ::= "<sFuncName>(<p>) // isvalid:236"
 
 call_base_type_func_exp(p, sFuncName) ::= "<sFuncName>(<p>)"
 
@@ -265,27 +265,28 @@ Sequence_optional_child_always_present_or_absent_expr(p, sAcc,  sChName, sPresOr
 /* CHOICE start*/
 
 Choice_OptionalChild(p, sAcc, sChPresent, sInnerStatement) ::= <<
-<p><sAcc> match 
-case <sChPresent>(e) => <sInnerStatement> // isvalid:270
-case _ => 
+ret = <p> match // isvalid:268
+    case <sChPresent>(e) => 
+        <sInnerStatement> 
+    case _ => 
+        Left(272)
 >>
 
 Choice_child_always_present_Exp(p, sAcc, sChPresent) ::= <<
-<p><sAcc>kind == <sChPresent> // isvalid:273
+<p><sAcc>kind == <sChPresent> // isvalid:276
 >>
 
 Choice_child_always_absent_Exp(p, sAcc, sChPresent) ::= <<
-<p><sAcc>kind != <sChPresent>
+<p><sAcc>kind != <sChPresent> //isvalid:280
 >>
 
 choice_child(sChPresent, sChildBody, bAlwaysAbsent) ::= <<
-case <sChPresent> => // isvalid:282
+case <sChPresent> => // isvalid:284
     <sChildBody>         
 >>
 
-
 choice(p, sAccess, arrsChildren, sErrCodeForInvalidCase) ::= <<
-<p><sAccess>kind match // isvalid:288
+<p><sAccess>kind match // isvalid:289
     <arrsChildren; separator="\n">
     case _ =>
         ret = <sErrCodeForInvalidCase>

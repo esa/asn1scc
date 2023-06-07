@@ -177,7 +177,13 @@ type LangGeneric_scala() =
             | Some a            -> ToC (id.AcnAbsPath.StrJoin("_").Replace("#","elem")) + "_NONE" 
 
         override this.presentWhenName (defOrRef:TypeDefintionOrReference option) (ch:ChChildInfo) : string =
-            (ToC ch._present_when_name_private) + "_PRESENT"
+            let parentName = 
+                match defOrRef with
+                | Some a -> match a with
+                            | ReferenceToExistingDefinition b -> ""
+                            | TypeDefinition c -> c.typedefName + "."
+                | None -> ""
+            parentName + (ToC ch._present_when_name_private) + "_PRESENT"
         
         override this.getParamTypeSuffix (t:Asn1AcnAst.Asn1Type) (suf:string) (c:Codec) : CallerScope =
             match c with
@@ -248,7 +254,7 @@ type LangGeneric_scala() =
             | SequenceOfIndex (i,Some iv)               -> sprintf "int i%d=%d;" i iv
             | IntegerLocalVariable (name,None)          -> sprintf "int %s;" name
             | IntegerLocalVariable (name,Some iv)       -> sprintf "int %s=%d;" name iv
-            | Asn1SIntLocalVariable (name,None)         -> sprintf "%s: Int;" name
+            | Asn1SIntLocalVariable (name,None)         -> sprintf "%s: Int" name
             | Asn1SIntLocalVariable (name,Some iv)      -> sprintf "asn1SccSint %s=%d;" name iv
             | Asn1UIntLocalVariable (name,None)         -> sprintf "asn1SccUint %s;" name
             | Asn1UIntLocalVariable (name,Some iv)      -> sprintf "asn1SccUint %s=%d;" name iv

@@ -215,92 +215,90 @@ IntRootExt2_decode(p, nMin, sRootBaseConstraint, sIntBody, sErrCode) ::="<IntRoo
 Boolean_encode(p, sErrCode) ::= "BitStream_AppendBit(pBitStrm,<p>);"
 
 Boolean_decode(p, sErrCode) ::= <<
-if !BitStream_ReadBit(pBitStrm, <p>) then // uper:213
+if !BitStream_ReadBit(pBitStrm, <p>) then // uper:218
     ret = <sErrCode>
 >>
 
 Real_encode(p, sSuffix, sErrCode) ::= "BitStream_EncodeReal(pBitStrm, <p>)"
 Real_decode(p, sSuffix, sErrCode) ::= <<
-if !BitStream_DecodeReal<sSuffix>(pBitStrm, <p>) then // uper:219
+if !BitStream_DecodeReal<sSuffix>(pBitStrm, <p>) then // uper:224
     ret = <sErrCode>
 >>
 
 ObjectIdentifier_encode(p, sErrCode) ::= "ObjectIdentifier_uper_encode(pBitStrm, <p>);"
 ObjectIdentifier_decode(p, sErrCode) ::= <<
-if !ObjectIdentifier_uper_decode(pBitStrm, <p>) then // uper:225
+if !ObjectIdentifier_uper_decode(pBitStrm, <p>) then // uper:230
     ret = <sErrCode>
 >>
 
 RelativeOID_encode(p, sErrCode) ::= "RelativeOID_uper_encode(pBitStrm, <p>);"
 RelativeOID_decode(p, sErrCode) ::= <<
-if !RelativeOID_uper_decode(pBitStrm, <p>) then // uper:231
-    ret = <sErrCode>
+if !RelativeOID_uper_decode(pBitStrm, <p>) then // uper:236
+    ret = Left(<sErrCode>)
 >>
 
 Time_encode(p, sTimeSubType, sErrCode) ::= "<sTimeSubType>_uper_encode(pBitStrm, <p>);"
 Time_decode(p, sTimeSubType, sErrCode) ::= <<
-if !<sTimeSubType>_uper_decode(pBitStrm, <p>) then // uper:237
-    ret = <sErrCode>
+if !<sTimeSubType>_uper_decode(pBitStrm, <p>) then // uper:242
+    ret = Left(<sErrCode>)
 >>
 
 Enumerated_item_encode(p, sName, nIndex, nLastItemIndex) ::= <<
-case <sName> => // uper:234
+case <sName> => // uper:247
     BitStream_EncodeConstraintWholeNumber(pBitStrm, <nIndex>, 0, <nLastItemIndex>)
 >>
 
 Enumerated_item_decode(p, sName, nIndex, nLastItemIndex) ::= <<
-case <nIndex> => // uper:233
+case <nIndex> => // uper:252
     <p> = <sName>
 >>
 
 Enumerated_encode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, nMin, nMax, nBits, sErrCode, nLastItemIndex, sFirstItemName) ::= <<
-<p> match // uper:238
+<p> match // uper:257
     <arrsItem; separator="\n">
     case _ =>
-        ret = <sErrCode>
+        ret = Left(<sErrCode>)
 >>
 
 Enumerated_decode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, nMin, nMax, nBits, sErrCode, nLastItemIndex, sFirstItemName) ::= <<
-    var enumIndex: Ref[Long] = Ref(0) // uper:245
-    val check = BitStream_DecodeConstraintWholeNumber(pBitStrm, enumIndex, 0, <nLastItemIndex>)
-    ret = if check then 0 else <sErrCode>
-    if check then
-        enumIndex.x match
+BitStream_DecodeConstraintWholeNumber(pBitStrm, 0, <nLastItemIndex>) match // uper:264
+    case Some(x) =>
+        x match
             <arrsItem; separator="\n">
             case _ =>
-                ret = <sErrCode>
-    else
-        <p> = <sFirstItemName>
+                return Left(<sErrCode>)
+    case None =>
+        return Left(<sErrCode>) // TODO C impl returns first element from enum, even in error case
 >>
 
 /* CHOICE START*/
 
 choice_child_encode(p, sAcc, sChildID, nChildIndex, nIndexSizeInBits, nLastItemIndex, sChildContent, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr) ::= <<
-case <sChildID> => // uper:260
+case <sChildID>(e) => // uper:277
     BitStream_EncodeConstraintWholeNumber(pBitStrm, <nChildIndex>, 0, <nLastItemIndex>)
     <sChildContent>
 >>
 choice_child_decode(p, sAcc, sChildID, nChildIndex, nIndexSizeInBits, nLastItemIndex, sChildContent, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr) ::= <<
-case <nChildIndex> => // uper:265
+case <nChildIndex> => // uper:282
     <p><sAcc>kind = <sChildID>
     <sChildContent>
 >>
 
 choice_encode(p, sAcc, arrsChildren, nLastItemIndex, sChoiceIndexName, sErrCode, td/*:FE_ChoiceTypeDefinition*/, nIndexSizeInBits) ::= <<
-<p><sAcc>kind match // uper:271
+<p> match // uper:288
     <arrsChildren: {ch|<ch>}; separator="\n">
     case _ =>
-        ret = <sErrCode>
+        ret = Left(<sErrCode>)
 >>
 
 choice_decode(p, sAcc, arrsChildren, nLastItemIndex, sChoiceIndexName, sErrCode, td/*:FE_ChoiceTypeDefinition*/, nIndexSizeInBits) ::= <<
-if !BitStream_DecodeConstraintWholeNumber(pBitStrm, <sChoiceIndexName>, 0, <nLastItemIndex>) then // uper:278
+if !BitStream_DecodeConstraintWholeNumber(pBitStrm, 0, <nLastItemIndex>) then // uper:295
     ret = <sErrCode>
 else 
     <sChoiceIndexName> match
         <arrsChildren: {ch|<ch>}; separator="\n">
         case _ =>
-            ret = <sErrCode>
+            ret = Left(<sErrCode>)
 >>
 
 /* CHOICE END*/
