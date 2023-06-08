@@ -23,6 +23,46 @@ val OBJECT_IDENTIFIER_MAX_LENGTH = 20
 
 case class Ref[T](var x: T) {}
 
+
+val ber_aux: Array[ULong] = Array(
+  0xFFL,
+  0xFF00L,
+  0xFF0000L,
+  0xFF000000L,
+  0xFF00000000L,
+  0xFF0000000000L,
+  0xFF000000000000L,
+  0xFF00000000000000L
+)
+
+// TODO: check types and if neccesary as we don't have unsigned types
+def int2uint(v: Long): ULong = {
+  var ret: ULong = 0
+  if v < 0 then
+    ret = -v - 1
+    ret = ~ret
+  else
+    ret = v
+
+  ret
+}
+
+def uint2int(v: ULong, uintSizeInBytes: Int): Long = {
+  var vv = v
+  val tmp: ULong = 0x80
+  val bIsNegative: Boolean = (vv & (tmp << ((uintSizeInBytes - 1) * 8))) > 0
+
+  if !bIsNegative then
+    return v
+
+  var i: Int = WORD_SIZE-1
+  while i >= uintSizeInBytes do
+    vv |= ber_aux(i)
+    i -= 1
+  return -(~vv) - 1
+}
+
+
 case class BitStream (
   var buf: Array[Byte], // UByte
   var currentByte: Int,
@@ -100,4 +140,8 @@ def ObjectIdentifier_equal (pVal1: Asn1ObjectIdentifier, pVal2: Asn1ObjectIdenti
     return ret
   else
     return false
+}
+
+def CHECK_BIT_STREAM(pBitStrm: BitStream): Unit = {
+  assert(pBitStrm.currentByte*8 + pBitStrm.currentBit <= pBitStrm.buf.length*8)
 }
