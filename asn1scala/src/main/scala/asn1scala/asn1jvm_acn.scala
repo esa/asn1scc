@@ -117,7 +117,7 @@ def Acn_Enc_Int_PositiveInteger_ConstSize_big_endian_64(pBitStrm: BitStream, int
 
 def Acn_Enc_Int_PositiveInteger_ConstSize_little_endian_N(pBitStrm: BitStream, intVal: ULong, size: Int): Unit =
 {
-  var tmp: ULong = intVal;
+  var tmp: ULong = intVal
 
   var i: Int = 0
   while i < size do
@@ -216,17 +216,17 @@ def Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_N(pBitStrm: BitStream, S
         ret |= tmp
     i += 1
 
-  return Some(ret)
+  Some(ret)
 }
 
 def Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_16(pBitStrm: BitStream): Option[ULong] =
 {
-  return Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_N(pBitStrm, 2);
+  Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_N(pBitStrm, 2)
 }
 
 def Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_32(pBitStrm: BitStream): Option[ULong] =
 {
-  return Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_N(pBitStrm, 4);
+  Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_N(pBitStrm, 4)
 }
 
 def Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_64(pBitStrm: BitStream): Option[ULong] =
@@ -291,8 +291,8 @@ def Acn_Enc_Int_TwosComplement_ConstSize(pBitStrm: BitStream, intVal: Long, enco
     BitStream_EncodeNonNegativeInteger(pBitStrm, intVal)
 
   else
-    BitStream_AppendNBitOne(pBitStrm, encodedSizeInBits - GetNumberOfBitsForNonNegativeInteger((-intVal - 1)))
-    BitStream_EncodeNonNegativeIntegerNeg(pBitStrm, (-intVal - 1), true)
+    BitStream_AppendNBitOne(pBitStrm, encodedSizeInBits - GetNumberOfBitsForNonNegativeInteger(-intVal - 1))
+    BitStream_EncodeNonNegativeIntegerNeg(pBitStrm, -intVal - 1, true)
 
   CHECK_BIT_STREAM(pBitStrm)
 }
@@ -355,7 +355,7 @@ def Acn_Dec_Int_TwosComplement_ConstSize(pBitStrm: BitStream, encodedSizeInBits:
       case Some(ub) =>
         pIntVal = (pIntVal << rstBits) | ub
 
-  return Some(pIntVal)
+  Some(pIntVal)
 }
 
 
@@ -429,7 +429,7 @@ def Acn_Dec_Int_TwosComplement_VarSize_LengthEmbedded(pBitStrm: BitStream): Opti
   var isNegative: Boolean = false
 
   BitStream_ReadByte(pBitStrm) match
-    case None => return None
+    case None => None
     case Some(nBytes) =>
       var i: Int = 0
       while i < nBytes do
@@ -469,7 +469,7 @@ def Acn_Enc_Int_BCD_ConstSize(pBitStrm: BitStream, intVal: ULong, encodedSizeInN
   var totalNibbles: Int = 0
   val tmp: Array[Char] = Array.fill(100)(0)
 
-  assert(100 >= encodedSizeInNibbles);
+  assert(100 >= encodedSizeInNibbles)
 
   while intVar > 0 do
     tmp(totalNibbles) = (intVar % 10).toChar
@@ -563,7 +563,7 @@ def Acn_Enc_UInt_ASCII_ConstSize(pBitStrm: BitStream, intVal: ULong, encodedSize
   var totalNibbles: Int = 0
   val tmp: Array[Char] = Array.fill(100)(0)
 
-  assert(100 >= encodedSizeInBytes);
+  assert(100 >= encodedSizeInBytes)
 
   while intVar > 0 do
     tmp(totalNibbles) = (intVar % 10).toChar
@@ -651,7 +651,7 @@ def getIntegerDigits (intVal: ULong): (Array[Byte], Byte) = {
     digitsArray100(0) = '0'
     totalDigits = 1
 
-  return (digitsArray100, totalDigits)
+  (digitsArray100, totalDigits)
 }
 
 
@@ -824,7 +824,7 @@ def Acn_Dec_SInt_ASCII_VarSize_NullTerminated(pBitStrm: BitStream, null_characte
 def BitStream_ReadBitPattern(pBitStrm: BitStream, patternToRead: Array[Byte], nBitsToRead: Int): Option[Boolean] =
 {
   val nBytesToRead: Int = nBitsToRead / 8
-  val nRemainingBitsToRead: Int = nBitsToRead % 8;
+  val nRemainingBitsToRead: Int = nBitsToRead % 8
 
   var pBoolValue: Boolean = true
   var i: Int = 0
@@ -1292,7 +1292,7 @@ def Acn_Dec_String_CharIndex_External_Field_Determinant (pBitStrm: BitStream, ma
 def Acn_Dec_String_CharIndex_Internal_Field_Determinant (pBitStrm: BitStream, max: Long, allowedCharSet: Array[Byte], min: Long): Option[Array[Char]] =
 {
   BitStream_DecodeConstraintWholeNumber(pBitStrm, min, max) match
-    case None => return None
+    case None => None
     case Some(nCount) =>
       Acn_Dec_String_CharIndex_private(pBitStrm, max, if nCount <= max then nCount else max, allowedCharSet)
 }
@@ -1356,607 +1356,522 @@ def Acn_Dec_Length(pBitStrm: BitStream, lengthSizeInBits: Int): Option[ULong] =
   Acn_Dec_Int_PositiveInteger_ConstSize(pBitStrm, lengthSizeInBits)
 }
 
-/*
-asn1SccSint milbus_encode (asn1SccSint
-val)
+def milbus_encode(v: Long): Long =
 {
-  return
-  val ==
-  32 ? 0:
-  val;
+  if v == 32 then 0 else v
 }
 
-asn1SccSint milbus_decode (asn1SccSint
-val)
+def milbus_decode(v: Long): Long =
 {
-  return
-  val ==
-  0 ? 32:
-  val;
+  if v == 0 then 32 else v
 }
 
 
-flag Acn_Dec_Int_PositiveInteger_ConstSizeUInt8 (pBitStrm: BitStream, uint8_t * pIntVal, encodedSizeInBits: Int) {
-  asn1SccUint v;
-  flag ret = Acn_Dec_Int_PositiveInteger_ConstSize(pBitStrm, & v, encodedSizeInBits);
-  * pIntVal = (uint8_t) v;
-  return ret;
+def Acn_Dec_Int_PositiveInteger_ConstSizeUInt8 (pBitStrm: BitStream, encodedSizeInBits: Int): Option[UByte] = {
+  Acn_Dec_Int_PositiveInteger_ConstSize(pBitStrm, encodedSizeInBits) match
+    case None => None
+    case Some(v) => Some(v.toByte)
 }
 
 
-flag Acn_Dec_Int_PositiveInteger_ConstSizeUInt16 (pBitStrm: BitStream, uint16_t * pIntVal, encodedSizeInBits: Int) {
-  asn1SccUint v;
-  flag ret = Acn_Dec_Int_PositiveInteger_ConstSize(pBitStrm, & v, encodedSizeInBits);
-  * pIntVal = (uint16_t) v;
-  return ret;
+def Acn_Dec_Int_PositiveInteger_ConstSizeUInt16 (pBitStrm: BitStream, encodedSizeInBits: Int): Option[UShort] = {
+  Acn_Dec_Int_PositiveInteger_ConstSize(pBitStrm, encodedSizeInBits) match
+    case None => None
+    case Some(v) => Some(v.toShort)
 }
 
 
-flag Acn_Dec_Int_PositiveInteger_ConstSizeUInt32 (pBitStrm: BitStream, uint32_t * pIntVal, encodedSizeInBits: Int) {
-  asn1SccUint v;
-  flag ret = Acn_Dec_Int_PositiveInteger_ConstSize(pBitStrm, & v, encodedSizeInBits);
-  * pIntVal = (uint32_t) v;
-  return ret;
+def Acn_Dec_Int_PositiveInteger_ConstSizeUInt32 (pBitStrm: BitStream, encodedSizeInBits: Int): Option[UInt] = {
+  Acn_Dec_Int_PositiveInteger_ConstSize(pBitStrm, encodedSizeInBits) match
+    case None => None
+    case Some(v) => Some(v.toInt)
 }
 
-
-flag Acn_Dec_Int_PositiveInteger_ConstSize_8UInt8 (pBitStrm: BitStream, uint8_t * pIntVal) {
-  asn1SccUint v;
-  flag ret = Acn_Dec_Int_PositiveInteger_ConstSize_8(pBitStrm, & v);
-  * pIntVal = (uint8_t) v;
-  return ret;
+def Acn_Dec_Int_PositiveInteger_ConstSize_8UInt8 (pBitStrm: BitStream): Option[UByte] =  {
+  Acn_Dec_Int_PositiveInteger_ConstSize_8(pBitStrm) match
+    case None => None
+    case Some(v) => Some(v.toByte)
 }
 
 
-flag Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_16UInt16 (pBitStrm: BitStream, uint16_t * pIntVal) {
-  asn1SccUint v;
-  flag ret = Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_16(pBitStrm, & v);
-  * pIntVal = (uint16_t) v;
-  return ret;
+def Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_16UInt16 (pBitStrm: BitStream): Option[UShort] =  {
+  Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_16(pBitStrm) match
+    case None => None
+    case Some(v) => Some(v.toShort)
 }
 
 
-flag Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_16UInt8 (pBitStrm: BitStream, uint8_t * pIntVal) {
-  asn1SccUint v;
-  flag ret = Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_16(pBitStrm, & v);
-  * pIntVal = (uint8_t) v;
-  return ret;
+def Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_16UInt8 (pBitStrm: BitStream): Option[UByte] =  {
+  Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_16(pBitStrm) match
+    case None => None
+    case Some(v) => Some(v.toByte)
 }
 
 
-flag Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_32UInt32 (pBitStrm: BitStream, uint32_t * pIntVal) {
-  asn1SccUint v;
-  flag ret = Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_32(pBitStrm, & v);
-  * pIntVal = (uint32_t) v;
-  return ret;
+def Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_32UInt32 (pBitStrm: BitStream): Option[UInt] =  {
+  Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_32(pBitStrm) match
+    case None => None
+    case Some(v) => Some(v.toInt)
 }
 
 
-flag Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_32UInt16 (pBitStrm: BitStream, uint16_t * pIntVal) {
-  asn1SccUint v;
-  flag ret = Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_32(pBitStrm, & v);
-  * pIntVal = (uint16_t) v;
-  return ret;
+def Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_32UInt16 (pBitStrm: BitStream): Option[UShort] =  {
+  Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_32(pBitStrm) match
+    case None => None
+    case Some(v) => Some(v.toShort)
 }
-
 
-flag Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_32UInt8 (pBitStrm: BitStream, uint8_t * pIntVal) {
-  asn1SccUint v;
-  flag ret = Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_32(pBitStrm, & v);
-  * pIntVal = (uint8_t) v;
-  return ret;
+def Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_32UInt8 (pBitStrm: BitStream): Option[UByte] = {
+  Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_32(pBitStrm) match
+    case None => None
+    case Some(v) => Some(v.toByte)
 }
 
 
-flag Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_64UInt32 (pBitStrm: BitStream, uint32_t * pIntVal) {
-  asn1SccUint v;
-  flag ret = Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_64(pBitStrm, & v);
-  * pIntVal = (uint32_t) v;
-  return ret;
+def Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_64UInt32 (pBitStrm: BitStream): Option[UInt] =  {
+  Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_64(pBitStrm) match
+    case None => None
+    case Some(v) => Some(v.toInt)
 }
 
 
-flag Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_64UInt16 (pBitStrm: BitStream, uint16_t * pIntVal) {
-  asn1SccUint v;
-  flag ret = Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_64(pBitStrm, & v);
-  * pIntVal = (uint16_t) v;
-  return ret;
+def Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_64UInt16 (pBitStrm: BitStream): Option[UShort] =  {
+  Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_64(pBitStrm) match
+    case None => None
+    case Some(v) => Some(v.toShort)
 }
 
 
-flag Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_64UInt8 (pBitStrm: BitStream, uint8_t * pIntVal) {
-  asn1SccUint v;
-  flag ret = Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_64(pBitStrm, & v);
-  * pIntVal = (uint8_t) v;
-  return ret;
+def Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_64UInt8 (pBitStrm: BitStream): Option[UByte] =  {
+  Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_64(pBitStrm) match
+    case None => None
+    case Some(v) => Some(v.toByte)
 }
 
 
-flag Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_16UInt16 (pBitStrm: BitStream, uint16_t * pIntVal) {
-  asn1SccUint v;
-  flag ret = Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_16(pBitStrm, & v);
-  * pIntVal = (uint16_t) v;
-  return ret;
+def Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_16UInt16 (pBitStrm: BitStream): Option[UShort] =  {
+  Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_16(pBitStrm) match
+    case None => None
+    case Some(v) => Some(v.toShort)
 }
 
 
-flag Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_16UInt8 (pBitStrm: BitStream, uint8_t * pIntVal) {
-  asn1SccUint v;
-  flag ret = Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_16(pBitStrm, & v);
-  * pIntVal = (uint8_t) v;
-  return ret;
+def Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_16UInt8 (pBitStrm: BitStream): Option[UByte] =  {
+  Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_16(pBitStrm) match
+    case None => None
+    case Some(v) => Some(v.toByte)
 }
 
 
-flag Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_32UInt32 (pBitStrm: BitStream, uint32_t * pIntVal) {
-  asn1SccUint v;
-  flag ret = Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_32(pBitStrm, & v);
-  * pIntVal = (uint32_t) v;
-  return ret;
+def Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_32UInt32 (pBitStrm: BitStream): Option[UInt] =  {
+  Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_32(pBitStrm) match
+    case None => None
+    case Some(v) => Some(v.toInt)
 }
 
 
-flag Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_32UInt16 (pBitStrm: BitStream, uint16_t * pIntVal) {
-  asn1SccUint v;
-  flag ret = Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_32(pBitStrm, & v);
-  * pIntVal = (uint16_t) v;
-  return ret;
+def Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_32UInt16 (pBitStrm: BitStream): Option[UShort] =  {
+  Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_32(pBitStrm) match
+    case None => None
+    case Some(v) => Some(v.toShort)
 }
 
 
-flag Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_32UInt8 (pBitStrm: BitStream, uint8_t * pIntVal) {
-  asn1SccUint v;
-  flag ret = Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_32(pBitStrm, & v);
-  * pIntVal = (uint8_t) v;
-  return ret;
+def Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_32UInt8 (pBitStrm: BitStream): Option[UByte] =  {
+  Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_32(pBitStrm) match
+    case None => None
+    case Some(v) => Some(v.toByte)
 }
 
 
-flag Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_64UInt32 (pBitStrm: BitStream, uint32_t * pIntVal) {
-  asn1SccUint v;
-  flag ret = Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_64(pBitStrm, & v);
-  * pIntVal = (uint32_t) v;
-  return ret;
+def Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_64UInt32 (pBitStrm: BitStream): Option[UInt] =  {
+  Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_64(pBitStrm) match
+    case None => None
+    case Some(v) => Some(v.toInt)
 }
 
 
-flag Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_64UInt16 (pBitStrm: BitStream, uint16_t * pIntVal) {
-  asn1SccUint v;
-  flag ret = Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_64(pBitStrm, & v);
-  * pIntVal = (uint16_t) v;
-  return ret;
+def Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_64UInt16 (pBitStrm: BitStream): Option[UShort] =  {
+  Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_64(pBitStrm) match
+    case None => None
+    case Some(v) => Some(v.toShort)
 }
 
 
-flag Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_64UInt8 (pBitStrm: BitStream, uint8_t * pIntVal) {
-  asn1SccUint v;
-  flag ret = Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_64(pBitStrm, & v);
-  * pIntVal = (uint8_t) v;
-  return ret;
+def Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_64UInt8 (pBitStrm: BitStream): Option[UByte] =  {
+  Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_64(pBitStrm) match
+    case None => None
+    case Some(v) => Some(v.toByte)
 }
 
 
-flag Acn_Dec_Int_PositiveInteger_VarSize_LengthEmbeddedUInt8 (pBitStrm: BitStream, uint8_t * pIntVal) {
-  asn1SccUint v;
-  flag ret = Acn_Dec_Int_PositiveInteger_VarSize_LengthEmbedded(pBitStrm, & v);
-  * pIntVal = (uint8_t) v;
-  return ret;
+def Acn_Dec_Int_PositiveInteger_VarSize_LengthEmbeddedUInt8 (pBitStrm: BitStream): Option[UByte] =  {
+  Acn_Dec_Int_PositiveInteger_VarSize_LengthEmbedded(pBitStrm) match
+    case None => None
+    case Some(v) => Some(v.toByte)
 }
 
 
-flag Acn_Dec_Int_PositiveInteger_VarSize_LengthEmbeddedUInt16 (pBitStrm: BitStream, uint16_t * pIntVal) {
-  asn1SccUint v;
-  flag ret = Acn_Dec_Int_PositiveInteger_VarSize_LengthEmbedded(pBitStrm, & v);
-  * pIntVal = (uint16_t) v;
-  return ret;
+def Acn_Dec_Int_PositiveInteger_VarSize_LengthEmbeddedUInt16 (pBitStrm: BitStream): Option[UShort] =  {
+  Acn_Dec_Int_PositiveInteger_VarSize_LengthEmbedded(pBitStrm) match
+    case None => None
+    case Some(v) => Some(v.toShort)
 }
 
 
-flag Acn_Dec_Int_PositiveInteger_VarSize_LengthEmbeddedUInt32 (pBitStrm: BitStream, uint32_t * pIntVal) {
-  asn1SccUint v;
-  flag ret = Acn_Dec_Int_PositiveInteger_VarSize_LengthEmbedded(pBitStrm, & v);
-  * pIntVal = (uint32_t) v;
-  return ret;
+def Acn_Dec_Int_PositiveInteger_VarSize_LengthEmbeddedUInt32 (pBitStrm: BitStream): Option[UInt] =  {
+  Acn_Dec_Int_PositiveInteger_VarSize_LengthEmbedded(pBitStrm) match
+    case None => None
+    case Some(v) => Some(v.toInt)
 }
 
 
-flag Acn_Dec_Int_TwosComplement_ConstSizeInt8 (pBitStrm: BitStream, int8_t * pIntVal, encodedSizeInBits: Int) {
-  asn1SccSint v;
-  flag ret = Acn_Dec_Int_TwosComplement_ConstSize(pBitStrm, & v, encodedSizeInBits);
-  * pIntVal = (int8_t) v;
-  return ret;
+def Acn_Dec_Int_TwosComplement_ConstSizeInt8 (pBitStrm: BitStream, encodedSizeInBits: Int): Option[Byte] = {
+  Acn_Dec_Int_TwosComplement_ConstSize(pBitStrm, encodedSizeInBits) match
+    case None => None
+    case Some(v) => Some(v.toByte)
 }
 
 
-flag Acn_Dec_Int_TwosComplement_ConstSizeInt16 (pBitStrm: BitStream, int16_t * pIntVal, encodedSizeInBits: Int) {
-  asn1SccSint v;
-  flag ret = Acn_Dec_Int_TwosComplement_ConstSize(pBitStrm, & v, encodedSizeInBits);
-  * pIntVal = (int16_t) v;
-  return ret;
+def Acn_Dec_Int_TwosComplement_ConstSizeInt16 (pBitStrm: BitStream, encodedSizeInBits: Int): Option[Short] = {
+  Acn_Dec_Int_TwosComplement_ConstSize(pBitStrm, encodedSizeInBits) match
+    case None => None
+    case Some(v) => Some(v.toShort)
 }
 
 
-flag Acn_Dec_Int_TwosComplement_ConstSizeInt32 (pBitStrm: BitStream, int32_t * pIntVal, encodedSizeInBits: Int) {
-  asn1SccSint v;
-  flag ret = Acn_Dec_Int_TwosComplement_ConstSize(pBitStrm, & v, encodedSizeInBits);
-  * pIntVal = (int32_t) v;
-  return ret;
+def Acn_Dec_Int_TwosComplement_ConstSizeInt32 (pBitStrm: BitStream, encodedSizeInBits: Int): Option[Int] = {
+  Acn_Dec_Int_TwosComplement_ConstSize(pBitStrm, encodedSizeInBits) match
+    case None => None
+    case Some(v) => Some(v.toInt)
 }
 
 
-flag Acn_Dec_Int_TwosComplement_ConstSize_8Int8 (pBitStrm: BitStream, int8_t * pIntVal) {
-  asn1SccSint v;
-  flag ret = Acn_Dec_Int_TwosComplement_ConstSize_8(pBitStrm, & v);
-  * pIntVal = (int8_t) v;
-  return ret;
+def Acn_Dec_Int_TwosComplement_ConstSize_8Int8 (pBitStrm: BitStream): Option[Byte] = {
+  Acn_Dec_Int_TwosComplement_ConstSize_8(pBitStrm) match
+    case None => None
+    case Some(v) => Some(v.toByte)
 }
 
 
-flag Acn_Dec_Int_TwosComplement_ConstSize_big_endian_16Int16 (pBitStrm: BitStream, int16_t * pIntVal) {
-  asn1SccSint v;
-  flag ret = Acn_Dec_Int_TwosComplement_ConstSize_big_endian_16(pBitStrm, & v);
-  * pIntVal = (int16_t) v;
-  return ret;
+def Acn_Dec_Int_TwosComplement_ConstSize_big_endian_16Int16 (pBitStrm: BitStream): Option[Short] = {
+  Acn_Dec_Int_TwosComplement_ConstSize_big_endian_16(pBitStrm) match
+    case None => None
+    case Some(v) => Some(v.toShort)
 }
 
 
-flag Acn_Dec_Int_TwosComplement_ConstSize_big_endian_16Int8 (pBitStrm: BitStream, int8_t * pIntVal) {
-  asn1SccSint v;
-  flag ret = Acn_Dec_Int_TwosComplement_ConstSize_big_endian_16(pBitStrm, & v);
-  * pIntVal = (int8_t) v;
-  return ret;
+def Acn_Dec_Int_TwosComplement_ConstSize_big_endian_16Int8 (pBitStrm: BitStream): Option[Byte] = {
+  Acn_Dec_Int_TwosComplement_ConstSize_big_endian_16(pBitStrm) match
+    case None => None
+    case Some(v) => Some(v.toByte)
 }
 
 
-flag Acn_Dec_Int_TwosComplement_ConstSize_big_endian_32Int32 (pBitStrm: BitStream, int32_t * pIntVal) {
-  asn1SccSint v;
-  flag ret = Acn_Dec_Int_TwosComplement_ConstSize_big_endian_32(pBitStrm, & v);
-  * pIntVal = (int32_t) v;
-  return ret;
+def Acn_Dec_Int_TwosComplement_ConstSize_big_endian_32Int32 (pBitStrm: BitStream): Option[Int] = {
+  Acn_Dec_Int_TwosComplement_ConstSize_big_endian_32(pBitStrm) match
+    case None => None
+    case Some(v) => Some(v.toInt)
 }
 
 
-flag Acn_Dec_Int_TwosComplement_ConstSize_big_endian_32Int16 (pBitStrm: BitStream, int16_t * pIntVal) {
-  asn1SccSint v;
-  flag ret = Acn_Dec_Int_TwosComplement_ConstSize_big_endian_32(pBitStrm, & v);
-  * pIntVal = (int16_t) v;
-  return ret;
+def Acn_Dec_Int_TwosComplement_ConstSize_big_endian_32Int16 (pBitStrm: BitStream): Option[Short] = {
+  Acn_Dec_Int_TwosComplement_ConstSize_big_endian_32(pBitStrm) match
+    case None => None
+    case Some(v) => Some(v.toShort)
 }
 
 
-flag Acn_Dec_Int_TwosComplement_ConstSize_big_endian_32Int8 (pBitStrm: BitStream, int8_t * pIntVal) {
-  asn1SccSint v;
-  flag ret = Acn_Dec_Int_TwosComplement_ConstSize_big_endian_32(pBitStrm, & v);
-  * pIntVal = (int8_t) v;
-  return ret;
+def Acn_Dec_Int_TwosComplement_ConstSize_big_endian_32Int8 (pBitStrm: BitStream): Option[Byte] = {
+  Acn_Dec_Int_TwosComplement_ConstSize_big_endian_32(pBitStrm) match
+    case None => None
+    case Some(v) => Some(v.toByte)
 }
 
 
-flag Acn_Dec_Int_TwosComplement_ConstSize_big_endian_64Int32 (pBitStrm: BitStream, int32_t * pIntVal) {
-  asn1SccSint v;
-  flag ret = Acn_Dec_Int_TwosComplement_ConstSize_big_endian_64(pBitStrm, & v);
-  * pIntVal = (int32_t) v;
-  return ret;
+def Acn_Dec_Int_TwosComplement_ConstSize_big_endian_64Int32 (pBitStrm: BitStream): Option[Int] = {
+  Acn_Dec_Int_TwosComplement_ConstSize_big_endian_64(pBitStrm) match
+    case None => None
+    case Some(v) => Some(v.toInt)
 }
 
 
-flag Acn_Dec_Int_TwosComplement_ConstSize_big_endian_64Int16 (pBitStrm: BitStream, int16_t * pIntVal) {
-  asn1SccSint v;
-  flag ret = Acn_Dec_Int_TwosComplement_ConstSize_big_endian_64(pBitStrm, & v);
-  * pIntVal = (int16_t) v;
-  return ret;
+def Acn_Dec_Int_TwosComplement_ConstSize_big_endian_64Int16 (pBitStrm: BitStream): Option[Short] = {
+  Acn_Dec_Int_TwosComplement_ConstSize_big_endian_64(pBitStrm) match
+    case None => None
+    case Some(v) => Some(v.toShort)
 }
 
 
-flag Acn_Dec_Int_TwosComplement_ConstSize_big_endian_64Int8 (pBitStrm: BitStream, int8_t * pIntVal) {
-  asn1SccSint v;
-  flag ret = Acn_Dec_Int_TwosComplement_ConstSize_big_endian_64(pBitStrm, & v);
-  * pIntVal = (int8_t) v;
-  return ret;
+def Acn_Dec_Int_TwosComplement_ConstSize_big_endian_64Int8 (pBitStrm: BitStream): Option[Byte] = {
+  Acn_Dec_Int_TwosComplement_ConstSize_big_endian_64(pBitStrm) match
+    case None => None
+    case Some(v) => Some(v.toByte)
 }
 
 
-flag Acn_Dec_Int_TwosComplement_ConstSize_little_endian_16Int16 (pBitStrm: BitStream, int16_t * pIntVal) {
-  asn1SccSint v;
-  flag ret = Acn_Dec_Int_TwosComplement_ConstSize_little_endian_16(pBitStrm, & v);
-  * pIntVal = (int16_t) v;
-  return ret;
+def Acn_Dec_Int_TwosComplement_ConstSize_little_endian_16Int16 (pBitStrm: BitStream): Option[Short] = {
+  Acn_Dec_Int_TwosComplement_ConstSize_little_endian_16(pBitStrm) match
+    case None => None
+    case Some(v) => Some(v.toShort)
 }
 
 
-flag Acn_Dec_Int_TwosComplement_ConstSize_little_endian_16Int8 (pBitStrm: BitStream, int8_t * pIntVal) {
-  asn1SccSint v;
-  flag ret = Acn_Dec_Int_TwosComplement_ConstSize_little_endian_16(pBitStrm, & v);
-  * pIntVal = (int8_t) v;
-  return ret;
+def Acn_Dec_Int_TwosComplement_ConstSize_little_endian_16Int8 (pBitStrm: BitStream): Option[Byte] = {
+  Acn_Dec_Int_TwosComplement_ConstSize_little_endian_16(pBitStrm) match
+    case None => None
+    case Some(v) => Some(v.toByte)
 }
 
 
-flag Acn_Dec_Int_TwosComplement_ConstSize_little_endian_32Int32 (pBitStrm: BitStream, int32_t * pIntVal) {
-  asn1SccSint v;
-  flag ret = Acn_Dec_Int_TwosComplement_ConstSize_little_endian_32(pBitStrm, & v);
-  * pIntVal = (int32_t) v;
-  return ret;
+def Acn_Dec_Int_TwosComplement_ConstSize_little_endian_32Int32 (pBitStrm: BitStream): Option[Int] = {
+  Acn_Dec_Int_TwosComplement_ConstSize_little_endian_32(pBitStrm) match
+    case None => None
+    case Some(v) => Some(v.toInt)
 }
 
 
-flag Acn_Dec_Int_TwosComplement_ConstSize_little_endian_32Int16 (pBitStrm: BitStream, int16_t * pIntVal) {
-  asn1SccSint v;
-  flag ret = Acn_Dec_Int_TwosComplement_ConstSize_little_endian_32(pBitStrm, & v);
-  * pIntVal = (int16_t) v;
-  return ret;
+def Acn_Dec_Int_TwosComplement_ConstSize_little_endian_32Int16 (pBitStrm: BitStream): Option[Short] = {
+  Acn_Dec_Int_TwosComplement_ConstSize_little_endian_32(pBitStrm) match
+    case None => None
+    case Some(v) => Some(v.toShort)
 }
 
 
-flag Acn_Dec_Int_TwosComplement_ConstSize_little_endian_32Int8 (pBitStrm: BitStream, int8_t * pIntVal) {
-  asn1SccSint v;
-  flag ret = Acn_Dec_Int_TwosComplement_ConstSize_little_endian_32(pBitStrm, & v);
-  * pIntVal = (int8_t) v;
-  return ret;
+def Acn_Dec_Int_TwosComplement_ConstSize_little_endian_32Int8 (pBitStrm: BitStream): Option[Byte] = {
+  Acn_Dec_Int_TwosComplement_ConstSize_little_endian_32(pBitStrm) match
+    case None => None
+    case Some(v) => Some(v.toByte)
 }
 
 
-flag Acn_Dec_Int_TwosComplement_ConstSize_little_endian_64Int32 (pBitStrm: BitStream, int32_t * pIntVal) {
-  asn1SccSint v;
-  flag ret = Acn_Dec_Int_TwosComplement_ConstSize_little_endian_64(pBitStrm, & v);
-  * pIntVal = (int32_t) v;
-  return ret;
+def Acn_Dec_Int_TwosComplement_ConstSize_little_endian_64Int32 (pBitStrm: BitStream): Option[Int] = {
+  Acn_Dec_Int_TwosComplement_ConstSize_little_endian_64(pBitStrm) match
+    case None => None
+    case Some(v) => Some(v.toInt)
 }
 
 
-flag Acn_Dec_Int_TwosComplement_ConstSize_little_endian_64Int16 (pBitStrm: BitStream, int16_t * pIntVal) {
-  asn1SccSint v;
-  flag ret = Acn_Dec_Int_TwosComplement_ConstSize_little_endian_64(pBitStrm, & v);
-  * pIntVal = (int16_t) v;
-  return ret;
+def Acn_Dec_Int_TwosComplement_ConstSize_little_endian_64Int16 (pBitStrm: BitStream): Option[Short] = {
+  Acn_Dec_Int_TwosComplement_ConstSize_little_endian_64(pBitStrm) match
+    case None => None
+    case Some(v) => Some(v.toShort)
 }
 
 
-flag Acn_Dec_Int_TwosComplement_ConstSize_little_endian_64Int8 (pBitStrm: BitStream, int8_t * pIntVal) {
-  asn1SccSint v;
-  flag ret = Acn_Dec_Int_TwosComplement_ConstSize_little_endian_64(pBitStrm, & v);
-  * pIntVal = (int8_t) v;
-  return ret;
+def Acn_Dec_Int_TwosComplement_ConstSize_little_endian_64Int8 (pBitStrm: BitStream): Option[Byte] = {
+  Acn_Dec_Int_TwosComplement_ConstSize_little_endian_64(pBitStrm) match
+    case None => None
+    case Some(v) => Some(v.toByte)
 }
 
 
-flag Acn_Dec_Int_TwosComplement_VarSize_LengthEmbeddedInt8 (pBitStrm: BitStream, int8_t * pIntVal) {
-  asn1SccSint v;
-  flag ret = Acn_Dec_Int_TwosComplement_VarSize_LengthEmbedded(pBitStrm, & v);
-  * pIntVal = (int8_t) v;
-  return ret;
+def Acn_Dec_Int_TwosComplement_VarSize_LengthEmbeddedInt8 (pBitStrm: BitStream): Option[Byte] = {
+  Acn_Dec_Int_TwosComplement_VarSize_LengthEmbedded(pBitStrm) match
+    case None => None
+    case Some(v) => Some(v.toByte)
 }
 
 
-flag Acn_Dec_Int_TwosComplement_VarSize_LengthEmbeddedInt16 (pBitStrm: BitStream, int16_t * pIntVal) {
-  asn1SccSint v;
-  flag ret = Acn_Dec_Int_TwosComplement_VarSize_LengthEmbedded(pBitStrm, & v);
-  * pIntVal = (int16_t) v;
-  return ret;
+def Acn_Dec_Int_TwosComplement_VarSize_LengthEmbeddedInt16 (pBitStrm: BitStream): Option[Short] = {
+  Acn_Dec_Int_TwosComplement_VarSize_LengthEmbedded(pBitStrm) match
+    case None => None
+    case Some(v) => Some(v.toShort)
 }
 
 
-flag Acn_Dec_Int_TwosComplement_VarSize_LengthEmbeddedInt32 (pBitStrm: BitStream, int32_t * pIntVal) {
-  asn1SccSint v;
-  flag ret = Acn_Dec_Int_TwosComplement_VarSize_LengthEmbedded(pBitStrm, & v);
-  * pIntVal = (int32_t) v;
-  return ret;
+def Acn_Dec_Int_TwosComplement_VarSize_LengthEmbeddedInt32 (pBitStrm: BitStream): Option[Int] = {
+  Acn_Dec_Int_TwosComplement_VarSize_LengthEmbedded(pBitStrm) match
+    case None => None
+    case Some(v) => Some(v.toInt)
 }
 
 
-flag Acn_Dec_Int_BCD_ConstSizeUInt8 (pBitStrm: BitStream, uint8_t * pIntVal, int encodedSizeInNibbles) {
-  asn1SccUint v;
-  flag ret = Acn_Dec_Int_BCD_ConstSize(pBitStrm, & v, encodedSizeInNibbles);
-  * pIntVal = (uint8_t) v;
-  return ret;
+def Acn_Dec_Int_BCD_ConstSizeUInt8 (pBitStrm: BitStream, encodedSizeInNibbles: Int): Option[UByte] = {
+  Acn_Dec_Int_BCD_ConstSize(pBitStrm, encodedSizeInNibbles) match
+    case None => None
+    case Some(v) => Some(v.toByte)
 }
 
 
-flag Acn_Dec_Int_BCD_ConstSizeUInt16 (pBitStrm: BitStream, uint16_t * pIntVal, int encodedSizeInNibbles) {
-  asn1SccUint v;
-  flag ret = Acn_Dec_Int_BCD_ConstSize(pBitStrm, & v, encodedSizeInNibbles);
-  * pIntVal = (uint16_t) v;
-  return ret;
+def Acn_Dec_Int_BCD_ConstSizeUInt16 (pBitStrm: BitStream, encodedSizeInNibbles: Int): Option[UShort] = {
+  Acn_Dec_Int_BCD_ConstSize(pBitStrm, encodedSizeInNibbles) match
+    case None => None
+    case Some(v) => Some(v.toShort)
 }
 
 
-flag Acn_Dec_Int_BCD_ConstSizeUInt32 (pBitStrm: BitStream, uint32_t * pIntVal, int encodedSizeInNibbles) {
-  asn1SccUint v;
-  flag ret = Acn_Dec_Int_BCD_ConstSize(pBitStrm, & v, encodedSizeInNibbles);
-  * pIntVal = (uint32_t) v;
-  return ret;
+def Acn_Dec_Int_BCD_ConstSizeUInt32 (pBitStrm: BitStream, encodedSizeInNibbles: Int): Option[UInt] = {
+  Acn_Dec_Int_BCD_ConstSize(pBitStrm, encodedSizeInNibbles) match
+    case None => None
+    case Some(v) => Some(v.toInt)
 }
 
 
-flag Acn_Dec_Int_BCD_VarSize_LengthEmbeddedUInt8 (pBitStrm: BitStream, uint8_t * pIntVal) {
-  asn1SccUint v;
-  flag ret = Acn_Dec_Int_BCD_VarSize_LengthEmbedded(pBitStrm, & v);
-  * pIntVal = (uint8_t) v;
-  return ret;
+def Acn_Dec_Int_BCD_VarSize_LengthEmbeddedUInt8 (pBitStrm: BitStream): Option[UByte] = {
+  Acn_Dec_Int_BCD_VarSize_LengthEmbedded(pBitStrm) match
+    case None => None
+    case Some(v) => Some(v.toByte)
 }
 
 
-flag Acn_Dec_Int_BCD_VarSize_LengthEmbeddedUInt16 (pBitStrm: BitStream, uint16_t * pIntVal) {
-  asn1SccUint v;
-  flag ret = Acn_Dec_Int_BCD_VarSize_LengthEmbedded(pBitStrm, & v);
-  * pIntVal = (uint16_t) v;
-  return ret;
+def Acn_Dec_Int_BCD_VarSize_LengthEmbeddedUInt16 (pBitStrm: BitStream): Option[UShort] = {
+  Acn_Dec_Int_BCD_VarSize_LengthEmbedded(pBitStrm) match
+    case None => None
+    case Some(v) => Some(v.toShort)
 }
 
 
-flag Acn_Dec_Int_BCD_VarSize_LengthEmbeddedUInt32 (pBitStrm: BitStream, uint32_t * pIntVal) {
-  asn1SccUint v;
-  flag ret = Acn_Dec_Int_BCD_VarSize_LengthEmbedded(pBitStrm, & v);
-  * pIntVal = (uint32_t) v;
-  return ret;
+def Acn_Dec_Int_BCD_VarSize_LengthEmbeddedUInt32 (pBitStrm: BitStream): Option[UInt] = {
+  Acn_Dec_Int_BCD_VarSize_LengthEmbedded(pBitStrm) match
+    case None => None
+    case Some(v) => Some(v.toInt)
 }
 
 
-flag Acn_Dec_Int_BCD_VarSize_NullTerminatedUInt8 (pBitStrm: BitStream, uint8_t * pIntVal) {
-  asn1SccUint v;
-  flag ret = Acn_Dec_Int_BCD_VarSize_NullTerminated(pBitStrm, & v);
-  * pIntVal = (uint8_t) v;
-  return ret;
+def Acn_Dec_Int_BCD_VarSize_NullTerminatedUInt8 (pBitStrm: BitStream): Option[UByte] = {
+  Acn_Dec_Int_BCD_VarSize_NullTerminated(pBitStrm) match
+    case None => None
+    case Some(v) => Some(v.toByte)
 }
 
 
-flag Acn_Dec_Int_BCD_VarSize_NullTerminatedUInt16 (pBitStrm: BitStream, uint16_t * pIntVal) {
-  asn1SccUint v;
-  flag ret = Acn_Dec_Int_BCD_VarSize_NullTerminated(pBitStrm, & v);
-  * pIntVal = (uint16_t) v;
-  return ret;
+def Acn_Dec_Int_BCD_VarSize_NullTerminatedUInt16 (pBitStrm: BitStream): Option[UShort] = {
+  Acn_Dec_Int_BCD_VarSize_NullTerminated(pBitStrm) match
+    case None => None
+    case Some(v) => Some(v.toShort)
 }
 
 
-flag Acn_Dec_Int_BCD_VarSize_NullTerminatedUInt32 (pBitStrm: BitStream, uint32_t * pIntVal) {
-  asn1SccUint v;
-  flag ret = Acn_Dec_Int_BCD_VarSize_NullTerminated(pBitStrm, & v);
-  * pIntVal = (uint32_t) v;
-  return ret;
+def Acn_Dec_Int_BCD_VarSize_NullTerminatedUInt32 (pBitStrm: BitStream): Option[UInt] = {
+  Acn_Dec_Int_BCD_VarSize_NullTerminated(pBitStrm) match
+    case None => None
+    case Some(v) => Some(v.toInt)
 }
 
 
-flag Acn_Dec_SInt_ASCII_ConstSizeInt8 (pBitStrm: BitStream, int8_t * pIntVal, int encodedSizeInBytes) {
-  asn1SccSint v;
-  flag ret = Acn_Dec_SInt_ASCII_ConstSize(pBitStrm, & v, encodedSizeInBytes);
-  * pIntVal = (int8_t) v;
-  return ret;
+def Acn_Dec_SInt_ASCII_ConstSizeInt8 (pBitStrm: BitStream, encodedSizeInBytes: Int): Option[Byte] = {
+  Acn_Dec_SInt_ASCII_ConstSize(pBitStrm, encodedSizeInBytes) match
+    case None => None
+    case Some(v) => Some(v.toByte)
 }
 
 
-flag Acn_Dec_SInt_ASCII_ConstSizeInt16 (pBitStrm: BitStream, int16_t * pIntVal, int encodedSizeInBytes) {
-  asn1SccSint v;
-  flag ret = Acn_Dec_SInt_ASCII_ConstSize(pBitStrm, & v, encodedSizeInBytes);
-  * pIntVal = (int16_t) v;
-  return ret;
+def Acn_Dec_SInt_ASCII_ConstSizeInt16 (pBitStrm: BitStream, encodedSizeInBytes: Int): Option[Short] = {
+  Acn_Dec_SInt_ASCII_ConstSize(pBitStrm, encodedSizeInBytes) match
+    case None => None
+    case Some(v) => Some(v.toShort)
 }
 
 
-flag Acn_Dec_SInt_ASCII_ConstSizeInt32 (pBitStrm: BitStream, int32_t * pIntVal, int encodedSizeInBytes) {
-  asn1SccSint v;
-  flag ret = Acn_Dec_SInt_ASCII_ConstSize(pBitStrm, & v, encodedSizeInBytes);
-  * pIntVal = (int32_t) v;
-  return ret;
+def Acn_Dec_SInt_ASCII_ConstSizeInt32 (pBitStrm: BitStream, encodedSizeInBytes: Int): Option[Int] = {
+  Acn_Dec_SInt_ASCII_ConstSize(pBitStrm, encodedSizeInBytes) match
+    case None => None
+    case Some(v) => Some(v.toInt)
 }
 
 
-flag Acn_Dec_SInt_ASCII_VarSize_LengthEmbeddedInt8 (pBitStrm: BitStream, int8_t * pIntVal) {
-  asn1SccSint v;
-  flag ret = Acn_Dec_SInt_ASCII_VarSize_LengthEmbedded(pBitStrm, & v);
-  * pIntVal = (int8_t) v;
-  return ret;
+def Acn_Dec_SInt_ASCII_VarSize_LengthEmbeddedInt8 (pBitStrm: BitStream): Option[Byte] = {
+  Acn_Dec_SInt_ASCII_VarSize_LengthEmbedded(pBitStrm) match
+    case None => None
+    case Some(v) => Some(v.toByte)
 }
 
 
-flag Acn_Dec_SInt_ASCII_VarSize_LengthEmbeddedInt16 (pBitStrm: BitStream, int16_t * pIntVal) {
-  asn1SccSint v;
-  flag ret = Acn_Dec_SInt_ASCII_VarSize_LengthEmbedded(pBitStrm, & v);
-  * pIntVal = (int16_t) v;
-  return ret;
+def Acn_Dec_SInt_ASCII_VarSize_LengthEmbeddedInt16 (pBitStrm: BitStream): Option[Short] = {
+  Acn_Dec_SInt_ASCII_VarSize_LengthEmbedded(pBitStrm) match
+    case None => None
+    case Some(v) => Some(v.toShort)
 }
 
 
-flag Acn_Dec_SInt_ASCII_VarSize_LengthEmbeddedInt32 (pBitStrm: BitStream, int32_t * pIntVal) {
-  asn1SccSint v;
-  flag ret = Acn_Dec_SInt_ASCII_VarSize_LengthEmbedded(pBitStrm, & v);
-  * pIntVal = (int32_t) v;
-  return ret;
+def Acn_Dec_SInt_ASCII_VarSize_LengthEmbeddedInt32 (pBitStrm: BitStream): Option[Int] = {
+  Acn_Dec_SInt_ASCII_VarSize_LengthEmbedded(pBitStrm) match
+    case None => None
+    case Some(v) => Some(v.toInt)
 }
 
 
-flag Acn_Dec_SInt_ASCII_VarSize_NullTerminatedInt8 (pBitStrm: BitStream, int8_t * pIntVal, const byte null_characters[], size_t null_characters_size) {
-  asn1SccSint v;
-  flag ret = Acn_Dec_SInt_ASCII_VarSize_NullTerminated(pBitStrm, & v, null_characters, null_characters_size);
-  * pIntVal = (int8_t) v;
-  return ret;
+def Acn_Dec_SInt_ASCII_VarSize_NullTerminatedInt8 (pBitStrm: BitStream, null_characters: Array[Byte], null_characters_size: Int): Option[Byte] = {
+  Acn_Dec_SInt_ASCII_VarSize_NullTerminated(pBitStrm, null_characters, null_characters_size) match
+    case None => None
+    case Some(v) => Some(v.toByte)
 }
 
 
-flag Acn_Dec_SInt_ASCII_VarSize_NullTerminatedInt16 (pBitStrm: BitStream, int16_t * pIntVal, const byte null_characters[], size_t null_characters_size) {
-  asn1SccSint v;
-  flag ret = Acn_Dec_SInt_ASCII_VarSize_NullTerminated(pBitStrm, & v, null_characters, null_characters_size);
-  * pIntVal = (int16_t) v;
-  return ret;
+def Acn_Dec_SInt_ASCII_VarSize_NullTerminatedInt16 (pBitStrm: BitStream, null_characters: Array[Byte], null_characters_size: Int): Option[Short] = {
+  Acn_Dec_SInt_ASCII_VarSize_NullTerminated(pBitStrm, null_characters, null_characters_size) match
+    case None => None
+    case Some(v) => Some(v.toShort)
 }
 
 
-flag Acn_Dec_SInt_ASCII_VarSize_NullTerminatedInt32 (pBitStrm: BitStream, int32_t * pIntVal, const byte null_characters[], size_t null_characters_size) {
-  asn1SccSint v;
-  flag ret = Acn_Dec_SInt_ASCII_VarSize_NullTerminated(pBitStrm, & v, null_characters, null_characters_size);
-  * pIntVal = (int32_t) v;
-  return ret;
+def Acn_Dec_SInt_ASCII_VarSize_NullTerminatedInt32 (pBitStrm: BitStream, null_characters: Array[Byte], null_characters_size: Int): Option[Int] = {
+  Acn_Dec_SInt_ASCII_VarSize_NullTerminated(pBitStrm, null_characters, null_characters_size) match
+    case None => None
+    case Some(v) => Some(v.toInt)
 }
 
 
-flag Acn_Dec_UInt_ASCII_ConstSizeUInt8 (pBitStrm: BitStream, uint8_t * pIntVal, int encodedSizeInBytes) {
-  asn1SccUint v;
-  flag ret = Acn_Dec_UInt_ASCII_ConstSize(pBitStrm, & v, encodedSizeInBytes);
-  * pIntVal = (uint8_t) v;
-  return ret;
+def Acn_Dec_UInt_ASCII_ConstSizeUInt8 (pBitStrm: BitStream, encodedSizeInBytes: Int): Option[UByte] = {
+  Acn_Dec_UInt_ASCII_ConstSize(pBitStrm, encodedSizeInBytes) match
+    case None => None
+    case Some(v) => Some(v.toByte)
 }
 
 
-flag Acn_Dec_UInt_ASCII_ConstSizeUInt16 (pBitStrm: BitStream, uint16_t * pIntVal, int encodedSizeInBytes) {
-  asn1SccUint v;
-  flag ret = Acn_Dec_UInt_ASCII_ConstSize(pBitStrm, & v, encodedSizeInBytes);
-  * pIntVal = (uint16_t) v;
-  return ret;
+def Acn_Dec_UInt_ASCII_ConstSizeUInt16 (pBitStrm: BitStream, encodedSizeInBytes: Int): Option[UShort] = {
+  Acn_Dec_UInt_ASCII_ConstSize(pBitStrm, encodedSizeInBytes) match
+    case None => None
+    case Some(v) => Some(v.toShort)
 }
 
 
-flag Acn_Dec_UInt_ASCII_ConstSizeUInt32 (pBitStrm: BitStream, uint32_t * pIntVal, int encodedSizeInBytes) {
-  asn1SccUint v;
-  flag ret = Acn_Dec_UInt_ASCII_ConstSize(pBitStrm, & v, encodedSizeInBytes);
-  * pIntVal = (uint32_t) v;
-  return ret;
+def Acn_Dec_UInt_ASCII_ConstSizeUInt32 (pBitStrm: BitStream, encodedSizeInBytes: Int): Option[UInt] = {
+  Acn_Dec_UInt_ASCII_ConstSize(pBitStrm, encodedSizeInBytes) match
+    case None => None
+    case Some(v) => Some(v.toInt)
 }
 
 
-flag Acn_Dec_UInt_ASCII_VarSize_LengthEmbeddedUInt8 (pBitStrm: BitStream, uint8_t * pIntVal) {
-  asn1SccUint v;
-  flag ret = Acn_Dec_UInt_ASCII_VarSize_LengthEmbedded(pBitStrm, & v);
-  * pIntVal = (uint8_t) v;
-  return ret;
+def Acn_Dec_UInt_ASCII_VarSize_LengthEmbeddedUInt8 (pBitStrm: BitStream): Option[UByte] = {
+  Acn_Dec_UInt_ASCII_VarSize_LengthEmbedded(pBitStrm) match
+    case None => None
+    case Some(v) => Some(v.toByte)
 }
 
 
-flag Acn_Dec_UInt_ASCII_VarSize_LengthEmbeddedUInt16 (pBitStrm: BitStream, uint16_t * pIntVal) {
-  asn1SccUint v;
-  flag ret = Acn_Dec_UInt_ASCII_VarSize_LengthEmbedded(pBitStrm, & v);
-  * pIntVal = (uint16_t) v;
-  return ret;
+def Acn_Dec_UInt_ASCII_VarSize_LengthEmbeddedUInt16 (pBitStrm: BitStream): Option[UShort] = {
+  Acn_Dec_UInt_ASCII_VarSize_LengthEmbedded(pBitStrm) match
+    case None => None
+    case Some(v) => Some(v.toShort)
 }
 
 
-flag Acn_Dec_UInt_ASCII_VarSize_LengthEmbeddedUInt32 (pBitStrm: BitStream, uint32_t * pIntVal) {
-  asn1SccUint v;
-  flag ret = Acn_Dec_UInt_ASCII_VarSize_LengthEmbedded(pBitStrm, & v);
-  * pIntVal = (uint32_t) v;
-  return ret;
+def Acn_Dec_UInt_ASCII_VarSize_LengthEmbeddedUInt32 (pBitStrm: BitStream): Option[UInt] = {
+  Acn_Dec_UInt_ASCII_VarSize_LengthEmbedded(pBitStrm) match
+    case None => None
+    case Some(v) => Some(v.toInt)
 }
 
 
-flag Acn_Dec_UInt_ASCII_VarSize_NullTerminatedUInt8 (pBitStrm: BitStream, uint8_t * pIntVal, const byte null_characters[], size_t null_characters_size) {
-  asn1SccUint v;
-  flag ret = Acn_Dec_UInt_ASCII_VarSize_NullTerminated(pBitStrm, & v, null_characters, null_characters_size);
-  * pIntVal = (uint8_t) v;
-  return ret;
+def Acn_Dec_UInt_ASCII_VarSize_NullTerminatedUInt8 (pBitStrm: BitStream, null_characters: Array[Byte], null_characters_size: Int): Option[UByte] = {
+  Acn_Dec_UInt_ASCII_VarSize_NullTerminated(pBitStrm, null_characters, null_characters_size) match
+    case None => None
+    case Some(v) => Some(v.toByte)
 }
 
 
-flag Acn_Dec_UInt_ASCII_VarSize_NullTerminatedUInt16 (pBitStrm: BitStream, uint16_t * pIntVal, const byte null_characters[], size_t null_characters_size) {
-  asn1SccUint v;
-  flag ret = Acn_Dec_UInt_ASCII_VarSize_NullTerminated(pBitStrm, & v, null_characters, null_characters_size);
-  * pIntVal = (uint16_t) v;
-  return ret;
+def Acn_Dec_UInt_ASCII_VarSize_NullTerminatedUInt16 (pBitStrm: BitStream, null_characters: Array[Byte], null_characters_size: Int): Option[UShort] = {
+  Acn_Dec_UInt_ASCII_VarSize_NullTerminated(pBitStrm, null_characters, null_characters_size) match
+    case None => None
+    case Some(v) => Some(v.toShort)
 }
 
 
-flag Acn_Dec_UInt_ASCII_VarSize_NullTerminatedUInt32 (pBitStrm: BitStream, uint32_t * pIntVal, const byte null_characters[], size_t null_characters_size) {
-  asn1SccUint v;
-  flag ret = Acn_Dec_UInt_ASCII_VarSize_NullTerminated(pBitStrm, & v, null_characters, null_characters_size);
-  * pIntVal = (uint32_t) v;
-  return ret;
+def Acn_Dec_UInt_ASCII_VarSize_NullTerminatedUInt32 (pBitStrm: BitStream, null_characters: Array[Byte], null_characters_size: Int): Option[UInt] = {
+  Acn_Dec_UInt_ASCII_VarSize_NullTerminated(pBitStrm, null_characters, null_characters_size) match
+    case None => None
+    case Some(v) => Some(v.toInt)
 }
-*/
 
