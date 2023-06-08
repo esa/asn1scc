@@ -467,12 +467,12 @@ def Acn_Enc_Int_BCD_ConstSize(pBitStrm: BitStream, intVal: ULong, encodedSizeInN
 {
   var intVar = intVal
   var totalNibbles: Int = 0
-  val tmp: Array[Byte] = Array.fill(100)(0)
+  val tmp: Array[Char] = Array.fill(100)(0)
 
   assert(100 >= encodedSizeInNibbles);
 
   while intVar > 0 do
-    tmp(totalNibbles) = (intVar % 10).toByte
+    tmp(totalNibbles) = (intVar % 10).toChar
     totalNibbles += 1
     intVar /= 10
 
@@ -480,7 +480,7 @@ def Acn_Enc_Int_BCD_ConstSize(pBitStrm: BitStream, intVal: ULong, encodedSizeInN
 
   var i: Int = encodedSizeInNibbles - 1
   while i >= 0 do
-    BitStream_AppendPartialByte(pBitStrm, tmp(i), 4,false)
+    BitStream_AppendPartialByte(pBitStrm, tmp(i).toByte, 4,false)
     i -= 1
 
   CHECK_BIT_STREAM(pBitStrm)
@@ -561,12 +561,12 @@ def Acn_Enc_UInt_ASCII_ConstSize(pBitStrm: BitStream, intVal: ULong, encodedSize
 {
   var intVar = intVal
   var totalNibbles: Int = 0
-  val tmp: Array[Byte] = Array.fill(100)(0)
+  val tmp: Array[Char] = Array.fill(100)(0)
 
   assert(100 >= encodedSizeInBytes);
 
   while intVar > 0 do
-    tmp(totalNibbles) = (intVar % 10).toByte
+    tmp(totalNibbles) = (intVar % 10).toChar
     totalNibbles += 1
     intVar /= 10
 
@@ -591,205 +591,152 @@ def Acn_Enc_SInt_ASCII_ConstSize(pBitStrm: BitStream, intVal: Long, encodedSizeI
   Acn_Enc_UInt_ASCII_ConstSize(pBitStrm, absIntVal, encodedSizeInBytes-1)
 }
 
-/*
-flag Acn_Dec_UInt_ASCII_ConstSize(pBitStrm: BitStream, asn1SccUint * pIntVal, int encodedSizeInBytes)
+def Acn_Dec_UInt_ASCII_ConstSize(pBitStrm: BitStream, encodedSizeInBytes: Int): Option[ULong] =
 {
-  byte digit;
-  asn1SccUint ret = 0;
+  var encodedSizeInBytesVar = encodedSizeInBytes
+  var ret: ULong = 0
 
-  while (encodedSizeInBytes > 0) {
-    if (!BitStream_ReadByte(pBitStrm, & digit))
-      return FALSE;
-    ASSERT_OR_RETURN_FALSE(digit >= '0' && digit <= '9');
-    digit = (byte)((int) digit -'0');
+  while encodedSizeInBytesVar > 0 do
+    BitStream_ReadByte(pBitStrm) match
+      case None => return None
+      case Some(digit) =>
+        assert(digit >= '0' && digit <= '9')
 
-    ret *= 10;
-    ret += digit;
+        ret *= 10
+        ret += (digit.toInt -'0').toByte
 
-    encodedSizeInBytes --;
-  }
-  * pIntVal = ret;
+    encodedSizeInBytesVar -= 1
 
-  return TRUE;
+  Some(ret)
 }
 
-flag Acn_Dec_SInt_ASCII_ConstSize(pBitStrm: BitStream, asn1SccSint * pIntVal, int encodedSizeInBytes)
+def Acn_Dec_SInt_ASCII_ConstSize(pBitStrm: BitStream, encodedSizeInBytes: Int): Option[Long] =
 {
-  byte digit;
-  asn1SccUint ret = 0;
-  int sign = 1;
+  BitStream_ReadByte(pBitStrm) match
+    case None => None
+    case Some(digit) =>
+      var sign: Int = 1
+      if digit == '+' then
+        sign = 1
+      else if digit == '-' then
+        sign = -1
+      else
+        assert(false)
 
-  if (!BitStream_ReadByte(pBitStrm, & digit))
-    return FALSE;
-  if (digit == '+')
-    sign = 1;
-  else if (digit == '-')
-    sign = -1;
-  else {
-    ASSERT_OR_RETURN_FALSE(0);
-  }
-  encodedSizeInBytes --;
-
-
-  if (!Acn_Dec_UInt_ASCII_ConstSize(pBitStrm, & ret, encodedSizeInBytes)) {
-    return false;
-  }
-
-  * pIntVal = (asn1SccSint) ret;
-
-  * pIntVal = sign * (* pIntVal);
-  return TRUE;
-
+      Acn_Dec_UInt_ASCII_ConstSize(pBitStrm, encodedSizeInBytes - 1) match
+        case None => None
+        case Some(ul) => Some(sign * ul)
 }
 
 
-void getIntegerDigits (intVal: UInt, byte digitsArray100[]
-, byte * totalDigits
-);
+def getIntegerDigits (intVal: ULong): (Array[Byte], Byte) = {
+  var intVar = intVal
+  val digitsArray100: Array[Byte] = Array.fill(100)(0)
+  val reversedDigitsArray: Array[Byte] = Array.fill(100)(0)
+  var totalDigits: Byte = 0
 
-void getIntegerDigits (intVal: UInt, byte digitsArray100[]
-, byte * totalDigits
-) {
-  int i = 0;
-  * totalDigits = 0;
-  byte reversedDigitsArray
-  [
-  100
-  ];
-  memset(reversedDigitsArray, 0x0, 100);
-  memset(digitsArray100, 0x0, 100);
-  if (intVal > 0) {
-    while (intVal > 0 && * totalDigits < 100
-    )
-    {
-      reversedDigitsArray[* totalDigits
-      ] = '0' + (byte)(intVal % 10);
-      (* totalDigits) ++;
-      intVal /= 10;
-    }
-    for (i
-    = * totalDigits -1;
-    i >= 0;
-    i --
-    )
-    {
-      digitsArray100[(* totalDigits -1) - i] = reversedDigitsArray[i];
-    }
-  }
-  else {
-    digitsArray100[0] = '0';
-    * totalDigits = 1;
-  }
+
+  if intVar > 0 then
+    while intVar > 0 && totalDigits < 100 do
+      reversedDigitsArray(totalDigits) = ('0' + (intVar % 10)).toByte
+      totalDigits = (totalDigits + 1).toByte
+      intVar /= 10
+
+    var i: Int = totalDigits -1
+    while i >= 0 do
+      digitsArray100(totalDigits-1 - i) = reversedDigitsArray(i)
+      i -= 1
+
+  else
+    digitsArray100(0) = '0'
+    totalDigits = 1
+
+  return (digitsArray100, totalDigits)
 }
 
 
-void Acn_Enc_SInt_ASCII_VarSize_LengthEmbedded(pBitStrm: BitStream, asn1SccSint intVal)
+def Acn_Enc_SInt_ASCII_VarSize_LengthEmbedded(pBitStrm: BitStream, intVal: Long): Unit =
 {
-  byte digitsArray100
-  [
-  100
-  ];
-  int i = 0;
-  byte nChars;
-  asn1SccUint absIntVal = intVal >= 0 ? (asn1SccUint) intVal: (asn1SccUint)
-  (-intVal);
-  getIntegerDigits(absIntVal, digitsArray100, & nChars);
+  val absIntVal: ULong = if intVal >= 0 then intVal else -intVal
+  val (digitsArray100, nChars) = getIntegerDigits(absIntVal)
 
   /* encode length, plus 1 for sign */
-  BitStream_AppendByte0(pBitStrm, nChars + 1);
+  BitStream_AppendByte0(pBitStrm, (nChars + 1).toByte)
 
   /* encode sign */
-  BitStream_AppendByte0(pBitStrm, intVal >= 0 ? '+': '-');
+  BitStream_AppendByte0(pBitStrm, if intVal >= 0 then '+' else '-')
 
   /* encode digits */
-  while (i < 100 && digitsArray100[i] != 0x0) {
-    BitStream_AppendByte0(pBitStrm, digitsArray100[i]);
-    i ++;
-  }
+  var i: Int = 0
+  while i < 100 && digitsArray100(i) != 0x0 do
+    BitStream_AppendByte0(pBitStrm, digitsArray100(i))
+    i += 1
 
-  CHECK_BIT_STREAM(pBitStrm);
-
+  CHECK_BIT_STREAM(pBitStrm)
 }
 
-void Acn_Enc_UInt_ASCII_VarSize_LengthEmbedded(pBitStrm: BitStream, intVal: UInt)
+def Acn_Enc_UInt_ASCII_VarSize_LengthEmbedded(pBitStrm: BitStream, intVal: ULong): Unit =
 {
-  byte digitsArray100
-  [
-  100
-  ];
-  int i = 0;
-  byte nChars;
-  getIntegerDigits(intVal, digitsArray100, & nChars);
+  val (digitsArray100, nChars) = getIntegerDigits(intVal)
 
   /* encode length */
-  BitStream_AppendByte0(pBitStrm, nChars);
+  BitStream_AppendByte0(pBitStrm, nChars)
   /* encode digits */
-  while (i < 100 && digitsArray100[i] != 0x0) {
-    BitStream_AppendByte0(pBitStrm, digitsArray100[i]);
-    i ++;
-  }
+  var i: Int = 0
+  while i < 100 && digitsArray100(i) != 0x0 do
+    BitStream_AppendByte0(pBitStrm, digitsArray100(i))
+    i += 1
 
-  CHECK_BIT_STREAM(pBitStrm);
-
+  CHECK_BIT_STREAM(pBitStrm)
 }
 
 
-flag Acn_Dec_UInt_ASCII_VarSize_LengthEmbedded(pBitStrm: BitStream, asn1SccUint * pIntVal)
+def Acn_Dec_UInt_ASCII_VarSize_LengthEmbedded(pBitStrm: BitStream): Option[ULong] =
 {
-  byte nChars = 0;
-  if (BitStream_ReadByte(pBitStrm, & nChars))
-    return Acn_Dec_UInt_ASCII_ConstSize(pBitStrm, pIntVal, nChars);
-
-  return FALSE;
+  BitStream_ReadByte(pBitStrm) match
+    case None => None
+    case Some(nChars) => Acn_Dec_UInt_ASCII_ConstSize(pBitStrm, nChars)
 }
 
-flag Acn_Dec_SInt_ASCII_VarSize_LengthEmbedded(pBitStrm: BitStream, asn1SccSint * pIntVal)
+def Acn_Dec_SInt_ASCII_VarSize_LengthEmbedded(pBitStrm: BitStream): Option[Long] =
 {
-  byte nChars = 0;
-  if (BitStream_ReadByte(pBitStrm, & nChars))
-    return Acn_Dec_SInt_ASCII_ConstSize(pBitStrm, pIntVal, nChars);
-
-  return FALSE;
+  BitStream_ReadByte(pBitStrm) match
+    case None => None
+    case Some(nChars) => Acn_Dec_SInt_ASCII_ConstSize(pBitStrm, nChars)
 }
 
 
-void Acn_Enc_UInt_ASCII_VarSize_NullTerminated(pBitStrm: BitStream, intVal: UInt, const byte null_characters[], size_t null_characters_size)
+def Acn_Enc_UInt_ASCII_VarSize_NullTerminated(pBitStrm: BitStream, intVal: ULong, null_characters: Array[Byte], null_characters_size: Int): Unit =
 {
-  byte digitsArray100
-  [
-  100
-  ];
-  byte nChars;
-  size_t i = 0;
-  getIntegerDigits(intVal, digitsArray100, & nChars);
-  while (i < 100 && digitsArray100[i] != 0x0) {
-    BitStream_AppendByte0(pBitStrm, digitsArray100[i]);
-    i ++;
-  }
-  for (i
-  = 0;
-  i < null_characters_size;
-  i ++
-  )
-  BitStream_AppendByte0(pBitStrm, null_characters[i]);
-  CHECK_BIT_STREAM(pBitStrm);
+  val (digitsArray100, nChars) = getIntegerDigits(intVal)
+
+  var i: Int = 0 // TODO: size_t?
+  while i < 100 && digitsArray100(i) != 0x0 do
+    BitStream_AppendByte0(pBitStrm, digitsArray100(i))
+    i += 1
+
+  i = 0
+  while i < null_characters_size do
+    BitStream_AppendByte0(pBitStrm, null_characters(i))
+    i += 1
+
+  CHECK_BIT_STREAM(pBitStrm)
 }
 
-void Acn_Enc_SInt_ASCII_VarSize_NullTerminated(pBitStrm: BitStream, asn1SccSint intVal, const byte null_characters[], size_t null_characters_size)
+def Acn_Enc_SInt_ASCII_VarSize_NullTerminated(pBitStrm: BitStream, intVal: Long, null_characters: Array[Byte], null_characters_size: Int): Unit =
 {
-  asn1SccUint absValue = intVal >= 0 ? (asn1SccUint) intVal: (asn1SccUint)
-  (-intVal);
-  BitStream_AppendByte0(pBitStrm, intVal >= 0 ? '+': '-');
+  val absValue: ULong = if intVal >= 0 then intVal else -intVal
+  BitStream_AppendByte0(pBitStrm, if intVal >= 0 then '+' else '-')
 
-  Acn_Enc_UInt_ASCII_VarSize_NullTerminated(pBitStrm, absValue, null_characters, null_characters_size);
+  Acn_Enc_UInt_ASCII_VarSize_NullTerminated(pBitStrm, absValue, null_characters, null_characters_size)
 }
 
 /*
-flag Acn_Dec_String_Ascii_Null_Teminated_mult(BitStream* pBitStrm, asn1SccSint max, const byte null_character[], size_t null_character_size,   char* strVal)
+flag Acn_Dec_String_Ascii_Null_Teminated_mult(BitStream* pBitStrm, max: Long, null_character: Array[Byte], null_character_size: Int,   char* strVal)
 {
 byte tmp[10];
 size_t sz = null_character_size < 10 ? null_character_size : 10;
-memset(tmp, 0x0, 10);
+val tmp: Array[Byte] = Array.fill(10)(0)
 memset(strVal, 0x0, (size_t)max + 1);
 //read null_character_size characters into the tmp buffer
 for (int j = 0; j < (int)null_character_size; j++) {
@@ -815,136 +762,111 @@ return memcmp(null_character, tmp, sz) == 0;
 
 */
 
-flag Acn_Dec_UInt_ASCII_VarSize_NullTerminated(pBitStrm: BitStream, asn1SccUint * pIntVal, const byte null_characters[], size_t null_characters_size)
+
+def Acn_Dec_UInt_ASCII_VarSize_NullTerminated(pBitStrm: BitStream, null_characters: Array[Byte], null_characters_size: Int): Option[ULong] =
 {
-  byte digit;
-  asn1SccUint ret = 0;
-  byte tmp
-  [
-  10
-  ];
-  size_t sz = null_characters_size < 10 ? null_characters_size: 10;
-  memset(tmp, 0x0, 10);
-  asn1SccSint i = 0;
+  var digit: Byte = 0
+  var ret: ULong = 0
+  val tmp: Array[Byte] = Array.fill(10)(0)
+
+  val sz: Int = if null_characters_size < 10 then null_characters_size else 10
 
   //read null_character_size characters into the tmp buffer
-  for (int j
-  = 0;
-  j < (int) null_characters_size;
-  j ++
-  )
-  {
-    if (!BitStream_ReadByte(pBitStrm, &(tmp[j])))
-      return FALSE;
-  }
+  var j: Int = 0
+  while j < null_characters_size do
+    BitStream_ReadByte(pBitStrm) match
+      case None => return None
+      case Some(ub) => tmp(j) = ub
+    j += 1
 
-  while (memcmp(null_characters, tmp, sz) != 0) {
-    digit = tmp[0];
-    i ++;
-    for (int j
-    = 0;
-    j < (int) null_characters_size -1;
-    j ++
-    )
-    tmp[j] = tmp[j + 1];
-    if (!BitStream_ReadByte(pBitStrm, &(tmp[null_characters_size - 1])))
-      return FALSE;
+  var i: Long = 0
+  while !null_characters.sameElements(tmp) do
+    digit = tmp(0)
+    i += 1
 
-    digit = (byte)((int) digit -'0');
+    j = 0
+    while j < null_characters_size - 1 do
+      tmp(j) = tmp(j + 1)
+      j += 1
 
-    ret *= 10;
-    ret += digit;
-  }
+    BitStream_ReadByte(pBitStrm) match
+      case None => return None
+      case Some(ub) => tmp(null_characters_size - 1) = ub
 
-  * pIntVal = ret;
+    digit = (digit - '0').toByte
 
-  return TRUE;
+    ret *= 10
+    ret += digit
+
+  Some(ret)
 }
 
 
-flag Acn_Dec_SInt_ASCII_VarSize_NullTerminated(pBitStrm: BitStream, asn1SccSint * pIntVal, const byte null_characters[], size_t null_characters_size)
+def Acn_Dec_SInt_ASCII_VarSize_NullTerminated(pBitStrm: BitStream, null_characters: Array[Byte], null_characters_size: Int): Option[Long] =
 {
-  byte digit;
-  asn1SccUint ret = 0;
-  flag isNegative = FALSE;
+  var isNegative: Boolean = false
 
-  if (!BitStream_ReadByte(pBitStrm, & digit))
-    return FALSE;
-  ASSERT_OR_RETURN_FALSE(digit == '-' || digit == '+');
-  if (digit == '-')
-    isNegative = TRUE;
+  BitStream_ReadByte(pBitStrm) match
+    case None => None
+    case Some(digit) =>
+      assert(digit == '-' || digit == '+')
+      if digit == '-' then
+        isNegative = true
 
-  if (!Acn_Dec_UInt_ASCII_VarSize_NullTerminated(pBitStrm, & ret, null_characters, null_characters_size))
-    return false;
-
-  * pIntVal = (asn1SccSint) ret;
-  if (isNegative)
-    * pIntVal = -(* pIntVal);
-  return TRUE;
+      Acn_Dec_UInt_ASCII_VarSize_NullTerminated(pBitStrm, null_characters, null_characters_size) match
+        case None => None
+        case Some(ul) => Some(if isNegative then -ul else ul)
 }
-
-
-
 
 
 /* Boolean Decode */
 
-flag BitStream_ReadBitPattern(pBitStrm: BitStream, const byte * patternToRead, int nBitsToRead, flag * pBoolValue)
+def BitStream_ReadBitPattern(pBitStrm: BitStream, patternToRead: Array[Byte], nBitsToRead: Int): Option[Boolean] =
 {
-  int nBytesToRead = nBitsToRead / 8;
-  int nRemainingBitsToRead = nBitsToRead % 8;
-  byte curByte;
-  int i = 0;
+  val nBytesToRead: Int = nBitsToRead / 8
+  val nRemainingBitsToRead: Int = nBitsToRead % 8;
 
-  * pBoolValue = TRUE;
-  for (i
-  = 0;
-  i < nBytesToRead;
-  i ++
-  )
-  {
-    if (!BitStream_ReadByte(pBitStrm, & curByte))
-      return FALSE;
-    if (curByte != patternToRead[i])
-      * pBoolValue = FALSE;
-  }
+  var pBoolValue: Boolean = true
+  var i: Int = 0
+  while i < nBytesToRead do
+    BitStream_ReadByte(pBitStrm) match
+      case None => return None
+      case Some(curByte) =>
+        if curByte != patternToRead(i) then
+          pBoolValue = false
+    i += 1
 
-  if (nRemainingBitsToRead > 0) {
-    if (!BitStream_ReadPartialByte(pBitStrm, & curByte, (byte) nRemainingBitsToRead))
-      return FALSE;
-    if (curByte != patternToRead[nBytesToRead] >> (8 - nRemainingBitsToRead))
-      * pBoolValue = FALSE;
-  }
+  if nRemainingBitsToRead > 0 then
+    BitStream_ReadPartialByte(pBitStrm, nRemainingBitsToRead.toByte) match
+      case None => return None
+      case Some(curByte) =>
+        if curByte != patternToRead(nBytesToRead) >> (8 - nRemainingBitsToRead) then
+          pBoolValue = false
 
-  return TRUE;
+  Some(pBoolValue)
 }
 
-flag BitStream_ReadBitPattern_ignore_value(pBitStrm: BitStream, int nBitsToRead)
+
+def BitStream_ReadBitPattern_ignore_value(pBitStrm: BitStream, nBitsToRead: Int): Boolean =
 {
-  int nBytesToRead = nBitsToRead / 8;
-  int nRemainingBitsToRead = nBitsToRead % 8;
-  byte curByte;
-  int i = 0;
+  val nBytesToRead: Int = nBitsToRead / 8
+  val nRemainingBitsToRead: Int = nBitsToRead % 8
 
-  for (i
-  = 0;
-  i < nBytesToRead;
-  i ++
-  )
-  {
-    if (!BitStream_ReadByte(pBitStrm, & curByte))
-      return FALSE;
-  }
+  var i: Int = 0
+  while i < nBytesToRead do
+    BitStream_ReadByte(pBitStrm) match
+      case None => return false
+      case Some(_) => i += 1
 
-  if (nRemainingBitsToRead > 0) {
-    if (!BitStream_ReadPartialByte(pBitStrm, & curByte, (byte) nRemainingBitsToRead))
-      return FALSE;
-  }
+  if nRemainingBitsToRead > 0 then
+    if BitStream_ReadPartialByte(pBitStrm, nRemainingBitsToRead.toByte).isEmpty then
+      return false
 
-  return TRUE;
+  true
 
 }
 
+/* TODO
 /*Real encoding functions*/
 typedef union _float_tag {
   float f;
@@ -958,80 +880,37 @@ typedef union _double_tag {
   ];
 } _double;
 
-
-#define Acn_enc_real_big_endian(
-type) \
-int i;
-\
-_ ##
-type dat1;
-\
-dat1.f = (
-type) realValue;
-\
-if (!RequiresReverse()) {
-  \
-  for (i
-  = 0;
-  i < (int) sizeof (dat1);
-  i ++
-  ) \
-  BitStream_AppendByte0(pBitStrm, dat1.b[i]);
-  \
-} else {
-  \
-  for (i
-  = (int)(sizeof(dat1) - 1);
-  i >= 0;
-  i --
-  ) \
-  BitStream_AppendByte0(pBitStrm, dat1.b[i]);
-  \
-} \
+#define Acn_enc_real_big_endian(type)       \
+int i;                      \
+_##type dat1;               \
+dat1.f = (type)realValue;   \
+if (!RequiresReverse()) {   \
+  for(i=0;i<(int)sizeof(dat1);i++)        \
+  BitStream_AppendByte0(pBitStrm,dat1.b[i]);  \
+} else {    \
+  for(i=(int)(sizeof(dat1)-1);i>=0;i--)   \
+  BitStream_AppendByte0(pBitStrm,dat1.b[i]);  \
+}   \
 
 
-#define Acn_dec_real_big_endian(
-type) \
-int i;
-\
-_ ##
-type dat1;
-\
-dat1.f = 0.0;
-\
-if (!RequiresReverse()) {
-  \
-  for (i
-  = 0;
-  i < (int) sizeof (dat1);
-  i ++
-  )
-  {
-    \
-    if (!BitStream_ReadByte(pBitStrm, & dat1.b[i])
-    ) \
-    return FALSE;
-    \
-  } \
-} else {
-  \
-  for (i
-  = (int)(sizeof(dat1) - 1);
-  i >= 0;
-  i --
-  )
-  {
-    \
-    if (!BitStream_ReadByte(pBitStrm, & dat1.b[i])
-    ) \
-    return FALSE;
-    \
-  } \
-} \
-  * pRealValue = dat1.f;
-\
-return TRUE;
-\
+#define Acn_dec_real_big_endian(type)   \
+int i;                  \
+_##type dat1;           \
+dat1.f=0.0;             \
+if (!RequiresReverse()) {       \
+  for(i=0;i<(int)sizeof(dat1);i++) {  \
+    if (!BitStream_ReadByte(pBitStrm, &dat1.b[i]))  \
+    return FALSE;       \
+  }                           \
+} else {                        \
+  for(i=(int)(sizeof(dat1)-1);i>=0;i--) {         \
+    if (!BitStream_ReadByte(pBitStrm, &dat1.b[i]))      \
+    return FALSE;           \
+  }       \
+}       \
+  *pRealValue = dat1.f;   \
+return TRUE;            \
+
 
 
 void Acn_Enc_Real_IEEE754_32_big_endian(pBitStrm: BitStream, asn1Real realValue)
@@ -1061,79 +940,37 @@ flag Acn_Dec_Real_IEEE754_64_big_endian(pBitStrm: BitStream, asn1Real * pRealVal
 }
 
 
-#define Acn_enc_real_little_endian(
-type) \
-int i;
-\
-_ ##
-type dat1;
-\
-dat1.f = (
-type) realValue;
-\
-if (RequiresReverse()) {
-  \
-  for (i
-  = 0;
-  i < (int) sizeof (dat1);
-  i ++
-  ) \
-  BitStream_AppendByte0(pBitStrm, dat1.b[i]);
-  \
-} else {
-  \
-  for (i
-  = (int)(sizeof(dat1) - 1);
-  i >= 0;
-  i --
-  ) \
-  BitStream_AppendByte0(pBitStrm, dat1.b[i]);
-  \
-} \
+
+#define Acn_enc_real_little_endian(type)        \
+int i;                      \
+_##type dat1;               \
+dat1.f = (type)realValue;   \
+if (RequiresReverse()) {    \
+  for(i=0;i<(int)sizeof(dat1);i++)        \
+  BitStream_AppendByte0(pBitStrm,dat1.b[i]);  \
+} else {    \
+  for(i=(int)(sizeof(dat1)-1);i>=0;i--)   \
+  BitStream_AppendByte0(pBitStrm,dat1.b[i]);  \
+}   \
 
 
-#define Acn_dec_real_little_endian(
-type) \
-int i;
-\
-_ ##
-type dat1;
-\
-dat1.f = 0.0;
-\
-if (RequiresReverse()) {
-  \
-  for (i
-  = 0;
-  i < (int) sizeof (dat1);
-  i ++
-  )
-  {
-    \
-    if (!BitStream_ReadByte(pBitStrm, & dat1.b[i])
-    ) \
-    return FALSE;
-    \
-  } \
-} else {
-  \
-  for (i
-  = (int)(sizeof(dat1) - 1);
-  i >= 0;
-  i --
-  )
-  {
-    \
-    if (!BitStream_ReadByte(pBitStrm, & dat1.b[i])
-    ) \
-    return FALSE;
-    \
-  } \
-} \
-  * pRealValue = dat1.f;
-\
-return TRUE;
-\
+#define Acn_dec_real_little_endian(type)    \
+int i;                  \
+_##type dat1;           \
+dat1.f=0.0;             \
+if (RequiresReverse()) {        \
+  for(i=0;i<(int)sizeof(dat1);i++) {  \
+    if (!BitStream_ReadByte(pBitStrm, &dat1.b[i]))  \
+    return FALSE;       \
+  }                           \
+} else {                        \
+  for(i=(int)(sizeof(dat1)-1);i>=0;i--) {         \
+    if (!BitStream_ReadByte(pBitStrm, &dat1.b[i]))      \
+    return FALSE;           \
+  }       \
+}       \
+  *pRealValue = dat1.f;   \
+return TRUE;            \
 
 
 void Acn_Enc_Real_IEEE754_32_little_endian(pBitStrm: BitStream, asn1Real realValue)
@@ -1160,435 +997,151 @@ flag Acn_Dec_Real_IEEE754_64_little_endian(pBitStrm: BitStream, asn1Real * pReal
 {
   Acn_dec_real_little_endian(double)
 }
-
+*/
 
 
 
 /* String functions*/
-void Acn_Enc_String_Ascii_FixSize(pBitStrm: BitStream, asn1SccSint max, const char * strVal)
+def Acn_Enc_String_Ascii_FixSize(pBitStrm: BitStream, max: Long, strVal: Array[Char]): Unit =
 {
-  asn1SccSint i = 0;
-  while (i < max) {
-    BitStream_AppendByte(pBitStrm, strVal[i], FALSE);
-    i ++;
-  }
+  var i: Long = 0
+  while i < max do
+    BitStream_AppendByte(pBitStrm, strVal(i.toInt).toByte, false)
+    i += 1
+}
+def Acn_Enc_String_Ascii_private(pBitStrm: BitStream, max: Long, strVal: Array[Char]): Long =
+{
+  var i: Long = 0
+  while (i < max) && (strVal(i.toInt) != '\u0000') do
+    BitStream_AppendByte(pBitStrm, strVal(i.toInt).toByte, false)
+    i += 1
+
+  i
 }
 
-static asn1SccSint Acn_Enc_String_Ascii_private(pBitStrm: BitStream,
-  asn1SccSint max,
-  const char * strVal)
+def Acn_Enc_String_Ascii_Null_Teminated(pBitStrm: BitStream, max: Long, null_character: Char, strVal: Array[Char]): Unit =
 {
-  asn1SccSint i = 0;
-  while ((i < max) && (strVal[i] != '\0')) {
-    BitStream_AppendByte(pBitStrm, strVal[i], FALSE);
-    i ++;
-  }
-  return i;
+  Acn_Enc_String_Ascii_private(pBitStrm, max, strVal)
+  BitStream_AppendByte(pBitStrm, null_character.toByte, false)
 }
 
-void Acn_Enc_String_Ascii_Null_Teminated(pBitStrm: BitStream, asn1SccSint max, char null_character, const char * strVal)
+def Acn_Enc_String_Ascii_Null_Teminated_mult(pBitStrm: BitStream, max: Long, null_character: Array[Byte], null_character_size: Int, strVal: Array[Char]): Unit =
 {
-  Acn_Enc_String_Ascii_private(pBitStrm, max, strVal);
-  BitStream_AppendByte(pBitStrm, null_character, FALSE);
+  Acn_Enc_String_Ascii_private(pBitStrm, max, strVal)
+  var i: Int = 0
+  while i < null_character_size do
+    BitStream_AppendByte(pBitStrm, null_character(i), false)
+    i += 1
 }
 
-void Acn_Enc_String_Ascii_Null_Teminated_mult (pBitStrm: BitStream, asn1SccSint max, const byte null_character[], size_t null_character_size, const char * strVal) {
-  size_t i = 0;
-  Acn_Enc_String_Ascii_private(pBitStrm, max, strVal);
-  for (i
-  = 0;
-  i < null_character_size;
-  i ++
+
+def Acn_Enc_String_Ascii_External_Field_Determinant(pBitStrm: BitStream, max: Long, strVal: Array[Char]): Unit =
+{
+  Acn_Enc_String_Ascii_private(pBitStrm, max, strVal)
+}
+
+def Acn_Enc_String_Ascii_Internal_Field_Determinant(pBitStrm: BitStream, max: Long, min: Long, strVal: Array[Char]): Unit =
+{
+  val strLen: Int = strVal.length
+  BitStream_EncodeConstraintWholeNumber(pBitStrm, if strLen <= max then strLen else max, min, max)
+  Acn_Enc_String_Ascii_private(pBitStrm, max, strVal)
+}
+
+def Acn_Enc_String_CharIndex_FixSize(pBitStrm: BitStream, max: Long, allowedCharSet: Array[Byte], strVal: Array[Char]): Unit =
+{
+  var i: Int = 0
+  while i < max do
+    val charIndex: Int = GetCharIndex(strVal(i), allowedCharSet)
+    BitStream_EncodeConstraintWholeNumber(pBitStrm, charIndex, 0, allowedCharSet.length - 1)
+    i += 1
+}
+
+def Acn_Enc_String_CharIndex_private(pBitStrm: BitStream, max: Long, allowedCharSet: Array[Byte], strVal: Array[Char]): Long =
+{
+  var i: Int = 0
+  while (i < max) && (strVal(i) != '\u0000') do
+    val charIndex: Int = GetCharIndex(strVal(i), allowedCharSet)
+    BitStream_EncodeConstraintWholeNumber(pBitStrm, charIndex, 0, allowedCharSet.length - 1)
+    i += 1
+
+  i
+}
+
+
+def Acn_Enc_String_CharIndex_External_Field_Determinant (pBitStrm: BitStream, max: Long, allowedCharSet: Array[Byte], strVal: Array[Char]): Unit =
+{
+  Acn_Enc_String_CharIndex_private(pBitStrm, max, allowedCharSet, strVal)
+}
+
+def Acn_Enc_String_CharIndex_Internal_Field_Determinant (pBitStrm: BitStream, max: Long, allowedCharSet: Array[Byte], min: Long, strVal: Array[Char]): Unit =
+{
+  val strLen: Int = strVal.length
+  BitStream_EncodeConstraintWholeNumber(pBitStrm, if strLen <= max then strLen else max, min, max)
+  Acn_Enc_String_CharIndex_private(pBitStrm, max, allowedCharSet, strVal)
+}
+
+
+def Acn_Enc_IA5String_CharIndex_External_Field_Determinant(pBitStrm: BitStream, max: Long, strVal: Array[Char]): Unit =
+{
+  val allowedCharSet: Array[Byte] = Array(
+    0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09,
+    0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10, 0x11, 0x12, 0x13,
+    0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D,
+    0x1E, 0x1F, 0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27,
+    0x28, 0x29, 0x2A, 0x2B, 0x2C, 0x2D, 0x2E, 0x2F, 0x30, 0x31,
+    0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x3A, 0x3B,
+    0x3C, 0x3D, 0x3E, 0x3F, 0x40, 0x41, 0x42, 0x43, 0x44, 0x45,
+    0x46, 0x47, 0x48, 0x49, 0x4A, 0x4B, 0x4C, 0x4D, 0x4E, 0x4F,
+    0x50, 0x51, 0x52, 0x53, 0x54, 0x55, 0x56, 0x57, 0x58, 0x59,
+    0x5A, 0x5B, 0x5C, 0x5D, 0x5E, 0x5F, 0x60, 0x61, 0x62, 0x63,
+    0x64, 0x65, 0x66, 0x67, 0x68, 0x69, 0x6A, 0x6B, 0x6C, 0x6D,
+    0x6E, 0x6F, 0x70, 0x71, 0x72, 0x73, 0x74, 0x75, 0x76, 0x77,
+    0x78, 0x79, 0x7A, 0x7B, 0x7C, 0x7D, 0x7E, 0x7F
   )
-  {
-    BitStream_AppendByte(pBitStrm, null_character[i], FALSE);
-  }
+
+  Acn_Enc_String_CharIndex_private(pBitStrm, max, allowedCharSet, strVal)
+}
+
+def Acn_Enc_IA5String_CharIndex_Internal_Field_Determinant(pBitStrm: BitStream, max: Long, min: Long, strVal: Array[Char]): Unit =
+{
+  val allowedCharSet: Array[Byte] = Array(
+    0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09,
+    0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10, 0x11, 0x12, 0x13,
+    0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D,
+    0x1E, 0x1F, 0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27,
+    0x28, 0x29, 0x2A, 0x2B, 0x2C, 0x2D, 0x2E, 0x2F, 0x30, 0x31,
+    0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x3A, 0x3B,
+    0x3C, 0x3D, 0x3E, 0x3F, 0x40, 0x41, 0x42, 0x43, 0x44, 0x45,
+    0x46, 0x47, 0x48, 0x49, 0x4A, 0x4B, 0x4C, 0x4D, 0x4E, 0x4F,
+    0x50, 0x51, 0x52, 0x53, 0x54, 0x55, 0x56, 0x57, 0x58, 0x59,
+    0x5A, 0x5B, 0x5C, 0x5D, 0x5E, 0x5F, 0x60, 0x61, 0x62, 0x63,
+    0x64, 0x65, 0x66, 0x67, 0x68, 0x69, 0x6A, 0x6B, 0x6C, 0x6D,
+    0x6E, 0x6F, 0x70, 0x71, 0x72, 0x73, 0x74, 0x75, 0x76, 0x77,
+    0x78, 0x79, 0x7A, 0x7B, 0x7C, 0x7D, 0x7E, 0x7F
+  )
+  val strLen: Int = strVal.length
+  BitStream_EncodeConstraintWholeNumber(pBitStrm, if strLen <= max then strLen else max, min, max)
+  Acn_Enc_String_CharIndex_private(pBitStrm, max, allowedCharSet, strVal)
 }
 
 
-void Acn_Enc_String_Ascii_External_Field_Determinant(pBitStrm: BitStream, asn1SccSint max, const char * strVal)
+def Acn_Dec_String_Ascii_private(pBitStrm: BitStream, max: Long, charactersToDecode: Long): Option[Array[Char]] =
 {
-  Acn_Enc_String_Ascii_private(pBitStrm, max, strVal);
-}
-
-void Acn_Enc_String_Ascii_Internal_Field_Determinant(pBitStrm: BitStream, asn1SccSint max, asn1SccSint min, const char * strVal)
-{
-  int strLen = (int) strlen (strVal);
-  BitStream_EncodeConstraintWholeNumber(pBitStrm, strLen <= max ? strLen: max, min, max);
-  Acn_Enc_String_Ascii_private(pBitStrm, max, strVal);
-}
-
-void Acn_Enc_String_CharIndex_FixSize (pBitStrm: BitStream, asn1SccSint max, byte allowedCharSet[]
-, int charSetSize
-, const char * strVal
-)
-{
-  asn1SccSint i = 0;
-  while (i < max) {
-    int charIndex = GetCharIndex(strVal[i], allowedCharSet, charSetSize);
-    BitStream_EncodeConstraintWholeNumber(pBitStrm, charIndex, 0, charSetSize - 1);
-    i ++;
-  }
-}
-
-static asn1SccSint Acn_Enc_String_CharIndex_private(pBitStrm: BitStream,
-  asn1SccSint max,
-  byte allowedCharSet[]
-,
-int charSetSize
-,
-const char * strVal
-)
-{
-  asn1SccSint i = 0;
-  while ((i < max) && (strVal[i] != '\0')) {
-    int charIndex = GetCharIndex(strVal[i], allowedCharSet, charSetSize);
-    BitStream_EncodeConstraintWholeNumber(pBitStrm, charIndex, 0, charSetSize - 1);
-    i ++;
-  }
-  return i;
+  val strVal: Array[Char] = Array.fill(max.toInt+1)(0)
+  var i: Int = 0
+  while i < charactersToDecode do
+    BitStream_ReadByte(pBitStrm) match
+      case None => return None
+      case Some(decodedCharacter) =>
+        strVal(i) = decodedCharacter.toChar
+    i += 1
+  Some(strVal)
 }
 
 
-void Acn_Enc_String_CharIndex_External_Field_Determinant (pBitStrm: BitStream, asn1SccSint max, byte allowedCharSet[]
-, int charSetSize
-, const char * strVal
-)
+def Acn_Dec_String_Ascii_FixSize(pBitStrm: BitStream, max: Long): Option[Array[Char]] =
 {
-  Acn_Enc_String_CharIndex_private(pBitStrm, max, allowedCharSet, charSetSize, strVal);
-}
-
-void Acn_Enc_String_CharIndex_Internal_Field_Determinant (pBitStrm: BitStream, asn1SccSint max, byte allowedCharSet[]
-, int charSetSize
-, asn1SccSint min
-, const char * strVal
-)
-{
-  int strLen = (int) strlen (strVal);
-  BitStream_EncodeConstraintWholeNumber(pBitStrm, strLen <= max ? strLen: max, min, max);
-  Acn_Enc_String_CharIndex_private(pBitStrm, max, allowedCharSet, charSetSize, strVal);
-}
-
-
-void Acn_Enc_IA5String_CharIndex_External_Field_Determinant(pBitStrm: BitStream, asn1SccSint max, const char * strVal)
-{
-  static byte allowedCharSet[] = {
-    0x00
-    , 0x01
-    , 0x02
-    , 0x03
-    , 0x04
-    , 0x05
-    , 0x06
-    , 0x07
-    , 0x08
-    , 0x09
-    ,
-    0x0A
-    , 0x0B
-    , 0x0C
-    , 0x0D
-    , 0x0E
-    , 0x0F
-    , 0x10
-    , 0x11
-    , 0x12
-    , 0x13
-    ,
-    0x14
-    , 0x15
-    , 0x16
-    , 0x17
-    , 0x18
-    , 0x19
-    , 0x1A
-    , 0x1B
-    , 0x1C
-    , 0x1D
-    ,
-    0x1E
-    , 0x1F
-    , 0x20
-    , 0x21
-    , 0x22
-    , 0x23
-    , 0x24
-    , 0x25
-    , 0x26
-    , 0x27
-    ,
-    0x28
-    , 0x29
-    , 0x2A
-    , 0x2B
-    , 0x2C
-    , 0x2D
-    , 0x2E
-    , 0x2F
-    , 0x30
-    , 0x31
-    ,
-    0x32
-    , 0x33
-    , 0x34
-    , 0x35
-    , 0x36
-    , 0x37
-    , 0x38
-    , 0x39
-    , 0x3A
-    , 0x3B
-    ,
-    0x3C
-    , 0x3D
-    , 0x3E
-    , 0x3F
-    , 0x40
-    , 0x41
-    , 0x42
-    , 0x43
-    , 0x44
-    , 0x45
-    ,
-    0x46
-    , 0x47
-    , 0x48
-    , 0x49
-    , 0x4A
-    , 0x4B
-    , 0x4C
-    , 0x4D
-    , 0x4E
-    , 0x4F
-    ,
-    0x50
-    , 0x51
-    , 0x52
-    , 0x53
-    , 0x54
-    , 0x55
-    , 0x56
-    , 0x57
-    , 0x58
-    , 0x59
-    ,
-    0x5A
-    , 0x5B
-    , 0x5C
-    , 0x5D
-    , 0x5E
-    , 0x5F
-    , 0x60
-    , 0x61
-    , 0x62
-    , 0x63
-    ,
-    0x64
-    , 0x65
-    , 0x66
-    , 0x67
-    , 0x68
-    , 0x69
-    , 0x6A
-    , 0x6B
-    , 0x6C
-    , 0x6D
-    ,
-    0x6E
-    , 0x6F
-    , 0x70
-    , 0x71
-    , 0x72
-    , 0x73
-    , 0x74
-    , 0x75
-    , 0x76
-    , 0x77
-    ,
-    0x78
-    , 0x79
-    , 0x7A
-    , 0x7B
-    , 0x7C
-    , 0x7D
-    , 0x7E
-    , 0x7F
-  };
-
-  Acn_Enc_String_CharIndex_private(pBitStrm, max, allowedCharSet, 128, strVal);
-}
-
-void Acn_Enc_IA5String_CharIndex_Internal_Field_Determinant(pBitStrm: BitStream, asn1SccSint max, asn1SccSint min, const char * strVal)
-{
-  static byte allowedCharSet[] = {
-    0x00
-    , 0x01
-    , 0x02
-    , 0x03
-    , 0x04
-    , 0x05
-    , 0x06
-    , 0x07
-    , 0x08
-    , 0x09
-    ,
-    0x0A
-    , 0x0B
-    , 0x0C
-    , 0x0D
-    , 0x0E
-    , 0x0F
-    , 0x10
-    , 0x11
-    , 0x12
-    , 0x13
-    ,
-    0x14
-    , 0x15
-    , 0x16
-    , 0x17
-    , 0x18
-    , 0x19
-    , 0x1A
-    , 0x1B
-    , 0x1C
-    , 0x1D
-    ,
-    0x1E
-    , 0x1F
-    , 0x20
-    , 0x21
-    , 0x22
-    , 0x23
-    , 0x24
-    , 0x25
-    , 0x26
-    , 0x27
-    ,
-    0x28
-    , 0x29
-    , 0x2A
-    , 0x2B
-    , 0x2C
-    , 0x2D
-    , 0x2E
-    , 0x2F
-    , 0x30
-    , 0x31
-    ,
-    0x32
-    , 0x33
-    , 0x34
-    , 0x35
-    , 0x36
-    , 0x37
-    , 0x38
-    , 0x39
-    , 0x3A
-    , 0x3B
-    ,
-    0x3C
-    , 0x3D
-    , 0x3E
-    , 0x3F
-    , 0x40
-    , 0x41
-    , 0x42
-    , 0x43
-    , 0x44
-    , 0x45
-    ,
-    0x46
-    , 0x47
-    , 0x48
-    , 0x49
-    , 0x4A
-    , 0x4B
-    , 0x4C
-    , 0x4D
-    , 0x4E
-    , 0x4F
-    ,
-    0x50
-    , 0x51
-    , 0x52
-    , 0x53
-    , 0x54
-    , 0x55
-    , 0x56
-    , 0x57
-    , 0x58
-    , 0x59
-    ,
-    0x5A
-    , 0x5B
-    , 0x5C
-    , 0x5D
-    , 0x5E
-    , 0x5F
-    , 0x60
-    , 0x61
-    , 0x62
-    , 0x63
-    ,
-    0x64
-    , 0x65
-    , 0x66
-    , 0x67
-    , 0x68
-    , 0x69
-    , 0x6A
-    , 0x6B
-    , 0x6C
-    , 0x6D
-    ,
-    0x6E
-    , 0x6F
-    , 0x70
-    , 0x71
-    , 0x72
-    , 0x73
-    , 0x74
-    , 0x75
-    , 0x76
-    , 0x77
-    ,
-    0x78
-    , 0x79
-    , 0x7A
-    , 0x7B
-    , 0x7C
-    , 0x7D
-    , 0x7E
-    , 0x7F
-  };
-  int strLen = (int) strlen (strVal);
-  BitStream_EncodeConstraintWholeNumber(pBitStrm, strLen <= max ? strLen: max, min, max);
-  Acn_Enc_String_CharIndex_private(pBitStrm, max, allowedCharSet, 128, strVal);
-}
-
-
-static flag Acn_Dec_String_Ascii_private(pBitStrm: BitStream,
-  asn1SccSint max,
-  asn1SccSint charactersToDecode,
-  char * strVal)
-{
-  asn1SccSint i = 0;
-  byte decodedCharacter;
-  memset(strVal, 0x0, (size_t) max +1);
-  while (i < charactersToDecode) {
-    if (!BitStream_ReadByte(pBitStrm, & decodedCharacter))
-      return FALSE;
-    strVal[i] = decodedCharacter;
-    i ++;
-  }
-  return TRUE;
-}
-
-
-flag Acn_Dec_String_Ascii_FixSize(pBitStrm: BitStream, asn1SccSint max, char * strVal)
-{
-  return Acn_Dec_String_Ascii_private(pBitStrm, max, max, strVal);
+  Acn_Dec_String_Ascii_private(pBitStrm, max, max)
 }
 
 /*
@@ -1609,7 +1162,7 @@ return 1;
 }
 }
 
-flag Acn_Dec_String_Ascii_Null_Teminated(BitStream* pBitStrm, asn1SccSint max, const byte null_characters[], size_t null_characters_size, char* strVal)
+flag Acn_Dec_String_Ascii_Null_Teminated(BitStream* pBitStrm, max: Long, const byte null_characters[], size_t null_characters_size, char* strVal)
 {
 asn1SccSint i = 0;
 byte decodedCharacter;
@@ -1644,450 +1197,166 @@ return FALSE;
 */
 
 
-flag Acn_Dec_String_Ascii_Null_Teminated(pBitStrm: BitStream, asn1SccSint max, char null_character, char * strVal)
+def Acn_Dec_String_Ascii_Null_Teminated(pBitStrm: BitStream, max: Long, null_character: Char): Option[Array[Char]] =
 {
-  asn1SccSint i = 0;
-  byte decodedCharacter;
-  memset(strVal, 0x0, (size_t) max +1);
-  while (i <= max) {
-    if (!BitStream_ReadByte(pBitStrm, & decodedCharacter))
-      return FALSE;
-    if (decodedCharacter != (byte) null_character) {
-      strVal[i] = decodedCharacter;
-      i ++;
-    }
-    else {
-      strVal[i] = 0x0;
-      return TRUE;
-    }
-  }
+  val strVal: Array[Char] = Array.fill(max.toInt+1)(0)
+  var i: Int = 0
+  while i <= max do
+    BitStream_ReadByte(pBitStrm) match
+      case None => return None
+      case Some(decodedCharacter) =>
+        if decodedCharacter != null_character then
+          strVal(i) = decodedCharacter.toChar
+          i += 1
+        else
+          strVal(i) = 0x0
+          return Some(strVal)
 
-  return FALSE;
+  None
 
 }
-
-flag Acn_Dec_String_Ascii_Null_Teminated_mult(pBitStrm: BitStream, asn1SccSint max, const byte null_character[], size_t null_character_size, char * strVal)
+def Acn_Dec_String_Ascii_Null_Teminated_mult(pBitStrm: BitStream, max: Long, null_character: Array[Byte], null_character_size: Int): Option[Array[Char]] =
 {
-  byte tmp
-  [
-  10
-  ];
-  size_t sz = null_character_size < 10 ? null_character_size: 10;
-  memset(tmp, 0x0, 10);
-  memset(strVal, 0x0, (size_t) max +1);
+  val sz: Int = if null_character_size < 10 then null_character_size else 10
+  val tmp: Array[Byte] = Array.fill(10)(0)
+  val strVal: Array[Char] = Array.fill(max.toInt+1)(0)
   //read null_character_size characters into the tmp buffer
-  for (int j
-  = 0;
-  j < (int) null_character_size;
-  j ++
+  var j: Int = 0
+  while j < null_character_size do
+    BitStream_ReadByte(pBitStrm) match
+      case None => return None
+      case Some(ub) => tmp(j) = ub
+    j += 1
+
+
+  var i: Int = 0
+  while i <= max && !null_character.sameElements(tmp) do
+    strVal(i) = tmp(0).toChar
+    i += 1
+    j = 0
+    while j < null_character_size - 1 do
+      tmp(j) = tmp(j + 1)
+      j += 1
+
+    BitStream_ReadByte(pBitStrm) match
+      case None => return None
+      case Some(ub) => tmp(null_character_size - 1) = ub
+
+  strVal(i) = 0x0
+
+  if !null_character.sameElements(tmp) then
+    return None
+
+  Some(strVal)
+}
+
+
+def Acn_Dec_String_Ascii_External_Field_Determinant(pBitStrm: BitStream, max: Long, extSizeDeterminatFld: Long): Option[Array[Char]] =
+{
+  Acn_Dec_String_Ascii_private(pBitStrm, max, if extSizeDeterminatFld <= max then extSizeDeterminatFld else max)
+}
+
+def Acn_Dec_String_Ascii_Internal_Field_Determinant(pBitStrm: BitStream, max: Long, min: Long): Option[Array[Char]] =
+{
+  BitStream_DecodeConstraintWholeNumber(pBitStrm, min, max) match
+    case None => None
+    case Some(nCount) =>
+      Acn_Dec_String_Ascii_private(pBitStrm, max, if nCount <= max then nCount else max)
+}
+
+def Acn_Dec_String_CharIndex_private(pBitStrm: BitStream, max: Long, charactersToDecode: Long, allowedCharSet: Array[Byte]): Option[Array[Char]] =
+{
+  val strVal: Array[Char] = Array.fill(max.toInt+1)(0)
+  var i: Int = 0
+  while i < charactersToDecode do
+    BitStream_DecodeConstraintWholeNumber(pBitStrm, 0, allowedCharSet.length - 1) match
+      case None => return None
+      case Some(charIndex) =>
+        strVal(i) = allowedCharSet(charIndex.toInt).toChar
+    i += 1
+
+  Some(strVal)
+}
+
+def Acn_Dec_String_CharIndex_FixSize (pBitStrm: BitStream, max: Long, allowedCharSet: Array[Byte]): Option[Array[Char]] =
+{
+  Acn_Dec_String_CharIndex_private(pBitStrm, max, max, allowedCharSet)
+}
+
+def Acn_Dec_String_CharIndex_External_Field_Determinant (pBitStrm: BitStream, max: Long, allowedCharSet: Array[Byte], extSizeDeterminatFld: Long): Option[Array[Char]] =
+{
+  Acn_Dec_String_CharIndex_private(pBitStrm, max, if extSizeDeterminatFld <= max then extSizeDeterminatFld else max, allowedCharSet)
+}
+
+
+def Acn_Dec_String_CharIndex_Internal_Field_Determinant (pBitStrm: BitStream, max: Long, allowedCharSet: Array[Byte], min: Long): Option[Array[Char]] =
+{
+  BitStream_DecodeConstraintWholeNumber(pBitStrm, min, max) match
+    case None => return None
+    case Some(nCount) =>
+      Acn_Dec_String_CharIndex_private(pBitStrm, max, if nCount <= max then nCount else max, allowedCharSet)
+}
+
+
+def Acn_Dec_IA5String_CharIndex_External_Field_Determinant(pBitStrm: BitStream, max: Long, extSizeDeterminatFld: Long): Option[Array[Char]] =
+{
+  val allowedCharSet: Array[Byte] = Array(
+    0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09,
+    0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10, 0x11, 0x12, 0x13,
+    0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D,
+    0x1E, 0x1F, 0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27,
+    0x28, 0x29, 0x2A, 0x2B, 0x2C, 0x2D, 0x2E, 0x2F, 0x30, 0x31,
+    0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x3A, 0x3B,
+    0x3C, 0x3D, 0x3E, 0x3F, 0x40, 0x41, 0x42, 0x43, 0x44, 0x45,
+    0x46, 0x47, 0x48, 0x49, 0x4A, 0x4B, 0x4C, 0x4D, 0x4E, 0x4F,
+    0x50, 0x51, 0x52, 0x53, 0x54, 0x55, 0x56, 0x57, 0x58, 0x59,
+    0x5A, 0x5B, 0x5C, 0x5D, 0x5E, 0x5F, 0x60, 0x61, 0x62, 0x63,
+    0x64, 0x65, 0x66, 0x67, 0x68, 0x69, 0x6A, 0x6B, 0x6C, 0x6D,
+    0x6E, 0x6F, 0x70, 0x71, 0x72, 0x73, 0x74, 0x75, 0x76, 0x77,
+    0x78, 0x79, 0x7A, 0x7B, 0x7C, 0x7D, 0x7E, 0x7F
   )
-  {
-    if (!BitStream_ReadByte(pBitStrm, &(tmp[j])))
-      return FALSE;
-  }
-
-  asn1SccSint i = 0;
-  while (i <= max && (memcmp(null_character, tmp, sz) != 0)) {
-    strVal[i] = tmp[0];
-    i ++;
-    for (int j
-    = 0;
-    j < (int) null_character_size -1;
-    j ++
-    )
-    tmp[j] = tmp[j + 1];
-    if (!BitStream_ReadByte(pBitStrm, &(tmp[null_character_size - 1])))
-      return FALSE;
-  }
-
-  strVal[i] = 0x0;
-  return memcmp(null_character, tmp, sz) == 0;
-
+  Acn_Dec_String_CharIndex_private(pBitStrm, max, if extSizeDeterminatFld <= max then extSizeDeterminatFld else max, allowedCharSet)
 }
 
-
-flag Acn_Dec_String_Ascii_External_Field_Determinant(pBitStrm: BitStream, asn1SccSint max, asn1SccSint extSizeDeterminatFld, char * strVal)
+def Acn_Dec_IA5String_CharIndex_Internal_Field_Determinant(pBitStrm: BitStream, max: Long, min: Long): Option[Array[Char]] =
 {
-  return Acn_Dec_String_Ascii_private(pBitStrm, max, extSizeDeterminatFld <= max ? extSizeDeterminatFld: max, strVal);
+  val allowedCharSet: Array[Byte] = Array(
+    0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09,
+    0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10, 0x11, 0x12, 0x13,
+    0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D,
+    0x1E, 0x1F, 0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27,
+    0x28, 0x29, 0x2A, 0x2B, 0x2C, 0x2D, 0x2E, 0x2F, 0x30, 0x31,
+    0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x3A, 0x3B,
+    0x3C, 0x3D, 0x3E, 0x3F, 0x40, 0x41, 0x42, 0x43, 0x44, 0x45,
+    0x46, 0x47, 0x48, 0x49, 0x4A, 0x4B, 0x4C, 0x4D, 0x4E, 0x4F,
+    0x50, 0x51, 0x52, 0x53, 0x54, 0x55, 0x56, 0x57, 0x58, 0x59,
+    0x5A, 0x5B, 0x5C, 0x5D, 0x5E, 0x5F, 0x60, 0x61, 0x62, 0x63,
+    0x64, 0x65, 0x66, 0x67, 0x68, 0x69, 0x6A, 0x6B, 0x6C, 0x6D,
+    0x6E, 0x6F, 0x70, 0x71, 0x72, 0x73, 0x74, 0x75, 0x76, 0x77,
+    0x78, 0x79, 0x7A, 0x7B, 0x7C, 0x7D, 0x7E, 0x7F
+  )
+  BitStream_DecodeConstraintWholeNumber(pBitStrm, min, max) match
+    case None => None
+    case Some(nCount) =>
+      Acn_Dec_String_CharIndex_private(pBitStrm, max, if nCount <= max then nCount else max, allowedCharSet)
 }
-
-flag Acn_Dec_String_Ascii_Internal_Field_Determinant(pBitStrm: BitStream, asn1SccSint max, asn1SccSint min, char * strVal)
-{
-  asn1SccSint nCount;
-  if (!BitStream_DecodeConstraintWholeNumber(pBitStrm, & nCount, min, max))
-    return FALSE;
-
-  return Acn_Dec_String_Ascii_private(pBitStrm, max, nCount <= max ? nCount: max, strVal);
-
-}
-
-static flag Acn_Dec_String_CharIndex_private(pBitStrm: BitStream,
-  asn1SccSint max,
-  asn1SccSint charactersToDecode,
-  byte allowedCharSet[]
-,
-int charSetSize
-,
-char * strVal
-)
-{
-  asn1SccSint i = 0;
-  memset(strVal, 0x0, (size_t) max +1);
-  while (i < charactersToDecode) {
-    asn1SccSint charIndex = 0;
-    if (!BitStream_DecodeConstraintWholeNumber(pBitStrm, & charIndex, 0, charSetSize - 1))
-      return FALSE;
-    strVal[i] = allowedCharSet[charIndex];
-    i ++;
-  }
-  return TRUE;
-}
-
-
-flag Acn_Dec_String_CharIndex_FixSize (pBitStrm: BitStream, asn1SccSint max, byte allowedCharSet[]
-, int charSetSize
-, char * strVal
-)
-{
-  return Acn_Dec_String_CharIndex_private(pBitStrm, max, max, allowedCharSet, charSetSize, strVal);
-}
-
-flag Acn_Dec_String_CharIndex_External_Field_Determinant (pBitStrm: BitStream, asn1SccSint max, byte allowedCharSet[]
-, int charSetSize
-, asn1SccSint extSizeDeterminatFld
-, char * strVal
-)
-{
-  return Acn_Dec_String_CharIndex_private(pBitStrm, max, extSizeDeterminatFld <= max ? extSizeDeterminatFld: max, allowedCharSet, charSetSize, strVal);
-}
-
-flag Acn_Dec_String_CharIndex_Internal_Field_Determinant (pBitStrm: BitStream, asn1SccSint max, byte allowedCharSet[]
-, int charSetSize
-, asn1SccSint min
-, char * strVal
-)
-{
-  asn1SccSint nCount;
-  if (!BitStream_DecodeConstraintWholeNumber(pBitStrm, & nCount, min, max))
-    return FALSE;
-  return Acn_Dec_String_CharIndex_private(pBitStrm, max, nCount <= max ? nCount: max, allowedCharSet, charSetSize, strVal);
-}
-
-
-flag Acn_Dec_IA5String_CharIndex_External_Field_Determinant(pBitStrm: BitStream, asn1SccSint max, asn1SccSint extSizeDeterminatFld, char * strVal)
-{
-  static byte allowedCharSet[] = {
-    0x00
-    , 0x01
-    , 0x02
-    , 0x03
-    , 0x04
-    , 0x05
-    , 0x06
-    , 0x07
-    , 0x08
-    , 0x09
-    ,
-    0x0A
-    , 0x0B
-    , 0x0C
-    , 0x0D
-    , 0x0E
-    , 0x0F
-    , 0x10
-    , 0x11
-    , 0x12
-    , 0x13
-    ,
-    0x14
-    , 0x15
-    , 0x16
-    , 0x17
-    , 0x18
-    , 0x19
-    , 0x1A
-    , 0x1B
-    , 0x1C
-    , 0x1D
-    ,
-    0x1E
-    , 0x1F
-    , 0x20
-    , 0x21
-    , 0x22
-    , 0x23
-    , 0x24
-    , 0x25
-    , 0x26
-    , 0x27
-    ,
-    0x28
-    , 0x29
-    , 0x2A
-    , 0x2B
-    , 0x2C
-    , 0x2D
-    , 0x2E
-    , 0x2F
-    , 0x30
-    , 0x31
-    ,
-    0x32
-    , 0x33
-    , 0x34
-    , 0x35
-    , 0x36
-    , 0x37
-    , 0x38
-    , 0x39
-    , 0x3A
-    , 0x3B
-    ,
-    0x3C
-    , 0x3D
-    , 0x3E
-    , 0x3F
-    , 0x40
-    , 0x41
-    , 0x42
-    , 0x43
-    , 0x44
-    , 0x45
-    ,
-    0x46
-    , 0x47
-    , 0x48
-    , 0x49
-    , 0x4A
-    , 0x4B
-    , 0x4C
-    , 0x4D
-    , 0x4E
-    , 0x4F
-    ,
-    0x50
-    , 0x51
-    , 0x52
-    , 0x53
-    , 0x54
-    , 0x55
-    , 0x56
-    , 0x57
-    , 0x58
-    , 0x59
-    ,
-    0x5A
-    , 0x5B
-    , 0x5C
-    , 0x5D
-    , 0x5E
-    , 0x5F
-    , 0x60
-    , 0x61
-    , 0x62
-    , 0x63
-    ,
-    0x64
-    , 0x65
-    , 0x66
-    , 0x67
-    , 0x68
-    , 0x69
-    , 0x6A
-    , 0x6B
-    , 0x6C
-    , 0x6D
-    ,
-    0x6E
-    , 0x6F
-    , 0x70
-    , 0x71
-    , 0x72
-    , 0x73
-    , 0x74
-    , 0x75
-    , 0x76
-    , 0x77
-    ,
-    0x78
-    , 0x79
-    , 0x7A
-    , 0x7B
-    , 0x7C
-    , 0x7D
-    , 0x7E
-    , 0x7F
-  };
-  return Acn_Dec_String_CharIndex_private(pBitStrm, max, extSizeDeterminatFld <= max ? extSizeDeterminatFld: max, allowedCharSet, 128, strVal);
-}
-
-flag Acn_Dec_IA5String_CharIndex_Internal_Field_Determinant(pBitStrm: BitStream, asn1SccSint max, asn1SccSint min, char * strVal)
-{
-  asn1SccSint nCount;
-  static byte allowedCharSet[] = {
-    0x00
-    , 0x01
-    , 0x02
-    , 0x03
-    , 0x04
-    , 0x05
-    , 0x06
-    , 0x07
-    , 0x08
-    , 0x09
-    ,
-    0x0A
-    , 0x0B
-    , 0x0C
-    , 0x0D
-    , 0x0E
-    , 0x0F
-    , 0x10
-    , 0x11
-    , 0x12
-    , 0x13
-    ,
-    0x14
-    , 0x15
-    , 0x16
-    , 0x17
-    , 0x18
-    , 0x19
-    , 0x1A
-    , 0x1B
-    , 0x1C
-    , 0x1D
-    ,
-    0x1E
-    , 0x1F
-    , 0x20
-    , 0x21
-    , 0x22
-    , 0x23
-    , 0x24
-    , 0x25
-    , 0x26
-    , 0x27
-    ,
-    0x28
-    , 0x29
-    , 0x2A
-    , 0x2B
-    , 0x2C
-    , 0x2D
-    , 0x2E
-    , 0x2F
-    , 0x30
-    , 0x31
-    ,
-    0x32
-    , 0x33
-    , 0x34
-    , 0x35
-    , 0x36
-    , 0x37
-    , 0x38
-    , 0x39
-    , 0x3A
-    , 0x3B
-    ,
-    0x3C
-    , 0x3D
-    , 0x3E
-    , 0x3F
-    , 0x40
-    , 0x41
-    , 0x42
-    , 0x43
-    , 0x44
-    , 0x45
-    ,
-    0x46
-    , 0x47
-    , 0x48
-    , 0x49
-    , 0x4A
-    , 0x4B
-    , 0x4C
-    , 0x4D
-    , 0x4E
-    , 0x4F
-    ,
-    0x50
-    , 0x51
-    , 0x52
-    , 0x53
-    , 0x54
-    , 0x55
-    , 0x56
-    , 0x57
-    , 0x58
-    , 0x59
-    ,
-    0x5A
-    , 0x5B
-    , 0x5C
-    , 0x5D
-    , 0x5E
-    , 0x5F
-    , 0x60
-    , 0x61
-    , 0x62
-    , 0x63
-    ,
-    0x64
-    , 0x65
-    , 0x66
-    , 0x67
-    , 0x68
-    , 0x69
-    , 0x6A
-    , 0x6B
-    , 0x6C
-    , 0x6D
-    ,
-    0x6E
-    , 0x6F
-    , 0x70
-    , 0x71
-    , 0x72
-    , 0x73
-    , 0x74
-    , 0x75
-    , 0x76
-    , 0x77
-    ,
-    0x78
-    , 0x79
-    , 0x7A
-    , 0x7B
-    , 0x7C
-    , 0x7D
-    , 0x7E
-    , 0x7F
-  };
-  if (!BitStream_DecodeConstraintWholeNumber(pBitStrm, & nCount, min, max))
-    return FALSE;
-  return Acn_Dec_String_CharIndex_private(pBitStrm, max, nCount <= max ? nCount: max, allowedCharSet, 128, strVal);
-}
-
-
 
 
 
 
 /* Length Determinant functions*/
-void Acn_Enc_Length(pBitStrm: BitStream, asn1SccUint lengthValue, int lengthSizeInBits)
+def Acn_Enc_Length(pBitStrm: BitStream, lengthValue: ULong, lengthSizeInBits: Int): Unit =
 {
   /* encode length */
-  Acn_Enc_Int_PositiveInteger_ConstSize(pBitStrm, lengthValue, lengthSizeInBits);
+  Acn_Enc_Int_PositiveInteger_ConstSize(pBitStrm, lengthValue, lengthSizeInBits)
 }
 
-flag Acn_Dec_Length(pBitStrm: BitStream, asn1SccUint * pLengthValue, int lengthSizeInBits)
+def Acn_Dec_Length(pBitStrm: BitStream, lengthSizeInBits: Int): Option[ULong] =
 {
-  return Acn_Dec_Int_PositiveInteger_ConstSize(pBitStrm, pLengthValue, lengthSizeInBits);
+  Acn_Dec_Int_PositiveInteger_ConstSize(pBitStrm, lengthSizeInBits)
 }
 
+/*
 asn1SccSint milbus_encode (asn1SccSint
 val)
 {

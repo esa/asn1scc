@@ -59,7 +59,17 @@ def uint2int(v: ULong, uintSizeInBytes: Int): Long = {
   while i >= uintSizeInBytes do
     vv |= ber_aux(i)
     i -= 1
-  return -(~vv) - 1
+  -(~vv) - 1
+}
+
+def GetCharIndex(ch: Char, Set: Array[Byte]): Int =
+{
+  var i: Int = 0
+  while i < Set.length do
+    if ch == Set(i) then
+      return i
+    i += 1
+  0
 }
 
 
