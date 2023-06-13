@@ -22,7 +22,7 @@ if ret.isRight then // isvalid:20
 >>
 
 JoinItems2(sPart, sNestedPart) ::= <<
-// isvalid:27
+// isvalid:25
 <sPart>
 <sNestedPart>
 >>

@@ -61,8 +61,8 @@ Declare_BooleanNoRTL() ::= "BooleanNoRTL"
 Declare_RealNoRTL() ::= "RealNoRTL"
 
 
-Declare_Null() ::= "null"
-Declare_NullNoRTL() ::= "nullNoRTL"
+Declare_Null() ::= "NullType"
+Declare_NullNoRTL() ::= "NullType"
 Declare_ObjectIdentifier() ::= "Asn1ObjectIdentifier"
 Declare_ObjectIdentifierNoRTL() ::= "Asn1ObjectIdentifier"
 

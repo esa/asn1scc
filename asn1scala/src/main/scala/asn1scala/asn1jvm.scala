@@ -12,7 +12,7 @@ type UInt = Int
 type ULong = Long
 type RealNoRTL = Float
 type BooleanNoRTL = Boolean
-//type nullNoRTL = nulltype // TODO
+type NullType = Char
 
 // TODO
 type LongNoRTL = Long
