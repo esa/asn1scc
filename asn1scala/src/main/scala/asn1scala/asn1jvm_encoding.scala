@@ -964,25 +964,7 @@ def CalculateMantissaAndExponent(d: Double): (Int, ULong) = {
 }
 
 def GetDoubleByMantissaAndExp(mantissa: ULong, exponentVal: Int): Double = {
-  var exponent = exponentVal
-  var ret: Double = 1.0
-  if mantissa == 0 then
-    return 0.0
-
-  if exponent >= 0 then
-    while exponent >= 0 do
-      decreases(exponent)
-      ret = ret * 2.0
-      exponent = exponent - 1
-    return mantissa * ret
-
-  else
-    exponent = -exponent
-    while exponent > 0 do
-      decreases(exponent)
-      ret = ret * 2.0
-      exponent = exponent -1
-    return mantissa / ret
+  return java.lang.Double.longBitsToDouble(((exponentVal + 1023L + 52L) << 52L) | (mantissa & MantBitMask))
 }
 
 def BitStream_EncodeReal(pBitStrm: BitStream, vVal: Double): Unit = {
