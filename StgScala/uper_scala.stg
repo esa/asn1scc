@@ -45,7 +45,7 @@ def <sFuncName>(<if(bVarNameIsUnreferenced)>@annotation.unused <endif><sVarName>
 >>
 
 EmitTypeAssignment_def_decode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes, bEmptyEncodingSpace, nMaxBytesInPER, nMaxBitsInPER, soSparkAnnotations, bReqBytesForEncodingIsZero) ::= <<
-<arrsErrcodes:{x|<x> // uper:42}; separator="\n">
+<arrsErrcodes:{x|<x> // uper:48}; separator="\n">
 >>
 
 EmitTypeAssignment_decode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitilialExp, bReqBytesForEncodingIsZero, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName) ::= <<
@@ -55,7 +55,7 @@ def <sFuncName>(<if(bBsIsUnreferenced)>@annotation.unused <endif>pBitStrm: BitSt
     var pVal: <sTypeDefName> = ???
     ret = Right(pVal)
 
-    <arrsLocalVariables:{lv|<lv> // uper:50}; separator="\n"> 
+    <arrsLocalVariables:{lv|<lv> // uper:58}; separator="\n">
 
     <sContent>
 
@@ -279,9 +279,9 @@ case <sChildID>(e) => // uper:277
     <sChildContent>
 >>
 choice_child_decode(p, sAcc, sChildID, nChildIndex, nIndexSizeInBits, nLastItemIndex, sChildContent, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr) ::= <<
-case <nChildIndex> => // uper:282
-    <p><sAcc>kind = <sChildID>
+case <nChildIndex> => // enum idx uper:282
     <sChildContent>
+    ret = Right(<sChildID>(arr))
 >>
 
 choice_encode(p, sAcc, arrsChildren, nLastItemIndex, sChoiceIndexName, sErrCode, td/*:FE_ChoiceTypeDefinition*/, nIndexSizeInBits) ::= <<
@@ -292,13 +292,14 @@ choice_encode(p, sAcc, arrsChildren, nLastItemIndex, sChoiceIndexName, sErrCode,
 >>
 
 choice_decode(p, sAcc, arrsChildren, nLastItemIndex, sChoiceIndexName, sErrCode, td/*:FE_ChoiceTypeDefinition*/, nIndexSizeInBits) ::= <<
-if !BitStream_DecodeConstraintWholeNumber(pBitStrm, 0, <nLastItemIndex>) then // uper:295
-    ret = <sErrCode>
-else 
-    <sChoiceIndexName> match
-        <arrsChildren: {ch|<ch>}; separator="\n">
-        case _ =>
-            ret = Left(<sErrCode>)
+BitStream_DecodeConstraintWholeNumber(pBitStrm, 0, <nLastItemIndex>) match
+    case Some(e) =>
+        e match
+            <arrsChildren: {ch|<ch>}; separator="\n">
+            case _ =>
+                ret = Left(<sErrCode>)
+    case None =>
+        ret = Left(<sErrCode>)
 >>
 
 /* CHOICE END*/
@@ -445,7 +446,12 @@ if(!BitStream_DecodeOctetString_no_length(pBitStrm, <p><sAcc>arr, <p><sAcc>nCoun
 /* BIT STRING*/
 bitString_FixSize_encode(p, sAcc, nFixedSize, sErrCode) ::= "BitStream_AppendBits(pBitStrm, <p><sAcc>arr, <nFixedSize>);"
 bitString_FixSize_decode(p, sAcc, nFixedSize, sErrCode) ::= <<
-ret = if BitStream_ReadBits(pBitStrm, <p><sAcc>arr, <nFixedSize>) == 0 then 0 else <sErrCode> // uper:431
+var arr: Array[UByte] = ???
+BitStream_ReadBits(pBitStrm, <nFixedSize>) match // uper:449
+    case Some(ar) => 
+        arr = ar
+    case None => 
+        ret = Left(<sErrCode>)
 >>
 
 bitString_VarSize_encode(p, sAcc, nSizeMin, nSizeMax, sErrCode, nSizeInBits) ::= <<
