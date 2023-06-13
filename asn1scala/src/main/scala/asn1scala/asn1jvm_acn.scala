@@ -1,14 +1,6 @@
 package asn1scala
 
 
-/*
-def RequiresReverse(): Boolean =
-{
-  val word: Short = 0x0001
-  char * b = (char *) & word
-  return b[0] == 1;
-}
-*/
 
 def Acn_AlignToNextByte(pBitStrm: BitStream, bEncode: Boolean): Unit =
 {
@@ -143,13 +135,11 @@ def Acn_Enc_Int_PositiveInteger_ConstSize_little_endian_64(pBitStrm: BitStream, 
 {
   Acn_Enc_Int_PositiveInteger_ConstSize_little_endian_N(pBitStrm, intVal, WORD_SIZE)
   // Avoid dead code warnings by conditionally compiling this part.
-  /*#if WORD_SIZE != 8
-  int i;
-  for (i = 0; i < 8 - WORD_SIZE; i ++)
-  {
-    BitStream_AppendByte0(pBitStrm, 0x0);
-  }
-  #endif*/
+  if WORD_SIZE != 8 then
+    var i: Int = 0
+    while i < 8 - WORD_SIZE do
+      BitStream_AppendByte0(pBitStrm, 0x0)
+      i += 1
 }
 
 
@@ -863,141 +853,140 @@ def BitStream_ReadBitPattern_ignore_value(pBitStrm: BitStream, nBitsToRead: Int)
       return false
 
   true
-
 }
 
-/* TODO
+
 /*Real encoding functions*/
-typedef union _float_tag {
-  float f;
-  byte b[sizeof (float)
-  ];
-} _float;
-
-typedef union _double_tag {
-  double f;
-  byte b[sizeof (double)
-  ];
-} _double;
-
-#define Acn_enc_real_big_endian(type)       \
-int i;                      \
-_##type dat1;               \
-dat1.f = (type)realValue;   \
-if (!RequiresReverse()) {   \
-  for(i=0;i<(int)sizeof(dat1);i++)        \
-  BitStream_AppendByte0(pBitStrm,dat1.b[i]);  \
-} else {    \
-  for(i=(int)(sizeof(dat1)-1);i>=0;i--)   \
-  BitStream_AppendByte0(pBitStrm,dat1.b[i]);  \
-}   \
-
-
-#define Acn_dec_real_big_endian(type)   \
-int i;                  \
-_##type dat1;           \
-dat1.f=0.0;             \
-if (!RequiresReverse()) {       \
-  for(i=0;i<(int)sizeof(dat1);i++) {  \
-    if (!BitStream_ReadByte(pBitStrm, &dat1.b[i]))  \
-    return FALSE;       \
-  }                           \
-} else {                        \
-  for(i=(int)(sizeof(dat1)-1);i>=0;i--) {         \
-    if (!BitStream_ReadByte(pBitStrm, &dat1.b[i]))      \
-    return FALSE;           \
-  }       \
-}       \
-  *pRealValue = dat1.f;   \
-return TRUE;            \
-
-
-
-void Acn_Enc_Real_IEEE754_32_big_endian(pBitStrm: BitStream, asn1Real realValue)
+def Acn_Enc_Real_IEEE754_32_big_endian(pBitStrm: BitStream, realValue: Float): Unit =
 {
-  Acn_enc_real_big_endian(float)
+  val dat1: Float = java.lang.Float.floatToRawIntBits(realValue)
+  val b: Array[Byte] = java.nio.ByteBuffer.allocate(4).putFloat(realValue).array
+
+  var i: Int = 0
+  while i < 8 do
+    BitStream_AppendByte0(pBitStrm, b(i))
+    i += 1
 }
 
-flag Acn_Dec_Real_IEEE754_32_big_endian(pBitStrm: BitStream, asn1Real * pRealValue)
+def Acn_Dec_Real_IEEE754_32_big_endian(pBitStrm: BitStream): Option[Double] =
 {
-  Acn_dec_real_big_endian(float)
+  val b: Array[Byte] = Array.fill(4)(0)
+  var i: Int = 0
+  while i < 4 do
+    BitStream_ReadByte(pBitStrm) match
+      case None => return None
+      case Some(ub) => b(i) = ub
+    i += 1
+
+  val dat1 = BigInt(b).toLong
+  Some(java.lang.Double.longBitsToDouble(dat1))
 }
 
-flag Acn_Dec_Real_IEEE754_32_big_endian_fp32(pBitStrm: BitStream, float * pRealValue)
+def Acn_Dec_Real_IEEE754_32_big_endian_fp32(pBitStrm: BitStream): Option[Float] =
 {
-  Acn_dec_real_big_endian(float)
+  val b: Array[Byte] = Array.fill(4)(0)
+  var i: Int = 0
+  while i < 4 do
+    BitStream_ReadByte(pBitStrm) match
+      case None => return None
+      case Some(ub) => b(i) = ub
+    i += 1
+
+  val dat1 = BigInt(b).toInt
+  Some(java.lang.Float.intBitsToFloat(dat1))
 }
 
 
-void Acn_Enc_Real_IEEE754_64_big_endian(pBitStrm: BitStream, asn1Real realValue)
+def Acn_Enc_Real_IEEE754_64_big_endian(pBitStrm: BitStream, realValue: Double): Unit =
 {
-  Acn_enc_real_big_endian(double)
+  val dat1: Long = java.lang.Double.doubleToRawLongBits(realValue)
+  val b: Array[Byte] = BigInt(dat1).toByteArray
+
+  var i: Int = 0
+  while i < 8 do
+    BitStream_AppendByte0(pBitStrm, b(i))
+    i += 1
 }
 
-flag Acn_Dec_Real_IEEE754_64_big_endian(pBitStrm: BitStream, asn1Real * pRealValue)
+def Acn_Dec_Real_IEEE754_64_big_endian(pBitStrm: BitStream): Option[Double] =
 {
-  Acn_dec_real_big_endian(double)
+  val b: Array[Byte] = Array.fill(8)(0)
+  var i: Int = 0
+  while i < 8 do
+    BitStream_ReadByte(pBitStrm) match
+      case None => return None
+      case Some(ub) => b(i) = ub
+    i += 1
+
+  val dat1 = BigInt(b).toLong
+  Some(java.lang.Double.longBitsToDouble(dat1))
 }
 
 
-
-#define Acn_enc_real_little_endian(type)        \
-int i;                      \
-_##type dat1;               \
-dat1.f = (type)realValue;   \
-if (RequiresReverse()) {    \
-  for(i=0;i<(int)sizeof(dat1);i++)        \
-  BitStream_AppendByte0(pBitStrm,dat1.b[i]);  \
-} else {    \
-  for(i=(int)(sizeof(dat1)-1);i>=0;i--)   \
-  BitStream_AppendByte0(pBitStrm,dat1.b[i]);  \
-}   \
-
-
-#define Acn_dec_real_little_endian(type)    \
-int i;                  \
-_##type dat1;           \
-dat1.f=0.0;             \
-if (RequiresReverse()) {        \
-  for(i=0;i<(int)sizeof(dat1);i++) {  \
-    if (!BitStream_ReadByte(pBitStrm, &dat1.b[i]))  \
-    return FALSE;       \
-  }                           \
-} else {                        \
-  for(i=(int)(sizeof(dat1)-1);i>=0;i--) {         \
-    if (!BitStream_ReadByte(pBitStrm, &dat1.b[i]))      \
-    return FALSE;           \
-  }       \
-}       \
-  *pRealValue = dat1.f;   \
-return TRUE;            \
-
-
-void Acn_Enc_Real_IEEE754_32_little_endian(pBitStrm: BitStream, asn1Real realValue)
+def Acn_Enc_Real_IEEE754_32_little_endian(pBitStrm: BitStream, realValue: Double): Unit =
 {
-  Acn_enc_real_little_endian(float)
+  val dat1: Long = java.lang.Double.doubleToRawLongBits(realValue)
+  val b: Array[Byte] = BigInt(dat1).toByteArray
+
+  var i: Int = 3
+  while i >= 0 do
+    BitStream_AppendByte0(pBitStrm, b(i))
+    i -= 1
 }
 
-flag Acn_Dec_Real_IEEE754_32_little_endian(pBitStrm: BitStream, asn1Real * pRealValue)
+def Acn_Dec_Real_IEEE754_32_little_endian(pBitStrm: BitStream): Option[Double] =
 {
-  Acn_dec_real_little_endian(float)
+  val b: Array[Byte] = Array.fill(4)(0)
+  var i: Int = 3
+  while i >= 0 do
+    BitStream_ReadByte(pBitStrm) match
+      case None => return None
+      case Some(ub) =>  b(i) = ub
+        i -= 1
+
+  val dat1 = BigInt(b).toLong
+  Some(java.lang.Double.longBitsToDouble(dat1))
 }
 
-flag Acn_Dec_Real_IEEE754_32_little_endian_fp32(pBitStrm: BitStream, float * pRealValue)
+def Acn_Dec_Real_IEEE754_32_little_endian_fp32(pBitStrm: BitStream): Option[Float] =
 {
-  Acn_dec_real_little_endian(float)
+  val b: Array[Byte] = Array.fill(4)(0)
+  var i: Int = 3
+  while i >= 0 do
+    BitStream_ReadByte(pBitStrm) match
+      case None => return None
+      case Some(ub) => b(i) = ub
+        i -= 1
+
+  val dat1 = BigInt(b).toInt
+  Some(java.lang.Float.intBitsToFloat(dat1))
 }
 
-void Acn_Enc_Real_IEEE754_64_little_endian(pBitStrm: BitStream, asn1Real realValue)
+def Acn_Enc_Real_IEEE754_64_little_endian(pBitStrm: BitStream, realValue: Double): Unit =
 {
-  Acn_enc_real_little_endian(double)
+  val dat1: Long = java.lang.Double.doubleToRawLongBits(realValue)
+  val b: Array[Byte] = BigInt(dat1).toByteArray
+
+  var i: Int = 7
+  while i >= 0 do
+    BitStream_AppendByte0(pBitStrm, b(i))
+    i -= 1
 }
 
-flag Acn_Dec_Real_IEEE754_64_little_endian(pBitStrm: BitStream, asn1Real * pRealValue)
+def Acn_Dec_Real_IEEE754_64_little_endian(pBitStrm: BitStream): Option[Double] =
 {
-  Acn_dec_real_little_endian(double)
+  val b: Array[Byte] = Array.fill(8)(0)
+  var i: Int = 7
+  while i >= 0 do
+    BitStream_ReadByte(pBitStrm) match
+      case None => return None
+      case Some(ub) => b(i) = ub
+        i -= 1
+
+  val dat1 = BigInt(b).toLong
+  Some(java.lang.Double.longBitsToDouble(dat1))
 }
-*/
+
 
 
 
