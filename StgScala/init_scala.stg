@@ -6,21 +6,20 @@ methodNameSuffix() ::= "_Initialize"
 
 initTypeAssignment_def(sVarName, sStar, sFuncName, sTypeDefName) ::= << >>
 
-initTypeAssignment(sVarName, sPtrPrefix, sPtrSuffix, sFuncName, sTypeDefName, sContent, arrsLocalVariables) ::= <<
-def <sFuncName>(): <sTypeDefName> = // init_scala:10
+initTypeAssignment(sVarName, sPtrPrefix, sPtrSuffix, sFuncName, sTypeDefName, sContent, arrsLocalVariables, defaultInitValue) ::= <<
+def <sFuncName>(): <sTypeDefName> = // init:10
 {
     var <sVarName>: <sTypeDefName> = ???
 
-    <arrsLocalVariables; separator="\n">
+    <arrsLocalVariables; separator="\n // init:12">
     <sContent>
     <sVarName>
 }
 >>
 
-
-initInteger(sVal, nValue) ::= "<sVal> = <nValue> // init:19"
-initReal(sVal, dValue) ::= "<sVal> = <dValue>;"
-initBoolean(sVal, bValue) ::= "<sVal> = <if(bValue)>true<else>false<endif>;"
+initInteger(sVal, nValue) ::= "<sVal> = <nValue> // init:18"
+initReal(sVal, dValue) ::= "<sVal> = <dValue> // init:19"
+initBoolean(sVal, bValue) ::= "<sVal> = <if(bValue)>true<else>false<endif> // init:20"
 
 initObjectIdentifier_vali(p, sAcc, sI, nIntVal) ::= "<p><sAcc>values[<sI>] = <nIntVal>;"
 initObjectIdentifier(p, sAcc, nSize, arrsValues) ::= <<
@@ -78,9 +77,9 @@ assignAny(p, sValue) ::= "<p> = <sValue>;"
 assignString(p, sValue) ::= "memcpy(<p>, <sValue>, sizeof(<sValue>));"
 
 
-initIA5String(sPtr, sValue) ::= "strcpy(<sPtr>,<sValue>);"
-initEnumerated(sVal, sValue) ::= "<sVal> = <sValue> // init:80"
-initNull(sVal)    ::= "<sVal> = 0;"
+initIA5String(sPtr, sValue) ::= "strcpy(<sPtr>,<sValue>) // init:80"
+initEnumerated(sVal, sValue) ::= "<sVal> = <sValue> // init:81"
+initNull(sVal) ::= "<sVal> = 0"
 
 initTestCaseIA5String(p, sAcc, nSize, nMaxSizePlusOne, i, td/*:FE_StringTypeDefinition*/, bAlpha, arrnAlphabetAsciiCodes, nAlphabetLength, bZero) ::= <<
 <if(bZero)>
@@ -138,10 +137,9 @@ var <i> = 0;
 >>
 
 
-initTestCaseBitString(p, sAcc, nSize, nSizeCeiled,  i, bIsFixedSize, bZero, nMinSize) ::= <<
+initTestCaseBitString(p, sAcc, sArrayHolderName, nSize, nSizeCeiled, i, bIsFixedSize, bZero, nMinSize) ::= <<
 <if(bZero)>
-<p><sAcc>arr = Array.fill(<nSizeCeiled>/8)(0) // init_scala:145
-
+<p> = <sArrayHolderName>(Array.fill(<nSizeCeiled>/8)(0)) // init_scala:145
 <else>
 // bZero was false init_scala:148
 <i> = 0;
@@ -149,9 +147,7 @@ while (<i>\< <nSizeCeiled>/8) {
     <p><sAcc>arr[<i>] = 0x55; /* --> 0101 0101 as in Ada*/
     <i> = <i> + 1;
 }
-
 <endif>
-
 <if(!bIsFixedSize)><p><sAcc>nCount = <if(bZero)><nMinSize><else><nSize><endif>;<endif>
 >>
 
@@ -192,7 +188,7 @@ while (<i>\< <nSize>) {
 /*SEQUENCE*/
 
 initSequence_optionalChild(p, sAcc, sChName, sPresentFlag, sChildContent) ::=<<
-<p><sAcc>exist.<sChName> = <sPresentFlag>;
+<p><sAcc>exist.<sChName> = <sPresentFlag> //init:191
 <sChildContent>
 >>
 
@@ -202,33 +198,29 @@ initSequence(arrsInnerValues) ::= <<
 
 initSequence_emptySeq(p) ::= ""
 
-
 initTestCase_sequence_child(p, sAcc, sChName, sChildContent, bOptional) ::= <<
-/*set <sChName> init:207*/
-<if(bOptional)><p><sAcc>exist.<sChName> = 1;<endif>
+/*set <sChName> init:202*/
+<if(bOptional)><p><sAcc>exist.<sChName> = true<endif>
 <sChildContent>
 >>
-initTestCase_sequence_child_opt(p, sAcc, sChName) ::= <<
-<p><sAcc>exist.<sChName> = 0;
->>
 
+initTestCase_sequence_child_opt(p, sAcc, sChName) ::= <<
+<p><sAcc>exist.<sChName> = false // init:208
+>>
 
 initChoice(p1, sAccess, sChildContent, sChildKind, sChildTempVarName, sChildTypeName, sChoiceTypeName, sChildName, bComponentTempInit) ::= <<
 <p1><sAccess>kind = <sChildKind>;
 <sChildContent>        
 >>
 
-
 initTestCase_choice_child(p, sAcc, sChildID, sChildContent, sChildName, sChildTypeDef, sChoiceTypeName) ::= <<
-/*set <sChildName> init:223*/
-var <sChildContent>
-<p> = <sChildID>(e)
+/*set <sChildName> init:215*/
+<p> = <sChildID>(<sChildContent>)
 >>
 
 initChildWithInitFunc(p, sChildInitFuncName) ::= <<
-<p> = <sChildInitFuncName>() // init:230
+<sChildInitFuncName>() /*init:223*/
 >>
-
 
 
 initBitStringAtPos(sVarName, sStar, sFuncName, sTypeDefName, sNamedBit, nZeroBasedByteIndex, sHexByteMax, nZeroBasedBitIndex) ::= <<

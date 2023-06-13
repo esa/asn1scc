@@ -4,11 +4,11 @@ rtlModuleName() ::= ""
 
 call_base_type_func_encode(p, sFuncName) ::= "ret = <sFuncName>(<p>, pBitStrm, false) // uper:5"
 call_base_type_func_decode(p, sFuncName) ::= <<
-<sFuncName>(pBitStrm) match // uper:6
-    case Left(x) => 
-        return Left(x)
-    case Right(x) => 
-        <p> = x
+<sFuncName>(pBitStrm) match // uper:7
+    case Left(err) => 
+        return Left(err)
+    case Right(decData) => 
+        <p> = decData
 >>
 
 /*******************************************************/
@@ -128,8 +128,8 @@ BitStream_EncodeConstraintPosWholeNumber(pBitStrm, <p>, <nMin>, <nMax>)
 
 IntFullyConstraintPos_decode(p, nMin, nMax, nBits, sSsuffix, sErrCode) ::= <<
 BitStream_DecodeConstraintPosWholeNumber<sSsuffix>(pBitStrm, <nMin>, <nMax>) match // uper:130
-    case Some(e) =>
-        <p> = e
+    case Some(decPosNr) =>
+        <p> = decPosNr
     case None =>
         ret = Left(<sErrCode>)
 >>
@@ -214,8 +214,11 @@ BitStream_AppendBit(pBitStrm,<p>) // uper:213
 >>
 
 Boolean_decode(p, sErrCode) ::= <<
-if !BitStream_ReadBit(pBitStrm, <p>) then // uper:217
-    ret = <sErrCode>
+BitStream_ReadBit(pBitStrm) match // uper:217
+    case Some(bit) =>
+        <p> = bit
+    case None =>
+        ret = Left(<sErrCode>)
 >>
 
 Real_encode(p, sSuffix, sErrCode) ::= "BitStream_EncodeReal(pBitStrm, <p>)"
@@ -279,8 +282,9 @@ case <sChildID>(e) => // uper:277
 >>
 choice_child_decode(p, sAcc, sChildID, nChildIndex, nIndexSizeInBits, nLastItemIndex, sChildContent, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr) ::= <<
 case <nChildIndex> => // enum idx uper:282
+    var e: <sChildTypeDef> = ???
     <sChildContent>
-    ret = Right(<sChildID>(<sChildTypeDef>(arr)))
+    <p> = <sChildID>(e)
 >>
 
 choice_encode(p, sAcc, arrsChildren, nLastItemIndex, sChoiceIndexName, sErrCode, td/*:FE_ChoiceTypeDefinition*/, nIndexSizeInBits) ::= <<
@@ -291,9 +295,9 @@ choice_encode(p, sAcc, arrsChildren, nLastItemIndex, sChoiceIndexName, sErrCode,
 >>
 
 choice_decode(p, sAcc, arrsChildren, nLastItemIndex, sChoiceIndexName, sErrCode, td/*:FE_ChoiceTypeDefinition*/, nIndexSizeInBits) ::= <<
-BitStream_DecodeConstraintWholeNumber(pBitStrm, 0, <nLastItemIndex>) match
-    case Some(e) =>
-        e match
+BitStream_DecodeConstraintWholeNumber(pBitStrm, 0, <nLastItemIndex>) match // uper:297
+    case Some(choice) =>
+        choice match
             <arrsChildren: {ch|<ch>}; separator="\n">
             case _ =>
                 ret = Left(<sErrCode>)
@@ -306,9 +310,11 @@ BitStream_DecodeConstraintWholeNumber(pBitStrm, 0, <nLastItemIndex>) match
 /* SEQUENCE START */
 sequence_presence_bit_encode(p, sAcc, sChName, sErrCode) ::= "BitStream_AppendBit(pBitStrm,<p><sAcc>exist.<sChName>);"
 sequence_presence_bit_decode(p, sAcc, sChName, sErrCode) ::= <<
-if !BitStream_ReadBit(pBitStrm, presenceBit) then // uper:295
-    ret = <sErrCode>
-<p><sAcc>exist.<sChName> = if presenceBit == 0 then 0 else 1
+BitStream_ReadBit(pBitStrm) match // uper:312
+    case Some(bit) =>
+        <p><sAcc>exist.<sChName> = bit
+    case None =>
+        ret = Left(<sErrCode>)
 >>
 
 sequence_presence_bit_fix_encode(p, sAcc, sChName, sErrCode, sVal) ::= "BitStream_AppendBit(pBitStrm, <sVal>)"

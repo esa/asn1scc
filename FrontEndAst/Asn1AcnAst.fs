@@ -408,7 +408,7 @@ type Integer = {
     acnEncodingClass    : IntEncodingClass
     isUnsigned          : bool
     typeDef             : Map<ProgrammingLanguage, FE_PrimitiveTypeDefinition>
-
+    defaultInitVal      : BigInteger
 }
 
 type Real = {
@@ -424,6 +424,7 @@ type Real = {
     acnEncodingClass    : RealEncodingClass
 
     typeDef             : Map<ProgrammingLanguage, FE_PrimitiveTypeDefinition>
+    defaultInitVal      : BigInteger
 }
 
 type StringType = {
@@ -442,7 +443,7 @@ type StringType = {
     acnEncodingClass    : StringAcnEncodingClass
     isNumeric           : bool
     typeDef             : Map<ProgrammingLanguage, FE_StringTypeDefinition>
-
+    defaultInitVal      : String
 }
 
 
@@ -510,6 +511,7 @@ type Boolean = {
     acnMaxSizeInBits    : BigInteger
     acnMinSizeInBits    : BigInteger
     typeDef             : Map<ProgrammingLanguage, FE_PrimitiveTypeDefinition>
+    defaultInitVal      : bool
 }
 
 type ObjectIdentifier = {    

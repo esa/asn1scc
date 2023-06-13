@@ -185,7 +185,7 @@ typedef <prTd.typeName> <td.typeName>;
 
 /***********************************       SEQUENCE     ************************************************************/
 
-Define_new_sequence_child_bit(sName) ::= "<sName>: ULong // header:188"
+Define_new_sequence_child_bit(sName) ::= "<sName>: Boolean // header:188"
 
 Define_new_sequence_child(sName, sType) ::= "<sName>: <sType>"
 
@@ -208,7 +208,7 @@ case class <td.exist> ( // header:204
 <endif>
 case class <td.typeName> ( // header:209
 <if (arrsOptionalChildren)>
-    exist: <td.exist>,
+    var exist: <td.exist>,
 
 <endif>
     <arrsChildren:{ch|var <ch>}; separator=", \n">

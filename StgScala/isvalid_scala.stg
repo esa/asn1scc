@@ -49,10 +49,11 @@ if <sStatement> then Right(0) else Left(<sErrCode>) // isvalid:48
 >>
 
 convertVCBTRUEToStatementAndUpdateErrCode() ::= <<
-ret = Right(0) // isvalid:53
+Right(0) // isvalid:52
 >>
+
 convertVCBFalseToStatementAndUpdateErrCode(sErrCode) ::= <<
-ret = Left(<sErrCode>) // isvalid:56
+Left(<sErrCode>) // isvalid:56
 >>
 
 /*
@@ -73,11 +74,9 @@ EmitTypeAssignment_composite(sVarName, sPtrPrefix, sPtrSuffix, sFuncName, sTypeD
 <arrsAlphaFuncs; separator="\n">
 def <sFuncName>(<if(bUnreferenced)>@annotation.unused <endif><sVarName>: <sTypeDefName>): Either[ErrorCode, Int] = // isvalid:74
 {
-    var ret: Either[ErrorCode, Int] = ??? 
-    <arrsLocalVars; separator="\n">
-
+    <arrsLocalVars; separator="\n // isvalid:76">
+    var ret: Either[ErrorCode, Int] = ???
     <sContent>
-    
     ret
 }
 >>
@@ -242,9 +241,8 @@ call_base_type_func_exp(p, sFuncName) ::= "<sFuncName>(<p>)"
 
 
 Sequence_OptionalChild(p, sAcc,  sChName, sInnerStatement) ::= <<
-if (<p><sAcc>exist.<sChName>) {
-    <sInnerStatement>
-}
+if <p><sAcc>exist.<sChName> then  // isvalid:244
+    ret = <sInnerStatement>
 >>
 
 

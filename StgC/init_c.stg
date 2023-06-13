@@ -8,7 +8,7 @@ initTypeAssignment_def(sVarName, sStar, sFuncName, sTypeDefName) ::= <<
 void <sFuncName>(<sTypeDefName><sStar> <sVarName>);
 >>
 
-initTypeAssignment(sVarName, sPtrPrefix, sPtrSuffix, sFuncName, sTypeDefName, sContent, arrsLocalVariables) ::= <<
+initTypeAssignment(sVarName, sPtrPrefix, sPtrSuffix, sFuncName, sTypeDefName, sContent, arrsLocalVariables, defaultInitValue) ::= <<
 void <sFuncName>(<sTypeDefName><sPtrSuffix> <sVarName>)
 {
 	(void)<sVarName>;
@@ -137,7 +137,7 @@ while (<i>\< <nSize>) {
 
 >>
 
-initTestCaseBitString(p, sAcc, nSize, nSizeCeiled,  i, bIsFixedSize, bZero, nMinSize) ::= <<
+initTestCaseBitString(p, sAcc, sArrayHolderName, nSize, nSizeCeiled,  i, bIsFixedSize, bZero, nMinSize) ::= <<
 <if(bZero)>
 memset(<p><sAcc>arr, 0x0, <nSizeCeiled>/8);
 
