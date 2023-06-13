@@ -94,7 +94,97 @@ case class ByteStream (
   require(currentByte >= 0 && currentByte < buf.length)
 }
 
+case class Token (
+  TokenID: Int,
+  Value: Array[Char]
+) {
+  require(Value.length == 100)
+}
 
+case class XmlAttribute (
+  Name: Array[Char],
+  Value: Array[Char]
+) {
+  require(Name.length == 50)
+  require(Value.length == 100)
+}
+
+case class XmlAttributeArray (
+  attrs: Array[XmlAttribute],
+  nCount: Int
+) {
+  require(attrs.length == 20)
+}
+
+case class Asn1ObjectIdentifier (
+                                  var nCount: Int,
+                                  values: Array[Long] // ULong
+                                ) {
+  require(values.length == OBJECT_IDENTIFIER_MAX_LENGTH)
+  require(nCount >= 0)
+}
+
+/* Time Classes
+  Asn1LocalTime,					// TIME-OF-DAY  ::= TIME(SETTINGS "Basic=Time Time=HMS Local-or-UTC=L")
+  Asn1UtcTime,					//                  TIME(SETTINGS "Basic=Time Time=HMS Local-or-UTC=Z")
+  Asn1LocalTimeWithTimeZone,		//                  TIME(SETTINGS "Basic=Time Time=HMS Local-or-UTC=LD")
+  Asn1Date,						//  DATE ::=        TIME(SETTINGS "Basic=Date Date=YMD Year=Basic")
+  Asn1Date_LocalTime,				//  DATE-TIME   ::= TIME(SETTINGS "Basic=Date-Time Date=YMD Year=Basic Time=HMS Local-or-UTC=L")
+  Asn1Date_UtcTime,				// 			        TIME(SETTINGS "Basic=Date-Time Date=YMD Year=Basic Time=HMS Local-or-UTC=Z")
+  Asn1Date_LocalTimeWithTimeZone	//                  TIME(SETTINGS "Basic=Date-Time Date=YMD Year=Basic Time=HMS Local-or-UTC=LD")
+*/
+
+case class Asn1TimeZone (
+  sign: Int, //-1 or +1
+  hours: Int,
+  mins: Int,
+)
+
+case class Asn1TimeWithTimeZone (
+  hours: Int,
+  mins: Int,
+  secs: Int,
+  fraction: Int,
+  tz: Asn1TimeZone
+)
+
+case class Asn1UtcTime (
+  hours: Int,
+  mins: Int,
+  secs: Int,
+  fraction: Int,
+)
+
+case class Asn1LocalTime (
+  hours: Int,
+  mins: Int,
+  secs: Int,
+  fraction: Int,
+)
+
+case class Asn1Date (
+  years: Int,
+  months: Int,
+  days: Int,
+)
+
+case class Asn1DateLocalTime (
+  date: Asn1Date,
+  time: Asn1LocalTime
+)
+
+case class Asn1DateUtcTime (
+  date: Asn1Date,
+  time: Asn1UtcTime
+)
+
+case class Asn1DateTimeWithTimeZone(
+  date: Asn1Date,
+  time: Asn1TimeWithTimeZone
+)
+
+enum Asn1TimeZoneClass:
+  case Asn1TC_LocalTimeStamp, Asn1TC_UtcTimeStamp, Asn1TC_LocalTimeTZStamp
 
 /**
 
@@ -111,13 +201,6 @@ Object Identifier
 **/
 
 
-case class Asn1ObjectIdentifier (
-  var nCount: Int,
-  values: Array[Long] // ULong
-) {
-  require(values.length == OBJECT_IDENTIFIER_MAX_LENGTH)
-  require(nCount >= 0)
-}
 
 // TODO: Ref?
 def ObjectIdentifier_Init(pVal: Asn1ObjectIdentifier): Unit = {
