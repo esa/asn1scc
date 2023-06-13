@@ -113,12 +113,9 @@ let exportRTL (di:DirInfo) (l:ProgrammingLanguage) (args:CommandLineSettings)=
             if hasUper || hasAcn then
                 writeResource di "asn1jvm_encoding_uper.scala" None
 
-//            if hasAcn  then
-//                writeResource di "asn1crt_encoding_acn.c" None
-//                writeResource di "asn1crt_encoding_acn.h" None
-//                //writeTextFile (Path.Combine(asn1rtlDirName, "asn1crt_encoding_acn.c")) (rm.GetString("asn1crt_encoding_acn_c",null))
-//                //writeTextFile (Path.Combine(asn1rtlDirName, "asn1crt_encoding_acn.h")) (rm.GetString("asn1crt_encoding_acn_h",null))
-//
+            if hasAcn then
+                writeResource di "asn1jvm_encoding_acn.scala" None
+
 //            if hasXer  then
 //                writeResource di "asn1crt_encoding_xer.c" None
 //                writeResource di "asn1crt_encoding_xer.h" None

@@ -92,6 +92,9 @@
     <EmbeddedResource Include="..\asn1scala\lib\stainless-library_2.13-0.9.7.jar">
       <Link>stainless-library_2.13-0.9.7.jar</Link>
     </EmbeddedResource>
+    <EmbeddedResource Include="..\asn1scala\src\main\scala\asn1scala\asn1jvm_encoding_acn.scala">
+      <Link>asn1jvm_encoding_acn.scala</Link>
+    </EmbeddedResource>
   </ItemGroup>
 
 </Project>
