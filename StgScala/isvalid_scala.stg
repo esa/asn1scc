@@ -74,8 +74,8 @@ EmitTypeAssignment_composite(sVarName, sPtrPrefix, sPtrSuffix, sFuncName, sTypeD
 <arrsAlphaFuncs; separator="\n">
 def <sFuncName>(<if(bUnreferenced)>@annotation.unused <endif><sVarName>: <sTypeDefName>): Either[ErrorCode, Int] = // isvalid:74
 {
+    var ret: Either[ErrorCode, Int] = Left(NOT_INITIALIZED_ERR_CODE)
     <arrsLocalVars; separator="\n // isvalid:76">
-    var ret: Either[ErrorCode, Int] = ???
     <sContent>
     ret
 }
@@ -263,11 +263,11 @@ Sequence_optional_child_always_present_or_absent_expr(p, sAcc,  sChName, sPresOr
 /* CHOICE start*/
 
 Choice_OptionalChild(p, sAcc, sChPresent, sInnerStatement) ::= <<
-ret = <p> match // isvalid:268
+<p> match // isvalid:268
     case <sChPresent>(e) => 
         <sInnerStatement> 
     case _ => 
-        Left(272)
+        ret = Left(272)
 >>
 
 Choice_child_always_present_Exp(p, sAcc, sChPresent) ::= <<

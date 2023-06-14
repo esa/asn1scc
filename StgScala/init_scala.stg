@@ -214,12 +214,13 @@ initChoice(p1, sAccess, sChildContent, sChildKind, sChildTempVarName, sChildType
 >>
 
 initTestCase_choice_child(p, sAcc, sChildID, sChildContent, sChildName, sChildTypeDef, sChoiceTypeName) ::= <<
-/*set <sChildName> init:215*/
-<p> = <sChildID>(<sChildContent>)
+/*set <sChildName> init:217*/
+var <sChildContent>
+<p> = <sChildID>(e)
 >>
 
 initChildWithInitFunc(p, sChildInitFuncName) ::= <<
-<sChildInitFuncName>() /*init:223*/
+<p> = <sChildInitFuncName>() /*init:222*/
 >>
 
 

@@ -2,7 +2,13 @@
 
 rtlModuleName() ::= ""
 
-call_base_type_func_encode(p, sFuncName) ::= "ret = <sFuncName>(<p>, pBitStrm, false) // uper:5"
+call_base_type_func_encode(p, sFuncName) ::= <<
+<sFuncName>(<p>, pBitStrm, false) match // uper:51
+    case Left(err) =>
+        return Left(err)
+    case Right(retVal) =>
+        ret = Right(retVal)
+>>
 call_base_type_func_decode(p, sFuncName) ::= <<
 <sFuncName>(pBitStrm) match // uper:7
     case Left(err) => 
@@ -28,7 +34,7 @@ EmitTypeAssignment_def_encode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrc
 EmitTypeAssignment_encode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitilialExp, bReqBytesForEncodingIsZero, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName) ::= <<
 def <sFuncName>(<if(bVarNameIsUnreferenced)>@annotation.unused <endif><sVarName>: <sTypeDefName>, <if(bBsIsUnreferenced)>@annotation.unused <endif>pBitStrm: BitStream, bCheckConstraints: Boolean): Either[ErrorCode, Int] = //uper:29
 {
-    var ret: Either[ErrorCode, Int] = ???
+    var ret: Either[ErrorCode, Int] = Left(NOT_INITIALIZED_ERR_CODE)
 
     <arrsLocalVariables:{lv|<lv>}; separator="\n">
     <if(soIValidFuncName)>
@@ -51,9 +57,8 @@ EmitTypeAssignment_def_decode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrc
 EmitTypeAssignment_decode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitilialExp, bReqBytesForEncodingIsZero, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName) ::= <<
 def <sFuncName>(<if(bBsIsUnreferenced)>@annotation.unused <endif>pBitStrm: BitStream): Either[ErrorCode, <sTypeDefName>] = // uper:52
 {
-    var ret: Either[ErrorCode, <sTypeDefName>] = ???
     var pVal: <sTypeDefName> = ???
-    ret = Right(pVal)
+    var ret: Either[ErrorCode, <sTypeDefName>] = Right(pVal)
 
     <sContent>
 

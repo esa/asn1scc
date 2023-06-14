@@ -21,6 +21,8 @@ type ULongNoRTL = ULong
 val WORD_SIZE = 8
 val OBJECT_IDENTIFIER_MAX_LENGTH = 20
 
+val NOT_INITIALIZED_ERR_CODE = 1337
+
 case class Ref[T](var x: T) {}
 
 
