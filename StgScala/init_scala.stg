@@ -6,10 +6,10 @@ methodNameSuffix() ::= "_Initialize"
 
 initTypeAssignment_def(sVarName, sStar, sFuncName, sTypeDefName) ::= << >>
 
-initTypeAssignment(sVarName, sPtrPrefix, sPtrSuffix, sFuncName, sTypeDefName, sContent, arrsLocalVariables, defaultInitValue) ::= <<
+initTypeAssignment(sVarName, sPtrPrefix, sPtrSuffix, sFuncName, sTypeDefName, sContent, arrsLocalVariables, sDefaultInitValue) ::= <<
 def <sFuncName>(): <sTypeDefName> = // init:10
 {
-    var <sVarName>: <sTypeDefName> = ???
+    var <sVarName>: <sTypeDefName> = <sDefaultInitValue>
 
     <arrsLocalVariables; separator="\n // init:12">
     <sContent>

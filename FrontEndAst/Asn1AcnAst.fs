@@ -408,7 +408,7 @@ type Integer = {
     acnEncodingClass    : IntEncodingClass
     isUnsigned          : bool
     typeDef             : Map<ProgrammingLanguage, FE_PrimitiveTypeDefinition>
-    defaultInitVal      : BigInteger
+    defaultInitVal      : String
 }
 
 type Real = {
@@ -424,7 +424,7 @@ type Real = {
     acnEncodingClass    : RealEncodingClass
 
     typeDef             : Map<ProgrammingLanguage, FE_PrimitiveTypeDefinition>
-    defaultInitVal      : BigInteger
+    defaultInitVal      : String
 }
 
 type StringType = {
@@ -476,7 +476,8 @@ type BitString = {
     acnMinSizeInBits    : BigInteger
     acnEncodingClass    : SizeableAcnEncodingClass
     typeDef             : Map<ProgrammingLanguage, FE_SizeableTypeDefinition>
-    namedBitList     : NamedBit1 list
+    namedBitList        : NamedBit1 list
+    defaultInitVal      : String
 }
 
 type TimeType = {
@@ -499,7 +500,7 @@ type NullType = {
     acnMaxSizeInBits    : BigInteger
     acnMinSizeInBits    : BigInteger
     typeDef             : Map<ProgrammingLanguage, FE_PrimitiveTypeDefinition>
-
+    defaultInitVal      : String
 }
 
 type Boolean = {    
@@ -511,7 +512,7 @@ type Boolean = {
     acnMaxSizeInBits    : BigInteger
     acnMinSizeInBits    : BigInteger
     typeDef             : Map<ProgrammingLanguage, FE_PrimitiveTypeDefinition>
-    defaultInitVal      : bool
+    defaultInitVal      : String
 }
 
 type ObjectIdentifier = {    
@@ -540,7 +541,7 @@ type Enumerated = {
     encodeValues        : bool
     userDefinedValues   : bool      //if true, the user has associated at least one item with a value
     typeDef             : Map<ProgrammingLanguage, FE_EnumeratedTypeDefinition>
-
+    defaultInitVal      : String
 }
 
 type AcnReferenceToEnumerated = {
@@ -734,7 +735,7 @@ and Choice = {
     acnMinSizeInBits    : BigInteger
     acnLoc              : SrcLoc option
     typeDef             : Map<ProgrammingLanguage, FE_ChoiceTypeDefinition>
-
+    defaultInitVal      : String
 }
 
 and ChChildInfo = {

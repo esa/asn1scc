@@ -9,7 +9,7 @@ initTypeAssignment_def(sVarName, sStar, sFuncName, sTypeDefName) ::= <<
 procedure <sFuncName>(<sVarName>: out <sTypeDefName>);
 >>
 
-initTypeAssignment(sVarName, sPtrPrefix, sPtrSuffix, sFuncName, sTypeDefName, sContent, arrsLocalVariables, defaultInitValue) ::= <<
+initTypeAssignment(sVarName, sPtrPrefix, sPtrSuffix, sFuncName, sTypeDefName, sContent, arrsLocalVariables, sDefaultInitValue) ::= <<
 procedure <sFuncName>(<sVarName>: out <sTypeDefName>)
 is
     <arrsLocalVariables; separator="\n">
