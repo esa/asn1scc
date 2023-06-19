@@ -845,6 +845,14 @@ let createSequenceOfInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1A
         | false -> lm.init.initVarSizeSequenceOfExpr o.minSize.uper o.maxSize.uper childExpr
     createInitFunctionCommon r lm t typeDefinition "createSequenceOfInitFunc" funcBody initTasFunction testCaseFuncs (constantInitExpression childInitExpr) (constantInitExpression childInitGlobal) nonEmbeddedChildrenFuncs []
 
+let extractDefaultInitValue (childType: Asn1TypeKind): String = 
+        match childType with
+        | Integer i -> i.baseInfo.defaultInitVal
+        | Real r -> r.baseInfo.defaultInitVal
+        | NullType n -> n.baseInfo.defaultInitVal
+        | Boolean b -> "false"
+        | _ -> "null"
+
 let createSequenceInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (o :Asn1AcnAst.Sequence) (typeDefinition:TypeDefintionOrReference) (children:SeqChildInfo list) = 
     let initSequence                        = lm.init.initSequence
     let initSequence_optionalChild          = lm.init.initSequence_optionalChild
@@ -1045,23 +1053,20 @@ let createSequenceInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1Acn
             List.exists((=) true)
         if hasOptional then "null, " else ""
 
+    let rec resolveReferenceType(t: Asn1TypeKind): Asn1TypeKind = 
+        match t with
+        | ReferenceType rt -> resolveReferenceType rt.resolvedType.Kind
+        | _ -> t
+
     let extractAsn1Types: Asn1TypeKind list = 
         children |> 
         List.choose(fun c -> match c with Asn1Child x -> Some x.Type.Kind | _ -> None) |>
-        List.map(fun k -> match k with ReferenceType rt -> rt.resolvedType.Kind | _ -> k)
-
-    let extractDefault (childType: Asn1TypeKind): String = 
-        match childType with
-        | Integer i -> i.baseInfo.defaultInitVal
-        | Real r -> r.baseInfo.defaultInitVal
-        | NullType n -> n.baseInfo.defaultInitVal
-        | Boolean b -> "false"
-        | _ -> "null"
+        List.map(fun k -> resolveReferenceType k)
 
     let defaultParamListForScala: String = 
         match typeDefinition with
         | TypeDefinition td -> 
-            td.typedefName + "(" + optChildrenString + (extractAsn1Types |> List.map (fun c -> extractDefault c) |> List.reduce (fun c1 c2 -> c1 + ", " + c2)) + ")"
+            td.typedefName + "(" + optChildrenString + (extractAsn1Types |> List.map (fun c -> extractDefaultInitValue c) |> List.reduce (fun c1 c2 -> c1 + ", " + c2)) + ")"
         | ReferenceToExistingDefinition r -> "TODO"
 
     createInitFunctionCommon r lm t typeDefinition defaultParamListForScala initByAsn1ValueFnc 
@@ -1179,7 +1184,7 @@ let createChoiceInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAs
     createInitFunctionCommon r lm t typeDefinition o.defaultInitVal funcBody initTasFunction testCaseFuncs (constantInitExpression getChildExpression) (constantInitExpression getChildExpressionGlobal) nonEmbeddedChildrenFuncs []
 
 let createReferenceType (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (o :Asn1AcnAst.ReferenceType) (typeDefinition:TypeDefintionOrReference) (baseType:Asn1Type) =
-    let initChildWithInitFunc       = lm.init.initChildWithInitFunc
+    let initChildWithInitFunc = lm.init.initChildWithInitFunc
     let nonEmbeddedChildrenFuncs = []
 
     (*
@@ -1230,4 +1235,4 @@ let createReferenceType (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAst
                 {InitFunctionResult.funcBody = funcBody; localVariables = []}
             createInitFunctionCommon r lm t typeDefinition "createReferenceType1" bs.initByAsn1Value  initTasFunction bs.automaticTestCases constantInitExpression constantInitExpressionGlobal nonEmbeddedChildrenFuncs []
         | false ->
-            createInitFunctionCommon r lm t typeDefinition "createReferenceType2" bs.initByAsn1Value bs.initTas bs.automaticTestCases bs.initExpression bs.initExpressionGlobal bs.nonEmbeddedChildrenFuncs []
+            createInitFunctionCommon r lm t typeDefinition (extractDefaultInitValue baseType.Kind) bs.initByAsn1Value bs.initTas bs.automaticTestCases bs.initExpression bs.initExpressionGlobal bs.nonEmbeddedChildrenFuncs []
