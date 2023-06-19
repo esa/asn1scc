@@ -286,10 +286,10 @@ init_Asn1Date_LocalTimeWithTimeZoneExpr() ::= <<
 {.years = 0, .months = 0, .days = 0, .hours = 0, .mins = 0, .sec = 0, .fraction = 0, .tz.sign = 0, .tz.hours = 0, .tz.mins = 0 }
 >>
 
-initSequenceChildExpr(sChildName, sChildExpr) ::= ".<sChildName> = <sChildExpr>"
-initSequenceOptionalChildExpr(sChildName, nPresenceBit) ::= ".<sChildName> = <nPresenceBit>"
+initSequenceChildExpr(sChildName, sChildExpr) ::= "<sChildName> = <sChildExpr> /* init:289 */"
+initSequenceOptionalChildExpr(sChildName, nPresenceBit) ::= "<sChildName> = <nPresenceBit> /* init:290 */"
 initSequenceExpr(arrsChildren, arrsOptionalChildren) ::= <<
-{<arrsChildren; separator=", "><if (arrsOptionalChildren)>, .exist = {<arrsOptionalChildren; separator=", ">}<endif>}
+(<arrsChildren; separator=", "><if (arrsOptionalChildren)>, exist = null <endif>) /* init:292 */
 >>
 
-initChoiceExpr(sChildName, sChildKind, sChildExpr) ::= "{.kind = <sChildKind>, .u.<sChildName> = <sChildExpr>}"
+initChoiceExpr(sChildName, sChildKind, sChildExpr) ::= "{.kind = <sChildKind>, .u.<sChildName> = <sChildExpr>} /* init:295 */"

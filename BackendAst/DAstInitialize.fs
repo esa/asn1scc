@@ -1033,23 +1033,38 @@ let createSequenceInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1Acn
         | [] -> lm.lg.getEmptySequenceInitExpression ()
         | _  -> lm.init.initSequenceExpr nonEmptyChildren arrsOptionalChildren
     
-    let extractDefault (child: SeqChildInfo): String = 
-        match child with
-        | Asn1Child asnC -> 
-            match asnC.Type.Kind with
-            | Integer i -> i.baseInfo.defaultInitVal
-            | Real r -> r.baseInfo.defaultInitVal
-            | NullType nt -> nt.baseInfo.defaultInitVal
-            | _ -> "null"
-        | AcnChild acnC -> "TODO"
+    let optChildrenString: String = // opt children will be first in scala
+        let hasOptional =
+            children |>
+            List.choose(fun c -> match c with Asn1Child x -> Some x | _ -> None) |>
+            List.map(fun c -> 
+                match c.Optionality with
+                | Some (Asn1AcnAst.Optional opt) -> true
+                | _ -> false            
+            ) |>
+            List.exists((=) true)
+        if hasOptional then "null, " else ""
 
-    let createDefaultParamList: String = 
+    let extractAsn1Types: Asn1TypeKind list = 
+        children |> 
+        List.choose(fun c -> match c with Asn1Child x -> Some x.Type.Kind | _ -> None) |>
+        List.map(fun k -> match k with ReferenceType rt -> rt.resolvedType.Kind | _ -> k)
+
+    let extractDefault (childType: Asn1TypeKind): String = 
+        match childType with
+        | Integer i -> i.baseInfo.defaultInitVal
+        | Real r -> r.baseInfo.defaultInitVal
+        | NullType n -> n.baseInfo.defaultInitVal
+        | Boolean b -> "false"
+        | _ -> "null"
+
+    let defaultParamListForScala: String = 
         match typeDefinition with
         | TypeDefinition td -> 
-            td.typedefName + "(" + (children |> List.map (fun c -> extractDefault c) |> List.reduce (fun c1 c2 -> c1 + ", " + c2)) + ")"
+            td.typedefName + "(" + optChildrenString + (extractAsn1Types |> List.map (fun c -> extractDefault c) |> List.reduce (fun c1 c2 -> c1 + ", " + c2)) + ")"
         | ReferenceToExistingDefinition r -> "TODO"
 
-    createInitFunctionCommon r lm t typeDefinition createDefaultParamList initByAsn1ValueFnc 
+    createInitFunctionCommon r lm t typeDefinition defaultParamListForScala initByAsn1ValueFnc 
         initTasFunction testCaseFuncs (constantInitExpression getChildExpression)  
         (constantInitExpression getChildExpressionGlobal)  nonEmbeddedChildrenFuncs []
 
