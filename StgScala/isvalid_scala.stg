@@ -81,8 +81,8 @@ def <sFuncName>(<if(bUnreferenced)>@annotation.unused <endif><sVarName>: <sTypeD
 }
 >>
 
-ExpEqual(sExp1, sExp2) ::= "(<sExp1> == <sExp2>)"
-ExpStringEqual(sExp1, sExp2) ::= "(<sExp1> == <sExp2>)"
+ExpEqual(sExp1, sExp2) ::= "(<sExp1> == <sExp2> /* isvalid:84 */)"
+ExpStringEqual(sExp1, sExp2) ::= "(<sExp1> == <sExp2> /* isvalid:85 */)"
 ExpGt(sExp1, sExp2) ::= "(<sExp1> \> <sExp2>)/* isvalid:87 */"
 ExpGte(sExp1, sExp2) ::= "(<sExp1> \>= <sExp2>)/* isvalid:88 */"
 ExpLt(sExp1, sExp2) ::= "(<sExp1> \< <sExp2>)/* isvalid:89 */"
@@ -194,7 +194,7 @@ def <sFuncName>(const char* str): flag =
 
 
 
-SingleValContraint(p, v) ::= "(<p> == <v>)"
+SingleValContraint(p, v) ::= "(<p> == <v>) /* isvalid:197 */"
 
 
 
@@ -252,7 +252,7 @@ ret = <sErrCode>;
 >>
 
 Sequence_optional_child_always_present_or_absent_expr(p, sAcc,  sChName, sPresOrAbs) ::= <<
-<p><sAcc>exist.<sChName> == <sPresOrAbs>
+<p><sAcc>exist.<sChName> /* isvalid:255 */
 >>
 
 

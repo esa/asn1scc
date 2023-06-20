@@ -938,7 +938,7 @@ ChoiceDependencyEnum(sChPath, sAcc, arrsChoiceEnumItems) ::= <<
 
 PresenceDependency(v, sSeqPath, sAcc, sChildName) ::= <<
 <v>_is_initialized = true // acn:940
-<v> = (<sSeqPath><sAcc>exist.<sChildName> == 1)
+<v> = (<sSeqPath><sAcc>exist.<sChildName>) /* acn:941 */
 >>
 
 ChoiceDependencyIntPres_child(v, sChildNamePrese, nChildRetVal) ::= <<

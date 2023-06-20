@@ -584,11 +584,19 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Com
                 | true  when lm.lg.uper.requires_presenceBit  && codec = CommonTypes.Decode -> [(FlagLocalVariable ("presenceBit", None))]
                 | _                                       -> []
             let printPresenceBit (child:Asn1Child) =
-                match child.Optionality with
-                | None                       -> None
-                | Some Asn1AcnAst.AlwaysAbsent     -> Some (sequence_presence_bit_fix p.arg.p (lm.lg.getAccess p.arg) (lm.lg.getAsn1ChildBackendName child) errCode.errCodeName "0"  codec)    // please note that in decode, macro uper_sequence_presence_bit_fix
-                | Some Asn1AcnAst.AlwaysPresent    -> Some (sequence_presence_bit_fix p.arg.p (lm.lg.getAccess p.arg) (lm.lg.getAsn1ChildBackendName child) errCode.errCodeName "1"  codec)    // calls macro uper_sequence_presence_bit (i.e. behaves like optional)
-                | Some (Asn1AcnAst.Optional opt)   -> Some (sequence_presence_bit p.arg.p (lm.lg.getAccess p.arg) (lm.lg.getAsn1ChildBackendName child)  errCode.errCodeName codec)
+                match ST.lang with
+                | ProgrammingLanguage.Scala -> 
+                     match child.Optionality with
+                    | None                       -> None
+                    | Some Asn1AcnAst.AlwaysAbsent     -> Some (sequence_presence_bit_fix p.arg.p (lm.lg.getAccess p.arg) (lm.lg.getAsn1ChildBackendName child) errCode.errCodeName "false"  codec)    // please note that in decode, macro uper_sequence_presence_bit_fix
+                    | Some Asn1AcnAst.AlwaysPresent    -> Some (sequence_presence_bit_fix p.arg.p (lm.lg.getAccess p.arg) (lm.lg.getAsn1ChildBackendName child) errCode.errCodeName "true"  codec)    // calls macro uper_sequence_presence_bit (i.e. behaves like optional)
+                    | Some (Asn1AcnAst.Optional opt)   -> Some (sequence_presence_bit p.arg.p (lm.lg.getAccess p.arg) (lm.lg.getAsn1ChildBackendName child)  errCode.errCodeName codec)
+                | _ -> 
+                    match child.Optionality with
+                    | None                       -> None
+                    | Some Asn1AcnAst.AlwaysAbsent     -> Some (sequence_presence_bit_fix p.arg.p (lm.lg.getAccess p.arg) (lm.lg.getAsn1ChildBackendName child) errCode.errCodeName "0"  codec)    // please note that in decode, macro uper_sequence_presence_bit_fix
+                    | Some Asn1AcnAst.AlwaysPresent    -> Some (sequence_presence_bit_fix p.arg.p (lm.lg.getAccess p.arg) (lm.lg.getAsn1ChildBackendName child) errCode.errCodeName "1"  codec)    // calls macro uper_sequence_presence_bit (i.e. behaves like optional)
+                    | Some (Asn1AcnAst.Optional opt)   -> Some (sequence_presence_bit p.arg.p (lm.lg.getAccess p.arg) (lm.lg.getAsn1ChildBackendName child)  errCode.errCodeName codec)
             let handleChild (child:Asn1Child) =
                 let chFunc = child.Type.getUperFunction codec
                 let ch_arg = lm.lg.getSeqChild p.arg
