@@ -427,16 +427,22 @@ ret = if(BitStream_DecodeConstraintWholeNumber(pBitStrm, &nCount, <nSizeMin>, <n
 >>
 
 octect_FixedSize_encode(p, sAcc, nFixedSize) ::= <<
-ret = BitStream_EncodeOctetString_no_length(pBitStrm, <p><sAcc>arr, <nFixedSize>);
+if !BitStream_EncodeOctetString_no_length(pBitStrm, <p>, <nFixedSize>) then
+    ret = Left(431)
 >>
 
 octect_FixedSize_decode(p, sAcc, nFixedSize) ::= <<
-ret = if (BitStream_DecodeOctetString_no_length(pBitStrm, <p><sAcc>arr, <nFixedSize>)) 0 else 1
+BitStream_DecodeOctetString_no_length(pBitStrm, <nFixedSize>) match
+    case Some(x) => 
+        <p> = x
+    case None => 
+        ret = Left(437)
 >>
 
 octect_VarSize_encode(p, sAcc, nSizeMin, nSizeMax, nSizeInBits, sErrCode) ::= <<
 BitStream_EncodeConstraintWholeNumber(pBitStrm, <p><sAcc>nCount, <nSizeMin>, <nSizeMax>);
-ret = BitStream_EncodeOctetString_no_length(pBitStrm, <p><sAcc>arr, <p><sAcc>nCount);
+if !BitStream_EncodeOctetString_no_length(pBitStrm, <p>, <p><sAcc>nCount) then
+    ret = Left(441)
 >>
 
 octect_VarSize_decode(p, sAcc, nSizeMin, nSizeMax, nSizeInBits, sErrCode) ::= <<
@@ -445,7 +451,7 @@ if (BitStream_DecodeConstraintWholeNumber(pBitStrm, &nCount, <nSizeMin>, <nSizeM
     ret = <sErrCode>
 }
 <p><sAcc>nCount = (long)nCount;
-if(!BitStream_DecodeOctetString_no_length(pBitStrm, <p><sAcc>arr, <p><sAcc>nCount))
+if(!BitStream_DecodeOctetString_no_length(pBitStrm, <p>, <p><sAcc>nCount))
 {
     ret = <sErrCode> // TODO error code may be wrong
 }

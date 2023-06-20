@@ -472,7 +472,13 @@ let createOctetStringInitFunc (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (t:Asn
                         {InitFunctionResult.funcBody = ret; localVariables=[]}
                     {AutomaticTestCase.initTestCaseFunc = initTestCaseFunc; testCaseTypeIDsMap = Map.ofList [(t.id, TcvAnyValue)] })
             ret, ret.Head.initTestCaseFunc
-    createInitFunctionCommon r lm t typeDefinition "createIA5StringInitFunc" funcBody tasInitFunc testCaseFuncs constantInitExpression constantInitExpression [] []
+    
+    let maxArrLength = 
+        match t.Kind with
+        | Asn1AcnAst.OctetString oS -> oS.maxSize.ToString()
+        | _ -> "0"
+
+    createInitFunctionCommon r lm t typeDefinition $"Array.fill({maxArrLength}) {{0}}" funcBody tasInitFunc testCaseFuncs constantInitExpression constantInitExpression [] []
 
 let createNullTypeInitFunc (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (o :Asn1AcnAst.NullType) (typeDefinition:TypeDefintionOrReference)  = 
     let initNull = lm.init.initNull
