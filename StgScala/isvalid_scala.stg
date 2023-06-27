@@ -94,10 +94,10 @@ ExpAndMulit(arrsExp) ::= <<
 >>
 ExpNot(sExp) ::= "(!<sExp>)"
 StrLen(sExp) ::= "<sExp>.length()"
-ArrayLen(sExp, sAcc) ::= "<sExp><sAcc>nCount // isvalid_scala:101"
+ArrayLen(sExp, sAcc) ::= "<sExp><sAcc>nCount /* isvalid:97 */"
 
 ExpressionToStament(sExp1) ::=<<
-ret = <sExp1> // isvalid:101
+ret = <sExp1> /* isvalid:101 */
 >>
 
 StatementOrStament(sStat1, sStat2) ::= <<

@@ -122,7 +122,8 @@ type BigIntegerFormatRenderer() =
                     "Long.MinValue"
                 else
                     if (obj > BigInteger Int64.MaxValue) then
-                        obj.ToString() + "L // TODO wrap this in an bigInteger ST.fs:125"
+                        Console.WriteLine("Number exceeded bounds of JVM native types, clamped to Scalas Long.MaxValue")
+                        Int64.MaxValue.ToString() + "L"
                     else
                         obj.ToString() + "L"
             | _                         -> obj.ToString()
