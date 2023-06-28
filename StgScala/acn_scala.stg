@@ -842,7 +842,7 @@ Choice_encode(p, sAcc, arrsChildren, nLastItemIndex, sChoiceIndexName, td/*:FE_C
 >>
 
 Choice_decode(p, sAcc, arrsChildren, nLastItemIndex, sChoiceIndexName, td/*:FE_ChoiceTypeDefinition*/, nIndexSizeInBits, sErrCode) ::= <<
-ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, &<sChoiceIndexName>, 0, <nLastItemIndex>)
+ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, <sChoiceIndexName>, 0, <nLastItemIndex>)
 if ret == 0 then // acn:846
 	<sChoiceIndexName> match
 		<arrsChildren: {ch|<ch>}; separator="\n">
@@ -1123,7 +1123,7 @@ octet_string_containing_func_decode(p, sFuncName, sReqBytesForAcnEncoding, nBits
 
 	<else>
 	asn1SccSint nCount;
-	ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, &nCount, <nMinSize>, <nMaxSize>);
+	ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, &nCount, <nMinSize>, <nMaxSize>)
 	if (ret) {
 		ret = BitStream_DecodeOctetString_no_length(pBitStrm, arr, (int)nCount);
 	}
@@ -1176,7 +1176,7 @@ bit_string_containing_func_decode(p, sFuncName, sReqBytesForAcnEncoding, sReqBit
 
 	<else>
 	asn1SccSint nCount;
-	ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, &nCount, <nMinSize>, <nMaxSize>);
+	ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, &nCount, <nMinSize>, <nMaxSize>) 
 	if (ret) {
 		ret = BitStream_ReadBits(pBitStrm, arr, nCount);
 		if (ret) {

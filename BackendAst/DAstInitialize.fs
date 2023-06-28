@@ -604,7 +604,7 @@ let createBooleanInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnA
         | false     -> {InitFunctionResult.funcBody = initBoolean (lm.lg.getValue p.arg) true; localVariables = []}
 
     let constantInitExpression = lm.lg.FalseLiteral
-    createInitFunctionCommon r lm t typeDefinition "createBooleanInitFunc" funcBody tasInitFunc testCaseFuncs constantInitExpression constantInitExpression [] []
+    createInitFunctionCommon r lm t typeDefinition o.defaultInitVal funcBody tasInitFunc testCaseFuncs constantInitExpression constantInitExpression [] []
 
 
 

@@ -121,34 +121,33 @@ initFixVarSizeBitOrOctString(p, sAcc, nSize, arrsBytes) ::= <<
 
 initTestCaseOctetString(p, sAcc, nSize, i, bIsFixedSize, bZero, nMinSize) ::= <<
 <if(bZero)>
-var <i> = 0;
-(while (<i> \< <nSize>) {
-    <p>(<i>) = 0;
-    <i> += 1;
-})
+// init:124 - array should be 0 init above
+assert(<p> != null)
+assert(<p>.length >= <nMinSize>)
+assert(<p>.length == <nSize>)
 <else>
 <i> = 0;
-(while (<i>\< <nSize>) {
+(while (<i>\< <nSize>) { // init:131
     <p>(<i>) = (byte)(<i>%256);
     <i> += 1;
 })
 <endif>
-<if(!bIsFixedSize)><p><sAcc>nCount = <if(bZero)><nMinSize><else><nSize><endif>;<endif>
 >>
 
 
 initTestCaseBitString(p, sAcc, sArrayHolderName, nSize, nSizeCeiled, i, bIsFixedSize, bZero, nMinSize) ::= <<
 <if(bZero)>
-<p> = <sArrayHolderName>(Array.fill(<nSizeCeiled>/8)(0)) // init_scala:145
+<p> = <sArrayHolderName>(<if(!bIsFixedSize)><nMinSize>, <endif>Array.fill(<nSizeCeiled>/8){0}) // init_scala:140
+
 <else>
-// bZero was false init_scala:148
+// bZero was false init_scala:143
+<if(!bIsFixedSize)><p><sAcc>nCount = <nSize><endif>
 <i> = 0;
 while (<i>\< <nSizeCeiled>/8) {
     <p><sAcc>arr[<i>] = 0x55; /* --> 0101 0101 as in Ada*/
     <i> = <i> + 1;
 }
 <endif>
-<if(!bIsFixedSize)><p><sAcc>nCount = <if(bZero)><nMinSize><else><nSize><endif>;<endif>
 >>
 
 

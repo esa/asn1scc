@@ -28,11 +28,11 @@ JoinItems2(sPart, sNestedPart) ::= <<
 >>
 
 always_true_statement ()::= <<
-ret = Right(0) // isvalid_scala:31
+ret = Right(0) // isvalid:31
 >>
 
 always_false_statement(sErrorCodeName)::= <<
-ret = <sErrorCodeName> // isvalid_scala:38
+ret = Left(<sErrorCodeName>) // isvalid:35
 >>
 
 makeExpressionToStatement0(sIsValidExp) ::= <<
@@ -83,18 +83,18 @@ def <sFuncName>(<if(bUnreferenced)>@annotation.unused <endif><sVarName>: <sTypeD
 
 ExpEqual(sExp1, sExp2) ::= "(<sExp1> == <sExp2> /* isvalid:84 */)"
 ExpStringEqual(sExp1, sExp2) ::= "(<sExp1> == <sExp2> /* isvalid:85 */)"
-ExpGt(sExp1, sExp2) ::= "(<sExp1> \> <sExp2>)/* isvalid:87 */"
-ExpGte(sExp1, sExp2) ::= "(<sExp1> \>= <sExp2>)/* isvalid:88 */"
-ExpLt(sExp1, sExp2) ::= "(<sExp1> \< <sExp2>)/* isvalid:89 */"
-ExpLte(sExp1, sExp2) ::= "(<sExp1> \<= <sExp2>)/* isvalid:90 */"
-ExpOr(sExp1, sExp2) ::= "((<sExp1>) || (<sExp2>))"
-ExpAnd(sExp1, sExp2) ::= "(<sExp1> && <sExp2>)"
+ExpGt(sExp1, sExp2) ::= "(<sExp1> \> <sExp2>)/* isvalid:86 */"
+ExpGte(sExp1, sExp2) ::= "(<sExp1> \>= <sExp2>)/* isvalid:87 */"
+ExpLt(sExp1, sExp2) ::= "(<sExp1> \< <sExp2>)/* isvalid:88 */"
+ExpLte(sExp1, sExp2) ::= "(<sExp1> \<= <sExp2>)/* isvalid:89 */"
+ExpOr(sExp1, sExp2) ::= "((<sExp1>) || (<sExp2>)) /* isvalid:90 */"
+ExpAnd(sExp1, sExp2) ::= "(<sExp1> && <sExp2>) /* isvalid:91 */"
 ExpAndMulit(arrsExp) ::= <<
 <arrsExp; separator=" && ">
 >>
 ExpNot(sExp) ::= "(!<sExp>)"
-StrLen(sExp) ::= "<sExp>.length()"
-ArrayLen(sExp, sAcc) ::= "<sExp><sAcc>nCount /* isvalid:97 */"
+StrLen(sExp) ::= "<sExp>.length"
+ArrayLen(sExp, sAcc) ::= "<sExp><sAcc>length /* isvalid:97 */"
 
 ExpressionToStament(sExp1) ::=<<
 ret = <sExp1> /* isvalid:101 */
@@ -170,7 +170,7 @@ if (ret) { // isvalid_scala:172
 >>
 
 StatementForLoop(p, sAcc, i, bIsFixedSize, nFixedSize, sInnerStatement) ::= <<
-for(<i> = 0; ret && <i> \< <if(!bIsFixedSize)><p><sAcc>nCount<else><nFixedSize><endif>; <i>++) 
+for(<i> = 0; ret && <i> \< <if(!bIsFixedSize)><p><sAcc>nCount<else><nFixedSize><endif>; <i>++) // isvalid:173
 {
     <sInnerStatement>
 }
@@ -221,19 +221,12 @@ callAlphaFunc(sFuncName, p) ::= "<sFuncName>_CharsAreValid(<p>)"
 
 PrintMultipleConstraints(arrsConstraints) ::= "<arrsConstraints; separator=\" && \">"
 
-
-
-
-
-
 Emit_type(arrsConstraints, sErrCodeName) ::= <<
 ret = <arrsConstraints; separator=" && ">;
 ret = <sErrCodeName>;
 >>
 
-
-call_base_type_func(p, sFuncName, soTypeCasting) ::= "<sFuncName>(<p>) // isvalid:236"
-
+call_base_type_func(p, sFuncName, soTypeCasting) ::= "<sFuncName>(<p>) // isvalid:229"
 call_base_type_func_exp(p, sFuncName) ::= "<sFuncName>(<p>)"
 
 
@@ -299,7 +292,7 @@ ret = <soErrCode>;
 
 <endif>
 <if (soInnerStatement)>
-for(<i> = 0; ret && <i> \< <if(!bIsFixedSize)><p><sAcc>nCount<else><nFixedSize><endif>; <i>++) 
+for(<i> = 0; ret && <i> \< <if(!bIsFixedSize)><p><sAcc>nCount<else><nFixedSize><endif>; <i>++) // isvalid:302
 {
     <soInnerStatement>
 }
@@ -308,9 +301,11 @@ for(<i> = 0; ret && <i> \< <if(!bIsFixedSize)><p><sAcc>nCount<else><nFixedSize><
 >>
 
 sequenceOf2(p,sAcc, i, bIsFixedSize, nFixedSize, sInnerStatement) ::= <<
-for(<i> = 0; ret && <i> \< <if(!bIsFixedSize)><p><sAcc>nCount<else><nFixedSize><endif>; <i>++) 
+<i> = 0
+while(<i> \< <if(!bIsFixedSize)><p><sAcc>nCount<else><nFixedSize><endif> && ret.isRight) // isvalid:311
 {
     <sInnerStatement>
+    <i> = <i> + 1
 }
 >>
 

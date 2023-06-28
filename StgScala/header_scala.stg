@@ -117,17 +117,17 @@ enum <td.typeName>(val i: Int):
 
 
 Define_subType_enumerated(td/*:FE_EnumeratedTypeDefinition*/, prTd/*:FE_EnumeratedTypeDefinition*/, soParentTypePackage) ::= <<
-typedef <prTd.typeName> <td.typeName>;
+typedef <prTd.typeName> <td.typeName> // header:120
 >>
 
 /***********************************       STRING    ************************************************************/
 
 Define_new_ia5string(td/*:FE_StringTypeDefinition*/, nMin, nMax, nCMax, arrnAlphaChars) ::= <<
-typedef char <td.typeName>[<nCMax>];
+type <td.typeName> = Array[Byte] // max size in C was [<nCMax>] header:126
 >>
 
 Define_subType_ia5string(td/*:FE_StringTypeDefinition*/, prTd/*:FE_StringTypeDefinition*/, soParentTypePackage) ::= <<
-typedef <prTd.typeName> <td.typeName>;
+typedef <prTd.typeName> <td.typeName> // header:130
 >>
 
 /***********************************       OCTET STRING    ************************************************************/
@@ -137,7 +137,7 @@ type <td.typeName> = Array[Byte] // header:136
 >>
 
 Define_subType_octet_string(td/*:FE_SizeableTypeDefinition*/, prTd/*:FE_SizeableTypeDefinition*/, soParentTypePackage, bFixedSize) ::= <<
-typedef <prTd.typeName> <td.typeName>;
+typedef <prTd.typeName> <td.typeName> // header:140
 >>
 
 /***********************************       BIT STRING    ************************************************************/
@@ -151,15 +151,16 @@ Define_new_bit_string(td/*:FE_SizeableTypeDefinition*/, nMin, nMax, bFixedSize, 
 
 <if(!bFixedSize)>
 /*nCount equals to Number of bits in the array. Max value is : <nMax> */
+
 <endif>
-case class <td.typeName>(<if(!bFixedSize)>nCount: Int,<endif>var arr: Array[Byte]) // header:155
+case class <td.typeName>(<if(!bFixedSize)>var nCount: Long, <endif>var arr: Array[Byte]) // header:155
 {
     require(arr.length == <nMaxOctets>)
 }
 >>
 
 Define_subType_bit_string(td/*:FE_SizeableTypeDefinition*/, prTd/*:FE_SizeableTypeDefinition*/, soParentTypePackage, bFixedSize) ::= <<
-typedef <prTd.typeName> <td.typeName>;
+typedef <prTd.typeName> <td.typeName> // header:162
 >>
 
 /***********************************       SEQUENCE OF    ************************************************************/
@@ -169,7 +170,7 @@ Define_new_sequence_of(td/*:FE_SizeableTypeDefinition*/, nMin, nMax, bFixedSize,
 
 <soChildDefintion>
 
-case class <td.typeName> (<if(!bFixedSize)>int nCount,<endif>arr: Array[<sChildType>]) // header:172  
+case class <td.typeName> (<if(!bFixedSize)>var nCount: Int, <endif>arr: Array[<sChildType>]) // header:172  
 {
     require(arr.length == <nMax>)
 }
@@ -179,7 +180,7 @@ Define_subType_sequence_of(td/*:FE_SizeableTypeDefinition*/, prTd/*:FE_SizeableT
 
 <soChildDefintion>
 
-typedef <prTd.typeName> <td.typeName>;
+typedef <prTd.typeName> <td.typeName> // header:182
 >>
 
 
@@ -217,10 +218,9 @@ case class <td.typeName> ( // header:209
 >>
 
 Define_subType_sequence(td/*:FE_SequenceTypeDefinition*/, prTd/*:FE_SequenceTypeDefinition*/, soParentTypePackage, arrsOptionalChildren) ::= <<
-typedef <prTd.typeName> <td.typeName>;
+type <td.typeName> = <prTd.typeName>  // header:220
 <if (arrsNullFieldsSavePos)>
-typedef <prTd.extention_function_potisions> <td.extention_function_potisions>;
-
+type <td.extention_function_potisions> = <prTd.extention_function_potisions> // header:222
 <endif>
 >>
 
@@ -241,7 +241,7 @@ enum <td.typeName>:
 >>
 
 Define_subType_choice(td/*:FE_ChoiceTypeDefinition*/, prTd/*:FE_ChoiceTypeDefinition*/, soParentTypePackage) ::= <<
-typedef <prTd.typeName> <td.typeName>;
+typedef <prTd.typeName> <td.typeName> // header:243
 >>
 
 Define_SubType_int_range(soParentTypePackage, sParentType, noMin, noMax) ::= <<

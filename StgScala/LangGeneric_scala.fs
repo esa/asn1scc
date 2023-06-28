@@ -44,7 +44,7 @@ type LangGeneric_scala() =
             | Asn1AcnAst.ASN1SCC_Int16    _ ->  sprintf "%s" (i.ToString())
             | Asn1AcnAst.ASN1SCC_Int32    _ ->  sprintf "%s" (i.ToString())
             | Asn1AcnAst.ASN1SCC_Int64    _ ->  sprintf "%sL" (i.ToString())
-            | Asn1AcnAst.ASN1SCC_Int      _ ->  sprintf "%s" (i.ToString())
+            | Asn1AcnAst.ASN1SCC_Int      _ ->  sprintf "%sL" (i.ToString())
             | Asn1AcnAst.ASN1SCC_UInt8    _ ->  sprintf "%s" (i.ToString())
             | Asn1AcnAst.ASN1SCC_UInt16   _ ->  sprintf "%s" (i.ToString())
             | Asn1AcnAst.ASN1SCC_UInt32   _ ->  sprintf "%s" (i.ToString())
@@ -72,7 +72,7 @@ type LangGeneric_scala() =
 
         override this.getAccess  (fpt:FuncParamType) = getAccess_scala fpt
 
-        override this.ArrayAccess idx = "[" + idx + "]"
+        override this.ArrayAccess idx = "(" + idx + ")"
 
         override this.getPtrPrefix (fpt: FuncParamType) = 
             match fpt with
@@ -93,7 +93,7 @@ type LangGeneric_scala() =
             | FIXARRAY x     -> ""
 
         override this.getArrayItem (fpt:FuncParamType) (idx:string) (childTypeIsString: bool) =
-            let newPath = sprintf "%s%sarr[%s]" fpt.p (this.getAccess fpt) idx
+            let newPath = sprintf "%s%sarr(%s)" fpt.p (this.getAccess fpt) idx
             if childTypeIsString then (FIXARRAY newPath) else (VALUE newPath)
         
         override this.getNamedItemBackendName (defOrRef:TypeDefintionOrReference option) (nm:Asn1AcnAst.NamedItem) = 
@@ -191,8 +191,8 @@ type LangGeneric_scala() =
                 match t.Kind with
                 | Asn1AcnAst.Integer         _ -> {CallerScope.modName = t.id.ModName; arg= POINTER ("pVal" + suf)    }
                 | Asn1AcnAst.Real            _ -> {CallerScope.modName = t.id.ModName; arg= POINTER ("pVal" + suf)    }
-                | Asn1AcnAst.IA5String       _ -> {CallerScope.modName = t.id.ModName; arg= FIXARRAY ("val" + suf) }
-                | Asn1AcnAst.NumericString   _ -> {CallerScope.modName = t.id.ModName; arg= FIXARRAY ("val" + suf) }
+                | Asn1AcnAst.IA5String       _ -> {CallerScope.modName = t.id.ModName; arg= FIXARRAY ("pVal" + suf) }
+                | Asn1AcnAst.NumericString   _ -> {CallerScope.modName = t.id.ModName; arg= FIXARRAY ("pVal" + suf) }
                 | Asn1AcnAst.OctetString     _ -> {CallerScope.modName = t.id.ModName; arg= POINTER ("pVal" + suf) }
                 | Asn1AcnAst.NullType        _ -> {CallerScope.modName = t.id.ModName; arg= POINTER ("pVal" + suf)    }
                 | Asn1AcnAst.BitString       _ -> {CallerScope.modName = t.id.ModName; arg= POINTER ("pVal" + suf) }
@@ -208,8 +208,8 @@ type LangGeneric_scala() =
                 match t.Kind with
                 | Asn1AcnAst.Integer            _ -> {CallerScope.modName = t.id.ModName; arg= POINTER ("pVal" + suf) }
                 | Asn1AcnAst.Real               _ -> {CallerScope.modName = t.id.ModName; arg= POINTER ("pVal" + suf) }
-                | Asn1AcnAst.IA5String          _ -> {CallerScope.modName = t.id.ModName; arg= FIXARRAY ("val" + suf) }
-                | Asn1AcnAst.NumericString      _ -> {CallerScope.modName = t.id.ModName; arg= FIXARRAY ("val" + suf) }
+                | Asn1AcnAst.IA5String          _ -> {CallerScope.modName = t.id.ModName; arg= FIXARRAY ("pVal" + suf) }
+                | Asn1AcnAst.NumericString      _ -> {CallerScope.modName = t.id.ModName; arg= FIXARRAY ("pVal" + suf) }
                 | Asn1AcnAst.OctetString        _ -> {CallerScope.modName = t.id.ModName; arg= POINTER ("pVal" + suf) }
                 | Asn1AcnAst.NullType           _ -> {CallerScope.modName = t.id.ModName; arg= POINTER ("pVal" + suf) }
                 | Asn1AcnAst.BitString          _ -> {CallerScope.modName = t.id.ModName; arg= POINTER ("pVal" + suf) }
@@ -250,17 +250,17 @@ type LangGeneric_scala() =
 
         override this.getLocalVariableDeclaration (lv:LocalVariable) : string  =
             match lv with
-            | SequenceOfIndex (i,None)                  -> sprintf "int i%d;" i
-            | SequenceOfIndex (i,Some iv)               -> sprintf "int i%d=%d;" i iv
-            | IntegerLocalVariable (name,None)          -> sprintf "int %s;" name
-            | IntegerLocalVariable (name,Some iv)       -> sprintf "int %s=%d;" name iv
-            | Asn1SIntLocalVariable (name,None)         -> sprintf "%s: Int" name
-            | Asn1SIntLocalVariable (name,Some iv)      -> sprintf "asn1SccSint %s=%d;" name iv
-            | Asn1UIntLocalVariable (name,None)         -> sprintf "asn1SccUint %s;" name
-            | Asn1UIntLocalVariable (name,Some iv)      -> sprintf "asn1SccUint %s=%d;" name iv
-            | FlagLocalVariable (name,None)             -> sprintf "%s: Boolean;" name
+            | SequenceOfIndex (i,None)                  -> sprintf "var i%d: Int = 0" i
+            | SequenceOfIndex (i,Some iv)               -> sprintf "var i%d: Int = %d" i iv
+            | IntegerLocalVariable (name,None)          -> sprintf "var %s: Int = 0" name
+            | IntegerLocalVariable (name,Some iv)       -> sprintf "var %s: Int = %d" name iv
+            | Asn1SIntLocalVariable (name,None)         -> sprintf "var %s: Int = 0" name
+            | Asn1SIntLocalVariable (name,Some iv)      -> sprintf "var %s: Int = %d" name iv
+            | Asn1UIntLocalVariable (name,None)         -> sprintf "var %s: UInt = 0" name
+            | Asn1UIntLocalVariable (name,Some iv)      -> sprintf "var %s: UInt = %d" name iv
+            | FlagLocalVariable (name,None)             -> sprintf "var %s: Boolean = false" name
             | FlagLocalVariable (name,Some iv)          -> sprintf "var %s: Boolean = %d" name iv
-            | BooleanLocalVariable (name,None)          -> sprintf "%s: Boolean;" name
+            | BooleanLocalVariable (name,None)          -> sprintf "var %s: Boolean = false" name
             | BooleanLocalVariable (name,Some iv)       -> sprintf "var %s: Boolean = %s" name (if iv then "true" else "false")
             | AcnInsertedChild(name, vartype)           -> sprintf "%s %s;" name vartype
             
