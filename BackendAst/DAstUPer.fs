@@ -586,7 +586,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Com
             let printPresenceBit (child:Asn1Child) =
                 match ST.lang with
                 | ProgrammingLanguage.Scala -> 
-                     match child.Optionality with
+                    match child.Optionality with
                     | None                       -> None
                     | Some Asn1AcnAst.AlwaysAbsent     -> Some (sequence_presence_bit_fix p.arg.p (lm.lg.getAccess p.arg) (lm.lg.getAsn1ChildBackendName child) errCode.errCodeName "false"  codec)    // please note that in decode, macro uper_sequence_presence_bit_fix
                     | Some Asn1AcnAst.AlwaysPresent    -> Some (sequence_presence_bit_fix p.arg.p (lm.lg.getAccess p.arg) (lm.lg.getAsn1ChildBackendName child) errCode.errCodeName "true"  codec)    // calls macro uper_sequence_presence_bit (i.e. behaves like optional)

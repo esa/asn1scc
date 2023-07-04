@@ -105,13 +105,13 @@ if(!worked) {
 >>
 
 InternalItem_string_no_alpha_encode(p, sErrCode, i) ::=<<
-BitStream_EncodeConstraintWholeNumber(pBitStrm, <p>[<i>], 0, 127) // uper:108
+BitStream_EncodeConstraintWholeNumber(pBitStrm, <p>(<i>), 0, 127) // uper:108
 >>
 
 InternalItem_string_no_alpha_decode(p, sErrCode, i) ::=<<
-BitStream_DecodeConstraintWholeNumber(pBitStrm, 0, 127) match // uper:112
+BitStream_DecodeConstraintWholeNumberByte(pBitStrm, 0, 127) match // uper:112
     case Some(c) =>
-        <p>(<i>) = c.asInstanceOf[Byte]
+        <p>(<i>) = c
     case None =>
         return Left(<sErrCode>)
 >>
@@ -398,14 +398,14 @@ str_FixedSize_decode(p, sTasName, i, sInternalItem, nFixedSize, nIntItemMinSize,
 str_VarSize_encode(p, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize) ::= <<
 nStringLength = <p>.length // uper:394
 /*ret = nStringLength >= <nSizeMin> && nStringLength \<= <nSizeMax>;*/
-BitStream_EncodeConstraintWholeNumber(pBitStrm, nStringLength, <nSizeMin>, <nSizeMax>) // uper:396
+BitStream_EncodeConstraintWholeNumber(pBitStrm, nStringLength, <nSizeMin>, <nSizeMax>) // uper:401
 <loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize="nStringLength")>
 
 >>
 
 str_VarSize_decode(p, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize) ::= <<
-var nStringLength: Long = 0
-BitStream_DecodeConstraintWholeNumber(pBitStrm, <nSizeMin>, <nSizeMax>) match // uper:401
+var nStringLength = 0
+BitStream_DecodeConstraintWholeNumberInt(pBitStrm, <nSizeMin>, <nSizeMax>) match // uper:408
     case Some(n) => 
         nStringLength = n
         <p>(nStringLength) = 0 // TODO do we need a 0 terminator?
@@ -431,7 +431,7 @@ BitStream_EncodeConstraintWholeNumber(pBitStrm, <p><sAcc>nCount, <nSizeMin>, <nS
 >>
 
 seqOf_VarSize_decode(p, sAcc, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, sErrCode) ::= <<
-BitStream_DecodeConstraintWholeNumber(pBitStrm, <nSizeMin>, <nSizeMax>) match // uper:428
+BitStream_DecodeConstraintWholeNumber(pBitStrm, <nSizeMin>, <nSizeMax>) match // uper:434
     case Some(n) =>
         <p><sAcc>nCount = n.asInstanceOf[Int]
     case None =>
@@ -442,38 +442,37 @@ var <i> = 0
 >>
 
 octect_FixedSize_encode(p, sAcc, nFixedSize) ::= <<
-if !BitStream_EncodeOctetString_no_length(pBitStrm, <p>, <nFixedSize>) then
-    ret = Left(431)
+if !BitStream_EncodeOctetString_no_length(pBitStrm, <p><sAcc>arr, <nFixedSize>.asInstanceOf[Int]) then // uper:445
+    ret = Left(446)
 >>
 
 octect_FixedSize_decode(p, sAcc, nFixedSize) ::= <<
-BitStream_DecodeOctetString_no_length(pBitStrm, <nFixedSize>) match
+BitStream_DecodeOctetString_no_length(pBitStrm, <nFixedSize>) match // uper:450
     case Some(x) => 
-        <p> = x
+        <p><sAcc>arr = x
     case None => 
-        ret = Left(437)
+        ret = Left(454)
 >>
 
 octect_VarSize_encode(p, sAcc, nSizeMin, nSizeMax, nSizeInBits, sErrCode) ::= <<
-BitStream_EncodeConstraintWholeNumber(pBitStrm, <p><sAcc>nCount, <nSizeMin>, <nSizeMax>) // uper:443
-if !BitStream_EncodeOctetString_no_length(pBitStrm, <p>, <p><sAcc>nCount) then
-    ret = Left(441)
+BitStream_EncodeConstraintWholeNumber(pBitStrm, <p><sAcc>nCount, <nSizeMin>, <nSizeMax>) // uper:458
+if !BitStream_EncodeOctetString_no_length(pBitStrm, <p><sAcc>arr, <p><sAcc>nCount.asInstanceOf[Int]) then
+    ret = Left(<sErrCode>)
 >>
 
 octect_VarSize_decode(p, sAcc, nSizeMin, nSizeMax, nSizeInBits, sErrCode) ::= <<
 // decode length
-var octetArrSize = 0
 BitStream_DecodeConstraintWholeNumber(pBitStrm, <nSizeMin>, <nSizeMax>) match // uper:466
     case Some(n) => 
         assert(n >= 0)
-        octetArrSize = n
+        <p><sAcc>nCount = n
     case None =>
         return Left(<sErrCode>)
 
 // decode payload
-BitStream_DecodeOctetString_no_length(pBitStrm, <p>, octetArrSize) match
+BitStream_DecodeOctetString_no_length(pBitStrm, <p><sAcc>nCount.asInstanceOf[Int]) match
     case Some(a) =>
-        ret = Right(a)
+        <p><sAcc>arr = a
     case None => 
         return Left(<sErrCode>)
 >>

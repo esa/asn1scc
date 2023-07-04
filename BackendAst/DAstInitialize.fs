@@ -428,6 +428,8 @@ let createOctetStringInitFunc (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (t:Asn
         List.collect id |>
         List.map(fun (v,_) -> DAstVariables.printOctetStringValueAsCompoundLitteral lm "" o (v|>List.map(fun bl -> bl.Value)))
 
+    let tdName = lm.lg.getLongTypedefName typeDefinition
+
     let testCaseFuncs, tasInitFunc =
         match anonyms with
         | []  ->
@@ -435,7 +437,7 @@ let createOctetStringInitFunc (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (t:Asn
             let i = sprintf "i%d" ii
             let seqOfCase (nSize:BigInteger) = 
                 let initTestCaseFunc (p:CallerScope) = 
-                    let funcBody = initTestCaseOctetString p.arg.p (lm.lg.getAccess p.arg) nSize i (o.minSize.uper = o.maxSize.uper) false o.minSize.uper
+                    let funcBody = initTestCaseOctetString p.arg.p (lm.lg.getAccess p.arg) tdName nSize i (o.minSize.uper = o.maxSize.uper) false o.minSize.uper
                     {InitFunctionResult.funcBody = funcBody; localVariables=[SequenceOfIndex (ii, None)]}
                 {AutomaticTestCase.initTestCaseFunc = initTestCaseFunc; testCaseTypeIDsMap = Map.ofList [(t.id, TcvSizeableTypeValue nSize)] }
             let testCaseFuncs = 
@@ -458,7 +460,7 @@ let createOctetStringInitFunc (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (t:Asn
                         match bs.Kind with
                         | Asn1AcnAst.OctetString bo -> bo.isFixedSize
                         | _                        -> raise(BugErrorException "UnexpectedType")
-                let funcBody = initTestCaseOctetString p.arg.p (lm.lg.getAccess p.arg) o.maxSize.uper i (isFixedSize) true o.minSize.uper
+                let funcBody = initTestCaseOctetString p.arg.p (lm.lg.getAccess p.arg) tdName o.maxSize.uper i (isFixedSize) true o.minSize.uper
                 let lvars = lm.lg.init.zeroIA5String_localVars ii
                 {InitFunctionResult.funcBody = funcBody; localVariables=lvars}
 
@@ -478,7 +480,7 @@ let createOctetStringInitFunc (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (t:Asn
         | Asn1AcnAst.OctetString oS -> oS.maxSize.ToString()
         | _ -> "0"
 
-    createInitFunctionCommon r lm t typeDefinition $"Array.fill({maxArrLength}) {{0}}" funcBody tasInitFunc testCaseFuncs constantInitExpression constantInitExpression [] []
+    createInitFunctionCommon r lm t typeDefinition "null" funcBody tasInitFunc testCaseFuncs constantInitExpression constantInitExpression [] []
 
 let createNullTypeInitFunc (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (o :Asn1AcnAst.NullType) (typeDefinition:TypeDefintionOrReference)  = 
     let initNull = lm.init.initNull
@@ -509,6 +511,8 @@ let createBitStringInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1Ac
         List.collect id |>
         List.map(fun (v,_) -> DAstVariables.printBitStringValueAsCompoundLitteral lm "" o v.Value)
 
+    let tdName = lm.lg.getLongTypedefName typeDefinition
+
     let testCaseFuncs, tasInitFunc =
         match anonyms with
         | []  ->
@@ -517,7 +521,7 @@ let createBitStringInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1Ac
             let seqOfCase (nSize:BigInteger) = 
                 let initTestCaseFunc (p:CallerScope) = 
                     let nSizeCeiled =  if nSize % 8I = 0I then nSize else (nSize + (8I - nSize % 8I)) 
-                    let funcBody = initTestCaseBitString p.arg.p (lm.lg.getAccess p.arg) "" nSize (nSizeCeiled) i (o.minSize.uper = o.maxSize.uper) false o.minSize.uper
+                    let funcBody = initTestCaseBitString p.arg.p (lm.lg.getAccess p.arg) tdName nSize (nSizeCeiled) i (o.minSize.uper = o.maxSize.uper) false o.minSize.uper
                     {InitFunctionResult.funcBody = funcBody; localVariables=[SequenceOfIndex (ii, None)]}
                 {AutomaticTestCase.initTestCaseFunc = initTestCaseFunc; testCaseTypeIDsMap = Map.ofList [(t.id, TcvSizeableTypeValue nSize)] }
 
@@ -536,7 +540,6 @@ let createBitStringInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1Ac
             let zero (p:CallerScope) = 
                 let nSize = o.maxSize.uper
                 let nSizeCeiled =  if nSize % 8I = 0I then nSize else (nSize + (8I - nSize % 8I)) 
-                let tdName = lm.lg.getLongTypedefName typeDefinition
                 let isFixedSize =
                     match t.getBaseType r with
                     | None      -> o.isFixedSize
@@ -1222,7 +1225,7 @@ let createReferenceType (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAst
     let bs = baseType.initFunction
     match TypesEquivalence.uperEquivalence t1 t1WithExtensios with
     | false -> 
-        createInitFunctionCommon r lm t typeDefinition "createReferenceType0" bs.initByAsn1Value bs.initTas bs.automaticTestCases bs.initExpression bs.initExpressionGlobal  bs.nonEmbeddedChildrenFuncs []
+        createInitFunctionCommon r lm t typeDefinition (extractDefaultInitValue baseType.Kind) bs.initByAsn1Value bs.initTas bs.automaticTestCases bs.initExpression bs.initExpressionGlobal  bs.nonEmbeddedChildrenFuncs []
     | true  ->
         match t.isComplexType with
         | true ->
@@ -1240,6 +1243,6 @@ let createReferenceType (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAst
             let initTasFunction (p:CallerScope) =
                 let funcBody = initChildWithInitFunc (lm.lg.getPointer p.arg) baseFncName
                 {InitFunctionResult.funcBody = funcBody; localVariables = []}
-            createInitFunctionCommon r lm t typeDefinition "createReferenceType1" bs.initByAsn1Value  initTasFunction bs.automaticTestCases constantInitExpression constantInitExpressionGlobal nonEmbeddedChildrenFuncs []
+            createInitFunctionCommon r lm t typeDefinition (extractDefaultInitValue baseType.Kind) bs.initByAsn1Value  initTasFunction bs.automaticTestCases constantInitExpression constantInitExpressionGlobal nonEmbeddedChildrenFuncs []
         | false ->
             createInitFunctionCommon r lm t typeDefinition (extractDefaultInitValue baseType.Kind) bs.initByAsn1Value bs.initTas bs.automaticTestCases bs.initExpression bs.initExpressionGlobal bs.nonEmbeddedChildrenFuncs []

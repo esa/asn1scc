@@ -121,7 +121,7 @@ initFixVarSizeBitOrOctString(p, sAcc, nSize, arrsBytes) ::= <<
 <arrsBytes; separator="\n">
 >>
 
-initTestCaseOctetString(p, sAcc, nSize, i, bIsFixedSize, bZero, nMinSize) ::= <<
+initTestCaseOctetString(p, sAcc, sArrayHolderName, nSize, i, bIsFixedSize, bZero, nMinSize) ::= <<
 <if(bZero)>
 memset(<p><sAcc>arr, 0x0, <nSize>);
 

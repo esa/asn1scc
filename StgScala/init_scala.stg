@@ -83,12 +83,12 @@ initNull(sVal) ::= "<sVal> = 0"
 
 initTestCaseIA5String(p, sAcc, nSize, nMaxSizePlusOne, i, td/*:FE_StringTypeDefinition*/, bAlpha, arrnAlphabetAsciiCodes, nAlphabetLength, bZero) ::= <<
 <if(bZero)>
-<p> = Array.fill(<nMaxSizePlusOne>)(0) // init:87
+<p> = Array.fill(<nMaxSizePlusOne>){0} // init:87
 
 <else>
 // TODO bZero was false init_scala:89
 <i> = 0;
-<p> = Array.fill(<nMaxSizePlusOne>)(0); // init_scala:91
+<p> = Array.fill(<nMaxSizePlusOne>){0}; // init_scala:91
 while (<i>\< <nSize>) {
     <if(bAlpha)>
     static byte allowedCharSet[] = {<arrnAlphabetAsciiCodes:{ch|0x<ch;format="X2">}; wrap, anchor, separator=",">}; 
@@ -119,17 +119,14 @@ initFixVarSizeBitOrOctString(p, sAcc, nSize, arrsBytes) ::= <<
 <arrsBytes; separator="\n">
 >>
 
-initTestCaseOctetString(p, sAcc, nSize, i, bIsFixedSize, bZero, nMinSize) ::= <<
+initTestCaseOctetString(p, sAcc, sArrayHolderName, nSize, i, bIsFixedSize, bZero, nMinSize) ::= <<
 <if(bZero)>
-// init:124 - array should be 0 init above
-assert(<p> != null)
-assert(<p>.length >= <nMinSize>)
-assert(<p>.length == <nSize>)
+<p> = <sArrayHolderName>(<if(!bIsFixedSize)><nMinSize>, <endif>Array.fill(<nSize>){0}) // init_scala:124
 <else>
-<i> = 0;
+<i> = 0
 (while (<i>\< <nSize>) { // init:131
-    <p>(<i>) = (byte)(<i>%256);
-    <i> += 1;
+    <p>(<i>) = (byte)(<i>%256)
+    <i> += 1
 })
 <endif>
 >>
@@ -175,12 +172,12 @@ initTestCaseSizeSequenceOf_innerItem(bFirst, bLastItem, nCaseIdx, sChildCaseInit
 }>>
 
 initTestCaseSizeSequenceOf(p, sAcc, noMinSize, nSize, bIsFixedSize, arrsInnerItems, bMultiCases, i) ::= <<
-<i> = 0;
-while (<i>\< <nSize>) {
+<i> = 0 // init:175
+while (<i> \< <nSize>) {
     <arrsInnerItems; separator="\n">
-    <i> = <i> + 1;
+    <i> = <i> + 1
 }
-<if(!bIsFixedSize)><p><sAcc>nCount = <if(noMinSize)><noMinSize><else><nSize><endif>;<endif>
+<if(!bIsFixedSize)><p><sAcc>nCount = <if(noMinSize)><noMinSize><else><nSize><endif><endif>
 >>
 
 

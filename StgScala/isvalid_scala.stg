@@ -94,7 +94,7 @@ ExpAndMulit(arrsExp) ::= <<
 >>
 ExpNot(sExp) ::= "(!<sExp>)"
 StrLen(sExp) ::= "<sExp>.length"
-ArrayLen(sExp, sAcc) ::= "<sExp><sAcc>length /* isvalid:97 */"
+ArrayLen(sExp, sAcc) ::= "<sExp><sAcc>nCount /* isvalid:97 */"
 
 ExpressionToStament(sExp1) ::=<<
 ret = <sExp1> /* isvalid:101 */

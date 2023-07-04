@@ -133,7 +133,14 @@ typedef <prTd.typeName> <td.typeName> // header:130
 /***********************************       OCTET STRING    ************************************************************/
 
 Define_new_octet_string(td/*:FE_SizeableTypeDefinition*/, nMin, nMax, bFixedSize) ::= <<
-type <td.typeName> = Array[Byte] // header:136
+<if(!bFixedSize)>
+/*nCount equals to Number of bytes in the array. Max value is : <nMax> (unsure - TODO read asn1 standard)*/
+
+<endif>
+case class <td.typeName>(<if(!bFixedSize)>var nCount: Long, <endif>var arr: Array[Byte]) // header:140
+{
+    require(arr.length == <nMax>)
+}
 >>
 
 Define_subType_octet_string(td/*:FE_SizeableTypeDefinition*/, prTd/*:FE_SizeableTypeDefinition*/, soParentTypePackage, bFixedSize) ::= <<
