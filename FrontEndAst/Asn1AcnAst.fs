@@ -776,6 +776,7 @@ and ReferenceType = {
     acnMinSizeInBits    : BigInteger
     encodingOptions        : EncodeWithinOctetOrBitStringProperties option
     refCons             : AnyConstraint list
+    defaultInitVal      : String
 }
 
 
