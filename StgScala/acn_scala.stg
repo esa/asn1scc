@@ -105,7 +105,7 @@ if (ret) {
 
 
 loopFixedItem (i, fixedSize,  sInternalItem)::= /*nogen*/<<	
-for(<i>=0; (<i> \< (int)<fixedSize>) && ret; <i>++) 
+for(<i>=0; (<i> \< (int)<fixedSize>) && ret; <i>++) // acn:108
 {
 	<sInternalItem>
 }

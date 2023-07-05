@@ -537,7 +537,7 @@ BitStream_EncodeConstraintWholeNumber(pBitStrm, <sBlockId>, 0, 0xFF) // uper:519
 BitStream_AppendBits(pBitStrm, &<p><sAcc>arr[<sCurOffset>/8], (int)<sCurBlockSize>);
 
 <else>
-for(<sBLI>=(int)<sCurOffset>; <sBLI> \< (int)(<sCurBlockSize> + <sCurOffset>); <sBLI>++)
+for(<sBLI>=(int)<sCurOffset>; <sBLI> \< (int)(<sCurBlockSize> + <sCurOffset>); <sBLI>++) // uper:540
 {
     <sInternalItem>
 }
@@ -560,7 +560,7 @@ BitStream_EncodeConstraintWholeNumber(pBitStrm, <nRemainingItemsVar>, 0, 0x7FFF)
 BitStream_AppendBits(pBitStrm, &<p><sAcc>arr[<sCurOffset>/8], (int)<nRemainingItemsVar>);
 
 <else>
-for(<sBLI>=(int)<sCurOffset>; <sBLI> \< (int)(<sCurOffset> + <nRemainingItemsVar>); <sBLI>++)
+for(<sBLI>=(int)<sCurOffset>; <sBLI> \< (int)(<sCurOffset> + <nRemainingItemsVar>); <sBLI>++) // uper:563
 {
     <sInternalItem>
 }
@@ -573,10 +573,10 @@ FixedSize_Fragmentation_sqf_encode(p, sAcc, arrsEncodingParts, nFixedSize, bIsBi
 >>
 
 Fragmentation_sqf_encode(p, sAcc, sInternalItem, nIntItemMaxSize, nSizeMin, nSizeMax, nRequiredBitsForUPerEncoding, bIsVariableSize, sErrCodeName, sRemainingItemsVar, sCurBlockSize, sBlockIndex, sCurOffset, sBLJ, sBLI, sLengthTmp, bIsBitStringType, bIsAsciiString) ::= <<
-<sRemainingItemsVar> = <if(bIsAsciiString)>(asn1SccSint)strlen(<p>)<else><if(bIsVariableSize)><p><sAcc>nCount<else><nSizeMax><endif><endif>;
-<sCurBlockSize> = 0;
-<sCurOffset> = 0;
-<sBlockIndex> = 0;
+<sRemainingItemsVar> = <if(bIsAsciiString)>(asn1SccSint)strlen(<p>)<else><if(bIsVariableSize)><p><sAcc>nCount<else><nSizeMax><endif><endif>
+<sCurBlockSize> = 0
+<sCurOffset> = 0
+<sBlockIndex> = 0
 while (<sRemainingItemsVar> >= 0x4000 && <sBlockIndex> \< <if(bIsAsciiString)>(asn1SccSint)strlen(<p>)<else><if(bIsVariableSize)><p><sAcc>nCount<else><nSizeMax><endif><endif>) 
 {
     if (<sRemainingItemsVar> >= 0x10000)
@@ -603,14 +603,16 @@ while (<sRemainingItemsVar> >= 0x4000 && <sBlockIndex> \< <if(bIsAsciiString)>(a
     <if(bIsBitStringType)>
     BitStream_AppendBits(pBitStrm, &<p><sAcc>arr[<sCurOffset>/8], (int)<sCurBlockSize>);
     <else>
-    for(<sBLI>=(int)<sCurOffset>; <sBLI> \< (int)(<sCurBlockSize> + <sCurOffset>); <sBLI>++)
+    <sBLI>=<sCurOffset>.asInstanceOf[Int]
+    while(<sBLI> \< (<sCurBlockSize> + <sCurOffset>).asInstanceOf[Int]) // uper:607
     {
         <sInternalItem>
+        <sBLI> += 1
     }
     <endif>
-    <sCurOffset> += <sCurBlockSize>;
-    <sRemainingItemsVar> -= <sCurBlockSize>;
-    <sBlockIndex> = <sBlockIndex>+1;
+    <sCurOffset> += <sCurBlockSize>
+    <sRemainingItemsVar> -= <sCurBlockSize>
+    <sBlockIndex> = <sBlockIndex> + 1
 }
 
 if (<sRemainingItemsVar> \<= 0x7F)
@@ -624,9 +626,11 @@ else
 <if(bIsBitStringType)>
 BitStream_AppendBits(pBitStrm, &<p><sAcc>arr[<sCurOffset>/8], (int)<sRemainingItemsVar>);
 <else>
-for(<sBLI>=(int)<sCurOffset>; <sBLI> \< (int)(<sCurOffset> + <sRemainingItemsVar>); <sBLI>++)
+<sBLI> = <sCurOffset>.asInstanceOf[Int]
+while(<sBLI> \< (<sCurOffset> + <sRemainingItemsVar>).asInstanceOf[Int]) // uper:627
 {
     <sInternalItem>
+    <sBLI> += 1 
 }
 <endif>
 >>
@@ -643,12 +647,15 @@ for(<sBlockIndex> = 0; ret && <sBlockIndex> \< <nBlocks64K>; <sBlockIndex>++) {
     ret = if (check) 0 else <sErrCodeName>;
     if ret == 0 then
         <if(bIsBitStringType)>
-        ret = BitStream_ReadBits(pBitStrm, &<p><sAcc>arr[<sCurOffset>/8], (int)<sCurBlockSize>);
+        ret = BitStream_ReadBits(pBitStrm, &<p><sAcc>arr[<sCurOffset>/8], <sCurBlockSize>).asInstanceOf[Int]
         ret = if (ret == 0) 0 else <sErrCodeName>;
 
         <else>
-        for(<sBLI>=(int)<sCurOffset>; <sBLI> \< (int)(<sCurBlockSize> + <sCurOffset>); <sBLI>++) {
+        <sBLI> = <sCurOffset>.asInstanceOf[Int]
+        while(<sBLI> \< (<sCurBlockSize> + <sCurOffset>).asInstanceOf[Int])
+        {
             <sInternalItem>
+            <sBLI> += 1
         }
 
         <endif>
@@ -666,37 +673,42 @@ val check = (ret == 0) && (<sRemainingItemsVar> == <sBlockId>);
 ret = if (check) 0 else <sErrCodeName>;
 if ret == 0 then
 <if(bIsBitStringType)>
-    ret = BitStream_ReadBits(pBitStrm, &<p><sAcc>arr[<sCurOffset>/8], (int)<sCurBlockSize>);
+    ret = BitStream_ReadBits(pBitStrm, &<p><sAcc>arr[<sCurOffset>/8], <sCurBlockSize>.asInstanceOf[Int]);
     ret = if (ret == 0) 0 else <sErrCodeName>;
 
 <else>
-    for(<sBLI>=(int)<sCurOffset>; <sBLI> \< (int)(<sCurBlockSize> + <sCurOffset>); <sBLI>++) {
+    <sBLI> = <sCurOffset>.asInstanceOf[Int]
+    while(<sBLI> \< (<sCurBlockSize> + <sCurOffset>).asInstanceOf[Int]) // uper:681
+    {
         <sInternalItem>
+        <sBLI> += 1
     }
 <endif>
-    <sCurOffset> += <sCurBlockSize>;
+    <sCurOffset> += <sCurBlockSize>
 >>
 
 FixedSize_Fragmentation_sqf_remaining_decode(p, sAcc,sInternalItem, bRemainingItemsWithinByte, nRemainingItemsVar, sCurOffset, sBLI, sRemainingItemsVar, bIsBitStringType, sErrCodeName) ::= <<
 //decode remaining <nRemainingItemsVar> items
 <if(bRemainingItemsWithinByte)>
-ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, <sRemainingItemsVar>, 0, 0xFF) // uper:658
+ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, <sRemainingItemsVar>, 0, 0xFF) // uper:687
 ret  = ret && (<sRemainingItemsVar> == <nRemainingItemsVar>);
 
 <else>
-ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, <sRemainingItemsVar>, 0, 0xFFFF) // uper:662
+ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, <sRemainingItemsVar>, 0, 0xFFFF) // uper:691
 ret = ret && ((0x8000 & <sRemainingItemsVar>) > 0) && ( (0x7FFF & <sRemainingItemsVar>) == <nRemainingItemsVar>);
 
 <endif>
 if ret == 0 then
     <if(bIsBitStringType)>
-    ret = BitStream_ReadBits(pBitStrm, &<p><sAcc>arr[<sCurOffset>/8], (int)<nRemainingItemsVar>);
+    ret = BitStream_ReadBits(pBitStrm, &<p><sAcc>arr[<sCurOffset>/8], <nRemainingItemsVar>.asInstanceOf[Int]);
     ret = if (ret == 0) 0 else <sErrCodeName>;
 
     <else>
-    for(<sBLI>=(int)<sCurOffset>; <sBLI> \< (int)(<sCurOffset> + <nRemainingItemsVar>); <sBLI>++)
+    <sBLI> = <sCurOffset>.asInstanceOf[Int]
+    while(<sBLI> \< (<sCurOffset> + <nRemainingItemsVar>).asInstanceOf[Int]) // uper:707
     {
         <sInternalItem>
+        <sBLI> += 1
     }
 
     <endif>
@@ -711,90 +723,97 @@ FixedSize_Fragmentation_sqf_decode(p, sAcc, arrsEncodingParts, nFixedSize, bIsBi
 
 
 Fragmentation_sqf_decode(p, sAcc, sInternalItem, nIntItemMaxSize, nSizeMin, nSizeMax, nRequiredBitsForUPerEncoding, bIsVariableSize, sErrCodeName, sRemainingItemsVar, sCurBlockSize, sBlockIndex, sCurOffset, sBLJ, sBLI, sLengthTmp, bIsBitStringType, bIsAsciiString) ::= <<
-<sRemainingItemsVar> = 0
-<sCurBlockSize> = 0
-<sCurOffset> = 0
+var <sRemainingItemsVar>: Int = 0
+var <sCurBlockSize>: Int = 0
+var <sCurOffset>: Int = 0
 <if(bIsVariableSize)>
-<sLengthTmp> = 0
+var <sLengthTmp>: Int = 0
 <endif>
-if(!BitStream_DecodeConstraintWholeNumber(pBitStrm, <sRemainingItemsVar>, 0, 0xFF)) // uper:696
-    return <sErrCodeName>
+
+BitStream_DecodeConstraintWholeNumber(pBitStrm, 0, 0xFF) match // uper:696
+    case None =>
+        return Left(<sErrCodeName>)
+    case Some(x) =>
+        <sRemainingItemsVar> = x.asInstanceOf[Int]
 
 while((<sRemainingItemsVar> & 0xC0) == 0xC0) {
-    if (<sRemainingItemsVar> == 0xC4)
+    if <sRemainingItemsVar> == 0xC4 then
         <sCurBlockSize> = 0x10000
-    else if (<sRemainingItemsVar> == 0xC3)
+    else if <sRemainingItemsVar> == 0xC3 then
         <sCurBlockSize> = 0xC000
-    else if (<sRemainingItemsVar> == 0xC2)
+    else if <sRemainingItemsVar> == 0xC2 then
         <sCurBlockSize> = 0x8000
-    else if (<sRemainingItemsVar> == 0xC1)
+    else if <sRemainingItemsVar> == 0xC1 then
         <sCurBlockSize> = 0x4000
-    else {
-        return <sErrCodeName>
-    }
+    else 
+        return Left(<sErrCodeName>)
 
-    if (<sCurOffset> + <sCurBlockSize> > <nSizeMax>) {
-        return <sErrCodeName>
-    }
+    if <sCurOffset> + <sCurBlockSize> > <nSizeMax> then 
+        return Left(<sErrCodeName>)
 
     <if(bIsBitStringType)>
-    if(!BitStream_ReadBits(pBitStrm, &<p><sAcc>arr[<sCurOffset>/8], (int)<sCurBlockSize>))
+    if !BitStream_ReadBits(pBitStrm, &<p><sAcc>arr[<sCurOffset>/8], <sCurBlockSize>) then
        return <sErrCodeName>
     <else>
-    <sBLI>=(int)<sCurOffset>
-    while((<sBLI> \< (int)(<sCurOffset> + <sCurBlockSize>))) {
-        // TODO if ret is written from here on - change to check
+    var <sBLI> = <sCurOffset>
+    while(<sBLI> \< (<sCurOffset> + <sCurBlockSize>)) // uper:758
+    {
         <sInternalItem>
-        // /TODO
         <sBLI> += 1
     }
     <endif>
 
     <if(bIsVariableSize)>
-    <sLengthTmp> += (long)<sCurBlockSize>
+    <sLengthTmp> += <sCurBlockSize>
     <endif>
     <sCurOffset> += <sCurBlockSize>
-    if(!BitStream_DecodeConstraintWholeNumber(pBitStrm, <sRemainingItemsVar>, 0, 0xFF)) // uper:733
-        return <sErrCodeName>
+    BitStream_DecodeConstraintWholeNumber(pBitStrm, 0, 0xFF) match // uper:733
+        case None =>
+            return Left(<sErrCodeName>)
+        case Some(x) =>
+            <sRemainingItemsVar> = x
 }
 
-if ((<sRemainingItemsVar> & 0x80) > 0) {
+if ((<sRemainingItemsVar> & 0x80) > 0) then
     var len2 = 0;
     <sRemainingItemsVar> \<\<= 8
-    if(!BitStream_DecodeConstraintWholeNumber(pBitStrm, len2, 0, 0xFF)) // uper:740
-        return <sErrCodeName>
+    BitStream_DecodeConstraintWholeNumber(pBitStrm, 0, 0xFF) match // uper:740
+        case None =>
+            return Left(<sErrCodeName>)
+        case Some(x) =>
+            len2 = x.asInstanceOf[Int]
     
     <sRemainingItemsVar> |= len2;
     <sRemainingItemsVar> &= 0x7FFF;   
-}
 
-if(<sCurOffset> + <sRemainingItemsVar> \<= <nSizeMax>)
-    return <sErrCodeName>
+if (<sCurOffset> + <sRemainingItemsVar> \<= <nSizeMax>) then
+    return Left(<sErrCodeName>)
 
 <if(bIsBitStringType)>
-if(!BitStream_ReadBits(pBitStrm, &<p><sAcc>arr[<sCurOffset>/8], (int)<sRemainingItemsVar>)) // TODO remove adress of operator
+if(!BitStream_ReadBits(pBitStrm, &<p><sAcc>arr[<sCurOffset>/8], <sRemainingItemsVar>.asInstanceOf[Int])) // TODO remove adress of operator
     return <sErrCodeName>
+
 <else>
-var <sBLI>=(int)<sCurOffset>
-while(<sBLI> \< (int)(<sCurOffset> + <sRemainingItemsVar>)) {
+var <sBLI> = <sCurOffset>
+while(<sBLI> \< (<sCurOffset> + <sRemainingItemsVar>)) {
     <sInternalItem>
     <sBLI> += 1
 }
 <endif>
 
 <if(bIsVariableSize)>
-<sLengthTmp> += (long)<sRemainingItemsVar>
+<sLengthTmp> += <sRemainingItemsVar>
 <endif>
 
 <if(bIsVariableSize)>
-if ((<sLengthTmp> >= <nSizeMin>) && (<sLengthTmp> \<= <nSizeMax>)) {
+if ((<sLengthTmp> >= <nSizeMin>) && (<sLengthTmp> \<= <nSizeMax>)) then
     <if(!bIsAsciiString)>
-    <p><sAcc>nCount = (int)<sLengthTmp>
+    <p><sAcc>nCount = <sLengthTmp>
     <else>
     <p>[<sLengthTmp>] = 0x0 // uper:784
     <endif>
-} else 
-    return <sErrCodeName>
+else 
+    return Left(<sErrCodeName>)
 
 <else>
 
@@ -803,8 +822,6 @@ if ((<sLengthTmp> >= <nSizeMin>) && (<sLengthTmp> \<= <nSizeMax>)) {
 <endif>
 
 <endif>
-      
-}
 >>
 
 octet_string_containing_func_encode(p, sFuncName, sReqBytesForUperEncoding, nBits, nMinSize, nMaxSize) ::= <<

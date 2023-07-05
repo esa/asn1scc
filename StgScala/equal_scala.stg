@@ -171,7 +171,7 @@ if (ret && <p1><sAcc>exist.<sChName>) {
 isEqual_SequenceOf_var_size(p1,p2, sAcc, i, soInnerStatement) ::= <<
 ret = (<p1><sAcc>nCount == <p2><sAcc>nCount);
 <if (soInnerStatement)>
-for(<i> = 0; ret && <i> \< <p1><sAcc>nCount; <i>++) 
+for(<i> = 0; ret && <i> \< <p1><sAcc>nCount; <i>++) // equal:174
 {
 	<soInnerStatement>
 }
@@ -180,7 +180,7 @@ for(<i> = 0; ret && <i> \< <p1><sAcc>nCount; <i>++)
 >>
 
 isEqual_SequenceOf_fix_size(p1,p2, sAcc, i, nFixedSize, sInnerStatement) ::= <<
-for(<i> = 0; ret && <i> \< <nFixedSize>; <i>++) 
+for(<i> = 0; ret && <i> \< <nFixedSize>; <i>++) // equal:183
 {
 	<sInnerStatement>
 }
