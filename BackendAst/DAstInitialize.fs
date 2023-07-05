@@ -845,6 +845,11 @@ let createSequenceOfInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1A
         
         initTasFunction, nonEmbeddedChildrenFuncs
 
+    let initVal = // TODO rework this
+        match typeDefinition with
+        | TypeDefinition t -> t.typedefName
+        | ReferenceToExistingDefinition r -> r.typedefName
+        + $"(0, Array.fill({o.maxSize}){{{0}}})" 
     
     let childInitExpr = getChildExpression lm childType
     let childInitGlobal = getChildExpressionGlobal lm childType
@@ -852,7 +857,7 @@ let createSequenceOfInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1A
         match o.isFixedSize with
         | true  -> lm.init.initFixSizeSequenceOfExpr o.maxSize.uper childExpr
         | false -> lm.init.initVarSizeSequenceOfExpr o.minSize.uper o.maxSize.uper childExpr
-    createInitFunctionCommon r lm t typeDefinition "createSequenceOfInitFunc" funcBody initTasFunction testCaseFuncs (constantInitExpression childInitExpr) (constantInitExpression childInitGlobal) nonEmbeddedChildrenFuncs []
+    createInitFunctionCommon r lm t typeDefinition initVal funcBody initTasFunction testCaseFuncs (constantInitExpression childInitExpr) (constantInitExpression childInitGlobal) nonEmbeddedChildrenFuncs []
 
 let extractDefaultInitValue (childType: Asn1TypeKind): String = 
         match childType with
