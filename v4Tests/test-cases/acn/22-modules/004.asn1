@@ -37,4 +37,4 @@ MyPDU ::= INTEGER
 END
 
 
---TCLS     MyPDU[]
+--TCLS
