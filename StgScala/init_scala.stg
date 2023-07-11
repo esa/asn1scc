@@ -78,7 +78,7 @@ assignString(p, sValue) ::= "memcpy(<p>, <sValue>, sizeof(<sValue>));"
 
 
 initIA5String(sPtr, sValue) ::= "strcpy(<sPtr>,<sValue>) // init:80"
-initEnumerated(sVal, sValue) ::= "<sVal> = <sValue> // init:81"
+initEnumerated(sVal, sValue, sEnum) ::= "<sVal> = <sEnum>.<sValue> // init:81"
 initNull(sVal) ::= "<sVal> = 0"
 
 initTestCaseIA5String(p, sAcc, nSize, nMaxSizePlusOne, i, td/*:FE_StringTypeDefinition*/, bAlpha, arrnAlphabetAsciiCodes, nAlphabetLength, bZero) ::= <<
@@ -210,13 +210,13 @@ initChoice(p1, sAccess, sChildContent, sChildKind, sChildTempVarName, sChildType
 >>
 
 initTestCase_choice_child(p, sAcc, sChildID, sChildContent, sChildName, sChildTypeDef, sChoiceTypeName) ::= <<
-/*set <sChildName> init:217*/
+/*set <sChildName> init:213*/
 var <sChildContent>
-<p> = <sChildID>(e)
+<p> = <sChildID>(e.asInstanceOf[<sChildTypeDef>])
 >>
 
 initChildWithInitFunc(p, sChildInitFuncName) ::= <<
-<p> = <sChildInitFuncName>() /*init:222*/
+<p> = <sChildInitFuncName>() /*init:219*/
 >>
 
 

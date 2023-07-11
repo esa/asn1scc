@@ -687,19 +687,36 @@ let mergeMaps (m1:Map<'key,'value>) (m2:Map<'key,'value>) =
     Map.fold (fun (nm:Map<'key,'value>) key value -> match nm.ContainsKey key with false -> nm.Add(key,value) | true -> nm) m1 m2
     
 
-let createEnumeratedInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (o :Asn1AcnAst.Enumerated  )  (typeDefinition:TypeDefintionOrReference) iv = 
+let createEnumeratedInitFunc (r: Asn1AcnAst.AstRoot) (lm: LanguageMacros) (t: Asn1AcnAst.Asn1Type) (o: Asn1AcnAst.Enumerated)  (typeDefinition: TypeDefintionOrReference) iv = 
     let initEnumerated = lm.init.initEnumerated
+
+    let enumClassName = 
+        match ST.lang with
+        | ProgrammingLanguage.Scala ->
+            match typeDefinition with
+            | ReferenceToExistingDefinition r -> r.typedefName
+            | TypeDefinition t -> t.typedefName
+        | _ -> ""
+
+    let getEnumBackendName (defOrRef: TypeDefintionOrReference option) (nm: Asn1AcnAst.NamedItem) = 
+            let itemname = 
+                match ST.lang with
+                | ProgrammingLanguage.Scala -> ToC nm.scala_name
+                | _ -> (lm.lg.getNamedItemBackendName defOrRef nm)
+            itemname
+
     let funcBody (p:CallerScope) (v:Asn1ValueKind) = 
         let vl = 
             match v.ActualValue with
             | EnumValue iv      -> o.items |> Seq.find(fun x -> x.Name.Value = iv)
             | _                 -> raise(BugErrorException "UnexpectedValue")
-        initEnumerated (lm.lg.getValue p.arg) (lm.lg.getNamedItemBackendName (Some typeDefinition) vl)
+        initEnumerated (lm.lg.getValue p.arg) (getEnumBackendName (Some typeDefinition) vl) enumClassName
+
     let testCaseFuncs = 
         EncodeDecodeTestCase.EnumeratedAutomaticTestCaseValues2 r t o |> 
         List.map (fun vl -> 
             {
-                AutomaticTestCase.initTestCaseFunc = (fun (p:CallerScope) -> {InitFunctionResult.funcBody = initEnumerated (lm.lg.getValue p.arg) (lm.lg.getNamedItemBackendName (Some typeDefinition) vl); localVariables=[]}); 
+                AutomaticTestCase.initTestCaseFunc = (fun (p:CallerScope) -> {InitFunctionResult.funcBody = initEnumerated (lm.lg.getValue p.arg) (getEnumBackendName (Some typeDefinition) vl) enumClassName; localVariables=[]}); 
                 testCaseTypeIDsMap = Map.ofList [(t.id, (TcvEnumeratedValue vl.Name.Value))] 
             })
     let constantInitExpression = lm.lg.getNamedItemBackendName  (Some typeDefinition) o.items.Head
@@ -720,6 +737,15 @@ let getChildExpressionGlobal (lm:LanguageMacros) (childType:Asn1Type) =
         match childType.isComplexType with
         | false -> childType.initFunction.initExpressionGlobal
         | true -> sprintf "%s" cn.globalName
+
+let rec extractDefaultInitValue (childType: Asn1TypeKind): String = 
+        match childType with
+        | Integer i -> i.baseInfo.defaultInitVal
+        | Real r -> r.baseInfo.defaultInitVal
+        | NullType n -> n.baseInfo.defaultInitVal
+        | Boolean b -> "false"
+        | ReferenceType rt -> extractDefaultInitValue rt.resolvedType.Kind
+        | _ -> "null"
 
 let createSequenceOfInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (o :Asn1AcnAst.SequenceOf  ) (typeDefinition:TypeDefintionOrReference) (childType:Asn1Type)  = 
     let initFixedSequenceOf                     = lm.init.initFixedSequenceOf
@@ -845,11 +871,11 @@ let createSequenceOfInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1A
         
         initTasFunction, nonEmbeddedChildrenFuncs
 
-    let initVal = // TODO rework this
+    let initVal =
         match typeDefinition with
         | TypeDefinition t -> t.typedefName
         | ReferenceToExistingDefinition r -> r.typedefName
-        + $"(0, Array.fill({o.maxSize}){{{0}}})" 
+        + $"(0, Array.fill({o.maxSize}){{{extractDefaultInitValue childType.Kind}}})" 
     
     let childInitExpr = getChildExpression lm childType
     let childInitGlobal = getChildExpressionGlobal lm childType
@@ -858,14 +884,6 @@ let createSequenceOfInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1A
         | true  -> lm.init.initFixSizeSequenceOfExpr o.maxSize.uper childExpr
         | false -> lm.init.initVarSizeSequenceOfExpr o.minSize.uper o.maxSize.uper childExpr
     createInitFunctionCommon r lm t typeDefinition initVal funcBody initTasFunction testCaseFuncs (constantInitExpression childInitExpr) (constantInitExpression childInitGlobal) nonEmbeddedChildrenFuncs []
-
-let extractDefaultInitValue (childType: Asn1TypeKind): String = 
-        match childType with
-        | Integer i -> i.baseInfo.defaultInitVal
-        | Real r -> r.baseInfo.defaultInitVal
-        | NullType n -> n.baseInfo.defaultInitVal
-        | Boolean b -> "false"
-        | _ -> "null"
 
 let createSequenceInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (o :Asn1AcnAst.Sequence) (typeDefinition:TypeDefintionOrReference) (children:SeqChildInfo list) = 
     let initSequence                        = lm.init.initSequence
