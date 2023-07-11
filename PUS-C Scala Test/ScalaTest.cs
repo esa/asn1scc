@@ -1,6 +1,7 @@
 using Antlr;
 using System.Diagnostics;
 using System.Net.Sockets;
+using System.Runtime.InteropServices;
 
 namespace PUS_C_Scala_Test
 {
@@ -602,8 +603,8 @@ namespace PUS_C_Scala_Test
             {
                 StartInfo = new ProcessStartInfo
                 {
-                    FileName = "cmd.exe",
-                    Arguments = $"/K cd {outDir}",
+                    FileName = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "cmd.exe" : "bash",
+                    WorkingDirectory = outDir,
                     UseShellExecute = false,
                     RedirectStandardOutput = true,
                     RedirectStandardInput = true,
@@ -620,8 +621,8 @@ namespace PUS_C_Scala_Test
 
                 // parse sbt output
                 var outp = proc.StandardOutput.ReadToEnd();
-                var outputList = outp.Split("\n");
-                var worked = outputList[outputList.Length - 3].Contains("[success]");
+                var outputList = outp.Split("\n").ToList();
+                var worked = outputList.FindLastIndex(x => x.Contains("[success]")) > outputList.Count - 5;
 
                 // print sbt output
                 Console.WriteLine(outp);
