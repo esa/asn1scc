@@ -113,8 +113,12 @@ def RunTestCase(asn1, acn, behavior, expErrMsg):
         if language == "c":
             res = mysystem("cd " + targetDir + os.sep + "; CC=gcc make", False)
             return
-        else:
+        elif language == 'Ada':
             res = mysystem("cd " + targetDir + os.sep + "; CC=gcc make", False)
+            return
+        else:
+            # Scala
+            res = mysystem("cd " + targetDir + os.sep + "; sbt compile", False)
             return
 
     if language == "c":
@@ -134,7 +138,7 @@ def RunTestCase(asn1, acn, behavior, expErrMsg):
                 sys.exit(1)
         except FileNotFoundError as err:
             pass;
-    else:
+    elif language == 'Ada':
         prevDir = os.getcwd()
         os.chdir(targetDir)
         # mysystem("chmod +x ./runSpark.sh", False)
@@ -222,6 +226,9 @@ def RunTestCase(asn1, acn, behavior, expErrMsg):
                 "BUG in python script, Unexpected combination "
                 "of res, behavior")
         os.chdir(prevDir)
+    else:
+        # Scala
+        pass
     nTests += 1
 
 
@@ -442,8 +449,9 @@ def main():
         f.close()
         submain("c", "ACN", "", cntTest)
         submain("Ada", "ACN", "", cntTest)
+        submain("Scala", "ACN", "", cntTest)
     else:
-        if lang not in ["c", "Ada"]:
+        if lang not in ["c", "Ada", 'Scala']:
             print("Invalid language argument")
             usage()
 

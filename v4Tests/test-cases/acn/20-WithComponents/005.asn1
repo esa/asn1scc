@@ -25,4 +25,4 @@ MySeqOf ::= SEQUENCE ((SIZE(1..20)) ^
 
 END
 
---TCLS     MyPDU[] 
+--TCLS     MySeq[]
