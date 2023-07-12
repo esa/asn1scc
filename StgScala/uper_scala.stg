@@ -287,14 +287,14 @@ BitStream_DecodeConstraintWholeNumber(pBitStrm, 0, <nLastItemIndex>) match // up
 
 /* CHOICE START*/
 
-choice_child_encode(p, sAcc, sChildID, nChildIndex, nIndexSizeInBits, nLastItemIndex, sChildContent, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr) ::= <<
+choice_child_encode(p, sAcc, sChildID, nChildIndex, nIndexSizeInBits, nLastItemIndex, sChildContent, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr, bIsSequence) ::= <<
 case <sChildID>(e) => // uper:277
     BitStream_EncodeConstraintWholeNumber(pBitStrm, <nChildIndex>, 0, <nLastItemIndex>)
     <sChildContent>
 >>
-choice_child_decode(p, sAcc, sChildID, nChildIndex, nIndexSizeInBits, nLastItemIndex, sChildContent, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr) ::= <<
+choice_child_decode(p, sAcc, sChildID, nChildIndex, nIndexSizeInBits, nLastItemIndex, sChildContent, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr, bIsSequence) ::= <<
 case <nChildIndex> => // enum idx uper:282
-    var e: <sChildTypeDef> = <sChildInitExpr>
+    var e: <sChildTypeDef> = <if(bIsSequence)><sChildTypeDef>(<endif><sChildInitExpr><if(bIsSequence)>)<endif>
     <sChildContent>
     <p> = <sChildID>(e)
 >>

@@ -43,6 +43,16 @@ let getAccessFromScopeNodeList (ReferenceToType nodes)  (childTypeIsString: bool
     | _                                 -> raise(BugErrorException "getAccessFromScopeNodeList")
 
 
+let rec isJVMPrimitive (k: Asn1TypeKind) = 
+    match k with
+    | Integer _ | Real _ | NullType _ | Boolean _ -> true
+    | ReferenceType r -> isJVMPrimitive r.resolvedType.Kind
+    | _ -> false
+    
+let scalaInitMethSuffix (k: Asn1TypeKind)=
+    match isJVMPrimitive k with
+    | false -> "()"
+    | true -> ""
 
 type LocalVariable with
     member this.VarName =

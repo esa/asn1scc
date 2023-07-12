@@ -672,13 +672,21 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Commo
                         | true -> chFunc.funcBody ({p with arg = lm.lg.getChChild p.arg  (lm.lg.getAsn1ChChildBackendName child) child.chType.isIA5String})
                     let sChildName = (lm.lg.getAsn1ChChildBackendName child)
                     let sChildTypeDef = child.chType.typeDefintionOrReference.longTypedefName2 lm.lg.hasModules //child.chType.typeDefinition.typeDefinitionBodyWithinSeq
-                    let sCHildInitExpr = 
+                    let isSequence = 
                         match ST.lang with
                         | ProgrammingLanguage.Scala ->
-                            match child.chType.initFunction.initExpression.EndsWith("_Initialize") with
-                            | true -> child.chType.initFunction.initExpression + "()"
-                            | false -> child.chType.initFunction.initExpression 
-                        | _ -> child.chType.initFunction.initExpression
+                            match child.chType.Kind with
+                            | Sequence s -> true
+                            | _ -> false
+                        | _ -> false
+                    let sChildInitExpr = child.chType.initFunction.initExpression
+                    let exprMethodCall =
+                        match ST.lang with
+                        | ProgrammingLanguage.Scala ->
+                            match isSequence || sChildInitExpr.Equals("null") with
+                            | true -> ""
+                            | false -> scalaInitMethSuffix child.chType.Kind
+                        | _ -> ""
                     let sChoiceTypeName = typeDefinitionName
                     match uperChildRes with
                     | None              -> 
@@ -692,9 +700,9 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Commo
                                 | Sequence _    -> uper_a.decode_empty_sequence_emptySeq childp.arg.p
                                 | _             -> lm.lg.createSingleLineComment "no encoding/decoding is required"
                             | true   -> lm.lg.createSingleLineComment "no encoding/decoding is required"
-                        choice_child p.arg.p (lm.lg.getAccess p.arg) (lm.lg.presentWhenName (Some typeDefinition) child) (BigInteger i) nIndexSizeInBits (BigInteger (children.Length - 1)) childContent sChildName sChildTypeDef sChoiceTypeName sCHildInitExpr codec,[],[]
+                        choice_child p.arg.p (lm.lg.getAccess p.arg) (lm.lg.presentWhenName (Some typeDefinition) child) (BigInteger i) nIndexSizeInBits (BigInteger (children.Length - 1)) childContent sChildName sChildTypeDef sChoiceTypeName (sChildInitExpr + exprMethodCall) isSequence codec, [], []
                     | Some childContent ->  
-                        choice_child p.arg.p (lm.lg.getAccess p.arg) (lm.lg.presentWhenName (Some typeDefinition) child) (BigInteger i) nIndexSizeInBits (BigInteger (children.Length - 1)) childContent.funcBody sChildName sChildTypeDef sChoiceTypeName sCHildInitExpr codec, childContent.localVariables, childContent.errCodes )
+                        choice_child p.arg.p (lm.lg.getAccess p.arg) (lm.lg.presentWhenName (Some typeDefinition) child) (BigInteger i) nIndexSizeInBits (BigInteger (children.Length - 1)) childContent.funcBody sChildName sChildTypeDef sChoiceTypeName (sChildInitExpr + exprMethodCall) isSequence codec, childContent.localVariables, childContent.errCodes )
             let childrenContent = childrenContent3 |> List.map(fun (s,_,_) -> s)
             let childrenLocalvars = childrenContent3 |> List.collect(fun (_,s,_) -> s)
             let childrenErrCodes = childrenContent3 |> List.collect(fun (_,_,s) -> s)

@@ -393,13 +393,13 @@ end if;
 
 /* CHOICE START*/
 
-choice_child_encode(p, sAcc, sChildID, nChildIndex, nIndexSizeInBits, nLastItemIndex, sChildContent, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr) ::= <<
+choice_child_encode(p, sAcc, sChildID, nChildIndex, nIndexSizeInBits, nLastItemIndex, sChildContent, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr, bIsSequence) ::= <<
 when <sChildID> =>
     adaasn1rtl.encoding.uper.UPER_Enc_ConstraintWholeNumber(bs, <nChildIndex>, 0, <nIndexSizeInBits>);
     <sChildContent>
 >>
 
-choice_child_decode(p, sAcc, sChildID, nChildIndex, nIndexSizeInBits, nLastItemIndex, sChildContent, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr) ::= <<
+choice_child_decode(p, sAcc, sChildID, nChildIndex, nIndexSizeInBits, nLastItemIndex, sChildContent, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr, bIsSequence) ::= <<
 when <nChildIndex> =>
 <p> := <sChoiceTypeName>'(kind => <sChildID>, <sChildName> => <sChildInitExpr>);
 <sChildContent>

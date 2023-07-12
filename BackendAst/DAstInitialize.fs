@@ -1052,6 +1052,7 @@ let createSequenceInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1Acn
         let dummyScope = {CallerScope.modName = ""; arg = VALUE "dummy"}
         let nonEmbeddedChildrenFuncs = asn1Children |> List.choose(fun ch -> handleChild dummyScope ch |> snd)
         initTasFunction, nonEmbeddedChildrenFuncs
+
     let constantInitExpression getChildExpr = 
         let nonEmptyChildren = 
             children |> 
@@ -1059,7 +1060,12 @@ let createSequenceInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1Acn
             List.map (fun c -> 
                 let childName = lm.lg.getAsn1ChildBackendName c
                 let childExp = getChildExpr lm c.Type 
-                lm.init.initSequenceChildExpr childName childExp) 
+                let exprMethodCall =
+                    match ST.lang with
+                    | ProgrammingLanguage.Scala ->
+                        scalaInitMethSuffix c.Type.Kind
+                    | _ -> ""
+                lm.init.initSequenceChildExpr childName (childExp + exprMethodCall)) 
         let arrsOptionalChildren =
             children |> 
             List.choose(fun c -> match c with Asn1Child x -> Some x | _ -> None) |>
