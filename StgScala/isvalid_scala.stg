@@ -8,52 +8,58 @@ getStringSize(p) ::= "strlen(<p>)"
 
 
 JoinItems(sPart, soNestedPart) ::= <<
+// isvalid:11
 <sPart>
 <if(soNestedPart)>
-if ret.isRight then // isvalid:13
+if ret.isRight then // isvalid:14
     <soNestedPart>
 <endif>
 >>
 
 JoinTwoIfFirstOk(sStr1,sStr2) ::=<<
 <sStr1>
-if ret.isRight then // isvalid:20
+if ret.isRight then /* isvalid:20 */
     <sStr2>
 >>
 
 JoinItems2(sPart, sNestedPart) ::= <<
 // isvalid:25
 <sPart>
-<sNestedPart>
+if ret.isRight then
+    <sNestedPart>
 >>
 
 always_true_statement ()::= <<
-ret = Right(0) // isvalid:31
+ret = Right(0) /* isvalid:31 */
 >>
 
 always_false_statement(sErrorCodeName)::= <<
-ret = Left(<sErrorCodeName>) // isvalid:35
+ret = Left(<sErrorCodeName>) /* isvalid:35 */
 >>
 
 makeExpressionToStatement0(sIsValidExp) ::= <<
-<sIsValidExp>
+ret = <sIsValidExp> match // isvalid:39
+    case true =>
+        Right(0)
+    case false =>
+        Left(45)
 >>
 
 convertVCBExpressionToStatementAndUpdateErrCode(sIsValidExp, sErrCode) ::= <<
-ret = <sIsValidExp> // isvalid_scala:46
-ret = <sErrCode>    // TODO ret is set directly again?
+ret = <sIsValidExp> /* isvalid:43 */
 >>
 
 convertVCBStatementToStatementAndUpdateErrCode(sStatement, sErrCode) ::= <<
-if <sStatement> then Right(0) else Left(<sErrCode>) // isvalid:48
+<sStatement>
+// isvalid:54
 >>
 
 convertVCBTRUEToStatementAndUpdateErrCode() ::= <<
-Right(0) // isvalid:52
+Right(0) /* isvalid:51 */
 >>
 
 convertVCBFalseToStatementAndUpdateErrCode(sErrCode) ::= <<
-Left(<sErrCode>) // isvalid:56
+Left(<sErrCode>) /* isvalid:55 */
 >>
 
 /*
@@ -63,7 +69,7 @@ Left(<sErrCode>) // isvalid:56
 */
 
 EmitTypeAssignment_composite_def_err_code(sErrCode, nErrValue, arrsErrorCodeComments) ::= <<
-@inline @cCode.inline val <sErrCode>: Int = <nErrValue> // isvalid:68 /*<arrsErrorCodeComments : {x|<x>}; separator = "\n"> */
+@inline @cCode.inline val <sErrCode>: Int = <nErrValue> /* isvalid:72 */ /*<arrsErrorCodeComments : {x|<x>}; separator = "\n"> */
 >>
 
 EmitTypeAssignment_composite_def(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes) ::= <<
@@ -97,82 +103,90 @@ StrLen(sExp) ::= "<sExp>.length"
 ArrayLen(sExp, sAcc) ::= "<sExp><sAcc>nCount /* isvalid:97 */"
 
 ExpressionToStament(sExp1) ::=<<
-ret = <sExp1> /* isvalid:101 */
+ret = <sExp1> /* isvalid:99 */
 >>
 
 StatementOrStament(sStat1, sStat2) ::= <<
 <sStat1>
-if ret == 0 then // isvalid_scala:106
+if ret.isLeft then // isvalid:104
     <sStat2>
 >>
 
 ExpressionOrStament(sExp1, sStat2) ::= <<
-ret = <sExp1>; 
-if (ret != 0) { // isvalid_scala:116
+ret = <sExp1>
+if ret.isLeft then // isvalid:110
     <sStat2>
-}
 >>
 
 StatementOrExpression(sStat1, sExp2) ::= <<
 <sStat1>
-if (!ret) { // isvalid_scala:123
-    ret = <sExp2>;
+if ret.isLeft then { // isvalid:116
+    ret = <sExp2>
 }
 >>
 
 StatementAndStament(sStat1, sStat2) ::= <<
 <sStat1>
-if (ret) { // isvalid_scala:130
+if ret.isRight then // isvalid:123
     <sStat2>
-}
 >>
 
 ExpressionAndStament(sExp1, sStat2) ::= <<
-ret = <sExp1>;
-if (ret) { // isvalid_scala:137
+ret = <sExp1>
+if ret.isRight then // isvalid:129
     <sStat2>
-}
 >>
 
 StatementAndExpression(sStat1, sExp2) ::= <<
 <sStat1>
-if (ret) { // isvalid_scala:144
-    ret = <sExp2>;
-}
+if ret.isRight then // isvalid:135
+    ret = <sExp2>
 >>
 
 StatementNot(sStat) ::= <<
 <sStat>
-ret = !ret; // isvalid_scala:151
+if ret.isRight then // isvalid:141
+    ret = Left(142)
+else
+    ret = Right(0)
 >>
 
 StatementExceptStament(sStat1, sStat2) ::= <<
 <sStat1>
-if (ret) {  // isvalid_scala:156
+if ret.isRight then // isvalid:149
     <sStat2>
-    ret = !ret;
-}
+    if ret.isRight then
+        ret = Left(152)
+    else
+        ret = Right(0)
 >>
 
 ExpressionExceptStament(sExp1, sStat2) ::= <<
-ret = <sExp1>;
-if (ret) { // isvalid_scala:164
+ret = <sExp1>
+if ret.isRight then // isvalid:159
     <sStat2>
-    ret = !ret;
-}
+    if ret.isRight then
+        ret = Left(162)
+    else
+        ret = Right(0)
 >>
 
 StatementExceptExpression(sStat1, sExp2) ::= <<
-<sStat1>;
-if (ret) { // isvalid_scala:172
-    ret = !(<sExp2>);
-}
+<sStat1>
+if ret.isRight then // isvalid:169
+    ret = (<sExp2>) match
+        case Right(x) => 
+            Left(171)
+        case Left(x) => 
+            Right(0)
 >>
 
 StatementForLoop(p, sAcc, i, bIsFixedSize, nFixedSize, sInnerStatement) ::= <<
-for(<i> = 0; ret && <i> \< <if(!bIsFixedSize)><p><sAcc>nCount<else><nFixedSize><endif>; <i>++) // isvalid:173
+<i> = 0
+while(ret.isRight && <i> \< <if(!bIsFixedSize)><p><sAcc>nCount<else><nFixedSize><endif>) // isvalid:170
 {
     <sInnerStatement>
+    <i> += 1
 }
 >>
 
@@ -226,29 +240,27 @@ ret = <arrsConstraints; separator=" && ">;
 ret = <sErrCodeName>;
 >>
 
-call_base_type_func(p, sFuncName, soTypeCasting) ::= "<sFuncName>(<p>) // isvalid:229"
+call_base_type_func(p, sFuncName, soTypeCasting) ::= "<sFuncName>(<p>) /* isvalid:229 */"
 call_base_type_func_exp(p, sFuncName) ::= "<sFuncName>(<p>)"
 
 
 /* SEQUENCE start*/
 
 
-Sequence_OptionalChild(p, sAcc,  sChName, sInnerStatement) ::= <<
-if <p><sAcc>exist.<sChName> then  // isvalid:244
+Sequence_OptionalChild(p, sAcc, sChName, sInnerStatement) ::= <<
+if <p><sAcc>exist.<sChName> then /* isvalid:244 */
     ret = <sInnerStatement>
 >>
 
 
 Sequence_optional_child_always_present_or_absent(p, sAcc,  sChName, sErrCode, sPresOrAbs) ::= <<
-ret = <p><sAcc>exist.<sChName> == <sPresOrAbs>;
+ret = <p><sAcc>exist.<sChName> == <sPresOrAbs> /* isvalid:250 */
 ret = <sErrCode>;
 >>
 
 Sequence_optional_child_always_present_or_absent_expr(p, sAcc,  sChName, sPresOrAbs) ::= <<
-<p><sAcc>exist.<sChName> /* isvalid:255 */
+(<p><sAcc>exist.<sChName> == <sPresOrAbs>) /* isvalid:255 */
 >>
-
-
 
 /* SEQUENCE end*/
 
@@ -268,11 +280,11 @@ Choice_child_always_present_Exp(p, sAcc, sChPresent) ::= <<
 >>
 
 Choice_child_always_absent_Exp(p, sAcc, sChPresent) ::= <<
-<p><sAcc>kind != <sChPresent> //isvalid:280
+<p><sAcc>kind != <sChPresent> // isvalid:278
 >>
 
 choice_child(sChPresent, sChildBody, bAlwaysAbsent) ::= <<
-case <sChPresent> => // isvalid:284
+case <sChPresent> => // isvalid:282
     <sChildBody>         
 >>
 

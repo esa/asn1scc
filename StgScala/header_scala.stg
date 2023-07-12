@@ -193,7 +193,7 @@ typedef <prTd.typeName> <td.typeName> // header:182
 
 /***********************************       SEQUENCE     ************************************************************/
 
-Define_new_sequence_child_bit(sName) ::= "<sName>: Boolean // header:188"
+Define_new_sequence_child_bit(sName) ::= "<sName>: Boolean /* header:188 */"
 
 Define_new_sequence_child(sName, sType) ::= "<sName>: <sType>"
 
@@ -214,7 +214,7 @@ case class <td.exist> ( // header:204
 )
 
 <endif>
-case class <td.typeName> ( // header:209
+case class <td.typeName> ( // header:217
 <if (arrsOptionalChildren)>
     var exist: <td.exist>,
 
@@ -227,7 +227,7 @@ case class <td.typeName> ( // header:209
 Define_subType_sequence(td/*:FE_SequenceTypeDefinition*/, prTd/*:FE_SequenceTypeDefinition*/, soParentTypePackage, arrsOptionalChildren) ::= <<
 type <td.typeName> = <prTd.typeName>  // header:220
 <if (arrsNullFieldsSavePos)>
-type <td.extention_function_potisions> = <prTd.extention_function_potisions> // header:222
+type <td.extention_function_potisions> = <prTd.extention_function_potisions> // header:230
 <endif>
 >>
 
@@ -235,7 +235,7 @@ type <td.extention_function_potisions> = <prTd.extention_function_potisions> // 
 
 
 Define_new_choice_child(sName, sType, sPresent) ::=<<
-<sName>: <sType> /*header:230*/
+<sName>: <sType> /* header:238 */
 >>
 
 Define_new_choice(td/*:FE_ChoiceTypeDefinition*/, sChoiceIDForNone, sFirstChildNamePresent, arrsChildren, arrsPresent, arrsCombined, nIndexMax, arrsChildldrenDefintions) ::= <<
@@ -248,7 +248,7 @@ enum <td.typeName>:
 >>
 
 Define_subType_choice(td/*:FE_ChoiceTypeDefinition*/, prTd/*:FE_ChoiceTypeDefinition*/, soParentTypePackage) ::= <<
-typedef <prTd.typeName> <td.typeName> // header:243
+typedef <prTd.typeName> <td.typeName> // header:251
 >>
 
 Define_SubType_int_range(soParentTypePackage, sParentType, noMin, noMax) ::= <<

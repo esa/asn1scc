@@ -18,6 +18,9 @@ type NullType = Char
 type LongNoRTL = Long
 type ULongNoRTL = ULong
 
+// Floating Point Types
+type asn1Real = Double
+
 val WORD_SIZE = 8
 val OBJECT_IDENTIFIER_MAX_LENGTH = 20
 

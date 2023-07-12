@@ -240,12 +240,12 @@ type LangGeneric_scala() =
                 | Asn1AcnAst.Choice       _ -> this.getPointer p
                 | Asn1AcnAst.ObjectIdentifier _ -> this.getPointer p
                 | Asn1AcnAst.TimeType _ -> this.getPointer p
-                | Asn1AcnAst.ReferenceType r -> this.getParamValue r.resolvedType p  c
+                | Asn1AcnAst.ReferenceType r -> this.getParamValue r.resolvedType p c
             | Decode  ->
                 match t.Kind with
                 | Asn1AcnAst.IA5String    _  -> this.getValue p //FIXARRAY "val"
                 | Asn1AcnAst.NumericString _ -> this.getValue p// FIXARRAY "val"
-                | Asn1AcnAst.ReferenceType r -> this.getParamValue r.resolvedType p  c
+                | Asn1AcnAst.ReferenceType r -> this.getParamValue r.resolvedType p c
                 | _                          -> this.getPointer p
 
         override this.getLocalVariableDeclaration (lv:LocalVariable) : string  =

@@ -142,24 +142,26 @@ case <sCid>:
 >>
 
 isEqual_Choice(p1,p2, sAccess, arrsChildren) ::= <<
-ret = (<p1><sAccess>kind - <p2><sAccess>kind) // equal:145
-if ret == 0 then // equal:146
+ret = if (<p1><sAccess>kind - <p2><sAccess>kind) == 0 then Right(0) else Left(145)// equal:145
+if ret.isRight then // equal:146
 	<p1><sAccess>kind match
 		<arrsChildren: {ch|<ch>}; separator="\n">
 		case _ =>
-			ret = 1337 // TODO no actual error code
+			ret = Left(150)
 >>
 
 isEqual_Sequence_child(p1, p2, sAcc,  bIsOptional, sChName, soInnerStatement) ::= <<
 <if(bIsOptional)>
-ret = (<p1><sAcc>exist.<sChName> == <p2><sAcc>exist.<sChName>);
+ret = (<p1><sAcc>exist.<sChName> == <p2><sAcc>exist.<sChName>) match // equal:155
+	case false =>
+		Left(157)
+	case true =>
+		Right(0)
 <if(soInnerStatement)>
-if (ret && <p1><sAcc>exist.<sChName>) {
+if (ret.isRight && <p1><sAcc>exist.<sChName>) then
 	<soInnerStatement>
-}
 
 <endif>
-
 <else>
 <soInnerStatement>
 

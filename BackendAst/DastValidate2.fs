@@ -389,7 +389,7 @@ let rec anyConstraint2ValidationCodeBlock (r:Asn1AcnAst.AstRoot)  (l:LanguageMac
         choiceConstraint2ValidationCodeBlock r l t.id o.children valToStrFunc o.definitionOrRef c st
     | _                                         -> raise(SemanticError(erLoc, "Invalid combination of type/constraint type"))
     
-and sequenceConstraint2ValidationCodeBlock (r:Asn1AcnAst.AstRoot)  (l:LanguageMacros) (typeId:ReferenceToType) (children:Asn1Child list) valToStrFunc    (c:SeqConstraint)  st =
+and sequenceConstraint2ValidationCodeBlock (r: Asn1AcnAst.AstRoot) (l: LanguageMacros) (typeId: ReferenceToType) (children: Asn1Child list) valToStrFunc (c: SeqConstraint) st =
     let child_always_present_or_absentExp   = l.isvalid.Sequence_optional_child_always_present_or_absent_expr
     let sequence_OptionalChild              = l.isvalid.Sequence_OptionalChild
     let expressionToStament                 = l.isvalid.ExpressionToStament
@@ -420,15 +420,25 @@ and sequenceConstraint2ValidationCodeBlock (r:Asn1AcnAst.AstRoot)  (l:LanguageMa
 
                 newChidlCheckFnc
 
+        let isAbsentFlag = 
+            match ST.lang with
+            | ProgrammingLanguage.Scala -> l.lg.FalseLiteral
+            | _ -> "0"
+
+        let isPresentFlag = 
+            match ST.lang with
+            | ProgrammingLanguage.Scala -> l.lg.TrueLiteral
+            | _ -> "1" // leave like it was - TRUE may not be 1
+
         let presentAbsent =
             match nc.Mark with
             | Asn1Ast.NoMark        -> []
             | Asn1Ast.MarkOptional  -> []
             | Asn1Ast.MarkAbsent    -> 
-                let isExp = (fun (p:CallerScope) -> VCBExpression (child_always_present_or_absentExp p.arg.p (l.lg.getAccess p.arg) (l.lg.getAsn1ChildBackendName ch)  "0"))
+                let isExp = (fun (p:CallerScope) -> VCBExpression (child_always_present_or_absentExp p.arg.p (l.lg.getAccess p.arg) (l.lg.getAsn1ChildBackendName ch)  isAbsentFlag))
                 [isExp]
             | Asn1Ast.MarkPresent    -> 
-                let isExp = (fun (p:CallerScope) -> VCBExpression (child_always_present_or_absentExp p.arg.p (l.lg.getAccess p.arg) (l.lg.getAsn1ChildBackendName ch)  "1"))
+                let isExp = (fun (p:CallerScope) -> VCBExpression (child_always_present_or_absentExp p.arg.p (l.lg.getAccess p.arg) (l.lg.getAsn1ChildBackendName ch)  isPresentFlag))
                 [isExp]
 
         presentAbsent@[childCheck], ns
@@ -604,7 +614,7 @@ let createIsValidFunction (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros)  (t:Asn1Ac
                     | ValidationStatementFalse  (st,lv) ->  st, lv, true
                     | ValidationStatement       (st,lv)  -> st, lv, false
                 let lvars = (stLVs@localVars) |> List.map(fun (lv:LocalVariable) -> lm.lg.getLocalVariableDeclaration lv) |> Seq.distinct
-                let fnc = emitTasFnc varName sPtrPrefix sPtrSuffix funcName (lm.lg.getLongTypedefName typeDefinition) statement  (alphaFuncs |> List.map(fun x -> x.funcBody (str_p lm t.id))) lvars bUnreferenced
+                let fnc = emitTasFnc varName sPtrPrefix sPtrSuffix funcName (lm.lg.getLongTypedefName typeDefinition) statement (alphaFuncs |> List.map(fun x -> x.funcBody (str_p lm t.id))) lvars bUnreferenced
                 let split (s:string option) =
                     match s with
                     | None -> []
