@@ -679,11 +679,18 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Commo
                             | Sequence s -> true
                             | _ -> false
                         | _ -> false
+                    let isEnum = 
+                        match ST.lang with
+                        | ProgrammingLanguage.Scala ->
+                            match resolveReferenceType child.chType.Kind with
+                            | Enumerated e -> true
+                            | _ -> false
+                        | _ -> false
                     let sChildInitExpr = child.chType.initFunction.initExpression
                     let exprMethodCall =
                         match ST.lang with
                         | ProgrammingLanguage.Scala ->
-                            match isSequence || sChildInitExpr.Equals("null") with
+                            match isSequence || sChildInitExpr.Equals("null") || isEnum with
                             | true -> ""
                             | false -> scalaInitMethSuffix child.chType.Kind
                         | _ -> ""
@@ -700,9 +707,9 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Commo
                                 | Sequence _    -> uper_a.decode_empty_sequence_emptySeq childp.arg.p
                                 | _             -> lm.lg.createSingleLineComment "no encoding/decoding is required"
                             | true   -> lm.lg.createSingleLineComment "no encoding/decoding is required"
-                        choice_child p.arg.p (lm.lg.getAccess p.arg) (lm.lg.presentWhenName (Some typeDefinition) child) (BigInteger i) nIndexSizeInBits (BigInteger (children.Length - 1)) childContent sChildName sChildTypeDef sChoiceTypeName (sChildInitExpr + exprMethodCall) isSequence codec, [], []
+                        choice_child p.arg.p (lm.lg.getAccess p.arg) (lm.lg.presentWhenName (Some typeDefinition) child) (BigInteger i) nIndexSizeInBits (BigInteger (children.Length - 1)) childContent sChildName sChildTypeDef sChoiceTypeName (sChildInitExpr + exprMethodCall) isSequence isEnum codec, [], []
                     | Some childContent ->  
-                        choice_child p.arg.p (lm.lg.getAccess p.arg) (lm.lg.presentWhenName (Some typeDefinition) child) (BigInteger i) nIndexSizeInBits (BigInteger (children.Length - 1)) childContent.funcBody sChildName sChildTypeDef sChoiceTypeName (sChildInitExpr + exprMethodCall) isSequence codec, childContent.localVariables, childContent.errCodes )
+                        choice_child p.arg.p (lm.lg.getAccess p.arg) (lm.lg.presentWhenName (Some typeDefinition) child) (BigInteger i) nIndexSizeInBits (BigInteger (children.Length - 1)) childContent.funcBody sChildName sChildTypeDef sChoiceTypeName (sChildInitExpr + exprMethodCall) isSequence isEnum codec, childContent.localVariables, childContent.errCodes )
             let childrenContent = childrenContent3 |> List.map(fun (s,_,_) -> s)
             let childrenLocalvars = childrenContent3 |> List.collect(fun (_,s,_) -> s)
             let childrenErrCodes = childrenContent3 |> List.collect(fun (_,_,s) -> s)

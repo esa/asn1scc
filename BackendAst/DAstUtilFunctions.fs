@@ -42,11 +42,14 @@ let getAccessFromScopeNodeList (ReferenceToType nodes)  (childTypeIsString: bool
         ret 
     | _                                 -> raise(BugErrorException "getAccessFromScopeNodeList")
 
+let rec resolveReferenceType(t: Asn1TypeKind): Asn1TypeKind = 
+    match t with
+    | ReferenceType rt -> resolveReferenceType rt.resolvedType.Kind
+    | _ -> t
 
-let rec isJVMPrimitive (k: Asn1TypeKind) = 
-    match k with
+let isJVMPrimitive (t: Asn1TypeKind) = 
+    match resolveReferenceType t with
     | Integer _ | Real _ | NullType _ | Boolean _ -> true
-    | ReferenceType r -> isJVMPrimitive r.resolvedType.Kind
     | _ -> false
     
 let scalaInitMethSuffix (k: Asn1TypeKind)=

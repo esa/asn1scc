@@ -9,7 +9,7 @@ namespace PUS_C_Scala_Test
     public class ScalaTest
     {
         readonly string[] stdArgs = new string[] { "-Scala", "--uper-enc", "--field-prefix", "AUTO", "--type-prefix", "T", "-o" };
-        readonly string outFolderPrefix = "../../../../GenScala/PUSC_";
+        readonly string outFolderPrefix = "../../../../../GenScala/PUSC_";
         readonly string inputFilePrefix = "../../../../../asn1-pusc-lib/";
 
         public string[] combineArgs(string outputFolder, string[] files)

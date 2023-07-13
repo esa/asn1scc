@@ -1092,21 +1092,23 @@ let createSequenceInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1Acn
             List.exists((=) true)
         if hasOptional then "null, " else ""
 
-    let rec resolveReferenceType(t: Asn1TypeKind): Asn1TypeKind = 
-        match t with
-        | ReferenceType rt -> resolveReferenceType rt.resolvedType.Kind
-        | _ -> t
-
     let extractAsn1Types: Asn1TypeKind list = 
         children |> 
         List.choose(fun c -> match c with Asn1Child x -> Some x.Type.Kind | _ -> None) |>
         List.map(fun k -> resolveReferenceType k)
 
     let defaultParamListForScala: String = 
-        match typeDefinition with
-        | TypeDefinition td -> 
-            td.typedefName + "(" + optChildrenString + (extractAsn1Types |> List.map (fun c -> extractDefaultInitValue c) |> List.reduce (fun c1 c2 -> c1 + ", " + c2)) + ")"
-        | ReferenceToExistingDefinition r -> "TODO"
+        match ST.lang with
+        | ProgrammingLanguage.Scala ->
+            match typeDefinition with
+            | TypeDefinition td -> 
+                td.typedefName + "(" + optChildrenString + 
+                    match extractAsn1Types with
+                    | [] -> ""
+                    | x -> ( x |> List.map (fun c -> extractDefaultInitValue c) |> List.reduce (fun c1 c2 -> c1 + ", " + c2)) 
+                + ")"
+            | ReferenceToExistingDefinition r -> "TODO"
+        | _ -> ""
 
     createInitFunctionCommon r lm t typeDefinition defaultParamListForScala initByAsn1ValueFnc 
         initTasFunction testCaseFuncs (constantInitExpression getChildExpression)  

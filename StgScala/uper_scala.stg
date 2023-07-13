@@ -40,7 +40,7 @@ def <sFuncName>(<if(bVarNameIsUnreferenced)>@annotation.unused <endif><sVarName>
     <if(soIValidFuncName)>
     if bCheckConstraints then
         ret = <soIValidFuncName>(<sVarName>)
-    if ret.isRight then
+    if ret.isRight then // uper:43
         <sContent>
     <else>
     <sContent>
@@ -275,7 +275,7 @@ Enumerated_encode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, nMin, nMax, n
 >>
 
 Enumerated_decode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, nMin, nMax, nBits, sErrCode, nLastItemIndex, sFirstItemName) ::= <<
-BitStream_DecodeConstraintWholeNumber(pBitStrm, 0, <nLastItemIndex>) match // uper:264
+BitStream_DecodeConstraintWholeNumber(pBitStrm, 0, <nLastItemIndex>) match // uper:278
     case Some(x) =>
         x match
             <arrsItem; separator="\n">
@@ -287,14 +287,22 @@ BitStream_DecodeConstraintWholeNumber(pBitStrm, 0, <nLastItemIndex>) match // up
 
 /* CHOICE START*/
 
-choice_child_encode(p, sAcc, sChildID, nChildIndex, nIndexSizeInBits, nLastItemIndex, sChildContent, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr, bIsSequence) ::= <<
+choice_child_encode(p, sAcc, sChildID, nChildIndex, nIndexSizeInBits, nLastItemIndex, sChildContent, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr, bIsSequence, bIsEnum) ::= <<
 case <sChildID>(e) => // uper:277
     BitStream_EncodeConstraintWholeNumber(pBitStrm, <nChildIndex>, 0, <nLastItemIndex>)
     <sChildContent>
 >>
-choice_child_decode(p, sAcc, sChildID, nChildIndex, nIndexSizeInBits, nLastItemIndex, sChildContent, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr, bIsSequence) ::= <<
-case <nChildIndex> => // enum idx uper:282
-    var e: <sChildTypeDef> = <if(bIsSequence)><sChildTypeDef>(<endif><sChildInitExpr><if(bIsSequence)>)<endif>
+choice_child_decode(p, sAcc, sChildID, nChildIndex, nIndexSizeInBits, nLastItemIndex, sChildContent, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr, bIsSequence, bIsEnum) ::= <<
+case <nChildIndex> => // enum idx uper:296
+    <if(bIsSequence)>
+    var e: <sChildTypeDef> = <sChildTypeDef>(<sChildInitExpr>) // uper:298
+    <else>
+    <if(bIsEnum)>
+    var e: <sChildTypeDef> = <sChildTypeDef>.<sChildInitExpr> // uper:301 
+    <else>
+    var e: <sChildTypeDef> = <sChildInitExpr> // uper:303
+    <endif>
+    <endif>
     <sChildContent>
     <p> = <sChildID>(e)
 >>
