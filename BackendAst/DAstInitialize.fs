@@ -1085,8 +1085,7 @@ let createSequenceInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1Acn
             List.choose(fun c -> match c with Asn1Child x -> Some x | _ -> None) |>
             List.map(fun c -> 
                 match c.Optionality with
-                | Some (Asn1AcnAst.Optional opt) -> true
-                | Some (Asn1AcnAst.AlwaysPresent) -> true
+                | Some (Asn1AcnAst.Optional _) | Some (Asn1AcnAst.AlwaysPresent) | Some (Asn1AcnAst.AlwaysAbsent) -> true
                 | _ -> false            
             ) |>
             List.exists((=) true)

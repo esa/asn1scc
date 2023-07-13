@@ -40,8 +40,9 @@ def <sFuncName>(<if(bVarNameIsUnreferenced)>@annotation.unused <endif><sVarName>
     <if(soIValidFuncName)>
     if bCheckConstraints then
         ret = <soIValidFuncName>(<sVarName>)
-    if ret.isRight then // uper:43
+    if(ret.isRight) { // uper:43 - classical design (scala 2), sContent could be empty
         <sContent>
+    }
     <else>
     <sContent>
     <endif>
@@ -136,7 +137,7 @@ BitStream_EncodeConstraintPosWholeNumber(pBitStrm, <p>, <nMin>, <nMax>)
 >>
 
 IntFullyConstraintPos_decode(p, nMin, nMax, nBits, sSsuffix, sErrCode) ::= <<
-BitStream_DecodeConstraintPosWholeNumber<sSsuffix>(pBitStrm, <nMin>, <nMax>) match // uper:130
+BitStream_DecodeConstraintPosWholeNumber<sSsuffix>(pBitStrm, <nMin>, <nMax>) match // uper:140
     case Some(decPosNr) =>
         <p> = decPosNr
     case None =>
@@ -146,8 +147,11 @@ BitStream_DecodeConstraintPosWholeNumber<sSsuffix>(pBitStrm, <nMin>, <nMax>) mat
 /*case: A :: = INTEGER */
 IntUnconstraint_encode(p, sErrCode, bCoverageIgnore) ::= "BitStream_EncodeUnConstraintWholeNumber(pBitStrm, <p>);"
 IntUnconstraint_decode(p, sErrCode, bCoverageIgnore) ::= <<
-if !BitStream_DecodeUnConstraintWholeNumber(pBitStrm, <p>) then // uper:140   <if(bCoverageIgnore)>/*COVERAGE_IGNORE*/<endif>
-    ret = <sErrCode>    <if(bCoverageIgnore)>/*COVERAGE_IGNORE*/<endif>
+BitStream_DecodeUnConstraintWholeNumber(pBitStrm) match // uper:150
+    case Some(x) =>
+        ret = Right(x)
+    case None =>
+        return Left(<sErrCode>)
 >>
 
 /*case: A :: = INTEGER(MIN..5) */
