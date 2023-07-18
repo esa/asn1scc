@@ -240,7 +240,7 @@ ret = <arrsConstraints; separator=" && ">;
 ret = <sErrCodeName>;
 >>
 
-call_base_type_func(p, sFuncName, soTypeCasting) ::= "<sFuncName>(<p>) /* isvalid:229 */"
+call_base_type_func(p, sFuncName, soTypeCasting) ::= "ret = <sFuncName>(<p>) /* isvalid:243 */"
 call_base_type_func_exp(p, sFuncName) ::= "<sFuncName>(<p>)"
 
 
@@ -249,7 +249,7 @@ call_base_type_func_exp(p, sFuncName) ::= "<sFuncName>(<p>)"
 
 Sequence_OptionalChild(p, sAcc, sChName, sInnerStatement) ::= <<
 if <p><sAcc>exist.<sChName> then /* isvalid:244 */
-    ret = <sInnerStatement>
+    <sInnerStatement>
 >>
 
 
