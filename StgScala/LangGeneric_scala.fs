@@ -326,11 +326,11 @@ type LangGeneric_scala() =
             File.WriteAllText(outFileName, content.Replace("\r",""))
 
         override this.CreateAuxFiles (r:AstRoot)  (di:OutDirectories.DirInfo) (arrsSrcTstFiles : string list, arrsHdrTstFiles:string list) =
-            let CreateCMainFile (r:AstRoot)  outDir  =
+            let CreateScalaMainFile (r:AstRoot)  outDir  =
                 // Main file for test cass    
                 let printMain =    test_cases_scala.PrintMain //match l with C -> test_cases_c.PrintMain | Ada -> test_cases_c.PrintMain
                 let content = printMain "testsuite"
-                let outFileName = Path.Combine(outDir, "mainprogram.c")
+                let outFileName = Path.Combine(outDir, "mainprogram.scala")
                 File.WriteAllText(outFileName, content.Replace("\r",""))
 
             let generateVisualStudioProject (r:DAst.AstRoot) outDir (arrsSrcTstFilesX, arrsHdrTstFilesX) =
@@ -361,5 +361,5 @@ type LangGeneric_scala() =
                 File.WriteAllText((Path.Combine(outDir, "VsProject.sln")), (aux_scala.emitVisualStudioSolution()))
 
 
-            CreateCMainFile r di.srcDir
+            CreateScalaMainFile r di.srcDir
             generateVisualStudioProject r di.srcDir (arrsSrcTstFiles, arrsHdrTstFiles)
