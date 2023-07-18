@@ -6,9 +6,9 @@ using System.Runtime.InteropServices;
 namespace PUS_C_Scala_Test
 {
     [TestClass]
-    public class ScalaTest
+    public class ACNScalaTest
     {
-        readonly string[] stdArgs = new string[] { "-Scala", "--uper-enc", "--field-prefix", "AUTO", "--type-prefix", "T", "-o" };
+        readonly string[] stdArgs = new string[] { "-Scala", "--acn-enc", "--field-prefix", "AUTO", "--type-prefix", "T", "-o" };
         readonly string outFolderPrefix = "../../../../../GenScala/PUSC_";
         readonly string inputFilePrefix = "../../../../../asn1-pusc-lib/";
 
