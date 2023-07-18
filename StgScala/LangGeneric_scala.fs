@@ -333,8 +333,7 @@ type LangGeneric_scala() =
                 let outFileName = Path.Combine(outDir, "mainprogram.c")
                 File.WriteAllText(outFileName, content.Replace("\r",""))
 
-                // TODO fix typo
-            let generateVisualStudtioProject (r:DAst.AstRoot) outDir (arrsSrcTstFilesX, arrsHdrTstFilesX) =
+            let generateVisualStudioProject (r:DAst.AstRoot) outDir (arrsSrcTstFilesX, arrsHdrTstFilesX) =
                 let extrSrcFiles, extrHdrFiles = 
                     r.args.encodings |> 
                     List.collect(fun e -> 
@@ -348,8 +347,8 @@ type LangGeneric_scala() =
                     List.map(fun a -> a + ".scala", a + "Def.scala") |>
                     List.unzip
 
-                let arrsSrcTstFiles = (r.programUnits |> List.map (fun z -> z.tetscase_bodyFileName))
-                let arrsHdrTstFiles = (r.programUnits |> List.map (fun z -> z.tetscase_specFileName))
+                let arrsSrcTstFiles = (r.programUnits |> List.map (fun z -> z.testcase_bodyFileName))
+                let arrsHdrTstFiles = (r.programUnits |> List.map (fun z -> z.testcase_specFileName))
                 let vcprjContent = xml_outputs.emitVisualStudioProject 
                                     ((r.programUnits |> List.map (fun z -> z.bodyFileName))@extrSrcFiles)
                                     ((r.programUnits |> List.map (fun z -> z.specFileName))@extrHdrFiles)
@@ -363,4 +362,4 @@ type LangGeneric_scala() =
 
 
             CreateCMainFile r di.srcDir
-            generateVisualStudtioProject r di.srcDir (arrsSrcTstFiles, arrsHdrTstFiles)
+            generateVisualStudioProject r di.srcDir (arrsSrcTstFiles, arrsHdrTstFiles)

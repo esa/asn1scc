@@ -1008,11 +1008,11 @@ type Asn1File = {
 
 type ProgramUnit = {
     name                    : string
-    tetscase_name           : string
+    testcase_name           : string
     specFileName            : string
     bodyFileName            : string
-    tetscase_specFileName   : string
-    tetscase_bodyFileName   : string
+    testcase_specFileName   : string
+    testcase_bodyFileName   : string
     sortedTypeAssignments   : TypeAssignment list
     valueAssignments        : ValueAssignment list
     importedProgramUnits    : string list

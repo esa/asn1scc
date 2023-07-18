@@ -19,8 +19,8 @@ let GetEncodingString (lm:LanguageMacros) = function
 
 let includedPackages r (lm:LanguageMacros) =  
     match lm.lg.hasModules with
-    | false     -> r.programUnits |> Seq.map(fun x -> x.tetscase_specFileName)
-    | true      -> r.programUnits |> Seq.collect(fun x -> [x.name; x.tetscase_name])
+    | false     -> r.programUnits |> Seq.map(fun x -> x.testcase_specFileName)
+    | true      -> r.programUnits |> Seq.collect(fun x -> [x.name; x.testcase_name])
 
 
 let rec gAmber (t:Asn1Type) = 
@@ -208,7 +208,7 @@ let printAllTestCasesAndTestCaseRunner (r:DAst.AstRoot) (lm:LanguageMacros) outD
         [1 .. nFiles] |> 
         List.map (fun fileIndex ->
             let testCaseFileName = sprintf "test_case_%03d" fileIndex
-            testCaseFileName + "." + lm.lg.BodyExtention, testCaseFileName + "." + lm.lg.SpecExtention) |>
+            testCaseFileName + "." + lm.lg.BodyExtention, testCaseFileName + lm.lg.SpecNameSuffix + "." + lm.lg.SpecExtention) |>
         List.unzip
     
     [1 .. nFiles] |> 
@@ -228,7 +228,7 @@ let printAllTestCasesAndTestCaseRunner (r:DAst.AstRoot) (lm:LanguageMacros) outD
         File.WriteAllText(outCFileName, contentC.Replace("\r",""))
 
         let contentH = printTestCaseFileDef testCaseFileName (includedPackages r lm) arrsTestFunctionDefs
-        let outHFileName = Path.Combine(outDir, testCaseFileName + "." + lm.lg.SpecExtention)
+        let outHFileName = Path.Combine(outDir, testCaseFileName + lm.lg.SpecNameSuffix + "." + lm.lg.SpecExtention)
         File.WriteAllText(outHFileName, contentH.Replace("\r",""))  )
 
     let _, _, func_invokations = 
@@ -251,7 +251,7 @@ let printAllTestCasesAndTestCaseRunner (r:DAst.AstRoot) (lm:LanguageMacros) outD
     File.WriteAllText(outCFileName, contentC.Replace("\r",""))
 
     if hasTestSuiteRunner then
-        let outHFileName = Path.Combine(outDir, TestSuiteFileName + "." + lm.lg.SpecExtention)
+        let outHFileName = Path.Combine(outDir, TestSuiteFileName + lm.lg.SpecNameSuffix + "." + lm.lg.SpecExtention)
         File.WriteAllText(outHFileName, contentH.Replace("\r",""))
 
 
