@@ -837,7 +837,7 @@ def BitStream_ReadBitPattern(pBitStrm: BitStream, patternToRead: Array[Byte], nB
 }
 
 
-def BitStream_ReadBitPattern_ignore_value(pBitStrm: BitStream, nBitsToRead: Int): Boolean =
+def BitStream_ReadBitPattern_ignore_value(pBitStrm: BitStream, nBitsToRead: Int): Either[ErrorCode, Int] =
 {
   val nBytesToRead: Int = nBitsToRead / 8
   val nRemainingBitsToRead: Int = nBitsToRead % 8
@@ -845,14 +845,14 @@ def BitStream_ReadBitPattern_ignore_value(pBitStrm: BitStream, nBitsToRead: Int)
   var i: Int = 0
   while i < nBytesToRead do
     BitStream_ReadByte(pBitStrm) match
-      case None => return false
+      case None => return Left(ErrorCode)
       case Some(_) => i += 1
 
   if nRemainingBitsToRead > 0 then
     if BitStream_ReadPartialByte(pBitStrm, nRemainingBitsToRead.toByte).isEmpty then
-      return false
+      return Left(ErrorCode)
 
-  true
+  Right(0)
 }
 
 
@@ -991,24 +991,24 @@ def Acn_Dec_Real_IEEE754_64_little_endian(pBitStrm: BitStream): Option[Double] =
 
 
 /* String functions*/
-def Acn_Enc_String_Ascii_FixSize(pBitStrm: BitStream, max: Long, strVal: Array[Char]): Unit =
+def Acn_Enc_String_Ascii_FixSize(pBitStrm: BitStream, max: Long, strVal: Array[Byte]): Unit =
 {
   var i: Long = 0
   while i < max do
-    BitStream_AppendByte(pBitStrm, strVal(i.toInt).toByte, false)
+    BitStream_AppendByte(pBitStrm, strVal(i.toInt), false)
     i += 1
 }
-def Acn_Enc_String_Ascii_private(pBitStrm: BitStream, max: Long, strVal: Array[Char]): Long =
+def Acn_Enc_String_Ascii_private(pBitStrm: BitStream, max: Long, strVal: Array[Byte]): Long =
 {
   var i: Long = 0
   while (i < max) && (strVal(i.toInt) != '\u0000') do
-    BitStream_AppendByte(pBitStrm, strVal(i.toInt).toByte, false)
+    BitStream_AppendByte(pBitStrm, strVal(i.toInt), false)
     i += 1
 
   i
 }
 
-def Acn_Enc_String_Ascii_Null_Teminated(pBitStrm: BitStream, max: Long, null_character: Char, strVal: Array[Char]): Unit =
+def Acn_Enc_String_Ascii_Null_Teminated(pBitStrm: BitStream, max: Long, null_character: Byte, strVal: Array[Byte]): Unit =
 {
   Acn_Enc_String_Ascii_private(pBitStrm, max, strVal)
   BitStream_AppendByte(pBitStrm, null_character.toByte, false)
@@ -1128,7 +1128,7 @@ def Acn_Dec_String_Ascii_private(pBitStrm: BitStream, max: Long, charactersToDec
 }
 
 
-def Acn_Dec_String_Ascii_FixSize(pBitStrm: BitStream, max: Long): Option[Array[Char]] =
+def Acn_Dec_String_Ascii_FixSize(pBitStrm: BitStream, max: Long): Option[Array[Byte]] =
 {
   Acn_Dec_String_Ascii_private(pBitStrm, max, max)
 }
@@ -1204,7 +1204,7 @@ def Acn_Dec_String_Ascii_Null_Teminated(pBitStrm: BitStream, max: Long, null_cha
   None
 
 }
-def Acn_Dec_String_Ascii_Null_Teminated_mult(pBitStrm: BitStream, max: Long, null_character: Array[Byte], null_character_size: Int): Option[Array[Char]] =
+def Acn_Dec_String_Ascii_Null_Teminated_mult(pBitStrm: BitStream, max: Long, null_character: Array[Byte], null_character_size: Int): Option[Array[Byte]] =
 {
   val sz: Int = if null_character_size < 10 then null_character_size else 10
   val tmp: Array[Byte] = Array.fill(10)(0)
