@@ -337,8 +337,8 @@ type LangGeneric_c() =
                     List.map(fun a -> a + ".c", a + ".h") |>
                     List.unzip
 
-                let arrsSrcTstFiles = (r.programUnits |> List.map (fun z -> z.tetscase_bodyFileName))
-                let arrsHdrTstFiles = (r.programUnits |> List.map (fun z -> z.tetscase_specFileName))
+                let arrsSrcTstFiles = (r.programUnits |> List.map (fun z -> z.testcase_bodyFileName))
+                let arrsHdrTstFiles = (r.programUnits |> List.map (fun z -> z.testcase_specFileName))
                 let vcprjContent = xml_outputs.emitVisualStudioProject 
                                     ((r.programUnits |> List.map (fun z -> z.bodyFileName))@extrSrcFiles)
                                     ((r.programUnits |> List.map (fun z -> z.specFileName))@extrHdrFiles)

@@ -945,10 +945,13 @@ xml
 /mantis/0000724/o
 /v4Tests/tmp_Ada
 /v4Tests/tmp_c
+/v4Tests/tmp_Scala
 /v4Tests/Ada_log.txt
 /v4Tests/c_log.txt
+/v4Tests/Scala_log.txt
 /v4Tests/tmp.err_Ada
 /v4Tests/tmp.err_c
+/v4Tests/tmp.err_Scala
 v2out
 /mantis/0000733/v4out - Copy
 /mantis/0000733/v2out
