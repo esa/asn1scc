@@ -434,15 +434,17 @@ if ret.isRight then // acn:433
     <sIntVal> match
         <arrsItem; separator="\n">
         case _ =>
-        return Left(<sErrCode>)
+            return Left(<sErrCode>)
 >>
 
 /* Strings */
 Acn_String_Ascii_FixSize_encode(p, sErrCode, nAsn1Max) ::= "Acn_Enc_String_Ascii_FixSize(pBitStrm, <nAsn1Max>, <p>)"
 Acn_String_Ascii_FixSize_decode(p, sErrCode, nAsn1Max) ::= <<
 Acn_Dec_String_Ascii_FixSize(pBitStrm, <nAsn1Max>) match // acn:443
-    case None => return Left(<sErrCode>)
-    case Some(x) => <p> = x
+    case None => 
+        return Left(<sErrCode>)
+    case Some(x) => 
+        <p> = x
 >>
 
 Acn_String_Ascii_Null_Teminated_encode(p, sErrCode, nAsn1Max, arruNullBytes) ::= <<
@@ -826,7 +828,7 @@ case <nChildIndex> => // acn:822
 
 Choice_encode(p, sAcc, arrsChildren, nLastItemIndex, sChoiceIndexName, td/*:FE_ChoiceTypeDefinition*/, nIndexSizeInBits, sErrCode) ::= <<
 <p><sAcc>kind match // acn:828
-<arrsChildren: {ch|<ch>}; separator="\n">
+    <arrsChildren: {ch|<ch>}; separator="\n">
     case _ =>
         return Left(<sErrCode>)
 >>

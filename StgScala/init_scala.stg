@@ -77,7 +77,7 @@ assignAny(p, sValue) ::= "<p> = <sValue> // init:76"
 assignString(p, sValue) ::= "<p> = <sValue> // init:77"
 
 
-initIA5String(sPtr, sValue) ::= "strcpy(<sPtr>,<sValue>) // init:80"
+initIA5String(sPtr, sValue) ::= "<sPtr> = <sValue> // init:80"
 initEnumerated(sVal, sValue, sEnum) ::= "<sVal> = <sEnum>.<sValue> // init:81"
 initNull(sVal) ::= "<sVal> = 0"
 
