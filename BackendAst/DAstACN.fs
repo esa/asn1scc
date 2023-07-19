@@ -520,7 +520,11 @@ let createEnumComn (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:CommonTypes
     let rtlIntType = (DAstTypeDefinition.getIntererTypeByClass lm intTypeClass)()
     let localVar, intVal =
         let varName = "intVal"
-        GenericLocalVariable {GenericLocalVariable.name = varName; varType= rtlIntType; arrSize= None; isStatic = false; initExp=Some("0L") }, varName
+        let initExp = 
+            match ST.lang with
+            | ProgrammingLanguage.Scala -> Some("0L")
+            | _ -> None
+        GenericLocalVariable {GenericLocalVariable.name = varName; varType= rtlIntType; arrSize= None; isStatic = false; initExp=initExp }, varName
         //match min >= 0I with
         //| true -> Asn1UIntLocalVariable ("uIntVal",None), "uIntVal"
         //| false -> Asn1SIntLocalVariable ("intVal",None), "intVal"
