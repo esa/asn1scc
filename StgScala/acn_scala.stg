@@ -433,7 +433,7 @@ EnumeratedEncValues_decode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, sAct
 if ret.isRight then // acn:433
     <sIntVal> match
         <arrsItem; separator="\n">
-    case _ =>
+        case _ =>
         return Left(<sErrCode>)
 >>
 
@@ -857,7 +857,7 @@ ChoiceChild_preWhen_str_condition(sExtFld, sVal, arrsNullChars) ::= "(<sExtFld> 
 
 ChoiceChild_preWhen_decode(p, sAcc, sChildID, sChildBody, arrsConditions, bFirst, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr) ::= <<
 <if(!bFirst)>else <endif>if (<arrsConditions; separator=" && ">) {
-    <p><sAcc>kind = <sChildID>;
+    <p><sAcc>kind = <sChildID> // acn:860
     <sChildBody>
 }
 >>
@@ -871,10 +871,10 @@ Choice_preWhen_encode(p, sAcc, arrsChildren, sErrCode) ::= <<
 >>
 
 Choice_preWhen_decode(p, sAcc, arrsChildren, sErrCode) ::= <<
-ret = 0
+ret = Right(0)
 <arrsChildren; separator="\n">
-else // acn:882 --> no if case?
-    ret = <sErrCode>
+else // acn:882, no if case?
+    ret = Left(<sErrCode>)
 >>
 
 /* Choice with Enum determinant */
@@ -893,84 +893,80 @@ Choice_Enum_encode(p, sAcc, arrsChildren, sEnmExtFld, sErrCode) ::= <<
 <p><sAcc>kind match // acn:899
     <arrsChildren; separator="\n">
     case _ =>
-        ret = ERR_INVALID_ENUM_VALUE
+        ret = Left(ERR_INVALID_ENUM_VALUE)
 >>
 
 Choice_Enum_decode(p, sAcc, arrsChildren, sEnmExtFld, sErrCode) ::= <<
 <sEnmExtFld> match // acn:906
     <arrsChildren; separator="\n">
     case _ =>
-        ret = ERR_INVALID_ENUM_VALUE
+        ret = Left(ERR_INVALID_ENUM_VALUE)
 >>
 
 /* Updates */
 SizeDependency(v, sCount, nMin, nMax, bCheckRange, sTypedefName) ::= <<
-<v>_is_initialized = TRUE;
-<v> = <sCount>;
+<v>_is_initialized = true // acn:908
+<v> = <sCount>
 >>
 
 SizeDependencyFixedSize(v, nFixedSize) ::= <<
-<v>_is_initialized = TRUE;
-<v> = <nFixedSize>;
+<v>_is_initialized = true // acn:913
+<v> = <nFixedSize>
 >>
 
-
-
-
 ChoiceDependencyEnum_Item(v, sChildCID, sEnumCName) ::= <<
-case <sChildCID> =>
+case <sChildCID> => // acn:918
     <v>_is_initialized = true
     <v> = <sEnumCName>
 >>
 
 ChoiceDependencyEnum(sChPath, sAcc, arrsChoiceEnumItems) ::= <<
-<sChPath><sAcc>kind match // acn:934
+<sChPath><sAcc>kind match // acn:924
     <arrsChoiceEnumItems; separator="\n">
     case _ =>
-        ret = 1337 // TODO: no error code available here 
+        ret = Left(ERR_INVALID_ENUM_VALUE) 
 >>
 
 PresenceDependency(v, sSeqPath, sAcc, sChildName) ::= <<
-<v>_is_initialized = true // acn:940
-<v> = (<sSeqPath><sAcc>exist.<sChildName>) /* acn:941 */
+<v>_is_initialized = true // acn:931
+<v> = (<sSeqPath><sAcc>exist.<sChildName>)
 >>
 
 ChoiceDependencyIntPres_child(v, sChildNamePrese, nChildRetVal) ::= <<
-case <sChildNamePrese> => // acn:945
+case <sChildNamePrese> => // acn:936
     <v>_is_initialized = true
     <v> = <nChildRetVal>
 >>
 
 ChoiceDependencyStrPres_child(v, sChildNamePrese, sChildRetVal, arrsNullChars) ::= <<
-case <sChildNamePrese> => // acn:951
+case <sChildNamePrese> => // acn:942
     <v>_is_initialized = true
-    strcpy(<v>, "<sChildRetVal>")
+    <v> = "<sChildRetVal>"
 >>
 
 ChoiceDependencyPres(sChPath, sAcc, arrsChoiceItems) ::= <<
-<sChPath><sAcc>kind match // acn:957
+<sChPath><sAcc>kind match // acn:948
     <arrsChoiceItems; separator="\n">
     case _ =>
-        ret = 1337 // TODO no actual error code available
+        ret = Left(951)
 >>
 
-MultiAcnUpdate_checkEqual_pri0(p1,p2) ::= "(<p1> == <p2>)"
-MultiAcnUpdate_checkEqual_str0(p1,p2) ::= "(strcmp(<p1>,<p2>) == 0)"
+MultiAcnUpdate_checkEqual_pri0(p1,p2) ::= "(<p1> == <p2>) // acn:954"
+MultiAcnUpdate_checkEqual_str0(p1,p2) ::= "(<p1> == <p2>) // acn:955"
 
 MultiAcnUpdate_get_first_init_value_pri(sV0, sVi, bIsFirst) ::= <<
 <if(!bIsFirst)>else <endif>if (<sVi>_is_initialized) { /*COVERAGE_IGNORE*/
-    <sV0> = <sVi>; /*COVERAGE_IGNORE*/
+    <sV0> = <sVi> /*COVERAGE_IGNORE*/
 } /*COVERAGE_IGNORE*/
 >>
 
 MultiAcnUpdate_get_first_init_value_str(sV0, sVi, bIsFirst) ::= <<
-<if(!bIsFirst)>else <endif>if (<sVi>_is_initialized) { /*COVERAGE_IGNORE*/
-    strcpy(<sV0>, <sVi>); /*COVERAGE_IGNORE*/
-} /*COVERAGE_IGNORE*/
+<if(!bIsFirst)>else <endif>if <sVi>_is_initialized then 
+    <sV0> = <sVi> 
 >>
 
 MultiAcnUpdate_checkEqual_pri(sV0, sVi) ::= "((<sVi>_is_initialized && <sV0> == <sVi>) || !<sVi>_is_initialized)"
-MultiAcnUpdate_checkEqual_str(sV0, sVi) ::= "((<sVi>_is_initialized && strcmp(<sV0>,<sVi>) == 0) || !<sVi>_is_initialized)"
+MultiAcnUpdate_checkEqual_str(sV0, sVi) ::= "((<sVi>_is_initialized && <sV0> == <sVi>) || !<sVi>_is_initialized)"
 
 
 MultiAcnUpdate(v, sV0, sErrCode, arrsLocalDeclarations, arrsLocalUpdateStatements, arrsGetFirstIntValue, arrsLocalCheckEquality) ::= <<
@@ -979,206 +975,207 @@ MultiAcnUpdate(v, sV0, sErrCode, arrsLocalDeclarations, arrsLocalUpdateStatement
     
     <arrsLocalUpdateStatements; separator="\n">
     
-    if (ret) {
+    if ret.isRight // acn:978 TODO not the if for the lower else
     
-        *pErrCode = <sErrCode>;
-        <arrsGetFirstIntValue; separator=" "> else {
-            ret = FALSE; /*COVERAGE_IGNORE*/
-        }
-        if (ret) {
-            ret = (<arrsLocalCheckEquality; separator=" && ">);
-            <v>_is_initialized = TRUE;
-        }
-    }
+        <arrsGetFirstIntValue; separator=" "> 
+        else // TODO this is not the else for the upper if
+            return Left(<sErrCode>)
+        
+        if ret.isRight // TODO, still needed?
+            ret = (<arrsLocalCheckEquality; separator=" && ">)
+            <v>_is_initialized = true
 }
 >>
 
 
-
-
-
-
 checkAccessPath(arrsCheckPaths, sUpdateStatement) ::= <<
-if (<arrsCheckPaths; separator=" && ">) {
+if <arrsCheckPaths; separator=" && "> then // acn:992
     <sUpdateStatement>
-}
 >>
 
 
 SizeDependency_oct_str_containing(p, sFuncName, sReqBytesForUperEncoding, v, bIsOctet, sComment) ::= <<
-{
+{ // acn:998
     /*first encode containing type to a temporary bitstream. That's the only way to learn in advance the size of the encoding octet string*/
-    BitStream_Init(&bitStrm, arr, sizeof(arr));
-    BitStream* pBitStrm_save = pBitStrm;
-    pBitStrm = &bitStrm;
+    val pBitStrm_save: BitStream = pBitStrm
+    pBitStrm = BitStream_Init(arr.length)
     <sComment>
-    pBitStrm = pBitStrm_save;
-  //ret = <sFuncName>(<p>, &bitStrm, FALSE);
+    pBitStrm = pBitStrm_save
 }
-if (ret) {
+if ret.isRight then
     <v> = <if(bIsOctet)>bitStrm.currentBit == 0 ? bitStrm.currentByte : (bitStrm.currentByte + 1)<else>bitStrm.currentByte*8+bitStrm.currentBit<endif>;
-    <v>_is_initialized = TRUE;
-}
+    <v>_is_initialized = true
 
 >>
 
-
 octet_string_containing_ext_field_func_encode(p, sFuncName, sReqBytesForUperEncoding, sExtField, sErrCode, soInner) ::= <<
-ret = BitStream_EncodeOctetString_no_length(pBitStrm, arr, (int)<sExtField>);
+BitStream_EncodeOctetString_no_length(pBitStrm, arr, <sExtField>.asInstanceOf[Int]) match // acn:1012
+    case false => 
+        return Left(<sErrCode>)
+    case true =>
+        ret = Right(0)
 >>
 
 octet_string_containing_ext_field_func_decode(p, sFuncName, sReqBytesForUperEncoding, sExtField, sErrCode, soInner) ::= <<
 /*open new scope to declare some variables*/
 {
-    /*decode to a temporary bitstream*/
-    static byte arr[<sReqBytesForUperEncoding>];
-    BitStream* pBitStrm_save = pBitStrm;
-    BitStream bitStrm;
-    BitStream_Init(&bitStrm, arr, sizeof(arr));
-    ret = (int)<sExtField> \<= <sReqBytesForUperEncoding>;
-    *pErrCode = ret ? 0 : <sErrCode>;
-    if (ret) {
-        ret = BitStream_DecodeOctetString_no_length(pBitStrm, arr, (int)<sExtField>);
-        if (ret) {
-            pBitStrm = &bitStrm;
-            <soInner>
-            //ret = <sFuncName>(<p>, &bitStrm, pErrCode);
-            pBitStrm = pBitStrm_save;
-        }
-    }
+    /*decode to a temporary bitstream acn:1022*/
+    val pBitStrm_save: BitStream = pBitStrm
+    val bitStrm: BitStream = BitStream_Init(<sReqBytesForUperEncoding>)
+    
+    if <sExtField>.asInstanceOf[Int] \<= <sReqBytesForUperEncoding> then
+        BitStream_DecodeOctetString_no_length(pBitStrm, <sExtField>.asInstanceOf[Int]) match
+            case None => 
+                return Left(<pErrCode>)
+            case Some(arr) =>
+                bitStrm.buf = arr
+
+        pBitStrm = bitStrm
+        <soInner>
+        pBitStrm = pBitStrm_save;
 }
 >>
 
-
-
 bit_string_containing_ext_field_func_encode(p, sFuncName, sReqBytesForUperEncoding, sReqBitsForUperEncoding, sExtField, sErrCode) ::= <<
-BitStream_AppendBits(pBitStrm, arr, (int)<sExtField>);
+BitStream_AppendBits(pBitStrm, arr, <sExtField>.asInstanceOf[Int])
 >>
 
 bit_string_containing_ext_field_func_decode(p, sFuncName, sReqBytesForUperEncoding, sReqBitsForUperEncoding, sExtField, sErrCode) ::= <<
 /*open new scope to declare some variables*/
 {
-    /*decode to a temporary bitstream*/
-    static byte arr[<sReqBytesForUperEncoding>];
-    BitStream bitStrm;
-    BitStream_Init(&bitStrm, arr, sizeof(arr));
-    ret = (int)<sExtField> \<= <sReqBitsForUperEncoding>;
-    *pErrCode = ret ? 0 : <sErrCode>;
-    if (ret) {
-        ret = BitStream_ReadBits(pBitStrm, arr, (int)<sExtField>);
-        if (ret) {
-            ret = <sFuncName>(<p>, &bitStrm, pErrCode);
-        }
-    }
+    /*decode to a temporary bitstream acn:1046*/
+    val bitStrm: BitStream = BitStream_Init(<sReqBytesForUperEncoding>)
+    if <sExtField>.asInstanceOf[Int] \<= <sReqBitsForUperEncoding> then
+        BitStream_ReadBits(pBitStrm, (int)<sExtField>) match
+            case None => 
+                return Left(<pErrCode>)
+            case Some(arr) =>
+                bitStrm.buf = arr
+
+        ret = <sFuncName>(<p>, bitStrm)
 }
 >>
-
-
 
 rtlModuleName() ::= ""
 sparkAnnotations_encode(sTypeDefName) ::= ""
 sparkAnnotations_decode(sTypeDefName) ::= ""
 
-
-
 octet_string_containing_func_encode(p, sFuncName, sReqBytesForAcnEncoding, nBits, nMinSize, nMaxSize, bFixedSize) ::= <<
 /*open new scope to declare some variables*/
 {
-    /*encode to a temporary bitstream*/
-    static byte arr[<sReqBytesForAcnEncoding>];
-    BitStream bitStrm;
-    BitStream_Init(&bitStrm, arr, sizeof(arr));
-
-    ret = <sFuncName>(<p>, &bitStrm, FALSE);
-    if (ret) {
-        int nCount = bitStrm.currentBit == 0 ? bitStrm.currentByte : (bitStrm.currentByte + 1);
+    /*encode to a temporary bitstream acn:1066*/ 
+    val bitStrm: BitStream = BitStream_Init(<sReqBytesForAcnEncoding>)
+    ret = <sFuncName>(<p>, bitStrm, false) // TODO check if correct call acn:1068
+    
+    if ret.isRight then
+        int nCount = bitStrm.currentBit == 0 ? bitStrm.currentByte : (bitStrm.currentByte + 1)
         <if(bFixedSize)>
-        ret = BitStream_EncodeOctetString_no_length(pBitStrm, arr, nCount);
-
+        BitStream_EncodeOctetString_no_length(pBitStrm, bitStrm.buf, nCount) match
+            case false =>
+                return Left(pErrCode)
+            case true =>
+                ret = Right(0)
+                
         <else>
-        BitStream_EncodeConstraintWholeNumber(pBitStrm, nCount, <nMinSize>, <nMaxSize>);
-        ret = BitStream_EncodeOctetString_no_length(pBitStrm, arr, nCount);
+        BitStream_EncodeConstraintWholeNumber(pBitStrm, nCount, <nMinSize>, <nMaxSize>)
+        BitStream_EncodeOctetString_no_length(pBitStrm, bitStrm.buf, nCount) match
+            case false =>
+                return Left(pErrCode)
+            case true =>
+                ret = Right(0)
 
-        <endif>
-    }
+        <endif> 
 }
 >>
 
 octet_string_containing_func_decode(p, sFuncName, sReqBytesForAcnEncoding, nBits, nMinSize, nMaxSize, bFixedSize) ::= <<
 /*open new scope to declare some variables*/
 {	
-    /*decode to a temporary bitstream*/
-    static byte arr[<sReqBytesForAcnEncoding>];
-    BitStream bitStrm;
-    BitStream_Init(&bitStrm, arr, sizeof(arr));
+    /*decode to a temporary bitstream acn:1094*/ 
+    val bitStrm: BitStream = BitStream_Init(<sReqBytesForAcnEncoding>)
 
     <if(bFixedSize)>
-    ret = BitStream_DecodeOctetString_no_length(pBitStrm, arr, <nMinSize>);
+    BitStream_DecodeOctetString_no_length(pBitStrm, <nMinSize>) match
+        case None =>
+            return Left(pErrCode)
+        case Some(arr) =>
+            bitStrm.buf = arr
 
     <else>
-    asn1SccSint nCount;
-    ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, &nCount, <nMinSize>, <nMaxSize>)
-    if (ret) {
-        ret = BitStream_DecodeOctetString_no_length(pBitStrm, arr, (int)nCount);
-    }
+    var nCount: Int = 0
+    BitStream_DecodeConstraintWholeNumber(pBitStrm, <nMinSize>, <nMaxSize>) match
+        case None =>
+            return Left(pErrCode)
+        case Some(x) =>
+            nCount = x
+
+    if ret.isRight then
+        BitStream_DecodeOctetString_no_length(pBitStrm, nCount.asInstanceOf[Int])
+            case None =>
+                return Left(pErrCode)
+            case Some(arr) =>
+                bitStrm.buf = arr
 
     <endif>
-    if (ret) {
-        ret = <sFuncName>(<p>, &bitStrm, pErrCode);
-    }
+    if ret.isRight then
+        ret = <sFuncName>(<p>, &bitStrm) // TODO check if correct call acn:1121
 }
 >>
 
 bit_string_containing_func_encode(p, sFuncName, sReqBytesForAcnEncoding, sReqBitsForUperEncoding, nBits, nMinSize, nMaxSize, bFixedSize) ::= <<
 /*open new scope to declare some variables*/
 {
-    /*encode to a temporary bitstream*/
-    static byte arr[<sReqBytesForAcnEncoding>];
-    BitStream bitStrm;
-    BitStream_Init(&bitStrm, arr, sizeof(arr));
+    /*encode to a temporary bitstream acn:1128*/
+    val bitStrm: BitStream = BitStream_Init(<sReqBytesForAcnEncoding>)
 
-    ret = <sFuncName>(<p>, &bitStrm, FALSE);
-    if (ret) {
-        int nCount = bitStrm.currentByte*8 + bitStrm.currentBit;
+    ret = <sFuncName>(<p>, bitStrm, false) // TODO check if call is correct asn:1131
+    if ret.isRight then
+        val nCount: Int = bitStrm.currentByte*8 + bitStrm.currentBit;
         <if(bFixedSize)>
-        BitStream_AppendBits(pBitStrm, arr, nCount);
+        BitStream_AppendBits(pBitStrm, bitStrm.buf, nCount);
 
         <else>
-        BitStream_EncodeConstraintWholeNumber(pBitStrm, nCount, <nMinSize>, <nMaxSize>);
-        BitStream_AppendBits(pBitStrm, arr, nCount);
+        BitStream_EncodeConstraintWholeNumber(pBitStrm, nCount, <nMinSize>, <nMaxSize>)
+        BitStream_AppendBits(pBitStrm, bitStrm.buf, nCount)
 
         <endif>
-
-
-    }
 }
 >>
 
 bit_string_containing_func_decode(p, sFuncName, sReqBytesForAcnEncoding, sReqBitsForUperEncoding, nBits, nMinSize, nMaxSize, bFixedSize) ::= <<
 /*open new scope to declare some variables*/
 {	
-    /*decode to a temporary bitstream*/
-    static byte arr[<sReqBytesForAcnEncoding>];
-    BitStream bitStrm;
-    BitStream_Init(&bitStrm, arr, sizeof(arr));
+    /*decode to a temporary bitstream acn:1148*/
+    val bitStrm: BitStream = BitStream_Init(<sReqBytesForAcnEncoding>)
     
     <if(bFixedSize)>
-    ret = BitStream_ReadBits(pBitStrm, arr, <nMinSize>);
-    if (ret) {
-        ret = <sFuncName>(<p>, &bitStrm, pErrCode);
-    }
+    BitStream_ReadBits(pBitStrm, <nMinSize>) match
+        case None =>
+            return Left(pErrCode)
+        case Some(arr) =>
+            bitStrm.buf = arr
+
+    if ret.isRight then
+        ret = <sFuncName>(<p>, bitStrm) // TODO check if call is right
 
     <else>
-    asn1SccSint nCount;
-    ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, &nCount, <nMinSize>, <nMaxSize>) 
-    if (ret) {
-        ret = BitStream_ReadBits(pBitStrm, arr, nCount);
-        if (ret) {
-            ret = <sFuncName>(<p>, &bitStrm, pErrCode);
-        }
-    }
+    var nCount: Int = 0
+    BitStream_DecodeConstraintWholeNumber(pBitStrm, <nMinSize>, <nMaxSize>) match
+        case None =>
+            return Left(pErrCode)
+        case Some(x) =>
+            nCount = x
+            ret = Right(0)
+
+    BitStream_ReadBits(pBitStrm, nCount) match
+        case None =>
+            return Left(pErrCode)
+        case Some(arr) =>
+            bitStrm.buf = arr
+            ret = Right(0)
+
+    ret = <sFuncName>(<p>, bitStrm) // TODO check if call is right acn:1178
 
     <endif>
 }
 >>
-

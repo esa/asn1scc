@@ -1200,7 +1200,7 @@ def BitStream_EncodeOctetString_no_length(pBitStrm: BitStream, arr: Array[UByte]
     else
         ret = BitStream_AppendByteArray(pBitStrm, arr)
         var i1 = 0
-        while i1 < nCount && ret.isRight do
+        while i1 < nCount && ret do
             decreases(nCount - i1)
             ret = BitStream_AppendByte0(pBitStrm, arr(i1))
             i1 += 1

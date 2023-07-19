@@ -21,41 +21,41 @@ initInteger(sVal, nValue) ::= "<sVal> = <nValue> // init:18"
 initReal(sVal, dValue) ::= "<sVal> = <dValue> // init:19"
 initBoolean(sVal, bValue) ::= "<sVal> = <if(bValue)>true<else>false<endif> // init:20"
 
-initObjectIdentifier_vali(p, sAcc, sI, nIntVal) ::= "<p><sAcc>values[<sI>] = <nIntVal>;"
+initObjectIdentifier_vali(p, sAcc, sI, nIntVal) ::= "<p><sAcc>values[<sI>] = <nIntVal> // init:24"
 initObjectIdentifier(p, sAcc, nSize, arrsValues) ::= <<
-<p><sAcc>nCount = <nSize>;
+<p><sAcc>nCount = <nSize> // init:26
 <arrsValues; separator="\n">
 >>
 
 init_Asn1LocalTime(p, sAcc, tv/*:Asn1TimeValue*/) ::= <<
-<p><sAcc>hours = <tv.hours>;
-<p><sAcc>mins = <tv.mins>;
-<p><sAcc>sec = <tv.secs>;  
-<p><sAcc>fraction = <tv.secsFraction>;
+<p><sAcc>hours = <tv.hours> // init:31
+<p><sAcc>mins = <tv.mins>
+<p><sAcc>sec = <tv.secs>  
+<p><sAcc>fraction = <tv.secsFraction>
 >>
 
 init_Asn1UtcTime(p, sAcc, tv/*:Asn1TimeValue*/) ::= <<
-<p><sAcc>hours = <tv.hours>;
-<p><sAcc>mins = <tv.mins>;
-<p><sAcc>sec = <tv.secs>;  
-<p><sAcc>fraction = <tv.secsFraction>;
+<p><sAcc>hours = <tv.hours> // init:38
+<p><sAcc>mins = <tv.mins>
+<p><sAcc>sec = <tv.secs>  
+<p><sAcc>fraction = <tv.secsFraction>
 >>
 
 
 init_Asn1LocalTimeWithTimeZone(p, sAcc, tv/*:Asn1TimeValue*/, tz/*:Asn1TimeZoneValue*/) ::= <<
-<p><sAcc>hours = <tv.hours>;
-<p><sAcc>mins = <tv.mins>;
-<p><sAcc>sec = <tv.secs>;  
-<p><sAcc>fraction = <tv.secsFraction>;
-<p><sAcc>tz.sign = <tz.sign>;
-<p><sAcc>tz.hours = <tz.hours>;
-<p><sAcc>tz.mins = <tz.mins>;
+<p><sAcc>hours = <tv.hours> // init:46
+<p><sAcc>mins = <tv.mins>
+<p><sAcc>sec = <tv.secs>  
+<p><sAcc>fraction = <tv.secsFraction>
+<p><sAcc>tz.sign = <tz.sign>
+<p><sAcc>tz.hours = <tz.hours>
+<p><sAcc>tz.mins = <tz.mins>
 >>
 
 init_Asn1Date(p, sAcc, dt/*:Asn1DateValue*/) ::= <<
-<p><sAcc>years = <dt.years>;
-<p><sAcc>months = <dt.months>;
-<p><sAcc>days = <dt.days>;  
+<p><sAcc>years = <dt.years> // init:56
+<p><sAcc>months = <dt.months>
+<p><sAcc>days = <dt.days>
 >>
 
 init_Asn1Date_LocalTime(p, sAcc, dt/*:Asn1DateValue*/, tv/*:Asn1TimeValue*/) ::= <<
@@ -73,8 +73,8 @@ init_Asn1Date_LocalTimeWithTimeZone(p, sAcc, dt/*:Asn1DateValue*/, tv/*:Asn1Time
 <init_Asn1UtcTime(p=p, sAcc=sAcc, tv=tv, tz=tz)>
 >>
 
-assignAny(p, sValue) ::= "<p> = <sValue>;"
-assignString(p, sValue) ::= "memcpy(<p>, <sValue>, sizeof(<sValue>));"
+assignAny(p, sValue) ::= "<p> = <sValue> // init:76"
+assignString(p, sValue) ::= "<p> = <sValue> // init:77"
 
 
 initIA5String(sPtr, sValue) ::= "strcpy(<sPtr>,<sValue>) // init:80"
