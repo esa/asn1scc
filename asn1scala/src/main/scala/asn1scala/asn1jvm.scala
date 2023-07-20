@@ -88,7 +88,7 @@ case class BitStream (
     var fetchDataPrm: Option[Any],
 ) {
     // TODO: currentByte==buf.length temp possible, but with bitstream_push_data_if_required set to 0 again
-    require(currentByte >= 0 && currentByte < buf.length)
+    require(currentByte >= 0 && currentByte <= buf.length)
     require(currentBit >= 0 && currentBit < 8)
 }
 

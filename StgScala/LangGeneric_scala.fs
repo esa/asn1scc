@@ -362,4 +362,4 @@ type LangGeneric_scala() =
 
 
             CreateScalaMainFile r di.srcDir
-            generateVisualStudioProject r di.srcDir (arrsSrcTstFiles, arrsHdrTstFiles)
+            //generateVisualStudioProject r di.srcDir (arrsSrcTstFiles, arrsHdrTstFiles)

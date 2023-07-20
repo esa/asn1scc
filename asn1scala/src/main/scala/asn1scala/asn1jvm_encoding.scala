@@ -261,8 +261,8 @@ def BitStream_AppendByte(pBitStrm: BitStream, vVal: UByte, negate: Boolean): Uni
     var mask: UByte = (~masksb(ncb)).toByte
 
     pBitStrm.buf(pBitStrm.currentByte) = (pBitStrm.buf(pBitStrm.currentByte) & mask).toByte
-    pBitStrm.currentByte += 1
     pBitStrm.buf(pBitStrm.currentByte) = (pBitStrm.buf(pBitStrm.currentByte) | (v >> cb)).toByte
+    pBitStrm.currentByte += 1
     bitstream_push_data_if_required(pBitStrm)
 
     assert(pBitStrm.currentByte * 8 + pBitStrm.currentBit <= pBitStrm.buf.length * 8)
@@ -490,7 +490,7 @@ def BitStream_ReadPartialByte(pBitStrm: BitStream, nbits: UByte): Option[UByte] 
 /***********************************************************************************************/
 /***********************************************************************************************/
 /***********************************************************************************************/
-def BitStream_EncodeNonNegativeInteger32Neg(pBitStrm: BitStream, v: UInt, negate: Boolean): Unit = {
+def BitStream_EncodeNonNegativeInteger32Neg(pBitStrm: BitStream, v: Long, negate: Boolean): Unit = {
     var cc: UInt = 0
     var curMask: UInt = 0
     var pbits: UInt = 0
@@ -523,7 +523,7 @@ def BitStream_EncodeNonNegativeInteger32Neg(pBitStrm: BitStream, v: UInt, negate
 
     while cc > 0 do
         decreases(cc)
-        val t1: UInt = v & masks2(cc >> 3)
+        val t1: UInt = v.toInt & masks2(cc >> 3)
         cc -= 8
         BitStream_AppendByte(pBitStrm, (t1 >> cc).toByte, negate)
 }
@@ -538,7 +538,10 @@ def BitStream_DecodeNonNegativeInteger32Neg(pBitStrm: BitStream, nBitsVal: Int):
 
         BitStream_ReadByte(pBitStrm) match
             case None => return None
-            case Some(ub) => v = v | ub.toInt
+            case Some(ub) =>
+                // mask the Byte-Bits, becuase negative values eg. -1 (1111 1111)
+                // will be casted to an Int -1 (1111 ... 1111)
+                v = v | (ub & 0xFF)
 
         nBits -= 8
 
@@ -546,7 +549,7 @@ def BitStream_DecodeNonNegativeInteger32Neg(pBitStrm: BitStream, nBitsVal: Int):
         v = v << nBits
         BitStream_ReadPartialByte(pBitStrm, nBits.toByte) match
             case None => return None
-            case Some(ub) => v = v | ub.toInt
+            case Some(ub) => v = v | (ub & 0xFF)
 
     Some(v)
 }
@@ -554,13 +557,14 @@ def BitStream_EncodeNonNegativeInteger(pBitStrm: BitStream, v: ULong): Unit = {
     // TODO: support WORD_SIZE=4?
     //if WORD_SIZE == 8 then
     if v < 0x100000000L then
-        BitStream_EncodeNonNegativeInteger32Neg(pBitStrm, v.toInt, false)
+        BitStream_EncodeNonNegativeInteger32Neg(pBitStrm, v, false)
     else
-        val hi: UInt = (v >> 32).toInt
-        val lo: UInt = v.toInt
+        // TODO: Check Int/Long
+        val hi = (v >> 32)
+        val lo = v
         BitStream_EncodeNonNegativeInteger32Neg(pBitStrm, hi, false)
 
-        val nBits: Int = GetNumberOfBitsForNonNegativeInteger(lo.toLong)
+        val nBits: Int = GetNumberOfBitsForNonNegativeInteger(lo)
         BitStream_AppendNBitZero(pBitStrm, 32 - nBits)
         BitStream_EncodeNonNegativeInteger32Neg(pBitStrm, lo, false)
     //else
@@ -572,16 +576,17 @@ def BitStream_DecodeNonNegativeInteger(pBitStrm: BitStream, nBits: Int): Option[
     if nBits <= 32 then
         BitStream_DecodeNonNegativeInteger32Neg(pBitStrm, nBits) match
             case None => return None
-            case Some(lo) => return Some(lo.toLong)
+            case Some(lo) =>
+                return Some(lo & 0xFFFFFFFFL)
 
     val hi_ret = BitStream_DecodeNonNegativeInteger32Neg(pBitStrm, 32)
     val lo_ret = BitStream_DecodeNonNegativeInteger32Neg(pBitStrm, nBits - 32)
 
     (hi_ret, lo_ret) match
         case (Some(hi), Some(lo)) =>
-            var v: ULong = hi.toLong
-            v = v << nBits - 32.toLong
-            v |= lo.toLong
+            var v: ULong = hi & 0xFFFFFFFFL
+            v = v << nBits - 32L
+            v |= lo & 0xFFFFFFFFL
             return Some(v)
         case _ => return None
     //else
@@ -591,16 +596,17 @@ def BitStream_DecodeNonNegativeInteger(pBitStrm: BitStream, nBits: Int): Option[
 def BitStream_EncodeNonNegativeIntegerNeg(pBitStrm: BitStream, v: ULong, negate: Boolean): Unit = {
     //if WORD_SIZE == 8 then
     if v < 0x100000000L then
-        BitStream_EncodeNonNegativeInteger32Neg(pBitStrm, v.toInt, negate)
+        BitStream_EncodeNonNegativeInteger32Neg(pBitStrm, v, negate)
     else
-        val hi: UInt = (v >> 32).toInt
-        var lo: UInt = v.toInt
+        // TODO: Check Int/Long
+        val hi = (v >> 32)
+        var lo = v
         BitStream_EncodeNonNegativeInteger32Neg(pBitStrm, hi, negate)
 
         /*bug !!!!*/
         if negate then
             lo = ~lo
-        val nBits = GetNumberOfBitsForNonNegativeInteger(lo.toLong)
+        val nBits = GetNumberOfBitsForNonNegativeInteger(lo)
         BitStream_AppendNBitZero(pBitStrm, 32 - nBits)
         BitStream_EncodeNonNegativeInteger32Neg(pBitStrm, lo, false)
     //else
@@ -608,7 +614,7 @@ def BitStream_EncodeNonNegativeIntegerNeg(pBitStrm: BitStream, v: ULong, negate:
 
 }
 
-def GetNumberOfBitsForNonNegativeInteger32(vVal: UInt): Int = {
+def GetNumberOfBitsForNonNegativeInteger32(vVal: Long): Int = {
     var ret: Int = 0
 
     var v = vVal
@@ -634,12 +640,12 @@ def GetNumberOfBitsForNonNegativeInteger32(vVal: UInt): Int = {
 def GetNumberOfBitsForNonNegativeInteger(v: ULong): Int = {
     if WORD_SIZE == 8 then
         if v < 0x100000000L then
-            return GetNumberOfBitsForNonNegativeInteger32(v.toInt)
+            return GetNumberOfBitsForNonNegativeInteger32(v)
         else
-            val hi: UInt = (v >> 32).toInt
+            val hi = (v >> 32)
             return 32 + GetNumberOfBitsForNonNegativeInteger32(hi)
     else
-        return GetNumberOfBitsForNonNegativeInteger32(v.toInt)
+        return GetNumberOfBitsForNonNegativeInteger32(v)
 }
 
 def GetLengthInBytesOfUInt (v: ULong): Int = {
@@ -1141,7 +1147,7 @@ def BitStream_checkBitPatternPresent(pBitStrm: BitStream, bit_terminated_pattern
 }
 
 
-def BitStream_ReadBits_nullterminated(pBitStrm: BitStream, bit_terminated_pattern: Array[UByte], bit_terminated_pattern_size_in_bits: UByte, BuffToWrite: Array[UByte], nMaxReadBits: Int): Option[Int] = {
+def BitStream_ReadBits_nullterminated(pBitStrm: BitStream, bit_terminated_pattern: Array[UByte], bit_terminated_pattern_size_in_bits: UByte, nMaxReadBits: Int): Option[(Array[UByte], Int)] = {
     var checkBitPatternPresentResult: Int = 0
 
     var bitsRead: Int = 0
@@ -1166,7 +1172,7 @@ def BitStream_ReadBits_nullterminated(pBitStrm: BitStream, bit_terminated_patter
     if checkBitPatternPresentResult != 2 then
         return None
 
-    return Some(bitsRead)
+    return Some((tmpStrm.buf, bitsRead))
 }
 
 
@@ -1176,25 +1182,26 @@ def BitStream_EncodeOctetString_no_length(pBitStrm: BitStream, arr: Array[UByte]
 
     if cb == 0 then
         //#ifdef ASN1SCC_STREAMING
-        var remainingBytesToSend: Int = nCount
-        while remainingBytesToSend > 0 do
-            decreases(remainingBytesToSend)
-            val currentBatch =
-                if pBitStrm.currentByte + remainingBytesToSend <= pBitStrm.buf.length then
-                    remainingBytesToSend
-                else
-                    pBitStrm.buf.length - pBitStrm.currentByte
-
-            //memcpy(pBitStrm.buf(pBitStrm.currentByte), arr, currentBatch) // STAINLESS: Array.copy
-            pBitStrm.currentByte += currentBatch
-            bitstream_push_data_if_required(pBitStrm)
-            remainingBytesToSend -= currentBatch
+//       var remainingBytesToSend: Int = nCount
+//       while remainingBytesToSend > 0 do
+//           decreases(remainingBytesToSend)
+//           val currentBatch =
+//               if pBitStrm.currentByte + remainingBytesToSend <= pBitStrm.buf.length then
+//                   remainingBytesToSend
+//               else
+//                   pBitStrm.buf.length - pBitStrm.currentByte
+//
+//           //memcpy(pBitStrm.buf(pBitStrm.currentByte), arr, currentBatch) // STAINLESS: Array.copy
+//           pBitStrm.currentByte += currentBatch
+//           bitstream_push_data_if_required(pBitStrm)
+//           remainingBytesToSend -= currentBatch
 
         //else
-        //ret = pBitStrm.currentByte + nCount <= pBitStrm.count // TODO
-        //if ret then
-        //    memcpy(pBitStrm.buf(pBitStrm.currentByte), arr, nCount)
-        //    pBitStrm.currentByte += nCount
+        ret = pBitStrm.currentByte + nCount <= pBitStrm.buf.length
+        if ret then
+            //memcpy(pBitStrm.buf(pBitStrm.currentByte), arr, nCount)
+            arr.copyToArray(pBitStrm.buf, pBitStrm.currentByte, nCount)
+            pBitStrm.currentByte += nCount
         //#endif
 
     else
@@ -1215,26 +1222,28 @@ def BitStream_DecodeOctetString_no_length(pBitStrm: BitStream, nCount: Int): Opt
 
     if cb == 0 then
         //#ifdef ASN1SCC_STREAMING
-        var remainingBytesToRead: Int = nCount
-        while remainingBytesToRead > 0 do
-            decreases(remainingBytesToRead)
-            val currentBatch: Int =
-                if pBitStrm.currentByte + remainingBytesToRead <= pBitStrm.buf.length then
-                    remainingBytesToRead else
-                    pBitStrm.buf.length - pBitStrm.currentByte
-
-            Array.copy(pBitStrm.buf, pBitStrm.currentByte, arr, 0, currentBatch) // TODO: 0?
-            //memcpy(arr, pBitStrm.buf(pBitStrm.currentByte), currentBatch) // STAINLESS: howto? Array.copy
-            pBitStrm.currentByte += currentBatch
-            bitstream_fetch_data_if_required(pBitStrm)
-            remainingBytesToRead -= currentBatch
-
+        //        var remainingBytesToRead: Int = nCount
+        //        while remainingBytesToRead > 0 do
+        //            decreases(remainingBytesToRead)
+        //            val currentBatch: Int =
+        //                if pBitStrm.currentByte + remainingBytesToRead <= pBitStrm.buf.length then
+        //                    remainingBytesToRead else
+        //                    pBitStrm.buf.length - pBitStrm.currentByte
+        //
+        //            Array.copy(pBitStrm.buf, pBitStrm.currentByte, arr, 0, currentBatch) // TODO: 0?
+        //            //memcpy(arr, pBitStrm.buf(pBitStrm.currentByte), currentBatch) // STAINLESS: howto? Array.copy
+        //            pBitStrm.currentByte += currentBatch
+        //            bitstream_fetch_data_if_required(pBitStrm)
+        //            remainingBytesToRead -= currentBatch
+        //
         //#else
-        //ret = pBitStrm.currentByte + nCount <= pBitStrm.count
-        //if ret then
-        //    memcpy(arr, pBitStrm.buf(pBitStrm.currentByte), nCount)
-        //    pBitStrm.currentByte += nCount
-        //#endif
+        if pBitStrm.currentByte + nCount > pBitStrm.buf.length then
+            return None
+
+        //memcpy(arr, pBitStrm.buf(pBitStrm.currentByte), nCount)
+        arr = pBitStrm.buf.slice(pBitStrm.currentByte, pBitStrm.currentByte+nCount)
+        pBitStrm.currentByte += nCount
+    //#endif
 
     else
         BitStream_ReadByteArray(pBitStrm, nCount) match
@@ -1517,17 +1526,22 @@ def BitStream_DecodeBitString(pBitStrm: BitStream, asn1SizeMin: Long, asn1SizeMa
     return None
 }
 
-def fetchData(pBitStrm: BitStream, fetchDataPrm: Option[Any]) = ???
-def pushData(pBitStrm: BitStream, pushDataPrm: Option[Any]) = ???
+//#ifdef ASN1SCC_STREAMING
+//def fetchData(pBitStrm: BitStream, fetchDataPrm: Option[Any]) = ???
+//def pushData(pBitStrm: BitStream, pushDataPrm: Option[Any]) = ???
+//
+//
+//def bitstream_fetch_data_if_required(pStrm: BitStream): Unit = {
+//    if pStrm.currentByte == pStrm.buf.length && pStrm.fetchDataPrm != null then
+//        fetchData(pStrm, pStrm.fetchDataPrm)
+//        pStrm.currentByte = 0
+//}
+//def bitstream_push_data_if_required(pStrm: BitStream): Unit = {
+//    if pStrm.currentByte == pStrm.buf.length && pStrm.pushDataPrm != null then
+//        pushData(pStrm, pStrm.pushDataPrm)
+//        pStrm.currentByte = 0
+//}
+//#endif
 
-
-def bitstream_fetch_data_if_required(pStrm: BitStream): Unit = {
-    if pStrm.currentByte == pStrm.buf.length && pStrm.fetchDataPrm != null then
-        fetchData(pStrm, pStrm.fetchDataPrm)
-        pStrm.currentByte = 0
-}
-def bitstream_push_data_if_required(pStrm: BitStream): Unit = {
-    if pStrm.currentByte == pStrm.buf.length && pStrm.pushDataPrm != null then
-        pushData(pStrm, pStrm.pushDataPrm)
-        pStrm.currentByte = 0
-}
+def bitstream_fetch_data_if_required(pStrm: BitStream): Unit = {}
+def bitstream_push_data_if_required(pStrm: BitStream): Unit = {}
