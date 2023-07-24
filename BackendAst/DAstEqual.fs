@@ -90,11 +90,11 @@ let isEqualBodyChoiceChild  (choiceTypeDefName:string)  (lm:LanguageMacros) (o:A
             | EqualBodyExpression func  ->  
                 match func p1 p2 with
                 | Some (exp, lvars)     -> sprintf "ret %s (%s);" lm.lg.AssignOperator exp, lvars
-                | None                  -> sprintf "ret %s TRUE;" lm.lg.AssignOperator, []
+                | None                  -> sprintf "ret %s %s;" lm.lg.AssignOperator lm.lg.TrueLiteral, []
             | EqualBodyStatementList  func   -> 
                 match func p1 p2 with
                 | Some a    -> a
-                | None      -> sprintf "ret %s TRUE;" lm.lg.AssignOperator, []
+                | None      -> sprintf "ret %s %s;" lm.lg.AssignOperator lm.lg.TrueLiteral, []
         | Some fncName  ->
             let exp = callBaseTypeFunc lm (lm.lg.getPointer p1.arg) (lm.lg.getPointer p2.arg) fncName
             makeExpressionToStatement lm exp, []

@@ -37,7 +37,7 @@ let option = new OptionBuilder()
 
 
 
-let ToC (str:string) =  str.Replace('-','_').Replace('.','_').Replace("#","elm")
+let ToC (str:string) =  str.Replace('-','_').Replace('.','_').Replace("#","elm").Replace('(','_').Replace(')','_')
 
 let ToC2  =  ToC
 

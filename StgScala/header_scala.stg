@@ -43,7 +43,7 @@ Declare_IntegerNoRTL() ::="LongNoRTL"
 Declare_PosIntegerNoRTL() ::="ULongNoRTL"
 
 Declare_Boolean() ::= "Boolean"
-Declare_Real() ::= "Float"
+Declare_Real() ::= "Double"
 
 Declare_Int8() ::="Byte"
 Declare_UInt8() ::="UByte"

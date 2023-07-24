@@ -163,7 +163,7 @@ type LangGeneric_scala() =
         
         override this.getSeqChild (fpt:FuncParamType) (childName:string) (childTypeIsString: bool) (removeDots: bool) =
             let newPath = sprintf "%s%s%s" fpt.p (this.getAccess fpt) childName
-            let newPath = if removeDots then (newPath.Replace(".", "_")) else newPath
+            let newPath = if removeDots then (ToC newPath) else newPath
             if childTypeIsString then (FIXARRAY newPath) else (VALUE newPath)
             
         override this.getChChild (fpt:FuncParamType) (childName:string) (childTypeIsString: bool) (removeDots: bool) : FuncParamType =
@@ -171,7 +171,7 @@ type LangGeneric_scala() =
             //let newPath = sprintf "%s%s%s" fpt.p (this.getAccess fpt) childName
             //let newPath = sprintf "%s.%s" fpt.p childName
             let newPath = sprintf "%s" fpt.p
-            let newPath = if removeDots then (newPath.Replace(".", "_") + "_e") else newPath
+            let newPath = if removeDots then (ToC newPath + "_e") else newPath
             if childTypeIsString then (FIXARRAY newPath) else (VALUE newPath)
             
         override this.choiceIDForNone (typeIdsSet:Map<string,int>) (id:ReferenceToType) =  

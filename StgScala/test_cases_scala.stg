@@ -132,7 +132,7 @@ def <sFuncName>(<sVal>: <sTasName>, filename: String): Either[ErrorCode, Int] =
     var ret: Either[ErrorCode, Int] = Right(0)
     var decodedPDU: <sTasName> = <sTasName>_Initialize() // TODO: does this always work?
 
-    val bitStrm = BitStream_Init(<sTasName>_REQUIRED_BYTES_FOR_<sEnc>ENCODING)
+    val bitStrm = BitStream_Init(<sTasName>_REQUIRED_BYTES_FOR_<sEnc>ENCODING.toInt) // TODO: what to do with too large Longs?
     <sNestedStatements>
     ret
 }
@@ -329,12 +329,12 @@ def <sFuncName>(output: TestOutput): Int =
     var tc_data: <sTasName> = <sTasName>_Initialize() // TODO: does this always work?
     <sInitializeTcData>
 
-    var start = System.currentTimeMillis()
+    val start = System.currentTimeMillis()
     result = <sTasName>_<sEnc>enc_dec(tc_data, "<sFuncName>")
-    var stop = System.currentTimeMillis() 
+    val stop = System.currentTimeMillis() 
     result match
         case Right(_) => 
-            output.report_test_case_success("<sTasName>/<sFuncName>", (stop - start));
+            output.report_test_case_success("<sTasName>/<sFuncName>", stop - start)
         case Left(errorCode) =>
             output.report_failure_begin()                
             errorCode match

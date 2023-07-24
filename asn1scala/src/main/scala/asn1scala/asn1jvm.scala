@@ -76,6 +76,14 @@ def GetCharIndex(ch: UByte, Set: Array[UByte]): Int =
     0
 }
 
+def NullType_Initialize(): NullType = {
+    0
+}
+
+def asn1Real_Initialize(): asn1Real = {
+    0.0
+}
+
 
 case class BitStream (
     var buf: Array[Byte], // UByte
