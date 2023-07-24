@@ -600,7 +600,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Com
             let handleChild (child:Asn1Child) =
                 let chFunc = child.Type.getUperFunction codec
                 let ch_arg = lm.lg.getSeqChild p.arg
-                let childContentResult = chFunc.funcBody ({p with arg = lm.lg.getSeqChild p.arg (lm.lg.getAsn1ChildBackendName child) child.Type.isIA5String})
+                let childContentResult = chFunc.funcBody ({p with arg = lm.lg.getSeqChild p.arg (lm.lg.getAsn1ChildBackendName child) child.Type.isIA5String false})
                 match childContentResult with
                 | None              -> None
                 | Some childContent ->
@@ -619,7 +619,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Com
                             match opt.defaultValue with
                             | None                   -> Some (sequence_optional_child p.arg.p (lm.lg.getAccess p.arg) (lm.lg.getAsn1ChildBackendName child) childContent.funcBody codec), childContent.localVariables
                             | Some v                 -> 
-                                let defInit= child.Type.initFunction.initByAsn1Value ({p with arg = lm.lg.getSeqChild p.arg (lm.lg.getAsn1ChildBackendName child) child.Type.isIA5String}) (mapValue v).kind
+                                let defInit= child.Type.initFunction.initByAsn1Value ({p with arg = lm.lg.getSeqChild p.arg (lm.lg.getAsn1ChildBackendName child) child.Type.isIA5String false}) (mapValue v).kind
                                 Some (sequence_default_child p.arg.p (lm.lg.getAccess p.arg) (lm.lg.getAsn1ChildBackendName child) childContent.funcBody defInit codec), childContent.localVariables 
                     Some (childBody, child_localVariables, childContent.errCodes)
             
@@ -667,9 +667,9 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Commo
                     let chFunc = child.chType.getUperFunction codec
                     let uperChildRes = 
                         match lm.lg.uper.catd with
-                        | false   -> chFunc.funcBody ({p with arg =  lm.lg.getChChild p.arg (lm.lg.getAsn1ChChildBackendName child) child.chType.isIA5String})
+                        | false   -> chFunc.funcBody ({p with arg =  lm.lg.getChChild p.arg (lm.lg.getAsn1ChChildBackendName child) child.chType.isIA5String true})
                         | true when codec = CommonTypes.Decode -> chFunc.funcBody ({p with arg = VALUE ((lm.lg.getAsn1ChChildBackendName child) + "_tmp")})
-                        | true -> chFunc.funcBody ({p with arg = lm.lg.getChChild p.arg  (lm.lg.getAsn1ChChildBackendName child) child.chType.isIA5String})
+                        | true -> chFunc.funcBody ({p with arg = lm.lg.getChChild p.arg  (lm.lg.getAsn1ChChildBackendName child) child.chType.isIA5String false})
                     let sChildName = (lm.lg.getAsn1ChChildBackendName child)
                     let sChildTypeDef = child.chType.typeDefintionOrReference.longTypedefName2 lm.lg.hasModules //child.chType.typeDefinition.typeDefinitionBodyWithinSeq
                     let isSequence = 

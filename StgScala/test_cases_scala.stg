@@ -166,12 +166,12 @@ package asn1src
 
 def printf_tests_failed(testCount: Int, failedCount: Int): Unit = 
 {
-    println(s"$failedCount out of $testCount failed.")
+    println(s"[test failed] $failedCount out of $testCount failed.")
 }
 
 def printf_tests_passed(testCount: Int): Unit =
 {
-    println(s"All test cases ($testCount) run successfully.")
+    println(s"[test success] All test cases ($testCount) run successfully.")
 }
 
 def printf_null(): Unit =
@@ -325,13 +325,7 @@ def <sFuncName>(output: TestOutput): Int =
     <arrsVars; separator="\n">
 
     output.report_case_begin("<sFuncName>")
-    <if(arrsDummyInitStatementsNeededForStatementCoverage)>
-    {
-        // dummy statement used for calling init functions
-        <arrsDummyInitStatementsNeededForStatementCoverage; separator="\n">
-    }
 
-    <endif>
     var tc_data: <sTasName> = <sTasName>_Initialize() // TODO: does this always work?
     <sInitializeTcData>
 

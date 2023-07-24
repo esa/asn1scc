@@ -174,10 +174,10 @@ type LangGeneric_a() =
             encRtl@uperRtl@acnRtl@xerRtl |> List.distinct
 
 
-        override this.getSeqChild (fpt:FuncParamType) (childName:string) (childTypeIsString: bool) =
+        override this.getSeqChild (fpt:FuncParamType) (childName:string) (childTypeIsString: bool) (removeDots: bool) =
             let newPath = sprintf "%s.%s" fpt.p childName
             if childTypeIsString then (FIXARRAY newPath) else (VALUE newPath)
-        override this.getChChild (fpt:FuncParamType) (childName:string) (childTypeIsString: bool) : FuncParamType =
+        override this.getChChild (fpt:FuncParamType) (childName:string) (childTypeIsString: bool) (removeDots: bool) : FuncParamType =
             let newPath = sprintf "%s.%s" fpt.p childName
             //let newPath = sprintf "%s%su.%s" fpt.p (this.getAccess fpt) childName
             if childTypeIsString then (FIXARRAY newPath) else (VALUE newPath)

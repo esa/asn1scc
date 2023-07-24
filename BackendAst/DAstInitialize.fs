@@ -907,7 +907,7 @@ let createSequenceInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1Acn
                             | None      -> None
                             | Some _    -> Some (initSequence_optionalChild p.arg.p (lm.lg.getAccess p.arg) (lm.lg.getAsn1ChildBackendName seqChild) "0" "")
                         | Some chv  ->
-                            let chContent = seqChild.Type.initFunction.initByAsn1Value ({p with arg = lm.lg.getSeqChild p.arg (lm.lg.getAsn1ChildBackendName seqChild) seqChild.Type.isIA5String}) chv.Value.kind
+                            let chContent = seqChild.Type.initFunction.initByAsn1Value ({p with arg = lm.lg.getSeqChild p.arg (lm.lg.getAsn1ChildBackendName seqChild) seqChild.Type.isIA5String false}) chv.Value.kind
                             match seqChild.Optionality with
                             | None      -> Some chContent
                             | Some _    -> Some (initSequence_optionalChild p.arg.p (lm.lg.getAccess p.arg) (lm.lg.getAsn1ChildBackendName seqChild) "1" chContent)
@@ -938,7 +938,7 @@ let createSequenceInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1Acn
             List.collect(fun atc -> 
                 let presentFunc  = 
                     let initTestCaseFunc (p:CallerScope) = 
-                        let chContent =  atc.initTestCaseFunc {p with arg = lm.lg.getSeqChild p.arg (lm.lg.getAsn1ChildBackendName ch) ch.Type.isIA5String} 
+                        let chContent =  atc.initTestCaseFunc {p with arg = lm.lg.getSeqChild p.arg (lm.lg.getAsn1ChildBackendName ch) ch.Type.isIA5String false} 
                         let funcBody = initTestCase_sequence_child p.arg.p (lm.lg.getAccess p.arg) (lm.lg.getAsn1ChildBackendName ch) chContent.funcBody ch.Optionality.IsSome
                         {InitFunctionResult.funcBody = funcBody; localVariables = chContent.localVariables }
                     let combinedTestCase =
@@ -1006,24 +1006,24 @@ let createSequenceInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1Acn
                         match ch.Type.typeDefintionOrReference with
                         | ReferenceToExistingDefinition    rf   when (not rf.definedInRtl) ->
                             let fncName = (ch.Type.typeDefintionOrReference.longTypedefName2 lm.lg.hasModules) + (lm.init.methodNameSuffix())
-                            let chP = {p with arg = lm.lg.getSeqChild p.arg (lm.lg.getAsn1ChildBackendName ch) ch.Type.isIA5String} 
-                            let chContent =  initChildWithInitFunc (lm.lg.getPointer chP.arg) fncName
+                            let chP = {p with arg = lm.lg.getSeqChild p.arg (lm.lg.getAsn1ChildBackendName ch) ch.Type.isIA5String false} 
+                            let chContent =  initChildWithInitFunc (lm.lg.getPointer chP.arg) (fncName)
                             let funcBody = initTestCase_sequence_child p.arg.p (lm.lg.getAccess p.arg) (lm.lg.getAsn1ChildBackendName ch) chContent ch.Optionality.IsSome
                             {InitFunctionResult.funcBody = funcBody; localVariables = [] }, nonEmbeddedChildrenFunc
                         | _       ->
                             let fnc = ch.Type.initFunction.initTas
-                            let chContent =  fnc {p with arg = lm.lg.getSeqChild p.arg (lm.lg.getAsn1ChildBackendName ch) ch.Type.isIA5String} 
+                            let chContent =  fnc {p with arg = lm.lg.getSeqChild p.arg (lm.lg.getAsn1ChildBackendName ch) ch.Type.isIA5String false} 
                             let funcBody = initTestCase_sequence_child p.arg.p (lm.lg.getAccess p.arg) (lm.lg.getAsn1ChildBackendName ch) chContent.funcBody ch.Optionality.IsSome
                             {InitFunctionResult.funcBody = funcBody; localVariables = chContent.localVariables }, None
                         
                     | Some initProc  ->
-                        let chP = {p with arg = lm.lg.getSeqChild p.arg (lm.lg.getAsn1ChildBackendName ch) ch.Type.isIA5String} 
-                        let chContent =  initChildWithInitFunc (lm.lg.getPointer chP.arg) initProc.funcName
+                        let chP = {p with arg = lm.lg.getSeqChild p.arg (lm.lg.getAsn1ChildBackendName ch) ch.Type.isIA5String false} 
+                        let chContent =  initChildWithInitFunc (lm.lg.getPointer chP.arg) (initProc.funcName)
                         let funcBody = initTestCase_sequence_child p.arg.p (lm.lg.getAccess p.arg) (lm.lg.getAsn1ChildBackendName ch) chContent ch.Optionality.IsSome
                         {InitFunctionResult.funcBody = funcBody; localVariables = [] }, nonEmbeddedChildrenFunc
                 | Some dv    ->
                     let fnc = ch.Type.initFunction.initByAsn1Value
-                    let chContent =  fnc {p with arg = lm.lg.getSeqChild p.arg (lm.lg.getAsn1ChildBackendName ch) ch.Type.isIA5String} (mapValue dv).kind
+                    let chContent =  fnc {p with arg = lm.lg.getSeqChild p.arg (lm.lg.getAsn1ChildBackendName ch) ch.Type.isIA5String false} (mapValue dv).kind
                     let funcBody = initTestCase_sequence_child p.arg.p (lm.lg.getAccess p.arg) (lm.lg.getAsn1ChildBackendName ch) chContent ch.Optionality.IsSome
                     {InitFunctionResult.funcBody = funcBody; localVariables = [] }, nonEmbeddedChildrenFunc
                     
@@ -1136,7 +1136,7 @@ let createChoiceInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAs
                         let chContent = 
                             match lm.lg.init.choiceComponentTempInit with
                             | false ->
-                                chChild.chType.initFunction.initByAsn1Value ({p with arg = lm.lg.getChChild p.arg (lm.lg.getAsn1ChChildBackendName chChild) chChild.chType.isIA5String}) iv.Value.kind
+                                chChild.chType.initFunction.initByAsn1Value ({p with arg = lm.lg.getChChild p.arg (lm.lg.getAsn1ChChildBackendName chChild) chChild.chType.isIA5String false}) iv.Value.kind
                             | true ->
                                 chChild.chType.initFunction.initByAsn1Value ({CallerScope.modName = t.id.ModName; arg = VALUE sChildTempVarName}) iv.Value.kind
                         Some (initChoice p.arg.p (lm.lg.getAccess p.arg) chContent (lm.lg.presentWhenName (Some typeDefinition) chChild) sChildTempVarName sChildTypeName sChoiceTypeName sChildName lm.lg.init.choiceComponentTempInit) 
@@ -1161,9 +1161,9 @@ let createChoiceInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAs
                 let presentFunc (p:CallerScope) = 
                     let childContent =  
                         match lm.lg.init.choiceComponentTempInit with
-                        | false  -> fnc {p with arg = lm.lg.getChChild p.arg sChildName ch.chType.isIA5String} 
+                        | false  -> fnc {p with arg = lm.lg.getChChild p.arg sChildName ch.chType.isIA5String true} 
                         | true   -> fnc {p with arg = VALUE (sChildName + "_tmp")} 
-                    let funcBody = initTestCase_choice_child p.arg.p (lm.lg.getAccess p.arg) (sChildID p) childContent.funcBody sChildName  sChildTypeDef typeDefinitionName
+                    let funcBody = initTestCase_choice_child p.arg.p (ToC p.arg.p) (lm.lg.getAccess p.arg) (sChildID p) (childContent.funcBody) sChildName  sChildTypeDef typeDefinitionName true
                     {InitFunctionResult.funcBody = funcBody; localVariables = childContent.localVariables}
                 let combinedTestCase =
                     match atc.testCaseTypeIDsMap.ContainsKey ch.chType.id with
@@ -1184,7 +1184,7 @@ let createChoiceInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAs
         let handleChild  (ch:ChChildInfo)  = 
             let sChildName = (lm.lg.getAsn1ChChildBackendName ch)
             let sChildTypeDef = ch.chType.typeDefintionOrReference.longTypedefName2 lm.lg.hasModules 
-            let chp = {p with arg = lm.lg.getChChild p.arg sChildName ch.chType.isIA5String} 
+            let chp = {p with arg = lm.lg.getChChild p.arg sChildName ch.chType.isIA5String true} 
             let childContent_funcBody, childContent_localVariables = 
                 match ch.chType.initFunction.initProcedure with
                 | None  ->
@@ -1198,7 +1198,7 @@ let createChoiceInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAs
                     match lm.lg.init.choiceComponentTempInit with
                     | false  -> initChildWithInitFunc (lm.lg.getPointer chp.arg) initProc.funcName, []
                     | true   -> initChildWithInitFunc (sChildName + "_tmp") initProc.funcName, []
-            let funcBody = initTestCase_choice_child p.arg.p (lm.lg.getAccess p.arg) (lm.lg.presentWhenName (Some typeDefinition) ch) childContent_funcBody sChildName  sChildTypeDef typeDefinitionName
+            let funcBody = initTestCase_choice_child p.arg.p p.arg.p (lm.lg.getAccess p.arg) (lm.lg.presentWhenName (Some typeDefinition) ch) (childContent_funcBody) sChildName  sChildTypeDef typeDefinitionName false
 
             {InitFunctionResult.funcBody = funcBody; localVariables = childContent_localVariables}
         match children with

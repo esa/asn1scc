@@ -217,7 +217,7 @@ initChoice(p1, sAccess, sChildContent, sChildKind, sChildTempVarName, sChildType
 >>
 
 
-initTestCase_choice_child(p, sAcc, sChildID, sChildContent, sChildName, sChildTypeDef, sChoiceTypeName) ::= <<
+initTestCase_choice_child(p, p_scala, sAcc, sChildID, sChildContent, sChildName, sChildTypeDef, sChoiceTypeName, bIsTestCase) ::= <<
 /*set <sChildName>*/
 <p><sAcc>kind = <sChildID>;
 <sChildContent>

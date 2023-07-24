@@ -27,8 +27,6 @@ val OBJECT_IDENTIFIER_MAX_LENGTH = 20
 
 val NOT_INITIALIZED_ERR_CODE = 1337
 
-case class Ref[T](var x: T) {}
-
 
 val ber_aux: Array[ULong] = Array(
     0xFFL,
@@ -123,9 +121,9 @@ case class XmlAttributeArray (
 }
 
 case class Asn1ObjectIdentifier (
-                                                                    var nCount: Int,
-                                                                    values: Array[Long] // ULong
-                                                                ) {
+    var nCount: Int,
+    values: Array[Long] // ULong
+) {
     require(values.length == OBJECT_IDENTIFIER_MAX_LENGTH)
     require(nCount >= 0)
 }
@@ -208,8 +206,8 @@ Object Identifier
 
 
 
-// TODO: Ref?
-def ObjectIdentifier_Init(pVal: Asn1ObjectIdentifier): Unit = {
+def ObjectIdentifier_Init(): Asn1ObjectIdentifier = {
+    var pVal: Asn1ObjectIdentifier = Asn1ObjectIdentifier(0, Array.fill(OBJECT_IDENTIFIER_MAX_LENGTH)(0))
     var i: Int = 0
     (while i < OBJECT_IDENTIFIER_MAX_LENGTH do
         decreases(OBJECT_IDENTIFIER_MAX_LENGTH - i)
@@ -217,7 +215,9 @@ def ObjectIdentifier_Init(pVal: Asn1ObjectIdentifier): Unit = {
         i += 1
     ).invariant(i >= 0 &&& i <= OBJECT_IDENTIFIER_MAX_LENGTH)
     pVal.nCount = 0
-} ensuring (_ => pVal.nCount == 0)
+
+    pVal
+}
 
 def ObjectIdentifier_isValid(pVal: Asn1ObjectIdentifier): Boolean = {
     return (pVal.nCount >= 2) && (pVal.values(0) <= 2) && (pVal.values(1) <= 39)

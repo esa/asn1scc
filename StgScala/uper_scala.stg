@@ -59,24 +59,18 @@ EmitTypeAssignment_decode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDef
 def <sFuncName>(<if(bBsIsUnreferenced)>@annotation.unused <endif>pBitStrm: BitStream): Either[ErrorCode, <sTypeDefName>] = // uper:58
 {   
     var pVal: <sTypeDefName> = <soInitFuncName>()
-    var ret: Either[ErrorCode, <sTypeDefName>] = Right(pVal)
 
     <arrsLocalVariables:{lv|<lv>}; separator="\n">
 
     <sContent>
-
+    
     <if(soIValidFuncName)>
-
-    ret match
-        case Left(x) =>
-            assert(false) // no left should reach this point
-        case Right(x) =>
-            <soIValidFuncName>(x) match
-            case Left(l) => 
-                return Left(l)
-            case Right(_) => ()
+    <soIValidFuncName>(pVal) match
+        case Left(l) => Left(l)
+        case Right(_) => Right(pVal)
+    <else>
+    Right(pVal)
     <endif>
-    ret
 }
 >>
 
@@ -140,9 +134,9 @@ BitStream_EncodeConstraintPosWholeNumber(pBitStrm, <p>, <nMin>, <nMax>)
 IntFullyConstraintPos_decode(p, nMin, nMax, nBits, sSsuffix, sErrCode) ::= <<
 BitStream_DecodeConstraintPosWholeNumber<sSsuffix>(pBitStrm, <nMin>, <nMax>) match // uper:140
     case Some(decPosNr) =>
-        ret = Right(decPosNr)
+        <p> = decPosNr
     case None =>
-        return Left(<sErrCode>)
+        return Left(<sErrCode>)    
 >>
 
 /*case: A :: = INTEGER */
@@ -150,7 +144,7 @@ IntUnconstraint_encode(p, sErrCode, bCoverageIgnore) ::= "BitStream_EncodeUnCons
 IntUnconstraint_decode(p, sErrCode, bCoverageIgnore) ::= <<
 BitStream_DecodeUnConstraintWholeNumber(pBitStrm) match // uper:150
     case Some(x) =>
-        ret = Right(x)
+        <p> = x
     case None =>
         return Left(<sErrCode>)
 >>
@@ -182,7 +176,7 @@ IntNoneRequired_encode(p, nConst, sErrCode) ::=<<
 ; // NOP uper:151
 >>
 IntNoneRequired_decode(p, nConst, sErrCode) ::= <<
-ret = Right(<nConst>) // uper:164 
+<p> = <nConst>
 >>
 
 /*case: A:: = INTEGER (5..40,...) */
@@ -232,7 +226,7 @@ BitStream_ReadBit(pBitStrm) match // uper:225
     case Some(bit) =>
         <p> = bit
     case None =>
-        ret = Left(<sErrCode>)
+        return Left(<sErrCode>)
 >>
 
 Real_encode(p, sSuffix, sErrCode) ::= "BitStream_EncodeReal(pBitStrm, <p>)"
@@ -253,13 +247,13 @@ if !ObjectIdentifier_uper_decode(pBitStrm, <p>) then // uper:230
 RelativeOID_encode(p, sErrCode) ::= "RelativeOID_uper_encode(pBitStrm, <p>);"
 RelativeOID_decode(p, sErrCode) ::= <<
 if !RelativeOID_uper_decode(pBitStrm, <p>) then // uper:236
-    ret = Left(<sErrCode>)
+    return Left(<sErrCode>)
 >>
 
 Time_encode(p, sTimeSubType, sErrCode) ::= "<sTimeSubType>_uper_encode(pBitStrm, <p>);"
 Time_decode(p, sTimeSubType, sErrCode) ::= <<
 if !<sTimeSubType>_uper_decode(pBitStrm, <p>) then // uper:242
-    ret = Left(<sErrCode>)
+    return Left(<sErrCode>)
 >>
 
 Enumerated_item_encode(p, sName, nIndex, nLastItemIndex) ::= <<
@@ -293,23 +287,23 @@ BitStream_DecodeConstraintWholeNumber(pBitStrm, 0, <nLastItemIndex>) match // up
 /* CHOICE START*/
 
 choice_child_encode(p, sAcc, sChildID, nChildIndex, nIndexSizeInBits, nLastItemIndex, sChildContent, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr, bIsSequence, bIsEnum) ::= <<
-case <sChildID>(e) => // uper:277
+case <sChildID>(<p>_e) => // uper:277
     BitStream_EncodeConstraintWholeNumber(pBitStrm, <nChildIndex>, 0, <nLastItemIndex>)
     <sChildContent>
 >>
 choice_child_decode(p, sAcc, sChildID, nChildIndex, nIndexSizeInBits, nLastItemIndex, sChildContent, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr, bIsSequence, bIsEnum) ::= <<
 case <nChildIndex> => // enum idx uper:296
     <if(bIsSequence)>
-    var e: <sChildTypeDef> = <sChildTypeDef>(<sChildInitExpr>) // uper:298
+    var <p>_e: <sChildTypeDef> = <sChildTypeDef>(<sChildInitExpr>) // uper:298
     <else>
     <if(bIsEnum)>
-    var e: <sChildTypeDef> = <sChildTypeDef>.<sChildInitExpr> // uper:301 
+    var <p>_e: <sChildTypeDef> = <sChildTypeDef>.<sChildInitExpr> // uper:301 
     <else>
-    var e: <sChildTypeDef> = <sChildInitExpr> // uper:303
+    var <p>_e: <sChildTypeDef> = <sChildInitExpr> // uper:303
     <endif>
     <endif>
     <sChildContent>
-    <p> = <sChildID>(e)
+    <p> = <sChildID>(<p>_e)
 >>
 
 choice_encode(p, sAcc, arrsChildren, nLastItemIndex, sChoiceIndexName, sErrCode, td/*:FE_ChoiceTypeDefinition*/, nIndexSizeInBits) ::= <<
@@ -325,9 +319,9 @@ BitStream_DecodeConstraintWholeNumber(pBitStrm, 0, <nLastItemIndex>) match // up
         choice match
             <arrsChildren: {ch|<ch>}; separator="\n">
             case _ =>
-                ret = Left(<sErrCode>)
+                return Left(<sErrCode>)
     case None =>
-        ret = Left(<sErrCode>)
+        return Left(<sErrCode>)
 >>
 
 /* CHOICE END*/
@@ -339,7 +333,7 @@ BitStream_ReadBit(pBitStrm) match // uper:312
     case Some(bit) =>
         <p><sAcc>exist.<sChName> = bit
     case None =>
-        ret = Left(<sErrCode>)
+        return Left(<sErrCode>)
 >>
 
 sequence_presence_bit_fix_encode(p, sAcc, sChName, sErrCode, sVal) ::= "BitStream_AppendBit(pBitStrm, <sVal>) // uper:325"
@@ -357,6 +351,7 @@ sequence_mandatory_child_encode(sChName, sChildContent) ::= <<
 sequence_mandatory_child_decode(sChName, sChildContent) ::= <<
 /* Decode <sChName> uper:344 */
 <sChildContent>
+
 >>
 
 
@@ -390,7 +385,7 @@ else
 /* SEQUENCE END */
 
 loopFixedItem (i, fixedSize,  sInternalItem)::= /*nogen*/<<	
-while(<i> \< <fixedSize>.asInstanceOf[Int] && ret.isRight) // uper:381
+while(<i> \< <fixedSize>.asInstanceOf[Int]) // uper:381
 {
     <sInternalItem>
     <i> += 1
@@ -465,7 +460,7 @@ BitStream_DecodeOctetString_no_length(pBitStrm, <nFixedSize>) match // uper:450
     case Some(x) => 
         <p><sAcc>arr = x
     case None => 
-        ret = Left(454)
+        return Left(454)
 >>
 
 octect_VarSize_encode(p, sAcc, nSizeMin, nSizeMax, nSizeInBits, sErrCode) ::= <<
@@ -501,7 +496,7 @@ BitStream_ReadBits(pBitStrm, <nFixedSize>.asInstanceOf[Int]) match // uper:484
     case Some(a) => 
         <p><sAcc>arr = a
     case None => 
-        ret = Left(<sErrCode>)
+        return Left(<sErrCode>)
 >>
 
 bitString_VarSize_encode(p, sAcc, nSizeMin, nSizeMax, sErrCode, nSizeInBits) ::= <<

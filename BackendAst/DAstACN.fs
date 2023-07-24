@@ -1520,8 +1520,8 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                         match ch.Type.ActualType.Kind with
                         | Asn1AcnAst.Integer        _  
                         | Asn1AcnAst.Real           _  
-                        | Asn1AcnAst.Boolean        _  -> {pSeq with arg = lm.lg.getSeqChild pSeq.arg (lm.lg.getAsn1ChildBackendName0 ch) false} 
-                        | Asn1AcnAst.Sequence s when xs.Length > 1 -> getChildResult s {pSeq with arg = lm.lg.getSeqChild pSeq.arg (lm.lg.getAsn1ChildBackendName0 ch) false} (RelativePath xs)
+                        | Asn1AcnAst.Boolean        _  -> {pSeq with arg = lm.lg.getSeqChild pSeq.arg (lm.lg.getAsn1ChildBackendName0 ch) false false} 
+                        | Asn1AcnAst.Sequence s when xs.Length > 1 -> getChildResult s {pSeq with arg = lm.lg.getSeqChild pSeq.arg (lm.lg.getAsn1ChildBackendName0 ch) false false} (RelativePath xs)
                         | _                 -> raise (SemanticError(x1.Location, (sprintf "Invalid reference '%s'" (lp |> Seq.StrJoin "."))))
 
 
@@ -1634,7 +1634,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                 let chFunc = child.Type.getAcnFunction codec
                 let childContentResult, ns1 = 
                     match chFunc with
-                    | Some chFunc   -> chFunc.funcBodyAsSeqComp us [] ({p with arg = lm.lg.getSeqChild p.arg (lm.lg.getAsn1ChildBackendName child) child.Type.isIA5String}) (lm.lg.getAsn1ChildBackendName child)
+                    | Some chFunc   -> chFunc.funcBodyAsSeqComp us [] ({p with arg = lm.lg.getSeqChild p.arg (lm.lg.getAsn1ChildBackendName child) child.Type.isIA5String false}) (lm.lg.getAsn1ChildBackendName child)
                     | None          -> None, us
 
                 //handle present-when acn property
@@ -1671,7 +1671,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                                 match opt.defaultValue with
                                 | None                   -> Some(sequence_optional_child p.arg.p (lm.lg.getAccess p.arg) (lm.lg.getAsn1ChildBackendName child) childContent.funcBody soSaveBitStrmPosStatement codec), childContent.localVariables
                                 | Some v                 -> 
-                                    let defInit= child.Type.initFunction.initByAsn1Value ({p with arg = lm.lg.getSeqChild p.arg (lm.lg.getAsn1ChildBackendName child) child.Type.isIA5String}) (mapValue v).kind
+                                    let defInit= child.Type.initFunction.initByAsn1Value ({p with arg = lm.lg.getSeqChild p.arg (lm.lg.getAsn1ChildBackendName child) child.Type.isIA5String false}) (mapValue v).kind
                                     Some(sequence_default_child p.arg.p (lm.lg.getAccess p.arg) (lm.lg.getAsn1ChildBackendName child) childContent.funcBody defInit soSaveBitStrmPosStatement codec), childContent.localVariables
                         [(Asn1ChildEncodeStatement, childBody, chLocalVars, childContent.errCodes)], ns2
                 present_when_statements@childEncDecStatement,ns3
@@ -1893,9 +1893,9 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
                         match chFunc with
                         | Some chFunc   -> 
                             match lm.lg.acn.choice_requires_tmp_decoding with
-                            | false   ->  chFunc.funcBody us [] ({p with arg = lm.lg.getChChild p.arg (lm.lg.getAsn1ChChildBackendName child) child.chType.isIA5String})
+                            | false   ->  chFunc.funcBody us [] ({p with arg = lm.lg.getChChild p.arg (lm.lg.getAsn1ChChildBackendName child) child.chType.isIA5String false})
                             | true when codec = CommonTypes.Decode  ->  chFunc.funcBody us [] ({CallerScope.modName = p.modName; arg = VALUE ((lm.lg.getAsn1ChChildBackendName child) + "_tmp")})
-                            | true   ->  chFunc.funcBody us [] ({p with arg = lm.lg.getChChild p.arg (lm.lg.getAsn1ChChildBackendName child) child.chType.isIA5String})
+                            | true   ->  chFunc.funcBody us [] ({p with arg = lm.lg.getChChild p.arg (lm.lg.getAsn1ChChildBackendName child) child.chType.isIA5String false})
                         | None          -> None, us
 
                 let childContent_funcBody, childContent_localVariables, childContent_errCodes =
@@ -1907,7 +1907,7 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
                             let childp = 
                                 match lm.lg.acn.choice_requires_tmp_decoding with
                                 | true ->   ({CallerScope.modName = p.modName; arg = VALUE ((lm.lg.getAsn1ChChildBackendName child) + "_tmp")})
-                                | false ->  ({p with arg = lm.lg.getChChild p.arg (lm.lg.getAsn1ChChildBackendName child) child.chType.isIA5String})
+                                | false ->  ({p with arg = lm.lg.getChChild p.arg (lm.lg.getAsn1ChChildBackendName child) child.chType.isIA5String false})
                             let decStatement =
                                 match child.chType.ActualType.Kind with
                                 | NullType _    -> lm.lg.decode_nullType childp.arg.p

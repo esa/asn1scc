@@ -19,11 +19,11 @@ let getAccessFromScopeNodeList (ReferenceToType nodes)  (childTypeIsString: bool
         | TA _
         | PRM _
         | VA _              -> raise(BugErrorException "getAccessFromScopeNodeList")
-        | SEQ_CHILD chName  -> [], {pVal with arg = lm.lg.getSeqChild pVal.arg (ToC chName) childTypeIsString}
+        | SEQ_CHILD chName  -> [], {pVal with arg = lm.lg.getSeqChild pVal.arg (ToC chName) childTypeIsString false}
         | CH_CHILD (chName,pre_name)  -> 
             let chChildIsPresent =
                 sprintf "%s%skind %s %s_PRESENT" pVal.arg.p (lm.lg.getAccess pVal.arg) lm.lg.eqOp pre_name
-            [chChildIsPresent], {pVal with arg = lm.lg.getChChild pVal.arg (ToC chName) childTypeIsString}
+            [chChildIsPresent], {pVal with arg = lm.lg.getChChild pVal.arg (ToC chName) childTypeIsString false}
         | SQF               -> 
             let curIdx = sprintf "i%d" (zeroBasedSeqeuenceOfLevel + 1)
 
@@ -965,10 +965,10 @@ let rec GetMySelfAndChildren2 (lm:Language.LanguageMacros) (t:Asn1Type) (p:Calle
         | Sequence seq ->
             for ch in seq.Asn1Children do 
                 
-                yield! GetMySelfAndChildren2 lm ch.Type ({p with arg = lm.lg.getSeqChild p.arg (lm.lg.getAsn1ChildBackendName ch) ch.Type.isIA5String })
+                yield! GetMySelfAndChildren2 lm ch.Type ({p with arg = lm.lg.getSeqChild p.arg (lm.lg.getAsn1ChildBackendName ch) ch.Type.isIA5String false})
         | Choice(ch)-> 
             for ch in ch.children do 
-                yield! GetMySelfAndChildren2 lm ch.chType ({p with arg = lm.lg.getChChild p.arg (lm.lg.getAsn1ChChildBackendName ch) ch.chType.isIA5String})
+                yield! GetMySelfAndChildren2 lm ch.chType ({p with arg = lm.lg.getChChild p.arg (lm.lg.getAsn1ChChildBackendName ch) ch.chType.isIA5String false})
         |_ -> ()    
         yield (t,p)
     } |> Seq.toList

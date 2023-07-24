@@ -87,19 +87,19 @@ initTestCaseIA5String(p, sAcc, nSize, nMaxSizePlusOne, i, td/*:FE_StringTypeDefi
 
 <else>
 // TODO bZero was false init_scala:89
-<i> = 0;
-<p> = Array.fill(<nMaxSizePlusOne>){0}; // init_scala:91
-while (<i>\< <nSize>) {
+<i> = 0
+<p> = Array.fill(<nMaxSizePlusOne>){0} // init_scala:91
+while (<i> \< <nSize>) {
     <if(bAlpha)>
     static byte allowedCharSet[] = {<arrnAlphabetAsciiCodes:{ch|0x<ch;format="X2">}; wrap, anchor, separator=",">}; 
 
-    <p>[<i>] = allowedCharSet[<i> % <nAlphabetLength>];
+    <p>(<i>) = allowedCharSet(<i> % <nAlphabetLength>)
 
     <else>
-    <p>[<i>] = (char)(<i> % 128 == 0 ? 'A' : <i> % 128);
+    <p>(<i>) = (if <i> % 128 == 0 then 'A'.toByte else (<i> % 128).toByte) // TODO: what is done here?
 
     <endif>
-    <i> = <i> + 1;
+    <i> = <i> + 1
 }
 
 <endif>
@@ -125,7 +125,7 @@ initTestCaseOctetString(p, sAcc, sArrayHolderName, nSize, i, bIsFixedSize, bZero
 <else>
 <i> = 0
 (while (<i>\< <nSize>) { // init:131
-    <p>(<i>) = (byte)(<i>%256)
+    <p>.arr(<i>) = (<i>%256).toByte
     <i> += 1
 })
 <endif>
@@ -139,10 +139,10 @@ initTestCaseBitString(p, sAcc, sArrayHolderName, nSize, nSizeCeiled, i, bIsFixed
 <else>
 // bZero was false init_scala:143
 <if(!bIsFixedSize)><p><sAcc>nCount = <nSize><endif>
-<i> = 0;
+<i> = 0
 while (<i>\< <nSizeCeiled>/8) {
-    <p><sAcc>arr[<i>] = 0x55; /* --> 0101 0101 as in Ada*/
-    <i> = <i> + 1;
+    <p><sAcc>arr(<i>) = 0x55 /* --> 0101 0101 as in Ada*/
+    <i> = <i> + 1
 }
 <endif>
 >>
@@ -195,9 +195,10 @@ initSequence(arrsInnerValues) ::= <<
 initSequence_emptySeq(p) ::= ""
 
 initTestCase_sequence_child(p, sAcc, sChName, sChildContent, bOptional) ::= <<
-/*set <sChName> init:202*/
+/* define <sChName> init:198 */
 <if(bOptional)><p><sAcc>exist.<sChName> = true<endif>
 <sChildContent>
+/* set <sChName> init:201 */
 >>
 
 initTestCase_sequence_child_opt(p, sAcc, sChName) ::= <<
@@ -209,10 +210,19 @@ initChoice(p1, sAccess, sChildContent, sChildKind, sChildTempVarName, sChildType
 <sChildContent>        
 >>
 
-initTestCase_choice_child(p, sAcc, sChildID, sChildContent, sChildName, sChildTypeDef, sChoiceTypeName) ::= <<
-/*set <sChildName> init:213*/
+initTestCase_choice_child(p, p_scala, sAcc, sChildID, sChildContent, sChildName, sChildTypeDef, sChoiceTypeName, bIsTestCase) ::= <<
+/* define <sChildName> init:213 */
+<if(bIsTestCase)>
+var <p_scala>_e = <sChildTypeDef>_Initialize()
+<sChildContent>
+/* set <sChildName> init:218 */
+<p> = <sChoiceTypeName>.<sChildID>(<p_scala>_e.asInstanceOf[<sChildTypeDef>])
+
+<else>
 var <sChildContent>
-<p> = <sChildID>(e.asInstanceOf[<sChildTypeDef>])
+/* set <sChildName> init:223 */
+<p> = <sChildID>(<p_scala>_e.asInstanceOf[<sChildTypeDef>])
+<endif>
 >>
 
 initChildWithInitFunc(p, sChildInitFuncName) ::= <<

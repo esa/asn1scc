@@ -327,7 +327,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Com
                 | XerFunction z -> z
                 | XerFunctionDummy  -> raise (BugErrorException "XerFunctionDummy")
 
-            let childContentResult = chFunc.funcBody ({p with arg = lm.lg.getSeqChild p.arg (lm.lg.getAsn1ChildBackendName child) child.Type.isIA5String}) (Some (XerLiteralConstant child.Name.Value))
+            let childContentResult = chFunc.funcBody ({p with arg = lm.lg.getSeqChild p.arg (lm.lg.getAsn1ChildBackendName child) child.Type.isIA5String false}) (Some (XerLiteralConstant child.Name.Value))
             match childContentResult with
             | None              -> None
             | Some childContent ->
@@ -341,7 +341,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Com
                             match opt.defaultValue with
                             | None                   -> sequence_optional_child p.arg.p (lm.lg.getAccess p.arg) (lm.lg.getAsn1ChildBackendName child) childContent.funcBody child.Name.Value codec, childContent.localVariables
                             | Some v                 -> 
-                                let defInit= child.Type.initFunction.initByAsn1Value ({p with arg = lm.lg.getSeqChild p.arg (lm.lg.getAsn1ChildBackendName child) child.Type.isIA5String}) (mapValue v).kind
+                                let defInit= child.Type.initFunction.initByAsn1Value ({p with arg = lm.lg.getSeqChild p.arg (lm.lg.getAsn1ChildBackendName child) child.Type.isIA5String false}) (mapValue v).kind
                                 sequence_default_child p.arg.p (lm.lg.getAccess p.arg) (lm.lg.getAsn1ChildBackendName child) childContent.funcBody child.Name.Value defInit codec, childContent.localVariables
                 Some (childBody, child_localVariables, childContent.errCodes, childContent.encodingSizeInBytes)
         
@@ -378,7 +378,7 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Commo
                 | XerFunctionDummy  -> raise (BugErrorException "XerFunctionDummy")
 
             let childContentResult = 
-                chFunc.funcBody ({p with arg = lm.lg.getChChild p.arg (lm.lg.getAsn1ChChildBackendName child) child.chType.isIA5String}) (Some (XerLiteralConstant child.Name.Value))
+                chFunc.funcBody ({p with arg = lm.lg.getChChild p.arg (lm.lg.getAsn1ChChildBackendName child) child.chType.isIA5String false}) (Some (XerLiteralConstant child.Name.Value))
             match childContentResult with
             | None  -> None
             | Some childContent ->

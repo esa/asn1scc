@@ -403,7 +403,7 @@ and sequenceConstraint2ValidationCodeBlock (r: Asn1AcnAst.AstRoot) (l: LanguageM
             | Some ac    ->
                 let fnc, ns = anyConstraint2ValidationCodeBlock r l nc.Name.Location ch.Type ac curState
                 (fun p -> 
-                    let child_arg = l.lg.getSeqChild p.arg (l.lg.getAsn1ChildBackendName ch) ch.Type.isIA5String
+                    let child_arg = l.lg.getSeqChild p.arg (l.lg.getAsn1ChildBackendName ch) ch.Type.isIA5String false
                     let chp = {p with arg = child_arg}
                     fnc chp), ns
                     
@@ -472,7 +472,7 @@ and choiceConstraint2ValidationCodeBlock (r:Asn1AcnAst.AstRoot) (l:LanguageMacro
             | Some ac    ->
                 let fnc, ns = anyConstraint2ValidationCodeBlock r l nc.Name.Location ch.chType ac curState
                 (fun p -> 
-                    let child_arg = l.lg.getChChild p.arg (l.lg.getAsn1ChChildBackendName ch) ch.chType.isIA5String
+                    let child_arg = l.lg.getChChild p.arg (l.lg.getAsn1ChChildBackendName ch) ch.chType.isIA5String false
                     let chp = {p with arg = child_arg}
                     fnc chp), ns
                     
@@ -482,7 +482,7 @@ and choiceConstraint2ValidationCodeBlock (r:Asn1AcnAst.AstRoot) (l:LanguageMacro
                 | VCBExpression  exp -> VCBStatement (choice_OptionalChild p.arg.p (l.lg.getAccess p.arg) presentWhenName (expressionToStament exp), [])
                 | VCBStatement   (stat, lv1)-> VCBStatement (choice_OptionalChild p.arg.p (l.lg.getAccess p.arg) presentWhenName stat, lv1)
                 | VCBTrue            -> VCBTrue
-                | VCBFalse           -> VCBStatement (choice_OptionalChild p.arg.p (l.lg.getAccess p.arg) presentWhenName (expressionToStament "FALSE"), [])
+                | VCBFalse           -> VCBStatement (choice_OptionalChild p.arg.p (l.lg.getAccess p.arg) (presentWhenName + "_6") (expressionToStament "FALSE"), [])
 
             newChidlCheckFnc
 
@@ -785,7 +785,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot)  (l:LanguageMacros) (t:Asn1Acn
             let func = 
                 (*component's is validation statement. If the component has a separate function then make a call otherwise embed the code*)
                 fun (p:CallerScope)  ->
-                    let chp = {p with arg = l.lg.getSeqChild p.arg c_name child.Type.isIA5String}
+                    let chp = {p with arg = l.lg.getSeqChild p.arg c_name child.Type.isIA5String false}
                     match isValidFunction.funcName with
                     | Some fncName  -> 
                         ValidationStatement (callBaseTypeFunc (l.lg.getPointer chp.arg)  fncName None, [])
@@ -857,7 +857,7 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot)  (l:LanguageMacros) (t:Asn1AcnAs
             let func = 
                 (*alternative's is validation statement. If the alternative has a separate function then make a call otherwise embed the code*)
                 fun (p:CallerScope)  ->
-                    let chp = {p with arg = l.lg.getChChild p.arg c_name child.chType.isIA5String}
+                    let chp = {p with arg = l.lg.getChChild p.arg c_name child.chType.isIA5String true}
                     match isValidFunction.funcName with
                     | Some fncName -> 
                         ValidationStatement (callBaseTypeFunc (l.lg.getPointer  chp.arg)  fncName None, [])

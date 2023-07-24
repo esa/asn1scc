@@ -60,8 +60,8 @@ let isEqualBodySequenceChild   (lm:LanguageMacros)  (o:Asn1AcnAst.Asn1Child) (ne
     let c_name = lm.lg.getAsn1ChildBackendName0 o   
     let callChildEqualFunc  = lm.equal.callChildEqualFunc
     let sInnerStatement = 
-        let chp1 = {v1 with arg = lm.lg.getSeqChild v1.arg c_name  newChild.isIA5String}
-        let chp2 = {v2 with arg = lm.lg.getSeqChild v2.arg c_name  newChild.isIA5String}
+        let chp1 = {v1 with arg = lm.lg.getSeqChild v1.arg c_name  newChild.isIA5String false}
+        let chp2 = {v2 with arg = lm.lg.getSeqChild v2.arg c_name  newChild.isIA5String false}
         match newChild.equalFunction.isEqualFuncName with
         | None  ->
             match newChild.equalFunction.isEqualBody with
@@ -69,7 +69,7 @@ let isEqualBodySequenceChild   (lm:LanguageMacros)  (o:Asn1AcnAst.Asn1Child) (ne
                 match func chp1 chp2 with
                 | Some (exp, lvars)  -> Some (sprintf "ret %s (%s);" lm.lg.AssignOperator exp, lvars)
                 | None      -> None
-            | EqualBodyStatementList  func   -> func ({v1 with arg = lm.lg.getSeqChild v1.arg c_name newChild.isIA5String}) ({v2 with arg = lm.lg.getSeqChild v2.arg c_name newChild.isIA5String})
+            | EqualBodyStatementList  func   -> func ({v1 with arg = lm.lg.getSeqChild v1.arg c_name newChild.isIA5String false}) ({v2 with arg = lm.lg.getSeqChild v2.arg c_name newChild.isIA5String false})
         | Some  fncName ->
             Some ((callChildEqualFunc (lm.lg.getPointer chp1.arg) (lm.lg.getPointer chp2.arg) fncName), [])              
 
@@ -83,7 +83,7 @@ let isEqualBodySequenceChild   (lm:LanguageMacros)  (o:Asn1AcnAst.Asn1Child) (ne
 let isEqualBodyChoiceChild  (choiceTypeDefName:string)  (lm:LanguageMacros) (o:Asn1AcnAst.ChChildInfo) (newChild:Asn1Type) (v1:CallerScope) (v2:CallerScope)  = 
     let sInnerStatement, lvars = 
         let p1,p2 =
-            ({v1 with arg = lm.lg.getChChild v1.arg (lm.lg.getAsn1ChChildBackendName0 o) newChild.isIA5String}), ({v2 with arg = lm.lg.getChChild v2.arg (lm.lg.getAsn1ChChildBackendName0 o) newChild.isIA5String})
+            ({v1 with arg = lm.lg.getChChild v1.arg (lm.lg.getAsn1ChChildBackendName0 o) newChild.isIA5String true}), ({v2 with arg = lm.lg.getChChild v2.arg (lm.lg.getAsn1ChChildBackendName0 o) newChild.isIA5String true})
         match newChild.equalFunction.isEqualFuncName with
         | None  ->
             match newChild.equalFunction.isEqualBody with
@@ -99,7 +99,7 @@ let isEqualBodyChoiceChild  (choiceTypeDefName:string)  (lm:LanguageMacros) (o:A
             let exp = callBaseTypeFunc lm (lm.lg.getPointer p1.arg) (lm.lg.getPointer p2.arg) fncName
             makeExpressionToStatement lm exp, []
 
-    lm.equal.isEqual_Choice_Child o.presentWhenName sInnerStatement, lvars
+    lm.equal.isEqual_Choice_Child choiceTypeDefName o.presentWhenName sInnerStatement, lvars
 
 
 
