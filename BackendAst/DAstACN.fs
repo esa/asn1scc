@@ -266,12 +266,10 @@ let private createAcnFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:
     let errCode, ns = getNextValidErrorCode us errCodeName None
     let nMaxBytesInACN = BigInteger (ceil ((double t.acnMaxSizeInBits)/8.0))
     let nMinBytesInACN = BigInteger (ceil ((double t.acnMinSizeInBits)/8.0))
+    let soInitFuncName = getFuncNameGeneric typeDefinition (lm.init.methodNameSuffix())
     let EmitTypeAssignment_primitive     =  lm.acn.EmitTypeAssignment_primitive
     let EmitTypeAssignment_primitive_def =  lm.acn.EmitTypeAssignment_primitive_def
     let EmitTypeAssignment_def_err_code  =  lm.acn.EmitTypeAssignment_def_err_code
-
-    
-
 
     let funcBodyAsSeqComp st prms p c_name : ((AcnFuncBodyResult option)*State) =
         let funcBody = handleSavePostion funcBody t.SaveBitStreamPosition c_name t.id lm codec prms p
@@ -321,7 +319,7 @@ let private createAcnFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:
                 let lvars = bodyResult_localVariables |> List.map(fun (lv:LocalVariable) -> lm.lg.getLocalVariableDeclaration lv) |> Seq.distinct
                 let prms = t.acnParameters |> List.map handleAcnParameter
                 let prmNames = t.acnParameters |> List.map (fun p -> p.c_name)
-                let func = Some(EmitTypeAssignment_primitive varName sStar funcName isValidFuncName (typeDefinition.longTypedefName2 lm.lg.hasModules) lvars bodyResult_funcBody soSparkAnnotations sInitilialExp prms prmNames (t.acnMaxSizeInBits = 0I) bBsIsUnreferenced bVarNameIsUnreferenced codec)
+                let func = Some(EmitTypeAssignment_primitive varName sStar funcName isValidFuncName (typeDefinition.longTypedefName2 lm.lg.hasModules) lvars bodyResult_funcBody soSparkAnnotations sInitilialExp prms prmNames (t.acnMaxSizeInBits = 0I) bBsIsUnreferenced bVarNameIsUnreferenced soInitFuncName codec)
                 
                 //let errCodes = bodyResult.errCodes
                 let errCodStr = errCodes |> List.map(fun x -> EmitTypeAssignment_def_err_code x.errCodeName (BigInteger x.errCodeValue) x.comment) |> List.distinct
