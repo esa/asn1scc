@@ -3,6 +3,8 @@ using System.Diagnostics;
 using System.Net.Sockets;
 using System.Runtime.InteropServices;
 
+[assembly: Parallelize(Workers = 4, Scope = ExecutionScope.MethodLevel)]
+
 namespace PUS_C_Scala_Test
 {
     [TestClass]
