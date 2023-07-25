@@ -261,7 +261,7 @@ def BitStream_AppendByte(pBitStrm: BitStream, vVal: UByte, negate: Boolean): Uni
     var mask: UByte = (~masksb(ncb)).toByte
 
     pBitStrm.buf(pBitStrm.currentByte) = (pBitStrm.buf(pBitStrm.currentByte) & mask).toByte
-    pBitStrm.buf(pBitStrm.currentByte) = (pBitStrm.buf(pBitStrm.currentByte) | (v >> cb)).toByte
+    pBitStrm.buf(pBitStrm.currentByte) = (pBitStrm.buf(pBitStrm.currentByte) | ((v & 0xFF ) >> cb)).toByte
     pBitStrm.currentByte += 1
     bitstream_push_data_if_required(pBitStrm)
 
@@ -270,7 +270,7 @@ def BitStream_AppendByte(pBitStrm: BitStream, vVal: UByte, negate: Boolean): Uni
     if cb > 0 then
         mask = (~mask).toByte
         pBitStrm.buf(pBitStrm.currentByte) = (pBitStrm.buf(pBitStrm.currentByte) & mask).toByte
-        pBitStrm.buf(pBitStrm.currentByte) = (pBitStrm.buf(pBitStrm.currentByte) | (v << ncb)).toByte
+        pBitStrm.buf(pBitStrm.currentByte) = (pBitStrm.buf(pBitStrm.currentByte) | (v << ncb)).toByte // TODO: check if & 0xFF is needed
 }
 
 def BitStream_AppendByte0(pBitStrm: BitStream, v: UByte): Boolean = {
@@ -280,8 +280,8 @@ def BitStream_AppendByte0(pBitStrm: BitStream, v: UByte): Boolean = {
     var mask = ~masks(ncb)
 
     pBitStrm.buf(pBitStrm.currentByte) = (pBitStrm.buf(pBitStrm.currentByte) & mask).toByte
-    pBitStrm.currentByte += 1
     pBitStrm.buf(pBitStrm.currentByte) = (pBitStrm.buf(pBitStrm.currentByte) | (v >> cb)).toByte
+    pBitStrm.currentByte += 1
     bitstream_push_data_if_required(pBitStrm)
 
     if cb > 0 then
@@ -356,7 +356,7 @@ def BitStream_ReadByte(pBitStrm: BitStream): Option[UByte] = {
     bitstream_fetch_data_if_required(pBitStrm)
 
     if cb > 0 then
-        v = (v | pBitStrm.buf(pBitStrm.currentByte) >> ncb).toByte
+        v = (v | pBitStrm.buf(pBitStrm.currentByte) >> ncb).toByte // TODO: check if & 0xFF is needed
 
     if pBitStrm.currentByte * 8 + pBitStrm.currentBit <= pBitStrm.buf.length * 8 then
         Some(v)
@@ -365,21 +365,21 @@ def BitStream_ReadByte(pBitStrm: BitStream): Option[UByte] = {
 }
 
 def BitStream_ReadByteArray(pBitStrm: BitStream, arr_len: Int): Option[Array[UByte]] = {
-    val arr: Array[UByte] = Array.fill(arr_len)(0)
+    val arr: Array[UByte] = Array.fill(Math.max(1,arr_len))(0)
 
     val cb: UByte = pBitStrm.currentBit.toByte
     val ncb: UByte = (8 - cb).toByte
 
-    if (pBitStrm.currentByte+arr.length)*8+cb.toInt > pBitStrm.buf.length*8 then
+    if (pBitStrm.currentByte+arr_len)*8+cb.toInt > pBitStrm.buf.length*8 then
         return None
 
     var i: Int = 0
-    while i < arr.length do
-        decreases(arr.length - i)
+    while i < arr_len do
+        decreases(arr_len - i)
         arr(i) = (pBitStrm.buf(pBitStrm.currentByte) << cb).toByte
         pBitStrm.currentByte += 1
         bitstream_fetch_data_if_required(pBitStrm)
-        arr(i) = (arr(i) | pBitStrm.buf(pBitStrm.currentByte) >> ncb).toByte
+        arr(i) = (arr(i) | (pBitStrm.buf(pBitStrm.currentByte) & 0xFF) >> ncb).toByte
         i += 1
 
     Some(arr)
@@ -400,7 +400,7 @@ def BitStream_ReadBits(pBitStrm: BitStream, nbits: Int): Option[Array[UByte]] = 
                 arr(bytesToRead) = (arr(bytesToRead) << (8 - remainingBits)).toByte
                 Some(arr)
             else
-                None
+                Some(arr)
 }
 
 
@@ -437,8 +437,8 @@ def BitStream_AppendPartialByte(pBitStrm: BitStream, vVal: UByte, nbits: UByte, 
     } else {
         val totalBitsForNextByte: UByte = (totalBits - 8).toByte
         pBitStrm.buf(pBitStrm.currentByte) = (pBitStrm.buf(pBitStrm.currentByte) & mask1).toByte
-        pBitStrm.currentByte += 1
         pBitStrm.buf(pBitStrm.currentByte) = (pBitStrm.buf(pBitStrm.currentByte) | (v >> totalBitsForNextByte)).toByte
+        pBitStrm.currentByte += 1
         bitstream_push_data_if_required(pBitStrm)
         val mask: UByte = (~masksb(8 - totalBitsForNextByte)).toByte
         pBitStrm.buf(pBitStrm.currentByte) = (pBitStrm.buf(pBitStrm.currentByte) & mask).toByte
@@ -1218,7 +1218,7 @@ def BitStream_EncodeOctetString_no_length(pBitStrm: BitStream, arr: Array[UByte]
 
 def BitStream_DecodeOctetString_no_length(pBitStrm: BitStream, nCount: Int): Option[Array[UByte]] = {
     val cb: Int = pBitStrm.currentBit
-    var arr: Array[UByte] = Array.fill(nCount)(0)
+    var arr: Array[UByte] = Array.fill(Math.max(1, nCount))(0)
 
     if cb == 0 then
         //#ifdef ASN1SCC_STREAMING
@@ -1241,7 +1241,7 @@ def BitStream_DecodeOctetString_no_length(pBitStrm: BitStream, nCount: Int): Opt
             return None
 
         //memcpy(arr, pBitStrm.buf(pBitStrm.currentByte), nCount)
-        arr = pBitStrm.buf.slice(pBitStrm.currentByte, pBitStrm.currentByte+nCount)
+        arr = pBitStrm.buf.slice(pBitStrm.currentByte, pBitStrm.currentByte+Math.max(1, nCount))
         pBitStrm.currentByte += nCount
     //#endif
 

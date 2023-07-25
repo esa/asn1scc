@@ -252,7 +252,7 @@ val <sConstantName>: sTypeDecl> = <sValue> // init_scala:246
 initFixSizeOctetString(nMax) ::= "null"
 initVarSizeOctetString(nMin, nMax) ::= "null"
 
-initFixSizeBitString(nMax, nMaxOctets) ::= "null"
+initFixSizeBitString(nMax, nMaxOctets) ::= "Array.fill(<nMaxOctets>)(0)"
 initVarSizeBitString(nMin, nMax, nMaxOctets) ::= "null"
 
 initFixSizeSequenceOfExpr(nMax, sChildExp) ::= "null"

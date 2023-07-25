@@ -54,11 +54,11 @@ convertVCBStatementToStatementAndUpdateErrCode(sStatement, sErrCode) ::= <<
 >>
 
 convertVCBTRUEToStatementAndUpdateErrCode() ::= <<
-Right(0) /* isvalid:51 */
+ret = Right(0) /* isvalid:51 */
 >>
 
 convertVCBFalseToStatementAndUpdateErrCode(sErrCode) ::= <<
-Left(<sErrCode>) /* isvalid:55 */
+ret = Left(<sErrCode>) /* isvalid:55 */
 >>
 
 /*
@@ -79,7 +79,7 @@ EmitTypeAssignment_composite(sVarName, sPtrPrefix, sPtrSuffix, sFuncName, sTypeD
 <arrsAlphaFuncs; separator="\n">
 def <sFuncName>(<if(bUnreferenced)>@annotation.unused <endif><sVarName>: <sTypeDefName>): Either[ErrorCode, Int] = // isvalid:74
 {
-    var ret: Either[ErrorCode, Int] = Left(NOT_INITIALIZED_ERR_CODE)
+    var ret: Either[ErrorCode, Int] = Right(0)
     <arrsLocalVars; separator="\n // isvalid:76">
     <sContent>
     ret
@@ -270,8 +270,7 @@ Choice_OptionalChild(p, sAcc, sChPresent, sInnerStatement) ::= <<
 <p> match // isvalid:268
     case <sChPresent>(<p>_e) => 
         <sInnerStatement> 
-    case _ => 
-        ret = Left(272)
+    case _ => ()
 >>
 
 Choice_child_always_present_Exp(p, sAcc, sChPresent) ::= <<

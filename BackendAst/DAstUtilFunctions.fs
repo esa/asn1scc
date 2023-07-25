@@ -54,7 +54,10 @@ let isJVMPrimitive (t: Asn1TypeKind) =
     
 let scalaInitMethSuffix (k: Asn1TypeKind)=
     match isJVMPrimitive k with
-    | false -> "()"
+    | false ->
+        match k with
+        | BitString bitString -> ""
+        | _ -> "()"
     | true -> ""
 
 type LocalVariable with

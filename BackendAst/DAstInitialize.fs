@@ -582,8 +582,12 @@ let createBitStringInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1Ac
         
     let constantInitExpression =
         match o.isFixedSize with
-        | true   -> lm.init.initFixSizeBitString o.maxSize.uper (BigInteger o.MaxOctets)
-        | false  -> lm.init.initVarSizeBitString o.minSize.uper o.maxSize.uper (BigInteger o.MaxOctets)
+            | true   -> lm.init.initFixSizeBitString o.maxSize.uper (BigInteger o.MaxOctets)
+            | false  -> lm.init.initVarSizeBitString o.minSize.uper o.maxSize.uper (BigInteger o.MaxOctets)
+    let constantInitExpression =
+        match ST.lang with
+            | ProgrammingLanguage.Scala -> tdName + "(" + constantInitExpression + ")"
+            | _ -> constantInitExpression
     createInitFunctionCommon r lm t typeDefinition o.defaultInitVal funcBody tasInitFunc testCaseFuncs constantInitExpression constantInitExpression [] user_aux_functions
 
 let createBooleanInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (o :Asn1AcnAst.Boolean     ) (typeDefinition:TypeDefintionOrReference)  = 
@@ -1080,16 +1084,20 @@ let createSequenceInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1Acn
         | _  -> lm.init.initSequenceExpr nonEmptyChildren arrsOptionalChildren
     
     let optChildrenString: String = // opt children will be first in scala
-        let hasOptional =
+        let optionalChildrenDefaultInit =
             children |>
             List.choose(fun c -> match c with Asn1Child x -> Some x | _ -> None) |>
-            List.map(fun c -> 
+            List.choose(fun c -> 
                 match c.Optionality with
-                | Some (Asn1AcnAst.Optional _) | Some (Asn1AcnAst.AlwaysPresent) | Some (Asn1AcnAst.AlwaysAbsent) -> true
-                | _ -> false            
-            ) |>
-            List.exists((=) true)
-        if hasOptional then "null, " else ""
+                | Some (Asn1AcnAst.Optional _) | Some (Asn1AcnAst.AlwaysPresent) | Some (Asn1AcnAst.AlwaysAbsent) -> Some("true")
+                | _ -> None
+            )
+        if optionalChildrenDefaultInit.Length > 0 then
+            match typeDefinition with
+            | ReferenceToExistingDefinition referenceToExistingDefinition -> referenceToExistingDefinition.typedefName + "_exist(" + String.Join(", ", optionalChildrenDefaultInit) + "), "
+            | TypeDefinition typeDefinition -> typeDefinition.typedefName + "_exist(" + String.Join(", ", optionalChildrenDefaultInit) + "), "
+        else
+            ""
 
     let extractAsn1Types: Asn1TypeKind list = 
         children |> 

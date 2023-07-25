@@ -482,7 +482,7 @@ and choiceConstraint2ValidationCodeBlock (r:Asn1AcnAst.AstRoot) (l:LanguageMacro
                 | VCBExpression  exp -> VCBStatement (choice_OptionalChild p.arg.p (l.lg.getAccess p.arg) presentWhenName (expressionToStament exp), [])
                 | VCBStatement   (stat, lv1)-> VCBStatement (choice_OptionalChild p.arg.p (l.lg.getAccess p.arg) presentWhenName stat, lv1)
                 | VCBTrue            -> VCBTrue
-                | VCBFalse           -> VCBStatement (choice_OptionalChild p.arg.p (l.lg.getAccess p.arg) (presentWhenName + "_6") (expressionToStament "FALSE"), [])
+                | VCBFalse           -> VCBStatement (choice_OptionalChild p.arg.p (l.lg.getAccess p.arg) (presentWhenName) (expressionToStament "FALSE"), [])
 
             newChidlCheckFnc
 
