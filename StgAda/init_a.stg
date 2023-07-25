@@ -213,27 +213,27 @@ initTestCase_sequence_child_opt(p, sAcc, sChName) ::= <<
 <p><sAcc>exist.<sChName> := 0;
 >>
 
-initTestCase_choice_child(p, p_scala, sAcc, sChildID, sChildContent, sChildName, sChildTypeDef, sChoiceTypeName, bIsTestCase) ::= <<
-<p> := <sChoiceTypeName>'(kind => <sChildID>, <sChildName> => \<\>);
-<sChildContent>
->>
 
-
-initChoice(p1, sAccess, sChildContent, sChildKind, sChildTempVarName, sChildTypeName, sChoiceTypeName, sChildName, bComponentTempInit) ::= <<
+initChoice(p, sAcc, sChildContent, sChildID, sChildName, sChildTypeName, sChoiceTypeName, sChildTempVarName, sChildTempDefaultInit, bComponentTempInit) ::= <<
 <if(bComponentTempInit)>
 declare
    <sChildTempVarName> : <sChildTypeName>;
 begin
     <sChildContent>        
-    <p1> := <sChoiceTypeName>'(kind => <sChildKind>, <sChildName> => <sChildTempVarName>);
+    <p> := <sChoiceTypeName>'(kind => <sChildID>, <sChildName> => <sChildTempVarName>);
     pragma Annotate (GNATprove, False_Positive,"discriminant check might fail", "reviewed by GM");
 end;
 
 <else>
-<p1> := <sChoiceTypeName>'(kind => <sChildKind>, <sChildName> => \<\>);
+<p> := <sChoiceTypeName>'(kind => <sChildID>, <sChildName> => \<\>);
 <sChildContent>        
 
 <endif>
+>>
+
+initTestCase_choice_child(p, p_scala, sAcc, sChildID, sChildContent, sChildName, sChildTypeDef, sChoiceTypeName, bIsTestCase) ::= <<
+<p> := <sChoiceTypeName>'(kind => <sChildID>, <sChildName> => \<\>);
+<sChildContent>
 >>
 
 

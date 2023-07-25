@@ -9,7 +9,8 @@ namespace PUS_C_Scala_Test
     public class UperScalaTest
     {
         readonly string[] stdArgs = new string[] { "-Scala", "--uper-enc", "--field-prefix", "AUTO", "--type-prefix", "T", "-o" };
-        readonly string outFolderPrefix = "../../../../../GenScala/UPER/PUSC_";
+        //readonly string[] stdArgs = new string[] { "-Scala", "-atc", "--uper-enc", "--field-prefix", "AUTO", "--type-prefix", "T", "-o" };
+        readonly string outFolderPrefix = "../../../../../GenScala/Tests/UPER/PUSC_";
         readonly string inputFilePrefix = "../../../../../asn1-pusc-lib/";
 
         public string[] combineArgs(string outputFolder, string[] files)
@@ -34,9 +35,17 @@ namespace PUS_C_Scala_Test
         {
             return outFolderPrefix + name;
         }
+        
+        private void Run_TestService(string[] args, string outDir)
+        {
+            Directory.Delete(outDir, true);
+            CompileASN(args);
+            CompileScala(outDir);
+            //RunScalaTests(outDir);
+        }
 
         [TestMethod]
-        public void TestService_1()
+        public void TestService_01()
         {
             string outDir = getOutputFolder("S1");
 
@@ -60,13 +69,12 @@ namespace PUS_C_Scala_Test
                 "service-01/PUS-1-8.asn1",
                 "service-01/VerificationRequest.asn1"
             });
-
-            CompileASN(args);
-            CompileScala(outDir);
+            
+            Run_TestService(args, outDir);
         }
 
         [TestMethod]
-        public void TestService_2()
+        public void TestService_02()
         {
             string outDir = getOutputFolder("S2");
 
@@ -90,13 +98,12 @@ namespace PUS_C_Scala_Test
                 "service-02/Registers.asn1",
                 "service-02/Transaction.asn1"
             });
-
-            CompileASN(args);
-            CompileScala(outDir);
+            
+            Run_TestService(args, outDir);
         }
 
         [TestMethod]
-        public void TestService_3()
+        public void TestService_03()
         {
             string outDir = getOutputFolder("S3");
 
@@ -146,13 +153,12 @@ namespace PUS_C_Scala_Test
                 "service-03/PUS-3-43.asn1",
                 "service-03/PUS-3-44.asn1"
             });
-
-            CompileASN(args);
-            CompileScala(outDir);
+            
+            Run_TestService(args, outDir);
         }
 
         [TestMethod]
-        public void TestService_4()
+        public void TestService_04()
         {
             string outDir = getOutputFolder("S4");
 
@@ -171,13 +177,12 @@ namespace PUS_C_Scala_Test
                 "service-04/PUS-4-8.asn1",
                 "service-04/PUS-4-9.asn1"
             });
-
-            CompileASN(args);
-            CompileScala(outDir);
+            
+            Run_TestService(args, outDir);
         }
 
         [TestMethod]
-        public void TestService_5()
+        public void TestService_05()
         {
             string outDir = getOutputFolder("S5");
 
@@ -201,13 +206,12 @@ namespace PUS_C_Scala_Test
                 "service-05/PUS-5-7.asn1",
                 "service-05/PUS-5-8.asn1"
             });
-
-            CompileASN(args);
-            CompileScala(outDir);
+            
+            Run_TestService(args, outDir);
         }
 
         [TestMethod]
-        public void TestService_6()
+        public void TestService_06()
         {
             string outDir = getOutputFolder("S6");
 
@@ -241,13 +245,12 @@ namespace PUS_C_Scala_Test
                 "service-06/RawMemory.asn1",
                 "service-06/StructuredMemory.asn1"
             });
-
-            CompileASN(args);
-            CompileScala(outDir);
+            
+            Run_TestService(args, outDir);
         }
 
         [TestMethod]
-        public void TestService_8()
+        public void TestService_08()
         {
             string outDir = getOutputFolder("S8");
 
@@ -255,13 +258,12 @@ namespace PUS_C_Scala_Test
                 "common/BasicTypes.asn1",
                 "service-08/PUS-8-1.asn1"
             });
-
-            CompileASN(args);
-            CompileScala(outDir);
+            
+            Run_TestService(args, outDir);
         }
 
         [TestMethod]
-        public void TestService_9()
+        public void TestService_09()
         {
             string outDir = getOutputFolder("S9");
 
@@ -273,9 +275,8 @@ namespace PUS_C_Scala_Test
                 "service-09/PUS-9-3.asn1",
                 "service-09/RateExponentialValue.asn1"
             });
-
-            CompileASN(args);
-            CompileScala(outDir);
+            
+            Run_TestService(args, outDir);
         }
 
         [TestMethod]
@@ -321,8 +322,7 @@ namespace PUS_C_Scala_Test
                 "service-11/SubSchedule.asn1"
             });
 
-            CompileASN(args);
-            CompileScala(outDir);
+            Run_TestService(args, outDir);
         }
 
         [TestMethod]
@@ -372,9 +372,8 @@ namespace PUS_C_Scala_Test
                 "service-12/PUS-12-28.asn1",
                 "service-12/TransitionNotification.asn1"
             });
-
-            CompileASN(args);
-            CompileScala(outDir);
+            
+            Run_TestService(args, outDir);
         }
 
         [TestMethod]
@@ -393,9 +392,8 @@ namespace PUS_C_Scala_Test
                 "service-13/PUS-13-3.asn1",
                 "service-13/PUS-13-9.asn1"
             });
-
-            CompileASN(args);
-            CompileScala(outDir);
+            
+            Run_TestService(args, outDir);
         }
 
         [TestMethod]
@@ -434,9 +432,8 @@ namespace PUS_C_Scala_Test
                 "service-14/PUS-14-9.asn1",
                 "service-14/SubsamplingRate.asn1"
             });
-
-            CompileASN(args);
-            CompileScala(outDir);
+            
+            Run_TestService(args, outDir);
         }
 
         [TestMethod]
@@ -500,9 +497,8 @@ namespace PUS_C_Scala_Test
                 "service-15/Storage-ControlHousekeepingParameterReport.asn1",
                 "service-15/Storage-ControlReportType.asn1"
             });
-
-            CompileASN(args);
-            CompileScala(outDir);
+            
+            Run_TestService(args, outDir);
         }
 
         [TestMethod]
@@ -518,9 +514,8 @@ namespace PUS_C_Scala_Test
                 "service-17/PUS-17-2.asn1",
                 "service-17/PUS-17-4.asn1"
             });
-
-            CompileASN(args);
-            CompileScala(outDir);
+            
+            Run_TestService(args, outDir);
         }
 
         [TestMethod]
@@ -557,9 +552,8 @@ namespace PUS_C_Scala_Test
                 "service-18/PUS-18-21.asn1",
                 "service-18/PUS-18-22.asn1"
             });
-
-            CompileASN(args);
-            CompileScala(outDir);
+            
+            Run_TestService(args, outDir);
         }
 
         [TestMethod]
@@ -587,9 +581,8 @@ namespace PUS_C_Scala_Test
                 "service-19/PUS-19-8.asn1",
                 "service-19/PUS-19-9.asn1"
             });
-
-            CompileASN(args);
-            CompileScala(outDir);
+            
+            Run_TestService(args, outDir);
         }
 
         private void CompileASN(string[] args)
@@ -623,6 +616,39 @@ namespace PUS_C_Scala_Test
                 var outp = proc.StandardOutput.ReadToEnd();
                 var outputList = outp.Split("\n").ToList();
                 var worked = outputList.FindLastIndex(x => x.Contains("[success]")) > outputList.Count - 5;
+
+                // print sbt output
+                Console.WriteLine(outp);
+
+                Assert.IsTrue(worked);
+            }
+        }
+        private void RunScalaTests(string outDir){
+            
+            using (var proc = new Process
+                   {
+                       StartInfo = new ProcessStartInfo
+                       {
+                           FileName = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "cmd.exe" : "bash",
+                           WorkingDirectory = outDir,
+                           UseShellExecute = false,
+                           RedirectStandardOutput = true,
+                           RedirectStandardInput = true,
+                           CreateNoWindow = false,
+                       }
+                   })
+            {
+                proc.Start();
+                proc.StandardInput.WriteLine("sbt run");
+                System.Threading.Thread.Sleep(500); // give some time for command to execute
+                proc.StandardInput.Flush();
+                proc.StandardInput.Close();
+                //proc.WaitForExit(0);
+
+                // parse sbt output
+                var outp = proc.StandardOutput.ReadToEnd();
+                var outputList = outp.Split("\n").ToList();
+                var worked = outputList.FindLastIndex(x => x.Contains("[test success]")) > outputList.Count - 5;
 
                 // print sbt output
                 Console.WriteLine(outp);

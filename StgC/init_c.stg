@@ -211,8 +211,8 @@ initTestCase_sequence_child_opt(p, sAcc, sChName) ::= <<
 >>
 
 
-initChoice(p1, sAccess, sChildContent, sChildKind, sChildTempVarName, sChildTypeName, sChoiceTypeName, sChildName, bComponentTempInit) ::= <<
-<p1><sAccess>kind = <sChildKind>;
+initChoice(p, sAcc, sChildContent, sChildID, sChildName, sChildTypeName, sChoiceTypeName, sChildTempVarName, sChildTempDefaultInit, bComponentTempInit) ::= <<
+<p><sAcc>kind = <sChildID>;
 <sChildContent>        
 >>
 

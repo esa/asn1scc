@@ -205,24 +205,17 @@ initTestCase_sequence_child_opt(p, sAcc, sChName) ::= <<
 <p><sAcc>exist.<sChName> = false // init:208
 >>
 
-initChoice(p1, sAccess, sChildContent, sChildKind, sChildTempVarName, sChildTypeName, sChoiceTypeName, sChildName, bComponentTempInit) ::= <<
-<p1><sAccess>kind = <sChildKind>;
-<sChildContent>        
+initChoice(p, sAcc, sChildContent, sChildID, sChildName, sChildTypeName, sChoiceTypeName, sChildTempVarName, sChildTempDefaultInit, bComponentTempInit) ::= <<
+// init_scala.stg:209
+var <sChildTempVarName>: <sChildTypeName> = <sChildTempDefaultInit>
+<sChildContent>      
+<p> = <sChildID>(<sChildTempVarName>)  
 >>
 
 initTestCase_choice_child(p, p_scala, sAcc, sChildID, sChildContent, sChildName, sChildTypeDef, sChoiceTypeName, bIsTestCase) ::= <<
-/* define <sChildName> init:213 */
-<if(bIsTestCase)>
-var <p_scala>_e = <sChildTypeDef>_Initialize()
+/*set <sChildName>*/
+<p><sAcc>kind = <sChildID>;
 <sChildContent>
-/* set <sChildName> init:218 */
-<p> = <sChoiceTypeName>.<sChildID>(<p_scala>_e.asInstanceOf[<sChildTypeDef>])
-
-<else>
-var <sChildContent>
-/* set <sChildName> init:223 */
-<p> = <sChildID>(<p_scala>_e.asInstanceOf[<sChildTypeDef>])
-<endif>
 >>
 
 initChildWithInitFunc(p, sChildInitFuncName) ::= <<

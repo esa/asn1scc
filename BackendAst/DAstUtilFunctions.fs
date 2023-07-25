@@ -42,6 +42,15 @@ let getAccessFromScopeNodeList (ReferenceToType nodes)  (childTypeIsString: bool
         ret 
     | _                                 -> raise(BugErrorException "getAccessFromScopeNodeList")
 
+let rec extractDefaultInitValue (childType: Asn1TypeKind): String = 
+        match childType with
+        | Integer i -> i.baseInfo.defaultInitVal
+        | Real r -> r.baseInfo.defaultInitVal
+        | NullType n -> n.baseInfo.defaultInitVal
+        | Boolean b -> "false"
+        | ReferenceType rt -> extractDefaultInitValue rt.resolvedType.Kind
+        | _ -> "null"
+        
 let rec resolveReferenceType(t: Asn1TypeKind): Asn1TypeKind = 
     match t with
     | ReferenceType rt -> resolveReferenceType rt.resolvedType.Kind
