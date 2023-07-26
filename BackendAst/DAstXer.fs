@@ -378,7 +378,7 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Commo
                 | XerFunctionDummy  -> raise (BugErrorException "XerFunctionDummy")
 
             let childContentResult = 
-                chFunc.funcBody ({p with arg = lm.lg.getChChild p.arg (lm.lg.getAsn1ChChildBackendName child) child.chType.isIA5String false}) (Some (XerLiteralConstant child.Name.Value))
+                chFunc.funcBody ({p with arg = lm.lg.getChChild p.arg (lm.lg.getAsn1ChChildBackendName child) child.chType.isIA5String}) (Some (XerLiteralConstant child.Name.Value))
             match childContentResult with
             | None  -> None
             | Some childContent ->

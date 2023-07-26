@@ -274,7 +274,7 @@ Enumerated_encode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, nMin, nMax, n
 >>
 
 Enumerated_decode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, nMin, nMax, nBits, sErrCode, nLastItemIndex, sFirstItemName) ::= <<
-BitStream_DecodeConstraintWholeNumber(pBitStrm, 0, <nLastItemIndex>) match // uper:278
+BitStream_DecodeConstraintWholeNumber(pBitStrm, 0, <nLastItemIndex>) match // uper:277
     case Some(x) =>
         x match
             <arrsItem; separator="\n">
@@ -287,34 +287,34 @@ BitStream_DecodeConstraintWholeNumber(pBitStrm, 0, <nLastItemIndex>) match // up
 /* CHOICE START*/
 
 choice_child_encode(p, sAcc, sChildID, nChildIndex, nIndexSizeInBits, nLastItemIndex, sChildContent, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr, bIsSequence, bIsEnum) ::= <<
-case <sChildID>(<p>_e) => // uper:277
+case <sChildID>(<sChildName>) => // uper:290
     BitStream_EncodeConstraintWholeNumber(pBitStrm, <nChildIndex>, 0, <nLastItemIndex>)
     <sChildContent>
 >>
 choice_child_decode(p, sAcc, sChildID, nChildIndex, nIndexSizeInBits, nLastItemIndex, sChildContent, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr, bIsSequence, bIsEnum) ::= <<
 case <nChildIndex> => // enum idx uper:296
     <if(bIsSequence)>
-    var <p>_e: <sChildTypeDef> = <sChildTypeDef>(<sChildInitExpr>) // uper:298
+    var <sChildName>: <sChildTypeDef> = <sChildTypeDef>(<sChildInitExpr>) // uper:297
     <else>
     <if(bIsEnum)>
-    var <p>_e: <sChildTypeDef> = <sChildTypeDef>.<sChildInitExpr> // uper:301 
+    var <sChildName>: <sChildTypeDef> = <sChildTypeDef>.<sChildInitExpr> // uper:300
     <else>
-    var <p>_e: <sChildTypeDef> = <sChildInitExpr> // uper:303
+    var <sChildName>: <sChildTypeDef> = <sChildInitExpr> // uper:302
     <endif>
     <endif>
     <sChildContent>
-    <p> = <sChildID>(<p>_e)
+    <p> = <sChildID>(<sChildName>)
 >>
 
 choice_encode(p, sAcc, arrsChildren, nLastItemIndex, sChoiceIndexName, sErrCode, td/*:FE_ChoiceTypeDefinition*/, nIndexSizeInBits) ::= <<
-<p> match // uper:288
+<p> match // uper:310
     <arrsChildren: {ch|<ch>}; separator="\n">
     case _ =>
         ret = Left(<sErrCode>)
 >>
 
 choice_decode(p, sAcc, arrsChildren, nLastItemIndex, sChoiceIndexName, sErrCode, td/*:FE_ChoiceTypeDefinition*/, nIndexSizeInBits) ::= <<
-BitStream_DecodeConstraintWholeNumber(pBitStrm, 0, <nLastItemIndex>) match // uper:297
+BitStream_DecodeConstraintWholeNumber(pBitStrm, 0, <nLastItemIndex>) match // uper:317
     case Some(choice) =>
         choice match
             <arrsChildren: {ch|<ch>}; separator="\n">

@@ -667,29 +667,17 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Commo
                     let chFunc = child.chType.getUperFunction codec
                     let uperChildRes = 
                         match lm.lg.uper.catd with
-                        | false   -> chFunc.funcBody ({p with arg =  lm.lg.getChChild p.arg (lm.lg.getAsn1ChChildBackendName child) child.chType.isIA5String true})
+                        | false   -> chFunc.funcBody ({p with arg =  lm.lg.getChChild p.arg (lm.lg.getAsn1ChChildBackendName child) child.chType.isIA5String})
                         | true when codec = CommonTypes.Decode -> chFunc.funcBody ({p with arg = VALUE ((lm.lg.getAsn1ChChildBackendName child) + "_tmp")})
-                        | true -> chFunc.funcBody ({p with arg = lm.lg.getChChild p.arg  (lm.lg.getAsn1ChChildBackendName child) child.chType.isIA5String false})
+                        | true -> chFunc.funcBody ({p with arg = lm.lg.getChChild p.arg  (lm.lg.getAsn1ChChildBackendName child) child.chType.isIA5String})
                     let sChildName = (lm.lg.getAsn1ChChildBackendName child)
                     let sChildTypeDef = child.chType.typeDefintionOrReference.longTypedefName2 lm.lg.hasModules //child.chType.typeDefinition.typeDefinitionBodyWithinSeq
-                    let isSequence = 
-                        match ST.lang with
-                        | ProgrammingLanguage.Scala ->
-                            match child.chType.Kind with
-                            | Sequence s -> true
-                            | _ -> false
-                        | _ -> false
-                    let isEnum = 
-                        match ST.lang with
-                        | ProgrammingLanguage.Scala ->
-                            match resolveReferenceType child.chType.Kind with
-                            | Enumerated e -> true
-                            | _ -> false
-                        | _ -> false
+                    let isSequence = isSequenceForJVMelseFalse child.chType.Kind 
+                    let isEnum = isEnumForJVMelseFalse child.chType.Kind
                     let sChildInitExpr = child.chType.initFunction.initExpression
                     let exprMethodCall =
                         match ST.lang with
-                        | ProgrammingLanguage.Scala ->
+                        | Scala ->
                             match isSequence || sChildInitExpr.Equals("null") || isEnum with
                             | true -> ""
                             | false -> scalaInitMethSuffix child.chType.Kind

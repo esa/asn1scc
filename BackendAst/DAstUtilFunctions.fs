@@ -9,9 +9,6 @@ open Asn1AcnAstUtilFunctions
 open DAst
 open Language
 
-
-
-
 let getAccessFromScopeNodeList (ReferenceToType nodes)  (childTypeIsString: bool) (lm:LanguageMacros) (pVal : CallerScope) =
     let handleNode zeroBasedSeqeuenceOfLevel (pVal : CallerScope) (n:ScopeNode) (childTypeIsString: bool) = 
         match n with
@@ -23,7 +20,7 @@ let getAccessFromScopeNodeList (ReferenceToType nodes)  (childTypeIsString: bool
         | CH_CHILD (chName,pre_name)  -> 
             let chChildIsPresent =
                 sprintf "%s%skind %s %s_PRESENT" pVal.arg.p (lm.lg.getAccess pVal.arg) lm.lg.eqOp pre_name
-            [chChildIsPresent], {pVal with arg = lm.lg.getChChild pVal.arg (ToC chName) childTypeIsString false}
+            [chChildIsPresent], {pVal with arg = lm.lg.getChChild pVal.arg (ToC chName) childTypeIsString}
         | SQF               -> 
             let curIdx = sprintf "i%d" (zeroBasedSeqeuenceOfLevel + 1)
 
@@ -61,13 +58,29 @@ let isJVMPrimitive (t: Asn1TypeKind) =
     | Integer _ | Real _ | NullType _ | Boolean _ -> true
     | _ -> false
     
-let scalaInitMethSuffix (k: Asn1TypeKind)=
+let scalaInitMethSuffix (k: Asn1TypeKind) =
     match isJVMPrimitive k with
     | false ->
         match k with
         | BitString bitString -> ""
         | _ -> "()"
     | true -> ""
+
+let isEnumForJVMelseFalse (k: Asn1TypeKind): bool =
+    match ST.lang with
+    | Scala ->
+        match resolveReferenceType k with
+        | Enumerated e -> true
+        | _ -> false
+    | _ -> false
+    
+let isSequenceForJVMelseFalse (k: Asn1TypeKind): bool = 
+    match ST.lang with
+    | Scala ->
+        match k with
+        | Sequence s -> true
+        | _ -> false
+    | _ -> false
 
 type LocalVariable with
     member this.VarName =
@@ -980,7 +993,7 @@ let rec GetMySelfAndChildren2 (lm:Language.LanguageMacros) (t:Asn1Type) (p:Calle
                 yield! GetMySelfAndChildren2 lm ch.Type ({p with arg = lm.lg.getSeqChild p.arg (lm.lg.getAsn1ChildBackendName ch) ch.Type.isIA5String false})
         | Choice(ch)-> 
             for ch in ch.children do 
-                yield! GetMySelfAndChildren2 lm ch.chType ({p with arg = lm.lg.getChChild p.arg (lm.lg.getAsn1ChChildBackendName ch) ch.chType.isIA5String false})
+                yield! GetMySelfAndChildren2 lm ch.chType ({p with arg = lm.lg.getChChild p.arg (lm.lg.getAsn1ChChildBackendName ch) ch.chType.isIA5String})
         |_ -> ()    
         yield (t,p)
     } |> Seq.toList

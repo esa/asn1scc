@@ -472,17 +472,17 @@ and choiceConstraint2ValidationCodeBlock (r:Asn1AcnAst.AstRoot) (l:LanguageMacro
             | Some ac    ->
                 let fnc, ns = anyConstraint2ValidationCodeBlock r l nc.Name.Location ch.chType ac curState
                 (fun p -> 
-                    let child_arg = l.lg.getChChild p.arg (l.lg.getAsn1ChChildBackendName ch) ch.chType.isIA5String false
+                    let child_arg = l.lg.getChChild p.arg (l.lg.getAsn1ChChildBackendName ch) ch.chType.isIA5String
                     let chp = {p with arg = child_arg}
                     fnc chp), ns
                     
         let childCheck =
             let newChidlCheckFnc (p:CallerScope) = 
                 match childCheck p with
-                | VCBExpression  exp -> VCBStatement (choice_OptionalChild p.arg.p (l.lg.getAccess p.arg) presentWhenName (expressionToStament exp), [])
-                | VCBStatement   (stat, lv1)-> VCBStatement (choice_OptionalChild p.arg.p (l.lg.getAccess p.arg) presentWhenName stat, lv1)
+                | VCBExpression  exp -> VCBStatement (choice_OptionalChild p.arg.p "" (l.lg.getAccess p.arg) presentWhenName (expressionToStament exp), [])
+                | VCBStatement   (stat, lv1)-> VCBStatement (choice_OptionalChild p.arg.p "" (l.lg.getAccess p.arg) presentWhenName stat, lv1)
                 | VCBTrue            -> VCBTrue
-                | VCBFalse           -> VCBStatement (choice_OptionalChild p.arg.p (l.lg.getAccess p.arg) (presentWhenName) (expressionToStament "FALSE"), [])
+                | VCBFalse           -> VCBStatement (choice_OptionalChild p.arg.p "" (l.lg.getAccess p.arg) (presentWhenName) (expressionToStament "FALSE"), [])
 
             newChidlCheckFnc
 
@@ -857,7 +857,7 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot)  (l:LanguageMacros) (t:Asn1AcnAs
             let func = 
                 (*alternative's is validation statement. If the alternative has a separate function then make a call otherwise embed the code*)
                 fun (p:CallerScope)  ->
-                    let chp = {p with arg = l.lg.getChChild p.arg c_name child.chType.isIA5String true}
+                    let chp = {p with arg = l.lg.getChChild p.arg c_name child.chType.isIA5String}
                     match isValidFunction.funcName with
                     | Some fncName -> 
                         ValidationStatement (callBaseTypeFunc (l.lg.getPointer  chp.arg)  fncName None, [])
@@ -866,10 +866,14 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot)  (l:LanguageMacros) (t:Asn1AcnAs
             let childFnc = 
                 let newFunc = 
                     (fun (p:CallerScope) -> 
+                        let localTmpVarName =
+                            match ST.lang with
+                            | Scala -> child._scala_name
+                            | _ -> ""
                         match func p with
-                        | ValidationStatementTrue   (st,lv)  -> ValidationStatementTrue (choice_OptionalChild p.arg.p (l.lg.getAccess p.arg) presentWhenName st, lv)
-                        | ValidationStatementFalse  (st,lv)  -> ValidationStatement (choice_OptionalChild p.arg.p (l.lg.getAccess p.arg) presentWhenName st, lv)
-                        | ValidationStatement       (st,lv)  -> ValidationStatement (choice_OptionalChild p.arg.p (l.lg.getAccess p.arg) presentWhenName st, lv) )
+                        | ValidationStatementTrue   (st,lv)  -> ValidationStatementTrue (choice_OptionalChild p.arg.p localTmpVarName (l.lg.getAccess p.arg) presentWhenName st, lv)
+                        | ValidationStatementFalse  (st,lv)  -> ValidationStatement (choice_OptionalChild p.arg.p localTmpVarName (l.lg.getAccess p.arg) presentWhenName st, lv)
+                        | ValidationStatement       (st,lv)  -> ValidationStatement (choice_OptionalChild p.arg.p localTmpVarName (l.lg.getAccess p.arg) presentWhenName st, lv) )
                 newFunc
             (*return new local variables, errorcodes or alphaFuncs*)
             match isValidFunction.funcName with

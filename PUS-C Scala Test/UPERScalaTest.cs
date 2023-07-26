@@ -38,7 +38,8 @@ namespace PUS_C_Scala_Test
         
         private void Run_TestService(string[] args, string outDir)
         {
-            Directory.Delete(outDir, true);
+            if(Directory.Exists(outDir))
+                Directory.Delete(outDir, true);
             CompileASN(args);
             CompileScala(outDir);
             //RunScalaTests(outDir);

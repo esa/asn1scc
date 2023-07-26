@@ -322,7 +322,7 @@ end if;
 
 /*CHOICE start*/
 
-Choice_OptionalChild(p, sAcc,  sChPresent, sInnerStatement) ::= <<
+Choice_OptionalChild(p, pLocal, sAcc,  sChPresent, sInnerStatement) ::= <<
 if <p><sAcc>kind = <sChPresent> then
 	<sInnerStatement>
 end if;
