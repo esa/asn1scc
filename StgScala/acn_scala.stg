@@ -13,8 +13,8 @@ EmitAcnParameter(sName, sType) ::= "<sType> <sName> /*TODO acn:11 */"
 
 EmitTypeAssignment_primitive_def_encode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes, bEmptyEncodingSpace, nMaxBytesInACN, nMaxBitsInACN, arrsAcnPrms, soSparkAnnotations) ::= <<
 <arrsErrcodes; separator="\n">
-@inline @cCode.inline val <sTypeDefName>_REQUIRED_BYTES_FOR_ACN_ENCODING: Int = <nMaxBytesInACN> 
-@inline @cCode.inline val <sTypeDefName>_REQUIRED_BITS_FOR_ACN_ENCODING: Int = <nMaxBitsInACN> // TODO acn:17
+@inline @cCode.inline val <sTypeDefName>_REQUIRED_BYTES_FOR_ACN_ENCODING = <nMaxBytesInACN> 
+@inline @cCode.inline val <sTypeDefName>_REQUIRED_BITS_FOR_ACN_ENCODING = <nMaxBitsInACN> // acn:17
 >>
 
 EmitTypeAssignment_primitive_encode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitilialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName) ::= <<
@@ -645,7 +645,7 @@ ret = <sName>_ACN_Decode(<p>, pBitStrm, pErrCode<if(arrsArgs)>, <arrsLocalPrms; 
 
 sequence_presense_optChild_encode(p, sAcc, sChName, sErrCode) ::= "BitStream_AppendBit(pBitStrm,<p><sAcc>exist.<sChName>)"
 sequence_presense_optChild_decode(p, sAcc, sChName, sErrCode) ::= <<
-BitStream_ReadBit(pBitStrm)
+BitStream_ReadBit(pBitStrm) match
     case Some(bit) => 
         <p><sAcc>exist.<sChName> = bit
     case None => 
