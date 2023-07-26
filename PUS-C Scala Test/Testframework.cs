@@ -1,54 +1,183 @@
-using Antlr;
+global using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Diagnostics;
-using System.Net.Sockets;
+using System.Reflection.Metadata.Ecma335;
 using System.Runtime.InteropServices;
 
 namespace PUS_C_Scala_Test
 {
-    [TestClass]
-    public class ACNScalaTest
+    public enum PUS_C_Service
     {
-        readonly string[] stdArgs = new string[] { "-Scala", "--acn-enc", "--field-prefix", "AUTO", "--type-prefix", "T", "-o" };
-        readonly string outFolderPrefix = "../../../../../GenScala/Tests/ACN/PUSC_";
+        S1,
+        S2,
+        S3,
+        S4,
+        S5,
+        S6,
+        S8,
+        S9,
+        S11,
+        S12,
+        S13,
+        S14,
+        S15,
+        S17,
+        S18,
+        S19
+    }
+
+    [Flags]
+    public enum ServiceVariation
+    {
+        UPER = 0b0000_0001,
+        ACN = 0b0000_0010,
+        CREATE_TESTS = 0b0000_0100
+    }
+
+    class TestBasics
+    {
+        readonly string lang = "-Scala";
+        readonly string uperEnc = "--uper-enc";
+        readonly string acnEnc = "--acn-enc";
+        readonly string genTests= "-atc";
+        readonly List<string> stdArgs = new List<string> { "--field-prefix", "AUTO", "--type-prefix", "T", "-o" };
+        readonly string outFolderPrefix = "../../../../../GenScala/";
+        readonly string outFolderTestFix = "Test/";
+        readonly string outFolderSuffixUPER = "UPER/PUSC_";
+        readonly string outFolderSuffixACN = "ACN/PUSC_";
         readonly string inputFilePrefix = "../../../../../asn1-pusc-lib/";
 
-        public string[] combineArgs(string outputFolder, string[] files)
+        public string[] CombineArgs(string outputFolder, string[] asn1Files, ServiceVariation sv)
         {
-            var ret = new string[stdArgs.Length + files.Length + 1];
-            int i = 0;
-            for(; i < stdArgs.Length; ++i)
-            {
-                ret[i] = stdArgs[i];
-            }
+            var parList = new List<string>();
+            parList.Add(lang);
+            
+            if ((sv & ServiceVariation.UPER) == ServiceVariation.UPER)
+                parList.Add(uperEnc);
+            
+            if ((sv & ServiceVariation.ACN) == ServiceVariation.ACN)
+                parList.Add(acnEnc);
 
-            ret[i++] = outputFolder;
+            if ((sv & ServiceVariation.CREATE_TESTS) == ServiceVariation.CREATE_TESTS)
+                parList.Add(genTests);
 
-            for (int j = 0; j < files.Length; j++)
-            {
-                ret[j+i] = inputFilePrefix+files[j];
-            }
+            parList.AddRange(stdArgs);
+            parList.Add(outputFolder);
+
+            parList.AddRange(asn1Files.Select(s => inputFilePrefix + s));
+
+            return parList.ToArray();
+        }
+
+        public string GetOutputFolder(string serviceName, ServiceVariation sv)
+        {
+            var ret = outFolderPrefix;
+
+            if ((sv & ServiceVariation.CREATE_TESTS) == ServiceVariation.CREATE_TESTS)
+                ret += outFolderTestFix;
+
+            if ((sv & ServiceVariation.UPER) == ServiceVariation.UPER)
+                ret += outFolderSuffixUPER;                
+
+            if ((sv & ServiceVariation.ACN) == ServiceVariation.ACN)
+                ret += outFolderSuffixACN;
+
+            ret += serviceName;
+
             return ret;
         }
 
-        public string getOutputFolder(string name)
+        public void Run_TestService(PUS_C_Service service, string folderSuffix, ServiceVariation sv)
         {
-            return outFolderPrefix + name;
-        }
-        
-        private void Run_TestService(string[] args, string outDir)
-        {
-            Directory.Delete(outDir, true);
+            if (sv == 0 || (sv & ServiceVariation.UPER) != 0 && (sv & ServiceVariation.ACN) != 0)
+                throw new InvalidOperationException("can't do nothing or both UPER and ACN");
+
+            string outDir = GetOutputFolder(folderSuffix, sv);
+            if (Directory.Exists(outDir))
+                Directory.Delete(outDir, true);
+
+            var serviceFiles = GetServiceFiles(service);
+            var args = CombineArgs(outDir, serviceFiles(), sv);
+
             CompileASN(args);
             CompileScala(outDir);
-            //RunScalaTests(outDir);
+
+            if ((sv & ServiceVariation.CREATE_TESTS) == ServiceVariation.CREATE_TESTS)
+                RunScalaTests(outDir);
         }
 
-        [TestMethod]
-        public void TestService_01()
-        {
-            string outDir = getOutputFolder("S1");
+        Func<string[]> GetServiceFiles(PUS_C_Service service) =>
+            service switch
+            {
+                PUS_C_Service.S1 => getService01FileNames,
+                PUS_C_Service.S2 => getService02FileNames,
+                PUS_C_Service.S3 => getService03FileNames,
+                PUS_C_Service.S4 => getService04FileNames,
+                PUS_C_Service.S5 => getService05FileNames,
+                PUS_C_Service.S6 => getService06FileNames,
+                PUS_C_Service.S8 => getService08FileNames,
+                PUS_C_Service.S9 => getService09FileNames,
+                PUS_C_Service.S11 => getService11FileNames,
+                PUS_C_Service.S12 => getService12FileNames,
+                PUS_C_Service.S13 => getService13FileNames,
+                PUS_C_Service.S14 => getService14FileNames,
+                PUS_C_Service.S15 => getService15FileNames,
+                PUS_C_Service.S17 => getService17FileNames,
+                PUS_C_Service.S18 => getService18FileNames,
+                PUS_C_Service.S19 => getService19FileNames,
+                _ => throw new InvalidOperationException("what?")
 
-            var args = combineArgs(outDir, new string[]{
+            };
+
+        private void CompileASN(string[] args)
+        {
+            Assert.AreEqual(Program.main(args), 0);
+        }
+
+        private void CompileScala(string outDir)
+        {
+            StartSBTWithArg(outDir, "sbt compile", "[success]");
+        }
+        private void RunScalaTests(string outDir)
+        {
+            StartSBTWithArg(outDir, "sbt run", "[test success]");
+        }
+
+        private void StartSBTWithArg(string outDir, string arg, string check)
+        {
+            using (var proc = new Process
+            {
+                StartInfo = new ProcessStartInfo
+                {
+                    FileName = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "cmd.exe" : "bash",
+                    WorkingDirectory = outDir,
+                    UseShellExecute = false,
+                    RedirectStandardOutput = true,
+                    RedirectStandardInput = true,
+                    CreateNoWindow = false,
+                }
+            })
+            {
+                proc.Start();
+                proc.StandardInput.WriteLine(arg);
+                System.Threading.Thread.Sleep(500); // give some time for command to execute
+                proc.StandardInput.Flush();
+                proc.StandardInput.Close();
+                //proc.WaitForExit(0);
+
+                // parse sbt output
+                var outp = proc.StandardOutput.ReadToEnd();
+                var outputList = outp.Split("\n").ToList();
+                var worked = outputList.FindLastIndex(x => x.Contains(check)) > outputList.Count - 5;
+
+                // print sbt output
+                Console.WriteLine(outp);
+
+                Assert.IsTrue(worked);
+            }
+        }
+
+        private string[] getService01FileNames() => 
+             new string[]{
                 "common/ApplicationProcess.asn1",
                 "common/ApplicationProcessUser.asn1",
                 "common/ExecutionStep.asn1",
@@ -67,17 +196,10 @@ namespace PUS_C_Scala_Test
                 "service-01/PUS-1-7.asn1",
                 "service-01/PUS-1-8.asn1",
                 "service-01/VerificationRequest.asn1"
-            });
+            };
 
-            Run_TestService(args, outDir);
-        }
-        
-        [TestMethod]
-        public void TestService_02()
-        {
-            string outDir = getOutputFolder("S2");
-
-            var args = combineArgs(outDir, new string[]{
+        private string[] getService02FileNames() => 
+            new string[]{
                 "common/BasicTypes.asn1",
                 "common/Dummy.asn1",
                 "common/Parameter.asn1",
@@ -96,17 +218,10 @@ namespace PUS_C_Scala_Test
                 "service-02/PUS-2-9.asn1",
                 "service-02/Registers.asn1",
                 "service-02/Transaction.asn1"
-            });
+            };
 
-            Run_TestService(args, outDir);
-        }
-
-        [TestMethod]
-        public void TestService_03()
-        {
-            string outDir = getOutputFolder("S3");
-
-            var args = combineArgs(outDir, new string[]{
+        private string[] getService03FileNames() =>
+            new string[]{
                 "common/ApplicationProcess.asn1",
                 "common/ApplicationProcessUser.asn1",
                 "common/BasicTypes.asn1",
@@ -151,17 +266,10 @@ namespace PUS_C_Scala_Test
                 "service-03/PUS-3-42.asn1",
                 "service-03/PUS-3-43.asn1",
                 "service-03/PUS-3-44.asn1"
-            });
+            };
 
-            Run_TestService(args, outDir);
-        }
-
-        [TestMethod]
-        public void TestService_04()
-        {
-            string outDir = getOutputFolder("S4");
-
-            var args = combineArgs(outDir, new string[]{
+        private string[] getService04FileNames() =>
+            new string[]{
                 "common/BasicTypes.asn1",
                 "common/Parameter.asn1",
                 "service-04/Intervals.asn1",
@@ -175,17 +283,11 @@ namespace PUS_C_Scala_Test
                 "service-04/PUS-4-7.asn1",
                 "service-04/PUS-4-8.asn1",
                 "service-04/PUS-4-9.asn1"
-            });
+            };
 
-            Run_TestService(args, outDir);
-        }
 
-        [TestMethod]
-        public void TestService_05()
-        {
-            string outDir = getOutputFolder("S5");
-
-            var args = combineArgs(outDir, new string[]{
+        private string[] getService05FileNames() =>
+            new string[]{
                 "common/ApplicationProcess.asn1",
                 "common/ApplicationProcessUser.asn1",
                 "common/BasicTypes.asn1",
@@ -204,17 +306,10 @@ namespace PUS_C_Scala_Test
                 "service-05/PUS-5-6.asn1",
                 "service-05/PUS-5-7.asn1",
                 "service-05/PUS-5-8.asn1"
-            });
+            };
 
-            Run_TestService(args, outDir);
-        }
-
-        [TestMethod]
-        public void TestService_06()
-        {
-            string outDir = getOutputFolder("S6");
-
-            var args = combineArgs(outDir, new string[]{
+        private string[] getService06FileNames() =>
+            new string[]{
                 "common/BasicTypes.asn1",
                 "common/FilePath.asn1",
                 "service-06/Data.asn1",
@@ -243,47 +338,26 @@ namespace PUS_C_Scala_Test
                 "service-06/PUS-6-22.asn1",
                 "service-06/RawMemory.asn1",
                 "service-06/StructuredMemory.asn1"
-            });
+            };
 
-            Run_TestService(args, outDir);
-        }
-
-        [TestMethod]
-        public void TestService_08()
-        {
-            string outDir = getOutputFolder("S8");
-
-            var args = combineArgs(outDir, new string[]{
+        private string[] getService08FileNames() =>
+             new string[]{
                 "common/BasicTypes.asn1",
                 "service-08/PUS-8-1.asn1"
-            });
+            };
 
-            Run_TestService(args, outDir);
-        }
-
-        [TestMethod]
-        public void TestService_09()
-        {
-            string outDir = getOutputFolder("S9");
-
-            var args = combineArgs(outDir, new string[]{
+        private string[] getService09FileNames() => 
+            new string[]{
                 "common/BasicTypes.asn1",
                 "common/SpacecraftTimeReferenceStatus.asn1",
                 "service-09/PUS-9-1.asn1",
                 "service-09/PUS-9-2.asn1",
                 "service-09/PUS-9-3.asn1",
                 "service-09/RateExponentialValue.asn1"
-            });
+            };
 
-            Run_TestService(args, outDir);
-        }
-
-        [TestMethod]
-        public void TestService_11()
-        {
-            string outDir = getOutputFolder("S11");
-
-            var args = combineArgs(outDir, new string[]{
+        private string[] getService11FileNames() =>
+            new string[]{
                 "common/ApplicationProcess.asn1",
                 "common/ApplicationProcessUser.asn1",
                 "common/BasicTypes.asn1",
@@ -319,17 +393,10 @@ namespace PUS_C_Scala_Test
                 "service-11/PUS-11-26.asn1",
                 "service-11/PUS-11-27.asn1",
                 "service-11/SubSchedule.asn1"
-            });
+            };
 
-            Run_TestService(args, outDir);
-        }
-
-        [TestMethod]
-        public void TestService_12()
-        {
-            string outDir = getOutputFolder("S12");
-
-            var args = combineArgs(outDir, new string[]{
+        private string[] getService12FileNames() =>
+            new string[]{
                 "common/ApplicationProcess.asn1",
                 "common/ApplicationProcessUser.asn1",
                 "common/BasicTypes.asn1",
@@ -370,17 +437,10 @@ namespace PUS_C_Scala_Test
                 "service-12/PUS-12-27.asn1",
                 "service-12/PUS-12-28.asn1",
                 "service-12/TransitionNotification.asn1"
-            });
+            };
 
-            Run_TestService(args, outDir);
-        }
-
-        [TestMethod]
-        public void TestService_13()
-        {
-            string outDir = getOutputFolder("S13");
-
-            var args = combineArgs(outDir, new string[]{
+        private string[] getService13FileNames() =>
+            new string[]{
                 "common/BasicTypes.asn1",
                 "service-13/LargePacketTransferMessageParts.asn1",
                 "service-13/PUS-13-1.asn1",
@@ -390,17 +450,10 @@ namespace PUS_C_Scala_Test
                 "service-13/PUS-13-2.asn1",
                 "service-13/PUS-13-3.asn1",
                 "service-13/PUS-13-9.asn1"
-            });
+            };
 
-            Run_TestService(args, outDir);
-        }
-
-        [TestMethod]
-        public void TestService_14()
-        {
-            string outDir = getOutputFolder("S14");
-
-            var args = combineArgs(outDir, new string[]{
+        private string[] getService14FileNames() =>
+            new string[]{
                 "common/ApplicationProcess.asn1",
                 "common/ApplicationProcessUser.asn1",
                 "common/BasicTypes.asn1",
@@ -430,17 +483,10 @@ namespace PUS_C_Scala_Test
                 "service-14/PUS-14-8.asn1",
                 "service-14/PUS-14-9.asn1",
                 "service-14/SubsamplingRate.asn1"
-            });
+            };
 
-            Run_TestService(args, outDir);
-        }
-
-        [TestMethod]
-        public void TestService_15()
-        {
-            string outDir = getOutputFolder("S15");
-
-            var args = combineArgs(outDir, new string[]{
+        private string[] getService15FileNames() =>
+            new string[]{
                 "common/ApplicationProcess.asn1",
                 "common/ApplicationProcessUser.asn1",
                 "common/BasicTypes.asn1",
@@ -495,34 +541,20 @@ namespace PUS_C_Scala_Test
                 "service-15/Storage-ControlEventReportBlocking.asn1",
                 "service-15/Storage-ControlHousekeepingParameterReport.asn1",
                 "service-15/Storage-ControlReportType.asn1"
-            });
+            };
 
-            Run_TestService(args, outDir);
-        }
-
-        [TestMethod]
-        public void TestService_17()
-        {
-            string outDir = getOutputFolder("S17");
-
-            var args = combineArgs(outDir, new string[]{
+        private string[] getService17FileNames() =>
+            new string[]{
                 "common/ApplicationProcess.asn1",
                 "common/ApplicationProcessUser.asn1",
                 "service-17/PUS-17-1.asn1",
                 "service-17/PUS-17-3.asn1",
                 "service-17/PUS-17-2.asn1",
                 "service-17/PUS-17-4.asn1"
-            });
+            };
 
-            Run_TestService(args, outDir);
-        }
-
-        [TestMethod]
-        public void TestService_18()
-        {
-            string outDir = getOutputFolder("S18");
-
-            var args = combineArgs(outDir, new string[]{
+        private string[] getService18FileNames() =>
+            new string[]{
                 "common/BasicTypes.asn1",
                 "common/FilePath.asn1",
                 "service-18/OBCP.asn1",
@@ -550,17 +582,10 @@ namespace PUS_C_Scala_Test
                 "service-18/PUS-18-20.asn1",
                 "service-18/PUS-18-21.asn1",
                 "service-18/PUS-18-22.asn1"
-            });
+            };
 
-            Run_TestService(args, outDir);
-        }
-
-        [TestMethod]
-        public void TestService_19()
-        {
-            string outDir = getOutputFolder("S19");
-
-            var args = combineArgs(outDir, new string[]{
+        private string[] getService19FileNames() =>
+            new string[]{
                 "common/ApplicationProcess.asn1",
                 "common/ApplicationProcessUser.asn1",
                 "common/BasicTypes.asn1",
@@ -579,81 +604,6 @@ namespace PUS_C_Scala_Test
                 "service-19/PUS-19-7.asn1",
                 "service-19/PUS-19-8.asn1",
                 "service-19/PUS-19-9.asn1"
-            });
-
-            Run_TestService(args, outDir);
-        }
-
-        private void CompileASN(string[] args)
-        {
-            Assert.AreEqual(Program.main(args), 0);
-        }
-
-        private void CompileScala(string outDir){
-            
-            using (var proc = new Process
-            {
-                StartInfo = new ProcessStartInfo
-                {
-                    FileName = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "cmd.exe" : "bash",
-                    WorkingDirectory = outDir,
-                    UseShellExecute = false,
-                    RedirectStandardOutput = true,
-                    RedirectStandardInput = true,
-                    CreateNoWindow = false,
-                }
-            })
-            {
-                proc.Start();
-                proc.StandardInput.WriteLine("sbt compile");
-                System.Threading.Thread.Sleep(500); // give some time for command to execute
-                proc.StandardInput.Flush();
-                proc.StandardInput.Close();
-                //proc.WaitForExit(0);
-
-                // parse sbt output
-                var outp = proc.StandardOutput.ReadToEnd();
-                var outputList = outp.Split("\n").ToList();
-                var worked = outputList.FindLastIndex(x => x.Contains("[success]")) > outputList.Count - 5;
-
-                // print sbt output
-                Console.WriteLine(outp);
-
-                Assert.IsTrue(worked);
-            }
-        }
-        private void RunScalaTests(string outDir){
-            
-            using (var proc = new Process
-                   {
-                       StartInfo = new ProcessStartInfo
-                       {
-                           FileName = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "cmd.exe" : "bash",
-                           WorkingDirectory = outDir,
-                           UseShellExecute = false,
-                           RedirectStandardOutput = true,
-                           RedirectStandardInput = true,
-                           CreateNoWindow = false,
-                       }
-                   })
-            {
-                proc.Start();
-                proc.StandardInput.WriteLine("sbt run");
-                System.Threading.Thread.Sleep(500); // give some time for command to execute
-                proc.StandardInput.Flush();
-                proc.StandardInput.Close();
-                //proc.WaitForExit(0);
-
-                // parse sbt output
-                var outp = proc.StandardOutput.ReadToEnd();
-                var outputList = outp.Split("\n").ToList();
-                var worked = outputList.FindLastIndex(x => x.Contains("[test success]")) > outputList.Count - 5;
-
-                // print sbt output
-                Console.WriteLine(outp);
-
-                Assert.IsTrue(worked);
-            }
-        }
+            };
     }
 }
