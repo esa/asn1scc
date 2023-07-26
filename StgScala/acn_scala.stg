@@ -815,19 +815,19 @@ case <nChildIndex> => // acn:811
 >>
 
 ChoiceChild_encode(p, sAcc, sChildID, nChildIndex, nIndexSizeInBits, nLastItemIndex, sChildContent, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr) ::= <<
-case <sChildID> => // acn:816
+case <sChildID>(<sChildName>) => // acn:816
     BitStream_EncodeConstraintWholeNumber(pBitStrm, <nChildIndex>, 0, <nLastItemIndex>)
     <sChildContent>
 >>
 
 ChoiceChild_decode(p, sAcc, sChildID, nChildIndex, nIndexSizeInBits, nLastItemIndex, sChildContent, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr) ::= <<
 case <nChildIndex> => // acn:822
-    <p><sAcc>kind = <sChildID>
+    var <sChildName> = <sChildInitExpr>
     <sChildContent>
 >>
 
 Choice_encode(p, sAcc, arrsChildren, nLastItemIndex, sChoiceIndexName, td/*:FE_ChoiceTypeDefinition*/, nIndexSizeInBits, sErrCode) ::= <<
-<p><sAcc>kind match // acn:828
+<p> match // acn:828
     <arrsChildren: {ch|<ch>}; separator="\n">
     case _ =>
         return Left(<sErrCode>)
@@ -838,7 +838,7 @@ BitStream_DecodeConstraintWholeNumber(pBitStrm, 0, <nLastItemIndex>) match // ac
     case None => 
         return Left(<sErrCode>)
     case Some(x) =>
-        <sChoiceIndexName> = x
+        <sChoiceIndexName> = x.asInstanceOf[Int]
         
 <sChoiceIndexName> match
     <arrsChildren: {ch|<ch>}; separator="\n">

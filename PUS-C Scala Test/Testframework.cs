@@ -1,6 +1,5 @@
 global using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Diagnostics;
-using System.Reflection.Metadata.Ecma335;
 using System.Runtime.InteropServices;
 
 namespace PUS_C_Scala_Test

@@ -59,12 +59,15 @@ let isJVMPrimitive (t: Asn1TypeKind) =
     | _ -> false
     
 let scalaInitMethSuffix (k: Asn1TypeKind) =
-    match isJVMPrimitive k with
-    | false ->
-        match k with
-        | BitString bitString -> ""
-        | _ -> "()"
-    | true -> ""
+    match ST.lang with
+    | Scala -> 
+        match isJVMPrimitive k with
+        | false ->
+            match k with
+            | BitString bitString -> ""
+            | _ -> "()"
+        | true -> ""
+    | _ -> ""
 
 let isEnumForJVMelseFalse (k: Asn1TypeKind): bool =
     match ST.lang with
