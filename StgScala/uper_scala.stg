@@ -233,7 +233,7 @@ Real_encode(p, sSuffix, sErrCode) ::= "BitStream_EncodeReal(pBitStrm, <p>)"
 Real_decode(p, sSuffix, sErrCode) ::= <<
 BitStream_DecodeReal<sSuffix>(pBitStrm) match // uper:234
     case Some(d) =>
-        <p> = d.asInstanceOf[Float] // TODO this cast may loose precision in case that the target val <p> is a double
+        <p> = d.asInstanceOf[Double] // TODO this cast may loose precision in case that the target val <p> is a double
     case None =>
         return Left(<sErrCode>)
 >>

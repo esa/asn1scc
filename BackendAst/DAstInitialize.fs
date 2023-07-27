@@ -1162,14 +1162,29 @@ let createChoiceInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAs
             ch.chType.initFunction.automaticTestCases (*|> Seq.take (min 5 len)*) |> Seq.toList |>
             List.map(fun atc -> 
                 let fnc = atc.initTestCaseFunc
-                let presentFunc (p:CallerScope) = 
-                    let childContent =  
-                        match lm.lg.init.choiceComponentTempInit with
-                        | false  -> fnc {p with arg = lm.lg.getChChild p.arg (match ST.lang with | ProgrammingLanguage.Scala -> sChildTempVarName | _ -> sChildName) ch.chType.isIA5String} 
-                        | true   -> fnc {p with arg = VALUE (sChildName + "_tmp")}
+                let presentFunc (p:CallerScope) =                    
+                    let childContent_funcBody, childContent_localVariables =
+                        match ST.lang with
+                        | ProgrammingLanguage.Scala ->
+                            match ch.chType.initFunction.initProcedure with
+                                | Some initProc  ->                                    
+                                    initChildWithInitFunc sChildTempVarName initProc.funcName, []
+                                | None  ->                                    
+                                    let fnc2 = ch.chType.initFunction.initTas
+                                    let childContent =  
+                                        match lm.lg.init.choiceComponentTempInit with
+                                        | false ->  fnc2 {p with arg = lm.lg.getChChild p.arg sChildTempVarName ch.chType.isIA5String}
+                                        | true   -> fnc2 {p with arg = VALUE (sChildName + "_tmp_3")}
+                                    childContent.funcBody, childContent.localVariables
+                        | _ ->
+                            let childContent =
+                                match lm.lg.init.choiceComponentTempInit with
+                                | false  -> fnc {p with arg = lm.lg.getChChild p.arg sChildName ch.chType.isIA5String} 
+                                | true   -> fnc {p with arg = VALUE (sChildName + "_tmp")}
+                            childContent.funcBody, childContent.localVariables
 
-                    let funcBody = initTestCase_choice_child p.arg.p (lm.lg.getAccess p.arg) (childContent.funcBody) (sChildID p) sChildName  sChildTypeDef typeDefinitionName sChildTempVarName (extractDefaultInitValue ch.chType.Kind)
-                    {InitFunctionResult.funcBody = funcBody; localVariables = childContent.localVariables}
+                    let funcBody = initTestCase_choice_child p.arg.p (lm.lg.getAccess p.arg) (childContent_funcBody) (sChildID p) sChildName  sChildTypeDef typeDefinitionName sChildTempVarName (extractDefaultInitValue ch.chType.Kind)
+                    {InitFunctionResult.funcBody = funcBody; localVariables = childContent_localVariables}
                 let combinedTestCase =
                     match atc.testCaseTypeIDsMap.ContainsKey ch.chType.id with
                     | true      -> atc.testCaseTypeIDsMap
