@@ -231,7 +231,7 @@ end;
 <endif>
 >>
 
-initTestCase_choice_child(p, p_scala, sAcc, sChildID, sChildContent, sChildName, sChildTypeDef, sChoiceTypeName, bIsTestCase) ::= <<
+initTestCase_choice_child(p, sAcc, sChildContent, sChildID, sChildName, sChildTypeName, sChoiceTypeName, sChildTempVarName, sChildTempDefaultInit) ::= <<
 <p> := <sChoiceTypeName>'(kind => <sChildID>, <sChildName> => \<\>);
 <sChildContent>
 >>
