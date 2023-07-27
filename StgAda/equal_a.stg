@@ -165,7 +165,7 @@ end if;
 <endif>
 >>
 
-isEqual_Choice_Child(choiceTypeDefName, sNamePresent, sInnerStatement) ::= <<
+isEqual_Choice_Child(choiceTypeDefName, sNamePresent, sInnerStatement, sTmpVarName1, sTmpVarName2) ::= <<
 when <sNamePresent> =>
     <sInnerStatement>
 >>

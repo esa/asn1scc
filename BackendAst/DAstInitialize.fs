@@ -1148,12 +1148,7 @@ let createChoiceInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAs
 
 
     let testCaseFuncs = 
-        let handleChild  (ch:ChChildInfo)  = 
-            //let sChildID (p:CallerScope) = 
-            //    (ToC ch._present_when_name_private) + "_PRESENT"
-                
-            let sChildID2 = (lm.lg.presentWhenName (Some typeDefinition) ch)
-                
+        let handleChild  (ch:ChChildInfo)  =                 
             let sChildID (p:CallerScope) =
                 match ST.lang with
                 | ProgrammingLanguage.Scala -> (lm.lg.presentWhenName (Some typeDefinition) ch)

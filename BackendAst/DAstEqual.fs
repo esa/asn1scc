@@ -81,9 +81,16 @@ let isEqualBodySequenceChild   (lm:LanguageMacros)  (o:Asn1AcnAst.Asn1Child) (ne
 
 
 let isEqualBodyChoiceChild  (choiceTypeDefName:string)  (lm:LanguageMacros) (o:Asn1AcnAst.ChChildInfo) (newChild:Asn1Type) (v1:CallerScope) (v2:CallerScope)  = 
-    let sInnerStatement, lvars = 
-        let p1,p2 =
-            ({v1 with arg = lm.lg.getChChild v1.arg (lm.lg.getAsn1ChChildBackendName0 o) newChild.isIA5String}), ({v2 with arg = lm.lg.getChChild v2.arg (lm.lg.getAsn1ChChildBackendName0 o) newChild.isIA5String})
+    let p1,p2 =
+        match ST.lang with
+        | ProgrammingLanguage.Scala ->
+            ({v1 with arg = lm.lg.getChChild v1.arg (sprintf "%s_%s_tmp" v1.arg.p (lm.lg.getAsn1ChChildBackendName0 o)) newChild.isIA5String}),
+            ({v2 with arg = lm.lg.getChChild v2.arg (sprintf "%s_%s_tmp" v2.arg.p (lm.lg.getAsn1ChChildBackendName0 o)) newChild.isIA5String})
+        | _ ->
+            ({v1 with arg = lm.lg.getChChild v1.arg (lm.lg.getAsn1ChChildBackendName0 o) newChild.isIA5String}),
+            ({v2 with arg = lm.lg.getChChild v2.arg (lm.lg.getAsn1ChChildBackendName0 o) newChild.isIA5String})
+            
+    let sInnerStatement, lvars =
         match newChild.equalFunction.isEqualFuncName with
         | None  ->
             match newChild.equalFunction.isEqualBody with
@@ -99,7 +106,7 @@ let isEqualBodyChoiceChild  (choiceTypeDefName:string)  (lm:LanguageMacros) (o:A
             let exp = callBaseTypeFunc lm (lm.lg.getPointer p1.arg) (lm.lg.getPointer p2.arg) fncName
             makeExpressionToStatement lm exp, []
 
-    lm.equal.isEqual_Choice_Child choiceTypeDefName o.presentWhenName sInnerStatement, lvars
+    lm.equal.isEqual_Choice_Child choiceTypeDefName o.presentWhenName sInnerStatement p1.arg.p p2.arg.p, lvars
 
 
 

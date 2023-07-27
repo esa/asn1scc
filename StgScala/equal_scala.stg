@@ -141,16 +141,14 @@ ObjectIdentifier_equal(<p1>, <p2>)
 
 
 
-isEqual_Choice_Child(choiceTypeDefName, sCid, sInnerStatement) ::= <<
-// equal_scala.stg : 149
-case (<choiceTypeDefName>.<sCid>(pVal1_e), <choiceTypeDefName>.<sCid>(pVal2_e)) =>
+isEqual_Choice_Child(choiceTypeDefName, sCid, sInnerStatement, sTmpVarName1, sTmpVarName2) ::= <<
+// equal_scala.stg:145
+case (<choiceTypeDefName>.<sCid>(<sTmpVarName1>), <choiceTypeDefName>.<sCid>(<sTmpVarName2>)) =>
     <sInnerStatement>
 >>
 
 isEqual_Choice(p1,p2, sAccess, arrsChildren) ::= <<
-// equal_scala.stg : 156
-ret = <p1><sAccess>ordinal == <p2><sAccess>ordinal // equal:145
-// equal:146
+// equal_scala.stg:151
 (<p1>, <p2>) match {
     <arrsChildren: {ch|<ch>}; separator="\n">
     case (_, _) =>
