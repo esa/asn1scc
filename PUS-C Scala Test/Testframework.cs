@@ -97,11 +97,13 @@ namespace PUS_C_Scala_Test
             var serviceFiles = GetServiceFiles(service);
             var args = CombineArgs(outDir, serviceFiles(), sv);
 
-            CompileASN(args);
-            CompileScala(outDir);
+            var runTests = (sv & ServiceVariation.CREATE_TESTS) == ServiceVariation.CREATE_TESTS;
 
-            if ((sv & ServiceVariation.CREATE_TESTS) == ServiceVariation.CREATE_TESTS)
-                RunScalaTests(outDir);
+            CompileASN(args);
+            CompileScala(outDir, !runTests);
+
+            if (runTests)
+                RunScalaTests(outDir, runTests);
         }
 
         Func<string[]> GetServiceFiles(PUS_C_Service service) =>
@@ -132,16 +134,16 @@ namespace PUS_C_Scala_Test
             Assert.AreEqual(Program.main(args), 0);
         }
 
-        private void CompileScala(string outDir)
+        private void CompileScala(string outDir, bool printOutput)
         {
-            StartSBTWithArg(outDir, "sbt compile", "[success]");
+            StartSBTWithArg(outDir, "sbt compile", "[success]", printOutput);
         }
-        private void RunScalaTests(string outDir)
+        private void RunScalaTests(string outDir, bool printOutput)
         {
-            StartSBTWithArg(outDir, "sbt run", "[test success]");
+            StartSBTWithArg(outDir, "sbt run", "[test success]", printOutput);
         }
 
-        private void StartSBTWithArg(string outDir, string arg, string check)
+        private void StartSBTWithArg(string outDir, string arg, string check, bool printOutput)
         {
             using (var proc = new Process
             {
@@ -169,7 +171,8 @@ namespace PUS_C_Scala_Test
                 var worked = outputList.FindLastIndex(x => x.Contains(check)) > outputList.Count - 5;
 
                 // print sbt output
-                Console.WriteLine(outp);
+                if(printOutput)
+                    Console.WriteLine(outp);
 
                 Assert.IsTrue(worked);
             }
