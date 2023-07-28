@@ -135,7 +135,7 @@ ObjectIdentifier_equal(<p1>, <p2>)
 
 
 
-isEqual_Choice_Child(choiceTypeDefName, sCid, sInnerStatement) ::= <<
+isEqual_Choice_Child(choiceTypeDefName, sCid, sInnerStatement, sTmpVarName1, sTmpVarName2) ::= <<
 case <sCid>:
 	<sInnerStatement>
 	break;

@@ -77,9 +77,9 @@ def Acn_Enc_Int_PositiveInteger_ConstSize_big_endian_B(pBitStrm: BitStream,    i
 
     var i: Int = 0
     while i < size do
-        val ByteToEncode: Byte = ((tmp & mask) >> ((size - i - 1) * 8)).toByte
+        val ByteToEncode: Byte = ((tmp & mask) >>> ((size - i - 1) * 8)).toByte
         BitStream_AppendByte0(pBitStrm, ByteToEncode)
-        mask >>= 8
+        mask >>>= 8
         i += 1
 
     CHECK_BIT_STREAM(pBitStrm)
@@ -115,7 +115,7 @@ def Acn_Enc_Int_PositiveInteger_ConstSize_little_endian_N(pBitStrm: BitStream, i
     while i < size do
         val ByteToEncode: Byte = tmp.toByte
         BitStream_AppendByte0(pBitStrm, ByteToEncode)
-        tmp >>= 8
+        tmp >>>= 8
         i += 1
 
     CHECK_BIT_STREAM(pBitStrm)
@@ -236,7 +236,7 @@ def Encode_UnsignedInteger(pBitStrm: BitStream, v: ULong, nBytes: Byte): Unit =
 
     var i: Int = 0
     while i < nBytes do
-        val ByteToEncode: Byte = ((vv & MAX_BYTE_MASK) >> ((WORD_SIZE - 1) * 8)).toByte
+        val ByteToEncode: Byte = ((vv & MAX_BYTE_MASK) >>> ((WORD_SIZE - 1) * 8)).toByte
         BitStream_AppendByte0(pBitStrm, ByteToEncode)
         vv <<= 8
         i += 1
@@ -830,7 +830,7 @@ def BitStream_ReadBitPattern(pBitStrm: BitStream, patternToRead: Array[Byte], nB
         BitStream_ReadPartialByte(pBitStrm, nRemainingBitsToRead.toByte) match
             case None => return None
             case Some(curByte) =>
-                if curByte != patternToRead(nBytesToRead) >> (8 - nRemainingBitsToRead) then
+                if curByte != patternToRead(nBytesToRead) >>> (8 - nRemainingBitsToRead) then
                     pBoolValue = false
 
     Some(pBoolValue)

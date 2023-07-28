@@ -184,7 +184,7 @@ type LangGeneric_scala() =
             let parentName = 
                 match defOrRef with
                 | Some a -> match a with
-                            | ReferenceToExistingDefinition b -> ""
+                            | ReferenceToExistingDefinition b -> b.typedefName + "."
                             | TypeDefinition c -> c.typedefName + "."
                 | None -> ""
             parentName + (ToC ch._present_when_name_private) + "_PRESENT"

@@ -56,7 +56,7 @@ def BitString_equal(arr1: Array[UByte], arr2: Array[UByte]): Boolean = {
     //return
     //    (nBitsLength1 == nBitsLength2) &&
     //        (nBitsLength1 / 8 == 0 || memcmp(arr1, arr2, nBitsLength1 / 8) == 0) &&
-    //        (nBitsLength1 % 8 > 0 ? (arr1[nBitsLength1 / 8] >> (8 - nBitsLength1 % 8) == arr2[nBitsLength1 / 8] >> (8 - nBitsLength1 % 8)): TRUE);
+    //        (nBitsLength1 % 8 > 0 ? (arr1[nBitsLength1 / 8] >>> (8 - nBitsLength1 % 8) == arr2[nBitsLength1 / 8] >>> (8 - nBitsLength1 % 8)): TRUE);
 }
 
 
@@ -186,7 +186,7 @@ def BitStream_AppendBits(pBitStrm: BitStream, srcBuffer: Array[UByte], nbits: In
     BitStream_EncodeOctetString_no_length(pBitStrm, srcBuffer, bytesToEncode)
 
     if remainingBits > 0 then
-        lastByte = (srcBuffer(bytesToEncode) >> (8 - remainingBits)).toByte
+        lastByte = (srcBuffer(bytesToEncode) >>> (8 - remainingBits)).toByte
         BitStream_AppendPartialByte(pBitStrm, lastByte, remainingBits, false)
 }
 
@@ -261,7 +261,7 @@ def BitStream_AppendByte(pBitStrm: BitStream, vVal: UByte, negate: Boolean): Uni
     var mask: UByte = (~masksb(ncb)).toByte
 
     pBitStrm.buf(pBitStrm.currentByte) = (pBitStrm.buf(pBitStrm.currentByte) & mask).toByte
-    pBitStrm.buf(pBitStrm.currentByte) = (pBitStrm.buf(pBitStrm.currentByte) | ((v & 0xFF ) >> cb)).toByte
+    pBitStrm.buf(pBitStrm.currentByte) = (pBitStrm.buf(pBitStrm.currentByte) | ((v & 0xFF ) >>> cb)).toByte
     pBitStrm.currentByte += 1
     bitstream_push_data_if_required(pBitStrm)
 
@@ -280,7 +280,7 @@ def BitStream_AppendByte0(pBitStrm: BitStream, v: UByte): Boolean = {
     var mask = ~masks(ncb)
 
     pBitStrm.buf(pBitStrm.currentByte) = (pBitStrm.buf(pBitStrm.currentByte) & mask).toByte
-    pBitStrm.buf(pBitStrm.currentByte) = (pBitStrm.buf(pBitStrm.currentByte) | (v >> cb)).toByte
+    pBitStrm.buf(pBitStrm.currentByte) = (pBitStrm.buf(pBitStrm.currentByte) | (v >>> cb)).toByte
     pBitStrm.currentByte += 1
     bitstream_push_data_if_required(pBitStrm)
 
@@ -294,11 +294,9 @@ def BitStream_AppendByte0(pBitStrm: BitStream, v: UByte): Boolean = {
     true
 }
 
-def BitStream_AppendByteArray(pBitStrm: BitStream, arr: Array[UByte]): Boolean = {
+def BitStream_AppendByteArray(pBitStrm: BitStream, arr: Array[UByte], arr_len: Int): Boolean = {
     //static byte    masks[] = { 0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01 };
     //static byte masksb[] = { 0x00, 0x01, 0x03, 0x07, 0x0F, 0x1F, 0x3F, 0x7F, 0xFF };
-
-    val arr_len = arr.length
 
     val cb: UByte = pBitStrm.currentBit.toByte
     val ncb: UByte = (8 - cb).toByte
@@ -313,7 +311,7 @@ def BitStream_AppendByteArray(pBitStrm: BitStream, arr: Array[UByte]): Boolean =
     if arr_len > 0 then
         val v: UByte = arr(0)
         pBitStrm.buf(pBitStrm.currentByte) = (pBitStrm.buf(pBitStrm.currentByte) & mask).toByte     //make zero right bits (i.e. the ones that will get the new value)
-        pBitStrm.buf(pBitStrm.currentByte) = (pBitStrm.buf(pBitStrm.currentByte) | (v >> cb)).toByte    //shift right and then populate current byte
+        pBitStrm.buf(pBitStrm.currentByte) = (pBitStrm.buf(pBitStrm.currentByte) | (v >>> cb)).toByte    //shift right and then populate current byte
         pBitStrm.currentByte += 1
         bitstream_push_data_if_required(pBitStrm)
 
@@ -324,7 +322,7 @@ def BitStream_AppendByteArray(pBitStrm: BitStream, arr: Array[UByte]): Boolean =
     while i < arr_len-1 do
         decreases(arr_len-1-i)
         val v: UByte = arr(i)
-        val v1: UByte = (v >> cb).toByte
+        val v1: UByte = (v >>> cb).toByte
         val v2: UByte = (v << ncb).toByte
         pBitStrm.buf(pBitStrm.currentByte) = (pBitStrm.buf(pBitStrm.currentByte) | v1).toByte //shift right and then populate current byte
         pBitStrm.currentByte += 1
@@ -335,7 +333,7 @@ def BitStream_AppendByteArray(pBitStrm: BitStream, arr: Array[UByte]): Boolean =
     if arr_len - 1 > 0 then
         val v: UByte = arr(arr_len - 1)
         pBitStrm.buf(pBitStrm.currentByte) = (pBitStrm.buf(pBitStrm.currentByte) & mask ).toByte            //make zero right bits (i.e. the ones that will get the new value)
-        pBitStrm.buf(pBitStrm.currentByte) = (pBitStrm.buf(pBitStrm.currentByte) | (v >> cb)).toByte    //shift right and then populate current byte
+        pBitStrm.buf(pBitStrm.currentByte) = (pBitStrm.buf(pBitStrm.currentByte) | (v >>> cb)).toByte    //shift right and then populate current byte
         pBitStrm.currentByte += 1
         bitstream_push_data_if_required(pBitStrm)
 
@@ -356,7 +354,7 @@ def BitStream_ReadByte(pBitStrm: BitStream): Option[UByte] = {
     bitstream_fetch_data_if_required(pBitStrm)
 
     if cb > 0 then
-        v = (v | pBitStrm.buf(pBitStrm.currentByte) >> ncb).toByte // TODO: check if & 0xFF is needed
+        v = (v | pBitStrm.buf(pBitStrm.currentByte) >>> ncb).toByte // TODO: check if & 0xFF is needed
 
     if pBitStrm.currentByte * 8 + pBitStrm.currentBit <= pBitStrm.buf.length * 8 then
         Some(v)
@@ -365,7 +363,7 @@ def BitStream_ReadByte(pBitStrm: BitStream): Option[UByte] = {
 }
 
 def BitStream_ReadByteArray(pBitStrm: BitStream, arr_len: Int): Option[Array[UByte]] = {
-    val arr: Array[UByte] = Array.fill(Math.max(1,arr_len))(0)
+    val arr: Array[UByte] = Array.fill(arr_len+1)(0)
 
     val cb: UByte = pBitStrm.currentBit.toByte
     val ncb: UByte = (8 - cb).toByte
@@ -379,7 +377,7 @@ def BitStream_ReadByteArray(pBitStrm: BitStream, arr_len: Int): Option[Array[UBy
         arr(i) = (pBitStrm.buf(pBitStrm.currentByte) << cb).toByte
         pBitStrm.currentByte += 1
         bitstream_fetch_data_if_required(pBitStrm)
-        arr(i) = (arr(i) | (pBitStrm.buf(pBitStrm.currentByte) & 0xFF) >> ncb).toByte
+        arr(i) = (arr(i) | (pBitStrm.buf(pBitStrm.currentByte) & 0xFF) >>> ncb).toByte
         i += 1
 
     Some(arr)
@@ -437,7 +435,7 @@ def BitStream_AppendPartialByte(pBitStrm: BitStream, vVal: UByte, nbits: UByte, 
     } else {
         val totalBitsForNextByte: UByte = (totalBits - 8).toByte
         pBitStrm.buf(pBitStrm.currentByte) = (pBitStrm.buf(pBitStrm.currentByte) & mask1).toByte
-        pBitStrm.buf(pBitStrm.currentByte) = (pBitStrm.buf(pBitStrm.currentByte) | (v >> totalBitsForNextByte)).toByte
+        pBitStrm.buf(pBitStrm.currentByte) = (pBitStrm.buf(pBitStrm.currentByte) | (v >>> totalBitsForNextByte)).toByte
         pBitStrm.currentByte += 1
         bitstream_push_data_if_required(pBitStrm)
         val mask: UByte = (~masksb(8 - totalBitsForNextByte)).toByte
@@ -457,7 +455,7 @@ def BitStream_ReadPartialByte(pBitStrm: BitStream, nbits: UByte): Option[UByte] 
     val totalBits: UByte = (cb + nbits).toByte
 
     if (totalBits <= 8) {
-        v = ((pBitStrm.buf(pBitStrm.currentByte) >> (8 - totalBits)) & masksb(nbits)).toByte
+        v = ((pBitStrm.buf(pBitStrm.currentByte) >>> (8 - totalBits)) & masksb(nbits)).toByte
         pBitStrm.currentBit += nbits.toInt
         if pBitStrm.currentBit == 8 then
             pBitStrm.currentBit = 0
@@ -469,7 +467,7 @@ def BitStream_ReadPartialByte(pBitStrm: BitStream, nbits: UByte): Option[UByte] 
         v = (pBitStrm.buf(pBitStrm.currentByte) << totalBitsForNextByte).toByte
         pBitStrm.currentByte += 1
         bitstream_fetch_data_if_required(pBitStrm)
-        v = (v | pBitStrm.buf(pBitStrm.currentByte) >> (8 - totalBitsForNextByte)).toByte
+        v = (v | pBitStrm.buf(pBitStrm.currentByte) >>> (8 - totalBitsForNextByte)).toByte
         v = (v & masksb(nbits)).toByte
         pBitStrm.currentBit = totalBitsForNextByte.toInt
     }
@@ -490,7 +488,7 @@ def BitStream_ReadPartialByte(pBitStrm: BitStream, nbits: UByte): Option[UByte] 
 /***********************************************************************************************/
 /***********************************************************************************************/
 /***********************************************************************************************/
-def BitStream_EncodeNonNegativeInteger32Neg(pBitStrm: BitStream, v: Long, negate: Boolean): Unit = {
+def BitStream_EncodeNonNegativeInteger32Neg(pBitStrm: BitStream, v: Int, negate: Boolean): Unit = {
     var cc: UInt = 0
     var curMask: UInt = 0
     var pbits: UInt = 0
@@ -498,13 +496,13 @@ def BitStream_EncodeNonNegativeInteger32Neg(pBitStrm: BitStream, v: Long, negate
     if v == 0 then
         return ()
 
-    if v < 0x100 then
+    if v >>> 8 == 0 then
         cc = 8
         curMask = 0x80
-    else if v < 0x10000 then
+    else if v >>> 16 == 0 then
         cc = 16
         curMask = 0x8000
-    else if v < 0x1000000 then
+    else if v >>> 24 == 0then
         cc = 24
         curMask = 0x800000
     else
@@ -513,19 +511,19 @@ def BitStream_EncodeNonNegativeInteger32Neg(pBitStrm: BitStream, v: Long, negate
 
     while (v & curMask) == 0 do
         decreases(cc)
-        curMask >>= 1
+        curMask >>>= 1
         cc -= 1
 
     pbits = cc % 8
     if pbits > 0 then
         cc -= pbits
-        BitStream_AppendPartialByte(pBitStrm, (v >> cc).toByte, pbits.toByte, negate)
+        BitStream_AppendPartialByte(pBitStrm, (v >>> cc).toByte, pbits.toByte, negate)
 
     while cc > 0 do
         decreases(cc)
-        val t1: UInt = v.toInt & masks2(cc >> 3)
+        val t1: UInt = v.toInt & masks2(cc >>> 3)
         cc -= 8
-        BitStream_AppendByte(pBitStrm, (t1 >> cc).toByte, negate)
+        BitStream_AppendByte(pBitStrm, (t1 >>> cc).toByte, negate)
 }
 def BitStream_DecodeNonNegativeInteger32Neg(pBitStrm: BitStream, nBitsVal: Int): Option[UInt] = {
 
@@ -556,15 +554,15 @@ def BitStream_DecodeNonNegativeInteger32Neg(pBitStrm: BitStream, nBitsVal: Int):
 def BitStream_EncodeNonNegativeInteger(pBitStrm: BitStream, v: ULong): Unit = {
     // TODO: support WORD_SIZE=4?
     //if WORD_SIZE == 8 then
-    if v < 0x100000000L then
-        BitStream_EncodeNonNegativeInteger32Neg(pBitStrm, v, false)
+    if v >>> 32 == 0 then
+        BitStream_EncodeNonNegativeInteger32Neg(pBitStrm, v.toInt, false)
     else
         // TODO: Check Int/Long
-        val hi = (v >> 32)
-        val lo = v
+        val hi = (v >>> 32).toInt
+        val lo = v.toInt
         BitStream_EncodeNonNegativeInteger32Neg(pBitStrm, hi, false)
 
-        val nBits: Int = GetNumberOfBitsForNonNegativeInteger(lo)
+        val nBits: Int = GetNumberOfBitsForNonNegativeInteger(lo.toLong << 32 >>> 32) // TODO: is this easier?
         BitStream_AppendNBitZero(pBitStrm, 32 - nBits)
         BitStream_EncodeNonNegativeInteger32Neg(pBitStrm, lo, false)
     //else
@@ -595,18 +593,18 @@ def BitStream_DecodeNonNegativeInteger(pBitStrm: BitStream, nBits: Int): Option[
 
 def BitStream_EncodeNonNegativeIntegerNeg(pBitStrm: BitStream, v: ULong, negate: Boolean): Unit = {
     //if WORD_SIZE == 8 then
-    if v < 0x100000000L then
-        BitStream_EncodeNonNegativeInteger32Neg(pBitStrm, v, negate)
+    if v >>> 32 == 0 then
+        BitStream_EncodeNonNegativeInteger32Neg(pBitStrm, v.toInt, negate)
     else
         // TODO: Check Int/Long
-        val hi = (v >> 32)
-        var lo = v
+        val hi = (v >>> 32).toInt
+        var lo = v.toInt
         BitStream_EncodeNonNegativeInteger32Neg(pBitStrm, hi, negate)
 
         /*bug !!!!*/
         if negate then
             lo = ~lo
-        val nBits = GetNumberOfBitsForNonNegativeInteger(lo)
+        val nBits = GetNumberOfBitsForNonNegativeInteger(lo.toLong)
         BitStream_AppendNBitZero(pBitStrm, 32 - nBits)
         BitStream_EncodeNonNegativeInteger32Neg(pBitStrm, lo, false)
     //else
@@ -614,25 +612,25 @@ def BitStream_EncodeNonNegativeIntegerNeg(pBitStrm: BitStream, v: ULong, negate:
 
 }
 
-def GetNumberOfBitsForNonNegativeInteger32(vVal: Long): Int = {
+def GetNumberOfBitsForNonNegativeInteger32(vVal: Int): Int = {
     var ret: Int = 0
 
     var v = vVal
-    if v < 0x100 then
+    if v >>> 8 == 0 then
         ret = 0
-    else if v < 0x10000 then
+    else if v >>> 16 == 0 then
         ret = 8
-        v = v >> 8
-    else if v < 0x1000000 then
+        v = v >>> 8
+    else if v >>> 24 == 0 then
         ret = 16
-        v = v >> 16
+        v = v >>> 16
     else
         ret = 24
-        v = v >> 24
+        v = v >>> 24
 
     while v > 0 do
         decreases(v)
-        v = v >> 1
+        v = v >>> 1
         ret += 1
 
     return ret
@@ -640,12 +638,12 @@ def GetNumberOfBitsForNonNegativeInteger32(vVal: Long): Int = {
 def GetNumberOfBitsForNonNegativeInteger(v: ULong): Int = {
     if WORD_SIZE == 8 then
         if v < 0x100000000L then
-            return GetNumberOfBitsForNonNegativeInteger32(v)
+            return GetNumberOfBitsForNonNegativeInteger32(v.toInt)
         else
-            val hi = (v >> 32)
+            val hi = (v >>> 32).toInt
             return 32 + GetNumberOfBitsForNonNegativeInteger32(hi)
     else
-        return GetNumberOfBitsForNonNegativeInteger32(v)
+        return GetNumberOfBitsForNonNegativeInteger32(v.toInt)
 }
 
 def GetLengthInBytesOfUInt (v: ULong): Int = {
@@ -654,7 +652,7 @@ def GetLengthInBytesOfUInt (v: ULong): Int = {
     //if (WORD_SIZE == 8) {
     if v > 0xFFFFFFFF.toLong then
         ret = 4
-        v32 = (v >> 32).toInt
+        v32 = (v >>> 32).toInt
     // }
 
     if v32 < 0x100 then
@@ -673,7 +671,7 @@ def GetLengthSIntHelper(v: ULong): Int = {
     //#if WORD_SIZE == 8
     if v > 0x7FFFFFFF then
         ret = 4
-        v32 = (v >> 32).toInt
+        v32 = (v >>> 32).toInt
     //#endif
 
     if v32 <= 0x7F then
@@ -958,11 +956,11 @@ def CalculateMantissaAndExponent(d: Double): (Int, ULong) = {
     var mantissa: ULong = 0
 
     //#if FP_WORD_SIZE == 8
-    exponent = (((ll & ExpoBitMask) >> 52) - 1023 - 52).toInt
+    exponent = (((ll & ExpoBitMask) >>> 52) - 1023 - 52).toInt
     mantissa = ll & MantBitMask
     mantissa = mantissa | MantisaExtraBit
     //#else
-    //exponent.x = (int)(((ll & ExpoBitMask) >> 23) - 127 - 23);
+    //exponent.x = (int)(((ll & ExpoBitMask) >>> 23) - 127 - 23);
     //mantissa.x = ll & MantBitMask;
     //mantissa.x |= MantisaExtraBit;
     //#endif
@@ -1011,7 +1009,7 @@ def BitStream_EncodeReal(pBitStrm: BitStream, vVal: Double): Unit = {
     BitStream_EncodeConstraintWholeNumber(pBitStrm, 1 + nExpLen + nManLen.toLong, 0, 0xFF)
 
     /* encode header */
-    BitStream_EncodeConstraintWholeNumber(pBitStrm, header.toLong, 0, 0xFF)
+    BitStream_EncodeConstraintWholeNumber(pBitStrm, header.toLong & 0xFF, 0, 0xFF)
 
     /* encode exponent */
     if exponent >= 0 then
@@ -1065,7 +1063,7 @@ def DecodeRealAsBinaryEncoding(pBitStrm: BitStream, lengthVal: Int, header: UByt
             /*base = 16;*/
             expFactor = 4
 
-        val F: Int = ((header & 0x0C) >> 2).toInt
+        val F: Int = ((header & 0x0C) >>> 2).toInt
         factor <<= F
 
         val expLen: Int = ((header & 0x03) + 1).toInt
@@ -1082,7 +1080,7 @@ def DecodeRealAsBinaryEncoding(pBitStrm: BitStream, lengthVal: Int, header: UByt
 
             BitStream_ReadByte(pBitStrm) match
                 case None => return None
-                case Some(ub) => exponent = exponent << 8 | ub.toInt
+                case Some(ub) => exponent = exponent << 8 | (ub.toInt & 0xFF)
 
             i += 1
 
@@ -1094,7 +1092,7 @@ def DecodeRealAsBinaryEncoding(pBitStrm: BitStream, lengthVal: Int, header: UByt
 
             BitStream_ReadByte(pBitStrm) match
                 case None => return None
-                case Some(ub) => N = N << 8 | ub.toLong
+                case Some(ub) => N = N << 8 | (ub.toInt & 0xFF)
 
             j += 1
 
@@ -1205,20 +1203,20 @@ def BitStream_EncodeOctetString_no_length(pBitStrm: BitStream, arr: Array[UByte]
         //#endif
 
     else
-        ret = BitStream_AppendByteArray(pBitStrm, arr)
-        var i1 = 0
+        ret = BitStream_AppendByteArray(pBitStrm, arr, nCount)
+        /*var i1 = 0
         while i1 < nCount && ret do
             decreases(nCount - i1)
             ret = BitStream_AppendByte0(pBitStrm, arr(i1))
             i1 += 1
-
+        */
     ret
 }
 
 
 def BitStream_DecodeOctetString_no_length(pBitStrm: BitStream, nCount: Int): Option[Array[UByte]] = {
     val cb: Int = pBitStrm.currentBit
-    var arr: Array[UByte] = Array.fill(Math.max(1, nCount))(0)
+    var arr: Array[UByte] = Array.fill(nCount+1)(0)
 
     if cb == 0 then
         //#ifdef ASN1SCC_STREAMING
