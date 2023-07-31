@@ -1882,8 +1882,19 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
         let td = (lm.lg.getChoiceTypeDefinition o.typeDef).longTypedefName2 lm.lg.hasModules (ToC p.modName)
         let handleChild (us:State) (idx:int) (child:ChChildInfo) =
                 let chFunc = child.chType.getAcnFunction codec
-                let scalaInitMethSuffix = scalaInitMethSuffix child.chType.Kind
-                let sChildInitExpr = child.chType.initFunction.initExpression + scalaInitMethSuffix
+                let sChInitExpr = 
+                    match child.chType.initFunction.initFunction with
+                    | Some x -> x.funcName
+                    | None -> child.chType.initFunction.initExpression
+                
+                let sChildInitExpr = 
+                    match ST.lang with
+                    | Scala -> 
+                        match hasInitMethSuffix sChInitExpr (lm.init.methodNameSuffix()) with
+                        | true -> sChInitExpr + "()"
+                        | _ -> extractDefaultInitValue child.chType.Kind
+                    | _ -> ""
+
                 let childContentResult, ns1 = 
                     //match child.Optionality with
                     //| Some (ChoiceAlwaysAbsent) -> None//Some (always_false_statement errCode.errCodeName)

@@ -821,8 +821,8 @@ case <sChildID>(<sChildName>) => // acn:816
 >>
 
 ChoiceChild_decode(p, sAcc, sChildID, nChildIndex, nIndexSizeInBits, nLastItemIndex, sChildContent, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr) ::= <<
-case <nChildIndex> => // acn:822
-    var <sChildName> = <sChildInitExpr>
+case <nChildIndex> => // acn:824
+    var <sChildName>: <sChildTypeDef> = <sChildInitExpr>
     <sChildContent>
 >>
 

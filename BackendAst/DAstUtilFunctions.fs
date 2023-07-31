@@ -58,6 +58,9 @@ let isJVMPrimitive (t: Asn1TypeKind) =
     | Integer _ | Real _ | NullType _ | Boolean _ -> true
     | _ -> false
     
+let hasInitMethSuffix (initMethName: string) (suffix: string): bool =
+    initMethName.EndsWith(suffix) 
+
 let scalaInitMethSuffix (k: Asn1TypeKind) =
     match ST.lang with
     | Scala -> 
