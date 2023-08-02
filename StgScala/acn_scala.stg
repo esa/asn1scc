@@ -44,15 +44,17 @@ EmitTypeAssignment_primitive_def_decode(sVarName, sStar, sFuncName, sTypeDefName
 EmitTypeAssignment_primitive_decode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitilialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName) ::= <<
 def <sFuncName>(<if(bBsIsUnreferenced)>@annotation.unused <endif>pBitStrm: BitStream): Either[ErrorCode, <sTypeDefName>] = // acn:45
 {   
-    var pVal: <sTypeDefName> = <soInitFuncName>()
-    var ret: Either[ErrorCode, <sTypeDefName>] = Right(pVal)
+    var <sVarName>: <sTypeDefName> = <soInitFuncName>()
+    var ret: Either[ErrorCode, <sTypeDefName>] = Right(<sVarName>)
 
     <arrsLocalVariables:{lv|<lv>}; separator="\n">
 
     <sContent>
 
-    <if(soIValidFuncName)>
+    if ret.isRight then
+        ret = Right(<sVarName>)
 
+    <if(soIValidFuncName)>    
     ret match
         case Left(x) =>
             assert(false) // no left should reach this point
@@ -60,6 +62,7 @@ def <sFuncName>(<if(bBsIsUnreferenced)>@annotation.unused <endif>pBitStrm: BitSt
             <soIValidFuncName>(x) match
             case Left(l) => 
                 return Left(l)
+            case _ =>
     <endif>
     ret
 }

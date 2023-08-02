@@ -6,22 +6,11 @@ namespace PUS_C_Scala_Test
 {
     public enum PUS_C_Service
     {
-        S1,
-        S2,
-        S3,
-        S4,
-        S5,
-        S6,
-        S8,
-        S9,
-        S11,
-        S12,
-        S13,
-        S14,
-        S15,
-        S17,
-        S18,
-        S19
+        S1, S2, S3, S4,
+        S5, S6, S8, S9,
+        S11, S12, S13,
+        S14, S15, S17,
+        S18, S19
     }
 
     [Flags]

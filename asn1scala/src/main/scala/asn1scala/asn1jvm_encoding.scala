@@ -502,7 +502,7 @@ def BitStream_EncodeNonNegativeInteger32Neg(pBitStrm: BitStream, v: Int, negate:
     else if v >>> 16 == 0 then
         cc = 16
         curMask = 0x8000
-    else if v >>> 24 == 0then
+    else if v >>> 24 == 0 then
         cc = 24
         curMask = 0x800000
     else
