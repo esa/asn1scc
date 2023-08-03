@@ -114,7 +114,7 @@ def BitStream_AppendBitOne(pBitStrm: BitStream): Unit = {
         pBitStrm.currentBit = 0
         pBitStrm.currentByte += 1
         bitstream_push_data_if_required(pBitStrm)
-    assert(pBitStrm.currentByte * 8 + pBitStrm.currentBit <= pBitStrm.buf.length * 8)
+    assert(pBitStrm.currentByte.toLong*8 + pBitStrm.currentBit <= pBitStrm.buf.length.toLong*8)
 }
 
 /**
@@ -140,7 +140,7 @@ def BitStream_AppendBitZero(pBitStrm: BitStream): Unit = {
         pBitStrm.currentBit = 0
         pBitStrm.currentByte += 1
         bitstream_push_data_if_required(pBitStrm)
-    assert(pBitStrm.currentByte * 8 + pBitStrm.currentBit <= pBitStrm.buf.length * 8)
+    assert(pBitStrm.currentByte.toLong*8 + pBitStrm.currentBit <= pBitStrm.buf.length.toLong*8)
 }
 
 def BitStream_AppendNBitZero(pBitStrm: BitStream, nbits: Int): Unit = {
@@ -219,7 +219,7 @@ def BitStream_ReadBit(pBitStrm: BitStream): Option[Boolean] = {
         pBitStrm.currentByte += 1
         bitstream_fetch_data_if_required(pBitStrm)
 
-    if pBitStrm.currentByte * 8 + pBitStrm.currentBit <= pBitStrm.buf.length * 8 then
+    if pBitStrm.currentByte.toLong*8 + pBitStrm.currentBit <= pBitStrm.buf.length.toLong*8 then
         Some(ret)
     else
         None
@@ -265,7 +265,7 @@ def BitStream_AppendByte(pBitStrm: BitStream, vVal: UByte, negate: Boolean): Uni
     pBitStrm.currentByte += 1
     bitstream_push_data_if_required(pBitStrm)
 
-    assert(pBitStrm.currentByte * 8 + pBitStrm.currentBit <= pBitStrm.buf.length * 8)
+    assert(pBitStrm.currentByte.toLong*8 + pBitStrm.currentBit <= pBitStrm.buf.length.toLong*8)
 
     if cb > 0 then
         mask = (~mask).toByte
@@ -305,7 +305,7 @@ def BitStream_AppendByteArray(pBitStrm: BitStream, arr: Array[UByte], arr_len: I
     val nmask: UByte = (~mask).toByte
 
     //if (pBitStrm->currentByte + (int)arr_len + (cb > 0 ? 1 : 0) >= pBitStrm->count)
-    if (pBitStrm.currentByte+arr_len)*8+pBitStrm.currentBit > pBitStrm.buf.length*8 then
+    if (pBitStrm.currentByte+arr_len).toLong*8 + pBitStrm.currentBit > pBitStrm.buf.length.toLong*8 then
         return false
 
     if arr_len > 0 then
@@ -356,7 +356,7 @@ def BitStream_ReadByte(pBitStrm: BitStream): Option[UByte] = {
     if cb > 0 then
         v = (v | pBitStrm.buf(pBitStrm.currentByte) >>> ncb).toByte // TODO: check if & 0xFF is needed
 
-    if pBitStrm.currentByte * 8 + pBitStrm.currentBit <= pBitStrm.buf.length * 8 then
+    if pBitStrm.currentByte.toLong*8 + pBitStrm.currentBit <= pBitStrm.buf.length.toLong*8 then
         Some(v)
     else
         None
@@ -368,7 +368,7 @@ def BitStream_ReadByteArray(pBitStrm: BitStream, arr_len: Int): Option[Array[UBy
     val cb: UByte = pBitStrm.currentBit.toByte
     val ncb: UByte = (8 - cb).toByte
 
-    if (pBitStrm.currentByte+arr_len)*8+cb.toInt > pBitStrm.buf.length*8 then
+    if (pBitStrm.currentByte+arr_len).toLong*8 + cb.toInt > pBitStrm.buf.length.toLong*8 then
         return None
 
     var i: Int = 0
@@ -444,7 +444,7 @@ def BitStream_AppendPartialByte(pBitStrm: BitStream, vVal: UByte, nbits: UByte, 
         pBitStrm.currentBit = totalBitsForNextByte.toInt
     }
 
-    assert(pBitStrm.currentByte * 8 + pBitStrm.currentBit <= pBitStrm.buf.length * 8)
+    assert(pBitStrm.currentByte.toLong*8 + pBitStrm.currentBit <= pBitStrm.buf.length.toLong*8)
 }
 
 /* nbits 1..7*/
@@ -472,7 +472,7 @@ def BitStream_ReadPartialByte(pBitStrm: BitStream, nbits: UByte): Option[UByte] 
         pBitStrm.currentBit = totalBitsForNextByte.toInt
     }
 
-    if pBitStrm.currentByte * 8 + pBitStrm.currentBit <= pBitStrm.buf.length * 8 then
+    if pBitStrm.currentByte.toLong*8 + pBitStrm.currentBit <= pBitStrm.buf.length.toLong*8 then
         Some(v)
     else
         None
@@ -1111,7 +1111,7 @@ def BitStream_checkBitPatternPresent(pBitStrm: BitStream, bit_terminated_pattern
     val tmp_currentBit: Int = pBitStrm.currentBit
     var tmp_byte: UByte = 0
 
-    if pBitStrm.currentByte * 8 + pBitStrm.currentBit + bit_terminated_pattern_size_in_bits.toInt > pBitStrm.buf.length * 8 then
+    if pBitStrm.currentByte.toLong*8 + pBitStrm.currentBit + bit_terminated_pattern_size_in_bits.toInt > pBitStrm.buf.length.toLong*8 then
         return 0
 
     var i: Int = 0
