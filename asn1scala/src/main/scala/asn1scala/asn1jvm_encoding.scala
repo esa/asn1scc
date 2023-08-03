@@ -637,7 +637,7 @@ def GetNumberOfBitsForNonNegativeInteger32(vVal: Int): Int = {
 }
 def GetNumberOfBitsForNonNegativeInteger(v: ULong): Int = {
     if WORD_SIZE == 8 then
-        if v < 0x100000000L then
+        if v >>> 32 == 0 then
             return GetNumberOfBitsForNonNegativeInteger32(v.toInt)
         else
             val hi = (v >>> 32).toInt
@@ -693,7 +693,7 @@ def GetLengthInBytesOfSInt (v: Long): Int = {
 
 def BitStream_EncodeConstraintWholeNumber(pBitStrm: BitStream, v: Long, min: Long, max: Long): Unit = {
     require(min <= max)
-    val range = (max - min)
+    val range = max - min
     if range == 0 then
         return
 
@@ -1047,62 +1047,62 @@ def BitStream_DecodeReal(pBitStrm: BitStream): Option[Double] = {
 
 def DecodeRealAsBinaryEncoding(pBitStrm: BitStream, lengthVal: Int, header: UByte): Option[Double] = {
 
-        var length = lengthVal
-        var sign: Int = 1
-        /*int base=2;*/
-        var factor: ULong = 1
-        var expFactor: Int = 1
-        var N: ULong = 0
+    var length = lengthVal
+    var sign: Int = 1
+    /*int base=2;*/
+    var factor: ULong = 1
+    var expFactor: Int = 1
+    var N: ULong = 0
 
-        if (header & 0x40) > 0 then
-            sign = -1
-        if (header & 0x10) > 0 then
-            /*base = 8;*/
-            expFactor = 3
-        else if (header & 0x20) > 0 then
-            /*base = 16;*/
-            expFactor = 4
+    if (header & 0x40) > 0 then
+        sign = -1
+    if (header & 0x10) > 0 then
+        /*base = 8;*/
+        expFactor = 3
+    else if (header & 0x20) > 0 then
+        /*base = 16;*/
+        expFactor = 4
 
-        val F: Int = ((header & 0x0C) >>> 2).toInt
-        factor <<= F
+    val F: Int = ((header & 0x0C) >>> 2).toInt
+    factor <<= F
 
-        val expLen: Int = ((header & 0x03) + 1).toInt
+    val expLen: Int = ((header & 0x03) + 1).toInt
 
-        if expLen > length then
-            return None
+    if expLen > length then
+        return None
 
-        val expIsNegative = BitStream_PeekBit(pBitStrm)
-        var exponent: Int = if expIsNegative then 0xFFFFFFFF else 0
+    val expIsNegative = BitStream_PeekBit(pBitStrm)
+    var exponent: Int = if expIsNegative then 0xFFFFFFFF else 0
 
-        var i: Int = 0
-        while i < expLen do
-            decreases(expLen - i)
+    var i: Int = 0
+    while i < expLen do
+        decreases(expLen - i)
 
-            BitStream_ReadByte(pBitStrm) match
-                case None => return None
-                case Some(ub) => exponent = exponent << 8 | (ub.toInt & 0xFF)
+        BitStream_ReadByte(pBitStrm) match
+            case None => return None
+            case Some(ub) => exponent = exponent << 8 | (ub.toInt & 0xFF)
 
-            i += 1
+        i += 1
 
-        length -= expLen
+    length -= expLen
 
-        var j: Int = 0
-        while j < length do
-            decreases(length - j)
+    var j: Int = 0
+    while j < length do
+        decreases(length - j)
 
-            BitStream_ReadByte(pBitStrm) match
-                case None => return None
-                case Some(ub) => N = N << 8 | (ub.toInt & 0xFF)
+        BitStream_ReadByte(pBitStrm) match
+            case None => return None
+            case Some(ub) => N = N << 8 | (ub.toInt & 0xFF)
 
-            j += 1
+        j += 1
 
-        /*    *v = N*factor * pow(base,exp);*/
-        var v: Double = GetDoubleByMantissaAndExp(N * factor, expFactor * exponent)
+    /*    *v = N*factor * pow(base,exp);*/
+    var v: Double = GetDoubleByMantissaAndExp(N * factor, expFactor * exponent)
 
-        if sign < 0 then
-            v = -v
+    if sign < 0 then
+        v = -v
 
-        return Some(v)
+    return Some(v)
 }
 
 def BitStream_checkBitPatternPresent(pBitStrm: BitStream, bit_terminated_pattern: Array[UByte], bit_terminated_pattern_size_in_bitsVal: UByte): Int = {
