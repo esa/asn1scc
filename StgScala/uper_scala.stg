@@ -458,7 +458,7 @@ if !BitStream_EncodeOctetString_no_length(pBitStrm, <p><sAcc>arr, <nFixedSize>.a
 octect_FixedSize_decode(p, sAcc, nFixedSize) ::= <<
 BitStream_DecodeOctetString_no_length(pBitStrm, <nFixedSize>) match // uper:450
     case Some(x) => 
-        <p><sAcc>arr = x
+        x.copyToArray(<p><sAcc>arr)
     case None => 
         return Left(454)
 >>
@@ -482,7 +482,6 @@ BitStream_DecodeConstraintWholeNumber(pBitStrm, <nSizeMin>, <nSizeMax>) match //
 BitStream_DecodeOctetString_no_length(pBitStrm, <p><sAcc>nCount.asInstanceOf[Int]) match
     case Some(a) =>    
         a.copyToArray(<p><sAcc>arr)
-        //<p><sAcc>arr = a
     case None => 
         return Left(<sErrCode>)
 >>
@@ -494,8 +493,8 @@ BitStream_AppendBits(pBitStrm, <p><sAcc>arr, <nFixedSize>.asInstanceOf[Int]) // 
 >>
 bitString_FixSize_decode(p, sAcc, nFixedSize, sErrCode) ::= <<
 BitStream_ReadBits(pBitStrm, <nFixedSize>.asInstanceOf[Int]) match // uper:495
-    case Some(a) => 
-        <p><sAcc>arr = a
+    case Some(a) =>
+        a.copyToArray(<p><sAcc>arr)
     case None => 
         return Left(<sErrCode>)
 >>

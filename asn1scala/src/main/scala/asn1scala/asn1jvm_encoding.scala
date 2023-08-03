@@ -363,7 +363,7 @@ def BitStream_ReadByte(pBitStrm: BitStream): Option[UByte] = {
 }
 
 def BitStream_ReadByteArray(pBitStrm: BitStream, arr_len: Int): Option[Array[UByte]] = {
-    val arr: Array[UByte] = Array.fill(arr_len+1)(0)
+    val arr: Array[UByte] = Array.fill(arr_len)(0)
 
     val cb: UByte = pBitStrm.currentBit.toByte
     val ncb: UByte = (8 - cb).toByte
@@ -1239,14 +1239,14 @@ def BitStream_DecodeOctetString_no_length(pBitStrm: BitStream, nCount: Int): Opt
             return None
 
         //memcpy(arr, pBitStrm.buf(pBitStrm.currentByte), nCount)
-        arr = pBitStrm.buf.slice(pBitStrm.currentByte, pBitStrm.currentByte+Math.max(1, nCount))
+        pBitStrm.buf.slice(pBitStrm.currentByte, pBitStrm.currentByte+nCount).copyToArray(arr)
         pBitStrm.currentByte += nCount
     //#endif
 
     else
         BitStream_ReadByteArray(pBitStrm, nCount) match
             case None => return None
-            case Some(a) => arr = a
+            case Some(a) => a.copyToArray(arr)
 
     return Some(arr)
 }
