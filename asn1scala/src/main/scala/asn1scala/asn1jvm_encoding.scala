@@ -270,7 +270,7 @@ def BitStream_AppendByte(pBitStrm: BitStream, vVal: UByte, negate: Boolean): Uni
     if cb > 0 then
         mask = (~mask).toByte
         pBitStrm.buf(pBitStrm.currentByte) = (pBitStrm.buf(pBitStrm.currentByte) & mask).toByte
-        pBitStrm.buf(pBitStrm.currentByte) = (pBitStrm.buf(pBitStrm.currentByte) | (v << ncb)).toByte // TODO: check if & 0xFF is needed
+        pBitStrm.buf(pBitStrm.currentByte) = (pBitStrm.buf(pBitStrm.currentByte) | ((v & 0xFF) << ncb)).toByte // TODO: check if & 0xFF is needed
 }
 
 def BitStream_AppendByte0(pBitStrm: BitStream, v: UByte): Boolean = {
@@ -280,7 +280,7 @@ def BitStream_AppendByte0(pBitStrm: BitStream, v: UByte): Boolean = {
     var mask = ~masks(ncb)
 
     pBitStrm.buf(pBitStrm.currentByte) = (pBitStrm.buf(pBitStrm.currentByte) & mask).toByte
-    pBitStrm.buf(pBitStrm.currentByte) = (pBitStrm.buf(pBitStrm.currentByte) | (v >>> cb)).toByte
+    pBitStrm.buf(pBitStrm.currentByte) = (pBitStrm.buf(pBitStrm.currentByte) | ((v & 0xFF) >>> cb)).toByte
     pBitStrm.currentByte += 1
     bitstream_push_data_if_required(pBitStrm)
 
@@ -289,7 +289,7 @@ def BitStream_AppendByte0(pBitStrm: BitStream, v: UByte): Boolean = {
             return false
         mask = ~mask
         pBitStrm.buf(pBitStrm.currentByte) = (pBitStrm.buf(pBitStrm.currentByte) & mask).toByte
-        pBitStrm.buf(pBitStrm.currentByte) = (pBitStrm.buf(pBitStrm.currentByte) | (v << cb)).toByte
+        pBitStrm.buf(pBitStrm.currentByte) = (pBitStrm.buf(pBitStrm.currentByte) | ((v & 0xFF) << cb)).toByte
 
     true
 }
@@ -311,19 +311,19 @@ def BitStream_AppendByteArray(pBitStrm: BitStream, arr: Array[UByte], arr_len: I
     if arr_len > 0 then
         val v: UByte = arr(0)
         pBitStrm.buf(pBitStrm.currentByte) = (pBitStrm.buf(pBitStrm.currentByte) & mask).toByte     //make zero right bits (i.e. the ones that will get the new value)
-        pBitStrm.buf(pBitStrm.currentByte) = (pBitStrm.buf(pBitStrm.currentByte) | (v >>> cb)).toByte    //shift right and then populate current byte
+        pBitStrm.buf(pBitStrm.currentByte) = (pBitStrm.buf(pBitStrm.currentByte) | ((v & 0xFF) >>> cb)).toByte    //shift right and then populate current byte
         pBitStrm.currentByte += 1
         bitstream_push_data_if_required(pBitStrm)
 
         pBitStrm.buf(pBitStrm.currentByte) = (pBitStrm.buf(pBitStrm.currentByte) & nmask).toByte
-        pBitStrm.buf(pBitStrm.currentByte) = (pBitStrm.buf(pBitStrm.currentByte) | (v << ncb)).toByte
+        pBitStrm.buf(pBitStrm.currentByte) = (pBitStrm.buf(pBitStrm.currentByte) | ((v & 0xFF) << ncb)).toByte
 
     var i: Int = 1
     while i < arr_len-1 do
         decreases(arr_len-1-i)
         val v: UByte = arr(i)
-        val v1: UByte = (v >>> cb).toByte
-        val v2: UByte = (v << ncb).toByte
+        val v1: UByte = ((v & 0xFF) >>> cb).toByte
+        val v2: UByte = ((v & 0xFF) << ncb).toByte
         pBitStrm.buf(pBitStrm.currentByte) = (pBitStrm.buf(pBitStrm.currentByte) | v1).toByte //shift right and then populate current byte
         pBitStrm.currentByte += 1
         bitstream_push_data_if_required(pBitStrm)
@@ -333,13 +333,13 @@ def BitStream_AppendByteArray(pBitStrm: BitStream, arr: Array[UByte], arr_len: I
     if arr_len - 1 > 0 then
         val v: UByte = arr(arr_len - 1)
         pBitStrm.buf(pBitStrm.currentByte) = (pBitStrm.buf(pBitStrm.currentByte) & mask ).toByte            //make zero right bits (i.e. the ones that will get the new value)
-        pBitStrm.buf(pBitStrm.currentByte) = (pBitStrm.buf(pBitStrm.currentByte) | (v >>> cb)).toByte    //shift right and then populate current byte
+        pBitStrm.buf(pBitStrm.currentByte) = (pBitStrm.buf(pBitStrm.currentByte) | ((v & 0xFF) >>> cb)).toByte    //shift right and then populate current byte
         pBitStrm.currentByte += 1
         bitstream_push_data_if_required(pBitStrm)
 
         if cb > 0 then
             pBitStrm.buf(pBitStrm.currentByte) = (pBitStrm.buf(pBitStrm.currentByte) & nmask).toByte
-            pBitStrm.buf(pBitStrm.currentByte) = (pBitStrm.buf(pBitStrm.currentByte) | (v << ncb)).toByte
+            pBitStrm.buf(pBitStrm.currentByte) = (pBitStrm.buf(pBitStrm.currentByte) | ((v & 0xFF) << ncb)).toByte
 
     true
 }
@@ -467,7 +467,7 @@ def BitStream_ReadPartialByte(pBitStrm: BitStream, nbits: UByte): Option[UByte] 
         v = (pBitStrm.buf(pBitStrm.currentByte) << totalBitsForNextByte).toByte
         pBitStrm.currentByte += 1
         bitstream_fetch_data_if_required(pBitStrm)
-        v = (v | pBitStrm.buf(pBitStrm.currentByte) >>> (8 - totalBitsForNextByte)).toByte
+        v = (v | (pBitStrm.buf(pBitStrm.currentByte) & 0xFF) >>> (8 - totalBitsForNextByte)).toByte
         v = (v & masksb(nbits)).toByte
         pBitStrm.currentBit = totalBitsForNextByte.toInt
     }

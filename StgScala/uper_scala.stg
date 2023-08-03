@@ -405,7 +405,7 @@ str_FixedSize_decode(p, sTasName, i, sInternalItem, nFixedSize, nIntItemMinSize,
 >>
 
 str_VarSize_encode(p, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize) ::= <<
-nStringLength = <p>.length // uper:394
+nStringLength = <p>.indexOf(0) // uper:394
 /*ret = nStringLength >= <nSizeMin> && nStringLength \<= <nSizeMax>;*/
 BitStream_EncodeConstraintWholeNumber(pBitStrm, nStringLength, <nSizeMin>, <nSizeMax>) // uper:401
 <loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize="nStringLength")>
@@ -480,8 +480,9 @@ BitStream_DecodeConstraintWholeNumber(pBitStrm, <nSizeMin>, <nSizeMax>) match //
 
 // decode payload
 BitStream_DecodeOctetString_no_length(pBitStrm, <p><sAcc>nCount.asInstanceOf[Int]) match
-    case Some(a) =>
-        <p><sAcc>arr = a
+    case Some(a) =>    
+        a.copyToArray(<p><sAcc>arr)
+        //<p><sAcc>arr = a
     case None => 
         return Left(<sErrCode>)
 >>

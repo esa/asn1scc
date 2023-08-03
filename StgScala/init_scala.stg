@@ -129,6 +129,8 @@ initTestCaseOctetString(p, sAcc, sArrayHolderName, nSize, i, bIsFixedSize, bZero
     <i> += 1
 })
 <endif>
+
+<if(!bIsFixedSize)><p><sAcc>nCount = <if(bZero)><nMinSize><else><nSize><endif><endif>
 >>
 
 

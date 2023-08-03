@@ -98,7 +98,7 @@ ExpAndMulit(arrsExp) ::= <<
 <arrsExp; separator=" && ">
 >>
 ExpNot(sExp) ::= "(!<sExp>)"
-StrLen(sExp) ::= "<sExp>.length"
+StrLen(sExp) ::= "<sExp>.indexOf(0)"
 ArrayLen(sExp, sAcc) ::= "<sExp><sAcc>nCount /* isvalid:97 */"
 
 ExpressionToStament(sExp1) ::=<<
