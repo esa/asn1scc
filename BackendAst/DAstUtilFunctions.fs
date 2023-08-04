@@ -88,6 +88,14 @@ let isSequenceForJVMelseFalse (k: Asn1TypeKind): bool =
         | _ -> false
     | _ -> false
 
+let isOctetStringForJVMelseFalse (k: Asn1TypeKind): bool = 
+    match ST.lang with
+    | Scala ->
+        match k with
+        | OctetString s -> true
+        | _ -> false
+    | _ -> false
+    
 type LocalVariable with
     member this.VarName =
         match this with

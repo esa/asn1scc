@@ -673,12 +673,13 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Commo
                     let sChildName = (lm.lg.getAsn1ChChildBackendName child)
                     let sChildTypeDef = child.chType.typeDefintionOrReference.longTypedefName2 lm.lg.hasModules //child.chType.typeDefinition.typeDefinitionBodyWithinSeq
                     let isSequence = isSequenceForJVMelseFalse child.chType.Kind 
-                    let isEnum = isEnumForJVMelseFalse child.chType.Kind
+                    let isEnum = isEnumForJVMelseFalse child.chType.Kind 
+                    let isOctetString = isOctetStringForJVMelseFalse child.chType.Kind
                     let sChildInitExpr = child.chType.initFunction.initExpression
                     let exprMethodCall =
                         match ST.lang with
                         | Scala ->
-                            match isSequence || sChildInitExpr.Equals("null") || isEnum with
+                            match isSequence || sChildInitExpr.Equals("null") || isEnum || isOctetString with
                             | true -> ""
                             | false -> scalaInitMethSuffix child.chType.Kind
                         | _ -> ""
