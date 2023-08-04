@@ -1188,7 +1188,12 @@ let createChoiceInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAs
                                 | true   -> fnc {p with arg = VALUE (sChildName + "_tmp")}
                             childContent.funcBody, childContent.localVariables
 
-                    let funcBody = initTestCase_choice_child p.arg.p (lm.lg.getAccess p.arg) (childContent_funcBody) (sChildID p) sChildName  sChildTypeDef typeDefinitionName sChildTempVarName (extractDefaultInitValue ch.chType.Kind)
+                    let sChildTempDefaultInit =
+                        match ST.lang with
+                        | ProgrammingLanguage.Scala ->
+                            sChildTypeDef + (lm.init.methodNameSuffix()) + "()"
+                        | _ -> (extractDefaultInitValue ch.chType.Kind)
+                    let funcBody = initTestCase_choice_child p.arg.p (lm.lg.getAccess p.arg) (childContent_funcBody) (sChildID p) sChildName  sChildTypeDef typeDefinitionName sChildTempVarName sChildTempDefaultInit
                     {InitFunctionResult.funcBody = funcBody; localVariables = childContent_localVariables}
                 let combinedTestCase =
                     match atc.testCaseTypeIDsMap.ContainsKey ch.chType.id with
