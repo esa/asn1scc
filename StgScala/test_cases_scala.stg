@@ -97,7 +97,7 @@ Codec_write_CharstreamToFile() ::= <<
 
 Codec_write_bitstreamToFile() ::= <<
 // test_cases_scala.stg:99
-val file = new File(filename)
+val file = new File(filename+".dat")
 val bw = new FileOutputStream(file)
 bw.write(bitStrm.buf)
 bw.close()
