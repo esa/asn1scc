@@ -266,7 +266,7 @@ type LangGeneric_scala() =
             | FlagLocalVariable (name,Some iv)          -> sprintf "var %s: Boolean = %d" name iv
             | BooleanLocalVariable (name,None)          -> sprintf "var %s: Boolean = false" name
             | BooleanLocalVariable (name,Some iv)       -> sprintf "var %s: Boolean = %s" name (if iv then "true" else "false")
-            | AcnInsertedChild(name, vartype)           -> sprintf "var %s: %s" name vartype
+            | AcnInsertedChild(name, vartype)           -> sprintf "var %s: %s = 0" name vartype
             
             | GenericLocalVariable lv                   ->
                 sprintf "var %s%s: %s%s = %s" (if lv.isStatic then "static " else "") lv.name lv.varType (if lv.arrSize.IsNone then "" else "["+lv.arrSize.Value+"]") (if lv.initExp.IsNone then "" else lv.initExp.Value)

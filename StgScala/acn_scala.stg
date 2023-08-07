@@ -53,7 +53,6 @@ def <sFuncName>(<if(bBsIsUnreferenced)>@annotation.unused <endif>pBitStrm: BitSt
 
     if ret.isRight then
         ret = Right(<sVarName>)
-
     <if(soIValidFuncName)>    
     ret match
         case Left(x) =>
@@ -68,7 +67,7 @@ def <sFuncName>(<if(bBsIsUnreferenced)>@annotation.unused <endif>pBitStrm: BitSt
 }
 >>
 
-A(sErrCode) /*nogen*/ ::= "*pErrCode = ret ? 0 : <sErrCode> // TODO needExample acn:68"
+A(sErrCode) /*nogen*/ ::= ""
 
 MF(soMF) ::= /*nogen*/ <<
 <if(soMF)>
@@ -335,31 +334,34 @@ Acn_Dec_Real_IEEE754_32_little_endian<sSuffix>(pBitStrm) match // acn:327
 Real_64_little_endian_encode(p, sErrCode) ::= "Acn_Enc_Real_IEEE754_64_little_endian(pBitStrm, <p>) // acn:332"
 Real_64_little_endian_decode(p, sErrCode) ::= <<
 Acn_Dec_Real_IEEE754_64_little_endian(pBitStrm) match // acn:334
-    case None => return Left(<sErrCode>)
-    case Some(x) => <p> = x
+    case None => 
+        return Left(<sErrCode>)
+    case Some(x) => 
+        <p> = x
 >>
 
 
 Boolean_encode(p, ptr, bEncValIsTrue, nSize, arruTrueValueAsByteArray, arruFalseValueAsByteArray, arrsBits, sErrCode) ::= <<
 {
-    // TODO acn:342
-    static byte true_data[] = {<arruTrueValueAsByteArray:{b|0x<b;format="X2">}; separator=",">};
-    static byte false_data[] = {<arruFalseValueAsByteArray:{b|0x<b;format="X2">}; separator=",">};
-    byte* tmp = <p> ? true_data : false_data; 
-    BitStream_AppendBits(pBitStrm, tmp, <nSize>);
+    var true_data: Array[UByte] = Array(<arruTrueValueAsByteArray:{b|0x<b;format="X2">.asInstanceOf[UByte]}; separator=", ">)
+    var false_data: Array[UByte] = Array(<arruFalseValueAsByteArray:{b|0x<b;format="X2">.asInstanceOf[UByte]}; separator=", ">)
+    BitStream_AppendBits(pBitStrm, if <p> then true_data else false_data, <nSize>)
 }
 >>
 
 Boolean_decode(p, ptr, bEncValIsTrue, nSize, arruTrueValueAsByteArray, arruFalseValueAsByteArray, arrsBits, sErrCode) ::= <<
 {
-    // TODO acn:352
     <if(bEncValIsTrue)>
-    static byte tmp[] = {<arruTrueValueAsByteArray:{b|0x<b;format="X2">}; separator=",">};
+    var tmp: Array[UByte] = Array(<arruTrueValueAsByteArray:{b|0x<b;format="X2">.asInstanceOf[UByte]}; separator=", ">)
     <else>
-    static byte tmp[] = {<arruFalseValueAsByteArray:{b|0x<b;format="X2">}; separator=",">};
+    var tmp: Array[UByte] = Array(<arruFalseValueAsByteArray:{b|0x<b;format="X2">.asInstanceOf[UByte]}; separator=", ">)
     <endif>
-    ret = BitStream_ReadBitPattern(pBitStrm, tmp, <nSize>, <ptr>);
-    <A(sErrCode)>
+    BitStream_ReadBitPattern(pBitStrm, tmp, <nSize>) match
+        case None =>
+            return Left(<sErrCode>)
+        case Some(x) => 
+            <p> = x
+    
     <if(!bEncValIsTrue)><p> = !<p>;<endif>
 }
 >>
@@ -930,7 +932,7 @@ ChoiceDependencyEnum(sChPath, sAcc, arrsChoiceEnumItems) ::= <<
 <sChPath><sAcc>kind match // acn:924
     <arrsChoiceEnumItems; separator="\n">
     case _ =>
-        ret = Left(ERR_INVALID_ENUM_VALUE) 
+        return Left(ERR_INVALID_ENUM_VALUE) 
 >>
 
 PresenceDependency(v, sSeqPath, sAcc, sChildName) ::= <<
@@ -954,21 +956,20 @@ ChoiceDependencyPres(sChPath, sAcc, arrsChoiceItems) ::= <<
 <sChPath><sAcc>kind match // acn:948
     <arrsChoiceItems; separator="\n">
     case _ =>
-        ret = Left(951)
+        return Left(951)
 >>
 
 MultiAcnUpdate_checkEqual_pri0(p1,p2) ::= "(<p1> == <p2>) // acn:954"
 MultiAcnUpdate_checkEqual_str0(p1,p2) ::= "(<p1> == <p2>) // acn:955"
 
 MultiAcnUpdate_get_first_init_value_pri(sV0, sVi, bIsFirst) ::= <<
-<if(!bIsFirst)>else <endif>if (<sVi>_is_initialized) { /*COVERAGE_IGNORE*/
-    <sV0> = <sVi> /*COVERAGE_IGNORE*/
-} /*COVERAGE_IGNORE*/
+<if(!bIsFirst)>else <endif>if <sVi>_is_initialized then // acn:966
+    <sV0> = <sVi>
 >>
 
 MultiAcnUpdate_get_first_init_value_str(sV0, sVi, bIsFirst) ::= <<
-<if(!bIsFirst)>else <endif>if <sVi>_is_initialized then 
-    <sV0> = <sVi> 
+<if(!bIsFirst)>else <endif>if <sVi>_is_initialized then // acn:972
+    <sV0> = <sVi>
 >>
 
 MultiAcnUpdate_checkEqual_pri(sV0, sVi) ::= "((<sVi>_is_initialized && <sV0> == <sVi>) || !<sVi>_is_initialized)"
@@ -981,14 +982,13 @@ MultiAcnUpdate(v, sV0, sErrCode, arrsLocalDeclarations, arrsLocalUpdateStatement
     
     <arrsLocalUpdateStatements; separator="\n">
     
-    if ret.isRight // acn:978 TODO not the if for the lower else
+    if ret.isRight then // acn:978
     
-        <arrsGetFirstIntValue; separator=" "> 
-        else // TODO this is not the else for the upper if
+        <arrsGetFirstIntValue; separator="\n"> 
+        else // acn:988
             return Left(<sErrCode>)
         
-        if ret.isRight // TODO, still needed?
-            ret = (<arrsLocalCheckEquality; separator=" && ">)
+        if ret.isRight then
             <v>_is_initialized = true
 }
 >>
