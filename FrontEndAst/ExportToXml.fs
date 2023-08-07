@@ -564,7 +564,7 @@ let private exportType (t:Asn1Type) =
                             (exportChoiceOptionality ch.Optionality ),
                             (exportChoiceChildPresentWhenCondition ch.acnPresentWhenConditions),
                             (if ch.asn1Comments.Length > 0 then (XElement (xname "AsnComment", (ch.asn1Comments |> Seq.StrJoin "\n"))) else null),
-                            (if ch.acnComments.Length > 0 then (XElement (xname "AsnComment", (ch.acnComments |> Seq.StrJoin "\n"))) else null),
+                            (if ch.acnComments.Length > 0 then (XElement (xname "AcnComment", (ch.acnComments |> Seq.StrJoin "\n"))) else null),
                             nt), us )
         (fun ref nt us -> XElement(xname "REFERENCE_TYPE",
                             XAttribute(xname "Module", ref.modName.Value),
