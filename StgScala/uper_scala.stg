@@ -385,6 +385,7 @@ else
 /* SEQUENCE END */
 
 loopFixedItem (i, fixedSize,  sInternalItem)::= /*nogen*/<<	
+<i> = 0
 while(<i> \< <fixedSize>.asInstanceOf[Int]) // uper:381
 {
     <sInternalItem>

@@ -838,7 +838,7 @@ def BitStream_DecodeSemiConstraintWholeNumber(pBitStrm:BitStream, min: Long): Op
 
         BitStream_ReadByte(pBitStrm) match
             case None => return None
-            case Some(ub) => v = (v << 8) | ub.toLong
+            case Some(ub) => v = (v << 8) | (ub & 0xFF).toLong
 
         i += 1
 
@@ -862,7 +862,7 @@ def BitStream_DecodeSemiConstraintPosWholeNumber(pBitStrm:BitStream, min: ULong)
 
         BitStream_ReadByte(pBitStrm) match
             case None => return None
-            case Some(ub) => v = (v << 8) | ub.toLong
+            case Some(ub) => v = (v << 8) | (ub & 0xFF).toLong
 
         i += 1
     v += min
@@ -903,7 +903,7 @@ def BitStream_DecodeUnConstraintWholeNumber(pBitStrm: BitStream): Option[Long] =
 
         BitStream_ReadByte(pBitStrm) match
             case None => return None
-            case Some(ub) => v = (v << 8) | ub.toLong
+            case Some(ub) => v = (v << 8) | (ub & 0xFF).toLong
 
         i += 1
 
