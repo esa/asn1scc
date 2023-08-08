@@ -96,7 +96,7 @@ Acn_AlignTo<sAligmentValue>(pBitStrm, false) // acn:91
 
 PositiveInteger_ConstSize_encode(p, sSsuffix, sErrCode, nFixedSize, soMF, soMFM, nUperMin, nUperMax) ::= "Acn_Enc_Int_PositiveInteger_ConstSize(pBitStrm, <if(soMF)><soMF>_encode(<p>)<else><p><endif>, <nFixedSize>) // acn:95"
 PositiveInteger_ConstSize_decode(p, sSsuffix, sErrCode, nFixedSize, soMF, soMFM, nUperMin, nUperMax) ::= <<
-Acn_Dec_Int_PositiveInteger_ConstSize<sSsuffix>(pBitStrm, <p>, <nFixedSize>) match // acn:97
+Acn_Dec_Int_PositiveInteger_ConstSize<sSsuffix>(pBitStrm, <nFixedSize>) match // acn:97
     case None => return Left(<sErrCode>)
     case Some(x) => <p> = x
 <MF(soMF)>
@@ -369,8 +369,8 @@ Boolean_decode(p, ptr, bEncValIsTrue, nSize, arruTrueValueAsByteArray, arruFalse
 Null_pattern_encode(p, arruNullValueAsByteArray, nSize, arrsBits, sErrCode, bSavePosition) ::= <<
 <if(arruNullValueAsByteArray)>
 {   // TODO acn:366
-    static byte tmp[] = {<arruNullValueAsByteArray:{b|0x<b;format="X2">}; separator=",">};
-    BitStream_AppendBits(pBitStrm, tmp, <nSize>);
+    val tmp: Array[Byte] = Array(<arruNullValueAsByteArray:{b|0x<b;format="X2">}; separator=",">)
+    BitStream_AppendBits(pBitStrm, tmp, <nSize>)
 }
 <endif>
 >>
@@ -378,15 +378,20 @@ Null_pattern_encode(p, arruNullValueAsByteArray, nSize, arrsBits, sErrCode, bSav
 
 Null_pattern_decode(p, arruNullValueAsByteArray, nSize, arrsBits, sErrCode, bSavePosition) ::= <<
 <if(bSavePosition)>
-ret = BitStream_ReadBitPattern_ignore_value(pBitStrm, <nSize>)
+BitStream_ReadBitPattern_ignore_value(pBitStrm, <nSize>) match
+    case None => ret = Left(<sErrCode>)
+    case Some(i) => ret = Right(i)
 
 <else>
 <if(arruNullValueAsByteArray)>
 {
-    static byte tmp[] = {<arruNullValueAsByteArray:{b|0x<b;format="X2">}; separator=",">};
-    flag bDecodingPatternMatches;
-    ret = BitStream_ReadBitPattern(pBitStrm, tmp, <nSize>, &bDecodingPatternMatches);   // acn:383
-    ret = ret && bDecodingPatternMatches;
+    val tmp: Array[Byte] = Array(<arruNullValueAsByteArray:{b|0x<b;format="X2">}; separator=",">)
+    // acn:383
+    BitStream_ReadBitPattern(pBitStrm, tmp, <nSize>) match
+        case None => ret = Left(<sErrCode>)   
+        case Some(b) => 
+            if !b then ret = Left(<sErrCode>)
+        
     <A(sErrCode)>
 }
 
