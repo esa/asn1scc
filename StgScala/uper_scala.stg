@@ -297,7 +297,7 @@ case <nChildIndex> => // enum idx uper:296
     var <sChildName>: <sChildTypeDef> = <sChildTypeDef>(<sChildInitExpr>) // uper:297
     <else>
     <if(bIsEnum)>
-    var <sChildName>: <sChildTypeDef> = <sChildTypeDef>.<sChildInitExpr> // uper:300
+    var <sChildName>: <sChildTypeDef> = <sChildInitExpr> // uper:300
     <else>
     var <sChildName>: <sChildTypeDef> = <sChildInitExpr> // uper:302
     <endif>
