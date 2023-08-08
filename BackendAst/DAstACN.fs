@@ -542,7 +542,9 @@ let createEnumComn (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:CommonTypes
             match intFuncBody errCode acnArgs pVal with
             | None      -> None
             | Some(intAcnFuncBdResult) ->
-                let arrItems = o.items |> List.map(fun it -> Enumerated_item (lm.lg.getValue p.arg) (lm.lg.getNamedItemBackendName (Some defOrRef) it ) it.acnEncodeValue intVal codec)
+                let arrItems = o.items |> List.map(fun it -> 
+                    let enumClassName = extractEnumClassName "" it.scala_name it.Name.Value
+                    Enumerated_item (lm.lg.getValue p.arg) (lm.lg.getNamedItemBackendName (Some defOrRef) it ) enumClassName it.acnEncodeValue intVal codec)
                 Some (EnumeratedEncValues (lm.lg.getValue p.arg) td arrItems intAcnFuncBdResult.funcBody errCode.errCodeName sFirstItemName intVal codec, intAcnFuncBdResult.errCodes, localVar::intAcnFuncBdResult.localVariables)
         match funcBodyContent with
         | None -> None
@@ -1372,9 +1374,10 @@ let rec handleSingleUpdateDependency (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.Acn
             
             let arrsChildUpdates = 
                 chc.children |> 
-                List.map(fun ch -> 
+                List.map(fun ch ->
                     let enmItem = enm.enm.items |> List.find(fun itm -> itm.Name.Value = ch.Name.Value)
-                    choiceDependencyEnum_Item v ch.presentWhenName (lm.lg.getNamedItemBackendName (Some (defOrRef enm)) enmItem ) )
+                    let choiseName = extractEnumClassName r.args.TypePrefix ch.present_when_name enmItem.Name.Value
+                    choiceDependencyEnum_Item v ch.presentWhenName choiseName (lm.lg.getNamedItemBackendName (Some (defOrRef enm)) enmItem))
             let updateStatement = choiceDependencyEnum choicePath.arg.p (lm.lg.getAccess choicePath.arg) arrsChildUpdates
             match checkPath with
             | []    -> updateStatement
@@ -1383,7 +1386,7 @@ let rec handleSingleUpdateDependency (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.Acn
             atc.testCaseTypeIDsMap.TryFind d.asn1Type
         Some ({AcnChildUpdateResult.updateAcnChildFnc = updateFunc; errCodes=[] ; testCaseFnc=testCaseFnc; localVariables=[]}), us
 
-and getUpdateFunctionUsedInEncoding (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (lm:LanguageMacros) (m:Asn1AcnAst.Asn1Module) (acnChildOrAcnParameterId) (us:State) : (AcnChildUpdateResult option*State)=
+and getUpdateFunctionUsedInEncoding (r: Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.AcnInsertedFieldDependencies) (lm: LanguageMacros) (m: Asn1AcnAst.Asn1Module) (acnChildOrAcnParameterId) (us:State) : (AcnChildUpdateResult option*State)=
     let multiAcnUpdate       = lm.acn.MultiAcnUpdate
 
     match deps.acnDependencies |> List.filter(fun d -> d.determinant.id = acnChildOrAcnParameterId) with
@@ -1403,7 +1406,7 @@ and getUpdateFunctionUsedInEncoding (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnI
             List.mapi(fun i d1 -> 
                 let c_name = sprintf "%s%02d" (getAcnDeterminantName acnChildOrAcnParameterId) i
                 let typegetDeterminantTypeDefinitionBodyWithinSeq = typedefName // getDeterminantTypeDefinitionBodyWithinSeq r l d1.determinant
-                [AcnInsertedChild (c_name, typegetDeterminantTypeDefinitionBodyWithinSeq); BooleanLocalVariable (c_name+"_is_initialized", Some false)]) |>
+                [AcnInsertedChild (c_name, typegetDeterminantTypeDefinitionBodyWithinSeq, ""); BooleanLocalVariable (c_name+"_is_initialized", Some false)]) |>
             List.collect(fun lvList -> lvList |> List.map (fun lv -> lm.lg.getLocalVariableDeclaration  lv))
         let localUpdateFuns,ns =
             ds |>
@@ -1559,9 +1562,10 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
             acnChildren |>  
             List.filter(fun x -> match x.Type with Asn1AcnAst.AcnNullType _ -> false | _ -> true) |>  
             List.collect(fun x -> 
+                let defaultVal = extractACNDefaultInitValue x.Type
                 match codec with
-                | Encode     -> [AcnInsertedChild(x.c_name, x.typeDefinitionBodyWithinSeq); BooleanLocalVariable(x.c_name+"_is_initialized", Some false)]
-                | Decode    -> [AcnInsertedChild(x.c_name, x.typeDefinitionBodyWithinSeq)])
+                | Encode     -> [AcnInsertedChild(x.c_name, x.typeDefinitionBodyWithinSeq, defaultVal); BooleanLocalVariable(x.c_name+"_is_initialized", Some false)]
+                | Decode    -> [AcnInsertedChild(x.c_name, x.typeDefinitionBodyWithinSeq, defaultVal)])
         
         let acnlocalVariablesPrms = 
             match t.id.tasInfo with
@@ -1603,7 +1607,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
 
                 let fncCall = sequence_call_post_encoding_function (lm.lg.getPointer p.arg) (actualFncName) bsPosStart  bitStreamPositionsLocalVar
                 let initialBitStrmStatement = sequence_save_bitStream_start bsPosStart codec
-                [AcnInsertedChild(bitStreamPositionsLocalVar, td.extention_function_potisions); AcnInsertedChild(bsPosStart, bitStreamName)]@localVariables, Some fncCall, Some bitStreamPositionsLocalVar, Some initialBitStrmStatement
+                [AcnInsertedChild(bitStreamPositionsLocalVar, td.extention_function_potisions, ""); AcnInsertedChild(bsPosStart, bitStreamName, "")]@localVariables, Some fncCall, Some bitStreamPositionsLocalVar, Some initialBitStrmStatement
             | _ ->
                 match o.acnProperties.preDecodingFunction with
                 | Some (PreDecodingFunction (modFncName, fncName)) when codec = Decode  ->
@@ -1616,7 +1620,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                             | Some modFncName -> (ToC modFncName.Value) + "." + (ToC fncName.Value)
                     let fncCall = sequence_call_post_decoding_validator (lm.lg.getPointer p.arg) (actualFncName) bsPosStart  bitStreamPositionsLocalVar
                     let initialBitStrmStatement = sequence_save_bitStream_start bsPosStart codec
-                    [AcnInsertedChild(bitStreamPositionsLocalVar, td.extention_function_potisions); AcnInsertedChild(bsPosStart, bitStreamName)]@localVariables, Some fncCall, Some bitStreamPositionsLocalVar, Some initialBitStrmStatement
+                    [AcnInsertedChild(bitStreamPositionsLocalVar, td.extention_function_potisions, ""); AcnInsertedChild(bsPosStart, bitStreamName, "")]@localVariables, Some fncCall, Some bitStreamPositionsLocalVar, Some initialBitStrmStatement
                 | _ ->  localVariables, None, None, None
 
             
@@ -1891,7 +1895,10 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
                     | Scala -> 
                         match hasInitMethSuffix sChInitExpr (lm.init.methodNameSuffix()) with
                         | true -> sChInitExpr + "()"
-                        | _ -> extractDefaultInitValue child.chType.Kind
+                        | false -> 
+                            match isArrayInitialiser sChInitExpr with
+                            | true -> sChInitExpr
+                            | false -> extractDefaultInitValue child.chType.Kind
                     | _ -> ""
 
                 let childContentResult, ns1 = 

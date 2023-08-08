@@ -12,8 +12,8 @@ type UInt = Int
 type ULong = Long
 type RealNoRTL = Float
 type BooleanNoRTL = Boolean
-type NullType = Char
 type ASCIIChar = UByte
+type NullType = ASCIIChar
 
 // TODO
 type LongNoRTL = Long
@@ -76,7 +76,7 @@ def GetCharIndex(ch: UByte, Set: Array[UByte]): Int =
     0
 }
 
-def NullType_Initialize(): NullType = {
+def NullType_Initialize(): ASCIIChar = {
     0
 }
 

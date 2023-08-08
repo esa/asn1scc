@@ -817,7 +817,7 @@ let rec private mapAcnParamTypeToAcnAcnInsertedType (asn1:Asn1Ast.AstRoot) (acn:
         let checkIntHasEnoughSpace asn1Min asn1Max =
             checkIntHasEnoughSpace acnEncodingClass acnProperties.mappingFunction.IsSome acnErrLoc asn1Min asn1Max
         let  intClass = getIntEncodingClassByUperRange asn1.args uperRange
-        AcnInteger ({AcnInteger.acnProperties=acnProperties; acnAligment=acnAligment; acnEncodingClass = acnEncodingClass;  Location = acnErrLoc; acnMinSizeInBits=acnMinSizeInBits; acnMaxSizeInBits = acnMaxSizeInBits; cons=[]; withcons=[];isUnsigned=isUnsigned; uperRange= uperRange; intClass=intClass; checkIntHasEnoughSpace=checkIntHasEnoughSpace; inheritInfo=None}), us
+        AcnInteger ({AcnInteger.acnProperties=acnProperties; acnAligment=acnAligment; acnEncodingClass = acnEncodingClass;  Location = acnErrLoc; acnMinSizeInBits=acnMinSizeInBits; acnMaxSizeInBits = acnMaxSizeInBits; cons=[]; withcons=[];isUnsigned=isUnsigned; uperRange= uperRange; intClass=intClass; checkIntHasEnoughSpace=checkIntHasEnoughSpace; inheritInfo=None; defaultValue="0"}), us
     | AcnPrmBoolean  acnErrLoc ->
         let acnProperties = 
             match tryGetProp props (fun x -> match x with TRUE_VALUE e -> Some e | _ -> None) with
@@ -827,11 +827,11 @@ let rec private mapAcnParamTypeToAcnAcnInsertedType (asn1:Asn1Ast.AstRoot) (acn:
                 | Some tv   ->  {BooleanAcnProperties.encodingPattern  = Some (FalseValue tv)}
                 | None      ->  {BooleanAcnProperties.encodingPattern  = None}
         let acnMinSizeInBits, acnMaxSizeInBits= AcnEncodingClasses.GetBooleanEncodingClass acnAligment acnErrLoc acnProperties
-        AcnBoolean ({AcnBoolean.acnProperties=acnProperties; acnAligment=acnAligment; Location = acnErrLoc; acnMinSizeInBits=acnMinSizeInBits; acnMaxSizeInBits = acnMaxSizeInBits}), us
+        AcnBoolean ({AcnBoolean.acnProperties=acnProperties; acnAligment=acnAligment; Location = acnErrLoc; acnMinSizeInBits=acnMinSizeInBits; acnMaxSizeInBits = acnMaxSizeInBits; defaultValue="false"}), us
     | AcnPrmNullType acnErrLoc ->
         let acnProperties = { NullTypeAcnProperties.encodingPattern  = tryGetProp props (fun x -> match x with PATTERN e -> Some e | _ -> None); savePosition = props |> Seq.exists(fun z -> match z with SAVE_POSITION -> true | _ -> false )}
         let acnMinSizeInBits, acnMaxSizeInBits= AcnEncodingClasses.GetNullEncodingClass acnAligment acnErrLoc acnProperties
-        AcnNullType ({AcnNullType.acnProperties=acnProperties; acnAligment=acnAligment; Location = acnErrLoc; acnMinSizeInBits=acnMinSizeInBits; acnMaxSizeInBits = acnMaxSizeInBits}), us
+        AcnNullType ({AcnNullType.acnProperties=acnProperties; acnAligment=acnAligment; Location = acnErrLoc; acnMinSizeInBits=acnMinSizeInBits; acnMaxSizeInBits = acnMaxSizeInBits; defaultValue="0"}), us
     | AcnPrmRefType (md,ts)->
         let asn1Type0 = Asn1Ast.GetBaseTypeByName md ts asn1
         let baseProps = 
@@ -849,14 +849,14 @@ let rec private mapAcnParamTypeToAcnAcnInsertedType (asn1:Asn1Ast.AstRoot) (acn:
         | Asn1Ast.Enumerated nmItems    ->
             let cons =  asn1Type0.Constraints |> List.collect (fixConstraint asn1) |> List.map (ConstraintsMapping.getEnumConstraint asn1 asn1Type0)
             let enumerated, ns = mergeEnumerated asn1 nmItems (None, ts.Location) (Some ts.Location) (Some {AcnTypeEncodingSpec.acnProperties = props; children = []; loc=ts.Location; comments = []; postion=(ts.Location, ts.Location); antlrSubTree=None}) props cons [] (AcnPrmGetTypeDefinition (curPath,md.Value,ts.Value)) us
-            AcnReferenceToEnumerated({AcnReferenceToEnumerated.modName = md; tasName = ts; enumerated = enumerated; acnAligment= acnAligment}), ns
+            AcnReferenceToEnumerated({AcnReferenceToEnumerated.modName = md; tasName = ts; enumerated = enumerated; acnAligment= acnAligment; defaultValue="null"}), ns
         | Asn1Ast.IA5String    
         | Asn1Ast.NumericString  ->
             let isNumeric = (asn1Type0.Kind = Asn1Ast.NumericString)
             let cons =  asn1Type0.Constraints |> List.collect (fixConstraint asn1) |> List.map (ConstraintsMapping.getIA5StringConstraint asn1 asn1Type0)
             let defaultCharSet = [|for i in 0..127 -> System.Convert.ToChar(i) |]
             let str, ns = mergeStringType asn1 None ts.Location (Some ts.Location) props cons [] defaultCharSet isNumeric (AcnPrmGetTypeDefinition (curPath,md.Value,ts.Value)) us
-            AcnReferenceToIA5String({AcnReferenceToIA5String.modName = md; tasName = ts; str = str; acnAligment= acnAligment}), ns
+            AcnReferenceToIA5String({AcnReferenceToIA5String.modName = md; tasName = ts; str = str; acnAligment= acnAligment; defaultValue="null"}), ns
         | Asn1Ast.Integer       ->
             let cons =  asn1Type0.Constraints |> List.collect (fixConstraint asn1) |> List.map (ConstraintsMapping.getIntegerTypeConstraint asn1 asn1Type0)
             let uperRange    = uPER.getIntTypeConstraintUperRange cons  ts.Location
@@ -890,7 +890,7 @@ let rec private mapAcnParamTypeToAcnAcnInsertedType (asn1:Asn1Ast.AstRoot) (acn:
                 checkIntHasEnoughSpace acnEncodingClass acnProperties.mappingFunction.IsSome ts.Location asn1Min asn1Max
 
             let  intClass = getIntEncodingClassByUperRange asn1.args uperRange
-            AcnInteger ({AcnInteger.acnProperties=acnProperties; acnAligment=acnAligment; acnEncodingClass = acnEncodingClass;  Location = ts.Location; acnMinSizeInBits=acnMinSizeInBits; acnMaxSizeInBits = acnMaxSizeInBits;cons=cons;withcons=[];isUnsigned=isUnsigned; uperRange= uperRange; intClass=intClass; checkIntHasEnoughSpace=checkIntHasEnoughSpace; inheritInfo=Some {InheritanceInfo.modName=md.Value; tasName=ts.Value;hasAdditionalConstraints=false}}), us
+            AcnInteger ({AcnInteger.acnProperties=acnProperties; acnAligment=acnAligment; acnEncodingClass = acnEncodingClass;  Location = ts.Location; acnMinSizeInBits=acnMinSizeInBits; acnMaxSizeInBits = acnMaxSizeInBits;cons=cons;withcons=[];isUnsigned=isUnsigned; uperRange= uperRange; intClass=intClass; defaultValue="0"; checkIntHasEnoughSpace=checkIntHasEnoughSpace; inheritInfo=Some {InheritanceInfo.modName=md.Value; tasName=ts.Value;hasAdditionalConstraints=false;}}), us
         | _                               ->
             let newParma  = 
                 match asn1Type0.Kind with

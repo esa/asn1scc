@@ -412,13 +412,13 @@ Null_pattern2_decode(p, arruNullValueAsByteArray, nSize, arrsBits, sErrCode, bSa
 
 
 
-Enumerated_item_encode(p, sName, nItemIdxOrVal, sIntVal) ::= <<
+Enumerated_item_encode(p, sName, sEnumHolder, nItemIdxOrVal, sIntVal) ::= <<
 case <sName>:
     <sIntVal> = <nItemIdxOrVal>;
     break;
 >>
 
-Enumerated_item_decode(p, sName, nItemIdxOrVal, sIntVal) ::= <<
+Enumerated_item_decode(p, sName, sEnumHolder, nItemIdxOrVal, sIntVal) ::= <<
 case <nItemIdxOrVal>:
     <p> = <sName>;
     break;
@@ -974,7 +974,7 @@ SizeDependencyFixedSize(v, nFixedSize) ::= <<
 
 
 
-ChoiceDependencyEnum_Item(v, sChildCID, sEnumCName) ::= <<
+ChoiceDependencyEnum_Item(v, sChildCID, sChildCIDHolder, sEnumCName) ::= <<
 case <sChildCID>:
     <v>_is_initialized = TRUE;
 	<v> = <sEnumCName>; 

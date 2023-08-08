@@ -39,15 +39,28 @@ let getAccessFromScopeNodeList (ReferenceToType nodes)  (childTypeIsString: bool
         ret 
     | _                                 -> raise(BugErrorException "getAccessFromScopeNodeList")
 
+let extractEnumClassName (prefix: String)(varName: String)(internalName: String): String = 
+    match ST.lang with
+    | Scala -> prefix + varName.Substring(0, varName.Length - (internalName.Length + 1))
+    | _ -> ""
+
 let rec extractDefaultInitValue (childType: Asn1TypeKind): String = 
         match childType with
         | Integer i -> i.baseInfo.defaultInitVal
         | Real r -> r.baseInfo.defaultInitVal
         | NullType n -> n.baseInfo.defaultInitVal
-        | Boolean b -> "false"
+        | Boolean b -> b.baseInfo.defaultInitVal
         | ReferenceType rt -> extractDefaultInitValue rt.resolvedType.Kind
         | _ -> "null"
-        
+
+let extractACNDefaultInitValue (acnType: AcnInsertedType): String = 
+    match acnType with
+    | AcnInteger i -> i.defaultValue
+    | AcnBoolean b -> b.defaultValue
+    | AcnNullType c -> c.defaultValue
+    | AcnReferenceToEnumerated e -> e.defaultValue
+    | AcnReferenceToIA5String s -> s.defaultValue
+
 let rec resolveReferenceType(t: Asn1TypeKind): Asn1TypeKind = 
     match t with
     | ReferenceType rt -> resolveReferenceType rt.resolvedType.Kind
@@ -60,6 +73,9 @@ let isJVMPrimitive (t: Asn1TypeKind) =
     
 let hasInitMethSuffix (initMethName: string) (suffix: string): bool =
     initMethName.EndsWith(suffix) 
+
+let isArrayInitialiser(initMethName: string): bool =
+    initMethName.Contains("Array.fill(")
 
 let scalaInitMethSuffix (k: Asn1TypeKind) =
     match ST.lang with
@@ -104,7 +120,7 @@ type LocalVariable with
         | Asn1SIntLocalVariable(name,_)   -> name
         | Asn1UIntLocalVariable(name,_)   -> name
         | FlagLocalVariable(name,_)       -> name
-        | AcnInsertedChild(name,_)        -> name
+        | AcnInsertedChild(name,_,_)      -> name
         | BooleanLocalVariable(name,_)    -> name
         | GenericLocalVariable lv         -> lv.name
 

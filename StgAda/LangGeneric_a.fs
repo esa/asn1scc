@@ -204,7 +204,7 @@ type LangGeneric_a() =
             | FlagLocalVariable (name,Some iv)          -> sprintf "%s:adaasn1rtl.BIT:=%d;" name iv
             | BooleanLocalVariable (name,None)          -> sprintf "%s:Boolean;" name
             | BooleanLocalVariable (name,Some iv)       -> sprintf "%s:Boolean:=%s;" name (if iv then "True" else "False")
-            | AcnInsertedChild(name, vartype)         -> sprintf "%s:%s;" name vartype
+            | AcnInsertedChild(name, vartype, initVal)  -> sprintf "%s:%s;" name vartype
             | GenericLocalVariable lv                   ->
                 match lv.initExp with
                 | Some initExp  -> sprintf "%s : %s := %s;" lv.name lv.varType  initExp

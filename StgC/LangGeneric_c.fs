@@ -252,7 +252,7 @@ type LangGeneric_c() =
             | FlagLocalVariable (name,Some iv)          -> sprintf "flag %s=%d;" name iv
             | BooleanLocalVariable (name,None)          -> sprintf "flag %s;" name
             | BooleanLocalVariable (name,Some iv)       -> sprintf "flag %s=%s;" name (if iv then "TRUE" else "FALSE")
-            | AcnInsertedChild(name, vartype)           -> sprintf "%s %s;" vartype name
+            | AcnInsertedChild(name, vartype, initVal)  -> sprintf "%s %s;" vartype name
             | GenericLocalVariable lv                   ->
                 sprintf "%s%s %s%s;" (if lv.isStatic then "static " else "") lv.varType lv.name (if lv.arrSize.IsNone then "" else "["+lv.arrSize.Value+"]")
 

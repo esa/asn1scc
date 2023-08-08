@@ -549,6 +549,7 @@ type AcnReferenceToEnumerated = {
     tasName             : StringLoc
     enumerated          : Enumerated
     acnAligment         : AcnAligment option
+    defaultValue        : string
 }
 
 
@@ -557,6 +558,7 @@ type AcnReferenceToIA5String = {
     tasName             : StringLoc
     str                 : StringType
     acnAligment         : AcnAligment option
+    defaultValue        : string
 }
 
 type AcnInteger = {
@@ -573,6 +575,7 @@ type AcnInteger = {
     isUnsigned          : bool
     checkIntHasEnoughSpace  : BigInteger -> BigInteger -> unit
     inheritInfo          : InheritanceInfo option
+    defaultValue        : string
 }
 
 type AcnBoolean = {
@@ -581,6 +584,7 @@ type AcnBoolean = {
     acnMaxSizeInBits    : BigInteger
     acnMinSizeInBits    : BigInteger
     Location            : SrcLoc //Line no, Char pos
+    defaultValue        : string
 }
 
 type AcnNullType = {
@@ -589,6 +593,7 @@ type AcnNullType = {
     acnMaxSizeInBits    : BigInteger
     acnMinSizeInBits    : BigInteger
     Location            : SrcLoc //Line no, Char pos
+    defaultValue        : string
 }
 
 type  AcnInsertedType = 

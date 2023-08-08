@@ -163,7 +163,7 @@ type LocalVariable =
     | Asn1UIntLocalVariable of string*int option     //variable name, initialValue
     | FlagLocalVariable     of string*int option     //variable name, initialValue
     | BooleanLocalVariable  of string*bool option    //variable name, initialValue
-    | AcnInsertedChild      of string*string         //variable name, type initialValue
+    | AcnInsertedChild      of string*string*string  //variable name, type, initialValue
     | GenericLocalVariable  of GenericLocalVariable
 
 

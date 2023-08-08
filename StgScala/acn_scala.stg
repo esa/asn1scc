@@ -410,12 +410,12 @@ Null_pattern2_decode(p, arruNullValueAsByteArray, nSize, arrsBits, sErrCode, bSa
 >>
 
 
-Enumerated_item_encode(p, sName, nItemIdxOrVal, sIntVal) ::= <<
+Enumerated_item_encode(p, sName, sEnumHolder, nItemIdxOrVal, sIntVal) ::= <<
 case <sName> => // acn:404
     <sIntVal> = <nItemIdxOrVal>
 >>
 
-Enumerated_item_decode(p, sName, nItemIdxOrVal, sIntVal) ::= <<
+Enumerated_item_decode(p, sName, sEnumHolder, nItemIdxOrVal, sIntVal) ::= <<
 case <nItemIdxOrVal> => // acn:409
     <p> = <sName>
 >>
@@ -892,18 +892,19 @@ else // acn:882, no if case?
 
 /* Choice with Enum determinant */
 ChoiceChild_Enum_encode(p, sAcc, sEnmName, sChildID, sChildBody, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr) ::= <<
-case <sChildID> => // acn:888
+case <sChildID>(<sChildName>) => // acn:888
     <sChildBody>
 >>
 
 ChoiceChild_Enum_decode(p, sAcc, sEnmName, sChildID, sChildBody, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr) ::= <<
 case <sEnmName> => // acn:893
-    <p><sAcc>kind = <sChildID>
+    var <sChildName>: <sChildTypeDef> = <sChildInitExpr> // uper:302
     <sChildBody>
+    <p> = <sChildID>(<sChildName>)
 >>
 
 Choice_Enum_encode(p, sAcc, arrsChildren, sEnmExtFld, sErrCode) ::= <<
-<p><sAcc>kind match // acn:899
+<p> match // acn:899
     <arrsChildren; separator="\n">
     case _ =>
         ret = Left(ERR_INVALID_ENUM_VALUE)
@@ -927,14 +928,14 @@ SizeDependencyFixedSize(v, nFixedSize) ::= <<
 <v> = <nFixedSize>
 >>
 
-ChoiceDependencyEnum_Item(v, sChildCID, sEnumCName) ::= <<
-case <sChildCID> => // acn:918
+ChoiceDependencyEnum_Item(v, sChildCID, sChildCIDHolder, sEnumCName) ::= <<
+case <sChildCIDHolder>.<sChildCID>(x) => // acn:918
     <v>_is_initialized = true
     <v> = <sEnumCName>
 >>
 
 ChoiceDependencyEnum(sChPath, sAcc, arrsChoiceEnumItems) ::= <<
-<sChPath><sAcc>kind match // acn:924
+<sChPath> match // acn:924
     <arrsChoiceEnumItems; separator="\n">
     case _ =>
         return Left(ERR_INVALID_ENUM_VALUE) 
