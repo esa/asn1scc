@@ -369,7 +369,7 @@ Boolean_decode(p, ptr, bEncValIsTrue, nSize, arruTrueValueAsByteArray, arruFalse
 Null_pattern_encode(p, arruNullValueAsByteArray, nSize, arrsBits, sErrCode, bSavePosition) ::= <<
 <if(arruNullValueAsByteArray)>
 {   // TODO acn:366
-    val tmp: Array[Byte] = Array(<arruNullValueAsByteArray:{b|0x<b;format="X2">}; separator=",">)
+    val tmp: Array[Byte] = Array(<arruNullValueAsByteArray:{b|0x<b;format="X2">.asInstanceOf[Byte]}; separator=",">)
     BitStream_AppendBits(pBitStrm, tmp, <nSize>)
 }
 <endif>
@@ -385,7 +385,7 @@ BitStream_ReadBitPattern_ignore_value(pBitStrm, <nSize>) match
 <else>
 <if(arruNullValueAsByteArray)>
 {
-    val tmp: Array[Byte] = Array(<arruNullValueAsByteArray:{b|0x<b;format="X2">}; separator=",">)
+    val tmp: Array[Byte] = Array(<arruNullValueAsByteArray:{b|0x<b;format="X2">.asInstanceOf[Byte]}; separator=",">)
     // acn:383
     BitStream_ReadBitPattern(pBitStrm, tmp, <nSize>) match
         case None => ret = Left(<sErrCode>)   
