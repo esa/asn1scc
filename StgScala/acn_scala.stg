@@ -168,7 +168,7 @@ Acn_Dec_Int_PositiveInteger_VarSize_LengthEmbedded<sSsuffix>(pBitStrm) match // 
 
 TwosComplement_ConstSize_encode(p, sSsuffix, sErrCode, soMF, soMFM, nFixedSize, nUperMin, nUperMax) ::= "Acn_Enc_Int_TwosComplement_ConstSize(pBitStrm, <if(soMF)><soMF>_encode(<p>)<else><p><endif>, <nFixedSize>) // acn:167"
 TwosComplement_ConstSize_decode(p, sSsuffix, sErrCode, soMF, soMFM, nFixedSize, nUperMin, nUperMax) ::= <<
-Acn_Dec_Int_TwosComplement_ConstSize<sSsuffix>(pBitStrm, <p>, <nFixedSize>) match // acn:169
+Acn_Dec_Int_TwosComplement_ConstSize<sSsuffix>(pBitStrm, <nFixedSize>) match // acn:169
     case None => return Left(<sErrCode>)
     case Some(x) => <p> = x
 <MF(soMF)>
@@ -207,7 +207,7 @@ Acn_Dec_Int_TwosComplement_ConstSize_big_endian_64<sSsuffix>(pBitStrm) match // 
 
 TwosComplement_ConstSize_little_endian_16_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "Acn_Enc_Int_TwosComplement_ConstSize_little_endian_16(pBitStrm, <if(soMF)><soMF>_encode(<p>)<else><p><endif>) // acn:206"
 TwosComplement_ConstSize_little_endian_16_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
-Acn_Dec_Int_TwosComplement_ConstSize_little_endian_16<sSsuffix>(pBitStrm, <p>) match // acn:208
+Acn_Dec_Int_TwosComplement_ConstSize_little_endian_16<sSsuffix>(pBitStrm) match // acn:208
     case None => return Left(<sErrCode>)
     case Some(x) => <p> = x
 <MF(soMF)>
@@ -310,7 +310,7 @@ Acn_Dec_UInt_ASCII_VarSize_NullTerminated<sSsuffix>(pBitStrm, <p>, (byte[]){<arr
 <MF(soMF)>
 >>
 
-Real_32_big_endian_encode(p, sSuffix, sErrCode) ::= "Acn_Enc_Real_IEEE754_32_big_endian(pBitStrm, <p>) // acn:311"
+Real_32_big_endian_encode(p, sSuffix, sErrCode) ::= "Acn_Enc_Real_IEEE754_32_big_endian(pBitStrm, <p>.toFloat) // acn:311"
 Real_32_big_endian_decode(p, sSuffix, sErrCode) ::= <<
 Acn_Dec_Real_IEEE754_32_big_endian<sSuffix>(pBitStrm) match // acn:313
     case None => return Left(<sErrCode>)
@@ -369,7 +369,7 @@ Boolean_decode(p, ptr, bEncValIsTrue, nSize, arruTrueValueAsByteArray, arruFalse
 Null_pattern_encode(p, arruNullValueAsByteArray, nSize, arrsBits, sErrCode, bSavePosition) ::= <<
 <if(arruNullValueAsByteArray)>
 {   // TODO acn:366
-    val tmp: Array[Byte] = Array(<arruNullValueAsByteArray:{b|0x<b;format="X2">}; separator=",">)
+    val tmp: Array[Byte] = Array(<arruNullValueAsByteArray:{b|0x<b;format="X2">.asInstanceOf[Byte]}; separator=",">)
     BitStream_AppendBits(pBitStrm, tmp, <nSize>)
 }
 <endif>
@@ -385,7 +385,7 @@ BitStream_ReadBitPattern_ignore_value(pBitStrm, <nSize>) match
 <else>
 <if(arruNullValueAsByteArray)>
 {
-    val tmp: Array[Byte] = Array(<arruNullValueAsByteArray:{b|0x<b;format="X2">}; separator=",">)
+    val tmp: Array[Byte] = Array(<arruNullValueAsByteArray:{b|0x<b;format="X2">.asInstanceOf[Byte]}; separator=",">)
     // acn:383
     BitStream_ReadBitPattern(pBitStrm, tmp, <nSize>) match
         case None => ret = Left(<sErrCode>)   

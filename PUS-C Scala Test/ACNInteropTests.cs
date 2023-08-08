@@ -60,6 +60,6 @@
 
 
         [TestMethod]
-        public void TestService_19() => ACNWithTestGenCall(PUS_C_Service.S18, "S19");
+        public void TestService_19() => ACNWithTestGenCall(PUS_C_Service.S19, "S19");
     }
 }

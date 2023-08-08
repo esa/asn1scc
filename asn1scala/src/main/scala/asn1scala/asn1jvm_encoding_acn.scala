@@ -69,7 +69,7 @@ def Acn_Enc_Int_PositiveInteger_ConstSize_8(pBitStrm: BitStream, intVal: ULong):
     CHECK_BIT_STREAM(pBitStrm)
 }
 
-def Acn_Enc_Int_PositiveInteger_ConstSize_big_endian_B(pBitStrm: BitStream,    intVal: ULong,    size: Int): Unit =
+def Acn_Enc_Int_PositiveInteger_ConstSize_big_endian_B(pBitStrm: BitStream, intVal: ULong, size: Int): Unit =
 {
     val tmp: ULong = intVal
     var mask: ULong = 0xFF
@@ -155,7 +155,7 @@ def Acn_Dec_Int_PositiveInteger_ConstSize_8(pBitStrm: BitStream): Option[ULong] 
 {
     BitStream_ReadByte(pBitStrm) match
         case None => None
-        case Some(ub) => Some(ub)
+        case Some(ub) => Some(ub & 0xFF)
 }
 
 def Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_N(pBitStrm: BitStream, SizeInBytes: Int): Option[ULong] =
@@ -168,7 +168,7 @@ def Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_N(pBitStrm: BitStream, Size
             case None => return None
             case Some(ub) =>
                 ret <<= 8
-                ret |= ub
+                ret |= (ub & 0xFF)
         i += 1
 
     Some(ret)
@@ -201,7 +201,7 @@ def Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_N(pBitStrm: BitStream, S
         BitStream_ReadByte(pBitStrm) match
             case None => return None
             case Some(ub) =>
-                tmp = ub
+                tmp = ub & 0xFF
                 tmp <<= i * 8
                 ret |= tmp
         i += 1
@@ -267,7 +267,7 @@ def Acn_Dec_Int_PositiveInteger_VarSize_LengthEmbedded(pBitStrm: BitStream): Opt
                 BitStream_ReadByte(pBitStrm) match
                     case None => return None
                     case Some(ub) =>
-                        v = (v << 8) | ub
+                        v = (v << 8) | (ub & 0xFF)
                 i += 1
 
     Some(v)
@@ -336,14 +336,14 @@ def Acn_Dec_Int_TwosComplement_ConstSize(pBitStrm: BitStream, encodedSizeInBits:
         BitStream_ReadByte(pBitStrm) match
             case None => return None
             case Some(ub) =>
-                pIntVal = (pIntVal << 8) | ub
+                pIntVal = (pIntVal << 8) | (ub & 0xFF)
         i += 1
 
     if rstBits > 0 then
         BitStream_ReadPartialByte(pBitStrm, rstBits.toByte) match
             case None => return None
             case Some(ub) =>
-                pIntVal = (pIntVal << rstBits) | ub
+                pIntVal = (pIntVal << rstBits) | (ub & 0xFF)
 
     Some(pIntVal)
 }
@@ -430,7 +430,7 @@ def Acn_Dec_Int_TwosComplement_VarSize_LengthEmbedded(pBitStrm: BitStream): Opti
                             v = Long.MaxValue
                             isNegative = true
 
-                        v = (v << 8) | ub
+                        v = (v << 8) | (ub & 0xFF)
                         i += 1
 
             if isNegative then
@@ -859,11 +859,10 @@ def BitStream_ReadBitPattern_ignore_value(pBitStrm: BitStream, nBitsToRead: Int)
 /*Real encoding functions*/
 def Acn_Enc_Real_IEEE754_32_big_endian(pBitStrm: BitStream, realValue: Float): Unit =
 {
-    val dat1: Float = java.lang.Float.floatToRawIntBits(realValue)
     val b: Array[Byte] = java.nio.ByteBuffer.allocate(4).putFloat(realValue).array
 
     var i: Int = 0
-    while i < 8 do
+    while i < 4 do
         BitStream_AppendByte0(pBitStrm, b(i))
         i += 1
 }
@@ -878,8 +877,8 @@ def Acn_Dec_Real_IEEE754_32_big_endian(pBitStrm: BitStream): Option[Double] =
             case Some(ub) => b(i) = ub
         i += 1
 
-    val dat1 = BigInt(b).toLong
-    Some(java.lang.Double.longBitsToDouble(dat1))
+    val dat1 = BigInt(b).toInt
+    Some(java.lang.Float.intBitsToFloat(dat1).toDouble)
 }
 
 def Acn_Dec_Real_IEEE754_32_big_endian_fp32(pBitStrm: BitStream): Option[Float] =
@@ -899,8 +898,7 @@ def Acn_Dec_Real_IEEE754_32_big_endian_fp32(pBitStrm: BitStream): Option[Float] 
 
 def Acn_Enc_Real_IEEE754_64_big_endian(pBitStrm: BitStream, realValue: Double): Unit =
 {
-    val dat1: Long = java.lang.Double.doubleToRawLongBits(realValue)
-    val b: Array[Byte] = BigInt(dat1).toByteArray
+    val b: Array[Byte] = java.nio.ByteBuffer.allocate(8).putDouble(realValue).array
 
     var i: Int = 0
     while i < 8 do
@@ -925,8 +923,7 @@ def Acn_Dec_Real_IEEE754_64_big_endian(pBitStrm: BitStream): Option[Double] =
 
 def Acn_Enc_Real_IEEE754_32_little_endian(pBitStrm: BitStream, realValue: Double): Unit =
 {
-    val dat1: Long = java.lang.Double.doubleToRawLongBits(realValue)
-    val b: Array[Byte] = BigInt(dat1).toByteArray
+    val b: Array[Byte] = java.nio.ByteBuffer.allocate(4).putFloat(realValue.toFloat).array
 
     var i: Int = 3
     while i >= 0 do
@@ -941,13 +938,13 @@ def Acn_Dec_Real_IEEE754_32_little_endian(pBitStrm: BitStream): Option[Double] =
     while i >= 0 do
         BitStream_ReadByte(pBitStrm) match
             case None => return None
-            case Some(ub) =>    b(i) = ub
+            case Some(ub) => b(i) = ub
                 i -= 1
 
-    val dat1 = BigInt(b).toLong
-    Some(java.lang.Double.longBitsToDouble(dat1))
-}
+    val dat1 = BigInt(b).toInt
+    Some(java.lang.Float.intBitsToFloat(dat1).toDouble)
 
+}
 def Acn_Dec_Real_IEEE754_32_little_endian_fp32(pBitStrm: BitStream): Option[Float] =
 {
     val b: Array[Byte] = Array.fill(4)(0)
@@ -964,8 +961,7 @@ def Acn_Dec_Real_IEEE754_32_little_endian_fp32(pBitStrm: BitStream): Option[Floa
 
 def Acn_Enc_Real_IEEE754_64_little_endian(pBitStrm: BitStream, realValue: Double): Unit =
 {
-    val dat1: Long = java.lang.Double.doubleToRawLongBits(realValue)
-    val b: Array[Byte] = BigInt(dat1).toByteArray
+    val b: Array[Byte] = java.nio.ByteBuffer.allocate(8).putDouble(realValue).array
 
     var i: Int = 7
     while i >= 0 do

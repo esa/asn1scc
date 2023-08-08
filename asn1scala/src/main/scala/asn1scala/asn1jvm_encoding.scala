@@ -226,7 +226,7 @@ def BitStream_ReadBit(pBitStrm: BitStream): Option[Boolean] = {
 }
 
 def BitStream_PeekBit(pBitStrm: BitStream): Boolean = {
-    (pBitStrm.buf(pBitStrm.currentByte) & masks(pBitStrm.currentBit)) > 0
+    ((pBitStrm.buf(pBitStrm.currentByte)  & 0xFF) & (masks(pBitStrm.currentBit) & 0xFF)) > 0
 }
 
 /**
@@ -277,7 +277,7 @@ def BitStream_AppendByte0(pBitStrm: BitStream, v: UByte): Boolean = {
     val cb: UByte = pBitStrm.currentBit.toByte
     val ncb: UByte = (8-cb).toByte
 
-    var mask = ~masks(ncb)
+    var mask = ~masksb(ncb)
 
     pBitStrm.buf(pBitStrm.currentByte) = (pBitStrm.buf(pBitStrm.currentByte) & mask).toByte
     pBitStrm.buf(pBitStrm.currentByte) = (pBitStrm.buf(pBitStrm.currentByte) | ((v & 0xFF) >>> cb)).toByte
@@ -289,7 +289,7 @@ def BitStream_AppendByte0(pBitStrm: BitStream, v: UByte): Boolean = {
             return false
         mask = ~mask
         pBitStrm.buf(pBitStrm.currentByte) = (pBitStrm.buf(pBitStrm.currentByte) & mask).toByte
-        pBitStrm.buf(pBitStrm.currentByte) = (pBitStrm.buf(pBitStrm.currentByte) | ((v & 0xFF) << cb)).toByte
+        pBitStrm.buf(pBitStrm.currentByte) = (pBitStrm.buf(pBitStrm.currentByte) | ((v & 0xFF) << ncb)).toByte
 
     true
 }
@@ -354,7 +354,7 @@ def BitStream_ReadByte(pBitStrm: BitStream): Option[UByte] = {
     bitstream_fetch_data_if_required(pBitStrm)
 
     if cb > 0 then
-        v = (v | pBitStrm.buf(pBitStrm.currentByte) >>> ncb).toByte // TODO: check if & 0xFF is needed
+        v = (v | (pBitStrm.buf(pBitStrm.currentByte) & 0xFF) >>> ncb).toByte // TODO: check if & 0xFF is needed
 
     if pBitStrm.currentByte.toLong*8 + pBitStrm.currentBit <= pBitStrm.buf.length.toLong*8 then
         Some(v)
