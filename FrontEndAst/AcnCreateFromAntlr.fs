@@ -1337,14 +1337,14 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (m:Asn1Ast.Asn1Mo
 
                 match cc with
                 | None      ->  
-                    let newChild, us1 = mergeType asn1 acn m c.Type (curPath@[CH_CHILD (c.Name.Value, present_when_name)]) (enmItemTypeDefPath@[CH_CHILD (c.Name.Value, present_when_name)]) (typeDefPath@[CH_CHILD (c.Name.Value, present_when_name)]) None None [] childWithCons [] [] None  None  us
+                    let newChild, us1 = mergeType asn1 acn m c.Type (curPath@[CH_CHILD (c.Name.Value, present_when_name, "")]) (enmItemTypeDefPath@[CH_CHILD (c.Name.Value, present_when_name, "")]) (typeDefPath@[CH_CHILD (c.Name.Value, present_when_name, "")]) None None [] childWithCons [] [] None  None  us
                     {ChChildInfo.Name = c.Name; _c_name = c.c_name; _scala_name = c.scala_name; _ada_name = c.ada_name; Type = newChild; acnPresentWhenConditions = acnPresentWhenConditions; asn1Comments = c.Comments|> Seq.toList; acnComments = []; present_when_name = present_when_name; Optionality = newOptionality}, us1
                 | Some cc   ->
-                    let presentWhenNameCombined = 
+                    let enumClassName = 
                         match us.args.targetLanguages with
-                        | Scala::x -> typeDef[Scala].typeName + present_when_name
-                        | _ -> present_when_name
-                    let newChild, us1 = mergeType asn1 acn m c.Type (curPath@[CH_CHILD (c.Name.Value, presentWhenNameCombined)]) (typeDefPath@[CH_CHILD (c.Name.Value, present_when_name)]) (enmItemTypeDefPath@[CH_CHILD (c.Name.Value, present_when_name)]) (Some cc.childEncodingSpec) None [] childWithCons cc.argumentList [] None  None us
+                        | Scala::x -> typeDef[Scala].typeName
+                        | _ -> ""
+                    let newChild, us1 = mergeType asn1 acn m c.Type (curPath@[CH_CHILD (c.Name.Value, present_when_name, enumClassName)]) (typeDefPath@[CH_CHILD (c.Name.Value, present_when_name, enumClassName)]) (enmItemTypeDefPath@[CH_CHILD (c.Name.Value, present_when_name, enumClassName)]) (Some cc.childEncodingSpec) None [] childWithCons cc.argumentList [] None  None us
                     {ChChildInfo.Name = c.Name; _c_name = c.c_name; _scala_name = c.scala_name; _ada_name = c.ada_name; Type  = newChild; acnPresentWhenConditions = acnPresentWhenConditions; asn1Comments = c.Comments |> Seq.toList; acnComments = cc.comments ; present_when_name = present_when_name; Optionality = newOptionality}, us1
             let mergedChildren, chus = 
                 match acnType with

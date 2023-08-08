@@ -52,7 +52,7 @@ let visitSeqChild (s:UserDefinedTypeScope) (ch:ParameterizedAsn1Ast.ChildInfo) :
     s@[SEQ_CHILD ch.Name.Value]
 
 let visitChoiceChild (s:UserDefinedTypeScope) (ch:ParameterizedAsn1Ast.ChildInfo) : UserDefinedTypeScope=
-    s@[CH_CHILD (ch.Name.Value, ToC2 ch.Name.Value)]
+    s@[CH_CHILD (ch.Name.Value, ToC2 ch.Name.Value, "")]
 
 let visitSeqOfChild (s:UserDefinedTypeScope) : UserDefinedTypeScope =
     s@[SQF]
