@@ -19,7 +19,9 @@ let getAccessFromScopeNodeList (ReferenceToType nodes)  (childTypeIsString: bool
         | SEQ_CHILD chName  -> [], {pVal with arg = lm.lg.getSeqChild pVal.arg (ToC chName) childTypeIsString false}
         | CH_CHILD (chName,pre_name)  -> 
             let chChildIsPresent =
-                sprintf "%s%skind %s %s_PRESENT" pVal.arg.p (lm.lg.getAccess pVal.arg) lm.lg.eqOp pre_name
+                match ST.lang with
+                | Scala ->  sprintf "%s %s %s_PRESENT" pVal.arg.p lm.lg.eqOp pre_name
+                | _ -> sprintf "%s%skind %s %s_PRESENT" pVal.arg.p (lm.lg.getAccess pVal.arg) lm.lg.eqOp pre_name
             [chChildIsPresent], {pVal with arg = lm.lg.getChChild pVal.arg (ToC chName) childTypeIsString}
         | SQF               -> 
             let curIdx = sprintf "i%d" (zeroBasedSeqeuenceOfLevel + 1)

@@ -578,7 +578,7 @@ BitStream_AppendBits(pBitStrm, (byte[]){<arruNullBytes; separator=", ">}, <nBitP
 
 oct_sqf_null_terminated_decode(p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength, sErrCode, nIntItemMinSize, nIntItemMaxSize) ::= <<
 <i> = 0
-ret = Right(0) // TODO acn:569
+ret = Right(0) // acn:569
 while ret.isRight && <i> \< <nSizeMax> && ((checkBitPatternPresentResult = BitStream_checkBitPatternPresent(pBitStrm, (byte[]){<arruNullBytes; separator=", ">}, <nBitPatternLength>)) == 1)) do
     <sInternalItem>
     <i> += 1
@@ -860,7 +860,7 @@ BitStream_DecodeConstraintWholeNumber(pBitStrm, 0, <nLastItemIndex>) match // ac
 /* Choice with presense determinants */
 
 ChoiceChild_preWhen_encode(p, sAcc, sChildID, sChildBody, arrsConditions, bFirst, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr) ::= <<
-case <sChildID> => // acn:850
+case <sChildID>(<sChildName>) => // acn:850
     <sChildBody>
 >>
 
@@ -870,24 +870,23 @@ ChoiceChild_preWhen_str_condition(sExtFld, sVal, arrsNullChars) ::= "(<sExtFld> 
 
 ChoiceChild_preWhen_decode(p, sAcc, sChildID, sChildBody, arrsConditions, bFirst, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr) ::= <<
 <if(!bFirst)>else <endif>if (<arrsConditions; separator=" && ">) {
-    <p><sAcc>kind = <sChildID> // acn:860
+    var <sChildName>: <sChildTypeDef> = <sChildInitExpr> // acn:873
     <sChildBody>
+    <p> = <sChildID>(<sChildName>)
 }
 >>
 
-
 Choice_preWhen_encode(p, sAcc, arrsChildren, sErrCode) ::= <<
-<p><sAcc>kind match // acn:873
+<p> match // acn:873
     <arrsChildren; separator="\n">
     case _ =>
-        ret = <sErrCode>
+        return Left(<sErrCode>)
 >>
 
 Choice_preWhen_decode(p, sAcc, arrsChildren, sErrCode) ::= <<
-ret = Right(0)
 <arrsChildren; separator="\n">
 else // acn:882, no if case?
-    ret = Left(<sErrCode>)
+    return Left(<sErrCode>)
 >>
 
 /* Choice with Enum determinant */
@@ -898,7 +897,7 @@ case <sChildID>(<sChildName>) => // acn:888
 
 ChoiceChild_Enum_decode(p, sAcc, sEnmName, sChildID, sChildBody, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr) ::= <<
 case <sEnmName> => // acn:893
-    var <sChildName>: <sChildTypeDef> = <sChildInitExpr> // uper:302
+    var <sChildName>: <sChildTypeDef> = <sChildInitExpr>
     <sChildBody>
     <p> = <sChildID>(<sChildName>)
 >>
@@ -959,7 +958,7 @@ case <sChildNamePrese> => // acn:942
 >>
 
 ChoiceDependencyPres(sChPath, sAcc, arrsChoiceItems) ::= <<
-<sChPath><sAcc>kind match // acn:948
+<sChPath> match // acn:948
     <arrsChoiceItems; separator="\n">
     case _ =>
         return Left(951)

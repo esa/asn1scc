@@ -274,11 +274,11 @@ Choice_OptionalChild(p, pLocal, sAcc, sChPresent, sInnerStatement) ::= <<
 >>
 
 Choice_child_always_present_Exp(p, sAcc, sChPresent) ::= <<
-<p><sAcc>kind == <sChPresent> // isvalid:276
+<p> == <sChPresent> // isvalid:276
 >>
 
 Choice_child_always_absent_Exp(p, sAcc, sChPresent) ::= <<
-<p><sAcc>kind != <sChPresent> // isvalid:278
+<p> != <sChPresent> // isvalid:278
 >>
 
 choice_child(sChPresent, sChildBody, bAlwaysAbsent) ::= <<
@@ -287,7 +287,7 @@ case <sChPresent> => // isvalid:282
 >>
 
 choice(p, sAccess, arrsChildren, sErrCodeForInvalidCase) ::= <<
-<p><sAccess>kind match // isvalid:289
+<p> match // isvalid:289
     <arrsChildren; separator="\n">
     case _ =>
         ret = <sErrCodeForInvalidCase>
