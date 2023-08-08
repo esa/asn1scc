@@ -354,7 +354,7 @@ def BitStream_ReadByte(pBitStrm: BitStream): Option[UByte] = {
     bitstream_fetch_data_if_required(pBitStrm)
 
     if cb > 0 then
-        v = (v | pBitStrm.buf(pBitStrm.currentByte) >>> ncb).toByte // TODO: check if & 0xFF is needed
+        v = (v | (pBitStrm.buf(pBitStrm.currentByte) & 0xFF) >>> ncb).toByte // TODO: check if & 0xFF is needed
 
     if pBitStrm.currentByte.toLong*8 + pBitStrm.currentBit <= pBitStrm.buf.length.toLong*8 then
         Some(v)
