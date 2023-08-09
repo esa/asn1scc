@@ -325,10 +325,7 @@ type LangGeneric_scala() =
             }
 
         override this.CreateMakeFile (r:AstRoot)  (di:OutDirectories.DirInfo) =
-            let files = r.Files |> Seq.map(fun x -> (Path.GetFileNameWithoutExtension x.FileName).ToLower() )
-            let content = aux_scala.PrintMakeFile files (r.args.integerSizeInBytes = 4I) (r.args.floatingPointSizeInBytes = 4I) r.args.streamingModeSupport
-            let outFileName = Path.Combine(di.srcDir, "Makefile")
-            File.WriteAllText(outFileName, content.Replace("\r",""))
+            ()
 
         override this.CreateAuxFiles (r:AstRoot)  (di:OutDirectories.DirInfo) (arrsSrcTstFiles : string list, arrsHdrTstFiles:string list) =
             let CreateScalaMainFile (r:AstRoot)  outDir  =
@@ -336,35 +333,6 @@ type LangGeneric_scala() =
                 let printMain =    test_cases_scala.PrintMain //match l with C -> test_cases_c.PrintMain | Ada -> test_cases_c.PrintMain
                 let content = printMain "testsuite"
                 let outFileName = Path.Combine(outDir, "mainprogram.scala")
-                File.WriteAllText(outFileName, content.Replace("\r",""))
-
-            let generateVisualStudioProject (r:DAst.AstRoot) outDir (arrsSrcTstFilesX, arrsHdrTstFilesX) =
-                let extrSrcFiles, extrHdrFiles = 
-                    r.args.encodings |> 
-                    List.collect(fun e -> 
-                        match e with
-                        | Asn1Encoding.UPER -> ["asn1crt_encoding";"asn1crt_encoding_uper"]
-                        | Asn1Encoding.ACN  -> ["asn1crt_encoding";"asn1crt_encoding_uper"; "asn1crt_encoding_acn"]
-                        | Asn1Encoding.BER  -> ["asn1crt_encoding";"asn1crt_encoding_ber"]
-                        | Asn1Encoding.XER  -> ["asn1crt_encoding";"asn1crt_encoding_xer"]
-                    ) |> 
-                    List.distinct |>
-                    List.map(fun a -> a + ".scala", a + "Def.scala") |>
-                    List.unzip
-
-                let arrsSrcTstFiles = (r.programUnits |> List.map (fun z -> z.testcase_bodyFileName))
-                let arrsHdrTstFiles = (r.programUnits |> List.map (fun z -> z.testcase_specFileName))
-                let vcprjContent = xml_outputs.emitVisualStudioProject 
-                                    ((r.programUnits |> List.map (fun z -> z.bodyFileName))@extrSrcFiles)
-                                    ((r.programUnits |> List.map (fun z -> z.specFileName))@extrHdrFiles)
-                                    (arrsSrcTstFiles@arrsSrcTstFilesX)
-                                    (arrsHdrTstFiles@arrsHdrTstFilesX)
-                let vcprjFileName = Path.Combine(outDir, "VsProject.vcxproj")
-                File.WriteAllText(vcprjFileName, vcprjContent)
-
-                //generate Visual Studio Solution file
-                File.WriteAllText((Path.Combine(outDir, "VsProject.sln")), (aux_scala.emitVisualStudioSolution()))
-
+                File.WriteAllText(outFileName, content.Replace("\r",""))         
 
             CreateScalaMainFile r di.srcDir
-            //generateVisualStudioProject r di.srcDir (arrsSrcTstFiles, arrsHdrTstFiles)
