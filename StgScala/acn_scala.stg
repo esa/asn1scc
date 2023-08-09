@@ -1,6 +1,6 @@
 group scala_acn;
 
-getStringSize(p) ::= "<p>.length()"
+getStringSize(p) ::= "<p>.indexOf(0)"
 
 getSizeableSize(p, sAcc) ::= "<p><sAcc>nCount // TODO acn:5"
 
@@ -525,7 +525,7 @@ Acn_Dec_IA5String_CharIndex_External_Field_Determinant(pBitStrm, <nAsn1Max>, <sE
 
 
 oct_external_field_encode(p, sAcc, noSizeMin, nSizeMax, sExtFld, nAlignSize, sErrCode) ::= <<
-BitStream_EncodeOctetString_no_length(pBitStrm, <p><sAcc>arr, <p><sAcc>nCount) match // acn:516
+BitStream_EncodeOctetString_no_length(pBitStrm, <p><sAcc>arr, <p><sAcc>nCount.toInt) match // acn:516
     case false => return Left(<sErrCode>)
     case true => ret = Right(0)
 >>
@@ -533,9 +533,9 @@ BitStream_EncodeOctetString_no_length(pBitStrm, <p><sAcc>arr, <p><sAcc>nCount) m
 oct_external_field_decode(p, sAcc, noSizeMin, nSizeMax, sExtFld, nAlignSize, sErrCode) ::= <<
 if (<if(noSizeMin)>(<noSizeMin>\<=<sExtFld>) && <endif>(<sExtFld>\<=<nSizeMax>)) then // acn:522
     <p><sAcc>nCount = <sExtFld>.asInstanceOf[Int]
-    BitStream_DecodeOctetString_no_length(pBitStrm, <p><sAcc>nCount) match
+    BitStream_DecodeOctetString_no_length(pBitStrm, <p><sAcc>nCount.toInt) match
         case None => return Left(<sErrCode>)
-        case Some(x) => <p><sAcc>arr = x
+        case Some(x) => x.copyToArray(<p><sAcc>arr)
 >>
 
 oct_external_field_fix_size_encode(p, sAcc, noSizeMin, nSizeMax, sExtFld, nAlignSize, sErrCode) ::= <<
