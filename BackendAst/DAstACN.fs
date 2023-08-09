@@ -1342,14 +1342,18 @@ let rec handleSingleUpdateDependency (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.Acn
             let arrsChildUpdates = 
                 chc.children |> 
                 List.map(fun ch -> 
-                    let pres = ch.acnPresentWhenConditions |> Seq.find(fun x -> x.relativePath = relPath)
+                    let pres = ch.acnPresentWhenConditions |> Seq.find(fun x -> x.relativePath = relPath)                    
+                    let presentWhenName =
+                        match ST.lang with
+                        | Scala -> chc.typeDef[Scala].typeName + "." + ch.presentWhenName
+                        | _ -> ch.presentWhenName
                     match pres with
                     | PresenceInt   (_, intVal) -> 
                         raise(SemanticError(intVal.Location, "Unexpected presence condition. Expected string, found integer"))
                         //choiceDependencyIntPres_child v ch.presentWhenName intVal.Value
                     | PresenceStr   (_, strVal) -> 
                         let arrNuls = [0 .. ((int str.maxSize.acn)- strVal.Value.Length)]|>Seq.map(fun x -> lm.vars.PrintStringValueNull())
-                        choiceDependencyStrPres_child v ch.presentWhenName strVal.Value arrNuls)
+                        choiceDependencyStrPres_child v presentWhenName strVal.Value arrNuls)
             let updateStatement = choiceDependencyPres choicePath.arg.p (lm.lg.getAccess choicePath.arg) arrsChildUpdates
             match checkPath with
             | []    -> updateStatement
@@ -1383,6 +1387,13 @@ let rec handleSingleUpdateDependency (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.Acn
                     let choiceName = chc.typeDef[Scala].typeName
                     choiceDependencyEnum_Item v ch.presentWhenName choiceName (lm.lg.getNamedItemBackendName (Some (defOrRef enm)) enmItem))
             let updateStatement = choiceDependencyEnum choicePath.arg.p (lm.lg.getAccess choicePath.arg) arrsChildUpdates
+            let updateStatement =
+                match ST.lang with
+                | Scala ->
+                    match checkPath.Length > 0 with
+                    | true -> (sprintf "var %s = %s.%s\n%s" choicePath.arg.p (checkPath[0].Replace("isInstanceOf", "asInstanceOf")) choicePath.arg.p updateStatement)
+                    | false -> updateStatement 
+                | _ -> updateStatement
             match checkPath with
             | []    -> updateStatement
             | _     -> checkAccessPath checkPath updateStatement
@@ -1899,10 +1910,11 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
                     | Scala -> 
                         match hasInitMethSuffix sChInitExpr (lm.init.methodNameSuffix()) with
                         | true -> sChInitExpr + "()"
-                        | false -> 
-                            match isArrayInitialiser sChInitExpr with
-                            | true -> sChInitExpr
-                            | false -> extractDefaultInitValue child.chType.Kind
+                        | false ->
+                            match child.chType.Kind with
+                            | Sequence sequence -> sequence.baseInfo.typeDef[Scala].typeName + "(" + sChInitExpr + ")"
+                            | (OctetString _ | BitString _ | IA5String _) -> sChInitExpr
+                            | _ -> extractDefaultInitValue child.chType.Kind
                     | _ -> ""
 
                 let childContentResult, ns1 = 

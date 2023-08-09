@@ -866,7 +866,7 @@ case <sChildID>(<sChildName>) => // acn:850
 
 ChoiceChild_preWhen_bool_condition(sExtFld) ::= "<sExtFld> /* acn:854 */"
 ChoiceChild_preWhen_int_condition(sExtFld, nVal) ::= "(<sExtFld> == <nVal>) /* acn:855 */"
-ChoiceChild_preWhen_str_condition(sExtFld, sVal, arrsNullChars) ::= "(<sExtFld>.sameElements(\"<sVal>\".getBytes)) /* acn:856 */"
+ChoiceChild_preWhen_str_condition(sExtFld, sVal, arrsNullChars) ::= "(<sExtFld>.sameElements(\"<sVal>\".getBytes ++ Array(0x00.toByte))) /* acn:856 */"
 
 ChoiceChild_preWhen_decode(p, sAcc, sChildID, sChildBody, arrsConditions, bFirst, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr) ::= <<
 <if(!bFirst)>else <endif>if (<arrsConditions; separator=" && ">) {
@@ -930,7 +930,7 @@ SizeDependencyFixedSize(v, nFixedSize) ::= <<
 ChoiceDependencyEnum_Item(v, sChildCID, sChildCIDHolder, sEnumCName) ::= <<
 case <sChildCIDHolder>.<sChildCID>(x) => // acn:918
     <v>_is_initialized = true
-    <v> = <sEnumCName>
+    <v> = <sEnumCName> // TODO: FIX
 >>
 
 ChoiceDependencyEnum(sChPath, sAcc, arrsChoiceEnumItems) ::= <<
@@ -952,9 +952,9 @@ case _: <sChildNamePrese> => // acn:936
 >>
 
 ChoiceDependencyStrPres_child(v, sChildNamePrese, sChildRetVal, arrsNullChars) ::= <<
-case <sChildNamePrese> => // acn:942
+case _: <sChildNamePrese> => // acn:942
     <v>_is_initialized = true
-    <v> = "<sChildRetVal>".getBytes
+    <v> = "<sChildRetVal>".getBytes ++ Array(0x00.toByte)
 >>
 
 ChoiceDependencyPres(sChPath, sAcc, arrsChoiceItems) ::= <<
