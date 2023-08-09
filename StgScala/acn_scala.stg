@@ -946,7 +946,7 @@ PresenceDependency(v, sSeqPath, sAcc, sChildName) ::= <<
 >>
 
 ChoiceDependencyIntPres_child(v, sChildNamePrese, nChildRetVal) ::= <<
-case <sChildNamePrese> => // acn:936
+case _: <sChildNamePrese> => // acn:936
     <v>_is_initialized = true
     <v> = <nChildRetVal>
 >>
