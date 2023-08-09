@@ -43,7 +43,7 @@ let getAccessFromScopeNodeList (ReferenceToType nodes)  (childTypeIsString: bool
 
 let extractEnumClassName (prefix: String)(varName: String)(internalName: String): String = 
     match ST.lang with
-    | Scala -> prefix + varName.Substring(0, varName.Length - (internalName.Length + 1))
+    | Scala -> prefix + varName.Substring(0, max 0 (varName.Length - (internalName.Length + 1))) // TODO: check case where max is needed
     | _ -> ""
 
 let rec extractDefaultInitValue (childType: Asn1TypeKind): String = 
