@@ -20,7 +20,7 @@ let getAccessFromScopeNodeList (ReferenceToType nodes)  (childTypeIsString: bool
         | CH_CHILD (chName,pre_name, chParent)  -> 
             let chChildIsPresent =
                 match ST.lang with
-                | Scala -> sprintf "%s %s %s.%s_PRESENT" pVal.arg.p lm.lg.eqOp chParent pre_name
+                | Scala -> sprintf "%s.isInstanceOf[%s.%s_PRESENT]" pVal.arg.p chParent pre_name
                 | _ -> sprintf "%s%skind %s %s_PRESENT" pVal.arg.p (lm.lg.getAccess pVal.arg) lm.lg.eqOp pre_name
             [chChildIsPresent], {pVal with arg = lm.lg.getChChild pVal.arg (ToC chName) childTypeIsString}
         | SQF               -> 
