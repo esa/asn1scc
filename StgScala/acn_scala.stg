@@ -1,6 +1,6 @@
 group scala_acn;
 
-getStringSize(p) ::= "<p>.indexOf(0)"
+getStringSize(p) ::= "<p>.indexOf(0x00)"
 
 getSizeableSize(p, sAcc) ::= "<p><sAcc>nCount // TODO acn:5"
 
@@ -866,7 +866,7 @@ case <sChildID>(<sChildName>) => // acn:850
 
 ChoiceChild_preWhen_bool_condition(sExtFld) ::= "<sExtFld> /* acn:854 */"
 ChoiceChild_preWhen_int_condition(sExtFld, nVal) ::= "(<sExtFld> == <nVal>) /* acn:855 */"
-ChoiceChild_preWhen_str_condition(sExtFld, sVal, arrsNullChars) ::= "(<sExtFld> == \"<sVal>\") /* acn:856 */"
+ChoiceChild_preWhen_str_condition(sExtFld, sVal, arrsNullChars) ::= "(<sExtFld>.sameElements(\"<sVal>\".getBytes)) /* acn:856 */"
 
 ChoiceChild_preWhen_decode(p, sAcc, sChildID, sChildBody, arrsConditions, bFirst, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr) ::= <<
 <if(!bFirst)>else <endif>if (<arrsConditions; separator=" && ">) {
@@ -954,7 +954,7 @@ case _: <sChildNamePrese> => // acn:936
 ChoiceDependencyStrPres_child(v, sChildNamePrese, sChildRetVal, arrsNullChars) ::= <<
 case <sChildNamePrese> => // acn:942
     <v>_is_initialized = true
-    <v> = "<sChildRetVal>"
+    <v> = "<sChildRetVal>".getBytes
 >>
 
 ChoiceDependencyPres(sChPath, sAcc, arrsChoiceItems) ::= <<

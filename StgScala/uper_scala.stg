@@ -406,7 +406,7 @@ str_FixedSize_decode(p, sTasName, i, sInternalItem, nFixedSize, nIntItemMinSize,
 >>
 
 str_VarSize_encode(p, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize) ::= <<
-nStringLength = <p>.indexOf(0) // uper:394
+nStringLength = <p>.indexOf(0x00) // uper:394
 /*ret = nStringLength >= <nSizeMin> && nStringLength \<= <nSizeMax>;*/
 BitStream_EncodeConstraintWholeNumber(pBitStrm, nStringLength, <nSizeMin>, <nSizeMax>) // uper:401
 <loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize="nStringLength")>
