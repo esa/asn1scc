@@ -1,10 +1,11 @@
 ﻿namespace PUS_C_Scala_Test
 {
     [TestClass]
-    public class UPERInteropTests
+    public class UperAtcScalaTests
     {
         private void UPERWithTestGenTestCall(PUS_C_Service s, string folderSuffix) => 
-            new TestBasics().Run_TestService(s, folderSuffix, ServiceVariation.UPER | ServiceVariation.CREATE_TESTS);
+            new TestBasics().Run_TestService(s, folderSuffix, 
+                ServiceVariation.CREATE_SCALA | ServiceVariation.UPER | ServiceVariation.CREATE_TESTS);
 
         [TestMethod]
         public void TestService_01() => UPERWithTestGenTestCall(PUS_C_Service.S1, "S1");

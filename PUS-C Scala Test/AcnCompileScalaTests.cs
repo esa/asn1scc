@@ -1,10 +1,11 @@
 namespace PUS_C_Scala_Test
 {
     [TestClass]
-    public class ACNCompileTest
+    public class ACNCompileScalaTests
     {
         private void ACNTestCall(PUS_C_Service s, string folderSuffix) => 
-            new TestBasics().Run_TestService(s, folderSuffix, ServiceVariation.ACN);
+            new TestBasics().Run_TestService(s, folderSuffix, 
+                ServiceVariation.CREATE_SCALA | ServiceVariation.ACN);
 
         [TestMethod]
         public void TestService_01() => ACNTestCall(PUS_C_Service.S1, "S1");

@@ -1,7 +1,13 @@
 global using Microsoft.VisualStudio.TestTools.UnitTesting;
+using System;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using Antlr;
 using Microsoft.VisualStudio.TestTools.UnitTesting.Logging;
+
+using Microsoft.Build.Evaluation;
+using Microsoft.Build.Execution;
+using Microsoft.Build.Logging;
 
 namespace PUS_C_Scala_Test
 {
@@ -17,31 +23,43 @@ namespace PUS_C_Scala_Test
     [Flags]
     public enum ServiceVariation
     {
-        UPER = 0b0000_0001,
-        ACN = 0b0000_0010,
-        CREATE_TESTS = 0b0000_0100
+        UPER =              0b0000_0001,
+        ACN =               0b0000_0010,
+        CREATE_TESTS =      0b0000_0100,
+        CREATE_SCALA =      0b0000_1000,
+        CREATE_C =          0b0001_0000,
+        COMPARE_ENCODINGS = 0b0010_0000
     }
 
     class TestBasics
     {
-        readonly string lang = "-Scala";
-        readonly string uperEnc = "--uper-enc";
-        readonly string acnEnc = "--acn-enc";
-        readonly string genTests= "-atc";
-        readonly List<string> stdArgs = new List<string> { "--field-prefix", "AUTO", "--type-prefix", "T", "-o" };
-        readonly string outFolderPrefix = "../../../../../GenScala/";
-        readonly string outFolderTestFix = "Test/";
-        readonly string outFolderSuffixUPER = "UPER/PUSC_";
-        readonly string outFolderSuffixACN = "ACN/PUSC_";
-        readonly string inputFilePrefix = "../../../../../asn1-pusc-lib/";
-        readonly string asn1FileEnding = ".asn1";
-        readonly string acnFileEnding = ".acn";
+        private readonly ServiceVariation ScalaAndC = ServiceVariation.CREATE_SCALA | ServiceVariation.CREATE_C;
 
-        public string[] CombineArgs(string outputFolder, string[] files, ServiceVariation sv)
+        private readonly string scalaLang = "-Scala";
+        private readonly string cLang = "-c";
+        private readonly string uperEnc = "--uper-enc";
+        private readonly string acnEnc = "--acn-enc";
+        private readonly string genTests= "-atc";
+        private readonly List<string> stdArgs = new List<string> { "--field-prefix", "AUTO", "--type-prefix", "T", "-o" };
+        private readonly string outFolderPrefix = "../../../../../GenScala/";
+        private readonly string outFolderTestFix = "Test/";
+        private readonly string outFolderSuffixUPER = "UPER/PUSC_";
+        private readonly string outFolderSuffixACN = "ACN/PUSC_";
+        private readonly string outFolderSuffixScala = "/Scala";
+        private readonly string outFolderSuffixC = "/C";
+        private readonly string inputFilePrefix = "../../../../../asn1-pusc-lib/";
+        private readonly string asn1FileEnding = ".asn1";
+        private readonly string acnFileEnding = ".acn";
+
+        private string[] CombineArgs(string outputFolder, string[] files, ServiceVariation sv)
         {
             var parList = new List<string>();
-            parList.Add(lang);
-            
+            if ((sv & ServiceVariation.CREATE_SCALA) == ServiceVariation.CREATE_SCALA)
+                parList.Add(scalaLang);
+
+            if ((sv & ServiceVariation.CREATE_C) == ServiceVariation.CREATE_C)
+                parList.Add(cLang);
+
             if ((sv & ServiceVariation.UPER) == ServiceVariation.UPER)
                 parList.Add(uperEnc);
             
@@ -89,6 +107,13 @@ namespace PUS_C_Scala_Test
 
             ret += serviceName;
 
+            if ((sv & ServiceVariation.CREATE_SCALA) == ServiceVariation.CREATE_SCALA)
+                ret += outFolderSuffixScala;
+            else if ((sv & ServiceVariation.CREATE_C) == ServiceVariation.CREATE_C)
+                ret += outFolderSuffixC;
+            else
+                Assert.IsTrue(false, "can not do both");
+
             return ret;
         }
 
@@ -97,24 +122,58 @@ namespace PUS_C_Scala_Test
             if (sv == 0 || (sv & ServiceVariation.UPER) != 0 && (sv & ServiceVariation.ACN) != 0)
                 throw new InvalidOperationException("can't do nothing or both UPER and ACN");
 
+            if ((sv & ScalaAndC) == ScalaAndC)
+            {
+                // create Scala Files
+                var scalaOutputDir = getCleanWorkingFolderPath(folderSuffix, sv & ~ServiceVariation.CREATE_C);
+                Run_Test(service, scalaOutputDir, sv & ~ServiceVariation.CREATE_C);
+
+                // create C Files
+                var cOutputDir = getCleanWorkingFolderPath(folderSuffix, sv & ~ServiceVariation.CREATE_SCALA);
+                Run_Test(service, cOutputDir, sv & ~ServiceVariation.CREATE_SCALA);
+            }
+            else
+            {
+                var outDir = getCleanWorkingFolderPath(folderSuffix, sv);
+                Run_Test(service, outDir, sv);
+            }
+        }
+
+        private string getCleanWorkingFolderPath(string folderSuffix, ServiceVariation sv)
+        {
             string outDir = GetOutputFolder(folderSuffix, sv);
             if (Directory.Exists(outDir))
                 Directory.Delete(outDir, true);
+            
+            return outDir;
+        }
 
-            var serviceFiles = GetServiceFiles(service);
-            var args = CombineArgs(outDir, serviceFiles(), sv);
+        private void Run_Test(PUS_C_Service service, string folderPath, ServiceVariation sv)
+        {
+            var args = CombineArgs(folderPath, GetServiceFiles(service)(), sv);
 
-            var runTests = (sv & ServiceVariation.CREATE_TESTS) == ServiceVariation.CREATE_TESTS;
+            var createAndRunTests = (sv & ServiceVariation.CREATE_TESTS) == ServiceVariation.CREATE_TESTS;
 
             Console.WriteLine("Called Compiler with args:");
-            foreach(var a in args)
+            foreach (var a in args)
                 Console.WriteLine(a);
 
             CompileASN(args);
-            CompileScala(outDir, !runTests);
 
-            if (runTests)
-                RunScalaTests(outDir, runTests);
+            if ((sv & ServiceVariation.CREATE_SCALA) == ServiceVariation.CREATE_SCALA)
+                CompileScala(folderPath, !createAndRunTests);
+            else if ((sv & ServiceVariation.CREATE_C) == ServiceVariation.CREATE_C)
+                CompileC(folderPath, !createAndRunTests);
+            else
+                Assert.IsTrue(false, "no input created that could be tested");
+
+            if (createAndRunTests)
+            {
+                if ((sv & ServiceVariation.CREATE_SCALA) == ServiceVariation.CREATE_SCALA)
+                    RunScalaTests(folderPath, createAndRunTests);
+                else if ((sv & ServiceVariation.CREATE_C) == ServiceVariation.CREATE_C)
+                    RunCTests(folderPath, createAndRunTests);
+            }
         }
 
         Func<string[]> GetServiceFiles(PUS_C_Service service) =>
@@ -149,9 +208,94 @@ namespace PUS_C_Scala_Test
         {
             StartSBTWithArg(outDir, "sbt compile", "[success]", printOutput);
         }
+
+        private void CompileC(string outDir, bool printOutput)
+        {
+            StartVSShellWithArg(outDir);
+        }
+
         private void RunScalaTests(string outDir, bool printOutput)
         {
             StartSBTWithArg(outDir, "sbt run", "[test success]", printOutput);
+        }
+
+        private void RunCTests(string outDir, bool printOutput)
+        {
+            // release\VsProject.exe
+        }
+
+        private void StartVSShellWithArg(string outDir)
+        {
+            //string projectFileName = $"{outDir}\\VsProject.vcxproj"; // <--- Change here can be another
+            //                                                         //      Visual Studio type.
+            //                                                         //      Example: .vcxproj
+
+            ////BasicLogger Logger = new BasicLogger();
+            //var projectCollection = new ProjectCollection();
+            //var buildParamters = new BuildParameters(projectCollection);
+            //var logger = new ConsoleLogger();
+            //buildParamters.Loggers = new List<Microsoft.Build.Framework.ILogger>() { logger };
+            //var globalProperty = new Dictionary<String, String>();
+            //globalProperty.Add("Configuration", "Release"); //<--- change here
+            //globalProperty.Add("Platform", "x64");//<--- change here
+            //BuildManager.DefaultBuildManager.ResetCaches();
+            //var buildRequest = new BuildRequestData(projectFileName, globalProperty, null, new String[] { "Build" }, null);
+            //var buildResult = BuildManager.DefaultBuildManager.Build(buildParamters, buildRequest);
+            
+            
+            //Assert.IsTrue(buildResult.OverallResult == BuildResultCode.Success);
+
+            //MessageBox.Show(Logger.GetLogString());    // Display output ..
+
+            //// get VS Install Path
+            //var vsInstallPath = "";
+            //using (var proc = new Process
+            //{
+            //    StartInfo = new ProcessStartInfo
+            //    {
+            //        FileName = "cmd.exe",
+            //        WorkingDirectory = outDir,
+            //        UseShellExecute = false,
+            //        RedirectStandardOutput = true,
+            //        RedirectStandardInput = true,
+            //        CreateNoWindow = false,
+            //    }
+            //})
+            //{
+            //    proc.Start();
+            //    proc.StandardInput.WriteLine("\"%ProgramFiles(x86)%\\Microsoft Visual Studio\\Installer\\vswhere.exe\" -latest -property installationPath");
+            //    System.Threading.Thread.Sleep(500); // give some time for command to execute
+            //    proc.StandardInput.Flush();
+            //    proc.StandardInput.Close();
+
+            //    var outp = proc.StandardOutput.ReadToEnd().Split("\n");
+            //    vsInstallPath = outp[outp.Length - 3].Trim();
+            //}
+            //Console.WriteLine($"VS Install Path = {vsInstallPath}");
+
+            //// start VS Dev Console
+            //using (var proc = new Process
+            //{
+            //    StartInfo = new ProcessStartInfo
+            //    {
+            //        FileName = $"\"{vsInstallPath}\\Common7\\Tools\\vsdevcmd.bat\"",
+            //        WorkingDirectory = outDir,
+            //        UseShellExecute = false,
+            //        RedirectStandardOutput = true,
+            //        RedirectStandardInput = true,
+            //        CreateNoWindow = false,
+            //        Arguments = "/c msbuild VsProject.vcxproj /p:configuration=release"
+            //    }
+            //})
+            //{
+            //    proc.Start();
+            //    //proc.StandardInput.WriteLine("msbuild VsProject.vcxproj /p:configuration=release");
+            //    //System.Threading.Thread.Sleep(500); // give some time for command to execute
+            //    //proc.StandardInput.Flush();
+            //    //proc.StandardInput.Close();
+
+            //    Console.WriteLine(proc.StandardOutput.ReadToEnd());
+            //}
         }
 
         private void StartSBTWithArg(string outDir, string arg, string check, bool printOutput)
