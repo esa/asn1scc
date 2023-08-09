@@ -186,7 +186,7 @@ def BitStream_AppendBits(pBitStrm: BitStream, srcBuffer: Array[UByte], nbits: In
     BitStream_EncodeOctetString_no_length(pBitStrm, srcBuffer, bytesToEncode)
 
     if remainingBits > 0 then
-        lastByte = (srcBuffer(bytesToEncode) >>> (8 - remainingBits)).toByte
+        lastByte = ((srcBuffer(bytesToEncode) & 0xFF) >>> (8 - remainingBits)).toByte
         BitStream_AppendPartialByte(pBitStrm, lastByte, remainingBits, false)
 }
 

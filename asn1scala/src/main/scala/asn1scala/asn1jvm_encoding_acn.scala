@@ -830,7 +830,7 @@ def BitStream_ReadBitPattern(pBitStrm: BitStream, patternToRead: Array[Byte], nB
         BitStream_ReadPartialByte(pBitStrm, nRemainingBitsToRead.toByte) match
             case None => return None
             case Some(curByte) =>
-                if curByte != patternToRead(nBytesToRead) >>> (8 - nRemainingBitsToRead) then
+                if curByte != ((patternToRead(nBytesToRead) & 0xFF) >>> (8 - nRemainingBitsToRead)) then
                     pBoolValue = false
 
     Some(pBoolValue)
