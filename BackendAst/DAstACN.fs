@@ -1313,10 +1313,8 @@ let rec handleSingleUpdateDependency (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.Acn
                     let pres = ch.acnPresentWhenConditions |> Seq.find(fun x -> x.relativePath = relPath)
                     let presentWhenName =
                         match ST.lang with
-                        | Scala ->
-                            chc.typeDef[Scala].typeName + "." + ch.presentWhenName
-                        | _ ->
-                            ch.presentWhenName
+                        | Scala -> chc.typeDef[Scala].typeName + "." + ch.presentWhenName
+                        | _ -> ch.presentWhenName
                     match pres with
                     | PresenceInt   (_, intVal) -> choiceDependencyIntPres_child v presentWhenName intVal.Value
                     | PresenceStr   (_, strVal) -> raise(SemanticError(strVal.Location, "Unexpected presence condition. Expected integer, found string")))
@@ -1382,8 +1380,8 @@ let rec handleSingleUpdateDependency (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.Acn
                 chc.children |> 
                 List.map(fun ch ->
                     let enmItem = enm.enm.items |> List.find(fun itm -> itm.Name.Value = ch.Name.Value)
-                    let choiseName = extractEnumClassName r.args.TypePrefix ch.present_when_name enmItem.Name.Value
-                    choiceDependencyEnum_Item v ch.presentWhenName choiseName (lm.lg.getNamedItemBackendName (Some (defOrRef enm)) enmItem))
+                    let choiceName = chc.typeDef[Scala].typeName
+                    choiceDependencyEnum_Item v ch.presentWhenName choiceName (lm.lg.getNamedItemBackendName (Some (defOrRef enm)) enmItem))
             let updateStatement = choiceDependencyEnum choicePath.arg.p (lm.lg.getAccess choicePath.arg) arrsChildUpdates
             match checkPath with
             | []    -> updateStatement
