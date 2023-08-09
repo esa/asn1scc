@@ -1,6 +1,7 @@
 global using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using Microsoft.VisualStudio.TestTools.UnitTesting.Logging;
 
 namespace PUS_C_Scala_Test
 {
@@ -36,7 +37,7 @@ namespace PUS_C_Scala_Test
         readonly string asn1FileEnding = ".asn1";
         readonly string acnFileEnding = ".acn";
 
-        public string[] CombineArgs(string outputFolder, string[] asn1Files, ServiceVariation sv)
+        public string[] CombineArgs(string outputFolder, string[] files, ServiceVariation sv)
         {
             var parList = new List<string>();
             parList.Add(lang);
@@ -52,14 +53,24 @@ namespace PUS_C_Scala_Test
 
             parList.AddRange(stdArgs);
             parList.Add(outputFolder);
-
+            
             // add asn1 input
-            parList.AddRange(asn1Files.Select(s => inputFilePrefix + s + asn1FileEnding));
+            var asn1Files = files.Select(s => inputFilePrefix + s + asn1FileEnding);
+            parList.AddRange(asn1Files.Where(s => File.Exists(s)));
+            var missingASNFiles = asn1Files.Where(s => !File.Exists(s));
+            if (missingASNFiles.Count() > 0)
+                Console.WriteLine("WARNING: ASN1 Files not found: " + String.Join(",", missingASNFiles));
             
             // add acn file input
-            if ((sv & ServiceVariation.ACN) == ServiceVariation.ACN)
-                parList.AddRange(asn1Files.Select(s => inputFilePrefix + s + acnFileEnding));
-            
+            if ((sv & ServiceVariation.ACN) == ServiceVariation.ACN) {
+                var acnFiles = files.Select(s => inputFilePrefix + s + acnFileEnding);
+                parList.AddRange(acnFiles.Where(s => File.Exists(s)));
+                
+                var missingACNFiles = acnFiles.Where(s => !File.Exists(s));
+                if (missingACNFiles.Count() > 0)
+                    Console.WriteLine("WARNING: ACN Files not found: " + String.Join(",", missingACNFiles));
+            }
+
             return parList.ToArray();
         }
 
