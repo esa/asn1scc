@@ -249,7 +249,10 @@ namespace PUS_C_Scala_Test
 
         private void CompileC(string outDir, bool printOutput)
         {
-            RunMSBuild(outDir);
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                RunMSBuild(outDir);
+            else
+                RunMake(outDir);
         }
 
         private void RunScalaTests(string outDir, bool printOutput)
@@ -263,7 +266,7 @@ namespace PUS_C_Scala_Test
             {
                 StartInfo = new ProcessStartInfo
                 {
-                    FileName = "cmd.exe",
+                    FileName = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "cmd.exe" : "bash",
                     WorkingDirectory = outDir,
                     UseShellExecute = false,
                     RedirectStandardOutput = true,
@@ -273,7 +276,7 @@ namespace PUS_C_Scala_Test
             })
             {
                 proc.Start();
-                proc.StandardInput.WriteLine($"{cConfig}\\{cProject}.exe");
+                proc.StandardInput.WriteLine($"{cConfig}\\{cProject}.exe"); // TODO bash call
                 System.Threading.Thread.Sleep(500);
                 proc.StandardInput.Flush();
                 proc.StandardInput.Close();
@@ -284,6 +287,33 @@ namespace PUS_C_Scala_Test
                     Console.WriteLine(o);
                 
                 Assert.IsTrue(worked, "C test cases failed");
+            }
+        }
+
+        private void RunMake(string outDir)
+        {
+            using (var proc = new Process
+            {
+                StartInfo = new ProcessStartInfo
+                {
+                    FileName = "bash",
+                    WorkingDirectory = outDir,
+                    UseShellExecute = false,
+                    RedirectStandardOutput = true,
+                    RedirectStandardInput = true,
+                    CreateNoWindow = false,
+                }
+            })
+            {
+                proc.Start();
+                proc.StandardInput.WriteLine("make all");
+                System.Threading.Thread.Sleep(500);
+                proc.StandardInput.Flush();
+                proc.StandardInput.Close();
+                //proc.WaitForExit(0);
+
+                // parse output
+                // TODO
             }
         }
 
