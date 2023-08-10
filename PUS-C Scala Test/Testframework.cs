@@ -41,6 +41,7 @@ namespace PUS_C_Scala_Test
         private readonly string acnEnc = "--acn-enc";
         private readonly string genTests= "-atc";
         private readonly List<string> stdArgs = new List<string> { "--field-prefix", "AUTO", "--type-prefix", "T", "-o" };
+        
         private readonly string outFolderPrefix = "../../../../../GenScala/";
         private readonly string outFolderTestFix = "Test/";
         private readonly string outFolderSuffixUPER = "UPER/PUSC_";
@@ -48,8 +49,12 @@ namespace PUS_C_Scala_Test
         private readonly string outFolderSuffixScala = "/Scala";
         private readonly string outFolderSuffixC = "/C";
         private readonly string inputFilePrefix = "../../../../../asn1-pusc-lib/";
+        
         private readonly string asn1FileEnding = ".asn1";
         private readonly string acnFileEnding = ".acn";
+        
+        private readonly string cConfig = "release";
+        private readonly string cProject = "VsProject";
 
         private string[] CombineArgs(string outputFolder, string[] files, ServiceVariation sv)
         {
@@ -131,11 +136,44 @@ namespace PUS_C_Scala_Test
                 // create C Files
                 var cOutputDir = getCleanWorkingFolderPath(folderSuffix, sv & ~ServiceVariation.CREATE_SCALA);
                 Run_Test(service, cOutputDir, sv & ~ServiceVariation.CREATE_SCALA);
+
+                if((sv & ServiceVariation.COMPARE_ENCODINGS) == ServiceVariation.COMPARE_ENCODINGS)  
+                    compareTestCases(scalaOutputDir, cOutputDir);
             }
             else
             {
                 var outDir = getCleanWorkingFolderPath(folderSuffix, sv);
                 Run_Test(service, outDir, sv);
+            }
+        }
+
+        private void compareTestCases(string folderA, string folderB)
+        {
+            var binsA = Directory.GetFiles(folderA, "*.dat");
+            var binsB = Directory.GetFiles(folderB, "*.dat");
+
+            Assert.IsTrue(binsA.Select(x => Path.GetFileName(x))
+                .SequenceEqual(binsB.Select(x => Path.GetFileName(x))), "output did not create the same files");
+
+            for (int i = 0; i < binsA.Length; i++)
+            {
+                using (var f1 = File.OpenRead(binsA[i]))
+                using (var f2 = File.OpenRead(binsB[i]))
+                {
+                    using (var r1 = new BinaryReader(f1))
+                    using (var r2 = new BinaryReader(f2))
+                    {
+                        Assert.IsTrue(r1.BaseStream.Length == r2.BaseStream.Length, "filelength is different");
+
+                        var isSame = true;
+                        while(r1.BaseStream.Position < r1.BaseStream.Length && isSame)
+                        {
+                            isSame &= (r1.ReadByte() == r2.ReadByte());
+                        }
+
+                        Assert.IsTrue(isSame, $"file {binsA[i]} contents are not equal to {binsB[i]}");
+                    }
+                }    
             }
         }
 
@@ -211,7 +249,7 @@ namespace PUS_C_Scala_Test
 
         private void CompileC(string outDir, bool printOutput)
         {
-            StartVSShellWithArg(outDir);
+            RunMSBuild(outDir);
         }
 
         private void RunScalaTests(string outDir, bool printOutput)
@@ -221,81 +259,86 @@ namespace PUS_C_Scala_Test
 
         private void RunCTests(string outDir, bool printOutput)
         {
-            // release\VsProject.exe
+            using (var proc = new Process
+            {
+                StartInfo = new ProcessStartInfo
+                {
+                    FileName = "cmd.exe",
+                    WorkingDirectory = outDir,
+                    UseShellExecute = false,
+                    RedirectStandardOutput = true,
+                    RedirectStandardInput = true,
+                    CreateNoWindow = false,
+                }
+            })
+            {
+                proc.Start();
+                proc.StandardInput.WriteLine($"{cConfig}\\{cProject}.exe");
+                System.Threading.Thread.Sleep(500);
+                proc.StandardInput.Flush();
+                proc.StandardInput.Close();
+
+                var o = proc.StandardOutput.ReadToEnd();
+                var worked = o.Contains("All test cases (") && o.Contains(") run successfully.");
+                if (!worked)
+                    Console.WriteLine(o);
+                
+                Assert.IsTrue(worked, "C test cases failed");
+            }
         }
 
-        private void StartVSShellWithArg(string outDir)
+        private void RunMSBuild(string outDir)
         {
-            //string projectFileName = $"{outDir}\\VsProject.vcxproj"; // <--- Change here can be another
-            //                                                         //      Visual Studio type.
-            //                                                         //      Example: .vcxproj
+            // get latest installed MS Build 
+            var msBuildPath = "";
+            using (var proc = new Process
+            {
+                StartInfo = new ProcessStartInfo
+                {
+                    FileName = "cmd.exe",
+                    WorkingDirectory = outDir,
+                    UseShellExecute = false,
+                    RedirectStandardOutput = true,
+                    RedirectStandardInput = true,
+                    CreateNoWindow = false,
+                }
+            })
+            {
+                proc.Start();
+                proc.StandardInput.WriteLine("\"%ProgramFiles(x86)%\\Microsoft Visual Studio\\Installer\\vswhere.exe\" -latest -requires Microsoft.Component.MSBuild -find MSBuild\\**\\Bin\\msbuild.exe");
+                System.Threading.Thread.Sleep(500); 
+                proc.StandardInput.Flush();
+                proc.StandardInput.Close();
 
-            ////BasicLogger Logger = new BasicLogger();
-            //var projectCollection = new ProjectCollection();
-            //var buildParamters = new BuildParameters(projectCollection);
-            //var logger = new ConsoleLogger();
-            //buildParamters.Loggers = new List<Microsoft.Build.Framework.ILogger>() { logger };
-            //var globalProperty = new Dictionary<String, String>();
-            //globalProperty.Add("Configuration", "Release"); //<--- change here
-            //globalProperty.Add("Platform", "x64");//<--- change here
-            //BuildManager.DefaultBuildManager.ResetCaches();
-            //var buildRequest = new BuildRequestData(projectFileName, globalProperty, null, new String[] { "Build" }, null);
-            //var buildResult = BuildManager.DefaultBuildManager.Build(buildParamters, buildRequest);
-            
-            
-            //Assert.IsTrue(buildResult.OverallResult == BuildResultCode.Success);
+                var o = proc.StandardOutput.ReadToEnd();
+                Console.WriteLine(o);
+                var outp = o.Split("\n");
+                msBuildPath = outp[outp.Length - 3].Trim();
+            }
 
-            //MessageBox.Show(Logger.GetLogString());    // Display output ..
+            using (var proc = new Process
+            {
+                StartInfo = new ProcessStartInfo
+                {
+                    FileName = msBuildPath,
+                    WorkingDirectory = outDir,
+                    UseShellExecute = false,
+                    RedirectStandardOutput = true,
+                    RedirectStandardInput = true,
+                    CreateNoWindow = false,
+                    Arguments = $"{cProject}.vcxproj /p:configuration={cConfig}"
+                }
+            })
+            {
+                proc.Start();
+               
+                var o = proc.StandardOutput.ReadToEnd();
+                var worked = proc.ExitCode == 0;
+                if(!worked)
+                    Console.WriteLine(o);
 
-            //// get VS Install Path
-            //var vsInstallPath = "";
-            //using (var proc = new Process
-            //{
-            //    StartInfo = new ProcessStartInfo
-            //    {
-            //        FileName = "cmd.exe",
-            //        WorkingDirectory = outDir,
-            //        UseShellExecute = false,
-            //        RedirectStandardOutput = true,
-            //        RedirectStandardInput = true,
-            //        CreateNoWindow = false,
-            //    }
-            //})
-            //{
-            //    proc.Start();
-            //    proc.StandardInput.WriteLine("\"%ProgramFiles(x86)%\\Microsoft Visual Studio\\Installer\\vswhere.exe\" -latest -property installationPath");
-            //    System.Threading.Thread.Sleep(500); // give some time for command to execute
-            //    proc.StandardInput.Flush();
-            //    proc.StandardInput.Close();
-
-            //    var outp = proc.StandardOutput.ReadToEnd().Split("\n");
-            //    vsInstallPath = outp[outp.Length - 3].Trim();
-            //}
-            //Console.WriteLine($"VS Install Path = {vsInstallPath}");
-
-            //// start VS Dev Console
-            //using (var proc = new Process
-            //{
-            //    StartInfo = new ProcessStartInfo
-            //    {
-            //        FileName = $"\"{vsInstallPath}\\Common7\\Tools\\vsdevcmd.bat\"",
-            //        WorkingDirectory = outDir,
-            //        UseShellExecute = false,
-            //        RedirectStandardOutput = true,
-            //        RedirectStandardInput = true,
-            //        CreateNoWindow = false,
-            //        Arguments = "/c msbuild VsProject.vcxproj /p:configuration=release"
-            //    }
-            //})
-            //{
-            //    proc.Start();
-            //    //proc.StandardInput.WriteLine("msbuild VsProject.vcxproj /p:configuration=release");
-            //    //System.Threading.Thread.Sleep(500); // give some time for command to execute
-            //    //proc.StandardInput.Flush();
-            //    //proc.StandardInput.Close();
-
-            //    Console.WriteLine(proc.StandardOutput.ReadToEnd());
-            //}
+                Assert.IsTrue(worked, "error while compiling C project");
+            }
         }
 
         private void StartSBTWithArg(string outDir, string arg, string check, bool printOutput)
