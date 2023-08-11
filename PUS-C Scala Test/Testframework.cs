@@ -149,8 +149,8 @@ namespace PUS_C_Scala_Test
 
         private void compareTestCases(string folderA, string folderB)
         {
-            var binsA = Directory.GetFiles(folderA, "*.dat");
-            var binsB = Directory.GetFiles(folderB, "*.dat");
+            var binsA = Directory.GetFiles(folderA, "*.dat").Order().ToArray();
+            var binsB = Directory.GetFiles(folderB, "*.dat").Order().ToArray();
 
             Assert.IsTrue(binsA.Select(x => Path.GetFileName(x))
                 .SequenceEqual(binsB.Select(x => Path.GetFileName(x))), "output did not create the same files");
@@ -276,10 +276,15 @@ namespace PUS_C_Scala_Test
             })
             {
                 proc.Start();
-                proc.StandardInput.WriteLine($"{cConfig}\\{cProject}.exe"); // TODO bash call
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
+                    proc.StandardInput.WriteLine($"{cConfig}\\{cProject}.exe");
+                } else {
+                    proc.StandardInput.WriteLine($"./mainprogram"); 
+                }
                 System.Threading.Thread.Sleep(500);
                 proc.StandardInput.Flush();
                 proc.StandardInput.Close();
+                proc.WaitForExit(-1);
 
                 var o = proc.StandardOutput.ReadToEnd();
                 var worked = o.Contains("All test cases (") && o.Contains(") run successfully.");
@@ -310,7 +315,7 @@ namespace PUS_C_Scala_Test
                 System.Threading.Thread.Sleep(500);
                 proc.StandardInput.Flush();
                 proc.StandardInput.Close();
-                //proc.WaitForExit(0);
+                proc.WaitForExit(-1);
 
                 // parse output
                 // TODO
@@ -339,6 +344,7 @@ namespace PUS_C_Scala_Test
                 System.Threading.Thread.Sleep(500); 
                 proc.StandardInput.Flush();
                 proc.StandardInput.Close();
+                proc.WaitForExit(-1);
 
                 var o = proc.StandardOutput.ReadToEnd();
                 Console.WriteLine(o);
