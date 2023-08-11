@@ -123,10 +123,11 @@ type BigIntegerFormatRenderer() =
                 else
                     if (obj > BigInteger Int64.MaxValue) then
                         Console.WriteLine("Number exceeded bounds of JVM native types, clamped to Scalas Long.MaxValue")
-                        Int64.MaxValue.ToString() + "L"
+                        //Int64.MaxValue.ToString() + "L"                       
+                        sprintf "BigInt(\"%s\").toLong" (obj.ToString())
                     else
                         obj.ToString() + "L"
-            | _                         -> obj.ToString()
+            | _ -> obj.ToString()
     static member TS2(o:Object, format) =
         let frmStr = "{0:" + format + "}";
         String.Format(frmStr, o);
