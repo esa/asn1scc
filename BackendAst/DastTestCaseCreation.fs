@@ -63,6 +63,24 @@ let PrintValueAssignmentAsTestCase (r:DAst.AstRoot) lm (e:Asn1Encoding) (v:Value
     let encAmper, initAmper = gAmber v.Type
     let curProgramUnitName = ""  //Main program has no module
     let initStatement = DAstVariables.printValue r lm curProgramUnitName v.Type None v.Value.kind
+    let initStatement =
+        match ST.lang with
+        | Scala ->
+            match resolveReferenceType v.Type.Kind with
+             | Integer v -> "tc_data = " + initStatement         
+             | Real v -> initStatement            
+             | IA5String v -> initStatement       
+             | OctetString v -> initStatement     
+             | NullType v -> initStatement        
+             | BitString v -> initStatement       
+             | Boolean v -> initStatement         
+             | Enumerated v -> initStatement      
+             | ObjectIdentifier v -> initStatement
+             | SequenceOf v -> initStatement      
+             | Sequence v -> initStatement        
+             | Choice v -> initStatement          
+             | TimeType v -> initStatement        
+        | _ -> initStatement
     let sTestCaseIndex = idx.ToString()
     let bStatic = match v.Type.ActualType.Kind with Integer _ | Enumerated(_) -> false | _ -> true
     let GetDatFile = GetDatFile r lm v modName sTasName encAmper
