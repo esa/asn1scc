@@ -1163,7 +1163,7 @@ let createChoiceInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAs
             let len = ch.chType.initFunction.automaticTestCases.Length
             let sChildName = (lm.lg.getAsn1ChChildBackendName ch)
             let sChildTypeDef = ch.chType.typeDefintionOrReference.longTypedefName2 lm.lg.hasModules 
-            let sChildTempVarName = (ToC ch.chType.id.AsString) + "_tmp_3"
+            let sChildTempVarName = (ToC ch.chType.id.AsString) + "_tmp_9"
             ch.chType.initFunction.automaticTestCases (*|> Seq.take (min 5 len)*) |> Seq.toList |>
             List.map(fun atc -> 
                 let fnc = atc.initTestCaseFunc
@@ -1175,11 +1175,11 @@ let createChoiceInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAs
                                 | Some initProc  ->                                    
                                     initChildWithInitFunc sChildTempVarName initProc.funcName, []
                                 | None  ->                                    
-                                    let fnc2 = ch.chType.initFunction.initTas
+                                    //let fnc2 = ch.chType.initFunction.initTas
                                     let childContent =  
                                         match lm.lg.init.choiceComponentTempInit with
-                                        | false ->  fnc2 {p with arg = lm.lg.getChChild p.arg sChildTempVarName ch.chType.isIA5String}
-                                        | true   -> fnc2 {p with arg = VALUE (sChildName + "_tmp_3")}
+                                        | false ->  fnc {p with arg = lm.lg.getChChild p.arg sChildTempVarName ch.chType.isIA5String}
+                                        | true   -> fnc {p with arg = VALUE (sChildName + "_tmp_3")}
                                     childContent.funcBody, childContent.localVariables
                         | _ ->
                             let childContent =
