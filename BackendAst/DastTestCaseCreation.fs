@@ -60,7 +60,14 @@ let GetDatFile (r:DAst.AstRoot) lm (v:ValueAssignment) modName sTasName encAmper
 let PrintValueAssignmentAsTestCase (r:DAst.AstRoot) lm (e:Asn1Encoding) (v:ValueAssignment) (m:Asn1Module) (typeModName:string) (sTasName : string)  (idx :int) dummyInitStatementsNeededForStatementCoverage  =
     let modName = typeModName//ToC m.Name.Value
     let sFuncName = sprintf "test_case_%A_%06d" e idx
-    let encAmper, initAmper = gAmber v.Type
+    let encAmper, initAmper = gAmber v.Type    
+    let initAmper =
+        match ST.lang with
+        | Scala ->
+            match v.Type.initFunction.initProcedure with
+            | Some initProc -> initProc.funcName
+            | None -> ""
+        | _ -> initAmper
     let curProgramUnitName = ""  //Main program has no module
     let initStatement = DAstVariables.printValue r lm curProgramUnitName v.Type None v.Value.kind
     let initStatement =
@@ -95,6 +102,13 @@ let PrintAutomaticTestCase (r:DAst.AstRoot) (lm:LanguageMacros) (e:Asn1Encoding)
     let arrsVars = localVars |> List.map(fun lv -> lm.lg.getLocalVariableDeclaration lv) |> Seq.distinct |> Seq.toList
 
     let encAmper, initAmper = gAmber t
+    let initAmper =
+        match ST.lang with
+        | Scala ->
+            match t.initFunction.initProcedure with
+            | Some initProc -> initProc.funcName
+            | None -> ""
+        | _ -> initAmper
     let bStatic = match t.ActualType.Kind with Integer _ | Enumerated(_) -> false | _ -> true
     let GetDatFile = ""
     let sTestCaseIndex = idx.ToString()

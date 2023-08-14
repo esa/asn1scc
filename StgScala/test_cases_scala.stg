@@ -326,7 +326,7 @@ def <sFuncName>(output: TestOutput): Int =
 
     output.report_case_begin("<sFuncName>")
 
-    var tc_data: <sTasName> = <sTasName>_Initialize() // TODO: does this always work?
+    var tc_data: <sTasName> = <sInitAmber>()
     <sInitializeTcData>
 
     val start = System.currentTimeMillis()
