@@ -1,7 +1,7 @@
 namespace PUS_C_Scala_Test
 {
     [TestClass]
-    public class ACNCompileScalaTests
+    public class AcnCompileScalaTests
     {
         private void ACNTestCall(PUS_C_Service s, string folderSuffix) => 
             new TestBasics().Run_TestService(s, folderSuffix, 

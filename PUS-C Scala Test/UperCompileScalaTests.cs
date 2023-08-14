@@ -1,7 +1,7 @@
 namespace PUS_C_Scala_Test
 {
     [TestClass]
-    public class UPERCompileScalaTests
+    public class UperCompileScalaTests
     {
         private void UperTestCall(PUS_C_Service s, string folderSuffix) => 
             new TestBasics().Run_TestService(s, folderSuffix, 
