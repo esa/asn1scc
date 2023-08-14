@@ -703,16 +703,32 @@ def BitStream_EncodeConstraintWholeNumber(pBitStrm: BitStream, v: Long, min: Lon
     BitStream_EncodeNonNegativeInteger(pBitStrm, (v - min))
 }
 
+
 def BitStream_EncodeConstraintPosWholeNumber(pBitStrm: BitStream, v: ULong, min: ULong, max: ULong): Unit = {
-    assert(min <= v)
-    assert(v <= max)
-    val range: ULong = (max - min)
-    if range == 0 then
-        return
-    val nRangeBits: Int = GetNumberOfBitsForNonNegativeInteger(range)
-    val nBits: Int = GetNumberOfBitsForNonNegativeInteger(v - min)
-    BitStream_AppendNBitZero(pBitStrm, nRangeBits - nBits)
-    BitStream_EncodeNonNegativeInteger(pBitStrm, v - min)
+    // TODO: handle large max values better
+    if min <= max then
+        assert(min <= v)
+        assert(v <= max)
+        val range: ULong = (max - min)
+        if range == 0 then
+            return
+        val nRangeBits: Int = GetNumberOfBitsForNonNegativeInteger(range)
+        val nBits: Int = GetNumberOfBitsForNonNegativeInteger(v - min)
+        BitStream_AppendNBitZero(pBitStrm, nRangeBits - nBits)
+        BitStream_EncodeNonNegativeInteger(pBitStrm, v - min)
+    else
+        var max_b = scala.math.BigInt(max.toBinaryString, 2)
+        var min_b = scala.math.BigInt(min.toBinaryString, 2)
+        var v_b = scala.math.BigInt(v.toBinaryString, 2)
+        assert(min_b <= v_b)
+        assert(v_b <= max_b)
+        val range_b = (max_b - min_b)
+        if range_b == 0 then
+            return
+        val nRangeBits: Int = GetNumberOfBitsForNonNegativeInteger(range_b.toLong)
+        val nBits: Int = GetNumberOfBitsForNonNegativeInteger((v_b - min_b).toLong)
+        BitStream_AppendNBitZero(pBitStrm, nRangeBits - nBits)
+        BitStream_EncodeNonNegativeInteger(pBitStrm, (v_b - min_b).toLong)
 }
 
 
@@ -782,18 +798,35 @@ def BitStream_DecodeConstraintWholeNumberUInt(pBitStrm: BitStream, min: UInt, ma
 
 
 def BitStream_DecodeConstraintPosWholeNumber(pBitStrm: BitStream, min: ULong, max: ULong): Option[ULong] = {
-    val range: ULong = max - min
+    // TODO: handle large max values better
+    if min <= max then
+        val range: ULong = max - min
 
-    //ASSERT_OR_RETURN_FALSE(min <= max);
+        //ASSERT_OR_RETURN_FALSE(min <= max);
 
-    if range == 0 then
-        return Some(min)
+        if range == 0 then
+            return Some(min)
 
-    val nRangeBits: Int = GetNumberOfBitsForNonNegativeInteger(range)
+        val nRangeBits: Int = GetNumberOfBitsForNonNegativeInteger(range)
 
-    BitStream_DecodeNonNegativeInteger(pBitStrm, nRangeBits) match
-        case None => None
-        case Some(uv) => Some(uv + min)
+        BitStream_DecodeNonNegativeInteger(pBitStrm, nRangeBits) match
+            case None => None
+            case Some(uv) => Some(uv + min)
+    else
+        val max_b = scala.math.BigInt(max.toBinaryString, 2)
+        val min_b = scala.math.BigInt(min.toBinaryString, 2)
+        val range_b = max_b - min_b
+
+        //ASSERT_OR_RETURN_FALSE(min <= max);
+
+        if range_b == 0 then
+            return Some(min_b.toLong)
+
+        val nRangeBits: Int = GetNumberOfBitsForNonNegativeInteger(range_b.toLong)
+
+        BitStream_DecodeNonNegativeInteger(pBitStrm, nRangeBits) match
+            case None => None
+            case Some(uv) => Some(uv + min_b.toLong)
 }
 
 def BitStream_EncodeSemiConstraintWholeNumber(pBitStrm: BitStream, v: Long, min: Long): Unit = {
