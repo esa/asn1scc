@@ -48,7 +48,7 @@ namespace PUS_C_Scala_Test
         private readonly string outFolderSuffixACN = "ACN/PUSC_";
         private readonly string outFolderSuffixScala = "/Scala";
         private readonly string outFolderSuffixC = "/C";
-        private readonly string inputFilePrefix = "../../../../PUSCScalaTest/asn1-pusc-lib/";
+        private readonly string inputFilePrefix = "../../../../PUSCScalaTest/asn1-pusc-lib-static/";
         
         private readonly string asn1FileEnding = ".asn1";
         private readonly string acnFileEnding = ".acn";
