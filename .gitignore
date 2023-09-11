@@ -1402,6 +1402,7 @@ Backup1/
 *.user
 .bsp
 GenScala
+GenTests
 stainless-stack-trace.txt
 Inputs/
 asn1scc/Properties/launchSettings_UPER.json

@@ -1,0 +1,3 @@
+[submodule "PUS-C Scala Test/asn1-pusc-lib"]
+	path = PUS-C Scala Test/asn1-pusc-lib
+	url = https://github.com/ateleris/asn1-pusc-lib
