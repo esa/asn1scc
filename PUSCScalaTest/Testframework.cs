@@ -42,13 +42,13 @@ namespace PUS_C_Scala_Test
         private readonly string genTests= "-atc";
         private readonly List<string> stdArgs = new List<string> { "--field-prefix", "AUTO", "--type-prefix", "T", "-o" };
         
-        private readonly string outFolderPrefix = "../../../../../GenScala/";
+        private readonly string outFolderPrefix = "../../../../PUSCScalaTest/GenTests/";
         private readonly string outFolderTestFix = "Test/";
         private readonly string outFolderSuffixUPER = "UPER/PUSC_";
         private readonly string outFolderSuffixACN = "ACN/PUSC_";
         private readonly string outFolderSuffixScala = "/Scala";
         private readonly string outFolderSuffixC = "/C";
-        private readonly string inputFilePrefix = "../../../../PUS-C Scala Test/asn1-pusc-lib/";
+        private readonly string inputFilePrefix = "../../../../PUSCScalaTest/asn1-pusc-lib/";
         
         private readonly string asn1FileEnding = ".asn1";
         private readonly string acnFileEnding = ".acn";
@@ -399,7 +399,7 @@ namespace PUS_C_Scala_Test
                 System.Threading.Thread.Sleep(500); // give some time for command to execute
                 proc.StandardInput.Flush();
                 proc.StandardInput.Close();
-                //proc.WaitForExit(0);
+                proc.WaitForExit(-1);
 
                 // parse sbt output
                 var outp = proc.StandardOutput.ReadToEnd();

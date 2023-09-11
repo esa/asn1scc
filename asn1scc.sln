@@ -41,7 +41,7 @@ Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "regression", "regression\re
 EndProject
 Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "StgScala", "StgScala\StgScala.fsproj", "{4192CBE0-A853-42E5-8372-B9C6A6DFCF00}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PUS-C Scala Test", "PUS-C Scala Test\PUS-C Scala Test.csproj", "{C36AFA40-6E73-4C9D-BC80-DE0F9E9690C2}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PUSCScalaTest", "PUSCScalaTest\PUSCScalaTest.csproj", "{C36AFA40-6E73-4C9D-BC80-DE0F9E9690C2}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
