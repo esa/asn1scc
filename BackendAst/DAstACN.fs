@@ -1900,14 +1900,14 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
         let td = (lm.lg.getChoiceTypeDefinition o.typeDef).longTypedefName2 lm.lg.hasModules (ToC p.modName)
         let handleChild (us:State) (idx:int) (child:ChChildInfo) =
                 let chFunc = child.chType.getAcnFunction codec
-                let sChInitExpr = 
-                    match child.chType.initFunction.initFunction with
-                    | Some x -> x.funcName
-                    | None -> child.chType.initFunction.initExpression
                 
                 let sChildInitExpr = 
                     match ST.lang with
-                    | Scala -> 
+                    | Scala ->                        
+                        let sChInitExpr =
+                            match child.chType.initFunction.initFunction with
+                            | Some x -> x.funcName
+                            | None -> child.chType.initFunction.initExpression
                         match hasInitMethSuffix sChInitExpr (lm.init.methodNameSuffix()) with
                         | true -> sChInitExpr + "()"
                         | false ->
@@ -1915,7 +1915,7 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
                             | Sequence sequence -> sequence.baseInfo.typeDef[Scala].typeName + "(" + sChInitExpr + ")"
                             | (OctetString _ | BitString _ | IA5String _) -> sChInitExpr
                             | _ -> extractDefaultInitValue child.chType.Kind
-                    | _ -> ""
+                    | _ -> child.chType.initFunction.initExpression
 
                 let childContentResult, ns1 = 
                     //match child.Optionality with
