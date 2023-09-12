@@ -1,3 +1,0 @@
-[submodule "PUSCScalaTest/asn1-pusc-lib"]
-	path = PUSCScalaTest/asn1-pusc-lib
-	url = https://github.com/ateleris/asn1-pusc-lib

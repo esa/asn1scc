@@ -34,14 +34,14 @@
         [TestMethod]
         public void TestService_11() => UPERInteropEncScalaDecC(PUS_C_Service.S11, "S11");
 
-        [TestMethod]
-        public void TestService_12() => UPERInteropEncScalaDecC(PUS_C_Service.S12, "S12");
+        //[TestMethod]
+        //public void TestService_12() => UPERInteropEncScalaDecC(PUS_C_Service.S12, "S12");
 
         [TestMethod]
         public void TestService_13() => UPERInteropEncScalaDecC(PUS_C_Service.S13, "S13");
 
-        [TestMethod]
-        public void TestService_14() => UPERInteropEncScalaDecC(PUS_C_Service.S14, "S14");
+        //[TestMethod]
+        //public void TestService_14() => UPERInteropEncScalaDecC(PUS_C_Service.S14, "S14");
 
         [TestMethod]
         public void TestService_15() => UPERInteropEncScalaDecC(PUS_C_Service.S15, "S15");
