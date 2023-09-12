@@ -398,8 +398,8 @@ namespace PUS_C_Scala_Test
             {
                 proc.Start();
                 proc.StandardInput.WriteLine(arg);
-                System.Threading.Thread.Sleep(500); // give some time for command to execute
-                proc.StandardInput.Flush();
+                System.Threading.Thread.Sleep(1000); // give some time for command to execute
+                //proc.StandardInput.Flush();
                 proc.StandardInput.Close();
                 proc.WaitForExit(-1);
 
