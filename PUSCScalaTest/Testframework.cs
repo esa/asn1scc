@@ -407,8 +407,8 @@ namespace PUS_C_Scala_Test
                 var worked = outputList.FindLastIndex(x => x.Contains(check)) > outputList.Count - 5;
 
                 // print sbt output
-                if(printOutput)
-                    Console.WriteLine(outp);
+                //if(printOutput)
+                Console.WriteLine(outp);
 
                 Assert.IsTrue(worked);
             }
