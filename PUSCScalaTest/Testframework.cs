@@ -84,6 +84,17 @@ namespace PUS_C_Scala_Test
             if (missingASNFiles.Count() > 0)
             {
                 Console.WriteLine("WORKING DIR: " + Directory.GetCurrentDirectory());
+                Console.WriteLine("FILES: " + String.Join(",", Directory.GetFiles(".")));
+                Console.WriteLine("DIR: ..");
+                Console.WriteLine("FILES: " + String.Join(",", Directory.GetFiles("..")));
+                Console.WriteLine("DIR: ../..");
+                Console.WriteLine("FILES: " + String.Join(",", Directory.GetFiles("../..")));
+                Console.WriteLine("DIR: ../../..");
+                Console.WriteLine("FILES: " + String.Join(",", Directory.GetFiles("../../..")));
+                Console.WriteLine("DIR: ../../../..");
+                Console.WriteLine("FILES: " + String.Join(",", Directory.GetFiles("../../../..")));
+                Console.WriteLine("DIR: ../../../../PUSCScalaTest");
+                Console.WriteLine("FILES: " + String.Join(",", Directory.GetFiles("../../../../PUSCScalaTest")));
                 Console.WriteLine("WARNING: ASN1 Files not found: " + String.Join(",", missingASNFiles));
             }
 
@@ -96,6 +107,17 @@ namespace PUS_C_Scala_Test
                 if (missingACNFiles.Count() > 0)
                 {
                     Console.WriteLine("WORKING DIR: " + Directory.GetCurrentDirectory());
+                    Console.WriteLine("FILES: " + String.Join(",", Directory.GetFiles(".")));
+                    Console.WriteLine("DIR: ..");
+                    Console.WriteLine("FILES: " + String.Join(",", Directory.GetFiles("..")));
+                    Console.WriteLine("DIR: ../..");
+                    Console.WriteLine("FILES: " + String.Join(",", Directory.GetFiles("../..")));
+                    Console.WriteLine("DIR: ../../..");
+                    Console.WriteLine("FILES: " + String.Join(",", Directory.GetFiles("../../..")));
+                    Console.WriteLine("DIR: ../../../..");
+                    Console.WriteLine("FILES: " + String.Join(",", Directory.GetFiles("../../../..")));
+                    Console.WriteLine("DIR: ../../../../PUSCScalaTest");
+                    Console.WriteLine("FILES: " + String.Join(",", Directory.GetFiles("../../../../PUSCScalaTest")));
                     Console.WriteLine("WARNING: ACN Files not found: " + String.Join(",", missingACNFiles));
                 }
             }
