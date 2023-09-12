@@ -85,16 +85,25 @@ namespace PUS_C_Scala_Test
             {
                 Console.WriteLine("WORKING DIR: " + Directory.GetCurrentDirectory());
                 Console.WriteLine("FILES: " + String.Join(",", Directory.GetFiles(".")));
+                Console.WriteLine("DIRECTORIES: " + String.Join(",", Directory.GetDirectories(".")));
                 Console.WriteLine("DIR: ..");
                 Console.WriteLine("FILES: " + String.Join(",", Directory.GetFiles("..")));
+                Console.WriteLine("DIRECTORIES: " + String.Join(",", Directory.GetDirectories("..")));
                 Console.WriteLine("DIR: ../..");
                 Console.WriteLine("FILES: " + String.Join(",", Directory.GetFiles("../..")));
+                Console.WriteLine("DIRECTORIES: " + String.Join(",", Directory.GetDirectories("../..")));
                 Console.WriteLine("DIR: ../../..");
                 Console.WriteLine("FILES: " + String.Join(",", Directory.GetFiles("../../..")));
+                Console.WriteLine("DIRECTORIES: " + String.Join(",", Directory.GetDirectories("../../..")));
                 Console.WriteLine("DIR: ../../../..");
                 Console.WriteLine("FILES: " + String.Join(",", Directory.GetFiles("../../../..")));
+                Console.WriteLine("DIRECTORIES: " + String.Join(",", Directory.GetDirectories("../../../..")));
                 Console.WriteLine("DIR: ../../../../PUSCScalaTest");
                 Console.WriteLine("FILES: " + String.Join(",", Directory.GetFiles("../../../../PUSCScalaTest")));
+                Console.WriteLine("DIRECTORIES: " + String.Join(",", Directory.GetDirectories("../../../../PUSCScalaTest")));
+                Console.WriteLine("DIR: ../../../../PUSCScalaTest/");
+                Console.WriteLine("FILES: " + String.Join(",", Directory.GetFiles(inputFilePrefix)));
+                Console.WriteLine("DIRECTORIES: " + String.Join(",", Directory.GetDirectories(inputFilePrefix)));
                 Console.WriteLine("WARNING: ASN1 Files not found: " + String.Join(",", missingASNFiles));
             }
 
@@ -108,16 +117,25 @@ namespace PUS_C_Scala_Test
                 {
                     Console.WriteLine("WORKING DIR: " + Directory.GetCurrentDirectory());
                     Console.WriteLine("FILES: " + String.Join(",", Directory.GetFiles(".")));
+                    Console.WriteLine("DIRECTORIES: " + String.Join(",", Directory.GetDirectories(".")));
                     Console.WriteLine("DIR: ..");
                     Console.WriteLine("FILES: " + String.Join(",", Directory.GetFiles("..")));
+                    Console.WriteLine("DIRECTORIES: " + String.Join(",", Directory.GetDirectories("..")));
                     Console.WriteLine("DIR: ../..");
                     Console.WriteLine("FILES: " + String.Join(",", Directory.GetFiles("../..")));
+                    Console.WriteLine("DIRECTORIES: " + String.Join(",", Directory.GetDirectories("../..")));
                     Console.WriteLine("DIR: ../../..");
                     Console.WriteLine("FILES: " + String.Join(",", Directory.GetFiles("../../..")));
+                    Console.WriteLine("DIRECTORIES: " + String.Join(",", Directory.GetDirectories("../../..")));
                     Console.WriteLine("DIR: ../../../..");
                     Console.WriteLine("FILES: " + String.Join(",", Directory.GetFiles("../../../..")));
+                    Console.WriteLine("DIRECTORIES: " + String.Join(",", Directory.GetDirectories("../../../..")));
                     Console.WriteLine("DIR: ../../../../PUSCScalaTest");
                     Console.WriteLine("FILES: " + String.Join(",", Directory.GetFiles("../../../../PUSCScalaTest")));
+                    Console.WriteLine("DIRECTORIES: " + String.Join(",", Directory.GetDirectories("../../../../PUSCScalaTest")));
+                    Console.WriteLine("DIR: ../../../../PUSCScalaTest/");
+                    Console.WriteLine("FILES: " + String.Join(",", Directory.GetFiles(inputFilePrefix)));
+                    Console.WriteLine("DIRECTORIES: " + String.Join(",", Directory.GetDirectories(inputFilePrefix)));
                     Console.WriteLine("WARNING: ACN Files not found: " + String.Join(",", missingACNFiles));
                 }
             }
