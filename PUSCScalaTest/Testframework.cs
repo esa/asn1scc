@@ -381,6 +381,8 @@ namespace PUS_C_Scala_Test
 
         private void StartSBTWithArg(string outDir, string arg, string check, bool printOutput)
         {
+            Console.WriteLine("StartSBTWithArg Files: " + String.Join(",", Directory.GetFiles(outDir)) + " / " + String.Join(",", Directory.GetDirectories(outDir)));
+            Console.WriteLine("Windows? " + RuntimeInformation.IsOSPlatform(OSPlatform.Windows));
             using (var proc = new Process
             {
                 StartInfo = new ProcessStartInfo
@@ -403,12 +405,14 @@ namespace PUS_C_Scala_Test
 
                 // parse sbt output
                 var outp = proc.StandardOutput.ReadToEnd();
+                Console.WriteLine("OUTPUT " + outp);
                 var outputList = outp.Split("\n").ToList();
                 var worked = outputList.FindLastIndex(x => x.Contains(check)) > outputList.Count - 5;
+                Console.WriteLine("WORKED? " + worked);
 
                 // print sbt output
-                //if(printOutput)
-                Console.WriteLine(outp);
+                if(printOutput)
+                    Console.WriteLine(outp);
 
                 Assert.IsTrue(worked);
             }
