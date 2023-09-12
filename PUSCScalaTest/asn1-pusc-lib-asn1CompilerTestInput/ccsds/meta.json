@@ -1,0 +1,71 @@
+{
+  "name": "CCSDS",
+  "submodules": [
+    {
+      "name": "CCSDS Packets",
+      "elements": [
+        {
+          "name": "TC Packet",
+          "asn1Files": [
+            "TC-Packet.asn1",
+            "PacketTypes.asn1",
+            "TC-Payload.asn1"
+          ],
+          "requires": [
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Application Process"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Application Process User" 
+            },
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Message Type"
+            }
+          ]
+        },
+        {
+          "name": "TM Packet",
+          "asn1Files": [
+            "TM-Packet.asn1",
+            "PacketTypes.asn1",
+            "TM-Payload.asn1"
+          ],
+          "requires": [
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Application Process"
+            },
+            {
+
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Spacecraft Time Reference Status"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Application Process User" 
+            },
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Message Type"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

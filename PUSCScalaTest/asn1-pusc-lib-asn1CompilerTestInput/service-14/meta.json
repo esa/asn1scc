@@ -1,0 +1,316 @@
+{
+  "name": "ST[14] real-time forwarding control",
+  "submodules":[
+    {
+      "name": "Real-time forwarding control subservice",
+      "elements":[
+        {
+          "name": "Add report types to the application process forward-control configuration",
+          "asn1Files": [
+            "PUS-14-1.asn1",
+            "ApplicationProcessForwardControl.asn1"
+          ],
+          "requires": [
+            "Delete report types from the application process forward-control configuration",
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Application Process"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Message Type"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            }
+          ]
+        },
+        {
+          "name": "Delete report types from the application process forward-control configuration",
+          "asn1Files": [
+            "PUS-14-2.asn1",
+            "ApplicationProcessForwardControl.asn1"
+          ],
+          "requires": [
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Application Process"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Message Type"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            }
+          ]
+        },
+        {
+          "name": "Report the content of the application process forward-control configuration",
+          "asn1Files": [
+            "PUS-14-3.asn1",
+            "PUS-14-4.asn1",
+            "ApplicationProcessForwardControl.asn1"
+          ],
+          "requires": [
+            "Add report types to the application process forward-control configuration",
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Application Process"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Message Type"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            }
+          ]
+        },
+        {
+          "name": "Add structure identifiers to the housekeeping parameter report forward-control configuration",
+          "asn1Files":[
+            "PUS-14-5.asn1",
+            "HousekeepingParameterReportForwardControl.asn1",
+            "SubsamplingRate.asn1"
+          ],
+          "requires":[
+            "Delete structure identifiers from the housekeeping parameter report forward-control configuration",
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Application Process"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Housekeeping Parameter Report Structure"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            }
+          ]
+        },
+        {
+          "name": "Delete structure identifiers from the housekeeping parameter report forward-control configuration",
+          "asn1Files":[
+            "PUS-14-6.asn1",
+            "HousekeepingParameterReportForwardControl.asn1",
+            "SubsamplingRate.asn1"
+          ],
+          "requires":[
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Application Process"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Housekeeping Parameter Report Structure"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            }
+          ]
+        },
+        {
+          "name": "Report the content of the housekeeping parameter report forward-control configuration",
+          "asn1Files":[
+            "PUS-14-7.asn1",
+            "PUS-14-8.asn1",
+            "HousekeepingParameterReportForwardControl.asn1",
+            "SubsamplingRate.asn1"
+          ],
+          "requires":[
+            "Add structure identifiers to the housekeeping parameter report forward-control configuration",
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Application Process"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Housekeeping Parameter Report Structure"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            }
+          ]
+        },
+        {
+          "name":"Add structure identifiers to the diagnostic parameter report forward-control configuration",
+          "asn1Files": [
+            "PUS-14-9.asn1",
+            "DiagnosticParameterReportForwardControl.asn1",
+            "SubsamplingRate.asn1"
+          ],
+          "requires":[
+            "Delete structure identifiers from the diagnostic parameter report forward-control configuration",
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Application Process"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Diagnostic Parameter Report Structure"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            }
+          ]
+        },
+        {
+          "name": "Delete structure identifiers from the diagnostic parameter report forward-control configuration",
+          "asn1Files": [
+            "PUS-14-10.asn1",
+            "DiagnosticParameterReportForwardControl.asn1",
+            "SubsamplingRate.asn1"
+          ],
+          "requires":[
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Application Process"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Diagnostic Parameter Report Structure"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            }
+          ]
+        },
+        {
+          "name": "Report the content of the diagnostic parameter report forward-control",
+          "asn1Files": [
+            "PUS-14-11.asn1",
+            "PUS-14-12.asn1",
+            "DiagnosticParameterReportForwardControl.asn1",
+            "SubsamplingRate.asn1"
+          ],
+          "requires":[
+            "Add structure identifiers to the diagnostic parameter report forward-control configuration",
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Application Process"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Diagnostic Parameter Report Structure"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            }
+          ]
+        },
+        {
+          "name": "Delete event definition identifiers from the event report blocking forward-control configuration",
+          "asn1Files": [
+            "PUS-14-13.asn1",
+            "EventDefinitionForwardControl.asn1"
+          ],
+          "requires":[
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Application Process"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Event Definition"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            }
+          ]
+        },
+        {
+          "name": "Add event definition identifiers to the event report blocking forward-control configuration",
+          "asn1Files": [
+            "PUS-14-14.asn1",
+            "EventDefinitionForwardControl.asn1"
+          ],
+          "requires":[
+            "Delete event definition identifiers from the event report blocking forward-control configuration",
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Application Process"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Event Definition"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            }
+          ]
+        },
+        {
+          "name": "Report the content of the event report blocking forward-control configuration",
+          "asn1Files": [
+            "PUS-14-15.asn1",
+            "PUS-14-16.asn1",
+            "EventDefinitionForwardControl.asn1"
+          ],
+          "requires":[
+            "Add event definition identifiers to the event report blocking forward-control configuration",
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Application Process"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Event Definition"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,53 @@
+language: csharp
+
+os: linux
+dist: trusty
+sudo: required
+
+env:
+  global:
+    - CMOCKA_VERSION="1.1.1"
+
+addons:
+  apt:
+    sources:
+    - sourceline: "ppa:beineri/opt-qt591-trusty"
+    packages:
+    - qt59base
+    - p7zip-full
+
+install:
+  - pushd $HOME
+  - wget "https://n7space-my.sharepoint.com/:u:/p/kgrochowski/EZSwzkHV-C1Mn1nppkUqKIcBjFpzsn67G_N_1RMW2Yr7dQ?download=1" -O asn1scc.7z
+  - 7z x asn1scc.7z
+  - wget https://cmocka.org/files/1.1/cmocka-${CMOCKA_VERSION}.tar.xz
+  - tar -xf cmocka-${CMOCKA_VERSION}.tar.xz
+  - cd cmocka-${CMOCKA_VERSION}
+  - mkdir build
+  - cd build
+  - cmake ../
+  - make
+  - sudo make install
+  - popd
+  - sudo pip install jsonschema
+
+script:
+  - . /opt/qt59/bin/qt59-env.sh
+  - PATH=$HOME/asn1scc/:$PATH LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH ./sanity-check.sh
+
+before_deploy:
+  - ./make-package.sh
+deploy:
+  provider: releases
+  api_key:
+    secure: LGvUpWt+zW8ytsLfmsclEA+7xL2c1W1wAeVtENw7pl4271aj99TWEj4Gq144hH2/7lOcTmSjq3KDwjMVum0NhhgHlWAfe7qWwFzluH3I2zbkbqR8k7/7av9Ph2gmbfudLkzkLAxd/XAenfc3Rr3r83ZysMi4syMreBrIO1jHXGSlOFInYJqWb4yfZlmjzziXBp8LlbPenK0E7KnXxPsKZ/EibBOkzUM+80iapFEFWh9iHqN6CwGb5khgM5jcZews+JUCAY1Z2RhrIc5taGI1r+pO7qDED396g2Qvi0OtqOYCKOqATfjsC3lpuMf7MVl+fzMQvxCSpXSWsrkBt7H5tUQ+r9dlGcmHPJrrVLw77BVM/90k8QmN0xXeDS8lLKTu12FCE16v2i6eYlhVeLg2UAdYiVLZVBIRRqnGy7SZSVngE7UZAqdcdtSd4vxCGm/xim8sMXfOZC5dcg0agdGy+PItPA6xT4uOd8q8GCsPSUBKxjKyQkwN57PdLD5lDgn+UF26bCxe7i449OYMyynsVKgfjuWfpw6ULtXrnJr83fDMpNJ8MniZD50omfR+5dOJYYxCbll4Eo6Ga11MK5PcZ0ys5GMRKqSIFJACX+OMBkCsIzOGeIAjroegOXDGFsTz12BQiwpoCgFWjfFWsU31aWyka7vj6ZUn7SmW3vSYaKM=
+  file_glob: true
+  file:
+  - Asn1Acn-*.tar.gz
+  - Asn1Acn-*.zip
+  - Asn1Acn-*.7z
+  skip_cleanup: true
+  overwrite: true
+  on:
+    repo: n7space/asn1-pusc-lib
+    tags: true

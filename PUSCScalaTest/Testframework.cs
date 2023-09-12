@@ -48,7 +48,7 @@ namespace PUS_C_Scala_Test
         private readonly string outFolderSuffixACN = "ACN/PUSC_";
         private readonly string outFolderSuffixScala = "/Scala";
         private readonly string outFolderSuffixC = "/C";
-        private readonly string inputFilePrefix = "../../../../PUSCScalaTest/asn1-pusc-lib-static/";
+        private readonly string inputFilePrefix = "../../../../PUSCScalaTest/asn1-pusc-lib-asn1CompilerTestInput/";
         
         private readonly string asn1FileEnding = ".asn1";
         private readonly string acnFileEnding = ".acn";
@@ -101,7 +101,7 @@ namespace PUS_C_Scala_Test
                 Console.WriteLine("DIR: ../../../../PUSCScalaTest");
                 Console.WriteLine("FILES: " + String.Join(",", Directory.GetFiles("../../../../PUSCScalaTest")));
                 Console.WriteLine("DIRECTORIES: " + String.Join(",", Directory.GetDirectories("../../../../PUSCScalaTest")));
-                Console.WriteLine("DIR: ../../../../PUSCScalaTest/");
+                Console.WriteLine("DIR: " + inputFilePrefix);
                 Console.WriteLine("FILES: " + String.Join(",", Directory.GetFiles(inputFilePrefix)));
                 Console.WriteLine("DIRECTORIES: " + String.Join(",", Directory.GetDirectories(inputFilePrefix)));
                 Console.WriteLine("WARNING: ASN1 Files not found: " + String.Join(",", missingASNFiles));

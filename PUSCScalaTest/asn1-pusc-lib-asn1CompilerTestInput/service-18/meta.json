@@ -1,0 +1,209 @@
+{
+  "name": "ST[18] On-Board control procedure",
+  "submodules": [
+    {
+      "name": "OBCP management subservice",
+      "elements": [
+        {
+          "name": "Direct-load an OBCP",
+          "asn1Files": [
+            "PUS-18-1.asn1",
+            "OBCP.asn1"
+          ],
+          "requires": [
+            "Unload an OBCP",
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            }
+          ]
+        },
+        {
+          "name": "Load an OBCP by reference",
+          "asn1Files": [
+            "PUS-18-13.asn1",
+            "OBCP.asn1"
+          ],
+          "requires": [
+            "Unload an OBCP",
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "File Path"
+            }
+          ]
+        },
+        {
+          "name": "Unload an OBCP",
+          "asn1Files": [
+            "PUS-18-2.asn1",
+            "OBCP.asn1"
+          ]
+        },
+        {
+          "name": "Activate an OBCP",
+          "asn1Files": [
+            "PUS-18-3.asn1",
+            "OBCPActivation.asn1",
+            "OBCP.asn1",
+            "OBCPManagement.asn1",
+            "OBCPArgumentValues.asn1"
+          ]
+        },
+        {
+          "name": "Load by reference and activate an OBCP",
+          "asn1Files": [
+            "PUS-18-19.asn1",
+            "OBCPActivation.asn1",
+            "OBCP.asn1",
+            "OBCPManagement.asn1",
+            "OBCPArgumentValues.asn1"
+          ],
+          "requires": [
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "File Path"
+            }
+          ]
+        },
+        {
+          "name": "Stop an OBCP",
+          "asn1Files": [
+            "PUS-18-4.asn1",
+            "OBCPWithold.asn1",
+            "OBCP.asn1",
+            "OBCPManagement.asn1"
+          ]
+        },
+        {
+          "name": "Stop and unload an OBCP",
+          "asn1Files": [
+            "PUS-18-20.asn1",
+            "OBCPWithold.asn1",
+            "OBCP.asn1",
+            "OBCPManagement.asn1"
+          ]
+        },
+        {
+          "name": "Abort an OBCP",
+          "asn1Files": [
+            "PUS-18-12.asn1",
+            "OBCP.asn1"
+          ]
+        },
+        {
+          "name": "Abort all OBCPs and report",
+          "asn1Files": [
+            "PUS-18-17.asn1",
+            "PUS-18-18.asn1",
+            "OBCP.asn1"
+          ],
+          "requires": [
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            }
+          ]
+        },
+        {
+          "name": "Report the execution status of each OBCP",
+          "asn1Files": [
+            "PUS-18-8.asn1",
+            "PUS-18-9.asn1",
+            "OBCP.asn1",
+            "OBCPManagement.asn1"
+          ],
+          "requires": [
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            }
+          ]
+        },
+        {
+          "name": "Suspend an OBCP",
+          "asn1Files": [
+            "PUS-18-5.asn1",
+            "OBCPWithold.asn1",
+            "OBCP.asn1",
+            "OBCPManagement.asn1"
+          ],
+          "requires": [
+            "Resume an OBCP"
+          ]
+        },
+        {
+          "name": "Resume an OBCP",
+          "asn1Files": [
+            "PUS-18-6.asn1",
+            "OBCP.asn1"
+          ]
+        },
+        {
+          "name": "Activate and execute one OBCP step",
+          "asn1Files": [
+            "PUS-18-14.asn1",
+            "OBCPActivation.asn1",
+            "OBCP.asn1",
+            "OBCPManagement.asn1",
+            "OBCPArgumentValues.asn1"
+          ],
+          "requires": [
+            "Resume and execute one OBCP step"
+          ]
+        },
+        {
+          "name": "Resume and execute one OBCP step",
+          "asn1Files": [
+            "PUS-18-15.asn1",
+            "OBCP.asn1"
+          ]
+        },
+        {
+          "name": "Communicate parameters to an OBCP",
+          "asn1Files": [
+            "PUS-18-7.asn1",
+            "OBCP.asn1",
+            "OBCPArgumentValues.asn1"
+          ]
+        },
+        {
+          "name": "Set the observability level of OBCPs",
+          "asn1Files": [
+            "PUS-18-16.asn1",
+            "OBCP.asn1",
+            "OBCPManagement.asn1"
+          ],
+          "requires": [
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "OBCP engine management subservice",
+      "elements": [
+        {
+          "name": "Start the OBCP engine",
+          "asn1Files": [
+            "PUS-18-21.asn1"
+          ]
+        },
+        {
+          "name": "Stop the OBCP engine",
+          "asn1Files": [
+            "PUS-18-22.asn1"
+          ]
+        }
+      ]
+    }
+  ]
+}

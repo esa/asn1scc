@@ -1,0 +1,62 @@
+--!
+--! Copyright (C) 2017-2023 N7 Space sp. z o. o.
+--! Contact: https://n7space.com
+--!
+--! This file is part of ASN.1/ACN PUS-C Components Library.
+--!
+--! Library was developed under a programme and funded by
+--! European Space Agency.
+--!
+--! This Library is free software: you can redistribute it and/or modify
+--! it under the terms of the GNU General Public License as published by
+--! the Free Software Foundation, either version 3 of the License, or
+--! (at your option) any later version.
+--!
+--! This Library is distributed in the hope that it will be useful,
+--! but WITHOUT ANY WARRANTY; without even the implied warranty of
+--! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+--! GNU General Public License for more details.
+--!
+--! You should have received a copy of the GNU General Public License
+--! along with this program.  If not, see <http://www.gnu.org/licenses/>.
+--!
+
+PUS-3-1 DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+EXPORTS ALL;
+IMPORTS
+    HousekeepingParameterReportStructure-ID FROM HousekeepingParameterReportStructure
+    Parameter-ID FROM Parameter
+    PUSC-UINT32 FROM BasicTypes
+    CollectionInterval FROM CollectionInterval;
+
+maxTC-3-1-Parameter-ID-Count INTEGER ::= 255
+maxTC-3-1-SuperComutatetParameterSetCount INTEGER ::= 127
+
+TC-3-1-CreateAHousekeepingParameterReportStructure
+    ::= TC-3-1-CreateAHousekeepingParameterReportStructureGeneric
+        {HousekeepingParameterReportStructure-ID, CollectionInterval, Parameter-ID}
+
+TC-3-1-CreateAHousekeepingParameterReportStructureGeneric
+  {HousekeepingParameterReportStructure-ID-Type, CollectionInterval-Type, Parameter-ID-Type}
+  ::= SEQUENCE
+{
+    housekeepingParameterReportStructure-ID HousekeepingParameterReportStructure-ID-Type,
+    collectionInterval CollectionInterval-Type,
+--! n1 UnsignedInteger-Type, moved to acn
+    parameter-ID SEQUENCE (SIZE(0 .. maxTC-3-1-Parameter-ID-Count)) OF Parameter-ID-Type,
+--! nfa UnsignedInteger-Type, moved to acn
+    superCommutatedParameterSet SEQUENCE (SIZE(0 .. maxTC-3-1-SuperComutatetParameterSetCount))
+        OF TC-3-1-SuperCommutatedParameterSet
+}
+
+TC-3-1-SuperCommutatedParameterSet ::=
+  TC-3-1-SuperCommutatedParameterSetGeneric {PUSC-UINT32, Parameter-ID}
+
+TC-3-1-SuperCommutatedParameterSetGeneric {UnsignedInteger-Type, Parameter-ID-Type} ::= SEQUENCE
+{
+    superCommutatedSampleRepetitionNumber UnsignedInteger-Type,
+--! n2 UnsignedInteger-Type, moved to acn
+    parameter-ID SEQUENCE (SIZE(0 .. maxTC-3-1-Parameter-ID-Count)) OF Parameter-ID-Type
+}
+
+END

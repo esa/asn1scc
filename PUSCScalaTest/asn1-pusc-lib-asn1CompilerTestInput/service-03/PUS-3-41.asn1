@@ -1,0 +1,78 @@
+--!
+--! Copyright (C) 2017-2023 N7 Space sp. z o. o.
+--! Contact: https://n7space.com
+--!
+--! This file is part of ASN.1/ACN PUS-C Components Library.
+--!
+--! Library was developed under a programme and funded by
+--! European Space Agency.
+--!
+--! This Library is free software: you can redistribute it and/or modify
+--! it under the terms of the GNU General Public License as published by
+--! the Free Software Foundation, either version 3 of the License, or
+--! (at your option) any later version.
+--!
+--! This Library is distributed in the hope that it will be useful,
+--! but WITHOUT ANY WARRANTY; without even the implied warranty of
+--! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+--! GNU General Public License for more details.
+--!
+--! You should have received a copy of the GNU General Public License
+--! along with this program.  If not, see <http://www.gnu.org/licenses/>.
+--!
+
+PUS-3-41 DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+EXPORTS ALL;
+IMPORTS
+    PUSC-UINT32 FROM BasicTypes
+    ApplicationProcess-ID FROM ApplicationProcess
+    ParameterReportStructureType,
+    ParameterReportStructure-ID FROM ParameterReportStructureType
+    PeriodicGenerationActionStatus FROM PeriodicGenerationActionStatus
+    CollectionInterval FROM CollectionInterval
+    ParameterFunctionalReportingDefinition-ID FROM ParameterFunctionalReportingDefinition
+    ParameterReportingEntries FROM ParameterReportingEntries;
+
+macTC-41-ParameterReportingEntryCount INTEGER ::= 127
+maxTC-41-ApidParameterReportingEntryCount INTEGER ::= 127
+
+TM-3-41-ParameterFunctionalReportingDefinitionReportMultipleApid
+    ::= TM-3-41-ParameterFunctionalReportingDefinitionReportMultipleApidGeneric
+        {ParameterFunctionalReportingDefinition-ID}
+
+TM-3-41-ParameterFunctionalReportingDefinitionReportMultipleApidGeneric
+    {ParameterFunctionalReportingDefinition-ID-Type}
+    ::= SEQUENCE
+{
+    parameterFunctionalReportingDefinition-ID ParameterFunctionalReportingDefinition-ID-Type,
+--! n1 UnsignedInteger-Type, moved to acn
+    apidParameterReportingEntries SEQUENCE (SIZE(1 .. maxTC-41-ApidParameterReportingEntryCount))
+        OF TM-3-41-ApidParameterReportingEntries
+}
+
+TM-3-41-ParameterFunctionalReportingDefinitionReport
+    ::= TM-3-41-ParameterFunctionalReportingDefinitionReportGeneric
+        {ParameterFunctionalReportingDefinition-ID}
+
+TM-3-41-ParameterFunctionalReportingDefinitionReportGeneric
+    {ParameterFunctionalReportingDefinition-ID-Type}
+    ::= SEQUENCE
+{
+    parameterFunctionalReportingDefinition-ID ParameterFunctionalReportingDefinition-ID-Type,
+--! n2 UnsignedInteger-Type, moved to acn
+    parameterReportingEntries SEQUENCE (SIZE(1 .. macTC-41-ParameterReportingEntryCount))
+        OF ParameterReportingEntries
+}
+
+TM-3-41-ApidParameterReportingEntries
+    ::= TM-3-41-ApidParameterReportingEntriesGeneric {ApplicationProcess-ID}
+
+TM-3-41-ApidParameterReportingEntriesGeneric {ApplicationProcess-ID-Type} ::= SEQUENCE
+{
+    applicationProcess-ID ApplicationProcess-ID-Type,
+--! n2 UnsignedInteger-Type, moved to acn
+    parameterReportingEntries SEQUENCE (SIZE(1 .. macTC-41-ParameterReportingEntryCount))
+        OF ParameterReportingEntries
+}
+
+END

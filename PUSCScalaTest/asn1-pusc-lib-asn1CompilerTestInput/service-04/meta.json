@@ -1,0 +1,127 @@
+{
+  "name": "ST[04] parameter statistics reporting",
+  "submodules": [
+    {
+      "name": "Parameter statistics reporting subservice",
+      "elements": [
+        {
+          "name": "Reset the parameter statistics",
+          "asn1Files": ["PUS-4-3.asn1"]
+        },
+        {
+          "name": "Report the parameter statistics",
+          "asn1Files":[
+            "PUS-4-1.asn1",
+            "PUS-4-2.asn1"
+          ],
+          "requires": [
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Parameter"
+            }
+          ]
+        },
+        {
+          "name": "Parameter statistics report",
+          "asn1Files": ["PUS-4-2.asn1"],
+          "requires": [
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Parameter"
+            }
+          ]
+        },
+        {
+          "name": "Enable the periodic parameter statistics reporting",
+          "asn1Files": [
+            "PUS-4-4.asn1",
+            "Intervals.asn1"
+          ],
+          "requires": [
+            "Disable the periodic parameter statistics reporting",
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            }
+          ]
+        },
+        {
+          "name": "Disable the periodic parameter statistics reporting",
+          "asn1Files": ["PUS-4-5.asn1"]
+        },
+        {
+          "name": "Add or update parameter statistics definitions",
+          "asn1Files": [
+            "PUS-4-6.asn1",
+            "ParameterStatisticsDefinitions.asn1",
+            "Intervals.asn1"
+          ],
+          "requires": [
+            "Delete parameter statistics definitions",
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Parameter"
+            }
+          ]
+        },
+        {
+          "name": "Delete parameter statistics definitions",
+          "asn1Files": ["PUS-4-7.asn1"],
+          "requires": [
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Parameter"
+            }
+          ]
+        },
+        {
+          "name": "Report the parameter statistics definitions",
+          "asn1Files": [
+            "PUS-4-8.asn1",
+            "PUS-4-9.asn1",
+            "ParameterStatisticsDefinitions.asn1",
+            "Intervals.asn1"
+          ],
+          "requires": [
+            "Add or update parameter statistics definitions",
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Parameter"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

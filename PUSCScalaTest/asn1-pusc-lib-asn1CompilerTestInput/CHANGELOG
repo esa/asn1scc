@@ -1,0 +1,24 @@
+# Changelog
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [Unreleased]
+### Changed
+- CCSDS TC/TM Packets rebuilt to support newer version of ASN1SCC V4
+- TC Packet ID will be defined explicitly in PUS 1 "Verification Request" to mitigate ACN issues
+
+## [1.1.0] - 2019-04-15
+### Changed
+- Library is now checked against asn1scc in version 4.x.
+- A lot of default values made smaller (mainly those size-related)
+- Some ACN encoding specifications simplified
+- OPTIONALs are now enabled using WITH_COMPONENTS
+
+## [1.0.1] - 2018-04-03
+### Changed
+- Little refactoring in Service-01: TM[1,2] will be easier to use from code
+
+## [1.0.0] - 2018-03-12
+Initial release of the Library

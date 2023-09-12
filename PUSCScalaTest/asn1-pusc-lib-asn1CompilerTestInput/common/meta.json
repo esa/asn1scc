@@ -1,0 +1,104 @@
+{
+  "name": "Common Types",
+  "submodules": [
+    {
+      "name": "PTC/PFC Types",
+      "elements": [
+        {
+          "name": "Basic Types",
+          "asn1Files": ["BasicTypes.asn1"]
+        },
+        {
+          "name": "Dummy Type",
+          "asn1Files": ["Dummy.asn1"]
+        }
+      ]
+    },
+    {
+      "name": "Mission Objects",
+      "elements": [
+        {
+          "name": "Application Process",
+          "asn1Files": ["ApplicationProcess.asn1"]
+        },
+        {
+          "name": "Application Process User",
+          "asn1Files": ["ApplicationProcessUser.asn1"]
+        },
+        {
+          "name": "Execution Step",
+          "asn1Files": ["ExecutionStep.asn1"]
+        },
+        {
+          "name": "File Path",
+          "asn1Files": ["FilePath.asn1"],
+          "requires":[
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            }
+          ]
+        },
+        {
+          "name": "Time Window",
+          "asn1Files": ["TimeWindow.asn1"],
+          "requires":[
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            }
+          ]
+        },
+        {
+          "name": "Parameter",
+          "asn1Files": ["Parameter.asn1"]
+        },
+        {
+          "name": "Spacecraft Time Reference Status",
+          "asn1Files": ["SpacecraftTimeReferenceStatus.asn1"]
+        },
+        {
+          "name": "Request",
+          "asn1Files":[
+            "Request.asn1"
+          ],
+          "requires":[
+            "Application Process",
+            "Application Process User",
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            }
+          ]
+        },
+        {
+          "name": "Event Definition",
+          "asn1Files": ["EventDefinition.asn1"],
+          "requires": [
+            "Application Process",
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Dummy Type"
+            }
+          ]
+        },
+        {
+          "name": "Housekeeping Parameter Report Structure",
+          "asn1Files": ["HousekeepingParameterReportStructure.asn1"] 
+        },
+        {
+          "name": "Diagnostic Parameter Report Structure",
+          "asn1Files": ["DiagnosticParameterReportStructure.asn1"]
+        },
+        {
+          "name": "Message Type",
+          "asn1Files": ["MessageType.asn1"]
+        }
+      ]
+    }
+  ]
+}

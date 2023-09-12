@@ -1,0 +1,127 @@
+--!
+--! Copyright (C) 2017-2023 N7 Space sp. z o. o.
+--! Contact: https://n7space.com
+--!
+--! This file is part of ASN.1/ACN PUS-C Components Library.
+--!
+--! Library was developed under a programme and funded by
+--! European Space Agency.
+--!
+--! This Library is free software: you can redistribute it and/or modify
+--! it under the terms of the GNU General Public License as published by
+--! the Free Software Foundation, either version 3 of the License, or
+--! (at your option) any later version.
+--!
+--! This Library is distributed in the hope that it will be useful,
+--! but WITHOUT ANY WARRANTY; without even the implied warranty of
+--! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+--! GNU General Public License for more details.
+--!
+--! You should have received a copy of the GNU General Public License
+--! along with this program.  If not, see <http://www.gnu.org/licenses/>.
+--!
+
+BasicTypes DEFINITIONS ::= BEGIN
+
+PUSC-BOOL1 [false-value '0'B]
+PUSC-BOOL8 [false-value '00000000'B]
+PUSC-BOOL16 [false-value '0000000000000000'B]
+PUSC-BOOL32 [false-value '00000000000000000000000000000000'B]
+
+PUSC-UINT4 [size 4, encoding pos-int, endianness big]
+PUSC-UINT5 [size 5, encoding pos-int, endianness big]
+PUSC-UINT6 [size 6, encoding pos-int, endianness big]
+PUSC-UINT7 [size 7, encoding pos-int, endianness big]
+PUSC-UINT8 [size 8, encoding pos-int, endianness big]
+PUSC-UINT9 [size 9, encoding pos-int, endianness big]
+PUSC-UINT10 [size 10, encoding pos-int, endianness big]
+PUSC-UINT11 [size 11, encoding pos-int, endianness big]
+PUSC-UINT12 [size 12, encoding pos-int, endianness big]
+PUSC-UINT13 [size 13, encoding pos-int, endianness big]
+PUSC-UINT14 [size 14, encoding pos-int, endianness big]
+PUSC-UINT15 [size 15, encoding pos-int, endianness big]
+PUSC-UINT16 [size 16, encoding pos-int, endianness big]
+PUSC-UINT24 [size 24, encoding pos-int, endianness big]
+PUSC-UINT32 [size 32, encoding pos-int, endianness big]
+PUSC-UINT48 [size 48, encoding pos-int, endianness big]
+PUSC-UINT64 [size 64, encoding pos-int, endianness big]
+PUSC-UINT1 [size 1, encoding pos-int, endianness big]
+PUSC-UINT2 [size 2, encoding pos-int, endianness big]
+PUSC-UINT3 [size 3, encoding pos-int, endianness big]
+
+PUSC-INT4 [size 4, encoding twos-complement, endianness big]
+PUSC-INT5 [size 5, encoding twos-complement, endianness big]
+PUSC-INT6 [size 6, encoding twos-complement, endianness big]
+PUSC-INT7 [size 7, encoding twos-complement, endianness big]
+PUSC-INT8 [size 8, encoding twos-complement, endianness big]
+PUSC-INT9 [size 9, encoding twos-complement, endianness big]
+PUSC-INT10 [size 10, encoding twos-complement, endianness big]
+PUSC-INT11 [size 11, encoding twos-complement, endianness big]
+PUSC-INT12 [size 12, encoding twos-complement, endianness big]
+PUSC-INT13 [size 13, encoding twos-complement, endianness big]
+PUSC-INT14 [size 14, encoding twos-complement, endianness big]
+PUSC-INT15 [size 15, encoding twos-complement, endianness big]
+PUSC-INT16 [size 16, encoding twos-complement, endianness big]
+PUSC-INT24 [size 24, encoding twos-complement, endianness big]
+PUSC-INT32 [size 32, encoding twos-complement, endianness big]
+PUSC-INT48 [size 48, encoding twos-complement, endianness big]
+PUSC-INT64 [size 64, encoding twos-complement, endianness big]
+
+PUSC-FLOAT32 [encoding IEEE754-1985-32, endianness big]
+PUSC-FLOAT64 [encoding IEEE754-1985-64, endianness big]
+PUSC-MIL-FLOAT32 []
+{
+    mant [size 24],
+    exp [size 8, encoding twos-complement, endianness big]
+}
+
+PUSC-MIL-FLOAT48 []
+{
+    mant-MSB [size 24],
+    exp [size 8, encoding twos-complement, endianness big],
+    mant-LSB [size 16]
+}
+
+PUSC-BITSTR-VARIABLE-LEN <INTEGER: length> [size length]
+
+PUSC-OCTSTR-VARIABLE-LEN <INTEGER: length> [size length]
+
+PUSC-CHARSTR-VARIABLE-LEN <INTEGER: length> [size length]
+
+CDS-AbsoluteTime-PFC-1 []
+{
+    day [size 16, encoding pos-int, endianness big],
+    msOfDay [size 32, encoding pos-int, endianness big]
+}
+
+CDS-AbsoluteTime-PFC-2 []
+{
+    day [size 16, encoding pos-int, endianness big],
+    msOfDay [size 32, encoding pos-int, endianness big],
+    usOfDay [size 16, encoding pos-int, endianness big]
+}
+
+CUC-AbsoluteTime-PFC-3 []
+
+CUC-AbsoluteTime-PFC-18 []
+
+CUC-AbsoluteTime-PFC-19 []
+
+CUC-AbsoluteTime-PFC-46 []
+
+AbsoluteTime []
+
+CDS-RelativeTime-PFC-2 []
+{
+    day [size 16, encoding pos-int, endianness big],
+    msOfDay [size 32, encoding pos-int, endianness big],
+    usOfMs [size 16, encoding pos-int, endianness big]
+}
+
+CUC-RelativeTime-PFC-3 []
+
+CUC-RelativeTime-PFC-18 []
+
+RelativeTime []
+
+END

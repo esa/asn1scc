@@ -1,0 +1,378 @@
+{
+  "name": "ST[12] On-board monitoring",
+  "submodules": [
+    {
+      "name": "Parameter monitoring subservice",
+      "elements":[
+        {
+          "name": "Enable the parameter monitoring function",
+          "asn1Files": [
+            "PUS-12-15.asn1"
+          ]
+        },
+        {
+          "name": "Disable the parameter monitoring function",
+          "asn1Files": [
+            "PUS-12-16.asn1"
+          ],
+          "requires": [
+            "Enable the parameter monitoring function"
+          ]
+        },
+        {
+          "name": "Enable parameter monitoring definitions",
+          "asn1Files":[
+            "PUS-12-1.asn1",
+            "PMON.asn1"
+          ],
+          "requires": [
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            }
+          ]
+        },
+        {
+          "name": "Disable the parameter monitoring definitions",
+          "asn1Files":[
+            "PUS-12-2.asn1",
+            "PMON.asn1"
+          ],
+          "requires": [
+            "Enable parameter monitoring definitions",
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            }
+          ]
+        },
+        {
+          "name": "Reporting the check transitions",
+          "asn1Files": [
+            "PUS-12-12.asn1",
+            "TransitionNotification.asn1",
+            "PMON.asn1"
+          ],
+          "requires": [
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            }
+          ]
+        },
+        {
+          "name": "Change the maximum transition reporting delay",
+          "asn1Files":[
+            "PUS-12-3.asn1" 
+          ],
+          "requires": [
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            }
+          ]
+        },
+        {
+          "name": "Add parameter monitoring definitions",
+          "asn1Files": [
+            "PUS-12-5.asn1",
+            "PMON.asn1",
+            "ParameterMonitoringDefinition.asn1",
+            "CheckValidityCondition.asn1"
+          ],
+          "requires": [
+            "Delete all parameter monitoring definitions",
+            "Delete parameter monitoring reports",
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Event Definition"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Dummy Type"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Parameter"
+            }
+          ]
+        },
+        {
+          "name": "Delete all parameter monitoring definitions",
+          "asn1Files": [
+            "PUS-12-4.asn1"
+          ]
+        },
+        {
+          "name": "Delete parameter monitoring reports",
+          "asn1Files": [
+            "PUS-12-6.asn1",
+            "PMON.asn1"
+          ],
+          "requires": [
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            }
+          ]
+        },
+        {
+          "name": "Modify parameter monitoring definitions",
+          "asn1Files": [
+            "PUS-12-7.asn1",
+            "PMON.asn1",
+            "ParameterMonitoringDefinition.asn1",
+            "CheckValidityCondition.asn1"
+          ],
+          "requires": [
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Event Definition"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Dummy Type"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Parameter"
+            }
+          ]
+        },
+        {
+          "name": "Report parameter monitoring defionitions",
+          "asn1Files": [
+            "PUS-12-8.asn1",
+            "PUS-12-9.asn1",
+            "PMON.asn1"
+          ],
+          "requires": [
+            "Modify parameter monitoring definitions",
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            }
+          ]
+        },
+        {
+          "name": "Report the status of each parameter monitoring definition",
+          "asn1Files": [
+            "PUS-12-13.asn1",
+            "PUS-12-14.asn1",
+            "PMON.asn1"
+          ],
+          "requires": [
+            "Modify parameter monitoring definitions",
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            }
+          ]
+        },
+        {
+          "name": "Report the out-of-limits",
+          "asn1Files": [
+            "PUS-12-10.asn1",
+            "PUS-12-11.asn1",
+            "TransitionNotification.asn1",
+            "PMON.asn1"
+          ],
+          "requires": [
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Functional monitoring subservice",
+      "elements": [
+        {
+          "name": "Enable the functional monitoring function",
+          "asn1Files": [
+            "PUS-12-17.asn1"
+          ]
+        },
+        {
+          "name": "Disable the functional monitoring function",
+          "asn1Files": [
+            "PUS-12-18.asn1"
+          ],
+          "requires":[
+            "Enable the functional monitoring function"
+          ]
+        },
+        {
+          "name": "Enable functional monitoring definitions",
+          "asn1Files": [
+            "PUS-12-19.asn1",
+            "FMON.asn1"
+          ],
+          "requires": [
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            }
+          ]
+        },
+        {
+          "name": "Disable functional monitoring definitions",
+          "asn1Files": [
+            "PUS-12-20.asn1",
+            "FMON.asn1"
+          ],
+          "requires": [
+            "Enable functional monitoring definitions",
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            }
+          ]
+        },
+        {
+          "name": "Protect functional monitoring definitions",
+          "asn1Files": [
+            "PUS-12-21.asn1",
+            "FMON.asn1"
+          ],
+          "requires": [
+            "Unprotect functional monitoring definitions",
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            }
+          ]
+        },
+        {
+          "name": "Unprotect functional monitoring definitions",
+          "asn1Files": [
+            "PUS-12-22.asn1",
+            "FMON.asn1"
+          ],
+          "requires": [
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            }
+          ]
+        },
+        {
+          "name": "Add functional monitoring definitions",
+          "asn1Files": [
+            "PUS-12-23.asn1",
+            "PMON.asn1",
+            "FMON.asn1",
+            "CheckValidityCondition.asn1",
+            "PMON-FailingNumber.asn1"
+          ],
+          "requires": [
+            "Delete functional minitoring definitions",
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Event Definition"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Parameter"
+            }
+          ]
+        },
+        {
+          "name": "Delete functional minitoring definitions",
+          "asn1Files": [
+            "PUS-12-24.asn1",
+            "FMON.asn1"
+          ],
+          "requires": [
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            }
+          ]
+        },
+        {
+          "name": "Report functional monitoring definitions",
+          "asn1Files": [
+            "PUS-12-25.asn1",
+            "PUS-12-26.asn1",
+            "FMON.asn1",
+            "CheckValidityCondition.asn1",
+            "PMON.asn1",
+            "PMON-FailingNumber.asn1"
+          ],
+          "requires": [
+            "Add functional monitoring definitions",
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Event Definition"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Parameter"
+            }
+          ]
+        },
+        {
+          "name": "Report the status of each functional monitoring definition",
+          "asn1Files": [
+            "PUS-12-27.asn1",
+            "PUS-12-28.asn1",
+            "FMON.asn1"
+          ],
+          "requires":[
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

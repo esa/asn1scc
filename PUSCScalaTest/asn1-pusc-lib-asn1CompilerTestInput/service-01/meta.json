@@ -1,0 +1,194 @@
+{
+  "name": "ST[01] request verification",
+  "submodules": [
+    {
+      "name": "Routing and reporting subservice",
+      "elements": [
+        {
+          "name": "Reporting failed routing",
+          "asn1Files": [
+            "PUS-1-10.asn1",
+            "VerificationRequest.asn1",
+            "ErrorCodes.asn1"
+          ],
+          "requires": [
+            {
+              "module": "CCSDS",
+              "submodule": "CCSDS Packets",
+              "element": "TC Packet"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Application Process"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Acceptance and reporting subservice",
+      "elements": [
+        {
+          "name": "Reporting successful acceptance",
+          "asn1Files": [
+            "PUS-1-1.asn1",
+            "VerificationRequest.asn1"
+          ],
+          "requires": [
+            {
+              "module": "CCSDS",
+              "submodule": "CCSDS Packets",
+              "element": "TC Packet"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Application Process"
+            }
+          ]
+        },
+        {
+          "name": "Reporting failed acceptance",
+          "asn1Files": [
+            "PUS-1-2.asn1",
+            "ErrorCodes.asn1"
+          ],
+          "requires": []
+        }
+      ]
+    },
+    {
+      "name": "Execution reporting subservice",
+      "elements": [
+        {
+          "name": "Reporting successful start of execution",
+          "asn1Files": [
+            "PUS-1-3.asn1",
+            "VerificationRequest.asn1"
+          ],
+          "requires": [
+            {
+              "module": "CCSDS",
+              "submodule": "CCSDS Packets",
+              "element": "TC Packet"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Application Process"
+            }
+          ]
+        },
+        {
+          "name": "Reporting failed start of execution",
+          "asn1Files": [
+            "PUS-1-4.asn1",
+            "VerificationRequest.asn1",
+            "ErrorCodes.asn1"
+          ],
+          "requires": [
+            {
+              "module": "CCSDS",
+              "submodule": "CCSDS Packets",
+              "element": "TC Packet"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Application Process"
+            }
+          ]
+        },
+        {
+          "name": "Reporting successful progress of execution",
+          "asn1Files": [
+            "PUS-1-5.asn1",
+            "VerificationRequest.asn1"
+          ],
+          "requires": [
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Execution Step"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Application Process"
+            },
+            {
+              "module": "CCSDS",
+              "submodule": "CCSDS Packets",
+              "element": "TC Packet"
+            }
+          ]
+        },
+        {
+          "name": "Reporting failed progress of execution",
+          "asn1Files": [
+            "PUS-1-6.asn1",
+            "VerificationRequest.asn1",
+            "ErrorCodes.asn1"
+          ],
+          "requires": [
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Execution Step"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Application Process"
+            },
+            {
+              "module": "CCSDS",
+              "submodule": "CCSDS Packets",
+              "element": "TC Packet"
+            }
+          ]
+        },
+        {
+          "name": "Reporting successful completion of execution",
+          "asn1Files": [
+            "PUS-1-7.asn1",
+            "VerificationRequest.asn1"
+          ],
+          "requires": [
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Application Process"
+            },
+            {
+              "module": "CCSDS",
+              "submodule": "CCSDS Packets",
+              "element": "TC Packet"
+            }
+          ]
+        },
+        {
+          "name": "Reporting failed completion of execution",
+          "asn1Files": [
+            "PUS-1-8.asn1",
+            "VerificationRequest.asn1",
+            "ErrorCodes.asn1"
+          ],
+          "requires": [
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Application Process"
+            },
+            {
+              "module": "CCSDS",
+              "submodule": "CCSDS Packets",
+              "element": "TC Packet"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

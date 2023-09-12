@@ -1,0 +1,21 @@
+{
+  "name": "ST[08] function management",
+  "submodules": [
+    {
+      "name": "Function management subservice",
+      "elements": [
+        {
+          "name": "Perform a function",
+          "asn1Files": ["PUS-8-1.asn1"],
+          "requires": [
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,65 @@
+--!
+--! Copyright (C) 2017-2023 N7 Space sp. z o. o.
+--! Contact: https://n7space.com
+--!
+--! This file is part of ASN.1/ACN PUS-C Components Library.
+--!
+--! Library was developed under a programme and funded by
+--! European Space Agency.
+--!
+--! This Library is free software: you can redistribute it and/or modify
+--! it under the terms of the GNU General Public License as published by
+--! the Free Software Foundation, either version 3 of the License, or
+--! (at your option) any later version.
+--!
+--! This Library is distributed in the hope that it will be useful,
+--! but WITHOUT ANY WARRANTY; without even the implied warranty of
+--! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+--! GNU General Public License for more details.
+--!
+--! You should have received a copy of the GNU General Public License
+--! along with this program.  If not, see <http://www.gnu.org/licenses/>.
+--!
+
+PUS-12-23 DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+EXPORTS ALL;
+IMPORTS
+    PUSC-UINT32 FROM BasicTypes
+    CheckValidityCondition FROM CheckValidityCondition
+    EventDefinition-ID FROM EventDefinition
+    PMON-ID FROM PMON
+    FMON-ID FROM FMON
+    Min-PMON-FailingNumber FROM PMON-FailingNumber;
+
+maxTC-12-23-FunctionalMonitoringDefinitionCount INTEGER ::= 4095
+maxTC-12-23-PMON-ID-Count INTEGER ::= 4095
+
+TC-12-23-AddFunctionalMonitoringDefinition ::= SEQUENCE
+{
+--! n1 UnsignedInteger,
+    functionalMonitoringDefinitions SEQUENCE (SIZE(1 .. maxTC-12-23-FunctionalMonitoringDefinitionCount)) OF TC-12-23-FunctionalMonitoringDefinition
+
+}
+
+TC-12-23-FunctionalMonitoringDefinition ::= TC-12-23-FunctionalMonitoringDefinitionGeneric
+{FMON-ID, CheckValidityCondition, EventDefinition-ID, Min-PMON-FailingNumber, PMON-ID}
+(WITH COMPONENTS
+{
+    checkValidityCondition PRESENT,
+    min-PMON-FailingNumber PRESENT
+})
+
+
+TC-12-23-FunctionalMonitoringDefinitionGeneric
+{FMON-ID-Type, CheckValidityConditionType, EventDefinition-ID-Type, Min-PMON-FailingNumberType, PMON-ID-Type} ::= SEQUENCE
+{
+    fmon-ID FMON-ID-Type,
+    checkValidityCondition CheckValidityConditionType OPTIONAL,
+    eventDefinition-ID EventDefinition-ID-Type,
+    min-PMON-FailingNumber Min-PMON-FailingNumberType OPTIONAL,
+--! n2 UnsignedInteger,
+    pmon-ID SEQUENCE (SIZE(1 .. maxTC-12-23-PMON-ID-Count)) OF PMON-ID-Type
+}
+
+
+END

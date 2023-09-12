@@ -1,0 +1,192 @@
+{
+  "name": "ST[19] event-action",
+  "submodules":[
+    {
+      "name": "Event-action subservice",
+      "elements":[
+        {
+          "name": "Enable the event-action function",
+          "asn1Files": [
+            "PUS-19-8.asn1"
+          ]
+        },
+        {
+          "name": "Disable the event-action function",
+          "asn1Files": [
+            "PUS-19-9.asn1"
+          ],
+          "requires":[
+            "Enable the event-action function"
+          ]
+        },
+        {
+          "name": "Enable event-action definitions",
+          "asn1Files": [
+            "PUS-19-4.asn1",
+            "EventDefinitionSystem.asn1"
+          ],
+          "requires":[
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Application Process"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Event Definition"
+            }
+          ]
+        },
+        {
+          "name": "Disable event-action definitions",
+          "asn1Files": [
+            "PUS-19-5.asn1",
+            "EventDefinitionSystem.asn1"
+          ],
+          "requires":[
+            "Enable event-action definitions",
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Application Process"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Event Definition"
+            }
+          ]
+        },
+        {
+          "name": "Add event-action definitions",
+          "asn1Files": [
+            "PUS-19-1.asn1",
+            "EventDefinitionSystem.asn1"
+          ],
+          "requires":[
+            "Delete event-action definitions",
+            "Delete all event-action definitions",
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Application Process"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Event Definition"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Dummy Type"
+            }
+          ]
+        },
+        {
+          "name": "Delete event-action definitions",
+          "asn1Files": [
+            "PUS-19-2.asn1",
+            "EventDefinitionSystem.asn1"
+          ],
+          "requires":[
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Application Process"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Event Definition"
+            }
+          ]
+        },
+        {
+          "name": "Delete all event-action definitions",
+          "asn1Files": [
+            "PUS-19-3.asn1"
+          ]
+        },
+        {
+          "name": "Report the status of each event-action definition",
+          "asn1Files": [
+            "PUS-19-6.asn1",
+            "PUS-19-7.asn1",
+            "EventDefinitionSystem.asn1",
+            "EventActionStatus.asn1"
+          ],
+          "requires":[
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Application Process"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Event Definition"
+            }
+          ]
+        },
+        {
+          "name": "Report event-action definitions",
+          "asn1Files": [
+            "PUS-19-10.asn1",
+            "PUS-19-11.asn1",
+            "EventDefinitionSystem.asn1",
+            "EventActionStatus.asn1"
+          ],
+          "requires":[
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Application Process"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Event Definition"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Dummy Type"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
