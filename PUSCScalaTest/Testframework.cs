@@ -82,8 +82,11 @@ namespace PUS_C_Scala_Test
             parList.AddRange(asn1Files.Where(s => File.Exists(s)));
             var missingASNFiles = asn1Files.Where(s => !File.Exists(s));
             if (missingASNFiles.Count() > 0)
+            {
+                Console.WriteLine("WORKING DIR: " + Directory.GetCurrentDirectory());
                 Console.WriteLine("WARNING: ASN1 Files not found: " + String.Join(",", missingASNFiles));
-            
+            }
+
             // add acn file input
             if ((sv & ServiceVariation.ACN) == ServiceVariation.ACN) {
                 var acnFiles = files.Select(s => inputFilePrefix + s + acnFileEnding);
@@ -91,7 +94,10 @@ namespace PUS_C_Scala_Test
                 
                 var missingACNFiles = acnFiles.Where(s => !File.Exists(s));
                 if (missingACNFiles.Count() > 0)
+                {
+                    Console.WriteLine("WORKING DIR: " + Directory.GetCurrentDirectory());
                     Console.WriteLine("WARNING: ACN Files not found: " + String.Join(",", missingACNFiles));
+                }
             }
 
             return parList.ToArray();
