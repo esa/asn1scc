@@ -240,7 +240,7 @@ let createInitFunctionCommon (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros)   (o:Asn
                 | true ->
                     let funcBody = 
                         match o.isStringType with
-                        | false -> lm.init.assignAny (lm.lg.getValue p.arg) globalName.Value
+                        | false -> lm.init.assignAny (lm.lg.getValue p.arg) globalName.Value tdName
                         | true  -> lm.init.assignString p.arg.p  globalName.Value
                         //sprintf ("%s %s (%s)%s;")  (lm.lg.getValue p.arg) lm.lg.AssignOperator tdName globalName.Value
                     let func = initTypeAssignment varName sStar funcName  tdName funcBody []

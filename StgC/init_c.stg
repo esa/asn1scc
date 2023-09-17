@@ -76,7 +76,7 @@ init_Asn1Date_LocalTimeWithTimeZone(p, sAcc, dt/*:Asn1DateValue*/, tv/*:Asn1Time
 <init_Asn1UtcTime(p=p, sAcc=sAcc, tv=tv, tz=tz)>
 >>
 
-assignAny(p, sValue) ::= "<p> = <sValue>;"
+assignAny(p, sValue, sTypeDecl) ::= "<p> = (<sTypeDecl>)<sValue>;"
 assignString(p, sValue) ::= "memcpy(<p>, <sValue>, sizeof(<sValue>));"
 
 
@@ -241,10 +241,18 @@ initBitStringAtPos_def(sVarName, sStar, sFuncName, sTypeDefName, sNamedBit) ::= 
 void <sFuncName>_set_<sNamedBit>(<sTypeDefName><sStar> <sVarName>);
 >>
 
-initTypeConstant_def(sTypeDecl, sConstantName, sValue) ::= "extern const <sTypeDecl> <sConstantName>;"
+initTypeConstant_def(sTypeDecl, sConstantName, sValue) ::= <<
+#ifdef __cplusplus
+extern const <sTypeDecl> <sConstantName>;
+#else
+#define <sConstantName> <sValue>
+#endif
+>>
 
 initTypeConstant_body(sTypeDecl, sConstantName, sValue) ::= <<
+#ifdef __cplusplus
 const <sTypeDecl> <sConstantName> = <sValue>;
+#endif
 >>
 
 initFixSizeOctetString(nMax) ::= "{.arr  = {[0 ... <nMax>-1] = 0 }}"
