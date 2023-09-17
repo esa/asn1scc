@@ -1,5 +1,8 @@
 # Change Log
 
+## 4.5.0.11 - Maintenance release
+- Fix the -ig output for C code (generate #define instead of "const" in C).
+
 ## 4.5.0.2 - Maintenance release
 - Bugfix on the command line with parameter ordering 
 - Bugfix: missing include in Ada generated code
