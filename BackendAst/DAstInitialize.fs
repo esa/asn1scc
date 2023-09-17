@@ -960,8 +960,8 @@ let createSequenceInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1Acn
         let handleChild  (p:CallerScope) (ch:Asn1Child) : (InitFunctionResult*InitFunction option) = 
             let nonEmbeddedChildrenFunc = 
                 match lm.lg.initMetod with
-                | Procedure  -> None
-                | Function -> Some ch.Type.initFunction
+                | Procedure when r.args.generateConstInitGlobals -> None
+                | _ -> Some ch.Type.initFunction
             let presentFunc (defaultValue  : Asn1AcnAst.Asn1Value option) = 
                 match defaultValue with
                 | None  ->
