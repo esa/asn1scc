@@ -239,12 +239,6 @@ let createInitFunctionCommon (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros)   (o:Asn
                 match r.args.generateConstInitGlobals  &&  globalName.IsSome with
                 | true ->
                     let funcBody = lm.init.assignAny (lm.lg.getValue p.arg) globalName.Value tdName
-                        (*
-                        match o.isStringType with
-                        | false -> lm.init.assignAny (lm.lg.getValue p.arg) globalName.Value tdName
-                        | true  -> lm.init.assignString p.arg.p  globalName.Value
-                        *)
-                        //sprintf ("%s %s (%s)%s;")  (lm.lg.getValue p.arg) lm.lg.AssignOperator tdName globalName.Value
                     let func = initTypeAssignment varName sStar funcName  tdName funcBody []
                     let funcDef = initTypeAssignment_def varName sStar funcName  (lm.lg.getLongTypedefName typeDefinition)
                     Some {InitProcedure0.funcName = funcName; def = funcDef; body=func}
@@ -965,9 +959,9 @@ let createSequenceInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1Acn
     let initTasFunction, nonEmbeddedChildrenFuncs = 
         let handleChild  (p:CallerScope) (ch:Asn1Child) : (InitFunctionResult*InitFunction option) = 
             let nonEmbeddedChildrenFunc = 
-                match r.args.generateConstInitGlobals with
-                | true -> None
-                | false -> Some ch.Type.initFunction
+                match lm.lg.initMetod with
+                | Procedure  -> None
+                | Function -> Some ch.Type.initFunction
             let presentFunc (defaultValue  : Asn1AcnAst.Asn1Value option) = 
                 match defaultValue with
                 | None  ->
