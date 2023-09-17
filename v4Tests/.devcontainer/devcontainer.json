@@ -1,0 +1,13 @@
+{
+  "name": "asn1scc Dev Container",
+  
+  "image": "asn1scc:latest",
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "github.copilot",
+        "ms-vscode.cpptools-extension-pack"      ]
+    }
+  }
+}

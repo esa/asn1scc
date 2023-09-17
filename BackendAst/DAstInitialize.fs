@@ -238,10 +238,12 @@ let createInitFunctionCommon (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros)   (o:Asn
             | Some funcName     -> 
                 match r.args.generateConstInitGlobals  &&  globalName.IsSome with
                 | true ->
-                    let funcBody = 
+                    let funcBody = lm.init.assignAny (lm.lg.getValue p.arg) globalName.Value tdName
+                        (*
                         match o.isStringType with
                         | false -> lm.init.assignAny (lm.lg.getValue p.arg) globalName.Value tdName
                         | true  -> lm.init.assignString p.arg.p  globalName.Value
+                        *)
                         //sprintf ("%s %s (%s)%s;")  (lm.lg.getValue p.arg) lm.lg.AssignOperator tdName globalName.Value
                     let func = initTypeAssignment varName sStar funcName  tdName funcBody []
                     let funcDef = initTypeAssignment_def varName sStar funcName  (lm.lg.getLongTypedefName typeDefinition)
