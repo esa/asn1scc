@@ -143,7 +143,7 @@ namespace parseStg2
 
             var runMode = args.Length >= 2 ? int.Parse(args[1]) : 1;
             var outFile = args.Length >= 3 ? args[2] : "-";
-            Console.WriteLine("Caling parseStg2 with args = " + args[0] + ", runMode: " + runMode + ", singleOutFile:" + outFile);
+            Console.WriteLine("Calling parseStg2 with args = " + args[0] + ", runMode: " + runMode + ", singleOutFile:" + outFile);
 
             var curDir = Path.GetDirectoryName(args[0]);
             XDocument doc = XDocument.Load(args[0]);
