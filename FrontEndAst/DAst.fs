@@ -168,7 +168,7 @@ type LocalVariable =
 
 
 
-(*an expression or statement that checks if a constraint is met or not. IT DOES NOT ASSIGNG the error code field*)
+(*an expression or statement that checks if a constraint is met or not. IT DOES NOT ASSIGNE the error code field*)
 type ValidationCodeBlock =
     | VCBTrue                                // always true
     | VCBFalse                               // always false
