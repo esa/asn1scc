@@ -38,7 +38,7 @@
   </ItemGroup>
 
 	<Target Name="PreBuild" BeforeTargets="PreBuildEvent">
-		<Exec Command="dotnet $(ProjectDir)../parseStg2/bin/$(ConfigurationName)/$(TargetFramework)/parseStg2.dll $(ProjectDir)../StgScala/backends.xml 4 $(ProjectDir)AbstractMacros.fs" />
+		<Exec Command="dotnet ../parseStg2/bin/$(ConfigurationName)/$(TargetFramework)/parseStg2.dll ../StgScala/backends.xml 4 AbstractMacros.fs" WorkingDirectory="$(ProjectDir)" />
 	</Target>
 
 </Project>

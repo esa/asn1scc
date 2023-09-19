@@ -95,7 +95,7 @@
 
 
 	<Target Name="PreBuild" BeforeTargets="PreBuildEvent">
-        <Exec Command="dotnet $(ProjectDir)../parseStg2/bin/$(ConfigurationName)/$(TargetFramework)/parseStg2.dll $(ProjectDir)backends.xml 3" />
+        <Exec Command="dotnet ../parseStg2/bin/$(ConfigurationName)/$(TargetFramework)/parseStg2.dll backends.xml 3" WorkingDirectory="$(ProjectDir)" />
     </Target>
 
 </Project>
