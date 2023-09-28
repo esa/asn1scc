@@ -180,6 +180,8 @@ typedef struct {
 
 int GetCharIndex(char ch, byte allowedCharSet[], int setLen);
 
+flag Asn1Real_Equal(asn1Real Left, asn1Real Right);
+
 void ObjectIdentifier_Init(Asn1ObjectIdentifier *pVal);
 flag ObjectIdentifier_equal(const Asn1ObjectIdentifier *pVal1, const Asn1ObjectIdentifier *pVal2);
 flag ObjectIdentifier_isValid(const Asn1ObjectIdentifier *pVal);

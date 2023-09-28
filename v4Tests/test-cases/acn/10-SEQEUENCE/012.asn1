@@ -1,0 +1,21 @@
+TEST-CASE  DEFINITIONS AUTOMATIC TAGS::= BEGIN
+
+	POINT ::= SEQUENCE {
+		x INTEGER(0..65535),
+		y INTEGER(0..65535)
+	}
+	
+	RECT ::= SEQUENCE {
+		ul POINT,	
+		lb POINT
+	}
+	
+	POLYGON ::= SEQUENCE {
+	   nPoints INTEGER (0 .. 65535),
+	   points  SEQUENCE (SIZE(3 .. 1000)) OF POINT
+	}
+
+END
+
+
+--TCLS     RECT[] 

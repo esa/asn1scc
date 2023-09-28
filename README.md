@@ -28,9 +28,9 @@ Compilation
 First, install the Java JRE. This is a compile-time only dependency,
 required to execute ANTLR.
 
-## Install .NET SDK (version 6.0)
+## Install .NET SDK (version 7.0)
 
-Install the [.NET 6.0](https://dotnet.microsoft.com/download/dotnet/6.0) sdk.
+Install the [.NET 7.0](https://dotnet.microsoft.com/download/dotnet/7.0) sdk.
 Add NuGet package source (in case it is missing) by executing:
     
     dotnet nuget add source "https://api.nuget.org/v3/index.json" --name "NuGet"

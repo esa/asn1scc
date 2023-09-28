@@ -73,7 +73,7 @@ init_Asn1Date_LocalTimeWithTimeZone(p, sAcc, dt/*:Asn1DateValue*/, tv/*:Asn1Time
 <init_Asn1UtcTime(p=p, sAcc=sAcc, tv=tv, tz=tz)>
 >>
 
-assignAny(p, sValue) ::= "<p> = <sValue> // init:76"
+assignAny(p, sValue, sTypeDecl) ::= "<p> = <sValue> // init:76"
 assignString(p, sValue) ::= "<p> = <sValue> // init:77"
 
 

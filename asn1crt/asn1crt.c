@@ -55,6 +55,20 @@ int GetCharIndex(char ch, byte Set[], int setLen)
     return 0;
 }
 
+flag Asn1Real_Equal(asn1Real Left, asn1Real Right) {
+    if (Left == Right) {
+        return true;
+    } else if (Left == 0.0) {
+        return Right == 0.0;
+    } else if ((Left > 0.0 && Right < 0.0) || (Left < 0.0 && Right > 0.0)) {
+        return false;
+    } else if (fabs(Left) > fabs(Right)) {
+        return fabs(Right) / fabs(Left) >= 0.99999;
+    }else {
+        return fabs(Left) / fabs(Right) >= 0.99999;
+    }
+}
+
 /*
 
 #######                                      ###

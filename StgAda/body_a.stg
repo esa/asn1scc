@@ -23,10 +23,10 @@ pragma Warnings (On, "redundant with clause in body");
 
 <if(arrsAdaUseTypes)>
 pragma Warnings (Off, "use clause for type");
-pragma Warnings (Off, "is already use-visible through previous use_type_clause at");
+pragma Warnings (Off, "is already use-visible");
 <arrsAdaUseTypes: {x|use type <x>;}; separator="\n">
 pragma Warnings (On, "use clause for type");
-pragma Warnings (On, "is already use-visible through previous use_type_clause at");
+pragma Warnings (On, "is already use-visible");
 
 <endif>
 package body <sPackageName> with SPARK_Mode is

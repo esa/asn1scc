@@ -1,0 +1,89 @@
+TASTE-BasicTypes DEFINITIONS ::=
+BEGIN
+
+	-- Set of TASTE predefined basic types
+
+	T-Int32 ::=  INTEGER (-2147483648 .. 2147483647)
+
+	T-UInt32 ::= INTEGER (0 .. 4294967295)
+
+	T-Int8 ::= INTEGER (-128 .. 127)
+
+	T-UInt8 ::= INTEGER (0 .. 255)
+
+	T-Boolean ::= BOOLEAN
+
+	BitString ::= BIT STRING (SIZE(32))
+	OctString ::= OCTET STRING (SIZE(4))
+	SeqBit ::= SEQUENCE (SIZE(32)) OF BOOLEAN
+	SeqBit2 ::= SEQUENCE (SIZE(1..32)) OF BOOLEAN
+
+
+	Int32 ::= INTEGER (-2147483648 .. 2147483647)
+
+	Point ::= SEQUENCE {
+		x Int32,
+		y Int32
+	}
+
+	List ::= SEQUENCE (SIZE (2)) OF Int32
+
+	Nested ::= SEQUENCE {
+		a SEQUENCE {
+			b SEQUENCE {
+				c SEQUENCE {
+					p Point,
+					l List
+				}
+			}
+		}
+	}
+
+
+END
+
+TASTE-Dataview DEFINITIONS ::=
+BEGIN
+IMPORTS T-Int32, T-UInt32, T-Int8, T-UInt8, T-Boolean FROM TASTE-BasicTypes;
+
+	-- A few simple types to start with ASN.1
+
+	challenge T-UInt32 ::= 18
+	bound T-UInt32 ::= 1000000
+	nb-bit T-UInt32 ::= 20
+	val-max T-UInt32 ::= 1048575
+	count-max T-UInt32 ::= 524288
+	exceed-nb T-UInt32 ::= 48575
+
+	CountTab ::= SEQUENCE (SIZE(nb-bit)) OF T-UInt32
+		    
+END
+
+TEST-CASE DEFINITIONS ::=
+BEGIN
+--  This file was generated automatically by OpenGEODE
+IMPORTS
+   T-Int32, T-UInt32, T-Int8, T-UInt8, T-Boolean, BitString, OctString, SeqBit, SeqBit2, Int32, Point, List, Nested FROM TASTE-BasicTypes
+   CountTab FROM TASTE-Dataview;
+
+	Challenge-States ::= ENUMERATED {wait}
+
+	Challenge-Context ::= SEQUENCE {
+	   state Challenge-States,
+	   init-done BOOLEAN,
+	   testvalue T-Boolean,
+	   nested Nested,
+	   count CountTab,
+	   actual-count CountTab,
+	   pow-value T-UInt32,
+	   check T-UInt8,
+	   bitwise SeqBit,
+	   bitwise2 SeqBit2,
+	   boolwise T-Boolean
+	}
+
+END
+
+
+
+--TCLS     Challenge-Context [] 
