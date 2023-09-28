@@ -10,8 +10,8 @@
         //        [TestMethod]
         //        public void TestService_01() => UPERWithTestGenTestCall(PUS_C_Service.S1, "S1");
         //
-        //        [TestMethod]
-        //        public void TestService_02() => UPERWithTestGenTestCall(PUS_C_Service.S2, "S2");
+                [TestMethod]
+                public void TestService_02() => UPERWithTestGenTestCall(PUS_C_Service.S2, "S2");
         //
         //        [TestMethod]
         //        public void TestService_03() => UPERWithTestGenTestCall(PUS_C_Service.S3, "S3");

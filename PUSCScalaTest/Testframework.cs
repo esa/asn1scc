@@ -279,14 +279,10 @@ namespace PUS_C_Scala_Test
             })
             {
                 proc.Start();
-                proc.WaitForExit(60000);
-
-                Assert.IsTrue(proc.HasExited, "Program did not complete in 60s");
-
-                var o = proc.StandardOutput.ReadToEnd();
-                var worked = o.Contains("All test cases (") && o.Contains(") run successfully.");
+                var stdout = proc.StandardOutput.ReadToEnd();
+                var worked = stdout.Contains("All test cases (") && stdout.Contains(") run successfully.");
                 if (!worked)
-                    Console.WriteLine(o);
+                    Console.WriteLine(stdout);
                 
                 Assert.IsTrue(worked, "C test cases failed");
             }
@@ -312,12 +308,11 @@ namespace PUS_C_Scala_Test
                 System.Threading.Thread.Sleep(500);
                 proc.StandardInput.Flush();
                 proc.StandardInput.Close();
-                proc.WaitForExit(-1);
+                proc.WaitForExit();
 
                 // parse output
-                // TODO
-                var o = proc.StandardOutput.ReadToEnd();
-                Console.WriteLine(o);
+                var stdout = proc.StandardOutput.ReadToEnd();
+                Console.WriteLine(stdout);
             }
         }
 
@@ -329,9 +324,8 @@ namespace PUS_C_Scala_Test
             {
                 StartInfo = new ProcessStartInfo
                 {
-                    FileName = "cmd.exe",
-                    Arguments = "/C " + "\"%ProgramFiles(x86)%\\Microsoft Visual Studio\\Installer\\vswhere.exe\" -latest -requires Microsoft.Component.MSBuild -find MSBuild\\**\\Bin\\msbuild.exe",
-					WorkingDirectory = outDir,
+                    FileName = @$"{Environment.GetEnvironmentVariable("ProgramFiles(x86)")}\Microsoft Visual Studio\Installer\vswhere.exe",
+                    Arguments = @"-latest -requires Microsoft.Component.MSBuild -find MSBuild\**\Bin\msbuild.exe",
                     UseShellExecute = false,
                     RedirectStandardOutput = true,
                     RedirectStandardInput = false,
@@ -340,14 +334,9 @@ namespace PUS_C_Scala_Test
             })
             {
                 proc.Start();
-                proc.WaitForExit(60000);
-
-                Assert.IsTrue(proc.HasExited,"MSBuild did not complete in 60s.");
-
-                var o = proc.StandardOutput.ReadToEnd();
-                Console.WriteLine(o);
-                var outp = o.Split("\n");
-                msBuildPath = outp[outp.Length - 3].Trim();
+                var stdout = proc.StandardOutput.ReadToEnd().Trim();
+                Assert.AreNotSame("", stdout, "Couldn't find the location of msbuild.exe");
+                msBuildPath = stdout;
             }
 
             using (var proc = new Process
@@ -394,26 +383,7 @@ namespace PUS_C_Scala_Test
             })
             {
                 proc.Start();
-
-                var sb = new StringBuilder();
-				var t = Task.Run(() =>
-				{
-                    for (; ; )
-                    {
-                        var line = proc.StandardOutput.ReadLine();
-                        if (line is null)
-                            break;
-
-						sb.AppendLine(line);
-                    }
-				});
-
-				proc.WaitForExit(60000);
-
-                Assert.IsTrue(proc.HasExited, "Build did not complete in 60s");
-
-                // parse sbt output
-                var outp = sb.ToString();
+                var outp = proc.StandardOutput.ReadToEnd();
                 Console.WriteLine("OUTPUT " + outp);
                 var outputList = outp.Split("\n").ToList();
                 var worked = outputList.FindLastIndex(x => x.Contains(check)) > outputList.Count - 5;
