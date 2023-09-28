@@ -7,35 +7,35 @@ methodNameSuffix() ::= "_Initialize"
 initTypeAssignment_def(sVarName, sStar, sFuncName, sTypeDefName) ::= << >>
 
 initTypeAssignment(sVarName, sPtrPrefix, sPtrSuffix, sFuncName, sTypeDefName, sContent, arrsLocalVariables, sDefaultInitValue) ::= <<
-def <sFuncName>(): <sTypeDefName> = // init:10
+def <sFuncName>(): <sTypeDefName> =
 {
     var <sVarName>: <sTypeDefName> = <sDefaultInitValue>
 
-    <arrsLocalVariables; separator="\n // init:12">
+    <arrsLocalVariables; separator="\n">
     <sContent>
     <sVarName>
 }
 >>
 
-initInteger(sVal, nValue) ::= "<sVal> = <nValue> // init:18"
-initReal(sVal, dValue) ::= "<sVal> = <dValue> // init:19"
-initBoolean(sVal, bValue) ::= "<sVal> = <if(bValue)>true<else>false<endif> // init:20"
+initInteger(sVal, nValue) ::= "<sVal> = <nValue>"
+initReal(sVal, dValue) ::= "<sVal> = <dValue>"
+initBoolean(sVal, bValue) ::= "<sVal> = <if(bValue)>true<else>false<endif>"
 
-initObjectIdentifier_vali(p, sAcc, sI, nIntVal) ::= "<p><sAcc>values[<sI>] = <nIntVal> // init:24"
+initObjectIdentifier_vali(p, sAcc, sI, nIntVal) ::= "<p><sAcc>values[<sI>] = <nIntVal>"
 initObjectIdentifier(p, sAcc, nSize, arrsValues) ::= <<
-<p><sAcc>nCount = <nSize> // init:26
+<p><sAcc>nCount = <nSize>
 <arrsValues; separator="\n">
 >>
 
 init_Asn1LocalTime(p, sAcc, tv/*:Asn1TimeValue*/) ::= <<
-<p><sAcc>hours = <tv.hours> // init:31
+<p><sAcc>hours = <tv.hours>
 <p><sAcc>mins = <tv.mins>
 <p><sAcc>sec = <tv.secs>  
 <p><sAcc>fraction = <tv.secsFraction>
 >>
 
 init_Asn1UtcTime(p, sAcc, tv/*:Asn1TimeValue*/) ::= <<
-<p><sAcc>hours = <tv.hours> // init:38
+<p><sAcc>hours = <tv.hours>
 <p><sAcc>mins = <tv.mins>
 <p><sAcc>sec = <tv.secs>  
 <p><sAcc>fraction = <tv.secsFraction>
@@ -43,7 +43,7 @@ init_Asn1UtcTime(p, sAcc, tv/*:Asn1TimeValue*/) ::= <<
 
 
 init_Asn1LocalTimeWithTimeZone(p, sAcc, tv/*:Asn1TimeValue*/, tz/*:Asn1TimeZoneValue*/) ::= <<
-<p><sAcc>hours = <tv.hours> // init:46
+<p><sAcc>hours = <tv.hours>
 <p><sAcc>mins = <tv.mins>
 <p><sAcc>sec = <tv.secs>  
 <p><sAcc>fraction = <tv.secsFraction>
@@ -53,7 +53,7 @@ init_Asn1LocalTimeWithTimeZone(p, sAcc, tv/*:Asn1TimeValue*/, tz/*:Asn1TimeZoneV
 >>
 
 init_Asn1Date(p, sAcc, dt/*:Asn1DateValue*/) ::= <<
-<p><sAcc>years = <dt.years> // init:56
+<p><sAcc>years = <dt.years>
 <p><sAcc>months = <dt.months>
 <p><sAcc>days = <dt.days>
 >>
@@ -73,22 +73,22 @@ init_Asn1Date_LocalTimeWithTimeZone(p, sAcc, dt/*:Asn1DateValue*/, tv/*:Asn1Time
 <init_Asn1UtcTime(p=p, sAcc=sAcc, tv=tv, tz=tz)>
 >>
 
-assignAny(p, sValue, sTypeDecl) ::= "<p> = <sValue> // init:76"
-assignString(p, sValue) ::= "<p> = <sValue> // init:77"
+assignAny(p, sValue, sTypeDecl) ::= "<p> = <sValue>"
+assignString(p, sValue) ::= "<p> = <sValue>"
 
 
-initIA5String(sPtr, sValue) ::= "<sPtr> = <sValue> // init:80"
-initEnumerated(sVal, sValue, sEnum) ::= "<sVal> = <sEnum>.<sValue> // init:81"
+initIA5String(sPtr, sValue) ::= "<sPtr> = <sValue>"
+initEnumerated(sVal, sValue, sEnum) ::= "<sVal> = <sEnum>.<sValue>"
 initNull(sVal) ::= "<sVal> = 0"
 
 initTestCaseIA5String(p, sAcc, nSize, nMaxSizePlusOne, i, td/*:FE_StringTypeDefinition*/, bAlpha, arrnAlphabetAsciiCodes, nAlphabetLength, bZero) ::= <<
 <if(bZero)>
-<p> = Array.fill(<nMaxSizePlusOne>){0} // init:87
+<p> = Array.fill(<nMaxSizePlusOne>){0}
 
 <else>
-// TODO bZero was false init_scala:89
+
 <i> = 0
-<p> = Array.fill(<nMaxSizePlusOne>){0} // init_scala:91
+<p> = Array.fill(<nMaxSizePlusOne>){0}
 while (<i> \< <nSize>) {
     <if(bAlpha)>
     static byte allowedCharSet[] = {<arrnAlphabetAsciiCodes:{ch|0x<ch;format="X2">}; wrap, anchor, separator=",">}; 
@@ -121,10 +121,10 @@ initFixVarSizeBitOrOctString(p, sAcc, nSize, arrsBytes) ::= <<
 
 initTestCaseOctetString(p, sAcc, sArrayHolderName, nSize, i, bIsFixedSize, bZero, nMinSize) ::= <<
 <if(bZero)>
-<p> = <sArrayHolderName>(<if(!bIsFixedSize)><nMinSize>, <endif>Array.fill(<nSize>){0}) // init_scala:124
+<p> = <sArrayHolderName>(<if(!bIsFixedSize)><nMinSize>, <endif>Array.fill(<nSize>){0})
 <else>
 <i> = 0
-(while (<i>\< <nSize>) { // init:131
+(while (<i>\< <nSize>) {
     <p>.arr(<i>) = (<i>%256).toByte
     <i> += 1
 })
@@ -136,10 +136,10 @@ initTestCaseOctetString(p, sAcc, sArrayHolderName, nSize, i, bIsFixedSize, bZero
 
 initTestCaseBitString(p, sAcc, sArrayHolderName, nSize, nSizeCeiled, i, bIsFixedSize, bZero, nMinSize) ::= <<
 <if(bZero)>
-<p> = <sArrayHolderName>(<if(!bIsFixedSize)><nMinSize>, <endif>Array.fill(<nSizeCeiled>/8){0}) // init_scala:140
+<p> = <sArrayHolderName>(<if(!bIsFixedSize)><nMinSize>, <endif>Array.fill(<nSizeCeiled>/8){0})
 
 <else>
-// bZero was false init_scala:143
+
 <if(!bIsFixedSize)><p><sAcc>nCount = <nSize><endif>
 <i> = 0
 while (<i>\< <nSizeCeiled>/8) {
@@ -174,7 +174,7 @@ initTestCaseSizeSequenceOf_innerItem(bFirst, bLastItem, nCaseIdx, sChildCaseInit
 }>>
 
 initTestCaseSizeSequenceOf(p, sAcc, noMinSize, nSize, bIsFixedSize, arrsInnerItems, bMultiCases, i) ::= <<
-<i> = 0 // init:175
+<i> = 0
 while (<i> \< <nSize>) {
     <arrsInnerItems; separator="\n">
     <i> = <i> + 1
@@ -186,7 +186,7 @@ while (<i> \< <nSize>) {
 /*SEQUENCE*/
 
 initSequence_optionalChild(p, sAcc, sChName, sPresentFlag, sChildContent) ::=<<
-<p><sAcc>exist.<sChName> = <sPresentFlag> //init:191
+<p><sAcc>exist.<sChName> = <sPresentFlag>
 <sChildContent>
 >>
 
@@ -197,33 +197,28 @@ initSequence(arrsInnerValues) ::= <<
 initSequence_emptySeq(p) ::= ""
 
 initTestCase_sequence_child(p, sAcc, sChName, sChildContent, bOptional) ::= <<
-/* define <sChName> init:198 */
 <if(bOptional)><p><sAcc>exist.<sChName> = true<endif>
 <sChildContent>
 >>
 
 initTestCase_sequence_child_opt(p, sAcc, sChName) ::= <<
-<p><sAcc>exist.<sChName> = false // init:208
+<p><sAcc>exist.<sChName> = false
 >>
 
 initChoice(p, sAcc, sChildContent, sChildID, sChildName, sChildTypeName, sChoiceTypeName, sChildTempVarName, sChildTempDefaultInit, bComponentTempInit) ::= <<
-/* define <sChildName> init_scala.stg:208 */
 var <sChildTempVarName>: <sChildTypeName> = <sChildTempDefaultInit>
 <sChildContent>      
-/* set <sChildName> init_scala.stg:211 */
 <p> = <sChildID>(<sChildTempVarName>)  
 >>
 
 initTestCase_choice_child(p, sAcc, sChildContent, sChildID, sChildName, sChildTypeName, sChoiceTypeName, sChildTempVarName, sChildTempDefaultInit) ::= <<
-/* define <sChildName> init_scala.stg:216 */
 var <sChildTempVarName>: <sChildTypeName> = <sChildTempDefaultInit>
 <sChildContent>      
-/* set <sChildName>  init_scala.stg:220 */
 <p> = <sChildID>(<sChildTempVarName>)  
 >>
 
 initChildWithInitFunc(p, sChildInitFuncName) ::= <<
-<p> = <sChildInitFuncName>() /*init:219*/
+<p> = <sChildInitFuncName>()
 >>
 
 
@@ -239,11 +234,11 @@ void <sFuncName>_set_<sNamedBit>(<sTypeDefName><sStar> <sVarName>);
 >>
 
 initTypeConstant_def(sTypeDecl, sConstantName, sValue) ::= <<
-val <sConstantName>: <sTypeDecl> = <sValue> // init_scala:244
+val <sConstantName>: <sTypeDecl> = <sValue>
 >>
 
 initTypeConstant_body(sTypeDecl, sConstantName, sValue) ::= <<
-val <sConstantName>: sTypeDecl> = <sValue> // init_scala:246
+val <sConstantName>: sTypeDecl> = <sValue>
 >>
 
 initFixSizeOctetString(nMax) ::= "Array.fill(<nMax>)(0)" 
@@ -289,10 +284,10 @@ init_Asn1Date_LocalTimeWithTimeZoneExpr() ::= <<
 {.years = 0, .months = 0, .days = 0, .hours = 0, .mins = 0, .sec = 0, .fraction = 0, .tz.sign = 0, .tz.hours = 0, .tz.mins = 0 }
 >>
 
-initSequenceChildExpr(sChildName, sChildExpr) ::= "<sChildName> = <sChildExpr> /* init:285 */"
-initSequenceOptionalChildExpr(sChildName, nPresenceBit) ::= "<sChildName> = <nPresenceBit> /* init:286 */"
+initSequenceChildExpr(sChildName, sChildExpr) ::= "<sChildName> = <sChildExpr>"
+initSequenceOptionalChildExpr(sChildName, nPresenceBit) ::= "<sChildName> = <nPresenceBit>"
 initSequenceExpr(arrsChildren, arrsOptionalChildren) ::= <<
-<arrsChildren; separator=", "><if (arrsOptionalChildren)>, exist = null <endif> /* init:288 */
+<arrsChildren; separator=", "><if (arrsOptionalChildren)>, exist = null <endif>
 >>
 
-initChoiceExpr(sChildName, sChildKind, sChildExpr) ::= "{.kind = <sChildKind>, .u.<sChildName> = <sChildExpr>} /* init:291 */"
+initChoiceExpr(sChildName, sChildKind, sChildExpr) ::= "{.kind = <sChildKind>, .u.<sChildName> = <sChildExpr>}"

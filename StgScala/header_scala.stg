@@ -16,11 +16,11 @@ import asn1scala._
 import stainless.lang._
 import stainless.annotation._
 
-<arrsTypeAssignments:{tas|<tas> // header:19 }; separator="\n">
+<arrsTypeAssignments:{tas|<tas>}; separator="\n">
 
-<arrsValueAssignments:{vas|<vas> // header:21 }; separator="\n"> 
+<arrsValueAssignments:{vas|<vas>}; separator="\n"> 
 
-<arrsPrototypes:{proto|<proto> // header:23 }; separator="\n"> 
+<arrsPrototypes:{proto|<proto>}; separator="\n"> 
 >>
 
 Define_TAS(sTypeDefinition, arrsProcs) ::= <<
@@ -84,7 +84,7 @@ Declare_Asn1Date_LocalTimeWithTimeZoneNoRTL	()::= "Asn1DateTimeWithTimeZone"
 
 
 Define_SubType(sTypeDefinitionName, soParentTypePackage, sParentType, soNewRange, soExtraDefs) ::= <<
-type <sTypeDefinitionName> = <sParentType> // header_scala:83
+type <sTypeDefinitionName> = <sParentType>
 <soExtraDefs>
 >>
 
@@ -99,11 +99,11 @@ type <sTypeDefinitionName> = <sParentType> // header_scala:83
 /***********************************       ENUMERATED    ************************************************************/
 
 Define_new_enumerated_item(td/*:FE_EnumeratedTypeDefinition*/, sName, nValue) ::= <<
-case <sName> extends <td.typeName>(<nValue>) // header:102
+case <sName> extends <td.typeName>(<nValue>)
 >>
 
 Define_new_enumerated_item_macro(td/*:FE_EnumeratedTypeDefinition*/, sAsn1Name, sCName) ::= <<
-// type <sCName> = <td.typeName>.<sAsn1Name> // header_106
+// type <sCName> = <td.typeName>.<sAsn1Name>
 >>
 
 Define_new_enumerated(td/*:FE_EnumeratedTypeDefinition*/, arrsEnumNames, arrsEnumNamesAndValues, nIndexMax, arrsResolvingMacros) ::= <<
@@ -117,17 +117,17 @@ enum <td.typeName>(val i: Int):
 
 
 Define_subType_enumerated(td/*:FE_EnumeratedTypeDefinition*/, prTd/*:FE_EnumeratedTypeDefinition*/, soParentTypePackage) ::= <<
-typedef <prTd.typeName> <td.typeName> // header:120
+typedef <prTd.typeName> <td.typeName>
 >>
 
 /***********************************       STRING    ************************************************************/
 
 Define_new_ia5string(td/*:FE_StringTypeDefinition*/, nMin, nMax, nCMax, arrnAlphaChars) ::= <<
-type <td.typeName> = Array[Byte] // max size in C was [<nCMax>] header:126
+type <td.typeName> = Array[Byte]
 >>
 
 Define_subType_ia5string(td/*:FE_StringTypeDefinition*/, prTd/*:FE_StringTypeDefinition*/, soParentTypePackage) ::= <<
-typedef <prTd.typeName> <td.typeName> // header:130
+typedef <prTd.typeName> <td.typeName>
 >>
 
 /***********************************       OCTET STRING    ************************************************************/
@@ -137,20 +137,20 @@ Define_new_octet_string(td/*:FE_SizeableTypeDefinition*/, nMin, nMax, bFixedSize
 /*nCount equals to Number of bytes in the array. Max value is : <nMax> (unsure - TODO read asn1 standard)*/
 
 <endif>
-case class <td.typeName>(<if(!bFixedSize)>var nCount: Long, <endif>var arr: Array[Byte]) // header:140
+case class <td.typeName>(<if(!bFixedSize)>var nCount: Long, <endif>var arr: Array[Byte])
 {
     require(arr.length == <nMax>)
 }
 >>
 
 Define_subType_octet_string(td/*:FE_SizeableTypeDefinition*/, prTd/*:FE_SizeableTypeDefinition*/, soParentTypePackage, bFixedSize) ::= <<
-typedef <prTd.typeName> <td.typeName> // header:140
+typedef <prTd.typeName> <td.typeName>
 >>
 
 /***********************************       BIT STRING    ************************************************************/
 
 Define_new_bit_string_named_bit(td/*:FE_SizeableTypeDefinition*/, sTargetLangBitName, sHexValue, sComment) ::= <<
-#define <td.typeName>_<sTargetLangBitName> 0x<sHexValue>  /*<sComment>*/ // header:141
+#define <td.typeName>_<sTargetLangBitName> 0x<sHexValue>  /*<sComment>*/
 >>
 
 Define_new_bit_string(td/*:FE_SizeableTypeDefinition*/, nMin, nMax, bFixedSize, nMaxOctets, arrsNamedBits) ::= <<
@@ -160,14 +160,14 @@ Define_new_bit_string(td/*:FE_SizeableTypeDefinition*/, nMin, nMax, bFixedSize, 
 /*nCount equals to Number of bits in the array. Max value is : <nMax> */
 
 <endif>
-case class <td.typeName>(<if(!bFixedSize)>var nCount: Long, <endif>var arr: Array[Byte]) // header:155
+case class <td.typeName>(<if(!bFixedSize)>var nCount: Long, <endif>var arr: Array[Byte])
 {
     require(arr.length == <nMaxOctets>)
 }
 >>
 
 Define_subType_bit_string(td/*:FE_SizeableTypeDefinition*/, prTd/*:FE_SizeableTypeDefinition*/, soParentTypePackage, bFixedSize) ::= <<
-typedef <prTd.typeName> <td.typeName> // header:162
+typedef <prTd.typeName> <td.typeName>
 >>
 
 /***********************************       SEQUENCE OF    ************************************************************/
@@ -177,7 +177,7 @@ Define_new_sequence_of(td/*:FE_SizeableTypeDefinition*/, nMin, nMax, bFixedSize,
 
 <soChildDefintion>
 
-case class <td.typeName> (<if(!bFixedSize)>var nCount: Int, <endif>arr: Array[<sChildType>]) // header:172  
+case class <td.typeName> (<if(!bFixedSize)>var nCount: Int, <endif>arr: Array[<sChildType>])  
 {
     require(arr.length == <nMax>)
 }
@@ -187,13 +187,13 @@ Define_subType_sequence_of(td/*:FE_SizeableTypeDefinition*/, prTd/*:FE_SizeableT
 
 <soChildDefintion>
 
-typedef <prTd.typeName> <td.typeName> // header:182
+typedef <prTd.typeName> <td.typeName>
 >>
 
 
 /***********************************       SEQUENCE     ************************************************************/
 
-Define_new_sequence_child_bit(sName) ::= "<sName>: Boolean /* header:188 */"
+Define_new_sequence_child_bit(sName) ::= "<sName>: Boolean"
 
 Define_new_sequence_child(sName, sType) ::= "<sName>: <sType>"
 
@@ -209,12 +209,12 @@ case class <td.extention_function_potisions> (
 
 <endif>
 <if (arrsOptionalChildren)>
-case class <td.exist> ( // header:204
+case class <td.exist> (
     <arrsOptionalChildren:{ch|var <ch>}; separator=", \n">
 )
 
 <endif>
-case class <td.typeName> ( // header:217
+case class <td.typeName> (
 <if (arrsOptionalChildren)>
     var exist: <td.exist>,
 
@@ -225,9 +225,9 @@ case class <td.typeName> ( // header:217
 >>
 
 Define_subType_sequence(td/*:FE_SequenceTypeDefinition*/, prTd/*:FE_SequenceTypeDefinition*/, soParentTypePackage, arrsOptionalChildren) ::= <<
-type <td.typeName> = <prTd.typeName>  // header:220
+type <td.typeName> = <prTd.typeName>
 <if (arrsNullFieldsSavePos)>
-type <td.extention_function_potisions> = <prTd.extention_function_potisions> // header:230
+type <td.extention_function_potisions> = <prTd.extention_function_potisions>
 <endif>
 >>
 
@@ -235,7 +235,7 @@ type <td.extention_function_potisions> = <prTd.extention_function_potisions> // 
 
 
 Define_new_choice_child(sName, sType, sPresent) ::=<<
-<sName>: <sType> /* header:238 */
+<sName>: <sType>
 >>
 
 Define_new_choice(td/*:FE_ChoiceTypeDefinition*/, sChoiceIDForNone, sFirstChildNamePresent, arrsChildren, arrsPresent, arrsCombined, nIndexMax, arrsChildldrenDefintions) ::= <<
@@ -248,7 +248,7 @@ enum <td.typeName>:
 >>
 
 Define_subType_choice(td/*:FE_ChoiceTypeDefinition*/, prTd/*:FE_ChoiceTypeDefinition*/, soParentTypePackage) ::= <<
-typedef <prTd.typeName> <td.typeName> // header:251
+typedef <prTd.typeName> <td.typeName>
 >>
 
 Define_SubType_int_range(soParentTypePackage, sParentType, noMin, noMax) ::= <<

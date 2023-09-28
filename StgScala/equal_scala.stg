@@ -2,7 +2,6 @@
 
 
 JoinItems(sPart, soNestedPart) ::= <<
-// equal_scala.stg : 5
 <sPart>
 <if(soNestedPart)>
 if ret then
@@ -11,7 +10,6 @@ if ret then
 >>
 
 JoinItems2_ret(sPart, sNestedPart) ::= <<
-// equal_scala.stg : 14
 <sPart>
 if (ret) {
     <sNestedPart>
@@ -19,7 +17,6 @@ if (ret) {
 >>
 
 JoinItems2_ret_result(sPart, sNestedPart) ::= <<
-// equal_scala.stg : 22
 <sPart>
 if (ret) {
     <sNestedPart>
@@ -40,7 +37,6 @@ PrintEqualDefintionComposite(sFuncName, sTypeDefName) ::= <<
 >>
 
 PrintEqualPrimitive(sFuncName, sTypeDefName, sContent) ::= <<
-// equal_scala.stg : 47
 def <sFuncName>(val1: <sTypeDefName>, val2: <sTypeDefName>): Boolean =
 {
     return <sContent>
@@ -50,7 +46,6 @@ def <sFuncName>(val1: <sTypeDefName>, val2: <sTypeDefName>): Boolean =
 
 
 PrintEqualComposite(sFuncName, sTypeDefName, sContent, arrsLocalVars) ::= <<
-// equal_scala.stg : 57
 def <sFuncName>(pVal1: <sTypeDefName>, pVal2: <sTypeDefName>): Boolean =
 {
     var ret: Boolean = true
@@ -61,26 +56,20 @@ def <sFuncName>(pVal1: <sTypeDefName>, pVal2: <sTypeDefName>): Boolean =
 }
 >>
 
-equalTypeAssignment_def(sVarName1, sVarName2, sStar, sFuncName, sTypeDefName) ::= <<
-// equal_scala.stg : 69
->>
+equalTypeAssignment_def(sVarName1, sVarName2, sStar, sFuncName, sTypeDefName) ::= << >>
 
 equalTypeAssignment(sVarName1, sVarName2, sStar, sFuncName, sTypeDefName, sContent, arrsLocalVars, bExpression, bUnreferenced) ::= <<
-// equal_scala.stg : 74
 def <sFuncName>(<sVarName1>: <sTypeDefName>, <sVarName2>: <sTypeDefName>): Boolean =
 {
     <if(bUnreferenced)>
-    // equal_scala.stg:77
     <sVarName1>
     <sVarName2>
     <endif>
     
     <if(bExpression)>
-    // equal_scala.stg:83
     return <sContent>
 
     <else>
-    // equal_scala.stg:87
     var ret: Boolean = true
     <arrsLocalVars; separator="\n">
 
@@ -92,24 +81,24 @@ def <sFuncName>(<sVarName1>: <sTypeDefName>, <sVarName2>: <sTypeDefName>): Boole
 >>
 
 
-isEqual_Primitive(p1, p2) ::= "<p1> == <p2> /* equal_scala.stg:97 */"
+isEqual_Primitive(p1, p2) ::= "<p1> == <p2>"
 
-isEqual_String(p1, p2) ::= "<p1>.sameElements(<p2>) /* equal_scala.stg:99 */"
-
-
-isEqual_Integer(p1, p2) /*nogen*/::= "ret = (<p1> == <p2>); /* equal_scala.stg:102 */"
-
-isEqual_Enumerated(p1, p2) /*nogen*/::= "<isEqual_Integer(p1=p1,p2=p2)> /* equal_scala.stg:104 */"
+isEqual_String(p1, p2) ::= "<p1>.sameElements(<p2>)"
 
 
-isEqual_Boolean(p1, p2) /*nogen*/::= "ret = ( (<p1> && <p2>) || (!<p1> && !<p2>)); /* equal_scala.stg:107 */"
+isEqual_Integer(p1, p2) /*nogen*/::= "ret = (<p1> == <p2>)"
 
-isEqual_Real(p1, p2) ::= "<p1> == <p2> /* equal_scala.stg:109 */"
+isEqual_Enumerated(p1, p2) /*nogen*/::= "<isEqual_Integer(p1=p1,p2=p2)>"
 
-isEqual_IA5String(p1, p2) /*nogen*/::= "ret = (strcmp(<p1>, <p2>) ==0); /* equal_scala.stg:111 */"
 
-isEqual_NumericString(p1, p2) /*nogen*/::= "<isEqual_IA5String(p1=p1, p2=p2)> /* equal_scala.stg:113 */"
-isEqual_NullType()/*nogen*/ ::= "ret = true; /* equal_scala.stg:114 */"
+isEqual_Boolean(p1, p2) /*nogen*/::= "ret = ( (<p1> && <p2>) || (!<p1> && !<p2>))"
+
+isEqual_Real(p1, p2) ::= "<p1> == <p2>"
+
+isEqual_IA5String(p1, p2) /*nogen*/::= "ret = (strcmp(<p1>, <p2>) ==0)"
+
+isEqual_NumericString(p1, p2) /*nogen*/::= "<isEqual_IA5String(p1=p1, p2=p2)>"
+isEqual_NullType()/*nogen*/ ::= "ret = true"
 
 isEqual_BitString(p1,p2,bIsFixedSize, nFixedSize) ::= <<
 <if(!bIsFixedSize)>
@@ -135,20 +124,17 @@ isEqual_OctetString(p1,p2, bIsFixedSize, nFixedSize) ::= <<
 >>
 
 isObjectIdentifier_equal(p1, p2) ::= <<
-// equal_scala.stg : 142
 ObjectIdentifier_equal(<p1>, <p2>)
 >>
 
 
 
 isEqual_Choice_Child(choiceTypeDefName, sCid, sInnerStatement, sTmpVarName1, sTmpVarName2) ::= <<
-// equal_scala.stg:145
 case (<choiceTypeDefName>.<sCid>(<sTmpVarName1>), <choiceTypeDefName>.<sCid>(<sTmpVarName2>)) =>
     <sInnerStatement>
 >>
 
 isEqual_Choice(p1,p2, sAccess, arrsChildren) ::= <<
-// equal_scala.stg:151
 (<p1>, <p2>) match {
     <arrsChildren: {ch|<ch>}; separator="\n">
     case (_, _) =>
@@ -157,17 +143,15 @@ isEqual_Choice(p1,p2, sAccess, arrsChildren) ::= <<
 >>
 
 isEqual_Sequence_child(p1, p2, sAcc,  bIsOptional, sChName, soInnerStatement) ::= <<
-// equal_scala.stg : 166
 <if(bIsOptional)>
-// equal_scala.stg : 167
-ret = (<p1><sAcc>exist.<sChName> == <p2><sAcc>exist.<sChName>) // equal:168
-<if(soInnerStatement)> // equal_scala.stg : 173
-if (ret && <p1><sAcc>exist.<sChName>) then // equal_scala.stg : 174
+ret = (<p1><sAcc>exist.<sChName> == <p2><sAcc>exist.<sChName>)
+<if(soInnerStatement)>
+if (ret && <p1><sAcc>exist.<sChName>) then
     <soInnerStatement>
 
 <endif>
 <else>
-<soInnerStatement> // equal_scala.stg : 179
+<soInnerStatement>
 
 <endif>
 >>
@@ -175,11 +159,10 @@ if (ret && <p1><sAcc>exist.<sChName>) then // equal_scala.stg : 174
 
 
 isEqual_SequenceOf_var_size(p1,p2, sAcc, i, soInnerStatement) ::= <<
-// equal_scala.stg : 187
 ret = (<p1><sAcc>nCount == <p2><sAcc>nCount)
 <if (soInnerStatement)>
 <i> = 0
-while ret && <i> \< <p1><sAcc>nCount do // equal:174
+while ret && <i> \< <p1><sAcc>nCount do
     <soInnerStatement>
     <i> += 1
 
@@ -188,8 +171,7 @@ while ret && <i> \< <p1><sAcc>nCount do // equal:174
 >>
 
 isEqual_SequenceOf_fix_size(p1,p2, sAcc, i, nFixedSize, sInnerStatement) ::= <<
-// equal_scala.stg : 199
-for(<i> = 0; ret && <i> \< <nFixedSize>; <i>++) // equal:183
+for(<i> = 0; ret && <i> \< <nFixedSize>; <i>++)
 {
     <sInnerStatement>
 }
@@ -199,11 +181,10 @@ for(<i> = 0; ret && <i> \< <nFixedSize>; <i>++) // equal:183
 call_base_type_func(p1, p2, sFuncName) ::= "<sFuncName>(<p1>, <p2>)"
 
 makeExpressionToStatement(sIsValidExp) ::= <<
-// equal_scala.stg : 210
 ret = <sIsValidExp>
 >>
 
 
 callChildEqualFunc(p1, p2,  sChildEqualFuncName) ::= <<
-ret = <sChildEqualFuncName>(<p1>, <p2>) // equal_scala.stg : 211
+ret = <sChildEqualFuncName>(<p1>, <p2>)
 >>

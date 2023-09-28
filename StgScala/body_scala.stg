@@ -10,7 +10,7 @@ package asn1src
 
 import asn1scala._
 
-<arrsValueAndTypeAssignments: {uv|<uv> // body_scala:10, move to definition if needed somewhere else}; separator="\n">
+<arrsValueAndTypeAssignments: {uv|<uv>}; separator="\n">
 >>
 
 printTass(arrsAllProcs) ::= <<
