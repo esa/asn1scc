@@ -8,6 +8,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting.Logging;
 using Microsoft.Build.Evaluation;
 using Microsoft.Build.Execution;
 using Microsoft.Build.Logging;
+using System.Text;
 
 namespace PUS_C_Scala_Test
 {
@@ -267,24 +268,20 @@ namespace PUS_C_Scala_Test
                 StartInfo = new ProcessStartInfo
                 {
                     FileName = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "cmd.exe" : "bash",
-                    WorkingDirectory = outDir,
+                    Arguments = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? $"/C {cConfig}\\{cProject}.exe" : $"./mainprogram",
+
+					WorkingDirectory = outDir,
                     UseShellExecute = false,
                     RedirectStandardOutput = true,
-                    RedirectStandardInput = true,
-                    CreateNoWindow = false,
+                    RedirectStandardInput = false,
+                    CreateNoWindow = true,
                 }
             })
             {
                 proc.Start();
-                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
-                    proc.StandardInput.WriteLine($"{cConfig}\\{cProject}.exe");
-                } else {
-                    proc.StandardInput.WriteLine($"./mainprogram"); 
-                }
-                System.Threading.Thread.Sleep(500);
-                proc.StandardInput.Flush();
-                proc.StandardInput.Close();
-                proc.WaitForExit(-1);
+                proc.WaitForExit(60000);
+
+                Assert.IsTrue(proc.HasExited, "Program did not complete in 60s");
 
                 var o = proc.StandardOutput.ReadToEnd();
                 var worked = o.Contains("All test cases (") && o.Contains(") run successfully.");
@@ -333,20 +330,19 @@ namespace PUS_C_Scala_Test
                 StartInfo = new ProcessStartInfo
                 {
                     FileName = "cmd.exe",
-                    WorkingDirectory = outDir,
+                    Arguments = "/C " + "\"%ProgramFiles(x86)%\\Microsoft Visual Studio\\Installer\\vswhere.exe\" -latest -requires Microsoft.Component.MSBuild -find MSBuild\\**\\Bin\\msbuild.exe",
+					WorkingDirectory = outDir,
                     UseShellExecute = false,
                     RedirectStandardOutput = true,
-                    RedirectStandardInput = true,
-                    CreateNoWindow = false,
+                    RedirectStandardInput = false,
+                    CreateNoWindow = true,
                 }
             })
             {
                 proc.Start();
-                proc.StandardInput.WriteLine("\"%ProgramFiles(x86)%\\Microsoft Visual Studio\\Installer\\vswhere.exe\" -latest -requires Microsoft.Component.MSBuild -find MSBuild\\**\\Bin\\msbuild.exe");
-                System.Threading.Thread.Sleep(500); 
-                proc.StandardInput.Flush();
-                proc.StandardInput.Close();
-                proc.WaitForExit(-1);
+                proc.WaitForExit(60000);
+
+                Assert.IsTrue(proc.HasExited,"MSBuild did not complete in 60s.");
 
                 var o = proc.StandardOutput.ReadToEnd();
                 Console.WriteLine(o);
@@ -363,7 +359,7 @@ namespace PUS_C_Scala_Test
                     UseShellExecute = false,
                     RedirectStandardOutput = true,
                     RedirectStandardInput = true,
-                    CreateNoWindow = false,
+                    CreateNoWindow = true,
                     Arguments = $"{cProject}.vcxproj /p:configuration={cConfig}"
                 }
             })
@@ -388,23 +384,36 @@ namespace PUS_C_Scala_Test
                 StartInfo = new ProcessStartInfo
                 {
                     FileName = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "cmd.exe" : "bash",
+                    Arguments= RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? $"/C {arg}" : "-c \"{arg}\"",
                     WorkingDirectory = outDir,
                     UseShellExecute = false,
                     RedirectStandardOutput = true,
-                    RedirectStandardInput = true,
+                    RedirectStandardInput = false,
                     CreateNoWindow = false,
                 }
             })
             {
                 proc.Start();
-                proc.StandardInput.WriteLine(arg);
-                System.Threading.Thread.Sleep(500); // give some time for command to execute
-                proc.StandardInput.Flush();
-                proc.StandardInput.Close();
-                proc.WaitForExit(-1);
+
+                var sb = new StringBuilder();
+				var t = Task.Run(() =>
+				{
+                    for (; ; )
+                    {
+                        var line = proc.StandardOutput.ReadLine();
+                        if (line is null)
+                            break;
+
+						sb.AppendLine(line);
+                    }
+				});
+
+				proc.WaitForExit(60000);
+
+                Assert.IsTrue(proc.HasExited, "Build did not complete in 60s");
 
                 // parse sbt output
-                var outp = proc.StandardOutput.ReadToEnd();
+                var outp = sb.ToString();
                 Console.WriteLine("OUTPUT " + outp);
                 var outputList = outp.Split("\n").ToList();
                 var worked = outputList.FindLastIndex(x => x.Contains(check)) > outputList.Count - 5;
