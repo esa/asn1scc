@@ -1,0 +1,100 @@
+--!
+--! Copyright (C) 2017-2023 N7 Space sp. z o. o.
+--! Contact: https://n7space.com
+--!
+--! This file is part of ASN.1/ACN PUS-C Components Library.
+--!
+--! Library was developed under a programme and funded by
+--! European Space Agency.
+--!
+--! This Library is free software: you can redistribute it and/or modify
+--! it under the terms of the GNU General Public License as published by
+--! the Free Software Foundation, either version 3 of the License, or
+--! (at your option) any later version.
+--!
+--! This Library is distributed in the hope that it will be useful,
+--! but WITHOUT ANY WARRANTY; without even the implied warranty of
+--! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+--! GNU General Public License for more details.
+--!
+--! You should have received a copy of the GNU General Public License
+--! along with this program.  If not, see <http://www.gnu.org/licenses/>.
+--!
+
+PMON DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+EXPORTS ALL;
+
+PMON-ID ::= ENUMERATED
+{
+    param0 (0)
+}
+
+PMON-ParameterValue ::= CHOICE
+{
+    param0 INTEGER(0 .. 255)
+}
+
+PMON-ExpectedValueCheckMask ::= CHOICE
+{
+    expectedValueChecking PMON-Mask,
+    limitChecking NULL,
+    deltaChecking NULL
+}
+
+PMON-Mask ::= CHOICE
+{
+    param0 BIT STRING(SIZE(255))
+}
+
+PMON-CheckType ::= ENUMERATED
+{
+    expectedValueChecking   (0),
+    limitChecking           (1),
+    deltaChecking           (2)
+}
+
+PMON-LimitCrossed ::= CHOICE
+{
+    param0 INTEGER(0 .. 255)
+}
+
+PMON-CheckingStatus ::= CHOICE
+{
+    expectedValueChecking CheckingStatusForExpectedValueChecking,
+    limitChecking CheckingStatusForLimitChecking,
+    deltaChecking CheckingStatusForDeltaChecking
+}
+
+CheckingStatusForExpectedValueChecking ::= ENUMERATED
+{
+    expectedValue   (0),
+    unchecked       (1),
+    invalid         (2),
+    unexpectedValue (3)
+}
+
+CheckingStatusForLimitChecking ::= ENUMERATED
+{
+    withinLimits        (0),
+    unchecked           (1),
+    invalid             (2),
+    belowLowLimit       (3),
+    aboveHighLimit      (4)
+}
+
+CheckingStatusForDeltaChecking ::= ENUMERATED
+{
+    withinThresholds      (0),
+    unchecked             (1),
+    invalid               (2),
+    belowLowTreshold      (3),
+    aboveHighTreshold     (4)
+}
+
+PMON-Status ::= ENUMERATED
+{
+    disabled (0),
+    enabled  (1)
+}
+
+END

@@ -168,8 +168,13 @@ let private printUnit (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTy
     let sFileNameWithNoExtUpperCase = (ToC (System.IO.Path.GetFileNameWithoutExtension pu.specFileName))
     let bXer = r.args.encodings |> Seq.exists ((=) XER) 
     let arrsUtilityDefines = []
+    let puCorrName =
+        match r.lang with
+        | CommonTypes.ProgrammingLanguage.Scala -> ToC (pu.name)
+        | _ -> pu.name
+
     let defintionsContntent =
-        lm.typeDef.PrintSpecificationFile sFileNameWithNoExtUpperCase pu.name pu.importedProgramUnits typeDefs (arrsValues@arrsHeaderAnonymousValues) arrsPrototypes arrsUtilityDefines (not r.args.encodings.IsEmpty) bXer
+        lm.typeDef.PrintSpecificationFile sFileNameWithNoExtUpperCase puCorrName pu.importedProgramUnits typeDefs (arrsValues@arrsHeaderAnonymousValues) arrsPrototypes arrsUtilityDefines (not r.args.encodings.IsEmpty) bXer
         
     let fileName = Path.Combine(outDir, pu.specFileName)
     File.WriteAllText(fileName, defintionsContntent.Replace("\r",""))
@@ -189,9 +194,9 @@ let private printUnit (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTy
                     if r.args.encodings |> Seq.exists ((=) CommonTypes.ACN) then
                         yield (tas.Type.acnEncDecTestFunc |> Option.map (fun z -> z.funcDef))
                 } |> Seq.choose id |> Seq.toList
-        let tetscase_specFileName = Path.Combine(outDir, pu.tetscase_specFileName)
-        let tstCasesHdrContent = lm.atc.PrintAutomaticTestCasesSpecFile (ToC pu.tetscase_specFileName) pu.name (pu.name::pu.importedProgramUnits) typeDefs
-        File.WriteAllText(tetscase_specFileName, tstCasesHdrContent.Replace("\r",""))
+        let testcase_specFileName = Path.Combine(outDir, pu.testcase_specFileName)
+        let tstCasesHdrContent = lm.atc.PrintAutomaticTestCasesSpecFile (ToC pu.testcase_specFileName) pu.name (pu.name::pu.importedProgramUnits) typeDefs
+        File.WriteAllText(testcase_specFileName, tstCasesHdrContent.Replace("\r",""))
         
     //sourse file
     let arrsTypeAssignments = 
@@ -267,7 +272,11 @@ let private printUnit (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTy
             [], []
     let rtlFiles = lm.lg.getRtlFiles r.args.encodings arrsTypeAssignments
     let arrsImportedFiles = rtlFiles@pu.importedUserModules@pu.importedProgramUnits |> List.distinct
-    let srcBody = lm.src.printSourceFile pu.name arrsImportedFiles pu.importedTypes (arrsValueAssignments@arrsSourceAnonymousValues@arrsTypeAssignments)
+    let puCorrName = 
+        match r.lang with
+        | CommonTypes.ProgrammingLanguage.Scala -> ToC (pu.name)
+        | _ -> pu.name
+    let srcBody = lm.src.printSourceFile puCorrName arrsImportedFiles pu.importedTypes (arrsValueAssignments@arrsSourceAnonymousValues@arrsTypeAssignments)
     
     let eqContntent = 
         match lm.lg.allowsSrcFilesWithNoFunctions with
@@ -300,17 +309,17 @@ let private printUnit (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTy
                         yield (tas.Type.acnEncDecTestFunc |> Option.map (fun z -> z.func))
                 } |> Seq.choose id |> Seq.toList
 
-        let tetscase_SrcFileName = Path.Combine(outDir, pu.tetscase_bodyFileName)
+        let testcase_SrcFileName = Path.Combine(outDir, pu.testcase_bodyFileName)
         let bXer = r.args.encodings |> Seq.exists((=) XER)
         let tstCasesHdrContent =
             match lm.lg.allowsSrcFilesWithNoFunctions with
-            | true     -> Some (lm.atc.PrintAutomaticTestCasesBodyFile pu.name pu.tetscase_specFileName pu.importedProgramUnits [] encDecFuncs bXer)
+            | true     -> Some (lm.atc.PrintAutomaticTestCasesBodyFile pu.name pu.testcase_specFileName pu.importedProgramUnits [] encDecFuncs bXer)
             | false   -> 
                 match encDecFuncs with
                 | []    -> None
-                | _     -> Some (lm.atc.PrintAutomaticTestCasesBodyFile pu.name pu.tetscase_specFileName pu.importedProgramUnits [] encDecFuncs bXer)
+                | _     -> Some (lm.atc.PrintAutomaticTestCasesBodyFile pu.name pu.testcase_specFileName pu.importedProgramUnits [] encDecFuncs bXer)
         
-        tstCasesHdrContent |> Option.iter(fun tstCasesHdrContent -> File.WriteAllText(tetscase_SrcFileName, tstCasesHdrContent.Replace("\r","")))
+        tstCasesHdrContent |> Option.iter(fun tstCasesHdrContent -> File.WriteAllText(testcase_SrcFileName, tstCasesHdrContent.Replace("\r","")))
 
 
 

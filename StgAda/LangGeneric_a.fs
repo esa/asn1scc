@@ -8,7 +8,7 @@ open System.IO
 
 (****** Ada Implementation ******)
 
-let getAcces_a  (_:FuncParamType) = "."
+let getAccess_a  (_:FuncParamType) = "."
 #if false
 let createBitStringFunction_funcBody_Ada handleFragmentation (codec:CommonTypes.Codec) (id : ReferenceToType) (typeDefinition:TypeDefintionOrReference) isFixedSize  uperMaxSizeInBits minSize maxSize (errCode:ErroCode) (p:CallerScope) = 
     let ii = id.SeqeuenceOfLevel + 1;
@@ -80,12 +80,13 @@ type LangGeneric_a() =
         override this.castExpression (sExp:string) (sCastType:string) = sprintf "%s(%s)" sCastType sExp
         override this.createSingleLineComment (sText:string) = sprintf "--%s" sText
 
+        override _.SpecNameSuffix = ""
         override _.SpecExtention = "ads"
         override _.BodyExtention = "adb"
 
-        override _.doubleValueToSting (v:double) = 
+        override _.doubleValueToString (v:double) = 
             v.ToString(FsUtils.doubleParseString, System.Globalization.NumberFormatInfo.InvariantInfo)
-        override _.intValueToSting (i:BigInteger) _ = i.ToString()
+        override _.intValueToString (i:BigInteger) _ = i.ToString()
 
         override _.initializeString (_) = "(others => adaasn1rtl.NUL)"
         
@@ -102,13 +103,26 @@ type LangGeneric_a() =
             | VALUE x      -> x
             | POINTER x    -> x
             | FIXARRAY x   -> x
-        override this.getAcces  (fpt:FuncParamType) = getAcces_a fpt
+        override this.getAccess  (fpt:FuncParamType) = getAccess_a fpt
+
+        override this.getPtrPrefix (fpt: FuncParamType) = 
+            match fpt with
+            | VALUE x        -> ""
+            | POINTER x      -> ""
+            | FIXARRAY x     -> ""
+
+        override this.getPtrSuffix (fpt: FuncParamType) = 
+            match fpt with
+            | VALUE x        -> ""
+            | POINTER x      -> ""
+            | FIXARRAY x     -> ""
 
         override this.getStar  (fpt:FuncParamType) =
             match fpt with
             | VALUE x        -> ""
             | POINTER x      -> ""
             | FIXARRAY x     -> ""
+
         override this.getArrayItem (fpt:FuncParamType) (idx:string) (childTypeIsString: bool) =
             let newPath = sprintf "%s.Data(%s)" fpt.p idx
             if childTypeIsString then (FIXARRAY newPath) else (VALUE newPath)
@@ -160,12 +174,12 @@ type LangGeneric_a() =
             encRtl@uperRtl@acnRtl@xerRtl |> List.distinct
 
 
-        override this.getSeqChild (fpt:FuncParamType) (childName:string) (childTypeIsString: bool) =
+        override this.getSeqChild (fpt:FuncParamType) (childName:string) (childTypeIsString: bool) (removeDots: bool) =
             let newPath = sprintf "%s.%s" fpt.p childName
             if childTypeIsString then (FIXARRAY newPath) else (VALUE newPath)
         override this.getChChild (fpt:FuncParamType) (childName:string) (childTypeIsString: bool) : FuncParamType =
             let newPath = sprintf "%s.%s" fpt.p childName
-            //let newPath = sprintf "%s%su.%s" fpt.p (this.getAcces fpt) childName
+            //let newPath = sprintf "%s%su.%s" fpt.p (this.getAccess fpt) childName
             if childTypeIsString then (FIXARRAY newPath) else (VALUE newPath)
 
 
@@ -190,7 +204,7 @@ type LangGeneric_a() =
             | FlagLocalVariable (name,Some iv)          -> sprintf "%s:adaasn1rtl.BIT:=%d;" name iv
             | BooleanLocalVariable (name,None)          -> sprintf "%s:Boolean;" name
             | BooleanLocalVariable (name,Some iv)       -> sprintf "%s:Boolean:=%s;" name (if iv then "True" else "False")
-            | AcnInsertedChild(name, vartype)         -> sprintf "%s:%s;" name vartype
+            | AcnInsertedChild(name, vartype, initVal)  -> sprintf "%s:%s;" name vartype
             | GenericLocalVariable lv                   ->
                 match lv.initExp with
                 | Some initExp  -> sprintf "%s : %s := %s;" lv.name lv.varType  initExp

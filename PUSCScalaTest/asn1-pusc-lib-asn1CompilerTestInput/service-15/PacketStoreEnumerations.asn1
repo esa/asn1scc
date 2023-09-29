@@ -1,0 +1,63 @@
+--!
+--! Copyright (C) 2018-2023 N7 Space sp. z o. o.
+--! Contact: https://n7space.com
+--!
+--! This file is part of ASN.1/ACN PUS-C Components Library.
+--!
+--! Library was developed under a programme and funded by
+--! European Space Agency.
+--!
+--! This Library is free software: you can redistribute it and/or modify
+--! it under the terms of the GNU General Public License as published by
+--! the Free Software Foundation, either version 3 of the License, or
+--! (at your option) any later version.
+--!
+--! This Library is distributed in the hope that it will be useful,
+--! but WITHOUT ANY WARRANTY; without even the implied warranty of
+--! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+--! GNU General Public License for more details.
+--!
+--! You should have received a copy of the GNU General Public License
+--! along with this program.  If not, see <http://www.gnu.org/licenses/>.
+--!
+
+PacketStoreEnumerations DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+EXPORTS ALL;
+
+PacketStoreType ::= ENUMERATED
+{
+    circuralType(0),
+    boundedType(1)
+}
+
+PacketStoreStatus ::= ENUMERATED
+{
+    val0(0),
+    val1(1)
+}
+
+PacketStoreTimeRangeRetrievalStatus ::= ENUMERATED
+{
+    disabled(0),
+    enabled(1)
+}
+
+PacketStoreOpenRetrievalStatus ::= ENUMERATED
+{
+    suspended(0),
+    inProgress(1)
+}
+
+PacketStoreRetrievalPriority ::= ENUMERATED
+{
+    val0(0),
+    val1(1)
+}
+
+PacketStoreVirtualChannel ::= ENUMERATED
+{
+    val0(0),
+    val1(1)
+}
+
+END

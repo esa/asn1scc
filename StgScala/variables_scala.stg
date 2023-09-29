@@ -1,0 +1,203 @@
+﻿group c_variables;
+
+PrintIntValue(nValue) ::= "<nValue>"
+
+PrintRealValue(dValue)    ::= "<dValue>"
+
+PrintEnumValue(sValue)    ::= "<sValue>"
+
+PrintRefValue1(sValue)    ::= "<sValue>"
+PrintRefValue2(sModName,sValue)    ::= "<sValue>"
+
+
+PrintStringValue(arrsVals, arrsNullChars)    ::= <<
+<arrsVals; separator=" ">
+>>
+
+PrintSingleStringValue(sValue)::= <<
+"<sValue>"
+>>
+
+PrintLF() ::= <<
+"\n"
+>>
+
+PrintCR() ::= <<
+"\r"
+>>
+
+PrintHT() ::= <<
+"\t"
+>>
+
+
+PrintStringValueNull()	::= "NULL"
+
+PrintCharValue(cValue)    ::= "'<cValue>'"
+
+PrintBooleanValue(bValue)    ::= "<if(bValue)>true<else>false<endif>"
+
+PrintNullValue()    ::= "0"
+
+PrintBitOrOctetStringValue(bIsFixedSize, arruBytes, nCount) /*nogen*/ ::= <<
+{<if(!bIsFixedSize)><nCount>,<endif>
+    {
+        <arruBytes:{b|0x<b;format="X2">}; separator=",\n">
+    }
+}
+>>
+
+
+PrintOctetStringValue(td/*:FE_SizeableTypeDefinition*/,bIsFixedSize, arruBytes, nCount) ::= <<
+<PrintBitOrOctetStringValue(bIsFixedSize=bIsFixedSize, arruBytes=arruBytes, nCount=nCount)>
+>>
+
+PrintBitStringValue(td/*:FE_SizeableTypeDefinition*/,bIsFixedSize, arrsBits, nCount, arruBytes, nBytesCount) ::= <<
+<PrintBitOrOctetStringValue(bIsFixedSize=bIsFixedSize, arruBytes=arruBytes, nCount=nBytesCount)>
+>>
+
+
+PrintBitOrOctetStringValueAsCompoundLitteral(td/*:FE_SizeableTypeDefinition*/, bIsFixedSize, arruBytes, nCount) ::= <<
+(<td.typeName>){<if(!bIsFixedSize)>.nCount = <nCount>, <endif>.arr = {<arruBytes:{b|0x<b;format="X2">}; separator=", ">}} // variables:61
+>>
+
+
+PrintOctetArrayAsCompoundLitteral(arruBytes) ::= <<
+(const byte[]){<arruBytes:{b|0x<b;format="X2">}; wrap, anchor, separator=", ">}
+>>
+
+PrintBitArrayAsCompoundLitteral(arruBits) ::= <<
+SYNTAX ERROR
+>>
+
+PrintObjectIdentifierValue(td/*:FE_PrimitiveTypeDefinition*/, arrnValues, nCount) ::= <<
+{	<nCount>,
+    {
+        <arrnValues; separator=",\n">
+    }
+}
+>>
+
+PrintObjectIdentifierValueAsCompoundLiteral(arrnValues, nCount) ::= <<
+(Asn1ObjectIdentifier){	.nCount = <nCount>, .values = {<arrnValues; wrap, anchor, separator=", ">} }
+>>
+
+
+
+
+PrintTimeValueAsCompoundLiteral_Asn1LocalTime(td/*:FE_PrimitiveTypeDefinition*/, tv/*:Asn1TimeValue*/) ::= <<
+(Asn1LocalTime){ .hours = <tv.hours>, .mins = <tv.mins>, .secs = <tv.secs>, .secsFraction = <tv.secsFraction>}
+>>
+
+PrintTimeValueAsCompoundLiteral_Asn1UtcTime(td/*:FE_PrimitiveTypeDefinition*/, tv/*:Asn1TimeValue*/) ::= <<
+(Asn1UtcTime){ .hours = <tv.hours>, .mins = <tv.mins>, .secs = <tv.secs>, .secsFraction = <tv.secsFraction>}
+>>
+
+
+PrintTimeValueAsCompoundLiteral_Asn1LocalTimeWithTimeZone(td/*:FE_PrimitiveTypeDefinition*/, tv/*:Asn1TimeValue*/, tz/*:Asn1TimeZoneValue*/) ::= <<
+(Asn1TimeWithTimeZone){ .hours = <tv.hours>, .mins = <tv.mins>, .secs = <tv.secs>, .secsFraction = <tv.secsFraction>, .tz= {<tz.sign>, <tz.hours>, <tz.mins>}}
+>>
+
+PrintTimeValueAsCompoundLiteral_Asn1Date(td/*:FE_PrimitiveTypeDefinition*/, dt/*:Asn1DateValue*/) ::= <<
+(Asn1Date){ .years = <dt.years>, .months = <dt.months>, .days = <dt.days>}
+>>
+
+PrintTimeValueAsCompoundLiteral_Asn1Date_LocalTime(td/*:FE_PrimitiveTypeDefinition*/, dt/*:Asn1DateValue*/, tv/*:Asn1TimeValue*/) ::= <<
+(Asn1DateLocalTime){ .date = <PrintTimeValueAsCompoundLiteral_Asn1Date(td=td,dt=dt)>, .time = <PrintTimeValueAsCompoundLiteral_Asn1LocalTime(td=td,tv=tv)>}
+>>
+
+PrintTimeValueAsCompoundLiteral_Asn1Date_UtcTime(td/*:FE_PrimitiveTypeDefinition*/, dt/*:Asn1DateValue*/, tv/*:Asn1TimeValue*/) ::= <<
+(Asn1DateUtcTime){ .date = <PrintTimeValueAsCompoundLiteral_Asn1Date(td=td,dt=dt)>, .time = <PrintTimeValueAsCompoundLiteral_Asn1UtcTime(td=td,tv=tv)>}
+>>
+
+PrintTimeValueAsCompoundLiteral_Asn1Date_LocalTimeWithTimeZone(td/*:FE_PrimitiveTypeDefinition*/, dt/*:Asn1DateValue*/, tv/*:Asn1TimeValue*/, tz/*:Asn1TimeZoneValue*/) ::= <<
+(Asn1DateTimeWithTimeZone){ .date = <PrintTimeValueAsCompoundLiteral_Asn1Date(td=td,dt=dt)>, .time = <PrintTimeValueAsCompoundLiteral_Asn1LocalTimeWithTimeZone(td=td,tv=tv)>}
+>>
+
+
+
+
+
+
+PrintTimeValue_Asn1LocalTime(td/*:FE_PrimitiveTypeDefinition*/, tv/*:Asn1TimeValue*/) ::= <<
+{ <tv.hours>, <tv.mins>, <tv.secs>, <tv.secsFraction>}
+>>
+
+PrintTimeValue_Asn1UtcTime(td/*:FE_PrimitiveTypeDefinition*/, tv/*:Asn1TimeValue*/) ::= <<
+{ <tv.hours>, <tv.mins>, <tv.secs>, <tv.secsFraction>}
+>>
+
+
+PrintTimeValue_Asn1LocalTimeWithTimeZone(td/*:FE_PrimitiveTypeDefinition*/, tv/*:Asn1TimeValue*/, tz/*:Asn1TimeZoneValue*/) ::= <<
+{ <tv.hours>, <tv.mins>, <tv.secs>, <tv.secsFraction>, {<tz.sign>, <tz.hours>, <tz.mins>} }
+>>
+
+PrintTimeValue_Asn1Date(td/*:FE_PrimitiveTypeDefinition*/, dt/*:Asn1DateValue*/) ::= <<
+{<dt.years>, <dt.months>, <dt.days>}
+>>
+
+PrintTimeValue_Asn1Date_LocalTime(td/*:FE_PrimitiveTypeDefinition*/, dt/*:Asn1DateValue*/, tv/*:Asn1TimeValue*/) ::= <<
+{ {<dt.years>, <dt.months>, <dt.days>}, { <tv.hours>, <tv.mins>, <tv.secs>, <tv.secsFraction>}}
+>>
+
+PrintTimeValue_Asn1Date_UtcTime(td/*:FE_PrimitiveTypeDefinition*/, dt/*:Asn1DateValue*/, tv/*:Asn1TimeValue*/) ::= <<
+{ {<dt.years>, <dt.months>, <dt.days>}, { <tv.hours>, <tv.mins>, <tv.secs>, <tv.secsFraction>}}
+>>
+
+PrintTimeValue_Asn1Date_LocalTimeWithTimeZone(td/*:FE_PrimitiveTypeDefinition*/, dt/*:Asn1DateValue*/, tv/*:Asn1TimeValue*/, tz/*:Asn1TimeZoneValue*/) ::= <<
+{ {<dt.years>, <dt.months>, <dt.days>}, { <tv.hours>, <tv.mins>, <tv.secs>, <tv.secsFraction>, {<tz.sign>, <tz.hours>, <tz.mins>} } }
+>>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+PrintSequenceValueChild(sName, sInnerValue) ::= ".<sName> = <sInnerValue>"
+PrintSequenceValue_child_exists(sName, sExistsBit) ::= ".<sName> = <sExistsBit>"
+
+PrintSequenceValue(td/*:FE_SequenceTypeDefinition*/, sTasName, arrsChildren, arrsOptionalPresentFields) ::= <<{
+    <arrsChildren:{ch|<ch>}; separator=",\n"><if(arrsOptionalPresentFields)>,
+    .exist = {
+        <arrsOptionalPresentFields; separator=",\n">
+    }
+    <endif>
+}
+>>
+
+PrintChoiceValue(sTasName, sChildName, sChildVal, sChildNamePresent, bUseUncheckedUnions) ::= <<{
+    .kind = <sChildNamePresent>,    /*variables:181*/
+    .u = { .<sChildName> = <sChildVal>} /*variables:182*/
+}
+>>
+
+
+PrintValueAssignment(sName, sTypeDecl, sValue) ::= <<
+val <sName>: <sTypeDecl> = <sValue> // variables:188
+>>
+
+PrintSequenceOfValue(td/*:FE_SizeableTypeDefinition*/, bIsFixedSize, nLength, arrsInnerValues, sDefValue) ::= <<
+{<if(!bIsFixedSize)>
+    .nCount = <arrsInnerValues.Length>,
+<endif>
+    .arr = 
+    {
+        <arrsInnerValues:{ch|<ch>}; separator=",\n">        
+    }
+}
+>>
+
+
+

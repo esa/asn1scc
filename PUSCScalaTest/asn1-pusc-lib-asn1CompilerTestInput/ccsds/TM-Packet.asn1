@@ -1,0 +1,66 @@
+--!
+--! Copyright (C) 2017-2023 N7 Space sp. z o. o.
+--! Contact: https://n7space.com
+--!
+--! This file is part of ASN.1/ACN PUS-C Components Library.
+--!
+--! Library was developed under a programme and funded by
+--! European Space Agency.
+--!
+--! This Library is free software: you can redistribute it and/or modify
+--! it under the terms of the GNU General Public License as published by
+--! the Free Software Foundation, either version 3 of the License, or
+--! (at your option) any later version.
+--!
+--! This Library is distributed in the hope that it will be useful,
+--! but WITHOUT ANY WARRANTY; without even the implied warranty of
+--! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+--! GNU General Public License for more details.
+--!
+--! You should have received a copy of the GNU General Public License
+--! along with this program.  If not, see <http://www.gnu.org/licenses/>.
+--!
+
+TM-Packet DEFINITIONS AUTOMATIC TAGS::= BEGIN
+EXPORTS ALL;
+IMPORTS
+    CCSDS-Packet,
+    PacketDataField,
+    Packet-ID,
+    DataWithSecondaryHeader,
+    DataNoSecondaryHeader,
+    SecondaryHeaderFlag FROM PacketTypes
+    ApplicationProcessUser-ID FROM ApplicationProcessUser
+    TM-Payload, TM-NoHeaderPayload FROM TM-Payload
+    SpacecraftTimeReferenceStatus FROM SpacecraftTimeReferenceStatus
+    AbsoluteTime FROM BasicTypes
+    ServiceType-ID, MessageSubtype-ID FROM MessageType;
+
+
+TM-CCSDS-Packet ::= CCSDS-Packet {TM-Packet-ID, TM-PacketDataField}
+
+TM-PacketDataField ::= PacketDataField {TM-DataWithSecondaryHeader, TM-DataNoSecondaryHeader}
+
+TM-DataNoSecondaryHeader ::= DataNoSecondaryHeader {TM-NoHeaderPayload}
+    (WITH COMPONENTS {packetErrorControl PRESENT})
+
+TM-DataWithSecondaryHeader ::= DataWithSecondaryHeader {TM-PacketSecondaryHeader, TM-Payload}
+    (WITH COMPONENTS {packetErrorControl PRESENT})
+
+TM-Packet-ID ::= Packet-ID {TM-PacketType}
+
+TM-PacketSecondaryHeader ::=  SEQUENCE
+{
+    tmPacketPusVersionNumber NULL,
+    spacecraftTimeReferenceStatus SpacecraftTimeReferenceStatus,
+--! serviceType-ID ServiceType-ID,              moved to ACN
+--! messageSubtype-ID MessageSubtype-ID,        moved to ACN
+    messageTypeCounter INTEGER (0 .. 65535),
+    destination-ID ApplicationProcessUser-ID,
+    time AbsoluteTime
+--! spare NULL         defined as align-to-next in acn file
+}
+
+TM-PacketType ::= NULL
+
+END

@@ -147,12 +147,12 @@ let internal createProgramUnits (args:CommandLineSettings) (files: Asn1File list
 
             let mappingFunctionsModules = sortedTypes |> List.map(fun t -> GetMySelfAndChildren t.Type |> List.map(fun q -> q.MappingFunctionsModules) |> List.collect id) |> List.collect id 
             let importedUserModules = mappingFunctionsModules@(args.mappingFunctionsModule |> Option.toList) |> List.distinct
-            let specFileName = f.FileNameWithoutExtension+"."+lm.lg.SpecExtention
+            let specFileName = f.FileNameWithoutExtension + lm.lg.SpecNameSuffix + "." + lm.lg.SpecExtention
             let bodyFileName = f.FileNameWithoutExtension+"."+lm.lg.BodyExtention
-            let tetscase_specFileName = f.FileNameWithoutExtension+"_auto_tcs."+lm.lg.SpecExtention
-            let tetscase_bodyFileName = f.FileNameWithoutExtension+"_auto_tcs."+lm.lg.BodyExtention
-            let tetscase_name = f.FileNameWithoutExtension+"_auto_tcs"
-            {ProgramUnit.name = f.FileNameWithoutExtension; specFileName = specFileName; bodyFileName=bodyFileName; sortedTypeAssignments = sortedTypes; valueAssignments = fileValueAssignments; importedProgramUnits = importedProgramUnits; tetscase_specFileName=tetscase_specFileName; tetscase_bodyFileName=tetscase_bodyFileName; tetscase_name=tetscase_name; importedTypes= []; importedUserModules=importedUserModules})
+            let testcase_specFileName = f.FileNameWithoutExtension+"_auto_tcs"+ lm.lg.SpecNameSuffix+"."+lm.lg.SpecExtention
+            let testcase_bodyFileName = f.FileNameWithoutExtension+"_auto_tcs."+lm.lg.BodyExtention
+            let testcase_name = f.FileNameWithoutExtension+"_auto_tcs"
+            {ProgramUnit.name = f.FileNameWithoutExtension; specFileName = specFileName; bodyFileName=bodyFileName; sortedTypeAssignments = sortedTypes; valueAssignments = fileValueAssignments; importedProgramUnits = importedProgramUnits; testcase_specFileName=testcase_specFileName; testcase_bodyFileName=testcase_bodyFileName; testcase_name=testcase_name; importedTypes= []; importedUserModules=importedUserModules})
     | true   -> 
         let typesMap = 
             files |> 
@@ -225,12 +225,12 @@ let internal createProgramUnits (args:CommandLineSettings) (files: Asn1File list
 
             let mappingFunctionsModules = sortedTypes |> List.map(fun t -> GetMySelfAndChildren t.Type |> List.map(fun q -> q.MappingFunctionsModules) |> List.collect id) |> List.collect id |> List.distinct
             let importedUserModules = mappingFunctionsModules@(args.mappingFunctionsModule |> Option.toList) |> List.distinct
-            let specFileName = ToC (m.Name.Value.ToLower()) + "." + lm.lg.SpecExtention
+            let specFileName = ToC (m.Name.Value.ToLower()) + lm.lg.SpecNameSuffix + "." + lm.lg.SpecExtention
             let bodyFileName = ToC (m.Name.Value.ToLower()) + "." + lm.lg.BodyExtention
-            let tetscase_specFileName = ToC (m.Name.Value.ToLower()) + "_auto_tcs." + lm.lg.SpecExtention
-            let tetscase_bodyFileName = ToC (m.Name.Value.ToLower()) + "_auto_tcs." + lm.lg.BodyExtention
+            let testcase_specFileName = ToC (m.Name.Value.ToLower()) + "_auto_tcs" + lm.lg.SpecNameSuffix + "." + lm.lg.SpecExtention
+            let testcase_bodyFileName = ToC (m.Name.Value.ToLower()) + "_auto_tcs." + lm.lg.BodyExtention
             //let importedProgramUnits = m.Imports |> List.map (fun im -> ToC im.Name.Value)
-            let tetscase_name = ToC (m.Name.Value.ToLower()+"_auto_tcs")
-            {ProgramUnit.name = ToC m.Name.Value; specFileName = specFileName; bodyFileName=bodyFileName; sortedTypeAssignments = sortedTypes; valueAssignments = valueAssignments; importedProgramUnits = importedProgramUnits; tetscase_specFileName=tetscase_specFileName; tetscase_bodyFileName=tetscase_bodyFileName; tetscase_name=tetscase_name; importedTypes= importedTypes; importedUserModules=importedUserModules})
+            let testcase_name = ToC (m.Name.Value.ToLower()+"_auto_tcs")
+            {ProgramUnit.name = ToC m.Name.Value; specFileName = specFileName; bodyFileName=bodyFileName; sortedTypeAssignments = sortedTypes; valueAssignments = valueAssignments; importedProgramUnits = importedProgramUnits; testcase_specFileName=testcase_specFileName; testcase_bodyFileName=testcase_bodyFileName; testcase_name=testcase_name; importedTypes= importedTypes; importedUserModules=importedUserModules})
 
 

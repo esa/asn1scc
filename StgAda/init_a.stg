@@ -9,7 +9,7 @@ initTypeAssignment_def(sVarName, sStar, sFuncName, sTypeDefName) ::= <<
 procedure <sFuncName>(<sVarName>: out <sTypeDefName>);
 >>
 
-initTypeAssignment(sVarName, sStar, sFuncName, sTypeDefName, sContent, arrsLocalVariables) ::= <<
+initTypeAssignment(sVarName, sPtrPrefix, sPtrSuffix, sFuncName, sTypeDefName, sContent, arrsLocalVariables, sDefaultInitValue) ::= <<
 procedure <sFuncName>(<sVarName>: out <sTypeDefName>)
 is
     <arrsLocalVariables; separator="\n">
@@ -28,7 +28,7 @@ initReal(p, dValue) ::= "<p> := <dValue>;"
 initBoolean(p, bValue) ::= "<p> := <if(bValue)>True<else>FALSE<endif>;"
 
 initIA5String(sPtr, sValue) ::= "<sPtr> := <sValue>;" 
-initEnumerated(sVal, sValue) ::= "<sVal> := <sValue>;"
+initEnumerated(sVal, sValue, sEnum) ::= "<sVal> := <sValue>;"
 initNull(sVal)    ::= "<sVal> := 0;"
 
 
@@ -126,7 +126,7 @@ initFixVarSizeBitOrOctString(p, sAcc, nSize, arrsBytes) ::= <<
 <arrsBytes; separator="\n">
 >>
 
-initTestCaseOctetString(p, sAcc, nSize, i, bIsFixedSize, bZero, nMinSize) ::= <<
+initTestCaseOctetString(p, sAcc, sArrayHolderName, nSize, i, bIsFixedSize, bZero, nMinSize) ::= <<
 <i> := 1;
 while <i>\<= <nSize> loop
     --  commented because it casues this warning    
@@ -138,7 +138,7 @@ end loop;
 <if(!bIsFixedSize)><p><sAcc>Length := <if(bZero)><nMinSize><else><nSize><endif>;<endif>
 >>
 
-initTestCaseBitString(p, sAcc, nSize, nSizeCeiled, i, bIsFixedSize, bZero, nMinSize) ::= <<
+initTestCaseBitString(p, sAcc, sArrayHolderName, nSize, nSizeCeiled, i, bIsFixedSize, bZero, nMinSize) ::= <<
 <i> := 1;
 while <i>\<= <nSize> loop
     --  commented because it casues this warning    
@@ -213,27 +213,27 @@ initTestCase_sequence_child_opt(p, sAcc, sChName) ::= <<
 <p><sAcc>exist.<sChName> := 0;
 >>
 
-initTestCase_choice_child(p, sAcc, sChildID, sChildContent, sChildName, sChildTypeDef, sChoiceTypeName) ::= <<
-<p> := <sChoiceTypeName>'(kind => <sChildID>, <sChildName> => \<\>);
-<sChildContent>
->>
 
-
-initChoice(p1, sAccess, sChildContent, sChildKind, sChildTempVarName, sChildTypeName, sChoiceTypeName, sChildName, bComponentTempInit) ::= <<
+initChoice(p, sAcc, sChildContent, sChildID, sChildName, sChildTypeName, sChoiceTypeName, sChildTempVarName, sChildTempDefaultInit, bComponentTempInit) ::= <<
 <if(bComponentTempInit)>
 declare
    <sChildTempVarName> : <sChildTypeName>;
 begin
     <sChildContent>        
-    <p1> := <sChoiceTypeName>'(kind => <sChildKind>, <sChildName> => <sChildTempVarName>);
+    <p> := <sChoiceTypeName>'(kind => <sChildID>, <sChildName> => <sChildTempVarName>);
     pragma Annotate (GNATprove, False_Positive,"discriminant check might fail", "reviewed by GM");
 end;
 
 <else>
-<p1> := <sChoiceTypeName>'(kind => <sChildKind>, <sChildName> => \<\>);
+<p> := <sChoiceTypeName>'(kind => <sChildID>, <sChildName> => \<\>);
 <sChildContent>        
 
 <endif>
+>>
+
+initTestCase_choice_child(p, sAcc, sChildContent, sChildID, sChildName, sChildTypeName, sChoiceTypeName, sChildTempVarName, sChildTempDefaultInit) ::= <<
+<p> := <sChoiceTypeName>'(kind => <sChildID>, <sChildName> => \<\>);
+<sChildContent>
 >>
 
 

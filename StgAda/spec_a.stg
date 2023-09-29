@@ -171,7 +171,7 @@ subtype <thisType> is <if(soParentTypePackage)><soParentTypePackage>.<endif><par
 /***********************************       ENUMERATED    ************************************************************/
 
 
-Define_new_enumerated_item(sName, nValue) ::= "<sName> => <nValue>"
+Define_new_enumerated_item(td/*:FE_EnumeratedTypeDefinition*/, sName, nValue) ::= "<sName> => <nValue>"
 
 Define_new_enumerated_item_macro(td/*:FE_EnumeratedTypeDefinition*/, sAsn1Name, sCName) ::= ""
 
@@ -359,7 +359,7 @@ when <sPresent> =>
         <sName>: <sType>;
 >>
 
-Define_new_choice(td/*:FE_ChoiceTypeDefinition*/, sChoiceIDForNone, sFirstChildNamePresent, arrsChildren, arrsPresent, nIndexMax, arrsChildldrenDefintions) ::= <<
+Define_new_choice(td/*:FE_ChoiceTypeDefinition*/, sChoiceIDForNone, sFirstChildNamePresent, arrsChildren, arrsPresent, arrsCombined, nIndexMax, arrsChildldrenDefintions) ::= <<
 -- <td.typeName> --------------------------------------------
 <arrsChildldrenDefintions; separator= "\n">
 

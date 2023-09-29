@@ -1,0 +1,69 @@
+{
+  "name": "ST[09] time management",
+  "submodules": [
+    {
+      "name": "Time reporting subservice",
+      "elements": [
+        {
+          "name": "Time reporting in CUC format",
+          "asn1Files": [
+            "PUS-9-2.asn1",
+            "RateExponentialValue.asn1"
+          ],
+          "conflicts": ["Time reporting in CDS format"],
+          "requires": [
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Spacecraft Time Reference Status"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            }
+          ]
+        },
+        {
+          "name": "Time reporting in CDS format",
+          "asn1Files": [
+            "PUS-9-3.asn1",
+            "RateExponentialValue.asn1"
+          ],
+          "conflicts": ["Time reporting in CUC format"],
+          "requires": [
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Spacecraft Time Reference Status"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Time reporting control subservice",
+      "elements": [
+        {
+          "name": "Set the time report generation",
+          "asn1Files": [
+            "PUS-9-1.asn1",
+            "RateExponentialValue.asn1"
+          ],
+          "requires":[
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

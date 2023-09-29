@@ -1,0 +1,627 @@
+{
+  "name": "ST[15] on-board storage and retrieval",
+  "submodules" : [
+    {
+      "name": "Storage and retrieval subservice",
+      "elements": [
+        {
+          "name": "Enable the storage function of packet stores",
+          "asn1Files": [
+            "PUS-15-1.asn1",
+            "PacketStore.asn1"
+          ],
+          "requires": [
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            }
+          ]
+        },
+        {
+          "name": "Disable the storage function of packet stores",
+          "asn1Files": [
+            "PUS-15-2.asn1",
+            "PacketStore.asn1"
+          ],
+          "requires": [
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            }
+          ]
+        },
+        {
+          "name": "Change the open retrieval start time tag of packet stores",
+          "asn1Files": [
+            "PUS-15-14.asn1",
+            "PacketStore.asn1"
+          ],
+          "requires": [
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            }
+          ]
+        },
+        {
+          "name": "Resume the open retrieval of packet stores",
+          "asn1Files": [
+            "PUS-15-15.asn1",
+            "PacketStore.asn1",
+            "PacketStoreEnumerations.asn1"
+          ],
+          "requires": [
+            "Suspend the open retrieval of packet stores",
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            }
+          ]
+        },
+        {
+          "name": "Suspend the open retrieval of packet stores",
+          "asn1Files": [
+            "PUS-15-16.asn1",
+            "PacketStore.asn1"
+          ],
+          "requires": [
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            }
+          ]
+        },
+        {
+          "name": "Start the by-time-range retrieval of packet stores",
+          "asn1Files": [
+            "PUS-15-9.asn1",
+            "PacketStore.asn1",
+            "PacketStoreEnumerations.asn1"
+          ],
+          "requires": [
+            "Abort the by-time-range retrieval of packet stores",
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            }
+          ]
+        },
+        {
+          "name": "Abort the by-time-range retrieval of packet stores",
+          "asn1Files": [
+            "PUS-15-17.asn1",
+            "PacketStore.asn1"
+          ],
+          "requires": [
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            }
+          ]
+        },
+        {
+          "name": "Report the status of each packet store",
+          "asn1Files": [
+            "PUS-15-18.asn1",
+            "PUS-15-19.asn1",
+            "PacketStore.asn1",
+            "PacketStoreEnumerations.asn1"
+          ],
+          "requires": [
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            }
+          ]
+        },
+        {
+          "name": "Delete the content of packet stores up to the specified time",
+          "asn1Files": [
+            "PUS-15-11.asn1",
+            "PacketStore.asn1"
+          ],
+          "requires": [
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            }
+          ]
+        },
+        {
+          "name": "Create packet stores",
+          "asn1Files": [
+            "PUS-15-20.asn1",
+            "PacketStoreConfiguration.asn1",
+            "PacketStore.asn1",
+            "PacketStoreEnumerations.asn1"
+          ],
+          "requires": [
+            "Delete packet stores",
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            }
+          ]
+        },
+        {
+          "name": "Delete packet stores",
+          "asn1Files": [
+            "PUS-15-21.asn1",
+            "PacketStore.asn1"
+          ],
+          "requires": [
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            }
+          ]
+        },
+        {
+          "name": "Report the configuration of each packet store",
+          "asn1Files": [
+            "PUS-15-22.asn1",
+            "PUS-15-23.asn1",
+            "PacketStoreConfiguration.asn1",
+            "PacketStore.asn1",
+            "PacketStoreEnumerations.asn1"
+          ],
+          "requires": [
+            "Create packet stores",
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            }
+          ]
+        },
+        {
+          "name": "Copy the packets contained in a packet store selected by time window",
+          "asn1Files": [
+            "PUS-15-24.asn1",
+            "PacketStore.asn1"
+          ],
+          "requires": [
+            "Create packet stores",
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Time Window"
+            }
+          ]
+        },
+        {
+          "name": "Resize packet stores",
+          "asn1Files": [
+            "PUS-15-25.asn1",
+            "PacketStore.asn1"
+          ],
+          "requires": [
+            "Change a packet store type to circular",
+            "Change a packet store type to bounded",
+            "Change the virtual channel used by a packet store",
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            }
+          ]
+        },
+        {
+          "name": "Change a packet store type to circular",
+          "asn1Files": [
+            "PUS-15-26.asn1",
+            "PacketStore.asn1"
+          ],
+          "requires": [
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            }
+          ]
+        },
+        {
+          "name": "Change a packet store type to bounded",
+          "asn1Files": [
+            "PUS-15-27.asn1",
+            "PacketStore.asn1"
+          ],
+          "requires": [
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            }
+          ]
+        },
+        {
+          "name": "Change the virtual channel used by a packet store",
+          "asn1Files": [
+            "PUS-15-28.asn1",
+            "PacketStore.asn1",
+            "PacketStoreEnumerations.asn1"
+          ],
+          "requires": [
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            }
+          ]
+        },
+        {
+          "name": "Summary-report the content of packet stores",
+          "asn1Files": [
+            "PUS-15-12.asn1",
+            "PUS-15-13.asn1",
+            "PacketStore.asn1"
+          ],
+          "requires": [
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Packet selection subservice",
+      "elements": [
+        {
+          "name": "Add report types to the application process storage-control configuration",
+          "asn1Files": [
+            "PUS-15-3.asn1",
+            "Storage-ControlReportType.asn1",
+            "PacketStore.asn1",
+            "Storage-ControlConfiguration.asn1"
+          ],
+          "requires": [
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Application Process"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Diagnostic Parameter Report Structure"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Message Type"
+            }
+          ]
+        },
+        {
+          "name": "Delete report types from the application process storage-control configuration",
+          "asn1Files": [
+            "PUS-15-4.asn1",
+            "Storage-ControlReportType.asn1",
+            "PacketStore.asn1",
+            "Storage-ControlConfiguration.asn1"
+          ],
+          "requires": [
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Application Process"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Diagnostic Parameter Report Structure"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Message Type"
+            }
+          ]
+        },
+        {
+          "name": "Report the content of the application process storage-control configuration",
+          "asn1Files": [
+            "PUS-15-5.asn1",
+            "PUS-15-6.asn1",
+            "Storage-ControlReportType.asn1",
+            "PacketStore.asn1",
+            "Storage-ControlConfiguration.asn1"
+          ],
+          "requires": [
+            "Add report types to the application process storage-control configuration",
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Application Process"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Diagnostic Parameter Report Structure"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Message Type"
+            }
+          ]
+        },
+        {
+          "name": "Add structure identifiers to the housekeeping parameter report storage-control configuration",
+          "asn1Files": [
+            "PUS-15-29.asn1",
+            "Storage-ControlHousekeepingParameterReport.asn1",
+            "PacketStore.asn1",
+            "Storage-ControlConfiguration.asn1"
+          ],
+          "requires": [
+            "Delete structure identifiers from the housekeeping parameter report storage-control configuration",
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Application Process"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Housekeeping Parameter Report Structure"
+            }
+          ]
+        },
+        {
+          "name": "Delete structure identifiers from the housekeeping parameter report storage-control configuration",
+          "asn1Files": [
+            "PUS-15-30.asn1",
+            "PacketStore.asn1",
+            "Storage-ControlConfiguration.asn1"
+          ],
+          "requires": [
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Application Process"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Housekeeping Parameter Report Structure"
+            }
+          ]
+        },
+        {
+          "name": "Report the content of the housekeeping parameter report storage-control configuration",
+          "asn1Files": [
+            "PUS-15-35.asn1",
+            "PUS-15-36.asn1",
+            "Storage-ControlHousekeepingParameterReport.asn1",
+            "PacketStore.asn1",
+            "Storage-ControlConfiguration.asn1"
+          ],
+          "requires": [
+            "Add structure identifiers to the housekeeping parameter report storage-control configuration",
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Application Process"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Housekeeping Parameter Report Structure"
+            }
+          ]
+        },
+        {
+          "name": "Add structure identifiers to the diagnostic parameter report storage-control configuration",
+          "asn1Files": [
+            "PUS-15-31.asn1",
+            "Storage-ControlDiagnosticParameterReport.asn1",
+            "PacketStore.asn1",
+            "Storage-ControlConfiguration.asn1"
+          ],
+          "requires": [
+            "Delete structure identifiers from the diagnostic parameter report storage-control configuration",
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Application Process"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Diagnostic Parameter Report Structure"
+            }
+          ]
+        },
+        {
+          "name": "Delete structure identifiers from the diagnostic parameter report storage-control configuration",
+          "asn1Files": [
+            "PUS-15-32.asn1",
+            "PacketStore.asn1",
+            "Storage-ControlConfiguration.asn1"
+          ],
+          "requires": [
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Application Process"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Diagnostic Parameter Report Structure"
+            }
+          ]
+        },
+        {
+          "name": "Report the content of the diagnostic parameter report storage-control configuration",
+          "asn1Files": [
+            "PUS-15-37.asn1",
+            "PUS-15-38.asn1",
+            "Storage-ControlDiagnosticParameterReport.asn1",
+            "PacketStore.asn1",
+            "Storage-ControlConfiguration.asn1"
+          ],
+          "requires": [
+            "Add structure identifiers to the diagnostic parameter report storage-control configuration",
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Application Process"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Diagnostic Parameter Report Structure"
+            }
+          ]
+        },
+        {
+          "name": "Add event definition identifiers to the event report blocking storage-control configuration",
+          "asn1Files": [
+            "PUS-15-34.asn1",
+            "Storage-ControlEventReportBlocking.asn1",
+            "Storage-ControlConfiguration.asn1",
+            "PacketStore.asn1"
+          ],
+          "requires": [
+            "Delete event definition identifiers from the event report blocking storage-control configuration",
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Application Process"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Event Definition"
+            }
+          ]
+        },
+        {
+          "name": "Delete event definition identifiers from the event report blocking storage-control configuration",
+          "asn1Files": [
+            "PUS-15-33.asn1",
+            "Storage-ControlEventReportBlocking.asn1",
+            "Storage-ControlConfiguration.asn1",
+            "PacketStore.asn1"
+          ],
+          "requires": [
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Application Process"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Event Definition"
+            }
+          ]
+        },
+        {
+          "name": "Report the content of the event report blocking storage-control configuration",
+          "asn1Files": [
+            "PUS-15-39.asn1",
+            "PUS-15-40.asn1",
+            "Storage-ControlEventReportBlocking.asn1",
+            "Storage-ControlConfiguration.asn1",
+            "PacketStore.asn1"
+          ],
+          "requires": [
+            "Delete event definition identifiers from the event report blocking storage-control configuration",
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Application Process"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Event Definition"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

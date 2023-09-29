@@ -90,9 +90,9 @@ flag <sFuncName>(const <sTypeDefName><sStar> <sVarName>, int* pErrCode);
 
 
 
-EmitTypeAssignment_composite(sVarName, sStar, sFuncName, sTypeDefName, sContent, arrsAlphaFuncs, arrsLocalVars, bUnreferenced) ::= <<
+EmitTypeAssignment_composite(sVarName, sPtrPrefix, sPtrSuffix, sFuncName, sTypeDefName, sContent, arrsAlphaFuncs, arrsLocalVars, bUnreferenced) ::= <<
 <arrsAlphaFuncs; separator="\n">
-flag <sFuncName>(const <sTypeDefName><sStar> <sVarName>, int* pErrCode)
+flag <sFuncName>(const <sTypeDefName><sPtrSuffix> <sVarName>, int* pErrCode)
 {
     flag ret = TRUE;
     <arrsLocalVars; separator="\n">
@@ -296,7 +296,7 @@ Sequence_optional_child_always_present_or_absent_expr(p, sAcc,  sChName, sPresOr
 
 /* CHOICE start*/
 
-Choice_OptionalChild(p, sAcc,  sChPresent, sInnerStatement) ::= <<
+Choice_OptionalChild(p, pLocal, sAcc, sChPresent, sInnerStatement) ::= <<
 if (<p><sAcc>kind == <sChPresent>) {
 	<sInnerStatement>
 }

@@ -17,9 +17,10 @@ open FsUtils
 open CommonTypes
 
 let c_keywords =  CommonTypes.c_keyworkds
-
+let scala_keywords =  CommonTypes.scala_keyworkds
 let ada_keywords =  CommonTypes.ada_keyworkds
 
+// TODO: Scala
 let all_keywords =
     let ada_set = ada_keywords |> Set.ofList
     let cmn_keys = c_keywords |> List.filter(fun ck -> ada_set.Contains ck)

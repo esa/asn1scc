@@ -52,7 +52,7 @@ let visitSeqChild (s:UserDefinedTypeScope) (ch:ParameterizedAsn1Ast.ChildInfo) :
     s@[SEQ_CHILD ch.Name.Value]
 
 let visitChoiceChild (s:UserDefinedTypeScope) (ch:ParameterizedAsn1Ast.ChildInfo) : UserDefinedTypeScope=
-    s@[CH_CHILD (ch.Name.Value, ToC2 ch.Name.Value)]
+    s@[CH_CHILD (ch.Name.Value, ToC2 ch.Name.Value, "")]
 
 let visitSeqOfChild (s:UserDefinedTypeScope) : UserDefinedTypeScope =
     s@[SQF]
@@ -250,6 +250,7 @@ and MapChildInfo (r:ParameterizedAsn1Ast.AstRoot)  typeScope (isSequence) (c:Par
         Asn1Ast.ChildInfo.Name = c.Name
         ada_name = ToC2 c.Name.Value
         c_name = ToC2 c.Name.Value
+        scala_name = ToC2 c.Name.Value
         present_when_name = ToC2 c.Name.Value
         Type = MapAsn1Type r  (if isSequence then (visitSeqChild typeScope c) else (visitChoiceChild typeScope c)) c.Type
         Optionality = match c.Optionality with
@@ -262,6 +263,7 @@ and MapNamedItem (r:ParameterizedAsn1Ast.AstRoot) moduleName typeScope (n:Parame
     {
         Asn1Ast.NamedItem.Name = n.Name
         c_name = ToC n.Name.Value
+        scala_name = ToC n.Name.Value
         ada_name = ToC n.Name.Value
         _value = match n._value with
                  | None -> None
@@ -387,6 +389,7 @@ let MapTypeAssignment (r:ParameterizedAsn1Ast.AstRoot) (m:ParameterizedAsn1Ast.A
         Asn1Ast.TypeAssignment.Name = tas.Name
         Type = MapAsn1Type r ([MD m.Name.Value; TA tas.Name.Value]) tas.Type
         c_name = ToC2 tas.Name.Value
+        scala_name = ToC2 tas.Name.Value
         ada_name = ToC2 tas.Name.Value
         Comments = tas.Comments
         acnInfo = tas.acnInfo
@@ -407,6 +410,7 @@ let MapValueAssignment (r:ParameterizedAsn1Ast.AstRoot) (m:ParameterizedAsn1Ast.
         //    | ParameterizedAsn1Ast.GlobalScope      ->  Asn1Ast.GlobalScope
         //    | ParameterizedAsn1Ast.TypeScope(m,t)   ->  Asn1Ast.TypeScope(m,t)
         c_name = vas.c_name
+        scala_name = vas.scala_name
         ada_name = vas.ada_name
     }
 

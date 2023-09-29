@@ -256,7 +256,7 @@ let createOctetStringFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:
         let nLevel = BigInteger (t.id.AcnAbsPath.Length - 2)
         let contentSize = getMaxSizeInBytesForXER_OctetString o.maxSize.uper
         let totalSize = getMaxSizeInBytesForXER xmlTag contentSize
-        let bodyStm = OctetString p.arg.p (lm.lg.getAcces p.arg) xmlTag.p nLevel o.maxSize.uper (o.minSize.uper=o.maxSize.uper) (checkExp isValidFunc p) errCode.errCodeName codec
+        let bodyStm = OctetString p.arg.p (lm.lg.getAccess p.arg) xmlTag.p nLevel o.maxSize.uper (o.minSize.uper=o.maxSize.uper) (checkExp isValidFunc p) errCode.errCodeName codec
         Some {XERFuncBodyResult.funcBody = bodyStm; errCodes= [errCode]; localVariables=[];encodingSizeInBytes=totalSize}
     let soSparkAnnotations = None
     createXerFunction_any r lm codec t typeDefinition  isValidFunc  funcBody  soSparkAnnotations us
@@ -268,7 +268,7 @@ let createBitStringFunction (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (codec:C
         let nLevel = BigInteger (t.id.AcnAbsPath.Length - 2)
         let contentSize = getMaxSizeInBytesForXER_BitString o.maxSize.uper
         let totalSize = getMaxSizeInBytesForXER xmlTag contentSize
-        let bodyStm = BitString p.arg.p (lm.lg.getAcces p.arg) xmlTag.p nLevel o.maxSize.uper (o.minSize.uper=o.maxSize.uper) (checkExp isValidFunc p) errCode.errCodeName codec
+        let bodyStm = BitString p.arg.p (lm.lg.getAccess p.arg) xmlTag.p nLevel o.maxSize.uper (o.minSize.uper=o.maxSize.uper) (checkExp isValidFunc p) errCode.errCodeName codec
         Some {XERFuncBodyResult.funcBody = bodyStm; errCodes= [errCode]; localVariables=[];encodingSizeInBytes=totalSize}
     let soSparkAnnotations = None
     createXerFunction_any r lm codec t typeDefinition  isValidFunc  funcBody  soSparkAnnotations us
@@ -302,7 +302,7 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:C
         let internalItem_str, chLocalVars, chErrCodes, chSize = match internalItem with Some x -> x.funcBody, x.localVariables, x.errCodes, x.encodingSizeInBytes | None -> "",[],[],0I
         let contentSize = o.maxSize.uper * chSize
         let totalSize = getMaxSizeInBytesForXER xmlTag contentSize
-        let bodyStm = SequenceOf p.arg.p (lm.lg.getAcces p.arg) xmlTag.p nLevel i o.maxSize.uper internalItem_str (o.minSize.uper=o.maxSize.uper) (checkExp isValidFunc p) errCode.errCodeName codec
+        let bodyStm = SequenceOf p.arg.p (lm.lg.getAccess p.arg) xmlTag.p nLevel i o.maxSize.uper internalItem_str (o.minSize.uper=o.maxSize.uper) (checkExp isValidFunc p) errCode.errCodeName codec
         Some {XERFuncBodyResult.funcBody = bodyStm; errCodes= errCode::chErrCodes; localVariables=lv::chLocalVars;encodingSizeInBytes=totalSize}
     let soSparkAnnotations = None
     createXerFunction_any r lm codec t typeDefinition  isValidFunc  funcBody  soSparkAnnotations us
@@ -327,22 +327,22 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Com
                 | XerFunction z -> z
                 | XerFunctionDummy  -> raise (BugErrorException "XerFunctionDummy")
 
-            let childContentResult = chFunc.funcBody ({p with arg = lm.lg.getSeqChild p.arg (lm.lg.getAsn1ChildBackendName child) child.Type.isIA5String}) (Some (XerLiteralConstant child.Name.Value))
+            let childContentResult = chFunc.funcBody ({p with arg = lm.lg.getSeqChild p.arg (lm.lg.getAsn1ChildBackendName child) child.Type.isIA5String false}) (Some (XerLiteralConstant child.Name.Value))
             match childContentResult with
             | None              -> None
             | Some childContent ->
                 let childBody, child_localVariables = 
                     match child.Optionality with
                     | None                          ->  sequence_mandatory_child (lm.lg.getAsn1ChildBackendName child) childContent.funcBody child.Name.Value codec, childContent.localVariables
-                    //| Some Asn1AcnAst.AlwaysAbsent  ->  match codec with CommonTypes.Encode -> None                        | CommonTypes.Decode -> Some (sequence_optional_child p.arg.p (lm.lg.getAcces p.arg) child.c_name childContent.funcBody codec) 
+                    //| Some Asn1AcnAst.AlwaysAbsent  ->  match codec with CommonTypes.Encode -> None                        | CommonTypes.Decode -> Some (sequence_optional_child p.arg.p (lm.lg.getAccess p.arg) child.c_name childContent.funcBody codec) 
                         | Some Asn1AcnAst.AlwaysAbsent     //-> "", []
-                        | Some Asn1AcnAst.AlwaysPresent    -> sequence_optional_child p.arg.p (lm.lg.getAcces p.arg) (lm.lg.getAsn1ChildBackendName child) childContent.funcBody child.Name.Value codec, childContent.localVariables
+                        | Some Asn1AcnAst.AlwaysPresent    -> sequence_optional_child p.arg.p (lm.lg.getAccess p.arg) (lm.lg.getAsn1ChildBackendName child) childContent.funcBody child.Name.Value codec, childContent.localVariables
                         | Some (Asn1AcnAst.Optional opt)   -> 
                             match opt.defaultValue with
-                            | None                   -> sequence_optional_child p.arg.p (lm.lg.getAcces p.arg) (lm.lg.getAsn1ChildBackendName child) childContent.funcBody child.Name.Value codec, childContent.localVariables
+                            | None                   -> sequence_optional_child p.arg.p (lm.lg.getAccess p.arg) (lm.lg.getAsn1ChildBackendName child) childContent.funcBody child.Name.Value codec, childContent.localVariables
                             | Some v                 -> 
-                                let defInit= child.Type.initFunction.initByAsn1Value ({p with arg = lm.lg.getSeqChild p.arg (lm.lg.getAsn1ChildBackendName child) child.Type.isIA5String}) (mapValue v).kind
-                                sequence_default_child p.arg.p (lm.lg.getAcces p.arg) (lm.lg.getAsn1ChildBackendName child) childContent.funcBody child.Name.Value defInit codec, childContent.localVariables
+                                let defInit= child.Type.initFunction.initByAsn1Value ({p with arg = lm.lg.getSeqChild p.arg (lm.lg.getAsn1ChildBackendName child) child.Type.isIA5String false}) (mapValue v).kind
+                                sequence_default_child p.arg.p (lm.lg.getAccess p.arg) (lm.lg.getAsn1ChildBackendName child) childContent.funcBody child.Name.Value defInit codec, childContent.localVariables
                 Some (childBody, child_localVariables, childContent.errCodes, childContent.encodingSizeInBytes)
         
 
@@ -385,19 +385,19 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Commo
                 let sChildName = lm.lg.getAsn1ChChildBackendName child
                 let sChildTypeDef = lm.lg.getLongTypedefName child.chType.typeDefintionOrReference
                 let sChoiceTypeName = typeDefinitionName
-                let childBody = choice_child p.arg.p (lm.lg.getAcces p.arg) (lm.lg.presentWhenName (Some typeDefinition) child) childContent.funcBody (childIndex = 0) child.Name.Value sChildName sChildTypeDef sChoiceTypeName codec
+                let childBody = choice_child p.arg.p (lm.lg.getAccess p.arg) (lm.lg.presentWhenName (Some typeDefinition) child) childContent.funcBody (childIndex = 0) child.Name.Value sChildName sChildTypeDef sChoiceTypeName codec
                 Some (childBody, childContent.localVariables, childContent.errCodes, childContent.encodingSizeInBytes)
         let childrenStatements0 = children |> List.mapi handleChild |> List.choose id
         let childrenStatements = childrenStatements0 |> List.map(fun (s,_,_,_)    -> s)
         let childrenLocalvars = childrenStatements0 |> List.collect(fun (_,s,_,_) -> s)
         let childrenErrCodes = childrenStatements0 |> List.collect(fun (_,_,s,_)  -> s)
         let contentSize = childrenStatements0 |> List.map(fun (_,_,_,s)    -> s) |> List.fold max 0I
-        let no_tag_body = choice_no_tag p.arg.p (lm.lg.getAcces p.arg) childrenStatements errCode.errCodeName codec
+        let no_tag_body = choice_no_tag p.arg.p (lm.lg.getAccess p.arg) childrenStatements errCode.errCodeName codec
         let chContent, totalSize =
             match xmlTag with
             | None          -> no_tag_body, contentSize
             | Some xmlTag   -> 
-                choice p.arg.p (lm.lg.getAcces p.arg) xmlTag.p nLevel no_tag_body errCode.errCodeName codec, getMaxSizeInBytesForXER xmlTag contentSize
+                choice p.arg.p (lm.lg.getAccess p.arg) xmlTag.p nLevel no_tag_body errCode.errCodeName codec, getMaxSizeInBytesForXER xmlTag contentSize
         
         Some {XERFuncBodyResult.funcBody = chContent; errCodes= errCode::childrenErrCodes; localVariables=childrenLocalvars;encodingSizeInBytes=totalSize}
     let soSparkAnnotations = None

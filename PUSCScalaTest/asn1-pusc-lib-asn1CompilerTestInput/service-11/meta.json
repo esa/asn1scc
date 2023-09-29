@@ -1,0 +1,398 @@
+{
+  "name": "ST[11] time-based scheduling",
+  "submodules": [
+    {
+      "name": "Time-based scheduling subservice",
+      "elements": [
+        {
+          "name": "Enable the time-based schedule execution function",
+          "asn1Files": [
+            "PUS-11-1.asn1"
+          ],
+          "requires":[
+            "Disable the time-based schedule execution function"
+          ]
+        },
+        {
+          "name": "Disable the time-based schedule execution function",
+          "asn1Files": [
+            "PUS-11-2.asn1"
+          ]
+        },
+        {
+          "name": "Reset the time-based schedule",
+          "asn1Files":[
+            "PUS-11-3.asn1"
+          ]
+        },
+        {
+          "name": "Insert activities into the time-based chedule",
+          "asn1Files":[
+            "PUS-11-4.asn1",
+            "Group.asn1",
+            "SubSchedule.asn1"
+          ],
+          "requires": [
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Dummy Type"
+            }
+          ]
+        },
+        {
+          "name": "Enable time-based sub-schedules",
+          "asn1Files":[
+            "PUS-11-20.asn1",
+            "SubSchedule.asn1"
+          ],
+          "requires": [
+            "Disable time-based sub-schedules",
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            }
+          ]
+        },
+        {
+          "name": "Disable time-based sub-schedules",
+          "asn1Files":[
+            "PUS-11-21.asn1",
+            "SubSchedule.asn1"
+          ],
+          "requires": [
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            }
+          ]
+        },
+        {
+          "name": "Report the status of each time-based sub-schedule",
+          "asn1Files":[
+            "PUS-11-18.asn1",
+            "PUS-11-19.asn1",
+            "SubSchedule.asn1"
+          ],
+          "requires": [
+            "Enable time-based sub-schedules",
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            }
+          ]
+        },
+        {
+          "name": "Create time-based scheduling groups",
+          "asn1Files":[
+            "PUS-11-22.asn1",
+            "Group.asn1"
+          ],
+          "requires": [
+            "Delete time-based scheduling groups",
+            "Enable time-based scheduling groups",
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            }
+          ]
+        },
+        {
+          "name": "Delete time-based scheduling groups",
+          "asn1Files":[
+            "PUS-11-23.asn1",
+            "Group.asn1"
+          ],
+          "requires": [
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            }
+          ]
+        },
+        {
+          "name": "Enable time-based scheduling groups",
+          "asn1Files":[
+            "PUS-11-24.asn1",
+            "Group.asn1"
+          ],
+          "requires": [
+            "Disable time-based scheduling groups",
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            }
+          ]
+        },
+        {
+          "name": "Disable time-based scheduling groups",
+          "asn1Files":[
+            "PUS-11-25.asn1",
+            "Group.asn1"
+          ],
+          "requires": [
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            }
+          ]
+        },
+        {
+          "name": "Report the status of each time-based scheduling group",
+          "asn1Files":[
+            "PUS-11-26.asn1",
+            "PUS-11-27.asn1",
+            "Group.asn1"
+          ],
+          "requires": [
+            "Create time-based scheduling groups",
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            }
+          ]
+        },
+        {
+          "name": "Time-based schedule summary report",
+          "asn1Files":[
+            "PUS-11-13.asn1",
+            "SubSchedule.asn1",
+            "Group.asn1"
+          ],
+          "requires": [
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Request"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            }
+          ]
+        },
+        {
+          "name": "Time-based schedule detailed report",
+          "asn1Files":[
+            "PUS-11-10.asn1",
+            "Group.asn1",
+            "SubSchedule.asn1"
+          ],
+          "requires": [
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Request"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Dummy Type"
+            }
+          ]
+        },
+        {
+          "name": "Time-shift all scheduled activities",
+          "asn1Files":[
+            "PUS-11-15.asn1"
+          ],
+          "requires": [
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            }
+          ]
+        },
+        {
+          "name": "Summary-report all time-based scheduled activities",
+          "asn1Files": [
+            "PUS-11-17.asn1"
+          ],
+          "requires": [
+            "Time-based schedule summary report"
+          ]
+        },
+        {
+          "name": "Detail-report all time-based scheduled activities",
+          "asn1Files": [
+            "PUS-11-16.asn1"
+          ],
+          "requires": [
+            "Time-based schedule detailed report"
+          ]
+        },
+        {
+          "name": "Delete time-based scheduled activities identified by request identifier",
+          "asn1Files": [
+            "PUS-11-5.asn1"
+          ],
+          "requires": [
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Request"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            }
+          ]
+        },
+        {
+          "name": "Time-shift scheduled activities identified by request identifier",
+          "asn1Files": [
+            "PUS-11-7.asn1"
+          ],
+          "requires": [
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Request"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            }
+          ]
+        },
+        {
+          "name": "Summary-report time-based scheduled activities identified by request identifier",
+          "asn1Files": [
+            "PUS-11-12.asn1"
+          ],
+          "requires": [
+            "Time-based schedule summary report",
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Request"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            }
+          ]
+        },
+        {
+          "name": "Detail-report time-based scheduled activities identified by request identifier",
+          "asn1Files": [
+            "PUS-11-9.asn1"
+          ],
+          "requires": [
+            "Time-based schedule detailed report",
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Request"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            }
+          ]
+        },
+        {
+          "name": "Delete the time-based scheduled activities identifier by a filter",
+          "asn1Files": [
+            "PUS-11-6.asn1",
+            "SubSchedule.asn1",
+            "Group.asn1"
+          ],
+          "requires": [
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Time Window"
+            }
+          ]
+        },
+        {
+          "name": "Time-shift the scheduled activities identified by a filter",
+          "asn1Files": [
+            "PUS-11-8.asn1",
+            "SubSchedule.asn1",
+            "Group.asn1"
+          ],
+          "requires": [
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Time Window"
+            }
+          ]
+        },
+        {
+          "name": "Summary-report the time-based scheduled activities identified by a filter",
+          "asn1Files": [
+            "PUS-11-14.asn1",
+            "SubSchedule.asn1",
+            "Group.asn1"
+          ],
+          "requires": [
+            "Time-based schedule summary report",
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Time Window"
+            }
+          ]
+        },
+        {
+          "name": "Detail-report the time-based scheduled activities identified by a filter",
+          "asn1Files": [
+            "PUS-11-11.asn1",
+            "SubSchedule.asn1",
+            "Group.asn1"
+          ],
+          "requires": [
+            "Time-based schedule detailed report",
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Time Window"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

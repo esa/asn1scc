@@ -8,11 +8,11 @@ initTypeAssignment_def(sVarName, sStar, sFuncName, sTypeDefName) ::= <<
 void <sFuncName>(<sTypeDefName><sStar> <sVarName>);
 >>
 
-initTypeAssignment(sVarName, sStar, sFuncName, sTypeDefName, sContent, arrsLocalVariables) ::= <<
-void <sFuncName>(<sTypeDefName><sStar> <sVarName>)
+initTypeAssignment(sVarName, sPtrPrefix, sPtrSuffix, sFuncName, sTypeDefName, sContent, arrsLocalVariables, sDefaultInitValue) ::= <<
+void <sFuncName>(<sTypeDefName><sPtrSuffix> <sVarName>)
 {
 	(void)<sVarName>;
-
+    
     <arrsLocalVariables; separator="\n">
 
 	<sContent>
@@ -81,7 +81,7 @@ assignString(p, sValue) ::= "memcpy(<p>, <sValue>, sizeof(<sValue>));"
 
 
 initIA5String(sPtr, sValue) ::= "strcpy(<sPtr>,<sValue>);"
-initEnumerated(sVal, sValue) ::= "<sVal> = <sValue>;"
+initEnumerated(sVal, sValue, sEnum) ::= "<sVal> = <sValue>;"
 initNull(sVal)    ::= "<sVal> = 0;"
 
 initTestCaseIA5String(p, sAcc, nSize, nMaxSizePlusOne, i, td/*:FE_StringTypeDefinition*/, bAlpha, arrnAlphabetAsciiCodes, nAlphabetLength, bZero) ::= <<
@@ -121,7 +121,7 @@ initFixVarSizeBitOrOctString(p, sAcc, nSize, arrsBytes) ::= <<
 <arrsBytes; separator="\n">
 >>
 
-initTestCaseOctetString(p, sAcc, nSize, i, bIsFixedSize, bZero, nMinSize) ::= <<
+initTestCaseOctetString(p, sAcc, sArrayHolderName, nSize, i, bIsFixedSize, bZero, nMinSize) ::= <<
 <if(bZero)>
 memset(<p><sAcc>arr, 0x0, <nSize>);
 
@@ -137,7 +137,7 @@ while (<i>\< <nSize>) {
 
 >>
 
-initTestCaseBitString(p, sAcc, nSize, nSizeCeiled,  i, bIsFixedSize, bZero, nMinSize) ::= <<
+initTestCaseBitString(p, sAcc, sArrayHolderName, nSize, nSizeCeiled,  i, bIsFixedSize, bZero, nMinSize) ::= <<
 <if(bZero)>
 memset(<p><sAcc>arr, 0x0, <nSizeCeiled>/8);
 
@@ -211,13 +211,13 @@ initTestCase_sequence_child_opt(p, sAcc, sChName) ::= <<
 >>
 
 
-initChoice(p1, sAccess, sChildContent, sChildKind, sChildTempVarName, sChildTypeName, sChoiceTypeName, sChildName, bComponentTempInit) ::= <<
-<p1><sAccess>kind = <sChildKind>;
+initChoice(p, sAcc, sChildContent, sChildID, sChildName, sChildTypeName, sChoiceTypeName, sChildTempVarName, sChildTempDefaultInit, bComponentTempInit) ::= <<
+<p><sAcc>kind = <sChildID>;
 <sChildContent>        
 >>
 
 
-initTestCase_choice_child(p, sAcc, sChildID, sChildContent, sChildName, sChildTypeDef, sChoiceTypeName) ::= <<
+initTestCase_choice_child(p, sAcc, sChildContent, sChildID, sChildName, sChildTypeName, sChoiceTypeName, sChildTempVarName, sChildTempDefaultInit) ::= <<
 /*set <sChildName>*/
 <p><sAcc>kind = <sChildID>;
 <sChildContent>

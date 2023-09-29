@@ -19,8 +19,8 @@ let GetEncodingString (lm:LanguageMacros) = function
 
 let includedPackages r (lm:LanguageMacros) =  
     match lm.lg.hasModules with
-    | false     -> r.programUnits |> Seq.map(fun x -> x.tetscase_specFileName)
-    | true      -> r.programUnits |> Seq.collect(fun x -> [x.name; x.tetscase_name])
+    | false     -> r.programUnits |> Seq.map(fun x -> x.testcase_specFileName)
+    | true      -> r.programUnits |> Seq.collect(fun x -> [x.name; x.testcase_name])
 
 
 let rec gAmber (t:Asn1Type) = 
@@ -60,9 +60,34 @@ let GetDatFile (r:DAst.AstRoot) lm (v:ValueAssignment) modName sTasName encAmper
 let PrintValueAssignmentAsTestCase (r:DAst.AstRoot) lm (e:Asn1Encoding) (v:ValueAssignment) (m:Asn1Module) (typeModName:string) (sTasName : string)  (idx :int) dummyInitStatementsNeededForStatementCoverage  =
     let modName = typeModName//ToC m.Name.Value
     let sFuncName = sprintf "test_case_%A_%06d" e idx
-    let encAmper, initAmper = gAmber v.Type
+    let encAmper, initAmper = gAmber v.Type    
+    let initAmper =
+        match ST.lang with
+        | Scala ->
+            match v.Type.initFunction.initProcedure with
+            | Some initProc -> initProc.funcName
+            | None -> ""
+        | _ -> initAmper
     let curProgramUnitName = ""  //Main program has no module
     let initStatement = DAstVariables.printValue r lm curProgramUnitName v.Type None v.Value.kind
+    let initStatement =
+        match ST.lang with
+        | Scala ->
+            match resolveReferenceType v.Type.Kind with
+             | Integer v -> "tc_data = " + initStatement         
+             | Real v -> initStatement            
+             | IA5String v -> initStatement       
+             | OctetString v -> initStatement     
+             | NullType v -> initStatement        
+             | BitString v -> initStatement       
+             | Boolean v -> initStatement         
+             | Enumerated v -> initStatement      
+             | ObjectIdentifier v -> initStatement
+             | SequenceOf v -> initStatement      
+             | Sequence v -> initStatement        
+             | Choice v -> initStatement          
+             | TimeType v -> initStatement        
+        | _ -> initStatement
     let sTestCaseIndex = idx.ToString()
     let bStatic = match v.Type.ActualType.Kind with Integer _ | Enumerated(_) -> false | _ -> true
     let GetDatFile = GetDatFile r lm v modName sTasName encAmper
@@ -77,6 +102,13 @@ let PrintAutomaticTestCase (r:DAst.AstRoot) (lm:LanguageMacros) (e:Asn1Encoding)
     let arrsVars = localVars |> List.map(fun lv -> lm.lg.getLocalVariableDeclaration lv) |> Seq.distinct |> Seq.toList
 
     let encAmper, initAmper = gAmber t
+    let initAmper =
+        match ST.lang with
+        | Scala ->
+            match t.initFunction.initProcedure with
+            | Some initProc -> initProc.funcName
+            | None -> ""
+        | _ -> initAmper
     let bStatic = match t.ActualType.Kind with Integer _ | Enumerated(_) -> false | _ -> true
     let GetDatFile = ""
     let sTestCaseIndex = idx.ToString()
@@ -208,7 +240,7 @@ let printAllTestCasesAndTestCaseRunner (r:DAst.AstRoot) (lm:LanguageMacros) outD
         [1 .. nFiles] |> 
         List.map (fun fileIndex ->
             let testCaseFileName = sprintf "test_case_%03d" fileIndex
-            testCaseFileName + "." + lm.lg.BodyExtention, testCaseFileName + "." + lm.lg.SpecExtention) |>
+            testCaseFileName + "." + lm.lg.BodyExtention, testCaseFileName + lm.lg.SpecNameSuffix + "." + lm.lg.SpecExtention) |>
         List.unzip
     
     [1 .. nFiles] |> 
@@ -228,7 +260,7 @@ let printAllTestCasesAndTestCaseRunner (r:DAst.AstRoot) (lm:LanguageMacros) outD
         File.WriteAllText(outCFileName, contentC.Replace("\r",""))
 
         let contentH = printTestCaseFileDef testCaseFileName (includedPackages r lm) arrsTestFunctionDefs
-        let outHFileName = Path.Combine(outDir, testCaseFileName + "." + lm.lg.SpecExtention)
+        let outHFileName = Path.Combine(outDir, testCaseFileName + lm.lg.SpecNameSuffix + "." + lm.lg.SpecExtention)
         File.WriteAllText(outHFileName, contentH.Replace("\r",""))  )
 
     let _, _, func_invokations = 
@@ -251,7 +283,7 @@ let printAllTestCasesAndTestCaseRunner (r:DAst.AstRoot) (lm:LanguageMacros) outD
     File.WriteAllText(outCFileName, contentC.Replace("\r",""))
 
     if hasTestSuiteRunner then
-        let outHFileName = Path.Combine(outDir, TestSuiteFileName + "." + lm.lg.SpecExtention)
+        let outHFileName = Path.Combine(outDir, TestSuiteFileName + lm.lg.SpecNameSuffix + "." + lm.lg.SpecExtention)
         File.WriteAllText(outHFileName, contentH.Replace("\r",""))
 
 

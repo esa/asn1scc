@@ -13,6 +13,7 @@ open Language
 type CliArguments =
     | [<Unique; AltCommandLine("-c")>]C_lang 
     | [<Unique; AltCommandLine("-Ada")>]Ada_Lang
+    | [<Unique; AltCommandLine("-Scala")>]Scala_Lang
     | [<Unique; AltCommandLine("-uPER")>]UPER_enc
     | [<Unique; AltCommandLine("-XER")>]XER_enc
     | [<Unique; AltCommandLine("-ACN")>]ACN_enc
@@ -53,6 +54,7 @@ with
             | Debug            -> "Option used internally for debugging"
             | C_lang           -> "generate code for the C/C++ programming language"
             | Ada_Lang         -> "generate code for the Ada/SPARK programming language"
+            | Scala_Lang       -> "generate code for the Scala programming language"
             | UPER_enc         -> "generates encoding and decoding functions for unaligned Packed Encoding Rules (uPER)"
             | XER_enc          -> "generates encoding and decoding functions for XML Encoding Rules (XER)"
             | ACN_enc          -> "generates encoding and decoding functions using the ASSERT ASN.1 encoding Control Notation"
@@ -146,8 +148,9 @@ let checkArguement arg =
     | Debug            -> ()
     | C_lang           -> ()
     | Ada_Lang         -> ()
+    | Scala_Lang       -> ()
     | UPER_enc         -> ()
-    | XER_enc         -> ()
+    | XER_enc          -> ()
     | ACN_enc          -> ()
     | Auto_test_cases  -> ()
     | Equal_Func       -> ()
@@ -157,7 +160,10 @@ let checkArguement arg =
     | Out outDir       -> 
         match System.IO.Directory.Exists outDir with
         | true  -> ()
-        | false -> raise (UserException (sprintf "directory '%s' does not exist." outDir))
+        | false -> 
+            match Directory.Exists outDir with
+            | true  -> ()
+            | false -> Directory.CreateDirectory outDir |> ignore  
     | Files files      -> 
         files |> Seq.iter(fun f -> match File.Exists f with true -> () | false -> raise (UserException (sprintf "File '%s' does not exist." f)))
         files |>        
@@ -247,9 +253,10 @@ let constructCommandLineSettings args (parserResults: ParseResults<CliArguments>
         renamePolicy = 
             match args |> List.choose (fun a -> match a with Rename_Policy rp -> Some rp | _ -> None) with
             | []    ->
-                match args |> List.filter(fun a -> a = C_lang || a = Ada_Lang) with
-                | C_lang::[] ->  CommonTypes.EnumRenamePolicy.SelectiveEnumerants
-                | Ada_Lang::[]  -> CommonTypes.EnumRenamePolicy.NoRenamePolicy
+                match args |> List.filter(fun a -> a = C_lang || a = Ada_Lang || a = Scala_Lang) with
+                | [ C_lang ]    -> CommonTypes.EnumRenamePolicy.SelectiveEnumerants
+                | [ Scala_Lang ]-> CommonTypes.EnumRenamePolicy.SelectiveEnumerants // TODO: Scala
+                | [ Ada_Lang ]  -> CommonTypes.EnumRenamePolicy.NoRenamePolicy
                 | []            -> CommonTypes.EnumRenamePolicy.SelectiveEnumerants
                 | _             -> raise (UserException ("Please select only one of target languages, not both."))
             | rp::_    ->
@@ -267,7 +274,7 @@ let constructCommandLineSettings args (parserResults: ParseResults<CliArguments>
                 | _ when vl = "AUTO"          -> Some FieldPrefixAuto
                 | _                 -> Some (FieldPrefixUserValue vl)
         targetLanguages =
-            args |> List.choose(fun a -> match a with C_lang -> Some (CommonTypes.ProgrammingLanguage.C) | Ada_Lang -> Some (CommonTypes.ProgrammingLanguage.Ada) | _ -> None)
+            args |> List.choose(fun a -> match a with C_lang -> Some (CommonTypes.ProgrammingLanguage.C) | Ada_Lang -> Some (CommonTypes.ProgrammingLanguage.Ada) | Scala_Lang -> Some (CommonTypes.ProgrammingLanguage.Scala) | _ -> None)
     
         objectIdentifierMaxLength = 20I
 
@@ -289,6 +296,20 @@ let getLanguageMacro (l:ProgrammingLanguage) =
             atc = new ITestCases_c.ITestCases_c()
             xer = new IXer_c.IXer_c()
             src = new ISrcBody_c.ISrcBody_c()
+        }
+    | Scala ->
+        {
+            LanguageMacros.equal = new IEqual_scala.IEqual_scala() 
+            init = new IInit_scala.IInit_scala()
+            typeDef = new ITypeDefinition_scala.ITypeDefinition_scala() 
+            lg = new LangGeneric_scala.LangGeneric_scala(); 
+            isvalid= new IIsValid_scala.IIsValid_scala() 
+            vars = new IVariables_scala.IVariables_scala()
+            uper = new IUper_scala.IUper_scala()
+            acn = new IAcn_scala.IAcn_scala()
+            atc = new ITestCases_scala.ITestCases_scala()
+            xer = new IXer_scala.IXer_scala()
+            src = new ISrcBody_scala.ISrcBody_scala()
         }
     | Ada ->
         {
@@ -327,7 +348,7 @@ let main0 argv =
                 PrintAcn.printInASingleFile acn outDir "SingleAsn1FileDbg.acn" tastToPrint
             | false -> ()
 
-
+        // TODO frontend typo
         let frontEntAst, acnDeps = TL "FrontEntMain.constructAst" (fun () -> FrontEntMain.constructAst args debugFunc) 
 
         
@@ -353,6 +374,9 @@ let main0 argv =
                 | C_lang                -> 
                     let lm = getLanguageMacro C
                     Some (TL "DAstConstruction.DoWork" (fun () -> DAstConstruction.DoWork frontEntAst icdStgFileName acnDeps CommonTypes.ProgrammingLanguage.C lm args.encodings))
+                | Scala_Lang              -> 
+                    let lm = getLanguageMacro Scala
+                    Some (TL "DAstConstruction.DoWork" (fun () -> DAstConstruction.DoWork frontEntAst icdStgFileName acnDeps CommonTypes.ProgrammingLanguage.Scala lm args.encodings))
                 | Ada_Lang              -> 
                     let lm = getLanguageMacro Ada
                     Some (TL "DAstConstruction.DoWork" (fun () -> DAstConstruction.DoWork frontEntAst icdStgFileName acnDeps CommonTypes.ProgrammingLanguage.Ada lm args.encodings))

@@ -187,6 +187,7 @@
             </xsd:sequence>
             <xsd:attribute name="Name" use="required"><xsd:simpleType><xsd:restriction base="xsd:string"></xsd:restriction></xsd:simpleType></xsd:attribute>
             <xsd:attribute name="CName" use="required"><xsd:simpleType><xsd:restriction base="xsd:string"></xsd:restriction></xsd:simpleType></xsd:attribute>
+            <xsd:attribute name="ScalaName" use="required"><xsd:simpleType><xsd:restriction base="xsd:string"></xsd:restriction></xsd:simpleType></xsd:attribute>
             <xsd:attribute name="AdaName" use="required"><xsd:simpleType><xsd:restriction base="xsd:string"></xsd:restriction></xsd:simpleType></xsd:attribute>
             <xsd:attribute name="Line" use="required"><xsd:simpleType><xsd:restriction base="xsd:integer"></xsd:restriction></xsd:simpleType></xsd:attribute>
             <xsd:attribute name="CharPositionInLine" use="required"><xsd:simpleType><xsd:restriction base="xsd:integer"></xsd:restriction></xsd:simpleType></xsd:attribute>
@@ -209,6 +210,7 @@
             </xsd:sequence>
             <xsd:attribute name="Name" use="required"><xsd:simpleType><xsd:restriction base="xsd:string"></xsd:restriction></xsd:simpleType></xsd:attribute>
             <xsd:attribute name="CName" use="required"><xsd:simpleType><xsd:restriction base="xsd:string"></xsd:restriction></xsd:simpleType></xsd:attribute>
+            <xsd:attribute name="ScalaName" use="required"><xsd:simpleType><xsd:restriction base="xsd:string"></xsd:restriction></xsd:simpleType></xsd:attribute>
             <xsd:attribute name="AdaName" use="required"><xsd:simpleType><xsd:restriction base="xsd:string"></xsd:restriction></xsd:simpleType></xsd:attribute>
             <xsd:attribute name="Line" use="required"><xsd:simpleType><xsd:restriction base="xsd:integer"></xsd:restriction></xsd:simpleType></xsd:attribute>
             <xsd:attribute name="CharPositionInLine" use="required"><xsd:simpleType><xsd:restriction base="xsd:integer"></xsd:restriction></xsd:simpleType></xsd:attribute>
@@ -551,6 +553,7 @@
             <xsd:sequence/>
             <xsd:attribute name="Name" use="required"><xsd:simpleType><xsd:restriction base="xsd:string"></xsd:restriction></xsd:simpleType></xsd:attribute>
             <xsd:attribute name="CName" use="required"><xsd:simpleType><xsd:restriction base="xsd:string"></xsd:restriction></xsd:simpleType></xsd:attribute>
+            <xsd:attribute name="ScalaName" use="required"><xsd:simpleType><xsd:restriction base="xsd:string"></xsd:restriction></xsd:simpleType></xsd:attribute>
             <xsd:attribute name="AdaName" use="required"><xsd:simpleType><xsd:restriction base="xsd:string"></xsd:restriction></xsd:simpleType></xsd:attribute>
             <xsd:attribute name="Value" use="required"><xsd:simpleType><xsd:restriction base="xsd:integer"></xsd:restriction></xsd:simpleType></xsd:attribute>
             <xsd:attribute name="Line" use="required"><xsd:simpleType><xsd:restriction base="xsd:integer"></xsd:restriction></xsd:simpleType></xsd:attribute>
@@ -660,6 +663,7 @@
             <xsd:attribute name="Line" use="required"><xsd:simpleType><xsd:restriction base="xsd:integer"></xsd:restriction></xsd:simpleType></xsd:attribute>
             <xsd:attribute name="CharPositionInLine" use="required"><xsd:simpleType><xsd:restriction base="xsd:integer"></xsd:restriction></xsd:simpleType></xsd:attribute>
             <xsd:attribute name="CName" use="required"><xsd:simpleType><xsd:restriction base="xsd:string"></xsd:restriction></xsd:simpleType></xsd:attribute>
+            <xsd:attribute name="ScalaName" use="required"><xsd:simpleType><xsd:restriction base="xsd:string"></xsd:restriction></xsd:simpleType></xsd:attribute>
             <xsd:attribute name="AdaName" use="required"><xsd:simpleType><xsd:restriction base="xsd:string"></xsd:restriction></xsd:simpleType></xsd:attribute>
             
             <xsd:attribute name="ALWAYS-ABSENT" use="optional"><xsd:simpleType><xsd:restriction base="xsd:boolean"></xsd:restriction></xsd:simpleType></xsd:attribute>
@@ -778,6 +782,7 @@
                         <xsd:attribute name="Line" use="required"><xsd:simpleType><xsd:restriction base="xsd:integer"></xsd:restriction></xsd:simpleType></xsd:attribute>
                         <xsd:attribute name="CharPositionInLine" use="required"><xsd:simpleType><xsd:restriction base="xsd:integer"></xsd:restriction></xsd:simpleType></xsd:attribute>
                         <xsd:attribute name="CName" use="required"><xsd:simpleType><xsd:restriction base="xsd:string"></xsd:restriction></xsd:simpleType></xsd:attribute>
+                        <xsd:attribute name="ScalaName" use="required"><xsd:simpleType><xsd:restriction base="xsd:string"></xsd:restriction></xsd:simpleType></xsd:attribute>
                         <xsd:attribute name="AdaName" use="required"><xsd:simpleType><xsd:restriction base="xsd:string"></xsd:restriction></xsd:simpleType></xsd:attribute>
                         <xsd:attribute name="PresentWhenName" use="optional"><xsd:simpleType><xsd:restriction base="xsd:string"></xsd:restriction></xsd:simpleType></xsd:attribute>
                         

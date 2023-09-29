@@ -325,13 +325,13 @@ Enumerated_decode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, nMin, nMax, n
 
 /* CHOICE START*/
 
-choice_child_encode(p, sAcc, sChildID, nChildIndex, nIndexSizeInBits, nLastItemIndex, sChildContent, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr) ::= <<
+choice_child_encode(p, sAcc, sChildID, nChildIndex, nIndexSizeInBits, nLastItemIndex, sChildContent, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr, bIsSequence, bIsEnum) ::= <<
 case <sChildID>:
 	BitStream_EncodeConstraintWholeNumber(pBitStrm, <nChildIndex>, 0, <nLastItemIndex>);
 	<sChildContent>
 	break;
 >>
-choice_child_decode(p, sAcc, sChildID, nChildIndex, nIndexSizeInBits, nLastItemIndex, sChildContent, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr) ::= <<
+choice_child_decode(p, sAcc, sChildID, nChildIndex, nIndexSizeInBits, nLastItemIndex, sChildContent, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr, bIsSequence, bIsEnum) ::= <<
 case <nChildIndex>:
 	<p><sAcc>kind = <sChildID>;
 	<sChildContent>

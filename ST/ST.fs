@@ -117,7 +117,17 @@ type BigIntegerFormatRenderer() =
                         obj.ToString() + "ULL"
                     else
                         obj.ToString() + "LL"
-            | _                         -> obj.ToString()
+            | CommonTypes.ProgrammingLanguage.Scala ->
+                if obj = (BigInteger System.Int64.MinValue) then
+                    "Long.MinValue"
+                else
+                    if (obj > BigInteger Int64.MaxValue) then
+                        Console.WriteLine("Number exceeded bounds of JVM native types, clamped to Scalas Long.MaxValue")
+                        //Int64.MaxValue.ToString() + "L"                       
+                        sprintf "BigInt(\"%s\").toLong" (obj.ToString())
+                    else
+                        obj.ToString() + "L"
+            | _ -> obj.ToString()
     static member TS2(o:Object, format) =
         let frmStr = "{0:" + format + "}";
         String.Format(frmStr, o);
@@ -149,7 +159,7 @@ let get_group  fileName =
         cache.[fileName]
     else
         let applicationFolder = Path.GetDirectoryName(System.Reflection.Assembly.GetAssembly(typedefof<dummy>).Location);
-        let devFolders = [@"C:\prj\GitHub\asn1scc\StgC"; @"C:\prj\GitHub\asn1scc\StgAda"]
+        let devFolders = [@"C:\prj\GitHub\asn1scc\StgC"; @"C:\prj\GitHub\asn1scc\StgAda"; @"C:\prj\GitHub\asn1scc\StgScala"]
         let custFolder =
             match Path.GetDirectoryName fileName with
             | ""    -> []

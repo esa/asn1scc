@@ -14,6 +14,10 @@ let writeTextFile fileName (content:String) =
 
 let getResourceAsString (rsName:string) =
     FsUtils.getResourceAsString0 "asn1scc" (System.Reflection.Assembly.GetExecutingAssembly ()) rsName
+    
+    
+let getResourceAsByteArray (rsName:string) =
+    FsUtils.getResourceAsByteArray0 "asn1scc" (System.Reflection.Assembly.GetExecutingAssembly ()) rsName
 
 
 let writeResource (di:DirInfo) (rsName:string) (fn) : unit=
@@ -85,6 +89,44 @@ let exportRTL (di:DirInfo) (l:ProgrammingLanguage) (args:CommandLineSettings)=
                 writeResource di "asn1crt_encoding_ber.h" None
                 //writeTextFile (Path.Combine(asn1rtlDirName, "asn1crt_encoding_ber.c")) (rm.GetString("asn1crt_encoding_ber_c",null))
                 //writeTextFile (Path.Combine(asn1rtlDirName, "asn1crt_encoding_ber.h")) (rm.GetString("asn1crt_encoding_ber_h",null))
+    
+    // TODO: Scala
+    | ProgrammingLanguage.Scala ->
+        File.WriteAllBytes(
+            Path.Combine(rootDir, "lib", "stainless-library_2.13-0.9.7.jar"),
+            getResourceAsByteArray "stainless-library_2.13-0.9.7.jar"
+        )
+        writeTextFile (Path.Combine(rootDir, "build.sbt")) (getResourceAsString "build.sbt")
+        
+        writeResource di "asn1jvm.scala" None
+                
+        //let intSize = sprintf "#define WORD_SIZE	%d" (int args.integerSizeInBytes)
+        //let fpSize = sprintf "#define FP_WORD_SIZE	%d" (int args.floatingPointSizeInBytes)
+        //writeResource di "asn1jvm.scala" (Some (fun (s:string) -> s.Replace("#define WORD_SIZE	8", intSize).Replace("#define FP_WORD_SIZE	8", fpSize)) )
+                
+        match args.encodings with
+        | []    -> ()
+        | _     ->
+
+            writeResource di "asn1jvm_encoding.scala" None
+
+            if hasUper || hasAcn then
+                writeResource di "asn1jvm_encoding_uper.scala" None
+
+            if hasAcn then
+                writeResource di "asn1jvm_encoding_acn.scala" None
+
+//            if hasXer  then
+//                writeResource di "asn1crt_encoding_xer.c" None
+//                writeResource di "asn1crt_encoding_xer.h" None
+//                //writeTextFile (Path.Combine(asn1rtlDirName, "asn1crt_encoding_xer.c")) (rm.GetString("asn1crt_encoding_xer_c",null))
+//                //writeTextFile (Path.Combine(asn1rtlDirName, "asn1crt_encoding_xer.h")) (rm.GetString("asn1crt_encoding_xer_h",null))
+//
+//            if hasBer  then
+//                writeResource di "asn1crt_encoding_ber.c" None
+//                writeResource di "asn1crt_encoding_ber.h" None
+//                //writeTextFile (Path.Combine(asn1rtlDirName, "asn1crt_encoding_ber.c")) (rm.GetString("asn1crt_encoding_ber_c",null))
+//                //writeTextFile (Path.Combine(asn1rtlDirName, "asn1crt_encoding_ber.h")) (rm.GetString("asn1crt_encoding_ber_h",null))
     | ProgrammingLanguage.Ada ->
         //writeTextFile (Path.Combine(asn1rtlDirName, "adaasn1rtl.adb")) (rm.GetString("adaasn1rtl_adb",null))
         writeResource di "adaasn1rtl.adb" None

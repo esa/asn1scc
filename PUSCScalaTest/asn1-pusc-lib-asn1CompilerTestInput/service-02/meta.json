@@ -1,0 +1,141 @@
+{
+  "name": "ST[02] device access",
+  "submodules": [
+    {
+      "name": "Device access subservice",
+      "elements": [
+        {
+          "name": "Distribute on/off device commands",
+          "asn1Files": ["PUS-2-1.asn1"],
+          "requires": [
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            }
+          ]
+        },
+        {
+          "name": "Distribute register load commands",
+          "asn1Files": [
+            "PUS-2-2.asn1",
+            "Registers.asn1"
+          ],
+          "requires": [
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            }
+          ]
+        },
+        {
+          "name": "Distribute register dump commands",
+          "asn1Files": [
+            "PUS-2-5.asn1",
+            "PUS-2-6.asn1",
+            "Registers.asn1"
+          ],
+          "requires": [
+            "Distribute register load commands",
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            }
+          ]
+        },
+        {
+          "name": "Distribute CPDU commands",
+          "asn1Files": ["PUS-2-4.asn1"],
+          "requires": [
+            "Distribute register load commands",
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            }
+          ]
+        },
+        {
+          "name": "Distribute physical device commands",
+          "asn1Files": [
+            "PUS-2-7.asn1",
+            "PhysicalDevice.asn1"
+          ],
+          "requires": [
+            "Acquire data from physical devices",
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            }
+          ]
+        },
+        {
+          "name": "Acquire data from physical devices",
+          "asn1Files": [
+            "PUS-2-8.asn1",
+            "PUS-2-9.asn1",
+            "PhysicalDevice.asn1",
+            "Transaction.asn1"
+          ],
+          "requires": [
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Dummy Type"
+            }
+          ]
+        },
+        {
+          "name": "Distribute logical device commands",
+          "asn1Files": [
+            "PUS-2-10.asn1",
+            "LogicalDevice.asn1"
+          ],
+          "requires": [
+            "Distribute physical device commands",
+            "Acquire data from logical devices",
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            }
+          ]
+        },
+        {
+          "name": "Acquire data from logical devices",
+          "asn1Files": [
+            "PUS-2-11.asn1",
+            "PUS-2-12.asn1",
+            "LogicalDevice.asn1",
+            "Transaction.asn1"
+          ],
+          "requires": [
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Dummy Type"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Parameter"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

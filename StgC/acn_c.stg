@@ -23,7 +23,7 @@ EmitTypeAssignment_primitive_def_encode(sVarName, sStar, sFuncName, sTypeDefName
 flag <sFuncName>(const <sTypeDefName><sStar> <sVarName>, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints);
 >>
 
-EmitTypeAssignment_primitive_encode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitilialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace, bBsIsUnreferenced, bVarNameIsUnreferenced) ::= <<
+EmitTypeAssignment_primitive_encode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitilialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName) ::= <<
 flag <sFuncName>(const <sTypeDefName><sStar> <sVarName>, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints)
 {
     flag ret = TRUE;
@@ -60,7 +60,7 @@ EmitTypeAssignment_primitive_def_decode(sVarName, sStar, sFuncName, sTypeDefName
 flag <sFuncName>(<sTypeDefName><sStar> <sVarName>, BitStream* pBitStrm, int* pErrCode<if(arrsAcnPrms)>, <arrsAcnPrms; separator=", "><endif>);
 >>
 
-EmitTypeAssignment_primitive_decode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitilialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace, bBsIsUnreferenced, bVarNameIsUnreferenced) ::= <<
+EmitTypeAssignment_primitive_decode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitilialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName) ::= <<
 flag <sFuncName>(<sTypeDefName><sStar> <sVarName>, BitStream* pBitStrm, int* pErrCode<if(arrsAcnPrms)>, <arrsAcnPrms; separator=", "><endif>)
 {
     flag ret = TRUE;
@@ -412,13 +412,13 @@ Null_pattern2_decode(p, arruNullValueAsByteArray, nSize, arrsBits, sErrCode, bSa
 
 
 
-Enumerated_item_encode(p, sName, nItemIdxOrVal, sIntVal) ::= <<
+Enumerated_item_encode(p, sName, sEnumHolder, nItemIdxOrVal, sIntVal) ::= <<
 case <sName>:
     <sIntVal> = <nItemIdxOrVal>;
     break;
 >>
 
-Enumerated_item_decode(p, sName, nItemIdxOrVal, sIntVal) ::= <<
+Enumerated_item_decode(p, sName, sEnumHolder, nItemIdxOrVal, sIntVal) ::= <<
 case <nItemIdxOrVal>:
     <p> = <sName>;
     break;
@@ -974,7 +974,7 @@ SizeDependencyFixedSize(v, nFixedSize) ::= <<
 
 
 
-ChoiceDependencyEnum_Item(v, sChildCID, sEnumCName) ::= <<
+ChoiceDependencyEnum_Item(v, sChildCID, sChildCIDHolder, sEnumCName) ::= <<
 case <sChildCID>:
     <v>_is_initialized = TRUE;
 	<v> = <sEnumCName>; 

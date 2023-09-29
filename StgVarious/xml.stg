@@ -77,8 +77,8 @@ VasXml(sName, nLine, nPos, sType, sValue, sCName) ::= <<
 </VariableAssignment>
 >>
 
-TypeGeneric(nLine, nPos, sAsnFile, sSubType, bHasAcnEncDecFunction, sCName, sAdaName) ::= <<
-<Type Line="$nLine$" CharPositionInLine="$nPos$" Asn1File="$sAsnFile$" HasAcnEncDecFunction = "$bHasAcnEncDecFunction$" cName="$sCName$" adaName="$sAdaName$">
+TypeGeneric(nLine, nPos, sAsnFile, sSubType, bHasAcnEncDecFunction, sCName, sScalaName, sAdaName) ::= <<
+<Type Line="$nLine$" CharPositionInLine="$nPos$" Asn1File="$sAsnFile$" HasAcnEncDecFunction = "$bHasAcnEncDecFunction$" cName="$sCName$" scalaName="$sScalaName$" adaName="$sAdaName$">
     $sSubType$
 </Type>
 >>
@@ -127,7 +127,7 @@ EnumType(arrsItems) ::= <<
 >>
 
 
-ChoiceChild(sName, sCName, sAdaName, nLine, nPos, sChildContent, sNamePresent, bRemovedChild  ) ::= <<
+ChoiceChild(sName, sCName, sScalaName, sAdaName, nLine, nPos, sChildContent, sNamePresent, bRemovedChild  ) ::= <<
 <ChoiceChild VarName="$sName$" Line="$nLine$" CharPositionInLine="$nPos$" EnumID ="$sNamePresent$" RemovedChild="$bRemovedChild$">
     $sChildContent$
 </ChoiceChild>
@@ -140,8 +140,8 @@ ChoiceType(arrsChildren) ::= <<
 >>
 
 
-SequenceChild(sName, sCName, sAdaName, bOptional, sDefVal, nLine, nPos, sChildContent, bAlwaysPresent, bAlwaysAbsent ) ::= <<
-<SequenceOrSetChild VarName="$sName$" CName="$sCName$" AdaName="$sAdaName$" Optional="$bOptional$"$if(sDefVal)$ DefaultValue="$sDefVal.HtmlEsc$"$endif$ Line="$nLine$" CharPositionInLine="$nPos$" bAlwaysPresent = "$bAlwaysPresent$" bAlwaysAbsent="$bAlwaysAbsent$">
+SequenceChild(sName, sCName, sScalaName, sAdaName, bOptional, sDefVal, nLine, nPos, sChildContent, bAlwaysPresent, bAlwaysAbsent ) ::= <<
+<SequenceOrSetChild VarName="$sName$" CName="$sCName$" ScalaName="$sScalaName$" AdaName="$sAdaName$" Optional="$bOptional$"$if(sDefVal)$ DefaultValue="$sDefVal.HtmlEsc$"$endif$ Line="$nLine$" CharPositionInLine="$nPos$" bAlwaysPresent = "$bAlwaysPresent$" bAlwaysAbsent="$bAlwaysAbsent$">
     $sChildContent$
 </SequenceOrSetChild>
 >>

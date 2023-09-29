@@ -1,0 +1,48 @@
+{
+  "name": "ST[13] large packet transfer",
+  "submodules" : [
+    {
+      "name": "Large packet downlink subservice",
+        "elements": [
+          {
+            "name": "Downlink processing",
+            "asn1Files": [
+              "LargePacketTransferMessageParts.asn1",
+              "PUS-13-1.asn1",
+              "PUS-13-2.asn1",
+              "PUS-13-3.asn1"
+            ],
+            "requires": [
+              {
+                "module": "Common Types",
+                "submodule": "PTC/PFC Types",
+                "element": "Basic Types"
+              }
+            ]
+          }
+        ]
+    },
+    {
+      "name": "Large packet uplink subservice",
+      "elements": [
+        {
+          "name": "Uplink processing",
+          "asn1Files": [
+            "LargePacketTransferMessageParts.asn1",
+            "PUS-13-9.asn1",
+            "PUS-13-10.asn1",
+            "PUS-13-11.asn1",
+            "PUS-13-16.asn1"
+          ],
+          "requires": [
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

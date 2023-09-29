@@ -24,7 +24,7 @@ with
             | Test_Cases_Dir _   -> "specify the directory that contains the test case files"
             | Work_Dir       _   -> "specify the working directory"
             | Test_Case      _   -> ""
-            | Language       _   -> "c or Ada"
+            | Language       _   -> "c, Ada or Scala"
             | Slim           _   -> ""
             | Word_Size      _   -> "8 or 4"
             | Parallel       _   -> ""
@@ -320,7 +320,7 @@ let main0 argv =
 
         let languages =
             match parserResults.Contains <@ Language @> with
-            | false -> ["c"; "Ada"]
+            | false -> ["c"; "Ada"; "Scala"]
             | true  -> [parserResults.GetResult(<@ Language @>)]
 
 

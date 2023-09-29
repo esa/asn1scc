@@ -48,13 +48,15 @@ type ILangGeneric () =
     abstract member ArrayStartIndex : int
     abstract member getPointer      : FuncParamType -> string;
     abstract member getValue        : FuncParamType -> string;
-    abstract member getAcces        : FuncParamType -> string;
+    abstract member getAccess       : FuncParamType -> string;
     abstract member getStar         : FuncParamType -> string;
+    abstract member getPtrPrefix    : FuncParamType -> string;
+    abstract member getPtrSuffix    : FuncParamType -> string;
     abstract member getAmber        : FuncParamType -> string;
     abstract member toPointer       : FuncParamType -> FuncParamType;
     abstract member getArrayItem    : FuncParamType -> (string) -> (bool) -> FuncParamType;
-    abstract member intValueToSting : BigInteger -> Asn1AcnAst.IntegerClass -> string;
-    abstract member doubleValueToSting : double -> string
+    abstract member intValueToString : BigInteger -> Asn1AcnAst.IntegerClass -> string;
+    abstract member doubleValueToString : double -> string
     abstract member initializeString : int -> string
     abstract member supportsInitExpressions : bool
     abstract member getNamedItemBackendName  : TypeDefintionOrReference option -> Asn1AcnAst.NamedItem -> string
@@ -63,6 +65,7 @@ type ILangGeneric () =
     abstract member decode_nullType : string -> string option
     abstract member castExpression  : string -> string -> string
     abstract member createSingleLineComment : string -> string
+    abstract member SpecNameSuffix: string
     abstract member SpecExtention : string
     abstract member BodyExtention : string
 
@@ -85,7 +88,7 @@ type ILangGeneric () =
     abstract member getSequenceTypeDefinition :Map<ProgrammingLanguage, FE_SequenceTypeDefinition> -> FE_SequenceTypeDefinition
     abstract member getSizeableTypeDefinition : Map<ProgrammingLanguage, FE_SizeableTypeDefinition> -> FE_SizeableTypeDefinition
 
-    abstract member getSeqChild     : FuncParamType -> string -> bool -> FuncParamType;
+    abstract member getSeqChild     : FuncParamType -> string -> bool -> bool -> FuncParamType;
     abstract member getChChild      : FuncParamType -> string -> bool -> FuncParamType;
     abstract member getLocalVariableDeclaration : LocalVariable -> string;
     abstract member getLongTypedefName : TypeDefintionOrReference -> string;
@@ -108,25 +111,25 @@ type ILangGeneric () =
     abstract member requiresValueAssignmentsInSrcFile      : bool
 
     abstract member supportsStaticVerification      : bool
-    abstract member AssignOperator  : string
-    abstract member TrueLiteral     : string
-    abstract member FalseLiteral     : string
-    abstract member emtyStatement   : string
-    abstract member bitStreamName   : string
-    abstract member  unaryNotOperator :string
-    abstract member  modOp            :string
-    abstract member  eqOp             :string
-    abstract member  neqOp            :string
-    abstract member  andOp            :string
-    abstract member  orOp             :string
-    abstract member  initMetod        :InitMethod
-    abstract member  bitStringValueToByteArray:  BitStringValue -> byte[]
+    abstract member AssignOperator   :string
+    abstract member TrueLiteral      :string
+    abstract member FalseLiteral     :string
+    abstract member emtyStatement    :string
+    abstract member bitStreamName    :string
+    abstract member unaryNotOperator :string
+    abstract member modOp            :string
+    abstract member eqOp             :string
+    abstract member neqOp            :string
+    abstract member andOp            :string
+    abstract member orOp             :string
+    abstract member initMetod        :InitMethod
+    abstract member bitStringValueToByteArray:  BitStringValue -> byte[]
 
     abstract member toHex : int -> string
-    abstract member uper : Uper_parts;
-    abstract member acn  : Acn_parts
-    abstract member init : Initialize_parts
-    abstract member atc  : Atc_parts
+    abstract member uper  : Uper_parts;
+    abstract member acn   : Acn_parts
+    abstract member init  : Initialize_parts
+    abstract member atc   : Atc_parts
     abstract member getValueAssignmentName : ValueAssignment -> string
 
     abstract member CreateMakeFile : AstRoot -> OutDirectories.DirInfo -> unit

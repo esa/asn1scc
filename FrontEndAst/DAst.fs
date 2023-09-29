@@ -163,12 +163,12 @@ type LocalVariable =
     | Asn1UIntLocalVariable of string*int option     //variable name, initialValue
     | FlagLocalVariable     of string*int option     //variable name, initialValue
     | BooleanLocalVariable  of string*bool option    //variable name, initialValue
-    | AcnInsertedChild      of string*string         //variable name, type initialValue
+    | AcnInsertedChild      of string*string*string  //variable name, type, initialValue
     | GenericLocalVariable  of GenericLocalVariable
 
 
 
-(*an expression or statement that checks if a constraint is met or not. IT DOES NOT ASSIGNG the error code field*)
+(*an expression or statement that checks if a constraint is met or not. IT DOES NOT ASSIGN the error code field*)
 type ValidationCodeBlock =
     | VCBTrue                                // always true
     | VCBFalse                               // always false
@@ -212,14 +212,11 @@ type TypeDefinition = {
     baseType    : ReferenceToExistingDefinition option
 }
 
-
 type TypeDefintionOrReference =
     /// indicates that no extra type definition is required (e.g. INTEGER without constraints or type reference type without new constraints)
     | ReferenceToExistingDefinition    of ReferenceToExistingDefinition                
-    /// indicates that a new type is defined
+    /// indicates that a new type is 
     | TypeDefinition                of TypeDefinition       
-
-
 
 type ErroCode = {
     errCodeValue    : int
@@ -733,6 +730,7 @@ and SeqChildInfo =
 and Asn1Child = {
     Name                        : StringLoc
     _c_name                     : string
+    _scala_name                 : string
     _ada_name                   : string                     
     isEqualBodyStats            : CallerScope -> CallerScope -> (string*(LocalVariable list)) option  // 
     //isValidBodyStats            : State -> (SeqChoiceChildInfoIsValid option * State)
@@ -777,8 +775,9 @@ and Sequence = {
 
 and ChChildInfo = {
     Name                        : StringLoc
-    _c_name                      : string
-    _ada_name                    : string                     
+    _c_name                     : string
+    _scala_name                 : string
+    _ada_name                   : string                     
     _present_when_name_private  : string // Does not contain the "_PRESENT". Not to be used directly by backends. Backends should use presentWhenName
     acnPresentWhenConditions    : AcnGenericTypes.AcnPresentWhenConditionChoiceChild list
     Comments                    : string array
@@ -974,6 +973,7 @@ let getUniqueValidTypeDefName (cur:State) (l:ProgrammingLanguage) (tasInfo:TypeA
 type TypeAssignment = {
     Name:StringLoc
     c_name:string
+    scala_name:string
     ada_name:string
     Type:Asn1Type
     Comments: string array
@@ -982,6 +982,7 @@ type TypeAssignment = {
 type ValueAssignment = {
     Name    :StringLoc
     c_name  :string
+    scala_name:string
     ada_name:string
     Type    :Asn1Type
     Value   :Asn1Value
@@ -1007,11 +1008,11 @@ type Asn1File = {
 
 type ProgramUnit = {
     name                    : string
-    tetscase_name           : string
+    testcase_name           : string
     specFileName            : string
     bodyFileName            : string
-    tetscase_specFileName   : string
-    tetscase_bodyFileName   : string
+    testcase_specFileName   : string
+    testcase_bodyFileName   : string
     sortedTypeAssignments   : TypeAssignment list
     valueAssignments        : ValueAssignment list
     importedProgramUnits    : string list

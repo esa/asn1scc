@@ -1,0 +1,58 @@
+{
+  "name": "Wrappers",
+  "submodules": [
+    {
+      "name": "C Wrappers",
+      "elements": [
+        {
+          "name": "CCSDS Packet",
+          "additionalFiles": [
+            "asn1pusclib_globals.h",
+            "Crc.c",
+            "Crc.h",
+            "Errors.c",
+            "Errors.h",
+            "IsoChecksum.c",
+            "IsoChecksum.h",
+            "PacketErrorControl.c",
+            "PacketErrorControl.h",
+            "PacketLength.c",
+            "PacketLength.h",
+            "UInt16Coder.c",
+            "UInt16Coder.h"
+          ],
+          "requires": [
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            }
+          ]
+        },
+        {
+          "name": "CCSDS Packet Unit Tests",
+          "additionalFiles": [
+            "CMocka.h",
+            "CrcTests.c",
+            "CrcTests.h",
+            "ErrorsTests.c",
+            "ErrorsTests.h",
+            "IsoChecksumTests.c",
+            "IsoChecksumTests.h",
+            "PacketErrorControlTests.c",
+            "PacketErrorControlTests.h",
+            "PacketLengthTests.c",
+            "PacketLengthTests.h",
+            "TestHelper.h",
+            "test_main.c",
+            "UInt16CoderTests.c",
+            "UInt16CoderTests.h"
+          ],
+          "requires": [
+            "CCSDS Packet"
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -68,7 +68,7 @@ variables["$sName$"] = {
 
 >>
 
-TypeGeneric(nLine, nPos, sAsnFile, sSubType, bHasAcnEncDecFunction, sCName, sAdaName) ::= <<
+TypeGeneric(nLine, nPos, sAsnFile, sSubType, bHasAcnEncDecFunction, sCName, sScalaName, sAdaName) ::= <<
 "Line": $nLine$, "CharPositionInLine": $nPos$, "Asn1File":"$sAsnFile$", $sSubType$, "HasAcnEncodeDecodeFunction":$bHasAcnEncDecFunction$
 >>
 
@@ -115,7 +115,7 @@ EnumType(arrsItems) ::= <<
 >>
 
 
-ChoiceChild(sName, sCName, sAdaName, nLine, nPos, sChildContent, sNamePresent, bRemovedChild ) ::= <<
+ChoiceChild(sName, sCName, sScala, sAdaName, nLine, nPos, sChildContent, sNamePresent, bRemovedChild ) ::= <<
 "$sName$": {
     "Line": $nLine$, "CharPositionInLine": $nPos$, "EnumID": "$sNamePresent$", "RemovedChild": "$bRemovedChild$", "type": {
         $sChildContent$
@@ -130,7 +130,7 @@ ChoiceType(arrsChildren) ::= <<
 >>
 
 
-SequenceChild(sName, sCName, sAdaName, bOptional, sDefVal, nLine, nPos, sChildContent, bAlwaysPresent, bAlwaysAbsent) ::= <<
+SequenceChild(sName, sCName, sScalaName, sAdaName, bOptional, sDefVal, nLine, nPos, sChildContent, bAlwaysPresent, bAlwaysAbsent) ::= <<
 "$sName$": {
     "Optional": "$bOptional$"$if(sDefVal)$, "DefaultValue": "$sDefVal$"$endif$, "Line": $nLine$, "CharPositionInLine": $nPos$, "type": {
         $sChildContent$

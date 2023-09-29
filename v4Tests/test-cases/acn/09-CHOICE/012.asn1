@@ -9,5 +9,5 @@ MyChoice ::= CHOICE {
 
 END
 
---TCLS     MyPDU[]
+--TCLS     MyChoice[]
 

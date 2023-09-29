@@ -3,6 +3,7 @@
   <PropertyGroup>
     <TargetFramework>net7.0</TargetFramework>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <RuntimeIdentifiers>win-x64;linux-x64;osx-x64</RuntimeIdentifiers>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="AssemblyInfo.fs" />
@@ -40,6 +41,7 @@
       <ProjectReference Include="..\FrontEndAst\FrontEndAst.fsproj" />
       <ProjectReference Include="..\StgAda\StgAda.fsproj" />
       <ProjectReference Include="..\StgC\StgC.fsproj" />
+      <ProjectReference Include="..\StgScala\StgScala.fsproj" />
       <ProjectReference Include="..\StgVarious\StgVarious.fsproj" />
     </ItemGroup>
 
@@ -57,5 +59,9 @@
       <HintPath>..\Antlr\antlr313\StringTemplate.dll</HintPath>
     </Reference>
   </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Update="FSharp.Core" Version="7.0.400" />
+    </ItemGroup>
 
 </Project>

@@ -39,7 +39,7 @@ begin
 end <sFuncName>;
 >>
 
-EmitTypeAssignment_primitive_encode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitilialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace, bBsIsUnreferenced, bVarNameIsUnreferenced) ::= <<
+EmitTypeAssignment_primitive_encode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitilialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName) ::= <<
 procedure <sFuncName>_aux(<sVarName> : <sTypeDefName>; bs : in out <rtlModuleName()>.encoding.Bitstream; result : OUT <rtlModuleName()>.ASN1_RESULT)
 is
 <if(bBsIsUnreferenced)>
@@ -91,7 +91,7 @@ begin
 end <sFuncName>;
 >>
 
-EmitTypeAssignment_primitive_decode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitilialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace, bBsIsUnreferenced, bVarNameIsUnreferenced) ::= <<
+EmitTypeAssignment_primitive_decode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitilialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName) ::= <<
 <if(bVarNameIsUnreferenced)>
 pragma Warnings (Off, "unused initial value of ""<sVarName>""");
 
@@ -657,9 +657,9 @@ result.ErrorCode := <sErrCode>;
 
 
 
-Enumerated_item_encode(p, sName, nItemIdxOrVal, sIntVal) ::= "when <sName>    => <sIntVal> := <nItemIdxOrVal>;"
+Enumerated_item_encode(p, sName, sEnumHolder, nItemIdxOrVal, sIntVal) ::= "when <sName>    => <sIntVal> := <nItemIdxOrVal>;"
 
-Enumerated_item_decode(p, sName, nItemIdxOrVal, sIntVal) ::= "when <nItemIdxOrVal> => <p> := <sName>;"
+Enumerated_item_decode(p, sName, sEnumHolder, nItemIdxOrVal, sIntVal) ::= "when <nItemIdxOrVal> => <p> := <sName>;"
 
 EnumeratedEncIdx_encode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, sActualCodecFunc, sIntVal) ::= <<
 case <p> is 
@@ -1256,7 +1256,7 @@ when <sChildNamePrese> =>
 
 
 
-ChoiceDependencyEnum_Item(v, sChildCID, sEnumCName) ::= <<
+ChoiceDependencyEnum_Item(v, sChildCID, sChildCIDHolder, sEnumCName) ::= <<
 when <sChildCID> =>
     <v>_is_initialized := True;
 	<v> := <sEnumCName>; 

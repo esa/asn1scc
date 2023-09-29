@@ -1,0 +1,54 @@
+--!
+--! Copyright (C) 2017-2023 N7 Space sp. z o. o.
+--! Contact: https://n7space.com
+--!
+--! This file is part of ASN.1/ACN PUS-C Components Library.
+--!
+--! Library was developed under a programme and funded by
+--! European Space Agency.
+--!
+--! This Library is free software: you can redistribute it and/or modify
+--! it under the terms of the GNU General Public License as published by
+--! the Free Software Foundation, either version 3 of the License, or
+--! (at your option) any later version.
+--!
+--! This Library is distributed in the hope that it will be useful,
+--! but WITHOUT ANY WARRANTY; without even the implied warranty of
+--! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+--! GNU General Public License for more details.
+--!
+--! You should have received a copy of the GNU General Public License
+--! along with this program.  If not, see <http://www.gnu.org/licenses/>.
+--!
+
+PUS-6-6 DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+EXPORTS ALL;
+IMPORTS
+    PUSC-UINT32, PUSC-OCTSTR-VARIABLE-LEN FROM BasicTypes
+    Memory-ID FROM Memory
+    BytePointer FROM RawMemory
+    MemoryData FROM Data;
+
+maxTM-6-6-DataDumpCount INTEGER ::= 63
+
+TM-6-6-DumpedRawMemoryDataReport ::= TM-6-6-DumpedRawMemoryDataReportGeneric {Memory-ID}
+                                     (WITH COMPONENTS {memory-ID PRESENT})
+
+DataDump ::= DataDumpGeneric {BytePointer, MemoryData}
+
+TM-6-6-DumpedRawMemoryDataReportGeneric {Memory-ID-Type} ::= SEQUENCE
+{
+    memory-ID Memory-ID-Type OPTIONAL,
+--! n UnsignedInteger-Type, moved to acn
+    dataDumps SEQUENCE (SIZE(1 .. maxTM-6-6-DataDumpCount)) OF DataDump
+}
+
+DataDumpGeneric {UnsignedInteger-Type, VariableOctetString-Type} ::= SEQUENCE
+{
+    startAddress UnsignedInteger-Type,
+    dumpedData VariableOctetString-Type,
+    checksum BIT STRING (SIZE(16)) OPTIONAL
+}
+
+
+END

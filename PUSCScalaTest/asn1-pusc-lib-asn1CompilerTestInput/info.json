@@ -1,0 +1,7 @@
+{
+  "name": "PUS-C",
+  "version": "1.1.1",
+  "description": "ASN.1/ACN PUS-C Components Library, developed under a programme and funded by European Space Agency",
+  "vendor": "N7 Space sp. z o.o. (https://n7space.com)",
+  "license": "GPL v3"
+}

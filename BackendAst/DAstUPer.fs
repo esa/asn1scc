@@ -43,7 +43,7 @@ let internal createUperFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (code
 
     let funcBody = (funcBody_e errCode)
     let p  = lm.lg.getParamType t codec
-    let topLevAcc = lm.lg.getAcces p.arg
+    let topLevAcc = lm.lg.getAccess p.arg
     let varName = p.arg.p
     let sStar = lm.lg.getStar p.arg
     let isValidFuncName = match isValidFunc with None -> None | Some f -> f.funcName
@@ -317,19 +317,19 @@ let handleFixedSizeFragmentation (lm:LanguageMacros) (p:CallerScope) (codec:Comm
     let r = FragmentationParts fixSize
     //let nBlocks64K = fixSize / C64K
     let parts =
-        let part = fixedSize_Fragmentation_sqf_64K p.arg.p (lm.lg.getAcces p.arg) sCurOffset sCurBlockSize sBlockIndex r.nBlocks64K internalItem_funcBody sBLI sRemainingItemsVar bIsBitStringType errCode.errCodeName codec
+        let part = fixedSize_Fragmentation_sqf_64K p.arg.p (lm.lg.getAccess p.arg) sCurOffset sCurBlockSize sBlockIndex r.nBlocks64K internalItem_funcBody sBLI sRemainingItemsVar bIsBitStringType errCode.errCodeName codec
         [part]
     let smallBlockParts = 
         [(r.has48KBlock, lm.lg.toHex 195, C48K);(r.has32KBlock, lm.lg.toHex 194, C32K);(r.has16KBlock, lm.lg.toHex 193, C16K)] |>  //0xC3, 0xC2, 0xC1
         List.filter (fun (a,_,_) -> a) |>
-        List.map (fun (_, sBlockId, nBlockSize) -> fixedSize_Fragmentation_sqf_small_block p.arg.p (lm.lg.getAcces p.arg) internalItem_funcBody nBlockSize sBlockId sCurOffset sCurBlockSize sBLI sRemainingItemsVar bIsBitStringType errCode.errCodeName codec)
+        List.map (fun (_, sBlockId, nBlockSize) -> fixedSize_Fragmentation_sqf_small_block p.arg.p (lm.lg.getAccess p.arg) internalItem_funcBody nBlockSize sBlockId sCurOffset sCurBlockSize sBLI sRemainingItemsVar bIsBitStringType errCode.errCodeName codec)
     let parts = parts@smallBlockParts
 
     let bRemainingItemsWithinByte = r.nRemainingItemsVar <= C_127
     let parts=
         match r.nRemainingItemsVar > 0I with
         | true  ->
-            let part = fixedSize_Fragmentation_sqf_remaining p.arg.p (lm.lg.getAcces p.arg) internalItem_funcBody bRemainingItemsWithinByte r.nRemainingItemsVar sCurOffset sBLI sRemainingItemsVar bIsBitStringType errCode.errCodeName codec
+            let part = fixedSize_Fragmentation_sqf_remaining p.arg.p (lm.lg.getAccess p.arg) internalItem_funcBody bRemainingItemsWithinByte r.nRemainingItemsVar sCurOffset sBLI sRemainingItemsVar bIsBitStringType errCode.errCodeName codec
             parts@[part]
         | false -> parts
 
@@ -341,7 +341,7 @@ let handleFixedSizeFragmentation (lm:LanguageMacros) (p:CallerScope) (codec:Comm
     let fragmentationVars = fragmentationVars |> List.addIf (lm.lg.uper.requires_sBlockIndex) (createLv sBlockIndex)
     //let fragmentationVars = fragmentationVars |> List.addIf (l = C) (lv)
     let singleNestedPart  = nestChildItems lm  codec parts |> Option.toList
-    fixedSize_Fragmentation_sqf p.arg.p (lm.lg.getAcces p.arg) singleNestedPart fixSize bIsAsciiString codec, fragmentationVars
+    fixedSize_Fragmentation_sqf p.arg.p (lm.lg.getAccess p.arg) singleNestedPart fixSize bIsAsciiString codec, fragmentationVars
 
 let handleFragmentation (lm:LanguageMacros) (p:CallerScope) (codec:CommonTypes.Codec) (errCode:ErroCode) ii uperMaxSizeInBits (minSize:BigInteger) (maxSize:BigInteger) internalItem_funcBody nIntItemMaxSize bIsBitStringType bIsAsciiString=
     match minSize = maxSize with
@@ -365,7 +365,7 @@ let handleFragmentation (lm:LanguageMacros) (p:CallerScope) (codec:CommonTypes.C
         let fragmentationVars = fragmentationVars |> List.addIf (codec = Encode && lm.lg.uper.requires_sBLJ) (createLv sBLJ)
         let fragmentationVars = fragmentationVars |> List.addIf (codec = Encode) (createLv sBlockIndex)
         let fragmentationVars = fragmentationVars |> List.addIf (codec = Decode && minSize <> maxSize) (createLv sLengthTmp)
-        fragmentation p.arg.p (lm.lg.getAcces p.arg) internalItem_funcBody  nIntItemMaxSize ( minSize) ( maxSize) uperMaxSizeInBits (minSize <> maxSize) errCode.errCodeName sRemainingItemsVar sCurBlockSize sBlockIndex sCurOffset sBLJ sBLI sLengthTmp bIsBitStringType bIsAsciiString codec, fragmentationVars
+        fragmentation p.arg.p (lm.lg.getAccess p.arg) internalItem_funcBody  nIntItemMaxSize ( minSize) ( maxSize) uperMaxSizeInBits (minSize <> maxSize) errCode.errCodeName sRemainingItemsVar sCurBlockSize sBlockIndex sCurOffset sBLJ sBLI sLengthTmp bIsBitStringType bIsAsciiString codec, fragmentationVars
 
 let createIA5StringFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.StringType) (typeDefinition:TypeDefintionOrReference)   (baseTypeUperFunc : UPerFunction option) (isValidFunc: IsValidFunction option) (us:State)  =
     let ii = t.id.SeqeuenceOfLevel + 1
@@ -432,7 +432,7 @@ let createOctetStringFunction_funcBody (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros
     //let fragmentation   = match l with C -> uper_a.Fragmentation_sqf       | Ada -> uper_a.Fragmentation_sqf
 
     let nIntItemMaxSize = 8I
-    let internalItem = InternalItem_oct_str p.arg.p (lm.lg.getAcces p.arg) i  errCode.errCodeName codec 
+    let internalItem = InternalItem_oct_str p.arg.p (lm.lg.getAccess p.arg) i  errCode.errCodeName codec 
     let nSizeInBits = GetNumberOfBitsForNonNegativeInteger ( (maxSize - minSize))
     let funcBodyContent, localVariables = 
         let nStringLength =
@@ -442,8 +442,8 @@ let createOctetStringFunction_funcBody (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros
             | false, Decode -> [lm.lg.uper.count_var]
 
         match minSize with
-        | _ when maxSize < 65536I && isFixedSize  ->  fixedSize p.arg.p (lm.lg.getAcces p.arg) minSize codec , (if false then lv::nStringLength else nStringLength)
-        | _ when maxSize < 65536I && (not isFixedSize)  -> varSize p.arg.p (lm.lg.getAcces p.arg)  (minSize) ( maxSize) nSizeInBits  errCode.errCodeName codec , (if false  then lv::nStringLength else nStringLength)
+        | _ when maxSize < 65536I && isFixedSize  ->  fixedSize p.arg.p (lm.lg.getAccess p.arg) minSize codec , (if false then lv::nStringLength else nStringLength)
+        | _ when maxSize < 65536I && (not isFixedSize)  -> varSize p.arg.p (lm.lg.getAccess p.arg)  (minSize) ( maxSize) nSizeInBits  errCode.errCodeName codec , (if false  then lv::nStringLength else nStringLength)
         | _                                                -> 
             let funcBodyContent,localVariables = handleFragmentation lm p codec errCode ii ( uperMaxSizeInBits) minSize maxSize internalItem nIntItemMaxSize false false
             let localVariables = localVariables |> List.addIf (lm.lg.uper.requires_IA5String_i || (not isFixedSize)) (lv)
@@ -485,8 +485,8 @@ let createBitStringFunction_funcBody (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros)
             | false, Decode -> [lm.lg.uper.count_var]
         
         match minSize with
-        | _ when maxSize < 65536I && isFixedSize   -> bitString_FixSize p.arg.p (lm.lg.getAcces p.arg) (minSize) errCode.errCodeName codec , nStringLength
-        | _ when maxSize < 65536I && (not isFixedSize)  -> bitString_VarSize p.arg.p (lm.lg.getAcces p.arg) (minSize) (maxSize) errCode.errCodeName nSizeInBits codec, nStringLength
+        | _ when maxSize < 65536I && isFixedSize   -> bitString_FixSize p.arg.p (lm.lg.getAccess p.arg) (minSize) errCode.errCodeName codec , nStringLength
+        | _ when maxSize < 65536I && (not isFixedSize)  -> bitString_VarSize p.arg.p (lm.lg.getAccess p.arg) (minSize) (maxSize) errCode.errCodeName nSizeInBits codec, nStringLength
         | _                                                -> 
             let funcBodyContent, fragmentationLvars = handleFragmentation lm p codec errCode ii uperMaxSizeInBits minSize maxSize internalItem 1I true false
             let fragmentationLvars = fragmentationLvars |> List.addIf ((not isFixedSize) &&  lm.lg.uper.requires_sBLJ) (iVar)
@@ -544,7 +544,7 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:C
                     match o.minSize with
                     | _ when o.maxSize.uper < 65536I && o.maxSize.uper=o.minSize.uper  -> None
                     | _ when o.maxSize.uper < 65536I && o.maxSize.uper<>o.minSize.uper -> 
-                        let funcBody = varSize p.arg.p (lm.lg.getAcces p.arg)  typeDefinitionName i "" ( o.minSize.uper) ( o.maxSize.uper) nSizeInBits ( child.uperMinSizeInBits) nIntItemMaxSize 0I errCode.errCodeName codec
+                        let funcBody = varSize p.arg.p (lm.lg.getAccess p.arg)  typeDefinitionName i "" ( o.minSize.uper) ( o.maxSize.uper) nSizeInBits ( child.uperMinSizeInBits) nIntItemMaxSize 0I errCode.errCodeName codec
                         Some ({UPERFuncBodyResult.funcBody = funcBody; errCodes = [errCode]; localVariables = lv@nStringLength; bValIsUnReferenced=false; bBsIsUnReferenced=false})    
                     | _                                                -> 
                         let funcBody, localVariables = handleFragmentation lm p codec errCode ii ( o.uperMaxSizeInBits) o.minSize.uper o.maxSize.uper "" nIntItemMaxSize false false
@@ -554,7 +554,7 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:C
                 let ret,localVariables = 
                     match o.minSize with
                     | _ when o.maxSize.uper < 65536I && o.maxSize.uper=o.minSize.uper  -> fixedSize p.arg.p typeDefinitionName i internalItem.funcBody ( o.minSize.uper) ( child.uperMinSizeInBits) nIntItemMaxSize 0I codec, nStringLength 
-                    | _ when o.maxSize.uper < 65536I && o.maxSize.uper<>o.minSize.uper  -> varSize p.arg.p (lm.lg.getAcces p.arg)  typeDefinitionName i internalItem.funcBody ( o.minSize.uper) ( o.maxSize.uper) nSizeInBits ( child.uperMinSizeInBits) nIntItemMaxSize 0I errCode.errCodeName codec , nStringLength
+                    | _ when o.maxSize.uper < 65536I && o.maxSize.uper<>o.minSize.uper  -> varSize p.arg.p (lm.lg.getAccess p.arg)  typeDefinitionName i internalItem.funcBody ( o.minSize.uper) ( o.maxSize.uper) nSizeInBits ( child.uperMinSizeInBits) nIntItemMaxSize 0I errCode.errCodeName codec , nStringLength
                     | _                                                -> handleFragmentation lm p codec errCode ii ( o.uperMaxSizeInBits) o.minSize.uper o.maxSize.uper internalItem.funcBody nIntItemMaxSize false false
 
                 Some ({UPERFuncBodyResult.funcBody = ret; errCodes = errCode::childErrCodes; localVariables = lv@(localVariables@internalItem.localVariables); bValIsUnReferenced=false; bBsIsUnReferenced=false})    
@@ -584,15 +584,23 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Com
                 | true  when lm.lg.uper.requires_presenceBit  && codec = CommonTypes.Decode -> [(FlagLocalVariable ("presenceBit", None))]
                 | _                                       -> []
             let printPresenceBit (child:Asn1Child) =
-                match child.Optionality with
-                | None                       -> None
-                | Some Asn1AcnAst.AlwaysAbsent     -> Some (sequence_presence_bit_fix p.arg.p (lm.lg.getAcces p.arg) (lm.lg.getAsn1ChildBackendName child) errCode.errCodeName "0"  codec)    // please note that in decode, macro uper_sequence_presence_bit_fix
-                | Some Asn1AcnAst.AlwaysPresent    -> Some (sequence_presence_bit_fix p.arg.p (lm.lg.getAcces p.arg) (lm.lg.getAsn1ChildBackendName child) errCode.errCodeName "1"  codec)    // calls macro uper_sequence_presence_bit (i.e. behaves like optional)
-                | Some (Asn1AcnAst.Optional opt)   -> Some (sequence_presence_bit p.arg.p (lm.lg.getAcces p.arg) (lm.lg.getAsn1ChildBackendName child)  errCode.errCodeName codec)
+                match ST.lang with
+                | ProgrammingLanguage.Scala -> 
+                    match child.Optionality with
+                    | None                       -> None
+                    | Some Asn1AcnAst.AlwaysAbsent     -> Some (sequence_presence_bit_fix p.arg.p (lm.lg.getAccess p.arg) (lm.lg.getAsn1ChildBackendName child) errCode.errCodeName "false"  codec)    // please note that in decode, macro uper_sequence_presence_bit_fix
+                    | Some Asn1AcnAst.AlwaysPresent    -> Some (sequence_presence_bit_fix p.arg.p (lm.lg.getAccess p.arg) (lm.lg.getAsn1ChildBackendName child) errCode.errCodeName "true"  codec)    // calls macro uper_sequence_presence_bit (i.e. behaves like optional)
+                    | Some (Asn1AcnAst.Optional opt)   -> Some (sequence_presence_bit p.arg.p (lm.lg.getAccess p.arg) (lm.lg.getAsn1ChildBackendName child)  errCode.errCodeName codec)
+                | _ -> 
+                    match child.Optionality with
+                    | None                       -> None
+                    | Some Asn1AcnAst.AlwaysAbsent     -> Some (sequence_presence_bit_fix p.arg.p (lm.lg.getAccess p.arg) (lm.lg.getAsn1ChildBackendName child) errCode.errCodeName "0"  codec)    // please note that in decode, macro uper_sequence_presence_bit_fix
+                    | Some Asn1AcnAst.AlwaysPresent    -> Some (sequence_presence_bit_fix p.arg.p (lm.lg.getAccess p.arg) (lm.lg.getAsn1ChildBackendName child) errCode.errCodeName "1"  codec)    // calls macro uper_sequence_presence_bit (i.e. behaves like optional)
+                    | Some (Asn1AcnAst.Optional opt)   -> Some (sequence_presence_bit p.arg.p (lm.lg.getAccess p.arg) (lm.lg.getAsn1ChildBackendName child)  errCode.errCodeName codec)
             let handleChild (child:Asn1Child) =
                 let chFunc = child.Type.getUperFunction codec
                 let ch_arg = lm.lg.getSeqChild p.arg
-                let childContentResult = chFunc.funcBody ({p with arg = lm.lg.getSeqChild p.arg (lm.lg.getAsn1ChildBackendName child) child.Type.isIA5String})
+                let childContentResult = chFunc.funcBody ({p with arg = lm.lg.getSeqChild p.arg (lm.lg.getAsn1ChildBackendName child) child.Type.isIA5String false})
                 match childContentResult with
                 | None              -> None
                 | Some childContent ->
@@ -602,17 +610,17 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Com
                         | Some Asn1AcnAst.AlwaysAbsent     -> 
                             match codec with 
                             | CommonTypes.Encode -> None, []                        
-                            | CommonTypes.Decode -> Some (sequence_optional_child p.arg.p (lm.lg.getAcces p.arg) (lm.lg.getAsn1ChildBackendName child) childContent.funcBody codec) , childContent.localVariables
+                            | CommonTypes.Decode -> Some (sequence_optional_child p.arg.p (lm.lg.getAccess p.arg) (lm.lg.getAsn1ChildBackendName child) childContent.funcBody codec) , childContent.localVariables
                         | Some Asn1AcnAst.AlwaysPresent    -> 
                             match codec with 
                             | CommonTypes.Encode -> Some childContent.funcBody, childContent.localVariables  
-                            | CommonTypes.Decode -> Some (sequence_optional_child p.arg.p (lm.lg.getAcces p.arg) (lm.lg.getAsn1ChildBackendName child) childContent.funcBody codec), childContent.localVariables
+                            | CommonTypes.Decode -> Some (sequence_optional_child p.arg.p (lm.lg.getAccess p.arg) (lm.lg.getAsn1ChildBackendName child) childContent.funcBody codec), childContent.localVariables
                         | Some (Asn1AcnAst.Optional opt)   -> 
                             match opt.defaultValue with
-                            | None                   -> Some (sequence_optional_child p.arg.p (lm.lg.getAcces p.arg) (lm.lg.getAsn1ChildBackendName child) childContent.funcBody codec), childContent.localVariables
+                            | None                   -> Some (sequence_optional_child p.arg.p (lm.lg.getAccess p.arg) (lm.lg.getAsn1ChildBackendName child) childContent.funcBody codec), childContent.localVariables
                             | Some v                 -> 
-                                let defInit= child.Type.initFunction.initByAsn1Value ({p with arg = lm.lg.getSeqChild p.arg (lm.lg.getAsn1ChildBackendName child) child.Type.isIA5String}) (mapValue v).kind
-                                Some (sequence_default_child p.arg.p (lm.lg.getAcces p.arg) (lm.lg.getAsn1ChildBackendName child) childContent.funcBody defInit codec), childContent.localVariables 
+                                let defInit= child.Type.initFunction.initByAsn1Value ({p with arg = lm.lg.getSeqChild p.arg (lm.lg.getAsn1ChildBackendName child) child.Type.isIA5String false}) (mapValue v).kind
+                                Some (sequence_default_child p.arg.p (lm.lg.getAccess p.arg) (lm.lg.getAsn1ChildBackendName child) childContent.funcBody defInit codec), childContent.localVariables 
                     Some (childBody, child_localVariables, childContent.errCodes)
             
             let presenseBits = nonAcnChildren |> List.choose printPresenceBit
@@ -664,7 +672,17 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Commo
                         | true -> chFunc.funcBody ({p with arg = lm.lg.getChChild p.arg  (lm.lg.getAsn1ChChildBackendName child) child.chType.isIA5String})
                     let sChildName = (lm.lg.getAsn1ChChildBackendName child)
                     let sChildTypeDef = child.chType.typeDefintionOrReference.longTypedefName2 lm.lg.hasModules //child.chType.typeDefinition.typeDefinitionBodyWithinSeq
-                    let sCHildInitExpr = child.chType.initFunction.initExpression
+                    let isSequence = isSequenceForJVMelseFalse child.chType.Kind 
+                    let isEnum = isEnumForJVMelseFalse child.chType.Kind 
+                    let isOctetString = isOctetStringForJVMelseFalse child.chType.Kind
+                    let sChildInitExpr = child.chType.initFunction.initExpression
+                    let exprMethodCall =
+                        match ST.lang with
+                        | Scala ->
+                            match isSequence || sChildInitExpr.Equals("null") || isEnum || isOctetString with
+                            | true -> ""
+                            | false -> scalaInitMethSuffix child.chType.Kind
+                        | _ -> ""
                     let sChoiceTypeName = typeDefinitionName
                     match uperChildRes with
                     | None              -> 
@@ -678,14 +696,14 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Commo
                                 | Sequence _    -> uper_a.decode_empty_sequence_emptySeq childp.arg.p
                                 | _             -> lm.lg.createSingleLineComment "no encoding/decoding is required"
                             | true   -> lm.lg.createSingleLineComment "no encoding/decoding is required"
-                        choice_child p.arg.p (lm.lg.getAcces p.arg) (lm.lg.presentWhenName (Some typeDefinition) child) (BigInteger i) nIndexSizeInBits (BigInteger (children.Length - 1)) childContent sChildName sChildTypeDef sChoiceTypeName sCHildInitExpr codec,[],[]
+                        choice_child p.arg.p (lm.lg.getAccess p.arg) (lm.lg.presentWhenName (Some typeDefinition) child) (BigInteger i) nIndexSizeInBits (BigInteger (children.Length - 1)) childContent sChildName sChildTypeDef sChoiceTypeName (sChildInitExpr + exprMethodCall) isSequence isEnum codec, [], []
                     | Some childContent ->  
-                        choice_child p.arg.p (lm.lg.getAcces p.arg) (lm.lg.presentWhenName (Some typeDefinition) child) (BigInteger i) nIndexSizeInBits (BigInteger (children.Length - 1)) childContent.funcBody sChildName sChildTypeDef sChoiceTypeName sCHildInitExpr codec, childContent.localVariables, childContent.errCodes )
+                        choice_child p.arg.p (lm.lg.getAccess p.arg) (lm.lg.presentWhenName (Some typeDefinition) child) (BigInteger i) nIndexSizeInBits (BigInteger (children.Length - 1)) childContent.funcBody sChildName sChildTypeDef sChoiceTypeName (sChildInitExpr + exprMethodCall) isSequence isEnum codec, childContent.localVariables, childContent.errCodes )
             let childrenContent = childrenContent3 |> List.map(fun (s,_,_) -> s)
             let childrenLocalvars = childrenContent3 |> List.collect(fun (_,s,_) -> s)
             let childrenErrCodes = childrenContent3 |> List.collect(fun (_,_,s) -> s)
             
-            let ret = choice p.arg.p (lm.lg.getAcces p.arg) childrenContent (BigInteger (children.Length - 1)) sChoiceIndexName errCode.errCodeName td nIndexSizeInBits  codec
+            let ret = choice p.arg.p (lm.lg.getAccess p.arg) childrenContent (BigInteger (children.Length - 1)) sChoiceIndexName errCode.errCodeName td nIndexSizeInBits  codec
             Some ({UPERFuncBodyResult.funcBody = ret; errCodes = errCode::childrenErrCodes; localVariables = localVariables@childrenLocalvars; bValIsUnReferenced=false; bBsIsUnReferenced=false})
         | Some baseFuncName ->
             let funcBodyContent = callBaseTypeFunc lm (lm.lg.getPointer p.arg) baseFuncName codec

@@ -285,6 +285,7 @@ and NamedConstraint = {
 type NamedItem = {
     Name:StringLoc
     c_name:string
+    scala_name:string
     ada_name:string
     definitionValue : BigInteger          // the value in the header file
     
@@ -407,7 +408,7 @@ type Integer = {
     acnEncodingClass    : IntEncodingClass
     isUnsigned          : bool
     typeDef             : Map<ProgrammingLanguage, FE_PrimitiveTypeDefinition>
-
+    defaultInitVal      : String
 }
 
 type Real = {
@@ -423,6 +424,7 @@ type Real = {
     acnEncodingClass    : RealEncodingClass
 
     typeDef             : Map<ProgrammingLanguage, FE_PrimitiveTypeDefinition>
+    defaultInitVal      : String
 }
 
 type StringType = {
@@ -441,7 +443,7 @@ type StringType = {
     acnEncodingClass    : StringAcnEncodingClass
     isNumeric           : bool
     typeDef             : Map<ProgrammingLanguage, FE_StringTypeDefinition>
-
+    defaultInitVal      : String
 }
 
 
@@ -474,7 +476,8 @@ type BitString = {
     acnMinSizeInBits    : BigInteger
     acnEncodingClass    : SizeableAcnEncodingClass
     typeDef             : Map<ProgrammingLanguage, FE_SizeableTypeDefinition>
-    namedBitList     : NamedBit1 list
+    namedBitList        : NamedBit1 list
+    defaultInitVal      : String
 }
 
 type TimeType = {
@@ -497,7 +500,7 @@ type NullType = {
     acnMaxSizeInBits    : BigInteger
     acnMinSizeInBits    : BigInteger
     typeDef             : Map<ProgrammingLanguage, FE_PrimitiveTypeDefinition>
-
+    defaultInitVal      : String
 }
 
 type Boolean = {    
@@ -509,6 +512,7 @@ type Boolean = {
     acnMaxSizeInBits    : BigInteger
     acnMinSizeInBits    : BigInteger
     typeDef             : Map<ProgrammingLanguage, FE_PrimitiveTypeDefinition>
+    defaultInitVal      : String
 }
 
 type ObjectIdentifier = {    
@@ -537,7 +541,7 @@ type Enumerated = {
     encodeValues        : bool
     userDefinedValues   : bool      //if true, the user has associated at least one item with a value
     typeDef             : Map<ProgrammingLanguage, FE_EnumeratedTypeDefinition>
-
+    defaultInitVal      : String
 }
 
 type AcnReferenceToEnumerated = {
@@ -545,6 +549,7 @@ type AcnReferenceToEnumerated = {
     tasName             : StringLoc
     enumerated          : Enumerated
     acnAligment         : AcnAligment option
+    defaultValue        : string
 }
 
 
@@ -553,6 +558,7 @@ type AcnReferenceToIA5String = {
     tasName             : StringLoc
     str                 : StringType
     acnAligment         : AcnAligment option
+    defaultValue        : string
 }
 
 type AcnInteger = {
@@ -569,6 +575,7 @@ type AcnInteger = {
     isUnsigned          : bool
     checkIntHasEnoughSpace  : BigInteger -> BigInteger -> unit
     inheritInfo          : InheritanceInfo option
+    defaultValue        : string
 }
 
 type AcnBoolean = {
@@ -577,6 +584,7 @@ type AcnBoolean = {
     acnMaxSizeInBits    : BigInteger
     acnMinSizeInBits    : BigInteger
     Location            : SrcLoc //Line no, Char pos
+    defaultValue        : string
 }
 
 type AcnNullType = {
@@ -585,6 +593,7 @@ type AcnNullType = {
     acnMaxSizeInBits    : BigInteger
     acnMinSizeInBits    : BigInteger
     Location            : SrcLoc //Line no, Char pos
+    defaultValue        : string
 }
 
 type  AcnInsertedType = 
@@ -706,6 +715,7 @@ and SeqChildInfo =
 and Asn1Child = {
     Name                        : StringLoc
     _c_name                     : string
+    _scala_name                 : string
     _ada_name                   : string                     
     Type                        : Asn1Type
     Optionality                 : Asn1Optionality option
@@ -730,12 +740,13 @@ and Choice = {
     acnMinSizeInBits    : BigInteger
     acnLoc              : SrcLoc option
     typeDef             : Map<ProgrammingLanguage, FE_ChoiceTypeDefinition>
-
+    defaultInitVal      : String
 }
 
 and ChChildInfo = {
     Name                        : StringLoc
     _c_name                     : string
+    _scala_name                 : string
     _ada_name                   : string                     
     present_when_name           : string // Does not contain the "_PRESENT". Not to be used directly by backends.
     Type                        : Asn1Type
@@ -770,12 +781,14 @@ and ReferenceType = {
     acnMinSizeInBits    : BigInteger
     encodingOptions        : EncodeWithinOctetOrBitStringProperties option
     refCons             : AnyConstraint list
+    defaultInitVal      : String
 }
 
 
 type TypeAssignment = {
     Name:StringLoc
     c_name:string
+    scala_name:string
     ada_name:string
     Type:Asn1Type
     asn1Comments: string list
@@ -787,6 +800,7 @@ with
 type ValueAssignment = {
     Name:StringLoc
     c_name:string
+    scala_name:string
     ada_name:string
     Type:Asn1Type
     Value:Asn1Value

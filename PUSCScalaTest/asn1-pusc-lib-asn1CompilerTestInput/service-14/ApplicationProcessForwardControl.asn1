@@ -1,0 +1,60 @@
+--!
+--! Copyright (C) 2017-2023 N7 Space sp. z o. o.
+--! Contact: https://n7space.com
+--!
+--! This file is part of ASN.1/ACN PUS-C Components Library.
+--!
+--! Library was developed under a programme and funded by
+--! European Space Agency.
+--!
+--! This Library is free software: you can redistribute it and/or modify
+--! it under the terms of the GNU General Public License as published by
+--! the Free Software Foundation, either version 3 of the License, or
+--! (at your option) any later version.
+--!
+--! This Library is distributed in the hope that it will be useful,
+--! but WITHOUT ANY WARRANTY; without even the implied warranty of
+--! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+--! GNU General Public License for more details.
+--!
+--! You should have received a copy of the GNU General Public License
+--! along with this program.  If not, see <http://www.gnu.org/licenses/>.
+--!
+
+ApplicationProcessForwardControl DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+EXPORTS ALL;
+IMPORTS
+    ApplicationProcess-ID FROM ApplicationProcess
+    MessageSubtype-ID, ServiceType-ID FROM MessageType
+    PUSC-UINT32 FROM BasicTypes;
+
+
+maxApplicationProcessForwardControlCount INTEGER ::= 31
+maxServiceTypeForwardControl INTEGER ::= 31
+maxMessageSubtypeForwardControl INTEGER ::= 31
+
+ApplicationProcessForwardControl ::= SEQUENCE
+{
+--! n1 UnsignedInteger
+    forwardControl SEQUENCE (SIZE(1 .. maxApplicationProcessForwardControlCount)) OF SingleApplicationProcessForwardControl
+}
+
+SingleApplicationProcessForwardControl ::= SingleApplicationProcessForwardControlGeneric {ApplicationProcess-ID}
+
+ServiceTypeForwardControl ::= ServiceTypeForwardControlGeneric {ServiceType-ID, MessageSubtype-ID}
+
+SingleApplicationProcessForwardControlGeneric {ApplicationProcess-ID-Type} ::= SEQUENCE
+{
+    applicationProcess-ID ApplicationProcess-ID-Type,
+--! n2 UnsignedInteger
+    services SEQUENCE (SIZE(0 .. maxServiceTypeForwardControl)) OF ServiceTypeForwardControl
+}
+
+ServiceTypeForwardControlGeneric {ServiceType-Type, MessageSubtype-Type} ::= SEQUENCE
+{
+    serviceType ServiceType-Type,
+--! n3 UnsignedInteger,
+    messages SEQUENCE (SIZE(0 .. maxMessageSubtypeForwardControl)) OF MessageSubtype-Type
+}
+
+END

@@ -1,0 +1,296 @@
+{
+  "name": "ST[06] memory management",
+  "submodules": [
+    {
+      "name": "Raw data memory management subservice",
+      "elements": [
+        {
+          "name": "Load raw memory data  areas",
+          "asn1Files": [
+            "PUS-6-2.asn1",
+            "Memory.asn1",
+            "RawMemory.asn1",
+            "Data.asn1"
+          ],
+          "requires": [
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            }
+          ]
+        },
+        {
+          "name": "Load a raw memory atomic data area in non-interruptible transaction",
+          "asn1Files": [
+            "PUS-6-11.asn1",
+            "Memory.asn1",
+            "RawMemory.asn1"
+          ],
+          "requires": [
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            }
+          ]
+        },
+        {
+          "name": "Dump raw memory data",
+          "asn1Files": [
+            "PUS-6-5.asn1",
+            "PUS-6-6.asn1",
+            "Memory.asn1",
+            "RawMemory.asn1",
+            "Data.asn1"
+          ],
+          "requires": [
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            }
+          ]
+        },
+        {
+          "name": "Check raw memory data",
+          "asn1Files": [
+            "PUS-6-9.asn1",
+            "PUS-6-10.asn1",
+            "Memory.asn1",
+            "RawMemory.asn1"
+          ],
+          "requires": [
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            }
+          ]
+        },
+        {
+          "name": "Load raw memory data areas by reference",
+          "asn1Files": [
+            "PUS-6-19.asn1",
+            "Memory.asn1",
+            "RawMemory.asn1"
+          ],
+          "requires": [
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "File Path"
+            }
+          ]
+        },
+        {
+          "name": "Dump raw memory data areas to file",
+          "asn1Files": [
+            "PUS-6-20.asn1",
+            "Memory.asn1",
+            "RawMemory.asn1"
+          ],
+          "requires": [
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "File Path"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Structured data memory management subservice",
+      "elements": [
+        {
+          "name": "Load object memory data",
+          "asn1Files": [
+            "PUS-6-1.asn1",
+            "Memory.asn1",
+            "StructuredMemory.asn1",
+            "Data.asn1"
+          ],
+          "requires": [
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            }
+          ]
+        },
+        {
+          "name": "Dump object memory data",
+          "asn1Files": [
+            "PUS-6-3.asn1",
+            "PUS-6-4.asn1",
+            "Memory.asn1",
+            "StructuredMemory.asn1",
+            "Data.asn1"
+          ],
+          "requires": [
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            }
+          ]
+        },
+        {
+          "name": "Check object memory data",
+          "asn1Files": [
+            "PUS-6-7.asn1",
+            "PUS-6-8.asn1",
+            "Memory.asn1",
+            "StructuredMemory.asn1"
+          ],
+          "requires": [
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            }
+          ]
+        },
+        {
+          "name": "Check an object memory object",
+          "asn1Files": [
+            "PUS-6-17.asn1",
+            "PUS-6-18.asn1",
+            "Memory.asn1",
+            "StructuredMemory.asn1"
+          ],
+          "requires": [
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            }
+          ]
+        },
+        {
+          "name": "Load object memory data areas by reference",
+          "asn1Files": [
+            "PUS-6-21.asn1",
+            "Memory.asn1",
+            "StructuredMemory.asn1"
+          ],
+          "requires": [
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "File Path"
+            }
+          ]
+        },
+        {
+          "name": "Dump object memory data areas to file",
+          "asn1Files": [
+            "PUS-6-22.asn1",
+            "Memory.asn1",
+            "StructuredMemory.asn1"
+          ],
+          "requires": [
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "File Path"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Common memory management subservice",
+      "elements": [
+        {
+          "name": "Abort all memory dumps",
+          "asn1Files": ["PUS-6-12.asn1"]
+        }
+      ]
+    },
+    {
+      "name": "Memory configuration subservice",
+      "elements": [
+        {
+          "name": "Enable the scrubbing of a memory",
+          "asn1Files": [
+            "PUS-6-13.asn1",
+            "Memory.asn1"
+          ],
+          "requires": [
+            "Disable the scrubbing of a memory",
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            }
+          ]
+        },
+        {
+          "name": "Disable the scrubbing of a memory",
+          "asn1Files": [
+            "PUS-6-14.asn1",
+            "Memory.asn1"
+          ],
+          "requires": [
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            }
+          ]
+        },
+        {
+          "name": "Enable the write protection of a memory",
+          "asn1Files": [
+            "PUS-6-15.asn1",
+            "Memory.asn1"
+          ],
+          "requires": [
+            "Disable the write protection of a memory",
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            }
+          ]
+        },
+        {
+          "name": "Disable the write protection of a memory",
+          "asn1Files": [
+            "PUS-6-16.asn1",
+            "Memory.asn1"
+          ],
+          "requires": [
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

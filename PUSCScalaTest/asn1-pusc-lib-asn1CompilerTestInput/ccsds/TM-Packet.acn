@@ -1,0 +1,90 @@
+--!
+--! Copyright (C) 2017-2023 N7 Space sp. z o. o.
+--! Contact: https://n7space.com
+--!
+--! This file is part of ASN.1/ACN PUS-C Components Library.
+--!
+--! Library was developed under a programme and funded by
+--! European Space Agency.
+--!
+--! This Library is free software: you can redistribute it and/or modify
+--! it under the terms of the GNU General Public License as published by
+--! the Free Software Foundation, either version 3 of the License, or
+--! (at your option) any later version.
+--!
+--! This Library is distributed in the hope that it will be useful,
+--! but WITHOUT ANY WARRANTY; without even the implied warranty of
+--! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+--! GNU General Public License for more details.
+--!
+--! You should have received a copy of the GNU General Public License
+--! along with this program.  If not, see <http://www.gnu.org/licenses/>.
+--!
+
+TM-Packet DEFINITIONS ::= BEGIN
+
+TM-CCSDS-Packet []
+{
+    packetVersionNumber [],
+    packet-ID [] {
+        packetType [],
+        secondaryHeaderFlag PacketTypes.SecondaryHeaderFlag [],
+        applicationProcess-ID []
+    },
+    packetSequenceControl [],
+    packetDataLength [],
+    packetDataField <packet-ID.secondaryHeaderFlag> []
+}
+
+TM-PacketDataField <INTEGER:secondaryHeaderFlag> []
+{
+    dataWithSecondaryHeader [present-when secondaryHeaderFlag==1],
+    dataNoSecondaryHeader [present-when secondaryHeaderFlag==0]
+}
+
+TM-DataWithSecondaryHeader []
+{
+    secondaryHeader [] {
+        tmPacketPusVersionNumber [],
+        spacecraftTimeReferenceStatus [],
+        serviceType-ID MessageType.ServiceType-ID [],
+        messageSubtype-ID MessageType.MessageSubtype-ID [],
+        messageTypeCounter [size 16, encoding pos-int, endianness big],
+        destination-ID [],
+        time []
+--! spare NULL
+    },
+    data <secondaryHeader.serviceType-ID, secondaryHeader.messageSubtype-ID> [],
+--! spare [],
+    packetErrorControl [align-to-next byte]
+}
+
+TM-DataNoSecondaryHeader []
+{
+    data [],
+--! spare [],
+    packetErrorControl [align-to-next byte]
+}
+
+TM-Packet-ID []
+{
+    packetType [],
+--!    secondaryHeaderFlag PacketTypes.SecondaryHeaderFlag [],
+    applicationProcess-ID []
+}
+
+TM-PacketSecondaryHeader []
+{
+    tmPacketPusVersionNumber [],
+    spacecraftTimeReferenceStatus [],
+--!    serviceType-ID MessageType.ServiceType-ID [],
+--!    messageSubtype-ID MessageType.MessageSubtype-ID [],
+    messageTypeCounter [size 16, encoding pos-int, endianness big],
+    destination-ID [],
+    time []
+--! spare NULL
+}
+
+TM-PacketType [pattern '0'B]
+
+END

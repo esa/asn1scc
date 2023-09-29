@@ -266,12 +266,10 @@ let private createAcnFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:
     let errCode, ns = getNextValidErrorCode us errCodeName None
     let nMaxBytesInACN = BigInteger (ceil ((double t.acnMaxSizeInBits)/8.0))
     let nMinBytesInACN = BigInteger (ceil ((double t.acnMinSizeInBits)/8.0))
+    let soInitFuncName = getFuncNameGeneric typeDefinition (lm.init.methodNameSuffix())
     let EmitTypeAssignment_primitive     =  lm.acn.EmitTypeAssignment_primitive
     let EmitTypeAssignment_primitive_def =  lm.acn.EmitTypeAssignment_primitive_def
     let EmitTypeAssignment_def_err_code  =  lm.acn.EmitTypeAssignment_def_err_code
-
-    
-
 
     let funcBodyAsSeqComp st prms p c_name : ((AcnFuncBodyResult option)*State) =
         let funcBody = handleSavePostion funcBody t.SaveBitStreamPosition c_name t.id lm codec prms p
@@ -282,7 +280,7 @@ let private createAcnFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:
     let funcBody = handleAlignemntForAsn1Types r lm codec t.acnAligment funcBody
 
     let p : CallerScope = lm.lg.getParamType t codec
-    let topLevAcc = lm.lg.getAcces p.arg
+    let topLevAcc = lm.lg.getAccess p.arg
     let varName = p.arg.p
     let sStar = lm.lg.getStar p.arg
     let isValidFuncName = match isValidFunc with None -> None | Some f -> f.funcName
@@ -321,7 +319,7 @@ let private createAcnFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:
                 let lvars = bodyResult_localVariables |> List.map(fun (lv:LocalVariable) -> lm.lg.getLocalVariableDeclaration lv) |> Seq.distinct
                 let prms = t.acnParameters |> List.map handleAcnParameter
                 let prmNames = t.acnParameters |> List.map (fun p -> p.c_name)
-                let func = Some(EmitTypeAssignment_primitive varName sStar funcName isValidFuncName  (typeDefinition.longTypedefName2 lm.lg.hasModules) lvars  bodyResult_funcBody soSparkAnnotations sInitilialExp prms prmNames (t.acnMaxSizeInBits = 0I) bBsIsUnreferenced bVarNameIsUnreferenced codec)
+                let func = Some(EmitTypeAssignment_primitive varName sStar funcName isValidFuncName (typeDefinition.longTypedefName2 lm.lg.hasModules) lvars bodyResult_funcBody soSparkAnnotations sInitilialExp prms prmNames (t.acnMaxSizeInBits = 0I) bBsIsUnreferenced bVarNameIsUnreferenced soInitFuncName codec)
                 
                 //let errCodes = bodyResult.errCodes
                 let errCodStr = errCodes |> List.map(fun x -> EmitTypeAssignment_def_err_code x.errCodeName (BigInteger x.errCodeValue) x.comment) |> List.distinct
@@ -520,7 +518,11 @@ let createEnumComn (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:CommonTypes
     let rtlIntType = (DAstTypeDefinition.getIntererTypeByClass lm intTypeClass)()
     let localVar, intVal =
         let varName = "intVal"
-        GenericLocalVariable {GenericLocalVariable.name = varName; varType= rtlIntType; arrSize= None; isStatic = false; initExp=None}, varName
+        let initExp = 
+            match ST.lang with
+            | ProgrammingLanguage.Scala -> Some("0L")
+            | _ -> None
+        GenericLocalVariable {GenericLocalVariable.name = varName; varType= rtlIntType; arrSize= None; isStatic = false; initExp=initExp }, varName
         //match min >= 0I with
         //| true -> Asn1UIntLocalVariable ("uIntVal",None), "uIntVal"
         //| false -> Asn1SIntLocalVariable ("intVal",None), "intVal"
@@ -540,7 +542,9 @@ let createEnumComn (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:CommonTypes
             match intFuncBody errCode acnArgs pVal with
             | None      -> None
             | Some(intAcnFuncBdResult) ->
-                let arrItems = o.items |> List.map(fun it -> Enumerated_item (lm.lg.getValue p.arg) (lm.lg.getNamedItemBackendName (Some defOrRef) it ) it.acnEncodeValue intVal codec)
+                let arrItems = o.items |> List.map(fun it -> 
+                    let enumClassName = extractEnumClassName "" it.scala_name it.Name.Value
+                    Enumerated_item (lm.lg.getValue p.arg) (lm.lg.getNamedItemBackendName (Some defOrRef) it ) enumClassName it.acnEncodeValue intVal codec)
                 Some (EnumeratedEncValues (lm.lg.getValue p.arg) td arrItems intAcnFuncBdResult.funcBody errCode.errCodeName sFirstItemName intVal codec, intAcnFuncBdResult.errCodes, localVar::intAcnFuncBdResult.localVariables)
         match funcBodyContent with
         | None -> None
@@ -957,12 +961,12 @@ let createOctetStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserte
             match o.acnEncodingClass with
             | SZ_EC_FIXED_SIZE                                              -> 
                 let fncBody = 
-                    fixedSize p.arg.p (lm.lg.getAcces p.arg) o.minSize.acn codec 
+                    fixedSize p.arg.p (lm.lg.getAccess p.arg) o.minSize.acn codec 
                 Some(fncBody, [errCode],[])
 
             | SZ_EC_LENGTH_EMBEDDED lenSize                                 ->
                 let fncBody = 
-                    varSize p.arg.p (lm.lg.getAcces p.arg)  (o.minSize.acn) (o.maxSize.acn) lenSize errCode.errCodeName codec 
+                    varSize p.arg.p (lm.lg.getAccess p.arg)  (o.minSize.acn) (o.maxSize.acn) lenSize errCode.errCodeName codec 
                 let nStringLength =
                     match codec with
                     | Encode -> []
@@ -973,17 +977,17 @@ let createOctetStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserte
                 let extField = getExternaField r deps t.id
                 let fncBody = 
                     match o.isFixedSize with
-                    | true  -> oct_external_field_fix_size p.arg.p (lm.lg.getAcces p.arg) (if o.minSize.acn=0I then None else Some ( o.minSize.acn)) ( o.maxSize.acn) extField nAlignSize errCode.errCodeName codec
-                    | false -> oct_external_field p.arg.p (lm.lg.getAcces p.arg) (if o.minSize.acn=0I then None else Some ( o.minSize.acn)) ( o.maxSize.acn) extField nAlignSize errCode.errCodeName codec
+                    | true  -> oct_external_field_fix_size p.arg.p (lm.lg.getAccess p.arg) (if o.minSize.acn=0I then None else Some ( o.minSize.acn)) ( o.maxSize.acn) extField nAlignSize errCode.errCodeName codec
+                    | false -> oct_external_field p.arg.p (lm.lg.getAccess p.arg) (if o.minSize.acn=0I then None else Some ( o.minSize.acn)) ( o.maxSize.acn) extField nAlignSize errCode.errCodeName codec
                 Some(fncBody, [errCode],[])
             | SZ_EC_TerminationPattern bitPattern   ->
                 let mod8 = bitPattern.Value.Length % 8
                 let suffix = [1 .. mod8] |> Seq.map(fun _ -> "0") |> Seq.StrJoin ""
                 let bitPatten8 = bitPattern.Value + suffix
                 let byteArray = bitStringValueToByteArray bitPatten8.AsLoc
-                let internalItem = InternalItem_oct_str p.arg.p (lm.lg.getAcces p.arg) i  errCode.errCodeName codec 
+                let internalItem = InternalItem_oct_str p.arg.p (lm.lg.getAccess p.arg) i  errCode.errCodeName codec 
                 let noSizeMin = if o.minSize.acn=0I then None else Some ( o.minSize.acn)
-                let fncBody = oct_sqf_null_terminated p.arg.p (lm.lg.getAcces p.arg) i internalItem noSizeMin o.maxSize.acn byteArray bitPattern.Value.Length.AsBigInt errCode.errCodeName  8I 8I codec
+                let fncBody = oct_sqf_null_terminated p.arg.p (lm.lg.getAccess p.arg) i internalItem noSizeMin o.maxSize.acn byteArray bitPattern.Value.Length.AsBigInt errCode.errCodeName  8I 8I codec
                 let lv2 = 
                     match codec, lm.lg.acn.checkBitPatternPresentResult with
                     | Decode, true    -> [IntegerLocalVariable ("checkBitPatternPresentResult", Some 0)]
@@ -1017,8 +1021,8 @@ let createBitStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
                 let createBitStringFunction_extfld  (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.BitString) (errCode:ErroCode) (p:CallerScope) (extField:string) (codec:CommonTypes.Codec) : (string*ErroCode list*LocalVariable list) = 
                     let fncBody = 
                         match o.minSize.uper = o.maxSize.uper with
-                        | true  -> lm.acn.bit_string_external_field_fixed_size p.arg.p errCode.errCodeName (lm.lg.getAcces p.arg) (if o.minSize.acn=0I then None else Some ( o.minSize.acn)) ( o.maxSize.acn) extField codec
-                        | false  -> lm.acn.bit_string_external_field p.arg.p errCode.errCodeName (lm.lg.getAcces p.arg) (if o.minSize.acn=0I then None else Some ( o.minSize.acn)) ( o.maxSize.acn) extField codec
+                        | true  -> lm.acn.bit_string_external_field_fixed_size p.arg.p errCode.errCodeName (lm.lg.getAccess p.arg) (if o.minSize.acn=0I then None else Some ( o.minSize.acn)) ( o.maxSize.acn) extField codec
+                        | false  -> lm.acn.bit_string_external_field p.arg.p errCode.errCodeName (lm.lg.getAccess p.arg) (if o.minSize.acn=0I then None else Some ( o.minSize.acn)) ( o.maxSize.acn) extField codec
                     (fncBody, [errCode], [])
 
                 
@@ -1033,7 +1037,7 @@ let createBitStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
                     let byteArray = bitStringValueToByteArray bitPatten8.AsLoc
                     let i = sprintf "i%d" (t.id.SeqeuenceOfLevel + 1)
                     let lv = SequenceOfIndex (t.id.SeqeuenceOfLevel + 1, None)
-                    let fncBody = lm.acn.bit_string_null_terminated p.arg.p errCode.errCodeName (lm.lg.getAcces p.arg) i (if o.minSize.acn=0I then None else Some ( o.minSize.acn)) ( o.maxSize.acn) byteArray bitPattern.Value.Length.AsBigInt codec
+                    let fncBody = lm.acn.bit_string_null_terminated p.arg.p errCode.errCodeName (lm.lg.getAccess p.arg) i (if o.minSize.acn=0I then None else Some ( o.minSize.acn)) ( o.maxSize.acn) byteArray bitPattern.Value.Length.AsBigInt codec
                     (fncBody, [errCode], [])
 
                 let ret = createBitStringFunction_term_pat t o errCode p codec bitPattern
@@ -1041,12 +1045,12 @@ let createBitStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
                 Some ret
             | SZ_EC_FIXED_SIZE       ->
                 let fncBody = 
-                    bitString_FixSize p.arg.p (lm.lg.getAcces p.arg) o.minSize.acn errCode.errCodeName codec
+                    bitString_FixSize p.arg.p (lm.lg.getAccess p.arg) o.minSize.acn errCode.errCodeName codec
                 Some(fncBody, [errCode],[])
 
             | SZ_EC_LENGTH_EMBEDDED nSizeInBits -> 
                 let fncBody =
-                    bitString_VarSize p.arg.p (lm.lg.getAcces p.arg) o.minSize.acn o.maxSize.acn errCode.errCodeName nSizeInBits codec
+                    bitString_VarSize p.arg.p (lm.lg.getAccess p.arg) o.minSize.acn o.maxSize.acn errCode.errCodeName nSizeInBits codec
                 let nStringLength =
                     match codec with
                     | Encode -> []
@@ -1105,7 +1109,7 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserted
                             match o.isFixedSize with
                             | true  -> None
                             | false -> 
-                                let funcBody = varSize p.arg.p (lm.lg.getAcces p.arg)  typeDefinitionName i "" ( o.minSize.acn) ( o.maxSize.acn) nSizeInBits ( child.acnMinSizeInBits) nIntItemMaxSize 0I errCode.errCodeName codec
+                                let funcBody = varSize p.arg.p (lm.lg.getAccess p.arg)  typeDefinitionName i "" ( o.minSize.acn) ( o.maxSize.acn) nSizeInBits ( child.acnMinSizeInBits) nIntItemMaxSize 0I errCode.errCodeName codec
                                 Some ({AcnFuncBodyResult.funcBody = funcBody; errCodes = [errCode]; localVariables = lv@nStringLength; bValIsUnReferenced= false; bBsIsUnReferenced=false})    
 
                     | Some internalItem -> 
@@ -1113,7 +1117,7 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserted
                         let ret, localVariables = 
                             match o.isFixedSize with
                             | true   -> fixedSize p.arg.p typeDefinitionName i internalItem.funcBody ( o.minSize.acn) ( child.acnMinSizeInBits) nIntItemMaxSize 0I codec , nStringLength 
-                            | false  -> varSize p.arg.p (lm.lg.getAcces p.arg)  typeDefinitionName i internalItem.funcBody ( o.minSize.acn) ( o.maxSize.acn) nSizeInBits ( child.acnMinSizeInBits) nIntItemMaxSize 0I errCode.errCodeName codec , nStringLength 
+                            | false  -> varSize p.arg.p (lm.lg.getAccess p.arg)  typeDefinitionName i internalItem.funcBody ( o.minSize.acn) ( o.maxSize.acn) nSizeInBits ( child.acnMinSizeInBits) nIntItemMaxSize 0I errCode.errCodeName codec , nStringLength 
                         Some ({AcnFuncBodyResult.funcBody = ret; errCodes = errCode::childErrCodes; localVariables = lv@(internalItem.localVariables@localVariables); bValIsUnReferenced= false; bBsIsUnReferenced=false})    
 
                 | SZ_EC_ExternalField   _    -> 
@@ -1126,8 +1130,8 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserted
                         let extField        = getExternaField r deps t.id
                         let funcBodyContent = 
                             match o.isFixedSize with
-                            | true  -> oct_sqf_external_field_fix_size p.arg.p (lm.lg.getAcces p.arg) i internalItem (if o.minSize.acn=0I then None else Some ( o.minSize.acn)) ( o.maxSize.acn) extField nAlignSize errCode.errCodeName o.child.acnMinSizeInBits o.child.acnMaxSizeInBits  codec
-                            | false -> external_field p.arg.p (lm.lg.getAcces p.arg) i internalItem (if o.minSize.acn=0I then None else Some ( o.minSize.acn)) ( o.maxSize.acn) extField nAlignSize errCode.errCodeName o.child.acnMinSizeInBits o.child.acnMaxSizeInBits  codec
+                            | true  -> oct_sqf_external_field_fix_size p.arg.p (lm.lg.getAccess p.arg) i internalItem (if o.minSize.acn=0I then None else Some ( o.minSize.acn)) ( o.maxSize.acn) extField nAlignSize errCode.errCodeName o.child.acnMinSizeInBits o.child.acnMaxSizeInBits  codec
+                            | false -> external_field p.arg.p (lm.lg.getAccess p.arg) i internalItem (if o.minSize.acn=0I then None else Some ( o.minSize.acn)) ( o.maxSize.acn) extField nAlignSize errCode.errCodeName o.child.acnMinSizeInBits o.child.acnMaxSizeInBits  codec
                         Some ({AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = errCode::childErrCodes; localVariables = lv@localVariables; bValIsUnReferenced= false; bBsIsUnReferenced=false})
                 | SZ_EC_TerminationPattern   bitPattern    -> 
                     match internalItem with
@@ -1141,7 +1145,7 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserted
                         let childErrCodes   = internalItem.errCodes
                         let internalItem    = internalItem.funcBody
                         let noSizeMin = if o.minSize.acn=0I then None else Some ( o.minSize.acn)
-                        let funcBodyContent = oct_sqf_null_terminated p.arg.p (lm.lg.getAcces p.arg) i internalItem noSizeMin o.maxSize.acn byteArray bitPattern.Value.Length.AsBigInt errCode.errCodeName o.child.acnMinSizeInBits o.child.acnMaxSizeInBits codec
+                        let funcBodyContent = oct_sqf_null_terminated p.arg.p (lm.lg.getAccess p.arg) i internalItem noSizeMin o.maxSize.acn byteArray bitPattern.Value.Length.AsBigInt errCode.errCodeName o.child.acnMinSizeInBits o.child.acnMaxSizeInBits codec
 
                         let lv2 = 
                             match codec, lm.lg.acn.checkBitPatternPresentResult with
@@ -1223,7 +1227,7 @@ let rec handleSingleUpdateDependency (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.Acn
             let updateStatement = 
                 match minSize.acn = maxSize.acn with
                 | true  -> sizeDependencyFixedSize (lm.lg.getValue vTarget.arg) minSize.acn
-                | false -> sizeDependency (lm.lg.getValue vTarget.arg) (getSizeableSize pSizeable.arg.p (lm.lg.getAcces pSizeable.arg)) minSize.uper maxSize.uper false typedefName
+                | false -> sizeDependency (lm.lg.getValue vTarget.arg) (getSizeableSize pSizeable.arg.p (lm.lg.getAccess pSizeable.arg)) minSize.uper maxSize.uper false typedefName
             match checkPath with
             | []    -> updateStatement
             | _     -> checkAccessPath checkPath updateStatement
@@ -1290,7 +1294,7 @@ let rec handleSingleUpdateDependency (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.Acn
                 match d.asn1Type with
                 | ReferenceToType (nodes) -> ReferenceToType (nodes |> List.rev |> List.tail |> List.rev)
             let pDecParSeq, checkPath = getAccessFromScopeNodeList parDecTypeSeq false lm pSrcRoot
-            let updateStatement = presenceDependency v (pDecParSeq.arg.p) (lm.lg.getAcces pDecParSeq.arg) (ToC d.asn1Type.lastItem)
+            let updateStatement = presenceDependency v (pDecParSeq.arg.p) (lm.lg.getAccess pDecParSeq.arg) (ToC d.asn1Type.lastItem)
             match checkPath with
             | []    -> updateStatement
             | _     -> checkAccessPath checkPath updateStatement
@@ -1307,10 +1311,14 @@ let rec handleSingleUpdateDependency (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.Acn
                 chc.children |> 
                 List.map(fun ch -> 
                     let pres = ch.acnPresentWhenConditions |> Seq.find(fun x -> x.relativePath = relPath)
+                    let presentWhenName =
+                        match ST.lang with
+                        | Scala -> chc.typeDef[Scala].typeName + "." + ch.presentWhenName
+                        | _ -> ch.presentWhenName
                     match pres with
-                    | PresenceInt   (_, intVal) -> choiceDependencyIntPres_child v ch.presentWhenName intVal.Value
+                    | PresenceInt   (_, intVal) -> choiceDependencyIntPres_child v presentWhenName intVal.Value
                     | PresenceStr   (_, strVal) -> raise(SemanticError(strVal.Location, "Unexpected presence condition. Expected integer, found string")))
-            let updateStatement = choiceDependencyPres choicePath.arg.p (lm.lg.getAcces choicePath.arg) arrsChildUpdates
+            let updateStatement = choiceDependencyPres choicePath.arg.p (lm.lg.getAccess choicePath.arg) arrsChildUpdates
             match checkPath with
             | []    -> updateStatement
             | _     -> checkAccessPath checkPath updateStatement
@@ -1334,15 +1342,19 @@ let rec handleSingleUpdateDependency (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.Acn
             let arrsChildUpdates = 
                 chc.children |> 
                 List.map(fun ch -> 
-                    let pres = ch.acnPresentWhenConditions |> Seq.find(fun x -> x.relativePath = relPath)
+                    let pres = ch.acnPresentWhenConditions |> Seq.find(fun x -> x.relativePath = relPath)                    
+                    let presentWhenName =
+                        match ST.lang with
+                        | Scala -> chc.typeDef[Scala].typeName + "." + ch.presentWhenName
+                        | _ -> ch.presentWhenName
                     match pres with
                     | PresenceInt   (_, intVal) -> 
                         raise(SemanticError(intVal.Location, "Unexpected presence condition. Expected string, found integer"))
                         //choiceDependencyIntPres_child v ch.presentWhenName intVal.Value
                     | PresenceStr   (_, strVal) -> 
                         let arrNuls = [0 .. ((int str.maxSize.acn)- strVal.Value.Length)]|>Seq.map(fun x -> lm.vars.PrintStringValueNull())
-                        choiceDependencyStrPres_child v ch.presentWhenName strVal.Value arrNuls)
-            let updateStatement = choiceDependencyPres choicePath.arg.p (lm.lg.getAcces choicePath.arg) arrsChildUpdates
+                        choiceDependencyStrPres_child v presentWhenName strVal.Value arrNuls)
+            let updateStatement = choiceDependencyPres choicePath.arg.p (lm.lg.getAccess choicePath.arg) arrsChildUpdates
             match checkPath with
             | []    -> updateStatement
             | _     -> checkAccessPath checkPath updateStatement
@@ -1370,10 +1382,18 @@ let rec handleSingleUpdateDependency (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.Acn
             
             let arrsChildUpdates = 
                 chc.children |> 
-                List.map(fun ch -> 
+                List.map(fun ch ->
                     let enmItem = enm.enm.items |> List.find(fun itm -> itm.Name.Value = ch.Name.Value)
-                    choiceDependencyEnum_Item v ch.presentWhenName (lm.lg.getNamedItemBackendName (Some (defOrRef enm)) enmItem ) )
-            let updateStatement = choiceDependencyEnum choicePath.arg.p (lm.lg.getAcces choicePath.arg) arrsChildUpdates
+                    let choiceName = chc.typeDef[Scala].typeName
+                    choiceDependencyEnum_Item v ch.presentWhenName choiceName (lm.lg.getNamedItemBackendName (Some (defOrRef enm)) enmItem))
+            let updateStatement = choiceDependencyEnum choicePath.arg.p (lm.lg.getAccess choicePath.arg) arrsChildUpdates
+            let updateStatement =
+                match ST.lang with
+                | Scala ->
+                    match checkPath.Length > 0 with
+                    | true -> (sprintf "var %s = %s.%s\n%s" choicePath.arg.p (checkPath[0].Replace("isInstanceOf", "asInstanceOf")) choicePath.arg.p updateStatement)
+                    | false -> updateStatement 
+                | _ -> updateStatement
             match checkPath with
             | []    -> updateStatement
             | _     -> checkAccessPath checkPath updateStatement
@@ -1381,7 +1401,7 @@ let rec handleSingleUpdateDependency (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.Acn
             atc.testCaseTypeIDsMap.TryFind d.asn1Type
         Some ({AcnChildUpdateResult.updateAcnChildFnc = updateFunc; errCodes=[] ; testCaseFnc=testCaseFnc; localVariables=[]}), us
 
-and getUpdateFunctionUsedInEncoding (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (lm:LanguageMacros) (m:Asn1AcnAst.Asn1Module) (acnChildOrAcnParameterId) (us:State) : (AcnChildUpdateResult option*State)=
+and getUpdateFunctionUsedInEncoding (r: Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.AcnInsertedFieldDependencies) (lm: LanguageMacros) (m: Asn1AcnAst.Asn1Module) (acnChildOrAcnParameterId) (us:State) : (AcnChildUpdateResult option*State)=
     let multiAcnUpdate       = lm.acn.MultiAcnUpdate
 
     match deps.acnDependencies |> List.filter(fun d -> d.determinant.id = acnChildOrAcnParameterId) with
@@ -1391,9 +1411,8 @@ and getUpdateFunctionUsedInEncoding (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnI
         let ret, ns = handleSingleUpdateDependency r deps lm m d1 us
         ret, ns
     | d1::dds         -> 
-        let _errCodeName         = ToC ("ERR_ACN" + (Encode.suffix.ToUpper()) + "_UPDATE_" + ((acnChildOrAcnParameterId.AcnAbsPath |> Seq.skip 1 |> Seq.StrJoin("-")).Replace("#","elm")))
+        let _errCodeName = ToC ("ERR_ACN" + (Encode.suffix.ToUpper()) + "_UPDATE_" + ((acnChildOrAcnParameterId.AcnAbsPath |> Seq.skip 1 |> Seq.StrJoin("-")).Replace("#","elm")))
         let errCode, us = getNextValidErrorCode us _errCodeName None
-
 
         let ds = d1::dds
         let c_name0 = sprintf "%s%02d" (getAcnDeterminantName acnChildOrAcnParameterId) 0
@@ -1402,7 +1421,7 @@ and getUpdateFunctionUsedInEncoding (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnI
             List.mapi(fun i d1 -> 
                 let c_name = sprintf "%s%02d" (getAcnDeterminantName acnChildOrAcnParameterId) i
                 let typegetDeterminantTypeDefinitionBodyWithinSeq = typedefName // getDeterminantTypeDefinitionBodyWithinSeq r l d1.determinant
-                [AcnInsertedChild (c_name, typegetDeterminantTypeDefinitionBodyWithinSeq); BooleanLocalVariable (c_name+"_is_initialized", Some false)]) |>
+                [AcnInsertedChild (c_name, typegetDeterminantTypeDefinitionBodyWithinSeq, ""); BooleanLocalVariable (c_name+"_is_initialized", Some false)]) |>
             List.collect(fun lvList -> lvList |> List.map (fun lv -> lm.lg.getLocalVariableDeclaration  lv))
         let localUpdateFuns,ns =
             ds |>
@@ -1516,8 +1535,8 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                         match ch.Type.ActualType.Kind with
                         | Asn1AcnAst.Integer        _  
                         | Asn1AcnAst.Real           _  
-                        | Asn1AcnAst.Boolean        _  -> {pSeq with arg = lm.lg.getSeqChild pSeq.arg (lm.lg.getAsn1ChildBackendName0 ch) false} 
-                        | Asn1AcnAst.Sequence s when xs.Length > 1 -> getChildResult s {pSeq with arg = lm.lg.getSeqChild pSeq.arg (lm.lg.getAsn1ChildBackendName0 ch) false} (RelativePath xs)
+                        | Asn1AcnAst.Boolean        _  -> {pSeq with arg = lm.lg.getSeqChild pSeq.arg (lm.lg.getAsn1ChildBackendName0 ch) false false} 
+                        | Asn1AcnAst.Sequence s when xs.Length > 1 -> getChildResult s {pSeq with arg = lm.lg.getSeqChild pSeq.arg (lm.lg.getAsn1ChildBackendName0 ch) false false} (RelativePath xs)
                         | _                 -> raise (SemanticError(x1.Location, (sprintf "Invalid reference '%s'" (lp |> Seq.StrJoin "."))))
 
 
@@ -1558,9 +1577,10 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
             acnChildren |>  
             List.filter(fun x -> match x.Type with Asn1AcnAst.AcnNullType _ -> false | _ -> true) |>  
             List.collect(fun x -> 
+                let defaultVal = extractACNDefaultInitValue x.Type
                 match codec with
-                | Encode     -> [AcnInsertedChild(x.c_name, x.typeDefinitionBodyWithinSeq); BooleanLocalVariable(x.c_name+"_is_initialized", Some false)]
-                | Decode    -> [AcnInsertedChild(x.c_name, x.typeDefinitionBodyWithinSeq)])
+                | Encode     -> [AcnInsertedChild(x.c_name, x.typeDefinitionBodyWithinSeq, defaultVal); BooleanLocalVariable(x.c_name+"_is_initialized", Some false)]
+                | Decode    -> [AcnInsertedChild(x.c_name, x.typeDefinitionBodyWithinSeq, defaultVal)])
         
         let acnlocalVariablesPrms = 
             match t.id.tasInfo with
@@ -1576,7 +1596,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
             | Some Asn1AcnAst.AlwaysPresent    -> None
             | Some (Asn1AcnAst.Optional opt)   -> 
                 match opt.acnPresentWhen with
-                | None      -> Some (sequence_presense_optChild p.arg.p (lm.lg.getAcces p.arg) (lm.lg.getAsn1ChildBackendName child)  errCode.errCodeName codec)
+                | None      -> Some (sequence_presense_optChild p.arg.p (lm.lg.getAccess p.arg) (lm.lg.getAsn1ChildBackendName child)  errCode.errCodeName codec)
                 | Some _    -> None
 
         let localVariables =
@@ -1602,7 +1622,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
 
                 let fncCall = sequence_call_post_encoding_function (lm.lg.getPointer p.arg) (actualFncName) bsPosStart  bitStreamPositionsLocalVar
                 let initialBitStrmStatement = sequence_save_bitStream_start bsPosStart codec
-                [AcnInsertedChild(bitStreamPositionsLocalVar, td.extention_function_potisions); AcnInsertedChild(bsPosStart, bitStreamName)]@localVariables, Some fncCall, Some bitStreamPositionsLocalVar, Some initialBitStrmStatement
+                [AcnInsertedChild(bitStreamPositionsLocalVar, td.extention_function_potisions, ""); AcnInsertedChild(bsPosStart, bitStreamName, "")]@localVariables, Some fncCall, Some bitStreamPositionsLocalVar, Some initialBitStrmStatement
             | _ ->
                 match o.acnProperties.preDecodingFunction with
                 | Some (PreDecodingFunction (modFncName, fncName)) when codec = Decode  ->
@@ -1615,7 +1635,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                             | Some modFncName -> (ToC modFncName.Value) + "." + (ToC fncName.Value)
                     let fncCall = sequence_call_post_decoding_validator (lm.lg.getPointer p.arg) (actualFncName) bsPosStart  bitStreamPositionsLocalVar
                     let initialBitStrmStatement = sequence_save_bitStream_start bsPosStart codec
-                    [AcnInsertedChild(bitStreamPositionsLocalVar, td.extention_function_potisions); AcnInsertedChild(bsPosStart, bitStreamName)]@localVariables, Some fncCall, Some bitStreamPositionsLocalVar, Some initialBitStrmStatement
+                    [AcnInsertedChild(bitStreamPositionsLocalVar, td.extention_function_potisions, ""); AcnInsertedChild(bsPosStart, bitStreamName, "")]@localVariables, Some fncCall, Some bitStreamPositionsLocalVar, Some initialBitStrmStatement
                 | _ ->  localVariables, None, None, None
 
             
@@ -1630,7 +1650,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                 let chFunc = child.Type.getAcnFunction codec
                 let childContentResult, ns1 = 
                     match chFunc with
-                    | Some chFunc   -> chFunc.funcBodyAsSeqComp us [] ({p with arg = lm.lg.getSeqChild p.arg (lm.lg.getAsn1ChildBackendName child) child.Type.isIA5String}) (lm.lg.getAsn1ChildBackendName child)
+                    | Some chFunc   -> chFunc.funcBodyAsSeqComp us [] ({p with arg = lm.lg.getSeqChild p.arg (lm.lg.getAsn1ChildBackendName child) child.Type.isIA5String false}) (lm.lg.getAsn1ChildBackendName child)
                     | None          -> None, us
 
                 //handle present-when acn property
@@ -1645,12 +1665,12 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                                     | Codec.Encode  -> None, [], ns1
                                     | Codec.Decode  ->
                                         let extField = getExternaField r deps child.Type.id
-                                        Some(sequence_presense_optChild_pres_bool p.arg.p (lm.lg.getAcces p.arg) (lm.lg.getAsn1ChildBackendName child) extField codec), [], ns1
+                                        Some(sequence_presense_optChild_pres_bool p.arg.p (lm.lg.getAccess p.arg) (lm.lg.getAsn1ChildBackendName child) extField codec), [], ns1
                                 | Some (PresenceWhenBoolExpression exp)    -> 
                                     let _errCodeName         = ToC ("ERR_ACN" + (codec.suffix.ToUpper()) + "_" + ((child.Type.id.AcnAbsPath |> Seq.skip 1 |> Seq.StrJoin("-")).Replace("#","elm")) + "_PRESENT_WHEN_EXP_FAILED")
                                     let errCode, ns1a = getNextValidErrorCode ns1 _errCodeName None
                                     let retExp = acnExpressionToBackendExpression o p exp
-                                    Some(sequence_presense_optChild_pres_acn_expression p.arg.p (lm.lg.getAcces p.arg) (lm.lg.getAsn1ChildBackendName child) retExp errCode.errCodeName codec), [errCode], ns1a
+                                    Some(sequence_presense_optChild_pres_acn_expression p.arg.p (lm.lg.getAccess p.arg) (lm.lg.getAsn1ChildBackendName child) retExp errCode.errCodeName codec), [errCode], ns1a
                             | _                 -> None, [], ns1
                         [(AcnPresenceStatement, acnPresenceStatement, [], errCodes)], ns1b
 
@@ -1661,14 +1681,14 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                         let childBody, chLocalVars = 
                             match child.Optionality with
                             | None                             -> Some (sequence_mandatory_child (lm.lg.getAsn1ChildBackendName child) childContent.funcBody soSaveBitStrmPosStatement codec), childContent.localVariables
-                            | Some Asn1AcnAst.AlwaysAbsent     -> Some (sequence_always_absent_child p.arg.p (lm.lg.getAcces p.arg) (lm.lg.getAsn1ChildBackendName child) childContent.funcBody soSaveBitStrmPosStatement codec), []
-                            | Some Asn1AcnAst.AlwaysPresent    -> Some(sequence_always_present_child p.arg.p (lm.lg.getAcces p.arg) (lm.lg.getAsn1ChildBackendName child) childContent.funcBody soSaveBitStrmPosStatement codec), childContent.localVariables
+                            | Some Asn1AcnAst.AlwaysAbsent     -> Some (sequence_always_absent_child p.arg.p (lm.lg.getAccess p.arg) (lm.lg.getAsn1ChildBackendName child) childContent.funcBody soSaveBitStrmPosStatement codec), []
+                            | Some Asn1AcnAst.AlwaysPresent    -> Some(sequence_always_present_child p.arg.p (lm.lg.getAccess p.arg) (lm.lg.getAsn1ChildBackendName child) childContent.funcBody soSaveBitStrmPosStatement codec), childContent.localVariables
                             | Some (Asn1AcnAst.Optional opt)   -> 
                                 match opt.defaultValue with
-                                | None                   -> Some(sequence_optional_child p.arg.p (lm.lg.getAcces p.arg) (lm.lg.getAsn1ChildBackendName child) childContent.funcBody soSaveBitStrmPosStatement codec), childContent.localVariables
+                                | None                   -> Some(sequence_optional_child p.arg.p (lm.lg.getAccess p.arg) (lm.lg.getAsn1ChildBackendName child) childContent.funcBody soSaveBitStrmPosStatement codec), childContent.localVariables
                                 | Some v                 -> 
-                                    let defInit= child.Type.initFunction.initByAsn1Value ({p with arg = lm.lg.getSeqChild p.arg (lm.lg.getAsn1ChildBackendName child) child.Type.isIA5String}) (mapValue v).kind
-                                    Some(sequence_default_child p.arg.p (lm.lg.getAcces p.arg) (lm.lg.getAsn1ChildBackendName child) childContent.funcBody defInit soSaveBitStrmPosStatement codec), childContent.localVariables
+                                    let defInit= child.Type.initFunction.initByAsn1Value ({p with arg = lm.lg.getSeqChild p.arg (lm.lg.getAsn1ChildBackendName child) child.Type.isIA5String false}) (mapValue v).kind
+                                    Some(sequence_default_child p.arg.p (lm.lg.getAccess p.arg) (lm.lg.getAsn1ChildBackendName child) childContent.funcBody defInit soSaveBitStrmPosStatement codec), childContent.localVariables
                         [(Asn1ChildEncodeStatement, childBody, chLocalVars, childContent.errCodes)], ns2
                 present_when_statements@childEncDecStatement,ns3
             | AcnChild  acnChild    -> 
@@ -1880,7 +1900,23 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
         let td = (lm.lg.getChoiceTypeDefinition o.typeDef).longTypedefName2 lm.lg.hasModules (ToC p.modName)
         let handleChild (us:State) (idx:int) (child:ChChildInfo) =
                 let chFunc = child.chType.getAcnFunction codec
-                let sCHildInitExpr = child.chType.initFunction.initExpression
+                
+                let sChildInitExpr = 
+                    match ST.lang with
+                    | Scala ->                        
+                        let sChInitExpr =
+                            match child.chType.initFunction.initFunction with
+                            | Some x -> x.funcName
+                            | None -> child.chType.initFunction.initExpression
+                        match hasInitMethSuffix sChInitExpr (lm.init.methodNameSuffix()) with
+                        | true -> sChInitExpr + "()"
+                        | false ->
+                            match child.chType.Kind with
+                            | Sequence sequence -> sequence.baseInfo.typeDef[Scala].typeName + "(" + sChInitExpr + ")"
+                            | (OctetString _ | BitString _ | IA5String _) -> sChInitExpr
+                            | _ -> extractDefaultInitValue child.chType.Kind
+                    | _ -> child.chType.initFunction.initExpression
+
                 let childContentResult, ns1 = 
                     //match child.Optionality with
                     //| Some (ChoiceAlwaysAbsent) -> None//Some (always_false_statement errCode.errCodeName)
@@ -1925,12 +1961,12 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
 
                     let sChoiceTypeName = typeDefinitionName
                     match child.Optionality with
-                    | Some (ChoiceAlwaysAbsent) -> Some (choiceChildAlwaysAbsent p.arg.p (lm.lg.getAcces p.arg) (lm.lg.presentWhenName (Some defOrRef) child) (BigInteger idx) errCode.errCodeName codec)
+                    | Some (ChoiceAlwaysAbsent) -> Some (choiceChildAlwaysAbsent p.arg.p (lm.lg.getAccess p.arg) (lm.lg.presentWhenName (Some defOrRef) child) (BigInteger idx) errCode.errCodeName codec)
                     | Some (ChoiceAlwaysPresent)
                     | None  ->
                         match ec with
                         | CEC_uper  -> 
-                            Some (choiceChild p.arg.p (lm.lg.getAcces p.arg) (lm.lg.presentWhenName (Some defOrRef) child) (BigInteger idx) nIndexSizeInBits nMax childContent_funcBody sChildName sChildTypeDef sChoiceTypeName sCHildInitExpr codec)
+                            Some (choiceChild p.arg.p (lm.lg.getAccess p.arg) (lm.lg.presentWhenName (Some defOrRef) child) (BigInteger idx) nIndexSizeInBits nMax childContent_funcBody sChildName sChildTypeDef sChoiceTypeName sChildInitExpr codec)
                         | CEC_enum (enm,_) -> 
                             let getDefOrRef (a:Asn1AcnAst.ReferenceToEnumerated) =
                                 match p.modName = a.modName with
@@ -1939,7 +1975,7 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
 
 
                             let enmItem = enm.enm.items |> List.find(fun itm -> itm.Name.Value = child.Name.Value)
-                            Some (choiceChild_Enum p.arg.p (lm.lg.getAcces p.arg) (lm.lg.getNamedItemBackendName (Some (getDefOrRef enm)) enmItem  ) (lm.lg.presentWhenName (Some defOrRef) child) childContent_funcBody sChildName sChildTypeDef sChoiceTypeName sCHildInitExpr codec)
+                            Some (choiceChild_Enum p.arg.p (lm.lg.getAccess p.arg) (lm.lg.getNamedItemBackendName (Some (getDefOrRef enm)) enmItem  ) (lm.lg.presentWhenName (Some defOrRef) child) childContent_funcBody sChildName sChildTypeDef sChoiceTypeName sChildInitExpr codec)
                         | CEC_presWhen  ->
                             let handPresenseCond (cond:AcnGenericTypes.AcnPresentWhenConditionChoiceChild) =
                                 match cond with
@@ -1960,7 +1996,7 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
                                     let arrNuls = [0 .. ((int strType.maxSize.acn) - strVal.Value.Length)]|>Seq.map(fun x -> lm.vars.PrintStringValueNull())
                                     choiceChild_preWhen_str_condition extField strVal.Value arrNuls
                             let conds = child.acnPresentWhenConditions |>List.map handPresenseCond
-                            Some (choiceChild_preWhen p.arg.p (lm.lg.getAcces p.arg) (lm.lg.presentWhenName (Some defOrRef) child) childContent_funcBody conds (idx=0) sChildName sChildTypeDef sChoiceTypeName sCHildInitExpr codec)
+                            Some (choiceChild_preWhen p.arg.p (lm.lg.getAccess p.arg) (lm.lg.presentWhenName (Some defOrRef) child) childContent_funcBody conds (idx=0) sChildName sChildTypeDef sChoiceTypeName sChildInitExpr codec)
                 [(childBody, childContent_localVariables, childContent_errCodes)], ns1
         let childrenStatements00, ns = children |> List.mapi (fun i x -> i,x)  |> foldMap (fun us (i,x) ->  handleChild us i x) us
         let childrenStatements0 = childrenStatements00 |> List.collect id
@@ -1971,12 +2007,12 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
         let choiceContent =  
             match ec with
             | CEC_uper        -> 
-                //let ret = choice p.arg.p (lm.lg.getAcces p.arg) childrenContent (BigInteger (children.Length - 1)) sChoiceIndexName errCode.errCodeName typeDefinitionName nBits  codec
-                choice_uper p.arg.p (lm.lg.getAcces p.arg) childrenStatements nMax sChoiceIndexName td nIndexSizeInBits errCode.errCodeName codec
+                //let ret = choice p.arg.p (lm.lg.getAccess p.arg) childrenContent (BigInteger (children.Length - 1)) sChoiceIndexName errCode.errCodeName typeDefinitionName nBits  codec
+                choice_uper p.arg.p (lm.lg.getAccess p.arg) childrenStatements nMax sChoiceIndexName td nIndexSizeInBits errCode.errCodeName codec
             | CEC_enum   enm  -> 
                 let extField = getExternaField r deps t.id
-                choice_Enum p.arg.p (lm.lg.getAcces p.arg) childrenStatements extField errCode.errCodeName codec
-            | CEC_presWhen    -> choice_preWhen p.arg.p  (lm.lg.getAcces p.arg) childrenStatements errCode.errCodeName codec
+                choice_Enum p.arg.p (lm.lg.getAccess p.arg) childrenStatements extField errCode.errCodeName codec
+            | CEC_presWhen    -> choice_preWhen p.arg.p  (lm.lg.getAccess p.arg) childrenStatements errCode.errCodeName codec
         Some ({AcnFuncBodyResult.funcBody = choiceContent; errCodes = errCode::childrenErrCodes; localVariables = localVariables@childrenLocalvars; bValIsUnReferenced= false; bBsIsUnReferenced=false}), ns    
 
 

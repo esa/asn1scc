@@ -801,6 +801,7 @@ let CreateValueAssignment integerSizeInBytes (astRoot:list<ITree>) (tree:ITree) 
                 Value = vl
                 Scope = ParameterizedAsn1Ast.GlobalScope
                 c_name = ToC2 name.Value
+                scala_name = ToC2 name.Value
                 ada_name = ToC2 name.Value
             }
     }
@@ -844,6 +845,7 @@ let CreateAsn1Module integerSizeInBytes (astRoot:list<ITree>) (acnAst:AcnAst) (i
                                 Value = vl
                                 Scope = scope
                                 c_name = c_name
+                                scala_name = c_name
                                 ada_name = c_name
                             }})
             namedItems) |> List.traverseResultM id

@@ -1,0 +1,633 @@
+{
+  "name": "ST[03] housekeeping",
+  "submodules": [
+    {
+      "name": "Housekeeping reporting subservice",
+      "elements": [
+        {
+          "name": "Housekeeping parameter report",
+          "asn1Files": [
+            "PUS-3-25.asn1"
+          ],
+          "requires": [
+            "Generate a one shot report for housekeeping parameter report structures",
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Housekeeping Parameter Report Structure"
+            }
+          ]
+        },
+        {
+          "name": "Enable the periodic generation of housekeeping parameter reports",
+          "asn1Files": [
+            "PUS-3-5.asn1"
+          ],
+          "requires": [
+            "Disable the periodic generation of housekeeping parameter reports",
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Housekeeping Parameter Report Structure"
+            }
+          ]
+        },
+        {
+          "name": "Disable the periodic generation of housekeeping parameter reports",
+          "asn1Files": [
+            "PUS-3-6.asn1"
+          ],
+          "requires": [
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Housekeeping Parameter Report Structure"
+            }
+          ]
+        },
+        {
+          "name": "Create a housekeeping parameter report structure",
+          "asn1Files": [
+            "PUS-3-1.asn1",
+            "CollectionInterval.asn1"
+          ],
+          "requires": [
+            "Delete housekeeping parameter report structures",
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Parameter"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Housekeeping Parameter Report Structure"
+            }
+          ]
+        },
+        {
+          "name": "Delete housekeeping parameter report structures",
+          "asn1Files": [
+            "PUS-3-3.asn1"
+          ],
+          "requires": [
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Housekeeping Parameter Report Structure"
+            }
+          ]
+        },
+        {
+          "name": "Report housekeeping parameter report structures",
+          "asn1Files": [
+            "PUS-3-9.asn1",
+            "PUS-3-10.asn1",
+            "PeriodicGenerationActionStatus.asn1",
+            "CollectionInterval.asn1"
+          ],
+          "requires": [
+            "Create a housekeeping parameter report structure",
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Parameter"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Housekeeping Parameter Report Structure"
+            }
+          ]
+        },
+        {
+          "name": "Generate a one shot report for housekeeping parameter report structures",
+          "asn1Files": [
+            "PUS-3-27.asn1",
+            "PUS-3-25.asn1"
+          ],
+          "requires": [
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Housekeeping Parameter Report Structure"
+            }
+          ]
+        },
+        {
+          "name": "Append parameters to a housekeeping parameter report structure",
+          "asn1Files": [
+            "PUS-3-29.asn1"
+          ],
+          "requires": [
+            "Create a housekeeping parameter report structure",
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Parameter"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Housekeeping Parameter Report Structure"
+            }
+          ]
+        },
+        {
+          "name": "Modify the collection interval of housekeeping parameter report structures",
+          "asn1Files": [
+            "PUS-3-31.asn1",
+            "CollectionInterval.asn1"
+          ],
+          "requires": [
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Housekeeping Parameter Report Structure"
+            }
+          ]
+        },
+        {
+          "name": "Report the periodic generation properties of housekeeping parameter report structures",
+          "asn1Files": [
+            "PUS-3-33.asn1",
+            "PUS-3-35.asn1",
+            "CollectionInterval.asn1",
+            "PeriodicGenerationActionStatus.asn1",
+            "PeriodicGenerationProperties.asn1"
+          ],
+          "requires": [
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Housekeeping Parameter Report Structure"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Diagnostic reporting subservice",
+      "elements": [
+        {
+          "name": "Diagnostic parameter report",
+          "asn1Files": [
+          ],
+          "requires": [
+          {
+            "module": "Common Types",
+            "submodule": "Mission Objects",
+            "element": "Diagnostic Parameter Report Structure"
+          }
+        ]
+        },
+        {
+          "name": "Enable the periodic generation of diagnostic parameter reports",
+          "asn1Files": [
+            "PUS-3-7.asn1"
+          ],
+          "requires": [
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Diagnostic Parameter Report Structure"
+            }
+          ]
+        },
+        {
+          "name": "Disable the periodic generation of diagnostic parameter reports",
+          "asn1Files": [
+            "PUS-3-8.asn1"
+          ],
+          "requires": [
+            "Enable the periodic generation of diagnostic parameter reports",
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Diagnostic Parameter Report Structure"
+            }
+          ]  
+        },
+        {
+          "name": "Create a diagnostic parameter report structure",
+          "asn1Files": [
+            "PUS-3-2.asn1",
+            "CollectionInterval.asn1"
+          ],
+          "requires": [
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Parameter"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Diagnostic Parameter Report Structure"
+            }
+          ]
+        },
+        {
+          "name": "Delete diagnostic parameter report structures",
+          "asn1Files": [
+            "PUS-3-4.asn1"
+          ],
+          "requires": [
+            "Create a diagnostic parameter report structure",
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Diagnostic Parameter Report Structure"
+            }
+          ]
+        },
+        {
+          "name": "Report diagnostic parameter report structures",
+          "asn1Files": [
+            "PUS-3-11.asn1",
+            "PUS-3-12.asn1",
+            "PeriodicGenerationActionStatus.asn1",
+            "CollectionInterval.asn1"
+          ],
+          "requires": [
+            "Create a diagnostic parameter report structure",
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Parameter"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Diagnostic Parameter Report Structure"
+            }
+          ]  
+        },
+        {
+          "name": "Generate a one shot report for diagnostic parameter report structures",
+          "asn1Files": [
+            "PUS-3-28.asn1",
+            "PUS-3-26.asn1"
+          ],
+          "requires": [
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Diagnostic Parameter Report Structure"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Housekeeping Parameter Report Structure"
+            }
+          ]
+        },
+        {
+          "name": "Append parameters to a diagnostic parameter report structure",
+          "asn1Files": [
+            "PUS-3-30.asn1"
+          ],
+          "requires": [
+            "Create a diagnostic parameter report structure",
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Parameter"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Diagnostic Parameter Report Structure"
+            }
+          ]
+        },
+        {
+          "name": "Modify the collection interval of diagnostic parameter report structures",
+          "asn1Files": [
+            "PUS-3-32.asn1",
+            "CollectionInterval.asn1"
+          ],
+          "requires": [
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Diagnostic Parameter Report Structure"
+            }
+          ]
+        },
+        {
+          "name": "Report the periodic generation properties of diagnostic parameter report structures",
+          "asn1Files": [
+            "PUS-3-34.asn1",
+            "PUS-3-36.asn1",
+            "CollectionInterval.asn1",
+            "PeriodicGenerationActionStatus.asn1",
+            "PeriodicGenerationProperties.asn1"
+          ],
+          "requires": [
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Diagnostic Parameter Report Structure"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Parameter functional reporting configuration subservice",
+      "elements": [
+        {
+          "name": "Apply parameter functional reporting configurations",
+          "asn1Files": [
+            "PUS-3-37.asn1",
+            "ParameterFunctionalReportingDefinition.asn1"
+          ],
+          "requires": [
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            }
+          ]
+        },
+        {
+          "name": "Create a parameter functional reporting definition",
+          "asn1Files": [
+            "PUS-3-38.asn1",
+            "ParameterReportStructureType.asn1",
+            "PeriodicGenerationActionStatus.asn1",
+            "CollectionInterval.asn1",
+            "ParameterFunctionalReportingDefinition.asn1",
+            "ParameterReportingEntries.asn1"
+          ],
+          "requires": [
+            "Delete parameter functional reporting definitions",
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Application Process"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Diagnostic Parameter Report Structure"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Housekeeping Parameter Report Structure"
+            }
+          ]
+        },
+        {
+          "name": "Delete parameter functional reporting definitions",
+          "asn1Files": [
+            "PUS-3-39.asn1",
+            "ParameterFunctionalReportingDefinition.asn1"
+          ],
+          "requires": [
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            }
+          ]
+        },
+        {
+          "name": "Report parameter functional reporting definitions",
+          "asn1Files": [
+            "PUS-3-40.asn1",
+            "PUS-3-41.asn1",
+            "ParameterReportStructureType.asn1",
+            "PeriodicGenerationActionStatus.asn1",
+            "CollectionInterval.asn1",
+            "ParameterFunctionalReportingDefinition.asn1",
+            "ParameterReportingEntries.asn1"
+          ],
+          "requires": [
+            "Create a parameter functional reporting definition",
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Application Process"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Diagnostic Parameter Report Structure"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Housekeeping Parameter Report Structure"
+            }
+          ]
+        },
+        {
+          "name": "Add parameter report definitions to a parameter functional reporting definition",
+          "asn1Files": [
+            "PUS-3-42.asn1",
+            "ParameterReportStructureType.asn1",
+            "PeriodicGenerationActionStatus.asn1",
+            "CollectionInterval.asn1",
+            "ParameterFunctionalReportingDefinition.asn1",
+            "ParameterReportingEntries.asn1"
+          ],
+          "requires": [
+            "Create a parameter functional reporting definition",
+            "Remove parameter report definitions from a parameter functional reporting definition",
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Application Process"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Diagnostic Parameter Report Structure"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Housekeeping Parameter Report Structure"
+            }
+          ]
+        },
+        {
+          "name": "Remove parameter report definitions from a parameter functional reporting definition",
+          "asn1Files": [
+            "PUS-3-43.asn1",
+            "ParameterReportStructureType.asn1",
+            "ParameterFunctionalReportingDefinition.asn1"
+          ],
+          "requires": [
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Application Process"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Diagnostic Parameter Report Structure"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Housekeeping Parameter Report Structure"
+            }
+          ]
+        },
+        {
+          "name": "Modify the periodic generation properties of parameter report definitions of a parameter functional reporting definition",
+          "asn1Files": [
+            "PUS-3-44.asn1",
+            "ParameterReportStructureType.asn1",
+            "PeriodicGenerationActionStatus.asn1",
+            "CollectionInterval.asn1",
+            "ParameterFunctionalReportingDefinition.asn1",
+            "ParameterReportingEntries.asn1"
+          ],
+          "requires": [
+            {
+              "module": "Common Types",
+              "submodule": "PTC/PFC Types",
+              "element": "Basic Types"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Application Process"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Diagnostic Parameter Report Structure"
+            },
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Housekeeping Parameter Report Structure"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

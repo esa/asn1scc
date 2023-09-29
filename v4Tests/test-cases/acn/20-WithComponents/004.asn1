@@ -21,4 +21,4 @@ MySeq ::= SEQUENCE {
 
 END
 
---TCLS     MyPDU[] 
+--TCLS     MySeq[]

@@ -64,7 +64,7 @@ let getProposedTypeDefName (us:Asn1AcnMergeState) l (id:ReferenceToType) =
         | ReferenceToType path -> 
             match path |> List.rev |> List.head with
             | SEQ_CHILD name       -> name, name
-            | CH_CHILD (name,_)    -> name, name
+            | CH_CHILD (name,_,_)    -> name, name
             | TA name              -> us.args.TypePrefix + name, name
             | SQF                   -> "elem", "elem"
             | _                             -> raise (BugErrorException "error in lastitem")

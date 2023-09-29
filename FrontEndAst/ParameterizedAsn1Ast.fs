@@ -99,6 +99,7 @@ and TemplateParameter =
 and ValueAssignment = {
     Name:StringLoc
     c_name:string
+    scala_name:string
     ada_name:string
     Type:Asn1Type
     Value:Asn1Value

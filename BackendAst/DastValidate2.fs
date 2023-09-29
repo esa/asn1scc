@@ -260,7 +260,7 @@ let ia5StringConstraint2ValidationCodeBlock  (r:Asn1AcnAst.AstRoot) (lm:Language
  
 
 let integerConstraint2ValidationCodeBlock (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (intClass:Asn1AcnAst.IntegerClass)  (c:IntegerTypeConstraint) st =
-    let valToStrFunc  (i:BigInteger) = lm.lg.intValueToSting i intClass
+    let valToStrFunc  (i:BigInteger) = lm.lg.intValueToString i intClass
     let p2StrFunc l (p:CallerScope) = l.lg.getValue p.arg
     foldRangeTypeConstraint (con_or lm) (con_and lm) (con_not lm) (con_ecxept lm) con_root (con_root2 lm)
         (fun _ v  s         -> (fun p -> VCBExpression (lm.isvalid.ExpEqual (lm.lg.getValue p.arg) (valToStrFunc  v))) ,s)
@@ -340,20 +340,20 @@ let enumeratedConstraint2ValidationCodeBlock  (l:LanguageMacros) (o:Asn1AcnAst.E
     foldGenericCon l  printNamedItem c st
 
 let octetStringConstraint2ValidationCodeBlock (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (typeId:ReferenceToType) (o:Asn1AcnAst.OctetString) (equalFunc:EqualFunction) (c:OctetStringConstraint) st =
-    let getSizeFunc  (lm:LanguageMacros) p = l.lg.Length p.arg.p (l.lg.getAcces p.arg)
+    let getSizeFunc  (lm:LanguageMacros) p = l.lg.Length p.arg.p (l.lg.getAccess p.arg)
     let compareSingleValueFunc (p:CallerScope) (v:Asn1AcnAst.OctetStringValue, (id,loc))  = 
         let octet_var_string_equal = l.isvalid.octet_var_string_equal
         let octet_fix_string_equal = l.isvalid.octet_fix_string_equal
         let printOctetArrayAsCompoundLitteral = l.vars.PrintOctetArrayAsCompoundLitteral
         let octArrLiteral = printOctetArrayAsCompoundLitteral  (v |> List.map (fun b -> b.Value))
         match o.isFixedSize with
-        | true   -> VCBExpression (octet_fix_string_equal p.arg.p (l.lg.getAcces p.arg) o.minSize.uper (v.Length.AsBigInt) octArrLiteral)
-        | false  -> VCBExpression (octet_var_string_equal p.arg.p (l.lg.getAcces p.arg)  (v.Length.AsBigInt) octArrLiteral)
+        | true   -> VCBExpression (octet_fix_string_equal p.arg.p (l.lg.getAccess p.arg) o.minSize.uper (v.Length.AsBigInt) octArrLiteral)
+        | false  -> VCBExpression (octet_var_string_equal p.arg.p (l.lg.getAccess p.arg)  (v.Length.AsBigInt) octArrLiteral)
     let fnc, ns = foldSizableConstraint r l (not o.isFixedSize) compareSingleValueFunc getSizeFunc c st
     fnc, ns
 
 let bitStringConstraint2ValidationCodeBlock (r:Asn1AcnAst.AstRoot)  (l:LanguageMacros) (typeId:ReferenceToType) (o:Asn1AcnAst.BitString) (equalFunc:EqualFunction) (c:BitStringConstraint) st =
-    let getSizeFunc (l:LanguageMacros) p = l.lg.Length p.arg.p (l.lg.getAcces p.arg)
+    let getSizeFunc (l:LanguageMacros) p = l.lg.Length p.arg.p (l.lg.getAccess p.arg)
     let compareSingleValueFunc (p:CallerScope) (v:Asn1AcnAst.BitStringValue, (id,loc))  = 
         let bit_var_string_equal = l.isvalid.bit_var_string_equal
         let bit_fix_string_equal = l.isvalid.bit_fix_string_equal
@@ -362,8 +362,8 @@ let bitStringConstraint2ValidationCodeBlock (r:Asn1AcnAst.AstRoot)  (l:LanguageM
         let octArrLiteral = printOctetArrayAsCompoundLitteral  bytes 
         let bitArrLiteral = variables_a.PrintBitArrayAsCompoundLitteral  (v.Value.ToCharArray() |> Seq.map(fun c -> if c = '0' then 0uy else 1uy)) 
         match o.isFixedSize with
-        | true   -> VCBExpression (bit_fix_string_equal p.arg.p (l.lg.getAcces p.arg) o.minSize.uper (v.Value.Length.AsBigInt) octArrLiteral bitArrLiteral)
-        | false  -> VCBExpression (bit_var_string_equal p.arg.p (l.lg.getAcces p.arg)  (v.Value.Length.AsBigInt) octArrLiteral bitArrLiteral)
+        | true   -> VCBExpression (bit_fix_string_equal p.arg.p (l.lg.getAccess p.arg) o.minSize.uper (v.Value.Length.AsBigInt) octArrLiteral bitArrLiteral)
+        | false  -> VCBExpression (bit_var_string_equal p.arg.p (l.lg.getAccess p.arg)  (v.Value.Length.AsBigInt) octArrLiteral bitArrLiteral)
     let fnc, ns = foldSizableConstraint r l (not o.isFixedSize) compareSingleValueFunc getSizeFunc c st
     fnc, ns
 
@@ -389,7 +389,7 @@ let rec anyConstraint2ValidationCodeBlock (r:Asn1AcnAst.AstRoot)  (l:LanguageMac
         choiceConstraint2ValidationCodeBlock r l t.id o.children valToStrFunc o.definitionOrRef c st
     | _                                         -> raise(SemanticError(erLoc, "Invalid combination of type/constraint type"))
     
-and sequenceConstraint2ValidationCodeBlock (r:Asn1AcnAst.AstRoot)  (l:LanguageMacros) (typeId:ReferenceToType) (children:Asn1Child list) valToStrFunc    (c:SeqConstraint)  st =
+and sequenceConstraint2ValidationCodeBlock (r: Asn1AcnAst.AstRoot) (l: LanguageMacros) (typeId: ReferenceToType) (children: Asn1Child list) valToStrFunc (c: SeqConstraint) st =
     let child_always_present_or_absentExp   = l.isvalid.Sequence_optional_child_always_present_or_absent_expr
     let sequence_OptionalChild              = l.isvalid.Sequence_OptionalChild
     let expressionToStament                 = l.isvalid.ExpressionToStament
@@ -403,7 +403,7 @@ and sequenceConstraint2ValidationCodeBlock (r:Asn1AcnAst.AstRoot)  (l:LanguageMa
             | Some ac    ->
                 let fnc, ns = anyConstraint2ValidationCodeBlock r l nc.Name.Location ch.Type ac curState
                 (fun p -> 
-                    let child_arg = l.lg.getSeqChild p.arg (l.lg.getAsn1ChildBackendName ch) ch.Type.isIA5String
+                    let child_arg = l.lg.getSeqChild p.arg (l.lg.getAsn1ChildBackendName ch) ch.Type.isIA5String false
                     let chp = {p with arg = child_arg}
                     fnc chp), ns
                     
@@ -413,22 +413,32 @@ and sequenceConstraint2ValidationCodeBlock (r:Asn1AcnAst.AstRoot)  (l:LanguageMa
             | Some _    -> 
                 let newChidlCheckFnc (p:CallerScope) = 
                     match childCheck p with
-                    | VCBExpression  exp -> VCBStatement (sequence_OptionalChild p.arg.p (l.lg.getAcces p.arg) (l.lg.getAsn1ChildBackendName ch) (expressionToStament exp), [])
-                    | VCBStatement   (stat, lv1)-> VCBStatement (sequence_OptionalChild p.arg.p (l.lg.getAcces p.arg) (l.lg.getAsn1ChildBackendName ch) stat, lv1)
+                    | VCBExpression  exp -> VCBStatement (sequence_OptionalChild p.arg.p (l.lg.getAccess p.arg) (l.lg.getAsn1ChildBackendName ch) (expressionToStament exp), [])
+                    | VCBStatement   (stat, lv1)-> VCBStatement (sequence_OptionalChild p.arg.p (l.lg.getAccess p.arg) (l.lg.getAsn1ChildBackendName ch) stat, lv1)
                     | VCBTrue            -> VCBTrue
-                    | VCBFalse           -> VCBStatement (sequence_OptionalChild p.arg.p (l.lg.getAcces p.arg) (l.lg.getAsn1ChildBackendName ch) (expressionToStament "FALSE"), [])
+                    | VCBFalse           -> VCBStatement (sequence_OptionalChild p.arg.p (l.lg.getAccess p.arg) (l.lg.getAsn1ChildBackendName ch) (expressionToStament "FALSE"), [])
 
                 newChidlCheckFnc
+
+        let isAbsentFlag = 
+            match ST.lang with
+            | ProgrammingLanguage.Scala -> l.lg.FalseLiteral
+            | _ -> "0"
+
+        let isPresentFlag = 
+            match ST.lang with
+            | ProgrammingLanguage.Scala -> l.lg.TrueLiteral
+            | _ -> "1" // leave like it was - TRUE may not be 1
 
         let presentAbsent =
             match nc.Mark with
             | Asn1Ast.NoMark        -> []
             | Asn1Ast.MarkOptional  -> []
             | Asn1Ast.MarkAbsent    -> 
-                let isExp = (fun (p:CallerScope) -> VCBExpression (child_always_present_or_absentExp p.arg.p (l.lg.getAcces p.arg) (l.lg.getAsn1ChildBackendName ch)  "0"))
+                let isExp = (fun (p:CallerScope) -> VCBExpression (child_always_present_or_absentExp p.arg.p (l.lg.getAccess p.arg) (l.lg.getAsn1ChildBackendName ch)  isAbsentFlag))
                 [isExp]
             | Asn1Ast.MarkPresent    -> 
-                let isExp = (fun (p:CallerScope) -> VCBExpression (child_always_present_or_absentExp p.arg.p (l.lg.getAcces p.arg) (l.lg.getAsn1ChildBackendName ch)  "1"))
+                let isExp = (fun (p:CallerScope) -> VCBExpression (child_always_present_or_absentExp p.arg.p (l.lg.getAccess p.arg) (l.lg.getAsn1ChildBackendName ch)  isPresentFlag))
                 [isExp]
 
         presentAbsent@[childCheck], ns
@@ -469,10 +479,10 @@ and choiceConstraint2ValidationCodeBlock (r:Asn1AcnAst.AstRoot) (l:LanguageMacro
         let childCheck =
             let newChidlCheckFnc (p:CallerScope) = 
                 match childCheck p with
-                | VCBExpression  exp -> VCBStatement (choice_OptionalChild p.arg.p (l.lg.getAcces p.arg) presentWhenName (expressionToStament exp), [])
-                | VCBStatement   (stat, lv1)-> VCBStatement (choice_OptionalChild p.arg.p (l.lg.getAcces p.arg) presentWhenName stat, lv1)
+                | VCBExpression  exp -> VCBStatement (choice_OptionalChild p.arg.p "" (l.lg.getAccess p.arg) presentWhenName (expressionToStament exp), [])
+                | VCBStatement   (stat, lv1)-> VCBStatement (choice_OptionalChild p.arg.p "" (l.lg.getAccess p.arg) presentWhenName stat, lv1)
                 | VCBTrue            -> VCBTrue
-                | VCBFalse           -> VCBStatement (choice_OptionalChild p.arg.p (l.lg.getAcces p.arg) presentWhenName (expressionToStament "FALSE"), [])
+                | VCBFalse           -> VCBStatement (choice_OptionalChild p.arg.p "" (l.lg.getAccess p.arg) (presentWhenName) (expressionToStament "FALSE"), [])
 
             newChidlCheckFnc
 
@@ -481,10 +491,10 @@ and choiceConstraint2ValidationCodeBlock (r:Asn1AcnAst.AstRoot) (l:LanguageMacro
             | Asn1Ast.NoMark        -> []
             | Asn1Ast.MarkOptional  -> []
             | Asn1Ast.MarkAbsent    -> 
-                let isExp = (fun (p:CallerScope) -> VCBExpression (choice_child_always_absent_Exp p.arg.p (l.lg.getAcces p.arg) presentWhenName  ))
+                let isExp = (fun (p:CallerScope) -> VCBExpression (choice_child_always_absent_Exp p.arg.p (l.lg.getAccess p.arg) presentWhenName  ))
                 [isExp]
             | Asn1Ast.MarkPresent    -> 
-                let isExp = (fun (p:CallerScope) -> VCBExpression (choice_child_always_present_Exp p.arg.p (l.lg.getAcces p.arg) presentWhenName ))
+                let isExp = (fun (p:CallerScope) -> VCBExpression (choice_child_always_present_Exp p.arg.p (l.lg.getAccess p.arg) presentWhenName ))
                 [isExp]
 
         presentAbsent@[childCheck], ns
@@ -509,7 +519,7 @@ and sequenceOfConstraint2ValidationCodeBlock (r:Asn1AcnAst.AstRoot) (l:LanguageM
     let expressionToStament              = l.isvalid.ExpressionToStament
     let statementForLoop                 = l.isvalid.StatementForLoop
 
-    let getSizeFunc (l:LanguageMacros) p = l.lg.Length p.arg.p (l.lg.getAcces p.arg)
+    let getSizeFunc (l:LanguageMacros) p = l.lg.Length p.arg.p (l.lg.getAccess p.arg)
     let compareSingleValueFunc (p:CallerScope) (v:Asn1AcnAst.SeqOfValue)  = 
         VCBTrue
     foldSequenceOfTypeConstraint2 (con_or l) (con_and l) (con_not l) (con_ecxept l) con_root (con_root2 l)
@@ -525,10 +535,10 @@ and sequenceOfConstraint2ValidationCodeBlock (r:Asn1AcnAst.AstRoot) (l:LanguageM
                 let childCheck p = fnc ({p with arg = ch_arg})
                 let ret = 
                     match childCheck p with                    
-                    | VCBExpression  exp -> VCBStatement (statementForLoop p.arg.p (l.lg.getAcces p.arg) i o.isFixedSize o.minSize.uper (expressionToStament exp), [lv])
-                    | VCBStatement   (stat, lv2)-> VCBStatement (statementForLoop p.arg.p (l.lg.getAcces p.arg) i o.isFixedSize o.minSize.uper stat, lv::lv2)
+                    | VCBExpression  exp -> VCBStatement (statementForLoop p.arg.p (l.lg.getAccess p.arg) i o.isFixedSize o.minSize.uper (expressionToStament exp), [lv])
+                    | VCBStatement   (stat, lv2)-> VCBStatement (statementForLoop p.arg.p (l.lg.getAccess p.arg) i o.isFixedSize o.minSize.uper stat, lv::lv2)
                     | VCBTrue            -> VCBTrue
-                    | VCBFalse           -> VCBStatement (statementForLoop p.arg.p (l.lg.getAcces p.arg) i o.isFixedSize o.minSize.uper (expressionToStament "FALSE"), [lv])
+                    | VCBFalse           -> VCBStatement (statementForLoop p.arg.p (l.lg.getAccess p.arg) i o.isFixedSize o.minSize.uper (expressionToStament "FALSE"), [lv])
                 ret), s) 
         c
         st
@@ -592,7 +602,9 @@ let createIsValidFunction (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros)  (t:Asn1Ac
     let p  = lm.lg.getParamType t Encode
     let varName = p.arg.p
     let sStar = lm.lg.getStar p.arg
-    let  func, funcDef  = 
+    let sPtrPrefix = lm.lg.getPtrPrefix p.arg
+    let sPtrSuffix = lm.lg.getPtrSuffix p.arg
+    let func, funcDef  = 
             match funcName  with
             | None              -> None, None
             | Some funcName     -> 
@@ -602,7 +614,7 @@ let createIsValidFunction (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros)  (t:Asn1Ac
                     | ValidationStatementFalse  (st,lv) ->  st, lv, true
                     | ValidationStatement       (st,lv)  -> st, lv, false
                 let lvars = (stLVs@localVars) |> List.map(fun (lv:LocalVariable) -> lm.lg.getLocalVariableDeclaration lv) |> Seq.distinct
-                let fnc = emitTasFnc varName sStar funcName  (lm.lg.getLongTypedefName typeDefinition) statement  (alphaFuncs |> List.map(fun x -> x.funcBody (str_p lm t.id))) lvars bUnreferenced
+                let fnc = emitTasFnc varName sPtrPrefix sPtrSuffix funcName (lm.lg.getLongTypedefName typeDefinition) statement (alphaFuncs |> List.map(fun x -> x.funcBody (str_p lm t.id))) lvars bUnreferenced
                 let split (s:string option) =
                     match s with
                     | None -> []
@@ -747,8 +759,8 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (t:Asn1Ac
                 let innerStatement = chFunc p
                 match innerStatement with
                 | ValidationStatementTrue   (_,_)  -> []
-                | ValidationStatementFalse  (st,clv)  -> [sequenceOf p.arg.p (l.lg.getAcces p.arg) i o.isFixedSize o.minSize.uper st, lv::clv]
-                | ValidationStatement       (st,clv)  -> [sequenceOf p.arg.p (l.lg.getAcces p.arg) i o.isFixedSize o.minSize.uper st, lv::clv]
+                | ValidationStatementFalse  (st,clv)  -> [sequenceOf p.arg.p (l.lg.getAccess p.arg) i o.isFixedSize o.minSize.uper st, lv::clv]
+                | ValidationStatement       (st,clv)  -> [sequenceOf p.arg.p (l.lg.getAccess p.arg) i o.isFixedSize o.minSize.uper st, lv::clv]
         let childCheck, lllvs2 = childCheck |> List.unzip
         match (with_component_check@childCheck) |> DAstUtilFunctions.nestItems_ret l  with
         | None   -> convertVCBToStatementAndAssigneErrCode l VCBTrue errCode.errCodeName
@@ -773,7 +785,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot)  (l:LanguageMacros) (t:Asn1Acn
             let func = 
                 (*component's is validation statement. If the component has a separate function then make a call otherwise embed the code*)
                 fun (p:CallerScope)  ->
-                    let chp = {p with arg = l.lg.getSeqChild p.arg c_name child.Type.isIA5String}
+                    let chp = {p with arg = l.lg.getSeqChild p.arg c_name child.Type.isIA5String false}
                     match isValidFunction.funcName with
                     | Some fncName  -> 
                         ValidationStatement (callBaseTypeFunc (l.lg.getPointer chp.arg)  fncName None, [])
@@ -786,9 +798,9 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot)  (l:LanguageMacros) (t:Asn1Acn
                     let newFunc = 
                         (fun (p:CallerScope) -> 
                             match func p with
-                            | ValidationStatementTrue   (st,lv)  -> ValidationStatementTrue (sequence_OptionalChild p.arg.p (l.lg.getAcces p.arg) c_name st, lv)
-                            | ValidationStatementFalse  (st,lv)  -> ValidationStatement (sequence_OptionalChild p.arg.p (l.lg.getAcces p.arg) c_name st, lv)
-                            | ValidationStatement       (st,lv)  -> ValidationStatement (sequence_OptionalChild p.arg.p (l.lg.getAcces p.arg) c_name st, lv) )
+                            | ValidationStatementTrue   (st,lv)  -> ValidationStatementTrue (sequence_OptionalChild p.arg.p (l.lg.getAccess p.arg) c_name st, lv)
+                            | ValidationStatementFalse  (st,lv)  -> ValidationStatement (sequence_OptionalChild p.arg.p (l.lg.getAccess p.arg) c_name st, lv)
+                            | ValidationStatement       (st,lv)  -> ValidationStatement (sequence_OptionalChild p.arg.p (l.lg.getAccess p.arg) c_name st, lv) )
                     newFunc
                 | None      -> func
             (*return new local variables, errorcodes or alphaFuncs*)
@@ -854,10 +866,14 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot)  (l:LanguageMacros) (t:Asn1AcnAs
             let childFnc = 
                 let newFunc = 
                     (fun (p:CallerScope) -> 
+                        let localTmpVarName =
+                            match ST.lang with
+                            | Scala -> child._scala_name
+                            | _ -> ""
                         match func p with
-                        | ValidationStatementTrue   (st,lv)  -> ValidationStatementTrue (choice_OptionalChild p.arg.p (l.lg.getAcces p.arg) presentWhenName st, lv)
-                        | ValidationStatementFalse  (st,lv)  -> ValidationStatement (choice_OptionalChild p.arg.p (l.lg.getAcces p.arg) presentWhenName st, lv)
-                        | ValidationStatement       (st,lv)  -> ValidationStatement (choice_OptionalChild p.arg.p (l.lg.getAcces p.arg) presentWhenName st, lv) )
+                        | ValidationStatementTrue   (st,lv)  -> ValidationStatementTrue (choice_OptionalChild p.arg.p localTmpVarName (l.lg.getAccess p.arg) presentWhenName st, lv)
+                        | ValidationStatementFalse  (st,lv)  -> ValidationStatement (choice_OptionalChild p.arg.p localTmpVarName (l.lg.getAccess p.arg) presentWhenName st, lv)
+                        | ValidationStatement       (st,lv)  -> ValidationStatement (choice_OptionalChild p.arg.p localTmpVarName (l.lg.getAccess p.arg) presentWhenName st, lv) )
                 newFunc
             (*return new local variables, errorcodes or alphaFuncs*)
             match isValidFunction.funcName with

@@ -2,6 +2,7 @@
 
   <PropertyGroup>
     <TargetFramework>net7.0</TargetFramework>
+    <RuntimeIdentifiers>win-x64;linux-x64;osx-x64</RuntimeIdentifiers>
   </PropertyGroup>
 
 <!--
@@ -12,7 +13,7 @@
 
   <Target Name="RunAntlr" BeforeTargets="BeforeBuild" Inputs="asn1.g;acn.g" Outputs="asn1Lexer.cs;acnLexer.cs">
       
-    <Exec Command="java -jar $(ProjectDir)antlr313/antlr-3.2.jar -o $(ProjectDir) $(ProjectDir)asn1.g &amp;&amp; java -jar $(ProjectDir)antlr313/antlr-3.2.jar -o $(ProjectDir) $(ProjectDir)acn.g" />
+    <Exec Command="java -jar antlr313/antlr-3.2.jar -o . asn1.g &amp;&amp; java -jar antlr313/antlr-3.2.jar -o . acn.g" WorkingDirectory="$(ProjectDir)" />
     <ItemGroup>
       <Compile Include="**/*$(DefaultLanguageSourceExtension)" Exclude="$(DefaultItemExcludes);$(DefaultExcludesInProjectFolder);$(BaseIntermediateOutputPath)**;$(BaseOutputPath)**;@(Compile)" />
     </ItemGroup>

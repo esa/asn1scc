@@ -9,9 +9,6 @@ open Asn1AcnAstUtilFunctions
 open DAst
 open Language
 
-
-
-
 let getAccessFromScopeNodeList (ReferenceToType nodes)  (childTypeIsString: bool) (lm:LanguageMacros) (pVal : CallerScope) =
     let handleNode zeroBasedSeqeuenceOfLevel (pVal : CallerScope) (n:ScopeNode) (childTypeIsString: bool) = 
         match n with
@@ -19,10 +16,12 @@ let getAccessFromScopeNodeList (ReferenceToType nodes)  (childTypeIsString: bool
         | TA _
         | PRM _
         | VA _              -> raise(BugErrorException "getAccessFromScopeNodeList")
-        | SEQ_CHILD chName  -> [], {pVal with arg = lm.lg.getSeqChild pVal.arg (ToC chName) childTypeIsString}
-        | CH_CHILD (chName,pre_name)  -> 
+        | SEQ_CHILD chName  -> [], {pVal with arg = lm.lg.getSeqChild pVal.arg (ToC chName) childTypeIsString false}
+        | CH_CHILD (chName,pre_name, chParent)  -> 
             let chChildIsPresent =
-                sprintf "%s%skind %s %s_PRESENT" pVal.arg.p (lm.lg.getAcces pVal.arg) lm.lg.eqOp pre_name
+                match ST.lang with
+                | Scala -> sprintf "%s.isInstanceOf[%s.%s_PRESENT]" pVal.arg.p chParent pre_name
+                | _ -> sprintf "%s%skind %s %s_PRESENT" pVal.arg.p (lm.lg.getAccess pVal.arg) lm.lg.eqOp pre_name
             [chChildIsPresent], {pVal with arg = lm.lg.getChChild pVal.arg (ToC chName) childTypeIsString}
         | SQF               -> 
             let curIdx = sprintf "i%d" (zeroBasedSeqeuenceOfLevel + 1)
@@ -42,8 +41,79 @@ let getAccessFromScopeNodeList (ReferenceToType nodes)  (childTypeIsString: bool
         ret 
     | _                                 -> raise(BugErrorException "getAccessFromScopeNodeList")
 
+let extractEnumClassName (prefix: String)(varName: String)(internalName: String): String = 
+    match ST.lang with
+    | Scala -> prefix + varName.Substring(0, max 0 (varName.Length - (internalName.Length + 1))) // TODO: check case where max is needed
+    | _ -> ""
 
+let rec extractDefaultInitValue (childType: Asn1TypeKind): String = 
+        match childType with
+        | Integer i -> i.baseInfo.defaultInitVal
+        | Real r -> r.baseInfo.defaultInitVal
+        | NullType n -> n.baseInfo.defaultInitVal
+        | Boolean b -> b.baseInfo.defaultInitVal
+        | ReferenceType rt -> extractDefaultInitValue rt.resolvedType.Kind
+        | _ -> "null"
 
+let extractACNDefaultInitValue (acnType: AcnInsertedType): String = 
+    match acnType with
+    | AcnInteger i -> i.defaultValue
+    | AcnBoolean b -> b.defaultValue
+    | AcnNullType c -> c.defaultValue
+    | AcnReferenceToEnumerated e -> e.defaultValue
+    | AcnReferenceToIA5String s -> s.defaultValue
+
+let rec resolveReferenceType(t: Asn1TypeKind): Asn1TypeKind = 
+    match t with
+    | ReferenceType rt -> resolveReferenceType rt.resolvedType.Kind
+    | _ -> t
+
+let isJVMPrimitive (t: Asn1TypeKind) = 
+    match resolveReferenceType t with
+    | Integer _ | Real _ | NullType _ | Boolean _ -> true
+    | _ -> false
+    
+let hasInitMethSuffix (initMethName: string) (suffix: string): bool =
+    initMethName.EndsWith(suffix) 
+
+let isArrayInitialiser(initMethName: string): bool =
+    initMethName.Contains("Array.fill(")
+
+let scalaInitMethSuffix (k: Asn1TypeKind) =
+    match ST.lang with
+    | Scala -> 
+        match isJVMPrimitive k with
+        | false ->
+            match k with
+            | BitString bitString -> ""
+            | _ -> "()"
+        | true -> ""
+    | _ -> ""
+
+let isEnumForJVMelseFalse (k: Asn1TypeKind): bool =
+    match ST.lang with
+    | Scala ->
+        match resolveReferenceType k with
+        | Enumerated e -> true
+        | _ -> false
+    | _ -> false
+    
+let isSequenceForJVMelseFalse (k: Asn1TypeKind): bool = 
+    match ST.lang with
+    | Scala ->
+        match k with
+        | Sequence s -> true
+        | _ -> false
+    | _ -> false
+
+let isOctetStringForJVMelseFalse (k: Asn1TypeKind): bool = 
+    match ST.lang with
+    | Scala ->
+        match k with
+        | OctetString s -> true
+        | _ -> false
+    | _ -> false
+    
 type LocalVariable with
     member this.VarName =
         match this with
@@ -52,7 +122,7 @@ type LocalVariable with
         | Asn1SIntLocalVariable(name,_)   -> name
         | Asn1UIntLocalVariable(name,_)   -> name
         | FlagLocalVariable(name,_)       -> name
-        | AcnInsertedChild(name,_)        -> name
+        | AcnInsertedChild(name,_,_)      -> name
         | BooleanLocalVariable(name,_)    -> name
         | GenericLocalVariable lv         -> lv.name
 
@@ -145,6 +215,7 @@ type Asn1Child with
     member this.getBackendName l = 
         match l with
         | C         -> this._c_name
+        | Scala     -> this._scala_name
         | Ada       -> this._ada_name
 
 
@@ -152,6 +223,7 @@ type ChChildInfo with
     member this.getBackendName l = 
         match l with
         | C         -> this._c_name
+        | Scala     -> this._scala_name
         | Ada       -> this._ada_name
 
 
@@ -175,6 +247,7 @@ type ChChildInfo with
     member this.presentWhenName (defOrRef:TypeDefintionOrReference option) l = 
         match l with
         | C     -> (ToC this._present_when_name_private) + "_PRESENT"
+        | Scala -> (ToC this._present_when_name_private) + "_PRESENT" // TODO: Scala
         | Ada   ->
             match defOrRef with
             | Some (ReferenceToExistingDefinition r) when r.programUnit.IsSome -> r.programUnit.Value + "." + ((ToC this._present_when_name_private) + "_PRESENT")
@@ -187,6 +260,7 @@ type Asn1AcnAst.NamedItem      with
     member this.CEnumName l =
         match l with
         | C     -> this.c_name
+        | Scala -> this.scala_name
         | Ada   -> this.ada_name
 
 
@@ -948,7 +1022,7 @@ let rec GetMySelfAndChildren2 (lm:Language.LanguageMacros) (t:Asn1Type) (p:Calle
         | Sequence seq ->
             for ch in seq.Asn1Children do 
                 
-                yield! GetMySelfAndChildren2 lm ch.Type ({p with arg = lm.lg.getSeqChild p.arg (lm.lg.getAsn1ChildBackendName ch) ch.Type.isIA5String })
+                yield! GetMySelfAndChildren2 lm ch.Type ({p with arg = lm.lg.getSeqChild p.arg (lm.lg.getAsn1ChildBackendName ch) ch.Type.isIA5String false})
         | Choice(ch)-> 
             for ch in ch.children do 
                 yield! GetMySelfAndChildren2 lm ch.chType ({p with arg = lm.lg.getChChild p.arg (lm.lg.getAsn1ChChildBackendName ch) ch.chType.isIA5String})

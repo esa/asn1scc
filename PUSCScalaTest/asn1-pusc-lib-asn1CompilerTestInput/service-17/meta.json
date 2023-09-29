@@ -1,0 +1,31 @@
+{
+  "name": "ST[17] test",
+  "submodules": [
+    {
+      "name": "Test subservice",
+      "elements": [
+        {
+          "name": "Perform an are-you-alive connection test",
+          "asn1Files": [
+            "PUS-17-1.asn1",
+            "PUS-17-2.asn1"
+          ]
+        },
+        {
+          "name": "Perform an on-board connection test",
+          "asn1Files": [
+            "PUS-17-3.asn1",
+            "PUS-17-4.asn1"
+          ],
+          "requires": [
+            {
+              "module": "Common Types",
+              "submodule": "Mission Objects",
+              "element": "Application Process"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

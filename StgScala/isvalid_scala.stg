@@ -1,0 +1,338 @@
+﻿group c_isvalid;
+
+rtlModuleName() ::= ""
+
+
+getStringSize(p) ::= "strlen(<p>)"
+
+
+
+JoinItems(sPart, soNestedPart) ::= <<
+<sPart>
+<if(soNestedPart)>
+if ret.isRight then
+    <soNestedPart>
+<endif>
+>>
+
+JoinTwoIfFirstOk(sStr1,sStr2) ::=<<
+<sStr1>
+if ret.isRight then
+    <sStr2>
+>>
+
+JoinItems2(sPart, sNestedPart) ::= <<
+<sPart>
+<sNestedPart>
+>>
+
+always_true_statement ()::= <<
+ret = Right(0)
+>>
+
+always_false_statement(sErrorCodeName)::= <<
+ret = Left(<sErrorCodeName>)
+>>
+
+makeExpressionToStatement0(sIsValidExp) ::= <<
+ret = <sIsValidExp> match
+    case true =>
+        Right(0)
+    case false =>
+        Left(45)
+>>
+
+convertVCBExpressionToStatementAndUpdateErrCode(sIsValidExp, sErrCode) ::= <<
+ret = <sIsValidExp>
+>>
+
+convertVCBStatementToStatementAndUpdateErrCode(sStatement, sErrCode) ::= <<
+<sStatement>
+>>
+
+convertVCBTRUEToStatementAndUpdateErrCode() ::= <<
+ret = Right(0)
+>>
+
+convertVCBFalseToStatementAndUpdateErrCode(sErrCode) ::= <<
+ret = Left(<sErrCode>)
+>>
+
+/*
+*****************************************************************************************
+ C H E C K   C O N S T R A I N T S      F U N C T I O N S
+*****************************************************************************************
+*/
+
+EmitTypeAssignment_composite_def_err_code(sErrCode, nErrValue, arrsErrorCodeComments) ::= <<
+@inline @cCode.inline val <sErrCode>: Int = <nErrValue> /*<arrsErrorCodeComments : {x|<x>}; separator = "\n"> */
+>>
+
+EmitTypeAssignment_composite_def(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes) ::= <<
+<arrsErrcodes; separator="\n">
+>>
+
+EmitTypeAssignment_composite(sVarName, sPtrPrefix, sPtrSuffix, sFuncName, sTypeDefName, sContent, arrsAlphaFuncs, arrsLocalVars, bUnreferenced) ::= <<
+<arrsAlphaFuncs; separator="\n">
+def <sFuncName>(<if(bUnreferenced)>@annotation.unused <endif><sVarName>: <sTypeDefName>): Either[ErrorCode, Int] =
+{
+    var ret: Either[ErrorCode, Int] = Right(0)
+    <arrsLocalVars; separator="\n">
+    <sContent>
+    ret
+}
+>>
+
+ExpEqual(sExp1, sExp2) ::= "(<sExp1> == <sExp2>)"
+ExpStringEqual(sExp1, sExp2) ::= "(<sExp1> == <sExp2>)"
+ExpGt(sExp1, sExp2) ::= "(<sExp1> \> <sExp2>)"
+ExpGte(sExp1, sExp2) ::= "(<sExp1> \>= <sExp2>)"
+ExpLt(sExp1, sExp2) ::= "(<sExp1> \< <sExp2>)"
+ExpLte(sExp1, sExp2) ::= "(<sExp1> \<= <sExp2>)"
+ExpOr(sExp1, sExp2) ::= "((<sExp1>) || (<sExp2>))"
+ExpAnd(sExp1, sExp2) ::= "(<sExp1> && <sExp2>)"
+ExpAndMulit(arrsExp) ::= <<
+<arrsExp; separator=" && ">
+>>
+ExpNot(sExp) ::= "(!<sExp>)"
+StrLen(sExp) ::= "<sExp>.indexOf(0)"
+ArrayLen(sExp, sAcc) ::= "<sExp><sAcc>nCount"
+
+ExpressionToStament(sExp1) ::=<<
+ret = <sExp1>
+>>
+
+StatementOrStament(sStat1, sStat2) ::= <<
+<sStat1>
+if ret.isLeft then
+    <sStat2>
+>>
+
+ExpressionOrStament(sExp1, sStat2) ::= <<
+ret = <sExp1>
+if ret.isLeft then
+    <sStat2>
+>>
+
+StatementOrExpression(sStat1, sExp2) ::= <<
+<sStat1>
+if ret.isLeft then
+    ret = <sExp2>
+>>
+
+StatementAndStament(sStat1, sStat2) ::= <<
+<sStat1>
+if ret.isRight then
+    <sStat2>
+>>
+
+ExpressionAndStament(sExp1, sStat2) ::= <<
+ret = <sExp1>
+if ret.isRight then
+    <sStat2>
+>>
+
+StatementAndExpression(sStat1, sExp2) ::= <<
+<sStat1>
+if ret.isRight then
+    ret = <sExp2>
+>>
+
+StatementNot(sStat) ::= <<
+<sStat>
+if ret.isRight then
+    ret = Left(142)
+else
+    ret = Right(0)
+>>
+
+StatementExceptStament(sStat1, sStat2) ::= <<
+<sStat1>
+if ret.isRight then
+    <sStat2>
+    if ret.isRight then
+        ret = Left(152)
+    else
+        ret = Right(0)
+>>
+
+ExpressionExceptStament(sExp1, sStat2) ::= <<
+ret = <sExp1>
+if ret.isRight then
+    <sStat2>
+    if ret.isRight then
+        ret = Left(162)
+    else
+        ret = Right(0)
+>>
+
+StatementExceptExpression(sStat1, sExp2) ::= <<
+<sStat1>
+if ret.isRight then
+    ret = (<sExp2>) match
+        case Right(x) => 
+            Left(171)
+        case Left(x) => 
+            Right(0)
+>>
+
+StatementForLoop(p, sAcc, i, bIsFixedSize, nFixedSize, sInnerStatement) ::= <<
+<i> = 0
+while(ret.isRight && <i> \< <if(!bIsFixedSize)><p><sAcc>nCount<else><nFixedSize><endif>)
+{
+    <sInnerStatement>
+    <i> += 1
+}
+>>
+
+
+
+Print_AlphabetCheckFunc(sFuncName, arrsAlphaConBody) ::= <<
+def <sFuncName>(const char* str): flag = 
+{
+    flag ret=TRUE;
+    int i=0;
+
+    while ((str[i] != '\0') && ret) {
+        ret = ret && (<arrsAlphaConBody; separator=" && ">);
+        i = i + 1;
+    }
+    return ret;
+}
+>>
+
+
+
+SingleValContraint(p, v) ::= "(<p> == <v>)"
+
+
+
+
+
+stringContainsChar(sStrVal, p) ::= "strchr(<sStrVal>, <p>)"
+
+RangeContraint(p, v1, v2, bMin, bMax) ::= "(<v1> \<<if(bMin)>=<endif> <p> && <p> \<<if(bMax)>=<endif> <v2>)"
+
+RangeContraint_val_MAX(p, v, bMin) ::= "(<p> ><if(bMin)>=<endif> <v>)"
+
+RangeContraint_MIN_val(p, v, bMax) ::= "(<p> \<<if(bMax)>=<endif> <v>)"
+
+
+AND_Constraint(sCon1, sCon2) ::= "(<sCon1> && <sCon2>)"
+
+OR_Constraint(sCon1, sCon2) ::= "(<sCon1> || <sCon2>)"
+
+AllExceptConstraint(sCon)  ::= "(!<sCon>)"
+
+ExceptConstraint(sCon1,sCon2) ::= "(<sCon1> &&  !<sCon2>)"
+
+callAlphaFunc(sFuncName, p) ::= "<sFuncName>_CharsAreValid(<p>)"
+
+PrintMultipleConstraints(arrsConstraints) ::= "<arrsConstraints; separator=\" && \">"
+
+Emit_type(arrsConstraints, sErrCodeName) ::= <<
+ret = <arrsConstraints; separator=" && ">;
+ret = <sErrCodeName>;
+>>
+
+call_base_type_func(p, sFuncName, soTypeCasting) ::= "ret = <sFuncName>(<p>)"
+call_base_type_func_exp(p, sFuncName) ::= "<sFuncName>(<p>)"
+
+
+/* SEQUENCE start*/
+
+
+Sequence_OptionalChild(p, sAcc, sChName, sInnerStatement) ::= <<
+if <p><sAcc>exist.<sChName> then
+    <sInnerStatement>
+>>
+
+
+Sequence_optional_child_always_present_or_absent(p, sAcc,  sChName, sErrCode, sPresOrAbs) ::= <<
+ret = <p><sAcc>exist.<sChName> == <sPresOrAbs>
+ret = <sErrCode>;
+>>
+
+Sequence_optional_child_always_present_or_absent_expr(p, sAcc,  sChName, sPresOrAbs) ::= <<
+(<p><sAcc>exist.<sChName> == <sPresOrAbs>)
+>>
+
+/* SEQUENCE end*/
+
+
+/* CHOICE start*/
+
+Choice_OptionalChild(p, pLocal, sAcc, sChPresent, sInnerStatement) ::= <<
+<p> match
+    case <sChPresent>(<pLocal>) => 
+        <sInnerStatement> 
+    case _ => ()
+>>
+
+Choice_child_always_present_Exp(p, sAcc, sChPresent) ::= <<
+<p> == <sChPresent>
+>>
+
+Choice_child_always_absent_Exp(p, sAcc, sChPresent) ::= <<
+<p> != <sChPresent>
+>>
+
+choice_child(sChPresent, sChildBody, bAlwaysAbsent) ::= <<
+case <sChPresent> =>
+    <sChildBody>         
+>>
+
+choice(p, sAccess, arrsChildren, sErrCodeForInvalidCase) ::= <<
+<p> match
+    <arrsChildren; separator="\n">
+    case _ =>
+        ret = <sErrCodeForInvalidCase>
+>>
+
+/* CHOICE end*/
+
+sequenceOf(p,sAcc, i, bIsFixedSize, nFixedSize, soIsValidSizeExp, soErrCode, soInnerStatement) ::= <<
+<if(!bIsFixedSize)>
+ret = <soIsValidSizeExp>;
+ret = <soErrCode>;
+
+<endif>
+<if (soInnerStatement)>
+for(<i> = 0; ret && <i> \< <if(!bIsFixedSize)><p><sAcc>nCount<else><nFixedSize><endif>; <i>++)
+{
+    <soInnerStatement>
+}
+
+<endif>
+>>
+
+sequenceOf2(p,sAcc, i, bIsFixedSize, nFixedSize, sInnerStatement) ::= <<
+<i> = 0
+while(<i> \< <if(!bIsFixedSize)><p><sAcc>nCount<else><nFixedSize><endif> && ret.isRight)
+{
+    <sInnerStatement>
+    <i> = <i> + 1
+}
+>>
+
+
+octet_var_string_equal(p, sAccess, nVarLength, sOctArrayLiteral )::=<<
+OctetString_equal(<p><sAccess>nCount, <nVarLength>, <p><sAccess>arr, <sOctArrayLiteral>)
+>>
+
+octet_fix_string_equal(p, sAccess, nFixedSize, nVarLength, sOctArrayLiteral )::=<<
+OctetString_equal(<nFixedSize>, <nVarLength>, <p><sAccess>arr, <sOctArrayLiteral>)
+>>
+
+bit_var_string_equal(p, sAccess, nVarLength, sOctArrayLiteral, sBitArrayLiteral )::=<<
+BitString_equal(<p><sAccess>nCount, <nVarLength>, <p><sAccess>arr, <sOctArrayLiteral>)
+>>
+
+bit_fix_string_equal(p, sAccess, nFixedSize, nVarLength, sOctArrayLiteral, sBitArrayLiteral )::=<<
+BitString_equal(<nFixedSize>, <nVarLength>, <p><sAccess>arr, <sOctArrayLiteral>)
+>>
+
+
+objId_equal(p, sObjIdLiteral)::=<<
+ObjectIdentifier_equal(<p>, &<sObjIdLiteral>)
+>>
