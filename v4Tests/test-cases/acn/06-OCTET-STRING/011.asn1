@@ -1,6 +1,7 @@
 TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
 
-	MyPDU ::= OCTET STRING (SIZE(0))
+	-- MyPDU ::= OCTET STRING (SIZE(0)) -- this cause gnat to run forever. needs further investigation
+	MyPDU ::= OCTET STRING (SIZE(1))
 	
 END
 
