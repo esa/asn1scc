@@ -1,6 +1,6 @@
 package asn1scala
 
-import stainless.lang.{None, Option => _, _}
+import stainless.lang.{None => None, Option => Option, _}
 
 // type used in ErrorCases
 type ErrorCode = Int

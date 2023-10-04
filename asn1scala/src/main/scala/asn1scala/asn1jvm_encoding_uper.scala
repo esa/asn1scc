@@ -1,7 +1,7 @@
 package asn1scala
 
 import stainless.math.BitVectors._
-import stainless.lang.{None => _, Option => _, Some => _, _}
+import stainless.lang.{None => None, Option => Option, Some => Some, _}
 
 def ObjectIdentifier_subidentifiers_uper_encode(encodingBuf: Array[UByte], pSizeVal: Int, siValueVal: ULong): Int = {
     var lastOctet: Boolean = false
@@ -88,7 +88,7 @@ def ObjectIdentifier_subidentifiers_uper_decode(pBitStrm: BitStream, pRemainingO
     while pRemainingOctets > 0 && !bLastOctet do
         decreases(pRemainingOctets)
         BitStream_ReadByte(pBitStrm) match
-            case None => return None
+            case None() => return None()
             case Some(curByte) =>
                 pRemainingOctets -= 1
 
@@ -105,12 +105,12 @@ def ObjectIdentifier_uper_decode_lentg(pBitStrm: BitStream): Option[Long] = {
     var totalSize: Long = 0
 
     BitStream_DecodeConstraintWholeNumber(pBitStrm, 0, 0xFF) match
-        case None => return None
+        case None() => return None()
         case Some(l) => totalSize = l
 
     if totalSize > 0x7F then
         BitStream_DecodeConstraintWholeNumber(pBitStrm, 0, 0xFF) match
-            case None => return None
+            case None() => return None()
             case Some(l) =>
                 totalSize <<= 8
                 totalSize |= l
@@ -124,11 +124,11 @@ def ObjectIdentifier_uper_decode(pBitStrm: BitStream): Option[Asn1ObjectIdentifi
     var pVal = ObjectIdentifier_Init()
 
     ObjectIdentifier_uper_decode_lentg(pBitStrm) match
-        case None => return None
+        case None() => return None()
         case Some(l) => totalSize = l
 
     ObjectIdentifier_subidentifiers_uper_decode(pBitStrm, totalSize) match
-        case None => return None
+        case None() => return None()
         case Some(l, ul) =>
             totalSize = l
             si = ul
@@ -140,7 +140,7 @@ def ObjectIdentifier_uper_decode(pBitStrm: BitStream): Option[Asn1ObjectIdentifi
         decreases(OBJECT_IDENTIFIER_MAX_LENGTH - pVal.nCount)
 
         ObjectIdentifier_subidentifiers_uper_decode(pBitStrm, totalSize) match
-            case None => return None
+            case None() => return None()
             case Some(l, ul) =>
                 totalSize = l
                 si = ul
@@ -152,7 +152,7 @@ def ObjectIdentifier_uper_decode(pBitStrm: BitStream): Option[Asn1ObjectIdentifi
     if totalSize == 0 then
         Some(pVal)
     else
-        None
+        None()
 
 }
 def RelativeOID_uper_decode (pBitStrm: BitStream): Option[Asn1ObjectIdentifier] = {
@@ -161,13 +161,13 @@ def RelativeOID_uper_decode (pBitStrm: BitStream): Option[Asn1ObjectIdentifier] 
     var pVal: Asn1ObjectIdentifier = ObjectIdentifier_Init()
 
     ObjectIdentifier_uper_decode_lentg(pBitStrm) match
-        case None => return None
+        case None() => return None()
         case Some(l) => totalSize = l
 
     while totalSize > 0 && pVal.nCount < OBJECT_IDENTIFIER_MAX_LENGTH do
         decreases(OBJECT_IDENTIFIER_MAX_LENGTH - pVal.nCount)
         ObjectIdentifier_subidentifiers_uper_decode(pBitStrm, totalSize) match
-            case None => return None
+            case None() => return None()
             case Some(l, ul) =>
                 totalSize = l
                 si = ul
@@ -178,5 +178,5 @@ def RelativeOID_uper_decode (pBitStrm: BitStream): Option[Asn1ObjectIdentifier] 
     if totalSize == 0 then
         Some(pVal)
     else
-        None
+        None()
 }

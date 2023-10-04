@@ -1,5 +1,7 @@
 package asn1scala
 
+import stainless.lang.{None => None, Option => Option, Some => Some, _}
+
 val FAILED_READ_ERR_CODE = 5400
 
 def Acn_AlignToNextByte(pBitStrm: BitStream, bEncode: Boolean): Unit =
@@ -146,7 +148,7 @@ def Acn_Enc_Int_PositiveInteger_ConstSize_little_endian_64(pBitStrm: BitStream, 
 def Acn_Dec_Int_PositiveInteger_ConstSize(pBitStrm: BitStream, encodedSizeInBits: Int): Option[ULong] =
 {
     BitStream_DecodeNonNegativeInteger(pBitStrm, encodedSizeInBits) match
-        case None => None
+        case None() => None()
         case Some(ul) => Some(ul)
 }
 
@@ -154,7 +156,7 @@ def Acn_Dec_Int_PositiveInteger_ConstSize(pBitStrm: BitStream, encodedSizeInBits
 def Acn_Dec_Int_PositiveInteger_ConstSize_8(pBitStrm: BitStream): Option[ULong] =
 {
     BitStream_ReadByte(pBitStrm) match
-        case None => None
+        case None() => None()
         case Some(ub) => Some(ub & 0xFF)
 }
 
@@ -165,7 +167,7 @@ def Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_N(pBitStrm: BitStream, Size
     var i: Int = 0
     while i < SizeInBytes do
         BitStream_ReadByte(pBitStrm) match
-            case None => return None
+            case None() => return None()
             case Some(ub) =>
                 ret <<= 8
                 ret |= (ub & 0xFF)
@@ -199,7 +201,7 @@ def Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_N(pBitStrm: BitStream, S
     var i: Int = 0
     while i < SizeInBytes do
         BitStream_ReadByte(pBitStrm) match
-            case None => return None
+            case None() => return None()
             case Some(ub) =>
                 tmp = ub & 0xFF
                 tmp <<= i * 8
@@ -260,12 +262,12 @@ def Acn_Dec_Int_PositiveInteger_VarSize_LengthEmbedded(pBitStrm: BitStream): Opt
     var v: ULong = 0
 
     BitStream_ReadByte(pBitStrm) match
-        case None => return None
+        case None() => return None()
         case Some(nBytes) =>
             var i: Int = 0
             while i < nBytes do
                 BitStream_ReadByte(pBitStrm) match
-                    case None => return None
+                    case None() => return None()
                     case Some(ub) =>
                         v = (v << 8) | (ub & 0xFF)
                 i += 1
@@ -334,14 +336,14 @@ def Acn_Dec_Int_TwosComplement_ConstSize(pBitStrm: BitStream, encodedSizeInBits:
     var i: Int = 0
     while i < nBytes do
         BitStream_ReadByte(pBitStrm) match
-            case None => return None
+            case None() => return None()
             case Some(ub) =>
                 pIntVal = (pIntVal << 8) | (ub & 0xFF)
         i += 1
 
     if rstBits > 0 then
         BitStream_ReadPartialByte(pBitStrm, rstBits.toByte) match
-            case None => return None
+            case None() => return None()
             case Some(ub) =>
                 pIntVal = (pIntVal << rstBits) | (ub & 0xFF)
 
@@ -352,49 +354,49 @@ def Acn_Dec_Int_TwosComplement_ConstSize(pBitStrm: BitStream, encodedSizeInBits:
 def Acn_Dec_Int_TwosComplement_ConstSize_8(pBitStrm: BitStream): Option[Long] =
 {
     Acn_Dec_Int_PositiveInteger_ConstSize_8(pBitStrm) match
-        case None => None
+        case None() => None()
         case Some(ul) => Some(uint2int(ul, 1))
 }
 
 def Acn_Dec_Int_TwosComplement_ConstSize_big_endian_16(pBitStrm: BitStream): Option[Long] =
 {
     Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_16(pBitStrm) match
-        case None => None
+        case None() => None()
         case Some(ul) => Some(uint2int(ul, 2))
 }
 
 def Acn_Dec_Int_TwosComplement_ConstSize_big_endian_32(pBitStrm: BitStream): Option[Long] =
 {
     Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_32(pBitStrm) match
-        case None => None
+        case None() => None()
         case Some(ul) => Some(uint2int(ul, 4))
 }
 
 def Acn_Dec_Int_TwosComplement_ConstSize_big_endian_64(pBitStrm: BitStream): Option[Long] =
 {
     Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_64(pBitStrm) match
-        case None => None
+        case None() => None()
         case Some(ul) => Some(uint2int(ul, WORD_SIZE))
 }
 
 def Acn_Dec_Int_TwosComplement_ConstSize_little_endian_16(pBitStrm: BitStream): Option[Long] =
 {
     Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_16(pBitStrm) match
-        case None => None
+        case None() => None()
         case Some(ul) => Some(uint2int(ul, 2))
 }
 
 def Acn_Dec_Int_TwosComplement_ConstSize_little_endian_32(pBitStrm: BitStream): Option[Long] =
 {
     Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_32(pBitStrm) match
-        case None => None
+        case None() => None()
         case Some(ul) => Some(uint2int(ul, 4))
 }
 
 def Acn_Dec_Int_TwosComplement_ConstSize_little_endian_64(pBitStrm: BitStream): Option[Long] =
 {
     Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_64(pBitStrm) match
-        case None => None
+        case None() => None()
         case Some(ul) => Some(uint2int(ul, WORD_SIZE))
 }
 
@@ -419,12 +421,12 @@ def Acn_Dec_Int_TwosComplement_VarSize_LengthEmbedded(pBitStrm: BitStream): Opti
     var isNegative: Boolean = false
 
     BitStream_ReadByte(pBitStrm) match
-        case None => None
+        case None() => None()
         case Some(nBytes) =>
             var i: Int = 0
             while i < nBytes do
                 BitStream_ReadByte(pBitStrm) match
-                    case None => return None
+                    case None() => return None()
                     case Some(ub) =>
                         if i == 0 && (ub & 0x80) > 0 then
                             v = Long.MaxValue
@@ -484,7 +486,7 @@ def Acn_Dec_Int_BCD_ConstSize(pBitStrm: BitStream, encodedSizeInNibbles: Int): O
     var encodedSizeInNibblesVar = encodedSizeInNibbles
     while encodedSizeInNibblesVar > 0 do
         BitStream_ReadPartialByte(pBitStrm, 4) match
-            case None => return None
+            case None() => return None()
             case Some(digit) =>
                 ret *= 10
                 ret += digit
@@ -510,7 +512,7 @@ def Acn_Enc_Int_BCD_VarSize_LengthEmbedded(pBitStrm: BitStream, intVal: ULong): 
 def Acn_Dec_Int_BCD_VarSize_LengthEmbedded(pBitStrm: BitStream): Option[ULong] =
 {
     BitStream_ReadByte(pBitStrm) match
-        case None => None
+        case None() => None()
         case Some(nNibbles) => Acn_Dec_Int_BCD_ConstSize(pBitStrm, nNibbles)
 }
 
@@ -535,7 +537,7 @@ def Acn_Dec_Int_BCD_VarSize_NullTerminated(pBitStrm: BitStream): Option[ULong] =
 
     while true do
         BitStream_ReadPartialByte(pBitStrm, 4) match
-            case None => return None
+            case None() => return None()
             case Some(digit) =>
                 if (digit > 9)
                     return Some(ret)
@@ -588,7 +590,7 @@ def Acn_Dec_UInt_ASCII_ConstSize(pBitStrm: BitStream, encodedSizeInBytes: Int): 
 
     while encodedSizeInBytesVar > 0 do
         BitStream_ReadByte(pBitStrm) match
-            case None => return None
+            case None() => return None()
             case Some(digit) =>
                 assert(digit >= '0' && digit <= '9')
 
@@ -603,7 +605,7 @@ def Acn_Dec_UInt_ASCII_ConstSize(pBitStrm: BitStream, encodedSizeInBytes: Int): 
 def Acn_Dec_SInt_ASCII_ConstSize(pBitStrm: BitStream, encodedSizeInBytes: Int): Option[Long] =
 {
     BitStream_ReadByte(pBitStrm) match
-        case None => None
+        case None() => None()
         case Some(digit) =>
             var sign: Int = 1
             if digit == '+' then
@@ -614,7 +616,7 @@ def Acn_Dec_SInt_ASCII_ConstSize(pBitStrm: BitStream, encodedSizeInBytes: Int): 
                 assert(false)
 
             Acn_Dec_UInt_ASCII_ConstSize(pBitStrm, encodedSizeInBytes - 1) match
-                case None => None
+                case None() => None()
                 case Some(ul) => Some(sign * ul)
 }
 
@@ -684,14 +686,14 @@ def Acn_Enc_UInt_ASCII_VarSize_LengthEmbedded(pBitStrm: BitStream, intVal: ULong
 def Acn_Dec_UInt_ASCII_VarSize_LengthEmbedded(pBitStrm: BitStream): Option[ULong] =
 {
     BitStream_ReadByte(pBitStrm) match
-        case None => None
+        case None() => None()
         case Some(nChars) => Acn_Dec_UInt_ASCII_ConstSize(pBitStrm, nChars)
 }
 
 def Acn_Dec_SInt_ASCII_VarSize_LengthEmbedded(pBitStrm: BitStream): Option[Long] =
 {
     BitStream_ReadByte(pBitStrm) match
-        case None => None
+        case None() => None()
         case Some(nChars) => Acn_Dec_SInt_ASCII_ConstSize(pBitStrm, nChars)
 }
 
@@ -765,7 +767,7 @@ def Acn_Dec_UInt_ASCII_VarSize_NullTerminated(pBitStrm: BitStream, null_characte
     var j: Int = 0
     while j < null_characters_size do
         BitStream_ReadByte(pBitStrm) match
-            case None => return None
+            case None() => return None()
             case Some(ub) => tmp(j) = ub
         j += 1
 
@@ -780,7 +782,7 @@ def Acn_Dec_UInt_ASCII_VarSize_NullTerminated(pBitStrm: BitStream, null_characte
             j += 1
 
         BitStream_ReadByte(pBitStrm) match
-            case None => return None
+            case None() => return None()
             case Some(ub) => tmp(null_characters_size - 1) = ub
 
         digit = (digit - '0').toByte
@@ -797,14 +799,14 @@ def Acn_Dec_SInt_ASCII_VarSize_NullTerminated(pBitStrm: BitStream, null_characte
     var isNegative: Boolean = false
 
     BitStream_ReadByte(pBitStrm) match
-        case None => None
+        case None() => None()
         case Some(digit) =>
             assert(digit == '-' || digit == '+')
             if digit == '-' then
                 isNegative = true
 
             Acn_Dec_UInt_ASCII_VarSize_NullTerminated(pBitStrm, null_characters, null_characters_size) match
-                case None => None
+                case None() => None()
                 case Some(ul) => Some(if isNegative then -ul else ul)
 }
 
@@ -820,7 +822,7 @@ def BitStream_ReadBitPattern(pBitStrm: BitStream, patternToRead: Array[Byte], nB
     var i: Int = 0
     while i < nBytesToRead do
         BitStream_ReadByte(pBitStrm) match
-            case None => return None
+            case None() => return None()
             case Some(curByte) =>
                 if curByte != patternToRead(i) then
                     pBoolValue = false
@@ -828,7 +830,7 @@ def BitStream_ReadBitPattern(pBitStrm: BitStream, patternToRead: Array[Byte], nB
 
     if nRemainingBitsToRead > 0 then
         BitStream_ReadPartialByte(pBitStrm, nRemainingBitsToRead.toByte) match
-            case None => return None
+            case None() => return None()
             case Some(curByte) =>
                 if curByte != ((patternToRead(nBytesToRead) & 0xFF) >>> (8 - nRemainingBitsToRead)) then
                     pBoolValue = false
@@ -845,7 +847,7 @@ def BitStream_ReadBitPattern_ignore_value(pBitStrm: BitStream, nBitsToRead: Int)
     var i: Int = 0
     while i < nBytesToRead do
         BitStream_ReadByte(pBitStrm) match
-            case None => return Left(FAILED_READ_ERR_CODE)
+            case None() => return Left(FAILED_READ_ERR_CODE)
             case Some(_) => i += 1
 
     if nRemainingBitsToRead > 0 then
@@ -873,7 +875,7 @@ def Acn_Dec_Real_IEEE754_32_big_endian(pBitStrm: BitStream): Option[Double] =
     var i: Int = 0
     while i < 4 do
         BitStream_ReadByte(pBitStrm) match
-            case None => return None
+            case None() => return None()
             case Some(ub) => b(i) = ub
         i += 1
 
@@ -887,7 +889,7 @@ def Acn_Dec_Real_IEEE754_32_big_endian_fp32(pBitStrm: BitStream): Option[Float] 
     var i: Int = 0
     while i < 4 do
         BitStream_ReadByte(pBitStrm) match
-            case None => return None
+            case None() => return None()
             case Some(ub) => b(i) = ub
         i += 1
 
@@ -912,7 +914,7 @@ def Acn_Dec_Real_IEEE754_64_big_endian(pBitStrm: BitStream): Option[Double] =
     var i: Int = 0
     while i < 8 do
         BitStream_ReadByte(pBitStrm) match
-            case None => return None
+            case None() => return None()
             case Some(ub) => b(i) = ub
         i += 1
 
@@ -937,7 +939,7 @@ def Acn_Dec_Real_IEEE754_32_little_endian(pBitStrm: BitStream): Option[Double] =
     var i: Int = 3
     while i >= 0 do
         BitStream_ReadByte(pBitStrm) match
-            case None => return None
+            case None() => return None()
             case Some(ub) => b(i) = ub
                 i -= 1
 
@@ -951,7 +953,7 @@ def Acn_Dec_Real_IEEE754_32_little_endian_fp32(pBitStrm: BitStream): Option[Floa
     var i: Int = 3
     while i >= 0 do
         BitStream_ReadByte(pBitStrm) match
-            case None => return None
+            case None() => return None()
             case Some(ub) => b(i) = ub
                 i -= 1
 
@@ -975,7 +977,7 @@ def Acn_Dec_Real_IEEE754_64_little_endian(pBitStrm: BitStream): Option[Double] =
     var i: Int = 7
     while i >= 0 do
         BitStream_ReadByte(pBitStrm) match
-            case None => return None
+            case None() => return None()
             case Some(ub) => b(i) = ub
                 i -= 1
 
@@ -1116,7 +1118,7 @@ def Acn_Dec_String_Ascii_private(pBitStrm: BitStream, max: Long, charactersToDec
     var i: Int = 0
     while i < charactersToDecode do
         BitStream_ReadByte(pBitStrm) match
-            case None => return None
+            case None() => return None()
             case Some(decodedCharacter) =>
                 strVal(i) = decodedCharacter
         i += 1
@@ -1188,7 +1190,7 @@ def Acn_Dec_String_Ascii_Null_Teminated(pBitStrm: BitStream, max: Long, null_cha
     var i: Int = 0
     while i <= max do
         BitStream_ReadByte(pBitStrm) match
-            case None => return None
+            case None() => return None()
             case Some(decodedCharacter) =>
                 if decodedCharacter != null_character then
                     strVal(i) = decodedCharacter
@@ -1197,7 +1199,7 @@ def Acn_Dec_String_Ascii_Null_Teminated(pBitStrm: BitStream, max: Long, null_cha
                     strVal(i) = 0x0
                     return Some(strVal)
 
-    None
+    None()
 
 }
 def Acn_Dec_String_Ascii_Null_Teminated_mult(pBitStrm: BitStream, max: Long, null_character: Array[ASCIIChar], null_character_size: Int): Option[Array[ASCIIChar]] =
@@ -1209,7 +1211,7 @@ def Acn_Dec_String_Ascii_Null_Teminated_mult(pBitStrm: BitStream, max: Long, nul
     var j: Int = 0
     while j < null_character_size do
         BitStream_ReadByte(pBitStrm) match
-            case None => return None
+            case None() => return None()
             case Some(ub) => tmp(j) = ub
         j += 1
 
@@ -1224,13 +1226,13 @@ def Acn_Dec_String_Ascii_Null_Teminated_mult(pBitStrm: BitStream, max: Long, nul
             j += 1
 
         BitStream_ReadByte(pBitStrm) match
-            case None => return None
+            case None() => return None()
             case Some(ub) => tmp(null_character_size - 1) = ub
 
     strVal(i) = 0x0
 
     if !null_character.sameElements(tmp) then
-        return None
+        return None()
 
     Some(strVal)
 }
@@ -1244,7 +1246,7 @@ def Acn_Dec_String_Ascii_External_Field_Determinant(pBitStrm: BitStream, max: Lo
 def Acn_Dec_String_Ascii_Internal_Field_Determinant(pBitStrm: BitStream, max: Long, min: Long): Option[Array[ASCIIChar]] =
 {
     BitStream_DecodeConstraintWholeNumber(pBitStrm, min, max) match
-        case None => None
+        case None() => None()
         case Some(nCount) =>
             Acn_Dec_String_Ascii_private(pBitStrm, max, if nCount <= max then nCount else max)
 }
@@ -1255,7 +1257,7 @@ def Acn_Dec_String_CharIndex_private(pBitStrm: BitStream, max: Long, charactersT
     var i: Int = 0
     while i < charactersToDecode do
         BitStream_DecodeConstraintWholeNumber(pBitStrm, 0, allowedCharSet.length - 1) match
-            case None => return None
+            case None() => return None()
             case Some(charIndex) =>
                 strVal(i) = allowedCharSet(charIndex.toInt)
         i += 1
@@ -1277,7 +1279,7 @@ def Acn_Dec_String_CharIndex_External_Field_Determinant (pBitStrm: BitStream, ma
 def Acn_Dec_String_CharIndex_Internal_Field_Determinant (pBitStrm: BitStream, max: Long, allowedCharSet: Array[ASCIIChar], min: Long): Option[Array[ASCIIChar]] =
 {
     BitStream_DecodeConstraintWholeNumber(pBitStrm, min, max) match
-        case None => None
+        case None() => None()
         case Some(nCount) =>
             Acn_Dec_String_CharIndex_private(pBitStrm, max, if nCount <= max then nCount else max, allowedCharSet)
 }
@@ -1321,7 +1323,7 @@ def Acn_Dec_IA5String_CharIndex_Internal_Field_Determinant(pBitStrm: BitStream, 
         0x78, 0x79, 0x7A, 0x7B, 0x7C, 0x7D, 0x7E, 0x7F
     )
     BitStream_DecodeConstraintWholeNumber(pBitStrm, min, max) match
-        case None => None
+        case None() => None()
         case Some(nCount) =>
             Acn_Dec_String_CharIndex_private(pBitStrm, max, if nCount <= max then nCount else max, allowedCharSet)
 }
@@ -1354,509 +1356,509 @@ def milbus_decode(v: Long): Long =
 
 def Acn_Dec_Int_PositiveInteger_ConstSizeUInt8 (pBitStrm: BitStream, encodedSizeInBits: Int): Option[UByte] = {
     Acn_Dec_Int_PositiveInteger_ConstSize(pBitStrm, encodedSizeInBits) match
-        case None => None
+        case None() => None()
         case Some(v) => Some(v.toByte)
 }
 
 
 def Acn_Dec_Int_PositiveInteger_ConstSizeUInt16 (pBitStrm: BitStream, encodedSizeInBits: Int): Option[UShort] = {
     Acn_Dec_Int_PositiveInteger_ConstSize(pBitStrm, encodedSizeInBits) match
-        case None => None
+        case None() => None()
         case Some(v) => Some(v.toShort)
 }
 
 
 def Acn_Dec_Int_PositiveInteger_ConstSizeUInt32 (pBitStrm: BitStream, encodedSizeInBits: Int): Option[UInt] = {
     Acn_Dec_Int_PositiveInteger_ConstSize(pBitStrm, encodedSizeInBits) match
-        case None => None
+        case None() => None()
         case Some(v) => Some(v.toInt)
 }
 
 def Acn_Dec_Int_PositiveInteger_ConstSize_8UInt8 (pBitStrm: BitStream): Option[UByte] =    {
     Acn_Dec_Int_PositiveInteger_ConstSize_8(pBitStrm) match
-        case None => None
+        case None() => None()
         case Some(v) => Some(v.toByte)
 }
 
 
 def Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_16UInt16 (pBitStrm: BitStream): Option[UShort] =    {
     Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_16(pBitStrm) match
-        case None => None
+        case None() => None()
         case Some(v) => Some(v.toShort)
 }
 
 
 def Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_16UInt8 (pBitStrm: BitStream): Option[UByte] =    {
     Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_16(pBitStrm) match
-        case None => None
+        case None() => None()
         case Some(v) => Some(v.toByte)
 }
 
 
 def Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_32UInt32 (pBitStrm: BitStream): Option[UInt] =    {
     Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_32(pBitStrm) match
-        case None => None
+        case None() => None()
         case Some(v) => Some(v.toInt)
 }
 
 
 def Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_32UInt16 (pBitStrm: BitStream): Option[UShort] =    {
     Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_32(pBitStrm) match
-        case None => None
+        case None() => None()
         case Some(v) => Some(v.toShort)
 }
 
 def Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_32UInt8 (pBitStrm: BitStream): Option[UByte] = {
     Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_32(pBitStrm) match
-        case None => None
+        case None() => None()
         case Some(v) => Some(v.toByte)
 }
 
 
 def Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_64UInt32 (pBitStrm: BitStream): Option[UInt] =    {
     Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_64(pBitStrm) match
-        case None => None
+        case None() => None()
         case Some(v) => Some(v.toInt)
 }
 
 
 def Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_64UInt16 (pBitStrm: BitStream): Option[UShort] =    {
     Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_64(pBitStrm) match
-        case None => None
+        case None() => None()
         case Some(v) => Some(v.toShort)
 }
 
 
 def Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_64UInt8 (pBitStrm: BitStream): Option[UByte] =    {
     Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_64(pBitStrm) match
-        case None => None
+        case None() => None()
         case Some(v) => Some(v.toByte)
 }
 
 
 def Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_16UInt16 (pBitStrm: BitStream): Option[UShort] =    {
     Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_16(pBitStrm) match
-        case None => None
+        case None() => None()
         case Some(v) => Some(v.toShort)
 }
 
 
 def Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_16UInt8 (pBitStrm: BitStream): Option[UByte] =    {
     Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_16(pBitStrm) match
-        case None => None
+        case None() => None()
         case Some(v) => Some(v.toByte)
 }
 
 
 def Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_32UInt32 (pBitStrm: BitStream): Option[UInt] =    {
     Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_32(pBitStrm) match
-        case None => None
+        case None() => None()
         case Some(v) => Some(v.toInt)
 }
 
 
 def Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_32UInt16 (pBitStrm: BitStream): Option[UShort] =    {
     Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_32(pBitStrm) match
-        case None => None
+        case None() => None()
         case Some(v) => Some(v.toShort)
 }
 
 
 def Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_32UInt8 (pBitStrm: BitStream): Option[UByte] =    {
     Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_32(pBitStrm) match
-        case None => None
+        case None() => None()
         case Some(v) => Some(v.toByte)
 }
 
 
 def Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_64UInt32 (pBitStrm: BitStream): Option[UInt] =    {
     Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_64(pBitStrm) match
-        case None => None
+        case None() => None()
         case Some(v) => Some(v.toInt)
 }
 
 
 def Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_64UInt16 (pBitStrm: BitStream): Option[UShort] =    {
     Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_64(pBitStrm) match
-        case None => None
+        case None() => None()
         case Some(v) => Some(v.toShort)
 }
 
 
 def Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_64UInt8 (pBitStrm: BitStream): Option[UByte] =    {
     Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_64(pBitStrm) match
-        case None => None
+        case None() => None()
         case Some(v) => Some(v.toByte)
 }
 
 
 def Acn_Dec_Int_PositiveInteger_VarSize_LengthEmbeddedUInt8 (pBitStrm: BitStream): Option[UByte] =    {
     Acn_Dec_Int_PositiveInteger_VarSize_LengthEmbedded(pBitStrm) match
-        case None => None
+        case None() => None()
         case Some(v) => Some(v.toByte)
 }
 
 
 def Acn_Dec_Int_PositiveInteger_VarSize_LengthEmbeddedUInt16 (pBitStrm: BitStream): Option[UShort] =    {
     Acn_Dec_Int_PositiveInteger_VarSize_LengthEmbedded(pBitStrm) match
-        case None => None
+        case None() => None()
         case Some(v) => Some(v.toShort)
 }
 
 
 def Acn_Dec_Int_PositiveInteger_VarSize_LengthEmbeddedUInt32 (pBitStrm: BitStream): Option[UInt] =    {
     Acn_Dec_Int_PositiveInteger_VarSize_LengthEmbedded(pBitStrm) match
-        case None => None
+        case None() => None()
         case Some(v) => Some(v.toInt)
 }
 
 
 def Acn_Dec_Int_TwosComplement_ConstSizeInt8 (pBitStrm: BitStream, encodedSizeInBits: Int): Option[Byte] = {
     Acn_Dec_Int_TwosComplement_ConstSize(pBitStrm, encodedSizeInBits) match
-        case None => None
+        case None() => None()
         case Some(v) => Some(v.toByte)
 }
 
 
 def Acn_Dec_Int_TwosComplement_ConstSizeInt16 (pBitStrm: BitStream, encodedSizeInBits: Int): Option[Short] = {
     Acn_Dec_Int_TwosComplement_ConstSize(pBitStrm, encodedSizeInBits) match
-        case None => None
+        case None() => None()
         case Some(v) => Some(v.toShort)
 }
 
 
 def Acn_Dec_Int_TwosComplement_ConstSizeInt32 (pBitStrm: BitStream, encodedSizeInBits: Int): Option[Int] = {
     Acn_Dec_Int_TwosComplement_ConstSize(pBitStrm, encodedSizeInBits) match
-        case None => None
+        case None() => None()
         case Some(v) => Some(v.toInt)
 }
 
 
 def Acn_Dec_Int_TwosComplement_ConstSize_8Int8 (pBitStrm: BitStream): Option[Byte] = {
     Acn_Dec_Int_TwosComplement_ConstSize_8(pBitStrm) match
-        case None => None
+        case None() => None()
         case Some(v) => Some(v.toByte)
 }
 
 
 def Acn_Dec_Int_TwosComplement_ConstSize_big_endian_16Int16 (pBitStrm: BitStream): Option[Short] = {
     Acn_Dec_Int_TwosComplement_ConstSize_big_endian_16(pBitStrm) match
-        case None => None
+        case None() => None()
         case Some(v) => Some(v.toShort)
 }
 
 
 def Acn_Dec_Int_TwosComplement_ConstSize_big_endian_16Int8 (pBitStrm: BitStream): Option[Byte] = {
     Acn_Dec_Int_TwosComplement_ConstSize_big_endian_16(pBitStrm) match
-        case None => None
+        case None() => None()
         case Some(v) => Some(v.toByte)
 }
 
 
 def Acn_Dec_Int_TwosComplement_ConstSize_big_endian_32Int32 (pBitStrm: BitStream): Option[Int] = {
     Acn_Dec_Int_TwosComplement_ConstSize_big_endian_32(pBitStrm) match
-        case None => None
+        case None() => None()
         case Some(v) => Some(v.toInt)
 }
 
 
 def Acn_Dec_Int_TwosComplement_ConstSize_big_endian_32Int16 (pBitStrm: BitStream): Option[Short] = {
     Acn_Dec_Int_TwosComplement_ConstSize_big_endian_32(pBitStrm) match
-        case None => None
+        case None() => None()
         case Some(v) => Some(v.toShort)
 }
 
 
 def Acn_Dec_Int_TwosComplement_ConstSize_big_endian_32Int8 (pBitStrm: BitStream): Option[Byte] = {
     Acn_Dec_Int_TwosComplement_ConstSize_big_endian_32(pBitStrm) match
-        case None => None
+        case None() => None()
         case Some(v) => Some(v.toByte)
 }
 
 
 def Acn_Dec_Int_TwosComplement_ConstSize_big_endian_64Int32 (pBitStrm: BitStream): Option[Int] = {
     Acn_Dec_Int_TwosComplement_ConstSize_big_endian_64(pBitStrm) match
-        case None => None
+        case None() => None()
         case Some(v) => Some(v.toInt)
 }
 
 
 def Acn_Dec_Int_TwosComplement_ConstSize_big_endian_64Int16 (pBitStrm: BitStream): Option[Short] = {
     Acn_Dec_Int_TwosComplement_ConstSize_big_endian_64(pBitStrm) match
-        case None => None
+        case None() => None()
         case Some(v) => Some(v.toShort)
 }
 
 
 def Acn_Dec_Int_TwosComplement_ConstSize_big_endian_64Int8 (pBitStrm: BitStream): Option[Byte] = {
     Acn_Dec_Int_TwosComplement_ConstSize_big_endian_64(pBitStrm) match
-        case None => None
+        case None() => None()
         case Some(v) => Some(v.toByte)
 }
 
 
 def Acn_Dec_Int_TwosComplement_ConstSize_little_endian_16Int16 (pBitStrm: BitStream): Option[Short] = {
     Acn_Dec_Int_TwosComplement_ConstSize_little_endian_16(pBitStrm) match
-        case None => None
+        case None() => None()
         case Some(v) => Some(v.toShort)
 }
 
 
 def Acn_Dec_Int_TwosComplement_ConstSize_little_endian_16Int8 (pBitStrm: BitStream): Option[Byte] = {
     Acn_Dec_Int_TwosComplement_ConstSize_little_endian_16(pBitStrm) match
-        case None => None
+        case None() => None()
         case Some(v) => Some(v.toByte)
 }
 
 
 def Acn_Dec_Int_TwosComplement_ConstSize_little_endian_32Int32 (pBitStrm: BitStream): Option[Int] = {
     Acn_Dec_Int_TwosComplement_ConstSize_little_endian_32(pBitStrm) match
-        case None => None
+        case None() => None()
         case Some(v) => Some(v.toInt)
 }
 
 
 def Acn_Dec_Int_TwosComplement_ConstSize_little_endian_32Int16 (pBitStrm: BitStream): Option[Short] = {
     Acn_Dec_Int_TwosComplement_ConstSize_little_endian_32(pBitStrm) match
-        case None => None
+        case None() => None()
         case Some(v) => Some(v.toShort)
 }
 
 
 def Acn_Dec_Int_TwosComplement_ConstSize_little_endian_32Int8 (pBitStrm: BitStream): Option[Byte] = {
     Acn_Dec_Int_TwosComplement_ConstSize_little_endian_32(pBitStrm) match
-        case None => None
+        case None() => None()
         case Some(v) => Some(v.toByte)
 }
 
 
 def Acn_Dec_Int_TwosComplement_ConstSize_little_endian_64Int32 (pBitStrm: BitStream): Option[Int] = {
     Acn_Dec_Int_TwosComplement_ConstSize_little_endian_64(pBitStrm) match
-        case None => None
+        case None() => None()
         case Some(v) => Some(v.toInt)
 }
 
 
 def Acn_Dec_Int_TwosComplement_ConstSize_little_endian_64Int16 (pBitStrm: BitStream): Option[Short] = {
     Acn_Dec_Int_TwosComplement_ConstSize_little_endian_64(pBitStrm) match
-        case None => None
+        case None() => None()
         case Some(v) => Some(v.toShort)
 }
 
 
 def Acn_Dec_Int_TwosComplement_ConstSize_little_endian_64Int8 (pBitStrm: BitStream): Option[Byte] = {
     Acn_Dec_Int_TwosComplement_ConstSize_little_endian_64(pBitStrm) match
-        case None => None
+        case None() => None()
         case Some(v) => Some(v.toByte)
 }
 
 
 def Acn_Dec_Int_TwosComplement_VarSize_LengthEmbeddedInt8 (pBitStrm: BitStream): Option[Byte] = {
     Acn_Dec_Int_TwosComplement_VarSize_LengthEmbedded(pBitStrm) match
-        case None => None
+        case None() => None()
         case Some(v) => Some(v.toByte)
 }
 
 
 def Acn_Dec_Int_TwosComplement_VarSize_LengthEmbeddedInt16 (pBitStrm: BitStream): Option[Short] = {
     Acn_Dec_Int_TwosComplement_VarSize_LengthEmbedded(pBitStrm) match
-        case None => None
+        case None() => None()
         case Some(v) => Some(v.toShort)
 }
 
 
 def Acn_Dec_Int_TwosComplement_VarSize_LengthEmbeddedInt32 (pBitStrm: BitStream): Option[Int] = {
     Acn_Dec_Int_TwosComplement_VarSize_LengthEmbedded(pBitStrm) match
-        case None => None
+        case None() => None()
         case Some(v) => Some(v.toInt)
 }
 
 
 def Acn_Dec_Int_BCD_ConstSizeUInt8 (pBitStrm: BitStream, encodedSizeInNibbles: Int): Option[UByte] = {
     Acn_Dec_Int_BCD_ConstSize(pBitStrm, encodedSizeInNibbles) match
-        case None => None
+        case None() => None()
         case Some(v) => Some(v.toByte)
 }
 
 
 def Acn_Dec_Int_BCD_ConstSizeUInt16 (pBitStrm: BitStream, encodedSizeInNibbles: Int): Option[UShort] = {
     Acn_Dec_Int_BCD_ConstSize(pBitStrm, encodedSizeInNibbles) match
-        case None => None
+        case None() => None()
         case Some(v) => Some(v.toShort)
 }
 
 
 def Acn_Dec_Int_BCD_ConstSizeUInt32 (pBitStrm: BitStream, encodedSizeInNibbles: Int): Option[UInt] = {
     Acn_Dec_Int_BCD_ConstSize(pBitStrm, encodedSizeInNibbles) match
-        case None => None
+        case None() => None()
         case Some(v) => Some(v.toInt)
 }
 
 
 def Acn_Dec_Int_BCD_VarSize_LengthEmbeddedUInt8 (pBitStrm: BitStream): Option[UByte] = {
     Acn_Dec_Int_BCD_VarSize_LengthEmbedded(pBitStrm) match
-        case None => None
+        case None() => None()
         case Some(v) => Some(v.toByte)
 }
 
 
 def Acn_Dec_Int_BCD_VarSize_LengthEmbeddedUInt16 (pBitStrm: BitStream): Option[UShort] = {
     Acn_Dec_Int_BCD_VarSize_LengthEmbedded(pBitStrm) match
-        case None => None
+        case None() => None()
         case Some(v) => Some(v.toShort)
 }
 
 
 def Acn_Dec_Int_BCD_VarSize_LengthEmbeddedUInt32 (pBitStrm: BitStream): Option[UInt] = {
     Acn_Dec_Int_BCD_VarSize_LengthEmbedded(pBitStrm) match
-        case None => None
+        case None() => None()
         case Some(v) => Some(v.toInt)
 }
 
 
 def Acn_Dec_Int_BCD_VarSize_NullTerminatedUInt8 (pBitStrm: BitStream): Option[UByte] = {
     Acn_Dec_Int_BCD_VarSize_NullTerminated(pBitStrm) match
-        case None => None
+        case None() => None()
         case Some(v) => Some(v.toByte)
 }
 
 
 def Acn_Dec_Int_BCD_VarSize_NullTerminatedUInt16 (pBitStrm: BitStream): Option[UShort] = {
     Acn_Dec_Int_BCD_VarSize_NullTerminated(pBitStrm) match
-        case None => None
+        case None() => None()
         case Some(v) => Some(v.toShort)
 }
 
 
 def Acn_Dec_Int_BCD_VarSize_NullTerminatedUInt32 (pBitStrm: BitStream): Option[UInt] = {
     Acn_Dec_Int_BCD_VarSize_NullTerminated(pBitStrm) match
-        case None => None
+        case None() => None()
         case Some(v) => Some(v.toInt)
 }
 
 
 def Acn_Dec_SInt_ASCII_ConstSizeInt8 (pBitStrm: BitStream, encodedSizeInBytes: Int): Option[Byte] = {
     Acn_Dec_SInt_ASCII_ConstSize(pBitStrm, encodedSizeInBytes) match
-        case None => None
+        case None() => None()
         case Some(v) => Some(v.toByte)
 }
 
 
 def Acn_Dec_SInt_ASCII_ConstSizeInt16 (pBitStrm: BitStream, encodedSizeInBytes: Int): Option[Short] = {
     Acn_Dec_SInt_ASCII_ConstSize(pBitStrm, encodedSizeInBytes) match
-        case None => None
+        case None() => None()
         case Some(v) => Some(v.toShort)
 }
 
 
 def Acn_Dec_SInt_ASCII_ConstSizeInt32 (pBitStrm: BitStream, encodedSizeInBytes: Int): Option[Int] = {
     Acn_Dec_SInt_ASCII_ConstSize(pBitStrm, encodedSizeInBytes) match
-        case None => None
+        case None() => None()
         case Some(v) => Some(v.toInt)
 }
 
 
 def Acn_Dec_SInt_ASCII_VarSize_LengthEmbeddedInt8 (pBitStrm: BitStream): Option[Byte] = {
     Acn_Dec_SInt_ASCII_VarSize_LengthEmbedded(pBitStrm) match
-        case None => None
+        case None() => None()
         case Some(v) => Some(v.toByte)
 }
 
 
 def Acn_Dec_SInt_ASCII_VarSize_LengthEmbeddedInt16 (pBitStrm: BitStream): Option[Short] = {
     Acn_Dec_SInt_ASCII_VarSize_LengthEmbedded(pBitStrm) match
-        case None => None
+        case None() => None()
         case Some(v) => Some(v.toShort)
 }
 
 
 def Acn_Dec_SInt_ASCII_VarSize_LengthEmbeddedInt32 (pBitStrm: BitStream): Option[Int] = {
     Acn_Dec_SInt_ASCII_VarSize_LengthEmbedded(pBitStrm) match
-        case None => None
+        case None() => None()
         case Some(v) => Some(v.toInt)
 }
 
 
 def Acn_Dec_SInt_ASCII_VarSize_NullTerminatedInt8 (pBitStrm: BitStream, null_characters: Array[Byte], null_characters_size: Int): Option[Byte] = {
     Acn_Dec_SInt_ASCII_VarSize_NullTerminated(pBitStrm, null_characters, null_characters_size) match
-        case None => None
+        case None() => None()
         case Some(v) => Some(v.toByte)
 }
 
 
 def Acn_Dec_SInt_ASCII_VarSize_NullTerminatedInt16 (pBitStrm: BitStream, null_characters: Array[Byte], null_characters_size: Int): Option[Short] = {
     Acn_Dec_SInt_ASCII_VarSize_NullTerminated(pBitStrm, null_characters, null_characters_size) match
-        case None => None
+        case None() => None()
         case Some(v) => Some(v.toShort)
 }
 
 
 def Acn_Dec_SInt_ASCII_VarSize_NullTerminatedInt32 (pBitStrm: BitStream, null_characters: Array[Byte], null_characters_size: Int): Option[Int] = {
     Acn_Dec_SInt_ASCII_VarSize_NullTerminated(pBitStrm, null_characters, null_characters_size) match
-        case None => None
+        case None() => None()
         case Some(v) => Some(v.toInt)
 }
 
 
 def Acn_Dec_UInt_ASCII_ConstSizeUInt8 (pBitStrm: BitStream, encodedSizeInBytes: Int): Option[UByte] = {
     Acn_Dec_UInt_ASCII_ConstSize(pBitStrm, encodedSizeInBytes) match
-        case None => None
+        case None() => None()
         case Some(v) => Some(v.toByte)
 }
 
 
 def Acn_Dec_UInt_ASCII_ConstSizeUInt16 (pBitStrm: BitStream, encodedSizeInBytes: Int): Option[UShort] = {
     Acn_Dec_UInt_ASCII_ConstSize(pBitStrm, encodedSizeInBytes) match
-        case None => None
+        case None() => None()
         case Some(v) => Some(v.toShort)
 }
 
 
 def Acn_Dec_UInt_ASCII_ConstSizeUInt32 (pBitStrm: BitStream, encodedSizeInBytes: Int): Option[UInt] = {
     Acn_Dec_UInt_ASCII_ConstSize(pBitStrm, encodedSizeInBytes) match
-        case None => None
+        case None() => None()
         case Some(v) => Some(v.toInt)
 }
 
 
 def Acn_Dec_UInt_ASCII_VarSize_LengthEmbeddedUInt8 (pBitStrm: BitStream): Option[UByte] = {
     Acn_Dec_UInt_ASCII_VarSize_LengthEmbedded(pBitStrm) match
-        case None => None
+        case None() => None()
         case Some(v) => Some(v.toByte)
 }
 
 
 def Acn_Dec_UInt_ASCII_VarSize_LengthEmbeddedUInt16 (pBitStrm: BitStream): Option[UShort] = {
     Acn_Dec_UInt_ASCII_VarSize_LengthEmbedded(pBitStrm) match
-        case None => None
+        case None() => None()
         case Some(v) => Some(v.toShort)
 }
 
 
 def Acn_Dec_UInt_ASCII_VarSize_LengthEmbeddedUInt32 (pBitStrm: BitStream): Option[UInt] = {
     Acn_Dec_UInt_ASCII_VarSize_LengthEmbedded(pBitStrm) match
-        case None => None
+        case None() => None()
         case Some(v) => Some(v.toInt)
 }
 
 
 def Acn_Dec_UInt_ASCII_VarSize_NullTerminatedUInt8 (pBitStrm: BitStream, null_characters: Array[Byte], null_characters_size: Int): Option[UByte] = {
     Acn_Dec_UInt_ASCII_VarSize_NullTerminated(pBitStrm, null_characters, null_characters_size) match
-        case None => None
+        case None() => None()
         case Some(v) => Some(v.toByte)
 }
 
 
 def Acn_Dec_UInt_ASCII_VarSize_NullTerminatedUInt16 (pBitStrm: BitStream, null_characters: Array[Byte], null_characters_size: Int): Option[UShort] = {
     Acn_Dec_UInt_ASCII_VarSize_NullTerminated(pBitStrm, null_characters, null_characters_size) match
-        case None => None
+        case None() => None()
         case Some(v) => Some(v.toShort)
 }
 
 
 def Acn_Dec_UInt_ASCII_VarSize_NullTerminatedUInt32 (pBitStrm: BitStream, null_characters: Array[Byte], null_characters_size: Int): Option[UInt] = {
     Acn_Dec_UInt_ASCII_VarSize_NullTerminated(pBitStrm, null_characters, null_characters_size) match
-        case None => None
+        case None() => None()
         case Some(v) => Some(v.toInt)
 }
 
