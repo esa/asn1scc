@@ -84,6 +84,7 @@ type CheckFileController (logger : ILogger<CheckFileController>) =
                 objectIdentifierMaxLength = 20I
                 generateConstInitGlobals = false
                 icdPdus = None
+                handleEmptySequences= false
             }    
 
         
