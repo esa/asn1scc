@@ -45,6 +45,8 @@ type CliArguments =
     | [<Unique; AltCommandLine("-debug")>]   Debug
     | [<Unique; AltCommandLine("-sm")>]   Streaming_Mode
     | [<Unique; AltCommandLine("-ig")>]   Init_Globals
+    | [<Unique; AltCommandLine("-es")>]   Handle_Empty_Sequences
+
     | [<MainCommand; ExactlyOnce; Last>] Files of files:string list
 with
     interface IArgParserTemplate with
@@ -97,9 +99,9 @@ with
             | Fp_Word_Size _    -> "Defines the size of the REAL type. Valid values are 8 bytes (default) which corresponds to double and 4 bytes which corresponds to float. If you pass 4 then you should compile the C code -DFP_WORD_SIZE=4. (Applicable only to C.)"
             | Slim              -> "Generate Integer and Real types based on the ASN.1 range constraints and/or on ACN encoding properties. E.g. MyInt ::=INTEGER (0..255) becomes a uint8_t instead of asn1SccUint."
             | Target _          -> """Specify Ada configuration profile. (Applicable only to Ada.)"""
-
             | Mapping_Functions_Module _    -> "The name of Ada module or name of C header file (without extension) containing the definitions of mapping functions"
             | Streaming_Mode    -> "Streaming mode support"
+            | Handle_Empty_Sequences -> "Adds a dummy integer member to empty ASN.1 SEQUENCE structures for compliant C code generation."
 
 
 let printVersion () =
@@ -209,6 +211,7 @@ let checkArguement arg =
     | Target _          ->()
     | Mapping_Functions_Module mfm  -> ()
     | Streaming_Mode    -> ()
+    | Handle_Empty_Sequences -> ()
 
 let createInput (fileName:string) : Input = 
     {
@@ -277,7 +280,7 @@ let constructCommandLineSettings args (parserResults: ParseResults<CliArguments>
             args |> List.choose(fun a -> match a with C_lang -> Some (CommonTypes.ProgrammingLanguage.C) | Ada_Lang -> Some (CommonTypes.ProgrammingLanguage.Ada) | Scala_Lang -> Some (CommonTypes.ProgrammingLanguage.Scala) | _ -> None)
     
         objectIdentifierMaxLength = 20I
-
+        handleEmptySequences = parserResults.Contains <@ Handle_Empty_Sequences @>
     }    
 
 

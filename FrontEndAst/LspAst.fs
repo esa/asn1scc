@@ -112,6 +112,7 @@ let defaultCommandLineSettings  =
         objectIdentifierMaxLength = 20I
         generateConstInitGlobals = false
         icdPdus = None
+        handleEmptySequences = false
     }    
 
 type LspWorkSpace = {

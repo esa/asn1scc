@@ -438,7 +438,7 @@ let createOctetStringInitFunc (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (t:Asn
             let i = sprintf "i%d" ii
             let seqOfCase (nSize:BigInteger) = 
                 let initTestCaseFunc (p:CallerScope) = 
-                    let funcBody = initTestCaseOctetString p.arg.p (lm.lg.getAccess p.arg) tdName nSize i (o.minSize.uper = o.maxSize.uper) false o.minSize.uper
+                    let funcBody = initTestCaseOctetString p.arg.p (lm.lg.getAccess p.arg) tdName nSize i (o.minSize.uper = o.maxSize.uper) false o.minSize.uper (nSize = 0I)
                     {InitFunctionResult.funcBody = funcBody; localVariables=[SequenceOfIndex (ii, None)]}
                 {AutomaticTestCase.initTestCaseFunc = initTestCaseFunc; testCaseTypeIDsMap = Map.ofList [(t.id, TcvSizeableTypeValue nSize)] }
             let testCaseFuncs = 
@@ -461,7 +461,7 @@ let createOctetStringInitFunc (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (t:Asn
                         match bs.Kind with
                         | Asn1AcnAst.OctetString bo -> bo.isFixedSize
                         | _                        -> raise(BugErrorException "UnexpectedType")
-                let funcBody = initTestCaseOctetString p.arg.p (lm.lg.getAccess p.arg) tdName o.maxSize.uper i (isFixedSize) true o.minSize.uper
+                let funcBody = initTestCaseOctetString p.arg.p (lm.lg.getAccess p.arg) tdName o.maxSize.uper i (isFixedSize) true o.minSize.uper (o.maxSize.uper = 0I)
                 let lvars = lm.lg.init.zeroIA5String_localVars ii
                 {InitFunctionResult.funcBody = funcBody; localVariables=lvars}
 

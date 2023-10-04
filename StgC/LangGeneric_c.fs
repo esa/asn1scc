@@ -57,6 +57,9 @@ type LangGeneric_c() =
         override _.initializeString stringSize = sprintf "{ [0 ... %d] = 0x0 }" stringSize
         
         override _.supportsInitExpressions = false
+        override _.requiresHandlingOfEmptySequences = true
+        override _.requiresHandlingOfZeroArrays = true
+
 
         override _.getPointer  (fpt:FuncParamType) =
             match fpt with

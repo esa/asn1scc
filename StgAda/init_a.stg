@@ -126,13 +126,13 @@ initFixVarSizeBitOrOctString(p, sAcc, nSize, arrsBytes) ::= <<
 <arrsBytes; separator="\n">
 >>
 
-initTestCaseOctetString(p, sAcc, sArrayHolderName, nSize, i, bIsFixedSize, bZero, nMinSize) ::= <<
+initTestCaseOctetString(p, sAcc, sArrayHolderName, nSize, i, bIsFixedSize, bZero, nMinSize, bZeroSizedArray) ::= <<
 <i> := 1;
 while <i>\<= <nSize> loop
     --  commented because it casues this warning    
     --  warning: condition can only be False if invalid values present
-    pragma Loop_Invariant (<i> >=1 and <i>\<=<nSize>);
-    <p><sAcc>Data(<i>) := <rtlModuleName()>.Asn1Byte(<if(bZero)>0<else>(<i>-1) mod 256<endif>);
+    <if(!bZeroSizedArray)>pragma Loop_Invariant (<i> >=1 and <i>\<=<nSize>);<endif>
+    <if(!bZeroSizedArray)><p><sAcc>Data(<i>) := <rtlModuleName()>.Asn1Byte(<if(bZero)>0<else>(<i>-1) mod 256<endif>);<endif>
     <i> := <i> + 1;
 end loop;
 <if(!bIsFixedSize)><p><sAcc>Length := <if(bZero)><nMinSize><else><nSize><endif>;<endif>

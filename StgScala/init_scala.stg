@@ -119,7 +119,7 @@ initFixVarSizeBitOrOctString(p, sAcc, nSize, arrsBytes) ::= <<
 <arrsBytes; separator="\n">
 >>
 
-initTestCaseOctetString(p, sAcc, sArrayHolderName, nSize, i, bIsFixedSize, bZero, nMinSize) ::= <<
+initTestCaseOctetString(p, sAcc, sArrayHolderName, nSize, i, bIsFixedSize, bZero, nMinSize, bZeroSizedArray) ::= <<
 <if(bZero)>
 <p> = <sArrayHolderName>(<if(!bIsFixedSize)><nMinSize>, <endif>Array.fill(<nSize>){0})
 <else>

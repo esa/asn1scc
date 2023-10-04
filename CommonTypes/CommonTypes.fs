@@ -915,6 +915,8 @@ type CommandLineSettings = {
     targetLanguages : ProgrammingLanguage list
     objectIdentifierMaxLength : BigInteger
     streamingModeSupport      : bool
+    handleEmptySequences      : bool
+
 }
 with 
   member this.SIntMax =

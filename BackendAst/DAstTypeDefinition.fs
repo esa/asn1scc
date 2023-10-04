@@ -320,7 +320,10 @@ let createSequence (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAst.Asn1
             List.map(fun childName -> define_new_sequence_save_pos_child td childName o.acnMaxSizeInBits)
 
 
-    let arrsChildren = children |> List.map (fun o -> define_new_sequence_child (lm.lg.getAsn1ChildBackendName o) (o.Type.typeDefintionOrReference.longTypedefName2 lm.lg.hasModules))
+    let arrsChildren = 
+        match r.args.handleEmptySequences && lm.lg.requiresHandlingOfEmptySequences && children.IsEmpty with
+        | true -> [define_new_sequence_child "dummy" "int"] //define a dummy child for empty sequences
+        | false    -> children |> List.map (fun o -> define_new_sequence_child (lm.lg.getAsn1ChildBackendName o) (o.Type.typeDefintionOrReference.longTypedefName2 lm.lg.hasModules))
     let arrsOptionalChildren  = optionalChildren |> List.map(fun c -> define_new_sequence_child_bit (lm.lg.getAsn1ChildBackendName c))
 
 

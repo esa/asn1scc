@@ -109,6 +109,8 @@ type ILangGeneric () =
     abstract member hasModules      : bool
     abstract member allowsSrcFilesWithNoFunctions : bool
     abstract member requiresValueAssignmentsInSrcFile      : bool
+    abstract member requiresHandlingOfEmptySequences : bool
+    abstract member requiresHandlingOfZeroArrays : bool
 
     abstract member supportsStaticVerification      : bool
     abstract member AssignOperator   :string
@@ -143,6 +145,8 @@ type ILangGeneric () =
         POINTER (this.getPointer fpt)
     default this.getParamType    (t:Asn1AcnAst.Asn1Type) (c:Codec) : CallerScope =
         this.getParamTypeSuffix t "" c
+    default this.requiresHandlingOfEmptySequences = false
+    default this.requiresHandlingOfZeroArrays = false
 
 
 type LanguageMacros = {
