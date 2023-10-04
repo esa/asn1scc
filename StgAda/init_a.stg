@@ -257,7 +257,7 @@ procedure <sFuncName>_set_<sNamedBit>(<sVarName> : in out <sTypeDefName>);
 
 
 
-initFixSizeOctetString(nMax) ::= "(Data => (others => 0))"
+initFixSizeOctetString(nMax, bZeroSizedArray) ::= "(Data => (others => 0))"
 initVarSizeOctetString(nMin, nMax) ::= "(Length => <nMin>, Data => (others => 0))"
 
 initFixSizeBitString(nMax, nMaxOctets) ::= "(Data => (others => 0))"

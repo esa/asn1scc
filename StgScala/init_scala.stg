@@ -241,7 +241,7 @@ initTypeConstant_body(sTypeDecl, sConstantName, sValue) ::= <<
 val <sConstantName>: sTypeDecl> = <sValue>
 >>
 
-initFixSizeOctetString(nMax) ::= "Array.fill(<nMax>)(0)" 
+initFixSizeOctetString(nMax, bZeroSizedArray) ::= "Array.fill(<nMax>)(0)" 
 initVarSizeOctetString(nMin, nMax) ::= "null"
 
 initFixSizeBitString(nMax, nMaxOctets) ::= "Array.fill(<nMaxOctets>)(0)"

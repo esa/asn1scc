@@ -255,7 +255,7 @@ const <sTypeDecl> <sConstantName> = <sValue>;
 #endif
 >>
 
-initFixSizeOctetString(nMax) ::= "{.arr  = {[0 ... <nMax>-1] = 0 }}"
+initFixSizeOctetString(nMax, bZeroSizedArray) ::= "{<if(!bZeroSizedArray)>.arr  = {[0 ... <nMax>-1] = 0 }<endif>}"
 initVarSizeOctetString(nMin, nMax) ::= "{.nCount = <nMin>, .arr  = {[0 ... <nMax>-1] = 0 }}"
 
 initFixSizeBitString(nMax, nMaxOctets) ::= "{.arr  = {[0 ... <nMaxOctets>-1] = 0 }}"

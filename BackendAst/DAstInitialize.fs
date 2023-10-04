@@ -418,9 +418,9 @@ let createOctetStringInitFunc (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (t:Asn
         | true   ->
             match ST.lang with
             | ProgrammingLanguage.Scala ->
-                (lm.lg.getLongTypedefName typeDefinition) + "(" + lm.init.initFixSizeOctetString o.maxSize.uper + ")"                
+                (lm.lg.getLongTypedefName typeDefinition) + "(" + (lm.init.initFixSizeOctetString o.maxSize.uper (o.maxSize.uper = 0I)) + ")"                
             | _ ->
-                lm.init.initFixSizeOctetString o.maxSize.uper
+                lm.init.initFixSizeOctetString o.maxSize.uper (o.maxSize.uper = 0I)
         | false  -> lm.init.initVarSizeOctetString o.minSize.uper o.maxSize.uper
 
     let anonyms =
