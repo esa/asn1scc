@@ -1,6 +1,6 @@
 package asn1scala
 
-import stainless.lang.{None => None, Option => Option, Some => Some, _}
+import stainless.lang.{None => None, Option => Option, Some => Some}
 
 val FAILED_READ_ERR_CODE = 5400
 
