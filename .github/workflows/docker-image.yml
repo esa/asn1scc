@@ -19,7 +19,9 @@ jobs:
       run: |
         IMAGE_ID=$(docker images -q asn1scc:$(date +%s))
         echo "IMAGE_ID=$IMAGE_ID" >> $GITHUB_ENV
-        echo "::set-env name=IMAGE_ID::$IMAGE_ID"
+        echo "$IMAGE_ID" > image_id.txt
+      env:
+        GITHUB_ENV: ${{ github.workspace }}/.env
     - name: Upload Docker image ID
       uses: actions/upload-artifact@v2
       with:
