@@ -1,0 +1,14 @@
+TEST-CASE DEFINITIONS ::= BEGIN
+
+	MySeq []
+	{
+		x [],
+		y NULL [pattern '1111'B]
+	}
+
+	RefToMySeq []
+	{
+		x [],
+		y NULL [pattern '0000'B]
+	}
+END

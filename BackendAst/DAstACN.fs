@@ -2103,6 +2103,8 @@ let rec isIcdTypeAssEquivalent (t1:IcdTypeAss) (t2:IcdTypeAss) =
 
 let createReferenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (lm:LanguageMacros) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.ReferenceType) (typeDefinition:TypeDefintionOrReference) (isValidFunc: IsValidFunction option) (baseType:Asn1Type) (us:State)  =
   let baseTypeDefinitionName, baseFncName = getBaseFuncName lm typeDefinition o t.id "_ACN" codec
+  if (t.id.AsString = "MOD-A.MyCompositeSeq.c") then
+      printfn "debug"
 
     
   let x = baseType.icdFunction
