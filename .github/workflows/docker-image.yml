@@ -26,7 +26,7 @@ jobs:
       uses: actions/upload-artifact@v2
       with:
         name: docker-image-id
-        path: ${{ env.IMAGE_ID }}
+        path: image_id.txt
 
   push-to-dockerhub:
     needs: build
