@@ -11,7 +11,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2.4.3
+    - uses: actions/checkout@v2
     - name: Build the Docker image
       run: docker build . --file Dockerfile.runtime --tag asn1scc:$(date +%s)
     - name: Save Docker image ID
@@ -19,7 +19,7 @@ jobs:
       run: |
         echo "IMAGE_ID=$(docker images -q asn1scc:$(date +%s))" >> $GITHUB_ENV
     - name: Upload Docker image ID
-      uses: actions/upload-artifact@v2.2.5
+      uses: actions/upload-artifact@v2
       with:
         name: docker-image-id
         path: ${{ env.IMAGE_ID }}
