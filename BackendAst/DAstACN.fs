@@ -1676,13 +1676,19 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
 
                 let childEncDecStatement, ns3 = 
                     match childContentResult with
-                    | None              -> [], ns2
+                    | None              -> 
+                        match child.Optionality with
+                        | Some Asn1AcnAst.AlwaysPresent     -> 
+                            let childBody = Some(sequence_always_present_child p.arg.p (lm.lg.getAccess p.arg) (lm.lg.getAsn1ChildBackendName child) None soSaveBitStrmPosStatement codec)
+                            let chLocalVars = []
+                            [(Asn1ChildEncodeStatement, childBody, chLocalVars, [])], ns2
+                        | _                                -> [], ns2
                     | Some childContent ->
                         let childBody, chLocalVars = 
                             match child.Optionality with
                             | None                             -> Some (sequence_mandatory_child (lm.lg.getAsn1ChildBackendName child) childContent.funcBody soSaveBitStrmPosStatement codec), childContent.localVariables
                             | Some Asn1AcnAst.AlwaysAbsent     -> Some (sequence_always_absent_child p.arg.p (lm.lg.getAccess p.arg) (lm.lg.getAsn1ChildBackendName child) childContent.funcBody soSaveBitStrmPosStatement codec), []
-                            | Some Asn1AcnAst.AlwaysPresent    -> Some(sequence_always_present_child p.arg.p (lm.lg.getAccess p.arg) (lm.lg.getAsn1ChildBackendName child) childContent.funcBody soSaveBitStrmPosStatement codec), childContent.localVariables
+                            | Some Asn1AcnAst.AlwaysPresent    -> Some(sequence_always_present_child p.arg.p (lm.lg.getAccess p.arg) (lm.lg.getAsn1ChildBackendName child) (Some childContent.funcBody) soSaveBitStrmPosStatement codec), childContent.localVariables
                             | Some (Asn1AcnAst.Optional opt)   -> 
                                 match opt.defaultValue with
                                 | None                   -> Some(sequence_optional_child p.arg.p (lm.lg.getAccess p.arg) (lm.lg.getAsn1ChildBackendName child) childContent.funcBody soSaveBitStrmPosStatement codec), childContent.localVariables
