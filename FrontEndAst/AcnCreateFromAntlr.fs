@@ -1446,9 +1446,12 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (m:Asn1Ast.Asn1Mo
                     b1,b2
             
                 
-            let hasExtraConstrainsOrChildrenOrAcnArgs = 
-                hasAdditionalConstraints || hasChildren || acnArguments.Length > 0 || hasAcnProps
             let resolvedType, us2     = mergeType asn1 acn m oldBaseType curPath newTypeDefPath newEnmItemTypeDefPath mergedAcnEncSpec (Some t.Location) restCons withCompCons acnArgs baseTypeAcnParams inheritanceInfo typeAssignmentInfo  us1
+            let hasExtraConstrainsOrChildrenOrAcnArgs = 
+                let b1 = hasAdditionalConstraints || hasChildren || acnArguments.Length > 0 || hasAcnProps
+                match resolvedType.Kind with
+                | ReferenceType baseRef   -> b1 || baseRef.hasExtraConstrainsOrChildrenOrAcnArgs
+                | _                       -> b1
 
             let refCons = mapAnyConstraint asn1 t t.Constraints
 

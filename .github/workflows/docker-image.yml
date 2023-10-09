@@ -1,0 +1,49 @@
+name: Docker Image CI
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+
+jobs:
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Build the Docker image
+      run: docker build . --file Dockerfile.runtime --tag asn1scc:$(date +%s)
+    - name: Save Docker image ID
+      id: save-image-id
+      run: |
+        IMAGE_ID=$(docker images -q asn1scc:$(date +%s))
+        echo "IMAGE_ID=$IMAGE_ID" >> $GITHUB_ENV
+        echo "$IMAGE_ID" > image_id.txt
+      env:
+        GITHUB_ENV: ${{ github.workspace }}/.env
+    - name: Upload Docker image ID
+      uses: actions/upload-artifact@v3
+      with:
+        name: docker-image-id
+        path: image_id.txt
+
+
+  push-to-dockerhub:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'
+    steps:
+    - name: Log in to DockerHub
+      uses: docker/login-action@v1
+      with:
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_PASSWORD }}
+    - name: Download Docker image ID
+      uses: actions/download-artifact@v3
+      with:
+        name: docker-image-id
+    - name: Tag and push Docker image to DockerHub
+      run: |
+        docker tag ${{ env.DOWNLOADED_IMAGE_ID }} ${{ secrets.DOCKERHUB_USERNAME }}/asn1scc:latest
+        docker push ${{ secrets.DOCKERHUB_USERNAME }}/asn1scc:latest

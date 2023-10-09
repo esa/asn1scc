@@ -918,7 +918,10 @@ let createSequenceInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1Acn
         let asn1Children = 
             children |> 
             List.choose(fun c -> match c with Asn1Child x -> Some x | _ -> None) |> 
-            List.filter(fun z -> match z.Type.Kind with NullType _ -> false | _ -> true) |>
+            List.filter(fun z -> 
+                match z.Type.Kind with 
+                | NullType _ -> match z.Optionality with Some Asn1AcnAst.AlwaysPresent -> true | _ -> false
+                | _ -> true) |>
             List.filter(fun z -> match z.Optionality with Some Asn1AcnAst.AlwaysAbsent -> false | _ -> true)
         
 

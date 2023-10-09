@@ -95,6 +95,7 @@ flag BitStream_DecodeReal(BitStream* pBitStrm, asn1Real* v);
 
 flag BitStream_DecodeReal_fp32(BitStream* pBitStrm, float* v);
 
+flag BitStream_AppendByteArray(BitStream* pBitStrm, const byte arr[], const int arr_len);
 flag BitStream_EncodeOctetString_no_length(BitStream* pBitStrm, const byte* arr, int nCount);
 flag BitStream_DecodeOctetString_no_length(BitStream* pBitStrm, byte* arr, int nCount);
 flag BitStream_EncodeOctetString_fragmentation(BitStream* pBitStrm, const byte* arr, int nCount);
