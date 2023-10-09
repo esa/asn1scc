@@ -268,13 +268,13 @@ namespace PUS_C_Scala_Test
                 StartInfo = new ProcessStartInfo
                 {
                     FileName = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "cmd.exe" : "bash",
-                    Arguments = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? $"/C {cConfig}\\{cProject}.exe" : $"./mainprogram",
+                    Arguments = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? $"/C {cConfig}\\{cProject}.exe" : $"-c ./mainprogram",
 
 					WorkingDirectory = outDir,
                     UseShellExecute = false,
                     RedirectStandardOutput = true,
                     RedirectStandardInput = false,
-                    CreateNoWindow = true,
+                    CreateNoWindow = false,
                 }
             })
             {
