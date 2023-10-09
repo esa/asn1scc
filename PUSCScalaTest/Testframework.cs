@@ -295,6 +295,7 @@ namespace PUS_C_Scala_Test
                 StartInfo = new ProcessStartInfo
                 {
                     FileName = "bash",
+                    Arguments = "-c make all",
                     WorkingDirectory = outDir,
                     UseShellExecute = false,
                     RedirectStandardOutput = true,
@@ -304,11 +305,6 @@ namespace PUS_C_Scala_Test
             })
             {
                 proc.Start();
-                proc.StandardInput.WriteLine("make all");
-                System.Threading.Thread.Sleep(500);
-                proc.StandardInput.Flush();
-                proc.StandardInput.Close();
-                proc.WaitForExit();
 
                 // parse output
                 var stdout = proc.StandardOutput.ReadToEnd();
@@ -373,7 +369,7 @@ namespace PUS_C_Scala_Test
                 StartInfo = new ProcessStartInfo
                 {
                     FileName = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "cmd.exe" : "bash",
-                    Arguments= RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? $"/C {arg}" : "-c \"{arg}\"",
+                    Arguments= RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? $"/C {arg}" : $"-c \"{arg}\"",
                     WorkingDirectory = outDir,
                     UseShellExecute = false,
                     RedirectStandardOutput = true,
