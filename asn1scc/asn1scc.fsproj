@@ -8,6 +8,7 @@
 
 
   <ItemGroup>
+      <EmbeddedResource Include="stainless_utils.scala" />
       <EmbeddedResource Include="../ADA_RTL2/aux_files/asn1_msp430.gpr" />
       
       <EmbeddedResource Include="../ADA_RTL2/aux_files/asn1_stm32.gpr" />
@@ -101,5 +102,7 @@
       <Link>asn1jvm_encoding_acn.scala</Link>
     </EmbeddedResource>
   </ItemGroup>
+
+  <ItemGroup />
 
 </Project>

@@ -1,6 +1,12 @@
 package asn1scala
 
-import stainless.lang.{None => None, Option => Option, Some => Some, _}
+import stainless.*
+import stainless.lang.{None => None, ghost => ghostExpr, *}
+import stainless.collection.*
+import stainless.annotation.*
+import stainless.proof.*
+import stainless.math.*
+import StaticChecks.*
 
 val masks: Array[UByte] = Array(
     -0x80, // -128 / 1000 0000 / x80
@@ -12,17 +18,19 @@ val masks: Array[UByte] = Array(
      0x02, //        2 / 0000 0010 / x02
      0x01, //        1 / 0000 0001 / x01
 )
+
 val masksb: Array[UByte] = Array(
-    0x00, //     0 / 0000 0000 / x00
-    0x01, //     1 / 0000 0001 / x01
-    0x03, //     3 / 0000 0011 / x03
-    0x07, //     7 / 0000 0111 / x07
-    0x0F, //    15 / 0000 1111 / x0F
-    0x1F, //    31 / 0001 1111 / x1F
-    0x3F, //    63 / 0011 1111 / x3F
-    0x7F, // 127 / 0111 1111 / x7F
+     0x00, //     0 / 0000 0000 / x00
+     0x01, //     1 / 0000 0001 / x01
+     0x03, //     3 / 0000 0011 / x03
+     0x07, //     7 / 0000 0111 / x07
+     0x0F, //    15 / 0000 1111 / x0F
+     0x1F, //    31 / 0001 1111 / x1F
+     0x3F, //    63 / 0011 1111 / x3F
+     0x7F, // 127 / 0111 1111 / x7F
     -0x1, //    -1 / 1111 1111 / xFF
 )
+
 val masks2: Array[UInt] = Array(
     0x00000000, //                 0 / 0000 0000 0000 0000 0000 0000 0000 0000 / 0x00000000
     0x000000FF, //             255 / 0000 0000 0000 0000 0000 0000 1111 1111 / 0x000000FF
@@ -61,11 +69,12 @@ def BitString_equal(arr1: Array[UByte], arr2: Array[UByte]): Boolean = {
 
 
 def BitStream_Init(count: Int): BitStream = {
-    BitStream(Array.fill(count)(0), 0, 0, None(), None())
+    BitStream(Array.fill(count)(0), 0, 0)
 }
 
-def BitStream_Init2(count: Int, fetchDataPrm: Option[Any], pushDataPrm: Option[Any]): BitStream = {
-    BitStream(Array.fill(count)(0), 0, 0, fetchDataPrm, pushDataPrm)
+// TODO removed unused params
+def BitStream_Init2(count: Int, @scala.annotation.unused fetchDataPrm: Option[Any], @scala.annotation.unused pushDataPrm: Option[Any]): BitStream = {
+    BitStream(Array.fill(count)(0), 0, 0)
 }
 
 
@@ -73,14 +82,11 @@ def BitStream_AttachBuffer(pBitStrm: BitStream, buf: Array[UByte]): Unit = {
     pBitStrm.buf = buf // TODO: fix illegal aliasing
     pBitStrm.currentByte = 0
     pBitStrm.currentBit = 0
-    pBitStrm.pushDataPrm = None()
-    pBitStrm.fetchDataPrm = None()
 }
 
-def BitStream_AttachBuffer2(pBitStrm: BitStream, buf: Array[UByte], fetchDataPrm: Option[Any], pushDataPrm: Option[Any]): Unit = {
+// TODO removed unused params
+def BitStream_AttachBuffer2(pBitStrm: BitStream, buf: Array[UByte], @scala.annotation.unused fetchDataPrm: Option[Any], @scala.annotation.unused pushDataPrm: Option[Any]): Unit = {
     BitStream_AttachBuffer(pBitStrm, buf)
-    pBitStrm.pushDataPrm = pushDataPrm
-    pBitStrm.fetchDataPrm = fetchDataPrm
 }
 
 def BitStream_GetLength(pBitStrm: BitStream): Int = {
@@ -105,16 +111,55 @@ or    00010000
         xxx1????
 **/
 
+def isPrefix(b1: BitStream, b2: BitStream): Boolean = {
+    b1.buf.length <= b2.buf.length &&
+      b1.bitIndex <= b2.bitIndex &&
+      (b1.buf.length != 0) ==> arrayBitPrefix(b1.buf, b2.buf, 0, b1.bitIndex)
+}
+
+def isValidPair(w1: BitStream, w2: BitStream): Boolean = isPrefix(w1, w2)
+
+@ghost
+def reader(w1: BitStream, w2: BitStream): (BitStream, BitStream) = {
+    require(isValidPair(w1, w2))
+    val r1 = BitStream(snapshot(w2.buf), w1.currentByte, w1.currentBit)
+    val r2 = BitStream(snapshot(w2.buf), w2.currentByte, w2.currentBit)
+    (r1, r2)
+}
+
+@ghost @pure
+def BitStream_ReadBitPure(pBitStrm: BitStream): (BitStream, Option[Boolean]) = {
+    require(pBitStrm.bitIndex + 1 <= pBitStrm.buf.length.toLong * 8)
+    val cpy = snapshot(pBitStrm)
+    (cpy , BitStream_ReadBit(cpy))
+}
+
+@opaque @inlineOnce
 def BitStream_AppendBitOne(pBitStrm: BitStream): Unit = {
-    pBitStrm.buf(pBitStrm.currentByte) = (pBitStrm.buf(pBitStrm.currentByte) | masks(pBitStrm.currentBit)).toByte
+    require(pBitStrm.bitIndex + 1 <= pBitStrm.buf.length.toLong * 8)
+    @ghost val oldpBitStrm = snapshot(pBitStrm)
+
+    val newB = (pBitStrm.buf(pBitStrm.currentByte) | masks(pBitStrm.currentBit)).toByte
+    pBitStrm.buf(pBitStrm.currentByte) = newB
+
+    ghostExpr {
+        arrayUpdatedAtPrefixLemma(oldpBitStrm.buf, pBitStrm.currentByte, newB)
+    }
 
     if pBitStrm.currentBit < 7 then
         pBitStrm.currentBit += 1
     else
         pBitStrm.currentBit = 0
         pBitStrm.currentByte += 1
-        bitstream_push_data_if_required(pBitStrm)
-    assert(pBitStrm.currentByte.toLong*8 + pBitStrm.currentBit <= pBitStrm.buf.length.toLong*8)
+
+}.ensuring { _ =>
+    val w1 = old(pBitStrm)
+    val w2 = pBitStrm
+    w2.bitIndex == w1.bitIndex + 1 && isValidPair(w1, w2) && {
+        val (r1, r2) = reader(w1, w2)
+        val (r2Got, bitGot) = BitStream_ReadBitPure(r1)
+        bitGot.get == true && r2Got == r2
+    }
 }
 
 /**
@@ -209,7 +254,9 @@ def BitStream_AppendBit(pBitStrm: BitStream, v: Boolean): Unit = {
     assert(pBitStrm.currentByte + pBitStrm.currentBit/8 <= pBitStrm.buf.length)
 }
 
+// TODO check if needs Marios implementation
 def BitStream_ReadBit(pBitStrm: BitStream): Option[Boolean] = {
+    require(pBitStrm.bitIndex + 1 <= pBitStrm.buf.length.toLong * 8)
     val ret = (pBitStrm.buf(pBitStrm.currentByte) & masks(pBitStrm.currentBit)) != 0
 
     if pBitStrm.currentBit < 7 then
@@ -249,28 +296,74 @@ or    000bbbbb
         xxxbbbbb
 
 **/
-def BitStream_AppendByte(pBitStrm: BitStream, vVal: UByte, negate: Boolean): Unit = {
-    //static UByte masksb[] = { 0x0, 0x1, 0x3, 0x7, 0xF, 0x1F, 0x3F, 0x7F, 0xFF };
-    val cb: UByte = pBitStrm.currentBit.toByte
-    val ncb: UByte = (8 - cb).toByte
 
-    var v = vVal
+@opaque @inlineOnce
+def BitStream_AppendByte(pBitStrm: BitStream, value: Byte, negate: Boolean): Unit = {
+    require(pBitStrm.bitIndex + 8 <= pBitStrm.buf.length.toLong * 8)
+    @ghost val oldpBitStrm = snapshot(pBitStrm)
+    val cb = pBitStrm.currentBit.toByte
+    val ncb = (8 - cb).toByte
+    var mask = (~masksb(ncb)).toByte
+
+    var v = value
     if negate then
         v = (~v).toByte
 
-    var mask: UByte = (~masksb(ncb)).toByte
-
     pBitStrm.buf(pBitStrm.currentByte) = (pBitStrm.buf(pBitStrm.currentByte) & mask).toByte
-    pBitStrm.buf(pBitStrm.currentByte) = (pBitStrm.buf(pBitStrm.currentByte) | ((v & 0xFF ) >>> cb)).toByte
+    pBitStrm.buf(pBitStrm.currentByte) = (pBitStrm.buf(pBitStrm.currentByte) | ((v & 0xFF) >> cb)).toByte
     pBitStrm.currentByte += 1
-    bitstream_push_data_if_required(pBitStrm)
 
-    assert(pBitStrm.currentByte.toLong*8 + pBitStrm.currentBit <= pBitStrm.buf.length.toLong*8)
+    ghostExpr {
+        check(
+            (oldpBitStrm.currentByte < oldpBitStrm.buf.length) ==>
+                bytePrefix(
+                    oldpBitStrm.buf(oldpBitStrm.currentByte),
+                    pBitStrm.buf(oldpBitStrm.currentByte),
+                    0, oldpBitStrm.currentBit))
+    }
+    @ghost val old2pBitStrm = snapshot(pBitStrm)
 
     if cb > 0 then
         mask = (~mask).toByte
         pBitStrm.buf(pBitStrm.currentByte) = (pBitStrm.buf(pBitStrm.currentByte) & mask).toByte
-        pBitStrm.buf(pBitStrm.currentByte) = (pBitStrm.buf(pBitStrm.currentByte) | ((v & 0xFF) << ncb)).toByte // TODO: check if & 0xFF is needed
+        pBitStrm.buf(pBitStrm.currentByte) = (pBitStrm.buf(pBitStrm.currentByte) | (v << ncb)).toByte
+
+    ghostExpr {
+        arrayUpdatedAtPrefixLemma(oldpBitStrm.buf, pBitStrm.currentByte - 1, pBitStrm.buf(pBitStrm.currentByte - 1))
+        assert(arrayPrefix(oldpBitStrm.buf, old2pBitStrm.buf, 0, pBitStrm.currentByte - 1))
+
+        if (cb > 0) {
+            arrayUpdatedAtPrefixLemma(oldpBitStrm.buf, pBitStrm.currentByte, pBitStrm.buf(pBitStrm.currentByte))
+            arrayUpdatedAtPrefixLemma(old2pBitStrm.buf, pBitStrm.currentByte, pBitStrm.buf(pBitStrm.currentByte))
+            arrayPrefixTransitive(
+                oldpBitStrm.buf,
+                old2pBitStrm.buf,
+                pBitStrm.buf,
+                0, pBitStrm.currentByte - 1, pBitStrm.currentByte
+            )
+            check(arrayPrefix(
+                oldpBitStrm.buf,
+                pBitStrm.buf,
+                0,
+                oldpBitStrm.currentByte
+            ))
+        } else {
+            check(arrayPrefix(
+                oldpBitStrm.buf,
+                pBitStrm.buf,
+                0,
+                oldpBitStrm.currentByte
+            ))
+        }
+    }
+}.ensuring { _ =>
+    val w1 = old(pBitStrm)
+    val w2 = pBitStrm
+    w2.bitIndex == w1.bitIndex + 8 && isValidPair(w1, w2) && {
+        val (r1, r2) = reader(w1, w2)
+        val (r2Got, vGot) = BitStream_ReadBytePure(r1)
+        vGot.get == value && r2Got == r2
+    }
 }
 
 def BitStream_AppendByte0(pBitStrm: BitStream, v: UByte): Boolean = {
@@ -360,6 +453,13 @@ def BitStream_ReadByte(pBitStrm: BitStream): Option[UByte] = {
         Some(v)
     else
         None()
+}
+
+@ghost @pure
+def BitStream_ReadBytePure(pBitStrm: BitStream): (BitStream, Option[Byte]) = {
+    require(pBitStrm.bitIndex + 8 <= pBitStrm.buf.length.toLong * 8)
+    val cpy = snapshot(pBitStrm)
+    (cpy, BitStream_ReadByte(cpy))
 }
 
 def BitStream_ReadByteArray(pBitStrm: BitStream, arr_len: Int): Option[Array[UByte]] = {

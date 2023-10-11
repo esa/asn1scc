@@ -84,19 +84,36 @@ def asn1Real_Initialize(): asn1Real = {
     0.0
 }
 
+case class BitStream(
+                      var buf: Array[Byte],
+                      var currentByte: Int,
+                      var currentBit: Int,
+                    ) { // all BisStream instances satisfy the following:
+    require(0 <= currentByte && currentByte <= buf.length)
+    require(0 <= currentBit && currentBit <= 7)
+    require(currentByte.toLong * 8 + currentBit.toLong <= 8 * buf.length.toLong)
 
-case class BitStream (
-    var buf: Array[Byte], // UByte
-    var currentByte: Int,
-    var currentBit: Int,
-    // TODO
-    var pushDataPrm: Option[Any],
-    var fetchDataPrm: Option[Any],
-) {
-    // TODO: currentByte==buf.length temp possible, but with bitstream_push_data_if_required set to 0 again
-    require(currentByte >= 0 && currentByte <= buf.length)
-    require(currentBit >= 0 && currentBit < 8)
-}
+    def bitIndex: Long = {
+        currentByte.toLong * 8 + currentBit.toLong
+    }.ensuring(res => 0 <= res && res <= 8 * buf.length.toLong)
+
+    def moveOffset(diffInBits: Long): Unit = {
+        val res = bitIndex + diffInBits
+        require(0 <= res && res <= 8 * buf.length.toLong)
+        val nbBytes = (diffInBits / 8).toInt
+        val nbBits = (diffInBits % 8).toInt
+        currentByte += nbBytes
+        if (currentBit + nbBits < 0) {
+            currentByte -= 1
+            currentBit = 8 + nbBits + currentBit
+        } else if (currentBit + nbBits >= 8) {
+            currentBit = currentBit + nbBits - 8
+            currentByte += 1
+        } else {
+            currentBit += nbBits
+        }
+    }.ensuring(_ => old(this).bitIndex + diffInBits == bitIndex)
+} // BitStream class
 
 case class ByteStream (
     var buf: Array[Byte], // UByte

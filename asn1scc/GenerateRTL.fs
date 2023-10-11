@@ -109,6 +109,7 @@ let exportRTL (di:DirInfo) (l:ProgrammingLanguage) (args:CommandLineSettings)=
         | _     ->
 
             writeResource di "asn1jvm_encoding.scala" None
+            writeResource di "stainless_utils.scala" None // needed for verification
 
             if hasUper || hasAcn then
                 writeResource di "asn1jvm_encoding_uper.scala" None
