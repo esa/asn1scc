@@ -7,7 +7,7 @@ ASN.1 implementation of the PUS-C ECSS standard using ACN encoding.
 
 See [ECSS-E-ST-70-41C](http://ecss.nl/standard/ecss-e-st-70-41c-space-engineering-telemetry-and-telecommand-packet-utilization-15-april-2016/) for details about the standard.
 
-See [ASN1SCC](https://github.com/ttsiodras/asn1scc) for details about ACN encoding.
+See [ASN1SCC](https://github.com/maxime-esa/asn1scc) for details about ACN encoding.
 
 ASN.1 components are ment to work with any ASN.1 based tool,
 but project itself is prepared to be included as "ASN.1 Components Library" in
