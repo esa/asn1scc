@@ -1,6 +1,7 @@
 package asn1scala
 
 import stainless.lang.{None => None, Option => Option, _}
+import stainless.annotation._
 
 // type used in ErrorCases
 type ErrorCode = Int
@@ -20,6 +21,7 @@ type LongNoRTL = Long
 type ULongNoRTL = ULong
 
 // Floating Point Types
+@extern
 type asn1Real = Double
 
 val WORD_SIZE = 8
@@ -41,17 +43,20 @@ val ber_aux: Array[ULong] = Array(
 
 // TODO: check types and if neccesary as we don't have unsigned types
 def int2uint(v: Long): ULong = {
-    var ret: ULong = 0
+    v.asInstanceOf[ULong]
+    /*var ret: ULong = 0
     if v < 0 then
         ret = -v - 1
         ret = ~ret
     else
         ret = v
 
-    ret
+    ret*/
 }
 
 def uint2int(v: ULong, uintSizeInBytes: Int): Long = {
+    require(uintSizeInBytes >= 1 && uintSizeInBytes <= 9)
+
     var vv = v
     val tmp: ULong = 0x80
     val bIsNegative: Boolean = (vv & (tmp << ((uintSizeInBytes - 1) * 8))) > 0
@@ -66,20 +71,27 @@ def uint2int(v: ULong, uintSizeInBytes: Int): Long = {
     -(~vv) - 1
 }
 
-def GetCharIndex(ch: UByte, Set: Array[UByte]): Int =
+
+def GetCharIndex(ch: UByte, charSet: Array[UByte]): Int =
 {
     var i: Int = 0
-    while i < Set.length do
-        if ch == Set(i) then
-            return i
+    // TODO what is this? why is 0 the default return? what is the difference between key found in 0 and default?
+    var ret: Int = 0
+
+    (while i < charSet.length && ret == 0 do
+        decreases(charSet.length - i)
+        if ch == charSet(i) then
+            ret = i
         i += 1
-    0
+      ).invariant(i >= 0 &&& i < charSet.length)
+    ret
 }
 
 def NullType_Initialize(): ASCIIChar = {
     0
 }
 
+@extern @pure
 def asn1Real_Initialize(): asn1Real = {
     0.0
 }
@@ -217,22 +229,20 @@ enum Asn1TimeZoneClass:
 
 /**
 
-#######                                                                            ###
-#         # #####             # ######    ####    #####         #    #####    ###### #        # ##### # ###### # ###### #####
-#         # #        #            # #            #        #     #             #    #        # #            ##     #     #     # #            # #            #        #
-#         # #####             # #####    #                #             #    #        # #####    # #    #     #     # #####    # #####    #        #
-#         # #        #            # #            #                #             #    #        # #            #    # #     #     # #            # #            #####
-#         # #        # #        # #            #        #     #             #    #        # #            #     ##     #     # #            # #            #     #
-####### #####     ####    ######    ####        #            ### #####    ###### #        #     #     # #            # ###### #        #
+#######                                      ###
+#     # #####       # ######  ####  #####     #  #####  ###### #    # ##### # ###### # ###### #####
+#     # #    #      # #      #    #   #       #  #    # #      ##   #   #   # #      # #      #    #
+#     # #####       # #####  #        #       #  #    # #####  # #  #   #   # #####  # #####  #    #
+#     # #    #      # #      #        #       #  #    # #      #  # #   #   # #      # #      #####
+#     # #    # #    # #      #    #   #       #  #    # #      #   ##   #   # #      # #      #   #
+####### #####   ####  ######  ####    #      ### #####  ###### #    #   #   # #      # ###### #    #
 
 Object Identifier
 
 **/
 
-
-
 def ObjectIdentifier_Init(): Asn1ObjectIdentifier = {
-    var pVal: Asn1ObjectIdentifier = Asn1ObjectIdentifier(0, Array.fill(OBJECT_IDENTIFIER_MAX_LENGTH)(0))
+    val pVal: Asn1ObjectIdentifier = Asn1ObjectIdentifier(0, Array.fill(OBJECT_IDENTIFIER_MAX_LENGTH)(0))
     var i: Int = 0
     (while i < OBJECT_IDENTIFIER_MAX_LENGTH do
         decreases(OBJECT_IDENTIFIER_MAX_LENGTH - i)
@@ -253,19 +263,22 @@ def RelativeOID_isValid (pVal: Asn1ObjectIdentifier): Boolean = {
 }
 
 def ObjectIdentifier_equal (pVal1: Asn1ObjectIdentifier, pVal2: Asn1ObjectIdentifier): Boolean = {
-    var i: Int = 0
-    if pVal1.nCount == pVal2.nCount && pVal1.nCount <= OBJECT_IDENTIFIER_MAX_LENGTH then // TODO: (pVal1 != NULL) && (pVal2 != NULL)
-        var ret: Boolean = true
-        while i < pVal1.nCount && ret do
-            decreases(pVal1.nCount - i)
-            ret = (pVal1.values(i) == pVal2.values(i))
-            i += 1
-
-        return ret
-    else
+    if pVal1.nCount != pVal2.nCount || pVal1.nCount > OBJECT_IDENTIFIER_MAX_LENGTH then
         return false
+
+    var i: Int = 0
+
+    var ret: Boolean = true
+    (while i < pVal1.nCount && ret do
+        decreases(pVal1.nCount - i)
+
+        ret = (pVal1.values(i) == pVal2.values(i))
+        i += 1
+      ).invariant(i >= 0 &&& i < pVal1.nCount)
+
+    return ret
 }
 
 def CHECK_BIT_STREAM(pBitStrm: BitStream): Unit = {
-    assert(pBitStrm.currentByte*8 + pBitStrm.currentBit <= pBitStrm.buf.length*8)
+    assert(pBitStrm.currentByte.toLong * 8 + pBitStrm.currentBit <= pBitStrm.buf.length.toLong * 8)
 }

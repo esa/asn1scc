@@ -72,7 +72,7 @@ def BitStream_Init(count: Int): BitStream = {
     BitStream(Array.fill(count)(0), 0, 0)
 }
 
-// TODO removed unused params
+// TODO remove whole init func - streaming mode code
 def BitStream_Init2(count: Int, @scala.annotation.unused fetchDataPrm: Option[Any], @scala.annotation.unused pushDataPrm: Option[Any]): BitStream = {
     BitStream(Array.fill(count)(0), 0, 0)
 }
@@ -793,6 +793,8 @@ def GetLengthInBytesOfSInt (v: Long): Int = {
 
 def BitStream_EncodeConstraintWholeNumber(pBitStrm: BitStream, v: Long, min: Long, max: Long): Unit = {
     require(min <= max)
+    require(min <= v && v <= max)
+
     val range = max - min
     if range == 0 then
         return
