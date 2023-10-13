@@ -113,8 +113,8 @@ or    00010000
 
 def isPrefix(b1: BitStream, b2: BitStream): Boolean = {
     b1.buf.length <= b2.buf.length &&
-      b1.bitIndex <= b2.bitIndex &&
-      (b1.buf.length != 0) ==> arrayBitPrefix(b1.buf, b2.buf, 0, b1.bitIndex)
+      b1.bitIndex() <= b2.bitIndex() &&
+      (b1.buf.length != 0) ==> arrayBitPrefix(b1.buf, b2.buf, 0, b1.bitIndex())
 }
 
 def isValidPair(w1: BitStream, w2: BitStream): Boolean = isPrefix(w1, w2)
@@ -129,14 +129,14 @@ def reader(w1: BitStream, w2: BitStream): (BitStream, BitStream) = {
 
 @ghost @pure
 def BitStream_ReadBitPure(pBitStrm: BitStream): (BitStream, Option[Boolean]) = {
-    require(pBitStrm.bitIndex + 1 <= pBitStrm.buf.length.toLong * 8)
+    require(pBitStrm.bitIndex() + 1 <= pBitStrm.buf.length.toLong * 8)
     val cpy = snapshot(pBitStrm)
     (cpy , BitStream_ReadBit(cpy))
 }
 
 @opaque @inlineOnce
 def BitStream_AppendBitOne(pBitStrm: BitStream): Unit = {
-    require(pBitStrm.bitIndex + 1 <= pBitStrm.buf.length.toLong * 8)
+    require(pBitStrm.bitIndex() + 1 <= pBitStrm.buf.length.toLong * 8)
     @ghost val oldpBitStrm = snapshot(pBitStrm)
 
     val newB = (pBitStrm.buf(pBitStrm.currentByte) | masks(pBitStrm.currentBit)).toByte
@@ -155,7 +155,7 @@ def BitStream_AppendBitOne(pBitStrm: BitStream): Unit = {
 }.ensuring { _ =>
     val w1 = old(pBitStrm)
     val w2 = pBitStrm
-    w2.bitIndex == w1.bitIndex + 1 && isValidPair(w1, w2) && {
+    w2.bitIndex() == w1.bitIndex() + 1 && isValidPair(w1, w2) && {
         val (r1, r2) = reader(w1, w2)
         val (r2Got, bitGot) = BitStream_ReadBitPure(r1)
         bitGot.get == true && r2Got == r2
@@ -256,7 +256,7 @@ def BitStream_AppendBit(pBitStrm: BitStream, v: Boolean): Unit = {
 
 // TODO check if needs Marios implementation
 def BitStream_ReadBit(pBitStrm: BitStream): Option[Boolean] = {
-    require(pBitStrm.bitIndex + 1 <= pBitStrm.buf.length.toLong * 8)
+    require(pBitStrm.bitIndex() + 1 <= pBitStrm.buf.length.toLong * 8)
     val ret = (pBitStrm.buf(pBitStrm.currentByte) & masks(pBitStrm.currentBit)) != 0
 
     if pBitStrm.currentBit < 7 then
@@ -299,7 +299,7 @@ or    000bbbbb
 
 @opaque @inlineOnce
 def BitStream_AppendByte(pBitStrm: BitStream, value: Byte, negate: Boolean): Unit = {
-    require(pBitStrm.bitIndex + 8 <= pBitStrm.buf.length.toLong * 8)
+    require(pBitStrm.bitIndex() + 8 <= pBitStrm.buf.length.toLong * 8)
     @ghost val oldpBitStrm = snapshot(pBitStrm)
     val cb = pBitStrm.currentBit.toByte
     val ncb = (8 - cb).toByte
@@ -359,7 +359,7 @@ def BitStream_AppendByte(pBitStrm: BitStream, value: Byte, negate: Boolean): Uni
 }.ensuring { _ =>
     val w1 = old(pBitStrm)
     val w2 = pBitStrm
-    w2.bitIndex == w1.bitIndex + 8 && isValidPair(w1, w2) && {
+    w2.bitIndex() == w1.bitIndex() + 8 && isValidPair(w1, w2) && {
         val (r1, r2) = reader(w1, w2)
         val (r2Got, vGot) = BitStream_ReadBytePure(r1)
         vGot.get == value && r2Got == r2
@@ -457,7 +457,7 @@ def BitStream_ReadByte(pBitStrm: BitStream): Option[UByte] = {
 
 @ghost @pure
 def BitStream_ReadBytePure(pBitStrm: BitStream): (BitStream, Option[Byte]) = {
-    require(pBitStrm.bitIndex + 8 <= pBitStrm.buf.length.toLong * 8)
+    require(pBitStrm.bitIndex() + 8 <= pBitStrm.buf.length.toLong * 8)
     val cpy = snapshot(pBitStrm)
     (cpy, BitStream_ReadByte(cpy))
 }

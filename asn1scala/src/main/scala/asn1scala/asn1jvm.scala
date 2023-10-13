@@ -65,9 +65,11 @@ def uint2int(v: ULong, uintSizeInBytes: Int): Long = {
         return v
 
     var i: Int = WORD_SIZE-1
-    while i >= uintSizeInBytes do
+    (while i >= uintSizeInBytes do
+        decreases(i)
         vv |= ber_aux(i)
         i -= 1
+      ).invariant(i <= WORD_SIZE-1 && i >= uintSizeInBytes - 1)
     -(~vv) - 1
 }
 
@@ -83,7 +85,7 @@ def GetCharIndex(ch: UByte, charSet: Array[UByte]): Int =
         if ch == charSet(i) then
             ret = i
         i += 1
-      ).invariant(i >= 0 &&& i < charSet.length)
+      ).invariant(i >= 0 &&& i <= charSet.length)
     ret
 }
 
@@ -105,12 +107,13 @@ case class BitStream(
     require(0 <= currentBit && currentBit <= 7)
     require(currentByte.toLong * 8 + currentBit.toLong <= 8 * buf.length.toLong)
 
-    def bitIndex: Long = {
+    def bitIndex(): Long = {
         currentByte.toLong * 8 + currentBit.toLong
     }.ensuring(res => 0 <= res && res <= 8 * buf.length.toLong)
 
     def moveOffset(diffInBits: Long): Unit = {
-        val res = bitIndex + diffInBits
+        require(diffInBits >= 0 && diffInBits <= 8 * buf.length.toLong)
+        val res = bitIndex() + diffInBits
         require(0 <= res && res <= 8 * buf.length.toLong)
         val nbBytes = (diffInBits / 8).toInt
         val nbBits = (diffInBits % 8).toInt
@@ -124,7 +127,7 @@ case class BitStream(
         } else {
             currentBit += nbBits
         }
-    }.ensuring(_ => old(this).bitIndex + diffInBits == bitIndex)
+    }.ensuring(_ => old(this).bitIndex() + diffInBits == bitIndex())
 } // BitStream class
 
 case class ByteStream (
@@ -263,18 +266,21 @@ def RelativeOID_isValid (pVal: Asn1ObjectIdentifier): Boolean = {
 }
 
 def ObjectIdentifier_equal (pVal1: Asn1ObjectIdentifier, pVal2: Asn1ObjectIdentifier): Boolean = {
+    require(pVal1.nCount >= 0 && pVal1.nCount <= OBJECT_IDENTIFIER_MAX_LENGTH)
+    require(pVal2.nCount >= 0 && pVal2.nCount <= OBJECT_IDENTIFIER_MAX_LENGTH)
+
     if pVal1.nCount != pVal2.nCount || pVal1.nCount > OBJECT_IDENTIFIER_MAX_LENGTH then
         return false
 
     var i: Int = 0
 
     var ret: Boolean = true
-    (while i < pVal1.nCount && ret do
+    (while i < pVal1.nCount do
         decreases(pVal1.nCount - i)
 
-        ret = (pVal1.values(i) == pVal2.values(i))
+        ret &= (pVal1.values(i) == pVal2.values(i))
         i += 1
-      ).invariant(i >= 0 &&& i < pVal1.nCount)
+      ).invariant(i >= 0 &&& i <= pVal1.nCount)
 
     return ret
 }
