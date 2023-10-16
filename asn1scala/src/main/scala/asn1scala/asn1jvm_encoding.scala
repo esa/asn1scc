@@ -72,22 +72,12 @@ def BitStream_Init(count: Int): BitStream = {
     BitStream(Array.fill(count)(0), 0, 0)
 }
 
-// TODO remove whole init func - streaming mode code
-def BitStream_Init2(count: Int, @scala.annotation.unused fetchDataPrm: Option[Any], @scala.annotation.unused pushDataPrm: Option[Any]): BitStream = {
-    BitStream(Array.fill(count)(0), 0, 0)
-}
-
-
 def BitStream_AttachBuffer(pBitStrm: BitStream, buf: Array[UByte]): Unit = {
     pBitStrm.buf = buf // TODO: fix illegal aliasing
     pBitStrm.currentByte = 0
     pBitStrm.currentBit = 0
 }
 
-// TODO removed unused params
-def BitStream_AttachBuffer2(pBitStrm: BitStream, buf: Array[UByte], @scala.annotation.unused fetchDataPrm: Option[Any], @scala.annotation.unused pushDataPrm: Option[Any]): Unit = {
-    BitStream_AttachBuffer(pBitStrm, buf)
-}
 
 def BitStream_GetLength(pBitStrm: BitStream): Int = {
     var ret: Int = pBitStrm.currentByte
@@ -1255,7 +1245,7 @@ def BitStream_checkBitPatternPresent(pBitStrm: BitStream, bit_terminated_pattern
 }
 
 
-def BitStream_ReadBits_nullterminated(pBitStrm: BitStream, bit_terminated_pattern: Array[UByte], bit_terminated_pattern_size_in_bits: UByte, nMaxReadBits: Int): Option[(Array[UByte], Int)] = {
+def BitStream_ReadBits_nullterminated(pBitStrm: BitStream, bit_terminated_pattern: Array[UByte], bit_terminated_pattern_size_in_bits: UByte, nMaxReadBits: Int): OptionMut[(Array[UByte], Int)] = {
     var checkBitPatternPresentResult: Int = 0
 
     var bitsRead: Int = 0
@@ -1266,7 +1256,7 @@ def BitStream_ReadBits_nullterminated(pBitStrm: BitStream, bit_terminated_patter
     while (bitsRead < nMaxReadBits) && (checkBitPatternPresentResult == 1) do
         decreases(nMaxReadBits - bitsRead)
         BitStream_ReadBit(pBitStrm) match
-            case None() => return None()
+            case None() => return NoneMut()
             case Some(bitVal) =>
                 BitStream_AppendBit(tmpStrm, bitVal)
                 bitsRead += 1
@@ -1278,9 +1268,9 @@ def BitStream_ReadBits_nullterminated(pBitStrm: BitStream, bit_terminated_patter
         checkBitPatternPresentResult = BitStream_checkBitPatternPresent(pBitStrm, bit_terminated_pattern, bit_terminated_pattern_size_in_bits)
 
     if checkBitPatternPresentResult != 2 then
-        return None()
+        return NoneMut()
 
-    return Some((tmpStrm.buf, bitsRead))
+    return SomeMut((tmpStrm.buf, bitsRead))
 }
 
 
