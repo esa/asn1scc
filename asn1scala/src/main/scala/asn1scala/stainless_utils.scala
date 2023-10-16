@@ -152,3 +152,7 @@ def arrayPrefixTransitive[T](a1: Array[T], a2: Array[T], a3: Array[T], from: Int
     }
     rec(from)
 }.ensuring(_ => arrayPrefix(a1, a3, from, mid))
+
+sealed trait OptionMut[@mutable A]
+case class NoneMut[@mutable A]() extends OptionMut[A]
+case class SomeMut[@mutable A](v: A) extends OptionMut[A]
