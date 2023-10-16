@@ -807,32 +807,18 @@ def BitStream_EncodeConstraintWholeNumber(pBitStrm: BitStream, v: Long, min: Lon
 
 
 def BitStream_EncodeConstraintPosWholeNumber(pBitStrm: BitStream, v: ULong, min: ULong, max: ULong): Unit = {
-    // TODO: handle large max values better
-    if min <= max then
-        assert(min <= v)
-        assert(v <= max)
-        val range: ULong = (max - min)
-        if range == 0 then
-            return
-        val nRangeBits: Int = GetNumberOfBitsForNonNegativeInteger(range)
-        val nBits: Int = GetNumberOfBitsForNonNegativeInteger(v - min)
-        BitStream_AppendNBitZero(pBitStrm, nRangeBits - nBits)
-        BitStream_EncodeNonNegativeInteger(pBitStrm, v - min)
-    else
-        var max_b = scala.math.BigInt(max.toBinaryString, 2)
-        var min_b = scala.math.BigInt(min.toBinaryString, 2)
-        var v_b = scala.math.BigInt(v.toBinaryString, 2)
-        assert(min_b <= v_b)
-        assert(v_b <= max_b)
-        val range_b = (max_b - min_b)
-        if range_b == 0 then
-            return
-        val nRangeBits: Int = GetNumberOfBitsForNonNegativeInteger(range_b.toLong)
-        val nBits: Int = GetNumberOfBitsForNonNegativeInteger((v_b - min_b).toLong)
-        BitStream_AppendNBitZero(pBitStrm, nRangeBits - nBits)
-        BitStream_EncodeNonNegativeInteger(pBitStrm, (v_b - min_b).toLong)
-}
+    require(max >= 0 && max <= Long.MaxValue)
+    require(min >= 0 && min <= max)
+    require(min <= v && v <= max)
 
+    val range: ULong = (max - min)
+    if range == 0 then
+        return
+    val nRangeBits: Int = GetNumberOfBitsForNonNegativeInteger(range)
+    val nBits: Int = GetNumberOfBitsForNonNegativeInteger(v - min)
+    BitStream_AppendNBitZero(pBitStrm, nRangeBits - nBits)
+    BitStream_EncodeNonNegativeInteger(pBitStrm, v - min)
+}
 
 def BitStream_DecodeConstraintWholeNumber(pBitStrm: BitStream, min: Long, max: Long): Option[Long] = {
 
@@ -900,35 +886,19 @@ def BitStream_DecodeConstraintWholeNumberUInt(pBitStrm: BitStream, min: UInt, ma
 
 
 def BitStream_DecodeConstraintPosWholeNumber(pBitStrm: BitStream, min: ULong, max: ULong): Option[ULong] = {
-    // TODO: handle large max values better
-    if min <= max then
-        val range: ULong = max - min
+    require(max >= 0 && max <= Long.MaxValue)
+    require(min >= 0 && min <= max)
 
-        //ASSERT_OR_RETURN_FALSE(min <= max);
+    val range: ULong = max - min
 
-        if range == 0 then
-            return Some(min)
+    if range == 0 then
+        return Some(min)
 
-        val nRangeBits: Int = GetNumberOfBitsForNonNegativeInteger(range)
+    val nRangeBits: Int = GetNumberOfBitsForNonNegativeInteger(range)
 
-        BitStream_DecodeNonNegativeInteger(pBitStrm, nRangeBits) match
-            case None() => None()
-            case Some(uv) => Some(uv + min)
-    else
-        val max_b = scala.math.BigInt(max.toBinaryString, 2)
-        val min_b = scala.math.BigInt(min.toBinaryString, 2)
-        val range_b = max_b - min_b
-
-        //ASSERT_OR_RETURN_FALSE(min <= max);
-
-        if range_b == 0 then
-            return Some(min_b.toLong)
-
-        val nRangeBits: Int = GetNumberOfBitsForNonNegativeInteger(range_b.toLong)
-
-        BitStream_DecodeNonNegativeInteger(pBitStrm, nRangeBits) match
-            case None() => None()
-            case Some(uv) => Some(uv + min_b.toLong)
+    BitStream_DecodeNonNegativeInteger(pBitStrm, nRangeBits) match
+        case None() => None()
+        case Some(uv) => Some(uv + min)
 }
 
 def BitStream_EncodeSemiConstraintWholeNumber(pBitStrm: BitStream, v: Long, min: Long): Unit = {
@@ -1071,80 +1041,85 @@ cd:11 --> 1 byte for encoding the length of the exponent, then the expoent
 +-+-+-+-+-+-+-+-+
 **/
 
-//#if FP_WORD_SIZE==8
-val ExpoBitMask = 0x7FF0000000000000L
-val MantBitMask = 0x000FFFFFFFFFFFFFL
-val MantBitMask2 = 0xFFE0000000000000L
-val MantisaExtraBit = 0x0010000000000000L
-//#else
-//#define ExpoBitMask    0x7F800000U
-//#define MantBitMask    0x007FFFFFU
-//#define MantBitMask2 0xF0000000U
-//#define MantisaExtraBit 0x00800000U
-//#endif
+val ExpoBitMask = 0x7ff0_0000_0000_0000L
+val MantissaBitMask = 0x000f_ffff_ffff_ffffL
+val MantissaExtraBit = 0x0010_0000_0000_0000L // hidden bit
+val SignBitMask = 0x8000_0000_0000_0000L
+val InverseSignBitMask = 0x7fff_ffff_ffff_ffffL
 
+val DoublePosInfBitString = 0x7ff0_0000_0000_0000L
+val DoubleNegInfBitString = 0xfff0_0000_0000_0000L
+val DoubleZeroBitString = 0x0000_0000_0000_0000L
 
-def CalculateMantissaAndExponent(d: Double): (Int, ULong) = {
-    val ll: ULong = java.lang.Double.doubleToLongBits(d)
+val NoOfSignBit = 1 // double & float
+val DoubleNoOfExponentBits = 11
+val DoubleNoOfMantissaBits = 52
+val DoubleBias = (1 << 10) - 1 // 1023
 
-    var exponent: Int = 0
+def CalculateMantissaAndExponent(dAsll: Long): (ULong, ULong) = {
+    // incoming dAsll is already a double bit string
+
+    var exponent: ULong = 0
     var mantissa: ULong = 0
 
-    //#if FP_WORD_SIZE == 8
-    exponent = (((ll & ExpoBitMask) >>> 52) - 1023 - 52).toInt
-    mantissa = ll & MantBitMask
-    mantissa = mantissa | MantisaExtraBit
-    //#else
-    //exponent.x = (int)(((ll & ExpoBitMask) >>> 23) - 127 - 23);
-    //mantissa.x = ll & MantBitMask;
-    //mantissa.x |= MantisaExtraBit;
-    //#endif
-    return (exponent, mantissa)
+    exponent = ((dAsll & ExpoBitMask) >>> DoubleNoOfMantissaBits) - DoubleBias - DoubleNoOfMantissaBits
+    mantissa = dAsll & MantissaBitMask
+    mantissa = mantissa | MantissaExtraBit
+
+    (exponent, mantissa)
 }
 
 def GetDoubleByMantissaAndExp(mantissa: ULong, exponentVal: Int): Double = {
-    return java.lang.Double.longBitsToDouble(((exponentVal + 1023L + 52L) << 52L) | (mantissa & MantBitMask))
+    return java.lang.Double.longBitsToDouble(((exponentVal + DoubleBias +
+      DoubleNoOfMantissaBits) << DoubleNoOfMantissaBits) | (mantissa & MantissaBitMask))
 }
 
+@extern
 def BitStream_EncodeReal(pBitStrm: BitStream, vVal: Double): Unit = {
-    var header: UByte = -0x80
+    BitStream_EncodeRealBitString(pBitStrm, java.lang.Double.doubleToLongBits(vVal))
+}
 
+def BitStream_EncodeRealBitString(pBitStrm: BitStream, vVal: Long): Unit = {
     var v = vVal
-    if (v == 0.0) {
+    if (v == DoubleZeroBitString) {
         BitStream_EncodeConstraintWholeNumber(pBitStrm, 0, 0, 0xFF)
         return
     }
-    if (v == Double.PositiveInfinity) {
+
+    if (v == DoublePosInfBitString) {
         BitStream_EncodeConstraintWholeNumber(pBitStrm, 1, 0, 0xFF)
         BitStream_EncodeConstraintWholeNumber(pBitStrm, 0x40, 0, 0xFF)
         return
     }
 
-    if (v == Double.NegativeInfinity) {
+    if (v == DoubleNegInfBitString) {
         BitStream_EncodeConstraintWholeNumber(pBitStrm, 1, 0, 0xFF)
         BitStream_EncodeConstraintWholeNumber(pBitStrm, 0x41, 0, 0xFF)
         return
     }
 
-    if (v < 0) {
-        header = (header | 0x40).toByte
-        v = -v
+    var header = 0x80
+    if ((v & SignBitMask) == SignBitMask) { // check sign bit
+        header |= 0x40
+        v &= InverseSignBitMask // clear sign bit
     }
 
     val (exponent, mantissa) = CalculateMantissaAndExponent(v)
-    val nExpLen: Int = GetLengthInBytesOfSInt(exponent.toLong)
+
     val nManLen: Int = GetLengthInBytesOfUInt(mantissa)
+    val nExpLen: Int = GetLengthInBytesOfSInt(exponent)
     assert(nExpLen <= 3)
+
     if nExpLen == 2 then
-        header = (header | 1).toByte
+        header |= 1
     else if nExpLen == 3 then
-        header = (header | 2).toByte
+        header |= 2
 
     /* encode length */
-    BitStream_EncodeConstraintWholeNumber(pBitStrm, 1 + nExpLen + nManLen.toLong, 0, 0xFF)
+    BitStream_EncodeConstraintWholeNumber(pBitStrm, 1 + nExpLen + nManLen, 0, 0xFF)
 
     /* encode header */
-    BitStream_EncodeConstraintWholeNumber(pBitStrm, header.toLong & 0xFF, 0, 0xFF)
+    BitStream_EncodeConstraintWholeNumber(pBitStrm, header & 0xFF, 0, 0xFF)
 
     /* encode exponent */
     if exponent >= 0 then
