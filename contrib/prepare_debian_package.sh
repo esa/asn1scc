@@ -32,7 +32,7 @@ Architecture: all
 Depends: libmono-system-runtime4.0-cil,libmono-corlib4.0-cil,libmono-system-runtime-serialization-formatters-soap4.0-cil, libmono-system-web4.0-cil,libmono-system-xml4.0-cil,libmono-system4.0-cil,mono-runtime,libmono-system-numerics4.0-cil,libmono-system-data-linq4.0-cil,libmono-corlib2.0-cil,libmono-system2.0-cil,libmono-corlib4.5-cil
 Maintainer: Thanassis Tsiodras
 Description: ASN.1 Space Certified Compiler - Generate Spark/Ada and C code for ASN.1 uPER or custom binary encoders/decoders
-Homepage: http://github.com/ttsiodras/asn1scc" > asn1scc/DEBIAN/control
+Homepage: http://github.com/maxime-esa/asn1scc" > asn1scc/DEBIAN/control
 echo '#!/bin/sh
 echo "All done!"
 ' >> asn1scc/DEBIAN/postinst

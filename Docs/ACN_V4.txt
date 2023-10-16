@@ -615,7 +615,7 @@ The first function my-encoding-patcher will provide values in these two fields. 
 two fields and compares these values with values calculated via the bitstream.
 
 The complete code the example is at the following location
-https://github.com/ttsiodras/asn1scc/tree/master/Docs/examples/calculate_crc
+https://github.com/maxime-esa/asn1scc/tree/master/Docs/examples/calculate_crc
 
 
 == <span id="__RefHeading___Toc2064_1804207684" class="anchor"><span id="_Toc432432502" class="anchor"></span></span>Parameterized encodings and deep field access ==
