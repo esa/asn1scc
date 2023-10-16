@@ -476,7 +476,6 @@ def BitStream_ReadByteArray(pBitStrm: BitStream, arr_len: Int): OptionMut[Array[
 def BitStream_ReadBits(pBitStrm: BitStream, nbits: Int): OptionMut[Array[UByte]] = {
     val bytesToRead: Int = nbits / 8
     val remainingBits: UByte = (nbits % 8).toByte
-    var ret: Boolean = false
 
     BitStream_DecodeOctetString_no_length(pBitStrm, bytesToRead) match
         case NoneMut() => return NoneMut()
@@ -1314,9 +1313,9 @@ def BitStream_EncodeOctetString_no_length(pBitStrm: BitStream, arr: Array[UByte]
 }
 
 
-def BitStream_DecodeOctetString_no_length(pBitStrm: BitStream, nCount: Int): Option[Array[UByte]] = {
+def BitStream_DecodeOctetString_no_length(pBitStrm: BitStream, nCount: Int): OptionMut[Array[UByte]] = {
     val cb: Int = pBitStrm.currentBit
-    var arr: Array[UByte] = Array.fill(nCount+1)(0)
+    val arr: Array[UByte] = Array.fill(nCount+1)(0)
 
     if cb == 0 then
         //#ifdef ASN1SCC_STREAMING
