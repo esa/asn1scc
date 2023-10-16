@@ -1052,9 +1052,9 @@ val DoubleNegInfBitString = 0xfff0_0000_0000_0000L
 val DoubleZeroBitString = 0x0000_0000_0000_0000L
 
 val NoOfSignBit = 1 // double & float
-val DoubleNoOfExponentBits = 11
-val DoubleNoOfMantissaBits = 52
-val DoubleBias = (1 << 10) - 1 // 1023
+val DoubleNoOfExponentBits = 11L
+val DoubleNoOfMantissaBits = 52L
+val DoubleBias = (1L << 10) - 1 // 1023
 
 def CalculateMantissaAndExponent(dAsll: Long): (ULong, ULong) = {
     // incoming dAsll is already a double bit string
@@ -1081,7 +1081,7 @@ def BitStream_EncodeReal(pBitStrm: BitStream, vVal: Double): Unit = {
 
 def BitStream_EncodeRealBitString(pBitStrm: BitStream, vVal: Long): Unit = {
     var v = vVal
-    if (v == DoubleZeroBitString) {
+    if ((v & InverseSignBitMask) == DoubleZeroBitString) {
         BitStream_EncodeConstraintWholeNumber(pBitStrm, 0, 0, 0xFF)
         return
     }
