@@ -1058,9 +1058,8 @@ def CalculateMantissaAndExponent(dAsll: Long): (ULong, ULong) = {
     (exponent, mantissa)
 }
 
-def GetDoubleByMantissaAndExp(mantissa: ULong, exponentVal: Int): Double = {
-    return java.lang.Double.longBitsToDouble(((exponentVal + DoubleBias +
-      DoubleNoOfMantissaBits) << DoubleNoOfMantissaBits) | (mantissa & MantissaBitMask))
+def GetDoubleBitStringByMantissaAndExp(mantissa: ULong, exponentVal: Int): Long = {
+    ((exponentVal + DoubleBias + DoubleNoOfMantissaBits) << DoubleNoOfMantissaBits) | (mantissa & MantissaBitMask)
 }
 
 @extern
@@ -1123,38 +1122,46 @@ def BitStream_EncodeRealBitString(pBitStrm: BitStream, vVal: Long): Unit = {
     BitStream_EncodeNonNegativeInteger(pBitStrm, mantissa)
 }
 
-
+@extern
 def BitStream_DecodeReal(pBitStrm: BitStream): Option[Double] = {
+    BitStream_DecodeRealBitString(pBitStrm) match
+        case None() =>
+            None()
+        case Some(ll) =>
+            Some(java.lang.Double.longBitsToDouble(ll))
+}
+
+def BitStream_DecodeRealBitString(pBitStrm: BitStream): Option[Long] = {
     BitStream_ReadByte(pBitStrm) match
-        case None() => return None()
+        case None() => None()
         case Some(length) =>
             if length == 0 then
-                return Some(0.0)
+                return Some(0)
 
             BitStream_ReadByte(pBitStrm) match
-                case None() => return None()
+                case None() => None()
                 case Some(header) =>
                     if header == 0x40 then
-                        return Some(Double.PositiveInfinity)
+                        return Some(DoublePosInfBitString)
 
                     if header == 0x41 then
-                        return Some(Double.NegativeInfinity)
+                        return Some(DoubleNegInfBitString)
 
-                    return DecodeRealAsBinaryEncoding(pBitStrm, length.toInt - 1, header)
+                    DecodeRealAsBinaryEncoding(pBitStrm, length.toInt - 1, header)
 }
 
 
-def DecodeRealAsBinaryEncoding(pBitStrm: BitStream, lengthVal: Int, header: UByte): Option[Double] = {
+def DecodeRealAsBinaryEncoding(pBitStrm: BitStream, lengthVal: Int, header: UByte): Option[Long] = {
 
     var length = lengthVal
-    var sign: Int = 1
+    var setSign = false
     /*int base=2;*/
     var factor: ULong = 1
     var expFactor: Int = 1
     var N: ULong = 0
 
     if (header & 0x40) > 0 then
-        sign = -1
+        setSign = true
     if (header & 0x10) > 0 then
         /*base = 8;*/
         expFactor = 3
@@ -1196,12 +1203,12 @@ def DecodeRealAsBinaryEncoding(pBitStrm: BitStream, lengthVal: Int, header: UByt
         j += 1
 
     /*    *v = N*factor * pow(base,exp);*/
-    var v: Double = GetDoubleByMantissaAndExp(N * factor, expFactor * exponent)
+    var v: Long = GetDoubleBitStringByMantissaAndExp(N * factor, expFactor * exponent)
 
-    if sign < 0 then
-        v = -v
+    if setSign then
+        v |= SignBitMask
 
-    return Some(v)
+    Some(v)
 }
 
 def BitStream_checkBitPatternPresent(pBitStrm: BitStream, bit_terminated_pattern: Array[UByte], bit_terminated_pattern_size_in_bitsVal: UByte): Int = {
