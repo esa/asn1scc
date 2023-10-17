@@ -11,6 +11,7 @@ type UByte = Byte
 type UShort = Short
 type UInt = Int
 type ULong = Long
+@extern
 type RealNoRTL = Float
 type BooleanNoRTL = Boolean
 type ASCIIChar = UByte
