@@ -118,18 +118,18 @@ def ObjectIdentifier_uper_decode_lentg(pBitStrm: BitStream): Option[Long] = {
 
     return Some(totalSize)
 }
-def ObjectIdentifier_uper_decode(pBitStrm: BitStream): Option[Asn1ObjectIdentifier] = {
+def ObjectIdentifier_uper_decode(pBitStrm: BitStream): OptionMut[Asn1ObjectIdentifier] = {
     var si: ULong = 0
     var totalSize: Long = 0
-    var pVal = ObjectIdentifier_Init()
+    val pVal = ObjectIdentifier_Init()
 
     ObjectIdentifier_uper_decode_lentg(pBitStrm) match
-        case None() => return None()
+        case None() => return NoneMut()
         case Some(l) => totalSize = l
 
     ObjectIdentifier_subidentifiers_uper_decode(pBitStrm, totalSize) match
-        case None() => return None()
-        case Some(l, ul) =>
+        case None() => return NoneMut()
+        case Some((l, ul)) =>
             totalSize = l
             si = ul
 
@@ -140,8 +140,8 @@ def ObjectIdentifier_uper_decode(pBitStrm: BitStream): Option[Asn1ObjectIdentifi
         decreases(OBJECT_IDENTIFIER_MAX_LENGTH - pVal.nCount)
 
         ObjectIdentifier_subidentifiers_uper_decode(pBitStrm, totalSize) match
-            case None() => return None()
-            case Some(l, ul) =>
+            case None() => return NoneMut()
+            case Some((l, ul)) =>
                 totalSize = l
                 si = ul
 
@@ -150,25 +150,25 @@ def ObjectIdentifier_uper_decode(pBitStrm: BitStream): Option[Asn1ObjectIdentifi
 
     //return true, if totalSize reduced to zero. Otherwise we exit the loop because more components we present than OBJECT_IDENTIFIER_MAX_LENGTH
     if totalSize == 0 then
-        Some(pVal)
+        SomeMut(pVal)
     else
-        None()
+        NoneMut()
 
 }
-def RelativeOID_uper_decode (pBitStrm: BitStream): Option[Asn1ObjectIdentifier] = {
+def RelativeOID_uper_decode (pBitStrm: BitStream): OptionMut[Asn1ObjectIdentifier] = {
     var si: ULong = 0
     var totalSize: Long = 0
-    var pVal: Asn1ObjectIdentifier = ObjectIdentifier_Init()
+    val pVal: Asn1ObjectIdentifier = ObjectIdentifier_Init()
 
     ObjectIdentifier_uper_decode_lentg(pBitStrm) match
-        case None() => return None()
+        case None() => return NoneMut()
         case Some(l) => totalSize = l
 
     while totalSize > 0 && pVal.nCount < OBJECT_IDENTIFIER_MAX_LENGTH do
         decreases(OBJECT_IDENTIFIER_MAX_LENGTH - pVal.nCount)
         ObjectIdentifier_subidentifiers_uper_decode(pBitStrm, totalSize) match
-            case None() => return None()
-            case Some(l, ul) =>
+            case None() => return NoneMut()
+            case Some((l, ul)) =>
                 totalSize = l
                 si = ul
         pVal.values(pVal.nCount) = si
@@ -176,7 +176,7 @@ def RelativeOID_uper_decode (pBitStrm: BitStream): Option[Asn1ObjectIdentifier] 
 
     //return true, if totalSize is zero. Otherwise we exit the loop because more components were present than OBJECT_IDENTIFIER_MAX_LENGTH
     if totalSize == 0 then
-        Some(pVal)
+        SomeMut(pVal)
     else
-        None()
+        NoneMut()
 }

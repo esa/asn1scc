@@ -47,10 +47,11 @@ def ByteStream_Init(count: Int): ByteStream = {
     ByteStream(Array.fill(count)(0), 0, false)
 }
 
+@extern
 def ByteStream_AttachBuffer(pStrm: ByteStream, buf: Array[UByte]): Unit = {
-    pStrm.buf = buf // TODO: fix illegal aliasing
+    pStrm.buf = buf // Illegal aliasing, therefore we need to workaround with this @extern...
     pStrm.currentByte = 0
-}
+}.ensuring(_ => pStrm.buf == buf && pStrm.currentByte == 0 && pStrm.EncodeWhiteSpace == old(pStrm).EncodeWhiteSpace)
 
 def ByteStream_GetLength(pStrm: ByteStream): Int = {
     pStrm.currentByte
@@ -60,7 +61,7 @@ def ByteStream_GetLength(pStrm: ByteStream): Int = {
 /**    Bit Stream Functions                                                                                                                                         **/
 /***********************************************************************************************/
 def BitString_equal(arr1: Array[UByte], arr2: Array[UByte]): Boolean = {
-    arr1.sameElements(arr2)
+    arraySameElements(arr1, arr2)
     //return
     //    (nBitsLength1 == nBitsLength2) &&
     //        (nBitsLength1 / 8 == 0 || memcmp(arr1, arr2, nBitsLength1 / 8) == 0) &&
@@ -72,11 +73,12 @@ def BitStream_Init(count: Int): BitStream = {
     BitStream(Array.fill(count)(0), 0, 0)
 }
 
+@extern
 def BitStream_AttachBuffer(pBitStrm: BitStream, buf: Array[UByte]): Unit = {
-    pBitStrm.buf = buf // TODO: fix illegal aliasing
+    pBitStrm.buf = buf // Illegal aliasing, therefore we need to workaround with this @extern...
     pBitStrm.currentByte = 0
     pBitStrm.currentBit = 0
-}
+}.ensuring(_ => pBitStrm.buf == buf && pBitStrm.currentByte == 0 && pBitStrm.currentBit == 0)
 
 
 def BitStream_GetLength(pBitStrm: BitStream): Int = {
@@ -1304,7 +1306,7 @@ def BitStream_EncodeOctetString_no_length(pBitStrm: BitStream, arr: Array[UByte]
         ret = pBitStrm.currentByte + nCount <= pBitStrm.buf.length
         if ret then
             //memcpy(pBitStrm.buf(pBitStrm.currentByte), arr, nCount)
-            arr.copyToArray(pBitStrm.buf, pBitStrm.currentByte, nCount)
+            copyToArray(arr, pBitStrm.buf, pBitStrm.currentByte, nCount)
             pBitStrm.currentByte += nCount
         //#endif
 
@@ -1345,14 +1347,14 @@ def BitStream_DecodeOctetString_no_length(pBitStrm: BitStream, nCount: Int): Opt
             return NoneMut()
 
         //memcpy(arr, pBitStrm.buf(pBitStrm.currentByte), nCount)
-        pBitStrm.buf.slice(pBitStrm.currentByte, pBitStrm.currentByte+nCount).copyToArray(arr)
+        arrayCopyOffset(pBitStrm.buf, arr, pBitStrm.currentByte, pBitStrm.currentByte+nCount, 0)
         pBitStrm.currentByte += nCount
     //#endif
 
     else
         BitStream_ReadByteArray(pBitStrm, nCount) match
             case NoneMut() => return NoneMut()
-            case SomeMut(a) => a.copyToArray(arr)
+            case SomeMut(a) => arrayCopyOffsetLen(a, arr, 0, 0, a.length)
 
     return SomeMut(arr)
 }
@@ -1466,7 +1468,9 @@ def BitStream_DecodeOctetString_fragmentation(pBitStrm: BitStream, asn1SizeMax: 
         nLengthTmp1 += nRemainingItemsVar1
 
         if (nLengthTmp1 >= 1) && (nLengthTmp1 <= asn1SizeMax) then
-            return SomeMut(arr.take(nLengthTmp1.toInt))
+            val newArr: Array[UByte] = Array.fill(nLengthTmp1.toInt)(0)
+            arrayCopyOffsetLen(arr, newArr, 0, 0, newArr.length)
+            return SomeMut(newArr)
         else
             return NoneMut()
 
@@ -1580,7 +1584,7 @@ def BitStream_DecodeBitString(pBitStrm: BitStream, asn1SizeMin: Long, asn1SizeMa
             case None() => return NoneMut()
             case Some(l) => nRemainingItemsVar1 = l
 
-        var arr: Array[UByte] = Array.fill(asn1SizeMax.toInt)(0)
+        val arr: Array[UByte] = Array.fill(asn1SizeMax.toInt)(0)
         while (nRemainingItemsVar1 & 0xC0) == 0xC0 do
             //decreases()
             if nRemainingItemsVar1 == 0xC4 then
@@ -1602,7 +1606,7 @@ def BitStream_DecodeBitString(pBitStrm: BitStream, asn1SizeMin: Long, asn1SizeMa
             BitStream_ReadBits(pBitStrm, nCurBlockSize1.toInt) match
                 case NoneMut() => return NoneMut()
                 case SomeMut(t) =>
-                    Array.copy(t, 0, arr, (nCurOffset1 / 8).toInt, nCurBlockSize1.toInt)
+                    arrayCopyOffsetLen(t, arr, 0, (nCurOffset1 / 8).toInt, nCurBlockSize1.toInt)
                     nLengthTmp1 += nCurBlockSize1
                     nCurOffset1 += nCurBlockSize1
                     BitStream_DecodeConstraintWholeNumber(pBitStrm, 0, 0xFF) match
@@ -1622,7 +1626,7 @@ def BitStream_DecodeBitString(pBitStrm: BitStream, asn1SizeMin: Long, asn1SizeMa
             BitStream_ReadBits(pBitStrm, nRemainingItemsVar1.toInt) match
                 case NoneMut() => return NoneMut()
                 case SomeMut(t) =>
-                    Array.copy(t, 0, arr, (nCurOffset1 / 8).toInt, nRemainingItemsVar1.toInt)
+                    arrayCopyOffsetLen(t, arr, 0, (nCurOffset1 / 8).toInt, nRemainingItemsVar1.toInt)
                     nLengthTmp1 += nRemainingItemsVar1
                     if (nLengthTmp1 >= 1) && (nLengthTmp1 <= asn1SizeMax) then
                         return SomeMut(arr)

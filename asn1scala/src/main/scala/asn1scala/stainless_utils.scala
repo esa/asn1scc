@@ -19,6 +19,45 @@ val masksc: Array[Byte] = Array(
     -0x02,  //  / 1111 1110 /
 )
 
+def arrayRangesEqOffset[T](a1: Array[T], a2: Array[T], fromA1: Int, toA1: Int, fromA2: Int): Boolean = {
+    require(0 <= fromA1 && fromA1 <= toA1)
+    require(toA1 <= a1.length)
+    require(0 <= fromA2 && fromA2 <= a2.length - (toA1 - fromA1))
+    decreases(toA1 - fromA1)
+    if (fromA1 == toA1) true
+    else a1(fromA1) == a2(fromA2) && arrayRangesEqOffset(a1, a2, fromA1 + 1, toA1, fromA2 + 1)
+}
+
+def arrayCopyOffset[T](src: Array[T], dst: Array[T], fromSrc: Int, toSrc: Int, fromDst: Int): Unit = {
+    require(0 <= fromSrc && fromSrc <= toSrc)
+    require(toSrc <= src.length)
+    require(0 <= fromDst && fromDst <= dst.length - (toSrc - fromSrc))
+    decreases(toSrc - fromSrc)
+
+    if (fromSrc < toSrc) {
+        dst(fromDst) = src(fromSrc)
+        arrayCopyOffset(src, dst, fromSrc + 1, toSrc, fromDst + 1)
+    }
+}
+
+def arrayCopyOffsetLen[T](src: Array[T], dst: Array[T], fromSrc: Int, fromDst: Int, len: Int): Unit = {
+    require(0 <= len && len <= src.length && len <= dst.length)
+    require(0 <= fromSrc && fromSrc <= src.length - len)
+    require(0 <= fromDst && fromDst <= dst.length - len)
+    arrayCopyOffset(src, dst, fromSrc, fromSrc + len, fromDst)
+}
+
+def copyToArray[T](src: Array[T], dst: Array[T], startInDst: Int, len: Int): Unit = {
+    require(0 <= len && len <= src.length)
+    require(0 <= startInDst && startInDst <= src.length - len)
+    require(src.length <= dst.length)
+    arrayCopyOffset(src, dst, 0, len, startInDst)
+}
+
+def arraySameElements[T](a1: Array[T], a2: Array[T]): Boolean =
+    a1.length == a2.length && arrayRangesEqOffset(a1, a2, 0, a1.length, 0)
+
+// TODO: Reimplement in terms of arrayRangesEqOffset
 def arrayPrefix[T](a1: Array[T], a2: Array[T], from: Int, to: Int): Boolean = {
     require(0 <= from && from <= to)
     require(a1.length <= a2.length)
