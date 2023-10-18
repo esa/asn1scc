@@ -838,7 +838,7 @@ def BitStream_DecodeConstraintWholeNumberByte(pBitStrm: BitStream, min: Byte, ma
 
 def BitStream_DecodeConstraintWholeNumberShort(pBitStrm: BitStream, min: Short, max: Short): Option[Short] = {
 
-    BitStream_DecodeConstraintWholeNumber(pBitStrm, min.toLong, max.toLong) match
+    BitStream_DecodeConstraintWholeNumber(pBitStrm, min, max) match
         case None() => None()
         case Some(l) => Some(l.toShort)
 }
@@ -846,35 +846,46 @@ def BitStream_DecodeConstraintWholeNumberShort(pBitStrm: BitStream, min: Short, 
 
 def BitStream_DecodeConstraintWholeNumberInt(pBitStrm: BitStream, min: Int, max: Int): Option[Int] = {
 
-    BitStream_DecodeConstraintWholeNumber(pBitStrm, min.toLong, max.toLong) match
+    BitStream_DecodeConstraintWholeNumber(pBitStrm, min, max) match
         case None() => None()
         case Some(l) => Some(l.toInt)
 }
 
+/*
+ * Meths to upcast unsigned integer data types on the JVM
+ */
+ extension (ub: UByte) {
+    def unsignedToLong: Long = ub & 0xFFL
+ }
+
+extension (us: UShort) {
+    def unsignedToLong: Long = us & 0xFF_FFL
+}
+
+extension (ui: UInt) {
+    def unsignedToLong: Long = ui & 0xFF_FF_FF_FFL
+}
 
 def BitStream_DecodeConstraintWholeNumberUByte(pBitStrm: BitStream, min: UByte, max: UByte): Option[UByte] = {
 
-    BitStream_DecodeConstraintWholeNumber(pBitStrm, min.toLong, max.toLong) match
+    BitStream_DecodeConstraintWholeNumber(pBitStrm, min.unsignedToLong, max.unsignedToLong) match
         case None() => None()
         case Some(l) => Some(l.toByte)
 }
 
-
 def BitStream_DecodeConstraintWholeNumberUShort(pBitStrm: BitStream, min: UShort, max: UShort): Option[UShort] = {
 
-    BitStream_DecodeConstraintWholeNumber(pBitStrm, min.toLong, max.toLong) match
+    BitStream_DecodeConstraintWholeNumber(pBitStrm, min.unsignedToLong, max.unsignedToLong) match
         case None() => None()
         case Some(l) => Some(l.toShort)
 }
 
-
 def BitStream_DecodeConstraintWholeNumberUInt(pBitStrm: BitStream, min: UInt, max: UInt): Option[UInt] = {
 
-    BitStream_DecodeConstraintWholeNumber(pBitStrm, min.toLong, max.toLong) match
+    BitStream_DecodeConstraintWholeNumber(pBitStrm, min.unsignedToLong, max.unsignedToLong) match
         case None() => None()
         case Some(l) => Some(l.toInt)
 }
-
 
 def BitStream_DecodeConstraintPosWholeNumber(pBitStrm: BitStream, min: ULong, max: ULong): Option[ULong] = {
     require(max >= 0 && max <= Long.MaxValue)
@@ -1327,36 +1338,18 @@ def BitStream_DecodeOctetString_no_length(pBitStrm: BitStream, nCount: Int): Opt
     val arr: Array[UByte] = Array.fill(nCount+1)(0)
 
     if cb == 0 then
-        //#ifdef ASN1SCC_STREAMING
-        //        var remainingBytesToRead: Int = nCount
-        //        while remainingBytesToRead > 0 do
-        //            decreases(remainingBytesToRead)
-        //            val currentBatch: Int =
-        //                if pBitStrm.currentByte + remainingBytesToRead <= pBitStrm.buf.length then
-        //                    remainingBytesToRead else
-        //                    pBitStrm.buf.length - pBitStrm.currentByte
-        //
-        //            Array.copy(pBitStrm.buf, pBitStrm.currentByte, arr, 0, currentBatch) // TODO: 0?
-        //            //memcpy(arr, pBitStrm.buf(pBitStrm.currentByte), currentBatch) // STAINLESS: howto? Array.copy
-        //            pBitStrm.currentByte += currentBatch
-        //            bitstream_fetch_data_if_required(pBitStrm)
-        //            remainingBytesToRead -= currentBatch
-        //
-        //#else
         if pBitStrm.currentByte + nCount > pBitStrm.buf.length then
             return NoneMut()
 
-        //memcpy(arr, pBitStrm.buf(pBitStrm.currentByte), nCount)
         arrayCopyOffset(pBitStrm.buf, arr, pBitStrm.currentByte, pBitStrm.currentByte+nCount, 0)
         pBitStrm.currentByte += nCount
-    //#endif
 
     else
         BitStream_ReadByteArray(pBitStrm, nCount) match
             case NoneMut() => return NoneMut()
             case SomeMut(a) => arrayCopyOffsetLen(a, arr, 0, 0, a.length)
 
-    return SomeMut(arr)
+    SomeMut(arr)
 }
 
 
@@ -1408,6 +1401,8 @@ def BitStream_EncodeOctetString_fragmentation(pBitStrm: BitStream, arr: Array[UB
 }
 
 def BitStream_DecodeOctetString_fragmentation(pBitStrm: BitStream, asn1SizeMax: Long): OptionMut[Array[UByte]] = {
+    require(asn1SizeMax >= 0 && asn1SizeMax < Int.MaxValue)
+
     val arr: Array[UByte] = Array.fill(asn1SizeMax.toInt)(0)
     var nCount: Int = 0
 
@@ -1416,12 +1411,16 @@ def BitStream_DecodeOctetString_fragmentation(pBitStrm: BitStream, asn1SizeMax: 
     var nCurBlockSize1: Long = 0
     var nCurOffset1: Long = 0
 
+    // get header data
     BitStream_DecodeConstraintWholeNumber(pBitStrm, 0, 0xFF) match
         case None() => return NoneMut()
         case Some(l) => nRemainingItemsVar1 = l
 
+    // 11xx_xxxx header, there is a next fragment
     while (nRemainingItemsVar1 & 0xC0) == 0xC0 do
-        //decreases()
+        decreases(asn1SizeMax - nCurOffset1) // TODO: check experimental decrease
+
+        // get current block size
         if nRemainingItemsVar1 == 0xC4 then
             nCurBlockSize1 = 0x10000
         else if nRemainingItemsVar1 == 0xC3 then
@@ -1433,6 +1432,7 @@ def BitStream_DecodeOctetString_fragmentation(pBitStrm: BitStream, asn1SizeMax: 
         else
             return NoneMut()
 
+        // fill current payload fragment into dest
         var i1: Int = nCurOffset1.toInt
         while (nCurOffset1 + nCurBlockSize1 <= asn1SizeMax) && (i1 < (nCurOffset1 + nCurBlockSize1).toInt) do
             decreases((nCurOffset1 + nCurBlockSize1).toInt - i1)
@@ -1441,23 +1441,31 @@ def BitStream_DecodeOctetString_fragmentation(pBitStrm: BitStream, asn1SizeMax: 
                 case Some(ub) => arr(i1) = ub
             i1 += 1
 
+        // sum combined length
         nLengthTmp1 += nCurBlockSize1
+        // set offset for next run
         nCurOffset1 += nCurBlockSize1
+
+        // get next header
         BitStream_DecodeConstraintWholeNumber(pBitStrm, 0, 0xFF) match
             case None() => return NoneMut()
             case Some(l) => nRemainingItemsVar1 = l
 
+    // 1000_0000 header, last fragment has size bigger than 255 - current byte is upper, need to get lower
     if (nRemainingItemsVar1 & 0x80) > 0 then
 
-        nRemainingItemsVar1 <<= 8
+        nRemainingItemsVar1 <<= 8 // put upper at correct position
+        // get size (lower byte)
         BitStream_DecodeConstraintWholeNumber(pBitStrm, 0, 0xFF) match
             case None() => return NoneMut()
             case Some(l) =>
-                nRemainingItemsVar1 |= l
-                nRemainingItemsVar1 &= 0x7FFF
+                nRemainingItemsVar1 |= l        // combine 15bit (7 upper, 8 lower) into size
+                nRemainingItemsVar1 &= 0x7FFF   // clear the control bit
 
     if (nCurOffset1 + nRemainingItemsVar1 <= asn1SizeMax) then
         var i1: Int = nCurOffset1.toInt
+
+        // fill last payload fragment into dest
         while i1 < (nCurOffset1 + nRemainingItemsVar1).toInt do
             decreases((nCurOffset1 + nRemainingItemsVar1).toInt - i1)
             BitStream_ReadByte(pBitStrm) match
@@ -1465,8 +1473,10 @@ def BitStream_DecodeOctetString_fragmentation(pBitStrm: BitStream, asn1SizeMax: 
                 case Some(ub) => arr(i1) = ub
             i1 += 1
 
+        // add remainingSize to already written size - this var holds the absolut number in all fragments
         nLengthTmp1 += nRemainingItemsVar1
 
+        // resize output array and copy data
         if (nLengthTmp1 >= 1) && (nLengthTmp1 <= asn1SizeMax) then
             val newArr: Array[UByte] = Array.fill(nLengthTmp1.toInt)(0)
             arrayCopyOffsetLen(arr, newArr, 0, 0, newArr.length)
@@ -1474,7 +1484,7 @@ def BitStream_DecodeOctetString_fragmentation(pBitStrm: BitStream, asn1SizeMax: 
         else
             return NoneMut()
 
-    return NoneMut()
+    NoneMut()
 }
 
 
