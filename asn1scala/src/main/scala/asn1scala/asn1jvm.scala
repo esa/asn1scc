@@ -25,7 +25,7 @@ type ULongNoRTL = ULong
 @extern
 type asn1Real = Double
 
-val WORD_SIZE = 8
+val NO_OF_BYTES_IN_JVM_LONG = 8
 val OBJECT_IDENTIFIER_MAX_LENGTH = 20
 
 val NOT_INITIALIZED_ERR_CODE = 1337
@@ -65,12 +65,12 @@ def uint2int(v: ULong, uintSizeInBytes: Int): Long = {
     if !bIsNegative then
         return v
 
-    var i: Int = WORD_SIZE-1
+    var i: Int = NO_OF_BYTES_IN_JVM_LONG-1
     (while i >= uintSizeInBytes do
         decreases(i)
         vv |= ber_aux(i)
         i -= 1
-      ).invariant(i <= WORD_SIZE-1 && i >= uintSizeInBytes - 1)
+      ).invariant(i <= NO_OF_BYTES_IN_JVM_LONG-1 && i >= uintSizeInBytes - 1)
     -(~vv) - 1
 }
 

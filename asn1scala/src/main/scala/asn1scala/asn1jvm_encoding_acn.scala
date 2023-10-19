@@ -99,14 +99,7 @@ def Acn_Enc_Int_PositiveInteger_ConstSize_big_endian_32(pBitStrm: BitStream, int
 
 def Acn_Enc_Int_PositiveInteger_ConstSize_big_endian_64(pBitStrm: BitStream, intVal: ULong): Unit =
 {
-    // Avoid dead code warnings by conditionally compiling this part.
-    /*#if WORD_SIZE != 8
-    int i;
-    for (i = 0; i < 8 - WORD_SIZE; i ++) {
-        BitStream_AppendByte0(pBitStrm, 0x0);
-    }
-    #endif*/
-    Acn_Enc_Int_PositiveInteger_ConstSize_big_endian_B(pBitStrm, intVal, WORD_SIZE)
+    Acn_Enc_Int_PositiveInteger_ConstSize_big_endian_B(pBitStrm, intVal, NO_OF_BYTES_IN_JVM_LONG)
 }
 
 def Acn_Enc_Int_PositiveInteger_ConstSize_little_endian_N(pBitStrm: BitStream, intVal: ULong, size: Int): Unit =
@@ -135,13 +128,7 @@ def Acn_Enc_Int_PositiveInteger_ConstSize_little_endian_32(pBitStrm: BitStream, 
 
 def Acn_Enc_Int_PositiveInteger_ConstSize_little_endian_64(pBitStrm: BitStream, intVal: ULong): Unit =
 {
-    Acn_Enc_Int_PositiveInteger_ConstSize_little_endian_N(pBitStrm, intVal, WORD_SIZE)
-    // Avoid dead code warnings by conditionally compiling this part.
-    if WORD_SIZE != 8 then
-        var i: Int = 0
-        while i < 8 - WORD_SIZE do
-            BitStream_AppendByte0(pBitStrm, 0x0)
-            i += 1
+    Acn_Enc_Int_PositiveInteger_ConstSize_little_endian_N(pBitStrm, intVal, NO_OF_BYTES_IN_JVM_LONG)
 }
 
 
@@ -188,9 +175,9 @@ def Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_32(pBitStrm: BitStream): Op
 
 def Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_64(pBitStrm: BitStream): Option[ULong] =
 {
-    pBitStrm.currentByte += (8 - WORD_SIZE)
+    pBitStrm.currentByte += (8 - NO_OF_BYTES_IN_JVM_LONG)
 
-    Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_N(pBitStrm, WORD_SIZE)
+    Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_N(pBitStrm, NO_OF_BYTES_IN_JVM_LONG)
 }
 
 def Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_N(pBitStrm: BitStream, SizeInBytes: Int): Option[ULong] =
@@ -223,22 +210,22 @@ def Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_32(pBitStrm: BitStream):
 
 def Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_64(pBitStrm: BitStream): Option[ULong] =
 {
-    val ret = Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_N(pBitStrm, WORD_SIZE)
-    pBitStrm.currentByte += (8 - WORD_SIZE)
+    val ret = Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_N(pBitStrm, NO_OF_BYTES_IN_JVM_LONG)
+    pBitStrm.currentByte += (8 - NO_OF_BYTES_IN_JVM_LONG)
     ret
 }
 
 
 def Encode_UnsignedInteger(pBitStrm: BitStream, v: ULong, nBytes: Byte): Unit =
 {
-    val MAX_BYTE_MASK = if WORD_SIZE == 8 then 0xFF00000000000000L else 0xFF000000
+    val MAX_BYTE_MASK = 0xFF00000000000000L
     assert(nBytes <= 8)
 
-    var vv: ULong = v << (WORD_SIZE * 8 -nBytes * 8)
+    var vv: ULong = v << (NO_OF_BYTES_IN_JVM_LONG * 8 -nBytes * 8)
 
     var i: Int = 0
     while i < nBytes do
-        val ByteToEncode: Byte = ((vv & MAX_BYTE_MASK) >>> ((WORD_SIZE - 1) * 8)).toByte
+        val ByteToEncode: Byte = ((vv & MAX_BYTE_MASK) >>> ((NO_OF_BYTES_IN_JVM_LONG - 1) * 8)).toByte
         BitStream_AppendByte0(pBitStrm, ByteToEncode)
         vv <<= 8
         i += 1
@@ -376,7 +363,7 @@ def Acn_Dec_Int_TwosComplement_ConstSize_big_endian_64(pBitStrm: BitStream): Opt
 {
     Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_64(pBitStrm) match
         case None() => None()
-        case Some(ul) => Some(uint2int(ul, WORD_SIZE))
+        case Some(ul) => Some(uint2int(ul, NO_OF_BYTES_IN_JVM_LONG))
 }
 
 def Acn_Dec_Int_TwosComplement_ConstSize_little_endian_16(pBitStrm: BitStream): Option[Long] =
@@ -397,9 +384,8 @@ def Acn_Dec_Int_TwosComplement_ConstSize_little_endian_64(pBitStrm: BitStream): 
 {
     Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_64(pBitStrm) match
         case None() => None()
-        case Some(ul) => Some(uint2int(ul, WORD_SIZE))
+        case Some(ul) => Some(uint2int(ul, NO_OF_BYTES_IN_JVM_LONG))
 }
-
 
 
 def Acn_Enc_Int_TwosComplement_VarSize_LengthEmbedded(pBitStrm: BitStream, intVal: Long): Unit =

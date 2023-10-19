@@ -731,26 +731,23 @@ def GetNumberOfBitsForNonNegativeInteger32(vVal: Int): Int = {
       ).invariant(ret >= 0 && ret <= 32)
 
     ret
-}
+}.ensuring(ret => 0 <= ret && ret <= 32)
+
 def GetNumberOfBitsForNonNegativeInteger(v: ULong): Int = {
-    if WORD_SIZE == 8 then
-        if v >>> 32 == 0 then
-            return GetNumberOfBitsForNonNegativeInteger32(v.toInt)
-        else
-            val hi = (v >>> 32).toInt
-            return 32 + GetNumberOfBitsForNonNegativeInteger32(hi)
+    if v >>> 32 == 0 then
+        GetNumberOfBitsForNonNegativeInteger32(v.toInt)
     else
-        return GetNumberOfBitsForNonNegativeInteger32(v.toInt)
+        val hi = (v >>> 32).toInt
+        32 + GetNumberOfBitsForNonNegativeInteger32(hi)
 }
 
 def GetLengthInBytesOfUInt (v: ULong): Int = {
     var ret: Int = 0
     var v32: UInt = v.toInt
-    //if (WORD_SIZE == 8) {
+
     if v > 0xFFFFFFFF.toLong then
         ret = 4
         v32 = (v >>> 32).toInt
-    // }
 
     if v32 < 0x100 then
         return ret + 1
@@ -765,11 +762,10 @@ def GetLengthInBytesOfUInt (v: ULong): Int = {
 def GetLengthSIntHelper(v: ULong): Int = {
     var ret: Int = 0
     var v32: UInt = v.toInt
-    //#if WORD_SIZE == 8
+
     if v > 0x7FFFFFFF then
         ret = 4
         v32 = (v >>> 32).toInt
-    //#endif
 
     if v32 <= 0x7F then
         return ret + 1
@@ -777,14 +773,15 @@ def GetLengthSIntHelper(v: ULong): Int = {
         return ret + 2
     if v32 <= 0x7FFFFF then
         return ret + 3
-    return ret + 4
+
+    ret + 4
 }
 
 def GetLengthInBytesOfSInt (v: Long): Int = {
     if v >= 0 then
         return GetLengthSIntHelper(v)
 
-    return GetLengthSIntHelper((-v - 1))
+    GetLengthSIntHelper((-v - 1))
 }
 
 

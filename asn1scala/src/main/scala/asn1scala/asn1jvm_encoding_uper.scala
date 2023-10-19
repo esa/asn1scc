@@ -29,7 +29,7 @@ def ObjectIdentifier_subidentifiers_uper_encode(encodingBuf: Array[UByte], pSize
     return pSize
 }
 def ObjectIdentifier_uper_encode(pBitStrm: BitStream, pVal: Asn1ObjectIdentifier): Unit = {
-    val tmp: Array[UByte] = Array.fill(OBJECT_IDENTIFIER_MAX_LENGTH * (WORD_SIZE + 2))(0)
+    val tmp: Array[UByte] = Array.fill(OBJECT_IDENTIFIER_MAX_LENGTH * (NO_OF_BYTES_IN_JVM_LONG + 2))(0)
     var totalSize: Int = 0
 
     var i: Int = 0
@@ -56,7 +56,7 @@ def ObjectIdentifier_uper_encode(pBitStrm: BitStream, pVal: Asn1ObjectIdentifier
 def RelativeOID_uper_encode (pBitStrm: BitStream, pVal: Asn1ObjectIdentifier): Unit = {
     //a subifentifier (i.e. a component) should not take more than size(asn1SccUint) + 2 to be encoded
     //(the above statement is true for 8 byte integers. If we ever user larger integer then it should be adjusted)
-    val tmp: Array[UByte] = Array.fill(OBJECT_IDENTIFIER_MAX_LENGTH * (WORD_SIZE + 2))(0)
+    val tmp: Array[UByte] = Array.fill(OBJECT_IDENTIFIER_MAX_LENGTH * (NO_OF_BYTES_IN_JVM_LONG + 2))(0)
     var totalSize: Int = 0
 
     var i: Int = 0
