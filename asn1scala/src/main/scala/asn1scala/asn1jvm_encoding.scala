@@ -169,6 +169,7 @@ def BitStream_AppendBitOne(pBitStrm: BitStream): Unit = {
             xxx0????
 **/
 def BitStream_AppendBitZero(pBitStrm: BitStream): Unit = {
+    require(pBitStrm.currentByte < pBitStrm.buf.length)
     val nmask = ~masks(pBitStrm.currentBit)
     pBitStrm.buf(pBitStrm.currentByte) = (pBitStrm.buf(pBitStrm.currentByte) & nmask).toByte
     if pBitStrm.currentBit < 7 then
@@ -215,6 +216,7 @@ def BitStream_AppendNBitOne(pBitStrm: BitStream, nbitsVal: Int): Unit = {
 }
 
 def BitStream_AppendBits(pBitStrm: BitStream, srcBuffer: Array[UByte], nbits: Int): Unit = {
+    require(nbits/8 < srcBuffer.length)
     var lastByte: UByte = 0
 
     val bytesToEncode: Int = nbits / 8
@@ -302,7 +304,7 @@ def BitStream_AppendByte(pBitStrm: BitStream, value: Byte, negate: Boolean): Uni
         v = (~v).toByte
 
     pBitStrm.buf(pBitStrm.currentByte) = (pBitStrm.buf(pBitStrm.currentByte) & mask).toByte
-    pBitStrm.buf(pBitStrm.currentByte) = (pBitStrm.buf(pBitStrm.currentByte) | ((v & 0xFF) >> cb)).toByte
+    pBitStrm.buf(pBitStrm.currentByte) = (pBitStrm.buf(pBitStrm.currentByte) | ((v & 0xFF) >>> cb)).toByte
     pBitStrm.currentByte += 1
 
     ghostExpr {
@@ -359,6 +361,7 @@ def BitStream_AppendByte(pBitStrm: BitStream, value: Byte, negate: Boolean): Uni
 }
 
 def BitStream_AppendByte0(pBitStrm: BitStream, v: UByte): Boolean = {
+    require(pBitStrm.currentByte < pBitStrm.buf.length)
     val cb: UByte = pBitStrm.currentBit.toByte
     val ncb: UByte = (8-cb).toByte
 
@@ -380,6 +383,8 @@ def BitStream_AppendByte0(pBitStrm: BitStream, v: UByte): Boolean = {
 }
 
 def BitStream_AppendByteArray(pBitStrm: BitStream, arr: Array[UByte], arr_len: Int): Boolean = {
+    require(0 <= arr_len && arr_len <= arr.length)
+    require(pBitStrm.currentByte+arr_len < pBitStrm.buf.length)
     //static byte    masks[] = { 0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01 };
     //static byte masksb[] = { 0x00, 0x01, 0x03, 0x07, 0x0F, 0x1F, 0x3F, 0x7F, 0xFF };
 
@@ -390,7 +395,7 @@ def BitStream_AppendByteArray(pBitStrm: BitStream, arr: Array[UByte], arr_len: I
     val nmask: UByte = (~mask).toByte
 
     //if (pBitStrm->currentByte + (int)arr_len + (cb > 0 ? 1 : 0) >= pBitStrm->count)
-    if (pBitStrm.currentByte+arr_len).toLong*8 + pBitStrm.currentBit > pBitStrm.buf.length.toLong*8 then
+    if (pBitStrm.currentByte.toLong+arr_len)*8 + pBitStrm.currentBit > pBitStrm.buf.length.toLong*8 then
         return false
 
     if arr_len > 0 then
@@ -1298,37 +1303,14 @@ def BitStream_EncodeOctetString_no_length(pBitStrm: BitStream, arr: Array[UByte]
     var ret: Boolean = false
 
     if cb == 0 then
-        //#ifdef ASN1SCC_STREAMING
-//       var remainingBytesToSend: Int = nCount
-//       while remainingBytesToSend > 0 do
-//           decreases(remainingBytesToSend)
-//           val currentBatch =
-//               if pBitStrm.currentByte + remainingBytesToSend <= pBitStrm.buf.length then
-//                   remainingBytesToSend
-//               else
-//                   pBitStrm.buf.length - pBitStrm.currentByte
-//
-//           //memcpy(pBitStrm.buf(pBitStrm.currentByte), arr, currentBatch) // STAINLESS: Array.copy
-//           pBitStrm.currentByte += currentBatch
-//           bitstream_push_data_if_required(pBitStrm)
-//           remainingBytesToSend -= currentBatch
-
-        //else
         ret = pBitStrm.currentByte + nCount <= pBitStrm.buf.length
         if ret then
-            //memcpy(pBitStrm.buf(pBitStrm.currentByte), arr, nCount)
             copyToArray(arr, pBitStrm.buf, pBitStrm.currentByte, nCount)
             pBitStrm.currentByte += nCount
-        //#endif
 
     else
         ret = BitStream_AppendByteArray(pBitStrm, arr, nCount)
-        /*var i1 = 0
-        while i1 < nCount && ret do
-            decreases(nCount - i1)
-            ret = BitStream_AppendByte0(pBitStrm, arr(i1))
-            i1 += 1
-        */
+
     ret
 }
 
@@ -1596,7 +1578,7 @@ def BitStream_DecodeBitString(pBitStrm: BitStream, asn1SizeMin: Long, asn1SizeMa
 
         val arr: Array[UByte] = Array.fill(asn1SizeMax.toInt)(0)
         while (nRemainingItemsVar1 & 0xC0) == 0xC0 do
-            //decreases()
+            decreases(asn1SizeMax - nCurOffset1) // TODO: check experimental decrease
             if nRemainingItemsVar1 == 0xC4 then
                 nCurBlockSize1 = 0x10000
             else if nRemainingItemsVar1 == 0xC3 then
