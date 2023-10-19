@@ -724,12 +724,13 @@ def GetNumberOfBitsForNonNegativeInteger32(vVal: Int): Int = {
         ret = 24
         v = v >>> 24
 
-    while v > 0 do
+    (while v > 0 do
         decreases(v)
         v = v >>> 1
         ret += 1
+      ).invariant(ret >= 0 && ret <= 32)
 
-    return ret
+    ret
 }
 def GetNumberOfBitsForNonNegativeInteger(v: ULong): Int = {
     if WORD_SIZE == 8 then
@@ -1555,6 +1556,7 @@ def BitStream_EncodeBitString(pBitStrm: BitStream, arr: Array[UByte], nCount: In
 
 
 def BitStream_DecodeBitString(pBitStrm: BitStream, asn1SizeMin: Long, asn1SizeMax: Long): OptionMut[Array[UByte]] = {
+    require(asn1SizeMax <= Int.MaxValue)
 
     if (asn1SizeMax < 65536) {
         var nCount: Long = 0
