@@ -208,7 +208,7 @@ def BitStream_AppendNBitOne(pBitStrm: BitStream, nbitsVal: Int): Unit = {
 
     (while nbits >= 8 do
         decreases(nbits)
-        BitStream_AppendByte(pBitStrm, 0xFF.unsignedToByte, false)
+        BitStream_AppendByte(pBitStrm, 0xFF.toUnsignedByte, false)
         nbits -= 8
     ).invariant(pBitStrm.bitIndex()+nbits <= pBitStrm.buf.length.toLong * 8)
 
@@ -742,7 +742,8 @@ def GetNumberOfBitsForNonNegativeInteger(v: ULong): Int = {
     if v >>> 32 == 0 then
         GetNumberOfBitsForNonNegativeInteger32(v.toInt)
     else
-        val hi = (v >>> 32).toInt
+        val hs = v >>> 32
+        val hi = hs.toUnsignedInt
         32 + GetNumberOfBitsForNonNegativeInteger32(hi)
 }
 
