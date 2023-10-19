@@ -713,30 +713,42 @@ def BitStream_EncodeNonNegativeIntegerNeg(pBitStrm: BitStream, v: ULong, negate:
 
 }
 
-def GetNumberOfBitsForNonNegativeInteger32(vVal: Int): Int = {
-    var ret: Int = 0
-
-    var v = vVal
+def bar(v: UInt): (UInt, Int) = {
     if v >>> 8 == 0 then
-        ret = 0
+        (v, 0)
     else if v >>> 16 == 0 then
-        ret = 8
-        v = v >>> 8
+        (v >>> 8, 8)
     else if v >>> 24 == 0 then
-        ret = 16
-        v = v >>> 16
+        (v >>> 16, 16)
     else
-        ret = 24
-        v = v >>> 24
+        (v >>> 24, 24)
+}.ensuring((v,n) => v >= 0 &&& v <= 0xFF &&& n >= 0 &&& n <= 24 &&& 256 > (v >>> n) )
 
-    (while v > 0 do
-        decreases(v)
-        v = v >>> 1
-        ret += 1
-      ).invariant(ret >= 0 && ret <= 32)
+def fooRec (vVal: UInt, n: UInt): Int = {
+    require(vVal >= 0 && vVal <= 0xFF)
+    require(n >= 0 && n <= 8)
+    require(1<<(8-n) > vVal)
+    decreases(8-n)
 
-    ret
-}.ensuring(ret => 0 <= ret && ret <= 32)
+    if(vVal == 0) then
+        n
+    else
+        fooRec(vVal >>> 1, n+1)
+}
+
+
+def GetNumberOfBitsForNonNegativeInteger32(vVal: UInt): Int = {
+
+    val (ret, n) = bar(vVal)
+    n + fooRec(ret, 0)
+//    (while v > 0 do
+//        decreases(v)
+//        v = v >>> 1
+//        ret += 1
+//      ).invariant(v >= 0 && ret >= 0 && ret <= 32)
+//
+//    ret
+}
 
 def GetNumberOfBitsForNonNegativeInteger(v: ULong): Int = {
     if v >>> 32 == 0 then
