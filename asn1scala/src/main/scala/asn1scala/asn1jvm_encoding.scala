@@ -713,7 +713,7 @@ def BitStream_EncodeNonNegativeIntegerNeg(pBitStrm: BitStream, v: ULong, negate:
 
 }
 
-def bar(v: UInt): (UInt, Int) = {
+def GetNumberOfBitsInUpperBytesAndDecreaseValToLastByte(v: UInt): (UInt, Int) = {
     if v >>> 8 == 0 then
         (v, 0)
     else if v >>> 16 == 0 then
@@ -724,7 +724,7 @@ def bar(v: UInt): (UInt, Int) = {
         (v >>> 24, 24)
 }.ensuring((v,n) => v >= 0 &&& v <= 0xFF &&& n >= 0 &&& n <= 24 &&& 256 > (v >>> n) )
 
-def fooRec (vVal: UInt, n: UInt): Int = {
+def GetNumberOfBitsInLastByteRec (vVal: UInt, n: UInt): Int = {
     require(vVal >= 0 && vVal <= 0xFF)
     require(n >= 0 && n <= 8)
     require(1<<(8-n) > vVal)
@@ -733,21 +733,13 @@ def fooRec (vVal: UInt, n: UInt): Int = {
     if(vVal == 0) then
         n
     else
-        fooRec(vVal >>> 1, n+1)
+        GetNumberOfBitsInLastByteRec(vVal >>> 1, n+1)
 }
 
 
 def GetNumberOfBitsForNonNegativeInteger32(vVal: UInt): Int = {
-
-    val (ret, n) = bar(vVal)
-    n + fooRec(ret, 0)
-//    (while v > 0 do
-//        decreases(v)
-//        v = v >>> 1
-//        ret += 1
-//      ).invariant(v >= 0 && ret >= 0 && ret <= 32)
-//
-//    ret
+    val (ret, n) = GetNumberOfBitsInUpperBytesAndDecreaseValToLastByte(vVal)
+    n + GetNumberOfBitsInLastByteRec(ret, 0)
 }
 
 def GetNumberOfBitsForNonNegativeInteger(v: ULong): Int = {
