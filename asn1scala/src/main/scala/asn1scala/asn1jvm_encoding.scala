@@ -205,7 +205,7 @@ def BitStream_AppendNBitOne(pBitStrm: BitStream, nbitsVal: Int): Unit = {
     var nbits = nbitsVal
     while nbits >= 8 do
         decreases(nbits)
-        BitStream_AppendByte(pBitStrm, 0xFF.toByte, false)
+        BitStream_AppendByte(pBitStrm, 0xFF.unsignedToByte, false)
         nbits -= 8
 
     var i = 0
@@ -857,20 +857,6 @@ def BitStream_DecodeConstraintWholeNumberInt(pBitStrm: BitStream, min: Int, max:
         case Some(l) => Some(l.toInt)
 }
 
-/*
- * Meths to upcast unsigned integer data types on the JVM
- */
- extension (ub: UByte) {
-    def unsignedToLong: Long = ub & 0xFFL
- }
-
-extension (us: UShort) {
-    def unsignedToLong: Long = us & 0xFF_FFL
-}
-
-extension (ui: UInt) {
-    def unsignedToLong: Long = ui & 0xFF_FF_FF_FFL
-}
 
 def BitStream_DecodeConstraintWholeNumberUByte(pBitStrm: BitStream, min: UByte, max: UByte): Option[UByte] = {
 

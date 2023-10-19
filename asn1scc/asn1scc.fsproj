@@ -103,6 +103,9 @@
     <EmbeddedResource Include="..\asn1scala\src\main\scala\asn1scala\stainless_utils.scala">
       <Link>stainless_utils.scala</Link>
     </EmbeddedResource>
+    <EmbeddedResource Include="..\asn1scala\src\main\scala\asn1scala\asn1jvm_unsigned.scala">
+      <Link>asn1jvm_unsigned.scala</Link>
+    </EmbeddedResource>
   </ItemGroup>
 
   <ItemGroup />
