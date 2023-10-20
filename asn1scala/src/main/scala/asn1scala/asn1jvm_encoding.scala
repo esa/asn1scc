@@ -773,15 +773,15 @@ def GetLengthSIntHelper(v: ULong): Int = {
     var ret: Int = 0
     var v32: UInt = v.toInt
 
-    if v > 0x7FFFFFFF then
+    if v > Int.MaxValue then
         ret = 4
         v32 = (v >>> 32).toInt
 
-    if v32 <= 0x7F then
+    if v32 <= Byte.MaxValue then
         return ret + 1
-    if v32 <= 0x7FFF then
+    if v32 <= Short.MaxValue then
         return ret + 2
-    if v32 <= 0x7FFFFF then
+    if v32 <= 0x7F_FF_FF then
         return ret + 3
 
     ret + 4
@@ -1042,21 +1042,6 @@ cd:11 --> 1 byte for encoding the length of the exponent, then the expoent
 +-+-+-+-+-+-+-+-+
 **/
 
-val ExpoBitMask = 0x7ff0_0000_0000_0000L
-val MantissaBitMask = 0x000f_ffff_ffff_ffffL
-val MantissaExtraBit = 0x0010_0000_0000_0000L // hidden bit
-val SignBitMask = 0x8000_0000_0000_0000L
-val InverseSignBitMask = 0x7fff_ffff_ffff_ffffL
-
-val DoublePosInfBitString = 0x7ff0_0000_0000_0000L
-val DoubleNegInfBitString = 0xfff0_0000_0000_0000L
-val DoubleZeroBitString = 0x0000_0000_0000_0000L
-
-val NoOfSignBit = 1 // double & float
-val DoubleNoOfExponentBits = 11L
-val DoubleNoOfMantissaBits = 52L
-val DoubleBias = (1L << 10) - 1 // 1023
-
 def CalculateMantissaAndExponent(dAsll: Long): (ULong, ULong) = {
     // incoming dAsll is already a double bit string
 
@@ -1076,7 +1061,7 @@ def GetDoubleBitStringByMantissaAndExp(mantissa: ULong, exponentVal: Int): Long 
 
 @extern
 def BitStream_EncodeReal(pBitStrm: BitStream, vVal: Double): Unit = {
-    BitStream_EncodeRealBitString(pBitStrm, java.lang.Double.doubleToLongBits(vVal))
+    BitStream_EncodeRealBitString(pBitStrm, java.lang.Double.doubleToRawLongBits(vVal))
 }
 
 def BitStream_EncodeRealBitString(pBitStrm: BitStream, vVal: Long): Unit = {

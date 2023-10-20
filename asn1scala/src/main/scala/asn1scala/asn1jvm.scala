@@ -31,6 +31,23 @@ val OBJECT_IDENTIFIER_MAX_LENGTH = 20
 val NOT_INITIALIZED_ERR_CODE = 1337
 val ERR_INVALID_ENUM_VALUE = 2805
 
+// Floating Point Masks
+val ExpoBitMask = 0x7ff0_0000_0000_0000L
+val MantissaBitMask = 0x000f_ffff_ffff_ffffL
+val MantissaExtraBit = 0x0010_0000_0000_0000L // hidden bit
+val SignBitMask = 0x8000_0000_0000_0000L
+val InverseSignBitMask = 0x7fff_ffff_ffff_ffffL
+
+val DoublePosInfBitString = 0x7ff0_0000_0000_0000L
+val DoubleNegInfBitString = 0xfff0_0000_0000_0000L
+val DoubleZeroBitString = 0x0000_0000_0000_0000L
+
+val NoOfSignBit = 1 // double & float
+val DoubleNoOfExponentBits = 11L
+val DoubleNoOfMantissaBits = 52L
+val DoubleBias = (1L << 10) - 1 // 1023
+
+
 val ber_aux: Array[ULong] = Array(
     0xFFL,
     0xFF00L,
@@ -230,6 +247,20 @@ case class Asn1DateTimeWithTimeZone(
 
 enum Asn1TimeZoneClass:
     case Asn1TC_LocalTimeStamp, Asn1TC_UtcTimeStamp, Asn1TC_LocalTimeTZStamp
+
+@extern
+def Asn1Real_Equal(left: Double, right: Double): Boolean = {
+    if left == right then
+        true
+    else if left == 0.0 then
+        right == 0.0 // why??
+    else if (left > 0.0 && right < 0.0) || (left < 0.0 && right > 0.0) then
+        false
+    else if Math.abs(left) > Math.abs(right) then
+        Math.abs(right) / Math.abs(left) >= 0.99999
+    else
+        Math.abs(left) / Math.abs(right) >= 0.99999
+}
 
 /**
 
