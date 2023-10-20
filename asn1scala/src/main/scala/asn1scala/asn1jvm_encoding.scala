@@ -307,8 +307,8 @@ def BitStream_AppendByte(pBitStrm: BitStream, value: Byte, negate: Boolean): Uni
     if negate then
         v = (~v).toByte
 
-    pBitStrm.buf(pBitStrm.currentByte) = (pBitStrm.buf(pBitStrm.currentByte) & mask).toByte
-    pBitStrm.buf(pBitStrm.currentByte) = (pBitStrm.buf(pBitStrm.currentByte) | ((v & 0xFF) >>> cb)).toByte
+    pBitStrm.buf(pBitStrm.currentByte) = (pBitStrm.buf(pBitStrm.currentByte) & mask).toByte        // set bits right of currentbit to zero (where our value will be inserted)
+    pBitStrm.buf(pBitStrm.currentByte) = (pBitStrm.buf(pBitStrm.currentByte) | (v >>>> cb)).toByte // set value into bits right of currentbit, but keep bits to the left
     pBitStrm.currentByte += 1
 
     ghostExpr {
@@ -323,8 +323,8 @@ def BitStream_AppendByte(pBitStrm: BitStream, value: Byte, negate: Boolean): Uni
 
     if cb > 0 then
         mask = (~mask).toByte
-        pBitStrm.buf(pBitStrm.currentByte) = (pBitStrm.buf(pBitStrm.currentByte) & mask).toByte
-        pBitStrm.buf(pBitStrm.currentByte) = (pBitStrm.buf(pBitStrm.currentByte) | (v << ncb)).toByte
+        pBitStrm.buf(pBitStrm.currentByte) = (pBitStrm.buf(pBitStrm.currentByte) & mask).toByte         // set bits to the left of currentbit in next byte to zero (where the rest of our value will be inserted)
+        pBitStrm.buf(pBitStrm.currentByte) = (pBitStrm.buf(pBitStrm.currentByte) | (v <<<< ncb)).toByte // set value into the bits left of currentbit, but keep the bits to the right
 
     ghostExpr {
         arrayUpdatedAtPrefixLemma(oldpBitStrm.buf, pBitStrm.currentByte - 1, pBitStrm.buf(pBitStrm.currentByte - 1))

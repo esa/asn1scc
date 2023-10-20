@@ -1,9 +1,10 @@
 package asn1scala
 
 // all bits of the integer
-val MASK_BYTE       = 0xFFL
-val MASK_SHORT      = 0xFF_FFL
-val MASK_INT        = 0xFF_FF_FF_FFL
+val MASK_BYTE       = 0xFF
+val MASK_BYTE_L     = 0xFFL
+val MASK_SHORT_L    = 0xFF_FFL
+val MASK_INT_L      = 0xFF_FF_FF_FFL
 
 // MSBs (neg bits of the integer)
 val MASK_MSB_BYTE   = 0x80L
@@ -17,15 +18,15 @@ val MASK_POS_INT    = 0x7F_FF_FF_FFL
 * Meths to upcast unsigned integer data types on the JVM
 */
 extension (ub: UByte) {
-    def unsignedToLong: Long = ub & MASK_BYTE
+    def unsignedToLong: Long = ub & MASK_BYTE_L
 }
 
 extension (us: UShort) {
-    def unsignedToLong: Long = us & MASK_SHORT
+    def unsignedToLong: Long = us & MASK_SHORT_L
 }
 
 extension (ui: UInt) {
-    def unsignedToLong: Long = ui & MASK_INT
+    def unsignedToLong: Long = ui & MASK_INT_L
 }
 
 extension (i: Int) {
@@ -43,7 +44,7 @@ extension (i: Int) {
 
 extension (l: Long) {
     def toUnsignedInt: UInt = {
-        require(l >= 0 && l <= MASK_INT)
+        require(l >= 0 && l <= MASK_INT_L)
 
         if(l == MASK_MSB_INT)
             (-MASK_MSB_INT).toInt
@@ -51,5 +52,17 @@ extension (l: Long) {
             ((l & MASK_POS_INT) - MASK_MSB_INT).toInt
         else
             l.toInt
+    }
+}
+
+extension (b: Byte) {
+    def >>>>(i: Int): Byte = {
+        require(i >= 0 && i <= 8)
+        ((b.toInt & MASK_BYTE) >>> i).toUnsignedByte
+    }
+
+    def <<<<(i: Int): Byte = {
+        require(i >= 0 && i <= 8)
+        ((b.toInt << i) & MASK_BYTE).toUnsignedByte
     }
 }
