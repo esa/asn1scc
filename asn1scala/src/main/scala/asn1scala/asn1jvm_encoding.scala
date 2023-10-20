@@ -736,7 +736,6 @@ def GetNumberOfBitsInLastByteRec (vVal: UInt, n: UInt): Int = {
         GetNumberOfBitsInLastByteRec(vVal >>> 1, n+1)
 }
 
-
 def GetNumberOfBitsForNonNegativeInteger32(vVal: UInt): Int = {
     val (ret, n) = GetNumberOfBitsInUpperBytesAndDecreaseValToLastByte(vVal)
     n + GetNumberOfBitsInLastByteRec(ret, 0)
@@ -744,56 +743,19 @@ def GetNumberOfBitsForNonNegativeInteger32(vVal: UInt): Int = {
 
 def GetNumberOfBitsForNonNegativeInteger(v: ULong): Int = {
     if v >>> 32 == 0 then
-        GetNumberOfBitsForNonNegativeInteger32(v.toInt)
+        GetNumberOfBitsForNonNegativeInteger32(v.toUnsignedInt)
     else
-        val hs = v >>> 32
-        val hi = hs.toUnsignedInt
-        32 + GetNumberOfBitsForNonNegativeInteger32(hi)
-}
+        val h = (v >>> 32).toUnsignedInt
+        32 + GetNumberOfBitsForNonNegativeInteger32(h)
+}.ensuring(n => n >= 0 && n <= 64)
 
 def GetLengthInBytesOfUInt (v: ULong): Int = {
-    var ret: Int = 0
-    var v32: UInt = v.toInt
-
-    if v > 0xFFFFFFFF.toLong then
-        ret = 4
-        v32 = (v >>> 32).toInt
-
-    if v32 < 0x100 then
-        return ret + 1
-    if v32 < 0x10000 then
-        return ret + 2
-    if v32 < 0x1000000 then
-        return ret + 3
-
-    return ret + 4
-}
-
-def GetLengthSIntHelper(v: ULong): Int = {
-    var ret: Int = 0
-    var v32: UInt = v.toInt
-
-    if v > Int.MaxValue then
-        ret = 4
-        v32 = (v >>> 32).toInt
-
-    if v32 <= Byte.MaxValue then
-        return ret + 1
-    if v32 <= Short.MaxValue then
-        return ret + 2
-    if v32 <= 0x7F_FF_FF then
-        return ret + 3
-
-    ret + 4
-}
+    GetLengthInBytesOfSInt(v) // just call signed, is signed anyway
+}.ensuring(n => n >= 0 && n <= NO_OF_BYTES_IN_JVM_LONG)
 
 def GetLengthInBytesOfSInt (v: Long): Int = {
-    if v >= 0 then
-        return GetLengthSIntHelper(v)
-
-    GetLengthSIntHelper((-v - 1))
-}
-
+    min((GetNumberOfBitsForNonNegativeInteger(v) / NO_OF_BITS_IN_BYTE) + 1, 8)
+}.ensuring(n => n >= 0 && n <= NO_OF_BYTES_IN_JVM_LONG)
 
 def BitStream_EncodeConstraintWholeNumber(pBitStrm: BitStream, v: Long, min: Long, max: Long): Unit = {
     require(min <= max)

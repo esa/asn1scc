@@ -25,6 +25,8 @@ type ULongNoRTL = ULong
 @extern
 type asn1Real = Double
 
+val NO_OF_BITS_IN_BYTE = 8
+val NO_OF_BITS_IN_LONG = 64
 val NO_OF_BYTES_IN_JVM_LONG = 8
 val OBJECT_IDENTIFIER_MAX_LENGTH = 20
 
