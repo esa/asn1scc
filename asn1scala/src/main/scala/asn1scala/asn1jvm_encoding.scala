@@ -365,14 +365,14 @@ def BitStream_AppendByte(pBitStrm: BitStream, value: Byte, negate: Boolean): Uni
 }
 
 def BitStream_AppendByte0(pBitStrm: BitStream, v: UByte): Boolean = {
-    require(pBitStrm.currentByte < pBitStrm.buf.length)
+    require(pBitStrm.bitIndex() + 8 <= pBitStrm.buf.length.toLong * 8)
     val cb: UByte = pBitStrm.currentBit.toByte
     val ncb: UByte = (8-cb).toByte
 
     var mask = ~masksb(ncb)
 
     pBitStrm.buf(pBitStrm.currentByte) = (pBitStrm.buf(pBitStrm.currentByte) & mask).toByte
-    pBitStrm.buf(pBitStrm.currentByte) = (pBitStrm.buf(pBitStrm.currentByte) | ((v & 0xFF) >>> cb)).toByte
+    pBitStrm.buf(pBitStrm.currentByte) = (pBitStrm.buf(pBitStrm.currentByte) | (v >>>> cb)).toByte
     pBitStrm.currentByte += 1
     bitstream_push_data_if_required(pBitStrm)
 
@@ -381,7 +381,7 @@ def BitStream_AppendByte0(pBitStrm: BitStream, v: UByte): Boolean = {
             return false
         mask = ~mask
         pBitStrm.buf(pBitStrm.currentByte) = (pBitStrm.buf(pBitStrm.currentByte) & mask).toByte
-        pBitStrm.buf(pBitStrm.currentByte) = (pBitStrm.buf(pBitStrm.currentByte) | ((v & 0xFF) << ncb)).toByte
+        pBitStrm.buf(pBitStrm.currentByte) = (pBitStrm.buf(pBitStrm.currentByte) | (v <<<< ncb)).toByte
 
     true
 }
