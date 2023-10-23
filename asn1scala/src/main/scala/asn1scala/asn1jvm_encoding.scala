@@ -979,7 +979,7 @@ def BitStream_DecodeUnConstraintWholeNumber(pBitStrm: BitStream): Option[Long] =
 }
 
 /**
-Bynary encoding will be used
+Binary encoding will be used
 REAL = M*B^E
 where
 M = S*N*2^F
@@ -996,7 +996,7 @@ ab: F    (0..3)
 cd:00 --> 1 byte for exponent as 2's complement
 cd:01 --> 2 byte for exponent as 2's complement
 cd:10 --> 3 byte for exponent as 2's complement
-cd:11 --> 1 byte for encoding the length of the exponent, then the expoent
+cd:11 --> 1 byte for encoding the length of the exponent, then the exponent
 
 8 7 6 5 4 3 2 1
 +-+-+-+-+-+-+-+-+
@@ -1004,18 +1004,19 @@ cd:11 --> 1 byte for encoding the length of the exponent, then the expoent
 +-+-+-+-+-+-+-+-+
 **/
 
-def CalculateMantissaAndExponent(dAsll: Long): (ULong, ULong) = {
+def CalculateMantissaAndExponent(dAsll: Long): (UInt, ULong) = {
     // incoming dAsll is already a double bit string
 
-    var exponent: ULong = 0
-    var mantissa: ULong = 0
-
-    exponent = ((dAsll & ExpoBitMask) >>> DoubleNoOfMantissaBits) - DoubleBias - DoubleNoOfMantissaBits
-    mantissa = dAsll & MantissaBitMask
+    val exponent: UInt = ((dAsll & ExpoBitMask) >>> DoubleNoOfMantissaBits).toInt - DoubleBias.toInt - DoubleNoOfMantissaBits.toInt
+    var mantissa: ULong = dAsll & MantissaBitMask
     mantissa = mantissa | MantissaExtraBit
 
     (exponent, mantissa)
-}
+
+    // TODO remove ensuring block - just for REAL encoding test
+}.ensuring((e,m) => GetLengthInBytesOfUInt(e) >= 1 &&&
+  GetLengthInBytesOfUInt(e) <= 3 &&& GetLengthInBytesOfUInt(m) >= 1 &&& GetLengthInBytesOfUInt(m) <= 7)
+
 
 def GetDoubleBitStringByMantissaAndExp(mantissa: ULong, exponentVal: Int): Long = {
     ((exponentVal + DoubleBias + DoubleNoOfMantissaBits) << DoubleNoOfMantissaBits) | (mantissa & MantissaBitMask)
@@ -1027,25 +1028,37 @@ def BitStream_EncodeReal(pBitStrm: BitStream, vVal: Double): Unit = {
 }
 
 def BitStream_EncodeRealBitString(pBitStrm: BitStream, vVal: Long): Unit = {
+    // according to X.690 2002
+
     var v = vVal
+
+    // 8.5.2
     if ((v & InverseSignBitMask) == DoubleZeroBitString) {
         BitStream_EncodeConstraintWholeNumber(pBitStrm, 0, 0, 0xFF)
         return
     }
 
+    // 8.5.8 PLUS-INFINITY
     if (v == DoublePosInfBitString) {
         BitStream_EncodeConstraintWholeNumber(pBitStrm, 1, 0, 0xFF)
         BitStream_EncodeConstraintWholeNumber(pBitStrm, 0x40, 0, 0xFF)
         return
     }
 
+    // 8.5.8 MINUS-INFINITY
     if (v == DoubleNegInfBitString) {
         BitStream_EncodeConstraintWholeNumber(pBitStrm, 1, 0, 0xFF)
         BitStream_EncodeConstraintWholeNumber(pBitStrm, 0x41, 0, 0xFF)
         return
     }
 
+    // 8.5.5 a)
+    // fixed encoding style to binary
+    // 8.5.6.2 exp has always base 2 - bit 0x20 and 0x10 are always 0
+    // 8.5.6.3 F value is always zero - bit 0x08 and 0x04 are always 0
     var header = 0x80
+
+    // 8.5.6.1
     if ((v & SignBitMask) == SignBitMask) { // check sign bit
         header |= 0x40
         v &= InverseSignBitMask // clear sign bit
@@ -1054,13 +1067,16 @@ def BitStream_EncodeRealBitString(pBitStrm: BitStream, vVal: Long): Unit = {
     val (exponent, mantissa) = CalculateMantissaAndExponent(v)
 
     val nManLen: Int = GetLengthInBytesOfUInt(mantissa)
-    val nExpLen: Int = GetLengthInBytesOfSInt(exponent)
-    assert(nExpLen <= 3)
+    assert(nManLen <= 7) // 52 bit
 
+    val nExpLen: Int = GetLengthInBytesOfSInt(exponent)
+    assert(nExpLen >= 1 && nExpLen <= 3) // 11 bit
+
+    // 8.5.6.4
     if nExpLen == 2 then
-        header |= 1
+        header |= 0x01
     else if nExpLen == 3 then
-        header |= 2
+        header |= 0x02
 
     /* encode length */
     BitStream_EncodeConstraintWholeNumber(pBitStrm, 1 + nExpLen + nManLen, 0, 0xFF)
@@ -1111,36 +1127,23 @@ def BitStream_DecodeRealBitString(pBitStrm: BitStream): Option[Long] = {
 
 
 def DecodeRealAsBinaryEncoding(pBitStrm: BitStream, lengthVal: Int, header: UByte): Option[Long] = {
+    require(lengthVal >= 0 && lengthVal <= Int.MaxValue)
 
-    var length = lengthVal
-    var setSign = false
-    /*int base=2;*/
-    var factor: ULong = 1
-    var expFactor: Int = 1
-    var N: ULong = 0
+    // 8.5.5 a)
+    assert((header & 0x80) == 0x80)
 
-    if (header & 0x40) > 0 then
-        setSign = true
-    if (header & 0x10) > 0 then
-        /*base = 8;*/
-        expFactor = 3
-    else if (header & 0x20) > 0 then
-        /*base = 16;*/
-        expFactor = 4
-
-    val F: Int = ((header & 0x0C) >>> 2).toInt
-    factor <<= F
-
-    val expLen: Int = ((header & 0x03) + 1).toInt
-
-    if expLen > length then
+    // 8.5.6.4
+    val expLen = (header & 0x03) + 1
+    // sanity check
+    if expLen > lengthVal then
         return None()
 
+
     val expIsNegative = BitStream_PeekBit(pBitStrm)
-    var exponent: Int = if expIsNegative then 0xFFFFFFFF else 0
+    var exponent: Int = if expIsNegative then 0xFF_FF_FF_FF else 0
 
     var i: Int = 0
-    while i < expLen do
+    (while i < expLen do
         decreases(expLen - i)
 
         BitStream_ReadByte(pBitStrm) match
@@ -1148,23 +1151,33 @@ def DecodeRealAsBinaryEncoding(pBitStrm: BitStream, lengthVal: Int, header: UByt
             case Some(ub) => exponent = exponent << 8 | (ub.toInt & 0xFF)
 
         i += 1
+      ).invariant(i >= 0 && i <= expLen)
 
-    length -= expLen
-
+    val length = lengthVal - expLen
+    var N: ULong = 0
     var j: Int = 0
-    while j < length do
+    (while j < length do
         decreases(length - j)
 
         BitStream_ReadByte(pBitStrm) match
             case None() => return None()
-            case Some(ub) => N = N << 8 | (ub.toInt & 0xFF)
+            case Some(ub) => N = (N << 8) | (ub.toInt & 0xFF)
 
         j += 1
+      ).invariant(j >= 0 && j <= length)
 
     /*    *v = N*factor * pow(base,exp);*/
+    var factor = 1 << ((header & 0x0C) >>> 2)
+
+    // parse base factor
+    val expFactor: Int = header match
+        case x if (x & 0x10) > 0 => 3 // 2^3 = 8
+        case x if (x & 0x20) > 0 => 4 // 2^4 = 16
+        case _ => 1 // 2^1 = 2
+
     var v: Long = GetDoubleBitStringByMantissaAndExp(N * factor, expFactor * exponent)
 
-    if setSign then
+    if (header & 0x40) > 0 then
         v |= SignBitMask
 
     Some(v)
