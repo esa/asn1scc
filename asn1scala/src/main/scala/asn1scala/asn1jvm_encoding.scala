@@ -723,7 +723,7 @@ def GetNumberOfBitsInUpperBytesAndDecreaseValToLastByte(v: UInt): (UInt, Int) = 
         (v >>> 16, 16)
     else
         (v >>> 24, 24)
-}.ensuring((v,n) => v >= 0 &&& v <= 0xFF &&& n >= 0 &&& n <= 24 &&& 256 > (v >>> n) )
+}.ensuring((v, n) => v >= 0 &&& v <= 0xFF &&& n >= 0 &&& n <= 24)
 
 def GetNumberOfBitsInLastByteRec (vVal: UInt, n: UInt): Int = {
     require(vVal >= 0 && vVal <= 0xFF)
@@ -1017,7 +1017,8 @@ def CalculateMantissaAndExponent(dAsll: Long): (UInt, ULong) = {
 
     (exponent, mantissa)
 
-}.ensuring((e, m) => e >= (-DoubleBias - DoubleNoOfMantissaBits) &&& e <= (DoubleBias - DoubleNoOfMantissaBits))
+}.ensuring((e, m) => e >= (-DoubleBias - DoubleNoOfMantissaBits) &&& e <= (DoubleBias - DoubleNoOfMantissaBits)
+    &&& m >= 0 &&& m <= MantissaBitMask)
 
 /**
 Helper function for REAL encoding
@@ -1077,6 +1078,8 @@ def BitStream_EncodeRealBitString(pBitStrm: BitStream, vVal: Long): Unit = {
         BitStream_EncodeConstraintWholeNumber(pBitStrm, 0x41, 0, 0xFF)
         return
     }
+
+    // TODO NaN case fails in stainless - fix!
 
     // 8.5.5 a)
     // fixed encoding style to binary
