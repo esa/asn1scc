@@ -669,6 +669,7 @@ def BitStream_EncodeNonNegativeInteger(pBitStrm: BitStream, v: ULong): Unit = {
     //else
     //    BitStream_EncodeNonNegativeInteger32Neg(pBitStrm, v.toInt, false)
 }
+
 def BitStream_DecodeNonNegativeInteger(pBitStrm: BitStream, nBits: Int): Option[ULong] = {
     // TODO: support WORD_SIZE=4?
     // if WORD_SIZE == 8 then
@@ -737,8 +738,8 @@ def GetNumberOfBitsInLastByteRec (vVal: UInt, n: UInt): Int = {
 }
 
 def GetNumberOfBitsForNonNegativeInteger32(vVal: UInt): Int = {
-    val (ret, n) = GetNumberOfBitsInUpperBytesAndDecreaseValToLastByte(vVal)
-    n + GetNumberOfBitsInLastByteRec(ret, 0)
+    val (v, n) = GetNumberOfBitsInUpperBytesAndDecreaseValToLastByte(vVal)
+    n + GetNumberOfBitsInLastByteRec(v, 0)
 }
 
 def GetNumberOfBitsForNonNegativeInteger(v: ULong): Int = {
@@ -751,11 +752,11 @@ def GetNumberOfBitsForNonNegativeInteger(v: ULong): Int = {
 
 def GetLengthInBytesOfUInt (v: ULong): Int = {
     GetLengthInBytesOfSInt(v) // just call signed, is signed anyway
-}.ensuring(n => n >= 0 && n <= NO_OF_BYTES_IN_JVM_LONG)
+}.ensuring(n => n > 0 && n <= NO_OF_BYTES_IN_JVM_LONG)
 
 def GetLengthInBytesOfSInt (v: Long): Int = {
-    min((GetNumberOfBitsForNonNegativeInteger(v) / NO_OF_BITS_IN_BYTE) + 1, 8)
-}.ensuring(n => n >= 0 && n <= NO_OF_BYTES_IN_JVM_LONG)
+    max((GetNumberOfBitsForNonNegativeInteger(v) + NO_OF_BITS_IN_BYTE - 1) / NO_OF_BITS_IN_BYTE, 1) // even the number 0 needs 1 byte
+}.ensuring(n => n > 0 && n <= NO_OF_BYTES_IN_JVM_LONG)
 
 def BitStream_EncodeConstraintWholeNumber(pBitStrm: BitStream, v: Long, min: Long, max: Long): Unit = {
     require(min <= max)
@@ -1005,7 +1006,10 @@ cd:11 --> 1 byte for encoding the length of the exponent, then the exponent
 **/
 
 def CalculateMantissaAndExponent(dAsll: Long): (UInt, ULong) = {
-    // incoming dAsll is already a double bit string
+    require({
+        val rawExp = (dAsll & ExpoBitMask) >>> DoubleNoOfMantissaBits
+        rawExp >= 0 &&& rawExp <= ((1 << 11) - 2) // 2046, 2047 is the infinity case - never end up here with infinity
+    })
 
     val exponent: UInt = ((dAsll & ExpoBitMask) >>> DoubleNoOfMantissaBits).toInt - DoubleBias.toInt - DoubleNoOfMantissaBits.toInt
     var mantissa: ULong = dAsll & MantissaBitMask
@@ -1013,10 +1017,32 @@ def CalculateMantissaAndExponent(dAsll: Long): (UInt, ULong) = {
 
     (exponent, mantissa)
 
-    // TODO remove ensuring block - just for REAL encoding test
-}.ensuring((e,m) => GetLengthInBytesOfUInt(e) >= 1 &&&
-  GetLengthInBytesOfUInt(e) <= 3 &&& GetLengthInBytesOfUInt(m) >= 1 &&& GetLengthInBytesOfUInt(m) <= 7)
+}.ensuring((e, m) => e >= (-DoubleBias - DoubleNoOfMantissaBits) &&& e <= (DoubleBias - DoubleNoOfMantissaBits))
 
+/**
+Helper function for REAL encoding
+
+Negative Ints always need 4 bytes of space, the ASN.1 standard compacts those numbers down
+to 8, 16 or 24 bits depending on the leading bytes full of 1s.
+
+Example:
+-4 in Int: 0b1111_..._1111_1100
+--> compacted to 0b1111_1100
+
+The ASN.1 header holds the detail on how to interprete this number
+**/
+def RemoveLeadingFFBytesIfNegative(v: Int): Int = {
+    if v >= 0 then
+        v
+    else if v >= Byte.MinValue then
+        v & 0xFF
+    else if v >= Short.MinValue then
+        v & 0xFF_FF
+    else if v >= -8_388_608 then
+        v & 0xFF_FF_FF
+    else
+        v
+}
 
 def GetDoubleBitStringByMantissaAndExp(mantissa: ULong, exponentVal: Int): Long = {
     ((exponentVal + DoubleBias + DoubleNoOfMantissaBits) << DoubleNoOfMantissaBits) | (mantissa & MantissaBitMask)
@@ -1069,8 +1095,9 @@ def BitStream_EncodeRealBitString(pBitStrm: BitStream, vVal: Long): Unit = {
     val nManLen: Int = GetLengthInBytesOfUInt(mantissa)
     assert(nManLen <= 7) // 52 bit
 
-    val nExpLen: Int = GetLengthInBytesOfSInt(exponent)
-    assert(nExpLen >= 1 && nExpLen <= 3) // 11 bit
+    val compactExp = RemoveLeadingFFBytesIfNegative(exponent)
+    val nExpLen: Int = GetLengthInBytesOfUInt(compactExp)
+    assert(nExpLen >= 1 && nExpLen <= 3)
 
     // 8.5.6.4
     if nExpLen == 2 then
@@ -1086,11 +1113,11 @@ def BitStream_EncodeRealBitString(pBitStrm: BitStream, vVal: Long): Unit = {
 
     /* encode exponent */
     if exponent >= 0 then
+        // fill with zeros to have a whole byte
         BitStream_AppendNBitZero(pBitStrm, nExpLen * 8 - GetNumberOfBitsForNonNegativeInteger(exponent))
         BitStream_EncodeNonNegativeInteger(pBitStrm, exponent)
     else
-        BitStream_AppendNBitOne(pBitStrm, nExpLen * 8 - GetNumberOfBitsForNonNegativeInteger(-exponent - 1))
-        BitStream_EncodeNonNegativeIntegerNeg(pBitStrm, -exponent - 1, true)
+        BitStream_EncodeNonNegativeInteger(pBitStrm, compactExp)
 
     /* encode mantissa */
     BitStream_AppendNBitZero(pBitStrm, nManLen * 8 - GetNumberOfBitsForNonNegativeInteger(mantissa))
