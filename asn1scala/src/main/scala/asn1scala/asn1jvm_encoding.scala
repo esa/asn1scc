@@ -1055,44 +1055,49 @@ def BitStream_EncodeReal(pBitStrm: BitStream, vVal: Double): Unit = {
 }
 
 def BitStream_EncodeRealBitString(pBitStrm: BitStream, vVal: Long): Unit = {
-    // according to X.690 2002
+    // according to T-REC-X.690 2021
 
     var v = vVal
 
-    // 8.5.2
-    if ((v & InverseSignBitMask) == DoubleZeroBitString) {
+    // 8.5.2 Plus Zero
+    if v == DoublePosZeroBitString then
         BitStream_EncodeConstraintWholeNumber(pBitStrm, 0, 0, 0xFF)
-        return
-    }
+        return;
+
+    // 8.5.3 Minus Zero
+    if v == DoubleNegZeroBitString then
+        BitStream_EncodeConstraintWholeNumber(pBitStrm, 1, 0, 0xFF)
+        BitStream_EncodeConstraintWholeNumber(pBitStrm, 0x43, 0, 0xFF)
+        return;
 
     // 8.5.9 SpecialRealValues (2021 standard)
-    if(v & ExpoBitMask) == ExpoBitMask then
+    if (v & ExpoBitMask) == ExpoBitMask then
 
         // 8.5.9 PLUS-INFINITY
         if v == DoublePosInfBitString then
             BitStream_EncodeConstraintWholeNumber(pBitStrm, 1, 0, 0xFF)
             BitStream_EncodeConstraintWholeNumber(pBitStrm, 0x40, 0, 0xFF)
-            return
+            return;
 
         // 8.5.9 MINUS-INFINITY
         else if v == DoubleNegInfBitString then
             BitStream_EncodeConstraintWholeNumber(pBitStrm, 1, 0, 0xFF)
             BitStream_EncodeConstraintWholeNumber(pBitStrm, 0x41, 0, 0xFF)
-            return
+            return;
 
         // 8.5.9 NOT-A-NUMBER
         else
             BitStream_EncodeConstraintWholeNumber(pBitStrm, 1, 0, 0xFF)
             BitStream_EncodeConstraintWholeNumber(pBitStrm, 0x42, 0, 0xFF)
-            return
+            return;
 
-    // 8.5.5 a)
+    // 8.5.6 a)
     // fixed encoding style to binary
-    // 8.5.6.2 exp has always base 2 - bit 0x20 and 0x10 are always 0
-    // 8.5.6.3 F value is always zero - bit 0x08 and 0x04 are always 0
+    // 8.5.7.2 exp has always base 2 - bit 0x20 and 0x10 are always 0
+    // 8.5.7.3 F value is always zero - bit 0x08 and 0x04 are always 0
     var header = 0x80
 
-    // 8.5.6.1
+    // 8.5.7.1
     if ((v & SignBitMask) == SignBitMask) { // check sign bit
         header |= 0x40
         v &= InverseSignBitMask // clear sign bit
@@ -1107,7 +1112,7 @@ def BitStream_EncodeRealBitString(pBitStrm: BitStream, vVal: Long): Unit = {
     val nExpLen: Int = GetLengthInBytesOfUInt(compactExp)
     assert(nExpLen >= 1 && nExpLen <= 2)
 
-    // 8.5.6.4
+    // 8.5.7.4
     if nExpLen == 2 then
         header |= 0x01
     else if nExpLen == 3 then // this will never happen with this implementation
@@ -1145,35 +1150,63 @@ def BitStream_DecodeRealBitString(pBitStrm: BitStream): Option[Long] = {
     BitStream_ReadByte(pBitStrm) match
         case None() => None()
         case Some(length) =>
+            // 8.5.2 Plus Zero
             if length == 0 then
                 return Some(0)
+
+            // invalid state
+            if length < 0 || length > DoubleMaxLengthOfSentBytes then
+                return None()
 
             BitStream_ReadByte(pBitStrm) match
                 case None() => None()
                 case Some(header) =>
+                    // 8.5.6 a)
+                    if (header.unsignedToInt & 0x80) != 0x80 then
+                        return None()
+
+                    // 8.5.9 PLUS-INFINITY
                     if header == 0x40 then
-                        return Some(DoublePosInfBitString)
+                        Some(DoublePosInfBitString)
 
-                    if header == 0x41 then
-                        return Some(DoubleNegInfBitString)
+                    // 8.5.9 MINUS-INFINITY
+                    else if header == 0x41 then
+                        Some(DoubleNegInfBitString)
 
-                    DecodeRealAsBinaryEncoding(pBitStrm, length.toInt - 1, header)
+                    // 8.5.9 NOT-A-NUMBER
+                    else if header == 0x42 then
+                        Some(DoubleNotANumber)
+
+                    // 8.5.3 Minus Zero
+                    else if header == 0x43 then
+                        Some(DoubleNegZeroBitString)
+
+                    // Decode 8.5.7
+                    else
+                        DecodeRealAsBinaryEncoding(pBitStrm, length.toInt - 1, header)
 }
 
-
 def DecodeRealAsBinaryEncoding(pBitStrm: BitStream, lengthVal: Int, header: UByte): Option[Long] = {
-    require(lengthVal >= 0 && lengthVal <= Int.MaxValue)
+    require(lengthVal >= 0 && lengthVal < DoubleMaxLengthOfSentBytes) // without header byte
+    require((header.unsignedToInt & 0x80) == 0x80)
 
-    // 8.5.5 a)
-    assert((header & 0x80) == 0x80)
+    // 8.5.7.2 Base
+    val expFactor: Int = header.unsignedToInt match
+        case x if (x & 0x10) > 0 => 3 // 2^3 = 8
+        case x if (x & 0x20) > 0 => 4 // 2^4 = 16
+        case _ => 1 // 2^1 = 2
 
-    // 8.5.6.4
+    // 8.5.7.3 Factor F
+    val factor = 1 << ((header & 0x0C) >>> 2)
+
+    // 8.5.7.4 Length of Exponent
     val expLen = (header & 0x03) + 1
+
     // sanity check
     if expLen > lengthVal then
         return None()
 
-
+    // decode exponent
     val expIsNegative = BitStream_PeekBit(pBitStrm)
     var exponent: Int = if expIsNegative then 0xFF_FF_FF_FF else 0
 
@@ -1188,6 +1221,7 @@ def DecodeRealAsBinaryEncoding(pBitStrm: BitStream, lengthVal: Int, header: UByt
         i += 1
       ).invariant(i >= 0 && i <= expLen)
 
+    // decode mantissa
     val length = lengthVal - expLen
     var N: ULong = 0
     var j: Int = 0
@@ -1201,17 +1235,9 @@ def DecodeRealAsBinaryEncoding(pBitStrm: BitStream, lengthVal: Int, header: UByt
         j += 1
       ).invariant(j >= 0 && j <= length)
 
-    /*    *v = N*factor * pow(base,exp);*/
-    var factor = 1 << ((header & 0x0C) >>> 2)
-
-    // parse base factor
-    val expFactor: Int = header match
-        case x if (x & 0x10) > 0 => 3 // 2^3 = 8
-        case x if (x & 0x20) > 0 => 4 // 2^4 = 16
-        case _ => 1 // 2^1 = 2
-
     var v: Long = GetDoubleBitStringByMantissaAndExp(N * factor, expFactor * exponent)
 
+    // 8.5.7.1 Set Sign bit
     if (header & 0x40) > 0 then
         v |= SignBitMask
 

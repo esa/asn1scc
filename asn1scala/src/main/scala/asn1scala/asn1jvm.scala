@@ -33,16 +33,19 @@ val OBJECT_IDENTIFIER_MAX_LENGTH = 20
 val NOT_INITIALIZED_ERR_CODE = 1337
 val ERR_INVALID_ENUM_VALUE = 2805
 
-// Floating Point Masks
-val ExpoBitMask = 0x7ff0_0000_0000_0000L
-val MantissaBitMask = 0x000f_ffff_ffff_ffffL
+// Floating Point Mask & Variables
+val ExpoBitMask = 0x7FF0_0000_0000_0000L
+val MantissaBitMask = 0x000F_FFFF_FFFF_FFFFL
 val MantissaExtraBit = 0x0010_0000_0000_0000L // hidden bit
 val SignBitMask = 0x8000_0000_0000_0000L
-val InverseSignBitMask = 0x7fff_ffff_ffff_ffffL
+val InverseSignBitMask = 0x7FFF_FFFF_FFFF_FFFFL
 
-val DoublePosInfBitString = 0x7ff0_0000_0000_0000L
-val DoubleNegInfBitString = 0xfff0_0000_0000_0000L
-val DoubleZeroBitString = 0x0000_0000_0000_0000L
+val DoublePosInfBitString = ExpoBitMask
+val DoubleNegInfBitString = 0xFFF0_0000_0000_0000L
+val DoublePosZeroBitString = 0x0000_0000_0000_0000L
+val DoubleNegZeroBitString = SignBitMask
+val DoubleNotANumber = 0x7FF8_0000_0000_0000L // definied in java.lang.Double.NaN
+val DoubleMaxLengthOfSentBytes = 10 // mantissa max 7, exp max 2, header 1
 
 val NoOfSignBit = 1 // double & float
 val DoubleNoOfExponentBits = 11L
