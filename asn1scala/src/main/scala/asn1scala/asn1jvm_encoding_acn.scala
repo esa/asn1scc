@@ -9,10 +9,6 @@ def Acn_AlignToNextByte(pBitStrm: BitStream, bEncode: Boolean): Unit =
     if pBitStrm.currentBit != 0 then
         pBitStrm.currentBit = 0
         pBitStrm.currentByte += 1
-        if bEncode then
-            bitstream_push_data_if_required(pBitStrm)
-        else
-            bitstream_fetch_data_if_required(pBitStrm)
         CHECK_BIT_STREAM(pBitStrm)
 }
 
@@ -21,11 +17,6 @@ def Acn_AlignToNextWord(pBitStrm: BitStream, bEncode: Boolean): Unit =
     Acn_AlignToNextByte(pBitStrm, bEncode)
 
     pBitStrm.currentByte += pBitStrm.currentByte % 2
-    if bEncode then
-        bitstream_push_data_if_required(pBitStrm)
-    else
-        bitstream_fetch_data_if_required(pBitStrm)
-
     CHECK_BIT_STREAM(pBitStrm)
 }
 
@@ -40,10 +31,6 @@ def Acn_AlignToNextDWord(pBitStrm: BitStream, bEncode: Boolean): Unit =
     else
         val extraBytes: Int = pBitStrm.currentByte + totalBytes - pBitStrm.buf.length
         pBitStrm.currentByte = pBitStrm.buf.length
-        if bEncode then
-            bitstream_push_data_if_required(pBitStrm)
-        else
-            bitstream_fetch_data_if_required(pBitStrm)
         pBitStrm.currentByte = extraBytes
 
     CHECK_BIT_STREAM(pBitStrm)

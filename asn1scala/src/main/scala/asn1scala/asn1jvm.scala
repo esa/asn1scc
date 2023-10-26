@@ -131,23 +131,37 @@ object BitStream {
     }
 
     @ghost
+    def validate_offset_bit(pBitStrm: BitStream): Boolean = {
+        var new_currentBit: Int = pBitStrm.currentBit + 1
+        var new_currentByte: Int = pBitStrm.currentByte
+
+        if new_currentBit > 7 then
+            new_currentBit = new_currentBit % 8
+            new_currentByte += 1
+
+        0 <= new_currentBit
+          && new_currentBit <= 7
+          && 0 <= new_currentByte
+          && (new_currentByte < pBitStrm.buf.length || (new_currentBit == 0 && new_currentByte <= pBitStrm.buf.length))
+    }
+
+    @ghost
     def validate_offset_bits(pBitStrm: BitStream, bits: Int = 0): Boolean = {
         require(0 <= bits)
         val nBits = bits % 8
         val nBytes = bits / 8
 
-        require(nBits >= 0 && nBits <= 7 && nBits <= Int.MaxValue - pBitStrm.currentBit)
-        val new_currentBitVal: Int = pBitStrm.currentBit + nBits
+        var new_currentByte: Long = pBitStrm.currentByte.toLong + nBytes
+        var new_currentBit: Long = pBitStrm.currentBit.toLong + nBits
 
-        require(nBytes >= 0 && nBytes <= Int.MaxValue - pBitStrm.currentByte - (new_currentBitVal / 8))
-        var new_currentByte: Int = pBitStrm.currentByte + nBytes
-
-        var new_currentBit = new_currentBitVal
         if new_currentBit > 7 then
             new_currentBit = new_currentBit % 8
             new_currentByte += 1
 
-        new_currentByte < pBitStrm.buf.length || (new_currentBit == 0 && new_currentByte <= pBitStrm.buf.length)
+        0 <= new_currentBit
+          && new_currentBit <= 7
+          && 0 <= new_currentByte
+          && (new_currentByte < pBitStrm.buf.length || (new_currentBit == 0 && new_currentByte <= pBitStrm.buf.length))
     }
 
     @ghost
@@ -170,6 +184,19 @@ case class BitStream(
     def bitIndex(): Long = {
         currentByte.toLong * 8 + currentBit.toLong
     }.ensuring(res => 0 <= res && res <= 8 * buf.length.toLong)
+
+    def increaseBitIndex(): Unit = {
+        require(currentByte < buf.length)
+        if currentBit < 7 then
+            currentBit += 1
+        else
+            currentBit = 0
+            currentByte += 1
+    }.ensuring {_ =>
+        val oldBitStrm = old(this)
+        oldBitStrm.bitIndex() + 1 == this.bitIndex() &&&
+          BitStream.invariant(this)
+    }
 
     @inlineOnce @opaque @ghost
     def ensureInvariant(): Unit = {
