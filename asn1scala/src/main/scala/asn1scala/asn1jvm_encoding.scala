@@ -128,7 +128,7 @@ def BitStream_ReadBitPure(pBitStrm: BitStream): (BitStream, Option[Boolean]) = {
 
 @opaque @inlineOnce
 def BitStream_AppendBitOne(pBitStrm: BitStream): Unit = {
-    require(pBitStrm.bitIndex() + 1 <= pBitStrm.buf.length.toLong * 8)
+    require(BitStream.validate_offset_bits(pBitStrm, 1))
     @ghost val oldpBitStrm = snapshot(pBitStrm)
 
     val newB = (pBitStrm.buf(pBitStrm.currentByte) | masks(pBitStrm.currentBit)).toByte
@@ -151,7 +151,7 @@ def BitStream_AppendBitOne(pBitStrm: BitStream): Unit = {
         val (r1, r2) = reader(w1, w2)
         val (r2Got, bitGot) = BitStream_ReadBitPure(r1)
         bitGot.get == true && r2Got == r2
-    }
+    } && BitStream.invariant(pBitStrm)
 }
 
 /**

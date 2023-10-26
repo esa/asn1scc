@@ -118,36 +118,64 @@ def asn1Real_Initialize(): asn1Real = {
     0.0
 }
 
+object BitStream {
+    @pure @inline
+    def invariant(pBitStrm: BitStream): Boolean = {
+        BitStream.invariant(pBitStrm.currentByte, pBitStrm.currentBit, pBitStrm.buf.length)
+    }
+
+    @pure @inline
+    def invariant(currentByte: Int, currentBit: Int, buf_length: Int): Boolean = {
+        0 <= currentBit && currentBit <= 7 &&&
+          0 <= currentByte && (currentByte < buf_length || (currentBit == 0 && currentByte <= buf_length))
+    }
+
+    @ghost
+    def validate_offset_bits(pBitStrm: BitStream, bits: Int = 0): Boolean = {
+        require(0 <= bits)
+        val nBits = bits % 8
+        val nBytes = bits / 8
+
+        require(nBits >= 0 && nBits <= 7 && nBits <= Int.MaxValue - pBitStrm.currentBit)
+        val new_currentBitVal: Int = pBitStrm.currentBit + nBits
+
+        require(nBytes >= 0 && nBytes <= Int.MaxValue - pBitStrm.currentByte - (new_currentBitVal / 8))
+        var new_currentByte: Int = pBitStrm.currentByte + nBytes
+
+        var new_currentBit = new_currentBitVal
+        if new_currentBit > 7 then
+            new_currentBit = new_currentBit % 8
+            new_currentByte += 1
+
+        new_currentByte < pBitStrm.buf.length || (new_currentBit == 0 && new_currentByte <= pBitStrm.buf.length)
+    }
+
+    @ghost
+    def validate_offset_bytes(pBitStrm: BitStream, bytes: Int = 0): Boolean = {
+        require(bytes >= 0 && bytes <= Int.MaxValue - pBitStrm.currentByte)
+
+        val new_currentByte: Int = pBitStrm.currentByte + bytes
+        new_currentByte < pBitStrm.buf.length || (pBitStrm.currentBit == 0 && new_currentByte <= pBitStrm.buf.length)
+    }
+}
+
+
 case class BitStream(
                       var buf: Array[Byte],
                       var currentByte: Int,
                       var currentBit: Int,
                     ) { // all BisStream instances satisfy the following:
-    require(0 <= currentByte && currentByte <= buf.length)
-    require(0 <= currentBit && currentBit <= 7)
-    require(currentByte.toLong * 8 + currentBit.toLong <= 8 * buf.length.toLong)
+    require(BitStream.invariant(currentByte, currentBit, buf.length))
 
     def bitIndex(): Long = {
         currentByte.toLong * 8 + currentBit.toLong
     }.ensuring(res => 0 <= res && res <= 8 * buf.length.toLong)
 
-    def moveOffset(diffInBits: Long): Unit = {
-        require(diffInBits >= 0 && diffInBits <= 8 * buf.length.toLong)
-        val res = bitIndex() + diffInBits
-        require(0 <= res && res <= 8 * buf.length.toLong)
-        val nbBytes = (diffInBits / 8).toInt
-        val nbBits = (diffInBits % 8).toInt
-        currentByte += nbBytes
-        if (currentBit + nbBits < 0) {
-            currentByte -= 1
-            currentBit = 8 + nbBits + currentBit
-        } else if (currentBit + nbBits >= 8) {
-            currentBit = currentBit + nbBits - 8
-            currentByte += 1
-        } else {
-            currentBit += nbBits
-        }
-    }.ensuring(_ => old(this).bitIndex() + diffInBits == bitIndex())
+    @inlineOnce @opaque @ghost
+    def ensureInvariant(): Unit = {
+    }.ensuring(_ =>
+        BitStream.invariant(currentByte, currentBit, buf.length)
+    )
 } // BitStream class
 
 case class ByteStream (
