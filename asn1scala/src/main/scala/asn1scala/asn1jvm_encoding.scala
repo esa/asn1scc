@@ -1065,21 +1065,26 @@ def BitStream_EncodeRealBitString(pBitStrm: BitStream, vVal: Long): Unit = {
         return
     }
 
-    // 8.5.8 PLUS-INFINITY
-    if (v == DoublePosInfBitString) {
-        BitStream_EncodeConstraintWholeNumber(pBitStrm, 1, 0, 0xFF)
-        BitStream_EncodeConstraintWholeNumber(pBitStrm, 0x40, 0, 0xFF)
-        return
-    }
+    // 8.5.9 SpecialRealValues (2021 standard)
+    if(v & ExpoBitMask) == ExpoBitMask then
 
-    // 8.5.8 MINUS-INFINITY
-    if (v == DoubleNegInfBitString) {
-        BitStream_EncodeConstraintWholeNumber(pBitStrm, 1, 0, 0xFF)
-        BitStream_EncodeConstraintWholeNumber(pBitStrm, 0x41, 0, 0xFF)
-        return
-    }
+        // 8.5.9 PLUS-INFINITY
+        if v == DoublePosInfBitString then
+            BitStream_EncodeConstraintWholeNumber(pBitStrm, 1, 0, 0xFF)
+            BitStream_EncodeConstraintWholeNumber(pBitStrm, 0x40, 0, 0xFF)
+            return
 
-    // TODO NaN case fails in stainless - fix!
+        // 8.5.9 MINUS-INFINITY
+        else if v == DoubleNegInfBitString then
+            BitStream_EncodeConstraintWholeNumber(pBitStrm, 1, 0, 0xFF)
+            BitStream_EncodeConstraintWholeNumber(pBitStrm, 0x41, 0, 0xFF)
+            return
+
+        // 8.5.9 NOT-A-NUMBER
+        else
+            BitStream_EncodeConstraintWholeNumber(pBitStrm, 1, 0, 0xFF)
+            BitStream_EncodeConstraintWholeNumber(pBitStrm, 0x42, 0, 0xFF)
+            return
 
     // 8.5.5 a)
     // fixed encoding style to binary
@@ -1100,12 +1105,12 @@ def BitStream_EncodeRealBitString(pBitStrm: BitStream, vVal: Long): Unit = {
 
     val compactExp = RemoveLeadingFFBytesIfNegative(exponent)
     val nExpLen: Int = GetLengthInBytesOfUInt(compactExp)
-    assert(nExpLen >= 1 && nExpLen <= 3)
+    assert(nExpLen >= 1 && nExpLen <= 2)
 
     // 8.5.6.4
     if nExpLen == 2 then
         header |= 0x01
-    else if nExpLen == 3 then
+    else if nExpLen == 3 then // this will never happen with this implementation
         header |= 0x02
 
     /* encode length */
