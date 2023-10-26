@@ -2,6 +2,7 @@ package asn1scala
 
 import stainless.lang.{None => None, Option => Option, _}
 import stainless.annotation._
+import StaticChecks.*
 
 // type used in ErrorCases
 type ErrorCode = Int
@@ -132,17 +133,18 @@ object BitStream {
 
     @ghost
     def validate_offset_bit(pBitStrm: BitStream): Boolean = {
-        var new_currentBit: Int = pBitStrm.currentBit + 1
-        var new_currentByte: Int = pBitStrm.currentByte
-
-        if new_currentBit > 7 then
-            new_currentBit = new_currentBit % 8
-            new_currentByte += 1
-
-        0 <= new_currentBit
-          && new_currentBit <= 7
-          && 0 <= new_currentByte
-          && (new_currentByte < pBitStrm.buf.length || (new_currentBit == 0 && new_currentByte <= pBitStrm.buf.length))
+//        var new_currentBit: Int = pBitStrm.currentBit + 1
+//        var new_currentByte: Int = pBitStrm.currentByte
+//
+//        if new_currentBit > 7 then
+//            new_currentBit = new_currentBit % 8
+//            new_currentByte += 1
+//
+//        0 <= new_currentBit
+//          && new_currentBit <= 7
+//          && 0 <= new_currentByte
+//          && (new_currentByte < pBitStrm.buf.length || (new_currentBit == 0 && pBitStrm.currentByte <= pBitStrm.buf.length))
+        pBitStrm.currentByte < pBitStrm.buf.length
     }
 
     @ghost

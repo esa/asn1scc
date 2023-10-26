@@ -247,6 +247,7 @@ def BitStream_ReadBit(pBitStrm: BitStream): Option[Boolean] = {
 }.ensuring(_ => BitStream.invariant(pBitStrm))
 
 def BitStream_PeekBit(pBitStrm: BitStream): Boolean = {
+    require(pBitStrm.currentByte < pBitStrm.buf.length)
     ((pBitStrm.buf(pBitStrm.currentByte) & 0xFF) & (masks(pBitStrm.currentBit) & 0xFF)) > 0
 }
 
