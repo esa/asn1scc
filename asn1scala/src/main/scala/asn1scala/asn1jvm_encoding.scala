@@ -1154,7 +1154,7 @@ def BitStream_DecodeRealBitString(pBitStrm: BitStream): Option[Long] = {
 }
 
 def DecodeRealAsBinaryEncoding(pBitStrm: BitStream, lengthVal: Int, header: UByte): Option[Long] = {
-    require(lengthVal >= 0 && lengthVal < DoubleMaxLengthOfSentBytes) // without header byte
+    require(lengthVal >= 1 && lengthVal < DoubleMaxLengthOfSentBytes) // without header byte
     require((header.unsignedToInt & 0x80) == 0x80)
 
     // 8.5.7.2 Base

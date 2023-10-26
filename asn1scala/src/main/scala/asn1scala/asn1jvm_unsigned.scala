@@ -19,7 +19,7 @@ val MASK_POS_INT    = 0x7F_FF_FF_FFL
 */
 extension (ub: UByte) {
     def unsignedToLong: Long = ub & MASK_BYTE_L
-    def unsignedToInt: Int = ub & MASK_BYTE
+    def unsignedToInt: Int = ub.toInt & MASK_BYTE
 }
 
 extension (us: UShort) {
