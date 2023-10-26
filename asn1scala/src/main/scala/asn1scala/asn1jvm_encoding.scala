@@ -169,7 +169,7 @@ def BitStream_AppendBitOne(pBitStrm: BitStream): Unit = {
         xxx0????
 **/
 def BitStream_AppendBitZero(pBitStrm: BitStream): Unit = {
-    require(pBitStrm.currentByte < pBitStrm.buf.length)
+    require(BitStream.validate_offset_bits(pBitStrm, 1))
     val nmask = ~masks(pBitStrm.currentBit)
     pBitStrm.buf(pBitStrm.currentByte) = (pBitStrm.buf(pBitStrm.currentByte) & nmask).toByte
     if pBitStrm.currentBit < 7 then
@@ -178,8 +178,7 @@ def BitStream_AppendBitZero(pBitStrm: BitStream): Unit = {
         pBitStrm.currentBit = 0
         pBitStrm.currentByte += 1
         bitstream_push_data_if_required(pBitStrm)
-    assert(pBitStrm.currentByte.toLong*8 + pBitStrm.currentBit <= pBitStrm.buf.length.toLong*8)
-}
+}.ensuring(_ => BitStream.invariant(pBitStrm))
 
 def BitStream_AppendNBitZero(pBitStrm: BitStream, nbits: Int): Unit = {
     require(nbits < Int.MaxValue - pBitStrm.currentBit)
