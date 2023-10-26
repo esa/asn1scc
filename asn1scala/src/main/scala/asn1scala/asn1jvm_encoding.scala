@@ -181,24 +181,24 @@ def BitStream_AppendBitZero(pBitStrm: BitStream): Unit = {
 }.ensuring(_ => BitStream.invariant(pBitStrm))
 
 def BitStream_AppendNBitZero(pBitStrm: BitStream, nbits: Int): Unit = {
-    require(nbits < Int.MaxValue - pBitStrm.currentBit)
-    val totalBits: Int = pBitStrm.currentBit + nbits
-    val totalBytes: Int = totalBits / 8
+    require(0 <= nbits)
+    require(nbits/8 >= 0 && nbits/8 <= Int.MaxValue - pBitStrm.currentByte - (pBitStrm.currentBit+nbits%8 / 8))
+    require(BitStream.validate_offset_bits(pBitStrm, nbits))
 
-    val newCurrentBit = totalBits % 8
-    assert(0 <= newCurrentBit && newCurrentBit < 8)
-    pBitStrm.currentBit = newCurrentBit
-    //pBitStrm->currentByte += totalBits / 8;
+    val nBits = nbits % 8
+    val nBytes = nbits / 8
 
-    if pBitStrm.currentByte <= pBitStrm.buf.length - totalBytes then
-        pBitStrm.currentByte += totalBytes
-        bitstream_push_data_if_required(pBitStrm)
-    else
-        val extraBytes: Int = pBitStrm.currentByte + totalBytes - pBitStrm.buf.length
-        pBitStrm.currentByte = pBitStrm.buf.length
-        bitstream_push_data_if_required(pBitStrm)
-        pBitStrm.currentByte = extraBytes
-}
+    var new_currentBit: Int = pBitStrm.currentBit + nBits
+    var new_currentByte: Int = pBitStrm.currentByte + nBytes
+
+    if new_currentBit > 7 then
+        new_currentBit = new_currentBit % 8
+        new_currentByte += 1
+
+    pBitStrm.currentBit = new_currentBit
+    pBitStrm.currentByte = new_currentByte
+
+}.ensuring(_ => BitStream.invariant(pBitStrm))
 
 def BitStream_AppendNBitOne(pBitStrm: BitStream, nbitsVal: Int): Unit = {
     require(nbitsVal >= 0)
