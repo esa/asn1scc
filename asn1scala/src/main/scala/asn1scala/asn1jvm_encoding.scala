@@ -408,21 +408,24 @@ def BitStream_ReadBytePure(pBitStrm: BitStream): (BitStream, Option[Byte]) = {
 }
 
 def BitStream_ReadByteArray(pBitStrm: BitStream, arr_len: Int): OptionMut[Array[UByte]] = {
+    require(0 < arr_len && arr_len <= pBitStrm.buf.length)
+    require(BitStream.validate_offset_bytes(pBitStrm, arr_len))
     val arr: Array[UByte] = Array.fill(arr_len)(0)
 
-    val cb: UByte = pBitStrm.currentBit.toByte
-    val ncb: UByte = (8 - cb).toByte
+    val cb = pBitStrm.currentBit
+    val ncb = 8 - cb
 
-    if (pBitStrm.currentByte+arr_len).toLong*8 + cb.toInt > pBitStrm.buf.length.toLong*8 then
+    if !(pBitStrm.currentByte.toLong + arr_len < pBitStrm.buf.length || (pBitStrm.currentBit == 0 && pBitStrm.currentByte.toLong + arr_len <= pBitStrm.buf.length)) then
         return NoneMut()
 
     var i: Int = 0
-    while i < arr_len do
+    (while i < arr_len do
         decreases(arr_len - i)
-        arr(i) = (pBitStrm.buf(pBitStrm.currentByte) << cb).toByte
-        pBitStrm.currentByte += 1
-        arr(i) = (arr(i) | (pBitStrm.buf(pBitStrm.currentByte) & 0xFF) >>> ncb).toByte
+        BitStream_ReadByte(pBitStrm) match
+            case Some(v) => arr(i) = v
+            case None() => return NoneMut()
         i += 1
+    ).invariant(0 <= i &&& i <= arr_len &&& i <= arr.length &&& BitStream.validate_offset_bytes(pBitStrm, arr_len-i) &&& BitStream.invariant(pBitStrm))
 
     SomeMut(arr)
 }
@@ -490,28 +493,38 @@ def BitStream_AppendPartialByte(pBitStrm: BitStream, vVal: UByte, nbits: UByte, 
 
 /* nbits 1..7*/
 def BitStream_ReadPartialByte(pBitStrm: BitStream, nbits: UByte): Option[UByte] = {
+    require(0 <= nbits && nbits < 8)
+    require(BitStream.validate_offset_bits(pBitStrm, nbits))
 
     var v: UByte = 0
     val cb: UByte = pBitStrm.currentBit.toByte
     val totalBits: UByte = (cb + nbits).toByte
 
     if (totalBits <= 8) {
-        v = ((pBitStrm.buf(pBitStrm.currentByte) >>> (8 - totalBits)) & masksb(nbits)).toByte
-        pBitStrm.currentBit += nbits.toInt
-        if pBitStrm.currentBit == 8 then
-            pBitStrm.currentBit = 0
+
+        ghostExpr {
+            BitStream.invariant(pBitStrm)
+        }
+        v = ((pBitStrm.buf(pBitStrm.currentByte) >>>> (8 - totalBits)) & masksb(nbits)).toByte
+        ghostExpr {
+            BitStream.validate_offset_bits(pBitStrm, nbits)
+        }
+        if pBitStrm.currentBit + nbits >= 8 then
+            pBitStrm.currentBit = (pBitStrm.currentBit + nbits) % 8
             pBitStrm.currentByte += 1
+        else
+            pBitStrm.currentBit += nbits.toInt
 
     } else {
         var totalBitsForNextByte: UByte = (totalBits - 8).toByte
-        v = (pBitStrm.buf(pBitStrm.currentByte) << totalBitsForNextByte).toByte
+        v = (pBitStrm.buf(pBitStrm.currentByte) <<<< totalBitsForNextByte)
         pBitStrm.currentByte += 1
-        v = (v | (pBitStrm.buf(pBitStrm.currentByte) & 0xFF) >>> (8 - totalBitsForNextByte)).toByte
+        v = (v | pBitStrm.buf(pBitStrm.currentByte) >>>> (8 - totalBitsForNextByte)).toByte
         v = (v & masksb(nbits)).toByte
         pBitStrm.currentBit = totalBitsForNextByte.toInt
     }
 
-    if pBitStrm.currentByte.toLong*8 + pBitStrm.currentBit <= pBitStrm.buf.length.toLong*8 then
+    if BitStream.invariant(pBitStrm) then
         Some(v)
     else
         None()
