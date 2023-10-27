@@ -274,7 +274,7 @@ or    000bbbbb
 
 @opaque @inlineOnce
 def BitStream_AppendByte(pBitStrm: BitStream, value: Byte, negate: Boolean): Unit = {
-    require(pBitStrm.bitIndex() + 8 <= pBitStrm.buf.length.toLong * 8)
+    require(BitStream.validate_offset_bytes(pBitStrm, 1))
     @ghost val oldpBitStrm = snapshot(pBitStrm)
     val cb = pBitStrm.currentBit.toByte
     val ncb = (8 - cb).toByte
@@ -334,11 +334,11 @@ def BitStream_AppendByte(pBitStrm: BitStream, value: Byte, negate: Boolean): Uni
 }.ensuring { _ =>
     val w1 = old(pBitStrm)
     val w2 = pBitStrm
-    w2.bitIndex() == w1.bitIndex() + 8 && isValidPair(w1, w2) && {
+    w2.bitIndex() == w1.bitIndex() + 8 &&& isValidPair(w1, w2) &&& {
         val (r1, r2) = reader(w1, w2)
         val (r2Got, vGot) = BitStream_ReadBytePure(r1)
-        vGot.get == value && r2Got == r2
-    } && BitStream.invariant(pBitStrm)
+        ((!negate && vGot.get == value) || (negate && vGot.get == ~value)) && r2Got == r2
+    } &&& BitStream.invariant(pBitStrm)
 }
 
 def BitStream_AppendByte0(pBitStrm: BitStream, v: UByte): Boolean = {

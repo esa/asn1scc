@@ -171,9 +171,7 @@ object BitStream {
 
     @ghost
     def validate_offset_bytes(pBitStrm: BitStream, bytes: Int = 0): Boolean = {
-        require(bytes >= 0 && bytes <= Int.MaxValue - pBitStrm.currentByte)
-
-        val new_currentByte: Int = pBitStrm.currentByte + bytes
+        val new_currentByte: Long = pBitStrm.currentByte.toLong + bytes
         new_currentByte < pBitStrm.buf.length || (pBitStrm.currentBit == 0 && new_currentByte <= pBitStrm.buf.length)
     }
 }
