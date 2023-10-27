@@ -54,7 +54,7 @@ def Acn_Enc_Int_PositiveInteger_ConstSize(pBitStrm: BitStream, intVal: ULong, en
 
 def Acn_Enc_Int_PositiveInteger_ConstSize_8(pBitStrm: BitStream, intVal: ULong): Unit =
 {
-    BitStream_AppendByte0(pBitStrm, intVal.toByte)
+    pBitStrm.appendByte0(intVal.toByte)
     CHECK_BIT_STREAM(pBitStrm)
 }
 
@@ -67,7 +67,7 @@ def Acn_Enc_Int_PositiveInteger_ConstSize_big_endian_B(pBitStrm: BitStream, intV
     var i: Int = 0
     while i < size do
         val ByteToEncode: Byte = ((tmp & mask) >>> ((size - i - 1) * 8)).toByte
-        BitStream_AppendByte0(pBitStrm, ByteToEncode)
+        pBitStrm.appendByte0(ByteToEncode)
         mask >>>= 8
         i += 1
 
@@ -96,7 +96,7 @@ def Acn_Enc_Int_PositiveInteger_ConstSize_little_endian_N(pBitStrm: BitStream, i
     var i: Int = 0
     while i < size do
         val ByteToEncode: Byte = tmp.toByte
-        BitStream_AppendByte0(pBitStrm, ByteToEncode)
+        pBitStrm.appendByte0(ByteToEncode)
         tmp >>>= 8
         i += 1
 
@@ -213,7 +213,7 @@ def Encode_UnsignedInteger(pBitStrm: BitStream, v: ULong, nBytes: Byte): Unit =
     var i: Int = 0
     while i < nBytes do
         val ByteToEncode: Byte = ((vv & MAX_BYTE_MASK) >>> ((NO_OF_BYTES_IN_JVM_LONG - 1) * 8)).toByte
-        BitStream_AppendByte0(pBitStrm, ByteToEncode)
+        pBitStrm.appendByte0(ByteToEncode)
         vv <<= 8
         i += 1
 }
@@ -224,7 +224,7 @@ def Acn_Enc_Int_PositiveInteger_VarSize_LengthEmbedded(pBitStrm: BitStream, intV
     val nBytes: Byte = GetLengthInBytesOfUInt(intVal).toByte
 
     /* encode length */
-    BitStream_AppendByte0(pBitStrm, nBytes)
+    pBitStrm.appendByte0(nBytes)
     /* Encode integer data*/
     Encode_UnsignedInteger(pBitStrm, intVal, nBytes)
 
@@ -380,7 +380,7 @@ def Acn_Enc_Int_TwosComplement_VarSize_LengthEmbedded(pBitStrm: BitStream, intVa
     val nBytes: Byte = GetLengthInBytesOfSInt(intVal).toByte
 
     /* encode length */
-    BitStream_AppendByte0(pBitStrm, nBytes)
+    pBitStrm.appendByte0(nBytes)
     /* Encode integer data*/
     Encode_UnsignedInteger(pBitStrm, int2uint(intVal), nBytes)
 
@@ -473,7 +473,7 @@ def Acn_Enc_Int_BCD_VarSize_LengthEmbedded(pBitStrm: BitStream, intVal: ULong): 
 {
     val nNibbles: Int = Acn_Get_Int_Size_BCD(intVal)
     /* encode length */
-    BitStream_AppendByte0(pBitStrm, nNibbles.toByte)
+    pBitStrm.appendByte0(nNibbles.toByte)
 
     /* Encode Number */
     Acn_Enc_Int_BCD_ConstSize(pBitStrm, intVal, nNibbles)
@@ -539,7 +539,7 @@ def Acn_Enc_UInt_ASCII_ConstSize(pBitStrm: BitStream, intVal: ULong, encodedSize
 
     var i = encodedSizeInBytes - 1
     while i >= 0 do
-        BitStream_AppendByte0(pBitStrm, (tmp(i) + '0').toByte)
+        pBitStrm.appendByte0((tmp(i) + '0').toByte)
         i -= 1
 
     CHECK_BIT_STREAM(pBitStrm)
@@ -551,7 +551,7 @@ def Acn_Enc_SInt_ASCII_ConstSize(pBitStrm: BitStream, intVal: Long, encodedSizeI
     val absIntVal: ULong = if intVal >= 0 then intVal else -intVal
 
     /* encode sign */
-    BitStream_AppendByte0(pBitStrm, if intVal >= 0 then '+' else '-')
+    pBitStrm.appendByte0(if intVal >= 0 then '+' else '-')
 
     Acn_Enc_UInt_ASCII_ConstSize(pBitStrm, absIntVal, encodedSizeInBytes-1)
 }
@@ -626,15 +626,15 @@ def Acn_Enc_SInt_ASCII_VarSize_LengthEmbedded(pBitStrm: BitStream, intVal: Long)
     val (digitsArray100, nChars) = getIntegerDigits(absIntVal)
 
     /* encode length, plus 1 for sign */
-    BitStream_AppendByte0(pBitStrm, (nChars + 1).toByte)
+    pBitStrm.appendByte0((nChars + 1).toByte)
 
     /* encode sign */
-    BitStream_AppendByte0(pBitStrm, if intVal >= 0 then '+' else '-')
+    pBitStrm.appendByte0(if intVal >= 0 then '+' else '-')
 
     /* encode digits */
     var i: Int = 0
     while i < 100 && digitsArray100(i) != 0x0 do
-        BitStream_AppendByte0(pBitStrm, digitsArray100(i))
+        pBitStrm.appendByte0(digitsArray100(i))
         i += 1
 
     CHECK_BIT_STREAM(pBitStrm)
@@ -645,11 +645,11 @@ def Acn_Enc_UInt_ASCII_VarSize_LengthEmbedded(pBitStrm: BitStream, intVal: ULong
     val (digitsArray100, nChars) = getIntegerDigits(intVal)
 
     /* encode length */
-    BitStream_AppendByte0(pBitStrm, nChars)
+    pBitStrm.appendByte0(nChars)
     /* encode digits */
     var i: Int = 0
     while i < 100 && digitsArray100(i) != 0x0 do
-        BitStream_AppendByte0(pBitStrm, digitsArray100(i))
+        pBitStrm.appendByte0(digitsArray100(i))
         i += 1
 
     CHECK_BIT_STREAM(pBitStrm)
@@ -677,12 +677,12 @@ def Acn_Enc_UInt_ASCII_VarSize_NullTerminated(pBitStrm: BitStream, intVal: ULong
 
     var i: Int = 0 // TODO: size_t?
     while i < 100 && digitsArray100(i) != 0x0 do
-        BitStream_AppendByte0(pBitStrm, digitsArray100(i))
+        pBitStrm.appendByte0(digitsArray100(i))
         i += 1
 
     i = 0
     while i < null_characters_size do
-        BitStream_AppendByte0(pBitStrm, null_characters(i))
+        pBitStrm.appendByte0(null_characters(i))
         i += 1
 
     CHECK_BIT_STREAM(pBitStrm)
@@ -691,7 +691,7 @@ def Acn_Enc_UInt_ASCII_VarSize_NullTerminated(pBitStrm: BitStream, intVal: ULong
 def Acn_Enc_SInt_ASCII_VarSize_NullTerminated(pBitStrm: BitStream, intVal: Long, null_characters: Array[Byte], null_characters_size: Int): Unit =
 {
     val absValue: ULong = if intVal >= 0 then intVal else -intVal
-    BitStream_AppendByte0(pBitStrm, if intVal >= 0 then '+' else '-')
+    pBitStrm.appendByte0(if intVal >= 0 then '+' else '-')
 
     Acn_Enc_UInt_ASCII_VarSize_NullTerminated(pBitStrm, absValue, null_characters, null_characters_size)
 }
@@ -838,7 +838,7 @@ def Acn_Enc_Real_IEEE754_32_big_endian(pBitStrm: BitStream, realValue: Float): U
 
     var i: Int = 0
     while i < 4 do
-        BitStream_AppendByte0(pBitStrm, b(i))
+        pBitStrm.appendByte0(b(i))
         i += 1
 }
 
@@ -877,7 +877,7 @@ def Acn_Enc_Real_IEEE754_64_big_endian(pBitStrm: BitStream, realValue: Double): 
 
     var i: Int = 0
     while i < 8 do
-        BitStream_AppendByte0(pBitStrm, b(i))
+        pBitStrm.appendByte0(b(i))
         i += 1
 }
 
@@ -902,7 +902,7 @@ def Acn_Enc_Real_IEEE754_32_little_endian(pBitStrm: BitStream, realValue: Double
 
     var i: Int = 3
     while i >= 0 do
-        BitStream_AppendByte0(pBitStrm, b(i))
+        pBitStrm.appendByte0(b(i))
         i -= 1
 }
 
@@ -940,7 +940,7 @@ def Acn_Enc_Real_IEEE754_64_little_endian(pBitStrm: BitStream, realValue: Double
 
     var i: Int = 7
     while i >= 0 do
-        BitStream_AppendByte0(pBitStrm, b(i))
+        pBitStrm.appendByte0(b(i))
         i -= 1
 }
 
@@ -966,14 +966,14 @@ def Acn_Enc_String_Ascii_FixSize(pBitStrm: BitStream, max: Long, strVal: Array[A
 {
     var i: Long = 0
     while i < max do
-        BitStream_AppendByte(pBitStrm, strVal(i.toInt), false)
+        pBitStrm.appendByte(strVal(i.toInt), false)
         i += 1
 }
 def Acn_Enc_String_Ascii_private(pBitStrm: BitStream, max: Long, strVal: Array[ASCIIChar]): Long =
 {
     var i: Long = 0
     while (i < max) && (strVal(i.toInt) != '\u0000') do
-        BitStream_AppendByte(pBitStrm, strVal(i.toInt), false)
+        pBitStrm.appendByte(strVal(i.toInt), false)
         i += 1
 
     i
@@ -982,7 +982,7 @@ def Acn_Enc_String_Ascii_private(pBitStrm: BitStream, max: Long, strVal: Array[A
 def Acn_Enc_String_Ascii_Null_Teminated(pBitStrm: BitStream, max: Long, null_character: Byte, strVal: Array[ASCIIChar]): Unit =
 {
     Acn_Enc_String_Ascii_private(pBitStrm, max, strVal)
-    BitStream_AppendByte(pBitStrm, null_character.toByte, false)
+    pBitStrm.appendByte(null_character.toByte, false)
 }
 
 def Acn_Enc_String_Ascii_Null_Teminated_mult(pBitStrm: BitStream, max: Long, null_character: Array[Byte], null_character_size: Int, strVal: Array[ASCIIChar]): Unit =
@@ -990,7 +990,7 @@ def Acn_Enc_String_Ascii_Null_Teminated_mult(pBitStrm: BitStream, max: Long, nul
     Acn_Enc_String_Ascii_private(pBitStrm, max, strVal)
     var i: Int = 0
     while i < null_character_size do
-        BitStream_AppendByte(pBitStrm, null_character(i), false)
+        pBitStrm.appendByte(null_character(i), false)
         i += 1
 }
 

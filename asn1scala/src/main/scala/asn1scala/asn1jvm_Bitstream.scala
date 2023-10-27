@@ -272,5 +272,117 @@ case class BitStream(
       ((buf(currentByte) & 0xFF) & (BitAccessMasks(currentBit) & 0xFF)) > 0
    }
 
+   /**
+    * Append byte.
+    *
+    * Example
+    * cur bit = 3
+    * |
+    * x x x b b b b b b b b
+    * |_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|
+    * 0 1 2 3 4 5 6 7 0 1 2 3 4 5 6 7
+    *
+    * first byte
+    *       xxx?????
+    * and   11100000 (mask)
+    * --------------
+    *       xxx00000
+    * or    000bbbbb
+    * --------------
+    *       xxxbbbbb
+    *
+    * */
+
+   @opaque
+   @inlineOnce
+   def appendByte(value: Byte, negate: Boolean): Unit = {
+      require(BitStream.validate_offset_bytes(this, 1))
+      @ghost val oldpBitStrm = snapshot(this)
+      val cb = currentBit.toByte
+      val ncb = (8 - cb).toByte
+      var mask = (~masksb(ncb)).toByte
+
+      var v = value
+      if negate then
+         v = (~v).toByte
+
+      buf(currentByte) = (buf(currentByte) & mask).toByte // set bits right of currentbit to zero (where our value will be inserted)
+      buf(currentByte) = (buf(currentByte) | (v >>>> cb)).toByte // set value into bits right of currentbit, but keep bits to the left
+      currentByte += 1
+
+      ghostExpr {
+         check(
+            (oldpBitStrm.currentByte < oldpBitStrm.buf.length) ==>
+                bytePrefix(
+                   oldpBitStrm.buf(oldpBitStrm.currentByte),
+                   buf(oldpBitStrm.currentByte),
+                   0, oldpBitStrm.currentBit))
+      }
+      @ghost val old2pBitStrm = snapshot(this)
+
+      if cb > 0 then
+         mask = (~mask).toByte
+         buf(currentByte) = (buf(currentByte) & mask).toByte // set bits to the left of currentbit in next byte to zero (where the rest of our value will be inserted)
+         buf(currentByte) = (buf(currentByte) | (v <<<< ncb)).toByte // set value into the bits left of currentbit, but keep the bits to the right
+
+      ghostExpr {
+         arrayUpdatedAtPrefixLemma(oldpBitStrm.buf, currentByte - 1, buf(currentByte - 1))
+         assert(arrayPrefix(oldpBitStrm.buf, old2pBitStrm.buf, 0, currentByte - 1))
+
+         if (cb > 0) {
+            arrayUpdatedAtPrefixLemma(oldpBitStrm.buf, currentByte, buf(currentByte))
+            arrayUpdatedAtPrefixLemma(old2pBitStrm.buf, currentByte, buf(currentByte))
+            arrayPrefixTransitive(
+               oldpBitStrm.buf,
+               old2pBitStrm.buf,
+               buf,0, currentByte - 1, currentByte
+            )
+            check(arrayPrefix(
+               oldpBitStrm.buf,
+               buf,
+               0,
+               oldpBitStrm.currentByte
+            ))
+         } else {
+            check(arrayPrefix(
+               oldpBitStrm.buf,
+               buf,0,
+               oldpBitStrm.currentByte
+            ))
+         }
+      }
+   }.ensuring { _ =>
+      val w1 = old(this)
+      val w2 = this
+      w2.bitIndex() == w1.bitIndex() + 8 &&& isValidPair(w1, w2) &&& {
+         val (r1, r2) = reader(w1, w2)
+         val (r2Got, vGot) = BitStream_ReadBytePure(r1)
+         ((!negate && vGot.get == value) || (negate && vGot.get == ~value)) && r2Got == r2
+      } &&& BitStream.invariant(this)
+   }
+
+   def appendByte0(v: UByte): Boolean = {
+      require(BitStream.validate_offset_bytes(this, 1))
+      val cb: UByte = currentBit.toByte
+      val ncb: UByte = (8 - cb).toByte
+
+      var mask = ~masksb(ncb)
+
+      buf(currentByte) = (buf(currentByte) & mask).toByte
+      buf(currentByte) = (buf(currentByte) | (v >>>> cb)).toByte
+      currentByte += 1
+
+      if cb > 0 then
+         if currentByte >= buf.length then
+            return false
+         mask = ~mask
+         ghostExpr {
+            ensureInvariant()
+         }
+         buf(currentByte) = (buf(currentByte) & mask).toByte
+         buf(currentByte) = (buf(currentByte) | (v <<<< ncb)).toByte
+
+      true
+   }.ensuring(_ => BitStream.invariant(this))
 
 } // BitStream class

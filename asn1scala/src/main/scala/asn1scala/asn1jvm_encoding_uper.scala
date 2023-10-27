@@ -50,7 +50,7 @@ def ObjectIdentifier_uper_encode(pBitStrm: BitStream, pVal: Asn1ObjectIdentifier
     i = 0
     while i < totalSize do
         decreases(totalSize - i)
-        BitStream_AppendByte0(pBitStrm, tmp(i));
+        pBitStrm.appendByte0(tmp(i))
         i += 1
 }
 def RelativeOID_uper_encode (pBitStrm: BitStream, pVal: Asn1ObjectIdentifier): Unit = {
@@ -76,7 +76,7 @@ def RelativeOID_uper_encode (pBitStrm: BitStream, pVal: Asn1ObjectIdentifier): U
     i = 0
     while i < totalSize do
         decreases(totalSize - i)
-        BitStream_AppendByte0(pBitStrm, tmp(i))
+        pBitStrm.appendByte0(tmp(i))
         i += 1
 }
 
