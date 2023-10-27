@@ -367,53 +367,20 @@ def BitStream_AppendByte0(pBitStrm: BitStream, v: UByte): Boolean = {
 
 def BitStream_AppendByteArray(pBitStrm: BitStream, arr: Array[UByte], arr_len: Int): Boolean = {
     require(0 <= arr_len && arr_len <= arr.length)
-    require(pBitStrm.currentByte < pBitStrm.buf.length - arr_len)
-    //static byte    masks[] = { 0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01 };
-    //static byte masksb[] = { 0x00, 0x01, 0x03, 0x07, 0x0F, 0x1F, 0x3F, 0x7F, 0xFF };
+    require(BitStream.validate_offset_bytes(pBitStrm, arr_len))
 
-    val cb: UByte = pBitStrm.currentBit.toByte
-    val ncb: UByte = (8 - cb).toByte
-
-    val mask: UByte = (~masksb(ncb)).toByte
-    val nmask: UByte = (~mask).toByte
-
-    //if (pBitStrm->currentByte + (int)arr_len + (cb > 0 ? 1 : 0) >= pBitStrm->count)
-    if (pBitStrm.currentByte.toLong+arr_len)*8 + pBitStrm.currentBit > pBitStrm.buf.length.toLong*8 then
+    if !(pBitStrm.currentByte.toLong + arr_len < pBitStrm.buf.length || (pBitStrm.currentBit == 0 && pBitStrm.currentByte.toLong + arr_len <= pBitStrm.buf.length)) then
         return false
 
-    if arr_len > 0 then
-        val v: UByte = arr(0)
-        pBitStrm.buf(pBitStrm.currentByte) = (pBitStrm.buf(pBitStrm.currentByte) & mask).toByte     //make zero right bits (i.e. the ones that will get the new value)
-        pBitStrm.buf(pBitStrm.currentByte) = (pBitStrm.buf(pBitStrm.currentByte) | ((v & 0xFF) >>> cb)).toByte    //shift right and then populate current byte
-        pBitStrm.currentByte += 1
-
-        pBitStrm.buf(pBitStrm.currentByte) = (pBitStrm.buf(pBitStrm.currentByte) & nmask).toByte
-        pBitStrm.buf(pBitStrm.currentByte) = (pBitStrm.buf(pBitStrm.currentByte) | ((v & 0xFF) << ncb)).toByte
-
-    var i: Int = 1
-    (while i < arr_len-1 do
-        decreases(arr_len-1-i)
-        val v: UByte = arr(i)
-        val v1: UByte = ((v & 0xFF) >>> cb).toByte
-        val v2: UByte = ((v & 0xFF) << ncb).toByte
-        pBitStrm.buf(pBitStrm.currentByte) = (pBitStrm.buf(pBitStrm.currentByte) | v1).toByte //shift right and then populate current byte
-        pBitStrm.currentByte += 1
-        pBitStrm.buf(pBitStrm.currentByte) = (pBitStrm.buf(pBitStrm.currentByte) | v2).toByte
+    var i: Int = 0
+    (while i < arr_len do
+        decreases(arr_len - i)
+        BitStream_AppendByte0(pBitStrm, arr(i))
         i += 1
-    ).invariant(1 <= i &&& i <= arr_len-1 &&& pBitStrm.currentByte < pBitStrm.buf.length)
-
-    if arr_len - 1 > 0 then
-        val v: UByte = arr(arr_len - 1)
-        pBitStrm.buf(pBitStrm.currentByte) = (pBitStrm.buf(pBitStrm.currentByte) & mask ).toByte            //make zero right bits (i.e. the ones that will get the new value)
-        pBitStrm.buf(pBitStrm.currentByte) = (pBitStrm.buf(pBitStrm.currentByte) | ((v & 0xFF) >>> cb)).toByte    //shift right and then populate current byte
-        pBitStrm.currentByte += 1
-
-        if cb > 0 then
-            pBitStrm.buf(pBitStrm.currentByte) = (pBitStrm.buf(pBitStrm.currentByte) & nmask).toByte
-            pBitStrm.buf(pBitStrm.currentByte) = (pBitStrm.buf(pBitStrm.currentByte) | ((v & 0xFF) << ncb)).toByte
+      ).invariant(0 <= i &&& i <= arr_len &&& BitStream.validate_offset_bytes(pBitStrm, arr_len-i))
 
     true
-}
+}.ensuring(_ => BitStream.invariant(pBitStrm))
 
 def BitStream_ReadByte(pBitStrm: BitStream): Option[UByte] = {
 
