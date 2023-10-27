@@ -342,7 +342,7 @@ def BitStream_AppendByte(pBitStrm: BitStream, value: Byte, negate: Boolean): Uni
 }
 
 def BitStream_AppendByte0(pBitStrm: BitStream, v: UByte): Boolean = {
-    require(pBitStrm.bitIndex() + 8 <= pBitStrm.buf.length.toLong * 8)
+    require(BitStream.validate_offset_bytes(pBitStrm, 1))
     val cb: UByte = pBitStrm.currentBit.toByte
     val ncb: UByte = (8-cb).toByte
 
@@ -356,11 +356,14 @@ def BitStream_AppendByte0(pBitStrm: BitStream, v: UByte): Boolean = {
         if pBitStrm.currentByte >= pBitStrm.buf.length then
             return false
         mask = ~mask
+        ghostExpr {
+            pBitStrm.ensureInvariant()
+        }
         pBitStrm.buf(pBitStrm.currentByte) = (pBitStrm.buf(pBitStrm.currentByte) & mask).toByte
         pBitStrm.buf(pBitStrm.currentByte) = (pBitStrm.buf(pBitStrm.currentByte) | (v <<<< ncb)).toByte
 
     true
-}
+}.ensuring(_ => BitStream.invariant(pBitStrm))
 
 def BitStream_AppendByteArray(pBitStrm: BitStream, arr: Array[UByte], arr_len: Int): Boolean = {
     require(0 <= arr_len && arr_len <= arr.length)
