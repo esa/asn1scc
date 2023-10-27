@@ -383,17 +383,18 @@ def BitStream_AppendByteArray(pBitStrm: BitStream, arr: Array[UByte], arr_len: I
 }.ensuring(_ => BitStream.invariant(pBitStrm))
 
 def BitStream_ReadByte(pBitStrm: BitStream): Option[UByte] = {
+    require(BitStream.validate_offset_bytes(pBitStrm, 1))
 
     val cb: UByte = pBitStrm.currentBit.toByte
     val ncb: UByte = (8 - cb).toByte
 
-    var v: UByte = (pBitStrm.buf(pBitStrm.currentByte) << cb).toByte
+    var v: UByte = (pBitStrm.buf(pBitStrm.currentByte) <<<< cb)
     pBitStrm.currentByte += 1
 
     if cb > 0 then
-        v = (v | (pBitStrm.buf(pBitStrm.currentByte) & 0xFF) >>> ncb).toByte // TODO: check if & 0xFF is needed
+        v = (v | (pBitStrm.buf(pBitStrm.currentByte) >>>> ncb)).toByte
 
-    if pBitStrm.currentByte.toLong*8 + pBitStrm.currentBit <= pBitStrm.buf.length.toLong*8 then
+    if BitStream.invariant(pBitStrm) then
         Some(v)
     else
         None()
@@ -401,7 +402,7 @@ def BitStream_ReadByte(pBitStrm: BitStream): Option[UByte] = {
 
 @ghost @pure
 def BitStream_ReadBytePure(pBitStrm: BitStream): (BitStream, Option[Byte]) = {
-    require(pBitStrm.bitIndex() + 8 <= pBitStrm.buf.length.toLong * 8)
+    require(BitStream.validate_offset_bytes(pBitStrm, 1))
     val cpy = snapshot(pBitStrm)
     (cpy, BitStream_ReadByte(cpy))
 }
