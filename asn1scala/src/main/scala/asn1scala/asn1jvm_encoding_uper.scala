@@ -44,7 +44,7 @@ def ObjectIdentifier_uper_encode(pBitStrm: BitStream, pVal: Asn1ObjectIdentifier
     if totalSize <= 0x7F then
         BitStream_EncodeConstraintWholeNumber(pBitStrm, totalSize.toLong, 0, 0xFF)
     else
-        BitStream_AppendBit(pBitStrm, true)
+        pBitStrm.appendBit(true)
         BitStream_EncodeConstraintWholeNumber(pBitStrm, totalSize.toLong, 0, 0x7FFF)
 
     i = 0
@@ -70,7 +70,7 @@ def RelativeOID_uper_encode (pBitStrm: BitStream, pVal: Asn1ObjectIdentifier): U
     if totalSize <= 0x7F then
         BitStream_EncodeConstraintWholeNumber(pBitStrm, totalSize.toLong, 0, 0xFF)
     else
-        BitStream_AppendBit(pBitStrm, true)
+        pBitStrm.appendBit(true)
         BitStream_EncodeConstraintWholeNumber(pBitStrm, totalSize.toLong, 0, 0x7FFF)
 
     i = 0

@@ -45,7 +45,7 @@ def Acn_Enc_Int_PositiveInteger_ConstSize(pBitStrm: BitStream, intVal: ULong, en
     /* Get number of bits*/
     val nBits: Int = GetNumberOfBitsForNonNegativeInteger(intVal)
     /* put required zeros*/
-    BitStream_AppendNBitZero(pBitStrm, encodedSizeInBits - nBits)
+    pBitStrm.appendNBitZero(encodedSizeInBits - nBits)
     /*Encode number */
     BitStream_EncodeNonNegativeInteger(pBitStrm, intVal)
 
@@ -253,11 +253,11 @@ def Acn_Dec_Int_PositiveInteger_VarSize_LengthEmbedded(pBitStrm: BitStream): Opt
 def Acn_Enc_Int_TwosComplement_ConstSize(pBitStrm: BitStream, intVal: Long, encodedSizeInBits: Int): Unit =
 {
     if intVal >= 0 then
-        BitStream_AppendNBitZero(pBitStrm, encodedSizeInBits - GetNumberOfBitsForNonNegativeInteger(intVal))
+        pBitStrm.appendNBitZero(encodedSizeInBits - GetNumberOfBitsForNonNegativeInteger(intVal))
         BitStream_EncodeNonNegativeInteger(pBitStrm, intVal)
 
     else
-        BitStream_AppendNBitOne(pBitStrm, encodedSizeInBits - GetNumberOfBitsForNonNegativeInteger(-intVal - 1))
+        pBitStrm.appendNBitOne(encodedSizeInBits - GetNumberOfBitsForNonNegativeInteger(-intVal - 1))
         BitStream_EncodeNonNegativeIntegerNeg(pBitStrm, -intVal - 1, true)
 
     CHECK_BIT_STREAM(pBitStrm)
@@ -301,7 +301,7 @@ def Acn_Enc_Int_TwosComplement_ConstSize_little_endian_64(pBitStrm: BitStream, i
 
 def Acn_Dec_Int_TwosComplement_ConstSize(pBitStrm: BitStream, encodedSizeInBits: Int): Option[Long] =
 {
-    val valIsNegative: Boolean = BitStream_PeekBit(pBitStrm)
+    val valIsNegative: Boolean = pBitStrm.peekBit()
     val nBytes: Int = encodedSizeInBits / 8
     val rstBits: Int = encodedSizeInBits % 8
 

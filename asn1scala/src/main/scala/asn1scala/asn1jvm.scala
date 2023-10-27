@@ -1,6 +1,6 @@
 package asn1scala
 
-import stainless.lang.{None => None, Option => Option, _}
+import stainless.lang.{None => None, Option => Option, ghost => ghostExpr, _}
 import stainless.annotation._
 import StaticChecks.*
 
@@ -121,92 +121,6 @@ def NullType_Initialize(): ASCIIChar = {
 def asn1Real_Initialize(): asn1Real = {
     0.0
 }
-
-object BitStream {
-    @pure @inline
-    def invariant(pBitStrm: BitStream): Boolean = {
-        BitStream.invariant(pBitStrm.currentByte, pBitStrm.currentBit, pBitStrm.buf.length)
-    }
-
-    @pure @inline
-    def invariant(currentByte: Int, currentBit: Int, buf_length: Int): Boolean = {
-        0 <= currentBit && currentBit <= 7 &&&
-          0 <= currentByte && (currentByte < buf_length || (currentBit == 0 && currentByte <= buf_length))
-    }
-
-    @ghost
-    def validate_offset_bit(pBitStrm: BitStream): Boolean = {
-//        var new_currentBit: Int = pBitStrm.currentBit + 1
-//        var new_currentByte: Int = pBitStrm.currentByte
-//
-//        if new_currentBit > 7 then
-//            new_currentBit = new_currentBit % 8
-//            new_currentByte += 1
-//
-//        0 <= new_currentBit
-//          && new_currentBit <= 7
-//          && 0 <= new_currentByte
-//          && (new_currentByte < pBitStrm.buf.length || (new_currentBit == 0 && pBitStrm.currentByte <= pBitStrm.buf.length))
-        pBitStrm.currentByte < pBitStrm.buf.length
-    }
-
-    @ghost
-    def validate_offset_bits(pBitStrm: BitStream, bits: Int = 0): Boolean = {
-        require(0 <= bits)
-        val nBits = bits % 8
-        val nBytes = bits / 8
-
-        var new_currentByte: Long = pBitStrm.currentByte.toLong + nBytes
-        var new_currentBit: Long = pBitStrm.currentBit.toLong + nBits
-
-        if new_currentBit > 7 then
-            new_currentBit = new_currentBit % 8
-            new_currentByte += 1
-
-        0 <= new_currentBit
-          && new_currentBit <= 7
-          && 0 <= new_currentByte
-          && (new_currentByte < pBitStrm.buf.length || (new_currentBit == 0 && new_currentByte <= pBitStrm.buf.length))
-    }
-
-    @ghost
-    def validate_offset_bytes(pBitStrm: BitStream, bytes: Int = 0): Boolean = {
-        val new_currentByte: Long = pBitStrm.currentByte.toLong + bytes
-        new_currentByte < pBitStrm.buf.length || (pBitStrm.currentBit == 0 && new_currentByte <= pBitStrm.buf.length)
-    }
-}
-
-
-case class BitStream(
-                      var buf: Array[Byte],
-                      var currentByte: Int,
-                      var currentBit: Int,
-                    ) { // all BisStream instances satisfy the following:
-    require(BitStream.invariant(currentByte, currentBit, buf.length))
-
-    def bitIndex(): Long = {
-        currentByte.toLong * 8 + currentBit.toLong
-    }.ensuring(res => 0 <= res && res <= 8 * buf.length.toLong)
-
-    def increaseBitIndex(): Unit = {
-        require(currentByte < buf.length)
-        if currentBit < 7 then
-            currentBit += 1
-        else
-            currentBit = 0
-            currentByte += 1
-    }.ensuring {_ =>
-        val oldBitStrm = old(this)
-        oldBitStrm.bitIndex() + 1 == this.bitIndex() &&&
-          BitStream.invariant(this)
-    }
-
-    @inlineOnce @opaque @ghost
-    def ensureInvariant(): Unit = {
-    }.ensuring(_ =>
-        BitStream.invariant(currentByte, currentBit, buf.length)
-    )
-} // BitStream class
 
 case class ByteStream (
     var buf: Array[Byte], // UByte

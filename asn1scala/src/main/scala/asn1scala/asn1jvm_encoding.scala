@@ -8,17 +8,6 @@ import stainless.proof.*
 import stainless.math.*
 import StaticChecks.*
 
-val masks: Array[UByte] = Array(
-    -0x80, // -128 / 1000 0000 / x80
-     0x40, //   64 / 0100 0000 / x40
-     0x20, //   32 / 0010 0000 / x20
-     0x10, //   16 / 0001 0000 / x10
-     0x08, //    8 / 0000 1000 / x08
-     0x04, //    4 / 0000 0100 / x04
-     0x02, //    2 / 0000 0010 / x02
-     0x01, //    1 / 0000 0001 / x01
-)
-
 val masksb: Array[UByte] = Array(
      0x00, //   0 / 0000 0000 / x00
      0x01, //   1 / 0000 0001 / x01
@@ -73,21 +62,6 @@ def BitStream_Init(count: Int): BitStream = {
     BitStream(Array.fill(count)(0), 0, 0)
 }
 
-@extern
-def BitStream_AttachBuffer(pBitStrm: BitStream, buf: Array[UByte]): Unit = {
-    pBitStrm.buf = buf // Illegal aliasing, therefore we need to workaround with this @extern...
-    pBitStrm.currentByte = 0
-    pBitStrm.currentBit = 0
-}.ensuring(_ => pBitStrm.buf == buf && pBitStrm.currentByte == 0 && pBitStrm.currentBit == 0)
-
-
-def BitStream_GetLength(pBitStrm: BitStream): Int = {
-    var ret: Int = pBitStrm.currentByte
-    if pBitStrm.currentBit > 0 then
-        ret += 1
-    ret
-}
-
 /**
 Append bit one.
 
@@ -103,6 +77,8 @@ or   00010000
      xxx1????
 **/
 
+
+// TODO should be part of BitStream
 def isPrefix(b1: BitStream, b2: BitStream): Boolean = {
     b1.buf.length <= b2.buf.length &&
       b1.bitIndex() <= b2.bitIndex() &&
@@ -118,138 +94,7 @@ def reader(w1: BitStream, w2: BitStream): (BitStream, BitStream) = {
     val r2 = BitStream(snapshot(w2.buf), w2.currentByte, w2.currentBit)
     (r1, r2)
 }
-
-@ghost @pure
-def BitStream_ReadBitPure(pBitStrm: BitStream): (BitStream, Option[Boolean]) = {
-    require(BitStream.validate_offset_bit(pBitStrm))
-    val cpy = snapshot(pBitStrm)
-    (cpy , BitStream_ReadBit(cpy))
-}
-
-@opaque @inlineOnce
-def BitStream_AppendBitOne(pBitStrm: BitStream): Unit = {
-    require(BitStream.validate_offset_bit(pBitStrm))
-    @ghost val oldpBitStrm = snapshot(pBitStrm)
-
-    val newB = (pBitStrm.buf(pBitStrm.currentByte) | masks(pBitStrm.currentBit)).toByte
-    pBitStrm.buf(pBitStrm.currentByte) = newB
-
-    ghostExpr {
-       arrayUpdatedAtPrefixLemma(oldpBitStrm.buf, pBitStrm.currentByte, newB)
-    }
-
-    pBitStrm.increaseBitIndex()
-
-}.ensuring { _ =>
-    val w1 = old(pBitStrm)
-    val w2 = pBitStrm
-    w2.bitIndex() == w1.bitIndex() + 1
-      &&& isValidPair(w1, w2)
-      &&& {
-        val (r1, r2) = reader(w1, w2)
-        val (r2Got, bitGot) = BitStream_ReadBitPure(r1)
-        bitGot.get == true && r2Got == r2
-      }
-      &&& BitStream.invariant(pBitStrm)
-}
-
-/**
-    Append bit zero.
-
-    Example
-    cur bit = 3
-     x x x |
-    |_|_|_|_|_|_|_|_|
-     0 1 2 3 4 5 6 7
-
-        xxxy????
-    and 11101111
-        --------
-        xxx0????
-**/
-def BitStream_AppendBitZero(pBitStrm: BitStream): Unit = {
-    require(BitStream.validate_offset_bits(pBitStrm, 1))
-    val nmask = ~masks(pBitStrm.currentBit)
-    pBitStrm.buf(pBitStrm.currentByte) = (pBitStrm.buf(pBitStrm.currentByte) & nmask).toByte
-
-    pBitStrm.increaseBitIndex()
-}.ensuring(_ => BitStream.invariant(pBitStrm))
-
-def BitStream_AppendNBitZero(pBitStrm: BitStream, nbits: Int): Unit = {
-    require(0 <= nbits)
-    require(BitStream.validate_offset_bits(pBitStrm, nbits))
-
-    val nBits = nbits % 8
-    val nBytes = nbits / 8
-
-    var new_currentBit: Int = pBitStrm.currentBit + nBits
-    var new_currentByte: Int = pBitStrm.currentByte + nBytes
-
-    if new_currentBit > 7 then
-        new_currentBit = new_currentBit % 8
-        new_currentByte += 1
-
-    pBitStrm.currentBit = new_currentBit
-    pBitStrm.currentByte = new_currentByte
-
-}.ensuring(_ => BitStream.invariant(pBitStrm))
-
-def BitStream_AppendNBitOne(pBitStrm: BitStream, nbitsVal: Int): Unit = {
-    require(0 <= nbitsVal)
-    require(BitStream.validate_offset_bits(pBitStrm, nbitsVal))
-    var nbits = nbitsVal
-
-    (while nbits > 0 do
-        decreases(nbits)
-        BitStream_AppendBitOne(pBitStrm)
-        nbits -= 1
-    ).invariant(nbits >= 0 &&& BitStream.validate_offset_bits(pBitStrm, nbits))
-    ()
-}
-
-def BitStream_AppendBits(pBitStrm: BitStream, srcBuffer: Array[UByte], nbits: Int): Unit = {
-    require(0 <= nbits && nbits/8 < srcBuffer.length)
-    require(BitStream.validate_offset_bits(pBitStrm, nbits))
-    var lastByte: UByte = 0
-
-    val bytesToEncode: Int = nbits / 8
-    val remainingBits: UByte = (nbits % 8).toByte
-
-    BitStream_EncodeOctetString_no_length(pBitStrm, srcBuffer, bytesToEncode)
-
-    if remainingBits > 0 then
-        lastByte = ((srcBuffer(bytesToEncode) & 0xFF) >>> (8 - remainingBits)).toByte
-        BitStream_AppendPartialByte(pBitStrm, lastByte, remainingBits, false)
-}
-
-def BitStream_AppendBit(pBitStrm: BitStream, v: Boolean): Unit = {
-    require(BitStream.validate_offset_bits(pBitStrm, 1))
-    if v then
-        pBitStrm.buf(pBitStrm.currentByte) = (pBitStrm.buf(pBitStrm.currentByte) | masks(pBitStrm.currentBit)).toByte
-    else
-        val nmask = ~masks(pBitStrm.currentBit)
-        pBitStrm.buf(pBitStrm.currentByte) = (pBitStrm.buf(pBitStrm.currentByte) & nmask).toByte
-
-    pBitStrm.increaseBitIndex()
-}.ensuring(_ => BitStream.invariant(pBitStrm))
-
-// TODO check if needs Marios implementation
-def BitStream_ReadBit(pBitStrm: BitStream): Option[Boolean] = {
-    require(BitStream.validate_offset_bit(pBitStrm))
-    val ret = (pBitStrm.buf(pBitStrm.currentByte) & masks(pBitStrm.currentBit)) != 0
-
-    pBitStrm.increaseBitIndex()
-
-    if pBitStrm.currentByte.toLong*8 + pBitStrm.currentBit <= pBitStrm.buf.length.toLong*8 then
-        Some(ret)
-    else
-        None()
-}.ensuring(_ => BitStream.invariant(pBitStrm))
-
-def BitStream_PeekBit(pBitStrm: BitStream): Boolean = {
-    require(pBitStrm.currentByte < pBitStrm.buf.length)
-    ((pBitStrm.buf(pBitStrm.currentByte) & 0xFF) & (masks(pBitStrm.currentBit) & 0xFF)) > 0
-}
+// END TODO should be part of BitStream
 
 /**
 Append byte.
@@ -615,7 +460,7 @@ def BitStream_EncodeNonNegativeInteger(pBitStrm: BitStream, v: ULong): Unit = {
         BitStream_EncodeNonNegativeInteger32Neg(pBitStrm, hi, false)
 
         val nBits: Int = GetNumberOfBitsForNonNegativeInteger(lo.toLong << 32 >>> 32) // TODO: is this easier?
-        BitStream_AppendNBitZero(pBitStrm, 32 - nBits)
+        pBitStrm.appendNBitZero(32 - nBits)
         BitStream_EncodeNonNegativeInteger32Neg(pBitStrm, lo, false)
     //else
     //    BitStream_EncodeNonNegativeInteger32Neg(pBitStrm, v.toInt, false)
@@ -658,7 +503,7 @@ def BitStream_EncodeNonNegativeIntegerNeg(pBitStrm: BitStream, v: ULong, negate:
         if negate then
             lo = ~lo
         val nBits = GetNumberOfBitsForNonNegativeInteger(lo.toLong)
-        BitStream_AppendNBitZero(pBitStrm, 32 - nBits)
+        pBitStrm.appendNBitZero( 32 - nBits)
         BitStream_EncodeNonNegativeInteger32Neg(pBitStrm, lo, false)
     //else
     //    BitStream_EncodeNonNegativeInteger32Neg(pBitStrm, v, negate)
@@ -719,7 +564,7 @@ def BitStream_EncodeConstraintWholeNumber(pBitStrm: BitStream, v: Long, min: Lon
 
     val nRangeBits: Int = GetNumberOfBitsForNonNegativeInteger(range)
     val nBits: Int = GetNumberOfBitsForNonNegativeInteger((v - min))
-    BitStream_AppendNBitZero(pBitStrm, nRangeBits - nBits);
+    pBitStrm.appendNBitZero(nRangeBits - nBits);
     BitStream_EncodeNonNegativeInteger(pBitStrm, (v - min))
 }
 
@@ -734,7 +579,7 @@ def BitStream_EncodeConstraintPosWholeNumber(pBitStrm: BitStream, v: ULong, min:
         return
     val nRangeBits: Int = GetNumberOfBitsForNonNegativeInteger(range)
     val nBits: Int = GetNumberOfBitsForNonNegativeInteger(v - min)
-    BitStream_AppendNBitZero(pBitStrm, nRangeBits - nBits)
+    pBitStrm.appendNBitZero(nRangeBits - nBits)
     BitStream_EncodeNonNegativeInteger(pBitStrm, v - min)
 }
 
@@ -824,7 +669,7 @@ def BitStream_EncodeSemiConstraintWholeNumber(pBitStrm: BitStream, v: Long, min:
     BitStream_EncodeConstraintWholeNumber(pBitStrm, nBytes.toLong, 0, 255)
     /*8 bits, first bit is always 0*/
     /* put required zeros*/
-    BitStream_AppendNBitZero(pBitStrm, nBytes * 8 - GetNumberOfBitsForNonNegativeInteger((v - min)))
+    pBitStrm.appendNBitZero(nBytes * 8 - GetNumberOfBitsForNonNegativeInteger((v - min)))
     /*Encode number */
     BitStream_EncodeNonNegativeInteger(pBitStrm, (v - min))
 }
@@ -837,7 +682,7 @@ def BitStream_EncodeSemiConstraintPosWholeNumber(pBitStrm: BitStream, v: ULong, 
     BitStream_EncodeConstraintWholeNumber(pBitStrm, nBytes.toLong, 0, 255)
     /*8 bits, first bit is always 0*/
     /* put required zeros*/
-    BitStream_AppendNBitZero(pBitStrm, nBytes * 8 - GetNumberOfBitsForNonNegativeInteger(v - min))
+    pBitStrm.appendNBitZero(nBytes * 8 - GetNumberOfBitsForNonNegativeInteger(v - min))
     /*Encode number */
     BitStream_EncodeNonNegativeInteger(pBitStrm, v - min)
 }
@@ -897,10 +742,10 @@ def BitStream_EncodeUnConstraintWholeNumber(pBitStrm: BitStream, v: Long): Unit 
     /*8 bits, first bit is always 0*/
 
     if v >= 0 then
-        BitStream_AppendNBitZero(pBitStrm, nBytes * 8 - GetNumberOfBitsForNonNegativeInteger(v))
+        pBitStrm.appendNBitZero(nBytes * 8 - GetNumberOfBitsForNonNegativeInteger(v))
         BitStream_EncodeNonNegativeInteger(pBitStrm, v)
     else
-        BitStream_AppendNBitOne(pBitStrm, nBytes * 8 - GetNumberOfBitsForNonNegativeInteger((-v - 1)))
+        pBitStrm.appendNBitOne(nBytes * 8 - GetNumberOfBitsForNonNegativeInteger((-v - 1)))
         BitStream_EncodeNonNegativeIntegerNeg(pBitStrm, (-v - 1), true)
 }
 
@@ -913,7 +758,7 @@ def BitStream_DecodeUnConstraintWholeNumber(pBitStrm: BitStream): Option[Long] =
         case None() => return None()
         case Some(l) => nBytes = l
 
-    val valIsNegative: Boolean = BitStream_PeekBit(pBitStrm)
+    val valIsNegative: Boolean = pBitStrm.peekBit()
 
     var v: Long = if valIsNegative then Long.MaxValue else 0
 
@@ -1078,13 +923,13 @@ def BitStream_EncodeRealBitString(pBitStrm: BitStream, vVal: Long): Unit = {
     /* encode exponent */
     if exponent >= 0 then
         // fill with zeros to have a whole byte
-        BitStream_AppendNBitZero(pBitStrm, nExpLen * 8 - GetNumberOfBitsForNonNegativeInteger(exponent))
+        pBitStrm.appendNBitZero(nExpLen * 8 - GetNumberOfBitsForNonNegativeInteger(exponent))
         BitStream_EncodeNonNegativeInteger(pBitStrm, exponent)
     else
         BitStream_EncodeNonNegativeInteger(pBitStrm, compactExp)
 
     /* encode mantissa */
-    BitStream_AppendNBitZero(pBitStrm, nManLen * 8 - GetNumberOfBitsForNonNegativeInteger(mantissa))
+    pBitStrm.appendNBitZero(nManLen * 8 - GetNumberOfBitsForNonNegativeInteger(mantissa))
     BitStream_EncodeNonNegativeInteger(pBitStrm, mantissa)
 }
 
@@ -1160,7 +1005,7 @@ def DecodeRealAsBinaryEncoding(pBitStrm: BitStream, lengthVal: Int, header: UByt
         return None()
 
     // decode exponent
-    val expIsNegative = BitStream_PeekBit(pBitStrm)
+    val expIsNegative = pBitStrm.peekBit()
     var exponent: Int = if expIsNegative then 0xFF_FF_FF_FF else 0
 
     var i: Int = 0
@@ -1247,10 +1092,10 @@ def BitStream_ReadBits_nullterminated(pBitStrm: BitStream, bit_terminated_patter
     checkBitPatternPresentResult = BitStream_checkBitPatternPresent(pBitStrm, bit_terminated_pattern, bit_terminated_pattern_size_in_bits)
     while (bitsRead < nMaxReadBits) && (checkBitPatternPresentResult == 1) do
         decreases(nMaxReadBits - bitsRead)
-        BitStream_ReadBit(pBitStrm) match
+        pBitStrm.readBit() match
             case None() => return NoneMut()
             case Some(bitVal) =>
-                BitStream_AppendBit(tmpStrm, bitVal)
+                tmpStrm.appendBit(bitVal)
                 bitsRead += 1
 
         if bitsRead < nMaxReadBits then
@@ -1337,7 +1182,7 @@ def BitStream_EncodeOctetString_fragmentation(pBitStrm: BitStream, arr: Array[UB
         if nRemainingItemsVar1 <= 0x7F then
             BitStream_EncodeConstraintWholeNumber(pBitStrm, nRemainingItemsVar1.toLong, 0, 0xFF)
         else
-            BitStream_AppendBit(pBitStrm, true)
+            pBitStrm.appendBit(true)
             BitStream_EncodeConstraintWholeNumber(pBitStrm, nRemainingItemsVar1.toLong, 0, 0x7FFF)
 
 
@@ -1481,7 +1326,8 @@ def BitStream_EncodeBitString(pBitStrm: BitStream, arr: Array[UByte], nCount: In
         if asn1SizeMin != asn1SizeMax then
             BitStream_EncodeConstraintWholeNumber(pBitStrm, nCount.toLong, asn1SizeMin, asn1SizeMax)
 
-        BitStream_AppendBits(pBitStrm, arr, nCount)
+        pBitStrm.appendBits(arr, nCount)
+
     else
         var nRemainingItemsVar1: Long = nCount.toLong
         var nCurBlockSize1: Long = 0
@@ -1504,7 +1350,7 @@ def BitStream_EncodeBitString(pBitStrm: BitStream, arr: Array[UByte], nCount: In
                 BitStream_EncodeConstraintWholeNumber(pBitStrm, 0xC1, 0, 0xFF)
 
             val t: Array[UByte] = Array.fill(nCurBlockSize1.toInt)(0)// STAINLESS: arr.slice((nCurOffset1 / 8).toInt, (nCurOffset1 / 8).toInt + nCurBlockSize1.toInt)
-            BitStream_AppendBits(pBitStrm, t, nCurBlockSize1.toInt)
+            pBitStrm.appendBits(t, nCurBlockSize1.toInt)
             nCurOffset1 += nCurBlockSize1
             nRemainingItemsVar1 -= nCurBlockSize1
 
@@ -1512,13 +1358,13 @@ def BitStream_EncodeBitString(pBitStrm: BitStream, arr: Array[UByte], nCount: In
         if nRemainingItemsVar1 <= 0x7F then
             BitStream_EncodeConstraintWholeNumber(pBitStrm, nRemainingItemsVar1, 0, 0xFF)
         else
-            BitStream_AppendBit(pBitStrm, true)
+            pBitStrm.appendBit(true)
             BitStream_EncodeConstraintWholeNumber(pBitStrm, nRemainingItemsVar1, 0, 0x7FFF)
 
         val t: Array[UByte] = Array.fill(nRemainingItemsVar1.toInt)(0) // STAINLESS: arr.slice((nCurOffset1 / 8).toInt, (nCurOffset1 / 8).toInt + nRemainingItemsVar1.toInt)
-        BitStream_AppendBits(pBitStrm, t, nRemainingItemsVar1.toInt)
+        pBitStrm.appendBits(t, nRemainingItemsVar1.toInt)
 
-    return true
+    true
 }
 
 
