@@ -108,16 +108,16 @@ let exportRTL (di:DirInfo) (l:ProgrammingLanguage) (args:CommandLineSettings)=
         match args.encodings with
         | []    -> ()
         | _     ->
-
-            writeResource di "asn1jvm_encoding.scala" None
-            writeResource di "asn1jvm_unsigned.scala" None
-            writeResource di "stainless_utils.scala" None // needed for verification
+            writeResource di "asn1jvm_Codec.scala" None
+            writeResource di "asn1jvm_Codec_PER.scala" None
+            writeResource di "asn1jvm_Helper.scala" None
+            writeResource di "asn1jvm_Verification.scala" None 
 
             if hasUper || hasAcn then
-                writeResource di "asn1jvm_encoding_uper.scala" None
+                writeResource di "asn1jvm_Codec_UPER.scala" None
 
             if hasAcn then
-                writeResource di "asn1jvm_encoding_acn.scala" None
+                writeResource di "asn1jvm_Codec_ACN.scala" None
 
 //            if hasXer  then
 //                writeResource di "asn1crt_encoding_xer.c" None

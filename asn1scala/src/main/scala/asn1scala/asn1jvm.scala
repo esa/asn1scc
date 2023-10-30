@@ -28,6 +28,8 @@ type asn1Real = Double
 
 val NO_OF_BITS_IN_BYTE = 8
 val NO_OF_BITS_IN_LONG = 64
+val NO_OF_BYTES_IN_JVM_SHORT = 2
+val NO_OF_BYTES_IN_JVM_INT = 4
 val NO_OF_BYTES_IN_JVM_LONG = 8
 val OBJECT_IDENTIFIER_MAX_LENGTH = 20
 
@@ -289,8 +291,4 @@ def ObjectIdentifier_equal (pVal1: Asn1ObjectIdentifier, pVal2: Asn1ObjectIdenti
       ).invariant(i >= 0 &&& i <= pVal1.nCount)
 
     return ret
-}
-
-def CHECK_BIT_STREAM(pBitStrm: BitStream): Unit = {
-    assert(pBitStrm.currentByte.toLong * 8 + pBitStrm.currentBit <= pBitStrm.buf.length.toLong * 8)
 }

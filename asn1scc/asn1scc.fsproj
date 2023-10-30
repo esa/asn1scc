@@ -8,6 +8,12 @@
 
 
   <ItemGroup>
+      <EmbeddedResource Include="asn1jvm_Codec.scala" />
+      <EmbeddedResource Include="asn1jvm_Codec_ACN.scala" />
+      <EmbeddedResource Include="asn1jvm_Codec_PER.scala" />
+      <EmbeddedResource Include="asn1jvm_Codec_UPER.scala" />
+      <EmbeddedResource Include="asn1jvm_Helper.scala" />
+      <EmbeddedResource Include="asn1jvm_Verification.scala" />
       <EmbeddedResource Include="../ADA_RTL2/aux_files/asn1_msp430.gpr" />
       
       <EmbeddedResource Include="../ADA_RTL2/aux_files/asn1_stm32.gpr" />
@@ -82,12 +88,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <EmbeddedResource Include="..\asn1scala\src\main\scala\asn1scala\asn1jvm_encoding_uper.scala">
-      <Link>asn1jvm_encoding_uper.scala</Link>
-    </EmbeddedResource>
-    <EmbeddedResource Include="..\asn1scala\src\main\scala\asn1scala\asn1jvm_encoding.scala">
-      <Link>asn1jvm_encoding.scala</Link>
-    </EmbeddedResource>
     <EmbeddedResource Include="..\asn1scala\src\main\scala\asn1scala\asn1jvm.scala">
       <Link>asn1jvm.scala</Link>
     </EmbeddedResource>
@@ -96,15 +96,6 @@
     </EmbeddedResource>
     <EmbeddedResource Include="..\asn1scala\lib\stainless-library_2.13-0.9.7.jar">
       <Link>stainless-library_2.13-0.9.7.jar</Link>
-    </EmbeddedResource>
-    <EmbeddedResource Include="..\asn1scala\src\main\scala\asn1scala\asn1jvm_encoding_acn.scala">
-      <Link>asn1jvm_encoding_acn.scala</Link>
-    </EmbeddedResource>
-    <EmbeddedResource Include="..\asn1scala\src\main\scala\asn1scala\stainless_utils.scala">
-      <Link>stainless_utils.scala</Link>
-    </EmbeddedResource>
-    <EmbeddedResource Include="..\asn1scala\src\main\scala\asn1scala\asn1jvm_unsigned.scala">
-      <Link>asn1jvm_unsigned.scala</Link>
     </EmbeddedResource>
     <EmbeddedResource Include="..\asn1scala\src\main\scala\asn1scala\asn1jvm_Bitstream.scala">
       <Link>asn1jvm_Bitstream.scala</Link>

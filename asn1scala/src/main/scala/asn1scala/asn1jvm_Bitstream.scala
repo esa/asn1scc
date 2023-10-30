@@ -103,8 +103,8 @@ private val BitAccessMasks: Array[UByte] = Array(
 
 case class BitStream(
                        var buf: Array[Byte],
-                       var currentByte: Int, // marks the currentByte that gets accessed
-                       var currentBit: Int,  // marks the next bit that gets accessed
+                       var currentByte: Int = 0, // marks the currentByte that gets accessed
+                       var currentBit: Int = 0,  // marks the next bit that gets accessed
                     ) { // all BisStream instances satisfy the following:
    require(BitStream.invariant(currentByte, currentBit, buf.length))
 
@@ -169,6 +169,20 @@ case class BitStream(
       (cpy, cpy.readBit())
    }
 
+   /**
+    * Append bit one.
+    *
+    * Example
+    * cur bit = 3
+    * x x x |
+    * |_|_|_|_|_|_|_|_|
+    * 0 1 2 3 4 5 6 7
+    *
+    * xxxy????
+    * or   00010000
+    * -------------
+    * xxx1????
+    * */
    @opaque
    @inlineOnce
    def appendBitOne(): Unit = {
@@ -265,7 +279,7 @@ case class BitStream(
       val bytesToEncode: Int = nBits / 8
       val remainingBits: UByte = (nBits % 8).toByte
 
-      BitStream_EncodeOctetString_no_length(this, srcBuffer, bytesToEncode)
+      appendByteArray(srcBuffer, bytesToEncode)
 
       if remainingBits > 0 then
          lastByte = ((srcBuffer(bytesToEncode) & 0xFF) >>> (8 - remainingBits)).toByte
@@ -479,7 +493,7 @@ case class BitStream(
       val bytesToRead: Int = nbits / 8
       val remainingBits: UByte = (nbits % 8).toByte
 
-      BitStream_DecodeOctetString_no_length(this, bytesToRead) match
+      readByteArray(bytesToRead) match
          case NoneMut() => return NoneMut()
          case SomeMut(arr) =>
             if remainingBits > 0 then
@@ -491,7 +505,6 @@ case class BitStream(
             else
                SomeMut(arr)
    }
-
 
    /* nbits 1..7*/
    def appendPartialByte(vVal: UByte, nbits: UByte, negate: Boolean): Unit = {
