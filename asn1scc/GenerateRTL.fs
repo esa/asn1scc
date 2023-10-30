@@ -99,6 +99,7 @@ let exportRTL (di:DirInfo) (l:ProgrammingLanguage) (args:CommandLineSettings)=
         writeTextFile (Path.Combine(rootDir, "build.sbt")) (getResourceAsString "build.sbt")
         
         writeResource di "asn1jvm.scala" None
+        writeResource di "asn1jvm_Bitstream.scala" None
                 
         //let intSize = sprintf "#define WORD_SIZE	%d" (int args.integerSizeInBytes)
         //let fpSize = sprintf "#define FP_WORD_SIZE	%d" (int args.floatingPointSizeInBytes)
