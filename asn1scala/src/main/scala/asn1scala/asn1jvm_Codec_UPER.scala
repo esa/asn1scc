@@ -117,12 +117,12 @@ case class UPER(bitStream: BitStream) extends Codec {
    def objectIdentifier_decode_length(): Option[Long] = {
       var totalSize: Long = 0
 
-      BitStream_DecodeConstraintWholeNumber(0, 0xFF) match
+      decodeConstraintWholeNumber(0, 0xFF) match
          case None() => return None()
          case Some(l) => totalSize = l
 
       if totalSize > 0x7F then
-         BitStream_DecodeConstraintWholeNumber(0, 0xFF) match
+         decodeConstraintWholeNumber(0, 0xFF) match
             case None() => return None()
             case Some(l) =>
                totalSize <<= 8

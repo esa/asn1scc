@@ -228,7 +228,7 @@ trait Codec {
       encodeNonNegativeInteger(v - min)
    }
 
-   def BitStream_DecodeConstraintWholeNumber(min: Long, max: Long): Option[Long] = {
+   def decodeConstraintWholeNumber(min: Long, max: Long): Option[Long] = {
 
       val range: ULong = (max - min)
 
@@ -246,42 +246,42 @@ trait Codec {
 
    def BitStream_DecodeConstraintWholeNumberByte(min: Byte, max: Byte): Option[Byte] = {
 
-      BitStream_DecodeConstraintWholeNumber(min.toLong, max.toLong) match
+      decodeConstraintWholeNumber(min.toLong, max.toLong) match
          case None() => None()
          case Some(l) => Some(l.toByte)
    }
 
    def BitStream_DecodeConstraintWholeNumberShort(min: Short, max: Short): Option[Short] = {
 
-      BitStream_DecodeConstraintWholeNumber(min, max) match
+      decodeConstraintWholeNumber(min, max) match
          case None() => None()
          case Some(l) => Some(l.toShort)
    }
 
    def BitStream_DecodeConstraintWholeNumberInt(min: Int, max: Int): Option[Int] = {
 
-      BitStream_DecodeConstraintWholeNumber(min, max) match
+      decodeConstraintWholeNumber(min, max) match
          case None() => None()
          case Some(l) => Some(l.toInt)
    }
 
    def BitStream_DecodeConstraintWholeNumberUByte(min: UByte, max: UByte): Option[UByte] = {
 
-      BitStream_DecodeConstraintWholeNumber(min.unsignedToLong, max.unsignedToLong) match
+      decodeConstraintWholeNumber(min.unsignedToLong, max.unsignedToLong) match
          case None() => None()
          case Some(l) => Some(l.toByte)
    }
 
    def BitStream_DecodeConstraintWholeNumberUShort(min: UShort, max: UShort): Option[UShort] = {
 
-      BitStream_DecodeConstraintWholeNumber(min.unsignedToLong, max.unsignedToLong) match
+      decodeConstraintWholeNumber(min.unsignedToLong, max.unsignedToLong) match
          case None() => None()
          case Some(l) => Some(l.toShort)
    }
 
    def BitStream_DecodeConstraintWholeNumberUInt(min: UInt, max: UInt): Option[UInt] = {
 
-      BitStream_DecodeConstraintWholeNumber(min.unsignedToLong, max.unsignedToLong) match
+      decodeConstraintWholeNumber(min.unsignedToLong, max.unsignedToLong) match
          case None() => None()
          case Some(l) => Some(l.toInt)
    }
@@ -333,7 +333,7 @@ trait Codec {
       var nBytes: Long = 0
       var v: Long = 0
 
-      BitStream_DecodeConstraintWholeNumber(0, 255) match
+      decodeConstraintWholeNumber(0, 255) match
          case None() => return None()
          case Some(l) => nBytes = l
 
@@ -356,7 +356,7 @@ trait Codec {
 
       var nBytes: Long = 0
       var v: ULong = 0
-      BitStream_DecodeConstraintWholeNumber(0, 255) match
+      decodeConstraintWholeNumber(0, 255) match
          case None() => return None()
          case Some(l) => nBytes = l
 
@@ -393,7 +393,7 @@ trait Codec {
 
       var nBytes: Long = 0
 
-      BitStream_DecodeConstraintWholeNumber(0, 255) match
+      decodeConstraintWholeNumber(0, 255) match
          case None() => return None()
          case Some(l) => nBytes = l
 
@@ -772,7 +772,7 @@ trait Codec {
       var nCurOffset1: Long = 0
 
       // get header data
-      BitStream_DecodeConstraintWholeNumber(0, 0xFF) match
+      decodeConstraintWholeNumber(0, 0xFF) match
          case None() => return NoneMut()
          case Some(l) => nRemainingItemsVar1 = l
 
@@ -807,7 +807,7 @@ trait Codec {
          nCurOffset1 += nCurBlockSize1
 
          // get next header
-         BitStream_DecodeConstraintWholeNumber(0, 0xFF) match
+         decodeConstraintWholeNumber(0, 0xFF) match
             case None() => return NoneMut()
             case Some(l) => nRemainingItemsVar1 = l
 
@@ -816,7 +816,7 @@ trait Codec {
 
          nRemainingItemsVar1 <<= 8 // put upper at correct position
          // get size (lower byte)
-         BitStream_DecodeConstraintWholeNumber(0, 0xFF) match
+         decodeConstraintWholeNumber(0, 0xFF) match
             case None() => return NoneMut()
             case Some(l) =>
                nRemainingItemsVar1 |= l // combine 15bit (7 upper, 8 lower) into size
@@ -867,7 +867,7 @@ trait Codec {
       if asn1SizeMax < 65536 then
          var nCount: Int = 0
          if asn1SizeMin != asn1SizeMax then
-            BitStream_DecodeConstraintWholeNumber(asn1SizeMin, asn1SizeMax) match
+            decodeConstraintWholeNumber(asn1SizeMin, asn1SizeMax) match
                case None() => return NoneMut()
                case Some(l) => nCount = l.toInt
          else
@@ -935,7 +935,7 @@ trait Codec {
       if (asn1SizeMax < 65536) {
          var nCount: Long = 0
          if asn1SizeMin != asn1SizeMax then
-            BitStream_DecodeConstraintWholeNumber(asn1SizeMin, asn1SizeMax) match
+            decodeConstraintWholeNumber(asn1SizeMin, asn1SizeMax) match
                case None() => return NoneMut()
                case Some(l) => nCount = l
          else
@@ -948,7 +948,7 @@ trait Codec {
          var nCurBlockSize1: Long = 0
          var nCurOffset1: Long = 0
          var nLengthTmp1: Long = 0
-         BitStream_DecodeConstraintWholeNumber(0, 0xFF) match
+         decodeConstraintWholeNumber(0, 0xFF) match
             case None() => return NoneMut()
             case Some(l) => nRemainingItemsVar1 = l
 
@@ -977,13 +977,13 @@ trait Codec {
                   arrayCopyOffsetLen(t, arr, 0, (nCurOffset1 / 8).toInt, nCurBlockSize1.toInt)
                   nLengthTmp1 += nCurBlockSize1
                   nCurOffset1 += nCurBlockSize1
-                  BitStream_DecodeConstraintWholeNumber(0, 0xFF) match
+                  decodeConstraintWholeNumber(0, 0xFF) match
                      case None() => return NoneMut()
                      case Some(l) => nRemainingItemsVar1 = l
 
          if (nRemainingItemsVar1 & 0x80) > 0 then
             nRemainingItemsVar1 <<= 8
-            BitStream_DecodeConstraintWholeNumber(0, 0xFF) match
+            decodeConstraintWholeNumber(0, 0xFF) match
                case None() => return NoneMut()
                case Some(l) =>
                   nRemainingItemsVar1 |= l
