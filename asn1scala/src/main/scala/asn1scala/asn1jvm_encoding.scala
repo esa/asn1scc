@@ -79,190 +79,6 @@ or   00010000
 **/
 
 
-// TODO should be part of BitStream
-def isPrefix(b1: BitStream, b2: BitStream): Boolean = {
-    b1.buf.length <= b2.buf.length &&
-      b1.bitIndex() <= b2.bitIndex() &&
-      (b1.buf.length != 0) ==> arrayBitPrefix(b1.buf, b2.buf, 0, b1.bitIndex())
-}
-
-def isValidPair(w1: BitStream, w2: BitStream): Boolean = isPrefix(w1, w2)
-
-@ghost
-def reader(w1: BitStream, w2: BitStream): (BitStream, BitStream) = {
-    require(isValidPair(w1, w2))
-    val r1 = BitStream(snapshot(w2.buf), w1.currentByte, w1.currentBit)
-    val r2 = BitStream(snapshot(w2.buf), w2.currentByte, w2.currentBit)
-    (r1, r2)
-}
-// END TODO should be part of BitStream
-
-
-
-def BitStream_AppendByteArray(pBitStrm: BitStream, arr: Array[UByte], arr_len: Int): Boolean = {
-    require(0 <= arr_len && arr_len <= arr.length)
-    require(BitStream.validate_offset_bytes(pBitStrm, arr_len))
-
-    if !(pBitStrm.currentByte.toLong + arr_len < pBitStrm.buf.length || (pBitStrm.currentBit == 0 && pBitStrm.currentByte.toLong + arr_len <= pBitStrm.buf.length)) then
-        return false
-
-    var i: Int = 0
-    (while i < arr_len do
-        decreases(arr_len - i)
-        pBitStrm.appendByte0(arr(i))
-        i += 1
-      ).invariant(0 <= i &&& i <= arr_len &&& BitStream.validate_offset_bytes(pBitStrm, arr_len-i))
-
-    true
-}.ensuring(_ => BitStream.invariant(pBitStrm))
-
-def BitStream_ReadByte(pBitStrm: BitStream): Option[UByte] = {
-    require(BitStream.validate_offset_bytes(pBitStrm, 1))
-
-    val cb: UByte = pBitStrm.currentBit.toByte
-    val ncb: UByte = (8 - cb).toByte
-
-    var v: UByte = (pBitStrm.buf(pBitStrm.currentByte) <<<< cb)
-    pBitStrm.currentByte += 1
-
-    if cb > 0 then
-        v = (v | (pBitStrm.buf(pBitStrm.currentByte) >>>> ncb)).toByte
-
-    if BitStream.invariant(pBitStrm) then
-        Some(v)
-    else
-        None()
-}
-
-@ghost @pure
-def BitStream_ReadBytePure(pBitStrm: BitStream): (BitStream, Option[Byte]) = {
-    require(BitStream.validate_offset_bytes(pBitStrm, 1))
-    val cpy = snapshot(pBitStrm)
-    (cpy, BitStream_ReadByte(cpy))
-}
-
-def BitStream_ReadByteArray(pBitStrm: BitStream, arr_len: Int): OptionMut[Array[UByte]] = {
-    require(0 < arr_len && arr_len <= pBitStrm.buf.length)
-    require(BitStream.validate_offset_bytes(pBitStrm, arr_len))
-    val arr: Array[UByte] = Array.fill(arr_len)(0)
-
-    val cb = pBitStrm.currentBit
-    val ncb = 8 - cb
-
-    if !(pBitStrm.currentByte.toLong + arr_len < pBitStrm.buf.length || (pBitStrm.currentBit == 0 && pBitStrm.currentByte.toLong + arr_len <= pBitStrm.buf.length)) then
-        return NoneMut()
-
-    var i: Int = 0
-    (while i < arr_len do
-        decreases(arr_len - i)
-        BitStream_ReadByte(pBitStrm) match
-            case Some(v) => arr(i) = v
-            case None() => return NoneMut()
-        i += 1
-    ).invariant(0 <= i &&& i <= arr_len &&& i <= arr.length &&& BitStream.validate_offset_bytes(pBitStrm, arr_len-i) &&& BitStream.invariant(pBitStrm))
-
-    SomeMut(arr)
-}
-
-def BitStream_ReadBits(pBitStrm: BitStream, nbits: Int): OptionMut[Array[UByte]] = {
-    val bytesToRead: Int = nbits / 8
-    val remainingBits: UByte = (nbits % 8).toByte
-
-    BitStream_DecodeOctetString_no_length(pBitStrm, bytesToRead) match
-        case NoneMut() => return NoneMut()
-        case SomeMut(arr) =>
-            if remainingBits > 0 then
-                BitStream_ReadPartialByte(pBitStrm, remainingBits) match
-                    case None() => return NoneMut()
-                    case Some(ub) => arr(bytesToRead) = ub
-                arr(bytesToRead) = (arr(bytesToRead) << (8 - remainingBits)).toByte
-                SomeMut(arr)
-            else
-                SomeMut(arr)
-}
-
-
-/* nbits 1..7*/
-def BitStream_AppendPartialByte(pBitStrm: BitStream, vVal: UByte, nbits: UByte, negate: Boolean): Unit = {
-    val cb: UByte = pBitStrm.currentBit.toByte
-    val totalBits: UByte = (cb + nbits).toByte
-    val ncb: UByte = (8 - cb).toByte
-
-    var v = vVal
-    if negate then
-        v = (masksb(nbits) & (~v)).toByte
-
-    val mask1: UByte = (~masksb(ncb)).toByte
-
-    if (totalBits <= 8) {
-        //static UByte masksb[] = { 0x0, 0x1, 0x3, 0x7, 0xF, 0x1F, 0x3F, 0x7F, 0xFF };
-        val mask2: UByte = masksb(8 - totalBits)
-        val mask: UByte = (mask1 | mask2).toByte
-        //e.g. current bit = 3 --> mask =    1110 0000
-        //nbits = 3 --> totalBits = 6
-        //                                                 mask=     1110 0000
-        //                                                 and         0000 0011 <- masks[totalBits - 1]
-        //	                                                            -----------
-        //					final mask         1110 0011
-        pBitStrm.buf(pBitStrm.currentByte) = (pBitStrm.buf(pBitStrm.currentByte) & mask).toByte
-        pBitStrm.buf(pBitStrm.currentByte) = (pBitStrm.buf(pBitStrm.currentByte) | (v << (8 - totalBits))).toByte
-        pBitStrm.currentBit += nbits.toInt
-        if pBitStrm.currentBit == 8 then
-            pBitStrm.currentBit = 0
-            pBitStrm.currentByte += 1
-
-    } else {
-        val totalBitsForNextByte: UByte = (totalBits - 8).toByte
-        pBitStrm.buf(pBitStrm.currentByte) = (pBitStrm.buf(pBitStrm.currentByte) & mask1).toByte
-        pBitStrm.buf(pBitStrm.currentByte) = (pBitStrm.buf(pBitStrm.currentByte) | (v >>> totalBitsForNextByte)).toByte
-        pBitStrm.currentByte += 1
-        val mask: UByte = (~masksb(8 - totalBitsForNextByte)).toByte
-        pBitStrm.buf(pBitStrm.currentByte) = (pBitStrm.buf(pBitStrm.currentByte) & mask).toByte
-        pBitStrm.buf(pBitStrm.currentByte) = (pBitStrm.buf(pBitStrm.currentByte) | (v << (8 - totalBitsForNextByte))).toByte
-        pBitStrm.currentBit = totalBitsForNextByte.toInt
-    }
-
-    assert(pBitStrm.currentByte.toLong*8 + pBitStrm.currentBit <= pBitStrm.buf.length.toLong*8)
-}
-
-/* nbits 1..7*/
-def BitStream_ReadPartialByte(pBitStrm: BitStream, nbits: UByte): Option[UByte] = {
-    require(0 <= nbits && nbits < 8)
-    require(BitStream.validate_offset_bits(pBitStrm, nbits))
-
-    var v: UByte = 0
-    val cb: UByte = pBitStrm.currentBit.toByte
-    val totalBits: UByte = (cb + nbits).toByte
-
-    if (totalBits <= 8) {
-
-        ghostExpr {
-            BitStream.invariant(pBitStrm)
-        }
-        v = ((pBitStrm.buf(pBitStrm.currentByte) >>>> (8 - totalBits)) & masksb(nbits)).toByte
-        ghostExpr {
-            BitStream.validate_offset_bits(pBitStrm, nbits)
-        }
-        if pBitStrm.currentBit + nbits >= 8 then
-            pBitStrm.currentBit = (pBitStrm.currentBit + nbits) % 8
-            pBitStrm.currentByte += 1
-        else
-            pBitStrm.currentBit += nbits.toInt
-
-    } else {
-        var totalBitsForNextByte: UByte = (totalBits - 8).toByte
-        v = (pBitStrm.buf(pBitStrm.currentByte) <<<< totalBitsForNextByte)
-        pBitStrm.currentByte += 1
-        v = (v | pBitStrm.buf(pBitStrm.currentByte) >>>> (8 - totalBitsForNextByte)).toByte
-        v = (v & masksb(nbits)).toByte
-        pBitStrm.currentBit = totalBitsForNextByte.toInt
-    }
-
-    if BitStream.invariant(pBitStrm) then
-        Some(v)
-    else
-        None()
-}
 
 
 /***********************************************************************************************/
@@ -303,7 +119,7 @@ def BitStream_EncodeNonNegativeInteger32Neg(pBitStrm: BitStream, v: Int, negate:
     pbits = cc % 8
     if pbits > 0 then
         cc -= pbits
-        BitStream_AppendPartialByte(pBitStrm, (v >>> cc).toByte, pbits.toByte, negate)
+        pBitStrm.appendPartialByte((v >>> cc).toByte, pbits.toByte, negate)
 
     while cc > 0 do
         decreases(cc)
@@ -320,7 +136,7 @@ def BitStream_DecodeNonNegativeInteger32Neg(pBitStrm: BitStream, nBitsVal: Int):
         decreases(nBits)
         v = v << 8
 
-        BitStream_ReadByte(pBitStrm) match
+        pBitStrm.readByte() match
             case None() => return None()
             case Some(ub) =>
                 // mask the Byte-Bits, becuase negative values eg. -1 (1111 1111)
@@ -331,7 +147,7 @@ def BitStream_DecodeNonNegativeInteger32Neg(pBitStrm: BitStream, nBitsVal: Int):
 
     if nBits != 0 then
         v = v << nBits
-        BitStream_ReadPartialByte(pBitStrm, nBits.toByte) match
+        pBitStrm.readPartialByte(nBits.toByte) match
             case None() => return None()
             case Some(ub) => v = v | (ub & 0xFF)
 
@@ -590,7 +406,7 @@ def BitStream_DecodeSemiConstraintWholeNumber(pBitStrm:BitStream, min: Long): Op
     while i < nBytes do
         decreases(nBytes - i)
 
-        BitStream_ReadByte(pBitStrm) match
+        pBitStrm.readByte() match
             case None() => return None()
             case Some(ub) => v = (v << 8) | (ub & 0xFF).toLong
 
@@ -614,7 +430,7 @@ def BitStream_DecodeSemiConstraintPosWholeNumber(pBitStrm:BitStream, min: ULong)
     while i < nBytes do
         decreases(nBytes - i)
 
-        BitStream_ReadByte(pBitStrm) match
+        pBitStrm.readByte() match
             case None() => return None()
             case Some(ub) => v = (v << 8) | (ub & 0xFF).toLong
 
@@ -655,7 +471,7 @@ def BitStream_DecodeUnConstraintWholeNumber(pBitStrm: BitStream): Option[Long] =
     while i < nBytes do
         decreases(nBytes - i)
 
-        BitStream_ReadByte(pBitStrm) match
+        pBitStrm.readByte() match
             case None() => return None()
             case Some(ub) => v = (v << 8) | (ub & 0xFF).toLong
 
@@ -832,7 +648,7 @@ def BitStream_DecodeReal(pBitStrm: BitStream): Option[Double] = {
 }
 
 def BitStream_DecodeRealBitString(pBitStrm: BitStream): Option[Long] = {
-    BitStream_ReadByte(pBitStrm) match
+    pBitStrm.readByte() match
         case None() => None()
         case Some(length) =>
             // 8.5.2 Plus Zero
@@ -843,7 +659,7 @@ def BitStream_DecodeRealBitString(pBitStrm: BitStream): Option[Long] = {
             if length < 0 || length > DoubleMaxLengthOfSentBytes then
                 return None()
 
-            BitStream_ReadByte(pBitStrm) match
+            pBitStrm.readByte() match
                 case None() => None()
                 case Some(header) =>
                     // 8.5.6 a)
@@ -901,7 +717,7 @@ def DecodeRealAsBinaryEncoding(pBitStrm: BitStream, lengthVal: Int, header: UByt
     (while i < expLen do
         decreases(expLen - i)
 
-        BitStream_ReadByte(pBitStrm) match
+        pBitStrm.readByte() match
             case None() => return None()
             case Some(ub) => exponent = exponent << 8 | (ub.toInt & 0xFF)
 
@@ -915,7 +731,7 @@ def DecodeRealAsBinaryEncoding(pBitStrm: BitStream, lengthVal: Int, header: UByt
     (while j < length do
         decreases(length - j)
 
-        BitStream_ReadByte(pBitStrm) match
+        pBitStrm.readByte() match
             case None() => return None()
             case Some(ub) => N = (N << 8) | (ub.toInt & 0xFF)
 
@@ -944,7 +760,7 @@ def BitStream_checkBitPatternPresent(pBitStrm: BitStream, bit_terminated_pattern
     while bit_terminated_pattern_size_in_bits >= 8 do
         decreases(bit_terminated_pattern_size_in_bits)
 
-        BitStream_ReadByte(pBitStrm) match
+        pBitStrm.readByte() match
             case None() => return 0
             case Some(ub) => tmp_byte = ub
 
@@ -956,7 +772,7 @@ def BitStream_checkBitPatternPresent(pBitStrm: BitStream, bit_terminated_pattern
         i += 1
 
     if bit_terminated_pattern_size_in_bits > 0 then
-        BitStream_ReadPartialByte(pBitStrm, bit_terminated_pattern_size_in_bits) match
+        pBitStrm.readPartialByte(bit_terminated_pattern_size_in_bits) match
             case None() => return 0
             case Some(ub) => tmp_byte = ub
 
@@ -1011,7 +827,7 @@ def BitStream_EncodeOctetString_no_length(pBitStrm: BitStream, arr: Array[UByte]
             pBitStrm.currentByte += nCount
 
     else
-        ret = BitStream_AppendByteArray(pBitStrm, arr, nCount)
+        ret = pBitStrm.appendByteArray(arr, nCount)
 
     ret
 }
@@ -1029,7 +845,7 @@ def BitStream_DecodeOctetString_no_length(pBitStrm: BitStream, nCount: Int): Opt
         pBitStrm.currentByte += nCount
 
     else
-        BitStream_ReadByteArray(pBitStrm, nCount) match
+        pBitStrm.readByteArray(nCount) match
             case NoneMut() => return NoneMut()
             case SomeMut(a) => arrayCopyOffsetLen(a, arr, 0, 0, a.length)
 
@@ -1120,7 +936,7 @@ def BitStream_DecodeOctetString_fragmentation(pBitStrm: BitStream, asn1SizeMax: 
         var i1: Int = nCurOffset1.toInt
         while (nCurOffset1 + nCurBlockSize1 <= asn1SizeMax) && (i1 < (nCurOffset1 + nCurBlockSize1).toInt) do
             decreases((nCurOffset1 + nCurBlockSize1).toInt - i1)
-            BitStream_ReadByte(pBitStrm) match
+            pBitStrm.readByte() match
                 case None() => return NoneMut()
                 case Some(ub) => arr(i1) = ub
             i1 += 1
@@ -1152,7 +968,7 @@ def BitStream_DecodeOctetString_fragmentation(pBitStrm: BitStream, asn1SizeMax: 
         // fill last payload fragment into dest
         while i1 < (nCurOffset1 + nRemainingItemsVar1).toInt do
             decreases((nCurOffset1 + nRemainingItemsVar1).toInt - i1)
-            BitStream_ReadByte(pBitStrm) match
+            pBitStrm.readByte() match
                 case None() => return NoneMut()
                 case Some(ub) => arr(i1) = ub
             i1 += 1
@@ -1269,7 +1085,7 @@ def BitStream_DecodeBitString(pBitStrm: BitStream, asn1SizeMin: Long, asn1SizeMa
         else
             nCount = asn1SizeMin
 
-        return BitStream_ReadBits(pBitStrm, nCount.toInt)
+        return pBitStrm.readBits(nCount.toInt)
 
     } else {
         var nRemainingItemsVar1: Long = 0
@@ -1299,7 +1115,7 @@ def BitStream_DecodeBitString(pBitStrm: BitStream, asn1SizeMin: Long, asn1SizeMa
                 return NoneMut()
             /*COVERAGE_IGNORE*/
 
-            BitStream_ReadBits(pBitStrm, nCurBlockSize1.toInt) match
+            pBitStrm.readBits(nCurBlockSize1.toInt) match
                 case NoneMut() => return NoneMut()
                 case SomeMut(t) =>
                     arrayCopyOffsetLen(t, arr, 0, (nCurOffset1 / 8).toInt, nCurBlockSize1.toInt)
@@ -1319,7 +1135,7 @@ def BitStream_DecodeBitString(pBitStrm: BitStream, asn1SizeMin: Long, asn1SizeMa
 
         if (nCurOffset1 + nRemainingItemsVar1 <= asn1SizeMax) then
 
-            BitStream_ReadBits(pBitStrm, nRemainingItemsVar1.toInt) match
+            pBitStrm.readBits(nRemainingItemsVar1.toInt) match
                 case NoneMut() => return NoneMut()
                 case SomeMut(t) =>
                     arrayCopyOffsetLen(t, arr, 0, (nCurOffset1 / 8).toInt, nRemainingItemsVar1.toInt)

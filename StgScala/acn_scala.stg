@@ -600,7 +600,7 @@ pBitStrm.appendBits(<p><sAcc>arr, <p><sAcc>nCount)
 bit_string_external_field_decode(p, sErrCode, sAcc, noSizeMin, nSizeMax, sExtFld) ::= <<
 if <if(noSizeMin)>(<noSizeMin>\<=<sExtFld>) && <endif>(<sExtFld>\<=<nSizeMax>) then
     <p><sAcc>nCount = <sExtFld>.asInstanceOf[Int]
-    BitStream_ReadBits(pBitStrm, <p><sAcc>nCount) match
+    pBitStrm.readBits(<p><sAcc>nCount) match
         case NoneMut() => return Left(<sErrCode>)
         case SomeMut(arr) => 
             <p><sAcc>arr = arr
@@ -613,7 +613,7 @@ pBitStrm.appendBits(<p><sAcc>arr, <nSizeMax>)
 
 bit_string_external_field_fixed_size_decode(p, sErrCode, sAcc, noSizeMin, nSizeMax, sExtFld) ::= <<
 if <if(noSizeMin)>(<noSizeMin>\<=<sExtFld>) && <endif>(<sExtFld>\<=<nSizeMax>) then
-    BitStream_ReadBits(pBitStrm, <nSizeMax>) match
+    pBitStrm.readBits(<nSizeMax>) match
         case NoneMut() => return Left(<sErrCode>)
         case SomeMut(arr) => 
             <p><sAcc>arr = arr
@@ -626,8 +626,7 @@ pBitStrm.appendBits((byte[]){<arruNullBytes; separator=", ">}, <nBitPatternLengt
 >>
 
 bit_string_null_terminated_decode(p, sErrCode, sAcc, i, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength) ::= <<
-// TODO acn:620 - wrong ret value? reads bits untill 0 termination, but only length is returned, not the data
-BitStream_ReadBits_nullterminated(pBitStrm, (byte[]){<arruNullBytes; separator=", ">}, <nBitPatternLength>, <p><sAcc>arr, <nSizeMax>) match
+// TODO acn:620 - wrong ret value? reads bits untill 0 termination, but only length is returned, not the datanullterminated.rReadBits_BitStrm, (byte[]){<arruNullBytes; separator=", ">}, <nBitPatternLength>, <p><sAcc>arr, <nSizeMax>) match
     case None() => 
         return Left(<sErrCode>)
     case Some(x) => 
@@ -1057,7 +1056,7 @@ bit_string_containing_ext_field_func_decode(p, sFuncName, sReqBytesForUperEncodi
     /* decode to a temporary bitstream */
     val bitStrm: BitStream = BitStream_Init(<sReqBytesForUperEncoding>)
     if <sExtField>.asInstanceOf[Int] \<= <sReqBitsForUperEncoding> then
-        BitStream_ReadBits(pBitStrm, (int)<sExtField>) match
+        pBitStrm.readBits((int)<sExtField>) match
             case NoneMut() => 
                 return Left(<pErrCode>)
             case SomeMut(arr) =>
@@ -1160,7 +1159,7 @@ bit_string_containing_func_decode(p, sFuncName, sReqBytesForAcnEncoding, sReqBit
     val bitStrm: BitStream = BitStream_Init(<sReqBytesForAcnEncoding>)
     
     <if(bFixedSize)>
-    BitStream_ReadBits(pBitStrm, <nMinSize>) match
+    pBitStrm.readBits(<nMinSize>) match
         case NoneMut() =>
             return Left(pErrCode)
         case SomeMut(arr) =>
@@ -1178,7 +1177,7 @@ bit_string_containing_func_decode(p, sFuncName, sReqBytesForAcnEncoding, sReqBit
             nCount = x
             ret = Right(0)
 
-    BitStream_ReadBits(pBitStrm, nCount) match
+    pBitStrm.readBits(nCount) match
         case NoneMut() =>
             return Left(pErrCode)
         case SomeMut(arr) =>

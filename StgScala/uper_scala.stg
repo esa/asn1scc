@@ -493,7 +493,7 @@ assert(<nFixedSize>.asInstanceOf[Int] >= 0) // overflow may happen during cast
 pBitStrm.appendBits(<p><sAcc>arr, <nFixedSize>.asInstanceOf[Int])
 >>
 bitString_FixSize_decode(p, sAcc, nFixedSize, sErrCode) ::= <<
-BitStream_ReadBits(pBitStrm, <nFixedSize>.asInstanceOf[Int]) match
+pBitStrm.readBits(<nFixedSize>.asInstanceOf[Int]) match
     case SomeMut(a) =>
         a.copyToArray(<p><sAcc>arr)
     case NoneMut() => 
@@ -647,7 +647,7 @@ for(<sBlockIndex> = 0; ret && <sBlockIndex> \< <nBlocks64K>; <sBlockIndex>++) {
     ret = if (check) then Right(0) else Left(<sErrCodeName>)
     if ret == 0 then
         <if(bIsBitStringType)>
-        ret = BitStream_ReadBits(pBitStrm, &<p><sAcc>arr[<sCurOffset>/8], <sCurBlockSize>).asInstanceOf[Int]
+        ret = pBitStrm.readBits(&<p><sAcc>arr[<sCurOffset>/8], <sCurBlockSize>).asInstanceOf[Int]
         ret = if (ret == 0) 0 else <sErrCodeName>;
 
         <else>
@@ -673,7 +673,7 @@ val check = (ret == 0) && (<sRemainingItemsVar> == <sBlockId>);
 ret = if (check) then Right(0) else Left(<sErrCodeName>)
 if ret.isRight then
 <if(bIsBitStringType)>
-    ret = BitStream_ReadBits(pBitStrm, &<p><sAcc>arr[<sCurOffset>/8], <sCurBlockSize>.asInstanceOf[Int]); // TODO call wrong
+    ret = pBitStrm.readBits(&<p><sAcc>arr[<sCurOffset>/8], <sCurBlockSize>.asInstanceOf[Int]); // TODO call wrong
     ret = if (ret == 0) then Right(0) else Left(<sErrCodeName>)
 
 <else>
@@ -700,7 +700,7 @@ ret = ret && ((0x8000 & <sRemainingItemsVar>) > 0) && ( (0x7FFF & <sRemainingIte
 <endif>
 if ret == 0 then
     <if(bIsBitStringType)>
-    ret = BitStream_ReadBits(pBitStrm, &<p><sAcc>arr[<sCurOffset>/8], <nRemainingItemsVar>.asInstanceOf[Int]); // TODO call wrong
+    ret = pBitStrm.readBits(&<p><sAcc>arr[<sCurOffset>/8], <nRemainingItemsVar>.asInstanceOf[Int]); // TODO call wrong
     ret = if (ret.isRight) then Right(0) else Left(<sErrCodeName>)
 
     <else>
@@ -752,7 +752,7 @@ while((<sRemainingItemsVar> & 0xC0) == 0xC0) {
         return Left(<sErrCodeName>)
 
     <if(bIsBitStringType)>
-    if !BitStream_ReadBits(pBitStrm, &<p><sAcc>arr[<sCurOffset>/8], <sCurBlockSize>) then
+    if !pBitStrm.readBits(&<p><sAcc>arr[<sCurOffset>/8], <sCurBlockSize>) then
        return <sErrCodeName>
     <else>
     <sBLI> = <sCurOffset>
@@ -790,7 +790,7 @@ if (<sCurOffset> + <sRemainingItemsVar> \<= <nSizeMax>) then
     return Left(<sErrCodeName>)
 
 <if(bIsBitStringType)>
-if(!BitStream_ReadBits(pBitStrm, &<p><sAcc>arr[<sCurOffset>/8], <sRemainingItemsVar>.asInstanceOf[Int])) // TODO remove adress of operator
+if(!pBitStrm.readBits(&<p><sAcc>arr[<sCurOffset>/8], <sRemainingItemsVar>.asInstanceOf[Int])) // TODO remove adress of operator
     return <sErrCodeName>
 
 <else>

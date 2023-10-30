@@ -87,7 +87,7 @@ def ObjectIdentifier_subidentifiers_uper_decode(pBitStrm: BitStream, pRemainingO
     var pRemainingOctets: Long = pRemainingOctetsVal
     while pRemainingOctets > 0 && !bLastOctet do
         decreases(pRemainingOctets)
-        BitStream_ReadByte(pBitStrm) match
+        pBitStrm.readByte() match
             case None() => return None()
             case Some(curByte) =>
                 pRemainingOctets -= 1

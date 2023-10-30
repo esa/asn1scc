@@ -129,7 +129,7 @@ def Acn_Dec_Int_PositiveInteger_ConstSize(pBitStrm: BitStream, encodedSizeInBits
 
 def Acn_Dec_Int_PositiveInteger_ConstSize_8(pBitStrm: BitStream): Option[ULong] =
 {
-    BitStream_ReadByte(pBitStrm) match
+    pBitStrm.readByte() match
         case None() => None()
         case Some(ub) => Some(ub & 0xFF)
 }
@@ -140,7 +140,7 @@ def Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_N(pBitStrm: BitStream, Size
 
     var i: Int = 0
     while i < SizeInBytes do
-        BitStream_ReadByte(pBitStrm) match
+        pBitStrm.readByte() match
             case None() => return None()
             case Some(ub) =>
                 ret <<= 8
@@ -174,7 +174,7 @@ def Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_N(pBitStrm: BitStream, S
 
     var i: Int = 0
     while i < SizeInBytes do
-        BitStream_ReadByte(pBitStrm) match
+        pBitStrm.readByte() match
             case None() => return None()
             case Some(ub) =>
                 tmp = ub & 0xFF
@@ -235,12 +235,12 @@ def Acn_Dec_Int_PositiveInteger_VarSize_LengthEmbedded(pBitStrm: BitStream): Opt
 {
     var v: ULong = 0
 
-    BitStream_ReadByte(pBitStrm) match
+    pBitStrm.readByte() match
         case None() => return None()
         case Some(nBytes) =>
             var i: Int = 0
             while i < nBytes do
-                BitStream_ReadByte(pBitStrm) match
+                pBitStrm.readByte() match
                     case None() => return None()
                     case Some(ub) =>
                         v = (v << 8) | (ub & 0xFF)
@@ -309,14 +309,14 @@ def Acn_Dec_Int_TwosComplement_ConstSize(pBitStrm: BitStream, encodedSizeInBits:
 
     var i: Int = 0
     while i < nBytes do
-        BitStream_ReadByte(pBitStrm) match
+        pBitStrm.readByte() match
             case None() => return None()
             case Some(ub) =>
                 pIntVal = (pIntVal << 8) | (ub & 0xFF)
         i += 1
 
     if rstBits > 0 then
-        BitStream_ReadPartialByte(pBitStrm, rstBits.toByte) match
+        pBitStrm.readPartialByte(rstBits.toByte) match
             case None() => return None()
             case Some(ub) =>
                 pIntVal = (pIntVal << rstBits) | (ub & 0xFF)
@@ -393,12 +393,12 @@ def Acn_Dec_Int_TwosComplement_VarSize_LengthEmbedded(pBitStrm: BitStream): Opti
     var v: ULong = 0
     var isNegative: Boolean = false
 
-    BitStream_ReadByte(pBitStrm) match
+    pBitStrm.readByte() match
         case None() => None()
         case Some(nBytes) =>
             var i: Int = 0
             while i < nBytes do
-                BitStream_ReadByte(pBitStrm) match
+                pBitStrm.readByte() match
                     case None() => return None()
                     case Some(ub) =>
                         if i == 0 && (ub & 0x80) > 0 then
@@ -445,7 +445,7 @@ def Acn_Enc_Int_BCD_ConstSize(pBitStrm: BitStream, intVal: ULong, encodedSizeInN
 
     var i: Int = encodedSizeInNibbles - 1
     while i >= 0 do
-        BitStream_AppendPartialByte(pBitStrm, tmp(i).toByte, 4,false)
+        pBitStrm.appendPartialByte(tmp(i).toByte, 4,false)
         i -= 1
 
     CHECK_BIT_STREAM(pBitStrm)
@@ -458,7 +458,7 @@ def Acn_Dec_Int_BCD_ConstSize(pBitStrm: BitStream, encodedSizeInNibbles: Int): O
 
     var encodedSizeInNibblesVar = encodedSizeInNibbles
     while encodedSizeInNibblesVar > 0 do
-        BitStream_ReadPartialByte(pBitStrm, 4) match
+        pBitStrm.readPartialByte(4) match
             case None() => return None()
             case Some(digit) =>
                 ret *= 10
@@ -484,7 +484,7 @@ def Acn_Enc_Int_BCD_VarSize_LengthEmbedded(pBitStrm: BitStream, intVal: ULong): 
 
 def Acn_Dec_Int_BCD_VarSize_LengthEmbedded(pBitStrm: BitStream): Option[ULong] =
 {
-    BitStream_ReadByte(pBitStrm) match
+    pBitStrm.readByte() match
         case None() => None()
         case Some(nNibbles) => Acn_Dec_Int_BCD_ConstSize(pBitStrm, nNibbles)
 }
@@ -499,7 +499,7 @@ def Acn_Enc_Int_BCD_VarSize_NullTerminated(pBitStrm: BitStream, intVal: ULong): 
     /* Encode Number */
     Acn_Enc_Int_BCD_ConstSize(pBitStrm, intVal, nNibbles)
 
-    BitStream_AppendPartialByte(pBitStrm, 0xF, 4, false)
+    pBitStrm.appendPartialByte(0xF, 4, false)
 
     CHECK_BIT_STREAM(pBitStrm)
 }
@@ -509,7 +509,7 @@ def Acn_Dec_Int_BCD_VarSize_NullTerminated(pBitStrm: BitStream): Option[ULong] =
     var ret: ULong = 0
 
     while true do
-        BitStream_ReadPartialByte(pBitStrm, 4) match
+        pBitStrm.readPartialByte(4) match
             case None() => return None()
             case Some(digit) =>
                 if (digit > 9)
@@ -562,7 +562,7 @@ def Acn_Dec_UInt_ASCII_ConstSize(pBitStrm: BitStream, encodedSizeInBytes: Int): 
     var ret: ULong = 0
 
     while encodedSizeInBytesVar > 0 do
-        BitStream_ReadByte(pBitStrm) match
+        pBitStrm.readByte() match
             case None() => return None()
             case Some(digit) =>
                 assert(digit >= '0' && digit <= '9')
@@ -577,7 +577,7 @@ def Acn_Dec_UInt_ASCII_ConstSize(pBitStrm: BitStream, encodedSizeInBytes: Int): 
 
 def Acn_Dec_SInt_ASCII_ConstSize(pBitStrm: BitStream, encodedSizeInBytes: Int): Option[Long] =
 {
-    BitStream_ReadByte(pBitStrm) match
+    pBitStrm.readByte() match
         case None() => None()
         case Some(digit) =>
             var sign: Int = 1
@@ -658,14 +658,14 @@ def Acn_Enc_UInt_ASCII_VarSize_LengthEmbedded(pBitStrm: BitStream, intVal: ULong
 
 def Acn_Dec_UInt_ASCII_VarSize_LengthEmbedded(pBitStrm: BitStream): Option[ULong] =
 {
-    BitStream_ReadByte(pBitStrm) match
+    pBitStrm.readByte() match
         case None() => None()
         case Some(nChars) => Acn_Dec_UInt_ASCII_ConstSize(pBitStrm, nChars)
 }
 
 def Acn_Dec_SInt_ASCII_VarSize_LengthEmbedded(pBitStrm: BitStream): Option[Long] =
 {
-    BitStream_ReadByte(pBitStrm) match
+    pBitStrm.readByte() match
         case None() => None()
         case Some(nChars) => Acn_Dec_SInt_ASCII_ConstSize(pBitStrm, nChars)
 }
@@ -705,7 +705,7 @@ val tmp: Array[Byte] = Array.fill(10)(0)
 memset(strVal, 0x0, (size_t)max + 1);
 //read null_character_size characters into the tmp buffer
 for (int j = 0; j < (int)null_character_size; j++) {
-if (!BitStream_ReadByte(pBitStrm, &(tmp[j])))
+if (!pBitStrm.readByte(, &(tmp[j])))
 return FALSE;
 }
 
@@ -715,7 +715,7 @@ strVal[i] = tmp[0];
 i++;
 for (int j = 0; j < (int)null_character_size - 1; j++)
 tmp[j] = tmp[j + 1];
-if (!BitStream_ReadByte(pBitStrm, &(tmp[null_character_size - 1])))
+if (!pBitStrm.readByte(, &(tmp[null_character_size - 1])))
 return FALSE;
 }
 
@@ -739,7 +739,7 @@ def Acn_Dec_UInt_ASCII_VarSize_NullTerminated(pBitStrm: BitStream, null_characte
     //read null_character_size characters into the tmp buffer
     var j: Int = 0
     while j < null_characters_size do
-        BitStream_ReadByte(pBitStrm) match
+        pBitStrm.readByte() match
             case None() => return None()
             case Some(ub) => tmp(j) = ub
         j += 1
@@ -754,7 +754,7 @@ def Acn_Dec_UInt_ASCII_VarSize_NullTerminated(pBitStrm: BitStream, null_characte
             tmp(j) = tmp(j + 1)
             j += 1
 
-        BitStream_ReadByte(pBitStrm) match
+        pBitStrm.readByte() match
             case None() => return None()
             case Some(ub) => tmp(null_characters_size - 1) = ub
 
@@ -771,7 +771,7 @@ def Acn_Dec_SInt_ASCII_VarSize_NullTerminated(pBitStrm: BitStream, null_characte
 {
     var isNegative: Boolean = false
 
-    BitStream_ReadByte(pBitStrm) match
+    pBitStrm.readByte() match
         case None() => None()
         case Some(digit) =>
             assert(digit == '-' || digit == '+')
@@ -794,7 +794,7 @@ def BitStream_ReadBitPattern(pBitStrm: BitStream, patternToRead: Array[Byte], nB
     var pBoolValue: Boolean = true
     var i: Int = 0
     while i < nBytesToRead do
-        BitStream_ReadByte(pBitStrm) match
+        pBitStrm.readByte() match
             case None() => return None()
             case Some(curByte) =>
                 if curByte != patternToRead(i) then
@@ -802,7 +802,7 @@ def BitStream_ReadBitPattern(pBitStrm: BitStream, patternToRead: Array[Byte], nB
         i += 1
 
     if nRemainingBitsToRead > 0 then
-        BitStream_ReadPartialByte(pBitStrm, nRemainingBitsToRead.toByte) match
+        pBitStrm.readPartialByte(nRemainingBitsToRead.toByte) match
             case None() => return None()
             case Some(curByte) =>
                 if curByte != ((patternToRead(nBytesToRead) & 0xFF) >>> (8 - nRemainingBitsToRead)) then
@@ -819,12 +819,12 @@ def BitStream_ReadBitPattern_ignore_value(pBitStrm: BitStream, nBitsToRead: Int)
 
     var i: Int = 0
     while i < nBytesToRead do
-        BitStream_ReadByte(pBitStrm) match
+        pBitStrm.readByte() match
             case None() => return Left(FAILED_READ_ERR_CODE)
             case Some(_) => i += 1
 
     if nRemainingBitsToRead > 0 then
-        if BitStream_ReadPartialByte(pBitStrm, nRemainingBitsToRead.toByte).isEmpty then
+        if pBitStrm.readPartialByte(nRemainingBitsToRead.toByte).isEmpty then
             return Left(FAILED_READ_ERR_CODE)
 
     Right(0)
@@ -847,7 +847,7 @@ def Acn_Dec_Real_IEEE754_32_big_endian(pBitStrm: BitStream): Option[Double] =
     val b: Array[Byte] = Array.fill(4)(0)
     var i: Int = 0
     while i < 4 do
-        BitStream_ReadByte(pBitStrm) match
+        pBitStrm.readByte() match
             case None() => return None()
             case Some(ub) => b(i) = ub
         i += 1
@@ -861,7 +861,7 @@ def Acn_Dec_Real_IEEE754_32_big_endian_fp32(pBitStrm: BitStream): Option[Float] 
     val b: Array[Byte] = Array.fill(4)(0)
     var i: Int = 0
     while i < 4 do
-        BitStream_ReadByte(pBitStrm) match
+        pBitStrm.readByte() match
             case None() => return None()
             case Some(ub) => b(i) = ub
         i += 1
@@ -886,7 +886,7 @@ def Acn_Dec_Real_IEEE754_64_big_endian(pBitStrm: BitStream): Option[Double] =
     val b: Array[Byte] = Array.fill(8)(0)
     var i: Int = 0
     while i < 8 do
-        BitStream_ReadByte(pBitStrm) match
+        pBitStrm.readByte() match
             case None() => return None()
             case Some(ub) => b(i) = ub
         i += 1
@@ -911,7 +911,7 @@ def Acn_Dec_Real_IEEE754_32_little_endian(pBitStrm: BitStream): Option[Double] =
     val b: Array[Byte] = Array.fill(4)(0)
     var i: Int = 3
     while i >= 0 do
-        BitStream_ReadByte(pBitStrm) match
+        pBitStrm.readByte() match
             case None() => return None()
             case Some(ub) => b(i) = ub
                 i -= 1
@@ -925,7 +925,7 @@ def Acn_Dec_Real_IEEE754_32_little_endian_fp32(pBitStrm: BitStream): Option[Floa
     val b: Array[Byte] = Array.fill(4)(0)
     var i: Int = 3
     while i >= 0 do
-        BitStream_ReadByte(pBitStrm) match
+        pBitStrm.readByte() match
             case None() => return None()
             case Some(ub) => b(i) = ub
                 i -= 1
@@ -949,7 +949,7 @@ def Acn_Dec_Real_IEEE754_64_little_endian(pBitStrm: BitStream): Option[Double] =
     val b: Array[Byte] = Array.fill(8)(0)
     var i: Int = 7
     while i >= 0 do
-        BitStream_ReadByte(pBitStrm) match
+        pBitStrm.readByte() match
             case None() => return None()
             case Some(ub) => b(i) = ub
                 i -= 1
@@ -1090,7 +1090,7 @@ def Acn_Dec_String_Ascii_private(pBitStrm: BitStream, max: Long, charactersToDec
     val strVal: Array[ASCIIChar] = Array.fill(max.toInt+1)(0)
     var i: Int = 0
     while i < charactersToDecode do
-        BitStream_ReadByte(pBitStrm) match
+        pBitStrm.readByte() match
             case None() => return None()
             case Some(decodedCharacter) =>
                 strVal(i) = decodedCharacter
@@ -1135,7 +1135,7 @@ assert(null_characters_size<128);
 memset(last_dec_bytes, 0x0, sizeof(last_dec_bytes));
 memset(strVal, 0x0, (size_t)max+1);
 while (i<=max) {
-if (!BitStream_ReadByte(pBitStrm, &decodedCharacter))
+if (!pBitStrm.readByte(, &decodedCharacter))
 return FALSE;
 ret = put_byte_in_last_dec_bytes(last_dec_bytes, &cur_size_of_last_dec_bytes, null_characters_size, decodedCharacter, &characterToAppendInString);
 
@@ -1162,7 +1162,7 @@ def Acn_Dec_String_Ascii_Null_Teminated(pBitStrm: BitStream, max: Long, null_cha
     val strVal: Array[ASCIIChar] = Array.fill(max.toInt+1)(0)
     var i: Int = 0
     while i <= max do
-        BitStream_ReadByte(pBitStrm) match
+        pBitStrm.readByte() match
             case None() => return None()
             case Some(decodedCharacter) =>
                 if decodedCharacter != null_character then
@@ -1183,7 +1183,7 @@ def Acn_Dec_String_Ascii_Null_Teminated_mult(pBitStrm: BitStream, max: Long, nul
     //read null_character_size characters into the tmp buffer
     var j: Int = 0
     while j < null_character_size do
-        BitStream_ReadByte(pBitStrm) match
+        pBitStrm.readByte() match
             case None() => return None()
             case Some(ub) => tmp(j) = ub
         j += 1
@@ -1198,7 +1198,7 @@ def Acn_Dec_String_Ascii_Null_Teminated_mult(pBitStrm: BitStream, max: Long, nul
             tmp(j) = tmp(j + 1)
             j += 1
 
-        BitStream_ReadByte(pBitStrm) match
+        pBitStrm.readByte() match
             case None() => return None()
             case Some(ub) => tmp(null_character_size - 1) = ub
 
