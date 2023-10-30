@@ -25,6 +25,14 @@ def reader(w1: BitStream, w2: BitStream): (BitStream, BitStream) = {
    val r2 = BitStream(snapshot(w2.buf), w2.currentByte, w2.currentBit)
    (r1, r2)
 }
+
+@ghost @pure
+def readBytePure(pBitStrm: BitStream): (BitStream, Option[Byte]) = {
+   require(BitStream.validate_offset_bytes(pBitStrm, 1))
+   val cpy = snapshot(pBitStrm)
+   (cpy, cpy.readByte())
+}
+
 // END TODO should be part of BitStream
 
 
@@ -82,6 +90,17 @@ object BitStream {
    }
 }
 
+private val BitAccessMasks: Array[UByte] = Array(
+   -0x80, // -128 / 1000 0000 / x80
+   0x40, //   64 / 0100 0000 / x40
+   0x20, //   32 / 0010 0000 / x20
+   0x10, //   16 / 0001 0000 / x10
+   0x08, //    8 / 0000 1000 / x08
+   0x04, //    4 / 0000 0100 / x04
+   0x02, //    2 / 0000 0010 / x02
+   0x01, //    1 / 0000 0001 / x01
+)
+
 case class BitStream(
                        var buf: Array[Byte],
                        var currentByte: Int, // marks the currentByte that gets accessed
@@ -89,16 +108,6 @@ case class BitStream(
                     ) { // all BisStream instances satisfy the following:
    require(BitStream.invariant(currentByte, currentBit, buf.length))
 
-   private val BitAccessMasks: Array[UByte] = Array(
-      -0x80, // -128 / 1000 0000 / x80
-      0x40, //   64 / 0100 0000 / x40
-      0x20, //   32 / 0010 0000 / x20
-      0x10, //   16 / 0001 0000 / x10
-      0x08, //    8 / 0000 1000 / x08
-      0x04, //    4 / 0000 0100 / x04
-      0x02, //    2 / 0000 0010 / x02
-      0x01, //    1 / 0000 0001 / x01
-   )
 
    def bitIndex(): Long = {
       currentByte.toLong * 8 + currentBit.toLong
@@ -245,6 +254,7 @@ case class BitStream(
          appendBitOne()
          nBits -= 1
          ).invariant(nBits >= 0 &&& BitStream.validate_offset_bits(this, nBits))
+      ()
    }
 
    def appendBits(srcBuffer: Array[UByte], nBits: Int): Unit = {
@@ -376,7 +386,7 @@ case class BitStream(
       val w2 = this
       w2.bitIndex() == w1.bitIndex() + 8 &&& isValidPair(w1, w2) &&& {
          val (r1, r2) = reader(w1, w2)
-         val (r2Got, vGot) = r1.readBytePure()
+         val (r2Got, vGot) = readBytePure(r1)
          ((!negate && vGot.get == value) || (negate && vGot.get == ~value)) && r2Got == r2
       } &&& BitStream.invariant(this)
    }
@@ -421,14 +431,6 @@ case class BitStream(
          Some(v)
       else
          None()
-   }
-
-   @ghost
-   @pure
-   def readBytePure(): (BitStream, Option[Byte]) = {
-      require(BitStream.validate_offset_bytes(this, 1))
-      val cpy = snapshot(this)
-      (cpy, this.readByte())
    }
 
 
@@ -536,7 +538,7 @@ case class BitStream(
 
    /* nbits 1..7*/
    def readPartialByte(nbits: UByte): Option[UByte] = {
-      require(0 <= nbits && nbits < 8)
+      require(0 < nbits && nbits < 8)
       require(BitStream.validate_offset_bits(this, nbits))
 
       var v: UByte = 0
@@ -544,10 +546,6 @@ case class BitStream(
       val totalBits: UByte = (cb + nbits).toByte
 
       if (totalBits <= 8) {
-
-         ghostExpr {
-            BitStream.invariant(this)
-         }
          v = ((buf(currentByte) >>>> (8 - totalBits)) & masksb(nbits)).toByte
          ghostExpr {
             BitStream.validate_offset_bits(this, nbits)
