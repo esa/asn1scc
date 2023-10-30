@@ -85,255 +85,255 @@ while ret.isRight && <i> \< <fixedSize>.asInstanceOf[Int] do
 >>
 
 alignToNext_encode(sMainBody, sAligmentValue, nAligmentValue) ::= <<
-Acn_AlignTo<sAligmentValue>(pBitStrm, true)
+codec.alignTo<sAligmentValue>()
 <sMainBody>
 >>
 
 alignToNext_decode(sMainBody, sAligmentValue, nAligmentValue) ::= <<
-Acn_AlignTo<sAligmentValue>(pBitStrm, false)
+codec.alignTo<sAligmentValue>(pBitStrm)
 <sMainBody>
 >>
 
-PositiveInteger_ConstSize_encode(p, sSsuffix, sErrCode, nFixedSize, soMF, soMFM, nUperMin, nUperMax) ::= "Acn_Enc_Int_PositiveInteger_ConstSize(pBitStrm, <if(soMF)><soMF>_encode(<p>)<else><p><endif>, <nFixedSize>)"
+PositiveInteger_ConstSize_encode(p, sSsuffix, sErrCode, nFixedSize, soMF, soMFM, nUperMin, nUperMax) ::= "codec.enc_Int_PositiveInteger_ConstSize(<if(soMF)><soMF>_encode(<p>)<else><p><endif>, <nFixedSize>)"
 PositiveInteger_ConstSize_decode(p, sSsuffix, sErrCode, nFixedSize, soMF, soMFM, nUperMin, nUperMax) ::= <<
-Acn_Dec_Int_PositiveInteger_ConstSize<sSsuffix>(pBitStrm, <nFixedSize>) match
+codec.dec_Int_PositiveInteger_ConstSize<pBitStrm, <nFixedSize>) match
     case None() => return Left(<sErrCode>)
     case Some(x) => <p> = x
 <MF(soMF)>
 >>
 
-PositiveInteger_ConstSize_8_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "Acn_Enc_Int_PositiveInteger_ConstSize_8(pBitStrm, <if(soMF)><soMF>_encode(<p>)<else><p><endif>)"
+PositiveInteger_ConstSize_8_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "codec.enc_Int_PositiveInteger_ConstSize_8(<if(soMF)><soMF>_encode(<p>)<else><p><endif>)"
 PositiveInteger_ConstSize_8_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
-Acn_Dec_Int_PositiveInteger_ConstSize_8<sSsuffix>(pBitStrm) match
+codec.dec_Int_PositiveInteger_ConstSize_8<pBitStrm) match
     case None() => return Left(<sErrCode>)
     case Some(x) => <p> = x
 <MF(soMF)>
 >>
 
-PositiveInteger_ConstSize_big_endian_16_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "Acn_Enc_Int_PositiveInteger_ConstSize_big_endian_16(pBitStrm, <if(soMF)><soMF>_encode(<p>)<else><p><endif>)"
+PositiveInteger_ConstSize_big_endian_16_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "codec.enc_Int_PositiveInteger_ConstSize_big_endian_16(<if(soMF)><soMF>_encode(<p>)<else><p><endif>)"
 PositiveInteger_ConstSize_big_endian_16_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
-Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_16<sSsuffix>(pBitStrm) match
+codec.dec_Int_PositiveInteger_ConstSize_big_endian_16<pBitStrm) match
     case None() => return Left(<sErrCode>)
     case Some(x) => <p> = x
 <MF(soMF)>
 >>
 
-PositiveInteger_ConstSize_big_endian_32_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "Acn_Enc_Int_PositiveInteger_ConstSize_big_endian_32(pBitStrm, <if(soMF)><soMF>_encode(<p>)<else><p><endif>)"
+PositiveInteger_ConstSize_big_endian_32_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "codec.enc_Int_PositiveInteger_ConstSize_big_endian_32(<if(soMF)><soMF>_encode(<p>)<else><p><endif>)"
 PositiveInteger_ConstSize_big_endian_32_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
-Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_32<sSsuffix>(pBitStrm) match
+codec.dec_Int_PositiveInteger_ConstSize_big_endian_32<pBitStrm) match
     case None() => return Left(<sErrCode>)
     case Some(x) => <p> = x
 <MF(soMF)>
 >>
 
-PositiveInteger_ConstSize_big_endian_64_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "Acn_Enc_Int_PositiveInteger_ConstSize_big_endian_64(pBitStrm, <if(soMF)><soMF>_encode(<p>)<else><p><endif>)"
+PositiveInteger_ConstSize_big_endian_64_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "codec.enc_Int_PositiveInteger_ConstSize_big_endian_64(<if(soMF)><soMF>_encode(<p>)<else><p><endif>)"
 PositiveInteger_ConstSize_big_endian_64_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
-Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_64<sSsuffix>(pBitStrm) match
+codec.dec_Int_PositiveInteger_ConstSize_big_endian_64<sSsuffix>() match
     case None() => return Left(<sErrCode>)
     case Some(x) => <p> = x 
 <MF(soMF)>
 >>
 
-PositiveInteger_ConstSize_little_endian_16_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "Acn_Enc_Int_PositiveInteger_ConstSize_little_endian_16(pBitStrm, <if(soMF)><soMF>_encode(<p>)<else><p><endif>)"
+PositiveInteger_ConstSize_little_endian_16_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "codec.enc_Int_PositiveInteger_ConstSize_little_endian_16(<if(soMF)><soMF>_encode(<p>)<else><p><endif>)"
 PositiveInteger_ConstSize_little_endian_16_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
-Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_16<sSsuffix>(pBitStrm) match
+codec.dec_Int_PositiveInteger_ConstSize_little_endian_16<sSsuffix>() match
     case None() => return Left(<sErrCode>)
     case Some(x) => <p> = x 
 <MF(soMF)>
 >>
 
-PositiveInteger_ConstSize_little_endian_32_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "Acn_Enc_Int_PositiveInteger_ConstSize_little_endian_32(pBitStrm, <if(soMF)><soMF>_encode(<p>)<else><p><endif>)"
+PositiveInteger_ConstSize_little_endian_32_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "codec.enc_Int_PositiveInteger_ConstSize_little_endian_32(<if(soMF)><soMF>_encode(<p>)<else><p><endif>)"
 PositiveInteger_ConstSize_little_endian_32_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
-Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_32<sSsuffix>(pBitStrm) match
+codec.dec_Int_PositiveInteger_ConstSize_little_endian_32<sSsuffix>() match
     case None() => return Left(<sErrCode>)
     case Some(x) => <p> = x
 <MF(soMF)>
 >>
 
-PositiveInteger_ConstSize_little_endian_64_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "Acn_Enc_Int_PositiveInteger_ConstSize_little_endian_64(pBitStrm, <if(soMF)><soMF>_encode(<p>)<else><p><endif>)"
+PositiveInteger_ConstSize_little_endian_64_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "codec.enc_Int_PositiveInteger_ConstSize_little_endian_64(<if(soMF)><soMF>_encode(<p>)<else><p><endif>)"
 PositiveInteger_ConstSize_little_endian_64_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
-Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_64<sSsuffix>(pBitStrm) match
+codec.dec_Int_PositiveInteger_ConstSize_little_endian_64<sSsuffix>() match
     case None() => return Left(<sErrCode>)
     case Some(x) => <p> = x
 <MF(soMF)>
 >>
 
-PositiveInteger_VarSize_LengthEmbedded_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin) ::= "Acn_Enc_Int_PositiveInteger_VarSize_LengthEmbedded(pBitStrm, <if(soMF)><soMF>_encode(<p>)<else><p><endif>)"
+PositiveInteger_VarSize_LengthEmbedded_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin) ::= "codec.enc_Int_PositiveInteger_VarSize_LengthEmbedded(<if(soMF)><soMF>_encode(<p>)<else><p><endif>)"
 PositiveInteger_VarSize_LengthEmbedded_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin) ::= <<
-Acn_Dec_Int_PositiveInteger_VarSize_LengthEmbedded<sSsuffix>(pBitStrm) match
+codec.dec_Int_PositiveInteger_VarSize_LengthEmbedded<sSsuffix>() match
     case None() => return Left(<sErrCode>)
     case Some(x) => <p> = x
 <MF(soMF)>
 >>
 
-TwosComplement_ConstSize_encode(p, sSsuffix, sErrCode, soMF, soMFM, nFixedSize, nUperMin, nUperMax) ::= "Acn_Enc_Int_TwosComplement_ConstSize(pBitStrm, <if(soMF)><soMF>_encode(<p>)<else><p><endif>, <nFixedSize>)"
+TwosComplement_ConstSize_encode(p, sSsuffix, sErrCode, soMF, soMFM, nFixedSize, nUperMin, nUperMax) ::= "codec.enc_Int_TwosComplement_ConstSize(<if(soMF)><soMF>_encode(<p>)<else><p><endif>, <nFixedSize>)"
 TwosComplement_ConstSize_decode(p, sSsuffix, sErrCode, soMF, soMFM, nFixedSize, nUperMin, nUperMax) ::= <<
-Acn_Dec_Int_TwosComplement_ConstSize<sSsuffix>(pBitStrm, <nFixedSize>) match
+codec.dec_Int_TwosComplement_ConstSize<psSsuffix>(<nFixedSize>) match
     case None() => return Left(<sErrCode>)
     case Some(x) => <p> = x
 <MF(soMF)>
 >>
 
-TwosComplement_ConstSize_8_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "Acn_Enc_Int_TwosComplement_ConstSize_8(pBitStrm, <if(soMF)><soMF>_encode(<p>)<else><p><endif>)"
+TwosComplement_ConstSize_8_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "codec.enc_Int_TwosComplement_ConstSize_8(<if(soMF)><soMF>_encode(<p>)<else><p><endif>)"
 TwosComplement_ConstSize_8_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
-Acn_Dec_Int_TwosComplement_ConstSize_8<sSsuffix>(pBitStrm) match
+codec.dec_Int_TwosComplement_ConstSize_8<sSsuffix>() match
     case None() => return Left(<sErrCode>)
     case Some(x) => <p> = x
 <MF(soMF)>
 >>
 
-TwosComplement_ConstSize_big_endian_16_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "Acn_Enc_Int_TwosComplement_ConstSize_big_endian_16(pBitStrm, <if(soMF)><soMF>_encode(<p>)<else><p><endif>)"
+TwosComplement_ConstSize_big_endian_16_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "codec.enc_Int_TwosComplement_ConstSize_big_endian_16(<if(soMF)><soMF>_encode(<p>)<else><p><endif>)"
 TwosComplement_ConstSize_big_endian_16_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
-Acn_Dec_Int_TwosComplement_ConstSize_big_endian_16<sSsuffix>(pBitStrm) match
+codec.dec_Int_TwosComplement_ConstSize_big_endian_16<sSsuffix>() match
     case None() => return Left(<sErrCode>)
     case Some(x) => <p> = x
 >>
 
-TwosComplement_ConstSize_big_endian_32_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "Acn_Enc_Int_TwosComplement_ConstSize_big_endian_32(pBitStrm, <if(soMF)><soMF>_encode(<p>)<else><p><endif>)"
+TwosComplement_ConstSize_big_endian_32_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "codec.enc_Int_TwosComplement_ConstSize_big_endian_32(<if(soMF)><soMF>_encode(<p>)<else><p><endif>)"
 TwosComplement_ConstSize_big_endian_32_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
-Acn_Dec_Int_TwosComplement_ConstSize_big_endian_32<sSsuffix>(pBitStrm) match
+codec.dec_Int_TwosComplement_ConstSize_big_endian_32<sSsuffix>() match
     case None() => return Left(<sErrCode>)
     case Some(x) => <p> = x
 <MF(soMF)>
 >>
 
-TwosComplement_ConstSize_big_endian_64_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "Acn_Enc_Int_TwosComplement_ConstSize_big_endian_64(pBitStrm, <if(soMF)><soMF>_encode(<p>)<else><p><endif>)"
+TwosComplement_ConstSize_big_endian_64_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "codec.enc_Int_TwosComplement_ConstSize_big_endian_64(<if(soMF)><soMF>_encode(<p>)<else><p><endif>)"
 TwosComplement_ConstSize_big_endian_64_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
-Acn_Dec_Int_TwosComplement_ConstSize_big_endian_64<sSsuffix>(pBitStrm) match
+codec.dec_Int_TwosComplement_ConstSize_big_endian_64<sSsuffix>() match
     case None() => return Left(<sErrCode>)
     case Some(x) => <p> = x
 <MF(soMF)>
 >>
 
-TwosComplement_ConstSize_little_endian_16_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "Acn_Enc_Int_TwosComplement_ConstSize_little_endian_16(pBitStrm, <if(soMF)><soMF>_encode(<p>)<else><p><endif>)"
+TwosComplement_ConstSize_little_endian_16_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "codec.enc_Int_TwosComplement_ConstSize_little_endian_16(<if(soMF)><soMF>_encode(<p>)<else><p><endif>)"
 TwosComplement_ConstSize_little_endian_16_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
-Acn_Dec_Int_TwosComplement_ConstSize_little_endian_16<sSsuffix>(pBitStrm) match
+codec.dec_Int_TwosComplement_ConstSize_little_endian_16<sSsuffix>() match
     case None() => return Left(<sErrCode>)
     case Some(x) => <p> = x
 <MF(soMF)>
 >>
 
-TwosComplement_ConstSize_little_endian_32_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "Acn_Enc_Int_TwosComplement_ConstSize_little_endian_32(pBitStrm, <if(soMF)><soMF>_encode(<p>)<else><p><endif>)"
+TwosComplement_ConstSize_little_endian_32_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "codec.enc_Int_TwosComplement_ConstSize_little_endian_32(<if(soMF)><soMF>_encode(<p>)<else><p><endif>)"
 TwosComplement_ConstSize_little_endian_32_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
-Acn_Dec_Int_TwosComplement_ConstSize_little_endian_32<sSsuffix>(pBitStrm) match
+codec.dec_Int_TwosComplement_ConstSize_little_endian_32<sSsuffix>() match
     case None() => return Left(<sErrCode>)
     case Some(x) => <p> = x
 <MF(soMF)>
 >>
 
-TwosComplement_ConstSize_little_endian_64_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "Acn_Enc_Int_TwosComplement_ConstSize_little_endian_64(pBitStrm, <if(soMF)><soMF>_encode(<p>)<else><p><endif>)"
+TwosComplement_ConstSize_little_endian_64_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "codec.enc_Int_TwosComplement_ConstSize_little_endian_64(<if(soMF)><soMF>_encode(<p>)<else><p><endif>)"
 TwosComplement_ConstSize_little_endian_64_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
-Acn_Dec_Int_TwosComplement_ConstSize_little_endian_64<sSsuffix>(pBitStrm)
+codec.dec_Int_TwosComplement_ConstSize_little_endian_64<sSsuffix>()
     case None() => return Left(<sErrCode>)
     case Some(x) => <p> = x
 <MF(soMF)>
 >>
 
-TwosComplement_VarSize_LengthEmbedded_encode(p, sSsuffix, sErrCode, soMF, soMFM) ::= "Acn_Enc_Int_TwosComplement_VarSize_LengthEmbedded(pBitStrm, <if(soMF)><soMF>_encode(<p>)<else><p><endif>)"
+TwosComplement_VarSize_LengthEmbedded_encode(p, sSsuffix, sErrCode, soMF, soMFM) ::= "codec.enc_Int_TwosComplement_VarSize_LengthEmbedded(<if(soMF)><soMF>_encode(<p>)<else><p><endif>)"
 TwosComplement_VarSize_LengthEmbedded_decode(p, sSsuffix, sErrCode, soMF, soMFM) ::= <<
-Acn_Dec_Int_TwosComplement_VarSize_LengthEmbedded<sSsuffix>(pBitStrm)
+codec.dec_Int_TwosComplement_VarSize_LengthEmbedded<sSsuffix>()
     case None() => return Left(<sErrCode>)
     case Some(x) => <p> = x
 <MF(soMF)>
 >>
 
-BCD_ConstSize_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, nNibbles) ::= "Acn_Enc_Int_BCD_ConstSize(pBitStrm, <if(soMF)><soMF>_encode(<p>)<else><p><endif>, <nNibbles>)"
+BCD_ConstSize_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, nNibbles) ::= "codec.enc_Int_BCD_ConstSize(<if(soMF)><soMF>_encode(<p>)<else><p><endif>, <nNibbles>)"
 BCD_ConstSize_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, nNibbles) ::= <<
-Acn_Dec_Int_BCD_ConstSize<sSsuffix>(pBitStrm, <nNibbles>) match
+codec.dec_Int_BCD_ConstSize<sSsuffix>(<nNibbles>) match
     case None() => return Left(<sErrCode>)
     case Some(x) => <p> = x
 <MF(soMF)>
 >>
 
-BCD_VarSize_LengthEmbedded_encode(p, sSsuffix, sErrCode, soMF, soMFM) ::= "Acn_Enc_Int_BCD_VarSize_LengthEmbedded(pBitStrm, <if(soMF)><soMF>_encode(<p>)<else><p><endif>)"
+BCD_VarSize_LengthEmbedded_encode(p, sSsuffix, sErrCode, soMF, soMFM) ::= "codec.enc_Int_BCD_VarSize_LengthEmbedded(<if(soMF)><soMF>_encode(<p>)<else><p><endif>)"
 BCD_VarSize_LengthEmbedded_decode(p, sSsuffix, sErrCode, soMF, soMFM) ::= <<
-Acn_Dec_Int_BCD_VarSize_LengthEmbedded<sSsuffix>(pBitStrm)
+codec.dec_Int_BCD_VarSize_LengthEmbedded<sSsuffix>()
     case None() => return Left(<sErrCode>)
     case Some(x) => <p> = x
 <MF(soMF)>
 >>
 
-BCD_VarSize_NullTerminated_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "Acn_Enc_Int_BCD_VarSize_NullTerminated(pBitStrm, <if(soMF)><soMF>_encode(<p>)<else><p><endif>)"
+BCD_VarSize_NullTerminated_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= "codec.enc_Int_BCD_VarSize_NullTerminated(<if(soMF)><soMF>_encode(<p>)<else><p><endif>)"
 BCD_VarSize_NullTerminated_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax) ::= <<
-Acn_Dec_Int_BCD_VarSize_NullTerminated<sSsuffix>(pBitStrm) match
+codec.dec_Int_BCD_VarSize_NullTerminated<sSsuffix>() match
     case None() => return Left(<sErrCode>)
     case Some(x) => <p> = x
 <MF(soMF)>
 >>
 
-ASCII_ConstSize_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, nSizeInBytes) ::= "Acn_Enc_SInt_ASCII_ConstSize(pBitStrm, <if(soMF)><soMF>_encode(<p>)<else><p><endif>, <nSizeInBytes>) "
+ASCII_ConstSize_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, nSizeInBytes) ::= "codec.enc_SInt_ASCII_ConstSize(<if(soMF)><soMF>_encode(<p>)<else><p><endif>, <nSizeInBytes>) "
 ASCII_ConstSize_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, nSizeInBytes) ::= <<
-Acn_Dec_SInt_ASCII_ConstSize<sSsuffix>(pBitStrm, <nSizeInBytes>) match
+codec.dec_SInt_ASCII_ConstSize<sSsuffix>(<nSizeInBytes>) match
     case None() => return Left(<sErrCode>)
     case Some(x) => <p> = x
 <MF(soMF)>
 >>
 
-ASCII_VarSize_LengthEmbedded_encode(p, sSsuffix, sErrCode, soMF, soMFM) ::= "Acn_Enc_SInt_ASCII_VarSize_LengthEmbedded(pBitStrm, <if(soMF)><soMF>_encode(<p>)<else><p><endif>)"
+ASCII_VarSize_LengthEmbedded_encode(p, sSsuffix, sErrCode, soMF, soMFM) ::= "codec.enc_SInt_ASCII_VarSize_LengthEmbedded(<if(soMF)><soMF>_encode(<p>)<else><p><endif>)"
 ASCII_VarSize_LengthEmbedded_decode(p, sSsuffix, sErrCode, soMF, soMFM) ::= <<
-Acn_Dec_SInt_ASCII_VarSize_LengthEmbedded<sSsuffix>(pBitStrm) match
+codec.dec_SInt_ASCII_VarSize_LengthEmbedded<sSsuffix>() match
     case None() => return Left(<sErrCode>)
     case Some(x) => <p> = x
 <MF(soMF)>
 >>
 
 ASCII_VarSize_NullTerminated_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, arruNullBytes) ::= <<
-Acn_Enc_SInt_ASCII_VarSize_NullTerminated(pBitStrm, <if(soMF)><soMF>_encode(<p>)<else><p><endif>, (byte[]){<arruNullBytes; separator=", ">}, <arruNullBytes.Length>)
+codec.enc_SInt_ASCII_VarSize_NullTerminated(<if(soMF)><soMF>_encode(<p>)<else><p><endif>, (byte[]){<arruNullBytes; separator=", ">}, <arruNullBytes.Length>)
 >>
 
 ASCII_VarSize_NullTerminated_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, arruNullBytes) ::= <<
-Acn_Dec_SInt_ASCII_VarSize_NullTerminated<sSsuffix>(pBitStrm, (byte[]){<arruNullBytes; separator=", ">}, <arruNullBytes.Length>) match
+codec.dec_SInt_ASCII_VarSize_NullTerminated<sSsuffix>((byte[]){<arruNullBytes; separator=", ">}, <arruNullBytes.Length>) match
     case None() => return Left(<sErrCode>)
     case Some(x) => <p> = x
 <MF(soMF)>
 >>
 
 ASCII_UINT_ConstSize_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, nSizeInBytes) ::= <<
-Acn_Enc_UInt_ASCII_ConstSize(pBitStrm, <if(soMF)><soMF>_encode(<p>)<else><p><endif>, <nSizeInBytes>)
+codec.enc_UInt_ASCII_ConstSize(<if(soMF)><soMF>_encode(<p>)<else><p><endif>, <nSizeInBytes>)
 >>
 
 ASCII_UINT_ConstSize_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, nSizeInBytes) ::= <<
-Acn_Dec_UInt_ASCII_ConstSize<sSsuffix>(pBitStrm, <nSizeInBytes>) match
+codec.dec_UInt_ASCII_ConstSize<sSsuffix>(<nSizeInBytes>) match
     case None() => return Left(<sErrCode>)
     case Some(x) => <p> = x
 <MF(soMF)>
 >>
 
 ASCII_UINT_VarSize_NullTerminated_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, arruNullBytes) ::= <<
-Acn_Enc_UInt_ASCII_VarSize_NullTerminated(pBitStrm, <if(soMF)><soMF>_encode(<p>)<else><p><endif>, (byte[]){<arruNullBytes; separator=", ">}, <arruNullBytes.Length>)
+codec.enc_UInt_ASCII_VarSize_NullTerminated(<if(soMF)><soMF>_encode(<p>)<else><p><endif>, (byte[]){<arruNullBytes; separator=", ">}, <arruNullBytes.Length>)
 >>
 
 ASCII_UINT_VarSize_NullTerminated_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, arruNullBytes) ::= <<
-Acn_Dec_UInt_ASCII_VarSize_NullTerminated<sSsuffix>(pBitStrm, <p>, (byte[]){<arruNullBytes; separator=", ">}, <arruNullBytes.Length>) match
+codec.dec_UInt_ASCII_VarSize_NullTerminated<sSsuffix>(<p>, (byte[]){<arruNullBytes; separator=", ">}, <arruNullBytes.Length>) match
     case None() => return Left(<sErrCode>)
     case Some(x) => <p> = x
 <MF(soMF)>
 >>
 
-Real_32_big_endian_encode(p, sSuffix, sErrCode) ::= "Acn_Enc_Real_IEEE754_32_big_endian(pBitStrm, <p>.toFloat)"
+Real_32_big_endian_encode(p, sSuffix, sErrCode) ::= "codec.enc_Real_IEEE754_32_big_endian(<p>.toFloat)"
 Real_32_big_endian_decode(p, sSuffix, sErrCode) ::= <<
-Acn_Dec_Real_IEEE754_32_big_endian<sSuffix>(pBitStrm) match
+codec.dec_Real_IEEE754_32_big_endian<sSsuffix>() match
     case None() => return Left(<sErrCode>)
     case Some(x) => <p> = x
 >>
 
-Real_64_big_endian_encode(p, sErrCode) ::= "Acn_Enc_Real_IEEE754_64_big_endian(pBitStrm, <p>)"
+Real_64_big_endian_encode(p, sErrCode) ::= "codec.enc_Real_IEEE754_64_big_endian(<p>)"
 Real_64_big_endian_decode(p, sErrCode) ::= <<
-Acn_Dec_Real_IEEE754_64_big_endian(pBitStrm) match
+codec.dec_Real_IEEE754_64_big_endian(match
     case None() => return Left(<sErrCode>)
     case Some(x) => <p> = x
 >>
 
-Real_32_little_endian_encode(p, sSuffix, sErrCode) ::= "Acn_Enc_Real_IEEE754_32_little_endian(pBitStrm, <p>)"
+Real_32_little_endian_encode(p, sSuffix, sErrCode) ::= "codec.enc_Real_IEEE754_32_little_endian(<p>)"
 Real_32_little_endian_decode(p, sSuffix, sErrCode) ::= <<
-Acn_Dec_Real_IEEE754_32_little_endian<sSuffix>(pBitStrm) match
+codec.dec_Real_IEEE754_32_little_endian<sSsuffix>() match
     case None() => return Left(<sErrCode>)
     case Some(x) => <p> = x
 >>
 
-Real_64_little_endian_encode(p, sErrCode) ::= "Acn_Enc_Real_IEEE754_64_little_endian(pBitStrm, <p>)"
+Real_64_little_endian_encode(p, sErrCode) ::= "codec.enc_Real_IEEE754_64_little_endian(<p>)"
 Real_64_little_endian_decode(p, sErrCode) ::= <<
-Acn_Dec_Real_IEEE754_64_little_endian(pBitStrm) match
+codec.dec_Real_IEEE754_64_little_endian(match
     case None() => 
         return Left(<sErrCode>)
     case Some(x) => 
@@ -445,9 +445,9 @@ if ret.isRight then
 >>
 
 /* Strings */
-Acn_String_Ascii_FixSize_encode(p, sErrCode, nAsn1Max) ::= "Acn_Enc_String_Ascii_FixSize(pBitStrm, <nAsn1Max>, <p>)"
+Acn_String_Ascii_FixSize_encode(p, sErrCode, nAsn1Max) ::= "codec.enc_String_Ascii_FixSize(<nAsn1Max>, <p>)"
 Acn_String_Ascii_FixSize_decode(p, sErrCode, nAsn1Max) ::= <<
-Acn_Dec_String_Ascii_FixSize(pBitStrm, <nAsn1Max>) match
+codec.dec_String_Ascii_FixSize(<nAsn1Max>) match
     case None() => 
         return Left(<sErrCode>)
     case Some(x) => 
@@ -455,28 +455,28 @@ Acn_Dec_String_Ascii_FixSize(pBitStrm, <nAsn1Max>) match
 >>
 
 Acn_String_Ascii_Null_Teminated_encode(p, sErrCode, nAsn1Max, arruNullBytes) ::= <<
-Acn_Enc_String_Ascii_Null_Teminated_mult(pBitStrm, <nAsn1Max>, (byte[]){<arruNullBytes; separator=", ">}, <arruNullBytes.Length>, <p>)
+codec.enc_String_Ascii_Null_Teminated_mult(<nAsn1Max>, (byte[]){<arruNullBytes; separator=", ">}, <arruNullBytes.Length>, <p>)
 >>
 
 Acn_String_Ascii_Null_Teminated_decode(p, sErrCode, nAsn1Max, arruNullBytes) ::= <<
-Acn_Dec_String_Ascii_Null_Teminated_mult(pBitStrm, <nAsn1Max>, (byte[]){<arruNullBytes; separator=", ">}, <arruNullBytes.Length>) match
+codec.dec_String_Ascii_Null_Teminated_mult(<nAsn1Max>, (byte[]){<arruNullBytes; separator=", ">}, <arruNullBytes.Length>) match
     case None() => return Left(<sErrCode>)
     case Some(x) => <p> = x
 >>
 
-Acn_String_Ascii_External_Field_Determinant_encode(p, sErrCode, nAsn1Max, sExtFld) ::= "Acn_Enc_String_Ascii_External_Field_Determinant(pBitStrm, <nAsn1Max>, <p>)"
+Acn_String_Ascii_External_Field_Determinant_encode(p, sErrCode, nAsn1Max, sExtFld) ::= "codec.enc_String_Ascii_External_Field_Determinant(<nAsn1Max>, <p>)"
 Acn_String_Ascii_External_Field_Determinant_decode(p, sErrCode, nAsn1Max, sExtFld) ::= <<
-Acn_Dec_String_Ascii_External_Field_Determinant(pBitStrm, <nAsn1Max>, <sExtFld>) match
+codec.dec_String_Ascii_External_Field_Determinant(<nAsn1Max>, <sExtFld>) match
     case None() => return Left(<sErrCode>)
     case Some(x) => <p> = x
 >>
 
 Acn_String_Ascii_Internal_Field_Determinant_encode(p, sErrCode, nAsn1Max, nAsn1Min, nInternalLengthDeterminantSizeInBits) ::= <<
-Acn_Enc_String_Ascii_Internal_Field_Determinant(pBitStrm, <nAsn1Max>, <nAsn1Min>, <p>)
+codec.enc_String_Ascii_Internal_Field_Determinant(<nAsn1Max>, <nAsn1Min>, <p>)
 >>
 
 Acn_String_Ascii_Internal_Field_Determinant_decode(p, sErrCode, nAsn1Max, nAsn1Min, nInternalLengthDeterminantSizeInBits) ::= <<
-Acn_Dec_String_Ascii_Internal_Field_Determinant(pBitStrm, <nAsn1Max>, <nAsn1Min>) match
+codec.dec_String_Ascii_Internal_Field_Determinant(<nAsn1Max>, <nAsn1Min>) match
     case None() => return Left(<sErrCode>)
     case Some(x) => <p> = x
 >>
@@ -487,35 +487,35 @@ static byte allowedCharSet[] = {<arrnCharSet:{ch|0x<ch;format="X2">}; wrap, anch
 
 Acn_String_CharIndex_FixSize_encode(p, sErrCode, nAsn1Max, arrnAlphabetAsciiCodes, nCharSetSize, td/*:FE_StringTypeDefinition*/, nCharSize) ::= <<
 <PrintAlphabet2(arrnAlphabetAsciiCodes)>
-Acn_Enc_String_CharIndex_FixSize(pBitStrm, <nAsn1Max>, allowedCharSet, <nCharSetSize>, <p>)
+codec.enc_String_CharIndex_FixSize(<nAsn1Max>, allowedCharSet, <nCharSetSize>, <p>)
 >>
 
 Acn_String_CharIndex_FixSize_decode(p, sErrCode, nAsn1Max, arrnAlphabetAsciiCodes, nCharSetSize, td/*:FE_StringTypeDefinition*/, nCharSize) ::= <<
 <PrintAlphabet2(arrnAlphabetAsciiCodes)>
-Acn_Dec_String_CharIndex_FixSize(pBitStrm, <nAsn1Max>, allowedCharSet, <nCharSetSize>) match
+codec.dec_String_CharIndex_FixSize(<nAsn1Max>, allowedCharSet, <nCharSetSize>) match
     case None() => return Left(<sErrCode>)
     case Some(x) => <p> = x
 >>
 
 Acn_String_CharIndex_External_Field_Determinant_encode(p, sErrCode, nAsn1Max, arrnAlphabetAsciiCodes, nCharSetSize, sExtFld, td/*:FE_StringTypeDefinition*/, nCharSize) ::= <<
 <PrintAlphabet2(arrnAlphabetAsciiCodes)>
-Acn_Enc_String_CharIndex_External_Field_Determinant(pBitStrm, <nAsn1Max>, allowedCharSet, <nCharSetSize>, <p>)
+codec.enc_String_CharIndex_External_Field_Determinant(<nAsn1Max>, allowedCharSet, <nCharSetSize>, <p>)
 >>
 
 Acn_String_CharIndex_External_Field_Determinant_decode(p, sErrCode, nAsn1Max, arrnAlphabetAsciiCodes, nCharSetSize, sExtFld, td/*:FE_StringTypeDefinition*/, nCharSize) ::= <<
 <PrintAlphabet2(arrnAlphabetAsciiCodes)>
-Acn_Dec_String_CharIndex_External_Field_Determinant(pBitStrm, <nAsn1Max>, allowedCharSet, <nCharSetSize>, <sExtFld>) match
+codec.dec_String_CharIndex_External_Field_Determinant(<nAsn1Max>, allowedCharSet, <nCharSetSize>, <sExtFld>) match
     case None() => return Left(<sErrCode>)
     case Some(x) => <p> = x
 >>
 
 
 Acn_IA5String_CharIndex_External_Field_Determinant_encode(p, sErrCode, nAsn1Max, sExtFld, td/*:FE_StringTypeDefinition*/, nCharSize) ::= <<
-Acn_Enc_IA5String_CharIndex_External_Field_Determinant(pBitStrm, <nAsn1Max>, <p>)
+codec.enc_IA5String_CharIndex_External_Field_Determinant(<nAsn1Max>, <p>)
 >>
 
 Acn_IA5String_CharIndex_External_Field_Determinant_decode(p, sErrCode, nAsn1Max, sExtFld, td/*:FE_StringTypeDefinition*/, nCharSize) ::= <<
-Acn_Dec_IA5String_CharIndex_External_Field_Determinant(pBitStrm, <nAsn1Max>, <sExtFld>) match
+codec.dec_IA5String_CharIndex_External_Field_Determinant(<nAsn1Max>, <sExtFld>) match
     case None() => return Left(<sErrCode>)
     case Some(x) => <p> = x
 >>
