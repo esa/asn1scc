@@ -69,9 +69,9 @@ bitStrm.attachBuffer(bitStrm.buf) // TODO: reset curBit, curByte instead?
     
 Codec_Decode_XER(sModName, sFuncName, sTasName, sEnc, sAmber) ::= <<
 // test_cases_scala.stg:71
-ByteStream_AttachBuffer(bitStrm, encBuff, <sTasName>_REQUIRED_BYTES_FOR_<sEnc>ENCODING)
+bitStrm.attachBuffer(encBuff, <sTasName>_REQUIRED_BYTES_FOR_<sEnc>ENCODING)
 // Decode value
-<sFuncName>(bitStrm) match
+bitStrm.<sFuncName>() match
     case Left(_) => return Left(2)
     case Right(pVal) => decodedPDU = pVal 
 >>

@@ -3,14 +3,14 @@
 rtlModuleName() ::= ""
 
 call_base_type_func_encode(p, sFuncName) ::= <<
-<sFuncName>(<p>, pBitStrm, false) match
+<sFuncName>(<p>, codec, false) match // uper:6
     case Right(retVal) =>
         ret = Right(retVal)
     case Left(err) =>
         return Left(err)
 >>
 call_base_type_func_decode(p, sFuncName) ::= <<
-<sFuncName>(pBitStrm) match
+codec.<sFuncName>() match // uper:13
     case Right(decData) => 
         <p> = decData
     case Left(err) => 
@@ -32,7 +32,7 @@ EmitTypeAssignment_def_encode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrc
 >>
 
 EmitTypeAssignment_encode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitilialExp, bReqBytesForEncodingIsZero, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName) ::= <<
-def <sFuncName>(<if(bVarNameIsUnreferenced)>@annotation.unused <endif><sVarName>: <sTypeDefName>, <if(bBsIsUnreferenced)>@annotation.unused <endif>pBitStrm: BitStream, bCheckConstraints: Boolean): Either[ErrorCode, Int] = //uper:35
+def <sFuncName>(<if(bVarNameIsUnreferenced)>@annotation.unused <endif><sVarName>: <sTypeDefName>, <if(bBsIsUnreferenced)>@annotation.unused <endif>codec: UPER, bCheckConstraints: Boolean): Either[ErrorCode, Int] = //uper:35
 {
     var ret: Either[ErrorCode, Int] = Right(0)
 
@@ -56,7 +56,7 @@ EmitTypeAssignment_def_decode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrc
 >>
 
 EmitTypeAssignment_decode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitilialExp, bReqBytesForEncodingIsZero, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName) ::= <<
-def <sFuncName>(<if(bBsIsUnreferenced)>@annotation.unused <endif>pBitStrm: BitStream): Either[ErrorCode, <sTypeDefName>] = // uper:58
+def <sFuncName>(<if(bBsIsUnreferenced)>@annotation.unused <endif>codec: UPER): Either[ErrorCode, <sTypeDefName>] = // uper:58
 {   
     var pVal: <sTypeDefName> = <soInitFuncName>()
 
@@ -65,7 +65,7 @@ def <sFuncName>(<if(bBsIsUnreferenced)>@annotation.unused <endif>pBitStrm: BitSt
     <sContent>
     
     <if(soIValidFuncName)>
-    <soIValidFuncName>(pVal) match
+    <soIValidFuncName>(pVal) match // uper:68
         case Left(l) => Left(l)
         case Right(_) => Right(pVal)
     <else>
@@ -90,7 +90,7 @@ static byte allowedCharSet[] = {<arrnCharSet:{ch|0x<ch;format="X2">}; wrap, anch
 InternalItem_string_with_alpha_encode(p, sErrCode, td/*:FE_StringTypeDefinition*/, i, nLastItemIndex, arrnAlphabetAsciiCodes, nAlphabetLength, nCharIndexSize) ::=<<
 <PrintAlphabet2(arrnAlphabetAsciiCodes)>
 int charIndex = GetCharIndex(<p>[<i>], allowedCharSet, <nAlphabetLength>);
-BitStream_EncodeConstraintWholeNumber(pBitStrm, charIndex, 0, <nLastItemIndex>)
+codec.encodeConstraintWholeNumber(charIndex, 0, <nLastItemIndex>)
 >>
 InternalItem_string_with_alpha_decode(p, sErrCode,  td/*:FE_StringTypeDefinition*/, i, nLastItemIndex, arrnAlphabetAsciiCodes, nAlphabetLength, nCharIndexSize) ::=<<
 <PrintAlphabet2(arrnAlphabetAsciiCodes)>
@@ -102,11 +102,11 @@ if !worked then
 >>
 
 InternalItem_string_no_alpha_encode(p, sErrCode, i) ::=<<
-BitStream_EncodeConstraintWholeNumber(pBitStrm, <p>(<i>), 0, 127)
+codec.encodeConstraintWholeNumber(<p>(<i>), 0, 127)
 >>
 
 InternalItem_string_no_alpha_decode(p, sErrCode, i) ::=<<
-BitStream_DecodeConstraintWholeNumberByte(pBitStrm, 0, 127) match
+BitStream_DecodeConstraintWholeNumberByte(pBitStrm, 0, 127) match // uper:109
     case Some(c) =>
         <p>(<i>) = c
     case None() =>
@@ -117,9 +117,12 @@ BitStream_DecodeConstraintWholeNumberByte(pBitStrm, 0, 127) match
 
 
 /*case: A:: = INTEGER (-5..20) */
-IntFullyConstraint_encode(p, nMin, nMax, nBits, sSsuffix, sErrCode) ::= "BitStream_EncodeConstraintWholeNumber(pBitStrm, <p>, <nMin>, <nMax>)"
+IntFullyConstraint_encode(p, nMin, nMax, nBits, sSsuffix, sErrCode) ::= <<
+codec.encodeConstraintWholeNumber(<p>, <nMin>, <nMax>)
+>>
+
 IntFullyConstraint_decode(p, nMin, nMax, nBits, sSsuffix, sErrCode) ::= <<
-BitStream_DecodeConstraintWholeNumber<sSsuffix>(pBitStrm, <nMin>, <nMax>) match
+BitStream_DecodeConstraintWholeNumber<sSsuffix>(pBitStrm, <nMin>, <nMax>) match // uper:122
     case Some(n) =>
         <p> = n
     case None() =>
@@ -128,11 +131,11 @@ BitStream_DecodeConstraintWholeNumber<sSsuffix>(pBitStrm, <nMin>, <nMax>) match
 
 /*case: Positive fully constraint A:: = INTEGER (5..20) */
 IntFullyConstraintPos_encode(p, nMin, nMax, nBits, sSsuffix, sErrCode) ::= <<
-BitStream_EncodeConstraintPosWholeNumber(pBitStrm, <p>, <nMin>, <nMax>)
+codec.encodeConstraintPosWholeNumber(<p>, <nMin>, <nMax>)
 >>
 
 IntFullyConstraintPos_decode(p, nMin, nMax, nBits, sSsuffix, sErrCode) ::= <<
-BitStream_DecodeConstraintPosWholeNumber<sSsuffix>(pBitStrm, <nMin>, <nMax>) match
+codec.decodeConstraintPosWholeNumber<sSsuffix>(<nMin>, <nMax>) match // uper:135
     case Some(decPosNr) =>
         <p> = decPosNr
     case None() =>
@@ -142,7 +145,7 @@ BitStream_DecodeConstraintPosWholeNumber<sSsuffix>(pBitStrm, <nMin>, <nMax>) mat
 /*case: A :: = INTEGER */
 IntUnconstraint_encode(p, sErrCode, bCoverageIgnore) ::= "BitStream_EncodeUnConstraintWholeNumber(pBitStrm, <p>);"
 IntUnconstraint_decode(p, sErrCode, bCoverageIgnore) ::= <<
-BitStream_DecodeUnConstraintWholeNumber(pBitStrm) match
+BitStream_DecodeUnConstraintWholeNumber(pBitStrm) match // uper:145
     case Some(x) =>
         <p> = x
     case None() =>
@@ -222,18 +225,18 @@ pBitStrm.appendBit(<p>)
 >>
 
 Boolean_decode(p, sErrCode) ::= <<
-pBitStrm.readBit() match
+pBitStrm.readBit() match // uper:225
     case Some(bit) =>
         <p> = bit
     case None() =>
         return Left(<sErrCode>)
 >>
 
-Real_encode(p, sSuffix, sErrCode) ::= "BitStream_EncodeReal(pBitStrm, <p>)"
+Real_encode(p, sSuffix, sErrCode) ::= "codec.encodeReal(<p>)"
 Real_decode(p, sSuffix, sErrCode) ::= <<
-BitStream_DecodeReal<sSuffix>(pBitStrm) match
+codec.decodeReal<sSuffix>() match // uper:234
     case Some(d) =>
-        <p> = d.asInstanceOf[Double] // TODO this cast may loose precision in case that the target val <p> is a double
+        <p> = d.asInstanceOf[Double]
     case None() =>
         return Left(<sErrCode>)
 >>
@@ -258,7 +261,7 @@ if !<sTimeSubType>_uper_decode(pBitStrm, <p>) then
 
 Enumerated_item_encode(p, sName, nIndex, nLastItemIndex) ::= <<
 case <sName> =>
-    BitStream_EncodeConstraintWholeNumber(pBitStrm, <nIndex>, 0, <nLastItemIndex>)
+    codec.encodeConstraintWholeNumber(<nIndex>, 0, <nLastItemIndex>)
 >>
 
 Enumerated_item_decode(p, sName, nIndex, nLastItemIndex) ::= <<
@@ -267,16 +270,16 @@ case <nIndex> =>
 >>
 
 Enumerated_encode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, nMin, nMax, nBits, sErrCode, nLastItemIndex, sFirstItemName) ::= <<
-<p> match
+<p> match // uper:270
     <arrsItem; separator="\n">
     case _ =>
         ret = Left(<sErrCode>)
 >>
 
 Enumerated_decode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, nMin, nMax, nBits, sErrCode, nLastItemIndex, sFirstItemName) ::= <<
-BitStream_DecodeConstraintWholeNumber(pBitStrm, 0, <nLastItemIndex>) match
+BitStream_DecodeConstraintWholeNumber(pBitStrm, 0, <nLastItemIndex>) match // uper:277
     case Some(x) =>
-        x match
+        x match 
             <arrsItem; separator="\n">
             case _ =>
                 return Left(<sErrCode>)
@@ -288,7 +291,7 @@ BitStream_DecodeConstraintWholeNumber(pBitStrm, 0, <nLastItemIndex>) match
 
 choice_child_encode(p, sAcc, sChildID, nChildIndex, nIndexSizeInBits, nLastItemIndex, sChildContent, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr, bIsSequence, bIsEnum) ::= <<
 case <sChildID>(<sChildName>) =>
-    BitStream_EncodeConstraintWholeNumber(pBitStrm, <nChildIndex>, 0, <nLastItemIndex>)
+    codec.encodeConstraintWholeNumber(<nChildIndex>, 0, <nLastItemIndex>)
     <sChildContent>
 >>
 choice_child_decode(p, sAcc, sChildID, nChildIndex, nIndexSizeInBits, nLastItemIndex, sChildContent, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr, bIsSequence, bIsEnum) ::= <<
@@ -307,14 +310,14 @@ case <nChildIndex> =>
 >>
 
 choice_encode(p, sAcc, arrsChildren, nLastItemIndex, sChoiceIndexName, sErrCode, td/*:FE_ChoiceTypeDefinition*/, nIndexSizeInBits) ::= <<
-<p> match
+<p> match // uper:310
     <arrsChildren: {ch|<ch>}; separator="\n">
     case _ =>
         ret = Left(<sErrCode>)
 >>
 
 choice_decode(p, sAcc, arrsChildren, nLastItemIndex, sChoiceIndexName, sErrCode, td/*:FE_ChoiceTypeDefinition*/, nIndexSizeInBits) ::= <<
-BitStream_DecodeConstraintWholeNumber(pBitStrm, 0, <nLastItemIndex>) match
+BitStream_DecodeConstraintWholeNumber(pBitStrm, 0, <nLastItemIndex>) match // uper:317
     case Some(choice) =>
         choice match
             <arrsChildren: {ch|<ch>}; separator="\n">
@@ -329,7 +332,7 @@ BitStream_DecodeConstraintWholeNumber(pBitStrm, 0, <nLastItemIndex>) match
 /* SEQUENCE START */
 sequence_presence_bit_encode(p, sAcc, sChName, sErrCode) ::= "pBitStrm.appendBit(<p><sAcc>exist.<sChName>);"
 sequence_presence_bit_decode(p, sAcc, sChName, sErrCode) ::= <<
-pBitStrm.readBit() match
+pBitStrm.readBit() match // uper:332
     case Some(bit) =>
         <p><sAcc>exist.<sChName> = bit
     case None() =>
@@ -408,14 +411,14 @@ str_FixedSize_decode(p, sTasName, i, sInternalItem, nFixedSize, nIntItemMinSize,
 str_VarSize_encode(p, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize) ::= <<
 nStringLength = <p>.indexOf(0x00)
 /*ret = nStringLength >= <nSizeMin> && nStringLength \<= <nSizeMax>;*/
-BitStream_EncodeConstraintWholeNumber(pBitStrm, nStringLength, <nSizeMin>, <nSizeMax>)
+codec.encodeConstraintWholeNumber(nStringLength, <nSizeMin>, <nSizeMax>)
 <loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize="nStringLength")>
 
 >>
 
 str_VarSize_decode(p, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize) ::= <<
 nStringLength = 0
-BitStream_DecodeConstraintWholeNumberInt(pBitStrm, <nSizeMin>, <nSizeMax>) match
+BitStream_DecodeConstraintWholeNumberInt(pBitStrm, <nSizeMin>, <nSizeMax>) match // uper:418
     case Some(n) => 
         nStringLength = n
         <p>(nStringLength) = 0 // TODO do we need a 0 terminator?
@@ -436,12 +439,12 @@ seqOf_FixedSize_decode(p, sTasName, i, sInternalItem, nFixedSize, nIntItemMinSiz
 >>
 
 seqOf_VarSize_encode(p, sAcc, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, sErrCode) ::= <<
-BitStream_EncodeConstraintWholeNumber(pBitStrm, <p><sAcc>nCount, <nSizeMin>, <nSizeMax>)
+codec.encodeConstraintWholeNumber(<p><sAcc>nCount, <nSizeMin>, <nSizeMax>)
 <loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize=[p, sAcc, "nCount"])>
 >>
 
 seqOf_VarSize_decode(p, sAcc, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, sErrCode) ::= <<
-BitStream_DecodeConstraintWholeNumber(pBitStrm, <nSizeMin>, <nSizeMax>) match
+BitStream_DecodeConstraintWholeNumber(pBitStrm, <nSizeMin>, <nSizeMax>) match // uper:444
     case Some(n) =>
         <p><sAcc>nCount = n.asInstanceOf[Int]
     case None() =>
@@ -457,7 +460,7 @@ if !BitStream_EncodeOctetString_no_length(pBitStrm, <p><sAcc>arr, <nFixedSize>.a
 >>
 
 octect_FixedSize_decode(p, sAcc, nFixedSize) ::= <<
-BitStream_DecodeOctetString_no_length(pBitStrm, <nFixedSize>) match
+BitStream_DecodeOctetString_no_length(pBitStrm, <nFixedSize>) match // uper:460
     case SomeMut(x) => 
         x.copyToArray(<p><sAcc>arr)
     case NoneMut() => 
@@ -465,14 +468,14 @@ BitStream_DecodeOctetString_no_length(pBitStrm, <nFixedSize>) match
 >>
 
 octect_VarSize_encode(p, sAcc, nSizeMin, nSizeMax, nSizeInBits, sErrCode) ::= <<
-BitStream_EncodeConstraintWholeNumber(pBitStrm, <p><sAcc>nCount, <nSizeMin>, <nSizeMax>)
+codec.encodeConstraintWholeNumber(<p><sAcc>nCount, <nSizeMin>, <nSizeMax>)
 if !BitStream_EncodeOctetString_no_length(pBitStrm, <p><sAcc>arr, <p><sAcc>nCount.asInstanceOf[Int]) then
     ret = Left(<sErrCode>)
 >>
 
 octect_VarSize_decode(p, sAcc, nSizeMin, nSizeMax, nSizeInBits, sErrCode) ::= <<
 // decode length
-BitStream_DecodeConstraintWholeNumber(pBitStrm, <nSizeMin>, <nSizeMax>) match
+BitStream_DecodeConstraintWholeNumber(pBitStrm, <nSizeMin>, <nSizeMax>) match // uper:475
     case Some(n) => 
         assert(n >= 0)
         <p><sAcc>nCount = n
@@ -480,7 +483,7 @@ BitStream_DecodeConstraintWholeNumber(pBitStrm, <nSizeMin>, <nSizeMax>) match
         return Left(<sErrCode>)
 
 // decode payload
-BitStream_DecodeOctetString_no_length(pBitStrm, <p><sAcc>nCount.asInstanceOf[Int]) match
+BitStream_DecodeOctetString_no_length(pBitStrm, <p><sAcc>nCount.asInstanceOf[Int]) match // uper:483
     case SomeMut(a) =>    
         a.copyToArray(<p><sAcc>arr)
     case NoneMut() => 
@@ -493,7 +496,7 @@ assert(<nFixedSize>.asInstanceOf[Int] >= 0) // overflow may happen during cast
 pBitStrm.appendBits(<p><sAcc>arr, <nFixedSize>.asInstanceOf[Int])
 >>
 bitString_FixSize_decode(p, sAcc, nFixedSize, sErrCode) ::= <<
-pBitStrm.readBits(<nFixedSize>.asInstanceOf[Int]) match
+pBitStrm.readBits(<nFixedSize>.asInstanceOf[Int]) match // uper:496
     case SomeMut(a) =>
         a.copyToArray(<p><sAcc>arr)
     case NoneMut() => 
@@ -501,12 +504,12 @@ pBitStrm.readBits(<nFixedSize>.asInstanceOf[Int]) match
 >>
 
 bitString_VarSize_encode(p, sAcc, nSizeMin, nSizeMax, sErrCode, nSizeInBits) ::= <<
-BitStream_EncodeConstraintWholeNumber(pBitStrm, <p><sAcc>nCount, <nSizeMin>, <nSizeMax>)
+codec.encodeConstraintWholeNumber(<p><sAcc>nCount, <nSizeMin>, <nSizeMax>)
 <bitString_FixSize_encode(p=p, sAcc=sAcc, nFixedSize=[p, sAcc,"nCount"], sErrCode=sErrCode)>
 >>
 
 bitString_VarSize_decode(p, sAcc, nSizeMin, nSizeMax, sErrCode, nSizeInBits) ::= <<
-BitStream_DecodeConstraintWholeNumber(pBitStrm, <nSizeMin>, <nSizeMax>) match
+BitStream_DecodeConstraintWholeNumber(pBitStrm, <nSizeMin>, <nSizeMax>) match // uper:509
     case Some(n) => 
         <p><sAcc>nCount = n
     case None() =>
@@ -522,7 +525,7 @@ FixedSize_Fragmentation_sqf_64K_encode(p, sAcc,sCurOffset, sCurBlockSize, sBlock
 var <sBlockIndex> = 0
 while(<sBlockIndex> \< <nBlocks64K>)
 {
-    BitStream_EncodeConstraintWholeNumber(pBitStrm, 0xC4, 0, 0xFF)
+    codec.encodeConstraintWholeNumber(0xC4, 0, 0xFF)
     <if(bIsBitStringType)>
     pBitStrm.appendBits(&<p><sAcc>arr[<sCurOffset>/8], (int)<sCurBlockSize>)
 
@@ -542,7 +545,7 @@ while(<sBlockIndex> \< <nBlocks64K>)
 FixedSize_Fragmentation_sqf_small_block_encode(p, sAcc,sInternalItem, nBlockSize, sBlockId, sCurOffset, sCurBlockSize, sBLI, sRemainingItemsVar, bIsBitStringType, sErrCodeName) ::=<<
 //encode <nBlockSize> Block
 <sCurBlockSize> = <nBlockSize>;
-BitStream_EncodeConstraintWholeNumber(pBitStrm, <sBlockId>, 0, 0xFF)
+codec.encodeConstraintWholeNumber(<sBlockId>, 0, 0xFF)
 <if(bIsBitStringType)>
 pBitStrm.appendBits(&<p><sAcc>arr[<sCurOffset>/8], (int)<sCurBlockSize>);
 
@@ -559,11 +562,11 @@ for(<sBLI>=(int)<sCurOffset>; <sBLI> \< (int)(<sCurBlockSize> + <sCurOffset>); <
 FixedSize_Fragmentation_sqf_remaining_encode(p, sAcc,sInternalItem, bRemainingItemsWithinByte, nRemainingItemsVar, sCurOffset, sBLI, sRemainingItemsVar, bIsBitStringType, sErrCodeName) ::= <<
 //encode remaining <nRemainingItemsVar> items
 <if(bRemainingItemsWithinByte)>
-BitStream_EncodeConstraintWholeNumber(pBitStrm, <nRemainingItemsVar>, 0, 0xFF)
+codec.encodeConstraintWholeNumber(<nRemainingItemsVar>, 0, 0xFF)
 
 <else>
 pBitStrm.appendBit(true)
-BitStream_EncodeConstraintWholeNumber(pBitStrm, <nRemainingItemsVar>, 0, 0x7FFF)
+codec.encodeConstraintWholeNumber(<nRemainingItemsVar>, 0, 0x7FFF)
 
 <endif>
 <if(bIsBitStringType)>
@@ -591,16 +594,16 @@ while (<sRemainingItemsVar> >= 0x4000 && <sBlockIndex> \< <if(bIsAsciiString)>(a
 {
     if <sRemainingItemsVar> >= 0x10000 then
         <sCurBlockSize> = 0x10000
-        BitStream_EncodeConstraintWholeNumber(pBitStrm, 0xC4, 0, 0xFF)
+        codec.encodeConstraintWholeNumber(0xC4, 0, 0xFF)
     else if <sRemainingItemsVar> >= 0xC000 then
         <sCurBlockSize> = 0xC000
-        BitStream_EncodeConstraintWholeNumber(pBitStrm, 0xC3, 0, 0xFF)
+        codec.encodeConstraintWholeNumber(0xC3, 0, 0xFF)
     else if <sRemainingItemsVar> >= 0x8000 then
         <sCurBlockSize> = 0x8000
-        BitStream_EncodeConstraintWholeNumber(pBitStrm, 0xC2, 0, 0xFF)
+        codec.encodeConstraintWholeNumber(0xC2, 0, 0xFF)
     else 
         <sCurBlockSize> = 0x4000
-        BitStream_EncodeConstraintWholeNumber(pBitStrm, 0xC1, 0, 0xFF)
+        codec.encodeConstraintWholeNumber(0xC1, 0, 0xFF)
     
     <if(bIsBitStringType)>
     pBitStrm.appendBits(&<p><sAcc>arr[<sCurOffset>/8], (int)<sCurBlockSize>);
@@ -618,10 +621,10 @@ while (<sRemainingItemsVar> >= 0x4000 && <sBlockIndex> \< <if(bIsAsciiString)>(a
 }
 
 if <sRemainingItemsVar> \<= 0x7F then
-    BitStream_EncodeConstraintWholeNumber(pBitStrm, <sRemainingItemsVar>, 0, 0xFF)
+    codec.encodeConstraintWholeNumber(<sRemainingItemsVar>, 0, 0xFF)
 else
     pBitStrm.appendBit(true)
-    BitStream_EncodeConstraintWholeNumber(pBitStrm, <sRemainingItemsVar>, 0, 0x7FFF)
+    codec.encodeConstraintWholeNumber(<sRemainingItemsVar>, 0, 0x7FFF)
 
 <if(bIsBitStringType)>
 pBitStrm.appendBits(&<p><sAcc>arr[<sCurOffset>/8], (int)<sRemainingItemsVar>);
@@ -730,7 +733,7 @@ Fragmentation_sqf_decode(p, sAcc, sInternalItem, nIntItemMaxSize, nSizeMin, nSiz
 <sLengthTmp> = 0
 <endif>
 
-BitStream_DecodeConstraintWholeNumber(pBitStrm, 0, 0xFF) match
+BitStream_DecodeConstraintWholeNumber(pBitStrm, 0, 0xFF) match // uper:733
     case None() =>
         return Left(<sErrCodeName>)
     case Some(x) =>
@@ -767,7 +770,7 @@ while((<sRemainingItemsVar> & 0xC0) == 0xC0) {
     <sLengthTmp> += <sCurBlockSize>
     <endif>
     <sCurOffset> += <sCurBlockSize>
-    BitStream_DecodeConstraintWholeNumber(pBitStrm, 0, 0xFF) match
+    BitStream_DecodeConstraintWholeNumber(pBitStrm, 0, 0xFF) match // uper:770
         case None() =>
             return Left(<sErrCodeName>)
         case Some(x) =>
@@ -777,7 +780,7 @@ while((<sRemainingItemsVar> & 0xC0) == 0xC0) {
 if ((<sRemainingItemsVar> & 0x80) > 0) then
     var len2 = 0;
     <sRemainingItemsVar> \<\<= 8
-    BitStream_DecodeConstraintWholeNumber(pBitStrm, 0, 0xFF) match
+    BitStream_DecodeConstraintWholeNumber(pBitStrm, 0, 0xFF) match // uper:780
         case None() =>
             return Left(<sErrCodeName>)
         case Some(x) =>

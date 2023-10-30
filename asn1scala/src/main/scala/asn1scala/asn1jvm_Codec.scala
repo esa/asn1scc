@@ -200,7 +200,7 @@ trait Codec {
          encodeNonNegativeInteger32Neg(lo, false)
    }
 
-   def BitStream_EncodeConstraintWholeNumber(v: Long, min: Long, max: Long): Unit = {
+   def encodeConstraintWholeNumber(v: Long, min: Long, max: Long): Unit = {
       require(min <= max)
       require(min <= v && v <= max)
 
@@ -214,7 +214,7 @@ trait Codec {
       encodeNonNegativeInteger((v - min))
    }
 
-   def BitStream_EncodeConstraintPosWholeNumber(v: ULong, min: ULong, max: ULong): Unit = {
+   def encodeConstraintPosWholeNumber(v: ULong, min: ULong, max: ULong): Unit = {
       require(max >= 0 && max <= Long.MaxValue)
       require(min >= 0 && min <= max)
       require(min <= v && v <= max)
@@ -286,7 +286,7 @@ trait Codec {
          case Some(l) => Some(l.toInt)
    }
 
-   def BitStream_DecodeConstraintPosWholeNumber(min: ULong, max: ULong): Option[ULong] = {
+   def decodeConstraintPosWholeNumber(min: ULong, max: ULong): Option[ULong] = {
       require(max >= 0 && max <= Long.MaxValue)
       require(min >= 0 && min <= max)
 
@@ -307,7 +307,7 @@ trait Codec {
       val nBytes: Int = GetLengthInBytesOfUInt((v - min))
 
       /* encode length */
-      BitStream_EncodeConstraintWholeNumber(nBytes.toLong, 0, 255)
+      encodeConstraintWholeNumber(nBytes.toLong, 0, 255)
       /*8 bits, first bit is always 0*/
       /* put required zeros*/
       bitStream.appendNBitZero(nBytes * 8 - GetNumberOfBitsForNonNegativeInteger((v - min)))
@@ -320,7 +320,7 @@ trait Codec {
       val nBytes: Int = GetLengthInBytesOfUInt(v - min)
 
       /* encode length */
-      BitStream_EncodeConstraintWholeNumber(nBytes.toLong, 0, 255)
+      encodeConstraintWholeNumber(nBytes.toLong, 0, 255)
       /*8 bits, first bit is always 0*/
       /* put required zeros*/
       bitStream.appendNBitZero(nBytes * 8 - GetNumberOfBitsForNonNegativeInteger(v - min))
@@ -377,7 +377,7 @@ trait Codec {
       val nBytes: Int = GetLengthInBytesOfSInt(v)
 
       /* encode length */
-      BitStream_EncodeConstraintWholeNumber(nBytes.toLong, 0, 255)
+      encodeConstraintWholeNumber(nBytes.toLong, 0, 255)
       /*8 bits, first bit is always 0*/
 
       if v >= 0 then
@@ -415,24 +415,24 @@ trait Codec {
    }
 
    @extern
-   def BitStream_EncodeReal(vVal: Double): Unit = {
-      BitStream_EncodeRealBitString(java.lang.Double.doubleToRawLongBits(vVal))
+   def encodeReal(vVal: Double): Unit = {
+      encodeRealBitString(java.lang.Double.doubleToRawLongBits(vVal))
    }
 
-   private def BitStream_EncodeRealBitString(vVal: Long): Unit = {
+   private def encodeRealBitString(vVal: Long): Unit = {
       // according to T-REC-X.690 2021
 
       var v = vVal
 
       // 8.5.2 Plus Zero
       if v == DoublePosZeroBitString then
-         BitStream_EncodeConstraintWholeNumber(0, 0, 0xFF)
+         encodeConstraintWholeNumber(0, 0, 0xFF)
          return;
 
       // 8.5.3 Minus Zero
       if v == DoubleNegZeroBitString then
-         BitStream_EncodeConstraintWholeNumber(1, 0, 0xFF)
-         BitStream_EncodeConstraintWholeNumber(0x43, 0, 0xFF)
+         encodeConstraintWholeNumber(1, 0, 0xFF)
+         encodeConstraintWholeNumber(0x43, 0, 0xFF)
          return;
 
       // 8.5.9 SpecialRealValues (2021 standard)
@@ -440,20 +440,20 @@ trait Codec {
 
       // 8.5.9 PLUS-INFINITY
          if v == DoublePosInfBitString then
-            BitStream_EncodeConstraintWholeNumber(1, 0, 0xFF)
-            BitStream_EncodeConstraintWholeNumber(0x40, 0, 0xFF)
+            encodeConstraintWholeNumber(1, 0, 0xFF)
+            encodeConstraintWholeNumber(0x40, 0, 0xFF)
             return;
 
          // 8.5.9 MINUS-INFINITY
          else if v == DoubleNegInfBitString then
-            BitStream_EncodeConstraintWholeNumber(1, 0, 0xFF)
-            BitStream_EncodeConstraintWholeNumber(0x41, 0, 0xFF)
+            encodeConstraintWholeNumber(1, 0, 0xFF)
+            encodeConstraintWholeNumber(0x41, 0, 0xFF)
             return;
 
          // 8.5.9 NOT-A-NUMBER
          else
-            BitStream_EncodeConstraintWholeNumber(1, 0, 0xFF)
-            BitStream_EncodeConstraintWholeNumber(0x42, 0, 0xFF)
+            encodeConstraintWholeNumber(1, 0, 0xFF)
+            encodeConstraintWholeNumber(0x42, 0, 0xFF)
             return;
 
       // 8.5.6 a)
@@ -484,10 +484,10 @@ trait Codec {
          header |= 0x02
 
       /* encode length */
-      BitStream_EncodeConstraintWholeNumber(1 + nExpLen + nManLen, 0, 0xFF)
+      encodeConstraintWholeNumber(1 + nExpLen + nManLen, 0, 0xFF)
 
       /* encode header */
-      BitStream_EncodeConstraintWholeNumber(header & 0xFF, 0, 0xFF)
+      encodeConstraintWholeNumber(header & 0xFF, 0, 0xFF)
 
       /* encode exponent */
       if exponent >= 0 then
@@ -503,15 +503,15 @@ trait Codec {
    }
 
    @extern
-   def BitStream_DecodeReal(): Option[Double] = {
-      BitStream_DecodeRealBitString() match
+   def decodeReal(): Option[Double] = {
+      decodeRealBitString() match
          case None() =>
             None()
          case Some(ll) =>
             Some(java.lang.Double.longBitsToDouble(ll))
    }
 
-   private def BitStream_DecodeRealBitString(): Option[Long] = {
+   private def decodeRealBitString(): Option[Long] = {
       bitStream.readByte() match
          case None() => None()
          case Some(length) =>
@@ -548,10 +548,10 @@ trait Codec {
 
                   // Decode 8.5.7
                   else
-                     DecodeRealAsBinaryEncoding(length.toInt - 1, header)
+                     decodeRealFromBitStream(length.toInt - 1, header)
    }
 
-   private def DecodeRealAsBinaryEncoding(lengthVal: Int, header: UByte): Option[Long] = {
+   private def decodeRealFromBitStream(lengthVal: Int, header: UByte): Option[Long] = {
       require(lengthVal >= 1 && lengthVal < DoubleMaxLengthOfSentBytes) // without header byte
       require((header.unsignedToInt & 0x80) == 0x80)
       require(bitStream.buf.length > lengthVal)
@@ -723,16 +723,16 @@ trait Codec {
          decreases(nRemainingItemsVar1)
          if nRemainingItemsVar1 >= 0x10000 then
             nCurBlockSize1 = 0x10000
-            BitStream_EncodeConstraintWholeNumber(0xC4, 0, 0xFF)
+            encodeConstraintWholeNumber(0xC4, 0, 0xFF)
          else if nRemainingItemsVar1 >= 0xC000 then
             nCurBlockSize1 = 0xC000
-            BitStream_EncodeConstraintWholeNumber(0xC3, 0, 0xFF)
+            encodeConstraintWholeNumber(0xC3, 0, 0xFF)
          else if nRemainingItemsVar1 >= 0x8000 then
             nCurBlockSize1 = 0x8000
-            BitStream_EncodeConstraintWholeNumber(0xC2, 0, 0xFF)
+            encodeConstraintWholeNumber(0xC2, 0, 0xFF)
          else
             nCurBlockSize1 = 0x4000
-            BitStream_EncodeConstraintWholeNumber(0xC1, 0, 0xFF)
+            encodeConstraintWholeNumber(0xC1, 0, 0xFF)
 
          var i1: Int = nCurOffset1
          while i1 < nCurBlockSize1 + nCurOffset1 && ret do
@@ -745,10 +745,10 @@ trait Codec {
 
       if ret then
          if nRemainingItemsVar1 <= 0x7F then
-            BitStream_EncodeConstraintWholeNumber(nRemainingItemsVar1.toLong, 0, 0xFF)
+            encodeConstraintWholeNumber(nRemainingItemsVar1.toLong, 0, 0xFF)
          else
             bitStream.appendBit(true)
-            BitStream_EncodeConstraintWholeNumber(nRemainingItemsVar1.toLong, 0, 0x7FFF)
+            encodeConstraintWholeNumber(nRemainingItemsVar1.toLong, 0, 0x7FFF)
 
 
          var i1: Int = nCurOffset1
@@ -853,7 +853,7 @@ trait Codec {
       if ret then
          if asn1SizeMax < 65536 then
             if asn1SizeMin != asn1SizeMax then
-               BitStream_EncodeConstraintWholeNumber(nCount.toLong, asn1SizeMin, asn1SizeMax)
+               encodeConstraintWholeNumber(nCount.toLong, asn1SizeMin, asn1SizeMax)
             ret = BitStream_EncodeOctetString_no_length(arr, nCount)
 
          else
@@ -886,7 +886,7 @@ trait Codec {
    def BitStream_EncodeBitString(arr: Array[UByte], nCount: Int, asn1SizeMin: Long, asn1SizeMax: Long): Boolean = {
       if asn1SizeMax < 65536 then
          if asn1SizeMin != asn1SizeMax then
-            BitStream_EncodeConstraintWholeNumber(nCount.toLong, asn1SizeMin, asn1SizeMax)
+            encodeConstraintWholeNumber(nCount.toLong, asn1SizeMin, asn1SizeMax)
 
          bitStream.appendBits(arr, nCount)
 
@@ -899,17 +899,17 @@ trait Codec {
 
             if nRemainingItemsVar1 >= 0x10000 then
                nCurBlockSize1 = 0x10000
-               BitStream_EncodeConstraintWholeNumber(0xC4, 0, 0xFF)
+               encodeConstraintWholeNumber(0xC4, 0, 0xFF)
 
             else if nRemainingItemsVar1 >= 0xC000 then
                nCurBlockSize1 = 0xC000
-               BitStream_EncodeConstraintWholeNumber(0xC3, 0, 0xFF)
+               encodeConstraintWholeNumber(0xC3, 0, 0xFF)
             else if nRemainingItemsVar1 >= 0x8000 then
                nCurBlockSize1 = 0x8000
-               BitStream_EncodeConstraintWholeNumber(0xC2, 0, 0xFF)
+               encodeConstraintWholeNumber(0xC2, 0, 0xFF)
             else
                nCurBlockSize1 = 0x4000
-               BitStream_EncodeConstraintWholeNumber(0xC1, 0, 0xFF)
+               encodeConstraintWholeNumber(0xC1, 0, 0xFF)
 
             val t: Array[UByte] = Array.fill(nCurBlockSize1.toInt)(0) // STAINLESS: arr.slice((nCurOffset1 / 8).toInt, (nCurOffset1 / 8).toInt + nCurBlockSize1.toInt)
             bitStream.appendBits(t, nCurBlockSize1.toInt)
@@ -918,10 +918,10 @@ trait Codec {
 
 
          if nRemainingItemsVar1 <= 0x7F then
-            BitStream_EncodeConstraintWholeNumber(nRemainingItemsVar1, 0, 0xFF)
+            encodeConstraintWholeNumber(nRemainingItemsVar1, 0, 0xFF)
          else
             bitStream.appendBit(true)
-            BitStream_EncodeConstraintWholeNumber(nRemainingItemsVar1, 0, 0x7FFF)
+            encodeConstraintWholeNumber(nRemainingItemsVar1, 0, 0x7FFF)
 
          val t: Array[UByte] = Array.fill(nRemainingItemsVar1.toInt)(0) // STAINLESS: arr.slice((nCurOffset1 / 8).toInt, (nCurOffset1 / 8).toInt + nRemainingItemsVar1.toInt)
          bitStream.appendBits(t, nRemainingItemsVar1.toInt)

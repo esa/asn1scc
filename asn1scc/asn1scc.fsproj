@@ -8,12 +8,24 @@
 
 
   <ItemGroup>
-      <EmbeddedResource Include="asn1jvm_Codec.scala" />
-      <EmbeddedResource Include="asn1jvm_Codec_ACN.scala" />
-      <EmbeddedResource Include="asn1jvm_Codec_PER.scala" />
-      <EmbeddedResource Include="asn1jvm_Codec_UPER.scala" />
-      <EmbeddedResource Include="asn1jvm_Helper.scala" />
-      <EmbeddedResource Include="asn1jvm_Verification.scala" />
+      <EmbeddedResource Include="..\asn1scala\src\main\scala\asn1scala\asn1jvm.scala">
+      <Link>asn1jvm.scala</Link>
+    </EmbeddedResource>
+      <EmbeddedResource Include="..\asn1scala\src\main\scala\asn1scala\asn1jvm_Bitstream.scala">
+      <Link>asn1jvm_Bitstream.scala</Link>
+    </EmbeddedResource>
+      <EmbeddedResource Include="..\asn1scala\src\main\scala\asn1scala\asn1jvm_Codec.scala" Link="asn1jvm_Codec.scala" />
+      <EmbeddedResource Include="..\asn1scala\src\main\scala\asn1scala\asn1jvm_Codec_ACN.scala" Link="asn1jvm_Codec_ACN.scala" />
+      <EmbeddedResource Include="..\asn1scala\src\main\scala\asn1scala\asn1jvm_Codec_PER.scala" Link="asn1jvm_Codec_PER.scala" />
+      <EmbeddedResource Include="..\asn1scala\src\main\scala\asn1scala\asn1jvm_Codec_UPER.scala" Link="asn1jvm_Codec_UPER.scala" />
+      <EmbeddedResource Include="..\asn1scala\src\main\scala\asn1scala\asn1jvm_Helper.scala" Link="asn1jvm_Helper.scala" />
+      <EmbeddedResource Include="..\asn1scala\src\main\scala\asn1scala\asn1jvm_Verification.scala" Link="asn1jvm_Verification.scala" />
+      <EmbeddedResource Include="..\asn1scala\build.sbt">
+      <Link>build.sbt</Link>
+    </EmbeddedResource>
+      <EmbeddedResource Include="..\asn1scala\lib\stainless-library_2.13-0.9.7.jar">
+      <Link>stainless-library_2.13-0.9.7.jar</Link>
+    </EmbeddedResource>
       <EmbeddedResource Include="../ADA_RTL2/aux_files/asn1_msp430.gpr" />
       
       <EmbeddedResource Include="../ADA_RTL2/aux_files/asn1_stm32.gpr" />
@@ -87,20 +99,7 @@
         <PackageReference Update="FSharp.Core" Version="7.0.400" />
   </ItemGroup>
 
-  <ItemGroup>
-    <EmbeddedResource Include="..\asn1scala\src\main\scala\asn1scala\asn1jvm.scala">
-      <Link>asn1jvm.scala</Link>
-    </EmbeddedResource>
-    <EmbeddedResource Include="..\asn1scala\build.sbt">
-      <Link>build.sbt</Link>
-    </EmbeddedResource>
-    <EmbeddedResource Include="..\asn1scala\lib\stainless-library_2.13-0.9.7.jar">
-      <Link>stainless-library_2.13-0.9.7.jar</Link>
-    </EmbeddedResource>
-    <EmbeddedResource Include="..\asn1scala\src\main\scala\asn1scala\asn1jvm_Bitstream.scala">
-      <Link>asn1jvm_Bitstream.scala</Link>
-    </EmbeddedResource>
-  </ItemGroup>
+  <ItemGroup />
 
   <ItemGroup />
 
