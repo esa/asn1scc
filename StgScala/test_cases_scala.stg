@@ -60,7 +60,7 @@ Codec_Encode(sModName, sFuncName, sVal) ::= <<
 
 Codec_Decode(sModName, sFuncName, sTasName, sEnc, sAmber) ::= <<
 // test_cases_scala.stg:62
-BitStream_AttachBuffer(bitStrm, bitStrm.buf) // TODO: reset curBit, curByte instead?
+bitStrm.attachBuffer(bitStrm.buf) // TODO: reset curBit, curByte instead?
 // Decode value
 <sFuncName>(bitStrm) match
     case Left(_) => return Left(2)

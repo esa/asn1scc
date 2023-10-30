@@ -345,7 +345,7 @@ Boolean_encode(p, ptr, bEncValIsTrue, nSize, arruTrueValueAsByteArray, arruFalse
 {
     var true_data: Array[UByte] = Array(<arruTrueValueAsByteArray:{b|0x<b;format="X2">.asInstanceOf[UByte]}; separator=", ">)
     var false_data: Array[UByte] = Array(<arruFalseValueAsByteArray:{b|0x<b;format="X2">.asInstanceOf[UByte]}; separator=", ">)
-    BitStream_AppendBits(pBitStrm, if <p> then true_data else false_data, <nSize>)
+    pBitStrm.appendBits(if <p> then true_data else false_data, <nSize>)
 }
 >>
 
@@ -370,7 +370,7 @@ Null_pattern_encode(p, arruNullValueAsByteArray, nSize, arrsBits, sErrCode, bSav
 <if(arruNullValueAsByteArray)>
 {   
     val tmp: Array[Byte] = Array(<arruNullValueAsByteArray:{b|0x<b;format="X2">.asInstanceOf[Byte]}; separator=",">)
-    BitStream_AppendBits(pBitStrm, tmp, <nSize>)
+    pBitStrm.appendBits(tmp, <nSize>)
 }
 <endif>
 >>
@@ -570,7 +570,7 @@ if (<if(noSizeMin)>(<noSizeMin>\<=<sExtFld>) && <endif>(<sExtFld>\<=<nSizeMax>))
 
 oct_sqf_null_terminated_encode(p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength, sErrCode, nIntItemMinSize, nIntItemMaxSize) ::= <<
 <loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize=[p, sAcc, "nCount"])>
-BitStream_AppendBits(pBitStrm, (byte[]){<arruNullBytes; separator=", ">}, <nBitPatternLength>)
+pBitStrm.appendBits((byte[]){<arruNullBytes; separator=", ">}, <nBitPatternLength>)
 >>
 
 oct_sqf_null_terminated_decode(p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength, sErrCode, nIntItemMinSize, nIntItemMaxSize) ::= <<
@@ -594,7 +594,7 @@ if (ret && (checkBitPatternPresentResult == 0)) {
 >>
 
 bit_string_external_field_encode(p, sErrCode, sAcc, noSizeMin, nSizeMax, sExtFld) ::= <<
-BitStream_AppendBits(pBitStrm, <p><sAcc>arr, <p><sAcc>nCount)
+pBitStrm.appendBits(<p><sAcc>arr, <p><sAcc>nCount)
 >>
 
 bit_string_external_field_decode(p, sErrCode, sAcc, noSizeMin, nSizeMax, sExtFld) ::= <<
@@ -608,7 +608,7 @@ if <if(noSizeMin)>(<noSizeMin>\<=<sExtFld>) && <endif>(<sExtFld>\<=<nSizeMax>) t
 >>
 
 bit_string_external_field_fixed_size_encode(p, sErrCode, sAcc, noSizeMin, nSizeMax, sExtFld) ::= <<
-BitStream_AppendBits(pBitStrm, <p><sAcc>arr, <nSizeMax>)
+pBitStrm.appendBits(<p><sAcc>arr, <nSizeMax>)
 >>
 
 bit_string_external_field_fixed_size_decode(p, sErrCode, sAcc, noSizeMin, nSizeMax, sExtFld) ::= <<
@@ -621,8 +621,8 @@ if <if(noSizeMin)>(<noSizeMin>\<=<sExtFld>) && <endif>(<sExtFld>\<=<nSizeMax>) t
 >>
 
 bit_string_null_terminated_encode(p, sErrCode, sAcc, i, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength) ::= <<
-BitStream_AppendBits(pBitStrm, <p><sAcc>arr, <p><sAcc>nCount)
-BitStream_AppendBits(pBitStrm, (byte[]){<arruNullBytes; separator=", ">}, <nBitPatternLength>)
+pBitStrm.appendBits(<p><sAcc>arr, <p><sAcc>nCount)
+pBitStrm.appendBits((byte[]){<arruNullBytes; separator=", ">}, <nBitPatternLength>)
 >>
 
 bit_string_null_terminated_decode(p, sErrCode, sAcc, i, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength) ::= <<
@@ -650,9 +650,9 @@ ret = <sName>_ACN_Decode(<p>, pBitStrm, pErrCode<if(arrsArgs)>, <arrsLocalPrms; 
 /* SEQUENCE*/
 
 
-sequence_presense_optChild_encode(p, sAcc, sChName, sErrCode) ::= "BitStream_AppendBit(pBitStrm,<p><sAcc>exist.<sChName>)"
+sequence_presense_optChild_encode(p, sAcc, sChName, sErrCode) ::= "pBitStrm.appendBit(<p><sAcc>exist.<sChName>)"
 sequence_presense_optChild_decode(p, sAcc, sChName, sErrCode) ::= <<
-BitStream_ReadBit(pBitStrm) match
+pBitStrm.readBit() match
     case Some(bit) => 
         <p><sAcc>exist.<sChName> = bit
     case None() => 
@@ -1048,7 +1048,7 @@ octet_string_containing_ext_field_func_decode(p, sFuncName, sReqBytesForUperEnco
 >>
 
 bit_string_containing_ext_field_func_encode(p, sFuncName, sReqBytesForUperEncoding, sReqBitsForUperEncoding, sExtField, sErrCode) ::= <<
-BitStream_AppendBits(pBitStrm, arr, <sExtField>.asInstanceOf[Int])
+pBitStrm.appendBits(arr, <sExtField>.asInstanceOf[Int])
 >>
 
 bit_string_containing_ext_field_func_decode(p, sFuncName, sReqBytesForUperEncoding, sReqBitsForUperEncoding, sExtField, sErrCode) ::= <<
@@ -1143,11 +1143,11 @@ bit_string_containing_func_encode(p, sFuncName, sReqBytesForAcnEncoding, sReqBit
     if ret.isRight then
         val nCount: Int = bitStrm.currentByte*8 + bitStrm.currentBit;
         <if(bFixedSize)>
-        BitStream_AppendBits(pBitStrm, bitStrm.buf, nCount);
+        pBitStrm.appendBits(bitStrm.buf, nCount);
 
         <else>
         BitStream_EncodeConstraintWholeNumber(pBitStrm, nCount, <nMinSize>, <nMaxSize>)
-        BitStream_AppendBits(pBitStrm, bitStrm.buf, nCount)
+        pBitStrm.appendBits(bitStrm.buf, nCount)
 
         <endif>
 }

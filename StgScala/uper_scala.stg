@@ -75,7 +75,7 @@ def <sFuncName>(<if(bBsIsUnreferenced)>@annotation.unused <endif>pBitStrm: BitSt
 >>
 
 InternalItem_oct_str_encode(p, sAcc, i, sErrCode) ::=<<
-BitStream_AppendByte0(pBitStrm, <p><sAcc>arr(<i>))
+pBitStrm.appendByte0(<p><sAcc>arr(<i>))
 >>
 
 InternalItem_oct_str_decode(p, sAcc, i, sErrCode) ::=<<
@@ -181,7 +181,7 @@ IntNoneRequired_decode(p, nConst, sErrCode) ::= <<
 
 /*case: A:: = INTEGER (5..40,...) */
 IntRootExt_encode(p, nMin, sRootBaseConstraint, sIntBody, sErrCode) ::=<<
-BitStream_AppendBitZero(pBitStrm) /* write extension bit*/
+pBitStrm.appendBitZero() /* write extension bit*/
 <sIntBody>
 >>
 
@@ -190,7 +190,7 @@ IntRootExt_decode(p, nMin, sRootBaseConstraint, sIntBody, sErrCode) ::=<<
     extBit: Ref[Boolean] = Ref(false)
 
     /* read extension bit*/
-    val success = BitStream_ReadBit(pBitStrm, extBit))
+    val success = pBitStrm.readBit(extBit)
     if success then
         if extBit == false then /* ext bit is zero ==> value is expecteted with root range*/
             <sIntBody>
@@ -204,11 +204,11 @@ IntRootExt_decode(p, nMin, sRootBaseConstraint, sIntBody, sErrCode) ::=<<
 /*case: A:: = INTEGER (5..40,..., 60..70) */
 IntRootExt2_encode(p, nMin, sRootBaseConstraint, sIntBody, sErrCode) ::=<<
 if <sRootBaseConstraint> then
-    BitStream_AppendBitZero(pBitStrm) /* write extension bit, value within root range, so ext bit is zero */
+    pBitStrm.appendBitZero() /* write extension bit, value within root range, so ext bit is zero */
     <sIntBody>
 else 
     /* value is not within root range, so ext bit is one and value is encoded as uncostraint */
-    BitStream_AppendBitOne(pBitStrm)
+    pBitStrm.appendBitOne()
     <IntUnconstraint_encode(p=p, sErrCode=sErrCode)>
 >>
 
@@ -218,11 +218,11 @@ IntRootExt2_decode(p, nMin, sRootBaseConstraint, sIntBody, sErrCode) ::="<IntRoo
 /* INTEGER END*/
 
 Boolean_encode(p, sErrCode) ::= <<
-BitStream_AppendBit(pBitStrm,<p>)
+pBitStrm.appendBit(<p>)
 >>
 
 Boolean_decode(p, sErrCode) ::= <<
-BitStream_ReadBit(pBitStrm) match
+pBitStrm.readBit() match
     case Some(bit) =>
         <p> = bit
     case None() =>
@@ -327,16 +327,16 @@ BitStream_DecodeConstraintWholeNumber(pBitStrm, 0, <nLastItemIndex>) match
 /* CHOICE END*/
 
 /* SEQUENCE START */
-sequence_presence_bit_encode(p, sAcc, sChName, sErrCode) ::= "BitStream_AppendBit(pBitStrm,<p><sAcc>exist.<sChName>);"
+sequence_presence_bit_encode(p, sAcc, sChName, sErrCode) ::= "pBitStrm.appendBit(<p><sAcc>exist.<sChName>);"
 sequence_presence_bit_decode(p, sAcc, sChName, sErrCode) ::= <<
-BitStream_ReadBit(pBitStrm) match
+pBitStrm.readBit() match
     case Some(bit) =>
         <p><sAcc>exist.<sChName> = bit
     case None() =>
         return Left(<sErrCode>)
 >>
 
-sequence_presence_bit_fix_encode(p, sAcc, sChName, sErrCode, sVal) ::= "BitStream_AppendBit(pBitStrm, <sVal>)"
+sequence_presence_bit_fix_encode(p, sAcc, sChName, sErrCode, sVal) ::= "pBitStrm.appendBit( <sVal>)"
 
 sequence_presence_bit_fix_decode(p, sAcc, sChName, sErrCode, sVal) ::= <<
 <sequence_presence_bit_decode(p=p, sAcc=sAcc, sChName=sChName, sErrCode=sErrCode)>
@@ -490,7 +490,7 @@ BitStream_DecodeOctetString_no_length(pBitStrm, <p><sAcc>nCount.asInstanceOf[Int
 /* BIT STRING*/
 bitString_FixSize_encode(p, sAcc, nFixedSize, sErrCode) ::= <<
 assert(<nFixedSize>.asInstanceOf[Int] >= 0) // overflow may happen during cast
-BitStream_AppendBits(pBitStrm, <p><sAcc>arr, <nFixedSize>.asInstanceOf[Int])
+pBitStrm.appendBits(<p><sAcc>arr, <nFixedSize>.asInstanceOf[Int])
 >>
 bitString_FixSize_decode(p, sAcc, nFixedSize, sErrCode) ::= <<
 BitStream_ReadBits(pBitStrm, <nFixedSize>.asInstanceOf[Int]) match
@@ -524,7 +524,7 @@ while(<sBlockIndex> \< <nBlocks64K>)
 {
     BitStream_EncodeConstraintWholeNumber(pBitStrm, 0xC4, 0, 0xFF)
     <if(bIsBitStringType)>
-    BitStream_AppendBits(pBitStrm, &<p><sAcc>arr[<sCurOffset>/8], (int)<sCurBlockSize>)
+    pBitStrm.appendBits(&<p><sAcc>arr[<sCurOffset>/8], (int)<sCurBlockSize>)
 
     <else>
     val <sBLI>=(int)<sCurOffset>
@@ -544,7 +544,7 @@ FixedSize_Fragmentation_sqf_small_block_encode(p, sAcc,sInternalItem, nBlockSize
 <sCurBlockSize> = <nBlockSize>;
 BitStream_EncodeConstraintWholeNumber(pBitStrm, <sBlockId>, 0, 0xFF)
 <if(bIsBitStringType)>
-BitStream_AppendBits(pBitStrm, &<p><sAcc>arr[<sCurOffset>/8], (int)<sCurBlockSize>);
+pBitStrm.appendBits(&<p><sAcc>arr[<sCurOffset>/8], (int)<sCurBlockSize>);
 
 <else>
 for(<sBLI>=(int)<sCurOffset>; <sBLI> \< (int)(<sCurBlockSize> + <sCurOffset>); <sBLI>++)
@@ -562,12 +562,12 @@ FixedSize_Fragmentation_sqf_remaining_encode(p, sAcc,sInternalItem, bRemainingIt
 BitStream_EncodeConstraintWholeNumber(pBitStrm, <nRemainingItemsVar>, 0, 0xFF)
 
 <else>
-BitStream_AppendBit(pBitStrm, true)
+pBitStrm.appendBit(true)
 BitStream_EncodeConstraintWholeNumber(pBitStrm, <nRemainingItemsVar>, 0, 0x7FFF)
 
 <endif>
 <if(bIsBitStringType)>
-BitStream_AppendBits(pBitStrm, &<p><sAcc>arr[<sCurOffset>/8], (int)<nRemainingItemsVar>);
+pBitStrm.appendBits(&<p><sAcc>arr[<sCurOffset>/8], (int)<nRemainingItemsVar>);
 
 <else>
 for(<sBLI>=(int)<sCurOffset>; <sBLI> \< (int)(<sCurOffset> + <nRemainingItemsVar>); <sBLI>++)
@@ -603,7 +603,7 @@ while (<sRemainingItemsVar> >= 0x4000 && <sBlockIndex> \< <if(bIsAsciiString)>(a
         BitStream_EncodeConstraintWholeNumber(pBitStrm, 0xC1, 0, 0xFF)
     
     <if(bIsBitStringType)>
-    BitStream_AppendBits(pBitStrm, &<p><sAcc>arr[<sCurOffset>/8], (int)<sCurBlockSize>);
+    pBitStrm.appendBits(&<p><sAcc>arr[<sCurOffset>/8], (int)<sCurBlockSize>);
     <else>
     <sBLI>=<sCurOffset>.asInstanceOf[Int]
     while(<sBLI> \< (<sCurBlockSize> + <sCurOffset>).asInstanceOf[Int])
@@ -620,11 +620,11 @@ while (<sRemainingItemsVar> >= 0x4000 && <sBlockIndex> \< <if(bIsAsciiString)>(a
 if <sRemainingItemsVar> \<= 0x7F then
     BitStream_EncodeConstraintWholeNumber(pBitStrm, <sRemainingItemsVar>, 0, 0xFF)
 else
-    BitStream_AppendBit(pBitStrm, true)
+    pBitStrm.appendBit(true)
     BitStream_EncodeConstraintWholeNumber(pBitStrm, <sRemainingItemsVar>, 0, 0x7FFF)
 
 <if(bIsBitStringType)>
-BitStream_AppendBits(pBitStrm, &<p><sAcc>arr[<sCurOffset>/8], (int)<sRemainingItemsVar>);
+pBitStrm.appendBits(&<p><sAcc>arr[<sCurOffset>/8], (int)<sRemainingItemsVar>);
 <else>
 <sBLI> = <sCurOffset>.asInstanceOf[Int]
 while(<sBLI> \< (<sCurOffset> + <sRemainingItemsVar>).asInstanceOf[Int])
