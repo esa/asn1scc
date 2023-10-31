@@ -106,7 +106,7 @@ codec.encodeConstraintWholeNumber(<p>(<i>), 0, 127)
 >>
 
 InternalItem_string_no_alpha_decode(p, sErrCode, i) ::=<<
-codec.BitStream_DecodeConstraintWholeNumberByte(0, 127) match // uper:109
+codec.decodeConstraintWholeNumberByte(0, 127) match // uper:109
     case Some(c) =>
         <p>(<i>) = c
     case None() =>
@@ -143,9 +143,9 @@ codec.decodeConstraintPosWholeNumber<sSsuffix>(<nMin>, <nMax>) match // uper:135
 >>
 
 /*case: A :: = INTEGER */
-IntUnconstraint_encode(p, sErrCode, bCoverageIgnore) ::= "codec.BitStream_EncodeUnConstraintWholeNumber(<p>);"
+IntUnconstraint_encode(p, sErrCode, bCoverageIgnore) ::= "codec.encodeUnConstraintWholeNumber(<p>)"
 IntUnconstraint_decode(p, sErrCode, bCoverageIgnore) ::= <<
-codec.BitStream_DecodeUnConstraintWholeNumber() match // uper:145
+codec.decodeUnConstraintWholeNumber() match // uper:145
     case Some(x) =>
         <p> = x
     case None() =>
@@ -153,23 +153,23 @@ codec.BitStream_DecodeUnConstraintWholeNumber() match // uper:145
 >>
 
 /*case: A :: = INTEGER(MIN..5) */
-IntUnconstraintMax_encode(p, nMax, soCheckExp, sErrCode) ::= "codec.BitStream_EncodeUnConstraintWholeNumber(<p>);"
+IntUnconstraintMax_encode(p, nMax, soCheckExp, sErrCode) ::= "codec.encodeUnConstraintWholeNumber(<p>)"
 IntUnconstraintMax_decode(p, nMax, soCheckExp, sErrCode) ::= <<
-if !codec.BitStream_DecodeUnConstraintWholeNumber() then
+if !codec.decodeUnConstraintWholeNumber() then
     ret = <if(soCheckExp)> if <soCheckExp> then 0 else <endif> <sErrCode>
 >>
 
 /*case: A:: = INTEGER (-5..MAX) */
-IntSemiConstraint_encode(p, nMin, sErrCode) ::= "codec.BitStream_EncodeSemiConstraintWholeNumber(<p>, <nMin>);"
+IntSemiConstraint_encode(p, nMin, sErrCode) ::= "codec.encodeSemiConstraintWholeNumber(<p>, <nMin>)"
 IntSemiConstraint_decode(p, nMin, sErrCode) ::= <<
-if !codec.BitStream_DecodeSemiConstraintWholeNumber(<nMin>) then
+if !codec.decodeSemiConstraintWholeNumber(<nMin>) then
     ret = <sErrCode>
 >>
 
 /*case: A:: = INTEGER (5..MAX) */
-IntSemiConstraintPos_encode(p, nMin, sErrCode) ::= "codec.BitStream_EncodeSemiConstraintPosWholeNumber(<p>, <nMin>);"
+IntSemiConstraintPos_encode(p, nMin, sErrCode) ::= "codec.encodeSemiConstraintPosWholeNumber(<p>, <nMin>)"
 IntSemiConstraintPos_decode(p, nMin, sErrCode) ::= <<
-if !codec.BitStream_DecodeSemiConstraintPosWholeNumber(<nMin>) then
+if !codec.decodeSemiConstraintPosWholeNumber(<nMin>) then
     ret = <sErrCode>
 >>
 
@@ -418,7 +418,7 @@ codec.encodeConstraintWholeNumber(nStringLength, <nSizeMin>, <nSizeMax>)
 
 str_VarSize_decode(p, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize) ::= <<
 nStringLength = 0
-codec.BitStream_DecodeConstraintWholeNumberInt(<nSizeMin>, <nSizeMax>) match // uper:418
+codec.decodeConstraintWholeNumberInt(<nSizeMin>, <nSizeMax>) match // uper:418
     case Some(n) => 
         nStringLength = n
         <p>(nStringLength) = 0 // TODO do we need a 0 terminator?
@@ -455,12 +455,12 @@ codec.decodeConstraintWholeNumber(<nSizeMin>, <nSizeMax>) match // uper:444
 >>
 
 octect_FixedSize_encode(p, sAcc, nFixedSize) ::= <<
-if !codec.BitStream_EncodeOctetString_no_length(<p><sAcc>arr, <nFixedSize>.asInstanceOf[Int]) then
+if !codec.encodeOctetString_no_length(<p><sAcc>arr, <nFixedSize>.asInstanceOf[Int]) then
     ret = Left(446)
 >>
 
 octect_FixedSize_decode(p, sAcc, nFixedSize) ::= <<
-codec.BitStream_DecodeOctetString_no_length(<nFixedSize>) match // uper:460
+codec.decodeOctetString_no_length(<nFixedSize>) match // uper:460
     case SomeMut(x) => 
         x.copyToArray(<p><sAcc>arr)
     case NoneMut() => 
@@ -469,7 +469,7 @@ codec.BitStream_DecodeOctetString_no_length(<nFixedSize>) match // uper:460
 
 octect_VarSize_encode(p, sAcc, nSizeMin, nSizeMax, nSizeInBits, sErrCode) ::= <<
 codec.encodeConstraintWholeNumber(<p><sAcc>nCount, <nSizeMin>, <nSizeMax>)
-if !codec.BitStream_EncodeOctetString_no_length(<p><sAcc>arr, <p><sAcc>nCount.asInstanceOf[Int]) then
+if !codec.encodeOctetString_no_length(<p><sAcc>arr, <p><sAcc>nCount.asInstanceOf[Int]) then
     ret = Left(<sErrCode>)
 >>
 
@@ -483,7 +483,7 @@ codec.decodeConstraintWholeNumber(<nSizeMin>, <nSizeMax>) match // uper:475
         return Left(<sErrCode>)
 
 // decode payload
-codec.BitStream_DecodeOctetString_no_length(<p><sAcc>nCount.asInstanceOf[Int]) match // uper:483
+codec.decodeOctetString_no_length(<p><sAcc>nCount.asInstanceOf[Int]) match // uper:483
     case SomeMut(a) =>    
         a.copyToArray(<p><sAcc>arr)
     case NoneMut() => 
@@ -838,7 +838,7 @@ octet_string_containing_func_encode(p, sFuncName, sReqBytesForUperEncoding, nBit
     ret = <sFuncName>(<p>, &bitStrm, false) // TODO call wrong
     if (ret) then {
         int nCount = bitStrm.currentBit == 0 ? bitStrm.currentByte : (bitStrm.currentByte + 1);
-        ret = BitStream_EncodeOctetString(pBitStrm, arr, nCount, <nMinSize>, <nMaxSize>);
+        ret = pBitStrm.encodeOctetString(arr, nCount, <nMinSize>, <nMaxSize>);
     }
 }
 >>
@@ -851,7 +851,7 @@ octet_string_containing_func_decode(p, sFuncName, sReqBytesForUperEncoding, nBit
     BitStream bitStrm;
     BitStream_Init(&bitStrm, arr, sizeof(arr));
     int nCount;
-    ret = BitStream_DecodeOctetString(pBitStrm, arr, &nCount, <nMinSize>, <nMaxSize>);
+    ret = pBitStrm.decodeOctetString(arr, &nCount, <nMinSize>, <nMaxSize>);
     if (ret) then{
         ret = <sFuncName>(<p>, &bitStrm);
     }
@@ -869,7 +869,7 @@ bit_string_containing_func_encode(p, sFuncName, sReqBytesForUperEncoding, sReqBi
     ret = <sFuncName>(<p>, &bitStrm, false)
     if (ret) then {
         int nCount = bitStrm.currentByte*8 + bitStrm.currentBit;
-        ret = BitStream_EncodeBitString(pBitStrm, arr, nCount, <nMinSize>, <nMaxSize>);
+        ret = pBitStrm.encodeBitString(arr, nCount, <nMinSize>, <nMaxSize>);
     }
 }
 >>
@@ -882,7 +882,7 @@ bit_string_containing_func_decode(p, sFuncName, sReqBytesForUperEncoding, sReqBi
     BitStream bitStrm;
     BitStream_Init(&bitStrm, arr, sizeof(arr));
     int nCount;
-    ret = BitStream_DecodeBitString(pBitStrm, arr, &nCount, <nMinSize>, <nMaxSize>);
+    ret = pBitStrm.decodeBitString(arr, &nCount, <nMinSize>, <nMaxSize>);
     if (ret) then {
         ret = <sFuncName>(<p>, &bitStrm)
     }

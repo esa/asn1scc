@@ -244,42 +244,42 @@ trait Codec {
          case Some(ul) => return Some(ul + min)
    }
 
-   def BitStream_DecodeConstraintWholeNumberByte(min: Byte, max: Byte): Option[Byte] = {
+   def decodeConstraintWholeNumberByte(min: Byte, max: Byte): Option[Byte] = {
 
       decodeConstraintWholeNumber(min.toLong, max.toLong) match
          case None() => None()
          case Some(l) => Some(l.toByte)
    }
 
-   def BitStream_DecodeConstraintWholeNumberShort(min: Short, max: Short): Option[Short] = {
+   def decodeConstraintWholeNumberShort(min: Short, max: Short): Option[Short] = {
 
       decodeConstraintWholeNumber(min, max) match
          case None() => None()
          case Some(l) => Some(l.toShort)
    }
 
-   def BitStream_DecodeConstraintWholeNumberInt(min: Int, max: Int): Option[Int] = {
+   def decodeConstraintWholeNumberInt(min: Int, max: Int): Option[Int] = {
 
       decodeConstraintWholeNumber(min, max) match
          case None() => None()
          case Some(l) => Some(l.toInt)
    }
 
-   def BitStream_DecodeConstraintWholeNumberUByte(min: UByte, max: UByte): Option[UByte] = {
+   def decodeConstraintWholeNumberUByte(min: UByte, max: UByte): Option[UByte] = {
 
       decodeConstraintWholeNumber(min.unsignedToLong, max.unsignedToLong) match
          case None() => None()
          case Some(l) => Some(l.toByte)
    }
 
-   def BitStream_DecodeConstraintWholeNumberUShort(min: UShort, max: UShort): Option[UShort] = {
+   def decodeConstraintWholeNumberUShort(min: UShort, max: UShort): Option[UShort] = {
 
       decodeConstraintWholeNumber(min.unsignedToLong, max.unsignedToLong) match
          case None() => None()
          case Some(l) => Some(l.toShort)
    }
 
-   def BitStream_DecodeConstraintWholeNumberUInt(min: UInt, max: UInt): Option[UInt] = {
+   def decodeConstraintWholeNumberUInt(min: UInt, max: UInt): Option[UInt] = {
 
       decodeConstraintWholeNumber(min.unsignedToLong, max.unsignedToLong) match
          case None() => None()
@@ -302,7 +302,7 @@ trait Codec {
          case Some(uv) => Some(uv + min)
    }
 
-   def BitStream_EncodeSemiConstraintWholeNumber(v: Long, min: Long): Unit = {
+   def encodeSemiConstraintWholeNumber(v: Long, min: Long): Unit = {
       assert(v >= min)
       val nBytes: Int = GetLengthInBytesOfUInt((v - min))
 
@@ -315,7 +315,7 @@ trait Codec {
       encodeNonNegativeInteger((v - min))
    }
 
-   def BitStream_EncodeSemiConstraintPosWholeNumber(v: ULong, min: ULong): Unit = {
+   def encodeSemiConstraintPosWholeNumber(v: ULong, min: ULong): Unit = {
       assert(v >= min)
       val nBytes: Int = GetLengthInBytesOfUInt(v - min)
 
@@ -328,7 +328,7 @@ trait Codec {
       encodeNonNegativeInteger(v - min)
    }
 
-   def BitStream_DecodeSemiConstraintWholeNumber(min: Long): Option[Long] = {
+   def decodeSemiConstraintWholeNumber(min: Long): Option[Long] = {
 
       var nBytes: Long = 0
       var v: Long = 0
@@ -352,7 +352,7 @@ trait Codec {
       return Some(v)
    }
 
-   def BitStream_DecodeSemiConstraintPosWholeNumber(min: ULong): Option[ULong] = {
+   def decodeSemiConstraintPosWholeNumber(min: ULong): Option[ULong] = {
 
       var nBytes: Long = 0
       var v: ULong = 0
@@ -373,7 +373,7 @@ trait Codec {
       return Some(v)
    }
 
-   def BitStream_EncodeUnConstraintWholeNumber(v: Long): Unit = {
+   def encodeUnConstraintWholeNumber(v: Long): Unit = {
       val nBytes: Int = GetLengthInBytesOfSInt(v)
 
       /* encode length */
@@ -389,7 +389,7 @@ trait Codec {
    }
 
 
-   def BitStream_DecodeUnConstraintWholeNumber(): Option[Long] = {
+   def decodeUnConstraintWholeNumber(): Option[Long] = {
 
       var nBytes: Long = 0
 
@@ -611,7 +611,7 @@ trait Codec {
       Some(v)
    }
 
-   def BitStream_checkBitPatternPresent(bit_terminated_pattern: Array[UByte], bit_terminated_pattern_size_in_bitsVal: UByte): Int = {
+   def checkBitPatternPresent(bit_terminated_pattern: Array[UByte], bit_terminated_pattern_size_in_bitsVal: UByte): Int = {
       var bit_terminated_pattern_size_in_bits = bit_terminated_pattern_size_in_bitsVal
       val tmp_currentByte: Int = bitStream.currentByte
       val tmp_currentBit: Int = bitStream.currentBit
@@ -650,14 +650,14 @@ trait Codec {
       return 2
    }
 
-   def BitStream_ReadBits_nullterminated(bit_terminated_pattern: Array[UByte], bit_terminated_pattern_size_in_bits: UByte, nMaxReadBits: Int): OptionMut[(Array[UByte], Int)] = {
+   def readBits_nullterminated(bit_terminated_pattern: Array[UByte], bit_terminated_pattern_size_in_bits: UByte, nMaxReadBits: Int): OptionMut[(Array[UByte], Int)] = {
       var checkBitPatternPresentResult: Int = 0
 
       var bitsRead: Int = 0
 
       val tmpStrm: BitStream = BitStream_Init(if nMaxReadBits % 8 == 0 then nMaxReadBits / 8 else nMaxReadBits / 8 + 1)
 
-      checkBitPatternPresentResult = BitStream_checkBitPatternPresent(bit_terminated_pattern, bit_terminated_pattern_size_in_bits)
+      checkBitPatternPresentResult = checkBitPatternPresent(bit_terminated_pattern, bit_terminated_pattern_size_in_bits)
       while (bitsRead < nMaxReadBits) && (checkBitPatternPresentResult == 1) do
          decreases(nMaxReadBits - bitsRead)
          bitStream.readBit() match
@@ -667,10 +667,10 @@ trait Codec {
                bitsRead += 1
 
          if bitsRead < nMaxReadBits then
-            checkBitPatternPresentResult = BitStream_checkBitPatternPresent(bit_terminated_pattern, bit_terminated_pattern_size_in_bits)
+            checkBitPatternPresentResult = checkBitPatternPresent(bit_terminated_pattern, bit_terminated_pattern_size_in_bits)
 
       if (bitsRead == nMaxReadBits) && (checkBitPatternPresentResult == 1) then
-         checkBitPatternPresentResult = BitStream_checkBitPatternPresent(bit_terminated_pattern, bit_terminated_pattern_size_in_bits)
+         checkBitPatternPresentResult = checkBitPatternPresent(bit_terminated_pattern, bit_terminated_pattern_size_in_bits)
 
       if checkBitPatternPresentResult != 2 then
          return NoneMut()
@@ -678,7 +678,7 @@ trait Codec {
       return SomeMut((tmpStrm.buf, bitsRead))
    }
 
-   def BitStream_EncodeOctetString_no_length(arr: Array[UByte], nCount: Int): Boolean = {
+   def encodeOctetString_no_length(arr: Array[UByte], nCount: Int): Boolean = {
       val cb = bitStream.currentBit
       var ret: Boolean = false
 
@@ -694,7 +694,7 @@ trait Codec {
       ret
    }
 
-   def BitStream_DecodeOctetString_no_length(nCount: Int): OptionMut[Array[UByte]] = {
+   def decodeOctetString_no_length(nCount: Int): OptionMut[Array[UByte]] = {
       val cb: Int = bitStream.currentBit
       val arr: Array[UByte] = Array.fill(nCount + 1)(0)
 
@@ -713,7 +713,7 @@ trait Codec {
       SomeMut(arr)
    }
 
-   def BitStream_EncodeOctetString_fragmentation(arr: Array[UByte], nCount: Int): Boolean = {
+   def encodeOctetString_fragmentation(arr: Array[UByte], nCount: Int): Boolean = {
       var nRemainingItemsVar1: Int = nCount
       var nCurBlockSize1: Int = 0
       var nCurOffset1: Int = 0
@@ -760,7 +760,7 @@ trait Codec {
       return ret
    }
 
-   def BitStream_DecodeOctetString_fragmentation(asn1SizeMax: Long): OptionMut[Array[UByte]] = {
+   def decodeOctetString_fragmentation(asn1SizeMax: Long): OptionMut[Array[UByte]] = {
       require(asn1SizeMax >= 0 && asn1SizeMax < Int.MaxValue)
 
       val arr: Array[UByte] = Array.fill(asn1SizeMax.toInt)(0)
@@ -847,22 +847,22 @@ trait Codec {
       NoneMut()
    }
 
-   def BitStream_EncodeOctetString(arr: Array[UByte], nCount: Int, asn1SizeMin: Long, asn1SizeMax: Long): Boolean = {
+   def encodeOctetString(arr: Array[UByte], nCount: Int, asn1SizeMin: Long, asn1SizeMax: Long): Boolean = {
       var ret: Boolean = nCount.toLong >= asn1SizeMin && nCount.toLong <= asn1SizeMax
 
       if ret then
          if asn1SizeMax < 65536 then
             if asn1SizeMin != asn1SizeMax then
                encodeConstraintWholeNumber(nCount.toLong, asn1SizeMin, asn1SizeMax)
-            ret = BitStream_EncodeOctetString_no_length(arr, nCount)
+            ret = encodeOctetString_no_length(arr, nCount)
 
          else
-            ret = BitStream_EncodeOctetString_fragmentation(arr, nCount)
+            ret = encodeOctetString_fragmentation(arr, nCount)
 
       return ret
    }
 
-   def BitStream_DecodeOctetString(asn1SizeMin: Long, asn1SizeMax: Long): OptionMut[Array[UByte]] = {
+   def decodeOctetString(asn1SizeMin: Long, asn1SizeMax: Long): OptionMut[Array[UByte]] = {
 
       if asn1SizeMax < 65536 then
          var nCount: Int = 0
@@ -874,16 +874,16 @@ trait Codec {
             nCount = asn1SizeMin.toInt
 
          if (nCount >= asn1SizeMin && nCount <= asn1SizeMax) then
-            return BitStream_DecodeOctetString_no_length(nCount)
+            return decodeOctetString_no_length(nCount)
          else
             return NoneMut()
 
       else
-         return BitStream_DecodeOctetString_fragmentation(asn1SizeMax)
+         return decodeOctetString_fragmentation(asn1SizeMax)
 
    }
 
-   def BitStream_EncodeBitString(arr: Array[UByte], nCount: Int, asn1SizeMin: Long, asn1SizeMax: Long): Boolean = {
+   def encodeBitString(arr: Array[UByte], nCount: Int, asn1SizeMin: Long, asn1SizeMax: Long): Boolean = {
       if asn1SizeMax < 65536 then
          if asn1SizeMin != asn1SizeMax then
             encodeConstraintWholeNumber(nCount.toLong, asn1SizeMin, asn1SizeMax)
@@ -929,7 +929,7 @@ trait Codec {
       true
    }
 
-   def BitStream_DecodeBitString(asn1SizeMin: Long, asn1SizeMax: Long): OptionMut[Array[UByte]] = {
+   def decodeBitString(asn1SizeMin: Long, asn1SizeMax: Long): OptionMut[Array[UByte]] = {
       require(asn1SizeMax <= Int.MaxValue)
 
       if (asn1SizeMax < 65536) {

@@ -522,7 +522,7 @@ codec.dec_IA5String_CharIndex_External_Field_Determinant(<nAsn1Max>, <sExtFld>) 
 
 
 oct_external_field_encode(p, sAcc, noSizeMin, nSizeMax, sExtFld, nAlignSize, sErrCode) ::= <<
-codec.BitStream_EncodeOctetString_no_length(<p><sAcc>arr, <p><sAcc>nCount.toInt) match
+codec.encodeOctetString_no_length(<p><sAcc>arr, <p><sAcc>nCount.toInt) match
     case false => return Left(<sErrCode>)
     case true => ret = Right(0)
 >>
@@ -530,20 +530,20 @@ codec.BitStream_EncodeOctetString_no_length(<p><sAcc>arr, <p><sAcc>nCount.toInt)
 oct_external_field_decode(p, sAcc, noSizeMin, nSizeMax, sExtFld, nAlignSize, sErrCode) ::= <<
 if (<if(noSizeMin)>(<noSizeMin>\<=<sExtFld>) && <endif>(<sExtFld>\<=<nSizeMax>)) then
     <p><sAcc>nCount = <sExtFld>.asInstanceOf[Int]
-    codec.BitStream_DecodeOctetString_no_length(<p><sAcc>nCount.toInt) match
+    codec.decodeOctetString_no_length(<p><sAcc>nCount.toInt) match
         case NoneMut() => return Left(<sErrCode>)
         case SomeMut(x) => x.copyToArray(<p><sAcc>arr)
 >>
 
 oct_external_field_fix_size_encode(p, sAcc, noSizeMin, nSizeMax, sExtFld, nAlignSize, sErrCode) ::= <<
-codec.BitStream_EncodeOctetString_no_length(<p><sAcc>arr, <nSizeMax>) match
+codec.encodeOctetString_no_length(<p><sAcc>arr, <nSizeMax>) match
     case false => return Left(<sErrCode>)
     case true => ret = Right(0)
 >>
 
 oct_external_field_fix_size_decode(p, sAcc, noSizeMin, nSizeMax, sExtFld, nAlignSize, sErrCode) ::= <<
 if (<if(noSizeMin)>(<noSizeMin>\<=<sExtFld>) && <endif>(<sExtFld>\<=<nSizeMax>)) then
-    codec.BitStream_DecodeOctetString_no_length(<nSizeMax>) match 
+    codec.decodeOctetString_no_length(<nSizeMax>) match 
         case NoneMut() => return Left(<sErrCode>)
         case SomeMut(x) => <p><sAcc>arr = x
 >>
@@ -576,12 +576,12 @@ codec.appendBits((byte[]){<arruNullBytes; separator=", ">}, <nBitPatternLength>)
 oct_sqf_null_terminated_decode(p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength, sErrCode, nIntItemMinSize, nIntItemMaxSize) ::= <<
 <i> = 0
 ret = Right(0)
-while ret.isRight && <i> \< <nSizeMax> && ((checkBitPatternPresentResult = codec.BitStream_checkBitPatternPresent((byte[]){<arruNullBytes; separator=", ">}, <nBitPatternLength>)) == 1)) do
+while ret.isRight && <i> \< <nSizeMax> && ((checkBitPatternPresentResult = codec.checkBitPatternPresent((byte[]){<arruNullBytes; separator=", ">}, <nBitPatternLength>)) == 1)) do
     <sInternalItem>
     <i> += 1
 
 if ret.isRight && (<i> == <nSizeMax>) && (checkBitPatternPresentResult == 1) then
-    checkBitPatternPresentResult = codec.BitStream_checkBitPatternPresent((byte[]){<arruNullBytes; separator=", ">}, <nBitPatternLength>)
+    checkBitPatternPresentResult = codec.checkBitPatternPresent((byte[]){<arruNullBytes; separator=", ">}, <nBitPatternLength>)
 
 if (ret && (checkBitPatternPresentResult == 0)) {
     ret = FALSE;			/*COVERAGE_IGNORE*/
@@ -841,7 +841,7 @@ Choice_encode(p, sAcc, arrsChildren, nLastItemIndex, sChoiceIndexName, td/*:FE_C
 >>
 
 Choice_decode(p, sAcc, arrsChildren, nLastItemIndex, sChoiceIndexName, td/*:FE_ChoiceTypeDefinition*/, nIndexSizeInBits, sErrCode) ::= <<
-codec.BitStream_DecodeConstraintWholeNumber(0, <nLastItemIndex>) match
+codec.decodeConstraintWholeNumber(0, <nLastItemIndex>) match
     case None() => 
         return Left(<sErrCode>)
     case Some(x) =>
@@ -1019,7 +1019,7 @@ if ret.isRight then
 >>
 
 octet_string_containing_ext_field_func_encode(p, sFuncName, sReqBytesForUperEncoding, sExtField, sErrCode, soInner) ::= <<
-codec.BitStream_EncodeOctetString_no_length(arr, <sExtField>.asInstanceOf[Int]) match
+codec.encodeOctetString_no_length(arr, <sExtField>.asInstanceOf[Int]) match
     case false => 
         return Left(<sErrCode>)
     case true =>
@@ -1034,7 +1034,7 @@ octet_string_containing_ext_field_func_decode(p, sFuncName, sReqBytesForUperEnco
     val bitStrm: BitStream = BitStream_Init(<sReqBytesForUperEncoding>)
     
     if <sExtField>.asInstanceOf[Int] \<= <sReqBytesForUperEncoding> then
-        codec.BitStream_DecodeOctetString_no_length(<sExtField>.asInstanceOf[Int]) match
+        codec.decodeOctetString_no_length(<sExtField>.asInstanceOf[Int]) match
             case NoneMut() => 
                 return Left(<pErrCode>)
             case SomeMut(arr) =>
@@ -1080,15 +1080,15 @@ octet_string_containing_func_encode(p, sFuncName, sReqBytesForAcnEncoding, nBits
     if ret.isRight then
         int nCount = bitStrm.currentBit == 0 ? bitStrm.currentByte : (bitStrm.currentByte + 1)
         <if(bFixedSize)>
-        codec.BitStream_EncodeOctetString_no_length(bitStrm.buf, nCount) match
+        codec.encodeOctetString_no_length(bitStrm.buf, nCount) match
             case false =>
                 return Left(pErrCode)
             case true =>
                 ret = Right(0)
                 
         <else>
-        codec.BitStream_EncodeConstraintWholeNumber(nCount, <nMinSize>, <nMaxSize>)
-        codec.BitStream_EncodeOctetString_no_length(bitStrm.buf, nCount) match
+        codec.encodeConstraintWholeNumber(nCount, <nMinSize>, <nMaxSize>)
+        codec.encodeOctetString_no_length(bitStrm.buf, nCount) match
             case false =>
                 return Left(pErrCode)
             case true =>
@@ -1105,7 +1105,7 @@ octet_string_containing_func_decode(p, sFuncName, sReqBytesForAcnEncoding, nBits
     val bitStrm: BitStream = BitStream_Init(<sReqBytesForAcnEncoding>)
 
     <if(bFixedSize)>
-    codec.BitStream_DecodeOctetString_no_length(<nMinSize>) match
+    codec.decodeOctetString_no_length(<nMinSize>) match
         case NoneMut() =>
             return Left(pErrCode)
         case SomeMut(arr) =>
@@ -1113,14 +1113,14 @@ octet_string_containing_func_decode(p, sFuncName, sReqBytesForAcnEncoding, nBits
 
     <else>
     var nCount: Int = 0
-    codec.BitStream_DecodeConstraintWholeNumber(<nMinSize>, <nMaxSize>) match
+    codec.decodeConstraintWholeNumber(<nMinSize>, <nMaxSize>) match
         case None() =>
             return Left(pErrCode)
         case Some(x) =>
             nCount = x
 
     if ret.isRight then
-        codec.BitStream_DecodeOctetString_no_length(nCount.asInstanceOf[Int])
+        codec.decodeOctetString_no_length(nCount.asInstanceOf[Int])
             case NoneMut() =>
                 return Left(pErrCode)
             case SomeMut(arr) =>
@@ -1170,7 +1170,7 @@ bit_string_containing_func_decode(p, sFuncName, sReqBytesForAcnEncoding, sReqBit
 
     <else>
     var nCount: Int = 0
-    codec.BitStream_DecodeConstraintWholeNumber(<nMinSize>, <nMaxSize>) match
+    codec.decodeConstraintWholeNumber(<nMinSize>, <nMaxSize>) match
         case None() =>
             return Left(pErrCode)
         case Some(x) =>
