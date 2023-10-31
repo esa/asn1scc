@@ -1001,4 +1001,74 @@ trait Codec {
       }
       return NoneMut()
    }
+
+
+
+
+
+   def appendBitOne(): Unit = {
+      bitStream.appendBitOne()
+   }
+
+   def appendBitZero(): Unit = {
+      bitStream.appendBitZero()
+   }
+
+   def appendNBitZero(nBitsVal: Int): Unit = {
+      bitStream.appendNBitZero(nBitsVal)
+   }
+
+   def appendNBitOne(nBitsVal: Int): Unit = {
+      bitStream.appendNBitOne(nBitsVal)
+   }
+
+   def appendBits(srcBuffer: Array[UByte], nBits: Int): Unit = {
+      bitStream.appendBits(srcBuffer, nBits)
+   }
+
+   def appendBit(v: Boolean): Unit = {
+      bitStream.appendBit(v)
+   }
+
+   def readBit(): Option[Boolean] = {
+      bitStream.readBit()
+   }
+
+   def peekBit(): Boolean = {
+            bitStream.peekBit()
+   }
+
+   def appendByte(value: Byte, negate: Boolean): Unit = {
+      bitStream.appendByte(value, negate)
+   }
+
+   def appendByte0(v: UByte): Boolean = {
+      bitStream.appendByte0(v)
+   }
+
+   def readByte(): Option[UByte] = {
+      bitStream.readByte()
+   }
+
+
+   def appendByteArray(arr: Array[UByte], arr_len: Int): Boolean = {
+      bitStream.appendByteArray(arr, arr_len)
+   }
+
+
+   def readByteArray(arr_len: Int): OptionMut[Array[UByte]] = {
+      bitStream.readByteArray(arr_len)
+   }
+
+   def readBits(nbits: Int): OptionMut[Array[UByte]] = {
+      bitStream.readBits(nbits)
+   }
+
+   def appendPartialByte(vVal: UByte, nbits: UByte, negate: Boolean): Unit = {
+      bitStream.appendPartialByte(vVal, nbits, negate)
+   }
+
+   def readPartialByte(nbits: UByte): Option[UByte] = {
+      bitStream.readPartialByte(nbits)
+   }
 }

@@ -489,11 +489,30 @@ case class BitStream(
       SomeMut(arr)
    }
 
+   def decodeOctetString_no_length(nCount: Int): OptionMut[Array[UByte]] = {
+      val cb: Int = currentBit
+      val arr: Array[UByte] = Array.fill(nCount + 1)(0)
+
+      if cb == 0 then
+         if currentByte + nCount > buf.length then
+            return NoneMut()
+
+         arrayCopyOffset(buf, arr, currentByte, currentByte + nCount, 0)
+         currentByte += nCount
+
+      else
+         readByteArray(nCount) match
+            case NoneMut() => return NoneMut()
+            case SomeMut(a) => arrayCopyOffsetLen(a, arr, 0, 0, a.length)
+
+      SomeMut(arr)
+   }
+
    def readBits(nbits: Int): OptionMut[Array[UByte]] = {
       val bytesToRead: Int = nbits / 8
       val remainingBits: UByte = (nbits % 8).toByte
 
-      readByteArray(bytesToRead) match
+      decodeOctetString_no_length(bytesToRead) match
          case NoneMut() => return NoneMut()
          case SomeMut(arr) =>
             if remainingBits > 0 then

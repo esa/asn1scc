@@ -114,7 +114,7 @@ let _createUperEncDecFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1
                 printStatements [Encode_input; Decode_output; Validate_output; Compare_input_output; Write_bitstream_to_file]
 
             let func = 
-                printCodec_body modName funcName (typeDefinition.longTypedefName2 lm.lg.hasModules) sStar varName "" (sNestedStatements.orElse "")
+                printCodec_body modName funcName (typeDefinition.longTypedefName2 lm.lg.hasModules) sStar varName "" (sNestedStatements.orElse "") "UPER"
             let funcDef = printCodec_body_header funcName  modName (typeDefinition.longTypedefName2 lm.lg.hasModules) sStar varName
             let ret = 
                 {
@@ -132,9 +132,10 @@ let createUperEncDecFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1A
 
 
 let _createAcnEncDecFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (typeDefinition:TypeDefintionOrReference) (eqFunc:EqualFunction) (isValidFunc: IsValidFunction option) (encFunc : AcnFunction option) (decFunc : AcnFunction option)   (us:State)  =
+    //let sEnc = match ST.lang with | Scala -> "ACN" | _ -> lm.lg.atc.acnPrefix
     let sEnc = lm.lg.atc.acnPrefix
 
-    let funcName            = getFuncName r  sEnc t.id (lm.lg.getTypeDefinition t.FT_TypeDefintion)
+    let funcName            = getFuncName r sEnc t.id (lm.lg.getTypeDefinition t.FT_TypeDefintion)
     let modName             = ToC t.id.AcnAbsPath.Head
 
     let printCodec_body             = lm.atc.PrintCodec_body
@@ -201,7 +202,7 @@ let _createAcnEncDecFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1A
 
                     printStatements [Encode_input; Decode_output; Validate_output; Compare_input_output; Write_bitstream_to_file]
 
-                let func = printCodec_body modName funcName (typeDefinition.longTypedefName2 lm.lg.hasModules) sStar varName sEnc (sNestedStatements.orElse "")
+                let func = printCodec_body modName funcName (typeDefinition.longTypedefName2 lm.lg.hasModules) sStar varName sEnc (sNestedStatements.orElse "") "ACN"
                 let funcDef = printCodec_body_header funcName modName (typeDefinition.longTypedefName2 lm.lg.hasModules) sStar varName
         
                 let ret = 

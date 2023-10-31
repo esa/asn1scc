@@ -53,16 +53,16 @@ import java.io._
 Codec_Encode(sModName, sFuncName, sVal) ::= <<
 // test_cases_scala.stg:54
 // Encode value
-<sFuncName>(<sVal>, bitStrm, true) match
+<sFuncName>(<sVal>, codec, true) match
     case Left(_) => return Left(1)
     case Right(_) => ()
 >>
 
 Codec_Decode(sModName, sFuncName, sTasName, sEnc, sAmber) ::= <<
 // test_cases_scala.stg:62
-bitStrm.attachBuffer(bitStrm.buf) // TODO: reset curBit, curByte instead?
+codec.bitStream.attachBuffer(codec.bitStream.buf) // TODO: reset curBit, curByte instead?
 // Decode value
-<sFuncName>(bitStrm) match
+<sFuncName>(codec) match
     case Left(_) => return Left(2)
     case Right(pVal) => decodedPDU = pVal 
 >>
@@ -99,7 +99,7 @@ Codec_write_bitstreamToFile() ::= <<
 // test_cases_scala.stg:99
 val file = new File(filename+".dat")
 val bw = new FileOutputStream(file)
-bw.write(bitStrm.buf)
+bw.write(codec.bitStream.buf)
 bw.close()
 >>
 
@@ -125,14 +125,14 @@ PrintCodec_spec(sFuncName, sModName, sTasName, sStar, sVal) ::= <<
 // test_cases_scala.stg:125
 >>
 
-PrintCodec_body(sModName, sFuncName, sTasName, sStar,  sVal, sEnc, sNestedStatements) ::= <<
+PrintCodec_body(sModName, sFuncName, sTasName, sStar,  sVal, sEnc, sNestedStatements, sCodecClass) ::= <<
 // test_cases_scala.stg:129
 def <sFuncName>(<sVal>: <sTasName>, filename: String): Either[ErrorCode, Int] =
 {
     var ret: Either[ErrorCode, Int] = Right(0)
     var decodedPDU: <sTasName> = <sTasName>_Initialize() // TODO: does this always work?
 
-    val bitStrm = BitStream_Init(<sTasName>_REQUIRED_BYTES_FOR_<sEnc>ENCODING.toInt) // TODO: what to do with too large Longs?
+    val codec = init<sCodecClass>Codec(<sTasName>_REQUIRED_BYTES_FOR_<sEnc>ENCODING.toInt) // TODO: what to do with too large Longs?
     <sNestedStatements>
     ret
 }

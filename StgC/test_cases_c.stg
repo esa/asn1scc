@@ -135,7 +135,7 @@ PrintCodec_spec(sFuncName, sModName, sTasName, sStar, sVal) ::= <<
 flag <sFuncName>(const <sTasName><sStar> <sVal>, int* pErrCode, const char* filename);
 >>
 
-PrintCodec_body(sModName, sFuncName, sTasName, sStar,  sVal, sEnc, sNestedStatements) ::= <<
+PrintCodec_body(sModName, sFuncName, sTasName, sStar,  sVal, sEnc, sNestedStatements, sCodecClass) ::= <<
 flag <sFuncName>(const <sTasName><sStar> <sVal>, int* pErrCode, const char* filename)
 {
     static <sTasName> decodedPDU;
