@@ -89,6 +89,7 @@ object BitStream {
    }
 }
 
+// TODO - if currentBit is 0 then the MSB gets set - is this by design? Big Endian?
 private val BitAccessMasks: Array[UByte] = Array(
    -0x80, // -128 / 1000 0000 / x80
    0x40, //   64 / 0100 0000 / x40
@@ -184,9 +185,16 @@ case class BitStream(
     * Append the bit b into the stream
     *
     * @param b bit that gets set
+    *
+    * Example
+    * cur bit = 3
+    *
+    * |x|x|x|b|?|?|?|?|
+    *  0 1 2 3 4 5 6 7
+    *
     */
    def appendBit(b: Boolean): Unit = {
-      require(BitStream.validate_offset_bits(this, 1))
+      require(BitStream.validate_offset_bit(this))
       if b then
          buf(currentByte) = (buf(currentByte) | BitAccessMasks(currentBit)).toByte
       else
@@ -195,122 +203,76 @@ case class BitStream(
       increaseBitIndex()
    }.ensuring(_ => BitStream.invariant(this))
 
-   /**
-    * Append bit one.
-    *
-    * Example
-    * cur bit = 3
-    * x x x |
-    * |_|_|_|_|_|_|_|_|
-    * 0 1 2 3 4 5 6 7
-    *
-    * xxxy????
-    * or   00010000
-    * -------------
-    * xxx1????
-    * */
-   @opaque
-   @inlineOnce
    def appendBitOne(): Unit = {
       require(BitStream.validate_offset_bit(this))
-      @ghost val oldpBitStrm = snapshot(this)
 
-      val newB = (buf(currentByte) | BitAccessMasks(currentBit)).toByte
-      buf(currentByte) = newB
-
-      ghostExpr {
-         arrayUpdatedAtPrefixLemma(oldpBitStrm.buf, currentByte, newB)
-      }
-
-      increaseBitIndex()
-
-   }.ensuring { _ =>
-      val w1 = old(this)
-      val w2 = this
-      w2.bitIndex() == w1.bitIndex() + 1
-         &&& isValidPair(w1, w2)
-         &&& {
-         val (r1, r2) = reader(w1, w2)
-         val (r2Got, bitGot) = readBitPure()
-         bitGot.get == true && r2Got == r2
-      }
-         &&& BitStream.invariant(this)
+      appendBit(true)
    }
+
+   def appendBitZero(): Unit = {
+      require(BitStream.validate_offset_bit(this))
+
+      appendBit(false)
+   }
+
+   def appendNBitZero(nBits: Int): Unit = {
+      require(0 <= nBits)
+      require(BitStream.validate_offset_bits(this, nBits))
+      decreases(nBits)
+
+      if nBits == 0 then
+         return;
+
+      appendBitZero()
+      appendNBitZero(nBits - 1)
+
+   }.ensuring(_ => BitStream.invariant(this))
+
+   def appendNBitOne(nBits: Int): Unit = {
+      require(0 <= nBits)
+      require(BitStream.validate_offset_bits(this, nBits))
+      decreases(nBits)
+
+      if nBits == 0 then
+         return;
+
+      appendBitOne()
+      appendNBitOne(nBits - 1)
+   }.ensuring(_ => BitStream.invariant(this))
 
    /**
-    * Append zero bit.
+    * Append bit with bitNr from b to bitstream
     *
-    * Example
-    * cur bit = 3
-    *  x x x |
-    * |_|_|_|_|_|_|_|_|
-    *  0 1 2 3 4 5 6 7
+    * bit 0 is the MSB, bit 7 is the LSB
     *
-    *      x x x y ? ? ? ?
-    * and  1 1 1 0 1 1 1 1
-    *      ----------------
-    * -->  x x x 0 ? ? ? ?
-    * */
+    * @param b byte that gets the bit extracted from
+    * @param bitNr 0 to 7 - number of the bit
+    */
 
-   // TODO replace with addBit(false)?
-   def appendBitZero(): Unit = {
-      require(BitStream.validate_offset_bits(this, 1))
-      val negMask = ~BitAccessMasks(currentBit)
-      buf(currentByte) = (buf(currentByte) & negMask).toByte
+   private def appendBitFromByte(b: Byte, bitNr: Int): Unit = {
+      require(bitNr >= 0 && bitNr < NO_OF_BITS_IN_BYTE)
+      require(BitStream.validate_offset_bit(this))
 
-      increaseBitIndex()
-   }.ensuring(_ => BitStream.invariant(this))
-
-
-   // TODO what are you? it does not append even though it has append in the name
-   // TODO replace with loop that calls appendBitZero
-   def appendNBitZero(nBitsVal: Int): Unit = {
-      require(0 <= nBitsVal)
-      require(BitStream.validate_offset_bits(this, nBitsVal))
-
-      val nBits = nBitsVal % 8
-      val nBytes = nBitsVal / 8
-
-      var new_currentBit: Int = currentBit + nBits
-      var new_currentByte: Int = currentByte + nBytes
-
-      if new_currentBit > 7 then
-         new_currentBit = new_currentBit % 8
-         new_currentByte += 1
-
-      currentBit = new_currentBit
-      currentByte = new_currentByte
+      val bitPosInByte = 1 << ((NO_OF_BITS_IN_BYTE - 1) - bitNr)
+      appendBit((b.unsignedToInt & bitPosInByte) > 0)
 
    }.ensuring(_ => BitStream.invariant(this))
-
-
-   def appendNBitOne(nBitsVal: Int): Unit = {
-      require(0 <= nBitsVal)
-      require(BitStream.validate_offset_bits(this, nBitsVal))
-      var nBits = nBitsVal
-
-      (while nBits > 0 do
-         decreases(nBits)
-         appendBitOne()
-         nBits -= 1
-         ).invariant(nBits >= 0 &&& BitStream.validate_offset_bits(this, nBits))
-      ()
-   }
 
    def appendBits(srcBuffer: Array[UByte], nBits: Int): Unit = {
-      require(0 <= nBits && nBits / 8 < srcBuffer.length)
+      require(nBits >= 0 && nBits / 8 < srcBuffer.length)
       require(BitStream.validate_offset_bits(this, nBits))
-      var lastByte: UByte = 0
 
-      val bytesToEncode: Int = nBits / 8
-      val remainingBits: UByte = (nBits % 8).toByte
+      var i = 0
+      (while(i < nBits) do
+         decreases(nBits - i)
 
-      appendByteArray(srcBuffer, bytesToEncode)
+         appendBitFromByte(srcBuffer(i / NO_OF_BITS_IN_BYTE), i % NO_OF_BITS_IN_BYTE)
 
-      if remainingBits > 0 then
-         lastByte = ((srcBuffer(bytesToEncode) & 0xFF) >>> (8 - remainingBits)).toByte
-         this.appendPartialByte(lastByte, remainingBits, false)
-   }
+         i += 1
+      ).invariant(i >= 0 &&& i <= nBits &&& BitStream.validate_offset_bits(this, nBits - i))
+
+      () // TODO why do I need this for stainless?
+   }.ensuring(_ => BitStream.invariant(this))
 
    // TODO check if needs Marios implementation
    def readBit(): Option[Boolean] = {
@@ -419,26 +381,18 @@ case class BitStream(
       } &&& BitStream.invariant(this)
    }
 
+   // TODO remove Boolean as return value
    def appendByte0(v: UByte): Boolean = {
       require(BitStream.validate_offset_bytes(this, 1))
-      val cb: UByte = currentBit.toByte
-      val ncb: UByte = (8 - cb).toByte
 
-      var mask = ~masksb(ncb)
+      var i = 0
+      (while i < NO_OF_BITS_IN_BYTE do
+         decreases(NO_OF_BITS_IN_BYTE - i)
 
-      buf(currentByte) = (buf(currentByte) & mask).toByte
-      buf(currentByte) = (buf(currentByte) | (v >>>> cb)).toByte
-      currentByte += 1
+         appendBitFromByte(v, i)
 
-      if cb > 0 then
-         if currentByte >= buf.length then
-            return false
-         mask = ~mask
-         ghostExpr {
-            ensureInvariant()
-         }
-         buf(currentByte) = (buf(currentByte) & mask).toByte
-         buf(currentByte) = (buf(currentByte) | (v <<<< ncb)).toByte
+         i += 1
+      ).invariant(i >= 0 &&& i <= NO_OF_BITS_IN_BYTE &&& BitStream.validate_offset_bits(this, NO_OF_BITS_IN_BYTE - i))
 
       true
    }.ensuring(_ => BitStream.invariant(this))
@@ -461,24 +415,23 @@ case class BitStream(
          None()
    }
 
+   def appendByteArray(arr: Array[UByte], noOfBytes: Int): Boolean = {
+      require(0 <= noOfBytes && noOfBytes <= arr.length)
+      require(BitStream.validate_offset_bytes(this, noOfBytes))
 
-   def appendByteArray(arr: Array[UByte], arr_len: Int): Boolean = {
-      require(0 <= arr_len && arr_len <= arr.length)
-      require(BitStream.validate_offset_bytes(this, arr_len))
-
-      if !(currentByte.toLong + arr_len < buf.length || (currentBit == 0 && currentByte.toLong + arr_len <= buf.length)) then
-         return false
+      // TODO do we need this check?
+//      if !(currentByte.toLong + noOfBytes < buf.length || (currentBit == 0 && currentByte.toLong + noOfBytes <= buf.length)) then
+//         return false
 
       var i: Int = 0
-      (while i < arr_len do
-         decreases(arr_len - i)
-         this.appendByte0(arr(i))
+      (while i < noOfBytes do
+         decreases(noOfBytes - i)
+         appendByte0(arr(i))
          i += 1
-        ).invariant(0 <= i &&& i <= arr_len &&& BitStream.validate_offset_bytes(this, arr_len - i))
+        ).invariant(0 <= i &&& i <= noOfBytes &&& BitStream.validate_offset_bytes(this, noOfBytes - i))
 
       true
    }.ensuring(_ => BitStream.invariant(this))
-
 
    def readByteArray(arr_len: Int): OptionMut[Array[UByte]] = {
       require(0 < arr_len && arr_len <= buf.length)
