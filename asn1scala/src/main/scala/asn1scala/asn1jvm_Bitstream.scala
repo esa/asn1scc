@@ -8,7 +8,6 @@ import stainless.proof.*
 import stainless.math.*
 import StaticChecks.*
 
-
 // TODO should be part of BitStream
 def isPrefix(b1: BitStream, b2: BitStream): Boolean = {
    b1.buf.length <= b2.buf.length &&
@@ -101,6 +100,18 @@ private val BitAccessMasks: Array[UByte] = Array(
    0x01, //    1 / 0000 0001 / x01
 )
 
+val masksb: Array[UByte] = Array(
+   0x00, //   0 / 0000 0000 / x00
+   0x01, //   1 / 0000 0001 / x01
+   0x03, //   3 / 0000 0011 / x03
+   0x07, //   7 / 0000 0111 / x07
+   0x0F, //  15 / 0000 1111 / x0F
+   0x1F, //  31 / 0001 1111 / x1F
+   0x3F, //  63 / 0011 1111 / x3F
+   0x7F, // 127 / 0111 1111 / x7F
+   -0x1, //   -1 / 1111 1111 / xFF
+)
+
 case class BitStream(
                        var buf: Array[Byte],
                        var currentByte: Int = 0, // marks the currentByte that gets accessed
@@ -168,6 +179,21 @@ case class BitStream(
       val cpy = snapshot(this)
       (cpy, cpy.readBit())
    }
+
+   /**
+    * Append the bit b into the stream
+    *
+    * @param b bit that gets set
+    */
+   def appendBit(b: Boolean): Unit = {
+      require(BitStream.validate_offset_bits(this, 1))
+      if b then
+         buf(currentByte) = (buf(currentByte) | BitAccessMasks(currentBit)).toByte
+      else
+         buf(currentByte) = (buf(currentByte) & (~BitAccessMasks(currentBit))).toByte
+
+      increaseBitIndex()
+   }.ensuring(_ => BitStream.invariant(this))
 
    /**
     * Append bit one.
@@ -286,19 +312,7 @@ case class BitStream(
          this.appendPartialByte(lastByte, remainingBits, false)
    }
 
-   def appendBit(v: Boolean): Unit = {
-      require(BitStream.validate_offset_bits(this, 1))
-      if v then
-         buf(currentByte) = (buf(currentByte) | BitAccessMasks(currentBit)).toByte
-      else
-         val negMask = ~BitAccessMasks(currentBit)
-         buf(currentByte) = (buf(currentByte) & negMask).toByte
-
-      increaseBitIndex()
-   }.ensuring(_ => BitStream.invariant(this))
-
    // TODO check if needs Marios implementation
-
    def readBit(): Option[Boolean] = {
       require(BitStream.validate_offset_bit(this))
       val ret = (buf(currentByte) & BitAccessMasks(currentBit)) != 0
