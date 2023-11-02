@@ -59,7 +59,7 @@ case class ACN(bitStream: BitStream) extends Codec {
    }
 
    def enc_Int_PositiveInteger_ConstSize_8(intVal: ULong): Unit = {
-      bitStream.appendByte0(intVal.toByte)
+      bitStream.appendByte(intVal.toByte)
       CHECK_BIT_STREAM(bitStream)
    }
 
@@ -70,8 +70,8 @@ case class ACN(bitStream: BitStream) extends Codec {
 
       var i: Int = 0
       while i < size do
-         val ByteToEncode: Byte = ((tmp & mask) >>> ((size - i - 1) * 8)).toByte
-         bitStream.appendByte0(ByteToEncode)
+         val byteToEncode: Byte = ((tmp & mask) >>> ((size - i - 1) * 8)).toByte
+         bitStream.appendByte(byteToEncode)
          mask >>>= 8
          i += 1
 
@@ -95,8 +95,8 @@ case class ACN(bitStream: BitStream) extends Codec {
 
       var i: Int = 0
       while i < size do
-         val ByteToEncode: Byte = tmp.toByte
-         bitStream.appendByte0(ByteToEncode)
+         val byteToEncode: Byte = tmp.toByte
+         bitStream.appendByte(byteToEncode)
          tmp >>>= 8
          i += 1
 
@@ -197,8 +197,8 @@ case class ACN(bitStream: BitStream) extends Codec {
 
       var i: Int = 0
       while i < nBytes do
-         val ByteToEncode: Byte = ((vv & MAX_BYTE_MASK) >>> ((NO_OF_BYTES_IN_JVM_LONG - 1) * 8)).toByte
-         bitStream.appendByte0(ByteToEncode)
+         val byteToEncode: Byte = ((vv & MAX_BYTE_MASK) >>> ((NO_OF_BYTES_IN_JVM_LONG - 1) * 8)).toByte
+         bitStream.appendByte(byteToEncode)
          vv <<= 8
          i += 1
    }
@@ -208,7 +208,7 @@ case class ACN(bitStream: BitStream) extends Codec {
       val nBytes: Byte = GetLengthInBytesOfUInt(intVal).toByte
 
       /* encode length */
-      bitStream.appendByte0(nBytes)
+      bitStream.appendByte(nBytes)
       /* Encode integer data*/
       encode_UnsignedInteger(intVal, nBytes)
 
@@ -346,7 +346,7 @@ case class ACN(bitStream: BitStream) extends Codec {
       val nBytes: Byte = GetLengthInBytesOfSInt(intVal).toByte
 
       /* encode length */
-      bitStream.appendByte0(nBytes)
+      bitStream.appendByte(nBytes)
       /* Encode integer data*/
       encode_UnsignedInteger(int2uint(intVal), nBytes)
 
@@ -434,7 +434,7 @@ case class ACN(bitStream: BitStream) extends Codec {
    def enc_Int_BCD_VarSize_LengthEmbedded(intVal: ULong): Unit = {
       val nNibbles: Int = get_Int_Size_BCD(intVal)
       /* encode length */
-      bitStream.appendByte0(nNibbles.toByte)
+      bitStream.appendByte(nNibbles.toByte)
 
       /* Encode Number */
       enc_Int_BCD_ConstSize(intVal, nNibbles)
@@ -496,7 +496,7 @@ case class ACN(bitStream: BitStream) extends Codec {
 
       var i = encodedSizeInBytes - 1
       while i >= 0 do
-         bitStream.appendByte0((tmp(i) + '0').toByte)
+         bitStream.appendByte((tmp(i) + '0').toByte)
          i -= 1
 
       CHECK_BIT_STREAM(bitStream)
@@ -507,7 +507,7 @@ case class ACN(bitStream: BitStream) extends Codec {
       val absIntVal: ULong = if intVal >= 0 then intVal else -intVal
 
       /* encode sign */
-      bitStream.appendByte0(if intVal >= 0 then '+' else '-')
+      bitStream.appendByte(if intVal >= 0 then '+' else '-')
 
       enc_UInt_ASCII_ConstSize(absIntVal, encodedSizeInBytes - 1)
    }
@@ -579,15 +579,15 @@ case class ACN(bitStream: BitStream) extends Codec {
       val (digitsArray100, nChars) = getIntegerDigits(absIntVal)
 
       /* encode length, plus 1 for sign */
-      bitStream.appendByte0((nChars + 1).toByte)
+      bitStream.appendByte((nChars + 1).toByte)
 
       /* encode sign */
-      bitStream.appendByte0(if intVal >= 0 then '+' else '-')
+      bitStream.appendByte(if intVal >= 0 then '+' else '-')
 
       /* encode digits */
       var i: Int = 0
       while i < 100 && digitsArray100(i) != 0x0 do
-         bitStream.appendByte0(digitsArray100(i))
+         bitStream.appendByte(digitsArray100(i))
          i += 1
 
       CHECK_BIT_STREAM(bitStream)
@@ -597,11 +597,11 @@ case class ACN(bitStream: BitStream) extends Codec {
       val (digitsArray100, nChars) = getIntegerDigits(intVal)
 
       /* encode length */
-      bitStream.appendByte0(nChars)
+      bitStream.appendByte(nChars)
       /* encode digits */
       var i: Int = 0
       while i < 100 && digitsArray100(i) != 0x0 do
-         bitStream.appendByte0(digitsArray100(i))
+         bitStream.appendByte(digitsArray100(i))
          i += 1
 
       CHECK_BIT_STREAM(bitStream)
@@ -626,12 +626,12 @@ case class ACN(bitStream: BitStream) extends Codec {
 
       var i: Int = 0 // TODO: size_t?
       while i < 100 && digitsArray100(i) != 0x0 do
-         bitStream.appendByte0(digitsArray100(i))
+         bitStream.appendByte(digitsArray100(i))
          i += 1
 
       i = 0
       while i < null_characters_size do
-         bitStream.appendByte0(null_characters(i))
+         bitStream.appendByte(null_characters(i))
          i += 1
 
       CHECK_BIT_STREAM(bitStream)
@@ -639,7 +639,7 @@ case class ACN(bitStream: BitStream) extends Codec {
 
    def enc_SInt_ASCII_VarSize_NullTerminated(intVal: Long, null_characters: Array[Byte], null_characters_size: Int): Unit = {
       val absValue: ULong = if intVal >= 0 then intVal else -intVal
-      bitStream.appendByte0(if intVal >= 0 then '+' else '-')
+      bitStream.appendByte(if intVal >= 0 then '+' else '-')
 
       enc_UInt_ASCII_VarSize_NullTerminated(absValue, null_characters, null_characters_size)
    }
@@ -749,7 +749,7 @@ case class ACN(bitStream: BitStream) extends Codec {
 
       var i: Int = 0
       while i < 4 do
-         bitStream.appendByte0(b(i))
+         bitStream.appendByte(b(i))
          i += 1
    }
 
@@ -785,7 +785,7 @@ case class ACN(bitStream: BitStream) extends Codec {
 
       var i: Int = 0
       while i < 8 do
-         bitStream.appendByte0(b(i))
+         bitStream.appendByte(b(i))
          i += 1
    }
 
@@ -808,7 +808,7 @@ case class ACN(bitStream: BitStream) extends Codec {
 
       var i: Int = 3
       while i >= 0 do
-         bitStream.appendByte0(b(i))
+         bitStream.appendByte(b(i))
          i -= 1
    }
 
@@ -836,7 +836,7 @@ case class ACN(bitStream: BitStream) extends Codec {
 
       var i: Int = 7
       while i >= 0 do
-         bitStream.appendByte0(b(i))
+         bitStream.appendByte(b(i))
          i -= 1
    }
 
@@ -858,14 +858,14 @@ case class ACN(bitStream: BitStream) extends Codec {
    def enc_String_Ascii_FixSize(max: Long, strVal: Array[ASCIIChar]): Unit = {
       var i: Long = 0
       while i < max do
-         bitStream.appendByte(strVal(i.toInt), false)
+         bitStream.appendByte(strVal(i.toInt))
          i += 1
    }
 
    def enc_String_Ascii_private(max: Long, strVal: Array[ASCIIChar]): Long = {
       var i: Long = 0
       while (i < max) && (strVal(i.toInt) != '\u0000') do
-         bitStream.appendByte(strVal(i.toInt), false)
+         bitStream.appendByte(strVal(i.toInt))
          i += 1
 
       i
@@ -873,14 +873,14 @@ case class ACN(bitStream: BitStream) extends Codec {
 
    def enc_String_Ascii_Null_Teminated(max: Long, null_character: Byte, strVal: Array[ASCIIChar]): Unit = {
       enc_String_Ascii_private(max, strVal)
-      bitStream.appendByte(null_character.toByte, false)
+      bitStream.appendByte(null_character.toByte)
    }
 
    def enc_String_Ascii_Null_Teminated_mult(max: Long, null_character: Array[Byte], null_character_size: Int, strVal: Array[ASCIIChar]): Unit = {
       enc_String_Ascii_private(max, strVal)
       var i: Int = 0
       while i < null_character_size do
-         bitStream.appendByte(null_character(i), false)
+         bitStream.appendByte(null_character(i))
          i += 1
    }
 

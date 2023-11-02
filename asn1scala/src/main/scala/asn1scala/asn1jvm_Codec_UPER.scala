@@ -62,7 +62,7 @@ case class UPER(bitStream: BitStream) extends Codec {
       i = 0
       while i < totalSize do
          decreases(totalSize - i)
-         bitStream.appendByte0(tmp(i))
+         bitStream.appendByte(tmp(i))
          i += 1
    }
 
@@ -89,7 +89,7 @@ case class UPER(bitStream: BitStream) extends Codec {
       i = 0
       while i < totalSize do
          decreases(totalSize - i)
-         bitStream.appendByte0(tmp(i))
+         bitStream.appendByte(tmp(i))
          i += 1
    }
 

@@ -89,7 +89,7 @@ object BitStream {
    }
 }
 
-// TODO - if currentBit is 0 then the MSB gets set - is this by design? Big Endian?
+// TODO - if currentBit is 0 then the MSB gets set - is this by design? Big Endian? This makes no sense
 private val BitAccessMasks: Array[UByte] = Array(
    -0x80, // -128 / 1000 0000 / x80
    0x40, //   64 / 0100 0000 / x40
@@ -209,6 +209,20 @@ case class BitStream(
       appendBit(true)
    }
 
+   def appendNBitOne(nBits: Int): Unit = {
+      require(nBits >= 0)
+      require(BitStream.validate_offset_bits(this, nBits))
+
+      var i = 0
+      (while i < nBits do
+         decreases(nBits - i)
+
+         appendBitOne()
+
+         i += 1
+      ).invariant(i >= 0 &&& i <= nBits)
+   }.ensuring(_ => BitStream.invariant(this))
+
    def appendBitZero(): Unit = {
       require(BitStream.validate_offset_bit(this))
 
@@ -218,26 +232,16 @@ case class BitStream(
    def appendNBitZero(nBits: Int): Unit = {
       require(0 <= nBits)
       require(BitStream.validate_offset_bits(this, nBits))
-      decreases(nBits)
 
-      if nBits == 0 then
-         return;
+      var i = 0
+      (while i < nBits do
+         decreases(nBits - i)
 
-      appendBitZero()
-      appendNBitZero(nBits - 1)
+         appendBitZero()
 
-   }.ensuring(_ => BitStream.invariant(this))
+         i += 1
+      ).invariant(i >= 0 &&& i <= nBits)
 
-   def appendNBitOne(nBits: Int): Unit = {
-      require(0 <= nBits)
-      require(BitStream.validate_offset_bits(this, nBits))
-      decreases(nBits)
-
-      if nBits == 0 then
-         return;
-
-      appendBitOne()
-      appendNBitOne(nBits - 1)
    }.ensuring(_ => BitStream.invariant(this))
 
    /**
@@ -270,9 +274,12 @@ case class BitStream(
 
          i += 1
       ).invariant(i >= 0 &&& i <= nBits &&& BitStream.validate_offset_bits(this, nBits - i))
-
-      () // TODO why do I need this for stainless?
    }.ensuring(_ => BitStream.invariant(this))
+
+   def peekBit(): Boolean = {
+      require(BitStream.validate_offset_bit(this))
+      ((buf(currentByte) & 0xFF) & (BitAccessMasks(currentBit) & 0xFF)) > 0
+   }
 
    // TODO check if needs Marios implementation
    def readBit(): Option[Boolean] = {
@@ -286,11 +293,6 @@ case class BitStream(
       else
          None()
    }.ensuring(_ => BitStream.invariant(this))
-
-   def peekBit(): Boolean = {
-      require(currentByte < buf.length)
-      ((buf(currentByte) & 0xFF) & (BitAccessMasks(currentBit) & 0xFF)) > 0
-   }
 
    /**
     * Append byte.
@@ -313,6 +315,7 @@ case class BitStream(
     *
     * */
 
+      /*
    @opaque
    @inlineOnce
    def appendByte(value: Byte, negate: Boolean): Unit = {
@@ -379,10 +382,9 @@ case class BitStream(
          val (r2Got, vGot) = readBytePure(r1)
          ((!negate && vGot.get == value) || (negate && vGot.get == ~value)) && r2Got == r2
       } &&& BitStream.invariant(this)
-   }
+   }*/
 
-   // TODO remove Boolean as return value
-   def appendByte0(v: UByte): Boolean = {
+   def appendByte(v: UByte): Unit = {
       require(BitStream.validate_offset_bytes(this, 1))
 
       var i = 0
@@ -394,7 +396,6 @@ case class BitStream(
          i += 1
       ).invariant(i >= 0 &&& i <= NO_OF_BITS_IN_BYTE &&& BitStream.validate_offset_bits(this, NO_OF_BITS_IN_BYTE - i))
 
-      true
    }.ensuring(_ => BitStream.invariant(this))
 
    def readByte(): Option[UByte] = {
@@ -426,7 +427,7 @@ case class BitStream(
       var i: Int = 0
       (while i < noOfBytes do
          decreases(noOfBytes - i)
-         appendByte0(arr(i))
+         appendByte(arr(i))
          i += 1
         ).invariant(0 <= i &&& i <= noOfBytes &&& BitStream.validate_offset_bytes(this, noOfBytes - i))
 

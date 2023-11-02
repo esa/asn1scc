@@ -106,7 +106,12 @@ trait Codec {
          decreases(cc)
          val t1: UInt = v.toInt & masks2(cc >>> 3)
          cc -= 8
-         bitStream.appendByte((t1 >>> cc).toByte, negate)
+
+         var b = t1 >>> cc
+         if negate then
+            b = ~b
+
+         bitStream.appendByte(b.toUnsignedByte)
    }
 
    def decodeNonNegativeInteger32Neg(nBitsVal : Int): Option[UInt] = {
@@ -722,9 +727,9 @@ trait Codec {
             encodeConstraintWholeNumber(0xC1, 0, 0xFF)
 
          var i1: Int = nCurOffset1
-         while i1 < nCurBlockSize1 + nCurOffset1 && ret do
+         while i1 < nCurBlockSize1 + nCurOffset1 do
             decreases(nCurBlockSize1 + nCurOffset1 - i1)
-            ret = bitStream.appendByte0(arr(i1))
+            bitStream.appendByte(arr(i1))
             i1 += 1
 
          nCurOffset1 += nCurBlockSize1
@@ -739,9 +744,9 @@ trait Codec {
 
 
          var i1: Int = nCurOffset1
-         while i1 < (nCurOffset1 + nRemainingItemsVar1) && ret do
+         while i1 < (nCurOffset1 + nRemainingItemsVar1) do
             decreases(nCurOffset1 + nRemainingItemsVar1 - i1)
-            ret = bitStream.appendByte0(arr(i1))
+            bitStream.appendByte(arr(i1))
             i1 += 1
 
       return ret
@@ -1025,18 +1030,13 @@ trait Codec {
             bitStream.peekBit()
    }
 
-   def appendByte(value: Byte, negate: Boolean): Unit = {
-      bitStream.appendByte(value, negate)
-   }
-
-   def appendByte0(v: UByte): Boolean = {
-      bitStream.appendByte0(v)
+   def appendByte(value: Byte): Unit = {
+      bitStream.appendByte(value)
    }
 
    def readByte(): Option[UByte] = {
       bitStream.readByte()
    }
-
 
    def appendByteArray(arr: Array[UByte], arr_len: Int): Boolean = {
       bitStream.appendByteArray(arr, arr_len)
