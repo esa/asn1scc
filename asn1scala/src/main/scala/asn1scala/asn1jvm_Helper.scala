@@ -40,9 +40,10 @@ extension (ui: UInt) {
 
 extension (i: Int) {
    def toUnsignedByte: UByte = {
-      require(i >= 0 && i <= MASK_BYTE)
 
-      if(i == MASK_MSB_BYTE)
+      var iVal = i & MASK_BYTE
+
+      if(iVal == MASK_MSB_BYTE)
          (-MASK_MSB_BYTE).toByte
       else if ((i & MASK_MSB_BYTE) == MASK_MSB_BYTE)
          ((i & MASK_POS_BYTE) - MASK_MSB_BYTE).toByte

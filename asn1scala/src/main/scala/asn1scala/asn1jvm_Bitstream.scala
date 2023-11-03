@@ -276,6 +276,41 @@ case class BitStream(
       ).invariant(i >= 0 &&& i <= nBits &&& BitStream.validate_offset_bits(this, nBits - i))
    }.ensuring(_ => BitStream.invariant(this))
 
+   /**
+    * Append byte (old implementation)
+    *
+    * Example
+    * cur bit = 3
+    * |
+    * x x x b b b b b b b b
+    * |_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|
+    * 0 1 2 3 4 5 6 7 0 1 2 3 4 5 6 7
+    *
+    * first byte
+    * xxx?????
+    * and   11100000 (mask)
+    * --------------
+    * xxx00000
+    * or    000bbbbb
+    * --------------
+    * xxxbbbbb
+    *
+    * */
+
+   def appendByte(v: UByte): Unit = {
+      require(BitStream.validate_offset_bytes(this, 1))
+
+      var i = 0
+      (while i < NO_OF_BITS_IN_BYTE do
+         decreases(NO_OF_BITS_IN_BYTE - i)
+
+         appendBitFromByte(v, i)
+
+         i += 1
+         ).invariant(i >= 0 &&& i <= NO_OF_BITS_IN_BYTE &&& BitStream.validate_offset_bits(this, NO_OF_BITS_IN_BYTE - i))
+
+   }.ensuring(_ => BitStream.invariant(this))
+
    def peekBit(): Boolean = {
       require(BitStream.validate_offset_bit(this))
       ((buf(currentByte) & 0xFF) & (BitAccessMasks(currentBit) & 0xFF)) > 0
@@ -294,57 +329,54 @@ case class BitStream(
          None()
    }.ensuring(_ => BitStream.invariant(this))
 
-   /**
-    * Append byte (old implementation)
-    *
-    * Example
-    * cur bit = 3
-    * |
-    * x x x b b b b b b b b
-    * |_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|
-    * 0 1 2 3 4 5 6 7 0 1 2 3 4 5 6 7
-    *
-    * first byte
-    *       xxx?????
-    * and   11100000 (mask)
-    * --------------
-    *       xxx00000
-    * or    000bbbbb
-    * --------------
-    *       xxxbbbbb
-    *
-    * */
+   def readBits(nbits: Int): OptionMut[Array[UByte]] = {
+      val bytesToRead: Int = nbits / 8
+      val remainingBits: UByte = (nbits % 8).toByte
 
-   def appendByte(v: UByte): Unit = {
-      require(BitStream.validate_offset_bytes(this, 1))
+      decodeOctetString_no_length(bytesToRead) match
+         case NoneMut() => return NoneMut()
+         case SomeMut(arr) =>
+            if remainingBits > 0 then
+               this.readPartialByte(remainingBits) match
+                  case None() => return NoneMut()
+                  case Some(ub) => arr(bytesToRead) = ub
+               arr(bytesToRead) = (arr(bytesToRead) << (8 - remainingBits)).toByte
+               SomeMut(arr)
+            else
+               SomeMut(arr)
+   }
 
+   def readByte(): Option[UByte] = {
+      require(BitStream.validate_offset_bits(this, 8))
+
+      var ret = 0
       var i = 0
       (while i < NO_OF_BITS_IN_BYTE do
          decreases(NO_OF_BITS_IN_BYTE - i)
 
-         appendBitFromByte(v, i)
-
+         readBit() match
+            case None() =>
+               return None()
+            case Some(b) =>
+               ret = ret | (if b then BitAccessMasks(i) else 0)
          i += 1
       ).invariant(i >= 0 &&& i <= NO_OF_BITS_IN_BYTE &&& BitStream.validate_offset_bits(this, NO_OF_BITS_IN_BYTE - i))
 
-   }.ensuring(_ => BitStream.invariant(this))
+      Some(ret.toUnsignedByte)
 
-   def readByte(): Option[UByte] = {
-      require(BitStream.validate_offset_bytes(this, 1))
-
-      val cb: UByte = currentBit.toByte
-      val ncb: UByte = (8 - cb).toByte
-
-      var v: UByte = buf(currentByte) <<<< cb
-      currentByte += 1
-
-      if cb > 0 then
-         v = (v | (buf(currentByte) >>>> ncb)).toByte
-
-      if BitStream.invariant(this) then
-         Some(v)
-      else
-         None()
+//      val cb: UByte = currentBit.toByte
+//      val ncb: UByte = (8 - cb).toByte
+//
+//      var v: UByte = buf(currentByte) <<<< cb
+//      currentByte += 1
+//
+//      if cb > 0 then
+//         v = (v | (buf(currentByte) >>>> ncb)).toByte
+//
+//      if BitStream.invariant(this) then
+//         Some(v)
+//      else
+//         None()
    }
 
    def appendByteArray(arr: Array[UByte], noOfBytes: Int): Boolean = {
@@ -405,22 +437,6 @@ case class BitStream(
             case SomeMut(a) => arrayCopyOffsetLen(a, arr, 0, 0, a.length)
 
       SomeMut(arr)
-   }
-   def readBits(nbits: Int): OptionMut[Array[UByte]] = {
-      val bytesToRead: Int = nbits / 8
-      val remainingBits: UByte = (nbits % 8).toByte
-
-      decodeOctetString_no_length(bytesToRead) match
-         case NoneMut() => return NoneMut()
-         case SomeMut(arr) =>
-            if remainingBits > 0 then
-               this.readPartialByte(remainingBits) match
-                  case None() => return NoneMut()
-                  case Some(ub) => arr(bytesToRead) = ub
-               arr(bytesToRead) = (arr(bytesToRead) << (8 - remainingBits)).toByte
-               SomeMut(arr)
-            else
-               SomeMut(arr)
    }
 
    /* nbits 1..7*/
