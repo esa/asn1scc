@@ -7,6 +7,7 @@ import stainless.annotation.*
 import stainless.proof.*
 import stainless.math.*
 import StaticChecks.*
+import scala.annotation.targetName
 
 // all bits of the integer
 val MASK_BYTE       = 0xFF
@@ -25,9 +26,26 @@ val MASK_POS_INT    = 0x7F_FF_FF_FFL
 /*
 * Meths to upcast unsigned integer data types on the JVM
 */
-extension (ub: UByte) {
-   def unsignedToLong: Long = ub & MASK_BYTE_L
-   def unsignedToInt: Int = ub.toInt & MASK_BYTE
+extension (ubL: UByte) {
+   def unsignedToLong: Long = ubL & MASK_BYTE_L
+   def unsignedToInt: Int = ubL.toInt & MASK_BYTE
+
+   @targetName("unsigned right shift on Bytes")
+   def >>>>(i: Int): UByte = {
+      require(i >= 0 && i <= NO_OF_BITS_IN_BYTE)
+      ((ubL.toInt & MASK_BYTE) >>> i).toUnsignedByte
+   }
+
+   @targetName("left shift on Bytes")
+   def <<<<(i: Int): UByte = {
+      require(i >= 0 && i <= NO_OF_BITS_IN_BYTE)
+      ((ubL.toInt << i) & MASK_BYTE).toUnsignedByte
+   }
+
+   @targetName("binary OR on Bytes")
+   def |||(ubR: Byte): UByte = {
+      (ubL.toInt | ubR.toInt).toUnsignedByte
+   }
 }
 
 extension (us: UShort) {
@@ -64,19 +82,6 @@ extension (l: Long) {
          l.toInt
    }
 }
-
-extension (b: Byte) {
-   def >>>>(i: Int): Byte = {
-      require(i >= 0 && i <= 8)
-      ((b.toInt & MASK_BYTE) >>> i).toUnsignedByte
-   }
-
-   def <<<<(i: Int): Byte = {
-      require(i >= 0 && i <= 8)
-      ((b.toInt << i) & MASK_BYTE).toUnsignedByte
-   }
-}
-
 
 def GetNumberOfBitsInUpperBytesAndDecreaseValToLastByte(v: UInt): (UInt, Int) = {
    if v >>> 8 == 0 then

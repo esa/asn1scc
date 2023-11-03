@@ -65,7 +65,7 @@ object BitStream {
 
    @ghost
    def validate_offset_bits(pBitStrm: BitStream, bits: Int = 0): Boolean = {
-      require(0 <= bits)
+      require(bits >= 0)
       val nBits = bits % 8
       val nBytes = bits / 8
 
@@ -89,7 +89,6 @@ object BitStream {
    }
 }
 
-// TODO - if currentBit is 0 then the MSB gets set - is this by design? Big Endian? This makes no sense
 private val BitAccessMasks: Array[UByte] = Array(
    -0x80, // -128 / 1000 0000 / x80
    0x40, //   64 / 0100 0000 / x40
@@ -138,8 +137,9 @@ case class BitStream(
          BitStream.invariant(this)
    }
 
+   // TODO not used
    @inlineOnce @opaque @ghost
-   def ensureInvariant(): Unit = {
+   private def ensureInvariant(): Unit = {
    }.ensuring(_ =>
       BitStream.invariant(currentByte, currentBit, buf.length)
    )
@@ -180,6 +180,8 @@ case class BitStream(
       val cpy = snapshot(this)
       (cpy, cpy.readBit())
    }
+
+   // ****************** Append Bit Functions **********************
 
    /**
     * Append the bit b into the stream
@@ -230,7 +232,7 @@ case class BitStream(
    }
 
    def appendNBitZero(nBits: Int): Unit = {
-      require(0 <= nBits)
+      require(nBits >= 0)
       require(BitStream.validate_offset_bits(this, nBits))
 
       var i = 0
@@ -276,6 +278,52 @@ case class BitStream(
       ).invariant(i >= 0 &&& i <= nBits &&& BitStream.validate_offset_bits(this, nBits - i))
    }.ensuring(_ => BitStream.invariant(this))
 
+   // ****************** Append Byte Functions **********************
+
+   def appendPartialByte(vVal: UByte, nBits: Int, negate: Boolean): Unit = {
+      require(nBits >= 0)
+      require(BitStream.validate_offset_bits(this, nBits))
+
+      val totalBits = currentBit + nBits
+      val ncb = 8 - currentBit
+
+      var v = vVal
+      if negate then
+         v = (masksb(nBits) & (~v)).toByte
+
+      val mask1: UByte = (~masksb(ncb)).toByte
+
+      if (totalBits <= 8) {
+         //static UByte masksb[] = { 0x0, 0x1, 0x3, 0x7, 0xF, 0x1F, 0x3F, 0x7F, 0xFF };
+         val mask2: UByte = masksb(8 - totalBits)
+         val mask: UByte = (mask1 | mask2).toByte
+         //e.g. current bit = 3 --> mask =    1110 0000
+         //nbits = 3 --> totalBits = 6
+         //                                                 mask=     1110 0000
+         //                                                 and         0000 0011 <- masks[totalBits - 1]
+         //	                                                            -----------
+         //					final mask         1110 0011
+         buf(currentByte) = (buf(currentByte) & mask).toByte
+         buf(currentByte) = (buf(currentByte) | (v << (8 - totalBits))).toByte
+         currentBit += nBits
+         if currentBit == 8 then
+            currentBit = 0
+            currentByte += 1
+
+      } else {
+         val totalBitsForNextByte: UByte = (totalBits - 8).toByte
+         buf(currentByte) = (buf(currentByte) & mask1).toByte
+         buf(currentByte) = (buf(currentByte) | (v >>> totalBitsForNextByte)).toByte
+         currentByte += 1
+         val mask: UByte = (~masksb(8 - totalBitsForNextByte)).toByte
+         buf(currentByte) = (buf(currentByte) & mask).toByte
+         buf(currentByte) = (buf(currentByte) | (v << (8 - totalBitsForNextByte))).toByte
+         currentBit = totalBitsForNextByte.toInt
+      }
+
+//      assert(currentByte.toLong * 8 + currentBit <= buf.length.toLong * 8)
+   }.ensuring(_ => BitStream.invariant(this))
+
    /**
     * Append byte (old implementation)
     *
@@ -311,10 +359,28 @@ case class BitStream(
 
    }.ensuring(_ => BitStream.invariant(this))
 
+   def appendByteArray(arr: Array[UByte], noOfBytes: Int): Boolean = {
+      require(0 <= noOfBytes && noOfBytes <= arr.length)
+      require(BitStream.validate_offset_bytes(this, noOfBytes))
+
+      var i: Int = 0
+      (while i < noOfBytes do
+         decreases(noOfBytes - i)
+         appendByte(arr(i))
+         i += 1
+         ).invariant(0 <= i &&& i <= noOfBytes &&& BitStream.validate_offset_bytes(this, noOfBytes - i))
+
+      true
+   }.ensuring(_ => BitStream.invariant(this))
+
+   // ****************** Peak Functions **********************
+
    def peekBit(): Boolean = {
       require(BitStream.validate_offset_bit(this))
       ((buf(currentByte) & 0xFF) & (BitAccessMasks(currentBit) & 0xFF)) > 0
    }
+
+   // ****************** Read Bit Functions **********************
 
    // TODO change return value?
    def readBit(): Option[Boolean] = {
@@ -329,22 +395,29 @@ case class BitStream(
          None()
    }.ensuring(_ => BitStream.invariant(this))
 
-   def readBits(nbits: Int): OptionMut[Array[UByte]] = {
-      val bytesToRead: Int = nbits / 8
-      val remainingBits: UByte = (nbits % 8).toByte
+   def readBits(nBits: Int): OptionMut[Array[UByte]] = {
+      require(nBits > 0 && (nBits <= Integer.MAX_VALUE - NO_OF_BITS_IN_BYTE)) // TODO remaining bits in stream as upper bound, not MAX_VAL
+      require(BitStream.validate_offset_bits(this, nBits))
 
-      decodeOctetString_no_length(bytesToRead) match
-         case NoneMut() => return NoneMut()
-         case SomeMut(arr) =>
-            if remainingBits > 0 then
-               this.readPartialByte(remainingBits) match
-                  case None() => return NoneMut()
-                  case Some(ub) => arr(bytesToRead) = ub
-               arr(bytesToRead) = (arr(bytesToRead) << (8 - remainingBits)).toByte
-               SomeMut(arr)
-            else
-               SomeMut(arr)
-   }
+      val arr: Array[UByte] = Array.fill((nBits + NO_OF_BITS_IN_BYTE - 1) / NO_OF_BITS_IN_BYTE)(0)
+
+      var i = 0
+      (while i < nBits  do
+         decreases(nBits - i)
+
+         readBit() match
+            case None() =>
+               return NoneMut()
+            case Some(b) =>
+               arr(i / NO_OF_BITS_IN_BYTE) |||= (if b then BitAccessMasks(i % NO_OF_BITS_IN_BYTE) else 0)
+
+         i += 1
+      ).invariant(i >= 0 &&& i <= nBits &&& BitStream.validate_offset_bits(this, nBits - i))
+
+      SomeMut(arr)
+   }.ensuring(_ => BitStream.invariant(this))
+
+   // ****************** Read Byte Functions **********************
 
    def readByte(): Option[UByte] = {
       require(BitStream.validate_offset_bits(this, 8))
@@ -363,151 +436,41 @@ case class BitStream(
       ).invariant(i >= 0 &&& i <= NO_OF_BITS_IN_BYTE &&& BitStream.validate_offset_bits(this, NO_OF_BITS_IN_BYTE - i))
 
       Some(ret.toUnsignedByte)
-
-//      val cb: UByte = currentBit.toByte
-//      val ncb: UByte = (8 - cb).toByte
-//
-//      var v: UByte = buf(currentByte) <<<< cb
-//      currentByte += 1
-//
-//      if cb > 0 then
-//         v = (v | (buf(currentByte) >>>> ncb)).toByte
-//
-//      if BitStream.invariant(this) then
-//         Some(v)
-//      else
-//         None()
-   }
-
-   def appendByteArray(arr: Array[UByte], noOfBytes: Int): Boolean = {
-      require(0 <= noOfBytes && noOfBytes <= arr.length)
-      require(BitStream.validate_offset_bytes(this, noOfBytes))
-
-      // TODO do we need this check?
-//      if !(currentByte.toLong + noOfBytes < buf.length || (currentBit == 0 && currentByte.toLong + noOfBytes <= buf.length)) then
-//         return false
-
-      var i: Int = 0
-      (while i < noOfBytes do
-         decreases(noOfBytes - i)
-         appendByte(arr(i))
-         i += 1
-        ).invariant(0 <= i &&& i <= noOfBytes &&& BitStream.validate_offset_bytes(this, noOfBytes - i))
-
-      true
    }.ensuring(_ => BitStream.invariant(this))
 
-   def readByteArray(arr_len: Int): OptionMut[Array[UByte]] = {
-      require(0 < arr_len && arr_len <= buf.length)
-      require(BitStream.validate_offset_bytes(this, arr_len))
-      val arr: Array[UByte] = Array.fill(arr_len)(0)
+   def readByteArray(nBytes: Int): OptionMut[Array[UByte]] = {
+      require(0 < nBytes && nBytes <= buf.length)
+      require(BitStream.validate_offset_bytes(this, nBytes))
 
-      val cb = currentBit
-      val ncb = 8 - cb
+      readBits(nBytes * NO_OF_BITS_IN_BYTE)
+   }.ensuring(_ => BitStream.invariant(this))
 
-      if !(currentByte.toLong + arr_len < buf.length || (currentBit == 0 && currentByte.toLong + arr_len <= buf.length)) then
-         return NoneMut()
-
-      var i: Int = 0
-      (while i < arr_len do
-         decreases(arr_len - i)
-         this.readByte() match
-            case Some(v) => arr(i) = v
-            case None() => return NoneMut()
-         i += 1
-        ).invariant(0 <= i &&& i <= arr_len &&& i <= arr.length &&& BitStream.validate_offset_bytes(this, arr_len - i) &&& BitStream.invariant(this))
-
-      SomeMut(arr)
-   }
-
-   def decodeOctetString_no_length(nCount: Int): OptionMut[Array[UByte]] = {
-      val cb: Int = currentBit
-      val arr: Array[UByte] = Array.fill(nCount+1)(0)
-
-      if cb == 0 then
-         if currentByte + nCount > buf.length then
-            return NoneMut()
-
-         arrayCopyOffset(buf, arr, currentByte, currentByte + nCount, 0)
-         currentByte += nCount
-
-      else
-         readByteArray(nCount) match
-            case NoneMut() => return NoneMut()
-            case SomeMut(a) => arrayCopyOffsetLen(a, arr, 0, 0, a.length)
-
-      SomeMut(arr)
-   }
 
    /* nbits 1..7*/
-   def appendPartialByte(vVal: UByte, nbits: UByte, negate: Boolean): Unit = {
-      val cb: UByte = currentBit.toByte
-      val totalBits: UByte = (cb + nbits).toByte
-      val ncb: UByte = (8 - cb).toByte
-
-      var v = vVal
-      if negate then
-         v = (masksb(nbits) & (~v)).toByte
-
-      val mask1: UByte = (~masksb(ncb)).toByte
-
-      if (totalBits <= 8) {
-         //static UByte masksb[] = { 0x0, 0x1, 0x3, 0x7, 0xF, 0x1F, 0x3F, 0x7F, 0xFF };
-         val mask2: UByte = masksb(8 - totalBits)
-         val mask: UByte = (mask1 | mask2).toByte
-         //e.g. current bit = 3 --> mask =    1110 0000
-         //nbits = 3 --> totalBits = 6
-         //                                                 mask=     1110 0000
-         //                                                 and         0000 0011 <- masks[totalBits - 1]
-         //	                                                            -----------
-         //					final mask         1110 0011
-         buf(currentByte) = (buf(currentByte) & mask).toByte
-         buf(currentByte) = (buf(currentByte) | (v << (8 - totalBits))).toByte
-         currentBit += nbits.toInt
-         if currentBit == 8 then
-            currentBit = 0
-            currentByte += 1
-
-      } else {
-         val totalBitsForNextByte: UByte = (totalBits - 8).toByte
-         buf(currentByte) = (buf(currentByte) & mask1).toByte
-         buf(currentByte) = (buf(currentByte) | (v >>> totalBitsForNextByte)).toByte
-         currentByte += 1
-         val mask: UByte = (~masksb(8 - totalBitsForNextByte)).toByte
-         buf(currentByte) = (buf(currentByte) & mask).toByte
-         buf(currentByte) = (buf(currentByte) | (v << (8 - totalBitsForNextByte))).toByte
-         currentBit = totalBitsForNextByte.toInt
-      }
-
-      assert(currentByte.toLong * 8 + currentBit <= buf.length.toLong * 8)
-   }
-
-   /* nbits 1..7*/
-   def readPartialByte(nbits: UByte): Option[UByte] = {
-      require(0 < nbits && nbits < 8)
-      require(BitStream.validate_offset_bits(this, nbits))
+   def readPartialByte(nBits: Int): Option[UByte] = {
+      require(0 < nBits && nBits < 8)
+      require(BitStream.validate_offset_bits(this, nBits))
 
       var v: UByte = 0
-      val cb: UByte = currentBit.toByte
-      val totalBits: UByte = (cb + nbits).toByte
+      val totalBits = currentBit + nBits
 
       if (totalBits <= 8) {
-         v = ((buf(currentByte) >>>> (8 - totalBits)) & masksb(nbits)).toByte
+         v = ((buf(currentByte) >>>> (8 - totalBits)) & masksb(nBits)).toByte
          ghostExpr {
-            BitStream.validate_offset_bits(this, nbits)
+            BitStream.validate_offset_bits(this, nBits)
          }
-         if currentBit + nbits >= 8 then
-            currentBit = (currentBit + nbits) % 8
+         if currentBit + nBits >= 8 then
+            currentBit = (currentBit + nBits) % 8
             currentByte += 1
          else
-            currentBit += nbits.toInt
+            currentBit += nBits
 
       } else {
          var totalBitsForNextByte: UByte = (totalBits - 8).toByte
          v = (buf(currentByte) <<<< totalBitsForNextByte)
          currentByte += 1
          v = (v | buf(currentByte) >>>> (8 - totalBitsForNextByte)).toByte
-         v = (v & masksb(nbits)).toByte
+         v = (v & masksb(nBits)).toByte
          currentBit = totalBitsForNextByte.toInt
       }
 
