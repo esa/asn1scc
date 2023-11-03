@@ -280,6 +280,22 @@ case class BitStream(
 
    // ****************** Append Byte Functions **********************
 
+   /**
+    * Append part of a byte to the bitstream
+    *
+    * @param v value that should be partially added
+    * @param nBits that should get taken from v - counting starts with the LSB
+    * @param negate
+    *
+    * Example:
+    *
+    * nBits =  3
+    *          MSB = 2^7            LSB = 2^0
+    * v =      1  0  0  1  0  1  1  0
+    *                         x1 x2 x3
+    * x1 to x3 get added to the bitstream - starting with x1
+    *
+    */
    def appendPartialByte(vVal: UByte, nBits: Int, negate: Boolean): Unit = {
       require(nBits >= 0)
       require(BitStream.validate_offset_bits(this, nBits))
