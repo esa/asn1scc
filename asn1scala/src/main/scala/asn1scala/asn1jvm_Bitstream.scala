@@ -249,7 +249,8 @@ case class BitStream(
    /**
     * Append bit with bitNr from b to bitstream
     *
-    * bit 0 is the MSB, bit 7 is the LSB
+    * bit 0 is the MSB, bit 7 is the LSB, ASN.1 standard declares bit 1 as MSB,
+    * bit 8 as LSB - but we start from 0 in CS
     *
     * @param b byte that gets the bit extracted from
     * @param bitNr 0 to 7 - number of the bit
@@ -285,7 +286,6 @@ case class BitStream(
     *
     * @param v value that should be partially added
     * @param nBits that should get taken from v - counting starts with the LSB
-    * @param negate
     *
     * Example:
     *
@@ -296,48 +296,19 @@ case class BitStream(
     * x1 to x3 get added to the bitstream - starting with x1
     *
     */
-   def appendPartialByte(vVal: UByte, nBits: Int, negate: Boolean): Unit = {
-      require(nBits >= 0)
+
+   def appendPartialByte(v: UByte, nBits: Int): Unit = {
+      require(nBits >= 0 &&& nBits <= NO_OF_BITS_IN_BYTE)
       require(BitStream.validate_offset_bits(this, nBits))
 
-      val totalBits = currentBit + nBits
-      val ncb = 8 - currentBit
+      var i = 0
+      (while i < nBits do
+         decreases(nBits - i)
 
-      var v = vVal
-      if negate then
-         v = (masksb(nBits) & (~v)).toByte
+         appendBitFromByte(v, NO_OF_BITS_IN_BYTE - nBits + i)
 
-      val mask1: UByte = (~masksb(ncb)).toByte
-
-      if (totalBits <= 8) {
-         //static UByte masksb[] = { 0x0, 0x1, 0x3, 0x7, 0xF, 0x1F, 0x3F, 0x7F, 0xFF };
-         val mask2: UByte = masksb(8 - totalBits)
-         val mask: UByte = (mask1 | mask2).toByte
-         //e.g. current bit = 3 --> mask =    1110 0000
-         //nbits = 3 --> totalBits = 6
-         //                                                 mask=     1110 0000
-         //                                                 and         0000 0011 <- masks[totalBits - 1]
-         //	                                                            -----------
-         //					final mask         1110 0011
-         buf(currentByte) = (buf(currentByte) & mask).toByte
-         buf(currentByte) = (buf(currentByte) | (v << (8 - totalBits))).toByte
-         currentBit += nBits
-         if currentBit == 8 then
-            currentBit = 0
-            currentByte += 1
-
-      } else {
-         val totalBitsForNextByte: UByte = (totalBits - 8).toByte
-         buf(currentByte) = (buf(currentByte) & mask1).toByte
-         buf(currentByte) = (buf(currentByte) | (v >>> totalBitsForNextByte)).toByte
-         currentByte += 1
-         val mask: UByte = (~masksb(8 - totalBitsForNextByte)).toByte
-         buf(currentByte) = (buf(currentByte) & mask).toByte
-         buf(currentByte) = (buf(currentByte) | (v << (8 - totalBitsForNextByte))).toByte
-         currentBit = totalBitsForNextByte.toInt
-      }
-
-//      assert(currentByte.toLong * 8 + currentBit <= buf.length.toLong * 8)
+         i += 1
+         ).invariant(i >= 0 && i <= nBits)
    }.ensuring(_ => BitStream.invariant(this))
 
    /**

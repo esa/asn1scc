@@ -408,7 +408,7 @@ case class ACN(bitStream: BitStream) extends Codec {
 
       var i: Int = encodedSizeInNibbles - 1
       while i >= 0 do
-         bitStream.appendPartialByte(tmp(i).toByte, 4, false)
+         bitStream.appendPartialByte(tmp(i).toByte, 4)
          i -= 1
 
       CHECK_BIT_STREAM(bitStream)
@@ -458,7 +458,7 @@ case class ACN(bitStream: BitStream) extends Codec {
       /* Encode Number */
       enc_Int_BCD_ConstSize(intVal, nNibbles)
 
-      bitStream.appendPartialByte(0xF, 4, false)
+      bitStream.appendPartialByte(0xF, 4)
 
       CHECK_BIT_STREAM(bitStream)
    }

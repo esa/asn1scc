@@ -100,7 +100,8 @@ trait Codec {
       pbits = cc % 8
       if pbits > 0 then
          cc -= pbits
-         bitStream.appendPartialByte((v >>> cc).toByte, pbits.toByte, negate)
+         var b = (v >>> cc).toByte
+         bitStream.appendPartialByte(if negate then (~b).toByte else b, pbits.toByte)
 
       while cc > 0 do
          decreases(cc)
@@ -1052,7 +1053,7 @@ trait Codec {
    }
 
    def appendPartialByte(vVal: UByte, nbits: UByte, negate: Boolean): Unit = {
-      bitStream.appendPartialByte(vVal, nbits, negate)
+      bitStream.appendPartialByte(vVal, nbits)
    }
 
    def readPartialByte(nbits: UByte): Option[UByte] = {
