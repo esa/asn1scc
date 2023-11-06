@@ -1055,7 +1055,8 @@ trait Codec {
    }
 
    def readBits(nbits: Int): OptionMut[Array[UByte]] = {
-      readBits(nbits)
+      // TODO
+      SomeMut(bitStream.readBits(nbits))
    }
 
    def appendPartialByte(vVal: UByte, nbits: UByte): Unit = {
