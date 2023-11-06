@@ -355,7 +355,9 @@ case class BitStream(
       var i: Int = 0
       (while i < noOfBytes do
          decreases(noOfBytes - i)
+
          appendByte(arr(i))
+
          i += 1
       ).invariant(0 <= i &&& i <= noOfBytes &&& BitStream.validate_offset_bytes(this, noOfBytes - i))
 
@@ -379,7 +381,7 @@ case class BitStream(
       ret
    }.ensuring(_ => BitStream.invariant(this))
 
-   def readBits(nBits: Int): OptionMut[Array[UByte]] = {
+   def readBits(nBits: Int): Array[UByte] = {
       require(nBits > 0 && (nBits <= Integer.MAX_VALUE - NO_OF_BITS_IN_BYTE)) // TODO remaining bits in stream as upper bound, not MAX_VAL
       require(BitStream.validate_offset_bits(this, nBits))
 
@@ -394,7 +396,7 @@ case class BitStream(
          i += 1
       ).invariant(i >= 0 &&& i <= nBits &&& BitStream.validate_offset_bits(this, nBits - i))
 
-      SomeMut(arr)
+      arr
    }.ensuring(_ => BitStream.invariant(this))
 
    // ****************** Read Byte Functions **********************
@@ -414,7 +416,7 @@ case class BitStream(
       ret.toUnsignedByte
    }.ensuring(_ => BitStream.invariant(this))
 
-   def readByteArray(nBytes: Int): OptionMut[Array[UByte]] = {
+   def readByteArray(nBytes: Int): Array[UByte] = {
       require(0 < nBytes && nBytes <= buf.length)
       require(BitStream.validate_offset_bytes(this, nBytes))
 

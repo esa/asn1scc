@@ -700,7 +700,7 @@ trait Codec {
          bitStream.currentByte += nCount
 
       else
-         bitStream.readByteArray(nCount) match
+         readByteArray(nCount) match
             case NoneMut() => return NoneMut()
             case SomeMut(a) => arrayCopyOffsetLen(a, arr, 0, 0, a.length)
 
@@ -935,7 +935,7 @@ trait Codec {
          else
             nCount = asn1SizeMin
 
-         return bitStream.readBits(nCount.toInt)
+         return readBits(nCount.toInt)
 
       } else {
          var nRemainingItemsVar1: Long = 0
@@ -965,7 +965,7 @@ trait Codec {
                return NoneMut()
             /*COVERAGE_IGNORE*/
 
-            bitStream.readBits(nCurBlockSize1.toInt) match
+            readBits(nCurBlockSize1.toInt) match
                case NoneMut() => return NoneMut()
                case SomeMut(t) =>
                   arrayCopyOffsetLen(t, arr, 0, (nCurOffset1 / 8).toInt, nCurBlockSize1.toInt)
@@ -985,7 +985,7 @@ trait Codec {
 
          if (nCurOffset1 + nRemainingItemsVar1 <= asn1SizeMax) then
 
-            bitStream.readBits(nRemainingItemsVar1.toInt) match
+            readBits(nRemainingItemsVar1.toInt) match
                case NoneMut() => return NoneMut()
                case SomeMut(t) =>
                   arrayCopyOffsetLen(t, arr, 0, (nCurOffset1 / 8).toInt, nRemainingItemsVar1.toInt)
@@ -1050,11 +1050,12 @@ trait Codec {
 
 
    def readByteArray(arr_len: Int): OptionMut[Array[UByte]] = {
-      bitStream.readByteArray(arr_len)
+      // TODO
+      SomeMut(bitStream.readByteArray(arr_len))
    }
 
    def readBits(nbits: Int): OptionMut[Array[UByte]] = {
-      bitStream.readBits(nbits)
+      readBits(nbits)
    }
 
    def appendPartialByte(vVal: UByte, nbits: UByte): Unit = {
