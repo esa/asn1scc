@@ -186,12 +186,21 @@ case class BitStream(
       increaseBitIndex()
    }.ensuring(_ => BitStream.invariant(this))
 
+   /**
+    * Append a set bit
+    */
    def appendBitOne(): Unit = {
       require(validate_offset_bit())
 
       appendBit(true)
    }
 
+   /**
+    * Append n set bits to bitstream
+    *
+    * @param nBits number of bits
+    *
+    */
    def appendNBitOne(nBits: Int): Unit = {
       require(nBits >= 0)
       require(validate_offset_bits(nBits))
@@ -206,12 +215,21 @@ case class BitStream(
       ).invariant(i >= 0 &&& i <= nBits)
    }.ensuring(_ => BitStream.invariant(this))
 
+   /**
+    * Append cleared bit to bitstream
+    */
    def appendBitZero(): Unit = {
       require(validate_offset_bit())
 
       appendBit(false)
    }
 
+   /**
+    * Append n cleared bit to bitstream
+    *
+    * @param nBits number of bits
+    *
+    */
    def appendNBitZero(nBits: Int): Unit = {
       require(nBits >= 0)
       require(validate_offset_bits(nBits))
@@ -247,6 +265,16 @@ case class BitStream(
 
    }.ensuring(_ => BitStream.invariant(this))
 
+   /**
+    * Append nBits from srcBuffer to bitstream
+    *
+    * @param srcBuffer source of the bits to add
+    * @param nBits number of bits to add
+    *
+    * Remarks:
+    * bit 0 is the MSB of the first byte of srcBuffer
+    *
+    */
    def appendBits(srcBuffer: Array[UByte], nBits: Int): Unit = {
       require(nBits >= 0 && nBits / 8 < srcBuffer.length)
       require(validate_offset_bits(nBits))
@@ -351,6 +379,12 @@ case class BitStream(
 
    // ****************** Peak Functions **********************
 
+   /**
+    * Preview the next bit on the bitstream
+    *
+    * @return peeked bit
+    *
+    */
    def peekBit(): Boolean = {
       require(validate_offset_bit())
       ((buf(currentByte) & 0xFF) & (BitAccessMasks(currentBit) & 0xFF)) > 0
@@ -358,6 +392,12 @@ case class BitStream(
 
    // ****************** Read Bit Functions **********************
 
+   /**
+    * Read single bit from the bitstream
+    *
+    * @return next bit on the bitstream
+    *
+    */
    def readBit(): Boolean = {
       require(validate_offset_bit())
       val ret = (buf(currentByte) & BitAccessMasks(currentBit)) != 0
@@ -367,6 +407,16 @@ case class BitStream(
       ret
    }.ensuring(_ => BitStream.invariant(this))
 
+   /**
+    * Read multiple bits from the bitstream
+    *
+    * @param nBits number of bits to read
+    * @return array of read bits
+    *
+    * Remarks:
+    * First bit is written into the MSB of Byte 0
+    *
+    */
    def readBits(nBits: Int): Array[UByte] = {
       require(nBits > 0 && (nBits <= Integer.MAX_VALUE - NO_OF_BITS_IN_BYTE)) // TODO remaining bits in stream as upper bound, not MAX_VAL
       require(validate_offset_bits(nBits))
@@ -387,6 +437,15 @@ case class BitStream(
 
    // ****************** Read Byte Functions **********************
 
+   /**
+    * Read whole byte from the bitstream
+    *
+    * @return byte read from bitstream
+    *
+    * Remarks:
+    * First bit read from bitstream is the return bytes MSB
+    *
+    */
    def readByte(): UByte = {
       require(validate_offset_bits(8))
 
