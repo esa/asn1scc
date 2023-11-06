@@ -125,9 +125,10 @@ case class BitStream(
 
    /**
     * Set new internal buffer
+    *
     * @param buf Byte array that should be attached to this BitStream
+    *
     */
-
    @extern
    def attachBuffer(buf: Array[UByte]): Unit = {
       this.buf = buf // Illegal aliasing, therefore we need to workaround with this @extern...
@@ -137,13 +138,13 @@ case class BitStream(
    }.ensuring(_ => this.buf == buf && currentByte == 0 && currentBit == 0)
 
    /**
-    *
     * Return count of bytes that got already fully or partially written
-    * Example:
-    * Currentbyte = 4, currentBit = 2 --> 5
-    * Currentbyte = 14, currentBit = 0 --> 14
     *
     * @return the number of used bytes so far
+    *
+    * Example:
+    *    Currentbyte = 4, currentBit = 2 --> 5
+    *    Currentbyte = 14, currentBit = 0 --> 14
     *
     */
    def getLength(): Int = {
@@ -229,13 +230,14 @@ case class BitStream(
    /**
     * Append bit with bitNr from b to bitstream
     *
+    * @param b byte that gets the bit extracted from
+    * @param bitNr 0 to 7 - number of the bit
+    *
+    * Remarks:
     * bit 0 is the MSB, bit 7 is the LSB, ASN.1? / ESA? declares bit 1 as MSB,
     * bit 8 as LSB - but we start from 0 in CS
     *
-    * @param b byte that gets the bit extracted from
-    * @param bitNr 0 to 7 - number of the bit
     */
-
    private def appendBitFromByte(b: Byte, bitNr: Int): Unit = {
       require(bitNr >= 0 && bitNr < NO_OF_BITS_IN_BYTE)
       require(validate_offset_bit())
@@ -274,9 +276,9 @@ case class BitStream(
     *          |                    |
     * v =      1  0  0  1  0  1  1  0
     *                         |  |  |
-    *                         x1 x2 x3
+    *                         b1 b2 b3
     *
-    * x1 to x3 get added to the bitstream - starting with x1
+    * b1 to b3 get added to the bitstream - starting with b1
     *
     */
 
@@ -294,12 +296,16 @@ case class BitStream(
          ).invariant(i >= 0 && i <= nBits)
    }.ensuring(_ => BitStream.invariant(this))
 
+
    /**
     * Append whole byte to bitstream
     *
+    * @param v gets appended to the bitstream
+    *
+    * Remarks:
     * The MSB is written first into the bitstream
     *
-    * Example
+    * Example:
     * cur bit on Bitstream = 3
     *
     *       MSB           LSB
@@ -308,10 +314,9 @@ case class BitStream(
     *  _ _ _ _ _ _ _ _ _ _ _ _ _
     *  0 1 2 3 4 5 6 7 0 1 2 3 4 ...
     *
-    * Result: Pos 3 (MSB of v) to 10 (LSB of v) are written
+    * Pos 3 (MSB of v) to 10 (LSB of v) are written
     *
     * */
-
    def appendByte(v: UByte): Unit = {
       require(validate_offset_bytes(1))
 
@@ -322,10 +327,11 @@ case class BitStream(
    /**
     * NBytes of the given array is added to the bitstream
     *
-    * The MSB of the arr[0] is written first
-    *
     * @param arr is the source array
     * @param noOfBytes that get written into the bitstream
+    *
+    * Remarks:
+    * The MSB of the arr[0] is written first
     *
     */
    def appendByteArray(arr: Array[UByte], noOfBytes: Int): Unit = {
@@ -404,33 +410,51 @@ case class BitStream(
    }.ensuring(_ => BitStream.invariant(this))
 
 
-   /* nbits 1..7*/
+   /**
+    * Read nBits from Bitstream into Byte
+    *
+    * @param nBits get read from the bitstream
+    * @return combined bits into Byte
+    *
+    * Remarks:
+    * nBits starts at LSB and goes upward
+    *
+    * Example:
+    * cur bit on Bitstream = 2
+    * nBits = 3
+    *
+    * Bitstream:
+    *    x  x  b1 b2 b3
+    *    _  _  _  _  _  _  _  _
+    *    0  1  2  3  4  5  6  ...
+    *
+    * Return Val:
+    *       MSB                 LSB
+    *       |                    |
+    * v =   0  0  0  0  0  _  _  _
+    *       7  6  5  4  3  2  1  0
+    *                      |  |  |
+    *                     b1 b2 b3
+    *
+    * b1 to b3 are extracted from the bitstream
+    * and written into v
+    *
+    */
    def readPartialByte(nBits: Int): UByte = {
       require(0 < nBits && nBits < 8)
       require(validate_offset_bits(nBits))
 
-      var v: UByte = 0
-      val totalBits = currentBit + nBits
+      var v = 0.toByte
+      var i = 0
+      (while i < nBits do
+         decreases(nBits - i)
 
-      if (totalBits <= 8) {
-         v = ((buf(currentByte) >>>> (8 - totalBits)) & masksb(nBits)).toByte
-         ghostExpr {
-            validate_offset_bits(nBits)
-         }
-         if currentBit + nBits >= 8 then
-            currentBit = (currentBit + nBits) % 8
-            currentByte += 1
-         else
-            currentBit += nBits
+         v |||= (if readBit() then BitAccessMasks(NO_OF_BITS_IN_BYTE - nBits + i) else 0)
 
-      } else {
-         var totalBitsForNextByte: UByte = (totalBits - 8).toByte
-         v = (buf(currentByte) <<<< totalBitsForNextByte)
-         currentByte += 1
-         v = (v | buf(currentByte) >>>> (8 - totalBitsForNextByte)).toByte
-         v = (v & masksb(nBits)).toByte
-         currentBit = totalBitsForNextByte.toInt
-      }
+         i += 1
+      ).invariant(i >= 0 && i <= nBits)
+
       v
-   }
+   }.ensuring(_ => BitStream.invariant(this))
+
 } // BitStream class
