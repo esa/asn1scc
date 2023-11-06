@@ -249,7 +249,7 @@ case class BitStream(
    /**
     * Append bit with bitNr from b to bitstream
     *
-    * bit 0 is the MSB, bit 7 is the LSB, ASN.1 standard declares bit 1 as MSB,
+    * bit 0 is the MSB, bit 7 is the LSB, ASN.1? / ESA? declares bit 1 as MSB,
     * bit 8 as LSB - but we start from 0 in CS
     *
     * @param b byte that gets the bit extracted from
