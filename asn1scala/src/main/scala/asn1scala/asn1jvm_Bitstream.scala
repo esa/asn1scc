@@ -27,7 +27,7 @@ def reader(w1: BitStream, w2: BitStream): (BitStream, BitStream) = {
 
 //@ghost @pure
 //def readBytePure(pBitStrm: BitStream): (BitStream, Option[Byte]) = {
-//   require(BitStream.validate_offset_bytes(pBitStrm, 1))
+//   require(pBitStrm.validate_offset_bytes(1))
 //   val cpy = snapshot(pBitStrm)
 //   (cpy, cpy.readByte())
 //}
@@ -45,47 +45,6 @@ object BitStream {
    def invariant(currentByte: Int, currentBit: Int, buf_length: Int): Boolean = {
       0 <= currentBit && currentBit <= 7 &&&
          0 <= currentByte && (currentByte < buf_length || (currentBit == 0 && currentByte <= buf_length))
-   }
-
-   @ghost
-   def validate_offset_bit(pBitStrm: BitStream): Boolean = {
-      //        var new_currentBit: Int = pBitStrm.currentBit + 1
-      //        var new_currentByte: Int = pBitStrm.currentByte
-      //
-      //        if new_currentBit > 7 then
-      //            new_currentBit = new_currentBit % 8
-      //            new_currentByte += 1
-      //
-      //        0 <= new_currentBit
-      //          && new_currentBit <= 7
-      //          && 0 <= new_currentByte
-      //          && (new_currentByte < pBitStrm.buf.length || (new_currentBit == 0 && pBitStrm.currentByte <= pBitStrm.buf.length))
-      pBitStrm.currentByte < pBitStrm.buf.length
-   }
-
-   @ghost
-   def validate_offset_bits(pBitStrm: BitStream, bits: Int = 0): Boolean = {
-      require(bits >= 0)
-      val nBits = bits % 8
-      val nBytes = bits / 8
-
-      var new_currentByte: Long = pBitStrm.currentByte.toLong + nBytes
-      var new_currentBit: Long = pBitStrm.currentBit.toLong + nBits
-
-      if new_currentBit > 7 then
-         new_currentBit = new_currentBit % 8
-         new_currentByte += 1
-
-      0 <= new_currentBit
-         && new_currentBit <= 7
-         && 0 <= new_currentByte
-         && (new_currentByte < pBitStrm.buf.length || (new_currentBit == 0 && new_currentByte <= pBitStrm.buf.length))
-   }
-
-   @ghost
-   def validate_offset_bytes(pBitStrm: BitStream, bytes: Int = 0): Boolean = {
-      val new_currentByte: Long = pBitStrm.currentByte.toLong + bytes
-      new_currentByte < pBitStrm.buf.length || (pBitStrm.currentBit == 0 && new_currentByte <= pBitStrm.buf.length)
    }
 }
 
@@ -119,6 +78,24 @@ case class BitStream(
                     ) { // all BisStream instances satisfy the following:
    require(BitStream.invariant(currentByte, currentBit, buf.length))
 
+   private var remainingBits: Long = buf.length.toLong * 8
+
+   @ghost
+   def validate_offset_bit(): Boolean = {
+      remainingBits >= 1
+   }
+
+   @ghost
+   def validate_offset_bits(bits: Int = 0): Boolean = {
+      require(bits >= 0)
+      remainingBits >= bits
+   }
+
+   @ghost
+   def validate_offset_bytes(bytes: Int = 0): Boolean = {
+      require(bytes >= 0)
+      remainingBits >= bytes.toLong * 8
+   }
 
    def bitIndex(): Long = {
       currentByte.toLong * 8 + currentBit.toLong
@@ -131,6 +108,8 @@ case class BitStream(
       else
          currentBit = 0
          currentByte += 1
+
+      remainingBits -= 1
    }.ensuring {_ =>
       val oldBitStrm = old(this)
       oldBitStrm.bitIndex() + 1 == this.bitIndex() &&&
@@ -154,6 +133,7 @@ case class BitStream(
       this.buf = buf // Illegal aliasing, therefore we need to workaround with this @extern...
       currentByte = 0
       currentBit = 0
+      remainingBits = buf.length.toLong * 8
    }.ensuring(_ => this.buf == buf && currentByte == 0 && currentBit == 0)
 
    /**
@@ -176,7 +156,7 @@ case class BitStream(
 //   @ghost
 //   @pure
 //   private def readBitPure(): (BitStream, Option[Boolean]) = {
-//      require(BitStream.validate_offset_bit(this))
+//      require(validate_offset_bit())
 //      val cpy = snapshot(this)
 //      (cpy, cpy.readBit())
 //   }
@@ -196,7 +176,7 @@ case class BitStream(
     *
     */
    def appendBit(b: Boolean): Unit = {
-      require(BitStream.validate_offset_bit(this))
+      require(validate_offset_bit())
       if b then
          buf(currentByte) = (buf(currentByte) | BitAccessMasks(currentBit)).toByte
       else
@@ -206,14 +186,14 @@ case class BitStream(
    }.ensuring(_ => BitStream.invariant(this))
 
    def appendBitOne(): Unit = {
-      require(BitStream.validate_offset_bit(this))
+      require(validate_offset_bit())
 
       appendBit(true)
    }
 
    def appendNBitOne(nBits: Int): Unit = {
       require(nBits >= 0)
-      require(BitStream.validate_offset_bits(this, nBits))
+      require(validate_offset_bits(nBits))
 
       var i = 0
       (while i < nBits do
@@ -226,14 +206,14 @@ case class BitStream(
    }.ensuring(_ => BitStream.invariant(this))
 
    def appendBitZero(): Unit = {
-      require(BitStream.validate_offset_bit(this))
+      require(validate_offset_bit())
 
       appendBit(false)
    }
 
    def appendNBitZero(nBits: Int): Unit = {
       require(nBits >= 0)
-      require(BitStream.validate_offset_bits(this, nBits))
+      require(validate_offset_bits(nBits))
 
       var i = 0
       (while i < nBits do
@@ -258,7 +238,7 @@ case class BitStream(
 
    private def appendBitFromByte(b: Byte, bitNr: Int): Unit = {
       require(bitNr >= 0 && bitNr < NO_OF_BITS_IN_BYTE)
-      require(BitStream.validate_offset_bit(this))
+      require(validate_offset_bit())
 
       val bitPosInByte = 1 << ((NO_OF_BITS_IN_BYTE - 1) - bitNr)
       appendBit((b.unsignedToInt & bitPosInByte) != 0)
@@ -267,7 +247,7 @@ case class BitStream(
 
    def appendBits(srcBuffer: Array[UByte], nBits: Int): Unit = {
       require(nBits >= 0 && nBits / 8 < srcBuffer.length)
-      require(BitStream.validate_offset_bits(this, nBits))
+      require(validate_offset_bits(nBits))
 
       var i = 0
       (while(i < nBits) do
@@ -276,7 +256,7 @@ case class BitStream(
          appendBitFromByte(srcBuffer(i / NO_OF_BITS_IN_BYTE), i % NO_OF_BITS_IN_BYTE)
 
          i += 1
-      ).invariant(i >= 0 &&& i <= nBits &&& BitStream.validate_offset_bits(this, nBits - i))
+      ).invariant(i >= 0 &&& i <= nBits &&& validate_offset_bits(nBits - i))
    }.ensuring(_ => BitStream.invariant(this))
 
    // ****************** Append Byte Functions **********************
@@ -302,7 +282,7 @@ case class BitStream(
 
    def appendPartialByte(v: UByte, nBits: Int): Unit = {
       require(nBits >= 0 &&& nBits <= NO_OF_BITS_IN_BYTE)
-      require(BitStream.validate_offset_bits(this, nBits))
+      require(validate_offset_bits(nBits))
 
       var i = 0
       (while i < nBits do
@@ -333,7 +313,7 @@ case class BitStream(
     * */
 
    def appendByte(v: UByte): Unit = {
-      require(BitStream.validate_offset_bytes(this, 1))
+      require(validate_offset_bytes(1))
 
       appendPartialByte(v, NO_OF_BITS_IN_BYTE)
 
@@ -350,7 +330,7 @@ case class BitStream(
     */
    def appendByteArray(arr: Array[UByte], noOfBytes: Int): Unit = {
       require(0 <= noOfBytes && noOfBytes <= arr.length)
-      require(BitStream.validate_offset_bytes(this, noOfBytes))
+      require(validate_offset_bytes(noOfBytes))
 
       var i: Int = 0
       (while i < noOfBytes do
@@ -359,21 +339,21 @@ case class BitStream(
          appendByte(arr(i))
 
          i += 1
-      ).invariant(0 <= i &&& i <= noOfBytes &&& BitStream.validate_offset_bytes(this, noOfBytes - i))
+      ).invariant(0 <= i &&& i <= noOfBytes &&& validate_offset_bytes(noOfBytes - i))
 
    }.ensuring(_ => BitStream.invariant(this))
 
    // ****************** Peak Functions **********************
 
    def peekBit(): Boolean = {
-      require(BitStream.validate_offset_bit(this))
+      require(validate_offset_bit())
       ((buf(currentByte) & 0xFF) & (BitAccessMasks(currentBit) & 0xFF)) > 0
    }
 
    // ****************** Read Bit Functions **********************
 
    def readBit(): Boolean = {
-      require(BitStream.validate_offset_bit(this))
+      require(validate_offset_bit())
       val ret = (buf(currentByte) & BitAccessMasks(currentBit)) != 0
 
       increaseBitIndex()
@@ -383,7 +363,7 @@ case class BitStream(
 
    def readBits(nBits: Int): Array[UByte] = {
       require(nBits > 0 && (nBits <= Integer.MAX_VALUE - NO_OF_BITS_IN_BYTE)) // TODO remaining bits in stream as upper bound, not MAX_VAL
-      require(BitStream.validate_offset_bits(this, nBits))
+      require(validate_offset_bits(nBits))
 
       val arr: Array[UByte] = Array.fill((nBits + NO_OF_BITS_IN_BYTE - 1) / NO_OF_BITS_IN_BYTE)(0)
 
@@ -394,7 +374,7 @@ case class BitStream(
             arr(i / NO_OF_BITS_IN_BYTE) |||= (if readBit() then BitAccessMasks(i % NO_OF_BITS_IN_BYTE) else 0)
 
          i += 1
-      ).invariant(i >= 0 &&& i <= nBits &&& BitStream.validate_offset_bits(this, nBits - i))
+      ).invariant(i >= 0 &&& i <= nBits &&& validate_offset_bits(nBits - i))
 
       arr
    }.ensuring(_ => BitStream.invariant(this))
@@ -402,7 +382,7 @@ case class BitStream(
    // ****************** Read Byte Functions **********************
 
    def readByte(): UByte = {
-      require(BitStream.validate_offset_bits(this, 8))
+      require(validate_offset_bits(8))
 
       var ret = 0
       var i = 0
@@ -411,14 +391,14 @@ case class BitStream(
 
          ret |= (if readBit() then BitAccessMasks(i) else 0)
          i += 1
-      ).invariant(i >= 0 &&& i <= NO_OF_BITS_IN_BYTE &&& BitStream.validate_offset_bits(this, NO_OF_BITS_IN_BYTE - i))
+      ).invariant(i >= 0 &&& i <= NO_OF_BITS_IN_BYTE &&& validate_offset_bits(NO_OF_BITS_IN_BYTE - i))
 
       ret.toUnsignedByte
    }.ensuring(_ => BitStream.invariant(this))
 
    def readByteArray(nBytes: Int): Array[UByte] = {
       require(0 < nBytes && nBytes <= buf.length)
-      require(BitStream.validate_offset_bytes(this, nBytes))
+      require(validate_offset_bytes(nBytes))
 
       readBits(nBytes * NO_OF_BITS_IN_BYTE)
    }.ensuring(_ => BitStream.invariant(this))
@@ -427,7 +407,7 @@ case class BitStream(
    /* nbits 1..7*/
    def readPartialByte(nBits: Int): Option[UByte] = {
       require(0 < nBits && nBits < 8)
-      require(BitStream.validate_offset_bits(this, nBits))
+      require(validate_offset_bits(nBits))
 
       var v: UByte = 0
       val totalBits = currentBit + nBits
@@ -435,7 +415,7 @@ case class BitStream(
       if (totalBits <= 8) {
          v = ((buf(currentByte) >>>> (8 - totalBits)) & masksb(nBits)).toByte
          ghostExpr {
-            BitStream.validate_offset_bits(this, nBits)
+            validate_offset_bits(nBits)
          }
          if currentBit + nBits >= 8 then
             currentBit = (currentBit + nBits) % 8
