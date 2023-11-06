@@ -124,7 +124,7 @@ trait Codec {
          decreases(nBits)
          v = v << 8
 
-         bitStream.readByte() match
+         readByte() match
             case None() => return None()
             case Some(ub) =>
                // mask the Byte-Bits, becuase negative values eg. -1 (1111 1111)
@@ -334,7 +334,7 @@ trait Codec {
       while i < nBytes do
          decreases(nBytes - i)
 
-         bitStream.readByte() match
+         readByte() match
             case None() => return None()
             case Some(ub) => v = (v << 8) | (ub & 0xFF).toLong
 
@@ -357,7 +357,7 @@ trait Codec {
       while i < nBytes do
          decreases(nBytes - i)
 
-         bitStream.readByte() match
+         readByte() match
             case None() => return None()
             case Some(ub) => v = (v << 8) | (ub & 0xFF).toLong
 
@@ -398,7 +398,7 @@ trait Codec {
       while i < nBytes do
          decreases(nBytes - i)
 
-         bitStream.readByte() match
+         readByte() match
             case None() => return None()
             case Some(ub) => v = (v << 8) | (ub & 0xFF).toLong
 
@@ -505,7 +505,7 @@ trait Codec {
    }
 
    private def decodeRealBitString(): Option[Long] = {
-      bitStream.readByte() match
+      readByte() match
          case None() => None()
          case Some(length) =>
             // 8.5.2 Plus Zero
@@ -516,7 +516,7 @@ trait Codec {
             if length < 0 || length > DoubleMaxLengthOfSentBytes then
                return None()
 
-            bitStream.readByte() match
+            readByte() match
                case None() => None()
                case Some(header) =>
                   // 8.5.6 a)
@@ -574,7 +574,7 @@ trait Codec {
       (while i < expLen do
          decreases(expLen - i)
 
-         bitStream.readByte() match
+         readByte() match
             case None() => return None()
             case Some(ub) => exponent = exponent << 8 | (ub.toInt & 0xFF)
 
@@ -588,7 +588,7 @@ trait Codec {
       (while j < length do
          decreases(length - j)
 
-         bitStream.readByte() match
+         readByte() match
             case None() => return None()
             case Some(ub) => N = (N << 8) | (ub.toInt & 0xFF)
 
@@ -617,7 +617,7 @@ trait Codec {
       while bit_terminated_pattern_size_in_bits >= 8 do
          decreases(bit_terminated_pattern_size_in_bits)
 
-         bitStream.readByte() match
+         readByte() match
             case None() => return 0
             case Some(ub) => tmp_byte = ub
 
@@ -653,7 +653,7 @@ trait Codec {
       checkBitPatternPresentResult = checkBitPatternPresent(bit_terminated_pattern, bit_terminated_pattern_size_in_bits)
       while (bitsRead < nMaxReadBits) && (checkBitPatternPresentResult == 1) do
          decreases(nMaxReadBits - bitsRead)
-         bitStream.readBit() match
+         readBit() match
             case None() => return NoneMut()
             case Some(bitVal) =>
                tmpStrm.appendBit(bitVal)
@@ -677,12 +677,13 @@ trait Codec {
 
       if cb == 0 then
          ret = bitStream.currentByte + nCount <= bitStream.buf.length
-         if ret then
+         if(ret) {
             copyToArray(arr, bitStream.buf, bitStream.currentByte, nCount)
             bitStream.currentByte += nCount
+         }
 
-      else
-         ret = bitStream.appendByteArray(arr, nCount)
+      else // TODO appendByteArray does not return a boolean value anymore
+         bitStream.appendByteArray(arr, nCount)
 
       ret
    }
@@ -789,7 +790,7 @@ trait Codec {
          var i1: Int = nCurOffset1.toInt
          while (nCurOffset1 + nCurBlockSize1 <= asn1SizeMax) && (i1 < (nCurOffset1 + nCurBlockSize1).toInt) do
             decreases((nCurOffset1 + nCurBlockSize1).toInt - i1)
-            bitStream.readByte() match
+            readByte() match
                case None() => return NoneMut()
                case Some(ub) => arr(i1) = ub
             i1 += 1
@@ -821,7 +822,7 @@ trait Codec {
          // fill last payload fragment into dest
          while i1 < (nCurOffset1 + nRemainingItemsVar1).toInt do
             decreases((nCurOffset1 + nRemainingItemsVar1).toInt - i1)
-            bitStream.readByte() match
+            readByte() match
                case None() => return NoneMut()
                case Some(ub) => arr(i1) = ub
             i1 += 1
@@ -1024,7 +1025,7 @@ trait Codec {
    }
 
    def readBit(): Option[Boolean] = {
-      bitStream.readBit()
+      Some(bitStream.readBit())
    }
 
    def peekBit(): Boolean = {
@@ -1036,11 +1037,15 @@ trait Codec {
    }
 
    def readByte(): Option[UByte] = {
-      bitStream.readByte()
+      // TODO
+      Some(bitStream.readByte())
    }
 
    def appendByteArray(arr: Array[UByte], arr_len: Int): Boolean = {
+      // TODO
+
       bitStream.appendByteArray(arr, arr_len)
+      true
    }
 
 
@@ -1052,7 +1057,7 @@ trait Codec {
       bitStream.readBits(nbits)
    }
 
-   def appendPartialByte(vVal: UByte, nbits: UByte, negate: Boolean): Unit = {
+   def appendPartialByte(vVal: UByte, nbits: UByte): Unit = {
       bitStream.appendPartialByte(vVal, nbits)
    }
 

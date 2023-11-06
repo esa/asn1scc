@@ -100,7 +100,7 @@ case class UPER(bitStream: BitStream) extends Codec {
       var pRemainingOctets: Long = pRemainingOctetsVal
       while pRemainingOctets > 0 && !bLastOctet do
          decreases(pRemainingOctets)
-         bitStream.readByte() match
+         readByte() match
             case None() => return None()
             case Some(curByte) =>
                pRemainingOctets -= 1

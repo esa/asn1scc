@@ -25,12 +25,12 @@ def reader(w1: BitStream, w2: BitStream): (BitStream, BitStream) = {
    (r1, r2)
 }
 
-@ghost @pure
-def readBytePure(pBitStrm: BitStream): (BitStream, Option[Byte]) = {
-   require(BitStream.validate_offset_bytes(pBitStrm, 1))
-   val cpy = snapshot(pBitStrm)
-   (cpy, cpy.readByte())
-}
+//@ghost @pure
+//def readBytePure(pBitStrm: BitStream): (BitStream, Option[Byte]) = {
+//   require(BitStream.validate_offset_bytes(pBitStrm, 1))
+//   val cpy = snapshot(pBitStrm)
+//   (cpy, cpy.readByte())
+//}
 
 // END TODO should be part of BitStream
 
@@ -173,13 +173,13 @@ case class BitStream(
       ret
    }
 
-   @ghost
-   @pure
-   private def readBitPure(): (BitStream, Option[Boolean]) = {
-      require(BitStream.validate_offset_bit(this))
-      val cpy = snapshot(this)
-      (cpy, cpy.readBit())
-   }
+//   @ghost
+//   @pure
+//   private def readBitPure(): (BitStream, Option[Boolean]) = {
+//      require(BitStream.validate_offset_bit(this))
+//      val cpy = snapshot(this)
+//      (cpy, cpy.readBit())
+//   }
 
    // ****************** Append Bit Functions **********************
 
@@ -291,8 +291,11 @@ case class BitStream(
     *
     * nBits =  3
     *          MSB = 2^7            LSB = 2^0
+    *          |                    |
     * v =      1  0  0  1  0  1  1  0
+    *                         |  |  |
     *                         x1 x2 x3
+    *
     * x1 to x3 get added to the bitstream - starting with x1
     *
     */
@@ -312,41 +315,40 @@ case class BitStream(
    }.ensuring(_ => BitStream.invariant(this))
 
    /**
-    * Append byte (old implementation)
+    * Append whole byte to bitstream
+    *
+    * The MSB is written first into the bitstream
     *
     * Example
-    * cur bit = 3
-    * |
-    * x x x b b b b b b b b
-    * |_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|
-    * 0 1 2 3 4 5 6 7 0 1 2 3 4 5 6 7
+    * cur bit on Bitstream = 3
     *
-    * first byte
-    * xxx?????
-    * and   11100000 (mask)
-    * --------------
-    * xxx00000
-    * or    000bbbbb
-    * --------------
-    * xxxbbbbb
+    *       MSB           LSB
+    *        |             |
+    *  x x x b b b b b b b b
+    *  _ _ _ _ _ _ _ _ _ _ _ _ _
+    *  0 1 2 3 4 5 6 7 0 1 2 3 4 ...
+    *
+    * Result: Pos 3 (MSB of v) to 10 (LSB of v) are written
     *
     * */
 
    def appendByte(v: UByte): Unit = {
       require(BitStream.validate_offset_bytes(this, 1))
 
-      var i = 0
-      (while i < NO_OF_BITS_IN_BYTE do
-         decreases(NO_OF_BITS_IN_BYTE - i)
-
-         appendBitFromByte(v, i)
-
-         i += 1
-         ).invariant(i >= 0 &&& i <= NO_OF_BITS_IN_BYTE &&& BitStream.validate_offset_bits(this, NO_OF_BITS_IN_BYTE - i))
+      appendPartialByte(v, NO_OF_BITS_IN_BYTE)
 
    }.ensuring(_ => BitStream.invariant(this))
 
-   def appendByteArray(arr: Array[UByte], noOfBytes: Int): Boolean = {
+   /**
+    * NBytes of the given array is added to the bitstream
+    *
+    * The MSB of the arr[0] is written first
+    *
+    * @param arr is the source array
+    * @param noOfBytes that get written into the bitstream
+    *
+    */
+   def appendByteArray(arr: Array[UByte], noOfBytes: Int): Unit = {
       require(0 <= noOfBytes && noOfBytes <= arr.length)
       require(BitStream.validate_offset_bytes(this, noOfBytes))
 
@@ -355,9 +357,8 @@ case class BitStream(
          decreases(noOfBytes - i)
          appendByte(arr(i))
          i += 1
-         ).invariant(0 <= i &&& i <= noOfBytes &&& BitStream.validate_offset_bytes(this, noOfBytes - i))
+      ).invariant(0 <= i &&& i <= noOfBytes &&& BitStream.validate_offset_bytes(this, noOfBytes - i))
 
-      true
    }.ensuring(_ => BitStream.invariant(this))
 
    // ****************** Peak Functions **********************
@@ -369,17 +370,13 @@ case class BitStream(
 
    // ****************** Read Bit Functions **********************
 
-   // TODO change return value?
-   def readBit(): Option[Boolean] = {
+   def readBit(): Boolean = {
       require(BitStream.validate_offset_bit(this))
       val ret = (buf(currentByte) & BitAccessMasks(currentBit)) != 0
 
       increaseBitIndex()
 
-      if currentByte.toLong * 8 + currentBit <= buf.length.toLong * 8 then
-         Some(ret)
-      else
-         None()
+      ret
    }.ensuring(_ => BitStream.invariant(this))
 
    def readBits(nBits: Int): OptionMut[Array[UByte]] = {
@@ -392,11 +389,7 @@ case class BitStream(
       (while i < nBits  do
          decreases(nBits - i)
 
-         readBit() match
-            case None() =>
-               return NoneMut()
-            case Some(b) =>
-               arr(i / NO_OF_BITS_IN_BYTE) |||= (if b then BitAccessMasks(i % NO_OF_BITS_IN_BYTE) else 0)
+            arr(i / NO_OF_BITS_IN_BYTE) |||= (if readBit() then BitAccessMasks(i % NO_OF_BITS_IN_BYTE) else 0)
 
          i += 1
       ).invariant(i >= 0 &&& i <= nBits &&& BitStream.validate_offset_bits(this, nBits - i))
@@ -406,7 +399,7 @@ case class BitStream(
 
    // ****************** Read Byte Functions **********************
 
-   def readByte(): Option[UByte] = {
+   def readByte(): UByte = {
       require(BitStream.validate_offset_bits(this, 8))
 
       var ret = 0
@@ -414,15 +407,11 @@ case class BitStream(
       (while i < NO_OF_BITS_IN_BYTE do
          decreases(NO_OF_BITS_IN_BYTE - i)
 
-         readBit() match
-            case None() =>
-               return None()
-            case Some(b) =>
-               ret = ret | (if b then BitAccessMasks(i) else 0)
+         ret |= (if readBit() then BitAccessMasks(i) else 0)
          i += 1
       ).invariant(i >= 0 &&& i <= NO_OF_BITS_IN_BYTE &&& BitStream.validate_offset_bits(this, NO_OF_BITS_IN_BYTE - i))
 
-      Some(ret.toUnsignedByte)
+      ret.toUnsignedByte
    }.ensuring(_ => BitStream.invariant(this))
 
    def readByteArray(nBytes: Int): OptionMut[Array[UByte]] = {

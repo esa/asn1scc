@@ -124,7 +124,7 @@ case class ACN(bitStream: BitStream) extends Codec {
 
 
    def dec_Int_PositiveInteger_ConstSize_8(): Option[ULong] = {
-      bitStream.readByte() match
+      readByte() match
          case None() => None()
          case Some(ub) => Some(ub & 0xFF)
    }
@@ -134,7 +134,7 @@ case class ACN(bitStream: BitStream) extends Codec {
 
       var i: Int = 0
       while i < SizeInBytes do
-         bitStream.readByte() match
+         readByte() match
             case None() => return None()
             case Some(ub) =>
                ret <<= 8
@@ -163,7 +163,7 @@ case class ACN(bitStream: BitStream) extends Codec {
 
       var i: Int = 0
       while i < SizeInBytes do
-         bitStream.readByte() match
+         readByte() match
             case None() => return None()
             case Some(ub) =>
                tmp = ub & 0xFF
@@ -218,12 +218,12 @@ case class ACN(bitStream: BitStream) extends Codec {
    def dec_Int_PositiveInteger_VarSize_LengthEmbedded(): Option[ULong] = {
       var v: ULong = 0
 
-      bitStream.readByte() match
+      readByte() match
          case None() => return None()
          case Some(nBytes) =>
             var i: Int = 0
             while i < nBytes do
-               bitStream.readByte() match
+               readByte() match
                   case None() => return None()
                   case Some(ub) =>
                      v = (v << 8) | (ub & 0xFF)
@@ -283,14 +283,14 @@ case class ACN(bitStream: BitStream) extends Codec {
 
       var i: Int = 0
       while i < nBytes do
-         bitStream.readByte() match
+         readByte() match
             case None() => return None()
             case Some(ub) =>
                pIntVal = (pIntVal << 8) | (ub & 0xFF)
          i += 1
 
       if rstBits > 0 then
-         bitStream.readPartialByte(rstBits.toByte) match
+         readPartialByte(rstBits.toByte) match
             case None() => return None()
             case Some(ub) =>
                pIntVal = (pIntVal << rstBits) | (ub & 0xFF)
@@ -358,12 +358,12 @@ case class ACN(bitStream: BitStream) extends Codec {
       var v: ULong = 0
       var isNegative: Boolean = false
 
-      bitStream.readByte() match
+      readByte() match
          case None() => None()
          case Some(nBytes) =>
             var i: Int = 0
             while i < nBytes do
-               bitStream.readByte() match
+               readByte() match
                   case None() => return None()
                   case Some(ub) =>
                      if i == 0 && (ub & 0x80) > 0 then
@@ -444,7 +444,7 @@ case class ACN(bitStream: BitStream) extends Codec {
 
 
    def dec_Int_BCD_VarSize_LengthEmbedded(): Option[ULong] = {
-      bitStream.readByte() match
+      readByte() match
          case None() => None()
          case Some(nNibbles) => dec_Int_BCD_ConstSize(nNibbles)
    }
@@ -458,7 +458,7 @@ case class ACN(bitStream: BitStream) extends Codec {
       /* Encode Number */
       enc_Int_BCD_ConstSize(intVal, nNibbles)
 
-      bitStream.appendPartialByte(0xF, 4)
+      appendPartialByte(0xF, 4)
 
       CHECK_BIT_STREAM(bitStream)
    }
@@ -517,7 +517,7 @@ case class ACN(bitStream: BitStream) extends Codec {
       var ret: ULong = 0
 
       while encodedSizeInBytesVar > 0 do
-         bitStream.readByte() match
+         readByte() match
             case None() => return None()
             case Some(digit) =>
                assert(digit >= '0' && digit <= '9')
@@ -531,7 +531,7 @@ case class ACN(bitStream: BitStream) extends Codec {
    }
 
    def dec_SInt_ASCII_ConstSize(encodedSizeInBytes: Int): Option[Long] = {
-      bitStream.readByte() match
+      readByte() match
          case None() => None()
          case Some(digit) =>
             var sign: Int = 1
@@ -609,13 +609,13 @@ case class ACN(bitStream: BitStream) extends Codec {
 
 
    def dec_UInt_ASCII_VarSize_LengthEmbedded(): Option[ULong] = {
-      bitStream.readByte() match
+      readByte() match
          case None() => None()
          case Some(nChars) => dec_UInt_ASCII_ConstSize(nChars)
    }
 
    def dec_SInt_ASCII_VarSize_LengthEmbedded(): Option[Long] = {
-      bitStream.readByte() match
+      readByte() match
          case None() => None()
          case Some(nChars) => dec_SInt_ASCII_ConstSize(nChars)
    }
@@ -654,7 +654,7 @@ case class ACN(bitStream: BitStream) extends Codec {
       //read null_character_size characters into the tmp buffer
       var j: Int = 0
       while j < null_characters_size do
-         bitStream.readByte() match
+         readByte() match
             case None() => return None()
             case Some(ub) => tmp(j) = ub
          j += 1
@@ -669,7 +669,7 @@ case class ACN(bitStream: BitStream) extends Codec {
             tmp(j) = tmp(j + 1)
             j += 1
 
-         bitStream.readByte() match
+         readByte() match
             case None() => return None()
             case Some(ub) => tmp(null_characters_size - 1) = ub
 
@@ -685,7 +685,7 @@ case class ACN(bitStream: BitStream) extends Codec {
    def dec_SInt_ASCII_VarSize_NullTerminated(null_characters: Array[Byte], null_characters_size: Int): Option[Long] = {
       var isNegative: Boolean = false
 
-      bitStream.readByte() match
+      readByte() match
          case None() => None()
          case Some(digit) =>
             assert(digit == '-' || digit == '+')
@@ -707,7 +707,7 @@ case class ACN(bitStream: BitStream) extends Codec {
       var pBoolValue: Boolean = true
       var i: Int = 0
       while i < nBytesToRead do
-         bitStream.readByte() match
+         readByte() match
             case None() => return None()
             case Some(curByte) =>
                if curByte != patternToRead(i) then
@@ -731,7 +731,7 @@ case class ACN(bitStream: BitStream) extends Codec {
 
       var i: Int = 0
       while i < nBytesToRead do
-         bitStream.readByte() match
+         readByte() match
             case None() => return Left(FAILED_READ_ERR_CODE)
             case Some(_) => i += 1
 
@@ -757,7 +757,7 @@ case class ACN(bitStream: BitStream) extends Codec {
       val b: Array[Byte] = Array.fill(4)(0)
       var i: Int = 0
       while i < 4 do
-         bitStream.readByte() match
+         readByte() match
             case None() => return None()
             case Some(ub) => b(i) = ub
          i += 1
@@ -770,7 +770,7 @@ case class ACN(bitStream: BitStream) extends Codec {
       val b: Array[Byte] = Array.fill(4)(0)
       var i: Int = 0
       while i < 4 do
-         bitStream.readByte() match
+         readByte() match
             case None() => return None()
             case Some(ub) => b(i) = ub
          i += 1
@@ -793,7 +793,7 @@ case class ACN(bitStream: BitStream) extends Codec {
       val b: Array[Byte] = Array.fill(8)(0)
       var i: Int = 0
       while i < 8 do
-         bitStream.readByte() match
+         readByte() match
             case None() => return None()
             case Some(ub) => b(i) = ub
          i += 1
@@ -822,7 +822,7 @@ case class ACN(bitStream: BitStream) extends Codec {
       val b: Array[Byte] = Array.fill(4)(0)
       var i: Int = 3
       while i >= 0 do
-         bitStream.readByte() match
+         readByte() match
             case None() => return None()
             case Some(ub) => b(i) = ub
                i -= 1
@@ -844,7 +844,7 @@ case class ACN(bitStream: BitStream) extends Codec {
       val b: Array[Byte] = Array.fill(8)(0)
       var i: Int = 7
       while i >= 0 do
-         bitStream.readByte() match
+         readByte() match
             case None() => return None()
             case Some(ub) => b(i) = ub
                i -= 1
@@ -971,7 +971,7 @@ case class ACN(bitStream: BitStream) extends Codec {
       val strVal: Array[ASCIIChar] = Array.fill(max.toInt + 1)(0)
       var i: Int = 0
       while i < charactersToDecode do
-         bitStream.readByte() match
+         readByte() match
             case None() => return None()
             case Some(decodedCharacter) =>
                strVal(i) = decodedCharacter
@@ -988,7 +988,7 @@ case class ACN(bitStream: BitStream) extends Codec {
       val strVal: Array[ASCIIChar] = Array.fill(max.toInt + 1)(0)
       var i: Int = 0
       while i <= max do
-         bitStream.readByte() match
+         readByte() match
             case None() => return None()
             case Some(decodedCharacter) =>
                if decodedCharacter != null_character then
@@ -1009,7 +1009,7 @@ case class ACN(bitStream: BitStream) extends Codec {
       //read null_character_size characters into the tmp buffer
       var j: Int = 0
       while j < null_character_size do
-         bitStream.readByte() match
+         readByte() match
             case None() => return None()
             case Some(ub) => tmp(j) = ub
          j += 1
@@ -1024,7 +1024,7 @@ case class ACN(bitStream: BitStream) extends Codec {
             tmp(j) = tmp(j + 1)
             j += 1
 
-         bitStream.readByte() match
+         readByte() match
             case None() => return None()
             case Some(ub) => tmp(null_character_size - 1) = ub
 
