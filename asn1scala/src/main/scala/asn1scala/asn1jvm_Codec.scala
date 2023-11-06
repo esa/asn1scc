@@ -1029,7 +1029,7 @@ trait Codec {
    }
 
    def peekBit(): Boolean = {
-            bitStream.peekBit()
+      bitStream.peekBit()
    }
 
    def appendByte(value: Byte): Unit = {
@@ -1063,6 +1063,7 @@ trait Codec {
    }
 
    def readPartialByte(nbits: UByte): Option[UByte] = {
+      assert(bitStream.validate_offset_bits(nbits))
       bitStream.readPartialByte(nbits)
    }
 }
