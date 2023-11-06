@@ -5,6 +5,13 @@ import stainless.lang.{None, Option, Some}
 
 val FAILED_READ_ERR_CODE = 5400
 
+val CHAR_MINUS: ASCIIChar = 45
+val CHAR_PLUS: ASCIIChar = 43
+val CHAR_ZERO: ASCIIChar = 48
+val CHAR_NINE: ASCIIChar = 57
+val CHAR_0000: ASCIIChar = 0
+
+
 // TODO remove / replace by invariant
 def CHECK_BIT_STREAM(pBitStrm: BitStream): Unit = {
    assert(pBitStrm.currentByte.toLong * 8 + pBitStrm.currentBit <= pBitStrm.buf.length.toLong * 8)
@@ -496,7 +503,7 @@ case class ACN(bitStream: BitStream) extends Codec {
 
       var i = encodedSizeInBytes - 1
       while i >= 0 do
-         bitStream.appendByte((tmp(i) + '0').toByte)
+         bitStream.appendByte((tmp(i) + CHAR_ZERO).toByte)
          i -= 1
 
       CHECK_BIT_STREAM(bitStream)
@@ -507,7 +514,7 @@ case class ACN(bitStream: BitStream) extends Codec {
       val absIntVal: ULong = if intVal >= 0 then intVal else -intVal
 
       /* encode sign */
-      bitStream.appendByte(if intVal >= 0 then '+' else '-')
+      bitStream.appendByte(if intVal >= 0 then CHAR_PLUS else CHAR_MINUS)
 
       enc_UInt_ASCII_ConstSize(absIntVal, encodedSizeInBytes - 1)
    }
@@ -520,10 +527,10 @@ case class ACN(bitStream: BitStream) extends Codec {
          bitStream.readByte() match
             case None() => return None()
             case Some(digit) =>
-               assert(digit >= '0' && digit <= '9')
+               assert(digit >= CHAR_ZERO && digit <= CHAR_NINE)
 
                ret *= 10
-               ret += (digit.toInt - '0').toByte
+               ret += (digit.toInt - CHAR_ZERO).toByte
 
          encodedSizeInBytesVar -= 1
 
@@ -535,9 +542,9 @@ case class ACN(bitStream: BitStream) extends Codec {
          case None() => None()
          case Some(digit) =>
             var sign: Int = 1
-            if digit == '+' then
+            if digit == CHAR_PLUS then
                sign = 1
-            else if digit == '-' then
+            else if digit == CHAR_MINUS then
                sign = -1
             else
                assert(false)
@@ -557,7 +564,7 @@ case class ACN(bitStream: BitStream) extends Codec {
 
       if intVar > 0 then
          while intVar > 0 && totalDigits < 100 do
-            reversedDigitsArray(totalDigits) = ('0' + (intVar % 10)).toByte
+            reversedDigitsArray(totalDigits) = (CHAR_ZERO + (intVar % 10)).toByte
             totalDigits = (totalDigits + 1).toByte
             intVar /= 10
 
@@ -567,7 +574,7 @@ case class ACN(bitStream: BitStream) extends Codec {
             i -= 1
 
       else
-         digitsArray100(0) = '0'
+         digitsArray100(0) = CHAR_ZERO
          totalDigits = 1
 
       (digitsArray100, totalDigits)
@@ -582,7 +589,7 @@ case class ACN(bitStream: BitStream) extends Codec {
       bitStream.appendByte((nChars + 1).toByte)
 
       /* encode sign */
-      bitStream.appendByte(if intVal >= 0 then '+' else '-')
+      bitStream.appendByte(if intVal >= 0 then CHAR_PLUS else CHAR_MINUS)
 
       /* encode digits */
       var i: Int = 0
@@ -639,7 +646,7 @@ case class ACN(bitStream: BitStream) extends Codec {
 
    def enc_SInt_ASCII_VarSize_NullTerminated(intVal: Long, null_characters: Array[Byte], null_characters_size: Int): Unit = {
       val absValue: ULong = if intVal >= 0 then intVal else -intVal
-      bitStream.appendByte(if intVal >= 0 then '+' else '-')
+      bitStream.appendByte(if intVal >= 0 then CHAR_PLUS else CHAR_MINUS)
 
       enc_UInt_ASCII_VarSize_NullTerminated(absValue, null_characters, null_characters_size)
    }
@@ -660,7 +667,7 @@ case class ACN(bitStream: BitStream) extends Codec {
          j += 1
 
       var i: Long = 0
-      while !null_characters.sameElements(tmp) do
+      while !arraySameElements(null_characters, tmp) do
          digit = tmp(0)
          i += 1
 
@@ -673,7 +680,7 @@ case class ACN(bitStream: BitStream) extends Codec {
             case None() => return None()
             case Some(ub) => tmp(null_characters_size - 1) = ub
 
-         digit = (digit - '0').toByte
+         digit = (digit - CHAR_ZERO).toByte
 
          ret *= 10
          ret += digit
@@ -688,8 +695,8 @@ case class ACN(bitStream: BitStream) extends Codec {
       bitStream.readByte() match
          case None() => None()
          case Some(digit) =>
-            assert(digit == '-' || digit == '+')
-            if digit == '-' then
+            assert(digit == CHAR_MINUS || digit == CHAR_PLUS)
+            if digit == CHAR_MINUS then
                isNegative = true
 
             dec_UInt_ASCII_VarSize_NullTerminated(null_characters, null_characters_size) match
@@ -864,7 +871,7 @@ case class ACN(bitStream: BitStream) extends Codec {
 
    def enc_String_Ascii_private(max: Long, strVal: Array[ASCIIChar]): Long = {
       var i: Long = 0
-      while (i < max) && (strVal(i.toInt) != '\u0000') do
+      while (i < max) && (strVal(i.toInt) != CHAR_0000) do
          bitStream.appendByte(strVal(i.toInt))
          i += 1
 
@@ -905,7 +912,7 @@ case class ACN(bitStream: BitStream) extends Codec {
 
    def enc_String_CharIndex_private(max: Long, allowedCharSet: Array[Byte], strVal: Array[ASCIIChar]): Long = {
       var i: Int = 0
-      while (i < max) && (strVal(i) != '\u0000') do
+      while (i < max) && (strVal(i) != CHAR_0000) do
          val charIndex: Int = GetCharIndex(strVal(i), allowedCharSet)
          encodeConstraintWholeNumber(charIndex, 0, allowedCharSet.length - 1)
          i += 1
@@ -967,42 +974,42 @@ case class ACN(bitStream: BitStream) extends Codec {
    }
 
 
-   def dec_String_Ascii_private(max: Long, charactersToDecode: Long): Option[Array[ASCIIChar]] = {
+   def dec_String_Ascii_private(max: Long, charactersToDecode: Long): OptionMut[Array[ASCIIChar]] = {
       val strVal: Array[ASCIIChar] = Array.fill(max.toInt + 1)(0)
       var i: Int = 0
       while i < charactersToDecode do
          bitStream.readByte() match
-            case None() => return None()
+            case None() => return NoneMut()
             case Some(decodedCharacter) =>
                strVal(i) = decodedCharacter
          i += 1
-      Some(strVal)
+      SomeMut(strVal)
    }
 
 
-   def dec_String_Ascii_FixSize(max: Long): Option[Array[ASCIIChar]] = {
+   def dec_String_Ascii_FixSize(max: Long): OptionMut[Array[ASCIIChar]] = {
       dec_String_Ascii_private(max, max)
    }
 
-   def dec_String_Ascii_Null_Teminated(max: Long, null_character: ASCIIChar): Option[Array[ASCIIChar]] = {
+   def dec_String_Ascii_Null_Teminated(max: Long, null_character: ASCIIChar): OptionMut[Array[ASCIIChar]] = {
       val strVal: Array[ASCIIChar] = Array.fill(max.toInt + 1)(0)
       var i: Int = 0
       while i <= max do
          bitStream.readByte() match
-            case None() => return None()
+            case None() => return NoneMut()
             case Some(decodedCharacter) =>
                if decodedCharacter != null_character then
                   strVal(i) = decodedCharacter
                   i += 1
                else
                   strVal(i) = 0x0
-                  return Some(strVal)
+                  return SomeMut(strVal)
 
-      None()
+      NoneMut()
 
    }
 
-   def dec_String_Ascii_Null_Teminated_mult(max: Long, null_character: Array[ASCIIChar], null_character_size: Int): Option[Array[ASCIIChar]] = {
+   def dec_String_Ascii_Null_Teminated_mult(max: Long, null_character: Array[ASCIIChar], null_character_size: Int): OptionMut[Array[ASCIIChar]] = {
       val sz: Int = if null_character_size < 10 then null_character_size else 10
       val tmp: Array[Byte] = Array.fill(10)(0)
       val strVal: Array[ASCIIChar] = Array.fill(max.toInt + 1)(0)
@@ -1010,13 +1017,13 @@ case class ACN(bitStream: BitStream) extends Codec {
       var j: Int = 0
       while j < null_character_size do
          bitStream.readByte() match
-            case None() => return None()
+            case None() => return NoneMut()
             case Some(ub) => tmp(j) = ub
          j += 1
 
 
       var i: Int = 0
-      while i <= max && !null_character.sameElements(tmp) do
+      while i <= max && !arraySameElements(null_character, tmp) do
          strVal(i) = tmp(0)
          i += 1
          j = 0
@@ -1025,60 +1032,60 @@ case class ACN(bitStream: BitStream) extends Codec {
             j += 1
 
          bitStream.readByte() match
-            case None() => return None()
+            case None() => return NoneMut()
             case Some(ub) => tmp(null_character_size - 1) = ub
 
       strVal(i) = 0x0
 
-      if !null_character.sameElements(tmp) then
-         return None()
+      if !arraySameElements(null_character, tmp) then
+         return NoneMut()
 
-      Some(strVal)
+      SomeMut(strVal)
    }
 
 
-   def dec_String_Ascii_External_Field_Determinant(max: Long, extSizeDeterminatFld: Long): Option[Array[ASCIIChar]] = {
+   def dec_String_Ascii_External_Field_Determinant(max: Long, extSizeDeterminatFld: Long): OptionMut[Array[ASCIIChar]] = {
       dec_String_Ascii_private(max, if extSizeDeterminatFld <= max then extSizeDeterminatFld else max)
    }
 
-   def dec_String_Ascii_Internal_Field_Determinant(max: Long, min: Long): Option[Array[ASCIIChar]] = {
+   def dec_String_Ascii_Internal_Field_Determinant(max: Long, min: Long): OptionMut[Array[ASCIIChar]] = {
       decodeConstraintWholeNumber(min, max) match
-         case None() => None()
+         case None() => NoneMut()
          case Some(nCount) =>
             dec_String_Ascii_private(max, if nCount <= max then nCount else max)
    }
 
-   def dec_String_CharIndex_private(max: Long, charactersToDecode: Long, allowedCharSet: Array[Byte]): Option[Array[ASCIIChar]] = {
+   def dec_String_CharIndex_private(max: Long, charactersToDecode: Long, allowedCharSet: Array[Byte]): OptionMut[Array[ASCIIChar]] = {
       val strVal: Array[ASCIIChar] = Array.fill(max.toInt + 1)(0)
       var i: Int = 0
       while i < charactersToDecode do
          decodeConstraintWholeNumber(0, allowedCharSet.length - 1) match
-            case None() => return None()
+            case None() => return NoneMut()
             case Some(charIndex) =>
                strVal(i) = allowedCharSet(charIndex.toInt)
          i += 1
 
-      Some(strVal)
+      SomeMut(strVal)
    }
 
-   def dec_String_CharIndex_FixSize(max: Long, allowedCharSet: Array[ASCIIChar]): Option[Array[ASCIIChar]] = {
+   def dec_String_CharIndex_FixSize(max: Long, allowedCharSet: Array[ASCIIChar]): OptionMut[Array[ASCIIChar]] = {
       dec_String_CharIndex_private(max, max, allowedCharSet)
    }
 
-   def dec_String_CharIndex_External_Field_Determinant(max: Long, allowedCharSet: Array[ASCIIChar], extSizeDeterminatFld: Long): Option[Array[ASCIIChar]] = {
+   def dec_String_CharIndex_External_Field_Determinant(max: Long, allowedCharSet: Array[ASCIIChar], extSizeDeterminatFld: Long): OptionMut[Array[ASCIIChar]] = {
       dec_String_CharIndex_private(max, if extSizeDeterminatFld <= max then extSizeDeterminatFld else max, allowedCharSet)
    }
 
 
-   def dec_String_CharIndex_Internal_Field_Determinant(max: Long, allowedCharSet: Array[ASCIIChar], min: Long): Option[Array[ASCIIChar]] = {
+   def dec_String_CharIndex_Internal_Field_Determinant(max: Long, allowedCharSet: Array[ASCIIChar], min: Long): OptionMut[Array[ASCIIChar]] = {
       decodeConstraintWholeNumber(min, max) match
-         case None() => None()
+         case None() => NoneMut()
          case Some(nCount) =>
             dec_String_CharIndex_private(max, if nCount <= max then nCount else max, allowedCharSet)
    }
 
 
-   def dec_IA5String_CharIndex_External_Field_Determinant(max: Long, extSizeDeterminatFld: Long): Option[Array[ASCIIChar]] = {
+   def dec_IA5String_CharIndex_External_Field_Determinant(max: Long, extSizeDeterminatFld: Long): OptionMut[Array[ASCIIChar]] = {
       val allowedCharSet: Array[ASCIIChar] = Array(
          0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09,
          0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10, 0x11, 0x12, 0x13,
@@ -1097,7 +1104,7 @@ case class ACN(bitStream: BitStream) extends Codec {
       dec_String_CharIndex_private(max, if extSizeDeterminatFld <= max then extSizeDeterminatFld else max, allowedCharSet)
    }
 
-   def dec_IA5String_CharIndex_Internal_Field_Determinant(max: Long, min: Long): Option[Array[ASCIIChar]] = {
+   def dec_IA5String_CharIndex_Internal_Field_Determinant(max: Long, min: Long): OptionMut[Array[ASCIIChar]] = {
       val allowedCharSet: Array[ASCIIChar] = Array(
          0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09,
          0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10, 0x11, 0x12, 0x13,
@@ -1114,7 +1121,7 @@ case class ACN(bitStream: BitStream) extends Codec {
          0x78, 0x79, 0x7A, 0x7B, 0x7C, 0x7D, 0x7E, 0x7F
       )
       decodeConstraintWholeNumber(min, max) match
-         case None() => None()
+         case None() => NoneMut()
          case Some(nCount) =>
             dec_String_CharIndex_private(max, if nCount <= max then nCount else max, allowedCharSet)
    }
