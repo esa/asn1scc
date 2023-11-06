@@ -135,7 +135,7 @@ trait Codec {
 
       if nBits != 0 then
          v = v << nBits
-         bitStream.readPartialByte(nBits.toByte) match
+         readPartialByte(nBits.toByte) match
             case None() => return None()
             case Some(ub) => v = v | (ub & 0xFF)
 
@@ -629,7 +629,7 @@ trait Codec {
          i += 1
 
       if bit_terminated_pattern_size_in_bits > 0 then
-         bitStream.readPartialByte(bit_terminated_pattern_size_in_bits) match
+         readPartialByte(bit_terminated_pattern_size_in_bits) match
             case None() => return 0
             case Some(ub) => tmp_byte = ub
 
@@ -1063,7 +1063,10 @@ trait Codec {
    }
 
    def readPartialByte(nbits: UByte): Option[UByte] = {
-      assert(bitStream.validate_offset_bits(nbits))
-      bitStream.readPartialByte(nbits)
+      val isValidPrecondition = bitStream.validate_offset_bits(nbits)
+      assert(isValidPrecondition)
+      isValidPrecondition match
+         case true => Some(bitStream.readPartialByte(nbits))
+         case false => None()
    }
 }

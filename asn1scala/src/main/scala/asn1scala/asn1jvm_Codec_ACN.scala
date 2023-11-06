@@ -427,7 +427,7 @@ case class ACN(bitStream: BitStream) extends Codec {
 
       var encodedSizeInNibblesVar = encodedSizeInNibbles
       while encodedSizeInNibblesVar > 0 do
-         bitStream.readPartialByte(4) match
+         readPartialByte(4) match
             case None() => return None()
             case Some(digit) =>
                ret *= 10
@@ -474,7 +474,7 @@ case class ACN(bitStream: BitStream) extends Codec {
       var ret: ULong = 0
 
       while true do
-         bitStream.readPartialByte(4) match
+         readPartialByte(4) match
             case None() => return None()
             case Some(digit) =>
                if (digit > 9)
@@ -722,7 +722,7 @@ case class ACN(bitStream: BitStream) extends Codec {
          i += 1
 
       if nRemainingBitsToRead > 0 then
-         bitStream.readPartialByte(nRemainingBitsToRead.toByte) match
+         readPartialByte(nRemainingBitsToRead.toByte) match
             case None() => return None()
             case Some(curByte) =>
                if curByte != ((patternToRead(nBytesToRead) & 0xFF) >>> (8 - nRemainingBitsToRead)) then
@@ -743,7 +743,7 @@ case class ACN(bitStream: BitStream) extends Codec {
             case Some(_) => i += 1
 
       if nRemainingBitsToRead > 0 then
-         if bitStream.readPartialByte(nRemainingBitsToRead.toByte).isEmpty then
+         if readPartialByte(nRemainingBitsToRead.toByte).isEmpty then
             return Left(FAILED_READ_ERR_CODE)
 
       Right(0)

@@ -99,7 +99,7 @@ case class BitStream(
 
    def bitIndex(): Long = {
       currentByte.toLong * 8 + currentBit.toLong
-   }.ensuring(res => 0 <= res && res <= 8 * buf.length.toLong)
+   }.ensuring(res => 0 <= res && res <= 8 * buf.length.toLong &&& res == buf.length.toLong * 8 - remainingBits)
 
    def increaseBitIndex(): Unit = {
       require(currentByte < buf.length)
@@ -405,7 +405,7 @@ case class BitStream(
 
 
    /* nbits 1..7*/
-   def readPartialByte(nBits: Int): Option[UByte] = {
+   def readPartialByte(nBits: Int): UByte = {
       require(0 < nBits && nBits < 8)
       require(validate_offset_bits(nBits))
 
@@ -431,11 +431,6 @@ case class BitStream(
          v = (v & masksb(nBits)).toByte
          currentBit = totalBitsForNextByte.toInt
       }
-
-      if BitStream.invariant(this) then
-         Some(v)
-      else
-         None()
+      v
    }
-
 } // BitStream class
