@@ -516,8 +516,8 @@ codec.enc_IA5String_CharIndex_External_Field_Determinant(<nAsn1Max>, <p>)
 
 Acn_IA5String_CharIndex_External_Field_Determinant_decode(p, sErrCode, nAsn1Max, sExtFld, td/*:FE_StringTypeDefinition*/, nCharSize) ::= <<
 codec.dec_IA5String_CharIndex_External_Field_Determinant(<nAsn1Max>, <sExtFld>) match
-    case None() => return Left(<sErrCode>)
-    case Some(x) => <p> = x
+    case NoneMut() => return Left(<sErrCode>)
+    case SomeMut(x) => <p> = x
 >>
 
 

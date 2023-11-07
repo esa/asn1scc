@@ -682,8 +682,8 @@ trait Codec {
             bitStream.currentByte += nCount
          }
 
-      else // TODO appendByteArray does not return a boolean value anymore
-         appendByteArray(arr, nCount)
+      else
+         ret = appendByteArray(arr, nCount)
 
       ret
    }
