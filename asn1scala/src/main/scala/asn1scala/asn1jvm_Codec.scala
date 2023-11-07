@@ -101,7 +101,7 @@ trait Codec {
       if pbits > 0 then
          cc -= pbits
          var b = (v >>> cc).toByte
-         bitStream.appendPartialByte(if negate then (~b).toByte else b, pbits.toByte)
+         appendPartialByte(if negate then (~b).toByte else b, pbits.toByte)
 
       while cc > 0 do
          decreases(cc)
@@ -112,7 +112,7 @@ trait Codec {
          if negate then
             b = ~b
 
-         bitStream.appendByte(b.toUnsignedByte)
+         appendByte(b.toUnsignedByte)
    }
 
    def decodeNonNegativeInteger32Neg(nBitsVal : Int): Option[UInt] = {
@@ -151,7 +151,7 @@ trait Codec {
          encodeNonNegativeInteger32Neg(hi, false)
 
          val nBits: Int = GetNumberOfBitsForNonNegativeInteger(lo.toLong << 32 >>> 32) // TODO: is this easier?
-         bitStream.appendNBitZero(32 - nBits)
+         appendNBitZero(32 - nBits)
          encodeNonNegativeInteger32Neg(lo, false)
    }
 
@@ -189,7 +189,7 @@ trait Codec {
          if negate then
             lo = ~lo
          val nBits = GetNumberOfBitsForNonNegativeInteger(lo.toLong)
-         bitStream.appendNBitZero(32 - nBits)
+         appendNBitZero(32 - nBits)
          encodeNonNegativeInteger32Neg(lo, false)
    }
 
@@ -203,7 +203,7 @@ trait Codec {
 
       val nRangeBits: Int = GetNumberOfBitsForNonNegativeInteger(range)
       val nBits: Int = GetNumberOfBitsForNonNegativeInteger((v - min))
-      bitStream.appendNBitZero(nRangeBits - nBits);
+      appendNBitZero(nRangeBits - nBits);
       encodeNonNegativeInteger((v - min))
    }
 
@@ -217,7 +217,7 @@ trait Codec {
          return
       val nRangeBits: Int = GetNumberOfBitsForNonNegativeInteger(range)
       val nBits: Int = GetNumberOfBitsForNonNegativeInteger(v - min)
-      bitStream.appendNBitZero(nRangeBits - nBits)
+      appendNBitZero(nRangeBits - nBits)
       encodeNonNegativeInteger(v - min)
    }
 
@@ -303,7 +303,7 @@ trait Codec {
       encodeConstraintWholeNumber(nBytes.toLong, 0, 255)
       /*8 bits, first bit is always 0*/
       /* put required zeros*/
-      bitStream.appendNBitZero(nBytes * 8 - GetNumberOfBitsForNonNegativeInteger((v - min)))
+      appendNBitZero(nBytes * 8 - GetNumberOfBitsForNonNegativeInteger((v - min)))
       /*Encode number */
       encodeNonNegativeInteger((v - min))
    }
@@ -316,7 +316,7 @@ trait Codec {
       encodeConstraintWholeNumber(nBytes.toLong, 0, 255)
       /*8 bits, first bit is always 0*/
       /* put required zeros*/
-      bitStream.appendNBitZero(nBytes * 8 - GetNumberOfBitsForNonNegativeInteger(v - min))
+      appendNBitZero(nBytes * 8 - GetNumberOfBitsForNonNegativeInteger(v - min))
       /*Encode number */
       encodeNonNegativeInteger(v - min)
    }
@@ -374,7 +374,7 @@ trait Codec {
       /*8 bits, first bit is always 0*/
 
       if v >= 0 then
-         bitStream.appendNBitZero(nBytes * 8 - GetNumberOfBitsForNonNegativeInteger(v))
+         appendNBitZero(nBytes * 8 - GetNumberOfBitsForNonNegativeInteger(v))
          encodeNonNegativeInteger(v)
       else
          bitStream.appendNBitOne(nBytes * 8 - GetNumberOfBitsForNonNegativeInteger((-v - 1)))
@@ -390,7 +390,7 @@ trait Codec {
          case None() => return None()
          case Some(l) => nBytes = l
 
-      val valIsNegative: Boolean = bitStream.peekBit()
+      val valIsNegative: Boolean = peekBit()
 
       var v: Long = if valIsNegative then Long.MaxValue else 0
 
@@ -485,13 +485,13 @@ trait Codec {
       /* encode exponent */
       if exponent >= 0 then
          // fill with zeros to have a whole byte
-         bitStream.appendNBitZero(nExpLen * 8 - GetNumberOfBitsForNonNegativeInteger(exponent))
+         appendNBitZero(nExpLen * 8 - GetNumberOfBitsForNonNegativeInteger(exponent))
          encodeNonNegativeInteger(exponent)
       else
          encodeNonNegativeInteger(compactExp)
 
       /* encode mantissa */
-      bitStream.appendNBitZero(nManLen * 8 - GetNumberOfBitsForNonNegativeInteger(mantissa))
+      appendNBitZero(nManLen * 8 - GetNumberOfBitsForNonNegativeInteger(mantissa))
       encodeNonNegativeInteger(mantissa)
    }
 
@@ -567,7 +567,7 @@ trait Codec {
          return None()
 
       // decode exponent
-      val expIsNegative = bitStream.peekBit()
+      val expIsNegative = peekBit()
       var exponent: Int = if expIsNegative then 0xFF_FF_FF_FF else 0
 
       var i: Int = 0
@@ -668,7 +668,7 @@ trait Codec {
       if checkBitPatternPresentResult != 2 then
          return NoneMut()
 
-      return SomeMut((tmpStrm.buf, bitsRead))
+      SomeMut((tmpStrm.buf, bitsRead))
    }
 
    def encodeOctetString_no_length(arr: Array[UByte], nCount: Int): Boolean = {
@@ -683,7 +683,7 @@ trait Codec {
          }
 
       else // TODO appendByteArray does not return a boolean value anymore
-         bitStream.appendByteArray(arr, nCount)
+         appendByteArray(arr, nCount)
 
       ret
    }
@@ -731,7 +731,7 @@ trait Codec {
          var i1: Int = nCurOffset1
          while i1 < nCurBlockSize1 + nCurOffset1 do
             decreases(nCurBlockSize1 + nCurOffset1 - i1)
-            bitStream.appendByte(arr(i1))
+            appendByte(arr(i1))
             i1 += 1
 
          nCurOffset1 += nCurBlockSize1
@@ -741,14 +741,14 @@ trait Codec {
          if nRemainingItemsVar1 <= 0x7F then
             encodeConstraintWholeNumber(nRemainingItemsVar1.toLong, 0, 0xFF)
          else
-            bitStream.appendBit(true)
+            appendBit(true)
             encodeConstraintWholeNumber(nRemainingItemsVar1.toLong, 0, 0x7FFF)
 
 
          var i1: Int = nCurOffset1
          while i1 < (nCurOffset1 + nRemainingItemsVar1) do
             decreases(nCurOffset1 + nRemainingItemsVar1 - i1)
-            bitStream.appendByte(arr(i1))
+            appendByte(arr(i1))
             i1 += 1
 
       return ret
@@ -882,7 +882,7 @@ trait Codec {
          if asn1SizeMin != asn1SizeMax then
             encodeConstraintWholeNumber(nCount.toLong, asn1SizeMin, asn1SizeMax)
 
-         bitStream.appendBits(arr, nCount)
+         appendBits(arr, nCount)
 
       else
          var nRemainingItemsVar1: Long = nCount.toLong
@@ -906,7 +906,7 @@ trait Codec {
                encodeConstraintWholeNumber(0xC1, 0, 0xFF)
 
             val t: Array[UByte] = Array.fill(nCurBlockSize1.toInt)(0) // STAINLESS: arr.slice((nCurOffset1 / 8).toInt, (nCurOffset1 / 8).toInt + nCurBlockSize1.toInt)
-            bitStream.appendBits(t, nCurBlockSize1.toInt)
+            appendBits(t, nCurBlockSize1.toInt)
             nCurOffset1 += nCurBlockSize1
             nRemainingItemsVar1 -= nCurBlockSize1
 
@@ -914,11 +914,11 @@ trait Codec {
          if nRemainingItemsVar1 <= 0x7F then
             encodeConstraintWholeNumber(nRemainingItemsVar1, 0, 0xFF)
          else
-            bitStream.appendBit(true)
+            appendBit(true)
             encodeConstraintWholeNumber(nRemainingItemsVar1, 0, 0x7FFF)
 
          val t: Array[UByte] = Array.fill(nRemainingItemsVar1.toInt)(0) // STAINLESS: arr.slice((nCurOffset1 / 8).toInt, (nCurOffset1 / 8).toInt + nRemainingItemsVar1.toInt)
-         bitStream.appendBits(t, nRemainingItemsVar1.toInt)
+         appendBits(t, nRemainingItemsVar1.toInt)
 
       true
    }
@@ -1001,31 +1001,59 @@ trait Codec {
 
 
    def appendBitOne(): Unit = {
-      bitStream.appendBitOne()
+      val isValidPrecondition = bitStream.validate_offset_bit()
+      assert(isValidPrecondition)
+      isValidPrecondition match
+         case true => bitStream.appendBitOne()
+         case false => ()
    }
 
    def appendBitZero(): Unit = {
-      bitStream.appendBitZero()
+      val isValidPrecondition = bitStream.validate_offset_bit()
+      assert(isValidPrecondition)
+      isValidPrecondition match
+         case true => bitStream.appendBitZero()
+         case false => ()
    }
 
-   def appendNBitZero(nBitsVal: Int): Unit = {
-      bitStream.appendNBitZero(nBitsVal)
+   def appendNBitZero(nBits: Int): Unit = {
+      val isValidPrecondition = bitStream.validate_offset_bits(nBits)
+      assert(isValidPrecondition)
+      isValidPrecondition match
+         case true => bitStream.appendNBitZero(nBits)
+         case false => ()
    }
 
-   def appendNBitOne(nBitsVal: Int): Unit = {
-      bitStream.appendNBitOne(nBitsVal)
+   def appendNBitOne(nBits: Int): Unit = {
+      val isValidPrecondition = bitStream.validate_offset_bits(nBits)
+      assert(isValidPrecondition)
+      isValidPrecondition match
+         case true => bitStream.appendNBitOne(nBits)
+         case false => ()
    }
 
    def appendBits(srcBuffer: Array[UByte], nBits: Int): Unit = {
-      bitStream.appendBits(srcBuffer, nBits)
+      val isValidPrecondition = bitStream.validate_offset_bits(nBits)
+      assert(isValidPrecondition)
+      isValidPrecondition match
+         case true => bitStream.appendBits(srcBuffer, nBits)
+         case false => ()
    }
 
    def appendBit(v: Boolean): Unit = {
+      val isValidPrecondition = bitStream.validate_offset_bit()
+      assert(isValidPrecondition)
+      isValidPrecondition match
+         case true =>
       bitStream.appendBit(v)
    }
 
    def readBit(): Option[Boolean] = {
-      Some(bitStream.readBit())
+      val isValidPrecondition = bitStream.validate_offset_bit()
+      assert(isValidPrecondition)
+      isValidPrecondition match
+         case true => Some(bitStream.readBit())
+         case false => None()
    }
 
    def peekBit(): Boolean = {
@@ -1033,34 +1061,54 @@ trait Codec {
    }
 
    def appendByte(value: Byte): Unit = {
-      bitStream.appendByte(value)
+      val isValidPrecondition = bitStream.validate_offset_byte()
+      assert(isValidPrecondition)
+      isValidPrecondition match
+         case true => bitStream.appendByte(value)
+         case false => ()
    }
 
    def readByte(): Option[UByte] = {
-      // TODO
-      Some(bitStream.readByte())
+      val isValidPrecondition = bitStream.validate_offset_byte()
+      assert(isValidPrecondition)
+      isValidPrecondition match
+         case true => Some(bitStream.readByte())
+         case false => None()
    }
 
    def appendByteArray(arr: Array[UByte], arr_len: Int): Boolean = {
-      // TODO
-
-      bitStream.appendByteArray(arr, arr_len)
-      true
+      val isValidPrecondition = bitStream.validate_offset_bytes(arr_len)
+      assert(isValidPrecondition)
+      isValidPrecondition match
+         case true =>
+            bitStream.appendByteArray(arr, arr_len)
+            true
+         case false => false
    }
 
 
    def readByteArray(arr_len: Int): OptionMut[Array[UByte]] = {
-      // TODO
-      SomeMut(bitStream.readByteArray(arr_len))
+      val isValidPrecondition = bitStream.validate_offset_bytes(arr_len)
+      assert(isValidPrecondition)
+      isValidPrecondition match
+         case true => SomeMut(bitStream.readByteArray(arr_len))
+         case false => NoneMut()
    }
 
    def readBits(nbits: Int): OptionMut[Array[UByte]] = {
-      // TODO
-      SomeMut(bitStream.readBits(nbits))
+      val isValidPrecondition = bitStream.validate_offset_bits(nbits)
+      assert(isValidPrecondition)
+      isValidPrecondition match
+         case true => SomeMut(bitStream.readBits(nbits))
+         case false => NoneMut()
    }
 
    def appendPartialByte(vVal: UByte, nbits: UByte): Unit = {
-      bitStream.appendPartialByte(vVal, nbits)
+      val isValidPrecondition = bitStream.validate_offset_bits(nbits)
+      assert(isValidPrecondition)
+      isValidPrecondition match
+         case true => bitStream.appendPartialByte(vVal, nbits)
+         case false => ()
    }
 
    def readPartialByte(nbits: UByte): Option[UByte] = {

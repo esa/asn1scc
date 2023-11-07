@@ -56,13 +56,13 @@ case class UPER(bitStream: BitStream) extends Codec {
       if totalSize <= 0x7F then
          encodeConstraintWholeNumber(totalSize.toLong, 0, 0xFF)
       else
-         bitStream.appendBit(true)
+         appendBit(true)
          encodeConstraintWholeNumber(totalSize.toLong, 0, 0x7FFF)
 
       i = 0
       while i < totalSize do
          decreases(totalSize - i)
-         bitStream.appendByte(tmp(i))
+         appendByte(tmp(i))
          i += 1
    }
 
@@ -83,13 +83,13 @@ case class UPER(bitStream: BitStream) extends Codec {
       if totalSize <= 0x7F then
          encodeConstraintWholeNumber(totalSize.toLong, 0, 0xFF)
       else
-         bitStream.appendBit(true)
+         appendBit(true)
          encodeConstraintWholeNumber(totalSize.toLong, 0, 0x7FFF)
 
       i = 0
       while i < totalSize do
          decreases(totalSize - i)
-         bitStream.appendByte(tmp(i))
+         appendByte(tmp(i))
          i += 1
    }
 

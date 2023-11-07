@@ -92,6 +92,11 @@ case class BitStream(
    }
 
    @ghost
+   def validate_offset_byte(): Boolean = {
+      remainingBits >= 8
+   }
+
+   @ghost
    def validate_offset_bytes(bytes: Int = 0): Boolean = {
       require(bytes >= 0)
       remainingBits >= bytes.toLong * 8
