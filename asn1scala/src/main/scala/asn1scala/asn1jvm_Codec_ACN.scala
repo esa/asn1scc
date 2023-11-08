@@ -23,7 +23,7 @@ def CHECK_BIT_STREAM(pBitStrm: BitStream): Unit = {
  * @return ACN coded bitstream
  */
 def initACNCodec(count: Int): ACN = {
-   ACN(BitStream(Array.fill(count)(0)))
+   ACN(BitStream(Array.fill(count)(0), count.toLong * 8))
 }
 
 case class ACN(bitStream: BitStream) extends Codec {

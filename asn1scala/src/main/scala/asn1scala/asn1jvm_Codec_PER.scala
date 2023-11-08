@@ -7,7 +7,7 @@ package asn1scala
  * @return PER coded bitstream
  */
 def initPERCodec(count: Int): PER = {
-   PER(BitStream(Array.fill(count)(0)))
+   PER(BitStream(Array.fill(count)(0), count.toLong * 8))
 }
 
 case class PER(bitStream: BitStream) extends Codec { }

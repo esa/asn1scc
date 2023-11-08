@@ -48,7 +48,7 @@ def BitString_equal(arr1: Array[UByte], arr2: Array[UByte]): Boolean = {
 
 // TODO remove
 def BitStream_Init(count: Int): BitStream = {
-   BitStream(Array.fill(count)(0), 0, 0)
+   BitStream(Array.fill(count)(0), count.toLong * 8, 0, 0)
 }
 
 /**

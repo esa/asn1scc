@@ -8,22 +8,22 @@ import stainless.proof.*
 import stainless.math.*
 import StaticChecks.*
 
-// TODO should be part of BitStream
-def isPrefix(b1: BitStream, b2: BitStream): Boolean = {
-   b1.buf.length <= b2.buf.length &&
-     b1.bitIndex() <= b2.bitIndex() &&
-     (b1.buf.length != 0) ==> arrayBitPrefix(b1.buf, b2.buf, 0, b1.bitIndex())
-}
+//// TODO should be part of BitStream
+//def isPrefix(b1: BitStream, b2: BitStream): Boolean = {
+//   b1.buf.length <= b2.buf.length &&
+//     b1.bitIndex() <= b2.bitIndex() &&
+//     (b1.buf.length != 0) ==> arrayBitPrefix(b1.buf, b2.buf, 0, b1.bitIndex())
+//}
+//
+//def isValidPair(w1: BitStream, w2: BitStream): Boolean = isPrefix(w1, w2)
 
-def isValidPair(w1: BitStream, w2: BitStream): Boolean = isPrefix(w1, w2)
-
-@ghost
-def reader(w1: BitStream, w2: BitStream): (BitStream, BitStream) = {
-   require(isValidPair(w1, w2))
-   val r1 = BitStream(snapshot(w2.buf), w1.currentByte, w1.currentBit)
-   val r2 = BitStream(snapshot(w2.buf), w2.currentByte, w2.currentBit)
-   (r1, r2)
-}
+//@ghost
+//def reader(w1: BitStream, w2: BitStream): (BitStream, BitStream) = {
+//   require(isValidPair(w1, w2))
+//   val r1 = BitStream(snapshot(w2.buf), w1.currentByte, w1.currentBit)
+//   val r2 = BitStream(snapshot(w2.buf), w2.currentByte, w2.currentBit)
+//   (r1, r2)
+//}
 
 //@ghost @pure
 //def readBytePure(pBitStrm: BitStream): (BitStream, Option[Byte]) = {
@@ -36,15 +36,18 @@ def reader(w1: BitStream, w2: BitStream): (BitStream, BitStream) = {
 
 
 object BitStream {
-   @pure @inline
-   def invariant(pBitStrm: BitStream): Boolean = {
-      BitStream.invariant(pBitStrm.currentByte, pBitStrm.currentBit, pBitStrm.buf.length)
-   }
 
    @pure @inline
-   def invariant(currentByte: Int, currentBit: Int, buf_length: Int): Boolean = {
-      0 <= currentBit && currentBit <= 7 &&&
-         0 <= currentByte && (currentByte < buf_length || (currentBit == 0 && currentByte <= buf_length))
+   def invariant(bs: BitStream): Boolean = {
+      invariant(bs.remainingBits, bs.currentBit, bs.currentByte, bs.buf.length)
+   }
+
+
+   @pure @inline
+   def invariant(remainingBits: Long, currentBit: Int, currentByte: Int, buffLength: Int): Boolean = {
+      remainingBits == ((buffLength.toLong * NO_OF_BITS_IN_BYTE) - (currentByte.toLong * NO_OF_BITS_IN_BYTE + currentBit)) &&
+         currentBit >= 0 && currentBit < NO_OF_BITS_IN_BYTE &&
+         currentByte >= 0 && ((currentByte < buffLength) | (currentBit == 0 && currentByte == buffLength))
    }
 }
 
@@ -59,6 +62,7 @@ private val BitAccessMasks: Array[UByte] = Array(
    0x01, //    1 / 0000 0001 / x01
 )
 
+// TODO maybe remove, only needed in old verification step
 val masksb: Array[UByte] = Array(
    0x00, //   0 / 0000 0000 / x00
    0x01, //   1 / 0000 0001 / x01
@@ -73,41 +77,41 @@ val masksb: Array[UByte] = Array(
 
 case class BitStream(
                        var buf: Array[Byte],
+                       private var remainingBits: Long,
                        var currentByte: Int = 0, // marks the currentByte that gets accessed
                        var currentBit: Int = 0,  // marks the next bit that gets accessed
                     ) { // all BisStream instances satisfy the following:
-   require(BitStream.invariant(currentByte, currentBit, buf.length))
-
-   private var remainingBits: Long = buf.length.toLong * 8
+   require(BitStream.invariant(remainingBits, currentBit, currentByte, buf.length))
 
    @ghost
    def validate_offset_bit(): Boolean = {
       remainingBits >= 1
-   }
+   }.ensuring(_ => BitStream.invariant(this))
 
    @ghost
    def validate_offset_bits(bits: Int = 0): Boolean = {
       require(bits >= 0)
       remainingBits >= bits
-   }
+   }.ensuring(_ => BitStream.invariant(this))
 
    @ghost
    def validate_offset_byte(): Boolean = {
-      remainingBits >= 8
-   }
+      remainingBits >= NO_OF_BITS_IN_BYTE
+   }.ensuring(_ => BitStream.invariant(this))
 
    @ghost
-   def validate_offset_bytes(bytes: Int = 0): Boolean = {
+   def validate_offset_bytes(bytes: Int): Boolean = {
       require(bytes >= 0)
-      remainingBits >= bytes.toLong * 8
-   }
+      bytes <= remainingBits / NO_OF_BITS_IN_BYTE
+   }.ensuring(_ => BitStream.invariant(this))
 
    def bitIndex(): Long = {
       currentByte.toLong * 8 + currentBit.toLong
    }.ensuring(res => 0 <= res && res <= 8 * buf.length.toLong &&& res == buf.length.toLong * 8 - remainingBits)
 
-   def increaseBitIndex(): Unit = {
-      require(currentByte < buf.length)
+   private def increaseBitIndex(): Unit = {
+      require(remainingBits > 0)
+
       if currentBit < 7 then
          currentBit += 1
       else
@@ -115,18 +119,13 @@ case class BitStream(
          currentByte += 1
 
       remainingBits -= 1
+
    }.ensuring {_ =>
       val oldBitStrm = old(this)
       oldBitStrm.bitIndex() + 1 == this.bitIndex() &&&
+         oldBitStrm.remainingBits - remainingBits == 1 &&&
          BitStream.invariant(this)
    }
-
-   // TODO not used
-   @inlineOnce @opaque @ghost
-   private def ensureInvariant(): Unit = {
-   }.ensuring(_ =>
-      BitStream.invariant(currentByte, currentBit, buf.length)
-   )
 
    /**
     * Set new internal buffer
@@ -136,7 +135,7 @@ case class BitStream(
     */
    @extern
    def attachBuffer(buf: Array[UByte]): Unit = {
-      this.buf = buf // Illegal aliasing, therefore we need to workaround with this @extern...
+      this.buf = buf // Illegal aliasing, therefore we need to workaround this with @extern...
       currentByte = 0
       currentBit = 0
       remainingBits = buf.length.toLong * 8
@@ -217,7 +216,7 @@ case class BitStream(
          appendBitOne()
 
          i += 1
-      ).invariant(i >= 0 &&& i <= nBits)
+      ).invariant(i >= 0 &&& i <= nBits &&& validate_offset_bits(nBits - i))
    }.ensuring(_ => BitStream.invariant(this))
 
    /**
@@ -227,7 +226,7 @@ case class BitStream(
       require(validate_offset_bit())
 
       appendBit(false)
-   }
+   }.ensuring(_ => BitStream.invariant(this))
 
    /**
     * Append n cleared bit to bitstream
@@ -246,7 +245,7 @@ case class BitStream(
          appendBitZero()
 
          i += 1
-      ).invariant(i >= 0 &&& i <= nBits)
+      ).invariant(i >= 0 &&& i <= nBits &&& validate_offset_bits(nBits - i))
 
    }.ensuring(_ => BitStream.invariant(this))
 
@@ -326,9 +325,8 @@ case class BitStream(
          appendBitFromByte(v, NO_OF_BITS_IN_BYTE - nBits + i)
 
          i += 1
-         ).invariant(i >= 0 && i <= nBits)
+         ).invariant(i >= 0 &&& i <= nBits &&& validate_offset_bits(nBits - i))
    }.ensuring(_ => BitStream.invariant(this))
-
 
    /**
     * Append whole byte to bitstream
@@ -390,10 +388,11 @@ case class BitStream(
     * @return peeked bit
     *
     */
+   @pure
    def peekBit(): Boolean = {
       require(validate_offset_bit())
       ((buf(currentByte) & 0xFF) & (BitAccessMasks(currentBit) & 0xFF)) > 0
-   }
+   }.ensuring(_ => BitStream.invariant(this))
 
    // ****************** Read Bit Functions **********************
 
@@ -404,6 +403,7 @@ case class BitStream(
     *
     */
    def readBit(): Boolean = {
+      require(BitStream.invariant(this))
       require(validate_offset_bit())
       val ret = (buf(currentByte) & BitAccessMasks(currentBit)) != 0
 
@@ -423,19 +423,19 @@ case class BitStream(
     *
     */
    def readBits(nBits: Int): Array[UByte] = {
-      require(nBits > 0 && (nBits <= Integer.MAX_VALUE - NO_OF_BITS_IN_BYTE)) // TODO remaining bits in stream as upper bound, not MAX_VAL
-      require(validate_offset_bits(nBits))
+      require(nBits >= 0 && validate_offset_bits(nBits))
 
-      val arr: Array[UByte] = Array.fill((nBits + NO_OF_BITS_IN_BYTE - 1) / NO_OF_BITS_IN_BYTE)(0)
+      val arr: Array[UByte] = Array.fill(((nBits.toLong + NO_OF_BITS_IN_BYTE - 1) / NO_OF_BITS_IN_BYTE).toInt)(0)
 
       var i = 0
       (while i < nBits  do
          decreases(nBits - i)
 
-            arr(i / NO_OF_BITS_IN_BYTE) |||= (if readBit() then BitAccessMasks(i % NO_OF_BITS_IN_BYTE) else 0)
+         arr(i / NO_OF_BITS_IN_BYTE) |||= (if readBit() then BitAccessMasks(i % NO_OF_BITS_IN_BYTE) else 0)
 
          i += 1
-      ).invariant(i >= 0 &&& i <= nBits &&& validate_offset_bits(nBits - i))
+      ).invariant(i >= 0 &&& i <= nBits &&& validate_offset_bits(nBits - i) &&
+         arr.length == ((nBits.toLong + NO_OF_BITS_IN_BYTE - 1) / NO_OF_BITS_IN_BYTE).toInt) // TODO stainless counter examples with wrong array sizes otherwise
 
       arr
    }.ensuring(_ => BitStream.invariant(this))
@@ -467,7 +467,8 @@ case class BitStream(
    }.ensuring(_ => BitStream.invariant(this))
 
    def readByteArray(nBytes: Int): Array[UByte] = {
-      require(0 < nBytes && nBytes <= buf.length)
+      require(nBytes <= Integer.MAX_VALUE / NO_OF_BITS_IN_BYTE)
+      require(nBytes >= 0 && nBytes <= remainingBits / NO_OF_BITS_IN_BYTE)
       require(validate_offset_bytes(nBytes))
 
       readBits(nBytes * NO_OF_BITS_IN_BYTE)
@@ -505,7 +506,7 @@ case class BitStream(
     *
     */
    def readPartialByte(nBits: Int): UByte = {
-      require(0 < nBits && nBits < 8)
+      require(nBits >= 0 && nBits < NO_OF_BITS_IN_BYTE)
       require(validate_offset_bits(nBits))
 
       var v = 0.toByte
@@ -516,7 +517,7 @@ case class BitStream(
          v |||= (if readBit() then BitAccessMasks(NO_OF_BITS_IN_BYTE - nBits + i) else 0)
 
          i += 1
-      ).invariant(i >= 0 && i <= nBits)
+      ).invariant(i >= 0 && i <= nBits && validate_offset_bits(nBits - i))
 
       v
    }.ensuring(_ => BitStream.invariant(this))

@@ -59,14 +59,12 @@ extension (ui: UInt) {
 extension (i: Int) {
    def toUnsignedByte: UByte = {
 
-      var iVal = i & MASK_BYTE
-
-      if(iVal == MASK_MSB_BYTE)
+      if((i & MASK_BYTE) == MASK_MSB_BYTE)
          (-MASK_MSB_BYTE).toByte
       else if ((i & MASK_MSB_BYTE) == MASK_MSB_BYTE)
          ((i & MASK_POS_BYTE) - MASK_MSB_BYTE).toByte
       else
-         i.toByte
+         (i & MASK_BYTE).toByte
    }
 }
 
@@ -166,7 +164,7 @@ def CalculateMantissaAndExponent(doubleAsLong64: Long): (UInt, ULong) = {
    (exponent, mantissa)
 
 }.ensuring((e, m) => e >= (-DoubleBias - DoubleNoOfMantissaBits) &&& e <= (DoubleBias - DoubleNoOfMantissaBits)
-   &&& m >= 0 &&& m <= MantissaBitMask)
+   &&& m >= 0 &&& m <= (MantissaBitMask | MantissaExtraBit))
 
 def GetDoubleBitStringByMantissaAndExp(mantissa: ULong, exponentVal: Int): Long = {
    ((exponentVal + DoubleBias + DoubleNoOfMantissaBits) << DoubleNoOfMantissaBits) | (mantissa & MantissaBitMask)
