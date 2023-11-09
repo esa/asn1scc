@@ -256,7 +256,7 @@ case class BitStream(
     * @param bitNr 0 to 7 - number of the bit
     *
     * Remarks:
-    * bit 0 is the MSB, bit 7 is the LSB, ASN.1? / ESA? declares bit 1 as MSB,
+    * bit 0 is the MSB, bit 7 is the LSB, ESA declares bit 1 as MSB,
     * bit 8 as LSB - but we start from 0 in CS
     *
     */
@@ -420,6 +420,24 @@ case class BitStream(
     *
     * Remarks:
     * First bit is written into the MSB of Byte 0
+    *
+    * Example:
+    * nBits = 10
+    * curBits on bitstream = 3
+    *
+    * bits on stream  x  x  b0 b1 b2 b3 b4 b5 b6 b7 b8 b9 x
+    * currentBit      0  1  2  3  4  5  6  7  0  1  2  3  4 ...
+    *                 |                       |
+    *            start of byte n        start of byte n+1
+    *
+    * arr = ByteArray with size 2 (10bits need 2 bytes) get
+    * returned with this structure
+    *                       LSB byte 0             LSB byte 1
+    *                           |           | 0 padding |
+    *    b0 b1 b2 b3 | b4 b5 b6 b7 || b8 b9 0 0 | 0 0 0 0
+    * i: 1  2  3  4    5  6  7  8     9  10
+    *    |                            |
+    *  MSB byte 0                 MSB byte 1
     *
     */
    def readBits(nBits: Int): Array[UByte] = {

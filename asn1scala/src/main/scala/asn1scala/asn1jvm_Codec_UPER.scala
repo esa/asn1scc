@@ -9,12 +9,12 @@ import stainless.lang.{None => None, Option => Option, Some => Some, _}
  * @return UPER coded bitstream
  */
 def initUPERCodec(count: Int): UPER = {
-   UPER(BitStream(Array.fill(count)(0), count.toLong * 8))
+   UPER(BitStream(Array.fill(count)(0), count.toLong * NO_OF_BITS_IN_BYTE))
 }
 
 case class UPER(bitStream: BitStream) extends Codec {
 
-   def objectIdentifier_subIdentifiers_encode(encodingBuf: Array[UByte], pSizeVal: Int, siValueVal: ULong): Int = {
+   private def objectIdentifier_subIdentifiers_encode(encodingBuf: Array[UByte], pSizeVal: Int, siValueVal: ULong): Int = {
       var lastOctet: Boolean = false
       val tmp: Array[UByte] = Array.fill(16)(0)
       var nSize: Int = 0
@@ -37,7 +37,8 @@ case class UPER(bitStream: BitStream) extends Codec {
          encodingBuf(pSize) = curByte
          pSize += 1
          i += 1
-      return pSize
+
+      pSize
    }
 
    def ObjectIdentifier_encode(pVal: Asn1ObjectIdentifier): Unit = {
