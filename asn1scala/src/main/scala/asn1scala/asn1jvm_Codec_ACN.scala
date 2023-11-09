@@ -11,12 +11,6 @@ val CHAR_ZERO: ASCIIChar = 48
 val CHAR_NINE: ASCIIChar = 57
 val CHAR_0000: ASCIIChar = 0
 
-
-// TODO remove / replace by invariant
-def CHECK_BIT_STREAM(pBitStrm: BitStream): Unit = {
-   assert(pBitStrm.currentByte.toLong * 8 + pBitStrm.currentBit <= pBitStrm.buf.length.toLong * 8)
-}
-
 /**
  * Get an instance of a ACN coded bitstream
  * @param count of elements in underlaying buffer
@@ -27,27 +21,6 @@ def initACNCodec(count: Int): ACN = {
 }
 
 case class ACN(bitStream: BitStream) extends Codec {
-
-   def alignToByte(): Unit = {
-      if bitStream.currentBit != 0 then
-         bitStream.currentBit = 0
-         bitStream.currentByte += 1
-         CHECK_BIT_STREAM(bitStream)
-   }
-
-   def alignToShort(): Unit = {
-      alignToByte()
-      bitStream.currentByte = ((bitStream.currentByte +
-         (NO_OF_BYTES_IN_JVM_SHORT - 1)) / NO_OF_BYTES_IN_JVM_SHORT) * NO_OF_BYTES_IN_JVM_SHORT
-      CHECK_BIT_STREAM(bitStream)
-   }
-
-   def alignToInt(): Unit = {
-      alignToByte()
-      bitStream.currentByte = ((bitStream.currentByte +
-         (NO_OF_BYTES_IN_JVM_INT - 1)) / NO_OF_BYTES_IN_JVM_INT) * NO_OF_BYTES_IN_JVM_INT
-      CHECK_BIT_STREAM(bitStream)
-   }
 
    /*ACN Integer functions*/
    def enc_Int_PositiveInteger_ConstSize(intVal: ULong, encodedSizeInBits: Int): Unit = {
@@ -61,13 +34,10 @@ case class ACN(bitStream: BitStream) extends Codec {
       appendNBitZero(encodedSizeInBits - nBits)
       /*Encode number */
       encodeNonNegativeInteger(intVal)
-
-      CHECK_BIT_STREAM(bitStream)
    }
 
    def enc_Int_PositiveInteger_ConstSize_8(intVal: ULong): Unit = {
       appendByte(intVal.toByte)
-      CHECK_BIT_STREAM(bitStream)
    }
 
    def enc_Int_PositiveInteger_ConstSize_big_endian_B(intVal: ULong, size: Int): Unit = {
@@ -81,8 +51,6 @@ case class ACN(bitStream: BitStream) extends Codec {
          appendByte(byteToEncode)
          mask >>>= 8
          i += 1
-
-      CHECK_BIT_STREAM(bitStream)
    }
 
    def enc_Int_PositiveInteger_ConstSize_big_endian_16(intVal: ULong): Unit = {
@@ -106,8 +74,6 @@ case class ACN(bitStream: BitStream) extends Codec {
          appendByte(byteToEncode)
          tmp >>>= 8
          i += 1
-
-      CHECK_BIT_STREAM(bitStream)
    }
 
    def enc_Int_PositiveInteger_ConstSize_little_endian_16(intVal: ULong): Unit = {
@@ -190,9 +156,7 @@ case class ACN(bitStream: BitStream) extends Codec {
    }
 
    def dec_Int_PositiveInteger_ConstSize_little_endian_64(): Option[ULong] = {
-      val ret = dec_Int_PositiveInteger_ConstSize_little_endian_N(NO_OF_BYTES_IN_JVM_LONG)
-      bitStream.currentByte += (8 - NO_OF_BYTES_IN_JVM_LONG)
-      ret
+      dec_Int_PositiveInteger_ConstSize_little_endian_N(NO_OF_BYTES_IN_JVM_LONG)
    }
 
 
@@ -218,8 +182,6 @@ case class ACN(bitStream: BitStream) extends Codec {
       appendByte(nBytes)
       /* Encode integer data*/
       encode_UnsignedInteger(intVal, nBytes)
-
-      CHECK_BIT_STREAM(bitStream)
    }
 
    def dec_Int_PositiveInteger_VarSize_LengthEmbedded(): Option[ULong] = {
@@ -248,8 +210,6 @@ case class ACN(bitStream: BitStream) extends Codec {
       else
          appendNBitOne(encodedSizeInBits - GetNumberOfBitsForNonNegativeInteger(-intVal - 1))
          encodeNonNegativeIntegerNeg(-intVal - 1, true)
-
-      CHECK_BIT_STREAM(bitStream)
    }
 
 
@@ -356,8 +316,6 @@ case class ACN(bitStream: BitStream) extends Codec {
       appendByte(nBytes)
       /* Encode integer data*/
       encode_UnsignedInteger(int2uint(intVal), nBytes)
-
-      CHECK_BIT_STREAM(bitStream)
    }
 
 
@@ -417,8 +375,6 @@ case class ACN(bitStream: BitStream) extends Codec {
       while i >= 0 do
          appendPartialByte(tmp(i).toByte, 4)
          i -= 1
-
-      CHECK_BIT_STREAM(bitStream)
    }
 
 
@@ -445,8 +401,6 @@ case class ACN(bitStream: BitStream) extends Codec {
 
       /* Encode Number */
       enc_Int_BCD_ConstSize(intVal, nNibbles)
-
-      CHECK_BIT_STREAM(bitStream)
    }
 
 
@@ -466,8 +420,6 @@ case class ACN(bitStream: BitStream) extends Codec {
       enc_Int_BCD_ConstSize(intVal, nNibbles)
 
       appendPartialByte(0xF, 4)
-
-      CHECK_BIT_STREAM(bitStream)
    }
 
    def dec_Int_BCD_VarSize_NullTerminated(): Option[ULong] = {
@@ -505,8 +457,6 @@ case class ACN(bitStream: BitStream) extends Codec {
       while i >= 0 do
          appendByte((tmp(i) + CHAR_ZERO).toByte)
          i -= 1
-
-      CHECK_BIT_STREAM(bitStream)
    }
 
 
@@ -596,8 +546,6 @@ case class ACN(bitStream: BitStream) extends Codec {
       while i < 100 && digitsArray100(i) != 0x0 do
          appendByte(digitsArray100(i))
          i += 1
-
-      CHECK_BIT_STREAM(bitStream)
    }
 
    def enc_UInt_ASCII_VarSize_LengthEmbedded(intVal: ULong): Unit = {
@@ -610,8 +558,6 @@ case class ACN(bitStream: BitStream) extends Codec {
       while i < 100 && digitsArray100(i) != 0x0 do
          appendByte(digitsArray100(i))
          i += 1
-
-      CHECK_BIT_STREAM(bitStream)
    }
 
 
@@ -640,8 +586,6 @@ case class ACN(bitStream: BitStream) extends Codec {
       while i < null_characters_size do
          appendByte(null_characters(i))
          i += 1
-
-      CHECK_BIT_STREAM(bitStream)
    }
 
    def enc_SInt_ASCII_VarSize_NullTerminated(intVal: Long, null_characters: Array[Byte], null_characters_size: Int): Unit = {

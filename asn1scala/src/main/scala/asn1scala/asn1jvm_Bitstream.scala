@@ -540,4 +540,21 @@ case class BitStream(
       v
    }.ensuring(_ => BitStream.invariant(this))
 
+
+   // ************** Aligning functions *********
+   def alignToByte(): Unit = {
+      if currentBit != 0 then
+         currentBit = 0
+         currentByte += 1
+   }
+
+   def alignToShort(): Unit = {
+      alignToByte()
+      currentByte = ((currentByte + (NO_OF_BYTES_IN_JVM_SHORT - 1)) / NO_OF_BYTES_IN_JVM_SHORT) * NO_OF_BYTES_IN_JVM_SHORT
+   }
+
+   def alignToInt(): Unit = {
+      alignToByte()
+      currentByte = ((currentByte + (NO_OF_BYTES_IN_JVM_INT - 1)) / NO_OF_BYTES_IN_JVM_INT) * NO_OF_BYTES_IN_JVM_INT
+   }
 } // BitStream class

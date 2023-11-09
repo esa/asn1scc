@@ -377,7 +377,7 @@ trait Codec {
          appendNBitZero(nBytes * 8 - GetNumberOfBitsForNonNegativeInteger(v))
          encodeNonNegativeInteger(v)
       else
-         bitStream.appendNBitOne(nBytes * 8 - GetNumberOfBitsForNonNegativeInteger((-v - 1)))
+         appendNBitOne(nBytes * 8 - GetNumberOfBitsForNonNegativeInteger((-v - 1)))
          encodeNonNegativeIntegerNeg((-v - 1), true)
    }
 
@@ -547,8 +547,7 @@ trait Codec {
    private def decodeRealFromBitStream(lengthVal: Int, header: UByte): Option[Long] = {
       require(lengthVal >= 1 && lengthVal < DoubleMaxLengthOfSentBytes) // without header byte
       require((header.unsignedToInt & 0x80) == 0x80)
-      require(bitStream.buf.length > lengthVal)
-      require(bitStream.currentByte < bitStream.buf.length - lengthVal)
+      require(bitStream.validate_offset_bytes(lengthVal))
 
       // 8.5.7.2 Base
       val expFactor: Int = header.unsignedToInt match
@@ -606,11 +605,13 @@ trait Codec {
 
    def checkBitPatternPresent(bit_terminated_pattern: Array[UByte], bit_terminated_pattern_size_in_bitsVal: UByte): Int = {
       var bit_terminated_pattern_size_in_bits = bit_terminated_pattern_size_in_bitsVal
+      require(bitStream.validate_offset_bits(bit_terminated_pattern_size_in_bits))
+
       val tmp_currentByte: Int = bitStream.currentByte
       val tmp_currentBit: Int = bitStream.currentBit
       var tmp_byte: UByte = 0
 
-      if bitStream.currentByte.toLong * 8 + bitStream.currentBit + bit_terminated_pattern_size_in_bits.toInt > bitStream.buf.length.toLong * 8 then
+      if !bitStream.validate_offset_bits(bit_terminated_pattern_size_in_bitsVal) then
          return 0
 
       var i: Int = 0
@@ -672,39 +673,16 @@ trait Codec {
    }
 
    def encodeOctetString_no_length(arr: Array[UByte], nCount: Int): Boolean = {
-      val cb = bitStream.currentBit
-      var ret: Boolean = false
-
-      if cb == 0 then
-         ret = bitStream.currentByte + nCount <= bitStream.buf.length
-         if(ret) {
-            copyToArray(arr, bitStream.buf, bitStream.currentByte, nCount)
-            bitStream.currentByte += nCount
-         }
-
-      else
-         ret = appendByteArray(arr, nCount)
-
-      ret
+      appendByteArray(arr, nCount)
    }
 
    def decodeOctetString_no_length(nCount: Int): OptionMut[Array[UByte]] = {
-      val cb: Int = bitStream.currentBit
-      val arr: Array[UByte] = Array.fill(nCount + 1)(0)
-
-      if cb == 0 then
-         if bitStream.currentByte + nCount > bitStream.buf.length then
-            return NoneMut()
-
-         arrayCopyOffset(bitStream.buf, arr, bitStream.currentByte, bitStream.currentByte + nCount, 0)
-         bitStream.currentByte += nCount
-
-      else
-         readByteArray(nCount) match
-            case NoneMut() => return NoneMut()
-            case SomeMut(a) => arrayCopyOffsetLen(a, arr, 0, 0, a.length)
-
-      SomeMut(arr)
+      readByteArray(nCount) match
+         case NoneMut() => NoneMut()
+         case SomeMut(a) =>
+            val arr: Array[UByte] = Array.fill(nCount + 1)(0) // TODO: why is +1 needed?
+            arrayCopyOffsetLen(a, arr, 0, 0, a.length)
+            SomeMut(arr)
    }
 
    def encodeOctetString_fragmentation(arr: Array[UByte], nCount: Int): Boolean = {
