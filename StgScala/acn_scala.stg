@@ -570,26 +570,28 @@ if (<if(noSizeMin)>(<noSizeMin>\<=<sExtFld>) && <endif>(<sExtFld>\<=<nSizeMax>))
 
 oct_sqf_null_terminated_encode(p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength, sErrCode, nIntItemMinSize, nIntItemMaxSize) ::= <<
 <loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize=[p, sAcc, "nCount"])>
-codec.appendBits((byte[]){<arruNullBytes; separator=", ">}, <nBitPatternLength>)
+codec.appendBits(Array({<arruNullBytes; separator=", ">}), <nBitPatternLength>)
 >>
 
 oct_sqf_null_terminated_decode(p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength, sErrCode, nIntItemMinSize, nIntItemMaxSize) ::= <<
+// TODO: check if it works as intended
 <i> = 0
 ret = Right(0)
-while ret.isRight && <i> \< <nSizeMax> && ((checkBitPatternPresentResult = codec.checkBitPatternPresent((byte[]){<arruNullBytes; separator=", ">}, <nBitPatternLength>)) == 1)) do
+      
+var checkBitPatternPresentResult = codec.checkBitPatternPresent(Array({<arruNullBytes; separator=", ">}), <nBitPatternLength>)
+while ret.isRight && <i> \< <nSizeMax> && !checkBitPatternPresentResult.getOrElse(true) do
     <sInternalItem>
     <i> += 1
+    checkBitPatternPresentResult = codec.checkBitPatternPresent(Array({<arruNullBytes; separator=", ">}), <nBitPatternLength>)
 
-if ret.isRight && (<i> == <nSizeMax>) && (checkBitPatternPresentResult == 1) then
-    checkBitPatternPresentResult = codec.checkBitPatternPresent((byte[]){<arruNullBytes; separator=", ">}, <nBitPatternLength>)
+if ret.isRight && (<i> == <nSizeMax>) && !checkBitPatternPresentResult.getOrElse(true) then
+    checkBitPatternPresentResult = codec.checkBitPatternPresent(Array({<arruNullBytes; separator=", ">}), <nBitPatternLength>)
 
-if (ret && (checkBitPatternPresentResult == 0)) {
-    ret = FALSE;			/*COVERAGE_IGNORE*/
-    *pErrCode = <sErrCode>;	/*COVERAGE_IGNORE*/
-} else if (ret && (checkBitPatternPresentResult == 2)) {
-    <p><sAcc>nCount = <i>;
-    ret = true;
-    *pErrCode = 0;
+if (ret && checkBitPatternPresentResult.isEmpty) {
+    ret = Left(<sErrCode>)	/*COVERAGE_IGNORE*/
+} else if (ret && checkBitPatternPresentResult.get) {
+    <p><sAcc>nCount = <i>
+    ret = Right(0)
 }
 >>
 
@@ -622,15 +624,15 @@ if <if(noSizeMin)>(<noSizeMin>\<=<sExtFld>) && <endif>(<sExtFld>\<=<nSizeMax>) t
 
 bit_string_null_terminated_encode(p, sErrCode, sAcc, i, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength) ::= <<
 codec.appendBits(<p><sAcc>arr, <p><sAcc>nCount)
-codec.appendBits((byte[]){<arruNullBytes; separator=", ">}, <nBitPatternLength>)
+codec.appendBits(Array({<arruNullBytes; separator=", ">}), <nBitPatternLength>)
 >>
 
 bit_string_null_terminated_decode(p, sErrCode, sAcc, i, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength) ::= <<
-// TODO acn:620 - wrong ret value? reads bits untill 0 termination, but only length is returned, not the datanullterminated.rReadBits_BitStrm, (byte[]){<arruNullBytes; separator=", ">}, <nBitPatternLength>, <p><sAcc>arr, <nSizeMax>) match
-    case None() => 
-        return Left(<sErrCode>)
-    case Some(x) => 
-        <p><sAcc>nCount = x
+    codec.readBits_nullterminated(Array({<arruNullBytes; separator=", ">}), <nBitPatternLength>, <nSizeMax>) match
+        case NoneMut() => 
+            return Left(<sErrCode>)
+        case SomeMut(x) => 
+            <p><sAcc>arr = x
 >>
 
 RefTypeParam_tmpVar(sName, sTypeDecl) ::= "<sTypeDecl> <sName>"

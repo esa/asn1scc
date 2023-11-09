@@ -603,75 +603,6 @@ trait Codec {
       Some(v)
    }
 
-   def checkBitPatternPresent(bit_terminated_pattern: Array[UByte], bit_terminated_pattern_size_in_bitsVal: UByte): Int = {
-      var bit_terminated_pattern_size_in_bits = bit_terminated_pattern_size_in_bitsVal
-      require(bitStream.validate_offset_bits(bit_terminated_pattern_size_in_bits))
-
-      val tmp_currentByte: Int = bitStream.currentByte
-      val tmp_currentBit: Int = bitStream.currentBit
-      var tmp_byte: UByte = 0
-
-      if !bitStream.validate_offset_bits(bit_terminated_pattern_size_in_bitsVal) then
-         return 0
-
-      var i: Int = 0
-      while bit_terminated_pattern_size_in_bits >= 8 do
-         decreases(bit_terminated_pattern_size_in_bits)
-
-         readByte() match
-            case None() => return 0
-            case Some(ub) => tmp_byte = ub
-
-         bit_terminated_pattern_size_in_bits -= 8
-         if bit_terminated_pattern(i) != tmp_byte then
-            bitStream.currentByte = tmp_currentByte
-            bitStream.currentBit = tmp_currentBit
-            return 1
-         i += 1
-
-      if bit_terminated_pattern_size_in_bits > 0 then
-         readPartialByte(bit_terminated_pattern_size_in_bits) match
-            case None() => return 0
-            case Some(ub) => tmp_byte = ub
-
-         tmp_byte = (tmp_byte << (8 - bit_terminated_pattern_size_in_bits)).toByte
-
-         if bit_terminated_pattern(i) != tmp_byte then
-            bitStream.currentByte = tmp_currentByte
-            bitStream.currentBit = tmp_currentBit
-            return 1
-
-      return 2
-   }
-
-   def readBits_nullterminated(bit_terminated_pattern: Array[UByte], bit_terminated_pattern_size_in_bits: UByte, nMaxReadBits: Int): OptionMut[(Array[UByte], Int)] = {
-      var checkBitPatternPresentResult: Int = 0
-
-      var bitsRead: Int = 0
-
-      val tmpStrm: BitStream = BitStream_Init(if nMaxReadBits % 8 == 0 then nMaxReadBits / 8 else nMaxReadBits / 8 + 1)
-
-      checkBitPatternPresentResult = checkBitPatternPresent(bit_terminated_pattern, bit_terminated_pattern_size_in_bits)
-      while (bitsRead < nMaxReadBits) && (checkBitPatternPresentResult == 1) do
-         decreases(nMaxReadBits - bitsRead)
-         readBit() match
-            case None() => return NoneMut()
-            case Some(bitVal) =>
-               tmpStrm.appendBit(bitVal)
-               bitsRead += 1
-
-         if bitsRead < nMaxReadBits then
-            checkBitPatternPresentResult = checkBitPatternPresent(bit_terminated_pattern, bit_terminated_pattern_size_in_bits)
-
-      if (bitsRead == nMaxReadBits) && (checkBitPatternPresentResult == 1) then
-         checkBitPatternPresentResult = checkBitPatternPresent(bit_terminated_pattern, bit_terminated_pattern_size_in_bits)
-
-      if checkBitPatternPresentResult != 2 then
-         return NoneMut()
-
-      SomeMut((tmpStrm.buf, bitsRead))
-   }
-
    def encodeOctetString_no_length(arr: Array[UByte], nCount: Int): Boolean = {
       appendByteArray(arr, nCount)
    }
@@ -994,7 +925,7 @@ trait Codec {
          case false => ()
    }
 
-   def appendNBitZero(nBits: Int): Unit = {
+   def appendNBitZero(nBits: Long): Unit = {
       val isValidPrecondition = bitStream.validate_offset_bits(nBits)
       assert(isValidPrecondition)
       isValidPrecondition match
@@ -1002,7 +933,7 @@ trait Codec {
          case false => ()
    }
 
-   def appendNBitOne(nBits: Int): Unit = {
+   def appendNBitOne(nBits: Long): Unit = {
       val isValidPrecondition = bitStream.validate_offset_bits(nBits)
       assert(isValidPrecondition)
       isValidPrecondition match
@@ -1010,7 +941,7 @@ trait Codec {
          case false => ()
    }
 
-   def appendBits(srcBuffer: Array[UByte], nBits: Int): Unit = {
+   def appendBits(srcBuffer: Array[UByte], nBits: Long): Unit = {
       val isValidPrecondition = bitStream.validate_offset_bits(nBits)
       assert(isValidPrecondition)
       isValidPrecondition match
@@ -1073,7 +1004,7 @@ trait Codec {
          case false => NoneMut()
    }
 
-   def readBits(nbits: Int): OptionMut[Array[UByte]] = {
+   def readBits(nbits: Long): OptionMut[Array[UByte]] = {
       val isValidPrecondition = bitStream.validate_offset_bits(nbits)
       assert(isValidPrecondition)
       isValidPrecondition match
@@ -1095,5 +1026,43 @@ trait Codec {
       isValidPrecondition match
          case true => Some(bitStream.readPartialByte(nbits))
          case false => None()
+   }
+
+   def checkBitPatternPresent(bit_terminated_pattern: Array[UByte], nBits: Long): Option[Boolean] = {
+      val isValidPrecondition = bitStream.validate_offset_bits(nBits)
+      assert(isValidPrecondition)
+      isValidPrecondition match
+         case true => Some(bitStream.checkBitPatternPresent(bit_terminated_pattern, nBits))
+         case false => None()
+   }
+
+   def readBits_nullterminated(bit_terminated_pattern: Array[UByte], bit_terminated_pattern_size_in_bits: UByte, nMaxReadBits: Int): OptionMut[(Array[UByte], Int)] = {
+      val isValidPrecondition = bitStream.validate_offset_bits(nMaxReadBits)
+      assert(isValidPrecondition)
+      isValidPrecondition match
+         case true => SomeMut(bitStream.readBits_nullterminated(bit_terminated_pattern, bit_terminated_pattern_size_in_bits, nMaxReadBits))
+         case false => NoneMut()
+   }
+
+   def alignToByte(): Unit = {
+      // TODO: precondition
+      bitStream.alignToByte()
+//      if currentBit != 0 then
+//         currentBit = 0
+//         currentByte += 1
+   }
+
+   def alignToShort(): Unit = {
+      // TODO: precondition
+      bitStream.alignToShort()
+//      alignToByte()
+//      currentByte = ((currentByte + (NO_OF_BYTES_IN_JVM_SHORT - 1)) / NO_OF_BYTES_IN_JVM_SHORT) * NO_OF_BYTES_IN_JVM_SHORT
+   }
+
+   def alignToInt(): Unit = {
+      // TODO: precondition
+      bitStream.alignToInt()
+//      alignToByte()
+//      currentByte = ((currentByte + (NO_OF_BYTES_IN_JVM_INT - 1)) / NO_OF_BYTES_IN_JVM_INT) * NO_OF_BYTES_IN_JVM_INT
    }
 }
