@@ -1070,7 +1070,7 @@ trait Codec {
       bitStream.resetBitIndex()
    }
 
-   def getBuffer: Array[UByte] = {
-      bitStream.getBuffer
+   def getBufferLength: Int = {
+      bitStream.getBufferLength
    }
 }

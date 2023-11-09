@@ -99,7 +99,10 @@ Codec_write_bitstreamToFile() ::= <<
 // test_cases_scala.stg:99
 val file = new File(filename+".dat")
 val bw = new FileOutputStream(file)
-bw.write(codec.getBuffer)
+codec.resetBitIndex()
+codec.readByteArray(codec.getBufferLength) match
+    case SomeMut(arr) => bw.write(arr)
+    case NoneMut() => return Left(5)
 bw.close()
 >>
 

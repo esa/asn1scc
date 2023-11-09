@@ -135,9 +135,7 @@ case class BitStream(
          BitStream.invariant(this)
    }
 
-   def getBuffer: Array[UByte] = {
-      buf
-   }
+   def getBufferLength: Int = buf.length
 
    /**
     * Return count of bytes that got already fully or partially written
