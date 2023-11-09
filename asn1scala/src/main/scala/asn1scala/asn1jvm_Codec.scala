@@ -621,7 +621,7 @@ trait Codec {
             case None() => return 0
             case Some(ub) => tmp_byte = ub
 
-         bit_terminated_pattern_size_in_bits = 8
+         bit_terminated_pattern_size_in_bits -= 8
          if bit_terminated_pattern(i) != tmp_byte then
             bitStream.currentByte = tmp_currentByte
             bitStream.currentBit = tmp_currentBit
