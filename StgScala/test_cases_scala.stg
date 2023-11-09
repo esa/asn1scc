@@ -60,7 +60,7 @@ Codec_Encode(sModName, sFuncName, sVal) ::= <<
 
 Codec_Decode(sModName, sFuncName, sTasName, sEnc, sAmber) ::= <<
 // test_cases_scala.stg:62
-codec.bitStream.attachBuffer(codec.bitStream.buf) // TODO: reset curBit, curByte instead?
+codec.resetBitIndex()
 // Decode value
 <sFuncName>(codec) match
     case Left(_) => return Left(2)
@@ -99,7 +99,7 @@ Codec_write_bitstreamToFile() ::= <<
 // test_cases_scala.stg:99
 val file = new File(filename+".dat")
 val bw = new FileOutputStream(file)
-bw.write(codec.bitStream.buf)
+bw.write(codec.getBuffer)
 bw.close()
 >>
 

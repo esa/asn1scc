@@ -76,10 +76,10 @@ val masksb: Array[UByte] = Array(
 )
 
 case class BitStream(
-                       var buf: Array[Byte],
+                       private var buf: Array[Byte],
                        private var remainingBits: Long,
-                       var currentByte: Int = 0, // marks the currentByte that gets accessed
-                       var currentBit: Int = 0,  // marks the next bit that gets accessed
+                       private var currentByte: Int = 0, // marks the currentByte that gets accessed
+                       private var currentBit: Int = 0,  // marks the next bit that gets accessed
                     ) { // all BisStream instances satisfy the following:
    require(BitStream.invariant(remainingBits, currentBit, currentByte, buf.length))
 
@@ -109,9 +109,17 @@ case class BitStream(
       currentByte.toLong * 8 + currentBit.toLong
    }.ensuring(res => 0 <= res && res <= 8 * buf.length.toLong &&& res == buf.length.toLong * 8 - remainingBits)
 
+   def resetBitIndex(): Unit = {
+      // TODO: make sure invariant is satisfied, or only checked before and after block
+      currentBit = 0
+      currentByte = 0
+      remainingBits = buf.length.toLong * 8
+   }
+
    private def increaseBitIndex(): Unit = {
       require(remainingBits > 0)
 
+      // TODO: make sure invariant is satisfied, or only checked before and after block
       if currentBit < 7 then
          currentBit += 1
       else
@@ -127,19 +135,9 @@ case class BitStream(
          BitStream.invariant(this)
    }
 
-   /**
-    * Set new internal buffer
-    *
-    * @param buf Byte array that should be attached to this BitStream
-    *
-    */
-   @extern
-   def attachBuffer(buf: Array[UByte]): Unit = {
-      this.buf = buf // Illegal aliasing, therefore we need to workaround this with @extern...
-      currentByte = 0
-      currentBit = 0
-      remainingBits = buf.length.toLong * 8
-   }.ensuring(_ => this.buf == buf && currentByte == 0 && currentBit == 0)
+   def getBuffer: Array[UByte] = {
+      buf
+   }
 
    /**
     * Return count of bytes that got already fully or partially written
@@ -552,6 +550,7 @@ case class BitStream(
       val ret = arraySameElements(bit_terminated_pattern, readBits(nBits))
 
       if !ret then
+         // TODO: make sure invariant is satisfied, or only checked before and after block
          currentBit = tmp_currentBit
          currentByte = tmp_currentByte
          remainingBits = tmp_remainingBits

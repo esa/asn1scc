@@ -127,7 +127,7 @@ trait Codec {
          readByte() match
             case None() => return None()
             case Some(ub) =>
-               // mask the Byte-Bits, becuase negative values eg. -1 (1111 1111)
+               // mask the Byte-Bits, because negative values eg. -1 (1111 1111)
                // will be casted to an Int -1 (1111 ... 1111)
                v = v | (ub & 0xFF)
 
@@ -1064,5 +1064,13 @@ trait Codec {
       bitStream.alignToInt()
 //      alignToByte()
 //      currentByte = ((currentByte + (NO_OF_BYTES_IN_JVM_INT - 1)) / NO_OF_BYTES_IN_JVM_INT) * NO_OF_BYTES_IN_JVM_INT
+   }
+
+   def resetBitIndex(): Unit = {
+      bitStream.resetBitIndex()
+   }
+
+   def getBuffer: Array[UByte] = {
+      bitStream.getBuffer
    }
 }
