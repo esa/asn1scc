@@ -543,6 +543,7 @@ case class BitStream(
 
 
    def checkBitPatternPresent(bit_terminated_pattern: Array[UByte], nBits: Long): Boolean = {
+      require(nBits >= 0)
       require(validate_offset_bits(nBits))
       val tmp_currentBit = currentBit
       val tmp_currentByte = currentByte
@@ -558,15 +559,18 @@ case class BitStream(
       ret
    }
 
-   def readBits_nullterminated(bit_terminated_pattern: Array[UByte], bit_terminated_pattern_size_in_bits: UByte, nMaxReadBits: Int): (Array[UByte], Int) = {
-      require(validate_offset_bits(nMaxReadBits))
+   def readBits_nullterminated(bit_terminated_pattern: Array[UByte], bit_terminated_pattern_size_in_bits: Long, nMaxReadBits: Long): (Array[UByte], Int) = {
+      require(nMaxReadBits >= 0)
+      require(bit_terminated_pattern_size_in_bits >= 0 && bit_terminated_pattern_size_in_bits <= bit_terminated_pattern.length.toLong*8)
+      require(nMaxReadBits <= Long.MaxValue - bit_terminated_pattern_size_in_bits)
+      require(validate_offset_bits(nMaxReadBits + bit_terminated_pattern_size_in_bits))
       var bitsRead: Int = 0
 
-      val tmpBitStreamLength = if nMaxReadBits % 8 == 0 then nMaxReadBits / 8 else nMaxReadBits / 8 + 1
+      val tmpBitStreamLength = if nMaxReadBits % 8 == 0 then (nMaxReadBits / 8).toInt else (nMaxReadBits / 8).toInt + 1
       val tmpStrm: BitStream = BitStream(Array.fill(tmpBitStreamLength)(0), tmpBitStreamLength.toLong * 8, 0, 0)
 
       var checkBitPatternPresentResult = checkBitPatternPresent(bit_terminated_pattern, bit_terminated_pattern_size_in_bits)
-      while (bitsRead < nMaxReadBits) && !checkBitPatternPresentResult do
+      (while (bitsRead < nMaxReadBits) && !checkBitPatternPresentResult do
          decreases(nMaxReadBits - bitsRead)
 
          tmpStrm.appendBit(readBit())
@@ -574,6 +578,7 @@ case class BitStream(
 
          if bitsRead < nMaxReadBits then
             checkBitPatternPresentResult = checkBitPatternPresent(bit_terminated_pattern, bit_terminated_pattern_size_in_bits)
+      ).invariant(bitsRead <= nMaxReadBits &&& validate_offset_bits(bit_terminated_pattern_size_in_bits))
 
       if (bitsRead == nMaxReadBits) && !checkBitPatternPresentResult then
          checkBitPatternPresentResult = checkBitPatternPresent(bit_terminated_pattern, bit_terminated_pattern_size_in_bits)
@@ -584,17 +589,20 @@ case class BitStream(
 
    // ************** Aligning functions *********
    def alignToByte(): Unit = {
+      // TODO: set remainingBits
       if currentBit != 0 then
          currentBit = 0
          currentByte += 1
    }
 
    def alignToShort(): Unit = {
+      // TODO: set remainingBits
       alignToByte()
       currentByte = ((currentByte + (NO_OF_BYTES_IN_JVM_SHORT - 1)) / NO_OF_BYTES_IN_JVM_SHORT) * NO_OF_BYTES_IN_JVM_SHORT
    }
 
    def alignToInt(): Unit = {
+      // TODO: set remainingBits
       alignToByte()
       currentByte = ((currentByte + (NO_OF_BYTES_IN_JVM_INT - 1)) / NO_OF_BYTES_IN_JVM_INT) * NO_OF_BYTES_IN_JVM_INT
    }

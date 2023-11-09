@@ -1036,7 +1036,7 @@ trait Codec {
          case false => None()
    }
 
-   def readBits_nullterminated(bit_terminated_pattern: Array[UByte], bit_terminated_pattern_size_in_bits: UByte, nMaxReadBits: Int): OptionMut[(Array[UByte], Int)] = {
+   def readBits_nullterminated(bit_terminated_pattern: Array[UByte], bit_terminated_pattern_size_in_bits: Long, nMaxReadBits: Long): OptionMut[(Array[UByte], Int)] = {
       val isValidPrecondition = bitStream.validate_offset_bits(nMaxReadBits)
       assert(isValidPrecondition)
       isValidPrecondition match
