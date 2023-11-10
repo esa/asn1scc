@@ -540,7 +540,6 @@ case class BitStream(
    }.ensuring(_ => BitStream.invariant(this))
 
 
-
    def checkBitPatternPresent(bit_terminated_pattern: Array[UByte], nBits: Long): Boolean = {
       require(nBits >= 0)
       require(validate_offset_bits(nBits))
@@ -550,38 +549,38 @@ case class BitStream(
       val ret = arraySameElements(bit_terminated_pattern, readBits(nBits))
 
       if !ret then
-         // TODO: make sure invariant is satisfied, or only checked before and after block
          currentBit = tmp_currentBit
          currentByte = tmp_currentByte
 
       ret
    }
 
-   def readBits_nullterminated(bit_terminated_pattern: Array[UByte], bit_terminated_pattern_size_in_bits: Long, nMaxReadBits: Long): (Array[UByte], Int) = {
-      require(nMaxReadBits >= 0)
-      require(bit_terminated_pattern_size_in_bits >= 0 && bit_terminated_pattern_size_in_bits <= bit_terminated_pattern.length.toLong*8)
-      require(nMaxReadBits <= Long.MaxValue - bit_terminated_pattern_size_in_bits)
-      require(validate_offset_bits(nMaxReadBits + bit_terminated_pattern_size_in_bits))
+   def readBitsNullTerminated(bit_terminated_pattern: Array[UByte], nBits: Long, nMaxReadBits: Long): (Array[UByte], Int) = {
+      require(nBits >= 0 && nBits <= bit_terminated_pattern.length.toLong * NO_OF_BITS_IN_BYTE)
+      require(nMaxReadBits >= 0 &&& (nMaxReadBits / NO_OF_BITS_IN_BYTE) <= Int.MaxValue)
+      require(validate_offset_bits(nMaxReadBits + nBits))
+
       var bitsRead: Int = 0
 
-      val tmpBitStreamLength = if nMaxReadBits % 8 == 0 then (nMaxReadBits / 8).toInt else (nMaxReadBits / 8).toInt + 1
-      val tmpStrm: BitStream = BitStream(Array.fill(tmpBitStreamLength)(0))
+      // round to next full byte
+      val tmpBitStreamLength = ((nMaxReadBits + NO_OF_BITS_IN_BYTE - 1) / NO_OF_BITS_IN_BYTE).toInt
+      val tmpStr: BitStream = BitStream(Array.fill(tmpBitStreamLength)(0))
 
-      var checkBitPatternPresentResult = checkBitPatternPresent(bit_terminated_pattern, bit_terminated_pattern_size_in_bits)
+      var checkBitPatternPresentResult = checkBitPatternPresent(bit_terminated_pattern, nBits)
       (while (bitsRead < nMaxReadBits) && !checkBitPatternPresentResult do
          decreases(nMaxReadBits - bitsRead)
 
-         tmpStrm.appendBit(readBit())
+         tmpStr.appendBit(readBit())
          bitsRead += 1
 
          if bitsRead < nMaxReadBits then
-            checkBitPatternPresentResult = checkBitPatternPresent(bit_terminated_pattern, bit_terminated_pattern_size_in_bits)
-      ).invariant(bitsRead <= nMaxReadBits &&& validate_offset_bits(bit_terminated_pattern_size_in_bits))
+            checkBitPatternPresentResult = checkBitPatternPresent(bit_terminated_pattern, nBits)
+      ).invariant(bitsRead <= nMaxReadBits &&& validate_offset_bits(nBits))
 
       if (bitsRead == nMaxReadBits) && !checkBitPatternPresentResult then
-         checkBitPatternPresentResult = checkBitPatternPresent(bit_terminated_pattern, bit_terminated_pattern_size_in_bits)
+         checkBitPatternPresentResult = checkBitPatternPresent(bit_terminated_pattern, nBits)
 
-      (tmpStrm.buf, bitsRead)
+      (tmpStr.buf, bitsRead)
    }
 
 

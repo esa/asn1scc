@@ -1040,7 +1040,7 @@ trait Codec {
       val isValidPrecondition = bitStream.validate_offset_bits(nMaxReadBits)
       assert(isValidPrecondition)
       isValidPrecondition match
-         case true => SomeMut(bitStream.readBits_nullterminated(bit_terminated_pattern, bit_terminated_pattern_size_in_bits, nMaxReadBits))
+         case true => SomeMut(bitStream.readBitsNullTerminated(bit_terminated_pattern, bit_terminated_pattern_size_in_bits, nMaxReadBits))
          case false => NoneMut()
    }
 
