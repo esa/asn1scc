@@ -5,12 +5,6 @@ import stainless.lang.{None, Option, Some}
 
 val FAILED_READ_ERR_CODE = 5400
 
-val CHAR_MINUS: ASCIIChar = 45
-val CHAR_PLUS: ASCIIChar = 43
-val CHAR_ZERO: ASCIIChar = 48
-val CHAR_NINE: ASCIIChar = 57
-val CHAR_0000: ASCIIChar = 0
-
 /**
  * Get an instance of a ACN coded bitstream
  * @param count of elements in underlaying buffer

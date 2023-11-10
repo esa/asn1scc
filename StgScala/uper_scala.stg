@@ -89,16 +89,18 @@ val allowedCharSet: Array[Byte] = Array(<arrnCharSet:{ch|0x<ch;format="X2">}; wr
 
 InternalItem_string_with_alpha_encode(p, sErrCode, td/*:FE_StringTypeDefinition*/, i, nLastItemIndex, arrnAlphabetAsciiCodes, nAlphabetLength, nCharIndexSize) ::=<<
 <PrintAlphabet2(arrnAlphabetAsciiCodes)>
-int charIndex = GetCharIndex(<p>[<i>], allowedCharSet, <nAlphabetLength>);
+val charIndex: Int = GetCharIndex(<p>(<i>), allowedCharSet)
 codec.encodeConstraintWholeNumber(charIndex, 0, <nLastItemIndex>)
 >>
 InternalItem_string_with_alpha_decode(p, sErrCode,  td/*:FE_StringTypeDefinition*/, i, nLastItemIndex, arrnAlphabetAsciiCodes, nAlphabetLength, nCharIndexSize) ::=<<
 <PrintAlphabet2(arrnAlphabetAsciiCodes)>
-asn1SccSint charIndex = 0;
-val worked = codec.decodeConstraintWholeNumber(&charIndex, 0, <nLastItemIndex>)
-if !worked then 
-    ret = <sErrCode>
-<p>[<i>] = if (worked) then allowedCharSet[charIndex] else '\0'
+
+codec.decodeConstraintWholeNumber(0, <nLastItemIndex>) match
+    case Some(charIndex) => 
+        <p>(<i>) = allowedCharSet(charIndex.toInt)
+    case None() => 
+        <p>(<i>) = CHAR_0000
+        return Left(<sErrCode>)
 >>
 
 InternalItem_string_no_alpha_encode(p, sErrCode, i) ::=<<

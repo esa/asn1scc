@@ -16,6 +16,12 @@ val masks2: Array[UInt] = Array(
    0xFF000000, // -16777216 / 1111 1111 0000 0000 0000 0000 0000 0000 / 0xFF00 0000
 )
 
+val CHAR_MINUS: ASCIIChar = 45
+val CHAR_PLUS: ASCIIChar = 43
+val CHAR_ZERO: ASCIIChar = 48
+val CHAR_NINE: ASCIIChar = 57
+val CHAR_0000: ASCIIChar = 0
+
 
 /***********************************************************************************************/
 /**    Byte Stream Functions                                                                  **/
