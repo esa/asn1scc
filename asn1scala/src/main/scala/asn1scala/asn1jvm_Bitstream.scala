@@ -548,34 +548,31 @@ case class BitStream(
       ret
    }
 
-   def readBitsNullTerminated(bit_terminated_pattern: Array[UByte], nBits: Long, nMaxReadBits: Long): (Array[UByte], Int) = {
-      require(nBits >= 0 && nBits <= bit_terminated_pattern.length.toLong * NO_OF_BITS_IN_BYTE)
+   def readBitsUntilTerminator(terminatorPattern: Array[UByte], nBitsTerminator: Long, nMaxReadBits: Long): (Array[UByte], Long) = {
+      require(nBitsTerminator >= 0 && nBitsTerminator <= terminatorPattern.length.toLong * NO_OF_BITS_IN_BYTE)
       require(nMaxReadBits >= 0 &&& (nMaxReadBits / NO_OF_BITS_IN_BYTE) <= Int.MaxValue)
-      require(validate_offset_bits(nMaxReadBits + nBits))
+      require(validate_offset_bits(nMaxReadBits + nBitsTerminator))
 
-      var bitsRead: Int = 0
+      var checkBitPatternPresentResult = checkBitPatternPresent(terminatorPattern, nBitsTerminator)
 
       // round to next full byte
       val tmpBitStreamLength = ((nMaxReadBits + NO_OF_BITS_IN_BYTE - 1) / NO_OF_BITS_IN_BYTE).toInt
       val tmpStr: BitStream = BitStream(Array.fill(tmpBitStreamLength)(0))
 
-      var checkBitPatternPresentResult = checkBitPatternPresent(bit_terminated_pattern, nBits)
-      (while (bitsRead < nMaxReadBits) && !checkBitPatternPresentResult do
-         decreases(nMaxReadBits - bitsRead)
+      (while (tmpStr.bitIndex() < nMaxReadBits) && !checkBitPatternPresentResult do
+         decreases(nMaxReadBits - tmpStr.bitIndex())
 
          tmpStr.appendBit(readBit())
-         bitsRead += 1
 
-         if bitsRead < nMaxReadBits then
-            checkBitPatternPresentResult = checkBitPatternPresent(bit_terminated_pattern, nBits)
-      ).invariant(bitsRead <= nMaxReadBits &&& validate_offset_bits(nBits))
+         if tmpStr.bitIndex() < nMaxReadBits then
+            checkBitPatternPresentResult = checkBitPatternPresent(terminatorPattern, nBitsTerminator)
+      ).invariant(tmpStr.bitIndex() <= nMaxReadBits &&& validate_offset_bits(nMaxReadBits - tmpStr.bitIndex()))
 
-      if (bitsRead == nMaxReadBits) && !checkBitPatternPresentResult then
-         checkBitPatternPresentResult = checkBitPatternPresent(bit_terminated_pattern, nBits)
+      if (tmpStr.bitIndex() == nMaxReadBits) && !checkBitPatternPresentResult then
+         checkBitPatternPresentResult = checkBitPatternPresent(terminatorPattern, nBitsTerminator)
 
-      (tmpStr.buf, bitsRead)
+      (tmpStr.buf, tmpStr.bitIndex())
    }
-
 
    // ************** Aligning functions *********
    def alignToByte(): Unit = {
