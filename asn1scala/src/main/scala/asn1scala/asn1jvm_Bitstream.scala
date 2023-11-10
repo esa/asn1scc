@@ -106,20 +106,13 @@ case class BitStream(
       bytes <= remainingBits / NO_OF_BITS_IN_BYTE
    }.ensuring(_ => BitStream.invariant(this))
 
-//   private inline def updateBitIndex(inline body: => Unit): Unit =
-//      require(!isBitIndexManipulationState)
-//      isBitIndexManipulationState = true
-//      body
-//      isBitIndexManipulationState = false
-
    def bitIndex(): Long = {
       currentByte.toLong * 8 + currentBit.toLong
    }.ensuring(res => 0 <= res && res <= 8 * buf.length.toLong &&& res == buf.length.toLong * 8 - remainingBits)
 
    def resetBitIndex(): Unit = {
-//      updateBitIndex:
-         currentBit = 0
-         currentByte = 0
+      currentBit = 0
+      currentByte = 0
    }
 
    private def increaseBitIndex(): Unit = {
@@ -131,9 +124,9 @@ case class BitStream(
          currentByte += 1
 
    }.ensuring {_ =>
-      val oldBitStrm = old(this)
-      oldBitStrm.bitIndex() + 1 == this.bitIndex() &&&
-         oldBitStrm.remainingBits - remainingBits == 1 &&&
+      val oldBitStr = old(this)
+      oldBitStr.bitIndex() + 1 == this.bitIndex() &&&
+         oldBitStr.remainingBits - remainingBits == 1 &&&
          BitStream.invariant(this)
    }
 
@@ -543,14 +536,14 @@ case class BitStream(
    def checkBitPatternPresent(bit_terminated_pattern: Array[UByte], nBits: Long): Boolean = {
       require(nBits >= 0)
       require(validate_offset_bits(nBits))
-      val tmp_currentBit = currentBit
-      val tmp_currentByte = currentByte
+      val tmpByte = currentByte
+      val tmpBit = currentBit
 
       val ret = arraySameElements(bit_terminated_pattern, readBits(nBits))
 
       if !ret then
-         currentBit = tmp_currentBit
-         currentByte = tmp_currentByte
+         currentByte = tmpByte
+         currentBit = tmpBit
 
       ret
    }
