@@ -56,5 +56,8 @@
 
         [TestMethod]
         public void TestService_19() => UPERInteropEncScalaDecC(PUS_C_Service.S19, "S19");
+        
+        [TestMethod]
+        public void AdditionalTestCases() => UPERInteropEncScalaDecC(PUS_C_Service.ADDITIONAL_TEST_CASES, "AdditionalTestCases");
     }
 }

@@ -18,7 +18,7 @@ namespace PUS_C_Scala_Test
         S5, S6, S8, S9,
         S11, S12, S13,
         S14, S15, S17,
-        S18, S19
+        S18, S19, ADDITIONAL_TEST_CASES
     }
 
     [Flags]
@@ -234,6 +234,7 @@ namespace PUS_C_Scala_Test
                 PUS_C_Service.S17 => GetService17FileNames,
                 PUS_C_Service.S18 => GetService18FileNames,
                 PUS_C_Service.S19 => GetService19FileNames,
+                PUS_C_Service.ADDITIONAL_TEST_CASES => GetAdditionalTestCasesFileNames,
                 _ => throw new InvalidOperationException("what?")
 
             };
@@ -821,6 +822,11 @@ namespace PUS_C_Scala_Test
                 "service-19/PUS-19-7",
                 "service-19/PUS-19-8",
                 "service-19/PUS-19-9"
+            };
+        
+        private string[] GetAdditionalTestCasesFileNames() =>
+            new string[]{
+                "additional-test-cases/NULLTERMINATED",
             };
     }
 }
