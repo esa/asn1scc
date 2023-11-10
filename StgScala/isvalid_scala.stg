@@ -188,16 +188,15 @@ while(ret.isRight && <i> \< <if(!bIsFixedSize)><p><sAcc>nCount<else><nFixedSize>
 
 
 Print_AlphabetCheckFunc(sFuncName, arrsAlphaConBody) ::= <<
-def <sFuncName>(const char* str): flag = 
+def <sFuncName>(str: Array[Byte]): Boolean = 
 {
-    flag ret=TRUE;
-    int i=0;
-
-    while ((str[i] != '\0') && ret) {
-        ret = ret && (<arrsAlphaConBody; separator=" && ">);
-        i = i + 1;
+    var valid: Boolean = true
+    var i: Int = 0
+    while ((str(i) != CHAR_0000) && valid) {
+        valid = valid && (<arrsAlphaConBody; separator=" && ">);
+        i = i + 1
     }
-    return ret;
+    valid
 }
 >>
 
@@ -209,7 +208,7 @@ SingleValContraint(p, v) ::= "(<p> == <v>)"
 
 
 
-stringContainsChar(sStrVal, p) ::= "strchr(<sStrVal>, <p>)"
+stringContainsChar(sStrVal, p) ::= "<sStrVal>.contains(<p>)"
 
 RangeContraint(p, v1, v2, bMin, bMax) ::= "(<v1> \<<if(bMin)>=<endif> <p> && <p> \<<if(bMax)>=<endif> <v2>)"
 

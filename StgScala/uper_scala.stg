@@ -84,7 +84,7 @@ if !codec.readByte(<p><sAcc>arr(<i>)) then
 >>
 
 PrintAlphabet2(arrnCharSet) /*nogen*/::= <<
-static byte allowedCharSet[] = {<arrnCharSet:{ch|0x<ch;format="X2">}; wrap, anchor, separator=",">}; 
+val allowedCharSet: Array[Byte] = Array(<arrnCharSet:{ch|0x<ch;format="X2">}; wrap, anchor, separator=",">) 
 >>
 
 InternalItem_string_with_alpha_encode(p, sErrCode, td/*:FE_StringTypeDefinition*/, i, nLastItemIndex, arrnAlphabetAsciiCodes, nAlphabetLength, nCharIndexSize) ::=<<

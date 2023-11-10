@@ -455,13 +455,13 @@ codec.dec_String_Ascii_FixSize(<nAsn1Max>) match
 >>
 
 Acn_String_Ascii_Null_Teminated_encode(p, sErrCode, nAsn1Max, arruNullBytes) ::= <<
-codec.enc_String_Ascii_Null_Teminated_mult(<nAsn1Max>, (byte[]){<arruNullBytes; separator=", ">}, <arruNullBytes.Length>, <p>)
+codec.enc_String_Ascii_Null_Teminated_mult(<nAsn1Max>, Array({<arruNullBytes; separator=", ">}), <arruNullBytes.Length>, <p>)
 >>
 
 Acn_String_Ascii_Null_Teminated_decode(p, sErrCode, nAsn1Max, arruNullBytes) ::= <<
-codec.dec_String_Ascii_Null_Teminated_mult(<nAsn1Max>, (byte[]){<arruNullBytes; separator=", ">}, <arruNullBytes.Length>) match
-    case None() => return Left(<sErrCode>)
-    case Some(x) => <p> = x
+codec.dec_String_Ascii_Null_Teminated_mult(<nAsn1Max>, Array({<arruNullBytes; separator=", ">}), <arruNullBytes.Length>) match
+    case NoneMut() => return Left(<sErrCode>)
+    case SomeMut(x) => <p> = x
 >>
 
 Acn_String_Ascii_External_Field_Determinant_encode(p, sErrCode, nAsn1Max, sExtFld) ::= "codec.enc_String_Ascii_External_Field_Determinant(<nAsn1Max>, <p>)"
@@ -482,7 +482,7 @@ codec.dec_String_Ascii_Internal_Field_Determinant(<nAsn1Max>, <nAsn1Min>) match
 >>
 
 PrintAlphabet2(arrnCharSet) /*nogen*/ ::= <<
-static byte allowedCharSet[] = {<arrnCharSet:{ch|0x<ch;format="X2">}; wrap, anchor, separator=",">}
+val allowedCharSet: Array[Byte] = Array(<arrnCharSet:{ch|0x<ch;format="X2">}; wrap, anchor, separator=",">)
 >>
 
 Acn_String_CharIndex_FixSize_encode(p, sErrCode, nAsn1Max, arrnAlphabetAsciiCodes, nCharSetSize, td/*:FE_StringTypeDefinition*/, nCharSize) ::= <<
@@ -623,7 +623,7 @@ if <if(noSizeMin)>(<noSizeMin>\<=<sExtFld>) && <endif>(<sExtFld>\<=<nSizeMax>) t
 >>
 
 bit_string_null_terminated_encode(p, sErrCode, sAcc, i, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength) ::= <<
-codec.appendBits(<p><sAcc>arr, <p><sAcc>nCount)
+codec.appendBits(<p><sAcc>arr, <p><sAcc>arr.length*8) // TODO: re-introduce nCount?  -> codec.appendBits(<p><sAcc>arr, <p><sAcc>nCount)
 codec.appendBits(Array({<arruNullBytes; separator=", ">}), <nBitPatternLength>)
 >>
 
@@ -631,8 +631,8 @@ bit_string_null_terminated_decode(p, sErrCode, sAcc, i, noSizeMin, nSizeMax, arr
     codec.readBits_nullterminated(Array({<arruNullBytes; separator=", ">}), <nBitPatternLength>, <nSizeMax>) match
         case NoneMut() => 
             return Left(<sErrCode>)
-        case SomeMut(x) => 
-            <p><sAcc>arr = x
+        case SomeMut(arr, i) => 
+            <p><sAcc>arr = arr
 >>
 
 RefTypeParam_tmpVar(sName, sTypeDecl) ::= "<sTypeDecl> <sName>"

@@ -91,7 +91,7 @@ initTestCaseIA5String(p, sAcc, nSize, nMaxSizePlusOne, i, td/*:FE_StringTypeDefi
 <p> = Array.fill(<nMaxSizePlusOne>){0}
 while (<i> \< <nSize>) {
     <if(bAlpha)>
-    static byte allowedCharSet[] = {<arrnAlphabetAsciiCodes:{ch|0x<ch;format="X2">}; wrap, anchor, separator=",">}; 
+    val allowedCharSet: Array[Byte] = Array(<arrnAlphabetAsciiCodes:{ch|0x<ch;format="X2">}; wrap, anchor, separator=",">) 
 
     <p>(<i>) = allowedCharSet(<i> % <nAlphabetLength>)
 
