@@ -954,8 +954,7 @@ case class ACN(bitStream: BitStream) extends Codec {
    }
 
    def dec_String_Ascii_Null_Teminated_mult(max: Long, null_character: Array[ASCIIChar], null_character_size: Int): OptionMut[Array[ASCIIChar]] = {
-      val sz: Int = if null_character_size < 10 then null_character_size else 10
-      val tmp: Array[Byte] = Array.fill(10)(0)
+      val tmp: Array[Byte] = Array.fill(null_character_size)(0)
       val strVal: Array[ASCIIChar] = Array.fill(max.toInt + 1)(0)
       //read null_character_size characters into the tmp buffer
       var j: Int = 0
