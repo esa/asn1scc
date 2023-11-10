@@ -39,13 +39,11 @@ object BitStream {
 
    @pure @inline @ghost
    def invariant(bs: BitStream): Boolean = {
-      invariant(bs.remainingBits, bs.currentBit, bs.currentByte, bs.buf.length, bs.isBitIndexManipulationState)
+      invariant(bs.currentBit, bs.currentByte, bs.buf.length)
    }
 
-
    @pure @inline @ghost
-   def invariant(remainingBits: Long, currentBit: Int, currentByte: Int, buffLength: Int, isBitIndexManipulationState: Boolean): Boolean = {
-      (remainingBits == ((buffLength.toLong * NO_OF_BITS_IN_BYTE) - (currentByte.toLong * NO_OF_BITS_IN_BYTE + currentBit)) || isBitIndexManipulationState) &&
+   def invariant(currentBit: Int, currentByte: Int, buffLength: Int): Boolean = {
          currentBit >= 0 && currentBit < NO_OF_BITS_IN_BYTE &&
          currentByte >= 0 && ((currentByte < buffLength) | (currentBit == 0 && currentByte == buffLength))
    }
@@ -77,12 +75,14 @@ val masksb: Array[UByte] = Array(
 
 case class BitStream(
                        private var buf: Array[Byte],
-                       private var remainingBits: Long,
                        private var currentByte: Int = 0, // marks the currentByte that gets accessed
                        private var currentBit: Int = 0,  // marks the next bit that gets accessed
-                       @ghost var isBitIndexManipulationState: Boolean = false
                     ) { // all BisStream instances satisfy the following:
-   require(BitStream.invariant(remainingBits, currentBit, currentByte, buf.length, isBitIndexManipulationState))
+   require(BitStream.invariant(currentBit, currentByte, buf.length))
+
+   private def remainingBits: Long = {
+      (buf.length.toLong * NO_OF_BITS_IN_BYTE) - (currentByte.toLong * NO_OF_BITS_IN_BYTE + currentBit)
+   }
 
    @ghost
    def validate_offset_bit(): Boolean = {
@@ -106,34 +106,29 @@ case class BitStream(
       bytes <= remainingBits / NO_OF_BITS_IN_BYTE
    }.ensuring(_ => BitStream.invariant(this))
 
-   private inline def updateBitIndex(inline body: => Unit): Unit =
-      require(!isBitIndexManipulationState)
-      isBitIndexManipulationState = true
-      body
-      isBitIndexManipulationState = false
+//   private inline def updateBitIndex(inline body: => Unit): Unit =
+//      require(!isBitIndexManipulationState)
+//      isBitIndexManipulationState = true
+//      body
+//      isBitIndexManipulationState = false
 
    def bitIndex(): Long = {
       currentByte.toLong * 8 + currentBit.toLong
    }.ensuring(res => 0 <= res && res <= 8 * buf.length.toLong &&& res == buf.length.toLong * 8 - remainingBits)
 
    def resetBitIndex(): Unit = {
-      require(!isBitIndexManipulationState)
-      updateBitIndex:
+//      updateBitIndex:
          currentBit = 0
          currentByte = 0
-         remainingBits = buf.length.toLong * 8
    }
 
    private def increaseBitIndex(): Unit = {
-      require(!isBitIndexManipulationState)
       require(remainingBits > 0)
-      updateBitIndex:
-         if currentBit < 7 then
-            currentBit += 1
-         else
-            currentBit = 0
-            currentByte += 1
-         remainingBits -= 1
+      if currentBit < 7 then
+         currentBit += 1
+      else
+         currentBit = 0
+         currentByte += 1
 
    }.ensuring {_ =>
       val oldBitStrm = old(this)
@@ -212,7 +207,7 @@ case class BitStream(
       require(nBits >= 0)
       require(validate_offset_bits(nBits))
 
-      var i = 0
+      var i = 0L
       (while i < nBits do
          decreases(nBits - i)
 
@@ -241,7 +236,7 @@ case class BitStream(
       require(nBits >= 0)
       require(validate_offset_bits(nBits))
 
-      var i = 0
+      var i = 0L
       (while i < nBits do
          decreases(nBits - i)
 
@@ -283,17 +278,17 @@ case class BitStream(
     *
     */
    def appendBits(srcBuffer: Array[UByte], nBits: Long): Unit = {
-      require(nBits >= 0 && nBits / 8 < srcBuffer.length)
+      require(nBits >= 0 && (nBits / 8) < srcBuffer.length)
       require(validate_offset_bits(nBits))
 
-      var i = 0
-      (while(i < nBits) do
+      var i = 0L
+      (while i < nBits do
          decreases(nBits - i)
 
-         appendBitFromByte(srcBuffer(i / NO_OF_BITS_IN_BYTE), i % NO_OF_BITS_IN_BYTE)
+         appendBitFromByte(srcBuffer((i / NO_OF_BITS_IN_BYTE).toInt), (i % NO_OF_BITS_IN_BYTE).toInt)
 
-         i += 1
-      ).invariant(i >= 0 &&& i <= nBits &&& validate_offset_bits(nBits - i))
+         i += 1L
+      ).invariant(i >= 0 &&& i <= nBits &&& i / NO_OF_BITS_IN_BYTE <= Int.MaxValue &&& validate_offset_bits(nBits - i))
    }.ensuring(_ => BitStream.invariant(this))
 
    // ****************** Append Byte Functions **********************
@@ -448,15 +443,16 @@ case class BitStream(
 
       val arr: Array[UByte] = Array.fill(((nBits + NO_OF_BITS_IN_BYTE - 1) / NO_OF_BITS_IN_BYTE).toInt)(0)
 
-      var i = 0
+      var i = 0L
       (while i < nBits  do
          decreases(nBits - i)
 
-         arr(i / NO_OF_BITS_IN_BYTE) |||= (if readBit() then BitAccessMasks(i % NO_OF_BITS_IN_BYTE) else 0)
+         arr((i / NO_OF_BITS_IN_BYTE).toInt) |||= (if readBit() then BitAccessMasks((i % NO_OF_BITS_IN_BYTE).toInt) else 0)
 
          i += 1
-      ).invariant(i >= 0 &&& i <= nBits &&& validate_offset_bits(nBits - i) &&
-         arr.length == ((nBits + NO_OF_BITS_IN_BYTE - 1) / NO_OF_BITS_IN_BYTE).toInt) // TODO stainless counter examples with wrong array sizes otherwise
+      ).invariant(i >= 0 &&& i <= nBits &&& validate_offset_bits(nBits - i) &&&
+         (i / NO_OF_BITS_IN_BYTE) <= Int.MaxValue &&&
+         arr.length == ((nBits + NO_OF_BITS_IN_BYTE - 1) / NO_OF_BITS_IN_BYTE).toInt)
 
       arr
    }.ensuring(_ => BitStream.invariant(this))
@@ -550,7 +546,6 @@ case class BitStream(
       require(validate_offset_bits(nBits))
       val tmp_currentBit = currentBit
       val tmp_currentByte = currentByte
-      val tmp_remainingBits = remainingBits
 
       val ret = arraySameElements(bit_terminated_pattern, readBits(nBits))
 
@@ -558,7 +553,6 @@ case class BitStream(
          // TODO: make sure invariant is satisfied, or only checked before and after block
          currentBit = tmp_currentBit
          currentByte = tmp_currentByte
-         remainingBits = tmp_remainingBits
 
       ret
    }
@@ -571,7 +565,7 @@ case class BitStream(
       var bitsRead: Int = 0
 
       val tmpBitStreamLength = if nMaxReadBits % 8 == 0 then (nMaxReadBits / 8).toInt else (nMaxReadBits / 8).toInt + 1
-      val tmpStrm: BitStream = BitStream(Array.fill(tmpBitStreamLength)(0), tmpBitStreamLength.toLong * 8, 0, 0)
+      val tmpStrm: BitStream = BitStream(Array.fill(tmpBitStreamLength)(0))
 
       var checkBitPatternPresentResult = checkBitPatternPresent(bit_terminated_pattern, bit_terminated_pattern_size_in_bits)
       (while (bitsRead < nMaxReadBits) && !checkBitPatternPresentResult do
@@ -593,39 +587,29 @@ case class BitStream(
 
    // ************** Aligning functions *********
    def alignToByte(): Unit = {
-      require(!isBitIndexManipulationState)
       if currentBit != 0 then
-         updateBitIndex:
-            val bitIndexIncrease = 8 - currentBit % 8
-            currentBit = 0
-            currentByte += 1
-            remainingBits -= bitIndexIncrease
+         val bitIndexIncrease = 8 - currentBit % 8
+         currentBit = 0
+         currentByte += 1
    }
 
-
    def alignToShort(): Unit = {
-      require(!isBitIndexManipulationState)
       require(validate_offset_bytes((NO_OF_BYTES_IN_JVM_SHORT - currentByte % NO_OF_BYTES_IN_JVM_SHORT) + (currentBit+7)/8))
 
       alignToByte()
 
       if (currentByte % NO_OF_BYTES_IN_JVM_SHORT) != 0 then
-         updateBitIndex:
-            val byteIndexIncrease = NO_OF_BYTES_IN_JVM_SHORT - currentByte % NO_OF_BYTES_IN_JVM_SHORT
-            currentByte += byteIndexIncrease
-            remainingBits -= byteIndexIncrease * 8
+         val byteIndexIncrease = NO_OF_BYTES_IN_JVM_SHORT - currentByte % NO_OF_BYTES_IN_JVM_SHORT
+         currentByte += byteIndexIncrease
    }
 
    def alignToInt(): Unit = {
-      require(!isBitIndexManipulationState)
       require(validate_offset_bytes((NO_OF_BYTES_IN_JVM_INT - currentByte % NO_OF_BYTES_IN_JVM_INT) + (currentBit+7)/8))
 
       alignToByte()
 
       if (currentByte % NO_OF_BYTES_IN_JVM_INT) != 0 then
-         updateBitIndex:
-            val byteIndexIncrease = NO_OF_BYTES_IN_JVM_INT - currentByte % NO_OF_BYTES_IN_JVM_INT
-            currentByte += byteIndexIncrease
-            remainingBits -= byteIndexIncrease*8
+         val byteIndexIncrease = NO_OF_BYTES_IN_JVM_INT - currentByte % NO_OF_BYTES_IN_JVM_INT
+         currentByte += byteIndexIncrease
    }
 } // BitStream class

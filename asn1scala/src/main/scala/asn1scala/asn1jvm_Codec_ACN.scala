@@ -17,7 +17,7 @@ val CHAR_0000: ASCIIChar = 0
  * @return ACN coded bitstream
  */
 def initACNCodec(count: Int): ACN = {
-   ACN(BitStream(Array.fill(count)(0), count.toLong * NO_OF_BITS_IN_BYTE))
+   ACN(BitStream(Array.fill(count)(0)))
 }
 
 case class ACN(bitStream: BitStream) extends Codec {

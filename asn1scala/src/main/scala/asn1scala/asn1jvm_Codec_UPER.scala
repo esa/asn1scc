@@ -9,7 +9,7 @@ import stainless.lang.{None => None, Option => Option, Some => Some, _}
  * @return UPER coded bitstream
  */
 def initUPERCodec(count: Int): UPER = {
-   UPER(BitStream(Array.fill(count)(0), count.toLong * NO_OF_BITS_IN_BYTE))
+   UPER(BitStream(Array.fill(count)(0)))
 }
 
 case class UPER(bitStream: BitStream) extends Codec {
