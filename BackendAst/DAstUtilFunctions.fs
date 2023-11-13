@@ -86,6 +86,7 @@ let scalaInitMethSuffix (k: Asn1TypeKind) =
         | false ->
             match k with
             | BitString bitString -> ""
+            | IA5String ia5string -> ""
             | _ -> "()"
         | true -> ""
     | _ -> ""

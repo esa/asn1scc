@@ -21,7 +21,7 @@ initInteger(sVal, nValue) ::= "<sVal> = <nValue>"
 initReal(sVal, dValue) ::= "<sVal> = <dValue>"
 initBoolean(sVal, bValue) ::= "<sVal> = <if(bValue)>true<else>false<endif>"
 
-initObjectIdentifier_vali(p, sAcc, sI, nIntVal) ::= "<p><sAcc>values[<sI>] = <nIntVal>"
+initObjectIdentifier_vali(p, sAcc, sI, nIntVal) ::= "<p><sAcc>values(<sI>) = <nIntVal>"
 initObjectIdentifier(p, sAcc, nSize, arrsValues) ::= <<
 <p><sAcc>nCount = <nSize>
 <arrsValues; separator="\n">
@@ -107,15 +107,15 @@ while (<i> \< <nSize>) {
 
 /* BIT AND OCTET STRINGS */
 
-initBitOrOctStringFromCompoundLiteral(p, sCompLiteral) ::= "<p> = <sCompLiteral>;"
+initBitOrOctStringFromCompoundLiteral(p, sCompLiteral) ::= "<p> = <sCompLiteral>"
 
-initFixSizeBitOrOctString_bytei(p, sAcc, sI, sByteHexVal) ::= "<p><sAcc>arr[<sI>] = 0x<sByteHexVal>;"
+initFixSizeBitOrOctString_bytei(p, sAcc, sI, sByteHexVal) ::= "<p><sAcc>arr(<sI>) = 0x<sByteHexVal>;"
 initFixSizeBitOrOctString(p, sAcc,arrsBytes) ::= <<
 <arrsBytes; separator="\n">
 >>
 
 initFixVarSizeBitOrOctString(p, sAcc, nSize, arrsBytes) ::= <<
-<p><sAcc>nCount = <nSize>;
+<p><sAcc>nCount = <nSize>
 <arrsBytes; separator="\n">
 >>
 

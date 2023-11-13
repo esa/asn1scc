@@ -54,7 +54,7 @@ type LangGeneric_scala() =
         override _.doubleValueToString (v:double) = 
             v.ToString(FsUtils.doubleParseString, System.Globalization.NumberFormatInfo.InvariantInfo)
 
-        override _.initializeString stringSize = sprintf "{ [0 ... %d] = 0x0 }" stringSize
+        override _.initializeString stringSize = sprintf "Array.fill(%d+1)(0x0)" stringSize
         
         override _.supportsInitExpressions = false
 
