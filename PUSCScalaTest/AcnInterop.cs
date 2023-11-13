@@ -34,14 +34,15 @@
         [TestMethod]
         public void TestService_11() => ACNInteropEncScalaDecC(PUS_C_Service.S11, "S11");
 
+        // TODO: not working for C and Scala
         //[TestMethod]
         //public void TestService_12() => ACNInteropEncScalaDecC(PUS_C_Service.S12, "S12");
 
         [TestMethod]
         public void TestService_13() => ACNInteropEncScalaDecC(PUS_C_Service.S13, "S13");
 
-        //[TestMethod]
-        //public void TestService_14() => ACNInteropEncScalaDecC(PUS_C_Service.S14, "S14");
+        [TestMethod]
+        public void TestService_14() => ACNInteropEncScalaDecC(PUS_C_Service.S14, "S14");
 
         [TestMethod]
         public void TestService_15() => ACNInteropEncScalaDecC(PUS_C_Service.S15, "S15");
