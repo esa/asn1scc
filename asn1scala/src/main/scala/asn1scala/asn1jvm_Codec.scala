@@ -396,7 +396,10 @@ trait Codec {
          case None() => return None()
          case Some(l) => nBytes = l
 
-      val valIsNegative: Boolean = peekBit()
+      val valIsNegative = false
+      peekBit() match
+         case Some(b) => b
+         case None() => assert(false)
 
       var v: Long = if valIsNegative then Long.MaxValue else 0
 
@@ -572,7 +575,11 @@ trait Codec {
          return None()
 
       // decode exponent
-      val expIsNegative = peekBit()
+      var expIsNegative = false
+      peekBit() match
+         case Some(b) => expIsNegative = b
+         case None() => assert(false)
+
       var exponent: Int = if expIsNegative then 0xFF_FF_FF_FF else 0
 
       var i: Int = 0
@@ -912,55 +919,64 @@ trait Codec {
    }
 
 
-
-
-
-   def appendBitOne(): Unit = {
+   def appendBitOne(): Boolean = {
       val isValidPrecondition = bitStream.validate_offset_bit()
       assert(isValidPrecondition)
-      isValidPrecondition match
-         case true => bitStream.appendBitOne()
-         case false => ()
+
+      if isValidPrecondition then
+         bitStream.appendBitOne()
+
+      isValidPrecondition
    }
 
-   def appendBitZero(): Unit = {
+   def appendBitZero(): Boolean = {
       val isValidPrecondition = bitStream.validate_offset_bit()
       assert(isValidPrecondition)
-      isValidPrecondition match
-         case true => bitStream.appendBitZero()
-         case false => ()
+
+      if isValidPrecondition then
+         bitStream.appendBitZero()
+
+      isValidPrecondition
    }
 
-   def appendNBitZero(nBits: Long): Unit = {
+   def appendNBitZero(nBits: Long): Boolean = {
       val isValidPrecondition = bitStream.validate_offset_bits(nBits)
       assert(isValidPrecondition)
-      isValidPrecondition match
-         case true => bitStream.appendNBitZero(nBits)
-         case false => ()
+
+      if isValidPrecondition then
+         bitStream.appendNBitZero(nBits)
+
+      isValidPrecondition
    }
 
-   def appendNBitOne(nBits: Long): Unit = {
+   def appendNBitOne(nBits: Long): Boolean = {
       val isValidPrecondition = bitStream.validate_offset_bits(nBits)
       assert(isValidPrecondition)
-      isValidPrecondition match
-         case true => bitStream.appendNBitOne(nBits)
-         case false => ()
+
+      if isValidPrecondition then
+         bitStream.appendNBitOne(nBits)
+
+      isValidPrecondition
    }
 
-   def appendBits(srcBuffer: Array[UByte], nBits: Long): Unit = {
+   def appendBits(srcBuffer: Array[UByte], nBits: Long): Boolean = {
       val isValidPrecondition = bitStream.validate_offset_bits(nBits)
       assert(isValidPrecondition)
-      isValidPrecondition match
-         case true => bitStream.appendBits(srcBuffer, nBits)
-         case false => ()
+
+      if isValidPrecondition then
+         bitStream.appendBits(srcBuffer, nBits)
+
+      isValidPrecondition
    }
 
-   def appendBit(v: Boolean): Unit = {
+   def appendBit(v: Boolean): Boolean = {
       val isValidPrecondition = bitStream.validate_offset_bit()
       assert(isValidPrecondition)
-      isValidPrecondition match
-         case true =>
-      bitStream.appendBit(v)
+
+      if isValidPrecondition then
+         bitStream.appendBit(v)
+
+      isValidPrecondition
    }
 
    def readBit(): Option[Boolean] = {
@@ -971,16 +987,22 @@ trait Codec {
          case false => None()
    }
 
-   def peekBit(): Boolean = {
-      bitStream.peekBit()
-   }
-
-   def appendByte(value: Byte): Unit = {
-      val isValidPrecondition = bitStream.validate_offset_byte()
+   def peekBit(): Option[Boolean] = {
+      val isValidPrecondition = bitStream.validate_offset_bits(1)
       assert(isValidPrecondition)
       isValidPrecondition match
-         case true => bitStream.appendByte(value)
-         case false => ()
+         case true => Some(bitStream.peekBit())
+         case false => None()
+   }
+
+   def appendByte(value: Byte): Boolean = {
+      val isValidPrecondition = bitStream.validate_offset_byte()
+      assert(isValidPrecondition)
+
+      if isValidPrecondition then
+         bitStream.appendByte(value)
+
+      isValidPrecondition
    }
 
    def readByte(): Option[UByte] = {
@@ -994,11 +1016,11 @@ trait Codec {
    def appendByteArray(arr: Array[UByte], arr_len: Int): Boolean = {
       val isValidPrecondition = bitStream.validate_offset_bytes(arr_len)
       assert(isValidPrecondition)
-      isValidPrecondition match
-         case true =>
-            bitStream.appendByteArray(arr, arr_len)
-            true
-         case false => false
+
+      if isValidPrecondition then
+         bitStream.appendByteArray(arr, arr_len)
+
+      isValidPrecondition
    }
 
 
@@ -1018,12 +1040,14 @@ trait Codec {
          case false => NoneMut()
    }
 
-   def appendPartialByte(vVal: UByte, nbits: UByte): Unit = {
+   def appendPartialByte(vVal: UByte, nbits: UByte): Boolean = {
       val isValidPrecondition = bitStream.validate_offset_bits(nbits)
       assert(isValidPrecondition)
-      isValidPrecondition match
-         case true => bitStream.appendPartialByte(vVal, nbits)
-         case false => ()
+
+      if isValidPrecondition then
+         bitStream.appendPartialByte(vVal, nbits)
+
+      isValidPrecondition
    }
 
    def readPartialByte(nbits: UByte): Option[UByte] = {
@@ -1051,12 +1075,16 @@ trait Codec {
 //         case false => NoneMut()
 //   }
 
-   def alignToByte(): Unit = {
-      // TODO: precondition
-      bitStream.alignToByte()
-//      if currentBit != 0 then
-//         currentBit = 0
-//         currentByte += 1
+   def alignToByte(): Boolean = {
+      val isValidPrecondition = bitStream.validate_offset_bits(
+         NO_OF_BITS_IN_BYTE - (bitStream.bitIndex() % NO_OF_BITS_IN_BYTE)
+      )
+      assert(isValidPrecondition)
+
+      if isValidPrecondition then
+         bitStream.alignToByte()
+
+      isValidPrecondition
    }
 
    def alignToShort(): Unit = {

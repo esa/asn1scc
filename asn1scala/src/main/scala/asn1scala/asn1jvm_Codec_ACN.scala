@@ -236,7 +236,11 @@ case class ACN(bitStream: BitStream) extends Codec {
    }
 
    def dec_Int_TwosComplement_ConstSize(encodedSizeInBits: Int): Option[Long] = {
-      val valIsNegative: Boolean = peekBit()
+      var valIsNegative: Boolean = false
+      peekBit() match
+         case Some(b) => valIsNegative = b
+         case None() => assert(false)
+
       val nBytes: Int = encodedSizeInBits / 8
       val rstBits: Int = encodedSizeInBits % 8
 
