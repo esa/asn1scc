@@ -1042,14 +1042,14 @@ trait Codec {
          case false => None()
    }
 
-   // TODO rename to bitstream call
-   def readBits_nullterminated(bit_terminated_pattern: Array[UByte], bit_terminated_pattern_size_in_bits: Long, nMaxReadBits: Long): OptionMut[(Array[UByte], Long)] = {
-      val isValidPrecondition = bitStream.validate_offset_bits(nMaxReadBits)
-      assert(isValidPrecondition)
-      isValidPrecondition match
-         case true => SomeMut(bitStream.readBitsUntilTerminator(bit_terminated_pattern, bit_terminated_pattern_size_in_bits, nMaxReadBits))
-         case false => NoneMut()
-   }
+   // broken in C - do not translate
+//   def readBits_nullterminated(bit_terminated_pattern: Array[UByte], bit_terminated_pattern_size_in_bits: Long, nMaxReadBits: Long): OptionMut[(Array[UByte], Long)] = {
+//      val isValidPrecondition = bitStream.validate_offset_bits(nMaxReadBits)
+//      assert(isValidPrecondition)
+//      isValidPrecondition match
+//         case true => SomeMut(bitStream.readBitsUntilTerminator(bit_terminated_pattern, bit_terminated_pattern_size_in_bits, nMaxReadBits))
+//         case false => NoneMut()
+//   }
 
    def alignToByte(): Unit = {
       // TODO: precondition

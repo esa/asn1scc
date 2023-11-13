@@ -548,31 +548,28 @@ case class BitStream(
       ret
    }
 
-   def readBitsUntilTerminator(terminatorPattern: Array[UByte], nBitsTerminator: Long, nMaxReadBits: Long): (Array[UByte], Long) = {
-      require(nBitsTerminator >= 0 && nBitsTerminator <= terminatorPattern.length.toLong * NO_OF_BITS_IN_BYTE)
-      require(nMaxReadBits >= 0 &&& (nMaxReadBits / NO_OF_BITS_IN_BYTE) <= Int.MaxValue)
-      require(validate_offset_bits(nMaxReadBits + nBitsTerminator))
-
-      var checkBitPatternPresentResult = checkBitPatternPresent(terminatorPattern, nBitsTerminator)
-
-      // round to next full byte
-      val tmpBitStreamLength = ((nMaxReadBits + NO_OF_BITS_IN_BYTE - 1) / NO_OF_BITS_IN_BYTE).toInt
-      val tmpStr: BitStream = BitStream(Array.fill(tmpBitStreamLength)(0))
-
-      (while (tmpStr.bitIndex() < nMaxReadBits) && !checkBitPatternPresentResult do
-         decreases(nMaxReadBits - tmpStr.bitIndex())
-
-         tmpStr.appendBit(readBit())
-
-         if tmpStr.bitIndex() < nMaxReadBits then
-            checkBitPatternPresentResult = checkBitPatternPresent(terminatorPattern, nBitsTerminator)
-      ).invariant(tmpStr.bitIndex() <= nMaxReadBits &&& validate_offset_bits(nMaxReadBits - tmpStr.bitIndex()))
-
-      if (tmpStr.bitIndex() == nMaxReadBits) && !checkBitPatternPresentResult then
-         checkBitPatternPresentResult = checkBitPatternPresent(terminatorPattern, nBitsTerminator)
-
-      (tmpStr.buf, tmpStr.bitIndex())
-   }
+   // is broken in C - do not translate
+//   def readBitsUntilTerminator(terminatorPattern: Array[UByte], nBitsTerminator: Long, nMaxReadBits: Long): (Array[UByte], Long) = {
+//      require(nBitsTerminator >= 0 && nBitsTerminator <= terminatorPattern.length.toLong * NO_OF_BITS_IN_BYTE)
+//      require(nMaxReadBits >= 0 &&& (nMaxReadBits / NO_OF_BITS_IN_BYTE) <= Int.MaxValue)
+//      require(validate_offset_bits(nMaxReadBits + nBitsTerminator))
+//
+//      var checkBitPatternPresentResult = checkBitPatternPresent(terminatorPattern, nBitsTerminator)
+//
+//      // round to next full byte
+//      val tmpBitStreamLength = ((nMaxReadBits + NO_OF_BITS_IN_BYTE - 1) / NO_OF_BITS_IN_BYTE).toInt
+//      val tmpStr: BitStream = BitStream(Array.fill(tmpBitStreamLength)(0))
+//
+//      (while (tmpStr.bitIndex() < nMaxReadBits) && !checkBitPatternPresentResult do
+//         decreases(nMaxReadBits - tmpStr.bitIndex())
+//
+//         tmpStr.appendBit(readBit())
+//         checkBitPatternPresentResult = checkBitPatternPresent(terminatorPattern, nBitsTerminator)
+//
+//      ).invariant(tmpStr.bitIndex() <= nMaxReadBits &&& validate_offset_bits(nMaxReadBits - tmpStr.bitIndex()))
+//
+//      (tmpStr.buf, tmpStr.bitIndex())
+//   }
 
    // ************** Aligning functions *********
    def alignToByte(): Unit = {
