@@ -8,7 +8,7 @@ import stainless.proof.*
 import stainless.math.*
 import StaticChecks.*
 
-//// TODO should be part of BitStream
+// TODO should be part of BitStream
 //def isPrefix(b1: BitStream, b2: BitStream): Boolean = {
 //   b1.buf.length <= b2.buf.length &&
 //     b1.bitIndex() <= b2.bitIndex() &&
@@ -42,7 +42,7 @@ object BitStream {
       invariant(bs.currentBit, bs.currentByte, bs.buf.length)
    }
 
-   @pure @inline @ghost
+   @pure @ghost
    def invariant(currentBit: Int, currentByte: Int, buffLength: Int): Boolean = {
          currentBit >= 0 && currentBit < NO_OF_BITS_IN_BYTE &&
          currentByte >= 0 && ((currentByte < buffLength) | (currentBit == 0 && currentByte == buffLength))
@@ -127,7 +127,7 @@ case class BitStream(
       val oldBitStr = old(this)
       oldBitStr.bitIndex() + 1 == this.bitIndex() &&&
          oldBitStr.remainingBits - remainingBits == 1 &&&
-         BitStream.invariant(this)
+         oldBitStr.buf.length == buf.length
    }
 
    def getBufferLength: Int = buf.length
@@ -179,7 +179,7 @@ case class BitStream(
          buf(currentByte) = (buf(currentByte) & (~BitAccessMasks(currentBit))).toByte
 
       increaseBitIndex()
-   }.ensuring(_ => BitStream.invariant(this))
+   }.ensuring(_ => buf.length == old(this).buf.length && remainingBits == old(this).remainingBits - 1) // NOTE: needs cvc5 for solving
 
    /**
     * Append a set bit
@@ -188,7 +188,7 @@ case class BitStream(
       require(validate_offset_bit())
 
       appendBit(true)
-   }
+   }.ensuring(_ => buf.length == old(this).buf.length && remainingBits == old(this).remainingBits - 1)
 
    /**
     * Append n set bits to bitstream
@@ -200,15 +200,20 @@ case class BitStream(
       require(nBits >= 0)
       require(validate_offset_bits(nBits))
 
+      @ghost val oldThis = snapshot(this)
       var i = 0L
       (while i < nBits do
          decreases(nBits - i)
-
          appendBitOne()
-
          i += 1
-      ).invariant(i >= 0 &&& i <= nBits &&& validate_offset_bits(nBits - i))
-   }.ensuring(_ => BitStream.invariant(this))
+      ).invariant(
+         0 <= i && i <= nBits &&
+         nBits <= Int.MaxValue.toLong * NO_OF_BITS_IN_BYTE.toLong &&
+         buf.length == oldThis.buf.length &&
+         remainingBits == oldThis.remainingBits - i &&
+         validate_offset_bits(nBits - i))
+
+   }.ensuring(_ => buf.length == old(this).buf.length && remainingBits == old(this).remainingBits - nBits)
 
    /**
     * Append cleared bit to bitstream
@@ -217,7 +222,7 @@ case class BitStream(
       require(validate_offset_bit())
 
       appendBit(false)
-   }.ensuring(_ => BitStream.invariant(this))
+   }.ensuring(_ => buf.length == old(this).buf.length && remainingBits == old(this).remainingBits - 1)
 
    /**
     * Append n cleared bit to bitstream
@@ -229,16 +234,20 @@ case class BitStream(
       require(nBits >= 0)
       require(validate_offset_bits(nBits))
 
+      @ghost val oldThis = snapshot(this)
       var i = 0L
       (while i < nBits do
          decreases(nBits - i)
-
          appendBitZero()
-
          i += 1
-      ).invariant(i >= 0 &&& i <= nBits &&& validate_offset_bits(nBits - i))
+      ).invariant(
+         0 <= i && i <= nBits &&
+         nBits <= Int.MaxValue.toLong * NO_OF_BITS_IN_BYTE.toLong &&
+         buf.length == oldThis.buf.length &&
+         remainingBits == oldThis.remainingBits - i &&
+         validate_offset_bits(nBits - i))
 
-   }.ensuring(_ => BitStream.invariant(this))
+   }.ensuring(_ => buf.length == old(this).buf.length && remainingBits == old(this).remainingBits - nBits)
 
    /**
     * Append bit with bitNr from b to bitstream
@@ -258,7 +267,7 @@ case class BitStream(
       val bitPosInByte = 1 << ((NO_OF_BITS_IN_BYTE - 1) - bitNr)
       appendBit((b.unsignedToInt & bitPosInByte) != 0)
 
-   }.ensuring(_ => BitStream.invariant(this))
+   }.ensuring(_ => buf.length == old(this).buf.length && remainingBits == old(this).remainingBits - 1)
 
    /**
     * Append nBits from srcBuffer to bitstream
@@ -274,6 +283,7 @@ case class BitStream(
       require(nBits >= 0 && (nBits / 8) < srcBuffer.length)
       require(validate_offset_bits(nBits))
 
+      @ghost val oldThis = snapshot(this)
       var i = 0L
       (while i < nBits do
          decreases(nBits - i)
@@ -281,8 +291,12 @@ case class BitStream(
          appendBitFromByte(srcBuffer((i / NO_OF_BITS_IN_BYTE).toInt), (i % NO_OF_BITS_IN_BYTE).toInt)
 
          i += 1L
-      ).invariant(i >= 0 &&& i <= nBits &&& i / NO_OF_BITS_IN_BYTE <= Int.MaxValue &&& validate_offset_bits(nBits - i))
-   }.ensuring(_ => BitStream.invariant(this))
+      ).invariant(i >= 0 &&& i <= nBits &&& i / NO_OF_BITS_IN_BYTE <= Int.MaxValue &&&
+         buf.length == oldThis.buf.length &&&
+         remainingBits == oldThis.remainingBits - i &&&
+         validate_offset_bits(nBits - i))
+
+   }.ensuring(_ => buf.length == old(this).buf.length && remainingBits == old(this).remainingBits - nBits)
 
    // ****************** Append Byte Functions **********************
 
@@ -309,15 +323,21 @@ case class BitStream(
       require(nBits >= 0 &&& nBits <= NO_OF_BITS_IN_BYTE)
       require(validate_offset_bits(nBits))
 
-      var i = 0
+      @ghost val oldThis = snapshot(this)
+      var i = 0L
       (while i < nBits do
          decreases(nBits - i)
 
-         appendBitFromByte(v, NO_OF_BITS_IN_BYTE - nBits + i)
+         appendBitFromByte(v, NO_OF_BITS_IN_BYTE - nBits + i.toInt)
 
          i += 1
-         ).invariant(i >= 0 &&& i <= nBits &&& validate_offset_bits(nBits - i))
-   }.ensuring(_ => BitStream.invariant(this))
+      ).invariant(
+         0 <= i && i <= nBits &&
+         nBits <= Int.MaxValue.toLong * NO_OF_BITS_IN_BYTE.toLong &&
+         buf.length == oldThis.buf.length &&
+         remainingBits == oldThis.remainingBits - i &&
+         validate_offset_bits(nBits - i))
+   }.ensuring(_ => buf.length == old(this).buf.length && remainingBits == old(this).remainingBits - nBits)
 
    /**
     * Append whole byte to bitstream
@@ -344,7 +364,7 @@ case class BitStream(
 
       appendPartialByte(v, NO_OF_BITS_IN_BYTE)
 
-   }.ensuring(_ => BitStream.invariant(this))
+   }.ensuring(_ => buf.length == old(this).buf.length && remainingBits == old(this).remainingBits - NO_OF_BITS_IN_BYTE)
 
    /**
     * NBytes of the given array is added to the bitstream
@@ -360,6 +380,7 @@ case class BitStream(
       require(0 <= noOfBytes && noOfBytes <= arr.length)
       require(validate_offset_bytes(noOfBytes))
 
+      @ghost val oldThis = snapshot(this)
       var i: Int = 0
       (while i < noOfBytes do
          decreases(noOfBytes - i)
@@ -367,9 +388,13 @@ case class BitStream(
          appendByte(arr(i))
 
          i += 1
-      ).invariant(0 <= i &&& i <= noOfBytes &&& validate_offset_bytes(noOfBytes - i))
+      ).invariant(
+         0 <= i && i <= noOfBytes &&
+         buf.length == oldThis.buf.length &&
+         remainingBits == oldThis.remainingBits - i.toLong * NO_OF_BITS_IN_BYTE &&
+         validate_offset_bytes(noOfBytes - i))
 
-   }.ensuring(_ => BitStream.invariant(this))
+   }.ensuring(_ => buf.length == old(this).buf.length && remainingBits == old(this).remainingBits - noOfBytes.toLong * NO_OF_BITS_IN_BYTE)
 
    // ****************** Peak Functions **********************
 
@@ -383,7 +408,7 @@ case class BitStream(
    def peekBit(): Boolean = {
       require(validate_offset_bit())
       ((buf(currentByte) & 0xFF) & (BitAccessMasks(currentBit) & 0xFF)) > 0
-   }.ensuring(_ => BitStream.invariant(this))
+   }
 
    // ****************** Read Bit Functions **********************
 
@@ -401,7 +426,7 @@ case class BitStream(
       increaseBitIndex()
 
       ret
-   }.ensuring(_ => BitStream.invariant(this))
+   }.ensuring(_ => buf == old(this).buf && remainingBits == old(this).remainingBits - 1)
 
    /**
     * Read multiple bits from the bitstream
@@ -433,9 +458,11 @@ case class BitStream(
     */
    def readBits(nBits: Long): Array[UByte] = {
       require(nBits >= 0 && validate_offset_bits(nBits))
+      assert(nBits <= Int.MaxValue.toLong * NO_OF_BITS_IN_BYTE.toLong)
+      val arrLen = ((nBits + NO_OF_BITS_IN_BYTE - 1) / NO_OF_BITS_IN_BYTE).toInt
+      val arr: Array[UByte] = Array.fill(arrLen)(0)
 
-      val arr: Array[UByte] = Array.fill(((nBits + NO_OF_BITS_IN_BYTE - 1) / NO_OF_BITS_IN_BYTE).toInt)(0)
-
+      @ghost val oldThis = snapshot(this)
       var i = 0L
       (while i < nBits  do
          decreases(nBits - i)
@@ -445,10 +472,12 @@ case class BitStream(
          i += 1
       ).invariant(i >= 0 &&& i <= nBits &&& validate_offset_bits(nBits - i) &&&
          (i / NO_OF_BITS_IN_BYTE) <= Int.MaxValue &&&
-         arr.length == ((nBits + NO_OF_BITS_IN_BYTE - 1) / NO_OF_BITS_IN_BYTE).toInt)
+         buf == oldThis.buf &&&
+         remainingBits == oldThis.remainingBits - i &&&
+         arr.length == arrLen)
 
       arr
-   }.ensuring(_ => BitStream.invariant(this))
+   }.ensuring(_ => buf == old(this).buf && remainingBits == old(this).remainingBits - nBits)
 
    // ****************** Read Byte Functions **********************
 
@@ -464,6 +493,7 @@ case class BitStream(
    def readByte(): UByte = {
       require(validate_offset_bits(8))
 
+      @ghost val oldThis = snapshot(this)
       var ret = 0
       var i = 0
       (while i < NO_OF_BITS_IN_BYTE do
@@ -471,18 +501,26 @@ case class BitStream(
 
          ret |= (if readBit() then BitAccessMasks(i) else 0)
          i += 1
-      ).invariant(i >= 0 &&& i <= NO_OF_BITS_IN_BYTE &&& validate_offset_bits(NO_OF_BITS_IN_BYTE - i))
+      ).invariant(i >= 0 &&& i <= NO_OF_BITS_IN_BYTE &&&
+         buf == oldThis.buf &&&
+         remainingBits == oldThis.remainingBits - i &&&
+         validate_offset_bits(NO_OF_BITS_IN_BYTE - i))
 
       ret.toUnsignedByte
-   }.ensuring(_ => BitStream.invariant(this))
+   }.ensuring(_ => buf == old(this).buf && remainingBits == old(this).remainingBits - NO_OF_BITS_IN_BYTE)
 
    def readByteArray(nBytes: Int): Array[UByte] = {
       require(nBytes <= Integer.MAX_VALUE / NO_OF_BITS_IN_BYTE)
       require(nBytes >= 0 && nBytes <= remainingBits / NO_OF_BITS_IN_BYTE)
       require(validate_offset_bytes(nBytes))
 
-      readBits(nBytes * NO_OF_BITS_IN_BYTE)
-   }.ensuring(_ => BitStream.invariant(this))
+      // @ghost val oldThis = snapshot(this)
+      // val nBits = (nBytes * NO_OF_BITS_IN_BYTE).toLong
+      val res = readBits(nBytes * NO_OF_BITS_IN_BYTE)
+      // assert(remainingBits == oldThis.remainingBits - nBits)
+      // assert(nBits == nBytes.toLong * NO_OF_BITS_IN_BYTE)
+      res
+   }.ensuring(_ => buf == old(this).buf && remainingBits == old(this).remainingBits - nBytes.toLong * NO_OF_BITS_IN_BYTE)
 
 
    /**
@@ -519,6 +557,7 @@ case class BitStream(
       require(nBits >= 0 && nBits < NO_OF_BITS_IN_BYTE)
       require(validate_offset_bits(nBits))
 
+      @ghost val oldThis = snapshot(this)
       var v = 0.toByte
       var i = 0
       (while i < nBits do
@@ -527,10 +566,13 @@ case class BitStream(
          v |||= (if readBit() then BitAccessMasks(NO_OF_BITS_IN_BYTE - nBits + i) else 0)
 
          i += 1
-      ).invariant(i >= 0 && i <= nBits && validate_offset_bits(nBits - i))
+      ).invariant(i >= 0 && i <= nBits &&
+         buf == oldThis.buf &&
+         remainingBits == oldThis.remainingBits - i &&
+         validate_offset_bits(nBits - i))
 
       v
-   }.ensuring(_ => BitStream.invariant(this))
+   }.ensuring(_ => buf == old(this).buf && remainingBits == old(this).remainingBits - nBits)
 
 
    def checkBitPatternPresent(bit_terminated_pattern: Array[UByte], nBits: Long): Boolean = {
@@ -540,36 +582,62 @@ case class BitStream(
       val tmpBit = currentBit
 
       val ret = arraySameElements(bit_terminated_pattern, readBits(nBits))
-
-      if !ret then
-         currentByte = tmpByte
-         currentBit = tmpBit
+      // TODO: The C code does indeed not reset the stream to the original position
+      // in case we return 0 or 1, but doesn't it make sense to do so?
+      // if !ret then
+      currentByte = tmpByte
+      currentBit = tmpBit
 
       ret
-   }
+   }.ensuring(_ => old(this) == this)
 
-   // is broken in C - do not translate
-//   def readBitsUntilTerminator(terminatorPattern: Array[UByte], nBitsTerminator: Long, nMaxReadBits: Long): (Array[UByte], Long) = {
-//      require(nBitsTerminator >= 0 && nBitsTerminator <= terminatorPattern.length.toLong * NO_OF_BITS_IN_BYTE)
-//      require(nMaxReadBits >= 0 &&& (nMaxReadBits / NO_OF_BITS_IN_BYTE) <= Int.MaxValue)
-//      require(validate_offset_bits(nMaxReadBits + nBitsTerminator))
-//
-//      var checkBitPatternPresentResult = checkBitPatternPresent(terminatorPattern, nBitsTerminator)
-//
-//      // round to next full byte
-//      val tmpBitStreamLength = ((nMaxReadBits + NO_OF_BITS_IN_BYTE - 1) / NO_OF_BITS_IN_BYTE).toInt
-//      val tmpStr: BitStream = BitStream(Array.fill(tmpBitStreamLength)(0))
-//
-//      (while (tmpStr.bitIndex() < nMaxReadBits) && !checkBitPatternPresentResult do
-//         decreases(nMaxReadBits - tmpStr.bitIndex())
-//
-//         tmpStr.appendBit(readBit())
-//         checkBitPatternPresentResult = checkBitPatternPresent(terminatorPattern, nBitsTerminator)
-//
-//      ).invariant(tmpStr.bitIndex() <= nMaxReadBits &&& validate_offset_bits(nMaxReadBits - tmpStr.bitIndex()))
-//
-//      (tmpStr.buf, tmpStr.bitIndex())
-//   }
+
+/* is broken, not used and therefore commented
+   // NOTE: needs smt-cvc5 and a timeout of at least 50s
+   def readBitsUntilTerminator(terminatorPattern: Array[UByte], nBitsTerminator: Long, nMaxReadBits: Long): (Array[UByte], Long) = {
+      require(nBitsTerminator >= 0 && nBitsTerminator <= terminatorPattern.length.toLong * NO_OF_BITS_IN_BYTE)
+      require(nMaxReadBits >= 0 &&& nMaxReadBits <= Int.MaxValue.toLong * NO_OF_BITS_IN_BYTE)
+      require(validate_offset_bits(nMaxReadBits + nBitsTerminator))
+
+      @ghost val oldThis = snapshot(this)
+      var checkBitPatternPresentResult = checkBitPatternPresent(terminatorPattern, nBitsTerminator)
+
+      // round to next full byte
+      val tmpBitStreamLength = ((nMaxReadBits + NO_OF_BITS_IN_BYTE - 1) / NO_OF_BITS_IN_BYTE).toInt
+      val tmpStr: BitStream = BitStream(Array.fill(tmpBitStreamLength)(0))
+
+      (while (tmpStr.bitIndex() < nMaxReadBits) && !checkBitPatternPresentResult do
+         decreases(nMaxReadBits - tmpStr.bitIndex())
+         @ghost val oldTmpStr = snapshot(tmpStr)
+         @ghost val oldThis2 = snapshot(this)
+         assert(remainingBits == oldThis.remainingBits - tmpStr.bitIndex())
+         assert(validate_offset_bits(nMaxReadBits + nBitsTerminator - tmpStr.bitIndex()))
+         tmpStr.appendBit(readBit())
+         assert(tmpStr.remainingBits == oldTmpStr.remainingBits - 1)
+         assert(remainingBits == oldThis2.remainingBits - 1)
+         assert(remainingBits == oldThis.remainingBits - tmpStr.bitIndex())
+
+         if tmpStr.bitIndex() < nMaxReadBits then
+            checkBitPatternPresentResult = checkBitPatternPresent(terminatorPattern, nBitsTerminator)
+         assert(buf == oldThis.buf)
+         assert(tmpStr.buf.length == tmpBitStreamLength)
+         assert(tmpStr.bitIndex() <= nMaxReadBits)
+         assert(tmpStr.remainingBits == tmpBitStreamLength.toLong * NO_OF_BITS_IN_BYTE - tmpStr.bitIndex())
+         assert(validate_offset_bits(nMaxReadBits + nBitsTerminator - tmpStr.bitIndex()))
+      ).invariant(tmpStr.buf.length == tmpBitStreamLength &&&
+         buf == oldThis.buf &&&
+         tmpStr.bitIndex() <= nMaxReadBits &&&
+         remainingBits == oldThis.remainingBits - tmpStr.bitIndex() &&&
+         tmpStr.remainingBits == tmpBitStreamLength.toLong * NO_OF_BITS_IN_BYTE - tmpStr.bitIndex() &&&
+         validate_offset_bits(nMaxReadBits + nBitsTerminator - tmpStr.bitIndex()))
+
+      if (tmpStr.bitIndex() == nMaxReadBits) && !checkBitPatternPresentResult then
+         checkBitPatternPresentResult = checkBitPatternPresent(terminatorPattern, nBitsTerminator)
+
+      // TODO: Shouldn't we do something about checkBitPatternPresentResult?
+      (tmpStr.buf, tmpStr.bitIndex())
+   }
+   */
 
    // ************** Aligning functions *********
    def alignToByte(): Unit = {
