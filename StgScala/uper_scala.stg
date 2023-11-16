@@ -75,7 +75,9 @@ def <sFuncName>(<if(bBsIsUnreferenced)>@annotation.unused <endif>codec: UPER): E
 >>
 
 InternalItem_oct_str_encode(p, sAcc, i, sErrCode) ::=<<
-codec.appendByte0(<p><sAcc>arr(<i>))
+if !codec.appendByte(<p><sAcc>arr(<i>)) then
+    Console.err.println("appendByte failed: not enough space for 1 byte")
+
 >>
 
 InternalItem_oct_str_decode(p, sAcc, i, sErrCode) ::=<<
@@ -186,7 +188,9 @@ IntNoneRequired_decode(p, nConst, sErrCode) ::= <<
 
 /*case: A:: = INTEGER (5..40,...) */
 IntRootExt_encode(p, nMin, sRootBaseConstraint, sIntBody, sErrCode) ::=<<
-codec.appendBitZero() /* write extension bit*/
+if !codec.appendBitZero() then /* write extension bit*/
+    Console.err.println("appendBitZero failed: not enough space for 1 bit")
+
 <sIntBody>
 >>
 
@@ -209,11 +213,15 @@ IntRootExt_decode(p, nMin, sRootBaseConstraint, sIntBody, sErrCode) ::=<<
 /*case: A:: = INTEGER (5..40,..., 60..70) */
 IntRootExt2_encode(p, nMin, sRootBaseConstraint, sIntBody, sErrCode) ::=<<
 if <sRootBaseConstraint> then
-    codec.appendBitZero() /* write extension bit, value within root range, so ext bit is zero */
+    if !codec.appendBitZero() then /* write extension bit, value within root range, so ext bit is zero */
+        Console.err.println("appendBitZero failed: not enough space for 1 bit")
+
     <sIntBody>
 else 
     /* value is not within root range, so ext bit is one and value is encoded as uncostraint */
-    codec.appendBitOne()
+    if !codec.appendBitOne() then
+        Console.err.println("appendBitOne failed: not enough space for 1 bit")
+
     <IntUnconstraint_encode(p=p, sErrCode=sErrCode)>
 >>
 
@@ -223,7 +231,9 @@ IntRootExt2_decode(p, nMin, sRootBaseConstraint, sIntBody, sErrCode) ::="<IntRoo
 /* INTEGER END*/
 
 Boolean_encode(p, sErrCode) ::= <<
-codec.appendBit(<p>)
+if !codec.appendBit(<p>) then
+    Console.err.println("appendBit failed: not enough space for 1 bit")
+
 >>
 
 Boolean_decode(p, sErrCode) ::= <<
@@ -332,7 +342,11 @@ codec.decodeConstraintWholeNumber(0, <nLastItemIndex>) match // uper:317
 /* CHOICE END*/
 
 /* SEQUENCE START */
-sequence_presence_bit_encode(p, sAcc, sChName, sErrCode) ::= "codec.appendBit(<p><sAcc>exist.<sChName>);"
+sequence_presence_bit_encode(p, sAcc, sChName, sErrCode) ::= <<
+if !codec.appendBit(<p><sAcc>exist.<sChName>) then
+	Console.err.println("appendBit failed: not enough space for 1 bit")
+
+>>
 sequence_presence_bit_decode(p, sAcc, sChName, sErrCode) ::= <<
 codec.readBit() match // uper:332
     case Some(bit) =>
@@ -341,7 +355,11 @@ codec.readBit() match // uper:332
         return Left(<sErrCode>)
 >>
 
-sequence_presence_bit_fix_encode(p, sAcc, sChName, sErrCode, sVal) ::= "codec.appendBit( <sVal>)"
+sequence_presence_bit_fix_encode(p, sAcc, sChName, sErrCode, sVal) ::= <<
+if !codec.appendBit(<sVal>) then
+    Console.err.println("appendBit failed: not enough space for 1 bit")
+
+>>
 
 sequence_presence_bit_fix_decode(p, sAcc, sChName, sErrCode, sVal) ::= <<
 <sequence_presence_bit_decode(p=p, sAcc=sAcc, sChName=sChName, sErrCode=sErrCode)>
@@ -495,7 +513,9 @@ codec.decodeOctetString_no_length(<p><sAcc>nCount.asInstanceOf[Int]) match // up
 /* BIT STRING*/
 bitString_FixSize_encode(p, sAcc, nFixedSize, sErrCode) ::= <<
 assert(<nFixedSize>.asInstanceOf[Int] >= 0) // overflow may happen during cast
-codec.appendBits(<p><sAcc>arr, <nFixedSize>.asInstanceOf[Int])
+if !codec.appendBits(<p><sAcc>arr, <nFixedSize>.asInstanceOf[Int]) then
+    Console.err.println(s"appendBits failed: not enough space for ${<nFixedSize>.asInstanceOf[Int]} bits")
+
 >>
 bitString_FixSize_decode(p, sAcc, nFixedSize, sErrCode) ::= <<
 codec.readBits(<nFixedSize>.asInstanceOf[Int]) match // uper:496
@@ -529,7 +549,8 @@ while(<sBlockIndex> \< <nBlocks64K>)
 {
     codec.encodeConstraintWholeNumber(0xC4, 0, 0xFF)
     <if(bIsBitStringType)>
-    codec.appendBits(&<p><sAcc>arr[<sCurOffset>/8], (int)<sCurBlockSize>)
+    if !codec.appendBits(&<p><sAcc>arr[<sCurOffset>/8], <sCurBlockSize>.asInstanceOf[Int]) then
+	    Console.err.println(s"appendBits failed: not enough space for ${<sCurBlockSize>.asInstanceOf[Int]} bits")
 
     <else>
     val <sBLI>=(int)<sCurOffset>
@@ -549,7 +570,8 @@ FixedSize_Fragmentation_sqf_small_block_encode(p, sAcc,sInternalItem, nBlockSize
 <sCurBlockSize> = <nBlockSize>;
 codec.encodeConstraintWholeNumber(<sBlockId>, 0, 0xFF)
 <if(bIsBitStringType)>
-codec.appendBits(&<p><sAcc>arr[<sCurOffset>/8], (int)<sCurBlockSize>);
+if !codec.appendBits(&<p><sAcc>arr[<sCurOffset>/8], <sCurBlockSize>.asInstanceOf[Int]) then
+    Console.err.println(s"appendBits failed: not enough space for ${<sCurBlockSize>.asInstanceOf[Int]} bits")
 
 <else>
 for(<sBLI>=(int)<sCurOffset>; <sBLI> \< (int)(<sCurBlockSize> + <sCurOffset>); <sBLI>++)
@@ -567,12 +589,15 @@ FixedSize_Fragmentation_sqf_remaining_encode(p, sAcc,sInternalItem, bRemainingIt
 codec.encodeConstraintWholeNumber(<nRemainingItemsVar>, 0, 0xFF)
 
 <else>
-codec.appendBit(true)
+if !codec.appendBitOne() then 
+    Console.err.println("appendBitOne failed: not enough space for 1 bit")
+
 codec.encodeConstraintWholeNumber(<nRemainingItemsVar>, 0, 0x7FFF)
 
 <endif>
 <if(bIsBitStringType)>
-codec.appendBits(&<p><sAcc>arr[<sCurOffset>/8], (int)<nRemainingItemsVar>);
+if !codec.appendBits(<p><sAcc>arr[<sCurOffset>/8], <nRemainingItemsVar>.asInstanceOf[Int]) then
+    Console.err.println(s"appendBits failed: not enough space for ${<nRemainingItemsVar>asInstanceOf[Int]} bits")
 
 <else>
 for(<sBLI>=(int)<sCurOffset>; <sBLI> \< (int)(<sCurOffset> + <nRemainingItemsVar>); <sBLI>++)
@@ -608,7 +633,9 @@ while (<sRemainingItemsVar> >= 0x4000 && <sBlockIndex> \< <if(bIsAsciiString)>(a
         codec.encodeConstraintWholeNumber(0xC1, 0, 0xFF)
     
     <if(bIsBitStringType)>
-    codec.appendBits(&<p><sAcc>arr[<sCurOffset>/8], (int)<sCurBlockSize>);
+    if !codec.appendBits(<p><sAcc>arr[<sCurOffset>/8], <sCurBlockSize>.asInstanceOf[Int]) then
+	    Console.err.println(s"appendBits failed: not enough space for ${<sCurBlockSize>.asInstanceOf[Int]} bits")
+
     <else>
     <sBLI>=<sCurOffset>.asInstanceOf[Int]
     while(<sBLI> \< (<sCurBlockSize> + <sCurOffset>).asInstanceOf[Int])
@@ -625,11 +652,15 @@ while (<sRemainingItemsVar> >= 0x4000 && <sBlockIndex> \< <if(bIsAsciiString)>(a
 if <sRemainingItemsVar> \<= 0x7F then
     codec.encodeConstraintWholeNumber(<sRemainingItemsVar>, 0, 0xFF)
 else
-    codec.appendBit(true)
+    if !codec.appendBitOne() then
+        Console.err.println("appendBitOne failed: not enough space for 1 bit")
+
     codec.encodeConstraintWholeNumber(<sRemainingItemsVar>, 0, 0x7FFF)
 
 <if(bIsBitStringType)>
-codec.appendBits(&<p><sAcc>arr[<sCurOffset>/8], (int)<sRemainingItemsVar>);
+if !codec.appendBits(<p><sAcc>arr[<sCurOffset>/8], <sRemainingItemsVar>.asInstanceOf[Int]) then
+	Console.err.println(s"appendBits failed: not enough space for ${<sRemainingItemsVar>.asInstanceOf[Int]} bits")
+
 <else>
 <sBLI> = <sCurOffset>.asInstanceOf[Int]
 while(<sBLI> \< (<sCurOffset> + <sRemainingItemsVar>).asInstanceOf[Int])

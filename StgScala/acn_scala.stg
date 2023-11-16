@@ -345,7 +345,9 @@ Boolean_encode(p, ptr, bEncValIsTrue, nSize, arruTrueValueAsByteArray, arruFalse
 {
     var true_data: Array[UByte] = Array(<arruTrueValueAsByteArray:{b|0x<b;format="X2">.asInstanceOf[UByte]}; separator=", ">)
     var false_data: Array[UByte] = Array(<arruFalseValueAsByteArray:{b|0x<b;format="X2">.asInstanceOf[UByte]}; separator=", ">)
-    codec.appendBits(if <p> then true_data else false_data, <nSize>)
+    if !codec.appendBits(if <p> then true_data else false_data, <nSize>) then
+        Console.err.println("appendBits failed: not enough space for <nSize> bits")
+
 }
 >>
 
@@ -370,7 +372,9 @@ Null_pattern_encode(p, arruNullValueAsByteArray, nSize, arrsBits, sErrCode, bSav
 <if(arruNullValueAsByteArray)>
 {   
     val tmp: Array[Byte] = Array(<arruNullValueAsByteArray:{b|0x<b;format="X2">.asInstanceOf[Byte]}; separator=",">)
-    codec.appendBits(tmp, <nSize>)
+    if !codec.appendBits(tmp, <nSize>) then
+        Console.err.println("appendBits failed: not enough space for <nSize> bits")
+
 }
 <endif>
 >>
@@ -570,7 +574,9 @@ if (<if(noSizeMin)>(<noSizeMin>\<=<sExtFld>) && <endif>(<sExtFld>\<=<nSizeMax>))
 
 oct_sqf_null_terminated_encode(p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength, sErrCode, nIntItemMinSize, nIntItemMaxSize) ::= <<
 <loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize=[p, sAcc, "nCount"])>
-codec.appendBits(Array({<arruNullBytes; separator=", ">}), <nBitPatternLength>)
+if !codec.appendBits(Array({<arruNullBytes; separator=", ">}), <nBitPatternLength>) then
+    Console.err.println("appendBits failed: not enough space for <nBitPatternLength> bits")
+
 >>
 
 oct_sqf_null_terminated_decode(p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength, sErrCode, nIntItemMinSize, nIntItemMaxSize) ::= <<
@@ -596,7 +602,9 @@ if (ret && checkBitPatternPresentResult.isEmpty) {
 >>
 
 bit_string_external_field_encode(p, sErrCode, sAcc, noSizeMin, nSizeMax, sExtFld) ::= <<
-codec.appendBits(<p><sAcc>arr, <p><sAcc>nCount)
+if !codec.appendBits(<p><sAcc>arr, <p><sAcc>nCount) then
+    Console.err.println(s"appendBits failed: not enough space for ${<p><sAcc>nCount} bits")
+
 >>
 
 bit_string_external_field_decode(p, sErrCode, sAcc, noSizeMin, nSizeMax, sExtFld) ::= <<
@@ -610,7 +618,9 @@ if <if(noSizeMin)>(<noSizeMin>\<=<sExtFld>) && <endif>(<sExtFld>\<=<nSizeMax>) t
 >>
 
 bit_string_external_field_fixed_size_encode(p, sErrCode, sAcc, noSizeMin, nSizeMax, sExtFld) ::= <<
-codec.appendBits(<p><sAcc>arr, <nSizeMax>)
+if !codec.appendBits(<p><sAcc>arr, <nSizeMax>) then
+    Console.err.println("appendBits failed: not enough space for <nSizeMax> bits")
+
 >>
 
 bit_string_external_field_fixed_size_decode(p, sErrCode, sAcc, noSizeMin, nSizeMax, sExtFld) ::= <<
@@ -623,8 +633,13 @@ if <if(noSizeMin)>(<noSizeMin>\<=<sExtFld>) && <endif>(<sExtFld>\<=<nSizeMax>) t
 >>
 
 bit_string_null_terminated_encode(p, sErrCode, sAcc, i, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength) ::= <<
-codec.appendBits(<p><sAcc>arr, <p><sAcc>arr.length*8) // TODO: re-introduce nCount?  -> codec.appendBits(<p><sAcc>arr, <p><sAcc>nCount)
-codec.appendBits(Array({<arruNullBytes; separator=", ">}), <nBitPatternLength>)
+if !codec.appendBits(<p><sAcc>arr, <p><sAcc>arr.length*8) then // TODO: re-introduce nCount?  -> codec.appendBits(<p><sAcc>arr, <p><sAcc>nCount)
+    Console.err.println(s"appendBits failed: not enough space for ${<p><sAcc>arr.length*8} bits")
+
+
+if !codec.appendBits(Array({<arruNullBytes; separator=", ">}), <nBitPatternLength>) then
+    Console.err.println(s"appendBits failed: not enough space for <nBitPatternLength> bits")
+
 >>
 
 bit_string_null_terminated_decode(p, sErrCode, sAcc, i, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength) ::= <<
@@ -651,7 +666,12 @@ ret = <sName>_ACN_Decode(<p>, codec, pErrCode<if(arrsArgs)>, <arrsLocalPrms; sep
 /* SEQUENCE*/
 
 
-sequence_presense_optChild_encode(p, sAcc, sChName, sErrCode) ::= "codec.appendBit(<p><sAcc>exist.<sChName>)"
+sequence_presense_optChild_encode(p, sAcc, sChName, sErrCode) ::= <<
+if !codec.appendBit(<p><sAcc>exist.<sChName>) then
+    Console.err.println("appendBit failed: not enough space for 1 bit")
+
+>>
+
 sequence_presense_optChild_decode(p, sAcc, sChName, sErrCode) ::= <<
 codec.readBit() match
     case Some(bit) => 
@@ -1049,7 +1069,9 @@ octet_string_containing_ext_field_func_decode(p, sFuncName, sReqBytesForUperEnco
 >>
 
 bit_string_containing_ext_field_func_encode(p, sFuncName, sReqBytesForUperEncoding, sReqBitsForUperEncoding, sExtField, sErrCode) ::= <<
-codec.appendBits(arr, <sExtField>.asInstanceOf[Int])
+if !codec.appendBits(arr, <sExtField>.asInstanceOf[Int]) 
+    Console.err.println(s"appendBits failed: not enough space for ${<sExtField>.asInstanceOf[Int]} bits")
+
 >>
 
 bit_string_containing_ext_field_func_decode(p, sFuncName, sReqBytesForUperEncoding, sReqBitsForUperEncoding, sExtField, sErrCode) ::= <<
@@ -1144,11 +1166,13 @@ bit_string_containing_func_encode(p, sFuncName, sReqBytesForAcnEncoding, sReqBit
     if ret.isRight then
         val nCount: Int = bitStrm.currentByte*8 + bitStrm.currentBit;
         <if(bFixedSize)>
-        codec.appendBits(bitStrm.buf, nCount);
+        if !codec.appendBits(bitStrm.buf, nCount) then
+	        Console.err.println(s"appendBits failed: not enough space for ${nCount} bits")
 
         <else>
         codec.BitStream_EncodeConstraintWholeNumber(nCount, <nMinSize>, <nMaxSize>)
-        codec.appendBits(bitStrm.buf, nCount)
+        if !codec.appendBits(bitStrm.buf, nCount) then
+	        Console.err.println(s"appendBits failed: not enough space for ${nCount} bits")
 
         <endif>
 }

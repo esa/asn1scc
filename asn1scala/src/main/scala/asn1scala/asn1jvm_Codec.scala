@@ -6,7 +6,7 @@ import stainless.collection.*
 import stainless.annotation.*
 import stainless.proof.*
 import stainless.math.*
-import StaticChecks.*
+import StaticChecks.{assert => stainlessAssert, _}
 
 val masks2: Array[UInt] = Array(
    0x00000000, //         0 / 0000 0000 0000 0000 0000 0000 0000 0000 / 0x0000 0000
@@ -45,17 +45,12 @@ def ByteStream_GetLength(pStrm: ByteStream): Int = {
 /***********************************************************************************************/
 def BitString_equal(arr1: Array[UByte], arr2: Array[UByte]): Boolean = {
    arraySameElements(arr1, arr2)
-   //return
-   //    (nBitsLength1 == nBitsLength2) &&
-   //        (nBitsLength1 / 8 == 0 || memcmp(arr1, arr2, nBitsLength1 / 8) == 0) &&
-   //        (nBitsLength1 % 8 > 0 ? (arr1[nBitsLength1 / 8] >>> (8 - nBitsLength1 % 8) == arr2[nBitsLength1 / 8] >>> (8 - nBitsLength1 % 8)): TRUE);
 }
-
 
 // TODO remove
-def BitStream_Init(count: Int): BitStream = {
-   BitStream(Array.fill(count)(0))
-}
+//def BitStream_Init(count: Int): BitStream = {
+//   BitStream(Array.fill(count)(0))
+//}
 
 /**
  * Parent class for the PER Codec that is used by ACN and UPER
@@ -921,6 +916,7 @@ trait Codec {
 
    def appendBitOne(): Boolean = {
       val isValidPrecondition = bitStream.validate_offset_bit()
+      stainlessAssert(isValidPrecondition)
       assert(isValidPrecondition)
 
       if isValidPrecondition then
@@ -931,6 +927,7 @@ trait Codec {
 
    def appendBitZero(): Boolean = {
       val isValidPrecondition = bitStream.validate_offset_bit()
+      stainlessAssert(isValidPrecondition)
       assert(isValidPrecondition)
 
       if isValidPrecondition then
@@ -941,6 +938,7 @@ trait Codec {
 
    def appendNBitZero(nBits: Long): Boolean = {
       val isValidPrecondition = bitStream.validate_offset_bits(nBits)
+      stainlessAssert(isValidPrecondition)
       assert(isValidPrecondition)
 
       if isValidPrecondition then
@@ -951,6 +949,7 @@ trait Codec {
 
    def appendNBitOne(nBits: Long): Boolean = {
       val isValidPrecondition = bitStream.validate_offset_bits(nBits)
+      stainlessAssert(isValidPrecondition)
       assert(isValidPrecondition)
 
       if isValidPrecondition then
@@ -961,6 +960,7 @@ trait Codec {
 
    def appendBits(srcBuffer: Array[UByte], nBits: Long): Boolean = {
       val isValidPrecondition = bitStream.validate_offset_bits(nBits)
+      stainlessAssert(isValidPrecondition)
       assert(isValidPrecondition)
 
       if isValidPrecondition then
@@ -971,6 +971,7 @@ trait Codec {
 
    def appendBit(v: Boolean): Boolean = {
       val isValidPrecondition = bitStream.validate_offset_bit()
+      stainlessAssert(isValidPrecondition)
       assert(isValidPrecondition)
 
       if isValidPrecondition then
@@ -981,7 +982,9 @@ trait Codec {
 
    def readBit(): Option[Boolean] = {
       val isValidPrecondition = bitStream.validate_offset_bit()
+      stainlessAssert(isValidPrecondition)
       assert(isValidPrecondition)
+
       isValidPrecondition match
          case true => Some(bitStream.readBit())
          case false => None()
@@ -989,7 +992,9 @@ trait Codec {
 
    def peekBit(): Option[Boolean] = {
       val isValidPrecondition = bitStream.validate_offset_bits(1)
+      stainlessAssert(isValidPrecondition)
       assert(isValidPrecondition)
+
       isValidPrecondition match
          case true => Some(bitStream.peekBit())
          case false => None()
@@ -997,6 +1002,7 @@ trait Codec {
 
    def appendByte(value: Byte): Boolean = {
       val isValidPrecondition = bitStream.validate_offset_byte()
+      stainlessAssert(isValidPrecondition)
       assert(isValidPrecondition)
 
       if isValidPrecondition then
@@ -1007,7 +1013,9 @@ trait Codec {
 
    def readByte(): Option[UByte] = {
       val isValidPrecondition = bitStream.validate_offset_byte()
+      stainlessAssert(isValidPrecondition)
       assert(isValidPrecondition)
+
       isValidPrecondition match
          case true => Some(bitStream.readByte())
          case false => None()
@@ -1015,6 +1023,7 @@ trait Codec {
 
    def appendByteArray(arr: Array[UByte], arr_len: Int): Boolean = {
       val isValidPrecondition = bitStream.validate_offset_bytes(arr_len)
+      stainlessAssert(isValidPrecondition)
       assert(isValidPrecondition)
 
       if isValidPrecondition then
@@ -1026,7 +1035,9 @@ trait Codec {
 
    def readByteArray(arr_len: Int): OptionMut[Array[UByte]] = {
       val isValidPrecondition = bitStream.validate_offset_bytes(arr_len)
+      stainlessAssert(isValidPrecondition)
       assert(isValidPrecondition)
+
       isValidPrecondition match
          case true => SomeMut(bitStream.readByteArray(arr_len))
          case false => NoneMut()
@@ -1034,7 +1045,9 @@ trait Codec {
 
    def readBits(nbits: Long): OptionMut[Array[UByte]] = {
       val isValidPrecondition = bitStream.validate_offset_bits(nbits)
+      stainlessAssert(isValidPrecondition)
       assert(isValidPrecondition)
+
       isValidPrecondition match
          case true => SomeMut(bitStream.readBits(nbits))
          case false => NoneMut()
@@ -1042,6 +1055,7 @@ trait Codec {
 
    def appendPartialByte(vVal: UByte, nbits: UByte): Boolean = {
       val isValidPrecondition = bitStream.validate_offset_bits(nbits)
+      stainlessAssert(isValidPrecondition)
       assert(isValidPrecondition)
 
       if isValidPrecondition then
@@ -1052,7 +1066,9 @@ trait Codec {
 
    def readPartialByte(nbits: UByte): Option[UByte] = {
       val isValidPrecondition = bitStream.validate_offset_bits(nbits)
+      stainlessAssert(isValidPrecondition)
       assert(isValidPrecondition)
+
       isValidPrecondition match
          case true => Some(bitStream.readPartialByte(nbits))
          case false => None()
@@ -1060,7 +1076,9 @@ trait Codec {
 
    def checkBitPatternPresent(bit_terminated_pattern: Array[UByte], nBits: Long): Option[Boolean] = {
       val isValidPrecondition = bitStream.validate_offset_bits(nBits)
+      stainlessAssert(isValidPrecondition)
       assert(isValidPrecondition)
+
       isValidPrecondition match
          case true => Some(bitStream.checkBitPatternPresent(bit_terminated_pattern, nBits))
          case false => None()
@@ -1079,6 +1097,7 @@ trait Codec {
       val isValidPrecondition = bitStream.validate_offset_bits(
          NO_OF_BITS_IN_BYTE - (bitStream.bitIndex() % NO_OF_BITS_IN_BYTE)
       )
+      stainlessAssert(isValidPrecondition)
       assert(isValidPrecondition)
 
       if isValidPrecondition then
