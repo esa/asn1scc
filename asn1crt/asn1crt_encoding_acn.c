@@ -846,36 +846,6 @@ void Acn_Enc_SInt_ASCII_VarSize_NullTerminated(BitStream* pBitStrm, asn1SccSint 
 	Acn_Enc_UInt_ASCII_VarSize_NullTerminated(pBitStrm, absValue, null_characters, null_characters_size);
 }
 
-/*
-flag Acn_Dec_String_Ascii_Null_Teminated_mult(BitStream* pBitStrm, asn1SccSint max, const byte null_character[], size_t null_character_size,   char* strVal)
-{
-byte tmp[10];
-size_t sz = null_character_size < 10 ? null_character_size : 10;
-memset(tmp, 0x0, 10);
-memset(strVal, 0x0, (size_t)max + 1);
-//read null_character_size characters into the tmp buffer
-for (int j = 0; j < (int)null_character_size; j++) {
-if (!BitStream_ReadByte(pBitStrm, &(tmp[j])))
-return FALSE;
-}
-
-asn1SccSint i = 0;
-while (i <= max && (memcmp(null_character, tmp, sz) != 0)) {
-strVal[i] = tmp[0];
-i++;
-for (int j = 0; j < (int)null_character_size - 1; j++)
-tmp[j] = tmp[j + 1];
-if (!BitStream_ReadByte(pBitStrm, &(tmp[null_character_size - 1])))
-return FALSE;
-}
-
-strVal[i] = 0x0;
-return memcmp(null_character, tmp, sz) == 0;
-
-}
-
-
-*/
 
 flag Acn_Dec_UInt_ASCII_VarSize_NullTerminated(BitStream* pBitStrm, asn1SccUint* pIntVal, const byte null_characters[], size_t null_characters_size)
 {
@@ -1271,57 +1241,6 @@ flag Acn_Dec_String_Ascii_FixSize(BitStream* pBitStrm, asn1SccSint max, char* st
 	return Acn_Dec_String_Ascii_private(pBitStrm, max, max, strVal);
 }
 
-/*
-int put_byte_in_last_dec_bytes(byte last_dec_bytes[], size_t* pCur_size, size_t null_characters_size, byte decodedCharacter, byte *pDiscardedCharacter) {
-int i;
-if (*pCur_size < null_characters_size) {
-last_dec_bytes[*pCur_size] = decodedCharacter;
-(*pCur_size)++;
-*pDiscardedCharacter = NULL;
-return 0;
-} else {
-*pDiscardedCharacter = last_dec_bytes[0];
-for (i = 1; i < null_characters_size; i++) {
-last_dec_bytes[i - 1] = last_dec_bytes[i];
-}
-last_dec_bytes[null_characters_size - 1] = decodedCharacter;
-return 1;
-}
-}
-
-flag Acn_Dec_String_Ascii_Null_Teminated(BitStream* pBitStrm, asn1SccSint max, const byte null_characters[], size_t null_characters_size, char* strVal)
-{
-asn1SccSint i = 0;
-byte decodedCharacter;
-byte characterToAppendInString;
-size_t cur_size_of_last_dec_bytes = 0;
-byte last_dec_bytes[128];
-int ret;
-
-assert(null_characters_size<128);
-memset(last_dec_bytes, 0x0, sizeof(last_dec_bytes));
-memset(strVal, 0x0, (size_t)max+1);
-while (i<=max) {
-if (!BitStream_ReadByte(pBitStrm, &decodedCharacter))
-return FALSE;
-ret = put_byte_in_last_dec_bytes(last_dec_bytes, &cur_size_of_last_dec_bytes, null_characters_size, decodedCharacter, &characterToAppendInString);
-
-
-//if (decodedCharacter == (byte)null_character) {
-if ((ret == 1) && (memcmp(last_dec_bytes,null_characters,null_characters_size) == 0)) {
-strVal[i] = 0x0;
-return TRUE;
-} else if (ret == 1) {
-strVal[i] = characterToAppendInString;
-i++;
-}
-}
-
-return FALSE;
-
-}
-
-*/
 
 
 flag Acn_Dec_String_Ascii_Null_Teminated(BitStream* pBitStrm, asn1SccSint max, char null_character, char* strVal)

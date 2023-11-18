@@ -101,7 +101,7 @@ static flag ObjectIdentifier_subidentifiers_uper_decode(BitStream* pBitStrm, asn
 	return TRUE;
 }
 
-static flag ObjectIdentifier_uper_decode_lentg(BitStream* pBitStrm, asn1SccSint* totalSize) {
+static flag ObjectIdentifier_uper_decode_length(BitStream* pBitStrm, asn1SccSint* totalSize) {
 	asn1SccSint len2;
 	if (!BitStream_DecodeConstraintWholeNumber(pBitStrm, totalSize, 0, 0xFF))
 		return FALSE;
@@ -121,7 +121,7 @@ flag ObjectIdentifier_uper_decode(BitStream* pBitStrm, Asn1ObjectIdentifier *pVa
 	ObjectIdentifier_Init(pVal);
 
 
-	if (!ObjectIdentifier_uper_decode_lentg(pBitStrm, &totalSize))
+	if (!ObjectIdentifier_uper_decode_length(pBitStrm, &totalSize))
 		return FALSE;
 
 	if (!ObjectIdentifier_subidentifiers_uper_decode(pBitStrm, &totalSize, &si))
@@ -146,7 +146,7 @@ flag RelativeOID_uper_decode(BitStream* pBitStrm, Asn1ObjectIdentifier *pVal) {
 	asn1SccSint totalSize;
 	ObjectIdentifier_Init(pVal);
 
-	if (!ObjectIdentifier_uper_decode_lentg(pBitStrm, &totalSize))
+	if (!ObjectIdentifier_uper_decode_length(pBitStrm, &totalSize))
 		return FALSE;
 
 	while (totalSize > 0 && pVal->nCount < OBJECT_IDENTIFIER_MAX_LENGTH)

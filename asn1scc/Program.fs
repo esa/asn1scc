@@ -331,6 +331,9 @@ let getLanguageMacro (l:ProgrammingLanguage) =
 
 let main0 argv =
     
+    //RemoveUnusedRtlFunction.test1 ()
+    //GenerateRTL.test3 (RemoveUnusedRtlFunction.C_RTL_FUNCTIONS |> List.map fst)
+
     let parser = ArgumentParser.Create<CliArguments>(programName = "asn1scc.exe")
     try
         let parserResults = parser.Parse argv
@@ -404,8 +407,8 @@ let main0 argv =
                 //let asn1rtlDirName = Path.Combine(outDir, OutDirectories.asn1rtlDirName r.lang)
                 //let boardsDirName = Path.Combine(outDir, OutDirectories.boardsDirName r.lang) 
                 let lm = getLanguageMacro r.lang
-                GenerateFiles.generateAll dirInfo r lm args.encodings
-                GenerateRTL.exportRTL dirInfo r.lang args
+                let generatedContent = GenerateFiles.generateAll dirInfo r lm args.encodings 
+                GenerateRTL.exportRTL dirInfo r.lang args lm generatedContent 
                 match args.AstXmlAbsFileName with
                 | ""    -> ()
                 | _     -> DAstExportToXml.exportFile r acnDeps ("backend_" + args.AstXmlAbsFileName)

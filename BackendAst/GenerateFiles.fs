@@ -321,19 +321,19 @@ let private printUnit (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTy
         
         tstCasesHdrContent |> Option.iter(fun tstCasesHdrContent -> File.WriteAllText(testcase_SrcFileName, tstCasesHdrContent.Replace("\r","")))
 
-
+    (defintionsContntent, srcBody)
 
 
 
 let generateAll (di:DirInfo) (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTypes.Asn1Encoding list)  =
-    r.programUnits |> Seq.iter (printUnit r lm encodings di.srcDir)
+    let generatedContent = r.programUnits |> List.map(printUnit r lm encodings di.srcDir) |> List.map snd |> Seq.StrJoin "\n"
     match r.args.generateAutomaticTestCases with
     | false -> ()
     | true  -> 
         lm.lg.CreateMakeFile r di
         let arrsSrcTstFiles, arrsHdrTstFiles = DastTestCaseCreation.printAllTestCasesAndTestCaseRunner r lm di.srcDir
         lm.lg.CreateAuxFiles r di (arrsSrcTstFiles, arrsHdrTstFiles)
-
+    generatedContent
 
 
 let EmmitDefaultACNGrammar (r:AstRoot) outDir  =
