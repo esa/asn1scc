@@ -1,19 +1,16 @@
 [![Build and Test Status of ASN1SCC on Circle CI](https://circleci.com/gh/maxime-esa/asn1scc.svg?&style=shield&circle-token=fcc32f415742887faa6ad69826b1cf25426df086)](https://circleci.com/gh/maxime-esa/asn1scc/tree/master)
 
-*For the impatient: if you already know what ASN.1 and ASN1SCC is, and
-just want to run the ASN1SCC compiler:*
-
-    docker pull maxime-esa/asn1scc
-    docker run -it maxime-esa/asn1scc
-
-*...and follow the instructions shown.*
-
 Executive summary
 =================
 
 This is the source code of the ASN1SCC compiler - an ASN.1 compiler that
-targets C and Ada, while placing specific emphasis on embedded systems.
-You can read a comprehensive paper about it
+targets **C**, **Ada** and **Scala** while placing specific emphasis on embedded systems.
+
+ASN1SCC is the ASN.1 compiler of the **European Space Agency** and is used is space missions to support binary encoding needs in satellite systems flight and ground software.
+
+What makes **ASN1SCC** unique is that in addition to supporting the standard ASN.1 uPER compact binary encoding rules, it offers the possibility to describe **custom binary encoding rules** with a simple textual notation, in order to communicate with equipments that come with legacy data formats. Check out [this page](https://taste.tuxfamily.org/wiki/index.php?title=Technical_topic:_ASN.1_-_An_introduction_to_ACN) to get a comprehensive overview of the feature, and [this page](https://taste.tuxfamily.org/wiki/index.php?title=Technical_topic:_Hints_to_model_complex_packet_encodings_with_ASN.1_and_ACN) for concrete examples as used in space systems.
+
+To know more you can also read this paper about ASN1SCC
 [here (PDF)](http://web1.see.asso.fr/erts2012/Site/0P2RUC89/7C-4.pdf),
 or a blog post with hands-on examples
 [here](https://www.thanassis.space/asn1.html).
@@ -184,4 +181,10 @@ $ ./sample_test
 
 Credits
 =======
-George Mamais (gmamais@gmail.com), Thanassis Tsiodras (ttsiodras@gmail.com)
+Project supervisor at the European Space Agency: Maxime Perrotin (maxime.perrotin@esa.int)
+
+Main project developer: George Mamais (gmamais@gmail.com)
+
+with major contributions from Thanassis Tsiodras (ttsiodras@gmail.com)
+
+
