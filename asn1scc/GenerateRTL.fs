@@ -49,6 +49,8 @@ let findUnusedRtlFunctions (lm:LanguageMacros) (rtlContent:string) (generatedCon
         lm.lg.RtlFuncNames |> List.filter (fun fn -> generatedContent.Contains(fn))
     
     let allUsedFunctions = findAllUsedRtlFunctions lm rtlContent ("BitStream_AttachBuffer"::"BitStream_Init"::directlyUsedFunctions) |> Set.ofList
+    let debug = allUsedFunctions |> Set.toList |> List.sort |> Seq.StrJoin "\n"
+    let debug2 = lm.lg.detectFunctionCalls rtlContent "BitStream_DecodeNonNegativeInteger32Neg" |> Seq.StrJoin "\n"
     lm.lg.RtlFuncNames |> List.filter (fun fn -> not (allUsedFunctions.Contains(fn)))
     
 
@@ -74,6 +76,7 @@ let exportRTL (di:DirInfo) (l:ProgrammingLanguage) (args:CommandLineSettings) (l
         let removeUnusedRtlFunctionsFromHeader (sourceCode:string) =
             unusedRtlFunctions |> List.fold (fun acc fn -> lm.lg.removeFunctionFromHeader acc fn) sourceCode
         let removeUnusedRtlFunctionsFromBody (sourceCode:string) =
+            let debug = unusedRtlFunctions |> List.sort |> Seq.StrJoin "\n"
             unusedRtlFunctions |> List.fold (fun acc fn -> lm.lg.removeFunctionFromBody acc fn) sourceCode
 
         writeResource di "asn1crt.c" (Some removeUnusedRtlFunctionsFromBody)

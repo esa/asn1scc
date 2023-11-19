@@ -359,6 +359,8 @@ type LangGeneric_c() =
         
         override this.RtlFuncNames : string list =
             [
+                "BitStream_EncodeNonNegativeInteger32Neg"
+                "BitStream_ReadByteArray"
                 "GetLengthSIntHelper"
                 "DecodeRealAsBinaryEncoding"
                 "GetCharIndex"
@@ -617,38 +619,54 @@ type LangGeneric_c() =
                 "ObjectIdentifier_uper_decode_length"
                 "ObjectIdentifier_subidentifiers_uper_decode"
                 "ObjectIdentifier_subidentifiers_uper_encode"
+                "BitStream_DecodeNonNegativeInteger32Neg"
              ]            
         override this.detectFunctionCalls (sourceCode: string) (functionName: string) : string list =
-            if functionName = "BitStream_AppendBits" then
-                printfn "debug"
-            let allFunctionNames = this.RtlFuncNames
-            let pattern = @"[^\s]+\s+" + functionName + @"\s*\([^\)]*\)\s*\{"
-            let regex = System.Text.RegularExpressions.Regex(pattern)
-            let matches = regex.Matches(sourceCode)
-            match matches.Count with
-            | 0 -> []
-            | _ ->
-                //get the function body
-                let matchValue = matches.[0]
-                let endIndex =
-                    let mutable depth = 1
-                    let mutable i = matchValue.Index + matchValue.Length
-                    while depth > 0 && i < sourceCode.Length do
-                        match sourceCode.[i] with
-                        | '{' -> depth <- depth + 1
-                        | '}' -> depth <- depth - 1
-                        | _ -> ()
-                        i <- i + 1
-                    i
-                let startIndex =
-                    let lineStartIndex = sourceCode.LastIndexOf('\n', matchValue.Index) + 1
-                    if lineStartIndex > 0 then
-                        lineStartIndex
-                    else
-                        0
-                let functionBody = sourceCode.Substring(startIndex, endIndex - startIndex)
-                //get all function calls
-                allFunctionNames |> List.filter (fun x -> functionName <> x &&  functionBody.Contains(x))
+            let knownCases =
+                [
+                    ("Acn_Enc_Real_IEEE754_32_little_endian", ["RequiresReverse";"BitStream_AppendByte0"])
+                    ("Acn_Enc_Real_IEEE754_32_big_endian", ["RequiresReverse";"BitStream_AppendByte0"])
+                    ("Acn_Enc_Real_IEEE754_64_big_endian", ["RequiresReverse";"BitStream_AppendByte0"])
+                    ("Acn_Enc_Real_IEEE754_32_little_endian", ["RequiresReverse";"BitStream_AppendByte0"])
+                    ("Acn_Enc_Real_IEEE754_64_little_endian", ["RequiresReverse";"BitStream_AppendByte0"])
+                    ("Acn_Dec_Real_IEEE754_32_big_endian", ["RequiresReverse";"BitStream_ReadByte"])
+                    ("Acn_Dec_Real_IEEE754_32_big_endian_fp32", ["RequiresReverse";"BitStream_ReadByte"])
+                    ("Acn_Dec_Real_IEEE754_64_big_endian", ["RequiresReverse";"BitStream_ReadByte"])
+                    ("Acn_Dec_Real_IEEE754_32_little_endian", ["RequiresReverse";"BitStream_ReadByte"])
+                    ("Acn_Dec_Real_IEEE754_32_little_endian_fp32", ["RequiresReverse";"BitStream_ReadByte"])
+                    ("Acn_Dec_Real_IEEE754_64_little_endian", ["RequiresReverse";"BitStream_ReadByte"])
+                ] |> Map.ofList
+            match knownCases |> Map.tryFind functionName  with
+            | None ->
+                let allFunctionNames = this.RtlFuncNames
+                let pattern = @"[^\s]+\s+" + functionName + @"\s*\([^\)]*\)\s*\{"
+                let regex = System.Text.RegularExpressions.Regex(pattern)
+                let matches = regex.Matches(sourceCode)
+                match matches.Count with
+                | 0 -> []
+                | _ ->
+                    //get the function body
+                    let matchValue = matches.[0]
+                    let endIndex =
+                        let mutable depth = 1
+                        let mutable i = matchValue.Index + matchValue.Length
+                        while depth > 0 && i < sourceCode.Length do
+                            match sourceCode.[i] with
+                            | '{' -> depth <- depth + 1
+                            | '}' -> depth <- depth - 1
+                            | _ -> ()
+                            i <- i + 1
+                        i
+                    let startIndex =
+                        let lineStartIndex = sourceCode.LastIndexOf('\n', matchValue.Index) + 1
+                        if lineStartIndex > 0 then
+                            lineStartIndex
+                        else
+                            0
+                    let functionBody = sourceCode.Substring(startIndex, endIndex - startIndex)
+                    //get all function calls
+                    allFunctionNames |> List.filter (fun x -> functionName <> x &&  functionBody.Contains(x))
+            | Some x -> x
 
 
         override this.removeFunctionFromHeader (sourceCode: string) (functionName: string) : string =
@@ -657,6 +675,8 @@ type LangGeneric_c() =
             newLines |> String.concat "\n"
 
         override this.removeFunctionFromBody (sourceCode: string) (functionName: string) : string =
+            //if functionName = "BitStream_DecodeNonNegativeInteger32Neg" then
+            //    printfn "debug"
             let pattern = @"[^\s]+\s+" + functionName + @"\s*\([^\)]*\)\s*\{"
             let regex = System.Text.RegularExpressions.Regex(pattern)
             let matches = regex.Matches(sourceCode)
