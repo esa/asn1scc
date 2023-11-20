@@ -1,4 +1,4 @@
-[![Build and Test Status of ASN1SCC on Circle CI](https://circleci.com/gh/maxime-esa/asn1scc.svg?&style=shield&circle-token=fcc32f415742887faa6ad69826b1cf25426df086)](https://circleci.com/gh/maxime-esa/asn1scc/tree/master)
+[![CircleCI](https://dl.circleci.com/status-badge/img/circleci/NWDXtobZpVSQ5ErUz9CgXB/3deZmhdEfAoLGYUJtiCX4c/tree/master.svg?style=svg)](https://dl.circleci.com/status-badge/redirect/circleci/NWDXtobZpVSQ5ErUz9CgXB/3deZmhdEfAoLGYUJtiCX4c/tree/master)
 
 Executive summary
 =================
