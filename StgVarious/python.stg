@@ -32,7 +32,7 @@ TypeAssignmentReference(sModuName, sTasName) ::= <<
 
 /* sFileName is a string with the current file name */
 FileXml(sFileName, arrsModules) ::= <<
-asn1Files.append("$sFileName$")
+asn1Files.append(r"$sFileName$")
 $arrsModules;separator="\n"$
 >>
 
