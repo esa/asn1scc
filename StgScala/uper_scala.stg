@@ -476,7 +476,9 @@ codec.decodeConstraintWholeNumber(<nSizeMin>, <nSizeMax>) match // uper:444
 
 octect_FixedSize_encode(p, sAcc, nFixedSize) ::= <<
 if !codec.encodeOctetString_no_length(<p><sAcc>arr, <nFixedSize>.asInstanceOf[Int]) then
-    ret = Left(446)
+    Console.err.println(s"encodeOctetString_no_length failed: not enough space for ${<nFixedSize>.asInstanceOf[Int]} bytes")
+    return Left(479)
+
 >>
 
 octect_FixedSize_decode(p, sAcc, nFixedSize) ::= <<
