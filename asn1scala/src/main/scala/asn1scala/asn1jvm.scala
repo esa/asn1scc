@@ -27,6 +27,8 @@ type ULongNoRTL = ULong
 type asn1Real = Double
 
 val NO_OF_BITS_IN_BYTE = 8
+val NO_OF_BITS_IN_SHORT = 16
+val NO_OF_BITS_IN_INT = 32
 val NO_OF_BITS_IN_LONG = 64
 val NO_OF_BYTES_IN_JVM_SHORT = 2
 val NO_OF_BYTES_IN_JVM_INT = 4

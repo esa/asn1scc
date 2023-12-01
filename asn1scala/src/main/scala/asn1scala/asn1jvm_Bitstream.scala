@@ -641,29 +641,32 @@ case class BitStream(
 
    // ************** Aligning functions *********
    def alignToByte(): Unit = {
+      require(validate_offset_bits((currentBit + (NO_OF_BITS_IN_BYTE - 1)) / NO_OF_BITS_IN_BYTE))
+
       if currentBit != 0 then
-         val bitIndexIncrease = 8 - currentBit % 8
          currentBit = 0
          currentByte += 1
    }
 
    def alignToShort(): Unit = {
-      require(validate_offset_bytes((NO_OF_BYTES_IN_JVM_SHORT - currentByte % NO_OF_BYTES_IN_JVM_SHORT) + (currentBit+7)/8))
+      require(validate_offset_bits(
+         (NO_OF_BITS_IN_SHORT -                                                           // max alignment (16) -
+            (NO_OF_BITS_IN_BYTE * (currentByte % NO_OF_BYTES_IN_JVM_SHORT) + currentBit)  // current pos
+            ) % NO_OF_BITS_IN_SHORT)                                                      // edge case (0,0) -> 0
+      )
 
       alignToByte()
-
-      if (currentByte % NO_OF_BYTES_IN_JVM_SHORT) != 0 then
-         val byteIndexIncrease = NO_OF_BYTES_IN_JVM_SHORT - currentByte % NO_OF_BYTES_IN_JVM_SHORT
-         currentByte += byteIndexIncrease
+      currentByte = ((currentByte + (NO_OF_BYTES_IN_JVM_SHORT - 1)) / NO_OF_BYTES_IN_JVM_SHORT) * NO_OF_BYTES_IN_JVM_SHORT
    }
 
    def alignToInt(): Unit = {
-      require(validate_offset_bytes((NO_OF_BYTES_IN_JVM_INT - currentByte % NO_OF_BYTES_IN_JVM_INT) + (currentBit+7)/8))
+      require(validate_offset_bits(
+         (NO_OF_BITS_IN_INT -                                                          // max alignment (32) -
+            (NO_OF_BITS_IN_BYTE * (currentByte % NO_OF_BYTES_IN_JVM_INT) + currentBit) // current pos
+            ) % NO_OF_BITS_IN_INT)                                                     // edge case (0,0) -> 0
+      )
 
       alignToByte()
-
-      if (currentByte % NO_OF_BYTES_IN_JVM_INT) != 0 then
-         val byteIndexIncrease = NO_OF_BYTES_IN_JVM_INT - currentByte % NO_OF_BYTES_IN_JVM_INT
-         currentByte += byteIndexIncrease
+      currentByte = ((currentByte + (NO_OF_BYTES_IN_JVM_INT - 1)) / NO_OF_BYTES_IN_JVM_INT) * NO_OF_BYTES_IN_JVM_INT
    }
 } // BitStream class
