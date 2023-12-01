@@ -95,7 +95,7 @@ isEqual_Boolean(p1, p2) /*nogen*/::= "ret = ( (<p1> && <p2>) || (!<p1> && !<p2>)
 
 isEqual_Real(p1, p2) ::= "Asn1Real_Equal(<p1>, <p2>)"
 
-isEqual_IA5String(p1, p2) /*nogen*/::= "ret = (strcmp(<p1>, <p2>) ==0)"
+isEqual_IA5String(p1, p2) /*nogen*/::= "ret = <p1>.sameElements(<p2>)"
 
 isEqual_NumericString(p1, p2) /*nogen*/::= "<isEqual_IA5String(p1=p1, p2=p2)>"
 isEqual_NullType()/*nogen*/ ::= "ret = true"
@@ -171,10 +171,10 @@ while ret && <i> \< <p1><sAcc>nCount do
 >>
 
 isEqual_SequenceOf_fix_size(p1,p2, sAcc, i, nFixedSize, sInnerStatement) ::= <<
-for(<i> = 0; ret && <i> \< <nFixedSize>; <i>++)
-{
+<i> = 0
+while ret && <i> \< <nFixedSize> do
     <sInnerStatement>
-}
+    <i> += 1
 
 >>
 

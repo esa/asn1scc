@@ -84,7 +84,7 @@ def <sFuncName>(<if(bUnreferenced)>@annotation.unused <endif><sVarName>: <sTypeD
 >>
 
 ExpEqual(sExp1, sExp2) ::= "(<sExp1> == <sExp2>)"
-ExpStringEqual(sExp1, sExp2) ::= "(<sExp1> == <sExp2>)"
+ExpStringEqual(sExp1, sExp2) ::= "(<sExp1>.sameElements(<sExp2>.getBytes))"
 ExpGt(sExp1, sExp2) ::= "(<sExp1> \> <sExp2>)"
 ExpGte(sExp1, sExp2) ::= "(<sExp1> \>= <sExp2>)"
 ExpLt(sExp1, sExp2) ::= "(<sExp1> \< <sExp2>)"

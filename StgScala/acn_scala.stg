@@ -844,7 +844,7 @@ case <nChildIndex> =>
 
 ChoiceChild_encode(p, sAcc, sChildID, nChildIndex, nIndexSizeInBits, nLastItemIndex, sChildContent, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr) ::= <<
 case <sChildID>(<sChildName>) =>
-    codec.BitStream_EncodeConstraintWholeNumber(<nChildIndex>, 0, <nLastItemIndex>)
+    codec.encodeConstraintWholeNumber(<nChildIndex>, 0, <nLastItemIndex>)
     <sChildContent>
 >>
 
@@ -1170,7 +1170,7 @@ bit_string_containing_func_encode(p, sFuncName, sReqBytesForAcnEncoding, sReqBit
 	        Console.err.println(s"appendBits failed: not enough space for ${nCount} bits")
 
         <else>
-        codec.BitStream_EncodeConstraintWholeNumber(nCount, <nMinSize>, <nMaxSize>)
+        codec.encodeConstraintWholeNumber(nCount, <nMinSize>, <nMaxSize>)
         if !codec.appendBits(bitStrm.buf, nCount) then
 	        Console.err.println(s"appendBits failed: not enough space for ${nCount} bits")
 
