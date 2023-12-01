@@ -869,11 +869,16 @@ let createSequenceOfInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1A
         
         initTasFunction, nonEmbeddedChildrenFuncs
 
+    let initParams = 
+        match o.isFixedSize with
+        | true -> $"(Array.fill({o.maxSize}){{{extractDefaultInitValue childType.Kind}}})" 
+        | false -> $"({o.minSize}, Array.fill({o.maxSize}){{{extractDefaultInitValue childType.Kind}}})"
+            
     let initVal =
         match typeDefinition with
         | TypeDefinition t -> t.typedefName
         | ReferenceToExistingDefinition r -> r.typedefName
-        + $"(0, Array.fill({o.maxSize}){{{extractDefaultInitValue childType.Kind}}})" 
+        + initParams
     
     let childInitExpr = getChildExpression lm childType
     let childInitGlobal = getChildExpressionGlobal lm childType
