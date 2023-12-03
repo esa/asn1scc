@@ -1311,7 +1311,7 @@ flag Acn_Dec_String_Ascii_Internal_Field_Determinant(BitStream* pBitStrm, asn1Sc
 static flag Acn_Dec_String_CharIndex_private(BitStream* pBitStrm,
 	asn1SccSint max,
 	asn1SccSint charactersToDecode,
-	byte allowedCharSet[],
+	const byte allowedCharSet[],
 	int charSetSize,
 	char* strVal)
 {

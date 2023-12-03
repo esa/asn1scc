@@ -1577,7 +1577,7 @@ flag BitStream_DecodeOctetString(BitStream* pBitStrm, byte* arr, int* nCount, as
 	flag ret = TRUE;
 	if (asn1SizeMax < 65536) {
 		asn1SccSint nCountL;
-		if (asn1SizeMin != asn1SizeMax) {
+		if (asn1SizeMin < asn1SizeMax) {
 			ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, &nCountL, asn1SizeMin, asn1SizeMax);
 		}
 		else {

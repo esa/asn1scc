@@ -46,7 +46,8 @@ flag <sFuncName>(const <sTypeDefName><sStar> <sVarName>, BitStream* pBitStrm, in
 
     <else>
     *pErrCode = 0;
-    bCheckConstraints=bCheckConstraints;
+    (void)bCheckConstraints;
+
     <sContent>
 
     <endif>
