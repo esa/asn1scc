@@ -32,7 +32,7 @@ TypeAssignmentReference(sModuName, sTasName) ::= <<
 
 /* sFileName is a string with the current file name */
 FileXml(sFileName, arrsModules) ::= <<
-asn1Files.append("$sFileName$")
+asn1Files.append(r"$sFileName$")
 $arrsModules;separator="\n"$
 >>
 
@@ -92,7 +92,7 @@ variables["$sName$"] = type("$sName$", (object,), {
 >>
 
 TypeGeneric(nLine, nPos, sAsnFile, sSubType, bHasAcnEncDecFunction, sCName, sScalaName, sAdaName) ::= <<
-"AsnFile": "$sAsnFile$", "Line": $nLine$, "CharPositionInLine": $nPos$, "CName": "$sCName$", "ScalaName": "$sScalaName$", "AdaName": "$sAdaName$", "HasAcnEncDec": $bHasAcnEncDecFunction$, $sSubType$
+"AsnFile": r"$sAsnFile$", "Line": $nLine$, "CharPositionInLine": $nPos$, "CName": "$sCName$", "ScalaName": "$sScalaName$", "AdaName": "$sAdaName$", "HasAcnEncDec": $bHasAcnEncDecFunction$, $sSubType$
 >>
 
 
