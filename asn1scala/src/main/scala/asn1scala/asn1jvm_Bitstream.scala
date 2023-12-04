@@ -80,32 +80,34 @@ case class BitStream(
                     ) { // all BisStream instances satisfy the following:
    require(BitStream.invariant(currentBit, currentByte, buf.length))
 
+   @pure
    private def remainingBits: Long = {
       (buf.length.toLong * NO_OF_BITS_IN_BYTE) - (currentByte.toLong * NO_OF_BITS_IN_BYTE + currentBit)
    }
 
-   @ghost
+   @pure
    def validate_offset_bit(): Boolean = {
       remainingBits >= 1
    }.ensuring(_ => BitStream.invariant(this))
 
-   @ghost
+   @pure
    def validate_offset_bits(bits: Long = 0): Boolean = {
       require(bits >= 0)
       remainingBits >= bits
    }.ensuring(_ => BitStream.invariant(this))
 
-   @ghost
+   @pure
    def validate_offset_byte(): Boolean = {
       remainingBits >= NO_OF_BITS_IN_BYTE
    }.ensuring(_ => BitStream.invariant(this))
 
-   @ghost
+   @pure
    def validate_offset_bytes(bytes: Int): Boolean = {
       require(bytes >= 0)
       bytes <= remainingBits / NO_OF_BITS_IN_BYTE
    }.ensuring(_ => BitStream.invariant(this))
 
+   @pure
    def bitIndex(): Long = {
       currentByte.toLong * 8 + currentBit.toLong
    }.ensuring(res => 0 <= res && res <= 8 * buf.length.toLong &&& res == buf.length.toLong * 8 - remainingBits)
