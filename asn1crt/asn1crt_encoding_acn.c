@@ -10,10 +10,11 @@ static flag RequiresReverse(void)
 	return b[0] == 1;
 }
 
-
-
 void Acn_AlignToNextByte(BitStream* pBitStrm, flag bEncode)
 {
+	CHECK_BIT_STREAM_PRE(pBitStrm, (NO_OF_BITS_IN_BYTE -
+		pBitStrm->currentBit) & (NO_OF_BITS_IN_BYTE - 1));
+
 	if (pBitStrm->currentBit != 0)
 	{
 		pBitStrm->currentBit = 0;
@@ -21,43 +22,41 @@ void Acn_AlignToNextByte(BitStream* pBitStrm, flag bEncode)
 		if (bEncode)
 			bitstream_push_data_if_required(pBitStrm);
 		else
-            bitstream_fetch_data_if_required(pBitStrm);
+			bitstream_fetch_data_if_required(pBitStrm);
 		CHECK_BIT_STREAM(pBitStrm);
 	}
 }
 
 void Acn_AlignToNextWord(BitStream* pBitStrm, flag bEncode)
 {
-	Acn_AlignToNextByte(pBitStrm, bEncode);
+	CHECK_BIT_STREAM_PRE(pBitStrm, (NO_OF_BITS_IN_INT16 -
+		(NO_OF_BITS_IN_BYTE * (pBitStrm->currentByte & (NO_OF_BYTES_IN_INT16 - 1)) + pBitStrm->currentBit))
+		& (NO_OF_BITS_IN_INT16 - 1));
 
-	pBitStrm->currentByte += pBitStrm->currentByte % 2;
+	Acn_AlignToNextByte(pBitStrm, bEncode);
+	pBitStrm->currentByte = ((pBitStrm->currentByte + (NO_OF_BYTES_IN_INT16 - 1)) / NO_OF_BYTES_IN_INT16) * NO_OF_BYTES_IN_INT16;
+
 	if (bEncode)
 		bitstream_push_data_if_required(pBitStrm);
 	else
-        bitstream_fetch_data_if_required(pBitStrm);
+		bitstream_fetch_data_if_required(pBitStrm);
 
 	CHECK_BIT_STREAM(pBitStrm);
 }
 
 void Acn_AlignToNextDWord(BitStream* pBitStrm, flag bEncode)
 {
+	CHECK_BIT_STREAM_PRE(pBitStrm, (NO_OF_BITS_IN_INT32 -
+		(NO_OF_BITS_IN_BYTE * (pBitStrm->currentByte & (NO_OF_BYTES_IN_INT32 - 1)) + pBitStrm->currentBit))
+		& (NO_OF_BITS_IN_INT32 - 1));
+
 	Acn_AlignToNextByte(pBitStrm, bEncode);
+	pBitStrm->currentByte = ((pBitStrm->currentByte + (NO_OF_BYTES_IN_INT32 - 1)) / NO_OF_BYTES_IN_INT32) * NO_OF_BYTES_IN_INT32;
 
-	//pBitStrm->currentByte += pBitStrm->currentByte % 4;
-	int totalBytes = pBitStrm->currentByte % 4;
-	if (pBitStrm->currentByte + totalBytes < pBitStrm->count) {
-		pBitStrm->currentByte += totalBytes;
-	}
-	else {
-		int extraBytes = pBitStrm->currentByte + totalBytes - pBitStrm->count;
-		pBitStrm->currentByte = pBitStrm->count;
-		if (bEncode)
-			bitstream_push_data_if_required(pBitStrm);
-		else
-            bitstream_fetch_data_if_required(pBitStrm);
-		pBitStrm->currentByte = extraBytes;
-	}
-
+	if (bEncode)
+		bitstream_push_data_if_required(pBitStrm);
+	else
+		bitstream_fetch_data_if_required(pBitStrm);
 
 	CHECK_BIT_STREAM(pBitStrm);
 }
