@@ -183,8 +183,17 @@ Credits
 =======
 Project supervisor at the European Space Agency: Maxime Perrotin (maxime.perrotin@esa.int)
 
-Main project developer: George Mamais (gmamais@gmail.com)
+Main project developer: George Mamais (gmamais@gmail.com) 
 
-with major contributions from Thanassis Tsiodras (ttsiodras@gmail.com)
+Check https://lamdasoft.eu/asn1scc/ if you need commercial support
+
+Major contributor: Thanassis Tsiodras (ttsiodras@gmail.com)
+
+The Scala backend was developed by:
+* Filip Schramka (Ateleris)
+* Ivo Nussbaumer (Ateleris)
+* Mario Bucev (EPFL)
+* Simon Felix (Ateleris)
+
 
 
