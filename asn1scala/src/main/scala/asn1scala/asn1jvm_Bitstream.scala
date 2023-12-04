@@ -641,7 +641,9 @@ case class BitStream(
 
    // ************** Aligning functions *********
    def alignToByte(): Unit = {
-      require(validate_offset_bits((currentBit + (NO_OF_BITS_IN_BYTE - 1)) / NO_OF_BITS_IN_BYTE))
+      require(validate_offset_bits(
+         (NO_OF_BITS_IN_BYTE - currentBit) & (NO_OF_BITS_IN_BYTE - 1)
+      ))
 
       if currentBit != 0 then
          currentBit = 0
