@@ -650,9 +650,9 @@ case class BitStream(
 
    def alignToShort(): Unit = {
       require(validate_offset_bits(
-         (NO_OF_BITS_IN_SHORT -                                                           // max alignment (16) -
-            (NO_OF_BITS_IN_BYTE * (currentByte % NO_OF_BYTES_IN_JVM_SHORT) + currentBit)  // current pos
-            ) % NO_OF_BITS_IN_SHORT)                                                      // edge case (0,0) -> 0
+         (NO_OF_BITS_IN_SHORT -                                                                 // max alignment (16) -
+            (NO_OF_BITS_IN_BYTE * (currentByte & (NO_OF_BYTES_IN_JVM_SHORT - 1)) + currentBit)  // current pos
+            ) & (NO_OF_BITS_IN_SHORT - 1))                                                      // edge case (0,0) -> 0
       )
 
       alignToByte()
@@ -661,9 +661,9 @@ case class BitStream(
 
    def alignToInt(): Unit = {
       require(validate_offset_bits(
-         (NO_OF_BITS_IN_INT -                                                          // max alignment (32) -
-            (NO_OF_BITS_IN_BYTE * (currentByte % NO_OF_BYTES_IN_JVM_INT) + currentBit) // current pos
-            ) % NO_OF_BITS_IN_INT)                                                     // edge case (0,0) -> 0
+         (NO_OF_BITS_IN_INT -                                                                // max alignment (32) -
+            (NO_OF_BITS_IN_BYTE * (currentByte & (NO_OF_BYTES_IN_JVM_INT - 1)) + currentBit) // current pos
+            ) & (NO_OF_BITS_IN_INT - 1))                                                     // edge case (0,0) -> 0
       )
 
       alignToByte()
