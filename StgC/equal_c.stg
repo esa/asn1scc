@@ -32,11 +32,11 @@ if (ret) {
  E Q U A L      F U N C T I O N S
 *****************************************************************************************
 */
-PrintEqualDefintionPrimitive(sFuncName, sTypeDefName) ::= <<
+PrintEqualDefinitionPrimitive(sFuncName, sTypeDefName) ::= <<
 flag <sFuncName>(const <sTypeDefName> val1, const <sTypeDefName> val2);
 >>
 
-PrintEqualDefintionComposite(sFuncName, sTypeDefName) ::= <<
+PrintEqualDefinitionComposite(sFuncName, sTypeDefName) ::= <<
 flag <sFuncName>(const <sTypeDefName>* pVal1, const <sTypeDefName>* pVal2);
 >>
 
@@ -108,8 +108,8 @@ isEqual_NullType()/*nogen*/ ::= "ret = TRUE;"
 
 isEqual_BitString(p1,p2,bIsFixedSize, nFixedSize) ::= <<
 <if(!bIsFixedSize)>
-    (<p1>nCount == <p2>nCount) && 
-    (memcmp(<p1>arr, <p2>arr, <p1>nCount/8) == 0) && 
+    (<p1>nCount == <p2>nCount) &&
+    (memcmp(<p1>arr, <p2>arr, <p1>nCount/8) == 0) &&
     (<p1>nCount % 8 > 0 ? (<p1>arr[<p1>nCount/8] \>> (8-<p1>nCount % 8) == <p2>arr[<p1>nCount/8]\>>(8-<p1>nCount % 8) ) : TRUE)
 
 <else>
@@ -126,7 +126,7 @@ isEqual_OctetString(p1,p2, bIsFixedSize, nFixedSize) ::= <<
 (<p1>nCount == <p2>nCount) && (memcmp(<p1>arr, <p2>arr, <p1>nCount) ==0)
 <else>
 memcmp(<p1>arr, <p2>arr, <nFixedSize>) ==0
-<endif>	
+<endif>
 >>
 
 isObjectIdentifier_equal(p1, p2) ::= <<
@@ -135,7 +135,7 @@ ObjectIdentifier_equal(<p1>, <p2>)
 
 
 
-isEqual_Choice_Child(choiceTypeDefName, sCid, sInnerStatement, sTmpVarName1, sTmpVarName2) ::= <<
+isEqual_Choice_Child(sChoiceTypeDefName, sCid, sInnerStatement, sTmpVarName1, sTmpVarName2) ::= <<
 case <sCid>:
 	<sInnerStatement>
 	break;
@@ -144,7 +144,7 @@ case <sCid>:
 isEqual_Choice(p1,p2, sAccess, arrsChildren) ::= <<
 ret = (<p1><sAccess>kind == <p2><sAccess>kind);
 if (ret) {
-	switch(<p1><sAccess>kind) 
+	switch(<p1><sAccess>kind)
 	{
 	<arrsChildren: {ch|<ch>}; separator="\n">
 	default: /*COVERAGE_IGNORE*/
@@ -174,7 +174,7 @@ if (ret && <p1><sAcc>exist.<sChName>) {
 isEqual_SequenceOf_var_size(p1,p2, sAcc, i, soInnerStatement) ::= <<
 ret = (<p1><sAcc>nCount == <p2><sAcc>nCount);
 <if (soInnerStatement)>
-for(<i> = 0; ret && <i> \< <p1><sAcc>nCount; <i>++) 
+for(<i> = 0; ret && <i> \< <p1><sAcc>nCount; <i>++)
 {
 	<soInnerStatement>
 }
@@ -183,7 +183,7 @@ for(<i> = 0; ret && <i> \< <p1><sAcc>nCount; <i>++)
 >>
 
 isEqual_SequenceOf_fix_size(p1,p2, sAcc, i, nFixedSize, sInnerStatement) ::= <<
-for(<i> = 0; ret && <i> \< <nFixedSize>; <i>++) 
+for(<i> = 0; ret && <i> \< <nFixedSize>; <i>++)
 {
 	<sInnerStatement>
 }

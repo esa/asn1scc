@@ -9,25 +9,78 @@ open System.IO
 open Antlr.Runtime.Tree
 open Antlr.Runtime
 
-let c_keyworkds =  [ "auto"; "break"; "case"; "char"; "const"; "continue"; "default"; "do"; "double"; "else"; "enum"; "extern"; "float"; "for"; "goto"; "if"; "int"; "long"; "register"; "return"; "short"; "signed"; "sizeof"; "static"; "struct"; "switch"; "typedef"; "union"; "unsigned"; "void"; "volatile"; "while"; ]
-let scala_keyworkds =  [ "abstract"; "case"; "catch"; "class"; "def"; "do"; "else"; "enum"; "export"; "extends"; "false"; "final"; "finally"; "float"; "for"; "given"; "if"; "implicit"; "import"; "int"; "lazy"; "match"; "new"; "null"; "object"; "override"; "package"; "private"; "protected"; "return"; "sealed"; "super"; "then"; "throw"; "trait"; "true"; "try"; "type"; "val"; "var"; "while"; "with"; "yield"; ]
-let ada_keyworkds =  [ "abort"; "else"; "new"; "return"; "abs"; "elsif"; "not"; "reverse"; "abstract"; "end"; "null"; "accept"; "entry"; "select"; "access"; "exception"; "of"; "separate"; "aliased"; "exit"; "or"; "some"; "all"; "others"; "subtype"; "and"; "for"; "out"; "synchronized"; "array"; "function"; "overriding"; "at"; "tagged"; "generic"; "package"; "task"; "begin"; "goto"; "pragma"; "terminate"; "body"; "private"; "then"; "if"; "procedure"; "type"; "case"; "in"; "protected"; "constant"; "interface"; "until"; "is"; "raise"; "use"; "declare"; "range"; "delay"; "limited"; "record"; "when"; "delta"; "loop"; "rem"; "while"; "digits"; "renames"; "with"; "do"; "mod"; "requeue"; "xor" ]
+let c_keywords =  [ "auto"; "break"; "case"; "char"; "const"; "continue"; "default"; "do"; "double"; "else"; "enum"; "extern"; "float"; "for"; "goto"; "if"; "int"; "long"; "register"; "return"; "short"; "signed"; "sizeof"; "static"; "struct"; "switch"; "typedef"; "union"; "unsigned"; "void"; "volatile"; "while"; ]
+let scala_keywords =  [ "abstract"; "case"; "catch"; "class"; "def"; "do"; "else"; "enum"; "export"; "extends"; "false"; "final"; "finally"; "float"; "for"; "given"; "if"; "implicit"; "import"; "int"; "lazy"; "match"; "new"; "null"; "object"; "override"; "package"; "private"; "protected"; "return"; "sealed"; "super"; "then"; "throw"; "trait"; "true"; "try"; "type"; "val"; "var"; "while"; "with"; "yield"; ]
+let ada_keywords =  [ "abort"; "else"; "new"; "return"; "abs"; "elsif"; "not"; "reverse"; "abstract"; "end"; "null"; "accept"; "entry"; "select"; "access"; "exception"; "of"; "separate"; "aliased"; "exit"; "or"; "some"; "all"; "others"; "subtype"; "and"; "for"; "out"; "synchronized"; "array"; "function"; "overriding"; "at"; "tagged"; "generic"; "package"; "task"; "begin"; "goto"; "pragma"; "terminate"; "body"; "private"; "then"; "if"; "procedure"; "type"; "case"; "in"; "protected"; "constant"; "interface"; "until"; "is"; "raise"; "use"; "declare"; "range"; "delay"; "limited"; "record"; "when"; "delta"; "loop"; "rem"; "while"; "digits"; "renames"; "with"; "do"; "mod"; "requeue"; "xor" ]
 
-type UserErrorSeverity = 
+type UserErrorSeverity =
     | ERROR
     | WARNING
     | INFO
 
-type FuncParamType =
-  | VALUE       of string
-  | POINTER     of string
-  | FIXARRAY    of string
-  with
-    member this.p  =
+type SelectionType =
+    | Value
+    | Pointer
+    | FixArray
+
+type Accessor =
+    | ValueAccess of string * SelectionType * bool // selection identifier and its type
+    | PointerAccess of string * SelectionType  * bool // selection identifier and its type
+    | ArrayAccess of string * SelectionType // array index and the type of the array's element
+    member this.selectionType =
         match this with
-        | VALUE x      -> x
-        | POINTER x    -> x
-        | FIXARRAY x   -> x
+        | ValueAccess (_, sel, _) -> sel
+        | PointerAccess (_, sel, _) -> sel
+        | ArrayAccess (_, sel) -> sel
+    member this.accessorType =
+        match this with
+        | ValueAccess _ -> Value
+        | PointerAccess _ -> Pointer
+        | ArrayAccess _ -> FixArray
+
+type Selection = {
+    receiverId: string
+    receiverType: SelectionType
+    path: Accessor list
+} with
+    static member emptyPath (receiverId: string) (receiverType: SelectionType): Selection =
+        { Selection.receiverId = receiverId; receiverType = receiverType; path = []}
+    static member valueEmptyPath (receiverId: string): Selection = Selection.emptyPath receiverId Value
+
+    member this.append (acc: Accessor): Selection =
+        assert (this.selectionType = acc.accessorType)
+        { this with path = this.path @ [acc] }
+
+    member this.appendSelection (selectionId: string) (selTpe: SelectionType) (selOpt: bool): Selection =
+        let currTpe = this.selectionType
+        assert (currTpe = Value || currTpe = Pointer)
+        this.append (if currTpe = Value then ValueAccess (selectionId, selTpe, selOpt) else PointerAccess (selectionId, selTpe, selOpt))
+
+    member this.selectionType: SelectionType =
+        if this.path.IsEmpty then this.receiverType
+        else (List.last this.path).selectionType
+
+    member this.isOptional: bool =
+        (not this.path.IsEmpty) &&
+        match List.last this.path with
+        |ValueAccess (_exist, _, isOptional) -> isOptional
+        |PointerAccess (_, _, isOptional) -> isOptional
+        |ArrayAccess _ -> false
+
+    member this.lastId: string =
+        if this.path.IsEmpty then this.receiverId
+        else
+            match List.last this.path with
+            |ValueAccess (id, _, _) -> id
+            |PointerAccess (id, _, _) -> id
+            |ArrayAccess _ -> raise (BugErrorException "lastId on ArrayAccess")
+
+    member this.asLast: Selection =
+        assert (not this.path.IsEmpty)
+        match List.last this.path with
+        |ValueAccess (id, _, _) -> Selection.emptyPath id Value
+        |PointerAccess (id, _, _) -> Selection.emptyPath id Pointer
+        |ArrayAccess _ -> raise (BugErrorException "lastId on ArrayAccess")
 
 
 type UserError = {
@@ -53,7 +106,7 @@ type TimeTypeClass =
 type Asn1DateValue = {
     years  : BigInteger
     months : BigInteger
-    days   : BigInteger 
+    days   : BigInteger
 }
 
 type Asn1TimeValue = {
@@ -83,7 +136,7 @@ type Asn1DateTimeValue =
 type Asn1DateTimeValueLoc = PrimitiveWithLocation<Asn1DateTimeValue>
 
 
-let timeTypeToAsn1Str tmcl = 
+let timeTypeToAsn1Str tmcl =
     match tmcl with
     |Asn1LocalTime                      _ -> "TIME"
     |Asn1UtcTime                        _ -> "TIME"
@@ -94,7 +147,7 @@ let timeTypeToAsn1Str tmcl =
     |Asn1Date_LocalTimeWithTimeZone     _ -> "TIME"
 
 type DirInfo = {
-    rootDir     : string   
+    rootDir     : string
     srcDir      : string
     asn1rtlDir  : string
     boardsDir   : string
@@ -103,7 +156,7 @@ type DirInfo = {
 let createTimeValueFromString timeClass (strL:StringLoc) =
     let pow b e = BigInteger.Pow (b,e)
     let str = strL.Value
-    let pr (s:string) size mn mx = 
+    let pr (s:string) size mn mx =
         if s.Length <> size then
             raise(SemanticError(strL.Location, "Invalid TIME VALUE"))
         match BigInteger.TryParse s with
@@ -115,14 +168,14 @@ let createTimeValueFromString timeClass (strL:StringLoc) =
         | []    -> ()
         | c::_  -> raise(SemanticError(strL.Location, (sprintf "Invalid character '%c'" c)))
     (*16:53:49.0123+02:00*)
-    let parseTimeValue (str:string) = 
+    let parseTimeValue (str:string) =
         let parseSeconds (secStr:string) =
             match secStr.Contains(".") with
             | false -> pr secStr 2 0I 59I, None
             | true  ->
                 let p = secStr.Split('.')
                 let s = pr p.[0] 2 0I 59I
-                let fraction = 
+                let fraction =
                     match p.[1].Length with
                     | 0 -> None
                     | _ ->
@@ -137,7 +190,7 @@ let createTimeValueFromString timeClass (strL:StringLoc) =
             raise(SemanticError(strL.Location, "Invalid TIME VALUE"))
         let scs, fraction = parseSeconds parts.[2]
         {Asn1TimeValue.hours = pr parts.[0] 2 0I 23I; mins = pr parts.[1] 2 0I 59I; secs = scs; secsFraction = fraction}
-    let parseUtcTimeValue (str:string) = 
+    let parseUtcTimeValue (str:string) =
         match str.EndsWith("Z") with
         | false -> raise(SemanticError(strL.Location, "Invalid TIME VALUE. Expecting a 'Z' at the end"))
         | true  ->                        parseTimeValue (str.Substring(0, str.Length-1))
@@ -149,7 +202,6 @@ let createTimeValueFromString timeClass (strL:StringLoc) =
         {Asn1DateValue.years = pr parts.[0] parts.[0].Length 0I 9999999999I; months = pr parts.[1] 2 1I 12I; days = pr parts.[2] 2 1I 31I}
 
     let parseTimeValueWithTimeZone (str:string) =
-        //let str = "2020-05-16T16:53:49+02:00"
         if str.Length <= 6 then
             raise(SemanticError(strL.Location, "Invalid TIME VALUE."))
         let tm = str.Substring(0, str.Length-6)
@@ -159,7 +211,7 @@ let createTimeValueFromString timeClass (strL:StringLoc) =
         let tz = str.Substring(str.Length-5)
         if (tz.Length <> 5) then
             raise(SemanticError(strL.Location, "Invalid TIME VALUE."))
-        let time = parseTimeValue tm 
+        let time = parseTimeValue tm
         let parts =tz.Split(':')
         let tz = {Asn1TimeZoneValue.sign = (if sign = '+' then 1I else (-1I)); hours = pr parts.[0] 2 0I 23I; mins = pr parts.[1] 2 0I 59I}
         (time, tz)
@@ -168,7 +220,7 @@ let createTimeValueFromString timeClass (strL:StringLoc) =
         if parts.Length <> 2 then
             raise(SemanticError(strL.Location, "Invalid DATE TIME VALUE."))
         (parseDateValue parts.[0], fnc parts.[1])
-    let ret = 
+    let ret =
         match timeClass with
         |Asn1LocalTime               _   -> Asn1LocalTimeValue (parseTimeValue str)
         |Asn1UtcTime                 _   -> Asn1UtcTimeValue  (parseUtcTimeValue str)
@@ -176,7 +228,7 @@ let createTimeValueFromString timeClass (strL:StringLoc) =
         |Asn1Date                       -> Asn1DateValue (parseDateValue str)
         |Asn1Date_LocalTime          _   -> Asn1Date_LocalTimeValue(splitDateTimeString str  parseTimeValue)
         |Asn1Date_UtcTime            _   -> Asn1Date_UtcTimeValue(splitDateTimeString str  parseUtcTimeValue)
-        |Asn1Date_LocalTimeWithTimeZone _ -> 
+        |Asn1Date_LocalTimeWithTimeZone _ ->
             let (a,(b,c)) = splitDateTimeString str  parseTimeValueWithTimeZone
             Asn1Date_LocalTimeWithTimeZoneValue (a,b,c)
     {Asn1DateTimeValueLoc.Value = ret; Location = strL.Location}
@@ -210,89 +262,52 @@ let asn1DateTimeValueToString (tv:Asn1DateTimeValue) =
     |Asn1Date_LocalTimeWithTimeZoneValue    (dt,tv, tz)-> (asn1DateValueToString dt) + (asn1TimeValueToString tv) + (timeZoneToString tz)
 
 
-let someTests () =
-(*
-    |Asn1Date
-    |Asn1Date_LocalTime
-    |Asn1Date_UtcTime
-    |Asn1Date_LocalTimeWithTimeZone
-
-*)
-    let loc str = { StringLoc.Value = str; Location = {srcFilename = "a.asn1"; srcLine = 20; charPos = 5    }}
-    let a1 = createTimeValueFromString  (Asn1LocalTime 3) (loc "23:53:49.234")
-    let a1 = createTimeValueFromString  (Asn1UtcTime 0) (loc "23:53:49Z")
-    let a1 = createTimeValueFromString  (Asn1LocalTimeWithTimeZone 3) (loc "23:53:49.234+02:00")
-    let a1 = createTimeValueFromString  Asn1Date  (loc "2020-05-16")
-    let a1 = createTimeValueFromString  (Asn1Date_LocalTime 2) (loc "2020-05-16T16:53:49.21")
-    let a1 = createTimeValueFromString  (Asn1Date_UtcTime 2) (loc "2020-05-16T16:53:59.21Z")
-    let a1 = createTimeValueFromString  (Asn1Date_LocalTimeWithTimeZone 2) (loc "2020-05-16T16:53:59.21-11:30")
-    0
-
-(*
-let getDateTimeFromAsn1TimeStringValue timeClass (str:StringLoc) =
-    try
-        let dt = 
-            match timeClass with
-            |Asn1LocalTime                  _ -> DateTime.ParseExact(str.Value, "HH:mm:ss.FFF", CultureInfo.InvariantCulture) 
-            |Asn1UtcTime                    _ -> DateTime.Parse(str.Value) (*.ToUniversalTime ()*)
-            |Asn1LocalTimeWithTimeZone      _ -> DateTime.ParseExact(str.Value, "HH:mm:ss.FFFK", CultureInfo.InvariantCulture) 
-            |Asn1Date                       -> DateTime.ParseExact(str.Value, "yyyy-MM-dd", CultureInfo.InvariantCulture) 
-            |Asn1Date_LocalTime             _ -> DateTime.ParseExact(str.Value, "yyyy-MM-dd'T'HH:mm:ss.FFF", CultureInfo.InvariantCulture) 
-            |Asn1Date_UtcTime               _ -> DateTime.Parse(str.Value) (*.ToUniversalTime ()*)
-            |Asn1Date_LocalTimeWithTimeZone _ -> DateTime.ParseExact(str.Value, "yyyy-MM-dd'T'HH:mm:ss.FFFK", CultureInfo.InvariantCulture) 
-        {DateTimeLoc.Value = dt; Location = str.Location}
-    with
-        | :? System.FormatException as e -> raise(SemanticError(str.Location, "Invalid TIME VALUE"))
-
-
-*)
-
 type ProgrammingLanguage =
     |C
     |Scala
     |Ada
-    with 
+    with
         member l.cmp (s1:string) (s2:string) =
             match l with
             |C          -> s1 = s2
             |Scala      -> s1 = s2 // TODO: Scala
             |Ada        -> s1.icompare s2
-        member l.keywords = 
+        member l.keywords =
             match l with
-            |C          -> c_keyworkds
-            |Scala      -> scala_keyworkds
-            |Ada        -> ada_keyworkds
+            |C          -> c_keywords
+            |Scala      -> scala_keywords
+            |Ada        -> ada_keywords
         static member AllLanguages = [C; Scala; Ada]
-        
+
         member l.OnTypeNameConflictTryAppendModName =
             match l with
             |C          -> true
             |Scala      -> true // TODO: SCala
             |Ada        -> false
-        member l.declare_IntegerNoRTL = 
-            match l with 
+        member l.declare_IntegerNoRTL =
+            match l with
             | C     -> "", "asn1SccSint", "INTEGER"
-            | Scala -> "", "Int", "INTEGER" // TODO: Scala
+            | Scala -> "", "Long", "INTEGER" // TODO: Scala
             | Ada   -> "adaasn1rtl", "Asn1Int", "INTEGER"
         member l.declare_PosIntegerNoRTL =
-            match l with 
-            | C     -> "", "asn1SccUint" , "INTEGER"               
-            | Scala -> "", " asn1SccUint" , "INTEGER" // TODO: Scala                
-            | Ada   -> "adaasn1rtl", "Asn1UInt" , "INTEGER"  
-        member l.getRealRtlTypeName   = 
-            match l with 
-            | C -> "", "asn1Real", "REAL" 
-            | Scala -> "", "asn1Real", "REAL" // TODO: Scala 
-            | Ada  -> "adaasn1rtl", "Asn1Real", "REAL" 
-        member l.getObjectIdentifierRtlTypeName  relativeId = 
+            match l with
+            | C     -> "", "asn1SccUint" , "INTEGER"
+            | Scala -> "", " asn1SccUint" , "INTEGER" // TODO: Scala
+            | Ada   -> "adaasn1rtl", "Asn1UInt" , "INTEGER"
+        member l.getRealRtlTypeName   =
+            match l with
+            | C -> "", "asn1Real", "REAL"
+            | Scala -> "", "asn1Real", "REAL" // TODO: Scala
+            | Ada  -> "adaasn1rtl", "Asn1Real", "REAL"
+        member l.getObjectIdentifierRtlTypeName  relativeId =
             let asn1Name = if relativeId then "RELATIVE-OID" else "OBJECT IDENTIFIER"
-            match l with 
+            match l with
             | C     -> "",           "Asn1ObjectIdentifier", asn1Name
             | Scala -> "",           "Asn1ObjectIdentifier", asn1Name // TODO: Scala
             | Ada   -> "adaasn1rtl", "Asn1ObjectIdentifier", asn1Name
-        member l.getTimeRtlTypeName  timeClass = 
+        member l.getTimeRtlTypeName  timeClass =
             let asn1Name = "TIME"
-            match l, timeClass with 
+            match l, timeClass with
             | C, Asn1LocalTime                    _ -> "", "Asn1LocalTime", asn1Name
             | C, Asn1UtcTime                      _ -> "", "Asn1UtcTime", asn1Name
             | C, Asn1LocalTimeWithTimeZone        _ -> "", "Asn1TimeWithTimeZone", asn1Name
@@ -315,15 +330,15 @@ type ProgrammingLanguage =
             | Ada, Asn1Date_LocalTime             _ -> "adaasn1rtl", "Asn1DateLocalTime", asn1Name
             | Ada, Asn1Date_UtcTime               _ -> "adaasn1rtl", "Asn1DateUtcTime", asn1Name
             | Ada, Asn1Date_LocalTimeWithTimeZone _ -> "adaasn1rtl", "Asn1DateTimeWithTimeZone", asn1Name
-        member l.getNullRtlTypeName  = 
-            match l with 
-            | C -> "", "NullType", "NULL" 
-            | Scala -> "", "NullType", "NULL" // TODO: Scala 
-            | Ada -> "adaasn1rtl", "Asn1NullType", "NULL" 
+        member l.getNullRtlTypeName  =
+            match l with
+            | C -> "", "NullType", "NULL"
+            | Scala -> "", "NullType", "NULL" // TODO: Scala
+            | Ada -> "adaasn1rtl", "Asn1NullType", "NULL"
         member l.getBoolRtlTypeName =
-            match l with 
-            | C -> "","flag","BOOLEAN" 
-            | Scala -> "","Boolean","BOOLEAN" // TODO: Scala  
+            match l with
+            | C -> "","flag","BOOLEAN"
+            | Scala -> "","Boolean","BOOLEAN" // TODO: Scala
             | Ada  -> "adaasn1rtl", "Asn1Boolean", "BOOLEAN"
 
 
@@ -337,14 +352,14 @@ type Codec =
         | Decode    -> "_Decode"
 
 
-type ObjectIdentifierValueCompoent =
+type ObjectIdentifierValueComponent =
     | ObjInteger            of IntLoc                               //integer form
     | ObjNamedDefValue      of StringLoc*(StringLoc*StringLoc)      //named form, points to an integer value
     | ObjNamedIntValue      of StringLoc*IntLoc                     //name form
     | ObjRegisteredKeyword  of StringLoc*BigInteger
     | ObjDefinedValue       of StringLoc*StringLoc                  //value assignment to Integer value or ObjectIdentifier or RelativeObject
 
-type ResolvedObjectIdentifierValueCompoent =
+type ResolvedObjectIdentifierValueComponent =
     | ResObjInteger            of IntLoc                               //integer form
     | ResObjNamedDefValue      of StringLoc*(StringLoc*StringLoc)*BigInteger      //named form, int VAS, int value
     | ResObjNamedIntValue      of StringLoc*IntLoc                     //name form
@@ -371,7 +386,7 @@ type SIZE = {
         acn     : BigInteger
     }
     with
-        override x.ToString() = 
+        override x.ToString() =
             x.uper.ToString()
 
 
@@ -381,7 +396,7 @@ type Input = {
 }
 
 type FieldPrefix =
-    | FieldPrefixAuto   
+    | FieldPrefixAuto
     | FieldPrefixUserValue  of string
 
 type Targets =
@@ -395,12 +410,12 @@ type ScopeNode =
     | MD of string          //MODULE
     | TA of string          //TYPE ASSIGNMENT
     | VA of string          //VALUE ASSIGNMENT
-    | SEQ_CHILD of string   //SEQUENCE child
+    | SEQ_CHILD of string*bool   //SEQUENCE child, is optional
     | CH_CHILD of string*string*string    //CHOICE child, choice child present when name
     | PRM of string         //ACN parameter
     | SQF                   //SEQUENCE OF CHILD
 
-type ReferenceToType = 
+type ReferenceToType =
     | ReferenceToType of ScopeNode list
 
 
@@ -443,7 +458,7 @@ type ScopeNode with
         | TA strVal
         | VA strVal
         | PRM strVal
-        | SEQ_CHILD strVal
+        | SEQ_CHILD (strVal, _)
         | CH_CHILD (strVal,_, _) -> strVal
         | SQF             -> "#"
     member this.StrValue = this.AsString
@@ -464,8 +479,8 @@ type VarScopNode =
             | VA2 strVal -> strVal
             | DV        -> "DV"
             | NI    ni  -> ni
-            | VL   idx  -> "v" + idx.ToString()    
-            | IMG  idx  -> "img" + idx.ToString()    
+            | VL   idx  -> "v" + idx.ToString()
+            | IMG  idx  -> "img" + idx.ToString()
             | CON idx   -> "c" + idx.ToString()
             | SQOV i     -> sprintf"[%d]" i
             | SQCHILD  s-> s
@@ -473,42 +488,42 @@ type VarScopNode =
         override this.ToString() = this.StrValue
 
 
-type ReferenceToValue = 
+type ReferenceToValue =
     | ReferenceToValue of (ScopeNode list)*(VarScopNode list)
     with
         member this.ModName =
             match this with
-            | ReferenceToValue (path,_) -> 
+            | ReferenceToValue (path,_) ->
                 match path with
                 | (MD modName)::_    -> modName
-                | _                               -> raise(BugErrorException "Did not find module at the begining of the scope path")
+                | _                               -> raise(BugErrorException "Did not find module at the beginning of the scope path")
 
 
-type ReferenceToType with 
-    member this.AsString =
-        match this with
-        | ReferenceToType sn -> sn |> Seq.map(fun x -> x.AsString) |> Seq.StrJoin "."
-        member this.ToScopeNodeList = 
+type ReferenceToType with
+        member this.AsString =
             match this with
-            | ReferenceToType path -> path 
+            | ReferenceToType sn -> sn |> Seq.map(fun x -> x.AsString) |> Seq.StrJoin "."
+        member this.ToScopeNodeList =
+            match this with
+            | ReferenceToType path -> path
         member this.ModName =
             match this with
-            | ReferenceToType path -> 
+            | ReferenceToType path ->
                 match path with
                 | (MD modName)::_    -> modName
-                | _                               -> raise(BugErrorException "Did not find module at the begining of the scope path")
+                | _                               -> raise(BugErrorException "Did not find module at the beginning of the scope path")
         member this.tasInfo =
             match this with
-            | ReferenceToType path -> 
+            | ReferenceToType path ->
                 match path with
                 | (MD modName)::(TA tasName)::[]    -> Some ({TypeAssignmentInfo.modName = modName; tasName=tasName})
                 | _                                 -> None
         member this.AcnAbsPath =
             match this with
-            | ReferenceToType path -> path |> List.map (fun i -> i.StrValue) 
-        member this.getSeqChildId (childName:string) =
+            | ReferenceToType path -> path |> List.map (fun i -> i.StrValue)
+        member this.getSeqChildId (childName:string) (childIsOptional: bool) =
             match this with
-            | ReferenceToType path -> ReferenceToType (path@[SEQ_CHILD childName])
+            | ReferenceToType path -> ReferenceToType (path@[SEQ_CHILD (childName, childIsOptional)])
         member this.getSeqOfChildId =
             match this with
             | ReferenceToType path -> ReferenceToType (path@[SQF])
@@ -521,61 +536,50 @@ type ReferenceToType with
             | ReferenceToType ((MD mdName)::(TA tasName)::[]) -> ReferenceToType ((MD mdName)::(TA tasName)::[PRM paramName])
             | _                                                                         -> raise(BugErrorException "Cannot add parameter here. Only within TAS scope")
 
-        member this.appendLongChildId (childRelativePath:string list) =
-            match this with
-            | ReferenceToType path -> 
-                let newTail = 
-                    childRelativePath |> 
-                    List.map(fun s ->SEQ_CHILD s)
-                ReferenceToType (path@newTail)
-        member this.beginsWith (md:string) (ts:string)= 
+        member this.beginsWith (md:string) (ts:string)=
             match this with
             | ReferenceToType((MD mdName)::(TA tasName)::[])   -> mdName = md && tasName = ts
             | _                                                                          -> false
         member this.lastItem =
             match this with
-            | ReferenceToType path -> 
+            | ReferenceToType path ->
                 match path |> List.rev |> List.head with
-                | SEQ_CHILD name   -> name
+                | SEQ_CHILD (name, _)   -> name
                 | CH_CHILD (name,_,_)    -> name
                 | _                             -> raise (BugErrorException "error in lastitem")
+
+        member this.lastItemIsOptional =
+            match this with
+            | ReferenceToType path ->
+                match path |> List.rev |> List.head with
+                | SEQ_CHILD (_, opt) -> opt
+                | _ -> false
+
+        member this.dropLast =
+            match this with
+            | ReferenceToType path ->
+                ReferenceToType (List.removeAt ((List.length path) - 1) path)
+
         member this.parentTypeId =
             match this with
-            | ReferenceToType path -> 
+            | ReferenceToType path ->
                 let pathPar = path |> List.rev |> List.tail |> List.rev
                 match pathPar with
-                | [] 
+                | []
                 | _::[]     -> None
                 | _         -> Some (ReferenceToType pathPar)
-        member this.SeqeuenceOfLevel =
+        member this.SequenceOfLevel =
             match this with
             | ReferenceToType path -> path |> List.filter(fun n -> match n with SQF -> true | _ -> false) |> Seq.length
         static member createFromModAndTasName (modName : string) ((tasName : string))=
             ReferenceToType((MD modName)::(TA tasName)::[])
 
-
-
-(*
-let rec foldMap func state lst =
-    match lst with
-    | []        -> [],state
-    | h::tail   -> 
-        let procItem, newState = func state h
-        let restList, finalState = tail |> foldMap func newState
-        procItem::restList, finalState
-
-let foldMap = RemoveParamterizedTypes.foldMap
-*)
-
-
-let foldMap func state lst =
+let foldMap (func: 'a -> 'b -> 'c * 'a) (state: 'a) (lst: 'b list) : 'c list * 'a =
     let rec loop acc func state lst =
         match lst with
         | []        -> acc |> List.rev , state
-        | h::tail   -> 
+        | h::tail   ->
             let procItem, newState = func state h
-            //let restList, finalState = tail |> loop func newState
-            //procItem::restList, finalState
             loop (procItem::acc) func newState tail
     loop [] func state lst
 
@@ -584,7 +588,7 @@ type FE_TypeDefinitionKindInternal =
     | FEI_NewSubTypeDefinition of ReferenceToType    //subtype
     | FEI_Reference2RTL
     | FEI_Reference2OtherType of ReferenceToType
-    override this.ToString() = 
+    override this.ToString() =
         match this with
         | FEI_NewTypeDefinition                       -> "NewTypeDefinition"
         | FEI_NewSubTypeDefinition subId              -> sprintf "NewSubTypeDefinition %s" subId.AsString
@@ -594,9 +598,9 @@ type FE_TypeDefinitionKindInternal =
 
 type TypeDefinitionBaseKind =
     | NewTypeDefinition                       //type
-    | NewSubTypeDefinition 
+    | NewSubTypeDefinition
     | Reference2RTL
-    | Reference2OtherType 
+    | Reference2OtherType
 
 
 
@@ -604,19 +608,19 @@ type FE_PrimitiveTypeDefinitionKind =
     | PrimitiveNewTypeDefinition                       //type
     | PrimitiveNewSubTypeDefinition of FE_PrimitiveTypeDefinition    //subtype
     | PrimitiveReference2RTL
-    | PrimitiveReference2OtherType 
+    | PrimitiveReference2OtherType
     member this.BaseKind =
         match this with
         | PrimitiveNewTypeDefinition            -> NewTypeDefinition
         | PrimitiveNewSubTypeDefinition   sub   -> NewTypeDefinition
         | PrimitiveReference2RTL                -> Reference2RTL
         | PrimitiveReference2OtherType          -> Reference2OtherType
-    override this.ToString() = 
+    override this.ToString() =
         match this with
         | PrimitiveNewTypeDefinition            -> "NewTypeDefinition"
         | PrimitiveNewSubTypeDefinition   sub   -> sprintf "NewSubTypeDefinition %s.%s" sub.programUnit sub.typeName
         | PrimitiveReference2RTL                -> "FE_Reference2RTL"
-        | PrimitiveReference2OtherType          -> "FE_Reference2OtherType" 
+        | PrimitiveReference2OtherType          -> "FE_Reference2OtherType"
 
 and FE_PrimitiveTypeDefinition = {
     asn1Name        : string
@@ -629,13 +633,13 @@ and FE_PrimitiveTypeDefinition = {
 type FE_NonPrimitiveTypeDefinitionKind<'SUBTYPE> =
     | NonPrimitiveNewTypeDefinition                       //type
     | NonPrimitiveNewSubTypeDefinition of 'SUBTYPE    //subtype
-    | NonPrimitiveReference2OtherType 
+    | NonPrimitiveReference2OtherType
     member this.BaseKind =
         match this with
         | NonPrimitiveNewTypeDefinition            -> NewTypeDefinition
         | NonPrimitiveNewSubTypeDefinition   sub   -> NewTypeDefinition
         | NonPrimitiveReference2OtherType          -> Reference2OtherType
-    override this.ToString() = 
+    override this.ToString() =
         match this with
         | NonPrimitiveNewTypeDefinition                       -> "NewTypeDefinition"
         | NonPrimitiveNewSubTypeDefinition subId              -> sprintf "NewSubTypeDefinition %s" (subId.ToString())
@@ -657,7 +661,7 @@ type FE_StringTypeDefinition = {
 with
     member this.longTypedefName l callerProgramUnit =
         this.longTypedefName2 (l=Ada) callerProgramUnit
-    
+
     member this.longTypedefName2 bHasUnits callerProgramUnit =
         let z n = this.programUnit + "." + n
         match bHasUnits with
@@ -672,7 +676,7 @@ type FE_SizeableTypeDefinition = {
     typeName        : string            //e.g. MyInt, Asn1SccInt, Asn1SccUInt
     index           : string
     array           : string
-    length_index          : string
+    length_index    : string
     kind            : FE_NonPrimitiveTypeDefinitionKind<FE_SizeableTypeDefinition>
 }
 with
@@ -692,7 +696,7 @@ type FE_SequenceTypeDefinition = {
     programUnit     : string            //the program unit where this type is defined
     typeName        : string            //e.g. MyInt, Asn1SccInt, Asn1SccUInt
     exist           : string
-    extention_function_potisions : string
+    extension_function_positions : string
     kind            : FE_NonPrimitiveTypeDefinitionKind<FE_SequenceTypeDefinition>
 }
 with
@@ -722,7 +726,7 @@ with
         | false             -> this
         | true   when this.programUnit = callerProgramUnit   -> this
         | true           -> {this with typeName = z this.typeName; index_range = z this.index_range; selection = z this.selection}
-    
+
     member this.longTypedefName l callerProgramUnit =
         this.longTypedefName2 (l=Ada) callerProgramUnit
 
@@ -746,7 +750,7 @@ with
         | true           -> {this with typeName = z this.typeName; index_range = z this.index_range}
 
 
-type FE_TypeDefinition = 
+type FE_TypeDefinition =
     | FE_PrimitiveTypeDefinition   of FE_PrimitiveTypeDefinition
     | FE_SequenceTypeDefinition    of FE_SequenceTypeDefinition
     | FE_StringTypeDefinition      of FE_StringTypeDefinition
@@ -754,8 +758,8 @@ type FE_TypeDefinition =
     | FE_ChoiceTypeDefinition      of FE_ChoiceTypeDefinition
     | FE_EnumeratedTypeDefinition  of FE_EnumeratedTypeDefinition
 
-    with 
-        member this.typeName = 
+    with
+        member this.typeName =
             match this with
             | FE_PrimitiveTypeDefinition  a    -> a.typeName
             | FE_SequenceTypeDefinition   a    -> a.typeName
@@ -763,7 +767,7 @@ type FE_TypeDefinition =
             | FE_SizeableTypeDefinition   a    -> a.typeName
             | FE_ChoiceTypeDefinition     a    -> a.typeName
             | FE_EnumeratedTypeDefinition a    -> a.typeName
-        member this.programUnit = 
+        member this.programUnit =
             match this with
             | FE_PrimitiveTypeDefinition  a    -> a.programUnit
             | FE_SequenceTypeDefinition   a    -> a.programUnit
@@ -771,7 +775,7 @@ type FE_TypeDefinition =
             | FE_SizeableTypeDefinition   a    -> a.programUnit
             | FE_ChoiceTypeDefinition     a    -> a.programUnit
             | FE_EnumeratedTypeDefinition a    -> a.programUnit
-        member this.kind = 
+        member this.kind =
             match this with
             | FE_PrimitiveTypeDefinition  a    -> a.kind.ToString()
             | FE_SequenceTypeDefinition   a    -> a.kind.ToString()
@@ -789,7 +793,7 @@ type FE_TypeDefinition =
             | FE_EnumeratedTypeDefinition a    -> a.kind.BaseKind
 
 
-        member this.asn1Name = 
+        member this.asn1Name =
             match this with
             | FE_PrimitiveTypeDefinition  a    -> a.asn1Name
             | FE_SequenceTypeDefinition   a    -> a.asn1Name
@@ -798,7 +802,7 @@ type FE_TypeDefinition =
             | FE_ChoiceTypeDefinition     a    -> a.asn1Name
             | FE_EnumeratedTypeDefinition a    -> a.asn1Name
 
-        member this.asn1Module = 
+        member this.asn1Module =
             match this with
             | FE_PrimitiveTypeDefinition  a    -> a.asn1Module
             | FE_SequenceTypeDefinition   a    -> a.asn1Module
@@ -827,7 +831,7 @@ type IntegerOrDefinedValue =
 
 type Asn1SccOperationMode =
     | Asn1Compiler
-    | LanguagerServer
+    | LanguageServer
 
 type NamedBit0 = {
     Name:StringLoc
@@ -868,8 +872,8 @@ let rec uperIntersection r1 r2 (l:SrcLoc) =
     | (PosInf(a), PosInf(b))        -> PosInf(max a b)
     | (PosInf(a), NegInf(b))        -> if a<=b then Concrete(a,b) else emptyTypeError l
     | (PosInf(a1), Concrete(a,b))   -> if a1>b then emptyTypeError l
-                                        elif a1<=a then r1 
-                                        else Concrete(a1,b) 
+                                        elif a1<=a then r1
+                                        else Concrete(a1,b)
     | (NegInf(a), NegInf(b))        -> NegInf(min a b)
     | (NegInf(a), PosInf(b))        -> if a>=b then Concrete(b,a) else emptyTypeError l
     | (NegInf(a1), Concrete(a,b))   -> if a1<a then emptyTypeError l
@@ -890,7 +894,7 @@ let rec uperIntersection r1 r2 (l:SrcLoc) =
 type IProgrammingLanguage () =
     abstract member indentation : sStatement:string -> string;
 
-    
+
 
 
 type CommandLineSettings = {
@@ -920,7 +924,7 @@ type CommandLineSettings = {
     handleEmptySequences      : bool
 
 }
-with 
+with
   member this.SIntMax =
     match this.integerSizeInBytes with
     | _ when this.integerSizeInBytes = 8I     -> BigInteger(Int64.MaxValue)
@@ -968,7 +972,7 @@ type SingleStringValue =
     | CStringValue  of string
     | SpecialCharacter of SpecialCharacter
     with
-        override this.ToString() = 
+        override this.ToString() =
             match this with
             | CStringValue  v -> v
             | SpecialCharacter CarriageReturn -> "\r"
@@ -990,7 +994,7 @@ let StringValue2String (vals: SingleStringValue list) =
 
 let char2SingleStringValue (c:char) =
     if c = CharCR  then SpecialCharacter CarriageReturn
-    elif c = CharLF  then SpecialCharacter LineFeed      
-    elif c = CharHT  then SpecialCharacter HorizontalTab 
-    elif c = CharNul then SpecialCharacter NullCharacter 
+    elif c = CharLF  then SpecialCharacter LineFeed
+    elif c = CharHT  then SpecialCharacter HorizontalTab
+    elif c = CharNul then SpecialCharacter NullCharacter
     else CStringValue (c.ToString())

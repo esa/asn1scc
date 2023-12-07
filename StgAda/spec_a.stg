@@ -50,7 +50,7 @@ use type <rtlModuleName()>.BIT;
 pragma Warnings (On, "use clause for type");
 pragma Warnings (On, "is already use-visible through package use clause at line");
 
-<arrsIncludedModules:{inc| 
+<arrsIncludedModules:{inc|
 pragma Warnings (Off, "no entities of ""<inc>"" are referenced");
 pragma Warnings (Off, "use clause for package ""<inc>"" has no effect");
 with <inc>; use <inc>;
@@ -65,7 +65,7 @@ is
 
 <arrsTypeAssignments:{tas|<tas>}; separator="\n">
 pragma Warnings (Off, "there are no others");
-<arrsValueAssignments:{vas|<vas>}; separator="\n"> 
+<arrsValueAssignments:{vas|<vas>}; separator="\n">
 pragma Warnings (On, "there are no others");
 private
    --# hide <sPackageName>;
@@ -269,10 +269,10 @@ Define_subType_bit_string(td/*:FE_SizeableTypeDefinition*/, prTd/*:FE_SizeableTy
 
 /***********************************       SEQUENCE OF    ************************************************************/
 
-Define_new_sequence_of(td/*:FE_SizeableTypeDefinition*/, nMin, nMax, bFixedSize, sChildType, soChildDefintion) ::= <<
+Define_new_sequence_of(td/*:FE_SizeableTypeDefinition*/, nMin, nMax, bFixedSize, sChildType, soChildDefinition) ::= <<
 -- <td.typeName> --------------------------------------------
 
-<soChildDefintion>
+<soChildDefinition>
 
 subtype <td.index> is Integer range 1..<nMax>;
 type <td.array> is array (<td.index>) of <sChildType>;
@@ -283,8 +283,8 @@ type <td.typeName> is  record
 end record;
 >>
 
-Define_subType_sequence_of(td/*:FE_SizeableTypeDefinition*/, prTd/*:FE_SizeableTypeDefinition*/, soParentTypePackage, bFixedSize, soChildDefintion) ::= <<
-<soChildDefintion>
+Define_subType_sequence_of(td/*:FE_SizeableTypeDefinition*/, prTd/*:FE_SizeableTypeDefinition*/, soParentTypePackage, bFixedSize, soChildDefinition) ::= <<
+<soChildDefinition>
 
 <define_subtype(thisType=td.typeName, parentType=prTd.typeName, soParentTypePackage=soParentTypePackage)>
 <define_subtype(thisType=td.index, parentType=prTd.index, soParentTypePackage=soParentTypePackage)>
@@ -299,12 +299,12 @@ Define_subType_sequence_of(td/*:FE_SizeableTypeDefinition*/, prTd/*:FE_SizeableT
 
 Define_new_sequence_child_bit(sName) ::= "<sName>:<rtlModuleName()>.bit;"
 
-Define_new_sequence_child(sName, sType) ::= "<sName> : <sType>;"
+Define_new_sequence_child(sName, sType, bIsOptional) ::= "<sName> : <sType>;"
 Define_new_sequence_save_pos_child(td/*:FE_SequenceTypeDefinition*/, sName, nMaxBytesInACN) ::= "<sName> : <rtlModuleName()>.encoding.BitstreamPtr;"
 
-Define_new_sequence(td/*:FE_SequenceTypeDefinition*/, arrsChildren, arrsOptionalChildren, arrsChildldrenDefintions, arrsNullFieldsSavePos) ::= <<
+Define_new_sequence(td/*:FE_SequenceTypeDefinition*/, arrsChildren, arrsOptionalChildren, arrsChildrenDefinitions, arrsNullFieldsSavePos) ::= <<
 -- <td.typeName> --------------------------------------------
-<arrsChildldrenDefintions; separator= "\n">
+<arrsChildrenDefinitions; separator= "\n">
 
 <if(arrsChildren)>
 <if (arrsOptionalChildren)>
@@ -316,22 +316,22 @@ for <td.exist>'Size use ((<length(arrsOptionalChildren)> - 1) / System.Word_Size
 
 <endif>
 <if (arrsNullFieldsSavePos)>
-type <td.extention_function_potisions> is record
+type <td.extension_function_positions> is record
     <arrsNullFieldsSavePos; separator="\n">
 end record;
 
 <endif>
-type <td.typeName> is record 
+type <td.typeName> is record
     <arrsChildren; separator="\n">
     <if (arrsOptionalChildren)>
-    
+
     Exist : <td.exist>;
 
     <endif>
 end record;
 
 <else>
-type <td.typeName> is record 
+type <td.typeName> is record
     null;
 end record;
 
@@ -345,7 +345,7 @@ Define_subType_sequence(td/*:FE_SequenceTypeDefinition*/, prTd/*:FE_SequenceType
 
 <endif>
 <if (arrsNullFieldsSavePos)>
-<define_subtype(thisType=td.extention_function_potisions, parentType=prTd.extention_function_potisions, soParentTypePackage=soParentTypePackage)>
+<define_subtype(thisType=td.extension_function_positions, parentType=prTd.extension_function_positions, soParentTypePackage=soParentTypePackage)>
 
 <endif>
 
@@ -359,9 +359,9 @@ when <sPresent> =>
         <sName>: <sType>;
 >>
 
-Define_new_choice(td/*:FE_ChoiceTypeDefinition*/, sChoiceIDForNone, sFirstChildNamePresent, arrsChildren, arrsPresent, arrsCombined, nIndexMax, arrsChildldrenDefintions) ::= <<
+Define_new_choice(td/*:FE_ChoiceTypeDefinition*/, sChoiceIDForNone, sFirstChildNamePresent, arrsChildren, arrsPresent, arrsCombined, nIndexMax, arrsChildrenDefinitions) ::= <<
 -- <td.typeName> --------------------------------------------
-<arrsChildldrenDefintions; separator= "\n">
+<arrsChildrenDefinitions; separator= "\n">
 
 subtype <td.index_range> is Integer range 0..<nIndexMax>;
 
@@ -370,14 +370,14 @@ for <td.selection> use
     (<arrsPresent:{c|<c> => <i>}; separator=", ">);
 for <td.selection>'Size use 32;
 
-type <td.typeName>(kind : <td.selection>:= <sFirstChildNamePresent>) is 
+type <td.typeName>(kind : <td.selection>:= <sFirstChildNamePresent>) is
 record
     case kind is
     <arrsChildren; separator="\n">
     end case;
 end record;
 
-for <td.typeName> use 
+for <td.typeName> use
 record
     kind at 0 range 0..31;
 end record;

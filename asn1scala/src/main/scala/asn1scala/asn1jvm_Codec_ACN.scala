@@ -743,12 +743,12 @@ case class ACN(bitStream: BitStream) extends Codec {
       i
    }
 
-   def enc_String_Ascii_Null_Teminated(max: Long, null_character: Byte, strVal: Array[ASCIIChar]): Unit = {
+   def enc_String_Ascii_Null_Terminated(max: Long, null_character: Byte, strVal: Array[ASCIIChar]): Unit = {
       enc_String_Ascii_private(max, strVal)
       appendByte(null_character.toByte)
    }
 
-   def enc_String_Ascii_Null_Teminated_mult(max: Long, null_character: Array[Byte], null_character_size: Int, strVal: Array[ASCIIChar]): Unit = {
+   def enc_String_Ascii_Null_Terminated_mult(max: Long, null_character: Array[Byte], null_character_size: Int, strVal: Array[ASCIIChar]): Unit = {
       enc_String_Ascii_private(max, strVal)
       var i: Int = 0
       while i < null_character_size do
@@ -856,7 +856,7 @@ case class ACN(bitStream: BitStream) extends Codec {
       dec_String_Ascii_private(max, max)
    }
 
-   def dec_String_Ascii_Null_Teminated(max: Long, null_character: ASCIIChar): Array[ASCIIChar] = {
+   def dec_String_Ascii_Null_Terminated(max: Long, null_character: ASCIIChar): Array[ASCIIChar] = {
       val strVal: Array[ASCIIChar] = Array.fill(max.toInt + 1)(0)
       var endReached = false
       var i: Int = 0
@@ -873,7 +873,7 @@ case class ACN(bitStream: BitStream) extends Codec {
       strVal
    }
 
-   def dec_String_Ascii_Null_Teminated_mult(max: Long, null_character: Array[ASCIIChar], null_character_size: Int): Array[ASCIIChar] = {
+   def dec_String_Ascii_Null_Terminated_mult(max: Long, null_character: Array[ASCIIChar], null_character_size: Int): Array[ASCIIChar] = {
       val tmp: Array[Byte] = Array.fill(null_character_size)(0)
       val strVal: Array[ASCIIChar] = Array.fill(max.toInt + 1)(0)
       //read null_character_size characters into the tmp buffer
@@ -905,8 +905,8 @@ case class ACN(bitStream: BitStream) extends Codec {
    }
 
 
-   def dec_String_Ascii_External_Field_Determinant(max: Long, extSizeDeterminatFld: Long): Array[ASCIIChar] = {
-      dec_String_Ascii_private(max, if extSizeDeterminatFld <= max then extSizeDeterminatFld else max)
+   def dec_String_Ascii_External_Field_Determinant(max: Long, extSizeDeterminantFld: Long): Array[ASCIIChar] = {
+      dec_String_Ascii_private(max, if extSizeDeterminantFld <= max then extSizeDeterminantFld else max)
    }
 
    def dec_String_Ascii_Internal_Field_Determinant(max: Long, min: Long): Array[ASCIIChar] = {
@@ -930,8 +930,8 @@ case class ACN(bitStream: BitStream) extends Codec {
       dec_String_CharIndex_private(max, max, allowedCharSet)
    }
 
-   def dec_String_CharIndex_External_Field_Determinant(max: Long, allowedCharSet: Array[ASCIIChar], extSizeDeterminatFld: Long): Array[ASCIIChar] = {
-      dec_String_CharIndex_private(max, if extSizeDeterminatFld <= max then extSizeDeterminatFld else max, allowedCharSet)
+   def dec_String_CharIndex_External_Field_Determinant(max: Long, allowedCharSet: Array[ASCIIChar], extSizeDeterminantFld: Long): Array[ASCIIChar] = {
+      dec_String_CharIndex_private(max, if extSizeDeterminantFld <= max then extSizeDeterminantFld else max, allowedCharSet)
    }
 
 
@@ -941,7 +941,7 @@ case class ACN(bitStream: BitStream) extends Codec {
    }
 
 
-   def dec_IA5String_CharIndex_External_Field_Determinant(max: Long, extSizeDeterminatFld: Long): Array[ASCIIChar] = {
+   def dec_IA5String_CharIndex_External_Field_Determinant(max: Long, extSizeDeterminantFld: Long): Array[ASCIIChar] = {
       val allowedCharSet: Array[ASCIIChar] = Array(
          0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09,
          0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10, 0x11, 0x12, 0x13,
@@ -957,7 +957,7 @@ case class ACN(bitStream: BitStream) extends Codec {
          0x6E, 0x6F, 0x70, 0x71, 0x72, 0x73, 0x74, 0x75, 0x76, 0x77,
          0x78, 0x79, 0x7A, 0x7B, 0x7C, 0x7D, 0x7E, 0x7F
       )
-      dec_String_CharIndex_private(max, if extSizeDeterminatFld <= max then extSizeDeterminatFld else max, allowedCharSet)
+      dec_String_CharIndex_private(max, if extSizeDeterminantFld <= max then extSizeDeterminantFld else max, allowedCharSet)
    }
 
    def dec_IA5String_CharIndex_Internal_Field_Determinant(max: Long, min: Long): Array[ASCIIChar] = {

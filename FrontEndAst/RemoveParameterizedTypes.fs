@@ -9,7 +9,7 @@
 *  For more informations see License.txt file
 *)
 
-module RemoveParamterizedTypes
+module RemoveParameterizedTypes
 
 open System.Numerics
 open Antlr.Runtime.Tree
@@ -22,7 +22,7 @@ open ParameterizedAsn1Ast
 //let rec foldMap func state lst =
 //    match lst with
 //    | []        -> [],state
-//    | h::tail   -> 
+//    | h::tail   ->
 //        let procItem, newState = func state h
 //        let restList, finalState = tail |> foldMap func newState
 //        procItem::restList, finalState
@@ -30,7 +30,7 @@ let foldMap func state lst =
     let rec loop acc func state lst =
         match lst with
         | []        -> acc |> List.rev , state
-        | h::tail   -> 
+        | h::tail   ->
             let procItem, newState = func state h
             //let restList, finalState = tail |> loop func newState
             //procItem::restList, finalState
@@ -41,7 +41,7 @@ let foldMap func state lst =
 let rec CloneType  (r:AstRoot)  (curModule:Asn1Module) (oldModName:string) (namedArgs:list<StringLoc*TemplateArgument>) (old:Asn1Type) (implicitImports : List<string*string>) : (Asn1Type * List<string*string>) =
     let CloneChild (implicitImports : List<string*string>) (ch:ChildInfo)  =
         let newType, newImports = CloneType r curModule oldModName namedArgs ch.Type implicitImports
-        let newChildInfo = 
+        let newChildInfo =
             {ch with Type = newType; Optionality = match ch.Optionality with
                                                                      | Some(Default(v))   -> Some(Default (CloneValue r curModule oldModName namedArgs (Some newType) v))
                                                                      | _                  -> ch.Optionality}
@@ -51,44 +51,44 @@ let rec CloneType  (r:AstRoot)  (curModule:Asn1Module) (oldModName:string) (name
     let cloneSeqChild  (implicitImports : List<string*string>) (seqChild:SequenceChild) =
         match seqChild with
         | ComponentsOf (x,y) -> ComponentsOf (x,y), []
-        | ChildInfo ch   -> 
-            let newChildInfo, newImports = CloneChild implicitImports ch 
+        | ChildInfo ch   ->
+            let newChildInfo, newImports = CloneChild implicitImports ch
             ChildInfo newChildInfo, newImports
 
-    let newKind, newCons, newImports = 
+    let newKind, newCons, newImports =
         let cons = old.Constraints |> List.map (CloneConstraint r curModule oldModName namedArgs (Some old))
         match old.Kind with
-        | Sequence(children)  ->   
+        | Sequence(children)  ->
             let newChildren, newImports = children |> foldMap (fun newState ch -> cloneSeqChild newState ch) implicitImports
             Sequence(newChildren), cons, newImports
-        | Choice(children)    ->   
+        | Choice(children)    ->
             let newChildren, newImports = children |> foldMap (fun newState ch -> CloneChild newState ch) implicitImports
             Choice(newChildren), cons, newImports
-        | SequenceOf(child)   ->   
+        | SequenceOf(child)   ->
             let newType, newImports = CloneType r curModule oldModName  namedArgs child implicitImports
             SequenceOf newType, cons, newImports
         | ReferenceType(md,ts,refEnc, args)    ->
             match args with
-            | []        -> 
+            | []        ->
                 match namedArgs |> Seq.tryFind (fun (nm, _) -> nm = ts) with
-                | Some(_,arg)       -> 
+                | Some(_,arg)       ->
                     match arg with
                     | ArgType(x)     -> x.Kind, (x.Constraints|> List.map (CloneConstraint r curModule oldModName namedArgs (Some x)))@cons, []
                     | _              -> raise(BugErrorException "")
-                | None              -> 
+                | None              ->
                     let newImports =
                         match md.Value <> curModule.Name.Value with
                         | true  -> [(md.Value, ts.Value)]
                         | false -> []
                     old.Kind, cons, newImports
 
-            | _         -> 
+            | _         ->
                 let specRefType, newImports2  = SpecializeRefType r curModule md ts args namedArgs implicitImports
                 specRefType.Kind, (specRefType.Constraints|> List.map (CloneConstraint r curModule oldModName namedArgs (Some specRefType)))@cons, newImports2
 
         | _                                        ->   old.Kind,cons, []
 
-    let retType =         
+    let retType =
         {
             Asn1Type.Kind = newKind
             Constraints = newCons
@@ -102,13 +102,13 @@ let rec CloneType  (r:AstRoot)  (curModule:Asn1Module) (oldModName:string) (name
 
 and CloneConstraint (r:AstRoot) (curModule:Asn1Module) (oldModName:string) (namedArgs:list<StringLoc*TemplateArgument>) (t:Asn1Type option) (c:Asn1Constraint) :Asn1Constraint =
     match c with
-    | SingleValueContraint(s, v)          -> SingleValueContraint(s, (CloneValue  r curModule oldModName namedArgs t v))
-    | RangeContraint(s, v1,v2,b1,b2)            -> RangeContraint(s, CloneValue  r curModule oldModName namedArgs t v1,CloneValue r curModule oldModName namedArgs t v2,b1,b2)
-    | RangeContraint_val_MAX(s,v,b)        -> RangeContraint_val_MAX (s, CloneValue r curModule oldModName namedArgs t v,b)
-    | RangeContraint_MIN_val(s, v,b)        -> RangeContraint_MIN_val (s, CloneValue r curModule oldModName namedArgs t v,b)
+    | SingleValueConstraint(s, v)          -> SingleValueConstraint(s, (CloneValue  r curModule oldModName namedArgs t v))
+    | RangeConstraint(s, v1,v2,b1,b2)            -> RangeConstraint(s, CloneValue  r curModule oldModName namedArgs t v1,CloneValue r curModule oldModName namedArgs t v2,b1,b2)
+    | RangeConstraint_val_MAX(s,v,b)        -> RangeConstraint_val_MAX (s, CloneValue r curModule oldModName namedArgs t v,b)
+    | RangeConstraint_MIN_val(s, v,b)        -> RangeConstraint_MIN_val (s, CloneValue r curModule oldModName namedArgs t v,b)
     | TypeInclusionConstraint(s, s1,s2)   -> TypeInclusionConstraint(s, s1,s2)
-    | SizeContraint(s, c)                 -> SizeContraint(s, CloneConstraint r curModule oldModName namedArgs None c)
-    | AlphabetContraint(s, c)             -> AlphabetContraint(s, CloneConstraint r curModule oldModName namedArgs None c)
+    | SizeConstraint(s, c)                 -> SizeConstraint(s, CloneConstraint r curModule oldModName namedArgs None c)
+    | AlphabetConstraint(s, c)             -> AlphabetConstraint(s, CloneConstraint r curModule oldModName namedArgs None c)
     | UnionConstraint(s, c1,c2,b)           -> UnionConstraint(s, CloneConstraint r curModule oldModName namedArgs t c1, CloneConstraint r curModule oldModName namedArgs t c2, b)
     | IntersectionConstraint(s, c1,c2)    -> IntersectionConstraint(s, CloneConstraint r curModule oldModName namedArgs t c1, CloneConstraint r curModule oldModName namedArgs t c2)
     | AllExceptConstraint(s, c)           -> AllExceptConstraint(s, CloneConstraint r curModule oldModName namedArgs t c)
@@ -120,27 +120,28 @@ and CloneConstraint (r:AstRoot) (curModule:Asn1Module) (oldModName:string) (name
 
 and CloneNamedConstraint (r:AstRoot) (curModule:Asn1Module) (oldModName:string) (namedArgs:list<StringLoc*TemplateArgument>) (x:NamedConstraint) :NamedConstraint =
     {
-        NamedConstraint.Name = x.Name; 
-        Mark = x.Mark 
-        Contraint = match x.Contraint with
-                    | None  -> None
-                    | Some(cc)  -> Some (CloneConstraint r curModule oldModName namedArgs None cc)
+        NamedConstraint.Name = x.Name;
+        Mark = x.Mark
+        Constraint =
+            match x.Constraint with
+            | None  -> None
+            | Some(cc)  -> Some (CloneConstraint r curModule oldModName namedArgs None cc)
     }
-    
+
 and CloneValue  (r:AstRoot) (curModule:Asn1Module) (oldModName:string) (namedArgs:list<StringLoc*TemplateArgument>) (t:Asn1Type option) (v:Asn1Value) :Asn1Value =
     match v.Kind with
-    |RefValue(v1,v2)       -> 
+    |RefValue(v1,v2)       ->
         match namedArgs |> Seq.tryFind (fun (nm, _) -> nm = v2) with
-        | Some(_,arg)       -> 
+        | Some(_,arg)       ->
             match arg with
             | ArgValue(vl)     -> vl
             | _                                     -> raise(BugErrorException "")
-        | None              -> 
+        | None              ->
             match t with
-            | Some tt    -> 
+            | Some tt    ->
                 let actType = GetActualType tt r
                 match actType.Kind with
-                | Enumerated enmItems  when oldModName = v1.Value -> 
+                | Enumerated enmItems  when oldModName = v1.Value ->
                     match enmItems |> Seq.tryFind (fun enmItem -> enmItem.Name.Value = v2.Value) with
                     | None          -> v
                     | Some _        -> {v with Kind = RefValue(StringLoc.ByValue curModule.Name.Value,v2)}
@@ -154,11 +155,11 @@ and CloneValue  (r:AstRoot) (curModule:Asn1Module) (oldModName:string) (namedArg
 and SpecializeType (r:AstRoot) (curModule:Asn1Module) (implicitImports : List<string*string>) (t:Asn1Type) : (Asn1Type * List<string*string>) =
     let  mergeAcnInfo (refTypeSpec:AcnGenericTypes.AcnTypeEncodingSpec option) (genTypeSpec:AcnGenericTypes.AcnTypeEncodingSpec option) =
         let rec mergeAcnInfo_aux (refTypeSpec:AcnGenericTypes.AcnTypeEncodingSpec ) (genTypeSpec:AcnGenericTypes.AcnTypeEncodingSpec) =
-            let allChildNames = 
+            let allChildNames =
                 //if ref refTypeSpec children is a subset of genTypeSpec return genTypeSpec children
                 //if genTypeSpec children is a subset of  of refTypeSpec children  return refTypeSpec children
                 //else emit user error. User must provide child spec in all children
-                let refTypeChildrenNames = refTypeSpec.children |> List.map(fun z -> z.name.Value) 
+                let refTypeChildrenNames = refTypeSpec.children |> List.map(fun z -> z.name.Value)
                 let getTypeChildrenNames = genTypeSpec.children |> List.map(fun z -> z.name.Value)
                 let refTypeSet = Set.ofList refTypeChildrenNames
                 let genTypeSet = Set.ofList getTypeChildrenNames
@@ -168,7 +169,7 @@ and SpecializeType (r:AstRoot) (curModule:Asn1Module) (implicitImports : List<st
 
                 //(refTypeChildrenNames@getTypeChildrenNames) |> List.distinct
             let combinedChildren =
-                allChildNames |> 
+                allChildNames |>
                 List.map(fun name ->
                     let refTypeChild = refTypeSpec.children |> Seq.tryFind (fun c -> c.name.Value = name)
                     let genTypeChild = genTypeSpec.children |> Seq.tryFind (fun c -> c.name.Value = name)
@@ -176,7 +177,7 @@ and SpecializeType (r:AstRoot) (curModule:Asn1Module) (implicitImports : List<st
                     | None, None        -> raise(BugErrorException(sprintf "SpecializeType no child with name :%s found" name))
                     | None, Some a      -> a
                     | Some a, None      -> a //reference type wins over generalized type
-                    | Some refChild, Some genChild         -> 
+                    | Some refChild, Some genChild         ->
                         let childEncodingSpec = mergeAcnInfo_aux refChild.childEncodingSpec genChild.childEncodingSpec
                         {refChild with childEncodingSpec = childEncodingSpec})
             //reference type properties wins over generalized type (put at before genType properties)
@@ -188,10 +189,10 @@ and SpecializeType (r:AstRoot) (curModule:Asn1Module) (implicitImports : List<st
         | None, Some a2 -> Some a2
         | Some refTypeSpec, Some genTypeSpec  -> Some (mergeAcnInfo_aux refTypeSpec genTypeSpec)
     match t.Kind with
-    | ReferenceType(md,ts, refEnc, args)   when args.Length>0 -> 
+    | ReferenceType(md,ts, refEnc, args)   when args.Length>0 ->
         let (newType, implImps) = SpecializeRefType r curModule md ts args [] implicitImports
         ({newType with Constraints = newType.Constraints@t.Constraints; acnInfo=mergeAcnInfo t.acnInfo newType.acnInfo}, implImps)
-    | ReferenceType(md,ts, refEnc, args)    -> 
+    | ReferenceType(md,ts, refEnc, args)    ->
         let parmTas = getModuleByName r md |> getTasByName ts
         match parmTas.Parameters with
         | []    -> t, implicitImports
@@ -203,20 +204,20 @@ and SpecializeRefType (r:AstRoot) (curModule:Asn1Module) (mdName:StringLoc) (tsN
     let SpecializeTemplatizedArgument (implicitImports : List<string*string>) (arg:TemplateArgument) =
         match arg with
         | ArgValue(_)      -> arg, implicitImports
-        | ArgType(tp)      -> 
+        | ArgType(tp)      ->
             let newType, newImports = SpecializeType  r curModule implicitImports  tp
             ArgType newType, newImports
-        | TemplateParameter prmName   -> 
+        | TemplateParameter prmName   ->
             match resolvedTeplateParams |> Seq.tryFind (fun (prm,templArg) -> prm.Value = prmName.Value) with
             | Some (prm, templArg)  -> templArg, implicitImports
-            | None                  -> 
+            | None                  ->
                 raise (SemanticError(tsName.Location, sprintf "Template argument %s cannot be resolved" (prmName.Value) ))
 
     let args, newImports = args |> foldMap SpecializeTemplatizedArgument implicitImports
     match parmTas.Parameters.Length = args.Length with
     | true  -> ()
     | false -> raise (SemanticError(tsName.Location, sprintf "The number of template arguments do not match the number of parameter in the type assignment"))
-    
+
     let getNameArg (arg:TemplateArgument, prm:TemplateParameter) =
         match prm, arg with
         | TypeParameter(s), ArgType(_)      -> (s, arg)
@@ -234,18 +235,18 @@ and SpecializeRefType (r:AstRoot) (curModule:Asn1Module) (mdName:StringLoc) (tsN
 
 and DoAsn1Type (r:AstRoot) (curModule:Asn1Module) (implicitImports : List<string*string>) (t:Asn1Type)  : (Asn1Type * List<string*string>) =
     let DoChildInfo (r:AstRoot) (implicitImports : List<string*string>) (c:ChildInfo) :ChildInfo * List<string*string> =
-        let newType, newImports = DoAsn1Type r curModule implicitImports c.Type 
+        let newType, newImports = DoAsn1Type r curModule implicitImports c.Type
         {
             ChildInfo.Name = c.Name
             Type = newType
-            Optionality = c.Optionality 
+            Optionality = c.Optionality
             AcnInsertedField = c.AcnInsertedField
             Comments = c.Comments
         }, newImports
 
     let DoSeqChildInof r (implicitImports : List<string*string>) ch : (SequenceChild*List<string*string>)=
         match ch with
-        | ChildInfo ch  -> 
+        | ChildInfo ch  ->
             let newType, newImports = DoChildInfo r  implicitImports ch
             ChildInfo newType, newImports
         | ComponentsOf (m,t) -> ComponentsOf (m,t), implicitImports
@@ -253,30 +254,30 @@ and DoAsn1Type (r:AstRoot) (curModule:Asn1Module) (implicitImports : List<string
     let aux kind acnInfo : Asn1Type=
         {
             Asn1Type.Kind = kind
-            Constraints = t.Constraints 
+            Constraints = t.Constraints
             Location = t.Location
             parameterizedTypeInstance = false
             acnInfo = acnInfo
             unitsOfMeasure = t.unitsOfMeasure
             moduleName = t.moduleName
-        }        
+        }
     match t.Kind with
-    | SequenceOf(child) -> 
-        let newType, newImports = DoAsn1Type r curModule implicitImports child 
+    | SequenceOf(child) ->
+        let newType, newImports = DoAsn1Type r curModule implicitImports child
         aux (SequenceOf(newType)) t.acnInfo , newImports
-    | Sequence(children)-> 
+    | Sequence(children)->
         let newChildren, newImports = children |>  foldMap (DoSeqChildInof r) implicitImports
         aux (Sequence(newChildren)) t.acnInfo , newImports
-    | Choice(children)  -> 
+    | Choice(children)  ->
         let newChildren, newImports = children |>  foldMap (DoChildInfo r) implicitImports
         aux (Choice(newChildren)) t.acnInfo , newImports
     | ReferenceType(_)  -> SpecializeType r curModule implicitImports t
     | _                 -> aux t.Kind t.acnInfo , implicitImports
 
-    
+
 
 let DoTypeAssignment (r:AstRoot) (curModule:Asn1Module) (implicitImports : List<string*string>) (tas:TypeAssignment) : (TypeAssignment*List<string*string>) =
-    let newType, newImports = DoAsn1Type r curModule implicitImports tas.Type 
+    let newType, newImports = DoAsn1Type r curModule implicitImports tas.Type
     {
         TypeAssignment.Name = tas.Name
         Type = newType
@@ -286,7 +287,7 @@ let DoTypeAssignment (r:AstRoot) (curModule:Asn1Module) (implicitImports : List<
     }, newImports
 
 let DoValueAssignment (r:AstRoot) (curModule:Asn1Module) (implicitImports : List<string*string>) (vas:ValueAssignment) :(ValueAssignment*List<string*string>) =
-    let newType, newImports = DoAsn1Type r curModule implicitImports vas.Type 
+    let newType, newImports = DoAsn1Type r curModule implicitImports vas.Type
     {
         ValueAssignment.Name = vas.Name
         Type = newType
@@ -300,25 +301,25 @@ let DoValueAssignment (r:AstRoot) (curModule:Asn1Module) (implicitImports : List
 
 let DoModule (r:AstRoot) (m:Asn1Module) :Asn1Module =
     let DoImportedModule (x:ImportedModule) : ImportedModule option =
-        let types = x.Types |> List.choose(fun ts -> 
+        let types = x.Types |> List.choose(fun ts ->
                                             let tas = getModuleByName r x.Name |> getTasByName ts
                                             match tas.Parameters with
                                             | []    -> Some ts
-                                            | _     -> None     //Paramterized Import, so remove it
+                                            | _     -> None     //Parameterized Import, so remove it
                                        )
         match types, x.Values with
         | [],[]  -> None
         | _      -> Some  { ImportedModule.Name = x.Name; Types = types; Values = x.Values}
-    
+
     let newTypeAssignments, newImports = m.TypeAssignments |> List.filter(fun x -> x.Parameters.Length = 0) |> foldMap (DoTypeAssignment r m) []
     let newValueAssignments, newImports = m.ValueAssignments |> foldMap (DoValueAssignment r m) newImports
-    let addionalImports = newImports |> Seq.distinct |> Seq.toList
+    let additionalImports = newImports |> Seq.distinct |> Seq.toList
     let existingImports = m.Imports |> List.choose DoImportedModule
     let newImports =
-        addionalImports |> 
-        List.fold (fun (newCurImports:list<ImportedModule>) (impMod, impTas) -> 
+        additionalImports |>
+        List.fold (fun (newCurImports:list<ImportedModule>) (impMod, impTas) ->
             match newCurImports |> Seq.tryFind (fun imp -> imp.Name.Value = impMod) with
-            | None      -> ({ImportedModule.Name = StringLoc.ByValue impMod; Types = [StringLoc.ByValue impTas];    Values = []})::newCurImports        
+            | None      -> ({ImportedModule.Name = StringLoc.ByValue impMod; Types = [StringLoc.ByValue impTas];    Values = []})::newCurImports
             | Some imp  ->
                 match imp.Types |> Seq.tryFind(fun x -> x.Value = impTas) with
                 | None  ->
@@ -326,7 +327,7 @@ let DoModule (r:AstRoot) (m:Asn1Module) :Asn1Module =
                     newImp::(newCurImports|>List.filter(fun imp -> imp.Name.Value <> impMod))
                 | Some _    -> newCurImports
         )  existingImports
-    
+
     {
         m with
             TypeAssignments = newTypeAssignments

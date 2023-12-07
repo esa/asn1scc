@@ -110,11 +110,11 @@ public override string GetErrorHeader(RecognitionException e)
 /* *************************************    PARSER         ************************************************************* */
 /* ********************************************************************************************************************* */
 
-moduleDefinitions 
+moduleDefinitions
 	:	moduleDefinition+	->^(ASN1_FILE moduleDefinition+)
-	;	
+	;
 
-moduleDefinition :  	a=modulereference	
+moduleDefinition :  	a=modulereference
 			d=DEFINITIONS
 			ASSIG_OP BEGIN
 			constant*
@@ -124,35 +124,35 @@ moduleDefinition :  	a=modulereference
 			;
 
 constant
-	:	CONSTANT^ UID ASSIG_OP! intExpression;			
+	:	CONSTANT^ UID ASSIG_OP! intExpression;
 
 
 typeEncoding
-	:	typereference paramList? encodingSpec -> ^(TYPE_ENCODING typereference paramList? encodingSpec) ;				
-	
-	
+	:	typereference paramList? encodingSpec -> ^(TYPE_ENCODING typereference paramList? encodingSpec) ;
+
+
 paramList: '<' singleParam (',' singleParam)*  '>'		-> ^(PARAM_LIST singleParam+);
-	
+
 singleParam
-	:	asn1Type ':' asn1LID	->^(PARAM asn1Type asn1LID);	
-	
+	:	asn1Type ':' asn1LID	->^(PARAM asn1Type asn1LID);
+
 asn1Type
 	:	asn1UID ('.' asn1UID)	-> ^(REFERENCED_TYPE asn1UID asn1UID)
 	|	asn1UID 				-> ^(REFERENCED_TYPE asn1UID )
 	|	INTEGER
 	|   BOOLEAN
 	|   NULL
-	;	
-	
+	;
+
 encodingSpec
 	:	a='[' propertyList? R_SBRACKET childrenSpec?	->^(ENCODING_SPEC[$a] propertyList? R_SBRACKET childrenSpec? )
-	;	
-	
-	
+	;
+
+
 propertyList
 	:	property (',' property)*	->^(ENCODING_PROPERTIES  property+)
-	;	
-	
+	;
+
 property
 	:	encodingProp
 	| 	sizeProp
@@ -171,37 +171,37 @@ property
     |   postEncodingFunctionProp
     |   preDecodingFunctionProp
     |   savePositionProp
-	;	
-
-endiannessProp 	
-	: ENDIANNES^  BIG 	
-	| ENDIANNES^  LITTLE 	
 	;
 
-encodingProp	
-	: ENCODING^	POS_INT  		
-	| ENCODING^	TWOSCOMPLEMENT  
-	| ENCODING^	BCD				
-	| ENCODING^	ASCII 			
-	| ENCODING^	IEEE754_1985_32 
-	| ENCODING^	IEEE754_1985_64 
+endiannessProp
+	: ENDIANNESS^  BIG
+	| ENDIANNESS^  LITTLE
+	;
+
+encodingProp
+	: ENCODING^	POS_INT
+	| ENCODING^	TWOSCOMPLEMENT
+	| ENCODING^	BCD
+	| ENCODING^	ASCII
+	| ENCODING^	IEEE754_1985_32
+	| ENCODING^	IEEE754_1985_64
 	;
 
 
 sizeProp
-	: 
-	  SIZE^ NULL_TERMINATED 
+	:
+	  SIZE^ NULL_TERMINATED
 	| SIZE^ INT
 	| SIZE^ UID			//UID referes to a constant declared in the constant section
 	| SIZE^ longFld
 	;
 
-/*	
-adjustProp 
+/*
+adjustProp
 	: ADJUST^ INT
 	| ADJUST^ UID			//UID referes to a constant declared in the constant section
 	;
-*/	
+*/
 
 longFld 	:	asn1LID ('.' asn1LID)*		-> ^(LONG_FIELD asn1LID+);
 
@@ -209,17 +209,17 @@ mappingFunctionProp         : MAPPING_FUNCTION^			( (asn1LID|asn1UID) ('.' (asn1
 postEncodingFunctionProp    : POST_ENCODING_FUNCTION^	( (asn1LID|asn1UID) ('.' (asn1LID|asn1UID))* );
 preDecodingFunctionProp     : POST_DECODING_VALIDATOR^  ( (asn1LID|asn1UID) ('.' (asn1LID|asn1UID))* );
 
-alignToNextProp	
+alignToNextProp
 	:	ALIGNTONEXT^ BYTE
 	|	ALIGNTONEXT^ WORD
 	|	ALIGNTONEXT^ DWORD
 	;
 
-encodeValuesProp	
+encodeValuesProp
 	:  ENCODE_VALUES
 	;
 
-trueValProp 	: TRUE_VALUE^	  BitStringLiteral 
+trueValProp 	: TRUE_VALUE^	  BitStringLiteral
 	;
 
 falseValProp 	: FALSE_VALUE^  BitStringLiteral
@@ -230,7 +230,7 @@ patternProp 	: PATTERN^  (BitStringLiteral | OctectStringLiteral)
 
 savePositionProp    : SAVE_POSITION;
 
-presentWhenProp	
+presentWhenProp
 	:	  PRESENT_WHEN^ presentWhenCond+
 		| PRESENT_WHEN 	conditionalOrExpression		-> ^(PRESENT_WHEN_EXP conditionalOrExpression)
 	;
@@ -242,30 +242,30 @@ terminationPatternProp
 presentWhenCond
 	: longFld EQUAL^ (INT|UID)
 	| longFld a=EQUAL  StringLiteral	-> ^(PRESENT_WHEN_STR_EQUAL[$a] longFld StringLiteral)
-	| longFld 
+	| longFld
 	;
 
 determinantProp
-	:	DETERMINANT^ longFld	
+	:	DETERMINANT^ longFld
 	;
 
 enumSetValue
-	: INT|UID	
+	: INT|UID
 	;
 
 childrenSpec
 	:	'{' '}'								->^(CHILDREN_ENC_SPEC )
 	|	'{' childSpec (',' childSpec)* '}'	->^(CHILDREN_ENC_SPEC childSpec+)
-	;	
-	
-childSpec	
+	;
+
+childSpec
 	:	asn1LID? argumentList? encodingSpec	->^(CHILD asn1LID? encodingSpec argumentList?)
 	|	asn1LID asn1Type encodingSpec		->^(CHILD_NEW asn1LID asn1Type encodingSpec)
-	;	
-	
+	;
+
 argumentList
 	:	'<' longFld (',' longFld)*'>' ->^(ARGUMENTS longFld+);
-		
+
 
 /* *************************************************************************************************************************** */
 /* ******************************  ACN PRESENT WHEN EXPRESSIONS*************************************************************** */
@@ -284,22 +284,22 @@ equalityExpression
 			   EQUAL^	relationalExpression
             |  NOTEQUAL^ relationalExpression )*
     ;
-    
+
 relationalExpression
     :    additiveExpression (
-		  LT^   additiveExpression 
-		| LTE^  additiveExpression 
-		| GT^   additiveExpression 
-		| GTE^  additiveExpression 
+		  LT^   additiveExpression
+		| LTE^  additiveExpression
+		| GT^   additiveExpression
+		| GTE^  additiveExpression
 		)?
     ;
 
-    
+
 additiveExpression
     :   multiplicativeExpression
         (
               PLUS^	multiplicativeExpression
-            | MINUS^   multiplicativeExpression  
+            | MINUS^   multiplicativeExpression
 		)*
     ;
 
@@ -312,25 +312,25 @@ multiplicativeExpression
             |  MODULO^ unaryExpression
         )*
     ;
-    
+
 unaryExpression
     :   PLUS^  unaryExpression
     |   MINUS^ unaryExpression
     |   BANG^ unaryExpression
     |   primaryExpression
     ;
-    
-    
-    
+
+
+
 primaryExpression
-    :   '('! conditionalOrExpression ')'!	
-    |   INT	
+    :   '('! conditionalOrExpression ')'!
+    |   INT
 	|   REAL
 	|   UID			//UID referes to a constant declared in the constant section
     |   longFld
     ;
 
-	
+
 
 
 /* *************************************************************************************************************************** */
@@ -341,7 +341,7 @@ primaryExpression
 intExpression 	:	multiplicative_expression (PLUS^ multiplicative_expression  | MINUS^ multiplicative_expression )*
 	;
 
-multiplicative_expression	: power_expression 
+multiplicative_expression	: power_expression
 	(
 			MULTIPLICATION^ power_expression
 		|  	DIVISION^ power_expression
@@ -351,44 +351,44 @@ multiplicative_expression	: power_expression
 
 power_expression	:	unary_expression (POWER_SYMBOL^ power_expression)?	// right associative via tail recursion
 	;
-	
+
 unary_expression
 	: atom
-	| PLUS! atom		
+	| PLUS! atom
 	| MINUS atom	->^(UNARY_MINUS atom)
-	;		
-	
+	;
+
 atom
-	:	INT	
+	:	INT
 	|	UID 			//CONSTANT
-	| '('! intExpression ')'!	
+	| '('! intExpression ')'!
 ;
-	
 
 
-asn1LID	
+
+asn1LID
 	: LID
-	| a=ENDIANNES		-> LID[$a]
+	| a=ENDIANNESS		-> LID[$a]
 	| a=BIG				-> LID[$a]
 	| a=LITTLE			-> LID[$a]
 	| a=ENCODING		-> LID[$a]
 	| a=POS_INT  		-> LID[$a]
 	| a=TWOSCOMPLEMENT	-> LID[$a]
-	| a=SIZE			-> LID[$a]	
-	| a=NULL_TERMINATED -> LID[$a]	
-//	| a=ADJUST			-> LID[$a]		
-	| a=ALIGNTONEXT		-> LID[$a]		
-	| a=BYTE			-> LID[$a]		
-	| a=WORD			-> LID[$a]		
-	| a=DWORD			-> LID[$a]		
-	| a=ENCODE_VALUES	-> LID[$a]		
+	| a=SIZE			-> LID[$a]
+	| a=NULL_TERMINATED -> LID[$a]
+//	| a=ADJUST			-> LID[$a]
+	| a=ALIGNTONEXT		-> LID[$a]
+	| a=BYTE			-> LID[$a]
+	| a=WORD			-> LID[$a]
+	| a=DWORD			-> LID[$a]
+	| a=ENCODE_VALUES	-> LID[$a]
 	| a=TRUE_VALUE		-> LID[$a]
 	| a=FALSE_VALUE		-> LID[$a]
 	| a=PATTERN			-> LID[$a]
 	| a=PRESENT_WHEN	-> LID[$a]
 	| a=DETERMINANT		-> LID[$a]
 	;
-	
+
 modulereference	:	asn1UID;
 
 typereference	:	asn1UID;
@@ -409,7 +409,7 @@ asn1UID
 /* **************************************      LEXER    ************************************************************ */
 /* ***************************************************************************************************************** */
 /* ***************************************************************************************************************** */
-ENDIANNES :	'endianness';
+ENDIANNESS :	'endianness';
 
 BIG 				: 'big';
 LITTLE				: 'little';
@@ -485,8 +485,8 @@ POWER_SYMBOL 	:	'^^';
 
 ASSIG_OP		: '::=';
 DOUBLE_COLON	: '::';
-L_BRACKET	:	'{';	
-R_BRACKET	:	'}';	
+L_BRACKET	:	'{';
+R_BRACKET	:	'}';
 L_PAREN		:	'(';
 R_PAREN		:	')';
 COMMA		:	',';
@@ -509,16 +509,16 @@ OctectStringLiteral	:
 	;
 
 HexByteOrNible	:
-	'0x' ('0'..'9'|'a'..'f'|'A'..'F') ('0'..'9'|'a'..'f'|'A'..'F')? 
+	'0x' ('0'..'9'|'a'..'f'|'A'..'F') ('0'..'9'|'a'..'f'|'A'..'F')?
 	| '\'' ( options {greedy=false;} : .) '\''
-	;	
+	;
 
 
 StringLiteral 	: 	STR+ ;
 
 fragment
 STR 	:	'"' ( options {greedy=false;} : .)* '"' ;
-			
+
 UID  :   ('A'..'Z') ('a'..'z'|'A'..'Z'|'0'..'9'|'-')*
     ;
 
@@ -530,7 +530,7 @@ REAL    :	INT DOT (DIGITS)? (Exponent)?  ;
 INT	:	( '0' | ('1'..'9') ('0'..'9')*);
 
 
-	
+
 fragment
 DIGITS
 	:	('0'..'9')+;
@@ -542,7 +542,7 @@ Exponent : ('e'|'E') ('+'|'-')? ('0'..'9')+ ;
 
 
 WS  :   (' ' | '\t' | '\r' | '\n')+ {$channel=HIDDEN;}
-    ;    
+    ;
 
 COMMENT
     :   '/*' ( options {greedy=false;} : . )* '*/' {$channel=HIDDEN;}

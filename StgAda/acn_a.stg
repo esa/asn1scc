@@ -30,7 +30,7 @@ procedure <sFuncName>_aux(<sVarName> : <sTypeDefName>; bs : in out <rtlModuleNam
 
 >>
 
-EmitTypeAssignment_primitive_encodeMain(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitilialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace) ::= /*nogen*/<<
+EmitTypeAssignment_primitive_encodeMain(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace) ::= /*nogen*/<<
 procedure <sFuncName>(<sVarName> : <sTypeDefName>; Stream : out <sTypeDefName>_ACN_Stream; result : out <rtlModuleName()>.ASN1_RESULT)
 is
 begin
@@ -39,7 +39,7 @@ begin
 end <sFuncName>;
 >>
 
-EmitTypeAssignment_primitive_encode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitilialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName) ::= <<
+EmitTypeAssignment_primitive_encode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName) ::= <<
 procedure <sFuncName>_aux(<sVarName> : <sTypeDefName>; bs : in out <rtlModuleName()>.encoding.Bitstream; result : OUT <rtlModuleName()>.ASN1_RESULT)
 is
 <if(bBsIsUnreferenced)>
@@ -62,7 +62,7 @@ begin
     <sContent>
     <endif>
 end <sFuncName>_aux;
-<EmitTypeAssignment_primitive_encodeMain(sVarName=sVarName, sStar=sStar, sFuncName=sFuncName, soIValidFuncName=soIValidFuncName, sTypeDefName=sTypeDefName, arrsLocalVariables=arrsLocalVariables, sContent=sContent, soSparkAnnotations=soSparkAnnotations, sInitilialExp=sInitilialExp, arrsAcnPrms=arrsAcnPrms, arrsAcnParamNames=arrsAcnParamNames, bEmptyEncodingSpace=bEmptyEncodingSpace)>
+<EmitTypeAssignment_primitive_encodeMain(sVarName=sVarName, sStar=sStar, sFuncName=sFuncName, soIValidFuncName=soIValidFuncName, sTypeDefName=sTypeDefName, arrsLocalVariables=arrsLocalVariables, sContent=sContent, soSparkAnnotations=soSparkAnnotations, sInitialExp=sInitialExp, arrsAcnPrms=arrsAcnPrms, arrsAcnParamNames=arrsAcnParamNames, bEmptyEncodingSpace=bEmptyEncodingSpace)>
 >>
 
 
@@ -76,7 +76,7 @@ procedure <sFuncName>_aux(<sVarName>:out <sTypeDefName>; bs : in out <rtlModuleN
 ;
 >>
 
-EmitTypeAssignment_primitive_decodeMain(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitilialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace) ::= /*nogen*/<<
+EmitTypeAssignment_primitive_decodeMain(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace) ::= /*nogen*/<<
 PROCEDURE <sFuncName>(<sVarName>: out <sTypeDefName>; Stream : in out <sTypeDefName>_ACN_Stream; result : OUT <rtlModuleName()>.ASN1_RESULT<if(arrsAcnPrms)>; <arrsAcnPrms; separator="; "><endif>)
 is
 begin
@@ -91,7 +91,7 @@ begin
 end <sFuncName>;
 >>
 
-EmitTypeAssignment_primitive_decode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitilialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName) ::= <<
+EmitTypeAssignment_primitive_decode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName) ::= <<
 <if(bVarNameIsUnreferenced)>
 pragma Warnings (Off, "unused initial value of ""<sVarName>""");
 
@@ -112,7 +112,7 @@ pragma Warnings (On, "unused initial value of ""<sVarName>""");
 
 <endif>
 
-<EmitTypeAssignment_primitive_decodeMain(sVarName=sVarName, sStar=sStar, sFuncName=sFuncName, soIValidFuncName=soIValidFuncName, sTypeDefName=sTypeDefName, arrsLocalVariables=arrsLocalVariables, sContent=sContent, soSparkAnnotations=soSparkAnnotations, sInitilialExp=sInitilialExp, arrsAcnPrms=arrsAcnPrms, arrsAcnParamNames=arrsAcnParamNames, bEmptyEncodingSpace=bEmptyEncodingSpace)>
+<EmitTypeAssignment_primitive_decodeMain(sVarName=sVarName, sStar=sStar, sFuncName=sFuncName, soIValidFuncName=soIValidFuncName, sTypeDefName=sTypeDefName, arrsLocalVariables=arrsLocalVariables, sContent=sContent, soSparkAnnotations=soSparkAnnotations, sInitialExp=sInitialExp, arrsAcnPrms=arrsAcnPrms, arrsAcnParamNames=arrsAcnParamNames, bEmptyEncodingSpace=bEmptyEncodingSpace)>
 >>
 
 
@@ -121,7 +121,7 @@ with
     Pre => bs.Current_Bit_Pos \< Natural'Last - <sTypeDefName>_REQUIRED_BITS_FOR_ACN_ENCODING
       and then bs.Size_In_Bytes \< Positive'Last / 8
       and then bs.Current_Bit_Pos + <sTypeDefName>_REQUIRED_BITS_FOR_ACN_ENCODING \<= bs.Size_In_Bytes * 8,
-       Post => 
+       Post =>
          (result.Success and bs.Current_Bit_Pos \>= bs'Old.Current_Bit_Pos and bs.Current_Bit_Pos \<= bs'Old.Current_Bit_Pos + <sTypeDefName>_REQUIRED_BITS_FOR_ACN_ENCODING)
        or
          not result.Success
@@ -132,7 +132,7 @@ with
     Pre => bs.Current_Bit_Pos \< Natural'Last - <sTypeDefName>_REQUIRED_BITS_FOR_ACN_ENCODING
       and then bs.Size_In_Bytes \< Positive'Last / 8
       and then bs.Current_Bit_Pos + <sTypeDefName>_REQUIRED_BITS_FOR_ACN_ENCODING \<= bs.Size_In_Bytes * 8,
-       Post => 
+       Post =>
          (result.Success and bs.Current_Bit_Pos \>= bs'Old.Current_Bit_Pos and bs.Current_Bit_Pos \<= bs'Old.Current_Bit_Pos + <sTypeDefName>_REQUIRED_BITS_FOR_ACN_ENCODING)
        or
          not result.Success
@@ -154,19 +154,19 @@ end if;
 MFen(soMF, soMFM, p) /*nogen*/ ::= "<if(soMF)><soMFM>.<soMF>_encode(<p>)<else><p><endif>"
 
 
-alignToNext_encode(sMainBody, sAligmentValue, nAligmentValue) ::= <<
---align to next <sAligmentValue>
-if (bs.Current_Bit_Pos mod <nAligmentValue>) /= 0 then
-    bs.Current_Bit_Pos := bs.Current_Bit_Pos + (<nAligmentValue> - (bs.Current_Bit_Pos mod <nAligmentValue>));
+alignToNext_encode(sMainBody, sAlignmentValue, nAlignmentValue) ::= <<
+--align to next <sAlignmentValue>
+if (bs.Current_Bit_Pos mod <nAlignmentValue>) /= 0 then
+    bs.Current_Bit_Pos := bs.Current_Bit_Pos + (<nAlignmentValue> - (bs.Current_Bit_Pos mod <nAlignmentValue>));
 end if;
 <sMainBody>
 >>
 
 
-alignToNext_decode(sMainBody, sAligmentValue, nAligmentValue) ::= <<
---align to next <sAligmentValue>
-if (bs.Current_Bit_Pos mod <nAligmentValue>) /= 0 then
-    bs.Current_Bit_Pos := bs.Current_Bit_Pos + (<nAligmentValue> - (bs.Current_Bit_Pos mod <nAligmentValue>));
+alignToNext_decode(sMainBody, sAlignmentValue, nAlignmentValue) ::= <<
+--align to next <sAlignmentValue>
+if (bs.Current_Bit_Pos mod <nAlignmentValue>) /= 0 then
+    bs.Current_Bit_Pos := bs.Current_Bit_Pos + (<nAlignmentValue> - (bs.Current_Bit_Pos mod <nAlignmentValue>));
 end if;
 <sMainBody>
 >>
@@ -613,6 +613,7 @@ adaasn1rtl.encoding.acn.Acn_Dec_Boolean_false_pattern(bs, <p>, BitArray'(<arrsBi
 result.ErrorCode := <sErrCode>;
 >>
 
+Null_declare(p) ::= ""
 
 Null_pattern_encode(p, arruNullValueAsByteArray, nSize, arrsBits, sErrCode, bSavePosition) ::= <<
 adaasn1rtl.encoding.acn.Acn_Enc_NullType_pattern(bs, <p>, BitArray'(<arrsBits; separator=",">));
@@ -662,7 +663,7 @@ Enumerated_item_encode(p, sName, sEnumHolder, nItemIdxOrVal, sIntVal) ::= "when 
 Enumerated_item_decode(p, sName, sEnumHolder, nItemIdxOrVal, sIntVal) ::= "when <nItemIdxOrVal> => <p> := <sName>;"
 
 EnumeratedEncIdx_encode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, sActualCodecFunc, sIntVal) ::= <<
-case <p> is 
+case <p> is
     <arrsItem; separator="\n">
 end case;
 <sActualCodecFunc>
@@ -709,9 +710,9 @@ adaasn1rtl.encoding.acn.Acn_Dec_String_Ascii_FixSize(bs, <p>, result);
 result.ErrorCode := <sErrCode>;
 >>
 
-Acn_String_Ascii_Null_Teminated_encode(p, sErrCode, nAsn1Max, arruNullBytes) ::= "adaasn1rtl.encoding.acn.Acn_Enc_String_Ascii_Null_Teminated(bs, adaasn1rtl.OctetBuffer'(<arruNullBytes : {b|<i>=><b>}; separator=\", \">), <p>);"
-Acn_String_Ascii_Null_Teminated_decode(p, sErrCode, nAsn1Max, arruNullBytes) ::= <<
-adaasn1rtl.encoding.acn.Acn_Dec_String_Ascii_Null_Teminated(bs, adaasn1rtl.OctetBuffer'(<arruNullBytes : {b|<i>=><b>}; separator=", ">), <p>, result);
+Acn_String_Ascii_Null_Terminated_encode(p, sErrCode, nAsn1Max, arruNullBytes) ::= "adaasn1rtl.encoding.acn.Acn_Enc_String_Ascii_Null_Terminated(bs, adaasn1rtl.OctetBuffer'(<arruNullBytes : {b|<i>=><b>}; separator=\", \">), <p>);"
+Acn_String_Ascii_Null_Terminated_decode(p, sErrCode, nAsn1Max, arruNullBytes) ::= <<
+adaasn1rtl.encoding.acn.Acn_Dec_String_Ascii_Null_Terminated(bs, adaasn1rtl.OctetBuffer'(<arruNullBytes : {b|<i>=><b>}; separator=", ">), <p>, result);
 result.ErrorCode := <sErrCode>;
 >>
 
@@ -765,7 +766,7 @@ result.ErrorCode := <sErrCode>;
 
 
 
-loopFixedItem_enc (i, fixedSize, nfixedSizeUperLimit, sInternalItem, nCurOffset, nAlignSize, nIntItemMinSize, nIntItemMaxSize)::= /*nogen*/<<    
+loopFixedItem_enc (i, fixedSize, nfixedSizeUperLimit, sInternalItem, nCurOffset, nAlignSize, nIntItemMinSize, nIntItemMaxSize)::= /*nogen*/<<
 <i> := 1;
 while <i>\<= <fixedSize> loop
     pragma Loop_Invariant (<i> >=1 and <i>\<=<fixedSize>);
@@ -776,7 +777,7 @@ while <i>\<= <fixedSize> loop
 end loop;
 >>
 
-loopFixedItem_dec (i, fixedSize, nfixedSizeUperLimit, sInternalItem, nCurOffset, nAlignSize, nIntItemMinSize, nIntItemMaxSize)::= /*nogen*/<<    
+loopFixedItem_dec (i, fixedSize, nfixedSizeUperLimit, sInternalItem, nCurOffset, nAlignSize, nIntItemMinSize, nIntItemMaxSize)::= /*nogen*/<<
 <i> := 1;
 while <i>\<= <fixedSize> AND result.Success loop
     pragma Loop_Invariant (<i> >=1 and <i>\<=<fixedSize>);
@@ -798,12 +799,12 @@ end loop;
 
 
 
-sqf_external_field_encode(p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, sExtFld, nAlignSize, sErrCode, nIntItemMinSize, nIntItemMaxSize) ::= <<
+sqf_external_field_encode(sTypeDefName, p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, sExtFld, nAlignSize, sErrCode, nIntItemMinSize, nIntItemMaxSize, sChildInitExpr) ::= <<
 <loopFixedItem_enc(i=i, sInternalItem=sInternalItem, fixedSize=[p,".Length"], nfixedSizeUperLimit = nSizeMax, nCurOffset="0", nAlignSize=nAlignSize, nIntItemMinSize=nIntItemMinSize, nIntItemMaxSize=nIntItemMaxSize)>
 >>
 
 
-sqf_external_field_decode(p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, sExtFld, nAlignSize, sErrCode, nIntItemMinSize, nIntItemMaxSize) ::= <<
+sqf_external_field_decode(sTypeDefName, p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, sExtFld, nAlignSize, sErrCode, nIntItemMinSize, nIntItemMaxSize, sChildInitExpr) ::= <<
 result := <rtlModuleName()>.ASN1_RESULT'(Success => <if(noSizeMin)><noSizeMin>\<=<sExtFld> AND <endif><sExtFld>\<=<nSizeMax>, ErrorCode => <sErrCode>);
 if result.Success then
     <p>.Length := Integer(<sExtFld>);
@@ -812,12 +813,12 @@ end if;
 >>
 
 
-sqf_external_field_fix_size_encode(p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, sExtFld, nAlignSize, sErrCode, nIntItemMinSize, nIntItemMaxSize) ::= <<
+sqf_external_field_fix_size_encode(sTypeDefName, p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, sExtFld, nAlignSize, sErrCode, nIntItemMinSize, nIntItemMaxSize, sChildInitExpr) ::= <<
 <loopFixedItem_enc(i=i, sInternalItem=sInternalItem, fixedSize=[nSizeMax], nfixedSizeUperLimit = nSizeMax, nCurOffset="0", nAlignSize=nAlignSize, nIntItemMinSize=nIntItemMinSize, nIntItemMaxSize=nIntItemMaxSize)>
 >>
 
 
-sqf_external_field_fix_size_decode(p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, sExtFld, nAlignSize, sErrCode, nIntItemMinSize, nIntItemMaxSize) ::= <<
+sqf_external_field_fix_size_decode(sTypeDefName, p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, sExtFld, nAlignSize, sErrCode, nIntItemMinSize, nIntItemMaxSize, sChildInitExpr) ::= <<
 result := <rtlModuleName()>.ASN1_RESULT'(Success => <if(noSizeMin)><noSizeMin>\<=<sExtFld> AND <endif><sExtFld>\<=<nSizeMax>, ErrorCode => <sErrCode>);
 if result.Success then
     <loopFixedItem_dec(i=i, sInternalItem=sInternalItem, fixedSize=[nSizeMax], nfixedSizeUperLimit = nSizeMax, nCurOffset="0", nAlignSize=nAlignSize, nIntItemMinSize=nIntItemMinSize, nIntItemMaxSize=nIntItemMaxSize)>
@@ -843,7 +844,7 @@ end loop;
 
 if result.Success and <i> = <nSizeMax>+1  then
 	-- maximum number of elements was decoded. Makesure that the following bits is the termination pattern
-	result.Success := <rtlModuleName()>.encoding.BitStream_bitPatternMatches(bs,<rtlModuleName()>.OctetBuffer'(<arruNullBytes:{b|<i>=>16#<b;format="X2">#}; wrap, anchor, separator=", ">), <nBitPatternLength>);	
+	result.Success := <rtlModuleName()>.encoding.BitStream_bitPatternMatches(bs,<rtlModuleName()>.OctetBuffer'(<arruNullBytes:{b|<i>=>16#<b;format="X2">#}; wrap, anchor, separator=", ">), <nBitPatternLength>);
 	if result.Success then
 		<rtlModuleName()>.encoding.BitStream_SkipBits(bs, <nBitPatternLength>);
 		<p>.Length := <i>-1;
@@ -877,35 +878,37 @@ ReferenceType1_decode(p, sName, bAcnEncodeFuncRequiresResult, arrsArgs, arrsLoca
 
 /* SEQUENCE*/
 
-sequence_presense_optChild_encode(p, sAcc, sChName, sErrCode) ::= "<rtlModuleName()>.encoding.BitStream_AppendBit(bs,<p>.Exist.<sChName>);"
-sequence_presense_optChild_decode(p, sAcc, sChName, sErrCode) ::= <<
+sequence_presence_optChild_encode(p, sAcc, sChName, soExistVar, sErrCode) ::= "<rtlModuleName()>.encoding.BitStream_AppendBit(bs,<p>.Exist.<sChName>);"
+sequence_presence_optChild_decode(p, sAcc, sChName, soExistVar, sErrCode) ::= <<
 result.ErrorCode := <sErrCode>;
-<rtlModuleName()>.encoding.BitStream_ReadBit(bs,<p>.Exist.<sChName>, result.Success);
+<rtlModuleName()>.encoding.BitStream_ReadBit(bs, <soExistVar>, result.Success);
+<p>.Exist.<sChName> := <soExistVar>;
 >>
 
-sequence_presense_optChild_pres_acn_expression_encode(p, sAcc, sChName, sAcnExpression, sErrCode) ::= <<
+sequence_presence_optChild_pres_acn_expression_encode(p, sAcc, sChName, sAcnExpression, soExistVar, sErrCode) ::= <<
 result := <rtlModuleName()>.ASN1_RESULT'(Success => <p>.Exist.<sChName> = (if (<sAcnExpression>) then 1 else 0), ErrorCode => <sErrCode>);
 >>
-sequence_presense_optChild_pres_acn_expression_decode(p, sAcc, sChName, sAcnExpression, sErrCode) ::= <<
-<p>.Exist.<sChName> := (if (<sAcnExpression>) then 1 else 0);
+sequence_presence_optChild_pres_acn_expression_decode(p, sAcc, sChName, sAcnExpression, soExistVar, sErrCode) ::= <<
+<soExistVar> := (if (<sAcnExpression>) then 1 else 0);
+<p>.Exist.<sChName> := <soExistVar>;
 result.Success := true;
 >>
 
 
-sequence_presense_optChild_pres_bool_encode(p, sAcc, sChName, sExtFldName) ::= ""
-sequence_presense_optChild_pres_bool_decode(p, sAcc, sChName, sExtFldName) ::= <<
+sequence_presence_optChild_pres_bool_encode(p, sAcc, sChName, sExtFldName) ::= ""
+sequence_presence_optChild_pres_bool_decode(p, sAcc, sChName, sExtFldName) ::= <<
 <p>.Exist.<sChName> := (if <sExtFldName> then 1 else 0);
 result.Success := true;
 >>
 
-sequence_presense_optChild_pres_int_encode(p, sAcc, sChName, sExtFldName, nIntVal) ::= ""
-sequence_presense_optChild_pres_int_decode(p, sAcc, sChName, sExtFldName, nIntVal) ::= <<
+sequence_presence_optChild_pres_int_encode(p, sAcc, sChName, sExtFldName, nIntVal) ::= ""
+sequence_presence_optChild_pres_int_decode(p, sAcc, sChName, sExtFldName, nIntVal) ::= <<
 <p>.Exist.<sChName> := (if <sExtFldName> = <nIntVal> then 1 else 0);
 result.Success := true;
 >>
 
-sequence_presense_optChild_pres_str_encode(p, sAcc, sChName, sExtFldName, sVal) ::= ""
-sequence_presense_optChild_pres_str_decode(p, sAcc, sChName, sExtFldName, sVal) ::= <<
+sequence_presence_optChild_pres_str_encode(p, sAcc, sChName, sExtFldName, sVal) ::= ""
+sequence_presence_optChild_pres_str_decode(p, sAcc, sChName, sExtFldName, sVal) ::= <<
 <p>.Exist.<sChName> := (if <sExtFldName> = "<nIntVal>" then 1 else 0);
 result.Success := true;
 >>
@@ -934,7 +937,7 @@ sequence_save_bitstream_decode(sBitStreamPositionsLocalVar, sChName) ::=<<
 
 
 sequence_acn_child_encode(sChName, sChildContent, sErrCode, soSaveBitStrmPosStatement) ::= <<
---Encode <sChName> 
+--Encode <sChName>
 if <sChName>_is_initialized then
     result := <rtlModuleName()>.ASN1_RESULT'(Success => True, ErrorCode => 0);
     <soSaveBitStrmPosStatement>
@@ -944,39 +947,39 @@ else
 end if;
 >>
 sequence_acn_child_decode(sChName, sChildContent, sErrCode, soSaveBitStrmPosStatement) ::= <<
---Decode <sChName> 
+--Decode <sChName>
 <soSaveBitStrmPosStatement>
 <sChildContent>
 >>
 
 
 sequence_mandatory_child_encode(sChName, sChildContent, soSaveBitStrmPosStatement) ::= <<
--- Encode <sChName> 
+-- Encode <sChName>
 <soSaveBitStrmPosStatement>
 <sChildContent>
 >>
 sequence_mandatory_child_decode(sChName, sChildContent, soSaveBitStrmPosStatement) ::= <<
--- Decode <sChName> 
+-- Decode <sChName>
 <soSaveBitStrmPosStatement>
 <sChildContent>
 >>
 
-sequence_always_present_child_encode(p, sAcc, sChName, soChildContent, soSaveBitStrmPosStatement) ::= <<
+sequence_always_present_child_encode(p, sAcc, sChName, soChildContent, soChildExpr, soSaveBitStrmPosStatement) ::= <<
 -- Encode <sChName>
 -- marked as ALWAYS PRESENT, so do not look in exist
 <soSaveBitStrmPosStatement>
 <if(soChildContent)><soChildContent><else>null;<endif>
 >>
 
-sequence_always_present_child_decode(p, sAcc, sChName, soChildContent, soSaveBitStrmPosStatement) ::= <<
+sequence_always_present_child_decode(p, sAcc, sChName, soChildContent, soChildExpr, soSaveBitStrmPosStatement) ::= <<
 -- Decode <sChName>
 -- marked as ALWAYS PRESENT, so do not look in exist
 <soSaveBitStrmPosStatement>
-<p>.Exist.<sChName> := 1; 
+<p>.Exist.<sChName> := 1;
 <soChildContent>
 >>
 
-sequence_always_absent_child_encode(p, sAcc, sChName, sChildContent, soSaveBitStrmPosStatement) ::= <<
+sequence_always_absent_child_encode(p, sAcc, sChName, sChildContent, sChildTypedef, soSaveBitStrmPosStatement) ::= <<
 -- Encode <sChName>
 -- marked as ALWAYS ABSENT, so do not encode anything
 <soSaveBitStrmPosStatement>
@@ -984,7 +987,7 @@ null;
 
 >>
 
-sequence_always_absent_child_decode(p, sAcc, sChName, sChildContent, soSaveBitStrmPosStatement) ::= <<
+sequence_always_absent_child_decode(p, sAcc, sChName, sChildContent, sChildTypedef, soSaveBitStrmPosStatement) ::= <<
 -- Decode <sChName>
 -- marked as ALWAYS ABSENT, so do not decode anything
 <p>.Exist.<sChName> := 0;
@@ -993,7 +996,7 @@ result := <rtlModuleName()>.ASN1_RESULT'(Success => true, ErrorCode => 0);
 >>
 
 
-sequence_optional_child_encode(p, sAcc, sChName, sChildContent, soSaveBitStrmPosStatement) ::= <<
+sequence_optional_child_encode(p, sAcc, sChName, sChildContent, soExistVar, soChildExpr, sChildTypedef, soSaveBitStrmPosStatement) ::= <<
 -- Encode <sChName>
 <soSaveBitStrmPosStatement>
 if <p>.Exist.<sChName> = 1 then
@@ -1001,7 +1004,7 @@ if <p>.Exist.<sChName> = 1 then
 end if;
 >>
 
-sequence_optional_child_decode(p, sAcc, sChName, sChildContent, soSaveBitStrmPosStatement) ::= <<
+sequence_optional_child_decode(p, sAcc, sChName, sChildContent, soExistVar, soChildExpr, sChildTypedef, soSaveBitStrmPosStatement) ::= <<
 -- Decode <sChName>
 <soSaveBitStrmPosStatement>
 if <p>.Exist.<sChName> = 1 then
@@ -1009,27 +1012,12 @@ if <p>.Exist.<sChName> = 1 then
 end if;
 >>
 
-
-sequence_optional_always_present_child_encode(p, sAcc, sChName, sChildContent, soSaveBitStrmPosStatement) ::= <<
--- Encode <sChName> (always present, do not check for presence)
-<soSaveBitStrmPosStatement>
-<sChildContent>
->>
-
-sequence_optional_always_present_child_decode(p, sAcc, sChName, sChildContent, soSaveBitStrmPosStatement) ::= <<
--- Decode <sChName> (always present, do not check for presence)
-<soSaveBitStrmPosStatement>
-<p>.Exist.<sChName> := 1;
-<sChildContent>
+sequence_default_child_encode(p, sAcc, sChName, sChildContent, sInitWithDefaultValue, soExistVar, soChildExpr, sChildTypedef, soSaveBitStrmPosStatement) ::= <<
+<sequence_optional_child_encode(p=p, sAcc=sAcc, sChName=sChName, sChildContent=sChildContent, soExistVar=soExistVar, soChildExpr=soChildExpr, sChildTypedef=sChildTypedef, soSaveBitStrmPosStatement=soSaveBitStrmPosStatement)>
 >>
 
 
-sequence_default_child_encode(p, sAcc, sChName, sChildContent, sInitWithDefaultValue, soSaveBitStrmPosStatement) ::= <<
-<sequence_optional_child_encode(p=p, sAcc=sAcc, sChName=sChName, sChildContent=sChildContent, soSaveBitStrmPosStatement=soSaveBitStrmPosStatement)>
->>
-
-
-sequence_default_child_decode(p, sAcc, sChName, sChildContent, sInitWithDefaultValue, soSaveBitStrmPosStatement) ::= <<
+sequence_default_child_decode(p, sAcc, sChName, sChildContent, sInitWithDefaultValue, soExistVar, soChildExpr, sChildTypedef, soSaveBitStrmPosStatement) ::= <<
 -- Decode <sChName>
 <soSaveBitStrmPosStatement>
 if <p>.Exist.<sChName> = 1 then
@@ -1129,7 +1117,7 @@ end case;
 
 
 
-/* Choice with presense determinants */
+/* Choice with presence determinants */
 
 
 ChoiceChild_preWhen_bool_condition(sExtFld) ::= "<sExtFld>"
@@ -1176,28 +1164,28 @@ ChoiceChild_preWhen_decode(p, sAcc, sChildID, sChildBody, arrsConditions, bFirst
 MultiAcnUpdate_checkEqual_pri0(p1,p2) ::= "(<p1> = <p2>)"
 MultiAcnUpdate_checkEqual_str0(p1,p2) ::= "(<p1> = <p2>)"
 
-MultiAcnUpdate_get_first_init_value_pri(sV0, sVi, bIsFirst) ::= <<
+MultiAcnUpdate_get_first_init_value_pri(sV0, sVi, sChPath, bIsFirst, bIsSingleElement) ::= <<
 <if(bIsFirst)>if<else>elsif<endif> <sVi>_is_initialized then		--COVERAGE_IGNORE
     <sV0> := <sVi>;													--COVERAGE_IGNORE
 >>
 
-MultiAcnUpdate_get_first_init_value_str(sV0, sVi, bIsFirst) ::= <<
-<MultiAcnUpdate_get_first_init_value_pri(sV0=sV0, sVi=sVi, bIsFirst=bIsFirst)>
+MultiAcnUpdate_get_first_init_value_str(sV0, sVi, sChPath, bIsFirst, bIsSingleElement) ::= <<
+<MultiAcnUpdate_get_first_init_value_pri(sV0=sV0, sVi=sVi, sChPath=sChPath, bIsFirst=bIsFirst, bIsSingleElement=bIsSingleElement)>
 >>
 
-MultiAcnUpdate_checkEqual_pri(sV0, sVi) ::= "((<sVi>_is_initialized and <sV0> = <sVi>) or not <sVi>_is_initialized)"
-MultiAcnUpdate_checkEqual_str(sV0, sVi) ::= "((<sVi>_is_initialized and <sV0> = <sVi>) or not <sVi>_is_initialized)"
+MultiAcnUpdate_checkEqual_pri(sV0, sVi, sChPath, bIsAlwaysInit) ::= "((<sVi>_is_initialized and <sV0> = <sVi>) or not <sVi>_is_initialized)"
+MultiAcnUpdate_checkEqual_str(sV0, sVi, sChPath, bIsAlwaysInit) ::= "((<sVi>_is_initialized and <sV0> = <sVi>) or not <sVi>_is_initialized)"
 
-MultiAcnUpdate(v, sV0, sErrCode, arrsLocalDeclarations, arrsLocalUpdateStatements, arrsGetFirstIntValue, arrsLocalCheckEquality) ::= <<
+MultiAcnUpdate(v, sV0, sErrCode, arrsLocalDeclarations, arrsLocalUpdateStatements, arrsGetFirstIntValue, bIsFirstIntValueSingle, arrsLocalCheckEquality, sDefaultExpr) ::= <<
 declare
     <arrsLocalDeclarations; separator="\n">
 begin
-    
+
     <arrsLocalUpdateStatements; separator="\n">
-    
-    <arrsGetFirstIntValue; separator="\n"> 
-    else 
-        result := <rtlModuleName()>.ASN1_RESULT'(Success => False, ErrorCode => <sErrCode>);		--COVERAGE_IGNORE 
+
+    <arrsGetFirstIntValue; separator="\n">
+    else
+        result := <rtlModuleName()>.ASN1_RESULT'(Success => False, ErrorCode => <sErrCode>);		--COVERAGE_IGNORE
     end if;
 
     result := <rtlModuleName()>.ASN1_RESULT'(Success => result.Success and (<arrsLocalCheckEquality; separator=" and ">), ErrorCode => <sErrCode>);
@@ -1236,7 +1224,7 @@ getSizeableSize(p, sAcc) ::= "<p>.Length"
 
 
 
-ChoiceDependencyPres(sChPath, sAcc, arrsChoiceItems) ::= <<
+ChoiceDependencyPres(v, sChPath, sAcc, arrsChoiceItems) ::= <<
 case <sChPath><sAcc>kind is
     <arrsChoiceItems; separator="\n">
 end case;
@@ -1245,24 +1233,24 @@ end case;
 ChoiceDependencyIntPres_child(v, sChildNamePrese, nChildRetVal) ::= <<
 when <sChildNamePrese> =>
     <v>_is_initialized := True;
-	<v> := <nChildRetVal>; 
+	<v> := <nChildRetVal>;
 >>
 
 ChoiceDependencyStrPres_child(v, sChildNamePrese, sChildRetVal, arrsNullChars) ::= <<
 when <sChildNamePrese> =>
     <v>_is_initialized := True;
-	<v> := "<sChildRetVal>"<if(arrsNullChars)> & <arrsNullChars; wrap, anchor, separator=" & "><endif>; 
+	<v> := "<sChildRetVal>"<if(arrsNullChars)> & <arrsNullChars; wrap, anchor, separator=" & "><endif>;
 >>
 
 
 
-ChoiceDependencyEnum_Item(v, sChildCID, sChildCIDHolder, sEnumCName) ::= <<
+ChoiceDependencyEnum_Item(v, sChildCID, sChildCIDHolder, sEnumCName, bIsOptional) ::= <<
 when <sChildCID> =>
     <v>_is_initialized := True;
-	<v> := <sEnumCName>; 
+	<v> := <sEnumCName>;
 >>
 
-ChoiceDependencyEnum(sChPath, sAcc, arrsChoiceEnumItems) ::= <<
+ChoiceDependencyEnum(sV, sChPath, sAcc, arrsChoiceEnumItems, bIsOptional, sDefaultExpr) ::= <<
 case <sChPath><sAcc>kind is
     <arrsChoiceEnumItems; separator="\n">
 end case;
@@ -1270,7 +1258,7 @@ end case;
 
 
 
-checkAccessPath(arrsCheckPaths, sUpdateStatement) ::= <<
+checkAccessPath(arrsCheckPaths, sUpdateStatement, v, sInitExpr) ::= <<
 if (<arrsCheckPaths; separator=" && ">) then
     <sUpdateStatement>
 end if;
@@ -1349,15 +1337,15 @@ begin
 	end if;
 
 end;
-	
+
 >>
 
 
-oct_external_field_encode(p, sAcc, noSizeMin, nSizeMax, sExtFld, nAlignSize, sErrCode) ::= <<
+oct_external_field_encode(sTypedefName, p, sAcc, noSizeMin, nSizeMax, sExtFld, nAlignSize, sErrCode) ::= <<
 adaasn1rtl.encoding.uper.BitStream_EncodeOctetString_no_length(bs, <p><sAcc>Data, Integer(<p><sAcc>Length));
 >>
 
-oct_external_field_decode(p, sAcc, noSizeMin, nSizeMax, sExtFld, nAlignSize, sErrCode) ::= <<
+oct_external_field_decode(sTypedefName, p, sAcc, noSizeMin, nSizeMax, sExtFld, nAlignSize, sErrCode) ::= <<
 result := <rtlModuleName()>.ASN1_RESULT'(Success => <if(noSizeMin)><noSizeMin>\<=<sExtFld> AND <endif><sExtFld>\<=<nSizeMax>, ErrorCode => <sErrCode>);
 if result.Success then
     <p>.Length := Integer(<sExtFld>);
@@ -1365,12 +1353,12 @@ if result.Success then
 end if;
 >>
 
-oct_external_field_fix_size_encode(p, sAcc, noSizeMin, nSizeMax, sExtFld, nAlignSize, sErrCode) ::= <<
+oct_external_field_fix_size_encode(sTypedefName, p, sAcc, noSizeMin, nSizeMax, sExtFld, nAlignSize, sErrCode) ::= <<
 adaasn1rtl.encoding.uper.BitStream_EncodeOctetString_no_length(bs, <p><sAcc>Data, Integer(<nSizeMax>));
 >>
 
 
-oct_external_field_fix_size_decode(p, sAcc, noSizeMin, nSizeMax, sExtFld, nAlignSize, sErrCode) ::= <<
+oct_external_field_fix_size_decode(sTypedefName, p, sAcc, noSizeMin, nSizeMax, sExtFld, nAlignSize, sErrCode) ::= <<
 result := <rtlModuleName()>.ASN1_RESULT'(Success => <if(noSizeMin)><noSizeMin>\<=<sExtFld> AND <endif><sExtFld>\<=<nSizeMax>, ErrorCode => <sErrCode>);
 if result.Success then
     adaasn1rtl.encoding.uper.BitStream_DecodeOctetString_no_length(bs, <p><sAcc>Data, Integer(<nSizeMax>), result.success);
@@ -1378,11 +1366,11 @@ end if;
 >>
 
 
-bit_string_external_field_encode(p, sErrCode, sAcc, noSizeMin, nSizeMax, sExtFld) ::= <<
+bit_string_external_field_encode(sTypeDefName, p, sErrCode, sAcc, noSizeMin, nSizeMax, sExtFld) ::= <<
 adaasn1rtl.encoding.BitStream_AppendBitArray(bs, <p><sAcc>Data, Integer(<sExtFld>));
 >>
 
-bit_string_external_field_decode(p, sErrCode, sAcc, noSizeMin, nSizeMax, sExtFld) ::= <<
+bit_string_external_field_decode(sTypeDefName, p, sErrCode, sAcc, noSizeMin, nSizeMax, sExtFld) ::= <<
 result := <rtlModuleName()>.ASN1_RESULT'(Success => <if(noSizeMin)><noSizeMin>\<=<sExtFld> AND <endif><sExtFld>\<=<nSizeMax>, ErrorCode => <sErrCode>);
 if result.Success then
    <p>.Length := Integer(<sExtFld>);
@@ -1390,23 +1378,23 @@ if result.Success then
 end if;
 >>
 
-bit_string_external_field_fixed_size_encode(p, sErrCode, sAcc, noSizeMin, nSizeMax, sExtFld) ::= <<
+bit_string_external_field_fixed_size_encode(sTypeDefName, p, sErrCode, sAcc, noSizeMin, nSizeMax, sExtFld) ::= <<
 adaasn1rtl.encoding.BitStream_AppendBitArray(bs, <p><sAcc>Data, Integer(<nSizeMax>));
 >>
 
-bit_string_external_field_fixed_size_decode(p, sErrCode, sAcc, noSizeMin, nSizeMax, sExtFld) ::= <<
+bit_string_external_field_fixed_size_decode(sTypeDefName, p, sErrCode, sAcc, noSizeMin, nSizeMax, sExtFld) ::= <<
 result := <rtlModuleName()>.ASN1_RESULT'(Success => <if(noSizeMin)><noSizeMin>\<=<sExtFld> AND <endif><sExtFld>\<=<nSizeMax>, ErrorCode => <sErrCode>);
 if result.Success then
     adaasn1rtl.encoding.BitStream_ReadBitArray(bs, <p><sAcc>Data, Integer(<nSizeMax>), result.success);
 end if;
 >>
 
-bit_string_null_terminated_encode(p, sErrCode, sAcc, i, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength) ::= <<
+bit_string_null_terminated_encode(sTypeDefName, p, sErrCode, sAcc, i, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength) ::= <<
 adaasn1rtl.encoding.BitStream_AppendBitArray(bs, <p><sAcc>Data, <p><sAcc>Length);
 <rtlModuleName()>.encoding.BitStream_AppendBits(bs, <rtlModuleName()>.OctetBuffer'(<arruNullBytes:{b|<i>=>16#<b;format="X2">#}; wrap, anchor, separator=", ">), <nBitPatternLength>);
 >>
 
-bit_string_null_terminated_decode(p, sErrCode, sAcc, i, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength)  ::= <<
+bit_string_null_terminated_decode(sTypeDefName, p, sErrCode, sAcc, i, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength)  ::= <<
 <rtlModuleName()>.encoding.BitStream_ReadBits_nullterminated(bs, <p><sAcc>Data, <p><sAcc>Length, <rtlModuleName()>.OctetBuffer'(<arruNullBytes:{b|<i>=>16#<b;format="X2">#}; wrap, anchor, separator=", ">), <nBitPatternLength>, result.Success);
 if not result.Success then
     result.errorcode := <sErrCode>;		-- COVERAGE_IGNORE
@@ -1428,8 +1416,8 @@ while result.Success and then <i>\<= <nSizeMax> and then not <rtlModuleName()>.e
 end loop;
 
 if result.Success and <i> = <nSizeMax>+1  then
-	-- maximum number of elements was decoded. Makesure that the following bits is the termination pattern
-	result.Success := <rtlModuleName()>.encoding.BitStream_bitPatternMatches(bs,<rtlModuleName()>.OctetBuffer'(<arruNullBytes:{b|<i>=>16#<b;format="X2">#}; wrap, anchor, separator=", ">), <nBitPatternLength>);	
+	-- maximum number of elements was decoded. Make sure that the following bits is the termination pattern
+	result.Success := <rtlModuleName()>.encoding.BitStream_bitPatternMatches(bs,<rtlModuleName()>.OctetBuffer'(<arruNullBytes:{b|<i>=>16#<b;format="X2">#}; wrap, anchor, separator=", ">), <nBitPatternLength>);
 	if result.Success then
 		<rtlModuleName()>.encoding.BitStream_SkipBits(bs, <nBitPatternLength>);
 		<p>.Length := <i>-1;
