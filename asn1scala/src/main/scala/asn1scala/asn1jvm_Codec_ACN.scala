@@ -1,7 +1,7 @@
 package asn1scala
 
 import stainless.lang.StaticChecks.assert
-import stainless.lang.{None, Option, Some}
+import stainless.lang.{None => None, ghost => ghostExpr, Option => Option, _}
 
 val FAILED_READ_ERR_CODE = 5400
 
@@ -203,7 +203,7 @@ case class ACN(bitStream: BitStream) extends Codec {
 
       else
          appendNBitOne(encodedSizeInBits - GetNumberOfBitsForNonNegativeInteger(-intVal - 1))
-         encodeNonNegativeIntegerNeg(-intVal - 1, true)
+         encodeNonNegativeIntegerNeg(-intVal - 1)
    }
 
 
@@ -691,117 +691,107 @@ case class ACN(bitStream: BitStream) extends Codec {
       Right(0)
    }
 
-
-   /*Real encoding functions*/
+   /* Real encoding functions */
    def enc_Real_IEEE754_32_big_endian(realValue: Float): Unit = {
-      val b: Array[Byte] = java.nio.ByteBuffer.allocate(4).putFloat(realValue).array
+      val b: Array[Byte] = java.nio.ByteBuffer.allocate(NO_OF_BYTES_IN_JVM_FLOAT).putFloat(realValue).array
 
       var i: Int = 0
-      while i < 4 do
+      while i < NO_OF_BYTES_IN_JVM_FLOAT do
          appendByte(b(i))
          i += 1
    }
 
-   def dec_Real_IEEE754_32_big_endian(): Option[Double] = {
-      val b: Array[Byte] = Array.fill(4)(0)
-      var i: Int = 0
-      while i < 4 do
-         readByte() match
-            case None() => return None()
-            case Some(ub) => b(i) = ub
-         i += 1
+   def enc_Real_IEEE754_32_little_endian(realValue: Float): Unit = {
+      val b: Array[Byte] = java.nio.ByteBuffer.allocate(NO_OF_BYTES_IN_JVM_FLOAT).putFloat(realValue).array
 
-      val dat1 = BigInt(b).toInt
-      Some(java.lang.Float.intBitsToFloat(dat1).toDouble)
-   }
-
-   def dec_Real_IEEE754_32_big_endian_fp32(): Option[Float] = {
-      val b: Array[Byte] = Array.fill(4)(0)
-      var i: Int = 0
-      while i < 4 do
-         readByte() match
-            case None() => return None()
-            case Some(ub) => b(i) = ub
-         i += 1
-
-      val dat1 = BigInt(b).toInt
-      Some(java.lang.Float.intBitsToFloat(dat1))
-   }
-
-
-   def enc_Real_IEEE754_64_big_endian(realValue: Double): Unit = {
-      val b: Array[Byte] = java.nio.ByteBuffer.allocate(8).putDouble(realValue).array
-
-      var i: Int = 0
-      while i < 8 do
-         appendByte(b(i))
-         i += 1
-   }
-
-   def dec_Real_IEEE754_64_big_endian(): Option[Double] = {
-      val b: Array[Byte] = Array.fill(8)(0)
-      var i: Int = 0
-      while i < 8 do
-         readByte() match
-            case None() => return None()
-            case Some(ub) => b(i) = ub
-         i += 1
-
-      val dat1 = BigInt(b).toLong
-      Some(java.lang.Double.longBitsToDouble(dat1))
-   }
-
-
-   def enc_Real_IEEE754_32_little_endian(realValue: Double): Unit = {
-      val b: Array[Byte] = java.nio.ByteBuffer.allocate(4).putFloat(realValue.toFloat).array
-
-      var i: Int = 3
+      var i: Int = NO_OF_BYTES_IN_JVM_FLOAT - 1
       while i >= 0 do
          appendByte(b(i))
          i -= 1
    }
 
-   def dec_Real_IEEE754_32_little_endian(): Option[Double] = {
-      dec_Real_IEEE754_32_little_endian_fp32() match
-         case None() => None()
-         case Some(f) => Some(f.toDouble)
-   }
+   def enc_Real_IEEE754_64_big_endian(realValue: Double): Unit = {
+      val b: Array[Byte] = java.nio.ByteBuffer.allocate(NO_OF_BYTES_IN_JVM_DOUBLE).putDouble(realValue).array
 
-   def dec_Real_IEEE754_32_little_endian_fp32(): Option[Float] = {
-      val b: Array[Byte] = Array.fill(4)(0)
-      var i: Int = 3
-      while i >= 0 do
-         readByte() match
-            case None() => return None()
-            case Some(ub) => b(i) = ub
-               i -= 1
-
-      val dat1 = BigInt(b).toInt
-      Some(java.lang.Float.intBitsToFloat(dat1))
+      var i: Int = 0
+      while i < NO_OF_BYTES_IN_JVM_DOUBLE do
+         appendByte(b(i))
+         i += 1
    }
 
    def enc_Real_IEEE754_64_little_endian(realValue: Double): Unit = {
-      val b: Array[Byte] = java.nio.ByteBuffer.allocate(8).putDouble(realValue).array
+      val b: Array[Byte] = java.nio.ByteBuffer.allocate(NO_OF_BYTES_IN_JVM_DOUBLE).putDouble(realValue).array
 
-      var i: Int = 7
+      var i: Int = NO_OF_BYTES_IN_JVM_DOUBLE - 1
       while i >= 0 do
          appendByte(b(i))
          i -= 1
    }
 
-   def dec_Real_IEEE754_64_little_endian(): Option[Double] = {
-      val b: Array[Byte] = Array.fill(8)(0)
-      var i: Int = 7
-      while i >= 0 do
+   /* Real decoding functions */
+   def dec_Real_IEEE754_32_big_endian(): Option[Float] = {
+      var ret: Int = 0
+      var i: Int = 1
+
+      assert(NO_OF_BYTES_IN_JVM_INT == NO_OF_BYTES_IN_JVM_FLOAT)
+
+      while i <= NO_OF_BYTES_IN_JVM_INT do
          readByte() match
             case None() => return None()
-            case Some(ub) => b(i) = ub
-               i -= 1
+            case Some(b) =>
+               ret |= b.unsignedToInt << (NO_OF_BYTES_IN_JVM_INT - i) * NO_OF_BITS_IN_BYTE
+         i += 1
 
-      val dat1 = BigInt(b).toLong
-      Some(java.lang.Double.longBitsToDouble(dat1))
+      Some(java.lang.Float.intBitsToFloat(ret))
    }
 
+   def dec_Real_IEEE754_32_little_endian(): Option[Float] = {
+      var ret: Int = 0
+      var i: Int = 0
+
+      assert(NO_OF_BYTES_IN_JVM_INT == NO_OF_BYTES_IN_JVM_FLOAT)
+
+      while i < NO_OF_BYTES_IN_JVM_INT do
+         readByte() match
+            case None() => return None()
+            case Some(b) =>
+               ret |= b.unsignedToInt << i * NO_OF_BITS_IN_BYTE
+         i += 1
+
+      Some(java.lang.Float.intBitsToFloat(ret))
+   }
+
+   def dec_Real_IEEE754_64_big_endian(): Option[Double] = {
+      var ret: Long = 0
+      var i: Int = 1
+
+      assert(NO_OF_BYTES_IN_JVM_LONG == NO_OF_BYTES_IN_JVM_DOUBLE)
+
+      while i <= NO_OF_BYTES_IN_JVM_LONG do
+         readByte() match
+            case None() => return None()
+            case Some(b) =>
+               ret |= b.unsignedToLong << (NO_OF_BYTES_IN_JVM_LONG - i) * NO_OF_BITS_IN_BYTE
+         i += 1
+
+      Some(java.lang.Double.longBitsToDouble(ret))
+   }
+
+   def dec_Real_IEEE754_64_little_endian(): Option[Double] = {
+      var ret: Long = 0
+      var i: Int = 0
+
+      assert(NO_OF_BYTES_IN_JVM_LONG == NO_OF_BYTES_IN_JVM_DOUBLE)
+
+      while i < NO_OF_BYTES_IN_JVM_LONG do
+         readByte() match
+            case None() => return None()
+            case Some(b) =>
+               ret |= b.unsignedToLong << i * NO_OF_BITS_IN_BYTE
+         i += 1
+
+      Some(java.lang.Double.longBitsToDouble(ret))
+   }
 
    /* String functions*/
    def enc_String_Ascii_FixSize(max: Long, strVal: Array[ASCIIChar]): Unit = {

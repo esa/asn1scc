@@ -149,13 +149,16 @@ let handleAlignemntForAsn1Types (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (code
     | Some al   -> 
         let alStr, nAligmVal = 
             match al with
-            | AcnGenericTypes.NextByte   -> match ST.lang with
+            | AcnGenericTypes.NextByte -> 
+                match ST.lang with
                 | Scala -> "Byte", 8I
                 | _ -> "NextByte", 8I
-            | AcnGenericTypes.NextWord   -> match ST.lang with
+            | AcnGenericTypes.NextWord -> 
+                match ST.lang with
                 | Scala -> "Short", 16I
                 | _ -> "NextWord", 16I
-            | AcnGenericTypes.NextDWord   -> match ST.lang with
+            | AcnGenericTypes.NextDWord -> 
+                match ST.lang with
                 | Scala -> "Int", 32I
                 | _ -> "NextDWord", 32I
         let newFuncBody st errCode prms p =

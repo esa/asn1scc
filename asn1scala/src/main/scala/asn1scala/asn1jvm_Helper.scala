@@ -27,7 +27,7 @@ val MASK_POS_INT    = 0x7F_FF_FF_FFL
 * Meths to upcast unsigned integer data types on the JVM
 */
 extension (ubL: UByte) {
-   def unsignedToLong: Long = ubL & MASK_BYTE_L
+   def unsignedToLong: Long = ubL.toLong & MASK_BYTE_L
    def unsignedToInt: Int = ubL.toInt & MASK_BYTE
 
    @targetName("unsigned right shift on Bytes")

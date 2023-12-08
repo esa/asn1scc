@@ -556,7 +556,7 @@ case class BitStream(
     *
     */
    def readPartialByte(nBits: Int): UByte = {
-      require(nBits >= 0 && nBits < NO_OF_BITS_IN_BYTE)
+      require(nBits >= 0 && nBits <= NO_OF_BITS_IN_BYTE)
       require(validate_offset_bits(nBits))
 
       @ghost val oldThis = snapshot(this)

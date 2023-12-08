@@ -57,7 +57,6 @@ def BitString_equal(arr1: Array[UByte], arr2: Array[UByte]): Boolean = {
  *
  * @param count represents the number of bytes in the internal buffer
  */
-@mutable
 trait Codec {
 
    def bitStream: BitStream
@@ -177,17 +176,17 @@ trait Codec {
       //    return decodeNonNegativeInteger32Neg(v, nBits)
    }
 
-   def encodeNonNegativeIntegerNeg(v: ULong, negate: Boolean): Unit = {
+   def encodeNonNegativeIntegerNeg(v: ULong): Unit = {
       if v >>> 32 == 0 then
-         encodeNonNegativeInteger32Neg(v.toInt, negate)
+         encodeNonNegativeInteger32Neg(v.toInt, true)
       else
          // TODO: Check Int/Long
          val hi = (v >>> 32).toInt
          var lo = v.toInt
-         encodeNonNegativeInteger32Neg(hi, negate)
+         encodeNonNegativeInteger32Neg(hi, true)
 
          /*bug !!!!*/
-         if negate then
+         if true then // TODO, the negate flag was always true
             lo = ~lo
          val nBits = GetNumberOfBitsForNonNegativeInteger(lo.toLong)
          appendNBitZero(32 - nBits)
@@ -379,7 +378,7 @@ trait Codec {
          encodeNonNegativeInteger(v)
       else
          appendNBitOne(nBytes * 8 - GetNumberOfBitsForNonNegativeInteger((-v - 1)))
-         encodeNonNegativeIntegerNeg((-v - 1), true)
+         encodeNonNegativeIntegerNeg((-v - 1))
    }
 
 
@@ -1064,13 +1063,15 @@ trait Codec {
       isValidPrecondition
    }
 
-   def readPartialByte(nbits: UByte): Option[UByte] = {
-      val isValidPrecondition = bitStream.validate_offset_bits(nbits)
+   def readPartialByte(nBits: Int): Option[UByte] = {
+      require(nBits >= 0 && nBits <= NO_OF_BITS_IN_BYTE)
+
+      val isValidPrecondition = bitStream.validate_offset_bits(nBits)
       stainlessAssert(isValidPrecondition)
       assert(isValidPrecondition)
 
       isValidPrecondition match
-         case true => Some(bitStream.readPartialByte(nbits))
+         case true => Some(bitStream.readPartialByte(nBits))
          case false => None()
    }
 
