@@ -69,6 +69,12 @@ type ILangGeneric () =
     abstract member SpecExtention : string
     abstract member BodyExtention : string
 
+    abstract member RtlFuncNames : string list
+    abstract member detectFunctionCalls : string -> string -> string list
+    abstract member removeFunctionFromHeader : string -> string -> string 
+    abstract member removeFunctionFromBody : string -> string -> string
+
+
     abstract member getRtlFiles : Asn1Encoding list -> string list -> string list
 
     abstract member getAsn1ChildBackendName0  : Asn1AcnAst.Asn1Child -> string
@@ -147,6 +153,12 @@ type ILangGeneric () =
         this.getParamTypeSuffix t "" c
     default this.requiresHandlingOfEmptySequences = false
     default this.requiresHandlingOfZeroArrays = false
+    default this.RtlFuncNames = []
+    default this.detectFunctionCalls (sourceCode: string) (functionName: string) = []
+    default this.removeFunctionFromHeader (sourceCode: string) (functionName: string) : string =
+        sourceCode
+    default this.removeFunctionFromBody (sourceCode: string) (functionName: string) : string =
+        sourceCode
 
 
 type LanguageMacros = {

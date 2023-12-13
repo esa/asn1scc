@@ -356,5 +356,349 @@ type LangGeneric_c() =
 
             CreateCMainFile r  di.srcDir
             generateVisualStudtioProject r di.srcDir (arrsSrcTstFiles, arrsHdrTstFiles)
+        
+        override this.RtlFuncNames : string list =
+            [
+                "BitStream_EncodeNonNegativeInteger32Neg"
+                "BitStream_ReadByteArray"
+                "GetLengthSIntHelper"
+                "DecodeRealAsBinaryEncoding"
+                "GetCharIndex"
+                "Asn1Real_Equal"
+                "ObjectIdentifier_Init"
+                "ObjectIdentifier_equal"
+                "ObjectIdentifier_isValid"
+                "RelativeOID_isValid"
+                "ByteStream_Init"
+                "BitStream_Init2"
+                "ByteStream_AttachBuffer"
+                "BitStream_AttachBuffer2"
+                "ByteStream_GetLength"
+                "fetchData"
+                "pushData"
+                "bitstream_fetch_data_if_required"
+                "bitstream_push_data_if_required"
+                "BitString_equal"
+                "BitStream_AppendNBitZero"
+                "BitStream_EncodeNonNegativeInteger"
+                "BitStream_AppendNBitOne"
+                "BitStream_EncodeNonNegativeIntegerNeg"
+                "BitStream_DecodeNonNegativeInteger"
+                "BitStream_ReadPartialByte"
+                "BitStream_AppendPartialByte"
+                "BitStream_Init"
+                "BitStream_AttachBuffer"
+                "BitStream_AppendBit"
+                "BitStream_AppendBits"
+                "BitStream_AppendByte"
+                "BitStream_AppendByte0"
+                "BitStream_GetLength"
+                "BitStream_AppendBitOne"
+                "BitStream_AppendBitZero"
+                "BitStream_PeekBit"
+                "BitStream_ReadBit"
+                "BitStream_ReadBits"
+                "BitStream_ReadByte"
+                "BitStream_EncodeUnConstraintWholeNumber"
+                "BitStream_EncodeSemiConstraintWholeNumber"
+                "BitStream_EncodeSemiConstraintPosWholeNumber"
+                "BitStream_EncodeConstraintWholeNumber"
+                "BitStream_EncodeConstraintPosWholeNumber"
+                "BitStream_DecodeUnConstraintWholeNumber"
+                "BitStream_DecodeSemiConstraintWholeNumber"
+                "BitStream_DecodeSemiConstraintPosWholeNumber"
+                "BitStream_DecodeConstraintWholeNumber"
+                "BitStream_DecodeConstraintPosWholeNumber"
+                "BitStream_DecodeConstraintWholeNumberInt8"
+                "BitStream_DecodeConstraintWholeNumberInt16"
+                "BitStream_DecodeConstraintWholeNumberInt32"
+                "BitStream_DecodeConstraintPosWholeNumberUInt8"
+                "BitStream_DecodeConstraintPosWholeNumberUInt16"
+                "BitStream_DecodeConstraintPosWholeNumberUInt32"
+                "GetNumberOfBitsForNonNegativeInteger"
+                "CalculateMantissaAndExponent"
+                "GetDoubleByMantissaAndExp"
+                "GetLengthInBytesOfSInt"
+                "GetLengthInBytesOfUInt"
+                "BitStream_EncodeReal"
+                "BitStream_DecodeReal"
+                "BitStream_DecodeReal_fp32"
+                "BitStream_AppendByteArray"
+                "BitStream_EncodeOctetString_no_length"
+                "BitStream_DecodeOctetString_no_length"
+                "BitStream_EncodeOctetString_fragmentation"
+                "BitStream_DecodeOctetString_fragmentation"
+                "BitStream_EncodeOctetString"
+                "BitStream_DecodeOctetString"
+                "BitStream_EncodeBitString"
+                "BitStream_DecodeBitString"
+                "BitStream_checkBitPatternPresent"
+                "BitStream_ReadBits_nullterminated"
+                "Acn_AlignToNextByte"
+                "Acn_AlignToNextWord"
+                "Acn_AlignToNextDWord"
+                "Acn_Enc_Int_PositiveInteger_ConstSize"
+                "Acn_Enc_Int_PositiveInteger_ConstSize_8"
+                "Acn_Enc_Int_PositiveInteger_ConstSize_big_endian_16"
+                "Acn_Enc_Int_PositiveInteger_ConstSize_big_endian_32"
+                "Acn_Enc_Int_PositiveInteger_ConstSize_big_endian_64"
+                "Acn_Enc_Int_PositiveInteger_ConstSize_little_endian_16"
+                "Acn_Enc_Int_PositiveInteger_ConstSize_little_endian_32"
+                "Acn_Enc_Int_PositiveInteger_ConstSize_little_endian_64"
+                "Acn_Enc_Int_PositiveInteger_VarSize_LengthEmbedded"
+                "Acn_Enc_Int_TwosComplement_ConstSize"
+                "Acn_Enc_Int_TwosComplement_ConstSize_8"
+                "Acn_Enc_Int_TwosComplement_ConstSize_big_endian_16"
+                "Acn_Enc_Int_TwosComplement_ConstSize_big_endian_32"
+                "Acn_Enc_Int_TwosComplement_ConstSize_big_endian_64"
+                "Acn_Enc_Int_TwosComplement_ConstSize_little_endian_16"
+                "Acn_Enc_Int_TwosComplement_ConstSize_little_endian_32"
+                "Acn_Enc_Int_TwosComplement_ConstSize_little_endian_64"
+                "Acn_Enc_Int_TwosComplement_VarSize_LengthEmbedded"
+                "Acn_Enc_Int_BCD_ConstSize"
+                "Acn_Enc_Int_BCD_VarSize_LengthEmbedded"
+                "Acn_Enc_Int_BCD_VarSize_NullTerminated"
+                "Acn_Enc_SInt_ASCII_ConstSize"
+                "Acn_Enc_SInt_ASCII_VarSize_LengthEmbedded"
+                "Acn_Enc_SInt_ASCII_VarSize_NullTerminated"
+                "Acn_Enc_UInt_ASCII_ConstSize"
+                "Acn_Enc_UInt_ASCII_VarSize_LengthEmbedded"
+                "Acn_Enc_UInt_ASCII_VarSize_NullTerminated"
+                "Acn_Dec_Int_PositiveInteger_ConstSize"
+                "Acn_Dec_Int_PositiveInteger_ConstSize_8"
+                "Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_16"
+                "Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_32"
+                "Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_64"
+                "Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_16"
+                "Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_32"
+                "Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_64"
+                "Acn_Dec_Int_PositiveInteger_VarSize_LengthEmbedded"
+                "Acn_Dec_Int_TwosComplement_ConstSize"
+                "Acn_Dec_Int_TwosComplement_ConstSize_8"
+                "Acn_Dec_Int_TwosComplement_ConstSize_big_endian_16"
+                "Acn_Dec_Int_TwosComplement_ConstSize_big_endian_32"
+                "Acn_Dec_Int_TwosComplement_ConstSize_big_endian_64"
+                "Acn_Dec_Int_TwosComplement_ConstSize_little_endian_16"
+                "Acn_Dec_Int_TwosComplement_ConstSize_little_endian_32"
+                "Acn_Dec_Int_TwosComplement_ConstSize_little_endian_64"
+                "Acn_Dec_Int_TwosComplement_VarSize_LengthEmbedded"
+                "Acn_Dec_Int_BCD_ConstSize"
+                "Acn_Dec_Int_BCD_VarSize_LengthEmbedded"
+                "Acn_Dec_Int_BCD_VarSize_NullTerminated"
+                "Acn_Dec_SInt_ASCII_ConstSize"
+                "Acn_Dec_SInt_ASCII_VarSize_LengthEmbedded"
+                "Acn_Dec_SInt_ASCII_VarSize_NullTerminated"
+                "Acn_Dec_UInt_ASCII_ConstSize"
+                "Acn_Dec_UInt_ASCII_VarSize_LengthEmbedded"
+                "Acn_Dec_UInt_ASCII_VarSize_NullTerminated"
+                "Acn_Dec_Int_PositiveInteger_ConstSizeUInt8"
+                "Acn_Dec_Int_PositiveInteger_ConstSizeUInt16"
+                "Acn_Dec_Int_PositiveInteger_ConstSizeUInt32"
+                "Acn_Dec_Int_PositiveInteger_ConstSize_8UInt8"
+                "Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_16UInt16"
+                "Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_16UInt8"
+                "Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_32UInt32"
+                "Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_32UInt16"
+                "Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_32UInt8"
+                "Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_64UInt32"
+                "Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_64UInt16"
+                "Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_64UInt8"
+                "Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_16UInt16"
+                "Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_16UInt8"
+                "Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_32UInt32"
+                "Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_32UInt16"
+                "Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_32UInt8"
+                "Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_64UInt32"
+                "Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_64UInt16"
+                "Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_64UInt8"
+                "Acn_Dec_Int_PositiveInteger_VarSize_LengthEmbeddedUInt8"
+                "Acn_Dec_Int_PositiveInteger_VarSize_LengthEmbeddedUInt16"
+                "Acn_Dec_Int_PositiveInteger_VarSize_LengthEmbeddedUInt32"
+                "Acn_Dec_Int_TwosComplement_ConstSizeInt8"
+                "Acn_Dec_Int_TwosComplement_ConstSizeInt16"
+                "Acn_Dec_Int_TwosComplement_ConstSizeInt32"
+                "Acn_Dec_Int_TwosComplement_ConstSize_8Int8"
+                "Acn_Dec_Int_TwosComplement_ConstSize_big_endian_16Int16"
+                "Acn_Dec_Int_TwosComplement_ConstSize_big_endian_16Int8"
+                "Acn_Dec_Int_TwosComplement_ConstSize_big_endian_32Int32"
+                "Acn_Dec_Int_TwosComplement_ConstSize_big_endian_32Int16"
+                "Acn_Dec_Int_TwosComplement_ConstSize_big_endian_32Int8"
+                "Acn_Dec_Int_TwosComplement_ConstSize_big_endian_64Int32"
+                "Acn_Dec_Int_TwosComplement_ConstSize_big_endian_64Int16"
+                "Acn_Dec_Int_TwosComplement_ConstSize_big_endian_64Int8"
+                "Acn_Dec_Int_TwosComplement_ConstSize_little_endian_16Int16"
+                "Acn_Dec_Int_TwosComplement_ConstSize_little_endian_16Int8"
+                "Acn_Dec_Int_TwosComplement_ConstSize_little_endian_32Int32"
+                "Acn_Dec_Int_TwosComplement_ConstSize_little_endian_32Int16"
+                "Acn_Dec_Int_TwosComplement_ConstSize_little_endian_32Int8"
+                "Acn_Dec_Int_TwosComplement_ConstSize_little_endian_64Int32"
+                "Acn_Dec_Int_TwosComplement_ConstSize_little_endian_64Int16"
+                "Acn_Dec_Int_TwosComplement_ConstSize_little_endian_64Int8"
+                "Acn_Dec_Int_TwosComplement_VarSize_LengthEmbeddedInt8"
+                "Acn_Dec_Int_TwosComplement_VarSize_LengthEmbeddedInt16"
+                "Acn_Dec_Int_TwosComplement_VarSize_LengthEmbeddedInt32"
+                "Acn_Dec_Int_BCD_ConstSizeUInt8"
+                "Acn_Dec_Int_BCD_ConstSizeUInt16"
+                "Acn_Dec_Int_BCD_ConstSizeUInt32"
+                "Acn_Dec_Int_BCD_VarSize_LengthEmbeddedUInt8"
+                "Acn_Dec_Int_BCD_VarSize_LengthEmbeddedUInt16"
+                "Acn_Dec_Int_BCD_VarSize_LengthEmbeddedUInt32"
+                "Acn_Dec_Int_BCD_VarSize_NullTerminatedUInt8"
+                "Acn_Dec_Int_BCD_VarSize_NullTerminatedUInt16"
+                "Acn_Dec_Int_BCD_VarSize_NullTerminatedUInt32"
+                "Acn_Dec_SInt_ASCII_ConstSizeInt8"
+                "Acn_Dec_SInt_ASCII_ConstSizeInt16"
+                "Acn_Dec_SInt_ASCII_ConstSizeInt32"
+                "Acn_Dec_SInt_ASCII_VarSize_LengthEmbeddedInt8"
+                "Acn_Dec_SInt_ASCII_VarSize_LengthEmbeddedInt16"
+                "Acn_Dec_SInt_ASCII_VarSize_LengthEmbeddedInt32"
+                "Acn_Dec_SInt_ASCII_VarSize_NullTerminatedInt8"
+                "Acn_Dec_SInt_ASCII_VarSize_NullTerminatedInt16"
+                "Acn_Dec_SInt_ASCII_VarSize_NullTerminatedInt32"
+                "Acn_Dec_UInt_ASCII_ConstSizeUInt8"
+                "Acn_Dec_UInt_ASCII_ConstSizeUInt16"
+                "Acn_Dec_UInt_ASCII_ConstSizeUInt32"
+                "Acn_Dec_UInt_ASCII_VarSize_LengthEmbeddedUInt8"
+                "Acn_Dec_UInt_ASCII_VarSize_LengthEmbeddedUInt16"
+                "Acn_Dec_UInt_ASCII_VarSize_LengthEmbeddedUInt32"
+                "Acn_Dec_UInt_ASCII_VarSize_NullTerminatedUInt8"
+                "Acn_Dec_UInt_ASCII_VarSize_NullTerminatedUInt16"
+                "Acn_Dec_UInt_ASCII_VarSize_NullTerminatedUInt32"
+                "BitStream_ReadBitPattern"
+                "BitStream_ReadBitPattern_ignore_value"
+                "Acn_Enc_Real_IEEE754_32_big_endian"
+                "Acn_Enc_Real_IEEE754_64_big_endian"
+                "Acn_Enc_Real_IEEE754_32_little_endian"
+                "Acn_Enc_Real_IEEE754_64_little_endian"
+                "Acn_Dec_Real_IEEE754_32_big_endian"
+                "Acn_Dec_Real_IEEE754_64_big_endian"
+                "Acn_Dec_Real_IEEE754_32_little_endian"
+                "Acn_Dec_Real_IEEE754_64_little_endian"
+                "Acn_Dec_Real_IEEE754_32_big_endian_fp32"
+                "Acn_Dec_Real_IEEE754_32_little_endian_fp32"
+                "Acn_Enc_String_Ascii_FixSize"
+                "Acn_Enc_String_Ascii_Null_Teminated"
+                "Acn_Enc_String_Ascii_Null_Teminated_mult"
+                "Acn_Enc_String_Ascii_External_Field_Determinant"
+                "Acn_Enc_String_Ascii_Internal_Field_Determinant"
+                "Acn_Enc_String_CharIndex_FixSize"
+                "Acn_Enc_String_CharIndex_External_Field_Determinant"
+                "Acn_Enc_String_CharIndex_Internal_Field_Determinant"
+                "Acn_Enc_IA5String_CharIndex_External_Field_Determinant"
+                "Acn_Enc_IA5String_CharIndex_Internal_Field_Determinant"
+                "Acn_Dec_String_Ascii_FixSize"
+                "Acn_Dec_String_Ascii_Null_Teminated"
+                "Acn_Dec_String_Ascii_Null_Teminated_mult"
+                "Acn_Dec_String_Ascii_External_Field_Determinant"
+                "Acn_Dec_String_Ascii_Internal_Field_Determinant"
+                "Acn_Dec_String_CharIndex_FixSize"
+                "Acn_Dec_String_CharIndex_External_Field_Determinant"
+                "Acn_Dec_String_CharIndex_Internal_Field_Determinant"
+                "Acn_Dec_IA5String_CharIndex_External_Field_Determinant"
+                "Acn_Dec_IA5String_CharIndex_Internal_Field_Determinant"
+                "Acn_Enc_String_CharIndex_private"
+                "Acn_Enc_Length"
+                "Acn_Dec_Length"
+                "milbus_encode"
+                "milbus_decode"
+                "ObjectIdentifier_uper_encode"
+                "ObjectIdentifier_uper_decode"
+                "RelativeOID_uper_encode"
+                "RelativeOID_uper_decode"
+                "Acn_Dec_String_CharIndex_private"
+                "Acn_Dec_String_Ascii_private"
+                "Acn_Enc_String_Ascii_private"
+                "Acn_Get_Int_Size_BCD"
+                "To_UInt"
+                "Encode_UnsignedInteger"
+                "Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_N"
+                "Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_N"
+                "Acn_Enc_Int_PositiveInteger_ConstSize_little_endian_N"
+                "Acn_Enc_Int_PositiveInteger_ConstSize_big_endian_B"
+                "RequiresReverse"
+                "ObjectIdentifier_uper_decode_length"
+                "ObjectIdentifier_subidentifiers_uper_decode"
+                "ObjectIdentifier_subidentifiers_uper_encode"
+                "BitStream_DecodeNonNegativeInteger32Neg"
+             ]            
+        override this.detectFunctionCalls (sourceCode: string) (functionName: string) : string list =
+            let knownCases =
+                [
+                    ("Acn_Enc_Real_IEEE754_32_little_endian", ["RequiresReverse";"BitStream_AppendByte0"])
+                    ("Acn_Enc_Real_IEEE754_32_big_endian", ["RequiresReverse";"BitStream_AppendByte0"])
+                    ("Acn_Enc_Real_IEEE754_64_big_endian", ["RequiresReverse";"BitStream_AppendByte0"])
+                    ("Acn_Enc_Real_IEEE754_32_little_endian", ["RequiresReverse";"BitStream_AppendByte0"])
+                    ("Acn_Enc_Real_IEEE754_64_little_endian", ["RequiresReverse";"BitStream_AppendByte0"])
+                    ("Acn_Dec_Real_IEEE754_32_big_endian", ["RequiresReverse";"BitStream_ReadByte"])
+                    ("Acn_Dec_Real_IEEE754_32_big_endian_fp32", ["RequiresReverse";"BitStream_ReadByte"])
+                    ("Acn_Dec_Real_IEEE754_64_big_endian", ["RequiresReverse";"BitStream_ReadByte"])
+                    ("Acn_Dec_Real_IEEE754_32_little_endian", ["RequiresReverse";"BitStream_ReadByte"])
+                    ("Acn_Dec_Real_IEEE754_32_little_endian_fp32", ["RequiresReverse";"BitStream_ReadByte"])
+                    ("Acn_Dec_Real_IEEE754_64_little_endian", ["RequiresReverse";"BitStream_ReadByte"])
+                ] |> Map.ofList
+            match knownCases |> Map.tryFind functionName  with
+            | None ->
+                let allFunctionNames = this.RtlFuncNames
+                let pattern = @"[^\s]+\s+" + functionName + @"\s*\([^\)]*\)\s*\{"
+                let regex = System.Text.RegularExpressions.Regex(pattern)
+                let matches = regex.Matches(sourceCode)
+                match matches.Count with
+                | 0 -> []
+                | _ ->
+                    //get the function body
+                    let matchValue = matches.[0]
+                    let endIndex =
+                        let mutable depth = 1
+                        let mutable i = matchValue.Index + matchValue.Length
+                        while depth > 0 && i < sourceCode.Length do
+                            match sourceCode.[i] with
+                            | '{' -> depth <- depth + 1
+                            | '}' -> depth <- depth - 1
+                            | _ -> ()
+                            i <- i + 1
+                        i
+                    let startIndex =
+                        let lineStartIndex = sourceCode.LastIndexOf('\n', matchValue.Index) + 1
+                        if lineStartIndex > 0 then
+                            lineStartIndex
+                        else
+                            0
+                    let functionBody = sourceCode.Substring(startIndex, endIndex - startIndex)
+                    //get all function calls
+                    allFunctionNames |> List.filter (fun x -> functionName <> x &&  functionBody.Contains(x))
+            | Some x -> x
 
 
+        override this.removeFunctionFromHeader (sourceCode: string) (functionName: string) : string =
+            let lines = sourceCode.Split([|'\n'|])
+            let newLines = lines |> Seq.filter (fun x -> not (x.Contains(functionName)))
+            newLines |> String.concat "\n"
+
+        override this.removeFunctionFromBody (sourceCode: string) (functionName: string) : string =
+            //if functionName = "BitStream_DecodeNonNegativeInteger32Neg" then
+            //    printfn "debug"
+            let pattern = @"[^\s]+\s+" + functionName + @"\s*\([^\)]*\)\s*\{"
+            let regex = System.Text.RegularExpressions.Regex(pattern)
+            let matches = regex.Matches(sourceCode)
+    
+            if matches.Count = 0 then
+                sourceCode
+            else
+                let matchValue = matches.[0]
+                let endIndex =
+                    let mutable depth = 1
+                    let mutable i = matchValue.Index + matchValue.Length
+                    while depth > 0 && i < sourceCode.Length do
+                        match sourceCode.[i] with
+                        | '{' -> depth <- depth + 1
+                        | '}' -> depth <- depth - 1
+                        | _ -> ()
+                        i <- i + 1
+                    i
+                let startIndex =
+                    let lineStartIndex = sourceCode.LastIndexOf('\n', matchValue.Index) + 1
+                    if lineStartIndex > 0 then
+                        lineStartIndex
+                    else
+                        0
+                sourceCode.Remove(startIndex, endIndex - startIndex)

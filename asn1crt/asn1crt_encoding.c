@@ -7,10 +7,10 @@
 
 
 
-static byte masks[] = { 0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01 };
-static byte masksb[] = { 0x0, 0x1, 0x3, 0x7, 0xF, 0x1F, 0x3F, 0x7F, 0xFF };
+const byte masks[] = { 0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01 };
+const byte masksb[] = { 0x0, 0x1, 0x3, 0x7, 0xF, 0x1F, 0x3F, 0x7F, 0xFF };
 
-static asn1SccUint32 masks2[] = { 0x0,
+const asn1SccUint32 masks2[] = { 0x0,
 0xFF,
 0xFF00,
 0xFF0000,
@@ -1577,7 +1577,7 @@ flag BitStream_DecodeOctetString(BitStream* pBitStrm, byte* arr, int* nCount, as
 	flag ret = TRUE;
 	if (asn1SizeMax < 65536) {
 		asn1SccSint nCountL;
-		if (asn1SizeMin != asn1SizeMax) {
+		if (asn1SizeMin < asn1SizeMax) {
 			ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, &nCountL, asn1SizeMin, asn1SizeMax);
 		}
 		else {
