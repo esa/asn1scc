@@ -1629,7 +1629,8 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                         | None -> (ToC (r.args.mappingFunctionsModule.orElse "")) + "." + (ToC fncName.Value)
                         | Some modFncName -> (ToC modFncName.Value) + "." + (ToC fncName.Value)
 
-                let fncCall = sequence_call_post_encoding_function (lm.lg.getPointer p.arg) (actualFncName) bsPosStart  bitStreamPositionsLocalVar
+                let fncCall = sequence_call_post_encoding_function (lm.lg.getPointer p.arg) (actualFncName) bsPosStart bitStreamPositionsLocalVar
+
                 let initialBitStrmStatement = sequence_save_bitStream_start bsPosStart codec
                 [AcnInsertedChild(bitStreamPositionsLocalVar, td.extention_function_potisions, ""); AcnInsertedChild(bsPosStart, bitStreamName, "")]@localVariables, Some fncCall, Some bitStreamPositionsLocalVar, Some initialBitStrmStatement
             | _ ->

@@ -821,11 +821,11 @@ else
 >>
 
 sequence_call_post_encoding_function(p, sFncName, sBitStreamStartPos, sBitStreamPositionsNullPos) ::= <<
-<sFncName>(<p>, &<sBitStreamStartPos>, &<sBitStreamPositionsNullPos>, codec)
+<sFncName>(<p>, <sBitStreamStartPos>, <sBitStreamPositionsNullPos>, codec)
 >>
 
 sequence_call_post_decoding_validator(p, sFncName, sBitStreamStartPos, sBitStreamPositionsNullPos) ::= <<
-ret = <sFncName>(<p>, &<sBitStreamStartPos>, &<sBitStreamPositionsNullPos>, codec, pErrCode)
+ret = <sFncName>(<p>, <sBitStreamStartPos>, <sBitStreamPositionsNullPos>, codec)
 >>
 
 /* SEQUENCE END */
