@@ -1152,4 +1152,14 @@ trait Codec {
    def getBufferLength: Int = {
       bitStream.getBufferLength
    }
+
+   /**
+    *
+    * @return the number of used bytes in the underlying buffer
+    *         if the currentBit is not 0, currentByte is added by 1
+    *
+    */
+   def getLength: Int = {
+      bitStream.getLength
+   }
 }

@@ -144,7 +144,7 @@ case class BitStream(
     *    Currentbyte = 14, currentBit = 0 --> 14
     *
     */
-   def getLength(): Int = {
+   def getLength: Int = {
       var ret: Int = currentByte
       if currentBit > 0 then
          ret += 1
