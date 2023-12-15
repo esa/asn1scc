@@ -844,7 +844,7 @@ case <nChildIndex> =>
 
 ChoiceChild_encode(p, sAcc, sChildID, nChildIndex, nIndexSizeInBits, nLastItemIndex, sChildContent, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr) ::= <<
 case <sChildID>(<sChildName>) =>
-    codec.encodeConstraintWholeNumber(<nChildIndex>, 0, <nLastItemIndex>)
+    codec.encodeConstrainedWholeNumber(<nChildIndex>, 0, <nLastItemIndex>)
     <sChildContent>
 >>
 
@@ -1111,7 +1111,7 @@ octet_string_containing_func_encode(p, sFuncName, sReqBytesForAcnEncoding, nBits
                 ret = Right(0)
                 
         <else>
-        codec.encodeConstraintWholeNumber(nCount, <nMinSize>, <nMaxSize>)
+        codec.encodeConstrainedWholeNumber(nCount, <nMinSize>, <nMaxSize>)
         codec.encodeOctetString_no_length(bitStrm.buf, nCount) match
             case false =>
                 return Left(pErrCode)
@@ -1170,7 +1170,7 @@ bit_string_containing_func_encode(p, sFuncName, sReqBytesForAcnEncoding, sReqBit
 	        Console.err.println(s"appendBits failed: not enough space for ${nCount} bits")
 
         <else>
-        codec.encodeConstraintWholeNumber(nCount, <nMinSize>, <nMaxSize>)
+        codec.encodeConstrainedWholeNumber(nCount, <nMinSize>, <nMaxSize>)
         if !codec.appendBits(bitStrm.buf, nCount) then
 	        Console.err.println(s"appendBits failed: not enough space for ${nCount} bits")
 

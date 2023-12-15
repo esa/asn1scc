@@ -830,7 +830,7 @@ case class ACN(bitStream: BitStream) extends Codec {
 
    def enc_String_Ascii_Internal_Field_Determinant(max: Long, min: Long, strVal: Array[ASCIIChar]): Unit = {
       val strLen: Int = strVal.length
-      encodeConstraintWholeNumber(if strLen <= max then strLen else max, min, max)
+      encodeConstrainedWholeNumber(if strLen <= max then strLen else max, min, max)
       enc_String_Ascii_private(max, strVal)
    }
 
@@ -838,7 +838,7 @@ case class ACN(bitStream: BitStream) extends Codec {
       var i: Int = 0
       while i < max do
          val charIndex: Int = GetCharIndex(strVal(i), allowedCharSet)
-         encodeConstraintWholeNumber(charIndex, 0, allowedCharSet.length - 1)
+         encodeConstrainedWholeNumber(charIndex, 0, allowedCharSet.length - 1)
          i += 1
    }
 
@@ -846,7 +846,7 @@ case class ACN(bitStream: BitStream) extends Codec {
       var i: Int = 0
       while (i < max) && (strVal(i) != CHAR_0000) do
          val charIndex: Int = GetCharIndex(strVal(i), allowedCharSet)
-         encodeConstraintWholeNumber(charIndex, 0, allowedCharSet.length - 1)
+         encodeConstrainedWholeNumber(charIndex, 0, allowedCharSet.length - 1)
          i += 1
 
       i
@@ -859,7 +859,7 @@ case class ACN(bitStream: BitStream) extends Codec {
 
    def enc_String_CharIndex_Internal_Field_Determinant(max: Long, allowedCharSet: Array[Byte], min: Long, strVal: Array[ASCIIChar]): Unit = {
       val strLen: Int = strVal.length
-      encodeConstraintWholeNumber(if strLen <= max then strLen else max, min, max)
+      encodeConstrainedWholeNumber(if strLen <= max then strLen else max, min, max)
       enc_String_CharIndex_private(max, allowedCharSet, strVal)
    }
 
@@ -901,7 +901,7 @@ case class ACN(bitStream: BitStream) extends Codec {
          0x78, 0x79, 0x7A, 0x7B, 0x7C, 0x7D, 0x7E, 0x7F
       )
       val strLen: Int = strVal.length
-      encodeConstraintWholeNumber(if strLen <= max then strLen else max, min, max)
+      encodeConstrainedWholeNumber(if strLen <= max then strLen else max, min, max)
       enc_String_CharIndex_private(max, allowedCharSet, strVal)
    }
 
