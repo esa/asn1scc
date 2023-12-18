@@ -402,7 +402,7 @@ trait Codec {
     * The length n is the first octet, n octets with the value follow
     * Values with n > 8 are not supported
     *
-    * @return decoded number 
+    * @return decoded number
     */
    def decodeUnconstrainedWholeNumber(): Option[Long] = {
       require(bitStream.validate_offset_bytes(2))
@@ -413,7 +413,7 @@ trait Codec {
 
       val valIsNegative = peekBit() match
          case Some(b) => b
-         case None() => assert(false)
+         case None() => return None()
 
       var v: Long = if valIsNegative then -1 else 0
 
