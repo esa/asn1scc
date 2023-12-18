@@ -170,7 +170,7 @@ case class ACN(bitStream: BitStream) extends Codec {
 
 
    def enc_Int_PositiveInteger_VarSize_LengthEmbedded(intVal: ULong): Unit = {
-      val nBytes: Byte = GetLengthInBytesOfUInt(intVal).toByte
+      val nBytes: Byte = GetLengthForEncodingUnsigned(intVal).toByte
 
       /* encode length */
       appendByte(nBytes)
@@ -308,7 +308,7 @@ case class ACN(bitStream: BitStream) extends Codec {
 
 
    def enc_Int_TwosComplement_VarSize_LengthEmbedded(intVal: Long): Unit = {
-      val nBytes: Byte = GetLengthInBytesOfSInt(intVal).toByte
+      val nBytes: Byte = GetLengthForEncodingSigned(intVal).toByte
 
       /* encode length */
       appendByte(nBytes)

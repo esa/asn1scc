@@ -79,6 +79,15 @@ extension (l: Long) {
       else
          l.toInt
    }
+
+   def toUnsignedByte: UByte = {
+      if ((l & MASK_BYTE) == MASK_MSB_BYTE)
+         (-MASK_MSB_BYTE).toByte
+      else if ((l & MASK_MSB_BYTE) == MASK_MSB_BYTE)
+         ((l & MASK_POS_BYTE) - MASK_MSB_BYTE).toByte
+      else
+         (l & MASK_BYTE).toByte
+   }
 }
 
 def GetNumberOfBitsInUpperBytesAndDecreaseValToLastByte(v: UInt): (UInt, Int) = {
@@ -117,39 +126,96 @@ def GetNumberOfBitsForNonNegativeInteger(v: ULong): Int = {
       32 + GetNumberOfBitsForNonNegativeInteger32(h)
 }.ensuring(n => n >= 0 && n <= 64)
 
-def GetLengthInBytesOfUInt (v: ULong): Int = {
-   GetLengthInBytesOfSInt(v) // just call signed, is signed anyway
-}.ensuring(n => n > 0 && n <= NO_OF_BYTES_IN_JVM_LONG)
-
-def GetLengthInBytesOfSInt (v: Long): Int = {
+def GetLengthForEncodingUnsigned(v: ULong): Int = {
    max((GetNumberOfBitsForNonNegativeInteger(v) + NO_OF_BITS_IN_BYTE - 1) / NO_OF_BITS_IN_BYTE, 1) // even the number 0 needs 1 byte
 }.ensuring(n => n > 0 && n <= NO_OF_BYTES_IN_JVM_LONG)
 
 /**
-Binary encoding will be used
-REAL = M*B^E
-where
-M = S*N*2^F
+ * Get the amount of set bits in the given 64bit number v
+ *
+ * @param v input
+ * @return Amount of set bits in v
+ */
+@extern
+private def popCountL(v: Long): Int = {
+   Integer.bitCount((v >>> 32).toUnsignedInt) + Integer.bitCount((v & 0xFF_FF_FF_FFL).toUnsignedInt)
+}
 
-ENCODING is done within three parts
-part 1 is 1 byte header
-part 2 is 1 or more byte for exponent
-part 3 is 3 or more byte for mantissa (N)
+/**
+ * Get number of bytes needed to encode the
+ * positive number v according to PER rules (8.3)
+ *
+ * Example:
+ *    v = 12d = 0b0000'0...0'0000'1100b
+ *    According to 8.3.3 Leading zeros do not have to be
+ *    serialised, hence just send a single octet (0000'1100)
+ *
+ * @param v value that should get serialised
+ * @return number of bytes needed for serialisation
+ */
+def GetBytesNeededForPositiveNumber(v: Long): Int = {
+   require(v >= 0)
 
-First byte
-S :0-->+, S:1-->-1
-Base will be always be 2 (implied by 6th and 5th bit which are zero)
-ab: F    (0..3)
-cd:00 --> 1 byte for exponent as 2's complement
-cd:01 --> 2 byte for exponent as 2's complement
-cd:10 --> 3 byte for exponent as 2's complement
-cd:11 --> 1 byte for encoding the length of the exponent, then the exponent
+   v match
+      case x if x < (1L << 7) => 1
+      case x if x < (1L << 15) => 2
+      case x if x < (1L << 23) => 3
+      case x if x < (1L << 31) => 4
+      case x if x < (1L << 39) => 5
+      case x if x < (1L << 47) => 6
+      case x if x < (1L << 55) => 7
+      case _ => 8
 
-8 7 6 5 4 3 2 1
-+-+-+-+-+-+-+-+-+
-|1|S|0|0|a|b|c|d|
-+-+-+-+-+-+-+-+-+
- **/
+}.ensuring(n =>
+   n > 0 && n <= NO_OF_BYTES_IN_JVM_LONG &&&
+   n == NO_OF_BYTES_IN_JVM_LONG || (1L << (NO_OF_BITS_IN_BYTE * n - 1) > v)
+)
+
+/**
+ * Get number of bytes needed to encode the
+ * negative number v according to PER rules (8.3)
+ *
+ * Example:
+ *    v = -1d = 0b1111'1...1'1111'1111b
+ *    According to 8.3.3 Leading ones do not have to be
+ *    serialised, hence just send a single octet (1111'1111)
+ *
+ * @param v value that should get serialised
+ * @return number of bytes needed for serialisation
+ */
+def GetBytesNeededForNegativeNumber(v: Long): Int = {
+   require(v < 0)
+
+   v match
+      case x if x >= 0xFFFF_FFFF_FFFF_FF80L => 1
+      case x if x >= 0xFFFF_FFFF_FFFF_8000L => 2
+      case x if x >= 0xFFFF_FFFF_FF80_0000L => 3
+      case x if x >= 0xFFFF_FFFF_8000_0000L => 4
+      case x if x >= 0xFFFF_FF80_0000_0000L => 5
+      case x if x >= 0xFFFF_8000_0000_0000L => 6
+      case x if x >= 0xFF80_0000_0000_0000L => 7
+      case _ => 8
+
+}.ensuring(
+   n => {
+      val pre = n > 0 && n <= NO_OF_BYTES_IN_JVM_LONG
+      val mask = 0xFFFF_FFFF_FFFF_FFFFL << (NO_OF_BITS_IN_BYTE * n)
+      pre &&& (n == NO_OF_BYTES_IN_JVM_LONG || (NO_OF_BITS_IN_BYTE - n) * NO_OF_BITS_IN_BYTE == popCountL(v & mask))
+   })
+
+/**
+ * Get number of bytes needed to encode the
+ * number v according to the PER rules (8.3)
+ *
+ * @param v signed value that should get serialised
+ * @return number of bytes needed for serialisation
+ */
+def GetLengthForEncodingSigned(v: Long): Int = {
+   if v >= 0 then
+      GetBytesNeededForPositiveNumber(v)
+   else
+      GetBytesNeededForNegativeNumber(v)
+}.ensuring(n => n > 0 && n <= NO_OF_BYTES_IN_JVM_LONG)
 
 def CalculateMantissaAndExponent(doubleAsLong64: Long): (UInt, ULong) = {
    require({

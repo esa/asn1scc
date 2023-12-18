@@ -297,7 +297,7 @@ trait Codec {
 
    def encodeSemiConstraintWholeNumber(v: Long, min: Long): Unit = {
       assert(v >= min)
-      val nBytes: Int = GetLengthInBytesOfUInt((v - min))
+      val nBytes: Int = GetLengthForEncodingUnsigned((v - min))
 
       /* encode length */
       encodeConstrainedWholeNumber(nBytes.toLong, 0, 255)
@@ -310,7 +310,7 @@ trait Codec {
 
    def encodeSemiConstraintPosWholeNumber(v: ULong, min: ULong): Unit = {
       assert(v >= min)
-      val nBytes: Int = GetLengthInBytesOfUInt(v - min)
+      val nBytes: Int = GetLengthForEncodingUnsigned(v - min)
 
       /* encode length */
       encodeConstrainedWholeNumber(nBytes.toLong, 0, 255)
@@ -366,20 +366,33 @@ trait Codec {
       return Some(v)
    }
 
+   /**
+    * 8.3 Encoding of an integer value
+    *
+    * The encoding of an integer value shall be primitive.
+    * The contents octets shall consist of one or more octets.
+    *
+    * @param v The value that is always encoded in the smallest possible number of octets.
+    */
+
    def encodeUnconstrainedWholeNumber(v: Long): Unit = {
-      val nBytes: Int = GetLengthInBytesOfSInt(v)
+      require(bitStream.validate_offset_bytes(1 + GetLengthForEncodingSigned(v)))
 
-      /* encode length */
-      encodeConstrainedWholeNumber(nBytes.toLong, 0, 255)
+      // call func that fulfills 8.3.2
+      val nBytes: Int = GetLengthForEncodingSigned(v)
 
-      if v >= 0 then
-         appendNBitZero(nBytes * 8 - GetNumberOfBitsForNonNegativeInteger(v))
-         encodeNonNegativeInteger(v)
-      else
-         appendNBitOne(nBytes * 8 - GetNumberOfBitsForNonNegativeInteger((-v - 1)))
-         encodeNonNegativeIntegerNeg((-v - 1))
+      // encode length - single octet
+      appendByte(nBytes.toByte)
+
+      var i = nBytes;
+      (while i > 0 do
+         decreases(i)
+
+         appendByte((v >>> ((i - 1) * NO_OF_BITS_IN_BYTE)).toUnsignedByte)
+
+         i -= 1
+      ).invariant(i >= 0 && i <= nBytes)
    }
-
 
    def decodeUnConstraintWholeNumber(): Option[Long] = {
 
@@ -414,6 +427,32 @@ trait Codec {
       encodeRealBitString(java.lang.Double.doubleToRawLongBits(vVal))
    }
 
+   /**
+    * Binary encoding will be used
+    * REAL = M*B^E
+    * where
+    * M = S*N*2^F
+    *
+    * ENCODING is done within three parts
+    * part 1 is 1 byte header
+    * part 2 is 1 or more byte for exponent
+    * part 3 is 3 or more byte for mantissa (N)
+    *
+    * First byte
+    * S :0-->+, S:1-->-1
+    * Base will be always be 2 (implied by 6th and 5th bit which are zero)
+    * ab: F    (0..3)
+    * cd:00 --> 1 byte for exponent as 2's complement
+    * cd:01 --> 2 byte for exponent as 2's complement
+    * cd:10 --> 3 byte for exponent as 2's complement
+    * cd:11 --> 1 byte for encoding the length of the exponent, then the exponent
+    *
+    * 8 7 6 5 4 3 2 1
+    * +-+-+-+-+-+-+-+-+
+    * |1|S|0|0|a|b|c|d|
+    * +-+-+-+-+-+-+-+-+
+    *
+    */
    private def encodeRealBitString(vVal: Long): Unit = {
       // according to T-REC-X.690 2021
 
@@ -465,11 +504,11 @@ trait Codec {
 
       val (exponent, mantissa) = CalculateMantissaAndExponent(v)
 
-      val nManLen: Int = GetLengthInBytesOfUInt(mantissa)
+      val nManLen: Int = GetLengthForEncodingUnsigned(mantissa)
       assert(nManLen <= 7) // 52 bit
 
       val compactExp = RemoveLeadingFFBytesIfNegative(exponent)
-      val nExpLen: Int = GetLengthInBytesOfUInt(compactExp)
+      val nExpLen: Int = GetLengthForEncodingUnsigned(compactExp)
       assert(nExpLen >= 1 && nExpLen <= 2)
 
       // 8.5.7.4
