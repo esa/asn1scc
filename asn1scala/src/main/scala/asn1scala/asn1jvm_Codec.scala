@@ -394,23 +394,31 @@ trait Codec {
       ).invariant(i >= 0 && i <= nBytes)
    }
 
-   def decodeUnConstraintWholeNumber(): Option[Long] = {
 
-      var nBytes: Long = 0
+   /**
+    * 8.3 Encoding of an integer value reverse OP
+    *
+    * To call this func at least 2 octets have to be available on the bitstream
+    * The length n is the first octet, n octets with the value follow
+    * Values with n > 8 are not supported
+    *
+    * @return decoded number 
+    */
+   def decodeUnconstrainedWholeNumber(): Option[Long] = {
+      require(bitStream.validate_offset_bytes(2))
 
-      decodeConstraintWholeNumber(0, 255) match
+      val nBytes = readByte() match
          case None() => return None()
-         case Some(l) => nBytes = l
+         case Some(b) => b
 
-      val valIsNegative = false
-      peekBit() match
+      val valIsNegative = peekBit() match
          case Some(b) => b
          case None() => assert(false)
 
-      var v: Long = if valIsNegative then Long.MaxValue else 0
+      var v: Long = if valIsNegative then -1 else 0
 
-      var i: Long = 0
-      while i < nBytes do
+      var i = 0
+      (while i < nBytes do
          decreases(nBytes - i)
 
          readByte() match
@@ -418,8 +426,9 @@ trait Codec {
             case Some(ub) => v = (v << 8) | (ub & 0xFF).toLong
 
          i += 1
+      ).invariant(i >= 0 && i<= nBytes)
 
-      return Some(v)
+      Some(v)
    }
 
    @extern
