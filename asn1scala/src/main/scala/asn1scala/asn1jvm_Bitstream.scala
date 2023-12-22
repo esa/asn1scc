@@ -322,7 +322,7 @@ case class BitStream(
       require(nBits >= 0 && nBits <= NO_OF_BITS_IN_LONG)
       require(validate_offset_bits(nBits))
 
-      var i = nBits
+      var i = nBits - 1
       (while i >= 0 do
          decreases(i)
 
@@ -332,7 +332,7 @@ case class BitStream(
          appendBit(b)
 
          i -= 1
-         ).invariant(i >= -1 && i <= nBits &&& validate_offset_bits(i))
+         ).invariant(i >= -1 && i <= nBits &&& validate_offset_bits(i+1))
    }
 
    /**

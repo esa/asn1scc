@@ -213,23 +213,17 @@ trait Codec {
 
       // get number of bits that get written
       val nRangeBits: Int = GetNumberOfBitsForNonNegativeInteger(range)
-      stainlessAssert(bitStream.validate_offset_bits(nRangeBits))
 
+      // get value that gets written
       val encVal = v - min
       stainlessAssert(encVal >= 0)
 
-//      @ghost
-      val nEncValBits = GetNumberOfBitsForNonNegativeInteger(encVal)
+      @ghost val nEncValBits = GetNumberOfBitsForNonNegativeInteger(encVal)
       stainlessAssert(nRangeBits >= nEncValBits)
 
-      val done = bitStream.appendBitsNBitFirstToLSB(encVal, nRangeBits-1)
-      //if !done then
-        // writeToStdErr("precondition for appendBitsLSBFirst not met")
-
-//      val nBits: Int = GetNumberOfBitsForNonNegativeInteger(encodeVal)
-
-//      appendNBitZero(nRangeBits - nEncValBits);
-//      encodeNonNegativeInteger((v - min))
+      val done = appendBitsNBitFirstToLSB(encVal, nRangeBits)
+      if !done then
+         writeToStdErr("precondition for appendBitsLSBFirst not met")
    }
 
    def encodeConstraintPosWholeNumber(v: ULong, min: ULong, max: ULong): Unit = {
@@ -1060,7 +1054,7 @@ trait Codec {
       isValidPrecondition
    }
 
-   def appendBitsLSBFirst(v: Long, nBits: Int): Boolean = {
+   def appendBitsLSBFirst(v: Long, nBits: Int): Boolean = { // TODO remove if never used
       require(bitStream.validate_offset_bits(nBits))
 
       val isValidPrecondition = bitStream.validate_offset_bits(nBits)
@@ -1069,6 +1063,19 @@ trait Codec {
 
       if isValidPrecondition then
          bitStream.appendBitsLSBFirst(v, nBits)
+
+      isValidPrecondition
+   }
+
+   def appendBitsNBitFirstToLSB(v: Long, nBits: Int): Boolean = {
+      require(bitStream.validate_offset_bits(nBits))
+
+      val isValidPrecondition = bitStream.validate_offset_bits(nBits)
+      stainlessAssert(isValidPrecondition)
+      runtimeAssert(isValidPrecondition)
+
+      if isValidPrecondition then
+         bitStream.appendBitsNBitFirstToLSB(v, nBits)
 
       isValidPrecondition
    }
