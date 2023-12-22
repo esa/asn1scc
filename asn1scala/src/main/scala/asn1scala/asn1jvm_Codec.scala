@@ -22,13 +22,18 @@ val CHAR_ZERO: ASCIIChar = 48
 val CHAR_NINE: ASCIIChar = 57
 val CHAR_0000: ASCIIChar = 0
 
-
 /***********************************************************************************************/
 /**    Byte Stream Functions                                                                  **/
 /***********************************************************************************************/
 def ByteStream_Init(count: Int): ByteStream = {
    ByteStream(Array.fill(count)(0), 0, false)
 }
+
+@extern
+def runtimeAssert(condition: Boolean, s: String =""): Unit = assert(condition, s)
+
+@extern
+def writeToStdErr(s: String): Unit = Console.err.println(s)
 
 @extern
 def ByteStream_AttachBuffer(pStrm: ByteStream, buf: Array[UByte]): Unit = {
@@ -195,16 +200,36 @@ trait Codec {
 
    def encodeConstrainedWholeNumber(v: Long, min: Long, max: Long): Unit = {
       require(min <= max)
+      require(
+         min >= 0 && max >= 0 ||
+            min < 0 && max < 0 ||
+            min <= (Long.MaxValue >> 1) && max <= min + (Long.MaxValue >> 1)
+      )
       require(min <= v && v <= max)
 
       val range = max - min
       if range == 0 then
          return
 
+      // get number of bits that get written
       val nRangeBits: Int = GetNumberOfBitsForNonNegativeInteger(range)
-      val nBits: Int = GetNumberOfBitsForNonNegativeInteger((v - min))
-      appendNBitZero(nRangeBits - nBits);
-      encodeNonNegativeInteger((v - min))
+      stainlessAssert(bitStream.validate_offset_bits(nRangeBits))
+
+      val encVal = v - min
+      stainlessAssert(encVal >= 0)
+
+//      @ghost
+      val nEncValBits = GetNumberOfBitsForNonNegativeInteger(encVal)
+      stainlessAssert(nRangeBits >= nEncValBits)
+
+      val done = bitStream.appendBitsNBitFirstToLSB(encVal, nRangeBits-1)
+      //if !done then
+        // writeToStdErr("precondition for appendBitsLSBFirst not met")
+
+//      val nBits: Int = GetNumberOfBitsForNonNegativeInteger(encodeVal)
+
+//      appendNBitZero(nRangeBits - nEncValBits);
+//      encodeNonNegativeInteger((v - min))
    }
 
    def encodeConstraintPosWholeNumber(v: ULong, min: ULong, max: ULong): Unit = {
@@ -215,6 +240,7 @@ trait Codec {
       val range: ULong = (max - min)
       if range == 0 then
          return
+
       val nRangeBits: Int = GetNumberOfBitsForNonNegativeInteger(range)
       val nBits: Int = GetNumberOfBitsForNonNegativeInteger(v - min)
       appendNBitZero(nRangeBits - nBits)
@@ -222,11 +248,14 @@ trait Codec {
    }
 
    def decodeConstraintWholeNumber(min: Long, max: Long): Option[Long] = {
+      require(min <= max)
+      require(
+         min >= 0 && max >= 0 ||
+         min < 0 && max < 0 ||
+         min <= (Long.MaxValue >> 1) && max <= min + (Long.MaxValue >> 1)
+      )
 
-      val range: ULong = (max - min)
-
-      //    ASSERT_OR_RETURN_FALSE(min <= max);
-
+      val range: ULong = max - min
       if range == 0 then
          return Some(min)
 
@@ -374,7 +403,6 @@ trait Codec {
     *
     * @param v The value that is always encoded in the smallest possible number of octets.
     */
-
    def encodeUnconstrainedWholeNumber(v: Long): Unit = {
       require(bitStream.validate_offset_bytes(1 + GetLengthForEncodingSigned(v)))
 
@@ -393,7 +421,6 @@ trait Codec {
          i -= 1
       ).invariant(i >= 0 && i <= nBytes)
    }
-
 
    /**
     * 8.3 Encoding of an integer value reverse OP
@@ -431,6 +458,10 @@ trait Codec {
       Some(v)
    }
 
+   /**
+    * Facade function for real encoding
+    * @param vVal real input in IEEE754 double format
+    */
    @extern
    def encodeReal(vVal: Double): Unit = {
       encodeRealBitString(java.lang.Double.doubleToRawLongBits(vVal))
@@ -514,11 +545,11 @@ trait Codec {
       val (exponent, mantissa) = CalculateMantissaAndExponent(v)
 
       val nManLen: Int = GetLengthForEncodingUnsigned(mantissa)
-      assert(nManLen <= 7) // 52 bit
+      runtimeAssert(nManLen <= 7) // 52 bit
 
       val compactExp = RemoveLeadingFFBytesIfNegative(exponent)
       val nExpLen: Int = GetLengthForEncodingUnsigned(compactExp)
-      assert(nExpLen >= 1 && nExpLen <= 2)
+      runtimeAssert(nExpLen >= 1 && nExpLen <= 2)
 
       // 8.5.7.4
       if nExpLen == 2 then
@@ -545,6 +576,10 @@ trait Codec {
       encodeNonNegativeInteger(mantissa)
    }
 
+   /**
+    * facade function for real decoding
+    * @return decoded real value in IE754 double format
+    */
    @extern
    def decodeReal(): Option[Double] = {
       decodeRealBitString() match
@@ -554,6 +589,11 @@ trait Codec {
             Some(java.lang.Double.longBitsToDouble(ll))
    }
 
+
+   /**
+    * Real decoding implementation according to the PER standard
+    * @return decoded double bits as 64 bit integer
+    */
    private def decodeRealBitString(): Option[Long] = {
       readByte() match
          case None() => None()
@@ -594,6 +634,15 @@ trait Codec {
                      decodeRealFromBitStream(length.toInt - 1, header)
    }
 
+   /**
+    * Decode real number from bitstream, special cases are decoded by caller
+    * The exponent length and other details given in the header have be be
+    * decoded before calling this function
+    *
+    * @param lengthVal already decoded exponent length
+    * @param header already decoded header
+    * @return decoded real number as 64bit integer
+    */
    private def decodeRealFromBitStream(lengthVal: Int, header: UByte): Option[Long] = {
       require(lengthVal >= 1 && lengthVal < DoubleMaxLengthOfSentBytes) // without header byte
       require((header.unsignedToInt & 0x80) == 0x80)
@@ -619,7 +668,7 @@ trait Codec {
       var expIsNegative = false
       peekBit() match
          case Some(b) => expIsNegative = b
-         case None() => assert(false)
+         case None() => runtimeAssert(false)
 
       var exponent: Int = if expIsNegative then 0xFF_FF_FF_FF else 0
 
@@ -845,7 +894,7 @@ trait Codec {
          if asn1SizeMin != asn1SizeMax then
             encodeConstrainedWholeNumber(nCount.toLong, asn1SizeMin, asn1SizeMax)
 
-         appendBits(arr, nCount)
+         appendBitsMSBFirst(arr, nCount)
 
       else
          var nRemainingItemsVar1: Long = nCount.toLong
@@ -869,7 +918,7 @@ trait Codec {
                encodeConstrainedWholeNumber(0xC1, 0, 0xFF)
 
             val t: Array[UByte] = Array.fill(nCurBlockSize1.toInt)(0) // STAINLESS: arr.slice((nCurOffset1 / 8).toInt, (nCurOffset1 / 8).toInt + nCurBlockSize1.toInt)
-            appendBits(t, nCurBlockSize1.toInt)
+            appendBitsMSBFirst(t, nCurBlockSize1.toInt)
             nCurOffset1 += nCurBlockSize1
             nRemainingItemsVar1 -= nCurBlockSize1
 
@@ -881,7 +930,7 @@ trait Codec {
             encodeConstrainedWholeNumber(nRemainingItemsVar1, 0, 0x7FFF)
 
          val t: Array[UByte] = Array.fill(nRemainingItemsVar1.toInt)(0) // STAINLESS: arr.slice((nCurOffset1 / 8).toInt, (nCurOffset1 / 8).toInt + nRemainingItemsVar1.toInt)
-         appendBits(t, nRemainingItemsVar1.toInt)
+         appendBitsMSBFirst(t, nRemainingItemsVar1.toInt)
 
       true
    }
@@ -964,7 +1013,7 @@ trait Codec {
 
       val isValidPrecondition = bitStream.validate_offset_bit()
       stainlessAssert(isValidPrecondition)
-      assert(isValidPrecondition)
+      runtimeAssert(isValidPrecondition)
 
       if isValidPrecondition then
          bitStream.appendBitOne()
@@ -977,7 +1026,7 @@ trait Codec {
 
       val isValidPrecondition = bitStream.validate_offset_bit()
       stainlessAssert(isValidPrecondition)
-      assert(isValidPrecondition)
+      runtimeAssert(isValidPrecondition)
 
       if isValidPrecondition then
          bitStream.appendBitZero()
@@ -990,7 +1039,7 @@ trait Codec {
 
       val isValidPrecondition = bitStream.validate_offset_bits(nBits)
       stainlessAssert(isValidPrecondition)
-      assert(isValidPrecondition)
+      runtimeAssert(isValidPrecondition)
 
       if isValidPrecondition then
          bitStream.appendNBitZero(nBits)
@@ -1003,7 +1052,7 @@ trait Codec {
 
       val isValidPrecondition = bitStream.validate_offset_bits(nBits)
       stainlessAssert(isValidPrecondition)
-      assert(isValidPrecondition)
+      runtimeAssert(isValidPrecondition)
 
       if isValidPrecondition then
          bitStream.appendNBitOne(nBits)
@@ -1011,15 +1060,28 @@ trait Codec {
       isValidPrecondition
    }
 
-   def appendBits(srcBuffer: Array[UByte], nBits: Long): Boolean = {
+   def appendBitsLSBFirst(v: Long, nBits: Int): Boolean = {
       require(bitStream.validate_offset_bits(nBits))
 
       val isValidPrecondition = bitStream.validate_offset_bits(nBits)
       stainlessAssert(isValidPrecondition)
-      assert(isValidPrecondition)
+      runtimeAssert(isValidPrecondition)
 
       if isValidPrecondition then
-         bitStream.appendBits(srcBuffer, nBits)
+         bitStream.appendBitsLSBFirst(v, nBits)
+
+      isValidPrecondition
+   }
+
+   def appendBitsMSBFirst(srcBuffer: Array[UByte], nBits: Long): Boolean = {
+      require(bitStream.validate_offset_bits(nBits))
+
+      val isValidPrecondition = bitStream.validate_offset_bits(nBits)
+      stainlessAssert(isValidPrecondition)
+      runtimeAssert(isValidPrecondition)
+
+      if isValidPrecondition then
+         bitStream.appendBitsMSBFirst(srcBuffer, nBits)
 
       isValidPrecondition
    }
@@ -1029,7 +1091,7 @@ trait Codec {
 
       val isValidPrecondition = bitStream.validate_offset_bit()
       stainlessAssert(isValidPrecondition)
-      assert(isValidPrecondition)
+      runtimeAssert(isValidPrecondition)
 
       if isValidPrecondition then
          bitStream.appendBit(v)
@@ -1042,7 +1104,7 @@ trait Codec {
 
       val isValidPrecondition = bitStream.validate_offset_bit()
       stainlessAssert(isValidPrecondition)
-      assert(isValidPrecondition)
+      runtimeAssert(isValidPrecondition)
 
       isValidPrecondition match
          case true => Some(bitStream.readBit())
@@ -1054,7 +1116,7 @@ trait Codec {
 
       val isValidPrecondition = bitStream.validate_offset_bits(1)
       stainlessAssert(isValidPrecondition)
-      assert(isValidPrecondition)
+      runtimeAssert(isValidPrecondition)
 
       isValidPrecondition match
          case true => Some(bitStream.peekBit())
@@ -1066,7 +1128,7 @@ trait Codec {
 
       val isValidPrecondition = bitStream.validate_offset_byte()
       stainlessAssert(isValidPrecondition)
-      assert(isValidPrecondition)
+      runtimeAssert(isValidPrecondition)
 
       if isValidPrecondition then
          bitStream.appendByte(value)
@@ -1079,7 +1141,7 @@ trait Codec {
 
       val isValidPrecondition = bitStream.validate_offset_byte()
       stainlessAssert(isValidPrecondition)
-      assert(isValidPrecondition)
+      runtimeAssert(isValidPrecondition)
 
       isValidPrecondition match
          case true => Some(bitStream.readByte())
@@ -1089,7 +1151,7 @@ trait Codec {
    def appendByteArray(arr: Array[UByte], noOfBytes: Int): Boolean = {
       val isValidPrecondition = bitStream.validate_offset_bytes(noOfBytes)
       stainlessAssert(isValidPrecondition)
-      assert(isValidPrecondition)
+      runtimeAssert(isValidPrecondition)
 
       if isValidPrecondition then
          bitStream.appendByteArray(arr, noOfBytes)
@@ -1104,7 +1166,7 @@ trait Codec {
 
       val isValidPrecondition = bitStream.validate_offset_bytes(nBytes)
       stainlessAssert(isValidPrecondition)
-      assert(isValidPrecondition)
+      runtimeAssert(isValidPrecondition)
 
       isValidPrecondition match
          case true => SomeMut(bitStream.readByteArray(nBytes))
@@ -1116,7 +1178,7 @@ trait Codec {
 
       val isValidPrecondition = bitStream.validate_offset_bits(nBits)
       stainlessAssert(isValidPrecondition)
-      assert(isValidPrecondition)
+      runtimeAssert(isValidPrecondition)
 
       isValidPrecondition match
          case true => SomeMut(bitStream.readBits(nBits))
@@ -1126,7 +1188,7 @@ trait Codec {
    def appendPartialByte(vVal: UByte, nBits: UByte): Boolean = {
       val isValidPrecondition = bitStream.validate_offset_bits(nBits)
       stainlessAssert(isValidPrecondition)
-      assert(isValidPrecondition)
+      runtimeAssert(isValidPrecondition)
 
       if isValidPrecondition then
          bitStream.appendPartialByte(vVal, nBits)
@@ -1140,7 +1202,7 @@ trait Codec {
 
       val isValidPrecondition = bitStream.validate_offset_bits(nBits)
       stainlessAssert(isValidPrecondition)
-      assert(isValidPrecondition)
+      runtimeAssert(isValidPrecondition)
 
       isValidPrecondition match
          case true => Some(bitStream.readPartialByte(nBits))
@@ -1150,7 +1212,7 @@ trait Codec {
    def checkBitPatternPresent(bit_terminated_pattern: Array[UByte], nBits: Long): Option[Boolean] = {
       val isValidPrecondition = bitStream.validate_offset_bits(nBits)
       stainlessAssert(isValidPrecondition)
-      assert(isValidPrecondition)
+      runtimeAssert(isValidPrecondition)
 
       isValidPrecondition match
          case true => Some(bitStream.checkBitPatternPresent(bit_terminated_pattern, nBits))
@@ -1171,7 +1233,7 @@ trait Codec {
          NO_OF_BITS_IN_BYTE - (bitStream.bitIndex() % NO_OF_BITS_IN_BYTE)
       )
       stainlessAssert(isValidPrecondition)
-      assert(isValidPrecondition)
+      runtimeAssert(isValidPrecondition)
 
       if isValidPrecondition then
          bitStream.alignToByte()

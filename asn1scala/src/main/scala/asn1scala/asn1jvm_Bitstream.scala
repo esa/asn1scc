@@ -272,6 +272,70 @@ case class BitStream(
    }.ensuring(_ => buf.length == old(this).buf.length && remainingBits == old(this).remainingBits - 1)
 
    /**
+    * Append nBits from the 64bit Integer value v to the bitstream
+    *
+    * @param v source of the bits
+    * @param nBits number of bits to add
+    *
+    * Remarks:
+    * bit 0 is the LSB of v
+    */
+   def appendBitsLSBFirst(v: Long, nBits: Int): Unit = {
+      require(nBits >= 0 && nBits <= NO_OF_BITS_IN_LONG)
+      require(validate_offset_bits(nBits))
+
+//      @ghost val oldThis = snapshot(this)
+      var i = 0
+      (while i < nBits do
+         decreases(nBits - i)
+
+         val ii = v & (1L << i)
+         val b = ii != 0
+
+         appendBit(b)
+
+         i += 1
+      ).invariant(i >= 0 && i <= nBits &&& validate_offset_bits(nBits - i))
+   }
+
+   /**
+    * Append nBits from the 64bit Integer value v to the bitstream
+    *
+    * @param v     source of the bits
+    * @param nBits number of bits to add
+    *
+    * Remarks:
+    * the first bit added to the bitstream is the highest significant bit
+    * defined by nBits.
+    *
+    * Example:
+    * nBits = 25
+    *
+    * MSB          first added bit     LSB
+    *  v                 v              v
+    * 64----------------24--------------0
+    *
+    * After bit 24, bit 23 and so on get added
+    *
+    */
+   def appendBitsNBitFirstToLSB(v: Long, nBits: Int): Unit = {
+      require(nBits >= 0 && nBits <= NO_OF_BITS_IN_LONG)
+      require(validate_offset_bits(nBits))
+
+      var i = nBits
+      (while i >= 0 do
+         decreases(i)
+
+         val ii = v & (1L << i)
+         val b = ii != 0
+
+         appendBit(b)
+
+         i -= 1
+         ).invariant(i >= -1 && i <= nBits &&& validate_offset_bits(i))
+   }
+
+   /**
     * Append nBits from srcBuffer to bitstream
     *
     * @param srcBuffer source of the bits to add
@@ -281,7 +345,7 @@ case class BitStream(
     * bit 0 is the MSB of the first byte of srcBuffer
     *
     */
-   def appendBits(srcBuffer: Array[UByte], nBits: Long): Unit = {
+   def appendBitsMSBFirst(srcBuffer: Array[UByte], nBits: Long): Unit = {
       require(nBits >= 0 && (nBits / 8) < srcBuffer.length)
       require(validate_offset_bits(nBits))
 

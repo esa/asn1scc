@@ -88,6 +88,11 @@ extension (l: Long) {
       else
          (l & MASK_BYTE).toByte
    }
+
+   @extern
+   def toByteArray: Array[Byte] = {
+      scala.math.BigInt(l).toByteArray
+   }
 }
 
 def GetNumberOfBitsInUpperBytesAndDecreaseValToLastByte(v: UInt): (UInt, Int) = {
