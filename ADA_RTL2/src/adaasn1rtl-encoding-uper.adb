@@ -195,14 +195,20 @@ is
       V        : Asn1Real;
    begin
 
-      if RealVal >= 0.0 and RealVal <= 0.0 then
+      if isPosZero (RealVal) then
          BitStream_AppendByte (bs, 0, False);
+      elsif isNegZero (RealVal) then
+         BitStream_AppendByte (bs, 1, False);
+         BitStream_AppendByte (bs, 16#43#, False);
       elsif RealVal = PLUS_INFINITY then
          BitStream_AppendByte (bs, 1, False);
          BitStream_AppendByte (bs, 16#40#, False);
       elsif RealVal = MINUS_INFINITY then
          BitStream_AppendByte (bs, 1, False);
          BitStream_AppendByte (bs, 16#41#, False);
+      elsif isNaN (RealVal) then
+         BitStream_AppendByte (bs, 1, False);
+         BitStream_AppendByte (bs, 16#42#, False);
       else
          V := RealVal;
 
@@ -361,6 +367,12 @@ is
                   Result  := ASN1_RESULT'(Success => True, ErrorCode => 0);
                elsif Header = 16#41# then
                   RealVal := MINUS_INFINITY;
+                  Result  := ASN1_RESULT'(Success => True, ErrorCode => 0);
+               elsif Header = 16#42# then
+                  RealVal := NaN;
+                  Result  := ASN1_RESULT'(Success => True, ErrorCode => 0);
+               elsif Header = 16#43# then
+                  RealVal := -0.0;
                   Result  := ASN1_RESULT'(Success => True, ErrorCode => 0);
                elsif (Header and 16#80#) > 0 then
                   UPER_Dec_Real_AsBinary

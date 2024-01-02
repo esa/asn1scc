@@ -90,6 +90,14 @@ is
 
    function PLUS_INFINITY return Asn1Real;
    function MINUS_INFINITY return Asn1Real;
+   function NaN return Asn1Real;
+
+   function isNaN (r : Asn1Real) return Boolean is
+   (r /= 0.0 and then (not (r < 0.0)) and then (not (r > 0.0)));
+   function isPosZero (r : Asn1Real) return Boolean is
+     (r >= 0.0 and then r <= 0.0);
+   function isNegZero (r : Asn1Real) return Boolean is
+     (r >= -0.0 and then r <= -0.0);
 
    function GetExponent (V : Asn1Real) return Asn1Int;
    function GetMantissa (V : Asn1Real) return Asn1UInt;
