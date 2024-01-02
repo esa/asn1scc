@@ -70,6 +70,8 @@ type ILangGeneric () =
     abstract member BodyExtention : string
 
     abstract member RtlFuncNames : string list
+    abstract member AlwaysPresentRtlFuncNames : string list
+
     abstract member detectFunctionCalls : string -> string -> string list
     abstract member removeFunctionFromHeader : string -> string -> string 
     abstract member removeFunctionFromBody : string -> string -> string
@@ -154,6 +156,7 @@ type ILangGeneric () =
     default this.requiresHandlingOfEmptySequences = false
     default this.requiresHandlingOfZeroArrays = false
     default this.RtlFuncNames = []
+    default this.AlwaysPresentRtlFuncNames = []
     default this.detectFunctionCalls (sourceCode: string) (functionName: string) = []
     default this.removeFunctionFromHeader (sourceCode: string) (functionName: string) : string =
         sourceCode

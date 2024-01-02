@@ -356,7 +356,15 @@ type LangGeneric_c() =
 
             CreateCMainFile r  di.srcDir
             generateVisualStudtioProject r di.srcDir (arrsSrcTstFiles, arrsHdrTstFiles)
-        
+        //AlwaysPresentRtlFuncNames
+        override this.AlwaysPresentRtlFuncNames : string list =
+            [
+                "ByteStream_GetLength"
+                "BitStream_AttachBuffer2"
+                "BitStream_AttachBuffer"
+                "BitStream_Init"
+            ]
+
         override this.RtlFuncNames : string list =
             [
                 "BitStream_EncodeNonNegativeInteger32Neg"

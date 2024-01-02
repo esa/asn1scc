@@ -47,10 +47,9 @@ let findUnusedRtlFunctions (lm:LanguageMacros) (rtlContent:string) (generatedCon
     //first detect all function names
     let directlyUsedFunctions = 
         lm.lg.RtlFuncNames |> List.filter (fun fn -> generatedContent.Contains(fn))
+
     
-    let allUsedFunctions = findAllUsedRtlFunctions lm rtlContent ("BitStream_AttachBuffer"::"BitStream_Init"::directlyUsedFunctions) |> Set.ofList
-    let debug = allUsedFunctions |> Set.toList |> List.sort |> Seq.StrJoin "\n"
-    let debug2 = lm.lg.detectFunctionCalls rtlContent "BitStream_DecodeNonNegativeInteger32Neg" |> Seq.StrJoin "\n"
+    let allUsedFunctions = findAllUsedRtlFunctions lm rtlContent (lm.lg.AlwaysPresentRtlFuncNames@directlyUsedFunctions) |> Set.ofList
     lm.lg.RtlFuncNames |> List.filter (fun fn -> not (allUsedFunctions.Contains(fn)))
     
 
