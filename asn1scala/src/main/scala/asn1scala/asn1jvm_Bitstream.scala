@@ -81,7 +81,7 @@ case class BitStream(
    require(BitStream.invariant(currentBit, currentByte, buf.length))
 
    @pure
-   private def remainingBits: Long = {
+   def remainingBits: Long = {
       (buf.length.toLong * NO_OF_BITS_IN_BYTE) - (currentByte.toLong * NO_OF_BITS_IN_BYTE + currentBit)
    }
 
@@ -150,6 +150,9 @@ case class BitStream(
          ret += 1
       ret
    }
+
+   @ghost @pure
+   def getBuf: Array[Byte] = buf
 
 //   @ghost
 //   @pure
@@ -605,6 +608,14 @@ case class BitStream(
 
       ret.cutToByte
    }.ensuring(_ => buf == old(this).buf && remainingBits == old(this).remainingBits - NO_OF_BITS_IN_BYTE)
+
+   @ghost @pure
+   def readBytePure(): (BitStream, UByte) = {
+      require(validate_offset_bits(8))
+      val cpy = snapshot(this)
+      val res = cpy.readByte()
+      (cpy, res)
+   }
 
    def readByteArray(nBytes: Int): Array[UByte] = {
       require(nBytes <= Integer.MAX_VALUE / NO_OF_BITS_IN_BYTE)

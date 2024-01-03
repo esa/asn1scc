@@ -62,9 +62,9 @@ def BitString_equal(arr1: Array[UByte], arr2: Array[UByte]): Boolean = {
  *
  * @param count represents the number of bytes in the internal buffer
  */
+@mutable
 trait Codec {
-
-   def bitStream: BitStream
+   val bitStream: BitStream
 
    /** ******************************************************************************************** */
    /** ******************************************************************************************** */
@@ -77,7 +77,7 @@ trait Codec {
 
    /** ******************************************************************************************** */
 
-   def encodeNonNegativeInteger32Neg(v: Int, negate: Boolean): Unit = {
+   final def encodeNonNegativeInteger32Neg(v: Int, negate: Boolean): Unit = {
       var cc: UInt = 0
       var curMask: UInt = 0
       var pbits: UInt = 0
@@ -121,7 +121,7 @@ trait Codec {
          appendByte(b.cutToByte)
    }
 
-   def decodeNonNegativeInteger32Neg(nBitsVal : Int): Int = {
+   final def decodeNonNegativeInteger32Neg(nBitsVal : Int): Int = {
       // TODO precondition
       var v: UInt = 0
 
@@ -144,7 +144,7 @@ trait Codec {
       v
    }
 
-   def encodeNonNegativeInteger(v: ULong): Unit = {
+   final def encodeNonNegativeInteger(v: ULong): Unit = {
       if v >>> 32 == 0 then
          encodeNonNegativeInteger32Neg(v.toInt, false)
       else
@@ -157,7 +157,7 @@ trait Codec {
          encodeNonNegativeInteger32Neg(lo, false)
    }
 
-   def decodeNonNegativeInteger(nBits: Int): Long = {
+   final def decodeNonNegativeInteger(nBits: Int): Long = {
       // TODO precondition
 
       if nBits <= 32 then
@@ -172,7 +172,7 @@ trait Codec {
       v
    }
 
-   def encodeNonNegativeIntegerNeg(v: Long): Unit = {
+   final def encodeNonNegativeIntegerNeg(v: Long): Unit = {
       // TODO precondition
 
       if v >>> 32 == 0 then
@@ -191,8 +191,8 @@ trait Codec {
          encodeNonNegativeInteger32Neg(lo, false)
    }
 
-   @extern
-   def rangeCheck(min: Long, max: Long): Boolean = {
+   @extern @pure
+   final def rangeCheck(min: Long, max: Long): Boolean = {
       val bigMin = scala.math.BigInt(min)
       val bigMax = scala.math.BigInt(max)
 
@@ -209,7 +209,7 @@ trait Codec {
     * range size is limited to Long.MaxValue - a higher range will fail
     *
     */
-   def encodeConstrainedWholeNumber(v: Long, min: Long, max: Long): Unit = {
+   final def encodeConstrainedWholeNumber(v: Long, min: Long, max: Long): Unit = {
       require(min <= max)
       require(min <= v && v <= max)
       require(rangeCheck(min, max))
@@ -230,7 +230,7 @@ trait Codec {
       appendBitsNBitFirstToLSB(encVal, nRangeBits)
    }
 
-   def decodeConstrainedWholeNumber(min: Long, max: Long): Long = {
+   final def decodeConstrainedWholeNumber(min: Long, max: Long): Long = {
       require(min <= max)
       require(rangeCheck(min, max))
 
@@ -248,27 +248,27 @@ trait Codec {
       min + decVal
    }
 
-   def decodeConstrainedWholeNumberByte(min: Byte, max: Byte): Byte = {
+   final def decodeConstrainedWholeNumberByte(min: Byte, max: Byte): Byte = {
       require(min <= max)
       decodeConstrainedWholeNumber(min, max).cutToByte
 
       // TODO maybe add PostCondition: is val in given (signed/unsigned??) range?
    }
 
-   def decodeConstrainedWholeNumberShort(min: Short, max: Short): Short = {
+   final def decodeConstrainedWholeNumberShort(min: Short, max: Short): Short = {
       require(min <= max)
       decodeConstrainedWholeNumber(min, max).cutToShort
 
       // TODO maybe add PostCondition: is val in given (signed/unsigned??) range?
    }
 
-   def decodeConstrainedWholeNumberInt(min: Int, max: Int): Int = {
+   final def decodeConstrainedWholeNumberInt(min: Int, max: Int): Int = {
       require(min <= max)
       decodeConstrainedWholeNumber(min, max).cutToInt
       // TODO maybe add PostCondition: is val in given (signed/unsigned??) range?
    }
 
-   def decodeConstraintPosWholeNumber(min: Long, max: Long): Long = {
+   final def decodeConstraintPosWholeNumber(min: Long, max: Long): Long = {
       require(max >= 0 && max <= Long.MaxValue)
       require(min >= 0 && min <= max)
 
@@ -286,7 +286,7 @@ trait Codec {
       min + decVal
    }
 
-   def encodeSemiConstraintWholeNumber(v: Long, min: Long): Unit = {
+   final def encodeSemiConstraintWholeNumber(v: Long, min: Long): Unit = {
       require(min <= v)
 
       val nBytes: Int = GetLengthForEncodingUnsigned(v - min)
@@ -300,7 +300,7 @@ trait Codec {
       encodeNonNegativeInteger(v - min)
    }
 
-   def encodeSemiConstraintPosWholeNumber(v: ULong, min: ULong): Unit = {
+   final def encodeSemiConstraintPosWholeNumber(v: ULong, min: ULong): Unit = {
       require(min <= v)
 
       val nBytes: Int = GetLengthForEncodingUnsigned(v - min)
@@ -314,7 +314,7 @@ trait Codec {
       encodeNonNegativeInteger(v - min)
    }
 
-   def decodeSemiConstraintWholeNumber(min: Long): Long = {
+   final def decodeSemiConstraintWholeNumber(min: Long): Long = {
       // TODO add precondition
 
       // get length in bytes
@@ -334,7 +334,7 @@ trait Codec {
       min + v
    }
 
-   def decodeSemiConstraintPosWholeNumber(min: ULong): ULong = {
+   final def decodeSemiConstraintPosWholeNumber(min: ULong): ULong = {
       require(min >= 0)
       // TODO precondition
 
@@ -363,7 +363,7 @@ trait Codec {
     *
     * @param v The value that is always encoded in the smallest possible number of octets.
     */
-   def encodeUnconstrainedWholeNumber(v: Long): Unit = {
+   final def encodeUnconstrainedWholeNumber(v: Long): Unit = {
       require(bitStream.validate_offset_bytes(1 + GetLengthForEncodingSigned(v)))
 
       // call func that fulfills 8.3.2
@@ -391,7 +391,7 @@ trait Codec {
     *
     * @return decoded number
     */
-   def decodeUnconstrainedWholeNumber(): Long = {
+   final def decodeUnconstrainedWholeNumber(): Long = {
       require(bitStream.validate_offset_bytes(2))
 
       // get length
@@ -417,7 +417,7 @@ trait Codec {
     * @param vVal real input in IEEE754 double format
     */
    @extern
-   def encodeReal(vVal: Double): Unit = {
+   final def encodeReal(vVal: Double): Unit = {
       encodeRealBitString(java.lang.Double.doubleToRawLongBits(vVal))
    }
 
@@ -536,7 +536,7 @@ trait Codec {
     * @return decoded real value in IE754 double format
     */
    @extern
-   def decodeReal(): Double = java.lang.Double.longBitsToDouble(decodeRealBitString())
+   final def decodeReal(): Double = java.lang.Double.longBitsToDouble(decodeRealBitString())
 
    /**
     * Real decoding implementation according to the PER standard
@@ -638,18 +638,18 @@ trait Codec {
       v
    }
 
-   def encodeOctetString_no_length(arr: Array[UByte], nCount: Int): Unit = {
+   final def encodeOctetString_no_length(arr: Array[UByte], nCount: Int): Unit = {
       appendByteArray(arr, nCount)
    }
 
-   def decodeOctetString_no_length(nCount: Int): Array[UByte] = {
+   final def decodeOctetString_no_length(nCount: Int): Array[UByte] = {
       val a = readByteArray(nCount)
       val arr: Array[UByte] = Array.fill(nCount + 1)(0)           // TODO: why is +1 needed?
       arrayCopyOffsetLen(a, arr, 0, 0, a.length)
       arr
    }
 
-   def encodeOctetString_fragmentation(arr: Array[UByte], nCount: Int): Boolean = { // TODO return value legacy C? remove?
+   final def encodeOctetString_fragmentation(arr: Array[UByte], nCount: Int): Boolean = { // TODO return value legacy C? remove?
       var nRemainingItemsVar1: Int = nCount
       var nCurBlockSize1: Int = 0
       var nCurOffset1: Int = 0
@@ -696,7 +696,7 @@ trait Codec {
       ret
    }
 
-   def decodeOctetString_fragmentation(asn1SizeMax: Long): Array[UByte] = {
+   final def decodeOctetString_fragmentation(asn1SizeMax: Long): Array[UByte] = {
       require(asn1SizeMax >= 0 && asn1SizeMax < Int.MaxValue)
 
       val arr: Array[UByte] = Array.fill(asn1SizeMax.toInt)(0)
@@ -774,7 +774,7 @@ trait Codec {
       newArr
    }
 
-   def encodeOctetString(arr: Array[UByte], nCount: Int, asn1SizeMin: Long, asn1SizeMax: Long): Boolean = {
+   final def encodeOctetString(arr: Array[UByte], nCount: Int, asn1SizeMin: Long, asn1SizeMax: Long): Boolean = {
       // TODO require & return type - seems old C style
 
       var ret: Boolean = nCount.toLong >= asn1SizeMin && nCount.toLong <= asn1SizeMax
@@ -791,7 +791,7 @@ trait Codec {
       ret
    }
 
-   def decodeOctetString(asn1SizeMin: Long, asn1SizeMax: Long): Array[UByte] = {
+   final def decodeOctetString(asn1SizeMin: Long, asn1SizeMax: Long): Array[UByte] = {
 
       if asn1SizeMax >= 0x1_00_00 then // 65'536, bigger than 2 unsigned bytes
          return decodeOctetString_fragmentation(asn1SizeMax)
@@ -807,7 +807,7 @@ trait Codec {
       decodeOctetString_no_length(nCount)
    }
 
-   def encodeBitString(arr: Array[UByte], nCount: Int, asn1SizeMin: Long, asn1SizeMax: Long): Unit = {
+   final def encodeBitString(arr: Array[UByte], nCount: Int, asn1SizeMin: Long, asn1SizeMax: Long): Unit = {
       if asn1SizeMax < 65536 then
          if asn1SizeMin != asn1SizeMax then
             encodeConstrainedWholeNumber(nCount.toLong, asn1SizeMin, asn1SizeMax)
@@ -851,7 +851,7 @@ trait Codec {
          appendBitsMSBFirst(t, nRemainingItemsVar1.toInt)
    }
 
-   def decodeBitString(asn1SizeMin: Long, asn1SizeMax: Long): Array[UByte] = {
+   final def decodeBitString(asn1SizeMin: Long, asn1SizeMax: Long): Array[UByte] = {
       require(asn1SizeMax <= Int.MaxValue)
       // TODO enhance precondition
 
@@ -910,100 +910,100 @@ trait Codec {
 
    // ***** Public wrapper for bitstream functions
 
-   def appendBitOne(): Unit = {
+   final def appendBitOne(): Unit = {
       require(bitStream.validate_offset_bit())
       bitStream.appendBitOne()
    }
 
-   def appendBitZero(): Unit = {
+   final def appendBitZero(): Unit = {
       require(bitStream.validate_offset_bit())
       bitStream.appendBitZero()
    }
 
-   def appendBit(v: Boolean): Unit = {
+   final def appendBit(v: Boolean): Unit = {
       require(bitStream.validate_offset_bit())
       bitStream.appendBit(v)
    }
 
-   def peekBit(): Boolean = {
+   final def peekBit(): Boolean = {
       require(bitStream.validate_offset_bit())
       bitStream.peekBit()
    }
 
-   def readBit(): Boolean = {
+   final def readBit(): Boolean = {
       require(bitStream.validate_offset_bit())
       bitStream.readBit()
    }
 
-   def appendNBitZero(nBits: Long): Unit = {
+   final def appendNBitZero(nBits: Long): Unit = {
       require(bitStream.validate_offset_bits(nBits))
       bitStream.appendNBitZero(nBits)
    }
 
-   def appendNBitOne(nBits: Long): Unit = {
+   final def appendNBitOne(nBits: Long): Unit = {
       require(bitStream.validate_offset_bits(nBits))
       bitStream.appendNBitOne(nBits)
    }
 
-   def appendBitsLSBFirst(v: Long, nBits: Int): Unit = { // TODO remove if never used
+   final def appendBitsLSBFirst(v: Long, nBits: Int): Unit = { // TODO remove if never used
       require(bitStream.validate_offset_bits(nBits))
       bitStream.appendBitsLSBFirst(v, nBits)
    }
 
-   def appendBitsMSBFirst(srcBuffer: Array[UByte], nBits: Long): Unit = {
+   final def appendBitsMSBFirst(srcBuffer: Array[UByte], nBits: Long): Unit = {
       require(bitStream.validate_offset_bits(nBits))
       bitStream.appendBitsMSBFirst(srcBuffer, nBits)
    }
 
-   def appendBitsNBitFirstToLSB(v: Long, nBits: Int): Unit = {
+   final def appendBitsNBitFirstToLSB(v: Long, nBits: Int): Unit = {
       require(bitStream.validate_offset_bits(nBits))
       bitStream.appendBitsNBitFirstToLSB(v, nBits)
    }
 
-   def readBitsNBitFirstToLSB(nBits: Int): Long = {
+   final def readBitsNBitFirstToLSB(nBits: Int): Long = {
       require(bitStream.validate_offset_bits(nBits))
       bitStream.readBitsNBitFirstToLSB(nBits)
    }
 
-   def readBits(nBits: Long): Array[UByte] = {
+   final def readBits(nBits: Long): Array[UByte] = {
       require(nBits >= 0 && bitStream.validate_offset_bits(nBits))
       bitStream.readBits(nBits)
    }
 
-   def appendByte(value: Byte): Unit = {
+   final def appendByte(value: Byte): Unit = {
       require(bitStream.validate_offset_byte())
       bitStream.appendByte(value)
    }
 
 
-   def readByte(): Byte = {
+   final def readByte(): Byte = {
       require(bitStream.validate_offset_byte())
       bitStream.readByte()
    }
 
-   def appendByteArray(arr: Array[Byte], noOfBytes: Int): Unit = {
+   final def appendByteArray(arr: Array[Byte], noOfBytes: Int): Unit = {
       require(bitStream.validate_offset_bytes(noOfBytes))
       bitStream.appendByteArray(arr, noOfBytes)
    }
 
-   def readByteArray(nBytes: Int): Array[Byte] = {
+   final def readByteArray(nBytes: Int): Array[Byte] = {
       require(nBytes >= 0 && nBytes <= Integer.MAX_VALUE / NO_OF_BITS_IN_BYTE)
       require(bitStream.validate_offset_bytes(nBytes))
       bitStream.readByteArray(nBytes)
    }
 
-   def appendPartialByte(vVal: Byte, nBits: Byte): Unit = {
+   final def appendPartialByte(vVal: Byte, nBits: Byte): Unit = {
       require(bitStream.validate_offset_bits(nBits))
       bitStream.appendPartialByte(vVal, nBits)
    }
 
-   def readPartialByte(nBits: Int): Byte = {
+   final def readPartialByte(nBits: Int): Byte = {
       require(nBits >= 0 && nBits <= NO_OF_BITS_IN_BYTE)
       require(bitStream.validate_offset_bits(nBits))
       bitStream.readPartialByte(nBits)
    }
 
-   def checkBitPatternPresent(bit_terminated_pattern: Array[UByte], nBits: Long): Boolean = {
+   final def checkBitPatternPresent(bit_terminated_pattern: Array[UByte], nBits: Long): Boolean = {
       require(bitStream.validate_offset_bits(nBits))
       bitStream.checkBitPatternPresent(bit_terminated_pattern, nBits)
    }
@@ -1017,31 +1017,31 @@ trait Codec {
 //         case false => NoneMut()
 //   }
 
-   def alignToByte(): Unit = {
+   final def alignToByte(): Unit = {
       require(bitStream.validate_offset_bits(
          NO_OF_BITS_IN_BYTE - (bitStream.bitIndex() % NO_OF_BITS_IN_BYTE)))
       bitStream.alignToByte()
    }
 
-   def alignToShort(): Unit = {
+   final def alignToShort(): Unit = {
       // TODO: precondition
       bitStream.alignToShort()
 //      alignToByte()
 //      currentByte = ((currentByte + (NO_OF_BYTES_IN_JVM_SHORT - 1)) / NO_OF_BYTES_IN_JVM_SHORT) * NO_OF_BYTES_IN_JVM_SHORT
    }
 
-   def alignToInt(): Unit = {
+   final def alignToInt(): Unit = {
       // TODO: precondition
       bitStream.alignToInt()
 //      alignToByte()
 //      currentByte = ((currentByte + (NO_OF_BYTES_IN_JVM_INT - 1)) / NO_OF_BYTES_IN_JVM_INT) * NO_OF_BYTES_IN_JVM_INT
    }
 
-   def resetBitIndex(): Unit = {
+   final def resetBitIndex(): Unit = {
       bitStream.resetBitIndex()
    }
 
-   def getBufferLength: Int = {
+   final def getBufferLength: Int = {
       bitStream.getBufferLength
    }
 
@@ -1051,7 +1051,7 @@ trait Codec {
     *         if the currentBit is not 0, currentByte is added by 1
     *
     */
-   def getLength: Int = {
+   final def getLength: Int = {
       bitStream.getLength
    }
 }
