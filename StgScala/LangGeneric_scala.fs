@@ -126,6 +126,8 @@ type LangGeneric_scala() =
         override this.getSizeableTypeDefinition (td:Map<ProgrammingLanguage, FE_SizeableTypeDefinition>) = td.[Scala]
         override this.getAsn1ChildBackendName (ch:Asn1Child) = ch._scala_name
         override this.getAsn1ChChildBackendName (ch:ChChildInfo) = ch._scala_name        
+        override _.getChildInfoName (ch:Asn1Ast.ChildInfo)  = ch.scala_name
+        override _.setChildInfoName (ch:Asn1Ast.ChildInfo) (newValue:string) = {ch with scala_name = newValue}
         override this.getAsn1ChildBackendName0 (ch:Asn1AcnAst.Asn1Child) = ch._scala_name
         override this.getAsn1ChChildBackendName0 (ch:Asn1AcnAst.ChChildInfo) = ch._scala_name
 

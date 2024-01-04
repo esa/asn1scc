@@ -166,6 +166,9 @@ type LangGeneric_a() =
 
         override _.getValueAssignmentName (vas: ValueAssignment) = vas.ada_name
 
+        override _.getChildInfoName (ch:Asn1Ast.ChildInfo)  = ch.ada_name
+        override _.setChildInfoName (ch:Asn1Ast.ChildInfo) (newValue:string) = {ch with ada_name = newValue}
+
         override this.getAsn1ChildBackendName (ch:Asn1Child) = ch._ada_name
         override this.getAsn1ChChildBackendName (ch:ChChildInfo) = ch._ada_name
         override this.getAsn1ChildBackendName0 (ch:Asn1AcnAst.Asn1Child) = ch._ada_name

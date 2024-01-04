@@ -383,13 +383,14 @@ let rec GetMySelfAndChildren (t:Asn1Type) =
                 yield! GetMySelfAndChildren ch.Type
         |_ -> ()    
     }
-
+(*
 type ChildInfo with
     member c.CName (lang:ProgrammingLanguage) = 
         match lang with
         | Ada               -> c.ada_name
         | C                 -> c.c_name
         | Scala             -> c.scala_name
+*)
 
 type NamedItem with
     member c.CEnumName (r:AstRoot) (lang:ProgrammingLanguage) = 
@@ -397,11 +398,11 @@ type NamedItem with
         |Ada    -> ToC2 (r.args.TypePrefix + c.ada_name)
         |C      -> ToC2 (r.args.TypePrefix + c.c_name)
         |Scala  -> ToC2 (r.args.TypePrefix + c.scala_name)
-    member c.EnumName (lang:ProgrammingLanguage) = 
-        match lang with
-        |Ada    -> c.ada_name
-        |C      -> c.c_name
-        |Scala  -> c.scala_name
+//    member c.EnumName (lang:ProgrammingLanguage) = 
+//        match lang with
+//        |Ada    -> c.ada_name
+//        |C      -> c.c_name
+//        |Scala  -> c.scala_name
 
 type Asn1Constraint with
     member this.Asn1Con =

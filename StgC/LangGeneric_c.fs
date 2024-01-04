@@ -121,6 +121,8 @@ type LangGeneric_c() =
         override this.getSequenceTypeDefinition (td:Map<ProgrammingLanguage, FE_SequenceTypeDefinition>) = td.[C]
         override this.getSizeableTypeDefinition (td:Map<ProgrammingLanguage, FE_SizeableTypeDefinition>) = td.[C]
 
+        override _.getChildInfoName (ch:Asn1Ast.ChildInfo)  = ch.c_name
+        override _.setChildInfoName (ch:Asn1Ast.ChildInfo) (newValue:string) = {ch with c_name = newValue}
         override this.getAsn1ChildBackendName (ch:Asn1Child) = ch._c_name
         override this.getAsn1ChChildBackendName (ch:ChChildInfo) = ch._c_name
         override this.getAsn1ChildBackendName0 (ch:Asn1AcnAst.Asn1Child) = ch._c_name

@@ -83,6 +83,9 @@ type ILangGeneric () =
 
     abstract member getRtlFiles : Asn1Encoding list -> string list -> string list
 
+    abstract member getChildInfoName : Asn1Ast.ChildInfo -> string
+    abstract member setChildInfoName : Asn1Ast.ChildInfo -> string -> Asn1Ast.ChildInfo
+
     abstract member getAsn1ChildBackendName0  : Asn1AcnAst.Asn1Child -> string
     abstract member getAsn1ChChildBackendName0: Asn1AcnAst.ChChildInfo -> string
 
