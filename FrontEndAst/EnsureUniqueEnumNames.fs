@@ -204,11 +204,6 @@ let rec private handleEnums (r:AstRoot) (renamePolicy:EnumRenamePolicy) ((lang, 
         } |> Seq.toList 
     
     let doubleEnumNames = doubleEnumNames0@lm.lg.Keywords |> (List.keepDuplicates lm.lg.isCaseSensitive) 
-//        match lang with
-//        | ProgrammingLanguage.C     -> doubleEnumNames0 @ CheckAsn1.c_keywords|> List.keepDuplicates
-//        | ProgrammingLanguage.Scala -> doubleEnumNames0 @ CheckAsn1.scala_keywords|> List.keepDuplicates
-//        | ProgrammingLanguage.Ada   -> doubleEnumNames0 @ CheckAsn1.ada_keywords |> List.keepDuplicatesI
-
 
     match doubleEnumNames with
     | []    -> r
@@ -223,10 +218,6 @@ let rec private handleEnums (r:AstRoot) (renamePolicy:EnumRenamePolicy) ((lang, 
                         | true      ->
                             let newPrefix = key |> List.rev |> List.map ToC |> Seq.skipWhile(fun x -> (old.EnumName lang).Contains x) |> Seq.head
                             newPrefix + "_" + (old.EnumName lang)
-                    //match lang with
-                    //| ProgrammingLanguage.C     -> {old with c_name=newUniqueName}
-                    //| ProgrammingLanguage.Scala -> {old with scala_name=newUniqueName}
-                    //| ProgrammingLanguage.Ada   -> {old with ada_name=newUniqueName}
                     lm.lg.setNamedItemBackendName0 old newUniqueName
                 let newItems = 
                     match renamePolicy with
@@ -240,11 +231,6 @@ let rec private handleEnums (r:AstRoot) (renamePolicy:EnumRenamePolicy) ((lang, 
                                 let oldName = lm.lg.getNamedItemBackendName0 itm
                                 let newName = newPrefix + oldName
                                 lm.lg.setNamedItemBackendName0 itm newName)
-                        //match lang with
-                        //| ProgrammingLanguage.C->  itesm|> List.map (fun itm -> {itm with c_name = newPrefix + itm.c_name})
-                        //| ProgrammingLanguage.Scala->  itesm|> List.map (fun itm -> {itm with scala_name = newPrefix + itm.scala_name})
-                        //| ProgrammingLanguage.Ada -> 
-                        //    itesm|> List.map (fun itm -> {itm with ada_name = newPrefix + itm.ada_name})
 
                 {old with Kind =  Enumerated(newItems)}, state
             | _             -> defaultConstructors.cloneType old m key cons state
@@ -262,9 +248,6 @@ let DoWork (ast:AstRoot) (lms:(ProgrammingLanguage*LanguageMacros) list)  =
         | _                                             ->
             let r1 = handleEnumChoices ast  enumRenamePolicy
 
-            //let r2_c = handleEnums r1 enumRenamePolicy ProgrammingLanguage.C
-            //let r2_ada = handleEnums r2_c enumRenamePolicy ProgrammingLanguage.Ada
-            //handleEnums r2_ada enumRenamePolicy ProgrammingLanguage.Scala
             lms |> List.fold ( fun r z -> handleEnums r enumRenamePolicy z ) r1
     match ast.args.fieldPrefix with
     | None  -> r2_scala
