@@ -26,6 +26,7 @@ open AcnGenericTypes
 open AbstractMacros
 
 open AntlrParse
+open Language
 //let CreateAstRoot (list:(ITree*string*array<IToken>) seq) (encodings:array<Asn1Encoding>) generateEqualFunctions typePrefix checkWithOss astXmlFileName icdUperHtmlFileName icdAcnHtmlFileName (mappingFunctionsModule:string) integerSizeInBytes =  
 
 
@@ -34,7 +35,7 @@ open AntlrParse
 
     
 
-let constructAst_int (args:CommandLineSettings) (op_mode:Asn1SccOperationMode) (debugFnc : Asn1Ast.AstRoot -> AcnGenericTypes.AcnAst-> unit) : (Result<Asn1AcnAst.AstRoot*Asn1AcnAst.AcnInsertedFieldDependencies, (UserError *UserError list)>) =
+let constructAst_int (args:CommandLineSettings) (lms:(ProgrammingLanguage*LanguageMacros) list) (op_mode:Asn1SccOperationMode) (debugFnc : Asn1Ast.AstRoot -> AcnGenericTypes.AcnAst-> unit) : (Result<Asn1AcnAst.AstRoot*Asn1AcnAst.AcnInsertedFieldDependencies, (UserError *UserError list)>) =
 
     let asn1ParseTrees, asn1ParseErrors = 
         args.asn1Files |> 
@@ -85,7 +86,7 @@ let constructAst_int (args:CommandLineSettings) (op_mode:Asn1SccOperationMode) (
         (*
             Ensure unique enum names
         *)
-        let uniqueEnumNamesAst = EnsureUniqueEnumNames.DoWork asn1Ast0 
+        let uniqueEnumNamesAst = EnsureUniqueEnumNames.DoWork asn1Ast0 lms
 
 
         (*
@@ -109,9 +110,9 @@ let constructAst_int (args:CommandLineSettings) (op_mode:Asn1SccOperationMode) (
         
 
 
-let constructAst (args:CommandLineSettings)  (debugFnc : Asn1Ast.AstRoot -> AcnGenericTypes.AcnAst-> unit) : (Asn1AcnAst.AstRoot*Asn1AcnAst.AcnInsertedFieldDependencies) =
+let constructAst (args:CommandLineSettings) (lms:(ProgrammingLanguage*LanguageMacros) list) (debugFnc : Asn1Ast.AstRoot -> AcnGenericTypes.AcnAst-> unit) : (Asn1AcnAst.AstRoot*Asn1AcnAst.AcnInsertedFieldDependencies) =
 
-    match constructAst_int args Asn1SccOperationMode.Asn1Compiler debugFnc with
+    match constructAst_int args lms Asn1SccOperationMode.Asn1Compiler debugFnc with
     | Ok res    -> res
     | Error (xx1, _)  -> raise (asn1Parser.SyntaxErrorException xx1.fullMessage)
         

@@ -98,6 +98,11 @@ type LangGeneric_c() =
         override this.getArrayItem (fpt:FuncParamType) (idx:string) (childTypeIsString: bool) =
             let newPath = sprintf "%s%sarr[%s]" fpt.p (this.getAccess fpt) idx
             if childTypeIsString then (FIXARRAY newPath) else (VALUE newPath)
+        
+        override this.setNamedItemBackendName0 (nm:Asn1Ast.NamedItem) (newValue:string) : Asn1Ast.NamedItem =
+            {nm with c_name = newValue}
+        override this.getNamedItemBackendName0 (nm:Asn1Ast.NamedItem)  = nm.c_name
+
         override this.getNamedItemBackendName (defOrRef:TypeDefintionOrReference option) (nm:Asn1AcnAst.NamedItem) = 
             ToC nm.c_name
         override this.getNamedItemBackendName2 (_:string) (_:string) (nm:Asn1AcnAst.NamedItem) = 
@@ -152,6 +157,7 @@ type LangGeneric_c() =
         override _.SpecNameSuffix = ""
         override _.SpecExtention = "h"
         override _.BodyExtention = "c"
+        override _.Keywords  = CommonTypes.c_keyworkds
 
 
         override _.getValueAssignmentName (vas: ValueAssignment) = vas.c_name

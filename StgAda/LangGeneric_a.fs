@@ -83,6 +83,9 @@ type LangGeneric_a() =
         override _.SpecNameSuffix = ""
         override _.SpecExtention = "ads"
         override _.BodyExtention = "adb"
+        override _.Keywords  = CommonTypes.ada_keyworkds
+        override _.isCaseSensitive = false
+
 
         override _.doubleValueToString (v:double) = 
             v.ToString(FsUtils.doubleParseString, System.Globalization.NumberFormatInfo.InvariantInfo)
@@ -138,6 +141,11 @@ type LangGeneric_a() =
             | Some (ReferenceToExistingDefinition r) when r.programUnit.IsSome -> r.programUnit.Value + "." + nm.ada_name
             | Some (TypeDefinition td) when td.baseType.IsSome && td.baseType.Value.programUnit.IsSome  -> td.baseType.Value.programUnit.Value + "." + nm.ada_name
             | _       -> ToC nm.ada_name
+        
+        override this.setNamedItemBackendName0 (nm:Asn1Ast.NamedItem) (newValue:string) : Asn1Ast.NamedItem =
+            {nm with ada_name = newValue}
+        override this.getNamedItemBackendName0 (nm:Asn1Ast.NamedItem)  = nm.ada_name
+        
         override this.getNamedItemBackendName2 (defModule:string) (curProgamUnitName:string) (itm:Asn1AcnAst.NamedItem) = 
             
             match (ToC defModule) = ToC curProgamUnitName with

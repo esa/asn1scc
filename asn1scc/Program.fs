@@ -283,10 +283,7 @@ let constructCommandLineSettings args (parserResults: ParseResults<CliArguments>
         handleEmptySequences = parserResults.Contains <@ Handle_Empty_Sequences @>
     }    
 
-
-let getLanguageMacro (l:ProgrammingLanguage) =
-    match l with
-    | C ->
+let c_macro =
         {
             LanguageMacros.equal = new IEqual_c.IEqual_c() 
             init = new Init_c.Init_c()
@@ -300,7 +297,7 @@ let getLanguageMacro (l:ProgrammingLanguage) =
             xer = new IXer_c.IXer_c()
             src = new ISrcBody_c.ISrcBody_c()
         }
-    | Scala ->
+let scala_macro = 
         {
             LanguageMacros.equal = new IEqual_scala.IEqual_scala() 
             init = new IInit_scala.IInit_scala()
@@ -314,7 +311,7 @@ let getLanguageMacro (l:ProgrammingLanguage) =
             xer = new IXer_scala.IXer_scala()
             src = new ISrcBody_scala.ISrcBody_scala()
         }
-    | Ada ->
+let ada_macro = 
         {
             LanguageMacros.equal = new IEqual_a.IEqual_a(); 
             init = new Init_a.Init_a()
@@ -328,6 +325,9 @@ let getLanguageMacro (l:ProgrammingLanguage) =
             xer = new IXer_a.IXer_a()
             src = new ISrcBody_a.ISrcBody_a()
         }        
+let allMacros = [ (C, c_macro); (Scala, scala_macro); (Ada, ada_macro)]
+let getLanguageMacro (l:ProgrammingLanguage) =
+    allMacros |> List.filter(fun (lang,_) -> lang = l) |> List.head |> snd
 
 let main0 argv =
     
@@ -355,7 +355,7 @@ let main0 argv =
             | false -> ()
 
         // TODO frontend typo
-        let frontEntAst, acnDeps = TL "FrontEntMain.constructAst" (fun () -> FrontEntMain.constructAst args debugFunc) 
+        let frontEntAst, acnDeps = TL "FrontEntMain.constructAst" (fun () -> FrontEntMain.constructAst args allMacros debugFunc) 
 
         
         // print front ent ast as xml 

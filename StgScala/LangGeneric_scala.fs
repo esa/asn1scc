@@ -104,6 +104,10 @@ type LangGeneric_scala() =
                 | _ -> ToC nm.scala_name
             itemname
 
+        override this.getNamedItemBackendName0 (nm:Asn1Ast.NamedItem)  = nm.scala_name
+        override this.setNamedItemBackendName0 (nm:Asn1Ast.NamedItem) (newValue:string) : Asn1Ast.NamedItem =
+            {nm with scala_name = newValue}
+
         override this.getNamedItemBackendName2 (_:string) (_:string) (nm:Asn1AcnAst.NamedItem) = 
             ToC nm.scala_name
             
@@ -154,6 +158,8 @@ type LangGeneric_scala() =
         override _.SpecNameSuffix = "Def"
         override _.SpecExtention = "scala"
         override _.BodyExtention = "scala"
+        override _.Keywords  = CommonTypes.scala_keyworkds
+
 
         override _.getValueAssignmentName (vas: ValueAssignment) = vas.scala_name
 

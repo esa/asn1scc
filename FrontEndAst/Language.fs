@@ -59,6 +59,8 @@ type ILangGeneric () =
     abstract member doubleValueToString : double -> string
     abstract member initializeString : int -> string
     abstract member supportsInitExpressions : bool
+    abstract member setNamedItemBackendName0 : Asn1Ast.NamedItem -> string -> Asn1Ast.NamedItem
+    abstract member getNamedItemBackendName0 : Asn1Ast.NamedItem -> string
     abstract member getNamedItemBackendName  : TypeDefintionOrReference option -> Asn1AcnAst.NamedItem -> string
     abstract member getNamedItemBackendName2  : string -> string -> Asn1AcnAst.NamedItem -> string
     abstract member decodeEmptySeq  : string -> string option
@@ -68,6 +70,8 @@ type ILangGeneric () =
     abstract member SpecNameSuffix: string
     abstract member SpecExtention : string
     abstract member BodyExtention : string
+    abstract member Keywords : string list
+    abstract member isCaseSensitive : bool
 
     abstract member RtlFuncNames : string list
     abstract member AlwaysPresentRtlFuncNames : string list
@@ -162,6 +166,9 @@ type ILangGeneric () =
         sourceCode
     default this.removeFunctionFromBody (sourceCode: string) (functionName: string) : string =
         sourceCode
+    
+    //most programming languages are case sensitive
+    default _.isCaseSensitive = true
 
 
 type LanguageMacros = {

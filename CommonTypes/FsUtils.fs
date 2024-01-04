@@ -367,15 +367,28 @@ module List =
 
     let last lst =  lst |> List.rev |> List.head
 
-    let rec keepDuplicates lst =
+
+
+    let rec keepDuplicates_private lst fnc =
         match lst with
         | []   -> []
         | x::xs -> 
-            let dups = xs |> List.filter ((=) x)
+            let dups = xs |> List.filter (fnc x)
             match dups with
-            | []    -> keepDuplicates xs
-            | _     -> x::(keepDuplicates (xs |> List.filter ((<>) x)))
+            | []    -> keepDuplicates_private xs fnc
+            | _     -> x::(keepDuplicates_private (xs |> List.filter ((<>) x))) fnc
 
+    let keepDuplicatesCaseSensitive lst =
+        keepDuplicates_private lst (=)
+    
+    let keepDuplicatesCaseInsensitive lst =
+        keepDuplicates_private lst (fun (x:string) y -> x.icompare y)
+
+    let keepDuplicates (caseSensitive:bool) lst =
+        match caseSensitive with
+        | true  -> keepDuplicatesCaseSensitive lst
+        | false -> keepDuplicatesCaseInsensitive lst
+    (*
     let rec keepDuplicatesI (lst:string list) =
         match lst with
         | []   -> []
@@ -384,7 +397,7 @@ module List =
             match dups with
             | []    -> keepDuplicatesI xs
             | _     -> x::(keepDuplicatesI (xs |> List.filter (fun l -> not (l.icompare x))))
-
+    *)
     let addIf condition itm lst =
         match condition with
         | true  -> itm::lst
