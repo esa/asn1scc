@@ -289,7 +289,7 @@ type LangGeneric_a() =
                 berPrefix            = "BER_"
             }
 
-        override _.getBoardDirs (target:Targets option) =
+        override _.getBoardNames (target:Targets option) =
             match target with
             | None              -> ["x86"]  //default board
             | Some X86          -> ["x86"] 
@@ -297,7 +297,7 @@ type LangGeneric_a() =
             | Some Msp430       -> ["msp430"] 
             | Some AllBoards    -> ["x86";"stm32";"msp430"] 
 
-        override this.getBoardNames (target:Targets option) =
+        override this.getBoardDirs (target:Targets option) =
             let boardsDirName = match target with None -> "" | Some _ -> "boards"
             this.getBoardNames target |> List.map(fun s -> Path.Combine(boardsDirName , s))
 
