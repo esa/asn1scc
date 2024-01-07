@@ -5,7 +5,6 @@ open System.Numerics
 open System.IO
 open CommonTypes
 open AbstractMacros
-open OutDirectories
 open System.Resources
 open Antlr
 open Language
@@ -109,7 +108,7 @@ let printVersion () =
     //let fvi = System.Diagnostics.FileVersionInfo.GetVersionInfo(assembly.Location);
     //let version = fvi.FileVersion;
 
-    let version = "4.5.0.20"
+    let version = "4.5.0.21"
     printfn "asn1scc version %s\n" version
     ()
 

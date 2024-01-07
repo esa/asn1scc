@@ -17,7 +17,6 @@
     <Compile Include="AcnGenericTypes.fs" />
     <Compile Include="RangeSets0.fs" />
     <Compile Include="SizeableSet.fs" />
-    <Compile Include="OutDirecories.fs" />
   </ItemGroup>
 
   <ItemGroup>
