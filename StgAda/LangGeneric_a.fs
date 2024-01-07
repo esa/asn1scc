@@ -320,7 +320,7 @@ type LangGeneric_a() =
                     rootDir = rootDir; 
                     srcDir=Path.Combine(rootDir, "src");
                     asn1rtlDir=Path.Combine(rootDir, "asn1rtl");
-                    boardsDir=Path.Combine(rootDir, "asn1rtl")
+                    boardsDir=Path.Combine(rootDir, "boards")
                 }
 
         override this.getTopLevelDirs (target:Targets option) =
