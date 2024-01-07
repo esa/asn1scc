@@ -56,7 +56,6 @@ let findUnusedRtlFunctions (lm:LanguageMacros) (rtlContent:string) (generatedCon
 
 let exportRTL (di:DirInfo) (l:ProgrammingLanguage) (args:CommandLineSettings) (lm:LanguageMacros) (generatedContent:string) =
     let rootDir = di.rootDir
-    //let asn1rtlDirName = di.asn1rtlDir
     let boardsDirName = di.boardsDir
 
 
@@ -83,7 +82,6 @@ let exportRTL (di:DirInfo) (l:ProgrammingLanguage) (args:CommandLineSettings) (l
         //let asn1crt_h = rm.GetString("asn1crt_h",null)
         let intSize = sprintf "#define WORD_SIZE	%d" (int args.integerSizeInBytes)
         let fpSize = sprintf "#define FP_WORD_SIZE	%d" (int args.floatingPointSizeInBytes)
-        //writeTextFile (Path.Combine(asn1rtlDirName, "asn1crt.h")) (asn1crt_h.Replace("#define WORD_SIZE	8", intSize).Replace("#define FP_WORD_SIZE	8", fpSize) )
 
         let fix_asn1crt_h (s:string) = 
             let ret = s.Replace("#define WORD_SIZE	8", intSize).Replace("#define FP_WORD_SIZE	8", fpSize)
@@ -198,7 +196,7 @@ let exportRTL (di:DirInfo) (l:ProgrammingLanguage) (args:CommandLineSettings) (l
                 | None          -> boardsDirName
             writeTextFile (Path.Combine(outDir, "board_config.ads")) (getResourceAsString  (boardName+"_board_config.ads")) 
 
-        let boardNames = OutDirectories.getBoardNames l args.target  
+        let boardNames = lm.lg.getBoardNames  args.target  
 
         boardNames |> List.iter writeBoard
         

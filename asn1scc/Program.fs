@@ -388,25 +388,25 @@ let main0 argv =
                     Some (TL "DAstConstruction.DoWork" (fun () -> DAstConstruction.DoWork frontEntAst icdStgFileName acnDeps CommonTypes.ProgrammingLanguage.Ada lm args.encodings))
                 | _             -> None)
 
-        let createDirectories baseDir (l:ProgrammingLanguage) target =
+        let createDirectories baseDir (lm:LanguageMacros) target =
             let createDirIfNotExists outDir =
                 let outDir = Path.Combine(baseDir,outDir)
                 match Directory.Exists outDir with
                 | true  -> ()
                 | false -> Directory.CreateDirectory outDir |> ignore
-            OutDirectories.getTopLevelDirs l target  |> Seq.iter createDirIfNotExists
-            OutDirectories.getBoardDirs l target  |> Seq.iter createDirIfNotExists
+            lm.lg.getTopLevelDirs target  |> Seq.iter createDirIfNotExists
+            lm.lg.getBoardDirs target  |> Seq.iter createDirIfNotExists
 
  
         //generate code
         backends |> 
             Seq.iter (fun r -> 
-                createDirectories outDir r.lang args.target
-                let dirInfo = OutDirectories.getDirInfo r.lang args.target outDir
+                let lm = getLanguageMacro r.lang
+                createDirectories outDir lm args.target
+                let dirInfo = lm.lg.getDirInfo args.target outDir
                 //let srcDirName = Path.Combine(outDir, OutDirectories.srcDirName r.lang)
                 //let asn1rtlDirName = Path.Combine(outDir, OutDirectories.asn1rtlDirName r.lang)
                 //let boardsDirName = Path.Combine(outDir, OutDirectories.boardsDirName r.lang) 
-                let lm = getLanguageMacro r.lang
                 let generatedContent = GenerateFiles.generateAll dirInfo r lm args.encodings 
                 GenerateRTL.exportRTL dirInfo r.lang args lm generatedContent 
                 match args.AstXmlAbsFileName with

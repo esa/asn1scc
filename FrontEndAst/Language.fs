@@ -149,8 +149,16 @@ type ILangGeneric () =
     abstract member atc   : Atc_parts
     abstract member getValueAssignmentName : ValueAssignment -> string
 
-    abstract member CreateMakeFile : AstRoot -> OutDirectories.DirInfo -> unit
-    abstract member CreateAuxFiles : AstRoot -> OutDirectories.DirInfo -> string list*string list -> unit
+    abstract member CreateMakeFile : AstRoot -> DirInfo -> unit
+    abstract member CreateAuxFiles : AstRoot -> DirInfo -> string list*string list -> unit
+
+    abstract member getDirInfo : Targets option -> string -> DirInfo
+    abstract member getTopLevelDirs : Targets option -> string list
+    abstract member getBoardNames : Targets option -> string list
+    abstract member getBoardDirs : Targets option -> string list
+
+
+
 
 //    abstract member createLocalVariable_frag : string -> LocalVariable
 
@@ -172,6 +180,8 @@ type ILangGeneric () =
     
     //most programming languages are case sensitive
     default _.isCaseSensitive = true
+    default _.getBoardNames _ = []
+    default _.getBoardDirs  _ = []
 
 
 type LanguageMacros = {

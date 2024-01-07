@@ -319,13 +319,13 @@ type LangGeneric_c() =
                 berPrefix            = "BER_"
             }
 
-        override this.CreateMakeFile (r:AstRoot)  (di:OutDirectories.DirInfo) =
+        override this.CreateMakeFile (r:AstRoot)  (di:DirInfo) =
             let files = r.Files |> Seq.map(fun x -> (Path.GetFileNameWithoutExtension x.FileName).ToLower() )
             let content = aux_c.PrintMakeFile files (r.args.integerSizeInBytes = 4I) (r.args.floatingPointSizeInBytes = 4I) r.args.streamingModeSupport
             let outFileName = Path.Combine(di.srcDir, "Makefile")
             File.WriteAllText(outFileName, content.Replace("\r",""))
 
-        override this.CreateAuxFiles (r:AstRoot)  (di:OutDirectories.DirInfo) (arrsSrcTstFiles : string list, arrsHdrTstFiles:string list) =
+        override this.CreateAuxFiles (r:AstRoot)  (di:DirInfo) (arrsSrcTstFiles : string list, arrsHdrTstFiles:string list) =
             let CreateCMainFile (r:AstRoot)  outDir  =
                 //Main file for test cass    
                 let printMain =    test_cases_c.PrintMain //match l with C -> test_cases_c.PrintMain | Ada -> test_cases_c.PrintMain
@@ -718,3 +718,8 @@ type LangGeneric_c() =
                     else
                         0
                 sourceCode.Remove(startIndex, endIndex - startIndex)
+
+        override this.getDirInfo (target:Targets option) rootDir =
+            {rootDir = rootDir; srcDir=rootDir;asn1rtlDir=rootDir;boardsDir=rootDir}
+        
+        override this.getTopLevelDirs (target:Targets option) = []

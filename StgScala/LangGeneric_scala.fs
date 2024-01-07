@@ -33,6 +33,8 @@ let createBitStringFunction_funcBody_c handleFragmentation (codec:CommonTypes.Co
     {UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = localVariables; bValIsUnReferenced=false; bBsIsUnReferenced=false}    
 #endif
 
+let srcDirName = Path.Combine("src", "main", "scala", "asn1src")
+let asn1rtlDirName  = Path.Combine("src", "main", "scala", "asn1scala") 
 
 type LangGeneric_scala() =
     inherit ILangGeneric()
@@ -332,10 +334,10 @@ type LangGeneric_scala() =
                 berPrefix            = "BER_"
             }
 
-        override this.CreateMakeFile (r:AstRoot)  (di:OutDirectories.DirInfo) =
+        override this.CreateMakeFile (r:AstRoot)  (di:DirInfo) =
             ()
 
-        override this.CreateAuxFiles (r:AstRoot)  (di:OutDirectories.DirInfo) (arrsSrcTstFiles : string list, arrsHdrTstFiles:string list) =
+        override this.CreateAuxFiles (r:AstRoot)  (di:DirInfo) (arrsSrcTstFiles : string list, arrsHdrTstFiles:string list) =
             let CreateScalaMainFile (r:AstRoot)  outDir  =
                 // Main file for test cass    
                 let printMain =    test_cases_scala.PrintMain //match l with C -> test_cases_c.PrintMain | Ada -> test_cases_c.PrintMain
@@ -344,3 +346,16 @@ type LangGeneric_scala() =
                 File.WriteAllText(outFileName, content.Replace("\r",""))         
 
             CreateScalaMainFile r di.srcDir
+
+
+
+        override this.getDirInfo (target:Targets option) rootDir =
+            {
+                rootDir = rootDir;
+                srcDir=Path.Combine(rootDir, srcDirName);
+                asn1rtlDir=Path.Combine(rootDir, asn1rtlDirName);
+                boardsDir=rootDir
+            }        
+
+        override this.getTopLevelDirs (target:Targets option) = 
+            [asn1rtlDirName; srcDirName; "lib"]

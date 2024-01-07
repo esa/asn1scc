@@ -50,6 +50,9 @@ let createBitStringFunction_funcBody_Ada handleFragmentation (codec:CommonTypes.
 
 
 
+//let getBoardDirs (l:ProgrammingLanguage) target =
+//    getBoardNames l target |> List.map(fun s -> Path.Combine(boardsDirName l target , s))
+
 
 
 
@@ -286,16 +289,47 @@ type LangGeneric_a() =
                 berPrefix            = "BER_"
             }
 
+        override _.getBoardDirs (target:Targets option) =
+            match target with
+            | None              -> ["x86"]  //default board
+            | Some X86          -> ["x86"] 
+            | Some Stm32        -> ["stm32"] 
+            | Some Msp430       -> ["msp430"] 
+            | Some AllBoards    -> ["x86";"stm32";"msp430"] 
 
-        override this.CreateMakeFile (r:AstRoot)  (di:OutDirectories.DirInfo) =
-            let boardNames = OutDirectories.getBoardNames Ada r.args.target
+        override this.getBoardNames (target:Targets option) =
+            let boardsDirName = match target with None -> "" | Some _ -> "boards"
+            this.getBoardNames target |> List.map(fun s -> Path.Combine(boardsDirName , s))
+
+
+        override this.CreateMakeFile (r:AstRoot)  (di:DirInfo) =
+            let boardNames = this.getBoardNames r.args.target
             let writeBoard boardName = 
                 let mods = aux_a.rtlModuleName()::(r.programUnits |> List.map(fun pu -> pu.name.ToLower() ))
                 let content = aux_a.PrintMakeFile boardName (sprintf "asn1_%s.gpr" boardName) mods
                 let fileName = if boardNames.Length = 1 || boardName = "x86" then "Makefile" else ("Makefile." + boardName)
                 let outFileName = Path.Combine(di.rootDir, fileName)
                 File.WriteAllText(outFileName, content.Replace("\r",""))
-            OutDirectories.getBoardNames Ada r.args.target |> List.iter writeBoard
+            this.getBoardNames r.args.target |> List.iter writeBoard
 
-        override this.CreateAuxFiles (r:AstRoot)  (di:OutDirectories.DirInfo) (arrsSrcTstFiles : string list, arrsHdrTstFiles:string list) =
+        override this.getDirInfo (target:Targets option) rootDir =
+            match target with
+            | None -> {rootDir = rootDir; srcDir=rootDir;asn1rtlDir=rootDir;boardsDir=rootDir}
+            | Some _   -> 
+                {
+                    rootDir = rootDir; 
+                    srcDir=Path.Combine(rootDir, "src");
+                    asn1rtlDir=Path.Combine(rootDir, "asn1rtl");
+                    boardsDir=Path.Combine(rootDir, "asn1rtl")
+                }
+
+        override this.getTopLevelDirs (target:Targets option) =
+            match target with
+            | None -> []
+            | Some _   -> ["src"; "asn1rtl"; "boards"]
+
+
+
+        override _.CreateAuxFiles (r:AstRoot)  (di:DirInfo) (arrsSrcTstFiles : string list, arrsHdrTstFiles:string list) =
             ()
+

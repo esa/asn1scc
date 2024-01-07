@@ -7,7 +7,6 @@ open FsUtils
 open CommonTypes
 open DAst
 open DAstUtilFunctions
-open OutDirectories
 open System.Collections.Generic
 open Language
 
@@ -944,11 +943,6 @@ let private reMapFile (r:Asn1AcnAst.AstRoot) (icdStgFileName:string) (files0:Asn
 
 let DoWork (r:Asn1AcnAst.AstRoot) (icdStgFileName:string) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (lang:CommonTypes.ProgrammingLanguage) (lm:LanguageMacros) (encodings: CommonTypes.Asn1Encoding list) : AstRoot=
     let l = lang
-//        match lang with
-//        | CommonTypes.ProgrammingLanguage.C     -> DAst.ProgrammingLanguage.C
-//        | CommonTypes.ProgrammingLanguage.Ada   
-//        | CommonTypes.ProgrammingLanguage.Spark -> DAst.ProgrammingLanguage.Ada
-//        | _                             -> raise(System.Exception "Unsupported programming language")
 
     let typeIdsSet = 
         r.Files |> 

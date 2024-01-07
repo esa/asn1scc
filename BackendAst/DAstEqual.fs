@@ -5,7 +5,6 @@ open System.IO
 
 open FsUtils
 open CommonTypes
-open OutDirectories
 open Asn1AcnAstUtilFunctions
 
 open DAst
@@ -344,10 +343,6 @@ let createReferenceTypeEqualFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) 
                         Some(makeExpressionToStatement lm exp, [])
                     eqBody
 
-        //let val1, val2 =  
-        //    match l with 
-        //    | C     -> {CallerScope.modName = t.id.ModName; arg = POINTER "pVal1"}, {CallerScope.modName = t.id.ModName; arg = POINTER "pVal2"}
-        //    | Ada   -> {CallerScope.modName = t.id.ModName; arg = VALUE "val1"}, {CallerScope.modName = t.id.ModName; arg = VALUE "val2"}
 
         let val1 = lm.lg.getParamTypeSuffix t "1" CommonTypes.Codec.Encode 
         let val2 = lm.lg.getParamTypeSuffix t "2" CommonTypes.Codec.Encode

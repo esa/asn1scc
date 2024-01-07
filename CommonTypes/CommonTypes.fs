@@ -93,6 +93,13 @@ let timeTypeToAsn1Str tmcl =
     |Asn1Date_UtcTime                   _ -> "TIME"
     |Asn1Date_LocalTimeWithTimeZone     _ -> "TIME"
 
+type DirInfo = {
+    rootDir     : string   
+    srcDir      : string
+    asn1rtlDir  : string
+    boardsDir   : string
+}
+
 let createTimeValueFromString timeClass (strL:StringLoc) =
     let pow b e = BigInteger.Pow (b,e)
     let str = strL.Value
@@ -250,11 +257,6 @@ type ProgrammingLanguage =
             |C          -> s1 = s2
             |Scala      -> s1 = s2 // TODO: Scala
             |Ada        -> s1.icompare s2
-        member l.DefinitionsFileExt = 
-            match l with
-            |C          -> ".h"
-            |Scala      -> ".scala" // TODO: Scala
-            |Ada        -> ".ads"
         member l.keywords = 
             match l with
             |C          -> c_keyworkds

@@ -454,10 +454,6 @@ let createAcnIntegerFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:C
 
     let uperFuncBody (errCode) (p:CallerScope) = 
         DAstUPer.getIntfuncBodyByCons r lm codec t.uperRange t.Location (getAcnIntegerClass r.args t) (t.cons) (t.cons@t.withcons) errCode p
-        (*let pp = match codec with CommonTypes.Encode -> lm.lg.getValue p.arg | CommonTypes.Decode -> lm.lg.getPointer p.arg
-        let IntUnconstraint = match l with C -> uper_c.IntUnconstraint          | Ada -> uper_a.IntUnconstraint
-        let funcBodyContent = IntUnconstraint pp errCode.errCodeName false codec
-        Some {UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = []}    *)
     let soMapFunMod, soMapFunc  = 
         match t.acnProperties.mappingFunction with 
         | Some (MappingFunction (soMapFunMod, mapFncName))    -> 
@@ -654,23 +650,6 @@ let createTimeTypeFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Com
 let nestChildItems (lm:LanguageMacros) (codec:CommonTypes.Codec) children = 
     DAstUtilFunctions.nestItems lm.isvalid.JoinItems2 children
     
-#if false
-    let printChild (content:string) (sNestedContent:string option) = 
-        match sNestedContent with
-        | None  -> content
-        | Some c-> 
-            match l with
-            | C        -> equal_c.JoinItems content sNestedContent
-            | Ada      -> uper_a.JoinItems content sNestedContent
-    let rec printChildren children : Option<string> = 
-        match children with
-        |[]     -> None
-        |x::xs  -> 
-            match printChildren xs with
-            | None                 -> Some (printChild x  None)
-            | Some childrenCont    -> Some (printChild x  (Some childrenCont))
-    printChildren children
-#endif
 
 
 let createAcnBooleanFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:CommonTypes.Codec)  (typeId : ReferenceToType) (o:Asn1AcnAst.AcnBoolean)  (us:State)  =
@@ -884,7 +863,6 @@ let createAcnStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
         let InternalItem_string_with_alpha = lm.uper.InternalItem_string_with_alpha
         let str_FixedSize       = lm.uper.str_FixedSize
         let str_VarSize         = lm.uper.str_VarSize
-        //let Fragmentation_sqf   = match l with C -> uper_c.Fragmentation_sqf    | Ada -> uper_a.Fragmentation_sqf
 
         let nBits = GetNumberOfBitsForNonNegativeInteger (BigInteger (o.uperCharSet.Length-1))
         let internalItem =
@@ -1873,7 +1851,7 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
     let children = 
         match lm.lg.acn.choice_handle_always_absent_child with
         | false     -> acnChildren
-        | true   -> acnChildren@alwaysAbsentChildren     //in Ada, we have to cover all cases even the ones that are always absent.
+        | true   -> acnChildren@alwaysAbsentChildren     //in Spark, we have to cover all cases even the ones that are always absent due to SPARK strictness
 
 
     let nMin = 0I
