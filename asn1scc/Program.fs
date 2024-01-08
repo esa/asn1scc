@@ -5,7 +5,6 @@ open System.Numerics
 open System.IO
 open CommonTypes
 open AbstractMacros
-open OutDirectories
 open System.Resources
 open Antlr
 open Language
@@ -109,7 +108,7 @@ let printVersion () =
     //let fvi = System.Diagnostics.FileVersionInfo.GetVersionInfo(assembly.Location);
     //let version = fvi.FileVersion;
 
-    let version = "4.5.0.18"
+    let version = "4.5.0.21"
     printfn "asn1scc version %s\n" version
     ()
 
@@ -283,10 +282,7 @@ let constructCommandLineSettings args (parserResults: ParseResults<CliArguments>
         handleEmptySequences = parserResults.Contains <@ Handle_Empty_Sequences @>
     }    
 
-
-let getLanguageMacro (l:ProgrammingLanguage) =
-    match l with
-    | C ->
+let c_macro =
         {
             LanguageMacros.equal = new IEqual_c.IEqual_c() 
             init = new Init_c.Init_c()
@@ -300,7 +296,7 @@ let getLanguageMacro (l:ProgrammingLanguage) =
             xer = new IXer_c.IXer_c()
             src = new ISrcBody_c.ISrcBody_c()
         }
-    | Scala ->
+let scala_macro = 
         {
             LanguageMacros.equal = new IEqual_scala.IEqual_scala() 
             init = new IInit_scala.IInit_scala()
@@ -314,7 +310,7 @@ let getLanguageMacro (l:ProgrammingLanguage) =
             xer = new IXer_scala.IXer_scala()
             src = new ISrcBody_scala.ISrcBody_scala()
         }
-    | Ada ->
+let ada_macro = 
         {
             LanguageMacros.equal = new IEqual_a.IEqual_a(); 
             init = new Init_a.Init_a()
@@ -328,6 +324,9 @@ let getLanguageMacro (l:ProgrammingLanguage) =
             xer = new IXer_a.IXer_a()
             src = new ISrcBody_a.ISrcBody_a()
         }        
+let allMacros = [ (C, c_macro); (Scala, scala_macro); (Ada, ada_macro)]
+let getLanguageMacro (l:ProgrammingLanguage) =
+    allMacros |> List.filter(fun (lang,_) -> lang = l) |> List.head |> snd
 
 let main0 argv =
     
@@ -355,7 +354,7 @@ let main0 argv =
             | false -> ()
 
         // TODO frontend typo
-        let frontEntAst, acnDeps = TL "FrontEntMain.constructAst" (fun () -> FrontEntMain.constructAst args debugFunc) 
+        let frontEntAst, acnDeps = TL "FrontEntMain.constructAst" (fun () -> FrontEntMain.constructAst args allMacros debugFunc) 
 
         
         // print front ent ast as xml 
@@ -388,25 +387,25 @@ let main0 argv =
                     Some (TL "DAstConstruction.DoWork" (fun () -> DAstConstruction.DoWork frontEntAst icdStgFileName acnDeps CommonTypes.ProgrammingLanguage.Ada lm args.encodings))
                 | _             -> None)
 
-        let createDirectories baseDir (l:ProgrammingLanguage) target =
+        let createDirectories baseDir (lm:LanguageMacros) target =
             let createDirIfNotExists outDir =
                 let outDir = Path.Combine(baseDir,outDir)
                 match Directory.Exists outDir with
                 | true  -> ()
                 | false -> Directory.CreateDirectory outDir |> ignore
-            OutDirectories.getTopLevelDirs l target  |> Seq.iter createDirIfNotExists
-            OutDirectories.getBoardDirs l target  |> Seq.iter createDirIfNotExists
+            lm.lg.getTopLevelDirs target  |> Seq.iter createDirIfNotExists
+            lm.lg.getBoardDirs target  |> Seq.iter createDirIfNotExists
 
  
         //generate code
         backends |> 
             Seq.iter (fun r -> 
-                createDirectories outDir r.lang args.target
-                let dirInfo = OutDirectories.getDirInfo r.lang args.target outDir
+                let lm = getLanguageMacro r.lang
+                createDirectories outDir lm args.target
+                let dirInfo = lm.lg.getDirInfo args.target outDir
                 //let srcDirName = Path.Combine(outDir, OutDirectories.srcDirName r.lang)
                 //let asn1rtlDirName = Path.Combine(outDir, OutDirectories.asn1rtlDirName r.lang)
                 //let boardsDirName = Path.Combine(outDir, OutDirectories.boardsDirName r.lang) 
-                let lm = getLanguageMacro r.lang
                 let generatedContent = GenerateFiles.generateAll dirInfo r lm args.encodings 
                 GenerateRTL.exportRTL dirInfo r.lang args lm generatedContent 
                 match args.AstXmlAbsFileName with

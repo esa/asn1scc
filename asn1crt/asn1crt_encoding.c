@@ -1124,12 +1124,22 @@ void BitStream_EncodeReal(BitStream* pBitStrm, asn1Real v)
 	int exponent;
 	asn1SccUint64 mantissa;
 
+	if (isnan(v)) {
+		BitStream_EncodeConstraintWholeNumber(pBitStrm, 1, 0, 0xFF);
+		BitStream_EncodeConstraintWholeNumber(pBitStrm, 0x42, 0, 0xFF);
+		return;
+	}
 
 	if (v == 0.0)
 	{
 		BitStream_EncodeConstraintWholeNumber(pBitStrm, 0, 0, 0xFF);
 		return;
 	}
+	if (v == -0.0) {
+		BitStream_EncodeConstraintWholeNumber(pBitStrm, 1, 0, 0xFF);
+		BitStream_EncodeConstraintWholeNumber(pBitStrm, 0x43, 0, 0xFF);
+		return;
+    }
 
 	if (v == INFINITY)
 	{
@@ -1144,6 +1154,7 @@ void BitStream_EncodeReal(BitStream* pBitStrm, asn1Real v)
 		BitStream_EncodeConstraintWholeNumber(pBitStrm, 0x41, 0, 0xFF);
 		return;
 	}
+
 	if (v < 0) {
 		header |= 0x40;
 		v = -v;
@@ -1211,6 +1222,16 @@ flag BitStream_DecodeReal(BitStream* pBitStrm, asn1Real* v)
 		*v = -INFINITY;
 		return TRUE;
 	}
+
+	if (header == 0x42) {
+        *v = NAN;
+        return TRUE;
+    }
+
+	if (header == 0x43) {
+        *v = -0.0;
+        return TRUE;
+    }
 
 	return DecodeRealAsBinaryEncoding(pBitStrm, length - 1, header, v);
 }

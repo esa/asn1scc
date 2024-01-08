@@ -1,5 +1,4 @@
 --  with user_code;
-
 package body adaasn1rtl.encoding with
    Spark_Mode
 is
@@ -125,6 +124,12 @@ is
    begin
       return -1.0 / Zero;
    end MINUS_INFINITY;
+
+   function NaN return Asn1Real is
+      pragma SPARK_Mode (Off);
+   begin
+      return Zero / Zero;
+   end NaN;
 
    function RequiresReverse (dummy : Boolean) return Boolean is
       pragma SPARK_Mode (Off);

@@ -18,9 +18,11 @@
         <Compile Include="MapParamAstToNonParamAst.fs" />
         <Compile Include="CheckAsn1.fs" />
         <Compile Include="CloneTree.fs" />
-        <Compile Include="EnsureUniqueEnumNames.fs" />
         <Compile Include="Asn1AcnAst.fs" />
         <Compile Include="Asn1AcnAstUtilFunctions.fs" />
+        <Compile Include="DAst.fs" />
+        <Compile Include="Language.fs" />
+        <Compile Include="EnsureUniqueEnumNames.fs" />
         <Compile Include="Asn1Fold.fs" />
         <Compile Include="ValuesMapping.fs" />
         <Compile Include="ConstraintsMapping.fs" />
@@ -36,8 +38,6 @@
         <Compile Include="LspAutoComplete.fs" />
         <Compile Include="Lsp.fs" />
         <Compile Include="FrontEntMain.fs" />
-		<Compile Include="DAst.fs" />
-		<Compile Include="Language.fs" />
 
 	</ItemGroup>
     <ItemGroup>

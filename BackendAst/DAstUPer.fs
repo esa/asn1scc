@@ -134,7 +134,6 @@ let getIntfuncBodyByCons (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Commo
 
     let IntBod uperRange extCon =
         match uperRange with
-      //| Concrete(min, max) when min=max                    -> IntNoneRequired (p.arg.getValue l) min   errCode.errCodeName codec, false, (match l with C -> true | Ada -> false)
         | Concrete(min, max) when min=max                    -> IntNoneRequired (lm.lg.getValue p.arg) min   errCode.errCodeName codec, codec=Decode, true
         | Concrete(min, max) when intClass.IsPositive && (not extCon)    -> IntFullyConstraintPos (castPp ((int r.args.integerSizeInBytes)*8)) min max (GetNumberOfBitsForNonNegativeInteger (max-min))  sSsuffix errCode.errCodeName codec, false, false
         | Concrete(min, max)                                 -> IntFullyConstraint (castPp ((int r.args.integerSizeInBytes)*8)) min max (GetNumberOfBitsForNonNegativeInteger (max-min))  sSsuffix errCode.errCodeName codec, false, false
@@ -379,9 +378,6 @@ let createIA5StringFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Co
         match o.minSize.uper = o.maxSize.uper with
         | true  -> []
         | false -> [lm.lg.uper.createLv "nStringLength"]
-            //match l with
-            //| Ada  -> [IntegerLocalVariable ("nStringLength", None)]
-            //| C    -> [Asn1SIntLocalVariable ("nStringLength", None)]
     let funcBody (errCode:ErroCode) (p:CallerScope) = 
         let td0 = lm.lg.getStrTypeDefinition o.typeDef
         let td = td0.longTypedefName2 lm.lg.hasModules (ToC p.modName)
@@ -410,11 +406,6 @@ let createIA5StringFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Co
                 funcBodyContent, charIndex@localVariables
 
         {UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = localVariables; bValIsUnReferenced=false; bBsIsUnReferenced=false}    
-//    let soSparkAnnotations = 
-//        match l with
-//        | C     -> None
-//        | Ada   ->
-//            Some(uper_a.annotations (lm.lg.getLongTypedefName typeDefinition) true isValidFunc.IsSome true true codec)
     let soSparkAnnotations = Some(sparkAnnotations lm (lm.lg.getLongTypedefName typeDefinition) codec)
     createUperFunction r lm codec t typeDefinition baseTypeUperFunc  isValidFunc  (fun e p -> Some (funcBody e p)) soSparkAnnotations  us
 
@@ -429,7 +420,6 @@ let createOctetStringFunction_funcBody (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros
     let InternalItem_oct_str = lm.uper.InternalItem_oct_str
     let fixedSize       = lm.uper.octect_FixedSize
     let varSize         = lm.uper.octect_VarSize
-    //let fragmentation   = match l with C -> uper_a.Fragmentation_sqf       | Ada -> uper_a.Fragmentation_sqf
 
     let nIntItemMaxSize = 8I
     let internalItem = InternalItem_oct_str p.arg.p (lm.lg.getAccess p.arg) i  errCode.errCodeName codec 
@@ -521,10 +511,6 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:C
             let ii = t.id.SeqeuenceOfLevel + 1
             let i = sprintf "i%d" ii
             let lv = lm.lg.uper.seqof_lv t.id o.minSize.uper o.maxSize.uper
-//                match l with 
-//                | C           -> [SequenceOfIndex (t.id.SeqeuenceOfLevel + 1, None)]
-//                | Ada   when o.maxSize.uper >= 65536I && o.maxSize.uper=o.minSize.uper   -> []      //fixed size fragmentation does not need the i variable
-//                | Ada         -> [SequenceOfIndex (t.id.SeqeuenceOfLevel + 1, None)]
 
             let nStringLength =
                 match o.minSize.uper = o.maxSize.uper,  codec with

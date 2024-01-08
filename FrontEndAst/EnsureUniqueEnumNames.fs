@@ -16,6 +16,7 @@ open Asn1Ast
 open System
 open CloneTree
 open CommonTypes
+open Language
 
 
 type private State =  string list
@@ -30,7 +31,7 @@ let rec private handleEnumChoices (r:AstRoot) (renamePolicy:EnumRenamePolicy)=
                     | Choice(children)  -> 
                         let names = children |> List.map(fun x -> x.present_when_name)
                         yield! names
-                    | _                 -> () } |> Seq.toList |> List.keepDuplicatesI
+                    | _                 -> () } |> Seq.toList |> List.keepDuplicatesCaseInsensitive
 
     match doubleEnumNames with
     | []    -> r
@@ -84,7 +85,11 @@ type FieldPrefState = {
     curChildName : string
     reasonToChange : FieldPrefixReasonToChange
 }
-let rec private handleSequencesAndChoices (r:AstRoot) (lang:ProgrammingLanguage) (renamePolicy:FieldPrefix)=
+let rec private handleSequencesAndChoices (r:AstRoot) ((lang, lm): ProgrammingLanguage*LanguageMacros) (renamePolicy:FieldPrefix)=
+    let cmp (s1:string) (s2:string) =
+        match lm.lg.isCaseSensitive with
+        | true -> s1 = s2
+        | false -> s1.icompare s2 
     match renamePolicy with
     | FieldPrefixAuto           ->
         let invalidComponentNames = seq {
@@ -97,24 +102,26 @@ let rec private handleSequencesAndChoices (r:AstRoot) (lang:ProgrammingLanguage)
                             let names = 
                                 children |> 
                                 List.choose(fun x -> 
-                                    let isKeyword = lang.keywords |> Seq.exists(lang.cmp (x.CName lang) )
+                                    let isKeyword = lm.lg.Keywords |> Seq.exists(cmp (lm.lg.getChildInfoName x) )
+                                    //In ASN.1 a type assignment name starts with a Capital letter while a field name starts with a small letter.
+                                    //So, in case sensitive languages, the type assignment name will never conflict with a field name.
+                                    //In case insensitive languages, however, the type assignment name may conflict with a field name.
                                     let conflictingTas =
-                                        match lang with
-                                        | ProgrammingLanguage.C     -> None
-                                        | ProgrammingLanguage.Scala -> None // TODO: Scala
-                                        | ProgrammingLanguage.Ada   ->
-                                            m.TypeAssignments |> Seq.tryFind(fun tas -> lang.cmp (ToC (x.CName lang)) (ToC r.args.TypePrefix + tas.Name.Value) )
+                                        match lm.lg.isCaseSensitive with
+                                        | true     -> None
+                                        | false   ->
+                                            m.TypeAssignments |> Seq.tryFind(fun tas -> cmp (ToC (lm.lg.getChildInfoName x)) (ToC r.args.TypePrefix + tas.Name.Value) )
+                                    //if the target language supports modules and is case sensitive, then a field name may conflict with a module name.
                                     let confilectingModuleName =
-                                        match lang with
-                                        | ProgrammingLanguage.C     -> None
-                                        | ProgrammingLanguage.Scala -> None // TODO: Scala
-                                        | ProgrammingLanguage.Ada   ->
-                                            r.Modules |> Seq.tryFind(fun m -> lang.cmp (ToC (x.CName lang)) (ToC m.Name.Value) )
+                                        match lm.lg.hasModules && lm.lg.isCaseSensitive with
+                                        | false     -> None
+                                        | true   ->
+                                            r.Modules |> Seq.tryFind(fun m -> cmp (ToC (lm.lg.getChildInfoName x)) (ToC m.Name.Value) )
                                         
                                     match isKeyword , conflictingTas, confilectingModuleName with
-                                    | true, _, _       -> Some {curChildName = (x.CName lang); reasonToChange = FieldIsKeyword}
-                                    | false, (Some tas), _   -> Some {curChildName = (x.CName lang); reasonToChange = (FieldIsAlsoType tas.Name.Value)}
-                                    | false, None, Some m    -> Some {curChildName = (x.CName lang); reasonToChange = (FieldIsAlsoModule m.Name.Value)}
+                                    | true, _, _       -> Some {curChildName = (lm.lg.getChildInfoName x); reasonToChange = FieldIsKeyword}
+                                    | false, (Some tas), _   -> Some {curChildName = (lm.lg.getChildInfoName x); reasonToChange = (FieldIsAlsoType tas.Name.Value)}
+                                    | false, None, Some m    -> Some {curChildName = (lm.lg.getChildInfoName x); reasonToChange = (FieldIsAlsoModule m.Name.Value)}
                                     | false, None, None    -> None  ) 
                                 //List.map(fun x -> x.CName lang)
                             yield! names
@@ -129,23 +136,24 @@ let rec private handleSequencesAndChoices (r:AstRoot) (lang:ProgrammingLanguage)
                     let parentTypeName = key |> Seq.StrJoin "."
                     let t,ns = cons.cloneType ch.Type m (key@[ch.Name.Value]) cons s
                     let newUniqueName =
-                        match state |> Seq.tryFind(fun z -> (lang.cmp (ch.CName lang) z.curChildName) )with
-                        | None     -> ch.CName lang
+                        match state |> Seq.tryFind(fun z -> (cmp (lm.lg.getChildInfoName ch) z.curChildName) )with
+                        | None     -> lm.lg.getChildInfoName ch
                         | Some fps      ->
-                            let newPrefix = key |> List.rev |> List.map ToC |> Seq.skipWhile(fun x -> (ch.CName lang).Contains x) |> Seq.head
-                            let fieldName = newPrefix + "_" + (ch.CName lang)
+                            let newPrefix = key |> List.rev |> List.map ToC |> Seq.skipWhile(fun x -> (lm.lg.getChildInfoName ch).Contains x) |> Seq.head
+                            let fieldName = newPrefix + "_" + (lm.lg.getChildInfoName ch)
                             if r.args.targetLanguages |> Seq.exists ((=) lang) then
                                 match fps.reasonToChange with
-                                | FieldIsKeyword            -> printfn "[INFO] Renamed field \"%s\" in type \"%s\" to \"%s\" (\"%s\" is a %A keyword)" (ch.CName lang) parentTypeName fieldName (ch.CName lang) lang
-                                | FieldIsAlsoType tasName   -> printfn "[INFO] Renamed field \"%s\" in type \"%s\" to \"%s\" (Ada naming conflict with the field type \"%s\")" (ch.CName lang) parentTypeName fieldName tasName
-                                | FieldIsAlsoModule modName   -> printfn "[INFO] Renamed field \"%s\" in type \"%s\" to \"%s\" (Ada naming conflict with the Module \"%s\")" (ch.CName lang) parentTypeName fieldName modName
+                                | FieldIsKeyword            -> printfn "[INFO] Renamed field \"%s\" in type \"%s\" to \"%s\" (\"%s\" is a %A keyword)" (lm.lg.getChildInfoName ch) parentTypeName fieldName (lm.lg.getChildInfoName ch) lang
+                                | FieldIsAlsoType tasName   -> printfn "[INFO] Renamed field \"%s\" in type \"%s\" to \"%s\" (Ada naming conflict with the field type \"%s\")" (lm.lg.getChildInfoName ch) parentTypeName fieldName tasName
+                                | FieldIsAlsoModule modName   -> printfn "[INFO] Renamed field \"%s\" in type \"%s\" to \"%s\" (Ada naming conflict with the Module \"%s\")" (lm.lg.getChildInfoName ch) parentTypeName fieldName modName
 
                             fieldName
-            
-                    match lang with
-                    | ProgrammingLanguage.C     -> {ch with Type = t; c_name = ToC2 newUniqueName},ns
-                    | ProgrammingLanguage.Scala -> {ch with Type = t; scala_name = ToC2 newUniqueName},ns 
-                    | ProgrammingLanguage.Ada   -> {ch with Type = t; ada_name = ToC2 newUniqueName},ns
+                    let newCh = lm.lg.setChildInfoName ch newUniqueName
+                    newCh, ns
+                    //match lang with
+                    //| ProgrammingLanguage.C     -> {ch with Type = t; c_name = ToC2 newUniqueName},ns
+                    //| ProgrammingLanguage.Scala -> {ch with Type = t; scala_name = ToC2 newUniqueName},ns 
+                    //| ProgrammingLanguage.Ada   -> {ch with Type = t; ada_name = ToC2 newUniqueName},ns
 
                 match old.Kind with
                 | Choice(children)    
@@ -158,7 +166,7 @@ let rec private handleSequencesAndChoices (r:AstRoot) (lang:ProgrammingLanguage)
                 | _             -> defaultConstructors.cloneType old m key cons state
 
             let newTree = CloneTree r {defaultConstructors with cloneType =  CloneType; } invalidComponentNames |> fst
-            handleSequencesAndChoices newTree lang renamePolicy
+            handleSequencesAndChoices newTree (lang,lm) renamePolicy
     | FieldPrefixUserValue userValue    -> 
         let CloneType (old:Asn1Type) m (key:list<string>) (cons:Constructors<State>) (state:State) =
             match old.Kind with
@@ -166,6 +174,8 @@ let rec private handleSequencesAndChoices (r:AstRoot) (lang:ProgrammingLanguage)
             | Sequence(children)    -> 
                 let newChildren, finalState =
                     let newChildren = 
+                        children |> List.map(fun ch -> lm.lg.setChildInfoName ch (userValue + lm.lg.getChildInfoName ch))
+                        (*
                         match lang with
                         | ProgrammingLanguage.C-> 
                             children |> List.map(fun ch -> {ch with c_name = ToC (userValue + ch.c_name)})
@@ -173,7 +183,7 @@ let rec private handleSequencesAndChoices (r:AstRoot) (lang:ProgrammingLanguage)
                             children |> List.map(fun ch -> {ch with scala_name = ToC (userValue + ch.scala_name)})
                         | ProgrammingLanguage.Ada   -> 
                             children |> List.map(fun ch -> {ch with ada_name = ToC(userValue + ch.ada_name)})
-                            
+                        *)  
                     newChildren, state
                 match old.Kind with
                 | Choice(children)    -> {old with Kind =  Choice(newChildren)}, finalState
@@ -186,7 +196,7 @@ let rec private handleSequencesAndChoices (r:AstRoot) (lang:ProgrammingLanguage)
 
 
 
-let rec private handleEnums (r:AstRoot) (renamePolicy:EnumRenamePolicy) (lang:ProgrammingLanguage) =
+let rec private handleEnums (r:AstRoot) (renamePolicy:EnumRenamePolicy) ((lang, lm): ProgrammingLanguage*LanguageMacros) =
     
     let doubleEnumNames0 = 
         seq {
@@ -195,18 +205,14 @@ let rec private handleEnums (r:AstRoot) (renamePolicy:EnumRenamePolicy) (lang:Pr
                     for t in GetMySelfAndChildren tas.Type  do
                         match t.Kind with
                         | Enumerated(itesm) -> 
-                            let names = itesm |> List.map(fun x -> x.EnumName lang)
+                            let names = itesm |> List.map(fun x -> lm.lg.getNamedItemBackendName0 x)
                             yield! names
                         | _                 -> () 
                 for vas in m.ValueAssignments do
                     yield vas.Name.Value 
         } |> Seq.toList 
-    let doubleEnumNames = 
-        match lang with
-        | ProgrammingLanguage.C     -> doubleEnumNames0 @ CheckAsn1.c_keywords|> List.keepDuplicates
-        | ProgrammingLanguage.Scala -> doubleEnumNames0 @ CheckAsn1.scala_keywords|> List.keepDuplicates
-        | ProgrammingLanguage.Ada   -> doubleEnumNames0 @ CheckAsn1.ada_keywords |> List.keepDuplicatesI
-
+    
+    let doubleEnumNames = doubleEnumNames0@lm.lg.Keywords |> (List.keepDuplicates lm.lg.isCaseSensitive) 
 
     match doubleEnumNames with
     | []    -> r
@@ -216,50 +222,47 @@ let rec private handleEnums (r:AstRoot) (renamePolicy:EnumRenamePolicy) (lang:Pr
             | Enumerated(itesm)    -> 
                 let copyItem (old:NamedItem) =
                     let newUniqueName =
-                        match state |> Seq.exists (lang.cmp (old.EnumName lang)) with
-                        | false     -> old.EnumName lang
+                        match state |> Seq.exists (lang.cmp (lm.lg.getNamedItemBackendName0 old)) with
+                        | false     -> lm.lg.getNamedItemBackendName0 old
                         | true      ->
-                            let newPrefix = key |> List.rev |> List.map ToC |> Seq.skipWhile(fun x -> (old.EnumName lang).Contains x) |> Seq.head
-                            newPrefix + "_" + (old.EnumName lang)
-                    match lang with
-                    | ProgrammingLanguage.C     -> {old with c_name=newUniqueName}
-                    | ProgrammingLanguage.Scala -> {old with scala_name=newUniqueName}
-                    | ProgrammingLanguage.Ada   -> {old with ada_name=newUniqueName}
+                            let newPrefix = key |> List.rev |> List.map ToC |> Seq.skipWhile(fun x -> (lm.lg.getNamedItemBackendName0 old).Contains x) |> Seq.head
+                            newPrefix + "_" + (lm.lg.getNamedItemBackendName0 old)
+                    lm.lg.setNamedItemBackendName0 old newUniqueName
                 let newItems = 
                     match renamePolicy with
                     | AlwaysPrefixTypeName     (* to be handled later when typedefname is known*)
                     | NoRenamePolicy           -> itesm
                     | SelectiveEnumerants      -> itesm|> List.map copyItem
                     | AllEnumerants            -> 
-                        let newPrefix = itesm|> List.map copyItem |> List.map(fun itm -> (itm.EnumName lang).Replace(ToC2 itm.Name.Value,"")) |> List.maxBy(fun prf -> prf.Length)
-                        match lang with
-                        | ProgrammingLanguage.C->  itesm|> List.map (fun itm -> {itm with c_name = newPrefix + itm.c_name})
-                        | ProgrammingLanguage.Scala->  itesm|> List.map (fun itm -> {itm with scala_name = newPrefix + itm.scala_name})
-                        | ProgrammingLanguage.Ada -> 
-                            itesm|> List.map (fun itm -> {itm with ada_name = newPrefix + itm.ada_name})
+                        let newPrefix = itesm|> List.map copyItem |> List.map(fun itm -> (lm.lg.getNamedItemBackendName0 itm).Replace(ToC2 itm.Name.Value,"")) |> List.maxBy(fun prf -> prf.Length)
+                        itesm|> 
+                            List.map(fun itm -> 
+                                let oldName = lm.lg.getNamedItemBackendName0 itm
+                                let newName = newPrefix + oldName
+                                lm.lg.setNamedItemBackendName0 itm newName)
 
                 {old with Kind =  Enumerated(newItems)}, state
             | _             -> defaultConstructors.cloneType old m key cons state
 
         let newTree = CloneTree r {defaultConstructors with cloneType =  CloneType; } doubleEnumNames |> fst
-        handleEnums newTree renamePolicy lang
+        handleEnums newTree renamePolicy (lang,lm)
 
 
-let DoWork (ast:AstRoot)   =
+let DoWork (ast:AstRoot) (lms:(ProgrammingLanguage*LanguageMacros) list)  =
     let enumRenamePolicy = ast.args.renamePolicy
-    let r2_scala = 
+    let r2 = 
         match enumRenamePolicy with
         | AlwaysPrefixTypeName     (* to be handled later when typedefname is known*)
         | NoRenamePolicy           -> ast
         | _                                             ->
             let r1 = handleEnumChoices ast  enumRenamePolicy
-            let r2_c = handleEnums r1 enumRenamePolicy ProgrammingLanguage.C
-            let r2_ada = handleEnums r2_c enumRenamePolicy ProgrammingLanguage.Ada
-            handleEnums r2_ada enumRenamePolicy ProgrammingLanguage.Scala
+
+            lms |> List.fold ( fun r z -> handleEnums r enumRenamePolicy z ) r1
     match ast.args.fieldPrefix with
-    | None  -> r2_scala
+    | None  -> r2
     | Some fldPrefixPolicy    -> 
-        let r3_c = handleSequencesAndChoices r2_scala ProgrammingLanguage.C fldPrefixPolicy
-        let r3_ada = handleSequencesAndChoices r3_c ProgrammingLanguage.Ada fldPrefixPolicy
-        let r3_scala = handleSequencesAndChoices r3_ada ProgrammingLanguage.Scala fldPrefixPolicy
-        r3_scala
+        //let r3_c = handleSequencesAndChoices r2 ProgrammingLanguage.C fldPrefixPolicy
+        //let r3_ada = handleSequencesAndChoices r3_c ProgrammingLanguage.Ada fldPrefixPolicy
+        //let r3_scala = handleSequencesAndChoices r3_ada ProgrammingLanguage.Scala fldPrefixPolicy
+        //r3_scala
+        lms |> List.fold ( fun r z -> handleSequencesAndChoices r z fldPrefixPolicy ) r2

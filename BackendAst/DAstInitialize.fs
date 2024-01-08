@@ -19,9 +19,7 @@ open Language
 
 
 (*
-create c and Ada procedures that initialize an ASN.1 type.
-
-
+create procedures that initialize an ASN.1 type.
 
 *)
 
@@ -550,7 +548,7 @@ let createBitStringInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1Ac
                         | _                        -> raise(BugErrorException "UnexpectedType")
 
                 let funcBody = initTestCaseBitString p.arg.p (lm.lg.getAccess p.arg) tdName nSize (nSizeCeiled) i (isFixedSize) true o.minSize.uper
-                let lvars = lm.lg.init.zeroIA5String_localVars ii // match l with C -> [] | Ada -> [SequenceOfIndex (ii, None)]
+                let lvars = lm.lg.init.zeroIA5String_localVars ii 
                 {InitFunctionResult.funcBody = funcBody; localVariables=lvars}
             testCaseFuncs, zero
         | _ ->

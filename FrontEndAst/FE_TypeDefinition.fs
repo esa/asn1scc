@@ -24,6 +24,7 @@ let private reserveTypeDefinitionName  (typePrefix:string) (allocatedTypeNames :
             | _         -> oldName + "_1"
     let rec getValidTypeDefname (proposedTypeDefName:string) = 
         let keywords =  l.keywords
+
         let cmp (l:ProgrammingLanguage) (s1:String) (s2:String) = l.cmp s1 s2
         let proposedTypeDefName =
             match keywords |> Seq.tryFind(fun kw -> cmp l proposedTypeDefName kw) with
@@ -328,7 +329,7 @@ let rec registerChoiceTypeDefinition (us:Asn1AcnMergeState) l (id : ReferenceToT
         ret, ns
 
 
-let rec registerEnumeratedTypeDefinition (us:Asn1AcnMergeState) l (id : ReferenceToType) (kind : FE_TypeDefinitionKindInternal) : (FE_EnumeratedTypeDefinition*Asn1AcnMergeState)=
+let rec registerEnumeratedTypeDefinition (us:Asn1AcnMergeState) (l:ProgrammingLanguage) (id : ReferenceToType) (kind : FE_TypeDefinitionKindInternal) : (FE_EnumeratedTypeDefinition*Asn1AcnMergeState)=
     let programUnit = ToC id.ModName
     match us.allocatedFE_TypeDefinition |> Map.tryFind(l,id) with
     | Some (FE_EnumeratedTypeDefinition v)    -> 

@@ -50,6 +50,9 @@ let createBitStringFunction_funcBody_Ada handleFragmentation (codec:CommonTypes.
 
 
 
+//let getBoardDirs (l:ProgrammingLanguage) target =
+//    getBoardNames l target |> List.map(fun s -> Path.Combine(boardsDirName l target , s))
+
 
 
 
@@ -83,6 +86,9 @@ type LangGeneric_a() =
         override _.SpecNameSuffix = ""
         override _.SpecExtention = "ads"
         override _.BodyExtention = "adb"
+        override _.Keywords  = CommonTypes.ada_keyworkds
+        override _.isCaseSensitive = false
+
 
         override _.doubleValueToString (v:double) = 
             v.ToString(FsUtils.doubleParseString, System.Globalization.NumberFormatInfo.InvariantInfo)
@@ -138,6 +144,11 @@ type LangGeneric_a() =
             | Some (ReferenceToExistingDefinition r) when r.programUnit.IsSome -> r.programUnit.Value + "." + nm.ada_name
             | Some (TypeDefinition td) when td.baseType.IsSome && td.baseType.Value.programUnit.IsSome  -> td.baseType.Value.programUnit.Value + "." + nm.ada_name
             | _       -> ToC nm.ada_name
+        
+        override this.setNamedItemBackendName0 (nm:Asn1Ast.NamedItem) (newValue:string) : Asn1Ast.NamedItem =
+            {nm with ada_name = newValue}
+        override this.getNamedItemBackendName0 (nm:Asn1Ast.NamedItem)  = nm.ada_name
+        
         override this.getNamedItemBackendName2 (defModule:string) (curProgamUnitName:string) (itm:Asn1AcnAst.NamedItem) = 
             
             match (ToC defModule) = ToC curProgamUnitName with
@@ -157,6 +168,9 @@ type LangGeneric_a() =
         override this.getSizeableTypeDefinition (td:Map<ProgrammingLanguage, FE_SizeableTypeDefinition>) = td.[Ada]
 
         override _.getValueAssignmentName (vas: ValueAssignment) = vas.ada_name
+
+        override _.getChildInfoName (ch:Asn1Ast.ChildInfo)  = ch.ada_name
+        override _.setChildInfoName (ch:Asn1Ast.ChildInfo) (newValue:string) = {ch with ada_name = newValue}
 
         override this.getAsn1ChildBackendName (ch:Asn1Child) = ch._ada_name
         override this.getAsn1ChChildBackendName (ch:ChChildInfo) = ch._ada_name
@@ -275,16 +289,47 @@ type LangGeneric_a() =
                 berPrefix            = "BER_"
             }
 
+        override _.getBoardNames (target:Targets option) =
+            match target with
+            | None              -> ["x86"]  //default board
+            | Some X86          -> ["x86"] 
+            | Some Stm32        -> ["stm32"] 
+            | Some Msp430       -> ["msp430"] 
+            | Some AllBoards    -> ["x86";"stm32";"msp430"] 
 
-        override this.CreateMakeFile (r:AstRoot)  (di:OutDirectories.DirInfo) =
-            let boardNames = OutDirectories.getBoardNames Ada r.args.target
+        override this.getBoardDirs (target:Targets option) =
+            let boardsDirName = match target with None -> "" | Some _ -> "boards"
+            this.getBoardNames target |> List.map(fun s -> Path.Combine(boardsDirName , s))
+
+
+        override this.CreateMakeFile (r:AstRoot)  (di:DirInfo) =
+            let boardNames = this.getBoardNames r.args.target
             let writeBoard boardName = 
                 let mods = aux_a.rtlModuleName()::(r.programUnits |> List.map(fun pu -> pu.name.ToLower() ))
                 let content = aux_a.PrintMakeFile boardName (sprintf "asn1_%s.gpr" boardName) mods
                 let fileName = if boardNames.Length = 1 || boardName = "x86" then "Makefile" else ("Makefile." + boardName)
                 let outFileName = Path.Combine(di.rootDir, fileName)
                 File.WriteAllText(outFileName, content.Replace("\r",""))
-            OutDirectories.getBoardNames Ada r.args.target |> List.iter writeBoard
+            this.getBoardNames r.args.target |> List.iter writeBoard
 
-        override this.CreateAuxFiles (r:AstRoot)  (di:OutDirectories.DirInfo) (arrsSrcTstFiles : string list, arrsHdrTstFiles:string list) =
+        override this.getDirInfo (target:Targets option) rootDir =
+            match target with
+            | None -> {rootDir = rootDir; srcDir=rootDir;asn1rtlDir=rootDir;boardsDir=rootDir}
+            | Some _   -> 
+                {
+                    rootDir = rootDir; 
+                    srcDir=Path.Combine(rootDir, "src");
+                    asn1rtlDir=Path.Combine(rootDir, "asn1rtl");
+                    boardsDir=Path.Combine(rootDir, "boards")
+                }
+
+        override this.getTopLevelDirs (target:Targets option) =
+            match target with
+            | None -> []
+            | Some _   -> ["src"; "asn1rtl"; "boards"]
+
+
+
+        override _.CreateAuxFiles (r:AstRoot)  (di:DirInfo) (arrsSrcTstFiles : string list, arrsHdrTstFiles:string list) =
             ()
+

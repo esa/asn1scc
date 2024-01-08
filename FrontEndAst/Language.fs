@@ -59,6 +59,8 @@ type ILangGeneric () =
     abstract member doubleValueToString : double -> string
     abstract member initializeString : int -> string
     abstract member supportsInitExpressions : bool
+    abstract member setNamedItemBackendName0 : Asn1Ast.NamedItem -> string -> Asn1Ast.NamedItem
+    abstract member getNamedItemBackendName0 : Asn1Ast.NamedItem -> string
     abstract member getNamedItemBackendName  : TypeDefintionOrReference option -> Asn1AcnAst.NamedItem -> string
     abstract member getNamedItemBackendName2  : string -> string -> Asn1AcnAst.NamedItem -> string
     abstract member decodeEmptySeq  : string -> string option
@@ -68,14 +70,21 @@ type ILangGeneric () =
     abstract member SpecNameSuffix: string
     abstract member SpecExtention : string
     abstract member BodyExtention : string
+    abstract member Keywords : string list
+    abstract member isCaseSensitive : bool
 
     abstract member RtlFuncNames : string list
+    abstract member AlwaysPresentRtlFuncNames : string list
+
     abstract member detectFunctionCalls : string -> string -> string list
     abstract member removeFunctionFromHeader : string -> string -> string 
     abstract member removeFunctionFromBody : string -> string -> string
 
 
     abstract member getRtlFiles : Asn1Encoding list -> string list -> string list
+
+    abstract member getChildInfoName : Asn1Ast.ChildInfo -> string
+    abstract member setChildInfoName : Asn1Ast.ChildInfo -> string -> Asn1Ast.ChildInfo
 
     abstract member getAsn1ChildBackendName0  : Asn1AcnAst.Asn1Child -> string
     abstract member getAsn1ChChildBackendName0: Asn1AcnAst.ChChildInfo -> string
@@ -140,8 +149,16 @@ type ILangGeneric () =
     abstract member atc   : Atc_parts
     abstract member getValueAssignmentName : ValueAssignment -> string
 
-    abstract member CreateMakeFile : AstRoot -> OutDirectories.DirInfo -> unit
-    abstract member CreateAuxFiles : AstRoot -> OutDirectories.DirInfo -> string list*string list -> unit
+    abstract member CreateMakeFile : AstRoot -> DirInfo -> unit
+    abstract member CreateAuxFiles : AstRoot -> DirInfo -> string list*string list -> unit
+
+    abstract member getDirInfo : Targets option -> string -> DirInfo
+    abstract member getTopLevelDirs : Targets option -> string list
+    abstract member getBoardNames : Targets option -> string list
+    abstract member getBoardDirs : Targets option -> string list
+
+
+
 
 //    abstract member createLocalVariable_frag : string -> LocalVariable
 
@@ -154,11 +171,17 @@ type ILangGeneric () =
     default this.requiresHandlingOfEmptySequences = false
     default this.requiresHandlingOfZeroArrays = false
     default this.RtlFuncNames = []
+    default this.AlwaysPresentRtlFuncNames = []
     default this.detectFunctionCalls (sourceCode: string) (functionName: string) = []
     default this.removeFunctionFromHeader (sourceCode: string) (functionName: string) : string =
         sourceCode
     default this.removeFunctionFromBody (sourceCode: string) (functionName: string) : string =
         sourceCode
+    
+    //most programming languages are case sensitive
+    default _.isCaseSensitive = true
+    default _.getBoardNames _ = []
+    default _.getBoardDirs  _ = []
 
 
 type LanguageMacros = {

@@ -933,42 +933,6 @@ let getNextValidErrorCode (cur:State) (errCodeName:string) (comment:string optio
 
     let errCode = getErroCode (errCodeName.ToUpper())
     errCode, {cur with currErrorCode = cur.currErrorCode + 1; curErrCodeNames = cur.curErrCodeNames.Add errCode.errCodeName}
-(*
-let getUniqueValidTypeDefName (cur:State) (l:ProgrammingLanguage) (tasInfo:TypeAssignmentInfo option) (programUnit:string) (proposedTypeDefName:string)  =
-    let getNextCount (oldName:string) =
-        match oldName.Split('_') |> Seq.toList |> List.rev with
-        | []    
-        | _::[]     -> oldName + "_1"
-        | curN::oldPart   ->
-            match Int32.TryParse curN with
-            | true, num ->  (oldPart |> List.rev |> Seq.StrJoin "_") + "_" + ((num+1).ToString())
-            | _         -> oldName + "_1"
-    let rec getValidTypeDefname (proposedTypeDefName:string) = 
-        match l with
-        | C     ->  
-            match cur.allocatedTypeDefNames |> Seq.exists(fun (_,z) -> z = proposedTypeDefName) with
-            | false -> proposedTypeDefName
-            | true  -> 
-                match cur.allocatedTypeDefNames |> Seq.exists(fun (pu,td) -> pu = programUnit && td = proposedTypeDefName) with
-                | false -> getValidTypeDefname (programUnit + "_" + proposedTypeDefName ) 
-                | true  -> getValidTypeDefname (getNextCount proposedTypeDefName ) 
-        | Ada   ->  
-            match cur.allocatedTypeDefNames |> Seq.exists(fun (pu,td) -> pu.ToUpper() = programUnit.ToUpper() && td.ToUpper() = proposedTypeDefName.ToUpper()) with
-            | false -> proposedTypeDefName
-            | true  -> getValidTypeDefname (getNextCount proposedTypeDefName  ) 
-
-    
-    match tasInfo with
-    | None  ->
-        let validTypeDefname = getValidTypeDefname proposedTypeDefName 
-        validTypeDefname, {cur with allocatedTypeDefNames = (programUnit, validTypeDefname)::cur.allocatedTypeDefNames}
-    | Some tasInfo  ->
-        match cur.allocatedTypeDefNameInTas.TryFind tasInfo with
-        | Some (programUnit, validTypeDefname)  -> validTypeDefname, cur
-        | None  ->
-            let validTypeDefname = getValidTypeDefname proposedTypeDefName 
-            validTypeDefname, {cur with allocatedTypeDefNames = (programUnit, validTypeDefname)::cur.allocatedTypeDefNames; allocatedTypeDefNameInTas = cur.allocatedTypeDefNameInTas.Add(tasInfo, (programUnit,validTypeDefname))}
-            *)
 
 type TypeAssignment = {
     Name:StringLoc

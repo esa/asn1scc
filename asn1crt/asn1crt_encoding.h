@@ -105,6 +105,7 @@ flag BitStream_DecodeOctetString(BitStream* pBitStrm, byte* arr, int* nCount, as
 
 flag BitStream_EncodeBitString(BitStream* pBitStrm, const byte* arr, int nCount, asn1SccSint asn1SizeMin, asn1SccSint asn1SizeMax);
 flag BitStream_DecodeBitString(BitStream* pBitStrm, byte* arr, int* pCount, asn1SccSint asn1SizeMin, asn1SccSint asn1SizeMax);
+flag BitStream_ReadByteArray(BitStream* pBitStrm, byte* arr, int arr_len);
 
 /*
 Checks if the bit pattern is (immediatelly) present in the bit stream.

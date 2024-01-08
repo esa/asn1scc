@@ -327,7 +327,10 @@ let lspPerformSemanticAnalysis (ws:LspWorkSpace) =
             let parameterized_ast = CreateAsn1AstFromAntlrTree.CreateAstRoot asn1ParseTrees acnAst args
             let asn1Ast0 = MapParamAstToNonParamAst.DoWork parameterized_ast
             CheckAsn1.CheckFiles asn1Ast0 0
-            let uniqueEnumNamesAst = EnsureUniqueEnumNames.DoWork asn1Ast0 
+            
+            //the following line is commented out because it is not needed for the LSP
+            //the LSP is about front end parsing and not about code generation
+            let uniqueEnumNamesAst = asn1Ast0  // EnsureUniqueEnumNames.DoWork asn1Ast0 
             let acnAst,acn0 = AcnCreateFromAntlr.mergeAsn1WithAcnAst uniqueEnumNamesAst (acnAst, acnParseTrees) 
             let acnDeps = CheckLongReferences.checkAst acnAst
             {ws with astRoot = Some (acnAst)}

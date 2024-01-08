@@ -98,6 +98,11 @@ type LangGeneric_c() =
         override this.getArrayItem (fpt:FuncParamType) (idx:string) (childTypeIsString: bool) =
             let newPath = sprintf "%s%sarr[%s]" fpt.p (this.getAccess fpt) idx
             if childTypeIsString then (FIXARRAY newPath) else (VALUE newPath)
+        
+        override this.setNamedItemBackendName0 (nm:Asn1Ast.NamedItem) (newValue:string) : Asn1Ast.NamedItem =
+            {nm with c_name = newValue}
+        override this.getNamedItemBackendName0 (nm:Asn1Ast.NamedItem)  = nm.c_name
+
         override this.getNamedItemBackendName (defOrRef:TypeDefintionOrReference option) (nm:Asn1AcnAst.NamedItem) = 
             ToC nm.c_name
         override this.getNamedItemBackendName2 (_:string) (_:string) (nm:Asn1AcnAst.NamedItem) = 
@@ -116,6 +121,8 @@ type LangGeneric_c() =
         override this.getSequenceTypeDefinition (td:Map<ProgrammingLanguage, FE_SequenceTypeDefinition>) = td.[C]
         override this.getSizeableTypeDefinition (td:Map<ProgrammingLanguage, FE_SizeableTypeDefinition>) = td.[C]
 
+        override _.getChildInfoName (ch:Asn1Ast.ChildInfo)  = ch.c_name
+        override _.setChildInfoName (ch:Asn1Ast.ChildInfo) (newValue:string) = {ch with c_name = newValue}
         override this.getAsn1ChildBackendName (ch:Asn1Child) = ch._c_name
         override this.getAsn1ChChildBackendName (ch:ChChildInfo) = ch._c_name
         override this.getAsn1ChildBackendName0 (ch:Asn1AcnAst.Asn1Child) = ch._c_name
@@ -152,6 +159,7 @@ type LangGeneric_c() =
         override _.SpecNameSuffix = ""
         override _.SpecExtention = "h"
         override _.BodyExtention = "c"
+        override _.Keywords  = CommonTypes.c_keyworkds
 
 
         override _.getValueAssignmentName (vas: ValueAssignment) = vas.c_name
@@ -311,13 +319,13 @@ type LangGeneric_c() =
                 berPrefix            = "BER_"
             }
 
-        override this.CreateMakeFile (r:AstRoot)  (di:OutDirectories.DirInfo) =
+        override this.CreateMakeFile (r:AstRoot)  (di:DirInfo) =
             let files = r.Files |> Seq.map(fun x -> (Path.GetFileNameWithoutExtension x.FileName).ToLower() )
             let content = aux_c.PrintMakeFile files (r.args.integerSizeInBytes = 4I) (r.args.floatingPointSizeInBytes = 4I) r.args.streamingModeSupport
             let outFileName = Path.Combine(di.srcDir, "Makefile")
             File.WriteAllText(outFileName, content.Replace("\r",""))
 
-        override this.CreateAuxFiles (r:AstRoot)  (di:OutDirectories.DirInfo) (arrsSrcTstFiles : string list, arrsHdrTstFiles:string list) =
+        override this.CreateAuxFiles (r:AstRoot)  (di:DirInfo) (arrsSrcTstFiles : string list, arrsHdrTstFiles:string list) =
             let CreateCMainFile (r:AstRoot)  outDir  =
                 //Main file for test cass    
                 let printMain =    test_cases_c.PrintMain //match l with C -> test_cases_c.PrintMain | Ada -> test_cases_c.PrintMain
@@ -356,7 +364,15 @@ type LangGeneric_c() =
 
             CreateCMainFile r  di.srcDir
             generateVisualStudtioProject r di.srcDir (arrsSrcTstFiles, arrsHdrTstFiles)
-        
+        //AlwaysPresentRtlFuncNames
+        override this.AlwaysPresentRtlFuncNames : string list =
+            [
+                "ByteStream_GetLength"
+                "BitStream_AttachBuffer2"
+                "BitStream_AttachBuffer"
+                "BitStream_Init"
+            ]
+
         override this.RtlFuncNames : string list =
             [
                 "BitStream_EncodeNonNegativeInteger32Neg"
@@ -702,3 +718,8 @@ type LangGeneric_c() =
                     else
                         0
                 sourceCode.Remove(startIndex, endIndex - startIndex)
+
+        override this.getDirInfo (target:Targets option) rootDir =
+            {rootDir = rootDir; srcDir=rootDir;asn1rtlDir=rootDir;boardsDir=rootDir}
+        
+        override this.getTopLevelDirs (target:Targets option) = []
