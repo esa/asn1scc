@@ -199,13 +199,22 @@ def GetBytesNeededForNegativeNumber(v: Long): Int = {
       case x if x >= 0xFFFF_FF80_0000_0000L => 5
       case x if x >= 0xFFFF_8000_0000_0000L => 6
       case x if x >= 0xFF80_0000_0000_0000L => 7
-      case _ => 8
+      case _ => NO_OF_BYTES_IN_JVM_LONG // 8
 
 }.ensuring(
    n => {
       val pre = n > 0 && n <= NO_OF_BYTES_IN_JVM_LONG
-      val mask = 0xFFFF_FFFF_FFFF_FFFFL << (NO_OF_BITS_IN_BYTE * n)
-      pre &&& (n == NO_OF_BYTES_IN_JVM_LONG || (NO_OF_BITS_IN_BYTE - n) * NO_OF_BITS_IN_BYTE == popCountL(v & mask))
+      var i = n * NO_OF_BITS_IN_BYTE - 1
+      var allOnes = true
+
+      // (∀i : 8n < i < 64: v[i] == 1)
+      (while i < NO_OF_BITS_IN_LONG do
+         decreases(NO_OF_BITS_IN_LONG - i)
+         allOnes &= (v & (1L << i)) != 0
+         i += 1
+      ).invariant(i >= (n * NO_OF_BITS_IN_BYTE - 1) && i <= NO_OF_BITS_IN_LONG)
+
+      pre &&& allOnes
    })
 
 /**
