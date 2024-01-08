@@ -149,7 +149,7 @@ codec.decodeConstraintPosWholeNumber<sSsuffix>(<nMin>, <nMax>) match // uper:135
 /*case: A :: = INTEGER */
 IntUnconstraint_encode(p, sErrCode, bCoverageIgnore) ::= "codec.encodeUnconstrainedWholeNumber(<p>)"
 IntUnconstraint_decode(p, sErrCode, bCoverageIgnore) ::= <<
-codec.decodeUnConstraintWholeNumber() match // uper:145
+codec.decodeUnconstrainedWholeNumber() match // uper:145
     case Some(x) =>
         <p> = x
     case None() =>
@@ -159,7 +159,7 @@ codec.decodeUnConstraintWholeNumber() match // uper:145
 /*case: A :: = INTEGER(MIN..5) */
 IntUnconstraintMax_encode(p, nMax, soCheckExp, sErrCode) ::= "codec.encodeUnconstrainedWholeNumber(<p>)"
 IntUnconstraintMax_decode(p, nMax, soCheckExp, sErrCode) ::= <<
-if !codec.decodeUnConstraintWholeNumber() then
+if !codec.decodeUnconstrainedWholeNumber() then
     ret = <if(soCheckExp)> if <soCheckExp> then 0 else <endif> <sErrCode>
 >>
 
@@ -515,8 +515,8 @@ codec.decodeOctetString_no_length(<p><sAcc>nCount.asInstanceOf[Int]) match // up
 /* BIT STRING*/
 bitString_FixSize_encode(p, sAcc, nFixedSize, sErrCode) ::= <<
 assert(<nFixedSize>.asInstanceOf[Int] >= 0) // overflow may happen during cast
-if !codec.appendBits(<p><sAcc>arr, <nFixedSize>.asInstanceOf[Int]) then
-    Console.err.println(s"appendBits failed: not enough space for ${<nFixedSize>.asInstanceOf[Int]} bits")
+if !codec.appendBitsMSBFirst(<p><sAcc>arr, <nFixedSize>.asInstanceOf[Int]) then
+    Console.err.println(s"appendBitsMSBFirst failed: not enough space for ${<nFixedSize>.asInstanceOf[Int]} bits")
 
 >>
 bitString_FixSize_decode(p, sAcc, nFixedSize, sErrCode) ::= <<
@@ -551,8 +551,8 @@ while(<sBlockIndex> \< <nBlocks64K>)
 {
     codec.encodeConstrainedWholeNumber(0xC4, 0, 0xFF)
     <if(bIsBitStringType)>
-    if !codec.appendBits(&<p><sAcc>arr[<sCurOffset>/8], <sCurBlockSize>.asInstanceOf[Int]) then
-	    Console.err.println(s"appendBits failed: not enough space for ${<sCurBlockSize>.asInstanceOf[Int]} bits")
+    if !codec.appendBitsMSBFirst(&<p><sAcc>arr[<sCurOffset>/8], <sCurBlockSize>.asInstanceOf[Int]) then
+	    Console.err.println(s"appendBitsMSBFirst failed: not enough space for ${<sCurBlockSize>.asInstanceOf[Int]} bits")
 
     <else>
     val <sBLI>=(int)<sCurOffset>
@@ -572,8 +572,8 @@ FixedSize_Fragmentation_sqf_small_block_encode(p, sAcc,sInternalItem, nBlockSize
 <sCurBlockSize> = <nBlockSize>;
 codec.encodeConstrainedWholeNumber(<sBlockId>, 0, 0xFF)
 <if(bIsBitStringType)>
-if !codec.appendBits(&<p><sAcc>arr[<sCurOffset>/8], <sCurBlockSize>.asInstanceOf[Int]) then
-    Console.err.println(s"appendBits failed: not enough space for ${<sCurBlockSize>.asInstanceOf[Int]} bits")
+if !codec.appendBitsMSBFirst(&<p><sAcc>arr[<sCurOffset>/8], <sCurBlockSize>.asInstanceOf[Int]) then
+    Console.err.println(s"appendBitsMSBFirst failed: not enough space for ${<sCurBlockSize>.asInstanceOf[Int]} bits")
 
 <else>
 for(<sBLI>=(int)<sCurOffset>; <sBLI> \< (int)(<sCurBlockSize> + <sCurOffset>); <sBLI>++)
@@ -598,8 +598,8 @@ codec.encodeConstrainedWholeNumber(<nRemainingItemsVar>, 0, 0x7FFF)
 
 <endif>
 <if(bIsBitStringType)>
-if !codec.appendBits(<p><sAcc>arr[<sCurOffset>/8], <nRemainingItemsVar>.asInstanceOf[Int]) then
-    Console.err.println(s"appendBits failed: not enough space for ${<nRemainingItemsVar>asInstanceOf[Int]} bits")
+if !codec.appendBitsMSBFirst(<p><sAcc>arr[<sCurOffset>/8], <nRemainingItemsVar>.asInstanceOf[Int]) then
+    Console.err.println(s"appendBitsMSBFirst failed: not enough space for ${<nRemainingItemsVar>asInstanceOf[Int]} bits")
 
 <else>
 for(<sBLI>=(int)<sCurOffset>; <sBLI> \< (int)(<sCurOffset> + <nRemainingItemsVar>); <sBLI>++)
@@ -635,8 +635,8 @@ while (<sRemainingItemsVar> >= 0x4000 && <sBlockIndex> \< <if(bIsAsciiString)>(a
         codec.encodeConstrainedWholeNumber(0xC1, 0, 0xFF)
     
     <if(bIsBitStringType)>
-    if !codec.appendBits(<p><sAcc>arr[<sCurOffset>/8], <sCurBlockSize>.asInstanceOf[Int]) then
-	    Console.err.println(s"appendBits failed: not enough space for ${<sCurBlockSize>.asInstanceOf[Int]} bits")
+    if !codec.appendBitsMSBFirst(<p><sAcc>arr[<sCurOffset>/8], <sCurBlockSize>.asInstanceOf[Int]) then
+	    Console.err.println(s"appendBitsMSBFirst failed: not enough space for ${<sCurBlockSize>.asInstanceOf[Int]} bits")
 
     <else>
     <sBLI>=<sCurOffset>.asInstanceOf[Int]
@@ -660,8 +660,8 @@ else
     codec.encodeConstrainedWholeNumber(<sRemainingItemsVar>, 0, 0x7FFF)
 
 <if(bIsBitStringType)>
-if !codec.appendBits(<p><sAcc>arr[<sCurOffset>/8], <sRemainingItemsVar>.asInstanceOf[Int]) then
-	Console.err.println(s"appendBits failed: not enough space for ${<sRemainingItemsVar>.asInstanceOf[Int]} bits")
+if !codec.appendBitsMSBFirst(<p><sAcc>arr[<sCurOffset>/8], <sRemainingItemsVar>.asInstanceOf[Int]) then
+	Console.err.println(s"appendBitsMSBFirst failed: not enough space for ${<sRemainingItemsVar>.asInstanceOf[Int]} bits")
 
 <else>
 <sBLI> = <sCurOffset>.asInstanceOf[Int]
