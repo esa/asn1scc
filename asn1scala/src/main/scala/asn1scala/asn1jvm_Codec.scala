@@ -208,8 +208,13 @@ trait Codec {
       require(min <= v && v <= max)
 
       val range = max - min
+      stainlessAssert(range >= 0)
       if range == 0 then
-         return
+         return;
+
+      // runtime only right now
+      if range < 0 then
+         writeToStdErr("Range is bigger than the biggest primitive on the JVM - unsafe!")
 
       // get number of bits that get written
       val nRangeBits: Int = GetNumberOfBitsForNonNegativeInteger(range)
@@ -226,20 +231,21 @@ trait Codec {
          writeToStdErr("precondition for appendBitsLSBFirst not met")
    }
 
-   def encodeConstraintPosWholeNumber(v: ULong, min: ULong, max: ULong): Unit = {
-      require(max >= 0 && max <= Long.MaxValue)
-      require(min >= 0 && min <= max)
-      require(min <= v && v <= max)
-
-      val range: ULong = (max - min)
-      if range == 0 then
-         return
-
-      val nRangeBits: Int = GetNumberOfBitsForNonNegativeInteger(range)
-      val nBits: Int = GetNumberOfBitsForNonNegativeInteger(v - min)
-      appendNBitZero(nRangeBits - nBits)
-      encodeNonNegativeInteger(v - min)
-   }
+   // TODO remove - does exactly the same as encodeConstrainedWholeNumber
+//   def encodeConstraintPosWholeNumber(v: ULong, min: ULong, max: ULong): Unit = {
+//      require(max >= 0 && max <= Long.MaxValue)
+//      require(min >= 0 && min <= max)
+//      require(min <= v && v <= max)
+//
+//      val range: ULong = (max - min)
+//      if range == 0 then
+//         return
+//
+//      val nRangeBits: Int = GetNumberOfBitsForNonNegativeInteger(range)
+//      val nBits: Int = GetNumberOfBitsForNonNegativeInteger(v - min)
+//      appendNBitZero(nRangeBits - nBits)
+//      encodeNonNegativeInteger(v - min)
+//   }
 
    def decodeConstraintWholeNumber(min: Long, max: Long): Option[Long] = {
       require(min <= max)

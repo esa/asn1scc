@@ -136,17 +136,6 @@ def GetLengthForEncodingUnsigned(v: ULong): Int = {
 }.ensuring(n => n > 0 && n <= NO_OF_BYTES_IN_JVM_LONG)
 
 /**
- * Get the amount of set bits in the given 64bit number v
- *
- * @param v input
- * @return Amount of set bits in v
- */
-@extern
-private def popCountL(v: Long): Int = {
-   Integer.bitCount((v >>> 32).toUnsignedInt) + Integer.bitCount((v & 0xFF_FF_FF_FFL).toUnsignedInt)
-}
-
-/**
  * Get number of bytes needed to encode the
  * positive number v according to PER rules (8.3)
  *
