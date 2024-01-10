@@ -863,7 +863,7 @@ Choice_encode(p, sAcc, arrsChildren, nLastItemIndex, sChoiceIndexName, td/*:FE_C
 >>
 
 Choice_decode(p, sAcc, arrsChildren, nLastItemIndex, sChoiceIndexName, td/*:FE_ChoiceTypeDefinition*/, nIndexSizeInBits, sErrCode) ::= <<
-codec.decodeConstraintWholeNumber(0, <nLastItemIndex>) match
+codec.decodeConstrainedWholeNumber(0, <nLastItemIndex>) match
     case None() => 
         return Left(<sErrCode>)
     case Some(x) =>
@@ -1137,7 +1137,7 @@ octet_string_containing_func_decode(p, sFuncName, sReqBytesForAcnEncoding, nBits
 
     <else>
     var nCount: Int = 0
-    codec.decodeConstraintWholeNumber(<nMinSize>, <nMaxSize>) match
+    codec.decodeConstrainedWholeNumber(<nMinSize>, <nMaxSize>) match
         case None() =>
             return Left(pErrCode)
         case Some(x) =>
@@ -1196,7 +1196,7 @@ bit_string_containing_func_decode(p, sFuncName, sReqBytesForAcnEncoding, sReqBit
 
     <else>
     var nCount: Int = 0
-    codec.decodeConstraintWholeNumber(<nMinSize>, <nMaxSize>) match
+    codec.decodeConstrainedWholeNumber(<nMinSize>, <nMaxSize>) match
         case None() =>
             return Left(pErrCode)
         case Some(x) =>

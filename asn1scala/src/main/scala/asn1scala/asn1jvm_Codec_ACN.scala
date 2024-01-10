@@ -980,7 +980,7 @@ case class ACN(bitStream: BitStream) extends Codec {
    }
 
    def dec_String_Ascii_Internal_Field_Determinant(max: Long, min: Long): OptionMut[Array[ASCIIChar]] = {
-      decodeConstraintWholeNumber(min, max) match
+      decodeConstrainedWholeNumber(min, max) match
          case None() => NoneMut()
          case Some(nCount) =>
             dec_String_Ascii_private(max, if nCount <= max then nCount else max)
@@ -990,7 +990,7 @@ case class ACN(bitStream: BitStream) extends Codec {
       val strVal: Array[ASCIIChar] = Array.fill(max.toInt + 1)(0)
       var i: Int = 0
       while i < charactersToDecode do
-         decodeConstraintWholeNumber(0, allowedCharSet.length - 1) match
+         decodeConstrainedWholeNumber(0, allowedCharSet.length - 1) match
             case None() => return NoneMut()
             case Some(charIndex) =>
                strVal(i) = allowedCharSet(charIndex.toInt)
@@ -1009,7 +1009,7 @@ case class ACN(bitStream: BitStream) extends Codec {
 
 
    def dec_String_CharIndex_Internal_Field_Determinant(max: Long, allowedCharSet: Array[ASCIIChar], min: Long): OptionMut[Array[ASCIIChar]] = {
-      decodeConstraintWholeNumber(min, max) match
+      decodeConstrainedWholeNumber(min, max) match
          case None() => NoneMut()
          case Some(nCount) =>
             dec_String_CharIndex_private(max, if nCount <= max then nCount else max, allowedCharSet)
@@ -1051,7 +1051,7 @@ case class ACN(bitStream: BitStream) extends Codec {
          0x6E, 0x6F, 0x70, 0x71, 0x72, 0x73, 0x74, 0x75, 0x76, 0x77,
          0x78, 0x79, 0x7A, 0x7B, 0x7C, 0x7D, 0x7E, 0x7F
       )
-      decodeConstraintWholeNumber(min, max) match
+      decodeConstrainedWholeNumber(min, max) match
          case None() => NoneMut()
          case Some(nCount) =>
             dec_String_CharIndex_private(max, if nCount <= max then nCount else max, allowedCharSet)

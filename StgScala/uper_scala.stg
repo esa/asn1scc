@@ -97,7 +97,7 @@ codec.encodeConstrainedWholeNumber(charIndex, 0, <nLastItemIndex>)
 InternalItem_string_with_alpha_decode(p, sErrCode,  td/*:FE_StringTypeDefinition*/, i, nLastItemIndex, arrnAlphabetAsciiCodes, nAlphabetLength, nCharIndexSize) ::=<<
 <PrintAlphabet2(arrnAlphabetAsciiCodes)>
 
-codec.decodeConstraintWholeNumber(0, <nLastItemIndex>) match
+codec.decodeConstrainedWholeNumber(0, <nLastItemIndex>) match
     case Some(charIndex) => 
         <p>(<i>) = allowedCharSet(charIndex.toInt)
     case None() => 
@@ -110,7 +110,7 @@ codec.encodeConstrainedWholeNumber(<p>(<i>), 0, 127)
 >>
 
 InternalItem_string_no_alpha_decode(p, sErrCode, i) ::=<<
-codec.decodeConstraintWholeNumberByte(0, 127) match // uper:109
+codec.decodeConstrainedWholeNumberByte(0, 127) match // uper:109
     case Some(c) =>
         <p>(<i>) = c
     case None() =>
@@ -126,7 +126,7 @@ codec.encodeConstrainedWholeNumber(<p>, <nMin>, <nMax>)
 >>
 
 IntFullyConstraint_decode(p, nMin, nMax, nBits, sSsuffix, sErrCode) ::= <<
-codec.decodeConstraintWholeNumber<sSsuffix>(<nMin>, <nMax>) match // uper:122
+codec.decodeConstrainedWholeNumber<sSsuffix>(<nMin>, <nMax>) match // uper:122
     case Some(n) =>
         <p> = n
     case None() =>
@@ -289,7 +289,7 @@ Enumerated_encode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, nMin, nMax, n
 >>
 
 Enumerated_decode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, nMin, nMax, nBits, sErrCode, nLastItemIndex, sFirstItemName) ::= <<
-codec.decodeConstraintWholeNumber(0, <nLastItemIndex>) match // uper:277
+codec.decodeConstrainedWholeNumber(0, <nLastItemIndex>) match // uper:277
     case Some(x) =>
         x match 
             <arrsItem; separator="\n">
@@ -329,7 +329,7 @@ choice_encode(p, sAcc, arrsChildren, nLastItemIndex, sChoiceIndexName, sErrCode,
 >>
 
 choice_decode(p, sAcc, arrsChildren, nLastItemIndex, sChoiceIndexName, sErrCode, td/*:FE_ChoiceTypeDefinition*/, nIndexSizeInBits) ::= <<
-codec.decodeConstraintWholeNumber(0, <nLastItemIndex>) match // uper:317
+codec.decodeConstrainedWholeNumber(0, <nLastItemIndex>) match // uper:317
     case Some(choice) =>
         choice match
             <arrsChildren: {ch|<ch>}; separator="\n">
@@ -438,7 +438,7 @@ codec.encodeConstrainedWholeNumber(nStringLength, <nSizeMin>, <nSizeMax>)
 
 str_VarSize_decode(p, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize) ::= <<
 nStringLength = 0
-codec.decodeConstraintWholeNumberInt(<nSizeMin>, <nSizeMax>) match // uper:418
+codec.decodeConstrainedWholeNumberInt(<nSizeMin>, <nSizeMax>) match // uper:418
     case Some(n) => 
         nStringLength = n
         <p>(nStringLength) = 0 // TODO do we need a 0 terminator?
@@ -464,7 +464,7 @@ codec.encodeConstrainedWholeNumber(<p><sAcc>nCount, <nSizeMin>, <nSizeMax>)
 >>
 
 seqOf_VarSize_decode(p, sAcc, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, sErrCode) ::= <<
-codec.decodeConstraintWholeNumber(<nSizeMin>, <nSizeMax>) match // uper:444
+codec.decodeConstrainedWholeNumber(<nSizeMin>, <nSizeMax>) match // uper:444
     case Some(n) =>
         <p><sAcc>nCount = n.asInstanceOf[Int]
     case None() =>
@@ -497,7 +497,7 @@ if !codec.encodeOctetString_no_length(<p><sAcc>arr, <p><sAcc>nCount.asInstanceOf
 
 octect_VarSize_decode(p, sAcc, nSizeMin, nSizeMax, nSizeInBits, sErrCode) ::= <<
 // decode length
-codec.decodeConstraintWholeNumber(<nSizeMin>, <nSizeMax>) match // uper:475
+codec.decodeConstrainedWholeNumber(<nSizeMin>, <nSizeMax>) match // uper:475
     case Some(n) => 
         assert(n >= 0)
         <p><sAcc>nCount = n
@@ -533,7 +533,7 @@ codec.encodeConstrainedWholeNumber(<p><sAcc>nCount, <nSizeMin>, <nSizeMax>)
 >>
 
 bitString_VarSize_decode(p, sAcc, nSizeMin, nSizeMax, sErrCode, nSizeInBits) ::= <<
-codec.decodeConstraintWholeNumber(<nSizeMin>, <nSizeMax>) match // uper:509
+codec.decodeConstrainedWholeNumber(<nSizeMin>, <nSizeMax>) match // uper:509
     case Some(n) => 
         <p><sAcc>nCount = n
     case None() =>
@@ -680,7 +680,7 @@ FixedSize_Fragmentation_sqf_64K_decode(p, sAcc,sCurOffset, sCurBlockSize, sBlock
 <sCurOffset> = 0;
 *pErrCode = <sErrCodeName>; 
 for(<sBlockIndex> = 0; ret && <sBlockIndex> \< <nBlocks64K>; <sBlockIndex>++) {
-    ret = codec.decodeConstraintWholeNumber(<sRemainingItemsVar>, 0, 0xFF)
+    ret = codec.decodeConstrainedWholeNumber(<sRemainingItemsVar>, 0, 0xFF)
     val check = (ret == 0) && (<sRemainingItemsVar> == 0xC4);
     ret = if (check) then Right(0) else Left(<sErrCodeName>)
     if ret == 0 then
@@ -706,7 +706,7 @@ for(<sBlockIndex> = 0; ret && <sBlockIndex> \< <nBlocks64K>; <sBlockIndex>++) {
 FixedSize_Fragmentation_sqf_small_block_decode(p, sAcc,sInternalItem, nBlockSize, sBlockId, sCurOffset, sCurBlockSize, sBLI, sRemainingItemsVar, bIsBitStringType, sErrCodeName) ::=<<
 //decode a single Block with <nBlockSize> items
 <sCurBlockSize> = <nBlockSize>;
-ret = codec.decodeConstraintWholeNumber(<sRemainingItemsVar>, 0, 0xFF)
+ret = codec.decodeConstrainedWholeNumber(<sRemainingItemsVar>, 0, 0xFF)
 val check = (ret == 0) && (<sRemainingItemsVar> == <sBlockId>);
 ret = if (check) then Right(0) else Left(<sErrCodeName>)
 if ret.isRight then
@@ -728,11 +728,11 @@ if ret.isRight then
 FixedSize_Fragmentation_sqf_remaining_decode(p, sAcc,sInternalItem, bRemainingItemsWithinByte, nRemainingItemsVar, sCurOffset, sBLI, sRemainingItemsVar, bIsBitStringType, sErrCodeName) ::= <<
 //decode remaining <nRemainingItemsVar> items
 <if(bRemainingItemsWithinByte)>
-ret = codec.decodeConstraintWholeNumber(<sRemainingItemsVar>, 0, 0xFF)
+ret = codec.decodeConstrainedWholeNumber(<sRemainingItemsVar>, 0, 0xFF)
 ret  = ret && (<sRemainingItemsVar> == <nRemainingItemsVar>);
 
 <else>
-ret = codec.decodeConstraintWholeNumber(<sRemainingItemsVar>, 0, 0xFFFF)
+ret = codec.decodeConstrainedWholeNumber(<sRemainingItemsVar>, 0, 0xFFFF)
 ret = ret && ((0x8000 & <sRemainingItemsVar>) > 0) && ( (0x7FFF & <sRemainingItemsVar>) == <nRemainingItemsVar>);
 
 <endif>
@@ -768,7 +768,7 @@ Fragmentation_sqf_decode(p, sAcc, sInternalItem, nIntItemMaxSize, nSizeMin, nSiz
 <sLengthTmp> = 0
 <endif>
 
-codec.decodeConstraintWholeNumber(0, 0xFF) match // uper:733
+codec.decodeConstrainedWholeNumber(0, 0xFF) match // uper:733
     case None() =>
         return Left(<sErrCodeName>)
     case Some(x) =>
@@ -805,7 +805,7 @@ while((<sRemainingItemsVar> & 0xC0) == 0xC0) {
     <sLengthTmp> += <sCurBlockSize>
     <endif>
     <sCurOffset> += <sCurBlockSize>
-    codec.decodeConstraintWholeNumber(0, 0xFF) match // uper:770
+    codec.decodeConstrainedWholeNumber(0, 0xFF) match // uper:770
         case None() =>
             return Left(<sErrCodeName>)
         case Some(x) =>
@@ -815,7 +815,7 @@ while((<sRemainingItemsVar> & 0xC0) == 0xC0) {
 if ((<sRemainingItemsVar> & 0x80) > 0) then
     var len2 = 0;
     <sRemainingItemsVar> \<\<= 8
-    codec.decodeConstraintWholeNumber(0, 0xFF) match // uper:780
+    codec.decodeConstrainedWholeNumber(0, 0xFF) match // uper:780
         case None() =>
             return Left(<sErrCodeName>)
         case Some(x) =>

@@ -545,6 +545,37 @@ case class BitStream(
       arr
    }.ensuring(_ => buf == old(this).buf && remainingBits == old(this).remainingBits - nBits)
 
+   /**
+    * Counter Operation to appendBitsNBitFirstToLSB
+    * @param nBits number of bits to read [0-64]
+    * @return value that holds nBits from bitstream
+    *
+    * Remarks:
+    * The last bit from the bitstream will get written into the LSB
+    */
+   def readBitsNBitFirstToLSB(nBits: Int): Long = {
+      require(nBits >= 0 && nBits <= 64)
+      require(validate_offset_bits(nBits))
+
+      var l: Long = 0
+
+      @ghost val oldThis = snapshot(this)
+      var i = 0
+      (while i < nBits do
+         decreases(nBits - i)
+
+         l |= (if readBit() then 1L << (nBits - 1 - i) else 0)
+
+         i += 1
+      ).invariant(
+         i >= 0 && i <= nBits &&&
+            validate_offset_bits(nBits - i) &&&
+            buf == oldThis.buf &&&
+            remainingBits == oldThis.remainingBits - i)
+
+      l
+   }.ensuring(_ => buf == old(this).buf && remainingBits == old(this).remainingBits - nBits.toLong)
+
    // ****************** Read Byte Functions **********************
 
    /**
