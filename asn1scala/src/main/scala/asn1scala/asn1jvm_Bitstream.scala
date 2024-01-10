@@ -603,7 +603,7 @@ case class BitStream(
          remainingBits == oldThis.remainingBits - i &&&
          validate_offset_bits(NO_OF_BITS_IN_BYTE - i))
 
-      ret.toUnsignedByte
+      ret.cutToByte
    }.ensuring(_ => buf == old(this).buf && remainingBits == old(this).remainingBits - NO_OF_BITS_IN_BYTE)
 
    def readByteArray(nBytes: Int): Array[UByte] = {

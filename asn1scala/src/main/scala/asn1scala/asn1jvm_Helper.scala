@@ -17,10 +17,12 @@ val MASK_INT_L      = 0xFF_FF_FF_FFL
 
 // MSBs (neg bits of the integer)
 val MASK_MSB_BYTE   = 0x80L
+val MASK_MSB_SHORT  = 0x80_00L
 val MASK_MSB_INT    = 0x80_00_00_00L
 
 // pos bits of the integer
 val MASK_POS_BYTE   = 0x7FL
+val MASK_POS_SHORT  = 0x7F_FFL
 val MASK_POS_INT    = 0x7F_FF_FF_FFL
 
 /*
@@ -33,18 +35,18 @@ extension (ubL: UByte) {
    @targetName("unsigned right shift on Bytes")
    def >>>>(i: Int): UByte = {
       require(i >= 0 && i <= NO_OF_BITS_IN_BYTE)
-      ((ubL.toInt & MASK_BYTE) >>> i).toUnsignedByte
+      ((ubL.toInt & MASK_BYTE) >>> i).cutToByte
    }
 
    @targetName("left shift on Bytes")
    def <<<<(i: Int): UByte = {
       require(i >= 0 && i <= NO_OF_BITS_IN_BYTE)
-      ((ubL.toInt << i) & MASK_BYTE).toUnsignedByte
+      ((ubL.toInt << i) & MASK_BYTE).cutToByte
    }
 
    @targetName("binary OR on Bytes")
    def |||(ubR: Byte): UByte = {
-      (ubL.toInt | ubR.toInt).toUnsignedByte
+      (ubL.toInt | ubR.toInt).cutToByte
    }
 }
 
@@ -69,9 +71,7 @@ extension (i: Int) {
 }
 
 extension (l: Long) {
-   def toUnsignedInt: UInt = {
-      require(l >= 0 && l <= MASK_INT_L)
-
+   def cutToInt: UInt = {
       if(l == MASK_MSB_INT)
          (-MASK_MSB_INT).toInt
       else if ((l & MASK_MSB_INT) == MASK_MSB_INT)
@@ -80,7 +80,16 @@ extension (l: Long) {
          l.toInt
    }
 
-   def toUnsignedByte: UByte = {
+   def cutToShort: UShort = {
+      if (l == MASK_MSB_SHORT)
+         (-MASK_MSB_SHORT).toShort
+      else if ((l & MASK_MSB_SHORT) == MASK_MSB_SHORT)
+         ((l & MASK_POS_SHORT) - MASK_MSB_SHORT).toShort
+      else
+         l.toShort
+   }
+
+   def cutToByte: UByte = {
       if ((l & MASK_BYTE) == MASK_MSB_BYTE)
          (-MASK_MSB_BYTE).toByte
       else if ((l & MASK_MSB_BYTE) == MASK_MSB_BYTE)
@@ -125,9 +134,9 @@ def GetNumberOfBitsForNonNegativeInteger32(vVal: UInt): Int = {
 
 def GetNumberOfBitsForNonNegativeInteger(v: ULong): Int = {
    if v >>> 32 == 0 then
-      GetNumberOfBitsForNonNegativeInteger32(v.toUnsignedInt)
+      GetNumberOfBitsForNonNegativeInteger32(v.cutToInt)
    else
-      val h = (v >>> 32).toUnsignedInt
+      val h = (v >>> 32).cutToInt
       32 + GetNumberOfBitsForNonNegativeInteger32(h)
 }.ensuring(n => n >= 0 && n <= 64)
 

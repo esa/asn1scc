@@ -117,7 +117,7 @@ trait Codec {
          if negate then
             b = ~b
 
-         appendByte(b.toUnsignedByte)
+         appendByte(b.cutToByte)
    }
 
    def decodeNonNegativeInteger32Neg(nBitsVal : Int): Option[UInt] = {
@@ -250,52 +250,30 @@ trait Codec {
       readBitsNBitFirstToLSB(nRangeBits) match
          case None() => None()
          case Some(ul) => Some(min + ul)
-
-//      decodeNonNegativeInteger(nRangeBits) match
-//         case None() => return None()
-//         case Some(ul) => return Some(ul + min)
    }
 
    def decodeConstrainedWholeNumberByte(min: Byte, max: Byte): Option[Byte] = {
+      require(min <= max)
 
       decodeConstrainedWholeNumber(min.toLong, max.toLong) match
          case None() => None()
-         case Some(l) => Some(l.toByte)
+         case Some(l) => Some(l.cutToByte)
    }
 
    def decodeConstrainedWholeNumberShort(min: Short, max: Short): Option[Short] = {
+      require(min <= max)
 
       decodeConstrainedWholeNumber(min, max) match
          case None() => None()
-         case Some(l) => Some(l.toShort)
+         case Some(l) => Some(l.cutToShort)
    }
 
    def decodeConstrainedWholeNumberInt(min: Int, max: Int): Option[Int] = {
+      require(min <= max)
 
       decodeConstrainedWholeNumber(min, max) match
          case None() => None()
-         case Some(l) => Some(l.toInt)
-   }
-
-   def decodeConstrainedWholeNumberUByte(min: UByte, max: UByte): Option[UByte] = {
-
-      decodeConstrainedWholeNumber(min.unsignedToLong, max.unsignedToLong) match
-         case None() => None()
-         case Some(l) => Some(l.toByte)
-   }
-
-   def decodeConstrainedWholeNumberUShort(min: UShort, max: UShort): Option[UShort] = {
-
-      decodeConstrainedWholeNumber(min.unsignedToLong, max.unsignedToLong) match
-         case None() => None()
-         case Some(l) => Some(l.toShort)
-   }
-
-   def decodeConstrainedWholeNumberUInt(min: UInt, max: UInt): Option[UInt] = {
-
-      decodeConstrainedWholeNumber(min.unsignedToLong, max.unsignedToLong) match
-         case None() => None()
-         case Some(l) => Some(l.toInt)
+         case Some(l) => Some(l.cutToInt)
    }
 
    def decodeConstraintPosWholeNumber(min: ULong, max: ULong): Option[ULong] = {
@@ -324,7 +302,7 @@ trait Codec {
       /* put required zeros*/
       appendNBitZero(nBytes * 8 - GetNumberOfBitsForNonNegativeInteger((v - min)))
       /*Encode number */
-      encodeNonNegativeInteger((v - min))
+      encodeNonNegativeInteger(v - min)
    }
 
    def encodeSemiConstraintPosWholeNumber(v: ULong, min: ULong): Unit = {
@@ -406,7 +384,7 @@ trait Codec {
       (while i > 0 do
          decreases(i)
 
-         appendByte((v >>> ((i - 1) * NO_OF_BITS_IN_BYTE)).toUnsignedByte)
+         appendByte((v >>> ((i - 1) * NO_OF_BITS_IN_BYTE)).cutToByte)
 
          i -= 1
       ).invariant(i >= 0 && i <= nBytes)
