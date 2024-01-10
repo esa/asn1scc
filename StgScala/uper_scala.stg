@@ -135,7 +135,7 @@ codec.decodeConstraintWholeNumber<sSsuffix>(<nMin>, <nMax>) match // uper:122
 
 /*case: Positive fully constraint A:: = INTEGER (5..20) */
 IntFullyConstraintPos_encode(p, nMin, nMax, nBits, sSsuffix, sErrCode) ::= <<
-codec.encodeConstraintPosWholeNumber(<p>, <nMin>, <nMax>)
+codec.encodeConstrainedWholeNumber(<p>, <nMin>, <nMax>)
 >>
 
 IntFullyConstraintPos_decode(p, nMin, nMax, nBits, sSsuffix, sErrCode) ::= <<
