@@ -124,8 +124,7 @@ type BigIntegerFormatRenderer() =
                 else
                     if (obj > BigInteger Int64.MaxValue) then
                         Console.WriteLine("Number exceeded bounds of JVM native types, clamped to Scalas Long.MaxValue")
-                        //Int64.MaxValue.ToString() + "L"                       
-                        sprintf "BigInt(\"%s\").toLong" (obj.ToString())
+                        "Long.MaxValue"
                     else
                         obj.ToString() + "L"
             | _ -> obj.ToString()

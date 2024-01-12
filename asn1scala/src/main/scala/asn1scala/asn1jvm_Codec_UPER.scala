@@ -94,107 +94,83 @@ case class UPER(bitStream: BitStream) extends Codec {
          i += 1
    }
 
-   def objectIdentifier_subIdentifiers_decode(pRemainingOctetsVal: Long): Option[(Long, ULong)] = {
+   def objectIdentifier_subIdentifiers_decode(pRemainingOctetsVal: Long): (Long, ULong) = {
       var bLastOctet: Boolean = false
       var curOctetValue: ULong = 0
       var siValue: ULong = 0
       var pRemainingOctets: Long = pRemainingOctetsVal
-      while pRemainingOctets > 0 && !bLastOctet do
+
+      (while pRemainingOctets > 0 && !bLastOctet do
          decreases(pRemainingOctets)
-         readByte() match
-            case None() => return None()
-            case Some(curByte) =>
-               pRemainingOctets -= 1
+         val curByte = readByte()
+         pRemainingOctets -= 1
 
-               bLastOctet = (curByte & 0x80) == 0
-               curOctetValue = (curByte & 0x7F).toLong
-               siValue = siValue << 7
-               siValue |= curOctetValue
+         bLastOctet = (curByte & 0x80) == 0
+         curOctetValue = (curByte & 0x7F).toLong
+         siValue = siValue << 7
+         siValue |= curOctetValue
+      ).invariant(true) // TODO
 
-      return Some((pRemainingOctets, siValue))
+      (pRemainingOctets, siValue)
    }
 
 
-   def objectIdentifier_decode_length(): Option[Long] = {
-      var totalSize: Long = 0
+   def objectIdentifier_decode_length(): Long = {
 
-      decodeConstrainedWholeNumber(0, 0xFF) match
-         case None() => return None()
-         case Some(l) => totalSize = l
+      var totalSize = decodeConstrainedWholeNumber(0, 0xFF)
 
       if totalSize > 0x7F then
-         decodeConstrainedWholeNumber(0, 0xFF) match
-            case None() => return None()
-            case Some(l) =>
-               totalSize <<= 8
-               totalSize |= l
-               totalSize &= 0x7FFF
+         totalSize <<= 8
+         totalSize |= decodeConstrainedWholeNumber(0, 0xFF)
+         totalSize &= 0x7FFF
 
-      return Some(totalSize)
+      totalSize
    }
 
-   def objectIdentifier_decode(): OptionMut[Asn1ObjectIdentifier] = {
-      var si: ULong = 0
-      var totalSize: Long = 0
-
+   def objectIdentifier_decode(): Asn1ObjectIdentifier = {
       val pVal = ObjectIdentifier_Init()
-
-      objectIdentifier_decode_length() match
-         case None() => return NoneMut()
-         case Some(l) => totalSize = l
-
-      objectIdentifier_subIdentifiers_decode(totalSize) match
-         case None() => return NoneMut()
-         case Some((l, ul)) =>
-            totalSize = l
-            si = ul
+      var (totalSize, si) = objectIdentifier_subIdentifiers_decode(objectIdentifier_decode_length())
 
       pVal.nCount = 2
       pVal.values(0) = si / 40
       pVal.values(1) = si % 40
-      while totalSize > 0 && pVal.nCount < OBJECT_IDENTIFIER_MAX_LENGTH do
+      (while totalSize > 0 && pVal.nCount < OBJECT_IDENTIFIER_MAX_LENGTH do
          decreases(OBJECT_IDENTIFIER_MAX_LENGTH - pVal.nCount)
 
-         objectIdentifier_subIdentifiers_decode(totalSize) match
-            case None() => return NoneMut()
-            case Some((l, ul)) =>
-               totalSize = l
-               si = ul
+         val tpl = objectIdentifier_subIdentifiers_decode(totalSize)
+
+         totalSize = tpl._1
+         si = tpl._2
 
          pVal.values(pVal.nCount) = si
          pVal.nCount += 1
+      ).invariant(true) // TODO
 
       //return true, if totalSize reduced to zero. Otherwise we exit the loop because more components we present than OBJECT_IDENTIFIER_MAX_LENGTH
-      if totalSize == 0 then
-         SomeMut(pVal)
-      else
-         NoneMut()
+      assert(totalSize == 0)
 
+      pVal
    }
 
-   def relativeOID_decode(): OptionMut[Asn1ObjectIdentifier] = {
-      var si: ULong = 0
-      var totalSize: Long = 0
+   def relativeOID_decode(): Asn1ObjectIdentifier = {
       val pVal: Asn1ObjectIdentifier = ObjectIdentifier_Init()
 
-      objectIdentifier_decode_length() match
-         case None() => return NoneMut()
-         case Some(l) => totalSize = l
+      var totalSize = objectIdentifier_decode_length()
+      var si: ULong = 0
 
-      while totalSize > 0 && pVal.nCount < OBJECT_IDENTIFIER_MAX_LENGTH do
+      (while totalSize > 0 && pVal.nCount < OBJECT_IDENTIFIER_MAX_LENGTH do
          decreases(OBJECT_IDENTIFIER_MAX_LENGTH - pVal.nCount)
-         objectIdentifier_subIdentifiers_decode(totalSize) match
-            case None() => return NoneMut()
-            case Some((l, ul)) =>
-               totalSize = l
-               si = ul
+         val tpl = objectIdentifier_subIdentifiers_decode(totalSize)
+
+         totalSize = tpl._1
+         si = tpl._2
+
          pVal.values(pVal.nCount) = si
          pVal.nCount += 1
+      ).invariant(true) // TODO
 
       //return true, if totalSize is zero. Otherwise we exit the loop because more components were present than OBJECT_IDENTIFIER_MAX_LENGTH
-      if totalSize == 0 then
-         SomeMut(pVal)
-      else
-         NoneMut()
+      assert(totalSize == 0)
+      pVal
    }
 }

@@ -97,12 +97,7 @@ codec.encodeConstrainedWholeNumber(charIndex, 0, <nLastItemIndex>)
 InternalItem_string_with_alpha_decode(p, sErrCode,  td/*:FE_StringTypeDefinition*/, i, nLastItemIndex, arrnAlphabetAsciiCodes, nAlphabetLength, nCharIndexSize) ::=<<
 <PrintAlphabet2(arrnAlphabetAsciiCodes)>
 
-codec.decodeConstrainedWholeNumber(0, <nLastItemIndex>) match
-    case Some(charIndex) => 
-        <p>(<i>) = allowedCharSet(charIndex.toInt)
-    case None() => 
-        <p>(<i>) = CHAR_0000
-        return Left(<sErrCode>)
+<p>(<i>) = allowedCharSet(codec.decodeConstrainedWholeNumber(0, <nLastItemIndex>).toInt)
 >>
 
 InternalItem_string_no_alpha_encode(p, sErrCode, i) ::=<<
@@ -110,15 +105,10 @@ codec.encodeConstrainedWholeNumber(<p>(<i>), 0, 127)
 >>
 
 InternalItem_string_no_alpha_decode(p, sErrCode, i) ::=<<
-codec.decodeConstrainedWholeNumberByte(0, 127) match // uper:109
-    case Some(c) =>
-        <p>(<i>) = c
-    case None() =>
-        return Left(<sErrCode>)
+<p>(<i>) = codec.decodeConstrainedWholeNumberByte(0, 127) // uper:109
 >>
 
 /* INTEGER START*/
-
 
 /*case: A:: = INTEGER (-5..20) */
 IntFullyConstraint_encode(p, nMin, nMax, nBits, sSsuffix, sErrCode) ::= <<
@@ -126,11 +116,7 @@ codec.encodeConstrainedWholeNumber(<p>, <nMin>, <nMax>)
 >>
 
 IntFullyConstraint_decode(p, nMin, nMax, nBits, sSsuffix, sErrCode) ::= <<
-codec.decodeConstrainedWholeNumber<sSsuffix>(<nMin>, <nMax>) match // uper:122
-    case Some(n) =>
-        <p> = n
-    case None() =>
-        return Left(<sErrCode>)
+<p> = codec.decodeConstrainedWholeNumber<sSsuffix>(<nMin>, <nMax>) // uper:122
 >>
 
 /*case: Positive fully constraint A:: = INTEGER (5..20) */
@@ -139,27 +125,19 @@ codec.encodeConstrainedWholeNumber(<p>, <nMin>, <nMax>)
 >>
 
 IntFullyConstraintPos_decode(p, nMin, nMax, nBits, sSsuffix, sErrCode) ::= <<
-codec.decodeConstraintPosWholeNumber<sSsuffix>(<nMin>, <nMax>) match // uper:135
-    case Some(decPosNr) =>
-        <p> = decPosNr
-    case None() =>
-        return Left(<sErrCode>)    
+<p> = codec.decodeConstraintPosWholeNumber<sSsuffix>(<nMin>, <nMax>) // uper:135  
 >>
 
 /*case: A :: = INTEGER */
 IntUnconstraint_encode(p, sErrCode, bCoverageIgnore) ::= "codec.encodeUnconstrainedWholeNumber(<p>)"
 IntUnconstraint_decode(p, sErrCode, bCoverageIgnore) ::= <<
-codec.decodeUnconstrainedWholeNumber() match // uper:145
-    case Some(x) =>
-        <p> = x
-    case None() =>
-        return Left(<sErrCode>)
+<p> = codec.decodeUnconstrainedWholeNumber() // uper:145
 >>
 
 /*case: A :: = INTEGER(MIN..5) */
 IntUnconstraintMax_encode(p, nMax, soCheckExp, sErrCode) ::= "codec.encodeUnconstrainedWholeNumber(<p>)"
 IntUnconstraintMax_decode(p, nMax, soCheckExp, sErrCode) ::= <<
-if !codec.decodeUnconstrainedWholeNumber() then
+if !codec.decodeUnconstrainedWholeNumber() then // TODO meth does not return a boolean value...?
     ret = <if(soCheckExp)> if <soCheckExp> then 0 else <endif> <sErrCode>
 >>
 
@@ -188,9 +166,7 @@ IntNoneRequired_decode(p, nConst, sErrCode) ::= <<
 
 /*case: A:: = INTEGER (5..40,...) */
 IntRootExt_encode(p, nMin, sRootBaseConstraint, sIntBody, sErrCode) ::=<<
-if !codec.appendBitZero() then /* write extension bit*/
-    Console.err.println("appendBitZero failed: not enough space for 1 bit")
-
+codec.appendBitZero() /* write extension bit*/
 <sIntBody>
 >>
 
@@ -213,15 +189,11 @@ IntRootExt_decode(p, nMin, sRootBaseConstraint, sIntBody, sErrCode) ::=<<
 /*case: A:: = INTEGER (5..40,..., 60..70) */
 IntRootExt2_encode(p, nMin, sRootBaseConstraint, sIntBody, sErrCode) ::=<<
 if <sRootBaseConstraint> then
-    if !codec.appendBitZero() then /* write extension bit, value within root range, so ext bit is zero */
-        Console.err.println("appendBitZero failed: not enough space for 1 bit")
-
+    codec.appendBitZero() /* write extension bit, value within root range, so ext bit is zero */
     <sIntBody>
 else 
     /* value is not within root range, so ext bit is one and value is encoded as uncostraint */
-    if !codec.appendBitOne() then
-        Console.err.println("appendBitOne failed: not enough space for 1 bit")
-
+    codec.appendBitOne() 
     <IntUnconstraint_encode(p=p, sErrCode=sErrCode)>
 >>
 
@@ -231,31 +203,21 @@ IntRootExt2_decode(p, nMin, sRootBaseConstraint, sIntBody, sErrCode) ::="<IntRoo
 /* INTEGER END*/
 
 Boolean_encode(p, sErrCode) ::= <<
-if !codec.appendBit(<p>) then
-    Console.err.println("appendBit failed: not enough space for 1 bit")
-
+codec.appendBit(<p>)
 >>
 
 Boolean_decode(p, sErrCode) ::= <<
-codec.readBit() match // uper:225
-    case Some(bit) =>
-        <p> = bit
-    case None() =>
-        return Left(<sErrCode>)
+<p> = codec.readBit() // uper:225
 >>
 
 Real_encode(p, sSuffix, sErrCode) ::= "codec.encodeReal(<p>)"
 Real_decode(p, sSuffix, sErrCode) ::= <<
-codec.decodeReal<sSuffix>() match // uper:234
-    case Some(d) =>
-        <p> = d.asInstanceOf[Double]
-    case None() =>
-        return Left(<sErrCode>)
+<p> = codec.decodeReal<sSuffix>().toDouble // uper:234
 >>
 
 ObjectIdentifier_encode(p, sErrCode) ::= "codec.ObjectIdentifier_encode(<p>);"
 ObjectIdentifier_decode(p, sErrCode) ::= <<
-if !codec.ObjectIdentifier_decode() then
+if !codec.ObjectIdentifier_decode() then // uper:234 TODO
     ret = <sErrCode>
 >>
 
@@ -290,13 +252,9 @@ Enumerated_encode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, nMin, nMax, n
 
 Enumerated_decode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, nMin, nMax, nBits, sErrCode, nLastItemIndex, sFirstItemName) ::= <<
 codec.decodeConstrainedWholeNumber(0, <nLastItemIndex>) match // uper:277
-    case Some(x) =>
-        x match 
-            <arrsItem; separator="\n">
-            case _ =>
-                return Left(<sErrCode>)
-    case None() =>
-        return Left(<sErrCode>) // TODO C impl returns first element from enum, even in error case
+    <arrsItem; separator="\n">
+    case _ =>
+        return Left(<sErrCode>)
 >>
 
 /* CHOICE START*/
@@ -330,12 +288,8 @@ choice_encode(p, sAcc, arrsChildren, nLastItemIndex, sChoiceIndexName, sErrCode,
 
 choice_decode(p, sAcc, arrsChildren, nLastItemIndex, sChoiceIndexName, sErrCode, td/*:FE_ChoiceTypeDefinition*/, nIndexSizeInBits) ::= <<
 codec.decodeConstrainedWholeNumber(0, <nLastItemIndex>) match // uper:317
-    case Some(choice) =>
-        choice match
-            <arrsChildren: {ch|<ch>}; separator="\n">
-            case _ =>
-                return Left(<sErrCode>)
-    case None() =>
+    <arrsChildren: {ch|<ch>}; separator="\n">
+    case _ =>
         return Left(<sErrCode>)
 >>
 
@@ -343,28 +297,20 @@ codec.decodeConstrainedWholeNumber(0, <nLastItemIndex>) match // uper:317
 
 /* SEQUENCE START */
 sequence_presence_bit_encode(p, sAcc, sChName, sErrCode) ::= <<
-if !codec.appendBit(<p><sAcc>exist.<sChName>) then
-	Console.err.println("appendBit failed: not enough space for 1 bit")
-
+codec.appendBit(<p><sAcc>exist.<sChName>)
 >>
+
 sequence_presence_bit_decode(p, sAcc, sChName, sErrCode) ::= <<
-codec.readBit() match // uper:332
-    case Some(bit) =>
-        <p><sAcc>exist.<sChName> = bit
-    case None() =>
-        return Left(<sErrCode>)
+<p><sAcc>exist.<sChName> = codec.readBit() // uper:332
 >>
 
 sequence_presence_bit_fix_encode(p, sAcc, sChName, sErrCode, sVal) ::= <<
-if !codec.appendBit(<sVal>) then
-    Console.err.println("appendBit failed: not enough space for 1 bit")
-
+codec.appendBit(<sVal>)
 >>
 
 sequence_presence_bit_fix_decode(p, sAcc, sChName, sErrCode, sVal) ::= <<
 <sequence_presence_bit_decode(p=p, sAcc=sAcc, sChName=sChName, sErrCode=sErrCode)>
 >>
-
 
 sequence_mandatory_child_encode(sChName, sChildContent) ::= <<
 /*Encode <sChName> */
@@ -437,13 +383,8 @@ codec.encodeConstrainedWholeNumber(nStringLength, <nSizeMin>, <nSizeMax>)
 >>
 
 str_VarSize_decode(p, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize) ::= <<
-nStringLength = 0
-codec.decodeConstrainedWholeNumberInt(<nSizeMin>, <nSizeMax>) match // uper:418
-    case Some(n) => 
-        nStringLength = n
-        <p>(nStringLength) = 0 // TODO do we need a 0 terminator?
-    case None() => 
-        return Left(405)
+nStringLength = codec.decodeConstrainedWholeNumberInt(<nSizeMin>, <nSizeMax>) // uper:418
+<p>(nStringLength) = 0
 
 <i> = 0
 <loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize="nStringLength")>
@@ -464,67 +405,42 @@ codec.encodeConstrainedWholeNumber(<p><sAcc>nCount, <nSizeMin>, <nSizeMax>)
 >>
 
 seqOf_VarSize_decode(p, sAcc, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, sErrCode) ::= <<
-codec.decodeConstrainedWholeNumber(<nSizeMin>, <nSizeMax>) match // uper:444
-    case Some(n) =>
-        <p><sAcc>nCount = n.asInstanceOf[Int]
-    case None() =>
-        return Left(<sErrCode>)
-
+<p><sAcc>nCount = codec.decodeConstrainedWholeNumber(<nSizeMin>, <nSizeMax>).toInt // uper:444
 <i> = 0
 <loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize=[p, sAcc, "nCount"])>
 >>
 
 octect_FixedSize_encode(p, sAcc, nFixedSize) ::= <<
-if !codec.encodeOctetString_no_length(<p><sAcc>arr, <nFixedSize>.asInstanceOf[Int]) then
-    Console.err.println(s"encodeOctetString_no_length failed: not enough space for ${<nFixedSize>.asInstanceOf[Int]} bytes")
-    return Left(479)
-
+codec.encodeOctetString_no_length(<p><sAcc>arr, <nFixedSize>.asInstanceOf[Int])
 >>
 
 octect_FixedSize_decode(p, sAcc, nFixedSize) ::= <<
-codec.decodeOctetString_no_length(<nFixedSize>) match // uper:460
-    case SomeMut(x) => 
-        x.copyToArray(<p><sAcc>arr)
-    case NoneMut() => 
-        return Left(454)
+/* TODO copyToArray? */
+codec.decodeOctetString_no_length(<nFixedSize>).copyToArray(<p><sAcc>arr) // uper:460
 >>
 
 octect_VarSize_encode(p, sAcc, nSizeMin, nSizeMax, nSizeInBits, sErrCode) ::= <<
 codec.encodeConstrainedWholeNumber(<p><sAcc>nCount, <nSizeMin>, <nSizeMax>)
-if !codec.encodeOctetString_no_length(<p><sAcc>arr, <p><sAcc>nCount.asInstanceOf[Int]) then
-    ret = Left(<sErrCode>)
+codec.encodeOctetString_no_length(<p><sAcc>arr, <p><sAcc>nCount.asInstanceOf[Int])
 >>
 
 octect_VarSize_decode(p, sAcc, nSizeMin, nSizeMax, nSizeInBits, sErrCode) ::= <<
 // decode length
-codec.decodeConstrainedWholeNumber(<nSizeMin>, <nSizeMax>) match // uper:475
-    case Some(n) => 
-        assert(n >= 0)
-        <p><sAcc>nCount = n
-    case None() =>
-        return Left(<sErrCode>)
-
+<p><sAcc>nCount = codec.decodeConstrainedWholeNumber(<nSizeMin>, <nSizeMax>) // uper:475
 // decode payload
-codec.decodeOctetString_no_length(<p><sAcc>nCount.asInstanceOf[Int]) match // uper:483
-    case SomeMut(a) =>    
-        a.copyToArray(<p><sAcc>arr)
-    case NoneMut() => 
-        return Left(<sErrCode>)
+/* TODO copyToArray? */ 
+codec.decodeOctetString_no_length(<p><sAcc>nCount.toInt).copyToArray(<p><sAcc>arr) // uper:483
 >>
 
 /* BIT STRING*/
 bitString_FixSize_encode(p, sAcc, nFixedSize, sErrCode) ::= <<
 assert(<nFixedSize>.asInstanceOf[Int] >= 0) // overflow may happen during cast
-if !codec.appendBitsMSBFirst(<p><sAcc>arr, <nFixedSize>.asInstanceOf[Int]) then
-    Console.err.println(s"appendBitsMSBFirst failed: not enough space for ${<nFixedSize>.asInstanceOf[Int]} bits")
-
+codec.appendBitsMSBFirst(<p><sAcc>arr, <nFixedSize>.toInt)
 >>
+
 bitString_FixSize_decode(p, sAcc, nFixedSize, sErrCode) ::= <<
-codec.readBits(<nFixedSize>.asInstanceOf[Int]) match // uper:496
-    case SomeMut(a) =>
-        a.copyToArray(<p><sAcc>arr)
-    case NoneMut() => 
-        return Left(<sErrCode>)
+/* TODO copyToArray instead of assigning*/
+codec.readBits(<nFixedSize>.toInt).copyToArray(<p><sAcc>arr) // uper:496
 >>
 
 bitString_VarSize_encode(p, sAcc, nSizeMin, nSizeMax, sErrCode, nSizeInBits) ::= <<
@@ -533,11 +449,7 @@ codec.encodeConstrainedWholeNumber(<p><sAcc>nCount, <nSizeMin>, <nSizeMax>)
 >>
 
 bitString_VarSize_decode(p, sAcc, nSizeMin, nSizeMax, sErrCode, nSizeInBits) ::= <<
-codec.decodeConstrainedWholeNumber(<nSizeMin>, <nSizeMax>) match // uper:509
-    case Some(n) => 
-        <p><sAcc>nCount = n
-    case None() =>
-        return Left(<sErrCode>)
+<p><sAcc>nCount = codec.decodeConstrainedWholeNumber(<nSizeMin>, <nSizeMax>) // uper:509
 <bitString_FixSize_decode(p=p, sAcc=sAcc, nFixedSize=[p,sAcc, "nCount"], sErrCode=sErrCode)>
 >>
 
@@ -551,8 +463,7 @@ while(<sBlockIndex> \< <nBlocks64K>)
 {
     codec.encodeConstrainedWholeNumber(0xC4, 0, 0xFF)
     <if(bIsBitStringType)>
-    if !codec.appendBitsMSBFirst(&<p><sAcc>arr[<sCurOffset>/8], <sCurBlockSize>.asInstanceOf[Int]) then
-	    Console.err.println(s"appendBitsMSBFirst failed: not enough space for ${<sCurBlockSize>.asInstanceOf[Int]} bits")
+    codec.appendBitsMSBFirst(&<p><sAcc>arr[<sCurOffset>/8], <sCurBlockSize>.asInstanceOf[Int])
 
     <else>
     val <sBLI>=(int)<sCurOffset>
@@ -572,9 +483,7 @@ FixedSize_Fragmentation_sqf_small_block_encode(p, sAcc,sInternalItem, nBlockSize
 <sCurBlockSize> = <nBlockSize>;
 codec.encodeConstrainedWholeNumber(<sBlockId>, 0, 0xFF)
 <if(bIsBitStringType)>
-if !codec.appendBitsMSBFirst(&<p><sAcc>arr[<sCurOffset>/8], <sCurBlockSize>.asInstanceOf[Int]) then
-    Console.err.println(s"appendBitsMSBFirst failed: not enough space for ${<sCurBlockSize>.asInstanceOf[Int]} bits")
-
+codec.appendBitsMSBFirst(&<p><sAcc>arr[<sCurOffset>/8], <sCurBlockSize>.toInt)
 <else>
 for(<sBLI>=(int)<sCurOffset>; <sBLI> \< (int)(<sCurBlockSize> + <sCurOffset>); <sBLI>++)
 {
@@ -589,18 +498,12 @@ FixedSize_Fragmentation_sqf_remaining_encode(p, sAcc,sInternalItem, bRemainingIt
 //encode remaining <nRemainingItemsVar> items
 <if(bRemainingItemsWithinByte)>
 codec.encodeConstrainedWholeNumber(<nRemainingItemsVar>, 0, 0xFF)
-
 <else>
-if !codec.appendBitOne() then 
-    Console.err.println("appendBitOne failed: not enough space for 1 bit")
-
+codec.appendBitOne()
 codec.encodeConstrainedWholeNumber(<nRemainingItemsVar>, 0, 0x7FFF)
-
 <endif>
 <if(bIsBitStringType)>
-if !codec.appendBitsMSBFirst(<p><sAcc>arr[<sCurOffset>/8], <nRemainingItemsVar>.asInstanceOf[Int]) then
-    Console.err.println(s"appendBitsMSBFirst failed: not enough space for ${<nRemainingItemsVar>asInstanceOf[Int]} bits")
-
+codec.appendBitsMSBFirst(<p><sAcc>arr[<sCurOffset>/8], <nRemainingItemsVar>.toInt)
 <else>
 for(<sBLI>=(int)<sCurOffset>; <sBLI> \< (int)(<sCurOffset> + <nRemainingItemsVar>); <sBLI>++)
 {
@@ -635,9 +538,7 @@ while (<sRemainingItemsVar> >= 0x4000 && <sBlockIndex> \< <if(bIsAsciiString)>(a
         codec.encodeConstrainedWholeNumber(0xC1, 0, 0xFF)
     
     <if(bIsBitStringType)>
-    if !codec.appendBitsMSBFirst(<p><sAcc>arr[<sCurOffset>/8], <sCurBlockSize>.asInstanceOf[Int]) then
-	    Console.err.println(s"appendBitsMSBFirst failed: not enough space for ${<sCurBlockSize>.asInstanceOf[Int]} bits")
-
+    codec.appendBitsMSBFirst(<p><sAcc>arr[<sCurOffset>/8], <sCurBlockSize>.asInstanceOf[Int])
     <else>
     <sBLI>=<sCurOffset>.asInstanceOf[Int]
     while(<sBLI> \< (<sCurBlockSize> + <sCurOffset>).asInstanceOf[Int])
@@ -654,15 +555,11 @@ while (<sRemainingItemsVar> >= 0x4000 && <sBlockIndex> \< <if(bIsAsciiString)>(a
 if <sRemainingItemsVar> \<= 0x7F then
     codec.encodeConstrainedWholeNumber(<sRemainingItemsVar>, 0, 0xFF)
 else
-    if !codec.appendBitOne() then
-        Console.err.println("appendBitOne failed: not enough space for 1 bit")
-
+    codec.appendBitOne()
     codec.encodeConstrainedWholeNumber(<sRemainingItemsVar>, 0, 0x7FFF)
 
 <if(bIsBitStringType)>
-if !codec.appendBitsMSBFirst(<p><sAcc>arr[<sCurOffset>/8], <sRemainingItemsVar>.asInstanceOf[Int]) then
-	Console.err.println(s"appendBitsMSBFirst failed: not enough space for ${<sRemainingItemsVar>.asInstanceOf[Int]} bits")
-
+codec.appendBitsMSBFirst(<p><sAcc>arr[<sCurOffset>/8], <sRemainingItemsVar>.toInt)
 <else>
 <sBLI> = <sCurOffset>.asInstanceOf[Int]
 while(<sBLI> \< (<sCurOffset> + <sRemainingItemsVar>).asInstanceOf[Int])
@@ -768,11 +665,7 @@ Fragmentation_sqf_decode(p, sAcc, sInternalItem, nIntItemMaxSize, nSizeMin, nSiz
 <sLengthTmp> = 0
 <endif>
 
-codec.decodeConstrainedWholeNumber(0, 0xFF) match // uper:733
-    case None() =>
-        return Left(<sErrCodeName>)
-    case Some(x) =>
-        <sRemainingItemsVar> = x.asInstanceOf[Int]
+<sRemainingItemsVar> = codec.decodeConstrainedWholeNumber(0, 0xFF).toInt // uper:733
 
 while((<sRemainingItemsVar> & 0xC0) == 0xC0) {
     if <sRemainingItemsVar> == 0xC4 then
@@ -805,21 +698,13 @@ while((<sRemainingItemsVar> & 0xC0) == 0xC0) {
     <sLengthTmp> += <sCurBlockSize>
     <endif>
     <sCurOffset> += <sCurBlockSize>
-    codec.decodeConstrainedWholeNumber(0, 0xFF) match // uper:770
-        case None() =>
-            return Left(<sErrCodeName>)
-        case Some(x) =>
-            <sRemainingItemsVar> = x.asInstanceOf[Int]
+    <sRemainingItemsVar> = codec.decodeConstrainedWholeNumber(0, 0xFF).toInt // uper:770
 }
 
 if ((<sRemainingItemsVar> & 0x80) > 0) then
     var len2 = 0;
     <sRemainingItemsVar> \<\<= 8
-    codec.decodeConstrainedWholeNumber(0, 0xFF) match // uper:780
-        case None() =>
-            return Left(<sErrCodeName>)
-        case Some(x) =>
-            len2 = x.asInstanceOf[Int]
+    len2 = codec.decodeConstrainedWholeNumber(0, 0xFF).toInt // uper:780
     
     <sRemainingItemsVar> |= len2;
     <sRemainingItemsVar> &= 0x7FFF;   

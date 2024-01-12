@@ -101,9 +101,7 @@ val file = new File(filename+".dat")
 val bw = new FileOutputStream(file)
 val l = codec.getLength
 codec.resetBitIndex()
-codec.readByteArray(l) match
-    case SomeMut(arr) => bw.write(arr)
-    case NoneMut() => return Left(5)
+bw.write(codec.readByteArray(l))
 bw.close()
 >>
 

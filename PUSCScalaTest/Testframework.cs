@@ -181,8 +181,8 @@ namespace PUS_C_Scala_Test
         private string getCleanWorkingFolderPath(string folderSuffix, ServiceVariation sv)
         {
             string outDir = GetOutputFolder(folderSuffix, sv);
-            if (Directory.Exists(outDir))
-                Directory.Delete(outDir, true);
+            //if (Directory.Exists(outDir))
+            //    Directory.Delete(outDir, true);
             
             return outDir;
         }
