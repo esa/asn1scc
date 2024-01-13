@@ -257,7 +257,6 @@ let createEnumeratedFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:C
         let Enumerated_item    = lm.uper.Enumerated_item
         let typeDef0 = lm.lg.getEnmTypeDefintion o.typeDef
         let td =  typeDef0.longTypedefName2 lm.lg.hasModules  (ToC p.modName)
-        //let typeDefinitionName = typeDefinition.longTypedefName l //getTypeDefinitionName t.id.tasInfo typeDefinition
         let nMin = 0I
         let nMax = BigInteger(Seq.length o.items) - 1I
         let nLastItemIndex      = nMax

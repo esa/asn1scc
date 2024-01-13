@@ -119,7 +119,7 @@ let rec printValue (r:DAst.AstRoot)  (lm:LanguageMacros) (curProgamUnitName:stri
             match t.ActualType.Kind with
             | Sequence s -> 
                 let td = lm.lg.getSequenceTypeDefinition s.baseInfo.typeDef
-                let typeDefName  = lm.lg.getLongTypedefName t.typeDefintionOrReference // t.typeDefintionOrReference.longTypedefName l//if parentValue.IsSome then s.typeDefinition.typeDefinitionBodyWithinSeq else s.typeDefinition.name
+                let typeDefName  = lm.lg.getLongTypedefName t.typeDefintionOrReference 
                 let optChildren = 
                     s.children |>
                     List.choose(fun ch -> match ch with Asn1Child a -> Some a | AcnChild _ -> None) |>
@@ -248,8 +248,7 @@ let createOctetStringFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1
             PrintOctetStringValue td (o.minSize.uper = o.maxSize.uper) v (BigInteger v.Length)
         | BitStringValue    v -> 
             let bytes = bitStringValueToByteArray (StringLoc.ByValue v) |> Seq.toList
-            let td = lm.lg.getSizeableTypeDefinition o.typeDef // (o.typeDef.[l]).longTypedefName l curProgamUnitName
-            //let typeDefName  = defOrRef.longTypedefName l//if parentValue.IsSome then typeDefinition.typeDefinitionBodyWithinSeq else typeDefinition.name
+            let td = lm.lg.getSizeableTypeDefinition o.typeDef 
             PrintOctetStringValue td (o.minSize.uper = o.maxSize.uper) bytes (BigInteger bytes.Length)
         | RefValue ((md,vs),ov)   -> vs
         | _                 -> raise(BugErrorException "unexpected value")
@@ -284,13 +283,11 @@ let createBitStringFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1Ac
         match v with
         | BitStringValue    v -> 
             let bytes = bitStringValueToByteArray (StringLoc.ByValue v)
-            let td = lm.lg.getSizeableTypeDefinition o.typeDef //(o.typeDef.[l]).longTypedefName l curProgamUnitName
-            //let typeDefName  = defOrRef.longTypedefName l//if parentValue.IsSome then typeDefinition.typeDefinitionBodyWithinSeq else typeDefinition.name
+            let td = lm.lg.getSizeableTypeDefinition o.typeDef 
             let arBits = v.ToCharArray() |> Array.map(fun x -> x.ToString())
             PrintBitStringValue td (o.minSize.uper = o.maxSize.uper) arBits (BigInteger arBits.Length) bytes (BigInteger bytes.Length)
         | OctetStringValue  v -> 
-            let td = lm.lg.getSizeableTypeDefinition o.typeDef //(o.typeDef.[l]).longTypedefName l curProgamUnitName
-            //let typeDefName  = defOrRef.longTypedefName l //if parentValue.IsSome then typeDefinition.typeDefinitionBodyWithinSeq else typeDefinition.name
+            let td = lm.lg.getSizeableTypeDefinition o.typeDef 
             PrintOctetStringValue td (o.minSize.uper = o.maxSize.uper) v (BigInteger v.Length)
         | RefValue ((md,vs),ov)   -> vs
         | _                 -> raise(BugErrorException "unexpected value")
@@ -304,7 +301,6 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1A
         match gv with
         | SeqOfValue chVals    -> 
             let childVals = chVals |> List.map (fun chv -> childType.printValue curProgamUnitName (Some gv) chv.kind)
-            //let typeDefName  = defOrRef.longTypedefName l//if parentValue.IsSome then typeDefinition.typeDefinitionBodyWithinSeq else typeDefinition.name
             let sDefValue =  childType.initFunction.initExpression //childType.printValue curProgamUnitName  None childType.initialValue 
             let td = lm.lg.getSizeableTypeDefinition  o.typeDef 
             PrintSequenceOfValue td (o.minSize.uper = o.maxSize.uper) (BigInteger chVals.Length) childVals sDefValue
@@ -327,7 +323,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1Acn
     let printValue (curProgamUnitName:string) (parentValue:Asn1ValueKind option) (gv:Asn1ValueKind) =
         match gv with
         | SeqValue  v -> 
-                let td = lm.lg.getSequenceTypeDefinition o.typeDef // (o.typeDef.[l]).longTypedefName l curProgamUnitName
+                let td = lm.lg.getSequenceTypeDefinition o.typeDef 
                 let typeDefName  = lm.lg.getLongTypedefName  defOrRef//if parentValue.IsSome then typeDefinition.typeDefinitionBodyWithinSeq else typeDefinition.name
                 let optChildren = 
                     optChildren |>

@@ -141,9 +141,6 @@ type TypeDefintionOrReference with
                 | false     -> ref.typedefName
             | None    -> ref.typedefName
 
-    member this.longTypedefName  (l:ProgrammingLanguage) =
-        let b = (l = Ada)
-        this.longTypedefName2 b
             
     member this.getAsn1Name (typePrefix : string) =
         let typedefName = 
@@ -210,21 +207,6 @@ type Sequence with
     member this.AllCons  = this.baseInfo.cons@this.baseInfo.withcons
     member this.Asn1Children =
         this.children |> List.choose(fun c -> match c with Asn1Child c -> Some c | AcnChild _ -> None)
-
-type Asn1Child with
-    member this.getBackendName l = 
-        match l with
-        | C         -> this._c_name
-        | Scala     -> this._scala_name
-        | Ada       -> this._ada_name
-
-
-type ChChildInfo with
-    member this.getBackendName l = 
-        match l with
-        | C         -> this._c_name
-        | Scala     -> this._scala_name
-        | Ada       -> this._ada_name
 
 
 

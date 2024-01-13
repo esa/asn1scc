@@ -271,80 +271,6 @@ type ProgrammingLanguage =
     |Ada
     with 
         static member AllLanguages = [C; Scala; Ada]
-(*
-        member l.cmp (s1:string) (s2:string) =
-            match l with
-            |C          -> s1 = s2
-            |Scala      -> s1 = s2 // TODO: Scala
-            |Ada        -> s1.icompare s2
-        member l.keywords = 
-            match l with
-            |C          -> c_keyworkds
-            |Scala      -> scala_keyworkds
-            |Ada        -> ada_keyworkds
-        
-        member l.OnTypeNameConflictTryAppendModName =
-            match l with
-            |C          -> true
-            |Scala      -> true // TODO: SCala
-            |Ada        -> false
-        member l.declare_IntegerNoRTL = 
-            match l with 
-            | C     -> "", "asn1SccSint", "INTEGER"
-            | Scala -> "", "Int", "INTEGER" // TODO: Scala
-            | Ada   -> "adaasn1rtl", "Asn1Int", "INTEGER"
-        member l.declare_PosIntegerNoRTL =
-            match l with 
-            | C     -> "", "asn1SccUint" , "INTEGER"               
-            | Scala -> "", " asn1SccUint" , "INTEGER" // TODO: Scala                
-            | Ada   -> "adaasn1rtl", "Asn1UInt" , "INTEGER"  
-        member l.getRealRtlTypeName   = 
-            match l with 
-            | C -> "", "asn1Real", "REAL" 
-            | Scala -> "", "asn1Real", "REAL" // TODO: Scala 
-            | Ada  -> "adaasn1rtl", "Asn1Real", "REAL" 
-        member l.getObjectIdentifierRtlTypeName  relativeId = 
-            let asn1Name = if relativeId then "RELATIVE-OID" else "OBJECT IDENTIFIER"
-            match l with 
-            | C     -> "",           "Asn1ObjectIdentifier", asn1Name
-            | Scala -> "",           "Asn1ObjectIdentifier", asn1Name // TODO: Scala
-            | Ada   -> "adaasn1rtl", "Asn1ObjectIdentifier", asn1Name
-        member l.getTimeRtlTypeName  timeClass = 
-            let asn1Name = "TIME"
-            match l, timeClass with 
-            | C, Asn1LocalTime                    _ -> "", "Asn1LocalTime", asn1Name
-            | C, Asn1UtcTime                      _ -> "", "Asn1UtcTime", asn1Name
-            | C, Asn1LocalTimeWithTimeZone        _ -> "", "Asn1TimeWithTimeZone", asn1Name
-            | C, Asn1Date                           -> "", "Asn1Date", asn1Name
-            | C, Asn1Date_LocalTime               _ -> "", "Asn1DateLocalTime", asn1Name
-            | C, Asn1Date_UtcTime                 _ -> "", "Asn1DateUtcTime", asn1Name
-            | C, Asn1Date_LocalTimeWithTimeZone   _ -> "", "Asn1DateTimeWithTimeZone", asn1Name
-            // TODO: Scala
-            | Scala, Asn1LocalTime                    _ -> "", "Asn1LocalTime", asn1Name
-            | Scala, Asn1UtcTime                      _ -> "", "Asn1UtcTime", asn1Name
-            | Scala, Asn1LocalTimeWithTimeZone        _ -> "", "Asn1TimeWithTimeZone", asn1Name
-            | Scala, Asn1Date                           -> "", "Asn1Date", asn1Name
-            | Scala, Asn1Date_LocalTime               _ -> "", "Asn1DateLocalTime", asn1Name
-            | Scala, Asn1Date_UtcTime                 _ -> "", "Asn1DateUtcTime", asn1Name
-            | Scala, Asn1Date_LocalTimeWithTimeZone   _ -> "", "Asn1DateTimeWithTimeZone", asn1Name
-            | Ada, Asn1LocalTime                  _ -> "adaasn1rtl", "Asn1LocalTime", asn1Name
-            | Ada, Asn1UtcTime                    _ -> "adaasn1rtl", "Asn1UtcTime", asn1Name
-            | Ada, Asn1LocalTimeWithTimeZone      _ -> "adaasn1rtl", "Asn1TimeWithTimeZone", asn1Name
-            | Ada, Asn1Date                         -> "adaasn1rtl", "Asn1Date", asn1Name
-            | Ada, Asn1Date_LocalTime             _ -> "adaasn1rtl", "Asn1DateLocalTime", asn1Name
-            | Ada, Asn1Date_UtcTime               _ -> "adaasn1rtl", "Asn1DateUtcTime", asn1Name
-            | Ada, Asn1Date_LocalTimeWithTimeZone _ -> "adaasn1rtl", "Asn1DateTimeWithTimeZone", asn1Name
-        member l.getNullRtlTypeName  = 
-            match l with 
-            | C -> "", "NullType", "NULL" 
-            | Scala -> "", "NullType", "NULL" // TODO: Scala 
-            | Ada -> "adaasn1rtl", "Asn1NullType", "NULL" 
-        member l.getBoolRtlTypeName =
-            match l with 
-            | C -> "","flag","BOOLEAN" 
-            | Scala -> "","Boolean","BOOLEAN" // TODO: Scala  
-            | Ada  -> "adaasn1rtl", "Asn1Boolean", "BOOLEAN"
-*)
 
 type Codec =
     |Encode
@@ -674,8 +600,6 @@ type FE_StringTypeDefinition = {
     kind            : FE_NonPrimitiveTypeDefinitionKind<FE_StringTypeDefinition>
 }
 with
-    member this.longTypedefName l callerProgramUnit =
-        this.longTypedefName2 (l=Ada) callerProgramUnit
     
     member this.longTypedefName2 bHasUnits callerProgramUnit =
         let z n = this.programUnit + "." + n
@@ -695,9 +619,6 @@ type FE_SizeableTypeDefinition = {
     kind            : FE_NonPrimitiveTypeDefinitionKind<FE_SizeableTypeDefinition>
 }
 with
-    member this.longTypedefName l callerProgramUnit =
-        this.longTypedefName2 (l=Ada) callerProgramUnit
-
     member this.longTypedefName2 bHasUnits callerProgramUnit =
         let z n = this.programUnit + "." + n
         match bHasUnits with
@@ -721,8 +642,6 @@ with
         | false             -> this
         | true   when this.programUnit = callerProgramUnit   -> this
         | true   -> {this with typeName = z this.typeName; exist = z this.exist}
-    member this.longTypedefName l callerProgramUnit =
-        this.longTypedefName2 (l=Ada) callerProgramUnit
 
 type FE_ChoiceTypeDefinition = {
     asn1Name        : string
@@ -742,8 +661,6 @@ with
         | true   when this.programUnit = callerProgramUnit   -> this
         | true           -> {this with typeName = z this.typeName; index_range = z this.index_range; selection = z this.selection}
     
-    member this.longTypedefName l callerProgramUnit =
-        this.longTypedefName2 (l=Ada) callerProgramUnit
 
 type FE_EnumeratedTypeDefinition = {
     asn1Name        : string
@@ -754,8 +671,6 @@ type FE_EnumeratedTypeDefinition = {
     kind            : FE_NonPrimitiveTypeDefinitionKind<FE_EnumeratedTypeDefinition>
 }
 with
-    member this.longTypedefName l callerProgramUnit =
-        this.longTypedefName2 (l=Ada) callerProgramUnit
 
     member this.longTypedefName2 bHasUnits callerProgramUnit =
         let z n = this.programUnit + "." + n
