@@ -41,7 +41,7 @@ let foldBConstraint
     | Asn1Ast.ExceptConstraint           (s, c1,c2)           -> exceptConstraintFunc s c1 c2 
     | Asn1Ast.RootConstraint             (s, c1)                -> rootConstraintFunc s c1    
     | Asn1Ast.RootConstraint2            (s, c1,c2)           -> rootConstraint2Func s c1 c2      
-    | Asn1Ast.RangeContraint_MIN_MAX            _          -> raise(BugErrorException "Unexpected constraint type")
+    | Asn1Ast.RangeContraint_MIN_MAX                       -> raise(BugErrorException "Unexpected constraint type")
     | Asn1Ast.TypeInclusionConstraint           _          -> raise(BugErrorException "Unexpected constraint type")   
     | Asn1Ast.WithComponentConstraint    (s, c,l)             -> withComponentConstraintFunc  s c l //raise(BugErrorException "Unexpected constraint type")
     | Asn1Ast.WithComponentsConstraint   (s, ncs)               -> withComponentsConstraintFunc s ncs   //raise(BugErrorException "Unexpected constraint type")

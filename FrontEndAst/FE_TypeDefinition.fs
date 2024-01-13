@@ -13,7 +13,7 @@ open FsUtils
 open Asn1AcnAst
 
 
-let private reserveTypeDefinitionName  (typePrefix:string) (allocatedTypeNames : (ProgrammingLanguage*string*string)  list) (l:ProgrammingLanguage)  (programUnit:string) (proposedTypeDefName:string)  =
+let private reserveTypeDefinitionName  (typePrefix:string) (allocatedTypeNames : (ProgrammingLanguage*string*string)  list) (l:ProgrammingLanguage, ib:ILangBasic)  (programUnit:string) (proposedTypeDefName:string)  =
     let getNextCount (oldName:string) =
         match oldName.Split('_') |> Seq.toList |> List.rev with
         | []    
@@ -23,15 +23,15 @@ let private reserveTypeDefinitionName  (typePrefix:string) (allocatedTypeNames :
             | true, num ->  (oldPart |> List.rev |> Seq.StrJoin "_") + "_" + ((num+1).ToString())
             | _         -> oldName + "_1"
     let rec getValidTypeDefname (proposedTypeDefName:string) = 
-        let keywords =  l.keywords
+        let keywords =  ib.keywords
 
-        let cmp (l:ProgrammingLanguage) (s1:String) (s2:String) = l.cmp s1 s2
+        let cmp (ib:ILangBasic) (s1:String) (s2:String) = ib.cmp s1 s2
         let proposedTypeDefName =
-            match keywords |> Seq.tryFind(fun kw -> cmp l proposedTypeDefName kw) with
+            match keywords |> Seq.tryFind(fun kw -> cmp ib proposedTypeDefName kw) with
             | None      -> proposedTypeDefName
             | Some _    -> getNextCount proposedTypeDefName
 
-        match l.OnTypeNameConflictTryAppendModName with
+        match ib.OnTypeNameConflictTryAppendModName with
         | true     ->  
             match allocatedTypeNames |> Seq.exists(fun (cl, _, ct) -> cl = l && ct = proposedTypeDefName) with
             | false -> proposedTypeDefName
@@ -53,9 +53,9 @@ let private reserveTypeDefinitionName  (typePrefix:string) (allocatedTypeNames :
     validTypeDefname, (l, programUnit, validTypeDefname)::allocatedTypeNames
 
 
-let private reserveMasterTypeDefinitionName (us:Asn1AcnMergeState) (id:ReferenceToType) (l:ProgrammingLanguage)  (programUnit:string) (proposedTypeDefName:string)  =
+let private reserveMasterTypeDefinitionName (us:Asn1AcnMergeState) (id:ReferenceToType) (l:ProgrammingLanguage, ib:ILangBasic)  (programUnit:string) (proposedTypeDefName:string)  =
     match us.temporaryTypesAllocation.TryFind(l,id) with
-    | None  -> reserveTypeDefinitionName  us.args.TypePrefix us.allocatedTypeNames l programUnit proposedTypeDefName
+    | None  -> reserveTypeDefinitionName  us.args.TypePrefix us.allocatedTypeNames (l,ib) programUnit proposedTypeDefName
     | Some typeName -> typeName, us.allocatedTypeNames
 
 //returns the proposed type definition name, does not change the current state
@@ -84,13 +84,13 @@ let getProposedTypeDefName (us:Asn1AcnMergeState) l (id:ReferenceToType) =
     | Some  parentDef   -> ToC (parentDef.typeName + "_" + lastNodeName), parentDef.asn1Name + "-" + asn1LastName
 
 
-let temporaryRegisterTypeDefinition (us:Asn1AcnMergeState) l (id : ReferenceToType)  programUnit proposedTypeDefName : (string*Asn1AcnMergeState)=
-    let typeName, newAllocatedTypeNames = reserveTypeDefinitionName  us.args.TypePrefix us.allocatedTypeNames l programUnit proposedTypeDefName
+let temporaryRegisterTypeDefinition (us:Asn1AcnMergeState) (l:ProgrammingLanguage, ib:ILangBasic) (id : ReferenceToType)  programUnit proposedTypeDefName : (string*Asn1AcnMergeState)=
+    let typeName, newAllocatedTypeNames = reserveTypeDefinitionName  us.args.TypePrefix us.allocatedTypeNames (l,ib) programUnit proposedTypeDefName
     typeName, {us with allocatedTypeNames = newAllocatedTypeNames; temporaryTypesAllocation = us.temporaryTypesAllocation.Add((l,id), typeName)}
     
 
 /// Register the typeId 
-let rec registerPrimitiveTypeDefinition (us:Asn1AcnMergeState) l (id : ReferenceToType) (kind : FE_TypeDefinitionKindInternal) getRtlDefinitionFunc : (FE_PrimitiveTypeDefinition*Asn1AcnMergeState)=
+let rec registerPrimitiveTypeDefinition (us:Asn1AcnMergeState) (l:ProgrammingLanguage, ib:ILangBasic) (id : ReferenceToType) (kind : FE_TypeDefinitionKindInternal) getRtlDefinitionFunc : (FE_PrimitiveTypeDefinition*Asn1AcnMergeState)=
     let programUnit = ToC id.ModName
     match us.allocatedFE_TypeDefinition |> Map.tryFind(l,id) with
     | Some (FE_PrimitiveTypeDefinition v)    -> 
@@ -100,7 +100,7 @@ let rec registerPrimitiveTypeDefinition (us:Asn1AcnMergeState) l (id : Reference
             | PrimitiveNewSubTypeDefinition _  -> v, us
             | _ ->
                 // fix early main type allocation
-                let subType, ns1 = registerPrimitiveTypeDefinition us l subId FEI_NewTypeDefinition getRtlDefinitionFunc
+                let subType, ns1 = registerPrimitiveTypeDefinition us (l,ib) subId FEI_NewTypeDefinition getRtlDefinitionFunc
                 let newMap = ns1.allocatedFE_TypeDefinition.Remove (l,id)
 
                 let itm = {v with kind = (PrimitiveNewSubTypeDefinition subType)}
@@ -118,18 +118,18 @@ let rec registerPrimitiveTypeDefinition (us:Asn1AcnMergeState) l (id : Reference
                     {FE_PrimitiveTypeDefinition.programUnit = programUnit; typeName = typeName; kind=PrimitiveReference2RTL; asn1Name = asn1Name; asn1Module =  None} , us
             | FEI_NewTypeDefinition      ->
                 let proposedTypeDefName, asn1Name = getProposedTypeDefName us l id
-                let typeName, newAllocatedTypeNames = reserveMasterTypeDefinitionName us id l programUnit proposedTypeDefName
+                let typeName, newAllocatedTypeNames = reserveMasterTypeDefinitionName us id (l,ib) programUnit proposedTypeDefName
                 let itm = {FE_PrimitiveTypeDefinition.programUnit = programUnit; typeName = typeName; kind=PrimitiveNewTypeDefinition; asn1Name = asn1Name; asn1Module =  Some id.ModName}
                 itm, {us with allocatedTypeNames = newAllocatedTypeNames; allocatedFE_TypeDefinition = us.allocatedFE_TypeDefinition.Add((l,id), (FE_PrimitiveTypeDefinition itm))}
             | FEI_NewSubTypeDefinition subId ->
-                let subType, ns1 = registerPrimitiveTypeDefinition us l subId FEI_NewTypeDefinition getRtlDefinitionFunc
+                let subType, ns1 = registerPrimitiveTypeDefinition us (l,ib) subId FEI_NewTypeDefinition getRtlDefinitionFunc
                 let proposedTypeDefName, asn1Name = getProposedTypeDefName ns1 l id
-                let typeName, newAllocatedTypeNames = reserveMasterTypeDefinitionName us id l programUnit proposedTypeDefName
+                let typeName, newAllocatedTypeNames = reserveMasterTypeDefinitionName us id (l,ib) programUnit proposedTypeDefName
                 let itm = {FE_PrimitiveTypeDefinition.programUnit = programUnit; typeName = typeName; kind=(PrimitiveNewSubTypeDefinition subType); asn1Name = asn1Name; asn1Module =  Some id.ModName }
                 itm, {ns1 with allocatedTypeNames = newAllocatedTypeNames; allocatedFE_TypeDefinition = ns1.allocatedFE_TypeDefinition.Add((l,id), (FE_PrimitiveTypeDefinition itm))}
             | FEI_Reference2OtherType refId  -> 
                 // initially we register the base type as FE_NewTypeDefinition. It may a be FE_NewSubTypeDefinition though. This will be corrected when
-                let actDef, ns = registerPrimitiveTypeDefinition us l refId FEI_NewTypeDefinition getRtlDefinitionFunc
+                let actDef, ns = registerPrimitiveTypeDefinition us (l,ib) refId FEI_NewTypeDefinition getRtlDefinitionFunc
                 let itm = {actDef with kind = PrimitiveReference2OtherType}
                 itm, ns
                 //itm, {ns with allocatedFE_TypeDefinition = us.allocatedFE_TypeDefinition.Add((l,id), (FE_PrimitiveTypeDefinition itm))}
@@ -138,7 +138,7 @@ let rec registerPrimitiveTypeDefinition (us:Asn1AcnMergeState) l (id : Reference
 
 
 (************ STRING ***********************************)
-let rec registerStringTypeDefinition (us:Asn1AcnMergeState) l (id : ReferenceToType) (kind : FE_TypeDefinitionKindInternal) : (FE_StringTypeDefinition*Asn1AcnMergeState)=
+let rec registerStringTypeDefinition (us:Asn1AcnMergeState) (l:ProgrammingLanguage, ib:ILangBasic) (id : ReferenceToType) (kind : FE_TypeDefinitionKindInternal) : (FE_StringTypeDefinition*Asn1AcnMergeState)=
     let programUnit = ToC id.ModName
     match us.allocatedFE_TypeDefinition |> Map.tryFind(l,id) with
     | Some (FE_StringTypeDefinition v)    -> 
@@ -148,7 +148,7 @@ let rec registerStringTypeDefinition (us:Asn1AcnMergeState) l (id : ReferenceToT
             | NonPrimitiveNewSubTypeDefinition _  -> v, us
             | _ ->
                 // fix early main type allocation
-                let subType, ns1 = registerStringTypeDefinition us l subId FEI_NewTypeDefinition 
+                let subType, ns1 = registerStringTypeDefinition us (l,ib) subId FEI_NewTypeDefinition 
 
                 let newMap = ns1.allocatedFE_TypeDefinition.Remove (l,id)
                 let itm = {v with kind = (NonPrimitiveNewSubTypeDefinition subType)}
@@ -161,36 +161,36 @@ let rec registerStringTypeDefinition (us:Asn1AcnMergeState) l (id : ReferenceToT
             | FEI_Reference2RTL          -> raise(BugErrorException "String types are not defined in RTL")
             | FEI_NewTypeDefinition      ->
                 let proposedTypeDefName, asn1Name = getProposedTypeDefName us l id
-                let typeName, newAllocatedTypeNames = reserveMasterTypeDefinitionName us id l programUnit proposedTypeDefName
-                let encoding_range, newAllocatedTypeNames = reserveTypeDefinitionName  us.args.TypePrefix newAllocatedTypeNames l programUnit (proposedTypeDefName + "_alpha_index")
-                let index, newAllocatedTypeNames = reserveTypeDefinitionName  us.args.TypePrefix newAllocatedTypeNames l programUnit (proposedTypeDefName + "_index")
-                let alpha, newAllocatedTypeNames = reserveTypeDefinitionName  us.args.TypePrefix newAllocatedTypeNames l programUnit (proposedTypeDefName + "_alpha")
-                let alpha_set, newAllocatedTypeNames = reserveTypeDefinitionName  us.args.TypePrefix newAllocatedTypeNames l programUnit (proposedTypeDefName + "_alpha_set")
-                let alpha_index, newAllocatedTypeNames = reserveTypeDefinitionName  us.args.TypePrefix newAllocatedTypeNames l programUnit (proposedTypeDefName + "_alpha_index")
+                let typeName, newAllocatedTypeNames = reserveMasterTypeDefinitionName us id (l,ib) programUnit proposedTypeDefName
+                let encoding_range, newAllocatedTypeNames = reserveTypeDefinitionName  us.args.TypePrefix newAllocatedTypeNames (l,ib) programUnit (proposedTypeDefName + "_alpha_index")
+                let index, newAllocatedTypeNames = reserveTypeDefinitionName  us.args.TypePrefix newAllocatedTypeNames (l,ib) programUnit (proposedTypeDefName + "_index")
+                let alpha, newAllocatedTypeNames = reserveTypeDefinitionName  us.args.TypePrefix newAllocatedTypeNames (l,ib) programUnit (proposedTypeDefName + "_alpha")
+                let alpha_set, newAllocatedTypeNames = reserveTypeDefinitionName  us.args.TypePrefix newAllocatedTypeNames (l,ib) programUnit (proposedTypeDefName + "_alpha_set")
+                let alpha_index, newAllocatedTypeNames = reserveTypeDefinitionName  us.args.TypePrefix newAllocatedTypeNames (l,ib) programUnit (proposedTypeDefName + "_alpha_index")
                 let itm = {FE_StringTypeDefinition.programUnit = programUnit; typeName = typeName; asn1Name = asn1Name; asn1Module =  Some id.ModName; kind=NonPrimitiveNewTypeDefinition; encoding_range=encoding_range; index=index; alpha_set=alpha_set; alpha=alpha; alpha_index=alpha_index}
                 itm, {us with allocatedTypeNames = newAllocatedTypeNames; allocatedFE_TypeDefinition = us.allocatedFE_TypeDefinition.Add((l,id), (FE_StringTypeDefinition itm))}
             | FEI_NewSubTypeDefinition subId ->
-                let subType, ns1 = registerStringTypeDefinition us l subId FEI_NewTypeDefinition 
+                let subType, ns1 = registerStringTypeDefinition us (l,ib) subId FEI_NewTypeDefinition 
                 let proposedTypeDefName, asn1Name = getProposedTypeDefName ns1 l id
-                let typeName, newAllocatedTypeNames = reserveMasterTypeDefinitionName ns1 id l programUnit proposedTypeDefName
-                let encoding_range, newAllocatedTypeNames = reserveTypeDefinitionName  us.args.TypePrefix newAllocatedTypeNames l programUnit (proposedTypeDefName + "_alpha_index")
-                let index, newAllocatedTypeNames = reserveTypeDefinitionName  us.args.TypePrefix newAllocatedTypeNames l programUnit (proposedTypeDefName + "_index")
-                let alpha, newAllocatedTypeNames = reserveTypeDefinitionName  us.args.TypePrefix newAllocatedTypeNames l programUnit (proposedTypeDefName + "_alpha")
-                let alpha_set, newAllocatedTypeNames = reserveTypeDefinitionName  us.args.TypePrefix newAllocatedTypeNames l programUnit (proposedTypeDefName + "_alpha_set")
-                let alpha_index, newAllocatedTypeNames = reserveTypeDefinitionName  us.args.TypePrefix newAllocatedTypeNames l programUnit (proposedTypeDefName + "_alpha_index")
+                let typeName, newAllocatedTypeNames = reserveMasterTypeDefinitionName ns1 id (l,ib) programUnit proposedTypeDefName
+                let encoding_range, newAllocatedTypeNames = reserveTypeDefinitionName  us.args.TypePrefix newAllocatedTypeNames (l,ib) programUnit (proposedTypeDefName + "_alpha_index")
+                let index, newAllocatedTypeNames = reserveTypeDefinitionName  us.args.TypePrefix newAllocatedTypeNames (l,ib) programUnit (proposedTypeDefName + "_index")
+                let alpha, newAllocatedTypeNames = reserveTypeDefinitionName  us.args.TypePrefix newAllocatedTypeNames (l,ib) programUnit (proposedTypeDefName + "_alpha")
+                let alpha_set, newAllocatedTypeNames = reserveTypeDefinitionName  us.args.TypePrefix newAllocatedTypeNames (l,ib) programUnit (proposedTypeDefName + "_alpha_set")
+                let alpha_index, newAllocatedTypeNames = reserveTypeDefinitionName  us.args.TypePrefix newAllocatedTypeNames (l,ib) programUnit (proposedTypeDefName + "_alpha_index")
                 let itm = {FE_StringTypeDefinition.programUnit = programUnit; typeName = typeName; asn1Name = asn1Name; asn1Module =  Some id.ModName; kind=(NonPrimitiveNewSubTypeDefinition subType); encoding_range=encoding_range; index=index; alpha_set=alpha_set; alpha=alpha; alpha_index=alpha_index}
                 let ns2 = {ns1 with allocatedTypeNames = newAllocatedTypeNames; allocatedFE_TypeDefinition = ns1.allocatedFE_TypeDefinition.Add((l,id), (FE_StringTypeDefinition itm))}
                 itm, ns2
             | FEI_Reference2OtherType refId  -> 
                 // initially we register the base type as FE_NewTypeDefinition. It may a be FE_NewSubTypeDefinition though. This will be corrected when
-                let actDef, ns = registerStringTypeDefinition us l refId FEI_NewTypeDefinition 
+                let actDef, ns = registerStringTypeDefinition us (l,ib) refId FEI_NewTypeDefinition 
                 let itm = {actDef with kind = NonPrimitiveReference2OtherType}
                 itm, ns
         ret, ns
 
 
 (* Sizeable (OCTET STRING, BIT STRING, SEQUENCE OF)*)
-let rec registerSizeableTypeDefinition (us:Asn1AcnMergeState) l (id : ReferenceToType) (kind : FE_TypeDefinitionKindInternal) : (FE_SizeableTypeDefinition*Asn1AcnMergeState)=
+let rec registerSizeableTypeDefinition (us:Asn1AcnMergeState) (l:ProgrammingLanguage, ib:ILangBasic) (id : ReferenceToType) (kind : FE_TypeDefinitionKindInternal) : (FE_SizeableTypeDefinition*Asn1AcnMergeState)=
     let programUnit = ToC id.ModName
     match us.allocatedFE_TypeDefinition |> Map.tryFind(l,id) with
     | Some (FE_SizeableTypeDefinition v)    -> 
@@ -200,7 +200,7 @@ let rec registerSizeableTypeDefinition (us:Asn1AcnMergeState) l (id : ReferenceT
             | NonPrimitiveNewSubTypeDefinition _  -> v, us
             | _ ->
                 // fix early main type allocation
-                let subType, ns1 = registerSizeableTypeDefinition us l subId FEI_NewTypeDefinition 
+                let subType, ns1 = registerSizeableTypeDefinition us (l,ib) subId FEI_NewTypeDefinition 
                 let newMap = ns1.allocatedFE_TypeDefinition.Remove (l,id)
                 let itm = {v with kind = (NonPrimitiveNewSubTypeDefinition subType)}
                 itm, {ns1 with allocatedFE_TypeDefinition = newMap.Add((l,id),(FE_SizeableTypeDefinition itm))}
@@ -212,32 +212,32 @@ let rec registerSizeableTypeDefinition (us:Asn1AcnMergeState) l (id : ReferenceT
             | FEI_Reference2RTL          -> raise(BugErrorException "String types are not defined in RTL")
             | FEI_NewTypeDefinition      ->
                 let proposedTypeDefName, asn1Name = getProposedTypeDefName us l id
-                let typeName, newAllocatedTypeNames = reserveMasterTypeDefinitionName us id l programUnit proposedTypeDefName
-                let index, newAllocatedTypeNames = reserveTypeDefinitionName  us.args.TypePrefix newAllocatedTypeNames l programUnit (proposedTypeDefName + "_index")
-                let array, newAllocatedTypeNames = reserveTypeDefinitionName  us.args.TypePrefix newAllocatedTypeNames l programUnit (proposedTypeDefName + "_array")
-                let length_index, newAllocatedTypeNames = reserveTypeDefinitionName  us.args.TypePrefix newAllocatedTypeNames l programUnit (proposedTypeDefName + "_length_index")
+                let typeName, newAllocatedTypeNames = reserveMasterTypeDefinitionName us id (l,ib) programUnit proposedTypeDefName
+                let index, newAllocatedTypeNames = reserveTypeDefinitionName  us.args.TypePrefix newAllocatedTypeNames (l,ib) programUnit (proposedTypeDefName + "_index")
+                let array, newAllocatedTypeNames = reserveTypeDefinitionName  us.args.TypePrefix newAllocatedTypeNames (l,ib) programUnit (proposedTypeDefName + "_array")
+                let length_index, newAllocatedTypeNames = reserveTypeDefinitionName  us.args.TypePrefix newAllocatedTypeNames (l,ib) programUnit (proposedTypeDefName + "_length_index")
                 let itm = {FE_SizeableTypeDefinition.programUnit = programUnit; typeName = typeName; asn1Name = asn1Name; asn1Module =  Some id.ModName; kind=NonPrimitiveNewTypeDefinition; index=index; array=array; length_index=length_index}
                 itm, {us with allocatedTypeNames = newAllocatedTypeNames; allocatedFE_TypeDefinition = us.allocatedFE_TypeDefinition.Add((l,id), (FE_SizeableTypeDefinition itm))}
             | FEI_NewSubTypeDefinition subId ->
-                let subType, ns1 = registerSizeableTypeDefinition us l subId FEI_NewTypeDefinition 
+                let subType, ns1 = registerSizeableTypeDefinition us (l,ib) subId FEI_NewTypeDefinition 
                 let proposedTypeDefName, asn1Name = getProposedTypeDefName ns1 l id
-                let typeName, newAllocatedTypeNames = reserveMasterTypeDefinitionName ns1 id l programUnit proposedTypeDefName
-                let index, newAllocatedTypeNames = reserveTypeDefinitionName  us.args.TypePrefix newAllocatedTypeNames l programUnit (proposedTypeDefName + "_index")
-                let array, newAllocatedTypeNames = reserveTypeDefinitionName  us.args.TypePrefix newAllocatedTypeNames l programUnit (proposedTypeDefName + "_array")
-                let length_index, newAllocatedTypeNames = reserveTypeDefinitionName  us.args.TypePrefix newAllocatedTypeNames l programUnit (proposedTypeDefName + "_length_index")
+                let typeName, newAllocatedTypeNames = reserveMasterTypeDefinitionName ns1 id (l,ib) programUnit proposedTypeDefName
+                let index, newAllocatedTypeNames = reserveTypeDefinitionName  us.args.TypePrefix newAllocatedTypeNames (l,ib) programUnit (proposedTypeDefName + "_index")
+                let array, newAllocatedTypeNames = reserveTypeDefinitionName  us.args.TypePrefix newAllocatedTypeNames (l,ib) programUnit (proposedTypeDefName + "_array")
+                let length_index, newAllocatedTypeNames = reserveTypeDefinitionName  us.args.TypePrefix newAllocatedTypeNames (l,ib) programUnit (proposedTypeDefName + "_length_index")
                 let itm = {FE_SizeableTypeDefinition.programUnit = programUnit; typeName = typeName; asn1Name = asn1Name; asn1Module =  Some id.ModName; kind=(NonPrimitiveNewSubTypeDefinition subType); index=index; array=array; length_index=length_index}
                 let ns2 = {ns1 with allocatedTypeNames = newAllocatedTypeNames; allocatedFE_TypeDefinition = ns1.allocatedFE_TypeDefinition.Add((l,id), (FE_SizeableTypeDefinition itm))}
                 itm, ns2
             | FEI_Reference2OtherType refId  -> 
                 // initially we register the base type as FE_NewTypeDefinition. It may a be FE_NewSubTypeDefinition though. This will be corrected when
-                let actDef, ns = registerSizeableTypeDefinition us l refId FEI_NewTypeDefinition 
+                let actDef, ns = registerSizeableTypeDefinition us (l,ib) refId FEI_NewTypeDefinition 
                 let itm = {actDef with kind = NonPrimitiveReference2OtherType}
                 itm, ns
         ret, ns
 
 
 
-let rec registerSequenceTypeDefinition (us:Asn1AcnMergeState) l (id : ReferenceToType) (kind : FE_TypeDefinitionKindInternal) : (FE_SequenceTypeDefinition*Asn1AcnMergeState)=
+let rec registerSequenceTypeDefinition (us:Asn1AcnMergeState) (l:ProgrammingLanguage, ib:ILangBasic) (id : ReferenceToType) (kind : FE_TypeDefinitionKindInternal) : (FE_SequenceTypeDefinition*Asn1AcnMergeState)=
     let programUnit = ToC id.ModName
     match us.allocatedFE_TypeDefinition |> Map.tryFind(l,id) with
     | Some (FE_SequenceTypeDefinition v)    -> 
@@ -247,7 +247,7 @@ let rec registerSequenceTypeDefinition (us:Asn1AcnMergeState) l (id : ReferenceT
             | NonPrimitiveNewSubTypeDefinition _  -> v, us
             | _ ->
                 // fix early main type allocation
-                let subType, ns1 = registerSequenceTypeDefinition us l subId FEI_NewTypeDefinition 
+                let subType, ns1 = registerSequenceTypeDefinition us (l,ib) subId FEI_NewTypeDefinition 
                 let newMap = ns1.allocatedFE_TypeDefinition.Remove (l,id)
                 let itm = {v with kind = (NonPrimitiveNewSubTypeDefinition subType)}
                 itm, {ns1 with allocatedFE_TypeDefinition = newMap.Add((l,id),(FE_SequenceTypeDefinition itm))}
@@ -259,31 +259,31 @@ let rec registerSequenceTypeDefinition (us:Asn1AcnMergeState) l (id : ReferenceT
             | FEI_Reference2RTL          -> raise(BugErrorException "String types are not defined in RTL")
             | FEI_NewTypeDefinition      ->
                 let proposedTypeDefName, asn1Name = getProposedTypeDefName us l id
-                let typeName, newAllocatedTypeNames = reserveMasterTypeDefinitionName us id l programUnit proposedTypeDefName
-                let exist, newAllocatedTypeNames = reserveTypeDefinitionName  us.args.TypePrefix newAllocatedTypeNames l programUnit (proposedTypeDefName + "_exist")
+                let typeName, newAllocatedTypeNames = reserveMasterTypeDefinitionName us id (l,ib) programUnit proposedTypeDefName
+                let exist, newAllocatedTypeNames = reserveTypeDefinitionName  us.args.TypePrefix newAllocatedTypeNames (l,ib) programUnit (proposedTypeDefName + "_exist")
                 let extention_function_potisions, newAllocatedTypeNames =
-                    reserveTypeDefinitionName  us.args.TypePrefix newAllocatedTypeNames l programUnit (proposedTypeDefName + "_extension_function_positions")
+                    reserveTypeDefinitionName  us.args.TypePrefix newAllocatedTypeNames (l,ib) programUnit (proposedTypeDefName + "_extension_function_positions")
                 let itm = {FE_SequenceTypeDefinition.programUnit = programUnit; typeName = typeName; asn1Name = asn1Name; asn1Module =  Some id.ModName; kind=NonPrimitiveNewTypeDefinition; exist=exist; extention_function_potisions=extention_function_potisions}
                 itm, {us with allocatedTypeNames = newAllocatedTypeNames; allocatedFE_TypeDefinition = us.allocatedFE_TypeDefinition.Add((l,id), (FE_SequenceTypeDefinition itm))}
             | FEI_NewSubTypeDefinition subId ->
-                let subType, ns1 = registerSequenceTypeDefinition us l subId FEI_NewTypeDefinition 
+                let subType, ns1 = registerSequenceTypeDefinition us (l,ib) subId FEI_NewTypeDefinition 
                 let proposedTypeDefName, asn1Name = getProposedTypeDefName ns1 l id
-                let typeName, newAllocatedTypeNames = reserveMasterTypeDefinitionName ns1 id l programUnit proposedTypeDefName
-                let exist, newAllocatedTypeNames = reserveTypeDefinitionName  us.args.TypePrefix newAllocatedTypeNames l programUnit (proposedTypeDefName + "_exist")
+                let typeName, newAllocatedTypeNames = reserveMasterTypeDefinitionName ns1 id (l,ib) programUnit proposedTypeDefName
+                let exist, newAllocatedTypeNames = reserveTypeDefinitionName  us.args.TypePrefix newAllocatedTypeNames (l,ib) programUnit (proposedTypeDefName + "_exist")
                 let extention_function_potisions, newAllocatedTypeNames =
-                    reserveTypeDefinitionName  us.args.TypePrefix newAllocatedTypeNames l programUnit (proposedTypeDefName + "_extension_function_positions")
+                    reserveTypeDefinitionName  us.args.TypePrefix newAllocatedTypeNames (l,ib) programUnit (proposedTypeDefName + "_extension_function_positions")
                 let itm = {FE_SequenceTypeDefinition.programUnit = programUnit; typeName = typeName; asn1Name = asn1Name; asn1Module =  Some id.ModName; kind=(NonPrimitiveNewSubTypeDefinition subType); exist=exist; extention_function_potisions=extention_function_potisions}
                 let ns2 = {ns1 with allocatedTypeNames = newAllocatedTypeNames; allocatedFE_TypeDefinition = ns1.allocatedFE_TypeDefinition.Add((l,id), (FE_SequenceTypeDefinition itm))}
                 itm, ns2
             | FEI_Reference2OtherType refId  -> 
                 // initially we register the base type as FE_NewTypeDefinition. It may a be FE_NewSubTypeDefinition though. This will be corrected when
-                let actDef, ns = registerSequenceTypeDefinition us l refId FEI_NewTypeDefinition 
+                let actDef, ns = registerSequenceTypeDefinition us (l,ib) refId FEI_NewTypeDefinition 
                 let itm = {actDef with kind = NonPrimitiveReference2OtherType}
                 itm, ns
         ret, ns
 
 
-let rec registerChoiceTypeDefinition (us:Asn1AcnMergeState) l (id : ReferenceToType) (kind : FE_TypeDefinitionKindInternal) : (FE_ChoiceTypeDefinition*Asn1AcnMergeState)=
+let rec registerChoiceTypeDefinition (us:Asn1AcnMergeState) (l:ProgrammingLanguage, ib:ILangBasic) (id : ReferenceToType) (kind : FE_TypeDefinitionKindInternal) : (FE_ChoiceTypeDefinition*Asn1AcnMergeState)=
     let programUnit = ToC id.ModName
     match us.allocatedFE_TypeDefinition |> Map.tryFind(l,id) with
     | Some (FE_ChoiceTypeDefinition v)    -> 
@@ -293,7 +293,7 @@ let rec registerChoiceTypeDefinition (us:Asn1AcnMergeState) l (id : ReferenceToT
             | NonPrimitiveNewSubTypeDefinition _  -> v, us
             | _ ->
                 // fix early main type allocation
-                let subType, ns1 = registerChoiceTypeDefinition us l subId FEI_NewTypeDefinition 
+                let subType, ns1 = registerChoiceTypeDefinition us (l,ib) subId FEI_NewTypeDefinition 
                 let newMap = ns1.allocatedFE_TypeDefinition.Remove (l,id)
                 let itm = {v with kind = (NonPrimitiveNewSubTypeDefinition subType)}
                 itm, {ns1 with allocatedFE_TypeDefinition = newMap.Add((l,id),(FE_ChoiceTypeDefinition itm))}
@@ -305,31 +305,31 @@ let rec registerChoiceTypeDefinition (us:Asn1AcnMergeState) l (id : ReferenceToT
             | FEI_Reference2RTL          -> raise(BugErrorException "String types are not defined in RTL")
             | FEI_NewTypeDefinition      ->
                 let proposedTypeDefName, asn1Name = getProposedTypeDefName us l id
-                let typeName, newAllocatedTypeNames = reserveMasterTypeDefinitionName us id l programUnit proposedTypeDefName
-                let index_range, newAllocatedTypeNames = reserveTypeDefinitionName  us.args.TypePrefix newAllocatedTypeNames l programUnit (proposedTypeDefName + "_index_range")
-                let selection, newAllocatedTypeNames = reserveTypeDefinitionName  us.args.TypePrefix newAllocatedTypeNames l programUnit (proposedTypeDefName + "_selection")
-                let union_name, newAllocatedTypeNames = reserveTypeDefinitionName  us.args.TypePrefix newAllocatedTypeNames l programUnit (proposedTypeDefName + "_unchecked_union")
+                let typeName, newAllocatedTypeNames = reserveMasterTypeDefinitionName us id (l,ib) programUnit proposedTypeDefName
+                let index_range, newAllocatedTypeNames = reserveTypeDefinitionName  us.args.TypePrefix newAllocatedTypeNames (l,ib) programUnit (proposedTypeDefName + "_index_range")
+                let selection, newAllocatedTypeNames = reserveTypeDefinitionName  us.args.TypePrefix newAllocatedTypeNames (l,ib) programUnit (proposedTypeDefName + "_selection")
+                let union_name, newAllocatedTypeNames = reserveTypeDefinitionName  us.args.TypePrefix newAllocatedTypeNames (l,ib) programUnit (proposedTypeDefName + "_unchecked_union")
                 let itm = {FE_ChoiceTypeDefinition.programUnit = programUnit; typeName = typeName; asn1Name = asn1Name; asn1Module =  Some id.ModName; kind=NonPrimitiveNewTypeDefinition; index_range=index_range; selection=selection; union_name=union_name}
                 itm, {us with allocatedTypeNames = newAllocatedTypeNames; allocatedFE_TypeDefinition = us.allocatedFE_TypeDefinition.Add((l,id), (FE_ChoiceTypeDefinition itm))}
             | FEI_NewSubTypeDefinition subId ->
-                let subType, ns1 = registerChoiceTypeDefinition us l subId FEI_NewTypeDefinition 
+                let subType, ns1 = registerChoiceTypeDefinition us (l,ib) subId FEI_NewTypeDefinition 
                 let proposedTypeDefName, asn1Name = getProposedTypeDefName ns1 l id
-                let typeName, newAllocatedTypeNames = reserveMasterTypeDefinitionName ns1 id l programUnit proposedTypeDefName
-                let index_range, newAllocatedTypeNames = reserveTypeDefinitionName  us.args.TypePrefix newAllocatedTypeNames l programUnit (proposedTypeDefName + "_index_range")
-                let selection, newAllocatedTypeNames = reserveTypeDefinitionName  us.args.TypePrefix newAllocatedTypeNames l programUnit (proposedTypeDefName + "_selection")
-                let union_name, newAllocatedTypeNames = reserveTypeDefinitionName  us.args.TypePrefix newAllocatedTypeNames l programUnit (proposedTypeDefName + "_unchecked_union")
+                let typeName, newAllocatedTypeNames = reserveMasterTypeDefinitionName ns1 id (l,ib) programUnit proposedTypeDefName
+                let index_range, newAllocatedTypeNames = reserveTypeDefinitionName  us.args.TypePrefix newAllocatedTypeNames (l,ib) programUnit (proposedTypeDefName + "_index_range")
+                let selection, newAllocatedTypeNames = reserveTypeDefinitionName  us.args.TypePrefix newAllocatedTypeNames (l,ib) programUnit (proposedTypeDefName + "_selection")
+                let union_name, newAllocatedTypeNames = reserveTypeDefinitionName  us.args.TypePrefix newAllocatedTypeNames (l,ib) programUnit (proposedTypeDefName + "_unchecked_union")
                 let itm = {FE_ChoiceTypeDefinition.programUnit = programUnit; typeName = typeName; asn1Name = asn1Name; asn1Module =  Some id.ModName; kind=(NonPrimitiveNewSubTypeDefinition subType); index_range=index_range; selection=selection; union_name=union_name}
                 let ns2 = {ns1 with allocatedTypeNames = newAllocatedTypeNames; allocatedFE_TypeDefinition = ns1.allocatedFE_TypeDefinition.Add((l,id), (FE_ChoiceTypeDefinition itm))}
                 itm, ns2
             | FEI_Reference2OtherType refId  -> 
                 // initially we register the base type as FE_NewTypeDefinition. It may a be FE_NewSubTypeDefinition though. This will be corrected when
-                let actDef, ns = registerChoiceTypeDefinition us l refId FEI_NewTypeDefinition 
+                let actDef, ns = registerChoiceTypeDefinition us (l,ib) refId FEI_NewTypeDefinition 
                 let itm = {actDef with kind = NonPrimitiveReference2OtherType}
                 itm, ns
         ret, ns
 
 
-let rec registerEnumeratedTypeDefinition (us:Asn1AcnMergeState) (l:ProgrammingLanguage) (id : ReferenceToType) (kind : FE_TypeDefinitionKindInternal) : (FE_EnumeratedTypeDefinition*Asn1AcnMergeState)=
+let rec registerEnumeratedTypeDefinition (us:Asn1AcnMergeState) (l:ProgrammingLanguage, ib:ILangBasic) (id : ReferenceToType) (kind : FE_TypeDefinitionKindInternal) : (FE_EnumeratedTypeDefinition*Asn1AcnMergeState)=
     let programUnit = ToC id.ModName
     match us.allocatedFE_TypeDefinition |> Map.tryFind(l,id) with
     | Some (FE_EnumeratedTypeDefinition v)    -> 
@@ -339,7 +339,7 @@ let rec registerEnumeratedTypeDefinition (us:Asn1AcnMergeState) (l:ProgrammingLa
             | NonPrimitiveNewSubTypeDefinition _  -> v, us
             | _ ->
                 // fix early main type allocation
-                let subType, ns1 = registerEnumeratedTypeDefinition us l subId FEI_NewTypeDefinition 
+                let subType, ns1 = registerEnumeratedTypeDefinition us (l,ib) subId FEI_NewTypeDefinition 
                 let newMap = ns1.allocatedFE_TypeDefinition.Remove (l,id)
                 let itm = {v with kind = (NonPrimitiveNewSubTypeDefinition subType)}
                 itm, {ns1 with allocatedFE_TypeDefinition = newMap.Add((l,id),(FE_EnumeratedTypeDefinition itm))}
@@ -351,21 +351,21 @@ let rec registerEnumeratedTypeDefinition (us:Asn1AcnMergeState) (l:ProgrammingLa
             | FEI_Reference2RTL          -> raise(BugErrorException "String types are not defined in RTL")
             | FEI_NewTypeDefinition      ->
                 let proposedTypeDefName, asn1Name = getProposedTypeDefName us l id
-                let typeName, newAllocatedTypeNames = reserveMasterTypeDefinitionName us id l programUnit proposedTypeDefName
-                let index_range, newAllocatedTypeNames = reserveTypeDefinitionName  us.args.TypePrefix newAllocatedTypeNames l programUnit (proposedTypeDefName + "_index_range")
+                let typeName, newAllocatedTypeNames = reserveMasterTypeDefinitionName us id (l,ib) programUnit proposedTypeDefName
+                let index_range, newAllocatedTypeNames = reserveTypeDefinitionName  us.args.TypePrefix newAllocatedTypeNames (l,ib) programUnit (proposedTypeDefName + "_index_range")
                 let itm = {FE_EnumeratedTypeDefinition.programUnit = programUnit; typeName = typeName; asn1Name = asn1Name; asn1Module =  Some id.ModName; kind=NonPrimitiveNewTypeDefinition; index_range=index_range}
                 itm, {us with allocatedTypeNames = newAllocatedTypeNames; allocatedFE_TypeDefinition = us.allocatedFE_TypeDefinition.Add((l,id), (FE_EnumeratedTypeDefinition itm))}
             | FEI_NewSubTypeDefinition subId ->
-                let subType, ns1 = registerEnumeratedTypeDefinition us l subId FEI_NewTypeDefinition 
+                let subType, ns1 = registerEnumeratedTypeDefinition us (l,ib) subId FEI_NewTypeDefinition 
                 let proposedTypeDefName, asn1Name = getProposedTypeDefName ns1 l id
-                let typeName, newAllocatedTypeNames = reserveMasterTypeDefinitionName ns1 id l programUnit proposedTypeDefName
-                let index_range, newAllocatedTypeNames = reserveTypeDefinitionName  us.args.TypePrefix newAllocatedTypeNames l programUnit (proposedTypeDefName + "_index_range")
+                let typeName, newAllocatedTypeNames = reserveMasterTypeDefinitionName ns1 id (l,ib) programUnit proposedTypeDefName
+                let index_range, newAllocatedTypeNames = reserveTypeDefinitionName  us.args.TypePrefix newAllocatedTypeNames (l,ib) programUnit (proposedTypeDefName + "_index_range")
                 let itm = {FE_EnumeratedTypeDefinition.programUnit = programUnit; typeName = typeName; asn1Name = asn1Name; asn1Module =  Some id.ModName; kind=(NonPrimitiveNewSubTypeDefinition subType); index_range=index_range}
                 let ns2 = {ns1 with allocatedTypeNames = newAllocatedTypeNames; allocatedFE_TypeDefinition = ns1.allocatedFE_TypeDefinition.Add((l,id), (FE_EnumeratedTypeDefinition itm))}
                 itm, ns2
             | FEI_Reference2OtherType refId  -> 
                 // initially we register the base type as FE_NewTypeDefinition. It may a be FE_NewSubTypeDefinition though. This will be corrected when
-                let actDef, ns = registerEnumeratedTypeDefinition us l refId FEI_NewTypeDefinition 
+                let actDef, ns = registerEnumeratedTypeDefinition us (l,ib) refId FEI_NewTypeDefinition 
                 let itm = {actDef with kind = NonPrimitiveReference2OtherType}
                 itm, ns
         ret, ns
@@ -398,6 +398,7 @@ type GetTypeDifition_arg = {
     inferitInfo : InheritanceInfo option
     typeAssignmentInfo : AssignmentInfo option
     rtlFnc : (ProgrammingLanguage -> (string*string*string)) option
+    blm    : (ProgrammingLanguage*ILangBasic) list
 
     
 }
@@ -452,7 +453,8 @@ let getPrimitiveTypeDifition (arg:GetTypeDifition_arg) (us:Asn1AcnMergeState)=
     let typedefKind = getTypedefKind arg
     let lanDefs, us1 =
         ProgrammingLanguage.AllLanguages |> foldMap (fun us l -> 
-            let itm, ns = registerPrimitiveTypeDefinition us l (ReferenceToType arg.curPath) typedefKind arg.rtlFnc 
+            let ib = arg.blm |> List.find (fun (l1,_) -> l1 = l) |> snd
+            let itm, ns = registerPrimitiveTypeDefinition us (l,ib) (ReferenceToType arg.curPath) typedefKind arg.rtlFnc 
             (l,itm), ns) us
     lanDefs |> Map.ofList, us1
 
@@ -461,7 +463,8 @@ let getStringTypeDifition (arg:GetTypeDifition_arg) (us:Asn1AcnMergeState)=
     let typedefKind = getTypedefKind arg
     let lanDefs, us1 =
         ProgrammingLanguage.AllLanguages |> foldMap (fun us l -> 
-            let itm, ns = registerStringTypeDefinition us l (ReferenceToType arg.curPath) typedefKind 
+            let ib = arg.blm |> List.find (fun (l1,_) -> l1 = l) |> snd
+            let itm, ns = registerStringTypeDefinition us (l,ib) (ReferenceToType arg.curPath) typedefKind 
             (l,itm), ns) us
     lanDefs |> Map.ofList, us1
 
@@ -470,7 +473,8 @@ let getSizeableTypeDifition (arg:GetTypeDifition_arg) (us:Asn1AcnMergeState)=
     let typedefKind = getTypedefKind arg
     let lanDefs, us1 =
         ProgrammingLanguage.AllLanguages |> foldMap (fun us l -> 
-            let itm, ns = registerSizeableTypeDefinition us l (ReferenceToType arg.curPath) typedefKind 
+            let ib = arg.blm |> List.find (fun (l1,_) -> l1 = l) |> snd
+            let itm, ns = registerSizeableTypeDefinition us (l,ib) (ReferenceToType arg.curPath) typedefKind 
             (l,itm), ns) us
     lanDefs |> Map.ofList, us1
 
@@ -480,7 +484,8 @@ let getSequenceTypeDifition (arg:GetTypeDifition_arg) (us:Asn1AcnMergeState)=
     let typedefKind = getTypedefKind arg
     let lanDefs, us1 =
         ProgrammingLanguage.AllLanguages |> foldMap (fun us l -> 
-            let itm, ns = registerSequenceTypeDefinition us l (ReferenceToType arg.curPath) typedefKind 
+            let ib = arg.blm |> List.find (fun (l1,_) -> l1 = l) |> snd
+            let itm, ns = registerSequenceTypeDefinition us (l,ib) (ReferenceToType arg.curPath) typedefKind 
             (l,itm), ns) us
     lanDefs |> Map.ofList, us1
 
@@ -489,7 +494,8 @@ let getChoiceTypeDifition (arg:GetTypeDifition_arg) (us:Asn1AcnMergeState)=
     let typedefKind = getTypedefKind arg
     let lanDefs, us1 =
         ProgrammingLanguage.AllLanguages |> foldMap (fun us l -> 
-            let itm, ns = registerChoiceTypeDefinition us l (ReferenceToType arg.curPath) typedefKind 
+            let ib = arg.blm |> List.find (fun (l1,_) -> l1 = l) |> snd
+            let itm, ns = registerChoiceTypeDefinition us (l,ib) (ReferenceToType arg.curPath) typedefKind 
             (l,itm), ns) us
     lanDefs |> Map.ofList, us1
 
@@ -499,7 +505,8 @@ let getEnumeratedTypeDifition (arg:GetTypeDifition_arg) (us:Asn1AcnMergeState)=
     //let typedefKindEmnItem = getTypedefKind {arg with typeDefPath=arg.enmItemTypeDefPath}
     let lanDefs, us1 =
         ProgrammingLanguage.AllLanguages |> foldMap (fun us l -> 
-            let itm, ns = registerEnumeratedTypeDefinition us l (ReferenceToType arg.curPath) typedefKind 
+            let ib = arg.blm |> List.find (fun (l1,_) -> l1 = l) |> snd
+            let itm, ns = registerEnumeratedTypeDefinition us (l,ib) (ReferenceToType arg.curPath) typedefKind 
             (l,itm), ns) us
     lanDefs |> Map.ofList, us1
 

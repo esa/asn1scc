@@ -14,7 +14,7 @@ open Asn1AcnAstUtilFunctions
 
 
 let private addParameter (cur:AcnInsertedFieldDependencies) (asn1Type:Asn1Type) (p:AcnParameter) (d:AcnDependencyKind) =
-    {cur with acnDependencies = {AcnDependency.asn1Type = asn1Type.id; determinant = (AcnParameterDeterminant p); dependencyKind = d}::cur.acnDependencies }
+    {acnDependencies = {AcnDependency.asn1Type = asn1Type.id; determinant = (AcnParameterDeterminant p); dependencyKind = d}::cur.acnDependencies }
 
 let private addAcnChild (tasPositions:Map<ReferenceToType,int>) (cur:AcnInsertedFieldDependencies) (asn1Type:Asn1Type) (acnChild:AcnChild) (d:AcnDependencyKind) =
     let determinantPos = 
@@ -33,7 +33,7 @@ let private addAcnChild (tasPositions:Map<ReferenceToType,int>) (cur:AcnInserted
     if asn1TypePos < determinantPos then
         let errMsg = sprintf "ACN determinant field '%s' must appear before ASN.1 type '%s'" acnChild.id.AsString asn1Type.id.AsString
         raise(SemanticError(acnChild.Name.Location, errMsg))
-    {cur with acnDependencies = {AcnDependency.asn1Type = asn1Type.id; determinant = (AcnChildDeterminant acnChild); dependencyKind = d}::cur.acnDependencies }
+    {acnDependencies = {AcnDependency.asn1Type = asn1Type.id; determinant = (AcnChildDeterminant acnChild); dependencyKind = d}::cur.acnDependencies }
 
 let private checkRelativePath (tasPositions:Map<ReferenceToType,int>) (curState:AcnInsertedFieldDependencies) (parents: Asn1Type list) (asn1TypeWithDependency:Asn1Type ) (visibleParameters:(ReferenceToType*AcnParameter) list) (RelativePath path : RelativePath) checkParameter checkAcnType =
     match path with

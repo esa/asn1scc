@@ -113,6 +113,7 @@ let defaultCommandLineSettings  =
         generateConstInitGlobals = false
         icdPdus = None
         handleEmptySequences = false
+        blm = []
     }    
 
 type LspWorkSpace = {

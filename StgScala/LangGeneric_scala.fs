@@ -36,6 +36,30 @@ let createBitStringFunction_funcBody_c handleFragmentation (codec:CommonTypes.Co
 let srcDirName = Path.Combine("src", "main", "scala", "asn1src")
 let asn1rtlDirName  = Path.Combine("src", "main", "scala", "asn1scala") 
 
+type LangBasic_scala() =
+    inherit ILangBasic()
+        override this.cmp (s1:string) (s2:string) = s1 = s2
+        override this.keywords = scala_keyworkds
+        override this.OnTypeNameConflictTryAppendModName = true
+        override this.declare_IntegerNoRTL = "", "Int", "INTEGER"
+        override this.declare_PosIntegerNoRTL = "", " asn1SccUint" , "INTEGER"
+        override this.getRealRtlTypeName   = "", "asn1Real", "REAL"
+        override this.getObjectIdentifierRtlTypeName  relativeId = 
+            let asn1Name = if relativeId then "RELATIVE-OID" else "OBJECT IDENTIFIER"
+            "", "Asn1ObjectIdentifier", asn1Name
+        override this.getTimeRtlTypeName  timeClass = 
+            let asn1Name = "TIME"
+            match timeClass with 
+            | Asn1LocalTime                    _ -> "", "Asn1LocalTime", asn1Name
+            | Asn1UtcTime                      _ -> "", "Asn1UtcTime", asn1Name
+            | Asn1LocalTimeWithTimeZone        _ -> "", "Asn1TimeWithTimeZone", asn1Name
+            | Asn1Date                           -> "", "Asn1Date", asn1Name
+            | Asn1Date_LocalTime               _ -> "", "Asn1DateLocalTime", asn1Name
+            | Asn1Date_UtcTime                 _ -> "", "Asn1DateUtcTime", asn1Name
+            | Asn1Date_LocalTimeWithTimeZone   _ -> "", "Asn1DateTimeWithTimeZone", asn1Name
+        override this.getNullRtlTypeName  = "", "NullType", "NULL"
+        override this.getBoolRtlTypeName = "","Boolean","BOOLEAN"
+
 type LangGeneric_scala() =
     inherit ILangGeneric()
         override _.ArrayStartIndex = 0

@@ -21,7 +21,7 @@ type Range2d<'v when 'v : equality> = {
 }
 with 
     member this.intersect (other:Range2d<'v>) =
-        {this with sizeSet = this.sizeSet.intersect other.sizeSet; valueSet = this.valueSet.intersect other.valueSet}
+        {sizeSet = this.sizeSet.intersect other.sizeSet; valueSet = this.valueSet.intersect other.valueSet}
     member this.isEmpty =
         this.valueSet.isEmpty || this.sizeSet = Range_Empty
     member this.isUniverse =
@@ -36,18 +36,18 @@ with
         | true, true    -> One (Range2d<'v>.createEmptySet())
         | false, true   -> 
             match this.sizeSet.complement with
-            | RangeSets.One sizeComplement    -> One ({this with sizeSet = sizeComplement; valueSet = SsUniverse})
+            | RangeSets.One sizeComplement    -> One ({sizeSet = sizeComplement; valueSet = SsUniverse})
             | RangeSets.Two (s1Comp, s2Comp)   ->
-                Two ({this with sizeSet = s1Comp; valueSet = SsUniverse}, {this with sizeSet = s2Comp; valueSet = SsUniverse})
-        | true, false   -> One ({this with sizeSet = (Range_Universe); valueSet = this.valueSet.complement})
+                Two ({sizeSet = s1Comp; valueSet = SsUniverse}, {sizeSet = s2Comp; valueSet = SsUniverse})
+        | true, false   -> One ({sizeSet = (Range_Universe); valueSet = this.valueSet.complement})
         | false, false  -> 
             match this.sizeSet.complement with
-            | RangeSets.One sizeComplement    -> Two ({this with sizeSet = sizeComplement; valueSet = SsUniverse}, {this with sizeSet = (Range_Universe); valueSet = this.valueSet.complement})
+            | RangeSets.One sizeComplement    -> Two ({sizeSet = sizeComplement; valueSet = SsUniverse}, {sizeSet = (Range_Universe); valueSet = this.valueSet.complement})
             | RangeSets.Two (s1Comp, s2Comp)  ->
                 Three (
-                        {this with sizeSet = s1Comp; valueSet = SsUniverse}, 
-                        {this with sizeSet = s2Comp; valueSet = SsUniverse}, 
-                        {this with sizeSet = Range_Universe; valueSet = this.valueSet.complement})
+                        {sizeSet = s1Comp; valueSet = SsUniverse}, 
+                        {sizeSet = s2Comp; valueSet = SsUniverse}, 
+                        {sizeSet = Range_Universe; valueSet = this.valueSet.complement})
 
 
 type SizeableSet<'v when 'v : equality> =

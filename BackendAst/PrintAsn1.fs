@@ -163,17 +163,18 @@ let printInASingleFile (r:AstRoot) outDir newFile (pdu:string option)=
     
     let rec  getTypeDependencies2 (tsMap:Map<TypeAssignmentInfo,TypeAssignment>) (deep:bool) (t:Asn1Type) : (TypeAssignmentInfo list )    =
         match t.Kind with
-        | Integer      _             -> []
-        | Real         _             -> []
-        | IA5String    _             -> []
-        | NumericString _            -> []
-        | OctetString  _             -> []
-        | NullType     _             -> []
+        | Integer                    -> []
+        | Real                       -> []
+        | IA5String                  -> []
+        | NumericString              -> []
+        | OctetString                -> []
+        | NullType                   -> []
         | BitString    _             -> []
-        | Boolean      _             -> []
+        | Boolean                    -> []
         | Enumerated   _             -> []
         | ObjectIdentifier           -> []
         | RelativeObjectIdentifier   -> []
+        | TimeType      _            -> []  
         | SequenceOf    sqof         -> (getTypeDependencies2 tsMap deep sqof) 
         | Sequence      children     -> (children |> List.collect (fun ch -> getTypeDependencies2 tsMap deep ch.Type))
         | Choice        children     -> (children |> List.collect (fun ch -> getTypeDependencies2 tsMap deep ch.Type))

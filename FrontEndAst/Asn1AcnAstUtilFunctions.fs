@@ -321,7 +321,7 @@ let getIntEncodingClassByUperRange (args:CommandLineSettings) (uperRange:BigInte
     | NegInf    _                  -> foo int64 int32 fat_int
     | PosInf   a when a >= 0I      -> foo uint64 uint32 fat_uint
     | PosInf  _                    -> foo int64 int32 fat_int
-    | Full    _                    -> foo int64 int32 fat_int
+    | Full                         -> foo int64 int32 fat_int
 
 
 type Integer with

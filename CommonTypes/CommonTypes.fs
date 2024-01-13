@@ -247,11 +247,31 @@ let getDateTimeFromAsn1TimeStringValue timeClass (str:StringLoc) =
 
 *)
 
+[<AbstractClass>]
+type ILangBasic () =
+    abstract member cmp : string -> string -> bool
+    abstract member keywords : string list
+    abstract member OnTypeNameConflictTryAppendModName : bool
+    abstract member declare_IntegerNoRTL : string*string*string
+    abstract member declare_PosIntegerNoRTL : string*string*string
+    abstract member getRealRtlTypeName : string*string*string
+    abstract member getObjectIdentifierRtlTypeName : bool -> string*string*string
+    abstract member getTimeRtlTypeName : TimeTypeClass -> string*string*string
+    abstract member getNullRtlTypeName : string*string*string
+    abstract member getBoolRtlTypeName : string*string*string
+
+
+
+
+
+
 type ProgrammingLanguage =
     |C
     |Scala
     |Ada
     with 
+        static member AllLanguages = [C; Scala; Ada]
+(*
         member l.cmp (s1:string) (s2:string) =
             match l with
             |C          -> s1 = s2
@@ -262,7 +282,6 @@ type ProgrammingLanguage =
             |C          -> c_keyworkds
             |Scala      -> scala_keyworkds
             |Ada        -> ada_keyworkds
-        static member AllLanguages = [C; Scala; Ada]
         
         member l.OnTypeNameConflictTryAppendModName =
             match l with
@@ -325,7 +344,7 @@ type ProgrammingLanguage =
             | C -> "","flag","BOOLEAN" 
             | Scala -> "","Boolean","BOOLEAN" // TODO: Scala  
             | Ada  -> "adaasn1rtl", "Asn1Boolean", "BOOLEAN"
-
+*)
 
 type Codec =
     |Encode
@@ -918,7 +937,7 @@ type CommandLineSettings = {
     objectIdentifierMaxLength : BigInteger
     streamingModeSupport      : bool
     handleEmptySequences      : bool
-
+    blm         : (ProgrammingLanguage*ILangBasic) list
 }
 with 
   member this.SIntMax =
@@ -950,6 +969,8 @@ with
     this.encodings |> Seq.contains (ACN)
   member this.hasUper =
     this.encodings |> Seq.contains (UPER)
+  member this.getBasicLang l =
+    this.blm |> List.find(fun (l1,_) -> l1 = l) |> snd
 
 
 let CharCR =  Convert.ToChar(13)
