@@ -76,13 +76,14 @@ trait Codec {
    /** ******************************************************************************************** */
 
    /** ******************************************************************************************** */
+
    def encodeNonNegativeInteger32Neg(v: Int, negate: Boolean): Unit = {
       var cc: UInt = 0
       var curMask: UInt = 0
       var pbits: UInt = 0
 
       if v == 0 then
-         return ()
+         return;
 
       if v >>> 8 == 0 then
          cc = 8
@@ -190,6 +191,14 @@ trait Codec {
          encodeNonNegativeInteger32Neg(lo, false)
    }
 
+   @extern
+   def rangeCheck(min: Long, max: Long): Boolean = {
+      val bigMin = scala.math.BigInt(min)
+      val bigMax = scala.math.BigInt(max)
+
+      (bigMax - bigMin) <= scala.math.BigInt(Long.MaxValue)
+   }
+
    /**
     *
     * @param v number that gets encoded, needs to be within [min,max] range
@@ -202,12 +211,8 @@ trait Codec {
     */
    def encodeConstrainedWholeNumber(v: Long, min: Long, max: Long): Unit = {
       require(min <= max)
-      require(
-         min >= 0 && max >= 0 ||
-            min < 0 && max < 0 ||
-            min <= (Long.MaxValue >> 1) && max <= min + (Long.MaxValue >> 1)
-      )
       require(min <= v && v <= max)
+      require(rangeCheck(min, max))
 
       val range = max - min
       if range == 0 then
@@ -227,11 +232,7 @@ trait Codec {
 
    def decodeConstrainedWholeNumber(min: Long, max: Long): Long = {
       require(min <= max)
-      require(
-         min >= 0 && max >= 0 ||
-         min < 0 && max < 0 ||
-         min <= (Long.MaxValue >> 1) && max <= min + (Long.MaxValue >> 1)
-      )
+      require(rangeCheck(min, max))
 
       val range: Long = max - min
 
@@ -371,7 +372,7 @@ trait Codec {
       // encode length - single octet
       appendByte(nBytes.toByte)
 
-      var i = nBytes;
+      var i = nBytes
       (while i > 0 do
          decreases(i)
 
@@ -529,6 +530,7 @@ trait Codec {
       encodeNonNegativeInteger(mantissa)
    }
 
+
    /**
     * facade function for real decoding
     * @return decoded real value in IE754 double format
@@ -546,7 +548,7 @@ trait Codec {
       // get length
       val length = readByte()
 
-      // 8.5.2 Plus Zero
+      // 8.5.2 PLUS-ZERO
       if length == 0 then
          return 0
 
@@ -554,23 +556,24 @@ trait Codec {
       assert(length > 0 && length <= DoubleMaxLengthOfSentBytes)
 
       // get value
-      val retVal = readByte() match
-         // 8.5.6 a)
-         case header if (header.unsignedToInt & 0x80) == 0x80 => header match
-            // 8.5.9 PLUS-INFINITY
-            case header if header == 0x40 => Right(DoublePosInfBitString)
-            // 8.5.9 MINUS-INFINITY
-            case header if header == 0x41 => Right(DoubleNegInfBitString)
-            // 8.5.9 NOT-A-NUMBER
-            case header if header == 0x42 => Right(DoubleNotANumber)
-            // 8.5.3 MINUS-ZERO
-            case header if header == 0x43 => Right(DoubleNegZeroBitString)
-            // Decode 8.5.7
-            case header => Right(decodeRealFromBitStream(length.toInt - 1, header))
-         case _ => Left(0)
+      val header = readByte()
+      assert((header.unsignedToInt & 0x80) == 0x80, "only binary mode supported")
 
-      assert(retVal.isRight, "only binary mode supported")
-      retVal.get
+      // 8.5.9 PLUS-INFINITY
+      if header == 0x40 then
+         DoublePosInfBitString
+      // 8.5.9 MINUS-INFINITY
+      else if header == 0x41 then
+         DoubleNegInfBitString
+      // 8.5.9 NOT-A-NUMBER
+      else if header == 0x42 then
+         DoubleNotANumber
+      // 8.5.3 MINUS-ZERO
+      else if header == 0x43 then
+         DoubleNegZeroBitString
+      // Decode 8.5.7
+      else
+         decodeRealFromBitStream(length.toInt - 1, header)
    }
 
    /**
@@ -971,6 +974,7 @@ trait Codec {
       require(bitStream.validate_offset_byte())
       bitStream.appendByte(value)
    }
+
 
    def readByte(): Byte = {
       require(bitStream.validate_offset_byte())
