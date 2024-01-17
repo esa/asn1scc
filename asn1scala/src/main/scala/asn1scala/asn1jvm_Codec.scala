@@ -191,14 +191,6 @@ trait Codec {
          encodeNonNegativeInteger32Neg(lo, false)
    }
 
-   @extern
-   def rangeCheck(min: Long, max: Long): Boolean = {
-      val bigMin = scala.math.BigInt(min)
-      val bigMax = scala.math.BigInt(max)
-
-      (bigMax - bigMin) <= scala.math.BigInt(Long.MaxValue)
-   }
-
    /**
     *
     * @param v number that gets encoded, needs to be within [min,max] range
@@ -212,9 +204,8 @@ trait Codec {
    def encodeConstrainedWholeNumber(v: Long, min: Long, max: Long): Unit = {
       require(min <= max)
       require(min <= v && v <= max)
-      require(rangeCheck(min, max))
 
-      val range = max - min
+      val range: Long = stainless.math.wrapping(max - min)
       if range == 0 then
          return
 
@@ -222,7 +213,7 @@ trait Codec {
       val nRangeBits: Int = GetNumberOfBitsForNonNegativeInteger(range)
 
       // get value that gets written
-      val encVal = v - min
+      val encVal: Long = stainless.math.wrapping(v - min)
 
       @ghost val nEncValBits = GetNumberOfBitsForNonNegativeInteger(encVal)
       assert(nRangeBits >= nEncValBits)
@@ -232,9 +223,8 @@ trait Codec {
 
    def decodeConstrainedWholeNumber(min: Long, max: Long): Long = {
       require(min <= max)
-      require(rangeCheck(min, max))
 
-      val range: Long = max - min
+      val range: Long = stainless.math.wrapping(max - min)
 
       // only one possible number
       if range == 0 then
@@ -286,7 +276,7 @@ trait Codec {
       min + decVal
    }
 
-   def encodeSemiConstraintWholeNumber(v: Long, min: Long): Unit = {
+      def encodeSemiConstraintWholeNumber(v: Long, min: Long): Unit = {
       require(min <= v)
 
       val nBytes: Int = GetLengthForEncodingUnsigned(v - min)

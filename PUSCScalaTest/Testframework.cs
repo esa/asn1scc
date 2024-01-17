@@ -156,10 +156,7 @@ namespace PUS_C_Scala_Test
             Assert.IsTrue(binsA.Select(x => Path.GetFileName(x))
                 .SequenceEqual(binsB.Select(x => Path.GetFileName(x))), "output did not create the same files");
 
-            var testNumbers = getInteropTests(service, sv);
-            Assert.IsTrue(binsA.Length == testNumbers.end);
-
-            foreach (var i in testNumbers.testRange.Select(x => x - 1))
+            for(var i = 0; i<binsA.Length; ++i)
             {
                 using (var f1 = File.OpenRead(binsA[i]))
                 using (var f2 = File.OpenRead(binsB[i]))
