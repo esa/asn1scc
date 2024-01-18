@@ -137,7 +137,7 @@ Define_new_octet_string(td/*:FE_SizeableTypeDefinition*/, nMin, nMax, bFixedSize
 /*nCount equals to Number of bytes in the array. Max value is : <nMax> (unsure - TODO read asn1 standard)*/
 
 <endif>
-case class <td.typeName>(<if(!bFixedSize)>nCount: Long, <endif>arr: Array[Byte])
+case class <td.typeName>(<if(!bFixedSize)>var nCount: Long, <endif>arr: Array[Byte])
 {
     require(arr.length == <nMax>)
 }
@@ -160,7 +160,7 @@ Define_new_bit_string(td/*:FE_SizeableTypeDefinition*/, nMin, nMax, bFixedSize, 
 /*nCount equals to Number of bits in the array. Max value is : <nMax> */
 
 <endif>
-case class <td.typeName>(<if(!bFixedSize)>nCount: Long, <endif>arr: Array[Byte])
+case class <td.typeName>(<if(!bFixedSize)>var nCount: Long, <endif>arr: Array[Byte])
 {
     require(arr.length == <nMaxOctets>)
 }
@@ -177,7 +177,7 @@ Define_new_sequence_of(td/*:FE_SizeableTypeDefinition*/, nMin, nMax, bFixedSize,
 
 <soChildDefinition>
 
-case class <td.typeName> (<if(!bFixedSize)>nCount: Int, <endif>arr: Array[<sChildType>])
+case class <td.typeName> (<if(!bFixedSize)>var nCount: Int, <endif>arr: Array[<sChildType>])
 {
     require(arr.length == <nMax>)
 }
