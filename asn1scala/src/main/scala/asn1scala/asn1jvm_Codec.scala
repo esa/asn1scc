@@ -258,7 +258,7 @@ trait Codec {
       // TODO maybe add PostCondition: is val in given (signed/unsigned??) range?
    }
 
-   def decodeConstraintPosWholeNumber(min: Long, max: Long): Long = {
+   def decodeConstrainedPosWholeNumber(min: Long, max: Long): Long = {
       require(max >= 0 && max <= Long.MaxValue)
       require(min >= 0 && min <= max)
 

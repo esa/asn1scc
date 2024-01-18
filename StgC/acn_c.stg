@@ -17,13 +17,13 @@ EmitAcnParameter(sName, sType) ::= "<sType> <sName>"
 
 EmitTypeAssignment_primitive_def_encode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes, bEmptyEncodingSpace, nMaxBytesInACN, nMaxBitsInACN, arrsAcnPrms, soSparkAnnotations) ::= <<
 <arrsErrcodes; separator="\n">
-#define <sTypeDefName>_REQUIRED_BYTES_FOR_ACN_ENCODING       <nMaxBytesInACN> 
+#define <sTypeDefName>_REQUIRED_BYTES_FOR_ACN_ENCODING       <nMaxBytesInACN>
 #define <sTypeDefName>_REQUIRED_BITS_FOR_ACN_ENCODING        <nMaxBitsInACN>
 
 flag <sFuncName>(const <sTypeDefName><sStar> <sVarName>, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints);
 >>
 
-EmitTypeAssignment_primitive_encode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitilialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName) ::= <<
+EmitTypeAssignment_primitive_encode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName) ::= <<
 flag <sFuncName>(const <sTypeDefName><sStar> <sVarName>, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints)
 {
     flag ret = TRUE;
@@ -51,7 +51,7 @@ flag <sFuncName>(const <sTypeDefName><sStar> <sVarName>, BitStream* pBitStrm, in
     <sContent>
 
     <endif>
-	
+
     return ret;
 }
 >>
@@ -61,7 +61,7 @@ EmitTypeAssignment_primitive_def_decode(sVarName, sStar, sFuncName, sTypeDefName
 flag <sFuncName>(<sTypeDefName><sStar> <sVarName>, BitStream* pBitStrm, int* pErrCode<if(arrsAcnPrms)>, <arrsAcnPrms; separator=", "><endif>);
 >>
 
-EmitTypeAssignment_primitive_decode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitilialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName) ::= <<
+EmitTypeAssignment_primitive_decode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName) ::= <<
 flag <sFuncName>(<sTypeDefName><sStar> <sVarName>, BitStream* pBitStrm, int* pErrCode<if(arrsAcnPrms)>, <arrsAcnPrms; separator=", "><endif>)
 {
     flag ret = TRUE;
@@ -109,8 +109,8 @@ if (ret) {
 
 
 
-loopFixedItem (i, fixedSize,  sInternalItem)::= /*nogen*/<<	
-for(<i>=0; (<i> \< (int)<fixedSize>) && ret; <i>++) 
+loopFixedItem (i, fixedSize,  sInternalItem)::= /*nogen*/<<
+for(<i>=0; (<i> \< (int)<fixedSize>) && ret; <i>++)
 {
 	<sInternalItem>
 }
@@ -118,14 +118,14 @@ for(<i>=0; (<i> \< (int)<fixedSize>) && ret; <i>++)
 
 
 
-alignToNext_encode(sMainBody, sAligmentValue, nAligmentValue) ::= <<
-Acn_AlignTo<sAligmentValue>(pBitStrm, TRUE);
+alignToNext_encode(sMainBody, sAlignmentValue, nAlignmentValue) ::= <<
+Acn_AlignTo<sAlignmentValue>(pBitStrm, TRUE);
 <sMainBody>
 >>
 
 
-alignToNext_decode(sMainBody, sAligmentValue, nAligmentValue) ::= <<
-Acn_AlignTo<sAligmentValue>(pBitStrm, FALSE);
+alignToNext_decode(sMainBody, sAlignmentValue, nAlignmentValue) ::= <<
+Acn_AlignTo<sAlignmentValue>(pBitStrm, FALSE);
 <sMainBody>
 >>
 
@@ -347,7 +347,7 @@ Boolean_encode(p, ptr, bEncValIsTrue, nSize, arruTrueValueAsByteArray, arruFalse
 {
 	static byte true_data[] = {<arruTrueValueAsByteArray:{b|0x<b;format="X2">}; separator=",">};
 	static byte false_data[] = {<arruFalseValueAsByteArray:{b|0x<b;format="X2">}; separator=",">};
-    byte* tmp = <p> ? true_data : false_data; 
+    byte* tmp = <p> ? true_data : false_data;
     BitStream_AppendBits(pBitStrm, tmp, <nSize>);
 }
 >>
@@ -368,7 +368,7 @@ Boolean_decode(p, ptr, bEncValIsTrue, nSize, arruTrueValueAsByteArray, arruFalse
 
 
 
-
+Null_declare(p) ::= ""
 
 Null_pattern_encode(p, arruNullValueAsByteArray, nSize, arrsBits, sErrCode, bSavePosition) ::= <<
 <if(arruNullValueAsByteArray)>
@@ -435,7 +435,7 @@ EnumeratedEncIdx_decode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, sActual
 
 
 EnumeratedEncValues_encode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, sActualCodecFunc, sErrCode, sFirstItemName, sIntVal) ::= <<
-switch(<p>) { 
+switch(<p>) {
     <arrsItem; separator="\n">
     default:                                    /*COVERAGE_IGNORE*/
         ret = FALSE;                            /*COVERAGE_IGNORE*/
@@ -467,9 +467,9 @@ ret = Acn_Dec_String_Ascii_FixSize(pBitStrm, <nAsn1Max>, <p>);
 <A(sErrCode)>
 >>
 
-Acn_String_Ascii_Null_Teminated_encode(p, sErrCode, nAsn1Max, arruNullBytes) ::= "Acn_Enc_String_Ascii_Null_Teminated_mult(pBitStrm, <nAsn1Max>, (byte[]){<arruNullBytes; separator=\", \">}, <arruNullBytes.Length>, <p>);"
-Acn_String_Ascii_Null_Teminated_decode(p, sErrCode, nAsn1Max, arruNullBytes) ::= <<
-ret = Acn_Dec_String_Ascii_Null_Teminated_mult(pBitStrm, <nAsn1Max>, (byte[]){<arruNullBytes; separator=", ">}, <arruNullBytes.Length>, <p>);
+Acn_String_Ascii_Null_Terminated_encode(p, sErrCode, nAsn1Max, arruNullBytes) ::= "Acn_Enc_String_Ascii_Null_Terminated_mult(pBitStrm, <nAsn1Max>, (byte[]){<arruNullBytes; separator=\", \">}, <arruNullBytes.Length>, <p>);"
+Acn_String_Ascii_Null_Terminated_decode(p, sErrCode, nAsn1Max, arruNullBytes) ::= <<
+ret = Acn_Dec_String_Ascii_Null_Terminated_mult(pBitStrm, <nAsn1Max>, (byte[]){<arruNullBytes; separator=", ">}, <arruNullBytes.Length>, <p>);
 <A(sErrCode)>
 >>
 
@@ -486,7 +486,7 @@ ret = Acn_Dec_String_Ascii_Internal_Field_Determinant(pBitStrm, <nAsn1Max>, <nAs
 >>
 
 PrintAlphabet2(arrnCharSet) /*nogen*/ ::= <<
-static byte allowedCharSet[] = {<arrnCharSet:{ch|0x<ch;format="X2">}; wrap, anchor, separator=",">}; 
+static byte allowedCharSet[] = {<arrnCharSet:{ch|0x<ch;format="X2">}; wrap, anchor, separator=",">};
 >>
 
 Acn_String_CharIndex_FixSize_encode(p, sErrCode, nAsn1Max, arrnAlphabetAsciiCodes, nCharSetSize, td/*:FE_StringTypeDefinition*/, nCharSize) ::= <<
@@ -522,12 +522,12 @@ ret = Acn_Dec_IA5String_CharIndex_External_Field_Determinant(pBitStrm, <nAsn1Max
 >>
 
 
-oct_external_field_encode(p, sAcc, noSizeMin, nSizeMax, sExtFld, nAlignSize, sErrCode) ::= <<
+oct_external_field_encode(sTypedefName, p, sAcc, noSizeMin, nSizeMax, sExtFld, nAlignSize, sErrCode) ::= <<
 ret = BitStream_EncodeOctetString_no_length(pBitStrm, <p><sAcc>arr, <p><sAcc>nCount);
 >>
 
 
-oct_external_field_decode(p, sAcc, noSizeMin, nSizeMax, sExtFld, nAlignSize, sErrCode) ::= <<
+oct_external_field_decode(sTypedefName, p, sAcc, noSizeMin, nSizeMax, sExtFld, nAlignSize, sErrCode) ::= <<
 ret = (<if(noSizeMin)>(<noSizeMin>\<=<sExtFld>) && <endif>(<sExtFld>\<=<nSizeMax>));
 if (ret) {
     <p><sAcc>nCount = (int)<sExtFld>;
@@ -535,12 +535,12 @@ if (ret) {
 }
 >>
 
-oct_external_field_fix_size_encode(p, sAcc, noSizeMin, nSizeMax, sExtFld, nAlignSize, sErrCode) ::= <<
+oct_external_field_fix_size_encode(sTypedefName, p, sAcc, noSizeMin, nSizeMax, sExtFld, nAlignSize, sErrCode) ::= <<
 ret = BitStream_EncodeOctetString_no_length(pBitStrm, <p><sAcc>arr, <nSizeMax>);
 >>
 
 
-oct_external_field_fix_size_decode(p, sAcc, noSizeMin, nSizeMax, sExtFld, nAlignSize, sErrCode) ::= <<
+oct_external_field_fix_size_decode(sTypedefName, p, sAcc, noSizeMin, nSizeMax, sExtFld, nAlignSize, sErrCode) ::= <<
 ret = (<if(noSizeMin)>(<noSizeMin>\<=<sExtFld>) && <endif>(<sExtFld>\<=<nSizeMax>));
 if (ret) {
     ret = BitStream_DecodeOctetString_no_length(pBitStrm, <p><sAcc>arr, <nSizeMax>);
@@ -548,13 +548,13 @@ if (ret) {
 >>
 
 
-                            
-sqf_external_field_encode(p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, sExtFld, nAlignSize, sErrCode, nIntItemMinSize, nIntItemMaxSize) ::= <<
+
+sqf_external_field_encode(sTypeDefName, p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, sExtFld, nAlignSize, sErrCode, nIntItemMinSize, nIntItemMaxSize, sChildInitExpr) ::= <<
 <loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize=[p, sAcc, "nCount"])>
 >>
 
 
-sqf_external_field_decode(p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, sExtFld, nAlignSize, sErrCode, nIntItemMinSize, nIntItemMaxSize) ::= <<
+sqf_external_field_decode(sTypeDefName, p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, sExtFld, nAlignSize, sErrCode, nIntItemMinSize, nIntItemMaxSize, sChildInitExpr) ::= <<
 ret = (<if(noSizeMin)>(<noSizeMin>\<=<sExtFld>) && <endif>(<sExtFld>\<=<nSizeMax>));
 if (ret) {
     <p><sAcc>nCount = (int)<sExtFld>;
@@ -562,12 +562,12 @@ if (ret) {
 }
 >>
 
-sqf_external_field_fix_size_encode(p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, sExtFld, nAlignSize, sErrCode, nIntItemMinSize, nIntItemMaxSize) ::= <<
+sqf_external_field_fix_size_encode(sTypeDefName, p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, sExtFld, nAlignSize, sErrCode, nIntItemMinSize, nIntItemMaxSize, sChildInitExpr) ::= <<
 <loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize=[nSizeMax])>
 >>
 
 
-sqf_external_field_fix_size_decode(p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, sExtFld, nAlignSize, sErrCode, nIntItemMinSize, nIntItemMaxSize) ::= <<
+sqf_external_field_fix_size_decode(sTypeDefName, p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, sExtFld, nAlignSize, sErrCode, nIntItemMinSize, nIntItemMaxSize, sChildInitExpr) ::= <<
 ret = (<if(noSizeMin)>(<noSizeMin>\<=<sExtFld>) && <endif>(<sExtFld>\<=<nSizeMax>));
 if (ret) {
     <loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize=[nSizeMax])>
@@ -605,11 +605,11 @@ if (ret && (checkBitPatternPresentResult == 0)) {
 >>
 
 
-bit_string_external_field_encode(p, sErrCode, sAcc, noSizeMin, nSizeMax, sExtFld) ::= <<
+bit_string_external_field_encode(sTypeDefName, p, sErrCode, sAcc, noSizeMin, nSizeMax, sExtFld) ::= <<
 BitStream_AppendBits(pBitStrm, <p><sAcc>arr, <p><sAcc>nCount);
 >>
 
-bit_string_external_field_decode(p, sErrCode, sAcc, noSizeMin, nSizeMax, sExtFld) ::= <<
+bit_string_external_field_decode(sTypeDefName, p, sErrCode, sAcc, noSizeMin, nSizeMax, sExtFld) ::= <<
 ret = (<if(noSizeMin)>(<noSizeMin>\<=<sExtFld>) && <endif>(<sExtFld>\<=<nSizeMax>));
 if (ret) {
     <p><sAcc>nCount = (int)<sExtFld>;
@@ -618,11 +618,11 @@ if (ret) {
 }
 >>
 
-bit_string_external_field_fixed_size_encode(p, sErrCode, sAcc, noSizeMin, nSizeMax, sExtFld) ::= <<
+bit_string_external_field_fixed_size_encode(sTypeDefName, p, sErrCode, sAcc, noSizeMin, nSizeMax, sExtFld) ::= <<
 BitStream_AppendBits(pBitStrm, <p><sAcc>arr, <nSizeMax>);
 >>
 
-bit_string_external_field_fixed_size_decode(p, sErrCode, sAcc, noSizeMin, nSizeMax, sExtFld) ::= <<
+bit_string_external_field_fixed_size_decode(sTypeDefName, p, sErrCode, sAcc, noSizeMin, nSizeMax, sExtFld) ::= <<
 ret = (<if(noSizeMin)>(<noSizeMin>\<=<sExtFld>) && <endif>(<sExtFld>\<=<nSizeMax>));
 if (ret) {
     ret = BitStream_ReadBits(pBitStrm, <p><sAcc>arr, <nSizeMax>);
@@ -630,12 +630,12 @@ if (ret) {
 }
 >>
 
-bit_string_null_terminated_encode(p, sErrCode, sAcc, i, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength) ::= <<
+bit_string_null_terminated_encode(sTypeDefName, p, sErrCode, sAcc, i, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength) ::= <<
 BitStream_AppendBits(pBitStrm, <p><sAcc>arr, <p><sAcc>nCount);
 BitStream_AppendBits(pBitStrm, (byte[]){<arruNullBytes; separator=", ">}, <nBitPatternLength>);
 >>
 
-bit_string_null_terminated_decode(p, sErrCode, sAcc, i, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength) ::= <<
+bit_string_null_terminated_decode(sTypeDefName, p, sErrCode, sAcc, i, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength) ::= <<
 ret = BitStream_ReadBits_nullterminated(pBitStrm, (byte[]){<arruNullBytes; separator=", ">}, <nBitPatternLength>, <p><sAcc>arr, <nSizeMax>, &<p><sAcc>nCount);
 *pErrCode = ret ? 0 : <sErrCode>;
 >>
@@ -660,38 +660,39 @@ ret = <sName>_ACN_Decode(<p>, pBitStrm, pErrCode<if(arrsArgs)>, <arrsLocalPrms; 
 /* SEQUENCE*/
 
 
-sequence_presense_optChild_encode(p, sAcc, sChName, sErrCode) ::= "BitStream_AppendBit(pBitStrm,<p><sAcc>exist.<sChName>);"
-sequence_presense_optChild_decode(p, sAcc, sChName, sErrCode) ::= <<
-ret = BitStream_ReadBit(pBitStrm, &presenceBit);
-<p><sAcc>exist.<sChName> = presenceBit == 0 ? 0 : 1;
+sequence_presence_optChild_encode(p, sAcc, sChName, soExistVar, sErrCode) ::= "BitStream_AppendBit(pBitStrm,<p><sAcc>exist.<sChName>);"
+sequence_presence_optChild_decode(p, sAcc, sChName, soExistVar, sErrCode) ::= <<
+ret = BitStream_ReadBit(pBitStrm, &<soExistVar>);
+<p><sAcc>exist.<sChName> = <soExistVar> == 0 ? 0 : 1;
 *pErrCode = ret ? 0 : <sErrCode>;
 >>
 
-sequence_presense_optChild_pres_acn_expression_encode(p, sAcc, sChName, sAcnExpression, sErrCode) ::= <<
+sequence_presence_optChild_pres_acn_expression_encode(p, sAcc, sChName, sAcnExpression, soExistVar, sErrCode) ::= <<
 ret = <p><sAcc>exist.<sChName> == ((<sAcnExpression>) ? 1 : 0);
 *pErrCode = ret ? 0 : <sErrCode>;
 >>
-sequence_presense_optChild_pres_acn_expression_decode(p, sAcc, sChName, sAcnExpression, sErrCode) ::= <<
-<p><sAcc>exist.<sChName> = (<sAcnExpression>) ? 1 : 0;
+sequence_presence_optChild_pres_acn_expression_decode(p, sAcc, sChName, sAcnExpression, soExistVar, sErrCode) ::= <<
+<soExistVar> = (<sAcnExpression>) ? 1 : 0;
+<p><sAcc>exist.<sChName> = <soExistVar>;
 >>
 
-sequence_presense_optChild_pres_bool_encode(p, sAcc, sChName, sExtFldName) ::= ""
-sequence_presense_optChild_pres_bool_decode(p, sAcc, sChName, sExtFldName) ::= <<
+sequence_presence_optChild_pres_bool_encode(p, sAcc, sChName, sExtFldName) ::= ""
+sequence_presence_optChild_pres_bool_decode(p, sAcc, sChName, sExtFldName) ::= <<
 <p><sAcc>exist.<sChName> = <sExtFldName> ? 1 : 0;
 >>
 
-sequence_presense_optChild_pres_int_encode(p, sAcc, sChName, sExtFldName, nIntVal) ::= ""
-sequence_presense_optChild_pres_int_decode(p, sAcc, sChName, sExtFldName, nIntVal) ::= <<
+sequence_presence_optChild_pres_int_encode(p, sAcc, sChName, sExtFldName, nIntVal) ::= ""
+sequence_presence_optChild_pres_int_decode(p, sAcc, sChName, sExtFldName, nIntVal) ::= <<
 <p><sAcc>exist.<sChName> = (<sExtFldName> == <nIntVal>) ? 1 : 0;
 >>
 
-sequence_presense_optChild_pres_str_encode(p, sAcc, sChName, sExtFldName, sVal) ::= ""
-sequence_presense_optChild_pres_str_decode(p, sAcc, sChName, sExtFldName, sVal) ::= <<
+sequence_presence_optChild_pres_str_encode(p, sAcc, sChName, sExtFldName, sVal) ::= ""
+sequence_presence_optChild_pres_str_decode(p, sAcc, sChName, sExtFldName, sVal) ::= <<
 <p><sAcc>exist.<sChName> = (strcmp(<sExtFldName>, "<sVal>") == 0) ? 1 : 0;
 >>
 
 sequence_save_bitStream_start_encode(sBitStreamPositionsLocalVar) ::=<<
-<sBitStreamPositionsLocalVar> = *pBitStrm; //save the initial position of the bit stream at 
+<sBitStreamPositionsLocalVar> = *pBitStrm; //save the initial position of the bit stream at
 >>
 
 sequence_save_bitStream_start_decode(sBitStreamPositionsLocalVar) ::=<<
@@ -736,13 +737,13 @@ sequence_mandatory_child_decode(sChName, sChildContent, soSaveBitStrmPosStatemen
 <sChildContent>
 >>
 
-sequence_always_present_child_encode(p, sAcc, sChName, soChildContent, soSaveBitStrmPosStatement) ::= <<
+sequence_always_present_child_encode(p, sAcc, sChName, soChildContent, soChildExpr, soSaveBitStrmPosStatement) ::= <<
 /*Encode <sChName> */
 /* marked as ALWAYS PRESENT, so do not look in exist */
 <soSaveBitStrmPosStatement>
 <soChildContent>
 >>
-sequence_always_present_child_decode(p, sAcc, sChName, soChildContent, soSaveBitStrmPosStatement) ::= <<
+sequence_always_present_child_decode(p, sAcc, sChName, soChildContent, soChildExpr, soSaveBitStrmPosStatement) ::= <<
 /*Decode <sChName> */
 /* marked as ALWAYS PRESENT */
 <p><sAcc>exist.<sChName> = 1;
@@ -750,14 +751,14 @@ sequence_always_present_child_decode(p, sAcc, sChName, soChildContent, soSaveBit
 <soChildContent>
 >>
 
-sequence_always_absent_child_encode(p, sAcc, sChName, sChildContent, soSaveBitStrmPosStatement) ::= <<
+sequence_always_absent_child_encode(p, sAcc, sChName, sChildContent, sChildTypedef, soSaveBitStrmPosStatement) ::= <<
 /*Encode <sChName> */
 /* marked as ALWAYS ABSENT, so do not encode anything */
 (void)<p>;
 (void)pBitStrm;
 <soSaveBitStrmPosStatement>
 >>
-sequence_always_absent_child_decode(p, sAcc, sChName, sChildContent, soSaveBitStrmPosStatement) ::= <<
+sequence_always_absent_child_decode(p, sAcc, sChName, sChildContent, sChildTypedef, soSaveBitStrmPosStatement) ::= <<
 /*Decode <sChName> */
 /* marked as ALWAYS ABSENT, so do not decode anything */
 <soSaveBitStrmPosStatement>
@@ -766,7 +767,7 @@ sequence_always_absent_child_decode(p, sAcc, sChName, sChildContent, soSaveBitSt
 >>
 
 
-sequence_optional_child_encode(p, sAcc, sChName, sChildContent, soSaveBitStrmPosStatement) ::= <<
+sequence_optional_child_encode(p, sAcc, sChName, sChildContent, soExistVar, soChildExpr, sChildTypedef, soSaveBitStrmPosStatement) ::= <<
 /*Encode <sChName> */
 <soSaveBitStrmPosStatement>
 if (<p><sAcc>exist.<sChName>) {
@@ -774,7 +775,7 @@ if (<p><sAcc>exist.<sChName>) {
 }
 >>
 
-sequence_optional_child_decode(p, sAcc, sChName, sChildContent, soSaveBitStrmPosStatement) ::= <<
+sequence_optional_child_decode(p, sAcc, sChName, sChildContent, soExistVar, soChildExpr, sChildTypedef, soSaveBitStrmPosStatement) ::= <<
 /*Decode <sChName> */
 <soSaveBitStrmPosStatement>
 if (<p><sAcc>exist.<sChName>) {
@@ -782,28 +783,13 @@ if (<p><sAcc>exist.<sChName>) {
 }
 >>
 
-
-sequence_optional_always_present_child_encode(p, sAcc, sChName, sChildContent, soSaveBitStrmPosStatement) ::= <<
-/*Encode <sChName> */
+sequence_default_child_encode(p, sAcc, sChName, sChildContent, sInitWithDefaultValue, soExistVar, soChildExpr, sChildTypedef, soSaveBitStrmPosStatement) ::= <<
 <soSaveBitStrmPosStatement>
-<sChildContent>
->>
-
-sequence_optional_always_present_child_decode(p, sAcc, sChName, sChildContent, soSaveBitStrmPosStatement) ::= <<
-/*Decode <sChName> (always present) */
-<soSaveBitStrmPosStatement>
-<p><sAcc>exist.<sChName> = 1;
-<sChildContent>
+<sequence_optional_child_encode(p=p, sAcc=sAcc, sChName=sChName, sChildContent=sChildContent, soExistVar=soExistVar, soChildExpr=soChildExpr, sChildTypedef=sChildTypedef, soSaveBitStrmPosStatement=soSaveBitStrmPosStatement)>
 >>
 
 
-sequence_default_child_encode(p, sAcc, sChName, sChildContent, sInitWithDefaultValue, soSaveBitStrmPosStatement) ::= <<
-<soSaveBitStrmPosStatement>
-<sequence_optional_child_encode(p=p, sAcc=sAcc, sChName=sChName, sChildContent=sChildContent, soSaveBitStrmPosStatement=soSaveBitStrmPosStatement)>
->>
-
-
-sequence_default_child_decode(p, sAcc, sChName, sChildContent, sInitWithDefaultValue, soSaveBitStrmPosStatement) ::= <<
+sequence_default_child_decode(p, sAcc, sChName, sChildContent, sInitWithDefaultValue, soExistVar, soChildExpr, sChildTypedef, soSaveBitStrmPosStatement) ::= <<
 /*Decode <sChName> */
 <soSaveBitStrmPosStatement>
 if (<p><sAcc>exist.<sChName>) {
@@ -812,7 +798,6 @@ if (<p><sAcc>exist.<sChName>) {
     <sInitWithDefaultValue>
 }
 >>
-
 
 sequence_call_post_encoding_function(p, sFncName, sBitStreamStartPos, sBitStreamPositionsNullPos) ::= <<
 <sFncName>(<p>, &<sBitStreamStartPos>, &<sBitStreamPositionsNullPos>, pBitStrm);
@@ -854,7 +839,7 @@ case <nChildIndex>:
 >>
 
 Choice_encode(p, sAcc, arrsChildren, nLastItemIndex, sChoiceIndexName, td/*:FE_ChoiceTypeDefinition*/, nIndexSizeInBits, sErrCode) ::= <<
-switch(<p><sAcc>kind) 
+switch(<p><sAcc>kind)
 {
 <arrsChildren: {ch|<ch>}; separator="\n">
 default: /*COVERAGE_IGNORE*/
@@ -867,17 +852,17 @@ Choice_decode(p, sAcc, arrsChildren, nLastItemIndex, sChoiceIndexName, td/*:FE_C
 ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, &<sChoiceIndexName>, 0, <nLastItemIndex>);
 *pErrCode = ret ? 0 : <sErrCode>;
 if (ret) {
-    switch(<sChoiceIndexName>) 
+    switch(<sChoiceIndexName>)
     {
     <arrsChildren: {ch|<ch>}; separator="\n">
     default: /*COVERAGE_IGNORE*/
         *pErrCode = <sErrCode>;     /*COVERAGE_IGNORE*/
         ret = FALSE;                /*COVERAGE_IGNORE*/
-    } 
+    }
 } /*COVERAGE_IGNORE*/
 >>
 
-/* Choice with presense determinants */
+/* Choice with presence determinants */
 
 ChoiceChild_preWhen_encode(p, sAcc, sChildID, sChildBody, arrsConditions, bFirst, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr) ::= <<
 case <sChildID>:
@@ -898,7 +883,7 @@ ChoiceChild_preWhen_decode(p, sAcc, sChildID, sChildBody, arrsConditions, bFirst
 
 
 Choice_preWhen_encode(p, sAcc, arrsChildren, sErrCode) ::= <<
-switch(<p><sAcc>kind) 
+switch(<p><sAcc>kind)
 {
 <arrsChildren; separator="\n">
 default:
@@ -922,7 +907,7 @@ else {
 
 
 ChoiceChild_Enum_encode(p, sAcc, sEnmName, sChildID, sChildBody, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr) ::= <<
-case <sChildID>:    
+case <sChildID>:
 	<sChildBody>
 	break;
 >>
@@ -936,7 +921,7 @@ case <sEnmName>:
 
 
 Choice_Enum_encode(p, sAcc, arrsChildren, sEnmExtFld, sErrCode) ::= <<
-switch(<p><sAcc>kind) 
+switch(<p><sAcc>kind)
 {
     <arrsChildren; separator="\n">
 default:
@@ -975,14 +960,14 @@ SizeDependencyFixedSize(v, nFixedSize) ::= <<
 
 
 
-ChoiceDependencyEnum_Item(v, sChildCID, sChildCIDHolder, sEnumCName) ::= <<
+ChoiceDependencyEnum_Item(v, sChildCID, sChildCIDHolder, sEnumCName, bIsOptional) ::= <<
 case <sChildCID>:
     <v>_is_initialized = TRUE;
-	<v> = <sEnumCName>; 
+	<v> = <sEnumCName>;
     break;
 >>
 
-ChoiceDependencyEnum(sChPath, sAcc, arrsChoiceEnumItems) ::= <<
+ChoiceDependencyEnum(sV, sChPath, sAcc, arrsChoiceEnumItems, bIsOptional, sDefaultExpr) ::= <<
 switch (<sChPath><sAcc>kind) {
     <arrsChoiceEnumItems; separator="\n">
     default:
@@ -999,19 +984,19 @@ PresenceDependency(v, sSeqPath, sAcc, sChildName) ::= <<
 
 ChoiceDependencyIntPres_child(v, sChildNamePrese, nChildRetVal) ::= <<
 case <sChildNamePrese>:
-    <v>_is_initialized = TRUE;
-	<v> = <nChildRetVal>; 
+		<v>_is_initialized = TRUE;
+		<v> = <nChildRetVal>;
     break;
 >>
 
 ChoiceDependencyStrPres_child(v, sChildNamePrese, sChildRetVal, arrsNullChars) ::= <<
 case <sChildNamePrese>:
     <v>_is_initialized = TRUE;
-	strcpy(<v>, "<sChildRetVal>");
+		strcpy(<v>, "<sChildRetVal>");
     break;
 >>
 
-ChoiceDependencyPres(sChPath, sAcc, arrsChoiceItems) ::= <<
+ChoiceDependencyPres(v, sChPath, sAcc, arrsChoiceItems) ::= <<
 switch (<sChPath><sAcc>kind) {
     <arrsChoiceItems; separator="\n">
     default:
@@ -1024,30 +1009,30 @@ switch (<sChPath><sAcc>kind) {
 MultiAcnUpdate_checkEqual_pri0(p1,p2) ::= "(<p1> == <p2>)"
 MultiAcnUpdate_checkEqual_str0(p1,p2) ::= "(strcmp(<p1>,<p2>) == 0)"
 
-MultiAcnUpdate_get_first_init_value_pri(sV0, sVi, bIsFirst) ::= <<
+MultiAcnUpdate_get_first_init_value_pri(sV0, sVi, sChPath, bIsFirst, bIsSingleElement) ::= <<
 <if(!bIsFirst)>else <endif>if (<sVi>_is_initialized) { /*COVERAGE_IGNORE*/
     <sV0> = <sVi>; /*COVERAGE_IGNORE*/
 } /*COVERAGE_IGNORE*/
 >>
 
-MultiAcnUpdate_get_first_init_value_str(sV0, sVi, bIsFirst) ::= <<
+MultiAcnUpdate_get_first_init_value_str(sV0, sVi, sChPath, bIsFirst, bIsSingleElement) ::= <<
 <if(!bIsFirst)>else <endif>if (<sVi>_is_initialized) { /*COVERAGE_IGNORE*/
     strcpy(<sV0>, <sVi>); /*COVERAGE_IGNORE*/
 } /*COVERAGE_IGNORE*/
 >>
 
-MultiAcnUpdate_checkEqual_pri(sV0, sVi) ::= "((<sVi>_is_initialized && <sV0> == <sVi>) || !<sVi>_is_initialized)"
-MultiAcnUpdate_checkEqual_str(sV0, sVi) ::= "((<sVi>_is_initialized && strcmp(<sV0>,<sVi>) == 0) || !<sVi>_is_initialized)"
+MultiAcnUpdate_checkEqual_pri(sV0, sVi, sChPath, bIsAlwaysInit) ::= "((<sVi>_is_initialized && <sV0> == <sVi>) || !<sVi>_is_initialized)"
+MultiAcnUpdate_checkEqual_str(sV0, sVi, sChPath, bIsAlwaysInit) ::= "((<sVi>_is_initialized && strcmp(<sV0>,<sVi>) == 0) || !<sVi>_is_initialized)"
 
 
-MultiAcnUpdate(v, sV0, sErrCode, arrsLocalDeclarations, arrsLocalUpdateStatements, arrsGetFirstIntValue, arrsLocalCheckEquality) ::= <<
+MultiAcnUpdate(v, sV0, sErrCode, arrsLocalDeclarations, arrsLocalUpdateStatements, arrsGetFirstIntValue, bIsFirstIntValueSingle, arrsLocalCheckEquality, sDefaultExpr) ::= <<
 {
     <arrsLocalDeclarations; separator="\n">
-    
+
     <arrsLocalUpdateStatements; separator="\n">
-    
+
     if (ret) {
-	
+
         *pErrCode = <sErrCode>;
         <arrsGetFirstIntValue; separator=" "> else {
             ret = FALSE; /*COVERAGE_IGNORE*/
@@ -1065,7 +1050,7 @@ MultiAcnUpdate(v, sV0, sErrCode, arrsLocalDeclarations, arrsLocalUpdateStatement
 
 
 
-checkAccessPath(arrsCheckPaths, sUpdateStatement) ::= <<
+checkAccessPath(arrsCheckPaths, sUpdateStatement, v, sInitExpr) ::= <<
 if (<arrsCheckPaths; separator=" && ">) {
     <sUpdateStatement>
 }
@@ -1173,7 +1158,7 @@ octet_string_containing_func_encode(p, sFuncName, sReqBytesForAcnEncoding, nBits
 
 octet_string_containing_func_decode(p, sFuncName, sReqBytesForAcnEncoding, nBits, nMinSize, nMaxSize, bFixedSize) ::= <<
 /*open new scope to declare some variables*/
-{	
+{
 	/*decode to a temporary bitstream*/
 	static byte arr[<sReqBytesForAcnEncoding>];
 	BitStream bitStrm;
@@ -1223,12 +1208,12 @@ bit_string_containing_func_encode(p, sFuncName, sReqBytesForAcnEncoding, sReqBit
 
 bit_string_containing_func_decode(p, sFuncName, sReqBytesForAcnEncoding, sReqBitsForUperEncoding, nBits, nMinSize, nMaxSize, bFixedSize) ::= <<
 /*open new scope to declare some variables*/
-{	
+{
 	/*decode to a temporary bitstream*/
 	static byte arr[<sReqBytesForAcnEncoding>];
 	BitStream bitStrm;
 	BitStream_Init(&bitStrm, arr, sizeof(arr));
-	
+
 	<if(bFixedSize)>
 	ret = BitStream_ReadBits(pBitStrm, arr, <nMinSize>);
 	if (ret) {

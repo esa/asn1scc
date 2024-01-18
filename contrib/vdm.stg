@@ -51,8 +51,8 @@ ImportedMod(sName, sCName, arrsTypes, arrsVars) ::= ""
 /* A single Type Assignment, this is filled for all types of all modules.
 Use sCName which is the type name using underscores in place of dashes
 */
-TasXml(sName, nLine, nPos, sType, sCName, sAssigOp, sContract) ::= <<
-public $sCName$ $sAssigOp$ $sType$$sContract$
+TasXml(sName, nLine, nPos, sType, sCName, sAssignOp, sContract) ::= <<
+public $sCName$ $sAssignOp$ $sType$$sContract$
 >>
 
 
@@ -95,8 +95,8 @@ IA5StringType () ::= "seq of char"
 
 NumericStringType () ::= "seq of char"
 
-AssigOpNormalType () ::= "="
-AssigOpSpecialType () ::= "::"
+AssignOpNormalType () ::= "="
+AssignOpSpecialType () ::= "::"
 
 
 /* Enumerated item, note the difference between sName and sCID:

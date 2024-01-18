@@ -6,19 +6,24 @@ open FsUtils
 open Language
 open System.IO
 
-let getAccess_c  (fpt:FuncParamType) =
-    match fpt with
-    | VALUE x        -> "."
-    | POINTER x      -> "->"
-    | FIXARRAY x     -> ""
+let getAccess_c (sel: Selection) =
+    match sel.selectionType with
+    | Pointer -> "->"
+    | _ -> "."
+
+let getAccess2_c (acc: Accessor) =
+    match acc with
+    | ValueAccess (sel, _, _) -> $".{sel}"
+    | PointerAccess (sel, _, _) -> $"->{sel}"
+    | ArrayAccess (ix, _) -> $"[{ix}]"
 
 #if false
-let createBitStringFunction_funcBody_c handleFragmentation (codec:CommonTypes.Codec) (id : ReferenceToType) (typeDefinition:TypeDefintionOrReference) isFixedSize  uperMaxSizeInBits minSize maxSize (errCode:ErroCode) (p:CallerScope) = 
-    let ii = id.SeqeuenceOfLevel + 1;
-    let i = sprintf "i%d" (id.SeqeuenceOfLevel + 1)
+let createBitStringFunction_funcBody_c handleFragmentation (codec:CommonTypes.Codec) (id : ReferenceToType) (typeDefinition:TypeDefinitionOrReference) isFixedSize  uperMaxSizeInBits minSize maxSize (errCode:ErrorCode) (p:CallerScope) =
+    let ii = id.SequenceOfLevel + 1;
+    let i = sprintf "i%d" (id.SequenceOfLevel + 1)
     let nSizeInBits = GetNumberOfBitsForNonNegativeInteger ( (maxSize - minSize))
 
-    let funcBodyContent, localVariables = 
+    let funcBodyContent, localVariables =
         let nStringLength =
             match isFixedSize,  codec with
             | true , _    -> []
@@ -28,9 +33,9 @@ let createBitStringFunction_funcBody_c handleFragmentation (codec:CommonTypes.Co
         match minSize with
         | _ when maxSize < 65536I && isFixedSize   -> uper_c.bitString_FixSize p.arg.p (getAccess_c p.arg) (minSize) errCode.errCodeName codec , nStringLength
         | _ when maxSize < 65536I && (not isFixedSize)  -> uper_c.bitString_VarSize p.arg.p (getAccess_c p.arg) (minSize) (maxSize) errCode.errCodeName nSizeInBits codec, nStringLength
-        | _                                                -> 
+        | _                                                ->
             handleFragmentation p codec errCode ii (uperMaxSizeInBits) minSize maxSize "" 1I true false
-    {UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = localVariables; bValIsUnReferenced=false; bBsIsUnReferenced=false}    
+    {UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = localVariables; bValIsUnReferenced=false; bBsIsUnReferenced=false}
 #endif
 
 
@@ -51,61 +56,53 @@ type LangGeneric_c() =
             | Asn1AcnAst.ASN1SCC_UInt64   _ ->  sprintf "%sUL" (i.ToString())
             | Asn1AcnAst.ASN1SCC_UInt     _ ->  sprintf "%sUL" (i.ToString())
 
-        override _.doubleValueToString (v:double) = 
+        override _.doubleValueToString (v:double) =
             v.ToString(FsUtils.doubleParseString, System.Globalization.NumberFormatInfo.InvariantInfo)
 
         override _.initializeString stringSize = sprintf "{ [0 ... %d] = 0x0 }" stringSize
-        
+
         override _.supportsInitExpressions = false
         override _.requiresHandlingOfEmptySequences = true
         override _.requiresHandlingOfZeroArrays = true
 
 
-        override _.getPointer  (fpt:FuncParamType) =
-            match fpt with
-            |VALUE x        -> sprintf "(&(%s))" x
-            |POINTER x      -> x
-            |FIXARRAY x     -> x
+        override this.getPointer (sel: Selection) =
+            let str = sel.joined this
+            match sel.selectionType with
+            | Value -> $"(&({str}))"
+            | _ -> str
 
-        override this.getValue (fpt:FuncParamType) =
-            match fpt with
-            | VALUE x        -> x
-            | POINTER x      -> sprintf "(*(%s))" x
-            | FIXARRAY x     -> x
+        override this.getValue (sel: Selection) =
+            let str = sel.joined this
+            match sel.selectionType with
+            | Pointer -> $"(*({str}))"
+            | _ -> str
 
-        override this.getAccess  (fpt:FuncParamType) = getAccess_c fpt
+        override this.getAccess  (sel: Selection) = getAccess_c sel
 
-        override this.ArrayAccess idx = "[" + idx + "]"
+        override this.getAccess2 (acc: Accessor) = getAccess2_c acc
+        override this.getPtrPrefix _ = ""
 
-        override this.getPtrPrefix (fpt: FuncParamType) = 
-            match fpt with
-            | VALUE x        -> ""
-            | POINTER x      -> ""
-            | FIXARRAY x     -> ""
+        override this.getPtrSuffix (sel: Selection) =
+            match sel.selectionType with
+            | Pointer -> "*"
+            | _ -> ""
 
-        override this.getPtrSuffix (fpt: FuncParamType) = 
-            match fpt with
-            | VALUE x        -> ""
-            | POINTER x      -> "*"
-            | FIXARRAY x     -> ""
+        override this.getStar (sel: Selection) =
+            match sel.selectionType with
+            | Pointer -> "*"
+            | _ -> ""
 
-        override this.getStar  (fpt:FuncParamType) =
-            match fpt with
-            | VALUE x        -> ""
-            | POINTER x      -> "*"
-            | FIXARRAY x     -> ""
-
-        override this.getArrayItem (fpt:FuncParamType) (idx:string) (childTypeIsString: bool) =
-            let newPath = sprintf "%s%sarr[%s]" fpt.p (this.getAccess fpt) idx
-            if childTypeIsString then (FIXARRAY newPath) else (VALUE newPath)
-        
         override this.setNamedItemBackendName0 (nm:Asn1Ast.NamedItem) (newValue:string) : Asn1Ast.NamedItem =
             {nm with c_name = newValue}
         override this.getNamedItemBackendName0 (nm:Asn1Ast.NamedItem)  = nm.c_name
 
-        override this.getNamedItemBackendName (defOrRef:TypeDefintionOrReference option) (nm:Asn1AcnAst.NamedItem) = 
+        override this.getArrayItem (sel: Selection) (idx:string) (childTypeIsString: bool) =
+            (sel.appendSelection "arr" FixArray false).append (ArrayAccess (idx, if childTypeIsString then FixArray else Value))
+
+        override this.getNamedItemBackendName (defOrRef:TypeDefinitionOrReference option) (nm:Asn1AcnAst.NamedItem) =
             ToC nm.c_name
-        override this.getNamedItemBackendName2 (_:string) (_:string) (nm:Asn1AcnAst.NamedItem) = 
+        override this.getNamedItemBackendName2 (_:string) (_:string) (nm:Asn1AcnAst.NamedItem) =
             ToC nm.c_name
         override this.decodeEmptySeq _ = None
         override this.decode_nullType _ = None
@@ -115,7 +112,7 @@ type LangGeneric_c() =
 
         override this.typeDef (ptd:Map<ProgrammingLanguage, FE_PrimitiveTypeDefinition>) = ptd.[C]
         override this.getTypeDefinition (td:Map<ProgrammingLanguage, FE_TypeDefinition>) = td.[C]
-        override this.getEnmTypeDefintion (td:Map<ProgrammingLanguage, FE_EnumeratedTypeDefinition>) = td.[C]
+        override this.getEnumTypeDefinition (td:Map<ProgrammingLanguage, FE_EnumeratedTypeDefinition>) = td.[C]
         override this.getStrTypeDefinition (td:Map<ProgrammingLanguage, FE_StringTypeDefinition>) = td.[C]
         override this.getChoiceTypeDefinition (td:Map<ProgrammingLanguage, FE_ChoiceTypeDefinition>) = td.[C]
         override this.getSequenceTypeDefinition (td:Map<ProgrammingLanguage, FE_SequenceTypeDefinition>) = td.[C]
@@ -134,32 +131,33 @@ type LangGeneric_c() =
             let acnRtl = match encodings |> Seq.exists(fun e -> e = ACN) with true -> ["asn1crt_encoding_acn"] | false -> []
             let xerRtl = match encodings |> Seq.exists(fun e -> e = XER) with true -> ["asn1crt_encoding_xer"] | false -> []
             encRtl@uperRtl@acnRtl@xerRtl
-            
 
 
-        override this.getEmptySequenceInitExpression () = "{}"
+
+        override this.getEmptySequenceInitExpression _ = "{}"
         override this.callFuncWithNoArgs () = "()"
         override this.rtlModuleName  = ""
         override this.AssignOperator = "="
         override this.TrueLiteral = "TRUE"
         override this.FalseLiteral = "FALSE"
-        override this.emtyStatement = ""
+        override this.emptyStatement = ""
         override this.bitStreamName = "BitStream"
-        override this.unaryNotOperator    = "!"  
-        override this.modOp               = "%"  
-        override this.eqOp                = "==" 
-        override this.neqOp               = "!=" 
-        override this.andOp               = "&&" 
-        override this.orOp                = "||" 
-        override this.initMetod           = InitMethod.Procedure
-
+        override this.unaryNotOperator    = "!"
+        override this.modOp               = "%"
+        override this.eqOp                = "=="
+        override this.neqOp               = "!="
+        override this.andOp               = "&&"
+        override this.orOp                = "||"
+        override this.initMethod           = InitMethod.Procedure
+        override _.decodingKind = InPlace
+        override _.usesWrappedOptional = false
         override this.castExpression (sExp:string) (sCastType:string) = sprintf "(%s)(%s)" sCastType sExp
         override this.createSingleLineComment (sText:string) = sprintf "/*%s*/" sText
-            
+
         override _.SpecNameSuffix = ""
-        override _.SpecExtention = "h"
-        override _.BodyExtention = "c"
-        override _.Keywords  = CommonTypes.c_keyworkds
+        override _.SpecExtension = "h"
+        override _.BodyExtension = "c"
+        override _.Keywords  = CommonTypes.c_keywords
 
 
         override _.getValueAssignmentName (vas: ValueAssignment) = vas.c_name
@@ -168,111 +166,62 @@ type LangGeneric_c() =
         override this.allowsSrcFilesWithNoFunctions = true
         override this.requiresValueAssignmentsInSrcFile = true
         override this.supportsStaticVerification = false
-        
-        override this.getSeqChild (fpt:FuncParamType) (childName:string) (childTypeIsString: bool) (removeDots: bool) =
-            let newPath = sprintf "%s%s%s" fpt.p (this.getAccess fpt) childName
-            if childTypeIsString then (FIXARRAY newPath) else (VALUE newPath)
-        override this.getChChild (fpt:FuncParamType) (childName:string) (childTypeIsString: bool) : FuncParamType =
-            let newPath = sprintf "%s%su.%s" fpt.p (this.getAccess fpt) childName
-            if childTypeIsString then (FIXARRAY newPath) else (VALUE newPath)
-            
-        override this.choiceIDForNone (typeIdsSet:Map<string,int>) (id:ReferenceToType) =  
+
+        override this.getSeqChild (sel: Selection) (childName:string) (childTypeIsString: bool) (childIsOptional: bool) =
+            sel.appendSelection childName (if childTypeIsString then FixArray else Value) childIsOptional
+
+        override this.getChChild (sel: Selection) (childName:string) (childTypeIsString: bool) : Selection =
+            (sel.appendSelection "u" Value false).appendSelection childName (if childTypeIsString then FixArray else Value) false
+
+        override this.choiceIDForNone (typeIdsSet:Map<string,int>) (id:ReferenceToType) =
             let prefix = ToC (id.AcnAbsPath.Tail.StrJoin("_").Replace("#","elem"))
             match typeIdsSet.TryFind prefix with
-            | None  -> prefix + "_NONE" 
-            | Some a when a = 1 -> prefix + "_NONE" 
-            | Some a            -> ToC (id.AcnAbsPath.StrJoin("_").Replace("#","elem")) + "_NONE" 
+            | None  -> prefix + "_NONE"
+            | Some a when a = 1 -> prefix + "_NONE"
+            | Some a            -> ToC (id.AcnAbsPath.StrJoin("_").Replace("#","elem")) + "_NONE"
 
-        override this.presentWhenName (defOrRef:TypeDefintionOrReference option) (ch:ChChildInfo) : string =
+        override this.presentWhenName (defOrRef:TypeDefinitionOrReference option) (ch:ChChildInfo) : string =
             (ToC ch._present_when_name_private) + "_PRESENT"
         override this.getParamTypeSuffix (t:Asn1AcnAst.Asn1Type) (suf:string) (c:Codec) : CallerScope =
-            match c with
-            | Encode  ->
-                match t.Kind with
-                | Asn1AcnAst.Integer         _ -> {CallerScope.modName = t.id.ModName; arg= POINTER ("pVal" + suf)    }
-                | Asn1AcnAst.Real            _ -> {CallerScope.modName = t.id.ModName; arg= POINTER ("pVal" + suf)    }
-                | Asn1AcnAst.IA5String       _ -> {CallerScope.modName = t.id.ModName; arg= FIXARRAY ("val" + suf) }
-                | Asn1AcnAst.NumericString   _ -> {CallerScope.modName = t.id.ModName; arg= FIXARRAY ("val" + suf) }
-                | Asn1AcnAst.OctetString     _ -> {CallerScope.modName = t.id.ModName; arg= POINTER ("pVal" + suf) }
-                | Asn1AcnAst.NullType        _ -> {CallerScope.modName = t.id.ModName; arg= POINTER ("pVal" + suf)    }
-                | Asn1AcnAst.BitString       _ -> {CallerScope.modName = t.id.ModName; arg= POINTER ("pVal" + suf) }
-                | Asn1AcnAst.Boolean         _ -> {CallerScope.modName = t.id.ModName; arg= POINTER ("pVal" + suf)    }
-                | Asn1AcnAst.Enumerated      _ -> {CallerScope.modName = t.id.ModName; arg= POINTER ("pVal" + suf)    }
-                | Asn1AcnAst.SequenceOf      _ -> {CallerScope.modName = t.id.ModName; arg= POINTER ("pVal" + suf) }
-                | Asn1AcnAst.Sequence        _ -> {CallerScope.modName = t.id.ModName; arg= POINTER ("pVal" + suf) }
-                | Asn1AcnAst.Choice          _ -> {CallerScope.modName = t.id.ModName; arg= POINTER ("pVal" + suf) }
-                | Asn1AcnAst.ObjectIdentifier _ -> {CallerScope.modName = t.id.ModName; arg= POINTER ("pVal" + suf) }
-                | Asn1AcnAst.TimeType _         -> {CallerScope.modName = t.id.ModName; arg= POINTER ("pVal" + suf) }
-                | Asn1AcnAst.ReferenceType r -> 
-                    this.getParamTypeSuffix r.resolvedType suf c
-            | Decode  ->
-                match t.Kind with
-                | Asn1AcnAst.Integer            _ -> {CallerScope.modName = t.id.ModName; arg= POINTER ("pVal" + suf) }
-                | Asn1AcnAst.Real               _ -> {CallerScope.modName = t.id.ModName; arg= POINTER ("pVal" + suf) }
-                | Asn1AcnAst.IA5String          _ -> {CallerScope.modName = t.id.ModName; arg= FIXARRAY ("val" + suf) }
-                | Asn1AcnAst.NumericString      _ -> {CallerScope.modName = t.id.ModName; arg= FIXARRAY ("val" + suf) }
-                | Asn1AcnAst.OctetString        _ -> {CallerScope.modName = t.id.ModName; arg= POINTER ("pVal" + suf) }
-                | Asn1AcnAst.NullType           _ -> {CallerScope.modName = t.id.ModName; arg= POINTER ("pVal" + suf) }
-                | Asn1AcnAst.BitString          _ -> {CallerScope.modName = t.id.ModName; arg= POINTER ("pVal" + suf) }
-                | Asn1AcnAst.Boolean            _ -> {CallerScope.modName = t.id.ModName; arg= POINTER ("pVal" + suf) }
-                | Asn1AcnAst.Enumerated         _ -> {CallerScope.modName = t.id.ModName; arg= POINTER ("pVal" + suf) }
-                | Asn1AcnAst.SequenceOf         _ -> {CallerScope.modName = t.id.ModName; arg= POINTER ("pVal" + suf) }
-                | Asn1AcnAst.Sequence           _ -> {CallerScope.modName = t.id.ModName; arg= POINTER ("pVal" + suf) }
-                | Asn1AcnAst.Choice             _ -> {CallerScope.modName = t.id.ModName; arg= POINTER ("pVal" + suf) }
-                | Asn1AcnAst.ObjectIdentifier _ -> {CallerScope.modName = t.id.ModName; arg= POINTER ("pVal" + suf) }
-                | Asn1AcnAst.TimeType _ -> {CallerScope.modName = t.id.ModName; arg= POINTER ("pVal" + suf) }
-                | Asn1AcnAst.ReferenceType r -> this.getParamTypeSuffix r.resolvedType suf c
-        
-        override this.getParamValue  (t:Asn1AcnAst.Asn1Type) (p:FuncParamType)  (c:Codec) =
-            match c with
-            | Encode  ->
-                match t.Kind with
-                | Asn1AcnAst.Integer      _ -> this.getPointer p
-                | Asn1AcnAst.Real         _ -> this.getPointer p
-                | Asn1AcnAst.IA5String    _ -> this.getValue   p //FIXARRAY "val"
-                | Asn1AcnAst.NumericString _-> this.getValue   p// FIXARRAY "val"
-                | Asn1AcnAst.OctetString  _ -> this.getPointer p
-                | Asn1AcnAst.NullType     _ -> this.getPointer p
-                | Asn1AcnAst.BitString    _ -> this.getPointer p
-                | Asn1AcnAst.Boolean      _ -> this.getPointer p
-                | Asn1AcnAst.Enumerated   _ -> this.getPointer p
-                | Asn1AcnAst.SequenceOf   _ -> this.getPointer p
-                | Asn1AcnAst.Sequence     _ -> this.getPointer p
-                | Asn1AcnAst.Choice       _ -> this.getPointer p
-                | Asn1AcnAst.ObjectIdentifier _ -> this.getPointer p
-                | Asn1AcnAst.TimeType _ -> this.getPointer p
-                | Asn1AcnAst.ReferenceType r -> this.getParamValue r.resolvedType p  c
-            | Decode  ->
-                match t.Kind with
-                | Asn1AcnAst.IA5String    _  -> this.getValue p //FIXARRAY "val"
-                | Asn1AcnAst.NumericString _ -> this.getValue p// FIXARRAY "val"
-                | Asn1AcnAst.ReferenceType r -> this.getParamValue r.resolvedType p  c
-                | _                          -> this.getPointer p
+            let rec getRecvType (kind: Asn1AcnAst.Asn1TypeKind) =
+                match kind with
+                | Asn1AcnAst.NumericString _ | Asn1AcnAst.IA5String _ -> FixArray
+                | Asn1AcnAst.ReferenceType r -> getRecvType r.resolvedType.Kind
+                | _ -> Pointer
+            let recvId = "pVal" + suf
+            {CallerScope.modName = t.id.ModName; arg = Selection.emptyPath recvId (getRecvType t.Kind) }
+
+        override this.getParamValue  (t:Asn1AcnAst.Asn1Type) (sel: Selection)  (c:Codec) =
+            match t.Kind with
+            | Asn1AcnAst.IA5String    _  -> this.getValue sel //FIXARRAY "val"
+            | Asn1AcnAst.NumericString _ -> this.getValue sel// FIXARRAY "val"
+            | Asn1AcnAst.ReferenceType r -> this.getParamValue r.resolvedType sel  c
+            | _                          -> this.getPointer sel
 
         override this.getLocalVariableDeclaration (lv:LocalVariable) : string  =
             match lv with
             | SequenceOfIndex (i,None)                  -> sprintf "int i%d;" i
-            | SequenceOfIndex (i,Some iv)               -> sprintf "int i%d=%d;" i iv
+            | SequenceOfIndex (i,Some iv)               -> sprintf "int i%d=%s;" i iv
             | IntegerLocalVariable (name,None)          -> sprintf "int %s;" name
-            | IntegerLocalVariable (name,Some iv)       -> sprintf "int %s=%d;" name iv
+            | IntegerLocalVariable (name,Some iv)       -> sprintf "int %s=%s;" name iv
             | Asn1SIntLocalVariable (name,None)         -> sprintf "asn1SccSint %s;" name
-            | Asn1SIntLocalVariable (name,Some iv)      -> sprintf "asn1SccSint %s=%d;" name iv
+            | Asn1SIntLocalVariable (name,Some iv)      -> sprintf "asn1SccSint %s=%s;" name iv
             | Asn1UIntLocalVariable (name,None)         -> sprintf "asn1SccUint %s;" name
-            | Asn1UIntLocalVariable (name,Some iv)      -> sprintf "asn1SccUint %s=%d;" name iv
+            | Asn1UIntLocalVariable (name,Some iv)      -> sprintf "asn1SccUint %s=%s;" name iv
             | FlagLocalVariable (name,None)             -> sprintf "flag %s;" name
-            | FlagLocalVariable (name,Some iv)          -> sprintf "flag %s=%d;" name iv
+            | FlagLocalVariable (name,Some iv)          -> sprintf "flag %s=%s;" name iv
             | BooleanLocalVariable (name,None)          -> sprintf "flag %s;" name
-            | BooleanLocalVariable (name,Some iv)       -> sprintf "flag %s=%s;" name (if iv then "TRUE" else "FALSE")
+            | BooleanLocalVariable (name,Some iv)       -> sprintf "flag %s=%s;" name iv
             | AcnInsertedChild(name, vartype, initVal)  -> sprintf "%s %s;" vartype name
             | GenericLocalVariable lv                   ->
                 sprintf "%s%s %s%s;" (if lv.isStatic then "static " else "") lv.varType lv.name (if lv.arrSize.IsNone then "" else "["+lv.arrSize.Value+"]")
 
-            
-        override this.getLongTypedefName (tdr:TypeDefintionOrReference) : string =
+
+        override this.getLongTypedefName (tdr:TypeDefinitionOrReference) : string =
             match tdr with
             | TypeDefinition  td -> td.typedefName
             | ReferenceToExistingDefinition ref -> ref.typedefName
-                    
+
         //override this.getEnmLongTypedefName (td:FE_EnumeratedTypeDefinition) _ = td;
 
         override this.toHex n = sprintf "0x%x" n
@@ -291,13 +240,13 @@ type LangGeneric_c() =
                 catd                 = false
                 //createBitStringFunction = createBitStringFunction_funcBody_c
                 seqof_lv              =
-                  (fun id minSize maxSize -> [SequenceOfIndex (id.SeqeuenceOfLevel + 1, None)])
+                  (fun id minSize maxSize -> [SequenceOfIndex (id.SequenceOfLevel + 1, None)])
             }
-        override this.acn = 
+        override this.acn =
             {
                 Acn_parts.null_valIsUnReferenced = true
                 checkBitPatternPresentResult = true
-                getAcnDepSizeDeterminantLocVars = 
+                getAcnDepSizeDeterminantLocVars =
                     fun  sReqBytesForUperEncoding ->
                         [
                             GenericLocalVariable {GenericLocalVariable.name = "arr"; varType = "byte"; arrSize = Some sReqBytesForUperEncoding; isStatic = true; initExp = None}
@@ -306,7 +255,7 @@ type LangGeneric_c() =
                 choice_handle_always_absent_child = false
                 choice_requires_tmp_decoding = false
             }
-        override this.init = 
+        override this.init =
             {
                 Initialize_parts.zeroIA5String_localVars    = fun _ -> []
                 choiceComponentTempInit                     = false
@@ -327,30 +276,30 @@ type LangGeneric_c() =
 
         override this.CreateAuxFiles (r:AstRoot)  (di:DirInfo) (arrsSrcTstFiles : string list, arrsHdrTstFiles:string list) =
             let CreateCMainFile (r:AstRoot)  outDir  =
-                //Main file for test cass    
+                //Main file for test cass
                 let printMain =    test_cases_c.PrintMain //match l with C -> test_cases_c.PrintMain | Ada -> test_cases_c.PrintMain
                 let content = printMain "testsuite"
                 let outFileName = Path.Combine(outDir, "mainprogram.c")
                 File.WriteAllText(outFileName, content.Replace("\r",""))
 
 
-            let generateVisualStudtioProject (r:DAst.AstRoot) outDir (arrsSrcTstFilesX, arrsHdrTstFilesX) =
-                let extrSrcFiles, extrHdrFiles = 
-                    r.args.encodings |> 
-                    List.collect(fun e -> 
+            let generateVisualStudioProject (r:DAst.AstRoot) outDir (arrsSrcTstFilesX, arrsHdrTstFilesX) =
+                let extrSrcFiles, extrHdrFiles =
+                    r.args.encodings |>
+                    List.collect(fun e ->
                         match e with
                         | Asn1Encoding.UPER -> ["asn1crt_encoding";"asn1crt_encoding_uper"]
                         | Asn1Encoding.ACN  -> ["asn1crt_encoding";"asn1crt_encoding_uper"; "asn1crt_encoding_acn"]
                         | Asn1Encoding.BER  -> ["asn1crt_encoding";"asn1crt_encoding_ber"]
                         | Asn1Encoding.XER  -> ["asn1crt_encoding";"asn1crt_encoding_xer"]
-                    ) |> 
+                    ) |>
                     List.distinct |>
                     List.map(fun a -> a + ".c", a + ".h") |>
                     List.unzip
 
                 let arrsSrcTstFiles = (r.programUnits |> List.map (fun z -> z.testcase_bodyFileName))
                 let arrsHdrTstFiles = (r.programUnits |> List.map (fun z -> z.testcase_specFileName))
-                let vcprjContent = xml_outputs.emitVisualStudioProject 
+                let vcprjContent = xml_outputs.emitVisualStudioProject
                                     ((r.programUnits |> List.map (fun z -> z.bodyFileName))@extrSrcFiles)
                                     ((r.programUnits |> List.map (fun z -> z.specFileName))@extrHdrFiles)
                                     (arrsSrcTstFiles@arrsSrcTstFilesX)
@@ -363,7 +312,7 @@ type LangGeneric_c() =
 
 
             CreateCMainFile r  di.srcDir
-            generateVisualStudtioProject r di.srcDir (arrsSrcTstFiles, arrsHdrTstFiles)
+            generateVisualStudioProject r di.srcDir (arrsSrcTstFiles, arrsHdrTstFiles)
         //AlwaysPresentRtlFuncNames
         override this.AlwaysPresentRtlFuncNames : string list =
             [
@@ -593,8 +542,8 @@ type LangGeneric_c() =
                 "Acn_Dec_Real_IEEE754_32_big_endian_fp32"
                 "Acn_Dec_Real_IEEE754_32_little_endian_fp32"
                 "Acn_Enc_String_Ascii_FixSize"
-                "Acn_Enc_String_Ascii_Null_Teminated"
-                "Acn_Enc_String_Ascii_Null_Teminated_mult"
+                "Acn_Enc_String_Ascii_Null_Terminated"
+                "Acn_Enc_String_Ascii_Null_Terminated_mult"
                 "Acn_Enc_String_Ascii_External_Field_Determinant"
                 "Acn_Enc_String_Ascii_Internal_Field_Determinant"
                 "Acn_Enc_String_CharIndex_FixSize"
@@ -603,8 +552,8 @@ type LangGeneric_c() =
                 "Acn_Enc_IA5String_CharIndex_External_Field_Determinant"
                 "Acn_Enc_IA5String_CharIndex_Internal_Field_Determinant"
                 "Acn_Dec_String_Ascii_FixSize"
-                "Acn_Dec_String_Ascii_Null_Teminated"
-                "Acn_Dec_String_Ascii_Null_Teminated_mult"
+                "Acn_Dec_String_Ascii_Null_Terminated"
+                "Acn_Dec_String_Ascii_Null_Terminated_mult"
                 "Acn_Dec_String_Ascii_External_Field_Determinant"
                 "Acn_Dec_String_Ascii_Internal_Field_Determinant"
                 "Acn_Dec_String_CharIndex_FixSize"
@@ -636,7 +585,7 @@ type LangGeneric_c() =
                 "ObjectIdentifier_subidentifiers_uper_decode"
                 "ObjectIdentifier_subidentifiers_uper_encode"
                 "BitStream_DecodeNonNegativeInteger32Neg"
-             ]            
+             ]
         override this.detectFunctionCalls (sourceCode: string) (functionName: string) : string list =
             let knownCases =
                 [
@@ -691,12 +640,10 @@ type LangGeneric_c() =
             newLines |> String.concat "\n"
 
         override this.removeFunctionFromBody (sourceCode: string) (functionName: string) : string =
-            //if functionName = "BitStream_DecodeNonNegativeInteger32Neg" then
-            //    printfn "debug"
             let pattern = @"[^\s]+\s+" + functionName + @"\s*\([^\)]*\)\s*\{"
             let regex = System.Text.RegularExpressions.Regex(pattern)
             let matches = regex.Matches(sourceCode)
-    
+
             if matches.Count = 0 then
                 sourceCode
             else
@@ -721,5 +668,5 @@ type LangGeneric_c() =
 
         override this.getDirInfo (target:Targets option) rootDir =
             {rootDir = rootDir; srcDir=rootDir;asn1rtlDir=rootDir;boardsDir=rootDir}
-        
+
         override this.getTopLevelDirs (target:Targets option) = []

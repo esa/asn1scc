@@ -23,71 +23,71 @@ let printUperRange (u:uperRange<'a>) =
     | Full              -> "[MIN .. MAX]"                 // (-inf, +inf)
 
 let printCharSet (cs:char array) =
-    cs|> Seq.filter (fun c -> not (Char.IsControl c)) |> Seq.StrJoin "" 
+    cs|> Seq.filter (fun c -> not (Char.IsControl c)) |> Seq.StrJoin ""
 
 let printSizeMinMax a b = sprintf "[%d .. %d]" a b
 
-let printGenericConstraint printValue (c:GenericConstraint<'v>)  = 
+let printGenericConstraint printValue (c:GenericConstraint<'v>)  =
     foldGenericConstraint
         (fun r1 r2 b s      -> stg_asn1.Print_UnionConstraint r1 r2, s)
         (fun r1 r2 s        -> stg_asn1.Print_IntersectionConstraint r1 r2 , s)
-        (fun r s            -> stg_asn1.Print_AllExceptConstraint r, s)       
+        (fun r s            -> stg_asn1.Print_AllExceptConstraint r, s)
         (fun r1 r2 s        -> stg_asn1.Print_ExceptConstraint r1 r2, s)
-        (fun r s            -> stg_asn1.Print_RootConstraint r, s)       
+        (fun r s            -> stg_asn1.Print_RootConstraint r, s)
         (fun r1 r2 s        -> stg_asn1.Print_RootConstraint2 r1 r2, s)
-        (fun v rv s         -> stg_asn1.Print_SingleValueContraint (printValue v),s)
-        c 
+        (fun v rv s         -> stg_asn1.Print_SingleValueConstraint (printValue v),s)
+        c
         0
 
-let printRangeConstraint0 printValue printValue2  (c:RangeTypeConstraint<'v1,'v2>) = 
+let printRangeConstraint0 printValue printValue2  (c:RangeTypeConstraint<'v1,'v2>) =
     foldRangeTypeConstraint
         (fun r1 r2 b s      -> stg_asn1.Print_UnionConstraint r1 r2, s)
         (fun r1 r2 s        -> stg_asn1.Print_IntersectionConstraint r1 r2 , s)
-        (fun r s            -> stg_asn1.Print_AllExceptConstraint r, s)       
+        (fun r s            -> stg_asn1.Print_AllExceptConstraint r, s)
         (fun r1 r2 s        -> stg_asn1.Print_ExceptConstraint r1 r2, s)
-        (fun r s            -> stg_asn1.Print_RootConstraint r, s)       
+        (fun r s            -> stg_asn1.Print_RootConstraint r, s)
         (fun r1 r2 s        -> stg_asn1.Print_RootConstraint2 r1 r2, s)
-        (fun v rv s         -> stg_asn1.Print_SingleValueContraint (printValue2 v),s)
-        (fun v1 v2  b1 b2 s -> stg_asn1.Print_RangeContraint (printValue v1) (printValue v2) b1 b2, s)
-        (fun v1 b s         -> stg_asn1.Print_RangeContraint_val_MAX (printValue v1) b ,s )
-        (fun v2 b s         -> stg_asn1.Print_RangeContraint_MIN_val (printValue v2) b, s)
-        c 
+        (fun v rv s         -> stg_asn1.Print_SingleValueConstraint (printValue2 v),s)
+        (fun v1 v2  b1 b2 s -> stg_asn1.Print_RangeConstraint (printValue v1) (printValue v2) b1 b2, s)
+        (fun v1 b s         -> stg_asn1.Print_RangeConstraint_val_MAX (printValue v1) b ,s )
+        (fun v2 b s         -> stg_asn1.Print_RangeConstraint_MIN_val (printValue v2) b, s)
+        c
         0
 
-let printRangeConstraint printValue (c:RangeTypeConstraint<'v1,'v1>)  = 
-    printRangeConstraint0 printValue printValue c 
+let printRangeConstraint printValue (c:RangeTypeConstraint<'v1,'v1>)  =
+    printRangeConstraint0 printValue printValue c
 
-let printSizableConstraint printValue (c:SizableTypeConstraint<'v>)  = 
+let printSizableConstraint printValue (c:SizableTypeConstraint<'v>)  =
     foldSizableTypeConstraint2
         (fun r1 r2 b s      -> stg_asn1.Print_UnionConstraint r1 r2, s)
         (fun r1 r2 s        -> stg_asn1.Print_IntersectionConstraint r1 r2 , s)
-        (fun r s            -> stg_asn1.Print_AllExceptConstraint r, s)       
+        (fun r s            -> stg_asn1.Print_AllExceptConstraint r, s)
         (fun r1 r2 s        -> stg_asn1.Print_ExceptConstraint r1 r2, s)
-        (fun r s            -> stg_asn1.Print_RootConstraint r, s)       
+        (fun r s            -> stg_asn1.Print_RootConstraint r, s)
         (fun r1 r2 s        -> stg_asn1.Print_RootConstraint2 r1 r2, s)
-        (fun v rv s         -> stg_asn1.Print_SingleValueContraint (printValue v),s)
-        (fun sc s           -> 
-            let sizeCon,_ = printRangeConstraint (fun ui -> ui.ToString()) sc 
-            stg_asn1.Print_SizeContraint sizeCon, s)
-        c 
+        (fun v rv s         -> stg_asn1.Print_SingleValueConstraint (printValue v),s)
+        (fun sc s           ->
+            let sizeCon,_ = printRangeConstraint (fun ui -> ui.ToString()) sc
+            stg_asn1.Print_SizeConstraint sizeCon, s)
+        c
         0
 
-let printAlphaConstraint printValue (c:IA5StringConstraint)  = 
+let printAlphaConstraint printValue (c:IA5StringConstraint)  =
     foldStringTypeConstraint2
         (fun r1 r2 b s      -> stg_asn1.Print_UnionConstraint r1 r2, s)
         (fun r1 r2 s        -> stg_asn1.Print_IntersectionConstraint r1 r2 , s)
-        (fun r s            -> stg_asn1.Print_AllExceptConstraint r, s)       
+        (fun r s            -> stg_asn1.Print_AllExceptConstraint r, s)
         (fun r1 r2 s        -> stg_asn1.Print_ExceptConstraint r1 r2, s)
-        (fun r s            -> stg_asn1.Print_RootConstraint r, s)       
+        (fun r s            -> stg_asn1.Print_RootConstraint r, s)
         (fun r1 r2 s        -> stg_asn1.Print_RootConstraint2 r1 r2, s)
-        (fun v rv s         -> stg_asn1.Print_SingleValueContraint (printValue v),s)
-        (fun sc s           -> 
-            let sizeCon,_ = printRangeConstraint (fun ui -> ui.ToString()) sc 
-            stg_asn1.Print_SizeContraint sizeCon, s)
-        (fun sc s           -> 
-            let sizeCon,_ = printRangeConstraint0 (fun ui -> "\"" + ui.ToString() + "\"") (fun ui -> "\"" + ui.ToString() + "\"") sc 
-            stg_asn1.Print_AlphabetContraint sizeCon, s)
-        c 
+        (fun v rv s         -> stg_asn1.Print_SingleValueConstraint (printValue v),s)
+        (fun sc s           ->
+            let sizeCon,_ = printRangeConstraint (fun ui -> ui.ToString()) sc
+            stg_asn1.Print_SizeConstraint sizeCon, s)
+        (fun sc s           ->
+            let sizeCon,_ = printRangeConstraint0 (fun ui -> "\"" + ui.ToString() + "\"") (fun ui -> "\"" + ui.ToString() + "\"") sc
+            stg_asn1.Print_AlphabetConstraint sizeCon, s)
+        c
         0
 
 
@@ -106,9 +106,9 @@ and printReferenceToValue (r:AstRoot) (p:PRINT_CONTENT) (ReferenceToValue (path,
         | false -> p1 + "." + p2
     | CON ->
         PrintAsn1GenericValue r r.valsMap.[(ReferenceToValue (path, vpath))]
-    
 
-and PrintAsn1GenericValue (r:AstRoot) (v:Asn1GenericValue) = 
+
+and PrintAsn1GenericValue (r:AstRoot) (v:Asn1GenericValue) =
     match v with
     |IntegerValue(v)         -> stg_asn1.Print_IntegerValue v.Value
     |RealValue(v)            -> stg_asn1.Print_RealValue v.Value
@@ -143,20 +143,20 @@ and PrintType (r:AstRoot) (t:Asn1Type) =
     |BitString x     -> stg_asn1.Print_BitString (cmb x |> List.map (printCon printSizableConstraint (fun x -> stg_asn1.Print_BitStringValue x.Value ) ) )
     |OctetString  x  -> stg_asn1.Print_OctetString (cmb x  |> List.map (printCon printSizableConstraint (fun x -> stg_asn1.Print_OctetStringValue x.Value) ) )
     |NullType _      -> stg_asn1.Print_NullType []
-    |IA5String x  -> 
+    |IA5String x  ->
         stg_asn1.Print_IA5String2 (printSizeMinMax x.minSize x.maxSize) (printCharSet x.charSet ) (cmb x |> List.map (printCon printAlphaConstraint (fun x -> x.ToString()) ) )
     |Enumerated x  ->
         let items =
             x.items |> List.map(fun itm -> stg_asn1.Print_Enumerated_child itm.name true (itm.Value.ToString() ))
-        let cons = cmb x |> List.map (printCon printGenericConstraint (fun x -> x.ToString()) ) 
+        let cons = cmb x |> List.map (printCon printGenericConstraint (fun x -> x.ToString()) )
         stg_asn1.Print_Enumerated items  cons
     |Choice x   ->
         let printChild (c:ChChildInfo) = stg_asn1.Print_Choice_child c.name (printReferenceToType r CON c.chType.id)
-        let cons = cmb x |> List.map (printCon printGenericConstraint (fun chv -> stg_asn1.Print_ChValue chv.Value.name (printReferenceToValue r CON chv.Value.Value.id)  ) ) 
+        let cons = cmb x |> List.map (printCon printGenericConstraint (fun chv -> stg_asn1.Print_ChValue chv.Value.name (printReferenceToValue r CON chv.Value.Value.id)  ) )
         stg_asn1.Print_Choice (x.children |> Seq.map printChild |> Seq.toArray) cons
     |Sequence x ->
-        let printChild (c:SeqChildInfo) = 
-            let bIsOptionalOrDefault, soDefValue = 
+        let printChild (c:SeqChildInfo) =
+            let bIsOptionalOrDefault, soDefValue =
                 match c.optionality with
                 | Some(CAst.AlwaysAbsent) ->  true, None
                 | Some(CAst.AlwaysPresent) -> true, None
@@ -166,19 +166,19 @@ and PrintType (r:AstRoot) (t:Asn1Type) =
                     | Some v                -> true, Some (printReferenceToValue r CON v.id)
                 | None                -> false, None
             stg_asn1.Print_Sequence_child c.name (printReferenceToType r CON c.chType.id) bIsOptionalOrDefault soDefValue
-        let cons = cmb x |> List.map (printCon printGenericConstraint (fun sqv -> stg_asn1.Print_SeqValue (sqv.Value |> List.map(fun nmv -> stg_asn1.Print_SeqValue_Child nmv.name (printReferenceToValue r CON nmv.Value.id) ) )  ) ) 
+        let cons = cmb x |> List.map (printCon printGenericConstraint (fun sqv -> stg_asn1.Print_SeqValue (sqv.Value |> List.map(fun nmv -> stg_asn1.Print_SeqValue_Child nmv.name (printReferenceToValue r CON nmv.Value.id) ) )  ) )
         stg_asn1.Print_Sequence (x.children |> Seq.map printChild |> Seq.toArray) cons
-    |SequenceOf x  -> 
-        let cons = cmb x |> List.map (printCon printSizableConstraint (fun sqofv -> stg_asn1.Print_SeqOfValue (sqofv.Value |> Seq.map (fun v -> printReferenceToValue r CON v.id) |> Seq.toArray) ) ) 
+    |SequenceOf x  ->
+        let cons = cmb x |> List.map (printCon printSizableConstraint (fun sqofv -> stg_asn1.Print_SeqOfValue (sqofv.Value |> Seq.map (fun v -> printReferenceToValue r CON v.id) |> Seq.toArray) ) )
         stg_asn1.Print_SequenceOf (printReferenceToType r CON x.childType.id) cons
 
 
-let PrintTypeAss (r:AstRoot) (t:Asn1Type)  = 
+let PrintTypeAss (r:AstRoot) (t:Asn1Type)  =
     let nm = match t.asn1Name with Some x -> x | None -> "anonymous"
     let bnm = t.baseType |> Option.map (fun t -> printReferenceToType r REF t.id)
     stg_asn1.PrintTypeAssignment2 (printReferenceToType r REF t.id) bnm nm (PrintType r t)
 
-let PrintValueAss (r:AstRoot) (v:Asn1GenericValue) = 
+let PrintValueAss (r:AstRoot) (v:Asn1GenericValue) =
     stg_asn1.PrintValueAssignment (printReferenceToValue r REF v.id) (printReferenceToType r REF v.refToType) (PrintAsn1GenericValue r v)
 
 let PrintModule (r:AstRoot) (m:Asn1Module) =

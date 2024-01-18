@@ -132,7 +132,7 @@ namespace LspServer
         {
             await Task.Yield();
             var locations = new List<LocationOrLocationLink>();
-            
+
             _logger.LogInformation("gmamais MyCompletionHandler(CompletionItem {0}), toString = {1}", request.Label, request.ToString());
 
             return request;
@@ -190,7 +190,7 @@ namespace LspServer
 
     /**
      * Called whenever an ASN.1 or ACN file is opened or modified.
-     * 
+     *
      */
 
     internal class TextDocumentHandler : TextDocumentSyncHandlerBase
@@ -203,7 +203,7 @@ namespace LspServer
         private readonly DocumentSelector _documentSelector = new DocumentSelector(
             new DocumentFilter { Pattern = "**/*.asn"},
             new DocumentFilter { Pattern = "**/*.asn1" },
-            
+
             new DocumentFilter { Pattern = "**/*.acn"}
         );
 
@@ -227,7 +227,7 @@ namespace LspServer
 
                 foreach (TextDocumentContentChangeEvent textChange in notification.ContentChanges)
                 {
-                    if (textChange == null)
+                    if (textChange == null || textChange.Range == null)
                         continue;
                     lines = Server.TextSync.ApplyChange(lines, GetFileChangeDetails(textChange.Range, textChange.Text));
                 }
@@ -235,7 +235,7 @@ namespace LspServer
             }
             else
             {
-                
+
                 content = "";
                 foreach (var c in notification.ContentChanges)
                 {

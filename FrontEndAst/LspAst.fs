@@ -26,19 +26,19 @@ type LspFileType =
 
 
 type LspType =
-    | LspInteger 
-    | LspReal    
-    | LspIA5String 
+    | LspInteger
+    | LspReal
+    | LspIA5String
     | LspNumericString
-    | LspOctetString 
+    | LspOctetString
     | LspObjectIdentifier
     | LspRelativeObjectIdentifier
-    | LspTimeType         
-    | LspNullType          
-    | LspBitString         
-    | LspBoolean 
+    | LspTimeType
+    | LspNullType
+    | LspBitString
+    | LspBoolean
     | LspEnumerated        of list<string>
-    | LspSequenceOf        of LspType    
+    | LspSequenceOf        of LspType
     | LspSequence          of list<string*LspType>
     | LspChoice            of list<StringLoc*LspType>
     | LspReferenceType     of StringLoc*StringLoc
@@ -47,10 +47,10 @@ type LspType =
 type LspTypeAssignment = {
     name : string
     line0 : int
-    charPos : int 
+    charPos : int
     //lspType : LspType
 }
-with 
+with
     override this.ToString() =
         sprintf "%A" this
 
@@ -61,7 +61,7 @@ type LspError = {
     charPosInline   : int
     msg             : string
 }
-with 
+with
     override this.ToString() = sprintf "%A" this
 
 type LspModule = {
@@ -79,9 +79,9 @@ type LspFile = {
     tasList         : LspTypeAssignment list
     lspFileType     : LspFileType
 }
-with 
+with
     override this.ToString() = sprintf "%A" this
-    member this.AsLines = 
+    member this.AsLines =
         this.content.Split([|"\r\n";"\n"|], StringSplitOptions.None)
 
     //member this.content = String.Join(Environment.NewLine, this.lines)
@@ -113,34 +113,34 @@ let defaultCommandLineSettings  =
         generateConstInitGlobals = false
         icdPdus = None
         handleEmptySequences = false
-    }    
+    }
 
 type LspWorkSpace = {
     logger : (string->int)
     files : LspFile list
     astRoot : Asn1AcnAst.AstRoot option
 }
-with 
+with
     override this.ToString() = sprintf "%A" this
 
 
-let private acnEncPropsPerType = 
+let private acnEncPropsPerType =
 
     [
         (asn1Parser.INTEGER_TYPE,   (acnParser.ENCODING, ["encoding pos-int"; "encoding twos-complement"; "encoding BCD"; "encoding ASCII"]))
         (asn1Parser.INTEGER_TYPE,   (acnParser.SIZE, ["size"]))
-        (asn1Parser.INTEGER_TYPE,   (acnParser.ENDIANNES, ["endianness big"; "endianness little"]))
+        (asn1Parser.INTEGER_TYPE,   (acnParser.ENDIANNESS, ["endianness big"; "endianness little"]))
         (asn1Parser.INTEGER_TYPE,   (acnParser.MAPPING_FUNCTION, ["mapping-function myFunction"]))
 
         (asn1Parser.REAL,           (acnParser.ENCODING, ["encoding IEEE754-1985-32"; "encoding IEEE754-1985-32"]))
-        (asn1Parser.REAL,           (acnParser.ENDIANNES, ["endianness big"; "endianness little"]))
+        (asn1Parser.REAL,           (acnParser.ENDIANNESS, ["endianness big"; "endianness little"]))
 
         (asn1Parser.IA5String, (acnParser.ENCODING, ["encoding ASCII"]))
         (asn1Parser.IA5String, (acnParser.SIZE, ["size other-fld"; "size null-terminated"]))
         (asn1Parser.IA5String, (acnParser.TERMINATION_PATTERN, ["termination-pattern '00'H" ]))
 
-        (asn1Parser.OCTECT_STING, (acnParser.SIZE, ["size other-fld"; "size null-terminated"]))
-        (asn1Parser.OCTECT_STING, (acnParser.TERMINATION_PATTERN, ["termination-pattern '0000'H" ]))
+        (asn1Parser.OCTET_STRING, (acnParser.SIZE, ["size other-fld"; "size null-terminated"]))
+        (asn1Parser.OCTET_STRING, (acnParser.TERMINATION_PATTERN, ["termination-pattern '0000'H" ]))
 
         (asn1Parser.BIT_STRING_TYPE, (acnParser.SIZE, ["size other-fld"; "size null-terminated"]))
         (asn1Parser.BIT_STRING_TYPE, (acnParser.TERMINATION_PATTERN, ["termination-pattern '0000'H" ]))
@@ -151,17 +151,17 @@ let private acnEncPropsPerType =
 
         (asn1Parser.ENUMERATED_TYPE,   (acnParser.ENCODING, ["encoding pos-int"; "encoding twos-complement"; "encoding BCD"; "encoding ASCII"]))
         (asn1Parser.ENUMERATED_TYPE,   (acnParser.SIZE, ["size"]))
-        (asn1Parser.ENUMERATED_TYPE,   (acnParser.ENDIANNES, ["endianness big"; "endianness little"]))
+        (asn1Parser.ENUMERATED_TYPE,   (acnParser.ENDIANNESS, ["endianness big"; "endianness little"]))
         (asn1Parser.ENUMERATED_TYPE,   (acnParser.MAPPING_FUNCTION, ["mapping-function myFunction"]))
         (asn1Parser.ENUMERATED_TYPE,   (acnParser.ENCODE_VALUES, ["encode-values"]))
 
         (asn1Parser.BOOLEAN,      (acnParser.TRUE_VALUE, ["true-value '1'B"]))
         (asn1Parser.BOOLEAN,      (acnParser.FALSE_VALUE, ["false-value '1'B"]))
-        
+
         (asn1Parser.NULL,         (acnParser.PATTERN, ["pattern '1'B"]))
 
         (asn1Parser.CHOICE_TYPE,       (acnParser.DETERMINANT, ["determinant other-fld"]))
-    ] 
+    ]
 
 let getTypeAcnProps typeKind =
     let actType =
@@ -174,9 +174,9 @@ let getTypeAcnProps typeKind =
 
 
 let isAsn1File (fn:string) = fn.ToLower().EndsWith("asn1") || fn.ToLower().EndsWith("asn")
-let isAcnFile  (fn:string) = fn.ToLower().EndsWith("acn") 
+let isAcnFile  (fn:string) = fn.ToLower().EndsWith("acn")
 
-let tryGetFileType filename = 
+let tryGetFileType filename =
     match isAsn1File filename with
     | true -> Some LspAsn1
     | false ->
@@ -190,7 +190,7 @@ let isInside (range : LspRange) (pos: LspPos) =
     elif range.start.line <= pos.line && pos.line < range.end_.line then range.start.charPos <= pos.charPos
     elif range.start.line = pos.line && pos.line = range.end_.line then range.start.charPos <= pos.charPos && pos.charPos <= range.end_.charPos
     else false
-    
+
 
 (*
 Returns the antlr tree nodes based from the leaf to the root based on the current position (line, charpos)
@@ -205,11 +205,11 @@ let getTreeNodesByPosition (fn:LspFile) (lspPos:LspPos) =
             | false -> ()
             | true  ->
                     yield r
-                    for c in r.Children do  
+                    for c in r.Children do
                         yield! getTreeNodesByPosition_aux tokens  c
-        } |> Seq.toList 
+        } |> Seq.toList
 
-    let ret = getTreeNodesByPosition_aux fn.tokens fn.antlrResult.rootItem 
+    let ret = getTreeNodesByPosition_aux fn.tokens fn.antlrResult.rootItem
     List.rev ret
 
 
@@ -263,7 +263,7 @@ let rec getAcnTypePathByITree (nodes:ITree list)  =
         | Some lid -> [lid.Text]
         | None     -> ["#"] // Sequence Of case
 
-    nodes |> 
+    nodes |>
     List.rev |> //node are in reverse order, so reverse them
     List.choose(fun z ->
         match z.Type with
@@ -272,11 +272,11 @@ let rec getAcnTypePathByITree (nodes:ITree list)  =
         | _                        -> None) |>
     List.collect id
 
-    
+
 type Asn1TypeDef = Asn1TypeDef of ITree
 
 
-let getAsn1Type (Asn1TypeDef typeDef:Asn1TypeDef) = 
+let getAsn1Type (Asn1TypeDef typeDef:Asn1TypeDef) =
     let children = getTreeChildren(typeDef)
     let typeNodes = children |> List.filter(fun x -> (not (CreateAsn1AstFromAntlrTree.ConstraintNodes |> List.exists(fun y -> y=x.Type) ) ) && (x.Type <> asn1Parser.TYPE_TAG) )
     let typeNode = List.head(typeNodes)
@@ -292,9 +292,9 @@ let rec getAsn1TypeDefinitionByPath (asn1Trees:AntlrParserResult list) (bResolve
         let typeNode = getAsn1Type typeDef
         match typeNode.Type with
         |asn1Parser.REFERENCED_TYPE ->
-            let refType = 
+            let refType =
                 match getTreeChildren(typeNode) |> List.filter(fun x -> x.Type<> asn1Parser.ACTUAL_PARAM_LIST) with
-                | refTypeName::[]           ->  
+                | refTypeName::[]           ->
                     let mdTree = typeNode.GetAncestor(asn1Parser.MODULE_DEF)
                     let mdName = mdTree.GetChild(0).Text
                     let imports = mdTree.GetChildrenByType(asn1Parser.IMPORTS_FROM_MODULE)
@@ -306,10 +306,10 @@ let rec getAsn1TypeDefinitionByPath (asn1Trees:AntlrParserResult list) (bResolve
                 | _   -> None
             match refType with
             | None  -> None
-            | Some (x1, x2) -> 
+            | Some (x1, x2) ->
                 match getModuleByName x1 with
                 | None      -> None
-                | Some md   -> 
+                | Some md   ->
                     let tas = getTasByName md x2
                     match tas with
                     | None  -> None
@@ -328,30 +328,30 @@ let rec getAsn1TypeDefinitionByPath (asn1Trees:AntlrParserResult list) (bResolve
         let typeNode = List.head(typeNodes)
 
         match path with
-        | []        -> 
+        | []        ->
             match bResolveRefType with
             | true  -> resolveReferenceType (Asn1TypeDef typeDef)
             | false -> Some (Asn1TypeDef typeDef)
         | x1::xs    ->
             match typeNode.Type with
-            | asn1Parser.CHOICE_TYPE        -> 
+            | asn1Parser.CHOICE_TYPE        ->
                 let childItems = getChildrenByType(typeNode, asn1Parser.CHOICE_ITEM)
                 match childItems |> Seq.tryFind(fun ch -> x1 = ch.GetChild(0).Text) with
-                | Some ch -> 
+                | Some ch ->
                     let typeDef = getChildByType(ch, asn1Parser.TYPE_DEF)
                     getTypeByPath (Asn1TypeDef typeDef) xs
                 | None    -> None
-            | asn1Parser.SEQUENCE_TYPE        -> 
+            | asn1Parser.SEQUENCE_TYPE        ->
                 let childItems =
                     match getOptionChildByType(typeNode, asn1Parser.SEQUENCE_BODY) with
                     | Some(sequenceBody)    -> getChildrenByType(sequenceBody, asn1Parser.SEQUENCE_ITEM)
                     | None                  -> []
                 match childItems |> Seq.tryFind(fun ch -> x1 = ch.GetChild(0).Text) with
-                | Some ch -> 
+                | Some ch ->
                     let typeDef = getChildByType(ch, asn1Parser.TYPE_DEF)
                     getTypeByPath (Asn1TypeDef typeDef) xs
                 | None    -> None
-            | asn1Parser.SEQUENCE_OF_TYPE   when x1="#"     -> 
+            | asn1Parser.SEQUENCE_OF_TYPE   when x1="#"     ->
                 let typeDef = getChildByType(typeNode, asn1Parser.TYPE_DEF)
                 getTypeByPath (Asn1TypeDef typeDef) xs
             |asn1Parser.REFERENCED_TYPE ->
@@ -367,9 +367,9 @@ let rec getAsn1TypeDefinitionByPath (asn1Trees:AntlrParserResult list) (bResolve
     | x1::x2::xs    ->
         match getModuleByName x1 with
         | None      -> None
-        | Some md   -> 
+        | Some md   ->
             let tas = getTasByName md x2
             match tas with
             | None  -> None
-            | Some ts -> 
+            | Some ts ->
                 getTypeByPath (Asn1TypeDef (ts.GetChild 1)) xs

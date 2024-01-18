@@ -8,7 +8,7 @@ type OneOrTwo<'T> =
     | One of 'T
     | Two of 'T*'T
     | Three of 'T*'T*'T
-with 
+with
     member this.toList =
         match this with
         | One a     -> [a]
@@ -19,7 +19,7 @@ type Range2d<'v when 'v : equality> = {
     sizeSet  : Range<uint32>
     valueSet : ValueSet<'v>
 }
-with 
+with
     member this.intersect (other:Range2d<'v>) =
         {this with sizeSet = this.sizeSet.intersect other.sizeSet; valueSet = this.valueSet.intersect other.valueSet}
     member this.isEmpty =
@@ -34,19 +34,19 @@ with
     member this.complement =
         match this.sizeSet = Range_Universe, this.valueSet.isUniverse with
         | true, true    -> One (Range2d<'v>.createEmptySet())
-        | false, true   -> 
+        | false, true   ->
             match this.sizeSet.complement with
             | RangeSets.One sizeComplement    -> One ({this with sizeSet = sizeComplement; valueSet = SsUniverse})
             | RangeSets.Two (s1Comp, s2Comp)   ->
                 Two ({this with sizeSet = s1Comp; valueSet = SsUniverse}, {this with sizeSet = s2Comp; valueSet = SsUniverse})
         | true, false   -> One ({this with sizeSet = (Range_Universe); valueSet = this.valueSet.complement})
-        | false, false  -> 
+        | false, false  ->
             match this.sizeSet.complement with
             | RangeSets.One sizeComplement    -> Two ({this with sizeSet = sizeComplement; valueSet = SsUniverse}, {this with sizeSet = (Range_Universe); valueSet = this.valueSet.complement})
             | RangeSets.Two (s1Comp, s2Comp)  ->
                 Three (
-                        {this with sizeSet = s1Comp; valueSet = SsUniverse}, 
-                        {this with sizeSet = s2Comp; valueSet = SsUniverse}, 
+                        {this with sizeSet = s1Comp; valueSet = SsUniverse},
+                        {this with sizeSet = s2Comp; valueSet = SsUniverse},
                         {this with sizeSet = Range_Universe; valueSet = this.valueSet.complement})
 
 
@@ -62,15 +62,15 @@ with
             | []     -> (Range2D (Range2d<'v>.createEmptySet ()))
             | r1::[] -> Range2D r1
             | r1::r2::rest -> Range2DCollection (r1,r2,rest)
-    static member createUniverse  = 
+    static member createUniverse  =
         Range2D ({sizeSet  = Range_Universe;  valueSet = SsUniverse})
-    static member createFromSingleValue v = 
+    static member createFromSingleValue v =
         Range2D ({sizeSet  = Range_Universe;  valueSet = ValueSet<'v>.createFromSingleValue v})
-    static member createFromSizeRange rangeSet = 
+    static member createFromSizeRange rangeSet =
         match rangeSet with
         | Range r                   -> Range2D ({sizeSet  = r;  valueSet = SsUniverse})
         | RangeCollection(r1,r2,rs) -> Range2DCollection( ({sizeSet  = r1;  valueSet = SsUniverse}, {sizeSet  = r2;  valueSet = SsUniverse}, rs |> List.map(fun r -> {sizeSet  = r;  valueSet = SsUniverse})))
-        
+
 
 
     member this.intersect (other:SizeableSet<'v>) =
@@ -86,23 +86,21 @@ with
 
     member this.complement =
         match this with
-        | Range2D r     -> 
+        | Range2D r     ->
             match r.complement with
             | One rc        -> Range2D rc
             | Two (rc1,rc2) -> Range2DCollection(rc1,rc2, [])
             | Three (rc1,rc2, rc3) -> Range2DCollection(rc1,rc2, [rc3])
-        | Range2DCollection (r1,r2,rest)                            -> 
-            r1::r2::rest |> 
-            List.map(fun r -> (Range2D r).complement) |> 
-            List.fold(fun newRange curR -> 
+        | Range2DCollection (r1,r2,rest)                            ->
+            r1::r2::rest |>
+            List.map(fun r -> (Range2D r).complement) |>
+            List.fold(fun newRange curR ->
                 newRange.intersect curR ) (Range2D (Range2d<'v>.createUniverse ()))
 
     member this.difference (other:SizeableSet<'v>) =
         other.complement.intersect this
 
     member this.union (other:SizeableSet<'v>) =
-        let b = true
-        match b with true -> ()
         //not implemented yet
         this
-    
+

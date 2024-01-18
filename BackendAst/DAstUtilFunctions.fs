@@ -10,78 +10,80 @@ open DAst
 open Language
 
 let getAccessFromScopeNodeList (ReferenceToType nodes)  (childTypeIsString: bool) (lm:LanguageMacros) (pVal : CallerScope) =
-    let handleNode zeroBasedSeqeuenceOfLevel (pVal : CallerScope) (n:ScopeNode) (childTypeIsString: bool) = 
+    let handleNode zeroBasedSequenceOfLevel (pVal : CallerScope) (n:ScopeNode) (childTypeIsString: bool) =
         match n with
         | MD _
         | TA _
         | PRM _
         | VA _              -> raise(BugErrorException "getAccessFromScopeNodeList")
-        | SEQ_CHILD chName  -> [], {pVal with arg = lm.lg.getSeqChild pVal.arg (ToC chName) childTypeIsString false}
-        | CH_CHILD (chName,pre_name, chParent)  -> 
+        | SEQ_CHILD (chName, chOpt)  -> [], {pVal with arg = lm.lg.getSeqChild pVal.arg (ToC chName) childTypeIsString chOpt}
+        | CH_CHILD (chName,pre_name, chParent)  ->
             let chChildIsPresent =
                 match ST.lang with
-                | Scala -> sprintf "%s.isInstanceOf[%s.%s_PRESENT]" pVal.arg.p chParent pre_name
-                | _ -> sprintf "%s%skind %s %s_PRESENT" pVal.arg.p (lm.lg.getAccess pVal.arg) lm.lg.eqOp pre_name
+                | Scala -> sprintf "%s.isInstanceOf[%s.%s_PRESENT]" (pVal.arg.joined lm.lg) chParent pre_name
+                | _ -> sprintf "%s%skind %s %s_PRESENT" (pVal.arg.joined lm.lg) (lm.lg.getAccess pVal.arg) lm.lg.eqOp pre_name
             [chChildIsPresent], {pVal with arg = lm.lg.getChChild pVal.arg (ToC chName) childTypeIsString}
-        | SQF               -> 
-            let curIdx = sprintf "i%d" (zeroBasedSeqeuenceOfLevel + 1)
-
+        | SQF               ->
+            let curIdx = sprintf "i%d" (zeroBasedSequenceOfLevel + 1)
             [], {pVal with arg = lm.lg.getArrayItem pVal.arg curIdx childTypeIsString}
 
     match nodes with
-    | (MD md)::(TA tas)::(PRM prm)::[]  -> ({CallerScope.modName = pVal.modName; arg = VALUE (ToC (md + "_" + tas + "_" + prm))}, [])
+    | (MD md)::(TA tas)::(PRM prm)::[]  -> ({CallerScope.modName = pVal.modName; arg = Selection.valueEmptyPath (ToC (md + "_" + tas + "_" + prm))}, [])
     | (MD md)::(TA tas):: xs            ->
         let length = Seq.length xs
-        let ret = 
-            xs |> 
-            List.fold(fun (curPath, curCheckExp, zeroBasedSeqeuenceOfLevel, idx) n -> 
-                let chekPath, newPath = handleNode zeroBasedSeqeuenceOfLevel curPath n (childTypeIsString && idx=length)
-                let zeroBasedSeqeuenceOfLevel = match n with SQF -> zeroBasedSeqeuenceOfLevel + 1 | _ -> zeroBasedSeqeuenceOfLevel
-                (newPath, chekPath@curCheckExp, zeroBasedSeqeuenceOfLevel, idx+1)) (pVal,[], 0, 1) |> (fun (a,chekPath,_,_) -> a, chekPath)
-        ret 
+        let ret =
+            xs |>
+            List.fold(fun (curPath, curCheckExp, zeroBasedSequenceOfLevel, idx) n ->
+                let checkPath, newPath = handleNode zeroBasedSequenceOfLevel curPath n (childTypeIsString && idx=length)
+                let zeroBasedSequenceOfLevel = match n with SQF -> zeroBasedSequenceOfLevel + 1 | _ -> zeroBasedSequenceOfLevel
+                (newPath, checkPath@curCheckExp, zeroBasedSequenceOfLevel, idx+1)) (pVal,[], 0, 1) |> (fun (a,checkPath,_,_) -> a, checkPath)
+        ret
     | _                                 -> raise(BugErrorException "getAccessFromScopeNodeList")
 
-let extractEnumClassName (prefix: String)(varName: String)(internalName: String): String = 
+let extractEnumClassName (prefix: String)(varName: String)(internalName: String): String =
     match ST.lang with
     | Scala -> prefix + varName.Substring(0, max 0 (varName.Length - (internalName.Length + 1))) // TODO: check case where max is needed
     | _ -> ""
 
-let rec extractDefaultInitValue (childType: Asn1TypeKind): String = 
-        match childType with
-        | Integer i -> i.baseInfo.defaultInitVal
-        | Real r -> r.baseInfo.defaultInitVal
-        | NullType n -> n.baseInfo.defaultInitVal
-        | Boolean b -> b.baseInfo.defaultInitVal
-        | ReferenceType rt -> extractDefaultInitValue rt.resolvedType.Kind
-        | _ -> "null"
+let rec extractDefaultInitValue (childType: Asn1TypeKind): String =
+    match childType with
+    | Integer i -> i.baseInfo.defaultInitVal
+    | Real r -> r.baseInfo.defaultInitVal
+    | NullType n -> n.baseInfo.defaultInitVal
+    | Boolean b -> b.baseInfo.defaultInitVal
+    | ReferenceType rt -> extractDefaultInitValue rt.resolvedType.Kind
+    | _ -> "null"
 
-let extractACNDefaultInitValue (acnType: AcnInsertedType): String = 
-    match acnType with
-    | AcnInteger i -> i.defaultValue
-    | AcnBoolean b -> b.defaultValue
-    | AcnNullType c -> c.defaultValue
-    | AcnReferenceToEnumerated e -> e.defaultValue
-    | AcnReferenceToIA5String s -> s.defaultValue
-
-let rec resolveReferenceType(t: Asn1TypeKind): Asn1TypeKind = 
+let rec resolveReferenceType(t: Asn1TypeKind): Asn1TypeKind =
     match t with
     | ReferenceType rt -> resolveReferenceType rt.resolvedType.Kind
     | _ -> t
 
-let isJVMPrimitive (t: Asn1TypeKind) = 
+let isJVMPrimitive (t: Asn1TypeKind) =
     match resolveReferenceType t with
     | Integer _ | Real _ | NullType _ | Boolean _ -> true
     | _ -> false
-    
+
+let defOrRef (r:Asn1AcnAst.AstRoot) (m: Asn1AcnAst.Asn1Module) (a:Asn1AcnAst.AcnReferenceToEnumerated) =
+    match m.Name.Value = a.modName.Value with
+    | true  -> ReferenceToExistingDefinition {ReferenceToExistingDefinition.programUnit = None; typedefName = ToC (r.args.TypePrefix + a.tasName.Value) ; definedInRtl = false}
+    | false -> ReferenceToExistingDefinition {ReferenceToExistingDefinition.programUnit = Some (ToC a.modName.Value); typedefName = ToC (r.args.TypePrefix + a.tasName.Value); definedInRtl = false}
+
+let defOrRef2 (r:Asn1AcnAst.AstRoot) (m: Asn1AcnAst.Asn1Module) (a:Asn1AcnAst.ReferenceToEnumerated) =
+    match m.Name.Value = a.modName with
+    | true  -> ReferenceToExistingDefinition {ReferenceToExistingDefinition.programUnit = None; typedefName = ToC (r.args.TypePrefix + a.tasName); definedInRtl = false}
+    | false -> ReferenceToExistingDefinition {ReferenceToExistingDefinition.programUnit = Some (ToC a.modName); typedefName = ToC (r.args.TypePrefix + a.tasName) ; definedInRtl = false}
+
+
 let hasInitMethSuffix (initMethName: string) (suffix: string): bool =
-    initMethName.EndsWith(suffix) 
+    initMethName.EndsWith(suffix)
 
 let isArrayInitialiser(initMethName: string): bool =
     initMethName.Contains("Array.fill(")
 
 let scalaInitMethSuffix (k: Asn1TypeKind) =
     match ST.lang with
-    | Scala -> 
+    | Scala ->
         match isJVMPrimitive k with
         | false ->
             match k with
@@ -98,8 +100,8 @@ let isEnumForJVMelseFalse (k: Asn1TypeKind): bool =
         | Enumerated e -> true
         | _ -> false
     | _ -> false
-    
-let isSequenceForJVMelseFalse (k: Asn1TypeKind): bool = 
+
+let isSequenceForJVMelseFalse (k: Asn1TypeKind): bool =
     match ST.lang with
     | Scala ->
         match k with
@@ -107,14 +109,14 @@ let isSequenceForJVMelseFalse (k: Asn1TypeKind): bool =
         | _ -> false
     | _ -> false
 
-let isOctetStringForJVMelseFalse (k: Asn1TypeKind): bool = 
+let isOctetStringForJVMelseFalse (k: Asn1TypeKind): bool =
     match ST.lang with
     | Scala ->
         match k with
         | OctetString s -> true
         | _ -> false
     | _ -> false
-    
+
 type LocalVariable with
     member this.VarName =
         match this with
@@ -128,7 +130,7 @@ type LocalVariable with
         | GenericLocalVariable lv         -> lv.name
 
 
-type TypeDefintionOrReference with 
+type TypeDefinitionOrReference with
 
     member this.longTypedefName2 bHasModules =
         match this with
@@ -136,7 +138,7 @@ type TypeDefintionOrReference with
             td.typedefName
         | ReferenceToExistingDefinition ref ->
             match ref.programUnit with
-            | Some pu -> 
+            | Some pu ->
                 match bHasModules with
                 | true   -> pu + "." + ref.typedefName
                 | false     -> ref.typedefName
@@ -145,9 +147,9 @@ type TypeDefintionOrReference with
     member this.longTypedefName  (l:ProgrammingLanguage) =
         let b = (l = Ada)
         this.longTypedefName2 b
-            
+
     member this.getAsn1Name (typePrefix : string) =
-        let typedefName = 
+        let typedefName =
             match this with
             | TypeDefinition  td -> td.typedefName
             | ReferenceToExistingDefinition ref -> ref.typedefName
@@ -164,48 +166,48 @@ type Integer with
     member this.AllCons  = this.baseInfo.cons@this.baseInfo.withcons
     //member this.IsUnsigned = isUnsigned this.uperRange
 
-type Enumerated with 
+type Enumerated with
     member this.Cons     = this.baseInfo.cons
     member this.WithCons = this.baseInfo.withcons
     member this.AllCons  = this.baseInfo.cons@this.baseInfo.withcons
 
-type Real with 
+type Real with
     member this.Cons     = this.baseInfo.cons
     member this.WithCons = this.baseInfo.withcons
     member this.AllCons  = this.baseInfo.cons@this.baseInfo.withcons
 
-type Boolean with 
+type Boolean with
     member this.Cons     = this.baseInfo.cons
     member this.WithCons = this.baseInfo.withcons
     member this.AllCons  = this.baseInfo.cons@this.baseInfo.withcons
 
-type StringType with 
+type StringType with
     member this.Cons     = this.baseInfo.cons
     member this.WithCons = this.baseInfo.withcons
     member this.AllCons  = this.baseInfo.cons@this.baseInfo.withcons
 
-type OctetString with 
+type OctetString with
     member this.Cons     = this.baseInfo.cons
     member this.WithCons = this.baseInfo.withcons
     member this.AllCons  = this.baseInfo.cons@this.baseInfo.withcons
 
-type BitString with 
+type BitString with
     member this.Cons     = this.baseInfo.cons
     member this.WithCons = this.baseInfo.withcons
     member this.AllCons  = this.baseInfo.cons@this.baseInfo.withcons
 
-type SequenceOf with 
+type SequenceOf with
     member this.Cons     = this.baseInfo.cons
     member this.WithCons = this.baseInfo.withcons
     member this.AllCons  = this.baseInfo.cons@this.baseInfo.withcons
 
-type ObjectIdentifier with 
+type ObjectIdentifier with
     member this.Cons     = this.baseInfo.cons
     member this.WithCons = this.baseInfo.withcons
     member this.AllCons  = this.baseInfo.cons@this.baseInfo.withcons
 
 
-type Sequence with 
+type Sequence with
     member this.Cons     = this.baseInfo.cons
     member this.WithCons = this.baseInfo.withcons
     member this.AllCons  = this.baseInfo.cons@this.baseInfo.withcons
@@ -213,7 +215,7 @@ type Sequence with
         this.children |> List.choose(fun c -> match c with Asn1Child c -> Some c | AcnChild _ -> None)
 
 type Asn1Child with
-    member this.getBackendName l = 
+    member this.getBackendName l =
         match l with
         | C         -> this._c_name
         | Scala     -> this._scala_name
@@ -221,7 +223,7 @@ type Asn1Child with
 
 
 type ChChildInfo with
-    member this.getBackendName l = 
+    member this.getBackendName l =
         match l with
         | C         -> this._c_name
         | Scala     -> this._scala_name
@@ -229,11 +231,11 @@ type ChChildInfo with
 
 
 
-type Choice with 
+type Choice with
     member this.Cons     = this.baseInfo.cons
     member this.WithCons = this.baseInfo.withcons
     member this.AllCons  = this.baseInfo.cons@this.baseInfo.withcons
-    
+
 
 type ReferenceType with
     member ref.AsTypeAssignmentInfo =  {TypeAssignmentInfo.modName = ref.baseInfo.modName.Value; tasName = ref.baseInfo.tasName.Value}
@@ -245,7 +247,7 @@ type Asn1AcnAst.ChChildInfo with
     member this.presentWhenName = (ToC this.present_when_name) + "_PRESENT"
 
 type ChChildInfo with
-    member this.presentWhenName (defOrRef:TypeDefintionOrReference option) l = 
+    member this.presentWhenName (defOrRef:TypeDefinitionOrReference option) l =
         match l with
         | C     -> (ToC this._present_when_name_private) + "_PRESENT"
         | Scala -> (ToC this._present_when_name_private) + "_PRESENT" // TODO: Scala
@@ -254,7 +256,7 @@ type ChChildInfo with
             | Some (ReferenceToExistingDefinition r) when r.programUnit.IsSome -> r.programUnit.Value + "." + ((ToC this._present_when_name_private) + "_PRESENT")
             | _       -> (ToC this._present_when_name_private) + "_PRESENT"
 
-        
+
 
 
 type Asn1AcnAst.NamedItem      with
@@ -284,16 +286,16 @@ type Asn1AcnAst.Asn1Type with
         | Asn1AcnAst.TimeType _         ->TC_ReferenceToVariable(TC_COMPLEX, "val" + suf)
         | Asn1AcnAst.ReferenceType r -> r.resolvedType.getParameterExpr suf c
 
-        
 
-        
+
+
 
 
 type Asn1Type
 with
     member this.getActualType (r:AstRoot) =
         match this.Kind with
-        | ReferenceType t-> 
+        | ReferenceType t->
             let md =  r.Files |> List.collect(fun f -> f.Modules) |> Seq.find(fun m -> m.Name.Value = t.baseInfo.modName.Value) //t.baseInfo.modName
             let ts = md.TypeAssignments |> Seq.find(fun ts -> ts.Name.Value = t.baseInfo.tasName.Value) //t.baseInfo.modName
             ts.Type.getActualType r
@@ -310,7 +312,7 @@ with
         | Choice       _ -> this
         | ObjectIdentifier _ -> this
         | TimeType     _  -> this
-    
+
 
     member this.isComplexType =
         match this.Kind with
@@ -345,8 +347,8 @@ with
         | Choice       _ -> this
         | ObjectIdentifier _ -> this
         | TimeType     _  -> this
-        
-    member this.FT_TypeDefintion =
+
+    member this.FT_TypeDefinition =
         match this.Kind with
         | Integer      t -> t.baseInfo.typeDef   |> Map.toList |> List.map (fun (l, d) -> (l, FE_PrimitiveTypeDefinition d)) |> Map.ofList
         | Real         t -> t.baseInfo.typeDef   |> Map.toList |> List.map (fun (l, d) -> (l, FE_PrimitiveTypeDefinition d)) |> Map.ofList
@@ -361,8 +363,8 @@ with
         | SequenceOf   t -> t.baseInfo.typeDef   |> Map.toList |> List.map (fun (l, d) -> (l, FE_SizeableTypeDefinition d)) |> Map.ofList
         | Sequence     t -> t.baseInfo.typeDef   |> Map.toList |> List.map (fun (l, d) -> (l, FE_SequenceTypeDefinition d)) |> Map.ofList
         | Choice       t -> t.baseInfo.typeDef   |> Map.toList |> List.map (fun (l, d) -> (l, FE_ChoiceTypeDefinition d)) |> Map.ofList
-        | ReferenceType t-> t.baseInfo.typeDef   
-                                                 
+        | ReferenceType t-> t.baseInfo.typeDef
+
     member this.printValue =
         match this.Kind with
         | Integer      t -> t.printValue
@@ -381,7 +383,7 @@ with
         | TimeType  t       -> t.printValue
 
 
-    member this.ConstraintsAsn1Str = 
+    member this.ConstraintsAsn1Str =
         match this.Kind with
         | Integer      t -> t.constraintsAsn1Str
         | Real         t -> t.constraintsAsn1Str
@@ -397,18 +399,6 @@ with
         | ReferenceType t-> t.constraintsAsn1Str
         | ObjectIdentifier t -> t.constraintsAsn1Str
         | TimeType t        -> t.constraintsAsn1Str
-
-
-
-
-
-
-
-
-
-
-
-
 
 
     member this.initFunction =
@@ -461,7 +451,7 @@ with
         | Choice       t -> t.isValidFunction
         | ReferenceType t-> t.isValidFunction
         | TimeType t        -> t.isValidFunction
-    
+
     member this.getUperFunction (l:CommonTypes.Codec) =
         match l with
         | CommonTypes.Encode   -> this.uperEncFunction
@@ -470,7 +460,7 @@ with
         match l with
         | CommonTypes.Encode   -> this.xerEncFunction
         | CommonTypes.Decode   -> this.xerDecFunction
-    
+
     member this.uperEncFunction =
          match this.Kind with
          | Integer      t ->t.uperEncFunction
@@ -612,7 +602,7 @@ with
 
     member this.MappingFunctionsModules =
         match this.Kind with
-        | Sequence     t -> 
+        | Sequence     t ->
             let ret1 =
                 match t.baseInfo.acnProperties.postEncodingFunction, t.baseInfo.acnProperties.preDecodingFunction with
                 | Some (AcnGenericTypes.PostEncodingFunction (a, _) ), Some (AcnGenericTypes.PreDecodingFunction (c, _)) -> [a;c] |> List.choose id |> List.map(fun z -> z.Value)
@@ -626,7 +616,7 @@ with
                     | Asn1Child _   -> None
                     | AcnChild  ancC ->
                         match ancC.Type with
-                        | AcnInteger a -> 
+                        | AcnInteger a ->
                             match a.acnProperties.mappingFunction with
                             | Some (AcnGenericTypes.MappingFunction (a, _)) -> a
                             | None                                          -> None
@@ -634,7 +624,7 @@ with
                         | _            -> None)
                     |> List.map(fun z -> z.Value)
             ret1@ret2
-        | Integer      t -> 
+        | Integer      t ->
             match t.baseInfo.acnProperties.mappingFunction with
             | Some (AcnGenericTypes.MappingFunction (a, _)) -> [a] |> List.choose id |> List.map(fun z -> z.Value)
             | None                                          -> []
@@ -651,22 +641,22 @@ with
         | ReferenceType ref -> ref.resolvedType.MappingFunctionsModules
         | TimeType _        -> []
 
-    member this.icdFunction = 
+    member this.icdFunction =
         match this.Kind with
-        | Integer           t -> t.acnEncFunction.icd.Value 
-        | Real              t -> t.acnEncFunction.icd.Value 
-        | IA5String         t -> t.acnEncFunction.icd.Value 
-        | OctetString       t -> t.acnEncFunction.icd.Value 
-        | NullType          t -> t.acnEncFunction.icd.Value 
-        | BitString         t -> t.acnEncFunction.icd.Value 
-        | Boolean           t -> t.acnEncFunction.icd.Value 
-        | Enumerated        t -> t.acnEncFunction.icd.Value 
-        | SequenceOf        t -> t.acnEncFunction.icd.Value 
-        | Sequence          t -> t.acnEncFunction.icd.Value 
-        | Choice            t -> t.acnEncFunction.icd.Value 
-        | ReferenceType     t -> t.acnEncFunction.icd.Value 
-        | ObjectIdentifier  t -> t.acnEncFunction.icd.Value 
-        | TimeType          t -> t.acnEncFunction.icd.Value 
+        | Integer           t -> t.acnEncFunction.icd.Value
+        | Real              t -> t.acnEncFunction.icd.Value
+        | IA5String         t -> t.acnEncFunction.icd.Value
+        | OctetString       t -> t.acnEncFunction.icd.Value
+        | NullType          t -> t.acnEncFunction.icd.Value
+        | BitString         t -> t.acnEncFunction.icd.Value
+        | Boolean           t -> t.acnEncFunction.icd.Value
+        | Enumerated        t -> t.acnEncFunction.icd.Value
+        | SequenceOf        t -> t.acnEncFunction.icd.Value
+        | Sequence          t -> t.acnEncFunction.icd.Value
+        | Choice            t -> t.acnEncFunction.icd.Value
+        | ReferenceType     t -> t.acnEncFunction.icd.Value
+        | ObjectIdentifier  t -> t.acnEncFunction.icd.Value
+        | TimeType          t -> t.acnEncFunction.icd.Value
 
     member this.acnEncFunction : AcnFunction option =
         match this.Kind with
@@ -766,9 +756,9 @@ with
         | Asn1Encoding.ACN   -> this.acnEncDecTestFunc
         | Asn1Encoding.XER   -> this.xerEncDecTestFunc
         | Asn1Encoding.BER   -> None
-        
-        
-    member this.typeDefintionOrReference : TypeDefintionOrReference =
+
+
+    member this.typeDefinitionOrReference : TypeDefinitionOrReference =
         match this.Kind with
         | Integer      t -> t.definitionOrRef
         | Real         t -> t.definitionOrRef
@@ -791,7 +781,7 @@ with
         | ReferenceType r   -> this.ActualType.isIA5String
         | _                 -> false
 
-    member this.asn1Name = 
+    member this.asn1Name =
         match this.id with
         | ReferenceToType((MD _)::(TA tasName)::[])   -> Some tasName
         | _                                                                     -> None
@@ -814,7 +804,7 @@ with
 type Asn1Module with
     member this.ExportedTypes =
         match this.Exports with
-        | Asn1Ast.All   -> 
+        | Asn1Ast.All   ->
             let importedTypes = this.Imports |> List.collect(fun imp -> imp.Types) |> List.map(fun x -> x.Value)
             (this.TypeAssignments |> List.map(fun x -> x.Name.Value))@importedTypes
         | Asn1Ast.OnlySome(typesAndVars)    ->
@@ -837,7 +827,7 @@ type AstRoot with
             | Some vas -> vas
 
     member r.Modules = r.Files |> List.collect(fun f -> f.Modules)
-    member r.getModuleByName (name:StringLoc)  = 
+    member r.getModuleByName (name:StringLoc)  =
         let (n,loc) = name.AsTupple
         match r.Modules |> Seq.tryFind( fun m -> m.Name = name)  with
         | Some(m) -> m
@@ -848,7 +838,7 @@ type Asn1File with
     member this.FileNameWithoutExtension = System.IO.Path.GetFileNameWithoutExtension this.FileName
     member this.TypeAssignments = this.Modules |> List.collect(fun m -> m.TypeAssignments)
 
-let getValueByUperRange (r:uperRange<'T>) (z:'T) = 
+let getValueByUperRange (r:uperRange<'T>) (z:'T) =
     match r with
     | Concrete (a,b)    -> if a <= z && z <= b then z else a
     | NegInf  b         -> if z <= b then z else b              //(-inf, b]
@@ -856,15 +846,15 @@ let getValueByUperRange (r:uperRange<'T>) (z:'T) =
     | Full              -> z
 
 let rec mapValue (v:Asn1AcnAst.Asn1Value) =
-    let newVKind = 
+    let newVKind =
         match v.kind with
-        | Asn1AcnAst.IntegerValue     v ->  IntegerValue        v.Value 
-        | Asn1AcnAst.RealValue        v ->  RealValue           v.Value 
+        | Asn1AcnAst.IntegerValue     v ->  IntegerValue        v.Value
+        | Asn1AcnAst.RealValue        v ->  RealValue           v.Value
         | Asn1AcnAst.StringValue      v ->  StringValue         v
-        | Asn1AcnAst.BooleanValue     v ->  BooleanValue        v.Value 
-        | Asn1AcnAst.BitStringValue   v ->  BitStringValue      v.Value 
+        | Asn1AcnAst.BooleanValue     v ->  BooleanValue        v.Value
+        | Asn1AcnAst.BitStringValue   v ->  BitStringValue      v.Value
         | Asn1AcnAst.OctetStringValue v ->  OctetStringValue    (v |> List.map(fun z -> z.Value))
-        | Asn1AcnAst.EnumValue        v ->  EnumValue           v.Value 
+        | Asn1AcnAst.EnumValue        v ->  EnumValue           v.Value
         | Asn1AcnAst.SeqOfValue       v ->  SeqOfValue          (v |> List.map mapValue)
         | Asn1AcnAst.SeqValue         v ->  SeqValue            (v |> List.map (fun n -> {NamedValue.name = n.name.Value; Value = mapValue n.Value}))
         | Asn1AcnAst.ChValue          n ->  ChValue             {NamedValue.name = n.name.Value; Value = mapValue n.Value}
@@ -875,7 +865,7 @@ let rec mapValue (v:Asn1AcnAst.Asn1Value) =
     {Asn1Value.kind = newVKind; id=v.id; loc = v.loc;moduleName    = v.moduleName}
 
 
-let emitComponent (c:ResolvedObjectIdentifierValueCompoent) =
+let emitComponent (c:ResolvedObjectIdentifierValueComponent) =
     match c with
     | ResObjInteger            nVal             -> (nVal.Value, None)
     | ResObjNamedDefValue      (label,_,nVal)   -> (nVal, Some label.Value)
@@ -883,7 +873,7 @@ let emitComponent (c:ResolvedObjectIdentifierValueCompoent) =
     | ResObjRegisteredKeyword  (label,nVal)   -> (nVal, Some label.Value)
     | ResObjDefinedValue       (_,_,nVal)     -> (nVal, None)
 
-type ObjectIdenfierValue with
+type ObjectIdentifierValue with
     member this.Values =
         match this with
         | InternalObjectIdentifierValue intList      -> intList |> List.map(fun i -> (i, None))
@@ -894,7 +884,7 @@ type Asn1Value with
     member this.getBackendName (l:ProgrammingLanguage) =
         match this.id with
         | ReferenceToValue (typePath,(VA2 vasName)::[]) -> ToC vasName
-        | ReferenceToValue (typePath, vasPath)      -> 
+        | ReferenceToValue (typePath, vasPath)      ->
             let longName = (typePath.Tail |> List.map (fun i -> i.StrValue))@ (vasPath |> List.map (fun i -> i.StrValue))  |> Seq.StrJoin "_"
             ToC2(longName.Replace("#","elem").L1)
 
@@ -918,7 +908,7 @@ type Asn1ValueKind with
         | _                 -> this
 
 type SeqChildInfo with
-    member this.acnInsertetField =
+    member this.acnInsertedField =
         match this with
         | Asn1Child _    -> false
         | AcnChild _     -> true
@@ -928,8 +918,8 @@ type SeqChildInfo with
         | Asn1Child x    -> x.Name.Value
         | AcnChild x     -> x.Name.Value
     member this.savePosition =
-        match this with 
-        | AcnChild z -> 
+        match this with
+        | AcnChild z ->
             match z.Type with
             | Asn1AcnAst.AcnNullType nt when nt.acnProperties.savePosition   ->  true
             | _     -> false
@@ -960,18 +950,18 @@ let hasAcnEncodeFunction (encFunc : AcnFunction option) acnParameters  =
     | Some fnc ->
         match acnParameters with
         | [] ->
-            let p = {CallerScope.modName = ""; arg = VALUE "dummy"}
+            let p = {CallerScope.modName = ""; arg = Selection.valueEmptyPath "dummy"}
             let ret,_ = fnc.funcBody emptyState [] p
             match ret with
             | None   -> false
             | Some _ -> true
         | _     -> false
-                
+
 let hasUperEncodeFunction (encFunc : UPerFunction option)  =
     match encFunc with
     | None  -> false
     | Some fnc ->
-            let p = {CallerScope.modName = ""; arg = VALUE "dummy"}
+            let p = {CallerScope.modName = ""; arg = Selection.valueEmptyPath "dummy"}
             match fnc.funcBody p with
             | None   -> false
             | Some _ -> true
@@ -980,9 +970,8 @@ let hasXerEncodeFunction (encFunc : XerFunction option)  =
     match encFunc with
     | None  -> false
     | Some (XerFunction fnc) ->
-
-            let p = {CallerScope.modName = ""; arg = VALUE "dummy"}
-            let errCode = {ErroCode.errCodeName = "DUMMY_ERR"; errCodeValue=0; comment=None}
+            let p = {CallerScope.modName = ""; arg = Selection.valueEmptyPath "dummy"}
+            let errCode = {ErrorCode.errCodeName = "DUMMY_ERR"; errCodeValue=0; comment=None}
             match fnc.funcBody_e errCode p None  with
             | None   -> false
             | Some _ -> true
@@ -997,104 +986,103 @@ let AdaUses (r:AstRoot) =
                     yield sprintf "%s:%s" tas.Name.Value (ToC m.Name.Value);
     } |> Seq.iter(fun l -> System.Console.WriteLine l)
 
-let rec GetMySelfAndChildren (t:Asn1Type) = 
+let rec GetMySelfAndChildren (t:Asn1Type) =
     seq {
         match t.Kind with
         | SequenceOf(conType) ->  yield! GetMySelfAndChildren conType.childType
         | Sequence seq ->
-            for ch in seq.Asn1Children do 
+            for ch in seq.Asn1Children do
                 yield! GetMySelfAndChildren ch.Type
-        | Choice(ch)-> 
-            for ch in ch.children do 
+        | Choice(ch)->
+            for ch in ch.children do
                 yield! GetMySelfAndChildren ch.chType
-        |_ -> ()    
+        |_ -> ()
         yield t
     } |> Seq.toList
 
 
-let rec GetMySelfAndChildren2 (lm:Language.LanguageMacros) (t:Asn1Type) (p:CallerScope)= 
+let rec GetMySelfAndChildren2 (lm:Language.LanguageMacros) (t:Asn1Type) (p:CallerScope)=
     seq {
         match t.Kind with
-        | SequenceOf(conType) ->  
-            let ii = t.id.SeqeuenceOfLevel + 1
+        | SequenceOf(conType) ->
+            let ii = t.id.SequenceOfLevel + 1
             let i = "0" //sprintf "i%d" ii
-            
+
             yield! GetMySelfAndChildren2 lm conType.childType ({p with arg = lm.lg.getArrayItem p.arg i conType.childType.isIA5String})
         | Sequence seq ->
-            for ch in seq.Asn1Children do 
-                
-                yield! GetMySelfAndChildren2 lm ch.Type ({p with arg = lm.lg.getSeqChild p.arg (lm.lg.getAsn1ChildBackendName ch) ch.Type.isIA5String false})
-        | Choice(ch)-> 
-            for ch in ch.children do 
+            for ch in seq.Asn1Children do
+                yield! GetMySelfAndChildren2 lm ch.Type ({p with arg = lm.lg.getSeqChild p.arg (lm.lg.getAsn1ChildBackendName ch) ch.Type.isIA5String ch.Optionality.IsSome})
+        | Choice(ch)->
+            for ch in ch.children do
                 yield! GetMySelfAndChildren2 lm ch.chType ({p with arg = lm.lg.getChChild p.arg (lm.lg.getAsn1ChChildBackendName ch) ch.chType.isIA5String})
-        |_ -> ()    
+        |_ -> ()
         yield (t,p)
     } |> Seq.toList
 
-let rec GetMySelfAndChildren3 visitChildPredicate (t:Asn1Type) = 
+let rec GetMySelfAndChildren3 visitChildPredicate (t:Asn1Type) =
     seq {
         if visitChildPredicate t then
             match t.Kind with
-            | SequenceOf(conType) ->  
+            | SequenceOf(conType) ->
                 yield! GetMySelfAndChildren conType.childType
             | Sequence seq ->
-                for ch in seq.Asn1Children do 
+                for ch in seq.Asn1Children do
                     yield! GetMySelfAndChildren ch.Type
-            | Choice(ch)-> 
-                for ch in ch.children do 
+            | Choice(ch)->
+                for ch in ch.children do
                     yield! GetMySelfAndChildren ch.chType
-            |_ -> ()    
+            |_ -> ()
         yield t
     } |> Seq.toList
 
 
-let getFuncNameGeneric (typeDefinition:TypeDefintionOrReference) nameSuffix  =
+let getFuncNameGeneric (typeDefinition:TypeDefinitionOrReference) nameSuffix  =
     match typeDefinition with
     | ReferenceToExistingDefinition  refEx  -> None
     | TypeDefinition   td                   -> Some (td.typedefName + nameSuffix)
 
-let getFuncNameGeneric2 (typeDefinition:TypeDefintionOrReference) =
+let getFuncNameGeneric2 (typeDefinition:TypeDefinitionOrReference) =
     match typeDefinition with
     | ReferenceToExistingDefinition  refEx  -> None
     | TypeDefinition   td                   -> Some (td.typedefName)
 
 
-let nestItems joinItems2 children = 
-    let printChild (content:string) (soNestedContent:string option) = 
+let nestItems joinItems2 children =
+    let printChild (content:string) (soNestedContent:string option) =
         match soNestedContent with
         | None                -> content
         | Some sNestedContent -> joinItems2 content sNestedContent
-    let rec printChildren children : Option<string> = 
+    let rec printChildren children : Option<string> =
         match children with
         |[]     -> None
         |x::xs  -> Some (printChild x (printChildren xs))
     printChildren children
 
 
-let nestItems_ret (lm:LanguageMacros) children = 
+let nestItems_ret (lm:LanguageMacros) children =
     nestItems  lm.isvalid.JoinTwoIfFirstOk children
 
 
-let getBaseFuncName (lm:LanguageMacros) (typeDefinition:TypeDefintionOrReference) (o:Asn1AcnAst.ReferenceType) (id:ReferenceToType) (methodSuffix:string) (codec:CommonTypes.Codec) =
-    let moduleName, typeDefinitionName0 = 
+let getBaseFuncName (lm:LanguageMacros) (typeDefinition:TypeDefinitionOrReference) (o:Asn1AcnAst.ReferenceType) (id:ReferenceToType) (methodSuffix:string) (codec:CommonTypes.Codec) =
+    let moduleName, typeDefinitionName0 =
         match typeDefinition with
         | ReferenceToExistingDefinition refToExist   ->
             match refToExist.programUnit with
             | Some md -> md, refToExist.typedefName
             | None    -> ToC id.ModName, refToExist.typedefName
-        | TypeDefinition                tdDef        -> 
+        | TypeDefinition                tdDef        ->
             match tdDef.baseType with
             | None -> ToC id.ModName, tdDef.typedefName
-            | Some refToExist -> 
+            | Some refToExist ->
                 match refToExist.programUnit with
                 | Some md -> md, refToExist.typedefName
                 | None    -> ToC id.ModName, refToExist.typedefName
 
-    let baseTypeDefinitionName = 
+    let baseTypeDefinitionName =
         match lm.lg.hasModules with
-        | false     -> typeDefinitionName0 
-        | true   -> 
+        | false     -> typeDefinitionName0
+        | true   ->
             match id.ModName = o.modName.Value with
-            | true  -> typeDefinitionName0 
-            | false -> moduleName + "." + typeDefinitionName0 
+            | true  -> typeDefinitionName0
+            | false -> moduleName + "." + typeDefinitionName0
     baseTypeDefinitionName, baseTypeDefinitionName + methodSuffix + codec.suffix

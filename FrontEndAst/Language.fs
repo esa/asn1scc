@@ -13,8 +13,8 @@ type Uper_parts = {
     requires_IA5String_i : bool
     count_var            : LocalVariable
     requires_presenceBit : bool
-    catd                 : bool //if true then Choice Alternatives are Temporarily Decoded (i.e. in _tmp variables in curent scope)
-    //createBitStringFunction  : (CallerScope -> CommonTypes.Codec -> ErroCode -> int -> BigInteger -> BigInteger -> BigInteger -> string -> BigInteger -> bool -> bool -> (string * LocalVariable list)) -> CommonTypes.Codec -> ReferenceToType -> TypeDefintionOrReference -> bool -> BigInteger -> BigInteger -> BigInteger -> ErroCode ->  CallerScope -> UPERFuncBodyResult
+    catd                 : bool //if true then Choice Alternatives are Temporarily Decoded (i.e. in _tmp variables in current scope)
+    //createBitStringFunction  : (CallerScope -> CommonTypes.Codec -> ErrorCode -> int -> BigInteger -> BigInteger -> BigInteger -> string -> BigInteger -> bool -> bool -> (string * LocalVariable list)) -> CommonTypes.Codec -> ReferenceToType -> TypeDefinitionOrReference -> bool -> BigInteger -> BigInteger -> BigInteger -> ErrorCode ->  CallerScope -> UPERFuncBodyResult
     seqof_lv             : ReferenceToType -> BigInteger -> BigInteger -> LocalVariable list
 
 }
@@ -39,37 +39,41 @@ type Atc_parts = {
 }
 
 
-type InitMethod = 
+type InitMethod =
     | Procedure
     | Function
+
+type DecodingKind =
+    | InPlace
+    | Copy
 
 [<AbstractClass>]
 type ILangGeneric () =
     abstract member ArrayStartIndex : int
-    abstract member getPointer      : FuncParamType -> string;
-    abstract member getValue        : FuncParamType -> string;
-    abstract member getAccess       : FuncParamType -> string;
-    abstract member getStar         : FuncParamType -> string;
-    abstract member getPtrPrefix    : FuncParamType -> string;
-    abstract member getPtrSuffix    : FuncParamType -> string;
-    abstract member getAmber        : FuncParamType -> string;
-    abstract member toPointer       : FuncParamType -> FuncParamType;
-    abstract member getArrayItem    : FuncParamType -> (string) -> (bool) -> FuncParamType;
+    abstract member getPointer      : Selection -> string;
+    abstract member getValue        : Selection -> string;
+    abstract member getAccess       : Selection -> string;
+    abstract member getAccess2      : Accessor  -> string;
+    abstract member getStar         : Selection -> string;
+    abstract member getPtrPrefix    : Selection -> string;
+    abstract member getPtrSuffix    : Selection -> string;
+
+    abstract member getArrayItem    : sel: Selection -> idx: string -> childTypeIsString: bool -> Selection;
     abstract member intValueToString : BigInteger -> Asn1AcnAst.IntegerClass -> string;
     abstract member doubleValueToString : double -> string
     abstract member initializeString : int -> string
     abstract member supportsInitExpressions : bool
     abstract member setNamedItemBackendName0 : Asn1Ast.NamedItem -> string -> Asn1Ast.NamedItem
     abstract member getNamedItemBackendName0 : Asn1Ast.NamedItem -> string
-    abstract member getNamedItemBackendName  : TypeDefintionOrReference option -> Asn1AcnAst.NamedItem -> string
+    abstract member getNamedItemBackendName  : TypeDefinitionOrReference option -> Asn1AcnAst.NamedItem -> string
     abstract member getNamedItemBackendName2  : string -> string -> Asn1AcnAst.NamedItem -> string
     abstract member decodeEmptySeq  : string -> string option
     abstract member decode_nullType : string -> string option
     abstract member castExpression  : string -> string -> string
     abstract member createSingleLineComment : string -> string
     abstract member SpecNameSuffix: string
-    abstract member SpecExtention : string
-    abstract member BodyExtention : string
+    abstract member SpecExtension : string
+    abstract member BodyExtension : string
     abstract member Keywords : string list
     abstract member isCaseSensitive : bool
 
@@ -77,7 +81,7 @@ type ILangGeneric () =
     abstract member AlwaysPresentRtlFuncNames : string list
 
     abstract member detectFunctionCalls : string -> string -> string list
-    abstract member removeFunctionFromHeader : string -> string -> string 
+    abstract member removeFunctionFromHeader : string -> string -> string
     abstract member removeFunctionFromBody : string -> string -> string
 
 
@@ -97,27 +101,22 @@ type ILangGeneric () =
     abstract member Length          : string -> string -> string
     abstract member typeDef         : Map<ProgrammingLanguage, FE_PrimitiveTypeDefinition> -> FE_PrimitiveTypeDefinition
     abstract member getTypeDefinition : Map<ProgrammingLanguage, FE_TypeDefinition> -> FE_TypeDefinition
-    abstract member getEnmTypeDefintion : Map<ProgrammingLanguage, FE_EnumeratedTypeDefinition>  -> FE_EnumeratedTypeDefinition
+    abstract member getEnumTypeDefinition : Map<ProgrammingLanguage, FE_EnumeratedTypeDefinition>  -> FE_EnumeratedTypeDefinition
     abstract member getStrTypeDefinition : Map<ProgrammingLanguage, FE_StringTypeDefinition> -> FE_StringTypeDefinition
     abstract member getChoiceTypeDefinition : Map<ProgrammingLanguage, FE_ChoiceTypeDefinition> -> FE_ChoiceTypeDefinition
     abstract member getSequenceTypeDefinition :Map<ProgrammingLanguage, FE_SequenceTypeDefinition> -> FE_SequenceTypeDefinition
     abstract member getSizeableTypeDefinition : Map<ProgrammingLanguage, FE_SizeableTypeDefinition> -> FE_SizeableTypeDefinition
 
-    abstract member getSeqChild     : FuncParamType -> string -> bool -> bool -> FuncParamType;
-    abstract member getChChild      : FuncParamType -> string -> bool -> FuncParamType;
+    abstract member getSeqChild: sel: Selection -> childName: string -> childTypeIsString: bool -> childIsOptional: bool -> Selection;
+    abstract member getChChild      : Selection -> string -> bool -> Selection;
     abstract member getLocalVariableDeclaration : LocalVariable -> string;
-    abstract member getLongTypedefName : TypeDefintionOrReference -> string;
-    abstract member getEmptySequenceInitExpression : unit -> string
+    abstract member getLongTypedefName : TypeDefinitionOrReference -> string;
+    abstract member getEmptySequenceInitExpression : string -> string
     abstract member callFuncWithNoArgs : unit -> string
 
-    //abstract member getEnmLongTypedefName : FE_EnumeratedTypeDefinition -> string -> FE_EnumeratedTypeDefinition;
-
-
-    abstract member ArrayAccess     : string -> string;
-
-    abstract member presentWhenName : TypeDefintionOrReference option -> ChChildInfo -> string;
+    abstract member presentWhenName : TypeDefinitionOrReference option -> ChChildInfo -> string;
     abstract member getParamTypeSuffix : Asn1AcnAst.Asn1Type -> string -> Codec -> CallerScope;
-    abstract member getParamValue   : Asn1AcnAst.Asn1Type -> FuncParamType -> Codec -> string
+    abstract member getParamValue   : Asn1AcnAst.Asn1Type -> Selection -> Codec -> string
 
     abstract member getParamType    : Asn1AcnAst.Asn1Type -> Codec -> CallerScope;
     abstract member rtlModuleName   : string
@@ -131,7 +130,7 @@ type ILangGeneric () =
     abstract member AssignOperator   :string
     abstract member TrueLiteral      :string
     abstract member FalseLiteral     :string
-    abstract member emtyStatement    :string
+    abstract member emptyStatement   :string
     abstract member bitStreamName    :string
     abstract member unaryNotOperator :string
     abstract member modOp            :string
@@ -139,7 +138,9 @@ type ILangGeneric () =
     abstract member neqOp            :string
     abstract member andOp            :string
     abstract member orOp             :string
-    abstract member initMetod        :InitMethod
+    abstract member initMethod       :InitMethod
+    abstract member decodingKind     :DecodingKind
+    abstract member usesWrappedOptional: bool
     abstract member bitStringValueToByteArray:  BitStringValue -> byte[]
 
     abstract member toHex : int -> string
@@ -158,15 +159,7 @@ type ILangGeneric () =
     abstract member getBoardDirs : Targets option -> string list
 
 
-
-
-//    abstract member createLocalVariable_frag : string -> LocalVariable
-
-    default this.getAmber (fpt:FuncParamType) =
-        if this.getStar fpt = "*" then "&" else ""        
-    default this.toPointer  (fpt:FuncParamType) =
-        POINTER (this.getPointer fpt)
-    default this.getParamType    (t:Asn1AcnAst.Asn1Type) (c:Codec) : CallerScope =
+    default this.getParamType (t:Asn1AcnAst.Asn1Type) (c:Codec) : CallerScope =
         this.getParamTypeSuffix t "" c
     default this.requiresHandlingOfEmptySequences = false
     default this.requiresHandlingOfZeroArrays = false
@@ -177,7 +170,7 @@ type ILangGeneric () =
         sourceCode
     default this.removeFunctionFromBody (sourceCode: string) (functionName: string) : string =
         sourceCode
-    
+
     //most programming languages are case sensitive
     default _.isCaseSensitive = true
     default _.getBoardNames _ = []
@@ -198,5 +191,14 @@ type LanguageMacros = {
     src     : ISrcBody
 }
 
-
-
+type Selection with
+    member this.joined (lg: ILangGeneric): string =
+        List.fold (fun str accessor -> $"{str}{lg.getAccess2 accessor}") this.receiverId this.path
+    member this.asIdentifier: string =
+        List.fold (fun str accessor ->
+            let acc =
+                match accessor with
+                | ValueAccess (id, _, _) -> ToC id
+                | PointerAccess (id, _, _) -> ToC id
+                | ArrayAccess _ -> "arr"
+            $"{str}_{acc}") this.receiverId this.path

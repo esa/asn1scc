@@ -13,7 +13,7 @@
         <Compile Include="AntlrParse.fs" />
         <Compile Include="ParameterizedAsn1Ast.fs" />
         <Compile Include="CreateAsn1AstFromAntlrTree.fs" />
-        <Compile Include="RemoveParamterizedTypes.fs" />
+        <Compile Include="RemoveParameterizedTypes.fs" />
         <Compile Include="Asn1Ast.fs" />
         <Compile Include="MapParamAstToNonParamAst.fs" />
         <Compile Include="CheckAsn1.fs" />
@@ -43,12 +43,12 @@
     <ItemGroup>
       <PackageReference Include="FsToolkit.ErrorHandling" Version="2.7.0" />
     </ItemGroup>
-    
+
   <ItemGroup>
     <ProjectReference Include="..\Antlr\Antlr.csproj" />
     <ProjectReference Include="..\CommonTypes\CommonTypes.fsproj" />
   </ItemGroup>
-    
+
   <ItemGroup>
     <Reference Include="antlr.runtime">
       <HintPath>..\Antlr\antlr313\antlr.runtime.dll</HintPath>
@@ -63,7 +63,7 @@
       <HintPath>..\Antlr\antlr313\StringTemplate.dll</HintPath>
     </Reference>
   </ItemGroup>
-    
+
   <ItemGroup>
     <PackageReference Update="FSharp.Core" Version="7.0.400" />
   </ItemGroup>

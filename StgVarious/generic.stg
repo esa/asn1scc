@@ -50,7 +50,7 @@ ImportedMod(sName, sCName, arrsTypes, arrsVars) ::= <<
 {"$sName$":{"ImportedTypes": [$arrsTypes:{t|"$t$"};separator=","$], "ImportedVariables": [$arrsVars:{t|"$t$"};separator=","$]}}
 >>
 
-TasXml(sName, nLine, nPos, sType, sCName, sAssigOp, sContract, bAddedType) ::= <<
+TasXml(sName, nLine, nPos, sType, sCName, sAssignOp, sContract, bAddedType) ::= <<
 types["$sName$"] = {
     "Line": $nLine$, "CharPositionInLine": $nPos$, "AddedType":$bAddedType$,  "type": {
         $sType$
@@ -99,8 +99,8 @@ IA5StringType () ::= "IA5StringType"
 
 NumericStringType () ::= "NumericStringType"
 
-AssigOpNormalType () ::= "="
-AssigOpSpecialType () ::= "="
+AssignOpNormalType () ::= "="
+AssignOpSpecialType () ::= "="
 
 EnumItem (sName, sCName, nVal, nLine, nPos, sCID) ::= <<
 "$sName$": {
