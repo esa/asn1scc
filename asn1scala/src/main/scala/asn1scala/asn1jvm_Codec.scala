@@ -634,7 +634,7 @@ trait Codec {
 
    def decodeOctetString_no_length(nCount: Int): Array[UByte] = {
       val a = readByteArray(nCount)
-      val arr: Array[UByte] = Array.fill(nCount + 1)(0)           // TODO: why is +1 needed?
+      val arr: Array[UByte] = Array.fill(nCount)(0)
       arrayCopyOffsetLen(a, arr, 0, 0, a.length)
       arr
    }

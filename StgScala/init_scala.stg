@@ -76,12 +76,12 @@ initNull(sVal) ::= "<sVal> = 0"
 
 initTestCaseIA5String(p, sAcc, nSize, nMaxSizePlusOne, i, td/*:FE_StringTypeDefinition*/, bAlpha, arrnAlphabetAsciiCodes, nAlphabetLength, bZero) ::= <<
 <if(bZero)>
-<p> = Array.fill(<nMaxSizePlusOne>){0}
+<p> = Array.fill(<nMaxSizePlusOne>)(0)
 
 <else>
 
 <i> = 0
-<p> = Array.fill(<nMaxSizePlusOne>){0}
+<p> = Array.fill(<nMaxSizePlusOne>)(0)
 while (<i> \< <nSize>) {
     <if(bAlpha)>
     val allowedCharSet: Array[Byte] = Array(<arrnAlphabetAsciiCodes:{ch|0x<ch;format="X2">}; wrap, anchor, separator=",">)
@@ -114,7 +114,7 @@ initFixVarSizeBitOrOctString(p, sAcc, nSize, arrsBytes) ::= <<
 
 initTestCaseOctetString(p, sAcc, sArrayHolderName, nSize, i, bIsFixedSize, bZero, nMinSize, bZeroSizedArray) ::= <<
 <if(bZero)>
-<p> = <sArrayHolderName>(<if(!bIsFixedSize)><nMinSize>, <endif>Array.fill(<nSize>){0})
+<p> = <sArrayHolderName>(<if(!bIsFixedSize)><nMinSize>, <endif>Array.fill(<nSize>)(0))
 <else>
 <i> = 0
 (while (<i>\< <nSize>) {
@@ -127,16 +127,16 @@ initTestCaseOctetString(p, sAcc, sArrayHolderName, nSize, i, bIsFixedSize, bZero
 >>
 
 
-initTestCaseBitString(p, sAcc, sArrayHolderName, nSize, nSizeCeiled, i, bIsFixedSize, bZero, nMinSize) ::= <<
+initTestCaseBitString(p, sAcc, sArrayHolderName, nSize, nSizeCeiled, i, bIsFixedSize, bZero, nMinSize, bIsOptionalField) ::= <<
 <if(bZero)>
-<p> = <sArrayHolderName>(<if(!bIsFixedSize)><nMinSize>, <endif>Array.fill(<nSizeCeiled>/8){0})
+<p> = <sArrayHolderName>(<if(!bIsFixedSize)><nMinSize>, <endif>Array.fill(<nSizeCeiled>/8)(0)
 
 <else>
 
 <if(!bIsFixedSize)><p><sAcc>nCount = <nSize><endif>
 <i> = 0
-while (<i>\< <nSizeCeiled>/8) {
-    <p><sAcc>arr(<i>) = 0x55 /* --> 0101 0101 as in Ada*/
+while (<i>\< <nSizeCeiled>/8 <if (bIsOptionalField)>&& <p><sAcc>isDefined<endif>) {
+    <p><sAcc><if (bIsOptionalField)>get<sAcc><endif>arr(<i>) = 0x55 /* --> 0101 0101 as in Ada*/
     <i> = <i> + 1
 }
 <endif>
@@ -190,12 +190,12 @@ initSequence(arrsInnerValues) ::= <<
 initSequence_emptySeq(p) ::= ""
 
 initTestCase_sequence_child(p, sAcc, sChName, sChildContent, bOptional) ::= <<
-<if(bOptional)><p><sAcc>exist.<sChName> = true<endif>
+<if(bOptional)> /* TODO no need for this in scala <p><sAcc>exist.<sChName> = true*/<endif>
 <sChildContent>
 >>
 
 initTestCase_sequence_child_opt(p, sAcc, sChName) ::= <<
-<p><sAcc>exist.<sChName> = false
+/* TODO <p><sAcc>exist.<sChName> = false */
 >>
 
 initChoice(p, sAcc, sChildContent, sChildID, sChildName, sChildTypeName, sChoiceTypeName, sChildTempVarName, sChildTempDefaultInit, bComponentTempInit) ::= <<

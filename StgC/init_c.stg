@@ -137,7 +137,7 @@ while (<i>\< <nSize>) {
 
 >>
 
-initTestCaseBitString(p, sAcc, sArrayHolderName, nSize, nSizeCeiled,  i, bIsFixedSize, bZero, nMinSize) ::= <<
+initTestCaseBitString(p, sAcc, sArrayHolderName, nSize, nSizeCeiled,  i, bIsFixedSize, bZero, nMinSize, bIsOptionalField) ::= <<
 <if(bZero)>
 memset(<p><sAcc>arr, 0x0, <nSizeCeiled>/8);
 

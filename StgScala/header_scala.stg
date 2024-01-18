@@ -218,7 +218,7 @@ case class <td.extension_function_positions> (
 
 case class <td.typeName> (
 
-    <arrsChildren:{ch|<ch>}; separator=", \n">
+    <arrsChildren:{ch| var <ch>}; separator=", \n">
 )
 
 >>

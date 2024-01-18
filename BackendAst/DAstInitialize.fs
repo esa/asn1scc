@@ -465,7 +465,7 @@ let createBitStringInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1Ac
             let seqOfCase (nSize:BigInteger) =
                 let initTestCaseFunc (p:CallerScope) =
                     let nSizeCeiled =  if nSize % 8I = 0I then nSize else (nSize + (8I - nSize % 8I))
-                    let funcBody = initTestCaseBitString (p.arg.joined lm.lg) (lm.lg.getAccess p.arg) tdName nSize (nSizeCeiled) i (o.minSize.uper = o.maxSize.uper) false o.minSize.uper
+                    let funcBody = initTestCaseBitString (p.arg.joined lm.lg) (lm.lg.getAccess p.arg) tdName nSize (nSizeCeiled) i (o.minSize.uper = o.maxSize.uper) false o.minSize.uper p.arg.isOptional
                     {InitFunctionResult.funcBody = funcBody; localVariables=[SequenceOfIndex (ii, None)]}
                 {AutomaticTestCase.initTestCaseFunc = initTestCaseFunc; testCaseTypeIDsMap = Map.ofList [(t.id, TcvSizeableTypeValue nSize)] }
 
@@ -492,7 +492,7 @@ let createBitStringInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1Ac
                         | Asn1AcnAst.BitString bo -> bo.isFixedSize
                         | _                        -> raise(BugErrorException "UnexpectedType")
 
-                let funcBody = initTestCaseBitString (p.arg.joined lm.lg) (lm.lg.getAccess p.arg) tdName nSize (nSizeCeiled) i (isFixedSize) true o.minSize.uper
+                let funcBody = initTestCaseBitString (p.arg.joined lm.lg) (lm.lg.getAccess p.arg) tdName nSize (nSizeCeiled) i (isFixedSize) true o.minSize.uper p.arg.isOptional
                 let lvars = lm.lg.init.zeroIA5String_localVars ii
                 {InitFunctionResult.funcBody = funcBody; localVariables=lvars}
             testCaseFuncs, zero
