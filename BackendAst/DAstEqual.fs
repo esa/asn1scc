@@ -78,7 +78,6 @@ let isEqualBodySequenceChild   (lm:LanguageMacros)  (o:Asn1AcnAst.Asn1Child) (ne
     | Some (sInnerStatement, lvars)     -> Some (lm.equal.isEqual_Sequence_child (v1.arg.joined lm.lg) (v2.arg.joined lm.lg) (lm.lg.getAccess v1.arg) o.Optionality.IsSome c_name (Some sInnerStatement), lvars)
 
 
-
 let isEqualBodyChoiceChild  (choiceTypeDefName:string)  (lm:LanguageMacros) (o:Asn1AcnAst.ChChildInfo) (newChild:Asn1Type) (v1:CallerScope) (v2:CallerScope)  =
     let p1,p2 =
         match ST.lang with
@@ -102,7 +101,7 @@ let isEqualBodyChoiceChild  (choiceTypeDefName:string)  (lm:LanguageMacros) (o:A
                 | Some a    -> a
                 | None      -> sprintf "ret %s %s;" lm.lg.AssignOperator lm.lg.TrueLiteral, []
         | Some fncName  ->
-            let exp = callBaseTypeFunc lm (lm.lg.getPointer p1.arg) (lm.lg.getPointer p2.arg) fncName
+            let exp = callBaseTypeFunc lm (lm.lg.getPointer p1.arg) (lm.lg.getPointer p2.arg) fncName p1.arg.isOptional p2.arg.isOptional
             makeExpressionToStatement lm exp, []
 
     lm.equal.isEqual_Choice_Child choiceTypeDefName o.presentWhenName sInnerStatement (p1.arg.joined lm.lg) (p2.arg.joined lm.lg), lvars
@@ -230,7 +229,7 @@ let createSequenceOfEqualFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:
             | Some fncName  ->
                 let p1 = childAccesPath v1
                 let p2 = childAccesPath v2
-                let exp = callBaseTypeFunc lm (lm.lg.getPointer p1.arg) (lm.lg.getPointer p2.arg) fncName
+                let exp = callBaseTypeFunc lm (lm.lg.getPointer p1.arg) (lm.lg.getPointer p2.arg) fncName p1.arg.isOptional p2.arg.isOptional
                 Some(makeExpressionToStatement lm exp, [])
 
         let i = sprintf "i%d" (t.id.SequenceOfLevel + 1)
@@ -337,7 +336,7 @@ let createReferenceTypeEqualFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) 
     | Sequence _
     | Choice _ ->
         let isEqualBody (p1:CallerScope) (p2:CallerScope) =
-            let exp = callBaseTypeFunc lm (lm.lg.getPointer p1.arg) (lm.lg.getPointer p2.arg) baseEqName
+            let exp = callBaseTypeFunc lm (lm.lg.getPointer p1.arg) (lm.lg.getPointer p2.arg) baseEqName p1.arg.isOptional p2.arg.isOptional
             Some(makeExpressionToStatement lm exp, [])
 
         let val1 = lm.lg.getParamTypeSuffix t "1" CommonTypes.Codec.Encode

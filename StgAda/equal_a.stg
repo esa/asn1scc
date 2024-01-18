@@ -182,7 +182,7 @@ end if;
 
 
 
-call_base_type_func(p1, p2, sFuncName) ::= "<sFuncName>(<p1>, <p2>)"
+call_base_type_func(p1, p2, sFuncName, bIsP1Option, bIsP2Option) ::= "<sFuncName>(<p1>, <p2>)"
 
 makeExpressionToStatement(sIsValidExp) ::= <<
 ret := <sIsValidExp>;

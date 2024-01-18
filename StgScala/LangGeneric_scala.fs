@@ -60,11 +60,11 @@ type LangGeneric_scala() =
 
         override _.supportsInitExpressions = false
 
-        override this.getPointer  (sel: Selection) = sel.joined this
+        override this.getPointer (sel: Selection) = sel.joined this
 
         override this.getValue (sel: Selection) = sel.joined this
 
-        override this.getAccess  (sel: Selection) = "."
+        override this.getAccess (sel: Selection) = "."
 
         override this.getAccess2 (acc: Accessor) = getAccess2_scala acc
 

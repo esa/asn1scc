@@ -146,7 +146,7 @@ isEqual_Sequence_child(p1, p2, sAcc,  bIsOptional, sChName, soInnerStatement) ::
 <if(bIsOptional)>
 ret = (<p1><sAcc><sChName>.isDefined == <p2><sAcc><sChName>.isDefined)
 <if(soInnerStatement)>
-if (ret && <p1><sAcc><sChName>.isDefined) then
+if (ret && <p1><sAcc><sChName>.isDefined) then // equal:149
     <soInnerStatement>
 
 <endif>
@@ -178,7 +178,9 @@ while ret && <i> \< <nFixedSize> do
 
 >>
 
-call_base_type_func(p1, p2, sFuncName) ::= "<sFuncName>(<p1>, <p2>)"
+call_base_type_func(p1, p2, sFuncName, bIsP1Option, bIsP2Option) ::= <<
+<sFuncName>(<p1><if (bIsP1Option)>.get<endif>, <p2><if (bIsP2Option)>.get<endif>) // equal:182
+>>
 
 makeExpressionToStatement(sIsValidExp) ::= <<
 ret = <sIsValidExp>
