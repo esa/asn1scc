@@ -139,7 +139,7 @@ Define_new_octet_string(td/*:FE_SizeableTypeDefinition*/, nMin, nMax, bFixedSize
 <endif>
 case class <td.typeName>(<if(!bFixedSize)>var nCount: Long, <endif>arr: Array[Byte])
 {
-    require(arr.length == <nMax>)
+    require(arr.length \<= <nMax>)
 }
 >>
 
@@ -162,7 +162,7 @@ Define_new_bit_string(td/*:FE_SizeableTypeDefinition*/, nMin, nMax, bFixedSize, 
 <endif>
 case class <td.typeName>(<if(!bFixedSize)>var nCount: Long, <endif>arr: Array[Byte])
 {
-    require(arr.length == <nMaxOctets>)
+    require(arr.length \<= <nMaxOctets>)
 }
 >>
 
@@ -179,7 +179,7 @@ Define_new_sequence_of(td/*:FE_SizeableTypeDefinition*/, nMin, nMax, bFixedSize,
 
 case class <td.typeName> (<if(!bFixedSize)>var nCount: Int, <endif>arr: Array[<sChildType>])
 {
-    require(arr.length == <nMax>)
+    require(arr.length \<= <nMax>)
 }
 >>
 
