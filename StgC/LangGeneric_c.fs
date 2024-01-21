@@ -192,7 +192,10 @@ type LangGeneric_c() =
         override this.allowsSrcFilesWithNoFunctions = true
         override this.requiresValueAssignmentsInSrcFile = true
         override this.supportsStaticVerification = false
-        
+
+        override this.getSeqChildIsPresent (fpt:FuncParamType) (childName:string) =
+            sprintf "%s%sexist.%s" fpt.p (this.getAccess fpt) childName
+
         override this.getSeqChild (fpt:FuncParamType) (childName:string) (childTypeIsString: bool) (removeDots: bool) =
             let newPath = sprintf "%s%s%s" fpt.p (this.getAccess fpt) childName
             if childTypeIsString then (FIXARRAY newPath) else (VALUE newPath)

@@ -1271,7 +1271,7 @@ end case;
 
 
 checkAccessPath(arrsCheckPaths, sUpdateStatement) ::= <<
-if (<arrsCheckPaths; separator=" && ">) then
+if (<arrsCheckPaths; separator=" and then ">) then
     <sUpdateStatement>
 end if;
 >>

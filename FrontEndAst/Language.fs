@@ -103,7 +103,11 @@ type ILangGeneric () =
     abstract member getSequenceTypeDefinition :Map<ProgrammingLanguage, FE_SequenceTypeDefinition> -> FE_SequenceTypeDefinition
     abstract member getSizeableTypeDefinition : Map<ProgrammingLanguage, FE_SizeableTypeDefinition> -> FE_SizeableTypeDefinition
 
-    abstract member getSeqChild     : FuncParamType -> string -> bool -> bool -> FuncParamType;
+    abstract member getSeqChild         : FuncParamType -> string -> bool -> bool -> FuncParamType
+
+    //return a string that contains code with a boolean expression that is true if the child is present
+    abstract member getSeqChildIsPresent   : FuncParamType -> string -> string
+
     abstract member getChChild      : FuncParamType -> string -> bool -> FuncParamType;
     abstract member getLocalVariableDeclaration : LocalVariable -> string;
     abstract member getLongTypedefName : TypeDefintionOrReference -> string;

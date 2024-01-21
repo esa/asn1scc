@@ -5,6 +5,7 @@ open DAst
 open FsUtils
 open Language
 open System.IO
+open System
 
 let getAccess_scala  (fpt:FuncParamType) =
     match fpt with
@@ -196,6 +197,10 @@ type LangGeneric_scala() =
         override this.requiresValueAssignmentsInSrcFile = true
         override this.supportsStaticVerification = false
         
+        override this.getSeqChildIsPresent (fpt:FuncParamType) (childName:string) =
+            //sprintf "%s%sexist.%s = 1" fpt.p (this.getAccess fpt) childName
+            raise (NotImplementedException())
+
         override this.getSeqChild (fpt:FuncParamType) (childName:string) (childTypeIsString: bool) (removeDots: bool) =
             let newPath = sprintf "%s%s%s" fpt.p (this.getAccess fpt) childName
             let newPath = if removeDots then (ToC newPath) else newPath

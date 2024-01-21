@@ -212,6 +212,8 @@ type LangGeneric_a() =
             let encRtl = []//match r.args.encodings |> Seq.exists(fun e -> e = UPER || e = ACN || e = XER) with true -> [] | false -> ["adaasn1rtl.encoding"]
             encRtl@uperRtl@acnRtl@xerRtl |> List.distinct
 
+        override this.getSeqChildIsPresent (fpt:FuncParamType) (childName:string) =
+            sprintf "%s%sexist.%s = 1" fpt.p (this.getAccess fpt) childName
 
         override this.getSeqChild (fpt:FuncParamType) (childName:string) (childTypeIsString: bool) (removeDots: bool) =
             let newPath = sprintf "%s.%s" fpt.p childName

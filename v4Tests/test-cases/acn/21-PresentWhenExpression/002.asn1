@@ -1,0 +1,36 @@
+TEST-CASE  DEFINITIONS AUTOMATIC TAGS::= BEGIN
+
+MyChoiceEnum ::= ENUMERATED
+{
+    choice1 (1),
+    choice2 (2)
+}
+
+MyTopMostSeq ::= SEQUENCE
+{
+    myChoice1 MyChoice OPTIONAL,
+    myChoice2 MyChoice OPTIONAL
+}
+
+MyChoice ::= CHOICE
+{
+    choice1 MyTuple,
+    choice2 INTEGER
+}
+
+MyTuple ::= SEQUENCE
+{
+    fst INTEGER,
+    snd INTEGER
+}
+
+myTest MyTopMostSeq ::= {
+
+   myChoice1 choice1 : { fst 4, snd 2 }
+
+}
+	
+END
+
+
+--TCFS     002.acn
