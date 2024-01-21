@@ -340,7 +340,7 @@ type ScopeNode =
     | MD of string          //MODULE
     | TA of string          //TYPE ASSIGNMENT
     | VA of string          //VALUE ASSIGNMENT
-    | SEQ_CHILD of string   //SEQUENCE child
+    | SEQ_CHILD of string*bool   //SEQUENCE child, is optional
     | CH_CHILD of string*string*string    //CHOICE child, choice child present when name
     | PRM of string         //ACN parameter
     | SQF                   //SEQUENCE OF CHILD
@@ -388,7 +388,7 @@ type ScopeNode with
         | TA strVal
         | VA strVal
         | PRM strVal
-        | SEQ_CHILD strVal
+        | SEQ_CHILD (strVal,_)
         | CH_CHILD (strVal,_, _) -> strVal
         | SQF             -> "#"
     member this.StrValue = this.AsString
@@ -451,9 +451,9 @@ type ReferenceToType with
         member this.AcnAbsPath =
             match this with
             | ReferenceToType path -> path |> List.map (fun i -> i.StrValue) 
-        member this.getSeqChildId (childName:string) =
-            match this with
-            | ReferenceToType path -> ReferenceToType (path@[SEQ_CHILD childName])
+        //member this.getSeqChildId (childName:string) =
+        //    match this with
+        //    | ReferenceToType path -> ReferenceToType (path@[SEQ_CHILD childName])
         member this.getSeqOfChildId =
             match this with
             | ReferenceToType path -> ReferenceToType (path@[SQF])
@@ -466,13 +466,13 @@ type ReferenceToType with
             | ReferenceToType ((MD mdName)::(TA tasName)::[]) -> ReferenceToType ((MD mdName)::(TA tasName)::[PRM paramName])
             | _                                                                         -> raise(BugErrorException "Cannot add parameter here. Only within TAS scope")
 
-        member this.appendLongChildId (childRelativePath:string list) =
-            match this with
-            | ReferenceToType path -> 
-                let newTail = 
-                    childRelativePath |> 
-                    List.map(fun s ->SEQ_CHILD s)
-                ReferenceToType (path@newTail)
+        //member this.appendLongChildId (childRelativePath:string list) =
+        //    match this with
+        //    | ReferenceToType path -> 
+        //        let newTail = 
+        //            childRelativePath |> 
+        //            List.map(fun s ->SEQ_CHILD s)
+        //        ReferenceToType (path@newTail)
         member this.beginsWith (md:string) (ts:string)= 
             match this with
             | ReferenceToType((MD mdName)::(TA tasName)::[])   -> mdName = md && tasName = ts
@@ -481,7 +481,7 @@ type ReferenceToType with
             match this with
             | ReferenceToType path -> 
                 match path |> List.rev |> List.head with
-                | SEQ_CHILD name   -> name
+                | SEQ_CHILD (name,_)   -> name
                 | CH_CHILD (name,_,_)    -> name
                 | _                             -> raise (BugErrorException "error in lastitem")
         member this.parentTypeId =

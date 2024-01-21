@@ -1642,6 +1642,12 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                                     match codec with
                                     | Codec.Encode  -> None, [], ns1
                                     | Codec.Decode  ->
+                                        let getExternaField (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) asn1TypeIdWithDependency =
+                                            let filterDependency (d:AcnDependency) =
+                                                match d.dependencyKind with
+                                                | AcnDepPresenceBool   -> true
+                                                | _                    -> false
+                                            getExternaField0 r deps asn1TypeIdWithDependency filterDependency
                                         let extField = getExternaField r deps child.Type.id
                                         Some(sequence_presense_optChild_pres_bool p.arg.p (lm.lg.getAccess p.arg) (lm.lg.getAsn1ChildBackendName child) extField codec), [], ns1
                                 | Some (PresenceWhenBoolExpression exp)    -> 

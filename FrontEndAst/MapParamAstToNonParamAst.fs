@@ -49,7 +49,15 @@ let visitRefType (md:string) (ts:string) : UserDefinedTypeScope=
 //    {UserDefinedTypeScope.typeID=[MD md; VA vs]; asn1TypeName=None; asn1VarName=Some vs;varID=[]}
 
 let visitSeqChild (s:UserDefinedTypeScope) (ch:ParameterizedAsn1Ast.ChildInfo) : UserDefinedTypeScope=
-    s@[SEQ_CHILD ch.Name.Value]
+    let isOptional =
+        match ch.Optionality with
+        | None -> false
+        | Some(ParameterizedAsn1Ast.AlwaysAbsent) -> true
+        | Some(ParameterizedAsn1Ast.AlwaysPresent) -> false
+        | Some(ParameterizedAsn1Ast.Optional) -> true
+        | Some(ParameterizedAsn1Ast.Default(_)) -> true
+
+    s@[SEQ_CHILD (ch.Name.Value, isOptional )]
 
 let visitChoiceChild (s:UserDefinedTypeScope) (ch:ParameterizedAsn1Ast.ChildInfo) : UserDefinedTypeScope=
     s@[CH_CHILD (ch.Name.Value, ToC2 ch.Name.Value, "")]

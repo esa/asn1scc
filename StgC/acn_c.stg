@@ -677,7 +677,7 @@ sequence_presense_optChild_pres_acn_expression_decode(p, sAcc, sChName, sAcnExpr
 
 sequence_presense_optChild_pres_bool_encode(p, sAcc, sChName, sExtFldName) ::= ""
 sequence_presense_optChild_pres_bool_decode(p, sAcc, sChName, sExtFldName) ::= <<
-<p><sAcc>exist.<sChName> = <sExtFldName> ? 1 : 0;
+<p><sAcc>exist.<sChName> = <sExtFldName> ? 1 : 0; 
 >>
 
 sequence_presense_optChild_pres_int_encode(p, sAcc, sChName, sExtFldName, nIntVal) ::= ""
