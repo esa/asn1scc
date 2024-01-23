@@ -63,7 +63,20 @@ type LangGeneric_scala() =
         override this.getPointer (sel: Selection) = sel.joined this
 
         override this.getValue (sel: Selection) = sel.joined this
-
+        override this.getValueUnchecked (sel: Selection) (kind: UncheckedAccessKind) = this.joinSelectionUnchecked sel kind
+        override this.getPointerUnchecked (sel: Selection) (kind: UncheckedAccessKind) = this.joinSelectionUnchecked sel kind
+        override _.joinSelectionUnchecked (sel: Selection) (kind: UncheckedAccessKind) =
+            let len = sel.path.Length
+            List.fold (fun str (ix, accessor) ->
+                let accStr =
+                    match accessor with
+                    | ValueAccess (id, _, isOpt) ->
+                        if isOpt && (kind = FullAccess || ix < len - 1) then $".{id}.get" else $".{id}"
+                    | PointerAccess (id, _, isOpt) ->
+                        if isOpt && (kind = FullAccess || ix < len - 1) then $".{id}.get" else $".{id}"
+                    | ArrayAccess (ix, _) -> $"({ix})"
+                $"{str}{accStr}"
+            ) sel.receiverId (List.indexed sel.path)
         override this.getAccess (sel: Selection) = "."
 
         override this.getAccess2 (acc: Accessor) = getAccess2_scala acc

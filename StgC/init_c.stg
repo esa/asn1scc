@@ -20,9 +20,9 @@ void <sFuncName>(<sTypeDefName><sPtrSuffix> <sVarName>)
 >>
 
 
-initInteger(sVal, nValue) ::= "<sVal> = <nValue>;"
-initReal(sVal, dValue) ::= "<sVal> = <dValue>;"
-initBoolean(sVal, bValue) ::= "<sVal> = <if(bValue)>TRUE<else>FALSE<endif>;"
+initInteger(sVal, nValue, bIsOptional) ::= "<sVal> = <nValue>;"
+initReal(sVal, dValue, bIsOptional) ::= "<sVal> = <dValue>;"
+initBoolean(sVal, bValue, bIsOptional) ::= "<sVal> = <if(bValue)>TRUE<else>FALSE<endif>;"
 
 initObjectIdentifier_valid(p, sAcc, sI, nIntVal) ::= "<p><sAcc>values[<sI>] = <nIntVal>;"
 initObjectIdentifier(p, sAcc, nSize, arrsValues) ::= <<
@@ -80,9 +80,9 @@ assignAny(p, sValue, sTypeDecl) ::= "<p> = (<sTypeDecl>)<sValue>;"
 assignString(p, sValue) ::= "memcpy(<p>, <sValue>, sizeof(<sValue>));"
 
 
-initIA5String(sPtr, sValue) ::= "strcpy(<sPtr>,<sValue>);"
-initEnumerated(sVal, sValue, sEnum) ::= "<sVal> = <sValue>;"
-initNull(sVal)    ::= "<sVal> = 0;"
+initIA5String(sPtr, sValue, bIsOptional) ::= "strcpy(<sPtr>,<sValue>);"
+initEnumerated(sVal, sValue, sEnum, bIsOptional) ::= "<sVal> = <sValue>;"
+initNull(sVal, bIsOptional)    ::= "<sVal> = 0;"
 
 initTestCaseIA5String(p, sAcc, nSize, nMaxSizePlusOne, i, td/*:FE_StringTypeDefinition*/, bAlpha, arrnAlphabetAsciiCodes, nAlphabetLength, bZero) ::= <<
 <if(bZero)>
@@ -201,7 +201,7 @@ initSequence(arrsInnerValues) ::= <<
 initSequence_emptySeq(p) ::= ""
 
 
-initTestCase_sequence_child(p, sAcc, sChName, sChildContent, bOptional) ::= <<
+initTestCase_sequence_child(p, sAcc, sChName, sChildContent, bOptional, sInitExpr) ::= <<
 /*set <sChName> */
 <if(bOptional)><p><sAcc>exist.<sChName> = 1;<endif>
 <sChildContent>
@@ -217,7 +217,7 @@ initChoice(p, sAcc, sChildContent, sChildID, sChildName, sChildTypeName, sChoice
 >>
 
 
-initTestCase_choice_child(p, sAcc, sChildContent, sChildID, sChildName, sChildTypeName, sChoiceTypeName, sChildTempVarName, sChildTempDefaultInit) ::= <<
+initTestCase_choice_child(p, sAcc, sChildContent, sChildID, sChildName, sChildTypeName, sChoiceTypeName, sChildTempVarName, sChildTempDefaultInit, bIsOptional) ::= <<
 /*set <sChildName>*/
 <p><sAcc>kind = <sChildID>;
 <sChildContent>
@@ -298,7 +298,7 @@ init_Asn1Date_LocalTimeWithTimeZoneExpr() ::= <<
 {.years = 0, .months = 0, .days = 0, .hours = 0, .mins = 0, .sec = 0, .fraction = 0, .tz.sign = 0, .tz.hours = 0, .tz.mins = 0 }
 >>
 
-initSequenceChildExpr(sChildName, sChildExpr, bIsOptional) ::= ".<sChildName> = <sChildExpr>"
+initSequenceChildExpr(sChildName, sChildExpr, bIsOptional, bIsAbsent) ::= ".<sChildName> = <sChildExpr>"
 initSequenceOptionalChildExpr(sChildName, nPresenceBit) ::= ".<sChildName> = <nPresenceBit>"
 initSequenceExpr(sTypeDefName, sTypeDefNameExist, arrsChildren, arrsOptionalChildren) ::= <<
 {<arrsChildren; separator=", "><if (arrsOptionalChildren)>, .exist = {<arrsOptionalChildren; separator=", ">}<endif>}

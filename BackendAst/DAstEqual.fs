@@ -70,7 +70,7 @@ let isEqualBodySequenceChild   (lm:LanguageMacros)  (o:Asn1AcnAst.Asn1Child) (ne
                 | None      -> None
             | EqualBodyStatementList  func   -> func chp1 chp2
         | Some  fncName ->
-            Some ((callChildEqualFunc (lm.lg.getPointer chp1.arg) (lm.lg.getPointer chp2.arg) fncName), [])
+            Some ((callChildEqualFunc (lm.lg.getPointerUnchecked chp1.arg FullAccess) (lm.lg.getPointerUnchecked chp2.arg FullAccess) fncName), [])
 
     match sInnerStatement with
     | None  when  o.Optionality.IsSome  -> Some (lm.equal.isEqual_Sequence_child (v1.arg.joined lm.lg) (v2.arg.joined lm.lg) (lm.lg.getAccess v1.arg) o.Optionality.IsSome c_name None, [])

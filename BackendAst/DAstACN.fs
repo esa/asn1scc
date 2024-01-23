@@ -995,7 +995,7 @@ let createBitStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
 
 let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (lm:LanguageMacros) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.SequenceOf) (typeDefinition:TypeDefinitionOrReference) (isValidFunc: IsValidFunction option)  (child:Asn1Type) (us:State)  =
     let oct_sqf_null_terminated = lm.acn.oct_sqf_null_terminated
-    let oct_sqf_external_field_fix_size                 = lm.acn.sqf_external_field_fix_size
+    let oct_sqf_external_field_fix_size = lm.acn.sqf_external_field_fix_size
     let external_field          = lm.acn.sqf_external_field
     let fixedSize               = lm.uper.seqOf_FixedSize
     let varSize                 = lm.uper.seqOf_VarSize
@@ -1056,12 +1056,18 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserted
                     | Some internalItem ->
                         let localVariables  = internalItem.localVariables
                         let childErrCodes   = internalItem.errCodes
-                        let internalItem    = internalItem.funcBody
+                        let internalItemBody    = internalItem.funcBody
                         let extField        = getExternalField r deps t.id
+                        let internalItemBody =
+                            match codec, lm.lg.decodingKind with
+                            | Decode, Copy ->
+                                assert internalItem.resultExpr.IsSome
+                                internalItemBody + "\n" + (lm.uper.update_array_item pp i internalItem.resultExpr.Value)
+                            | _ -> internalItemBody
                         let funcBodyContent =
                             match o.isFixedSize with
-                            | true  -> oct_sqf_external_field_fix_size td pp access i internalItem (if o.minSize.acn=0I then None else Some o.minSize.acn) o.maxSize.acn extField nAlignSize errCode.errCodeName o.child.acnMinSizeInBits o.child.acnMaxSizeInBits childInitExpr codec
-                            | false -> external_field td pp access i internalItem (if o.minSize.acn=0I then None else Some o.minSize.acn) o.maxSize.acn extField nAlignSize errCode.errCodeName o.child.acnMinSizeInBits o.child.acnMaxSizeInBits childInitExpr codec
+                            | true  -> oct_sqf_external_field_fix_size td pp access i internalItemBody (if o.minSize.acn=0I then None else Some o.minSize.acn) o.maxSize.acn extField nAlignSize errCode.errCodeName o.child.acnMinSizeInBits o.child.acnMaxSizeInBits childInitExpr codec
+                            | false -> external_field td pp access i internalItemBody (if o.minSize.acn=0I then None else Some o.minSize.acn) o.maxSize.acn extField nAlignSize errCode.errCodeName o.child.acnMinSizeInBits o.child.acnMaxSizeInBits childInitExpr codec
                         Some ({AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = errCode::childErrCodes; localVariables = lv@localVariables; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=resultExpr})
                 | SZ_EC_TerminationPattern   bitPattern    ->
                     match internalItem with
@@ -1073,9 +1079,15 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserted
                         let byteArray = bitStringValueToByteArray bitPatten8.AsLoc
                         let localVariables  = internalItem.localVariables
                         let childErrCodes   = internalItem.errCodes
-                        let internalItem    = internalItem.funcBody
+                        let internalItemBody    = internalItem.funcBody
                         let noSizeMin = if o.minSize.acn=0I then None else Some ( o.minSize.acn)
-                        let funcBodyContent = oct_sqf_null_terminated pp access i internalItem noSizeMin o.maxSize.acn byteArray bitPattern.Value.Length.AsBigInt errCode.errCodeName o.child.acnMinSizeInBits o.child.acnMaxSizeInBits codec
+                        let internalItemBody =
+                            match codec, lm.lg.decodingKind with
+                            | Decode, Copy ->
+                                assert internalItem.resultExpr.IsSome
+                                internalItemBody + "\n" + (lm.uper.update_array_item pp i internalItem.resultExpr.Value)
+                            | _ -> internalItemBody
+                        let funcBodyContent = oct_sqf_null_terminated pp access i internalItemBody noSizeMin o.maxSize.acn byteArray bitPattern.Value.Length.AsBigInt errCode.errCodeName o.child.acnMinSizeInBits o.child.acnMaxSizeInBits codec
 
                         let lv2 =
                             match codec, lm.lg.acn.checkBitPatternPresentResult with

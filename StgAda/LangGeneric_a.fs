@@ -108,6 +108,9 @@ type LangGeneric_a() =
         override this.getPointer (sel: Selection) = sel.joined this
 
         override this.getValue (sel: Selection) = sel.joined this
+        override this.getValueUnchecked (sel: Selection) _ = this.getValue sel
+        override this.getPointerUnchecked (sel: Selection) _ = this.getPointer sel
+        override this.joinSelectionUnchecked (sel: Selection) _ = sel.joined this
         override this.getAccess (sel: Selection) = "."
 
         override this.getAccess2 (acc: Accessor) = getAccess2_a acc

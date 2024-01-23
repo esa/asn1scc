@@ -928,7 +928,7 @@ if (ret) {
 <endif>
 >>
 
-
+update_array_item(p, sI, sExpr) ::= ""
 
 InternalItem_bit_str_encode(p, i, sErrCode) ::=<<
 >>

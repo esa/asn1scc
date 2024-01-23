@@ -23,13 +23,13 @@ assignAny(p, sValue, sTypeDecl) ::= "<p> := <sValue>;"
 assignString(p, sValue) ::= "<p> := <sValue>;"
 
 
-initInteger(p, nValue) ::= "<p> := <nValue>;"
-initReal(p, dValue) ::= "<p> := <dValue>;"
-initBoolean(p, bValue) ::= "<p> := <if(bValue)>True<else>FALSE<endif>;"
+initInteger(p, nValue, bIsOptional) ::= "<p> := <nValue>;"
+initReal(p, dValue, bIsOptional) ::= "<p> := <dValue>;"
+initBoolean(p, bValue, bIsOptional) ::= "<p> := <if(bValue)>True<else>FALSE<endif>;"
 
-initIA5String(sPtr, sValue) ::= "<sPtr> := <sValue>;"
-initEnumerated(sVal, sValue, sEnum) ::= "<sVal> := <sValue>;"
-initNull(sVal)    ::= "<sVal> := 0;"
+initIA5String(sPtr, sValue, bIsOptional) ::= "<sPtr> := <sValue>;"
+initEnumerated(sVal, sValue, sEnum, bIsOptional) ::= "<sVal> := <sValue>;"
+initNull(sVal, bIsOptional)    ::= "<sVal> := 0;"
 
 
 initTestCaseIA5String(p, sAcc, nSize, nMaxSizePlusOne, i, td/*:FE_StringTypeDefinition*/, bAlpha, arrnAlphabetAsciiCodes, nAlphabetLength, bZero) ::= <<
@@ -204,7 +204,7 @@ initSequence(arrsInnerValues) ::= <<
 >>
 
 
-initTestCase_sequence_child(p, sAcc, sChName, sChildContent, bOptional) ::= <<
+initTestCase_sequence_child(p, sAcc, sChName, sChildContent, bOptional, sInitExpr) ::= <<
 --set <sChName>
 <if(bOptional)><p><sAcc>exist.<sChName> := 1;<endif>
 <sChildContent>
@@ -231,7 +231,7 @@ end;
 <endif>
 >>
 
-initTestCase_choice_child(p, sAcc, sChildContent, sChildID, sChildName, sChildTypeName, sChoiceTypeName, sChildTempVarName, sChildTempDefaultInit) ::= <<
+initTestCase_choice_child(p, sAcc, sChildContent, sChildID, sChildName, sChildTypeName, sChoiceTypeName, sChildTempVarName, sChildTempDefaultInit, bIsOptional) ::= <<
 <p> := <sChoiceTypeName>'(kind => <sChildID>, <sChildName> => \<\>);
 <sChildContent>
 >>
@@ -308,7 +308,7 @@ init_Asn1Date_LocalTimeWithTimeZoneExpr() ::= <<
 >>
 
 
-initSequenceChildExpr(sChildName, sChildExpr, bIsOptional) ::= "<sChildName> => <sChildExpr>"
+initSequenceChildExpr(sChildName, sChildExpr, bIsOptional, bIsAbsent) ::= "<sChildName> => <sChildExpr>"
 initSequenceOptionalChildExpr(sChildName, nPresenceBit) ::= "<sChildName> => <nPresenceBit>"
 initSequenceExpr(sTypeDefName, sTypeDefNameExist, arrsChildren, arrsOptionalChildren) ::= <<
 (<arrsChildren; separator=", "><if (arrsOptionalChildren)>, Exist => (<arrsOptionalChildren; separator=", ">)<endif>)
