@@ -381,6 +381,8 @@ end if;
 <endif>
 >>
 
+update_array_item(p, sI, sExpr) ::= ""
+
 sequence_build(p, sTypeDefName, arrsChildren) ::= ""
 
 /* SEQUENCE end */

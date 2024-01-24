@@ -164,7 +164,7 @@ namespace PUS_C_Scala_Test
                     using (var r1 = new BinaryReader(f1))
                     using (var r2 = new BinaryReader(f2))
                     {
-                        Assert.IsTrue(r1.BaseStream.Length == r2.BaseStream.Length, "filelength is different");
+                        Assert.IsTrue(r1.BaseStream.Length == r2.BaseStream.Length, $"file length for {binsA[i]} and {binsB[i]} are different");
 
                         var isSame = true;
                         while (r1.BaseStream.Position < r1.BaseStream.Length && isSame)
@@ -189,8 +189,8 @@ namespace PUS_C_Scala_Test
 
             public TestRange(int s, int e, IEnumerable<int> ex)
             {
-                start = s; 
-                end = e; 
+                start = s;
+                end = e;
                 testRange = Enumerable.Range(s, e).Except(ex);
             }
 
@@ -200,10 +200,10 @@ namespace PUS_C_Scala_Test
         }
 
         /**
-         *  Get Range of interop tests between Scala and C. 
-         *  
-         *  Exclude tests that do not work because the JVM does not 
-         *  support unsigned values. 
+         *  Get Range of interop tests between Scala and C.
+         *
+         *  Exclude tests that do not work because the JVM does not
+         *  support unsigned values.
          *
          */
         private TestRange getInteropTests(PUS_C_Service service, ServiceVariation sv)
@@ -246,7 +246,7 @@ namespace PUS_C_Scala_Test
                     PUS_C_Service.S13 => new TestRange(1, 129, new [] { 80 }),
                     PUS_C_Service.S14 => new TestRange(1, 202, new[] { 80 }),
                     PUS_C_Service.S15 => new TestRange(1, 291, new[] { 80 }),
-                    PUS_C_Service.S17 => new TestRange(1, 8, new[] { 80 }),                  
+                    PUS_C_Service.S17 => new TestRange(1, 8, new[] { 80 }),
                     PUS_C_Service.S18 => new TestRange(1, 172, new[] { 80 }),
                     PUS_C_Service.S19 => new TestRange(1, 141, new[] { 80 }),
                     PUS_C_Service.ADDITIONAL_TEST_CASES => new TestRange(1, 200, new[] { 80 }),
@@ -393,7 +393,7 @@ namespace PUS_C_Scala_Test
 
         private void RunMSBuild(string outDir)
         {
-            // get latest installed MS Build 
+            // get latest installed MS Build
             var msBuildPath = "";
             using (var proc = new Process
             {
@@ -472,7 +472,7 @@ namespace PUS_C_Scala_Test
             }
         }
 
-        private string[] GetService01FileNames() => 
+        private string[] GetService01FileNames() =>
              new string[]{
                 "common/ApplicationProcess",
                 "common/ApplicationProcessUser",
@@ -494,7 +494,7 @@ namespace PUS_C_Scala_Test
                 "service-01/VerificationRequest"
             };
 
-        private string[] GetService02FileNames() => 
+        private string[] GetService02FileNames() =>
             new string[]{
                 "common/BasicTypes",
                 "common/Dummy",
@@ -642,7 +642,7 @@ namespace PUS_C_Scala_Test
                 "service-08/PUS-8-1"
             };
 
-        private string[] GetService09FileNames() => 
+        private string[] GetService09FileNames() =>
             new string[]{
                 "common/BasicTypes",
                 "common/SpacecraftTimeReferenceStatus",
@@ -901,7 +901,7 @@ namespace PUS_C_Scala_Test
                 "service-19/PUS-19-8",
                 "service-19/PUS-19-9"
             };
-        
+
         private string[] GetAdditionalTestCasesFileNames() =>
             new string[]{
                 "additional-test-cases/NULLTERMINATED",

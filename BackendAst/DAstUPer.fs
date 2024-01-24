@@ -581,11 +581,17 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:C
                     Some ({UPERFuncBodyResult.funcBody = funcBody; errCodes = [errCode]; localVariables = localVariables; bValIsUnReferenced=false; bBsIsUnReferenced=false; resultExpr=resultExpr})
             | Some internalItem ->
                 let childErrCodes =  internalItem.errCodes
+                let internalItemBody =
+                    match codec, lm.lg.decodingKind with
+                    | Decode, Copy ->
+                        assert internalItem.resultExpr.IsSome
+                        internalItem.funcBody + "\n" + (lm.uper.update_array_item pp i internalItem.resultExpr.Value)
+                    | _ -> internalItem.funcBody
                 let ret,localVariables =
                     match o.minSize with
-                    | _ when o.maxSize.uper < 65536I && o.maxSize.uper=o.minSize.uper  -> fixedSize pp td i internalItem.funcBody ( o.minSize.uper) ( child.uperMinSizeInBits) nIntItemMaxSize 0I childInitExpr codec, nStringLength
-                    | _ when o.maxSize.uper < 65536I && o.maxSize.uper<>o.minSize.uper  -> varSize pp access  td i internalItem.funcBody ( o.minSize.uper) ( o.maxSize.uper) nSizeInBits ( child.uperMinSizeInBits) nIntItemMaxSize 0I childInitExpr errCode.errCodeName codec , nStringLength
-                    | _                                                -> handleFragmentation lm p codec errCode ii ( o.uperMaxSizeInBits) o.minSize.uper o.maxSize.uper internalItem.funcBody nIntItemMaxSize false false
+                    | _ when o.maxSize.uper < 65536I && o.maxSize.uper=o.minSize.uper -> fixedSize pp td i internalItemBody ( o.minSize.uper) ( child.uperMinSizeInBits) nIntItemMaxSize 0I childInitExpr codec, nStringLength
+                    | _ when o.maxSize.uper < 65536I && o.maxSize.uper<>o.minSize.uper -> varSize pp access  td i internalItemBody ( o.minSize.uper) ( o.maxSize.uper) nSizeInBits ( child.uperMinSizeInBits) nIntItemMaxSize 0I childInitExpr errCode.errCodeName codec , nStringLength
+                    | _ -> handleFragmentation lm p codec errCode ii ( o.uperMaxSizeInBits) o.minSize.uper o.maxSize.uper internalItemBody nIntItemMaxSize false false
 
                 Some ({UPERFuncBodyResult.funcBody = ret; errCodes = errCode::childErrCodes; localVariables = lv@(localVariables@internalItem.localVariables); bValIsUnReferenced=false; bBsIsUnReferenced=false; resultExpr=resultExpr})
         | Some baseFuncName ->

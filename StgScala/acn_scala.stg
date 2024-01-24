@@ -367,9 +367,7 @@ codec.enc_String_Ascii_Null_Terminated_mult(<nAsn1Max>, Array({<arruNullBytes; s
 >>
 
 Acn_String_Ascii_Null_Terminated_decode(p, sErrCode, nAsn1Max, arruNullBytes) ::= <<
-val <p> = codec.dec_String_Ascii_Null_Terminated_mult(<nAsn1Max>, Array({<arruNullBytes; separator=", ">}), <arruNullBytes.Length>) match
-    case NoneMut() => return Left(<sErrCode>)
-    case SomeMut(x) => x
+val <p> = codec.dec_String_Ascii_Null_Terminated_mult(<nAsn1Max>, Array({<arruNullBytes; separator=", ">}), <arruNullBytes.Length>)
 >>
 
 Acn_String_Ascii_External_Field_Determinant_encode(p, sErrCode, nAsn1Max, sExtFld) ::= "codec.enc_String_Ascii_External_Field_Determinant(<nAsn1Max>, <p>)"
@@ -384,9 +382,7 @@ codec.enc_String_Ascii_Internal_Field_Determinant(<nAsn1Max>, <nAsn1Min>, <p>)
 >>
 
 Acn_String_Ascii_Internal_Field_Determinant_decode(p, sErrCode, nAsn1Max, nAsn1Min, nInternalLengthDeterminantSizeInBits) ::= <<
-val <p> = codec.dec_String_Ascii_Internal_Field_Determinant(<nAsn1Max>, <nAsn1Min>) match
-    case None() => return Left(<sErrCode>)
-    case Some(x) => x
+val <p> = codec.dec_String_Ascii_Internal_Field_Determinant(<nAsn1Max>, <nAsn1Min>)
 >>
 
 PrintAlphabet2(arrnCharSet) /*nogen*/ ::= <<
@@ -400,9 +396,7 @@ codec.enc_String_CharIndex_FixSize(<nAsn1Max>, allowedCharSet, <nCharSetSize>, <
 
 Acn_String_CharIndex_FixSize_decode(p, sErrCode, nAsn1Max, arrnAlphabetAsciiCodes, nCharSetSize, td/*:FE_StringTypeDefinition*/, nCharSize) ::= <<
 <PrintAlphabet2(arrnAlphabetAsciiCodes)>
-val <p> = codec.dec_String_CharIndex_FixSize(<nAsn1Max>, allowedCharSet, <nCharSetSize>) match
-    case None() => return Left(<sErrCode>)
-    case Some(x) => x
+val <p> = codec.dec_String_CharIndex_FixSize(<nAsn1Max>, allowedCharSet, <nCharSetSize>)
 >>
 
 Acn_String_CharIndex_External_Field_Determinant_encode(p, sErrCode, nAsn1Max, arrnAlphabetAsciiCodes, nCharSetSize, sExtFld, td/*:FE_StringTypeDefinition*/, nCharSize) ::= <<
@@ -412,9 +406,7 @@ codec.enc_String_CharIndex_External_Field_Determinant(<nAsn1Max>, allowedCharSet
 
 Acn_String_CharIndex_External_Field_Determinant_decode(p, sErrCode, nAsn1Max, arrnAlphabetAsciiCodes, nCharSetSize, sExtFld, td/*:FE_StringTypeDefinition*/, nCharSize) ::= <<
 <PrintAlphabet2(arrnAlphabetAsciiCodes)>
-val <p> = codec.dec_String_CharIndex_External_Field_Determinant(<nAsn1Max>, allowedCharSet, <nCharSetSize>, <sExtFld>) match
-    case None() => return Left(<sErrCode>)
-    case Some(x) => x
+val <p> = codec.dec_String_CharIndex_External_Field_Determinant(<nAsn1Max>, allowedCharSet, <nCharSetSize>, <sExtFld>)
 >>
 
 

@@ -47,11 +47,18 @@ type DecodingKind =
     | InPlace
     | Copy
 
+type UncheckedAccessKind =
+    | FullAccess // unwrap all selection, including the last one
+    | PartialAccess // unwrap all but the last selection
+
 [<AbstractClass>]
 type ILangGeneric () =
     abstract member ArrayStartIndex : int
     abstract member getPointer      : Selection -> string;
+    abstract member getPointerUnchecked: Selection -> UncheckedAccessKind -> string;
     abstract member getValue        : Selection -> string;
+    abstract member getValueUnchecked: Selection -> UncheckedAccessKind -> string;
+    abstract member joinSelectionUnchecked: Selection -> UncheckedAccessKind -> string;
     abstract member getAccess       : Selection -> string;
     abstract member getAccess2      : Accessor  -> string;
     abstract member getStar         : Selection -> string;
@@ -194,6 +201,8 @@ type LanguageMacros = {
 type Selection with
     member this.joined (lg: ILangGeneric): string =
         List.fold (fun str accessor -> $"{str}{lg.getAccess2 accessor}") this.receiverId this.path
+    member this.joinedUnchecked (lg: ILangGeneric) (kind: UncheckedAccessKind): string =
+        lg.joinSelectionUnchecked this kind
     member this.asIdentifier: string =
         List.fold (fun str accessor ->
             let acc =

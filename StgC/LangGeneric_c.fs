@@ -78,6 +78,9 @@ type LangGeneric_c() =
             | Pointer -> $"(*({str}))"
             | _ -> str
 
+        override this.getValueUnchecked (sel: Selection) _ = this.getValue sel
+        override this.getPointerUnchecked (sel: Selection) _ = this.getPointer sel
+        override this.joinSelectionUnchecked (sel: Selection) _ = sel.joined this
         override this.getAccess  (sel: Selection) = getAccess_c sel
 
         override this.getAccess2 (acc: Accessor) = getAccess2_c acc
