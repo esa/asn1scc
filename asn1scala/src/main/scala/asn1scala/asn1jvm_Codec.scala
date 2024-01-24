@@ -152,7 +152,7 @@ trait Codec {
          val lo = v.toInt
          encodeNonNegativeInteger32Neg(hi, false)
 
-         val nBits: Int = GetNumberOfBitsForNonNegativeInteger(lo.toLong << 32 >>> 32) // TODO: is this easier?
+         val nBits: Int = GetBitCountUnsigned(lo.toLong << 32 >>> 32) // TODO: is this easier?
          appendNBitZero(32 - nBits)
          encodeNonNegativeInteger32Neg(lo, false)
    }
@@ -186,7 +186,7 @@ trait Codec {
          /*bug !!!!*/
          if true then // TODO, the negate flag was always true
             lo = ~lo
-         val nBits = GetNumberOfBitsForNonNegativeInteger(lo.toLong)
+         val nBits = GetBitCountUnsigned(lo.toLong)
          appendNBitZero(32 - nBits)
          encodeNonNegativeInteger32Neg(lo, false)
    }
@@ -210,12 +210,12 @@ trait Codec {
          return
 
       // get number of bits that get written
-      val nRangeBits: Int = GetNumberOfBitsForNonNegativeInteger(range)
+      val nRangeBits: Int = GetBitCountUnsigned(range)
 
       // get value that gets written
       val encVal: Long = stainless.math.wrapping(v - min)
 
-      @ghost val nEncValBits = GetNumberOfBitsForNonNegativeInteger(encVal)
+      @ghost val nEncValBits = GetBitCountUnsigned(encVal)
       assert(nRangeBits >= nEncValBits)
 
       appendBitsNBitFirstToLSB(encVal, nRangeBits)
@@ -230,7 +230,7 @@ trait Codec {
       if range == 0 then
          return min
 
-      val nRangeBits = GetNumberOfBitsForNonNegativeInteger(range)
+      val nRangeBits = GetBitCountUnsigned(range)
       val decVal = readBitsNBitFirstToLSB(nRangeBits)
 
       assert(min + decVal <= max) // TODO sanity check needed?
@@ -269,7 +269,7 @@ trait Codec {
       if range == 0 then
          return min
 
-      val nRangeBits: Int = GetNumberOfBitsForNonNegativeInteger(range)
+      val nRangeBits: Int = GetBitCountUnsigned(range)
       val decVal = decodeNonNegativeInteger(nRangeBits) // TODO simpler call
 
       assert(min + decVal <= max) // TODO sanity check needed?
@@ -286,7 +286,7 @@ trait Codec {
       encodeConstrainedWholeNumber(nBytes.toLong, 0, 255)
       /*8 bits, first bit is always 0*/
       /* put required zeros*/
-      appendNBitZero(nBytes * 8 - GetNumberOfBitsForNonNegativeInteger(v - min))
+      appendNBitZero(nBytes * 8 - GetBitCountUnsigned(v - min))
       /*Encode number */
       encodeNonNegativeInteger(v - min)
    }
@@ -300,7 +300,7 @@ trait Codec {
       encodeConstrainedWholeNumber(nBytes.toLong, 0, 255)
       /*8 bits, first bit is always 0*/
       /* put required zeros*/
-      appendNBitZero(nBytes * 8 - GetNumberOfBitsForNonNegativeInteger(v - min))
+      appendNBitZero(nBytes * 8 - GetBitCountUnsigned(v - min))
       /*Encode number */
       encodeNonNegativeInteger(v - min)
    }
@@ -511,13 +511,13 @@ trait Codec {
       /* encode exponent */
       if exponent >= 0 then
          // fill with zeros to have a whole byte
-         appendNBitZero(nExpLen * 8 - GetNumberOfBitsForNonNegativeInteger(exponent))
+         appendNBitZero(nExpLen * 8 - GetBitCountUnsigned(exponent))
          encodeNonNegativeInteger(exponent)
       else
          encodeNonNegativeInteger(compactExp)
 
       /* encode mantissa */
-      appendNBitZero(nManLen * 8 - GetNumberOfBitsForNonNegativeInteger(mantissa))
+      appendNBitZero(nManLen * 8 - GetBitCountUnsigned(mantissa))
       encodeNonNegativeInteger(mantissa)
    }
 

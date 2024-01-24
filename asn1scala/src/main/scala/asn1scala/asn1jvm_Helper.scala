@@ -104,44 +104,55 @@ extension (l: Long) {
    }
 }
 
-def GetNumberOfBitsInUpperBytesAndDecreaseValToLastByte(v: UInt): (UInt, Int) = {
-   if v >>> 8 == 0 then
-      (v, 0)
-   else if v >>> 16 == 0 then
-      (v >>> 8, 8)
-   else if v >>> 24 == 0 then
-      (v >>> 16, 16)
-   else
-      (v >>> 24, 24)
-}.ensuring((v, n) => v >= 0 &&& v <= 0xFF &&& n >= 0 &&& n <= 24)
+/**
+ * Get number of bits needed to represent the value v
+ *
+ * Example:
+ *    v = 12d = 0b0000'0...0'0000'1100b
+ *                                ^
+ *                                4 bits needed
+ *
+ * @param v value that should get serialised
+ * @return number of bits needed for serialisation
+ */
+def GetBitCountUnsigned(v: Long): Int = {
+   if v < 0 then
+      return NO_OF_BITS_IN_LONG
 
-def GetNumberOfBitsInLastByteRec (vVal: UInt, n: UInt): Int = {
-   require(vVal >= 0 && vVal <= 0xFF)
-   require(n >= 0 && n <= 8)
-   require(1<<(8-n) > vVal)
-   decreases(8-n)
+   if v == 0 then
+      return 0
 
-   if(vVal == 0) then
-      n
-   else
-      GetNumberOfBitsInLastByteRec(vVal >>> 1, n+1)
-}
+   var i = 0
+   var l = v
+   (while i < NO_OF_BITS_IN_LONG - 1 && l != 0 do
+      decreases(NO_OF_BITS_IN_LONG - i)
+      l >>>= 1
+      i += 1
+   ).invariant(
+      l >= 0 &&
+      i >= 0 && i < NO_OF_BITS_IN_LONG &&            // i must be in range [0,63]
+      (i == 0 && Long.MaxValue >= l ||
+         1L << ((NO_OF_BITS_IN_LONG - 1) - i) >= l)) // i == 0 v (∀i : 0 < i < 64: (1 << i) > l)
 
-def GetNumberOfBitsForNonNegativeInteger32(vVal: UInt): Int = {
-   val (v, n) = GetNumberOfBitsInUpperBytesAndDecreaseValToLastByte(vVal)
-   n + GetNumberOfBitsInLastByteRec(v, 0)
-}
+   i
+}.ensuring(x =>
+   x >= 0 && x <= 64 && (x == 64 && v < 0 || v >>> x == 0))
 
-def GetNumberOfBitsForNonNegativeInteger(v: ULong): Int = {
-   if v >>> 32 == 0 then
-      GetNumberOfBitsForNonNegativeInteger32(v.cutToInt)
-   else
-      val h = (v >>> 32).cutToInt
-      32 + GetNumberOfBitsForNonNegativeInteger32(h)
-}.ensuring(n => n >= 0 && n <= 64)
-
+/**
+ * Get number of bytes needed to represent the value v
+ *
+ * Remarks: Calls GetBitCountUnsigned,
+ * rounds to next whole byte
+ *
+ * Example:
+ *    v = 12d = 0b0000'0...0'0000'1100b
+ *    -> 4Bit -> 1Byte has sufficient space
+ *
+ * @param v value that needs its byte count evaluated
+ * @return number of full bytes needed for serialisation
+ */
 def GetLengthForEncodingUnsigned(v: ULong): Int = {
-   max((GetNumberOfBitsForNonNegativeInteger(v) + NO_OF_BITS_IN_BYTE - 1) / NO_OF_BITS_IN_BYTE, 1) // even the number 0 needs 1 byte
+   max((GetBitCountUnsigned(v) + NO_OF_BITS_IN_BYTE - 1) / NO_OF_BITS_IN_BYTE, 1) // even the number 0 needs 1 byte
 }.ensuring(n => n > 0 && n <= NO_OF_BYTES_IN_JVM_LONG)
 
 /**

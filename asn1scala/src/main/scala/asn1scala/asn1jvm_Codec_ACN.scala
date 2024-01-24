@@ -22,7 +22,7 @@ case class ACN(bitStream: BitStream) extends Codec {
          return
 
       /* Get number of bits*/
-      val nBits: Int = GetNumberOfBitsForNonNegativeInteger(intVal)
+      val nBits: Int = GetBitCountUnsigned(intVal)
       /* put required zeros*/
       // TODO what if nBits > encodedSizeInBits ??
       appendNBitZero(encodedSizeInBits - nBits)
@@ -186,11 +186,11 @@ case class ACN(bitStream: BitStream) extends Codec {
 
    def enc_Int_TwosComplement_ConstSize(intVal: Long, encodedSizeInBits: Int): Unit = {
       if intVal >= 0 then
-         appendNBitZero(encodedSizeInBits - GetNumberOfBitsForNonNegativeInteger(intVal))
+         appendNBitZero(encodedSizeInBits - GetBitCountUnsigned(intVal))
          encodeNonNegativeInteger(intVal)
 
       else
-         appendNBitOne(encodedSizeInBits - GetNumberOfBitsForNonNegativeInteger(-intVal - 1))
+         appendNBitOne(encodedSizeInBits - GetBitCountUnsigned(-intVal - 1))
          encodeNonNegativeIntegerNeg(-intVal - 1)
    }
 
