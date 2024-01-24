@@ -634,10 +634,7 @@ trait Codec {
    }
 
    final def decodeOctetString_no_length(nCount: Int): Array[UByte] = {
-      val a = readByteArray(nCount)
-      val arr: Array[UByte] = Array.fill(nCount)(0)
-      arrayCopyOffsetLen(a, arr, 0, 0, a.length)
-      arr
+      readByteArray(nCount)
    }
 
    final def encodeOctetString_fragmentation(arr: Array[UByte], nCount: Int): Boolean = { // TODO return value legacy C? remove?
