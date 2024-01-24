@@ -191,14 +191,6 @@ trait Codec {
          encodeNonNegativeInteger32Neg(lo, false)
    }
 
-   @extern @pure
-   final def rangeCheck(min: Long, max: Long): Boolean = {
-      val bigMin = scala.math.BigInt(min)
-      val bigMax = scala.math.BigInt(max)
-
-      (bigMax - bigMin) <= scala.math.BigInt(Long.MaxValue)
-   }
-
    /**
     *
     * @param v number that gets encoded, needs to be within [min,max] range
@@ -212,9 +204,8 @@ trait Codec {
    final def encodeConstrainedWholeNumber(v: Long, min: Long, max: Long): Unit = {
       require(min <= max)
       require(min <= v && v <= max)
-      require(rangeCheck(min, max))
 
-      val range = max - min
+      val range: Long = stainless.math.wrapping(max - min)
       if range == 0 then
          return
 
@@ -222,7 +213,7 @@ trait Codec {
       val nRangeBits: Int = GetNumberOfBitsForNonNegativeInteger(range)
 
       // get value that gets written
-      val encVal = v - min
+      val encVal: Long = stainless.math.wrapping(v - min)
 
       @ghost val nEncValBits = GetNumberOfBitsForNonNegativeInteger(encVal)
       assert(nRangeBits >= nEncValBits)
@@ -232,9 +223,8 @@ trait Codec {
 
    final def decodeConstrainedWholeNumber(min: Long, max: Long): Long = {
       require(min <= max)
-      require(rangeCheck(min, max))
 
-      val range: Long = max - min
+      val range: Long = stainless.math.wrapping(max - min)
 
       // only one possible number
       if range == 0 then
@@ -267,6 +257,7 @@ trait Codec {
       decodeConstrainedWholeNumber(min, max).cutToInt
       // TODO maybe add PostCondition: is val in given (signed/unsigned??) range?
    }
+
 
    final def decodeConstraintPosWholeNumber(min: Long, max: Long): Long = {
       require(max >= 0 && max <= Long.MaxValue)
@@ -644,7 +635,7 @@ trait Codec {
 
    final def decodeOctetString_no_length(nCount: Int): Array[UByte] = {
       val a = readByteArray(nCount)
-      val arr: Array[UByte] = Array.fill(nCount + 1)(0)           // TODO: why is +1 needed?
+      val arr: Array[UByte] = Array.fill(nCount)(0)
       arrayCopyOffsetLen(a, arr, 0, 0, a.length)
       arr
    }

@@ -36,7 +36,7 @@ type SeqOfValue           = list<Asn1Value>
 and SeqValue              = list<NamedValue>
 and ChValue               = NamedValue
 and RefValue              = ((StringLoc*StringLoc)*Asn1Value)
-and ObjectIdenfierValue   = ((ResolvedObjectIdentifierValueCompoent list)*(ObjectIdentifierValueCompoent list))
+and ObjectIdentifierValue   = ((ResolvedObjectIdentifierValueComponent list)*(ObjectIdentifierValueComponent list))
 
 and NamedValue = {
     name        : StringLoc
@@ -50,20 +50,20 @@ and Asn1Value = {
 }
 
 and Asn1ValueKind =
-    | IntegerValue          of IntegerValue    
-    | RealValue             of RealValue       
+    | IntegerValue          of IntegerValue
+    | RealValue             of RealValue
     | StringValue           of (SingleStringValue list*SrcLoc)
-    | BooleanValue          of BooleanValue    
-    | BitStringValue        of BitStringValue  
+    | BooleanValue          of BooleanValue
+    | BitStringValue        of BitStringValue
     | TimeValue             of TimeValue
     | OctetStringValue      of OctetStringValue
-    | EnumValue             of EnumValue       
-    | SeqOfValue            of SeqOfValue      
-    | SeqValue              of SeqValue        
-    | ChValue               of ChValue         
+    | EnumValue             of EnumValue
+    | SeqOfValue            of SeqOfValue
+    | SeqValue              of SeqValue
+    | ChValue               of ChValue
     | NullValue             of NullValue
-    | RefValue              of RefValue   
-    | ObjOrRelObjIdValue    of ObjectIdenfierValue
+    | RefValue              of RefValue
+    | ObjOrRelObjIdValue    of ObjectIdentifierValue
 
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -72,14 +72,14 @@ and Asn1ValueKind =
 
 
 type GenericConstraint<'v> =
-    | UnionConstraint                   of string*GenericConstraint<'v>*GenericConstraint<'v>*bool //left,righ, virtual constraint
+    | UnionConstraint                   of string*GenericConstraint<'v>*GenericConstraint<'v>*bool //left,right, virtual constraint
     | IntersectionConstraint            of string*GenericConstraint<'v>*GenericConstraint<'v>
     | AllExceptConstraint               of string*GenericConstraint<'v>
     | ExceptConstraint                  of string*GenericConstraint<'v>*GenericConstraint<'v>
     | RootConstraint                    of string*GenericConstraint<'v>
     | RootConstraint2                   of string*GenericConstraint<'v>*GenericConstraint<'v>
     | SingleValueConstraint             of string*'v
-    with 
+    with
         member
             this.ASN1 =
                 match this with
@@ -92,17 +92,17 @@ type GenericConstraint<'v> =
                 | SingleValueConstraint  (s,_) -> s
 
 
-type RangeTypeConstraint<'v1,'v2>  = 
-    | RangeUnionConstraint               of string*RangeTypeConstraint<'v1,'v2>*RangeTypeConstraint<'v1,'v2>*bool //left,righ, virtual constraint
+type RangeTypeConstraint<'v1,'v2>  =
+    | RangeUnionConstraint               of string*RangeTypeConstraint<'v1,'v2>*RangeTypeConstraint<'v1,'v2>*bool //left,right, virtual constraint
     | RangeIntersectionConstraint        of string*RangeTypeConstraint<'v1,'v2>*RangeTypeConstraint<'v1,'v2>
     | RangeAllExceptConstraint           of string*RangeTypeConstraint<'v1,'v2>
     | RangeExceptConstraint              of string*RangeTypeConstraint<'v1,'v2>*RangeTypeConstraint<'v1,'v2>
     | RangeRootConstraint                of string*RangeTypeConstraint<'v1,'v2>
     | RangeRootConstraint2               of string*RangeTypeConstraint<'v1,'v2>*RangeTypeConstraint<'v1,'v2>
     | RangeSingleValueConstraint         of string*'v2
-    | RangeContraint                     of string*('v1) *('v1)*bool*bool    //min, max, InclusiveMin(=true), InclusiveMax(=true)
-    | RangeContraint_val_MAX             of string*('v1) *bool            //min, InclusiveMin(=true)
-    | RangeContraint_MIN_val             of string*('v1) *bool            //max, InclusiveMax(=true)
+    | RangeConstraint                     of string*('v1) *('v1)*bool*bool    //min, max, InclusiveMin(=true), InclusiveMax(=true)
+    | RangeConstraint_val_MAX             of string*('v1) *bool            //min, InclusiveMin(=true)
+    | RangeConstraint_MIN_val             of string*('v1) *bool            //max, InclusiveMax(=true)
     with
         member this.ASN1 =
             match this with
@@ -113,28 +113,28 @@ type RangeTypeConstraint<'v1,'v2>  =
             | RangeRootConstraint                (s,_) -> s
             | RangeRootConstraint2               (s,_,_) -> s
             | RangeSingleValueConstraint         (s,_) -> s
-            | RangeContraint                     (s,_,_,_,_) -> s
-            | RangeContraint_val_MAX             (s,_,_) -> s
-            | RangeContraint_MIN_val             (s,_,_) -> s
+            | RangeConstraint                     (s,_,_,_,_) -> s
+            | RangeConstraint_val_MAX             (s,_,_) -> s
+            | RangeConstraint_MIN_val             (s,_,_) -> s
 
 
 type IntegerTypeConstraint  = RangeTypeConstraint<BigInteger, BigInteger>
 type PosIntTypeConstraint   = RangeTypeConstraint<UInt32, UInt32>
 type CharTypeConstraint     = RangeTypeConstraint<char, string>
-    
+
 type RealTypeConstraint     = RangeTypeConstraint<double, double>
 
 
-type SizableTypeConstraint<'v>  = 
-    | SizeUnionConstraint               of string*SizableTypeConstraint<'v>*SizableTypeConstraint<'v>*bool //left,righ, virtual constraint
+type SizableTypeConstraint<'v>  =
+    | SizeUnionConstraint               of string*SizableTypeConstraint<'v>*SizableTypeConstraint<'v>*bool //left,right, virtual constraint
     | SizeIntersectionConstraint        of string*SizableTypeConstraint<'v>*SizableTypeConstraint<'v>
     | SizeAllExceptConstraint           of string*SizableTypeConstraint<'v>
     | SizeExceptConstraint              of string*SizableTypeConstraint<'v>*SizableTypeConstraint<'v>
     | SizeRootConstraint                of string*SizableTypeConstraint<'v>
     | SizeRootConstraint2               of string*SizableTypeConstraint<'v>*SizableTypeConstraint<'v>
     | SizeSingleValueConstraint         of string*'v
-    | SizeContraint                     of string*PosIntTypeConstraint               
-    with 
+    | SizeConstraint                     of string*PosIntTypeConstraint
+    with
         member
             this.ASN1 =
                 match this with
@@ -145,19 +145,19 @@ type SizableTypeConstraint<'v>  =
                 | SizeRootConstraint        (s,_) -> s
                 | SizeRootConstraint2       (s,_,_) -> s
                 | SizeSingleValueConstraint (s,_) -> s
-                | SizeContraint             (s,_) -> s
+                | SizeConstraint             (s,_) -> s
 
-type IA5StringConstraint = 
-    | StrUnionConstraint               of string*IA5StringConstraint*IA5StringConstraint*bool //left,righ, virtual constraint
+type IA5StringConstraint =
+    | StrUnionConstraint               of string*IA5StringConstraint*IA5StringConstraint*bool //left,right, virtual constraint
     | StrIntersectionConstraint        of string*IA5StringConstraint*IA5StringConstraint
     | StrAllExceptConstraint           of string*IA5StringConstraint
     | StrExceptConstraint              of string*IA5StringConstraint*IA5StringConstraint
     | StrRootConstraint                of string*IA5StringConstraint
     | StrRootConstraint2               of string*IA5StringConstraint*IA5StringConstraint
     | StrSingleValueConstraint         of string*string
-    | StrSizeContraint                 of string*PosIntTypeConstraint               
-    | AlphabetContraint                of string*CharTypeConstraint           
-    with 
+    | StrSizeConstraint                 of string*PosIntTypeConstraint
+    | AlphabetConstraint                of string*CharTypeConstraint
+    with
         member
             this.ASN1 =
                 match this with
@@ -168,8 +168,8 @@ type IA5StringConstraint =
                 | StrRootConstraint         (s,_) -> s
                 | StrRootConstraint2        (s,_,_) -> s
                 | StrSingleValueConstraint  (s,_) -> s
-                | StrSizeContraint          (s,_) -> s
-                | AlphabetContraint         (s,_) -> s
+                | StrSizeConstraint          (s,_) -> s
+                | AlphabetConstraint         (s,_) -> s
 
 
 
@@ -183,7 +183,7 @@ type OctetStringConstraint  =    SizableTypeConstraint<OctetStringValue*(Referen
 type BitStringConstraint    =    SizableTypeConstraint<BitStringValue*(ReferenceToValue*SrcLoc)>
 type BoolConstraint         =    GenericConstraint<bool>
 type EnumConstraint         =    GenericConstraint<string>
-type ObjectIdConstraint     =    GenericConstraint<ObjectIdenfierValue>
+type ObjectIdConstraint     =    GenericConstraint<ObjectIdentifierValue>
 type TimeConstraint         =    GenericConstraint<Asn1DateTimeValue>
 
 
@@ -191,15 +191,15 @@ type TimeConstraint         =    GenericConstraint<Asn1DateTimeValue>
 //type SequenceConstraint     =     GenericConstraint<SeqValue>
 
 type SeqOrChoiceConstraint<'v> =
-    | SeqOrChUnionConstraint                   of string*SeqOrChoiceConstraint<'v>*SeqOrChoiceConstraint<'v>*bool //left,righ, virtual constraint
+    | SeqOrChUnionConstraint                   of string*SeqOrChoiceConstraint<'v>*SeqOrChoiceConstraint<'v>*bool //left,right, virtual constraint
     | SeqOrChIntersectionConstraint            of string*SeqOrChoiceConstraint<'v>*SeqOrChoiceConstraint<'v>
     | SeqOrChAllExceptConstraint               of string*SeqOrChoiceConstraint<'v>
     | SeqOrChExceptConstraint                  of string*SeqOrChoiceConstraint<'v>*SeqOrChoiceConstraint<'v>
     | SeqOrChRootConstraint                    of string*SeqOrChoiceConstraint<'v>
     | SeqOrChRootConstraint2                   of string*SeqOrChoiceConstraint<'v>*SeqOrChoiceConstraint<'v>
     | SeqOrChSingleValueConstraint             of string*'v
-    | SeqOrChWithComponentsConstraint          of string*NamedConstraint list       
-    with 
+    | SeqOrChWithComponentsConstraint          of string*NamedConstraint list
+    with
         member
             this.ASN1 =
                 match this with
@@ -217,17 +217,17 @@ and SeqConstraint = SeqOrChoiceConstraint<SeqValue>
 
 and ChoiceConstraint       =     SeqOrChoiceConstraint<ChValue>
 
-and SequenceOfConstraint   =  
-    | SeqOfSizeUnionConstraint               of string*SequenceOfConstraint*SequenceOfConstraint*bool //left,righ, virtual constraint
+and SequenceOfConstraint   =
+    | SeqOfSizeUnionConstraint               of string*SequenceOfConstraint*SequenceOfConstraint*bool //left,right, virtual constraint
     | SeqOfSizeIntersectionConstraint        of string*SequenceOfConstraint*SequenceOfConstraint
     | SeqOfSizeAllExceptConstraint           of string*SequenceOfConstraint
     | SeqOfSizeExceptConstraint              of string*SequenceOfConstraint*SequenceOfConstraint
     | SeqOfSizeRootConstraint                of string*SequenceOfConstraint
     | SeqOfSizeRootConstraint2               of string*SequenceOfConstraint*SequenceOfConstraint
     | SeqOfSizeSingleValueConstraint         of string*SeqOfValue
-    | SeqOfSizeContraint                     of string*PosIntTypeConstraint               
+    | SeqOfSizeConstraint                     of string*PosIntTypeConstraint
     | SeqOfSeqWithComponentConstraint        of string*AnyConstraint*SrcLoc
-    with 
+    with
         member
             this.ASN1 =
                 match this with
@@ -238,25 +238,25 @@ and SequenceOfConstraint   =
                 | SeqOfSizeRootConstraint          (s,_) -> s
                 | SeqOfSizeRootConstraint2         (s,_,_) -> s
                 | SeqOfSizeSingleValueConstraint   (s,_) -> s
-                | SeqOfSizeContraint               (s,_) -> s
+                | SeqOfSizeConstraint               (s,_) -> s
                 | SeqOfSeqWithComponentConstraint  (s,_,_) -> s
 
-    
+
 and AnyConstraint =
     | IntegerTypeConstraint of IntegerTypeConstraint
-    | IA5StringConstraint   of IA5StringConstraint   
-    | RealTypeConstraint    of RealTypeConstraint   
+    | IA5StringConstraint   of IA5StringConstraint
+    | RealTypeConstraint    of RealTypeConstraint
     | OctetStringConstraint of OctetStringConstraint
     | BitStringConstraint   of BitStringConstraint
-    | BoolConstraint        of BoolConstraint    
-    | EnumConstraint        of EnumConstraint    
+    | BoolConstraint        of BoolConstraint
+    | EnumConstraint        of EnumConstraint
     | ObjectIdConstraint    of ObjectIdConstraint
     | SequenceOfConstraint  of SequenceOfConstraint
     | SeqConstraint         of SeqConstraint
     | ChoiceConstraint      of ChoiceConstraint
-    | NullConstraint        
+    | NullConstraint
     | TimeConstraint        of TimeConstraint
-    with 
+    with
         member
             this.ASN1 =
                 match this with
@@ -273,11 +273,11 @@ and AnyConstraint =
                 | ChoiceConstraint      (x) -> x.ASN1
                 | NullConstraint            -> ""
                 | TimeConstraint        (x) -> x.ASN1
-    
+
 
 and NamedConstraint = {
     Name: StringLoc
-    Contraint:AnyConstraint option
+    Constraint:AnyConstraint option
     Mark:Asn1Ast.NamedConstraintMark
 }
 
@@ -288,9 +288,9 @@ type NamedItem = {
     scala_name:string
     ada_name:string
     definitionValue : BigInteger          // the value in the header file
-    
+
     // the value encoded by ACN. It can (a) the named item index (i.e. like uper), (b) The definition value, (c) The redefined value from acn properties
-    acnEncodeValue  : BigInteger                
+    acnEncodeValue  : BigInteger
     Comments: string array
 }
 
@@ -299,12 +299,12 @@ type Optional = {
     acnPresentWhen      : PresenceWhenBool option
 }
 
-type Asn1Optionality = 
+type Asn1Optionality =
     | AlwaysAbsent
     | AlwaysPresent
     | Optional          of Optional
 
-type Asn1ChoiceOptionality = 
+type Asn1ChoiceOptionality =
     | ChoiceAlwaysAbsent
     | ChoiceAlwaysPresent
 
@@ -346,16 +346,16 @@ type RealEncodingClass =
     | Real_IEEE754_64_little_endian
 
 type StringAcnEncodingClass =
-    | Acn_Enc_String_uPER                                   of BigInteger                          //char size in bits, as in uper 
+    | Acn_Enc_String_uPER                                   of BigInteger                          //char size in bits, as in uper
     | Acn_Enc_String_uPER_Ascii                             of BigInteger                          //char size in bits, as in uper but with charset (0..255)
-    | Acn_Enc_String_Ascii_Null_Teminated                   of BigInteger*(byte  list)             //char size in bits, byte = the null character
+    | Acn_Enc_String_Ascii_Null_Terminated                  of BigInteger*(byte  list)             //char size in bits, byte = the null character
     | Acn_Enc_String_Ascii_External_Field_Determinant       of BigInteger*RelativePath             //char size in bits, encode ascii, size is provided by an external length determinant
     | Acn_Enc_String_CharIndex_External_Field_Determinant   of BigInteger*RelativePath             //char size in bits, encode char index, size is provided by an external length determinant
 
 type SizeableAcnEncodingClass =
-    //| SZ_EC_uPER              
-    | SZ_EC_FIXED_SIZE              
-    | SZ_EC_LENGTH_EMBEDDED     of BigInteger //embedded length determinant size in bits         
+    //| SZ_EC_uPER
+    | SZ_EC_FIXED_SIZE
+    | SZ_EC_LENGTH_EMBEDDED     of BigInteger //embedded length determinant size in bits
     | SZ_EC_ExternalField       of RelativePath
     | SZ_EC_TerminationPattern  of BitStringValue
 
@@ -378,7 +378,7 @@ type DoubleUperRange = uperRange<Double>
 type UInt32UperRange = uperRange<uint32>
 
 type IntegerClass =
-    | ASN1SCC_Int8      of BigInteger*BigInteger 
+    | ASN1SCC_Int8      of BigInteger*BigInteger
     | ASN1SCC_Int16     of BigInteger*BigInteger
     | ASN1SCC_Int32     of BigInteger*BigInteger
     | ASN1SCC_Int64     of BigInteger*BigInteger
@@ -443,7 +443,6 @@ type StringType = {
     acnEncodingClass    : StringAcnEncodingClass
     isNumeric           : bool
     typeDef             : Map<ProgrammingLanguage, FE_StringTypeDefinition>
-    defaultInitVal      : String
 }
 
 
@@ -477,7 +476,6 @@ type BitString = {
     acnEncodingClass    : SizeableAcnEncodingClass
     typeDef             : Map<ProgrammingLanguage, FE_SizeableTypeDefinition>
     namedBitList        : NamedBit1 list
-    defaultInitVal      : String
 }
 
 type TimeType = {
@@ -503,7 +501,7 @@ type NullType = {
     defaultInitVal      : String
 }
 
-type Boolean = {    
+type Boolean = {
     acnProperties       : BooleanAcnProperties
     cons                : BoolConstraint list
     withcons            : BoolConstraint list
@@ -515,7 +513,7 @@ type Boolean = {
     defaultInitVal      : String
 }
 
-type ObjectIdentifier = {    
+type ObjectIdentifier = {
     acnProperties       : ObjectIdTypeAcnProperties
     cons                : ObjectIdConstraint list
     withcons            : ObjectIdConstraint list
@@ -541,15 +539,13 @@ type Enumerated = {
     encodeValues        : bool
     userDefinedValues   : bool      //if true, the user has associated at least one item with a value
     typeDef             : Map<ProgrammingLanguage, FE_EnumeratedTypeDefinition>
-    defaultInitVal      : String
 }
 
 type AcnReferenceToEnumerated = {
     modName             : StringLoc
     tasName             : StringLoc
     enumerated          : Enumerated
-    acnAligment         : AcnAligment option
-    defaultValue        : string
+    acnAlignment         : AcnAlignment option
 }
 
 
@@ -557,15 +553,14 @@ type AcnReferenceToIA5String = {
     modName             : StringLoc
     tasName             : StringLoc
     str                 : StringType
-    acnAligment         : AcnAligment option
-    defaultValue        : string
+    acnAlignment         : AcnAlignment option
 }
 
 type AcnInteger = {
     acnProperties       : IntegerAcnProperties
     cons                : IntegerTypeConstraint list
     withcons            : IntegerTypeConstraint list
-    acnAligment         : AcnAligment option
+    acnAlignment         : AcnAlignment option
     acnMaxSizeInBits    : BigInteger
     acnMinSizeInBits    : BigInteger
     acnEncodingClass    : IntEncodingClass
@@ -580,7 +575,7 @@ type AcnInteger = {
 
 type AcnBoolean = {
     acnProperties       : BooleanAcnProperties
-    acnAligment         : AcnAligment option
+    acnAlignment        : AcnAlignment option
     acnMaxSizeInBits    : BigInteger
     acnMinSizeInBits    : BigInteger
     Location            : SrcLoc //Line no, Char pos
@@ -589,14 +584,14 @@ type AcnBoolean = {
 
 type AcnNullType = {
     acnProperties       : NullTypeAcnProperties
-    acnAligment         : AcnAligment option
+    acnAlignment        : AcnAlignment option
     acnMaxSizeInBits    : BigInteger
     acnMinSizeInBits    : BigInteger
     Location            : SrcLoc //Line no, Char pos
     defaultValue        : string
 }
 
-type  AcnInsertedType = 
+type AcnInsertedType =
     | AcnInteger                of AcnInteger
     | AcnNullType               of AcnNullType
     | AcnBoolean                of AcnBoolean
@@ -610,44 +605,42 @@ with
         | AcnBoolean  _                 -> "BOOLEAN"
         | AcnReferenceToEnumerated o    -> sprintf "%s.%s" o.modName.Value o.tasName.Value
         | AcnReferenceToIA5String  o    -> sprintf "%s.%s" o.modName.Value o.tasName.Value
-    member this.acnAligment =
+    member this.acnAlignment =
         match this with
-        | AcnInteger  o                 -> o.acnAligment
-        | AcnNullType o                 -> o.acnAligment
-        | AcnBoolean  o                 -> o.acnAligment
-        | AcnReferenceToEnumerated o    -> o.acnAligment
-        | AcnReferenceToIA5String  o    -> o.acnAligment
+        | AcnInteger  o                 -> o.acnAlignment
+        | AcnNullType o                 -> o.acnAlignment
+        | AcnBoolean  o                 -> o.acnAlignment
+        | AcnReferenceToEnumerated o    -> o.acnAlignment
+        | AcnReferenceToIA5String  o    -> o.acnAlignment
     member this.savePosition  =
-        match this with            
+        match this with
         | AcnInteger  a                 -> false
         | AcnBoolean  a                 -> false
-        | AcnNullType a                 -> a.acnProperties.savePosition 
+        | AcnNullType a                 -> a.acnProperties.savePosition
         | AcnReferenceToEnumerated a    -> false
         | AcnReferenceToIA5String a     -> false
-
-
 
 
 type Asn1Type = {
     id              : ReferenceToType
     parameterizedTypeInstance : bool
     Kind            : Asn1TypeKind
-    acnAligment     : AcnAligment option
+    acnAlignment    : AcnAlignment option
     acnParameters   : AcnParameter list
     Location        : SrcLoc //Line no, Char pos
     moduleName      : string
     acnLocation     : SrcLoc option
 
     /// Indicates that this type
-    /// is a subclass (or inherits) from referencType
+    /// is a subclass (or inherits) from referenceType
     /// (i.e. this type resolves the reference type)
     inheritInfo     : InheritanceInfo option
 
     /// it indicates that this type is directly under a type assignment.
     typeAssignmentInfo  : AssignmentInfo option
 
-    acnEncSpecPostion           : (SrcLoc*SrcLoc) option   //start pos, end pos
-    acnEncSpecAntlrSubTree      :ITree option
+    acnEncSpecPosition          : (SrcLoc*SrcLoc) option   //start pos, end pos
+    acnEncSpecAntlrSubTree      : ITree option
     unitsOfMeasure : string option
 }
 
@@ -707,7 +700,7 @@ and AcnChild = {
     Comments                    : string array
 }
 
-and SeqChildInfo = 
+and SeqChildInfo =
     | Asn1Child of Asn1Child
     | AcnChild  of AcnChild
 
@@ -716,7 +709,7 @@ and Asn1Child = {
     Name                        : StringLoc
     _c_name                     : string
     _scala_name                 : string
-    _ada_name                   : string                     
+    _ada_name                   : string
     Type                        : Asn1Type
     Optionality                 : Asn1Optionality option
     asn1Comments                : string list
@@ -740,14 +733,13 @@ and Choice = {
     acnMinSizeInBits    : BigInteger
     acnLoc              : SrcLoc option
     typeDef             : Map<ProgrammingLanguage, FE_ChoiceTypeDefinition>
-    defaultInitVal      : String
 }
 
 and ChChildInfo = {
     Name                        : StringLoc
     _c_name                     : string
     _scala_name                 : string
-    _ada_name                   : string                     
+    _ada_name                   : string
     present_when_name           : string // Does not contain the "_PRESENT". Not to be used directly by backends.
     Type                        : Asn1Type
     acnPresentWhenConditions    : AcnPresentWhenConditionChoiceChild list
@@ -781,7 +773,6 @@ and ReferenceType = {
     acnMinSizeInBits    : BigInteger
     encodingOptions        : EncodeWithinOctetOrBitStringProperties option
     refCons             : AnyConstraint list
-    defaultInitVal      : String
 }
 
 
@@ -814,7 +805,7 @@ type Asn1Module = {
     Imports : list<Asn1Ast.ImportedModule>
     Exports : Asn1Ast.Exports
     Comments : string array
-    postion : SrcLoc*SrcLoc   //start pos, end pos
+    position : SrcLoc*SrcLoc   //start pos, end pos
 }
 
 type Asn1File = {
@@ -838,21 +829,26 @@ type ReferenceToEnumerated = {
     enm     : Enumerated
 }
 
-type AcnDependencyKind = 
+type AcnDependencyKind =
     | AcnDepIA5StringSizeDeterminant  of (SIZE*SIZE*StringAcnProperties)                // The asn1Type has a size dependency in IA5String etc
-    | AcnDepSizeDeterminant     of (SIZE*SIZE*SizeableAcnProperties)               // The asn1Type has a size dependency a SEQUENCE OF, BIT STRINT, OCTET STRING etc
-    | AcnDepSizeDeterminant_bit_oct_str_containt     of ReferenceType             // The asn1Type has a size dependency a BIT STRINT, OCTET STRING containing another type
+    | AcnDepSizeDeterminant     of (SIZE*SIZE*SizeableAcnProperties)               // The asn1Type has a size dependency a SEQUENCE OF, BIT STRING, OCTET STRING etc
+    | AcnDepSizeDeterminant_bit_oct_str_contain     of ReferenceType             // The asn1Type has a size dependency a BIT STRING, OCTET STRING containing another type
     | AcnDepRefTypeArgument       of AcnParameter        // string is the param name
-    | AcnDepPresenceBool                     // points to a SEQEUNCE or Choice child
+    | AcnDepPresenceBool                     // points to a SEQUENCE or Choice child
     | AcnDepPresence              of (RelativePath*Choice)
     | AcnDepPresenceStr           of (RelativePath*Choice*StringType)
-    | AcnDepChoiceDeteterminant   of (ReferenceToEnumerated*Choice)           // points to Enumerated type acting as CHOICE determinant.
+    | AcnDepChoiceDeterminant   of (ReferenceToEnumerated*Choice*bool)           // points to Enumerated type acting as CHOICE determinant; is optional
+    with
+        member this.isString =
+            match this with
+            | AcnDepIA5StringSizeDeterminant _ -> true
+            | _ -> false
 
 type Determinant =
     | AcnChildDeterminant       of AcnChild
     | AcnParameterDeterminant   of AcnParameter
-    with 
-        member this.id = 
+    with
+        member this.id =
             match this with
             | AcnChildDeterminant       c  -> c.id
             | AcnParameterDeterminant   p  -> p.id
@@ -871,7 +867,7 @@ type AcnInsertedFieldDependencies = {
 
 
 type Asn1AcnMergeState = {
-    args:CommandLineSettings    
+    args:CommandLineSettings
     allocatedTypeNames          : (ProgrammingLanguage*string*string)  list     //language, program unit, type definition name
     allocatedFE_TypeDefinition  : Map<(ProgrammingLanguage*ReferenceToType), FE_TypeDefinition>
     temporaryTypesAllocation    : Map<(ProgrammingLanguage*ReferenceToType), string>

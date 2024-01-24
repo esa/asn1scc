@@ -83,7 +83,7 @@ typedef struct {
 	long count;
 	long currentByte;
 	/* Next available bit for writting. Possible vallues 0..7, 0 is most significant bit of current byte*/
-	int currentBit; 
+	int currentBit;
 } BitStream;
 
 typedef struct {
@@ -127,7 +127,7 @@ void BitStream_AppendByte(BitStream* pBitStrm, byte v, flag negate);
 void BitStream_AppendByte0(BitStream* pBitStrm, byte v);
 
 
-void ByteStream_Init(ByteStream* pStrm, byte* buf, long count); 
+void ByteStream_Init(ByteStream* pStrm, byte* buf, long count);
 void ByteStream_AttachBuffer(ByteStream* pStrm, unsigned char* buf, long count);
 asn1SccSint ByteStream_GetLength(ByteStream* pStrm);
 
@@ -170,15 +170,15 @@ int GetNumberOfBitsForNonNegativeInteger(asn1SccUint v);
 int GetCharIndex(char ch, byte allowedCharSet[], int setLen);
 
 
-/* 
-                                                                                                                                                       
-       db         ,ad8888ba,   888b      88           88888888888                                             88                                       
-      d88b       d8"'    `"8b  8888b     88           88                                               ,d     ""                                       
-     d8'`8b     d8'            88 `8b    88           88                                               88                                              
-    d8'  `8b    88             88  `8b   88           88aaaaa  88       88  8b,dPPYba,    ,adPPYba,  MM88MMM  88   ,adPPYba,   8b,dPPYba,   ,adPPYba,  
-   d8YaaaaY8b   88             88   `8b  88           88"""""  88       88  88P'   `"8a  a8"     ""    88     88  a8"     "8a  88P'   `"8a  I8[    ""  
-  d8""""""""8b  Y8,            88    `8b 88           88       88       88  88       88  8b            88     88  8b       d8  88       88   `"Y8ba,   
- d8'        `8b  Y8a.    .a8P  88     `8888           88       "8a,   ,a88  88       88  "8a,   ,aa    88,    88  "8a,   ,a8"  88       88  aa    ]8I  
+/*
+
+       db         ,ad8888ba,   888b      88           88888888888                                             88
+      d88b       d8"'    `"8b  8888b     88           88                                               ,d     ""
+     d8'`8b     d8'            88 `8b    88           88                                               88
+    d8'  `8b    88             88  `8b   88           88aaaaa  88       88  8b,dPPYba,    ,adPPYba,  MM88MMM  88   ,adPPYba,   8b,dPPYba,   ,adPPYba,
+   d8YaaaaY8b   88             88   `8b  88           88"""""  88       88  88P'   `"8a  a8"     ""    88     88  a8"     "8a  88P'   `"8a  I8[    ""
+  d8""""""""8b  Y8,            88    `8b 88           88       88       88  88       88  8b            88     88  8b       d8  88       88   `"Y8ba,
+ d8'        `8b  Y8a.    .a8P  88     `8888           88       "8a,   ,a88  88       88  "8a,   ,aa    88,    88  "8a,   ,a8"  88       88  aa    ]8I
 d8'          `8b  `"Y8888Y"'   88      `888           88        `"YbbdP'Y8  88       88   `"Ybbd8"'    "Y888  88   `"YbbdP"'   88       88  `"YbbdP"
 */
 
@@ -273,24 +273,24 @@ flag Acn_Dec_Real_IEEE754_32_little_endian(BitStream* pBitStrm, asn1Real* pRealV
 flag Acn_Dec_Real_IEEE754_64_little_endian(BitStream* pBitStrm, asn1Real* pRealValue);
 
 /*String functions*/
-void Acn_Enc_String_Ascii_FixSize                       (BitStream* pBitStrm, asn1SccSint max, const char* strVal); 
-void Acn_Enc_String_Ascii_Null_Teminated                (BitStream* pBitStrm, asn1SccSint max, char null_character, const char* strVal); 
-void Acn_Enc_String_Ascii_External_Field_Determinant    (BitStream* pBitStrm, asn1SccSint max, const char* strVal); 
-void Acn_Enc_String_Ascii_Internal_Field_Determinant    (BitStream* pBitStrm, asn1SccSint max, asn1SccSint min, const char* strVal); 
-void Acn_Enc_String_CharIndex_FixSize                   (BitStream* pBitStrm, asn1SccSint max, byte allowedCharSet[], int charSetSize, const char* strVal); 
-void Acn_Enc_String_CharIndex_External_Field_Determinant(BitStream* pBitStrm, asn1SccSint max, byte allowedCharSet[], int charSetSize, const char* strVal); 
-void Acn_Enc_String_CharIndex_Internal_Field_Determinant(BitStream* pBitStrm, asn1SccSint max, byte allowedCharSet[], int charSetSize, asn1SccSint min, const char* strVal); 
+void Acn_Enc_String_Ascii_FixSize                       (BitStream* pBitStrm, asn1SccSint max, const char* strVal);
+void Acn_Enc_String_Ascii_Null_Terminated                (BitStream* pBitStrm, asn1SccSint max, char null_character, const char* strVal);
+void Acn_Enc_String_Ascii_External_Field_Determinant    (BitStream* pBitStrm, asn1SccSint max, const char* strVal);
+void Acn_Enc_String_Ascii_Internal_Field_Determinant    (BitStream* pBitStrm, asn1SccSint max, asn1SccSint min, const char* strVal);
+void Acn_Enc_String_CharIndex_FixSize                   (BitStream* pBitStrm, asn1SccSint max, byte allowedCharSet[], int charSetSize, const char* strVal);
+void Acn_Enc_String_CharIndex_External_Field_Determinant(BitStream* pBitStrm, asn1SccSint max, byte allowedCharSet[], int charSetSize, const char* strVal);
+void Acn_Enc_String_CharIndex_Internal_Field_Determinant(BitStream* pBitStrm, asn1SccSint max, byte allowedCharSet[], int charSetSize, asn1SccSint min, const char* strVal);
 void Acn_Enc_IA5String_CharIndex_External_Field_Determinant(BitStream* pBitStrm, asn1SccSint max, const char* strVal);
 void Acn_Enc_IA5String_CharIndex_Internal_Field_Determinant(BitStream* pBitStrm, asn1SccSint max, asn1SccSint min, const char* strVal);
 
-flag Acn_Dec_String_Ascii_FixSize                       (BitStream* pBitStrm, asn1SccSint max, char* strVal); 
-flag Acn_Dec_String_Ascii_Null_Teminated                (BitStream* pBitStrm, asn1SccSint max, char null_character, char* strVal); 
-flag Acn_Dec_String_Ascii_External_Field_Determinant    (BitStream* pBitStrm, asn1SccSint max, asn1SccSint extSizeDeterminatFld, char* strVal); 
-flag Acn_Dec_String_Ascii_Internal_Field_Determinant    (BitStream* pBitStrm, asn1SccSint max, asn1SccSint min, char* strVal); 
-flag Acn_Dec_String_CharIndex_FixSize                   (BitStream* pBitStrm, asn1SccSint max, byte allowedCharSet[], int charSetSize, char* strVal); 
-flag Acn_Dec_String_CharIndex_External_Field_Determinant(BitStream* pBitStrm, asn1SccSint max, byte allowedCharSet[], int charSetSize, asn1SccSint extSizeDeterminatFld, char* strVal); 
-flag Acn_Dec_String_CharIndex_Internal_Field_Determinant(BitStream* pBitStrm, asn1SccSint max, byte allowedCharSet[], int charSetSize, asn1SccSint min, char* strVal); 
-flag Acn_Dec_IA5String_CharIndex_External_Field_Determinant(BitStream* pBitStrm, asn1SccSint max, asn1SccSint extSizeDeterminatFld, char* strVal);
+flag Acn_Dec_String_Ascii_FixSize                       (BitStream* pBitStrm, asn1SccSint max, char* strVal);
+flag Acn_Dec_String_Ascii_Null_Terminated                (BitStream* pBitStrm, asn1SccSint max, char null_character, char* strVal);
+flag Acn_Dec_String_Ascii_External_Field_Determinant    (BitStream* pBitStrm, asn1SccSint max, asn1SccSint extSizeDeterminantFld, char* strVal);
+flag Acn_Dec_String_Ascii_Internal_Field_Determinant    (BitStream* pBitStrm, asn1SccSint max, asn1SccSint min, char* strVal);
+flag Acn_Dec_String_CharIndex_FixSize                   (BitStream* pBitStrm, asn1SccSint max, byte allowedCharSet[], int charSetSize, char* strVal);
+flag Acn_Dec_String_CharIndex_External_Field_Determinant(BitStream* pBitStrm, asn1SccSint max, byte allowedCharSet[], int charSetSize, asn1SccSint extSizeDeterminantFld, char* strVal);
+flag Acn_Dec_String_CharIndex_Internal_Field_Determinant(BitStream* pBitStrm, asn1SccSint max, byte allowedCharSet[], int charSetSize, asn1SccSint min, char* strVal);
+flag Acn_Dec_IA5String_CharIndex_External_Field_Determinant(BitStream* pBitStrm, asn1SccSint max, asn1SccSint extSizeDeterminantFld, char* strVal);
 flag Acn_Dec_IA5String_CharIndex_Internal_Field_Determinant(BitStream* pBitStrm, asn1SccSint max, asn1SccSint min, char* strVal);
 
 

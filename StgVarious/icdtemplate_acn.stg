@@ -46,7 +46,7 @@ EmitRowWith3Dots() ::= <<
 </tr>
 >>
 
-EmmitFilePart2(sFileName, sAsn1Content) ::= <<
+EmitFilePart2(sFileName, sAsn1Content) ::= <<
 <div style="width: 100%">
 <h1 >File : $sFileName$</h1>
 <div style="width: 100%; white-space:pre; font-family:Courier New; font-size:small">
@@ -72,7 +72,7 @@ $arrsTases;separator="\n"$
 >>
 
 
-EmmitTass(sTypeContent) ::= <<
+EmitTass(sTypeContent) ::= <<
 $sTypeContent$
 &nbsp;<br/>
 >>
@@ -134,7 +134,7 @@ $arrsItems;separator="\n"$
 
 
 EmitSequenceOrChoice(bIsAnonymousType, sTasName, sTasNameC, bHasAcnDef, sAsn1Kinf, sMinBytes, sMaxBytes, sMaxBitsExplained, sCommentLine, arrsChildren, arrsParams, arrsComments) ::= <<
-<a name="ICD_$sTasNameC$"></a> 
+<a name="ICD_$sTasNameC$"></a>
 <table width="100%" >
 <tbody>
 
@@ -189,7 +189,7 @@ $arrsChildren;separator="\n"$
 >>
 
 
-EmmitSeqOrChoiceRow(sCssClass, nIndex, sName, sComment, sPresentWhen, sType, sConstraint, sMin, sMax, noAlignToNextSize, soUnit) ::= <<
+EmitSeqOrChoiceRow(sCssClass, nIndex, sName, sComment, sPresentWhen, sType, sConstraint, sMin, sMax, noAlignToNextSize, soUnit) ::= <<
 $if(noAlignToNextSize)$
 <tr class="$sCssClass$">
 <td class="no"></td>
@@ -217,12 +217,12 @@ $endif$
 </tr>
 >>
 
-EmmitSequencePreambleSingleComment(nIndex, sOptChildName) ::= <<
+EmitSequencePreambleSingleComment(nIndex, sOptChildName) ::= <<
 <li>bit$nIndex$ == 1 &#8658 <font  color="#5F9EA0" >$sOptChildName$</font> is present</li>
 >>
 
 
-EmmitSequencePreambleComment(arrsOptWihtNoPresentWhenChildren) ::= <<
+EmitSequencePreambleComment(arrsOptWihtNoPresentWhenChildren) ::= <<
 Special field used by ACN to indicate the presence/absence of optional fields that do not have the present when property.
 $if(arrsOptWihtNoPresentWhenChildren)$
 <br/>
@@ -232,11 +232,11 @@ $arrsOptWihtNoPresentWhenChildren;separator="\n"$
 $endif$
 >>
 
-EmmitChoiceIndexComment() ::= <<
+EmitChoiceIndexComment() ::= <<
 Special field used by ACN to indicate which choice alternative is present.
 >>
 
-EmmitChoiceChild(sCssClass, nIndex, sName, sComment,  sType, sConstraint, sMin, sMax) ::= <<
+EmitChoiceChild(sCssClass, nIndex, sName, sComment,  sType, sConstraint, sMin, sMax) ::= <<
 <tr class="$sCssClass$">
 <td class="no">$nIndex$</td>
 <td class="field">$sName$</td>
@@ -249,14 +249,14 @@ EmmitChoiceChild(sCssClass, nIndex, sName, sComment,  sType, sConstraint, sMin, 
 </tr>
 >>
 
-EmmitSeqChild_RefType(sRefName, sRefNameC) ::= <<
+EmitSeqChild_RefType(sRefName, sRefNameC) ::= <<
 <a href="#ICD_$sRefNameC$">$sRefName$</a>
 >>
 
 
 
 EmitPrimitiveType(bIsAnonymousType, sTasName, sTasNameC, bHasAcnDef, sAsnKindName, sMinBytes, sMaxBytes, sMaxBitsExplained, sCommentLine, sAsn1Constraints, sMinBits, sMaxBits, arrsParams, arrsComments, soUnit) ::= <<
-<a name="ICD_$sTasNameC$"></a> 
+<a name="ICD_$sTasNameC$"></a>
 <table width="100%" >
 <tbody>
 
@@ -624,12 +624,12 @@ font.enumeration_name
 
 
 RootHtml(arrsFiles1, arrsFiles2, bAcnParamsMustBeExplained, arrsFiles3, sCssFileName) ::= <<
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"> 
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" >
 <head>
     <title>ICD</title>
     <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
-    <link rel="stylesheet" href="$sCssFileName$" /> 
+    <link rel="stylesheet" href="$sCssFileName$" />
 </head>
 <body>
 <em>The following tables describe the binary encodings of the data model using the ACN Encoding Rules.

@@ -8,20 +8,20 @@ open CommonTypes
 open Antlr.Runtime.Tree
 open Antlr.Runtime
 
-type RelativePath = 
+type RelativePath =
     | RelativePath of StringLoc list
 with
-    member this.AsString = 
+    member this.AsString =
         match this with  RelativePath p -> p |> Seq.StrJoin "."
-    member this.location = 
+    member this.location =
         match this with  RelativePath p -> p |> List.map(fun z -> z.Location) |> List.head
     override this.ToString() = this.AsString
 
 type AcnEndianness =
     | LittleEndianness
-    | BigEndianness            
+    | BigEndianness
 
-type AcnAligment = 
+type AcnAlignment =
     | NextByte
     | NextWord
     | NextDWord
@@ -41,7 +41,7 @@ type AcnExpression =
     | MinusUnaryExpression          of SrcLoc*AcnExpression
     | AdditionExpression            of SrcLoc*AcnExpression*AcnExpression
     | SubtractionExpression         of SrcLoc*AcnExpression*AcnExpression
-    | MultipicationExpression       of SrcLoc*AcnExpression*AcnExpression
+    | MultiplicationExpression      of SrcLoc*AcnExpression*AcnExpression
     | DivisionExpression            of SrcLoc*AcnExpression*AcnExpression
     | ModuloExpression              of SrcLoc*AcnExpression*AcnExpression
     | LessThanEqualExpression       of SrcLoc*AcnExpression*AcnExpression
@@ -54,8 +54,8 @@ type AcnExpression =
     | OrExpression                  of SrcLoc*AcnExpression*AcnExpression
 
 
-let foldAcnExpression intConstFnc acnIntConstFnc realConstFnc boolConstFnc asn1LongFldFnc notUnExpFnc mnUnExpFnc 
-        addFnc subFnc mulFnc divFnc modFnc lteFnc ltFnc gteFnc gtFnc eqFnc neqFnc andFnc orFnc (exp:AcnExpression) (s:'UserState) = 
+let foldAcnExpression intConstFnc acnIntConstFnc realConstFnc boolConstFnc asn1LongFldFnc notUnExpFnc mnUnExpFnc
+        addFnc subFnc mulFnc divFnc modFnc lteFnc ltFnc gteFnc gtFnc eqFnc neqFnc andFnc orFnc (exp:AcnExpression) (s:'UserState) =
     let rec loopExpression (exp:AcnExpression) (s:'UserState) =
         match exp with
         | IntegerConstantExp            x      -> intConstFnc x s
@@ -63,61 +63,61 @@ let foldAcnExpression intConstFnc acnIntConstFnc realConstFnc boolConstFnc asn1L
         | RealConstantExp               x      -> realConstFnc x s
         | BooleanConstantExp            x      -> boolConstFnc x s
         | Asn1LongField                 x      -> asn1LongFldFnc x s
-        | NotUnaryExpression            (l,e1)     -> 
+        | NotUnaryExpression            (l,e1)     ->
             let re1, s1 = loopExpression e1 s
             notUnExpFnc l re1 s1
-        | MinusUnaryExpression          (l,e1)     -> 
+        | MinusUnaryExpression          (l,e1)     ->
             let re1, s1 = loopExpression e1 s
             mnUnExpFnc l re1 s1
-        | AdditionExpression            (l,e1, e2) -> 
+        | AdditionExpression            (l,e1, e2) ->
             let re1, s1 = loopExpression e1 s
             let re2, s2 = loopExpression e2 s1
             addFnc l re1 re2 s2
-        | SubtractionExpression         (l,e1, e2) -> 
+        | SubtractionExpression         (l,e1, e2) ->
             let re1, s1 = loopExpression e1 s
             let re2, s2 = loopExpression e2 s1
             subFnc l re1 re2 s2
-        | MultipicationExpression       (l,e1, e2) -> 
+        | MultiplicationExpression       (l,e1, e2) ->
             let re1, s1 = loopExpression e1 s
             let re2, s2 = loopExpression e2 s1
             mulFnc l re1 re2 s2
-        | DivisionExpression            (l,e1, e2) -> 
+        | DivisionExpression            (l,e1, e2) ->
             let re1, s1 = loopExpression e1 s
             let re2, s2 = loopExpression e2 s1
             divFnc l re1 re2 s2
-        | ModuloExpression              (l,e1, e2) -> 
+        | ModuloExpression              (l,e1, e2) ->
             let re1, s1 = loopExpression e1 s
             let re2, s2 = loopExpression e2 s1
             modFnc l re1 re2 s2
-        | LessThanEqualExpression       (l,e1, e2) -> 
+        | LessThanEqualExpression       (l,e1, e2) ->
             let re1, s1 = loopExpression e1 s
             let re2, s2 = loopExpression e2 s1
             lteFnc l re1 re2 s2
-        | LessThanExpression            (l,e1, e2) -> 
+        | LessThanExpression            (l,e1, e2) ->
             let re1, s1 = loopExpression e1 s
             let re2, s2 = loopExpression e2 s1
             ltFnc l re1 re2 s2
-        | GreaterThanEqualExpression    (l,e1, e2) -> 
+        | GreaterThanEqualExpression    (l,e1, e2) ->
             let re1, s1 = loopExpression e1 s
             let re2, s2 = loopExpression e2 s1
             gteFnc l re1 re2 s2
-        | GreaterThanExpression         (l,e1, e2) -> 
+        | GreaterThanExpression         (l,e1, e2) ->
             let re1, s1 = loopExpression e1 s
             let re2, s2 = loopExpression e2 s1
             gtFnc l re1 re2 s2
-        | EqualExpression               (l,e1, e2) -> 
+        | EqualExpression               (l,e1, e2) ->
             let re1, s1 = loopExpression e1 s
             let re2, s2 = loopExpression e2 s1
             eqFnc l re1 re2 s2
-        | NotEqualExpression            (l,e1, e2) -> 
+        | NotEqualExpression            (l,e1, e2) ->
             let re1, s1 = loopExpression e1 s
             let re2, s2 = loopExpression e2 s1
             neqFnc l re1 re2 s2
-        | AndExpression                 (l,e1, e2) -> 
+        | AndExpression                 (l,e1, e2) ->
             let re1, s1 = loopExpression e1 s
             let re2, s2 = loopExpression e2 s1
             andFnc l re1 re2 s2
-        | OrExpression                  (l,e1, e2) -> 
+        | OrExpression                  (l,e1, e2) ->
             let re1, s1 = loopExpression e1 s
             let re2, s2 = loopExpression e2 s1
             orFnc l re1 re2 s2
@@ -127,7 +127,7 @@ let foldAcnExpression intConstFnc acnIntConstFnc realConstFnc boolConstFnc asn1L
 type NonBooleanExpressionType =
     | IntExpType
     | RealExpType
-with 
+with
     override this.ToString() =
         match this with
         | IntExpType    -> "integer expression"
@@ -136,7 +136,7 @@ with
 type ExpressionType =
     | BoolExpression
     | NonBooleanExpression of NonBooleanExpressionType
-with 
+with
     override this.ToString() =
         match this with
         | BoolExpression    -> "boolean expression"
@@ -154,31 +154,31 @@ let validateAcnExpression handleLongField (exp:AcnExpression) =
         | ValResultOK   expType    ->
             match expType with
             | BoolExpression    -> (ValResultError (l, "Expecting numeric expression"), 0)
-            | NonBooleanExpression net1-> 
+            | NonBooleanExpression net1->
                 match e2 with
                 | ValResultError _  -> (e2,s)
                 | ValResultOK   expType    ->
                     match expType with
                     | BoolExpression    -> (ValResultError (l, "Expecting numeric expression"), 0)
-                    | NonBooleanExpression net2 -> 
+                    | NonBooleanExpression net2 ->
                         match net1 = net2 with
-                        | true  -> (ValResultOK (NonBooleanExpression net1), 0) 
+                        | true  -> (ValResultOK (NonBooleanExpression net1), 0)
                         | false -> (ValResultError (l, (sprintf "Expecting %s expression" (net1.ToString()))), 0)
-        
-    let numericComparativeBinaryOperator l e1 e2  s = 
+
+    let numericComparativeBinaryOperator l e1 e2  s =
         match e1 with
         | ValResultError _  -> (e1,s)
         | ValResultOK   expType    ->
             match expType with
             | BoolExpression    -> (ValResultError (l, "Expecting numeric expression"), 0)
-            | NonBooleanExpression net1-> 
+            | NonBooleanExpression net1->
                 match e2 with
                 | ValResultError _  -> (e2,s)
                 | ValResultOK   expType    ->
                     match expType with
                     | BoolExpression    -> (ValResultError (l, "Expecting numeric expression"), 0)
-                    | NonBooleanExpression net2 -> (ValResultOK BoolExpression, 0) 
-    let eqNeqOperator l e1 e2  s = 
+                    | NonBooleanExpression net2 -> (ValResultOK BoolExpression, 0)
+    let eqNeqOperator l e1 e2  s =
         match e1 with
         | ValResultError _  -> (e1,s)
         | ValResultOK   expType1    ->
@@ -186,29 +186,29 @@ let validateAcnExpression handleLongField (exp:AcnExpression) =
             | ValResultError _  -> (e2,s)
             | ValResultOK   expType2    ->
                 match expType1 = expType2 with
-                | true  -> (ValResultOK BoolExpression , 0) 
+                | true  -> (ValResultOK BoolExpression , 0)
                 | false -> (ValResultError (l, (sprintf "Expecting %s expression" (expType1.ToString()))), 0)
-                
-    let andOrBinaryOperator l e1 e2  s = 
+
+    let andOrBinaryOperator l e1 e2  s =
         match e1 with
         | ValResultError _  -> (e1,s)
         | ValResultOK   expType    ->
             match expType with
             | NonBooleanExpression _    -> (ValResultError (l, "Expecting boolean expression"), 0)
-            | BoolExpression -> 
+            | BoolExpression ->
                 match e2 with
                 | ValResultError _  -> (e2,s)
                 | ValResultOK   expType    ->
                     match expType with
                     | NonBooleanExpression _    -> (ValResultError (l, "Expecting boolean expression"), 0)
-                    | BoolExpression -> (ValResultOK BoolExpression, 0) 
+                    | BoolExpression -> (ValResultOK BoolExpression, 0)
 
     foldAcnExpression
         (fun i s -> (ValResultOK (NonBooleanExpression IntExpType)) , 0)
         (fun i s -> (ValResultOK (NonBooleanExpression IntExpType)) , 0)
         (fun i s -> (ValResultOK (NonBooleanExpression RealExpType)) , 0)
         (fun i s -> (ValResultOK BoolExpression) , 0)
-        (fun lf s -> (handleLongField lf) , 0)     //we have to resolve the lf path and decide if its numeric or boolean expression. 
+        (fun lf s -> (handleLongField lf) , 0)     //we have to resolve the lf path and decide if its numeric or boolean expression.
         (fun l (e1) s ->        //NotUnaryExpression
             match e1 with
             | ValResultError _  -> (e1,s)
@@ -234,34 +234,34 @@ let validateAcnExpression handleLongField (exp:AcnExpression) =
         numericComparativeBinaryOperator (*gt*)
         eqNeqOperator (*equal*)
         eqNeqOperator (*not equal*)
-        andOrBinaryOperator (*and*) 
-        andOrBinaryOperator (*or*) 
+        andOrBinaryOperator (*and*)
+        andOrBinaryOperator (*or*)
         exp 0 |> fst
 
-// present when property defintion
+// present when property definition
 // this property is not part of the ACN type itself but part of the AcnChildInfo
-type PresenceWhenBool  = 
-    | PresenceWhenBool of RelativePath                         
-    | PresenceWhenBoolExpression of AcnExpression                         
-    
+type PresenceWhenBool  =
+    | PresenceWhenBool of RelativePath
+    | PresenceWhenBoolExpression of AcnExpression
+
 
 type AcnPresentWhenConditionChoiceChild =
     | PresenceInt   of RelativePath*IntLoc
     | PresenceStr   of RelativePath*StringLoc
 with
-    member this.valueAsString = 
+    member this.valueAsString =
         match this with
         | PresenceInt   (_,v)  -> v.Value.ToString()
         | PresenceStr   (_,v)  -> v.Value
-    member this.relativePath = 
+    member this.relativePath =
         match this with
         | PresenceInt   (rp,_)
         | PresenceStr   (rp,_)  -> rp
-    member this.location = 
+    member this.location =
         match this with
         | PresenceInt   (rp,intLoc) -> intLoc.Location
         | PresenceStr   (rp,strLoc) -> strLoc.Location
-    member this.kind = 
+    member this.kind =
         match this with
         | PresenceInt   _ -> 1
         | PresenceStr   _ -> 2
@@ -278,13 +278,13 @@ type AcnIntEncoding =
     | IntAscii
     | BCD
 
-type MappingFunction  = 
+type MappingFunction  =
     | MappingFunction of (StringLoc option)*StringLoc
 
-type PostEncodingFunction  = 
+type PostEncodingFunction  =
     | PostEncodingFunction of (StringLoc option)*StringLoc
 
-type PreDecodingFunction  = 
+type PreDecodingFunction  =
     | PreDecodingFunction of (StringLoc option)*StringLoc
 
 
@@ -347,8 +347,17 @@ type ObjectIdTypeAcnProperties = {
 
 
 type AcnBooleanEncoding =
-    | TrueValue    of StringLoc    
+    | TrueValue    of StringLoc
     | FalseValue   of StringLoc
+with
+    member this.bitVal =
+        match this with
+        | TrueValue bv -> bv
+        | FalseValue bv -> bv
+    member this.isTrue =
+        match this with
+        | TrueValue _ -> true
+        | FalseValue _ -> false
 
 type BooleanAcnProperties = {
     encodingPattern     : AcnBooleanEncoding    option
@@ -375,7 +384,7 @@ type AcnParamType =
     | AcnPrmNullType   of SrcLoc
     | AcnPrmRefType    of StringLoc*StringLoc
 with
-    override this.ToString() = 
+    override this.ToString() =
         match this with
         | AcnPrmInteger   _         -> "INTEGER"
         | AcnPrmBoolean   _         -> "BOOLEAN"
@@ -383,7 +392,7 @@ with
         | AcnPrmRefType    (md,ts)  -> sprintf "%s.%s" md.Value ts.Value
     override x.Equals(yobj) =
         match yobj with
-        | :? AcnParamType as other -> 
+        | :? AcnParamType as other ->
             match x, other with
             | AcnPrmInteger    _       , AcnPrmInteger    _         -> true
             | AcnPrmBoolean    _       , AcnPrmBoolean    _         -> true
@@ -391,7 +400,7 @@ with
             | AcnPrmRefType    (md,ts) , AcnPrmRefType    (md2,ts2) -> md=md2 && ts=ts2
             | _                                                     -> false
         | _ -> false
-    override x.GetHashCode() = 
+    override x.GetHashCode() =
         match x with
             | AcnPrmInteger    _       -> 1
             | AcnPrmBoolean    _       -> 2
@@ -399,22 +408,22 @@ with
             | AcnPrmRefType    (md,ts) -> md.GetHashCode() ^^^ ts.GetHashCode()
 
 
- 
+
 type AcnParameter = {
     name        : string
     asn1Type    : AcnParamType
     loc         : SrcLoc
     id          : ReferenceToType
 }
-with 
+with
     member this.c_name = ToC this.name
 
 
 type  GenericAcnPresentWhenCondition =
-    | GP_PresenceBool  of RelativePath                         
+    | GP_PresenceBool  of RelativePath
     | GP_PresenceInt   of RelativePath*IntLoc
-    | GP_PresenceStr   of RelativePath*StringLoc          
-    
+    | GP_PresenceStr   of RelativePath*StringLoc
+
 type  GenAcnEncodingProp =
     | GP_PosInt
     | GP_TwosComplement
@@ -423,26 +432,26 @@ type  GenAcnEncodingProp =
     | GP_IEEE754_32
     | GP_IEEE754_64
 
-type  GenSizeProperty = 
+type  GenSizeProperty =
     | GP_Fixed                 of IntLoc
-    | GP_NullTerminated        
+    | GP_NullTerminated
     | GP_SizeDeterminant       of RelativePath
 
 
 
-type  GenericAcnProperty = 
+type  GenericAcnProperty =
     | ENCODING          of GenAcnEncodingProp
     | SIZE              of GenSizeProperty
-    | ALIGNTONEXT       of AcnAligment
-    | ENCODE_VALUES   
-    | SAVE_POSITION   
+    | ALIGNTONEXT       of AcnAlignment
+    | ENCODE_VALUES
+    | SAVE_POSITION
     | PRESENT_WHEN      of GenericAcnPresentWhenCondition list
-    | PRESENT_WHEN_EXP  of AcnExpression    
+    | PRESENT_WHEN_EXP  of AcnExpression
     | TRUE_VALUE        of StringLoc
     | FALSE_VALUE       of StringLoc
     | PATTERN           of PATTERN_PROP_VALUE
     | CHOICE_DETERMINANT of RelativePath
-    | ENDIANNES         of AcnEndianness
+    | ENDIANNESS        of AcnEndianness
     | ENUM_SET_VALUE    of IntLoc
     | TERMINATION_PATTERN of StringLoc //bit pattern
     | MAPPING_FUNCTION  of (StringLoc option)*StringLoc
@@ -457,7 +466,7 @@ type  AcnTypeEncodingSpec = {
     children        : ChildSpec list
     loc             : SrcLoc
     comments        : string list
-    postion         : SrcLoc*SrcLoc   //start pos, end pos
+    position         : SrcLoc*SrcLoc   //start pos, end pos
     antlrSubTree    :ITree option
 }
 
