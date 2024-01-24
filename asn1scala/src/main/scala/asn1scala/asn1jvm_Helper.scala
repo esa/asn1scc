@@ -77,7 +77,7 @@ extension (l: Long) {
       else if ((l & MASK_MSB_INT) == MASK_MSB_INT)
          ((l & MASK_POS_INT) - MASK_MSB_INT).toInt
       else
-         l.toInt
+         (l & MASK_INT_L).toInt
    }
 
    def cutToShort: UShort = {
@@ -86,7 +86,7 @@ extension (l: Long) {
       else if ((l & MASK_MSB_SHORT) == MASK_MSB_SHORT)
          ((l & MASK_POS_SHORT) - MASK_MSB_SHORT).toShort
       else
-         l.toShort
+         (l & MASK_SHORT_L).toShort
    }
 
    def cutToByte: UByte = {
@@ -95,7 +95,7 @@ extension (l: Long) {
       else if ((l & MASK_MSB_BYTE) == MASK_MSB_BYTE)
          ((l & MASK_POS_BYTE) - MASK_MSB_BYTE).toByte
       else
-         (l & MASK_BYTE).toByte
+         (l & MASK_BYTE_L).toByte
    }
 
    @extern
