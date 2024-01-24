@@ -259,7 +259,7 @@ trait Codec {
    }
 
 
-   final def decodeConstraintPosWholeNumber(min: Long, max: Long): Long = {
+   final def decodeConstrainedPosWholeNumber(min: Long, max: Long): Long = {
       require(max >= 0 && max <= Long.MaxValue)
       require(min >= 0 && min <= max)
 
