@@ -145,17 +145,22 @@ trait Codec {
    }
 
    final def encodeNonNegativeInteger(v: ULong): Unit = {
-      if v >>> 32 == 0 then
-         encodeNonNegativeInteger32Neg(v.toInt, false)
-      else
-         val hi = (v >>> 32).toInt
-         val lo = v.toInt
-         encodeNonNegativeInteger32Neg(hi, false)
-
-         val nBits: Int = GetBitCountUnsigned(lo.toLong << 32 >>> 32) // TODO: is this easier?
-         appendNBitZero(32 - nBits)
-         encodeNonNegativeInteger32Neg(lo, false)
+      require(bitStream.validate_offset_bits(GetBitCountUnsigned(v)))
+      appendBitsNBitFirstToLSB(v, GetBitCountUnsigned(v))
    }
+
+//   final def encodeNonNegativeInteger(v: ULong): Unit = { // TODO replace after testing with upper call
+//      if v >>> 32 == 0 then
+//         encodeNonNegativeInteger32Neg(v.toInt, false)
+//      else
+//         val hi = (v >>> 32).toInt
+//         val lo = v.toInt
+//         encodeNonNegativeInteger32Neg(hi, false)
+//
+//         val nBits: Int = GetBitCountUnsigned(lo.toLong << 32 >>> 32) // TODO: is this easier?
+//         appendNBitZero(32 - nBits)
+//         encodeNonNegativeInteger32Neg(lo, false)
+//   }
 
    final def decodeNonNegativeInteger(nBits: Int): Long = {
       // TODO precondition
