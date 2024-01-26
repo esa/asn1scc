@@ -2,6 +2,7 @@ package asn1scala
 
 import stainless.lang.StaticChecks.assert
 import stainless.lang.{None => None, ghost => ghostExpr, Option => Option, _}
+import stainless.math._
 
 val FAILED_READ_ERR_CODE = 5400
 
@@ -25,9 +26,9 @@ case class ACN(bitStream: BitStream) extends Codec {
       val nBits: Int = GetBitCountUnsigned(intVal)
       /* put required zeros*/
       // TODO what if nBits > encodedSizeInBits ??
-      appendNBitZero(encodedSizeInBits - nBits)
+      appendNZeroBits(encodedSizeInBits - nBits)
       /*Encode number */
-      encodeNonNegativeInteger(intVal)
+      encodeUnsignedInteger(intVal)
    }
 
    def enc_Int_PositiveInteger_ConstSize_8(intVal: ULong): Unit = {
@@ -83,7 +84,7 @@ case class ACN(bitStream: BitStream) extends Codec {
    }
 
    def dec_Int_PositiveInteger_ConstSize(encodedSizeInBits: Int): ULong = {
-      decodeNonNegativeInteger(encodedSizeInBits)
+      decodeUnsignedInteger(encodedSizeInBits)
    }
 
    def dec_Int_PositiveInteger_ConstSize_8(): ULong = {
@@ -183,17 +184,35 @@ case class ACN(bitStream: BitStream) extends Codec {
       v
    }
 
+   /**
+    * Encode the value v into a two complement n-Bit integer.
+    *
+    * Example:
+    *    v = 12d = 0000'0...0'1100b
+    *    formatBitLength = 6
+    *                         6-bit Signed Integer
+    *                         vv'vvvv
+    *    --> encoded value is 00'1100
+    *
+    * Example 2:
+    *    v = -2d = 1111'1...1'1110b
+    *    formatBitLength = 5
+    *                         5-bit Signed Integer
+    *                         v'vvvv
+    *    --> encoded value is 1'1110
+    *
+    * @param v                value that gets encoded
+    * @param formatBitLength  number of dataformat bits
+    */
+   def enc_Int_TwosComplement_ConstSize(v: Long, formatBitLength: Int): Unit = {
+      require(GetBitCountSigned(v) <= formatBitLength) // TODO check with stainless
 
-   def enc_Int_TwosComplement_ConstSize(intVal: Long, encodedSizeInBits: Int): Unit = {
-      if intVal >= 0 then
-         appendNBitZero(encodedSizeInBits - GetBitCountUnsigned(intVal))
-         encodeNonNegativeInteger(intVal)
+      // add additional bits if formatBitLength is bigger than 64
+      val addedBits = max(0, formatBitLength - NO_OF_BITS_IN_LONG)
+      if v >= 0 then appendNZeroBits(addedBits) else appendNOneBits(addedBits)
 
-      else
-         appendNBitOne(encodedSizeInBits - GetBitCountUnsigned(-intVal - 1))
-         encodeNonNegativeIntegerNeg(-intVal - 1)
-   }
-
+      appendNLeastSignificantBits(v, min(NO_OF_BITS_IN_LONG, formatBitLength))
+   }.ensuring(_ => true) // TODO
 
    def enc_Int_TwosComplement_ConstSize_8(intVal: Long): Unit = {
       enc_Int_PositiveInteger_ConstSize_8(int2uint(intVal))

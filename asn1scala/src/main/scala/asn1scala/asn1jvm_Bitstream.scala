@@ -201,7 +201,7 @@ case class BitStream(
     * @param nBits number of bits
     *
     */
-   def appendNBitOne(nBits: Long): Unit = {
+   def appendNOneBits(nBits: Long): Unit = {
       require(nBits >= 0)
       require(validate_offset_bits(nBits))
 
@@ -230,12 +230,12 @@ case class BitStream(
    }.ensuring(_ => buf.length == old(this).buf.length && remainingBits == old(this).remainingBits - 1)
 
    /**
-    * Append n cleared bit to bitstream
+    * Append n cleared bits to bitstream
     *
     * @param nBits number of bits
     *
     */
-   def appendNBitZero(nBits: Long): Unit = {
+   def appendNZeroBits(nBits: Long): Unit = {
       require(nBits >= 0)
       require(validate_offset_bits(nBits))
 
@@ -308,20 +308,20 @@ case class BitStream(
     * @param nBits number of bits to add
     *
     * Remarks:
-    * the first bit added to the bitstream is the highest significant bit
-    * defined by nBits.
+    * The first bit added to the bitstream is the highest significant bit
+    * defined by nBits. The last added bit is the LSB.
     *
     * Example:
     * nBits = 25
     *
     * MSB          first added bit     LSB
     *  v                 v              v
-    * 64----------------24--------------0
+    * 63----------------24--------------0
     *
     * After bit 24, bit 23 and so on get added
     *
     */
-   def appendBitsNBitFirstToLSB(v: Long, nBits: Int): Unit = {
+   def appendNLeastSignificantBits(v: Long, nBits: Int): Unit = {
       require(nBits >= 0 && nBits <= NO_OF_BITS_IN_LONG)
       require(validate_offset_bits(nBits))
 

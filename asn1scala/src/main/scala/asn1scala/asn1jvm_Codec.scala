@@ -77,123 +77,14 @@ trait Codec {
 
    /** ******************************************************************************************** */
 
-   final def encodeNonNegativeInteger32Neg(v: Int, negate: Boolean): Unit = {
-      var cc: UInt = 0
-      var curMask: UInt = 0
-      var pbits: UInt = 0
-
-      if v == 0 then
-         return;
-
-      if v >>> 8 == 0 then
-         cc = 8
-         curMask = 0x80
-      else if v >>> 16 == 0 then
-         cc = 16
-         curMask = 0x8000
-      else if v >>> 24 == 0 then
-         cc = 24
-         curMask = 0x800000
-      else
-         cc = 32
-         curMask = 0x80000000
-
-      while (v & curMask) == 0 do
-         decreases(cc)
-         curMask >>>= 1
-         cc -= 1
-
-      pbits = cc % 8
-      if pbits > 0 then
-         cc -= pbits
-         var b = (v >>> cc).toByte
-         appendPartialByte(if negate then (~b).toByte else b, pbits.toByte)
-
-      while cc > 0 do
-         decreases(cc)
-         val t1: UInt = v.toInt & masks2(cc >>> 3)
-         cc -= 8
-
-         var b = t1 >>> cc
-         if negate then
-            b = ~b
-
-         appendByte(b.cutToByte)
-   }
-
-   final def decodeNonNegativeInteger32Neg(nBitsVal : Int): Int = {
-      // TODO precondition
-      var v: UInt = 0
-
-      var nBits = nBitsVal
-      (while nBits >= 8 do
-         decreases(nBits)
-         v = v << 8
-
-         // mask the Byte-Bits, because negative values eg. -1 (1111 1111)
-         // will be casted to an Int -1 (1111 ... 1111)
-         v = v | (readByte() & 0xFF)
-
-         nBits -= 8
-      ).invariant(true) // TODO invariant
-
-      if nBits != 0 then
-         v = v << nBits
-         v = v | (readPartialByte(nBits.toByte) & 0xFF)
-
-      v
-   }
-
-   final def encodeNonNegativeInteger(v: ULong): Unit = {
+   final def encodeUnsignedInteger(v: ULong): Unit = {
       require(bitStream.validate_offset_bits(GetBitCountUnsigned(v)))
-      appendBitsNBitFirstToLSB(v, GetBitCountUnsigned(v))
+      appendNLeastSignificantBits(v, GetBitCountUnsigned(v))
    }
 
-//   final def encodeNonNegativeInteger(v: ULong): Unit = { // TODO replace after testing with upper call
-//      if v >>> 32 == 0 then
-//         encodeNonNegativeInteger32Neg(v.toInt, false)
-//      else
-//         val hi = (v >>> 32).toInt
-//         val lo = v.toInt
-//         encodeNonNegativeInteger32Neg(hi, false)
-//
-//         val nBits: Int = GetBitCountUnsigned(lo.toLong << 32 >>> 32) // TODO: is this easier?
-//         appendNBitZero(32 - nBits)
-//         encodeNonNegativeInteger32Neg(lo, false)
-//   }
-
-   final def decodeNonNegativeInteger(nBits: Int): Long = {
-      // TODO precondition
-
-      if nBits <= 32 then
-         return decodeNonNegativeInteger32Neg(nBits) & 0xFFFFFFFFL
-
-      var v: Long =
-         decodeNonNegativeInteger32Neg(32) & 0xFFFFFFFFL // high
-      v = v << nBits - 32L
-
-      v |= decodeNonNegativeInteger32Neg(nBits - 32) & 0xFFFFFFFFL // low
-
-      v
-   }
-
-   final def encodeNonNegativeIntegerNeg(v: Long): Unit = {
-      // TODO precondition
-
-      if v >>> 32 == 0 then
-         encodeNonNegativeInteger32Neg(v.toInt, true)
-      else
-         // TODO: Check Int/Long
-         val hi = (v >>> 32).toInt
-         var lo = v.toInt
-         encodeNonNegativeInteger32Neg(hi, true)
-
-         /*bug !!!!*/
-         if true then // TODO, the negate flag was always true
-            lo = ~lo
-         val nBits = GetBitCountUnsigned(lo.toLong)
-         appendNBitZero(32 - nBits)
-         encodeNonNegativeInteger32Neg(lo, false)
+   final def decodeUnsignedInteger(nBits: Int): ULong = {
+      require(nBits >= 0 && nBits <= NO_OF_BITS_IN_LONG)
+      readBitsNBitFirstToLSB(nBits)
    }
 
    /**
@@ -223,7 +114,7 @@ trait Codec {
       @ghost val nEncValBits = GetBitCountUnsigned(encVal)
       assert(nRangeBits >= nEncValBits)
 
-      appendBitsNBitFirstToLSB(encVal, nRangeBits)
+      appendNLeastSignificantBits(encVal, nRangeBits)
    }
 
    final def decodeConstrainedWholeNumber(min: Long, max: Long): Long = {
@@ -275,7 +166,7 @@ trait Codec {
          return min
 
       val nRangeBits: Int = GetBitCountUnsigned(range)
-      val decVal = decodeNonNegativeInteger(nRangeBits) // TODO simpler call
+      val decVal = decodeUnsignedInteger(nRangeBits) // TODO simpler call
 
       assert(min + decVal <= max) // TODO sanity check needed?
 
@@ -291,9 +182,9 @@ trait Codec {
       encodeConstrainedWholeNumber(nBytes.toLong, 0, 255)
       /*8 bits, first bit is always 0*/
       /* put required zeros*/
-      appendNBitZero(nBytes * 8 - GetBitCountUnsigned(v - min))
+      appendNZeroBits(nBytes * 8 - GetBitCountUnsigned(v - min))
       /*Encode number */
-      encodeNonNegativeInteger(v - min)
+      encodeUnsignedInteger(v - min)
    }
 
    final def encodeSemiConstraintPosWholeNumber(v: ULong, min: ULong): Unit = {
@@ -305,9 +196,9 @@ trait Codec {
       encodeConstrainedWholeNumber(nBytes.toLong, 0, 255)
       /*8 bits, first bit is always 0*/
       /* put required zeros*/
-      appendNBitZero(nBytes * 8 - GetBitCountUnsigned(v - min))
+      appendNZeroBits(nBytes * 8 - GetBitCountUnsigned(v - min))
       /*Encode number */
-      encodeNonNegativeInteger(v - min)
+      encodeUnsignedInteger(v - min)
    }
 
    final def decodeSemiConstraintWholeNumber(min: Long): Long = {
@@ -516,14 +407,14 @@ trait Codec {
       /* encode exponent */
       if exponent >= 0 then
          // fill with zeros to have a whole byte
-         appendNBitZero(nExpLen * 8 - GetBitCountUnsigned(exponent))
-         encodeNonNegativeInteger(exponent)
+         appendNZeroBits(nExpLen * 8 - GetBitCountUnsigned(exponent))
+         encodeUnsignedInteger(exponent)
       else
-         encodeNonNegativeInteger(compactExp)
+         encodeUnsignedInteger(compactExp)
 
       /* encode mantissa */
-      appendNBitZero(nManLen * 8 - GetBitCountUnsigned(mantissa))
-      encodeNonNegativeInteger(mantissa)
+      appendNZeroBits(nManLen * 8 - GetBitCountUnsigned(mantissa))
+      encodeUnsignedInteger(mantissa)
    }
 
 
@@ -928,14 +819,14 @@ trait Codec {
       bitStream.readBit()
    }
 
-   final def appendNBitZero(nBits: Long): Unit = {
+   final def appendNZeroBits(nBits: Long): Unit = {
       require(bitStream.validate_offset_bits(nBits))
-      bitStream.appendNBitZero(nBits)
+      bitStream.appendNZeroBits(nBits)
    }
 
-   final def appendNBitOne(nBits: Long): Unit = {
+   final def appendNOneBits(nBits: Long): Unit = {
       require(bitStream.validate_offset_bits(nBits))
-      bitStream.appendNBitOne(nBits)
+      bitStream.appendNOneBits(nBits)
    }
 
    final def appendBitsLSBFirst(v: Long, nBits: Int): Unit = { // TODO remove if never used
@@ -948,9 +839,9 @@ trait Codec {
       bitStream.appendBitsMSBFirst(srcBuffer, nBits)
    }
 
-   final def appendBitsNBitFirstToLSB(v: Long, nBits: Int): Unit = {
+   final def appendNLeastSignificantBits(v: Long, nBits: Int): Unit = {
       require(bitStream.validate_offset_bits(nBits))
-      bitStream.appendBitsNBitFirstToLSB(v, nBits)
+      bitStream.appendNLeastSignificantBits(v, nBits)
    }
 
    final def readBitsNBitFirstToLSB(nBits: Int): Long = {

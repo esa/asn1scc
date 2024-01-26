@@ -108,14 +108,14 @@ extension (l: Long) {
  * Get number of bits needed to represent the value v
  *
  * Example:
- *    v = 12d = 0b0000'0...0'0000'1100b
- *                                ^
  *                                4 bits needed
+ *                                v
+ *    v = 12d = 0b0000'0...0'0000'1100b
  *
  * @param v value that should get serialised
  * @return number of bits needed for serialisation
  */
-def GetBitCountUnsigned(v: Long): Int = {
+def GetBitCountUnsigned(v: ULong): Int = {
    if v < 0 then
       return NO_OF_BITS_IN_LONG
 
@@ -136,7 +136,32 @@ def GetBitCountUnsigned(v: Long): Int = {
 
    i
 }.ensuring(x =>
-   x >= 0 && x <= 64 && (x == 64 && v < 0 || v >>> x == 0))
+   x >= 0 && x <= NO_OF_BITS_IN_LONG && (x == NO_OF_BITS_IN_LONG && v < 0 || v >>> x == 0))
+
+/**
+ * Get number of bits needed to encode the singed value v
+ *
+ * Example:
+ *                              5 bit (include sign bit)
+ *                              v'vvvv
+ *    v = 12d = 0b0000'0...0'0000'1100b
+ *
+ * @param v value to encode
+ * @return number of bits needed
+ */
+def GetBitCountSigned(v: Long): Int = {
+   val MSB = (v & 1L << NO_OF_BITS_IN_LONG - 1) != 0
+
+   var i = NO_OF_BITS_IN_LONG
+   (while i >= 2 && ((v & (1L << (i-2))) != 0) == MSB do
+      decreases(i)
+      i -= 1
+   ).invariant(i >= 1 && i <= NO_OF_BITS_IN_LONG)
+
+   i
+
+}.ensuring(x =>
+   x >= 0 && x <= NO_OF_BITS_IN_LONG)
 
 /**
  * Get number of bytes needed to represent the value v
