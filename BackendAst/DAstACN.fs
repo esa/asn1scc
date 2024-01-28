@@ -513,15 +513,8 @@ let createEnumComn (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:CommonTypes
     let intTypeClass = getIntEncodingClassByUperRange r.args uperRange
     let rtlIntType = (DAstTypeDefinition.getIntererTypeByClass lm intTypeClass)()
     let localVar, intVal =
-        let varName = "intVal"
-        let initExp = 
-            match ST.lang with
-            | ProgrammingLanguage.Scala -> Some("0L")
-            | _ -> None
-        GenericLocalVariable {GenericLocalVariable.name = varName; varType= rtlIntType; arrSize= None; isStatic = false; initExp=initExp }, varName
-        //match min >= 0I with
-        //| true -> Asn1UIntLocalVariable ("uIntVal",None), "uIntVal"
-        //| false -> Asn1SIntLocalVariable ("intVal",None), "intVal"
+        let lv = lm.lg.acn.createLocalVariableEnum rtlIntType
+        lv, lv.VarName
     let pVal = {CallerScope.modName = typeId.ModName; arg = VALUE intVal}
     let funcBody (errCode:ErroCode) (acnArgs: (AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) (p:CallerScope)        = 
         let td = (lm.lg.getEnmTypeDefintion o.typeDef).longTypedefName2 lm.lg.hasModules (ToC p.modName)

@@ -299,6 +299,8 @@ type LangGeneric_a() =
                         [
                             GenericLocalVariable {GenericLocalVariable.name = "tmpBs"; varType = "adaasn1rtl.encoding.BitStream"; arrSize = None; isStatic = false;initExp = Some (sprintf "adaasn1rtl.encoding.BitStream_init(%s)" sReqBytesForUperEncoding)}
                         ]
+                createLocalVariableEnum =
+                    (fun rtlIntType -> GenericLocalVariable {GenericLocalVariable.name = "intVal"; varType= rtlIntType; arrSize= None; isStatic = false; initExp=None })
                 choice_handle_always_absent_child = true
                 choice_requires_tmp_decoding = false
           }

@@ -331,6 +331,8 @@ type LangGeneric_c() =
                             GenericLocalVariable {GenericLocalVariable.name = "bitStrm"; varType = "BitStream"; arrSize = None; isStatic = false; initExp = None}
                         ]
                 choice_handle_always_absent_child = false
+                createLocalVariableEnum =
+                    (fun rtlIntType -> GenericLocalVariable {GenericLocalVariable.name = "intVal"; varType= rtlIntType; arrSize= None; isStatic = false; initExp=None })
                 choice_requires_tmp_decoding = false
             }
         override this.init = 
