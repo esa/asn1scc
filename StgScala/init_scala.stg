@@ -241,14 +241,14 @@ initTypeConstant_body(sTypeDecl, sConstantName, sValue) ::= <<
 val <sConstantName>: sTypeDecl> = <sValue>
 >>
 
-initFixSizeOctetString(nMax, bZeroSizedArray) ::= "Array.fill(<nMax>)(0)" 
-initVarSizeOctetString(nMin, nMax) ::= "null"
+initFixSizeOctetString(sTypeDef, nMax, bZeroSizedArray) ::= "<sTypeDef>(Array.fill(<nMax>)(0))" 
+initVarSizeOctetString(sTypeDef, nMin, nMax) ::= "null"
 
-initFixSizeBitString(nMax, nMaxOctets) ::= "Array.fill(<nMaxOctets>)(0)"
-initVarSizeBitString(nMin, nMax, nMaxOctets) ::= "null"
+initFixSizeBitString(sTypeDef, nMax, nMaxOctets) ::= "<sTypeDef>(Array.fill(<nMaxOctets>)(0))"
+initVarSizeBitString(sTypeDef, nMin, nMax, nMaxOctets) ::= "null"
 
-initFixSizeSequenceOfExpr(nMax, sChildExp) ::= "null"
-initVarSizeSequenceOfExpr(nMin, nMax, sChildExp) ::= "null"
+initFixSizeSequenceOfExpr(sTypeDef, nMax, sChildExp) ::= "null"
+initVarSizeSequenceOfExpr(sTypeDef, nMin, nMax, sChildExp) ::= "null"
 
 
 initObjectIdentifierAsExpr() ::= <<

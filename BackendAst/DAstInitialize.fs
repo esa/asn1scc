@@ -412,14 +412,10 @@ let createOctetStringInitFunc (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (t:Asn
         | false -> initFixVarSizeBitOrOctString p.arg.p (lm.lg.getAccess p.arg) (BigInteger arrsBytes.Length) arrsBytes
 
     let constantInitExpression =
+        let sTypeDef = lm.lg.getLongTypedefName typeDefinition
         match o.isFixedSize with
-        | true   ->
-            match ST.lang with
-            | ProgrammingLanguage.Scala ->
-                (lm.lg.getLongTypedefName typeDefinition) + "(" + (lm.init.initFixSizeOctetString o.maxSize.uper (o.maxSize.uper = 0I)) + ")"                
-            | _ ->
-                lm.init.initFixSizeOctetString o.maxSize.uper (o.maxSize.uper = 0I)
-        | false  -> lm.init.initVarSizeOctetString o.minSize.uper o.maxSize.uper
+        | true   -> lm.init.initFixSizeOctetString sTypeDef o.maxSize.uper (o.maxSize.uper = 0I)
+        | false  -> lm.init.initVarSizeOctetString sTypeDef o.minSize.uper o.maxSize.uper
 
     let anonyms =
         o.AllCons |> 
@@ -581,12 +577,8 @@ let createBitStringInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1Ac
         
     let constantInitExpression =
         match o.isFixedSize with
-            | true   -> lm.init.initFixSizeBitString o.maxSize.uper (BigInteger o.MaxOctets)
-            | false  -> lm.init.initVarSizeBitString o.minSize.uper o.maxSize.uper (BigInteger o.MaxOctets)
-    let constantInitExpression =
-        match ST.lang with
-            | ProgrammingLanguage.Scala -> tdName + "(" + constantInitExpression + ")"
-            | _ -> constantInitExpression
+            | true   -> lm.init.initFixSizeBitString tdName o.maxSize.uper (BigInteger o.MaxOctets)
+            | false  -> lm.init.initVarSizeBitString tdName o.minSize.uper o.maxSize.uper (BigInteger o.MaxOctets)
     createInitFunctionCommon r lm t typeDefinition o.defaultInitVal funcBody tasInitFunc testCaseFuncs constantInitExpression constantInitExpression [] user_aux_functions
 
 let createBooleanInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (o :Asn1AcnAst.Boolean     ) (typeDefinition:TypeDefintionOrReference)  = 
@@ -876,9 +868,10 @@ let createSequenceOfInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1A
     let childInitExpr = getChildExpression lm childType
     let childInitGlobal = getChildExpressionGlobal lm childType
     let constantInitExpression childExpr = 
+        let sTypeDef = lm.lg.getLongTypedefName typeDefinition
         match o.isFixedSize with
-        | true  -> lm.init.initFixSizeSequenceOfExpr o.maxSize.uper childExpr
-        | false -> lm.init.initVarSizeSequenceOfExpr o.minSize.uper o.maxSize.uper childExpr
+        | true  -> lm.init.initFixSizeSequenceOfExpr sTypeDef o.maxSize.uper childExpr
+        | false -> lm.init.initVarSizeSequenceOfExpr sTypeDef o.minSize.uper o.maxSize.uper childExpr
     createInitFunctionCommon r lm t typeDefinition initVal funcBody initTasFunction testCaseFuncs (constantInitExpression childInitExpr) (constantInitExpression childInitGlobal) nonEmbeddedChildrenFuncs []
 
 let createSequenceInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (o :Asn1AcnAst.Sequence) (typeDefinition:TypeDefintionOrReference) (children:SeqChildInfo list) = 

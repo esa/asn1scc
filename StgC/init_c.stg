@@ -255,14 +255,14 @@ const <sTypeDecl> <sConstantName> = <sValue>;
 #endif
 >>
 
-initFixSizeOctetString(nMax, bZeroSizedArray) ::= "{<if(!bZeroSizedArray)>.arr  = {[0 ... <nMax>-1] = 0 }<endif>}"
-initVarSizeOctetString(nMin, nMax) ::= "{.nCount = <nMin>, .arr  = {[0 ... <nMax>-1] = 0 }}"
+initFixSizeOctetString(sTypeDef, nMax, bZeroSizedArray) ::= "{<if(!bZeroSizedArray)>.arr  = {[0 ... <nMax>-1] = 0 }<endif>}"
+initVarSizeOctetString(sTypeDef, nMin, nMax) ::= "{.nCount = <nMin>, .arr  = {[0 ... <nMax>-1] = 0 }}"
 
-initFixSizeBitString(nMax, nMaxOctets) ::= "{.arr  = {[0 ... <nMaxOctets>-1] = 0 }}"
-initVarSizeBitString(nMin, nMax, nMaxOctets) ::= "{.nCount = <nMin>, .arr  = {[0 ... <nMaxOctets>-1] = 0 }}"
+initFixSizeBitString(sTypeDef, nMax, nMaxOctets) ::= "{.arr  = {[0 ... <nMaxOctets>-1] = 0 }}"
+initVarSizeBitString(sTypeDef, nMin, nMax, nMaxOctets) ::= "{.nCount = <nMin>, .arr  = {[0 ... <nMaxOctets>-1] = 0 }}"
 
-initFixSizeSequenceOfExpr(nMax, sChildExp) ::= "{.arr  = {[0 ... <nMax>-1] = <sChildExp> }}"
-initVarSizeSequenceOfExpr(nMin, nMax, sChildExp) ::= "{.nCount = <nMin>, .arr  = {[0 ... <nMax>-1] = <sChildExp> }}"
+initFixSizeSequenceOfExpr(sTypeDef, nMax, sChildExp) ::= "{.arr  = {[0 ... <nMax>-1] = <sChildExp> }}"
+initVarSizeSequenceOfExpr(sTypeDef, nMin, nMax, sChildExp) ::= "{.nCount = <nMin>, .arr  = {[0 ... <nMax>-1] = <sChildExp> }}"
 
 
 initObjectIdentifierAsExpr() ::= <<
