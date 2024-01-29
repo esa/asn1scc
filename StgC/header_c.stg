@@ -106,7 +106,7 @@ Declare_Asn1Date_UtcTimeNoRTL              	()::= "Asn1DateUtcTime"
 Declare_Asn1Date_LocalTimeWithTimeZoneNoRTL	()::= "Asn1DateTimeWithTimeZone"
 
 
-Define_SubType(sTypeDefinitionName, soParentTypePackage, sParentType, soNewRange, soExtraDefs) ::= <<
+Define_SubType(sTypeDefinitionName, soParentTypePackage, sParentType, soNewRange, soExtraDefs, arrsAnnots) ::= <<
 typedef <sParentType> <sTypeDefinitionName>;
 <soExtraDefs>
 >>

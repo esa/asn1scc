@@ -155,7 +155,7 @@ range <if(noMin)><noMin><else><if(soParentTypePackage)><soParentTypePackage>.<en
 >>
 
 
-Define_SubType(sTypeDefinitionName, soParentTypePackage, sParentType, soNewRange, soExtraDefs) ::= <<
+Define_SubType(sTypeDefinitionName, soParentTypePackage, sParentType, soNewRange, soExtraDefs, arrsAnnots) ::= <<
 subtype <sTypeDefinitionName> is <if(soParentTypePackage)><soParentTypePackage>.<endif><sParentType><if(soNewRange)> <soNewRange><endif>;
 <soExtraDefs>
 >>

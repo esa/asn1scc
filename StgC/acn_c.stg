@@ -23,7 +23,7 @@ EmitTypeAssignment_primitive_def_encode(sVarName, sStar, sFuncName, sTypeDefName
 flag <sFuncName>(const <sTypeDefName><sStar> <sVarName>, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints);
 >>
 
-EmitTypeAssignment_primitive_encode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName) ::= <<
+EmitTypeAssignment_primitive_encode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName, arrsAnnots) ::= <<
 flag <sFuncName>(const <sTypeDefName><sStar> <sVarName>, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints)
 {
     flag ret = TRUE;
@@ -61,7 +61,7 @@ EmitTypeAssignment_primitive_def_decode(sVarName, sStar, sFuncName, sTypeDefName
 flag <sFuncName>(<sTypeDefName><sStar> <sVarName>, BitStream* pBitStrm, int* pErrCode<if(arrsAcnPrms)>, <arrsAcnPrms; separator=", "><endif>);
 >>
 
-EmitTypeAssignment_primitive_decode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName) ::= <<
+EmitTypeAssignment_primitive_decode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName, arrsAnnots) ::= <<
 flag <sFuncName>(<sTypeDefName><sStar> <sVarName>, BitStream* pBitStrm, int* pErrCode<if(arrsAcnPrms)>, <arrsAcnPrms; separator=", "><endif>)
 {
     flag ret = TRUE;
@@ -872,7 +872,7 @@ case <sChildID>:
 
 ChoiceChild_preWhen_bool_condition(sExtFld) ::= "<sExtFld>"
 ChoiceChild_preWhen_int_condition(sExtFld, nVal) ::= "(<sExtFld> == <nVal>)"
-ChoiceChild_preWhen_str_condition(sExtFld, sVal, arrsNullChars) ::= "(strcmp(<sExtFld>, \"<sVal>\") == 0)"
+ChoiceChild_preWhen_str_condition(sExtFld, sVal, arrsNullChars, arruVal) ::= "(strcmp(<sExtFld>, \"<sVal>\") == 0)"
 
 ChoiceChild_preWhen_decode(p, sAcc, sChildID, sChildBody, arrsConditions, bFirst, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr) ::= <<
 <if(!bFirst)>else <endif>if (<arrsConditions; separator=" && ">) {
@@ -982,15 +982,15 @@ PresenceDependency(v, sSeqPath, sAcc, sChildName) ::= <<
 <v> = (<sSeqPath><sAcc>exist.<sChildName> == 1);
 >>
 
-ChoiceDependencyIntPres_child(v, sChildNamePrese, nChildRetVal) ::= <<
-case <sChildNamePrese>:
+ChoiceDependencyIntPres_child(v, sChildNamePresent, nChildRetVal) ::= <<
+case <sChildNamePresent>:
 		<v>_is_initialized = TRUE;
 		<v> = <nChildRetVal>;
     break;
 >>
 
-ChoiceDependencyStrPres_child(v, sChildNamePrese, sChildRetVal, arrsNullChars) ::= <<
-case <sChildNamePrese>:
+ChoiceDependencyStrPres_child(v, sChildNamePresent, sChildRetVal, arruChildRetValBytes, arrsNullChars) ::= <<
+case <sChildNamePresent>:
     <v>_is_initialized = TRUE;
 		strcpy(<v>, "<sChildRetVal>");
     break;

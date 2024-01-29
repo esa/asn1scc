@@ -10,8 +10,8 @@ call_base_type_func_encode(p, sFuncName) ::= <<
 call_base_type_func_decode(p, sFuncName) ::= <<
 // uper call_base_type_func_decode
 val <p> = <sFuncName>(codec) match // uper:13
-    case Right(decData) => decData
-    case Left(err) => return Left(err)
+    case RightMut(decData) => decData
+    case LeftMut(err) => return LeftMut(err)
 >>
 
 /*******************************************************/
@@ -28,7 +28,8 @@ EmitTypeAssignment_def_encode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrc
 @inline @cCode.inline val <sTypeDefName>_REQUIRED_BITS_FOR_ENCODING = <nMaxBitsInPER>
 >>
 
-EmitTypeAssignment_encode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, bReqBytesForEncodingIsZero, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName) ::= <<
+EmitTypeAssignment_encode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, bReqBytesForEncodingIsZero, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName, arrsAnnots) ::= <<
+<arrsAnnots:{ann|@<ann>}; separator=" ">
 def <sFuncName>(<if(bVarNameIsUnreferenced)>@annotation.unused <endif><sVarName>: <sTypeDefName>, <if(bBsIsUnreferenced)>@annotation.unused <endif>codec: UPER, bCheckConstraints: Boolean): Either[ErrorCode, Int] = //uper:35
 {
     <arrsLocalVariables:{lv|<lv>}; separator="\n">
@@ -49,8 +50,9 @@ EmitTypeAssignment_def_decode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrc
 <arrsErrcodes:{x|<x>}; separator="\n">
 >>
 
-EmitTypeAssignment_decode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, bReqBytesForEncodingIsZero, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName) ::= <<
-def <sFuncName>(<if(bBsIsUnreferenced)>@annotation.unused <endif>codec: UPER): Either[ErrorCode, <sTypeDefName>] = // uper:58
+EmitTypeAssignment_decode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, bReqBytesForEncodingIsZero, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName, arrsAnnots) ::= <<
+<arrsAnnots:{ann|@<ann>}; separator=" ">
+def <sFuncName>(<if(bBsIsUnreferenced)>@annotation.unused <endif>codec: UPER): EitherMut[ErrorCode, <sTypeDefName>] = // uper:58
 {
     <arrsLocalVariables:{lv|<lv>}; separator="\n">
 
@@ -58,10 +60,10 @@ def <sFuncName>(<if(bBsIsUnreferenced)>@annotation.unused <endif>codec: UPER): E
 
     <if(soIValidFuncName)>
     <soIValidFuncName>(pVal) match // uper:68
-        case Left(l) => Left(l)
-        case Right(_) => Right(pVal)
+        case Left(l) => LeftMut(l)
+        case Right(_) => RightMut(pVal)
     <else>
-    Right(pVal)
+    RightMut(pVal)
     <endif>
 }
 >>
@@ -74,7 +76,7 @@ if !codec.appendByte(<p><sAcc>arr(<i>)) then
 
 InternalItem_oct_str_decode(p, sAcc, i, sErrCode) ::=<<
 if !codec.readByte(<p><sAcc>arr(<i>)) then
-    return Left(<sErrCode>)
+    return LeftMut(<sErrCode>)
 >>
 
 PrintAlphabet2(arrnCharSet) /*nogen*/::= <<
@@ -131,9 +133,9 @@ IntUnconstrainedMax_encode(p, nMax, soCheckExp, sErrCode) ::= "codec.encodeUncon
 IntUnconstrainedMax_decode(p, nMax, soCheckExp, sErrCode) ::= <<
 if !codec.decodeUnconstrainedWholeNumber() then // TODO meth does not return a boolean value...?
     <if(soCheckExp)>
-    if !<soCheckExp> then return Left(<sErrCode>)
+    if !<soCheckExp> then return LeftMut(<sErrCode>)
     <else>
-    return Left(<sErrCode>)
+    return LeftMut(<sErrCode>)
     <endif>
 >>
 
@@ -141,14 +143,14 @@ if !codec.decodeUnconstrainedWholeNumber() then // TODO meth does not return a b
 IntSemiConstraint_encode(p, nMin, sErrCode) ::= "codec.encodeSemiConstrainedWholeNumber(<p>, <nMin>)"
 IntSemiConstraint_decode(p, nMin, sErrCode) ::= <<
 if !codec.decodeSemiConstrainedWholeNumber(<nMin>) then
-    return Left(<sErrCode>)
+    return LeftMut(<sErrCode>)
 >>
 
 /*case: A:: = INTEGER (5..MAX) */
 IntSemiConstraintPos_encode(p, nMin, sErrCode) ::= "codec.encodeSemiConstrainedPosWholeNumber(<p>, <nMin>)"
 IntSemiConstraintPos_decode(p, nMin, sErrCode) ::= <<
 if !codec.decodeSemiConstrainedPosWholeNumber(<nMin>) then
-    return Left(<sErrCode>)
+    return LeftMut(<sErrCode>)
 >>
 
 /*case: A:: = INTEGER (5..5) */
@@ -214,19 +216,19 @@ val <p> = codec.decodeReal<sSuffix>().toDouble // uper:234
 ObjectIdentifier_encode(p, sErrCode) ::= "codec.ObjectIdentifier_encode(<p>);"
 ObjectIdentifier_decode(p, sErrCode) ::= <<
 if !codec.ObjectIdentifier_decode() then // uper:234 TODO
-    return Left(<sErrCode>)
+    return LeftMut(<sErrCode>)
 >>
 
 RelativeOID_encode(p, sErrCode) ::= "codec.RelativeOID_encode(<p>);"
 RelativeOID_decode(p, sErrCode) ::= <<
 if !codec.RelativeOID_decode() then
-    return Left(<sErrCode>)
+    return LeftMut(<sErrCode>)
 >>
 
 Time_encode(p, sTimeSubType, sErrCode) ::= "codec.<sTimeSubType>_encode(<p>);"
 Time_decode(p, sTimeSubType, sErrCode) ::= <<
 if !codec.<sTimeSubType>_decode() then
-    return Left(<sErrCode>)
+    return LeftMut(<sErrCode>)
 >>
 
 Enumerated_item_encode(p, sName, nIndex, nLastItemIndex) ::= <<
@@ -246,7 +248,7 @@ Enumerated_decode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, nMin, nMax, n
 val <p> = codec.decodeConstrainedWholeNumber(0, <nLastItemIndex>) match // uper:277
     <arrsItem; separator="\n">
     case _ =>
-        return Left(<sErrCode>)
+        return LeftMut(<sErrCode>)
 >>
 
 /* CHOICE START*/
@@ -272,7 +274,7 @@ choice_decode(p, sAcc, arrsChildren, nLastItemIndex, sChoiceIndexName, sErrCode,
 val <p> = codec.decodeConstrainedWholeNumber(0, <nLastItemIndex>) match // uper:317
     <arrsChildren: {ch|<ch>}; separator="\n">
     case _ =>
-        return Left(<sErrCode>)
+        return LeftMut(<sErrCode>)
 >>
 
 /* CHOICE END*/
@@ -307,18 +309,18 @@ sequence_mandatory_child_decode(sChName, sChildContent) ::= <<
 sequence_optional_child_encode(p, sAcc, sChName, sChildContent, soExistVar, soChildExpr, sChildTypedef) ::= <<
 /*Encode <sChName> */
 <p><sAcc><sChName> match
-    case Some(<sChName>) =>
+    case SomeMut(<sChName>) =>
         <sChildContent>
-    case None() =>
+    case NoneMut() =>
 >>
 
 sequence_optional_child_decode(p, sAcc, sChName, sChildContent, soExistVar, soChildExpr, sChildTypedef) ::= <<
 /*Decode <sChName> */
-val <p>_<sChName> =
+val <p>_<sChName>: OptionMut[<sChildTypedef>] =
     if <soExistVar> then
         <sChildContent>
-        Some(<soChildExpr>)
-    else None[<sChildTypedef>]()
+        SomeMut(<soChildExpr>)
+    else NoneMut[<sChildTypedef>]()
 >>
 
 
@@ -332,7 +334,7 @@ sequence_default_child_decode(p, sAcc, sChName, sChildContent, soExistVar, soChi
 val <p>_<sChName> =
     if <soExistVar> then
         <sChildContent>
-        Some(<soChildExpr>)
+        SomeMut(<soChildExpr>)
     else
         <sInitWithDefaultValue>
 >>
@@ -346,7 +348,7 @@ val <p> = <sTypeDefName>(<arrsChildren; separator=", ">)
 
 loopFixedItem (i, fixedSize,  sInternalItem)::= /*nogen*/<<
 <i> = 0
-while(<i> \< <fixedSize>.asInstanceOf[Int])
+while(<i> \< <fixedSize>.toInt)
 {
     <sInternalItem>
     <i> += 1
@@ -433,7 +435,7 @@ codec.appendBitsMSBFirst(<p><sAcc>arr, <nFixedSize>.toInt)
 
 >>
 bitString_FixSize_decode(sTypeDefName, p, sAcc, nFixedSize, sErrCode) ::= <<
-val <p> = <sTypeDefName>(codec.readBits(<nFixedSize>.asInstanceOf[Int]))
+val <p> = <sTypeDefName>(codec.readBits(<nFixedSize>.toInt))
 >>
 
 bitString_VarSize_encode(sTypeDefName, p, sAcc, nSizeMin, nSizeMax, sErrCode, nSizeInBits) ::= <<
@@ -443,7 +445,7 @@ codec.encodeConstrainedWholeNumber(<p><sAcc>nCount, <nSizeMin>, <nSizeMax>)
 
 bitString_VarSize_decode(sTypeDefName, p, sAcc, nSizeMin, nSizeMax, sErrCode, nSizeInBits) ::= <<
 val <p>_nCount = codec.decodeConstrainedWholeNumber(<nSizeMin>, <nSizeMax>)
-val <p>_arr = codec.readBits(<p>_nCount.asInstanceOf[Int])
+val <p>_arr = codec.readBits(<p>_nCount.toInt)
 val <p> = <sTypeDefName>(<p>_nCount, <p>_arr)
 >>
 
@@ -457,7 +459,7 @@ while(<sBlockIndex> \< <nBlocks64K>)
 {
     codec.encodeConstrainedWholeNumber(0xC4, 0, 0xFF)
     <if(bIsBitStringType)>
-    codec.appendBitsMSBFirst(&<p><sAcc>arr[<sCurOffset>/8], <sCurBlockSize>.asInstanceOf[Int])
+    codec.appendBitsMSBFirst(&<p><sAcc>arr[<sCurOffset>/8], <sCurBlockSize>.toInt)
 
     <else>
     val <sBLI>=(int)<sCurOffset>
@@ -532,10 +534,10 @@ while (<sRemainingItemsVar> >= 0x4000 && <sBlockIndex> \< <if(bIsAsciiString)>(a
         codec.encodeConstrainedWholeNumber(0xC1, 0, 0xFF)
 
     <if(bIsBitStringType)>
-    codec.appendBitsMSBFirst(<p><sAcc>arr[<sCurOffset>/8], <sCurBlockSize>.asInstanceOf[Int])
+    codec.appendBitsMSBFirst(<p><sAcc>arr[<sCurOffset>/8], <sCurBlockSize>.toInt)
     <else>
-    <sBLI>=<sCurOffset>.asInstanceOf[Int]
-    while(<sBLI> \< (<sCurBlockSize> + <sCurOffset>).asInstanceOf[Int])
+    <sBLI>=<sCurOffset>.toInt
+    while(<sBLI> \< (<sCurBlockSize> + <sCurOffset>).toInt)
     {
         <sInternalItem>
         <sBLI> += 1
@@ -555,8 +557,8 @@ else
 <if(bIsBitStringType)>
 codec.appendBitsMSBFirst(<p><sAcc>arr[<sCurOffset>/8], <sRemainingItemsVar>.toInt)
 <else>
-<sBLI> = <sCurOffset>.asInstanceOf[Int]
-while(<sBLI> \< (<sCurOffset> + <sRemainingItemsVar>).asInstanceOf[Int])
+<sBLI> = <sCurOffset>.toInt
+while(<sBLI> \< (<sCurOffset> + <sRemainingItemsVar>).toInt)
 {
     <sInternalItem>
     <sBLI> += 1
@@ -573,15 +575,15 @@ FixedSize_Fragmentation_sqf_64K_decode(p, sAcc,sCurOffset, sCurBlockSize, sBlock
 for(<sBlockIndex> = 0; ret && <sBlockIndex> \< <nBlocks64K>; <sBlockIndex>++) {
     ret = codec.decodeConstrainedWholeNumber(<sRemainingItemsVar>, 0, 0xFF)
     val check = (ret == 0) && (<sRemainingItemsVar> == 0xC4);
-    ret = if (check) then Right(0) else Left(<sErrCodeName>)
+    ret = if (check) then RightMut(0) else LeftMut(<sErrCodeName>)
     if ret == 0 then
         <if(bIsBitStringType)>
-        ret = codec.readBits(&<p><sAcc>arr[<sCurOffset>/8], <sCurBlockSize>).asInstanceOf[Int]
+        ret = codec.readBits(&<p><sAcc>arr[<sCurOffset>/8], <sCurBlockSize>).toInt
         ret = if (ret == 0) 0 else <sErrCodeName>;
 
         <else>
-        <sBLI> = <sCurOffset>.asInstanceOf[Int]
-        while(<sBLI> \< (<sCurBlockSize> + <sCurOffset>).asInstanceOf[Int])
+        <sBLI> = <sCurOffset>.toInt
+        while(<sBLI> \< (<sCurBlockSize> + <sCurOffset>).toInt)
         {
             <sInternalItem>
             <sBLI> += 1
@@ -599,15 +601,15 @@ FixedSize_Fragmentation_sqf_small_block_decode(p, sAcc,sInternalItem, nBlockSize
 <sCurBlockSize> = <nBlockSize>;
 ret = codec.decodeConstrainedWholeNumber(<sRemainingItemsVar>, 0, 0xFF)
 val check = (ret == 0) && (<sRemainingItemsVar> == <sBlockId>);
-ret = if (check) then Right(0) else Left(<sErrCodeName>)
+ret = if (check) then RightMut(0) else LeftMut(<sErrCodeName>)
 if ret.isRight then
 <if(bIsBitStringType)>
-    ret = codec.readBits(&<p><sAcc>arr[<sCurOffset>/8], <sCurBlockSize>.asInstanceOf[Int]); // TODO call wrong
-    ret = if (ret == 0) then Right(0) else Left(<sErrCodeName>)
+    ret = codec.readBits(&<p><sAcc>arr[<sCurOffset>/8], <sCurBlockSize>.toInt); // TODO call wrong
+    ret = if (ret == 0) then RightMut(0) else LeftMut(<sErrCodeName>)
 
 <else>
-    <sBLI> = <sCurOffset>.asInstanceOf[Int]
-    while(<sBLI> \< (<sCurBlockSize> + <sCurOffset>).asInstanceOf[Int])
+    <sBLI> = <sCurOffset>.toInt
+    while(<sBLI> \< (<sCurBlockSize> + <sCurOffset>).toInt)
     {
         <sInternalItem>
         <sBLI> += 1
@@ -629,12 +631,12 @@ ret = ret && ((0x8000 & <sRemainingItemsVar>) > 0) && ( (0x7FFF & <sRemainingIte
 <endif>
 if ret == 0 then
     <if(bIsBitStringType)>
-    ret = codec.readBits(&<p><sAcc>arr[<sCurOffset>/8], <nRemainingItemsVar>.asInstanceOf[Int]); // TODO call wrong
-    ret = if (ret.isRight) then Right(0) else Left(<sErrCodeName>)
+    ret = codec.readBits(&<p><sAcc>arr[<sCurOffset>/8], <nRemainingItemsVar>.toInt); // TODO call wrong
+    ret = if (ret.isRight) then RightMut(0) else LeftMut(<sErrCodeName>)
 
     <else>
-    <sBLI> = <sCurOffset>.asInstanceOf[Int]
-    while(<sBLI> \< (<sCurOffset> + <nRemainingItemsVar>).asInstanceOf[Int])
+    <sBLI> = <sCurOffset>.toInt
+    while(<sBLI> \< (<sCurOffset> + <nRemainingItemsVar>).toInt)
     {
         <sInternalItem>
         <sBLI> += 1
@@ -671,10 +673,10 @@ while((<sRemainingItemsVar> & 0xC0) == 0xC0) {
     else if <sRemainingItemsVar> == 0xC1 then
         <sCurBlockSize> = 0x4000
     else
-        return Left(<sErrCodeName>)
+        return LeftMut(<sErrCodeName>)
 
     if <sCurOffset> + <sCurBlockSize> > <nSizeMax> then
-        return Left(<sErrCodeName>)
+        return LeftMut(<sErrCodeName>)
 
     <if(bIsBitStringType)>
     if !codec.readBits(&<p><sAcc>arr[<sCurOffset>/8], <sCurBlockSize>) then
@@ -704,10 +706,10 @@ if ((<sRemainingItemsVar> & 0x80) > 0) then
     <sRemainingItemsVar> &= 0x7FFF;
 
 if (<sCurOffset> + <sRemainingItemsVar> \<= <nSizeMax>) then
-    return Left(<sErrCodeName>)
+    return LeftMut(<sErrCodeName>)
 
 <if(bIsBitStringType)>
-if(!codec.readBits(&<p><sAcc>arr[<sCurOffset>/8], <sRemainingItemsVar>.asInstanceOf[Int])) // TODO remove address of operator
+if(!codec.readBits(&<p><sAcc>arr[<sCurOffset>/8], <sRemainingItemsVar>.toInt)) // TODO remove address of operator
     return <sErrCodeName>
 
 <else>
@@ -730,7 +732,7 @@ if ((<sLengthTmp> >= <nSizeMin>) && (<sLengthTmp> \<= <nSizeMax>)) then
     <p>[<sLengthTmp>] = 0x0
     <endif>
 else
-    return Left(<sErrCodeName>)
+    return LeftMut(<sErrCodeName>)
 
 <else>
 
@@ -831,7 +833,7 @@ if (ret) then {
 >>
 
 update_array_item(p, sI, sExpr) ::= <<
-<p>.arr(<sI>) = <sExpr>
+<p>.arr(<sI>) = freshCopyHack(<sExpr>) // TODO: FIXME: To get around aliasing restriction, ideally we should do things differently
 >>
 
 InternalItem_bit_str_encode(p, i, sErrCode) ::=<<

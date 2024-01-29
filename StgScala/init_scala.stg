@@ -6,27 +6,28 @@ methodNameSuffix() ::= "_Initialize"
 
 initTypeAssignment_def(sVarName, sStar, sFuncName, sTypeDefName) ::= << >>
 
-initTypeAssignment(sVarName, sPtrPrefix, sPtrSuffix, sFuncName, sTypeDefName, sContent, arrsLocalVariables, sDefaultInitValue) ::= <<
+initTypeAssignment(sVarName, sPtrPrefix, sPtrSuffix, sFuncName, sTypeDefName, sContent, arrsLocalVariables, sDefaultInitValue, arrsAnnots) ::= <<
+<arrsAnnots:{ann|@<ann>}; separator=" ">
 def <sFuncName>(): <sTypeDefName> = <sDefaultInitValue>
 >>
 
 initInteger(sVal, nValue, bIsOptional) ::= <<
 <if(bIsOptional)>
-<sVal> = Some(<nValue>)
+<sVal> = SomeMut(<nValue>)
 <else>
 <sVal> = <nValue>
 <endif>
 >>
 initReal(sVal, dValue, bIsOptional) ::= <<
 <if(bIsOptional)>
-<sVal> = Some(<dValue>)
+<sVal> = SomeMut(<dValue>)
 <else>
 <sVal> = <dValue>
 <endif>
 >>
 initBoolean(sVal, bValue, bIsOptional) ::= <<
 <if(bIsOptional)>
-<sVal> = Some(<if(bValue)>true<else>false<endif>)
+<sVal> = SomeMut(<if(bValue)>true<else>false<endif>)
 <else>
 <sVal> = <if(bValue)>true<else>false<endif>
 <endif>
@@ -90,21 +91,21 @@ assignString(p, sValue) ::= "<p> = <sValue>"
 
 initIA5String(sPtr, sValue, bIsOptional) ::= <<
 <if(bIsOptional)>
-<sPtr> = Some(<sValue>)
+<sPtr> = SomeMut(<sValue>)
 <else>
 <sPtr> = <sValue>
 <endif>
 >>
 initEnumerated(sVal, sValue, sEnum, bIsOptional) ::= <<
 <if(bIsOptional)>
-<sVal> = Some(<sEnum>.<sValue>)
+<sVal> = SomeMut(<sEnum>.<sValue>)
 <else>
 <sVal> = <sEnum>.<sValue>
 <endif>
 >>
 initNull(sVal, bIsOptional) ::= <<
 <if(bIsOptional)>
-<sVal> = Some(0)
+<sVal> = SomeMut(0)
 <else>
 <sVal> = 0
 <endif>
@@ -227,14 +228,14 @@ initSequence_emptySeq(p) ::= ""
 
 initTestCase_sequence_child(p, sAcc, sChName, sChildContent, bOptional, sInitExpr) ::= <<
 <if(bOptional)>
-<p><sAcc><sChName> = Some(<sInitExpr>)
+<p><sAcc><sChName> = SomeMut(<sInitExpr>)
 <endif>
 
 <sChildContent>
 >>
 
 initTestCase_sequence_child_opt(p, sAcc, sChName) ::= <<
-<p><sAcc><sChName> = None()
+<p><sAcc><sChName> = NoneMut()
 >>
 
 initChoice(p, sAcc, sChildContent, sChildID, sChildName, sChildTypeName, sChoiceTypeName, sChildTempVarName, sChildTempDefaultInit, bComponentTempInit) ::= <<
@@ -247,7 +248,7 @@ initTestCase_choice_child(p, sAcc, sChildContent, sChildID, sChildName, sChildTy
 var <sChildTempVarName>: <sChildTypeName> = <sChildTempDefaultInit>
 <sChildContent>
 <if(bIsOptional)>
-<p> = Some(<sChildID>(<sChildTempVarName>))
+<p> = SomeMut(<sChildID>(<sChildTempVarName>))
 <else>
 <p> = <sChildID>(<sChildTempVarName>)
 <endif>
@@ -323,9 +324,9 @@ init_Asn1Date_LocalTimeWithTimeZoneExpr() ::= <<
 initSequenceChildExpr(sChildName, sChildExpr, bIsOptional, bIsAbsent) ::= <<
 <if(bIsOptional)>
 <if(bIsAbsent)>
-<sChildName> = None()
+<sChildName> = NoneMut()
 <else>
-<sChildName> = Some(<sChildExpr>)
+<sChildName> = SomeMut(<sChildExpr>)
 <endif>
 <else>
 <sChildName> = <sChildExpr>

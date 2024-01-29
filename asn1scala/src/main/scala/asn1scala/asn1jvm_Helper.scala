@@ -104,6 +104,25 @@ extension (l: Long) {
    }
 }
 
+extension [T](arr: Array[T]) {
+   def indexOf(elem: T): Int = {
+      def rec(i: Int): Int = {
+         require(0 <= i && i <= arr.length)
+         decreases(arr.length - i)
+         if (i == arr.length) -1
+         else if (arr(i) == elem) i
+         else rec(i + 1)
+      }
+      rec(0)
+   }
+
+   def sameElements(other: Array[T]): Boolean = arraySameElements(arr, other)
+}
+
+// TODO: FIXME: To get around aliasing restriction, ideally we should do things differently
+@extern @pure
+def freshCopyHack[@mutable T](t: T): T = t.ensuring(_ == t)
+
 /**
  * Get number of bits needed to represent the value v
  *
@@ -309,6 +328,21 @@ def RemoveLeadingFFBytesIfNegative(v: Int): Int = {
       v
 }
 
-sealed trait OptionMut[@mutable A]
+sealed trait OptionMut[@mutable A] {
+   def isDefined: Boolean = this match {
+      case SomeMut(_) => true
+      case NoneMut() => false
+   }
+   def get: A = {
+      require(isDefined)
+      (this: @unchecked) match {
+         case SomeMut(a) => a
+      }
+   }
+}
 case class NoneMut[@mutable A]() extends OptionMut[A]
 case class SomeMut[@mutable A](v: A) extends OptionMut[A]
+
+sealed trait EitherMut[@mutable A, @mutable B]
+case class LeftMut[@mutable A, @mutable B](a: A) extends EitherMut[A, B]
+case class RightMut[@mutable A, @mutable B](b: B) extends EitherMut[A, B]

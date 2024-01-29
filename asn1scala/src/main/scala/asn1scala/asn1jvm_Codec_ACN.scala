@@ -3,6 +3,7 @@ package asn1scala
 import stainless.lang.StaticChecks.assert
 import stainless.lang.{None => None, ghost => ghostExpr, Option => Option, _}
 import stainless.math._
+import stainless.annotation._
 
 val FAILED_READ_ERR_CODE = 5400
 
@@ -96,7 +97,7 @@ case class ACN(bitStream: BitStream) extends Codec {
 
       var i: Int = 0
       (while i < sizeInBytes do
-         decreases(sizeInBytes < i)
+         decreases(sizeInBytes - i)
          ret <<= 8
          ret |= readByte().unsignedToInt
          i += 1
@@ -346,7 +347,7 @@ case class ACN(bitStream: BitStream) extends Codec {
       assert(100 >= encodedSizeInNibbles)
 
       while intVar > 0 do
-         tmp(totalNibbles) = (intVar % 10).asInstanceOf[UByte]
+         tmp(totalNibbles) = (intVar % 10).cutToByte
          totalNibbles += 1
          intVar /= 10
 
@@ -423,7 +424,7 @@ case class ACN(bitStream: BitStream) extends Codec {
       assert(100 >= encodedSizeInBytes)
 
       while intVar > 0 do
-         tmp(totalNibbles) = (intVar % 10).asInstanceOf[UByte]
+         tmp(totalNibbles) = (intVar % 10).cutToByte
          totalNibbles += 1
          intVar /= 10
 
@@ -648,6 +649,7 @@ case class ACN(bitStream: BitStream) extends Codec {
    }
 
    /* Real encoding functions */
+   @extern
    def enc_Real_IEEE754_32_big_endian(realValue: Float): Unit = {
       val b: Array[Byte] = java.nio.ByteBuffer.allocate(NO_OF_BYTES_IN_JVM_FLOAT).putFloat(realValue).array
 
@@ -657,6 +659,7 @@ case class ACN(bitStream: BitStream) extends Codec {
          i += 1
    }
 
+   @extern
    def enc_Real_IEEE754_32_little_endian(realValue: Float): Unit = {
       val b: Array[Byte] = java.nio.ByteBuffer.allocate(NO_OF_BYTES_IN_JVM_FLOAT).putFloat(realValue).array
 
@@ -666,6 +669,7 @@ case class ACN(bitStream: BitStream) extends Codec {
          i -= 1
    }
 
+   @extern
    def enc_Real_IEEE754_64_big_endian(realValue: Double): Unit = {
       val b: Array[Byte] = java.nio.ByteBuffer.allocate(NO_OF_BYTES_IN_JVM_DOUBLE).putDouble(realValue).array
 
@@ -675,6 +679,7 @@ case class ACN(bitStream: BitStream) extends Codec {
          i += 1
    }
 
+   @extern
    def enc_Real_IEEE754_64_little_endian(realValue: Double): Unit = {
       val b: Array[Byte] = java.nio.ByteBuffer.allocate(NO_OF_BYTES_IN_JVM_DOUBLE).putDouble(realValue).array
 
@@ -685,6 +690,7 @@ case class ACN(bitStream: BitStream) extends Codec {
    }
 
    /* Real decoding functions */
+   @extern
    def dec_Real_IEEE754_32_big_endian(): Float = {
       var ret: Int = 0
       var i: Int = 1
@@ -700,6 +706,7 @@ case class ACN(bitStream: BitStream) extends Codec {
       java.lang.Float.intBitsToFloat(ret)
    }
 
+   @extern
    def dec_Real_IEEE754_32_little_endian(): Float = {
       var ret: Int = 0
       var i: Int = 0
@@ -715,6 +722,7 @@ case class ACN(bitStream: BitStream) extends Codec {
       java.lang.Float.intBitsToFloat(ret)
    }
 
+   @extern
    def dec_Real_IEEE754_64_big_endian(): Double = {
       var ret: Long = 0
       var i: Int = 1
@@ -730,6 +738,7 @@ case class ACN(bitStream: BitStream) extends Codec {
       java.lang.Double.longBitsToDouble(ret)
    }
 
+   @extern
    def dec_Real_IEEE754_64_little_endian(): Double = {
       var ret: Long = 0
       var i: Int = 0

@@ -238,9 +238,9 @@ call_base_type_func_exp(p, sFuncName) ::= "<sFuncName>(<p>)"
 
 Sequence_OptionalChild(p, sAcc, sChName, sInnerStatement) ::= <<
 <p><sAcc><sChName> match
-    case Some(<sChName>) =>
+    case SomeMut(<sChName>) =>
         <sInnerStatement>
-    case None() =>
+    case NoneMut() =>
 >>
 
 
