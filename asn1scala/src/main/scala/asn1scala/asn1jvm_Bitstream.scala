@@ -109,8 +109,10 @@ case class BitStream(
 
    @pure
    def bitIndex(): Long = {
-      currentByte.toLong * 8 + currentBit.toLong
-   }.ensuring(res => 0 <= res && res <= 8 * buf.length.toLong &&& res == buf.length.toLong * 8 - remainingBits)
+      currentByte.toLong * NO_OF_BITS_IN_BYTE + currentBit
+   }.ensuring(res =>
+         res == buf.length.toLong * NO_OF_BITS_IN_BYTE - remainingBits
+   )
 
    def resetBitIndex(): Unit = {
       currentBit = 0
@@ -119,7 +121,7 @@ case class BitStream(
 
    private def increaseBitIndex(): Unit = {
       require(remainingBits > 0)
-      if currentBit < 7 then
+      if currentBit < NO_OF_BITS_IN_BYTE - 1 then
          currentBit += 1
       else
          currentBit = 0
