@@ -269,9 +269,21 @@ let rec CreateValue integerSizeInBytes (astRoot:list<ITree>) (tree:ITree ) : Res
     }
 
 
-
-
-
+let CheckValueRange (v1: Asn1Value) (v2: Asn1Value) (integerSizeInBytes: BigInteger): Unit =
+    match (v1.Kind, v2.Kind) with
+    | IntegerValue i1, IntegerValue i2 -> 
+        let min = i1.Value
+        let max = i2.Value
+        
+        let maxSigned = BigInteger Int64.MaxValue
+        let minSigned = BigInteger Int64.MinValue
+        let zero = BigInteger 0
+        
+        match (min < zero && max > maxSigned) with
+        | true -> raise(SemanticError(v2.Location, (sprintf "Both values must fit in an %A-byte signed int. 
+            Supported values are within range %A to %A" integerSizeInBytes minSigned maxSigned)))
+        | _ -> ()
+    | _ -> ()
 
 let rec CreateConstraint (integerSizeInBytes: BigInteger)  (astRoot:list<ITree>) (fileTokens:array<IToken>) (tree:ITree) : Result<Asn1Constraint option, Asn1ParseError>=
     result {
@@ -404,9 +416,11 @@ let rec CreateConstraint (integerSizeInBytes: BigInteger)  (astRoot:list<ITree>)
                     let! v = CreateValue  integerSizeInBytes  astRoot a
                     return (Some(RangeConstraint_val_MAX(asn1Str, v, minValIsIncluded )))
                 | _, _  ->
-                    let! v1 = CreateValue  integerSizeInBytes astRoot a
-                    let! v2 = CreateValue  integerSizeInBytes astRoot  b
-                    return (Some(RangeConstraint(asn1Str, v1 , v2, minValIsIncluded, maxValIsIncluded  )))
+                    let! v1 = CreateValue integerSizeInBytes astRoot a
+                    let! v2 = CreateValue integerSizeInBytes astRoot b
+                    CheckValueRange v1 v2 integerSizeInBytes
+                    return (Some(RangeConstraint(asn1Str, v1 , v2, minValIsIncluded, maxValIsIncluded)))
+                    
         | _ ->
             return! Error (Bug_Error("Bug in CreateConstraint"))
 
