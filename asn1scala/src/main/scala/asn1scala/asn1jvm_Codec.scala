@@ -1,12 +1,12 @@
 package asn1scala
 
 import stainless.*
-import stainless.lang.{None => None, ghost => ghostExpr, Option => Option, _}
+import stainless.lang.{None, Option, ghost as ghostExpr, _}
 import stainless.collection.*
 import stainless.annotation.*
 import stainless.proof.*
 import stainless.math.*
-import StaticChecks.{require => staticRequire, _}
+import StaticChecks.{require as staticRequire, _}
 
 val masks2: Array[UInt] = Array(
    0x00000000, //         0 / 0000 0000 0000 0000 0000 0000 0000 0000 / 0x0000 0000
@@ -79,12 +79,71 @@ trait Codec {
 
    final def encodeUnsignedInteger(v: ULong): Unit = {
       require(bitStream.validate_offset_bits(GetBitCountUnsigned(v)))
+
       appendNLeastSignificantBits(v, GetBitCountUnsigned(v))
    }
 
    final def decodeUnsignedInteger(nBits: Int): ULong = {
       require(nBits >= 0 && nBits <= NO_OF_BITS_IN_LONG)
+      require(bitStream.validate_offset_bits(nBits))
+
       readBitsNBitFirstToLSB(nBits)
+   }
+
+   /**
+    *
+    * @param v   number that gets encoded, needs to be within [min,max] range
+    * @param min lower positive boundary of range
+    * @param max upper positive boundary of range
+    *
+    * Remarks:
+    * min and max get interpreted as unsigned numbers.
+    *
+    */
+   final def encodeConstrainedPosWholeNumber(v: Long, min: Long, max: Long): Unit = {
+      require(min.lteUnsigned(max))
+      require(min.lteUnsigned(v))
+      require(v.lteUnsigned(max))
+
+      val range: ULong = stainless.math.wrapping(max - min)
+      if range == 0 then
+         return
+
+      // get number of bits that get written
+      val nRangeBits: Int = GetBitCountUnsigned(range)
+
+      // get value that gets written
+      val encVal: Long = stainless.math.wrapping(v - min)
+
+      @ghost val nEncValBits = GetBitCountUnsigned(encVal)
+      assert(nRangeBits >= nEncValBits)
+      assert(bitStream.validate_offset_bits(nRangeBits))
+
+      appendNLeastSignificantBits(encVal, nRangeBits)
+   }
+
+   /**
+    *
+    * @param min smallest possible number in unsigned range
+    * @param max highes possible number in unsigned range
+    * @return number in range [min,max] that gets extracted from the bitstream
+    *
+    */
+   final def decodeConstrainedPosWholeNumber(min: Long, max: Long): Long = {
+      require(min.lteUnsigned(max))
+
+      val range: ULong = max - min
+
+      // only one possible number
+      if range == 0 then
+         return min
+
+      val nRangeBits: Int = GetBitCountUnsigned(range)
+      val decVal = decodeUnsignedInteger(nRangeBits)
+
+      assert(min + decVal <= max)
+
+      min + decVal
    }
 
    /**
@@ -113,6 +172,7 @@ trait Codec {
 
       @ghost val nEncValBits = GetBitCountUnsigned(encVal)
       assert(nRangeBits >= nEncValBits)
+      assert(bitStream.validate_offset_bits(nRangeBits))
 
       appendNLeastSignificantBits(encVal, nRangeBits)
    }
@@ -127,6 +187,8 @@ trait Codec {
          return min
 
       val nRangeBits = GetBitCountUnsigned(range)
+
+      assert(bitStream.validate_offset_bits(nRangeBits))
       val decVal = readBitsNBitFirstToLSB(nRangeBits)
 
       assert(min + decVal <= max) // TODO sanity check needed?
@@ -136,44 +198,50 @@ trait Codec {
 
    final def decodeConstrainedWholeNumberByte(min: Byte, max: Byte): Byte = {
       require(min <= max)
-      decodeConstrainedWholeNumber(min, max).cutToByte
+      val b = decodeConstrainedWholeNumber(min, max).cutToByte
 
-      // TODO maybe add PostCondition: is val in given (signed/unsigned??) range?
+      assert(b >= min &&& b <= max)
+
+      b
    }
 
    final def decodeConstrainedWholeNumberShort(min: Short, max: Short): Short = {
       require(min <= max)
-      decodeConstrainedWholeNumber(min, max).cutToShort
+      val s = decodeConstrainedWholeNumber(min, max).cutToShort
 
-      // TODO maybe add PostCondition: is val in given (signed/unsigned??) range?
+      assert(s >= min &&& s <= max)
+
+      s
    }
 
    final def decodeConstrainedWholeNumberInt(min: Int, max: Int): Int = {
       require(min <= max)
-      decodeConstrainedWholeNumber(min, max).cutToInt
-      // TODO maybe add PostCondition: is val in given (signed/unsigned??) range?
+      val i = decodeConstrainedWholeNumber(min, max).cutToInt
+
+      assert(i >= min &&& i <= max)
+
+      i
    }
 
+   final def encodeSemiConstrainedWholeNumber(v: Long, min: Long): Unit = {
+      require(min <= v)
+      staticRequire(bitStream.validate_offset_bytes(
+         GetLengthForEncodingUnsigned(stainless.math.wrapping(v - min)) + 1)
+      )
 
-   final def decodeConstrainedPosWholeNumber(min: Long, max: Long): Long = {
-      require(max >= 0 && max <= Long.MaxValue)
-      require(min >= 0 && min <= max)
+      val encV = stainless.math.wrapping(v - min)
+      val nBytes = GetLengthForEncodingUnsigned(encV).toByte
 
-      val range: Long = max - min
+      /* need space for length and value */
+      assert(bitStream.validate_offset_bytes(nBytes + 1))
 
-      // only one possible number
-      if range == 0 then
-         return min
-
-      val nRangeBits: Int = GetBitCountUnsigned(range)
-      val decVal = decodeUnsignedInteger(nRangeBits) // TODO simpler call
-
-      assert(min + decVal <= max) // TODO sanity check needed?
-
-      min + decVal
+      /* encode length */
+      appendByte(nBytes)
+      /* encode number */
+      appendNLeastSignificantBits(encV, nBytes * NO_OF_BITS_IN_BYTE)
    }
 
-   final def encodeSemiConstraintWholeNumber(v: Long, min: Long): Unit = {
+   final def encodeSemiConstrainedPosWholeNumber(v: ULong, min: ULong): Unit = {
       require(min <= v)
 
       val nBytes: Int = GetLengthForEncodingUnsigned(v - min)
@@ -187,21 +255,7 @@ trait Codec {
       encodeUnsignedInteger(v - min)
    }
 
-   final def encodeSemiConstraintPosWholeNumber(v: ULong, min: ULong): Unit = {
-      require(min <= v)
-
-      val nBytes: Int = GetLengthForEncodingUnsigned(v - min)
-
-      /* encode length */
-      encodeConstrainedWholeNumber(nBytes.toLong, 0, 255)
-      /*8 bits, first bit is always 0*/
-      /* put required zeros*/
-      appendNZeroBits(nBytes * 8 - GetBitCountUnsigned(v - min))
-      /*Encode number */
-      encodeUnsignedInteger(v - min)
-   }
-
-   final def decodeSemiConstraintWholeNumber(min: Long): Long = {
+   final def decodeSemiConstrainedWholeNumber(min: Long): Long = {
       // TODO add precondition
 
       // get length in bytes

@@ -113,7 +113,7 @@ val <p> = codec.decodeConstrainedWholeNumber<sSsuffix>(<nMin>, <nMax>) // uper:1
 
 /*case: Positive fully constraint A:: = INTEGER (5..20) */
 IntFullyConstraintPos_encode(p, nMin, nMax, nBits, sSsuffix, sErrCode) ::= <<
-codec.encodeConstrainedWholeNumber(<p>, <nMin>, <nMax>)
+codec.encodeConstrainedPosWholeNumber(<p>, <nMin>, <nMax>)
 >>
 
 IntFullyConstraintPos_decode(p, nMin, nMax, nBits, sSsuffix, sErrCode) ::= <<

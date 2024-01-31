@@ -102,6 +102,27 @@ extension (l: Long) {
    def toByteArray: Array[Byte] = {
       scala.math.BigInt(l).toByteArray
    }
+
+   // less than & equal for unsigned numbers
+   def lteUnsigned(r: ULong): Boolean = {
+
+      if r < 0 && l >= 0 then // r is negative (MSB set), l must be smaller
+         return true
+
+      if l < 0 && r >= 0 then // l is negative (MSB set), r must be smaller
+         return false
+
+      // both numbers are either positive or negative
+      // pos case: l must be smaller
+      // neg case: MIN_VALUE (only MSB set) is smaller than -1 (all bits set)
+      l <= r
+   }
+//   }.ensuring(x => x == lteUnsignedJVM(l,r)) // unsupported
+}
+
+@extern
+def lteUnsignedJVM(l: ULong, r: ULong): Boolean = {
+   java.lang.Long.compareUnsigned(l,r) <= 0
 }
 
 /**
