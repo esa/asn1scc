@@ -551,14 +551,14 @@ case class BitStream(
    }.ensuring(_ => buf == old(this).buf && remainingBits == old(this).remainingBits - nBits)
 
    /**
-    * Counter Operation to appendBitsNBitFirstToLSB
+    * Counter Operation to appendNLeastSignificantBits
     * @param nBits number of bits to read [0-64]
     * @return value that holds nBits from bitstream
     *
     * Remarks:
     * The last bit from the bitstream will get written into the LSB
     */
-   def readBitsNBitFirstToLSB(nBits: Int): Long = {
+   def readNLeastSignificantBits(nBits: Int): Long = {
       require(nBits >= 0 && nBits <= 64)
       require(validate_offset_bits(nBits))
 

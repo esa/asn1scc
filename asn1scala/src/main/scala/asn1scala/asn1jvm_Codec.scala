@@ -25,9 +25,11 @@ val CHAR_0000: ASCIIChar = 0
 /***********************************************************************************************/
 /**    Byte Stream Functions                                                                  **/
 /***********************************************************************************************/
-def ByteStream_Init(count: Int): ByteStream = {
-   ByteStream(Array.fill(count)(0), 0, false)
-}
+
+// TODO is this needed? should always be called through ACN / PER / UPER
+//def ByteStream_Init(count: Int): ByteStream = {
+//   ByteStream(Array.fill(count)(0), 0, false)
+//}
 
 //@extern
 //def runtimeAssert(condition: Boolean, s: String =""): Unit = assert(condition, s)
@@ -52,15 +54,11 @@ def BitString_equal(arr1: Array[UByte], arr2: Array[UByte]): Boolean = {
    arraySameElements(arr1, arr2)
 }
 
-// TODO remove
-//def BitStream_Init(count: Int): BitStream = {
-//   BitStream(Array.fill(count)(0))
-//}
-
 /**
  * Parent class for the PER Codec that is used by ACN and UPER
  *
  * @param count represents the number of bytes in the internal buffer
+ *
  */
 @mutable
 trait Codec {
@@ -69,38 +67,54 @@ trait Codec {
    /** ******************************************************************************************** */
    /** ******************************************************************************************** */
    /** ******************************************************************************************** */
-   /** ******************************************************************************************** */
-   /** Integer Functions                                                                     * */
-   /** ******************************************************************************************** */
+   /** Integer Functions                                                                          * */
    /** ******************************************************************************************** */
    /** ******************************************************************************************** */
-
    /** ******************************************************************************************** */
 
+   /**
+    * Encode number to the bitstream. The number of bits written is
+    * specified by the position of the Most Significant set bit in
+    * value v. This would be 64 if the value is -1.
+    *
+    * @param v value that gets encoded
+    *
+    */
    final def encodeUnsignedInteger(v: ULong): Unit = {
       require(bitStream.validate_offset_bits(GetBitCountUnsigned(v)))
 
       appendNLeastSignificantBits(v, GetBitCountUnsigned(v))
    }
 
+   /**
+    * Decode number from the bitstream. Reversal function of encodeUnsignedInteger.
+    *
+    * @param nBits Number of bits used for decoding. Valid range is from 0 to 64.
+    * @return Unsigned integer with nBits decoded from bitstream.
+    *
+    */
    final def decodeUnsignedInteger(nBits: Int): ULong = {
       require(nBits >= 0 && nBits <= NO_OF_BITS_IN_LONG)
       require(bitStream.validate_offset_bits(nBits))
 
-      readBitsNBitFirstToLSB(nBits)
+      readNLeastSignificantBits(nBits)
    }
 
    /**
+    * Encode number to the bitstream within the [min,max] range
+    * without a length. The number of bits written is specified by the
+    * bits needed to represent the whole range. That would be 64bits in the
+    * maximal case of min=0 to max=-1.
     *
     * @param v   number that gets encoded, needs to be within [min,max] range
-    * @param min lower positive boundary of range
-    * @param max upper positive boundary of range
+    * @param min lower unsigned boundary of range
+    * @param max upper unsigned boundary of range
     *
     * Remarks:
-    * min and max get interpreted as unsigned numbers.
+    * v, min and max get interpreted as unsigned numbers.
     *
     */
-   final def encodeConstrainedPosWholeNumber(v: Long, min: Long, max: Long): Unit = {
+   final def encodeConstrainedPosWholeNumber(v: ULong, min: ULong, max: ULong): Unit = {
       require(min.lteUnsigned(max))
       require(min.lteUnsigned(v))
       require(v.lteUnsigned(max))
@@ -123,17 +137,21 @@ trait Codec {
    }
 
    /**
+    * Decode number from the bitstream. Reversal function of encodeConstrainedPosWholeNumber.
     *
-    * @param min smallest possible number in unsigned range
-    * @param max highes possible number in unsigned range
+    * @param min lower unsigned boundary of range
+    * @param max hupper unsigned boundary of range
     * @return number in range [min,max] that gets extracted from the bitstream
     *
     * Remarks:
     * The returned value must be interpreted as an unsigned 64bit integer
     *
     */
-   final def decodeConstrainedPosWholeNumber(min: Long, max: Long): ULong = {
+   final def decodeConstrainedPosWholeNumber(min: ULong, max: ULong): ULong = {
       require(min.lteUnsigned(max))
+      staticRequire(
+         bitStream.validate_offset_bits(GetBitCountUnsigned(max - min))
+      )
 
       val range: ULong = max - min
 
@@ -142,6 +160,7 @@ trait Codec {
          return min
 
       val nRangeBits: Int = GetBitCountUnsigned(range)
+      assert(bitStream.validate_offset_bits(nRangeBits))
       val decVal = decodeUnsignedInteger(nRangeBits)
 
       assert(min + decVal <= max)
@@ -150,13 +169,14 @@ trait Codec {
    }
 
    /**
+    * Encode number to the bitstream within the [min,max] range
+    * without a length. The number of bits written is specified by the
+    * bits needed to represent the whole range. That would be 64bits in the
+    * maximal case of min=Long.Min_Value to max=Long.MaxValue.
     *
     * @param v number that gets encoded, needs to be within [min,max] range
     * @param min lower boundary of range
     * @param max upper boundary of range
-    *
-    * Remarks:
-    * range size is limited to Long.MaxValue - a higher range will fail
     *
     */
    final def encodeConstrainedWholeNumber(v: Long, min: Long, max: Long): Unit = {
@@ -180,25 +200,58 @@ trait Codec {
       appendNLeastSignificantBits(encVal, nRangeBits)
    }
 
+   /**
+    * Whole Number decoding and casts into all data types (meths below).
+    * This is the reversal function of encodeConstrainedWholeNumber.
+    * encodeConstrainedWholeNumber
+    *
+    * @param min lower boundary of range
+    * @param max upper boundary of range
+    * @return decoded value within the range [min,max]
+    *
+    * Remarks:
+    * If the decoded data does not fulfill the range condition
+    * this method will fail.
+    *
+   */
    final def decodeConstrainedWholeNumber(min: Long, max: Long): Long = {
       require(min <= max)
+      staticRequire(
+         bitStream.validate_offset_bits(
+            GetBitCountUnsigned(stainless.math.wrapping(max - min))
+         )
+      )
 
       val range: Long = stainless.math.wrapping(max - min)
 
-      // only one possible number
+      // only one possible value
       if range == 0 then
          return min
 
       val nRangeBits = GetBitCountUnsigned(range)
-
       assert(bitStream.validate_offset_bits(nRangeBits))
-      val decVal = readBitsNBitFirstToLSB(nRangeBits)
+      val decVal = readNLeastSignificantBits(nRangeBits)
 
       assert(min + decVal <= max)
 
       min + decVal
    }
+   final def decodeConstrainedWholeNumberInt(min: Int, max: Int): Int = {
+      require(min <= max)
+      val i = decodeConstrainedWholeNumber(min, max).cutToInt
 
+      assert(i >= min &&& i <= max)
+
+      i
+   }
+   final def decodeConstrainedWholeNumberShort(min: Short, max: Short): Short = {
+      require(min <= max)
+      val s = decodeConstrainedWholeNumber(min, max).cutToShort
+
+      assert(s >= min &&& s <= max)
+
+      s
+   }
    final def decodeConstrainedWholeNumberByte(min: Byte, max: Byte): Byte = {
       require(min <= max)
       val b = decodeConstrainedWholeNumber(min, max).cutToByte
@@ -208,42 +261,63 @@ trait Codec {
       b
    }
 
-   final def decodeConstrainedWholeNumberShort(min: Short, max: Short): Short = {
-      require(min <= max)
-      val s = decodeConstrainedWholeNumber(min, max).cutToShort
-
-      assert(s >= min &&& s <= max)
-
-      s
-   }
-
-   final def decodeConstrainedWholeNumberInt(min: Int, max: Int): Int = {
-      require(min <= max)
-      val i = decodeConstrainedWholeNumber(min, max).cutToInt
-
-      assert(i >= min &&& i <= max)
-
-      i
-   }
-
+   /**
+    * Encode number to the bitstream within the range [min, Long.Max_Value].
+    * This function writes full bytes to the bitstream. The length is written as
+    * an signed byte in front of the bytes written for the number v.
+    *
+    * @param v    number that gets encoded to the bitstream. Must be bigger than min.
+    * @param min  lower boundary of range
+    *
+    */
    final def encodeSemiConstrainedWholeNumber(v: Long, min: Long): Unit = {
       require(min <= v)
       staticRequire(bitStream.validate_offset_bytes(
          GetLengthForEncodingUnsigned(stainless.math.wrapping(v - min)) + 1)
       )
 
-      val encV = stainless.math.wrapping(v - min)
+      val encV: ULong = stainless.math.wrapping(v - min)
       val nBytes = GetLengthForEncodingUnsigned(encV).toByte
 
-      /* need space for length and value */
+      // need space for length and value
       assert(bitStream.validate_offset_bytes(nBytes + 1))
 
-      /* encode length */
+      // encode length
       appendByte(nBytes)
-      /* encode number */
+      // encode value
       appendNLeastSignificantBits(encV, nBytes * NO_OF_BITS_IN_BYTE)
    }
 
+   /**
+    * Decode number from bitstream that is in range [min, Long.MaxValue].
+    * This is the reversal function of encodeSemiConstrainedWholeNumber.
+    *
+    * @param min lower boundary of range
+    * @return value decoded from the bitstream.
+    *
+    */
+   final def decodeSemiConstrainedWholeNumber(min: Long): Long = {
+      require(bitStream.validate_offset_bytes(1))
+
+      // decode length
+      val nBytes = readByte()
+      // check bitstream precondition
+      assert(bitStream.validate_offset_bytes(nBytes))
+      // decode number
+      val v: ULong = readNLeastSignificantBits(nBytes * NO_OF_BITS_IN_BYTE)
+
+      v + min
+   }.ensuring(x => x >= min)
+
+   /**
+    * Encode number to the bitstream within the range [min, Long.Max_Value].
+    * This function writes full bytes to the bitstream. The length is written as
+    * an signed byte in front of the bytes written for the number v.
+    *
+    * @param v   number that gets encoded to the bitstream. Must be bigger than min.
+    * @param min lower unsigned boundary of range
+    *
+    */
    final def encodeSemiConstrainedPosWholeNumber(v: ULong, min: ULong): Unit = {
       require(min.lteUnsigned(v))
       staticRequire(bitStream.validate_offset_bytes(
@@ -262,46 +336,25 @@ trait Codec {
       appendNLeastSignificantBits(encV, nBytes * NO_OF_BITS_IN_BYTE)
    }
 
-   final def decodeSemiConstrainedWholeNumber(min: Long): Long = {
-      // TODO add precondition
+   /**
+    * Decode unsigned number from the bitstream
+    * within the range [min, Long.Max_Value].
+    *
+    * @param min lower unsigned boundary of range
+    *
+    */
+   final def decodeSemiConstrainedPosWholeNumber(min: ULong): ULong = {
+      require(bitStream.validate_offset_bytes(1))
 
-      // get length in bytes
-      val nBytes = decodeConstrainedWholeNumber(0, 255)
+      // decode length
+      val nBytes = readByte()
+      // check bitstream precondition
+      assert(bitStream.validate_offset_bytes(nBytes))
+      // decode number
+      val v: ULong = readNLeastSignificantBits(nBytes * NO_OF_BITS_IN_BYTE)
 
-      // get value
-      var v: Long = 0
-      var i: Long = 0
-      (while i < nBytes do
-         decreases(nBytes - i)
-
-         v = (v << 8) | (readByte() & 0xFF).toLong
-
-         i += 1
-      ).invariant(true) // TODO do invariant
-
-      min + v
-   }
-
-   final def decodeSemiConstraintPosWholeNumber(min: ULong): ULong = {
-      require(min >= 0)
-      // TODO precondition
-
-      // get length in bytes
-      val nBytes = decodeConstrainedWholeNumber(0, 255)
-
-      // get value
-      var v: ULong = 0
-      var i: Long = 0
-      (while i < nBytes do
-         decreases(nBytes - i)
-
-         v = (v << 8) | (readByte() & 0xFF).toLong
-
-         i += 1
-      ).invariant(true) // TODO do invariant
-
-      min + v
-   }
+      v + min
+   }.ensuring(x => min.lteUnsigned(x))
 
    /**
     * 8.3 Encoding of an integer value
@@ -312,26 +365,24 @@ trait Codec {
     * @param v The value that is always encoded in the smallest possible number of octets.
     */
    final def encodeUnconstrainedWholeNumber(v: Long): Unit = {
-      require(bitStream.validate_offset_bytes(1 + GetLengthForEncodingSigned(v)))
+      staticRequire(
+         bitStream.validate_offset_bytes(1 + GetLengthForEncodingSigned(v))
+      )
 
       // call func that fulfills 8.3.2
       val nBytes: Int = GetLengthForEncodingSigned(v)
 
-      // encode length - single octet
+      // need space for length and value
+      assert(bitStream.validate_offset_bytes(nBytes + 1))
+
+      // encode number - single octet
       appendByte(nBytes.toByte)
-
-      var i = nBytes
-      (while i > 0 do
-         decreases(i)
-
-         appendByte((v >>> ((i - 1) * NO_OF_BITS_IN_BYTE)).cutToByte)
-
-         i -= 1
-      ).invariant(i >= 0 && i <= nBytes)
+      // encode number
+      appendNLeastSignificantBits(v, nBytes * NO_OF_BITS_IN_BYTE)
    }
 
    /**
-    * 8.3 Encoding of an integer value reverse OP
+    * 8.3 Encoding of an integer value reverse operation
     *
     * To call this func at least 2 octets have to be available on the bitstream
     * The length n is the first octet, n octets with the value follow
@@ -340,24 +391,14 @@ trait Codec {
     * @return decoded number
     */
    final def decodeUnconstrainedWholeNumber(): Long = {
-      require(bitStream.validate_offset_bytes(2))
+      require(bitStream.validate_offset_bytes(1))
 
       // get length
       val nBytes = readByte()
-      // get sign
-      var v: Long = if peekBit() then -1 else 0
-
-      // get value
-      var i = 0
-      (while i < nBytes do
-         decreases(nBytes - i)
-
-          v = (v << 8) | (readByte() & 0xFF).toLong
-
-         i += 1
-      ).invariant(i >= 0 && i <= nBytes)
-
-      v
+      // check bitstream precondition
+      assert(bitStream.validate_offset_bytes(nBytes))
+      // read value
+      readNLeastSignificantBits(nBytes * NO_OF_BITS_IN_BYTE)
    }
 
    /**
@@ -491,7 +532,7 @@ trait Codec {
     * @return decoded double bits as 64 bit integer
     */
    private def decodeRealBitString(): Long = {
-      // TODO precondition?
+      require(bitStream.validate_offset_bytes(1))
 
       // get length
       val length = readByte()
@@ -504,6 +545,7 @@ trait Codec {
       assert(length > 0 && length <= DoubleMaxLengthOfSentBytes)
 
       // get value
+      assert(bitStream.validate_offset_bytes(1))
       val header = readByte()
       assert((header.unsignedToInt & 0x80) == 0x80, "only binary mode supported")
 
@@ -905,9 +947,9 @@ trait Codec {
       bitStream.appendNLeastSignificantBits(v, nBits)
    }
 
-   final def readBitsNBitFirstToLSB(nBits: Int): Long = {
+   final def readNLeastSignificantBits(nBits: Int): Long = {
       require(bitStream.validate_offset_bits(nBits))
-      bitStream.readBitsNBitFirstToLSB(nBits)
+      bitStream.readNLeastSignificantBits(nBits)
    }
 
    final def readBits(nBits: Long): Array[UByte] = {
