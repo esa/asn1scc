@@ -52,11 +52,11 @@ let createInteger (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAst.Asn1T
     match td.kind with
     | PrimitiveNewTypeDefinition              -> //TypeDefinition {TypeDefinition.typedefName=td.typeName; (*programUnitName = Some programUnit;*) typedefBody = (fun () -> typedefBody); baseType= None}
         let baseType = declare_Integer()
-        let typedefBody = defineSubType  td.typeName None baseType (getNewRange None baseType) None
+        let typedefBody = defineSubType  td.typeName None baseType (getNewRange None baseType) None []
         Some typedefBody
     | PrimitiveNewSubTypeDefinition subDef     ->
         let otherProgramUnit = if td.programUnit = subDef.programUnit then None else (Some subDef.programUnit)
-        let typedefBody = defineSubType td.typeName otherProgramUnit subDef.typeName (getNewRange otherProgramUnit subDef.typeName) None
+        let typedefBody = defineSubType td.typeName otherProgramUnit subDef.typeName (getNewRange otherProgramUnit subDef.typeName) None []
         Some typedefBody
     | PrimitiveReference2RTL                  -> None
     | PrimitiveReference2OtherType            -> None
@@ -70,11 +70,11 @@ let createBoolean (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAst.Asn1T
     match td.kind with
     | PrimitiveNewTypeDefinition              ->
         let baseType = getRtlTypeName()
-        let typedefBody = defineSubType td.typeName rtlModuleName baseType None None
+        let typedefBody = defineSubType td.typeName rtlModuleName baseType None None []
         Some typedefBody
     | PrimitiveNewSubTypeDefinition subDef     ->
         let otherProgramUnit = if td.programUnit = subDef.programUnit then None else (Some subDef.programUnit)
-        let typedefBody = defineSubType td.typeName otherProgramUnit subDef.typeName None None
+        let typedefBody = defineSubType td.typeName otherProgramUnit subDef.typeName None None []
         Some typedefBody
     | PrimitiveReference2RTL                  -> None
     | PrimitiveReference2OtherType            -> None
@@ -83,17 +83,21 @@ let createReal (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAst.Asn1Type
     //let getRtlTypeName  = lm.typeDef.Declare_RealNoRTL
     let getRtlTypeName  = getRealTypeByClass lm (o.getClass r.args)
     let defineSubType = lm.typeDef.Define_SubType
-    let rtlModuleName                   = if lm.typeDef.rtlModuleName().IsEmptyOrNull then None else (Some (lm.typeDef.rtlModuleName ()))
+    let rtlModuleName = if lm.typeDef.rtlModuleName().IsEmptyOrNull then None else (Some (lm.typeDef.rtlModuleName ()))
 
     let td = lm.lg.typeDef o.typeDef
+    let annots =
+        match ST.lang with
+        | Scala -> ["extern"]
+        | _ -> []
     match td.kind with
     | PrimitiveNewTypeDefinition              ->
         let baseType = getRtlTypeName()
-        let typedefBody = defineSubType td.typeName None baseType None None
+        let typedefBody = defineSubType td.typeName None baseType None None annots
         Some typedefBody
     | PrimitiveNewSubTypeDefinition subDef     ->
         let otherProgramUnit = if td.programUnit = subDef.programUnit then None else (Some subDef.programUnit)
-        let typedefBody = defineSubType td.typeName otherProgramUnit subDef.typeName None None
+        let typedefBody = defineSubType td.typeName otherProgramUnit subDef.typeName None None annots
         Some typedefBody
     | PrimitiveReference2RTL                  -> None
     | PrimitiveReference2OtherType            -> None
@@ -107,11 +111,11 @@ let createObjectIdentifier (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1Acn
     match td.kind with
     | PrimitiveNewTypeDefinition              ->
         let baseType = getRtlTypeName()
-        let typedefBody = defineSubType td.typeName rtlModuleName baseType None None
+        let typedefBody = defineSubType td.typeName rtlModuleName baseType None None []
         Some typedefBody
     | PrimitiveNewSubTypeDefinition subDef     ->
         let otherProgramUnit = if td.programUnit = subDef.programUnit then None else (Some subDef.programUnit)
-        let typedefBody = defineSubType td.typeName otherProgramUnit subDef.typeName None None
+        let typedefBody = defineSubType td.typeName otherProgramUnit subDef.typeName None None []
         Some typedefBody
     | PrimitiveReference2RTL                  -> None
     | PrimitiveReference2OtherType            -> None
@@ -137,11 +141,11 @@ let createTimeType (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAst.Asn1
     match td.kind with
     | PrimitiveNewTypeDefinition              ->
         let baseType = getRtlTypeName()
-        let typedefBody = defineSubType td.typeName rtlModuleName baseType None None
+        let typedefBody = defineSubType td.typeName rtlModuleName baseType None None []
         Some typedefBody
     | PrimitiveNewSubTypeDefinition subDef     ->
         let otherProgramUnit = if td.programUnit = subDef.programUnit then None else (Some subDef.programUnit)
-        let typedefBody = defineSubType td.typeName otherProgramUnit subDef.typeName None None
+        let typedefBody = defineSubType td.typeName otherProgramUnit subDef.typeName None None []
         Some typedefBody
     | PrimitiveReference2RTL                  -> None
     | PrimitiveReference2OtherType            -> None
@@ -156,11 +160,11 @@ let createNull (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros)  (t:Asn1AcnAst.Asn1Typ
     match td.kind with
     | PrimitiveNewTypeDefinition              ->
         let baseType = getRtlTypeName()
-        let typedefBody = defineSubType td.typeName rtlModuleName baseType None None
+        let typedefBody = defineSubType td.typeName rtlModuleName baseType None None []
         Some typedefBody
     | PrimitiveNewSubTypeDefinition subDef     ->
         let otherProgramUnit = if td.programUnit = subDef.programUnit then None else (Some subDef.programUnit)
-        let typedefBody = defineSubType td.typeName otherProgramUnit subDef.typeName None None
+        let typedefBody = defineSubType td.typeName otherProgramUnit subDef.typeName None None []
         Some typedefBody
     | PrimitiveReference2RTL                  -> None
     | PrimitiveReference2OtherType            -> None
@@ -345,7 +349,7 @@ let createChoice (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAst.Asn1Ty
 ////////////////////////////////
 
 
-let createInteger_u (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros)   (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Integer)  (us:State) =
+let createInteger_u (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Integer) (us:State) =
     let aaa = createInteger r lm t o us
     let programUnit = ToC t.id.ModName
     let td = lm.lg.typeDef o.typeDef

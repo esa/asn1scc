@@ -65,8 +65,8 @@ Codec_Decode(sModName, sFuncName, sTasName, sEnc, sAmber) ::= <<
 codec.resetBitIndex()
 // Decode value
 <sFuncName>(codec) match
-    case Left(_) => return Left(2)
-    case Right(pVal) => decodedPDU = pVal
+    case LeftMut(_) => return Left(2)
+    case RightMut(pVal) => decodedPDU = pVal
 >>
 
 Codec_Decode_XER(sModName, sFuncName, sTasName, sEnc, sAmber) ::= <<

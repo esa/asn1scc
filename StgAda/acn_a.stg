@@ -39,7 +39,7 @@ begin
 end <sFuncName>;
 >>
 
-EmitTypeAssignment_primitive_encode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName) ::= <<
+EmitTypeAssignment_primitive_encode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName, arrsAnnots) ::= <<
 procedure <sFuncName>_aux(<sVarName> : <sTypeDefName>; bs : in out <rtlModuleName()>.encoding.Bitstream; result : OUT <rtlModuleName()>.ASN1_RESULT)
 is
 <if(bBsIsUnreferenced)>
@@ -91,7 +91,7 @@ begin
 end <sFuncName>;
 >>
 
-EmitTypeAssignment_primitive_decode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName) ::= <<
+EmitTypeAssignment_primitive_decode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName, arrsAnnots) ::= <<
 <if(bVarNameIsUnreferenced)>
 pragma Warnings (Off, "unused initial value of ""<sVarName>""");
 
@@ -1122,7 +1122,7 @@ end case;
 
 ChoiceChild_preWhen_bool_condition(sExtFld) ::= "<sExtFld>"
 ChoiceChild_preWhen_int_condition(sExtFld, nVal) ::= "(<sExtFld> = <nVal>)"
-ChoiceChild_preWhen_str_condition(sExtFld, sVal, arrsNullChars) ::= "(<sExtFld> = \"<sVal>\"<if(arrsNullChars)> & <arrsNullChars; wrap, anchor, separator=\" & \"><endif>)"
+ChoiceChild_preWhen_str_condition(sExtFld, sVal, arrsNullChars, arruVal) ::= "(<sExtFld> = \"<sVal>\"<if(arrsNullChars)> & <arrsNullChars; wrap, anchor, separator=\" & \"><endif>)"
 
 Choice_preWhen_encode(p, sAcc, arrsChildren, sErrCode) ::= <<
 case <p><sAcc>kind is
@@ -1230,14 +1230,14 @@ case <sChPath><sAcc>kind is
 end case;
 >>
 
-ChoiceDependencyIntPres_child(v, sChildNamePrese, nChildRetVal) ::= <<
-when <sChildNamePrese> =>
+ChoiceDependencyIntPres_child(v, sChildNamePresent, nChildRetVal) ::= <<
+when <sChildNamePresent> =>
     <v>_is_initialized := True;
 	<v> := <nChildRetVal>;
 >>
 
-ChoiceDependencyStrPres_child(v, sChildNamePrese, sChildRetVal, arrsNullChars) ::= <<
-when <sChildNamePrese> =>
+ChoiceDependencyStrPres_child(v, sChildNamePresent, sChildRetVal, arruChildRetValBytes, arrsNullChars) ::= <<
+when <sChildNamePresent> =>
     <v>_is_initialized := True;
 	<v> := "<sChildRetVal>"<if(arrsNullChars)> & <arrsNullChars; wrap, anchor, separator=" & "><endif>;
 >>

@@ -83,7 +83,8 @@ Declare_Asn1Date_UtcTimeNoRTL              	()::= "Asn1DateUtcTime"
 Declare_Asn1Date_LocalTimeWithTimeZoneNoRTL	()::= "Asn1DateTimeWithTimeZone"
 
 
-Define_SubType(sTypeDefinitionName, soParentTypePackage, sParentType, soNewRange, soExtraDefs) ::= <<
+Define_SubType(sTypeDefinitionName, soParentTypePackage, sParentType, soNewRange, soExtraDefs, arrsAnnots) ::= <<
+<arrsAnnots:{ann|@<ann>}; separator=" ">
 type <sTypeDefinitionName> = <sParentType>
 <soExtraDefs>
 >>
@@ -99,7 +100,8 @@ type <sTypeDefinitionName> = <sParentType>
 /***********************************       ENUMERATED    ************************************************************/
 
 Define_new_enumerated_item(td/*:FE_EnumeratedTypeDefinition*/, sName, nValue) ::= <<
-case <sName> extends <td.typeName>(<nValue>)
+case object <sName> extends <td.typeName>:
+    override def i: Int = <nValue>
 >>
 
 Define_new_enumerated_item_macro(td/*:FE_EnumeratedTypeDefinition*/, sAsn1Name, sCName) ::= <<
@@ -107,7 +109,9 @@ Define_new_enumerated_item_macro(td/*:FE_EnumeratedTypeDefinition*/, sAsn1Name, 
 >>
 
 Define_new_enumerated(td/*:FE_EnumeratedTypeDefinition*/, arrsEnumNames, arrsEnumNamesAndValues, nIndexMax, arrsResolvingMacros) ::= <<
-enum <td.typeName>(val i: Int):
+sealed trait <td.typeName>:
+    def i: Int
+object <td.typeName>:
     <arrsEnumNamesAndValues:{it|<it>}; separator="\n">
 
 // please use the following macros to avoid breaking code.
@@ -197,7 +201,7 @@ Define_new_sequence_child_bit(sName) ::= "<sName>: Boolean"
 
 Define_new_sequence_child(sName, sType, bIsOptional) ::= <<
 <if (bIsOptional)>
-<sName>: Option[<sType>]
+<sName>: OptionMut[<sType>]
 <else>
 <sName>: <sType>
 <endif>
