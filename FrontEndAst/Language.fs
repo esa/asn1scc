@@ -165,6 +165,8 @@ type ILangGeneric () =
     abstract member getBoardNames : Targets option -> string list
     abstract member getBoardDirs : Targets option -> string list
 
+    abstract member generatePrecond: Asn1Encoding -> t: Asn1AcnAst.Asn1Type -> string list
+    abstract member generatePostcond: Asn1Encoding -> funcNameBase: string -> p: CallerScope -> t: Asn1AcnAst.Asn1Type -> Codec -> string option
 
     default this.getParamType (t:Asn1AcnAst.Asn1Type) (c:Codec) : CallerScope =
         this.getParamTypeSuffix t "" c
@@ -177,6 +179,9 @@ type ILangGeneric () =
         sourceCode
     default this.removeFunctionFromBody (sourceCode: string) (functionName: string) : string =
         sourceCode
+
+    default this.generatePrecond _ _ = []
+    default this.generatePostcond _ _ _ _ _ = None
 
     //most programming languages are case sensitive
     default _.isCaseSensitive = true

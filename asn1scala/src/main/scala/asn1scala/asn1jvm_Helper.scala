@@ -5,7 +5,7 @@ import stainless.lang.{None => None, ghost => ghostExpr, Option => Option, _}
 import stainless.collection.*
 import stainless.annotation.*
 import stainless.proof.*
-import stainless.math.*
+import stainless.math.{wrapping => wrappingExpr, *}
 import StaticChecks.*
 import scala.annotation.targetName
 
@@ -24,6 +24,29 @@ val MASK_MSB_INT    = 0x80_00_00_00L
 val MASK_POS_BYTE   = 0x7FL
 val MASK_POS_SHORT  = 0x7F_FFL
 val MASK_POS_INT    = 0x7F_FF_FF_FFL
+
+val MASK_B: Array[Byte] = Array(
+   0x00, //   0 / 0000 0000 / x00
+   0x01, //   1 / 0000 0001 / x01
+   0x03, //   3 / 0000 0011 / x03
+   0x07, //   7 / 0000 0111 / x07
+   0x0F, //  15 / 0000 1111 / x0F
+   0x1F, //  31 / 0001 1111 / x1F
+   0x3F, //  63 / 0011 1111 / x3F
+   0x7F, // 127 / 0111 1111 / x7F
+   -0x1, //  -1 / 1111 1111 / xFF
+)
+
+val MASK_C: Array[Byte] = Array(
+   0x00,  //  / 0000 0000 /
+   -0x80,  //  / 1000 0000 /
+   -0x40,  //  / 1100 0000 /
+   -0x20,  //  / 1110 0000 /
+   -0x10,  //  / 1111 0000 /
+   -0x08,  //  / 1111 1000 /
+   -0x04,  //  / 1111 1100 /
+   -0x02,  //  / 1111 1110 /
+)
 
 /*
 * Meths to upcast unsigned integer data types on the JVM
@@ -104,25 +127,14 @@ extension (l: Long) {
    }
 
    // less than & equal for unsigned numbers
+   @inline
    def lteUnsigned(r: ULong): Boolean = {
-
-      if r < 0 && l >= 0 then // r is negative (MSB set), l must be smaller
-         return true
-
-      if l < 0 && r >= 0 then // l is negative (MSB set), r must be smaller
-         return false
-
-      // both numbers are either positive or negative
-      // pos case: l must be smaller
-      // neg case: MIN_VALUE (only MSB set) is smaller than -1 (all bits set)
-      l <= r
+      // This corresponds to java.lang.Long.compareUnsigned
+      wrappingExpr { l + Long.MinValue <= r + Long.MinValue }
    }
-//   }.ensuring(x => x == lteUnsignedJVM(l,r)) // unsupported
-}
 
-@extern
-def lteUnsignedJVM(l: ULong, r: ULong): Boolean = {
-   java.lang.Long.compareUnsigned(l,r) <= 0
+   @inline
+   def u_<=(r: ULong): Boolean = l.lteUnsigned(r)
 }
 
 extension [T](arr: Array[T]) {

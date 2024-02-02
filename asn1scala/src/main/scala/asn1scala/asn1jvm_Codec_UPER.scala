@@ -1,7 +1,9 @@
 package asn1scala
 
 import stainless.math.BitVectors._
+import stainless.lang.StaticChecks._
 import stainless.lang.{None => None, Option => Option, Some => Some, _}
+import stainless.annotation._
 
 /**
  * Get an instance of a UPER coded bitstream
@@ -11,10 +13,50 @@ import stainless.lang.{None => None, Option => Option, Some => Some, _}
 def initUPERCodec(count: Int): UPER = {
    UPER(Codec(BitStream(Array.fill(count)(0))))
 }
-
+object UPER {
+   @ghost @pure
+   def reader(w1: UPER, w2: UPER): (UPER, UPER) = {
+      require(w1.base.bitStream.isPrefixOf(w2.base.bitStream))
+      val (r1, r2) = BitStream.reader(w1.base.bitStream, w2.base.bitStream)
+      (UPER(Codec(r1)), UPER(Codec(r2)))
+   }
+}
 case class UPER private [asn1scala](base: Codec) {
+   import BitStream.*
+   import UPER.*
    import base.*
    export base.*
+
+   @ghost @pure @inline
+   def resetAt(other: UPER): UPER =
+      UPER(Codec(bitStream.resetAt(other.base.bitStream)))
+
+   @ghost @pure @inline
+   def withMovedByteIndex(diffInBytes: Int): UPER = {
+      require(moveByteIndexPrecond(bitStream, diffInBytes))
+      UPER(Codec(bitStream.withMovedByteIndex(diffInBytes)))
+   }
+
+   @ghost @pure @inline
+   def withMovedBitIndex(diffInBits: Int): UPER = {
+      require(moveBitIndexPrecond(bitStream, diffInBits))
+      UPER(Codec(bitStream.withMovedBitIndex(diffInBits)))
+   }
+
+   @pure @inline
+   def bitIndex(): Long = bitStream.bitIndex()
+
+   @pure @inline
+   def bufLength(): Int = bitStream.buf.length
+
+   @pure @inline
+   def validate_offset_bits(bits: Long = 0): Boolean = {
+      require(bits >= 0)
+      bitStream.validate_offset_bits(bits)
+   }
+
+   @pure @inline
+   def isPrefixOf(uper2: UPER): Boolean = bitStream.isPrefixOf(uper2.base.bitStream)
 
    private def objectIdentifier_subIdentifiers_encode(encodingBuf: Array[UByte], pSizeVal: Int, siValueVal: ULong): Int = {
       var lastOctet: Boolean = false

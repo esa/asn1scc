@@ -90,9 +90,10 @@ let internal createUperFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (code
                         emptyStatement, [], [], true, isValidFuncName.IsNone
                     | Some bodyResult   -> bodyResult.funcBody, bodyResult.errCodes, bodyResult.localVariables, bodyResult.bBsIsUnReferenced, bodyResult.bValIsUnReferenced
                 let lvars = bodyResult_localVariables |> List.map(fun (lv:LocalVariable) -> lm.lg.getLocalVariableDeclaration lv) |> Seq.distinct
-                let func = Some(EmitTypeAssignment varName sStar funcName isValidFuncName  (lm.lg.getLongTypedefName typeDefinition) lvars  bodyResult_funcBody soSparkAnnotations sInitialExp (t.uperMaxSizeInBits = 0I) bBsIsUnreferenced bVarNameIsUnreferenced soInitFuncName funcDefAnnots codec)
+                let precondAnnots = lm.lg.generatePrecond UPER t
+                let postcondAnnots = lm.lg.generatePostcond UPER typeDef.typeName p t codec
+                let func = Some(EmitTypeAssignment varName sStar funcName isValidFuncName  (lm.lg.getLongTypedefName typeDefinition) lvars  bodyResult_funcBody soSparkAnnotations sInitialExp (t.uperMaxSizeInBits = 0I) bBsIsUnreferenced bVarNameIsUnreferenced soInitFuncName funcDefAnnots precondAnnots postcondAnnots codec)
 
-                //let errCodes = bodyResult.errCodes
                 let errCodStr = errCodes |> List.map(fun x -> (EmitTypeAssignment_def_err_code x.errCodeName) (BigInteger x.errCodeValue))
                 let funcDef = Some(EmitTypeAssignment_def varName sStar funcName  (lm.lg.getLongTypedefName typeDefinition) errCodStr (t.uperMaxSizeInBits = 0I) (BigInteger (ceil ((double t.uperMaxSizeInBits)/8.0))) ( t.uperMaxSizeInBits) soSparkAnnotations (t.uperMaxSizeInBits = 0I) codec)
                 func, funcDef
