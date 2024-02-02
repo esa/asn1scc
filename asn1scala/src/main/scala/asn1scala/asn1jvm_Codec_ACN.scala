@@ -9,14 +9,16 @@ val FAILED_READ_ERR_CODE = 5400
 
 /**
  * Get an instance of a ACN coded bitstream
- * @param count of elements in underlaying buffer
+ * @param count of elements in underlying buffer
  * @return ACN coded bitstream
  */
 def initACNCodec(count: Int): ACN = {
-   ACN(BitStream(Array.fill(count)(0)))
+   ACN(Codec(BitStream(Array.fill(count)(0))))
 }
 
-case class ACN(bitStream: BitStream) extends Codec {
+case class ACN private [asn1scala](base: Codec) {
+   import base.*
+   export base.*
 
    /*ACN Integer functions*/
    def enc_Int_PositiveInteger_ConstSize(intVal: ULong, encodedSizeInBits: Int): Unit = {

@@ -9,10 +9,12 @@ import stainless.lang.{None => None, Option => Option, Some => Some, _}
  * @return UPER coded bitstream
  */
 def initUPERCodec(count: Int): UPER = {
-   UPER(BitStream(Array.fill(count)(0)))
+   UPER(Codec(BitStream(Array.fill(count)(0))))
 }
 
-case class UPER(bitStream: BitStream) extends Codec {
+case class UPER private [asn1scala](base: Codec) {
+   import base.*
+   export base.*
 
    private def objectIdentifier_subIdentifiers_encode(encodingBuf: Array[UByte], pSizeVal: Int, siValueVal: ULong): Int = {
       var lastOctet: Boolean = false

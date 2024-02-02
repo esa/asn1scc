@@ -73,7 +73,7 @@ val masksb: Array[UByte] = Array(
    -0x1, //   -1 / 1111 1111 / xFF
 )
 
-case class BitStream(
+case class BitStream private [asn1scala](
                        private var buf: Array[Byte],
                        private var currentByte: Int = 0, // marks the currentByte that gets accessed
                        private var currentBit: Int = 0,  // marks the next bit that gets accessed
