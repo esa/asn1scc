@@ -145,14 +145,14 @@ result := <rtlModuleName()>.ASN1_RESULT'(Success => true, ErrorCode => 0);
 >>
 
 /*case: A:: = INTEGER (5..5) */
-IntNoneRequired_encode(p, nConst, sErrCode) ::= <<
--- No need to encode value since it will always be <nConst> --
+IntNoneRequired_encode(p, sConst, sErrCode) ::= <<
+-- No need to encode value since it will always be <sConst> --
 null;
 >>
 
-IntNoneRequired_decode(p, nConst, sErrCode) ::= <<
+IntNoneRequired_decode(p, sConst, sErrCode) ::= <<
 result := <rtlModuleName()>.ASN1_RESULT'(Success => true, ErrorCode => 0);
-<p> := <nConst>;
+<p> := <sConst>;
 >>
 
 

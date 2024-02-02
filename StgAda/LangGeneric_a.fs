@@ -100,7 +100,7 @@ type LangGeneric_a() =
         override _.doubleValueToString (v:double) =
             v.ToString(FsUtils.doubleParseString, System.Globalization.NumberFormatInfo.InvariantInfo)
         override _.intValueToString (i:BigInteger) _ = i.ToString()
-
+        override _.asn1SccIntValueToString (i: BigInteger) _ = i.ToString()
         override _.initializeString (_) = "(others => adaasn1rtl.NUL)"
 
         override _.supportsInitExpressions = true

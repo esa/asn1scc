@@ -78,7 +78,7 @@ object BitStream {
    }
 
    @ghost @pure @opaque @inlineOnce
-   def validateOffsetBitsContentIrrelevancyLemma(b1: BitStream, buf: Array[Byte], bits: Int): Unit = {
+   def validateOffsetBitsContentIrrelevancyLemma(b1: BitStream, buf: Array[Byte], bits: Long): Unit = {
       require(b1.buf.length == buf.length)
       require(bits >= 0)
       require(b1.validate_offset_bits(bits))
@@ -149,7 +149,7 @@ object BitStream {
    }
 }
 
-private val BitAccessMasks: Array[UByte] = Array(
+private val BitAccessMasks: Array[Byte] = Array(
    -0x80, // -128 / 1000 0000 / x80
    0x40, //   64 / 0100 0000 / x40
    0x20, //   32 / 0010 0000 / x20
@@ -246,7 +246,7 @@ case class BitStream private [asn1scala](
    }.ensuring(_ => old(this).bitIndex() + diffInBits == bitIndex())
 
    @ghost @pure
-   def withMovedBitIndex(diffInBits: Int): BitStream = {
+   def withMovedBitIndex(diffInBits: Long): BitStream = {
       require(moveBitIndexPrecond(this, diffInBits))
       val cpy = snapshot(this)
       cpy.moveBitIndex(diffInBits)
@@ -496,7 +496,7 @@ case class BitStream private [asn1scala](
       (while i < nBits do
          decreases(nBits - i)
 
-         appendBitFromByte(srcBuffer((i / NO_OF_BITS_IN_BYTE).toInt), (i % NO_OF_BITS_IN_BYTE).toInt)
+         appendBitFromByte(srcBuffer((i / NO_OF_BITS_IN_BYTE).toInt).toRaw, (i % NO_OF_BITS_IN_BYTE).toInt)
 
          i += 1L
       ).invariant(i >= 0 &&& i <= nBits &&& i / NO_OF_BITS_IN_BYTE <= Int.MaxValue &&&
@@ -539,7 +539,7 @@ case class BitStream private [asn1scala](
       val ncb = 8 - cb
 
       val mask1 = (~MASK_B(ncb)).toByte
-      val vv = (v & MASK_B(nBits)).toByte
+      val vv = (v.toRaw & MASK_B(nBits)).toByte
       if totalBits <= 8 then
          val mask2 = MASK_B(8 - totalBits)
          val mask = (mask1 | mask2).toByte
@@ -589,7 +589,7 @@ case class BitStream private [asn1scala](
          w2.bitIndex() == w1.bitIndex() + nBits && w1.isPrefixOf(w2) && {
          val (r1, r2) = reader(w1, w2)
          val (r2Got, vGot) = r1.readPartialBytePure(nBits)
-         vGot == wrappingExpr { (v & MASK_B(nBits)).toByte } && r2Got == r2
+         vGot.toRaw == wrappingExpr { (v.toRaw & MASK_B(nBits)).toByte } && r2Got == r2
       }
   }
 
@@ -623,7 +623,7 @@ case class BitStream private [asn1scala](
       var mask = (~MASK_B(ncb)).toByte
 
       buf(currentByte) = wrappingExpr { (buf(currentByte) & mask).toByte }
-      buf(currentByte) = wrappingExpr { (buf(currentByte) | ((v & 0xFF) >>> cb)).toByte }
+      buf(currentByte) = wrappingExpr { (buf(currentByte) | ((v.toRaw & 0xFF) >>> cb)).toByte }
       currentByte += 1
 
       ghostExpr {
@@ -639,7 +639,7 @@ case class BitStream private [asn1scala](
       if cb > 0 then
          mask = (~mask).toByte
          buf(currentByte) = wrappingExpr { (buf(currentByte) & mask).toByte }
-         buf(currentByte) = wrappingExpr { (buf(currentByte) | (v << ncb)).toByte }
+         buf(currentByte) = wrappingExpr { (buf(currentByte) | (v.toRaw << ncb)).toByte }
 
       ghostExpr {
          arrayUpdatedAtPrefixLemma(oldThis.buf, currentByte - 1, buf(currentByte - 1))
@@ -772,7 +772,7 @@ case class BitStream private [asn1scala](
       require(nBits >= 0 && validate_offset_bits(nBits))
       assert(nBits <= Int.MaxValue.toLong * NO_OF_BITS_IN_BYTE.toLong)
       val arrLen = ((nBits + NO_OF_BITS_IN_BYTE - 1) / NO_OF_BITS_IN_BYTE).toInt
-      val arr: Array[UByte] = Array.fill(arrLen)(0)
+      val arr: Array[UByte] = Array.fill(arrLen)(0.toRawUByte)
 
       @ghost val oldThis = snapshot(this)
       var i = 0L
@@ -843,7 +843,7 @@ case class BitStream private [asn1scala](
 
       if cb > 0 then
          v = wrappingExpr { (v | (buf(currentByte) & 0xFF) >>> ncb).toByte }
-      v
+      UByte.fromRaw(v)
    }.ensuring(_ => buf == old(this).buf && bitIndex() == old(this).bitIndex() + 8)
 
    @ghost @pure
@@ -916,7 +916,7 @@ case class BitStream private [asn1scala](
          v = wrappingExpr { (v | ((buf(currentByte) & 0xFF) >>> (8 - totalBitsForNextByte))).toByte }
          v = wrappingExpr { (v & MASK_B(nBits)).toByte }
          currentBit = totalBitsForNextByte
-      v
+      UByte.fromRaw(v)
    }.ensuring(_ => buf == old(this).buf && remainingBits == old(this).remainingBits - nBits)
 
    @pure @ghost

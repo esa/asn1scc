@@ -99,11 +99,11 @@ isEqual_BitString(p1,p2,bIsFixedSize, nFixedSize) ::= <<
 <if(!bIsFixedSize)>
     (<p1>nCount == <p2>nCount) &&
     (<p1>arr.slice(0,(<p1>nCount/8).toInt).sameElements(<p2>arr.slice(0,(<p1>nCount/8).toInt))) &&
-    (if <p1>nCount % 8 > 0 then (<p1>arr(<p1>nCount.toInt/8) \>> (8-<p1>nCount % 8).toInt == <p2>arr(<p1>nCount.toInt/8) \>> (8-<p1>nCount % 8).toInt) else true)
+    (if <p1>nCount % 8 > 0 then (<p1>arr(<p1>nCount.toInt/8).toRaw \>> (8-<p1>nCount % 8).toInt == <p2>arr(<p1>nCount.toInt/8).toRaw \>> (8-<p1>nCount % 8).toInt) else true)
 
 <else>
     (<p1>arr.slice(0,<nFixedSize>/8).sameElements(<p2>arr.slice(0,<nFixedSize>/8))) &&
-    (if (<nFixedSize> % 8) > 0 then (<p1>arr(<nFixedSize>/8) \>> (8-<nFixedSize> % 8).toInt == <p2>arr(<nFixedSize>/8) \>> (8-<nFixedSize> % 8).toInt) else true)
+    (if (<nFixedSize> % 8) > 0 then (<p1>arr(<nFixedSize>/8).toRaw \>> (8-<nFixedSize> % 8).toInt == <p2>arr(<nFixedSize>/8).toRaw \>> (8-<nFixedSize> % 8).toInt) else true)
 
 <endif>
 >>

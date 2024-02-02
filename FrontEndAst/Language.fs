@@ -66,6 +66,7 @@ type ILangGeneric () =
     abstract member getPtrSuffix    : Selection -> string;
 
     abstract member getArrayItem    : sel: Selection -> idx: string -> childTypeIsString: bool -> Selection;
+    abstract member asn1SccIntValueToString : BigInteger -> unsigned: bool -> string;
     abstract member intValueToString : BigInteger -> Asn1AcnAst.IntegerClass -> string;
     abstract member doubleValueToString : double -> string
     abstract member initializeString : int -> string

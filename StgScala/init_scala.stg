@@ -11,11 +11,11 @@ initTypeAssignment(sVarName, sPtrPrefix, sPtrSuffix, sFuncName, sTypeDefName, sC
 def <sFuncName>(): <sTypeDefName> = <sDefaultInitValue>
 >>
 
-initInteger(sVal, nValue, bIsOptional) ::= <<
+initInteger(sVal, sValue, bIsOptional) ::= <<
 <if(bIsOptional)>
-<sVal> = SomeMut(<nValue>)
+<sVal> = SomeMut(<sValue>)
 <else>
-<sVal> = <nValue>
+<sVal> = <sValue>
 <endif>
 >>
 initReal(sVal, dValue, bIsOptional) ::= <<
@@ -113,20 +113,20 @@ initNull(sVal, bIsOptional) ::= <<
 
 initTestCaseIA5String(p, sAcc, nSize, nMaxSizePlusOne, i, td/*:FE_StringTypeDefinition*/, bAlpha, arrnAlphabetAsciiCodes, nAlphabetLength, bZero) ::= <<
 <if(bZero)>
-<p> = Array.fill(<nMaxSizePlusOne>)(0)
+<p> = Array.fill(<nMaxSizePlusOne>)(0.toRawUByte)
 
 <else>
 
 <i> = 0
-<p> = Array.fill(<nMaxSizePlusOne>)(0)
+<p> = Array.fill(<nMaxSizePlusOne>)(0.toRawUByte)
 while (<i> \< <nSize>) {
     <if(bAlpha)>
-    val allowedCharSet: Array[Byte] = Array(<arrnAlphabetAsciiCodes:{ch|0x<ch;format="X2">}; wrap, anchor, separator=",">)
+    val allowedCharSet: Array[UByte] = Array(<arrnAlphabetAsciiCodes:{ch|0x<ch;format="X2">.toRawUByte}; wrap, anchor, separator=",">)
 
     <p>(<i>) = allowedCharSet(<i> % <nAlphabetLength>)
 
     <else>
-    <p>(<i>) = (if <i> % 128 == 0 then 'A'.toByte else (<i> % 128).toByte) // TODO: what is done here?
+    <p>(<i>) = (if <i> % 128 == 0 then 'A'.toByte.toRawUByte else (<i> % 128).toByte.toRawUByte) // TODO: what is done here?
 
     <endif>
     <i> = <i> + 1
@@ -151,11 +151,11 @@ initFixVarSizeBitOrOctString(p, sAcc, nSize, arrsBytes) ::= <<
 
 initTestCaseOctetString(p, sAcc, sArrayHolderName, nSize, i, bIsFixedSize, bZero, nMinSize, bZeroSizedArray) ::= <<
 <if(bZero)>
-<p> = <sArrayHolderName>(<if(!bIsFixedSize)><nMinSize>, <endif>Array.fill(<nSize>)(0))
+<p> = <sArrayHolderName>(<if(!bIsFixedSize)><nMinSize>, <endif>Array.fill(<nSize>)(0.toRawUByte))
 <else>
 <i> = 0
 (while (<i>\< <nSize>) {
-    <p>.arr(<i>) = (<i>%256).toByte
+    <p>.arr(<i>) = (<i>%256).toByte.toRawUByte
     <i> += 1
 })
 <endif>
@@ -166,14 +166,14 @@ initTestCaseOctetString(p, sAcc, sArrayHolderName, nSize, i, bIsFixedSize, bZero
 
 initTestCaseBitString(p, sAcc, sArrayHolderName, nSize, nSizeCeiled, i, bIsFixedSize, bZero, nMinSize, bIsOptionalField) ::= <<
 <if(bZero)>
-<p> = <sArrayHolderName>(<if(!bIsFixedSize)><nMinSize>, <endif>Array.fill(<nSizeCeiled>/8)(0)
+<p> = <sArrayHolderName>(<if(!bIsFixedSize)><nMinSize>, <endif>Array.fill(<nSizeCeiled>/8)(0.toRawUByte)
 
 <else>
 
 <if(!bIsFixedSize)><p><sAcc>nCount = <nSize><endif>
 <i> = 0
 while (<i>\< <nSizeCeiled>/8 <if (bIsOptionalField)>&& <p><sAcc>isDefined<endif>) {
-    <p><sAcc><if (bIsOptionalField)>get<sAcc><endif>arr(<i>) = 0x55 /* --> 0101 0101 as in Ada*/
+    <p><sAcc><if (bIsOptionalField)>get<sAcc><endif>arr(<i>) = 0x55.toRawUByte /* --> 0101 0101 as in Ada*/
     <i> = <i> + 1
 }
 <endif>
@@ -278,11 +278,11 @@ initTypeConstant_body(sTypeDecl, sConstantName, sValue) ::= <<
 val <sConstantName>: <sTypeDecl> = <sValue>
 >>
 
-initFixSizeOctetString(sTypeDefName, nMax, bZeroSizedArray) ::= "<sTypeDefName>(Array.fill(<nMax>)(0))"
-initVarSizeOctetString(sTypeDefName, nMin, nMax) ::= "<sTypeDefName>(<nMin>, Array.fill(<nMax>)(0))"
+initFixSizeOctetString(sTypeDefName, nMax, bZeroSizedArray) ::= "<sTypeDefName>(Array.fill(<nMax>)(0.toRawUByte))"
+initVarSizeOctetString(sTypeDefName, nMin, nMax) ::= "<sTypeDefName>(<nMin>, Array.fill(<nMax>)(0.toRawUByte))"
 
-initFixSizeBitString(sTypeDefName, nMax, nMaxOctets) ::= "<sTypeDefName>(Array.fill(<nMaxOctets>)(0))"
-initVarSizeBitString(sTypeDefName, nMin, nMax, nMaxOctets) ::= "<sTypeDefName>(<nMin>, Array.fill(<nMaxOctets>)(0))"
+initFixSizeBitString(sTypeDefName, nMax, nMaxOctets) ::= "<sTypeDefName>(Array.fill(<nMaxOctets>)(0.toRawUByte))"
+initVarSizeBitString(sTypeDefName, nMin, nMax, nMaxOctets) ::= "<sTypeDefName>(<nMin>, Array.fill(<nMaxOctets>)(0.toRawUByte))"
 
 initFixSizeSequenceOfExpr(sTypeDefName, nMax, sChildExp) ::= "<sTypeDefName>(Array.fill(<nMax>)(<sChildExp>))"
 initVarSizeSequenceOfExpr(sTypeDefName, nMin, nMax, sChildExp) ::= "<sTypeDefName>(<nMin>, Array.fill(<nMax>)(<sChildExp>))"

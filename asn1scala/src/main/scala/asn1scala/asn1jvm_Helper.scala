@@ -9,22 +9,6 @@ import stainless.math.{wrapping => wrappingExpr, *}
 import StaticChecks.*
 import scala.annotation.targetName
 
-// all bits of the integer
-val MASK_BYTE       = 0xFF
-val MASK_BYTE_L     = 0xFFL
-val MASK_SHORT_L    = 0xFF_FFL
-val MASK_INT_L      = 0xFF_FF_FF_FFL
-
-// MSBs (neg bits of the integer)
-val MASK_MSB_BYTE   = 0x80L
-val MASK_MSB_SHORT  = 0x80_00L
-val MASK_MSB_INT    = 0x80_00_00_00L
-
-// pos bits of the integer
-val MASK_POS_BYTE   = 0x7FL
-val MASK_POS_SHORT  = 0x7F_FFL
-val MASK_POS_INT    = 0x7F_FF_FF_FFL
-
 val MASK_B: Array[Byte] = Array(
    0x00, //   0 / 0000 0000 / x00
    0x01, //   1 / 0000 0001 / x01
@@ -47,95 +31,6 @@ val MASK_C: Array[Byte] = Array(
    -0x04,  //  / 1111 1100 /
    -0x02,  //  / 1111 1110 /
 )
-
-/*
-* Meths to upcast unsigned integer data types on the JVM
-*/
-extension (ubL: UByte) {
-   def unsignedToLong: Long = ubL.toLong & MASK_BYTE_L
-   def unsignedToInt: Int = ubL.toInt & MASK_BYTE
-
-   @targetName("unsigned right shift on Bytes")
-   def >>>>(i: Int): UByte = {
-      require(i >= 0 && i <= NO_OF_BITS_IN_BYTE)
-      ((ubL.toInt & MASK_BYTE) >>> i).cutToByte
-   }
-
-   @targetName("left shift on Bytes")
-   def <<<<(i: Int): UByte = {
-      require(i >= 0 && i <= NO_OF_BITS_IN_BYTE)
-      ((ubL.toInt << i) & MASK_BYTE).cutToByte
-   }
-
-   @targetName("binary OR on Bytes")
-   def |||(ubR: Byte): UByte = {
-      (ubL.toInt | ubR.toInt).cutToByte
-   }
-}
-
-extension (us: UShort) {
-   def unsignedToLong: Long = us & MASK_SHORT_L
-}
-
-extension (ui: UInt) {
-   def unsignedToLong: Long = ui & MASK_INT_L
-}
-
-extension (i: Int) {
-   def toUnsignedByte: UByte = {
-
-      if((i & MASK_BYTE) == MASK_MSB_BYTE)
-         (-MASK_MSB_BYTE).toByte
-      else if ((i & MASK_MSB_BYTE) == MASK_MSB_BYTE)
-         ((i & MASK_POS_BYTE) - MASK_MSB_BYTE).toByte
-      else
-         (i & MASK_BYTE).toByte
-   }
-}
-
-extension (l: Long) {
-   def cutToInt: UInt = {
-      if(l == MASK_MSB_INT)
-         (-MASK_MSB_INT).toInt
-      else if ((l & MASK_MSB_INT) == MASK_MSB_INT)
-         ((l & MASK_POS_INT) - MASK_MSB_INT).toInt
-      else
-         (l & MASK_INT_L).toInt
-   }
-
-   def cutToShort: UShort = {
-      if (l == MASK_MSB_SHORT)
-         (-MASK_MSB_SHORT).toShort
-      else if ((l & MASK_MSB_SHORT) == MASK_MSB_SHORT)
-         ((l & MASK_POS_SHORT) - MASK_MSB_SHORT).toShort
-      else
-         (l & MASK_SHORT_L).toShort
-   }
-
-   def cutToByte: UByte = {
-      if ((l & MASK_BYTE) == MASK_MSB_BYTE)
-         (-MASK_MSB_BYTE).toByte
-      else if ((l & MASK_MSB_BYTE) == MASK_MSB_BYTE)
-         ((l & MASK_POS_BYTE) - MASK_MSB_BYTE).toByte
-      else
-         (l & MASK_BYTE_L).toByte
-   }
-
-   @extern
-   def toByteArray: Array[Byte] = {
-      scala.math.BigInt(l).toByteArray
-   }
-
-   // less than & equal for unsigned numbers
-   @inline
-   def lteUnsigned(r: ULong): Boolean = {
-      // This corresponds to java.lang.Long.compareUnsigned
-      wrappingExpr { l + Long.MinValue <= r + Long.MinValue }
-   }
-
-   @inline
-   def u_<=(r: ULong): Boolean = l.lteUnsigned(r)
-}
 
 extension [T](arr: Array[T]) {
    def indexOf(elem: T): Int = {
@@ -167,7 +62,9 @@ def freshCopyHack[@mutable T](t: T): T = t.ensuring(_ == t)
  * @param v value that should get serialised
  * @return number of bits needed for serialisation
  */
-def GetBitCountUnsigned(v: ULong): Int = {
+def GetBitCountUnsigned(vv: ULong): Int = {
+   val v = vv.toRaw
+
    if v < 0 then
       return NO_OF_BITS_IN_LONG
 
@@ -188,7 +85,7 @@ def GetBitCountUnsigned(v: ULong): Int = {
 
    i
 }.ensuring(x =>
-   x >= 0 && x <= NO_OF_BITS_IN_LONG && (x == NO_OF_BITS_IN_LONG && v < 0 || v >>> x == 0))
+   x >= 0 && x <= NO_OF_BITS_IN_LONG && (x == NO_OF_BITS_IN_LONG && vv.toRaw < 0 || vv.toRaw >>> x == 0))
 
 /**
  * Get number of bits needed to encode the singed value v
@@ -323,17 +220,17 @@ def CalculateMantissaAndExponent(doubleAsLong64: Long): (UInt, ULong) = {
       rawExp >= 0 &&& rawExp <= ((1 << 11) - 2) // 2046, 2047 is the infinity case - never end up here with infinity
    })
 
-   val exponent: UInt = ((doubleAsLong64 & ExpoBitMask) >>> DoubleNoOfMantissaBits).toInt - DoubleBias.toInt - DoubleNoOfMantissaBits.toInt
-   var mantissa: ULong = doubleAsLong64 & MantissaBitMask
+   val exponent = ((doubleAsLong64 & ExpoBitMask) >>> DoubleNoOfMantissaBits).toInt - DoubleBias.toInt - DoubleNoOfMantissaBits.toInt
+   var mantissa = doubleAsLong64 & MantissaBitMask
    mantissa = mantissa | MantissaExtraBit
 
-   (exponent, mantissa)
+   (UInt.fromRaw(exponent), ULong.fromRaw(mantissa))
 
-}.ensuring((e, m) => e >= (-DoubleBias - DoubleNoOfMantissaBits) &&& e <= (DoubleBias - DoubleNoOfMantissaBits)
-   &&& m >= 0 &&& m <= (MantissaBitMask | MantissaExtraBit))
+}.ensuring((e, m) => (-DoubleBias - DoubleNoOfMantissaBits).toInt.toRawUInt <= e &&& e <= (DoubleBias - DoubleNoOfMantissaBits).toInt.toRawUInt
+   &&& 0.toRawULong <= m &&& m <= (MantissaBitMask | MantissaExtraBit).toRawULong)
 
 def GetDoubleBitStringByMantissaAndExp(mantissa: ULong, exponentVal: Int): Long = {
-   ((exponentVal + DoubleBias + DoubleNoOfMantissaBits) << DoubleNoOfMantissaBits) | (mantissa & MantissaBitMask)
+   ((exponentVal + DoubleBias + DoubleNoOfMantissaBits) << DoubleNoOfMantissaBits) | (mantissa.toRaw & MantissaBitMask)
 }
 
 /**

@@ -211,9 +211,12 @@ case class ACN(base: Codec) {
    import BitStream.*
    import ACN.*
    import base.*
-   export base.*
+   export base.* // TODO: generates invalid VCs
 
    /*ACN Integer functions*/
+
+   def enc_Int_PositiveInteger_ConstSize(intVal: Int, encodedSizeInBits: Int): Unit =
+      enc_Int_PositiveInteger_ConstSize(intVal.toLong.toRawULong, encodedSizeInBits)
 
    def enc_Int_PositiveInteger_ConstSize(intVal: ULong, encodedSizeInBits: Int): Unit = {
       if encodedSizeInBits == 0 then
@@ -261,18 +264,19 @@ case class ACN(base: Codec) {
 
    def enc_Int_PositiveInteger_ConstSize_8(intVal: ULong): Unit = {
       require(bitStream.validate_offset_byte())
-      appendByte(wrappingExpr { intVal.toByte })
+      appendByte(wrappingExpr { intVal.toUByte })
    }
 
    @opaque @inlineOnce
-   def enc_Int_PositiveInteger_ConstSize_big_endian_16(intVal: ULong): Unit = {
+   def enc_Int_PositiveInteger_ConstSize_big_endian_16(uintVal: ULong): Unit = {
       require(bitStream.validate_offset_bits(16))
-      require(intVal u_<= 65535)
+      require(uintVal <= 65535)
+      val intVal = uintVal.toRaw
       assert((intVal >> 16) == 0L)
       @ghost val this1 = snapshot(this)
-      appendByte(wrappingExpr { (intVal >> 8).toByte })
+      appendByte(wrappingExpr { (intVal >> 8).toByte.toRawUByte })
       @ghost val this2 = snapshot(this)
-      appendByte(wrappingExpr { intVal.toByte })
+      appendByte(wrappingExpr { intVal.toByte.toRawUByte })
       ghostExpr {
          // For isPrefix
          validTransitiveLemma(this1.base.bitStream, this2.base.bitStream, this.base.bitStream)
@@ -287,19 +291,20 @@ case class ACN(base: Codec) {
          val (r1, r3) = ACN.reader(w1, w3)
          validateOffsetBitsContentIrrelevancyLemma(w1.base.bitStream, w3.base.bitStream.buf, 16)
          val (r3Got, iGot) = r1.dec_Int_PositiveInteger_ConstSize_big_endian_16_pure()
-         iGot == intVal && r3Got == r3
+         iGot == uintVal && r3Got == r3
       }
    }
 
    @opaque @inlineOnce
-   def enc_Int_PositiveInteger_ConstSize_big_endian_32(intVal: ULong): Unit = {
+   def enc_Int_PositiveInteger_ConstSize_big_endian_32(uintVal: ULong): Unit = {
       require(bitStream.validate_offset_bits(32))
-      require(intVal u_<= 4294967295L)
+      require(uintVal <= 4294967295L)
+      val intVal = uintVal.toRaw
       assert((intVal >> 32) == 0L)
       @ghost val this1 = snapshot(this)
-      enc_Int_PositiveInteger_ConstSize_big_endian_16(wrappingExpr { (intVal >> 16) & 0xFFFFL })
+      enc_Int_PositiveInteger_ConstSize_big_endian_16(wrappingExpr { ((intVal >> 16) & 0xFFFFL).toRawULong })
       @ghost val this2 = snapshot(this)
-      enc_Int_PositiveInteger_ConstSize_big_endian_16(wrappingExpr { intVal & 0xFFFFL })
+      enc_Int_PositiveInteger_ConstSize_big_endian_16(wrappingExpr { (intVal & 0xFFFFL).toRawULong })
       ghostExpr {
          // For isPrefix
          validTransitiveLemma(this1.base.bitStream, this2.base.bitStream, this.base.bitStream)
@@ -314,17 +319,18 @@ case class ACN(base: Codec) {
          val (r1, r3) = ACN.reader(w1, w3)
          validateOffsetBitsContentIrrelevancyLemma(w1.base.bitStream, w3.base.bitStream.buf, 32)
          val (r3Got, iGot) = r1.dec_Int_PositiveInteger_ConstSize_big_endian_32_pure()
-         iGot == intVal && r3Got == r3
+         iGot == uintVal && r3Got == r3
       }
    }
 
    @opaque @inlineOnce
-   def enc_Int_PositiveInteger_ConstSize_big_endian_64(intVal: ULong): Unit = {
+   def enc_Int_PositiveInteger_ConstSize_big_endian_64(uintVal: ULong): Unit = {
       require(bitStream.validate_offset_bits(64))
+      val intVal = uintVal.toRaw
       @ghost val this1 = snapshot(this)
-      enc_Int_PositiveInteger_ConstSize_big_endian_32(wrappingExpr { (intVal >> 32) & 0xFFFFFFFFL })
+      enc_Int_PositiveInteger_ConstSize_big_endian_32(wrappingExpr { ((intVal >> 32) & 0xFFFFFFFFL).toRawULong })
       @ghost val this2 = snapshot(this)
-      enc_Int_PositiveInteger_ConstSize_big_endian_32(wrappingExpr { intVal & 0xFFFFFFFFL })
+      enc_Int_PositiveInteger_ConstSize_big_endian_32(wrappingExpr { (intVal & 0xFFFFFFFFL).toRawULong })
       ghostExpr {
          // For isPrefix
          validTransitiveLemma(this1.base.bitStream, this2.base.bitStream, this.base.bitStream)
@@ -339,20 +345,20 @@ case class ACN(base: Codec) {
          val (r1, r3) = ACN.reader(w1, w3)
          validateOffsetBitsContentIrrelevancyLemma(w1.base.bitStream, w3.base.bitStream.buf, 64)
          val (r3Got, iGot) = r1.dec_Int_PositiveInteger_ConstSize_big_endian_64_pure()
-         iGot == intVal && r3Got == r3
+         iGot == uintVal && r3Got == r3
       }
    }
 
    @opaque @inlineOnce
-   def enc_Int_PositiveInteger_ConstSize_little_endian_16(intVal: ULong): Unit = {
+   def enc_Int_PositiveInteger_ConstSize_little_endian_16(uintVal: ULong): Unit = {
       require(bitStream.validate_offset_bits(16))
-      require(intVal u_<= 65535)
+      require(uintVal <= 65535)
+      val intVal = uintVal.toRaw
       assert((intVal >> 16) == 0L)
-
       @ghost val this1 = snapshot(this)
-      appendByte(wrappingExpr { intVal.toByte })
+      appendByte(wrappingExpr { intVal.toUByte })
       @ghost val this2 = snapshot(this)
-      appendByte(wrappingExpr { (intVal >> 8).toByte })
+      appendByte(wrappingExpr { (intVal >> 8).toUByte })
       ghostExpr {
          // For isPrefix
          validTransitiveLemma(this1.base.bitStream, this2.base.bitStream, this.base.bitStream)
@@ -367,19 +373,20 @@ case class ACN(base: Codec) {
          val (r1, r3) = ACN.reader(w1, w3)
          validateOffsetBitsContentIrrelevancyLemma(w1.base.bitStream, w3.base.bitStream.buf, 16)
          val (r3Got, iGot) = r1.dec_Int_PositiveInteger_ConstSize_little_endian_16_pure()
-         iGot == intVal && r3Got == r3
+         iGot == uintVal && r3Got == r3
       }
    }
 
    @opaque @inlineOnce
-   def enc_Int_PositiveInteger_ConstSize_little_endian_32(intVal: ULong): Unit = {
+   def enc_Int_PositiveInteger_ConstSize_little_endian_32(uintVal: ULong): Unit = {
       require(bitStream.validate_offset_bits(32))
-      require(intVal u_<= 4294967295L)
+      require(uintVal <= 4294967295L)
+      val intVal = uintVal.toRaw
       assert((intVal >> 32) == 0L)
       @ghost val this1 = snapshot(this)
-      enc_Int_PositiveInteger_ConstSize_little_endian_16(wrappingExpr { intVal & 0xFFFFL })
+      enc_Int_PositiveInteger_ConstSize_little_endian_16(wrappingExpr { (intVal & 0xFFFFL).toRawULong })
       @ghost val this2 = snapshot(this)
-      enc_Int_PositiveInteger_ConstSize_little_endian_16(wrappingExpr { (intVal >> 16) & 0xFFFFL })
+      enc_Int_PositiveInteger_ConstSize_little_endian_16(wrappingExpr { ((intVal >> 16) & 0xFFFFL).toRawULong })
       ghostExpr {
          // For isPrefix
          validTransitiveLemma(this1.base.bitStream, this2.base.bitStream, this.base.bitStream)
@@ -394,17 +401,18 @@ case class ACN(base: Codec) {
          val (r1, r3) = ACN.reader(w1, w3)
          validateOffsetBitsContentIrrelevancyLemma(w1.base.bitStream, w3.base.bitStream.buf, 32)
          val (r3Got, iGot) = r1.dec_Int_PositiveInteger_ConstSize_little_endian_32_pure()
-         iGot == intVal && r3Got == r3
+         iGot == uintVal && r3Got == r3
       }
    }
 
    @opaque @inlineOnce
-   def enc_Int_PositiveInteger_ConstSize_little_endian_64(intVal: ULong): Unit = {
+   def enc_Int_PositiveInteger_ConstSize_little_endian_64(uintVal: ULong): Unit = {
       require(bitStream.validate_offset_bits(64))
+      val intVal = uintVal.toRaw
       @ghost val this1 = snapshot(this)
-      enc_Int_PositiveInteger_ConstSize_little_endian_32(wrappingExpr { intVal & 0xFFFFFFFFL })
+      enc_Int_PositiveInteger_ConstSize_little_endian_32(wrappingExpr { (intVal & 0xFFFFFFFFL).toRawULong })
       @ghost val this2 = snapshot(this)
-      enc_Int_PositiveInteger_ConstSize_little_endian_32(wrappingExpr { (intVal >> 32) & 0xFFFFFFFFL })
+      enc_Int_PositiveInteger_ConstSize_little_endian_32(wrappingExpr { ((intVal >> 32) & 0xFFFFFFFFL).toRawULong })
       ghostExpr {
          // For isPrefix
          validTransitiveLemma(this1.base.bitStream, this2.base.bitStream, this.base.bitStream)
@@ -419,7 +427,7 @@ case class ACN(base: Codec) {
          val (r1, r3) = ACN.reader(w1, w3)
          validateOffsetBitsContentIrrelevancyLemma(w1.base.bitStream, w3.base.bitStream.buf, 64)
          val (r3Got, iGot) = r1.dec_Int_PositiveInteger_ConstSize_little_endian_64_pure()
-         iGot == intVal && r3Got == r3
+         iGot == uintVal && r3Got == r3
       }
    }
 
@@ -429,14 +437,14 @@ case class ACN(base: Codec) {
 
    def dec_Int_PositiveInteger_ConstSize_8(): ULong = {
       require(bitStream.validate_offset_byte())
-      readByte().unsignedToInt
+      (readByte().toRaw & 0xFF).toULong
    }
 
    def dec_Int_PositiveInteger_ConstSize_big_endian_16(): ULong = {
       require(bitStream.validate_offset_bits(16))
-      val b1 = readByte()
-      val b2 = readByte()
-      ((b1.toLong << 8) & 0xFF00L) | (b2.toLong & 0xFFL)
+      val b1 = readByte().toRaw
+      val b2 = readByte().toRaw
+      ULong.fromRaw((((b1.toLong << 8) & 0xFF00L) | (b2.toLong & 0xFFL)) & 0xFFFFL)
    }.ensuring(_ => bitStream.buf == old(this).base.bitStream.buf && bitStream.bitIndex() == old(this).base.bitStream.bitIndex() + 16)
 
    @ghost @pure
@@ -449,9 +457,9 @@ case class ACN(base: Codec) {
 
    def dec_Int_PositiveInteger_ConstSize_big_endian_32(): ULong = {
       require(bitStream.validate_offset_bits(32))
-      val i1 = dec_Int_PositiveInteger_ConstSize_big_endian_16()
-      val i2 = dec_Int_PositiveInteger_ConstSize_big_endian_16()
-      ((i1.toLong << 16) & 0xFFFF0000L) | (i2.toLong & 0xFFFFL)
+      val i1 = dec_Int_PositiveInteger_ConstSize_big_endian_16().toRaw
+      val i2 = dec_Int_PositiveInteger_ConstSize_big_endian_16().toRaw
+      ULong.fromRaw((((i1.toLong << 16) & 0xFFFF0000L) | (i2.toLong & 0xFFFFL)) & 0xFFFFFFFFL)
    }.ensuring(_ => bitStream.buf == old(this).base.bitStream.buf && bitStream.bitIndex() == old(this).base.bitStream.bitIndex() + 32)
 
    @ghost @pure
@@ -464,9 +472,9 @@ case class ACN(base: Codec) {
 
    def dec_Int_PositiveInteger_ConstSize_big_endian_64(): ULong = {
       require(bitStream.validate_offset_bits(64))
-      val i1 = dec_Int_PositiveInteger_ConstSize_big_endian_32()
-      val i2 = dec_Int_PositiveInteger_ConstSize_big_endian_32()
-      ((i1.toLong << 32) & 0xFFFFFFFF00000000L) | (i2.toLong & 0xFFFFFFFFL)
+      val i1 = dec_Int_PositiveInteger_ConstSize_big_endian_32().toRaw
+      val i2 = dec_Int_PositiveInteger_ConstSize_big_endian_32().toRaw
+      ULong.fromRaw(((i1.toLong << 32) & 0xFFFFFFFF00000000L) | (i2.toLong & 0xFFFFFFFFL))
    }.ensuring(_ => bitStream.buf == old(this).base.bitStream.buf && bitStream.bitIndex() == old(this).base.bitStream.bitIndex() + 64)
 
    @ghost @pure
@@ -479,9 +487,9 @@ case class ACN(base: Codec) {
 
    def dec_Int_PositiveInteger_ConstSize_little_endian_16(): ULong = {
       require(bitStream.validate_offset_bits(16))
-      val b1 = readByte()
-      val b2 = readByte()
-      ((b2.toLong << 8) & 0xFF00L) | (b1.toLong & 0xFFL)
+      val b1 = readByte().toRaw
+      val b2 = readByte().toRaw
+      ULong.fromRaw((((b2.toLong << 8) & 0xFF00L) | (b1.toLong & 0xFFL)) & 0xFFFFL)
    }.ensuring(_ => bitStream.buf == old(this).base.bitStream.buf && bitStream.bitIndex() == old(this).base.bitStream.bitIndex() + 16)
 
    @ghost @pure
@@ -494,9 +502,9 @@ case class ACN(base: Codec) {
 
    def dec_Int_PositiveInteger_ConstSize_little_endian_32(): ULong = {
       require(bitStream.validate_offset_bits(32))
-      val i1 = dec_Int_PositiveInteger_ConstSize_little_endian_16()
-      val i2 = dec_Int_PositiveInteger_ConstSize_little_endian_16()
-      ((i2.toLong << 16) & 0xFFFF0000L) | (i1.toLong & 0xFFFFL)
+      val i1 = dec_Int_PositiveInteger_ConstSize_little_endian_16().toRaw
+      val i2 = dec_Int_PositiveInteger_ConstSize_little_endian_16().toRaw
+      ULong.fromRaw((((i2.toLong << 16) & 0xFFFF0000L) | (i1.toLong & 0xFFFFL)) & 0xFFFFFFFFL)
    }.ensuring(_ => bitStream.buf == old(this).base.bitStream.buf && bitStream.bitIndex() == old(this).base.bitStream.bitIndex() + 32)
 
    @ghost @pure
@@ -509,9 +517,9 @@ case class ACN(base: Codec) {
 
    def dec_Int_PositiveInteger_ConstSize_little_endian_64(): ULong = {
       require(bitStream.validate_offset_bits(64))
-      val i1 = dec_Int_PositiveInteger_ConstSize_little_endian_32()
-      val i2 = dec_Int_PositiveInteger_ConstSize_little_endian_32()
-      ((i2.toLong << 32) & 0xFFFFFFFF00000000L) | (i1.toLong & 0xFFFFFFFFL)
+      val i1 = dec_Int_PositiveInteger_ConstSize_little_endian_32().toRaw
+      val i2 = dec_Int_PositiveInteger_ConstSize_little_endian_32().toRaw
+      ULong.fromRaw(((i2.toLong << 32) & 0xFFFFFFFF00000000L) | (i1.toLong & 0xFFFFFFFFL))
    }.ensuring(_ => bitStream.buf == old(this).base.bitStream.buf && bitStream.bitIndex() == old(this).base.bitStream.bitIndex() + 64)
 
    @ghost @pure
@@ -526,29 +534,29 @@ case class ACN(base: Codec) {
       val MAX_BYTE_MASK = 0xFF00000000000000L
       assert(nBytes <= 8)
 
-      var vv: ULong = v << (NO_OF_BYTES_IN_JVM_LONG * 8 - nBytes * 8)
+      var vv = v.toRaw << (NO_OF_BYTES_IN_JVM_LONG * 8 - nBytes * 8)
 
       var i: Int = 0
       while i < nBytes do
-         val byteToEncode: Byte = ((vv & MAX_BYTE_MASK) >>> ((NO_OF_BYTES_IN_JVM_LONG - 1) * 8)).toByte
-         appendByte(byteToEncode)
+         val byteToEncode = ((vv & MAX_BYTE_MASK) >>> ((NO_OF_BYTES_IN_JVM_LONG - 1) * 8)).toByte
+         appendByte(byteToEncode.toRawUByte)
          vv <<= 8
          i += 1
    }
 
    def enc_Int_PositiveInteger_VarSize_LengthEmbedded(intVal: ULong): Unit = {
-      val nBytes: Byte = GetLengthForEncodingUnsigned(intVal).toByte
+      val nBytes = GetLengthForEncodingUnsigned(intVal).toByte
 
       /* encode length */
-      appendByte(nBytes)
+      appendByte(nBytes.toRawUByte)
       /* Encode integer data*/
       encode_UnsignedInteger(intVal, nBytes)
    }
 
    def dec_Int_PositiveInteger_VarSize_LengthEmbedded(): ULong = {
-      var v: ULong = 0
+      var v: Long = 0
 
-      val nBytes = readByte()
+      val nBytes = readByte().toRaw.toInt
       var i: Int = 0
 
       (while i < nBytes do
@@ -557,7 +565,7 @@ case class ACN(base: Codec) {
          i += 1
       ).invariant(true) // TODO invariant
 
-      v
+      ULong.fromRaw(v)
    }
 
    /**
@@ -634,7 +642,7 @@ case class ACN(base: Codec) {
          ).invariant(true) // TODO invariant
 
       if rstBits > 0 then
-          pIntVal = (pIntVal << rstBits) | (readPartialByte(rstBits.toByte) & 0xFF)
+          pIntVal = (pIntVal << rstBits) | (readPartialByte(rstBits.toByte).toRaw & 0xFF)
 
       pIntVal
    }
@@ -669,24 +677,24 @@ case class ACN(base: Codec) {
    }
 
    def enc_Int_TwosComplement_VarSize_LengthEmbedded(intVal: Long): Unit = {
-      val nBytes: Byte = GetLengthForEncodingSigned(intVal).toByte
+      val nBytes = GetLengthForEncodingSigned(intVal).toByte
 
       /* encode length */
-      appendByte(nBytes)
+      appendByte(nBytes.toRawUByte)
       /* Encode integer data*/
       encode_UnsignedInteger(int2uint(intVal), nBytes)
    }
 
    def dec_Int_TwosComplement_VarSize_LengthEmbedded(): Long = {
-      var v: ULong = 0
+      var v: Long = 0
       var isNegative: Boolean = false
 
-      val nBytes = readByte()
+      val nBytes = readByte().toRaw.toInt
 
       var i: Int = 0
       (while i < nBytes do
          decreases(nBytes - i)
-         val ub = readByte()
+         val ub = readByte().toRaw
 
          if i == 0 && (ub.unsignedToInt) > 0 then
             v = Long.MaxValue
@@ -704,7 +712,7 @@ case class ACN(base: Codec) {
 
    //return values is in nibbles
    def get_Int_Size_BCD(intVal: ULong): Int = {
-      var intVar = intVal
+      var intVar = intVal.toRaw
       var ret: Int = 0
       while intVar > 0 do
          intVar /= 10
@@ -715,9 +723,9 @@ case class ACN(base: Codec) {
 
 
    def enc_Int_BCD_ConstSize(intVal: ULong, encodedSizeInNibbles: Int): Unit = {
-      var intVar = intVal
+      var intVar = intVal.toRaw
       var totalNibbles: Int = 0
-      val tmp: Array[UByte] = Array.fill(100)(0)
+      val tmp: Array[Byte] = Array.fill(100)(0)
 
       assert(100 >= encodedSizeInNibbles)
 
@@ -730,13 +738,13 @@ case class ACN(base: Codec) {
 
       var i: Int = encodedSizeInNibbles - 1
       while i >= 0 do
-         appendPartialByte(tmp(i).toByte, 4)
+         appendPartialByte(tmp(i).toRawUByte, 4)
          i -= 1
    }
 
 
    def dec_Int_BCD_ConstSize(encodedSizeInNibbles: Int): ULong = {
-      var l: ULong = 0
+      var l: Long = 0
 
       var encodedSizeInNibblesVar = encodedSizeInNibbles
 
@@ -744,17 +752,17 @@ case class ACN(base: Codec) {
          decreases(encodedSizeInNibblesVar)
 
          l *= 10
-         l += readPartialByte(4)
+         l += readPartialByte(4).toRaw
          encodedSizeInNibblesVar -= 1
       ).invariant(true) // TODO invariant
-      l
+      ULong.fromRaw(l)
    }
 
 
    def enc_Int_BCD_VarSize_LengthEmbedded(intVal: ULong): Unit = {
       val nNibbles: Int = get_Int_Size_BCD(intVal)
       /* encode length */
-      appendByte(nNibbles.toByte)
+      appendByte(nNibbles.toByte.toRawUByte)
 
       /* Encode Number */
       enc_Int_BCD_ConstSize(intVal, nNibbles)
@@ -762,7 +770,7 @@ case class ACN(base: Codec) {
 
 
    def dec_Int_BCD_VarSize_LengthEmbedded(): ULong = {
-       dec_Int_BCD_ConstSize(readByte())
+       dec_Int_BCD_ConstSize(readByte().toRaw.toInt)
    }
 
 
@@ -774,27 +782,27 @@ case class ACN(base: Codec) {
       /* Encode Number */
       enc_Int_BCD_ConstSize(intVal, nNibbles)
 
-      appendPartialByte(0xF, 4)
+      appendPartialByte(0xF.toRawUByte, 4)
    }
 
    def dec_Int_BCD_VarSize_NullTerminated(): ULong = {
-      var l: ULong = 0
+      var l: Long = 0
 
       while true do
-          val digit = readPartialByte(4)
+          val digit = readPartialByte(4).toRaw
           if (digit > 9)
-            return l
+            return ULong.fromRaw(l)
 
           l *= 10
           l += digit
 
-      l
+      ULong.fromRaw(l)
    }
 
    def enc_UInt_ASCII_ConstSize(intVal: ULong, encodedSizeInBytes: Int): Unit = {
-      var intVar = intVal
+      var intVar = intVal.toRaw
       var totalNibbles: Int = 0
-      val tmp: Array[UByte] = Array.fill(100)(0)
+      val tmp: Array[Byte] = Array.fill(100)(0)
 
       assert(100 >= encodedSizeInBytes)
 
@@ -807,27 +815,27 @@ case class ACN(base: Codec) {
 
       var i = encodedSizeInBytes - 1
       while i >= 0 do
-         appendByte((tmp(i) + CHAR_ZERO).toByte)
+         appendByte((tmp(i) + CHAR_ZERO).toByte.toRawUByte)
          i -= 1
    }
 
 
    def enc_SInt_ASCII_ConstSize(intVal: Long, encodedSizeInBytes: Int): Unit = {
-      val absIntVal: ULong = if intVal >= 0 then intVal else -intVal
+      val absIntVal: ULong = (if intVal >= 0 then intVal else -intVal).toRawULong
 
       /* encode sign */
-      appendByte(if intVal >= 0 then CHAR_PLUS else CHAR_MINUS)
+      appendByte((if intVal >= 0 then CHAR_PLUS else CHAR_MINUS).toRawUByte)
 
       enc_UInt_ASCII_ConstSize(absIntVal, encodedSizeInBytes - 1)
    }
 
    def dec_UInt_ASCII_ConstSize(encodedSizeInBytes: Int): ULong = {
       var encodedSizeInBytesVar = encodedSizeInBytes
-      var ret: ULong = 0
+      var ret: Long = 0
 
       (while encodedSizeInBytesVar > 0 do
          decreases(encodedSizeInBytesVar)
-         val digit = readByte()
+         val digit = readByte().toRaw
 
          assert(digit >= CHAR_ZERO && digit <= CHAR_NINE)
 
@@ -837,11 +845,11 @@ case class ACN(base: Codec) {
          encodedSizeInBytesVar -= 1
       ).invariant(true) // TODO invariant
 
-      ret
+      ULong.fromRaw(ret)
    }
 
    def dec_SInt_ASCII_ConstSize(encodedSizeInBytes: Int): Long = {
-      val digit = readByte()
+      val digit = readByte().toRaw
 
       var sign: Int = 1
       if digit == CHAR_PLUS then
@@ -851,12 +859,12 @@ case class ACN(base: Codec) {
       else
          assert(false)
 
-      sign * dec_UInt_ASCII_ConstSize(encodedSizeInBytes - 1)
+      sign * dec_UInt_ASCII_ConstSize(encodedSizeInBytes - 1).toRaw
    }
 
 
    def getIntegerDigits(intVal: ULong): (Array[Byte], Byte) = {
-      var intVar = intVal
+      var intVar = intVal.toRaw
       val digitsArray100: Array[Byte] = Array.fill(100)(0)
       val reversedDigitsArray: Array[Byte] = Array.fill(100)(0)
       var totalDigits: Byte = 0
@@ -880,21 +888,20 @@ case class ACN(base: Codec) {
       (digitsArray100, totalDigits)
    }
 
-
    def enc_SInt_ASCII_VarSize_LengthEmbedded(intVal: Long): Unit = {
-      val absIntVal: ULong = if intVal >= 0 then intVal else -intVal
+      val absIntVal: ULong = (if intVal >= 0 then intVal else -intVal).toRawULong
       val (digitsArray100, nChars) = getIntegerDigits(absIntVal)
 
       /* encode length, plus 1 for sign */
-      appendByte((nChars + 1).toByte)
+      appendByte((nChars + 1).toByte.toRawUByte)
 
       /* encode sign */
-      appendByte(if intVal >= 0 then CHAR_PLUS else CHAR_MINUS)
+      appendByte((if intVal >= 0 then CHAR_PLUS else CHAR_MINUS).toRawUByte)
 
       /* encode digits */
       var i: Int = 0
       while i < 100 && digitsArray100(i) != 0x0 do
-         appendByte(digitsArray100(i))
+         appendByte(digitsArray100(i).toRawUByte)
          i += 1
    }
 
@@ -902,42 +909,42 @@ case class ACN(base: Codec) {
       val (digitsArray100, nChars) = getIntegerDigits(intVal)
 
       /* encode length */
-      appendByte(nChars)
+      appendByte(nChars.toRawUByte)
       /* encode digits */
       var i: Int = 0
       while i < 100 && digitsArray100(i) != 0x0 do
-         appendByte(digitsArray100(i))
+         appendByte(digitsArray100(i).toRawUByte)
          i += 1
    }
 
 
-   def dec_UInt_ASCII_VarSize_LengthEmbedded(): ULong = dec_UInt_ASCII_ConstSize(readByte())
-   def dec_SInt_ASCII_VarSize_LengthEmbedded(): Long = dec_SInt_ASCII_ConstSize(readByte())
+   def dec_UInt_ASCII_VarSize_LengthEmbedded(): ULong = dec_UInt_ASCII_ConstSize(readByte().toRaw)
+   def dec_SInt_ASCII_VarSize_LengthEmbedded(): Long = dec_SInt_ASCII_ConstSize(readByte().toRaw)
 
    def enc_UInt_ASCII_VarSize_NullTerminated(intVal: ULong, null_characters: Array[Byte], null_characters_size: Int): Unit = {
       val (digitsArray100, nChars) = getIntegerDigits(intVal)
 
       var i: Int = 0 // TODO: size_t?
       while i < 100 && digitsArray100(i) != 0x0 do
-         appendByte(digitsArray100(i))
+         appendByte(digitsArray100(i).toRawUByte)
          i += 1
 
       i = 0
       while i < null_characters_size do
-         appendByte(null_characters(i))
+         appendByte(null_characters(i).toRawUByte)
          i += 1
    }
 
    def enc_SInt_ASCII_VarSize_NullTerminated(intVal: Long, null_characters: Array[Byte], null_characters_size: Int): Unit = {
-      val absValue: ULong = if intVal >= 0 then intVal else -intVal
-      appendByte(if intVal >= 0 then CHAR_PLUS else CHAR_MINUS)
+      val absValue: ULong = (if intVal >= 0 then intVal else -intVal).toRawULong
+      appendByte((if intVal >= 0 then CHAR_PLUS else CHAR_MINUS).toRawUByte)
 
       enc_UInt_ASCII_VarSize_NullTerminated(absValue, null_characters, null_characters_size)
    }
 
    def dec_UInt_ASCII_VarSize_NullTerminated(null_characters: Array[Byte], null_characters_size: Int): ULong = {
       var digit: Byte = 0
-      var ret: ULong = 0
+      var ret: Long = 0
       val tmp: Array[Byte] = Array.fill(10)(0)
 
       val sz: Int = if null_characters_size < 10 then null_characters_size else 10
@@ -946,7 +953,7 @@ case class ACN(base: Codec) {
       var j: Int = 0
       (while j < null_characters_size do
          decreases(null_characters_size - j)
-         tmp(j) = readByte()
+         tmp(j) = readByte().toRaw
          j += 1
       ).invariant(true) // TODO invariant
 
@@ -960,33 +967,33 @@ case class ACN(base: Codec) {
             tmp(j) = tmp(j + 1)
             j += 1
 
-         tmp(null_characters_size - 1) = readByte()
+         tmp(null_characters_size - 1) = readByte().toRaw
 
          digit = (digit - CHAR_ZERO).toByte
 
          ret *= 10
          ret += digit
 
-      ret
+      ULong.fromRaw(ret)
    }
 
 
    def dec_SInt_ASCII_VarSize_NullTerminated(null_characters: Array[Byte], null_characters_size: Int): Long = {
       var isNegative: Boolean = false
 
-      val digit = readByte()
+      val digit = readByte().toRaw
       assert(digit == CHAR_MINUS || digit == CHAR_PLUS)
       if digit == CHAR_MINUS then
          isNegative = true
 
-      val ul = dec_UInt_ASCII_VarSize_NullTerminated(null_characters, null_characters_size)
+      val ul = dec_UInt_ASCII_VarSize_NullTerminated(null_characters, null_characters_size).toRaw
       if isNegative then -ul else ul
    }
 
 
    /* Boolean Decode */
    // TODO move to codec?
-   def BitStream_ReadBitPattern(patternToRead: Array[Byte], nBitsToRead: Int): Boolean = {
+   def BitStream_ReadBitPattern(patternToRead: Array[UByte], nBitsToRead: Int): Boolean = {
       val nBytesToRead: Int = nBitsToRead / 8
       val nRemainingBitsToRead: Int = nBitsToRead % 8
 
@@ -1000,7 +1007,7 @@ case class ACN(base: Codec) {
       ).invariant(true) // TODO
 
       if nRemainingBitsToRead > 0 then
-         if readPartialByte(nRemainingBitsToRead.toByte) != ((patternToRead(nBytesToRead) & 0xFF) >>> (8 - nRemainingBitsToRead)) then
+         if readPartialByte(nRemainingBitsToRead.toByte).toRaw != ((patternToRead(nBytesToRead).toRaw & 0xFF) >>> (8 - nRemainingBitsToRead)) then
             pBoolValue = false
 
       pBoolValue
@@ -1030,7 +1037,7 @@ case class ACN(base: Codec) {
 
       var i: Int = 0
       while i < NO_OF_BYTES_IN_JVM_FLOAT do
-         appendByte(b(i))
+         appendByte(b(i).toRawUByte)
          i += 1
    }
 
@@ -1040,7 +1047,7 @@ case class ACN(base: Codec) {
 
       var i: Int = NO_OF_BYTES_IN_JVM_FLOAT - 1
       while i >= 0 do
-         appendByte(b(i))
+         appendByte(b(i).toRawUByte)
          i -= 1
    }
 
@@ -1050,7 +1057,7 @@ case class ACN(base: Codec) {
 
       var i: Int = 0
       while i < NO_OF_BYTES_IN_JVM_DOUBLE do
-         appendByte(b(i))
+         appendByte(b(i).toRawUByte)
          i += 1
    }
 
@@ -1060,7 +1067,7 @@ case class ACN(base: Codec) {
 
       var i: Int = NO_OF_BYTES_IN_JVM_DOUBLE - 1
       while i >= 0 do
-         appendByte(b(i))
+         appendByte(b(i).toRawUByte)
          i -= 1
    }
 
@@ -1139,7 +1146,7 @@ case class ACN(base: Codec) {
 
    def enc_String_Ascii_private(max: Long, strVal: Array[ASCIIChar]): Long = {
       var i: Long = 0
-      while (i < max) && (strVal(i.toInt) != CHAR_0000) do
+      while (i < max) && (strVal(i.toInt).toRaw != CHAR_0000) do
          appendByte(strVal(i.toInt))
          i += 1
 
@@ -1148,14 +1155,14 @@ case class ACN(base: Codec) {
 
    def enc_String_Ascii_Null_Terminated(max: Long, null_character: Byte, strVal: Array[ASCIIChar]): Unit = {
       enc_String_Ascii_private(max, strVal)
-      appendByte(null_character.toByte)
+      appendByte(null_character.toByte.toRawUByte)
    }
 
    def enc_String_Ascii_Null_Terminated_mult(max: Long, null_character: Array[Byte], null_character_size: Int, strVal: Array[ASCIIChar]): Unit = {
       enc_String_Ascii_private(max, strVal)
       var i: Int = 0
       while i < null_character_size do
-         appendByte(null_character(i))
+         appendByte(null_character(i).toRawUByte)
          i += 1
    }
 
@@ -1170,7 +1177,7 @@ case class ACN(base: Codec) {
       enc_String_Ascii_private(max, strVal)
    }
 
-   def enc_String_CharIndex_FixSize(max: Long, allowedCharSet: Array[Byte], strVal: Array[ASCIIChar]): Unit = {
+   def enc_String_CharIndex_FixSize(max: Long, allowedCharSet: Array[UByte], strVal: Array[ASCIIChar]): Unit = {
       var i: Int = 0
       while i < max do
          val charIndex: Int = GetCharIndex(strVal(i), allowedCharSet)
@@ -1178,9 +1185,9 @@ case class ACN(base: Codec) {
          i += 1
    }
 
-   def enc_String_CharIndex_private(max: Long, allowedCharSet: Array[Byte], strVal: Array[ASCIIChar]): Long = {
+   def enc_String_CharIndex_private(max: Long, allowedCharSet: Array[UByte], strVal: Array[ASCIIChar]): Long = {
       var i: Int = 0
-      while (i < max) && (strVal(i) != CHAR_0000) do
+      while (i < max) && (strVal(i).toRaw != CHAR_0000) do
          val charIndex: Int = GetCharIndex(strVal(i), allowedCharSet)
          encodeConstrainedWholeNumber(charIndex, 0, allowedCharSet.length - 1)
          i += 1
@@ -1189,11 +1196,11 @@ case class ACN(base: Codec) {
    }
 
 
-   def enc_String_CharIndex_External_Field_Determinant(max: Long, allowedCharSet: Array[Byte], strVal: Array[ASCIIChar]): Unit = {
+   def enc_String_CharIndex_External_Field_Determinant(max: Long, allowedCharSet: Array[UByte], strVal: Array[ASCIIChar]): Unit = {
       enc_String_CharIndex_private(max, allowedCharSet, strVal)
    }
 
-   def enc_String_CharIndex_Internal_Field_Determinant(max: Long, allowedCharSet: Array[Byte], min: Long, strVal: Array[ASCIIChar]): Unit = {
+   def enc_String_CharIndex_Internal_Field_Determinant(max: Long, allowedCharSet: Array[UByte], min: Long, strVal: Array[ASCIIChar]): Unit = {
       val strLen: Int = strVal.length
       encodeConstrainedWholeNumber(if strLen <= max then strLen else max, min, max)
       enc_String_CharIndex_private(max, allowedCharSet, strVal)
@@ -1201,7 +1208,7 @@ case class ACN(base: Codec) {
 
 
    def enc_IA5String_CharIndex_External_Field_Determinant(max: Long, strVal: Array[ASCIIChar]): Unit = {
-      val allowedCharSet: Array[ASCIIChar] = Array(
+      val allowedCharSet: Array[Byte] = Array(
          0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09,
          0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10, 0x11, 0x12, 0x13,
          0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D,
@@ -1217,11 +1224,11 @@ case class ACN(base: Codec) {
          0x78, 0x79, 0x7A, 0x7B, 0x7C, 0x7D, 0x7E, 0x7F
       )
 
-      enc_String_CharIndex_private(max, allowedCharSet, strVal)
+      enc_String_CharIndex_private(max, UByte.fromArrayRaws(allowedCharSet), strVal)
    }
 
    def enc_IA5String_CharIndex_Internal_Field_Determinant(max: Long, min: Long, strVal: Array[ASCIIChar]): Unit = {
-      val allowedCharSet: Array[ASCIIChar] = Array(
+      val allowedCharSet: Array[Byte] = Array(
          0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09,
          0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10, 0x11, 0x12, 0x13,
          0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D,
@@ -1238,16 +1245,16 @@ case class ACN(base: Codec) {
       )
       val strLen: Int = strVal.length
       encodeConstrainedWholeNumber(if strLen <= max then strLen else max, min, max)
-      enc_String_CharIndex_private(max, allowedCharSet, strVal)
+      enc_String_CharIndex_private(max, UByte.fromArrayRaws(allowedCharSet), strVal)
    }
 
 
    def dec_String_Ascii_private(max: Long, charactersToDecode: Long): Array[ASCIIChar] = {
-      val strVal: Array[ASCIIChar] = Array.fill(max.toInt + 1)(0)
+      val strVal: Array[ASCIIChar] = Array.fill(max.toInt + 1)(0.toRawUByte)
       var i: Int = 0
       (while i < charactersToDecode do
          decreases(charactersToDecode - i)
-          strVal(i) = readByte()
+         strVal(i) = readByte()
          i += 1
       ).invariant(true) // TODO
 
@@ -1260,7 +1267,7 @@ case class ACN(base: Codec) {
    }
 
    def dec_String_Ascii_Null_Terminated(max: Long, null_character: ASCIIChar): Array[ASCIIChar] = {
-      val strVal: Array[ASCIIChar] = Array.fill(max.toInt + 1)(0)
+      val strVal: Array[ASCIIChar] = Array.fill(max.toInt + 1)(0.toRawUByte)
       var endReached = false
       var i: Int = 0
       (while i <= max && endReached do
@@ -1269,7 +1276,7 @@ case class ACN(base: Codec) {
             strVal(i) = decodedCharacter
             i += 1
          else
-            strVal(i) = 0x0
+            strVal(i) = 0x0.toRawUByte
             endReached = true
       ).invariant(true) // TODO
 
@@ -1277,8 +1284,8 @@ case class ACN(base: Codec) {
    }
 
    def dec_String_Ascii_Null_Terminated_mult(max: Long, null_character: Array[ASCIIChar], null_character_size: Int): Array[ASCIIChar] = {
-      val tmp: Array[Byte] = Array.fill(null_character_size)(0)
-      val strVal: Array[ASCIIChar] = Array.fill(max.toInt + 1)(0)
+      val tmp: Array[UByte] = Array.fill(null_character_size)(0.toRawUByte)
+      val strVal: Array[ASCIIChar] = Array.fill(max.toInt + 1)(0.toRawUByte)
       //read null_character_size characters into the tmp buffer
 
       var j: Int = 0
@@ -1300,7 +1307,7 @@ case class ACN(base: Codec) {
          ).invariant(true) // TODO
          tmp(null_character_size - 1) = readByte()
 
-      strVal(i) = 0x0
+      strVal(i) = 0x0.toRawUByte
 
       assert(arraySameElements(null_character, tmp))
 
@@ -1317,8 +1324,8 @@ case class ACN(base: Codec) {
       dec_String_Ascii_private(max, if nCount <= max then nCount else max)
    }
 
-   def dec_String_CharIndex_private(max: Long, charactersToDecode: Long, allowedCharSet: Array[Byte]): Array[ASCIIChar] = {
-      val strVal: Array[ASCIIChar] = Array.fill(max.toInt + 1)(0)
+   def dec_String_CharIndex_private(max: Long, charactersToDecode: Long, allowedCharSet: Array[UByte]): Array[ASCIIChar] = {
+      val strVal: Array[ASCIIChar] = Array.fill(max.toInt + 1)(0.toRawUByte)
       var i: Int = 0
       (while i < charactersToDecode do
          decreases(charactersToDecode - i)
@@ -1345,7 +1352,7 @@ case class ACN(base: Codec) {
 
 
    def dec_IA5String_CharIndex_External_Field_Determinant(max: Long, extSizeDeterminantFld: Long): Array[ASCIIChar] = {
-      val allowedCharSet: Array[ASCIIChar] = Array(
+      val allowedCharSet: Array[Byte] = Array(
          0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09,
          0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10, 0x11, 0x12, 0x13,
          0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D,
@@ -1360,11 +1367,11 @@ case class ACN(base: Codec) {
          0x6E, 0x6F, 0x70, 0x71, 0x72, 0x73, 0x74, 0x75, 0x76, 0x77,
          0x78, 0x79, 0x7A, 0x7B, 0x7C, 0x7D, 0x7E, 0x7F
       )
-      dec_String_CharIndex_private(max, if extSizeDeterminantFld <= max then extSizeDeterminantFld else max, allowedCharSet)
+      dec_String_CharIndex_private(max, if extSizeDeterminantFld <= max then extSizeDeterminantFld else max, UByte.fromArrayRaws(allowedCharSet))
    }
 
    def dec_IA5String_CharIndex_Internal_Field_Determinant(max: Long, min: Long): Array[ASCIIChar] = {
-      val allowedCharSet: Array[ASCIIChar] = Array(
+      val allowedCharSet: Array[Byte] = Array(
          0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09,
          0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10, 0x11, 0x12, 0x13,
          0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D,
@@ -1380,7 +1387,7 @@ case class ACN(base: Codec) {
          0x78, 0x79, 0x7A, 0x7B, 0x7C, 0x7D, 0x7E, 0x7F
       )
       val nCount = decodeConstrainedWholeNumber(min, max)
-      dec_String_CharIndex_private(max, if nCount <= max then nCount else max, allowedCharSet)
+      dec_String_CharIndex_private(max, if nCount <= max then nCount else max, UByte.fromArrayRaws(allowedCharSet))
    }
 
 
@@ -1402,29 +1409,29 @@ case class ACN(base: Codec) {
       if v == 0 then 32 else v
    }
 
-   def dec_Int_PositiveInteger_ConstSizeUInt8(encodedSizeInBits: Int): UByte = dec_Int_PositiveInteger_ConstSize(encodedSizeInBits).toByte
-   def dec_Int_PositiveInteger_ConstSizeUInt16(encodedSizeInBits: Int): UShort = dec_Int_PositiveInteger_ConstSize(encodedSizeInBits).toShort
-   def dec_Int_PositiveInteger_ConstSizeUInt32(encodedSizeInBits: Int): UInt = dec_Int_PositiveInteger_ConstSize(encodedSizeInBits).toInt
-   def dec_Int_PositiveInteger_ConstSize_8UInt8(): UByte = dec_Int_PositiveInteger_ConstSize_8().toByte
-   def dec_Int_PositiveInteger_ConstSize_big_endian_16UInt16(): UShort = dec_Int_PositiveInteger_ConstSize_big_endian_16().toShort
-   def dec_Int_PositiveInteger_ConstSize_big_endian_16UInt8(): UByte = dec_Int_PositiveInteger_ConstSize_big_endian_16().toByte
-   def dec_Int_PositiveInteger_ConstSize_big_endian_32UInt32(): UInt = dec_Int_PositiveInteger_ConstSize_big_endian_32().toInt
-   def dec_Int_PositiveInteger_ConstSize_big_endian_32UInt16(): UShort = dec_Int_PositiveInteger_ConstSize_big_endian_32().toShort
-   def dec_Int_PositiveInteger_ConstSize_big_endian_32UInt8(): UByte = dec_Int_PositiveInteger_ConstSize_big_endian_32().toByte
-   def dec_Int_PositiveInteger_ConstSize_big_endian_64UInt32(): UInt = dec_Int_PositiveInteger_ConstSize_big_endian_64().toInt
-   def dec_Int_PositiveInteger_ConstSize_big_endian_64UInt16(): UShort = dec_Int_PositiveInteger_ConstSize_big_endian_64().toShort
-   def dec_Int_PositiveInteger_ConstSize_big_endian_64UInt8(): UByte = dec_Int_PositiveInteger_ConstSize_big_endian_64().toByte
-   def dec_Int_PositiveInteger_ConstSize_little_endian_16UInt16(): UShort = dec_Int_PositiveInteger_ConstSize_little_endian_16().toShort
-   def dec_Int_PositiveInteger_ConstSize_little_endian_16UInt8(): UByte = dec_Int_PositiveInteger_ConstSize_little_endian_16().toByte
-   def dec_Int_PositiveInteger_ConstSize_little_endian_32UInt32(): UInt = dec_Int_PositiveInteger_ConstSize_little_endian_32().toInt
-   def dec_Int_PositiveInteger_ConstSize_little_endian_32UInt16(): UShort = dec_Int_PositiveInteger_ConstSize_little_endian_32().toShort
-   def dec_Int_PositiveInteger_ConstSize_little_endian_32UInt8(): UByte = dec_Int_PositiveInteger_ConstSize_little_endian_32().toByte
-   def dec_Int_PositiveInteger_ConstSize_little_endian_64UInt32(): UInt = dec_Int_PositiveInteger_ConstSize_little_endian_64().toInt
-   def dec_Int_PositiveInteger_ConstSize_little_endian_64UInt16(): UShort = dec_Int_PositiveInteger_ConstSize_little_endian_64().toShort
-   def dec_Int_PositiveInteger_ConstSize_little_endian_64UInt8(): UByte = dec_Int_PositiveInteger_ConstSize_little_endian_64().toByte
-   def dec_Int_PositiveInteger_VarSize_LengthEmbeddedUInt8(): UByte = dec_Int_PositiveInteger_VarSize_LengthEmbedded().toByte
-   def dec_Int_PositiveInteger_VarSize_LengthEmbeddedUInt16(): UShort = dec_Int_PositiveInteger_VarSize_LengthEmbedded().toShort
-   def dec_Int_PositiveInteger_VarSize_LengthEmbeddedUInt32(): UInt = dec_Int_PositiveInteger_VarSize_LengthEmbedded().toInt
+   def dec_Int_PositiveInteger_ConstSizeUInt8(encodedSizeInBits: Int): UByte = dec_Int_PositiveInteger_ConstSize(encodedSizeInBits).toUByte
+   def dec_Int_PositiveInteger_ConstSizeUInt16(encodedSizeInBits: Int): UShort = dec_Int_PositiveInteger_ConstSize(encodedSizeInBits).toUShort
+   def dec_Int_PositiveInteger_ConstSizeUInt32(encodedSizeInBits: Int): UInt = dec_Int_PositiveInteger_ConstSize(encodedSizeInBits).toUInt
+   def dec_Int_PositiveInteger_ConstSize_8UInt8(): UByte = dec_Int_PositiveInteger_ConstSize_8().toUByte
+   def dec_Int_PositiveInteger_ConstSize_big_endian_16UInt16(): UShort = dec_Int_PositiveInteger_ConstSize_big_endian_16().toUShort
+   def dec_Int_PositiveInteger_ConstSize_big_endian_16UInt8(): UByte = dec_Int_PositiveInteger_ConstSize_big_endian_16().toUByte
+   def dec_Int_PositiveInteger_ConstSize_big_endian_32UInt32(): UInt = dec_Int_PositiveInteger_ConstSize_big_endian_32().toUInt
+   def dec_Int_PositiveInteger_ConstSize_big_endian_32UInt16(): UShort = dec_Int_PositiveInteger_ConstSize_big_endian_32().toUShort
+   def dec_Int_PositiveInteger_ConstSize_big_endian_32UInt8(): UByte = dec_Int_PositiveInteger_ConstSize_big_endian_32().toUByte
+   def dec_Int_PositiveInteger_ConstSize_big_endian_64UInt32(): UInt = dec_Int_PositiveInteger_ConstSize_big_endian_64().toUInt
+   def dec_Int_PositiveInteger_ConstSize_big_endian_64UInt16(): UShort = dec_Int_PositiveInteger_ConstSize_big_endian_64().toUShort
+   def dec_Int_PositiveInteger_ConstSize_big_endian_64UInt8(): UByte = dec_Int_PositiveInteger_ConstSize_big_endian_64().toUByte
+   def dec_Int_PositiveInteger_ConstSize_little_endian_16UInt16(): UShort = dec_Int_PositiveInteger_ConstSize_little_endian_16().toUShort
+   def dec_Int_PositiveInteger_ConstSize_little_endian_16UInt8(): UByte = dec_Int_PositiveInteger_ConstSize_little_endian_16().toUByte
+   def dec_Int_PositiveInteger_ConstSize_little_endian_32UInt32(): UInt = dec_Int_PositiveInteger_ConstSize_little_endian_32().toUInt
+   def dec_Int_PositiveInteger_ConstSize_little_endian_32UInt16(): UShort = dec_Int_PositiveInteger_ConstSize_little_endian_32().toUShort
+   def dec_Int_PositiveInteger_ConstSize_little_endian_32UInt8(): UByte = dec_Int_PositiveInteger_ConstSize_little_endian_32().toUByte
+   def dec_Int_PositiveInteger_ConstSize_little_endian_64UInt32(): UInt = dec_Int_PositiveInteger_ConstSize_little_endian_64().toUInt
+   def dec_Int_PositiveInteger_ConstSize_little_endian_64UInt16(): UShort = dec_Int_PositiveInteger_ConstSize_little_endian_64().toUShort
+   def dec_Int_PositiveInteger_ConstSize_little_endian_64UInt8(): UByte = dec_Int_PositiveInteger_ConstSize_little_endian_64().toUByte
+   def dec_Int_PositiveInteger_VarSize_LengthEmbeddedUInt8(): UByte = dec_Int_PositiveInteger_VarSize_LengthEmbedded().toUByte
+   def dec_Int_PositiveInteger_VarSize_LengthEmbeddedUInt16(): UShort = dec_Int_PositiveInteger_VarSize_LengthEmbedded().toUShort
+   def dec_Int_PositiveInteger_VarSize_LengthEmbeddedUInt32(): UInt = dec_Int_PositiveInteger_VarSize_LengthEmbedded().toUInt
    def dec_Int_TwosComplement_ConstSizeInt8(encodedSizeInBits: Int): Byte = dec_Int_TwosComplement_ConstSize(encodedSizeInBits).toByte
    def dec_Int_TwosComplement_ConstSizeInt16(encodedSizeInBits: Int): Short = dec_Int_TwosComplement_ConstSize(encodedSizeInBits).toShort
    def dec_Int_TwosComplement_ConstSizeInt32(encodedSizeInBits: Int): Int = dec_Int_TwosComplement_ConstSize(encodedSizeInBits).toInt
@@ -1448,15 +1455,15 @@ case class ACN(base: Codec) {
    def dec_Int_TwosComplement_VarSize_LengthEmbeddedInt8(): Byte = dec_Int_TwosComplement_VarSize_LengthEmbedded().toByte
    def dec_Int_TwosComplement_VarSize_LengthEmbeddedInt16(): Short = dec_Int_TwosComplement_VarSize_LengthEmbedded().toShort
    def dec_Int_TwosComplement_VarSize_LengthEmbeddedInt32(): Int = dec_Int_TwosComplement_VarSize_LengthEmbedded().toInt
-   def dec_Int_BCD_ConstSizeUInt8(encodedSizeInNibbles: Int): UByte = dec_Int_BCD_ConstSize(encodedSizeInNibbles).toByte
-   def dec_Int_BCD_ConstSizeUInt16(encodedSizeInNibbles: Int): UShort = dec_Int_BCD_ConstSize(encodedSizeInNibbles).toShort
-   def dec_Int_BCD_ConstSizeUInt32(encodedSizeInNibbles: Int): UInt = dec_Int_BCD_ConstSize(encodedSizeInNibbles).toInt
-   def dec_Int_BCD_VarSize_LengthEmbeddedUInt8(): UByte = dec_Int_BCD_VarSize_LengthEmbedded().toByte
-   def dec_Int_BCD_VarSize_LengthEmbeddedUInt16(): UShort = dec_Int_BCD_VarSize_LengthEmbedded().toShort
-   def dec_Int_BCD_VarSize_LengthEmbeddedUInt32(): UInt = dec_Int_BCD_VarSize_LengthEmbedded().toInt
-   def dec_Int_BCD_VarSize_NullTerminatedUInt8(): UByte = dec_Int_BCD_VarSize_NullTerminated().toByte
-   def dec_Int_BCD_VarSize_NullTerminatedUInt16(): UShort = dec_Int_BCD_VarSize_NullTerminated().toShort
-   def dec_Int_BCD_VarSize_NullTerminatedUInt32(): UInt = dec_Int_BCD_VarSize_NullTerminated().toInt
+   def dec_Int_BCD_ConstSizeUInt8(encodedSizeInNibbles: Int): UByte = dec_Int_BCD_ConstSize(encodedSizeInNibbles).toUByte
+   def dec_Int_BCD_ConstSizeUInt16(encodedSizeInNibbles: Int): UShort = dec_Int_BCD_ConstSize(encodedSizeInNibbles).toUShort
+   def dec_Int_BCD_ConstSizeUInt32(encodedSizeInNibbles: Int): UInt = dec_Int_BCD_ConstSize(encodedSizeInNibbles).toUInt
+   def dec_Int_BCD_VarSize_LengthEmbeddedUInt8(): UByte = dec_Int_BCD_VarSize_LengthEmbedded().toUByte
+   def dec_Int_BCD_VarSize_LengthEmbeddedUInt16(): UShort = dec_Int_BCD_VarSize_LengthEmbedded().toUShort
+   def dec_Int_BCD_VarSize_LengthEmbeddedUInt32(): UInt = dec_Int_BCD_VarSize_LengthEmbedded().toUInt
+   def dec_Int_BCD_VarSize_NullTerminatedUInt8(): UByte = dec_Int_BCD_VarSize_NullTerminated().toUByte
+   def dec_Int_BCD_VarSize_NullTerminatedUInt16(): UShort = dec_Int_BCD_VarSize_NullTerminated().toUShort
+   def dec_Int_BCD_VarSize_NullTerminatedUInt32(): UInt = dec_Int_BCD_VarSize_NullTerminated().toUInt
    def dec_SInt_ASCII_ConstSizeInt8(encodedSizeInBytes: Int): Byte = dec_SInt_ASCII_ConstSize(encodedSizeInBytes).toByte
    def dec_SInt_ASCII_ConstSizeInt16(encodedSizeInBytes: Int): Short = dec_SInt_ASCII_ConstSize(encodedSizeInBytes).toShort
    def dec_SInt_ASCII_ConstSizeInt32(encodedSizeInBytes: Int): Int = dec_SInt_ASCII_ConstSize(encodedSizeInBytes).toInt
@@ -1469,16 +1476,16 @@ case class ACN(base: Codec) {
       dec_SInt_ASCII_VarSize_NullTerminated(null_characters, null_characters_size).toShort
    def dec_SInt_ASCII_VarSize_NullTerminatedInt32(null_characters: Array[Byte], null_characters_size: Int): Int =
       dec_SInt_ASCII_VarSize_NullTerminated(null_characters, null_characters_size).toInt
-   def dec_UInt_ASCII_ConstSizeUInt8(encodedSizeInBytes: Int): UByte = dec_UInt_ASCII_ConstSize(encodedSizeInBytes).toByte
-   def dec_UInt_ASCII_ConstSizeUInt16(encodedSizeInBytes: Int): UShort = dec_UInt_ASCII_ConstSize(encodedSizeInBytes).toShort
-   def dec_UInt_ASCII_ConstSizeUInt32(encodedSizeInBytes: Int): UInt = dec_UInt_ASCII_ConstSize(encodedSizeInBytes).toInt
-   def dec_UInt_ASCII_VarSize_LengthEmbeddedUInt8(): UByte = dec_UInt_ASCII_VarSize_LengthEmbedded().toByte
-   def dec_UInt_ASCII_VarSize_LengthEmbeddedUInt16(): UShort = dec_UInt_ASCII_VarSize_LengthEmbedded().toShort
-   def dec_UInt_ASCII_VarSize_LengthEmbeddedUInt32(): UInt = dec_UInt_ASCII_VarSize_LengthEmbedded().toInt
+   def dec_UInt_ASCII_ConstSizeUInt8(encodedSizeInBytes: Int): UByte = dec_UInt_ASCII_ConstSize(encodedSizeInBytes).toUByte
+   def dec_UInt_ASCII_ConstSizeUInt16(encodedSizeInBytes: Int): UShort = dec_UInt_ASCII_ConstSize(encodedSizeInBytes).toUShort
+   def dec_UInt_ASCII_ConstSizeUInt32(encodedSizeInBytes: Int): UInt = dec_UInt_ASCII_ConstSize(encodedSizeInBytes).toUInt
+   def dec_UInt_ASCII_VarSize_LengthEmbeddedUInt8(): UByte = dec_UInt_ASCII_VarSize_LengthEmbedded().toUByte
+   def dec_UInt_ASCII_VarSize_LengthEmbeddedUInt16(): UShort = dec_UInt_ASCII_VarSize_LengthEmbedded().toUShort
+   def dec_UInt_ASCII_VarSize_LengthEmbeddedUInt32(): UInt = dec_UInt_ASCII_VarSize_LengthEmbedded().toUInt
    def dec_UInt_ASCII_VarSize_NullTerminatedUInt8(null_characters: Array[Byte], null_characters_size: Int): UByte =
-      dec_UInt_ASCII_VarSize_NullTerminated(null_characters, null_characters_size).toByte
+      dec_UInt_ASCII_VarSize_NullTerminated(null_characters, null_characters_size).toUByte
    def dec_UInt_ASCII_VarSize_NullTerminatedUInt16(null_characters: Array[Byte], null_characters_size: Int): UShort =
-      dec_UInt_ASCII_VarSize_NullTerminated(null_characters, null_characters_size).toShort
+      dec_UInt_ASCII_VarSize_NullTerminated(null_characters, null_characters_size).toUShort
    def dec_UInt_ASCII_VarSize_NullTerminatedUInt32(null_characters: Array[Byte], null_characters_size: Int): UInt =
-      dec_UInt_ASCII_VarSize_NullTerminated(null_characters, null_characters_size).toInt
+      dec_UInt_ASCII_VarSize_NullTerminated(null_characters, null_characters_size).toUInt
 }

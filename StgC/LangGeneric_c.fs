@@ -56,6 +56,7 @@ type LangGeneric_c() =
             | Asn1AcnAst.ASN1SCC_UInt64   _ ->  sprintf "%sUL" (i.ToString())
             | Asn1AcnAst.ASN1SCC_UInt     _ ->  sprintf "%sUL" (i.ToString())
 
+        override _.asn1SccIntValueToString (i: BigInteger) _ = i.ToString()
         override _.doubleValueToString (v:double) =
             v.ToString(FsUtils.doubleParseString, System.Globalization.NumberFormatInfo.InvariantInfo)
 

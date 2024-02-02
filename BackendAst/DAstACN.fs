@@ -514,7 +514,7 @@ let createEnumCommon (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:CommonTyp
             | Some intAcnFuncBdResult ->
                 let arrItems = o.items |> List.map(fun it ->
                     let enumClassName = extractEnumClassName "" it.scala_name it.Name.Value
-                    Enumerated_item (lm.lg.getValue p.arg) (lm.lg.getNamedItemBackendName (Some defOrRef) it ) enumClassName it.acnEncodeValue intVal codec)
+                    Enumerated_item (lm.lg.getValue p.arg) (lm.lg.getNamedItemBackendName (Some defOrRef) it ) enumClassName it.acnEncodeValue (lm.lg.intValueToString it.acnEncodeValue intTypeClass) intVal codec)
                 Some (EnumeratedEncValues (lm.lg.getValue p.arg) td arrItems intAcnFuncBdResult.funcBody errCode.errCodeName sFirstItemName intVal codec, intAcnFuncBdResult.resultExpr, intAcnFuncBdResult.errCodes, localVar@intAcnFuncBdResult.localVariables)
         match funcBodyContent with
         | None -> None
@@ -731,7 +731,6 @@ let createNullTypeFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Com
 
 
 let getExternalField0 (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) asn1TypeIdWithDependency func1 =
-    //let dependencies = deps.acnDependencies |> List.filter(fun d -> d.asn1Type = asn1TypeIdWithDependency && func1 d )
     let dependency = deps.acnDependencies |> List.find(fun d -> d.asn1Type = asn1TypeIdWithDependency && func1 d )
     let rec resolveParam (prmId:ReferenceToType) =
         let nodes = match prmId with ReferenceToType nodes -> nodes
@@ -750,6 +749,35 @@ let getExternalField0 (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDe
         | _             -> prmId
     getAcnDeterminantName  (resolveParam dependency.determinant.id)
 
+let getExternalField0Type (r: Asn1AcnAst.AstRoot)
+                          (deps:Asn1AcnAst.AcnInsertedFieldDependencies)
+                          (asn1TypeIdWithDependency: ReferenceToType)
+                          (filter: AcnDependency -> bool) : AcnInsertedType =
+    let dependency = deps.acnDependencies |> List.find(fun d -> d.asn1Type = asn1TypeIdWithDependency && filter d)
+    let nodes = match dependency.determinant.id with ReferenceToType nodes -> nodes
+    let lastNode = nodes |> List.rev |> List.head
+    match lastNode with
+    | PRM _   ->
+        let tp =
+            deps.acnDependencies |>
+            List.choose(fun d ->
+                match d.dependencyKind with
+                | AcnDepRefTypeArgument prm when prm.id = dependency.determinant.id ->
+                    match d.determinant with
+                    | AcnChildDeterminant child -> Some child.Type
+                    | _ -> None
+                | _ -> None)
+        match tp with
+        | tp :: _ -> tp
+        | _ ->
+            match dependency.determinant with
+            | AcnChildDeterminant child -> child.Type
+            | _ -> raise (BugErrorException "???")
+    | _ ->
+        match dependency.determinant with
+        | AcnChildDeterminant child -> child.Type
+        | _ -> raise (BugErrorException "???")
+
 let getExternalFieldChoicePresentWhen (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) asn1TypeIdWithDependency  relPath=
     let filterDependency (d:AcnDependency) =
         match d.dependencyKind with
@@ -757,9 +785,18 @@ let getExternalFieldChoicePresentWhen (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.Ac
         | _                              -> true
     getExternalField0 r deps asn1TypeIdWithDependency filterDependency
 
+let getExternalFieldTypeChoicePresentWhen (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) asn1TypeIdWithDependency  relPath=
+    let filterDependency (d:AcnDependency) =
+        match d.dependencyKind with
+        | AcnDepPresence (relPath0, _)   -> relPath = relPath0
+        | _                              -> true
+    getExternalField0Type r deps asn1TypeIdWithDependency filterDependency
 
 let getExternalField (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) asn1TypeIdWithDependency =
     getExternalField0 r deps asn1TypeIdWithDependency (fun z -> true)
+
+let getExternalFieldType (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) asn1TypeIdWithDependency =
+    getExternalField0Type r deps asn1TypeIdWithDependency (fun z -> true)
 
 let createStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (lm:LanguageMacros) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.StringType) (typeDefinition:TypeDefinitionOrReference)  (defOrRef:TypeDefinitionOrReference) (isValidFunc: IsValidFunction option) (uperFunc: UPerFunction) (us:State)  =
     let Acn_String_Ascii_FixSize                            = lm.acn.Acn_String_Ascii_FixSize
@@ -933,10 +970,16 @@ let createOctetStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserte
                 Some(fncBody, [errCode],nStringLength)
             | SZ_EC_ExternalField _ ->
                 let extField = getExternalField r deps t.id
+                let tp = getExternalFieldType r deps t.id
+                let unsigned =
+                    match tp with
+                    | AcnInsertedType.AcnInteger int -> int.isUnsigned
+                    | AcnInsertedType.AcnNullType _ -> true
+                    | _ -> raise (BugErrorException "???")
                 let fncBody =
                     match o.isFixedSize with
-                    | true  -> oct_external_field_fix_size td pp access (if o.minSize.acn=0I then None else Some ( o.minSize.acn)) ( o.maxSize.acn) extField nAlignSize errCode.errCodeName codec
-                    | false -> oct_external_field td pp access (if o.minSize.acn=0I then None else Some ( o.minSize.acn)) ( o.maxSize.acn) extField nAlignSize errCode.errCodeName codec
+                    | true  -> oct_external_field_fix_size td pp access (if o.minSize.acn=0I then None else Some ( o.minSize.acn)) ( o.maxSize.acn) extField unsigned nAlignSize errCode.errCodeName codec
+                    | false -> oct_external_field td pp access (if o.minSize.acn=0I then None else Some ( o.minSize.acn)) ( o.maxSize.acn) extField unsigned nAlignSize errCode.errCodeName codec
                 Some(fncBody, [errCode],[])
             | SZ_EC_TerminationPattern bitPattern  ->
                 let mod8 = bitPattern.Value.Length % 8
@@ -1071,10 +1114,16 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserted
                     match internalItem with
                     | None  -> None
                     | Some internalItem ->
-                        let localVariables  = internalItem.localVariables
-                        let childErrCodes   = internalItem.errCodes
-                        let internalItemBody    = internalItem.funcBody
-                        let extField        = getExternalField r deps t.id
+                        let localVariables = internalItem.localVariables
+                        let childErrCodes = internalItem.errCodes
+                        let internalItemBody = internalItem.funcBody
+                        let extField = getExternalField r deps t.id
+                        let tp = getExternalFieldType r deps t.id
+                        let unsigned =
+                            match tp with
+                            | AcnInsertedType.AcnInteger int -> int.isUnsigned
+                            | AcnInsertedType.AcnNullType _ -> true
+                            | _ -> raise (BugErrorException "???")
                         let internalItemBody =
                             match codec, lm.lg.decodingKind with
                             | Decode, Copy ->
@@ -1083,8 +1132,8 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserted
                             | _ -> internalItemBody
                         let funcBodyContent =
                             match o.isFixedSize with
-                            | true  -> oct_sqf_external_field_fix_size td pp access i internalItemBody (if o.minSize.acn=0I then None else Some o.minSize.acn) o.maxSize.acn extField nAlignSize errCode.errCodeName o.child.acnMinSizeInBits o.child.acnMaxSizeInBits childInitExpr codec
-                            | false -> external_field td pp access i internalItemBody (if o.minSize.acn=0I then None else Some o.minSize.acn) o.maxSize.acn extField nAlignSize errCode.errCodeName o.child.acnMinSizeInBits o.child.acnMaxSizeInBits childInitExpr codec
+                            | true  -> oct_sqf_external_field_fix_size td pp access i internalItemBody (if o.minSize.acn=0I then None else Some o.minSize.acn) o.maxSize.acn extField unsigned nAlignSize errCode.errCodeName o.child.acnMinSizeInBits o.child.acnMaxSizeInBits childInitExpr codec
+                            | false -> external_field td pp access i internalItemBody (if o.minSize.acn=0I then None else Some o.minSize.acn) o.maxSize.acn extField unsigned nAlignSize errCode.errCodeName o.child.acnMinSizeInBits o.child.acnMaxSizeInBits childInitExpr codec
                         Some ({AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = errCode::childErrCodes; localVariables = lv@localVariables; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=resultExpr})
                 | SZ_EC_TerminationPattern   bitPattern    ->
                     match internalItem with
@@ -1153,8 +1202,8 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserted
 
 let initExpr (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (m:Asn1AcnAst.Asn1Module) (t: Asn1AcnAst.AcnInsertedType): string =
     match t with
-    | AcnInteger _ -> "0"
-    | AcnNullType _ -> "0"
+    | AcnInteger int -> lm.lg.asn1SccIntValueToString 0I int.isUnsigned
+    | AcnNullType _ -> lm.lg.asn1SccIntValueToString 0I true
     | AcnBoolean _ -> lm.lg.FalseLiteral
     | AcnReferenceToIA5String s -> lm.lg.initializeString (int s.str.maxSize.uper)
     | AcnReferenceToEnumerated e ->
@@ -1188,10 +1237,15 @@ let rec handleSingleUpdateDependency (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.Acn
         let updateFunc (child: AcnChild) (vTarget : CallerScope) (pSrcRoot : CallerScope)  =
             let v = lm.lg.getValue vTarget.arg
             let pSizeable, checkPath = getAccessFromScopeNodeList d.asn1Type false lm pSrcRoot
+            let unsigned =
+                match child.Type with
+                | AcnInteger int -> int.isUnsigned
+                | AcnNullType _ -> true
+                | _ -> raise (BugErrorException "???")
             let updateStatement =
                 match minSize.acn = maxSize.acn with
                 | true  -> sizeDependencyFixedSize v minSize.acn
-                | false -> sizeDependency v (getSizeableSize (pSizeable.arg.joined lm.lg) (lm.lg.getAccess pSizeable.arg)) minSize.uper maxSize.uper false child.typeDefinitionBodyWithinSeq
+                | false -> sizeDependency v (getSizeableSize (pSizeable.arg.joined lm.lg) (lm.lg.getAccess pSizeable.arg) unsigned) minSize.uper maxSize.uper false child.typeDefinitionBodyWithinSeq
             match checkPath with
             | []    -> updateStatement
             | _     -> checkAccessPath checkPath updateStatement v (initExpr r lm m child.Type)
@@ -1281,8 +1335,16 @@ let rec handleSingleUpdateDependency (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.Acn
                         match ST.lang with
                         | Scala -> chc.typeDef[Scala].typeName + "." + ch.presentWhenName
                         | _ -> ch.presentWhenName
+                    // Note: we always store the integer as a asn1SccSint or asn1SccUint, therefore
+                    // we do not need the exact integer class (i.e. bit width). However, some backends
+                    // such as Scala requires the signedness to be passed.
+                    let unsigned =
+                        match child.Type with
+                        | AcnInteger int -> int.isUnsigned
+                        | AcnNullType _ -> true
+                        | _ -> raise (BugErrorException "???")
                     match pres with
-                    | PresenceInt   (_, intVal) -> choiceDependencyIntPres_child v presentWhenName intVal.Value
+                    | PresenceInt   (_, intVal) -> choiceDependencyIntPres_child v presentWhenName (lm.lg.asn1SccIntValueToString intVal.Value unsigned)
                     | PresenceStr   (_, strVal) -> raise(SemanticError(strVal.Location, "Unexpected presence condition. Expected integer, found string")))
             let updateStatement = choiceDependencyPres v (choicePath.arg.joined lm.lg) (lm.lg.getAccess choicePath.arg) arrsChildUpdates
             match checkPath with
@@ -2002,7 +2064,16 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
                             match cond with
                             | PresenceInt  (relPath, intLoc)   ->
                                 let extField = getExternalFieldChoicePresentWhen r deps t.id relPath
-                                choiceChild_preWhen_int_condition extField intLoc.Value
+                                // Note: we always decode the external field as a asn1SccSint or asn1SccUint, therefore
+                                // we do not need the exact integer class (i.e. bit width). However, some backends
+                                // such as Scala requires the signedness to be passed.
+                                let tp = getExternalFieldTypeChoicePresentWhen r deps t.id relPath
+                                let unsigned =
+                                    match tp with
+                                    | AcnInsertedType.AcnInteger int -> int.isUnsigned
+                                    | AcnInsertedType.AcnNullType _ -> true
+                                    | _ -> raise (BugErrorException "???")
+                                choiceChild_preWhen_int_condition extField (lm.lg.asn1SccIntValueToString intLoc.Value unsigned)
                             | PresenceStr  (relPath, strVal)   ->
                                 let strType =
                                     deps.acnDependencies |>
@@ -2011,8 +2082,6 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
                                         match d.dependencyKind with
                                         | AcnDepPresenceStr(relPathCond, ch, str)  when relPathCond = relPath-> Some str
                                         | _     -> None) |> Seq.head
-
-
                                 let extField = getExternalFieldChoicePresentWhen r deps t.id relPath
                                 let arrNulls = [0 .. ((int strType.maxSize.acn) - strVal.Value.Length)]|>Seq.map(fun x -> lm.vars.PrintStringValueNull())
                                 let bytesStr = Array.append (System.Text.Encoding.ASCII.GetBytes strVal.Value) [| 0uy |]

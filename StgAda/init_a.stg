@@ -23,7 +23,7 @@ assignAny(p, sValue, sTypeDecl) ::= "<p> := <sValue>;"
 assignString(p, sValue) ::= "<p> := <sValue>;"
 
 
-initInteger(p, nValue, bIsOptional) ::= "<p> := <nValue>;"
+initInteger(p, sValue, bIsOptional) ::= "<p> := <sValue>;"
 initReal(p, dValue, bIsOptional) ::= "<p> := <dValue>;"
 initBoolean(p, bValue, bIsOptional) ::= "<p> := <if(bValue)>True<else>FALSE<endif>;"
 

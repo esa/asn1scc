@@ -52,7 +52,12 @@ let convertStringValue2TargetLangStringLiteral (lm:LanguageMacros) mxSizeUper (v
 
 let rec printValue (r:DAst.AstRoot)  (lm:LanguageMacros) (curProgramUnitName:string)  (t:Asn1Type) (parentValue:Asn1ValueKind option) (gv:Asn1ValueKind) =
         match gv with
-        | IntegerValue      v -> lm.vars.PrintIntValue v
+        | IntegerValue      v ->
+            let intClass =
+                match t.ActualType.Kind with
+                | Integer int -> int.baseInfo.intClass
+                | _ -> raise(BugErrorException "unexpected type")
+            lm.lg.intValueToString v intClass
         | RealValue         v -> lm.vars.PrintRealValue v
         | BooleanValue      v -> lm.vars.PrintBooleanValue v
         | StringValue       v ->
