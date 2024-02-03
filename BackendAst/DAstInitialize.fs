@@ -685,33 +685,20 @@ let mergeMaps (m1:Map<'key,'value>) (m2:Map<'key,'value>) =
 let createEnumeratedInitFunc (r: Asn1AcnAst.AstRoot) (lm: LanguageMacros) (t: Asn1AcnAst.Asn1Type) (o: Asn1AcnAst.Enumerated)  (typeDefinition: TypeDefintionOrReference) iv = 
     let initEnumerated = lm.init.initEnumerated
 
-    let enumClassName = 
-        match ST.lang with
-        | ProgrammingLanguage.Scala ->
-            match typeDefinition with
-            | ReferenceToExistingDefinition r -> r.typedefName
-            | TypeDefinition t -> t.typedefName
-        | _ -> ""
 
-    let getEnumBackendName (defOrRef: TypeDefintionOrReference option) (nm: Asn1AcnAst.NamedItem) = 
-            let itemname = 
-                match ST.lang with
-                | ProgrammingLanguage.Scala -> ToC nm.scala_name
-                | _ -> (lm.lg.getNamedItemBackendName defOrRef nm)
-            itemname
 
     let funcBody (p:CallerScope) (v:Asn1ValueKind) = 
         let vl = 
             match v.ActualValue with
             | EnumValue iv      -> o.items |> Seq.find(fun x -> x.Name.Value = iv)
             | _                 -> raise(BugErrorException "UnexpectedValue")
-        initEnumerated (lm.lg.getValue p.arg) (getEnumBackendName (Some typeDefinition) vl) enumClassName
+        initEnumerated (lm.lg.getValue p.arg) (lm.lg.getNamedItemBackendName (Some typeDefinition) vl) 
 
     let testCaseFuncs = 
         EncodeDecodeTestCase.EnumeratedAutomaticTestCaseValues2 r t o |> 
         List.map (fun vl -> 
             {
-                AutomaticTestCase.initTestCaseFunc = (fun (p:CallerScope) -> {InitFunctionResult.funcBody = initEnumerated (lm.lg.getValue p.arg) (getEnumBackendName (Some typeDefinition) vl) enumClassName; localVariables=[]}); 
+                AutomaticTestCase.initTestCaseFunc = (fun (p:CallerScope) -> {InitFunctionResult.funcBody = initEnumerated (lm.lg.getValue p.arg) (lm.lg.getNamedItemBackendName (Some typeDefinition) vl); localVariables=[]}); 
                 testCaseTypeIDsMap = Map.ofList [(t.id, (TcvEnumeratedValue vl.Name.Value))] 
             })
     let constantInitExpression = lm.lg.getNamedItemBackendName  (Some typeDefinition) o.items.Head
@@ -1052,11 +1039,7 @@ let createSequenceInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1Acn
             List.map (fun c -> 
                 let childName = lm.lg.getAsn1ChildBackendName c
                 let childExp = getChildExpr lm c.Type 
-                let exprMethodCall =
-                    match ST.lang with
-                    | ProgrammingLanguage.Scala ->
-                        scalaInitMethSuffix c.Type.Kind
-                    | _ -> ""
+                let exprMethodCall = lm.lg.init.initMethSuffix c.Type.Kind
                 lm.init.initSequenceChildExpr childName (childExp + exprMethodCall)) 
         let arrsOptionalChildren =
             children |> 

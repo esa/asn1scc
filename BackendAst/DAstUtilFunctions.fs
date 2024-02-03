@@ -84,41 +84,6 @@ let hasInitMethSuffix (initMethName: string) (suffix: string): bool =
 let isArrayInitialiser(initMethName: string): bool =
     initMethName.Contains("Array.fill(")
 
-let scalaInitMethSuffix (k: Asn1TypeKind) =
-    match ST.lang with
-    | Scala -> 
-        match isJVMPrimitive k with
-        | false ->
-            match k with
-            | BitString bitString -> ""
-            | _ -> "()"
-        | true -> ""
-    | _ -> ""
-
-let isEnumForJVMelseFalse (k: Asn1TypeKind): bool =
-    match ST.lang with
-    | Scala ->
-        match resolveReferenceType k with
-        | Enumerated e -> true
-        | _ -> false
-    | _ -> false
-    
-let isSequenceForJVMelseFalse (k: Asn1TypeKind): bool = 
-    match ST.lang with
-    | Scala ->
-        match k with
-        | Sequence s -> true
-        | _ -> false
-    | _ -> false
-
-let isOctetStringForJVMelseFalse (k: Asn1TypeKind): bool = 
-    match ST.lang with
-    | Scala ->
-        match k with
-        | OctetString s -> true
-        | _ -> false
-    | _ -> false
-    
 type LocalVariable with
     member this.VarName =
         match this with

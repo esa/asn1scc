@@ -319,6 +319,8 @@ type LangGeneric_c() =
                 //createBitStringFunction = createBitStringFunction_funcBody_c
                 seqof_lv              =
                   (fun id minSize maxSize -> [SequenceOfIndex (id.SeqeuenceOfLevel + 1, None)])
+                exprMethodCall        = fun _ _ -> ""
+
             }
         override this.acn = 
             {
@@ -339,6 +341,7 @@ type LangGeneric_c() =
             {
                 Initialize_parts.zeroIA5String_localVars    = fun _ -> []
                 choiceComponentTempInit                     = false
+                initMethSuffix                              = fun _ -> ""
             }
         override this.atc =
             {

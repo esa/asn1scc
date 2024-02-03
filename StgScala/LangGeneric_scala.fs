@@ -7,6 +7,58 @@ open Language
 open System.IO
 open System
 
+
+let rec resolveReferenceType(t: Asn1TypeKind): Asn1TypeKind = 
+    match t with
+    | ReferenceType rt -> resolveReferenceType rt.resolvedType.Kind
+    | _ -> t
+
+let isJVMPrimitive (t: Asn1TypeKind) = 
+    match resolveReferenceType t with
+    | Integer _ | Real _ | NullType _ | Boolean _ -> true
+    | _ -> false
+
+let initMethSuffix k = 
+    match isJVMPrimitive k with
+    | false ->
+        match k with
+        | BitString bitString -> ""
+        | _ -> "()"
+    | true -> ""
+
+let isEnumForJVMelseFalse (k: Asn1TypeKind): bool =
+    match ST.lang with
+    | Scala ->
+        match resolveReferenceType k with
+        | Enumerated e -> true
+        | _ -> false
+    | _ -> false
+    
+let isSequenceForJVMelseFalse (k: Asn1TypeKind): bool = 
+    match ST.lang with
+    | Scala ->
+        match k with
+        | Sequence s -> true
+        | _ -> false
+    | _ -> false
+
+let isOctetStringForJVMelseFalse (k: Asn1TypeKind): bool = 
+    match ST.lang with
+    | Scala ->
+        match k with
+        | OctetString s -> true
+        | _ -> false
+    | _ -> false
+
+let uperExprMethodCall k  sChildInitExpr =
+    let isSequence = isSequenceForJVMelseFalse k 
+    let isEnum = isEnumForJVMelseFalse k
+    let isOctetString = isOctetStringForJVMelseFalse k
+    
+    match isSequence || sChildInitExpr.Equals("null") || isEnum || isOctetString with
+    | true -> ""
+    | false -> initMethSuffix k
+
 let getAccess_scala  (fpt:FuncParamType) =
     match fpt with
     | VALUE x        -> "."
@@ -336,6 +388,8 @@ type LangGeneric_scala() =
                 //createBitStringFunction = createBitStringFunction_funcBody_c
                 seqof_lv              =
                   (fun id minSize maxSize -> [SequenceOfIndex (id.SeqeuenceOfLevel + 1, None)])
+                exprMethodCall        = uperExprMethodCall
+
             }
         override this.acn = 
             {
@@ -356,6 +410,7 @@ type LangGeneric_scala() =
             {
                 Initialize_parts.zeroIA5String_localVars    = fun _ -> []
                 choiceComponentTempInit                     = false
+                initMethSuffix                              = initMethSuffix
             }
         override this.atc =
             {

@@ -657,17 +657,10 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Commo
                         | true -> chFunc.funcBody ({p with arg = lm.lg.getChChild p.arg  (lm.lg.getAsn1ChChildBackendName child) child.chType.isIA5String})
                     let sChildName = (lm.lg.getAsn1ChChildBackendName child)
                     let sChildTypeDef = child.chType.typeDefintionOrReference.longTypedefName2 lm.lg.hasModules //child.chType.typeDefinition.typeDefinitionBodyWithinSeq
-                    let isSequence = isSequenceForJVMelseFalse child.chType.Kind 
-                    let isEnum = isEnumForJVMelseFalse child.chType.Kind 
-                    let isOctetString = isOctetStringForJVMelseFalse child.chType.Kind
+                    let isSequence = match child.chType.Kind with | Sequence _ -> true | _ -> false
+                    let isEnum = match child.chType.Kind with | Enumerated _ -> true | _ -> false
                     let sChildInitExpr = child.chType.initFunction.initExpression
-                    let exprMethodCall =
-                        match ST.lang with
-                        | Scala ->
-                            match isSequence || sChildInitExpr.Equals("null") || isEnum || isOctetString with
-                            | true -> ""
-                            | false -> scalaInitMethSuffix child.chType.Kind
-                        | _ -> ""
+                    let exprMethodCall = lm.lg.uper.exprMethodCall child.chType.Kind sChildInitExpr
                     let sChoiceTypeName = typeDefinitionName
                     match uperChildRes with
                     | None              -> 

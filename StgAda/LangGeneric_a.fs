@@ -289,6 +289,7 @@ type LangGeneric_a() =
                         []
                     else
                         [SequenceOfIndex (id.SeqeuenceOfLevel + 1, None)])
+                exprMethodCall        = fun _ _ -> ""
             }
         override this.acn = 
             {
@@ -308,6 +309,7 @@ type LangGeneric_a() =
             {
                 Initialize_parts.zeroIA5String_localVars    = fun ii -> [SequenceOfIndex (ii, None)]
                 choiceComponentTempInit                     = false
+                initMethSuffix                              = fun _ -> ""
             }
 
         override this.atc =

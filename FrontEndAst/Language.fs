@@ -16,6 +16,7 @@ type Uper_parts = {
     catd                 : bool //if true then Choice Alternatives are Temporarily Decoded (i.e. in _tmp variables in curent scope)
     //createBitStringFunction  : (CallerScope -> CommonTypes.Codec -> ErroCode -> int -> BigInteger -> BigInteger -> BigInteger -> string -> BigInteger -> bool -> bool -> (string * LocalVariable list)) -> CommonTypes.Codec -> ReferenceToType -> TypeDefintionOrReference -> bool -> BigInteger -> BigInteger -> BigInteger -> ErroCode ->  CallerScope -> UPERFuncBodyResult
     seqof_lv             : ReferenceToType -> BigInteger -> BigInteger -> LocalVariable list
+    exprMethodCall       : Asn1TypeKind -> string -> string
 
 }
 
@@ -30,6 +31,7 @@ type Acn_parts = {
 type Initialize_parts = {
     zeroIA5String_localVars             : int -> LocalVariable list
     choiceComponentTempInit             : bool
+    initMethSuffix                      : Asn1TypeKind -> string
 }
 
 type Atc_parts = {
