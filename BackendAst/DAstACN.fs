@@ -1282,10 +1282,7 @@ let rec handleSingleUpdateDependency (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.Acn
                 chc.children |> 
                 List.map(fun ch -> 
                     let pres = ch.acnPresentWhenConditions |> Seq.find(fun x -> x.relativePath = relPath)
-                    let presentWhenName =
-                        match ST.lang with
-                        | Scala -> chc.typeDef[Scala].typeName + "." + ch.presentWhenName
-                        | _ -> ch.presentWhenName
+                    let presentWhenName = lm.lg.getChoiceChildPresentWhenName chc ch
                     match pres with
                     | PresenceInt   (_, intVal) -> choiceDependencyIntPres_child v presentWhenName intVal.Value
                     | PresenceStr   (_, strVal) -> raise(SemanticError(strVal.Location, "Unexpected presence condition. Expected integer, found string")))
@@ -1314,10 +1311,7 @@ let rec handleSingleUpdateDependency (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.Acn
                 chc.children |> 
                 List.map(fun ch -> 
                     let pres = ch.acnPresentWhenConditions |> Seq.find(fun x -> x.relativePath = relPath)                    
-                    let presentWhenName =
-                        match ST.lang with
-                        | Scala -> chc.typeDef[Scala].typeName + "." + ch.presentWhenName
-                        | _ -> ch.presentWhenName
+                    let presentWhenName = lm.lg.getChoiceChildPresentWhenName chc ch
                     match pres with
                     | PresenceInt   (_, intVal) -> 
                         raise(SemanticError(intVal.Location, "Unexpected presence condition. Expected string, found integer"))
