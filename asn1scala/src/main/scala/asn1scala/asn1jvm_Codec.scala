@@ -627,20 +627,24 @@ case class Codec private [asn1scala](bitStream: BitStream) {
    }
 
    def encodeOctetString_no_length(arr: Array[UByte], nCount: Int): Unit = {
+      require(bitStream.validate_offset_bytes(nCount))
       appendByteArray(arr, nCount)
    }
 
    def decodeOctetString_no_length(nCount: Int): Array[UByte] = {
+      require(nCount >= 0 && nCount <= Integer.MAX_VALUE / NO_OF_BITS_IN_BYTE)
+      require(bitStream.validate_offset_bytes(nCount))
       readByteArray(nCount)
    }
 
-   def encodeOctetString_fragmentation(arr: Array[UByte], nCount: Int): Boolean = { // TODO return value legacy C? remove?
+   def encodeOctetString_fragmentation(arr: Array[UByte], nCount: Int) = {
+      require(nCount >= 0)
+
       var nRemainingItemsVar1: Int = nCount
       var nCurBlockSize1: Int = 0
       var nCurOffset1: Int = 0
-      var ret: Boolean = nCount >= 0
 
-      while nRemainingItemsVar1 >= 0x4000 && ret do
+      while nRemainingItemsVar1 >= 0x4000 do
          decreases(nRemainingItemsVar1)
          if nRemainingItemsVar1 >= 0x10000 then
             nCurBlockSize1 = 0x10000
@@ -664,21 +668,19 @@ case class Codec private [asn1scala](bitStream: BitStream) {
          nCurOffset1 += nCurBlockSize1
          nRemainingItemsVar1 -= nCurBlockSize1
 
-      if ret then
-         if nRemainingItemsVar1 <= 0x7F then
-            encodeConstrainedWholeNumber(nRemainingItemsVar1.toLong, 0, 0xFF)
-         else
-            appendBit(true)
-            encodeConstrainedWholeNumber(nRemainingItemsVar1.toLong, 0, 0x7FFF)
+      if nRemainingItemsVar1 <= 0x7F then
+         encodeConstrainedWholeNumber(nRemainingItemsVar1.toLong, 0, 0xFF)
+      else
+         appendBit(true)
+         encodeConstrainedWholeNumber(nRemainingItemsVar1.toLong, 0, 0x7FFF)
 
 
-         var i1: Int = nCurOffset1
-         while i1 < (nCurOffset1 + nRemainingItemsVar1) do
-            decreases(nCurOffset1 + nRemainingItemsVar1 - i1)
-            appendByte(arr(i1))
-            i1 += 1
-
-      ret
+      var i1: Int = nCurOffset1
+      (while i1 < (nCurOffset1 + nRemainingItemsVar1) do
+         decreases(nCurOffset1 + nRemainingItemsVar1 - i1)
+         appendByte(arr(i1))
+         i1 += 1
+      ).invariant(true) // TODO
    }
 
    def decodeOctetString_fragmentation(asn1SizeMax: Long): Array[UByte] = {
@@ -759,21 +761,16 @@ case class Codec private [asn1scala](bitStream: BitStream) {
       newArr
    }
 
-   def encodeOctetString(arr: Array[UByte], nCount: Int, asn1SizeMin: Long, asn1SizeMax: Long): Boolean = {
-      // TODO require & return type - seems old C style
+   def encodeOctetString(arr: Array[UByte], nCount: Int, asn1SizeMin: Long, asn1SizeMax: Long) = {
+      require(nCount >= asn1SizeMin && nCount <= asn1SizeMax)
 
-      var ret: Boolean = nCount.toLong >= asn1SizeMin && nCount.toLong <= asn1SizeMax
+      if asn1SizeMax < 65536 then
+         if asn1SizeMin != asn1SizeMax then
+            encodeConstrainedWholeNumber(nCount.toLong, asn1SizeMin, asn1SizeMax)
+         encodeOctetString_no_length(arr, nCount)
 
-      if ret then
-         if asn1SizeMax < 65536 then
-            if asn1SizeMin != asn1SizeMax then
-               encodeConstrainedWholeNumber(nCount.toLong, asn1SizeMin, asn1SizeMax)
-            encodeOctetString_no_length(arr, nCount)
-
-         else
-            ret = encodeOctetString_fragmentation(arr, nCount)
-
-      ret
+      else
+         encodeOctetString_fragmentation(arr, nCount)
    }
 
    def decodeOctetString(asn1SizeMin: Long, asn1SizeMax: Long): Array[UByte] = {
