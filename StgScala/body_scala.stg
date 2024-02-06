@@ -11,6 +11,7 @@ package asn1src
 import asn1scala._
 import stainless.lang._
 import stainless.annotation._
+import StaticChecks._
 
 <arrsValueAndTypeAssignments: {uv|<uv>}; separator="\n">
 >>

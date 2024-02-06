@@ -17,21 +17,25 @@ EmitTypeAssignment_primitive_def_encode(sVarName, sStar, sFuncName, sTypeDefName
 @inline @cCode.inline val <sTypeDefName>_REQUIRED_BITS_FOR_ACN_ENCODING = <nMaxBitsInACN>
 >>
 
-EmitTypeAssignment_primitive_encode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName, arrsAnnots) ::= <<
+EmitTypeAssignment_primitive_encode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName, arrsAnnots, arrsPrecond, soPostcond) ::= <<
 <arrsAnnots:{ann|@<ann>}; separator=" ">
 def <sFuncName>(<if(bVarNameIsUnreferenced)>@annotation.unused <endif><sVarName>: <sTypeDefName>, <if(bBsIsUnreferenced)>@annotation.unused <endif>codec: ACN, bCheckConstraints: Boolean): Either[ErrorCode, Int] =  // acn:21
 {
+    <arrsPrecond:{pre|require(<pre>)}; separator="\n">
     <arrsLocalVariables:{lv|<lv>}; separator="\n">
     <if(soIValidFuncName)>
-    if bCheckConstraints then
-        <soIValidFuncName>(<sVarName>) match
-            case Left(l) => return Left(l)
-            case Right(_) =>
+    // TODO: "return" in ensuring is non-local return for Scala --'
+    // if bCheckConstraints then // TODO: we must always check constraint to verify
+    <soIValidFuncName>(<sVarName>) match
+        case Left(l) => return Left(l)
+        case Right(_) =>
     <sContent>
     <else>
     <sContent>
     <endif>
     Right(0)
+}.ensuring { (res : Either[ErrorCode, Int]) =>
+    <soPostcond>
 }
 >>
 
@@ -39,21 +43,31 @@ EmitTypeAssignment_primitive_def_decode(sVarName, sStar, sFuncName, sTypeDefName
 <arrsErrcodes; separator="\n">
 >>
 
-EmitTypeAssignment_primitive_decode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName, arrsAnnots) ::= <<
+EmitTypeAssignment_primitive_decode(sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp, arrsAcnPrms, arrsAcnParamNames, bEmptyEncodingSpace, bBsIsUnreferenced, bVarNameIsUnreferenced, soInitFuncName, arrsAnnots, arrsPrecond, soPostcond) ::= <<
 <arrsAnnots:{ann|@<ann>}; separator=" ">
 def <sFuncName>(<if(bBsIsUnreferenced)>@annotation.unused <endif>codec: ACN): EitherMut[ErrorCode, <sTypeDefName>] =
 {
+    <arrsPrecond:{pre|require(<pre>)}; separator="\n">
     <arrsLocalVariables:{lv|<lv>}; separator="\n">
 
     <sContent>
 
     <if(soIValidFuncName)>
     <soIValidFuncName>(<sVarName>) match
-        case Left(l) => LeftMut(l)
-        case Right(_) => RightMut(<sVarName>)
+        case Left(l) => LeftMut[ErrorCode, <sTypeDefName>](l)
+        case Right(_) => RightMut[ErrorCode, <sTypeDefName>](<sVarName>)
     <else>
-    RightMut(<sVarName>)
+    RightMut[ErrorCode, <sTypeDefName>](<sVarName>)
     <endif>
+}.ensuring(_ => <soPostcond>)
+
+@ghost @pure <arrsAnnots:{ann|@<ann>}; separator=" ">
+def <sFuncName>_pure(codec: ACN): (ACN, EitherMut[ErrorCode, <sTypeDefName>]) =
+{
+    <arrsPrecond:{pre|require(<pre>)}; separator="\n">
+    val cpy = snapshot(codec)
+    val res = <sFuncName>(cpy)
+    (cpy, res)
 }
 >>
 

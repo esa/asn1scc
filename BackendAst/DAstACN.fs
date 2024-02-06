@@ -221,14 +221,26 @@ let adaptArgument = DAstUPer.adaptArgument
 
 let joinedOrAsIdentifier = DAstUPer.joinedOrAsIdentifier
 
-let private createAcnFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (typeDefinition:TypeDefinitionOrReference) (isValidFunc: IsValidFunction option)  (funcBody:State-> ErrorCode->((AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) -> CallerScope -> ((AcnFuncBodyResult option)*State)) isTestVaseValid (icdAux:IcdArgAux) soSparkAnnotations (funcDefAnnots: string list) (us:State)  =
+let private createAcnFunction (r:Asn1AcnAst.AstRoot)
+                              (lm:LanguageMacros)
+                              (codec:CommonTypes.Codec)
+                              (t:Asn1AcnAst.Asn1Type)
+                              (typeDefinition:TypeDefinitionOrReference)
+                              (isValidFunc: IsValidFunction option)
+                              (funcBody:State-> ErrorCode->((AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) -> CallerScope -> ((AcnFuncBodyResult option)*State))
+                              isTestVaseValid
+                              (icdAux:IcdArgAux)
+                              (soSparkAnnotations: string option)
+                              (funcDefAnnots: string list)
+                              (us:State) =
     let td = lm.lg.getTypeDefinition t.FT_TypeDefinition
+    let funcNameBase = td.typeName + "_ACN"
     let funcNameAndtasInfo   =
         match t.acnParameters with
         | []    ->
             match t.id.tasInfo with
             | None -> None
-            | Some _ -> Some (td.typeName + "_ACN"  + codec.suffix)
+            | Some _ -> Some (funcNameBase  + codec.suffix)
         | _     -> None
     let errCodeName         = ToC ("ERR_ACN" + (codec.suffix.ToUpper()) + "_" + ((t.id.AcnAbsPath |> Seq.skip 1 |> Seq.StrJoin("-")).Replace("#","elm")))
     let errCode, ns = getNextValidErrorCode us errCodeName None
@@ -247,7 +259,6 @@ let private createAcnFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:
     let funcBody = handleAlignmentForAsn1Types r lm codec t.acnAlignment funcBody
 
     let p : CallerScope = lm.lg.getParamType t codec
-    let topLevAcc = lm.lg.getAccess p.arg
     let varName = p.arg.receiverId
     let sStar = lm.lg.getStar p.arg
     let isValidFuncName = match isValidFunc with None -> None | Some f -> f.funcName
@@ -256,6 +267,8 @@ let private createAcnFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:
             match funcNameAndtasInfo  with
             |  None              -> None, None, ns
             |  Some funcName     ->
+                let precondAnnots = lm.lg.generatePrecond ACN t
+                let postcondAnnots = lm.lg.generatePostcond ACN funcNameBase p t codec
                 let content, ns1a = funcBody ns errCode [] p
                 let bodyResult_funcBody, errCodes,  bodyResult_localVariables, bBsIsUnreferenced, bVarNameIsUnreferenced =
                     match content with
@@ -286,7 +299,7 @@ let private createAcnFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:
                 let lvars = bodyResult_localVariables |> List.map(fun (lv:LocalVariable) -> lm.lg.getLocalVariableDeclaration lv) |> Seq.distinct
                 let prms = t.acnParameters |> List.map handleAcnParameter
                 let prmNames = t.acnParameters |> List.map (fun p -> p.c_name)
-                let func = Some(EmitTypeAssignment_primitive varName sStar funcName isValidFuncName (typeDefinition.longTypedefName2 lm.lg.hasModules) lvars bodyResult_funcBody soSparkAnnotations sInitialExp prms prmNames (t.acnMaxSizeInBits = 0I) bBsIsUnreferenced bVarNameIsUnreferenced soInitFuncName funcDefAnnots codec)
+                let func = Some(EmitTypeAssignment_primitive varName sStar funcName isValidFuncName (typeDefinition.longTypedefName2 lm.lg.hasModules) lvars bodyResult_funcBody soSparkAnnotations sInitialExp prms prmNames (t.acnMaxSizeInBits = 0I) bBsIsUnreferenced bVarNameIsUnreferenced soInitFuncName funcDefAnnots precondAnnots postcondAnnots codec)
 
                 let errCodStr = errCodes |> List.map(fun x -> EmitTypeAssignment_def_err_code x.errCodeName (BigInteger x.errCodeValue) x.comment) |> List.distinct
                 let funcDef = Some(EmitTypeAssignment_primitive_def varName sStar funcName  (typeDefinition.longTypedefName2 lm.lg.hasModules) errCodStr (t.acnMaxSizeInBits = 0I) nMaxBytesInACN ( t.acnMaxSizeInBits) prms soSparkAnnotations codec)
