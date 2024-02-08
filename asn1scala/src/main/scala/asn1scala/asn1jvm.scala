@@ -89,9 +89,9 @@ object ULong {
 }
 extension (l: ULong) {
     @inline def toRaw: Long = l
-    @inline def toUByte: UByte = l.toByte
-    @inline def toUShort: UShort = l.toShort
-    @inline def toUInt: UInt = l.toInt
+    @inline def toUByte: UByte = l.cutToByte
+    @inline def toUShort: UShort = l.cutToShort
+    @inline def toUInt: UInt = l.cutToInt
     @inline def <=(r: ULong): Boolean = wrappingExpr { l + Long.MinValue <= r + Long.MinValue }
     @inline def +(r: ULong): ULong = wrappingExpr { l + r }
     @inline def -(r: ULong): ULong = wrappingExpr { l - r }
