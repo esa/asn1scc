@@ -1,8 +1,14 @@
 group scala_acn;
 
-getStringSize(p) ::= "<p>.indexOf(0x00)"
+getStringSize(p) ::= "<p>.indexOf(0x00.toRawUByte)"
 
-getSizeableSize(p, sAcc) ::= "<p><sAcc>nCount // TODO acn:5"
+getSizeableSize(p, sAcc, bIsUnsigned) ::= <<
+<if(bIsUnsigned)>
+ULong.fromRaw(<p><sAcc>nCount) // TODO acn:5
+<else>
+<p><sAcc>nCount // TODO acn:5
+<endif>
+>>
 
 EmitTypeAssignment_def_err_code(sErrCode, nErrValue, soErrorCodeComment) ::= <<
 @inline @cCode.inline val <sErrCode>: Int = <nErrValue> /* <soErrorCodeComment> */
@@ -310,7 +316,7 @@ Null_declare(p) ::= "val <p>: NullType = 0"
 Null_pattern_encode(p, arruNullValueAsByteArray, nSize, arrsBits, sErrCode, bSavePosition) ::= <<
 <if(arruNullValueAsByteArray)>
 locally {
-    val tmp: Array[Byte] = Array(<arruNullValueAsByteArray:{b|0x<b;format="X2">.toByte}; separator=",">)
+    val tmp: Array[UByte] = Array(<arruNullValueAsByteArray:{b|0x<b;format="X2">.toRawUByte}; separator=",">)
     codec.appendBitsMSBFirst(tmp, <nSize>)
 }
 <endif>
@@ -323,7 +329,7 @@ val <p>: NullType = 0
 <else>
 <if(arruNullValueAsByteArray)>
 locally {
-    val tmp: Array[Byte] = Array(<arruNullValueAsByteArray:{b|0x<b;format="X2">.toByte}; separator=",">)
+    val tmp: Array[UByte] = Array(<arruNullValueAsByteArray:{b|0x<b;format="X2">.toRawUByte}; separator=",">)
     if !codec.BitStream_ReadBitPattern(tmp, <nSize>) then
         return LeftMut(<sErrCode>)
 
@@ -341,11 +347,11 @@ Null_pattern2_decode(p, arruNullValueAsByteArray, nSize, arrsBits, sErrCode, bSa
 <Null_pattern_decode(p=p, arruNullValueAsByteArray=arruNullValueAsByteArray, nSize=nSize, arrsBits=arrsBits, sErrCode=sErrCode, bSavePosition=bSavePosition)>
 >>
 
-Enumerated_item_encode(p, sName, sEnumHolder, nItemIdxOrVal, sIntVal) ::= <<
-case <sName> => <nItemIdxOrVal>
+Enumerated_item_encode(p, sName, sEnumHolder, nItemIdx, sItemVal, sIntVal) ::= <<
+case <sName> => <sItemVal>
 >>
-Enumerated_item_decode(p, sName, sEnumHolder, nItemIdxOrVal, sIntVal) ::= <<
-case <nItemIdxOrVal> => <sName>
+Enumerated_item_decode(p, sName, sEnumHolder, nItemIdx, sItemVal, sIntVal) ::= <<
+case <nItemIdx> => <sName>
 >>
 
 EnumeratedEncIdx_encode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, sActualCodecFunc, sIntVal) ::= <<
@@ -365,7 +371,7 @@ val <sIntVal> = <p> match
 
 EnumeratedEncValues_decode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, sActualCodecFunc, sErrCode, sFirstItemName, sIntVal) ::= <<
 <sActualCodecFunc>
-val <p> = <sIntVal> match
+val <p> = <sIntVal>.toRaw match
     <arrsItem; separator="\n">
     case _ => return LeftMut(<sErrCode>)
 >>
@@ -427,54 +433,54 @@ codec.enc_IA5String_CharIndex_External_Field_Determinant(<nAsn1Max>, <p>)
 >>
 
 Acn_IA5String_CharIndex_External_Field_Determinant_decode(p, sErrCode, nAsn1Max, sExtFld, td/*:FE_StringTypeDefinition*/, nCharSize) ::= <<
-val <p> = codec.dec_IA5String_CharIndex_External_Field_Determinant(<nAsn1Max>, <sExtFld>)
+val <p> = codec.dec_IA5String_CharIndex_External_Field_Determinant(<nAsn1Max>, <sExtFld>.toRaw)
 >>
 
 
-oct_external_field_encode(sTypedefName, p, sAcc, noSizeMin, nSizeMax, sExtFld, nAlignSize, sErrCode) ::= <<
+oct_external_field_encode(sTypedefName, p, sAcc, noSizeMin, nSizeMax, sExtFld, bIsUnsigned, nAlignSize, sErrCode) ::= <<
 codec.encodeOctetString_no_length(<p><sAcc>arr, <p><sAcc>nCount.toInt)
 >>
 
-oct_external_field_decode(sTypedefName, p, sAcc, noSizeMin, nSizeMax, sExtFld, nAlignSize, sErrCode) ::= <<
+oct_external_field_decode(sTypedefName, p, sAcc, noSizeMin, nSizeMax, sExtFld, bIsUnsigned, nAlignSize, sErrCode) ::= <<
 val <p> =
-    if (<if(noSizeMin)>(<noSizeMin>\<=<sExtFld>) && <endif>(<sExtFld>\<=<nSizeMax>)) then
-        <sTypedefName>(<sExtFld>.toLong, codec.decodeOctetString_no_length(<sExtFld>.toInt))
+    if (<if(noSizeMin)>(<if(bIsUnsigned)>ULong.fromRaw(<noSizeMin>)<else><noSizeMin><endif> \<= <sExtFld>) && <endif>(<sExtFld> \<= <if(bIsUnsigned)>ULong.fromRaw(<nSizeMax>)<else><nSizeMax><endif>)) then
+        <sTypedefName>(<if(bIsUnsigned)><sExtFld>.toRaw.toInt<else><sExtFld><endif>, codec.decodeOctetString_no_length(<if(bIsUnsigned)><sExtFld>.toRaw.toInt<else><sExtFld><endif>))
     else return LeftMut(<sErrCode>)
 >>
 
-oct_external_field_fix_size_encode(sTypedefName, p, sAcc, noSizeMin, nSizeMax, sExtFld, nAlignSize, sErrCode) ::= <<
+oct_external_field_fix_size_encode(sTypedefName, p, sAcc, noSizeMin, nSizeMax, sExtFld, bIsUnsigned, nAlignSize, sErrCode) ::= <<
 codec.encodeOctetString_no_length(<p><sAcc>arr, <nSizeMax>)
 >>
 
-oct_external_field_fix_size_decode(sTypedefName, p, sAcc, noSizeMin, nSizeMax, sExtFld, nAlignSize, sErrCode) ::= <<
+oct_external_field_fix_size_decode(sTypedefName, p, sAcc, noSizeMin, nSizeMax, sExtFld, bIsUnsigned, nAlignSize, sErrCode) ::= <<
 val <p> =
-    if (<if(noSizeMin)>(<noSizeMin>\<=<sExtFld>) && <endif>(<sExtFld>\<=<nSizeMax>)) then
+    if (<if(noSizeMin)>(<if(bIsUnsigned)>ULong.fromRaw(<noSizeMin>)<else><noSizeMin><endif> \<= <sExtFld>) && <endif>(<sExtFld> \<= <if(bIsUnsigned)>ULong.fromRaw(<nSizeMax>)<else><nSizeMax><endif>)) then
         <sTypedefName>(codec.decodeOctetString_no_length(<nSizeMax>))
     else return LeftMut(<sErrCode>)
 >>
 
 
-sqf_external_field_encode(sTypeDefName, p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, sExtFld, nAlignSize, sErrCode, nIntItemMinSize, nIntItemMaxSize, sChildInitExpr) ::= <<
+sqf_external_field_encode(sTypeDefName, p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, sExtFld, bIsUnsigned, nAlignSize, sErrCode, nIntItemMinSize, nIntItemMaxSize, sChildInitExpr) ::= <<
 <loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize=[p, sAcc, "nCount"])>
 >>
 
-sqf_external_field_decode(sTypeDefName, p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, sExtFld, nAlignSize, sErrCode, nIntItemMinSize, nIntItemMaxSize, sChildInitExpr) ::= <<
+sqf_external_field_decode(sTypeDefName, p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, sExtFld, bIsUnsigned, nAlignSize, sErrCode, nIntItemMinSize, nIntItemMaxSize, sChildInitExpr) ::= <<
 val <p> =
-    if (<if(noSizeMin)>(<noSizeMin>\<=<sExtFld>) && <endif>(<sExtFld>\<=<nSizeMax>)) then
-        val <p> = <sTypeDefName>(<sExtFld>.toInt, Array.fill(<sExtFld>.toInt)(<sChildInitExpr>))
+    if (<if(noSizeMin)>(<if(bIsUnsigned)>ULong.fromRaw(<noSizeMin>)<else><noSizeMin><endif> \<= <sExtFld>) && <endif>(<sExtFld> \<= <if(bIsUnsigned)>ULong.fromRaw(<nSizeMax>)<else><nSizeMax><endif>)) then
+        val <p> = <sTypeDefName>(<if(bIsUnsigned)><sExtFld>.toRaw.toInt<else><sExtFld><endif>, Array.fill(<if(bIsUnsigned)><sExtFld>.toRaw.toInt<else><sExtFld><endif>)(<sChildInitExpr>))
         <loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize=[p, sAcc, "nCount"])>
         <p>
     else return LeftMut(<sErrCode>)
 >>
 
-sqf_external_field_fix_size_encode(sTypeDefName, p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, sExtFld, nAlignSize, sErrCode, nIntItemMinSize, nIntItemMaxSize, sChildInitExpr) ::= <<
+sqf_external_field_fix_size_encode(sTypeDefName, p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, sExtFld, bIsUnsigned, nAlignSize, sErrCode, nIntItemMinSize, nIntItemMaxSize, sChildInitExpr) ::= <<
 <loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize=[nSizeMax])>
 >>
 
-sqf_external_field_fix_size_decode(sTypeDefName, p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, sExtFld, nAlignSize, sErrCode, nIntItemMinSize, nIntItemMaxSize, sChildInitExpr) ::= <<
+sqf_external_field_fix_size_decode(sTypeDefName, p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, sExtFld, bIsUnsigned, nAlignSize, sErrCode, nIntItemMinSize, nIntItemMaxSize, sChildInitExpr) ::= <<
 val <p> =
-    if (<if(noSizeMin)>(<noSizeMin>\<=<sExtFld>) && <endif>(<sExtFld>\<=<nSizeMax>)) then
-        val <p> = <sTypeDefName>(Array.fill(<sExtFld>.toInt)(<sChildInitExpr>))
+    if (<if(noSizeMin)>(<if(bIsUnsigned)>ULong.fromRaw(<noSizeMin>)<else><noSizeMin><endif> \<= <sExtFld>) && <endif>(<sExtFld> \<= <if(bIsUnsigned)>ULong.fromRaw(<nSizeMax>)<else><nSizeMax><endif>)) then
+        val <p> = <sTypeDefName>(Array.fill(<if(bIsUnsigned)><sExtFld>.toRaw.toInt<else><sExtFld><endif>)(<sChildInitExpr>))
         <loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize=[nSizeMax])>
         <p>
     else return LeftMut(<sErrCode>)
@@ -743,11 +749,11 @@ case <sChildID>(<sChildName>) =>
 >>
 
 ChoiceChild_preWhen_bool_condition(sExtFld) ::= "<sExtFld>"
-ChoiceChild_preWhen_int_condition(sExtFld, nVal) ::= "(<sExtFld> == <nVal>)"
+ChoiceChild_preWhen_int_condition(sExtFld, sVal) ::= "(<sExtFld> == <sVal>)"
 ChoiceChild_preWhen_str_condition(sExtFld, sVal, arrsNullChars, arruVal) ::= <<
-(<sExtFld>.sameElements(Array(<arruVal:{b|0x<b;format="X2">.toByte}; separator=", ">)))
+(<sExtFld>.sameElements(Array[UByte](<arruVal:{b|UByte.fromRaw(0x<b;format="X2">)}; separator=", ">)))
 >>
-// TODO: Et le "else" ???
+
 ChoiceChild_preWhen_decode(p, sAcc, sChildID, sChildBody, arrsConditions, bFirst, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr) ::= <<
 <if(bFirst)>val <p> = if (<arrsConditions; separator=" && ">) {
 <else>
@@ -821,9 +827,9 @@ PresenceDependency(v, sSeqPath, sAcc, sChildName) ::= <<
 val <v> = <sSeqPath><sAcc><sChildName>.isDefined
 >>
 
-ChoiceDependencyIntPres_child(v, sChildNamePresent, nChildRetVal) ::= <<
+ChoiceDependencyIntPres_child(v, sChildNamePresent, sChildRetVal) ::= <<
 case _: <sChildNamePresent> =>
-    <nChildRetVal>
+    <sChildRetVal>
 >>
 
 ChoiceDependencyStrPres_child(v, sChildNamePresent, sChildRetVal, arruChildRetValBytes, arrsNullChars) ::= <<

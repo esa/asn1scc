@@ -223,7 +223,7 @@ let createIntegerInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros)  (t:Asn1Acn
             match v.ActualValue with
             | IntegerValue iv   -> iv
             | _                 -> raise(BugErrorException "UnexpectedValue")
-        initInteger (lm.lg.getValue p.arg) vl p.arg.isOptional
+        initInteger (lm.lg.getValue p.arg) (lm.lg.intValueToString vl o.intClass) p.arg.isOptional
 
     let integerVals = EncodeDecodeTestCase.IntegerAutomaticTestCaseValues r t o
 
@@ -233,9 +233,9 @@ let createIntegerInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros)  (t:Asn1Acn
         match isZeroAllowed  with
         | false    ->
             match integerVals with
-            |x::_ -> {InitFunctionResult.funcBody = initInteger (lm.lg.getValue p.arg) x p.arg.isOptional;  localVariables=[]}
-            | [] -> {InitFunctionResult.funcBody = initInteger (lm.lg.getValue p.arg) 0I p.arg.isOptional;  localVariables=[]}
-        | true  -> {InitFunctionResult.funcBody = initInteger (lm.lg.getValue p.arg) 0I p.arg.isOptional;  localVariables=[]}
+            |x::_ -> {InitFunctionResult.funcBody = initInteger (lm.lg.getValue p.arg) (lm.lg.intValueToString x o.intClass) p.arg.isOptional;  localVariables=[]}
+            | [] -> {InitFunctionResult.funcBody = initInteger (lm.lg.getValue p.arg) (lm.lg.intValueToString 0I o.intClass) p.arg.isOptional;  localVariables=[]}
+        | true  -> {InitFunctionResult.funcBody = initInteger (lm.lg.getValue p.arg) (lm.lg.intValueToString 0I o.intClass) p.arg.isOptional;  localVariables=[]}
     let constantInitExpression =
         match isZeroAllowed  with
         | false    ->
@@ -249,7 +249,7 @@ let createIntegerInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros)  (t:Asn1Acn
         integerVals |>
         List.map (fun vl ->
             let initTestCaseFunc =
-                (fun (p:CallerScope) -> {InitFunctionResult.funcBody = initInteger (lm.lg.getValueUnchecked p.arg PartialAccess) vl p.arg.isOptional;  localVariables=[]} )
+                (fun (p:CallerScope) -> {InitFunctionResult.funcBody = initInteger (lm.lg.getValueUnchecked p.arg PartialAccess) (lm.lg.intValueToString vl o.intClass) p.arg.isOptional;  localVariables=[]} )
             {AutomaticTestCase.initTestCaseFunc = initTestCaseFunc; testCaseTypeIDsMap = Map.ofList [(t.id, TcvAnyValue)] }        )
 
     createInitFunctionCommon r lm t typeDefinition funcBody tasInitFunc testCaseFuncs constantInitExpression constantInitExpression [] [] []

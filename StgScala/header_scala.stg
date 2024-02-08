@@ -127,7 +127,7 @@ typedef <prTd.typeName> <td.typeName>
 /***********************************       STRING    ************************************************************/
 
 Define_new_ia5string(td/*:FE_StringTypeDefinition*/, nMin, nMax, nCMax, arrnAlphaChars) ::= <<
-type <td.typeName> = Array[Byte]
+type <td.typeName> = Array[UByte]
 >>
 
 Define_subType_ia5string(td/*:FE_StringTypeDefinition*/, prTd/*:FE_StringTypeDefinition*/, soParentTypePackage) ::= <<
@@ -141,7 +141,7 @@ Define_new_octet_string(td/*:FE_SizeableTypeDefinition*/, nMin, nMax, bFixedSize
 /*nCount equals to Number of bytes in the array. Max value is : <nMax> (unsure - TODO read asn1 standard)*/
 
 <endif>
-case class <td.typeName>(<if(!bFixedSize)>var nCount: Long, <endif>arr: Array[Byte])
+case class <td.typeName>(<if(!bFixedSize)>var nCount: Long, <endif>arr: Array[UByte])
 {
     require(arr.length \<= <nMax>)
 }
@@ -164,7 +164,7 @@ Define_new_bit_string(td/*:FE_SizeableTypeDefinition*/, nMin, nMax, bFixedSize, 
 /*nCount equals to Number of bits in the array. Max value is : <nMax> */
 
 <endif>
-case class <td.typeName>(<if(!bFixedSize)>var nCount: Long, <endif>arr: Array[Byte])
+case class <td.typeName>(<if(!bFixedSize)>var nCount: Long, <endif>arr: Array[UByte])
 {
     require(arr.length \<= <nMaxOctets>)
 }

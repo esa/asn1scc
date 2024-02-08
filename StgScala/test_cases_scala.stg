@@ -103,7 +103,7 @@ val file = new File(filename+".dat")
 val bw = new FileOutputStream(file)
 val l = codec.getLength
 codec.resetBitIndex()
-bw.write(codec.readByteArray(l))
+bw.write(codec.readByteArray(l).toArrayRaws)
 bw.close()
 >>
 

@@ -165,7 +165,7 @@ let getIntfuncBodyByCons (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Commo
 
     let IntBod uperRange extCon =
         match uperRange with
-        | Concrete(min, max) when min=max                    -> IntNoneRequired (lm.lg.getValue p.arg) min   errCode.errCodeName codec, codec=Decode, true
+        | Concrete(min, max) when min=max                    -> IntNoneRequired (lm.lg.getValue p.arg) (lm.lg.intValueToString min intClass)  errCode.errCodeName codec, codec=Decode, true
         | Concrete(min, max) when intClass.IsPositive && (not extCon)    -> IntFullyConstraintPos (castPp ((int r.args.integerSizeInBytes)*8)) min max (GetNumberOfBitsForNonNegativeInteger (max-min))  suffix errCode.errCodeName codec, false, false
         | Concrete(min, max)                                 -> IntFullyConstraint (castPp ((int r.args.integerSizeInBytes)*8)) min max (GetNumberOfBitsForNonNegativeInteger (max-min))  suffix errCode.errCodeName codec, false, false
         | PosInf(a)  when a>=0I && (not extCon)  -> IntSemiConstraintPos pp a  errCode.errCodeName codec, false, false

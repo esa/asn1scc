@@ -98,21 +98,21 @@ val allowedCharSet: Array[Byte] = Array(<arrnCharSet:{ch|0x<ch;format="X2">}; wr
 
 InternalItem_string_with_alpha_encode(p, sErrCode, td/*:FE_StringTypeDefinition*/, i, nLastItemIndex, arrnAlphabetAsciiCodes, nAlphabetLength, nCharIndexSize) ::=<<
 <PrintAlphabet2(arrnAlphabetAsciiCodes)>
-val charIndex: Int = GetCharIndex(<p>(<i>), allowedCharSet)
+val charIndex: Int = GetCharIndex(<p>(<i>), UByte.fromArrayRaws(allowedCharSet))
 codec.encodeConstrainedWholeNumber(charIndex, 0, <nLastItemIndex>)
 >>
 InternalItem_string_with_alpha_decode(p, sErrCode,  td/*:FE_StringTypeDefinition*/, i, nLastItemIndex, arrnAlphabetAsciiCodes, nAlphabetLength, nCharIndexSize) ::=<<
 <PrintAlphabet2(arrnAlphabetAsciiCodes)>
 
-<p>(<i>) = allowedCharSet(codec.decodeConstrainedWholeNumber(0, <nLastItemIndex>).toInt)
+<p>(<i>) = allowedCharSet(codec.decodeConstrainedWholeNumber(0, <nLastItemIndex>).toInt).toRawUByte
 >>
 
 InternalItem_string_no_alpha_encode(p, sErrCode, i) ::=<<
-codec.encodeConstrainedWholeNumber(<p>(<i>), 0, 127)
+codec.encodeConstrainedWholeNumber(<p>(<i>).toRaw, 0, 127)
 >>
 
 InternalItem_string_no_alpha_decode(p, sErrCode, i) ::=<<
-<p>(<i>) = codec.decodeConstrainedWholeNumberByte(0, 127) // uper:109
+<p>(<i>) = UByte.fromRaw(codec.decodeConstrainedWholeNumberByte(0, 127)) // uper:109
 >>
 
 /* INTEGER START*/
@@ -128,11 +128,11 @@ val <p> = codec.decodeConstrainedWholeNumber<sSsuffix>(<nMin>, <nMax>) // uper:1
 
 /*case: Positive fully constraint A:: = INTEGER (5..20) */
 IntFullyConstraintPos_encode(p, nMin, nMax, nBits, sSsuffix, sErrCode) ::= <<
-codec.encodeConstrainedPosWholeNumber(<p>, <nMin>, <nMax>)
+codec.encodeConstrainedPosWholeNumber(<p>, <nMin>.toRawULong, <nMax>.toRawULong)
 >>
 
 IntFullyConstraintPos_decode(p, nMin, nMax, nBits, sSsuffix, sErrCode) ::= <<
-val <p> = codec.decodeConstrainedPosWholeNumber<sSsuffix>(<nMin>, <nMax>) // uper:135
+val <p> = codec.decodeConstrainedPosWholeNumber<sSsuffix>(<nMin>.toRawULong, <nMax>.toRawULong) // uper:135
 >>
 
 /*case: A :: = INTEGER */
@@ -167,12 +167,12 @@ if !codec.decodeSemiConstrainedPosWholeNumber(<nMin>) then
 >>
 
 /*case: A:: = INTEGER (5..5) */
-IntNoneRequired_encode(p, nConst, sErrCode) ::=<<
-/* No need to encode the val <p>, it will always be <nConst> */
+IntNoneRequired_encode(p, sConst, sErrCode) ::=<<
+/* No need to encode the val <p>, it will always be <sConst> */
 ; // NOP
 >>
-IntNoneRequired_decode(p, nConst, sErrCode) ::= <<
-val <p> = <nConst>
+IntNoneRequired_decode(p, sConst, sErrCode) ::= <<
+val <p> = <sConst>
 >>
 
 /*case: A:: = INTEGER (5..40,...) */
@@ -378,11 +378,11 @@ str_FixedSize_encode(p, sTasName, i, sInternalItem, nFixedSize, nIntItemMinSize,
 str_FixedSize_decode(p, sTasName, i, sInternalItem, nFixedSize, nIntItemMinSize, nIntItemMaxSize, nAlignSize, soInitExpr) ::= <<
 val <p> = <soInitExpr>
 <loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize=nFixedSize)>
-<p>(<nFixedSize>) = 0x0
+<p>(<nFixedSize>) = UByte.fromRaw(0x0)
 >>
 
 str_VarSize_encode(p, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, soInitExpr) ::= <<
-nStringLength = <p>.indexOf(0x00)
+nStringLength = <p>.indexOf(0x00.toRawUByte)
 /*ret = nStringLength >= <nSizeMin> && nStringLength \<= <nSizeMax>;*/
 codec.encodeConstrainedWholeNumber(nStringLength, <nSizeMin>, <nSizeMax>)
 <loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize="nStringLength")>
@@ -392,7 +392,7 @@ codec.encodeConstrainedWholeNumber(nStringLength, <nSizeMin>, <nSizeMax>)
 str_VarSize_decode(p, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, soInitExpr) ::= <<
 val <p> = <soInitExpr>
 nStringLength = codec.decodeConstrainedWholeNumberInt(<nSizeMin>, <nSizeMax>)
-<p>(nStringLength) = 0
+<p>(nStringLength) = UByte.fromRaw(0)
 
 <i> = 0
 <loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize="nStringLength")>

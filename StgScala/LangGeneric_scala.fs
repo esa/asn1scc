@@ -54,16 +54,20 @@ type LangGeneric_scala() =
             | Asn1AcnAst.ASN1SCC_Int32    _ ->  sprintf "%s" (i.ToString())
             | Asn1AcnAst.ASN1SCC_Int64    _ ->  sprintf "%sL" (i.ToString())
             | Asn1AcnAst.ASN1SCC_Int      _ ->  sprintf "%sL" (i.ToString())
-            | Asn1AcnAst.ASN1SCC_UInt8    _ ->  sprintf "%s" (i.ToString())
-            | Asn1AcnAst.ASN1SCC_UInt16   _ ->  sprintf "%s" (i.ToString())
-            | Asn1AcnAst.ASN1SCC_UInt32   _ ->  sprintf "%s" (i.ToString())
-            | Asn1AcnAst.ASN1SCC_UInt64   _ ->  sprintf "%sL" (i.ToString())
-            | Asn1AcnAst.ASN1SCC_UInt     _ ->  sprintf "%sL" (i.ToString())
+            | Asn1AcnAst.ASN1SCC_UInt8    _ ->  sprintf "UByte.fromRaw(%s)" (i.ToString())
+            | Asn1AcnAst.ASN1SCC_UInt16   _ ->  sprintf "UShort.fromRaw(%s)" (i.ToString())
+            | Asn1AcnAst.ASN1SCC_UInt32   _ ->  sprintf "UInt.fromRaw(%s)" (i.ToString())
+            | Asn1AcnAst.ASN1SCC_UInt64   _ ->  sprintf "ULong.fromRaw(%sL)" (i.ToString())
+            | Asn1AcnAst.ASN1SCC_UInt     _ ->  sprintf "ULong.fromRaw(%sL)" (i.ToString())
+
+        override _.asn1SccIntValueToString (i: BigInteger) (unsigned: bool) =
+            let iStr = i.ToString()
+            if unsigned then $"ULong.fromRaw({iStr})" else iStr
 
         override _.doubleValueToString (v:double) =
             v.ToString(FsUtils.doubleParseString, System.Globalization.NumberFormatInfo.InvariantInfo)
 
-        override _.initializeString stringSize = sprintf "Array.fill(%d.toInt+1)(0x0.toByte)" stringSize
+        override _.initializeString stringSize = sprintf "Array.fill[UByte](%d.toInt+1)(0x0.toRawUByte)" stringSize
 
         override _.supportsInitExpressions = false
 

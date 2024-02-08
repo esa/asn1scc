@@ -90,7 +90,7 @@ ExpAndMulti(arrsExp) ::= <<
 <arrsExp; separator=" && ">
 >>
 ExpNot(sExp) ::= "(!<sExp>)"
-StrLen(sExp) ::= "<sExp>.indexOf(0)"
+StrLen(sExp) ::= "<sExp>.indexOf(0.toRawUByte)"
 ArrayLen(sExp, sAcc) ::= "<sExp><sAcc>nCount"
 
 ExpressionToStatement(sExp1) ::=<<
@@ -183,8 +183,9 @@ while(ret.isRight && <i> \< <if(!bIsFixedSize)><p><sAcc>nCount<else><nFixedSize>
 
 
 Print_AlphabetCheckFunc(sFuncName, arrsAlphaConBody) ::= <<
-def <sFuncName>(str: Array[Byte]): Boolean =
+def <sFuncName>(str0: Array[UByte]): Boolean =
 {
+    val str = str0.toArrayRaws
     var valid: Boolean = true
     var i: Int = 0
     while ((str(i) != CHAR_0000) && valid) {

@@ -60,15 +60,15 @@ case class UPER private [asn1scala](base: Codec) {
 
    private def objectIdentifier_subIdentifiers_encode(encodingBuf: Array[UByte], pSizeVal: Int, siValueVal: ULong): Int = {
       var lastOctet: Boolean = false
-      val tmp: Array[UByte] = Array.fill(16)(0)
+      val tmp: Array[UByte] = Array.fill(16)(0.toRawUByte)
       var nSize: Int = 0
 
-      var siValue = siValueVal
+      var siValue = siValueVal.toRaw
       var pSize = pSizeVal
 
       while !lastOctet do
          decreases(siValue)
-         val curByte: UByte = (siValue % 128).toByte
+         val curByte: UByte = (siValue % 128).toByte.toRawUByte
          siValue = siValue / 128
          lastOctet = siValue.toInt == 0
          tmp(nSize) = curByte
@@ -77,7 +77,7 @@ case class UPER private [asn1scala](base: Codec) {
       var i: Int = 0
       while i < nSize do
          decreases(nSize - i)
-         val curByte: UByte = if i == nSize - 1 then tmp(nSize - i - 1) else (tmp(nSize - i - 1) | 0x80).toByte
+         val curByte: UByte = if i == nSize - 1 then tmp(nSize - i - 1) else (tmp(nSize - i - 1).toRaw | 0x80).toByte.toRawUByte
          encodingBuf(pSize) = curByte
          pSize += 1
          i += 1
@@ -86,16 +86,16 @@ case class UPER private [asn1scala](base: Codec) {
    }
 
    def ObjectIdentifier_encode(pVal: Asn1ObjectIdentifier): Unit = {
-      val tmp: Array[UByte] = Array.fill(OBJECT_IDENTIFIER_MAX_LENGTH * (NO_OF_BYTES_IN_JVM_LONG + 2))(0)
+      val tmp: Array[UByte] = Array.fill(OBJECT_IDENTIFIER_MAX_LENGTH * (NO_OF_BYTES_IN_JVM_LONG + 2))(0.toRawUByte)
       var totalSize: Int = 0
 
       var i: Int = 0
-      totalSize = objectIdentifier_subIdentifiers_encode(tmp, totalSize, pVal.values(0) * 40 + pVal.values(1))
+      totalSize = objectIdentifier_subIdentifiers_encode(tmp, totalSize, (pVal.values(0) * 40 + pVal.values(1)).toRawULong)
 
       i = 0
       while i < pVal.nCount do
          decreases(pVal.nCount - i)
-         totalSize = objectIdentifier_subIdentifiers_encode(tmp, totalSize, pVal.values(i))
+         totalSize = objectIdentifier_subIdentifiers_encode(tmp, totalSize, pVal.values(i).toRawULong)
          i += 1
 
       if totalSize <= 0x7F then
@@ -114,14 +114,14 @@ case class UPER private [asn1scala](base: Codec) {
    def relativeOID_encode(pVal: Asn1ObjectIdentifier): Unit = {
       //a subIdentifier (i.e. a component) should not take more than size(asn1SccUint) + 2 to be encoded
       //(the above statement is true for 8 byte integers. If we ever user larger integer then it should be adjusted)
-      val tmp: Array[UByte] = Array.fill(OBJECT_IDENTIFIER_MAX_LENGTH * (NO_OF_BYTES_IN_JVM_LONG + 2))(0)
+      val tmp: Array[UByte] = Array.fill(OBJECT_IDENTIFIER_MAX_LENGTH * (NO_OF_BYTES_IN_JVM_LONG + 2))(0.toRawUByte)
       var totalSize: Int = 0
 
       var i: Int = 0
 
       while i < pVal.nCount do
          decreases(pVal.nCount - i)
-         totalSize = objectIdentifier_subIdentifiers_encode(tmp, totalSize, pVal.values(i))
+         totalSize = objectIdentifier_subIdentifiers_encode(tmp, totalSize, pVal.values(i).toRawULong)
          i += 1
 
 
@@ -140,13 +140,13 @@ case class UPER private [asn1scala](base: Codec) {
 
    def objectIdentifier_subIdentifiers_decode(pRemainingOctetsVal: Long): (Long, ULong) = {
       var bLastOctet: Boolean = false
-      var curOctetValue: ULong = 0
-      var siValue: ULong = 0
+      var curOctetValue: Long = 0
+      var siValue: Long = 0
       var pRemainingOctets: Long = pRemainingOctetsVal
 
       (while pRemainingOctets > 0 && !bLastOctet do
          decreases(pRemainingOctets)
-         val curByte = readByte()
+         val curByte = readByte().toRaw
          pRemainingOctets -= 1
 
          bLastOctet = (curByte & 0x80) == 0
@@ -155,7 +155,7 @@ case class UPER private [asn1scala](base: Codec) {
          siValue |= curOctetValue
       ).invariant(true) // TODO
 
-      (pRemainingOctets, siValue)
+      (pRemainingOctets, ULong.fromRaw(siValue))
    }
 
 
@@ -176,8 +176,8 @@ case class UPER private [asn1scala](base: Codec) {
       var (totalSize, si) = objectIdentifier_subIdentifiers_decode(objectIdentifier_decode_length())
 
       pVal.nCount = 2
-      pVal.values(0) = si / 40
-      pVal.values(1) = si % 40
+      pVal.values(0) = si.toRaw / 40
+      pVal.values(1) = si.toRaw % 40
       (while totalSize > 0 && pVal.nCount < OBJECT_IDENTIFIER_MAX_LENGTH do
          decreases(OBJECT_IDENTIFIER_MAX_LENGTH - pVal.nCount)
 
@@ -186,7 +186,7 @@ case class UPER private [asn1scala](base: Codec) {
          totalSize = tpl._1
          si = tpl._2
 
-         pVal.values(pVal.nCount) = si
+         pVal.values(pVal.nCount) = si.toRaw
          pVal.nCount += 1
       ).invariant(true) // TODO
 
@@ -200,14 +200,14 @@ case class UPER private [asn1scala](base: Codec) {
       val pVal: Asn1ObjectIdentifier = ObjectIdentifier_Init()
 
       var totalSize = objectIdentifier_decode_length()
-      var si: ULong = 0
+      var si: Long = 0
 
       (while totalSize > 0 && pVal.nCount < OBJECT_IDENTIFIER_MAX_LENGTH do
          decreases(OBJECT_IDENTIFIER_MAX_LENGTH - pVal.nCount)
          val tpl = objectIdentifier_subIdentifiers_decode(totalSize)
 
          totalSize = tpl._1
-         si = tpl._2
+         si = tpl._2.toRaw
 
          pVal.values(pVal.nCount) = si
          pVal.nCount += 1

@@ -2,21 +2,184 @@ package asn1scala
 
 import stainless.lang.{None => None, Option => Option, ghost => ghostExpr, _}
 import stainless.annotation._
+import stainless.math.{wrapping => wrappingExpr, *}
 import StaticChecks.*
+import scala.annotation.targetName
+import scala.language.implicitConversions
 
 // type used in ErrorCases
 type ErrorCode = Int
 
+// all bits of the integer
+val MASK_BYTE       = 0xFF
+val MASK_BYTE_L     = 0xFFL
+val MASK_SHORT_L    = 0xFF_FFL
+val MASK_INT_L      = 0xFF_FF_FF_FFL
+
+// MSBs (neg bits of the integer)
+val MASK_MSB_BYTE   = 0x80L
+val MASK_MSB_SHORT  = 0x80_00L
+val MASK_MSB_INT    = 0x80_00_00_00L
+
+// pos bits of the integer
+val MASK_POS_BYTE   = 0x7FL
+val MASK_POS_SHORT  = 0x7F_FFL
+val MASK_POS_INT    = 0x7F_FF_FF_FFL
+
 // Unsigned datatypes that have no native JVM support
-type UByte = Byte
-type UShort = Short
-type UInt = Int
-type ULong = Long
+opaque type UByte = Byte
+object UByte {
+    @inline def fromRaw(u: Byte): UByte = u
+    @inline def fromArrayRaws(arr: Array[Byte]): Array[UByte] = arr
+}
+extension (l: UByte) {
+    @inline def toRaw: Byte = l
+    @inline def toULong: ULong = l
+    @inline def <=(r: UByte): Boolean = wrappingExpr { l + Byte.MinValue <= r + Byte.MinValue }
+
+    def unsignedToLong: Long = l.toLong & MASK_BYTE_L
+    def unsignedToInt: Int = l.toInt & MASK_BYTE
+
+    @targetName("unsigned right shift on Bytes")
+    def >>>>(i: Int): UByte = {
+        require(i >= 0 && i <= NO_OF_BITS_IN_BYTE)
+        ((l.toInt & MASK_BYTE) >>> i).cutToByte
+    }
+
+    @targetName("left shift on Bytes")
+    def <<<<(i: Int): UByte = {
+        require(i >= 0 && i <= NO_OF_BITS_IN_BYTE)
+        ((l.toInt << i) & MASK_BYTE).cutToByte
+    }
+
+    @targetName("binary OR on Bytes")
+    def |||(ubR: Byte): UByte = {
+        (l.toInt | ubR.toInt).cutToByte
+    }
+}
+extension (arr: Array[UByte]) {
+    @inline def toArrayRaws: Array[Byte] = arr
+}
+
+opaque type UShort = Short
+
+object UShort {
+    @inline def fromRaw(u: Short): UShort = u
+}
+extension (l: UShort) {
+    @inline def toRaw: Short = l
+    @inline def <=(r: UShort): Boolean = wrappingExpr { l + Short.MinValue <= r + Short.MinValue }
+    @inline def unsignedToLong: Long = l & MASK_SHORT_L
+}
+
+opaque type UInt = Int
+object UInt {
+    @inline def fromRaw(u: Int): UInt = u
+}
+extension (l: UInt) {
+    @inline def toRaw: Int = l
+    @inline def <=(r: UInt): Boolean = wrappingExpr { l + Int.MinValue <= r + Int.MinValue }
+    @inline def unsignedToLong: Long = l & MASK_INT_L
+    @inline def toULong: ULong = l
+}
+
+opaque type ULong = Long
+object ULong {
+    @inline def fromRaw(u: Long): ULong = u
+}
+extension (l: ULong) {
+    @inline def toRaw: Long = l
+    @inline def toUByte: UByte = l.toByte
+    @inline def toUShort: UShort = l.toShort
+    @inline def toUInt: UInt = l.toInt
+    @inline def <=(r: ULong): Boolean = wrappingExpr { l + Long.MinValue <= r + Long.MinValue }
+    @inline def +(r: ULong): ULong = wrappingExpr { l + r }
+    @inline def -(r: ULong): ULong = wrappingExpr { l - r }
+
+    // @ignore
+    // inline def ==(r: Int): Boolean = {
+    //     scala.compiletime.requireConst(r)
+    //     l == r.toLong.toRawULong
+    // }
+}
+
+extension (b: Byte) {
+    @inline def toRawUByte: UByte = UByte.fromRaw(b)
+}
+extension (i: Int) {
+    @inline def toRawUInt: UInt = i
+
+    @inline def toRawUByte: UByte = wrappingExpr { i.toByte.toRawUByte }
+
+    def toUnsignedByte: UByte = {
+        if((i & MASK_BYTE) == MASK_MSB_BYTE)
+            (-MASK_MSB_BYTE).toByte
+        else if ((i & MASK_MSB_BYTE) == MASK_MSB_BYTE)
+            ((i & MASK_POS_BYTE) - MASK_MSB_BYTE).toByte
+        else
+            (i & MASK_BYTE).toByte
+    }
+}
+
+extension (l: Long) {
+    @inline def toRawULong: ULong = l
+
+    def cutToInt: UInt = {
+        if(l == MASK_MSB_INT)
+            (-MASK_MSB_INT).toInt
+        else if ((l & MASK_MSB_INT) == MASK_MSB_INT)
+            ((l & MASK_POS_INT) - MASK_MSB_INT).toInt
+        else
+            (l & MASK_INT_L).toInt
+    }
+
+    def cutToShort: UShort = {
+        if (l == MASK_MSB_SHORT)
+            (-MASK_MSB_SHORT).toShort
+        else if ((l & MASK_MSB_SHORT) == MASK_MSB_SHORT)
+            ((l & MASK_POS_SHORT) - MASK_MSB_SHORT).toShort
+        else
+            (l & MASK_SHORT_L).toShort
+    }
+
+    def cutToByte: UByte = {
+        if ((l & MASK_BYTE) == MASK_MSB_BYTE)
+            (-MASK_MSB_BYTE).toByte
+        else if ((l & MASK_MSB_BYTE) == MASK_MSB_BYTE)
+            ((l & MASK_POS_BYTE) - MASK_MSB_BYTE).toByte
+        else
+            (l & MASK_BYTE_L).toByte
+    }
+
+    @extern
+    def toByteArray: Array[Byte] = {
+        scala.math.BigInt(l).toByteArray
+    }
+}
+
+// @ignore
+// inline implicit def intlit2uint(inline i: Int): UInt = {
+//    scala.compiletime.requireConst(i)
+//    UInt.fromRaw(i)
+// }
+
+// @ignore
+// inline implicit def intlit2ulong(inline i: Int): ULong = {
+//    scala.compiletime.requireConst(i)
+//    ULong.fromRaw(i.toLong)
+// }
+
+// @ignore
+// inline implicit def longlit2ulong(inline i: Long): ULong = {
+//    scala.compiletime.requireConst(i)
+//    ULong.fromRaw(i)
+// }
+
 @extern
 type RealNoRTL = Float
 type BooleanNoRTL = Boolean
 type ASCIIChar = UByte
-type NullType = ASCIIChar
+type NullType = Byte
 
 // TODO
 type LongNoRTL = Long
@@ -60,7 +223,7 @@ val DoubleNoOfMantissaBits = 52L
 val DoubleBias = (1L << 10) - 1 // 1023
 
 
-val ber_aux: Array[ULong] = Array(
+val ber_aux: Array[Long] = Array(
     0xFFL,
     0xFF00L,
     0xFF0000L,
@@ -87,7 +250,7 @@ def int2uint(v: Long): ULong = {
 def uint2int(v: ULong, uintSizeInBytes: Int): Long = {
     require(uintSizeInBytes >= 1 && uintSizeInBytes <= 9)
 
-    var vv = v
+    var vv = v.toRaw
     val tmp: ULong = 0x80
     val bIsNegative: Boolean = (vv & (tmp << ((uintSizeInBytes - 1) * 8))) > 0
 
@@ -119,7 +282,7 @@ def GetCharIndex(ch: UByte, charSet: Array[UByte]): Int =
     ret
 }
 
-def NullType_Initialize(): ASCIIChar = {
+def NullType_Initialize(): NullType = {
     0
 }
 

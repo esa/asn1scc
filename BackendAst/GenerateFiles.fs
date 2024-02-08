@@ -38,8 +38,7 @@ let printHeaderFileValueAssignment (r:DAst.AstRoot) (vasPU_name:string)  (lm:Lan
 let printSourceFileValueAssignment (r:DAst.AstRoot) (vasPU_name:string)  (lm:LanguageMacros) (vas:ValueAssignment) =
     let sName = vas.c_name
     let t = vas.Type
-    let sTypeDecl= getTypeDecl r vasPU_name lm vas
-
+    let sTypeDecl: string= getTypeDecl r vasPU_name lm vas
     let sVal = DAstVariables.printValue r  lm vasPU_name vas.Type None vas.Value.kind
     lm.vars.PrintValueAssignment sName sTypeDecl  sVal
 

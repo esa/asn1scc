@@ -5,7 +5,7 @@ group c_acn;
 
 getStringSize(p) ::= "strlen(<p>)"
 
-getSizeableSize(p, sAcc) ::= "<p><sAcc>nCount"
+getSizeableSize(p, sAcc, bIsUnsigned) ::= "<p><sAcc>nCount"
 
 
 EmitTypeAssignment_def_err_code(sErrCode, nErrValue, soErrorCodeComment) ::= <<
@@ -413,14 +413,14 @@ Null_pattern2_decode(p, arruNullValueAsByteArray, nSize, arrsBits, sErrCode, bSa
 
 
 
-Enumerated_item_encode(p, sName, sEnumHolder, nItemIdxOrVal, sIntVal) ::= <<
+Enumerated_item_encode(p, sName, sEnumHolder, nItemIdx, sItemVal, sIntVal) ::= <<
 case <sName>:
-    <sIntVal> = <nItemIdxOrVal>;
+    <sIntVal> = <sItemVal>;
     break;
 >>
 
-Enumerated_item_decode(p, sName, sEnumHolder, nItemIdxOrVal, sIntVal) ::= <<
-case <nItemIdxOrVal>:
+Enumerated_item_decode(p, sName, sEnumHolder, nItemIdx, sItemVal, sIntVal) ::= <<
+case <nItemIdx>:
     <p> = <sName>;
     break;
 >>
@@ -522,12 +522,12 @@ ret = Acn_Dec_IA5String_CharIndex_External_Field_Determinant(pBitStrm, <nAsn1Max
 >>
 
 
-oct_external_field_encode(sTypedefName, p, sAcc, noSizeMin, nSizeMax, sExtFld, nAlignSize, sErrCode) ::= <<
+oct_external_field_encode(sTypedefName, p, sAcc, noSizeMin, nSizeMax, sExtFld, bIsUnsigned, nAlignSize, sErrCode) ::= <<
 ret = BitStream_EncodeOctetString_no_length(pBitStrm, <p><sAcc>arr, <p><sAcc>nCount);
 >>
 
 
-oct_external_field_decode(sTypedefName, p, sAcc, noSizeMin, nSizeMax, sExtFld, nAlignSize, sErrCode) ::= <<
+oct_external_field_decode(sTypedefName, p, sAcc, noSizeMin, nSizeMax, sExtFld, bIsUnsigned, nAlignSize, sErrCode) ::= <<
 ret = (<if(noSizeMin)>(<noSizeMin>\<=<sExtFld>) && <endif>(<sExtFld>\<=<nSizeMax>));
 if (ret) {
     <p><sAcc>nCount = (int)<sExtFld>;
@@ -535,12 +535,12 @@ if (ret) {
 }
 >>
 
-oct_external_field_fix_size_encode(sTypedefName, p, sAcc, noSizeMin, nSizeMax, sExtFld, nAlignSize, sErrCode) ::= <<
+oct_external_field_fix_size_encode(sTypedefName, p, sAcc, noSizeMin, nSizeMax, sExtFld, bIsUnsigned, nAlignSize, sErrCode) ::= <<
 ret = BitStream_EncodeOctetString_no_length(pBitStrm, <p><sAcc>arr, <nSizeMax>);
 >>
 
 
-oct_external_field_fix_size_decode(sTypedefName, p, sAcc, noSizeMin, nSizeMax, sExtFld, nAlignSize, sErrCode) ::= <<
+oct_external_field_fix_size_decode(sTypedefName, p, sAcc, noSizeMin, nSizeMax, sExtFld, bIsUnsigned, nAlignSize, sErrCode) ::= <<
 ret = (<if(noSizeMin)>(<noSizeMin>\<=<sExtFld>) && <endif>(<sExtFld>\<=<nSizeMax>));
 if (ret) {
     ret = BitStream_DecodeOctetString_no_length(pBitStrm, <p><sAcc>arr, <nSizeMax>);
@@ -549,12 +549,12 @@ if (ret) {
 
 
 
-sqf_external_field_encode(sTypeDefName, p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, sExtFld, nAlignSize, sErrCode, nIntItemMinSize, nIntItemMaxSize, sChildInitExpr) ::= <<
+sqf_external_field_encode(sTypeDefName, p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, sExtFld, bIsUnsigned, nAlignSize, sErrCode, nIntItemMinSize, nIntItemMaxSize, sChildInitExpr) ::= <<
 <loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize=[p, sAcc, "nCount"])>
 >>
 
 
-sqf_external_field_decode(sTypeDefName, p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, sExtFld, nAlignSize, sErrCode, nIntItemMinSize, nIntItemMaxSize, sChildInitExpr) ::= <<
+sqf_external_field_decode(sTypeDefName, p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, sExtFld, bIsUnsigned, nAlignSize, sErrCode, nIntItemMinSize, nIntItemMaxSize, sChildInitExpr) ::= <<
 ret = (<if(noSizeMin)>(<noSizeMin>\<=<sExtFld>) && <endif>(<sExtFld>\<=<nSizeMax>));
 if (ret) {
     <p><sAcc>nCount = (int)<sExtFld>;
@@ -562,12 +562,12 @@ if (ret) {
 }
 >>
 
-sqf_external_field_fix_size_encode(sTypeDefName, p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, sExtFld, nAlignSize, sErrCode, nIntItemMinSize, nIntItemMaxSize, sChildInitExpr) ::= <<
+sqf_external_field_fix_size_encode(sTypeDefName, p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, sExtFld, bIsUnsigned, nAlignSize, sErrCode, nIntItemMinSize, nIntItemMaxSize, sChildInitExpr) ::= <<
 <loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize=[nSizeMax])>
 >>
 
 
-sqf_external_field_fix_size_decode(sTypeDefName, p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, sExtFld, nAlignSize, sErrCode, nIntItemMinSize, nIntItemMaxSize, sChildInitExpr) ::= <<
+sqf_external_field_fix_size_decode(sTypeDefName, p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, sExtFld, bIsUnsigned, nAlignSize, sErrCode, nIntItemMinSize, nIntItemMaxSize, sChildInitExpr) ::= <<
 ret = (<if(noSizeMin)>(<noSizeMin>\<=<sExtFld>) && <endif>(<sExtFld>\<=<nSizeMax>));
 if (ret) {
     <loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize=[nSizeMax])>
@@ -871,7 +871,7 @@ case <sChildID>:
 >>
 
 ChoiceChild_preWhen_bool_condition(sExtFld) ::= "<sExtFld>"
-ChoiceChild_preWhen_int_condition(sExtFld, nVal) ::= "(<sExtFld> == <nVal>)"
+ChoiceChild_preWhen_int_condition(sExtFld, sVal) ::= "(<sExtFld> == <sVal>)"
 ChoiceChild_preWhen_str_condition(sExtFld, sVal, arrsNullChars, arruVal) ::= "(strcmp(<sExtFld>, \"<sVal>\") == 0)"
 
 ChoiceChild_preWhen_decode(p, sAcc, sChildID, sChildBody, arrsConditions, bFirst, sChildName, sChildTypeDef, sChoiceTypeName, sChildInitExpr) ::= <<
@@ -982,10 +982,10 @@ PresenceDependency(v, sSeqPath, sAcc, sChildName) ::= <<
 <v> = (<sSeqPath><sAcc>exist.<sChildName> == 1);
 >>
 
-ChoiceDependencyIntPres_child(v, sChildNamePresent, nChildRetVal) ::= <<
+ChoiceDependencyIntPres_child(v, sChildNamePresent, sChildRetVal) ::= <<
 case <sChildNamePresent>:
 		<v>_is_initialized = TRUE;
-		<v> = <nChildRetVal>;
+		<v> = <sChildRetVal>;
     break;
 >>
 

@@ -658,9 +658,9 @@ result.ErrorCode := <sErrCode>;
 
 
 
-Enumerated_item_encode(p, sName, sEnumHolder, nItemIdxOrVal, sIntVal) ::= "when <sName>    => <sIntVal> := <nItemIdxOrVal>;"
+Enumerated_item_encode(p, sName, sEnumHolder, nItemIdx, sItemVal, sIntVal) ::= "when <sName>    => <sIntVal> := <sItemVal>;"
 
-Enumerated_item_decode(p, sName, sEnumHolder, nItemIdxOrVal, sIntVal) ::= "when <nItemIdxOrVal> => <p> := <sName>;"
+Enumerated_item_decode(p, sName, sEnumHolder, nItemIdx, sItemVal, sIntVal) ::= "when <nItemIdx> => <p> := <sName>;"
 
 EnumeratedEncIdx_encode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, sActualCodecFunc, sIntVal) ::= <<
 case <p> is
@@ -799,12 +799,12 @@ end loop;
 
 
 
-sqf_external_field_encode(sTypeDefName, p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, sExtFld, nAlignSize, sErrCode, nIntItemMinSize, nIntItemMaxSize, sChildInitExpr) ::= <<
+sqf_external_field_encode(sTypeDefName, p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, sExtFld, bIsUnsigned, nAlignSize, sErrCode, nIntItemMinSize, nIntItemMaxSize, sChildInitExpr) ::= <<
 <loopFixedItem_enc(i=i, sInternalItem=sInternalItem, fixedSize=[p,".Length"], nfixedSizeUperLimit = nSizeMax, nCurOffset="0", nAlignSize=nAlignSize, nIntItemMinSize=nIntItemMinSize, nIntItemMaxSize=nIntItemMaxSize)>
 >>
 
 
-sqf_external_field_decode(sTypeDefName, p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, sExtFld, nAlignSize, sErrCode, nIntItemMinSize, nIntItemMaxSize, sChildInitExpr) ::= <<
+sqf_external_field_decode(sTypeDefName, p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, sExtFld, bIsUnsigned, nAlignSize, sErrCode, nIntItemMinSize, nIntItemMaxSize, sChildInitExpr) ::= <<
 result := <rtlModuleName()>.ASN1_RESULT'(Success => <if(noSizeMin)><noSizeMin>\<=<sExtFld> AND <endif><sExtFld>\<=<nSizeMax>, ErrorCode => <sErrCode>);
 if result.Success then
     <p>.Length := Integer(<sExtFld>);
@@ -813,12 +813,12 @@ end if;
 >>
 
 
-sqf_external_field_fix_size_encode(sTypeDefName, p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, sExtFld, nAlignSize, sErrCode, nIntItemMinSize, nIntItemMaxSize, sChildInitExpr) ::= <<
+sqf_external_field_fix_size_encode(sTypeDefName, p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, sExtFld, bIsUnsigned, nAlignSize, sErrCode, nIntItemMinSize, nIntItemMaxSize, sChildInitExpr) ::= <<
 <loopFixedItem_enc(i=i, sInternalItem=sInternalItem, fixedSize=[nSizeMax], nfixedSizeUperLimit = nSizeMax, nCurOffset="0", nAlignSize=nAlignSize, nIntItemMinSize=nIntItemMinSize, nIntItemMaxSize=nIntItemMaxSize)>
 >>
 
 
-sqf_external_field_fix_size_decode(sTypeDefName, p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, sExtFld, nAlignSize, sErrCode, nIntItemMinSize, nIntItemMaxSize, sChildInitExpr) ::= <<
+sqf_external_field_fix_size_decode(sTypeDefName, p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, sExtFld, bIsUnsigned, nAlignSize, sErrCode, nIntItemMinSize, nIntItemMaxSize, sChildInitExpr) ::= <<
 result := <rtlModuleName()>.ASN1_RESULT'(Success => <if(noSizeMin)><noSizeMin>\<=<sExtFld> AND <endif><sExtFld>\<=<nSizeMax>, ErrorCode => <sErrCode>);
 if result.Success then
     <loopFixedItem_dec(i=i, sInternalItem=sInternalItem, fixedSize=[nSizeMax], nfixedSizeUperLimit = nSizeMax, nCurOffset="0", nAlignSize=nAlignSize, nIntItemMinSize=nIntItemMinSize, nIntItemMaxSize=nIntItemMaxSize)>
@@ -1121,7 +1121,7 @@ end case;
 
 
 ChoiceChild_preWhen_bool_condition(sExtFld) ::= "<sExtFld>"
-ChoiceChild_preWhen_int_condition(sExtFld, nVal) ::= "(<sExtFld> = <nVal>)"
+ChoiceChild_preWhen_int_condition(sExtFld, sVal) ::= "(<sExtFld> = <sVal>)"
 ChoiceChild_preWhen_str_condition(sExtFld, sVal, arrsNullChars, arruVal) ::= "(<sExtFld> = \"<sVal>\"<if(arrsNullChars)> & <arrsNullChars; wrap, anchor, separator=\" & \"><endif>)"
 
 Choice_preWhen_encode(p, sAcc, arrsChildren, sErrCode) ::= <<
@@ -1220,7 +1220,7 @@ SizeDependencyFixedSize(v, nFixedSize) ::= <<
 
 
 getStringSize(p) ::= "<rtlModuleName()>.getStringSize(<p>)"
-getSizeableSize(p, sAcc) ::= "<p>.Length"
+getSizeableSize(p, sAcc, bIsUnsigned) ::= "<p>.Length"
 
 
 
@@ -1230,10 +1230,10 @@ case <sChPath><sAcc>kind is
 end case;
 >>
 
-ChoiceDependencyIntPres_child(v, sChildNamePresent, nChildRetVal) ::= <<
+ChoiceDependencyIntPres_child(v, sChildNamePresent, sChildRetVal) ::= <<
 when <sChildNamePresent> =>
     <v>_is_initialized := True;
-	<v> := <nChildRetVal>;
+	<v> := <sChildRetVal>;
 >>
 
 ChoiceDependencyStrPres_child(v, sChildNamePresent, sChildRetVal, arruChildRetValBytes, arrsNullChars) ::= <<
@@ -1341,11 +1341,11 @@ end;
 >>
 
 
-oct_external_field_encode(sTypedefName, p, sAcc, noSizeMin, nSizeMax, sExtFld, nAlignSize, sErrCode) ::= <<
+oct_external_field_encode(sTypedefName, p, sAcc, noSizeMin, nSizeMax, sExtFld, bIsUnsigned, nAlignSize, sErrCode) ::= <<
 adaasn1rtl.encoding.uper.BitStream_EncodeOctetString_no_length(bs, <p><sAcc>Data, Integer(<p><sAcc>Length));
 >>
 
-oct_external_field_decode(sTypedefName, p, sAcc, noSizeMin, nSizeMax, sExtFld, nAlignSize, sErrCode) ::= <<
+oct_external_field_decode(sTypedefName, p, sAcc, noSizeMin, nSizeMax, sExtFld, bIsUnsigned, nAlignSize, sErrCode) ::= <<
 result := <rtlModuleName()>.ASN1_RESULT'(Success => <if(noSizeMin)><noSizeMin>\<=<sExtFld> AND <endif><sExtFld>\<=<nSizeMax>, ErrorCode => <sErrCode>);
 if result.Success then
     <p>.Length := Integer(<sExtFld>);
@@ -1353,12 +1353,12 @@ if result.Success then
 end if;
 >>
 
-oct_external_field_fix_size_encode(sTypedefName, p, sAcc, noSizeMin, nSizeMax, sExtFld, nAlignSize, sErrCode) ::= <<
+oct_external_field_fix_size_encode(sTypedefName, p, sAcc, noSizeMin, nSizeMax, sExtFld, bIsUnsigned, nAlignSize, sErrCode) ::= <<
 adaasn1rtl.encoding.uper.BitStream_EncodeOctetString_no_length(bs, <p><sAcc>Data, Integer(<nSizeMax>));
 >>
 
 
-oct_external_field_fix_size_decode(sTypedefName, p, sAcc, noSizeMin, nSizeMax, sExtFld, nAlignSize, sErrCode) ::= <<
+oct_external_field_fix_size_decode(sTypedefName, p, sAcc, noSizeMin, nSizeMax, sExtFld, bIsUnsigned, nAlignSize, sErrCode) ::= <<
 result := <rtlModuleName()>.ASN1_RESULT'(Success => <if(noSizeMin)><noSizeMin>\<=<sExtFld> AND <endif><sExtFld>\<=<nSizeMax>, ErrorCode => <sErrCode>);
 if result.Success then
     adaasn1rtl.encoding.uper.BitStream_DecodeOctetString_no_length(bs, <p><sAcc>Data, Integer(<nSizeMax>), result.success);
