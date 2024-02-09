@@ -229,5 +229,3 @@ let printInASingleFile (r:AstRoot) outDir newFile (pdu:string option)=
     let outFileName = Path.Combine(outDir, newFile)
     File.WriteAllText(outFileName, modulesContent.Replace("\r",""))
     tastToPrint
-
-

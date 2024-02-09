@@ -26,6 +26,7 @@ open AcnGenericCreateFromAntlr
 open AcnGenericTypes
 open Asn1AcnAst
 open Asn1AcnAstUtilFunctions
+open Language
 
 let private tryGetProp (props:GenericAcnProperty list) fnPropKind =
     match props |> List.choose fnPropKind  with
@@ -34,7 +35,6 @@ let private tryGetProp (props:GenericAcnProperty list) fnPropKind =
 
 let private  getEndiannessProperty (props:GenericAcnProperty list) =
     tryGetProp props (fun x -> match x with ENDIANNESS e -> Some e | _ -> None)
-
 
 let private getIntSizeProperty  errLoc (props:GenericAcnProperty list) =
     match tryGetProp props (fun x -> match x with SIZE e -> Some e | _ -> None) with
@@ -141,12 +141,6 @@ let private getStringEncodingProperty errLoc (props:GenericAcnProperty list) =
     | Some (GP_BCD            ) ->  raise(SemanticError(errLoc ,"The encoding property was expected to be 'ASCII' or empty"))
     | Some (GP_Ascii          ) -> Some (AcnGenericTypes.StrAscii)
 
-
-
-
-
-
-
 let checkIntHasEnoughSpace acnEncodingClass (hasMappingFunction:bool) acnErrLoc0 asn1Min asn1Max =
     let check_ (minEnc : BigInteger) (maxEnc:BigInteger) =
         match minEnc <= asn1Min && asn1Max <= maxEnc with
@@ -198,15 +192,6 @@ let checkIntHasEnoughSpace acnEncodingClass (hasMappingFunction:bool) acnErrLoc0
         |BCD_ConstSize nBits                            -> checkBCD nBits
         |BCD_VarSize_NullTerminated _                   -> ()
 
-
-
-
-
-
-
-
-
-
 let private removeTypePrefix (typePrefix : String) (typeName : string)=
     match typePrefix.Length > 0 with
     | false -> typeName
@@ -215,14 +200,9 @@ let private removeTypePrefix (typePrefix : String) (typeName : string)=
         | false -> typeName
         | true  -> (typeName.Substring(typePrefix.Length))
 
-
-
-
-
-
 let private mergeInteger (asn1:Asn1Ast.AstRoot) (loc:SrcLoc) (typeAssignmentInfo : AssignmentInfo option) (acnErrLoc: SrcLoc option) (props:GenericAcnProperty list) cons withcons thisTypeCons (tdarg:GetTypeDefinition_arg) (us:Asn1AcnMergeState) =
-    let declare_IntegerNoRTL       (l:ProgrammingLanguage)     = l.declare_IntegerNoRTL
-    let declare_PosIntegerNoRTL    (l:ProgrammingLanguage)     = l.declare_PosIntegerNoRTL
+    let declare_IntegerNoRTL       (l:ProgrammingLanguage)     = (asn1.args.getBasicLang l).declare_IntegerNoRTL
+    let declare_PosIntegerNoRTL    (l:ProgrammingLanguage)     = (asn1.args.getBasicLang l).declare_PosIntegerNoRTL
 
     let acnErrLoc0 = match acnErrLoc with Some a -> a | None -> loc
     let rootCons = cons |> List.filter(fun c -> match c with RangeRootConstraint _  | RangeRootConstraint2 _ -> true | _ -> false)
@@ -290,9 +270,9 @@ let private mergeInteger (asn1:Asn1Ast.AstRoot) (loc:SrcLoc) (typeAssignmentInfo
         uperMaxSizeInBits=uperMaxSizeInBits; acnEncodingClass = acnEncodingClass; intClass=intClass;  acnMinSizeInBits=acnMinSizeInBits;
         acnMaxSizeInBits = acnMaxSizeInBits; isUnsigned= isUnsigned; typeDef=typeDef; defaultInitVal="0"}, us1
 
-let private mergeReal (asn1:Asn1Ast.AstRoot) (loc:SrcLoc) (acnErrLoc: SrcLoc option) (props:GenericAcnProperty list) cons withcons (tdarg:GetTypeDefinition_arg) (us:Asn1AcnMergeState) =
+let private mergeReal (asn1: Asn1Ast.AstRoot) (loc: SrcLoc) (acnErrLoc: SrcLoc option) (props: GenericAcnProperty list) cons withcons (tdarg: GetTypeDefinition_arg) (us: Asn1AcnMergeState) =
     let acnErrLoc0 = match acnErrLoc with Some a -> a | None -> loc
-    let getRtlTypeName  (l:ProgrammingLanguage) =  l.getRealRtlTypeName
+    let getRtlTypeName  (l:ProgrammingLanguage) = (asn1.args.getBasicLang l).getRealRtlTypeName
 
     //check for invalid properties
     props |>
@@ -324,10 +304,9 @@ let private mergeReal (asn1:Asn1Ast.AstRoot) (loc:SrcLoc) (acnErrLoc: SrcLoc opt
         acnMaxSizeInBits = acnMaxSizeInBits; typeDef=typeDef; defaultInitVal="0"}, us1
 
 
-let private mergeObjectIdentifier (asn1:Asn1Ast.AstRoot) (relativeId:bool) (loc:SrcLoc) (acnErrLoc: SrcLoc option) (props:GenericAcnProperty list) cons withcons (tdarg:GetTypeDefinition_arg) (us:Asn1AcnMergeState) =
+let private mergeObjectIdentifier (asn1: Asn1Ast.AstRoot) (relativeId: bool) (loc: SrcLoc) (acnErrLoc: SrcLoc option) (props: GenericAcnProperty list) cons withcons (tdarg: GetTypeDefinition_arg) (us: Asn1AcnMergeState) =
     let acnErrLoc0 = match acnErrLoc with Some a -> a | None -> loc
-    let getRtlTypeName  (l:ProgrammingLanguage) = l.getObjectIdentifierRtlTypeName relativeId
-
+    let getRtlTypeName  (l:ProgrammingLanguage) = (asn1.args.getBasicLang l).getObjectIdentifierRtlTypeName relativeId
     //check for invalid properties
     props |> Seq.iter(fun pr -> raise(SemanticError(acnErrLoc0, "Acn property cannot be applied to OBJECT IDENTIFIER types")))
 
@@ -342,9 +321,9 @@ let private mergeObjectIdentifier (asn1:Asn1Ast.AstRoot) (relativeId:bool) (loc:
     let typeDef, us1 = getPrimitiveTypeDefinition {tdarg with rtlFnc = Some getRtlTypeName} us
     {ObjectIdentifier.acnProperties = acnProperties; cons = cons; withcons = withcons; relativeObjectId=relativeId; uperMaxSizeInBits=uperMaxSizeInBits; uperMinSizeInBits=uperMinSizeInBits; acnMinSizeInBits=acnMinSizeInBits; acnMaxSizeInBits = acnMaxSizeInBits; typeDef=typeDef}, us1
 
-let private mergeTimeType (asn1:Asn1Ast.AstRoot) (timeClass:TimeTypeClass) (loc:SrcLoc) (acnErrLoc: SrcLoc option) (props:GenericAcnProperty list) cons withcons (tdarg:GetTypeDefinition_arg) (us:Asn1AcnMergeState) =
+let private mergeTimeType (asn1: Asn1Ast.AstRoot) (timeClass: TimeTypeClass) (loc: SrcLoc) (acnErrLoc: SrcLoc option) (props: GenericAcnProperty list) cons withcons (tdarg: GetTypeDefinition_arg) (us: Asn1AcnMergeState) =
     let acnErrLoc0 = match acnErrLoc with Some a -> a | None -> loc
-    let getRtlTypeName  (l:ProgrammingLanguage) = l.getTimeRtlTypeName timeClass
+    let getRtlTypeName  (l:ProgrammingLanguage) = (asn1.args.getBasicLang l).getTimeRtlTypeName timeClass
 
     //check for invalid properties
     props |> Seq.iter(fun pr -> raise(SemanticError(acnErrLoc0, "Acn property cannot be applied to TIME types")))
@@ -355,7 +334,6 @@ let private mergeTimeType (asn1:Asn1Ast.AstRoot) (timeClass:TimeTypeClass) (loc:
     let acnMinSizeInBits, acnMaxSizeInBits= uperMinSizeInBits, uperMaxSizeInBits
     let typeDef, us1 = getPrimitiveTypeDefinition {tdarg with rtlFnc = Some getRtlTypeName} us
     {TimeType.timeClass = timeClass; uperMaxSizeInBits=uperMaxSizeInBits; uperMinSizeInBits=uperMinSizeInBits; acnMinSizeInBits=acnMinSizeInBits; acnMaxSizeInBits = acnMaxSizeInBits; typeDef=typeDef; cons = cons; withcons = withcons }, us1
-
 
 type EnmStrGetTypeDefinition_arg =
     | EnmStrGetTypeDefinition_arg of GetTypeDefinition_arg
@@ -397,7 +375,7 @@ let isCharacterAllowedByAlphabetConstrains (cons:IA5StringConstraint list) (b:by
             0 |> fst
     cons |> Seq.forall isCharacterAllowedByAlphabetConstrain
 
-let private mergeStringType (asn1:Asn1Ast.AstRoot) (t:Asn1Ast.Asn1Type option) (loc:SrcLoc) (acnErrLoc: SrcLoc option) (props:GenericAcnProperty list) cons withcons defaultCharSet isNumeric (tdarg:EnmStrGetTypeDefinition_arg) (us:Asn1AcnMergeState) =
+let private mergeStringType (asn1: Asn1Ast.AstRoot) (t: Asn1Ast.Asn1Type option) (loc: SrcLoc) (acnErrLoc: SrcLoc option) (props: GenericAcnProperty list) cons withcons defaultCharSet isNumeric (tdarg: EnmStrGetTypeDefinition_arg) (us: Asn1AcnMergeState) =
     let acnErrLoc0 = match acnErrLoc with Some a -> a | None -> loc
     let sizeUperRange = uPER.getSrtingSizeUperRange cons loc
     let sizeUperAcnRange = uPER.getSrtingSizeUperRange (cons@withcons) loc
@@ -426,15 +404,13 @@ let private mergeStringType (asn1:Asn1Ast.AstRoot) (t:Asn1Ast.Asn1Type option) (
     | Acn_Enc_String_uPER                                _                -> ()
     | Acn_Enc_String_uPER_Ascii                          _                -> ()
     | Acn_Enc_String_Ascii_Null_Terminated                (_, nullChars)     ->
-        let errMsg = "The termination-pattern defines a character which belongs to the allowed values of the ASN.1 type. Use another value in the termination-pattern or apply different constraints in the ASN.1 type."
+        let errMsg = "The termination-pattern defines a character which belongs to the allowed values 
+            of the ASN.1 type. Use another value in the termination-pattern or apply different constraints in the ASN.1 type."
         match nullChars |> Seq.filter(fun c -> c <> 0uy) |> Seq.tryFind (isCharacterAllowedByAlphabetConstrains cons) with
         | Some _ -> raise(SemanticError(acnErrLoc0, errMsg))
         | None   -> ()
     | Acn_Enc_String_Ascii_External_Field_Determinant       (_,relativePath) -> ()
     | Acn_Enc_String_CharIndex_External_Field_Determinant   (_,relativePath) -> ()
-
-
-
 
     let typeDef, us1 =
         match tdarg with
@@ -442,17 +418,17 @@ let private mergeStringType (asn1:Asn1Ast.AstRoot) (t:Asn1Ast.Asn1Type option) (
         | AcnPrmGetTypeDefinition (curPath, md, ts)   ->
             let lanDefs, us1 =
                 ProgrammingLanguage.AllLanguages |> foldMap (fun us l ->
-                    let itm, ns = registerStringTypeDefinition us l (ReferenceToType curPath) (FEI_Reference2OtherType (ReferenceToType [MD md; TA ts]))
+                    let ib = asn1.args.getBasicLang l
+                    let itm, ns = registerStringTypeDefinition us (l,ib) (ReferenceToType curPath) (FEI_Reference2OtherType (ReferenceToType [MD md; TA ts]))
                     (l,itm), ns) us
             lanDefs |> Map.ofList, us1
 
-    {StringType.acnProperties = acnProperties; cons = cons; withcons = withcons; minSize=minSize; maxSize =maxSize; uperMaxSizeInBits = uperMaxSizeInBits; uperMinSizeInBits=uperMinSizeInBits; uperCharSet=uperCharSet; acnEncodingClass = acnEncodingClass;  acnMinSizeInBits=acnMinSizeInBits; acnMaxSizeInBits = acnMaxSizeInBits;isNumeric=isNumeric; typeDef=typeDef}, us1
+    {StringType.acnProperties = acnProperties; cons = cons; withcons = withcons; minSize=minSize; maxSize =maxSize; 
+        uperMaxSizeInBits = uperMaxSizeInBits; uperMinSizeInBits=uperMinSizeInBits; uperCharSet=uperCharSet; 
+        acnEncodingClass = acnEncodingClass;  acnMinSizeInBits=acnMinSizeInBits; 
+        acnMaxSizeInBits = acnMaxSizeInBits;isNumeric=isNumeric; typeDef=typeDef}, us1
 
-
-
-
-
-let private mergeOctetStringType (asn1:Asn1Ast.AstRoot) (loc:SrcLoc) (acnErrLoc: SrcLoc option) (props:GenericAcnProperty list) cons withcons (tdarg:GetTypeDefinition_arg) (us:Asn1AcnMergeState) =
+let private mergeOctetStringType (asn1: Asn1Ast.AstRoot) (loc: SrcLoc) (acnErrLoc: SrcLoc option) (props: GenericAcnProperty list) cons withcons (tdarg: GetTypeDefinition_arg) (us: Asn1AcnMergeState) =
     let sizeUperRange = uPER.getOctetStringUperRange cons loc
     let sizeUperAcnRange = uPER.getOctetStringUperRange (cons@withcons) loc
 
@@ -514,8 +490,8 @@ let private mergeBitStringType (asn1:Asn1Ast.AstRoot) (namedBitList: NamedBit0 l
         uperMaxSizeInBits = uperMaxSizeInBits; uperMinSizeInBits=uperMinSizeInBits; acnEncodingClass = acnEncodingClass;
         acnMinSizeInBits=acnMinSizeInBits; acnMaxSizeInBits = acnMaxSizeInBits; typeDef=typeDef; namedBitList = newNamedBitList}, us1
 
-let private mergeNullType (acnErrLoc: SrcLoc option) (props:GenericAcnProperty list) (tdarg:GetTypeDefinition_arg) (us:Asn1AcnMergeState) =
-    let getRtlTypeName  (l:ProgrammingLanguage) = l.getNullRtlTypeName
+let private mergeNullType (args: CommandLineSettings) (acnErrLoc: SrcLoc option) (props: GenericAcnProperty list) (tdarg: GetTypeDefinition_arg) (us: Asn1AcnMergeState) =
+    let getRtlTypeName  (l:ProgrammingLanguage) = (args.getBasicLang l).getNullRtlTypeName
     let acnProperties =
         match acnErrLoc with
         | Some acnErrLoc    -> { NullTypeAcnProperties.encodingPattern  = tryGetProp props (fun x -> match x with PATTERN e -> Some e | _ -> None); savePosition = props |> Seq.exists(fun z -> match z with SAVE_POSITION -> true | _ -> false )}
@@ -528,9 +504,8 @@ let private mergeNullType (acnErrLoc: SrcLoc option) (props:GenericAcnProperty l
         acnMinSizeInBits=acnMinSizeInBits; acnMaxSizeInBits = acnMaxSizeInBits;
         typeDef=typeDef; defaultInitVal="0"}, us1
 
-let private mergeBooleanType (acnErrLoc: SrcLoc option) (props:GenericAcnProperty list) cons withcons  (tdarg:GetTypeDefinition_arg) (us:Asn1AcnMergeState)=
-    let getRtlTypeName  (l:ProgrammingLanguage) = l.getBoolRtlTypeName
-
+let private mergeBooleanType (args: CommandLineSettings) (acnErrLoc: SrcLoc option) (props: GenericAcnProperty list) cons withcons (tdarg: GetTypeDefinition_arg) (us: Asn1AcnMergeState)=
+    let getRtlTypeName  (l:ProgrammingLanguage) = (args.getBasicLang l).getBoolRtlTypeName
     let size =
         match acnErrLoc with
         | Some acnErrLoc    ->
@@ -540,7 +515,7 @@ let private mergeBooleanType (acnErrLoc: SrcLoc option) (props:GenericAcnPropert
             | Some _              -> raise(SemanticError(acnErrLoc ,"Expecting an Integer value or an ACN constant as value for the size property"))
         | None                    -> None
 
-    let alignWithZeros (bitVal:StringLoc) =
+    let alignWithZeros (bitVal: StringLoc) =
         match size with
         | None      -> bitVal
         | Some sz  when sz >= bitVal.Value.Length.AsBigInt ->
@@ -549,8 +524,6 @@ let private mergeBooleanType (acnErrLoc: SrcLoc option) (props:GenericAcnPropert
         | Some sz          ->
             let errMsg = sprintf "The size of the pattern '%s' is greater than the encoding size (%d)" bitVal.Value (int sz)
             raise(SemanticError(bitVal.Location ,errMsg))
-
-
 
     let acnProperties =
         match acnErrLoc with
@@ -569,8 +542,8 @@ let private mergeBooleanType (acnErrLoc: SrcLoc option) (props:GenericAcnPropert
     {Boolean.acnProperties = acnProperties; cons = cons; withcons = withcons;uperMaxSizeInBits = 1I; uperMinSizeInBits=1I;
         acnMinSizeInBits=acnMinSizeInBits; acnMaxSizeInBits = acnMaxSizeInBits; typeDef=typeDef; defaultInitVal="false"}, us1
 
-
-let private mergeEnumerated (asn1:Asn1Ast.AstRoot)  (items: Asn1Ast.NamedItem list) (originalLocation : SrcLoc option, loc:SrcLoc) (acnErrLoc: SrcLoc option) (acnType:AcnTypeEncodingSpec option) (props:GenericAcnProperty list) cons withcons  (tdarg:EnmStrGetTypeDefinition_arg) (us:Asn1AcnMergeState) =
+let private mergeEnumerated (asn1: Asn1Ast.AstRoot) (items: Asn1Ast.NamedItem list) (originalLocation: SrcLoc option, loc: SrcLoc) 
+    (acnErrLoc: SrcLoc option) (acnType: AcnTypeEncodingSpec option) (props: GenericAcnProperty list) cons withcons (tdarg: EnmStrGetTypeDefinition_arg) (us: Asn1AcnMergeState) =
     let loc =
         match originalLocation with
         | None  -> loc
@@ -594,9 +567,11 @@ let private mergeEnumerated (asn1:Asn1Ast.AstRoot)  (items: Asn1Ast.NamedItem li
                     l, FE_TypeDefinition.getProposedTypeDefName us l (ReferenceToType [MD md; TA ts]) |> fst) |> Map.ofList
             let lanDefs, us1 =
                 ProgrammingLanguage.AllLanguages |> foldMap (fun us l ->
-                    let itm, ns = registerEnumeratedTypeDefinition us l (ReferenceToType curPath) (FEI_Reference2OtherType (ReferenceToType [MD md; TA ts]))
+                    let ib = asn1.args.getBasicLang l
+                    let itm, ns = registerEnumeratedTypeDefinition us (l,ib) (ReferenceToType curPath) (FEI_Reference2OtherType (ReferenceToType [MD md; TA ts]))
                     (l,itm), ns) us
             lanDefs |> Map.ofList, proposedEnmName, us1
+
     let allocatedValuesToAllEnumItems (namedItems:Asn1Ast.NamedItem list) =
         let createAsn1ValueByBigInt biVal = {Asn1Ast.Asn1Value.Kind = Asn1Ast.IntegerValue (IntLoc.ByValue biVal); Asn1Ast.Asn1Value.moduleName="";  Asn1Ast.Location = emptyLocation; Asn1Ast.id = ReferenceToValue([],[])}
         let allocated   = namedItems |> List.filter(fun x -> x._value.IsSome)
@@ -614,6 +589,7 @@ let private mergeEnumerated (asn1:Asn1Ast.AstRoot)  (items: Asn1Ast.NamedItem li
                 allocateItems xs newAllocatedItems (vl + 1I)
         let newItems = allocateItems unallocated allocated 0I |> List.sortBy(fun ni -> namedItems |> Seq.findIndex(fun x -> x.Name.Value = ni.Name.Value) )
         newItems
+
     let mapItem (i:int) (itm:Asn1Ast.NamedItem) =
         let definitionValue = Asn1Ast.GetValueAsInt itm._value.Value asn1
         let c_name, s_name, a_name =
@@ -636,7 +612,6 @@ let private mergeEnumerated (asn1:Asn1Ast.AstRoot)  (items: Asn1Ast.NamedItem li
                 c_tpname + "_" + itm.c_name, s_tpname + "_" + itm.scala_name, a_tpname + "_" + itm.ada_name
             | _     ->
                 asn1.args.TypePrefix + itm.c_name, asn1.args.TypePrefix + itm.scala_name, asn1.args.TypePrefix + itm.ada_name
-
 
         match acnType with
         | None  ->
@@ -682,7 +657,6 @@ let private mergeEnumerated (asn1:Asn1Ast.AstRoot)  (items: Asn1Ast.NamedItem li
         | [] ->
             raise(SemanticError(loc, (sprintf "The constraints defined for this type do not allow any value" )))
         | _  -> ()
-
 
     {Enumerated.acnProperties = acnProperties; items=items; cons = cons; withcons = withcons;uperMaxSizeInBits = uperSizeInBits;
         uperMinSizeInBits=uperSizeInBits;encodeValues=encodeValues; acnEncodingClass = acnEncodingClass;  acnMinSizeInBits=acnMinSizeInBits;
@@ -781,7 +755,6 @@ let rec fixConstraint (asn1:Asn1Ast.AstRoot) (c:Asn1Ast.Asn1Constraint) =
         (fun s c1 c2          -> mergeConstraints2 c1 c2 (fun c1 c2 -> Asn1Ast.RootConstraint2   (s, c1,c2)))
         c
 
-
 let rec private mapAcnParamTypeToAcnAcnInsertedType (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (p:AcnParamType) (props:GenericAcnProperty list) (curPath : ScopeNode list) (us:Asn1AcnMergeState) =
     let  acnAlignment     = tryGetProp props (fun x -> match x with ALIGNTONEXT e -> Some e | _ -> None)
     match p with
@@ -802,7 +775,10 @@ let rec private mapAcnParamTypeToAcnAcnInsertedType (asn1:Asn1Ast.AstRoot) (acn:
         let checkIntHasEnoughSpace asn1Min asn1Max =
             checkIntHasEnoughSpace acnEncodingClass acnProperties.mappingFunction.IsSome acnErrLoc asn1Min asn1Max
         let  intClass = getIntEncodingClassByUperRange asn1.args uperRange
-        AcnInteger ({AcnInteger.acnProperties=acnProperties; acnAlignment=acnAlignment; acnEncodingClass = acnEncodingClass;  Location = acnErrLoc; acnMinSizeInBits=acnMinSizeInBits; acnMaxSizeInBits = acnMaxSizeInBits; cons=[]; withcons=[];isUnsigned=isUnsigned; uperRange= uperRange; intClass=intClass; checkIntHasEnoughSpace=checkIntHasEnoughSpace; inheritInfo=None; defaultValue="0"}), us
+        AcnInteger ({AcnInteger.acnProperties=acnProperties; acnAlignment=acnAlignment; acnEncodingClass = acnEncodingClass; 
+            Location = acnErrLoc; acnMinSizeInBits=acnMinSizeInBits; acnMaxSizeInBits = acnMaxSizeInBits; cons=[]; withcons=[];isUnsigned=isUnsigned; 
+            uperRange= uperRange; intClass=intClass; checkIntHasEnoughSpace=checkIntHasEnoughSpace; inheritInfo=None; defaultValue="0"}), us
+
     | AcnPrmBoolean  acnErrLoc ->
         let acnProperties =
             match tryGetProp props (fun x -> match x with TRUE_VALUE e -> Some e | _ -> None) with
@@ -951,8 +927,7 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (m:Asn1Ast.Asn1Mo
     //if debug.AsString = "RW90-DATAVIEW.UART-Config.timeout" then
     //    printfn "%s" debug.AsString
 
-    let tfdArg = {GetTypeDefinition_arg.asn1TypeKind = t.Kind; loc = t.Location; curPath = curPath; typeDefPath = typeDefPath; enmItemTypeDefPath = enmItemTypeDefPath; inheritInfo =inheritInfo ; typeAssignmentInfo = typeAssignmentInfo; rtlFnc = None}
-
+    let tfdArg = {GetTypeDefinition_arg.asn1TypeKind = t.Kind; loc = t.Location; curPath = curPath; typeDefPath = typeDefPath; enmItemTypeDefPath = enmItemTypeDefPath; inheritInfo = inheritInfo; typeAssignmentInfo = typeAssignmentInfo; rtlFnc = None; blm=asn1.args.blm}
     let fixConstraint  = (fixConstraint asn1)
     //let actualLocation = match originalLocation with Some l -> l | None -> t.Location
     let asn1Kind, kindState =
@@ -1004,12 +979,12 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (m:Asn1Ast.Asn1Mo
             BitString o, us1
         | Asn1Ast.NullType                 ->
             let constraints = []
-            let o, us1 = mergeNullType acnErrLoc combinedProperties tfdArg us
+            let o, us1 = mergeNullType asn1.args acnErrLoc combinedProperties tfdArg us
             NullType o, us1
         | Asn1Ast.Boolean                  ->
             let cons =  t.Constraints@refTypeCons |> List.collect fixConstraint |> List.map (ConstraintsMapping.getBoolConstraint asn1 t)
             let wcons = withCons |> List.collect fixConstraint |> List.map (ConstraintsMapping.getBoolConstraint asn1 t)
-            let o, us1 = mergeBooleanType acnErrLoc combinedProperties cons wcons tfdArg us
+            let o, us1 = mergeBooleanType asn1.args acnErrLoc combinedProperties cons wcons tfdArg us
             Boolean o, us1
         | Asn1Ast.Enumerated  items        ->
             let cons =  t.Constraints@refTypeCons |> List.collect fixConstraint |> List.map (ConstraintsMapping.getEnumConstraint asn1 t)
@@ -1036,8 +1011,6 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (m:Asn1Ast.Asn1Mo
 
 
             let typeDef, us1 = getSizeableTypeDefinition tfdArg us
-
-
             let newChType, us2  = mergeType asn1 acn m chType (curPath@[SQF]) (typeDefPath@[SQF]) (enmItemTypeDefPath@[SQF]) childEncSpec None [] childWithCons  acnArgs [] None None  us1
 
             let sizeUperRange = uPER.getSequenceOfUperRange cons t.Location
@@ -1254,8 +1227,6 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (m:Asn1Ast.Asn1Mo
             let cons =  myVisibleConstraints |> List.collect fixConstraint |> List.map (ConstraintsMapping.getChoiceConstraint asn1 t children)
             let wcons = myNonVisibleConstraints |> List.collect fixConstraint |> List.map (ConstraintsMapping.getChoiceConstraint asn1 t children)
             let typeDef, us1 = getChoiceTypeDefinition tfdArg us
-
-
             let mergeChild (cc:ChildSpec option) (c:Asn1Ast.ChildInfo)  (us:Asn1AcnMergeState)=
                 let childNamedConstraints = childrenNameConstraints |> List.filter(fun x -> x.Name = c.Name)
                 let childWithCons = childNamedConstraints |> List.choose(fun nc -> nc.Constraint)
@@ -1283,8 +1254,6 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (m:Asn1Ast.Asn1Mo
                         match asn1OptionalityFromWithComponents with
                         | []          -> Some ChoiceAlwaysPresent
                         | newOpt::_   -> Some newOpt
-
-
 
                 let acnPresentWhenConditions =
                     match cc with
@@ -1318,7 +1287,6 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (m:Asn1Ast.Asn1Mo
                         let tpName = removeTypePrefix  asn1.args.TypePrefix typeName0
                         tpName + "_" + c.present_when_name
                     | _ ->  c.present_when_name
-
 
                 match cc with
                 | None      ->
@@ -1566,8 +1534,8 @@ let private mergeFile (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (f:Asn1Ast.Asn1File) (
 
 
 //let rec registerPrimitiveTypeDefinition (us:Asn1AcnMergeState) l (id : ReferenceToType) (kind : FE_TypeDefinitionKind) getRtlDefinitionFunc : (FE_PrimitiveTypeDefinition*Asn1AcnMergeState)=
-let mergeAsn1WithAcnAst (asn1:Asn1Ast.AstRoot) (acn:AcnGenericTypes.AcnAst ,acnParseResults:CommonTypes.AntlrParserResult list) =
-    let initialState = {Asn1AcnMergeState.allocatedTypeNames = []; allocatedFE_TypeDefinition= Map.empty; args = asn1.args; temporaryTypesAllocation = Map.empty}
+let mergeAsn1WithAcnAst (asn1: Asn1Ast.AstRoot) (acn: AcnGenericTypes.AcnAst, acnParseResults: CommonTypes.AntlrParserResult list) =
+    let initialState = {Asn1AcnMergeState.allocatedTypeNames = []; allocatedFE_TypeDefinition = Map.empty; args = asn1.args; temporaryTypesAllocation = Map.empty}
     let state =
         seq {
             for l in ProgrammingLanguage.AllLanguages do
@@ -1580,7 +1548,8 @@ let mergeAsn1WithAcnAst (asn1:Asn1Ast.AstRoot) (acn:AcnGenericTypes.AcnAst ,acnP
                             yield (l, id, tas.Type, programUnit, proposedTypedefName)
         } |> Seq.toList
         |> foldMap (fun st (l, id, t, programUnit, proposedTypedefName) ->
-            temporaryRegisterTypeDefinition st l id programUnit proposedTypedefName
+            let ib = asn1.args.getBasicLang l
+            temporaryRegisterTypeDefinition st (l, ib) id programUnit proposedTypedefName
             //match t.Kind with
             //| Asn1Ast.ReferenceType rf  -> registerAnyTypeDefinition asn1 t st l id (FEI_NewSubTypeDefinition (ReferenceToType [MD rf.modName.Value; TA rf.tasName.Value]))
             //| _                         -> registerAnyTypeDefinition asn1 t st l id FEI_NewTypeDefinition

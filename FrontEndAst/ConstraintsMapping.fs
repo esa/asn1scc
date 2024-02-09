@@ -4,13 +4,10 @@ open System.Numerics
 open FsUtils
 open Asn1AcnAst
 
-
 let rec getBaseValue (v: Asn1Value) =
     match v.kind with
     | RefValue (_, rv)  -> getBaseValue rv
     | _                 -> v
-
-
 
 let foldBConstraint
     singleValueConstraintFunc
@@ -29,25 +26,22 @@ let foldBConstraint
     withComponentsConstraintFunc
     (c:Asn1Ast.Asn1Constraint) =
     match c with
-    | Asn1Ast.SingleValueConstraint       (s, rv)              -> singleValueConstraintFunc s rv
-    | Asn1Ast.RangeConstraint             (s, rv1,rv2,b1,b2)   -> rangeConstraintFunc s rv1 rv2 b1 b2
-    | Asn1Ast.RangeConstraint_val_MAX     (s, rv,b)            -> rangeConstraint_val_MAXFunc s rv b
-    | Asn1Ast.RangeConstraint_MIN_val     (s, rv,b)            -> rangeConstraint_MIN_valFunc s rv b
-    | Asn1Ast.SizeConstraint              (s, c)                 -> sizeConstraintFunc s c
-    | Asn1Ast.AlphabetConstraint          (s, c)                 -> alphabetConstraintFunc s c
+    | Asn1Ast.SingleValueConstraint      (s, rv)              -> singleValueConstraintFunc s rv
+    | Asn1Ast.RangeConstraint            (s, rv1,rv2,b1,b2)   -> rangeConstraintFunc s rv1 rv2 b1 b2
+    | Asn1Ast.RangeConstraint_val_MAX    (s, rv,b)            -> rangeConstraint_val_MAXFunc s rv b
+    | Asn1Ast.RangeConstraint_MIN_val    (s, rv,b)            -> rangeConstraint_MIN_valFunc s rv b
+    | Asn1Ast.SizeConstraint             (s, c)               -> sizeConstraintFunc s c
+    | Asn1Ast.AlphabetConstraint         (s, c)               -> alphabetConstraintFunc s c
     | Asn1Ast.UnionConstraint            (s, c1,c2,b)         -> unionConstraintFunc s c1 c2  b
     | Asn1Ast.IntersectionConstraint     (s, c1,c2)           -> intersectionConstraintFunc s c1 c2
-    | Asn1Ast.AllExceptConstraint        (s, c)                 -> allExceptConstraintFunc s c
+    | Asn1Ast.AllExceptConstraint        (s, c)               -> allExceptConstraintFunc s c
     | Asn1Ast.ExceptConstraint           (s, c1,c2)           -> exceptConstraintFunc s c1 c2
-    | Asn1Ast.RootConstraint             (s, c1)                -> rootConstraintFunc s c1
+    | Asn1Ast.RootConstraint             (s, c1)              -> rootConstraintFunc s c1
     | Asn1Ast.RootConstraint2            (s, c1,c2)           -> rootConstraint2Func s c1 c2
-    | Asn1Ast.RangeConstraint_MIN_MAX                       -> raise(BugErrorException "Unexpected constraint type")
-    | Asn1Ast.TypeInclusionConstraint           _          -> raise(BugErrorException "Unexpected constraint type")
+    | Asn1Ast.RangeConstraint_MIN_MAX                         -> raise(BugErrorException "Unexpected constraint type")
+    | Asn1Ast.TypeInclusionConstraint    _                    -> raise(BugErrorException "Unexpected constraint type")
     | Asn1Ast.WithComponentConstraint    (s, c,l)             -> withComponentConstraintFunc  s c l //raise(BugErrorException "Unexpected constraint type")
     | Asn1Ast.WithComponentsConstraint   (s, ncs)               -> withComponentsConstraintFunc s ncs   //raise(BugErrorException "Unexpected constraint type")
-
-
-
 
 let rec private getValueAsBigInteger (r:Asn1Ast.AstRoot) (t:Asn1Ast.Asn1Type) (v:Asn1Ast.Asn1Value) =
     let newValue = ValuesMapping.mapValue r t v
@@ -438,5 +432,3 @@ and getSeqConstraint (r:Asn1Ast.AstRoot) (t:Asn1Ast.Asn1Type) (children:Asn1Ast.
 
 and getChoiceConstraint (r:Asn1Ast.AstRoot) (t:Asn1Ast.Asn1Type) (children:Asn1Ast.ChildInfo list)   =
     getRecursiveTypeSeqOrConstraint r (chValueGetter r t) children
-
-

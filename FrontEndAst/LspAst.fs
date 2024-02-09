@@ -24,7 +24,6 @@ type LspFileType =
     | LspAsn1
     | LspAcn
 
-
 type LspType =
     | LspInteger
     | LspReal
@@ -43,7 +42,6 @@ type LspType =
     | LspChoice            of list<StringLoc*LspType>
     | LspReferenceType     of StringLoc*StringLoc
 
-
 type LspTypeAssignment = {
     name : string
     line0 : int
@@ -53,8 +51,6 @@ type LspTypeAssignment = {
 with
     override this.ToString() =
         sprintf "%A" this
-
-
 
 type LspError = {
     line0           : int      //zero based line index
@@ -86,7 +82,6 @@ with
 
     //member this.content = String.Join(Environment.NewLine, this.lines)
 
-
 let defaultCommandLineSettings  =
     {
         CommandLineSettings.asn1Files = []
@@ -113,7 +108,8 @@ let defaultCommandLineSettings  =
         generateConstInitGlobals = false
         icdPdus = None
         handleEmptySequences = false
-    }
+        blm = []
+    }    
 
 type LspWorkSpace = {
     logger : (string->int)
@@ -122,7 +118,6 @@ type LspWorkSpace = {
 }
 with
     override this.ToString() = sprintf "%A" this
-
 
 let private acnEncPropsPerType =
 

@@ -59,6 +59,31 @@ let createBitStringFunction_funcBody_Ada handleFragmentation (codec:CommonTypes.
 //let getBoardDirs (l:ProgrammingLanguage) target =
 //    getBoardNames l target |> List.map(fun s -> Path.Combine(boardsDirName l target , s))
 
+type LangBasic_ada() =
+    inherit ILangBasic()
+        override this.cmp (s1:string) (s2:string) = s1.icompare s2
+        override this.keywords = ada_keywords
+        override this.OnTypeNameConflictTryAppendModName = false
+        override this.declare_IntegerNoRTL = "adaasn1rtl", "Asn1Int", "INTEGER"
+        override this.declare_PosIntegerNoRTL = "adaasn1rtl", "Asn1UInt" , "INTEGER"
+        override this.getRealRtlTypeName   = "adaasn1rtl", "Asn1Real", "REAL"
+        override this.getObjectIdentifierRtlTypeName  relativeId = 
+            let asn1Name = if relativeId then "RELATIVE-OID" else "OBJECT IDENTIFIER"
+            "adaasn1rtl", "Asn1ObjectIdentifier", asn1Name
+
+        override this.getTimeRtlTypeName  timeClass = 
+            let asn1Name = "TIME"
+            match timeClass with 
+            | Asn1LocalTime                    _ -> "adaasn1rtl", "Asn1LocalTime", asn1Name
+            | Asn1UtcTime                      _ -> "adaasn1rtl", "Asn1UtcTime", asn1Name
+            | Asn1LocalTimeWithTimeZone        _ -> "adaasn1rtl", "Asn1TimeWithTimeZone", asn1Name
+            | Asn1Date                           -> "adaasn1rtl", "Asn1Date", asn1Name
+            | Asn1Date_LocalTime               _ -> "adaasn1rtl", "Asn1DateLocalTime", asn1Name
+            | Asn1Date_UtcTime                 _ -> "adaasn1rtl", "Asn1DateUtcTime", asn1Name
+            | Asn1Date_LocalTimeWithTimeZone   _ -> "adaasn1rtl", "Asn1DateTimeWithTimeZone", asn1Name
+        override this.getNullRtlTypeName  = "adaasn1rtl", "Asn1NullType", "NULL"
+        override this.getBoolRtlTypeName = "adaasn1rtl", "Asn1Boolean", "BOOLEAN"
+
 
 
 

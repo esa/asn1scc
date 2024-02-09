@@ -92,8 +92,6 @@ type UserError = {
     severity : UserErrorSeverity
 }
 
-
-
 type TimeTypeClass =
     |Asn1LocalTime                      of int
     |Asn1UtcTime                        of int
@@ -115,8 +113,6 @@ type Asn1TimeValue = {
     secs  : BigInteger
     secsFraction : (BigInteger*BigInteger) option
 }
-
-
 
 type Asn1TimeZoneValue = {
     sign : BigInteger
@@ -261,12 +257,63 @@ let asn1DateTimeValueToString (tv:Asn1DateTimeValue) =
     |Asn1Date_UtcTimeValue                  (dt,tv)    -> (asn1DateValueToString dt) + (asn1TimeValueToString tv) + "Z"
     |Asn1Date_LocalTimeWithTimeZoneValue    (dt,tv, tz)-> (asn1DateValueToString dt) + (asn1TimeValueToString tv) + (timeZoneToString tz)
 
+let someTests () =
+(*
+    |Asn1Date
+    |Asn1Date_LocalTime
+    |Asn1Date_UtcTime
+    |Asn1Date_LocalTimeWithTimeZone
+
+*)
+    let loc str = { StringLoc.Value = str; Location = {srcFilename = "a.asn1"; srcLine = 20; charPos = 5    }}
+    let a1 = createTimeValueFromString  (Asn1LocalTime 3) (loc "23:53:49.234")
+    let a1 = createTimeValueFromString  (Asn1UtcTime 0) (loc "23:53:49Z")
+    let a1 = createTimeValueFromString  (Asn1LocalTimeWithTimeZone 3) (loc "23:53:49.234+02:00")
+    let a1 = createTimeValueFromString  Asn1Date  (loc "2020-05-16")
+    let a1 = createTimeValueFromString  (Asn1Date_LocalTime 2) (loc "2020-05-16T16:53:49.21")
+    let a1 = createTimeValueFromString  (Asn1Date_UtcTime 2) (loc "2020-05-16T16:53:59.21Z")
+    let a1 = createTimeValueFromString  (Asn1Date_LocalTimeWithTimeZone 2) (loc "2020-05-16T16:53:59.21-11:30")
+    0
+
+(*
+let getDateTimeFromAsn1TimeStringValue timeClass (str:StringLoc) =
+    try
+        let dt = 
+            match timeClass with
+            |Asn1LocalTime                  _ -> DateTime.ParseExact(str.Value, "HH:mm:ss.FFF", CultureInfo.InvariantCulture) 
+            |Asn1UtcTime                    _ -> DateTime.Parse(str.Value) (*.ToUniversalTime ()*)
+            |Asn1LocalTimeWithTimeZone      _ -> DateTime.ParseExact(str.Value, "HH:mm:ss.FFFK", CultureInfo.InvariantCulture) 
+            |Asn1Date                       -> DateTime.ParseExact(str.Value, "yyyy-MM-dd", CultureInfo.InvariantCulture) 
+            |Asn1Date_LocalTime             _ -> DateTime.ParseExact(str.Value, "yyyy-MM-dd'T'HH:mm:ss.FFF", CultureInfo.InvariantCulture) 
+            |Asn1Date_UtcTime               _ -> DateTime.Parse(str.Value) (*.ToUniversalTime ()*)
+            |Asn1Date_LocalTimeWithTimeZone _ -> DateTime.ParseExact(str.Value, "yyyy-MM-dd'T'HH:mm:ss.FFFK", CultureInfo.InvariantCulture) 
+        {DateTimeLoc.Value = dt; Location = str.Location}
+    with
+        | :? System.FormatException as e -> raise(SemanticError(str.Location, "Invalid TIME VALUE"))
+
+
+*)
+
+[<AbstractClass>]
+type ILangBasic () =
+    abstract member cmp : string -> string -> bool
+    abstract member keywords : string list
+    abstract member OnTypeNameConflictTryAppendModName : bool
+    abstract member declare_IntegerNoRTL : string*string*string
+    abstract member declare_PosIntegerNoRTL : string*string*string
+    abstract member getRealRtlTypeName : string*string*string
+    abstract member getObjectIdentifierRtlTypeName : bool -> string*string*string
+    abstract member getTimeRtlTypeName : TimeTypeClass -> string*string*string
+    abstract member getNullRtlTypeName : string*string*string
+    abstract member getBoolRtlTypeName : string*string*string
 
 type ProgrammingLanguage =
     |C
     |Scala
     |Ada
-    with
+    with 
+        static member AllLanguages = [C; Scala; Ada]
+(*
         member l.cmp (s1:string) (s2:string) =
             match l with
             |C          -> s1 = s2
@@ -274,11 +321,11 @@ type ProgrammingLanguage =
             |Ada        -> s1.icompare s2
         member l.keywords =
             match l with
+
             |C          -> c_keywords
             |Scala      -> scala_keywords
             |Ada        -> ada_keywords
         static member AllLanguages = [C; Scala; Ada]
-
         member l.OnTypeNameConflictTryAppendModName =
             match l with
             |C          -> true
@@ -340,7 +387,7 @@ type ProgrammingLanguage =
             | C -> "","flag","BOOLEAN"
             | Scala -> "","Boolean","BOOLEAN" // TODO: Scala
             | Ada  -> "adaasn1rtl", "Asn1Boolean", "BOOLEAN"
-
+*)
 
 type Codec =
     |Encode
@@ -426,7 +473,6 @@ type InheritanceInfo = {
     hasAdditionalConstraints : bool //indicates that the new type has additional constraints e.g. BaseType(200..400) vs BaseType
 }
 
-
 type TypeAssignmentInfo = {
     modName : string
     tasName : string
@@ -449,8 +495,6 @@ type InheritanceInfo with
             modName = this.modName
         }
 
-
-
 type ScopeNode with
     member this.AsString =
         match this with
@@ -462,7 +506,6 @@ type ScopeNode with
         | CH_CHILD (strVal,_, _) -> strVal
         | SQF             -> "#"
     member this.StrValue = this.AsString
-
 
 type VarScopNode =
     | VA2 of string      //VALUE ASSIGNMENT
@@ -497,7 +540,6 @@ type ReferenceToValue =
                 match path with
                 | (MD modName)::_    -> modName
                 | _                               -> raise(BugErrorException "Did not find module at the beginning of the scope path")
-
 
 type ReferenceToType with
         member this.AsString =
@@ -595,14 +637,11 @@ type FE_TypeDefinitionKindInternal =
         | FEI_Reference2RTL                           -> "FE_Reference2RTL"
         | FEI_Reference2OtherType otherId             -> sprintf "FE_Reference2OtherType %s" otherId.AsString
 
-
 type TypeDefinitionBaseKind =
     | NewTypeDefinition                       //type
     | NewSubTypeDefinition
     | Reference2RTL
     | Reference2OtherType
-
-
 
 type FE_PrimitiveTypeDefinitionKind =
     | PrimitiveNewTypeDefinition                       //type
@@ -887,15 +926,9 @@ let rec uperIntersection r1 r2 (l:SrcLoc) =
     | _                             ->  uperIntersection r2 r1 l
 
 
-
-
-
 [<AbstractClass>]
 type IProgrammingLanguage () =
     abstract member indentation : sStatement:string -> string;
-
-
-
 
 type CommandLineSettings = {
     asn1Files : Input list
@@ -922,7 +955,7 @@ type CommandLineSettings = {
     objectIdentifierMaxLength : BigInteger
     streamingModeSupport      : bool
     handleEmptySequences      : bool
-
+    blm         : (ProgrammingLanguage*ILangBasic) list
 }
 with
   member this.SIntMax =
@@ -954,7 +987,8 @@ with
     this.encodings |> Seq.contains (ACN)
   member this.hasUper =
     this.encodings |> Seq.contains (UPER)
-
+  member this.getBasicLang l =
+    this.blm |> List.find(fun (l1,_) -> l1 = l) |> snd
 
 let CharCR =  Convert.ToChar(13)
 let CharLF =  Convert.ToChar(10)
@@ -966,7 +1000,6 @@ type SpecialCharacter =
     | LineFeed         // \n , 0x0A in hexadecimal, 10 in decimal
     | HorizontalTab    // The horizontal tabulation (HT) or character tabulation, which in ASCII has the decimal character code of 9
     | NullCharacter    // 0x0
-
 
 type SingleStringValue =
     | CStringValue  of string
@@ -990,7 +1023,6 @@ type SingleStringValue =
 
 let StringValue2String (vals: SingleStringValue list) =
     vals |> List.map(fun s -> s.ToString()) |> Seq.StrJoin ""
-
 
 let char2SingleStringValue (c:char) =
     if c = CharCR  then SpecialCharacter CarriageReturn

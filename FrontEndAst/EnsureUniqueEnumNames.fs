@@ -222,7 +222,7 @@ let rec private handleEnums (r:AstRoot) (renamePolicy:EnumRenamePolicy) ((lang, 
             | Enumerated(items)    ->
                 let copyItem (old:NamedItem) =
                     let newUniqueName =
-                        match state |> Seq.exists (lang.cmp (lm.lg.getNamedItemBackendName0 old)) with
+                        match state |> Seq.exists ((r.args.getBasicLang lang).cmp (lm.lg.getNamedItemBackendName0 old)) with
                         | false     -> lm.lg.getNamedItemBackendName0 old
                         | true      ->
                             let newPrefix = key |> List.rev |> List.map ToC |> Seq.skipWhile(fun x -> (lm.lg.getNamedItemBackendName0 old).Contains x) |> Seq.head
