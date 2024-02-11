@@ -86,12 +86,6 @@ let createBitStringFunction_funcBody_c handleFragmentation (codec:CommonTypes.Co
     {UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = localVariables; bValIsUnReferenced=false; bBsIsUnReferenced=false}
 #endif
 
-let maxSizeInBits (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type): BigInteger =
-    match enc with
-    | UPER -> t.uperMaxSizeInBits
-    | ACN -> t.acnMaxSizeInBits
-    | _ -> raise (BugErrorException $"Unexpected encoding: {enc}")
-
 let srcDirName = Path.Combine("src", "main", "scala", "asn1src")
 let asn1rtlDirName  = Path.Combine("src", "main", "scala", "asn1scala")
 
@@ -322,8 +316,9 @@ type LangGeneric_scala() =
 
         override this.bitStringValueToByteArray (v : BitStringValue) = FsUtils.bitStringValueToByteArray (StringLoc.ByValue v)
 
-        override this.generatePrecond (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) = [$"codec.validate_offset_bits({maxSizeInBits enc t})"]
+        override this.generatePrecond (enc: Asn1Encoding) (t: Asn1AcnAst.Asn1Type) = [$"codec.validate_offset_bits({t.maxSizeInBits enc})"]
 
+        // TODO: Non, mais avoir un AST
         override this.generatePostcond (enc: Asn1Encoding) (funcNameBase: string) (p: CallerScope) (t: Asn1AcnAst.Asn1Type) (codec: Codec) =
             match codec with
             | Encode ->
@@ -333,13 +328,17 @@ res match
     case Right(res) =>
         val w1 = old(codec)
         val w2 = codec
-        w1.bufLength() == w2.bufLength() && w2.bitIndex() <= w1.bitIndex() + {maxSizeInBits enc t} && w1.isPrefixOf(w2) && {{
+        w1.bufLength() == w2.bufLength() && w2.bitIndex() <= w1.bitIndex() + {t.maxSizeInBits enc} && w1.isPrefixOf(w2) && {{
             val (r1, r2) = {enc}.reader(w1, w2)
+            BitStream.validateOffsetBitsContentIrrelevancyLemma(w1.base.bitStream, w2.base.bitStream.buf, {t.maxSizeInBits enc})
             val (r2Got, resGot) = {funcNameBase}_Decode_pure(r1)
             resGot == RightMut(pVal) && r2Got == r2
         }}"""
                 Some (res.TrimStart())
-            | Decode -> Some $"codec.base.bitStream.buf == old(codec).base.bitStream.buf && codec.base.bitStream.bitIndex() <= old(codec).base.bitStream.bitIndex() + {maxSizeInBits enc t}"
+            | Decode -> Some $"codec.base.bitStream.buf == old(codec).base.bitStream.buf && codec.base.bitStream.bitIndex() <= old(codec).base.bitStream.bitIndex() + {t.maxSizeInBits enc}"
+
+        // override this.generateSequenceChildProof (enc: Asn1Encoding) (stmts: string option list) (pg: SequenceProofGen) (codec: Codec): string list =
+        //     ProofGen.generateSequenceChildProof enc stmts pg codec
 
         override this.uper =
             {

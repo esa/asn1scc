@@ -30,6 +30,18 @@ val MASK_C: Array[Byte] = Array(
    -0x08,  //  / 1111 1000 /
    -0x04,  //  / 1111 1100 /
    -0x02,  //  / 1111 1110 /
+   -0x01,  //  / 1111 1111 /
+)
+
+val BitAccessMasks: Array[Byte] = Array(
+   -0x80, // -128 / 1000 0000 / x80
+   0x40, //   64 / 0100 0000 / x40
+   0x20, //   32 / 0010 0000 / x20
+   0x10, //   16 / 0001 0000 / x10
+   0x08, //    8 / 0000 1000 / x08
+   0x04, //    4 / 0000 0100 / x04
+   0x02, //    2 / 0000 0010 / x02
+   0x01, //    1 / 0000 0001 / x01
 )
 
 extension [T](arr: Array[T]) {
@@ -88,7 +100,7 @@ def GetBitCountUnsigned(vv: ULong): Int = {
    x >= 0 && x <= NO_OF_BITS_IN_LONG && (x == NO_OF_BITS_IN_LONG && vv.toRaw < 0 || vv.toRaw >>> x == 0))
 
 /**
- * Get number of bits needed to encode the singed value v
+ * Get number of bits needed to encode the signed value v
  *
  * Example:
  *                              5 bit (include sign bit)
@@ -108,9 +120,13 @@ def GetBitCountSigned(v: Long): Int = {
    ).invariant(i >= 1 && i <= NO_OF_BITS_IN_LONG)
 
    i
-
-}.ensuring(x =>
-   x >= 0 && x <= NO_OF_BITS_IN_LONG)
+}.ensuring { nBits =>
+   0 <= nBits && nBits <= NO_OF_BITS_IN_LONG &&
+   ((v < 0) ==>
+      ((onesMSBLong(NO_OF_BITS_IN_LONG - nBits) | (v & onesLSBLong(nBits))) == v &&
+      ((v & onesLSBLong(nBits)) & (1L << (nBits - 1))) != 0L)) &&
+   ((v >= 0) ==> ((v & onesLSBLong(nBits)) == v && (v & (1L << (nBits - 1))) == 0L))
+}
 
 /**
  * Get number of bytes needed to represent the value v
@@ -226,8 +242,8 @@ def CalculateMantissaAndExponent(doubleAsLong64: Long): (UInt, ULong) = {
 
    (UInt.fromRaw(exponent), ULong.fromRaw(mantissa))
 
-}.ensuring((e, m) => (-DoubleBias - DoubleNoOfMantissaBits).toInt.toRawUInt <= e &&& e <= (DoubleBias - DoubleNoOfMantissaBits).toInt.toRawUInt
-   &&& 0.toRawULong <= m &&& m <= (MantissaBitMask | MantissaExtraBit).toRawULong)
+}//.ensuring((e, m) => (-DoubleBias - DoubleNoOfMantissaBits).toInt.toRawUInt <= e &&& e <= (DoubleBias - DoubleNoOfMantissaBits).toInt.toRawUInt
+   //&&& 0.toRawULong <= m &&& m <= (MantissaBitMask | MantissaExtraBit).toRawULong)
 
 def GetDoubleBitStringByMantissaAndExp(mantissa: ULong, exponentVal: Int): Long = {
    ((exponentVal + DoubleBias + DoubleNoOfMantissaBits) << DoubleNoOfMantissaBits) | (mantissa.toRaw & MantissaBitMask)

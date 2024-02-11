@@ -89,9 +89,9 @@ object ULong {
 }
 extension (l: ULong) {
     @inline def toRaw: Long = l
-    @inline def toUByte: UByte = l.cutToByte
-    @inline def toUShort: UShort = l.cutToShort
-    @inline def toUInt: UInt = l.cutToInt
+    @inline def toUByte: UByte = wrappingExpr { l.toByte }
+    @inline def toUShort: UShort = wrappingExpr { l.toShort }
+    @inline def toUInt: UInt = wrappingExpr { l.toInt }
     @inline def <=(r: ULong): Boolean = wrappingExpr { l + Long.MinValue <= r + Long.MinValue }
     @inline def +(r: ULong): ULong = wrappingExpr { l + r }
     @inline def -(r: ULong): ULong = wrappingExpr { l - r }
@@ -245,6 +245,26 @@ def int2uint(v: Long): ULong = {
         ret = v
 
     ret*/
+}
+
+def onesLSBLong(nBits: Int): Long = {
+    require(0 <= nBits && nBits <= 64)
+    -1L >>> (64 - nBits)
+}
+
+def bitLSBLong(bit: Boolean, nBits: Int): Long = {
+    require(0 <= nBits && nBits <= 64)
+    if bit then onesLSBLong(nBits) else 0L
+}
+
+def onesMSBLong(nBits: Int): Long = {
+    require(0 <= nBits && nBits <= 64)
+    -1L << (64 - nBits)
+}
+
+def bitMSBLong(bit: Boolean, nBits: Int): Long = {
+    require(0 <= nBits && nBits <= 64)
+    if bit then onesMSBLong(nBits) else 0L
 }
 
 def uint2int(v: ULong, uintSizeInBytes: Int): Long = {

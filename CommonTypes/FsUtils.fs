@@ -367,7 +367,29 @@ module List =
 
     let last lst =  lst |> List.rev |> List.head
 
+    let rec initial (xs: 'a list): 'a list =
+        match xs with
+        | [] -> failwith "init of an empty list"
+        | _ :: [] -> []
+        | x :: xs -> x :: (initial xs)
 
+    // 1, 2, 3, 4 -> (1, 2), (2, 3), (3, 4)
+    let rep2 (xs: 'a list): ('a * 'a) list =
+        assert (xs.Length >= 2)
+        let pre, rest = List.splitAt 2  xs
+        List.fold (fun acc x -> acc @ [(snd (List.last acc), x)]) [(pre.[0], pre.[1])] rest
+
+    let foldBackWith (f: 'a -> 's -> 's) (init: 'a -> 's) (xs: 'a list): 's =
+        assert (not xs.IsEmpty)
+        List.foldBack f xs.Tail (init xs.Head)
+
+    let skipLast (n: int) (lst: 'a list): 'a list =
+        let upto = lst.Length - n
+        let rec go (cnt: int) (lst: 'a list): 'a list =
+            match lst with
+            | x :: xs when cnt < upto -> x :: go (cnt + 1) xs
+            | _ -> []
+        go 0 lst
 
     let rec keepDuplicates_private lst fnc =
         match lst with

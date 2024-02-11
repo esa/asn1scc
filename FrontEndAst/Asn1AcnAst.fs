@@ -619,6 +619,13 @@ with
         | AcnNullType a                 -> a.acnProperties.savePosition
         | AcnReferenceToEnumerated a    -> false
         | AcnReferenceToIA5String a     -> false
+    member this.acnMaxSizeInBits  =
+        match this with
+        | AcnInteger  a -> a.acnMaxSizeInBits
+        | AcnBoolean  a -> a.acnMaxSizeInBits
+        | AcnNullType a -> a.acnMaxSizeInBits
+        | AcnReferenceToEnumerated a -> a.enumerated.acnMaxSizeInBits
+        | AcnReferenceToIA5String a -> a.str.acnMaxSizeInBits
 
 
 type Asn1Type = {

@@ -54,6 +54,39 @@ type UncheckedAccessKind =
     | FullAccess // unwrap all selection, including the last one
     | PartialAccess // unwrap all but the last selection
 
+type TypeInfo = {
+    uperMaxSizeBits: BigInteger
+    acnMaxSizeBits: BigInteger
+    typeKind: TypeEncodingKind option
+} with
+    member this.maxSize (enc: Asn1Encoding): BigInteger =
+        match enc with
+        | ACN -> this.acnMaxSizeBits
+        | UPER -> this.uperMaxSizeBits
+        | _ -> raise (BugErrorException $"Unexpected encoding: {enc}")
+
+type SequenceChildProps = {
+    // TODO: say it's none for presence bit
+    // TODO: String not ideal, but array selection index is string anyway...
+    sel: string option
+    // TODO: What about padding?
+    uperMaxOffset: BigInteger
+    acnMaxOffset: BigInteger
+    typeInfo: TypeInfo
+} with
+    member this.maxOffset (enc: Asn1Encoding): BigInteger =
+        match enc with
+        | ACN -> this.acnMaxOffset
+        | UPER -> this.uperMaxOffset
+        | _ -> raise (BugErrorException $"Unexpected encoding: {enc}")
+
+type SequenceProofGen = {
+    children: SequenceChildProps list
+} with
+    // TODO: What about padding?
+    member this.maxSize (enc: Asn1Encoding): BigInteger =
+        this.children |> List.map (fun c -> c.typeInfo.maxSize enc) |> List.sum
+
 [<AbstractClass>]
 type ILangGeneric () =
     abstract member ArrayStartIndex : int
@@ -175,6 +208,7 @@ type ILangGeneric () =
 
     abstract member generatePrecond: Asn1Encoding -> t: Asn1AcnAst.Asn1Type -> string list
     abstract member generatePostcond: Asn1Encoding -> funcNameBase: string -> p: CallerScope -> t: Asn1AcnAst.Asn1Type -> Codec -> string option
+    abstract member generateSequenceChildProof: Asn1Encoding -> stmts: string option list -> SequenceProofGen -> Codec -> string list
 
     default this.getParamType (t:Asn1AcnAst.Asn1Type) (c:Codec) : CallerScope =
         this.getParamTypeSuffix t "" c
@@ -190,6 +224,7 @@ type ILangGeneric () =
 
     default this.generatePrecond _ _ = []
     default this.generatePostcond _ _ _ _ _ = None
+    default this.generateSequenceChildProof _ stmts _ _ = stmts |> List.choose id
 
     //most programming languages are case sensitive
     default _.isCaseSensitive = true

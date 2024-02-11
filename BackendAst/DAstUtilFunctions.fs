@@ -16,13 +16,13 @@ let getAccessFromScopeNodeList (ReferenceToType nodes)  (childTypeIsString: bool
         | TA _
         | PRM _
         | VA _              -> raise(BugErrorException "getAccessFromScopeNodeList")
-        | SEQ_CHILD (chName, chOpt)  -> 
-            let isPresent = 
+        | SEQ_CHILD (chName, chOpt)  ->
+            let isPresent =
                 match chOpt with
                 | true ->  [lm.lg.getSeqChildIsPresent pVal.arg chName] //[sprintf "%s%sexist.%s" pVal.arg.p (lm.lg.getAccess pVal.arg) chName]
                 | false -> []
             isPresent, {pVal with arg = lm.lg.getSeqChild pVal.arg (ToC chName) childTypeIsString chOpt}
-        | CH_CHILD (chName, pre_name, chParent)  -> 
+        | CH_CHILD (chName, pre_name, chParent)  ->
             let chChildIsPresent =
                 match ST.lang with
                 | Scala -> sprintf "%s.isInstanceOf[%s.%s_PRESENT]" (pVal.arg.joined lm.lg) chParent pre_name
@@ -735,10 +735,37 @@ with
             | Some tasInfo  -> Some tasInfo.AsTasInfo
             | None          -> None
 
+type Asn1Child with
+    member this.getBackendName l =
+        match l with
+        | C         -> this._c_name
+        | Scala     -> this._scala_name
+        | Ada       -> this._ada_name
+    member this.acnMinSizeInBits =
+        match this.Optionality with
+        | Some(AlwaysAbsent) -> 0I
+        | _ -> this.Type.acnMinSizeInBits
 
+    member this.acnMaxSizeInBits =
+        match this.Optionality with
+        | Some(AlwaysAbsent) -> 0I
+        | _ -> this.Type.acnMaxSizeInBits
 
-//let getValueType (r:AstRoot) (v:Asn1GenericValue) =
-//    r.typesMap.[v.refToType]
+    member this.uperMinSizeInBits =
+        match this.Optionality with
+        | Some(AlwaysAbsent) -> 0I
+        | _ -> this.Type.uperMinSizeInBits
+
+    member this.uperMaxSizeInBits =
+        match this.Optionality with
+        | Some(AlwaysAbsent) -> 0I
+        | _ -> this.Type.uperMaxSizeInBits
+
+    member this.maxSizeInBits (enc: Asn1Encoding): BigInteger =
+        match enc with
+        | UPER -> this.uperMaxSizeInBits
+        | ACN -> this.acnMaxSizeInBits
+        | _ -> raise (BugErrorException $"Unexpected encoding: {enc}")
 
 type Asn1Module with
     member this.ExportedTypes =
@@ -872,16 +899,25 @@ type SeqChildInfo with
         | AcnChild x     -> None
     member this.acnMaxSizeInBits =
         match this with
-        | Asn1Child x    -> x.Type.acnMaxSizeInBits
+        | Asn1Child x    -> x.acnMaxSizeInBits // Takes into account ALWAYS ABSENT
         | AcnChild x     -> x.Type.acnMaxSizeInBits
     member this.acnMinSizeInBits =
         match this with
-        | Asn1Child x    -> x.Type.acnMinSizeInBits
+        | Asn1Child x    -> x.acnMinSizeInBits
         | AcnChild x     -> x.Type.acnMinSizeInBits
     member this.Comments =
         match this with
         | Asn1Child x    -> x.Comments
         | AcnChild x     -> [||]
+
+    member this.maxSizeInBits (enc: Asn1Encoding): BigInteger =
+        match enc with
+        | UPER ->
+            match this with
+            | Asn1Child x -> x.uperMaxSizeInBits
+            | AcnChild x -> raise (BugErrorException $"Unexpected UPER encoding for ACN child {x.Name}")
+        | ACN -> this.acnMaxSizeInBits
+        | _ -> raise (BugErrorException $"Unexpected encoding: {enc}")
 
 let hasAcnEncodeFunction (encFunc : AcnFunction option) acnParameters  =
     match encFunc with

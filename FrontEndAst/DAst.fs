@@ -6,6 +6,7 @@ open System
 open System.Numerics
 open FsUtils
 open CommonTypes
+open AcnGenericTypes
 open AbstractMacros
 open System.Collections.Generic
 
@@ -319,6 +320,69 @@ type IsValidFunction = {
 }
 
 
+/////////////////////////////////////////////////////////////////////
+
+
+type IntegerSignedness =
+    | Positive
+    | TwosComplement
+
+type IntegerEndiannessSize =
+    | S16
+    | S32
+    | S64
+with
+    member this.bitSize =
+        match this with
+        | S16 -> 16
+        | S32 -> 32
+        | S64 -> 64
+
+// TODO: Find a better name
+type IntegerEndianness =
+    | Byte
+    | Unbounded
+    | LittleEndian of IntegerEndiannessSize
+    | BigEndian of IntegerEndiannessSize
+
+type AcnIntegerEncodingType = {
+    signedness: IntegerSignedness
+    endianness: IntegerEndianness
+}
+
+type AcnRealEncodingType =
+    | BigEndian32
+    | BigEndian64
+    | LittleEndian32
+    | LittleEndian64
+
+type Asn1IntegerEncodingType =
+    | FullyConstrainedPositive of bigint * bigint
+    | FullyConstrained of bigint * bigint
+    | SemiConstrainedPositive of bigint
+    | SemiConstrained of bigint
+    | UnconstrainedMax of bigint
+    | Unconstrained
+
+type TypeEncodingKind =
+    | Asn1IntegerEncodingType of Asn1IntegerEncodingType option // None si range min = max
+    | Asn1RealEncodingType of Asn1AcnAst.RealClass
+    | AcnIntegerEncodingType of AcnIntegerEncodingType
+    | AcnRealEncodingType of AcnRealEncodingType
+    | AcnBooleanEncodingType of AcnBooleanEncoding option
+    | AcnNullEncodingType of PATTERN_PROP_VALUE option
+    | AcnStringEncodingType of Asn1AcnAst.StringAcnEncodingClass
+    | AcnOctetStringEncodingType of Asn1AcnAst.SizeableAcnEncodingClass // TODO: ACN?
+    | AcnBitStringEncodingType of Asn1AcnAst.SizeableAcnEncodingClass // TODO: ACN?
+    | SequenceOfEncodingType of TypeEncodingKind * Asn1AcnAst.SizeableAcnEncodingClass // TODO: Quid uper?
+    | SequenceEncodingType of TypeEncodingKind option list // TODO: Quid des None?
+    | ChoiceEncodingType of TypeEncodingKind option list // TODO: Quid des None?
+    | ReferenceEncodingType of string
+    | OptionEncodingType of TypeEncodingKind
+    | Placeholder
+
+/////////////////////////////////////////////////////////////////////
+
 
 type UPERFuncBodyResult = {
     funcBody            : string
@@ -327,6 +391,7 @@ type UPERFuncBodyResult = {
     bValIsUnReferenced  : bool
     bBsIsUnReferenced   : bool
     resultExpr          : string option
+    typeEncodingKind    : TypeEncodingKind option
 }
 type UPerFunction = {
     funcName            : string option               // the name of the function
@@ -343,6 +408,7 @@ type AcnFuncBodyResult = {
     bValIsUnReferenced  : bool
     bBsIsUnReferenced   : bool
     resultExpr          : string option
+    typeEncodingKind    : TypeEncodingKind option
 }
 
 type XERFuncBodyResult = {
@@ -857,7 +923,6 @@ and Asn1Type = {
     Kind            : Asn1TypeKind
     unitsOfMeasure  : string option
 }
-
 
 and Asn1TypeKind =
     | Integer           of Integer

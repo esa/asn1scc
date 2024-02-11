@@ -25,11 +25,13 @@ case class UPER private [asn1scala](base: Codec) {
    import BitStream.*
    import UPER.*
    import base.*
-   export base.*
+   export base.{isPrefixOf => _, withMovedBitIndex => _, withMovedByteIndex => _, *}
 
    @ghost @pure @inline
-   def resetAt(other: UPER): UPER =
+   def resetAt(other: UPER): UPER = {
+      require(bitStream.buf.length == other.base.bitStream.buf.length)
       UPER(Codec(bitStream.resetAt(other.base.bitStream)))
+   }
 
    @ghost @pure @inline
    def withMovedByteIndex(diffInBytes: Int): UPER = {
@@ -41,18 +43,6 @@ case class UPER private [asn1scala](base: Codec) {
    def withMovedBitIndex(diffInBits: Int): UPER = {
       require(moveBitIndexPrecond(bitStream, diffInBits))
       UPER(Codec(bitStream.withMovedBitIndex(diffInBits)))
-   }
-
-   @pure @inline
-   def bitIndex(): Long = bitStream.bitIndex()
-
-   @pure @inline
-   def bufLength(): Int = bitStream.buf.length
-
-   @pure @inline
-   def validate_offset_bits(bits: Long = 0): Boolean = {
-      require(bits >= 0)
-      bitStream.validate_offset_bits(bits)
    }
 
    @pure @inline
