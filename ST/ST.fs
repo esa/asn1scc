@@ -106,7 +106,7 @@ type RealFormatRenderer2() =
             
 type BigIntegerFormatRenderer() =
     static member TS1 (obj:BigInteger) =
-        if (BigInteger Int32.MinValue < obj && obj < BigInteger Int32.MaxValue) then
+        if (obj > BigInteger Int32.MinValue && obj < BigInteger Int32.MaxValue) then
             obj.ToString();
         else
             match lang with

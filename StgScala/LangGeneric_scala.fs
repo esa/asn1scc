@@ -77,6 +77,10 @@ type LangGeneric_scala() =
             | Asn1AcnAst.ASN1SCC_Int16    _ ->  sprintf "%s" (i.ToString())
             | Asn1AcnAst.ASN1SCC_Int32    _ ->  sprintf "%s" (i.ToString())
             | Asn1AcnAst.ASN1SCC_Int64    _ ->  sprintf "%sL" (i.ToString())
+            | Asn1AcnAst.ASN1SCC_Int _ when 
+                i >= BigInteger System.Int32.MinValue && 
+                i <= BigInteger System.Int32.MaxValue -> 
+                    sprintf "%s" (i.ToString())
             | Asn1AcnAst.ASN1SCC_Int      _ ->  sprintf "%sL" (i.ToString())
             | Asn1AcnAst.ASN1SCC_UInt8    _ ->  sprintf "UByte.fromRaw(%s)" (i.ToString())
             | Asn1AcnAst.ASN1SCC_UInt16   _ ->  sprintf "UShort.fromRaw(%s)" (i.ToString())
