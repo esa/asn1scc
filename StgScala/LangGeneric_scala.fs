@@ -6,6 +6,7 @@ open FsUtils
 open Language
 open System.IO
 open System
+open Asn1AcnAstUtilFunctions
 
 let rec resolveReferenceType(t: Asn1TypeKind): Asn1TypeKind = 
     match t with
