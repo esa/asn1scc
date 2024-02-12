@@ -375,8 +375,6 @@ let createOctetStringInitFunc (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (t:Asn
         List.collect id |>
         List.map(fun (v,_) -> DAstVariables.printOctetStringValueAsCompoundLiteral lm "" o (v|>List.map(fun bl -> bl.Value)))
 
-    let tdName = lm.lg.getLongTypedefName typeDefinition
-
     let testCaseFuncs, tasInitFunc =
         match anonyms with
         | []  ->
@@ -632,35 +630,20 @@ let mergeMaps (m1:Map<'key,'value>) (m2:Map<'key,'value>) =
 
 let createEnumeratedInitFunc (r: Asn1AcnAst.AstRoot) (lm: LanguageMacros) (t: Asn1AcnAst.Asn1Type) (o: Asn1AcnAst.Enumerated)  (typeDefinition: TypeDefinitionOrReference) iv =
     let initEnumerated = lm.init.initEnumerated
-
-    let enumClassName =
-        match ST.lang with
-        | ProgrammingLanguage.Scala ->
-            match typeDefinition with
-            | ReferenceToExistingDefinition r -> r.typedefName
-            | TypeDefinition t -> t.typedefName
-        | _ -> ""
-
-    let getEnumBackendName (defOrRef: TypeDefinitionOrReference option) (nm: Asn1AcnAst.NamedItem) =
-            let itemname =
-                match ST.lang with
-                | ProgrammingLanguage.Scala -> ToC nm.scala_name
-                | _ -> (lm.lg.getNamedItemBackendName defOrRef nm)
-            itemname
-
     let funcBody (p:CallerScope) (v:Asn1ValueKind) =
         let vl =
             match v.ActualValue with
             | EnumValue iv      -> o.items |> Seq.find(fun x -> x.Name.Value = iv)
             | _                 -> raise(BugErrorException "UnexpectedValue")
-        initEnumerated (lm.lg.getValue p.arg) (getEnumBackendName (Some typeDefinition) vl) enumClassName p.arg.isOptional
+        initEnumerated (lm.lg.getValue p.arg) (lm.lg.getNamedItemBackendName (Some typeDefinition) vl) 
 
     let testCaseFuncs =
         EncodeDecodeTestCase.EnumeratedAutomaticTestCaseValues2 r t o |>
         List.map (fun vl ->
             {
-                AutomaticTestCase.initTestCaseFunc = (fun (p:CallerScope) -> {InitFunctionResult.funcBody = initEnumerated (lm.lg.getValueUnchecked p.arg PartialAccess) (getEnumBackendName (Some typeDefinition) vl) enumClassName p.arg.isOptional; localVariables=[]});
-                testCaseTypeIDsMap = Map.ofList [(t.id, (TcvEnumeratedValue vl.Name.Value))]
+                AutomaticTestCase.initTestCaseFunc = (fun (p:CallerScope) -> {InitFunctionResult.funcBody = initEnumerated (lm.lg.getValue p.arg) (lm.lg.getNamedItemBackendName (Some typeDefinition) vl); localVariables=[]}); 
+                testCaseTypeIDsMap = Map.ofList [(t.id, (TcvEnumeratedValue vl.Name.Value))] 
+
             })
     let constantInitExpression = lm.lg.getNamedItemBackendName  (Some typeDefinition) o.items.Head
     createInitFunctionCommon r lm t typeDefinition funcBody testCaseFuncs.Head.initTestCaseFunc testCaseFuncs constantInitExpression constantInitExpression [] [] []
@@ -802,9 +785,10 @@ let createSequenceOfInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1A
     let childInitExpr = getChildExpression lm childType
     let childInitGlobal = getChildExpressionGlobal lm childType
     let constantInitExpression childExpr =
+        let sTypeDef = lm.lg.getLongTypedefName typeDefinition
         match o.isFixedSize with
-        | true  -> lm.init.initFixSizeSequenceOfExpr (typeDefinition.longTypedefName2 lm.lg.hasModules) o.maxSize.uper childExpr
-        | false -> lm.init.initVarSizeSequenceOfExpr (typeDefinition.longTypedefName2 lm.lg.hasModules) o.minSize.uper o.maxSize.uper childExpr
+        | true  -> lm.init.initFixSizeSequenceOfExpr sTypeDef o.maxSize.uper childExpr
+        | false -> lm.init.initVarSizeSequenceOfExpr sTypeDef o.minSize.uper o.maxSize.uper childExpr
     let initExpr = constantInitExpression childInitExpr
     let initExprGlob = constantInitExpression childInitGlobal
     createInitFunctionCommon r lm t typeDefinition funcBody initTasFunction testCaseFuncs initExpr initExprGlob nonEmbeddedChildrenFuncs [] []
@@ -979,7 +963,9 @@ let createSequenceInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1Acn
             List.map (fun c ->
                 let childName = lm.lg.getAsn1ChildBackendName c
                 let childExp = getChildExpr lm c.Type
-                lm.init.initSequenceChildExpr childName childExp c.Optionality.IsSome (c.Optionality |> Option.exists (fun opt -> opt = Asn1AcnAst.Asn1Optionality.AlwaysAbsent)))
+                let exprMethodCall = lm.lg.init.initMethSuffix c.Type.Kind
+                lm.init.initSequenceChildExpr childName (childExp + exprMethodCall))
+
         let arrsOptionalChildren =
             children |>
             List.choose(fun c -> match c with Asn1Child x -> Some x | _ -> None) |>
@@ -1035,11 +1021,10 @@ let createChoiceInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAs
 
     let testCaseFuncs =
         let handleChild  (ch:ChChildInfo)  =
-            let sChildID (p:CallerScope) =
-                match ST.lang with
-                | ProgrammingLanguage.Scala -> (lm.lg.presentWhenName (Some typeDefinition) ch)
-                | _ -> (ToC ch._present_when_name_private) + "_PRESENT"
-
+            let sChildID (p:CallerScope) = (lm.lg.presentWhenName (Some typeDefinition) ch)
+                //match ST.lang with
+                //| ProgrammingLanguage.Scala -> (lm.lg.presentWhenName (Some typeDefinition) ch)
+                //| _ -> (ToC ch._present_when_name_private) + "_PRESENT"
 
             let len = ch.chType.initFunction.automaticTestCases.Length
             let sChildName = (lm.lg.getAsn1ChChildBackendName ch)

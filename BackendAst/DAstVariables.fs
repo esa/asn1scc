@@ -122,7 +122,7 @@ let rec printValue (r:DAst.AstRoot)  (lm:LanguageMacros) (curProgramUnitName:str
             match t.ActualType.Kind with
             | Sequence s ->
                 let td = lm.lg.getSequenceTypeDefinition s.baseInfo.typeDef
-                let typeDefName  = lm.lg.getLongTypedefName t.typeDefinitionOrReference // t.typeDefinitionOrReference.longTypedefName l//if parentValue.IsSome then s.typeDefinition.typeDefinitionBodyWithinSeq else s.typeDefinition.name
+                let typeDefName  = lm.lg.getLongTypedefName t.typeDefinitionOrReference
                 let optChildren =
                     s.children |>
                     List.choose(fun ch -> match ch with Asn1Child a -> Some a | AcnChild _ -> None) |>
@@ -302,7 +302,7 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1A
         | SeqOfValue chVals    ->
             let childVals = chVals |> List.map (fun chv -> childType.printValue curProgramUnitName (Some gv) chv.kind)
             let sDefValue =  childType.initFunction.initExpression
-            let td = lm.lg.getSizeableTypeDefinition  o.typeDef
+            let td = lm.lg.getSizeableTypeDefinition o.typeDef
             PrintSequenceOfValue td (o.minSize.uper = o.maxSize.uper) (BigInteger chVals.Length) childVals sDefValue
 
         | RefValue ((md,vs),ov)   -> vs
@@ -324,7 +324,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1Acn
         match gv with
         | SeqValue  v ->
                 let td = lm.lg.getSequenceTypeDefinition o.typeDef
-                let typeDefName  = lm.lg.getLongTypedefName  defOrRef
+                let typeDefName = lm.lg.getLongTypedefName defOrRef
                 let optChildren =
                     optChildren |>
                     List.map(fun x ->
@@ -379,4 +379,3 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAs
 
 let createReferenceTypeFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.ReferenceType) (defOrRef:TypeDefinitionOrReference) (baseType:Asn1Type)   =
     baseType.printValue
-

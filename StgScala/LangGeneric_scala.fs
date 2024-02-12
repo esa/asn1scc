@@ -5,7 +5,58 @@ open DAst
 open FsUtils
 open Language
 open System.IO
-open Asn1AcnAstUtilFunctions
+open System
+
+let rec resolveReferenceType(t: Asn1TypeKind): Asn1TypeKind = 
+    match t with
+    | ReferenceType rt -> resolveReferenceType rt.resolvedType.Kind
+    | _ -> t
+
+let isJVMPrimitive (t: Asn1TypeKind) = 
+    match resolveReferenceType t with
+    | Integer _ | Real _ | NullType _ | Boolean _ -> true
+    | _ -> false
+
+let initMethSuffix k = 
+    match isJVMPrimitive k with
+    | false ->
+        match k with
+        | BitString bitString -> ""
+        | _ -> "()"
+    | true -> ""
+
+let isEnumForJVMelseFalse (k: Asn1TypeKind): bool =
+    match ST.lang with
+    | Scala ->
+        match resolveReferenceType k with
+        | Enumerated e -> true
+        | _ -> false
+    | _ -> false
+    
+let isSequenceForJVMelseFalse (k: Asn1TypeKind): bool = 
+    match ST.lang with
+    | Scala ->
+        match k with
+        | Sequence s -> true
+        | _ -> false
+    | _ -> false
+
+let isOctetStringForJVMelseFalse (k: Asn1TypeKind): bool = 
+    match ST.lang with
+    | Scala ->
+        match k with
+        | OctetString s -> true
+        | _ -> false
+    | _ -> false
+
+let uperExprMethodCall k sChildInitExpr =
+    let isSequence = isSequenceForJVMelseFalse k 
+    let isEnum = isEnumForJVMelseFalse k
+    let isOctetString = isOctetStringForJVMelseFalse k
+    
+    match isSequence || sChildInitExpr.Equals("null") || isEnum || isOctetString with
+    | true -> ""
+    | false -> initMethSuffix k
 
 let getAccess2_scala (acc: Accessor) =
     match acc with
@@ -54,7 +105,7 @@ type LangBasic_scala() =
         override this.getObjectIdentifierRtlTypeName  relativeId = 
             let asn1Name = if relativeId then "RELATIVE-OID" else "OBJECT IDENTIFIER"
             "", "Asn1ObjectIdentifier", asn1Name
-        override this.getTimeRtlTypeName  timeClass = 
+        override this.getTimeRtlTypeName timeClass = 
             let asn1Name = "TIME"
             match timeClass with 
             | Asn1LocalTime                    _ -> "", "Asn1LocalTime", asn1Name
@@ -163,6 +214,8 @@ type LangGeneric_scala() =
         override _.setChildInfoName (ch:Asn1Ast.ChildInfo) (newValue:string) = {ch with scala_name = newValue}
         override this.getAsn1ChildBackendName0 (ch:Asn1AcnAst.Asn1Child) = ch._scala_name
         override this.getAsn1ChChildBackendName0 (ch:Asn1AcnAst.ChChildInfo) = ch._scala_name
+        override _.getChoiceChildPresentWhenName (ch:Asn1AcnAst.Choice ) (c:Asn1AcnAst.ChChildInfo) : string =
+            ch.typeDef[Scala].typeName + "." + (ToC c.present_when_name) + "_PRESENT"
 
         override this.getRtlFiles  (encodings:Asn1Encoding list) (_ :string list) =
             let encRtl = match encodings |> Seq.exists(fun e -> e = UPER || e = ACN ) with true -> ["asn1crt_encoding"] | false -> []
@@ -203,6 +256,10 @@ type LangGeneric_scala() =
         override this.allowsSrcFilesWithNoFunctions = true
         override this.requiresValueAssignmentsInSrcFile = true
         override this.supportsStaticVerification = false
+
+        override this.getSeqChildIsPresent (sel: Selection) (childName:string) =
+            //sprintf "%s%sexist.%s = 1" fpt.p (this.getAccess fpt) childName
+            raise (NotImplementedException())
 
         override this.getSeqChild (sel: Selection) (childName:string) (childTypeIsString: bool) (childIsOptional: bool) =
             sel.appendSelection childName (if childTypeIsString then FixArray else Value) childIsOptional
@@ -297,6 +354,8 @@ res match
                 //createBitStringFunction = createBitStringFunction_funcBody_c
                 seqof_lv              =
                   (fun id minSize maxSize -> [SequenceOfIndex (id.SequenceOfLevel + 1, None)])
+
+                exprMethodCall = uperExprMethodCall
             }
         override this.acn =
             {
@@ -308,6 +367,8 @@ res match
                             GenericLocalVariable {GenericLocalVariable.name = "arr"; varType = "byte"; arrSize = Some sReqBytesForUperEncoding; isStatic = true; initExp = None}
                             GenericLocalVariable {GenericLocalVariable.name = "bitStrm"; varType = "BitStream"; arrSize = None; isStatic = false; initExp = None}
                         ]
+                createLocalVariableEnum =
+                    (fun rtlIntType -> GenericLocalVariable {GenericLocalVariable.name = "intVal"; varType= rtlIntType; arrSize= None; isStatic = false; initExp= (Some("0L")) })
                 choice_handle_always_absent_child = false
                 choice_requires_tmp_decoding = false
             }
@@ -315,6 +376,7 @@ res match
             {
                 Initialize_parts.zeroIA5String_localVars    = fun _ -> []
                 choiceComponentTempInit                     = false
+                initMethSuffix                              = initMethSuffix
             }
         override this.atc =
             {

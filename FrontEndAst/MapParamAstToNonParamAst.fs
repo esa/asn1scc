@@ -46,7 +46,14 @@ let visitRefType (md:string) (ts:string) : UserDefinedTypeScope=
 //    {UserDefinedTypeScope.typeID=[MD md; VA vs]; asn1TypeName=None; asn1VarName=Some vs;varID=[]}
 
 let visitSeqChild (s:UserDefinedTypeScope) (ch:ParameterizedAsn1Ast.ChildInfo) : UserDefinedTypeScope=
-    s@[SEQ_CHILD (ch.Name.Value, ch.Optionality.IsSome)]
+    let isOptional =
+        match ch.Optionality with
+        | None -> false
+        | Some(ParameterizedAsn1Ast.AlwaysAbsent) -> true
+        | Some(ParameterizedAsn1Ast.AlwaysPresent) -> false
+        | Some(ParameterizedAsn1Ast.Optional) -> true
+        | Some(ParameterizedAsn1Ast.Default(_)) -> true
+    s@[SEQ_CHILD (ch.Name.Value, isOptional)]
 
 let visitChoiceChild (s:UserDefinedTypeScope) (ch:ParameterizedAsn1Ast.ChildInfo) : UserDefinedTypeScope=
     s@[CH_CHILD (ch.Name.Value, ToC2 ch.Name.Value, "")]
@@ -380,8 +387,6 @@ and MapAsn1Type (r:ParameterizedAsn1Ast.AstRoot) typeScope (t:ParameterizedAsn1A
         | []    ->  aux (Asn1Ast.ReferenceType({Asn1Ast.ReferenceType.modName = mdName; tasName = ts; tabularized = false; refEnc= refEnc}))
         | _     ->  raise(BugErrorException "")
 
-
-
 let MapTypeAssignment (r:ParameterizedAsn1Ast.AstRoot) (m:ParameterizedAsn1Ast.Asn1Module) (tas:ParameterizedAsn1Ast.TypeAssignment) :Asn1Ast.TypeAssignment =
     {
         Asn1Ast.TypeAssignment.Name = tas.Name
@@ -411,7 +416,6 @@ let MapValueAssignment (r:ParameterizedAsn1Ast.AstRoot) (m:ParameterizedAsn1Ast.
         scala_name = vas.scala_name
         ada_name = vas.ada_name
     }
-
 
 let MapModule (r:ParameterizedAsn1Ast.AstRoot) (m:ParameterizedAsn1Ast.Asn1Module) :Asn1Ast.Asn1Module =
     let DoImportedModule (x:ParameterizedAsn1Ast.ImportedModule) : Asn1Ast.ImportedModule =

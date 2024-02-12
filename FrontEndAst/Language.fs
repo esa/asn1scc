@@ -16,6 +16,7 @@ type Uper_parts = {
     catd                 : bool //if true then Choice Alternatives are Temporarily Decoded (i.e. in _tmp variables in current scope)
     //createBitStringFunction  : (CallerScope -> CommonTypes.Codec -> ErrorCode -> int -> BigInteger -> BigInteger -> BigInteger -> string -> BigInteger -> bool -> bool -> (string * LocalVariable list)) -> CommonTypes.Codec -> ReferenceToType -> TypeDefinitionOrReference -> bool -> BigInteger -> BigInteger -> BigInteger -> ErrorCode ->  CallerScope -> UPERFuncBodyResult
     seqof_lv             : ReferenceToType -> BigInteger -> BigInteger -> LocalVariable list
+    exprMethodCall       : Asn1TypeKind -> string -> string
 
 }
 
@@ -23,12 +24,14 @@ type Acn_parts = {
     null_valIsUnReferenced              : bool
     checkBitPatternPresentResult        : bool
     getAcnDepSizeDeterminantLocVars     : string -> LocalVariable list
+    createLocalVariableEnum             : string -> LocalVariable       //create a local integer variable that is used to store the value of an enumerated type. The input is the RTL integer type
     choice_handle_always_absent_child   : bool
     choice_requires_tmp_decoding        : bool
 }
 type Initialize_parts = {
     zeroIA5String_localVars             : int -> LocalVariable list
     choiceComponentTempInit             : bool
+    initMethSuffix                      : Asn1TypeKind -> string
 }
 
 type Atc_parts = {
@@ -100,9 +103,11 @@ type ILangGeneric () =
 
     abstract member getAsn1ChildBackendName0  : Asn1AcnAst.Asn1Child -> string
     abstract member getAsn1ChChildBackendName0: Asn1AcnAst.ChChildInfo -> string
+    abstract member getChoiceChildPresentWhenName : Asn1AcnAst.Choice -> Asn1AcnAst.ChChildInfo -> string
 
     abstract member getAsn1ChildBackendName  : Asn1Child -> string
     abstract member getAsn1ChChildBackendName: ChChildInfo -> string
+
 
     abstract member choiceIDForNone : Map<string,int> -> ReferenceToType -> string
 
@@ -116,6 +121,8 @@ type ILangGeneric () =
     abstract member getSizeableTypeDefinition : Map<ProgrammingLanguage, FE_SizeableTypeDefinition> -> FE_SizeableTypeDefinition
 
     abstract member getSeqChild: sel: Selection -> childName: string -> childTypeIsString: bool -> childIsOptional: bool -> Selection;
+    //return a string that contains code with a boolean expression that is true if the child is present
+    abstract member getSeqChildIsPresent   : Selection -> string -> string
     abstract member getChChild      : Selection -> string -> bool -> Selection;
     abstract member getLocalVariableDeclaration : LocalVariable -> string;
     abstract member getLongTypedefName : TypeDefinitionOrReference -> string;

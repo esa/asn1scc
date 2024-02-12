@@ -195,9 +195,9 @@ let private exportType (r:AstRoot) (t:Asn1Type) =
                     XElement(xname "CHOICE_ALTERNATIVE",
                         XAttribute(xname "Name", ch.Name.Value),
                         XAttribute(xname "PresentWhenName", ch.presentWhenName (Some ch.chType.typeDefinitionOrReference) Ada),
-                        XAttribute(xname "AdaName", (ch.getBackendName Ada)),
-                        XAttribute(xname "CName", (ch.getBackendName C)),
-                        XAttribute(xname "ScalaName", (ch.getBackendName Scala)),
+                        XAttribute(xname "AdaName", (ch._ada_name)),
+                        XAttribute(xname "CName", (ch._c_name)),
+                        XAttribute(xname "ScalaName", (ch._scala_name)),
                         XAttribute(xname "AcnPresentWhenCont", (ch.acnPresentWhenConditions |> List.map(fun pwc -> sprintf "%s = %s" pwc.relativePath.AsString pwc.valueAsString) |> Seq.StrJoin ", ")),
                         chType), us )
 

@@ -200,6 +200,7 @@ let private removeTypePrefix (typePrefix : String) (typeName : string)=
         | false -> typeName
         | true  -> (typeName.Substring(typePrefix.Length))
 
+
 let private mergeInteger (asn1:Asn1Ast.AstRoot) (loc:SrcLoc) (typeAssignmentInfo : AssignmentInfo option) (acnErrLoc: SrcLoc option) (props:GenericAcnProperty list) cons withcons thisTypeCons (tdarg:GetTypeDefinition_arg) (us:Asn1AcnMergeState) =
     let declare_IntegerNoRTL       (l:ProgrammingLanguage)     = (asn1.args.getBasicLang l).declare_IntegerNoRTL
     let declare_PosIntegerNoRTL    (l:ProgrammingLanguage)     = (asn1.args.getBasicLang l).declare_PosIntegerNoRTL
@@ -273,7 +274,6 @@ let private mergeInteger (asn1:Asn1Ast.AstRoot) (loc:SrcLoc) (typeAssignmentInfo
 let private mergeReal (asn1: Asn1Ast.AstRoot) (loc: SrcLoc) (acnErrLoc: SrcLoc option) (props: GenericAcnProperty list) cons withcons (tdarg: GetTypeDefinition_arg) (us: Asn1AcnMergeState) =
     let acnErrLoc0 = match acnErrLoc with Some a -> a | None -> loc
     let getRtlTypeName  (l:ProgrammingLanguage) = (asn1.args.getBasicLang l).getRealRtlTypeName
-
     //check for invalid properties
     props |>
     Seq.iter(fun pr ->
@@ -307,6 +307,7 @@ let private mergeReal (asn1: Asn1Ast.AstRoot) (loc: SrcLoc) (acnErrLoc: SrcLoc o
 let private mergeObjectIdentifier (asn1: Asn1Ast.AstRoot) (relativeId: bool) (loc: SrcLoc) (acnErrLoc: SrcLoc option) (props: GenericAcnProperty list) cons withcons (tdarg: GetTypeDefinition_arg) (us: Asn1AcnMergeState) =
     let acnErrLoc0 = match acnErrLoc with Some a -> a | None -> loc
     let getRtlTypeName  (l:ProgrammingLanguage) = (asn1.args.getBasicLang l).getObjectIdentifierRtlTypeName relativeId
+    
     //check for invalid properties
     props |> Seq.iter(fun pr -> raise(SemanticError(acnErrLoc0, "Acn property cannot be applied to OBJECT IDENTIFIER types")))
 
@@ -1127,19 +1128,26 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (m:Asn1Ast.Asn1Mo
                             | x::_      -> Some x
                         Some (Optional {Optional.defaultValue = opt.defaultValue ; acnPresentWhen = acnPresentWhen})
 
+                let isOptional =
+                    match newOptionality with
+                    | None  -> false
+                    | Some AlwaysAbsent
+                    | Some (Optional _) -> true
+                    | Some AlwaysPresent -> false
+                
                 match cc with
                 | None      ->
-                    let newChild, us1 = mergeType asn1 acn m c.Type (curPath@[SEQ_CHILD (c.Name.Value, c.Optionality.IsSome)]) (typeDefPath@[SEQ_CHILD (c.Name.Value, c.Optionality.IsSome)]) (enmItemTypeDefPath@[SEQ_CHILD (c.Name.Value, c.Optionality.IsSome)]) None None [] childWithCons [] [] None  None  us
-                    Asn1Child ({Asn1Child.Name = c.Name; _c_name = c.c_name; _scala_name = c.scala_name; _ada_name = c.ada_name; Type  = newChild; Optionality = newOptionality;asn1Comments = c.Comments |> Seq.toList; acnComments=[]}), us1
+                    let newChild, us1 = mergeType asn1 acn m c.Type (curPath@[SEQ_CHILD (c.Name.Value, isOptional)]) (typeDefPath@[SEQ_CHILD (c.Name.Value, isOptional)]) (enmItemTypeDefPath@[SEQ_CHILD (c.Name.Value, isOptional)]) None None [] childWithCons [] [] None None us
+                    Asn1Child ({Asn1Child.Name = c.Name; _c_name = c.c_name; _scala_name = c.scala_name; _ada_name = c.ada_name; Type = newChild; Optionality = newOptionality; asn1Comments = c.Comments |> Seq.toList; acnComments=[]}), us1
                 | Some cc   ->
                     match cc.asn1Type with
                     | None  ->
-                        let newChild, us1 = mergeType asn1 acn m c.Type (curPath@[SEQ_CHILD (c.Name.Value, c.Optionality.IsSome)]) (typeDefPath@[SEQ_CHILD (c.Name.Value, c.Optionality.IsSome)]) (enmItemTypeDefPath@[SEQ_CHILD (c.Name.Value, c.Optionality.IsSome)]) (Some cc.childEncodingSpec) None [] childWithCons cc.argumentList [] None  None us
-                        Asn1Child ({Asn1Child.Name = c.Name; _c_name = c.c_name; _scala_name = c.scala_name; _ada_name = c.ada_name; Type  = newChild; Optionality = newOptionality; asn1Comments = c.Comments |> Seq.toList; acnComments =   cc.comments}), us1
+                        let newChild, us1 = mergeType asn1 acn m c.Type (curPath@[SEQ_CHILD (c.Name.Value, isOptional)]) (typeDefPath@[SEQ_CHILD (c.Name.Value, isOptional)]) (enmItemTypeDefPath@[SEQ_CHILD (c.Name.Value, isOptional)]) (Some cc.childEncodingSpec) None [] childWithCons cc.argumentList [] None None us
+                        Asn1Child ({Asn1Child.Name = c.Name; _c_name = c.c_name; _scala_name = c.scala_name; _ada_name = c.ada_name; Type = newChild; Optionality = newOptionality; asn1Comments = c.Comments |> Seq.toList; acnComments = cc.comments}), us1
                     | Some xx  ->
                         //let tdprm = {GetTypeDefinition_arg.asn1TypeKind = t.Kind; loc = t.Location; curPath = (curPath@[SEQ_CHILD c.Name.Value]); typeDefPath = (typeDefPath@[SEQ_CHILD c.Name.Value]); inheritInfo =None ; typeAssignmentInfo = None; rtlFnc = None}
-                        let newType, us1 = mapAcnParamTypeToAcnAcnInsertedType asn1 acn xx cc.childEncodingSpec.acnProperties  (curPath@[SEQ_CHILD (c.Name.Value, c.Optionality.IsSome)]) us
-                        AcnChild({AcnChild.Name = c.Name; id = ReferenceToType(curPath@[SEQ_CHILD (c.Name.Value, c.Optionality.IsSome)]); Type = newType; Comments = cc.comments |> Seq.toArray}), us1
+                        let newType, us1 = mapAcnParamTypeToAcnAcnInsertedType asn1 acn xx cc.childEncodingSpec.acnProperties  (curPath@[SEQ_CHILD (c.Name.Value, isOptional)]) us
+                        AcnChild({AcnChild.Name = c.Name; id = ReferenceToType(curPath@[SEQ_CHILD (c.Name.Value, isOptional)]); Type = newType; Comments = cc.comments |> Seq.toArray}), us1
 
             let mergedChildren, chus =
                 match acnType with
@@ -1549,7 +1557,7 @@ let mergeAsn1WithAcnAst (asn1: Asn1Ast.AstRoot) (acn: AcnGenericTypes.AcnAst, ac
         } |> Seq.toList
         |> foldMap (fun st (l, id, t, programUnit, proposedTypedefName) ->
             let ib = asn1.args.getBasicLang l
-            temporaryRegisterTypeDefinition st (l, ib) id programUnit proposedTypedefName
+            temporaryRegisterTypeDefinition st (l,ib) id programUnit proposedTypedefName
             //match t.Kind with
             //| Asn1Ast.ReferenceType rf  -> registerAnyTypeDefinition asn1 t st l id (FEI_NewSubTypeDefinition (ReferenceToType [MD rf.modName.Value; TA rf.tasName.Value]))
             //| _                         -> registerAnyTypeDefinition asn1 t st l id FEI_NewTypeDefinition

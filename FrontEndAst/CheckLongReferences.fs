@@ -377,12 +377,12 @@ let rec private checkType (r:AstRoot) (tasPositions:Map<ReferenceToType,int>) (p
                         | ValResultOK   expType -> ns
                         | ValResultError (l,errMsg) -> raise(SemanticError(l, errMsg))
                 | _                     -> ns
-            checkType r tasPositions (parents@[t]) (curentPath@[SEQ_CHILD (ac.Name.Value, ac.Optionality.IsSome)])  ac.Type ns1
+            checkType r tasPositions (parents@[t]) (curentPath@[SEQ_CHILD (ac.Name.Value, ac.Optionality.IsSome)]) ac.Type ns1
         ) curState
     | Choice ch ->
         let ns0 = checkChoicePresentWhen r tasPositions curState (parents) t ch visibleParameters
         let ns1 = choiceEnumReference r tasPositions ns0 (parents) t ch visibleParameters ch.acnProperties.enumDeterminant
-        ch.children|>
+        ch.children |>
         List.fold (fun ns ac -> checkType r tasPositions (parents@[t]) (curentPath@[SEQ_CHILD (ac.Name.Value, ac.Optionality.IsSome)])  ac.Type ns ) ns1
     | ReferenceType ref ->
         let dummy = ref.tasName

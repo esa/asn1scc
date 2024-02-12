@@ -5,6 +5,7 @@ open DAst
 open FsUtils
 open Language
 open System.IO
+open System
 
 (****** Ada Implementation ******)
 
@@ -191,6 +192,8 @@ type LangGeneric_a() =
         override this.getAsn1ChChildBackendName (ch:ChChildInfo) = ch._ada_name
         override this.getAsn1ChildBackendName0 (ch:Asn1AcnAst.Asn1Child) = ch._ada_name
         override this.getAsn1ChChildBackendName0 (ch:Asn1AcnAst.ChChildInfo) = ch._ada_name
+        override _.getChoiceChildPresentWhenName (ch:Asn1AcnAst.Choice ) (c:Asn1AcnAst.ChChildInfo) : string =
+            (ToC c.present_when_name) + "_PRESENT"
 
         override this.getRtlFiles  (encodings:Asn1Encoding list) (arrsTypeAssignments :string list) =
             let uperRtl = match encodings |> Seq.exists(fun e -> e = UPER || e = ACN) with true -> ["adaasn1rtl.encoding.uper"] | false -> []
@@ -202,6 +205,10 @@ type LangGeneric_a() =
             let encRtl = []//match r.args.encodings |> Seq.exists(fun e -> e = UPER || e = ACN || e = XER) with true -> [] | false -> ["adaasn1rtl.encoding"]
             encRtl@uperRtl@acnRtl@xerRtl |> List.distinct
 
+        override this.getSeqChildIsPresent (sel: Selection) (childName:string) =
+            // TODO FIX
+            //sprintf "%s%sexist.%s = 1" fpt.p (this.getAccess fpt) childName
+            raise (NotImplementedException())
 
         override this.getSeqChild (sel: Selection) (childName:string) (childTypeIsString: bool) (childIsOptional: bool) =
             sel.appendSelection childName (if childTypeIsString then FixArray else Value) childIsOptional
@@ -274,6 +281,7 @@ type LangGeneric_a() =
                         []
                     else
                         [SequenceOfIndex (id.SequenceOfLevel + 1, None)])
+                exprMethodCall        = fun _ _ -> ""
             }
         override this.acn =
             {
@@ -284,6 +292,8 @@ type LangGeneric_a() =
                         [
                             GenericLocalVariable {GenericLocalVariable.name = "tmpBs"; varType = "adaasn1rtl.encoding.BitStream"; arrSize = None; isStatic = false;initExp = Some (sprintf "adaasn1rtl.encoding.BitStream_init(%s)" sReqBytesForUperEncoding)}
                         ]
+                createLocalVariableEnum =
+                    (fun rtlIntType -> GenericLocalVariable {GenericLocalVariable.name = "intVal"; varType= rtlIntType; arrSize= None; isStatic = false; initExp=None })
                 choice_handle_always_absent_child = true
                 choice_requires_tmp_decoding = false
           }
@@ -291,6 +301,7 @@ type LangGeneric_a() =
             {
                 Initialize_parts.zeroIA5String_localVars    = fun ii -> [SequenceOfIndex (ii, None)]
                 choiceComponentTempInit                     = false
+                initMethSuffix                              = fun _ -> ""
             }
 
         override this.atc =
@@ -340,8 +351,5 @@ type LangGeneric_a() =
             | None -> []
             | Some _   -> ["src"; "asn1rtl"; "boards"]
 
-
-
         override _.CreateAuxFiles (r:AstRoot)  (di:DirInfo) (arrsSrcTstFiles : string list, arrsHdrTstFiles:string list) =
             ()
-

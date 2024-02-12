@@ -1256,34 +1256,11 @@ case <sChPath><sAcc>kind is
 end case;
 >>
 
-
-
 checkAccessPath(arrsCheckPaths, sUpdateStatement, v, sInitExpr) ::= <<
-if (<arrsCheckPaths; separator=" && ">) then
+if (<arrsCheckPaths; separator=" and then ">) then
     <sUpdateStatement>
 end if;
 >>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

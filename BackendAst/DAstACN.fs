@@ -1331,18 +1331,7 @@ let rec handleSingleUpdateDependency (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.Acn
                 chc.children |>
                 List.map(fun ch ->
                     let pres = ch.acnPresentWhenConditions |> Seq.find(fun x -> x.relativePath = relPath)
-                    let presentWhenName =
-                        match ST.lang with
-                        | Scala -> chc.typeDef[Scala].typeName + "." + ch.presentWhenName
-                        | _ -> ch.presentWhenName
-                    // Note: we always store the integer as a asn1SccSint or asn1SccUint, therefore
-                    // we do not need the exact integer class (i.e. bit width). However, some backends
-                    // such as Scala requires the signedness to be passed.
-                    let unsigned =
-                        match child.Type with
-                        | AcnInteger int -> int.isUnsigned
-                        | AcnNullType _ -> true
-                        | _ -> raise (BugErrorException "???")
+                    let presentWhenName = lm.lg.getChoiceChildPresentWhenName chc ch
                     match pres with
                     | PresenceInt   (_, intVal) -> choiceDependencyIntPres_child v presentWhenName (lm.lg.asn1SccIntValueToString intVal.Value unsigned)
                     | PresenceStr   (_, strVal) -> raise(SemanticError(strVal.Location, "Unexpected presence condition. Expected integer, found string")))
@@ -1367,14 +1356,11 @@ let rec handleSingleUpdateDependency (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.Acn
         let updateFunc (child: AcnChild) (vTarget : CallerScope) (pSrcRoot : CallerScope)  =
             let v = lm.lg.getValue vTarget.arg
             let choicePath, checkPath = getAccessFromScopeNodeList d.asn1Type false lm pSrcRoot
-            let arrsChildUpdates =
-                chc.children |>
-                List.map(fun ch ->
-                    let pres = ch.acnPresentWhenConditions |> Seq.find(fun x -> x.relativePath = relPath)
-                    let presentWhenName =
-                        match ST.lang with
-                        | Scala -> chc.typeDef[Scala].typeName + "." + ch.presentWhenName
-                        | _ -> ch.presentWhenName
+            let arrsChildUpdates = 
+                chc.children |> 
+                List.map(fun ch -> 
+                    let pres = ch.acnPresentWhenConditions |> Seq.find(fun x -> x.relativePath = relPath)                    
+                    let presentWhenName = lm.lg.getChoiceChildPresentWhenName chc ch
                     match pres with
                     | PresenceInt   (_, intVal) ->
                         raise(SemanticError(intVal.Location, "Unexpected presence condition. Expected string, found integer"))

@@ -306,7 +306,6 @@ let createEnumeratedFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:C
     let soSparkAnnotations = Some(sparkAnnotations lm (lm.lg.getLongTypedefName typeDefinition) codec)
     createUperFunction r lm codec t typeDefinition baseTypeUperFunc  isValidFunc  (fun e p -> Some (funcBody e p)) soSparkAnnotations [] us
 
-
 let C64K = BigInteger 0x10000
 let C48K = BigInteger 0xC000
 let C32K = BigInteger 0x8000
@@ -835,4 +834,3 @@ let createReferenceFunction (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (codec:C
                 Some {UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = []; bValIsUnReferenced=false; bBsIsUnReferenced=false; resultExpr=resultExpr}
             | None      -> None
         createUperFunction r lm codec t typeDefinition None  isValidFunc  funcBody soSparkAnnotations  [] us
-

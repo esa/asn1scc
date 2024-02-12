@@ -16,8 +16,13 @@ let getAccessFromScopeNodeList (ReferenceToType nodes)  (childTypeIsString: bool
         | TA _
         | PRM _
         | VA _              -> raise(BugErrorException "getAccessFromScopeNodeList")
-        | SEQ_CHILD (chName, chOpt)  -> [], {pVal with arg = lm.lg.getSeqChild pVal.arg (ToC chName) childTypeIsString chOpt}
-        | CH_CHILD (chName,pre_name, chParent)  ->
+        | SEQ_CHILD (chName, chOpt)  -> 
+            let isPresent = 
+                match chOpt with
+                | true ->  [lm.lg.getSeqChildIsPresent pVal.arg chName] //[sprintf "%s%sexist.%s" pVal.arg.p (lm.lg.getAccess pVal.arg) chName]
+                | false -> []
+            isPresent, {pVal with arg = lm.lg.getSeqChild pVal.arg (ToC chName) childTypeIsString chOpt}
+        | CH_CHILD (chName, pre_name, chParent)  -> 
             let chChildIsPresent =
                 match ST.lang with
                 | Scala -> sprintf "%s.isInstanceOf[%s.%s_PRESENT]" (pVal.arg.joined lm.lg) chParent pre_name
@@ -81,6 +86,7 @@ let hasInitMethSuffix (initMethName: string) (suffix: string): bool =
 let isArrayInitialiser(initMethName: string): bool =
     initMethName.Contains("Array.fill(")
 
+//TODO REMOVE IF SOLVED DIFFERENT
 let scalaInitMethSuffix (k: Asn1TypeKind) =
     match ST.lang with
     | Scala ->
@@ -109,13 +115,13 @@ let isSequenceForJVMelseFalse (k: Asn1TypeKind): bool =
         | _ -> false
     | _ -> false
 
-let isOctetStringForJVMelseFalse (k: Asn1TypeKind): bool =
-    match ST.lang with
-    | Scala ->
-        match k with
-        | OctetString s -> true
-        | _ -> false
-    | _ -> false
+//let isOctetStringForJVMelseFalse (k: Asn1TypeKind): bool =
+//    match ST.lang with
+//    | Scala ->
+//        match k with
+//        | OctetString s -> true
+//        | _ -> false
+//    | _ -> false
 
 type LocalVariable with
     member this.VarName =
@@ -128,7 +134,6 @@ type LocalVariable with
         | AcnInsertedChild(name,_,_)      -> name
         | BooleanLocalVariable(name,_)    -> name
         | GenericLocalVariable lv         -> lv.name
-
 
 type TypeDefinitionOrReference with
 
@@ -144,10 +149,6 @@ type TypeDefinitionOrReference with
                 | false     -> ref.typedefName
             | None    -> ref.typedefName
 
-    member this.longTypedefName  (l:ProgrammingLanguage) =
-        let b = (l = Ada)
-        this.longTypedefName2 b
-
     member this.getAsn1Name (typePrefix : string) =
         let typedefName =
             match this with
@@ -157,8 +158,6 @@ type TypeDefinitionOrReference with
         match idx < 0 with
         | true      -> typedefName.Replace("_","-")
         | false     -> typedefName.Remove(idx, typePrefix.Length).Replace("_","-")
-
-
 
 type Integer with
     member this.Cons     = this.baseInfo.cons
@@ -214,23 +213,6 @@ type Sequence with
     member this.Asn1Children =
         this.children |> List.choose(fun c -> match c with Asn1Child c -> Some c | AcnChild _ -> None)
 
-type Asn1Child with
-    member this.getBackendName l =
-        match l with
-        | C         -> this._c_name
-        | Scala     -> this._scala_name
-        | Ada       -> this._ada_name
-
-
-type ChChildInfo with
-    member this.getBackendName l =
-        match l with
-        | C         -> this._c_name
-        | Scala     -> this._scala_name
-        | Ada       -> this._ada_name
-
-
-
 type Choice with
     member this.Cons     = this.baseInfo.cons
     member this.WithCons = this.baseInfo.withcons
@@ -255,8 +237,6 @@ type ChChildInfo with
             match defOrRef with
             | Some (ReferenceToExistingDefinition r) when r.programUnit.IsSome -> r.programUnit.Value + "." + ((ToC this._present_when_name_private) + "_PRESENT")
             | _       -> (ToC this._present_when_name_private) + "_PRESENT"
-
-
 
 
 type Asn1AcnAst.NamedItem      with
@@ -285,10 +265,6 @@ type Asn1AcnAst.Asn1Type with
         | Asn1AcnAst.ObjectIdentifier _ ->TC_ReferenceToVariable(TC_COMPLEX, "val" + suf)
         | Asn1AcnAst.TimeType _         ->TC_ReferenceToVariable(TC_COMPLEX, "val" + suf)
         | Asn1AcnAst.ReferenceType r -> r.resolvedType.getParameterExpr suf c
-
-
-
-
 
 
 type Asn1Type

@@ -5,6 +5,7 @@ open DAst
 open FsUtils
 open Language
 open System.IO
+open System
 
 let getAccess_c (sel: Selection) =
     match sel.selectionType with
@@ -152,6 +153,8 @@ type LangGeneric_c() =
         override this.getAsn1ChChildBackendName (ch:ChChildInfo) = ch._c_name
         override this.getAsn1ChildBackendName0 (ch:Asn1AcnAst.Asn1Child) = ch._c_name
         override this.getAsn1ChChildBackendName0 (ch:Asn1AcnAst.ChChildInfo) = ch._c_name
+        override _.getChoiceChildPresentWhenName (ch:Asn1AcnAst.Choice ) (c:Asn1AcnAst.ChChildInfo) : string =
+            (ToC c.present_when_name) + "_PRESENT"
 
         override this.getRtlFiles  (encodings:Asn1Encoding list) (_ :string list) =
             let encRtl = match encodings |> Seq.exists(fun e -> e = UPER || e = ACN ) with true -> ["asn1crt_encoding"] | false -> []
@@ -194,6 +197,11 @@ type LangGeneric_c() =
         override this.allowsSrcFilesWithNoFunctions = true
         override this.requiresValueAssignmentsInSrcFile = true
         override this.supportsStaticVerification = false
+
+        override this.getSeqChildIsPresent (sel: Selection) (childName:string) =
+            // TODO FIX
+            //sprintf "%s%sexist.%s" fpt.p (this.getAccess fpt) childName
+            raise (NotImplementedException())
 
         override this.getSeqChild (sel: Selection) (childName:string) (childTypeIsString: bool) (childIsOptional: bool) =
             sel.appendSelection childName (if childTypeIsString then FixArray else Value) childIsOptional
@@ -267,8 +275,8 @@ type LangGeneric_c() =
                 requires_presenceBit = true
                 catd                 = false
                 //createBitStringFunction = createBitStringFunction_funcBody_c
-                seqof_lv              =
-                  (fun id minSize maxSize -> [SequenceOfIndex (id.SequenceOfLevel + 1, None)])
+                seqof_lv = (fun id minSize maxSize -> [SequenceOfIndex (id.SequenceOfLevel + 1, None)])
+                exprMethodCall        = fun _ _ -> ""
             }
         override this.acn =
             {
@@ -281,12 +289,15 @@ type LangGeneric_c() =
                             GenericLocalVariable {GenericLocalVariable.name = "bitStrm"; varType = "BitStream"; arrSize = None; isStatic = false; initExp = None}
                         ]
                 choice_handle_always_absent_child = false
+                createLocalVariableEnum =
+                    (fun rtlIntType -> GenericLocalVariable {GenericLocalVariable.name = "intVal"; varType= rtlIntType; arrSize= None; isStatic = false; initExp=None })
                 choice_requires_tmp_decoding = false
             }
         override this.init =
             {
                 Initialize_parts.zeroIA5String_localVars    = fun _ -> []
                 choiceComponentTempInit                     = false
+                initMethSuffix                              = fun _ -> ""
             }
         override this.atc =
             {

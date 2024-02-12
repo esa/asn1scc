@@ -1,0 +1,17 @@
+TEST-CASE DEFINITIONS ::= BEGIN
+
+MyChoiceEnum [size 32, encoding pos-int, endianness big, encode-values]
+
+MyTopMostSeq []
+{
+    myDeterminant MyChoiceEnum [],
+    myBool1 BOOLEAN [],
+    myBool2 BOOLEAN [],
+    myChoice1 <myDeterminant> [present-when myBool1],
+    myChoice2 <myDeterminant> [present-when myBool2]
+}
+
+MyChoice <MyChoiceEnum: theDeterminant> [determinant theDeterminant]
+
+END
+
