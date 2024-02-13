@@ -81,7 +81,7 @@ assignString(p, sValue) ::= "memcpy(<p>, <sValue>, sizeof(<sValue>));"
 
 
 initIA5String(sPtr, sValue, bIsOptional) ::= "strcpy(<sPtr>,<sValue>);"
-initEnumerated(sVal, sValue) ::= "<sVal> = <sValue>;"
+initEnumerated(sVal, sValue, bIsOptional) ::= << ::= "<sVal> = <sValue>;"
 initNull(sVal, bIsOptional) ::= "<sVal> = 0;"
 
 initTestCaseIA5String(p, sAcc, nSize, nMaxSizePlusOne, i, td/*:FE_StringTypeDefinition*/, bAlpha, arrnAlphabetAsciiCodes, nAlphabetLength, bZero) ::= <<

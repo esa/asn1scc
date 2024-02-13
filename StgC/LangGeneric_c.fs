@@ -129,7 +129,7 @@ type LangGeneric_c() =
         override this.getArrayItem (sel: Selection) (idx:string) (childTypeIsString: bool) =
             (sel.appendSelection "arr" FixArray false).append (ArrayAccess (idx, if childTypeIsString then FixArray else Value))
 
-        override this.getNamedItemBackendName (defOrRef:TypeDefinitionOrReference option) (nm:Asn1AcnAst.NamedItem) (isOptional: bool) =
+        override this.getNamedItemBackendName (defOrRef:TypeDefinitionOrReference option) (nm:Asn1AcnAst.NamedItem) =
             ToC nm.c_name
         override this.getNamedItemBackendName2 (_:string) (_:string) (nm:Asn1AcnAst.NamedItem) =
             ToC nm.c_name

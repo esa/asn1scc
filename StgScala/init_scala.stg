@@ -97,8 +97,12 @@ initIA5String(sPtr, sValue, bIsOptional) ::= <<
 <endif>
 >>
 
-initEnumerated(sVal, sValue) ::= <<
+initEnumerated(sVal, sValue, bIsOptional) ::= <<
+<if(bIsOptional)>
+<sVal> = SomeMut(<sValue>)
+<else>
 <sVal> = <sValue>
+<endif>
 >>
 
 initNull(sVal, bIsOptional) ::= <<

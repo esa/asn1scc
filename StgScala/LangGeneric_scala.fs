@@ -181,18 +181,13 @@ type LangGeneric_scala() =
         override this.getArrayItem (sel: Selection) (idx:string) (childTypeIsString: bool) =
             (sel.appendSelection "arr" FixArray false).append (ArrayAccess (idx, if childTypeIsString then FixArray else Value))
 
-        override this.getNamedItemBackendName (defOrRef: TypeDefinitionOrReference option) (nm: Asn1AcnAst.NamedItem) (isOptional: bool) =
+        override this.getNamedItemBackendName (defOrRef: TypeDefinitionOrReference option) (nm: Asn1AcnAst.NamedItem) =
             let itemname =
                 match defOrRef with
                 | Some (TypeDefinition td) -> td.typedefName + "." + ToC nm.scala_name
                 | Some (ReferenceToExistingDefinition rted) -> rted.typedefName + "." + ToC nm.scala_name
                 | _ -> ToC nm.scala_name
-            let itemNameDecorated =
-                match isOptional with
-                | true -> sprintf "SomeMut(%s)" itemname
-                | false -> itemname
-            
-            itemNameDecorated
+            itemname
 
         override this.getNamedItemBackendName0 (nm:Asn1Ast.NamedItem)  = nm.scala_name
         override this.setNamedItemBackendName0 (nm:Asn1Ast.NamedItem) (newValue:string) : Asn1Ast.NamedItem =
