@@ -213,7 +213,7 @@ let createEnumeratedFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1A
         match v with
         | EnumValue i    ->
             let itm = o.items |> Seq.find(fun x -> x.Name.Value = i)
-            lm.vars.PrintEnumValue (lm.lg.getNamedItemBackendName (Some defOrRef)  itm)
+            lm.vars.PrintEnumValue (lm.lg.getNamedItemBackendName (Some defOrRef) itm false)
         | RefValue ((md,vs),ov)   -> vs
         | _                 -> raise(BugErrorException "unexpected value")
     printValue

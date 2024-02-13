@@ -230,7 +230,7 @@ let createEnumeratedFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:C
         let contentSize = getMaxSizeInBytesForXER_Enumerated (o.items |> List.map (fun itm -> itm.Name.Value))
         let totalSize = getMaxSizeInBytesForXER xmlTag contentSize
         let arrItems =
-            o.items |> List.mapi(fun i it -> Enumerated_item pp xmlTag.p nLevel (lm.lg.getNamedItemBackendName (Some typeDefinition) it) it.Name.Value errCode.errCodeName (i=0) codec)
+            o.items |> List.mapi(fun i it -> Enumerated_item pp xmlTag.p nLevel (lm.lg.getNamedItemBackendName (Some typeDefinition) it p.arg.isOptional) it.Name.Value errCode.errCodeName (i=0) codec)
         let bodyStm = Enumerated pp xmlTag.p nLevel arrItems (checkExp isValidFunc p) errCode.errCodeName codec
         Some {XERFuncBodyResult.funcBody = bodyStm; errCodes= [errCode]; localVariables=[];encodingSizeInBytes=totalSize}
     let soSparkAnnotations = None

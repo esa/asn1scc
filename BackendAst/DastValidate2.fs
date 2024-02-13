@@ -330,7 +330,7 @@ let timeConstraint2ValidationCodeBlock (l:LanguageMacros) (td) (c:TimeConstraint
 let enumeratedConstraint2ValidationCodeBlock  (l:LanguageMacros) (o:Asn1AcnAst.Enumerated) (typeDefinition:TypeDefinitionOrReference) (c:EnumConstraint) st =
     let printNamedItem  (v:string) =
         let itm = o.items |> Seq.find (fun x -> x.Name.Value = v)
-        let ret =  l.lg.getNamedItemBackendName   (Some typeDefinition ) itm
+        let ret = l.lg.getNamedItemBackendName (Some typeDefinition ) itm false
         ret
     foldGenericCon l  printNamedItem c st
 
