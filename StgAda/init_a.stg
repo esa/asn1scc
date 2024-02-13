@@ -28,7 +28,7 @@ initReal(p, dValue, bIsOptional) ::= "<p> := <dValue>;"
 initBoolean(p, bValue, bIsOptional) ::= "<p> := <if(bValue)>True<else>FALSE<endif>;"
 
 initIA5String(sPtr, sValue, bIsOptional) ::= "<sPtr> := <sValue>;"
-initEnumerated(sVal, sValue, bIsOptional) ::= << ::= "<sVal> := <sValue>;"
+initEnumerated(sVal, sValue, bIsOptional) ::= "<sVal> := <sValue>;"
 initNull(sVal, bIsOptional) ::= "<sVal> := 0;"
 
 
