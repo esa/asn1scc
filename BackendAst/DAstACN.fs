@@ -1332,6 +1332,11 @@ let rec handleSingleUpdateDependency (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.Acn
                 List.map(fun ch ->
                     let pres = ch.acnPresentWhenConditions |> Seq.find(fun x -> x.relativePath = relPath)
                     let presentWhenName = lm.lg.getChoiceChildPresentWhenName chc ch
+                    let unsigned =
+                        match child.Type with
+                        | AcnInteger int -> int.isUnsigned
+                        | AcnNullType _ -> true
+                        | _ -> raise (BugErrorException "???")
                     match pres with
                     | PresenceInt   (_, intVal) -> choiceDependencyIntPres_child v presentWhenName (lm.lg.asn1SccIntValueToString intVal.Value unsigned)
                     | PresenceStr   (_, strVal) -> raise(SemanticError(strVal.Location, "Unexpected presence condition. Expected integer, found string")))
@@ -1845,7 +1850,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                     if lm.lg.usesWrappedOptional || childrenExistVar.IsEmpty then []
                     else
                         let existTd = (lm.lg.getSequenceTypeDefinition o.typeDef).exist
-                        [lm.init.initSequenceExpr existTd  existTd childrenExistVar []]
+                        [lm.init.initSequenceExpr existTd childrenExistVar []]
                 let resultExpr = p.arg.asIdentifier
                 Some resultExpr, [lm.uper.sequence_build resultExpr (typeDefinition.longTypedefName2 lm.lg.hasModules) (existSeq@childrenResultExpr)]
             | _ -> None, []
@@ -1874,8 +1879,8 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFi
                 | Asn1AcnAst.AcnReferenceToEnumerated _-> "presence"
                 | Asn1AcnAst.AcnReferenceToIA5String  _-> "presence"
             let errMessage = sprintf "Unused ACN inserted field.
-All fields inserted at ACN level (except NULL fields) must act as decoding determinants of other types.
-The field '%s' must either be removed or used as %s determinant of another ASN.1 type." errChild.Name.Value determinantUsage
+                All fields inserted at ACN level (except NULL fields) must act as decoding determinants of other types.
+                The field '%s' must either be removed or used as %s determinant of another ASN.1 type." errChild.Name.Value determinantUsage
             raise(SemanticError(errChild.Name.Location, errMessage))
             //let loc = errChild.Name.Location
             //Console.Out.WriteLine (FrontEntMain.formatSemanticWarning loc errMessage)

@@ -81,8 +81,8 @@ assignString(p, sValue) ::= "memcpy(<p>, <sValue>, sizeof(<sValue>));"
 
 
 initIA5String(sPtr, sValue, bIsOptional) ::= "strcpy(<sPtr>,<sValue>);"
-initEnumerated(sVal, sValue, sEnum, bIsOptional) ::= "<sVal> = <sValue>;"
-initNull(sVal, bIsOptional)    ::= "<sVal> = 0;"
+initEnumerated(sVal, sValue) ::= "<sVal> = <sValue>;"
+initNull(sVal, bIsOptional) ::= "<sVal> = 0;"
 
 initTestCaseIA5String(p, sAcc, nSize, nMaxSizePlusOne, i, td/*:FE_StringTypeDefinition*/, bAlpha, arrnAlphabetAsciiCodes, nAlphabetLength, bZero) ::= <<
 <if(bZero)>
@@ -300,7 +300,7 @@ init_Asn1Date_LocalTimeWithTimeZoneExpr() ::= <<
 
 initSequenceChildExpr(sChildName, sChildExpr, bIsOptional, bIsAbsent) ::= ".<sChildName> = <sChildExpr>"
 initSequenceOptionalChildExpr(sChildName, nPresenceBit) ::= ".<sChildName> = <nPresenceBit>"
-initSequenceExpr(sTypeDefName, sTypeDefNameExist, arrsChildren, arrsOptionalChildren) ::= <<
+initSequenceExpr(sTypeDefName, arrsChildren, arrsOptionalChildren) ::= <<
 {<arrsChildren; separator=", "><if (arrsOptionalChildren)>, .exist = {<arrsOptionalChildren; separator=", ">}<endif>}
 >>
 

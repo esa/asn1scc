@@ -96,13 +96,11 @@ initIA5String(sPtr, sValue, bIsOptional) ::= <<
 <sPtr> = <sValue>
 <endif>
 >>
-initEnumerated(sVal, sValue, sEnum, bIsOptional) ::= <<
-<if(bIsOptional)>
-<sVal> = SomeMut(<sEnum>.<sValue>)
-<else>
-<sVal> = <sEnum>.<sValue>
-<endif>
+
+initEnumerated(sVal, sValue) ::= <<
+<sVal> = <sValue>
 >>
+
 initNull(sVal, bIsOptional) ::= <<
 <if(bIsOptional)>
 <sVal> = SomeMut(0)
@@ -333,7 +331,7 @@ initSequenceChildExpr(sChildName, sChildExpr, bIsOptional, bIsAbsent) ::= <<
 <endif>
 >>
 initSequenceOptionalChildExpr(sChildName, nPresenceBit) ::= "<sChildName> = if <nPresenceBit> == 0 then false else true"
-initSequenceExpr(sTypeDefName, sTypeDefNameExist, arrsChildren, arrsOptionalChildren) ::= <<
+initSequenceExpr(sTypeDefName, arrsChildren, arrsOptionalChildren) ::= <<
 <sTypeDefName>(<arrsChildren; separator=", ">)
 >>
 

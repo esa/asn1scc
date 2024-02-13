@@ -31,7 +31,7 @@ type Acn_parts = {
 type Initialize_parts = {
     zeroIA5String_localVars             : int -> LocalVariable list
     choiceComponentTempInit             : bool
-    initMethSuffix                      : Asn1TypeKind -> string
+    initMethSuffix                      : Asn1TypeKind -> string // TODO REMOVE?
 }
 
 type Atc_parts = {

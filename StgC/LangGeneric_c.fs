@@ -199,14 +199,12 @@ type LangGeneric_c() =
         override this.supportsStaticVerification = false
 
         override this.getSeqChildIsPresent (sel: Selection) (childName:string) =
-            // TODO FIX
-            //sprintf "%s%sexist.%s" fpt.p (this.getAccess fpt) childName
-            raise (NotImplementedException())
+            sprintf "%s%sexist.%s" sel.ToString() (this.getAccess sel) childName
 
         override this.getSeqChild (sel: Selection) (childName:string) (childTypeIsString: bool) (childIsOptional: bool) =
             sel.appendSelection childName (if childTypeIsString then FixArray else Value) childIsOptional
 
-        override this.getChChild (sel: Selection) (childName:string) (childTypeIsString: bool) : Selection =
+        override this.getChChild (sel: Selection) (childName:string) (childTypeIsString: bool): Selection =
             (sel.appendSelection "u" Value false).appendSelection childName (if childTypeIsString then FixArray else Value) false
 
         override this.choiceIDForNone (typeIdsSet:Map<string,int>) (id:ReferenceToType) =

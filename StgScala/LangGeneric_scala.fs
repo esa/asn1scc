@@ -50,7 +50,7 @@ let isOctetStringForJVMelseFalse (k: Asn1TypeKind): bool =
         | _ -> false
     | _ -> false
 
-let uperExprMethodCall k sChildInitExpr =
+let uperExprMethodCall (k: Asn1TypeKind) (sChildInitExpr: string) =
     let isSequence = isSequenceForJVMelseFalse k 
     let isEnum = isEnumForJVMelseFalse k
     let isOctetString = isOctetStringForJVMelseFalse k
@@ -181,7 +181,9 @@ type LangGeneric_scala() =
         override this.getArrayItem (sel: Selection) (idx:string) (childTypeIsString: bool) =
             (sel.appendSelection "arr" FixArray false).append (ArrayAccess (idx, if childTypeIsString then FixArray else Value))
 
-        override this.getNamedItemBackendName (defOrRef:TypeDefinitionOrReference option) (nm:Asn1AcnAst.NamedItem) =
+        override this.getNamedItemBackendName (defOrRef: TypeDefinitionOrReference option) (nm: Asn1AcnAst.NamedItem) =
+            // TODO get SomeMut(<sValue>) if this in an optional field. 
+            
             let itemname =
                 match defOrRef with
                 | Some (TypeDefinition td) -> td.typedefName + "." + ToC nm.scala_name
@@ -258,7 +260,7 @@ type LangGeneric_scala() =
         override this.requiresValueAssignmentsInSrcFile = true
         override this.supportsStaticVerification = false
 
-        override this.getSeqChildIsPresent (sel: Selection) (childName:string) =
+        override this.getSeqChildIsPresent (sel: Selection) (childName: string) =
             //sprintf "%s%sexist.%s = 1" fpt.p (this.getAccess fpt) childName
             raise (NotImplementedException())
 

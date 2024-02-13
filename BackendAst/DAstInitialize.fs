@@ -170,7 +170,10 @@ let getFuncName2 (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros)  (typeDefinition:Typ
     getFuncNameGeneric typeDefinition (lm.init.methodNameSuffix())
 
 
-let createInitFunctionCommon (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (o:Asn1AcnAst.Asn1Type) (typeDefinition:TypeDefinitionOrReference) initByAsn1Value (initTasFunction:CallerScope  -> InitFunctionResult) automaticTestCases (initExpression:string) (initExpressionGlobal:string) (nonEmbeddedChildrenFuncs:InitFunction list) (user_aux_functions:(string*string) list) (funcDefAnnots: string list) =
+let createInitFunctionCommon (r: Asn1AcnAst.AstRoot) (lm: LanguageMacros) (o: Asn1AcnAst.Asn1Type) 
+    (typeDefinition:TypeDefinitionOrReference) initByAsn1Value (initTasFunction: CallerScope -> InitFunctionResult) 
+        automaticTestCases (initExpression: string) (initExpressionGlobal: string) (nonEmbeddedChildrenFuncs: InitFunction list) (user_aux_functions: (string*string) list) (funcDefAnnots: string list) =
+
     let funcName            = getFuncName2 r lm typeDefinition
     let globalName = getFuncNameGeneric typeDefinition "_constant"
     let p = lm.lg.getParamType o CommonTypes.Codec.Decode
@@ -650,10 +653,7 @@ let createEnumeratedInitFunc (r: Asn1AcnAst.AstRoot) (lm: LanguageMacros) (t: As
 
 let getChildExpression (lm:LanguageMacros) (childType:Asn1Type) =
     match childType.initFunction.initFunction with
-    | Some cn when childType.isComplexType ->
-        match ST.lang with
-        | ProgrammingLanguage.Scala -> cn.funcName + (scalaInitMethSuffix childType.Kind)
-        | _ -> cn.funcName // TODO: Quid C ????
+    | Some cn when childType.isComplexType -> cn.funcName + (lm.lg.init.initMethSuffix childType.Kind)
     | _ -> childType.initFunction.initExpression
 
 let getChildExpressionGlobal (lm:LanguageMacros) (childType:Asn1Type) =
@@ -963,8 +963,7 @@ let createSequenceInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1Acn
             List.map (fun c ->
                 let childName = lm.lg.getAsn1ChildBackendName c
                 let childExp = getChildExpr lm c.Type
-                let exprMethodCall = lm.lg.init.initMethSuffix c.Type.Kind
-                lm.init.initSequenceChildExpr childName (childExp + exprMethodCall))
+                lm.init.initSequenceChildExpr childName childExp c.Optionality.IsSome (c.Optionality |> Option.exists (fun opt -> opt = Asn1AcnAst.Asn1Optionality.AlwaysAbsent)))
 
         let arrsOptionalChildren =
             children |>
@@ -978,7 +977,7 @@ let createSequenceInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1Acn
         let tdName = (typeDefinition.longTypedefName2 lm.lg.hasModules)
         match nonEmptyChildren with
         | [] -> lm.lg.getEmptySequenceInitExpression tdName
-        | _  -> lm.init.initSequenceExpr tdName (lm.lg.getSequenceTypeDefinition o.typeDef).exist nonEmptyChildren arrsOptionalChildren
+        | _  -> lm.init.initSequenceExpr tdName nonEmptyChildren arrsOptionalChildren
 
     let init = constantInitExpression getChildExpression
     let initGlob = constantInitExpression getChildExpressionGlobal
@@ -1158,11 +1157,7 @@ let createReferenceType (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1AcnAst
                     match t.id.ModName = o.modName.Value with
                     | true  -> funcName, globalName
                     | false -> moduleName + "." + funcName, moduleName + "." + globalName
-            let constantInitExpression =
-                match ST.lang with
-                | ProgrammingLanguage.Scala ->
-                    baseFncName + (scalaInitMethSuffix baseType.Kind)
-                | _ -> baseFncName
+            let constantInitExpression = baseFncName + lm.lg.init.initMethSuffix baseType.Kind
             let constantInitExpressionGlobal = baseGlobalName
             let initTasFunction (p:CallerScope) =
                 let funcBody = initChildWithInitFunc (lm.lg.getPointer p.arg) baseFncName
