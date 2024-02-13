@@ -68,13 +68,13 @@ type LangBasic_ada() =
         override this.declare_IntegerNoRTL = "adaasn1rtl", "Asn1Int", "INTEGER"
         override this.declare_PosIntegerNoRTL = "adaasn1rtl", "Asn1UInt" , "INTEGER"
         override this.getRealRtlTypeName   = "adaasn1rtl", "Asn1Real", "REAL"
-        override this.getObjectIdentifierRtlTypeName  relativeId = 
+        override this.getObjectIdentifierRtlTypeName  relativeId =
             let asn1Name = if relativeId then "RELATIVE-OID" else "OBJECT IDENTIFIER"
             "adaasn1rtl", "Asn1ObjectIdentifier", asn1Name
 
-        override this.getTimeRtlTypeName  timeClass = 
+        override this.getTimeRtlTypeName  timeClass =
             let asn1Name = "TIME"
-            match timeClass with 
+            match timeClass with
             | Asn1LocalTime                    _ -> "adaasn1rtl", "Asn1LocalTime", asn1Name
             | Asn1UtcTime                      _ -> "adaasn1rtl", "Asn1UtcTime", asn1Name
             | Asn1LocalTimeWithTimeZone        _ -> "adaasn1rtl", "Asn1TimeWithTimeZone", asn1Name
@@ -206,9 +206,7 @@ type LangGeneric_a() =
             encRtl@uperRtl@acnRtl@xerRtl |> List.distinct
 
         override this.getSeqChildIsPresent (sel: Selection) (childName:string) =
-            // TODO FIX
-            //sprintf "%s%sexist.%s = 1" fpt.p (this.getAccess fpt) childName
-            raise (NotImplementedException())
+            sprintf "%s%sexist.%s = 1" (sel.joined this) (this.getAccess sel) childName
 
         override this.getSeqChild (sel: Selection) (childName:string) (childTypeIsString: bool) (childIsOptional: bool) =
             sel.appendSelection childName (if childTypeIsString then FixArray else Value) childIsOptional

@@ -47,12 +47,12 @@ type LangBasic_c() =
         override this.declare_IntegerNoRTL = "", "asn1SccSint", "INTEGER"
         override this.declare_PosIntegerNoRTL = "", "asn1SccUint" , "INTEGER"
         override this.getRealRtlTypeName   = "", "asn1Real", "REAL"
-        override this.getObjectIdentifierRtlTypeName  relativeId = 
+        override this.getObjectIdentifierRtlTypeName  relativeId =
             let asn1Name = if relativeId then "RELATIVE-OID" else "OBJECT IDENTIFIER"
             "", "Asn1ObjectIdentifier", asn1Name
-        override this.getTimeRtlTypeName  timeClass = 
+        override this.getTimeRtlTypeName  timeClass =
             let asn1Name = "TIME"
-            match timeClass with 
+            match timeClass with
             | Asn1LocalTime                    _ -> "", "Asn1LocalTime", asn1Name
             | Asn1UtcTime                      _ -> "", "Asn1UtcTime", asn1Name
             | Asn1LocalTimeWithTimeZone        _ -> "", "Asn1TimeWithTimeZone", asn1Name
@@ -199,7 +199,7 @@ type LangGeneric_c() =
         override this.supportsStaticVerification = false
 
         override this.getSeqChildIsPresent (sel: Selection) (childName:string) =
-            sprintf "%s%sexist.%s" sel.ToString() (this.getAccess sel) childName
+            sprintf "%s%sexist.%s" (sel.joined this) (this.getAccess sel) childName
 
         override this.getSeqChild (sel: Selection) (childName:string) (childTypeIsString: bool) (childIsOptional: bool) =
             sel.appendSelection childName (if childTypeIsString then FixArray else Value) childIsOptional

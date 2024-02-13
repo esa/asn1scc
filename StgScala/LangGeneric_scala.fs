@@ -8,17 +8,17 @@ open System.IO
 open System
 open Asn1AcnAstUtilFunctions
 
-let rec resolveReferenceType(t: Asn1TypeKind): Asn1TypeKind = 
+let rec resolveReferenceType(t: Asn1TypeKind): Asn1TypeKind =
     match t with
     | ReferenceType rt -> resolveReferenceType rt.resolvedType.Kind
     | _ -> t
 
-let isJVMPrimitive (t: Asn1TypeKind) = 
+let isJVMPrimitive (t: Asn1TypeKind) =
     match resolveReferenceType t with
     | Integer _ | Real _ | NullType _ | Boolean _ -> true
     | _ -> false
 
-let initMethSuffix k = 
+let initMethSuffix k =
     match isJVMPrimitive k with
     | false ->
         match k with
@@ -33,8 +33,8 @@ let isEnumForJVMelseFalse (k: Asn1TypeKind): bool =
         | Enumerated e -> true
         | _ -> false
     | _ -> false
-    
-let isSequenceForJVMelseFalse (k: Asn1TypeKind): bool = 
+
+let isSequenceForJVMelseFalse (k: Asn1TypeKind): bool =
     match ST.lang with
     | Scala ->
         match k with
@@ -42,7 +42,7 @@ let isSequenceForJVMelseFalse (k: Asn1TypeKind): bool =
         | _ -> false
     | _ -> false
 
-let isOctetStringForJVMelseFalse (k: Asn1TypeKind): bool = 
+let isOctetStringForJVMelseFalse (k: Asn1TypeKind): bool =
     match ST.lang with
     | Scala ->
         match k with
@@ -51,10 +51,10 @@ let isOctetStringForJVMelseFalse (k: Asn1TypeKind): bool =
     | _ -> false
 
 let uperExprMethodCall (k: Asn1TypeKind) (sChildInitExpr: string) =
-    let isSequence = isSequenceForJVMelseFalse k 
+    let isSequence = isSequenceForJVMelseFalse k
     let isEnum = isEnumForJVMelseFalse k
     let isOctetString = isOctetStringForJVMelseFalse k
-    
+
     match isSequence || sChildInitExpr.Equals("null") || isEnum || isOctetString with
     | true -> ""
     | false -> initMethSuffix k
@@ -103,12 +103,12 @@ type LangBasic_scala() =
         override this.declare_IntegerNoRTL = "", "Int", "INTEGER"
         override this.declare_PosIntegerNoRTL = "", " asn1SccUint" , "INTEGER"
         override this.getRealRtlTypeName   = "", "asn1Real", "REAL"
-        override this.getObjectIdentifierRtlTypeName  relativeId = 
+        override this.getObjectIdentifierRtlTypeName  relativeId =
             let asn1Name = if relativeId then "RELATIVE-OID" else "OBJECT IDENTIFIER"
             "", "Asn1ObjectIdentifier", asn1Name
-        override this.getTimeRtlTypeName timeClass = 
+        override this.getTimeRtlTypeName timeClass =
             let asn1Name = "TIME"
-            match timeClass with 
+            match timeClass with
             | Asn1LocalTime                    _ -> "", "Asn1LocalTime", asn1Name
             | Asn1UtcTime                      _ -> "", "Asn1UtcTime", asn1Name
             | Asn1LocalTimeWithTimeZone        _ -> "", "Asn1TimeWithTimeZone", asn1Name
@@ -129,9 +129,9 @@ type LangGeneric_scala() =
             | Asn1AcnAst.ASN1SCC_Int16    _ ->  sprintf "%s" (i.ToString())
             | Asn1AcnAst.ASN1SCC_Int32    _ ->  sprintf "%s" (i.ToString())
             | Asn1AcnAst.ASN1SCC_Int64    _ ->  sprintf "%sL" (i.ToString())
-            | Asn1AcnAst.ASN1SCC_Int _ when 
-                i >= BigInteger System.Int32.MinValue && 
-                i <= BigInteger System.Int32.MaxValue -> 
+            | Asn1AcnAst.ASN1SCC_Int _ when
+                i >= BigInteger System.Int32.MinValue &&
+                i <= BigInteger System.Int32.MaxValue ->
                     sprintf "%s" (i.ToString())
             | Asn1AcnAst.ASN1SCC_Int      _ ->  sprintf "%sL" (i.ToString())
             | Asn1AcnAst.ASN1SCC_UInt8    _ ->  sprintf "UByte.fromRaw(%s)" (i.ToString())
@@ -182,8 +182,8 @@ type LangGeneric_scala() =
             (sel.appendSelection "arr" FixArray false).append (ArrayAccess (idx, if childTypeIsString then FixArray else Value))
 
         override this.getNamedItemBackendName (defOrRef: TypeDefinitionOrReference option) (nm: Asn1AcnAst.NamedItem) =
-            // TODO get SomeMut(<sValue>) if this in an optional field. 
-            
+            // TODO get SomeMut(<sValue>) if this in an optional field.
+
             let itemname =
                 match defOrRef with
                 | Some (TypeDefinition td) -> td.typedefName + "." + ToC nm.scala_name
@@ -261,8 +261,7 @@ type LangGeneric_scala() =
         override this.supportsStaticVerification = false
 
         override this.getSeqChildIsPresent (sel: Selection) (childName: string) =
-            //sprintf "%s%sexist.%s = 1" fpt.p (this.getAccess fpt) childName
-            raise (NotImplementedException())
+            sprintf "%s%s%sisDefined" (sel.joined this) (this.getAccess sel) childName
 
         override this.getSeqChild (sel: Selection) (childName:string) (childTypeIsString: bool) (childIsOptional: bool) =
             sel.appendSelection childName (if childTypeIsString then FixArray else Value) childIsOptional
