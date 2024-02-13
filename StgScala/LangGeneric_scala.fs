@@ -182,7 +182,6 @@ type LangGeneric_scala() =
             (sel.appendSelection "arr" FixArray false).append (ArrayAccess (idx, if childTypeIsString then FixArray else Value))
 
         override this.getNamedItemBackendName (defOrRef: TypeDefinitionOrReference option) (nm: Asn1AcnAst.NamedItem) (isOptional: bool) =
-            // TODO get SomeMut(<sValue>) if this in an optional field.
             let itemname =
                 match defOrRef with
                 | Some (TypeDefinition td) -> td.typedefName + "." + ToC nm.scala_name
