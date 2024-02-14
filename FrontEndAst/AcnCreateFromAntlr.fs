@@ -1132,8 +1132,8 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (m:Asn1Ast.Asn1Mo
                     match newOptionality with
                     | None  -> false
                     | Some AlwaysAbsent
-                    | Some (Optional _) -> true
-                    | Some AlwaysPresent -> false
+                    | Some (Optional _)
+                    | Some AlwaysPresent -> true
                 
                 match cc with
                 | None      ->

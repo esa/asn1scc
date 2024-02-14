@@ -259,7 +259,7 @@ type LangGeneric_scala() =
         override this.supportsStaticVerification = false
 
         override this.getSeqChildIsPresent (sel: Selection) (childName: string) =
-            sprintf "%s%s%sisDefined" (sel.joined this) (this.getAccess sel) childName
+            sprintf "%s%s%s.isDefined" (sel.joined this) (this.getAccess sel) childName
 
         override this.getSeqChild (sel: Selection) (childName:string) (childTypeIsString: bool) (childIsOptional: bool) =
             sel.appendSelection childName (if childTypeIsString then FixArray else Value) childIsOptional

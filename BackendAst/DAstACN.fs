@@ -218,6 +218,7 @@ let calcIcdTypeAssHash (codec:CommonTypes.Codec) bPrint (t1:IcdTypeAss) =
     calcIcdTypeAssHash_aux t1
 
 let adaptArgument = DAstUPer.adaptArgument
+let adaptArgumentValue = DAstUPer.adaptArgumentValue
 
 let joinedOrAsIdentifier = DAstUPer.joinedOrAsIdentifier
 
@@ -1401,17 +1402,18 @@ let rec handleSingleUpdateDependency (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.Acn
                     let choiceName = chc.typeDef[Scala].typeName
                     choiceDependencyEnum_Item v ch.presentWhenName choiceName (lm.lg.getNamedItemBackendName (Some (defOrRef2 r m enm)) enmItem) isOptional)
             let updateStatement = choiceDependencyEnum v (choicePath.arg.joined lm.lg) (lm.lg.getAccess choicePath.arg) arrsChildUpdates isOptional (initExpr r lm m child.Type)
-            // TODO: !!!!!
-            let updateStatement =
+            // TODO: To remove this, getAccessFromScopeNodeList should be accounting for languages that rely on pattern matching for 
+            // accessing enums fields instead of a compiler-unchecked access
+            let updateStatement2 =
                 match ST.lang with
                 | Scala ->
-                    match checkPath.Length > 0 with
+                    match checkPath.Length > 0 && checkPath[0].Contains("isInstanceOf") with
                     | true -> (sprintf "val %s = %s.%s\n%s" (choicePath.arg.joined lm.lg) (checkPath[0].Replace("isInstanceOf", "asInstanceOf")) (choicePath.arg.joined lm.lg) updateStatement)
                     | false -> updateStatement
                 | _ -> updateStatement
             match checkPath with
-            | []    -> updateStatement
-            | _     -> checkAccessPath checkPath updateStatement v (initExpr r lm m child.Type)
+            | []    -> updateStatement2
+            | _     -> checkAccessPath checkPath updateStatement2 v (initExpr r lm m child.Type)
         let testCaseFnc (atc:AutomaticTestCase) : TestCaseValue option =
             atc.testCaseTypeIDsMap.TryFind d.asn1Type
         Some ({AcnChildUpdateResult.updateAcnChildFnc = updateFunc; errCodes=[] ; testCaseFnc=testCaseFnc; localVariables=[]}), us
