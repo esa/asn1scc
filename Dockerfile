@@ -8,17 +8,19 @@ RUN set -xe \
     && apt-get purge --auto-remove \
     && apt-get clean 
 
+# this SHELL command is needed to allow using source
+SHELL ["/bin/bash", "-c"]  
 # Install dependencies for scala backend
 RUN apt-get update -y \
-	&& apt-get qq -y install curl wget unzip zip \	# get SDKMAN dependencies
-	&& curl -s "https://get.sdkman.io" | bash \ 	# get SDKMAN
-	&& source "$HOME/.sdkman/bin/sdkman-init.sh" \	# install SDKMAN
-	&& sdk install java 17.0.9-oracle \				# install JVM
-	&& sdk install scala 3.3.0 \					# install Scala
+	&& apt-get install -y curl wget unzip zip \	
+	&& curl -s "https://get.sdkman.io" | bash \
+	&& chmod a+x "$HOME/.sdkman/bin/sdkman-init.sh" \
+ 	&& source "$HOME/.sdkman/bin/sdkman-init.sh" \	
+	&& sdk install java 17.0.9-oracle \				
+	&& sdk install scala 3.3.0 \					
 	&& sdk install sbt 1.9.0
 
 # Install GNAT AND SPARK from AdaCore
-
 WORKDIR /gnat_tmp/
 
 # The ADD instruction will always download the file and the cache will be invalidated if the checksum of the file no longer matches

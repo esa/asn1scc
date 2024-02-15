@@ -2,6 +2,7 @@
 echo "****"
 echo $1
 echo "****"
+source "$HOME/.sdkman/bin/sdkman-init.sh"
 cd /workdir/
 git -C asn1scc pull || git clone /app/ asn1scc
 cd asn1scc
@@ -17,5 +18,3 @@ cd v4Tests || exit 1
 ../regression/bin/Debug/net7.0/regression -l c -ws 8 -s true -p 48 -ig || exit 1
 ../regression/bin/Debug/net7.0/regression -l c -ws 8 -s true -p 48 || exit 1
 ../regression/bin/Debug/net7.0/regression -l Ada -ws 8 -s true -p 48 || exit 1
-
-
