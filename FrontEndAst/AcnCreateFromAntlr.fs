@@ -405,8 +405,7 @@ let private mergeStringType (asn1: Asn1Ast.AstRoot) (t: Asn1Ast.Asn1Type option)
     | Acn_Enc_String_uPER                                _                -> ()
     | Acn_Enc_String_uPER_Ascii                          _                -> ()
     | Acn_Enc_String_Ascii_Null_Terminated                (_, nullChars)     ->
-        let errMsg = "The termination-pattern defines a character which belongs to the allowed values 
-            of the ASN.1 type. Use another value in the termination-pattern or apply different constraints in the ASN.1 type."
+        let errMsg = "The termination-pattern defines a character which belongs to the allowed values of the ASN.1 type. Use another value in the termination-pattern or apply different constraints in the ASN.1 type."
         match nullChars |> Seq.filter(fun c -> c <> 0uy) |> Seq.tryFind (isCharacterAllowedByAlphabetConstrains cons) with
         | Some _ -> raise(SemanticError(acnErrLoc0, errMsg))
         | None   -> ()
