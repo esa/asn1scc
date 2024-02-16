@@ -18,3 +18,7 @@ cd v4Tests || exit 1
 ../regression/bin/Debug/net7.0/regression -l c -ws 8 -s true -p 48 -ig || exit 1
 ../regression/bin/Debug/net7.0/regression -l c -ws 8 -s true -p 48 || exit 1
 ../regression/bin/Debug/net7.0/regression -l Ada -ws 8 -s true -p 48 || exit 1
+
+#scala tests
+cd ../PUSCScalaTest
+dotnet test
