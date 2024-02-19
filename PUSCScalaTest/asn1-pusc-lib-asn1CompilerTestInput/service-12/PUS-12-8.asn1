@@ -26,9 +26,9 @@ EXPORTS ALL;
 IMPORTS
     PMON-ID FROM PMON;
 
-TC-12-8-ReportParameterMonitoringDefinitions ::= TC-12-8-ReportParameterMonitoringDefinitionsGeneric {PMON-ID}
+TC-12-8-ReportParameterMonitoringDefintions ::= TC-12-8-ReportParameterMonitoringDefintionsGeneric {PMON-ID}
 
-TC-12-8-ReportParameterMonitoringDefinitionsGeneric {PMON-ID-Type} ::= SEQUENCE
+TC-12-8-ReportParameterMonitoringDefintionsGeneric {PMON-ID-Type} ::= SEQUENCE
 {
 --! n UnsignedInteger,
     pmon-ID PMON-ID-Type

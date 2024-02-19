@@ -12,18 +12,18 @@ open DAstUtilFunctions
 open Antlr.Asn1
 open Antlr.Runtime
 
-let rec GetMySelfAndChildren (t:Asn1Type) =
+let rec GetMySelfAndChildren (t:Asn1Type) = 
     seq {
         yield t
         match t.Kind with
         | SequenceOf o ->  yield! GetMySelfAndChildren o.childType
         | Sequence o   ->
-            for ch in o.Asn1Children do
+            for ch in o.Asn1Children do 
                 yield! GetMySelfAndChildren ch.Type
-        | Choice o->
-            for ch in o.children do
+        | Choice o-> 
+            for ch in o.children do 
                 yield! GetMySelfAndChildren ch.chType
-        |_ -> ()
+        |_ -> ()    
     }
 
 let rec getUnits (t:Asn1Type) =
@@ -38,7 +38,7 @@ let foldRangeCon = DastValidate2.printRangeConAsAsn1
 
 let Kind2Name (stgFileName:string) (t:Asn1Type) =
     match t.Kind with
-    | ReferenceType r               ->
+    | ReferenceType r               -> 
         match r.baseInfo.encodingOptions with
         | None          -> r.baseInfo.tasName.Value
         | Some  eo      ->
@@ -53,7 +53,7 @@ let Kind2Name (stgFileName:string) (t:Asn1Type) =
     | Enumerated        _           -> icd_uper.Enumerated        stgFileName ()
     | ObjectIdentifier a     when a.baseInfo.relativeObjectId   -> icd_uper.RelativeOid stgFileName ()
     | ObjectIdentifier _                                        -> icd_uper.ObjectIdentifier stgFileName ()
-    | IA5String         s           ->
+    | IA5String         s           -> 
         match s.baseInfo.isNumeric with
         | true  -> icd_uper.NumericString     stgFileName ()
         | false -> icd_uper.IA5String         stgFileName ()
@@ -61,12 +61,11 @@ let Kind2Name (stgFileName:string) (t:Asn1Type) =
     | Real              _           -> icd_uper.Real              stgFileName ()
     | Sequence          _           -> icd_uper.Sequence          stgFileName ()
     | SequenceOf        _           -> icd_uper.SequenceOf        stgFileName ()
-    | other -> raise (BugErrorException $"Unsupported kind for Kind2Name: {other}")
 
 let getTypeName (stgFileName:string) (t:Asn1Type) =
-    icd_acn.EmitSeqChild_RefType stgFileName t.FT_TypeDefinition.[CommonTypes.C].asn1Name (ToC t.FT_TypeDefinition.[CommonTypes.C].asn1Name)
+    icd_acn.EmmitSeqChild_RefType stgFileName t.FT_TypeDefintion.[CommonTypes.C].asn1Name (ToC t.FT_TypeDefintion.[CommonTypes.C].asn1Name)
     //match t.Kind with
-    //| ReferenceType ref  -> icd_uper.EmitSeqChild_RefType stgFileName ref.baseInfo.tasName.Value (ToC ref.baseInfo.tasName.Value)
+    //| ReferenceType ref  -> icd_uper.EmmitSeqChild_RefType stgFileName ref.baseInfo.tasName.Value (ToC ref.baseInfo.tasName.Value)
     //| _                  -> Kind2Name stgFileName t
 
 
@@ -89,8 +88,8 @@ type StgCommentLineMacros = {
 
 let GetCommentLineFactory (stgFileName:string) (stgs:StgCommentLineMacros) =
     let GetCommentLine  (comments:string seq) (t:Asn1Type) =
-        let singleComment = comments |> Seq.StrJoin (stgs.NewLine stgFileName ())
-        let ret =
+        let singleComment = comments |> Seq.StrJoin (stgs.NewLine stgFileName ()) 
+        let ret = 
             match (t.ActualType).Kind with
             | Enumerated  enum ->
                 let EmitItem (n:Asn1AcnAst.NamedItem) =
@@ -98,12 +97,12 @@ let GetCommentLineFactory (stgFileName:string) (stgs:StgCommentLineMacros) =
                     match comment.Trim() with
                     | ""        ->    stgs.EmitEnumItem stgFileName n.Name.Value n.definitionValue
                     | _         ->    stgs.EmitEnumItemWithComment stgFileName n.Name.Value n.definitionValue comment
-                let itemsHtml =
-                    enum.baseInfo.items |>
-                        List.filter(fun z ->
+                let itemsHtml = 
+                    enum.baseInfo.items |> 
+                        List.filter(fun z -> 
                             let v = z.Name.Value
                             Asn1Fold.isValidValueGeneric enum.AllCons (=) v ) |>
-                        List.map EmitItem
+                        List.map EmitItem 
                 let extraComment = stgs.EmitEnumInternalContents stgFileName (itemsHtml :> string seq)
                 match singleComment.Trim() with
                 | ""    -> extraComment
@@ -122,9 +121,9 @@ type IcdTypeAssignment = {
 
 let rec printType (stgFileName:string) (m:Asn1Module) (tas:IcdTypeAssignment) (t:Asn1Type) (r:AstRoot)  color =
     let enumStg = {
-        NewLine                  = icd_uper.NewLine
-        EmitEnumItem             = icd_uper.EmitEnumItem
-        EmitEnumItemWithComment  = icd_uper.EmitEnumItemWithComment
+        NewLine                  = icd_uper.NewLine                 
+        EmitEnumItem             = icd_uper.EmitEnumItem            
+        EmitEnumItemWithComment  = icd_uper.EmitEnumItemWithComment 
         EmitEnumInternalContents = icd_uper.EmitEnumInternalContents
     }
     let GetCommentLine = GetCommentLineFactory stgFileName enumStg
@@ -161,7 +160,7 @@ let rec printType (stgFileName:string) (m:Asn1Module) (tas:IcdTypeAssignment) (t
         handlePrimitive sAsn1Constraints
     |ReferenceType o when  o.baseInfo.encodingOptions.IsNone ->
         printType stgFileName m tas o.resolvedType r color
-    |Sequence seq ->
+    |Sequence seq -> 
         let EmitChild (i:int) (ch:Asn1Child) =
             let sClass = if i % 2 = 0 then (icd_uper.EvenRow stgFileName ())  else (icd_uper.OddRow stgFileName ())
             let nIndex = BigInteger i
@@ -176,28 +175,28 @@ let rec printType (stgFileName:string) (m:Asn1Module) (tas:IcdTypeAssignment) (t
                 //+++
                 //let ret = ch.Type.Constraints |> Seq.map PrintAsn1.PrintConstraint |> Seq.StrJoin ""
                 //( if ret.Trim() ="" then "N.A." else ret)
-
+    
             let sMinBits, sMinBytes, sMaxBits, sMaxBytes = getMinMaxBitsAndBytes ch.Type.uperMinSizeInBits ch.Type.uperMaxSizeInBits
 
             let sMaxBitsExplained =  GetWhyExplanation stgFileName ch.Type r
             let soUnit =  getUnits ch.Type
-            icd_uper.EmitSequenceChild stgFileName sClass nIndex ch.Name.Value sComment  sOptionality  sType sAsn1Constraints sMinBits (sMaxBits+sMaxBitsExplained) soUnit
+            icd_uper.EmmitSequenceChild stgFileName sClass nIndex ch.Name.Value sComment  sOptionality  sType sAsn1Constraints sMinBits (sMaxBits+sMaxBitsExplained) soUnit
         let SeqPreamble =
-            let optChild = seq.Asn1Children |> Seq.filter (fun x -> x.Optionality.IsSome) |> Seq.mapi(fun i c -> icd_uper.EmitSequencePreambleSingleComment stgFileName (BigInteger (i+1)) c.Name.Value)
+            let optChild = seq.Asn1Children |> Seq.filter (fun x -> x.Optionality.IsSome) |> Seq.mapi(fun i c -> icd_uper.EmmitSequencePreambleSingleComment stgFileName (BigInteger (i+1)) c.Name.Value)
             let nLen = optChild |> Seq.length
             if  nLen > 0 then
-                let sComment = icd_uper.EmitSequencePreambleComment stgFileName optChild
-                let ret = icd_uper.EmitSequenceChild stgFileName (icd_uper.OddRow stgFileName ()) (BigInteger 1) "Preamble" sComment  "No"  "Bit mask" "N.A." (nLen.ToString()) (nLen.ToString()) None
+                let sComment = icd_uper.EmmitSequencePreambleComment stgFileName optChild
+                let ret = icd_uper.EmmitSequenceChild stgFileName (icd_uper.OddRow stgFileName ()) (BigInteger 1) "Preamble" sComment  "No"  "Bit mask" "N.A." (nLen.ToString()) (nLen.ToString()) None
                 Some ret
             else
                 None
         let sTasName = tas.name
         let sMaxBitsExplained = ""
         let sCommentLine = GetCommentLine tas.comments t
-
+        
         let arChildren idx = seq.Asn1Children |> Seq.mapi(fun i ch -> EmitChild (idx + i) ch) |> Seq.toList
         let arRows =
-            match SeqPreamble with
+            match SeqPreamble with 
             | None          -> arChildren 1
             | Some(prm)     -> prm::(arChildren 2)
 
@@ -215,12 +214,12 @@ let rec printType (stgFileName:string) (m:Asn1Module) (tas:IcdTypeAssignment) (t
             let sMinBits, sMinBytes, sMaxBits, sMaxBytes = getMinMaxBitsAndBytes ch.chType.uperMinSizeInBits ch.chType.uperMaxSizeInBits
             let sMaxBitsExplained =  GetWhyExplanation stgFileName ch.chType r
             let soUnit =  getUnits ch.chType
-            icd_uper.EmitChoiceChild stgFileName sClass nIndex ch.Name.Value sComment  sType sAsn1Constraints sMinBits (sMaxBits+sMaxBitsExplained) soUnit
+            icd_uper.EmmitChoiceChild stgFileName sClass nIndex ch.Name.Value sComment  sType sAsn1Constraints sMinBits (sMaxBits+sMaxBitsExplained) soUnit
         let ChIndex =
-            let optChild = chInfo.children |> Seq.mapi(fun i c -> icd_uper.EmitChoiceIndexSingleComment stgFileName (BigInteger (i+1)) c.Name.Value)
-            let sComment = icd_uper.EmitChoiceIndexComment stgFileName optChild
+            let optChild = chInfo.children |> Seq.mapi(fun i c -> icd_uper.EmmitChoiceIndexSingleComment stgFileName (BigInteger (i+1)) c.Name.Value)
+            let sComment = icd_uper.EmmitChoiceIndexComment stgFileName optChild
             let indexSize = (GetChoiceUperDeterminantLengthInBits(BigInteger(Seq.length chInfo.children))).ToString()
-            icd_uper.EmitChoiceChild stgFileName (icd_uper.OddRow stgFileName ()) (BigInteger 1) "ChoiceIndex" sComment    "unsigned int" "N.A." indexSize indexSize None
+            icd_uper.EmmitChoiceChild stgFileName (icd_uper.OddRow stgFileName ()) (BigInteger 1) "ChoiceIndex" sComment    "unsigned int" "N.A." indexSize indexSize None
         let sTasName = tas.name
         let sMaxBitsExplained = ""
         let sCommentLine = GetCommentLine tas.comments t
@@ -235,11 +234,11 @@ let rec printType (stgFileName:string) (m:Asn1Module) (tas:IcdTypeAssignment) (t
         let getCharSize charSetLength =
             let charSize = GetNumberOfBitsForNonNegativeInteger (BigInteger (charSetLength-1))
             charSize.ToString()
-        let sType, sAsn1Constraints, sMinChildBits, sMaxChildBits, nMinLength, nMaxLength =
+        let sType, sAsn1Constraints, sMinChildBits, sMaxChildBits, nMinLength, nMaxLength = 
             match t.Kind with
             | SequenceOf o ->
                 let child = o.childType
-                let sAsn1Constraints = child.ConstraintsAsn1Str |> Seq.StrJoin ""//+++ child.Constraints |> Seq.map PrintAsn1.PrintConstraint |> Seq.StrJoin ""
+                let sAsn1Constraints = child.ConstraintsAsn1Str |> Seq.StrJoin ""//+++ child.Constraints |> Seq.map PrintAsn1.PrintConstraint |> Seq.StrJoin "" 
                 let ret = ( if sAsn1Constraints.Trim() ="" then "N.A." else sAsn1Constraints)
                 let sMinBits, _, sMaxBits, _ = getMinMaxBitsAndBytes child.uperMinSizeInBits child.uperMaxSizeInBits
                 let sMaxBitsExplained =  GetWhyExplanation stgFileName child r
@@ -255,7 +254,7 @@ let rec printType (stgFileName:string) (m:Asn1Module) (tas:IcdTypeAssignment) (t
                     match eo.octOrBitStr with
                     | ContainedInOctString  -> "OCTET", "", "8", "8", eo.minSize, eo.maxSize
                     | ContainedInBitString  -> "BIT", "", "1","1", eo.minSize, eo.maxSize
-
+                    
             | _                            -> raise(BugErrorException "")
         let sizeUperRange =  CommonTypes.Concrete(nMinLength, nMaxLength)
         let ChildRow (lineFrom:BigInteger) (i:BigInteger) =
@@ -263,10 +262,10 @@ let rec printType (stgFileName:string) (m:Asn1Module) (tas:IcdTypeAssignment) (t
             let nIndex = lineFrom + i
             let sFieldName = icd_uper.ItemNumber stgFileName i
             let sComment = ""
-            icd_uper.EmitChoiceChild stgFileName sClass nIndex sFieldName sComment  sType sAsn1Constraints sMinChildBits sMaxChildBits None
-
+            icd_uper.EmmitChoiceChild stgFileName sClass nIndex sFieldName sComment  sType sAsn1Constraints sMinChildBits sMaxChildBits None
+        
         let LengthRow =
-            let nMin, nLengthSize =
+            let nMin, nLengthSize = 
                 match sizeUperRange with
                 | CommonTypes.Concrete(a,b)  when a.uper=b.uper       -> 0I, 0I
                 | CommonTypes.Concrete(a,b)                 -> (GetNumberOfBitsForNonNegativeInteger(b.uper - a.uper)), (GetNumberOfBitsForNonNegativeInteger(b.uper - a.uper))
@@ -274,10 +273,10 @@ let rec printType (stgFileName:string) (m:Asn1Module) (tas:IcdTypeAssignment) (t
                 | CommonTypes.PosInf(b)                     ->  8I, 16I
                 | CommonTypes.Full                          -> 8I, 16I
             let comment = "Special field used by PER to indicate the number of items present in the array."
-            let ret = t.ConstraintsAsn1Str |> Seq.StrJoin "" //+++ t.Constraints |> Seq.map PrintAsn1.PrintConstraint |> Seq.StrJoin ""
+            let ret = t.ConstraintsAsn1Str |> Seq.StrJoin "" //+++ t.Constraints |> Seq.map PrintAsn1.PrintConstraint |> Seq.StrJoin "" 
             let sCon = ( if ret.Trim() ="" then "N.A." else ret)
 
-            icd_uper.EmitChoiceChild stgFileName (icd_uper.OddRow stgFileName ()) (BigInteger 1) "Length" comment    "unsigned int" sCon (nMin.ToString()) (nLengthSize.ToString()) None
+            icd_uper.EmmitChoiceChild stgFileName (icd_uper.OddRow stgFileName ()) (BigInteger 1) "Length" comment    "unsigned int" sCon (nMin.ToString()) (nLengthSize.ToString()) None
 
         let sTasName = tas.name
         let sMaxBitsExplained = ""
@@ -285,7 +284,7 @@ let rec printType (stgFileName:string) (m:Asn1Module) (tas:IcdTypeAssignment) (t
         let sFixedLengthComment (nMax: BigInteger) =
             sprintf "Length is fixed to %A elements (no length determinant is needed)." nMax
 
-        let arRows, sExtraComment =
+        let arRows, sExtraComment = 
             match sizeUperRange with
             | CommonTypes.Concrete(a,b)  when a.uper=b.uper && b.uper<2I     -> [ChildRow 0I 1I], "The array contains a single element."
             | CommonTypes.Concrete(a,b)  when a.uper=b.uper && b.uper=2I     -> (ChildRow 0I 1I)::(ChildRow 0I 2I)::[], (sFixedLengthComment b.uper)
@@ -302,51 +301,50 @@ let rec printType (stgFileName:string) (m:Asn1Module) (tas:IcdTypeAssignment) (t
 
 
         icd_uper.EmitSizeable stgFileName color sTasName  (ToC sTasName) (Kind2Name stgFileName t) sMinBytes sMaxBytes sMaxBitsExplained sCommentLine arRows (sCommentLine.Split [|'\n'|])
-    | other -> raise (BugErrorException $"Unsupported kind for printType: {other}")
 
 let PrintTas (stgFileName:string) (m:Asn1Module) (tas:IcdTypeAssignment) (r:AstRoot)  =
     let tasColor =
         match tas.isBlue with
         |true   -> icd_uper.Blue stgFileName ()
         |false  -> icd_uper.Orange stgFileName ()
-    icd_uper.EmitTass stgFileName (printType stgFileName m tas tas.t r tasColor)
+    icd_uper.EmmitTass stgFileName (printType stgFileName m tas tas.t r tasColor) 
 
 let getModuleIcdTasses (m:Asn1Module) =
 
-    m.TypeAssignments |>
+    m.TypeAssignments |> 
     Seq.collect(fun x ->  GetMySelfAndChildren x.Type) |>
     //Seq.choose(fun x -> match x.Kind with ReferenceType ref -> Some (ref.baseInfo.modName.Value,ref.baseInfo.tasName.Value) |_ -> None) |> Seq.toList
-    Seq.choose(fun x ->
+    Seq.choose(fun x -> 
         let comments =
             match x.tasInfo with
-            | Some tas ->
+            | Some tas -> 
                 match m.TypeAssignments |> List.tryFind(fun ts -> ts.Name.Value = tas.tasName) with
                 | Some tas -> tas.Comments
                 | None     -> [||]
             | None         -> [||]
-        let td = x.FT_TypeDefinition.[CommonTypes.C]
+        let td = x.FT_TypeDefintion.[CommonTypes.C]
         match td.BaseKind with
         | NewTypeDefinition       -> Some {IcdTypeAssignment.name = td.asn1Name; comments=comments; t=x; isBlue = x.tasInfo.IsNone}               //type
         | NewSubTypeDefinition    -> Some {IcdTypeAssignment.name = td.asn1Name; comments=comments; t=x; isBlue = x.tasInfo.IsNone}
         | Reference2RTL           -> None
         | Reference2OtherType     -> None
-
-        )
+         
+        ) 
     |> Seq.toList
 
 let PrintModule (stgFileName:string) (m:Asn1Module) (f:Asn1File) (r:AstRoot) =
     //let blueTasses = getModuleBlueTasses m |> Seq.map snd
     //let sortedTas = m.TypeAssignments //+++ spark_spec.SortTypeAssignments m r acn |> List.rev
-    //let tases = sortedTas  |> Seq.map (fun x -> PrintTas stgFileName m x r blueTasses)
+    //let tases = sortedTas  |> Seq.map (fun x -> PrintTas stgFileName m x r blueTasses) 
     let icdTasses = getModuleIcdTasses m
-    let tases = icdTasses |> Seq.map (fun x -> PrintTas stgFileName m x r )
+    let tases = icdTasses |> Seq.map (fun x -> PrintTas stgFileName m x r ) 
     let comments = []
-    icd_uper.EmitModule stgFileName m.Name.Value comments tases
+    icd_uper.EmmitModule stgFileName m.Name.Value comments tases
 
 
 let PrintFile1 (stgFileName:string) (f:Asn1File)  (r:AstRoot) =
-    let modules = f.Modules |> Seq.map (fun  m -> PrintModule stgFileName m f r )
-    icd_uper.EmitFile stgFileName (Path.GetFileName f.FileName) modules
+    let modules = f.Modules |> Seq.map (fun  m -> PrintModule stgFileName m f r )  
+    icd_uper.EmmitFile stgFileName (Path.GetFileName f.FileName) modules 
 
 let asn1Tokens = [ "PLUS-INFINITY";"MINUS-INFINITY";"GeneralizedTime";"UTCTime";"mantissa";"base";"exponent";"UNION";"INTERSECTION";
                 "DEFINITIONS";"EXPLICIT";"TAGS";"IMPLICIT";"AUTOMATIC";"EXTENSIBILITY";"IMPLIED";"BEGIN";"END";"EXPORTS";"ALL";
@@ -356,15 +354,15 @@ let asn1Tokens = [ "PLUS-INFINITY";"MINUS-INFINITY";"GeneralizedTime";"UTCTime";
                 "PrintableString";"VisibleString";"IA5String";"TeletexString";"VideotexString";"GraphicString";"GeneralString";
                 "UniversalString";"BMPString";"UTF8String";"INCLUDES";"EXCEPT";"SET";"SEQUENCE";"CHOICE";"OF";"COMPONENTS"] |> Set.ofList
 
-let PrintFile2 (stgFileName:string) (f:Asn1File) =
+let PrintFile2 (stgFileName:string) (f:Asn1File) = 
     let tasNames = f.Modules |> Seq.collect(fun x -> x.TypeAssignments) |> Seq.map(fun x -> x.Name.Value) |> Seq.toArray
     //let blueTasses = f.Modules |> Seq.collect(fun m -> getModuleBlueTasses m)
-    let blueTassesWithLoc =
-              f.TypeAssignments |>
-              Seq.map(fun x -> x.Type) |>
+    let blueTassesWithLoc = 
+              f.TypeAssignments |> 
+              Seq.map(fun x -> x.Type) |> 
               Seq.collect(fun x -> GetMySelfAndChildren x) |>
               Seq.choose(fun x -> match x.Kind with
-                                  |ReferenceType ref    ->
+                                  |ReferenceType ref    -> 
                                     match f.TypeAssignments |> Seq.tryFind(fun y -> y.Name.Value = ref.baseInfo.tasName.Value) with
                                     | Some tas  -> Some(ref.baseInfo.tasName.Value, tas.Type.Location.srcLine, tas.Type.Location.charPos)
                                     | None      -> None
@@ -398,10 +396,10 @@ let PrintFile2 (stgFileName:string) (f:Asn1File) =
                 |None -> if idx = 0 then t else f.Tokens.[idx-1]
             let uid =
                 match isType with
-                |true ->
-                    if nextToken.Type = asn1Lexer.ASSIG_OP && prevToken.Type <> asn1Lexer.LID then
-                        icd_uper.TasName stgFileName safeText (ToC safeText)
-                    else
+                |true -> 
+                    if nextToken.Type = asn1Lexer.ASSIG_OP && prevToken.Type <> asn1Lexer.LID then 
+                        icd_uper.TasName stgFileName safeText (ToC safeText) 
+                    else 
                         icd_uper.TasName2 stgFileName safeText (ToC safeText)
                 |false -> safeText
             let colored =
@@ -417,25 +415,25 @@ let PrintFile2 (stgFileName:string) (f:Asn1File) =
             |Some (s,_,_) -> icd_uper.BlueTas stgFileName (ToC s) safeText
             |None -> if isAsn1Token then icd_uper.Asn1Token stgFileName safeText else colored
     let asn1Content = f.Tokens |> Seq.mapi(fun i token -> colorize(token,i,tasNames,blueTassesWithLoc))
-    icd_uper.EmitFilePart2  stgFileName (Path.GetFileName f.FileName ) (asn1Content |> Seq.StrJoin "")
+    icd_uper.EmmitFilePart2  stgFileName (Path.GetFileName f.FileName ) (asn1Content |> Seq.StrJoin "")
 
 let DoWork (r:AstRoot) (stgFileName:string)   outFileName =
-    let files1 = r.Files |> Seq.map (fun f -> PrintFile1 stgFileName f r )
+    let files1 = r.Files |> Seq.map (fun f -> PrintFile1 stgFileName f r ) 
     let files2 = r.Files |> Seq.map (PrintFile2 stgFileName)
     let allTypes = r.Files |> List.collect(fun x -> x.TypeAssignments) |> List.map(fun x -> x.Type) |> Seq.collect(fun x -> GetMySelfAndChildren x )
-    let bIntegerSizeMustBeExplained = allTypes |> Seq.exists(fun x -> match x.Kind with
-                                                                      | Integer o->
-                                                                        match o.baseInfo.uperRange with
-                                                                        | CommonTypes.Full | CommonTypes.PosInf(_) |  CommonTypes.NegInf(_)  -> true
-                                                                        |_                               ->false
+    let bIntegerSizeMustBeExplained = allTypes |> Seq.exists(fun x -> match x.Kind with 
+                                                                      | Integer o-> 
+                                                                        match o.baseInfo.uperRange with 
+                                                                        | CommonTypes.Full | CommonTypes.PosInf(_) |  CommonTypes.NegInf(_)  -> true 
+                                                                        |_                               ->false 
                                                                       | _ -> false)
     let bRealSizeMustBeExplained = allTypes |> Seq.exists(fun x -> match x.Kind with Real _ ->true | _ -> false)
     let bLengthSizeMustBeExplained = false
     let bWithComponentMustBeExplained = false
-    let bZeroBitsMustBeExplained =
-        allTypes |>
-        Seq.exists(fun x ->
-            match x.ActualType.Kind with
+    let bZeroBitsMustBeExplained = 
+        allTypes |> 
+        Seq.exists(fun x -> 
+            match x.ActualType.Kind with 
             | Integer o -> o.baseInfo.uperMinSizeInBits = 0I
             | _ -> false)
     let content = icd_uper.RootHtml stgFileName files1 files2 bIntegerSizeMustBeExplained bRealSizeMustBeExplained bLengthSizeMustBeExplained bWithComponentMustBeExplained bZeroBitsMustBeExplained

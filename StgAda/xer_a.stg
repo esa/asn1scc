@@ -4,7 +4,7 @@ rtlModuleName() ::= "adaasn1rtl"
 
 
 EmitTypeAssignment_def_err_code(sErrCode, nErrValue) ::= <<
-<sErrCode>:constant Integer := <nErrValue>;
+<sErrCode>:constant Integer := <nErrValue>; 
 >>
 
 EmitTypeAssignment_def_encode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes, bEmptyEncodingSpace, nMaxBytesInXER, soSparkAnnotations) ::= <<
@@ -21,7 +21,7 @@ procedure <sFuncName>_aux(<sVarName> : <sTypeDefName>; xmlTag : <rtlModuleName()
 <soSparkAnnotations>;
 >>
 
-EmitTypeAssignment_encode(sTasName, sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp) ::= <<
+EmitTypeAssignment_encode(sTasName, sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitilialExp) ::= <<
 procedure <sFuncName>_aux(<sVarName> : <sTypeDefName>; xmlTag : <rtlModuleName()>.encoding.xer.XString; bs : in out <rtlModuleName()>.encoding.xer.CharStream; ret : OUT <rtlModuleName()>.ASN1_RESULT)
 is
     <arrsLocalVariables; separator="\n">
@@ -59,7 +59,7 @@ procedure <sFuncName>_aux(<sVarName>: out <sTypeDefName>; xmlTag : <rtlModuleNam
 
 
 
-EmitTypeAssignment_decode(sTasName, sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitialExp) ::= <<
+EmitTypeAssignment_decode(sTasName, sVarName, sStar, sFuncName, soIValidFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, sInitilialExp) ::= <<
 pragma Warnings (Off, "unused initial value of ""val""");
 procedure <sFuncName>_aux(<sVarName>: out <sTypeDefName>; xmlTag : <rtlModuleName()>.encoding.xer.XString; bs : in out <rtlModuleName()>.encoding.xer.CharStream; ret : OUT <rtlModuleName()>.ASN1_RESULT)
 is
@@ -163,13 +163,13 @@ ret.ErrorCode := (if ret.Success then 0 else <sErrCode>);
 
 
 Enumerated_item_encode(p, sTag, nLevel, sItemID, sXerValue, sErrCode, bFirst) ::= <<
-when <sItemID>    =>
+when <sItemID>    => 
 	adaasn1rtl.encoding.xer.Xer_EncodeEnumerated(bs, <sTag>, "<sXerValue>", ret, <nLevel>);
     ret.ErrorCode := <sErrCode>;
 >>
 
 Enumerated_encode(p, sTag, nLevel, arrsItems, soCheckExp, sErrCode) ::= <<
-case <p> is
+case <p> is 
     <arrsItems; separator="\n">
 end case;
 >>
@@ -187,7 +187,7 @@ begin
 	adaasn1rtl.encoding.xer.Xer_DecodeEnumerated(bs, <sTag>, enmLabel, ret);
     if ret.Success then
         <arrsItems; separator="\n">
-	    else
+	    else 
 		    ret.ErrorCode := <sErrCode>;
 	    end if;
     else
@@ -308,12 +308,12 @@ ret.ErrorCode := (if ret.Success then 0 else <sErrCode>);
 /* SEQUENCE Start*/
 
 Sequence_mandatory_child_encode(sChName, sChildContent, sChildTag) ::= <<
---Encode <sChName>
+--Encode <sChName> 
 <sChildContent>
 >>
 
 Sequence_mandatory_child_decode(sChName, sChildContent, sChildTag) ::= <<
---Decode <sChName>
+--Decode <sChName> 
 ret.Success := adaasn1rtl.encoding.xer.Xer_NextStartElementIs(bs, "<sChildTag>");
 if ret.Success then
 	<sChildContent>
@@ -321,14 +321,14 @@ end if;
 >>
 
 Sequence_optional_child_encode(p, sAcc, sChName, sChildContent, sChildTag) ::= <<
---Encode <sChName>
+--Encode <sChName> 
 if <p>.Exist.<sChName> = 1 then
 	<sChildContent>
 end if;
 >>
 
 Sequence_optional_child_decode(p, sAcc, sChName, sChildContent, sChildTag) ::= <<
---Decode <sChName>
+--Decode <sChName> 
 <p>.Exist.<sChName> := 0;
 if adaasn1rtl.encoding.xer.Xer_NextStartElementIs(bs, "<sChildTag>") then
 	<p>.Exist.<sChName> := 1;
@@ -342,7 +342,7 @@ Sequence_default_child_encode(p, sAcc, sChName, sChildContent, sChildTag, sInitW
 
 
 Sequence_default_child_decode(p, sAcc, sChName, sChildContent, sChildTag, sInitWithDefaultValue) ::= <<
---Decode <sChName>
+--Decode <sChName> 
 <p>.Exist.<sChName> := 0;
 if adaasn1rtl.encoding.xer.Xer_NextStartElementIs(bs, "<sChildTag>") then
 	<p>.Exist.<sChName> := 1;
@@ -414,7 +414,7 @@ begin
 	adaasn1rtl.encoding.xer.Xer_LA_NextElementTag(bs, nextTag, ret);
 	ret.ErrorCode := (if ret.Success then 0 else <sErrCode>);
 	if ret.Success then
-		<arrsChildren; separator="\n">
+		<arrsChildren; separator="\n"> 
         else
 			ret.Success := False;
 			ret.ErrorCode := <sErrCode>;

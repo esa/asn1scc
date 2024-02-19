@@ -8,7 +8,7 @@ open FsUtils
 open Constraints
 open uPER2
 
-type AcnAlignment =
+type AcnAligment = 
     | NextByte
     | NextWord
     | NextDWord
@@ -49,16 +49,16 @@ type Integer = {
     withcons            : IntegerTypeConstraint list
     uperRange           : uperRange<BigInteger>
     baseType            : Integer option
-    Location            : SrcLoc
+    Location            : SrcLoc   
 
 
     //cast new properties
     acnMaxSizeInBits    : int
     acnMinSizeInBits    : int
-    alignment           : AcnAlignment option
+    alignment           : AcnAligment option
     acnEncodingClass    : IntEncodingClass
 }
-with
+with 
     member this.Cons     = this.cons
     member this.WithCons = this.withcons
     member this.AllCons  = this.cons@this.withcons
@@ -67,7 +67,7 @@ with
 
 type EnumAcnEncodingClass =
     | EncodeIndexes     of     IntEncodingClass
-    | EncodeValues      of     IntEncodingClass
+    | EncodeValues      of     IntEncodingClass 
 
 
 type Enumerated = {
@@ -80,15 +80,15 @@ type Enumerated = {
     cons                : EnumConstraint list
     withcons            : EnumConstraint list
     baseType            : Enumerated option
-    Location            : SrcLoc
+    Location            : SrcLoc   
 
     //cast new properties
     acnMaxSizeInBits    : int
     acnMinSizeInBits    : int
-    alignment           : AcnAlignment option
+    alignment           : AcnAligment option
     enumEncodingClass   : EnumAcnEncodingClass
 }
-with
+with 
     member this.Cons     = this.cons
     member this.WithCons = this.withcons
     member this.AllCons  = this.cons@this.withcons
@@ -102,7 +102,7 @@ type RealEncodingClass =
     | Real_IEEE754_64_little_endian
 
 type Real = {
-    //bast inherited properties
+    //bast inherrited properties
     id                  : ReferenceToType
     tasInfo             : BAst.TypeAssignmentInfo option
     uperMaxSizeInBits   : int
@@ -111,21 +111,21 @@ type Real = {
     withcons            : RealTypeConstraint list
     uperRange           : uperRange<double>
     baseType            : Real option
-    Location            : SrcLoc
+    Location            : SrcLoc   
 
     //cast new properties
     acnMaxSizeInBits    : int
     acnMinSizeInBits    : int
-    alignment           : AcnAlignment option
+    alignment            : AcnAligment option
     acnEncodingClass    : RealEncodingClass
 }
-with
+with 
     member this.Cons     = this.cons
     member this.WithCons = this.withcons
     member this.AllCons  = this.cons@this.withcons
 
 
-type BooleanAcnEncodingClass = {
+type BolleanAcnEncodingClass = {
     truePattern         : byte list
     falsePattern        : byte list
     patternSizeInBits   : int
@@ -140,15 +140,15 @@ type Boolean = {
     cons                : BoolConstraint list
     withcons            : BoolConstraint list
     baseType            : Boolean option
-    Location            : SrcLoc
+    Location            : SrcLoc   
 
     //cast new properties
     acnMaxSizeInBits    : int
     acnMinSizeInBits    : int
-    alignment           : AcnAlignment option
-    acnEncodingClass    : BooleanAcnEncodingClass
+    alignment           : AcnAligment option
+    acnEncodingClass    : BolleanAcnEncodingClass
 }
-with
+with 
     member this.Cons     = this.cons
     member this.WithCons = this.withcons
     member this.AllCons  = this.cons@this.withcons
@@ -166,12 +166,12 @@ type NullType = {
     uperMaxSizeInBits   : int
     uperMinSizeInBits   : int
     baseType            : NullType option
-    Location            : SrcLoc
+    Location            : SrcLoc   
 
     //cast new properties
     acnMaxSizeInBits    : int
     acnMinSizeInBits    : int
-    alignment           : AcnAlignment option
+    alignment            : AcnAligment option
     acnEncodingClass    : NullAcnEncodingClass
 }
 
@@ -182,9 +182,9 @@ type NullType = {
 
 type StringAcnEncodingClass =
     | Acn_Enc_String_Ascii_FixSize                          of int                      //int = the size of the fixed ascii string
-    | Acn_Enc_String_Ascii_Null_Terminated                  of byte                     //byte = the null character
+    | Acn_Enc_String_Ascii_Null_Teminated                   of byte                     //byte = the null character
     | Acn_Enc_String_Ascii_External_Field_Determinant                                   //the determinant is exists withinh acnLinks
-    | Acn_Enc_String_Ascii_Internal_Field_Determinant       of int                      //int = size in bits of length determinant. This case is like uPER except that the ASCII value (8 bits) of the character is encoded and also no fragmentation
+    | Acn_Enc_String_Ascii_Internal_Field_Determinant       of int                      //int = size in bits of length determinant. This case is like uPER except that the ASCII value (8 bits) of the character is encoded and also no fragmentation     
     | Acn_Enc_String_CharIndex_FixSize                      of int                      //int = the size of the fixed string
     | Acn_Enc_String_CharIndex_External_Field_Determinant                               //external field
     | Acn_Enc_String_CharIndex_Internal_Field_Determinant   of int                      //int = size in bits of length determinant : this case is almost like uPER (except of fragmentation)
@@ -203,27 +203,27 @@ type StringType = {
     maxSize             : int
     charSet             : char array
     baseType            : StringType option
-    Location            : SrcLoc
+    Location            : SrcLoc   
 
     //cast new properties
     acnMaxSizeInBits    : int
     acnMinSizeInBits    : int
-    alignment           : AcnAlignment option
+    alignment            : AcnAligment option
     acnEncodingClass    : StringAcnEncodingClass
     //acnArguments        : IntArgument list
 }
-with
+with 
     member this.Cons     = this.cons
     member this.WithCons = this.withcons
     member this.AllCons  = this.cons@this.withcons
 
 
+        
 
-
-
+ 
 
 type SizeableAcnEncodingClass =
-    | FixedSize         of int                                  // Fix size, size is equal to minSize which is equal to maxSize
+    | FixedSize         of int                                  // Fix size, size is equal to minSize which is equal to maxSize 
     | AutoSize                                                  // like uPER but without fragmentation
     | ExternalField                                             // the external field is written in the links section
 
@@ -237,16 +237,16 @@ type OctetString = {
     minSize             : int
     maxSize             : int
     baseType            : OctetString option
-    Location            : SrcLoc
+    Location            : SrcLoc   
 
     //cast new properties
     acnMaxSizeInBits    : int
     acnMinSizeInBits    : int
-    alignment           : AcnAlignment option
+    alignment            : AcnAligment option
     acnEncodingClass    : SizeableAcnEncodingClass
     //acnArguments        : IntArgument list
 }
-with
+with 
     member this.Cons     = this.cons
     member this.WithCons = this.withcons
     member this.AllCons = this.cons@this.withcons
@@ -263,16 +263,16 @@ type BitString = {
     minSize             : int
     maxSize             : int
     baseType            : BitString option
-    Location            : SrcLoc
+    Location            : SrcLoc   
 
     //cast new properties
     acnMaxSizeInBits    : int
     acnMinSizeInBits    : int
-    alignment           : AcnAlignment option
+    alignment            : AcnAligment option
     acnEncodingClass    : SizeableAcnEncodingClass
     //acnArguments        : IntArgument list
 }
-with
+with 
     member this.Cons     = this.cons
     member this.WithCons = this.withcons
     member this.AllCons  = this.cons@this.withcons
@@ -290,32 +290,32 @@ type SequenceOf = {
     minSize             : int
     maxSize             : int
     baseType            : SequenceOf option
-    Location            : SrcLoc
+    Location            : SrcLoc   
 
     //cast new properties
     acnMaxSizeInBits    : int
     acnMinSizeInBits    : int
-    alignment           : AcnAlignment option
+    alignment            : AcnAligment option
     acnEncodingClass    : SizeableAcnEncodingClass
     //acnArguments        : GenericArgument list
 }
-with
+with 
     member this.Cons     = this.cons
     member this.WithCons = this.withcons
     member this.AllCons = this.cons@this.withcons
 
 
 
-and OptionalityEncodingClass =
+and OptionalalityEncodingClass = 
     | OptionLikeUper
-    | OptionExtField
+    | OptionExtField    
 
 and Optional = {
     defaultValue        : Asn1GenericValue option
-    ancEncodingClass    : OptionalityEncodingClass
+    ancEncodingClass    : OptionalalityEncodingClass
 }
 
-and Asn1Optionality =
+and Asn1Optionality = 
     | AlwaysAbsent
     | AlwaysPresent
     | Optional          of Optional
@@ -325,7 +325,7 @@ and SeqChildInfo = {
     name                :string
     chType              :Asn1Type
     optionality         :Asn1Optionality option
-    acnInsertedField    :bool
+    acnInsertetField    :bool
     comments            :string list
     c_name              : string
 }
@@ -340,15 +340,15 @@ and Sequence = {
     cons                : SequenceConstraint list
     withcons            : SequenceConstraint list
     baseType            : Sequence option
-    Location            : SrcLoc
+    Location            : SrcLoc   
 
     //cast new properties
     acnMaxSizeInBits    : int
     acnMinSizeInBits    : int
-    alignment           : AcnAlignment option
+    alignment           : AcnAligment option
     //acnArguments        : GenericArgument list
 }
-with
+with 
     member this.Cons     = this.cons
     member this.WithCons = this.withcons
     member this.AllCons = this.cons@this.withcons
@@ -357,8 +357,8 @@ with
 
 
 and ChoiceAcnEncClass =
-    | EmbeddedChoiceIndexLikeUper
-    | EnumDeterminant
+    | EmbededChoiceIndexLikeUper
+    | EnumDeterminant               
     | PresentWhenOnChildren
 
 and ChChildInfo = {
@@ -366,7 +366,7 @@ and ChChildInfo = {
     presentWhenName     :string     // the name of the corresponding enum that indicates that specific child is present
     chType              :Asn1Type
     comments            :string list
-    presenceIsHandleByExtField :bool
+    presenseIsHandleByExtField :bool
     c_name              : string
 }
 
@@ -380,16 +380,16 @@ and Choice = {
     cons                : ChoiceConstraint list
     withcons            : ChoiceConstraint list
     baseType            : Choice option
-    Location            : SrcLoc
+    Location            : SrcLoc   
     choiceIDForNone     : string
     //cast new properties
     acnMaxSizeInBits    : int
     acnMinSizeInBits    : int
     acnEncodingClass    : ChoiceAcnEncClass
-    alignment           : AcnAlignment option
+    alignment            : AcnAligment option
     //acnArguments        : GenericArgument list
 }
-with
+with 
     member this.Cons     = this.cons
     member this.WithCons = this.withcons
     member this.AllCons = this.cons@this.withcons
@@ -438,17 +438,17 @@ with
 
     member this.baseType =
         match this with
-        | Integer      t -> t.baseType |> Option.map Integer
-        | Real         t -> t.baseType |> Option.map Real
-        | IA5String    t -> t.baseType |> Option.map IA5String
-        | OctetString  t -> t.baseType |> Option.map OctetString
-        | NullType     t -> t.baseType |> Option.map NullType
-        | BitString    t -> t.baseType |> Option.map BitString
-        | Boolean      t -> t.baseType |> Option.map Boolean
-        | Enumerated   t -> t.baseType |> Option.map Enumerated
-        | SequenceOf   t -> t.baseType |> Option.map SequenceOf
-        | Sequence     t -> t.baseType |> Option.map Sequence
-        | Choice       t -> t.baseType |> Option.map Choice
+        | Integer      t -> t.baseType |> Option.map Integer     
+        | Real         t -> t.baseType |> Option.map Real        
+        | IA5String    t -> t.baseType |> Option.map IA5String   
+        | OctetString  t -> t.baseType |> Option.map OctetString 
+        | NullType     t -> t.baseType |> Option.map NullType    
+        | BitString    t -> t.baseType |> Option.map BitString   
+        | Boolean      t -> t.baseType |> Option.map Boolean     
+        | Enumerated   t -> t.baseType |> Option.map Enumerated  
+        | SequenceOf   t -> t.baseType |> Option.map SequenceOf  
+        | Sequence     t -> t.baseType |> Option.map Sequence    
+        | Choice       t -> t.baseType |> Option.map Choice      
     member this.uperMaxSizeInBits =
         match this with
         | Integer      t -> t.uperMaxSizeInBits
@@ -503,7 +503,7 @@ with
         | Sequence     t -> t.acnMaxSizeInBits
         | Choice       t -> t.acnMaxSizeInBits
 
-    member this.asn1Name =
+    member this.asn1Name = 
         match this.id with
         | ReferenceToType((GenericFold2.MD _)::(GenericFold2.TA tasName)::[])   -> Some tasName
         | _                                                                     -> None
@@ -549,42 +549,42 @@ let seqUPEROptionalChildren children =
 let seqAcnOptionalChildren children =
     children |> List.filter(fun c -> match c.optionality with Some (Optional _) -> true | _ -> false)
 let seqAcnOptionalChildrenHandledLikeuPER children=
-    children |>
-    List.filter(fun c ->
-        match c.optionality with
-        | Some (Optional o) ->
+    children |> 
+    List.filter(fun c -> 
+        match c.optionality with 
+        | Some (Optional o) -> 
             match o.ancEncodingClass with
             | OptionLikeUper    -> true
             | OptionExtField    -> false
         | _ -> false)
 
-type AcnLinkKind =
+type AcnLinkKind = 
     | SizeDeterminant                               // points to an integer type that acts as a size determinant to a SEQUENCE OF, BIT STRINT, OCTET STRING etc
     | RefTypeArgument of string                     // string is the param name
-    | PresenceBool                                  // points to a SEQUENCE or Choice child
-    | PresenceInt of BigInteger                     // points to a SEQUENCE or Choice child
+    | PresenceBool                                  // points to a SEQEUNCE or Choice child
+    | PresenceInt of BigInteger                     // points to a SEQEUNCE or Choice child
     | PresenceStr of string
-    | ChoiceDeterminant                           // points to Enumerated type acting as CHOICE determinant.
+    | ChoiceDeteterminant                           // points to Enumerated type acting as CHOICE determinant.
 with
-    override x.ToString() =
+    override x.ToString() =  
         match x with
         | SizeDeterminant                   -> "size"
         | RefTypeArgument argName           -> sprintf "RefArg<%s>" argName
         | PresenceBool                      -> "present-when-bool"
         | PresenceInt  vl                   -> sprintf "present-when-int %A" vl
         | PresenceStr stVal                 -> sprintf "present-when-str %s" stVal
-        | ChoiceDeterminant                 -> "choice-determinant"
+        | ChoiceDeteterminant               -> "choice-determinant"
 
 type AcnLink = {
     decType     : Asn1Type
     determinant : ReferenceToType
     linkType    : AcnLinkKind
 }
-with
-  override x.ToString() =
+with 
+  override x.ToString() =  
     let decType = x.decType.id.ToString()
-    let determinant = x.determinant.ToString()
-    sprintf "%s %s %s" decType (x.linkType.ToString() ) determinant
+    let determnant = x.determinant.ToString()
+    sprintf "%s %s %s" decType (x.linkType.ToString() ) determnant
 
 type AcnParameter = {
     ModName         : string
@@ -593,10 +593,11 @@ type AcnParameter = {
     Asn1Type        : AcnTypes.AcnAsn1Type
     Location        : SrcLoc
 }
-with
+with 
   member this.c_name = ToC this.Name
 
 
+//type AstRoot = AstRootTemplate<Asn1Type, BAst.AcnParameter>
 type AstRoot = {
     Files: list<Asn1File>
     args:CommandLineSettings

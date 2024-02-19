@@ -39,7 +39,7 @@ namespace LspServer
                 var line = b ? Int32.Parse(args[1]) : 0;
                 var charPos = b ? Int32.Parse(args[2]) : 0;
                 Console.WriteLine("Line = {0}, charPos = {1}", line, charPos);
-                var autoCompleteList =
+                var autoCompleteList = 
                     b ?
                     LspAutoComplete.lspAutoComplete(ws, acnLocalPath, line, charPos) :
                     LspAutoComplete.lspAutoComplete(ws, acnLocalPath, 4, 11);
@@ -77,7 +77,7 @@ namespace LspServer
 
             Log.Logger.Information("This only goes file...");
 
-            // IObserver<WorkDoneProgressReport> workDone = null!;
+            IObserver<WorkDoneProgressReport> workDone = null!;
 
             var server = await LanguageServer.From(
                 options =>
@@ -245,7 +245,7 @@ namespace LspServer
         {
             //_logger.LogInformation("***** ws is {0}", ws);
             List<Diagnostic> dia = new List<Diagnostic>();
-            var parserErrors =
+            var parserErrors = 
                 ws.files.Where(z => z.fileName == docUri.ToUri().LocalPath).
                 SelectMany(z => z.parseErrors).
                 Select(z => lspError2Diagnostic(z));
@@ -277,7 +277,7 @@ namespace LspServer
 
         public void onOpenDocument(DocumentUri docUri, string content)
         {
-
+            
             ws = Lsp.lspOnFileOpened(ws, docUri.ToUri().LocalPath, content);
         }
 
@@ -335,13 +335,13 @@ namespace LspServer
                 return;
             var files = Directory.GetFiles(dir);
 
-            var lspFiles =
-                files.Select(f =>
-                    new Lsp.FileLsp(f,
-                        f == fileName ?
-                            Microsoft.FSharp.Core.FSharpOption<String>.Some(fileContent) :
+            var lspFiles = 
+                files.Select(f => 
+                    new Lsp.FileLsp(f, 
+                        f == fileName ? 
+                            Microsoft.FSharp.Core.FSharpOption<String>.Some(fileContent) : 
                             Microsoft.FSharp.Core.FSharpOption<String>.None) );
-
+            
             Lsp.parseFilesLsp(lspFiles);
 
         }
@@ -384,7 +384,7 @@ namespace LspServer
         {
             var r = getFileResults(fileUri);
 
-            var token =
+            var token = 
                 r.tokens.Where(a => a.Line == line && a.CharPositionInLine <= charPos && charPos <= a.CharPositionInLine + a.Text.Length).FirstOrDefault();
             if (token == null)
                 return (null, null);

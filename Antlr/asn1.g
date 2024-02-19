@@ -72,7 +72,7 @@ tokens {
 	EXPORTS_ALL;
 	IMPORTS_FROM_MODULE;
 	ASN1_FILE;
-	OCTET_STRING;
+	OCTECT_STING;
 	SIMPLIFIED_SIZE_CONSTRAINT;
 	OBJECT_TYPE;
 	NUMBER_LST_ITEM;
@@ -121,7 +121,7 @@ public class SyntaxErrorException : Exception
     public SyntaxErrorException(string msg) : base(msg) { }
 }
 
-public class AntlrError
+public class AntlrError  
 {
     public int line;
     public int charPosInline;
@@ -208,9 +208,9 @@ public override string GetErrorHeader(RecognitionException e)
 /* *************************************    PARSER         ************************************************************* */
 /* ********************************************************************************************************************* */
 
-moduleDefinitions
+moduleDefinitions 
 	:	moduleDefinition+	->^(ASN1_FILE moduleDefinition+)
-	;
+	;	
 
 
 definitiveIdentifier
@@ -220,8 +220,8 @@ definitiveIdentifier
 definitiveObjIdComponent
 	:	identifier ( L_PAREN INT R_PAREN )?
 	|	INT
-	;
-
+	;	
+	
 moduleDefinition :  	a=modulereference	definitiveIdentifier?
 			d=DEFINITIONS
 			(EXPLICIT TAGS
@@ -243,50 +243,50 @@ moduleDefinition :  	a=modulereference	definitiveIdentifier?
 /*
 EXPLICIT TAGS (default)==> all tags in explicit mode (i.e. multiple tags per type are encoded in BER)
 IMPLICIT TAGS 	==>	all tags are implicit
-AUTOMATIC TAGS	==> the components of all its structured types (SEQUENCE,SET or CHOICE) are automatically tagged by the compiler starting
-	from 0 by one-increment. By default, every component is tagged in the implicit mode except if it is a CHOICE type, an open type or a parameter
+AUTOMATIC TAGS	==> the components of all its structured types (SEQUENCE,SET or CHOICE) are automatically tagged by the compiler starting 
+	from 0 by one-increment. By default, every component is tagged in the implicit mode except if it is a CHOICE type, an open type or a parameter 
 		that is a type.
 
 EXTENSIBILITY ==> An ENUMERATED, SEQUENCE, SET or CHOICE type that does not include an
 	extension marker is extensible if the module includes the EXTENSIBILITY
 	IMPLIED clause in its header
-*/
-
-
+*/			
+			
+			
 exports :
 	   a=EXPORTS ALL ';' -> EXPORTS_ALL[$a]
-	 | EXPORTS ((typereference | valuereference) (COMMA (typereference | valuereference))*)?  ';'
+	 | EXPORTS ((typereference | valuereference) (COMMA (typereference | valuereference))*)?  ';' 
 	 	-> ^(EXPORTS typereference* valuereference*)?
-;
+;			
 
 imports :
 	IMPORTS importFromModule*  ';'	-> importFromModule*
 	;
-
+	
 importFromModule
 	:	(typereference | valuereference) (COMMA (typereference | valuereference))* FROM modulereference definitiveIdentifier?
 		-> ^(IMPORTS_FROM_MODULE modulereference typereference* valuereference*  )
-	;
-
-
-valueAssignment
+	;	
+	
+	
+valueAssignment	
 	:	valuereference type a=ASSIG_OP value	 -> ^(VAL_ASSIG[$a] valuereference type value)
-	;
+	;		
 
-/*
+/*		
 valueSetAssignment
 	:	typereference type '::=' L_BRACKET setOfValues R_BRACKET    -> ^(VAL_SET_ASSIG typereference type setOfValues)
-	;
-*/
-typeAssignment
+	;		
+*/	
+typeAssignment 
 	:	/*SPECIAL_COMMENT**/ typereference paramList? a=ASSIG_OP type -> ^(TYPE_ASSIG[$a] typereference type paramList?/*SPECIAL_COMMENT* */)
-	;
+	;	
 
-paramList
+paramList 
 	:
 		'{' param (COMMA param)* '}'		-> ^(PARAM_LIST param*)
 	;
-
+	
 param
 	:	UID									->^(TYPE_PARAM	UID)
 	|   type ':' LID						->^(VALUE_PARAM type LID)
@@ -296,21 +296,21 @@ param
 /* ********************************************************************************************************************* */
 
 typeTag
-	:	a='[' (t=UNIVERSAL | t=APPLICATION | t=PRIVATE)? (INT|val=valuereference)  ']' ( impOrExp=IMPLICIT | impOrExp=EXPLICIT)?
+	:	a='[' (t=UNIVERSAL | t=APPLICATION | t=PRIVATE)? (INT|val=valuereference)  ']' ( impOrExp=IMPLICIT | impOrExp=EXPLICIT)? 	
 			-> ^(TYPE_TAG[$a] $t? INT? ^(VALUE_REFERENCE[(IToken)val.Start] $val)? $impOrExp?)
 	;
-
+	
 /*
 * In a given context, two tags are considered to be diferent if they are of diferent classes or if their respective numbers are diferent.
 * If tagging class is missing (i.e. no UNIVERSAL, or  APPLICATION, or PRIVATE) are of context-specific class --> The tags make sense only inside the scope
 	of the Father (father may be SEQUENCE, SET etc) --> they do not polute the global space
-* UNIVERSAL   ==> used by people designing/extending ASN.1
+* UNIVERSAL   ==> used by people designing/extending ASN.1 
 * APPLICATION ==> to tag types that would be referenced several times in a speci?cation
 * PRIVATE ==> use of PRIVATE class tags is not recommended since 1994
 * EXPLICIT (Default)==> In BER, more than one tags are encoded. Eg in Afters ::= CHOICE { cheese [0] IA5String, dessert [1] IA5String }
 			the two tags [0] and [UNIVERSAL 22] are encoded if the alternative cheese is chosen
 * IMPLICIT ==> Only one tag is encoded ; a tag marked IMPLICIT overwrites the tag that follows it (recursively)
-*/
+*/		
 
 /*
 Note on constraints
@@ -320,7 +320,7 @@ applies on the type appearing after the keywords SEQUENCE OF or SET OF
 FOR THIS REASON sequenceOfType AND setOfType ARE NOT FOLLOWED BY A constraint*
 If Type is a reference to a SEQUENCE OF or SET OF type,
 the Constraint applies to the SEQUENCE OF or SET OF type, and not to
-the type that follows these keywords.
+the type that follows these keywords.		
 (2) If several Constraints appear one after the other after Type, the possible
 values for this type are those of the intersection of constraints .
 
@@ -349,9 +349,9 @@ type	: typeTag?
 ;
 
 
+	
 
-
-selectionType	:
+selectionType	:	
 	identifier a=LESS_THAN type								->^(SELECTION_TYPE[$a] identifier type)
 ;
 
@@ -373,23 +373,23 @@ bitStringType
 	:	a=BIT STRING (L_BRACKET (bitStringItem (COMMA bitStringItem )* )? R_BRACKET )?	-> ^(BIT_STRING_TYPE[$a] bitStringItem*)
 	;
 
-bitStringItem
+bitStringItem 
 	:	identifier a=L_PAREN (INT|definedValue) R_PAREN		->  ^(NUMBER_LST_ITEM[$a] identifier INT? definedValue?)
-	;
-
+	;	
+	
 booleanType
 	:	BOOLEAN
 	;
-
-enumeratedType
+	
+enumeratedType 
 	:	a=ENUMERATED L_BRACKET en1=enumeratedTypeItems  ( COMMA ext=EXT_MARK exceptionSpec? (COMMA en2=enumeratedTypeItems)? )? R_BRACKET
 	-> ^(ENUMERATED_TYPE[$a] $en1 ($ext exceptionSpec? $en2?) ?)
 	;
 /*
-enumeratedTypeItems2
+enumeratedTypeItems2 
 	:	 enumItemNoValue  (COMMA enumItemNoValue)* ->enumItemNoValue+
 	|	 enumItemWithValue  (COMMA enumItemWithValue)* 		->enumItemWithValue+
-	;
+	;		
 
 enumItemNoValue
 	:	identifier -> ^(NUMBER_LST_ITEM identifier )
@@ -400,12 +400,12 @@ enumItemWithValue
 	;
 */
 
-enumeratedTypeItems
+enumeratedTypeItems 
 	:	 enumeratedLstItem (COMMA enumeratedLstItem)* ->enumeratedLstItem+
-	;
+	;		
 
 
-enumeratedLstItem	:
+enumeratedLstItem	:	
 	identifier ( L_PAREN (INT|val=valuereference) R_PAREN)? -> ^(NUMBER_LST_ITEM identifier INT? ^(VALUE_REFERENCE[(IToken)val.Start] $val)?)
 ;
 
@@ -413,63 +413,63 @@ enumeratedLstItem	:
 integerType
 	:	a=INTEGER ( L_BRACKET (integerTypeListItem (COMMA integerTypeListItem)*)? R_BRACKET)?	-> ^(INTEGER_TYPE[$a] integerTypeListItem*)
 	;
-
-integerTypeListItem
+	
+integerTypeListItem 
 	:	identifier a=L_PAREN (INT|val=valuereference) R_PAREN	-> ^(NUMBER_LST_ITEM[$a] identifier INT? ^(VALUE_REFERENCE[(IToken)val.Start] $val)?)
-	;
-
-realType
+	;	
+	
+realType 
 	:	REAL
 	;
-
-
+	
+	
 choiceType
 	:	a=CHOICE L_BRACKET choiceItemsList choiceExtensionBody? R_BRACKET
 	-> ^(CHOICE_TYPE[$a] choiceItemsList choiceExtensionBody?)
 	;
-
+	
 choiceExtensionBody
-	:	COMMA a=EXT_MARK exceptionSpec?  choiceListExtension?   (COMMA extMark2=EXT_MARK)?
+	:	COMMA a=EXT_MARK exceptionSpec?  choiceListExtension?   (COMMA extMark2=EXT_MARK)?  
 		-> ^(CHOICE_EXT_BODY[$a] exceptionSpec? choiceListExtension? $extMark2?)
-	;
+	;	
 
 choiceItemsList
 	:	choiceItem (COMMA choiceItem)*	-> choiceItem+
 	;
-
+	
 choiceItem
 	:	identifier type				->  ^(CHOICE_ITEM identifier type )
-	;
+	;	
 
 choiceListExtension
 	:	COMMA extensionAdditionAlternative (COMMA extensionAdditionAlternative)*	->	extensionAdditionAlternative+
-	;
-
+	;	
+	
 extensionAdditionAlternative
 	:	 a='[[' versionNumber? choiceItemsList ']]'	-> ^(CHOICE_EXT_ITEM[$a] versionNumber? choiceItemsList)
 		| choiceItem
-	;
+	;	
 
 sequenceType
 	:	a=SEQUENCE L_BRACKET sequenceOrSetBody?  R_BRACKET -> ^(SEQUENCE_TYPE[$a] L_BRACKET R_BRACKET sequenceOrSetBody?)
 	;
-
+	
 setType	:	a=SET L_BRACKET sequenceOrSetBody?  R_BRACKET -> ^(SET_TYPE[$a] sequenceOrSetBody?)
-	;
-
+	;	
+	
 sequenceOrSetBody	:
 		  componentTypeList ( COMMA seqOrSetExtBody)?		-> ^(SEQUENCE_BODY componentTypeList seqOrSetExtBody?)
 		| seqOrSetExtBody								-> ^(SEQUENCE_BODY seqOrSetExtBody)
 	;
-
+	
 seqOrSetExtBody
 	:	a=EXT_MARK exceptionSpec? (COMMA extensionAdditionList)? (COMMA extMark2=EXT_MARK   (COMMA componentTypeList )? )?
 	->	^(SEQUENCE_EXT_BODY[$a] exceptionSpec? extensionAdditionList? $extMark2? componentTypeList?)
-	;
-
+	;	
+	
 extensionAdditionList
 	:	extensionAddition (COMMA extensionAddition)*		-> extensionAddition+
-	;
+	;	
 
 extensionAddition
 	:	componentType
@@ -479,27 +479,27 @@ extensionAdditionGroup
 	:	a='[[' versionNumber? componentTypeList ']]'	-> ^(SEQUENCE_EXT_GROUP[$a] versionNumber? componentTypeList)
 	;
 
-componentTypeList
+componentTypeList 
 	:	componentType  (COMMA componentType )*		-> componentType+
 	;
-
+	
 componentType
 	:	 identifier type (optOrDef=OPTIONAL | optOrDef=DEFAULT value)?	-> ^(SEQUENCE_ITEM identifier type $optOrDef? ^(DEFAULT_VALUE value)? )
 		| a=COMPONENTS OF referencedType											-> ^(COMPONENTS_OF[$a] referencedType)
-	;
-
+	;	
+	
 sequenceOfType
-	:	a=SEQUENCE (sizeShortConstraint | constraint)?  UNITS? OF (identifier)? type
+	:	a=SEQUENCE (sizeShortConstraint | constraint)?  UNITS? OF (identifier)? type			
 		-> ^(SEQUENCE_OF_TYPE[$a] sizeShortConstraint? constraint?  UNITS? identifier? type )
 	;
-
+	
 setOfType
 	:	a=SET (sizeShortConstraint | constraint)?  UNITS? OF (identifier)? type				-> ^(SET_OF_TYPE[$a] sizeShortConstraint? constraint?  UNITS? identifier? type )
-	;
+	;		
 
-
+	
 stringType	:
-	 a=OCTET STRING	->	OCTET_STRING[$a]
+	 a=OCTET STRING	->	OCTECT_STING[$a]
 	|NumericString
 	|PrintableString
 	|VisibleString
@@ -514,41 +514,41 @@ stringType	:
 	|GeneralizedTime
 	|UTCTime
 	;
-
+	
 timeType : a=TIME L_PAREN SETTINGS StringLiteral R_PAREN  -> ^(TIME_TYPE[$a] StringLiteral)
 	;
 
 referencedType
 	:	str1=UID ('.' str2=UID)?						 -> ^(REFERENCED_TYPE[$str1] $str1 $str2? )
 	|	str1=UID ('.' str2=UID)?	actualParameterList  -> ^(PREFERENCED_TYPE[$str1] $str1 $str2? actualParameterList?)
-	;
+	;	
 
 
-actualParameterList
+actualParameterList 
 	: '{' actualParameter (COMMA actualParameter)* '}'		-> ^(ACTUAL_PARAM_LIST actualParameter+)
 	;
-
-actualParameter
+	
+actualParameter 
 	:  type			-> ^(ACTUAL_TYPE_PARAM type)
 	| value			-> ^(ACTUAL_VALUE_PARAM value)
-	;
+	;	
 /* ********************************************************************************************************************* */
 /* *************************************** VALUES DEFINITION *********************************************************** */
 /* ********************************************************************************************************************* */
 
 choiceValue :	identifier a=':' value	->^(CHOICE_VALUE[$a] identifier value)
-	;
+	;	
 
 namedValue 	:	a=identifier value		->^(NAMED_VALUE[(IToken)a.Start] identifier value)
 	;
-
+	
 /*
-To resolve another grammar Ambiguity, we no more declare bitStringValue. The parser will only return valueList. Extra checking
+To resolve another grammar Ambiguouity, we no more declare bitStringValue. The parser will only return valueList. Extra checking 
 must be done during semantic checking.
 bitStringValue
 	:	L_BRACKET identifier (COMMA identifier)* R_BRACKET		->^(BIT_STRING_VALUE identifier+)
 	;
-*/
+*/	
 
 
 /*
@@ -575,14 +575,14 @@ value	:
 	| a=L_BRACKET namedValue (COMMA namedValue)* R_BRACKET 	->^(NAMED_VALUE_LIST[$a] namedValue+)
 	| a=L_BRACKET value (COMMA value)* R_BRACKET			->^(VALUE_LIST[$a] value+)
 	| a=L_BRACKET objectIdentifierComponent+ R_BRACKET		->^(OBJECT_ID_VALUE[$a] objectIdentifierComponent+ )
-	;
-
-
+	;	
+	
+	
 /*
 a CharacterStringValue is
 	a string literal
 tuple		:   L_BRACKET INT COMMA INT R_BRACKET	;
-*/
+*/	
 
 objectIdentifierComponent
 	:	identifier ( L_PAREN (INT | definedValue) R_PAREN )?	->^(OBJ_LST_ITEM1 identifier INT? definedValue?) //3 cases identifier or valuereference or identifier(number)
@@ -599,34 +599,34 @@ definedValue
 /* ********************************************************************************************************************* */
 /* *************************************** Constraints DEFINITION ****************************************************** */
 /* ********************************************************************************************************************* */
-constraint
-	:	L_PAREN! unionConstraint (COMMA! EXT_MARK^ (COMMA! unionConstraint)?  exceptionSpec?)? R_PAREN!
+constraint 
+	:	L_PAREN! unionConstraint (COMMA! EXT_MARK^ (COMMA! unionConstraint)?  exceptionSpec?)? R_PAREN!			
 	;
 
-exceptionSpec
-	:	'!'
+exceptionSpec 
+	:	'!' 
 	(
 		 INT											-> ^(EXCEPTION_SPEC  ^(EXCEPTION_SPEC_CONST_INT INT))
 		|val=valuereference								-> ^(EXCEPTION_SPEC  ^(EXCEPTION_SPEC_VAL_REF ^(VALUE_REFERENCE[(IToken)val.Start] $val)))
 		|type ':' value									-> ^(EXCEPTION_SPEC  ^(EXCEPTION_SPEC_TYPE_VALUE type value))
 	)
-
+														
 	;
 
 
 unionConstraint
-	:	intersectionConstraint (UnionMark^ intersectionConstraint)*
+	:	intersectionConstraint (UnionMark^ intersectionConstraint)*			
 	|	ALL EXCEPT constraintExpression									->	^(ALL_EXCEPT constraintExpression)
-	;
-
+	;	
+	
 //	UNION_ELEMENT2 is synonymous to INTERSECTION_SET
 intersectionConstraint
-	:	exceptConstraint (IntersectionMark^ exceptConstraint)*
-	;
-
-exceptConstraint
-	:	ex1=constraintExpression (EXCEPT^ ex2=constraintExpression)?
-	;
+	:	exceptConstraint (IntersectionMark^ exceptConstraint)*	
+	;	
+	
+exceptConstraint 
+	:	ex1=constraintExpression (EXCEPT^ ex2=constraintExpression)?			
+	;	
 
 //The grammar is unambigues since (NULL) can be interpreted as both single value constraint and Type inclusion constraint
 
@@ -641,10 +641,10 @@ constraintExpression
 	| innerTypeExpression
 	| patternExpression
 	| L_PAREN unionConstraint R_PAREN	->	unionConstraint
-	;
-
+	;	
+	
 valueRangeExpression
-	: minVal=lowerEndValue  ((minIncl='<')? DOUBLE_DOT (maxIncl='<')? maxVal=upperEndValue)?
+	: minVal=lowerEndValue  ((minIncl='<')? DOUBLE_DOT (maxIncl='<')? maxVal=upperEndValue)?			
 		-> ^(VALUE_RANGE_EXPR $minVal ^(MAX_VAL_PRESENT $maxVal)?  ^(MIN_VAL_INCLUDED[$minIncl] $minIncl)? ^(MAX_VAL_INCLUDED[$maxIncl] $maxIncl) ? )
 	;
 
@@ -653,10 +653,10 @@ lowerEndValue
 	| MIN
 	;
 
-upperEndValue
+upperEndValue 
 	:	value
 	| MAX
-	;
+	;		
 
 
 subtypeExpression: bInlc=INCLUDES? referencedType		-> ^(SUBTYPE_EXPR referencedType $bInlc?)
@@ -664,33 +664,33 @@ subtypeExpression: bInlc=INCLUDES? referencedType		-> ^(SUBTYPE_EXPR referencedT
 
 sizeExpression : a=SIZE constraint			-> ^(SIZE_EXPR[$a] constraint)
 	;
-
+	
 permittedAlphabetExpression : a=FROM constraint	-> ^(PERMITTED_ALPHABET_EXPR[$a] constraint)
 	;
 
-innerTypeExpression
+innerTypeExpression 
 	: a=WITH COMPONENT constraint											-> ^(WITH_COMPONENT_CONSTR[$a] constraint)
 	| a=WITH COMPONENTS L_BRACKET
 			( EXT_MARK COMMA)?
-			namedConstraintExpression  (COMMA namedConstraintExpression)*
+			namedConstraintExpression  (COMMA namedConstraintExpression)* 
 		R_BRACKET
 		-> ^(WITH_COMPONENTS_CONSTR[$a] EXT_MARK? namedConstraintExpression+)
 	;
 
 namedConstraintExpression
-	:	identifier  (constraint)? (eNum=PRESENT|eNum=ABSENT | eNum=OPTIONAL)?
+	:	identifier  (constraint)? (eNum=PRESENT|eNum=ABSENT | eNum=OPTIONAL)?		
 						-> ^(NAME_CONSTRAINT_EXPR identifier ^(INNER_CONSTRAINT constraint)? ^(EXT_MARK $eNum)?)
-	;
+	;	
 
 patternExpression : a=PATTERN value		-> ^(PATTERN_EXPR[$a] value)
 	;
-
+	
 
 
 lID	:	LID;
 modulereference	:	UID;
 typereference	:	UID;
-valuereference 	:	LID;
+valuereference 	:	LID;		
 identifier	:	LID;
 versionNumber	:	INT ':'	->	INT;
 objectIdentifier	:	a=OBJECT IDENTIFIER	->OBJECT_TYPE[$a];
@@ -712,7 +712,7 @@ relativeOID	:	RELATIVE_OID;
 /* ***************************************************************************************************************** */
 
 PLUS_INFINITY : 'PLUS-INFINITY';
-MINUS_INFINITY	: 'MINUS-INFINITY';
+MINUS_INFINITY	: 'MINUS-INFINITY';		
 GeneralizedTime  :	'GeneralizedTime';
 UTCTime  :	'UTCTime';
 MANTISSA	: 'mantissa';
@@ -758,7 +758,7 @@ FALSE	:	'FALSE';
 ABSENT	:	'ABSENT';
 PRESENT	:	'PRESENT';
 WITH 	:	'WITH';
-COMPONENT	: 'COMPONENT';
+COMPONENT	: 'COMPONENT';		
 COMPONENTS 	: 'COMPONENTS';
 DEFAULT 	: 'DEFAULT';
 NULL		:'NULL';
@@ -781,8 +781,8 @@ INCLUDES	:'INCLUDES';
 EXCEPT		:'EXCEPT';
 SET		:'SET';
 ASSIG_OP		: '::=';
-L_BRACKET	:	'{';
-R_BRACKET	:	'}';
+L_BRACKET	:	'{';	
+R_BRACKET	:	'}';	
 L_PAREN		:	'(';
 R_PAREN		:	')';
 COMMA		:	',';
@@ -797,7 +797,7 @@ LESS_THAN			: '<';
 BitStringLiteral	:
 	'\'' ('0'|'1'|' ' | '\t' | '\r' | '\n')* '\'B'
 	;
-
+	
 
 
 
@@ -809,7 +809,7 @@ StringLiteral 	: 	STR+ ;
 
 fragment
 STR 	:	'"' ( options {greedy=false;} : .)* '"' ;
-
+			
 UID  :   ('A'..'Z') ('a'..'z'|'A'..'Z'|'0'..'9'|'-')* {if (Text.Contains("--"))
                 {
                         MismatchedSetException mse = new MismatchedSetException(null, input);
@@ -827,11 +827,11 @@ LID  :   ('a'..'z') ('a'..'z'|'A'..'Z'|'0'..'9'|'-')* {if (Text.Contains("--"))
     ;
 
 
-fragment
+fragment	
 INT	:	('+'|'-')? ( '0' | ('1'..'9') ('0'..'9')*);
 
 
-
+	
 fragment
 DIGITS
 	:	('0'..'9')+;
@@ -845,17 +845,17 @@ FloatingPointLiteral
           $r.Type = DOUBLE_DOT;
     	  Emit($r);$r.Line = input.Line;
     	  }
-    |	  INT DOT (DIGITS)? (Exponent)?
+    |	  INT DOT (DIGITS)? (Exponent)? 
     | 	d = INT { $d.Type = INT; Emit($d);$d.Line = input.Line;}
     ;
 
-
-
-DOT	:	 '.';
+	
+	
+DOT	:	 '.';	
 
 
 UNITS
-    :   '--{' ( options {greedy=false;} : . )* '}--'
+    :   '--{' ( options {greedy=false;} : . )* '}--' 
     ;
 
 
@@ -865,7 +865,7 @@ Exponent : ('e'|'E') ('+'|'-')? ('0'..'9')+ ;
 
 
 WS  :   (' ' | '\t' | '\r' | '\n')+ {$channel=HIDDEN;}
-    ;
+    ;    
 
 COMMENT
     :   '/*' ( options {greedy=false;} : . )* '*/' {$channel=HIDDEN;}

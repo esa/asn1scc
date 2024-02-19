@@ -11,7 +11,7 @@ PrintModule(sName, arrsTas, arrsVas, sExports, arrsImportsFromModule, arrsCommen
 <arrsComments : {l | -- <l>}; separator="\n">
 
 <endif>
-<sName> DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+<sName> DEFINITIONS AUTOMATIC TAGS ::= BEGIN 
 <if(sExports)>
     EXPORTS
         <sExports>
@@ -24,7 +24,7 @@ PrintModule(sName, arrsTas, arrsVas, sExports, arrsImportsFromModule, arrsCommen
     ;
 <endif>
 
-
+    
     <arrsTas: {tas|<tas>}; separator="\n\n">
 
     <arrsVas: {vas|<vas>}; separator="\n\n">
@@ -124,42 +124,42 @@ Print_ReferenceType2(sModName, sName, arrsConstraints) ::= "<sModName>.<sName><a
 
 /* Print Values */
 
-Print_IntegerValue(nVal) ::= "<nVal>"
-Print_RealValue(dVal) ::= "<dVal>"
-Print_StringValue(v) ::= "\"<v>\""
-Print_TimeValue(v) ::= "\"<v>\""
-Print_BooleanValue(bVal) ::= "<bVal>"
-Print_BitStringValue(v) ::= "<v>"
+Print_IntegerValue(nVal) ::= "<nVal>"    
+Print_RealValue(dVal) ::= "<dVal>"       
+Print_StringValue(v) ::= "\"<v>\""     
+Print_TimeValue(v) ::= "\"<v>\""     
+Print_BooleanValue(bVal) ::= "<bVal>"    
+Print_BitStringValue(v) ::= "<v>"  
 Print_OctetStringValue(arruOctets) ::= "'<arruOctets:{b|<b;format=\"X2\">}>'H"
-Print_RefValue(sName) ::= "<sName>"
+Print_RefValue(sName) ::= "<sName>"        
 Print_SeqOfValue(arrsValues) ::= "{<arrsValues: {ch|<ch>}; separator=\", \">}"
 Print_SeqValue_Child(sName, sChildValue) ::= "<sName> <sChildValue>"
-Print_SeqValue(arrsValues) ::= "{<arrsValues: {ch|<ch>}; separator=\", \">}"
-Print_ChValue(sAltName,sAltValue) ::= "<sAltName>:<sAltValue>"
-Print_NullValue() ::= "NULL"
+Print_SeqValue(arrsValues) ::= "{<arrsValues: {ch|<ch>}; separator=\", \">}"        
+Print_ChValue(sAltName,sAltValue) ::= "<sAltName>:<sAltValue>"         
+Print_NullValue() ::= "NULL"       
 
-Print_ObjOrRelObjIdValue(arrsValues) ::= "{<arrsValues: {ch|<ch>}; separator=\" \">}"
+Print_ObjOrRelObjIdValue(arrsValues) ::= "{<arrsValues: {ch|<ch>}; separator=\" \">}"        
 
 
 /* Print Constraints */
 
-Print_SingleValueConstraint(v) ::= "(<v>)"
-Print_RangeConstraint(v1,v2,bMin, bMax) ::= "(<v1><if(!bMin)>\<<endif> .. <if(!bMax)>\<<endif><v2>)"
-Print_RangeConstraint_val_MAX(v, bMin) ::= "(<v><if(!bMin)>\<<endif> .. MAX)"
-Print_RangeConstraint_MIN_val(v, bMax) ::= "(MIN .. <if(!bMax)>\<<endif><v>)"
-Print_RangeConstraint_MIN_MAX() ::= "(MIN .. MAX)"
-Print_TypeInclusionConstraint(sRefName) ::= "(<sRefName>)"
-Print_SizeConstraint(sInnerConstraint) ::= "(SIZE<sInnerConstraint>)"
-Print_AlphabetConstraint(sInnerConstraint) ::= "(FROM<sInnerConstraint>)"
-Print_UnionConstraint(sInnerConstraint1, sInnerConstraint2) ::= "(<sInnerConstraint1> | <sInnerConstraint2>)"
-Print_IntersectionConstraint(sInnerConstraint1, sInnerConstraint2) ::= "(<sInnerConstraint1> ^ <sInnerConstraint2>)"
-Print_AllExceptConstraint(sInnerConstraint) ::= "(ALL EXCEPT <sInnerConstraint>)"
-Print_ExceptConstraint(sInnerConstraint1,sInnerConstraint2) ::= "(<sInnerConstraint1> EXCEPT <sInnerConstraint2>)"
-Print_RootConstraint(sInnerConstraint) ::= "(<sInnerConstraint>,...)"
-Print_RootConstraint2(sInnerConstraint1, sInnerConstraint2) ::= "(<sInnerConstraint1>,...,<sInnerConstraint2>)"
-Print_WithComponentConstraint(sInnerConstraint) ::= "(WITH COMPONENT<sInnerConstraint>)"
-Print_WithComponentsConstraint_child(sName, sConstraint, sPresMark) ::= "<sName> <sConstraint> <sPresMark>"
-Print_WithComponentsConstraint(arrsInnerConstraints) ::= "(WITH COMPONENTS{<arrsInnerConstraints: {ch|<ch>}; separator=\",\n \">})"
+Print_SingleValueContraint(v) ::= "(<v>)"       
+Print_RangeContraint(v1,v2,bMin, bMax) ::= "(<v1><if(!bMin)>\<<endif> .. <if(!bMax)>\<<endif><v2>)"
+Print_RangeContraint_val_MAX(v, bMin) ::= "(<v><if(!bMin)>\<<endif> .. MAX)"
+Print_RangeContraint_MIN_val(v, bMax) ::= "(MIN .. <if(!bMax)>\<<endif><v>)"
+Print_RangeContraint_MIN_MAX() ::= "(MIN .. MAX)"
+Print_TypeInclusionConstraint(sRefName) ::= "(<sRefName>)"    
+Print_SizeContraint(sInnerConstraint) ::= "(SIZE<sInnerConstraint>)"              
+Print_AlphabetContraint(sInnerConstraint) ::= "(FROM<sInnerConstraint>)"          
+Print_UnionConstraint(sInnerConstraint1, sInnerConstraint2) ::= "(<sInnerConstraint1> | <sInnerConstraint2>)"            
+Print_IntersectionConstraint(sInnerConstraint1, sInnerConstraint2) ::= "(<sInnerConstraint1> ^ <sInnerConstraint2>)"     
+Print_AllExceptConstraint(sInnerConstraint) ::= "(ALL EXCEPT <sInnerConstraint>)"        
+Print_ExceptConstraint(sInnerConstraint1,sInnerConstraint2) ::= "(<sInnerConstraint1> EXCEPT <sInnerConstraint2>)"           
+Print_RootConstraint(sInnerConstraint) ::= "(<sInnerConstraint>,...)"             
+Print_RootConstraint2(sInnerConstraint1, sInnerConstraint2) ::= "(<sInnerConstraint1>,...,<sInnerConstraint2>)"            
+Print_WithComponentConstraint(sInnerConstraint) ::= "(WITH COMPONENT<sInnerConstraint>)"    
+Print_WithComponentsConstraint_child(sName, sContraint, sPresMark) ::= "<sName> <sContraint> <sPresMark>"
+Print_WithComponentsConstraint(arrsInnerConstraints) ::= "(WITH COMPONENTS{<arrsInnerConstraints: {ch|<ch>}; separator=\",\n \">})"   
 
 
 

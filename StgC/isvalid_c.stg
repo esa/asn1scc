@@ -3,6 +3,10 @@
 rtlModuleName() ::= ""
 
 
+getStringSize(p) ::= "strlen(<p>)"
+
+
+
 JoinItems(sPart, soNestedPart) ::= <<
 <sPart>
 <if(soNestedPart)>
@@ -38,20 +42,20 @@ always_false_statement(sErrorCodeName)::= <<
 ret = FALSE;                        /*COVERAGE_IGNORE*/
 *pErrCode = <sErrorCodeName>;       /*COVERAGE_IGNORE*/
 >>
-
+ 
 
 makeExpressionToStatement0(sIsValidExp) ::= <<
 ret = <sIsValidExp>;
 >>
 
 convertVCBExpressionToStatementAndUpdateErrCode(sIsValidExp, sErrCode) ::= <<
-ret = <sIsValidExp>;
-*pErrCode = ret ? 0 :  <sErrCode>;
+ret = <sIsValidExp>; 
+*pErrCode = ret ? 0 :  <sErrCode>; 
 >>
 
 convertVCBStatementToStatementAndUpdateErrCode(sStatement, sErrCode) ::= <<
 <sStatement>
-*pErrCode = ret ? 0 :  <sErrCode>;
+*pErrCode = ret ? 0 :  <sErrCode>; 
 >>
 
 convertVCBTRUEToStatementAndUpdateErrCode() ::= <<
@@ -113,7 +117,7 @@ ExpLt(sExp1, sExp2) ::= "(<sExp1> \< <sExp2>)"
 ExpLte(sExp1, sExp2) ::= "(<sExp1> \<= <sExp2>)"
 ExpOr(sExp1, sExp2) ::= "((<sExp1>) || (<sExp2>))"
 ExpAnd(sExp1, sExp2) ::= "(<sExp1> && <sExp2>)"
-ExpAndMulti(arrsExp) ::= <<
+ExpAndMulit(arrsExp) ::= <<
 <arrsExp; separator=" && ">
 >>
 ExpNot(sExp) ::= "(!<sExp>)"
@@ -121,11 +125,11 @@ StrLen(sExp) ::= "strlen(<sExp>)"
 ArrayLen(sExp, sAcc) ::= "<sExp><sAcc>nCount"
 
 
-ExpressionToStatement(sExp1) ::=<<
+ExpressionToStament(sExp1) ::=<<
 ret = <sExp1>;
 >>
 
-StatementOrStatement(sStat1, sStat2) ::= <<
+StatementOrStament(sStat1, sStat2) ::= <<
 <sStat1>
 if (!ret) {
     <sStat2>
@@ -133,8 +137,8 @@ if (!ret) {
 >>
 
 
-ExpressionOrStatement(sExp1, sStat2) ::= <<
-ret = <sExp1>;
+ExpressionOrStament(sExp1, sStat2) ::= <<
+ret = <sExp1>; 
 if (!ret) {
     <sStat2>
 }
@@ -147,14 +151,14 @@ if (!ret) {
 }
 >>
 
-StatementAndStatement(sStat1, sStat2) ::= <<
+StatementAndStament(sStat1, sStat2) ::= <<
 <sStat1>
 if (ret) {
     <sStat2>
 }
 >>
 
-ExpressionAndStatement(sExp1, sStat2) ::= <<
+ExpressionAndStament(sExp1, sStat2) ::= <<
 ret = <sExp1>;
 if (ret) {
     <sStat2>
@@ -173,7 +177,7 @@ StatementNot(sStat) ::= <<
 ret = !ret;
 >>
 
-StatementExceptStatement(sStat1, sStat2) ::= <<
+StatementExceptStament(sStat1, sStat2) ::= <<
 <sStat1>
 if (ret) {
     <sStat2>
@@ -181,7 +185,7 @@ if (ret) {
 }
 >>
 
-ExpressionExceptStatement(sExp1, sStat2) ::= <<
+ExpressionExceptStament(sExp1, sStat2) ::= <<
 ret = <sExp1>;
 if (ret) {
     <sStat2>
@@ -197,7 +201,7 @@ if (ret) {
 >>
 
 StatementForLoop(p, sAcc, i, bIsFixedSize, nFixedSize, sInnerStatement) ::= <<
-for(<i> = 0; ret && <i> \< <if(!bIsFixedSize)><p><sAcc>nCount<else><nFixedSize><endif>; <i>++)
+for(<i> = 0; ret && <i> \< <if(!bIsFixedSize)><p><sAcc>nCount<else><nFixedSize><endif>; <i>++) 
 {
 	<sInnerStatement>
 }
@@ -206,7 +210,7 @@ for(<i> = 0; ret && <i> \< <if(!bIsFixedSize)><p><sAcc>nCount<else><nFixedSize><
 
 
 Print_AlphabetCheckFunc(sFuncName, arrsAlphaConBody) ::= <<
-flag <sFuncName>(const char* str)
+flag <sFuncName>(const char* str) 
 {
     flag ret=TRUE;
     int i=0;
@@ -221,7 +225,7 @@ flag <sFuncName>(const char* str)
 
 
 
-SingleValConstraint(p, v) ::= "(<p> == <v>)"
+SingleValContraint(p, v) ::= "(<p> == <v>)"
 
 
 
@@ -229,11 +233,11 @@ SingleValConstraint(p, v) ::= "(<p> == <v>)"
 
 stringContainsChar(sStrVal, p) ::= "strchr(<sStrVal>, <p>)"
 
-RangeConstraint(p, v1, v2, bMin, bMax) ::= "(<v1> \<<if(bMin)>=<endif> <p> && <p> \<<if(bMax)>=<endif> <v2>)"
+RangeContraint(p, v1, v2, bMin, bMax) ::= "(<v1> \<<if(bMin)>=<endif> <p> && <p> \<<if(bMax)>=<endif> <v2>)"
 
-RangeConstraint_val_MAX(p, v, bMin) ::= "(<p> ><if(bMin)>=<endif> <v>)"
+RangeContraint_val_MAX(p, v, bMin) ::= "(<p> ><if(bMin)>=<endif> <v>)"
 
-RangeConstraint_MIN_val(p, v, bMax) ::= "(<p> \<<if(bMax)>=<endif> <v>)"
+RangeContraint_MIN_val(p, v, bMax) ::= "(<p> \<<if(bMax)>=<endif> <v>)"
 
 
 AND_Constraint(sCon1, sCon2) ::= "(<sCon1> && <sCon2>)"
@@ -292,7 +296,7 @@ Sequence_optional_child_always_present_or_absent_expr(p, sAcc,  sChName, sPresOr
 
 /* CHOICE start*/
 
-Choice_OptionalChild(p, sPLocal, sAcc, sChPresent, sInnerStatement) ::= <<
+Choice_OptionalChild(p, pLocal, sAcc, sChPresent, sInnerStatement) ::= <<
 if (<p><sAcc>kind == <sChPresent>) {
 	<sInnerStatement>
 }
@@ -337,7 +341,7 @@ ret = <soIsValidSizeExp>;
 
 <endif>
 <if (soInnerStatement)>
-for(<i> = 0; ret && <i> \< <if(!bIsFixedSize)><p><sAcc>nCount<else><nFixedSize><endif>; <i>++)
+for(<i> = 0; ret && <i> \< <if(!bIsFixedSize)><p><sAcc>nCount<else><nFixedSize><endif>; <i>++) 
 {
 	<soInnerStatement>
 }
@@ -346,7 +350,7 @@ for(<i> = 0; ret && <i> \< <if(!bIsFixedSize)><p><sAcc>nCount<else><nFixedSize><
 >>
 
 sequenceOf2(p,sAcc, i, bIsFixedSize, nFixedSize, sInnerStatement) ::= <<
-for(<i> = 0; ret && <i> \< <if(!bIsFixedSize)><p><sAcc>nCount<else><nFixedSize><endif>; <i>++)
+for(<i> = 0; ret && <i> \< <if(!bIsFixedSize)><p><sAcc>nCount<else><nFixedSize><endif>; <i>++) 
 {
 	<sInnerStatement>
 }

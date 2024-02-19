@@ -17,17 +17,17 @@ let printAcnParamType (pt:AcnGenericTypes.AcnParamType) =
         |AcnGenericTypes.AcnPrmRefType    (md,ts)  -> sprintf "%s" ts.Value
 
 let printAcnParam (p:AcnGenericTypes.AcnParameter) =
-    stg_acn.PrintParam p.name (printAcnParamType p.asn1Type)
+    stg_acn.PrintParam p.name (printAcnParamType p.asn1Type) 
 
 
 
 
 let rec printTypeEncSpec (t:AcnTypeEncodingSpec) =
-    let props =
+    let props = 
         t.acnProperties |>
         List.map(fun p ->
             match p with
-            | ENCODING           enc            ->
+            | ENCODING           enc            -> 
                 match enc with
                 | GP_PosInt             -> stg_acn.PP_Encoding_PosInt()
                 | GP_TwosComplement     -> stg_acn.PP_Encoding_TwosComplement()
@@ -35,20 +35,20 @@ let rec printTypeEncSpec (t:AcnTypeEncodingSpec) =
                 | GP_BCD                -> stg_acn.PP_Encoding_BCD()
                 | GP_IEEE754_32         -> stg_acn.PP_Encoding_IEEE754_32()
                 | GP_IEEE754_64         -> stg_acn.PP_Encoding_IEEE754_64()
-            | SIZE               siz            ->
+            | SIZE               siz            -> 
                 match siz with
                 | GP_Fixed                 size         -> stg_acn.PP_Size_Fixed size.Value
                 | GP_NullTerminated                     -> stg_acn.PP_Size_NullTerminated ()
                 | GP_SizeDeterminant       relativePath -> stg_acn.PP_Sixe_Fld relativePath.AsString
 
-            | ALIGNTONEXT        al             ->
+            | ALIGNTONEXT        al             -> 
                 match al with
-                | AcnGenericTypes.NextByte    -> stg_acn.PP_Alignment_byte()
-                | AcnGenericTypes.NextWord    -> stg_acn.PP_Alignment_word()
-                | AcnGenericTypes.NextDWord   -> stg_acn.PP_Alignment_dword()
+                | AcnGenericTypes.NextByte    -> stg_acn.PP_Aligment_byte()
+                | AcnGenericTypes.NextWord    -> stg_acn.PP_Aligment_word()
+                | AcnGenericTypes.NextDWord   -> stg_acn.PP_Aligment_dword()
             | ENCODE_VALUES                     -> stg_acn.PP_EncodeValues ()
             | SAVE_POSITION                     -> stg_acn.PP_SavePosition ()
-            | PRESENT_WHEN       prWhenList     ->
+            | PRESENT_WHEN       prWhenList     -> 
                 let prCons =
                     prWhenList |>
                     List.map(fun pw ->
@@ -62,14 +62,14 @@ let rec printTypeEncSpec (t:AcnTypeEncodingSpec) =
                 stg_acn.PP_PresentWhen [debugStr]
             | TRUE_VALUE         trueVal        -> stg_acn.PP_TrueValue trueVal.Value
             | FALSE_VALUE        falseVal       -> stg_acn.PP_FalseValue falseVal.Value
-            | PATTERN            pattern        ->
+            | PATTERN            pattern        -> 
                 match pattern with
                 | AcnGenericTypes.PATTERN_PROP_BITSTR_VALUE pat    -> stg_acn.PP_NullValue pat.Value
-                | AcnGenericTypes.PATTERN_PROP_OCTSTR_VALUE v      ->
-                    let octStr = v |> List.map(fun b -> System.String.Format("{0:X2}", b.Value) ) |> Seq.StrJoin ""
-                    stg_acn.PP_NullValue octStr
+                | AcnGenericTypes.PATTERN_PROP_OCTSTR_VALUE v      -> 
+                    let octStr = v |> List.map(fun b -> System.String.Format("{0:X2}", b.Value) ) |> Seq.StrJoin "" 
+                    stg_acn.PP_NullValue octStr 
             | CHOICE_DETERMINANT  relPath       -> stg_acn.PP_ChoiceDeterminant relPath.AsString
-            | ENDIANNESS          endian         ->
+            | ENDIANNES          endian         -> 
                 match endian with
                 | AcnGenericTypes.LittleEndianness   -> stg_acn.PP_Endianness_little ()
                 | AcnGenericTypes.BigEndianness      -> stg_acn.PP_Endianness_big ()
@@ -80,11 +80,11 @@ let rec printTypeEncSpec (t:AcnTypeEncodingSpec) =
             | POST_ENCODING_FUNCTION (modFncName, fncName)    -> match modFncName with None -> fncName.Value | Some modFncName -> modFncName.Value + "." + fncName.Value
             | PRE_DECODING_FUNCTION (modFncName, fncName)     -> match modFncName with None -> fncName.Value | Some modFncName -> modFncName.Value + "." + fncName.Value
         )
-
+    
     let children =
         t.children |>
         List.map(fun ch ->
-            let sImplMode =
+            let sImplMode = 
                 match ch.asn1Type with
                 | Some chType -> printAcnParamType chType
                 | None        -> null
@@ -94,12 +94,12 @@ let rec printTypeEncSpec (t:AcnTypeEncodingSpec) =
 
 
 let printInASingleFile (r:AcnAst) outDir newFile (tasToPrint:TypeAssignmentInfo list)=
-
+    
     let allTasses = r.files |> List.collect(fun f -> f.modules) |> List.collect (fun m -> m.typeAssignments)
     let tasToPrintSet = tasToPrint |> List.map(fun ts -> ts.tasName) |> Set.ofList
-    let modulesContent =
-        let tasses =
-            allTasses |>
+    let modulesContent = 
+        let tasses = 
+            allTasses |> 
             List.filter(fun tas -> tasToPrintSet.Contains tas.name.Value) |>
             List.map(fun tas -> stg_acn.PrintTypeAssignment tas.name.Value (tas.acnParameters |> List.map printAcnParam ) [] (printTypeEncSpec tas.typeEncodingSpec))
 

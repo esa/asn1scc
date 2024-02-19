@@ -106,12 +106,12 @@ type RealFormatRenderer2() =
             
 type BigIntegerFormatRenderer() =
     static member TS1 (obj:BigInteger) =
-        if (obj > BigInteger Int32.MinValue && obj < BigInteger Int32.MaxValue) then
+        if (BigInteger Int32.MinValue < obj && obj < BigInteger Int32.MaxValue) then
             obj.ToString();
         else
             match lang with
             | CommonTypes.ProgrammingLanguage.C -> 
-                if obj = (BigInteger Int64.MinValue) then
+                if obj = (BigInteger System.Int64.MinValue) then
                     "LLONG_MIN"
                 else
                     if (obj > BigInteger Int64.MaxValue) then
@@ -119,12 +119,13 @@ type BigIntegerFormatRenderer() =
                     else
                         obj.ToString() + "LL"
             | CommonTypes.ProgrammingLanguage.Scala ->
-                if obj = (BigInteger Int64.MinValue) then
+                if obj = (BigInteger System.Int64.MinValue) then
                     "Long.MinValue"
                 else
                     if (obj > BigInteger Int64.MaxValue) then
-                        let uInt: uint64 = uint64 obj
-                        (int64 uInt).ToString() + "L"
+                        Console.WriteLine("Number exceeded bounds of JVM native types, clamped to Scalas Long.MaxValue")
+                        //Int64.MaxValue.ToString() + "L"                       
+                        sprintf "BigInt(\"%s\").toLong" (obj.ToString())
                     else
                         obj.ToString() + "L"
             | _ -> obj.ToString()

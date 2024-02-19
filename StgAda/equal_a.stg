@@ -27,17 +27,17 @@ end if;
 >>
 
 
-PrintEqualDefinitionPrimitive(sFuncName, sTypeDefName) ::= <<
+PrintEqualDefintionPrimitive(sFuncName, sTypeDefName) ::= <<
     function <sFuncName> (val1, val2 : <sTypeDefName>) return Boolean;
 >>
 
-PrintEqualDefinitionComposite(sFuncName, sTypeDefName) ::= <<
+PrintEqualDefintionComposite(sFuncName, sTypeDefName) ::= <<
     function <sFuncName> (val1, val2 : <sTypeDefName>) return Boolean;
 >>
 
 
 PrintEqualPrimitive(sFuncName, sTypeDefName, sContent) ::= <<
-    function <sFuncName> (val1, val2 : <sTypeDefName>)
+    function <sFuncName> (val1, val2 : <sTypeDefName>) 
         return Boolean is
     begin
         return <sContent>;
@@ -45,11 +45,11 @@ PrintEqualPrimitive(sFuncName, sTypeDefName, sContent) ::= <<
 >>
 
 PrintEqualComposite(sFuncName, sTypeDefName, sContent, arrsLocalVars) ::= <<
-    function <sFuncName> (val1, val2 : <sTypeDefName>) return Boolean
+    function <sFuncName> (val1, val2 : <sTypeDefName>) return Boolean 
     is
-        pragma Warnings (Off, "initialization of ""ret"" has no effect");
+        pragma Warnings (Off, "initialization of ""ret"" has no effect");        
         ret : Boolean := True;
-        pragma Warnings (On, "initialization of ""ret"" has no effect");
+        pragma Warnings (On, "initialization of ""ret"" has no effect");        
         <arrsLocalVars; separator="\n">
     begin
         <sContent>
@@ -165,7 +165,7 @@ end if;
 <endif>
 >>
 
-isEqual_Choice_Child(sChoiceTypeDefName, sNamePresent, sInnerStatement, sTmpVarName1, sTmpVarName2) ::= <<
+isEqual_Choice_Child(choiceTypeDefName, sNamePresent, sInnerStatement, sTmpVarName1, sTmpVarName2) ::= <<
 when <sNamePresent> =>
     <sInnerStatement>
 >>
@@ -182,7 +182,7 @@ end if;
 
 
 
-call_base_type_func(p1, p2, sFuncName, bIsP1Option, bIsP2Option) ::= "<sFuncName>(<p1>, <p2>)"
+call_base_type_func(p1, p2, sFuncName) ::= "<sFuncName>(<p1>, <p2>)"
 
 makeExpressionToStatement(sIsValidExp) ::= <<
 ret := <sIsValidExp>;

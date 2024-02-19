@@ -1,8 +1,4 @@
-.metals
-.vscode
 .idea
-.bloop
-.scala-build
 /.vs
 /Debug
 /Release

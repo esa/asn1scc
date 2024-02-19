@@ -8,7 +8,7 @@
 extern "C" {
 #  include <cstdint>
 #  include <cinttypes>
-	/* C99 check */
+ /* C99 check */
 #elif (defined(__STDC_VERSION__) && __STDC_VERSION__ >= 199901L) || _MSC_VER >= 1900
 #  include <stdbool.h>
 #  include <stdint.h>
@@ -48,26 +48,6 @@ typedef unsigned long long uint64_t;
 
 #ifndef FP_WORD_SIZE
 #define FP_WORD_SIZE	8
-#endif
-
-#ifndef NO_OF_BITS_IN_BYTE
-#define NO_OF_BITS_IN_BYTE 8
-#endif
-
-#ifndef NO_OF_BYTES_IN_INT16
-#define NO_OF_BYTES_IN_INT16 (sizeof(int16_t))	// 2
-#endif
-
-#ifndef NO_OF_BYTES_IN_INT32
-#define NO_OF_BYTES_IN_INT32 (sizeof(int32_t))	// 4
-#endif
-
-#ifndef NO_OF_BITS_IN_INT16 
-#define NO_OF_BITS_IN_INT16 (NO_OF_BYTES_IN_INT16 * NO_OF_BITS_IN_BYTE)	// 16
-#endif
-
-#ifndef NO_OF_BITS_IN_INT32 
-#define NO_OF_BITS_IN_INT32 (NO_OF_BYTES_IN_INT32 * NO_OF_BITS_IN_BYTE)	// 32
 #endif
 
 #ifndef PRId32
@@ -149,10 +129,10 @@ typedef struct BitStream_t {
 	byte* buf;
 	long count;
 	long currentByte;
-	/* Next available bit for writting.
-	Possible vallues 0..7, 0 is most significant
+	/* Next available bit for writting. 
+	Possible vallues 0..7, 0 is most significant 
 	bit of current byte*/
-	int currentBit;
+	int currentBit; 
 	//PushDataFnc pushData;
 	void* pushDataPrm;
 	//FetchDataFnc fetchData;
@@ -202,10 +182,10 @@ int GetCharIndex(char ch, byte allowedCharSet[], int setLen);
 
 flag Asn1Real_Equal(asn1Real Left, asn1Real Right);
 
-void ObjectIdentifier_Init(Asn1ObjectIdentifier* pVal);
-flag ObjectIdentifier_equal(const Asn1ObjectIdentifier* pVal1, const Asn1ObjectIdentifier* pVal2);
-flag ObjectIdentifier_isValid(const Asn1ObjectIdentifier* pVal);
-flag RelativeOID_isValid(const Asn1ObjectIdentifier* pVal);
+void ObjectIdentifier_Init(Asn1ObjectIdentifier *pVal);
+flag ObjectIdentifier_equal(const Asn1ObjectIdentifier *pVal1, const Asn1ObjectIdentifier *pVal2);
+flag ObjectIdentifier_isValid(const Asn1ObjectIdentifier *pVal);
+flag RelativeOID_isValid(const Asn1ObjectIdentifier *pVal);
 
 /* Time Classes
 	Asn1LocalTime,					// TIME-OF-DAY  ::= TIME(SETTINGS "Basic=Time Time=HMS Local-or-UTC=L")
@@ -279,14 +259,7 @@ extern const asn1SccUint64 ber_aux[];
 extern const asn1SccUint32 ber_aux[];
 #endif
 
-#define CHECK_BIT_STREAM(pBitStrm)		assert((pBitStrm)->currentByte*8+(pBitStrm)->currentBit<=(pBitStrm)->count*8)
-
-// check if nBits still have space in pBitStrm (only for non streaming mode)
-#ifndef ASN1SCC_STREAMING
-#define CHECK_BIT_STREAM_PRE(pBitStrm, nBits)	assert(((pBitStrm)->currentByte * 8 + (pBitStrm)->currentBit + nBits) <= ((pBitStrm)->count * 8))
-#else
-#define CHECK_BIT_STREAM_PRE(pBitStrm, nBits) ((void)pBitStrm)
-#endif
+#define CHECK_BIT_STREAM(pBitStrm)	assert((pBitStrm)->currentByte*8+(pBitStrm)->currentBit<=(pBitStrm)->count*8)
 
 #ifdef _MSC_VER
 #pragma warning( disable : 4127)

@@ -52,7 +52,7 @@ ExpLt(sExp1, sExp2) ::= "(<sExp1> \< <sExp2>)"
 ExpLte(sExp1, sExp2) ::= "(<sExp1> \<= <sExp2>)"
 ExpOr(sExp1, sExp2) ::= "((<sExp1>) OR (<sExp2>))"
 ExpAnd(sExp1, sExp2) ::= "(<sExp1> AND <sExp2>)"
-ExpAndMulti(arrsExp) ::= <<
+ExpAndMulit(arrsExp) ::= <<
 <arrsExp; separator=" AND ">
 >>
 ExpNot(sExp) ::= "(NOT <sExp>)"
@@ -60,19 +60,19 @@ StrLen(sExp) ::= "<rtlModuleName()>.getStringSize(<sExp>)"
 ArrayLen(sExp, sAcc) ::= "<sExp><sAcc>Length"
 
 
-ExpressionToStatement(sExp1) ::=<<
+ExpressionToStament(sExp1) ::=<<
 ret.Success := <sExp1>;
 >>
 
 
-StatementOrStatement(sStat1, sStat2) ::= <<
+StatementOrStament(sStat1, sStat2) ::= <<
 <sStat1>
 if not ret.Success then
     <sStat2>
 end if;
 >>
 
-ExpressionOrStatement(sExp1, sStat2) ::= <<
+ExpressionOrStament(sExp1, sStat2) ::= <<
 ret := <sExp1>;
 if not ret.Success then
     <sStat2>
@@ -86,14 +86,14 @@ if not ret.Success then
 end if;
 >>
 
-StatementAndStatement(sStat1, sStat2) ::= <<
+StatementAndStament(sStat1, sStat2) ::= <<
 <sStat1>
 if ret.Success then
     <sStat2>
 end if;
 >>
 
-ExpressionAndStatement(sExp1, sStat2) ::= <<
+ExpressionAndStament(sExp1, sStat2) ::= <<
 ret.Success := <sExp1>;
 if ret.Success then
     <sStat2>
@@ -112,7 +112,7 @@ StatementNot(sStat) ::= <<
 ret.Success := not ret.Success;
 >>
 
-StatementExceptStatement(sStat1, sStat2) ::= <<
+StatementExceptStament(sStat1, sStat2) ::= <<
 <sStat1>
 if ret.Success then
     <sStat2>
@@ -120,7 +120,7 @@ if ret.Success then
 end if;
 >>
 
-ExpressionExceptStatement(sExp1, sStat2) ::= <<
+ExpressionExceptStament(sExp1, sStat2) ::= <<
 ret.Success := <sExp1>;
 if ret.Success then
     <sStat2>
@@ -165,9 +165,9 @@ is
     pragma Unreferenced (<sVarName>);
 
 <endif>
-    pragma Warnings (Off, "initialization of ""ret"" has no effect");
+    pragma Warnings (Off, "initialization of ""ret"" has no effect");        
     ret : <rtlModuleName()>.ASN1_RESULT := <rtlModuleName()>.ASN1_RESULT'(Success => true, ErrorCode => 0);
-    pragma Warnings (On, "initialization of ""ret"" has no effect");
+    pragma Warnings (On, "initialization of ""ret"" has no effect");        
     <arrsLocalVars; separator="\n">
 begin
     <sContent>
@@ -179,7 +179,7 @@ end <sFuncName>;
 
 
 Print_AlphabetCheckFunc(sFuncName, arrsAlphaConBody) ::= <<
-function <sFuncName> (str : String) return boolean
+function <sFuncName> (str : String) return boolean 
   with
       pre =\> STR'First=1 AND STR'Last\>=STR'First AND STR'Last\<=Integer'LAST-1
 is
@@ -203,6 +203,8 @@ PrintMultipleConstraints(arrsConstraints) ::= "<arrsConstraints; separator=\" AN
 
 callAlphaFunc(sFuncName, p) ::= "<sFuncName>_CharsAreValid(<p>)"
 
+getStringSize(p) ::= "<rtlModuleName()>.getStringSize(<p>)"
+
 
 stringContainsChar(sStrVal, p) ::= "<rtlModuleName()>.encoding.stringContainsChar(\"\" & <sStrVal>, <p>)"
 
@@ -212,13 +214,13 @@ call_base_type_func(p, sFuncName, soTypeCasting) ::= "ret := <sFuncName>(<if(soT
 call_base_type_func_exp(p, sFuncName) ::= "<sFuncName>(<p>).Success"
 
 
-SingleValConstraint(p, v) ::= "(<p> = <v>)"
+SingleValContraint(p, v) ::= "(<p> = <v>)"
 
-RangeConstraint(p, v1, v2, bMin, bMax) ::= "(<v1> \<<if(bMin)>=<endif> <p> AND <p> \<<if(bMax)>=<endif> <v2>)"
+RangeContraint(p, v1, v2, bMin, bMax) ::= "(<v1> \<<if(bMin)>=<endif> <p> AND <p> \<<if(bMax)>=<endif> <v2>)"
 
-RangeConstraint_val_MAX(p, v, bMin) ::= "<p> ><if(bMin)>=<endif> <v>"
+RangeContraint_val_MAX(p, v, bMin) ::= "<p> ><if(bMin)>=<endif> <v>"
 
-RangeConstraint_MIN_val(p, v, bMax) ::= "<p> \<<if(bMax)>=<endif> <v>"
+RangeContraint_MIN_val(p, v, bMax) ::= "<p> \<<if(bMax)>=<endif> <v>"
 
 AND_Constraint(sCon1, sCon2) ::= "(<sCon1> AND <sCon2>)"
 
@@ -320,7 +322,7 @@ end if;
 
 /*CHOICE start*/
 
-Choice_OptionalChild(p, sPLocal, sAcc,  sChPresent, sInnerStatement) ::= <<
+Choice_OptionalChild(p, pLocal, sAcc,  sChPresent, sInnerStatement) ::= <<
 if <p><sAcc>kind = <sChPresent> then
 	<sInnerStatement>
 end if;

@@ -50,10 +50,10 @@ type AcnConstant = {
     Value : AcnIntExpr
 }
 
-type AcnProperty =
+type AcnProperty = 
     | Encoding          of encoding                     // used by int, real, enum
     | SizeProperty      of sizeProperty                 // used by int, real, and all sizeable types
-    | Alignment          of alignment                     // *
+    | Aligment          of aligment                     // *
     | EncodeValues                                      // used by enums => values will be encoded and not indexes
     | BooleanEncoding   of booleanEncoding              // bool
     | NullValue         of StringLoc                    // null
@@ -61,11 +61,11 @@ type AcnProperty =
     | EnumeratorResetValue of string*BigInteger        // used by enum children to redefine values
     | MappingFunction   of StringLoc                    // used by int
 with
-    override this.ToString() =
+    override this.ToString() =  
         match this with
         | Encoding          enc                       -> sprintf "encoding %A" enc
         | SizeProperty      sz                        -> sprintf "size %A" sz
-        | Alignment          al                        -> sprintf "alignment %A" al
+        | Aligment          al                        -> sprintf "aligment %A" al
         | EncodeValues                                -> "encode-values"
         | BooleanEncoding   ben                       -> sprintf "pattern '%A'" ben
         | NullValue         pattern                   -> sprintf "pattern '%s'" pattern.Value
@@ -73,7 +73,7 @@ with
         | EnumeratorResetValue (enChildName,vl)       -> enChildName + vl.ToString()
         | MappingFunction   funcName                  -> funcName.Value
 
-and alignment =
+and aligment = 
     | NextByte
     | NextWord
     | NextDWord
@@ -107,12 +107,12 @@ type ParamMode =
 type AcnType = {
     TypeID     : AbsPath
     ImpMode    : AcnTypeImplMode
-    Properties : list<AcnProperty>      //does not contain the properties with long fields
+    Properties : list<AcnProperty>      //does not contain the properties with long fields 
     Location : SrcLoc
     Comments: string array
     acnParameters   : AcnParameter list
 }
-with
+with 
   override x.ToString() =  x.TypeID |> Seq.StrJoin "."
 and AcnTempType = {                // this type is not encoded decoded. It is declared locally at the tas level
                                     // and it is used for passing values
@@ -146,11 +146,11 @@ type LongReference = {
     Kind : LongReferenceKind
     Location : SrcLoc
 }
-with
-  override x.ToString() =
+with 
+  override x.ToString() =  
     let decType = x.TypeID |> Seq.StrJoin "."
-    let determinant = x.LongRef |> Seq.StrJoin "."
-    sprintf "%s %s %s" decType (x.Kind.ToString() ) determinant
+    let determnant = x.LongRef |> Seq.StrJoin "."
+    sprintf "%s %s %s" decType (x.Kind.ToString() ) determnant
 
 
 and Point =
@@ -160,29 +160,29 @@ and Point =
     member x.AbsPath =
         match x with  TypePoint(a) | ParamPoint(a) | TempPoint(a)   -> a
     member x.ReplacePath newPath =
-        match x with
+        match x with  
         | TypePoint(_)      -> TypePoint newPath
         | ParamPoint(_)     -> ParamPoint newPath
         | TempPoint(a)      -> TempPoint newPath
 
 
 
-and LongReferenceKind =
+and LongReferenceKind = 
     //| SizeDeterminant                   // points to an integer type that acts as a size determinant to a SEQUENCE OF, BIT STRINT, OCTET STRING etc
     | RefTypeArgument of string         // string is the param name
-    | PresenceBool                             // points to a SEQUENCE or Choice child
-    | PresenceInt of acnIntegerConstant        // points to a SEQUENCE or Choice child
+    | PresenceBool                             // points to a SEQEUNCE or Choice child
+    | PresenceInt of acnIntegerConstant        // points to a SEQEUNCE or Choice child
     | PresenceStr of string
-    | ChoiceDeterminant       // points to Enumerated type acting as CHOICE determinant.
+    | ChoiceDeteterminant       // points to Enumerated type acting as CHOICE determinant.
 with
-    override x.ToString() =
+    override x.ToString() =  
         match x with
         //| SizeDeterminant                   -> "size"
         | RefTypeArgument argName           -> sprintf "RefArg<%s>" argName
         | PresenceBool                      -> "present-when-bool"
         | PresenceInt  vl                   -> sprintf "present-when-int %A" vl
         | PresenceStr stVal                 -> sprintf "present-when-str %s" stVal
-        | ChoiceDeterminant               -> "choice-determinant"
+        | ChoiceDeteterminant               -> "choice-determinant"
 
 type AcnAst = {
     Constants : list<AcnConstant>
@@ -193,25 +193,25 @@ type AcnAst = {
 
 
 let rec EvaluateConstant (constants:list<AcnConstant>) intConstant =
-    let rec EvaluateConstantAux = function
+    let rec EvaluateConstantAux = function 
     | IntegerExpr(consta)   -> EvaluateConstant constants consta
     | SumExpr(exp1,exp2)    -> (EvaluateConstantAux exp1) + (EvaluateConstantAux exp2)
     | MinExpr(exp1,exp2)    -> (EvaluateConstantAux exp1) - (EvaluateConstantAux exp2)
     | MulExpr(exp1,exp2)    -> (EvaluateConstantAux exp1) * (EvaluateConstantAux exp2)
     | DivExpr(exp1,exp2)    -> (EvaluateConstantAux exp1) / (EvaluateConstantAux exp2)
     | ModExpr(exp1,exp2)    -> (EvaluateConstantAux exp1) % (EvaluateConstantAux exp2)
-    | PowExpr(exp1,exp2)    ->
+    | PowExpr(exp1,exp2)    -> 
         System.Numerics.BigInteger.Pow(EvaluateConstantAux exp1, int (EvaluateConstantAux exp2))
-    | UnMinExp(exp1)        -> -(EvaluateConstantAux exp1)
+    | UnMinExp(exp1)        -> -(EvaluateConstantAux exp1) 
     match intConstant with
     | IntConst(a)   -> a.Value
     | RefConst(consLookUp)  ->
         match constants |> Seq.tryFind(fun c-> c.Name.Value = consLookUp.Value) with
         |None       -> raise(SemanticError(consLookUp.Location, (sprintf "Unknown symbol '%s'" consLookUp.Value)))
         |Some(cn)   -> EvaluateConstantAux cn.Value
+        
 
-
-
+        
 
 
 

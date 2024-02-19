@@ -29,9 +29,9 @@ type Integer = {
     withcons            : IntegerTypeConstraint list
     uperRange           : uperRange<BigInteger>
     baseType            : Integer option
-    Location            : SrcLoc
+    Location            : SrcLoc   
 }
-with
+with 
     member this.Cons     = this.cons
     member this.WithCons = this.withcons
     member this.AllCons  = this.cons@this.withcons
@@ -53,9 +53,9 @@ type Real = {
     withcons            : RealTypeConstraint list
     uperRange           : uperRange<double>
     baseType            : Real option
-    Location            : SrcLoc
+    Location            : SrcLoc   
 }
-with
+with 
     member this.Cons     = this.cons
     member this.WithCons = this.withcons
     member this.AllCons  = this.cons@this.withcons
@@ -71,9 +71,9 @@ type StringType = {
     maxSize             : int
     charSet             : char array
     baseType            : StringType option
-    Location            : SrcLoc
+    Location            : SrcLoc   
 }
-with
+with 
     member this.Cons     = this.cons
     member this.WithCons = this.withcons
     member this.AllCons  = this.cons@this.withcons
@@ -86,7 +86,7 @@ type EnumItem = {
     ada_name:string
 }
 with
-    member this.getBackendName l =
+    member this.getBackendName l = 
         match l with
         | C         -> ToC this.c_name
         | Ada       -> ToC this.ada_name
@@ -101,13 +101,13 @@ type Enumerated = {
     cons                : EnumConstraint list
     withcons            : EnumConstraint list
     baseType            : Enumerated option
-    Location            : SrcLoc
+    Location            : SrcLoc   
 }
-with
+with 
     member this.Cons     = this.cons
     member this.WithCons = this.withcons
     member this.AllCons  = this.cons@this.withcons
-
+        
 
 type Boolean = {
     id                  : ReferenceToType
@@ -117,13 +117,13 @@ type Boolean = {
     cons                : BoolConstraint list
     withcons            : BoolConstraint list
     baseType            : Boolean option
-    Location            : SrcLoc
+    Location            : SrcLoc   
 }
-with
+with 
     member this.Cons     = this.cons
     member this.WithCons = this.withcons
     member this.AllCons  = this.cons@this.withcons
-
+ 
 
 type OctetString = {
     id                  : ReferenceToType
@@ -135,9 +135,9 @@ type OctetString = {
     minSize             : int
     maxSize             : int
     baseType            : OctetString option
-    Location            : SrcLoc
+    Location            : SrcLoc   
 }
-with
+with 
     member this.Cons     = this.cons
     member this.WithCons = this.withcons
     member this.AllCons = this.cons@this.withcons
@@ -148,7 +148,7 @@ type NullType = {
     uperMaxSizeInBits   : int
     uperMinSizeInBits   : int
     baseType            : NullType option
-    Location            : SrcLoc
+    Location            : SrcLoc   
 }
 
 type BitString = {
@@ -161,17 +161,17 @@ type BitString = {
     minSize             : int
     maxSize             : int
     baseType            : BitString option
-    Location            : SrcLoc
+    Location            : SrcLoc   
 }
-with
+with 
     member this.Cons     = this.cons
     member this.WithCons = this.withcons
     member this.AllCons = this.cons@this.withcons
 
-type Asn1Optionality =
+type Asn1Optionality = 
     | AlwaysAbsent
     | AlwaysPresent
-    | Optional
+    | Optional  
     | Default   of Asn1GenericValue
 
 type SequenceOf = {
@@ -185,9 +185,9 @@ type SequenceOf = {
     minSize             : int
     maxSize             : int
     baseType            : SequenceOf option
-    Location            : SrcLoc
+    Location            : SrcLoc   
 }
-with
+with 
     member this.Cons     = this.cons
     member this.WithCons = this.withcons
     member this.AllCons = this.cons@this.withcons
@@ -197,8 +197,8 @@ and ChildInfo = {
     chType              :Asn1Type
     Optionality         :Asn1Optionality option
     Comments            :string list
-    acnInsertedField    :bool
-    Location            : SrcLoc
+    acnInsertetField    :bool
+    Location            : SrcLoc   
 }
 
 and Sequence = {
@@ -210,9 +210,9 @@ and Sequence = {
     cons                : SequenceConstraint list
     withcons            : SequenceConstraint list
     baseType            : Sequence option
-    Location            : SrcLoc
+    Location            : SrcLoc   
 }
-with
+with 
     member this.Cons     = this.cons
     member this.WithCons = this.withcons
     member this.AllCons = this.cons@this.withcons
@@ -226,9 +226,9 @@ and Choice = {
     cons                : ChoiceConstraint list
     withcons            : ChoiceConstraint list
     baseType            : Choice option
-    Location            : SrcLoc
+    Location            : SrcLoc   
 }
-with
+with 
     member this.Cons     = this.cons
     member this.WithCons = this.withcons
     member this.AllCons = this.cons@this.withcons
@@ -263,17 +263,17 @@ with
         | Choice       t -> t.id
     member this.baseType =
         match this with
-        | Integer      t -> t.baseType |> Option.map Integer
-        | Real         t -> t.baseType |> Option.map Real
-        | IA5String    t -> t.baseType |> Option.map IA5String
-        | OctetString  t -> t.baseType |> Option.map OctetString
-        | NullType     t -> t.baseType |> Option.map NullType
-        | BitString    t -> t.baseType |> Option.map BitString
-        | Boolean      t -> t.baseType |> Option.map Boolean
-        | Enumerated   t -> t.baseType |> Option.map Enumerated
-        | SequenceOf   t -> t.baseType |> Option.map SequenceOf
-        | Sequence     t -> t.baseType |> Option.map Sequence
-        | Choice       t -> t.baseType |> Option.map Choice
+        | Integer      t -> t.baseType |> Option.map Integer     
+        | Real         t -> t.baseType |> Option.map Real        
+        | IA5String    t -> t.baseType |> Option.map IA5String   
+        | OctetString  t -> t.baseType |> Option.map OctetString 
+        | NullType     t -> t.baseType |> Option.map NullType    
+        | BitString    t -> t.baseType |> Option.map BitString   
+        | Boolean      t -> t.baseType |> Option.map Boolean     
+        | Enumerated   t -> t.baseType |> Option.map Enumerated  
+        | SequenceOf   t -> t.baseType |> Option.map SequenceOf  
+        | Sequence     t -> t.baseType |> Option.map Sequence    
+        | Choice       t -> t.baseType |> Option.map Choice      
     member this.uperMaxSizeInBits =
         match this with
         | Integer      t -> t.uperMaxSizeInBits
@@ -301,7 +301,7 @@ with
         | Sequence     t -> t.uperMinSizeInBits
         | Choice       t -> t.uperMinSizeInBits
 
-    member this.asn1Name =
+    member this.asn1Name = 
         match this.id with
         | ReferenceToType((GenericFold2.MD _)::(GenericFold2.TA tasName)::[])   -> Some tasName
         | _                                                                     -> None

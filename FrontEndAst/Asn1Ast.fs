@@ -43,7 +43,7 @@ and Asn1ValueKind =
     |   SeqValue            of list<StringLoc*Asn1Value>
     |   ChValue             of StringLoc*Asn1Value
     |   NullValue
-    |   ObjOrRelObjIdValue  of ObjectIdentifierValueComponent list
+    |   ObjOrRelObjIdValue  of ObjectIdentifierValueCompoent list
     |   TimeValue           of Asn1DateTimeValueLoc
 
 
@@ -56,15 +56,15 @@ type NamedConstraintMark =
     | MarkOptional
 
 
-type Asn1Constraint =
-    | SingleValueConstraint              of string*Asn1Value
-    | RangeConstraint                    of string*Asn1Value*Asn1Value*bool*bool    //min, max, InclusiveMin(=true), InclusiveMax(=true)
-    | RangeConstraint_val_MAX            of string*Asn1Value*bool         //min, InclusiveMin(=true)
-    | RangeConstraint_MIN_val            of string*Asn1Value*bool         //max, InclusiveMax(=true)
-    | RangeConstraint_MIN_MAX
-    | TypeInclusionConstraint           of string*StringLoc*StringLoc
-    | SizeConstraint                     of string*Asn1Constraint
-    | AlphabetConstraint                 of string*Asn1Constraint
+type Asn1Constraint = 
+    | SingleValueContraint              of string*Asn1Value             
+    | RangeContraint                    of string*Asn1Value*Asn1Value*bool*bool    //min, max, InclusiveMin(=true), InclusiveMax(=true)
+    | RangeContraint_val_MAX            of string*Asn1Value*bool         //min, InclusiveMin(=true)
+    | RangeContraint_MIN_val            of string*Asn1Value*bool         //max, InclusiveMax(=true)
+    | RangeContraint_MIN_MAX            
+    | TypeInclusionConstraint           of string*StringLoc*StringLoc     
+    | SizeContraint                     of string*Asn1Constraint               
+    | AlphabetContraint                 of string*Asn1Constraint           
     | UnionConstraint                   of string*Asn1Constraint*Asn1Constraint*bool //left,righ, virtual constraint
     | IntersectionConstraint            of string*Asn1Constraint*Asn1Constraint
     | AllExceptConstraint               of string*Asn1Constraint
@@ -76,7 +76,7 @@ type Asn1Constraint =
 
 and NamedConstraint = {
     Name:StringLoc;
-    Constraint:Asn1Constraint option
+    Contraint:Asn1Constraint option
     Mark:NamedConstraintMark
 }
 
@@ -112,13 +112,13 @@ type Optional = {
     defaultValue        : Asn1Value option
 }
 
-type Asn1Optionality =
+type Asn1Optionality = 
     | AlwaysAbsent
     | AlwaysPresent
     | Optional          of Optional
 
 
-
+    
 
 
 type Asn1Type = {
@@ -138,11 +138,11 @@ and Asn1TypeKind =
     | Real
     | IA5String
     | NumericString
-    | OctetString
+    | OctetString 
     | NullType
     | TimeType         of TimeTypeClass
     | BitString        of list<NamedBit0>
-    | Boolean
+    | Boolean 
     | ObjectIdentifier
     | RelativeObjectIdentifier
     | Enumerated        of list<NamedItem>
@@ -163,7 +163,7 @@ and ChildInfo = {
     Name                        : StringLoc;
     c_name                      : string
     scala_name                  : string
-    ada_name                    : string
+    ada_name                    : string                     
     present_when_name           : string // used only by choices. Does not contain the "_PRESENT". Not to be used directly by backends.
     Type                        : Asn1Type
     Optionality                 : Asn1Optionality option
@@ -207,7 +207,7 @@ type Asn1Module = {
     Imports : list<ImportedModule>
     Exports : Exports
     Comments : string array
-    position : SrcLoc*SrcLoc   //start pos, end pos
+    postion : SrcLoc*SrcLoc   //start pos, end pos
 }
 
 type Asn1File = {
@@ -226,7 +226,7 @@ type AstRoot = {
 
 type AstRoot with
     member r.Modules = r.Files |> List.collect(fun f -> f.Modules)
-    member r.GetModuleByName(name:StringLoc)  =
+    member r.GetModuleByName(name:StringLoc)  = 
         let (n,loc) = name.AsTupple
         match r.Modules |> Seq.tryFind( fun m -> m.Name = name)  with
         | Some(m) -> m
@@ -235,7 +235,7 @@ type AstRoot with
 type Asn1Module with
     member this.ExportedTypes =
         match this.Exports with
-        | All   ->
+        | All   -> 
             let importedTypes = this.Imports |> List.collect(fun imp -> imp.Types) |> List.map(fun x -> x.Value)
             (this.TypeAssignments |> List.map(fun x -> x.Name.Value))@importedTypes
         | OnlySome(typesAndVars)    ->
@@ -248,11 +248,11 @@ type Asn1Module with
     member m.TryGetTypeAssignmentByName name (r:AstRoot) =
         match m.TypeAssignments|> Seq.tryFind(fun x -> x.Name = name) with
         | Some t   -> Some t
-        | None      ->
-            let othMods = m.Imports |> Seq.filter(fun imp -> imp.Types |> Seq.exists((=) name))
+        | None      -> 
+            let othMods = m.Imports |> Seq.filter(fun imp -> imp.Types |> Seq.exists((=) name)) 
                                 |> Seq.map(fun imp -> imp.Name) |> Seq.toList
             match othMods with
-            | firstMod::_   ->
+            | firstMod::_   -> 
                 match r.Modules |> Seq.tryFind( fun m -> m.Name = firstMod)  with
                 | Some(m) -> m.TryGetTypeAssignmentByName name r
                 | None    -> None
@@ -261,22 +261,22 @@ type Asn1Module with
     member m.GetTypeAssignmentByName name (r:AstRoot) =
         match m.TypeAssignments|> Seq.tryFind(fun x -> x.Name = name) with
         | Some(t)   -> t
-        | None      ->
-            let othMods = m.Imports |> Seq.filter(fun imp -> imp.Types |> Seq.exists((=) name))
+        | None      -> 
+            let othMods = m.Imports |> Seq.filter(fun imp -> imp.Types |> Seq.exists((=) name)) 
                                 |> Seq.map(fun imp -> imp.Name) |> Seq.toList
             match othMods with
             | firstMod::tail   -> r.GetModuleByName(firstMod).GetTypeAssignmentByName name r
-            | []               ->
+            | []               ->            
                 let (n,loc) = name.AsTupple
                 raise(SemanticError(loc, sprintf "No Type Assignment with name: %s is defined in Module %s" n m.Name.Value))
     member m.GetValueAsigByName(name:StringLoc) (r:AstRoot) =
         let (n,loc) = name.AsTupple
-        let value = m.ValueAssignments |> Seq.tryFind(fun x -> x.Name = name)
+        let value = m.ValueAssignments |> Seq.tryFind(fun x -> x.Name = name) 
         match value with
         | Some(v)       -> v
         | None          ->
-            let othMods = m.Imports
-                          |> Seq.filter(fun imp -> imp.Values |> Seq.exists(fun vname -> vname = name))
+            let othMods = m.Imports 
+                          |> Seq.filter(fun imp -> imp.Values |> Seq.exists(fun vname -> vname = name)) 
                           |> Seq.map(fun imp -> imp.Name) |> Seq.toList
             match othMods with
             | firstMod::tail   -> r.GetModuleByName(firstMod).GetValueAsigByName name r
@@ -339,14 +339,14 @@ let rec GetValueAsInt (v:Asn1Value) r=
     | _                                     -> raise(SemanticError (v.Location, sprintf "Expecting Integer value"))
 
 let GetActualTypeAllConsIncluded t (r:AstRoot) =
-    let rec GetActualTypeAux (t:Asn1Type) (additionalConstraints:list<Asn1Constraint>)   =
+    let rec GetActualTypeAux (t:Asn1Type) (addionalConstraints:list<Asn1Constraint>)   =
         match t.Kind with
         | ReferenceType ref ->
             let newmod = r.GetModuleByName(ref.modName)
             let tas = newmod.GetTypeAssignmentByName ref.tasName r
-            GetActualTypeAux tas.Type (t.Constraints@additionalConstraints)
-        | _                         -> {t with Constraints = (t.Constraints@additionalConstraints)}
-    GetActualTypeAux t []
+            GetActualTypeAux tas.Type (t.Constraints@addionalConstraints) 
+        | _                         -> {t with Constraints = (t.Constraints@addionalConstraints)}
+    GetActualTypeAux t [] 
 
 let GetActualTypeByNameAllConsIncluded modName tasName (r:AstRoot) =
     let mdl = r.GetModuleByName(modName)
@@ -373,19 +373,19 @@ let rec getASN1Name (r:AstRoot) (t:Asn1Type) =
     | TimeType     _  -> "TIME"
     | ReferenceType _ -> getASN1Name r (GetActualType t r)
 
-let rec GetMySelfAndChildren (t:Asn1Type) =
+let rec GetMySelfAndChildren (t:Asn1Type) = 
     seq {
         yield t
         match t.Kind with
         | SequenceOf(conType) ->  yield! GetMySelfAndChildren conType
-        | Sequence(children) | Choice(children)->
-            for ch in children do
+        | Sequence(children) | Choice(children)-> 
+            for ch in children do 
                 yield! GetMySelfAndChildren ch.Type
-        |_ -> ()
+        |_ -> ()    
     }
 (*
 type ChildInfo with
-    member c.CName (lang:ProgrammingLanguage) =
+    member c.CName (lang:ProgrammingLanguage) = 
         match lang with
         | Ada               -> c.ada_name
         | C                 -> c.c_name
@@ -393,23 +393,28 @@ type ChildInfo with
 *)
 
 type NamedItem with
-    member c.CEnumName (r:AstRoot) (lang:ProgrammingLanguage) =
+    member c.CEnumName (r:AstRoot) (lang:ProgrammingLanguage) = 
         match lang with
         |Ada    -> ToC2 (r.args.TypePrefix + c.ada_name)
         |C      -> ToC2 (r.args.TypePrefix + c.c_name)
         |Scala  -> ToC2 (r.args.TypePrefix + c.scala_name)
+//    member c.EnumName (lang:ProgrammingLanguage) = 
+//        match lang with
+//        |Ada    -> c.ada_name
+//        |C      -> c.c_name
+//        |Scala  -> c.scala_name
 
 type Asn1Constraint with
     member this.Asn1Con =
         match this with
-        | SingleValueConstraint      (s,_)           -> s
-        | RangeConstraint            (s,_,_,_,_)     -> s
-        | RangeConstraint_val_MAX    (s,_,_)         -> s
-        | RangeConstraint_MIN_val    (s,_,_)         -> s
-        | RangeConstraint_MIN_MAX                    -> "(MIN .. MAX)"
+        | SingleValueContraint      (s,_)           -> s
+        | RangeContraint            (s,_,_,_,_)     -> s
+        | RangeContraint_val_MAX    (s,_,_)         -> s
+        | RangeContraint_MIN_val    (s,_,_)         -> s
+        | RangeContraint_MIN_MAX                    -> "(MIN .. MAX)"
         | TypeInclusionConstraint   (s,_,_)         -> s
-        | SizeConstraint             (s,_)           -> s
-        | AlphabetConstraint         (s,_)           -> s
+        | SizeContraint             (s,_)           -> s
+        | AlphabetContraint         (s,_)           -> s
         | UnionConstraint           (s,_,_,_)       -> s
         | IntersectionConstraint    (s,_,_)         -> s
         | AllExceptConstraint       (s,_)           -> s
@@ -420,47 +425,47 @@ type Asn1Constraint with
         | WithComponentsConstraint  (s,_)           -> s
 
 
-let foldConstraint
-    singleValueFunc rangeConstraintFunc rangeConstraint_val_MAX rangeConstraint_MIN_val rangeConstraint_MIN_MAX
-    typeInclusionConstraint sizeConstraint alphabetConstraint
+let foldConstraint 
+    singleValueFunc rangeContraintFunc rangeContraint_val_MAX rangeContraint_MIN_val rangeContraint_MIN_MAX
+    typeInclusionConstraint sizeContraint alphabetContraint 
     withComponentConstraint namedItemConstraint withComponentsConstraint
-    unionFunc intersectionFunc allExceptFunc exceptFunc rootFunc rootFunc2
+    unionFunc intersectionFunc allExceptFunc exceptFunc rootFunc rootFunc2  
     c =
     let rec loopRecursiveConstraint c =
         match c with
-        | SingleValueConstraint (s,v)           -> singleValueFunc s v
-        | RangeConstraint (s,a,b,inclusiveMin,inclusiveMax)    ->
-            rangeConstraintFunc s a b inclusiveMin inclusiveMax
-        | RangeConstraint_val_MAX (s,a, inclusive)  -> rangeConstraint_val_MAX s a inclusive
-        | RangeConstraint_MIN_val (s,b, inclusive)  -> rangeConstraint_MIN_val s b inclusive
-        | RangeConstraint_MIN_MAX                 -> rangeConstraint_MIN_MAX ()
+        | SingleValueContraint (s,v)           -> singleValueFunc s v
+        | RangeContraint (s,a,b,inclusiveMin,inclusiveMax)    ->
+            rangeContraintFunc s a b inclusiveMin inclusiveMax
+        | RangeContraint_val_MAX (s,a, inclusive)  -> rangeContraint_val_MAX s a inclusive
+        | RangeContraint_MIN_val (s,b, inclusive)  -> rangeContraint_MIN_val s b inclusive
+        | RangeContraint_MIN_MAX                 -> rangeContraint_MIN_MAX ()
         | TypeInclusionConstraint  (s,md,ts)       -> typeInclusionConstraint s md ts
-        | SizeConstraint (s,c)                        -> sizeConstraint s (loopRecursiveConstraint c)
-        | AlphabetConstraint  (s,c)                   -> alphabetConstraint s (loopRecursiveConstraint c)
+        | SizeContraint (s,c)                        -> sizeContraint s (loopRecursiveConstraint c)
+        | AlphabetContraint  (s,c)                   -> alphabetContraint s (loopRecursiveConstraint c)
         | WithComponentConstraint  (s,c,l)          -> withComponentConstraint s (loopRecursiveConstraint c) l
-        | WithComponentsConstraint (s,nitems)        ->
-            let newItems = nitems |> List.map(fun ni -> namedItemConstraint s ni   (ni.Constraint |> Option.map loopRecursiveConstraint))
+        | WithComponentsConstraint (s,nitems)        -> 
+            let newItems = nitems |> List.map(fun ni -> namedItemConstraint s ni   (ni.Contraint |> Option.map loopRecursiveConstraint))
             withComponentsConstraint s newItems
-        | UnionConstraint(s,c1,c2,b)         ->
-            let nc1 = loopRecursiveConstraint c1
-            let nc2 = loopRecursiveConstraint c2
+        | UnionConstraint(s,c1,c2,b)         -> 
+            let nc1 = loopRecursiveConstraint c1 
+            let nc2 = loopRecursiveConstraint c2 
             unionFunc s nc1 nc2 b
-        | IntersectionConstraint(s,c1,c2)    ->
-            let nc1 = loopRecursiveConstraint c1
-            let nc2 = loopRecursiveConstraint c2
-            intersectionFunc s nc1 nc2
-        | AllExceptConstraint(s,c1)          ->
-            let nc1 = loopRecursiveConstraint c1
-            allExceptFunc s nc1
-        | ExceptConstraint(s,c1,c2)          ->
-            let nc1 = loopRecursiveConstraint c1
-            let nc2 = loopRecursiveConstraint c2
-            exceptFunc s nc1 nc2
-        | RootConstraint(s,c1)               ->
-            let nc1 = loopRecursiveConstraint c1
-            rootFunc s nc1
-        | RootConstraint2(s,c1,c2)           ->
-            let nc1 = loopRecursiveConstraint c1
-            let nc2 = loopRecursiveConstraint c2
+        | IntersectionConstraint(s,c1,c2)    -> 
+            let nc1 = loopRecursiveConstraint c1 
+            let nc2 = loopRecursiveConstraint c2 
+            intersectionFunc s nc1 nc2 
+        | AllExceptConstraint(s,c1)          -> 
+            let nc1 = loopRecursiveConstraint c1 
+            allExceptFunc s nc1 
+        | ExceptConstraint(s,c1,c2)          -> 
+            let nc1 = loopRecursiveConstraint c1 
+            let nc2 = loopRecursiveConstraint c2 
+            exceptFunc s nc1 nc2 
+        | RootConstraint(s,c1)               -> 
+            let nc1 = loopRecursiveConstraint c1 
+            rootFunc s nc1 
+        | RootConstraint2(s,c1,c2)           -> 
+            let nc1 = loopRecursiveConstraint c1 
+            let nc2 = loopRecursiveConstraint c2 
             rootFunc2 s nc1 nc2
-    loopRecursiveConstraint c
+    loopRecursiveConstraint c 

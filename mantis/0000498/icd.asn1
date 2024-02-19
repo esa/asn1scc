@@ -12,8 +12,8 @@ T1 ::= INTEGER {aa(1), bb(2)}
 T2 ::= T1 (bb) -- in ICD, size is 0 bits but the "why?" does not lead anywhere
 TC ::= SEQUENCE { allowed TC-Allowed-HK, exte Extended } -- Enumeration' s values not OK in ICD
 Extended ::= All-HK (ALL EXCEPT b) -- Enumeration's values not OK in ICD
-Other ::= All-HK (TC-Allowed-HK) -- Bug in ICD: Constraint column contains "(TASTE-Dataview)"
+Other ::= All-HK (TC-Allowed-HK) -- Bug in ICD: Constraint column contains "(TASTE-Dataview)" 
 
-Other2 ::= All-HK (INCLUDES All-HK)(ALL EXCEPT b) -- Issue with Constraint value in ICD
+Other2 ::= All-HK (INCLUDES All-HK)(ALL EXCEPT b) -- Issue with Contraint value in ICD
 
 END
