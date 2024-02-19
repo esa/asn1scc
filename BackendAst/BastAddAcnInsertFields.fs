@@ -38,8 +38,8 @@ let mapBTypeToBType (r:BAst.AstRoot) (t:BAst.Asn1Type) (acn:AcnTypes.AcnAst) (ac
         SequenceOf
 
         //sequence
-        (fun o newChild us -> {ChildInfo.Name = o.Name; chType = newChild; Optionality = o.Optionality; acnInsertedField    = o.acnInsertedField; Comments = o.Comments; Location = o.Location}, us)
-        (fun children o newBase us ->
+        (fun o newChild us -> {ChildInfo.Name = o.Name; chType = newChild; Optionality = o.Optionality; acnInsertetField    = o.acnInsertetField; Comments = o.Comments; Location = o.Location}, us)
+        (fun children o newBase us -> 
             let acnAbsPath = o.id.AcnAbsPath
             let acnChildren = acn.Types |> Seq.filter(fun x -> x.TypeID.Length-1=acnAbsPath.Length && (x.TypeID|>Seq.take acnAbsPath.Length|>Seq.toList)=acnAbsPath) |> Seq.toList
             let newChildren =
@@ -55,22 +55,22 @@ let mapBTypeToBType (r:BAst.AstRoot) (t:BAst.Asn1Type) (acn:AcnTypes.AcnAst) (ac
                                 let newTypeId = o.id.getSeqChildId acnChildName
                                 yield {
                                         ChildInfo.Name = acnChildName
-                                        chType =
+                                        chType =  
                                                 match acnChild.ImpMode with
                                                 | AcnTypes.RecordField       -> raise(BugErrorException "Child exists in ASN.1")
                                                 | AcnTypes.AcnTypeImplMode.LocalVariable(asn1Type) | AcnTypes.FunctionParameter(asn1Type) ->
                                                     match asn1Type with
-                                                    | AcnTypes.Integer   ->
+                                                    | AcnTypes.Integer   -> 
                                                         Integer {Integer.id= newTypeId; tasInfo = None; Location = acnChild.Location; cons=[]; withcons=[]; baseType=None; uperMaxSizeInBits=0; uperMinSizeInBits=0;uperRange=uPER2.Full}
-                                                    | AcnTypes.Boolean   ->
+                                                    | AcnTypes.Boolean   -> 
                                                         Boolean {Boolean.id= newTypeId; tasInfo = None; Location = acnChild.Location; cons=[]; withcons=[]; baseType=None; uperMaxSizeInBits=0; uperMinSizeInBits=0}
-                                                    | AcnTypes.NullType  ->
+                                                    | AcnTypes.NullType  -> 
                                                         NullType {NullType.id= newTypeId; tasInfo = None; Location = acnChild.Location; baseType=None; uperMaxSizeInBits=0; uperMinSizeInBits=0}
-                                                    | AcnTypes.RefTypeCon(md,ts)  ->
+                                                    | AcnTypes.RefTypeCon(md,ts)  -> 
                                                         match r.TypeAssignments |> List.tryFind(fun x -> x.id.beginsWith md.Value ts.Value) with
                                                         | Some t -> t
                                                         | None   -> raise(SemanticError(ts.Location, sprintf "Unknown referenced type %s.%s " md.Value ts.Value))
-                                        acnInsertedField = true
+                                        acnInsertetField = true
                                         Optionality = None
                                         Comments = acnChild.Comments |> Seq.toList
                                         Location = acnChild.Location
@@ -82,7 +82,7 @@ let mapBTypeToBType (r:BAst.AstRoot) (t:BAst.Asn1Type) (acn:AcnTypes.AcnAst) (ac
         Sequence
 
         //Choice
-        (fun o newChild us -> {ChildInfo.Name = o.Name; chType = newChild; Optionality = o.Optionality; Comments = o.Comments; acnInsertedField=false; Location = o.Location}, us)
+        (fun o newChild us -> {ChildInfo.Name = o.Name; chType = newChild; Optionality = o.Optionality; Comments = o.Comments; acnInsertetField=false; Location = o.Location}, us)
         (fun children o newBase us -> {Choice.id = o.id; tasInfo = o.tasInfo;  uperMaxSizeInBits= o.uperMaxSizeInBits; uperMinSizeInBits=o.uperMinSizeInBits; children = children; cons=o.cons; withcons = o.withcons; baseType = newBase; Location = o.Location}, us)
         Choice
 
@@ -95,12 +95,12 @@ let foldMap = GenericFold2.foldMap
 let doWork (r:BAst.AstRoot) (acn:AcnTypes.AcnAst) : AstRoot=
     let initialState = {State.currentTypes = []}
     let acnTypes = acn.Types |> List.map(fun t -> t.TypeID, t) |> Map.ofList
-    let newTypes,_ =
+    let newTypes,_ = 
         r.TypeAssignments |>
         foldMap (fun cs t ->
             let newType, newState = mapBTypeToBType r t acn acnTypes cs
             newType, {newState with currentTypes = newState.currentTypes@[newType]}
-        ) initialState
+        ) initialState  
     {
         AstRoot.Files = r.Files
         args = r.args

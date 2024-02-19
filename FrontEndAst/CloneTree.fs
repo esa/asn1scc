@@ -17,12 +17,12 @@ open Asn1Ast
 let rec foldMap func state lst =
     match lst with
     | []        -> [],state
-    | h::tail   ->
+    | h::tail   -> 
         let procItem, newState = func state h
         let restList, finalState = tail |> foldMap func newState
         procItem::restList, finalState
 *)
-let foldMap = RemoveParameterizedTypes.foldMap
+let foldMap = RemoveParamterizedTypes.foldMap
 
 type Constructors<'state> = {
     createFile : AstRoot-> Asn1File -> Constructors<'state> -> 'state -> Asn1File*'state
@@ -40,17 +40,17 @@ and CloneAsn1File (old:AstRoot) (f:Asn1File) cons state =
     let newMods, newState = f.Modules |> foldMap (fun s m-> cons.createModule old m cons s) state
     { f with Modules = newMods}, newState
 
-let CloneModule (oldRoot:AstRoot) (old:Asn1Module) cons state  =
+let CloneModule (oldRoot:AstRoot) (old:Asn1Module) cons state  = 
     let newTas, s0 = old.TypeAssignments |> foldMap (fun s t -> cons.cloneTypeAssignment t old cons s) state
     let newVas, s1 = old.ValueAssignments |> foldMap (fun s v -> cons.cloneValueAssignment v old cons s) s0
     {
         Asn1Module.Name = old.Name;
         TypeAssignments  = newTas
         ValueAssignments = newVas
-        Imports = old.Imports
+        Imports = old.Imports 
         Exports = old.Exports
         Comments = old.Comments
-        position = old.position
+        postion = old.postion
     }, s1
 
 
@@ -71,7 +71,7 @@ let CloneValueAssignment (old:ValueAssignment)  (m:Asn1Module) cons state=
     {
         ValueAssignment.Name = old.Name
         Type = newType
-        Value = old.Value
+        Value = old.Value 
         c_name = old.c_name
         scala_name = old.scala_name
         ada_name = old.ada_name
@@ -81,19 +81,19 @@ let CloneType (old:Asn1Type) m key cons state =
     let CloneChild s (ch:ChildInfo) =
         let t,ns = cons.cloneType ch.Type m (key@[ch.Name.Value]) cons s
         {ch with Type = t},ns
-    let newKind, newState =
+    let newKind, newState = 
         match old.Kind with
-        | Sequence(children)  ->
+        | Sequence(children)  -> 
             let newChildren, finalState = children |> foldMap CloneChild state
             Sequence(newChildren), finalState
-        | Choice(children)    ->
+        | Choice(children)    -> 
             let newChildren, finalState = children |> foldMap CloneChild state
             Choice(newChildren), finalState
-        | SequenceOf(child)   ->
+        | SequenceOf(child)   -> 
             let nch,ns = cons.cloneType child m (key@["#"]) cons state
             SequenceOf(nch),ns
         | _                   -> old.Kind, state
-
+        
     {
         Kind = newKind
         Constraints = old.Constraints
@@ -105,7 +105,7 @@ let CloneType (old:Asn1Type) m key cons state =
 
     }, newState
 
-
+    
 let defaultConstructors = {
     createFile = CloneAsn1File
     createModule = CloneModule

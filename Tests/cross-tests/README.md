@@ -9,7 +9,7 @@ structure encoded with a language is still decodable with a different one.
 Usage and Implementation
 ===
 Framework is written as a [SCons](www.scons.org) build,
-with the target being a report about passed/failed test cases,
+with the target being a raport about passed/failed test cases,
 and the source being ASN.1 structures located in directory test-cases.
 
 To launch tests simply type in `scons`, keep in mind that SCons will by default use lazy approach

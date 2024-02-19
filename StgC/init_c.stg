@@ -8,11 +8,11 @@ initTypeAssignment_def(sVarName, sStar, sFuncName, sTypeDefName) ::= <<
 void <sFuncName>(<sTypeDefName><sStar> <sVarName>);
 >>
 
-initTypeAssignment(sVarName, sPtrPrefix, sPtrSuffix, sFuncName, sTypeDefName, sContent, arrsLocalVariables, sDefaultInitValue, arrsAnnots) ::= <<
+initTypeAssignment(sVarName, sPtrPrefix, sPtrSuffix, sFuncName, sTypeDefName, sContent, arrsLocalVariables, sDefaultInitValue) ::= <<
 void <sFuncName>(<sTypeDefName><sPtrSuffix> <sVarName>)
 {
 	(void)<sVarName>;
-
+    
     <arrsLocalVariables; separator="\n">
 
 	<sContent>
@@ -20,11 +20,11 @@ void <sFuncName>(<sTypeDefName><sPtrSuffix> <sVarName>)
 >>
 
 
-initInteger(sVal, sValue, bIsOptional) ::= "<sVal> = <sValue>;"
-initReal(sVal, dValue, bIsOptional) ::= "<sVal> = <dValue>;"
-initBoolean(sVal, bValue, bIsOptional) ::= "<sVal> = <if(bValue)>TRUE<else>FALSE<endif>;"
+initInteger(sVal, nValue) ::= "<sVal> = <nValue>;"
+initReal(sVal, dValue) ::= "<sVal> = <dValue>;"
+initBoolean(sVal, bValue) ::= "<sVal> = <if(bValue)>TRUE<else>FALSE<endif>;"
 
-initObjectIdentifier_valid(p, sAcc, sI, nIntVal) ::= "<p><sAcc>values[<sI>] = <nIntVal>;"
+initObjectIdentifier_vali(p, sAcc, sI, nIntVal) ::= "<p><sAcc>values[<sI>] = <nIntVal>;"
 initObjectIdentifier(p, sAcc, nSize, arrsValues) ::= <<
 <p><sAcc>nCount = <nSize>;
 <arrsValues; separator="\n">
@@ -33,14 +33,14 @@ initObjectIdentifier(p, sAcc, nSize, arrsValues) ::= <<
 init_Asn1LocalTime(p, sAcc, tv/*:Asn1TimeValue*/) ::= <<
 <p><sAcc>hours = <tv.hours>;
 <p><sAcc>mins = <tv.mins>;
-<p><sAcc>sec = <tv.secs>;
+<p><sAcc>sec = <tv.secs>;  
 <p><sAcc>fraction = <tv.secsFraction>;
 >>
 
 init_Asn1UtcTime(p, sAcc, tv/*:Asn1TimeValue*/) ::= <<
 <p><sAcc>hours = <tv.hours>;
 <p><sAcc>mins = <tv.mins>;
-<p><sAcc>sec = <tv.secs>;
+<p><sAcc>sec = <tv.secs>;  
 <p><sAcc>fraction = <tv.secsFraction>;
 >>
 
@@ -48,7 +48,7 @@ init_Asn1UtcTime(p, sAcc, tv/*:Asn1TimeValue*/) ::= <<
 init_Asn1LocalTimeWithTimeZone(p, sAcc, tv/*:Asn1TimeValue*/, tz/*:Asn1TimeZoneValue*/) ::= <<
 <p><sAcc>hours = <tv.hours>;
 <p><sAcc>mins = <tv.mins>;
-<p><sAcc>sec = <tv.secs>;
+<p><sAcc>sec = <tv.secs>;  
 <p><sAcc>fraction = <tv.secsFraction>;
 <p><sAcc>tz.sign = <tz.sign>;
 <p><sAcc>tz.hours = <tz.hours>;
@@ -58,7 +58,7 @@ init_Asn1LocalTimeWithTimeZone(p, sAcc, tv/*:Asn1TimeValue*/, tz/*:Asn1TimeZoneV
 init_Asn1Date(p, sAcc, dt/*:Asn1DateValue*/) ::= <<
 <p><sAcc>years = <dt.years>;
 <p><sAcc>months = <dt.months>;
-<p><sAcc>days = <dt.days>;
+<p><sAcc>days = <dt.days>;  
 >>
 
 init_Asn1Date_LocalTime(p, sAcc, dt/*:Asn1DateValue*/, tv/*:Asn1TimeValue*/) ::= <<
@@ -80,9 +80,9 @@ assignAny(p, sValue, sTypeDecl) ::= "<p> = (<sTypeDecl>)<sValue>;"
 assignString(p, sValue) ::= "memcpy(<p>, <sValue>, sizeof(<sValue>));"
 
 
-initIA5String(sPtr, sValue, bIsOptional) ::= "strcpy(<sPtr>,<sValue>);"
-initEnumerated(sVal, sValue, bIsOptional) ::= "<sVal> = <sValue>;"
-initNull(sVal, bIsOptional) ::= "<sVal> = 0;"
+initIA5String(sPtr, sValue) ::= "strcpy(<sPtr>,<sValue>);"
+initEnumerated(sVal, sValue) ::= "<sVal> = <sValue>;"
+initNull(sVal)    ::= "<sVal> = 0;"
 
 initTestCaseIA5String(p, sAcc, nSize, nMaxSizePlusOne, i, td/*:FE_StringTypeDefinition*/, bAlpha, arrnAlphabetAsciiCodes, nAlphabetLength, bZero) ::= <<
 <if(bZero)>
@@ -93,7 +93,7 @@ memset(<p>, 0x0, <nMaxSizePlusOne>);
 memset(<p>, 0x0, <nMaxSizePlusOne>);
 while (<i>\< <nSize>) {
     <if(bAlpha)>
-    static byte allowedCharSet[] = {<arrnAlphabetAsciiCodes:{ch|0x<ch;format="X2">}; wrap, anchor, separator=",">};
+    static byte allowedCharSet[] = {<arrnAlphabetAsciiCodes:{ch|0x<ch;format="X2">}; wrap, anchor, separator=",">}; 
 
     <p>[<i>] = allowedCharSet[<i> % <nAlphabetLength>];
 
@@ -137,7 +137,7 @@ while (<i>\< <nSize>) {
 
 >>
 
-initTestCaseBitString(p, sAcc, sArrayHolderName, nSize, nSizeCeiled,  i, bIsFixedSize, bZero, nMinSize, bIsOptionalField) ::= <<
+initTestCaseBitString(p, sAcc, sArrayHolderName, nSize, nSizeCeiled,  i, bIsFixedSize, bZero, nMinSize) ::= <<
 <if(bZero)>
 memset(<p><sAcc>arr, 0x0, <nSizeCeiled>/8);
 
@@ -162,13 +162,13 @@ initSequence_pragma(p) ::= ""
 
 
 initFixedSequenceOf(arrsInnerValues) ::= <<
-<arrsInnerValues; separator="\n">
+<arrsInnerValues; separator="\n">        
 >>
 
 
 initVarSizeSequenceOf(p, sAcc, nSize, arrsInnerValues) ::= <<
 <p><sAcc>nCount = <nSize>;
-<arrsInnerValues; separator="\n">
+<arrsInnerValues; separator="\n">        
 >>
 
 
@@ -195,13 +195,13 @@ initSequence_optionalChild(p, sAcc, sChName, sPresentFlag, sChildContent) ::=<<
 >>
 
 initSequence(arrsInnerValues) ::= <<
-<arrsInnerValues; separator="\n">
+<arrsInnerValues; separator="\n">        
 >>
 
 initSequence_emptySeq(p) ::= ""
 
 
-initTestCase_sequence_child(p, sAcc, sChName, sChildContent, bOptional, sInitExpr) ::= <<
+initTestCase_sequence_child(p, sAcc, sChName, sChildContent, bOptional) ::= <<
 /*set <sChName> */
 <if(bOptional)><p><sAcc>exist.<sChName> = 1;<endif>
 <sChildContent>
@@ -213,11 +213,11 @@ initTestCase_sequence_child_opt(p, sAcc, sChName) ::= <<
 
 initChoice(p, sAcc, sChildContent, sChildID, sChildName, sChildTypeName, sChoiceTypeName, sChildTempVarName, sChildTempDefaultInit, bComponentTempInit) ::= <<
 <p><sAcc>kind = <sChildID>;
-<sChildContent>
+<sChildContent>        
 >>
 
 
-initTestCase_choice_child(p, sAcc, sChildContent, sChildID, sChildName, sChildTypeName, sChoiceTypeName, sChildTempVarName, sChildTempDefaultInit, bIsOptional) ::= <<
+initTestCase_choice_child(p, sAcc, sChildContent, sChildID, sChildName, sChildTypeName, sChoiceTypeName, sChildTempVarName, sChildTempDefaultInit) ::= <<
 /*set <sChildName>*/
 <p><sAcc>kind = <sChildID>;
 <sChildContent>
@@ -255,14 +255,14 @@ const <sTypeDecl> <sConstantName> = <sValue>;
 #endif
 >>
 
-initFixSizeOctetString(sTypeDefName, nMax, bZeroSizedArray) ::= "{<if(!bZeroSizedArray)>.arr  = {[0 ... <nMax>-1] = 0 }<endif>}"
-initVarSizeOctetString(sTypeDefName, nMin, nMax) ::= "{.nCount = <nMin>, .arr  = {[0 ... <nMax>-1] = 0 }}"
+initFixSizeOctetString(sTypeDef, nMax, bZeroSizedArray) ::= "{<if(!bZeroSizedArray)>.arr  = {[0 ... <nMax>-1] = 0 }<endif>}"
+initVarSizeOctetString(sTypeDef, nMin, nMax) ::= "{.nCount = <nMin>, .arr  = {[0 ... <nMax>-1] = 0 }}"
 
-initFixSizeBitString(sTypeDefName, nMax, nMaxOctets) ::= "{.arr  = {[0 ... <nMaxOctets>-1] = 0 }}"
-initVarSizeBitString(sTypeDefName, nMin, nMax, nMaxOctets) ::= "{.nCount = <nMin>, .arr  = {[0 ... <nMaxOctets>-1] = 0 }}"
+initFixSizeBitString(sTypeDef, nMax, nMaxOctets) ::= "{.arr  = {[0 ... <nMaxOctets>-1] = 0 }}"
+initVarSizeBitString(sTypeDef, nMin, nMax, nMaxOctets) ::= "{.nCount = <nMin>, .arr  = {[0 ... <nMaxOctets>-1] = 0 }}"
 
-initFixSizeSequenceOfExpr(sTypeDefName, nMax, sChildExp) ::= "{.arr  = {[0 ... <nMax>-1] = <sChildExp> }}"
-initVarSizeSequenceOfExpr(sTypeDefName, nMin, nMax, sChildExp) ::= "{.nCount = <nMin>, .arr  = {[0 ... <nMax>-1] = <sChildExp> }}"
+initFixSizeSequenceOfExpr(sTypeDef, nMax, sChildExp) ::= "{.arr  = {[0 ... <nMax>-1] = <sChildExp> }}"
+initVarSizeSequenceOfExpr(sTypeDef, nMin, nMax, sChildExp) ::= "{.nCount = <nMin>, .arr  = {[0 ... <nMax>-1] = <sChildExp> }}"
 
 
 initObjectIdentifierAsExpr() ::= <<
@@ -298,9 +298,9 @@ init_Asn1Date_LocalTimeWithTimeZoneExpr() ::= <<
 {.years = 0, .months = 0, .days = 0, .hours = 0, .mins = 0, .sec = 0, .fraction = 0, .tz.sign = 0, .tz.hours = 0, .tz.mins = 0 }
 >>
 
-initSequenceChildExpr(sChildName, sChildExpr, bIsOptional, bIsAbsent) ::= ".<sChildName> = <sChildExpr>"
+initSequenceChildExpr(sChildName, sChildExpr) ::= ".<sChildName> = <sChildExpr>"
 initSequenceOptionalChildExpr(sChildName, nPresenceBit) ::= ".<sChildName> = <nPresenceBit>"
-initSequenceExpr(sTypeDefName, arrsChildren, arrsOptionalChildren) ::= <<
+initSequenceExpr(arrsChildren, arrsOptionalChildren) ::= <<
 {<arrsChildren; separator=", "><if (arrsOptionalChildren)>, .exist = {<arrsOptionalChildren; separator=", ">}<endif>}
 >>
 

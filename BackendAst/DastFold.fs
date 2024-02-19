@@ -8,31 +8,31 @@ open DAstUtilFunctions
 let foldMap = Asn1Fold.foldMap
 
 let foldAsn1Type
-    (t:Asn1Type)
-    (us:'UserState)
-    (integerFunc: Asn1Type -> Integer -> 'UserState -> 'a)
-    (realFunc: Asn1Type -> Real -> 'UserState -> 'a)
-    (ia5StringFunc: Asn1Type -> StringType -> 'UserState -> 'a)
-    (octetStringFunc: Asn1Type -> OctetString -> 'UserState -> 'a)
-    (nullTypeFunc: Asn1Type -> NullType -> 'UserState -> 'a)
-    (bitStringFunc: Asn1Type -> BitString -> 'UserState -> 'a)
-    (booleanFunc: Asn1Type -> Boolean -> 'UserState -> 'a)
-    (enumeratedFunc: Asn1Type -> Enumerated -> 'UserState -> 'a)
-    (objectIdentifierFunc: Asn1Type -> ObjectIdentifier -> 'UserState -> 'a)
-    (timeTypeFunc: Asn1Type -> TimeType -> 'UserState -> 'a)
-    (seqOfTypeFunc: Asn1Type -> SequenceOf -> 'b -> 'a)
-
-    (seqAsn1ChildFunc: Asn1Type -> Sequence -> Asn1Child -> 'b -> 'c * 'UserState)
-    (seqAcnChildFunc: Asn1Type -> Sequence -> AcnChild -> 'UserState -> 'c * 'UserState)
-    (seqTypeFunc: Asn1Type -> Sequence -> 'c list * 'UserState -> 'a)
-
-    (chChild: Asn1Type -> Choice -> ChChildInfo -> 'b -> 'd * 'UserState)
-    (chTypeFunc: Asn1Type -> Choice -> 'd list * 'UserState -> 'a)
-    (refTypeFunc: Asn1Type -> ReferenceType -> 'b -> 'a)
-    (typeFunc: Asn1Type -> 'a -> 'b) : 'b
+    (t:Asn1Type) 
+    (us:'UserState) 
+    integerFunc 
+    realFunc
+    ia5StringFunc
+    octetStringFunc
+    nullTypeFunc
+    bitStringFunc
+    booleanFunc
+    enumeratedFunc
+    objectIdentifierFunc
+    timeTypeFunc
+    seqOfTypeFunc
+    
+    seqAsn1ChildFunc
+    seqAcnChildFunc
+    seqTypeFunc
+    
+    chChild
+    chTypeFunc
+    refTypeFunc
+    typeFunc
     =
     let rec loopType (t:Asn1Type) (us:'UserState) =
-        let newKind =
+        let newKind = 
             match t.Kind with
             | Integer           cnt -> integerFunc t cnt us
             | Real              cnt -> realFunc t cnt us
@@ -44,19 +44,20 @@ let foldAsn1Type
             | Enumerated        cnt -> enumeratedFunc t cnt us
             | ObjectIdentifier  cnt -> objectIdentifierFunc t cnt us
             | TimeType          cnt -> timeTypeFunc t cnt us
-            | SequenceOf        cnt ->
+            | SequenceOf        cnt -> 
                 let newChildType = loopType cnt.childType us
-                seqOfTypeFunc t cnt newChildType
-            | Sequence          seqInfo ->
+                seqOfTypeFunc t cnt newChildType 
+            | Sequence          seqInfo -> 
                 let newChildren =
-                    seqInfo.children |>
-                    foldMap (fun curState ch ->
+                    seqInfo.children |> 
+                    foldMap (fun curState ch -> 
                                     match ch with
-                                    | Asn1Child asn1Child   -> seqAsn1ChildFunc t seqInfo asn1Child (loopType asn1Child.Type curState)
+                                    | Asn1Child asn1Chlld   -> seqAsn1ChildFunc t seqInfo asn1Chlld (loopType asn1Chlld.Type curState)
                                     | AcnChild  acnChild    -> seqAcnChildFunc  t seqInfo acnChild curState) us
 
+                                    //seqChild ch (loopType ch.chType  curState)) us
                 seqTypeFunc t seqInfo newChildren
-            | Choice            chInfo ->
+            | Choice            chInfo -> 
                 let newChildren = chInfo.children |> foldMap (fun curState ch -> chChild t chInfo ch (loopType ch.chType  curState)) us
                 chTypeFunc t chInfo newChildren
             | ReferenceType ref     ->
@@ -77,3 +78,39 @@ let getValueFromSizeableConstraint (c:SizableTypeConstraint<'v>) =
         (fun _ intCon s       -> [],s)
         c
         0 |> fst
+
+(*
+let rec getOctetStringValues (t:Asn1Type) =
+    seq {
+        match t.Kind with
+        | OctetString o -> 
+            let octVals = (o.baseInfo.cons@o.baseInfo.withcons) |> List.map getValueFromSizeableConstraint |> List.collect id
+            yield! octVals
+        | Sequence seq  ->
+            for ch in seq.Asn1Children do
+                yield! getOctetStringValues ch.Type
+        | Choice ch     ->
+            for ch in ch.children do
+                yield! getOctetStringValues ch.chType
+        | SequenceOf ch  ->
+            yield! getOctetStringValues ch.childType
+        | _             -> ()
+    } |> Seq.toList
+
+let rec getBitStringValues (t:Asn1Type) =
+    seq {
+        match t.Kind with
+        | BitString o -> 
+            let octVals = (o.baseInfo.cons@o.baseInfo.withcons) |> List.map getValueFromSizeableConstraint |> List.collect id
+            yield! octVals
+        | Sequence seq  ->
+            for ch in seq.Asn1Children do
+                yield! getBitStringValues ch.Type
+        | Choice ch     ->
+            for ch in ch.children do
+                yield! getBitStringValues ch.chType
+        | SequenceOf ch  ->
+            yield! getBitStringValues ch.childType
+        | _             -> ()
+    } |> Seq.toList
+*)

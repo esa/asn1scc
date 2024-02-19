@@ -1,4 +1,5 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
   <PropertyGroup>
     <TargetFramework>net7.0</TargetFramework>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
@@ -16,11 +17,11 @@
     <Compile Include="DAstEqual.fs" />
     <Compile Include="DAstEqualExp.fs" />
     <Compile Include="DastValidate2.fs" />
-    <Compile Include="EncodeDecodeTestCase.fs" />
-    <Compile Include="DAstInitialize.fs" />
     <Compile Include="DAstUPer.fs" />
     <Compile Include="DAstXer.fs" />
     <Compile Include="DAstACN.fs" />
+    <Compile Include="EncodeDecodeTestCase.fs" />
+    <Compile Include="DAstInitialize.fs" />
     <Compile Include="DAstProgramUnit.fs" />
     <Compile Include="DastTestCaseCreation.fs" />
     <Compile Include="DAstConstruction.fs" />
@@ -33,16 +34,18 @@
     <Compile Include="GenerateAcnIcd.fs" />
     <Compile Include="PrintAcn.fs" />
   </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\Antlr\Antlr.csproj" />
-    <ProjectReference Include="..\CommonTypes\CommonTypes.fsproj" />
-    <ProjectReference Include="..\FrontEndAst\FrontEndAst.fsproj" />
-    <ProjectReference Include="..\StgAda\StgAda.fsproj" />
-    <ProjectReference Include="..\StgC\StgC.fsproj" />
-    <ProjectReference Include="..\StgScala\StgScala.fsproj" />
-    <ProjectReference Include="..\StgVarious\StgVarious.fsproj" />
-  </ItemGroup>
-  <ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\Antlr\Antlr.csproj" />
+      <ProjectReference Include="..\CommonTypes\CommonTypes.fsproj" />
+      <ProjectReference Include="..\FrontEndAst\FrontEndAst.fsproj" />
+      <ProjectReference Include="..\StgAda\StgAda.fsproj" />
+      <ProjectReference Include="..\StgC\StgC.fsproj" />
+      <ProjectReference Include="..\StgScala\StgScala.fsproj" />
+      <ProjectReference Include="..\StgVarious\StgVarious.fsproj" />
+    </ItemGroup>
+
+    <ItemGroup>
     <Reference Include="antlr.runtime">
       <HintPath>..\Antlr\antlr313\antlr.runtime.dll</HintPath>
     </Reference>
@@ -56,7 +59,9 @@
       <HintPath>..\Antlr\antlr313\StringTemplate.dll</HintPath>
     </Reference>
   </ItemGroup>
-  <ItemGroup>
-    <PackageReference Update="FSharp.Core" Version="7.0.400" />
-  </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Update="FSharp.Core" Version="7.0.400" />
+    </ItemGroup>
+
 </Project>

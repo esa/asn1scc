@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" >
 <head>
     <title>ICD</title>
-    <style type="text/css">
+    <style type="text/css"> 
 .headerRow
 {
     background-color: #BBBBBB;
@@ -261,25 +261,25 @@ h2
       <h2 >Module : TESTMODULE</h2>
       <font face="Courier" color="DimGray"><pre>
       </pre></font>
-      <a name="ICD_GenericCommand"></a>
+      <a name="ICD_GenericCommand"></a> 
       <table border="0" width="100%" >
       <tbody>
-
+      
       <tr  bgcolor="#379CEE">
       <td height="35" colspan="4"  >
       <font face="Verdana" color="#FFFFFF" size="4">GenericCommand</font><font face="Verdana" color="#FFFFFF" size="2">(SEQUENCE) </font>
       <font face="Verdana" color="#FFFFFF" size="2"><a href="#ASN1_GenericCommand">ASN.1</a></font>
       </td>
-
+      
       <td height="35" colspan="2" align="center">
           <font face="Verdana" color="#FFFFFF" size="2">min = 2 bytes</font>
       </td>
-
+      
       <td height="35" colspan="2" align="center">
           <font face="Verdana" color="#FFFFFF" size="2">max = 910 bytes</font>
       </td>
       </tr>
-
+      
       <tr class="CommentRow">
       <td class="comment2" colspan="4"></td>
       </tr>
@@ -293,7 +293,7 @@ h2
       <td class="hrMin">Min Length (bits)</td>
       <td class="hrMax">Max Length (bits)</td>
       </tr>
-
+      
       <tr class="OddRow">
       <td class="no">1</td>
       <td class="field">Preamble</td>
@@ -328,31 +328,31 @@ h2
       <td class="min">15</td>
       <td class="max">7207</td>
       </tr>
-
-
-
+      
+      
+      
       </tbody>
       </table>
       &nbsp;<br/>
-      <a name="ICD_Command"></a>
+      <a name="ICD_Command"></a> 
       <table border="0" width="100%" >
       <tbody>
-
+      
       <tr  bgcolor="#FF8f00">
       <td height="35" colspan="4"  >
       <font face="Verdana" color="#FFFFFF" size="4">Command</font><font face="Verdana" color="#FFFFFF" size="2">(SEQUENCE) </font>
       <font face="Verdana" color="#FFFFFF" size="2"><a href="#ASN1_Command">ASN.1</a></font>
       </td>
-
+      
       <td height="35" colspan="2" align="center">
           <font face="Verdana" color="#FFFFFF" size="2">min = 2 bytes</font>
       </td>
-
+      
       <td height="35" colspan="2" align="center">
           <font face="Verdana" color="#FFFFFF" size="2">max = 910 bytes</font>
       </td>
       </tr>
-
+      
       <tr class="CommentRow">
       <td class="comment2" colspan="4"></td>
       </tr>
@@ -366,7 +366,7 @@ h2
       <td class="hrMin">Min Length (bits)</td>
       <td class="hrMax">Max Length (bits)</td>
       </tr>
-
+      
       <tr class="OddRow">
       <td class="no">1</td>
       <td class="field">Preamble</td>
@@ -401,9 +401,9 @@ h2
       <td class="min">15</td>
       <td class="max">7207</td>
       </tr>
-
-
-
+      
+      
+      
       </tbody>
       </table>
       &nbsp;<br/>
@@ -411,8 +411,8 @@ h2
   </div>
   <hr />
     <a name="INT_SIZE_EXPLAINED123"></a>
-    <em>Unconstrained integer's size explained</em><br/>
-    In unaligned PER, unconstrained integers are encoded into the minimum number of octets (using non negative binary integer or 2's-complement binary integer encoding) and a length determinant, containing the number of value octets, is added at the beginning of the encoding. Therefore uPER can support integers of any size, even of infinity value. However, in almost all processors, integers have limited capacity which is usually four or eight octets. Therefore, the reported maximum size in octets for an unconstrained integer is 1 (for the length determinant) plus the word size for the target processor which is specified in the command line by the wordSize argument. In this invocation, wordSize was specified to be 8 octets and therefore the maximum size of the unconstrained integers is 9 octets or 72 bits
+    <em>Unconstraint integer's size explained</em><br/>
+    In unaligned PER, unconstraint integers are encoded into the minimum number of octets (using non negative binary integer or 2's-complement binary integer encoding) and a length determinant, containing the number of value octets, is added at the beginning of the encoding. Therefore uPER can support integers of any size, even of infinity value. However, in almost all processors, integers have limited capacity which is usually four or eight octets. Therefore, the reported maximum size in octets for an unconstraint integer is 1 (for the length determinant) plus the word size for the target processor which is specified in the command line by the wordSize argument. In this invocation, wordSize was specified to be 8 octets and therefore the maximum size of the unconstraint integers is 9 octets or 72 bits
     <br/>
     <br/>
   <hr />
@@ -421,14 +421,14 @@ h2
   <h1 >File : a.asn1</h1>
   <div style="width: 100%; white-space:pre; font-family:Courier New; font-size:small">
   TESTMODULE <b><font color="#5F9EA0">DEFINITIONS</font></b> <b><font color="#5F9EA0">AUTOMATIC</font></b> <b><font color="#5F9EA0">TAGS</font></b> ::= <b><font color="#5F9EA0">BEGIN</font></b>
-
+  
   <a name="ASN1_GenericCommand"></a><a href="#ICD_GenericCommand"><font color="#B8860B"><b>GenericCommand</b></font></a> ::= <a name="ASN1_GenericCommand">SEQUENCE</a> {
     commandArgument <b><font color="#5F9EA0">INTEGER</font></b> <b><font color="#5F9EA0">OPTIONAL</font></b>,
     instructions <b><font color="#5F9EA0">SEQUENCE</font></b>(<b><font color="#5F9EA0">SIZE</font></b>(1..100)) <b><font color="#5F9EA0">OF</font></b> <b><font color="#5F9EA0">INTEGER</font></b>
   }
-
+  
   <a name="ASN1_Command"></a><a href="#ICD_Command"><font color="#B8860B"><b>Command</b></font></a> ::= <a href="#ASN1_GenericCommand"><font color="#000000">GenericCommand</font></a> (<b><font color="#5F9EA0">WITH</font></b> <b><font color="#5F9EA0">COMPONENTS</font></b> {commandArgument <b><font color="#5F9EA0">PRESENT</font></b>})
-
+  
   <b><font color="#5F9EA0">END</font></b>
   </div>
   </div>

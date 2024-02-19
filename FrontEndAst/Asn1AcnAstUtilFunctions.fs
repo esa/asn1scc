@@ -31,7 +31,7 @@ type Asn1Type with
         | Choice         x -> x.uperMinSizeInBits
         | ObjectIdentifier x -> x.uperMinSizeInBits
         | ReferenceType  x -> x.uperMinSizeInBits
-
+            
 
     member this.uperMaxSizeInBits =
         match this.Kind with
@@ -133,7 +133,7 @@ type Asn1Type with
 
 
 
-    member this.FT_TypeDefinition =
+    member this.FT_TypeDefintion =
         match this.Kind with
         | Integer      o  -> o.typeDef |> Map.toList |> List.map (fun (l, d) -> (l, FE_PrimitiveTypeDefinition d)) |> Map.ofList
         | ObjectIdentifier      o  -> o.typeDef |> Map.toList |> List.map (fun (l, d) -> (l, FE_PrimitiveTypeDefinition d)) |> Map.ofList
@@ -149,7 +149,7 @@ type Asn1Type with
         | SequenceOf   o  -> o.typeDef |> Map.toList |> List.map (fun (l, d) -> (l, FE_SizeableTypeDefinition d)) |> Map.ofList
         | Sequence     o  -> o.typeDef |> Map.toList |> List.map (fun (l, d) -> (l, FE_SequenceTypeDefinition d)) |> Map.ofList
         | Choice       o  -> o.typeDef |> Map.toList |> List.map (fun (l, d) -> (l, FE_ChoiceTypeDefinition d)) |> Map.ofList
-        | ReferenceType o->  o.typeDef
+        | ReferenceType o->  o.typeDef 
 
     member this.SaveBitStreamPosition =
         match this.Kind with
@@ -194,13 +194,13 @@ type AcnInsertedType with
         | AcnBoolean        x -> x.acnMaxSizeInBits
         | AcnReferenceToEnumerated x -> x.enumerated.acnMaxSizeInBits
         | AcnReferenceToIA5String x -> x.str.acnMaxSizeInBits
-    member this.acnAlignment =
+    member this.acnAligment =
         match this with
-        | AcnInteger        x -> x.acnAlignment
-        | AcnNullType       x -> x.acnAlignment
-        | AcnBoolean        x -> x.acnAlignment
-        | AcnReferenceToEnumerated x -> x.acnAlignment
-        | AcnReferenceToIA5String x -> x.acnAlignment
+        | AcnInteger        x -> x.acnAligment
+        | AcnNullType       x -> x.acnAligment
+        | AcnBoolean        x -> x.acnAligment
+        | AcnReferenceToEnumerated x -> x.acnAligment
+        | AcnReferenceToIA5String x -> x.acnAligment
     member this.Location =
         match this with
         | AcnInteger        x -> x.Location
@@ -208,7 +208,7 @@ type AcnInsertedType with
         | AcnBoolean        x -> x.Location
         | AcnReferenceToEnumerated x -> x.tasName.Location
         | AcnReferenceToIA5String x -> x.tasName.Location
-
+       
 type BitString with
     member this.MaxOctets = int (ceil ((double this.maxSize.uper)/8.0))
 
@@ -222,7 +222,7 @@ type SeqChildInfo with
 
     member this.acnMinSizeInBits =
         match this with
-        | Asn1Child x   ->
+        | Asn1Child x   -> 
             match x.Optionality with
             | None                  ->  x.Type.acnMinSizeInBits
             | Some(AlwaysAbsent)    ->  0I
@@ -231,17 +231,17 @@ type SeqChildInfo with
         | AcnChild  x   -> x.Type.acnMinSizeInBits
     member this.acnMaxSizeInBits =
         match this with
-        | Asn1Child x   ->
+        | Asn1Child x   -> 
             match x.Optionality with
             | None                  ->  x.Type.acnMaxSizeInBits
             | Some(AlwaysAbsent)    ->  0I
             | Some(AlwaysPresent)   ->  x.Type.acnMaxSizeInBits
             | Some(Optional o)      ->  x.Type.acnMaxSizeInBits
         | AcnChild  x   -> x.Type.acnMaxSizeInBits
-    member this.acnAlignment =
+    member this.acnAligment =
         match this with
-        | Asn1Child x   -> x.Type.acnAlignment
-        | AcnChild  x   -> x.Type.acnAlignment
+        | Asn1Child x   -> x.Type.acnAligment
+        | AcnChild  x   -> x.Type.acnAligment
     member this.Optionality =
         match this with
         | Asn1Child x   -> x.Optionality
@@ -283,7 +283,7 @@ let getIntEncodingClassByUperRange (args:CommandLineSettings) (uperRange:BigInte
     let int32  = ASN1SCC_Int32 (BigInteger System.Int32.MinValue,  BigInteger System.Int32.MaxValue)
     let int16  = ASN1SCC_Int16 (BigInteger System.Int16.MinValue,  BigInteger System.Int16.MaxValue)
     let  int8  = ASN1SCC_Int8  (BigInteger System.SByte.MinValue,  BigInteger System.SByte.MaxValue)
-
+    
     let uint64 = ASN1SCC_UInt64 (0I,  BigInteger System.UInt64.MaxValue)
     let uint32 = ASN1SCC_UInt32 (0I,  BigInteger System.UInt32.MaxValue)
     let uint16 = ASN1SCC_UInt16 (0I,  BigInteger System.UInt16.MaxValue)
@@ -306,7 +306,7 @@ let getIntEncodingClassByUperRange (args:CommandLineSettings) (uperRange:BigInte
             if   BigInteger System.SByte.MinValue <= a && b <= BigInteger System.SByte.MaxValue then int8
             elif BigInteger System.Int16.MinValue <= a && b <= BigInteger System.Int16.MaxValue then int16
             elif BigInteger System.Int32.MinValue <= a && b <= BigInteger System.Int32.MaxValue then int32
-            else
+            else 
                 int64
         | false -> (ASN1SCC_Int (args.SIntMin,  args.SIntMax))
 
@@ -331,7 +331,7 @@ type Integer with
 type IntegerClass with
     member this.Min =
         match this with
-        | ASN1SCC_Int8      (a,_) -> a
+        | ASN1SCC_Int8      (a,_) -> a 
         | ASN1SCC_Int16     (a,_) -> a
         | ASN1SCC_Int32     (a,_) -> a
         | ASN1SCC_Int64     (a,_) -> a
@@ -343,7 +343,7 @@ type IntegerClass with
         | ASN1SCC_UInt      (a,_) -> a
     member this.Max =
         match this with
-        | ASN1SCC_Int8      (_,b) -> b
+        | ASN1SCC_Int8      (_,b) -> b 
         | ASN1SCC_Int16     (_,b) -> b
         | ASN1SCC_Int32     (_,b) -> b
         | ASN1SCC_Int64     (_,b) -> b
@@ -353,9 +353,9 @@ type IntegerClass with
         | ASN1SCC_UInt32    (_,b) -> b
         | ASN1SCC_UInt64    (_,b) -> b
         | ASN1SCC_UInt      (_,b) -> b
-    member this.IsPositive =
+    member this.IsPositive = 
         match this with
-        | ASN1SCC_Int8      (_) -> false
+        | ASN1SCC_Int8      (_) -> false 
         | ASN1SCC_Int16     (_) -> false
         | ASN1SCC_Int32     (_) -> false
         | ASN1SCC_Int64     (_) -> false
@@ -370,10 +370,10 @@ type IntegerClass with
 let getAcnIntegerClass (args:CommandLineSettings) (i:AcnInteger) =
     getIntEncodingClassByUperRange args i.uperRange
 
-type ObjectIdentifier with
+type ObjectIdentifier with 
     member this.AllCons  = this.cons@this.withcons
 
-type TimeType with
+type TimeType with 
     member this.AllCons  = this.cons@this.withcons
 
 
@@ -432,7 +432,7 @@ type Choice           with
 
 
 type Asn1Child with
-    member this.getBackendName0 l =
+    member this.getBackendName0 l = 
         match l with
         | CommonTypes.C         -> this._c_name
         | CommonTypes.Scala     -> this._scala_name
@@ -460,7 +460,7 @@ let locateTypeByRefId (r:AstRoot) (ReferenceToType nodes) =
     let rec locateType (parent:Asn1OrAcnOrPrmType) (nodes:ScopeNode list) =
         match nodes with
         | []                        -> parent
-        | (SEQ_CHILD chName)::rest  ->
+        | (SEQ_CHILD chName)::rest  -> 
             match parent with
             | ASN1_TYPE t ->
                 match t.Kind with
@@ -471,7 +471,7 @@ let locateTypeByRefId (r:AstRoot) (ReferenceToType nodes) =
                     | None      -> raise(UserException(sprintf "Invalid child name '%s'" chName ))
                 | _  -> raise(UserException(sprintf "Invalid path '%s'" origPath.AsString ))
             | _  -> raise(UserException(sprintf "Invalid path '%s'" origPath.AsString ))
-        | (CH_CHILD (chName, _))::rest  ->
+        | (CH_CHILD (chName, _))::rest  -> 
             match parent with
             | ASN1_TYPE t ->
                 match t.Kind with
@@ -498,23 +498,23 @@ let locateTypeByRefId (r:AstRoot) (ReferenceToType nodes) =
         | _     -> raise(UserException(sprintf "Invalid path '%s'" origPath.AsString ))
 
     match nodes with
-    | (MD mdName)::(TA tasName)::restPath    ->
-        let md =
+    | (MD mdName)::(TA tasName)::restPath    -> 
+        let md = 
             match r.Files |> List.collect(fun f -> f.Modules) |> Seq.tryFind (fun m -> m.Name.Value = mdName) with
             | Some md -> md
             | None    -> raise(UserException(sprintf "Invalid module name '%s'" mdName ))
-        let tas =
+        let tas = 
             match md.TypeAssignments |> Seq.tryFind(fun tas -> tas.Name.Value = tasName) with
             | Some tas -> tas
             | None    -> raise(UserException(sprintf "Invalid tas name '%s'" tasName ))
         locateType (ASN1_TYPE tas.Type) restPath
     | _                 -> raise(UserException(sprintf "Invalid module name " ))
-
+        
 *)
 
 type AstRoot with
     member r.Modules = r.Files |> List.collect(fun f -> f.Modules)
-    member r.GetModuleByName(name:StringLoc)  =
+    member r.GetModuleByName(name:StringLoc)  = 
         let (n,loc) = name.AsTupple
         match r.Modules |> Seq.tryFind( fun m -> m.Name = name)  with
         | Some(m) -> m
@@ -523,7 +523,7 @@ type AstRoot with
 type Asn1Module with
     member this.ExportedTypes =
         match this.Exports with
-        | Asn1Ast.All   ->
+        | Asn1Ast.All   -> 
             let importedTypes = this.Imports |> List.collect(fun imp -> imp.Types) |> List.map(fun x -> x.Value)
             (this.TypeAssignments |> List.map(fun x -> x.Name.Value))@importedTypes
         | Asn1Ast.OnlySome(typesAndVars)    ->
@@ -537,11 +537,11 @@ type Asn1Module with
     member m.TryGetTypeAssignmentByName name (r:AstRoot) =
         match m.TypeAssignments|> Seq.tryFind(fun x -> x.Name = name) with
         | Some t   -> Some t
-        | None      ->
-            let othMods = m.Imports |> Seq.filter(fun imp -> imp.Types |> Seq.exists((=) name))
+        | None      -> 
+            let othMods = m.Imports |> Seq.filter(fun imp -> imp.Types |> Seq.exists((=) name)) 
                                 |> Seq.map(fun imp -> imp.Name) |> Seq.toList
             match othMods with
-            | firstMod::_   ->
+            | firstMod::_   -> 
                 match r.Modules |> Seq.tryFind( fun m -> m.Name = firstMod)  with
                 | Some(m) -> m.TryGetTypeAssignmentByName name r
                 | None    -> None
@@ -550,22 +550,22 @@ type Asn1Module with
     member m.GetTypeAssignmentByName name (r:AstRoot) =
         match m.TypeAssignments|> Seq.tryFind(fun x -> x.Name = name) with
         | Some(t)   -> t
-        | None      ->
-            let othMods = m.Imports |> Seq.filter(fun imp -> imp.Types |> Seq.exists((=) name))
+        | None      -> 
+            let othMods = m.Imports |> Seq.filter(fun imp -> imp.Types |> Seq.exists((=) name)) 
                                 |> Seq.map(fun imp -> imp.Name) |> Seq.toList
             match othMods with
             | firstMod::tail   -> r.GetModuleByName(firstMod).GetTypeAssignmentByName name r
-            | []               ->
+            | []               ->            
                 let (n,loc) = name.AsTupple
                 raise(SemanticError(loc, sprintf "No Type Assignment with name: %s is defined in Module %s" n m.Name.Value))
     member m.GetValueAsigByName(name:StringLoc) (r:AstRoot) =
         let (n,loc) = name.AsTupple
-        let value = m.ValueAssignments |> Seq.tryFind(fun x -> x.Name = name)
+        let value = m.ValueAssignments |> Seq.tryFind(fun x -> x.Name = name) 
         match value with
         | Some(v)       -> v
         | None          ->
-            let othMods = m.Imports
-                          |> Seq.filter(fun imp -> imp.Values |> Seq.exists(fun vname -> vname = name))
+            let othMods = m.Imports 
+                          |> Seq.filter(fun imp -> imp.Values |> Seq.exists(fun vname -> vname = name)) 
                           |> Seq.map(fun imp -> imp.Name) |> Seq.toList
             match othMods with
             | firstMod::tail   -> r.GetModuleByName(firstMod).GetValueAsigByName name r

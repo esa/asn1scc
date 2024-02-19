@@ -18,7 +18,7 @@ namespace PUS_C_Scala_Test
         S5, S6, S8, S9,
         S11, S12, S13,
         S14, S15, S17,
-        S18, S19, ADDITIONAL_TEST_CASES
+        S18, S19
     }
 
     [Flags]
@@ -40,9 +40,9 @@ namespace PUS_C_Scala_Test
         private readonly string cLang = "-c";
         private readonly string uperEnc = "--uper-enc";
         private readonly string acnEnc = "--acn-enc";
-        private readonly string genTests = "-atc";
+        private readonly string genTests= "-atc";
         private readonly List<string> stdArgs = new List<string> { "--field-prefix", "AUTO", "--type-prefix", "T", "-o" };
-
+        
         private readonly string outFolderPrefix = "../../../../PUSCScalaTest/GenTests/";
         private readonly string outFolderTestFix = "Test/";
         private readonly string outFolderSuffixUPER = "UPER/PUSC_";
@@ -50,10 +50,10 @@ namespace PUS_C_Scala_Test
         private readonly string outFolderSuffixScala = "/Scala";
         private readonly string outFolderSuffixC = "/C";
         private readonly string inputFilePrefix = "../../../../PUSCScalaTest/asn1-pusc-lib-asn1CompilerTestInput/";
-
+        
         private readonly string asn1FileEnding = ".asn1";
         private readonly string acnFileEnding = ".acn";
-
+        
         private readonly string cConfig = "release";
         private readonly string cProject = "VsProject";
 
@@ -68,7 +68,7 @@ namespace PUS_C_Scala_Test
 
             if ((sv & ServiceVariation.UPER) == ServiceVariation.UPER)
                 parList.Add(uperEnc);
-
+            
             if ((sv & ServiceVariation.ACN) == ServiceVariation.ACN)
                 parList.Add(acnEnc);
 
@@ -77,7 +77,7 @@ namespace PUS_C_Scala_Test
 
             parList.AddRange(stdArgs);
             parList.Add(outputFolder);
-
+            
             // add asn1 input
             var asn1Files = files.Select(s => inputFilePrefix + s + asn1FileEnding);
             parList.AddRange(asn1Files.Where(s => File.Exists(s)));
@@ -89,7 +89,7 @@ namespace PUS_C_Scala_Test
             if ((sv & ServiceVariation.ACN) == ServiceVariation.ACN) {
                 var acnFiles = files.Select(s => inputFilePrefix + s + acnFileEnding);
                 parList.AddRange(acnFiles.Where(s => File.Exists(s)));
-
+                
                 var missingACNFiles = acnFiles.Where(s => !File.Exists(s));
                 if (missingACNFiles.Count() > 0)
                     Console.WriteLine("WARNING: ACN Files not found: " + String.Join(",", missingACNFiles));
@@ -106,7 +106,7 @@ namespace PUS_C_Scala_Test
                 ret += outFolderTestFix;
 
             if ((sv & ServiceVariation.UPER) == ServiceVariation.UPER)
-                ret += outFolderSuffixUPER;
+                ret += outFolderSuffixUPER;                
 
             if ((sv & ServiceVariation.ACN) == ServiceVariation.ACN)
                 ret += outFolderSuffixACN;
@@ -138,8 +138,8 @@ namespace PUS_C_Scala_Test
                 var cOutputDir = getCleanWorkingFolderPath(folderSuffix, sv & ~ServiceVariation.CREATE_SCALA);
                 Run_Test(service, cOutputDir, sv & ~ServiceVariation.CREATE_SCALA);
 
-                if ((sv & ServiceVariation.COMPARE_ENCODINGS) == ServiceVariation.COMPARE_ENCODINGS)
-                    compareTestCases(service, sv, scalaOutputDir, cOutputDir);
+                if((sv & ServiceVariation.COMPARE_ENCODINGS) == ServiceVariation.COMPARE_ENCODINGS)  
+                    compareTestCases(scalaOutputDir, cOutputDir);
             }
             else
             {
@@ -148,7 +148,7 @@ namespace PUS_C_Scala_Test
             }
         }
 
-        private void compareTestCases(PUS_C_Service service, ServiceVariation sv, string folderA, string folderB)
+        private void compareTestCases(string folderA, string folderB)
         {
             var binsA = Directory.GetFiles(folderA, "*.dat").Order().ToArray();
             var binsB = Directory.GetFiles(folderB, "*.dat").Order().ToArray();
@@ -156,7 +156,7 @@ namespace PUS_C_Scala_Test
             Assert.IsTrue(binsA.Select(x => Path.GetFileName(x))
                 .SequenceEqual(binsB.Select(x => Path.GetFileName(x))), "output did not create the same files");
 
-            for(var i = 0; i<binsA.Length; ++i)
+            for (int i = 0; i < binsA.Length; i++)
             {
                 using (var f1 = File.OpenRead(binsA[i]))
                 using (var f2 = File.OpenRead(binsB[i]))
@@ -164,104 +164,26 @@ namespace PUS_C_Scala_Test
                     using (var r1 = new BinaryReader(f1))
                     using (var r2 = new BinaryReader(f2))
                     {
-                        Assert.IsTrue(r1.BaseStream.Length == r2.BaseStream.Length, $"file length for {binsA[i]} and {binsB[i]} are different");
+                        Assert.IsTrue(r1.BaseStream.Length == r2.BaseStream.Length, "filelength is different");
 
                         var isSame = true;
-                        while (r1.BaseStream.Position < r1.BaseStream.Length && isSame)
+                        while(r1.BaseStream.Position < r1.BaseStream.Length && isSame)
                         {
                             isSame &= (r1.ReadByte() == r2.ReadByte());
                         }
 
                         Assert.IsTrue(isSame, $"file {binsA[i]} contents are not equal to {binsB[i]}");
                     }
-                }
+                }    
             }
-        }
-
-        private struct TestRange
-        {
-            public TestRange(int s, int e)
-            {
-                start = s;
-                end = e;
-                testRange = Enumerable.Range(s, e);
-            }
-
-            public TestRange(int s, int e, IEnumerable<int> ex)
-            {
-                start = s;
-                end = e;
-                testRange = Enumerable.Range(s, e).Except(ex);
-            }
-
-            public readonly int start;
-            public readonly int end;
-            public readonly IEnumerable<int> testRange;
-        }
-
-        /**
-         *  Get Range of interop tests between Scala and C.
-         *
-         *  Exclude tests that do not work because the JVM does not
-         *  support unsigned values.
-         *
-         */
-        private TestRange getInteropTests(PUS_C_Service service, ServiceVariation sv)
-        {
-            if ((sv & ServiceVariation.UPER) != 0)
-                return service switch
-                {
-                    PUS_C_Service.S1 => new TestRange(1, 67),
-                    PUS_C_Service.S2 => new TestRange(1, 201, new[] { 80 }),
-                    PUS_C_Service.S3 => new TestRange(1, 325, new[] { 80 }),
-                    PUS_C_Service.S4 => new TestRange(1, 146, new[] { 80 }),
-                    PUS_C_Service.S5 => new TestRange(1, 168, new[] { 80 }),
-                    PUS_C_Service.S6 => new TestRange(1, 236, new[] { 80 }),
-                    PUS_C_Service.S8 => new TestRange(1, 133, new[] { 80 }),
-                    PUS_C_Service.S9 => new TestRange(1, 124, new[] { 80 }),
-                    PUS_C_Service.S11 => new TestRange(1, 226, new[] { 80 }),
-                    PUS_C_Service.S12 => new TestRange(1, 307, new[] { 80 }),
-                    PUS_C_Service.S13 => new TestRange(1, 307, new[] { 80 }),
-                    PUS_C_Service.S14 => new TestRange(1, 212, new[] { 80 }),
-                    PUS_C_Service.S15 => new TestRange(1, 308, new[] { 80 }),
-                    PUS_C_Service.S17 => new TestRange(1, 8, new[] { 80 }),
-                    PUS_C_Service.S18 => new TestRange(1, 180, new[] { 80 }),
-                    PUS_C_Service.S19 => new TestRange(1, 147, new[] { 80 }),
-                    PUS_C_Service.ADDITIONAL_TEST_CASES => new TestRange(1, 200, new[] { 80 }),
-                    _ => throw new InvalidOperationException("unknown service")
-                };
-            else if ((sv & ServiceVariation.ACN) != 0)
-                return service switch
-                {
-                    PUS_C_Service.S1 => new TestRange(1, 59),
-                    PUS_C_Service.S2 => new TestRange(1, 179, new[] { 80 }),
-                    PUS_C_Service.S3 => new TestRange(1, 308, new[] { 80 }),
-                    PUS_C_Service.S4 => new TestRange(1, 134, new[] { 80 }),
-                    PUS_C_Service.S5 => new TestRange(1, 159, new[] { 80 }),
-                    PUS_C_Service.S6 => new TestRange(1, 226, new[] { 80 }),
-                    PUS_C_Service.S8 => new TestRange(1, 120, new[] { 80 }),
-                    PUS_C_Service.S9 => new TestRange(1, 118, new[] { 80 }),
-                    PUS_C_Service.S11 => new TestRange(1, 213, new[] { 80 }),
-                    //PUS_C_Service.S12 => Enumerable.Range(1, 129).Except(new[] { 80 }),
-                    PUS_C_Service.S13 => new TestRange(1, 129, new [] { 80 }),
-                    PUS_C_Service.S14 => new TestRange(1, 202, new[] { 80 }),
-                    PUS_C_Service.S15 => new TestRange(1, 291, new[] { 80 }),
-                    PUS_C_Service.S17 => new TestRange(1, 8, new[] { 80 }),
-                    PUS_C_Service.S18 => new TestRange(1, 172, new[] { 80 }),
-                    PUS_C_Service.S19 => new TestRange(1, 141, new[] { 80 }),
-                    PUS_C_Service.ADDITIONAL_TEST_CASES => new TestRange(1, 200, new[] { 80 }),
-                    _ => throw new InvalidOperationException("unknown service")
-                };
-            else
-                throw new InvalidOperationException("no coding for testing");
         }
 
         private string getCleanWorkingFolderPath(string folderSuffix, ServiceVariation sv)
         {
             string outDir = GetOutputFolder(folderSuffix, sv);
-            //if (Directory.Exists(outDir))
-            //    Directory.Delete(outDir, true);
-
+            if (Directory.Exists(outDir))
+                Directory.Delete(outDir, true);
+            
             return outDir;
         }
 
@@ -312,7 +234,6 @@ namespace PUS_C_Scala_Test
                 PUS_C_Service.S17 => GetService17FileNames,
                 PUS_C_Service.S18 => GetService18FileNames,
                 PUS_C_Service.S19 => GetService19FileNames,
-                PUS_C_Service.ADDITIONAL_TEST_CASES => GetAdditionalTestCasesFileNames,
                 _ => throw new InvalidOperationException("what?")
 
             };
@@ -347,13 +268,13 @@ namespace PUS_C_Scala_Test
                 StartInfo = new ProcessStartInfo
                 {
                     FileName = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "cmd.exe" : "bash",
-                    Arguments = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? $"/C {cConfig}\\{cProject}.exe" : $"-c ./mainprogram",
+                    Arguments = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? $"/C {cConfig}\\{cProject}.exe" : $"./mainprogram",
 
-                    WorkingDirectory = outDir,
+					WorkingDirectory = outDir,
                     UseShellExecute = false,
                     RedirectStandardOutput = true,
                     RedirectStandardInput = false,
-                    CreateNoWindow = false,
+                    CreateNoWindow = true,
                 }
             })
             {
@@ -362,7 +283,7 @@ namespace PUS_C_Scala_Test
                 var worked = stdout.Contains("All test cases (") && stdout.Contains(") run successfully.");
                 if (!worked)
                     Console.WriteLine(stdout);
-
+                
                 Assert.IsTrue(worked, "C test cases failed");
             }
         }
@@ -374,7 +295,6 @@ namespace PUS_C_Scala_Test
                 StartInfo = new ProcessStartInfo
                 {
                     FileName = "bash",
-                    Arguments = "-c make all",
                     WorkingDirectory = outDir,
                     UseShellExecute = false,
                     RedirectStandardOutput = true,
@@ -384,6 +304,11 @@ namespace PUS_C_Scala_Test
             })
             {
                 proc.Start();
+                proc.StandardInput.WriteLine("make all");
+                System.Threading.Thread.Sleep(500);
+                proc.StandardInput.Flush();
+                proc.StandardInput.Close();
+                proc.WaitForExit();
 
                 // parse output
                 var stdout = proc.StandardOutput.ReadToEnd();
@@ -393,7 +318,7 @@ namespace PUS_C_Scala_Test
 
         private void RunMSBuild(string outDir)
         {
-            // get latest installed MS Build
+            // get latest installed MS Build 
             var msBuildPath = "";
             using (var proc = new Process
             {
@@ -429,10 +354,10 @@ namespace PUS_C_Scala_Test
             })
             {
                 proc.Start();
-
+               
                 var o = proc.StandardOutput.ReadToEnd();
                 var worked = proc.ExitCode == 0;
-                if (!worked)
+                if(!worked)
                     Console.WriteLine(o);
 
                 Assert.IsTrue(worked, "error while compiling C project");
@@ -448,7 +373,7 @@ namespace PUS_C_Scala_Test
                 StartInfo = new ProcessStartInfo
                 {
                     FileName = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "cmd.exe" : "bash",
-                    Arguments = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? $"/C {arg}" : $"-c \"{arg}\"",
+                    Arguments= RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? $"/C {arg}" : "-c \"{arg}\"",
                     WorkingDirectory = outDir,
                     UseShellExecute = false,
                     RedirectStandardOutput = true,
@@ -465,14 +390,14 @@ namespace PUS_C_Scala_Test
                 Console.WriteLine("WORKED? " + worked);
 
                 // print sbt output
-                if (printOutput)
+                if(printOutput)
                     Console.WriteLine(outp);
 
                 Assert.IsTrue(worked);
             }
         }
 
-        private string[] GetService01FileNames() =>
+        private string[] GetService01FileNames() => 
              new string[]{
                 "common/ApplicationProcess",
                 "common/ApplicationProcessUser",
@@ -494,7 +419,7 @@ namespace PUS_C_Scala_Test
                 "service-01/VerificationRequest"
             };
 
-        private string[] GetService02FileNames() =>
+        private string[] GetService02FileNames() => 
             new string[]{
                 "common/BasicTypes",
                 "common/Dummy",
@@ -642,7 +567,7 @@ namespace PUS_C_Scala_Test
                 "service-08/PUS-8-1"
             };
 
-        private string[] GetService09FileNames() =>
+        private string[] GetService09FileNames() => 
             new string[]{
                 "common/BasicTypes",
                 "common/SpacecraftTimeReferenceStatus",
@@ -900,11 +825,6 @@ namespace PUS_C_Scala_Test
                 "service-19/PUS-19-7",
                 "service-19/PUS-19-8",
                 "service-19/PUS-19-9"
-            };
-
-        private string[] GetAdditionalTestCasesFileNames() =>
-            new string[]{
-                "additional-test-cases/NULLTERMINATED",
             };
     }
 }

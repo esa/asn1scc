@@ -9,7 +9,7 @@ See [ECSS-E-ST-70-41C](http://ecss.nl/standard/ecss-e-st-70-41c-space-engineerin
 
 See [ASN1SCC](https://github.com/maxime-esa/asn1scc) for details about ACN encoding.
 
-ASN.1 components are meant to work with any ASN.1 based tool,
+ASN.1 components are ment to work with any ASN.1 based tool,
 but project itself is prepared to be included as "ASN.1 Components Library" in
 [QtCreator](https://www.qt.io/download)'s plugin [asn1scc.IDE](https://github.com/n7space/asn1scc.IDE).
 

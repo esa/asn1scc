@@ -25,6 +25,6 @@ type TC_Function = {
 }
 
 
-let getFuncName (r:Asn1AcnAst.AstRoot) (typeDefinition:TypeDefinitionOrReference) =
+let getFuncName (r:Asn1AcnAst.AstRoot) (typeDefinition:TypeDefintionOrReference) =
     getFuncNameGeneric  typeDefinition "_Equal"
 

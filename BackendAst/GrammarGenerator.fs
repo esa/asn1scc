@@ -37,63 +37,63 @@ let genrateAcnIntProps (c:ParameterizedAsn1Ast.Asn1Constraint Option)  =
         for encoding in [GP_PosInt; GP_TwosComplement; GP_Ascii; GP_BCD] do
             for sizeProp in [GP_Fixed (IntLoc.ByValue 64I); GP_NullTerminated ] do
                 yield [ENCODING encoding; SIZE sizeProp]
-                for endianness in [AcnGenericTypes.LittleEndianness; AcnGenericTypes.BigEndianness] do
-                    yield [ENCODING encoding; SIZE sizeProp; ENDIANNESS endianness]
+                for endianess in [AcnGenericTypes.LittleEndianness; AcnGenericTypes.BigEndianness] do
+                    yield [ENCODING encoding; SIZE sizeProp; ENDIANNES endianess]
                     for align in [AcnGenericTypes.NextByte; AcnGenericTypes.NextWord; AcnGenericTypes.NextDWord] do
-                        yield [ENCODING encoding; SIZE sizeProp; ENDIANNESS endianness; ALIGNTONEXT align]
+                        yield [ENCODING encoding; SIZE sizeProp; ENDIANNES endianess; ALIGNTONEXT align]
 
     } |> Seq.toList
 
 
 
-let generatedIntConstraints (v1:BigInteger option) (v2:BigInteger option)=
+let generatedIntConstraints (v1:BigInteger option) (v2:BigInteger option)= 
     let gv v = {ParameterizedAsn1Ast.Asn1Value.Kind = ParameterizedAsn1Ast.IntegerValue (IntLoc.ByValue v); ParameterizedAsn1Ast.Asn1Value.Location = emptyLocation; ParameterizedAsn1Ast.Asn1Value.moduleName=""}
     let a = v1 |> Option.map gv
     let b = v1 |> Option.map gv
-    let svcs =
+    let svcs = 
         seq {
             match a, b with
             | Some a, Some b ->
-                yield ParameterizedAsn1Ast.Asn1Constraint.SingleValueConstraint ("", a)
-                yield ParameterizedAsn1Ast.Asn1Constraint.SingleValueConstraint ("", b)
-                yield ParameterizedAsn1Ast.Asn1Constraint.RangeConstraint("",a,b,true, true)
-                yield ParameterizedAsn1Ast.Asn1Constraint.RangeConstraint("",a,b,true, false)
-                yield ParameterizedAsn1Ast.Asn1Constraint.RangeConstraint("",a,b,false, true)
-                yield ParameterizedAsn1Ast.Asn1Constraint.RangeConstraint("",a,b,false, false)
-                yield ParameterizedAsn1Ast.Asn1Constraint.RangeConstraint_val_MAX("",a,true)
-                yield ParameterizedAsn1Ast.Asn1Constraint.RangeConstraint_val_MAX("",a,false)
-                yield ParameterizedAsn1Ast.Asn1Constraint.RangeConstraint_val_MAX("",b,true)
-                yield ParameterizedAsn1Ast.Asn1Constraint.RangeConstraint_val_MAX("",b,false)
-                yield ParameterizedAsn1Ast.Asn1Constraint.RangeConstraint_MIN_val("",a,true)
-                yield ParameterizedAsn1Ast.Asn1Constraint.RangeConstraint_MIN_val("",a,false)
-                yield ParameterizedAsn1Ast.Asn1Constraint.RangeConstraint_MIN_val("",b,true)
-                yield ParameterizedAsn1Ast.Asn1Constraint.RangeConstraint_MIN_val("",b,false)
+                yield ParameterizedAsn1Ast.Asn1Constraint.SingleValueContraint ("", a)
+                yield ParameterizedAsn1Ast.Asn1Constraint.SingleValueContraint ("", b)
+                yield ParameterizedAsn1Ast.Asn1Constraint.RangeContraint("",a,b,true, true)
+                yield ParameterizedAsn1Ast.Asn1Constraint.RangeContraint("",a,b,true, false)
+                yield ParameterizedAsn1Ast.Asn1Constraint.RangeContraint("",a,b,false, true)
+                yield ParameterizedAsn1Ast.Asn1Constraint.RangeContraint("",a,b,false, false)
+                yield ParameterizedAsn1Ast.Asn1Constraint.RangeContraint_val_MAX("",a,true)
+                yield ParameterizedAsn1Ast.Asn1Constraint.RangeContraint_val_MAX("",a,false)
+                yield ParameterizedAsn1Ast.Asn1Constraint.RangeContraint_val_MAX("",b,true)
+                yield ParameterizedAsn1Ast.Asn1Constraint.RangeContraint_val_MAX("",b,false)
+                yield ParameterizedAsn1Ast.Asn1Constraint.RangeContraint_MIN_val("",a,true)
+                yield ParameterizedAsn1Ast.Asn1Constraint.RangeContraint_MIN_val("",a,false)
+                yield ParameterizedAsn1Ast.Asn1Constraint.RangeContraint_MIN_val("",b,true)
+                yield ParameterizedAsn1Ast.Asn1Constraint.RangeContraint_MIN_val("",b,false)
             | Some a, None  ->
-                yield ParameterizedAsn1Ast.Asn1Constraint.SingleValueConstraint ("",a)
-                yield ParameterizedAsn1Ast.Asn1Constraint.RangeConstraint_val_MAX("",a,true)
-                yield ParameterizedAsn1Ast.Asn1Constraint.RangeConstraint_val_MAX("",a,false)
-                yield ParameterizedAsn1Ast.Asn1Constraint.RangeConstraint_MIN_val("",a,true)
-                yield ParameterizedAsn1Ast.Asn1Constraint.RangeConstraint_MIN_val("",a,false)
+                yield ParameterizedAsn1Ast.Asn1Constraint.SingleValueContraint ("",a)
+                yield ParameterizedAsn1Ast.Asn1Constraint.RangeContraint_val_MAX("",a,true)
+                yield ParameterizedAsn1Ast.Asn1Constraint.RangeContraint_val_MAX("",a,false)
+                yield ParameterizedAsn1Ast.Asn1Constraint.RangeContraint_MIN_val("",a,true)
+                yield ParameterizedAsn1Ast.Asn1Constraint.RangeContraint_MIN_val("",a,false)
             | None, Some b      ->
-                yield ParameterizedAsn1Ast.Asn1Constraint.SingleValueConstraint ("",b)
-                yield ParameterizedAsn1Ast.Asn1Constraint.RangeConstraint_val_MAX("",b,true)
-                yield ParameterizedAsn1Ast.Asn1Constraint.RangeConstraint_val_MAX("",b,false)
-                yield ParameterizedAsn1Ast.Asn1Constraint.RangeConstraint_MIN_val("",b,true)
-                yield ParameterizedAsn1Ast.Asn1Constraint.RangeConstraint_MIN_val("",b,false)
+                yield ParameterizedAsn1Ast.Asn1Constraint.SingleValueContraint ("",b)
+                yield ParameterizedAsn1Ast.Asn1Constraint.RangeContraint_val_MAX("",b,true)
+                yield ParameterizedAsn1Ast.Asn1Constraint.RangeContraint_val_MAX("",b,false)
+                yield ParameterizedAsn1Ast.Asn1Constraint.RangeContraint_MIN_val("",b,true)
+                yield ParameterizedAsn1Ast.Asn1Constraint.RangeContraint_MIN_val("",b,false)
             | None, None        -> ()
 
         } |> Seq.toList
     svcs
 
 
-let generateIntegers (name:string) =
+let genetateIntegers (name:string) =
     let nums =  [
-                BigInteger Int64.MinValue; BigInteger Int32.MinValue; BigInteger (int Int16.MinValue); BigInteger (int SByte.MinValue); 0I;
+                BigInteger Int64.MinValue; BigInteger Int32.MinValue; BigInteger (int Int16.MinValue); BigInteger (int SByte.MinValue); 0I; 
                 BigInteger (int SByte.MaxValue); BigInteger (int Byte.MaxValue); BigInteger (int Int16.MaxValue); BigInteger (int UInt16.MaxValue)
                 BigInteger Int32.MaxValue; BigInteger UInt32.MaxValue; BigInteger Int64.MaxValue; BigInteger UInt64.MaxValue]
     let nums = [BigInteger Int64.MinValue; BigInteger Int64.MaxValue]
-
-    let pairs =
+    
+    let pairs = 
         seq {
             for a  in nums do
                 yield (Some a, None)
@@ -106,18 +106,18 @@ let generateIntegers (name:string) =
             for (i1,(a,b))  in (toIdxList pairs) do
                 let cons = generatedIntConstraints a b |> List.map(fun c -> Some c)
                 for (i2, c) in (toIdxList (None::cons)) do
-                    let asn1Type =  {ParameterizedAsn1Ast.Asn1Type.Kind = ParameterizedAsn1Ast.Integer; ParameterizedAsn1Ast.Constraints = Option.toList c ; ParameterizedAsn1Ast.Location=emptyLocation; parameterizedTypeInstance = false; acnInfo = None;unitsOfMeasure = None; moduleName=""}
+                    let asn1Type =  {ParameterizedAsn1Ast.Asn1Type.Kind = ParameterizedAsn1Ast.Integer; ParameterizedAsn1Ast.Constraints = Option.toList c ; ParameterizedAsn1Ast.Location=emptyLocation; parameterizedTypeInstance = false; acnInfo = None;unitsOfMeasure = None; moduleName=""}    
                     let acnSpec = genrateAcnIntProps c
                     for (i3,s) in (toIdxList acnSpec) do
                         let newName = sprintf "%s-%d-%d-%d" name i1 i2 i3
                         yield (newName, asn1Type, s)
     } |> Seq.toList
-
+    
 
 let createAst files =
     seq {
         for f in files do
-            let intTasses = generateIntegers "INT" |> List.map (fun (newName, asn1Type, acnProps) -> {GenTas.name = newName; Type = asn1Type; acnProps = acnProps})
+            let intTasses = genetateIntegers "INT" |> List.map (fun (newName, asn1Type, acnProps) -> {GenTas.name = newName; Type = asn1Type; acnProps = acnProps})
             let modu = {GenMod.tases = intTasses; name = "TEST-CASE"}
             let file = {GenFile.name = f; mods = [modu]}
             yield file
@@ -143,15 +143,15 @@ let rec printValue (v:Asn1Value) : string =
 
 let generatedAsn1Grammar (outDir:string) (ast:GenFile list) =
 
-    let rec printConstraint (c:Asn1Constraint) : string =
+    let rec printConstraint (c:Asn1Constraint) : string = 
         match c with
-        | SingleValueConstraint      (_,v)               -> stg_asn1.Print_SingleValueConstraint (printValue v)
-        | RangeConstraint            (_, a,b,b1,b2)     -> stg_asn1.Print_RangeConstraint (printValue a) (printValue b) b1 b2
-        | RangeConstraint_val_MAX    (_, a, b1)         -> stg_asn1.Print_RangeConstraint_val_MAX (printValue a) b1
-        | RangeConstraint_MIN_val    (_, a, b1)         -> stg_asn1.Print_RangeConstraint_MIN_val (printValue a) b1
+        | SingleValueContraint      (_,v)               -> stg_asn1.Print_SingleValueContraint (printValue v)
+        | RangeContraint            (_, a,b,b1,b2)     -> stg_asn1.Print_RangeContraint (printValue a) (printValue b) b1 b2
+        | RangeContraint_val_MAX    (_, a, b1)         -> stg_asn1.Print_RangeContraint_val_MAX (printValue a) b1
+        | RangeContraint_MIN_val    (_, a, b1)         -> stg_asn1.Print_RangeContraint_MIN_val (printValue a) b1
         | TypeInclusionConstraint   (_, md,ts)         -> stg_asn1.Print_TypeInclusionConstraint(ts.Value)
-        | SizeConstraint             (_, sc)              -> stg_asn1.Print_SizeConstraint (printConstraint sc)
-        | AlphabetConstraint         (_, alpha)           -> stg_asn1.Print_AlphabetConstraint (printConstraint alpha)
+        | SizeContraint             (_, sc)              -> stg_asn1.Print_SizeContraint (printConstraint sc)
+        | AlphabetContraint         (_, alpha)           -> stg_asn1.Print_AlphabetContraint (printConstraint alpha)
         | UnionConstraint           (_, c1,c2, _)      -> stg_asn1.Print_UnionConstraint (printConstraint c1) (printConstraint c2)
         | IntersectionConstraint    (_, c1,c2)         -> stg_asn1.Print_IntersectionConstraint (printConstraint c1) (printConstraint c2)
         | AllExceptConstraint       (_, c1)              -> stg_asn1.Print_AllExceptConstraint (printConstraint c1)
@@ -159,12 +159,12 @@ let generatedAsn1Grammar (outDir:string) (ast:GenFile list) =
         | RootConstraint            (_, c1)              -> stg_asn1.Print_RootConstraint (printConstraint c1)
         | RootConstraint2           (_, c1,c2)         -> stg_asn1.Print_RootConstraint2 (printConstraint c1) (printConstraint c2)
         | WithComponentConstraint   (_, c1,l)          -> stg_asn1.Print_WithComponentConstraint (printConstraint c1)
-        | WithComponentsConstraint  (_, ncs)             ->
+        | WithComponentsConstraint  (_, ncs)             -> 
             let print nc =
-                stg_asn1.Print_WithComponentsConstraint_child nc.Name.Value (match nc.Constraint with Some c -> printConstraint c | None -> "") (sprintf "%A" nc.Mark)
+                stg_asn1.Print_WithComponentsConstraint_child nc.Name.Value (match nc.Contraint with Some c -> printConstraint c | None -> "") (sprintf "%A" nc.Mark)
             stg_asn1.Print_WithComponentsConstraint (ncs |> List.map print)
 
-    let printAsn1Type (t:Asn1Type) : string =
+    let printAsn1Type (t:Asn1Type) : string = 
         match t.Kind with
         | Integer   -> stg_asn1.Print_Integer "" (t.Constraints |> List.map printConstraint)
         | _         -> raise(BugErrorException "Not Implemented yet")
@@ -189,11 +189,11 @@ let generatedAcnGrammar (outDir:string) (ast:GenFile list) =
         | SIZE (GP_Fixed i)                     -> stg_acn.PP_Size_Fixed (i.Value)
         | SIZE (GP_SizeDeterminant  fld)        -> stg_acn.PP_Sixe_Fld (fld.AsString)
         | SIZE GP_NullTerminated                -> stg_acn.PP_Size_NullTerminated ()
-        | ALIGNTONEXT AcnGenericTypes.NextByte       -> stg_acn.PP_Alignment_byte ()
-        | ALIGNTONEXT AcnGenericTypes.NextWord       -> stg_acn.PP_Alignment_word ()
-        | ALIGNTONEXT AcnGenericTypes.NextDWord      -> stg_acn.PP_Alignment_dword ()
-        | ENDIANNESS AcnGenericTypes.LittleEndianness -> stg_acn.PP_Endianness_little ()
-        | ENDIANNESS AcnGenericTypes.BigEndianness    -> stg_acn.PP_Endianness_big ()
+        | ALIGNTONEXT AcnGenericTypes.NextByte       -> stg_acn.PP_Aligment_byte ()
+        | ALIGNTONEXT AcnGenericTypes.NextWord       -> stg_acn.PP_Aligment_word ()
+        | ALIGNTONEXT AcnGenericTypes.NextDWord      -> stg_acn.PP_Aligment_dword ()
+        | ENDIANNES AcnGenericTypes.LittleEndianness -> stg_acn.PP_Endianness_little ()
+        | ENDIANNES AcnGenericTypes.BigEndianness    -> stg_acn.PP_Endianness_big ()
         | _         -> raise(BugErrorException "Not Implemented yet")
 
     let printAcnType (t:ParameterizedAsn1Ast.Asn1Type) (acnProps: GenericAcnProperty list): string =
@@ -212,7 +212,8 @@ let generatedAcnGrammar (outDir:string) (ast:GenFile list) =
     ast |> List.iter generateAcnFile
 
 let generateGrammars (path:string) =
-
+    
     let genAst = createAst ["test-grammar"]
     generatedAsn1Grammar path genAst
     generatedAcnGrammar path genAst
+    

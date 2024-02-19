@@ -30,10 +30,10 @@ if (ret) {
  E Q U A L      F U N C T I O N S
 *****************************************************************************************
 */
-PrintEqualDefinitionPrimitive(sFuncName, sTypeDefName) ::= <<
+PrintEqualDefintionPrimitive(sFuncName, sTypeDefName) ::= <<
 >>
 
-PrintEqualDefinitionComposite(sFuncName, sTypeDefName) ::= <<
+PrintEqualDefintionComposite(sFuncName, sTypeDefName) ::= <<
 >>
 
 PrintEqualPrimitive(sFuncName, sTypeDefName, sContent) ::= <<
@@ -61,6 +61,11 @@ equalTypeAssignment_def(sVarName1, sVarName2, sStar, sFuncName, sTypeDefName) ::
 equalTypeAssignment(sVarName1, sVarName2, sStar, sFuncName, sTypeDefName, sContent, arrsLocalVars, bExpression, bUnreferenced) ::= <<
 def <sFuncName>(<sVarName1>: <sTypeDefName>, <sVarName2>: <sTypeDefName>): Boolean =
 {
+    <if(bUnreferenced)>
+    <sVarName1>
+    <sVarName2>
+    <endif>
+    
     <if(bExpression)>
     return <sContent>
 
@@ -88,22 +93,22 @@ isEqual_Enumerated(p1, p2) /*nogen*/::= "<isEqual_Integer(p1=p1,p2=p2)>"
 
 isEqual_Boolean(p1, p2) /*nogen*/::= "ret = ( (<p1> && <p2>) || (!<p1> && !<p2>))"
 
-isEqual_Real(p1, p2) ::= "Asn1Real_Equal(<p1>, <p2>)"
+isEqual_Real(p1, p2) ::= "<p1> == <p2>"
 
-isEqual_IA5String(p1, p2) /*nogen*/::= "ret = <p1>.sameElements(<p2>)"
+isEqual_IA5String(p1, p2) /*nogen*/::= "ret = (strcmp(<p1>, <p2>) ==0)"
 
 isEqual_NumericString(p1, p2) /*nogen*/::= "<isEqual_IA5String(p1=p1, p2=p2)>"
 isEqual_NullType()/*nogen*/ ::= "ret = true"
 
 isEqual_BitString(p1,p2,bIsFixedSize, nFixedSize) ::= <<
 <if(!bIsFixedSize)>
-    (<p1>nCount == <p2>nCount) &&
-    (<p1>arr.slice(0,(<p1>nCount/8).toInt).sameElements(<p2>arr.slice(0,(<p1>nCount/8).toInt))) &&
-    (if <p1>nCount % 8 > 0 then (<p1>arr(<p1>nCount.toInt/8).toRaw \>> (8-<p1>nCount % 8).toInt == <p2>arr(<p1>nCount.toInt/8).toRaw \>> (8-<p1>nCount % 8).toInt) else true)
+    (<p1>nCount == <p2>nCount) && 
+    (<p1>arr.slice(0,(<p1>nCount/8).toInt).sameElements(<p2>arr.slice(0,(<p1>nCount/8).toInt))) && 
+    (if <p1>nCount % 8 > 0 then (<p1>arr(<p1>nCount.toInt/8) \>> (8-<p1>nCount % 8) == <p2>arr(<p1>nCount.toInt/8)\>>(8-<p1>nCount % 8) ) else true)
 
 <else>
-    (<p1>arr.slice(0,<nFixedSize>/8).sameElements(<p2>arr.slice(0,<nFixedSize>/8))) &&
-    (if (<nFixedSize> % 8) > 0 then (<p1>arr(<nFixedSize>/8).toRaw \>> (8-<nFixedSize> % 8).toInt == <p2>arr(<nFixedSize>/8).toRaw \>> (8-<nFixedSize> % 8).toInt) else true)
+    (<p1>arr.slice(0,<nFixedSize>/8).sameElements(<p2>arr.slice(0,<nFixedSize>/8))) && 
+    (if (<nFixedSize> % 8) > 0 then (<p1>arr(<nFixedSize>/8)\>>(8-<nFixedSize> % 8) == <p2>arr(<nFixedSize>/8)\>>(8-<nFixedSize> % 8) ) else true)
 
 <endif>
 >>
@@ -112,10 +117,10 @@ isEqual_BitString(p1,p2,bIsFixedSize, nFixedSize) ::= <<
 
 isEqual_OctetString(p1,p2, bIsFixedSize, nFixedSize) ::= <<
 <if(!bIsFixedSize)>
-    (<p1>nCount == <p2>nCount) && (<p1>arr.slice(0, <p1>nCount.toInt).sameElements(<p2>arr.slice(0, <p1>nCount.toInt)))
+    (<p1>nCount == <p2>nCount) && (<p1>arr.sameElements(<p2>arr))
 <else>
     <p1>arr.sameElements(<p2>arr)
-<endif>
+<endif>    
 >>
 
 isObjectIdentifier_equal(p1, p2) ::= <<
@@ -124,8 +129,8 @@ ObjectIdentifier_equal(<p1>, <p2>)
 
 
 
-isEqual_Choice_Child(sChoiceTypeDefName, sCid, sInnerStatement, sTmpVarName1, sTmpVarName2) ::= <<
-case (<sChoiceTypeDefName>.<sCid>(<sTmpVarName1>), <sChoiceTypeDefName>.<sCid>(<sTmpVarName2>)) =>
+isEqual_Choice_Child(choiceTypeDefName, sCid, sInnerStatement, sTmpVarName1, sTmpVarName2) ::= <<
+case (<choiceTypeDefName>.<sCid>(<sTmpVarName1>), <choiceTypeDefName>.<sCid>(<sTmpVarName2>)) =>
     <sInnerStatement>
 >>
 
@@ -139,9 +144,9 @@ isEqual_Choice(p1,p2, sAccess, arrsChildren) ::= <<
 
 isEqual_Sequence_child(p1, p2, sAcc,  bIsOptional, sChName, soInnerStatement) ::= <<
 <if(bIsOptional)>
-ret = (<p1><sAcc><sChName>.isDefined == <p2><sAcc><sChName>.isDefined)
+ret = (<p1><sAcc>exist.<sChName> == <p2><sAcc>exist.<sChName>)
 <if(soInnerStatement)>
-if (ret && <p1><sAcc><sChName>.isDefined) then // equal:149
+if (ret && <p1><sAcc>exist.<sChName>) then
     <soInnerStatement>
 
 <endif>
@@ -166,16 +171,14 @@ while ret && <i> \< <p1><sAcc>nCount do
 >>
 
 isEqual_SequenceOf_fix_size(p1,p2, sAcc, i, nFixedSize, sInnerStatement) ::= <<
-<i> = 0
-while ret && <i> \< <nFixedSize> do
+for(<i> = 0; ret && <i> \< <nFixedSize>; <i>++)
+{
     <sInnerStatement>
-    <i> += 1
+}
 
 >>
 
-call_base_type_func(p1, p2, sFuncName, bIsP1Option, bIsP2Option) ::= <<
-<sFuncName>(<p1><if (bIsP1Option)>.get<endif>, <p2><if (bIsP2Option)>.get<endif>) // equal:182
->>
+call_base_type_func(p1, p2, sFuncName) ::= "<sFuncName>(<p1>, <p2>)"
 
 makeExpressionToStatement(sIsValidExp) ::= <<
 ret = <sIsValidExp>

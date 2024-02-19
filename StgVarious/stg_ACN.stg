@@ -26,10 +26,10 @@ PrintParam(sName, sType) ::= "<sType>:<sName>"
 PrintTemp(sName, sType) ::= "<sName>:<sType>"
 
 PrintTypeAssignment(sName, arrsParasm, arrsTempTypes, sType) ::= <<
-<sName><if(arrsParasm)>\<<arrsParasm; separator=", ">\> <endif><if(arrsTempTypes)>
+<sName><if(arrsParasm)>\<<arrsParasm; separator=", ">\> <endif><if(arrsTempTypes)> 
     LOCALS {
         <arrsTempTypes; separator=",\n">
-    }
+    } 
 
 <endif><sType>
 >>
@@ -40,7 +40,7 @@ PrintTypeChild(sName, arrsArgs, sImplMode, sType) ::= <<
 >>
 
 PrintType(arrsProps, arrsChildren) ::= <<
-[<arrsProps; separator=", ">] <if(arrsChildren)> {
+[<arrsProps; separator=", ">] <if(arrsChildren)> { 
     <arrsChildren; separator=",\n">
 }
 <endif>
@@ -56,16 +56,16 @@ PP_Encoding_BCD() ::= "encoding BCD"
 PP_Encoding_IEEE754_32() ::= "encoding IEEE754-1985-32"
 PP_Encoding_IEEE754_64() ::= "encoding IEEE754-1985-64"
 
-PP_Size_Auto() ::=  "size auto"
-PP_Size_NullTerminated() ::=  "size null-terminated"
+PP_Size_Auto() ::=  "size auto"   
+PP_Size_NullTerminated() ::=  "size null-terminated"   
 PP_Size_Fixed(nFixedValue) ::= "size <nFixedValue>"
 PP_Sixe_Fld(sLongFld) ::= "size <sLongFld>"
 
 PP_Adjust(nValue) ::= "adjust <nValue>"
 
-PP_Alignment_byte() ::= "align-to-next byte"
-PP_Alignment_word() ::= "align-to-next word"
-PP_Alignment_dword() ::= "align-to-next dword"
+PP_Aligment_byte() ::= "align-to-next byte"
+PP_Aligment_word() ::= "align-to-next word"
+PP_Aligment_dword() ::= "align-to-next dword"
 
 PP_EncodeValues() ::= "encode-values"
 PP_SavePosition() ::= "save-position"

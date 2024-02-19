@@ -1,7 +1,0 @@
-
-NULLTERMINATED DEFINITIONS ::= BEGIN
-
-MyPDU [encoding ASCII, size null-terminated, termination-pattern '01'H]  -- ASCII encoding with termination pattern
-MyPDU2 [encoding ASCII, size null-terminated, termination-pattern '0'H]  -- ASCII encoding with termination pattern
-
-END

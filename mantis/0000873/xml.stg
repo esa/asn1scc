@@ -32,10 +32,10 @@ FileXml(sFileName, arrsModules) ::= <<
 ModuleXml(sName, sCName, arrsImportedModules, arrsExpTypes, arrsExpVars, arrsTases, arrsVases) ::=<<
 <Asn1Module ID="$sName$">
 <ExportedTypes>
-    $arrsExpTypes:{x|<ExportedType Name="$x$" />};separator="\n"$
+    $arrsExpTypes:{x|<ExportedType Name="$x$" />};separator="\n"$ 
 </ExportedTypes>
 <ExportedVariables>
-    $arrsExpVars:{x|<ExportedVariable Name="$x$" />};separator="\n"$
+    $arrsExpVars:{x|<ExportedVariable Name="$x$" />};separator="\n"$ 
 </ExportedVariables>
 <ImportedModules>
     $arrsImportedModules;separator="\n"$
@@ -60,7 +60,7 @@ ImportedMod(sName, sCName, arrsTypes, arrsVars) ::= <<
 </ImportedModule>
 >>
 
-TasXml(sName, nLine, nPos, sType, sCName, sAssignOp, sContract, bAddedType) ::= <<
+TasXml(sName, nLine, nPos, sType, sCName, sAssigOp, sContract, bAddedType) ::= <<
 <TypeAssignment Name="$sName$" Line="$nLine$" CharPositionInLine="$nPos$"  AddedType = "$bAddedType$">
     $sType$
 </TypeAssignment>
@@ -105,8 +105,8 @@ IA5StringType () ::= "IA5StringType"
 
 NumericStringType () ::= "NumericStringType"
 
-AssignOpNormalType () ::= "="
-AssignOpSpecialType () ::= "="
+AssigOpNormalType () ::= "="
+AssigOpSpecialType () ::= "="
 
 
 
@@ -180,17 +180,17 @@ ContractExprMinMax(sPattern, sMin, sMax, bFixedSize) ::= ""
 ContractExprSize(sPattern, sMin, sMax, bFixedSize) ::= ""
 ContractExprSequence(arrsChildren) ::= ""
 /* Print Values (not implemented yet for python) */
-Print_IntegerValue(nVal) ::= "$nVal$"
-Print_RealValue(dVal) ::= "$dVal$"
-Print_StringValue(v) ::= "<![CDATA[$v$]]>"
+Print_IntegerValue(nVal) ::= "$nVal$"    
+Print_RealValue(dVal) ::= "$dVal$"       
+Print_StringValue(v) ::= "<![CDATA[$v$]]>"     
 Print_TrueValue() ::= "true"
 Print_FalseValue() ::= "false"
-Print_BitStringValue(v) ::= "$v$"
+Print_BitStringValue(v) ::= "$v$"  
 Print_OctetStringValue(arruOctets) ::= "'$arruOctets:{b|$b;format=\"X2\"$}$'H"
-Print_RefValue(sName) ::= "$sName$"
+Print_RefValue(sName) ::= "$sName$"        
 Print_SeqOfValue(arrsValues) ::= "{$arrsValues: {ch|$ch$}; separator=\", \"$}"
 Print_SeqValue_Child(sName, sChildValue) ::= "$sName$ $sChildValue$"
-Print_SeqValue(arrsValues) ::= "{$arrsValues: {ch|$ch$}; separator=\", \"$}"
-Print_ChValue(sAltName,sAltValue) ::= "$sAltName$:$sAltValue$"
-Print_NullValue() ::= "NULL"
+Print_SeqValue(arrsValues) ::= "{$arrsValues: {ch|$ch$}; separator=\", \"$}"        
+Print_ChValue(sAltName,sAltValue) ::= "$sAltName$:$sAltValue$"         
+Print_NullValue() ::= "NULL"       
 Print_EnmValueValue(sEnmVal) ::= "$sEnmVal$"
