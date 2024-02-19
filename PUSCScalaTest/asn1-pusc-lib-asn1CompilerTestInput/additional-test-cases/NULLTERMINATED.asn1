@@ -1,0 +1,7 @@
+
+NULLTERMINATED DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+
+MyPDU ::= IA5String (SIZE (20)) (FROM("A".."Z" | "a".."z" | " "))
+MyPDU2 ::= BIT STRING (SIZE (20))
+
+END

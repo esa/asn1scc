@@ -57,16 +57,16 @@ PrintBitStringValue(td/*:FE_SizeableTypeDefinition*/,bIsFixedSize, arrsBits, nCo
 >>
 
 
-PrintBitOrOctetStringValueAsCompoundLitteral(td/*:FE_SizeableTypeDefinition*/, bIsFixedSize, arruBytes, nCount) ::= <<
+PrintBitOrOctetStringValueAsCompoundLiteral(td/*:FE_SizeableTypeDefinition*/, bIsFixedSize, arruBytes, nCount) ::= <<
 (<td.typeName>){<if(!bIsFixedSize)>.nCount = <nCount>, <endif>.arr = {<arruBytes:{b|0x<b;format="X2">}; separator=", ">}} // variables:61
 >>
 
 
-PrintOctetArrayAsCompoundLitteral(arruBytes) ::= <<
+PrintOctetArrayAsCompoundLiteral(arruBytes) ::= <<
 (const byte[]){<arruBytes:{b|0x<b;format="X2">}; wrap, anchor, separator=", ">}
 >>
 
-PrintBitArrayAsCompoundLitteral(arruBits) ::= <<
+PrintBitArrayAsCompoundLiteral(arruBits) ::= <<
 SYNTAX ERROR
 >>
 
@@ -149,22 +149,6 @@ PrintTimeValue_Asn1Date_LocalTimeWithTimeZone(td/*:FE_PrimitiveTypeDefinition*/,
 >>
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 PrintSequenceValueChild(sName, sInnerValue) ::= ".<sName> = <sInnerValue>"
 PrintSequenceValue_child_exists(sName, sExistsBit) ::= ".<sName> = <sExistsBit>"
 
@@ -192,12 +176,9 @@ PrintSequenceOfValue(td/*:FE_SizeableTypeDefinition*/, bIsFixedSize, nLength, ar
 {<if(!bIsFixedSize)>
     .nCount = <arrsInnerValues.Length>,
 <endif>
-    .arr = 
+    .arr =
     {
-        <arrsInnerValues:{ch|<ch>}; separator=",\n">        
+        <arrsInnerValues:{ch|<ch>}; separator=",\n">
     }
 }
 >>
-
-
-

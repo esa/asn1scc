@@ -34,16 +34,15 @@
         [TestMethod]
         public void TestService_11() => UPERWithTestGenTestCall(PUS_C_Service.S11, "S11");
 
-        // C part needs fixing
+        // broken in C
         //[TestMethod]
         //public void TestService_12() => UPERWithTestGenTestCall(PUS_C_Service.S12, "S12");
 
         [TestMethod]
         public void TestService_13() => UPERWithTestGenTestCall(PUS_C_Service.S13, "S13");
 
-        // C part needs fixing
-        //[TestMethod]
-        //public void TestService_14() => UPERWithTestGenTestCall(PUS_C_Service.S14, "S14");
+        [TestMethod]
+        public void TestService_14() => UPERWithTestGenTestCall(PUS_C_Service.S14, "S14");
 
         [TestMethod]
         public void TestService_15() => UPERWithTestGenTestCall(PUS_C_Service.S15, "S15");

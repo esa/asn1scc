@@ -9,7 +9,7 @@ initTypeAssignment_def(sVarName, sStar, sFuncName, sTypeDefName) ::= <<
 procedure <sFuncName>(<sVarName>: out <sTypeDefName>);
 >>
 
-initTypeAssignment(sVarName, sPtrPrefix, sPtrSuffix, sFuncName, sTypeDefName, sContent, arrsLocalVariables, sDefaultInitValue) ::= <<
+initTypeAssignment(sVarName, sPtrPrefix, sPtrSuffix, sFuncName, sTypeDefName, sContent, arrsLocalVariables, sDefaultInitValue, arrsAnnots) ::= <<
 procedure <sFuncName>(<sVarName>: out <sTypeDefName>)
 is
     <arrsLocalVariables; separator="\n">
@@ -23,21 +23,21 @@ assignAny(p, sValue, sTypeDecl) ::= "<p> := <sValue>;"
 assignString(p, sValue) ::= "<p> := <sValue>;"
 
 
-initInteger(p, nValue) ::= "<p> := <nValue>;"
-initReal(p, dValue) ::= "<p> := <dValue>;"
-initBoolean(p, bValue) ::= "<p> := <if(bValue)>True<else>FALSE<endif>;"
+initInteger(p, sValue, bIsOptional) ::= "<p> := <sValue>;"
+initReal(p, dValue, bIsOptional) ::= "<p> := <dValue>;"
+initBoolean(p, bValue, bIsOptional) ::= "<p> := <if(bValue)>True<else>FALSE<endif>;"
 
-initIA5String(sPtr, sValue) ::= "<sPtr> := <sValue>;" 
-initEnumerated(sVal, sValue) ::= "<sVal> := <sValue>;"
-initNull(sVal)    ::= "<sVal> := 0;"
+initIA5String(sPtr, sValue, bIsOptional) ::= "<sPtr> := <sValue>;"
+initEnumerated(sVal, sValue, bIsOptional) ::= "<sVal> := <sValue>;"
+initNull(sVal, bIsOptional) ::= "<sVal> := 0;"
 
 
 initTestCaseIA5String(p, sAcc, nSize, nMaxSizePlusOne, i, td/*:FE_StringTypeDefinition*/, bAlpha, arrnAlphabetAsciiCodes, nAlphabetLength, bZero) ::= <<
 <i> := 1;
 while <i>\<= <nMaxSizePlusOne> loop
-    --  commented because it casues this warning    
+    --  commented because it casues this warning
     --  warning: condition can only be False if invalid values present
-    pragma Loop_Invariant (<i> >=1 and <i>\<=<nMaxSizePlusOne>);      
+    pragma Loop_Invariant (<i> >=1 and <i>\<=<nMaxSizePlusOne>);
     <if(bZero)>
     <p>(<i>) := <rtlModuleName()>.NUL;
 
@@ -59,7 +59,7 @@ while <i>\<= <nMaxSizePlusOne> loop
 end loop;
 >>
 
-initObjectIdentifier_vali(p, sAcc, sI, nIntVal) ::= "<p><sAcc>values(<sI>) := <nIntVal>;"
+initObjectIdentifier_valid(p, sAcc, sI, nIntVal) ::= "<p><sAcc>values(<sI>) := <nIntVal>;"
 initObjectIdentifier(p, sAcc, nSize, arrsValues) ::= <<
 <p><sAcc>length := <nSize>;
 <arrsValues; separator="\n">
@@ -68,14 +68,14 @@ initObjectIdentifier(p, sAcc, nSize, arrsValues) ::= <<
 init_Asn1LocalTime(p, sAcc, tv/*:Asn1TimeValue*/) ::= <<
 <p><sAcc>hours := <tv.hours>;
 <p><sAcc>mins := <tv.mins>;
-<p><sAcc>sec := <tv.secs>;  
+<p><sAcc>sec := <tv.secs>;
 <p><sAcc>fraction := <tv.secsFraction>;
 >>
 
 init_Asn1UtcTime(p, sAcc, tv/*:Asn1TimeValue*/) ::= <<
 <p><sAcc>hours := <tv.hours>;
 <p><sAcc>mins := <tv.mins>;
-<p><sAcc>sec := <tv.secs>;  
+<p><sAcc>sec := <tv.secs>;
 <p><sAcc>fraction := <tv.secsFraction>;
 >>
 
@@ -83,7 +83,7 @@ init_Asn1UtcTime(p, sAcc, tv/*:Asn1TimeValue*/) ::= <<
 init_Asn1LocalTimeWithTimeZone(p, sAcc, tv/*:Asn1TimeValue*/, tz/*:Asn1TimeZoneValue*/) ::= <<
 <p><sAcc>hours := <tv.hours>;
 <p><sAcc>mins := <tv.mins>;
-<p><sAcc>sec := <tv.secs>;  
+<p><sAcc>sec := <tv.secs>;
 <p><sAcc>fraction := <tv.secsFraction>;
 <p><sAcc>tz.sign := <tz.sign>;
 <p><sAcc>tz.hours := <tz.hours>;
@@ -93,7 +93,7 @@ init_Asn1LocalTimeWithTimeZone(p, sAcc, tv/*:Asn1TimeValue*/, tz/*:Asn1TimeZoneV
 init_Asn1Date(p, sAcc, dt/*:Asn1DateValue*/) ::= <<
 <p><sAcc>years := <dt.years>;
 <p><sAcc>months := <dt.months>;
-<p><sAcc>days := <dt.days>;  
+<p><sAcc>days := <dt.days>;
 >>
 
 init_Asn1Date_LocalTime(p, sAcc, dt/*:Asn1DateValue*/, tv/*:Asn1TimeValue*/) ::= <<
@@ -129,7 +129,7 @@ initFixVarSizeBitOrOctString(p, sAcc, nSize, arrsBytes) ::= <<
 initTestCaseOctetString(p, sAcc, sArrayHolderName, nSize, i, bIsFixedSize, bZero, nMinSize, bZeroSizedArray) ::= <<
 <i> := 1;
 while <i>\<= <nSize> loop
-    --  commented because it casues this warning    
+    --  commented because it casues this warning
     --  warning: condition can only be False if invalid values present
     <if(!bZeroSizedArray)>pragma Loop_Invariant (<i> >=1 and <i>\<=<nSize>);<endif>
     <if(!bZeroSizedArray)><p><sAcc>Data(<i>) := <rtlModuleName()>.Asn1Byte(<if(bZero)>0<else>(<i>-1) mod 256<endif>);<endif>
@@ -138,10 +138,10 @@ end loop;
 <if(!bIsFixedSize)><p><sAcc>Length := <if(bZero)><nMinSize><else><nSize><endif>;<endif>
 >>
 
-initTestCaseBitString(p, sAcc, sArrayHolderName, nSize, nSizeCeiled, i, bIsFixedSize, bZero, nMinSize) ::= <<
+initTestCaseBitString(p, sAcc, sArrayHolderName, nSize, nSizeCeiled, i, bIsFixedSize, bZero, nMinSize, bIsOptionalField) ::= <<
 <i> := 1;
 while <i>\<= <nSize> loop
-    --  commented because it casues this warning    
+    --  commented because it casues this warning
     --  warning: condition can only be False if invalid values present
     pragma Loop_Invariant (<i> >=1 and <i>\<=<nSize>);
     <p><sAcc>Data(<i>) := <rtlModuleName()>.BIT(<if(bZero)>0<else>(<i>-1) mod 2<endif>);
@@ -158,13 +158,13 @@ pragma Annotate (GNATprove, False_Positive,"""<p>.Data"" might not be initialize
 >>
 
 initFixedSequenceOf(arrsInnerValues) ::= <<
-<arrsInnerValues; separator="\n">        
+<arrsInnerValues; separator="\n">
 >>
 
 
 initVarSizeSequenceOf(p, sAcc, nSize, arrsInnerValues) ::= <<
 <p><sAcc>Length := <nSize>;
-<arrsInnerValues; separator="\n">        
+<arrsInnerValues; separator="\n">
 >>
 
 initTestCaseSizeSequenceOf_innerItem(bFirst, bLastItem, nCaseIdx, sChildCaseInit, i, nCaseLen) ::= <<
@@ -175,11 +175,11 @@ initTestCaseSizeSequenceOf_innerItem(bFirst, bLastItem, nCaseIdx, sChildCaseInit
 initTestCaseSizeSequenceOf(p, sAcc, noMinSize, nSize, bIsFixedSize, arrsInnerItems, bMultiCases, i) ::= <<
 <i> := 1;
 while <i>\<= <nSize> loop
-    --  commented because it casues this warning    
+    --  commented because it casues this warning
     --  warning: condition can only be False if invalid values present
     pragma Loop_Invariant (<i> >=1 and <i>\<=<nSize>);
     <arrsInnerItems; separator="\n">
-    <if(bMultiCases)>       
+    <if(bMultiCases)>
     end if;
 
     <endif>
@@ -200,12 +200,12 @@ initSequence_optionalChild(p, sAcc, sChName, sPresentFlag, sChildContent) ::=<<
 >>
 
 initSequence(arrsInnerValues) ::= <<
-<arrsInnerValues; separator="\n">        
+<arrsInnerValues; separator="\n">
 >>
 
 
-initTestCase_sequence_child(p, sAcc, sChName, sChildContent, bOptional) ::= <<
---set <sChName> 
+initTestCase_sequence_child(p, sAcc, sChName, sChildContent, bOptional, sInitExpr) ::= <<
+--set <sChName>
 <if(bOptional)><p><sAcc>exist.<sChName> := 1;<endif>
 <sChildContent>
 >>
@@ -219,19 +219,19 @@ initChoice(p, sAcc, sChildContent, sChildID, sChildName, sChildTypeName, sChoice
 declare
    <sChildTempVarName> : <sChildTypeName>;
 begin
-    <sChildContent>        
+    <sChildContent>
     <p> := <sChoiceTypeName>'(kind => <sChildID>, <sChildName> => <sChildTempVarName>);
     pragma Annotate (GNATprove, False_Positive,"discriminant check might fail", "reviewed by GM");
 end;
 
 <else>
 <p> := <sChoiceTypeName>'(kind => <sChildID>, <sChildName> => \<\>);
-<sChildContent>        
+<sChildContent>
 
 <endif>
 >>
 
-initTestCase_choice_child(p, sAcc, sChildContent, sChildID, sChildName, sChildTypeName, sChoiceTypeName, sChildTempVarName, sChildTempDefaultInit) ::= <<
+initTestCase_choice_child(p, sAcc, sChildContent, sChildID, sChildName, sChildTypeName, sChoiceTypeName, sChildTempVarName, sChildTempDefaultInit, bIsOptional) ::= <<
 <p> := <sChoiceTypeName>'(kind => <sChildID>, <sChildName> => \<\>);
 <sChildContent>
 >>
@@ -257,18 +257,18 @@ procedure <sFuncName>_set_<sNamedBit>(<sVarName> : in out <sTypeDefName>);
 
 
 
-initFixSizeOctetString(sTypeDef, nMax, bZeroSizedArray) ::= "(Data => (others => 0))"
-initVarSizeOctetString(sTypeDef, nMin, nMax) ::= "(Length => <nMin>, Data => (others => 0))"
+initFixSizeOctetString(sTypeDefName, nMax, bZeroSizedArray) ::= "(Data => (others => 0))"
+initVarSizeOctetString(sTypeDefName, nMin, nMax) ::= "(Length => <nMin>, Data => (others => 0))"
 
-initFixSizeBitString(sTypeDef, nMax, nMaxOctets) ::= "(Data => (others => 0))"
-initVarSizeBitString(sTypeDef, nMin, nMax, nMaxOctets) ::= "(Length => <nMin>, Data => (others => 0))"
+initFixSizeBitString(sTypeDefName, nMax, nMaxOctets) ::= "(Data => (others => 0))"
+initVarSizeBitString(sTypeDefName, nMin, nMax, nMaxOctets) ::= "(Length => <nMin>, Data => (others => 0))"
 
 initObjectIdentifierAsExpr() ::= <<
 (length => 0, values => (others => 0))
 >>
 
-initFixSizeSequenceOfExpr(sTypeDef, nMax, sChildExp) ::= "(Data => (others => <sChildExp>))"
-initVarSizeSequenceOfExpr(sTypeDef, nMin, nMax, sChildExp) ::= "(Length => <nMin>, Data => (others => <sChildExp>))"
+initFixSizeSequenceOfExpr(sTypeDefName, nMax, sChildExp) ::= "(Data => (others => <sChildExp>))"
+initVarSizeSequenceOfExpr(sTypeDefName, nMin, nMax, sChildExp) ::= "(Length => <nMin>, Data => (others => <sChildExp>))"
 
 
 initTypeConstant_def(sTypeDecl, sConstantName, sValue) ::= <<
@@ -308,9 +308,9 @@ init_Asn1Date_LocalTimeWithTimeZoneExpr() ::= <<
 >>
 
 
-initSequenceChildExpr(sChildName, sChildExpr) ::= "<sChildName> => <sChildExpr>"
+initSequenceChildExpr(sChildName, sChildExpr, bIsOptional, bIsAbsent) ::= "<sChildName> => <sChildExpr>"
 initSequenceOptionalChildExpr(sChildName, nPresenceBit) ::= "<sChildName> => <nPresenceBit>"
-initSequenceExpr(arrsChildren, arrsOptionalChildren) ::= <<
+initSequenceExpr(sTypeDefName, arrsChildren, arrsOptionalChildren) ::= <<
 (<arrsChildren; separator=", "><if (arrsOptionalChildren)>, Exist => (<arrsOptionalChildren; separator=", ">)<endif>)
 >>
 

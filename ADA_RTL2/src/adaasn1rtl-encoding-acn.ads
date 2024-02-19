@@ -900,7 +900,7 @@ is
       bs.Current_Bit_Pos =
         bs'Old.Current_Bit_Pos + (strVal'Last - strVal'First) * 8;
 
-   procedure Acn_Enc_String_Ascii_Null_Teminated
+   procedure Acn_Enc_String_Ascii_Null_Terminated
      (bs     : in out Bitstream; null_characters : OctetBuffer;
       strVal :        String) with
       Depends => (bs => (bs, strVal, null_characters)),
@@ -919,7 +919,7 @@ is
         bs'Old.Current_Bit_Pos +
           (strVal'Length - 1 + null_characters'Length) * 8;
 
-   procedure Acn_Dec_String_Ascii_Null_Teminated
+   procedure Acn_Dec_String_Ascii_Null_Terminated
      (bs     : in out Bitstream; null_characters : OctetBuffer;
       strVal : in out String; Result : out ASN1_RESULT) with
       Pre => null_characters'Length >= 1 and then null_characters'Length <= 10
@@ -996,10 +996,10 @@ is
         bs'Old.Current_Bit_Pos + ((strVal'Last - strVal'First) * 8);
 
    procedure Acn_Dec_String_Ascii_External_Field_Determinant
-     (bs     : in out Bitstream; extSizeDeterminatFld : Asn1Int;
+     (bs     : in out Bitstream; extSizeDeterminantFld : Asn1Int;
       strVal : in out String; Result : out ASN1_RESULT) with
-      Pre => extSizeDeterminatFld >= 0
-      and then extSizeDeterminatFld <= Asn1Int (Integer'Last)
+      Pre => extSizeDeterminantFld >= 0
+      and then extSizeDeterminantFld <= Asn1Int (Integer'Last)
       and then strVal'Last < Natural'Last and then strVal'Last >= strVal'First
       and then strVal'Last - strVal'First < Natural'Last / 8 - 8
       and then bs.Current_Bit_Pos <
@@ -1032,10 +1032,10 @@ is
 
    procedure Acn_Dec_String_CharIndex_External_Field_Determinant
      (bs : in out Bitstream; charSet : String; nCharSize : Integer;
-      extSizeDeterminatFld :        Asn1Int; strVal : out String;
+      extSizeDeterminantFld :        Asn1Int; strVal : out String;
       Result               :    out ASN1_RESULT) with
-      Pre => extSizeDeterminatFld >= 0
-      and then extSizeDeterminatFld <= Asn1Int (Integer'Last)
+      Pre => extSizeDeterminantFld >= 0
+      and then extSizeDeterminantFld <= Asn1Int (Integer'Last)
       and then nCharSize >= 1 and then nCharSize <= 8
       and then strVal'Last < Natural'Last and then strVal'Last >= strVal'First
       and then charSet'Last < Natural'Last
