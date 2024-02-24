@@ -17,5 +17,8 @@ jobs:
     - name: Build Docker image
       run: docker build -t asn1scc .
 
+    - name: Make build script executable
+      run: chmod +x ./github-build.sh
+
     - name: Run container to build and test
       run: docker run --rm -v ${{ github.workspace }}:/app asn1scc bash -c "./github-build.sh"
