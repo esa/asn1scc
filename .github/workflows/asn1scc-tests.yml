@@ -18,4 +18,4 @@ jobs:
       run: docker build -t asn1scc .
 
     - name: Run container to build and test
-      run: docker run -ti --rm -v ${{ github.workspace }}:/app asn1scc bash -c "./github-build.sh"
+      run: docker run --rm -v ${{ github.workspace }}:/app asn1scc bash -c "./github-build.sh"
