@@ -1,0 +1,21 @@
+name: Build and Test
+
+on:
+  push:
+    branches: [ '*' ]
+  pull_request:
+    branches: [ '*' ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Build Docker image
+      run: docker build -t asn1scc .
+
+    - name: Run container to build and test
+      run: docker run -ti --rm -v ${{ github.workspace }}:/app asn1scc bash -c "./github-build.sh"
