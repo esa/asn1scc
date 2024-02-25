@@ -927,7 +927,7 @@ xml
 /tmp2
 /Asn1f4/Resources
 /mantis/new
-/v4Tests/tmp
+/v4Tests/tmp*
 /v4Tests/tmp.err
 /v4Tests/log.txt
 /v4Tests/tmp - Copy
