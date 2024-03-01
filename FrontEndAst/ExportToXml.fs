@@ -25,6 +25,7 @@ let private customWsSchemaLocation = "Asn1Schema.xsd"
 
 let constraintsTag = "Constraints"
 let withCompConstraintsTag = "WithComponentConstraints"
+let namedBitsTag = "NamedBits"
 
 let private printUInt (v:UInt32) = XElement(xname "IntegerValue", v)
 let private printIntVal (v:BigInteger) = XElement(xname "IntegerValue", v)
@@ -331,6 +332,14 @@ let exportReferenceTypeArg (inh:CommonTypes.InheritanceInfo option)=
 let foo (t:Asn1Type) =
     t.FT_TypeDefintion.[CommonTypes.C].kind
 
+let private printNamedBit (nb:CommonTypes.NamedBit1) =
+    XElement(xname "NamedBit", 
+        XAttribute(xname "Name", nb.Name.Value), 
+        XAttribute(xname "Value", nb.resolvedValue),   
+        XAttribute(xname "Line", nb.Name.Location.srcLine),
+        XAttribute(xname "CharPositionInLine", nb.Name.Location.charPos)
+    )
+
 let private exportType (t:Asn1Type) = 
     Asn1Fold.foldType
         (fun ti us -> 
@@ -401,6 +410,7 @@ let private exportType (t:Asn1Type) =
                         (XAttribute(xname "uperMaxSizeInBits", ti.uperMaxSizeInBits )),
                         (XAttribute(xname "uperMinSizeInBits", ti.uperMinSizeInBits )),
                         (exportSizeableSizeProp ti.acnProperties.sizeProp),
+                        XElement(xname namedBitsTag, ti.namedBitList |> List.map printNamedBit),
                         XElement(xname constraintsTag, ti.cons |> List.map(printSizableConstraint printBitStringVal )),
                         XElement(xname withCompConstraintsTag, ti.withcons |> List.map(printSizableConstraint printBitStringVal ))
                         ), us )

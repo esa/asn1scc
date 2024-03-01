@@ -482,6 +482,13 @@
     <xsd:element name="BIT_STRING" >
         <xsd:complexType>
             <xsd:sequence>
+                <xsd:element name="NamedBits"  minOccurs="0" maxOccurs="1">
+                    <xsd:complexType>
+                        <xsd:sequence>
+                            <xsd:element ref = "NamedBit" minOccurs = "0" maxOccurs = "unbounded"/>
+                        </xsd:sequence>
+                    </xsd:complexType>
+                </xsd:element>
                 <xsd:element name="Constraints" >
                     <xsd:complexType>
                         <xsd:sequence>
@@ -855,6 +862,16 @@
             <xsd:sequence>
                 <xsd:group ref = "Asn1GenericValue" minOccurs = "0" maxOccurs = "unbounded"/>
             </xsd:sequence>
+        </xsd:complexType>
+    </xsd:element>
+
+    
+    <xsd:element name="NamedBit" >
+        <xsd:complexType>
+            <xsd:attribute name="Name" use="required"><xsd:simpleType><xsd:restriction base="xsd:string"></xsd:restriction></xsd:simpleType></xsd:attribute>
+            <xsd:attribute name="Value" use="required"><xsd:simpleType><xsd:restriction base="xsd:integer"></xsd:restriction></xsd:simpleType></xsd:attribute>
+            <xsd:attribute name="Line" use="required"><xsd:simpleType><xsd:restriction base="xsd:integer"></xsd:restriction></xsd:simpleType></xsd:attribute>
+            <xsd:attribute name="CharPositionInLine" use="required"><xsd:simpleType><xsd:restriction base="xsd:integer"></xsd:restriction></xsd:simpleType></xsd:attribute>
         </xsd:complexType>
     </xsd:element>
 
