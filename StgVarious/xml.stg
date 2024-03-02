@@ -101,7 +101,17 @@ IntegerType () ::= "IntegerType"
 
 RealType () ::= "RealType"
 
-BitStringType () ::= "BitStringType"
+BitStringNamedBit(sName, nVal, nLine, nPos) ::= <<
+<NamedBit Name="$sName$" Value="$nVal$" Line="$nLine$" CharPositionInLine="$nPos$"/>
+>>
+
+BitStringType (sMin, sMax, bFixedSize, arrsNamedBits) ::= <<
+<BitStringType Min="$sMin$" Max="$sMax$">
+    $arrsNamedBits;separator="\n"$
+</BitStringType>
+>>
+
+
 
 OctetStringType () ::= "OctetStringType"
 

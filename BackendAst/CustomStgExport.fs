@@ -152,7 +152,6 @@ let rec PrintType (r:AstRoot) (f:Asn1File) (stgFileName:string) modName (deepRec
     let PrintTypeAux (t:Asn1Type) =
         match t.Kind with                                                                                            //func name sMin sMax (sMin=sMax) stgFileName
         | Integer           i    -> handTypeWithMinMax (gen.IntegerType () stgFileName)         i.baseInfo.uperRange (fun name sMin sMax bFixedSize stgFileName -> gen.MinMaxType name sMin sMax bFixedSize i.baseInfo.isUnsigned false stgFileName ) stgFileName
-        | BitString         i    -> handTypeWithMinMax (gen.BitStringType () stgFileName)       (CommonTypes.Concrete (i.baseInfo.minSize, i.baseInfo.maxSize)) gen.MinMaxType2 stgFileName
         | OctetString       i    -> handTypeWithMinMax (gen.OctetStringType () stgFileName)     (CommonTypes.Concrete (i.baseInfo.minSize, i.baseInfo.maxSize)) gen.MinMaxType2 stgFileName
         | Real              i    -> handTypeWithMinMax_real (gen.RealType () stgFileName)       i.baseInfo.uperRange (fun name sMin sMax bFixedSize stgFileName -> gen.MinMaxType name sMin sMax bFixedSize false true stgFileName ) stgFileName
         | IA5String         i    -> handTypeWithMinMax (gen.IA5StringType () stgFileName)       (CommonTypes.Concrete (i.baseInfo.minSize, i.baseInfo.maxSize)) gen.MinMaxType2 stgFileName
@@ -201,6 +200,13 @@ let rec PrintType (r:AstRoot) (f:Asn1File) (stgFileName:string) modName (deepRec
                     | _ -> gen.SequenceChild c.Name.Value (ToC (c._c_name)) (ToC (c._scala_name)) (ToC (c._ada_name)) c.Optionality.IsSome null (BigInteger c.Name.Location.srcLine) (BigInteger c.Name.Location.charPos) childTypeExp bAlwaysPresent bAlwaysAbsent  stgFileName
                 | AcnChild  c -> null
             gen.SequenceType (seqInfo.children |> Seq.map emitChild) stgFileName
+        | BitString         i    -> 
+            let emitNamedBit (n:CommonTypes.NamedBit1) =
+                gen.BitStringNamedBit n.Name.Value  n.resolvedValue (BigInteger n.Name.Location.srcLine) (BigInteger n.Name.Location.charPos) stgFileName
+            let uperRange = CommonTypes.Concrete (i.baseInfo.minSize, i.baseInfo.maxSize)
+            let sMin, sMax = GetMinMax uperRange
+            let arrNamedBits = i.baseInfo.namedBitList |> Seq.map emitNamedBit |> Seq.toArray
+            gen.BitStringType sMin sMax (sMin=sMax) arrNamedBits stgFileName
         | Enumerated(enmInfo)     ->
             let emitItem (it : Asn1AcnAst.NamedItem) =
                 gen.EnumItem it.Name.Value (ToC it.Name.Value) it.definitionValue (BigInteger it.Name.Location.srcLine) (BigInteger it.Name.Location.charPos) (it.CEnumName  C) stgFileName

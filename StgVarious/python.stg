@@ -120,7 +120,16 @@ IntegerType () ::= "IntegerType"
 RealType () ::= "RealType"
 
 /* String type full spec in MixMaxType2 */
-BitStringType () ::= "BitStringType"
+
+BitStringNamedBit(sName, nVal, nLine, nPos) ::= <<
+"$sName$": $nVal$ 
+>>
+
+BitStringType (sMin, sMax, bFixedSize, arrsNamedBits) ::= <<
+"Kind": "BitStringType", "Min": "$sMin$", "Max": "$sMax$", "NamedBits": {
+    $arrsNamedBits;separator=", "$
+}
+>>
 
 OctetStringType () ::= "OctetStringType"
 
