@@ -126,7 +126,7 @@ BitStringNamedBit(sName, nVal, nLine, nPos) ::= <<
 >>
 
 BitStringType (sMin, sMax, bFixedSize, arrsNamedBits) ::= <<
-"Kind": "BitStringType", "Min": "$sMin$", "Max": "$sMax$", "NamedBits": {
+"kind": "BitStringType", "Min": "$sMin$", "Max": "$sMax$", "NamedBits": {
     $arrsNamedBits;separator=", "$
 }
 >>
