@@ -853,6 +853,7 @@ type CommandLineSettings = {
     streamingModeSupport      : bool
     handleEmptySequences      : bool
     blm         : (ProgrammingLanguage*ILangBasic) list
+    userRtlFunctionsToGenerate : string list
 }
 with 
   member this.SIntMax =

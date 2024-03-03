@@ -45,7 +45,7 @@ type CliArguments =
     | [<Unique; AltCommandLine("-sm")>]   Streaming_Mode
     | [<Unique; AltCommandLine("-ig")>]   Init_Globals
     | [<Unique; AltCommandLine("-es")>]   Handle_Empty_Sequences
-
+    | [<AltCommandLine("-if")>] Include_Func of string
     | [<MainCommand; ExactlyOnce; Last>] Files of files:string list
 with
     interface IArgParserTemplate with
@@ -101,6 +101,7 @@ with
             | Mapping_Functions_Module _    -> "The name of Ada module or name of C header file (without extension) containing the definitions of mapping functions"
             | Streaming_Mode    -> "Streaming mode support"
             | Handle_Empty_Sequences -> "Adds a dummy integer member to empty ASN.1 SEQUENCE structures for compliant C code generation."
+            | Include_Func _    -> "Include a function from the RTL. The function name is expected as argument. This argument can be repeated many times. This argument is supported only for C"
 
 
 let printVersion () =
@@ -108,7 +109,7 @@ let printVersion () =
     //let fvi = System.Diagnostics.FileVersionInfo.GetVersionInfo(assembly.Location);
     //let version = fvi.FileVersion;
 
-    let version = "4.5.1.1"
+    let version = "4.5.1.2"
     printfn "asn1scc version %s\n" version
     ()
 
@@ -142,8 +143,53 @@ let checkCompositeFile comFile cmdoption extention=
         let msg = sprintf "Invalid argument for '%s' option. Expected format is  stgFile.stg:outputFile.\nEg -%s custom.stg:generated.%s\nUnder windows, you may user double :: to separate the stg file with output fileE.g. %s c:\\custom.stg::c:\\generated.%s" cmdoption cmdoption extention cmdoption extention
         raise (UserException msg)
 
+let c_macro =
+        {
+            LanguageMacros.equal = new IEqual_c.IEqual_c() 
+            init = new Init_c.Init_c()
+            typeDef = new ITypeDefinition_c.ITypeDefinition_c() 
+            lg = new LangGeneric_c.LangGeneric_c(); 
+            isvalid= new IsValid_c.IsValid_c() 
+            vars = new IVariables_c.IVariables_c()
+            uper = new iuper_c.iuper_c()
+            acn = new IAcn_c.IAcn_c()
+            atc = new ITestCases_c.ITestCases_c()
+            xer = new IXer_c.IXer_c()
+            src = new ISrcBody_c.ISrcBody_c()
+        }
+let scala_macro = 
+        {
+            LanguageMacros.equal = new IEqual_scala.IEqual_scala() 
+            init = new IInit_scala.IInit_scala()
+            typeDef = new ITypeDefinition_scala.ITypeDefinition_scala() 
+            lg = new LangGeneric_scala.LangGeneric_scala(); 
+            isvalid= new IIsValid_scala.IIsValid_scala() 
+            vars = new IVariables_scala.IVariables_scala()
+            uper = new IUper_scala.IUper_scala()
+            acn = new IAcn_scala.IAcn_scala()
+            atc = new ITestCases_scala.ITestCases_scala()
+            xer = new IXer_scala.IXer_scala()
+            src = new ISrcBody_scala.ISrcBody_scala()
+        }
+let ada_macro = 
+        {
+            LanguageMacros.equal = new IEqual_a.IEqual_a(); 
+            init = new Init_a.Init_a()
+            typeDef = new ITypeDefinition_a.ITypeDefinition_a(); 
+            lg = new LangGeneric_a.LangGeneric_a(); 
+            isvalid= new IsValid_a.IsValid_a()
+            vars = new IVariables_a.IVariables_a()
+            uper = new iuper_a.iuper_a()
+            acn = new IAcn_a.IAcn_a()
+            atc = new ITestCases_a.ITestCases_a()
+            xer = new IXer_a.IXer_a()
+            src = new ISrcBody_a.ISrcBody_a()
+        }        
+let allMacros = [ (C, c_macro); (Scala, scala_macro); (Ada, ada_macro)]
+let getLanguageMacro (l:ProgrammingLanguage) =
+    allMacros |> List.filter(fun (lang,_) -> lang = l) |> List.head |> snd
 
-let checkArguement arg =
+let checkArguement (cliArgs : CliArguments list) arg =
     match arg with
     | Version          -> ()
     | Debug            -> ()
@@ -211,6 +257,17 @@ let checkArguement arg =
     | Mapping_Functions_Module mfm  -> ()
     | Streaming_Mode    -> ()
     | Handle_Empty_Sequences -> ()
+    | Include_Func  fnName    -> 
+        //check that the target language is C
+        match cliArgs |> List.exists (fun a -> a = C_lang) with
+        | true  -> 
+            // check if the function exists in the RTL
+            match c_macro.lg.RtlFuncNames |> List.exists (fun name -> name = fnName ) with
+            | true  -> ()
+            | false -> 
+                let availableFunctions = c_macro.lg.RtlFuncNames |> String.concat "\n"
+                raise (UserException (sprintf "Function '%s' does not exist in the C RTL.\nThe available functions to choose are:\n\n%s" fnName availableFunctions))
+        | false -> raise (UserException ("The -if option is supported only for C."))
 
 let createInput (fileName:string) : Input = 
     {
@@ -277,57 +334,14 @@ let constructCommandLineSettings args (parserResults: ParseResults<CliArguments>
                 | _                 -> Some (FieldPrefixUserValue vl)
         targetLanguages =
             args |> List.choose(fun a -> match a with C_lang -> Some (CommonTypes.ProgrammingLanguage.C) | Ada_Lang -> Some (CommonTypes.ProgrammingLanguage.Ada) | Scala_Lang -> Some (CommonTypes.ProgrammingLanguage.Scala) | _ -> None)
+        userRtlFunctionsToGenerate =
+            args |> List.choose(fun a -> match a with Include_Func fnName -> Some fnName | _ -> None)
     
         objectIdentifierMaxLength = 20I
         handleEmptySequences = parserResults.Contains <@ Handle_Empty_Sequences @>
         blm = [(ProgrammingLanguage.C, new LangGeneric_c.LangBasic_c());(ProgrammingLanguage.Ada, new LangGeneric_a.LangBasic_ada());(ProgrammingLanguage.Scala, new LangGeneric_scala.LangBasic_scala()) ]
     }    
 
-let c_macro =
-        {
-            LanguageMacros.equal = new IEqual_c.IEqual_c() 
-            init = new Init_c.Init_c()
-            typeDef = new ITypeDefinition_c.ITypeDefinition_c() 
-            lg = new LangGeneric_c.LangGeneric_c(); 
-            isvalid= new IsValid_c.IsValid_c() 
-            vars = new IVariables_c.IVariables_c()
-            uper = new iuper_c.iuper_c()
-            acn = new IAcn_c.IAcn_c()
-            atc = new ITestCases_c.ITestCases_c()
-            xer = new IXer_c.IXer_c()
-            src = new ISrcBody_c.ISrcBody_c()
-        }
-let scala_macro = 
-        {
-            LanguageMacros.equal = new IEqual_scala.IEqual_scala() 
-            init = new IInit_scala.IInit_scala()
-            typeDef = new ITypeDefinition_scala.ITypeDefinition_scala() 
-            lg = new LangGeneric_scala.LangGeneric_scala(); 
-            isvalid= new IIsValid_scala.IIsValid_scala() 
-            vars = new IVariables_scala.IVariables_scala()
-            uper = new IUper_scala.IUper_scala()
-            acn = new IAcn_scala.IAcn_scala()
-            atc = new ITestCases_scala.ITestCases_scala()
-            xer = new IXer_scala.IXer_scala()
-            src = new ISrcBody_scala.ISrcBody_scala()
-        }
-let ada_macro = 
-        {
-            LanguageMacros.equal = new IEqual_a.IEqual_a(); 
-            init = new Init_a.Init_a()
-            typeDef = new ITypeDefinition_a.ITypeDefinition_a(); 
-            lg = new LangGeneric_a.LangGeneric_a(); 
-            isvalid= new IsValid_a.IsValid_a()
-            vars = new IVariables_a.IVariables_a()
-            uper = new iuper_a.iuper_a()
-            acn = new IAcn_a.IAcn_a()
-            atc = new ITestCases_a.ITestCases_a()
-            xer = new IXer_a.IXer_a()
-            src = new ISrcBody_a.ISrcBody_a()
-        }        
-let allMacros = [ (C, c_macro); (Scala, scala_macro); (Ada, ada_macro)]
-let getLanguageMacro (l:ProgrammingLanguage) =
-    allMacros |> List.filter(fun (lang,_) -> lang = l) |> List.head |> snd
 
 let main0 argv =
     
@@ -339,7 +353,7 @@ let main0 argv =
         let parserResults = parser.Parse argv
         let cliArgs = parserResults.GetAllResults()
         cliArgs |> Seq.iter(fun arg -> match arg with Debug -> RangeSets.debug () | _ -> ())
-        cliArgs |> Seq.iter checkArguement 
+        cliArgs |> Seq.iter (checkArguement cliArgs)
 
         let args = constructCommandLineSettings cliArgs parserResults
         let outDir = parserResults.GetResult(<@Out@>, defaultValue = ".")

@@ -34,7 +34,7 @@ let writeResource (di:DirInfo) (rsName:string) (fn) : unit=
 
 
 
-let findUnusedRtlFunctions (lm:LanguageMacros) (rtlContent:string) (generatedContent:string) =
+let findUnusedRtlFunctions (args:CommandLineSettings) (lm:LanguageMacros) (rtlContent:string) (generatedContent:string) =
     let rec findAllUsedRtlFunctions (lm:LanguageMacros) (sourceCode:string)(currentlyUsedFunctionNames:string list) =
         let indirectlyUsedFunctions = 
             currentlyUsedFunctionNames |> List.collect (lm.lg.detectFunctionCalls sourceCode) |> List.distinct
@@ -48,7 +48,7 @@ let findUnusedRtlFunctions (lm:LanguageMacros) (rtlContent:string) (generatedCon
         lm.lg.RtlFuncNames |> List.filter (fun fn -> generatedContent.Contains(fn))
 
     
-    let allUsedFunctions = findAllUsedRtlFunctions lm rtlContent (lm.lg.AlwaysPresentRtlFuncNames@directlyUsedFunctions) |> Set.ofList
+    let allUsedFunctions = findAllUsedRtlFunctions lm rtlContent (lm.lg.AlwaysPresentRtlFuncNames@directlyUsedFunctions@args.userRtlFunctionsToGenerate) |> Set.ofList
     lm.lg.RtlFuncNames |> List.filter (fun fn -> not (allUsedFunctions.Contains(fn)))
     
 
@@ -67,7 +67,7 @@ let exportRTL (di:DirInfo) (l:ProgrammingLanguage) (args:CommandLineSettings) (l
     | ProgrammingLanguage.C ->
         let rtlContent =
             ["asn1crt.c";"asn1crt_encoding.c";"asn1crt_encoding_uper.c";"asn1crt_encoding_acn.c"] |> List.map getResourceAsString |> Seq.StrJoin "\n"
-        let unusedRtlFunctions = findUnusedRtlFunctions lm  rtlContent generatedContent
+        let unusedRtlFunctions = findUnusedRtlFunctions args lm  rtlContent generatedContent
     
 
         let removeUnusedRtlFunctionsFromHeader (sourceCode:string) =

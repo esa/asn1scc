@@ -114,6 +114,7 @@ let defaultCommandLineSettings  =
         icdPdus = None
         handleEmptySequences = false
         blm = []
+        userRtlFunctionsToGenerate= []
     }    
 
 type LspWorkSpace = {
