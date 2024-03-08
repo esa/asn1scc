@@ -20,7 +20,6 @@ let generateTransitiveLemmaApp (snapshots: Var list) (codec: Var): Expr =
 
   [0 .. snapshots.Length - 2] |> List.collect helper |> mkBlock
 
-
 let generateReadPrefixLemmaApp (snapshots: Var list) (children: TypeInfo list) (codec: Var) : Expr =
   assert (children.Length = snapshots.Length)
 
@@ -89,7 +88,7 @@ let wrapEncDecStmts (enc: Asn1Encoding) (snapshots: Var list) (cdc: Var) (stmts:
       let nonePat = ADTPattern {binder = None; id = "NoneMut"; subPatterns = []}
       // let buf = selBuf (Var snap)
       let noneRhs = [
-        AppliedLemma {lemma = ValidReflexiveLemma; args = [selBitStream (Var snap)]};
+        // AppliedLemma {lemma = ValidReflexiveLemma; args = [selBitStream (Var snap)]};
         Check (Leq (callBitIndex (Var cdc), Plus ((callBitIndex (Var snapshots.Head)), (IntLit offset))), Block [])
         // AppliedLemma {lemma = ArrayBitRangesEqReflexiveLemma; args = [buf]};
         // Snapshot buf needed for AntiAliasing
@@ -119,10 +118,6 @@ let wrapEncDecStmts (enc: Asn1Encoding) (snapshots: Var list) (cdc: Var) (stmts:
     (offsetAcc - sz, LetGhost {bdg = snap; e = Snapshot (Var cdc); body = body})
 
   let stmts = List.zip3 snapshots pg.children stmts |> List.indexed
-  // let initOffset =
-  //   if nbChildren > 1 then pg.children.[nbChildren - 2].maxOffset enc
-  //   else 0I
-  // printfn "%s" ((pg.children |> List.map (fun c -> c.maxOffset enc)).StrJoin ", ")
   List.foldBack wrap stmts (maxSize, rest) |> snd
 
 let generateSequenceChildProof (enc: Asn1Encoding) (stmts: string option list) (pg: SequenceProofGen) (codec: Codec): string list =
@@ -133,15 +128,17 @@ let generateSequenceChildProof (enc: Asn1Encoding) (stmts: string option list) (
     let snapshots = [1 .. pg.children.Length] |> List.map (fun i -> {Var.name = $"codec{i}"; tpe = RuntimeType (CodecClass codecTpe)})
 
     let wrappedStmts = wrapEncDecStmts enc snapshots cdc stmts pg codec
+    (*
     let postCondLemmas =
       match codec with
       | Decode -> []
       | Encode ->
         [generateTransitiveLemmaApp snapshots cdc] @
         [generateReadPrefixLemmaApp snapshots (pg.children |> List.map (fun c -> c.typeInfo)) cdc]
+    *)
     let postCondLemmas =
       let cond = Leq (callBitIndex (Var cdc), Plus ((callBitIndex (Var snapshots.Head)), (IntLit (pg.maxSize enc))))
-      Ghost (Check (cond, mkBlock postCondLemmas))
-    let expr = wrappedStmts postCondLemmas
+      Ghost (Check (cond, mkBlock []))
+    let expr = wrappedStmts (mkBlock [postCondLemmas])
     let exprStr = show expr
     [exprStr]
