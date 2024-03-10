@@ -80,6 +80,11 @@ type FieldPrefixReasonToChange =
     | FieldIsKeyword
     | FieldIsAlsoType of string
     | FieldIsAlsoModule of string
+    override this.ToString() =
+        match this with
+        | FieldIsKeyword            -> "FieldIsKeyword"
+        | FieldIsAlsoType tasName   -> "FieldIsAlsoType " + tasName
+        | FieldIsAlsoModule modName -> "FieldIsAlsoModule " + modName
 
 type FieldPrefState = {
     curChildName : string
@@ -148,7 +153,8 @@ let rec private handleSequencesAndChoices (r:AstRoot) ((lang, lm): ProgrammingLa
                                 | FieldIsAlsoModule modName   -> printfn "[INFO] Renamed field \"%s\" in type \"%s\" to \"%s\" (Ada naming conflict with the Module \"%s\")" (lm.lg.getChildInfoName ch) parentTypeName fieldName modName
 
                             fieldName
-                    let newCh = lm.lg.setChildInfoName ch newUniqueName
+                    let newCh0 = {ch with Type = t}
+                    let newCh = lm.lg.setChildInfoName newCh0 newUniqueName
                     newCh, ns
                     //match lang with
                     //| ProgrammingLanguage.C     -> {ch with Type = t; c_name = ToC2 newUniqueName},ns
