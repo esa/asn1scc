@@ -379,9 +379,10 @@ flag BitStream_ReadByteArray(BitStream* pBitStrm, byte* arr, int arr_len) {
 	byte* rb = &pBitStrm->buf[pBitStrm->currentByte];
 	byte* wb = arr;
 
+#ifndef ASN1SCC_STREAMING
     if ( (pBitStrm->currentByte + arr_len)*8 + cb > pBitStrm->count*8)
         return FALSE;
-
+#endif
 
     for (int i = 0; i < arr_len; i++) {
 		*wb = (byte)((*rb) << cb);
