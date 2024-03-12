@@ -72,9 +72,15 @@ type LangGeneric_c() =
             match intClass with
             | Asn1AcnAst.ASN1SCC_Int8     _ ->  sprintf "%s" (i.ToString())
             | Asn1AcnAst.ASN1SCC_Int16    _ ->  sprintf "%s" (i.ToString())
-            | Asn1AcnAst.ASN1SCC_Int32    _ ->  sprintf "%s" (i.ToString())
-            | Asn1AcnAst.ASN1SCC_Int64    _ ->  sprintf "%sLL" (i.ToString())
-            | Asn1AcnAst.ASN1SCC_Int      _ ->  sprintf "%sLL" (i.ToString())
+            | Asn1AcnAst.ASN1SCC_Int32    _ ->
+                // Note: In C, there is no such thing as "negative literal",
+                // but instead, it's a positive number that is negated, as such
+                // we need to be careful and use INT_MIN instead to avoid overflow.
+                if i = BigInteger Int32.MinValue then "INT_MIN" else sprintf "%s" (i.ToString())
+            | Asn1AcnAst.ASN1SCC_Int64    _ ->
+                if i = BigInteger Int64.MinValue then "LLONG_MIN" else sprintf "%sLL" (i.ToString())
+            | Asn1AcnAst.ASN1SCC_Int      _ ->
+                if i = BigInteger Int64.MinValue then "LLONG_MIN" else sprintf "%sLL" (i.ToString())
             | Asn1AcnAst.ASN1SCC_UInt8    _ ->  sprintf "%sUL" (i.ToString())
             | Asn1AcnAst.ASN1SCC_UInt16   _ ->  sprintf "%sUL" (i.ToString())
             | Asn1AcnAst.ASN1SCC_UInt32   _ ->  sprintf "%sUL" (i.ToString())
