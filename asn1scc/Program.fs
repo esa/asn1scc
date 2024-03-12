@@ -189,7 +189,7 @@ let allMacros = [ (C, c_macro); (Scala, scala_macro); (Ada, ada_macro)]
 let getLanguageMacro (l:ProgrammingLanguage) =
     allMacros |> List.filter(fun (lang,_) -> lang = l) |> List.head |> snd
 
-let checkArguement (cliArgs : CliArguments list) arg =
+let checkArgument (cliArgs : CliArguments list) arg =
     match arg with
     | Version          -> ()
     | Debug            -> ()
@@ -354,7 +354,7 @@ let main0 argv =
         let parserResults = parser.Parse argv
         let cliArgs = parserResults.GetAllResults()
         cliArgs |> Seq.iter(fun arg -> match arg with Debug -> RangeSets.debug () | _ -> ())
-        cliArgs |> Seq.iter (checkArguement cliArgs)
+        cliArgs |> Seq.iter (checkArgument cliArgs)
 
         let args = constructCommandLineSettings cliArgs parserResults
         let outDir = parserResults.GetResult(<@Out@>, defaultValue = ".")
