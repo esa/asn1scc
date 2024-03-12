@@ -2,11 +2,6 @@
 
 rtlModuleName() ::= ""
 
-
-getStringSize(p) ::= "strlen(<p>)"
-
-
-
 JoinItems(sPart, soNestedPart) ::= <<
 <sPart>
 <if(soNestedPart)>
@@ -84,31 +79,31 @@ def <sFuncName>(<if(bUnreferenced)>@annotation.unused <endif><sVarName>: <sTypeD
 >>
 
 ExpEqual(sExp1, sExp2) ::= "(<sExp1> == <sExp2>)"
-ExpStringEqual(sExp1, sExp2) ::= "(<sExp1> == <sExp2>)"
+ExpStringEqual(sExp1, sExp2) ::= "(<sExp1>.sameElements(<sExp2>.getBytes))"
 ExpGt(sExp1, sExp2) ::= "(<sExp1> \> <sExp2>)"
 ExpGte(sExp1, sExp2) ::= "(<sExp1> \>= <sExp2>)"
 ExpLt(sExp1, sExp2) ::= "(<sExp1> \< <sExp2>)"
 ExpLte(sExp1, sExp2) ::= "(<sExp1> \<= <sExp2>)"
 ExpOr(sExp1, sExp2) ::= "((<sExp1>) || (<sExp2>))"
 ExpAnd(sExp1, sExp2) ::= "(<sExp1> && <sExp2>)"
-ExpAndMulit(arrsExp) ::= <<
+ExpAndMulti(arrsExp) ::= <<
 <arrsExp; separator=" && ">
 >>
 ExpNot(sExp) ::= "(!<sExp>)"
-StrLen(sExp) ::= "<sExp>.indexOf(0)"
+StrLen(sExp) ::= "<sExp>.indexOf(0.toRawUByte)"
 ArrayLen(sExp, sAcc) ::= "<sExp><sAcc>nCount"
 
-ExpressionToStament(sExp1) ::=<<
+ExpressionToStatement(sExp1) ::=<<
 ret = <sExp1>
 >>
 
-StatementOrStament(sStat1, sStat2) ::= <<
+StatementOrStatement(sStat1, sStat2) ::= <<
 <sStat1>
 if ret.isLeft then
     <sStat2>
 >>
 
-ExpressionOrStament(sExp1, sStat2) ::= <<
+ExpressionOrStatement(sExp1, sStat2) ::= <<
 ret = <sExp1>
 if ret.isLeft then
     <sStat2>
@@ -120,13 +115,13 @@ if ret.isLeft then
     ret = <sExp2>
 >>
 
-StatementAndStament(sStat1, sStat2) ::= <<
+StatementAndStatement(sStat1, sStat2) ::= <<
 <sStat1>
 if ret.isRight then
     <sStat2>
 >>
 
-ExpressionAndStament(sExp1, sStat2) ::= <<
+ExpressionAndStatement(sExp1, sStat2) ::= <<
 ret = <sExp1>
 if ret.isRight then
     <sStat2>
@@ -146,7 +141,7 @@ else
     ret = Right(0)
 >>
 
-StatementExceptStament(sStat1, sStat2) ::= <<
+StatementExceptStatement(sStat1, sStat2) ::= <<
 <sStat1>
 if ret.isRight then
     <sStat2>
@@ -156,7 +151,7 @@ if ret.isRight then
         ret = Right(0)
 >>
 
-ExpressionExceptStament(sExp1, sStat2) ::= <<
+ExpressionExceptStatement(sExp1, sStat2) ::= <<
 ret = <sExp1>
 if ret.isRight then
     <sStat2>
@@ -170,9 +165,9 @@ StatementExceptExpression(sStat1, sExp2) ::= <<
 <sStat1>
 if ret.isRight then
     ret = (<sExp2>) match
-        case Right(x) => 
+        case Right(x) =>
             Left(171)
-        case Left(x) => 
+        case Left(x) =>
             Right(0)
 >>
 
@@ -188,34 +183,34 @@ while(ret.isRight && <i> \< <if(!bIsFixedSize)><p><sAcc>nCount<else><nFixedSize>
 
 
 Print_AlphabetCheckFunc(sFuncName, arrsAlphaConBody) ::= <<
-def <sFuncName>(const char* str): flag = 
+def <sFuncName>(str0: Array[UByte]): Boolean =
 {
-    flag ret=TRUE;
-    int i=0;
-
-    while ((str[i] != '\0') && ret) {
-        ret = ret && (<arrsAlphaConBody; separator=" && ">);
-        i = i + 1;
+    val str = str0.toArrayRaws
+    var valid: Boolean = true
+    var i: Int = 0
+    while ((str(i) != CHAR_0000) && valid) {
+        valid = valid && (<arrsAlphaConBody; separator=" && ">);
+        i = i + 1
     }
-    return ret;
+    valid
 }
 >>
 
 
 
-SingleValContraint(p, v) ::= "(<p> == <v>)"
+SingleValConstraint(p, v) ::= "(<p> == <v>)"
 
 
 
 
 
-stringContainsChar(sStrVal, p) ::= "strchr(<sStrVal>, <p>)"
+stringContainsChar(sStrVal, p) ::= "<sStrVal>.contains(<p>)"
 
-RangeContraint(p, v1, v2, bMin, bMax) ::= "(<v1> \<<if(bMin)>=<endif> <p> && <p> \<<if(bMax)>=<endif> <v2>)"
+RangeConstraint(p, v1, v2, bMin, bMax) ::= "(<v1> \<<if(bMin)>=<endif> <p> && <p> \<<if(bMax)>=<endif> <v2>)"
 
-RangeContraint_val_MAX(p, v, bMin) ::= "(<p> ><if(bMin)>=<endif> <v>)"
+RangeConstraint_val_MAX(p, v, bMin) ::= "(<p> ><if(bMin)>=<endif> <v>)"
 
-RangeContraint_MIN_val(p, v, bMax) ::= "(<p> \<<if(bMax)>=<endif> <v>)"
+RangeConstraint_MIN_val(p, v, bMax) ::= "(<p> \<<if(bMax)>=<endif> <v>)"
 
 
 AND_Constraint(sCon1, sCon2) ::= "(<sCon1> && <sCon2>)"
@@ -243,18 +238,20 @@ call_base_type_func_exp(p, sFuncName) ::= "<sFuncName>(<p>)"
 
 
 Sequence_OptionalChild(p, sAcc, sChName, sInnerStatement) ::= <<
-if <p><sAcc>exist.<sChName> then
-    <sInnerStatement>
+<p><sAcc><sChName> match
+    case SomeMut(<sChName>) =>
+        <sInnerStatement>
+    case NoneMut() =>
 >>
 
 
 Sequence_optional_child_always_present_or_absent(p, sAcc,  sChName, sErrCode, sPresOrAbs) ::= <<
-ret = <p><sAcc>exist.<sChName> == <sPresOrAbs>
+ret = <p><sAcc><sChName>.isDefined == <sPresOrAbs>
 ret = <sErrCode>;
 >>
 
 Sequence_optional_child_always_present_or_absent_expr(p, sAcc,  sChName, sPresOrAbs) ::= <<
-(<p><sAcc>exist.<sChName> == <sPresOrAbs>)
+(<p><sAcc><sChName>.isDefined == <sPresOrAbs>)
 >>
 
 /* SEQUENCE end*/
@@ -262,10 +259,10 @@ Sequence_optional_child_always_present_or_absent_expr(p, sAcc,  sChName, sPresOr
 
 /* CHOICE start*/
 
-Choice_OptionalChild(p, pLocal, sAcc, sChPresent, sInnerStatement) ::= <<
+Choice_OptionalChild(p, sPLocal, sAcc, sChPresent, sInnerStatement) ::= <<
 <p> match
-    case <sChPresent>(<pLocal>) => 
-        <sInnerStatement> 
+    case <sChPresent>(<sPLocal>) =>
+        <sInnerStatement>
     case _ => ()
 >>
 
@@ -279,7 +276,7 @@ Choice_child_always_absent_Exp(p, sAcc, sChPresent) ::= <<
 
 choice_child(sChPresent, sChildBody, bAlwaysAbsent) ::= <<
 case <sChPresent> =>
-    <sChildBody>         
+    <sChildBody>
 >>
 
 choice(p, sAccess, arrsChildren, sErrCodeForInvalidCase) ::= <<

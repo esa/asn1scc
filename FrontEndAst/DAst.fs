@@ -17,7 +17,7 @@ open System.Collections.Generic
 
 type CallerScope = {
     modName : string
-    arg     : FuncParamType
+    arg     : Selection
 }
 
 type AlphaFunc   = {
@@ -31,12 +31,12 @@ type IcdTypeCol =
     | IcdPlainType of string
 
 (*
-let getIcdTypeCol_label  l = 
+let getIcdTypeCol_label  l =
     match l with
     | IcdRefType (l,_)
     | IcdPlainType l -> l
 *)
-    
+
 type IcdRowType =
     | FieldRow
     | ReferenceToCompositeTypeRow
@@ -51,8 +51,8 @@ type IcdRow = {
     sPresent  : string
     sType     : IcdTypeCol
     sConstraint : string option
-    minLengtInBits : BigInteger
-    maxLengtInBits : BigInteger
+    minLengthInBits : BigInteger
+    maxLengthInBits : BigInteger
     sUnits      : string option
     rowType     : IcdRowType
 }
@@ -67,8 +67,8 @@ type IcdTypeAss = {
     comments : string list
     rows : IcdRow list
     //compositeChildren : IcdTypeAss list
-    minLengtInBytes : BigInteger
-    maxLengtInBytes : BigInteger
+    minLengthInBytes : BigInteger
+    maxLengthInBytes : BigInteger
     hash            : string
 }
 type State = {
@@ -106,8 +106,8 @@ and SeqValue              = list<NamedValue>
 and ChValue               = NamedValue
 and RefValue              = ((string*string)*Asn1Value)
 and TimeValue             = Asn1DateTimeValue
-and ObjectIdenfierValue   = 
-    | Asn1DefinedObjectIdentifierValue of ((ResolvedObjectIdentifierValueCompoent list)*(ObjectIdentifierValueCompoent list))
+and ObjectIdentifierValue   =
+    | Asn1DefinedObjectIdentifierValue of ((ResolvedObjectIdentifierValueComponent list)*(ObjectIdentifierValueComponent list))
     | InternalObjectIdentifierValue of BigInteger list
 
 and NamedValue = {
@@ -123,31 +123,31 @@ and Asn1Value = {
 }
 
 and Asn1ValueKind =
-    | IntegerValue          of IntegerValue    
-    | RealValue             of RealValue       
-    | StringValue           of StringValue     
+    | IntegerValue          of IntegerValue
+    | RealValue             of RealValue
+    | StringValue           of StringValue
     | TimeValue             of TimeValue
-    | BooleanValue          of BooleanValue    
-    | BitStringValue        of BitStringValue  
+    | BooleanValue          of BooleanValue
+    | BitStringValue        of BitStringValue
     | OctetStringValue      of OctetStringValue
-    | EnumValue             of EnumValue       
-    | SeqOfValue            of SeqOfValue      
-    | SeqValue              of SeqValue        
-    | ChValue               of ChValue         
+    | EnumValue             of EnumValue
+    | SeqOfValue            of SeqOfValue
+    | SeqValue              of SeqValue
+    | ChValue               of ChValue
     | NullValue             of NullValue
-    | RefValue              of RefValue   
-    | ObjOrRelObjIdValue    of ObjectIdenfierValue
+    | RefValue              of RefValue
+    | ObjOrRelObjIdValue    of ObjectIdentifierValue
 
 //type Asn1GenericValue = Asn1Value
 
-    
+
 
 
 type ExpOrStatement =
-    | Expression 
-    | Statement  
+    | Expression
+    | Statement
 
-type GenericLocalVariable = 
+type GenericLocalVariable =
     {
         name     : string
         varType  : string
@@ -157,12 +157,12 @@ type GenericLocalVariable =
     }
 
 type LocalVariable =
-    | SequenceOfIndex       of int*int option        //i index, initialValue
-    | IntegerLocalVariable  of string*int option     //variable name, initialValue
-    | Asn1SIntLocalVariable of string*int option     //variable name, initialValue
-    | Asn1UIntLocalVariable of string*int option     //variable name, initialValue
-    | FlagLocalVariable     of string*int option     //variable name, initialValue
-    | BooleanLocalVariable  of string*bool option    //variable name, initialValue
+    | SequenceOfIndex       of int*string option     //i index, initialValue
+    | IntegerLocalVariable  of string*string option  //variable name, initialValue
+    | Asn1SIntLocalVariable of string*string option  //variable name, initialValue
+    | Asn1UIntLocalVariable of string*string option  //variable name, initialValue
+    | FlagLocalVariable     of string*string option  //variable name, initialValue
+    | BooleanLocalVariable  of string*string option  //variable name, initialValue
     | AcnInsertedChild      of string*string*string  //variable name, type, initialValue
     | GenericLocalVariable  of GenericLocalVariable
 
@@ -182,14 +182,11 @@ type ValidationStatement =
     | ValidationStatement       of (string * LocalVariable list)
 
 
-         //Emit_local_variable_SQF_Index(nI, bHasInitalValue)::="I<nI>:Integer<if(bHasInitalValue)>:=1<endif>;"
-
-
 type ReferenceToExistingDefinition = {
     /// the module where this type is defined
     /// if the value is not present then is the same as the "caller"
     programUnit     : string option
-    /// The name of the defined type. 
+    /// The name of the defined type.
     typedefName     : string
     definedInRtl    : bool
 }
@@ -199,26 +196,26 @@ type TypeDefinition = {
     // In C this is None
     //programUnitName : string option
     /// The name of the defined type. If type is a type assignment then is the name of the type assignment.
-    /// if the type is an inner type (i.e. within a SEQUENCE/SEQUENCE OF/CHOICE) then name is created as 
+    /// if the type is an inner type (i.e. within a SEQUENCE/SEQUENCE OF/CHOICE) then name is created as
     /// parentType.typedefName + "_" + component_name
     typedefName : string
 
     /// the complete definition of the type
     /// e.g. C : typedef asn1SccSint MyInt4;
-    /// and Ada: SUBTYPE MyInt4 IS adaasn1rtl.Asn1Int range 0..25;    
-    /// For composite types, typedefBody contains also the definition of any 
+    /// and Ada: SUBTYPE MyInt4 IS adaasn1rtl.Asn1Int range 0..25;
+    /// For composite types, typedefBody contains also the definition of any
     /// inner children
     typedefBody : unit -> string
     baseType    : ReferenceToExistingDefinition option
 }
 
-type TypeDefintionOrReference =
+type TypeDefinitionOrReference =
     /// indicates that no extra type definition is required (e.g. INTEGER without constraints or type reference type without new constraints)
-    | ReferenceToExistingDefinition    of ReferenceToExistingDefinition                
-    /// indicates that a new type is 
-    | TypeDefinition                of TypeDefinition       
+    | ReferenceToExistingDefinition    of ReferenceToExistingDefinition
+    /// indicates that a new type is
+    | TypeDefinition                of TypeDefinition
 
-type ErroCode = {
+type ErrorCode = {
     errCodeValue    : int
     errCodeName     : string
     comment         : string option
@@ -229,10 +226,10 @@ type BaseTypesEquivalence<'T> = {
     uper            : 'T option
     acn             : 'T option
 }
-        
+
 (*
-Generates initialization statement(s) that inititalize the type with the given Asn1GeneticValue.
-*)            
+Generates initialization statement(s) that initialize the type with the given Asn1GeneticValue.
+*)
 type InitFunctionResult = {
     funcBody            : string
     localVariables      : LocalVariable list
@@ -244,14 +241,14 @@ type TestCaseValue =
     | TcvAnyValue
     | TcvEnumeratedValue of String
     | TcvSizeableTypeValue of BigInteger       //length
-    | TcvChoiceAlternativePresentWhenInt of BigInteger            
+    | TcvChoiceAlternativePresentWhenInt of BigInteger
     | TcvChoiceAlternativePresentWhenStr of String
 
 (*
 In general, an automatic test involves many types (e.g. in sequences, choices etc). It consists of function (initTestCaseFunc) that returns
-a string with the statements than initialize all involved types plus the local variavles needed.
+a string with the statements than initialize all involved types plus the local variables needed.
 The id of the types that are involved in this automatic test case are stored within a map with name testCaseTypeIDsMap. The need for this map
-is in order to generate valid ACN test cases. I.e. the ACN checks that test case provides values for all ACN inserted fields. Otherwise is invalid and not 
+is in order to generate valid ACN test cases. I.e. the ACN checks that test case provides values for all ACN inserted fields. Otherwise is invalid and not
 generated.
 *)
 type AutomaticTestCase = {
@@ -260,14 +257,14 @@ type AutomaticTestCase = {
 }
 
 type InitProcedure0 = {
-    funcName:string; 
-    def:string; 
-    body:string 
+    funcName:string;
+    def:string;
+    body:string
 }
 
 type InitFunction = {
-    initExpression          : string               // an expression that provides the default initialization. 
-    initExpressionGlobal    : string               // an expression that provides the default initialization. 
+    initExpression          : string               // an expression that provides the default initialization.
+    initExpressionGlobal    : string               // an expression that provides the default initialization.
                                                           //It is usually present except of some rare cases such as an empty sequence (for C only) etc
     initProcedure           : InitProcedure0 option
     initFunction            : InitProcedure0 option                      // an expression that initializes the given type to a default value.
@@ -289,7 +286,7 @@ type IsEqualBody =
     | EqualBodyStatementList    of (CallerScope -> CallerScope -> (string*(LocalVariable list)) option)
 
 type EqualFunction = {
-    isEqualFuncName     : string option               // the name of the equal function. 
+    isEqualFuncName     : string option               // the name of the equal function.
     isEqualFunc         : string option               // the body of the equal function
     isEqualFuncDef      : string option
     isEqualBody         : IsEqualBody                 // a function that  returns an expression or a statement list
@@ -299,21 +296,21 @@ type EqualFunction = {
 
 type AnonymousVariable = {
     valueName           : string
-    valueExpresion      : string
+    valueExpression      : string
     typeDefinitionName  : string
     valKind             : Asn1ValueKind        // the value
 }
 
 type IsValidFunction = {
-    errCodes            : ErroCode list
+    errCodes            : ErrorCode list
     funcName            : string option               // the name of the function. Valid only for TASes)
     func                : string option               // the body of the function
     funcDef             : string option               // function definition in header file
     //funcExp             : (CallerScope -> ValidationCodeBlock)    // return a single boolean expression
     funcBody            : CallerScope -> ValidationStatement            //returns a list of validations statements
-    //funcBody2           : string -> string -> string  //like funBody but with two arguement p and accessOper ( i.e. '->' or '.')
-    
-    alphaFuncs          : AlphaFunc list  
+    //funcBody2           : string -> string -> string  //like funBody but with two arguments p and accessOper ( i.e. '->' or '.')
+
+    alphaFuncs          : AlphaFunc list
     localVariables      : LocalVariable list
     anonymousVariables  : AnonymousVariable  list      //list with the anonymous asn1 values used in constraints and which must be declared.
                                                        //these are the bit and octet string values which cannot be expressed as single primitives in C/Ada
@@ -325,31 +322,32 @@ type IsValidFunction = {
 
 type UPERFuncBodyResult = {
     funcBody            : string
-    errCodes            : ErroCode list
+    errCodes            : ErrorCode list
     localVariables      : LocalVariable list
-    bValIsUnReferenced    : bool
-    bBsIsUnReferenced     : bool
+    bValIsUnReferenced  : bool
+    bBsIsUnReferenced   : bool
+    resultExpr          : string option
 }
 type UPerFunction = {
     funcName            : string option               // the name of the function
     func                : string option               // the body of the function
     funcDef             : string option               // function definition in header file
     funcBody            : CallerScope -> (UPERFuncBodyResult option)            // returns a list of validations statements
-    funcBody_e          : ErroCode -> CallerScope -> (UPERFuncBodyResult option)
+    funcBody_e          : ErrorCode -> CallerScope -> (UPERFuncBodyResult option)
 }
 
 type AcnFuncBodyResult = {
     funcBody            : string
-    errCodes            : ErroCode list
+    errCodes            : ErrorCode list
     localVariables      : LocalVariable list
-    bValIsUnReferenced    : bool
-    bBsIsUnReferenced     : bool
-
+    bValIsUnReferenced  : bool
+    bBsIsUnReferenced   : bool
+    resultExpr          : string option
 }
 
 type XERFuncBodyResult = {
     funcBody            : string
-    errCodes            : ErroCode list
+    errCodes            : ErrorCode list
     localVariables      : LocalVariable list
     encodingSizeInBytes : BigInteger
 }
@@ -364,7 +362,7 @@ type XerFunctionRec = {
     funcDef             : string option               // function definition in header file
     encodingSizeInBytes : BigInteger
     funcBody            : CallerScope -> (XerTag option) -> (XERFuncBodyResult option)
-    funcBody_e          : ErroCode -> CallerScope -> (XerTag option) -> (XERFuncBodyResult option)            //p, XmlTag,   returns a list of encoding/decoding statements
+    funcBody_e          : ErrorCode -> CallerScope -> (XerTag option) -> (XERFuncBodyResult option)            //p, XmlTag,   returns a list of encoding/decoding statements
 }
 
 type XerFunction =
@@ -384,8 +382,8 @@ type AcnFunction = {
 
     // takes as input (a) any acn arguments and (b) the field where the encoding/decoding takes place
     // returns a list of acn encoding statements
-    funcBody            : State->((AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) -> CallerScope -> ((AcnFuncBodyResult option)*State)            
-    funcBodyAsSeqComp   : State->((AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) -> CallerScope -> string -> ((AcnFuncBodyResult option)*State)            
+    funcBody            : State->((AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) -> CallerScope -> ((AcnFuncBodyResult option)*State)
+    funcBodyAsSeqComp   : State->((AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) -> CallerScope -> string -> ((AcnFuncBodyResult option)*State)
     isTestVaseValid     : AutomaticTestCase -> bool
     icd                 : IcdAux option (* always present in Encode, always None in Decode *)
 }
@@ -403,7 +401,7 @@ type TestCaseFunction = {
 }
 
 type Integer = {
-    //bast inherrited properties
+    //bast inherited properties
     baseInfo             : Asn1AcnAst.Integer
 
     //DAst properties
@@ -411,12 +409,12 @@ type Integer = {
     constraintsAsn1Str  : string list   //an ASN.1 representation of the constraints
 
     //typeDefinition      : TypeDefinitionCommon
-    definitionOrRef     : TypeDefintionOrReference
+    definitionOrRef     : TypeDefinitionOrReference
     printValue          : string -> (Asn1ValueKind option) -> (Asn1ValueKind) -> string
     //initialValue        : IntegerValue
     initFunction        : InitFunction
     equalFunction       : EqualFunction
-    isValidFunction     : IsValidFunction option      // it is optional because some types do not require an IsValid function (e.g. an unconstraint integer)
+    isValidFunction     : IsValidFunction option      // it is optional because some types do not require an IsValid function (e.g. an unconstrained integer)
     uperEncFunction     : UPerFunction
     uperDecFunction     : UPerFunction
     acnEncFunction      : AcnFunction
@@ -439,12 +437,12 @@ type Enumerated = {
     //DAst properties
     //baseTypeEquivalence: BaseTypesEquivalence<Enumerated>
     //typeDefinition      : TypeDefinitionCommon
-    definitionOrRef     : TypeDefintionOrReference
+    definitionOrRef     : TypeDefinitionOrReference
     printValue          : string -> (Asn1ValueKind option) -> (Asn1ValueKind) -> string
     //initialValue        : EnumValue
     initFunction        : InitFunction
     equalFunction       : EqualFunction
-    isValidFunction     : IsValidFunction option      // it is optional because some types do not require an IsValid function (e.g. an unconstraint integer)
+    isValidFunction     : IsValidFunction option      // it is optional because some types do not require an IsValid function (e.g. an unconstrained integer)
     uperEncFunction     : UPerFunction
     uperDecFunction     : UPerFunction
     acnEncFunction      : AcnFunction
@@ -462,12 +460,12 @@ type ObjectIdentifier = {
     baseInfo             : Asn1AcnAst.ObjectIdentifier
 
     constraintsAsn1Str  : string list   //an ASN.1 representation of the constraints
-    definitionOrRef     : TypeDefintionOrReference
+    definitionOrRef     : TypeDefinitionOrReference
     printValue          : string -> (Asn1ValueKind option) -> (Asn1ValueKind) -> string
-    //initialValue        : ObjectIdenfierValue
+    //initialValue        : ObjectIdentifierValue
     initFunction        : InitFunction
     equalFunction       : EqualFunction
-    isValidFunction     : IsValidFunction option      // it is optional because some types do not require an IsValid function (e.g. an unconstraint integer)
+    isValidFunction     : IsValidFunction option      // it is optional because some types do not require an IsValid function (e.g. an unconstrained integer)
     uperEncFunction     : UPerFunction
     uperDecFunction     : UPerFunction
     acnEncFunction      : AcnFunction
@@ -485,12 +483,12 @@ type TimeType = {
     baseInfo             : Asn1AcnAst.TimeType
 
     constraintsAsn1Str  : string list   //an ASN.1 representation of the constraints
-    definitionOrRef     : TypeDefintionOrReference
+    definitionOrRef     : TypeDefinitionOrReference
     printValue          : string -> (Asn1ValueKind option) -> (Asn1ValueKind) -> string
     //initialValue        : TimeValue
     initFunction        : InitFunction
     equalFunction       : EqualFunction
-    isValidFunction     : IsValidFunction option      // it is optional because some types do not require an IsValid function (e.g. an unconstraint integer)
+    isValidFunction     : IsValidFunction option      // it is optional because some types do not require an IsValid function (e.g. an unconstrained integer)
     uperEncFunction     : UPerFunction
     uperDecFunction     : UPerFunction
     acnEncFunction      : AcnFunction
@@ -513,12 +511,12 @@ type Real = {
 
     //baseTypeEquivalence: BaseTypesEquivalence<Real>
     //typeDefinition      : TypeDefinitionCommon
-    definitionOrRef     : TypeDefintionOrReference
+    definitionOrRef     : TypeDefinitionOrReference
     printValue          : string -> (Asn1ValueKind option) -> (Asn1ValueKind) -> string
     //initialValue        : RealValue
     initFunction        : InitFunction
     equalFunction       : EqualFunction
-    isValidFunction     : IsValidFunction option      // it is optional because some types do not require an IsValid function (e.g. an unconstraint integer)
+    isValidFunction     : IsValidFunction option      // it is optional because some types do not require an IsValid function (e.g. an unconstrained integer)
     uperEncFunction     : UPerFunction
     uperDecFunction     : UPerFunction
     acnEncFunction      : AcnFunction
@@ -540,12 +538,12 @@ type Boolean = {
     constraintsAsn1Str  : string list   //an ASN.1 representation of the constraints
     //baseTypeEquivalence: BaseTypesEquivalence<Boolean>
     //typeDefinition      : TypeDefinitionCommon
-    definitionOrRef     : TypeDefintionOrReference
+    definitionOrRef     : TypeDefinitionOrReference
     printValue          : string -> (Asn1ValueKind option) -> (Asn1ValueKind) -> string
     //initialValue        : BooleanValue
     initFunction        : InitFunction
     equalFunction       : EqualFunction
-    isValidFunction     : IsValidFunction option      // it is optional because some types do not require an IsValid function (e.g. an unconstraint integer)
+    isValidFunction     : IsValidFunction option      // it is optional because some types do not require an IsValid function (e.g. an unconstrained integer)
     uperEncFunction     : UPerFunction
     uperDecFunction     : UPerFunction
     acnEncFunction      : AcnFunction
@@ -567,7 +565,7 @@ type NullType = {
     constraintsAsn1Str  : string list   //an ASN.1 representation of the constraints
     //baseTypeEquivalence: BaseTypesEquivalence<NullType>
     //typeDefinition      : TypeDefinitionCommon
-    definitionOrRef     : TypeDefintionOrReference
+    definitionOrRef     : TypeDefinitionOrReference
     printValue          : string -> (Asn1ValueKind option) -> (Asn1ValueKind) -> string
     initFunction        : InitFunction
     //initialValue        : NullValue
@@ -591,12 +589,12 @@ type StringType = {
     constraintsAsn1Str  : string list   //an ASN.1 representation of the constraints
     //baseTypeEquivalence: BaseTypesEquivalence<StringType>
     //typeDefinition      : TypeDefinitionCommon
-    definitionOrRef     : TypeDefintionOrReference
+    definitionOrRef     : TypeDefinitionOrReference
     printValue          : string -> (Asn1ValueKind option) -> (Asn1ValueKind) -> string
     //initialValue        :  StringValue
     initFunction        : InitFunction
     equalFunction       : EqualFunction
-    isValidFunction     : IsValidFunction option      // it is optional because some types do not require an IsValid function (e.g. an unconstraint integer)
+    isValidFunction     : IsValidFunction option      // it is optional because some types do not require an IsValid function (e.g. an unconstrained integer)
     uperEncFunction     : UPerFunction
     uperDecFunction     : UPerFunction
     acnEncFunction      : AcnFunction
@@ -619,12 +617,12 @@ type OctetString = {
     constraintsAsn1Str  : string list   //an ASN.1 representation of the constraints
     //baseTypeEquivalence: BaseTypesEquivalence<OctetString>
     //typeDefinition      : TypeDefinitionCommon
-    definitionOrRef     : TypeDefintionOrReference
+    definitionOrRef     : TypeDefinitionOrReference
     printValue          : string -> (Asn1ValueKind option) -> (Asn1ValueKind) -> string
     //initialValue        : OctetStringValue
     initFunction        : InitFunction
     equalFunction       : EqualFunction
-    isValidFunction     : IsValidFunction option      // it is optional because some types do not require an IsValid function (e.g. an unconstraint integer)
+    isValidFunction     : IsValidFunction option      // it is optional because some types do not require an IsValid function (e.g. an unconstrained integer)
     uperEncFunction     : UPerFunction
     uperDecFunction     : UPerFunction
     acnEncFunction      : AcnFunction
@@ -647,12 +645,12 @@ type BitString = {
     constraintsAsn1Str  : string list   //an ASN.1 representation of the constraints
     //baseTypeEquivalence: BaseTypesEquivalence<BitString>
     //typeDefinition      : TypeDefinitionCommon
-    definitionOrRef     : TypeDefintionOrReference
+    definitionOrRef     : TypeDefinitionOrReference
     printValue          : string -> (Asn1ValueKind option) -> (Asn1ValueKind) -> string
     //initialValue        : BitStringValue
     initFunction        : InitFunction
     equalFunction       : EqualFunction
-    isValidFunction     : IsValidFunction option      // it is optional because some types do not require an IsValid function (e.g. an unconstraint integer)
+    isValidFunction     : IsValidFunction option      // it is optional because some types do not require an IsValid function (e.g. an unconstrained integer)
     uperEncFunction     : UPerFunction
     uperDecFunction     : UPerFunction
     acnEncFunction      : AcnFunction
@@ -673,14 +671,11 @@ type SequenceOf = {
 
     //DAst properties
     constraintsAsn1Str  : string list   //an ASN.1 representation of the constraints
-    //baseTypeEquivalence: BaseTypesEquivalence<SequenceOf>
-    //typeDefinition      : TypeDefinitionCommon
-    definitionOrRef     : TypeDefintionOrReference
+    definitionOrRef     : TypeDefinitionOrReference
     printValue          : string -> (Asn1ValueKind option) -> (Asn1ValueKind) -> string
-    //initialValue        : SeqOfValue
     initFunction        : InitFunction
     equalFunction       : EqualFunction
-    isValidFunction     : IsValidFunction option      
+    isValidFunction     : IsValidFunction option
     uperEncFunction     : UPerFunction
     uperDecFunction     : UPerFunction
     acnEncFunction      : AcnFunction
@@ -690,25 +685,7 @@ type SequenceOf = {
     uperEncDecTestFunc  : EncodeDecodeTestFunc option
     acnEncDecTestFunc   : EncodeDecodeTestFunc option
     xerEncDecTestFunc   : EncodeDecodeTestFunc option
-
-    //automaticTestCasesValues     : Asn1Value list
 }
-
-
-
-(*
-and SeqChildInfo = {
-    baseInfo            : Asn1AcnAst.SeqChildInfo
-    chType              : Asn1Type
-    
-
-    //DAst properties
-    c_name              : string
-    isEqualBodyStats    : string -> string  -> string -> (string*(LocalVariable list)) option  // 
-    isValidBodyStats    : int -> (SeqChoiceChildInfoIsValid option * int)
-}
-
-*)
 
 
 and AcnChild = {
@@ -718,11 +695,12 @@ and AcnChild = {
     Type                        : Asn1AcnAst.AcnInsertedType
     typeDefinitionBodyWithinSeq : string
     funcBody                    : CommonTypes.Codec -> ((AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) -> CallerScope -> (AcnFuncBodyResult option)            // returns a list of validations statements
-    funcUpdateStatement         : AcnChildUpdateResult option                                    // vTarget,  pSrcRoot, return the update statement 
+    funcUpdateStatement         : AcnChildUpdateResult option                                    // vTarget,  pSrcRoot, return the update statement
     Comments                    : string array
+    initExpression              : string
 }
 
-and SeqChildInfo = 
+and SeqChildInfo =
     | Asn1Child of Asn1Child
     | AcnChild  of AcnChild
 
@@ -731,9 +709,8 @@ and Asn1Child = {
     Name                        : StringLoc
     _c_name                     : string
     _scala_name                 : string
-    _ada_name                   : string                     
-    isEqualBodyStats            : CallerScope -> CallerScope -> (string*(LocalVariable list)) option  // 
-    //isValidBodyStats            : State -> (SeqChoiceChildInfoIsValid option * State)
+    _ada_name                   : string
+    isEqualBodyStats            : CallerScope -> CallerScope -> (string*(LocalVariable list)) option
     Type                        : Asn1Type
     Optionality                 : Asn1AcnAst.Asn1Optionality option
     Comments                    : string array
@@ -748,14 +725,11 @@ and Sequence = {
 
     //DAst properties
     constraintsAsn1Str  : string list   //an ASN.1 representation of the constraints
-    //baseTypeEquivalence: BaseTypesEquivalence<Sequence>
-    //typeDefinition      : TypeDefinitionCommon
-    definitionOrRef     : TypeDefintionOrReference
+    definitionOrRef     : TypeDefinitionOrReference
     printValue          : string -> (Asn1ValueKind option) -> (Asn1ValueKind) -> string
-    //initialValue        : SeqValue
     initFunction        : InitFunction
     equalFunction       : EqualFunction
-    isValidFunction     : IsValidFunction option      // it is optional because some types do not require an IsValid function (e.g. an unconstraint integer)
+    isValidFunction     : IsValidFunction option      // it is optional because some types do not require an IsValid function (e.g. an unconstrained integer)
     uperEncFunction     : UPerFunction
     uperDecFunction     : UPerFunction
     //
@@ -766,8 +740,6 @@ and Sequence = {
     uperEncDecTestFunc  : EncodeDecodeTestFunc option
     acnEncDecTestFunc   : EncodeDecodeTestFunc option
     xerEncDecTestFunc   : EncodeDecodeTestFunc option
-
-    //automaticTestCasesValues     : Asn1Value list
 }
 
 
@@ -777,17 +749,16 @@ and ChChildInfo = {
     Name                        : StringLoc
     _c_name                     : string
     _scala_name                 : string
-    _ada_name                   : string                     
+    _ada_name                   : string
     _present_when_name_private  : string // Does not contain the "_PRESENT". Not to be used directly by backends. Backends should use presentWhenName
     acnPresentWhenConditions    : AcnGenericTypes.AcnPresentWhenConditionChoiceChild list
     Comments                    : string array
 
-    chType              :Asn1Type
+    chType                      : Asn1Type
     Optionality                 : Asn1AcnAst.Asn1ChoiceOptionality option
-    
+
     //DAst properties
-    isEqualBodyStats    : CallerScope -> CallerScope  -> string*(LocalVariable list) // 
-    //isValidBodyStats    : State -> (SeqChoiceChildInfoIsValid option * State)
+    isEqualBodyStats    : CallerScope -> CallerScope  -> string*(LocalVariable list)
 }
 
 and AcnChoiceEncClass =
@@ -795,12 +766,12 @@ and AcnChoiceEncClass =
     | CEC_enum          of (Asn1AcnAst.ReferenceToEnumerated * Asn1AcnAst.Determinant)
     | CEC_presWhen
     with
-        override this.ToString () = 
+        override this.ToString () =
             match this with
             | CEC_uper           -> "CEC_uper"
             | CEC_enum  (a,b)    -> sprintf "CEC_enum(%s)" b.id.AsString
             | CEC_presWhen       -> "CEC_presWhen"
-    
+
 
 
 and Choice = {
@@ -809,14 +780,11 @@ and Choice = {
     ancEncClass         : AcnChoiceEncClass
     //DAst properties
     constraintsAsn1Str  : string list   //an ASN.1 representation of the constraints
-    //baseTypeEquivalence: BaseTypesEquivalence<Choice>
-    //typeDefinition      : TypeDefinitionCommon
-    definitionOrRef     : TypeDefintionOrReference
+    definitionOrRef     : TypeDefinitionOrReference
     printValue          : string -> (Asn1ValueKind option) -> (Asn1ValueKind) -> string
-    //initialValue        : ChValue
     initFunction        : InitFunction
     equalFunction       : EqualFunction
-    isValidFunction     : IsValidFunction option      
+    isValidFunction     : IsValidFunction option
     uperEncFunction     : UPerFunction
     uperDecFunction     : UPerFunction
     acnEncFunction      : AcnFunction
@@ -826,8 +794,6 @@ and Choice = {
     uperEncDecTestFunc  : EncodeDecodeTestFunc option
     acnEncDecTestFunc   : EncodeDecodeTestFunc option
     xerEncDecTestFunc   : EncodeDecodeTestFunc option
-
-    //automaticTestCasesValues     : Asn1Value list
 }
 
 
@@ -835,14 +801,12 @@ and ReferenceType = {
     baseInfo            : Asn1AcnAst.ReferenceType
     resolvedType        : Asn1Type
 
-    //typeDefinition      : TypeDefinitionCommon
     constraintsAsn1Str  : string list   //an ASN.1 representation of the constraints
-    definitionOrRef     : TypeDefintionOrReference
+    definitionOrRef     : TypeDefinitionOrReference
     printValue          : string -> (Asn1ValueKind option) -> (Asn1ValueKind) -> string
-    //initialValue        : Asn1Value
     initFunction        : InitFunction
     equalFunction       : EqualFunction
-    isValidFunction     : IsValidFunction option      
+    isValidFunction     : IsValidFunction option
     uperEncFunction     : UPerFunction
     uperDecFunction     : UPerFunction
     acnEncFunction      : AcnFunction
@@ -852,19 +816,17 @@ and ReferenceType = {
     uperEncDecTestFunc  : EncodeDecodeTestFunc option
     acnEncDecTestFunc   : EncodeDecodeTestFunc option
     xerEncDecTestFunc   : EncodeDecodeTestFunc option
-
-    //automaticTestCasesValues     : Asn1Value list
 }
 
 and AcnChildUpdateResult = {
-    updateAcnChildFnc        : (*typedef name*)string -> CallerScope -> CallerScope -> string
+    updateAcnChildFnc        : AcnChild -> CallerScope -> CallerScope -> string
     //Given an automatic test case (which includes a map with the IDs of the involved types), this function
     //checks if the automatic test case contains a type which depends on this acn Child. If this is true
-    // it returns the value of the depenendency, otherwise none
+    // it returns the value of the dependency, otherwise none
     //if the acn child depends on multiple ASN.1 types then this function (multi ACN update) checks that all ASN.1 types
     //have value and the value is the same. In this case the value is returned. Otherwise none
-    testCaseFnc : AutomaticTestCase -> TestCaseValue option 
-    errCodes    : ErroCode list
+    testCaseFnc : AutomaticTestCase -> TestCaseValue option
+    errCodes    : ErrorCode list
     localVariables      : LocalVariable list
 }
 
@@ -875,14 +837,13 @@ and DastAcnParameter = {
     loc         : SrcLoc
     id          : ReferenceToType
     typeDefinitionBodyWithinSeq : string
-    //funcUpdateStatement00         : AcnChildUpdateResult option                                    // vTarget,  pSrcRoot, return the update statement 
 }
-    
+
 
 
 and Asn1Type = {
     id              : ReferenceToType
-    acnAligment     : AcnGenericTypes.AcnAligment option
+    acnAlignment     : AcnGenericTypes.AcnAlignment option
     acnParameters   : DastAcnParameter list
     Location        : SrcLoc //Line no, Char pos
     moduleName      : string
@@ -894,10 +855,7 @@ and Asn1Type = {
     typeAssignmentInfo  : AssignmentInfo option
 
     Kind            : Asn1TypeKind
-    unitsOfMeasure : string option
-
-    //parInfoData : Asn1Fold.ParentInfo<ParentInfoData> option
-    //newTypeDefName  : string
+    unitsOfMeasure  : string option
 }
 
 
@@ -920,18 +878,13 @@ and Asn1TypeKind =
 
 
 let getNextValidErrorCode (cur:State) (errCodeName:string) (comment:string option) =
-    
-    //if (errCodeName.ToUpper() = "ERR_ACN_ENCODE_TC_DATA_HEADER_TCPACKETPUSVERSIONNUMBER") then
-    //    let aaa = cur.curErrCodeNames |> Set.toArray
-    //    printfn "???"
-        
-    let rec getErroCode (errCodeName:string) = 
+    let rec getErrorCode (errCodeName:string) =
         match cur.curErrCodeNames.Contains errCodeName with
-        | false -> {ErroCode.errCodeName = errCodeName; errCodeValue = cur.currErrorCode; comment=comment}
-        | true  -> 
-            getErroCode (errCodeName + "_2")
+        | false -> {ErrorCode.errCodeName = errCodeName; errCodeValue = cur.currErrorCode; comment=comment}
+        | true  ->
+            getErrorCode (errCodeName + "_2")
 
-    let errCode = getErroCode (errCodeName.ToUpper())
+    let errCode = getErrorCode (errCodeName.ToUpper())
     errCode, {cur with currErrorCode = cur.currErrorCode + 1; curErrCodeNames = cur.curErrCodeNames.Add errCode.errCodeName}
 
 type TypeAssignment = {
@@ -1004,7 +957,7 @@ type TC_Param = {
     typeName : string
 }
 
-type TC_EpressionType =
+type TC_ExpressionType =
     | TC_INTEGER
     | TC_REAL
     | TC_STRING
@@ -1018,14 +971,14 @@ type TC_Statement =
     | ForStatement          of      {|initExp:TC_Expression; termination : TC_Expression; incrementExpression : TC_Expression; innerStatement:TC_Statement|}
     | WhileStatement        of      {|whileTrueExp : TC_Expression; innerStatement:TC_Statement|}
     | IfStatement           of      {| ifelsif : {|whileTrueExp : TC_Expression; innerStatement:TC_Statement|} list; elseStatement: TC_Statement option |}
-    
+
 
 and TC_Expression =
     | TC_EqExpression              of TC_Expression*TC_Expression
     | TC_GtExpression              of TC_Expression*TC_Expression
     | TC_GteExpression             of TC_Expression*TC_Expression
-    | TC_ReferenceToVariable       of TC_EpressionType*string
-    | TC_Literal                   of TC_EpressionType*string
+    | TC_ReferenceToVariable       of TC_ExpressionType*string
+    | TC_Literal                   of TC_ExpressionType*string
     | TC_AccessToField             of TC_Expression * string
     | TC_AccessToArrayElement      of TC_Expression * TC_Expression
 

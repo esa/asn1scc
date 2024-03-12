@@ -107,7 +107,7 @@ $arrsItems;separator="\n"$
 
 // applicable to Integers, booleans, reals
 EmitPrimitiveType(sColor, sTasName, sTasNameC, sAsnKindName, sMinBytes, sMaxBytes, sMaxBitsExplained, sCommentLine, sAsn1Constraints, sMinBits, sMaxBits, arrsCommentsm, soUnit) ::= <<
-<a name="ICD_$sTasNameC$"></a> 
+<a name="ICD_$sTasNameC$"></a>
 <table border="0" width="100%" >
 <tbody>
 
@@ -158,7 +158,7 @@ $endif$
 
 
 EmitSequence(sColor, sTasName, sTasNameC, sMinBytes, sMaxBytes, sMaxBitsExplained, sCommentLine, arrsChildren, arrsComments) ::= <<
-<a name="ICD_$sTasNameC$"></a> 
+<a name="ICD_$sTasNameC$"></a>
 <table border="0" width="100%" >
 <tbody>
 
@@ -208,7 +208,7 @@ $arrsChildren;separator="\n"$
 
 
 
-EmmitSeqChild_RefType(sRefName, sRefNameC) ::= <<
+EmitSeqChild_RefType(sRefName, sRefNameC) ::= <<
 <a href="#ICD_$sRefNameC$">$sRefName$</a>
 >>
 
@@ -216,7 +216,7 @@ EmmitSeqChild_RefType(sRefName, sRefNameC) ::= <<
 OddRow() ::= "OddRow"
 EvenRow() ::= "EvenRow"
 
-EmmitSequenceChild(sCssClass, nIndex, sName, sComment, sOptionality, sType, sConstraint, sMin, sMax, soUnit) ::= <<
+EmitSequenceChild(sCssClass, nIndex, sName, sComment, sOptionality, sType, sConstraint, sMin, sMax, soUnit) ::= <<
 <tr class="$sCssClass$">
 <td class="no">$nIndex$</td>
 <td class="field">$sName$</td>
@@ -231,11 +231,11 @@ EmmitSequenceChild(sCssClass, nIndex, sName, sComment, sOptionality, sType, sCon
 >>
 
 
-EmmitSequencePreambleSingleComment(nIndex, sOptChildName) ::= <<
+EmitSequencePreambleSingleComment(nIndex, sOptChildName) ::= <<
 <li>bit$nIndex$ == 1 &#8658 <font  color="#5F9EA0" >$sOptChildName$</font> is present</li>
 >>
 
-EmmitSequencePreambleComment(arrsOptChildren) ::= <<
+EmitSequencePreambleComment(arrsOptChildren) ::= <<
 Special field used by PER to indicate the presence/absence of optional and default fields.
 <br/>
 <ul type="square">
@@ -247,7 +247,7 @@ $arrsOptChildren;separator="\n"$
 
 /* *** CHOICE ****/
 EmitChoice(sColor, sTasName, sTasNameC, sMinBytes, sMaxBytes, sMaxBitsExplained, sCommentLine, arrsChildren, arrsComments) ::= <<
-<a name="ICD_$sTasNameC$"></a> 
+<a name="ICD_$sTasNameC$"></a>
 <table border="0" width="100%" >
 <tbody>
 
@@ -293,7 +293,7 @@ $arrsChildren;separator="\n"$
 >>
 
 
-EmmitChoiceChild(sCssClass, nIndex, sName, sComment,  sType, sConstraint, sMin, sMax, soUnit) ::= <<
+EmitChoiceChild(sCssClass, nIndex, sName, sComment,  sType, sConstraint, sMin, sMax, soUnit) ::= <<
 <tr class="$sCssClass$">
 <td class="no">$nIndex$</td>
 <td class="field">$sName$</td>
@@ -306,11 +306,11 @@ EmmitChoiceChild(sCssClass, nIndex, sName, sComment,  sType, sConstraint, sMin, 
 </tr>
 >>
 
-EmmitChoiceIndexSingleComment(nIndex, sChildName) ::= <<
+EmitChoiceIndexSingleComment(nIndex, sChildName) ::= <<
 <li>$nIndex$  &#8658 <font  color="#5F9EA0" >$sChildName$</font></li>
 >>
 
-EmmitChoiceIndexComment(arrsOptChildren) ::= <<
+EmitChoiceIndexComment(arrsOptChildren) ::= <<
 Special field used by PER to indicate which choice alternative is present.
 <br/>
 <ul type="square">
@@ -322,7 +322,7 @@ $arrsOptChildren;separator="\n"$
 /* *********** CHOICE END ********** */
 /* *********** SEQUENCE OF, OCTET STRING etc ********** */
 EmitSizeable(sColor, sTasName, sTasNameC, sKind, sMinBytes, sMaxBytes, sMaxBitsExplained, sCommentLine, arrsRows, arrsComments) ::= <<
-<a name="ICD_$sTasNameC$"></a> 
+<a name="ICD_$sTasNameC$"></a>
 <table border="0" width="100%" >
 <tbody>
 
@@ -377,13 +377,13 @@ EmitRowWith3Dots() ::= <<
 
 
 
-EmmitTass(sTypeContent) ::= <<
+EmitTass(sTypeContent) ::= <<
 $sTypeContent$
 &nbsp;<br/>
 >>
 
 
-EmmitModule(sModName, arrsComments, arrsTases) ::= <<
+EmitModule(sModName, arrsComments, arrsTases) ::= <<
 <div style="width: 100%">
 <h2 >Module : $sModName$</h2>
 <font face="Courier" color="DimGray"><pre>
@@ -394,14 +394,14 @@ $arrsTases;separator="\n"$
 >>
 
 
-EmmitFile(sAsnFileName, arrsModules) ::= <<
+EmitFile(sAsnFileName, arrsModules) ::= <<
 <div style="width: 100%">
 <h1 >Asn1 file : $sAsnFileName$</h1>
     $arrsModules;separator="\n"$
 </div>
 >>
 
-EmmitFilePart2(sFileName, sAsn1Content) ::= <<
+EmitFilePart2(sFileName, sAsn1Content) ::= <<
 <div style="width: 100%">
 <h1 >File : $sFileName$</h1>
 <div style="width: 100%; white-space:pre; font-family:Courier New; font-size:small">
@@ -415,7 +415,7 @@ RootHtml(arrsFiles1, arrsFiles2, bIntegerSizeMustBeExplained, bRealSizeMustBeExp
 <html xmlns="http://www.w3.org/1999/xhtml" >
 <head>
     <title>ICD</title>
-    <style type="text/css"> 
+    <style type="text/css">
 .headerRow
 {
     background-color: #BBBBBB;
@@ -672,8 +672,8 @@ h2
   <hr />
 $if(bIntegerSizeMustBeExplained)$
     <a name="INT_SIZE_EXPLAINED123"></a>
-    <em>Unconstraint integer's size explained</em><br/>
-    In unaligned PER, unconstraint integers are encoded into the minimum number of octets (using non negative binary integer or 2's-complement binary integer encoding) and a length determinant, containing the number of value octets, is added at the beginning of the encoding. Therefore uPER can support integers of any size, even of infinity value. However, in almost all processors, integers have limited capacity which is usually four or eight octets. Therefore, the reported maximum size in octets for an unconstraint integer is 1 (for the length determinant) plus the word size for the target processor which is specified in the command line by the wordSize argument. In this invocation, wordSize was specified to be 8 octets and therefore the maximum size of the unconstraint integers is 9 octets or 72 bits
+    <em>Unconstrained integer's size explained</em><br/>
+    In unaligned PER, unconstrained integers are encoded into the minimum number of octets (using non negative binary integer or 2's-complement binary integer encoding) and a length determinant, containing the number of value octets, is added at the beginning of the encoding. Therefore uPER can support integers of any size, even of infinity value. However, in almost all processors, integers have limited capacity which is usually four or eight octets. Therefore, the reported maximum size in octets for an unconstrained integer is 1 (for the length determinant) plus the word size for the target processor which is specified in the command line by the wordSize argument. In this invocation, wordSize was specified to be 8 octets and therefore the maximum size of the unconstrained integers is 9 octets or 72 bits
     <br/>
     <br/>
 $endif$
@@ -694,14 +694,14 @@ $endif$
 $if(bWithComponentMustBeExplained)$
     <a name="WITH_COMPONENT_EXPLAINED123"></a>
     <em>Constraint ignored in encoding</em><br/>
-    The constraint with the yellow color is not PER visible, as it derives from a WITH COMPONENT or WITH COMPONENTS contraint in the parent type, and therefore is ignored in the encoding/decoding.
+    The constraint with the yellow color is not PER visible, as it derives from a WITH COMPONENT or WITH COMPONENTS constraint in the parent type, and therefore is ignored in the encoding/decoding.
     <br/>
     <br/>
 $endif$
 $if(bZeroBitsMustBeExplained)$
     <a name="ZERO_BITS_EXPLAINED123"></a>
     <em>Field with zero size explained</em><br/>
-    An integer type that is contraint to a single value (i.e. INTEGER (5) or INTEGER (1..10)(10..20)) requires zero bits when encoded in uPER since the decoder can always determine its value. In other words, a integer field which is contraint to a single value is never transmitted in uPER.
+    An integer type that is constraint to a single value (i.e. INTEGER (5) or INTEGER (1..10)(10..20)) requires zero bits when encoded in uPER since the decoder can always determine its value. In other words, a integer field which is constraint to a single value is never transmitted in uPER.
     <br/>
 $endif$
 

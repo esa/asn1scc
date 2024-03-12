@@ -43,7 +43,7 @@ let rec EvaluateConstant (constants:AcnConstant list) intConstant =
         |None       -> raise(SemanticError(consLookUp.Location, (sprintf "Unknown symbol '%s'" consLookUp.Value)))
         |Some(cn)   -> EvaluateAcnIntExpression constants cn.Value
 
-and  EvaluateAcnIntExpression (constants:AcnConstant list) acnExpr = 
+and  EvaluateAcnIntExpression (constants:AcnConstant list) acnExpr =
     match  acnExpr with
     | IntegerExpr(consta)   -> EvaluateConstant constants consta
     | SumExpr(exp1,exp2)    -> (EvaluateAcnIntExpression constants exp1) + (EvaluateAcnIntExpression constants exp2)
@@ -51,9 +51,9 @@ and  EvaluateAcnIntExpression (constants:AcnConstant list) acnExpr =
     | MulExpr(exp1,exp2)    -> (EvaluateAcnIntExpression constants exp1) * (EvaluateAcnIntExpression constants exp2)
     | DivExpr(exp1,exp2)    -> (EvaluateAcnIntExpression constants exp1) / (EvaluateAcnIntExpression constants exp2)
     | ModExpr(exp1,exp2)    -> (EvaluateAcnIntExpression constants exp1) % (EvaluateAcnIntExpression constants exp2)
-    | PowExpr(exp1,exp2)    -> 
+    | PowExpr(exp1,exp2)    ->
         System.Numerics.BigInteger.Pow(EvaluateAcnIntExpression constants exp1, int (EvaluateAcnIntExpression constants exp2))
-    | UnMinExp(exp1)        -> -(EvaluateAcnIntExpression constants exp1) 
+    | UnMinExp(exp1)        -> -(EvaluateAcnIntExpression constants exp1)
 
 
 type AntlrParserResult = {
@@ -99,13 +99,13 @@ let CreateAcnAsn1Type (t:ITree) (r:AstRoot) =
     | acnParser.INTEGER         -> AcnAsn1Type.AcnInteger t.Location
     | acnParser.BOOLEAN         -> AcnAsn1Type.AcnBoolean t.Location
     | acnParser.NULL            -> AcnAsn1Type.AcnNullType t.Location
-    | acnParser.REFERENCED_TYPE -> 
-        let mdName, tsName = 
+    | acnParser.REFERENCED_TYPE ->
+        let mdName, tsName =
             match t.Children with
             | first::[]             -> first.GetAncestor(acnParser.MODULE_DEF).GetChild(0).TextL,first.TextL
             | first::sec::[]        -> first.TextL,sec.TextL
             | _                     -> raise(BugErrorException("AcnCreateFromAntlr::CreateAcnAsn1Type 1"))
-        let m = CheckModuleName r mdName 
+        let m = CheckModuleName r mdName
         gatTasByName r m tsName |> ignore
         AcnAsn1Type.AcnRefType(mdName, tsName)
     | _                         -> raise(BugErrorException("AcnCreateFromAntlr::CreateAcnAsn1Type 2"))
@@ -115,27 +115,27 @@ let CreateAcnAsn1Type (t:ITree) (r:AstRoot) =
 let BalladerProperties = [acnParser.PRESENT_WHEN; acnParser.ALIGNTONEXT;]
 
 let rec AllowedPropertiesPerType (r:AstRoot) = function
-    | Integer           -> [acnParser.ENCODING; acnParser.SIZE; acnParser.ENDIANNES; acnParser.MAPPING_FUNCTION]
-    | Real              -> [acnParser.ENCODING; acnParser.ENDIANNES]
+    | Integer           -> [acnParser.ENCODING; acnParser.SIZE; acnParser.ENDIANNESS; acnParser.MAPPING_FUNCTION]
+    | Real              -> [acnParser.ENCODING; acnParser.ENDIANNESS]
     | IA5String         -> [acnParser.ENCODING; acnParser.SIZE]
     | NumericString     -> [acnParser.ENCODING; acnParser.SIZE]
     | OctetString       -> [acnParser.SIZE]
     | NullType          -> [acnParser.PATTERN]
     | BitString         -> [acnParser.SIZE]
     | Boolean           -> [acnParser.TRUE_VALUE; acnParser.FALSE_VALUE]
-    | Enumerated(_)     -> [acnParser.ENCODING; acnParser.SIZE; acnParser.ENCODE_VALUES; acnParser.ENDIANNES]
+    | Enumerated(_)     -> [acnParser.ENCODING; acnParser.SIZE; acnParser.ENCODE_VALUES; acnParser.ENDIANNESS]
     | SequenceOf(_)     -> [acnParser.SIZE]
     | Sequence(_)       -> []
     | Choice(_)         -> [acnParser.DETERMINANT]
-    | ReferenceType rf  -> 
+    | ReferenceType rf  ->
         let baseType = GetBaseTypeByName rf.modName rf.tasName r
         AllowedPropertiesPerType r baseType.Kind
 
 
 let MandatoryAcnPropertiesPerType asn1Kind : List<int> =
     match asn1Kind with
-    | Integer           -> [acnParser.ENCODING; acnParser.SIZE; ]   //ADJUST = 0, ENDIANNES=big
-    | Real              -> [acnParser.ENCODING; ]   //ENDIANNES=big
+    | Integer           -> [acnParser.ENCODING; acnParser.SIZE; ]   //ADJUST = 0, ENDIANNESS=big
+    | Real              -> [acnParser.ENCODING; ]   //ENDIANNESS=big
     | IA5String         -> []     // pointing to a field
     | NumericString     -> []     // pointing to a field
     | OctetString       -> [acnParser.SIZE]     // pointing to a field
@@ -147,19 +147,19 @@ let MandatoryAcnPropertiesPerType asn1Kind : List<int> =
     | Sequence(_)       -> []
     | Choice(_)         -> []
     | ReferenceType(_)  -> []
-    
+
 let PropID_to_Text = function
     | acnParser.PRESENT_WHEN    -> "present-when"
     | acnParser.ALIGNTONEXT     -> "align-to-next"
     | acnParser.ENCODING        -> "encoding"
     | acnParser.SIZE            -> "size"
-    | acnParser.ENDIANNES       -> "endianness"
+    | acnParser.ENDIANNESS       -> "endianness"
     | acnParser.PATTERN         -> "pattern"
     | acnParser.TRUE_VALUE      -> "true-value"
     | acnParser.FALSE_VALUE     -> "false-value"
     | acnParser.ENCODE_VALUES   -> "encode-values"
     | acnParser.DETERMINANT     -> "determinant"
-    | acnParser.MAPPING_FUNCTION   -> "mapping-function"  
+    | acnParser.MAPPING_FUNCTION   -> "mapping-function"
     | _                         -> raise(BugErrorException "")
 
 
@@ -174,14 +174,14 @@ let CheckConsistencyOfAsn1TypeWithAcnProperty (r:AstRoot) asn1Kind (t:ITree) =
 
 
 
-let getAcnAligmentProperty (t:ITree) =
+let getAcnAlignmentProperty (t:ITree) =
     match t.Type with
     | acnParser.ALIGNTONEXT ->
-        match t.GetChild(0).Type with 
+        match t.GetChild(0).Type with
         | acnParser.BYTE                -> Some  NextByte
         | acnParser.WORD                -> Some  NextWord
         | acnParser.DWORD               -> Some  NextDWord
-        | _                             -> raise(BugErrorException("getAcnAligmentProperty"))
+        | _                             -> raise(BugErrorException("getAcnAlignmentProperty"))
     | _                                 -> None
 
 let getAcnIntEncoding (t:ITree) =
@@ -223,7 +223,7 @@ let getAcnStringEncoding (t:ITree) =
         | _                             -> raise(BugErrorException("getAcnStringEncoding"))
     | _                                 -> None
 
-let GetActualString (str:string) = 
+let GetActualString (str:string) =
     let strVal = str.Substring(1)
     strVal.Remove(strVal.Length-2).Replace("\r", "").Replace("\n", "").Replace("\t", "").Replace(" ", "")
 
@@ -237,8 +237,8 @@ let handlNullTerminate (t:ITree) =
             match bitPattern.Length <> 8 with
             | true  -> raise(SemanticError(tp.Location, sprintf "termination-pattern value must be a byte"  ))
             | false ->
-                bitPattern.ToCharArray() |> 
-                Seq.fold(fun (p,cs) c -> if c='0' then (p/2,cs) else (p/2,p+cs) ) (128, 0) 
+                bitPattern.ToCharArray() |>
+                Seq.fold(fun (p,cs) c -> if c='0' then (p/2,cs) else (p/2,p+cs) ) (128, 0)
                 |> snd |> byte
         | acnParser.OctectStringLiteral ->
             match bitPattern.Length <> 2 with
@@ -251,7 +251,7 @@ let getAcnIntSizeProperty(r:AstRoot) (t:ITree) =
     match t.Type with
     | acnParser.SIZE        ->
         match t.GetChild(0).Type with
-        | acnParser.NULL_TERMINATED     -> 
+        | acnParser.NULL_TERMINATED     ->
             let nullByte = handlNullTerminate t
             Some (IntNullTerminated nullByte)
         | acnParser.INT                 -> Some (Fixed (t.GetChild(0)).BigInt)
@@ -260,13 +260,13 @@ let getAcnIntSizeProperty(r:AstRoot) (t:ITree) =
     | _                                 -> None
 
 let getAcnStringSizeProperty  (r:AstRoot) (t:ITree) =
-    let GetActualString (str:string) = 
+    let GetActualString (str:string) =
         let strVal = str.Substring(1)
         strVal.Remove(strVal.Length-2).Replace("\r", "").Replace("\n", "").Replace("\t", "").Replace(" ", "")
     match t.Type with
     | acnParser.SIZE        ->
         match t.GetChild(0).Type with
-        | acnParser.NULL_TERMINATED     -> 
+        | acnParser.NULL_TERMINATED     ->
             let nullByte = handlNullTerminate t
             Some (StrNullTerminated nullByte)
         | acnParser.LONG_FIELD          -> Some (StrExternalField (CreateLongField (t.GetChild(0))))
@@ -290,8 +290,8 @@ let getAcnSizeableSizeProperty  (r:AstRoot) (t:ITree) =
 
 let getAcnEndianness (t:ITree) =
     match t.Type with
-    | acnParser.ENDIANNES               -> 
-        match t.GetChild(0).Type with 
+    | acnParser.ENDIANNESS               ->
+        match t.GetChild(0).Type with
         | acnParser.BIG                 -> Some BigEndianness
         | acnParser.LITTLE              -> Some LittleEndianness
         | _                             -> raise(BugErrorException("getAcnEndianness"))
@@ -305,15 +305,15 @@ let getAcnEncodeValues (t:ITree) =
 let GetEnumValuesResetInAcn (enumItems:NamedItem list) (t:ITree)   =
     match t.GetOptChild(acnParser.CHILDREN_ENC_SPEC) with
     | None                  -> None
-    | Some(childrenList)    -> 
+    | Some(childrenList)    ->
         let errLoc = t.Location
-        let enmChildren = 
-            childrenList.Children |> 
+        let enmChildren =
+            childrenList.Children |>
             List.map(fun x -> match x.Type with
-                                |acnParser.CHILD -> 
+                                |acnParser.CHILD ->
                                 let name = x.GetChild(0).TextL
                                 let errLoc = x.GetChild(0).Location
-                                let chEncSpec = x.GetChildByType(acnParser.ENCODING_SPEC) 
+                                let chEncSpec = x.GetChildByType(acnParser.ENCODING_SPEC)
                                 let encValue = match chEncSpec.GetOptChild acnParser.ENCODING_PROPERTIES with
                                                 | None -> raise(SemanticError(errLoc, "Expecting integer value"))
                                                 | Some(propLst)    ->
@@ -326,28 +326,28 @@ let GetEnumValuesResetInAcn (enumItems:NamedItem list) (t:ITree)   =
                                 | _  -> raise(SemanticError(x.Location, "Expecting an enumerated name")) )
 
         // 1 make sure that the two lists match
-        let enmList1 = enumItems |> List.map(fun x -> x.Name) 
-        let enmList2 = enmChildren |> List.map fst 
+        let enmList1 = enumItems |> List.map(fun x -> x.Name)
+        let enmList2 = enmChildren |> List.map fst
         CompareLists enmList1 enmList2 (fun x -> SemanticError(x.Location, sprintf "Unexpected value '%s' " x.Value))
         CompareLists enmList2 enmList1 (fun x -> SemanticError(errLoc, sprintf "Missing value '%s' " x.Value))
         //2 make sure that there is no duplicate value
         enmChildren |> List.map snd |> CheckForDuplicates
-        let redefVals = enmChildren |> List.map(fun (nm, vl) ->  {EnumeratedRedefinedValue.enumName = nm.Value; enumValue = vl.Value}) 
+        let redefVals = enmChildren |> List.map(fun (nm, vl) ->  {EnumeratedRedefinedValue.enumName = nm.Value; enumValue = vl.Value})
         Some redefVals
 
 let getNullEncodingPattern (t:ITree) =
     match t.Type with
-    | acnParser.PATTERN                 -> 
+    | acnParser.PATTERN                 ->
         let v = { StringLoc.Value = GetActualString(t.GetChild(0).Text); Location = t.GetChild(0).Location}
         Some v
     | _                                 -> None
 
 let getBoolEncodingPattern (t:ITree) =
     match t.Type with
-    | acnParser.TRUE_VALUE              -> 
+    | acnParser.TRUE_VALUE              ->
         let v = { StringLoc.Value = GetActualString(t.GetChild(0).Text); Location = t.GetChild(0).Location}
         Some (TrueValue(v))
-    | acnParser.FALSE_VALUE             -> 
+    | acnParser.FALSE_VALUE             ->
         let v = { StringLoc.Value = GetActualString(t.GetChild(0).Text); Location = t.GetChild(0).Location}
         Some (FalseValue(v))
     | _                                 -> None
@@ -355,10 +355,10 @@ let getBoolEncodingPattern (t:ITree) =
 
 let getPresentWhenCondtition (r:AstRoot) (t:ITree) =
     match t.Type with
-    | acnParser.PRESENT_WHEN            -> 
+    | acnParser.PRESENT_WHEN            ->
         match t.Type with
         | acnParser.LONG_FIELD  -> Some(PresenceBool  (CreateLongField(t)))
-        | acnParser.EQUAL       -> 
+        | acnParser.EQUAL       ->
             Some (PresenceInt(CreateLongField(t.GetChild(0)), r.acnConstants.[(t.GetChild(1)).Text]))
         | acnParser.PRESENT_WHEN_STR_EQUAL ->
             Some (PresenceStr(CreateLongField(t.GetChild(0)), (t.GetChild(1).Text.Replace("\"",""))))
@@ -370,7 +370,7 @@ let getPresentWhenCondtition (r:AstRoot) (t:ITree) =
 let GetArgumentList (allAcnFiles: AntlrParserResult list) (t:ITree) childTypeKind =
     match t.GetOptChild(acnParser.ARGUMENTS) with
     | None            -> []
-    | Some(argList)   -> 
+    | Some(argList)   ->
         //I have arguments ==> I have to be a ref type.
         let prmNames = match childTypeKind with
                         | ReferenceType rf  ->  GetParams allAcnFiles rf.modName.Value rf.tasName.Value
@@ -389,15 +389,15 @@ let rec CreateType (allAcnFiles: AntlrParserResult list) (thisAcnFile: AntlrPars
         | Some tp   ->
             match props |> Seq.tryFind(fun p -> p.Type = acnParser.SIZE) with
             | None  -> raise(SemanticError(tp.Location, sprintf "termination-pattern can appear only if acn size NULL-TERMINATED is present" ))
-            | Some sz -> 
+            | Some sz ->
                 match sz.Children |> Seq.tryFind(fun p -> p.Type = acnParser.NULL_TERMINATED) with
                 | None      -> raise(SemanticError(tp.Location, sprintf "termination-pattern can appear only if acn size NULL-TERMINATED is present" ))
-                | Some _    -> 
+                | Some _    ->
                     sz.AddChild(tp)
                     ret
 
 
-    let props = 
+    let props =
         match tTree.GetOptChild(acnParser.ENCODING_PROPERTIES) with
         | None              -> []
         | Some(propList)    -> propList.Children
@@ -406,7 +406,7 @@ let rec CreateType (allAcnFiles: AntlrParserResult list) (thisAcnFile: AntlrPars
     //check each property against the asn1 type
     props |> Seq.iter(fun x -> CheckConsistencyOfAsn1TypeWithAcnProperty r t.Kind x)
     //check for duplicate ACN properties
-    props |> Seq.map(fun x -> x.TextL) |> CheckForDuplicates 
+    props |> Seq.map(fun x -> x.TextL) |> CheckForDuplicates
 
     let props = mergeTerminationPatternWithNullTerminated props
 
@@ -415,9 +415,9 @@ let rec CreateType (allAcnFiles: AntlrParserResult list) (thisAcnFile: AntlrPars
     let propsNoBallader = props |> List.filter(fun x -> not(BalladerProperties |> List.contains x.Type ) )
     match propsNoBallader with
     | []    -> ()   // uper mode
-    | x::xs -> 
+    | x::xs ->
         let errLoc = x.Location
-        let mandProps = MandatoryAcnPropertiesPerType t.Kind 
+        let mandProps = MandatoryAcnPropertiesPerType t.Kind
         let missing = mandProps |> List.filter(fun x -> not(propsNoBallader |> List.exists(fun y -> y.Type=x) ))
         match missing with
         | []    -> ()
@@ -428,31 +428,31 @@ let rec CreateType (allAcnFiles: AntlrParserResult list) (thisAcnFile: AntlrPars
         | xx::_     -> Some xx
         | []        -> None
 
-    let acnAligment = getFirstOrNone getAcnAligmentProperty
+    let acnAlignment = getFirstOrNone getAcnAlignmentProperty
     let presenceConditions = props |> List.choose (getPresentWhenCondtition r)
-    
+
     match presenceConditions with
     | []    -> ()
     | _     ->
         match parentType with
         | Some parentType   ->
             match parentType.Kind with
-            | Sequence _    
+            | Sequence _
             | Choice  _     -> ()
             | _             -> raise (SemanticError(tTree.Location, "present-when' attribute can be applied to optional components only"))
         | None              -> raise (SemanticError(tTree.Location, "present-when' attribute can be applied to optional components only"))
-    let newT = 
+    let newT =
         match t.Kind with
-        | Integer   -> 
-            let props = 
+        | Integer   ->
+            let props =
                 {
                     IntegerAcnProperties.encodingProp       = getFirstOrNone getAcnIntEncoding
                     sizeProp                                = getFirstOrNone (getAcnIntSizeProperty r)
                     endiannessProp                          = getFirstOrNone getAcnEndianness
-                    acnAligment                             = acnAligment
+                    acnAlignment                             = acnAlignment
                     presentWhen                             = presenceConditions
                 }
-            
+
             {t with acnProperties = Some (IntegerAcnProperties props)}
         | Enumerated enmItems   ->
             let props   =
@@ -460,74 +460,74 @@ let rec CreateType (allAcnFiles: AntlrParserResult list) (thisAcnFile: AntlrPars
                     EnumeratedAcnProperties.encodingProp    = getFirstOrNone getAcnIntEncoding
                     sizeProp                                = getFirstOrNone (getAcnIntSizeProperty r)
                     endiannessProp                          = getFirstOrNone getAcnEndianness
-                    acnAligment                             = acnAligment
+                    acnAlignment                             = acnAlignment
                     redefinedValues                         = GetEnumValuesResetInAcn enmItems tTree
                     encodeValues                            = getFirstOrNone getAcnEncodeValues
                     presentWhen                             = presenceConditions
                 }
             {t with acnProperties = Some (EnumeratedAcnProperties props)}
-        | Real                  -> 
-            let props = 
+        | Real                  ->
+            let props =
                 {
                     RealAcnProperties.encodingProp          = getFirstOrNone getAcnRealEncoding
                     endiannessProp                          = getFirstOrNone getAcnEndianness
-                    acnAligment                             = acnAligment
+                    acnAlignment                             = acnAlignment
                     presentWhen                             = presenceConditions
                 }
             {t with acnProperties = Some (RealAcnProperties props)}
         | IA5String
         | NumericString ->
-            let props = 
+            let props =
                 {
                     StringAcnProperties.encodingProp        = getFirstOrNone getAcnStringEncoding
                     sizeProp                                = getFirstOrNone (getAcnStringSizeProperty r)
-                    acnAligment                             = acnAligment
+                    acnAlignment                             = acnAlignment
                     presentWhen                             = presenceConditions
                 }
             {t with acnProperties = Some (StringAcnProperties props)}
         | OctetString   ->
-            let props = 
+            let props =
                 {
                     SizeableAcnProperties.sizeProp          = getFirstOrNone (getAcnSizeableSizeProperty r)
-                    acnAligment                             = acnAligment
+                    acnAlignment                             = acnAlignment
                     presentWhen                             = presenceConditions
                 }
             {t with acnProperties = Some (OctetStringAcnProperties props)}
-        | BitString     -> 
-            let props = 
+        | BitString     ->
+            let props =
                 {
                     SizeableAcnProperties.sizeProp          = getFirstOrNone (getAcnSizeableSizeProperty r)
-                    acnAligment                             = acnAligment
+                    acnAlignment                             = acnAlignment
                     presentWhen                             = presenceConditions
                 }
             {t with acnProperties = Some (BitStringAcnProperties props)}
-        | NullType              -> 
-            let props = 
+        | NullType              ->
+            let props =
                 {
                     NullTypeAcnProperties.encodingPattern   = getFirstOrNone (getNullEncodingPattern)
-                    acnAligment                             = acnAligment
+                    acnAlignment                             = acnAlignment
                     presentWhen                             = presenceConditions
                 }
             {t with acnProperties = Some (NullTypeAcnProperties props)}
-        | Boolean               -> 
-            let props = 
+        | Boolean               ->
+            let props =
                 {
                     BooleanAcnProperties.encodingPattern   = getFirstOrNone (getBoolEncodingPattern)
-                    acnAligment                             = acnAligment
+                    acnAlignment                             = acnAlignment
                     presentWhen                             = presenceConditions
                 }
             {t with acnProperties = Some (BooleanAcnProperties props)}
-        | SequenceOf   chType   -> 
-            let props = 
+        | SequenceOf   chType   ->
+            let props =
                 {
                     SizeableAcnProperties.sizeProp          = getFirstOrNone (getAcnSizeableSizeProperty r)
-                    acnAligment                             = acnAligment
+                    acnAlignment                             = acnAlignment
                     presentWhen                             = presenceConditions
                 }
             //let rec CreateType (allAcnFiles: AntlrParserResult list) (thisAcnFile: AntlrParserResult) (r:AstRoot) (m:Asn1Module)   (t:Asn1Type) (tTree:ITree) : Asn1Type =
             let childrenEncSpec = tTree.GetOptChild(acnParser.CHILDREN_ENC_SPEC)
 
-            let newChild = 
+            let newChild =
                 match childrenEncSpec with
                 | None    -> chType
                 | Some childrenList ->
@@ -544,9 +544,9 @@ let rec CreateType (allAcnFiles: AntlrParserResult list) (thisAcnFile: AntlrPars
                             | ReferenceType rf ->
                                 let args= GetArgumentList allAcnFiles chTree chType.Kind
                                 let newChild = {chType with Kind = ReferenceType ({rf with acnArguments = args})}
-                                CreateType allAcnFiles thisAcnFile r m (Some t) newChild (chTree.GetChildByType acnParser.ENCODING_SPEC)    
+                                CreateType allAcnFiles thisAcnFile r m (Some t) newChild (chTree.GetChildByType acnParser.ENCODING_SPEC)
                             | _                 ->
-                                CreateType allAcnFiles thisAcnFile r m (Some t) chType (chTree.GetChildByType acnParser.ENCODING_SPEC)    
+                                CreateType allAcnFiles thisAcnFile r m (Some t) chType (chTree.GetChildByType acnParser.ENCODING_SPEC)
                         | acnParser.CHILD_NEW           -> raise(SemanticError(chTree.Location, "New fields can be inserted within sequences, not sequence ofs."))
                         | _                             -> raise(BugErrorException("AcnCreateFromAntlr::CreateAcnChild"))
                     | x1::x2::_  -> raise(SemanticError(t.Location, sprintf "SEQUENCE OFs have only one child"))
@@ -554,7 +554,7 @@ let rec CreateType (allAcnFiles: AntlrParserResult list) (thisAcnFile: AntlrPars
             {t with acnProperties = Some (SequenceOfAcnProperties props); Kind = SequenceOf newChild}
         | Sequence     children -> t
         | Choice       children -> t
-        | ReferenceType rf      -> 
+        | ReferenceType rf      ->
             let baseType = GetBaseType  t r
             let virtualNewT = CreateType allAcnFiles thisAcnFile r m parentType baseType tTree
             {t with acnProperties = virtualNewT.acnProperties}
@@ -564,10 +564,10 @@ let rec CreateType (allAcnFiles: AntlrParserResult list) (thisAcnFile: AntlrPars
 
 let CreateTypeAssignment (allAcnFiles: AntlrParserResult list) (thisAcnFile: AntlrParserResult) (r:AstRoot) (m:Asn1Module)  (tas:TypeAssignment) (tasTree:ITree) : TypeAssignment =
     let encSpec = tasTree.GetChildByType(acnParser.ENCODING_SPEC)
-    let prms = 
+    let prms =
         match tasTree.GetOptChild(acnParser.PARAM_LIST) with
         | None -> []
-        | Some(paramList) -> 
+        | Some(paramList) ->
             let CreateParam (x:ITree) =
                 let prmName = x.GetChild(1).Text
                 let loc = x.GetChild(1).Location
@@ -585,35 +585,35 @@ let CreateModule (allAcnFiles: AntlrParserResult list) (thisAcnFile: AntlrParser
     let asn1Mod = CheckModuleName r modNameL
 
     let tasITreeList = modTree.GetChildrenByType(acnParser.TYPE_ENCODING)
-    
+
     //check for duplicate type assignments in the ACN module
     tasITreeList |> List.map(fun x -> x.GetChildByType(acnParser.UID).TextL) |> CheckForDuplicates
 
     let newTassesMap =
-        tasITreeList |> 
+        tasITreeList |>
         List.map(fun tasTree ->
             let tasNameL = tasTree.GetChildByType(acnParser.UID).TextL
             let tas = gatTasByName r asn1Mod tasNameL
             CreateTypeAssignment allAcnFiles thisAcnFile r asn1Mod tas tasTree) |>
         List.map(fun tas -> tas.Name.Value, tas) |>
         Map.ofList
-    
+
     {asn1Mod with TypeAssignments = asn1Mod.TypeAssignments |> List.map(fun tas -> match newTassesMap.TryFind tas.Name.Value with Some x -> x | None -> tas)}
 
-let LoadAcnFile (allAcnFiles: AntlrParserResult list) (r:AstRoot) (thisAcnFile: AntlrParserResult)   : Asn1Module list = 
+let LoadAcnFile (allAcnFiles: AntlrParserResult list) (r:AstRoot) (thisAcnFile: AntlrParserResult)   : Asn1Module list =
     thisAcnFile.rootItem.Children |> List.map (CreateModule allAcnFiles thisAcnFile r)
 
 
-let CreateAcnIntegerConstant constantsSet (t:ITree) = 
+let CreateAcnIntegerConstant constantsSet (t:ITree) =
     match t.Type with
     | acnParser.INT                 -> IntConst(t.BigIntL)
-    | acnParser.UID                 -> 
+    | acnParser.UID                 ->
         let extToThrow = SemanticError(t.Location, (sprintf "No ACN constant is defined with name '%s'" t.Text))
         CheckExists t.TextL constantsSet extToThrow
         RefConst(t.TextL)
     | _                             -> raise(BugErrorException("AcnCreateFromAntlr::CreateAcnIntegerConstant"))
 
-let rec CreateExpression (r:AstRoot, st:List<StringLoc>)  (t:ITree) = 
+let rec CreateExpression (r:AstRoot, st:List<StringLoc>)  (t:ITree) =
     match t.Type with
     | acnParser.INT | acnParser.UID -> IntegerExpr(CreateAcnIntegerConstant st t)
     | acnParser.PLUS                -> SumExpr(CreateExpression (r,st) (t.GetChild(0)), CreateExpression (r,st) (t.GetChild(1)))
@@ -626,7 +626,7 @@ let rec CreateExpression (r:AstRoot, st:List<StringLoc>)  (t:ITree) =
     | _                             -> raise( BugErrorException("AcnCreateFromAntlr::CreateExpression Unsupported operator"))
 
 
-let CreateNamedExpression (r:AstRoot, st:List<StringLoc>) (t:ITree) : AcnConstant= 
+let CreateNamedExpression (r:AstRoot, st:List<StringLoc>) (t:ITree) : AcnConstant=
     let name = t.GetChild(0).TextL
     // Constanst have global scope (i.e. within all modules) and should not conflict with any type or value assigment names
     for m in r.Modules do
@@ -643,27 +643,27 @@ let CheckCircularDependenciesInAcnConstants (constants : List<ITree>) =
                 match t.Type with
                 | acnParser.INT                 -> ()
                 | acnParser.UID                 -> yield t.TextL
-                | acnParser.PLUS |acnParser.MINUS | acnParser.MULTIPLICATION | acnParser.DIVISION | acnParser.MODULO | acnParser.POWER_SYMBOL        -> 
+                | acnParser.PLUS |acnParser.MINUS | acnParser.MULTIPLICATION | acnParser.DIVISION | acnParser.MODULO | acnParser.POWER_SYMBOL        ->
                     yield! GetNamesFromExpr (t.GetChild(0))
                     yield! GetNamesFromExpr (t.GetChild(1))
-                | acnParser.UNARY_MINUS         -> yield! GetNamesFromExpr (t.GetChild(0)) 
+                | acnParser.UNARY_MINUS         -> yield! GetNamesFromExpr (t.GetChild(0))
                 | _                             -> raise(BugErrorException("CheckCircularDependenciesInAcnConstants.HandleConstant.GetNamesFromExpr Unsupported operator"))
                 } |> Seq.toList
         (t.GetChild(0).TextL, GetNamesFromExpr (t.GetChild(1)))
     let constantsExpanded = constants |> List.map HandleConstant
     let independentConstants = constantsExpanded |> List.filter(fun (nm, lst) -> lst.IsEmpty ) |> List.map fst
-    let dependentConstansts = constantsExpanded |> List.filter(fun (nm, lst) -> not (lst.IsEmpty) )
+    let dependentConstants = constantsExpanded |> List.filter(fun (nm, lst) -> not (lst.IsEmpty) )
     let comparer (s1:StringLoc) (s2:StringLoc) = s1.Value = s2.Value
-    let ExToThrow (cyclicDepds:List<StringLoc*List<StringLoc>>) = 
+    let ExToThrow (cyclicDepds:List<StringLoc*List<StringLoc>>) =
         match cyclicDepds with
         | []        -> raise(BugErrorException(""))
-        | (x,_)::xs -> 
+        | (x,_)::xs ->
             let names = cyclicDepds |> Seq.map (fun (n,_) -> n.Value) |> Seq.StrJoin ", "
             SemanticError(x.Location, sprintf "Cyclic dependencies in ACN constants: %s" names)
-    DoTopologicalSort2 independentConstants dependentConstansts comparer ExToThrow |> ignore
+    DoTopologicalSort2 independentConstants dependentConstants comparer ExToThrow |> ignore
 
 
-let CreateAcnAst (allAcnFiles: AntlrParserResult list) (r0:AstRoot) : AstRoot =  
+let CreateAcnAst (allAcnFiles: AntlrParserResult list) (r0:AstRoot) : AstRoot =
     ITree.RegisterFiles(allAcnFiles|> Seq.map(fun pr -> (pr.rootItem, pr.fileName)))
     let constants = seq {
         for acnFile in allAcnFiles do
@@ -674,11 +674,11 @@ let CreateAcnAst (allAcnFiles: AntlrParserResult list) (r0:AstRoot) : AstRoot =
     let constantNames = constants |> List.map(fun c -> c.GetChild(0).TextL)
 
     // check that all constant names are unique
-    constantNames |> CheckForDuplicates 
+    constantNames |> CheckForDuplicates
 
     CheckCircularDependenciesInAcnConstants constants
 
-    let constantValues = constants |> List.map (CreateNamedExpression (r0, constantNames)) 
+    let constantValues = constants |> List.map (CreateNamedExpression (r0, constantNames))
     let acnConstantsMap = constantValues |> List.map(fun c -> c.Name.Value, EvaluateAcnIntExpression constantValues c.Value) |> Map.ofList
 
 

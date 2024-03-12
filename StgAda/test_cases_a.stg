@@ -152,7 +152,7 @@ Codec_declare_DecIn_variable(sPrmName, sType) ::= "dec_<sPrmName> : <sType>;"
 
 
 
-PrintCodec_body(sModName, sFuncName, sTasName, sStar,  sVal, sEnc, sNestedStatements) ::= <<
+PrintCodec_body(sModName, sFuncName, sTasName, sStar,  sVal, sEnc, sNestedStatements, sCodecClass) ::= <<
 function <sFuncName>(<sVal>:<sModName>.<sTasName>; Filename : in String) return <rtlModuleName()>.TEST_CASE_RESULT
 is
     decodedPDU  : <sModName>.<sTasName>;

@@ -67,7 +67,7 @@ ImportedMod(sName, sCName, arrsTypes, arrsVars) ::= <<
 
 
 /* A single Type Assignment, this is filled for all types of all modules */
-TasXml(sName, nLine, nPos, sType, sCName, sAssigOp, sContract, bAddedType) ::= <<
+TasXml(sName, nLine, nPos, sType, sCName, sAssignOp, sContract, bAddedType) ::= <<
 types["$sName$"] = type("$sName$", (object,), {
     "Line": $nLine$, "CharPositionInLine": $nPos$, "CName": "$sCName$", "AddedType": "$bAddedType$", "type": type("$sName$_type", (object,), {
         $sType$
@@ -138,8 +138,8 @@ IA5StringType () ::= "IA5StringType"
 NumericStringType () ::= "NumericStringType"
 
 
-AssigOpNormalType () ::= "="
-AssigOpSpecialType () ::= "::"
+AssignOpNormalType () ::= "="
+AssignOpSpecialType () ::= "::"
 
 /* Enumerated item, note the difference between sName, which is the enumerated
    name given in the input type, for example if you have

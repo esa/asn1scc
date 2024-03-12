@@ -10,7 +10,7 @@ open Antlr
 open Language
 
 type CliArguments =
-    | [<Unique; AltCommandLine("-c")>]C_lang 
+    | [<Unique; AltCommandLine("-c")>]C_lang
     | [<Unique; AltCommandLine("-Ada")>]Ada_Lang
     | [<Unique; AltCommandLine("-Scala")>]Scala_Lang
     | [<Unique; AltCommandLine("-uPER")>]UPER_enc
@@ -18,12 +18,12 @@ type CliArguments =
     | [<Unique; AltCommandLine("-ACN")>]ACN_enc
     | [<Unique; AltCommandLine("-atc")>]Auto_test_cases
     | [<Unique; AltCommandLine("-o")>]Out of dir:string
-    | [<Unique; AltCommandLine("-equal")>]Equal_Func 
+    | [<Unique; AltCommandLine("-equal")>]Equal_Func
     | [<Unique; AltCommandLine("-x")>] Xml_Ast of xmlFilename:string
     | [<Unique; AltCommandLine("-typePrefix")>]Type_Prefix of prefix:string
     | [<Unique; AltCommandLine("-renamePolicy")>] Rename_Policy of int
     | [<Unique; AltCommandLine("-fp")>]  Field_Prefix of prefix:string
-    | [<Unique; AltCommandLine("-gtc")>] Generate_Test_Grammar 
+    | [<Unique; AltCommandLine("-gtc")>] Generate_Test_Grammar
     | [<AltCommandLine("-customStg")>] Custom_Stg  of custom_stg_colon_outfilename:string
     | [<Unique; AltCommandLine("-customStgAstVersion")>] Custom_Stg_Ast_Version  of astver:int
     | [<Unique; AltCommandLine("-icdUper")>] IcdUper  of uper_icd_output_file:string
@@ -32,15 +32,15 @@ type CliArguments =
     | [<Unique; AltCommandLine("-customIcdAcn")>] CustomIcdAcn  of custom_stg_colon_out_filename:string
     | [<Unique; AltCommandLine("-icdPdus")>] IcdPdus  of asn1_type_assignments_list:string list
 
-    | [<Unique; AltCommandLine("-AdaUses")>] AdaUses 
-    | [<Unique; AltCommandLine("-ACND")>] ACND  
+    | [<Unique; AltCommandLine("-AdaUses")>] AdaUses
+    | [<Unique; AltCommandLine("-ACND")>] ACND
     | [<Unique; AltCommandLine("-wordSize")>] Word_Size  of wordSize:int
     | [<Unique; AltCommandLine("-fpWordSize")>]  Fp_Word_Size of fpWordSize:int
     | [<Unique; AltCommandLine("-slim")>] Slim
     | [<Unique; AltCommandLine("-t")>]   Target of Targets
     | [<Unique; AltCommandLine("-v")>]   Version
     | [<Unique; AltCommandLine("-asn1")>]   Debug_Asn1 of string option
-    | [<Unique; AltCommandLine("-mfm")>]   Mapping_Functions_Module of string 
+    | [<Unique; AltCommandLine("-mfm")>]   Mapping_Functions_Module of string
     | [<Unique; AltCommandLine("-debug")>]   Debug
     | [<Unique; AltCommandLine("-sm")>]   Streaming_Mode
     | [<Unique; AltCommandLine("-ig")>]   Init_Globals
@@ -68,13 +68,13 @@ with
             | Xml_Ast _        -> "dump internal AST in an xml file"
             | Rename_Policy _  -> """Specify rename policy for Enumerated values. Allowed values are:
     0 perform no rename (Ada default).
-    1 rename only conflicting enumerants (C default). 
-      E.g. In a grammar that contains 
-        RGB ::= ENUMERATED {red, green, blue} 
-        FavColors = ENUMERATED {red, yellow} 
-      only the red enumerant will be renamed to 
-      RGB_red and FavColors_red. 
-    2 rename all enumerants of an enumerated type 
+    1 rename only conflicting enumerants (C default).
+      E.g. In a grammar that contains
+        RGB ::= ENUMERATED {red, green, blue}
+        FavColors = ENUMERATED {red, yellow}
+      only the red enumerant will be renamed to
+      RGB_red and FavColors_red.
+    2 rename all enumerants of an enumerated type
       that has least one conflicting enumerant.
     3 all enumerants of all of an enumerated types
       are renamed.
@@ -86,7 +86,7 @@ with
             | Generate_Test_Grammar -> "generate a sample grammar for testing purposes. Experimental ..."
             | Custom_Stg _   -> "custom_stg_colon_outfilename is expected as stgFile.stg:outputFile where stgFile.stg is an existing custom stg file, while outputFile is the name of the generated file. Invokes the custom stg file 'stgFile.stg' and produces the output file 'outputFile'"
             | Custom_Stg_Ast_Version _ -> "1 = original AST, 4: like version of asn1scc where inner types are replaced with referenced types"
-            | IcdUper  _        -> "Produces an Interface Control Document for the input ASN.1 grammar for uPER encoding"    
+            | IcdUper  _        -> "Produces an Interface Control Document for the input ASN.1 grammar for uPER encoding"
             | CustomIcdUper  _  -> "Invokes the custom stg file 'stgFile.stg' using the icdUper backend and produces the output file 'outputFile'"
             | IcdAcn  _         -> "Produces an Interface Control Document for the input ASN.1 and ACN grammars for ACN encoding"
             | CustomIcdAcn  _   -> "Invokes the custom stg file 'stgFile.stg' using the icdAcn backend and produces the output file 'outputFile'"
@@ -122,24 +122,24 @@ let getCustmStgFileNames (compositeFile:string) =
         match files with
         | stg::out::[]  -> Some(stg,out)
         | _             -> None
-     
 
-let checkOutFileName (fileName:string) (extension:string) cmdoption =    
+
+let checkOutFileName (fileName:string) (extension:string) cmdoption =
     match fileName.ToLower().EndsWith extension with
     | true  -> ()
-    | false -> 
+    | false ->
         let msg = sprintf "Invalid output filename '%s' in option %s \nGenerated file must have an .%s extension." fileName cmdoption extension
         raise (UserException msg)
 
 let checkCompositeFile comFile cmdoption extention=
     match getCustmStgFileNames comFile with
-    | Some(stgFile, outFile)  -> 
+    | Some(stgFile, outFile)  ->
         match System.IO.File.Exists stgFile with
         | true  -> ()
-        | false -> 
+        | false ->
             let msg = sprintf "Custom stg file '%s' not found"  stgFile
             raise (UserException msg)
-    | None -> 
+    | None ->
         let msg = sprintf "Invalid argument for '%s' option. Expected format is  stgFile.stg:outputFile.\nEg -%s custom.stg:generated.%s\nUnder windows, you may user double :: to separate the stg file with output fileE.g. %s c:\\custom.stg::c:\\generated.%s" cmdoption cmdoption extention cmdoption extention
         raise (UserException msg)
 
@@ -204,23 +204,23 @@ let checkArguement (cliArgs : CliArguments list) arg =
     | Generate_Test_Grammar -> ()
     | Init_Globals          -> ()
     | Xml_Ast xmlFileName   -> checkOutFileName xmlFileName ".xml" "-x"
-    | Out outDir       -> 
+    | Out outDir       ->
         match System.IO.Directory.Exists outDir with
         | true  -> ()
-        | false -> 
+        | false ->
             match Directory.Exists outDir with
             | true  -> ()
-            | false -> Directory.CreateDirectory outDir |> ignore  
-    | Files files      -> 
+            | false -> Directory.CreateDirectory outDir |> ignore
+    | Files files      ->
         files |> Seq.iter(fun f -> match File.Exists f with true -> () | false -> raise (UserException (sprintf "File '%s' does not exist." f)))
-        files |>        
-        Seq.groupBy id |> 
-        Seq.filter(fun (n,dups) -> Seq.length dups > 1) |> 
-        Seq.iter(fun (file,_) -> 
+        files |>
+        Seq.groupBy id |>
+        Seq.filter(fun (n,dups) -> Seq.length dups > 1) |>
+        Seq.iter(fun (file,_) ->
             let errMsg = sprintf "Duplicate Input file. File '%s' was provided twice in the command line"  file
-            raise (SemanticError (emptyLocation, errMsg))) 
+            raise (SemanticError (emptyLocation, errMsg)))
     | Type_Prefix _    -> ()
-    | Rename_Policy rp   -> 
+    | Rename_Policy rp   ->
         match rp with
         | 0 | 1 | 2 | 3-> ()
         | _             -> raise (UserException ("invalid value for argument -renamePolicy. Currently only values 0,1,2,3 are supported"))
@@ -229,7 +229,7 @@ let checkArguement (cliArgs : CliArguments list) arg =
             | _ when (vl.ToCharArray().[0] >= 'A' && vl.ToCharArray().[0] <= 'Z') || (vl.ToCharArray().[0] >= 'a' && vl.ToCharArray().[0] <= 'z')  ||  vl.ToCharArray().[0] = '_' -> ()
             | _ -> raise (UserException ("invalid prefix value. Prefix value must start with a letter"))
     | Custom_Stg comFile  -> checkCompositeFile comFile "-customStg" "txt"
-    | Custom_Stg_Ast_Version v -> 
+    | Custom_Stg_Ast_Version v ->
         match v with
         | 1 -> ()
         | 4 -> ()
@@ -243,7 +243,7 @@ let checkArguement (cliArgs : CliArguments list) arg =
     | AdaUses                   -> ()
     | ACND                      -> ()
     | Debug_Asn1  _             -> ()
-    | Word_Size  ws             -> 
+    | Word_Size  ws             ->
         match ws with
         | _ when ws = 4 -> ()
         | _ when ws = 8 -> ()
@@ -269,7 +269,7 @@ let checkArguement (cliArgs : CliArguments list) arg =
                 raise (UserException (sprintf "Function '%s' does not exist in the C RTL.\nThe available functions to choose are:\n\n%s" fnName availableFunctions))
         | false -> raise (UserException ("The -if option is supported only for C."))
 
-let createInput (fileName:string) : Input = 
+let createInput (fileName:string) : Input =
     {
         name = fileName
         contents = File.OpenRead(fileName)
@@ -280,8 +280,8 @@ let constructCommandLineSettings args (parserResults: ParseResults<CliArguments>
     {
         CommandLineSettings.asn1Files = files |> List.filter(fun a -> (a.ToLower().EndsWith(".asn1")) || (a.ToLower().EndsWith(".asn")) ) |> List.map createInput
         acnFiles  = files |> List.filter(fun a -> (a.ToLower().EndsWith(".acn")) ) |> List.map createInput
-        encodings = 
-            args |> 
+        encodings =
+            args |>
             List.choose(fun arg ->
                 match arg with
                 |UPER_enc -> Some CommonTypes.Asn1Encoding.UPER
@@ -300,7 +300,7 @@ let constructCommandLineSettings args (parserResults: ParseResults<CliArguments>
         custom_Stg_Ast_Version = parserResults.GetResult(<@ Custom_Stg_Ast_Version @>, defaultValue = 1)
         icdPdus = parserResults.TryGetResult(<@ IcdPdus @>)
         mappingFunctionsModule = parserResults.TryGetResult(<@ Mapping_Functions_Module @>)
-        integerSizeInBytes = 
+        integerSizeInBytes =
             let ws = parserResults.GetResult(<@Word_Size@>, defaultValue = 8)
             BigInteger ws
         floatingPointSizeInBytes =
@@ -309,7 +309,7 @@ let constructCommandLineSettings args (parserResults: ParseResults<CliArguments>
         slim = parserResults.Contains(<@Slim@>)
         target = parserResults.TryGetResult(<@Target@>)
         streamingModeSupport = parserResults.Contains <@ Streaming_Mode @>
-        renamePolicy = 
+        renamePolicy =
             match args |> List.choose (fun a -> match a with Rename_Policy rp -> Some rp | _ -> None) with
             | []    ->
                 match args |> List.filter(fun a -> a = C_lang || a = Ada_Lang || a = Scala_Lang) with
@@ -334,17 +334,18 @@ let constructCommandLineSettings args (parserResults: ParseResults<CliArguments>
                 | _                 -> Some (FieldPrefixUserValue vl)
         targetLanguages =
             args |> List.choose(fun a -> match a with C_lang -> Some (CommonTypes.ProgrammingLanguage.C) | Ada_Lang -> Some (CommonTypes.ProgrammingLanguage.Ada) | Scala_Lang -> Some (CommonTypes.ProgrammingLanguage.Scala) | _ -> None)
+        
         userRtlFunctionsToGenerate =
             args |> List.choose(fun a -> match a with Include_Func fnName -> Some fnName | _ -> None)
     
         objectIdentifierMaxLength = 20I
         handleEmptySequences = parserResults.Contains <@ Handle_Empty_Sequences @>
-        blm = [(ProgrammingLanguage.C, new LangGeneric_c.LangBasic_c());(ProgrammingLanguage.Ada, new LangGeneric_a.LangBasic_ada());(ProgrammingLanguage.Scala, new LangGeneric_scala.LangBasic_scala()) ]
-    }    
 
+        blm = [(ProgrammingLanguage.C, new LangGeneric_c.LangBasic_c());(ProgrammingLanguage.Ada, new LangGeneric_a.LangBasic_ada());(ProgrammingLanguage.Scala, new LangGeneric_scala.LangBasic_scala()) ]
+    }
 
 let main0 argv =
-    
+
     //RemoveUnusedRtlFunction.test1 ()
     //GenerateRTL.test3 (RemoveUnusedRtlFunction.C_RTL_FUNCTIONS |> List.map fst)
 
@@ -357,47 +358,47 @@ let main0 argv =
 
         let args = constructCommandLineSettings cliArgs parserResults
         let outDir = parserResults.GetResult(<@Out@>, defaultValue = ".")
-        
+
         // create front ent ast
 
-        let debugFunc (r:Asn1Ast.AstRoot) (acn:AcnGenericTypes.AcnAst) = 
+        let debugFunc (r:Asn1Ast.AstRoot) (acn:AcnGenericTypes.AcnAst) =
             match parserResults.Contains <@ Debug_Asn1 @> with
-            | true  -> 
+            | true  ->
                 let pdu = parserResults.GetResult(<@Debug_Asn1@>, defaultValue = None)
                 let tastToPrint = PrintAsn1.printInASingleFile r outDir "SingleAsn1FileDbg.asn1" pdu
                 PrintAcn.printInASingleFile acn outDir "SingleAsn1FileDbg.acn" tastToPrint
             | false -> ()
 
         // TODO frontend typo
-        let frontEntAst, acnDeps = TL "FrontEntMain.constructAst" (fun () -> FrontEntMain.constructAst args allMacros debugFunc) 
+        let frontEntAst, acnDeps = TL "FrontEntMain.constructAst" (fun () -> FrontEntMain.constructAst args allMacros debugFunc)
 
-        
-        // print front ent ast as xml 
+
+        // print front ent ast as xml
         match args.AstXmlAbsFileName with
         | ""    -> ()
-        | _     -> 
+        | _     ->
             ExportToXml.exportFile frontEntAst acnDeps args.AstXmlAbsFileName
 
-        let icdStgFileName = 
+        let icdStgFileName =
             match parserResults.TryGetResult (<@CustomIcdAcn@>) with
             | None -> "icdtemplate_acn.stg"
             | Some comFile ->
                     match getCustmStgFileNames comFile with
-                    | Some(stgFile, _)  -> stgFile 
+                    | Some(stgFile, _)  -> stgFile
                     | None  -> "icdtemplate_acn.stg"
 
         // construct backend ast
-        let backends = 
-            cliArgs |> 
-            List.choose (fun a -> 
+        let backends =
+            cliArgs |>
+            List.choose (fun a ->
                 match a with
-                | C_lang                -> 
+                | C_lang                ->
                     let lm = getLanguageMacro C
                     Some (TL "DAstConstruction.DoWork" (fun () -> DAstConstruction.DoWork frontEntAst icdStgFileName acnDeps CommonTypes.ProgrammingLanguage.C lm args.encodings))
-                | Scala_Lang              -> 
+                | Scala_Lang              ->
                     let lm = getLanguageMacro Scala
                     Some (TL "DAstConstruction.DoWork" (fun () -> DAstConstruction.DoWork frontEntAst icdStgFileName acnDeps CommonTypes.ProgrammingLanguage.Scala lm args.encodings))
-                | Ada_Lang              -> 
+                | Ada_Lang              ->
                     let lm = getLanguageMacro Ada
                     Some (TL "DAstConstruction.DoWork" (fun () -> DAstConstruction.DoWork frontEntAst icdStgFileName acnDeps CommonTypes.ProgrammingLanguage.Ada lm args.encodings))
                 | _             -> None)
@@ -411,38 +412,38 @@ let main0 argv =
             lm.lg.getTopLevelDirs target  |> Seq.iter createDirIfNotExists
             lm.lg.getBoardDirs target  |> Seq.iter createDirIfNotExists
 
- 
+
         //generate code
-        backends |> 
-            Seq.iter (fun r -> 
+        backends |>
+            Seq.iter (fun r ->
                 let lm = getLanguageMacro r.lang
                 createDirectories outDir lm args.target
                 let dirInfo = lm.lg.getDirInfo args.target outDir
                 //let srcDirName = Path.Combine(outDir, OutDirectories.srcDirName r.lang)
                 //let asn1rtlDirName = Path.Combine(outDir, OutDirectories.asn1rtlDirName r.lang)
-                //let boardsDirName = Path.Combine(outDir, OutDirectories.boardsDirName r.lang) 
-                let generatedContent = GenerateFiles.generateAll dirInfo r lm args.encodings 
-                GenerateRTL.exportRTL dirInfo r.lang args lm generatedContent 
+                //let boardsDirName = Path.Combine(outDir, OutDirectories.boardsDirName r.lang)
+                let generatedContent = GenerateFiles.generateAll dirInfo r lm args.encodings
+                GenerateRTL.exportRTL dirInfo r.lang args lm generatedContent
                 match args.AstXmlAbsFileName with
                 | ""    -> ()
                 | _     -> DAstExportToXml.exportFile r acnDeps ("backend_" + args.AstXmlAbsFileName)
                 )
-        
+
 
         //custom stgs code generation
-        
+
         // let AST for custom STGs
         // if there is an AST from Ada or C use it, otherwise create a new one
-        let r = 
+        let r =
             match backends with
-            | []    -> 
-                let lm = 
+            | []    ->
+                let lm =
                         {
-                            LanguageMacros.equal = new IEqual_c.IEqual_c(); 
+                            LanguageMacros.equal = new IEqual_c.IEqual_c();
                             init = new Init_c.Init_c()
-                            typeDef = new ITypeDefinition_c.ITypeDefinition_c(); 
+                            typeDef = new ITypeDefinition_c.ITypeDefinition_c();
                             lg = new LangGeneric_c.LangGeneric_c()
-                            isvalid= new IsValid_c.IsValid_c() 
+                            isvalid= new IsValid_c.IsValid_c()
                             vars = new IVariables_c.IVariables_c()
                             uper = new iuper_c.iuper_c()
                             acn = new IAcn_c.IAcn_c()
@@ -452,11 +453,11 @@ let main0 argv =
                         }
                 TL "DAstConstruction.DoWork" (fun () -> DAstConstruction.DoWork frontEntAst icdStgFileName acnDeps CommonTypes.ProgrammingLanguage.C  lm args.encodings)
             | x::_  -> x
-        
 
-        cliArgs |> 
+
+        cliArgs |>
             //List.choose (fun a -> match a with | Custom_Stg compFile   -> Some compFile | _ -> None) |>
-            Seq.iter(fun arg -> 
+            Seq.iter(fun arg ->
                 match arg with
                 | Custom_Stg comFile ->
                     match getCustmStgFileNames comFile with
@@ -470,16 +471,16 @@ let main0 argv =
                 | IcdAcn outFile       -> GenerateAcnIcd.DoWork r  acnDeps "icdtemplate_acn.stg"  (Some "icdtemplate_uper.stg") outFile
                 | CustomIcdAcn comFile ->
                     match getCustmStgFileNames comFile with
-                    | Some(stgFile, outFile)  -> 
+                    | Some(stgFile, outFile)  ->
                         GenerateAcnIcd.DoWork r  acnDeps stgFile None outFile
                     | None  -> ()
                 | AdaUses   -> DAstUtilFunctions.AdaUses r
-                | ACND      -> GenerateFiles.EmmitDefaultACNGrammar r outDir
+                | ACND      -> GenerateFiles.EmitDefaultACNGrammar r outDir
                 | Version   -> printVersion () //Antlr.VersionInformation.printGitVersion()
                 | Debug     -> RangeSets.debug ()
                 | _ -> ())
 
-        cliArgs |> 
+        cliArgs |>
             List.filter (fun a -> match a with | Generate_Test_Grammar    -> true | _  -> false) |>
             Seq.iter(fun _ -> GrammarGenerator.generateGrammars outDir)
 
@@ -488,15 +489,15 @@ let main0 argv =
 
         0
     with
-        | :? Argu.ArguParseException as ex -> 
+        | :? Argu.ArguParseException as ex ->
             match argv.Length = 1 && (argv.[0] = "-v" || argv.[0] = "--version") with
-            | true -> 
+            | true ->
                 //Antlr.VersionInformation.printGitVersion ()
                 printVersion ()
                 0
             | false ->
                 Console.Error.WriteLine(ex.Message)
-                1    
+                1
         | UserException msg            ->
             Console.Error.WriteLine(msg)
             2
@@ -512,9 +513,6 @@ let main0 argv =
             4
 
 
-
-
 [<EntryPoint>]
-let main argv = 
+let main argv =
     main0 argv
-    

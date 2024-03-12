@@ -2,7 +2,7 @@
 open FsUtils
 open System.Numerics
 
-type RelativePath = 
+type RelativePath =
     | RelativePath of string list
 
 
@@ -43,7 +43,7 @@ type AcnEndianness =
     | LittleEndianness
     | BigEndianness            // Default
 
-type AcnAligment = 
+type AcnAlignment =
     | NextByte
     | NextWord
     | NextDWord
@@ -55,10 +55,10 @@ type AcnSizeProperty =
 
 
 
-type AcnProperty = 
+type AcnProperty =
     | Encoding          of AcnEncoding                     // used by int, real, enum
     | SizeProperty      of AcnSizeProperty                 // used by int, real, and all sizeable types
-    | Aligment          of AcnAligment                     // *
+    | Alignment          of AcnAlignment                     // *
     | EncodeValues                                          // used by enums => values will be encoded and not indexes
     | BooleanEncoding   of AcnBooleanEncoding              // bool
     | NullValue         of StringLoc                    // null
@@ -66,11 +66,11 @@ type AcnProperty =
     | EnumeratorResetValue of string*BigInteger        // used by enum children to redefine values
     | MappingFunction   of StringLoc                    // used by int
 with
-    override this.ToString() =  
+    override this.ToString() =
         match this with
         | Encoding          enc                       -> sprintf "encoding %A" enc
         | SizeProperty      sz                        -> sprintf "size %A" sz
-        | Aligment          al                        -> sprintf "aligment %A" al
+        | Alignment          al                        -> sprintf "alignment %A" al
         | EncodeValues                                -> "encode-values"
         | BooleanEncoding   ben                       -> sprintf "pattern '%A'" ben
         | NullValue         pattern                   -> sprintf "pattern '%s'" pattern.Value
@@ -78,11 +78,11 @@ with
         | EnumeratorResetValue (enChildName,vl)       -> enChildName + vl.ToString()
         | MappingFunction   funcName                  -> funcName.Value
 
-// present when property defintion
+// present when property definition
 // this property is not part of the ACN type itself but part of the AcnChildInfo
 type PresentWhenCondition =
-    | PresenceBool  of RelativePath                         // applied to SEQEUNCE or Choice child
-    | PresenceInt   of RelativePath*AcnIntegerConstant      // applied to SEQEUNCE or Choice child
+    | PresenceBool  of RelativePath                         // applied to SEQUENCE or Choice child
+    | PresenceInt   of RelativePath*AcnIntegerConstant      // applied to SEQUENCE or Choice child
     | PresenceStr   of RelativePath*string
 
 

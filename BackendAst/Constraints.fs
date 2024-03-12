@@ -39,8 +39,8 @@ with
         |Ada    -> isvalid_a.ExpAnd e1 e2
     member this.ExpAndMulti expList =
         match this with
-        |C      -> isvalid_c.ExpAndMulit expList
-        |Ada    -> isvalid_a.ExpAndMulit expList
+        |C      -> isvalid_c.ExpAndMulti expList
+        |Ada    -> isvalid_a.ExpAndMulti expList
     member this.ExpNot e  =
         match this with
         |C      -> isvalid_c.ExpNot e
@@ -88,7 +88,7 @@ type FuncParamType =
   | VALUE       of string
   | POINTER     of string
   | FIXARRAY    of string
-  with 
+  with
     member this.toPointer (l:ProgrammingLanguage) =
         POINTER (this.getPointer l)
     member this.getPointer (l:ProgrammingLanguage) =
@@ -120,7 +120,7 @@ type FuncParamType =
         | C, VALUE x        -> "."
         | C, POINTER x      -> "->"
         | C, FIXARRAY x     -> ""
-        
+
     member this.getStar (l:ProgrammingLanguage) =
         match l, this with
         | Ada, VALUE x      -> ""
@@ -131,30 +131,30 @@ type FuncParamType =
         | C, FIXARRAY x     -> ""
     member this.getArrayItem (l:ProgrammingLanguage) (idx:string) (childTypeIsString: bool) =
         match l with
-        | Ada   -> 
+        | Ada   ->
             let newPath = sprintf "%s.Data(%s)" this.p idx
             if childTypeIsString then (FIXARRAY newPath) else (VALUE newPath)
-        | C     -> 
+        | C     ->
             let newPath = sprintf "%s%sarr[%s]" this.p (this.getAcces l) idx
             if childTypeIsString then (FIXARRAY newPath) else (VALUE newPath)
     member this.getSeqChild (l:ProgrammingLanguage) (childName:string) (childTypeIsString: bool) =
         match l with
-        | Ada   -> 
+        | Ada   ->
             let newPath = sprintf "%s.%s" this.p childName
             if childTypeIsString then (FIXARRAY newPath) else (VALUE newPath)
-        | C     -> 
+        | C     ->
             let newPath = sprintf "%s%s%s" this.p (this.getAcces l) childName
             if childTypeIsString then (FIXARRAY newPath) else (VALUE newPath)
 
     member this.getChChild (l:ProgrammingLanguage) (childName:string) (childTypeIsString: bool) =
         match l with
-        | Ada   -> 
+        | Ada   ->
             let newPath = sprintf "%s.%s" this.p childName
             if childTypeIsString then (FIXARRAY newPath) else (VALUE newPath)
-        | C     -> 
+        | C     ->
             let newPath = sprintf "%s%su.%s" this.p (this.getAcces l) childName
             if childTypeIsString then (FIXARRAY newPath) else (VALUE newPath)
-        
+
 
 
 type Asn1TypeName = {
@@ -162,9 +162,9 @@ type Asn1TypeName = {
     tasName     : string
 }
 with
-    member this.id = 
+    member this.id =
         ReferenceToType((GenericFold2.MD this.moduName)::(GenericFold2.TA this.tasName)::[])
-    
+
 
 and Asn1ValueName = {
     moduName    : string
@@ -173,36 +173,36 @@ and Asn1ValueName = {
 
 
 
-and ReferenceToType = 
+and ReferenceToType =
     | ReferenceToType of GenericFold2.ScopeNode list
     with
         override this.ToString() =
             match this with
             | ReferenceToType path -> path |> Seq.StrJoin "."
-        member this.ToScopeNodeList = 
+        member this.ToScopeNodeList =
             match this with
-            | ReferenceToType path -> path 
+            | ReferenceToType path -> path
         member this.ModName =
             match this with
-            | ReferenceToType path -> 
+            | ReferenceToType path ->
                 match path with
                 | (GenericFold2.MD modName)::_    -> modName
                 | _                               -> raise(BugErrorException "Did not find module at the begining of the scope path")
-        member this.Asn1TypeName = 
+        member this.Asn1TypeName =
             match this with
-            | ReferenceToType path -> 
+            | ReferenceToType path ->
                 match path with
                 | (GenericFold2.MD mdName)::(GenericFold2.TA tasName)::[]   -> Some ({Asn1TypeName.moduName = mdName; tasName=tasName})
                 | _                                                         -> None
-        member this.BelongingTypeAssignment = 
+        member this.BelongingTypeAssignment =
             match this with
-            | ReferenceToType path -> 
+            | ReferenceToType path ->
                 match path with
                 | (GenericFold2.MD mdName)::(GenericFold2.TA tasName)::_   -> Some ({Asn1TypeName.moduName = mdName; tasName=tasName})
                 | _                                                         -> None
         member this.AcnAbsPath =
             match this with
-            | ReferenceToType path -> path |> List.map (fun i -> i.StrValue) 
+            | ReferenceToType path -> path |> List.map (fun i -> i.StrValue)
         member this.getSeqChildId (childName:string) =
             match this with
             | ReferenceToType path -> ReferenceToType (path@[GenericFold2.SEQ_CHILD childName])
@@ -220,31 +220,31 @@ and ReferenceToType =
 
         member this.appendLongChildId (childRelativePath:string list) =
             match this with
-            | ReferenceToType path -> 
-                let newTail = 
-                    childRelativePath |> 
+            | ReferenceToType path ->
+                let newTail =
+                    childRelativePath |>
                     List.map(fun s ->GenericFold2.SEQ_CHILD s)
                 ReferenceToType (path@newTail)
-        member this.beginsWith (md:string) (ts:string)= 
+        member this.beginsWith (md:string) (ts:string)=
             match this with
             | ReferenceToType((GenericFold2.MD mdName)::(GenericFold2.TA tasName)::[])   -> mdName = md && tasName = ts
             | _                                                                          -> false
         member this.lastItem =
             match this with
-            | ReferenceToType path -> 
+            | ReferenceToType path ->
                 match path |> List.rev |> List.head with
                 | GenericFold2.SEQ_CHILD name   -> name
                 | GenericFold2.CH_CHILD name    -> name
                 | _                             -> raise (BugErrorException "error in lastitem")
         member this.parentTypeId =
             match this with
-            | ReferenceToType path -> 
+            | ReferenceToType path ->
                 let pathPar = path |> List.rev |> List.tail |> List.rev
                 match pathPar with
-                | [] 
+                | []
                 | _::[]     -> None
                 | _         -> Some (ReferenceToType pathPar)
-        member this.SeqeuenceOfLevel =
+        member this.SequenceOfLevel =
             match this with
             | ReferenceToType path -> path |> List.filter(fun n -> match n with GenericFold2.SQF -> true | _ -> false) |> Seq.length
         static member createFromModAndTasName (modName : string) ((tasName : string))=
@@ -253,15 +253,15 @@ and ReferenceToType =
         //static member createFromAcnAbsPath (absPath : AcnTypes.AbsPath) =
         //    let tas = ReferenceToType((GenericFold2.MD absPath.Head)::(GenericFold2.TA absPath.Tail.Head)::[])
         //    tas.appendLongChildId(absPath.Tail.Tail)
-            
-            
-            
-type ReferenceToValue = 
+
+
+
+type ReferenceToValue =
     | ReferenceToValue of (GenericFold2.ScopeNode list)*(GenericFold2.VarScopNode list)
     with
         member this.ModName =
             match this with
-            | ReferenceToValue (path,_) -> 
+            | ReferenceToValue (path,_) ->
                 match path with
                 | (GenericFold2.MD modName)::_    -> modName
                 | _                               -> raise(BugErrorException "Did not find module at the begining of the scope path")
@@ -295,8 +295,8 @@ type Asn1ValueTemplate<'v> = {
     id          : ReferenceToValue
     litOrRef    : LiteralOrReference
     refToType   : ReferenceToType
-    
-    //childValue is true if the value is contained within another value (one of SEQUENCE, CHOICE, SEQUENCE OF) .e.g. 
+
+    //childValue is true if the value is contained within another value (one of SEQUENCE, CHOICE, SEQUENCE OF) .e.g.
     // MySeq ::= {a INTEGER, b INTEGER}
     //mySeqValue MySeq ::= {a 10, b 20}
     //In mySeqValue childValue is false, while in value a 10 is true.
@@ -323,19 +323,19 @@ and NamedValue = {
 }
 
 and Asn1GenericValue =
-    | IntegerValue          of IntegerValue    
-    | RealValue             of RealValue       
-    | StringValue           of StringValue     
-    | BooleanValue          of BooleanValue    
-    | BitStringValue        of BitStringValue  
+    | IntegerValue          of IntegerValue
+    | RealValue             of RealValue
+    | StringValue           of StringValue
+    | BooleanValue          of BooleanValue
+    | BitStringValue        of BitStringValue
     | OctetStringValue      of OctetStringValue
-    | EnumValue             of EnumValue       
-    | SeqOfValue            of SeqOfValue      
-    | SeqValue              of SeqValue        
-    | ChValue               of ChValue         
+    | EnumValue             of EnumValue
+    | SeqOfValue            of SeqOfValue
+    | SeqValue              of SeqValue
+    | ChValue               of ChValue
     | NullValue             of NullValue
-with 
-    member this.id = 
+with
+    member this.id =
         match this with
         | IntegerValue     v    -> v.id
         | RealValue        v    -> v.id
@@ -348,7 +348,7 @@ with
         | SeqValue         v    -> v.id
         | ChValue          v    -> v.id
         | NullValue        v    -> v.id
-    member this.refToType = 
+    member this.refToType =
         match this with
         | IntegerValue     v    -> v.refToType
         | RealValue        v    -> v.refToType
@@ -362,7 +362,7 @@ with
         | ChValue          v    -> v.refToType
         | NullValue        v    -> v.refToType
 
-    member this.childValue = 
+    member this.childValue =
         match this with
         | IntegerValue     v    -> v.childValue
         | RealValue        v    -> v.childValue
@@ -382,7 +382,7 @@ with
     member this.getBackendName (l:ProgrammingLanguage) =
         match this.id with
         | ReferenceToValue (typePath,(GenericFold2.VA2 vasName)::[]) -> ToC vasName
-        | ReferenceToValue (typePath, vasPath)      -> 
+        | ReferenceToValue (typePath, vasPath)      ->
             let longName = (typePath.Tail |> List.map (fun i -> i.StrValue))@ (vasPath |> List.map (fun i -> i.StrValue))  |> Seq.StrJoin "_"
             ToC2(longName.Replace("#","elem").L1)
 
@@ -413,13 +413,13 @@ type AstRootTemplate<'ASN1TYPE> = {
 (*
 These constraints are interim.
 *)
-type Asn1AnyConstraint = 
-    | AnySingleValueContraint              of Asn1GenericValue             
-    | AnyRangeContraint                    of Asn1GenericValue*Asn1GenericValue*bool*bool    //min, max, InclusiveMin(=true), InclusiveMax(=true)
-    | AnyRangeContraint_val_MAX            of Asn1GenericValue*bool         //min, InclusiveMin(=true)
-    | AnyRangeContraint_MIN_val            of Asn1GenericValue*bool         //max, InclusiveMax(=true)
-    | AnySizeContraint                     of Asn1AnyConstraint               
-    | AnyAlphabetContraint                 of Asn1AnyConstraint           
+type Asn1AnyConstraint =
+    | AnySingleValueConstraint              of Asn1GenericValue
+    | AnyRangeConstraint                    of Asn1GenericValue*Asn1GenericValue*bool*bool    //min, max, InclusiveMin(=true), InclusiveMax(=true)
+    | AnyRangeConstraint_val_MAX            of Asn1GenericValue*bool         //min, InclusiveMin(=true)
+    | AnyRangeConstraint_MIN_val            of Asn1GenericValue*bool         //max, InclusiveMax(=true)
+    | AnySizeConstraint                     of Asn1AnyConstraint
+    | AnyAlphabetConstraint                 of Asn1AnyConstraint
     | AnyUnionConstraint                   of Asn1AnyConstraint*Asn1AnyConstraint*bool //left,righ, virtual constraint
     | AnyIntersectionConstraint            of Asn1AnyConstraint*Asn1AnyConstraint
     | AnyAllExceptConstraint               of Asn1AnyConstraint
@@ -437,7 +437,7 @@ type GenericConstraint<'v> =
     | RootConstraint2                   of GenericConstraint<'v>*GenericConstraint<'v>
     | SingleValueConstraint             of 'v*LiteralOrReference
 
-type RangeTypeConstraint<'v1,'v2>  = 
+type RangeTypeConstraint<'v1,'v2>  =
     | RangeUnionConstraint               of RangeTypeConstraint<'v1,'v2>*RangeTypeConstraint<'v1,'v2>*bool //left,righ, virtual constraint
     | RangeIntersectionConstraint        of RangeTypeConstraint<'v1,'v2>*RangeTypeConstraint<'v1,'v2>
     | RangeAllExceptConstraint           of RangeTypeConstraint<'v1,'v2>
@@ -445,18 +445,18 @@ type RangeTypeConstraint<'v1,'v2>  =
     | RangeRootConstraint                of RangeTypeConstraint<'v1,'v2>
     | RangeRootConstraint2               of RangeTypeConstraint<'v1,'v2>*RangeTypeConstraint<'v1,'v2>
     | RangeSingleValueConstraint         of 'v2*LiteralOrReference
-    | RangeContraint                     of ('v1*LiteralOrReference) *('v1*LiteralOrReference)*bool*bool    //min, max, InclusiveMin(=true), InclusiveMax(=true)
-    | RangeContraint_val_MAX             of ('v1*LiteralOrReference) *bool            //min, InclusiveMin(=true)
-    | RangeContraint_MIN_val             of ('v1*LiteralOrReference) *bool            //max, InclusiveMax(=true)
+    | RangeConstraint                     of ('v1*LiteralOrReference) *('v1*LiteralOrReference)*bool*bool    //min, max, InclusiveMin(=true), InclusiveMax(=true)
+    | RangeConstraint_val_MAX             of ('v1*LiteralOrReference) *bool            //min, InclusiveMin(=true)
+    | RangeConstraint_MIN_val             of ('v1*LiteralOrReference) *bool            //max, InclusiveMax(=true)
 
 type IntegerTypeConstraint  = RangeTypeConstraint<BigInteger, BigInteger>
 type PosIntTypeConstraint   = RangeTypeConstraint<UInt32, UInt32>
 type CharTypeConstraint     = RangeTypeConstraint<char, string>
-    
+
 type RealTypeConstraint     = RangeTypeConstraint<double, double>
 
 
-type SizableTypeConstraint<'v>  = 
+type SizableTypeConstraint<'v>  =
     | SizeUnionConstraint               of SizableTypeConstraint<'v>*SizableTypeConstraint<'v>*bool //left,righ, virtual constraint
     | SizeIntersectionConstraint        of SizableTypeConstraint<'v>*SizableTypeConstraint<'v>
     | SizeAllExceptConstraint           of SizableTypeConstraint<'v>
@@ -464,9 +464,9 @@ type SizableTypeConstraint<'v>  =
     | SizeRootConstraint                of SizableTypeConstraint<'v>
     | SizeRootConstraint2               of SizableTypeConstraint<'v>*SizableTypeConstraint<'v>
     | SizeSingleValueConstraint         of 'v*LiteralOrReference
-    | SizeContraint                     of PosIntTypeConstraint               
+    | SizeConstraint                     of PosIntTypeConstraint
 
-type IA5StringConstraint = 
+type IA5StringConstraint =
     | StrUnionConstraint               of IA5StringConstraint*IA5StringConstraint*bool //left,righ, virtual constraint
     | StrIntersectionConstraint        of IA5StringConstraint*IA5StringConstraint
     | StrAllExceptConstraint           of IA5StringConstraint
@@ -474,8 +474,8 @@ type IA5StringConstraint =
     | StrRootConstraint                of IA5StringConstraint
     | StrRootConstraint2               of IA5StringConstraint*IA5StringConstraint
     | StrSingleValueConstraint         of string*LiteralOrReference
-    | StrSizeContraint                 of PosIntTypeConstraint               
-    | AlphabetContraint                of CharTypeConstraint           
+    | StrSizeConstraint                 of PosIntTypeConstraint
+    | AlphabetConstraint                of CharTypeConstraint
 
 type OctetStringConstraint  =    SizableTypeConstraint<OctetStringValue>
 type BitStringConstraint    =    SizableTypeConstraint<BitStringValue>
@@ -488,30 +488,30 @@ type SequenceConstraint     =     GenericConstraint<SeqValue>
 type ChoiceConstraint       =     GenericConstraint<ChValue>
 
 
-let foldGenericConstraint unionFunc intersectionFunc allExceptFunc exceptFunc rootFunc rootFunc2 singleValueFunc 
-    (c:GenericConstraint<'v>) 
+let foldGenericConstraint unionFunc intersectionFunc allExceptFunc exceptFunc rootFunc rootFunc2 singleValueFunc
+    (c:GenericConstraint<'v>)
     (s:'UserState) =
     let rec loopRecursiveConstraint (c:GenericConstraint<'v>) (s0:'UserState) =
         match c with
-        | UnionConstraint(c1,c2,b)         -> 
+        | UnionConstraint(c1,c2,b)         ->
             let nc1, s1 = loopRecursiveConstraint c1 s0
             let nc2, s2 = loopRecursiveConstraint c2 s1
             unionFunc nc1 nc2 b s2
-        | IntersectionConstraint(c1,c2)    -> 
+        | IntersectionConstraint(c1,c2)    ->
             let nc1, s1 = loopRecursiveConstraint c1 s0
             let nc2, s2 = loopRecursiveConstraint c2 s1
             intersectionFunc nc1 nc2 s2
-        | AllExceptConstraint(c1)          -> 
+        | AllExceptConstraint(c1)          ->
             let nc1, s1 = loopRecursiveConstraint c1 s0
             allExceptFunc nc1 s1
-        | ExceptConstraint(c1,c2)          -> 
+        | ExceptConstraint(c1,c2)          ->
             let nc1, s1 = loopRecursiveConstraint c1 s0
             let nc2, s2 = loopRecursiveConstraint c2 s1
             exceptFunc nc1 nc2 s2
-        | RootConstraint(c1)               -> 
+        | RootConstraint(c1)               ->
             let nc1, s1 = loopRecursiveConstraint c1 s0
             rootFunc nc1 s1
-        | RootConstraint2(c1,c2)           -> 
+        | RootConstraint2(c1,c2)           ->
             let nc1, s1 = loopRecursiveConstraint c1 s0
             let nc2, s2 = loopRecursiveConstraint c2 s1
             rootFunc2 nc1 nc2 s2
@@ -519,175 +519,175 @@ let foldGenericConstraint unionFunc intersectionFunc allExceptFunc exceptFunc ro
     loopRecursiveConstraint c s
 
 
-let foldRangeTypeConstraint unionFunc intersectionFunc allExceptFunc exceptFunc rootFunc rootFunc2 singleValueFunc 
+let foldRangeTypeConstraint unionFunc intersectionFunc allExceptFunc exceptFunc rootFunc rootFunc2 singleValueFunc
     rangeFunc range_val_max_func range_min_val_func
-    (c:RangeTypeConstraint<'v,'vr>) 
+    (c:RangeTypeConstraint<'v,'vr>)
     (s:'UserState) =
     let rec loopRecursiveConstraint (c:RangeTypeConstraint<'v,'vr>) (s0:'UserState) =
         match c with
-        | RangeUnionConstraint(c1,c2,b)         -> 
+        | RangeUnionConstraint(c1,c2,b)         ->
             let nc1, s1 = loopRecursiveConstraint c1 s0
             let nc2, s2 = loopRecursiveConstraint c2 s1
             unionFunc nc1 nc2 b s2
-        | RangeIntersectionConstraint(c1,c2)    -> 
+        | RangeIntersectionConstraint(c1,c2)    ->
             let nc1, s1 = loopRecursiveConstraint c1 s0
             let nc2, s2 = loopRecursiveConstraint c2 s1
             intersectionFunc nc1 nc2 s2
-        | RangeAllExceptConstraint(c1)          -> 
+        | RangeAllExceptConstraint(c1)          ->
             let nc1, s1 = loopRecursiveConstraint c1 s0
             allExceptFunc nc1 s1
-        | RangeExceptConstraint(c1,c2)          -> 
+        | RangeExceptConstraint(c1,c2)          ->
             let nc1, s1 = loopRecursiveConstraint c1 s0
             let nc2, s2 = loopRecursiveConstraint c2 s1
             exceptFunc nc1 nc2 s2
-        | RangeRootConstraint(c1)               -> 
+        | RangeRootConstraint(c1)               ->
             let nc1, s1 = loopRecursiveConstraint c1 s0
             rootFunc nc1 s1
-        | RangeRootConstraint2(c1,c2)           -> 
+        | RangeRootConstraint2(c1,c2)           ->
             let nc1, s1 = loopRecursiveConstraint c1 s0
             let nc2, s2 = loopRecursiveConstraint c2 s1
             rootFunc2 nc1 nc2 s2
         | RangeSingleValueConstraint (v, rv)            -> singleValueFunc v rv s0
-        | RangeContraint((v1,rv1), (v2,rv2), b1,b2)     -> rangeFunc v1 v2 b1 b2 s
-        | RangeContraint_val_MAX ((v,rv), b)            -> range_val_max_func v b s
-        | RangeContraint_MIN_val ((v,rv), b)            -> range_min_val_func v b s
+        | RangeConstraint((v1,rv1), (v2,rv2), b1,b2)     -> rangeFunc v1 v2 b1 b2 s
+        | RangeConstraint_val_MAX ((v,rv), b)            -> range_val_max_func v b s
+        | RangeConstraint_MIN_val ((v,rv), b)            -> range_min_val_func v b s
     loopRecursiveConstraint c s
 
-let foldSizableTypeConstraint unionFunc intersectionFunc allExceptFunc exceptFunc rootFunc rootFunc2 singleValueFunc 
-    sunionFunc sintersectionFunc sallExceptFunc sexceptFunc srootFunc srootFunc2 ssingleValueFunc 
+let foldSizableTypeConstraint unionFunc intersectionFunc allExceptFunc exceptFunc rootFunc rootFunc2 singleValueFunc
+    sunionFunc sintersectionFunc sallExceptFunc sexceptFunc srootFunc srootFunc2 ssingleValueFunc
     srangeFunc srange_val_max_func srange_min_val_func
-    (c:SizableTypeConstraint<'v>) 
+    (c:SizableTypeConstraint<'v>)
     (s:'UserState) =
     let rec loopRecursiveConstraint (c:SizableTypeConstraint<'v>) (s0:'UserState) =
         match c with
-        | SizeUnionConstraint(c1,c2,b)         -> 
+        | SizeUnionConstraint(c1,c2,b)         ->
             let nc1, s1 = loopRecursiveConstraint c1 s0
             let nc2, s2 = loopRecursiveConstraint c2 s1
             unionFunc nc1 nc2 b s2
-        | SizeIntersectionConstraint(c1,c2)    -> 
+        | SizeIntersectionConstraint(c1,c2)    ->
             let nc1, s1 = loopRecursiveConstraint c1 s0
             let nc2, s2 = loopRecursiveConstraint c2 s1
             intersectionFunc nc1 nc2 s2
-        | SizeAllExceptConstraint(c1)          -> 
+        | SizeAllExceptConstraint(c1)          ->
             let nc1, s1 = loopRecursiveConstraint c1 s0
             allExceptFunc nc1 s1
-        | SizeExceptConstraint(c1,c2)          -> 
+        | SizeExceptConstraint(c1,c2)          ->
             let nc1, s1 = loopRecursiveConstraint c1 s0
             let nc2, s2 = loopRecursiveConstraint c2 s1
             exceptFunc nc1 nc2 s2
-        | SizeRootConstraint(c1)               -> 
+        | SizeRootConstraint(c1)               ->
             let nc1, s1 = loopRecursiveConstraint c1 s0
             rootFunc nc1 s1
-        | SizeRootConstraint2(c1,c2)           -> 
+        | SizeRootConstraint2(c1,c2)           ->
             let nc1, s1 = loopRecursiveConstraint c1 s0
             let nc2, s2 = loopRecursiveConstraint c2 s1
             rootFunc2 nc1 nc2 s2
         | SizeSingleValueConstraint (v, rv)    -> singleValueFunc v rv s0
-        | SizeContraint    intCon   -> foldRangeTypeConstraint sunionFunc sintersectionFunc sallExceptFunc sexceptFunc srootFunc srootFunc2 ssingleValueFunc srangeFunc srange_val_max_func srange_min_val_func intCon s
+        | SizeConstraint    intCon   -> foldRangeTypeConstraint sunionFunc sintersectionFunc sallExceptFunc sexceptFunc srootFunc srootFunc2 ssingleValueFunc srangeFunc srange_val_max_func srange_min_val_func intCon s
     loopRecursiveConstraint c s
 
-let foldSizableTypeConstraint2 unionFunc intersectionFunc allExceptFunc exceptFunc rootFunc rootFunc2 singleValueFunc 
+let foldSizableTypeConstraint2 unionFunc intersectionFunc allExceptFunc exceptFunc rootFunc rootFunc2 singleValueFunc
     foldRangeTypeConstraint
-    (c:SizableTypeConstraint<'v>) 
+    (c:SizableTypeConstraint<'v>)
     (s:'UserState) =
     let rec loopRecursiveConstraint (c:SizableTypeConstraint<'v>) (s0:'UserState) =
         match c with
-        | SizeUnionConstraint(c1,c2,b)         -> 
+        | SizeUnionConstraint(c1,c2,b)         ->
             let nc1, s1 = loopRecursiveConstraint c1 s0
             let nc2, s2 = loopRecursiveConstraint c2 s1
             unionFunc nc1 nc2 b s2
-        | SizeIntersectionConstraint(c1,c2)    -> 
+        | SizeIntersectionConstraint(c1,c2)    ->
             let nc1, s1 = loopRecursiveConstraint c1 s0
             let nc2, s2 = loopRecursiveConstraint c2 s1
             intersectionFunc nc1 nc2 s2
-        | SizeAllExceptConstraint(c1)          -> 
+        | SizeAllExceptConstraint(c1)          ->
             let nc1, s1 = loopRecursiveConstraint c1 s0
             allExceptFunc nc1 s1
-        | SizeExceptConstraint(c1,c2)          -> 
+        | SizeExceptConstraint(c1,c2)          ->
             let nc1, s1 = loopRecursiveConstraint c1 s0
             let nc2, s2 = loopRecursiveConstraint c2 s1
             exceptFunc nc1 nc2 s2
-        | SizeRootConstraint(c1)               -> 
+        | SizeRootConstraint(c1)               ->
             let nc1, s1 = loopRecursiveConstraint c1 s0
             rootFunc nc1 s1
-        | SizeRootConstraint2(c1,c2)           -> 
+        | SizeRootConstraint2(c1,c2)           ->
             let nc1, s1 = loopRecursiveConstraint c1 s0
             let nc2, s2 = loopRecursiveConstraint c2 s1
             rootFunc2 nc1 nc2 s2
         | SizeSingleValueConstraint (v, rv)    -> singleValueFunc v rv s0
-        | SizeContraint    intCon   -> foldRangeTypeConstraint intCon s0
+        | SizeConstraint    intCon   -> foldRangeTypeConstraint intCon s0
     loopRecursiveConstraint c s
 
 
-let foldStringTypeConstraint unionFunc intersectionFunc allExceptFunc exceptFunc rootFunc rootFunc2 singleValueFunc 
+let foldStringTypeConstraint unionFunc intersectionFunc allExceptFunc exceptFunc rootFunc rootFunc2 singleValueFunc
     sunionFunc sintersectionFunc sallExceptFunc sexceptFunc srootFunc srootFunc2 ssingleValueFunc srangeFunc srange_val_max_func srange_min_val_func
-    aunionFunc aintersectionFunc aallExceptFunc aexceptFunc arootFunc arootFunc2 asingleValueFunc arangeFunc arange_val_max_func arange_min_val_func 
-    (c:IA5StringConstraint) 
+    aunionFunc aintersectionFunc aallExceptFunc aexceptFunc arootFunc arootFunc2 asingleValueFunc arangeFunc arange_val_max_func arange_min_val_func
+    (c:IA5StringConstraint)
     (s:'UserState) =
     let rec loopRecursiveConstraint (c:IA5StringConstraint) (s0:'UserState) =
         match c with
-        | StrUnionConstraint(c1,c2,b)         -> 
+        | StrUnionConstraint(c1,c2,b)         ->
             let nc1, s1 = loopRecursiveConstraint c1 s0
             let nc2, s2 = loopRecursiveConstraint c2 s1
             unionFunc nc1 nc2 b s2
-        | StrIntersectionConstraint(c1,c2)    -> 
+        | StrIntersectionConstraint(c1,c2)    ->
             let nc1, s1 = loopRecursiveConstraint c1 s0
             let nc2, s2 = loopRecursiveConstraint c2 s1
             intersectionFunc nc1 nc2 s2
-        | StrAllExceptConstraint(c1)          -> 
+        | StrAllExceptConstraint(c1)          ->
             let nc1, s1 = loopRecursiveConstraint c1 s0
             allExceptFunc nc1 s1
-        | StrExceptConstraint(c1,c2)          -> 
+        | StrExceptConstraint(c1,c2)          ->
             let nc1, s1 = loopRecursiveConstraint c1 s0
             let nc2, s2 = loopRecursiveConstraint c2 s1
             exceptFunc nc1 nc2 s2
-        | StrRootConstraint(c1)               -> 
+        | StrRootConstraint(c1)               ->
             let nc1, s1 = loopRecursiveConstraint c1 s0
             rootFunc nc1 s1
-        | StrRootConstraint2(c1,c2)           -> 
+        | StrRootConstraint2(c1,c2)           ->
             let nc1, s1 = loopRecursiveConstraint c1 s0
             let nc2, s2 = loopRecursiveConstraint c2 s1
             rootFunc2 nc1 nc2 s2
         | StrSingleValueConstraint (v, rv)    -> singleValueFunc v rv s0
-        | StrSizeContraint        intCon   -> foldRangeTypeConstraint sunionFunc sintersectionFunc sallExceptFunc sexceptFunc srootFunc srootFunc2 ssingleValueFunc srangeFunc srange_val_max_func srange_min_val_func intCon s
-        | AlphabetContraint       alphaCon -> foldRangeTypeConstraint aunionFunc aintersectionFunc aallExceptFunc aexceptFunc arootFunc arootFunc2 asingleValueFunc arangeFunc arange_val_max_func arange_min_val_func alphaCon s        
+        | StrSizeConstraint        intCon   -> foldRangeTypeConstraint sunionFunc sintersectionFunc sallExceptFunc sexceptFunc srootFunc srootFunc2 ssingleValueFunc srangeFunc srange_val_max_func srange_min_val_func intCon s
+        | AlphabetConstraint       alphaCon -> foldRangeTypeConstraint aunionFunc aintersectionFunc aallExceptFunc aexceptFunc arootFunc arootFunc2 asingleValueFunc arangeFunc arange_val_max_func arange_min_val_func alphaCon s
     loopRecursiveConstraint c s
 
 
-let foldStringTypeConstraint2 unionFunc intersectionFunc allExceptFunc exceptFunc rootFunc rootFunc2 singleValueFunc 
+let foldStringTypeConstraint2 unionFunc intersectionFunc allExceptFunc exceptFunc rootFunc rootFunc2 singleValueFunc
     foldRangeSizeConstraint foldRangeAlphaConstraint
-    (c:IA5StringConstraint) 
+    (c:IA5StringConstraint)
     (s:'UserState) =
     let rec loopRecursiveConstraint (c:IA5StringConstraint) (s0:'UserState) =
         match c with
-        | StrUnionConstraint(c1,c2,b)         -> 
+        | StrUnionConstraint(c1,c2,b)         ->
             let nc1, s1 = loopRecursiveConstraint c1 s0
             let nc2, s2 = loopRecursiveConstraint c2 s1
             unionFunc nc1 nc2 b s2
-        | StrIntersectionConstraint(c1,c2)    -> 
+        | StrIntersectionConstraint(c1,c2)    ->
             let nc1, s1 = loopRecursiveConstraint c1 s0
             let nc2, s2 = loopRecursiveConstraint c2 s1
             intersectionFunc nc1 nc2 s2
-        | StrAllExceptConstraint(c1)          -> 
+        | StrAllExceptConstraint(c1)          ->
             let nc1, s1 = loopRecursiveConstraint c1 s0
             allExceptFunc nc1 s1
-        | StrExceptConstraint(c1,c2)          -> 
+        | StrExceptConstraint(c1,c2)          ->
             let nc1, s1 = loopRecursiveConstraint c1 s0
             let nc2, s2 = loopRecursiveConstraint c2 s1
             exceptFunc nc1 nc2 s2
-        | StrRootConstraint(c1)               -> 
+        | StrRootConstraint(c1)               ->
             let nc1, s1 = loopRecursiveConstraint c1 s0
             rootFunc nc1 s1
-        | StrRootConstraint2(c1,c2)           -> 
+        | StrRootConstraint2(c1,c2)           ->
             let nc1, s1 = loopRecursiveConstraint c1 s0
             let nc2, s2 = loopRecursiveConstraint c2 s1
             rootFunc2 nc1 nc2 s2
         | StrSingleValueConstraint (v, rv)    -> singleValueFunc v rv s0
-        | StrSizeContraint        intCon   -> foldRangeSizeConstraint  intCon s
-        | AlphabetContraint       alphaCon -> foldRangeAlphaConstraint alphaCon s        
+        | StrSizeConstraint        intCon   -> foldRangeSizeConstraint  intCon s
+        | AlphabetConstraint       alphaCon -> foldRangeAlphaConstraint alphaCon s
     loopRecursiveConstraint c s
-        
 
 
-// Calcualate uPER range 
+
+// Calculate uPER range
 
