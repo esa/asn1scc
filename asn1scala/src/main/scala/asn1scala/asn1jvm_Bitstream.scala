@@ -1029,7 +1029,7 @@ case class BitStream private [asn1scala](
     *
     */
    def appendBitsMSBFirst(srcBuffer: Array[UByte], nBits: Long): Unit = {
-      require(nBits >= 0 && (nBits / 8) < srcBuffer.length)
+      require(nBits >= 0 && nBits <= srcBuffer.length.toLong * 8L)
       require(validate_offset_bits(nBits))
 
       @ghost val oldThis = snapshot(this)
@@ -1043,9 +1043,10 @@ case class BitStream private [asn1scala](
       ).invariant(i >= 0 &&& i <= nBits &&& i / NO_OF_BITS_IN_BYTE <= Int.MaxValue &&&
          buf.length == oldThis.buf.length &&&
          remainingBits == oldThis.remainingBits - i &&&
+         bitIndex() == oldThis.bitIndex() + i &&&
          validate_offset_bits(nBits - i))
 
-   }.ensuring(_ => buf.length == old(this).buf.length && remainingBits == old(this).remainingBits - nBits)
+   }.ensuring(_ => buf.length == old(this).buf.length && bitIndex() == old(this).bitIndex() + nBits)
 
    // ****************** Append Byte Functions **********************
 
